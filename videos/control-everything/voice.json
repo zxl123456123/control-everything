@@ -1,0 +1,60 @@
+{
+  "provider": "Microsoft Edge online TTS",
+  "voice": "zh-CN-XiaoxiaoNeural",
+  "clips": [
+    {
+      "chapter": "01-workspace",
+      "text": "这是 Control Everything，一个围绕实际开发工作的本地面板。",
+      "path": "assets/voice/01-workspace-1.mp3",
+      "duration": 4.848
+    },
+    {
+      "chapter": "01-workspace",
+      "text": "项目、任务和待办集中展示，让下一步一眼可见。",
+      "path": "assets/voice/01-workspace-2.mp3",
+      "duration": 5.04
+    },
+    {
+      "chapter": "01-workspace",
+      "text": "为任务记录负责人、手工状态和会话关联，每一次推进都有位置。",
+      "path": "assets/voice/01-workspace-3.mp3",
+      "duration": 6.072
+    },
+    {
+      "chapter": "02-context",
+      "text": "在工具页查看接入能力，再按完整身份区分不同会话。",
+      "path": "assets/voice/02-context-1.mp3",
+      "duration": 5.328
+    },
+    {
+      "chapter": "02-context",
+      "text": "消息按需读取，终端位置依靠证据核验，不用动画猜测工作状态。",
+      "path": "assets/voice/02-context-2.mp3",
+      "duration": 6.24
+    },
+    {
+      "chapter": "02-context",
+      "text": "额度查询、人工用量和公开资讯，各自保留来源与边界。",
+      "path": "assets/voice/02-context-3.mp3",
+      "duration": 5.544
+    },
+    {
+      "chapter": "03-delivery",
+      "text": "同一主会话中的伙伴，用任务、产物和复核收据协作。",
+      "path": "assets/voice/03-delivery-1.mp3",
+      "duration": 5.328
+    },
+    {
+      "chapter": "03-delivery",
+      "text": "当前已移除像素人物与三维展示，把注意力留给有用的功能。",
+      "path": "assets/voice/03-delivery-2.mp3",
+      "duration": 5.616
+    },
+    {
+      "chapter": "03-delivery",
+      "text": "真实任务执行与 Orca 接入仍待验收。项目持续更新，进度以仓库记录为准。",
+      "path": "assets/voice/03-delivery-3.mp3",
+      "duration": 7.488
+    }
+  ]
+}

@@ -1,0 +1,81 @@
+<template>
+  <style>
+    @font-face{font-family:'Demo Sans';src:url('assets/fonts/DemoSans-Regular.woff2') format('woff2');font-weight:400;font-style:normal;font-display:block}
+    @font-face{font-family:'Demo Sans';src:url('assets/fonts/DemoSans-Bold.woff2') format('woff2');font-weight:600 900;font-style:normal;font-display:block}
+    #root{position:relative;width:100%;height:100%;overflow:hidden;font-family:'Demo Sans';color:#EDF4FA}
+    [class~="scene-context-ground"]{position:absolute;inset:0;background:radial-gradient(ellipse at 78% 40%,#172E3B 0%,#0B1220 65%)}
+    [class~="scene-context-content"]{position:absolute;inset:0}
+    [class~="scene-context-copy"]{position:absolute;left:96px;top:264px;width:420px}
+    [class~="scene-context-eyebrow"]{font-size:22px;letter-spacing:4px;color:#75DFCE;margin-bottom:28px;font-weight:600}
+    [class~="scene-context-title"]{font-size:64px;line-height:1.3;font-weight:700;letter-spacing:-1px;margin:0}
+    [class~="scene-context-title"] span{display:block}
+    [class~="scene-context-accent"]{color:#75DFCE}
+    [class~="scene-context-rule"]{height:2px;width:72px;background:#75DFCE;margin:34px 0}
+    [class~="scene-context-tags"]{display:flex;gap:12px;margin-top:34px}
+    [class~="scene-context-tag"]{font-size:25px;border:1px solid #314457;background:#142233;padding:10px 15px;border-radius:10px;color:#AEC0D0}
+    [class~="scene-context-stage"]{position:absolute;left:560px;top:150px;width:1264px;height:720px;overflow:hidden;border:1px solid #314457;border-radius:18px;background:#142233;box-shadow:0 24px 65px #0007}
+    [class~="scene-context-screen"]{display:block;width:1264px;max-width:none;height:auto;transform-origin:65% 48%}
+    [class~="scene-context-news"]{position:absolute;left:1204px;top:510px;width:620px;height:360px;border:1px solid #75DFCE;border-radius:18px;overflow:hidden;background:#142233;box-shadow:0 22px 65px #0009}
+    [class~="scene-context-news"] img{position:absolute;left:-138px;top:-28px;width:760px;height:auto;max-width:none}
+    [class~="scene-context-news-label"]{position:absolute;right:28px;bottom:15px;font-size:22px;letter-spacing:2px;color:#75DFCE;background:#0B1220;padding:6px 12px;border-radius:6px}
+  </style>
+  <div data-hf-id="hf-6w1s" id="root" data-composition-id="scene-context" data-duration="19.412">
+    <div data-hf-id="hf-rzjo" id="context-ground" class="clip scene-context-ground" data-start="0" data-duration="19.412" data-track-index="0"></div>
+    <div data-hf-id="hf-kra3" id="context-content" class="clip scene-context-content" data-start="0" data-duration="19.412" data-track-index="1">
+      <div data-hf-id="hf-6t4n" class="scene-context-copy" data-context="copy1">
+        <div data-hf-id="hf-ydcu" class="scene-context-eyebrow">接入能力</div>
+        <h2 data-hf-id="hf-t1du" class="scene-context-title"><span data-hf-id="hf-4whm">工具再多</span><span data-hf-id="hf-j5d7">上下文</span><span data-hf-id="hf-0v0i" class="scene-context-accent">依然清楚。</span></h2>
+        <div data-hf-id="hf-cpz0" class="scene-context-tags"><span data-hf-id="hf-rh37" class="scene-context-tag" data-context="tag1">发现</span><span data-hf-id="hf-th0a" class="scene-context-tag" data-context="tag2">观察</span><span data-hf-id="hf-ez09" class="scene-context-tag" data-context="tag3">控制</span></div>
+      </div>
+      <div data-hf-id="hf-7o02" class="scene-context-stage" data-context="agents" data-layout-allow-overlap>
+        <img data-hf-id="hf-79l8" data-layout-allow-overflow class="scene-context-screen" data-context="agentsImage" src="assets/screens/agents.png" alt="真实 Agents 页面：命令发现、会话观察与执行能力分别展示">
+      </div>
+      <div data-hf-id="hf-y58s" class="scene-context-copy" data-context="copy2">
+        <div data-hf-id="hf-dhei" class="scene-context-eyebrow">会话证据</div>
+        <h2 data-hf-id="hf-yhly" class="scene-context-title"><span data-hf-id="hf-meul">按需读取</span><span data-hf-id="hf-pr0l" class="scene-context-accent">按证据定位</span></h2>
+        <div data-hf-id="hf-s36d" class="scene-context-rule"></div>
+      </div>
+      <div data-hf-id="hf-qoel" class="scene-context-stage" data-context="sessions" data-layout-allow-overlap>
+        <img data-hf-id="hf-wxda" data-layout-allow-overflow class="scene-context-screen" data-context="sessionsImage" src="assets/screens/sessions.png" alt="真实会话证据与 Codex 身份元数据，活动状态未知">
+      </div>
+      <div data-hf-id="hf-ywwl" class="scene-context-copy" data-context="copy3">
+        <div data-hf-id="hf-6w96" class="scene-context-eyebrow">额度与资讯</div>
+        <h2 data-hf-id="hf-yvwz" class="scene-context-title"><span data-hf-id="hf-v82d">每一种信息</span><span data-hf-id="hf-34vm">保留自己的</span><span data-hf-id="hf-tbs9" class="scene-context-accent">来源</span></h2>
+        <div data-hf-id="hf-w4ll" class="scene-context-rule"></div>
+      </div>
+      <div data-hf-id="hf-eoaz" class="scene-context-stage" data-context="usage" data-layout-allow-overlap>
+        <img data-hf-id="hf-ia5j" data-layout-allow-overflow class="scene-context-screen" src="assets/screens/usage.png" alt="真实用量与额度页面，Codex 订阅额度未查询">
+      </div>
+      <div data-hf-id="hf-zjrw" class="scene-context-news" data-context="news" data-layout-allow-overlap>
+        <img data-hf-id="hf-7jzz" data-layout-allow-overflow src="assets/screens/news.png" alt="真实 AI 资讯入口，保留官方原文来源">
+        <div data-hf-id="hf-pp8u" class="scene-context-news-label">AI 资讯 · 原文来源</div>
+      </div>
+    </div>
+  </div>
+  <script>
+    (()=>{
+      const d=window.videoData?.['scene-context']||{duration:19.412,cues:[0.8,6.378,12.868]};
+      const cues=d.cues;
+      const b=cues[1],c=cues[2],a=cues[0];
+      const s=name=>'[data-context="'+name+'"]';
+      const tl=gsap.timeline({paused:true});
+      tl.fromTo(s('agents'),{opacity:0,y:24},{opacity:1,y:0,duration:0.65,ease:'power3.out'},0);
+      tl.fromTo(s('copy1'),{opacity:0,y:24},{opacity:1,y:0,duration:0.65,ease:'power3.out'},0.1);
+      tl.fromTo(s('agentsImage'),{scale:1},{scale:1.08,duration:1.2,ease:'power2.inOut'},a+0.5);
+      ['tag1','tag2','tag3'].forEach((name,i)=>tl.fromTo(s(name),{opacity:0,y:18},{opacity:1,y:0,duration:0.65,ease:'power3.out'},a+(b-a)*(.12+i*.23)));
+      tl.to(s('copy1'),{opacity:0,duration:.2,ease:'power2.inOut'},b);
+      tl.to(s('agents'),{opacity:0,duration:.45,ease:'power2.inOut'},b);
+      tl.fromTo(s('copy2'),{opacity:0,y:24},{opacity:1,y:0,duration:.65,ease:'power3.out'},b+.22);
+      tl.fromTo(s('sessions'),{opacity:0,y:18},{opacity:1,y:0,duration:.45,ease:'power2.inOut'},b);
+      tl.fromTo(s('sessionsImage'),{y:-120},{y:-800,duration:(c-b)*.68,ease:'power2.inOut'},b+(c-b)*.17);
+      tl.to(s('copy2'),{opacity:0,duration:.2,ease:'power2.inOut'},c);
+      tl.to(s('sessions'),{opacity:0,duration:.45,ease:'power2.inOut'},c);
+      tl.fromTo(s('copy3'),{opacity:0,y:24},{opacity:1,y:0,duration:.65,ease:'power3.out'},c+.22);
+      tl.fromTo(s('usage'),{opacity:0,y:18},{opacity:1,y:0,duration:.45,ease:'power2.inOut'},c);
+      tl.fromTo(s('news'),{opacity:0,y:28,scale:.97},{opacity:1,y:0,scale:1,duration:.65,ease:'power3.out'},c+(d.duration-c)*.448);
+      tl.set({}, {}, d.duration);
+      window.__timelines=window.__timelines||{};
+      window.__timelines['scene-context']=tl;
+    })();
+  </script>
+</template>

@@ -1,5 +1,13 @@
 # 开发会话指挥室
 
+## 面板演示
+
+[![Control Everything · 60 秒中文介绍](videos/control-everything/renders/poster.jpg)](videos/control-everything/renders/intro.mp4)
+
+[观看视频](videos/control-everything/renders/intro.mp4) · [可更新的视频源码与重渲染说明](videos/control-everything/README.md)
+
+1080p 中文配音与字幕，展示项目任务、会话观察、用量来源和协作收据。画面使用 `44c359f` 版本的真实界面与演示数据；已实现与待验收能力分别说明。
+
 当前能力与待验收边界见 [开发进度](docs/DEVELOPMENT_STATUS.md)。首次检出请复制 `progress-registry.example.json` 为 `progress-registry.json` 并填写本机项目路径，复制 `progress-manual.example.json` 为 `progress-manual.json`；已有本机文件不要覆盖。
 
 ## 多 Agent 工作台

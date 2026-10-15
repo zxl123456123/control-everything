@@ -1,0 +1,96 @@
+{
+  "revision": "44c359f69282e1f70d16def1685544abd6358d19",
+  "synthetic": true,
+  "productionRequests": 0,
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "screens": [
+    "overview",
+    "tasks",
+    "agents",
+    "usage",
+    "news",
+    "garden",
+    "sessions"
+  ],
+  "requests": [
+    {
+      "path": "/workspace",
+      "method": "GET"
+    },
+    {
+      "path": "/workspace.css",
+      "method": "GET"
+    },
+    {
+      "path": "/execution.js",
+      "method": "GET"
+    },
+    {
+      "path": "/workspace.js",
+      "method": "GET"
+    },
+    {
+      "path": "/api/bootstrap",
+      "method": "GET"
+    },
+    {
+      "path": "/api/workspace",
+      "method": "GET"
+    },
+    {
+      "path": "/api/workspace/usage",
+      "method": "GET"
+    },
+    {
+      "path": "/api/workspace/news",
+      "method": "GET"
+    },
+    {
+      "path": "/api/workspace/execution",
+      "method": "GET"
+    },
+    {
+      "path": "/",
+      "method": "GET"
+    },
+    {
+      "path": "/style.css",
+      "method": "GET"
+    },
+    {
+      "path": "/app.js",
+      "method": "GET"
+    },
+    {
+      "path": "/api/bootstrap",
+      "method": "GET"
+    },
+    {
+      "path": "/api/sessions",
+      "method": "GET"
+    },
+    {
+      "path": "/api/workbench",
+      "method": "GET"
+    },
+    {
+      "path": "/api/codex/threads",
+      "method": "GET"
+    },
+    {
+      "path": "/garden.js",
+      "method": "GET"
+    },
+    {
+      "path": "/api/garden",
+      "method": "GET"
+    },
+    {
+      "path": "/api/garden/actors/a1000000-0000-4000-8000-000000000002/public-messages",
+      "method": "GET"
+    }
+  ]
+}

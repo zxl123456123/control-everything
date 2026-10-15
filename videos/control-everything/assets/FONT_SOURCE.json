@@ -1,0 +1,7 @@
+{
+  "font": "Source Han Sans CN / SC",
+  "subset_family": "Demo Sans",
+  "license": "SIL Open Font License 1.1",
+  "upstream": "https://github.com/adobe-fonts/source-han-sans",
+  "note": "Renamed subset of OFL source; regenerate after changing narration or scene text."
+}
