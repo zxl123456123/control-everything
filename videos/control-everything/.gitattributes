@@ -1,2 +1,0 @@
-# Preserve the upstream minified runtime and license header byte for byte.
-assets/gsap.min.js -whitespace
