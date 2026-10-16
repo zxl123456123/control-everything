@@ -41,18 +41,3 @@ Scene 3 (11.188–18.26s): 换tasks截图，左“每一次推进 / 都有位置
 Scene 1 (0–6.378s): 左“工具再多 / 上下文依然清楚。”右agents真实截图，能力区局部放大1.08；“发现 / 观察 / 控制”标签分拍进入，不把发现当运行。
 Scene 2 (6.378–12.868s): 换sessions长截图，窗口从上方证据区缓慢平移到Codex身份；左“按需读取 / 按证据定位”。
 Scene 3 (12.868–19.412s): usage截图出现，15.8s在右下方用小尺寸news截图叠加真实资讯入口；左“每一种信息 / 保留自己的来源”。额度保持未查询，不虚构账单。末尾停留。
-
-## Frame 3 — 交付有据，持续更新
-- src: compositions/frames/03-delivery.html
-- duration: 22.332s
-- transition_in: cut
-- status: animated
-- blueprint: compose
-- asset_candidates: assets/screens/garden.png
-- focal: assets/screens/garden.png
-- scene: 协作收据与当前进度边界
-- voiceover: 任务产物与收据协作；展示精简；真实执行和Orca待验收。
-
-Scene 1 (0–6.378s): 左“交付有据 / 进度可追溯。”右garden真实截图；依次“任务 → 产物 → 复核 → 验收”。
-Scene 2 (6.378–12.244s): 真实garden卡片局部放大，左“保留有用功能”，短字“轻展示 · 重记录”。无像素人或三维元素。
-Scene 3 (12.244–22.332s): 两列状态取代截图，标题“持续更新，边界清楚”。“已实现”：项目与任务、会话观察、协作收据；“待验收”：真实任务执行、Orca运行接入。最后2s显示“Control Everything”和“进度以仓库记录为准”。不淡出黑屏。

@@ -6,7 +6,15 @@ import path from 'node:path';
 const project = path.resolve(import.meta.dirname, '..');
 const repo = path.resolve(project, '../..');
 const revision = execFileSync('git', ['rev-parse', process.argv[2] || 'HEAD'], { cwd: repo, encoding: 'utf8' }).trim();
-const source = name => execFileSync('git', ['show', `${revision}:web/${name}`], { cwd: repo });
+const resources = {
+  'index.html': 'sessions/index.html', 'app.js': 'sessions/app.js', 'style.css': 'sessions/style.css',
+  'workspace.html': 'workspace/workspace.html', 'workspace.js': 'workspace/workspace.js',
+  'workspace.css': 'workspace/workspace.css', 'execution.js': 'workspace/execution.js',
+};
+const source = name => {
+  if (!Object.hasOwn(resources, name)) throw new Error(`Unknown capture resource: ${name}`);
+  return execFileSync('git', ['show', `${revision}:web/${resources[name]}`], { cwd: repo });
+};
 const out = path.join(project, 'assets/screens'); fs.mkdirSync(out, { recursive: true });
 const now = '2026-10-15T05:00:00Z';
 const uid = n => `a1000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
@@ -26,9 +34,6 @@ const sessions = { available:true,reason:null,source:'codex_local',sampled_at:no
 const snapshot = {status:'ok',sampled_at:now,today:'2026-10-15',projects:{status:'available',reason:null,items:projects},tasks:{status:'available',reason:null,total:tasks.length,limit:500,items:tasks},todos:{status:'available',reason:null,items:[{id:'one',text:'确认今天最重要的一件事',project_id:'panel',done:false},{id:'two',text:'把交付结果写进仓库',project_id:'docs',done:true}]},providers,sessions,entrypoints:[]};
 const usage = {status:'ok',codex:{status:'not_checked',source:'codex_app_server',sampled_at:null,last_success_at:null,reason:null,error_code:null,buckets:[]},manual_records:[],manual_status:'available',manual_reason:null,manual_total:0,manual_limit:100};
 const news = {status:'ok',sampled_at:now,items:[{id:'reading',source_id:'openai',source_name:'OpenAI News',title:'从官方来源阅读 AI 动态',url:'https://openai.com/news/',published_at:now,fetched_at:now}],sources:[{id:'openai',name:'OpenAI News',status:'available',reason:null,sampled_at:now,last_success_at:now,item_count:1}]};
-const digest='a'.repeat(64), rootId=uid(1), actorId=uid(2), reviewerId=uid(3), taskId=uid(4);
-const receipt={id:uid(5),root_thread_id:rootId,actor_id:rootId,operation:'garden_accept_artifact',task_id:taskId,version:1,artifact_sha256:digest,summary:'界面清理已交付，测试与独立复核均已记录'};
-const garden={available:true,protocol_version:1,root_thread_id:rootId,revision:1,actors:{[rootId]:{actor_id:rootId,root_thread_id:rootId,parent_thread_id:null,nickname:'协调者',agent_path:'/root',role:'coordinator',capabilities:['garden_accept_artifact']},[actorId]:{actor_id:actorId,root_thread_id:rootId,parent_thread_id:rootId,nickname:'实现伙伴',agent_path:'/root/implementation',role:'worker',capabilities:['garden_submit_artifact']},[reviewerId]:{actor_id:reviewerId,root_thread_id:rootId,parent_thread_id:rootId,nickname:'复核伙伴',agent_path:'/root/review',role:'reviewer',capabilities:['garden_record_review']}},tasks:{[taskId]:{task_id:taskId,assignee_id:actorId,reviewer_id:reviewerId,title:'精简展示与保留业务回归',state:'accepted',version:1,current_valid:true,artifact_path:'docs/delivery.md',artifact_sha256:digest,submit_receipt:{summary:'代码与验证记录已交付'},claim_receipt:{id:uid(6)},review_request:{id:uid(6)},review:{outcome:'pass',summary:'独立复核通过'},accept_receipt:receipt}},receipts:[receipt]};
 const errors=[],requests=[];
 const browser=await chromium.launch(process.env.DEMO_BROWSER ? {channel:process.env.DEMO_BROWSER,headless:true} : {headless:true});
 try {
@@ -40,7 +45,7 @@ try {
     if(req.method()!=='GET') throw new Error('Capture never writes data');
     const staticName={'/workspace':'workspace.html','/':'index.html'}[u.pathname] || u.pathname.slice(1);
     if(/\.(html|css|js)$/.test(staticName)) return route.fulfill({body:source(staticName),contentType:staticName.endsWith('.css')?'text/css':staticName.endsWith('.js')?'text/javascript':'text/html'});
-    const payload={'/api/bootstrap':{csrf_token:'demo-only',garden_root:rootId},'/api/workspace':snapshot,'/api/workspace/usage':usage,'/api/workspace/news':news,'/api/codex/threads':sessions,'/api/garden':garden,'/api/sessions':{sessions:[],source:{user:'demo',host:'example.invalid',config_dir:'/demo'},coverage:{registration_count:0,process_count:0,confirmed_binding_count:0},observed_at:now,age_ms:0,status:'observed'},'/api/workbench':{status:'unknown',reason:'workbench_unavailable'}}[u.pathname];
+    const payload={'/api/bootstrap':{csrf_token:'demo-only'},'/api/workspace':snapshot,'/api/workspace/usage':usage,'/api/workspace/news':news,'/api/codex/threads':sessions,'/api/sessions':{sessions:[],source:{user:'demo',host:'example.invalid',config_dir:'/demo'},coverage:{registration_count:0,process_count:0,confirmed_binding_count:0},observed_at:now,age_ms:0,status:'observed'},'/api/workbench':{status:'unknown',reason:'workbench_unavailable'}}[u.pathname];
     if(payload) return route.fulfill({json:payload});
     return route.fulfill({status:503,json:{status:'unavailable',reason:'demo_read_only'}});
   });
@@ -50,11 +55,9 @@ try {
     await page.locator(`[data-view="${view}"]`).click(); await page.waitForTimeout(150);
     await page.screenshot({path:path.join(out,`${view}.png`)});
   }
-  await page.goto('http://demo.local/'); await page.locator('.garden-roster-card').first().waitFor();
-  await page.locator('.garden-roster-card').first().click(); await page.screenshot({path:path.join(out,'garden.png')});
-  await page.locator('#observation-view').click(); await page.locator('#codex-list button').first().click();
+  await page.goto('http://demo.local/'); await page.locator('#codex-list button').first().click();
   await page.screenshot({path:path.join(out,'sessions.png'),fullPage:true});
   if(errors.length) throw new Error(errors.join('\n'));
-  fs.writeFileSync(path.join(project,'capture-manifest.json'),JSON.stringify({revision,synthetic:true,productionRequests:0,viewport:{width:1440,height:900},screens:['overview','tasks','agents','usage','news','garden','sessions'],requests},null,2)+'\n');
-  console.log(`Captured 7 actual UI views from ${revision}; synthetic data only.`);
+  fs.writeFileSync(path.join(project,'capture-manifest.json'),JSON.stringify({revision,synthetic:true,productionRequests:0,viewport:{width:1440,height:900},screens:['overview','tasks','agents','usage','news','sessions'],requests},null,2)+'\n');
+  console.log(`Captured 6 actual UI views from ${revision}; synthetic data only.`);
 } finally { await browser.close(); }

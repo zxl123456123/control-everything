@@ -12,7 +12,6 @@
     "agents",
     "usage",
     "news",
-    "garden",
     "sessions"
   ],
   "requests": [
@@ -78,18 +77,6 @@
     },
     {
       "path": "/api/codex/threads",
-      "method": "GET"
-    },
-    {
-      "path": "/garden.js",
-      "method": "GET"
-    },
-    {
-      "path": "/api/garden",
-      "method": "GET"
-    },
-    {
-      "path": "/api/garden/actors/a1000000-0000-4000-8000-000000000002/public-messages",
       "method": "GET"
     }
   ]
