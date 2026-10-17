@@ -2,6 +2,12 @@
 
 仓库协作约定见 [AGENTS.md](../AGENTS.md)。本指南约束共同交付结果，不要求成员使用同一助手、模型或个人技能。
 
+## 提问题、建议与改动说明
+
+发现异常用[问题反馈](ISSUE_TEMPLATE/bug_report.md)，提出新需求或体验改进用[功能建议](ISSUE_TEMPLATE/feature_request.md)。按自己的话写，不需要懂代码；负责人、优先级和技术拆分由维护者后续补充。模板放在 `.github/ISSUE_TEMPLATE/*.md`，不保存运行数据。
+
+提交 PR 时使用[改动说明模板](pull_request_template.md)，回答为什么改、改了什么、如何验证和剩余注意事项。小改动可以每项只写一句；验证结果仍须如实记录。模板用于说明已有工作，不改变当前分支、审查和 CI 政策；本机开发记录继续放在 ignored `docs/`，不复制整份工作流报告到 Issue 或 PR。
+
 公开使用说明放在 `guide/`，贡献指南放在 `.github/CONTRIBUTING.md`；本机开发记录仍只放 ignored `docs/`。下文命令均从仓库根目录执行。
 
 ## 功能目录与新增代码归属
