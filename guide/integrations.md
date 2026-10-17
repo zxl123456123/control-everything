@@ -8,15 +8,15 @@
 
 基础项目管理无需 SSH、Zellij、WezTerm 或 reader。已有用户也通过自己的 profile 登记这些资源；源码不提供个人服务器、工具路径、完整性摘要或启动器默认值。设置页显示每段的“未配置 / 已禁用 / 已配置”和重启提示。“已配置”仅表示通过配置校验，实际连接还会核验来源、版本和身份。
 
-高级文件采用 version 2，包含固定四段 remote、terminal、workbench、launchers。随仓库提供的 [integration-settings.example.json](../examples/integrations/integration-settings.example.json) 四段均为 null，可直接校验。首次复制到 ignored `work/` 后编辑自己的值；已有本机配置文件时直接编辑，保留其现有内容：
+高级文件采用 version 2，包含固定四段 remote、terminal、workbench、launchers。随仓库提供的 [integration-settings.example.json](examples/integrations/integration-settings.example.json) 四段均为 null，可直接校验。首次复制到 ignored `work/` 后编辑自己的值；已有本机配置文件时直接编辑，保留其现有内容：
 
 ```powershell
 New-Item -ItemType Directory -Force work | Out-Null
-Copy-Item examples/integrations/integration-settings.example.json work/integration-settings.json
+Copy-Item guide/examples/integrations/integration-settings.example.json work/integration-settings.json
 $settingsFile = (Resolve-Path work/integration-settings.json).Path
-& '.venv/Scripts/python.exe' -m session_panel.profile validate-settings --file $settingsFile
-& '.venv/Scripts/python.exe' -m session_panel.profile import-settings --file $settingsFile
-& '.venv/Scripts/python.exe' -m session_panel.profile status
+& '.venv/Scripts/python.exe' -m control_everything.profile validate-settings --file $settingsFile
+& '.venv/Scripts/python.exe' -m control_everything.profile import-settings --file $settingsFile
+& '.venv/Scripts/python.exe' -m control_everything.profile status
 ```
 
 使用独立数据目录时，为 init、import-settings、status 和 gateway 都传同一个绝对 `--data-dir`。validate-settings 只校验该文件，不写 profile、不探测工具或网络。import-settings 备份后整体替换四段，保留 Codex 设置和管理记录；文件中的 null 会清除该段，enabled=false 保留完整配置但禁用。编辑时保留仍需使用的其他段，不能把单段文件当增量补丁。配置写入竞争返回 config_busy，可在另一个写入结束后重试。
@@ -117,13 +117,13 @@ WezTerm 状态区单独观察登记的 Zellij session 后台、GUI 进程、交�
 
 ## Codex MCP 接入
 
-先保持已配置 remote 的网关在 127.0.0.1:8766 运行；当前 stdio 桥固定访问该端口。使用其他端口可正常使用网页，但不能把该实例视为当前 MCP 桥的目标。将示例中的 command/cwd 换成自己的检出路径。`.codex/config.toml.example` 是可审阅的示例，协调者只合并该 server 表到受信任项目的 `.codex/config.toml`，不覆盖其它服务器或写全局配置。
+先保持已配置 remote 的网关在 127.0.0.1:8766 运行；当前 stdio 桥固定访问该端口。使用其他端口可正常使用网页，但不能把该实例视为当前 MCP 桥的目标。将示例中的 command/cwd 换成自己的检出路径。`guide/examples/integrations/codex.toml.example` 是可审阅的示例，协调者只合并该 server 表到受信任项目的 `.codex/config.toml`，不覆盖其它服务器或写全局配置。
 
 ```toml
 [mcp_servers.remote_claude_sessions]
-command = "C:/example/session-panel/.venv/Scripts/python.exe"
-args = ["-m", "session_panel.mcp_stdio"]
-cwd = "C:/example/session-panel"
+command = "C:/example/control-everything/.venv/Scripts/python.exe"
+args = ["-m", "control_everything.mcp_stdio"]
+cwd = "C:/example/control-everything"
 enabled_tools = ["list_sessions", "get_session_status", "get_session_messages"]
 ```
 

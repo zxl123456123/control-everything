@@ -8,7 +8,7 @@
 
 提交 PR 时使用[改动说明模板](pull_request_template.md)，回答为什么改、改了什么、如何验证和剩余注意事项。小改动可以每项只写一句；验证结果仍须如实记录。模板用于说明已有工作，不改变当前分支、审查和 CI 政策；本机开发记录继续放在 ignored `docs/`，不复制整份工作流报告到 Issue 或 PR。
 
-公开使用说明放在 `guide/`，贡献指南放在 `.github/CONTRIBUTING.md`；本机开发记录仍只放 ignored `docs/`。下文命令均从仓库根目录执行。
+公开使用说明和接入示例统一放在 `guide/`，开发脚本放在 `tools/scripts/`，贡献指南放在 `.github/CONTRIBUTING.md`；本机开发记录仍只放 ignored `docs/`。下文命令均从仓库根目录执行。
 
 ## 功能目录与新增代码归属
 
@@ -16,23 +16,23 @@
 
 | 后端目录 | 职责 |
 |---|---|
-| `src/session_panel/http` | HTTP 路由、静态白名单与服务装配 |
-| `src/session_panel/sessions` | 会话观察、索引、终端与本机进程证据 |
-| `src/session_panel/workspace` | 项目、进度、管理存储与来源观察 |
-| `src/session_panel/execution` | 执行准入、执行记录与受控进程 |
-| `src/session_panel/profiles` | 用户配置、导入备份与离线恢复 |
-| `src/session_panel/integrations` | 外部接入、固定启动器与旧只读 MCP |
-| `src/session_panel/installation` | Windows完整产品清单、所属登记与协作维护；不写业务库 |
-| `src/session_panel/platform` | Windows Job、安装身份及句柄原语；不依赖上层功能包 |
+| `src/control_everything/http` | HTTP 路由、静态白名单与服务装配 |
+| `src/control_everything/sessions` | 会话观察、索引、终端与本机进程证据 |
+| `src/control_everything/workspace` | 项目、进度、管理存储与来源观察 |
+| `src/control_everything/execution` | 执行准入、执行记录与受控进程 |
+| `src/control_everything/profiles` | 用户配置、导入备份与离线恢复 |
+| `src/control_everything/integrations` | 外部接入、固定启动器与旧只读 MCP |
+| `src/control_everything/installation` | Windows完整产品清单、所属登记与协作维护；不写业务库 |
+| `src/control_everything/platform` | Windows Job、安装身份及句柄原语；不依赖上层功能包 |
 | `native/observer` | Windows 只读进程观察、受限本机管道及核验后的窗口返回；不写管理库 |
 
-生产 Python 包只放在 `src/session_panel`，不要在根目录建立影子包。`src/session_panel/paths.py` 分别定位检出目录、包内资源和用户数据；源码模式保留旧根数据合同，安装模式不会把程序目录当数据目录。包根的四个旧 CLI 文件只保留兼容入口，内部引用指向功能包中的真实实现，不能依赖入口转发内部符号。
+生产 Python 包只放在 `src/control_everything`，不要在根目录建立影子包。`src/control_everything/paths.py` 分别定位检出目录、包内资源和用户数据；源码模式保留旧根数据合同，安装模式不会把程序目录当数据目录。包根的四个 CLI 文件只保留模块入口，内部引用指向功能包中的真实实现，不能依赖入口转发内部符号。
 
 前端按 `web/sessions`、`web/progress`、`web/workspace` 分组；执行界面属于工作台，放在 `web/workspace/execution.js`。新增页面资源放入所属功能目录，并在 HTTP 静态白名单中显式映射。物理路径与公开 URL 分开维护：搬文件不改变 `/workspace`、`/workspace.js` 等地址，也不改变普通脚本加载顺序。
 
 测试按类型落位：Python 单元/合成接口测试在 `tests/backend`，纯 Node 源码与 DOM 合同在 `tests/frontend`，浏览器及协议 harness 在 `tests/e2e`，共享合成程序在 `tests/fixtures`。Python 发现入口仍是 `tests`；新增后端测试保持可递归发现。新增功能若横跨前后端，各自放入对应功能目录，并补充相应类型测试。
 
-公开配置样例属于 `examples/integrations`，受支持的旧记录格式样例属于 `examples/legacy`；它们不是真实运行数据。新记录写入所选 profile，旧根 JSON/SQLite 的默认位置和显式导入合同保持。远端 reader 的独立依赖在 `tools/remote-reader/requirements.txt`，不要装进本机环境。根 `requirements.txt`、`rust-toolchain.toml` 和 `.cargo/config.toml` 保持现有工具入口。
+公开配置样例属于 `guide/examples/integrations`，受支持的旧记录格式样例属于 `guide/examples/legacy`；它们不是真实运行数据。新记录写入所选 profile，旧根 JSON/SQLite 的默认位置和显式导入合同保持。远端 reader 的独立依赖在 `tools/remote-reader/requirements.txt`，不要装进本机环境。根 `requirements.txt`、`rust-toolchain.toml` 和 `.cargo/config.toml` 保持现有工具入口。
 
 ## 环境和验证
 
@@ -50,7 +50,7 @@
 | installation | sessions 的窄身份/管道协议、基础模块；不依赖业务、配置或 HTTP |
 | http | 上述功能的装配与公开接口 |
 
-同域内 `workspace.validation` 不依赖 store/service，store 不依赖 service。项目和事项的关联判断继续使用原写连接和事务，不拆库或在检查后另开连接写入。旧 CLI 与兼容重导出供旧调用使用，新内部代码引用真实实现，不通过动态导入绕过边界。
+同域内 `workspace.validation` 不依赖 store/service，store 不依赖 service。项目和事项的关联判断继续使用原写连接和事务，不拆库或在检查后另开连接写入。包内 CLI 与兼容重导出保留功能边界，新内部代码引用真实实现，不通过动态导入绕过边界。
 
 安装模块只有 HTTP 装配层可以调用；sessions、workspace、profiles、execution、integrations 和基础模块不得反向依赖它。`installation.manifest` 只用标准库，构建器与运行时共用；registry 不依赖 maintenance。完整产品在绑定成功后核基础闭包、持安装互斥登记 HTTP 与 profile、启动观察后释放，退出只清自己的 HTTP 活动记录。源码检出及普通 wheel 不登记这套安装；原生缺失或 pin 不匹配仍可管理并显示受限，基础闭包损坏会阻止启动。
 
@@ -62,7 +62,7 @@
 
 ```powershell
 python -m pip --isolated install -r tools/architecture/requirements.txt
-python scripts/check_architecture.py layout
+python tools/scripts/check_architecture.py layout
 lint-imports --config tools/architecture/importlinter.ini --no-cache --no-logo
 python tests/e2e/verify_architecture.py --output work/architecture-check-unique
 ```
@@ -98,7 +98,7 @@ python -m venv .venv
 
 ### 观察前端 TypeScript 开发
 
-观察输入仅 `web/workspace/observation.ts` 与 `observation.types.d.ts`，manifest固定唯一输出 `observation.js`。资讯另用 `news.ts/news.types.d.ts`、`tools/typescript/news.manifest.json`，固定唯一输出 `web/workspace/news.js`。两配置为 `tools/typescript/tsconfig.observation.json` 和 `tools/typescript/tsconfig.news.json`，其中路径相对配置所在目录解析。两入口在 `scripts/frontend_compile.cjs` 复用同一小型编译流程，每个目标分别核完整输入/输出与窗口出口，不接任意路径或动态manifest参数。两配置开严格检查、禁止 map/inline源码及声明输出，保持普通 IIFE/Window API；不引入 React/Vite/模块加载器。任务中心等现有 JS 保留独立归属。
+观察输入仅 `web/workspace/observation.ts` 与 `observation.types.d.ts`，manifest固定唯一输出 `observation.js`。资讯另用 `news.ts/news.types.d.ts`、`tools/typescript/news.manifest.json`，固定唯一输出 `web/workspace/news.js`。两配置为 `tools/typescript/tsconfig.observation.json` 和 `tools/typescript/tsconfig.news.json`，其中路径相对配置所在目录解析。两入口在 `tools/scripts/frontend_compile.cjs` 复用同一小型编译流程，每个目标分别核完整输入/输出与窗口出口，不接任意路径或动态manifest参数。两配置开严格检查、禁止 map/inline源码及声明输出，保持普通 IIFE/Window API；不引入 React/Vite/模块加载器。任务中心等现有 JS 保留独立归属。
 
 固定官方 `typescript@5.9.3`，真实 package-lock.json 一起提交。已有正确项目工具不重复准备；缺失时 build/check 明确非零，不联网、不找全局 tsc。首次或干净复现的准备是单独显式动作，仅作用于自己检出的 `tools/typescript/node_modules`；`npm ci` 会清该工具包依赖目录，先确认归属。下面在专用 PowerShell 会话从仓库根执行，两个通用示例路径须替换为已安装的 Node24 和 npm CLI，不能让宿主 npm.cmd 偷换 Node：
 
@@ -124,12 +124,12 @@ if ($LASTEXITCODE -ne 0) { throw 'Fixed TypeScript preparation failed' }
 日常复用已准备工具，从根目录执行；`node`须是上面核过的Node24（可用 `& $tsNode` 替换）：
 
 ```powershell
-node scripts/build_observation.cjs typecheck
-node scripts/build_observation.cjs build
-node scripts/build_observation.cjs check
-node scripts/build_news.cjs typecheck
-node scripts/build_news.cjs build
-node scripts/build_news.cjs check
+node tools/scripts/build_observation.cjs typecheck
+node tools/scripts/build_observation.cjs build
+node tools/scripts/build_observation.cjs check
+node tools/scripts/build_news.cjs typecheck
+node tools/scripts/build_news.cjs build
+node tools/scripts/build_news.cjs check
 node --test tests/frontend/test_execution_ui.cjs tests/frontend/test_progress_ui.cjs tests/frontend/test_workspace_history_ui.cjs tests/frontend/test_observation_ui.cjs tests/frontend/test_task_center_ui.cjs tests/frontend/test_observation_build.cjs tests/frontend/test_news_ui.cjs tests/frontend/test_news_build.cjs tests/frontend/test_quota_ui.cjs
 ```
 
@@ -156,10 +156,10 @@ rustup toolchain install 1.97.1-x86_64-pc-windows-msvc --profile minimal --compo
 已经准备好的检出不重复安装。普通构建入口只检查七个实际工具文件，缺失明确失败，不自动下载工具链、不回落宿主。各子进程继承固定项目 RUSTUP_HOME/CARGO_HOME/TARGET_DIR 与 RUSTUP_AUTO_INSTALL=0；项目 crate 可按 Cargo.lock 下载到项目缓存。不要手动用未隔离的 rustup/cargo 代替以下入口：
 
 ```powershell
-.\.venv\Scripts\python.exe -B -X utf8 scripts/build_observer.py fmt
-.\.venv\Scripts\python.exe -B -X utf8 scripts/build_observer.py test
-.\.venv\Scripts\python.exe -B -X utf8 scripts/build_observer.py clippy
-.\.venv\Scripts\python.exe -B -X utf8 scripts/build_observer.py build
+.\.venv\Scripts\python.exe -B -X utf8 tools/scripts/build_observer.py fmt
+.\.venv\Scripts\python.exe -B -X utf8 tools/scripts/build_observer.py test
+.\.venv\Scripts\python.exe -B -X utf8 tools/scripts/build_observer.py clippy
+.\.venv\Scripts\python.exe -B -X utf8 tools/scripts/build_observer.py build
 node --test tests/frontend/test_observation_ui.cjs
 ```
 
@@ -169,11 +169,11 @@ node --test tests/frontend/test_observation_ui.cjs
 
 ```powershell
 $checkData = Join-Path (Get-Location) 'work/new-member-profile'
-.\.venv\Scripts\python.exe -m session_panel.profile init --data-dir $checkData
-.\.venv\Scripts\python.exe -m session_panel.profile validate-settings --file (Resolve-Path examples/integrations/integration-settings.example.json).Path
-.\.venv\Scripts\python.exe -m session_panel.profile import-settings --file (Resolve-Path examples/integrations/integration-settings.example.json).Path --data-dir $checkData
-.\.venv\Scripts\python.exe -m session_panel.profile status --data-dir $checkData
-.\.venv\Scripts\python.exe -m session_panel.gateway --data-dir $checkData --port 14401
+.\.venv\Scripts\python.exe -m control_everything.profile init --data-dir $checkData
+.\.venv\Scripts\python.exe -m control_everything.profile validate-settings --file (Resolve-Path guide/examples/integrations/integration-settings.example.json).Path
+.\.venv\Scripts\python.exe -m control_everything.profile import-settings --file (Resolve-Path guide/examples/integrations/integration-settings.example.json).Path --data-dir $checkData
+.\.venv\Scripts\python.exe -m control_everything.profile status --data-dir $checkData
+.\.venv\Scripts\python.exe -m control_everything.gateway --data-dir $checkData --port 14401
 ```
 
 页面验收负责人打开本机 14401/workspace，登记自己创建的测试项目目录，确认任务/人工记录可保存、四项高级接入显示未配置；需要 Codex 时只登记自己的库或独立合成库。停止该实例再启动同目录，确认数据保留。启动服务和浏览器人工验收分别留证，不以单元测试替代。
@@ -184,7 +184,7 @@ $checkData = Join-Path (Get-Location) 'work/new-member-profile'
 npm install --prefix work/browser playwright
 $env:NODE_PATH = (Resolve-Path work/browser/node_modules).Path
 node -e "console.log(require.resolve('playwright'))"
-node tests/e2e/verify_session_panel.cjs --fixture
+node tests/e2e/verify_control_everything.cjs --fixture
 node tests/e2e/verify_execution.cjs --fixture
 node tests/e2e/verify_workspace.cjs --fixture
 ```
@@ -199,7 +199,7 @@ node tests/e2e/verify_workspace.cjs --fixture
 
 ### 管理库schema2与离线迁移验证
 
-管理schema、profile配置和backup manifest分别版本化；schema1只能显式通过 `python -m session_panel.profile migrate-tasks --data-dir <绝对目录>` 升级。新库直接schema2；restore兼容manifest1/schema1与manifest2/schema2，旧结构恢复发布后仍须显式迁移。不得在HTTP启动、Profile.open或配置保存中隐式升级，不删除未知表或执行账本以适配schema。
+管理schema、profile配置和backup manifest分别版本化；schema1只能显式通过 `python -m control_everything.profile migrate-tasks --data-dir <绝对目录>` 升级。新库直接schema2；restore兼容manifest1/schema1与manifest2/schema2，旧结构恢复发布后仍须显式迁移。不得在HTTP启动、Profile.open或配置保存中隐式升级，不删除未知表或执行账本以适配schema。
 
 任务存储的唯一写表为task_items，tasks/todos仅为保留原ID的只读视图。所有管理连接严格核schema后注册无副作用writer版本函数，固定DML guards拒旧连接误写；这是版本兼容机制，不是对恶意DB编辑的安全认证。项目写入及事项写入要在同一事务失效列表revision，不能只修改项目归档状态而接受旧分页。
 
@@ -219,8 +219,8 @@ node tests/e2e/verify_workspace.cjs --fixture
 安装固定的官方 Gitleaks 8.30.1 Windows x64（下载资产 SHA-256 核验后才解压，不修改 PATH）：
 
 ```powershell
-pwsh -File scripts/install_gitleaks.ps1 -Destination work/tools/gitleaks-8.30.1
-python scripts/check_repository.py changes --base <base-commit> --head <head-commit> --report work/checks/changes.json
+pwsh -File tools/scripts/install_gitleaks.ps1 -Destination work/tools/gitleaks-8.30.1
+python tools/scripts/check_repository.py changes --base <base-commit> --head <head-commit> --report work/checks/changes.json
 ```
 
 安装命令只运行一次，安装器拒绝覆盖已有目录。后续复用已校验工具；若选其他 ignored 工具目录，检查命令加 `--gitleaks <该目录/gitleaks.exe>`。升级须重新核实官方版本和资产校验值。
@@ -236,7 +236,7 @@ python scripts/check_repository.py changes --base <base-commit> --head <head-com
 ```
 
 ```powershell
-python scripts/check_repository.py release --manifest work/checks/candidates.json --report work/checks/release.json
+python tools/scripts/check_repository.py release --manifest work/checks/candidates.json --report work/checks/release.json
 ```
 
 该例只是两文件候选，不是完整产品。全树候选可由 `git ls-files -z` 的路径清单生成，再明确加入待发布的未跟踪文件；先筛选禁入路径，绝不宽扫 ignored 目录。报告须列出 included/excluded/blocked；有 excluded 时结果只能说明子集。发布前必须确认模块、资源和文档闭包完整并单独检查历史边界。
@@ -257,13 +257,13 @@ main 的远端规则仅保留防强推与防删分支，不要求 PR 或必需 C
 
 ## 源码与测试目录
 
-后端生产源码在 `src/session_panel`，业务按 `http`、`sessions`、`workspace`、`execution`、`profiles`、`integrations` 组织，安装维护归 `installation`，Win32 适配归 `platform`。前端使用原生 HTML/CSS 和普通脚本，唯一资源源码放在 `web/sessions`、`web/progress`、`web/workspace`，构建 wheel 时按 HTTP 白名单收进包内；普通启动直接消费已交付 JS，无需 Node、npm 或现场编译。公开页面和资源 URL 保持不变，例如 `/workspace.js` 对应物理文件 `web/workspace/workspace.js`。
+后端生产源码在 `src/control_everything`，业务按 `http`、`sessions`、`workspace`、`execution`、`profiles`、`integrations` 组织，安装维护归 `installation`，Win32 适配归 `platform`。前端使用原生 HTML/CSS 和普通脚本，唯一资源源码放在 `web/sessions`、`web/progress`、`web/workspace`，构建 wheel 时按 HTTP 白名单收进包内；普通启动直接消费已交付 JS，无需 Node、npm 或现场编译。公开页面和资源 URL 保持不变，例如 `/workspace.js` 对应物理文件 `web/workspace/workspace.js`。
 
-本机观察与每日资讯分别以 `web/workspace/observation.ts`、`news.ts` 和邻近类型声明为手写源码，两个 JS 为同一固定 TypeScript 5.9.3 的生成物；其他模块继续手写 JS。修改对应 TS 后运行 `node scripts/build_observation.cjs build` 或 `node scripts/build_news.cjs build`，连同生成 JS 提交，再用对应 `check` 比较完整字节；不要手改生成物。Node24/项目内固定工具的显式准备、缺工具失败与全部验证命令见[观察前端 TypeScript 开发](CONTRIBUTING.md#观察前端-typescript-开发)。原 URL 和普通脚本相对顺序保留，新 `/news.js` 在页面主脚本前加载，不增加常驻 Node 服务。
+本机观察与每日资讯分别以 `web/workspace/observation.ts`、`news.ts` 和邻近类型声明为手写源码，两个 JS 为同一固定 TypeScript 5.9.3 的生成物；其他模块继续手写 JS。修改对应 TS 后运行 `node tools/scripts/build_observation.cjs build` 或 `node tools/scripts/build_news.cjs build`，连同生成 JS 提交，再用对应 `check` 比较完整字节；不要手改生成物。Node24/项目内固定工具的显式准备、缺工具失败与全部验证命令见[观察前端 TypeScript 开发](CONTRIBUTING.md#观察前端-typescript-开发)。原 URL 和普通脚本相对顺序保留，新 `/news.js` 在页面主脚本前加载，不增加常驻 Node 服务。
 
-测试按 `tests/backend`（Python）、`tests/frontend`（纯 Node 合同）、`tests/e2e`（浏览器/协议 harness）和 `tests/fixtures`（合成替身）归类。新增功能放入所属功能目录，测试按类型放置；详细职责与验证命令见 [参与开发](CONTRIBUTING.md)。原有 `python -m session_panel.gateway` 等外部 CLI 继续使用，内部代码直接导入功能包实现。
+测试按 `tests/backend`（Python）、`tests/frontend`（纯 Node 合同）、`tests/e2e`（浏览器/协议 harness）和 `tests/fixtures`（合成替身）归类。新增功能放入所属功能目录，测试按类型放置；详细职责与验证命令见 [参与开发](CONTRIBUTING.md)。源码 CLI 统一为 `python -m control_everything.gateway` 等新包名命令，内部代码直接导入功能包实现。
 
-公开接入样例放在 `examples/integrations`，旧格式导入样例放在 `examples/legacy`；TypeScript、架构检查和远端 reader 的开发配置分别放在 `tools` 的对应目录。根目录保留项目入口说明、共同依赖及工具自动发现需要的配置；`src/session_panel` 是后端 Python 包名，功能继续按所属子包开发，产品显示名称不改变导入和 CLI 合同。实际 profile、数据库和日志不属于源码树，不随目录整理搬迁。
+公开接入样例放在 `guide/examples/integrations`，旧格式导入样例放在 `guide/examples/legacy`；TypeScript、架构检查和远端 reader 的开发配置分别放在 `tools` 的对应目录。根目录保留项目入口说明、共同依赖及工具自动发现需要的配置；`src/control_everything` 是后端 Python 包名，功能继续按所属子包开发，产品显示名称不改变导入和 CLI 合同。实际 profile、数据库和日志不属于源码树，不随目录整理搬迁。
 
 多人开发同时检查文件归属与 Python 依赖方向；新增构建单元须连同规则和指南审查。HTTP 网关和页面主脚本负责装配，完整业务处理及展示放入所属模块。检查命令、允许依赖和合并要求见[参与开发](CONTRIBUTING.md#模块边界与新增代码)。
 
@@ -276,9 +276,9 @@ main 的远端规则仅保留防强推与防删分支，不要求 PR 或必需 C
 | 公开资讯与官方额度 | 资讯按源容忍超时；额度仅显式查询，未配置账号不影响管理 |
 | Node、TypeScript、Rust 编译器、浏览器测试工具 | 开发或验证工具，不属于普通用户的业务依赖 |
 
-当前产品不开放 Agent 执行、审批或费用试跑。Orca 不属于产品运行依赖；仓库中的 `scripts/orca_preflight.py` 及其测试仅为未接入工作台的历史离线预检工具。
+当前产品不开放 Agent 执行、审批或费用试跑。Orca 不属于产品运行依赖；仓库中的 `tools/scripts/orca_preflight.py` 及其测试仅为未接入工作台的历史离线预检工具。
 
-公开接入样例放在 `examples/integrations`；`examples/legacy` 的 [项目登记样例](../examples/legacy/progress-registry.example.json) 和 [人工进度样例](../examples/legacy/progress-manual.example.json) 说明仍受支持的旧记录格式，供显式导入时参考。正常使用的数据保存在所选 profile；整理样例不会移动源码旁已有的私人文件。固定 TypeScript 配置与编译器清单位于 `tools/typescript`，远端正文 reader 的依赖单独位于 `tools/remote-reader/requirements.txt`；本机依赖仍使用根 `requirements.txt`。
+公开接入样例放在 `guide/examples/integrations`；`guide/examples/legacy` 的 [项目登记样例](../guide/examples/legacy/progress-registry.example.json) 和 [人工进度样例](../guide/examples/legacy/progress-manual.example.json) 说明仍受支持的旧记录格式，供显式导入时参考。正常使用的数据保存在所选 profile；整理样例不会移动源码旁已有的私人文件。固定 TypeScript 配置与编译器清单位于 `tools/typescript`，远端正文 reader 的依赖单独位于 `tools/remote-reader/requirements.txt`；本机依赖仍使用根 `requirements.txt`。
 
 ## 验证与撤销
 
@@ -286,12 +286,12 @@ main 的远端规则仅保留防强推与防删分支，不要求 PR 或必需 C
 
 ```powershell
 & '.venv/Scripts/python.exe' -m unittest discover -s tests -v
-node scripts/build_observation.cjs check
-node scripts/build_news.cjs typecheck
-node scripts/build_news.cjs check
+node tools/scripts/build_observation.cjs check
+node tools/scripts/build_news.cjs typecheck
+node tools/scripts/build_news.cjs check
 node --test tests/frontend/test_execution_ui.cjs tests/frontend/test_progress_ui.cjs tests/frontend/test_workspace_history_ui.cjs tests/frontend/test_observation_ui.cjs tests/frontend/test_task_center_ui.cjs tests/frontend/test_observation_build.cjs tests/frontend/test_news_ui.cjs tests/frontend/test_news_build.cjs tests/frontend/test_quota_ui.cjs
 node tests/e2e/verify_workspace.cjs --fixture
-node tests/e2e/verify_session_panel.cjs --fixture
+node tests/e2e/verify_control_everything.cjs --fixture
 ```
 
 真实 SSH 补绑、独立 SDK 合成链/空结果对照、选中真实 UUID 分页、Edge 桌面/360px、真实 focus 和 Codex 加载由协调者分别承接。fixture 自证不代表这些已验收；详细状态与所有失败保留在本地开发记录及 ignored `work/`，不提交仓库。
