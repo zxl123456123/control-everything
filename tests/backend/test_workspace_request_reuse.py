@@ -3,6 +3,7 @@
 import copy
 import hashlib
 import json
+import sqlite3
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
@@ -14,7 +15,7 @@ from control_everything.profiles.profile import Profile
 from control_everything.sessions.codex_index import unavailable
 from control_everything.workspace.observations import scope_roots
 from control_everything.workspace.service import WorkspaceService
-from control_everything.workspace.store import WorkspaceError
+from control_everything.workspace.store import WorkspaceError, WorkspaceStore
 from tests.backend.test_observation_settings import registration, save
 from tests.backend.test_observer_protocol import sample
 from tests.backend.test_project_management import project_body
@@ -43,6 +44,77 @@ class WorkspaceRequestReuseTests(unittest.TestCase):
         key = key or "codex:" + str(uuid4())
         return {**unavailable(0), "available": True, "reason": None, "total_visible": 1,
                 "items": [{"session_key": key, "cwd": str(cwd)}]}
+
+    def test_project_list_query_count_is_bounded_for_synthetic_scales(self):
+        connect = sqlite3.connect
+        for size in (0, 5, 20, 50, 200):
+            with self.subTest(projects=size):
+                store = WorkspaceStore(self.root / f"scale-{size}.sqlite3", profile=True)
+                with store.connection() as connection:
+                    for index in range(size):
+                        identity, path = "p-" + f"{index:032x}", str(self.root / str(index))
+                        connection.execute("INSERT INTO projects VALUES(?,?,0,NULL,NULL,?)",
+                                           (identity, "Synthetic", index))
+                        connection.execute("INSERT INTO project_directories VALUES(?,?,?,?,1)",
+                                           (identity, "main", path, path.lower()))
+                        connection.execute("INSERT INTO project_sources VALUES(?,'none',NULL,NULL)", (identity,))
+                statements = []
+
+                def traced(database, *args, **kwargs):
+                    connection = connect(database, *args, **kwargs)
+                    if str(database) == str(store.path):
+                        connection.set_trace_callback(statements.append)
+                    return connection
+
+                with patch("sqlite3.connect", side_effect=traced):
+                    rows = store.list_projects()
+                queries = [sql for sql in statements if sql.upper().startswith("SELECT ")
+                           and any("FROM " + table in sql.upper() for table in
+                                   ("PROJECTS", "PROJECT_DIRECTORIES", "PROJECT_SOURCES"))]
+                self.assertEqual(len(rows), size)
+                self.assertEqual(len(queries), 3 if size else 1)
+
+    def test_project_list_preserves_fields_order_filters_and_next_read(self):
+        directories = [{"id": "d-" + letter * 32, "path": str(self.root / letter)} for letter in ("b", "a")]
+        directories.insert(1, {"id": "main", "path": str(self.root / "main")})
+        project = self.store.save_project(project_body(self.root / "main", directories=directories,
+            source={"kind": "text", "directory_id": directories[0]["id"], "relative_path": "progress.md"}))
+        archived = self.project("archived")
+        archived = self.store.save_project(project_body(self.root / "archived", id=archived["id"], archived=True))
+
+        def previous_read(include_archived):
+            with self.store.connection() as connection:
+                rows = connection.execute("SELECT * FROM projects" +
+                    ("" if include_archived else " WHERE archived=0") + " ORDER BY position,id").fetchall()
+                result = []
+                for row in rows:
+                    item = dict(row)
+                    item["archived"] = bool(item["archived"])
+                    item["directories"] = [{"id": value["binding_id"], "path": value["path"]}
+                        for value in connection.execute("SELECT binding_id,path FROM project_directories "
+                            "WHERE project_id=? ORDER BY is_primary DESC,binding_id", (item["id"],))]
+                    item["root"] = next(value["path"] for value in item["directories"] if value["id"] == "main")
+                    item["source"] = dict(connection.execute("SELECT kind,directory_id,relative_path "
+                        "FROM project_sources WHERE project_id=?", (item["id"],)).fetchone())
+                    result.append(item)
+                return result
+
+        for include_archived in (False, True):
+            self.assertEqual(self.store.list_projects(include_archived=include_archived), previous_read(include_archived))
+        self.assertEqual([row["id"] for row in project["directories"]],
+                         ["main", "d-" + "a" * 32, "d-" + "b" * 32])
+        self.assertEqual([row["id"] for row in self.store.list_projects()], [project["id"], archived["id"]])
+        updated = self.store.save_project(project_body(self.root / "moved", id=project["id"], archived=True))
+        self.assertEqual(self.store.list_projects()[0], updated)
+        self.assertEqual(self.store.list_projects(include_archived=False), [])
+        self.assertNotEqual(project["root"], updated["root"])
+
+    def test_project_list_missing_source_keeps_failure(self):
+        project = self.project()
+        with self.store.connection() as connection:
+            connection.execute("DELETE FROM project_sources WHERE project_id=?", (project["id"],))
+        with self.assertRaises(TypeError):
+            self.store.list_projects()
 
     def test_snapshot_reads_each_source_once_for_populated_and_empty_profiles(self):
         for populated in (False, True):
