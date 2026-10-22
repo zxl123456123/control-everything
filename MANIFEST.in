@@ -12,6 +12,8 @@ include web/workspace/agents.js
 include web/workspace/task-center.js
 include web/workspace/project-space.js web/workspace/execution.js web/workspace/observation.js
 include web/workspace/news.js web/workspace/quota.js
+include web/workspace/monitor-art.js web/workspace/monitor-scene.js web/workspace/monitor-model.js
+include web/workspace/project-monitor.js web/workspace/project-monitor.css
 prune work
 prune docs
 prune videos

@@ -15,6 +15,8 @@ WEB_ASSETS = (
     "workspace/agents.js",
     "workspace/task-center.js", "workspace/project-space.js", "workspace/execution.js", "workspace/observation.js",
     "workspace/news.js", "workspace/quota.js",
+    "workspace/monitor-art.js", "workspace/monitor-scene.js", "workspace/monitor-model.js",
+    "workspace/project-monitor.js", "workspace/project-monitor.css",
 )
 
 

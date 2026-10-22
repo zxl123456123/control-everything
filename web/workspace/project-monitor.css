@@ -1,0 +1,21 @@
+.project-monitor { min-width: 0; color: #d5dce9; }
+.monitor-heading, .monitor-pager { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.monitor-heading h3 { margin: 2px 0; }
+.monitor-status { margin: 16px 0 8px; color: #93c9b8; font-size: 13px; }
+.monitor-warning { color: #ebc080; }
+.monitor-stage { overflow: hidden; margin: 18px 0 12px; border: 1px solid #303849; border-radius: 12px; background: #12161e; }
+.monitor-stage canvas { display: block; width: 100%; cursor: pointer; }
+.monitor-body { display: grid; grid-template-columns: minmax(240px, 1fr) minmax(280px, 1.1fr); gap: 20px; margin: 20px 0; }
+.monitor-list, .monitor-detail { min-width: 0; border: 1px solid #303849; background: #151b25; padding: 18px; border-radius: 12px; }
+.monitor-body h4 { margin: 0 0 14px; overflow-wrap: anywhere; }
+.monitor-task { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 12px 0; border-top: 1px solid #303849; }
+.monitor-task .button { max-width: 100%; text-align: left; white-space: normal; overflow-wrap: anywhere; }
+.monitor-task > .button:first-child { flex: 1 1 65%; font-weight: 600; }
+.monitor-task > .button:not(:first-child) { font-size: 12px; }
+.monitor-fact { font-size: 13px; color: #b6c1d3; line-height: 1.6; overflow-wrap: anywhere; }
+.monitor-detail > h4:not(:first-child) { margin-top: 18px; }
+.monitor-event { margin: 12px 0; font-size: 12px; }
+.monitor-event summary { cursor: pointer; overflow-wrap: anywhere; }
+.monitor-event pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 320px; overflow-y: auto; padding: 10px; background: #10151e; }
+.monitor-pager { justify-content: center; flex-wrap: wrap; font-size: 12px; }
+@media (max-width: 700px) { .monitor-body { grid-template-columns: 1fr; } .monitor-list, .monitor-detail { padding: 12px; } }
