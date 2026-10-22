@@ -143,9 +143,10 @@ window.WorkspaceSessionList = (() => {
   return { create, createEditor };
 })();
 (() => {
-  const tabs = { tasks: '全部事项', attention: '待处理', sessions: '会话' };
+  const tabs = { tasks: '全部事项', attention: '待处理', sessions: '会话', monitor: '协作监控' };
   function create({ root, navigation, taskRoot, tasks, navigate, manage, manual, remove, readSessions, readTaskSessions, onSession, fetchJson, postJson }) {
     let snapshot = null, selected = null, tab = 'tasks', view = 'overview', managementRefresh = false;
+    let monitor = null, monitorRoot = null, monitorProject = null;
     const sandboxStates = new Map(), sandboxRequests = new Map(), sandboxButtons = new Map();
     function sandboxEndpoint(item) {
       return '/api/workspace/projects/' + encodeURIComponent(item.id) + '/sandbox-preparation?directory_id=main';
@@ -341,6 +342,15 @@ window.WorkspaceSessionList = (() => {
         root.append(taskRoot); taskRoot.hidden = false;
         const reading = tasks.setContext({ projectId: item.id, scope: tab === 'attention' ? 'attention' : 'all' });
         if (managementRefresh) { managementRefresh = false; if (!reading) tasks.refresh?.(0); }
+      } else if (tab === 'monitor') {
+        if (!window.WorkspaceProjectMonitor || !fetchJson) { root.append(blank('监控资源尚未就绪，请刷新页面。')); return; }
+        if (!monitor) {
+          monitorRoot = node('section', 'project-monitor'); monitorProject = item.id;
+          root.append(monitorRoot);
+          monitor = window.WorkspaceProjectMonitor.create({ root: monitorRoot, projectId: item.id, fetchJson,
+            onTask: () => open(item.id, 'tasks') });
+        } else root.append(monitorRoot);
+        monitor.setActive(true);
       } else if (tab === 'sessions') {
         root.append(button('从工具导入会话', () => open(item.id, 'session-import')));
         if (!readTaskSessions) { root.append(blank('尚未接入事项会话接口。')); return; }
@@ -397,9 +407,14 @@ window.WorkspaceSessionList = (() => {
       }
     }
     function render() {
+      if (monitor && (monitorProject !== selected || !project())) {
+        monitor.destroy(); monitor = null; monitorRoot = null; monitorProject = null;
+      }
+      if (view !== 'project' || tab !== 'monitor') monitor?.setActive(false);
       const active = document.activeElement;
       const focusLabel = ['project-tab', 'project-nav-button'].includes(active?.className) ? active.textContent : null;
       const editorFocus = active && taskRoot.contains(active) ? active : null;
+      const monitorFocus = active && monitorRoot?.contains(active) ? active : null;
       root.dataset.view = view;
       // Move the live editor out before rebuilding its presentation container.
       if (taskRoot.parentElement === root) taskHome.append(taskRoot);
@@ -417,6 +432,7 @@ window.WorkspaceSessionList = (() => {
         const replacement = [...root.querySelectorAll('button'), ...navigation.querySelectorAll('button')].find(value => value.textContent === focusLabel);
         replacement?.focus({ preventScroll: true });
       } else if (editorFocus && taskRoot.parentElement === root) editorFocus.focus({ preventScroll: true });
+      else if (monitorFocus && monitorRoot?.contains(monitorFocus) && view === 'project' && tab === 'monitor') monitorFocus.focus({ preventScroll: true });
     }
     return {
       open, sandboxButton,

@@ -313,6 +313,8 @@ Ctrl+C 停网关即可停本批查询，原 Claude/SSH/Zellij 对话继续运行
 
 项目工作空间由 `web/workspace/project-space.js` 负责项目导航、全部事项、待处理和会话展示，任务编辑与分页继续复用 `task-center.js` 的同一份事项。`attention` 查询范围在数据库分页前筛选人工状态为阻塞或待验收的事项；进程运行和普通待办不属于该范围。`workspace.js` 负责装配。
 
+项目“协作监控”由 `workspace/monitor.py` 提供同库只读、项目过滤后的分页快照；`web/workspace/project-monitor.js` 管理页面与请求生命周期，`monitor-model.js` 区分业务事项、最新认领、受控执行记录和外部会话元数据，`monitor-scene.js` 绘制，`monitor-art.js` 保留上游字符艺术及完整许可。最近活动窗口不承诺无损事件续传，执行结束不代表人工验收，外部会话活动未知；内部运行时未接通时明确显示，不另开 SDK 会话或读取私人日志。切页和后台停止绘制及轮询。合成合同运行 `python -m unittest tests.backend.test_project_monitor tests.backend.test_packaging`、`node --test tests/frontend/test_project_monitor.cjs tests/frontend/test_monitor_scene.cjs tests/frontend/test_project_space_ui.cjs`；真实页面和未来内部运行时来源分别验收，不用合成预览代替实际接通。
+
 本机 Codex 项目适配器为 `sessions/codex_desktop.py`：只读显式来源及相邻桌面配置，先合并归属再分页，不按目录合并项目。旧 `codex_index.py` 与六字段、12 条接口保持兼容。内部完整快照不直接返回工作台首页；会话页通过 `/api/workspace/codex/sessions` 分页获取。外部项目使用来源实例与项目 ID 的稳定身份，只读刷新不写管理库；用户显式加入时先在同一事务内保存项目、目录及规范 `codex` 来源标记，后续事项仍在同库事务内校验保存。标记复用已有管理表与备份闭包，schema 和 manifest 版本保持；手工项目保存拒绝该来源，已有外部项目也不得通过伪造来源覆盖。来源陈旧、读取不完整或归属冲突不得授权新关联，原事项状态编辑须保留。
 
 
