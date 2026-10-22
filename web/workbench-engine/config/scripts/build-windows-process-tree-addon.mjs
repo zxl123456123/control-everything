@@ -19,20 +19,24 @@
  *   node config/scripts/build-windows-process-tree-addon.mjs --arch=arm64
  */
 import { execFileSync } from 'node:child_process'
+import { createHash } from 'node:crypto'
 import {
   copyFileSync,
   cpSync,
   existsSync,
+  lstatSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  readdirSync,
   realpathSync,
   rmSync,
   writeFileSync
 } from 'node:fs'
 import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
-import { join, relative, resolve } from 'node:path'
+import { dirname, isAbsolute, join, relative, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { isSharedPackageDir } from './native-build-entry.cjs'
 import { canReusePreparedAddon } from './windows-process-tree-prepared-addon.mjs'
 import { ORCAD_WINDOWS_PROCESS_TREE_FILENAME } from '../../src/shared/orcad-artifacts.ts'
@@ -53,30 +57,63 @@ const ROOT = resolve(import.meta.dirname, '..', '..')
 const SUPPORTED_ARCHES = ['x64', 'arm64']
 // Why: under pnpm's global virtual store the installed dir is every worktree's, so the source
 // repairs and the build below run in a private copy instead.
-const SCRATCH_DIR =
-  existsSync(INSTALLED_PACKAGE_DIR) && isSharedPackageDir(INSTALLED_PACKAGE_DIR, ROOT)
-    ? mkdtempSync(join(tmpdir(), 'orca-windows-process-tree-'))
-    : null
-const PACKAGE_DIR = SCRATCH_DIR === null ? INSTALLED_PACKAGE_DIR : join(SCRATCH_DIR, 'package')
-if (SCRATCH_DIR !== null) {
-  const physicalDir = realpathSync(INSTALLED_PACKAGE_DIR)
-  cpSync(physicalDir, PACKAGE_DIR, {
-    recursive: true,
-    dereference: true,
-    filter: (path) => relative(physicalDir, path) !== 'build'
-  })
-}
+let SCRATCH_DIR = null
+let PACKAGE_DIR = INSTALLED_PACKAGE_DIR
+let retainScratch = false
+let buildSucceeded = false
 
-function parseArgs(argv) {
+export function parseArgs(argv) {
+  if (argv.some(arg => arg !== '--reuse-prepared-runtime' &&
+      !['--arch=', '--out=', '--scratch-root='].some(prefix => arg.startsWith(prefix)))) {
+    throw new Error('unknown_build_argument')
+  }
   const arch = argv.find((a) => a.startsWith('--arch='))?.slice('--arch='.length) ?? process.arch
   const outDir = argv.find((a) => a.startsWith('--out='))?.slice('--out='.length)
+  const scratchRoot = argv.find((a) => a.startsWith('--scratch-root='))?.slice('--scratch-root='.length)
+  if (scratchRoot !== undefined && (!scratchRoot || !isAbsolute(scratchRoot))) {
+    throw new Error('--scratch-root must be an absolute owned directory')
+  }
   if (!SUPPORTED_ARCHES.includes(arch)) {
     throw new Error(`--arch must be one of ${SUPPORTED_ARCHES.join(', ')}; got ${arch}`)
   }
   return {
     arch,
+    scratchRoot,
     outDir: outDir ? resolve(outDir) : join(ROOT, '.build', 'windows-process-tree', arch)
   }
+}
+
+/** Only create a new private child; never adopt or delete an existing build tree. */
+export function prepareScratch(scratchRoot, installedPackageDir = INSTALLED_PACKAGE_DIR) {
+  if (!isAbsolute(scratchRoot)) throw new Error('scratch_root_must_be_absolute')
+  const root = resolve(scratchRoot)
+  for (let cursor = root; ; cursor = dirname(cursor)) {
+    const info = lstatSync(cursor)
+    if (info.isSymbolicLink() || !info.isDirectory()) throw new Error('linked_scratch_root')
+    if (dirname(cursor) === cursor) break
+  }
+  const scratch = mkdtempSync(join(root, 'pt-'))
+  const physical = realpathSync(scratch)
+  const within = relative(realpathSync(root), physical)
+  if (!within || within.startsWith('..') || isAbsolute(within)) throw new Error('scratch_outside_owned_root')
+  const packageDir = join(physical, 'package')
+  const installed = realpathSync(installedPackageDir)
+  cpSync(installed, packageDir, { recursive: true, dereference: true,
+    filter: path => relative(installed, path).split(/[\\/]/)[0] !== 'build' })
+  return { scratch: physical, packageDir }
+}
+
+function sourceHashes() {
+  const paths = ['binding.gyp']
+  const visit = (directory) => {
+    for (const entry of readdirSync(join(PACKAGE_DIR, directory), { withFileTypes: true })) {
+      const path = `${directory}/${entry.name}`
+      if (entry.isDirectory()) visit(path)
+      else paths.push(path)
+    }
+  }
+  visit('src')
+  return paths.sort().map(path => ({ path, sha256: createHash('sha256').update(readFileSync(join(PACKAGE_DIR, path))).digest('hex') }))
 }
 
 /**
@@ -450,18 +487,27 @@ function applyWindowsProcessTreeBuildFixes() {
 }
 
 function main() {
-  const { arch, outDir } = parseArgs(process.argv.slice(2))
+  const { arch, outDir, scratchRoot } = parseArgs(process.argv.slice(2))
   if (process.platform !== 'win32') {
     throw new Error(
       `This addon only builds on Windows; running on ${process.platform}. ` +
         'Relay builds elsewhere simply omit it and fall back to the CIM scan.'
     )
   }
-  if (!existsSync(PACKAGE_DIR)) {
+  if (!existsSync(INSTALLED_PACKAGE_DIR)) {
     throw new Error(`${PACKAGE_DIR} is missing. Run pnpm install first.`)
+  }
+  if (scratchRoot || isSharedPackageDir(INSTALLED_PACKAGE_DIR, ROOT)) {
+    const prepared = prepareScratch(scratchRoot ?? tmpdir())
+    SCRATCH_DIR = prepared.scratch
+    PACKAGE_DIR = prepared.packageDir
+    retainScratch = Boolean(scratchRoot)
+    console.log(`[windows-process-tree] private source: ${SCRATCH_DIR}`)
   }
   const sourceRepaired = applyWindowsProcessTreeBuildFixes()
   assertPatchApplied()
+  const before = sourceHashes()
+  if (SCRATCH_DIR) writeFileSync(join(SCRATCH_DIR, 'source-hashes-before.json'), JSON.stringify(before, null, 2))
 
   const built = join(PACKAGE_DIR, 'build', 'Release', 'windows_process_tree.node')
   if (
@@ -481,6 +527,9 @@ function main() {
   if (!existsSync(built)) {
     throw new Error(`node-gyp reported success but ${built} is missing.`)
   }
+  const after = sourceHashes()
+  if (SCRATCH_DIR) writeFileSync(join(SCRATCH_DIR, 'source-hashes-after.json'), JSON.stringify(after, null, 2))
+  if (JSON.stringify(before) !== JSON.stringify(after)) throw new Error('native_source_changed_during_build')
   // Why check the artifact and not only the source: the source checks above run
   // before node-gyp, and a stale build directory can outlive them.
   if (inspectWindowsProcessTreeAddon(built) === 'unpatched') {
@@ -509,16 +558,25 @@ function main() {
   mkdirSync(outDir, { recursive: true })
   const staged = join(outDir, ORCAD_WINDOWS_PROCESS_TREE_FILENAME)
   copyFileSync(built, staged)
+  if (SCRATCH_DIR) writeFileSync(join(SCRATCH_DIR, 'artifact.json'), JSON.stringify({ arch,
+    sha256: createHash('sha256').update(readFileSync(staged)).digest('hex'), sourceFileCount: before.length }, null, 2))
+  buildSucceeded = true
   console.log(`[windows-process-tree] ${arch} -> ${staged}`)
 }
 
-try {
-  main()
-} catch (error) {
-  console.error(`[windows-process-tree] ${error instanceof Error ? error.message : String(error)}`)
-  process.exitCode = 1
-} finally {
-  if (SCRATCH_DIR !== null) {
-    rmSync(SCRATCH_DIR, { recursive: true, force: true })
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  try {
+    main()
+  } catch (error) {
+    console.error(`[windows-process-tree] ${error instanceof Error ? error.message : String(error)}`)
+    process.exitCode = 1
+  } finally {
+    if (SCRATCH_DIR !== null && buildSucceeded && !retainScratch) {
+      const scratch = realpathSync(SCRATCH_DIR)
+      if (scratch !== SCRATCH_DIR || !relative(realpathSync(tmpdir()), scratch).startsWith('pt-')) {
+        throw new Error('scratch_cleanup_ownership_changed')
+      }
+      rmSync(scratch, { recursive: true, force: true })
+    }
   }
 }

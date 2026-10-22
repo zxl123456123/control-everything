@@ -98,6 +98,59 @@ function ExternalMenuItem({
 }
 
 export function SidebarSettingsHelpMenu(): React.JSX.Element {
+  return window.location.pathname === '/workbench/web-index.html' ? (
+    <PlatformSettingsHelpMenu />
+  ) : (
+    <StandaloneSettingsHelpMenu />
+  )
+}
+
+function PlatformSettingsHelpMenu(): React.JSX.Element {
+  const openSettingsPage = useAppStore((s) => s.openSettingsPage)
+  const openSettingsTarget = useAppStore((s) => s.openSettingsTarget)
+  return (
+    <div className="flex items-center gap-1">
+      <Button variant="ghost" size="icon-xs" aria-label="设置" onClick={openSettingsPage}>
+        <Settings className="size-3.5" />
+      </Button>
+      <DropdownMenu modal={false}>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon-xs" aria-label="掌控一切帮助">
+            <CircleHelp className="size-3.5" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent side="top" align="start" sideOffset={8} className="w-64">
+          <DropdownMenuItem
+            onSelect={() => {
+              openSettingsTarget({ pane: 'shortcuts', repoId: null })
+              openSettingsPage()
+            }}
+          >
+            <Keyboard className="size-3.5" />
+            键盘快捷键
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => window.location.assign('/studio')}>
+            返回 Studio
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => window.location.reload()}>
+            <RotateCw className="size-3.5" />
+            重新载入工作区
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <div className="px-2 py-1.5 text-xs text-muted-foreground" role="note">
+            掌控一切 · 项目工作区
+            <br />
+            开源组件：Orca · MIT License
+            <br />
+            Copyright © 2026 Lovecast Inc.
+          </div>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  )
+}
+
+function StandaloneSettingsHelpMenu(): React.JSX.Element {
   const openModal = useAppStore((s) => s.openModal)
   const openSettingsPage = useAppStore((s) => s.openSettingsPage)
   const openSettingsTarget = useAppStore((s) => s.openSettingsTarget)

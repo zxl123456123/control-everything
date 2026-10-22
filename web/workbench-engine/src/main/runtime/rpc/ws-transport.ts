@@ -14,6 +14,7 @@ import {
 import { RemoteRuntimeServerHeartbeat } from './remote-runtime-server-heartbeat'
 import { assertPortNotShadowingListener } from './shadowed-port-probe'
 import { REMOTE_RUNTIME_MAX_INBOUND_FRAME_BYTES } from '../../../shared/remote-runtime-memory-limits'
+import { platformUpgradeAllowed, readPlatformRuntimePolicy } from '../../platform-runtime-policy'
 
 export const WEBSOCKET_TRANSPORT_MAX_MESSAGE_BYTES = REMOTE_RUNTIME_MAX_INBOUND_FRAME_BYTES
 // Why: one desktop remote-host client can hold many concurrent streams, so keep the cap high enough that stale streams don't starve control RPCs.
@@ -192,10 +193,12 @@ export class WebSocketTransport implements RpcTransport {
 
   // Why: attach the WSS only after listen succeeds; earlier it re-emits httpServer's EADDRINUSE as an uncatchable exception and breaks the fallback.
   private async tryListen(port: number): Promise<void> {
+    const policy = readPlatformRuntimePolicy()
+    if (policy && this.host !== '127.0.0.1') throw new Error('platform_loopback_required')
     await assertPortNotShadowingListener(this.host, port)
     // Why the 404: with no 'request' listener Node never answers plain HTTP, so it hung (#30100).
     const httpServer = createHttpServer(
-      this.staticRoot ? createStaticWebClientHandler(this.staticRoot) : answerWithoutWebClient
+      this.staticRoot && !policy ? createStaticWebClientHandler(this.staticRoot) : answerWithoutWebClient
     )
 
     await new Promise<void>((resolve, reject) => {
@@ -210,8 +213,18 @@ export class WebSocketTransport implements RpcTransport {
     httpServer.maxConnections = WEBSOCKET_TRANSPORT_MAX_TCP_CONNECTIONS
 
     const wss = new WebSocketServer({
-      server: httpServer,
+      noServer: true,
       maxPayload: WEBSOCKET_TRANSPORT_MAX_MESSAGE_BYTES
+    })
+    httpServer.on('upgrade', (request, socket, head) => {
+      const address = httpServer.address()
+      const actualPort = address && typeof address === 'object' ? address.port : port
+      if (!platformUpgradeAllowed(request.rawHeaders, request.url, actualPort, policy)) {
+        socket.write('HTTP/1.1 403 Forbidden\r\nConnection: close\r\nContent-Length: 0\r\n\r\n')
+        socket.destroy()
+        return
+      }
+      wss.handleUpgrade(request, socket, head, ws => wss.emit('connection', ws, request))
     })
 
     wss.on('connection', (ws) => {

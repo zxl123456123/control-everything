@@ -28,6 +28,8 @@ const disposeOsFileDropGuard = installOsFileDropCancellationGuard()
 import.meta.hot?.dispose(disposeOsFileDropGuard)
 installAppKeyboardRouter()
 const App = lazy(() => import('../App'))
+const PlatformProjectEntry = lazy(() => import('./platform-project-entry'))
+const platformMode = window.location.pathname === '/workbench/web-index.html'
 
 function WebRoot(): React.JSX.Element {
   const initialPairingInput = useMemo(() => readPairingInputFromLocation(window.location), [])
@@ -88,19 +90,29 @@ function WebRootBoundary(): React.JSX.Element {
     <RecoverableRenderErrorBoundary
       boundaryId="web.root"
       surface="web-root"
-      title={translate('app.recoverableError.webTitle', 'Orca web hit a renderer error.')}
+      title={
+        platformMode
+          ? '项目工作区显示遇到问题'
+          : translate('app.recoverableError.webTitle', 'Orca web hit a renderer error.')
+      }
       description={translate(
         'app.recoverableError.webDescription',
         'Retry the web client or reconnect to the paired runtime.'
       )}
     >
-      <WebRoot />
+      {platformMode ? (
+        <Suspense fallback={<div className="min-h-dvh bg-background p-6">正在打开项目工作区…</div>}>
+          <PlatformProjectEntry />
+        </Suspense>
+      ) : (
+        <WebRoot />
+      )}
     </RecoverableRenderErrorBoundary>
   )
 }
 
-// Why await: where a new pairing may be stored depends on what this browser can keep secret.
-void initWebDeviceKeySupport()
+// Platform startup probes after its protected bootstrap; standalone pairing probes before import.
+void (platformMode ? Promise.resolve() : initWebDeviceKeySupport())
   .catch((error: unknown) => console.warn('[web] Device key probe failed', error))
   .finally(() => {
     ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(

@@ -17,6 +17,15 @@
       "reason": "root_build_contract"
     },
     {
+      "path": ".oxfmtrc.json",
+      "source_path": ".oxfmtrc.json",
+      "git_blob": "19856d6ca841e921e68ee53ec56ff37a4a965ff7",
+      "sha256": "dccb3586e2633691562762f730bad274394c8816fd77e0f3e074ae04749b04fd",
+      "bytes": 428,
+      "kind": "build",
+      "reason": "upstream_formatter_configuration_consumed_by_local_source_maintenance"
+    },
+    {
       "path": "LICENSE",
       "source_path": "LICENSE",
       "git_blob": "fbf46fc17dacb1f65e03e2b6290eb53ba94b149d",
@@ -49139,6 +49148,24 @@
       "reason": "root_build_contract"
     },
     {
+      "path": "resources/app-icons/orca-blue.png",
+      "source_path": "resources/app-icons/orca-blue.png",
+      "git_blob": "8d4a6e6b73dfc2fb7a0a5e64b08ac0850448899a",
+      "sha256": "7e9d10147477115ee06812a5f358e5551bba2df8f09f45fe7227d084ede3626a",
+      "bytes": 361210,
+      "kind": "resource",
+      "reason": "required_renderer_static_import:src/renderer/src/components/settings/AppIconSelector.tsx"
+    },
+    {
+      "path": "resources/app-icons/orca-watercolor.png",
+      "source_path": "resources/app-icons/orca-watercolor.png",
+      "git_blob": "b51e2c90e02d55dd467e90dad5ef3ce275da3b5e",
+      "sha256": "43af0935a18c32e372bd0b22406a4f61b7b2e809c3c6d2062bec87b7e6b474ed",
+      "bytes": 1111773,
+      "kind": "resource",
+      "reason": "required_renderer_static_import:src/renderer/src/components/settings/AppIconSelector.tsx"
+    },
+    {
       "path": "resources/build/entitlements.computer-use.mac.plist",
       "source_path": "resources/build/entitlements.computer-use.mac.plist",
       "git_blob": "6631ffa6f24265b2e341ccb354d8a5983a7f106a",
@@ -49166,6 +49193,15 @@
       "reason": "windows_launcher_icon_input"
     },
     {
+      "path": "resources/claude.webp",
+      "source_path": "resources/claude.webp",
+      "git_blob": "328fc8547c2d6cfee7f8c7f1257c86753a66d175",
+      "sha256": "c90c010e9b0474d54173490a5a7af7cf8a84f5fe267679d3f8e0ab33026a242f",
+      "bytes": 514794,
+      "kind": "resource",
+      "reason": "required_renderer_static_import:src/renderer/src/components/pet/pet-models.ts"
+    },
+    {
       "path": "resources/darwin/bin/orca",
       "source_path": "resources/darwin/bin/orca",
       "git_blob": "4d01b9928cadef1c962553e1a5be8f3f63d18c50",
@@ -49184,6 +49220,15 @@
       "reason": "source_native_vector_asset"
     },
     {
+      "path": "resources/gremlin.webp",
+      "source_path": "resources/gremlin.webp",
+      "git_blob": "9e831557a1c5964af2c18bd3cbae69aa0f7b922a",
+      "sha256": "2de38da3fb74c6feca33e6cbc9c8587793ecfb8bbb316240439ecf3fb4ea7313",
+      "bytes": 942982,
+      "kind": "resource",
+      "reason": "required_renderer_static_import:src/renderer/src/components/pet/pet-models.ts"
+    },
+    {
       "path": "resources/gwindows_logo.svg",
       "source_path": "resources/gwindows_logo.svg",
       "git_blob": "d6b8441194d3b40950b1878fff9efff4796c90fc",
@@ -49191,6 +49236,15 @@
       "bytes": 4364,
       "kind": "resource",
       "reason": "source_native_vector_asset"
+    },
+    {
+      "path": "resources/icon.png",
+      "source_path": "resources/icon.png",
+      "git_blob": "a70d317f59574119510dcf68252e9167d80a411c",
+      "sha256": "6fe3a556d695b5a27b70b0f8cda0ca4767390f013895c41d365a32fa4704c4cf",
+      "bytes": 29625,
+      "kind": "resource",
+      "reason": "required_renderer_static_import:src/renderer/src/components/settings/AppIconSelector.tsx"
     },
     {
       "path": "resources/licenses/ripgrep/JEMALLOC-COPYING",
@@ -49335,6 +49389,24 @@
       "bytes": 1773,
       "kind": "resource",
       "reason": "direct_runtime_resource_tree"
+    },
+    {
+      "path": "resources/openclaude-logo.png",
+      "source_path": "resources/openclaude-logo.png",
+      "git_blob": "270e21b9b0a2eb249d4424765f8d3a60f87a259a",
+      "sha256": "791d5fad1eb734fe3ff6849bd413d8b4b32409caf515a8f7857b28f88f062ee3",
+      "bytes": 35062,
+      "kind": "resource",
+      "reason": "required_renderer_static_import:src/renderer/src/lib/agent-catalog-entries-primary.ts"
+    },
+    {
+      "path": "resources/opencode.webp",
+      "source_path": "resources/opencode.webp",
+      "git_blob": "fa2ac42445768adc7fefe94dc73bc262e67fbe47",
+      "sha256": "5610a520d7ae1e5a85b9b203e286ac19a9b4e8c1eec0d7317329b05a432cb0b5",
+      "bytes": 757298,
+      "kind": "resource",
+      "reason": "required_renderer_static_import:src/renderer/src/components/pet/pet-models.ts"
     },
     {
       "path": "resources/plugins/launch/bundled-plugins.json",
@@ -326027,6 +326099,26 @@
       "bytes": 1177916
     },
     {
+      "path": "resources/app-icons/orca-blue.png",
+      "sha256": "7e9d10147477115ee06812a5f358e5551bba2df8f09f45fe7227d084ede3626a",
+      "license_paths": [
+        "LICENSE"
+      ],
+      "reason": "required_renderer_static_import:src/renderer/src/components/settings/AppIconSelector.tsx",
+      "upstream_git_blob": "8d4a6e6b73dfc2fb7a0a5e64b08ac0850448899a",
+      "bytes": 361210
+    },
+    {
+      "path": "resources/app-icons/orca-watercolor.png",
+      "sha256": "43af0935a18c32e372bd0b22406a4f61b7b2e809c3c6d2062bec87b7e6b474ed",
+      "license_paths": [
+        "LICENSE"
+      ],
+      "reason": "required_renderer_static_import:src/renderer/src/components/settings/AppIconSelector.tsx",
+      "upstream_git_blob": "b51e2c90e02d55dd467e90dad5ef3ce275da3b5e",
+      "bytes": 1111773
+    },
+    {
       "path": "resources/build/icon.ico",
       "sha256": "efb92be160d51e6f66cc172f98f4e53068e5fbeb5aef8d7f148c8fda7b6fd397",
       "license_paths": [
@@ -326035,6 +326127,16 @@
       "reason": "windows_launcher_icon_input",
       "upstream_git_blob": "d73c40f4af3b8088b935cab4beb448496031096b",
       "bytes": 58131
+    },
+    {
+      "path": "resources/claude.webp",
+      "sha256": "c90c010e9b0474d54173490a5a7af7cf8a84f5fe267679d3f8e0ab33026a242f",
+      "license_paths": [
+        "LICENSE"
+      ],
+      "reason": "required_renderer_static_import:src/renderer/src/components/pet/pet-models.ts",
+      "upstream_git_blob": "328fc8547c2d6cfee7f8c7f1257c86753a66d175",
+      "bytes": 514794
     },
     {
       "path": "resources/ghostty.svg",
@@ -326047,6 +326149,16 @@
       "bytes": 187894
     },
     {
+      "path": "resources/gremlin.webp",
+      "sha256": "2de38da3fb74c6feca33e6cbc9c8587793ecfb8bbb316240439ecf3fb4ea7313",
+      "license_paths": [
+        "LICENSE"
+      ],
+      "reason": "required_renderer_static_import:src/renderer/src/components/pet/pet-models.ts",
+      "upstream_git_blob": "9e831557a1c5964af2c18bd3cbae69aa0f7b922a",
+      "bytes": 942982
+    },
+    {
       "path": "resources/gwindows_logo.svg",
       "sha256": "0d192451bf97764ff1840779ba69c2ab696d1e5a5dcf39b2e0717a86ad85055a",
       "license_paths": [
@@ -326055,6 +326167,16 @@
       "reason": "source_native_vector_asset",
       "upstream_git_blob": "d6b8441194d3b40950b1878fff9efff4796c90fc",
       "bytes": 4364
+    },
+    {
+      "path": "resources/icon.png",
+      "sha256": "6fe3a556d695b5a27b70b0f8cda0ca4767390f013895c41d365a32fa4704c4cf",
+      "license_paths": [
+        "LICENSE"
+      ],
+      "reason": "required_renderer_static_import:src/renderer/src/components/settings/AppIconSelector.tsx",
+      "upstream_git_blob": "a70d317f59574119510dcf68252e9167d80a411c",
+      "bytes": 29625
     },
     {
       "path": "resources/logo.svg",
@@ -326095,6 +326217,26 @@
       "reason": "direct_runtime_resource_tree",
       "upstream_git_blob": "2023d0a86c14956b6cdafe7399514dc3f20164e8",
       "bytes": 1773
+    },
+    {
+      "path": "resources/openclaude-logo.png",
+      "sha256": "791d5fad1eb734fe3ff6849bd413d8b4b32409caf515a8f7857b28f88f062ee3",
+      "license_paths": [
+        "LICENSE"
+      ],
+      "reason": "required_renderer_static_import:src/renderer/src/lib/agent-catalog-entries-primary.ts",
+      "upstream_git_blob": "270e21b9b0a2eb249d4424765f8d3a60f87a259a",
+      "bytes": 35062
+    },
+    {
+      "path": "resources/opencode.webp",
+      "sha256": "5610a520d7ae1e5a85b9b203e286ac19a9b4e8c1eec0d7317329b05a432cb0b5",
+      "license_paths": [
+        "LICENSE"
+      ],
+      "reason": "required_renderer_static_import:src/renderer/src/components/pet/pet-models.ts",
+      "upstream_git_blob": "fa2ac42445768adc7fefe94dc73bc262e67fbe47",
+      "bytes": 757298
     },
     {
       "path": "resources/plugins/launch/bundled-plugins.json",
@@ -326578,9 +326720,227 @@
     }
   ],
   "local_files": [
-    "build-origin.json"
+    "build-origin.json",
+    "src/main/ai-vault/platform-ai-vault-roots.test.ts",
+    "src/main/orcad/platform-owner-client.ts",
+    "src/main/orcad/platform-owner-methods.test.ts",
+    "src/main/orcad/platform-owner-methods.ts",
+    "src/main/orcad/platform-runtime-isolation.test.ts",
+    "src/main/platform-runtime-policy.ts",
+    "src/main/windows/windows-process-table-loader.test.ts",
+    "src/renderer/src/i18n/platform-ui-copy.test.ts",
+    "src/renderer/src/i18n/platform-ui-copy.ts",
+    "src/renderer/src/lib/platform-catalog-icons.test.tsx",
+    "src/renderer/src/web/platform-project-bootstrap.test.ts",
+    "src/renderer/src/web/platform-project-bootstrap.ts",
+    "src/renderer/src/web/platform-project-entry.css",
+    "src/renderer/src/web/platform-project-entry.tsx",
+    "src/renderer/src/web/platform-project-navigation-view.tsx",
+    "src/renderer/src/web/platform-project-navigation.test.ts",
+    "src/renderer/src/web/platform-project-navigation.ts",
+    "src/renderer/src/web/preload-api/web-runtime-credentials.test.ts",
+    "src/renderer/src/web/preload-api/web-wsl-host-unavailable.test.ts"
   ],
-  "adapted_files": [],
+  "adapted_files": [
+    {
+      "path": "config/scripts/build-source-commit.mjs",
+      "upstream_sha256": "69c23f045fa86fc9a2e3072252766d62368641e438dc7db1ac215baf6f49c3c4",
+      "current_sha256": "850b1759a2f4709374214d2de8ce051866c6444e9431b7121ee4ff665b1dc145",
+      "reason": "S2: read fixed upstream provenance without host Git fallback"
+    },
+    {
+      "path": "config/scripts/build-windows-process-tree-addon.mjs",
+      "upstream_sha256": "b3f923294586d776ec0b895be2a6626d81786e7aea98f60094e128948f4973af",
+      "current_sha256": "f7b60114340771ca0df6330f064300d5bb9d33930666064d5635d6cbd6071b95",
+      "reason": "S2: owned private native scratch and source/artifact receipts"
+    },
+    {
+      "path": "config/scripts/orcad-entry-build.mjs",
+      "upstream_sha256": "aeae234e5f9a97cd16aaf44cba0a256930d50d5d50859c49b0f421a42d3b6347",
+      "current_sha256": "de126ae0a62ce7fdb80b297d42355aa8d2b9b01e17a93f1b2ec2226c66f8b087",
+      "reason": "M1a-R: compile bounded owner-pipe helper with existing builder"
+    },
+    {
+      "path": "src/main/ai-vault/cached-session-list.ts",
+      "upstream_sha256": "3f329e8e36da391331a8c57c73021563a5ed707d082bd4358cf9ce5af1966396",
+      "current_sha256": "22fff77cb96459d274cb44754984d0912114b90569d95bdab05f76ce5d37a999",
+      "reason": "M1a-R: bypass automatic external and WSL home discovery"
+    },
+    {
+      "path": "src/main/orcad/orcad-entry.ts",
+      "upstream_sha256": "972748b4e46cd0cc3f08c61b82f6a7dc7a1553d2706f93323537865aac496193",
+      "current_sha256": "dbaaa860457f434ea00d954d001523a12dc2c04be05f0d572a05f65bd7a3388f",
+      "reason": "M1a-R: complete RPC catalog plus owner methods; disable unconfigured automatic services"
+    },
+    {
+      "path": "src/main/orcad/orcad-lifecycle.ts",
+      "upstream_sha256": "c7667711f712df699a9107834847e87b99a92a39254a8ee7a5bcc3f11f42a1b8",
+      "current_sha256": "a6fa77037d0e0ab33dc2413dbe8037d7c1b6a64a7eb77208179602d4ecf5e341",
+      "reason": "M1a-R: inject no official installed EXE discovery"
+    },
+    {
+      "path": "src/main/orcad/orcad-managed-agent-hooks.ts",
+      "upstream_sha256": "a4329f46b898d12f64caafd6cfa29866a57a8fab2fbe6cd869335a24f7136d68",
+      "current_sha256": "5c7e0a19297ddded7eb83b379745484792a5fa9d46babce73c07c09dbc717214",
+      "reason": "M1a-R: skip automatic hook and login environment initialization"
+    },
+    {
+      "path": "src/main/providers/windows-shell-args.ts",
+      "upstream_sha256": "d5716e7ff67b485b53bc62784a384a97492ff35fc24b65d79844fe63b73ca0b8",
+      "current_sha256": "c6c29f876564d43478936a810823e729df45c7629fc46bf99909c766d40b2fb7",
+      "reason": "M1a-R: no-profile shells before any synthetic terminal starts"
+    },
+    {
+      "path": "src/main/runtime/agent-state-rules/agent-state-rules-live-update.ts",
+      "upstream_sha256": "183ad5fe14844c5e8e2e08a9b9c7c1b4af06dee6dfffaded86c9e803cb7a7ce7",
+      "current_sha256": "41f5215a23a90c2a5ae2ca19d90da49e937452abef5ff2b8a935dcd7d4c0c6c2",
+      "reason": "M1a-R: no automatic official rule download"
+    },
+    {
+      "path": "src/main/runtime/rpc/ws-transport.ts",
+      "upstream_sha256": "45ac33dfd8cb282f4e5d9be1d086d8e538ee56e947b7496e97d4af0a21ff9a40",
+      "current_sha256": "b97ae93d5a584ba223ffb3c4013644a6df8dd7ceb8687eb0217579543c90a60e",
+      "reason": "M1a-R: exact Origin/Host/path upgrade gate; no alternate static entry"
+    },
+    {
+      "path": "src/main/runtime/runtime-rpc/runtime-rpc-pairing.ts",
+      "upstream_sha256": "5677e8c3ea16c40a3e4f654c2d30fdb7d309e47c241b799471f4ad1292cdc667",
+      "current_sha256": "ff093df2026b67fb6e7815fd7952574398c743993e913c4dfb2172d5dc9c78ed",
+      "reason": "M1a-R: independent revocable Web devices; upstream pending reuse remains default"
+    },
+    {
+      "path": "src/main/windows/windows-process-table.ts",
+      "upstream_sha256": "ad2fdee205c0e0bcd7399a13551c8a08f205458c14e94c863fa5e79652b2bf7c",
+      "current_sha256": "b186355ec78506b8221589a225d3f53893634228bf1fa830973246d9e9223ba4",
+      "reason": "M1a-R2: deployed native sibling takes precedence over ancestor npm prebuild; broken sibling fails closed"
+    },
+    {
+      "path": "src/renderer/src/app-shell/TitlebarLeftControls.tsx",
+      "upstream_sha256": "274b5e3bd1414e927003fb42de2a292fe261df9776fa6d6c9b0feb155fb5d201",
+      "current_sha256": "014ff718b6bd511dad3604ae2fbca6de5c8ffd884465be14452f96c6425e1265",
+      "reason": "M1a-W: product app-name and accessibility label in paired Web"
+    },
+    {
+      "path": "src/renderer/src/components/Landing.tsx",
+      "upstream_sha256": "95a03113ca62680422a3e49bc68b659debe3620faba37bd7448ac0369e7d8390",
+      "current_sha256": "21350a794529fb874643d82b5126efdc521ad3fedcafe4e51608255f4b3cc0fc",
+      "reason": "M1a-W: product landing identity without official GitHub support entrance"
+    },
+    {
+      "path": "src/renderer/src/components/mobile/MobilePage.tsx",
+      "upstream_sha256": "15f121aa2d13a6daafd67fa8244fbf6e9542cae3c15e652c615b2ff25d0a478c",
+      "current_sha256": "53cab468892e4c75217f43af725ed5175e480ea4dd243c3c02e4d754521db245",
+      "reason": "M1a-W: platform mobile status does not mount upstream pairing effects"
+    },
+    {
+      "path": "src/renderer/src/components/settings/MobileSettingsPane.tsx",
+      "upstream_sha256": "d2fc14224af0c98d0c879439f98c57b85ce39a5400032c4e63bf40379dc2f165",
+      "current_sha256": "a55552675de2499ff935a6b22a4bda78d2fc53c26a65f66dcb91033f83c176ae",
+      "reason": "M1a-W: platform mobile status instead of official client install/pairing"
+    },
+    {
+      "path": "src/renderer/src/components/settings/repository-source-control-ai-labels.ts",
+      "upstream_sha256": "36b0830bf58c9fc53795767125181eb409f6e283f9259c3d1c6ae23f6dec7e38",
+      "current_sha256": "0a0c03861feb68ae84f0952948746124d9e5bac73c99483c3557bcc5e46dac8e",
+      "reason": "M1a-W: default prompt label uses the central platform copy while standalone keeps its original text"
+    },
+    {
+      "path": "src/renderer/src/components/sidebar/SidebarNav.test.tsx",
+      "upstream_sha256": "60f8dbd6f22d356b42cfbf9862016f010f2faaf6a5a2d01ff597e7d60c2b21fa",
+      "current_sha256": "12bd530945c215d9e154e3e240df010944cf48a820b537da8709344758109600",
+      "reason": "M1a-W: rendered platform mobile entry regression"
+    },
+    {
+      "path": "src/renderer/src/components/sidebar/SidebarNav.tsx",
+      "upstream_sha256": "f0e68df8edcdc64da455c2104433843fec0baf6dcb85513a0129bb21957b9ff1",
+      "current_sha256": "c5b9252eb8f4126aca367aab1b46c93763ea947b526f5dfe25fd5fc37e6386e0",
+      "reason": "M1a-W: platform mobile entry states unconfigured"
+    },
+    {
+      "path": "src/renderer/src/components/sidebar/SidebarSettingsHelpMenu.test.tsx",
+      "upstream_sha256": "febba0fe5688703c6760e276450831c1a6bf5e0afa85a04ac1f94f61936ebc91",
+      "current_sha256": "b879cdfd6303b336a41777ebbc0af581035228e1adbbb8fde90577cd21894d5d",
+      "reason": "M1a-W: platform settings retained and official service entrances absent"
+    },
+    {
+      "path": "src/renderer/src/components/sidebar/SidebarSettingsHelpMenu.tsx",
+      "upstream_sha256": "8f35317e72bfc9f11179dd74dc2af60e29f055ee1da99f84607f103e0823c215",
+      "current_sha256": "e5d2674ebe8cebd454b17465ff56b0e45e3438a70227eb79197b0bff0ebdaeb3",
+      "reason": "M1a-W: platform help without official service entrances; preserve license attribution"
+    },
+    {
+      "path": "src/renderer/src/i18n/i18n.ts",
+      "upstream_sha256": "eb9a73fb7cfeb99c352004b9099159d8aa7ccb31bd7a576054c854475f86a882",
+      "current_sha256": "fc13917c1a594049dc1cf765d69e8b82fd85dac08e4c52cf58e7c3df6e92344f",
+      "reason": "M1a-W: exact platform route selects confirmed copy in an independent namespace without marking lazy translation catalogs loaded"
+    },
+    {
+      "path": "src/renderer/src/lib/agent-catalog.tsx",
+      "upstream_sha256": "74caa70794bc019836fd28cc2deefb6dc0a72bd19e9e7f01b6c6f67e6e4a3df6",
+      "current_sha256": "1063223dcbaef1e789e899e01d190864660c3a57ca74a9ce653accfe489e7972",
+      "reason": "M1a-R6: exact platform Web entry uses bundled icons or existing glyphs without third-party favicon requests; standalone behavior preserved"
+    },
+    {
+      "path": "src/renderer/src/lib/open-in-app-catalog.tsx",
+      "upstream_sha256": "e65c2ffb17d74d27d876f9797591350430903cc2e1759c94f5f9e369aa117967",
+      "current_sha256": "aed95b6d2c5ab2b2c3c0d865f465253a26c541ed6785d347fc4abf186e79b409",
+      "reason": "M1a-R6: exact platform Web entry uses bundled icons or existing glyphs without third-party favicon requests; standalone behavior preserved"
+    },
+    {
+      "path": "src/renderer/src/web/main.tsx",
+      "upstream_sha256": "15dfb0a6b72637f667f480272f8459140ac81aa024ae30eabddef3a689030004",
+      "current_sha256": "e090e70c811f434beb426687ea4f2f229935b77f85d2c062730d62b1c4272736",
+      "reason": "M1a-W: protected platform entry with original complete App"
+    },
+    {
+      "path": "src/renderer/src/web/preload-api/web-app-api.ts",
+      "upstream_sha256": "45d9733aefd46b788b4ec300eb07ddabb649541876c6f6753446b7c952310f57",
+      "current_sha256": "c290d0d8e353d89f90eddc0f77df60bc57a945e422674b42f420d41e431330b5",
+      "reason": "M1a-W: product identity and same-origin asset base"
+    },
+    {
+      "path": "src/renderer/src/web/preload-api/web-runtime-credentials.ts",
+      "upstream_sha256": "24ebada32589ded4ec7598e89f7ce348645ebf771c942e552b6e2f82c71b6512",
+      "current_sha256": "9340a984b8c6414c703626e27bba229427feafec19f7be785b68c9efd00627ca",
+      "reason": "M1a-W: memory-only session keys and storage-aware source cache"
+    },
+    {
+      "path": "src/renderer/src/web/preload-api/web-runtime-environments-api.ts",
+      "upstream_sha256": "c99da7ab57d2f769bd22a9754ef56c77fc0ee367995758dc8ba14f5ab0dd2eba",
+      "current_sha256": "7a870aff2f08cd99a25e598e924ee3bb6e38ce40cd657d9c8796ef4d552cc76e",
+      "reason": "M1a-W: explicit absence of desktop-only WSL hosts through the Web fallback proxy"
+    },
+    {
+      "path": "src/renderer/src/web/web-runtime-credential-source.test.ts",
+      "upstream_sha256": "066b9e29b0f1c414b36ac57e96e7404804d02bac9c02365ebfa3b1ba9a018b8a",
+      "current_sha256": "5043d32a17ee2e47b22ca525dd457218425ed8ac17227df2a01b7876a7238ac5",
+      "reason": "M1a-W: regression for session credential migration and revocation"
+    },
+    {
+      "path": "src/renderer/src/web/web-runtime-credential-source.ts",
+      "upstream_sha256": "01f8edfc0c63ea3efbadbc66dff716b57a179a4e45ae4637171eccd8411a0d93",
+      "current_sha256": "d250a69566b6b349504e62623b8e15651c04983e653e4e2fddc9195eefa6e016",
+      "reason": "M1a-W: session credentials never choose persistent store"
+    },
+    {
+      "path": "src/renderer/web-index.html",
+      "upstream_sha256": "f54843773e47963f21b23ac6a45e4c8dfbd64818770eaeea55b5ead84328ab14",
+      "current_sha256": "b895db0a3e048831bfce215c714270f6234a280ca7fb965b8fa30dee75ccd516",
+      "reason": "M1a-W: product page title and platform favicon for the complete self-built App"
+    },
+    {
+      "path": "src/shared/orcad-artifacts.ts",
+      "upstream_sha256": "066f1ac0ef99b5c358b1ac51901bdd92be6a1dcdebedd87f462f1938fde0cdf9",
+      "current_sha256": "0ff643d58d79a0a97515b059013e8bd2b58d335e687af09cde079b4b3f87eb4f",
+      "reason": "M1a-R: owner helper in runtime artifact/hash contract"
+    },
+    {
+      "path": "vite.web.config.ts",
+      "upstream_sha256": "ee91ccdb61743a54d9bc8fe4a05e1660026659539357fb3a5602900e530ea10c",
+      "current_sha256": "1f9ad206238b96318fca2ae74670ae67c12ed823ef0ea4f5e051bd52fd98abf6",
+      "reason": "S2: disable marketing wall and emit Vite manifest"
+    }
+  ],
   "reviewed_findings": [
     {
       "path": "config/patches/@xterm__addon-webgl@0.20.0-beta.300.patch",

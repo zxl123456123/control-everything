@@ -12,6 +12,7 @@ import {
 import type { StoredWebRuntimeEnvironment } from '../web-runtime-environment'
 
 let keyStore: WebDeviceKeyStore | null = null
+const sessionKeyStore = createMemoryWebDeviceKeyStore()
 const sources = new Map<string, WebRuntimeCredentialSource>()
 
 /**
@@ -28,7 +29,8 @@ export function webRuntimeCredentialFor(
   const endpoint =
     environment.endpoints.find((entry) => entry.id === environment.preferredEndpointId) ??
     environment.endpoints[0]
-  const cacheKey = `${environment.id}\0${environment.pairingRevision ?? environment.createdAt}\0${endpoint?.publicKeyB64}`
+  const storage = environment.sessionOnly ? 'session' : 'persisted'
+  const cacheKey = `${environment.id}\0${environment.pairingRevision ?? environment.createdAt}\0${endpoint?.publicKeyB64}\0${storage}`
   const existing = sources.get(cacheKey)
   if (existing) {
     return existing
@@ -40,20 +42,24 @@ export function webRuntimeCredentialFor(
   if (!support || support === 'token-insecure-origin') {
     return tokenOnlyCredentialSource(endpoint.deviceToken)
   }
-  keyStore ??=
-    typeof indexedDB === 'undefined'
-      ? createMemoryWebDeviceKeyStore()
-      : createIndexedDbWebDeviceKeyStore(indexedDB)
+  // A page-local pairing never opens the persistent key database, even on a capable browser.
+  const store =
+    storage === 'session'
+      ? sessionKeyStore
+      : (keyStore ??=
+          typeof indexedDB === 'undefined'
+            ? createMemoryWebDeviceKeyStore()
+            : createIndexedDbWebDeviceKeyStore(indexedDB))
   const source = createWebRuntimeCredentialSource({
     environment: {
       environmentId: environment.id,
       hostPublicKeyB64: endpoint.publicKeyB64,
       deviceToken: endpoint.deviceToken,
       pairingRevision: environment.pairingRevision ?? environment.createdAt,
-      storage: environment.sessionOnly ? 'session' : 'persisted'
+      storage
     },
     support,
-    store: keyStore,
+    store,
     subtle: typeof crypto === 'undefined' ? null : crypto.subtle,
     ...callbacks
   })

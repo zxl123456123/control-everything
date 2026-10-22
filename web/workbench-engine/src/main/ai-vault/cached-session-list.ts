@@ -1,4 +1,5 @@
 import { join } from 'node:path'
+import { isPlatformRuntime } from '../platform-runtime-policy'
 import { claudeProfileHistoryDirs } from '../claude-accounts/claude-profile-installed-router'
 import {
   clearAiVaultBackgroundRestartCircuit,
@@ -83,6 +84,10 @@ export async function localAiVaultScanRoots(): Promise<
   Required<Pick<AiVaultScanOptions, 'additionalCodexSessionsDirs' | 'wslHomeDirs'>> &
     Pick<AiVaultScanOptions, 'executionHostId' | 'wslOpenCodeReaders' | 'claudeProfileProjectsDirs'>
 > {
+  if (isPlatformRuntime()) {
+    return { additionalCodexSessionsDirs: [], wslHomeDirs: [], claudeProfileProjectsDirs: [],
+      wslOpenCodeReaders: [], executionHostId: LOCAL_EXECUTION_HOST_ID }
+  }
   const [additionalCodexHomes, wslHomeDirs] = await Promise.all([
     filterPathsToRunningWslDistrosAsync(configuredAdditionalCodexHomePaths()),
     getAiVaultWslHomeDirs()
@@ -102,6 +107,7 @@ export async function localAiVaultScanRoots(): Promise<
 /** The extra Codex homes session discovery scans. Anything that decides what a listed row may be
  *  resumed from must read the same set, or a row can be listed and then refuse to resume. */
 export function configuredAdditionalCodexHomePaths(): readonly string[] {
+  if (isPlatformRuntime()) return []
   return sources.getAdditionalCodexHomePaths?.() ?? []
 }
 
@@ -187,6 +193,7 @@ export async function listAiVaultSessions(
 // Exported for the subagent-transcript IPC path, which validates
 // renderer-supplied paths against the same WSL-aware Claude roots the scan uses.
 export async function getAiVaultWslHomeDirs(): Promise<string[]> {
+  if (isPlatformRuntime()) return []
   if (process.platform !== 'win32') {
     return []
   }

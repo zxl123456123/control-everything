@@ -209,6 +209,7 @@ describe('SidebarNav', () => {
   })
 
   beforeEach(async () => {
+    window.history.replaceState(null, '', '/')
     vi.clearAllMocks()
     await i18n.changeLanguage('en')
     mocks.hasPairedMobileDevice = false
@@ -266,6 +267,15 @@ describe('SidebarNav', () => {
   it('shows the Mobile entry by default for older settings', () => {
     expect(shouldShowMobileButton(null)).toBe(true)
     expect(shouldShowMobileButton({})).toBe(true)
+  })
+
+  it('labels the platform mobile entry as unconfigured without an install badge', async () => {
+    window.history.replaceState(null, '', '/workbench/web-index.html?project_id=sample')
+    const container = await renderSidebarNav()
+    const button = getButtonByText(container, '移动端未配置')
+    expect(container.textContent).not.toContain('Orca Mobile')
+    await clickButton(button)
+    expect(mocks.openMobilePage).toHaveBeenCalledTimes(1)
   })
 
   it('hides the Artifacts entry by default for older settings', () => {

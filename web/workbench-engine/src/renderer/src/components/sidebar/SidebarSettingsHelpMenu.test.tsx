@@ -171,6 +171,7 @@ function findMenuItem(container: HTMLElement, label: string): HTMLButtonElement 
 
 describe('SidebarSettingsHelpMenu', () => {
   beforeEach(() => {
+    window.history.replaceState(null, '', '/')
     globalThis.IS_REACT_ACT_ENVIRONMENT = true
     vi.clearAllMocks()
     installWindowApi()
@@ -194,6 +195,30 @@ describe('SidebarSettingsHelpMenu', () => {
   it('renders the help button with correct aria-label', () => {
     const html = renderToStaticMarkup(<SidebarSettingsHelpMenu />)
     expect(html).toContain('Help')
+  })
+
+  it('keeps platform settings and shortcuts without official service entrances', async () => {
+    window.history.replaceState(null, '', '/workbench/web-index.html?project_id=sample')
+    const container = await renderMenu()
+    expect(container.textContent).toContain('掌控一切 · 项目工作区')
+    expect(container.textContent).toContain('Orca · MIT License')
+    for (const label of [
+      'Send Feedback',
+      'Onboarding',
+      'Docs',
+      'Changelog',
+      'GitHub',
+      'Discord',
+      'Check for Updates',
+      'Restart Orca'
+    ]) {
+      expect(container.textContent).not.toContain(label)
+    }
+    await act(async () => findMenuItem(container, '键盘快捷键').click())
+    expect(mocks.openSettingsTarget).toHaveBeenCalledWith({ pane: 'shortcuts', repoId: null })
+    expect(mocks.openSettingsPage).toHaveBeenCalledTimes(1)
+    expect(mocks.shellOpenUrl).not.toHaveBeenCalled()
+    expect(mocks.updaterCheck).not.toHaveBeenCalled()
   })
 
   it('renders the settings button with correct aria-label', () => {

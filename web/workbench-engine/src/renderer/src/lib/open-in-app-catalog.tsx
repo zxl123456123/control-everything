@@ -60,7 +60,10 @@ export function OpenInApplicationIcon({
   size?: number
 }): React.JSX.Element {
   const preset = getOpenInAppPreset(application)
-  if (preset) {
+  // The platform uses the existing app glyph without a third-party favicon request.
+  const platformWeb =
+    typeof window !== 'undefined' && window.location.pathname === '/workbench/web-index.html'
+  if (preset && !platformWeb) {
     return (
       <img
         src={`https://www.google.com/s2/favicons?domain=${preset.faviconDomain}&sz=64`}

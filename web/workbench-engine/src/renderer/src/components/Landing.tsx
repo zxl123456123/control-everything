@@ -223,6 +223,7 @@ function PreflightBanner({
 }
 
 export default function Landing(): React.JSX.Element {
+  const platformMode = window.location.pathname === '/workbench/web-index.html'
   const repos = useAppStore((s) => s.repos)
   const openModal = useAppStore((s) => s.openModal)
 
@@ -230,7 +231,7 @@ export default function Landing(): React.JSX.Element {
     repos.length > 0 && repos.every((repo) => isGitRepoKind(repo)) ? 'Worktree' : 'Workspace'
   const hasProjects = repos.length > 0
   const hasGitHubProject = useMemo(() => hasGitHubBackedProject(repos), [repos])
-  const showGitHubSupportFooter = repos.length === 0 || hasGitHubProject
+  const showGitHubSupportFooter = !platformMode && (repos.length === 0 || hasGitHubProject)
 
   // Why: the runtime-aware slice probes the active remote host instead of the renderer host.
   const { preflightIssues } = useLandingPreflightRuntime()
@@ -259,14 +260,20 @@ export default function Landing(): React.JSX.Element {
             className="flex items-center justify-center size-20 rounded-2xl border border-border/80 shadow-lg shadow-black/40"
             style={{ backgroundColor: '#12181e' }}
           >
-            <img
-              src={logo}
-              alt={translate('auto.components.Landing.520304a067', 'Orca logo')}
-              className="size-12"
-            />
+            {platformMode ? (
+              <span className="text-2xl font-semibold text-white" aria-hidden="true">
+                CE
+              </span>
+            ) : (
+              <img
+                src={logo}
+                alt={translate('auto.components.Landing.520304a067', 'Orca logo')}
+                className="size-12"
+              />
+            )}
           </div>
           <h1 className="text-4xl font-bold text-foreground tracking-tight">
-            {translate('auto.components.Landing.6ca6ff404e', 'ORCA')}
+            {platformMode ? '掌控一切' : translate('auto.components.Landing.6ca6ff404e', 'ORCA')}
           </h1>
 
           {preflightIssues.length > 0 && <PreflightBanner issues={preflightIssues} repos={repos} />}

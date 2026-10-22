@@ -235,6 +235,7 @@ export type OrcadArtifact = {
 }
 
 export const ORCAD_ARTIFACTS: readonly OrcadArtifact[] = [
+  { filename: 'platform-owner-client.js' },
   { filename: ORCAD_CLI_ENTRY_FILENAME },
   { filename: ORCAD_CLI_PACKAGE_FILENAME },
   { filename: ORCAD_LAUNCHER_FILENAME },

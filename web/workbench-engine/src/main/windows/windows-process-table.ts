@@ -196,9 +196,9 @@ function adaptAddon(addon: WindowsProcessTreeAddon): WindowsProcessTreeModule {
 /**
  * Resolve the native reader, or null where it cannot be used.
  *
- * Two sources, because two very different deployments need it. The desktop app
- * installs the npm package. A relay host has no node_modules of ours at all, so
- * the bundle build stages the bare addon next to the bundle and we bind to that.
+ * The bundle's staged addon wins when present: a locally built relay can still
+ * see an ancestor node_modules containing the package's unrebuilt prebuild.
+ * Only a deployment without the sibling uses the desktop's npm package.
  *
  * Why tolerate absence: it stays optional and Windows-only, so a macOS/Linux
  * install legitimately has no binary, and a relay built before this artifact
@@ -214,11 +214,23 @@ function loadWindowsProcessTree(): WindowsProcessTreeModule | null {
     cachedModule = null
     return cachedModule
   }
+  let hasStagedAddon = false
   try {
-    cachedModule = requireNative('@vscode/windows-process-tree') as WindowsProcessTreeModule
-    return cachedModule
-  } catch {
-    // Not an error here: the relay never has the package. Try the staged addon.
+    hasStagedAddon = Boolean(requireNative.resolve?.(RELAY_ADDON_FILENAME))
+  } catch (error) {
+    // A broken deployment must not be hidden by an unrelated ancestor package.
+    if (!(error instanceof Error) || !('code' in error) || error.code !== 'MODULE_NOT_FOUND') {
+      cachedModule = null
+      return cachedModule
+    }
+  }
+  if (!hasStagedAddon) {
+    try {
+      cachedModule = requireNative('@vscode/windows-process-tree') as WindowsProcessTreeModule
+      return cachedModule
+    } catch {
+      // Bare injected requires have no resolver; retain their staged-addon path.
+    }
   }
   try {
     const addon = requireNative(RELAY_ADDON_FILENAME) as WindowsProcessTreeAddon

@@ -13,6 +13,9 @@
 import { join } from 'node:path'
 import process from 'node:process'
 import { getAppEnvironment } from '../../shared/app-environment'
+import { isPlatformRuntime, readPlatformRuntimePolicy } from '../platform-runtime-policy'
+import { ALL_RPC_METHODS } from '../runtime/rpc/methods'
+import { platformOwnerMethods } from './platform-owner-methods'
 import { resolveOrcadInstallRoot, resolveUserDataPath } from './orcad-app-paths'
 import { prepareOrcadCliLauncher } from './orcad-cli-launcher'
 import {
@@ -56,6 +59,10 @@ let closeOrcadObservability = (): void => {}
  * for byte so the same harnesses can drive either host.
  */
 export async function startOrcad(options: OrcadOptions = {}): Promise<OrcadHandle> {
+  const policy = readPlatformRuntimePolicy()
+  if (policy && options.bind !== undefined && options.bind !== '127.0.0.1') {
+    throw new Error('platform_loopback_required')
+  }
   installOrcadHostAdapters()
   // Why: an orcad started from an Orca terminal must not fence its own CLI children to that Orca.
   stampRuntimeSourceEnv(process.env, null)
@@ -96,7 +103,7 @@ async function startOrcadRuntime(
   registerCleanup: (cleanup: OrcadRuntimeCleanup) => void
 ): Promise<Pick<OrcadHandle, 'readiness'>> {
   // Started first so the login-shell probe overlaps the imports and store startup below.
-  const loginEnvironment = adoptWslHostLoginEnvironment().then(
+  const loginEnvironment = (isPlatformRuntime() ? Promise.resolve([]) : adoptWslHostLoginEnvironment()).then(
     (names) => {
       if (names.length > 0) {
         console.info(`[orcad] adopted login-shell variables: ${names.join(', ')}`)
@@ -341,7 +348,7 @@ async function startOrcadRuntime(
 
   const bindHost = resolveOrcadBindHost(options.bind)
   bindOrcadStopTerminalAdmission(runtime.terminalUpdateAdmission)
-  const rpc = new OrcaRuntimeRpcServer({
+  const rpc: InstanceType<typeof OrcaRuntimeRpcServer> = new OrcaRuntimeRpcServer({
     runtime,
     userDataPath: runtimeUserDataPath,
     enableWebSocket: true,
@@ -350,14 +357,15 @@ async function startOrcadRuntime(
     // once a device has connected, so a loopback deployment would silently go wide one
     // restart after its first client paired.
     pinnedBindHost: bindHost,
-    webClientRoot: resolveOrcadWebClientRoot(options.webClientRoot),
+    webClientRoot: isPlatformRuntime() ? undefined : resolveOrcadWebClientRoot(options.webClientRoot),
+    ...(isPlatformRuntime() ? { methods: [...ALL_RPC_METHODS, ...platformOwnerMethods(() => rpc)] } : {}),
     ...orcadWsPortOptions(options.port)
   })
   // Stops first: no RPC may write while the rest of the runtime is torn down.
   registerCleanup(() => rpc.stop())
   await rpc.start()
-  startOrcadAutomations(runtime, profileStore, registerCleanup)
-  const pushService = DesktopPushService.create({
+  if (!isPlatformRuntime()) startOrcadAutomations(runtime, profileStore, registerCleanup)
+  const pushService = isPlatformRuntime() ? null : DesktopPushService.create({
     runtime,
     runtimeRpc: rpc,
     gatewayUrl: resolvePushGatewayOrigin(process.env, getAppEnvironment().isPackaged())

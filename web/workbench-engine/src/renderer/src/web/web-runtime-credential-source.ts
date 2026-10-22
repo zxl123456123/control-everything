@@ -71,6 +71,7 @@ export function createWebRuntimeCredentialSource(args: {
   forgetPairing: () => void
 }): WebRuntimeCredentialSource {
   const { environment, support, store, subtle } = args
+  const usePersistentStore = support === 'persistent' && environment.storage === 'persisted'
   const recordId = webDeviceKeyId(environment.hostPublicKeyB64, environment.environmentId)
   let unavailable = false
   let tokenForgotten = environment.deviceToken.startsWith(MIGRATED_DEVICE_TOKEN_PREFIX)
@@ -150,7 +151,7 @@ export function createWebRuntimeCredentialSource(args: {
 
   return {
     nextPlan: (allowMigration) =>
-      support === 'persistent' ? persistentPlan(allowMigration) : sessionPlan(allowMigration),
+      usePersistentStore ? persistentPlan(allowMigration) : sessionPlan(allowMigration),
     migrated: async (plan, deviceId) => {
       if (plan.ephemeral) {
         sessionKey = { key: plan.key, deviceId }
@@ -174,7 +175,7 @@ export function createWebRuntimeCredentialSource(args: {
         args.forgetPairing()
         return true
       }
-      const record = support === 'persistent' ? await store.get(recordId) : undefined
+      const record = usePersistentStore ? await store.get(recordId) : undefined
       if (!record || record.deviceId !== deviceId) {
         return false
       }

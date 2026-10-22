@@ -138,6 +138,8 @@ export class RuntimeRpcPairing extends RuntimeRpcNetworkExposure {
     address?: string | null
     name?: string
     rotate?: boolean
+    // Product bootstrap calls must own distinct revocable credentials before either page connects.
+    freshDevice?: boolean
     scope?: DeviceScope
     // Why: STA-2370 — recorded on the grant so a "This computer only" client reconnecting cannot make the
     // next launch bind every interface. Defaults to network reach, which is what every other caller means.
@@ -182,9 +184,11 @@ export class RuntimeRpcPairing extends RuntimeRpcNetworkExposure {
     try {
       const reach = args.reach ?? 'network'
       const grants = args.grants ?? []
-      device = args.rotate
-        ? this.deviceRegistry.rotatePendingDevice(deviceName, scope, reach, grants)
-        : this.deviceRegistry.getOrCreatePendingDevice(deviceName, scope, reach, grants)
+      device = args.freshDevice
+        ? this.deviceRegistry.addDevice(deviceName, scope, reach, grants)
+        : args.rotate
+          ? this.deviceRegistry.rotatePendingDevice(deviceName, scope, reach, grants)
+          : this.deviceRegistry.getOrCreatePendingDevice(deviceName, scope, reach, grants)
     } catch (error) {
       console.error('[runtime] Failed to persist pairing credential:', error)
       return pairingUnavailable('device_registry_unavailable', DEVICE_REGISTRY_UNAVAILABLE_GUIDANCE)

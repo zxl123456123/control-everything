@@ -25,6 +25,25 @@ import {
 } from './use-mobile-pairing-address-preference'
 
 export default function MobilePage(): React.JSX.Element {
+  const closeMobilePage = useAppStore((s) => s.closeMobilePage)
+  return window.location.pathname === '/workbench/web-index.html' ? (
+    <div className="space-y-4 p-8">
+      <div role="status" className="space-y-2">
+        <h1 className="text-lg font-medium">移动端未配置</h1>
+        <p className="text-sm text-muted-foreground">
+          本平台移动客户端与服务地址尚未配置。当前请使用 Web 项目工作区。
+        </p>
+      </div>
+      <button type="button" onClick={closeMobilePage} className="text-sm underline">
+        返回工作区
+      </button>
+    </div>
+  ) : (
+    <StandaloneMobilePage />
+  )
+}
+
+function StandaloneMobilePage(): React.JSX.Element {
   const [stepIdx, setStepIdx] = useState<StepIndex>(0)
 
   const [platform, setPlatform] = useState<Platform>('ios')

@@ -1,22 +1,10 @@
-import { execFileSync } from 'node:child_process'
+import { readFileSync } from 'node:fs'
 
-/**
- * The full commit this build is made from. Official skill installs pin to it, so the
- * skills an Orca build installs are the ones it bundles on every release channel.
- */
+/** Upstream compatibility identity; the host commit is separate build provenance. */
 export function resolveBuildSourceCommit() {
-  let commit = ''
-  try {
-    commit = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim()
-  } catch (error) {
-    throw new Error(
-      `Could not read the source commit with \`git rev-parse HEAD\`: ${
-        error instanceof Error ? error.message : String(error)
-      }. Orca builds must run from a git checkout so official skills can pin to it.`
-    )
+  const origin = JSON.parse(readFileSync(new URL('../../build-origin.json', import.meta.url), 'utf8'))
+  if (origin.repository !== 'https://github.com/stablyai/orca' || !/^[0-9a-f]{40}$/.test(origin.upstreamCommit)) {
+    throw new Error('invalid_upstream_commit')
   }
-  if (!/^[0-9a-f]{40}$/.test(commit)) {
-    throw new Error(`\`git rev-parse HEAD\` returned "${commit}", not a full commit hash.`)
-  }
-  return commit
+  return origin.upstreamCommit
 }

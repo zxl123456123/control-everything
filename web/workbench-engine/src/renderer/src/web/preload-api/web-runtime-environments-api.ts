@@ -37,6 +37,8 @@ export function createRuntimeEnvironmentsApi(): NonNullable<
   Partial<PreloadApi>['runtimeEnvironments']
 > {
   return {
+    // Explicit absence keeps the fallback proxy from inventing desktop-only WSL host methods.
+    wslHosts: undefined,
     onStatusChanged: subscribeWebRuntimeStatus,
     getStatusSnapshots: async () => readWebRuntimeStatusSnapshots(),
     list: async () => {

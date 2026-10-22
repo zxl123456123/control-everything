@@ -16,7 +16,7 @@ export function createWebAppApi(): Partial<PreloadApi> {
         Promise.reject(new Error('Administrator restart requires the Windows desktop app.')),
       getIdentity: () =>
         Promise.resolve({
-          name: 'Orca',
+          name: window.location.pathname.startsWith('/workbench/') ? 'Control Everything' : 'Orca',
           isDev: false,
           devLabel: null,
           devBranch: null,
@@ -24,7 +24,8 @@ export function createWebAppApi(): Partial<PreloadApi> {
           devRepoRoot: null,
           dockBadgeLabel: null
         }),
-      getFeatureWallAssetBaseUrl: () => Promise.resolve('/'),
+      getFeatureWallAssetBaseUrl: () =>
+        Promise.resolve(window.location.pathname.startsWith('/workbench/') ? '/workbench/' : '/'),
       relaunch: () => Promise.resolve(window.location.reload()),
       restart: () => Promise.resolve(window.location.reload()),
       reload: () => Promise.resolve(window.location.reload()),

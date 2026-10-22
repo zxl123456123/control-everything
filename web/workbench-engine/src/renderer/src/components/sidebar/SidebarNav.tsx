@@ -52,6 +52,7 @@ const SidebarNav = React.memo(function SidebarNav() {
   // Why: this memo boundary needs its own language subscription, while
   // translate() preserves Orca's pseudo-localization behavior.
   useTranslation()
+  const platformMode = window.location.pathname === '/workbench/web-index.html'
   const worktreePaletteShortcutCombos = useShortcutKeyComboDetails('worktree.palette')
   const openAutomationsPage = useAppStore((s) => s.openAutomationsPage)
   const openMobilePage = useAppStore((s) => s.openMobilePage)
@@ -239,9 +240,11 @@ const SidebarNav = React.memo(function SidebarNav() {
                   strokeWidth={mobileActive ? 2.25 : 1.75}
                 />
                 <span className="min-w-0 flex-1 truncate">
-                  {translate('auto.components.sidebar.SidebarNav.1b5c41caee', 'Orca Mobile')}
+                  {platformMode
+                    ? '移动端未配置'
+                    : translate('auto.components.sidebar.SidebarNav.1b5c41caee', 'Orca Mobile')}
                 </span>
-                {mobileOnboardingBadge.visible ? (
+                {!platformMode && mobileOnboardingBadge.visible ? (
                   <span className="shrink-0 rounded-full bg-primary px-1.5 py-px text-[10px] font-semibold text-primary-foreground">
                     {translate('auto.components.sidebar.SidebarNav.c86d83b5c3', 'New')}
                   </span>

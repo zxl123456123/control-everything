@@ -1,4 +1,5 @@
 import { win32 as pathWin32 } from 'node:path'
+import { isPlatformRuntime } from '../platform-runtime-policy'
 import { isWindowsGitBashShellPath } from '../git-bash'
 import { parseWslPath, toLinuxPath, toWindowsWslPath } from '../wsl'
 import {
@@ -181,6 +182,7 @@ export function resolveWindowsShellLaunchArgs(
 ): WindowsShellLaunchArgs {
   const shellBasename = pathWin32.basename(shellPath).toLowerCase()
   const nativeCwd = normalizeWindowsTerminalCwd(cwd)
+  const isolated = isPlatformRuntime()
 
   if (shellBasename === 'cmd.exe') {
     const shellArgStartupCommand = getCmdShellArgStartupCommand(startupCommand)
@@ -190,7 +192,7 @@ export function resolveWindowsShellLaunchArgs(
       ...(shellArgStartupCommand ? [shellArgStartupCommand] : [])
     ]
     return {
-      shellArgs: ['/K', startupCommands.join(' & ')],
+      shellArgs: [...(isolated ? ['/D'] : []), '/K', startupCommands.join(' & ')],
       ...(shellArgStartupCommand ? { startupCommandDeliveredInShellArgs: true } : {}),
       effectiveCwd: nativeCwd,
       validationCwd: nativeCwd
@@ -203,7 +205,7 @@ export function resolveWindowsShellLaunchArgs(
     // PowerShell needs a prompt/readline bootstrap after profiles finish.
     // Why base64 and not -Command: see powershell-osc133-bootstrap.ts (MDE review).
     return {
-      shellArgs: ['-NoLogo', '-NoExit', '-EncodedCommand', powerShellCommand.encodedCommand],
+      shellArgs: ['-NoLogo', ...(isolated ? ['-NoProfile'] : []), '-NoExit', '-EncodedCommand', powerShellCommand.encodedCommand],
       ...(powerShellCommand.startupCommandDeliveredInShellArgs
         ? { startupCommandDeliveredInShellArgs: true }
         : {}),
@@ -214,13 +216,14 @@ export function resolveWindowsShellLaunchArgs(
 
   if (isWindowsGitBashShellPath(shellPath)) {
     return {
-      shellArgs: ['-c', getGitBashLaunchCommand()],
+      shellArgs: isolated ? ['--noprofile', '--norc', '-i'] : ['-c', getGitBashLaunchCommand()],
       effectiveCwd: nativeCwd,
       validationCwd: nativeCwd
     }
   }
 
   if (shellBasename === 'wsl.exe') {
+    if (isolated) throw new Error('platform_wsl_not_configured')
     const wslInfo = parseWslPath(cwd)
     if (wslInfo) {
       return {

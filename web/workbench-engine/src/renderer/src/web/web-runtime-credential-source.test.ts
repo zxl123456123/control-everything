@@ -44,6 +44,37 @@ async function migrateOnce(store: WebDeviceKeyStore, pairingRevision: number): P
 }
 
 describe('browser credential plans', () => {
+  it('session-only pairing uses ephemeral keys even when persistent keys are supported', async () => {
+    const store: WebDeviceKeyStore = { get: vi.fn(), add: vi.fn(), put: vi.fn(), remove: vi.fn() }
+    const forgetPairing = vi.fn()
+    const source = createWebRuntimeCredentialSource({
+      environment: {
+        environmentId: 'platform-host',
+        hostPublicKeyB64: 'host-key',
+        deviceToken: 'temporary-code',
+        pairingRevision: 1,
+        storage: 'session'
+      },
+      support: 'persistent',
+      store,
+      subtle,
+      forgetStoredToken: vi.fn(),
+      forgetPairing
+    })
+    const plan = await source.nextPlan(true)
+    expect(plan).toMatchObject({ kind: 'migrate', ephemeral: true })
+    if (plan.kind !== 'migrate') throw new Error('Expected ephemeral migration')
+    await source.migrated(plan, 'session-device')
+    expect(await source.nextPlan(true)).toMatchObject({
+      kind: 'device-key',
+      deviceId: 'session-device'
+    })
+    expect(await source.deviceRevoked('another-device')).toBe(false)
+    expect(await source.deviceRevoked('session-device')).toBe(true)
+    expect(forgetPairing).toHaveBeenCalledOnce()
+    for (const operation of Object.values(store)) expect(operation).not.toHaveBeenCalled()
+  })
+
   it('a re-pair (new pairing revision) uses its fresh code, not the old key', async () => {
     const store = createMemoryWebDeviceKeyStore()
     await migrateOnce(store, 1)

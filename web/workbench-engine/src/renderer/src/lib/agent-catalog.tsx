@@ -102,7 +102,10 @@ export function AgentIcon({
       />
     )
   }
-  if (catalogEntry?.faviconDomain) {
+  // The platform supplies its own UI assets; keep the existing letter fallback offline.
+  const platformWeb =
+    typeof window !== 'undefined' && window.location.pathname === '/workbench/web-index.html'
+  if (catalogEntry?.faviconDomain && !platformWeb) {
     // Why: agents without a published SVG icon or bundled favicon fall back to
     // their site favicon via Google's favicon service — same source the README
     // uses for the agent badge list.

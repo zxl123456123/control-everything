@@ -20,7 +20,7 @@ export default defineConfig({
     createViteCacheRetentionPlugin()
   ],
   define: {
-    ORCA_FEATURE_WALL_ENABLED: 'true',
+    ORCA_FEATURE_WALL_ENABLED: 'false',
     ORCA_BUILD_COMMIT: JSON.stringify(resolveBuildSourceCommit())
   },
   resolve: {
@@ -31,6 +31,7 @@ export default defineConfig({
     }
   },
   build: {
+    manifest: true,
     outDir: resolve('out/web'),
     emptyOutDir: true,
     reportCompressedSize: false,

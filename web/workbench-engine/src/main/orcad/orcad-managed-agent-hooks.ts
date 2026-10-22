@@ -1,4 +1,5 @@
 import { getAppEnvironment } from '../../shared/app-environment'
+import { isPlatformRuntime } from '../platform-runtime-policy'
 import { startCodexHooks } from '../codex/codex-hook-reconcile'
 import { adoptLoginShellAgentHomes } from '../agent-hooks/agent-home-login-shell'
 import { hydrateAgentCliShellPath } from '../agent-hooks/local-agent-cli-presence'
@@ -21,6 +22,10 @@ export function startOrcadManagedAgentHooks(
   setStatusHooksEnabled: (enabled: boolean) => void,
   registerCleanup: (cleanup: OrcadRuntimeCleanup) => void
 ): void {
+  if (isPlatformRuntime()) {
+    setStatusHooksEnabled(false)
+    return
+  }
   let stopping = false
   const removeSettingsListener = store.onSettingsChanged((updates, settings) => {
     if ('agentStatusHooksEnabled' in updates) {
