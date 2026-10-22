@@ -21,6 +21,17 @@
 #ce-studio .ce-rail-label{font-size:14px;color:var(--ce-sub);padding:0 12px 5px}
 #ce-studio .ce-nav{display:flex;align-items:center;gap:9px;text-align:left;border:0;background:transparent;padding:10px 11px;border-radius:8px;font-size:15px;line-height:1.35;min-height:40px}
 #ce-studio .ce-nav:hover{background:var(--ce-hover)}
+#ce-studio .ce-creator-link{color:inherit;text-decoration:none;cursor:pointer}
+#ce-studio .ce-topbar .ce-creator-mobile{display:none}
+#ce-studio .ce-creator-address{padding:20px;border:1px solid var(--ce-faint);border-radius:12px;background:var(--ce-panel);margin-bottom:20px}
+#ce-studio .ce-creator-address h2{font-size:17px;margin-bottom:7px}
+#ce-studio .ce-creator-address p{font-size:14px;color:var(--ce-sub)}
+#ce-studio .ce-creator-address form{margin-top:16px}
+#ce-studio .ce-creator-address label{display:block;font-size:14px;margin-bottom:7px}
+#ce-studio .ce-creator-address-row{display:flex;gap:9px}
+#ce-studio .ce-creator-address input{min-width:0;flex:1;border:1px solid var(--ce-line);border-radius:7px;background:var(--ce-bg);padding:8px 10px;font-size:14px}
+#ce-studio .ce-creator-address-row button{flex:none}
+#ce-studio #studio-creator-error{color:var(--ce-red);margin-top:7px}
 #ce-studio .ce-nav.is-current{background:var(--ce-panel);box-shadow:0 1px 3px var(--ce-shadow-deep);font-weight:500}
 #ce-studio .ce-project-nav{padding-left:13px;margin-left:11px;border-left:1px solid var(--ce-line);border-radius:0;font-size:14px;gap:8px}
 #ce-studio .ce-project-nav.is-current{border-radius:0 7px 7px 0;border-left-color:var(--ce-text)}
@@ -233,6 +244,7 @@
 #ce-studio .ce-preview{display:none}}
 @media(max-width:760px){#ce-studio .ce-shell{display:block;min-height:0}
 #ce-studio .ce-rail{display:none}
+#ce-studio .ce-topbar .ce-creator-mobile{display:inline-flex;white-space:nowrap}
 #ce-studio .ce-mobile-home{display:grid}
 #ce-studio .ce-topbar{padding:12px 18px;flex-wrap:wrap;gap:8px}
 #ce-studio .ce-topbar .ce-crumbs{flex:1}
@@ -246,6 +258,8 @@
 #ce-studio .ce-heading-actions{justify-content:flex-end}
 #ce-studio .ce-topbar .ce-iconbtn{width:34px}}
 @media(max-width:520px){#ce-studio{border-radius:12px}
+#ce-studio .ce-creator-address-row{flex-direction:column}
+#ce-studio .ce-creator-mobile{font-size:13px;padding:7px}
 #ce-studio .ce-main{padding:20px 15px}
 #ce-studio .ce-topbar{padding:10px 15px}
 #ce-studio .ce-project-grid,#ce-studio .ce-agent-grid,#ce-studio .ce-tool-grid{grid-template-columns:1fr}

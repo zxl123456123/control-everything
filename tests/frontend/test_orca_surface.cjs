@@ -87,16 +87,27 @@ test('invalid stored pairing URLs are discarded without loading or echoing them'
   assert.equal(f.elements['frame-host'].children.length, 0);
 });
 
-test('outer navigation, theme and example approvals do not recreate or navigate Orca', () => {
+function shellFixture(savedCreatorUrl = null) {
   const f = fixture();
   const app = new Element();
   // A full-root render would remove the mounted client and fail this contract.
   Object.defineProperty(app, 'innerHTML', {set() { throw new Error('Stable shell must not be replaced'); }});
   const nodes = {'ce-studio': app, 'studio-rail': new Element(), 'studio-topbar': new Element(),
     'studio-examples': new Element(), 'studio-orca': f.root};
-  const context = vm.createContext({window: {OrcaSurface: {create: () => f.controller}}, document: {getElementById: id => nodes[id]}});
+  const creatorInput = new Element(), writes = [], removed = [];
+  app.querySelector = selector => selector === '[data-creator-url]' ? creatorInput : new Element();
+  const localStorage = {getItem: key => key === 'ce-studio-creator-url' ? savedCreatorUrl : null,
+    setItem: (...args) => writes.push(args), removeItem: key => removed.push(key)};
+  const context = vm.createContext({URL, window: {OrcaSurface: {create: () => f.controller}, localStorage},
+    document: {getElementById: id => nodes[id]}, fetch: () => { throw new Error('Outer shell must not probe the creator service'); }});
   vm.runInContext(fs.readFileSync(path.join(__dirname, '../../web/workspace/studio-preview.js'), 'utf8'), context);
   const click = (action, id) => app.listeners.click({target: {closest: () => ({dataset: {action, id}})}});
+  const submit = value => { creatorInput.value = value; app.listeners.submit({preventDefault() {}, target: {dataset: {creatorForm: 'true'}}}); };
+  return {f, app, nodes, writes, removed, click, submit};
+}
+
+test('outer navigation, theme and example approvals do not recreate or navigate Orca', () => {
+  const {f, app, nodes, click} = shellFixture();
   click('project');
   const frame = f.elements['frame-host'].children[0];
   click('theme'); click('tools'); click('home'); click('task', 'test'); click('approve', 'test'); click('project');
@@ -106,4 +117,54 @@ test('outer navigation, theme and example approvals do not recreate or navigate 
   assert.equal(nodes['studio-examples'].hidden, true);
   assert.equal(f.root.hidden, false);
   assert.doesNotMatch(nodes['studio-rail'].innerHTML, /data-id="ce"|data-id="tank"|data-id="docs"/);
+});
+
+test('creator is a plain top-level and mobile link without routing or iframe changes', () => {
+  const {f, app, nodes, click} = shellFixture();
+  click('project');
+  const frame = f.elements['frame-host'].children[0];
+  const rail = nodes['studio-rail'].innerHTML;
+  const link = rail.match(/<a [^>]+ce-creator-link[^>]*>/)[0];
+  assert.match(link, /href="http:\/\/127\.0\.0\.1:8770\/"/);
+  assert.match(link, /target="_blank" rel="noopener noreferrer"/);
+  assert.doesNotMatch(link, /data-action|data-route/);
+  assert.match(nodes['studio-topbar'].innerHTML, /ce-creator-mobile.*href="http:\/\/127\.0\.0\.1:8770\/"/);
+  app.listeners.click({target: {closest: () => null}});
+  assert.equal(nodes['studio-rail'].innerHTML, rail);
+  assert.equal(f.elements['frame-host'].children[0], frame);
+  assert.equal(frame.srcWrites.length, 1);
+  assert.equal(f.root.hidden, false);
+});
+
+test('creator address configuration shares one independent key and preserves mounted Orca', () => {
+  const {f, nodes, writes, click, submit} = shellFixture();
+  click('project');
+  const frame = f.elements['frame-host'].children[0];
+  click('tools');
+  assert.match(nodes['studio-examples'].innerHTML, /data-creator-form="true"/);
+  submit('https://creator.example.test/workbench/');
+  assert.deepEqual(writes, [['ce-studio-creator-url', 'https://creator.example.test/workbench/']]);
+  assert.match(nodes['studio-rail'].innerHTML, /href="https:\/\/creator\.example\.test\/workbench\/"/);
+  assert.match(nodes['studio-topbar'].innerHTML, /href="https:\/\/creator\.example\.test\/workbench\/"/);
+  assert.match(nodes['studio-examples'].innerHTML, /value="https:\/\/creator\.example\.test\/workbench\/"/);
+  for (const invalid of ['javascript:alert(1)', '//example.test', 'http://name:secret@example.test/',
+    'https://example.test/?token=synthetic', 'https://example.test/#token', 'https://example.test/?',
+    'https://example.test/#', 'https://example.test/a b', ' https://example.test/', 'https:\\example.test']) {
+    submit(invalid);
+    assert.equal(writes.length, 1);
+    assert.match(nodes['studio-rail'].innerHTML, /href="https:\/\/creator\.example\.test\/workbench\/"/);
+    assert.match(nodes['studio-examples'].innerHTML, /aria-invalid="true"/);
+  }
+  click('theme'); click('project');
+  assert.equal(f.elements['frame-host'].children[0], frame);
+  assert.equal(frame.srcWrites.length, 1);
+});
+
+test('invalid stored creator URLs are discarded without echoing token material', () => {
+  const {nodes, removed} = shellFixture('https://example.test/#synthetic-creator-secret');
+  assert.deepEqual(removed, ['ce-studio-creator-url']);
+  assert.match(nodes['studio-rail'].innerHTML, /href="http:\/\/127\.0\.0\.1:8770\/"/);
+  assert.doesNotMatch(nodes['studio-rail'].innerHTML, /synthetic-creator-secret/);
+  const valid = shellFixture('https://creator.example.test/');
+  assert.match(valid.nodes['studio-rail'].innerHTML, /href="https:\/\/creator\.example\.test\/"/);
 });
