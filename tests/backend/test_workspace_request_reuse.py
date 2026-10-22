@@ -16,6 +16,7 @@ from control_everything.sessions.codex_index import unavailable
 from control_everything.workspace.observations import scope_roots
 from control_everything.workspace.service import WorkspaceService
 from control_everything.workspace.store import WorkspaceError, WorkspaceStore
+from control_everything.workspace.validation import inside_project, observation_owner
 from tests.backend.test_observation_settings import registration, save
 from tests.backend.test_observer_protocol import sample
 from tests.backend.test_project_management import project_body
@@ -115,6 +116,80 @@ class WorkspaceRequestReuseTests(unittest.TestCase):
             connection.execute("DELETE FROM project_sources WHERE project_id=?", (project["id"],))
         with self.assertRaises(TypeError):
             self.store.list_projects()
+
+    def test_project_session_path_checks_grow_once_per_sample(self):
+        for size in (5, 20, 50, 200):
+            with self.subTest(projects=size):
+                registry = [{**project_body(self.root / str(index)), "id": "p-" + f"{index:032x}",
+                             "root": str(self.root / str(index))} for index in range(size)]
+                sessions = {"items": [{"session_key": str(index), "cwd": registry[0]["root"]}
+                                      for index in range(12)]}
+                with patch.object(self.workspace, "desktop_snapshot", return_value={"status": "unavailable", "items": []}):
+                    with patch("control_everything.workspace.validation.inside_project", wraps=inside_project) as compare:
+                        rows = self.workspace.profile_projects(registry, sessions)
+                self.assertEqual(len(rows[0]["sessions"]), 12)
+                self.assertTrue(all(not row["sessions"] for row in rows[1:]))
+                self.assertEqual(compare.call_count, size * 12)
+
+    def test_project_session_groups_keep_sources_ownership_order_and_input(self):
+        def project(identity, path, **changes):
+            return {**project_body(self.root / path), "id": identity, "root": str(self.root / path), **changes}
+
+        registry = [project("parent", "project"), project("child", "project/nested"),
+                    project("archived", "archived", archived=True), project("ambiguous-a", "shared"),
+                    project("ambiguous-b", "shared"), project("external", "project", read_only=True),
+                    project("external-archived", "project", read_only=True, archived=True)]
+        registry[1]["directories"].append({"id": "extra", "path": str(self.root / "extra")})
+        desktop_rows = [{"session_key": "desktop-" + str(index), "cwd": str(self.root / "project/nested"),
+                         "assignment_state": "projectless"} for index in range(15)]
+        for index, (path, assignment, identity) in enumerate((
+                ("project", "assigned", "external"), ("project", "assigned", "external-archived"),
+                ("project/nested", "unknown", None), ("project/nested", "conflict", "external"),
+                ("archived", "projectless", None), ("shared", "projectless", None),
+                ("extra", "projectless", None), ("project", "projectless", None),
+                ("elsewhere", "projectless", None), ("project/nested", "assigned", "missing"))):
+            desktop_rows.append({"session_key": "case-" + str(index), "cwd": str(self.root / path),
+                                 "assignment_state": assignment, "project_id": identity})
+        sessions = {"items": [{"session_key": "fallback", "cwd": str(self.root / "extra")},
+                              {"session_key": "fallback-unknown", "cwd": str(self.root / "extra"),
+                               "assignment_state": "unknown"}]}
+        for status in ("available", "unavailable"):
+            desktop = {"status": status, "items": desktop_rows}
+            original = copy.deepcopy((registry, sessions, desktop))
+            expected = {}
+            for current in registry:
+                candidates = desktop_rows if current.get("read_only") or status == "available" else sessions["items"]
+                expected[current["id"]] = [{"tool": "Codex", "place": row["cwd"], "href": "/workspace",
+                                             "session_key": row["session_key"]}
+                    for row in candidates if (row.get("assignment_state") == "assigned" and
+                        row.get("project_id") == current["id"] if current.get("read_only") else
+                        row.get("assignment_state", "projectless") == "projectless" and
+                        observation_owner(row["cwd"], [value for value in registry if not value.get("read_only")]) == current["id"])][:12]
+            with patch.object(self.workspace, "desktop_snapshot", return_value=desktop):
+                actual = self.workspace.profile_projects(registry, sessions)
+            self.assertEqual({row["id"]: row["sessions"] for row in actual}, expected)
+            self.assertEqual([row["id"] for row in actual], [row["id"] for row in registry])
+            self.assertEqual((registry, sessions, desktop), original)
+        self.assertEqual([row["session_key"] for row in expected["child"]], ["fallback"])
+
+    def test_project_session_groups_recompute_after_move_archive_and_source_disable(self):
+        parent, child = self.project(), self.project("project/nested")
+        key = "codex:" + str(uuid4())
+        sessions = self.sessions_at(child["root"], key=key)
+        desktop = {"status": "available", "items": sessions["items"]}
+        with patch.object(self.workspace, "desktop_snapshot", side_effect=lambda: copy.deepcopy(desktop)):
+            first = self.workspace.profile_projects(self.store.list_projects(), sessions)
+            self.assertEqual([row["id"] for row in first if row["sessions"]], [child["id"]])
+            self.store.save_project(project_body(self.root / "moved", id=child["id"]))
+            moved = self.workspace.profile_projects(self.store.list_projects(), sessions)
+            self.assertEqual([row["id"] for row in moved if row["sessions"]], [parent["id"]])
+            self.store.save_project(project_body(self.root / "project", id=parent["id"], archived=True))
+            archived = self.workspace.profile_projects(self.store.list_projects(), sessions)
+            self.assertTrue(all(not row["sessions"] for row in archived))
+            desktop.update(status="unavailable", items=[])
+            disabled = self.workspace.profile_projects(self.store.list_projects(), unavailable(0))
+            self.assertTrue(all(not row["sessions"] for row in disabled))
+        self.assertEqual(first[1]["sessions"][0]["session_key"], key)
 
     def test_snapshot_reads_each_source_once_for_populated_and_empty_profiles(self):
         for populated in (False, True):

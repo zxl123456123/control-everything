@@ -345,14 +345,24 @@ class WorkspaceService:
         saved, counts, budget = self.store.manual_rows(), self.store.task_counts(), RequestBudget()
         result = []
         desktop = self.desktop_snapshot()
+        local_projects = [project for project in registry if not project.get("read_only")]
+        external_ids = {project["id"] for project in registry if project.get("read_only")}
+        project_sessions = {project["id"]: [] for project in registry}
+        for row in desktop["items"]:
+            if row.get("assignment_state") == "assigned" and row.get("project_id") in external_ids:
+                project_sessions[row["project_id"]].append(row)
+        if local_projects:
+            candidates = desktop["items"] if desktop["status"] == "available" else sessions["items"]
+            for row in candidates:
+                if row.get("assignment_state", "projectless") == "projectless":
+                    owner = observation_owner(row["cwd"], local_projects)
+                    if owner is not None:
+                        project_sessions[owner].append(row)
         for project in registry:
             manual = saved.get(project["id"])
             observation = observe(project, budget)
-            candidates = desktop["items"] if project.get("read_only") or desktop["status"] == "available" else sessions["items"]
             hits = [{"tool": "Codex", "place": row["cwd"], "href": "/workspace", "session_key": row["session_key"]}
-                    for row in candidates if (row.get("assignment_state") == "assigned" and row.get("project_id") == project["id"] if project.get("read_only") else
-                    row.get("assignment_state", "projectless") == "projectless" and
-                    observation_owner(row["cwd"], [value for value in registry if not value.get("read_only")]) == project["id"])][:12]
+                    for row in project_sessions[project["id"]]][:12]
             result.append({**project, "manual_recorded": manual is not None,
                            "manual_reason": None if manual else "not_recorded",
                            "state": manual["state"] if manual else None,
