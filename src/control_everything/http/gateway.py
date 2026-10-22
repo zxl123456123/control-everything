@@ -940,6 +940,14 @@ class PanelHandler(BaseHTTPRequestHandler):
                 self.reply(200, workspace.page_codex_sessions(**params))
             except ValueError:
                 raise ProfileError("invalid_query") from None
+        elif route == "/api/workspace/monitor":
+            try:
+                params = page_params(path.query, extra=("project_id",), default=20)
+                self.reply(200, workspace.project_monitor(**params))
+            except ProfileError:
+                raise
+            except ValueError:
+                raise ProfileError("invalid_query") from None
         elif route == "/api/workspace/items":
             try:
                 params = page_params(path.query, extra=("project_id", "scope", "provider_id", "state", "list_revision",
