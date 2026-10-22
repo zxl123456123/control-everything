@@ -394,6 +394,14 @@ class WorkspaceService:
         page = self.store.list_items(**params)
         return self._item_page(page, self.sessions(), self._project_context(), assignment=include_assignment)
 
+    def project_monitor(self, **params):
+        if self.profile is None:
+            raise ProfileError("route_not_found", status=404)
+        from control_everything.workspace import monitor
+        agents = {row["id"]: {"name": row["name"], "kind": row["kind"]}
+                  for row in self.profile.agent_settings()["items"]}
+        return monitor.project_monitor(self.store, agents=agents, **params)
+
     def list_agent_tasks(self, agent_id, state=None, project_ids=None):
         from control_everything.workspace import agent_runs
         return agent_runs.list_tasks(self.store, agent_id, state, project_ids)
