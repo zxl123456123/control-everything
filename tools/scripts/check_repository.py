@@ -134,7 +134,7 @@ def scan_gitleaks(root, executable, source, mode, interval=None):
                    "--ignore-gitleaks-allow", "--config", str(config), "--gitleaks-ignore-path", str(ignored),
                    "--report-format", "template", "--report-template", str(template), "--report-path", str(report)]
         if interval:
-            command.append("--log-opts=" + interval + " --diff-merges=first-parent")
+            command.append("--log-opts=" + interval + " --diff-merges=first-parent --text --no-ext-diff --no-textconv")
         result = run(command, root)
         findings = []
         if report.exists():
@@ -310,10 +310,23 @@ def added_findings(root, parent, current, report):
             except UnicodeError:
                 report["included"].append({"path": value, "commit": current})
                 continue
-        patch = git(root, *difference, "--patch", "--no-color", "--no-ext-diff", "--no-textconv", "--unified=0", "--find-renames", "--", *names).decode("utf-8")
+        options = ["--patch", "--no-color", "--no-ext-diff", "--no-textconv", "--unified=0", "--find-renames"]
+        patch = git(root, *difference, *options, "--", *names).decode("utf-8")
         if re.search(r"^(?:GIT binary patch|Binary files .* differ)$", patch, re.M):
-            report["blocked"].append({"path": value, "reason": "binary-candidate"})
-            continue
+            # Attributes can hide UTF-8 text. Verify the admitted committed blob, never the working file.
+            if not entry.startswith((b"100644 blob ", b"100755 blob ")):
+                report["blocked"].append({"path": value, "reason": "non-regular-candidate"})
+                continue
+            data = git(root, "cat-file", "blob", current + ":" + value)
+            if b"\x00" in data:
+                report["blocked"].append({"path": value, "reason": "binary-candidate"})
+                continue
+            try:
+                data.decode("utf-8-sig")
+            except UnicodeError:
+                report["blocked"].append({"path": value, "reason": "non-utf8-candidate"})
+                continue
+            patch = git(root, *difference, *options, "--text", "--", *names).decode("utf-8")
         included = {"path": value, "commit": current}
         if included not in report["included"]:
             report["included"].append(included)

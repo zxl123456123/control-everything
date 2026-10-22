@@ -409,6 +409,82 @@ class RepositoryChecksTests(unittest.TestCase):
         self.assertEqual(report["blocked"], [{"path": "sample.txt", "reason": "binary-candidate"}])
         self.scanner.assert_not_called()
 
+    def test_diff_disabled_utf8_scans_only_added_committed_lines(self):
+        self.save(".gitignore", "/work/\n")
+        self.save(".gitattributes", "*.patch -diff\n")
+        self.save("sample.patch", self.personal_path() + "\nold\n")
+        base = self.commit()
+        self.save("sample.patch", self.personal_path() + "\nold\nsafe addition\n")
+        head = self.commit()
+        self.assertIn("Binary files", self.git("diff", base, head, "--", "sample.patch"))
+        code, report = self.check("changes", "--base", base, "--head", head)
+        self.assertEqual(code, 0)
+        self.assertEqual(report["findings"], [])
+        self.assertEqual(report["blocked"], [])
+        self.scanner.assert_called_once()
+        self.save("sample.patch", self.personal_path() + "\nold\nsafe addition\n" + self.personal_path() + "\n")
+        introduced = self.commit()
+        self.save("sample.patch", "uncommitted clean working file\n")
+        code, report = self.check("changes", "--base", head, "--head", introduced)
+        self.assertEqual(code, 1)
+        self.assertEqual(report["blocked"], [])
+        self.assertEqual(report["findings"], [{"rule": rule, "path": "sample.patch", "line": 4, "commit": introduced}
+                                              for rule in ["absolute-windows-path", "personal-home-path"]])
+        self.assertNotIn(self.personal_path(), json.dumps(report))
+
+    def test_diff_disabled_new_utf8_file_is_scanned(self):
+        self.save(".gitignore", "/work/\n")
+        self.save(".gitattributes", "*.patch -diff\n")
+        base = self.commit()
+        self.save("added.patch", "safe\n" + self.personal_path() + "\n")
+        head = self.commit()
+        code, report = self.check("changes", "--base", base, "--head", head)
+        self.assertEqual(code, 1)
+        self.assertEqual(report["blocked"], [])
+        self.assertEqual(report["findings"], [{"rule": rule, "path": "added.patch", "line": 2, "commit": head}
+                                              for rule in ["absolute-windows-path", "personal-home-path"]])
+        self.scanner.assert_called_once()
+
+    def test_diff_disabled_binary_and_non_utf8_blobs_stay_blocked(self):
+        self.save(".gitignore", "/work/\n")
+        self.save(".gitattributes", "*.patch -diff\n")
+        self.save("sample.patch", "safe\n")
+        base = self.commit()
+        for data, reason in [(b"safe\x00binary", "binary-candidate"), (b"invalid\xfftext", "non-utf8-candidate")]:
+            with self.subTest(reason=reason):
+                (self.root / "sample.patch").write_bytes(data)
+                head = self.commit()
+                self.save("sample.patch", "uncommitted clean working file\n")
+                code, report = self.check("changes", "--base", base, "--head", head)
+                self.assertEqual(code, 1)
+                self.assertEqual(report["blocked"], [{"path": "sample.patch", "reason": reason}])
+                self.scanner.assert_not_called()
+                base = head
+
+    @unittest.skipUnless(GITLEAKS.is_file(), "Pinned local Gitleaks is installed separately")
+    def test_diff_disabled_secret_is_found_in_full_interval_by_real_gitleaks(self):
+        self.save(".gitignore", "/work/\n")
+        self.save(".gitattributes", "*.patch -diff\n")
+        self.save("sample.patch", "safe\n")
+        base = self.commit()
+        secret = "ghp_" + "aB3dE6gH9jK2mN5pQ8sT1vW4yZ7cF0iL3oR6"
+        self.save("sample.patch", 'token = "' + secret + '"\n')
+        introduced = self.commit()
+        self.save("sample.patch", "safe\n")
+        head = self.commit()
+        self.assertIn("Binary files", self.git("diff", base, introduced, "--", "sample.patch"))
+        actual = REAL_SCAN_GITLEAKS(self.root, GITLEAKS.resolve(), self.root, "git", base + ".." + head)
+        self.assertEqual(actual["exit_code"], 1)
+        self.assertTrue(any(item["commit"] == introduced and item["path"] == "sample.patch" for item in actual["findings"]))
+        self.assertNotIn(secret, json.dumps(actual))
+        with patch.object(CHECKS, "scan_gitleaks", wraps=REAL_SCAN_GITLEAKS):
+            code, report = self.check("changes", "--base", base, "--head", head, "--gitleaks", str(GITLEAKS.resolve()))
+        self.assertEqual(code, 1)
+        self.assertEqual(report["blocked"], [])
+        self.assertEqual(report["gitleaks"]["exit_code"], 1)
+        self.assertTrue(any(item["commit"] == introduced for item in report["gitleaks"]["findings"]))
+        self.assertNotIn(secret, json.dumps(report))
+
     def test_tool_exit_and_missing_tool_fail_closed(self):
         self.save("safe.txt", "safe\n")
         self.scanner.return_value = {"version": CHECKS.VERSION, "exit_code": 2, "findings": []}
