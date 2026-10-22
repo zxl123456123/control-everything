@@ -184,14 +184,20 @@ class WorkspaceStore:
     def list_projects(self, *, include_archived=True):
         with self.connection() as connection:
             rows = connection.execute("SELECT * FROM projects" + ("" if include_archived else " WHERE archived=0") + " ORDER BY position,id").fetchall()
+            if not rows:
+                return []
+            directories = {}
+            for value in connection.execute("SELECT project_id,binding_id,path FROM project_directories ORDER BY project_id,is_primary DESC,binding_id"):
+                directories.setdefault(value["project_id"], []).append({"id": value["binding_id"], "path": value["path"]})
+            sources = {value["project_id"]: {key: value[key] for key in ("kind", "directory_id", "relative_path")}
+                       for value in connection.execute("SELECT project_id,kind,directory_id,relative_path FROM project_sources")}
             items = []
             for row in rows:
                 item = dict(row)
                 item["archived"] = bool(item["archived"])
-                item["directories"] = [{"id": value["binding_id"], "path": value["path"]} for value in connection.execute(
-                    "SELECT binding_id,path FROM project_directories WHERE project_id=? ORDER BY is_primary DESC,binding_id", (item["id"],))]
+                item["directories"] = directories.get(item["id"], [])
                 item["root"] = next(value["path"] for value in item["directories"] if value["id"] == "main")
-                item["source"] = dict(connection.execute("SELECT kind,directory_id,relative_path FROM project_sources WHERE project_id=?", (item["id"],)).fetchone())
+                item["source"] = dict(sources.get(item["id"]))
                 items.append(item)
             return items
 
