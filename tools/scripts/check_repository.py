@@ -8,6 +8,10 @@ import re
 import stat
 import subprocess
 import tempfile
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tools" / "packaging"))
+from workbench_source_policy import UNIT, load_policy, SourcePolicyError
 
 
 VERSION = "8.30.1"
@@ -55,7 +59,7 @@ def relative_path(value):
     return path
 
 
-def forbidden(value):
+def forbidden(value, *, reviewed_resource=False):
     path = relative_path(value)
     parts = tuple(part.lower() for part in path.parts)
     name = parts[-1]
@@ -63,7 +67,7 @@ def forbidden(value):
         return "excluded-directory"
     if any(part in {".git", "work", ".venv", ".exe", "node_modules", "__pycache__", "videos"} for part in parts):
         return "excluded-directory"
-    if path.suffix.lower() in MEDIA:
+    if path.suffix.lower() in MEDIA and not reviewed_resource:
         return "media"
     if ((name == ".env" or name.startswith(".env.")) and name != ".env.example"
             or ".codex" in parts and value != ".codex/config.toml.example"
@@ -73,7 +77,7 @@ def forbidden(value):
     return None
 
 
-def safe_file(root, value):
+def safe_file(root, value, *, reviewed_resource=False):
     path = root.joinpath(*relative_path(value).parts)
     cursor = path
     while cursor != root:
@@ -87,7 +91,7 @@ def safe_file(root, value):
         canonical_name = canonical.relative_to(root).as_posix()
     except ValueError:
         raise CheckError("candidate-outside-root") from None
-    if forbidden(canonical_name):
+    if forbidden(canonical_name, reviewed_resource=reviewed_resource):
         raise CheckError("forbidden-canonical-candidate")
     if not canonical.is_file():
         raise CheckError("missing-candidate")
@@ -122,7 +126,7 @@ def scan_gitleaks(root, executable, source, mode, interval=None):
         config = scratch / "default.toml"
         config.write_text("[extend]\nuseDefault = true\n", encoding="utf-8")
         template = scratch / "report.tmpl"
-        template.write_text('{{ range . }}{{ .RuleID }}\t{{ .File }}\t{{ .StartLine }}\n{{ end }}', encoding="utf-8")
+        template.write_text('{{ range . }}{{ .RuleID }}\t{{ .File }}\t{{ .StartLine }}\t{{ .Commit }}\n{{ end }}', encoding="utf-8")
         ignored = scratch / "empty-ignore"
         ignored.mkdir()
         report = scratch / "findings.txt"
@@ -136,7 +140,7 @@ def scan_gitleaks(root, executable, source, mode, interval=None):
         if report.exists():
             for line in report.read_text(encoding="utf-8").splitlines():
                 fields = line.split("\t")
-                if len(fields) != 3 or not fields[2].isdigit():
+                if len(fields) != 4 or not fields[2].isdigit():
                     raise CheckError("invalid-gitleaks-report")
                 raw_path = fields[1].replace("\\", "/")
                 if mode == "dir" and Path(fields[1]).is_absolute():
@@ -145,8 +149,48 @@ def scan_gitleaks(root, executable, source, mode, interval=None):
                     except ValueError:
                         raise CheckError("invalid-gitleaks-path") from None
                 relative_path(raw_path)
-                findings.append({"rule": "gitleaks:" + fields[0], "path": raw_path, "line": int(fields[2])})
+                finding = {"rule": "gitleaks:" + fields[0], "path": raw_path, "line": int(fields[2])}
+                if mode == "git":
+                    if not re.fullmatch(r"[0-9a-f]{40}", fields[3]):
+                        raise CheckError("invalid-gitleaks-commit")
+                    finding["commit"] = fields[3]
+                findings.append(finding)
         return {"version": VERSION, "exit_code": result.returncode, "findings": findings}
+
+
+def record_findings(report, findings, policy=None):
+    for finding in findings:
+        reason = policy.reviewed_finding(finding) if policy else None
+        if reason:
+            report.setdefault("reviewed_findings", []).append(dict(finding, review_reason=reason))
+        else:
+            report["findings"].append(finding)
+
+
+def committed_policy(root, current):
+    def read_committed(name):
+        entry = git(root, "ls-tree", "-z", current, "--", name)
+        if not entry.startswith((b"100644 ", b"100755 ")):
+            raise SourcePolicyError("invalid-workbench-committed-file")
+        return git(root, "show", current + ":" + name)
+    try:
+        return load_policy(read_committed)
+    except (OSError, ValueError, KeyError, TypeError, CheckError):
+        return None
+
+
+def classify_gitleaks(report, policy_for):
+    result = report["gitleaks"]
+    unresolved = []
+    for finding in result["findings"]:
+        policy = policy_for(finding)
+        reason = policy.reviewed_finding(finding) if policy else None
+        if reason:
+            report.setdefault("reviewed_findings", []).append(dict(finding, review_reason=reason))
+        else:
+            unresolved.append(finding)
+    # Keep the scanner's exit code and complete findings as evidence.
+    result["unresolved_findings"] = unresolved
 
 
 def check_release(root, manifest, report, executable):
@@ -160,32 +204,49 @@ def check_release(root, manifest, report, executable):
     report["excluded"] = [str(relative_path(path)) for path in excluded]
     if len(set(files)) != len(files):
         raise CheckError("duplicate-candidate")
+    policy = None
+    if any(value.startswith(UNIT) for value in files):
+        try:
+            policy = load_policy(lambda name: safe_file(root, name).read_bytes())
+        except (OSError, ValueError, KeyError, TypeError):
+            raise CheckError("invalid-workbench-source-manifest") from None
     with tempfile.TemporaryDirectory(prefix="repository-candidates-") as directory:
         destination = Path(directory)
         for value in files:
-            reason = forbidden(value)
+            resource = policy.resource(value) if policy else None
+            reason = forbidden(value, reviewed_resource=resource is not None)
+            if value.startswith(UNIT) and (policy is None or not policy.contains(value)):
+                reason = "unregistered-workbench-source"
             if reason:
                 report["blocked"].append({"path": value, "reason": reason})
                 continue
             try:
-                data = safe_file(root, value).read_bytes()
-                if b"\x00" in data:
+                data = safe_file(root, value, reviewed_resource=resource is not None).read_bytes()
+                if resource is not None:
+                    policy.validate_resource(value, data)
+                if b"\x00" in data and resource is None:
                     raise CheckError("binary-candidate")
-                text = data.decode("utf-8-sig")
+                try:
+                    text = data.decode("utf-8-sig") if b"\x00" not in data else ""
+                except UnicodeError:
+                    if resource is None:
+                        raise
+                    text = ""
             except UnicodeError:
                 report["blocked"].append({"path": value, "reason": "non-utf8-candidate"})
                 continue
-            except (OSError, CheckError) as error:
-                reason = str(error) if isinstance(error, CheckError) else "candidate-read-failed"
+            except (OSError, CheckError, SourcePolicyError) as error:
+                reason = str(error) if isinstance(error, (CheckError, SourcePolicyError)) else "candidate-read-failed"
                 report["blocked"].append({"path": value, "reason": reason})
                 continue
             report["included"].append({"path": value, "sha256": hashlib.sha256(data).hexdigest()})
-            report["findings"].extend(privacy(text, value))
+            record_findings(report, privacy(text, value), policy)
             target = destination.joinpath(*PurePosixPath(value).parts)
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_bytes(data)
         if report["included"]:
             report["gitleaks"] = scan_gitleaks(root, executable, destination, "dir")
+            classify_gitleaks(report, lambda finding: policy)
         else:
             raise CheckError("no-readable-candidates")
 
@@ -200,6 +261,9 @@ def added_findings(root, parent, current, report):
     difference = ["diff", parent, current] if parent else ["diff-tree", "--root", "--no-commit-id", "-r", current]
     records = git(root, *difference, "--name-status", "-z", "--find-renames").decode("utf-8").split("\0")
     findings = []
+    policy = None
+    if any(value.startswith(UNIT) for value in records):
+        policy = committed_policy(root, current)
     index = 0
     while index < len(records) - 1:
         status, value = records[index:index + 2]
@@ -213,7 +277,10 @@ def added_findings(root, parent, current, report):
             continue
         rejected = False
         for name in names:
-            reason = forbidden(name)
+            resource = policy.resource(name) if policy else None
+            reason = forbidden(name, reviewed_resource=resource is not None)
+            if name.startswith(UNIT) and (policy is None or not policy.contains(name)):
+                reason = "unregistered-workbench-source"
             path = relative_path(name)
             if status == "M" and path.parts[0] == "videos" and path.suffix.lower() in {".md", ".json", ".mjs"}:
                 # Existing video source edits still pass every other path and content guard.
@@ -227,6 +294,22 @@ def added_findings(root, parent, current, report):
         if entry.startswith((b"120000 ", b"160000 ")):
             report["blocked"].append({"path": value, "reason": "linked-candidate"})
             continue
+        resource = policy.resource(value) if policy else None
+        if resource is not None:
+            try:
+                data = policy.read_file(value)
+                policy.validate_resource(value, data)
+            except (OSError, ValueError, KeyError, TypeError, CheckError) as error:
+                report["blocked"].append({"path": value, "reason": str(error) if isinstance(error, SourcePolicyError) else "invalid-workbench-resource"})
+                continue
+            if b"\x00" in data:
+                report["included"].append({"path": value, "commit": current})
+                continue
+            try:
+                data.decode("utf-8-sig")
+            except UnicodeError:
+                report["included"].append({"path": value, "commit": current})
+                continue
         patch = git(root, *difference, "--patch", "--no-color", "--no-ext-diff", "--no-textconv", "--unified=0", "--find-renames", "--", *names).decode("utf-8")
         if re.search(r"^(?:GIT binary patch|Binary files .* differ)$", patch, re.M):
             report["blocked"].append({"path": value, "reason": "binary-candidate"})
@@ -267,10 +350,19 @@ def check_changes(root, base, head, report, executable):
             other = added_findings(root, parent, current, report)
             keys = {(item["path"], item["line"], item["rule"]) for item in other}
             findings = [item for item in findings if (item["path"], item["line"], item["rule"]) in keys]
-        report["findings"].extend(dict(item, commit=current) for item in findings)
+        record_findings(report, [dict(item, commit=current) for item in findings], committed_policy(root, current))
     if report["blocked"]:
         raise CheckError("forbidden-commit-content-not-read")
     report["gitleaks"] = scan_gitleaks(root, executable, root, "git", interval)
+    policies = {}
+    def policy_for(finding):
+        revision = finding.get("commit")
+        if revision not in commits:
+            return None
+        if revision not in policies:
+            policies[revision] = committed_policy(root, revision)
+        return policies[revision]
+    classify_gitleaks(report, policy_for)
 
 
 def main(argv=None):
@@ -308,7 +400,11 @@ def main(argv=None):
                 raise CheckError("base-and-head-required")
             check_changes(root, args.base, args.head, report, executable)
         leaks = report.get("gitleaks", {})
-        if not report["blocked"] and not report["findings"] and leaks.get("exit_code") == 0 and not leaks.get("findings"):
+        scan_finished = leaks.get("exit_code") == 0 or (
+            leaks.get("exit_code") == 1 and bool(leaks.get("findings"))
+            and not leaks.get("unresolved_findings", leaks.get("findings")))
+        if (not report["blocked"] and not report["findings"] and scan_finished
+                and not leaks.get("unresolved_findings", leaks.get("findings"))):
             report["status"] = "passed"
     except CheckError as error:
         report["errors"].append(str(error))

@@ -2,6 +2,7 @@
 import importlib.util
 import ctypes
 import json
+import hashlib
 from pathlib import Path
 import subprocess
 import tempfile
@@ -95,6 +96,158 @@ class RepositoryChecksTests(unittest.TestCase):
     def test_official_https_url_is_not_a_windows_drive(self):
         self.save("sample.txt", "https://github.com/gitleaks/gitleaks\n")
         self.assertEqual(self.release(["sample.txt"])[0], 0)
+
+    def workbench_fixture(self):
+        prefix = "web/workbench-engine/"
+        source = b"export const example = true\n"
+        notice = b"Synthetic license notice\n"
+        image = b"\x89PNG\r\n\x1a\n\x00synthetic resource"
+        data = {"src/main.tsx": source, "LICENSE": notice, "src/icon.png": image}
+        for name, content in data.items():
+            path = self.root / (prefix + name)
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(content)
+        document = {"schema": 1, "unit": prefix.rstrip("/"),
+                    "files": [{"path": name, "sha256": hashlib.sha256(content).hexdigest()}
+                              for name, content in data.items()],
+                    "resources": [{"path": "src/icon.png", "sha256": hashlib.sha256(image).hexdigest(),
+                                   "license_paths": ["LICENSE"]}],
+                    "local_files": [], "adapted_files": []}
+        self.save("tools/packaging/workbench-engine-source.json", json.dumps(document))
+        return prefix, document
+
+    def test_exact_workbench_resource_is_scanned_with_its_notice(self):
+        prefix, _ = self.workbench_fixture()
+        files = [prefix + name for name in ["src/main.tsx", "LICENSE", "src/icon.png"]]
+        code, report = self.release(files)
+        self.assertEqual(code, 0)
+        self.assertEqual(len(report["included"]), 3)
+        self.scanner.assert_called_once()
+
+    def test_workbench_resource_tampering_unknown_and_missing_notice_fail(self):
+        prefix, _ = self.workbench_fixture()
+        self.save(prefix + "src/unknown.tsx", "safe\n")
+        self.assertEqual(self.release([prefix + "src/unknown.tsx"])[0], 1)
+        image = self.root / (prefix + "src/icon.png")
+        original = image.read_bytes()
+        image.write_bytes(original + b"x")
+        self.assertEqual(self.release([prefix + "src/icon.png"])[0], 1)
+        image.write_bytes(original)
+        (self.root / (prefix + "LICENSE")).unlink()
+        self.assertEqual(self.release([prefix + "src/icon.png"])[0], 1)
+
+    def test_workbench_source_does_not_bypass_privacy_or_path_checks(self):
+        prefix, document = self.workbench_fixture()
+        self.save(prefix + "src/main.tsx", self.personal_path())
+        code, report = self.release([prefix + "src/main.tsx"])
+        self.assertEqual(code, 1)
+        self.assertTrue(report["findings"])
+        document["local_files"] = ["**"]
+        self.save("tools/packaging/workbench-engine-source.json", json.dumps(document))
+        self.assertEqual(self.release([prefix + "src/main.tsx"])[0], 1)
+        self.assertEqual(self.release(["elsewhere/icon.png"])[0], 1)
+
+    def test_workbench_history_requires_notice_in_that_commit(self):
+        self.save(".gitignore", "/work/\n")
+        base = self.commit()
+        prefix, _ = self.workbench_fixture()
+        manifest = self.root / "tools/packaging/workbench-engine-source.json"
+        saved = manifest.read_bytes()
+        manifest.unlink()
+        self.commit()
+        manifest.write_bytes(saved)
+        head = self.commit()
+        code, report = self.check("changes", "--base", base, "--head", head)
+        self.assertEqual(code, 1)
+        self.assertTrue(any(item["path"] == prefix + "src/icon.png" for item in report["blocked"]))
+
+    def test_workbench_reviewed_resource_history_passes(self):
+        self.save(".gitignore", "/work/\n")
+        base = self.commit()
+        self.workbench_fixture()
+        code, report = self.check("changes", "--base", base, "--head", self.commit())
+        self.assertEqual(code, 0)
+        self.assertEqual(report["blocked"], [])
+
+    def reviewed_workbench_fixture(self):
+        prefix, document = self.workbench_fixture()
+        name = "src/main.tsx"
+        content = ('export const systemPath = "C:' + '/Windows/System32"\n').encode()
+        (self.root / (prefix + name)).write_bytes(content)
+        sha = hashlib.sha256(content).hexdigest()
+        next(item for item in document["files"] if item["path"] == name)["sha256"] = sha
+        document["reviewed_findings"] = [{"path": name, "rule": "absolute-windows-path", "line": 1,
+                                         "sha256": sha, "reason": "Fixed operating system location; no user data."}]
+        self.save("tools/packaging/workbench-engine-source.json", json.dumps(document))
+        return prefix, document
+
+    def test_reviewed_false_positive_requires_exact_full_file_and_position(self):
+        prefix, document = self.reviewed_workbench_fixture()
+        name = prefix + "src/main.tsx"
+        code, report = self.release([name])
+        self.assertEqual(code, 0)
+        self.assertEqual(len(report["reviewed_findings"]), 1)
+        self.assertEqual(report["findings"], [])
+        path = self.root / name
+        path.write_bytes(path.read_bytes() + b"// changed\n")
+        self.assertEqual(self.release([name])[0], 1)
+        document["reviewed_findings"][0]["path"] = "src/**"
+        self.save("tools/packaging/workbench-engine-source.json", json.dumps(document))
+        self.assertEqual(self.release([name])[0], 1)
+
+    def test_reviewed_finding_cannot_retroactively_authorize_history(self):
+        self.save(".gitignore", "/work/\n")
+        base = self.commit()
+        prefix, document = self.reviewed_workbench_fixture()
+        reviewed = document.pop("reviewed_findings")
+        self.save("tools/packaging/workbench-engine-source.json", json.dumps(document))
+        self.commit()
+        document["reviewed_findings"] = reviewed
+        self.save("tools/packaging/workbench-engine-source.json", json.dumps(document))
+        code, report = self.check("changes", "--base", base, "--head", self.commit())
+        self.assertEqual(code, 1)
+        self.assertTrue(any(item["path"] == prefix + "src/main.tsx" for item in report["findings"]))
+
+    def test_reviewed_gitleaks_keeps_original_result_and_rejects_unknown(self):
+        prefix, document = self.reviewed_workbench_fixture()
+        entry = dict(document["reviewed_findings"][0], rule="gitleaks:generic-api-key")
+        document["reviewed_findings"].append(entry)
+        self.save("tools/packaging/workbench-engine-source.json", json.dumps(document))
+        finding = {"path": prefix + "src/main.tsx", "rule": entry["rule"], "line": 1}
+        self.scanner.return_value = {"version": CHECKS.VERSION, "exit_code": 1, "findings": [finding]}
+        code, report = self.release([finding["path"]])
+        self.assertEqual(code, 0)
+        self.assertEqual(report["gitleaks"]["exit_code"], 1)
+        self.assertEqual(report["gitleaks"]["findings"], [finding])
+        self.scanner.return_value = {"version": CHECKS.VERSION, "exit_code": 1,
+                                    "findings": [dict(finding, line=2)]}
+        self.assertEqual(self.release([finding["path"]])[0], 1)
+
+    def test_workbench_excluded_windows_case_aliases_cannot_be_registered(self):
+        self.save(".gitignore", "/work/\n")
+        base = self.commit()
+        prefix, document = self.workbench_fixture()
+        names = ["agents.md", ".GITHUB/workflows/publish.yml", "Out/generated.js"]
+        for name in names:
+            self.save(prefix + name, "synthetic\n")
+            document["local_files"] = [name]
+            self.save("tools/packaging/workbench-engine-source.json", json.dumps(document))
+            with self.subTest(name=name):
+                self.assertEqual(self.release([prefix + name])[0], 1)
+        document["local_files"] = names
+        self.save("tools/packaging/workbench-engine-source.json", json.dumps(document))
+        code, report = self.check("changes", "--base", base, "--head", self.commit())
+        self.assertEqual(code, 1)
+        self.assertTrue(report["blocked"])
+
+    def test_workbench_expo_route_brackets_are_literal_members(self):
+        prefix, document = self.workbench_fixture()
+        name = "mobile/app/h/[hostId]/[...page].tsx"
+        self.save(prefix + name, "export default function Page() {}\n")
+        document["local_files"] = [name]
+        self.save("tools/packaging/workbench-engine-source.json", json.dumps(document))
+        self.assertEqual(self.release([prefix + name])[0], 0)
+        self.assertEqual(self.release([prefix + name.replace('[hostId]', 'other')])[0], 1)
 
     def test_release_is_strict_and_manifest_limited(self):
         self.save("old.txt", self.personal_path())

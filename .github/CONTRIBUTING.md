@@ -30,6 +30,14 @@
 
 ## 环境和验证
 
+### 内置项目工作台源码
+
+`web/workbench-engine` 持有固定公开上游的桌面、Web、移动端及运行时源码，保留原内部目录和完整许可。项目之外保留 Studio，项目内部目标是原完整工作台与项目配置，后续由平台自行构建和运行。
+
+`tools/packaging/workbench-engine-source.json` 按精确路径记录原始 Git blob、字节 hash、资源与许可；新增文件或本地适配须同步清单。该单元是 React/TypeScript/Node 的独立构建单元，普通页面的 JS 约定保持原范围。源码持有不等于运行接通，Android和自建服务另行验收。
+
+字体、供应商图标与必需构建图标只按精确字节和完整声明放行。文本继续执行隐私与 Gitleaks 扫描；已核实的公开代码误报按文件 hash、规则和行号逐项记录，报告保留原扫描结果，不能使用目录豁免或HEAD清单回溯批准历史。普通wheel/sdist不包含源码单元或Node/native，HTTP不提供该树。
+
 ### Studio 与 Orca 独立开发预览
 
 `web/workspace/studio-preview.*` 保留 Studio 外层示例页面，`orca-surface.js/css` 提供持续挂载的 Orca 客户端容器。以下开发工具仅监听本机回环地址，只提供显式列出的预览资源；不替换 `/workspace`，不调用业务 API，也不加入生产资源包：

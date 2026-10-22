@@ -16,3 +16,4 @@ prune work
 prune docs
 prune videos
 global-exclude __pycache__ *.py[cod]
+prune web/workbench-engine

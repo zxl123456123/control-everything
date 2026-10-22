@@ -4,8 +4,19 @@ import argparse
 import json
 from pathlib import Path, PurePosixPath
 import subprocess
+import sys
+from functools import lru_cache
 
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / 'tools' / 'packaging'))
+from workbench_source_policy import load_policy, SourcePolicyError
+
+
+@lru_cache(maxsize=1)
+def workbench_policy():
+    return load_policy(lambda name: (ROOT / name).read_bytes())
+
+
 ROOT_FILES = {'.gitattributes', '.gitignore', 'AGENTS.md', 'README.md', 'LICENSE',
               'requirements.txt', 'rust-toolchain.toml', 'pyproject.toml', 'MANIFEST.in', 'setup.py'}
 PACKAGE_FILES = {'__init__.py', 'paths.py', 'input_validation.py', 'gateway.py',
@@ -31,6 +42,11 @@ def ownership_error(value):
             return None if parts[2] in PACKAGE_FILES else 'package_root_is_for_entries_and_foundations'
         return None if parts[2] in PACKAGES and path.suffix == '.py' else 'unknown_backend_owner'
     if top == 'web':
+        if section == 'workbench-engine':
+            try:
+                return None if workbench_policy().contains(value) else 'unregistered_workbench_source'
+            except (OSError, ValueError, KeyError, TypeError, SourcePolicyError):
+                return 'invalid_workbench_source_manifest'
         return None if section in {'sessions', 'progress', 'workspace', 'product'} and path.suffix in {
             '.html', '.css', '.js', '.ts'} else 'unknown_frontend_owner'
     if top == 'tests':

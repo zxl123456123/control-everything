@@ -14,9 +14,11 @@
 - 新增文件先检查归属；依赖遵守 `tools/architecture/importlinter.ini`，运行 `python tools/scripts/check_architecture.py layout` 和官方 Import Linter。不得经旧 CLI、兼容转发或动态导入绕过方向约束；新增构建单元须同时更新规则与贡献指南。
 - HTTP 入口保留权限、请求处理及装配，页面主脚本保留状态及装配；新业务处理和完整展示放入所属模块。跨项目/事项的管理写入保持现有同库事务，Rust 不写业务库。
 
-## 客户端接入方向（2026-10-22 用户确认）
+## 客户端接入方向（2026-10-23 用户确认）
 
 - 项目工作区优先沿用 Orca 已有项目、会话、终端与 Agent 展示；项目之外保持已选 Studio 工作台设计，不将整站替换为 Orca 外观。
 - 本地任务、交付和人工验收保持独立业务语义；不得把 Orca 的外部 Tasks、工作区列状态或临时终端句柄直接当作本系统的业务状态与永久身份。
-- 接入层保持可替换的客户端/服务地址，尽量少改上游内部实现；后续继续完善真实配对、项目关联、Android 入口、自建服务和升级兼容。服务器由用户自行部署，不依赖取得私有 `orca-cloud` 运维仓库，也不承诺不存在性能瓶颈。
-- 当前基础预览与后续验收清单记在本机 `work/workbench-ui-refresh-20261022/implementation-baseline.md`；恢复开发先核对其中最新状态，预览和配对页不等于完整业务接通。
+- 固定公开源码直接纳入 `web/workbench-engine`，由本平台构建、运行与继续开发；项目内部保留完整原工作台与项目配置，不要求另装或打开官方 EXE，不以外部 iframe/客户端地址配置作为最终接入。
+- 所需账号、远程连接和推送网关接用户自建服务，未配置不得静默回退官方私服；不依赖取得私有 `orca-cloud` 运维仓库。源码导入、构建、本机 Web、Android 和自建现场分别记录实际证据。
+- 来源/资源由 `tools/packaging/workbench-engine-source.json` 精确登记；保留完整许可，禁止目录级媒体或隐私扫描豁免。构建单元不是 HTTP 文件服务根，也不直接进入普通 Python wheel。
+- 本机新基线为 `work/orca-source-integration-20261022/clarifications.md`，恢复开发核对该任务状态；旧 `work/workbench-ui-refresh-20261022/implementation-baseline.md` 保留历史预览事实，不能当作完整业务接通证据。

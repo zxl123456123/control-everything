@@ -5,6 +5,7 @@ import ast
 import sys
 from pathlib import Path
 from unittest import TestCase
+from unittest.mock import patch
 
 spec = importlib.util.spec_from_file_location('check_architecture', Path(__file__).resolve().parents[2] / 'tools/scripts/check_architecture.py')
 policy = importlib.util.module_from_spec(spec)
@@ -12,6 +13,14 @@ spec.loader.exec_module(policy)
 
 
 class ArchitectureTests(TestCase):
+    def test_workbench_owner_requires_exact_manifest_members(self):
+        with patch.object(policy, 'workbench_policy') as source:
+            source.return_value.contains.side_effect = lambda value: value == 'web/workbench-engine/src/App.tsx'
+            self.assertIsNone(policy.ownership_error('web/workbench-engine/src/App.tsx'))
+            for name in ['unknown.tsx', 'AGENTS.md', 'out/runtime.js', '.github/workflows/publish.yml']:
+                self.assertEqual(policy.ownership_error('web/workbench-engine/' + name),
+                                 'unregistered_workbench_source')
+
     def test_shared_manifest_has_only_standard_library_imports(self):
         path = Path(__file__).resolve().parents[2] / 'src/control_everything/installation/manifest.py'
         for node in ast.walk(ast.parse(path.read_text(encoding='utf-8'))):

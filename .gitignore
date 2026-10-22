@@ -9,6 +9,13 @@ node_modules/
 /build/
 /dist/
 *.egg-info/
+/web/workbench-engine/out/
+/web/workbench-engine/.build/
+/web/workbench-engine/.cache/
+/web/workbench-engine/mobile/.expo/
+/web/workbench-engine/mobile/dist/
+/web/workbench-engine/mobile/android/
+/web/workbench-engine/mobile/ios/
 
 # Publish only reviewed project documentation; keep development records local.
 /docs/*
