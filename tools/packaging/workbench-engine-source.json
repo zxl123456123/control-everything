@@ -326743,6 +326743,12 @@
   ],
   "adapted_files": [
     {
+      "path": ".gitattributes",
+      "upstream_sha256": "65896d38cc866d394db2d10d25f9d76a33dc1e78091b071d26913155237efa2a",
+      "current_sha256": "4610b0987be877d77a49259442000236a7ee0ff61b78d1b843d1b911abdb0f83",
+      "reason": "M1a-R8: pin LF for exactly two manifest-hashed native chat text resources on Windows checkout; original resource hashes unchanged"
+    },
+    {
       "path": "config/scripts/build-source-commit.mjs",
       "upstream_sha256": "69c23f045fa86fc9a2e3072252766d62368641e438dc7db1ac215baf6f49c3c4",
       "current_sha256": "850b1759a2f4709374214d2de8ce051866c6444e9431b7121ee4ff665b1dc145",

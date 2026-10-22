@@ -1,3 +1,5 @@
+# Keep this adapted metadata file byte-stable on Windows checkout.
+/.gitattributes text eol=lf
 # A shebang plus CRLF makes vite's SSR transform emit a literal `#!` mid-module,
 # so any suite importing the script dies at load with a SyntaxError. Pin the whole
 # directory rather than the scripts that happen to have a test today.
@@ -15,6 +17,9 @@
 *.html text eol=lf
 # Bundled plugin trees are byte-hashed; CRLF checkout would break the pinned hash.
 /resources/plugins/** text eol=lf
+# These two bundled resources also retain their manifest-pinned LF bytes on checkout.
+/resources/native-chat-visuals/.claude-plugin/plugin.json text eol=lf
+/resources/native-chat-visuals/skills/orca-chat-visuals/SKILL.md text eol=lf
 # Relay assets are copied verbatim into the bundle and hashed byte-for-byte into
 # .version, which names the immutable remote install dir. A CRLF checkout makes a
 # Windows-built client disagree with a mac/Linux-built one on the same release,

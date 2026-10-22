@@ -1,4 +1,4 @@
-"""Pure build contracts; subprocesses are mocked except local Git attribute hashing."""
+"""Pure build contracts; subprocesses are mocked except local Git attribute checks."""
 
 import hashlib
 import importlib.util
@@ -63,6 +63,27 @@ class WorkbenchBuildTests(unittest.TestCase):
         self.assertNotEqual(first['sourceTreeSha256'], second['sourceTreeSha256'])
         self.assertEqual(first['upstreamCommit'], BUILD.UPSTREAM)
         self.assertEqual(first['fileCount'], 7)
+
+    def test_native_chat_resources_keep_pinned_bytes_with_autocrlf_checkout(self):
+        attributes = (ROOT / BUILD.UNIT / '.gitattributes').read_bytes()
+        (self.unit / '.gitattributes').write_bytes(attributes)
+        names = ('resources/native-chat-visuals/.claude-plugin/plugin.json',
+                 'resources/native-chat-visuals/skills/orca-chat-visuals/SKILL.md')
+        raw = '{"fixture": "合成 UTF-8"}\n'.encode('utf-8')
+        for name in names:
+            target = self.unit / name
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(raw)
+        subprocess.run(['git', '-c', 'core.autocrlf=true', 'add', '--', BUILD.UNIT],
+                       cwd=self.root, env=self.env, check=True, capture_output=True)
+        checkout = self.root / 'checkout'
+        subprocess.run(['git', '-c', 'core.autocrlf=true', 'checkout-index',
+                        '--prefix=' + checkout.as_posix() + '/', '--all'],
+                       cwd=self.root, env=self.env, check=True, capture_output=True)
+        for name in names:
+            with self.subTest(resource=name):
+                self.assertEqual((checkout / BUILD.UNIT / name).read_bytes(), raw)
+        self.assertEqual((checkout / BUILD.UNIT / '.gitattributes').read_bytes(), attributes)
 
     def test_resource_bytes_missing_icon_and_unknown_files_are_rejected(self):
         icon = self.unit / 'resources/build/icon.ico'
