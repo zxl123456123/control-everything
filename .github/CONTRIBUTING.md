@@ -74,6 +74,37 @@ node --test tests/frontend/test_orca_surface.cjs
 python -m unittest tests.backend.test_studio_preview_server -v
 ```
 
+### 独立游戏创作预览
+
+Studio 顶层“游戏创作”链接打开独立页面，窄屏入口位于顶栏；工具与设置可更换普通 HTTP(S) 地址。默认 `http://127.0.0.1:8770/`，不接受凭据、查询参数、片段或空白。入口不探测服务或启动引擎，不改变项目工作区容器。
+
+此功能是源码检出预览。显式配置 Godot 引擎和已存在的本机项目库目录：
+
+```powershell
+python -m control_everything.http.creator --engine <ENGINE_EXE> --library <LIBRARY_DIR> --port 8770
+```
+
+库位于仓库内时，只允许根 `work/` 下的独立目录；也可选仓库外目录，但不能包含本仓库、引擎或安装资源。项目库以 UUID 分隔各工程的 `project/` 源码、`project.json` 元数据、`brief.md` 创作说明与 `runs/` 运行记录。不要将这些实际数据提交到源码库。
+
+首次打开是真实空库。用户可创建独立 2D/3D 空白工程，或打开库内已有项目；首片不导入任意外部目录，也不预填具体游戏。同名项目仍有不同 UUID 和 `user://` 目录键，页面展示实际源码位置及该键；它不是对用户修改后游戏脚本的沙箱承诺。
+
+项目页提供场景/脚本资源概览、创作说明保存、上下文复制，以及“在 Godot 中编辑”“独立试玩”“检查工程”。场景树、材质、参数和实际可视化编辑由独立 Godot 窗口承担。创建页面不是浏览器游戏编辑器；未保存说明在当前页面按项目保留，关闭或刷新页面前须点击“保存说明”。资源列表有界扫描，截断会明确显示。
+
+Agent 源码接入由项目工作区持续建设。可选 `--agent-client-url <WORKSPACE_URL>` 指向已配置的平台工作区普通 HTTP(S) 页面；默认空地址时显示“项目工作区接入待配置”，不显示可点入口，不要求安装外部官方客户端。当前只准备或复制上下文，没有自动发送、会话绑定或已连接承诺。复制失败会展开可手动选择的文本；内容包含实际工程路径、说明、所选资源和固定资源导入检查方法，不包含临时 CSRF 令牌。
+
+资源导入检查使用固定的 `--headless --editor --import` 入口；只有退出码和有界日志判据同时满足才显示本次检查通过。它不代表所有未引用脚本、玩法、画质、性能或存档通过，源码改动后必须重新检查。每条操作记录保留项目 ID 和运行 ID，不把其他项目的结果当作当前工程状态。
+
+同一项目同时只允许一个本服务原生操作，全服务每类动作最多一个；工程编辑期间可在原生编辑器中试玩。忙碌准入仅覆盖本服务实际拥有的进程，不能证明外部启动或服务重启遗留窗口不存在。保存与关闭由原生窗口负责，网页不提供强停或通用保存退出协议。关闭页面不会停止原生窗口；停服务前自行保存并关闭，服务也不接管旧 PID。
+
+页面只由独立 loopback 服务提供，与 Studio 共享样式，不修改生产网关或加入生产资源包。定向纯 Node 检查：
+
+```powershell
+node --test tests/frontend/test_creator_ui.cjs tests/frontend/test_orca_surface.cjs
+node --check web/workspace/creator.js
+```
+
+真实项目创建/重启、引擎窗口、好坏导入检查、页面宽窄屏/明暗/键盘及项目工作区返回由验收负责人另行运行并记录命令、退出码和失败；Node 合同不能代替这些证据。
+
 ### 模块边界与新增代码
 
 新增代码先找所属功能包。`http` 负责权限、请求处理与装配；`profiles` 负责用户配置与恢复编排；`sessions` 负责会话和观察；`workspace` 负责管理业务及同库事务；`execution` 保留受控执行生命周期；`integrations` 负责外部适配。共享 Windows Job 原语放 `platform/windows_jobs.py`，共享输入错误与路径判据放 `input_validation.py`，不设没有消费者的通用目录。
@@ -339,6 +370,8 @@ node tests/e2e/verify_control_everything.cjs --fixture
 Ctrl+C 停网关即可停本批查询，原 Claude/SSH/Zellij 对话继续运行。代码回退需与对应 profile 版本配套，先保留备份，再在另一个空数据目录恢复并验证；真实 MCP 回退仅撤销本 server 表并由用户重载。删除本地 `.venv` 或远端 reader `.venv` 前确认绝对路径和本批归属。保留研究、方案和实施报告；不删除远端 `.claude`、项目或 Workbench。已经切换的 pane 由用户自行切回。
 
 项目工作空间由 `web/workspace/project-space.js` 负责项目导航、全部事项、待处理和会话展示，任务编辑与分页继续复用 `task-center.js` 的同一份事项。`attention` 查询范围在数据库分页前筛选人工状态为阻塞或待验收的事项；进程运行和普通待办不属于该范围。`workspace.js` 负责装配。
+
+项目“协作监控”由 `workspace/monitor.py` 提供同库只读、项目过滤后的分页快照；`web/workspace/project-monitor.js` 管理页面与请求生命周期，`monitor-model.js` 区分业务事项、最新认领、受控执行记录和外部会话元数据，`monitor-scene.js` 绘制，`monitor-art.js` 保留上游字符艺术及完整许可。最近活动窗口不承诺无损事件续传，执行结束不代表人工验收，外部会话活动未知；内部运行时未接通时明确显示，不另开 SDK 会话或读取私人日志。切页和后台停止绘制及轮询。合成合同运行 `python -m unittest tests.backend.test_project_monitor tests.backend.test_packaging`、`node --test tests/frontend/test_project_monitor.cjs tests/frontend/test_monitor_scene.cjs tests/frontend/test_project_space_ui.cjs`；真实页面和未来内部运行时来源分别验收，不用合成预览代替实际接通。
 
 本机 Codex 项目适配器为 `sessions/codex_desktop.py`：只读显式来源及相邻桌面配置，先合并归属再分页，不按目录合并项目。旧 `codex_index.py` 与六字段、12 条接口保持兼容。内部完整快照不直接返回工作台首页；会话页通过 `/api/workspace/codex/sessions` 分页获取。外部项目使用来源实例与项目 ID 的稳定身份，只读刷新不写管理库；用户显式加入时先在同一事务内保存项目、目录及规范 `codex` 来源标记，后续事项仍在同库事务内校验保存。标记复用已有管理表与备份闭包，schema 和 manifest 版本保持；手工项目保存拒绝该来源，已有外部项目也不得通过伪造来源覆盖。来源陈旧、读取不完整或归属冲突不得授权新关联，原事项状态编辑须保留。
 

@@ -7,9 +7,14 @@
   <title>Studio · 掌控一切</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%232c3d38'/%3E%3Ctext x='32' y='42' text-anchor='middle' font-family='sans-serif' font-size='28' font-weight='bold' fill='white'%3ECE%3C/text%3E%3C/svg%3E">
   <link rel="stylesheet" href="/workspace.css">
+  <link rel="stylesheet" href="/project-monitor.css">
   <link rel="stylesheet" href="/studio-preview.css">
   <script defer src="/execution.js"></script>
   <script defer src="/task-center.js"></script>
+  <script defer src="/monitor-art.js"></script>
+  <script defer src="/monitor-scene.js"></script>
+  <script defer src="/monitor-model.js"></script>
+  <script defer src="/project-monitor.js"></script>
   <script defer src="/project-space.js"></script>
   <script defer src="/agents.js"></script>
   <script defer src="/studio-data.js"></script>
@@ -26,6 +31,7 @@
           <div id="studio-content" class="ce-main"></div>
           <section id="studio-tasks" class="ce-business-module ce-main" aria-label="事项管理" hidden></section>
           <section id="studio-agent-board" class="ce-business-module ce-main" aria-label="任务进度与人工审核" hidden></section>
+          <section id="studio-monitor" class="ce-business-module ce-main" aria-label="项目协作监控" hidden><div id="studio-monitor-content"></div></section>
         </main>
       </div>
     </div>

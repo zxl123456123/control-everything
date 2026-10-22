@@ -264,6 +264,11 @@ class PanelHandler(BaseHTTPRequestHandler):
             "/onboarding.js": ("workspace/onboarding.js", "text/javascript; charset=utf-8"),
             "/agents.js": ("workspace/agents.js", "text/javascript; charset=utf-8"),
             "/project-space.js": ("workspace/project-space.js", "text/javascript; charset=utf-8"),
+            "/monitor-art.js": ("workspace/monitor-art.js", "text/javascript; charset=utf-8"),
+            "/monitor-scene.js": ("workspace/monitor-scene.js", "text/javascript; charset=utf-8"),
+            "/monitor-model.js": ("workspace/monitor-model.js", "text/javascript; charset=utf-8"),
+            "/project-monitor.js": ("workspace/project-monitor.js", "text/javascript; charset=utf-8"),
+            "/project-monitor.css": ("workspace/project-monitor.css", "text/css; charset=utf-8"),
             "/task-center.js": ("workspace/task-center.js", "text/javascript; charset=utf-8"),
             "/execution.js": ("workspace/execution.js", "text/javascript; charset=utf-8"),
             "/observation.js": ("workspace/observation.js", "text/javascript; charset=utf-8"),
@@ -942,6 +947,14 @@ class PanelHandler(BaseHTTPRequestHandler):
             try:
                 params = page_params(path.query, extra=("project_id", "scope"), default=20)
                 self.reply(200, workspace.page_codex_sessions(**params))
+            except ValueError:
+                raise ProfileError("invalid_query") from None
+        elif route == "/api/workspace/monitor":
+            try:
+                params = page_params(path.query, extra=("project_id",), default=20)
+                self.reply(200, workspace.project_monitor(**params))
+            except ProfileError:
+                raise
             except ValueError:
                 raise ProfileError("invalid_query") from None
         elif route == "/api/workspace/items":

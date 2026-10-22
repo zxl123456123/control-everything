@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <title>游戏创作 · Control Everything</title>
+  <link rel="stylesheet" href="/studio-preview.css">
+  <link rel="stylesheet" href="/creator.css">
+  <script defer src="/creator.js"></script>
+</head>
+<body>
+  <main id="ce-studio" class="ce-creator" data-theme="light" aria-labelledby="creator-title">
+    <header class="ce-creator-header">
+      <div class="ce-brand"><span class="ce-monogram">CE</span><span>Control Everything</span></div>
+      <div class="ce-creator-header-actions"><button class="ce-button ce-plain" type="button" data-creator="refresh">刷新</button><button class="ce-button ce-plain" type="button" data-creator="theme" aria-label="切换为深色主题">深色主题</button></div>
+    </header>
+    <div class="ce-creator-intro"><div><p class="ce-creator-eyebrow">CREATE WITH YOUR TOOLS</p><h1 id="creator-title">游戏创作</h1><p>组织你的想法，在 Godot 中把它变成游戏。</p></div><p data-creator="connection" role="status" aria-live="polite">正在读取项目库…</p></div>
+    <p class="ce-creator-message" data-creator="message" role="status" aria-live="polite" tabindex="-1" hidden></p>
+    <div class="ce-creator-layout">
+      <aside class="ce-creator-library" aria-labelledby="creator-library-title">
+        <div class="ce-sectionhead"><h2 id="creator-library-title">项目库 <span data-creator="count" class="ce-count"></span></h2><button class="ce-button ce-plain" type="button" data-creator="new">＋ 新建</button></div>
+        <p class="ce-creator-muted" data-creator="library-empty">正在读取…</p>
+        <div class="ce-creator-projects" data-creator="projects" aria-label="打开库内项目"></div>
+        <form class="ce-creator-create" data-creator="create-form">
+          <h3>创建游戏项目</h3>
+          <label for="creator-project-name">项目名称</label>
+          <input id="creator-project-name" data-creator="project-name" maxlength="80" required autocomplete="off" placeholder="给新想法起个名字">
+          <label for="creator-project-kind">起始工程</label>
+          <select id="creator-project-kind" data-creator="project-kind"><option value="3d">3D 空白工程</option><option value="2d">2D 空白工程</option></select>
+          <button class="ce-button ce-primary" type="submit" data-creator="create" disabled>创建并打开</button>
+        </form>
+        <details class="ce-creator-location"><summary>项目库位置</summary><p data-creator="library-path">等待读取</p></details>
+      </aside>
+      <section class="ce-creator-workspace" aria-label="当前游戏项目">
+        <div class="ce-creator-empty" data-creator="empty">
+          <span class="ce-creator-empty-mark" aria-hidden="true">＋</span><h2 data-creator="empty-title">让一个想法有自己的工程</h2><p data-creator="empty-copy">创建 2D 或 3D 空白工程，或从项目库打开已有项目。</p>
+        </div>
+        <div data-creator="project-panel" hidden>
+          <div class="ce-creator-project-heading"><div><span class="ce-creator-kind" data-creator="kind"></span><h2 data-creator="name" tabindex="-1"></h2></div><div class="ce-creator-native-actions"><button class="ce-button ce-primary" type="button" data-creator="edit" disabled>在 Godot 中编辑 ↗</button><button class="ce-button" type="button" data-creator="play" disabled>独立试玩 ↗</button><button class="ce-button" type="button" data-creator="check" disabled>检查工程</button></div></div>
+          <p class="ce-creator-native-note">场景树、材质和参数在独立 Godot 窗口中编辑。请在原生窗口保存并关闭。</p>
+          <p class="ce-creator-busy" data-creator="busy" role="status" hidden></p>
+          <div class="ce-creator-editor-grid">
+            <section class="ce-creator-brief" aria-labelledby="creator-brief-title">
+              <div class="ce-sectionhead"><h3 id="creator-brief-title">创作说明</h3><span class="ce-creator-muted" data-creator="draft-state"></span></div>
+              <label class="ce-creator-sr-only" for="creator-brief">当前项目的创作说明</label>
+              <textarea id="creator-brief" data-creator="brief" maxlength="4000" rows="9" placeholder="描述想做的玩法、场景与这一轮要改的内容…"></textarea>
+              <div class="ce-creator-brief-actions"><button class="ce-button" type="button" data-creator="save-brief" disabled>保存说明</button><button class="ce-button" type="button" data-creator="copy" disabled>复制 Agent 上下文</button></div>
+              <div class="ce-creator-agent"><div><h3>与 Agent 继续创作</h3><p data-creator="agent-status">项目工作区接入待配置</p></div><a class="ce-button ce-plain" data-creator="agent-open" target="_blank" rel="noopener noreferrer" hidden>打开 Agent 工作区 ↗</a></div>
+              <details class="ce-creator-context" data-creator="context-panel" hidden><summary>给 Agent 的完整上下文</summary><label class="ce-creator-sr-only" for="creator-context">可手动复制的 Agent 上下文</label><textarea id="creator-context" data-creator="context" readonly rows="10"></textarea></details>
+            </section>
+            <section class="ce-creator-resources" aria-labelledby="creator-resources-title"><div class="ce-sectionhead"><h3 id="creator-resources-title">场景与资源</h3><span class="ce-creator-muted" data-creator="file-count"></span></div><p class="ce-creator-muted">选择要提供给 Agent 的文件路径。</p><div class="ce-creator-files" data-creator="files"></div><p class="ce-creator-muted" data-creator="files-note"></p></section>
+          </div>
+          <details class="ce-creator-location ce-creator-project-location"><summary>工程与运行数据位置</summary><dl><dt>工程源码</dt><dd data-creator="project-path"></dd><dt>user:// 独立目录键</dt><dd data-creator="user-data-key"></dd></dl></details>
+        </div>
+      </section>
+    </div>
+    <section class="ce-creator-runs" aria-labelledby="creator-runs-title"><div class="ce-sectionhead"><h2 id="creator-runs-title">运行与检查</h2><span class="ce-creator-muted">本服务的最近操作</span></div><div data-creator="operations"><p class="ce-creator-muted">暂无运行记录。</p></div><p class="ce-creator-footnote">检查仅覆盖本次资源导入，工程修改后请重新检查。这里只观察本服务启动的进程；关闭页面不会停止原生窗口。</p></section>
+    <aside class="ce-creator-help" data-creator="help" hidden><h2>连接项目库</h2><p>请按贡献指南启动独立创作服务，再刷新页面。项目库读取失败时，当前列表不能视为完整或空库。</p></aside>
+  </main>
+</body>
+</html>

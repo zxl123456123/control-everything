@@ -17,20 +17,22 @@ class Element {
   get textContent() { return this.text + this.children.map(value => value.textContent).join(''); }
   setAttribute(key, value) { this.attributes[key] = value; }
   addEventListener(key, fn) { this.listeners[key] = fn; }
+  contains(value) { return this.all.includes(value); }
+  focus() { this.focused = true; }
   get all() { return [this, ...this.children.flatMap(value => value.all)]; }
 }
-function fixture() {
+function fixture(extra = {}) {
   const context = vm.createContext({ window: {}, document: { createElement: tag => new Element(tag), createElementNS: (_ns, tag) => new Element(tag) } });
   vm.runInContext(fs.readFileSync(path.resolve(__dirname, '../../web/workspace/project-space.js'), 'utf8'), context);
   const root = new Element('section'), navigation = new Element('nav'), home = new Element('div'), taskRoot = new Element('div');
   home.append(taskRoot); const contexts = [], routes = [], managed = [], refreshes = [];
   const api = context.window.WorkspaceProjectSpace.create({ root, navigation, taskRoot,
-    tasks: { setContext: value => { contexts.push(value); }, refresh: offset => refreshes.push(offset) }, navigate: value => routes.push(value), manage: value => managed.push(value) });
+    tasks: { setContext: value => { contexts.push(value); }, refresh: offset => refreshes.push(offset) }, navigate: value => routes.push(value), manage: value => managed.push(value), ...extra });
   const project = { id: 'p', name: '<img src=x>', note: '真实人工说明', manual_recorded: true, state: '在做', percent: null,
     task_counts: { total: 50, blocked: 2, review: 3, doing: 10 }, directories: [{ path: 'C:/example/project' }], sessions: [], records: [] };
   api.update({ projects: { status: 'available', items: [project] }, sessions: { available: false, items: [] } });
   const click = text => { const button = root.all.find(value => value.tag === 'button' && value.textContent === text); assert.ok(button, text); button.listeners.click(); };
-  return { api, root, navigation, home, taskRoot, contexts, routes, managed, refreshes, project, click };
+  return { api, root, navigation, home, taskRoot, contexts, routes, managed, refreshes, project, click, window: context.window, document: context.document };
 }
 test('overview uses real counts, literal names and does not infer numeric progress', () => {
   const f = fixture(); f.api.show('overview');
@@ -52,6 +54,22 @@ test('unavailable sessions and missing projects have honest empty states', () =>
   f.api.route('missing', 'overview'); f.api.show('project'); assert.match(f.root.textContent, /项目已不存在/);
 });
 
+test('monitor survives refresh, suspends off-route and disposes on a different project without touching the editor', () => {
+  const f = fixture({ fetchJson: async () => ({}) }), mounts = [], calls = [];
+  f.taskRoot.draft = 'unsaved';
+  f.window.WorkspaceProjectMonitor = { create: args => { mounts.push(args); return {
+    setActive: value => calls.push(['active', value]), destroy: () => calls.push(['destroy']) }; } };
+  f.api.route('p', 'monitor'); f.api.show('project'); assert.equal(mounts.length, 1);
+  const panel = mounts[0].root;
+  const focused = new Element('button'); panel.append(focused); f.document.activeElement = focused;
+  f.api.update({ projects: { status: 'available', items: [f.project] } });
+  assert.equal(mounts.length, 1); assert.equal(panel.parentElement, f.root); assert.equal(f.taskRoot.draft, 'unsaved');
+  assert.equal(focused.focused, true); f.document.activeElement = null;
+  f.api.show('overview'); assert.deepEqual(calls.at(-1), ['active', false]);
+  f.api.route('missing', 'monitor'); f.api.show('project'); assert.deepEqual(calls.at(-1), ['destroy']);
+  assert.equal(f.taskRoot.draft, 'unsaved');
+});
+
 test('project management deep link keeps the project context through refresh', () => {
   const f = fixture();
   f.api.route('p', 'manage'); f.api.show('project');
@@ -61,7 +79,7 @@ test('project management deep link keeps the project context through refresh', (
   f.api.update({ projects: { status: 'available', items: [f.project] }, sessions: { available: false, items: [] } });
   assert.equal(f.contexts.at(-1).projectId, 'p');
   assert.deepEqual(f.refreshes, [0]);
-  assert.equal(f.root.all.filter(value => value.tag === 'nav')[0].children.length, 3);
+  assert.equal(f.root.all.filter(value => value.tag === 'nav')[0].children.length, 4);
 });
 
 test('project content navigation and settings appear only in the main panel', () => {
@@ -70,7 +88,7 @@ test('project content navigation and settings appear only in the main panel', ()
   assert.equal(f.navigation.children[0].textContent, f.project.name);
   assert.equal(f.navigation.children[0].attributes['aria-current'], 'page');
   const tabs = f.root.all.find(value => value.tag === 'nav' && value.attributes['aria-label'] === '项目内容');
-  assert.deepEqual(tabs.children.map(value => value.textContent), ['全部事项', '待处理', '会话']);
+  assert.deepEqual(tabs.children.map(value => value.textContent), ['全部事项', '待处理', '会话', '协作监控']);
   assert.equal(f.root.all.filter(value => value.tag === 'button' && value.textContent === '项目设置').length, 1);
   f.click('项目设置'); assert.equal(f.managed[0], f.project);
   f.click('待处理'); assert.equal(f.routes.at(-1), 'project/p/attention');

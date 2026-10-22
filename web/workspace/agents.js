@@ -604,7 +604,7 @@ window.WorkspaceAgentBoard = (() => {
       for (const p of projects) option(project, p.id, p.name); project.value = selection;
       title.textContent = selectedProject === '__global__' ? '全局事项' : selectedProject ? `${projects.find(p => p.id === selectedProject)?.name || '当前项目'} · Agent 工作台` : 'Agent 工作台';
       navigation.replaceChildren(); navigation.hidden = !selectedProject || selectedProject === '__global__';
-      if (!navigation.hidden) for (const [tab, label] of [['tasks', '全部事项'], ['attention', '待处理'], ['sessions', '会话']]) {
+      if (!navigation.hidden) for (const [tab, label] of [['tasks', '全部事项'], ['attention', '待处理'], ['sessions', '会话'], ['monitor', '协作监控']]) {
         const link = el('a', 'project-tab', label); link.href = `#project/${encodeURIComponent(selectedProject)}/${tab}`;
         if (tab === (attentionOnly ? 'attention' : 'tasks')) link.setAttribute('aria-current', 'page'); navigation.append(link);
       }
@@ -970,7 +970,7 @@ window.WorkspaceAgentBoard = (() => {
     window.WorkspaceProjectSpace.create = options => {
       const api = original(options); let project = '', currentTab = '';
       return { ...api, route(id, tab) { project = id; currentTab = tab; return api.route(id, tab); },
-        show(view) { const result = api.show(view); onView(view === 'project' && ['sessions', 'session-import', 'manage'].includes(currentTab) ? 'legacy-project-content' : view, project, currentTab); return result; } };
+        show(view) { const result = api.show(view); onView(view === 'project' && ['sessions', 'session-import', 'manage', 'monitor'].includes(currentTab) ? 'legacy-project-content' : view, project, currentTab); return result; } };
     };
   }
   return { create, groupItems, mount, onView };

@@ -258,6 +258,7 @@ test('project navigation reaches sessions and attention excludes ordinary and co
   await f.api.load(); f.api.setProject('p', true);
   const nav = f.node('ab-project-tabs'); assert.equal(nav.hidden, false);
   assert.equal(nav.children.find(node => node.textContent === '会话').href, '#project/p/sessions');
+  assert.equal(nav.children.find(node => node.textContent === '协作监控').href, '#project/p/monitor');
   assert.equal(nav.children.find(node => node.textContent === '待处理').attributes['aria-current'], 'page');
   assert.match(f.node('ab-groups').textContent, /Task review|Task blocked|Task failed/);
   assert.doesNotMatch(f.node('ab-groups').textContent, /Task todo|Task done|Task elsewhere/);
@@ -301,6 +302,18 @@ test('legacy management and session routes remain visible outside the Agent boar
     context.window.WorkspaceAgentBoard.onView(view); assert.equal(root.hidden, true); assert.equal(flags['agent-board-active'], false);
   }
   context.window.WorkspaceAgentBoard.onView('overview'); assert.equal(root.hidden, false); assert.equal(flags['agent-board-active'], true);
+});
+
+test('the project monitor remains visible through the Agent board route wrapper', () => {
+  const root = new Element('section'), flags = {}, calls = [];
+  const context = { window: { WorkspaceProjectSpace: { create: () => ({ route: (...args) => calls.push(args), show: view => calls.push(view) }) } },
+    document: { getElementById: name => name === 'agent-board' ? root : null, body: { classList: { toggle: (name, value) => { flags[name] = value; } } } } };
+  vm.runInNewContext(source, context);
+  const space = context.window.WorkspaceProjectSpace.create({});
+  space.route('p', 'monitor'); space.show('project');
+  assert.equal(root.hidden, true); assert.equal(flags['agent-board-active'], false);
+  space.route('p', 'tasks'); space.show('project');
+  assert.equal(root.hidden, false); assert.equal(flags['agent-board-active'], true);
 });
 
 test('a completed run does not show a current heartbeat failure', async () => {
