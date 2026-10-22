@@ -55,9 +55,19 @@ function uiHarness(options = {}) {
     return list;
   };
   ui.init({ api, post: async (url, body) => { records.push({ method: 'POST', url, body }); return options.post(url, body); }, getSnapshot: () => ({ tasks: { items: [task] } }), showView: view => ui.onView(view) });
-  return { ui, nodes, get, records, task, ctx, list, storage, open: async () => { await ui.openTask(task.id); await settle(); }, submit: () => get('execution-form').fire('submit') };
+  return { ui, nodes, get, records, task, ctx, list, storage, open: async () => { await ui.openTask(task.id); await settle(); }, submit: () => { get('execution-confirm').checked = true; return get('execution-form').fire('submit'); } };
 }
 async function main() {
+  for (const enabled of [true, false, undefined, 'true']) {
+    const nodes = new Map(), calls = [];
+    const get = id => { if (!nodes.has(id)) { const el = new Element(); el.parentElement = { insertBefore() {} }; nodes.set(id, el); } return nodes.get(id); };
+    const sandbox = { document: { getElementById: get, querySelectorAll: () => [] }, window: { WorkspaceExecution: { onView: view => calls.push(view) } }, history: { replaceState() {} } };
+    vm.createContext(sandbox);
+    vm.runInContext(source.slice(0, source.indexOf('\nfunction renderStats')) + '\napp.profileMode=true;this.app=app;this.showView=showView;', sandbox);
+    sandbox.app.capabilities.execution = enabled;
+    sandbox.showView('runs');
+    check(`profile execution route requires boolean capability (${String(enabled)})`, sandbox.app.view === (enabled === true ? 'runs' : 'overview') && (enabled === true ? calls[0] === 'runs' : calls.length === 0));
+  }
   const api = apiHarness();
   for (const [status, reason] of [[400, 'invalid_request'], [404, 'task_not_found'], [409, 'context_changed'], [409, 'project_busy'], [409, 'capacity_busy'], [409, 'other_instance'], [409, 'idempotency_conflict'], [404, 'request_not_found'], [503, 'storage_unavailable']]) {
     api.fetch = async () => ({ status, ok: false, json: async () => ({ reason }) });
@@ -79,6 +89,17 @@ async function main() {
     await h.open(); h.get('execution-prompt').value = '保留草稿'; await h.submit();
     check(`definitive ${status}/${reason} unlocks draft without lookup`, !h.get('execution-prompt').disabled && !h.records.some(item => item.url.includes('?request_id=')) && h.get('execution-prompt').value === '保留草稿');
   }
+  const confirmation = uiHarness({ post: async (url, body) => ({ run: { id: randomUUID(), request_id: body.request_id } }) });
+  await confirmation.open(); await confirmation.get('execution-form').fire('submit');
+  check('preparation and unconfirmed submit never dispatch', !confirmation.get('execution-confirm').checked && !confirmation.records.some(item => item.method === 'POST'));
+  confirmation.get('execution-confirm').checked = true;
+  await confirmation.get('execution-prompt').fire('input');
+  check('editing prompt invalidates confirmation', confirmation.get('execution-confirm').checked === false);
+  confirmation.get('execution-confirm').checked = true;
+  await confirmation.get('execution-context-refresh').fire(); await settle();
+  check('refreshing context invalidates confirmation', confirmation.get('execution-confirm').checked === false);
+  await confirmation.submit(); await settle();
+  check('confirmed request is admitted once and confirmation locked', confirmation.records.filter(item => item.method === 'POST').length === 1 && confirmation.get('execution-confirm').disabled);
   let release;
   const pending = new Promise(resolve => { release = resolve; });
   const double = uiHarness({ post: async (url, body) => { await pending; return { run: { id: randomUUID(), request_id: body.request_id } }; } });
@@ -116,6 +137,31 @@ async function main() {
   detail.approvals[1].detail.reason = '另一张卡片更新'; await cards.ui.refresh();
   check('unchanged approval DOM is retained when another approval changes', cards.get('execution-approvals').children[0] === firstCard);
   check('Chinese detail labels preserve exact command and diff text', firstCard.children[2].textContent.includes('命令：echo <unsafe>') && cards.get('execution-approvals').children[1].children[3].textContent.includes('变更内容：+ exact diff'));
+  for (const reason of ['login_required', 'native_error']) {
+    const failedRun = { id: randomUUID(), task_title: '原生运行失败', state: 'failed', reason, cleanup_state: 'verified' };
+    const failed = uiHarness({ detail: { run: failedRun, approvals: [], events: [], next_cursor: 0 } });
+    failed.list.runs = [failedRun];
+    failed.ui.onView('runs'); await settle();
+    failed.get('execution-history').children[0].fire(); await settle();
+    const message = failed.get('execution-run-state').textContent;
+    check(`native failure ${reason} keeps an accurate Chinese explanation`, reason === 'login_required'
+      ? message.includes('账号认证未就绪，请在原生工具中核对登录状态和账号认证配置后重新发起运行') && !message.includes('已登录') && !message.includes('未登录')
+      : message.includes('原因：native_error') && !message.includes('账号认证未就绪'));
+  }
+  for (const [authMode, model] of [['native-config', null], ['native-config', 'fixture-model-alias'], ['desktop-account', null]]) {
+    const modelRun = { id: randomUUID(), state: 'completed', model,
+      effective_policy: { dsh_runtime: { auth_mode: authMode, provider: null, model: null } } };
+    const h = uiHarness({ detail: { run: modelRun, approvals: [], events: [], next_cursor: 0 } });
+    h.list.runs = [modelRun];
+    h.ui.onView('runs'); await settle();
+    h.get('execution-history').children[0].fire(); await settle();
+    const rows = new Map(h.get('execution-run-meta').children.map(row => row.children.map(cell => cell.textContent)));
+    check(`${authMode}/${model} preserves actual model or honest unknown`, rows.get('实际模型') ===
+      (model ?? (authMode === 'native-config' ? '未知（原生运行未返回）' : '尚未提供')));
+    check(`${authMode}/${model} labels only native configuration receipts`, authMode === 'native-config'
+      ? rows.get('模型配置来源') === 'DSH headless 原生配置；provider/model 启动前未探测'
+      : !rows.has('模型配置来源'));
+  }
   check('execution is loaded before workspace and has guarded bootstrap/view wiring', fs.readFileSync(path.join(root, 'web/workspace/workspace.html'), 'utf8').indexOf('/execution.js') < fs.readFileSync(path.join(root, 'web/workspace/workspace.html'), 'utf8').indexOf('/workspace.js') && source.includes('window.WorkspaceExecution?.init') && source.includes('window.WorkspaceExecution?.onView'));
   check('Agent output never uses HTML sinks', !/innerHTML|outerHTML|insertAdjacentHTML|document\.write/.test(executionSource));
 }
