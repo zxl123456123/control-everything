@@ -13,3 +13,10 @@
 - 生产 Python 只放入 `src/control_everything` 所属功能包，前端唯一源码在 `web`；不要建立根影子包。构建工具归 `tools/packaging`，资源按显式白名单入包。测试按 backend/frontend/e2e/fixtures 类型放置；具体归属见 [CONTRIBUTING.md](.github/CONTRIBUTING.md)。内部引用真实实现，Python CLI 使用 control_everything 包名，保持公开资源 URL 和已有数据位置。
 - 新增文件先检查归属；依赖遵守 `tools/architecture/importlinter.ini`，运行 `python tools/scripts/check_architecture.py layout` 和官方 Import Linter。不得经旧 CLI、兼容转发或动态导入绕过方向约束；新增构建单元须同时更新规则与贡献指南。
 - HTTP 入口保留权限、请求处理及装配，页面主脚本保留状态及装配；新业务处理和完整展示放入所属模块。跨项目/事项的管理写入保持现有同库事务，Rust 不写业务库。
+
+## 客户端接入方向（2026-10-22 用户确认）
+
+- 项目工作区优先沿用 Orca 已有项目、会话、终端与 Agent 展示；项目之外保持已选 Studio 工作台设计，不将整站替换为 Orca 外观。
+- 本地任务、交付和人工验收保持独立业务语义；不得把 Orca 的外部 Tasks、工作区列状态或临时终端句柄直接当作本系统的业务状态与永久身份。
+- 接入层保持可替换的客户端/服务地址，尽量少改上游内部实现；后续继续完善真实配对、项目关联、Android 入口、自建服务和升级兼容。服务器由用户自行部署，不依赖取得私有 `orca-cloud` 运维仓库，也不承诺不存在性能瓶颈。
+- 当前基础预览与后续验收清单记在本机 `work/workbench-ui-refresh-20261022/implementation-baseline.md`；恢复开发先核对其中最新状态，预览和配对页不等于完整业务接通。

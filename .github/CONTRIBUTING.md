@@ -30,6 +30,23 @@
 
 ## 环境和验证
 
+### Studio 与 Orca 独立开发预览
+
+`web/workspace/studio-preview.*` 保留 Studio 外层示例页面，`orca-surface.js/css` 提供持续挂载的 Orca 客户端容器。以下开发工具仅监听本机回环地址，只提供显式列出的预览资源；不替换 `/workspace`，不调用业务 API，也不加入生产资源包：
+
+```powershell
+python -X utf8 tools/scripts/preview_studio.py --port 8769
+```
+
+打开 `http://127.0.0.1:8769/`。项目入口初次进入时加载 Orca Web，切换外层页面或主题保留该客户端。默认客户端地址为 `http://127.0.0.1:8767/web-index.html`；须另行启动合法取得的 Orca Web 客户端，亦可在预览内换成自有 HTTP(S) 页面地址。本仓库不附带或启动 Orca 构建包。只有无账号密码、查询参数和片段的普通页面地址会保存到浏览器；配对和授权在 Orca 自己的界面内处理。
+
+外层项目、任务、Agent、审批和验收均为示例，没有自动映射真实 Orca 项目。iframe 的页面响应不代表运行时连接成功；首次配对、真实会话、快捷键、剪贴板、移动端及自建服务仍需单独验收。外层主题不会强制修改 Orca 主题。定向验证：
+
+```powershell
+node --test tests/frontend/test_orca_surface.cjs
+python -m unittest tests.backend.test_studio_preview_server -v
+```
+
 ### 模块边界与新增代码
 
 新增代码先找所属功能包。`http` 负责权限、请求处理与装配；`profiles` 负责用户配置与恢复编排；`sessions` 负责会话和观察；`workspace` 负责管理业务及同库事务；`execution` 保留受控执行生命周期；`integrations` 负责外部适配。共享 Windows Job 原语放 `platform/windows_jobs.py`，共享输入错误与路径判据放 `input_validation.py`，不设没有消费者的通用目录。
