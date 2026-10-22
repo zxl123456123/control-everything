@@ -106,6 +106,8 @@ class WindowsAPI:
             "ResumeThread": ([w.HANDLE], w.DWORD),
             "TerminateProcess": ([w.HANDLE, w.UINT], w.BOOL),
             "GetExitCodeProcess": ([w.HANDLE, c.POINTER(w.DWORD)], w.BOOL),
+            "GetProcessTimes": ([w.HANDLE, c.POINTER(w.FILETIME), c.POINTER(w.FILETIME),
+                                 c.POINTER(w.FILETIME), c.POINTER(w.FILETIME)], w.BOOL),
             "WaitForSingleObject": ([w.HANDLE, w.DWORD], w.DWORD),
             "PeekNamedPipe": ([w.HANDLE, w.LPVOID, w.DWORD, w.LPVOID, c.POINTER(w.DWORD), w.LPVOID], w.BOOL),
             "ReadFile": ([w.HANDLE, w.LPVOID, w.DWORD, c.POINTER(w.DWORD), w.LPVOID], w.BOOL),
@@ -220,6 +222,16 @@ class WindowsAPI:
         code = w.DWORD()
         self.checked(self.kernel.GetExitCodeProcess(process, c.byref(code)))
         return code.value
+
+    def process_creation_time(self, process):
+        """Read the held process handle's creation time as Unix milliseconds."""
+        created, exited, kernel, user = (w.FILETIME() for _ in range(4))
+        self.checked(self.kernel.GetProcessTimes(process, c.byref(created), c.byref(exited),
+                                                c.byref(kernel), c.byref(user)))
+        ticks = (created.dwHighDateTime << 32) | created.dwLowDateTime
+        if ticks < 116444736000000000:
+            raise ProcessError("process_identity_unavailable")
+        return (ticks - 116444736000000000) // 10000
 
     def terminate_job(self, job):
         self.checked(self.kernel.TerminateJobObject(job, 1))

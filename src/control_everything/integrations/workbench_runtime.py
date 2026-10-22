@@ -1,0 +1,446 @@
+"""Own one isolated workspace runtime; browser requests never select executables."""
+
+from dataclasses import dataclass
+import hashlib
+import json
+import os
+from pathlib import Path
+import re
+import secrets
+import stat
+import threading
+import time
+from urllib.parse import urlsplit
+import uuid
+
+from control_everything.platform.windows_jobs import ProcessError, WindowsAPI
+
+MAX_MESSAGE = 1024 * 1024
+
+
+class WorkbenchUnavailable(Exception):
+    def __init__(self, code="runtime_unavailable"):
+        self.code = code
+        super().__init__(code)
+
+
+@dataclass(frozen=True)
+class RuntimeConfig:
+    engine_root: Path
+    build_run: Path
+    data_root: Path
+    git_executable: Path
+    allowed_workspace_roots: tuple[Path, ...]
+
+
+def safe_path(value):
+    path = Path(value)
+    if not path.is_absolute():
+        raise WorkbenchUnavailable("runtime_path_invalid")
+    for item in (path, *path.parents):
+        if not item.exists() and not item.is_symlink():
+            continue
+        info = item.lstat()
+        if stat.S_ISLNK(info.st_mode) or getattr(info, "st_file_attributes", 0) & 0x400:
+            raise WorkbenchUnavailable("runtime_path_invalid")
+    return path.resolve()
+
+
+def read_json(path, limit=MAX_MESSAGE):
+    path = safe_path(path)
+    if path.stat().st_size > limit:
+        raise WorkbenchUnavailable("runtime_protocol_error")
+    with path.open("rb") as stream:
+        raw = stream.read(limit + 1)
+    if len(raw) > limit:
+        raise WorkbenchUnavailable("runtime_protocol_error")
+    return json.loads(raw)
+
+
+def digest(path):
+    with safe_path(path).open("rb") as stream:
+        return hashlib.file_digest(stream, "sha256").hexdigest()
+
+
+def loopback_origin(value, scheme="http"):
+    try:
+        parsed = urlsplit(value)
+        port = parsed.port
+    except (TypeError, ValueError):
+        raise WorkbenchUnavailable("runtime_origin_invalid") from None
+    if (parsed.scheme != scheme or parsed.hostname != "127.0.0.1" or not port
+            or parsed.username or parsed.password or parsed.path not in {"", "/"}
+            or parsed.query or parsed.fragment):
+        raise WorkbenchUnavailable("runtime_origin_invalid")
+    return f"{scheme}://127.0.0.1:{port}"
+
+
+def isolated_environment(data_root, node, git, origin, ambient=None):
+    ambient = os.environ if ambient is None else ambient
+    system = ambient.get("SystemRoot") or ambient.get("SYSTEMROOT")
+    if not system or not Path(system).is_absolute():
+        raise WorkbenchUnavailable("runtime_system_environment_missing")
+    home = data_root / "home"
+    # The pinned node-pty path_util.cc drops the final PATH segment when resolving
+    # bare shell names. Keep System32 delimiter-terminated; ordinary Git lookup
+    # still consumes the final explicit directory. Never add an empty segment.
+    env = {"SystemRoot": system, "WINDIR": system, "ComSpec": str(Path(system) / "System32/cmd.exe"),
+           "PATHEXT": ".COM;.EXE;.BAT;.CMD", "HOMEDRIVE": home.drive, "HOMEPATH": str(home)[len(home.drive):],
+           "PATH": os.pathsep.join((str(node.parent), str(Path(system) / "System32"), str(git.parent))),
+           "HOME": str(home), "USERPROFILE": str(home), "APPDATA": str(home / "AppData/Roaming"),
+           "LOCALAPPDATA": str(home / "AppData/Local"), "CODEX_HOME": str(home / "codex"),
+           "CLAUDE_CONFIG_DIR": str(home / "claude"), "XDG_CONFIG_HOME": str(home / ".config"),
+           "XDG_DATA_HOME": str(home / ".local/share"), "XDG_CACHE_HOME": str(home / ".cache"),
+           "TEMP": str(data_root / "tmp"), "TMP": str(data_root / "tmp"), "TMPDIR": str(data_root / "tmp"),
+           "ORCA_USER_DATA": str(data_root / "state"), "ORCA_USER_DATA_PATH": str(data_root / "state"),
+           "ORCA_BACKGROUND_LAUNCH": "1", "ORCA_DISABLE_MACOS_LOGIN_SHELL": "1",
+           "DO_NOT_TRACK": "1", "ORCA_TELEMETRY_DISABLED": "1", "CE_WORKBENCH_ISOLATED": "1",
+           "CE_WORKBENCH_ORIGIN": loopback_origin(origin), "GIT_CONFIG_NOSYSTEM": "1",
+           "GIT_CONFIG_GLOBAL": str(home / ".gitconfig")}
+    return env
+
+
+class WorkbenchRuntime:
+    def __init__(self, config, *, api=None, owner_call=None):
+        self.config, self.api, self._owner_call = config, api, owner_call
+        self._lock = threading.RLock()
+        self._job = self._owner = self._process = self._stdin = self._stdout = None
+        self._pid = self._created = self._metadata = self._instance = None
+        self._origin = self._ws_origin = self._node = self._entry = self._helper = None
+        self._devices = {}
+        self._reader = None
+        self._reader_stop = threading.Event()
+        self.cleanup_verified = False
+
+    @property
+    def ready(self):
+        try:
+            return bool(self._metadata and self._process and self.api.exit_code(self._process) == 259)
+        except (ProcessError, OSError):
+            return False
+
+    def status(self):
+        return {"ready": self.ready, "code": "ready" if self.ready else "runtime_unavailable",
+                **({"runtimeId": self._metadata["runtimeId"]} if self.ready else {})}
+
+    @property
+    def websocket_origin(self):
+        if not self.ready:
+            raise WorkbenchUnavailable()
+        return self._ws_origin
+
+    def _prepare(self, origin):
+        self._origin = loopback_origin(origin)
+        root, run, data = (safe_path(value) for value in
+                           (self.config.engine_root, self.config.build_run, self.config.data_root))
+        actual_home = Path.home().resolve()
+        if data == actual_home or actual_home.is_relative_to(data):
+            raise WorkbenchUnavailable("runtime_profile_not_isolated")
+        provenance = read_json(run / "build-provenance.json")
+        if provenance.get("status") != "build_only_verified":
+            raise WorkbenchUnavailable("runtime_build_unverified")
+        rows = read_json(run / "output-manifest.json")["files"]
+        files = {}
+        for row in rows:
+            name = row["path"]
+            if not isinstance(name, str) or "\\" in name or ":" in name or ".." in Path(name).parts:
+                raise WorkbenchUnavailable("runtime_build_unverified")
+            if not name.startswith(("out/orcad/", "out/runtimes/")):
+                continue
+            file = safe_path(root / name)
+            if not file.is_relative_to(root) or digest(file) != row["sha256"]:
+                raise WorkbenchUnavailable("runtime_build_changed")
+            files[name] = file
+        marker = files.get("out/orcad/.runtime-node")
+        node_sha = marker.read_text(encoding="utf-8").strip() if marker else ""
+        if not re.fullmatch("[0-9a-f]{64}", node_sha):
+            raise WorkbenchUnavailable("runtime_build_unverified")
+        required = ["out/orcad/orcad.js", "out/orcad/platform-owner-client.js", f"out/runtimes/node-{node_sha}/node.exe"]
+        if any(name not in files for name in required) or digest(files[required[2]]) != node_sha:
+            raise WorkbenchUnavailable("runtime_build_unverified")
+        self._entry, self._helper, self._node = (files[name] for name in required)
+        version_file = files.get("out/orcad/.version")
+        if not version_file:
+            raise WorkbenchUnavailable("runtime_build_unverified")
+        version = version_file.read_text(encoding="utf-8").strip()
+        if not version or len(version) > 255 or any(char.isspace() for char in version):
+            raise WorkbenchUnavailable("runtime_build_unverified")
+        git = safe_path(self.config.git_executable)
+        if not git.is_file() or git.name.lower() != "git.exe":
+            raise WorkbenchUnavailable("runtime_git_missing")
+        marker = data / ".platform-workbench-profile.json"
+        if not marker.exists():
+            if data.exists() and any(data.iterdir()):
+                raise WorkbenchUnavailable("runtime_profile_not_isolated")
+            data.mkdir(parents=True, exist_ok=True)
+            with marker.open("x", encoding="utf-8") as stream:
+                json.dump({"schema": 1, "kind": "isolated-workbench", "id": str(uuid.uuid4())}, stream)
+        elif read_json(marker, 4096).get("kind") != "isolated-workbench":
+            raise WorkbenchUnavailable("runtime_profile_not_isolated")
+        self._env = isolated_environment(data, self._node, git, self._origin)
+        # Both the lock and managed-stop context read this variable, with different
+        # upstream fallbacks. Pin it to the verified artifact so their identities agree.
+        self._env["ORCA_VERSION"] = version
+        for key in ("HOME", "APPDATA", "LOCALAPPDATA", "CODEX_HOME", "CLAUDE_CONFIG_DIR",
+                    "XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_CACHE_HOME", "TEMP", "ORCA_USER_DATA"):
+            safe_path(self._env[key]).mkdir(parents=True, exist_ok=True)
+        for relative in ("home/.ssh/config", "home/.gitconfig"):
+            file = safe_path(data / relative)
+            file.parent.mkdir(parents=True, exist_ok=True)
+            if not file.exists():
+                file.write_text("", encoding="utf-8")
+        safe_path(data / "workspaces").mkdir(exist_ok=True)
+        state = safe_path(data / "state/orca-data.json")
+        if not state.exists():
+            state.write_text(json.dumps({"settings": {"workspaceDir": str(data / "workspaces"),
+                             "agentStatusHooksEnabled": False, "nativeChatInheritShellEnvironment": False,
+                             "agentStateRulesLiveUpdates": False, "localWindowsRuntimeDefault": {"kind": "windows-host"}}}), encoding="utf-8")
+
+    def _spawn(self, argv):
+        thread, child = None, ()
+        process = stdin = stdout = None
+        try:
+            stdin, stdout, child = self.api.pipes()
+            process, thread, pid = self.api.spawn(self._node, list(map(str, argv)), self.config.data_root,
+                                                child, env=self._env)
+            self.api.assign(self._job, process)
+            created = self.api.process_creation_time(process)
+            self.api.resume(thread)
+            return process, stdin, stdout, pid, created
+        except BaseException:
+            if process:
+                self.api.terminate_process(process)
+            for handle in (process, stdin, stdout):
+                self.api.close(handle)
+            raise
+        finally:
+            self.api.close(thread)
+            for handle in child:
+                self.api.close(handle)
+
+    def _drain(self):
+        # Startup uses --no-pairing; discard stdout rather than persist auth-bearing text.
+        try:
+            while not self._reader_stop.is_set():
+                output = self.api.read_available(self._stdout)
+                if output == b"":
+                    return
+                if output is None:
+                    self._reader_stop.wait(.02)
+        except (ProcessError, OSError):
+            return
+
+    def _read_identity(self):
+        state = self.config.data_root / "state"
+        metadata, instance = read_json(state / "orca-runtime.json", 65536), read_json(state / "orcad.lock", 32768)
+        if (metadata.get("pid") != self._pid or instance.get("pid") != self._pid
+                or instance.get("startedAtMs") != self._created or not instance.get("nonce")
+                or not isinstance(metadata.get("authToken"), str) or not metadata["authToken"]
+                or not isinstance(metadata.get("runtimeId"), str) or not metadata["runtimeId"]
+                or self.api.exit_code(self._process) != 259):
+            raise WorkbenchUnavailable("runtime_identity_mismatch")
+        transports = metadata.get("transports", [])
+        pipe = [row["endpoint"] for row in transports if row.get("kind") == "named-pipe"]
+        websocket = [row["endpoint"] for row in transports if row.get("kind") == "websocket"]
+        if len(pipe) != 1 or not pipe[0].startswith("\\\\.\\pipe\\") or len(websocket) != 1:
+            raise WorkbenchUnavailable("runtime_protocol_error")
+        ws_origin = loopback_origin(websocket[0], "ws")
+        if self._metadata and (metadata["runtimeId"] != self._metadata["runtimeId"] or instance["nonce"] != self._instance["nonce"]):
+            raise WorkbenchUnavailable("runtime_identity_mismatch")
+        return metadata, instance, pipe[0], ws_origin
+
+    def start(self, origin, *, timeout=60):
+        with self._lock:
+            if self.ready:
+                if loopback_origin(origin) != self._origin:
+                    raise WorkbenchUnavailable("runtime_origin_invalid")
+                self._read_identity()
+                return self.status()
+            if self._process:
+                self._release_process()
+            self.cleanup_verified = False
+            self._prepare(origin)
+            self.api = self.api or WindowsAPI()
+            fresh_job = self._job is None
+            try:
+                if not self._owner:
+                    self._owner = self.api.owner(self.config.data_root / ".platform-runtime-owner.lock")
+                    if not self._owner:
+                        raise WorkbenchUnavailable("runtime_profile_in_use")
+                if fresh_job:
+                    self._job = self.api.create_job("Local\\ControlEverything.Workbench." + uuid.uuid4().hex)
+                self._process, self._stdin, self._stdout, self._pid, self._created = self._spawn(
+                    [self._entry, "--bind", "127.0.0.1", "--port", "0", "--no-pairing", "--json"])
+                self._reader_stop.clear()
+                self._reader = threading.Thread(target=self._drain, name="workbench-output", daemon=True)
+                self._reader.start()
+                deadline = time.monotonic() + timeout
+                while time.monotonic() < deadline:
+                    try:
+                        self._metadata, self._instance, _, self._ws_origin = self._read_identity()
+                        return self.status()
+                    except (FileNotFoundError, json.JSONDecodeError):
+                        if self.api.exit_code(self._process) != 259:
+                            break
+                        time.sleep(.05)
+                    except WorkbenchUnavailable as error:
+                        # A crashed prior instance can leave metadata until this one publishes.
+                        # It never becomes authority; only this held handle's identity can pass.
+                        if error.code != "runtime_identity_mismatch":
+                            raise
+                        if self.api.exit_code(self._process) != 259:
+                            break
+                        time.sleep(.05)
+                raise WorkbenchUnavailable("runtime_start_timeout")
+            except BaseException:
+                if self._process:
+                    self.api.terminate_process(self._process)
+                self._release_process()
+                if fresh_job:
+                    self._close_job(force=True)
+                raise
+
+    def _capture(self, argv, request=None, timeout=30):
+        process, stdin, stdout, _, _ = self._spawn(argv)
+        output = bytearray()
+        try:
+            if request is not None:
+                raw = (json.dumps(request, allow_nan=False) + "\n").encode()
+                if len(raw) > MAX_MESSAGE or self.api.write(stdin, raw) != len(raw):
+                    raise WorkbenchUnavailable("runtime_protocol_error")
+            self.api.close(stdin)
+            stdin = None
+            deadline = time.monotonic() + timeout
+            while time.monotonic() < deadline:
+                chunk = self.api.read_available(stdout)
+                if chunk:
+                    output.extend(chunk)
+                    if len(output) > MAX_MESSAGE:
+                        raise WorkbenchUnavailable("runtime_protocol_error")
+                elif chunk == b"" and self.api.exit_code(process) != 259:
+                    if self.api.exit_code(process) != 0:
+                        raise WorkbenchUnavailable("runtime_protocol_error")
+                    return json.loads(output.decode().splitlines()[-1])
+                else:
+                    time.sleep(.01)
+            raise WorkbenchUnavailable("runtime_request_timeout")
+        finally:
+            if self.api.exit_code(process) == 259:
+                self.api.terminate_process(process)
+            for handle in (stdin, stdout, process):
+                self.api.close(handle)
+
+    def _rpc(self, method, params):
+        if not self.ready:
+            raise WorkbenchUnavailable()
+        metadata, _, pipe, _ = self._read_identity()
+        if self._owner_call:
+            return self._owner_call(method, params)
+        reply = self._capture([self._helper], {"endpoint": pipe, "authToken": metadata["authToken"],
+                              "expectedRuntimeId": metadata["runtimeId"], "method": method, "params": params})
+        if not reply.get("ok"):
+            raise WorkbenchUnavailable("runtime_protocol_error")
+        return reply["result"]
+
+    def bootstrap(self, project_id, project_name, directory):
+        with self._lock:
+            path = safe_path(directory)
+            roots = tuple(safe_path(value) for value in self.config.allowed_workspace_roots)
+            if not path.is_dir() or not any(path == root or path.is_relative_to(root) for root in roots):
+                raise WorkbenchUnavailable("project_directory_not_allowed")
+            repos = self._rpc("repo.list", {})["repos"]
+            matches = [repo for repo in repos if repo.get("path") and Path(repo["path"]).resolve() == path]
+            if len(matches) > 1:
+                raise WorkbenchUnavailable("project_directory_mismatch")
+            repo = matches[0] if matches else self._rpc("repo.add", {"path": str(path), "displayName": str(project_name)})["repo"]
+            if not repo.get("id") or safe_path(repo["path"]) != path:
+                raise WorkbenchUnavailable("project_directory_mismatch")
+            self._rpc("worktree.list", {"repo": "id:" + repo["id"]})
+            paired = self._rpc("platform.bootstrapDevice", {"name": "Platform Web " + str(project_id)})
+            if not paired.get("available"):
+                raise WorkbenchUnavailable("pairing_unavailable")
+            offer = paired.get("offer")
+            try:
+                if (not isinstance(offer, dict) or offer.get("v") != 2 or offer.get("scope") != "runtime"
+                        or loopback_origin(offer.get("endpoint", ""), "ws") != self._ws_origin
+                        or not offer.get("deviceToken") or not offer.get("pairedDeviceId")
+                        or paired.get("deviceId") != offer["pairedDeviceId"]):
+                    raise WorkbenchUnavailable("runtime_protocol_error")
+                installation = read_json(self.config.data_root / "state/host-installation.json", 4096)["installationId"]
+                if offer.get("hostDescriptor", {}).get("installationId") != installation:
+                    raise WorkbenchUnavailable("runtime_identity_mismatch")
+                environment = str(uuid.uuid5(uuid.NAMESPACE_URL, "control-everything:workbench:" + str(uuid.UUID(installation))))
+            except (WorkbenchUnavailable, ValueError, KeyError, OSError):
+                if paired.get("deviceId"):
+                    self._rpc("platform.revokeDevice", {"deviceId": paired["deviceId"]})
+                raise
+            result = {"runtime": {"environmentId": environment, "offer": offer}, "target": {"repoId": repo["id"]}}
+            self._devices[offer["pairedDeviceId"]] = offer["deviceToken"]
+            return result
+
+    def discard_bootstrap(self, result):
+        with self._lock:
+            offer = result.get("runtime", {}).get("offer", {})
+            device = offer.get("pairedDeviceId")
+            token = self._devices.get(device)
+            if token and secrets.compare_digest(token, offer.get("deviceToken", "")):
+                self._rpc("platform.revokeDevice", {"deviceId": device})
+                del self._devices[device]
+
+    def stop(self, *, retire_idle_daemon=False):
+        with self._lock:
+            if not self.ready:
+                raise WorkbenchUnavailable()
+            metadata, instance, _, _ = self._read_identity()
+            request = {"schemaVersion": 1, "transactionId": str(uuid.uuid4()), "version": instance["version"],
+                       "runtimeId": metadata["runtimeId"], "instance": {"pid": self._pid, "startedAtMs": self._created,
+                       "nonce": instance["nonce"], "lockPath": str(self.config.data_root / "state/orcad.lock")}}
+            if retire_idle_daemon:
+                request["retireIdleDaemon"] = True
+            path = self.config.data_root / ("managed-stop-" + request["transactionId"] + ".json")
+            with path.open("x", encoding="utf-8") as stream:
+                json.dump(request, stream)
+            result = self._capture([self._entry, "--complete-managed-stop", "--request-file", path], timeout=40)
+            if (result.get("verdict") != "exited" or result.get("receiptPersisted") is not True
+                    or result.get("runtimeId") != metadata["runtimeId"] or result.get("instance") != request["instance"]
+                    or self.api.exit_code(self._process) == 259):
+                raise WorkbenchUnavailable("runtime_stop_unverified")
+            self._release_process()
+            if retire_idle_daemon and result.get("retirement") != "retired":
+                raise WorkbenchUnavailable("runtime_daemon_busy")
+            return result
+
+    def _release_process(self):
+        self._reader_stop.set()
+        if self._reader:
+            self._reader.join(timeout=1)
+        for handle in (self._stdin, self._stdout, self._process):
+            self.api.close(handle)
+        self._stdin = self._stdout = self._process = self._metadata = self._instance = None
+        self._reader = None
+
+    def _close_job(self, *, force=False):
+        if self._job:
+            if force:
+                self.api.terminate_job(self._job)
+            deadline = time.monotonic() + 5
+            while self.api.active(self._job) and time.monotonic() < deadline:
+                time.sleep(.02)
+            if self.api.active(self._job):
+                raise WorkbenchUnavailable("runtime_cleanup_unverified")
+            self.api.close(self._job)
+            self._job = None
+        self.api.close(self._owner)
+        self._owner = None
+        self.cleanup_verified = True
+
+    def close(self, *, force=False):
+        with self._lock:
+            if self._process and not force:
+                self.stop(retire_idle_daemon=True)
+            if force and self._job:
+                self.api.terminate_job(self._job)
+                self._release_process()
+            if self.api:
+                self._close_job()
+            return self.cleanup_verified

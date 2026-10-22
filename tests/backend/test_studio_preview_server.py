@@ -53,7 +53,7 @@ class StudioPreviewServerTests(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertEqual(content, b"")
         self.assertIn("connect-src 'none'", headers["Content-Security-Policy"])
-        self.assertIn("frame-src http: https:", headers["Content-Security-Policy"])
+        self.assertIn("frame-src 'none'", headers["Content-Security-Policy"])
         self.assertEqual(self.request("/", "POST")[0], 501)
 
 

@@ -22,7 +22,7 @@ from urllib.parse import parse_qs, urlsplit
 from control_everything.sessions.source import HOST, PORT, canonical_uuid
 from control_everything.sessions.codex_index import list_threads as list_codex_threads
 from control_everything.sessions.observer_client import ObserverClient
-from control_everything.http import observation_routes, onboarding_routes, sandbox_routes
+from control_everything.http import observation_routes, onboarding_routes, sandbox_routes, workbench
 from control_everything.workspace.progress import MANUAL, REGISTRY, TODOS, add_todo, board, set_progress, toggle_todo, load_todos
 from control_everything.integrations.launchers import LauncherCatalog, catalog, start
 from control_everything.integrations.desk import headlines, pulse
@@ -169,7 +169,7 @@ class PanelHandler(BaseHTTPRequestHandler):
         # Request paths may identify a private conversation. Do not log them.
         pass
 
-    def reply(self, status, payload, content_type="application/json; charset=utf-8"):
+    def reply(self, status, payload, content_type="application/json; charset=utf-8", *, csp=None):
         body = payload if isinstance(payload, bytes) else json.dumps(payload, ensure_ascii=False).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", content_type)
@@ -177,7 +177,7 @@ class PanelHandler(BaseHTTPRequestHandler):
         self.send_header("Cache-Control", "no-store")
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("Referrer-Policy", "no-referrer")
-        self.send_header("Content-Security-Policy", "default-src 'self'; img-src 'none'; object-src 'none'; frame-ancestors 'none'; base-uri 'none'")
+        self.send_header("Content-Security-Policy", csp if csp is not None else "default-src 'self'; img-src 'none'; object-src 'none'; frame-ancestors 'none'; base-uri 'none'")
         self.end_headers()
         self.wfile.write(body)
 
@@ -237,6 +237,8 @@ class PanelHandler(BaseHTTPRequestHandler):
         if path.path.startswith("/api/agent/"):
             return self.agent_get(path)
         if not self.allowed(api=path.path.startswith("/api/")):
+            return
+        if workbench.handle_get(self, path):
             return
         if path.path == "/health" and not path.query:
             return self.reply(200, {"app": APP, "protocol_version": 1})
@@ -346,6 +348,8 @@ class PanelHandler(BaseHTTPRequestHandler):
         if path.path == '/api/workspace/agents/heartbeat':
             return self.agent_heartbeat(path)
         if not self.allowed(api=True, focus=True):
+            return
+        if workbench.handle_post(self, path):
             return
         if AGENT_BROWSER_CANCEL_ROUTE.fullmatch(path.path):
             return self.agent_cancel(path)
@@ -1196,7 +1200,8 @@ class PanelServer(ThreadingHTTPServer):
 
 
 def make_server(service, address=(HOST, PORT), *, workspace=None, execution=None, profile=None,
-                launchers=None, capabilities=None, startup_integrations=None, source=None, observer=None):
+                launchers=None, capabilities=None, startup_integrations=None, source=None, observer=None,
+                workbench_runtime=None, workbench_assets=None):
     # The address injection exists for temporary fixture tests. Production is fixed.
     if address[0] != HOST:
         raise ValueError("loopback_only")
@@ -1210,6 +1215,8 @@ def make_server(service, address=(HOST, PORT), *, workspace=None, execution=None
     server.service = service
     server.workspace = workspace
     server.observer = observer
+    server.workbench_runtime = workbench_runtime
+    server.workbench_assets = workbench_assets
     server.execution = execution
     server.execution_reason = None
     server.profile = profile

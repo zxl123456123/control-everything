@@ -1,4 +1,4 @@
-"""Serve only the standalone Studio preview resources on loopback."""
+"""Serve Studio assets only; integrated testing uses preview_workbench.py."""
 
 import argparse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -11,8 +11,11 @@ RESOURCES = {
     "/studio-preview.html": ("studio-preview.html", "text/html; charset=utf-8"),
     "/studio-preview.css": ("studio-preview.css", "text/css; charset=utf-8"),
     "/studio-preview.js": ("studio-preview.js", "text/javascript; charset=utf-8"),
-    "/orca-surface.css": ("orca-surface.css", "text/css; charset=utf-8"),
-    "/orca-surface.js": ("orca-surface.js", "text/javascript; charset=utf-8"),
+    "/studio-data.js": ("studio-data.js", "text/javascript; charset=utf-8"),
+    "/workspace.css": ("workspace.css", "text/css; charset=utf-8"),
+    "/task-center.js": ("task-center.js", "text/javascript; charset=utf-8"),
+    "/agents.js": ("agents.js", "text/javascript; charset=utf-8"),
+    "/execution.js": ("execution.js", "text/javascript; charset=utf-8"),
 }
 
 
@@ -43,7 +46,7 @@ class PreviewHandler(BaseHTTPRequestHandler):
         # This policy applies only to the isolated preview, never the product gateway.
         self.send_header("Content-Security-Policy", (
             "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
-            "connect-src 'none'; frame-src http: https:; object-src 'none'; "
+            "connect-src 'none'; frame-src 'none'; object-src 'none'; "
             "base-uri 'none'; frame-ancestors 'none'; form-action 'none'"
         ))
         self.end_headers()
@@ -60,7 +63,8 @@ def main():
     parser.add_argument("--port", type=int, default=8769)
     args = parser.parse_args()
     with ThreadingHTTPServer(("127.0.0.1", args.port), PreviewHandler) as server:
-        print(f"Studio preview: http://127.0.0.1:{server.server_port}/", flush=True)
+        print(f"Studio assets only: http://127.0.0.1:{server.server_port}/ ; business API is unavailable. "
+              "Use preview_workbench.py for the integrated /studio page.", flush=True)
         try:
             server.serve_forever()
         except KeyboardInterrupt:

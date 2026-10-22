@@ -2,6 +2,9 @@
 
 from pathlib import Path, PurePosixPath
 import shutil
+import hashlib
+import json
+import mimetypes
 
 from setuptools.command.build_py import build_py
 
@@ -15,7 +18,47 @@ WEB_ASSETS = (
     "workspace/agents.js",
     "workspace/task-center.js", "workspace/project-space.js", "workspace/execution.js", "workspace/observation.js",
     "workspace/news.js", "workspace/quota.js",
+    "workspace/studio-preview.html", "workspace/studio-preview.css", "workspace/studio-preview.js",
+    "workspace/studio-data.js",
 )
+
+
+def export_workbench_assets(engine_root, build_run):
+    """Publish only Web artifacts already pinned by the source build contract."""
+    engine_root, build_run = Path(engine_root).resolve(), Path(build_run).resolve()
+    document = json.loads((build_run / "output-manifest.json").read_text(encoding="utf-8"))
+    rows = []
+    overrides = {".js": "text/javascript", ".mjs": "text/javascript", ".wasm": "application/wasm",
+                 ".woff2": "font/woff2", ".woff": "font/woff", ".bcmap": "application/octet-stream",
+                 ".pfb": "application/x-font-type1"}
+    for row in document["files"]:
+        name = row["path"]
+        if not name.startswith("out/web/"):
+            continue
+        relative = name[len("out/web/"):]
+        path = PurePosixPath(relative)
+        if (path.is_absolute() or path.as_posix() != relative or ".." in path.parts
+                or "\\" in relative or ":" in relative):
+            raise ValueError("invalid_workbench_artifact")
+        if any(part.startswith(".") for part in path.parts) or path.suffix == ".map":
+            continue
+        source = engine_root / name
+        for item in (source, *source.parents):
+            if item.is_symlink() or item.is_junction():
+                raise ValueError("linked_workbench_artifact")
+            if item == engine_root:
+                break
+        content = source.read_bytes()
+        if hashlib.sha256(content).hexdigest() != row["sha256"] or len(content) != row["bytes"]:
+            raise ValueError("workbench_artifact_changed")
+        mime = overrides.get(path.suffix) or mimetypes.guess_type(relative)[0] or "application/octet-stream"
+        rows.append({"path": relative, "mime": mime, "sha256": row["sha256"], "bytes": len(content)})
+    if "web-index.html" not in {row["path"] for row in rows} or len(rows) != len({row["path"] for row in rows}):
+        raise ValueError("invalid_workbench_artifact_set")
+    destination = build_run / "web-assets.json"
+    destination.write_text(json.dumps({"schema": 1, "files": sorted(rows, key=lambda row: row["path"])},
+                                      indent=2) + "\n", encoding="utf-8")
+    return destination
 
 
 class BuildPy(build_py):

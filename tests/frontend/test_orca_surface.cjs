@@ -1,9 +1,6 @@
 'use strict';
 
 const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const path = require('node:path');
-const vm = require('node:vm');
 const {test} = require('node:test');
 const OrcaSurface = require('../../web/workspace/orca-surface.js');
 
@@ -85,25 +82,4 @@ test('invalid stored pairing URLs are discarded without loading or echoing them'
   assert.equal(f.removed.length, 1);
   assert.equal(f.elements.url.value, 'http://127.0.0.1:8767/web-index.html');
   assert.equal(f.elements['frame-host'].children.length, 0);
-});
-
-test('outer navigation, theme and example approvals do not recreate or navigate Orca', () => {
-  const f = fixture();
-  const app = new Element();
-  // A full-root render would remove the mounted client and fail this contract.
-  Object.defineProperty(app, 'innerHTML', {set() { throw new Error('Stable shell must not be replaced'); }});
-  const nodes = {'ce-studio': app, 'studio-rail': new Element(), 'studio-topbar': new Element(),
-    'studio-examples': new Element(), 'studio-orca': f.root};
-  const context = vm.createContext({window: {OrcaSurface: {create: () => f.controller}}, document: {getElementById: id => nodes[id]}});
-  vm.runInContext(fs.readFileSync(path.join(__dirname, '../../web/workspace/studio-preview.js'), 'utf8'), context);
-  const click = (action, id) => app.listeners.click({target: {closest: () => ({dataset: {action, id}})}});
-  click('project');
-  const frame = f.elements['frame-host'].children[0];
-  click('theme'); click('tools'); click('home'); click('task', 'test'); click('approve', 'test'); click('project');
-  assert.equal(f.elements['frame-host'].children[0], frame);
-  assert.equal(frame.srcWrites.length, 1);
-  assert.equal(app.dataset.theme, 'dark');
-  assert.equal(nodes['studio-examples'].hidden, true);
-  assert.equal(f.root.hidden, false);
-  assert.doesNotMatch(nodes['studio-rail'].innerHTML, /data-id="ce"|data-id="tank"|data-id="docs"/);
 });

@@ -4,50 +4,28 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="referrer" content="no-referrer">
-  <title>Studio 工作台 · Orca 基础接入预览</title>
+  <title>Studio · 掌控一切</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%232c3d38'/%3E%3Ctext x='32' y='42' text-anchor='middle' font-family='sans-serif' font-size='28' font-weight='bold' fill='white'%3ECE%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/workspace.css">
   <link rel="stylesheet" href="/studio-preview.css">
-  <link rel="stylesheet" href="/orca-surface.css">
-  <script defer src="/orca-surface.js"></script>
+  <script defer src="/execution.js"></script>
+  <script defer src="/task-center.js"></script>
+  <script defer src="/project-space.js"></script>
+  <script defer src="/agents.js"></script>
+  <script defer src="/studio-data.js"></script>
   <script defer src="/studio-preview.js"></script>
 </head>
 <body>
-  <section id="ce-studio" data-theme="light" aria-label="Control Everything 基础接入预览">
+  <section id="ce-studio" data-theme="light" aria-label="Control Everything 工作台">
     <div class="ce-shell">
       <aside id="studio-rail" class="ce-rail" aria-label="应用导航"></aside>
       <div class="ce-app">
         <div id="studio-topbar"></div>
-        <div class="ce-preview-notice">基础接入预览 · 外层示例数据</div>
+        <p id="studio-status" class="ce-preview-notice" role="status" aria-live="polite">正在读取本地工作台…</p>
         <main class="ce-content" aria-label="工作区">
-          <div id="studio-examples" class="ce-main"></div>
-          <section id="studio-orca" class="ce-orca-surface" aria-labelledby="orca-title" hidden>
-            <div class="ce-orca-toolbar">
-              <div>
-                <h1 id="orca-title" tabindex="-1">Orca 项目工作区</h1>
-                <p>客户端入口，首次连接在 Orca 内完成。</p>
-              </div>
-              <div class="ce-orca-controls">
-                <button class="ce-button ce-plain" type="button" data-action="home">返回工作台</button>
-                <a class="ce-button" data-orca="open" target="_blank" rel="noopener noreferrer">在新窗口打开 ↗</a>
-                <button class="ce-button" type="button" data-orca="reload">重新加载</button>
-              </div>
-            </div>
-            <details class="ce-orca-config">
-              <summary>客户端地址与连接说明</summary>
-              <form data-orca="form">
-                <label for="orca-client-url">Orca Web 客户端地址</label>
-                <div class="ce-orca-address-row">
-                  <input id="orca-client-url" data-orca="url" type="text" inputmode="url" autocomplete="off" spellcheck="false" aria-describedby="orca-address-help orca-address-error">
-                  <button class="ce-button" type="submit">使用此地址</button>
-                </div>
-                <p id="orca-address-help">这里只保存普通 HTTP(S) 页面地址。请勿粘贴配对链接；授权和连接在 Orca 界面内处理。</p>
-                <p id="orca-address-error" data-orca="error" role="alert" hidden></p>
-              </form>
-              <p>如果客户端拒绝嵌入，请在新窗口打开。外层主题仅影响工作台，Orca 内的主题由其设置管理。</p>
-            </details>
-            <div class="ce-orca-state" data-orca="status" role="status">尚未打开客户端。</div>
-            <p class="ce-orca-mobile-note">窄屏可在新窗口使用客户端；此预览尚未适配 Android 应用入口。</p>
-            <div class="ce-orca-frame-host" data-orca="frame-host"></div>
-          </section>
+          <div id="studio-content" class="ce-main"></div>
+          <section id="studio-tasks" class="ce-business-module ce-main" aria-label="事项管理" hidden></section>
+          <section id="studio-agent-board" class="ce-business-module ce-main" aria-label="任务进度与人工审核" hidden></section>
         </main>
       </div>
     </div>

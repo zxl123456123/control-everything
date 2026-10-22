@@ -1,6 +1,8 @@
 """Build command contracts against a temporary asset-only source tree."""
 
 import ast
+import hashlib
+import json
 import importlib.util
 from importlib.machinery import PathFinder
 from pathlib import Path
@@ -27,11 +29,38 @@ class PackagingTests(TestCase):
                         and any(isinstance(target, ast.Name) and target.id == "static" for target in node.targets)]
         self.assertEqual(len(declarations), 1)
         http = ast.literal_eval(declarations[0].value)
-        self.assertEqual(set(assets.WEB_ASSETS), {value[0] for value in http.values()})
+        workbench = ast.parse((ROOT / "src/control_everything/http/workbench.py").read_text(encoding="utf-8"))
+        studio = next(node for node in workbench.body if isinstance(node, ast.Assign)
+                      and any(isinstance(target, ast.Name) and target.id == "STUDIO_RESOURCES" for target in node.targets))
+        studio_paths = {"workspace/" + value[0] for value in ast.literal_eval(studio.value).values()}
+        self.assertEqual(set(assets.WEB_ASSETS), {value[0] for value in http.values()} | studio_paths)
         self.assertEqual(len(assets.WEB_ASSETS), len(set(assets.WEB_ASSETS)))
         manifest = (ROOT / "MANIFEST.in").read_text(encoding="utf-8").splitlines()
         included = {name for line in manifest if line.startswith("include web/") for name in line.split()[1:]}
         self.assertEqual(included, {"web/" + relative for relative in assets.WEB_ASSETS})
+        self.assertIn("prune web/workbench-engine", manifest)
+
+    def test_workbench_export_uses_pinned_outputs_and_excludes_build_metadata(self):
+        with TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            unit, run = root / "engine", root / "run"
+            run.mkdir()
+            files = {"out/web/web-index.html": b"<html></html>", "out/web/assets/app.js": b"void 0;",
+                     "out/web/.vite/manifest.json": b"{}", "out/web/assets/app.js.map": b"{}",
+                     "out/orcad/orcad.js": b"not a web asset"}
+            rows = []
+            for name, data in files.items():
+                path = unit / name
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes(data)
+                rows.append({"path": name, "bytes": len(data), "sha256": hashlib.sha256(data).hexdigest()})
+            (run / "output-manifest.json").write_text(json.dumps({"schema": 1, "files": rows}), encoding="utf-8")
+            manifest = assets.export_workbench_assets(unit, run)
+            published = json.loads(manifest.read_text(encoding="utf-8"))["files"]
+            self.assertEqual({row["path"] for row in published}, {"web-index.html", "assets/app.js"})
+            (unit / "out/web/assets/app.js").write_bytes(b"changed")
+            with self.assertRaisesRegex(ValueError, "workbench_artifact_changed"):
+                assets.export_workbench_assets(unit, run)
 
     def test_metadata_has_one_runtime_dependency_and_version_source(self):
         metadata = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))

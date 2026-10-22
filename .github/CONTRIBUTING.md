@@ -30,25 +30,44 @@
 
 ## 环境和验证
 
-### 内置项目工作台源码
+### 内置项目工作台源码与构建
 
-`web/workbench-engine` 持有固定公开上游的桌面、Web、移动端及运行时源码，保留原内部目录和完整许可。项目之外保留 Studio，项目内部目标是原完整工作台与项目配置，后续由平台自行构建和运行。
+`web/workbench-engine` 保存固定上游的桌面、Web、移动端和运行时源码，保留内部相对目录及许可。来源清单位于 `tools/packaging/workbench-engine-source.json`，精确记录文件、资源与本地适配；新增文件须同时更新清单。它是独立 React/TypeScript/Node 构建单元，其他普通脚本页面仍遵守原目录与编译合同。
 
-`tools/packaging/workbench-engine-source.json` 按精确路径记录原始 Git blob、字节 hash、资源与许可；新增文件或本地适配须同步清单。该单元是 React/TypeScript/Node 的独立构建单元，普通页面的 JS 约定保持原范围。源码持有不等于运行接通，Android和自建服务另行验收。
+项目之外沿用 Studio；项目内部接入完整原工作台和配置。源码持有与构建不代表运行时、Android APK或自建账号服务已验收。旧独立 iframe 预览保留为历史开发工具，不是最终产品接入方案。普通 Python wheel 当前不包含此源码树、Node或原生产物，HTTP也不递归提供该目录。
 
-字体、供应商图标与必需构建图标只按精确字节和完整声明放行。文本继续执行隐私与 Gitleaks 扫描；已核实的公开代码误报按文件 hash、规则和行号逐项记录，报告保留原扫描结果，不能使用目录豁免或HEAD清单回溯批准历史。普通wheel/sdist不包含源码单元或Node/native，HTTP不提供该树。
-
-### Studio 与 Orca 独立开发预览
-
-`web/workspace/studio-preview.*` 保留 Studio 外层示例页面，`orca-surface.js/css` 提供持续挂载的 Orca 客户端容器。以下开发工具仅监听本机回环地址，只提供显式列出的预览资源；不替换 `/workspace`，不调用业务 API，也不加入生产资源包：
+构建使用显式 Node 24 和 pnpm 12.14.0 原生可执行文件；开发 Node 与随包运行时的 pin 分开核对。root/mobile/cloud 保持各自锁文件，依赖准备禁用未列出的安装脚本。入口不安装全局工具、不启动客户端、不运行个人 Agent：
 
 ```powershell
-python -X utf8 tools/scripts/preview_studio.py --port 8769
+python tools/packaging/workbench_engine.py check-source
+python tools/packaging/workbench_engine.py build --node C:/example/node24/node.exe --pnpm C:/example/pnpm/pnpm.exe --scratch-root C:/example/checkout/work/ce-native --run-dir C:/example/checkout/work/workbench-engine-build/local
+python tools/packaging/workbench_engine.py check-output --run-dir C:/example/checkout/work/workbench-engine-build/local
 ```
 
-打开 `http://127.0.0.1:8769/`。项目入口初次进入时加载 Orca Web，切换外层页面或主题保留该客户端。默认客户端地址为 `http://127.0.0.1:8767/web-index.html`；须另行启动合法取得的 Orca Web 客户端，亦可在预览内换成自有 HTTP(S) 页面地址。本仓库不附带或启动 Orca 构建包。只有无账号密码、查询参数和片段的普通页面地址会保存到浏览器；配对和授权在 Orca 自己的界面内处理。
+替换为自己的绝对工具/检出路径。每次使用新的证据目录，Windows native scratch 路径应短；失败保留日志。构建固定执行 packages、移动资源生成、mobile web、原生依赖、Web和Windows运行时。来源SHA、宿主SHA和实际产物hash分别记录；`out/`、`.build/`、依赖缓存与证据不提交。完整桌面安装器、Android签名/推送身份和自建服务另行适配，不能用本机编译成功替代。
 
-外层项目、任务、Agent、审批和验收均为示例，没有自动映射真实 Orca 项目。iframe 的页面响应不代表运行时连接成功；首次配对、真实会话、快捷键、剪贴板、移动端及自建服务仍需单独验收。外层主题不会强制修改 Orca 主题。定向验证：
+字体、供应商图标、完整界面静态导入资源及Windows launcher编译图标仅按清单精确字节和完整notice放行；未知媒体、上游执行规则、私人fixture和任意嵌套docs仍拒绝。文本仍经隐私与Gitleaks扫描，changes模式按被检查commit自己的清单核验。对应用来源/构建规则的修改运行：
+
+```powershell
+python -m unittest -v tests.backend.test_workbench_engine_build tests.backend.test_architecture tests.backend.test_repository_checks tests.backend.test_packaging
+node --test tests/frontend/test_workbench_engine_provenance.cjs
+python tools/scripts/check_architecture.py layout
+lint-imports --config tools/architecture/importlinter.ini --no-cache --no-logo
+```
+
+### Studio 与内置项目工作台开发预览
+
+产品入口 `/studio` 使用 `studio-preview.*` 的已选布局与真实平台 API；进入项目直接打开同源完整工作台。`orca-surface.js/css` 保留旧预览历史，但产品入口不再装配外部 iframe。
+
+先初始化独立测试 profile，注册合成 Git 项目，完成源码单元构建与运行隔离验证后，用开发入口启动。`--workspace-root` 只填写本次允许测试的目录，可重复传入；各路径必须使用本机实际绝对路径：
+
+```powershell
+python tools/scripts/preview_workbench.py --data-dir C:/example/checkout/work/preview/profile --build-run C:/example/checkout/work/workbench-engine-build/local --git C:/example/git/git.exe --workspace-root C:/example/checkout/work/preview/repo --port 8769
+```
+
+入口先绑定平台端口，再显式准备自有运行时，获得确切 WebSocket 地址后才提供页面。打开 `http://127.0.0.1:8769/studio`；GET 页面不会隐式启动进程，浏览器不持有owner凭据。退出时只回收本次管理的进程，失败保留证据。此入口用于合成数据开发验收，未代表个人项目、模型付费调用、Android或自建账号现场已通过。
+
+`preview_studio.py` 仅供静态资源检查，不提供业务 API，页面会明确显示数据加载失败，不能将其作为融合验收。定向验证：
 
 ```powershell
 node --test tests/frontend/test_orca_surface.cjs

@@ -12,8 +12,10 @@ include web/workspace/agents.js
 include web/workspace/task-center.js
 include web/workspace/project-space.js web/workspace/execution.js web/workspace/observation.js
 include web/workspace/news.js web/workspace/quota.js
+include web/workspace/studio-preview.html web/workspace/studio-preview.css web/workspace/studio-preview.js
+include web/workspace/studio-data.js
 prune work
 prune docs
 prune videos
-global-exclude __pycache__ *.py[cod]
 prune web/workbench-engine
+global-exclude __pycache__ *.py[cod]

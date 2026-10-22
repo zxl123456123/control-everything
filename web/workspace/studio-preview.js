@@ -1,139 +1,99 @@
+// Studio owns navigation and composition; management modules own task actions.
 'use strict';
-(()=>{
-  const root=document.getElementById('ce-studio');
-  // All outer-shell projects, tasks, approvals and agents below are example data.
-  const iconPaths = {
-    'layout-grid':'<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
-    'panels-top-left':'<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 8h18M8 8v13"/>',
-    'arrow-up-right':'<path d="M7 17 17 7M7 7h10v10"/>',
-    'chevron-right':'<path d="m9 5 7 7-7 7"/>',
-    'arrow-left':'<path d="m12 5-7 7 7 7M5 12h15"/>',
-    'search':'<circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/>',
-    'moon':'<path d="M21 13A9 9 0 0 1 11 3 9 9 0 1 0 21 13Z"/>',
-    'sun':'<circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/>',
-    'terminal':'<path d="m4 6 6 6-6 6m9 0h7"/>',
-    'asterisk':'<path d="M12 3v18M4.2 7.5l15.6 9M4.2 16.5l15.6-9"/>',
-    'activity':'<path d="M2 12h4l3-8 6 16 3-8h4"/>',
-    'check':'<path d="m5 12 4 4L19 6"/>',
-    'x':'<path d="m6 6 12 12M6 18 18 6"/>',
-    'circle-dot':'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2"/>',
-    'shield-check':'<path d="M12 3 4 6v6c0 5 8 9 8 9s8-4 8-9V6Z"/><path d="m8 12 3 3 5-6"/>',
-    'clipboard-check':'<rect x="5" y="5" width="14" height="16" rx="2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="m8 14 3 3 5-6"/>',
-    'sliders-horizontal':'<path d="M3 6h7m4 0h7M3 12h3m4 0h11M3 18h11m4 0h3M10 3v6M6 9v6m8 0v6"/>',
-    'file-text':'<path d="M14 2H5v20h14V7ZM14 2v6h5M8 13h8m-8 4h8"/>',
-    'circle-check':'<circle cx="12" cy="12" r="9"/><path d="m7 12 3 3 7-7"/>',
-    'message-square':'<path d="M21 15a3 3 0 0 1-3 3H8l-5 4V5a3 3 0 0 1 3-3h12a3 3 0 0 1 3 3Z"/>',
-    'pencil':'<path d="m15 5 4 4M4 20l5-1L21 7l-4-4L5 15Z"/>',
-    'bot':'<rect x="4" y="7" width="16" height="14" rx="3"/><path d="M12 3v4m-5 6h2m6 0h2m-8 4h6"/>',
-    'palette':'<path d="M21 12a9 9 0 1 0-9 9h1a2 2 0 0 0 1-4 2 2 0 0 1 1-4h4a2 2 0 0 0 2-1Z"/><circle cx="7" cy="11" r=".6"/><circle cx="10" cy="6" r=".6"/><circle cx="16" cy="7" r=".6"/>',
-    'folder-input':'<path d="M3 9V5h6l2 3h10v13H3v-5m-2-4h11m-4-4 4 4-4 4"/>',
-    'blocks':'<rect x="3" y="3" width="7" height="7"/><rect x="14" y="7" width="7" height="7"/><rect x="5" y="15" width="7" height="7"/>'
+(() => {
+  const $ = id => document.getElementById(id);
+  const root = $('ce-studio'), content = $('studio-content'), status = $('studio-status');
+  if (!window.StudioData || !window.WorkspaceTaskCenter || !window.WorkspaceAgentBoard) {
+    status.textContent = '工作台资源尚未就绪，请通过本地服务的 /studio 页面打开。'; return;
+  }
+  const client = window.StudioData.create();
+  const labels = { todo: '待办', doing: '进行中', blocked: '阻塞', review: '待验收', done: '已完成' };
+  const icons = {
+    grid: '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
+    folder: '<path d="M3 7V4h6l3 3h9v13H3Z"/>',
+    arrow: '<path d="M7 17 17 7M7 7h10v10"/>',
+    check: '<circle cx="12" cy="12" r="9"/><path d="m7 12 3 3 7-7"/>',
+    settings: '<path d="M3 6h7m4 0h7M3 12h3m4 0h11M3 18h11m4 0h3M10 3v6M6 9v6m8 0v6"/>',
+    moon: '<path d="M21 13A9 9 0 0 1 11 3 9 9 0 1 0 21 13Z"/>',
   };
-  const projects=[{id:'ce',name:'Control Everything',short:'Control Everything',icon:'panels-top-left',description:'把项目、任务和 Agent 放回同一张工作台。',active:true},{id:'tank',name:'Tank Frontline',short:'Tank Frontline',icon:'gamepad-2',description:'坦克游戏已提交试玩，等你确认这一轮成果。',active:true},{id:'docs',name:'使用文档',short:'使用文档',icon:'book-open',description:'整理接入方式，让下一位使用者快速上手。',active:false}];
-  const agents={ui:{name:'界面实现',tool:'Codex',kind:'codex'},test:{name:'回归测试',tool:'Codex',kind:'codex'},game:{name:'游戏开发',tool:'DSH',kind:'dsh'},docs:{name:'文档整理',tool:'Claude Code',kind:'claude'}};
-  const tasks=[{id:'ui',project:'ce',title:'重构项目工作台',agent:'ui',status:'running',stage:'界面实现',percent:72,description:'项目卡与任务详情已接入，正在调整窄屏布局。',summary:'项目入口和任务详情已完成主体布局。正在检查窄屏下的阅读顺序与操作位置。',time:'刚刚'},{id:'test',project:'ce',title:'验证主题与键盘操作',agent:'test',status:'approval',description:'申请运行浏览器回归测试，等待一次工具授权。',summary:'测试环境已准备好。下一步将启动本地预览服务并运行浏览器用例。',time:'2 分钟前'},{id:'nav',project:'ce',title:'统一项目内导航',agent:'ui',status:'done',description:'项目内的概览、任务和会话导航已验收。',summary:'导航层级已统一。项目的任务和会话都保留项目上下文，返回路径已核验。',time:'18 分钟前'},{id:'game',project:'tank',title:'通过平台原生 DSH 开发坦克游戏',agent:'game',status:'review',description:'试玩版本与测试材料已提交，等待结果验收。',summary:'已完成双人坦克对战：移动、转向、炮弹碰撞和胜负判定。试玩入口与测试记录已一并提交。',time:'8 分钟前'},{id:'controls',project:'tank',title:'完成双人操作与碰撞检测',agent:'game',status:'done',description:'双方移动、射击及碰撞行为已验收。',summary:'双人键盘操作与碰撞检测已核验。',time:'42 分钟前'},{id:'map',project:'tank',title:'搭建游戏场景与障碍物',agent:'game',status:'done',description:'地图场景与障碍物布置已验收。',summary:'基础场景和可交互障碍物已完成。',time:'1 小时前'},{id:'guide',project:'docs',title:'编写 Agent 接入指南',agent:'docs',status:'todo',description:'已指定文档负责人，准备在外部工具中开始。',summary:'整理登记 Agent、关联会话和手动交接的步骤。此 Agent 通过外部 Claude Code 工作，工作台保存关联信息。',time:'尚未开始'},{id:'import',project:'docs',title:'整理会话导入说明',agent:'docs',status:'done',description:'来源、实例与项目归属说明已核验。',summary:'导入与关联方式已整理并通过人工验收。',time:'昨天'}];
-  const sessions=[{id:'s-ui',project:'ce',task:'ui',agent:'ui',title:'项目卡片与任务详情',ref:'local-session-ui',time:'今天 16:42'},{id:'s-test',project:'ce',task:'test',agent:'test',title:'主题和键盘回归',ref:'local-session-test',time:'今天 16:50'},{id:'s-game',project:'tank',task:'game',agent:'game',title:'坦克游戏开发与验收',ref:'registered-session-game',time:'今天 17:04'},{id:'s-docs',project:'docs',task:'guide',agent:'docs',title:'Agent 接入文档整理',ref:'external-session-docs',time:'今天 15:20'}];
-  const defaults={v:1,rev:0,route:'home',project:'ce',tab:'overview',detailId:null,detailTab:'result',theme:'light',projectFilter:'all',taskFilter:'all',query:'',reviews:{},reviewNotes:{},reviewDrafts:{},approvals:{},reviewMode:null,reviewDraft:'',reviewChecked:false,artifact:null,sessionId:null,settingsOpen:null,assignees:{},handoffs:{},toast:''};
-  let state = {...defaults};
-  const escapeHtml=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
-  const icon=(name,size=16)=>`<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${iconPaths[name]||iconPaths['layout-grid']}</svg>`;
-  const button=(text,action,id='',cls='',ico='')=>`<button type="button" class="ce-button cursor-interaction ${cls}" data-action="${action}"${id?` data-id="${id}"`:''}>${ico?icon(ico):''}${text}</button>`;
-  const project=id=>projects.find(p=>p.id===id)||projects[0];
-  const task=id=>tasks.find(t=>t.id===id);
-  const agentFor=t=>agents[state.assignees[t.id]||t.agent];
-  const status=t=>state.reviews[t.id]==='pass'?'done':state.reviews[t.id]==='changes'?'todo':state.reviews[t.id]==='reject'?'blocked':state.approvals[t.id]==='once'?'running':state.approvals[t.id]==='reject'?'blocked':state.approvals[t.id]==='cancel'?'cancelled':t.status;
-  const statusName=s=>({running:'执行中',approval:'等待授权',review:'待验收',done:'已完成',todo:'未开始',blocked:'已阻塞',cancelled:'已取消'}[s]||s);
-  const badge=(s)=>`<span class="ce-state ${s}"><span class="ce-dot"></span>${statusName(s)}</span>`;
-  const provider=(a,small=false)=>`<span class="ce-provider ${a.kind}${small?' small':''}" aria-label="${a.tool}">${icon(a.kind==='codex'?'terminal':a.kind==='dsh'?'blocks':'asterisk',small?13:15)}</span>`;
-  const pTasks=id=>tasks.filter(t=>t.project===id);
-  const pending=()=>tasks.filter(t=>['approval','review'].includes(status(t)));
-  const active=()=>tasks.filter(t=>['running','approval','review'].includes(status(t)));
-  const cardDescription=p=>p.id==='tank'&&status(task('game'))==='done'?'试玩结果已通过验收，材料归档在项目中。':p.description;
-  function externalActivityView(t){return `<div class="ce-timeline"><div class="ce-timeline-row"><span class="ce-timeline-dot"></span><div><strong>${status(t)==='done'?'人工验收已记录':'指定文档负责人'}</strong><p>${status(t)==='done'?'已记录文档检查与验收结论。':'已指定 Claude Code · 文档整理，等待外部协作。'}</p><time>${t.time}</time></div><div class="ce-timeline-row"><span class="ce-timeline-dot"></span><div><strong>关联外部会话</strong><p>保存来源与任务关系；外部运行状态未知。</p><time>今天</time></div></div></div>`;}
-  function save(){state.rev=Date.now();}
-  // Keep the shell and Orca container mounted while only the example view changes.
-  const railRoot = document.getElementById('studio-rail');
-  const topbarRoot = document.getElementById('studio-topbar');
-  const exampleRoot = document.getElementById('studio-examples');
-  const orcaRoot = document.getElementById('studio-orca');
-  const orca = window.OrcaSurface.create({root:orcaRoot});
-  function render(focus){
-    root.dataset.theme = state.theme;
-    railRoot.innerHTML = rail();
-    topbarRoot.innerHTML = topbar();
-    const showOrca = state.route === 'project' && !state.query.trim();
-    exampleRoot.hidden = showOrca;
-    orca.show(showOrca);
-    if (!showOrca) {
-      exampleRoot.innerHTML = state.query.trim()?searchView():state.detailId?detailView():state.sessionId?sessionView():state.route==='example'?projectView():state.route==='tools'?toolsView():state.route==='runs'?runsView():homeView();
-      if(state.toast)exampleRoot.insertAdjacentHTML('beforeend',`<div class="ce-toast" role="status"><span>${escapeHtml(state.toast)}</span><button type="button" data-action="dismiss" aria-label="关闭提示">${icon('x')}</button></div>`);
+  const icon = name => `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icons[name] || icons.folder}</svg>`;
+  const escape = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
+  let state = { workspace: null, agents: [], items: [] }, request = 0, query = '', initialized = false;
+  try { root.dataset.theme = localStorage.getItem('ce-studio-theme') === 'dark' ? 'dark' : 'light'; } catch { /* Preferences are optional. */ }
+  const tasks = window.WorkspaceTaskCenter.create({ root: $('studio-tasks'), fetchJson: client.api, postJson: client.post,
+    canWrite: client.canWrite, onSaved: refresh, onProject: id => navigate('project/' + encodeURIComponent(id) + '/manage') });
+  const board = window.WorkspaceAgentBoard.create({ root: $('studio-agent-board'), fetchJson: client.api, postJson: client.post,
+    onRegister: () => { location.href = '/workspace#agents'; }, onAddProject: () => { location.href = '/workspace#projects'; },
+    onProject: id => navigate(id ? 'project/' + encodeURIComponent(id) : 'attention') });
+  const projects = () => state.workspace?.projects.items || [];
+  const projectItems = id => state.items.filter(item => item.project_id === id);
+  const attentionItems = () => state.items.filter(item => ['blocked', 'review'].includes(item.state) || ['waiting_user', 'failed'].includes(item.assignment_state));
+  const projectUrl = id => '/workbench/web-index.html?project_id=' + encodeURIComponent(id);
+  function route() {
+    const parts = location.hash.slice(1).split('/');
+    let id = ''; try { id = decodeURIComponent(parts[1] || ''); } catch { /* Invalid route stays on the overview. */ }
+    return { view: ['tasks', 'attention', 'project', 'tools'].includes(parts[0]) ? parts[0] : 'home', id, tab: parts[2] || '' };
+  }
+  function navigate(value) { if (location.hash === '#' + value) render(); else location.hash = value; }
+  function nav(label, href, name, active) { return `<a class="ce-nav${active ? ' is-current' : ''}" href="${href}">${icon(name)}${label}</a>`; }
+  function renderChrome(current) {
+    $('studio-rail').innerHTML = `<div class="ce-brand"><span class="ce-monogram">CE</span><span>Control<br>Everything</span></div><nav class="ce-navgroup">${nav('工作台', '#home', 'grid', current.view === 'home')}${nav('全部事项', '#tasks', 'check', current.view === 'tasks')}${nav('待处理', '#attention', 'check', current.view === 'attention')}</nav><nav class="ce-navgroup" aria-label="项目"><div class="ce-rail-label">项目</div>${projects().filter(p => !p.archived).map(p => `<a class="ce-nav ce-project-nav${current.id === p.id ? ' is-current' : ''}" href="${projectUrl(p.id)}"><span class="ce-navdot"></span>${escape(p.name)}</a>`).join('') || '<span class="ce-subtle">尚无登记项目</span>'}</nav><div class="ce-rail-bottom">${nav('工具与设置', '#tools', 'settings', current.view === 'tools')}<div class="ce-profile"><span class="ce-profile-avatar">CE</span><span>本地工作台</span></div></div>`;
+    const chosen = projects().find(p => p.id === current.id);
+    $('studio-topbar').innerHTML = `<header class="ce-topbar"><div class="ce-crumbs"><a href="#home">工作台</a>${current.view !== 'home' ? `<span> / ${escape(chosen?.name || ({ tasks: '全部事项', attention: '待处理', tools: '工具与设置' }[current.view] || '项目'))}</span>` : ''}</div><button class="ce-button ce-plain" data-action="refresh" type="button">刷新</button><button class="ce-iconbtn" data-action="theme" type="button" aria-label="切换外观">${icon('moon')}</button></header>`;
+  }
+  function taskRow(item) {
+    const agent = state.agents.find(row => row.id === item.assigned_agent_id);
+    return `<button class="ce-taskrow" type="button" data-task="${escape(item.id)}"><span class="ce-taskstatus-icon">${icon('check')}</span><span><span class="ce-taskrow-title">${escape(item.title)}</span><small>${escape(agent?.name || '未分配 Agent')}</small></span><span class="ce-state ${escape(item.state)}">${escape(labels[item.state] || '状态未知')}</span></button>`;
+  }
+  function projectCard(project) {
+    const items = projectItems(project.id), pending = items.filter(item => ['review', 'blocked'].includes(item.state)).length;
+    return `<article class="ce-project-card"><div class="ce-project-top"><span class="ce-project-icon">${icon('folder')}</span><span class="ce-state">${project.archived ? '已归档' : '已登记'}</span></div><a class="ce-project-title" href="${projectUrl(project.id)}">${escape(project.name)}${icon('arrow')}</a><p class="ce-project-desc">${escape(project.root || project.directories?.[0]?.path || '项目目录未提供')}</p><div class="ce-work-preview">${items.length ? items.slice(0, 2).map(item => `<div class="ce-minirow"><span class="ce-mini-copy">${escape(item.title)}<p>${escape(labels[item.state] || '状态未知')}</p></span></div>`).join('') : '<p class="ce-subtle">尚无本地事项，可以记录项目的下一步。</p>'}</div><div class="ce-project-foot"><span>${items.length} 项事项${pending ? ` · ${pending} 项待处理` : ''}</span><a class="ce-link" href="#project/${encodeURIComponent(project.id)}">平台事项 ${icon('arrow')}</a></div></article>`;
+  }
+  function home() {
+    const filtered = projects().filter(p => !p.archived && p.name.toLowerCase().includes(query.toLowerCase()));
+    const pending = attentionItems();
+    return `<div class="ce-heading"><div><h1>工作台</h1><p>项目向前推进，需要你的地方一目了然。</p></div><a class="ce-button" href="/workspace#projects">登记项目文件夹 ${icon('arrow')}</a></div><div class="ce-toolbar"><h2>你的项目</h2><label class="ce-search"><input id="studio-project-search" aria-label="筛选项目" placeholder="查找项目" value="${escape(query)}"></label></div><section class="ce-project-grid" aria-label="真实项目">${filtered.map(projectCard).join('') || '<div class="ce-empty">没有匹配的项目。先登记一个项目文件夹，再进入完整工作区。</div>'}</section><div class="ce-home-lower"><section><div class="ce-sectionhead"><h2>需要你确认 <span class="ce-number">${pending.length}</span></h2><a class="ce-link" href="#attention">查看全部</a></div><div class="ce-task-list">${pending.slice(0, 5).map(taskRow).join('') || '<div class="ce-empty">当前没有待处理事项。</div>'}</div></section><section><div class="ce-sectionhead"><h2>工作空间</h2></div><div class="ce-tool-card"><h3>项目内，直接继续工作</h3><p>项目卡进入完整工作区。仓库、工作树、终端和项目配置在同一处；事项与人工验收保留在工作台。</p><a class="ce-button" href="#tasks">记录下一步 ${icon('arrow')}</a></div></section></div>`;
+  }
+  function render() {
+    const current = route(); renderChrome(current);
+    const chosen = projects().find(p => p.id === current.id);
+    const manage = current.view === 'tasks' || current.view === 'project' && current.tab === 'manage';
+    const showBoard = current.view === 'attention' || current.view === 'project' && !manage;
+    $('studio-tasks').hidden = !manage; $('studio-agent-board').hidden = !showBoard;
+    if (manage && initialized) tasks.setContext({ projectId: current.view === 'project' ? current.id : '' });
+    if (showBoard) board.setProject(current.view === 'project' ? current.id : '', current.view === 'attention');
+    if (!state.workspace) { content.innerHTML = '<div class="ce-empty">正在读取真实项目与事项。无法连接时请使用上方“刷新”重试。</div>'; return; }
+    if (current.view === 'home') content.innerHTML = home();
+    else if (current.view === 'tools') content.innerHTML = `<div class="ce-heading"><div><h1>工具与设置</h1><p>接入和本地记录沿用现有管理能力。</p></div></div><div class="ce-tool-grid"><article class="ce-tool-card">${icon('settings')}<h2>Agent 与接入</h2><p>${state.agents.length} 个已登记 Agent。工作区内的 Agent 能力与本地执行配置分别管理。</p><a class="ce-button" href="/workspace#agents">管理接入</a></article><article class="ce-tool-card">${icon('folder')}<h2>项目登记与来源</h2><p>管理业务项目目录与观察来源。项目运行设置在项目内的原配置面板中维护。</p><a class="ce-button" href="/workspace#projects">管理项目登记</a></article><article class="ce-tool-card">${icon('check')}<h2>项目监控</h2><p>实时事件源尚未接通。当前只显示真实事项和人工验收记录。</p></article></div>`;
+    else if (current.view === 'project') content.innerHTML = chosen ? `<div class="ce-heading"><div><h1>${escape(chosen.name)}</h1><p>本地事项、交付材料与人工验收</p></div><a class="ce-button ce-primary" href="${projectUrl(chosen.id)}">进入项目工作区 ${icon('arrow')}</a></div><div class="ce-tabs"><a href="#project/${encodeURIComponent(chosen.id)}">进度与验收</a><a href="#project/${encodeURIComponent(chosen.id)}/manage">编辑事项</a></div>` : '<div class="ce-empty">项目已移出或不存在，请返回工作台重新选择。</div>';
+    else content.innerHTML = `<div class="ce-heading"><div><h1>${current.view === 'tasks' ? '全部事项' : '需要你处理'}</h1><p>${current.view === 'tasks' ? '记录、编辑和归属保持在本地管理库。' : '核对实际材料，再作出人工审核。'}</p></div></div>`;
+  }
+  async function refresh() {
+    const current = ++request; status.textContent = state.workspace ? '正在更新，暂保留上次记录…' : '正在读取本地工作台…'; status.classList.remove('error');
+    try {
+      if (!initialized) { await client.bootstrap(); initialized = true; }
+      const next = await client.snapshot();
+      if (current !== request) return;
+      state = next; tasks.update(state.workspace); render();
+      status.textContent = `${root.dataset.isolatedPreview === 'true' ? '隔离测试数据' : '本地数据'} · ${projects().filter(p => !p.archived).length} 个项目 · ${state.items.length} 项事项`;
+      await board.load();
+    } catch (error) {
+      if (current !== request) return;
+      status.textContent = `${error.message}。${state.workspace ? '仍显示上次读取的数据。' : '没有使用示例数据。'}`; status.classList.add('error');
     }
-    if(focus){const el=root.querySelector(focus.selector);if(el){el.focus({preventScroll:true});if(focus.start!==undefined&&el.setSelectionRange)el.setSelectionRange(focus.start,focus.end);}}
   }
-  function rail(){return `<div class="ce-brand"><span class="ce-monogram">CE</span><span>Control<br>Everything</span></div><nav class="ce-navgroup"><button type="button" class="ce-nav ${state.route==='home'?'is-current':''}" data-action="home">${icon('layout-grid')}工作台</button></nav><nav class="ce-navgroup" aria-label="项目工作区"><div class="ce-rail-label">项目</div><button type="button" class="ce-nav ${state.route==='project'?'is-current':''}" data-action="project">${icon('panels-top-left')}Orca 工作区</button></nav><div class="ce-rail-bottom"><button type="button" class="ce-nav ${state.route==='tools'?'is-current':''}" data-action="tools">${icon('sliders-horizontal')}工具与设置</button><div class="ce-profile"><span class="ce-profile-avatar">CE</span><span>本地开发预览</span></div></div>`;}
-  function topbar(){const crumb=state.route==='project'?'Orca 项目工作区':state.route==='tools'?'工具与设置':state.route==='runs'?'运行概览 · 示例':state.route==='example'?'任务与会话 · 示例':'';return `<header class="ce-topbar"><button type="button" class="ce-iconbtn ce-mobile-home" data-action="home" aria-label="返回工作台">${icon('layout-grid')}</button><div class="ce-crumbs"><button type="button" class="ce-link" data-action="home">工作台</button>${crumb?`${icon('chevron-right',13)}<span>${crumb}</span>`:''}</div><label class="ce-search">${icon('search',15)}<input aria-label="搜索示例任务" placeholder="搜索示例任务" value="${escapeHtml(state.query)}" data-input="search"></label><button type="button" class="ce-iconbtn" data-action="theme" aria-label="切换为${state.theme==='light'?'深色':'浅色'}主题">${icon(state.theme==='light'?'moon':'sun',17)}</button></header>`;}
-  function homeView(){const pd=pending();return `<div class="ce-heading"><div><h1>工作台</h1><p>项目向前推进，需要你的地方一目了然。</p></div><div class="ce-heading-actions">${pd.length?button(`${pd.length} 项待确认`,'attention','','ce-plain','circle-dot'):''}${button('运行概览','runs','','','activity')}</div></div><section class="ce-orca-entry"><div class="ce-orca-entry-copy"><span class="ce-orca-kicker">项目工作区</span><h2>从 Orca 继续你的工作</h2><p>项目、会话、终端和 Agent，沿用 Orca 原有工作界面。</p><div class="ce-orca-entry-actions">${button('打开 Orca 工作区','project','','ce-primary','arrow-up-right')}<span>进入后选择实际项目</span></div></div><div class="ce-orca-entry-art" aria-hidden="true"><div class="ce-orca-art-nav"><i></i><i></i><i></i></div><div class="ce-orca-art-board"><span></span><span></span><span></span><div></div><div></div><div></div></div></div></section><div class="ce-home-lower"><section><div class="ce-sectionhead"><h2>需要你确认 · 示例<span class="ce-number">${pd.length}</span></h2></div><div class="ce-decisions">${pd.length?pd.map(t=>`<button type="button" class="ce-decision cursor-interaction" data-action="task" data-id="${t.id}"><span class="ce-decision-icon">${icon(status(t)==='approval'?'shield-check':'clipboard-check',17)}</span><span class="ce-decision-copy"><strong>${status(t)==='approval'?'允许运行浏览器测试':'验收坦克游戏试玩'}</strong><p>${project(t.project).name} · ${statusName(status(t))}</p></span>${icon('chevron-right',16)}</button>`).join(''):'<div class="ce-empty">当前没有等待你确认的事项。</div>'}</div></section><section><div class="ce-sectionhead"><h2>Agent 动态 · 示例</h2><button type="button" class="ce-link cursor-interaction" data-action="runs">查看运行</button></div><div class="ce-activity"><div class="ce-activityrow">${provider(agents.ui)}<div class="ce-activitycopy"><strong>Codex · 界面实现</strong><p>正在调整任务详情的窄屏布局</p><time>刚刚 · Control Everything</time></div></div><div class="ce-activityrow">${provider(agents.game)}<div class="ce-activitycopy"><strong>DSH · 游戏开发</strong><p>提交了试玩版本和检查材料</p><time>8 分钟前 · Tank Frontline</time></div></div></div></section></div>`;}
-  function projectView(){const p=project(state.project);return `<div class="ce-heading"><div class="ce-project-header"><span class="ce-project-icon">${icon(p.icon,21)}</span><div><h1>${p.name}</h1><p>${p.id==='ce'?'把复杂的协作，放进清楚的工作空间。':p.id==='tank'?'双人坦克对战 · 玩法开发与试玩记录':'接入说明与使用指南'}</p></div></div></div><div class="ce-tabs" role="tablist" aria-label="项目内容">${['overview','tasks','sessions'].map((key,i)=>`<button type="button" class="cursor-interaction" role="tab" id="ce-project-${key}" aria-controls="ce-project-panel" aria-selected="${state.tab===key}" data-action="tab" data-id="${key}">${['概览','任务','会话'][i]}${key==='tasks'?` <span class="ce-number">${pTasks(p.id).length}</span>`:''}</button>`).join('')}</div><div role="tabpanel" id="ce-project-panel" aria-labelledby="ce-project-${state.tab}">${state.tab==='sessions'?sessionsView():state.tab==='tasks'?tasksView():overviewView()}</div>`;}
-  function overviewView(){const ts=pTasks(state.project),working=ts.filter(t=>status(t)!=='done');return `<div class="ce-sectionhead"><h2>谁在负责什么</h2><span class="ce-count">${[...new Set(ts.map(t=>t.agent))].length} 个 Agent</span></div><div class="ce-agent-grid">${(working.length?working:ts.filter((item,index)=>ts.findIndex(other=>(state.assignees[other.id]||other.agent)===(state.assignees[item.id]||item.agent))===index).slice(0,2)).map(t=>agentCard(t)).join('')}</div><div class="ce-sectionhead"><h2>项目任务</h2><button type="button" class="ce-link cursor-interaction" data-action="tab" data-id="tasks">查看全部</button></div><div class="ce-task-list">${ts.map(taskRow).join('')}</div>`;}
-  function agentCard(t){const a=agentFor(t),s=status(t);return `<article class="ce-agent-card"><div class="ce-agenthead">${provider(a)}<div class="ce-agentname">${a.tool} · ${a.name}<p>${a.kind==='claude'?'已登记 · 外部协作':'已连接 · 工作台执行'}</p></div>${icon(a.kind==='claude'?'link':'radio',16)}</div><h3 class="ce-agenttitle">${t.title}</h3><p class="ce-agentdesc">${s!==t.status?`当前状态：${statusName(s)}。本次更改保存在设计预览中。`:t.description}</p>${s==='running'&&Number.isFinite(t.percent)?`<div class="ce-progress" role="progressbar" aria-label="${a.name} Agent 上报进度" aria-valuenow="${t.percent}" aria-valuemin="0" aria-valuemax="100"><span style="width:${t.percent}%"></span></div><div class="ce-progress-label"><span>${t.stage} · Agent 上报</span><span>${t.percent}%</span></div>`:''}<div class="ce-agentfoot">${badge(s)}${button(s==='approval'?'处理授权':s==='review'?'查看成果':'查看任务','task',t.id,'',s==='approval'?'shield-check':'arrow-up-right')}</div></article>`;}
-  function taskRow(t){const s=status(t),a=agentFor(t);return `<button type="button" class="ce-taskrow cursor-interaction" data-action="task" data-id="${t.id}"><span class="ce-taskstatus-icon ${s}">${icon(s==='done'?'circle-check':s==='approval'?'shield-check':s==='review'?'circle-dot':'circle',17)}</span><span><span class="ce-taskrow-title">${t.title}</span><small>${a.tool} · ${a.name}</small></span>${badge(s)}</button>`;}
-  function tasksView(){const ts=pTasks(state.project).filter(t=>state.taskFilter==='all'||(state.taskFilter==='attention'?['review','approval','blocked'].includes(status(t)):status(t)==='done'));return `<div class="ce-toolbar"><div class="ce-segment" aria-label="任务筛选">${[['all','全部'],['attention','需要处理'],['done','已完成']].map(([k,n])=>`<button type="button" class="cursor-interaction" data-action="task-filter" data-id="${k}" aria-pressed="${state.taskFilter===k}">${n}</button>`).join('')}</div><span class="ce-count">${ts.length} 项任务</span></div><div class="ce-task-list">${ts.length?ts.map(taskRow).join(''):'<div class="ce-empty">这个筛选下没有任务。</div>'}</div>`;}
-  function sessionsView(){const ss=sessions.filter(s=>s.project===state.project);return `<div class="ce-sectionhead"><h2>关联会话</h2><span class="ce-count">${ss.length} 个会话</span></div><div class="ce-session-list">${ss.map(s=>`<button type="button" class="ce-session cursor-interaction" data-action="session" data-id="${s.id}">${provider(agents[s.agent])}<span class="ce-session-copy"><strong>${s.title}</strong><p>${agents[s.agent].tool} · ${agents[s.agent].name} · 已关联</p></span>${icon('chevron-right')}</button>`).join('')}</div><p class="ce-subtle" style="margin-top:17px">关联会话保留来源与任务关系，活动状态未知。</p>`;}
-  function detailView(){const t=task(state.detailId);if(!t)return homeView();const a=agentFor(t),s=status(t);return `<div class="ce-backline">${button('返回工作台','close-detail','','ce-plain','arrow-left')}<span class="ce-subtle">${project(t.project).name} / 任务</span></div><div class="ce-detail-layout"><aside class="ce-detail-index" aria-label="项目任务切换"><h2>项目任务</h2>${pTasks(t.project).map(item=>`<button type="button" class="ce-indexrow cursor-interaction ${item.id===t.id?'is-selected':''}" data-action="task" data-id="${item.id}">${item.title}<p>${statusName(status(item))}</p></button>`).join('')}</aside><article class="ce-detail-surface" aria-label="任务详情"><h1 class="ce-detail-title">${t.title}</h1><div class="ce-detail-meta">${badge(s)}<span class="ce-assignee">${provider(a)}${a.tool} · ${a.name}</span></div><div class="ce-tabs" role="tablist" aria-label="任务详情内容">${[['result','结果'],['activity','活动'],['settings','设置']].map(([k,n])=>`<button type="button" class="cursor-interaction" role="tab" id="ce-detail-${k}" aria-controls="ce-detail-panel" aria-selected="${state.detailTab===k}" data-action="detail-tab" data-id="${k}">${n}</button>`).join('')}</div><div role="tabpanel" id="ce-detail-panel" aria-labelledby="ce-detail-${state.detailTab}">${state.detailTab==='activity'?activityView(t):state.detailTab==='settings'?settingsView(t):resultView(t)}</div></article></div>`;}
-  function resultView(t){const s=status(t);let content='';if(s==='approval')return `<div class="ce-approval-box"><div class="ce-approval-title">${icon('shield-check',18)}等待一次工具授权</div><strong>运行浏览器回归测试</strong><p>Codex · 回归测试申请在本机执行以下命令，用于验证主题切换和键盘操作。</p><code class="ce-code">npm run test:e2e -- --project=chromium</code><p>执行目录：项目 web 目录<br>范围：启动本地预览、读写临时测试产物</p><div class="ce-actions">${button('仅允许一次','approve',t.id,'ce-primary','check')}${button('拒绝','deny',t.id,'')}${button('取消本次运行','cancel-run',t.id,'ce-plain')}</div></div><p class="ce-subtle" style="margin-top:16px">本次授权仅用于当前工具请求，与任务验收分别处理。</p>`;
-    if(state.reviews[t.id])content+=`<div class="ce-notice">${icon('circle-check')}<span>${state.reviews[t.id]==='pass'?'已在预览中通过验收。':state.reviews[t.id]==='changes'?'已记录修改意见，尚未重新执行。':'已在预览中拒绝本轮结果。'}</span></div>`;
-    if(state.approvals[t.id])content+=`<div class="ce-notice">${icon('check')}<span>${state.approvals[t.id]==='once'?'已模拟允许本次请求。':state.approvals[t.id]==='reject'?'已模拟拒绝本次请求。':'已模拟取消本次运行。'}</span></div>`;
-    content+=`<p class="ce-result-summary">${t.summary}</p>`;
-    if(t.id==='game'||s==='done'){content+=`<p class="ce-miniheading">提交材料</p><div class="ce-deliverables"><button type="button" class="ce-deliverable cursor-interaction" data-action="artifact" data-id="preview">${icon('file-code-2',19)}<span><strong>${t.id==='game'?'坦克游戏试玩':'变更摘要'}</strong><p>${t.id==='game'?'index.html · 试玩说明':'实现与验收记录'}</p></span></button><button type="button" class="ce-deliverable cursor-interaction" data-action="artifact" data-id="tests">${icon('file-check-2',19)}<span><strong>验证记录</strong><p>${t.id==='game'?'6 项检查 · Agent 提交':'检查结果与依据'}</p></span></button></div>${state.artifact?artifactView(t):''}<p class="ce-miniheading">验证摘要 · Agent 提交</p><div class="ce-checks"><p>${icon('check',16)}${t.id==='game'?'移动、射击与碰撞检查已提交':'主要交互检查记录已提交'}</p><p>${icon('check',16)}${t.id==='game'?'胜负判定和重新开始检查已提交':'窄屏布局与主题检查记录已提交'}</p></div>`;}
-    else if(s==='running'){content+=Number.isFinite(t.percent)?`<p class="ce-miniheading">当前进展 · Agent 上报</p><div class="ce-progress" role="progressbar" aria-label="Agent 上报进度" aria-valuenow="${t.percent}" aria-valuemin="0" aria-valuemax="100"><span style="width:${t.percent}%"></span></div><div class="ce-progress-label"><span>${t.stage}</span><span>${t.percent}%</span></div>`:`<p class="ce-subtle">尚无新的进展报告。</p>`;content+=`<div class="ce-decision-box"><h3>下一步</h3><p>${t.id==='ui'?'检查窄屏和键盘路径后，提交这一轮结果。':'等待 Agent 提交新的执行结果。'}</p>${button('查看活动','detail-tab','activity','','list')}</div>`;}
-    else if(s==='todo'){content+=`<div class="ce-decision-box"><h3>${t.id==='guide'?'已指定文档负责人':'等待继续处理'}</h3><p>${t.id==='guide'?'通过关联会话查看交接位置；外部工具的运行状态不会自动同步。':'可在设置中查看负责人和交接内容。'}</p>${button('查看关联会话','task-sessions',t.project,'','messages-square')}</div>`;}
-    if(s==='review')content+=reviewView(t);return content;
-  }
-  function artifactView(t){const review=state.reviews[t.id],reviewLabel={pass:'通过验收',changes:'要求修改',reject:'拒绝结果'}[review];const humanRecord=reviewLabel?`<p>人工验收：已在预览中记录“${reviewLabel}”。</p><p>记录理由：${escapeHtml(state.reviewNotes[t.id]||'未填写')}</p>`:'<p>人工核验：尚未确认。请查看材料并体验后验收。</p>';return `<div class="ce-approval-box" style="margin-bottom:20px"><div class="ce-sectionhead"><h3 style="font-size:16px">${state.artifact==='tests'?'验证记录':'试玩说明'}</h3><button type="button" class="ce-iconbtn cursor-interaction" data-action="artifact-close" aria-label="关闭材料预览">${icon('x')}</button></div>${state.artifact==='tests'?`<p>Agent 提交：移动、转向、射击、碰撞、胜负判定、重新开始共 6 项检查。</p>${humanRecord}`:'<p>打开提交的 index.html 可体验双人对战。玩家一使用 W / A / S / D，玩家二使用方向键移动。</p><p>此处为材料内容样例，未启动游戏。</p>'}</div>`;}
-  function reviewView(t){if(!state.reviewMode)return `<div class="ce-decision-box"><h3>这轮结果可以交付了吗？</h3><p>先查看提交材料，再记录你的验收结论。</p><div class="ce-actions">${button('通过验收','review-mode','pass','ce-primary','check')}${button('要求修改','review-mode','changes')}${button('拒绝结果','review-mode','reject','ce-plain')}</div></div>`;return `<div class="ce-decision-box"><h3>${state.reviewMode==='pass'?'记录验收结论':state.reviewMode==='changes'?'写明需要修改的地方':'记录拒绝原因'}</h3><div class="ce-form"><label class="ce-field">${state.reviewMode==='pass'?'验收依据':'反馈内容'}<textarea data-input="review" aria-label="验收或反馈内容" placeholder="写明你核验了什么，或需要调整什么。">${escapeHtml(state.reviewDraft)}</textarea></label><label class="ce-checkbox"><input type="checkbox" data-input="review-check" ${state.reviewChecked?'checked':''}>我已查看提交材料，确认记录本次结论。</label></div><div class="ce-actions">${button('确认记录','review-submit',t.id,'ce-primary','check')}${button('返回','review-cancel','','ce-plain')}</div></div>`;}
-  function activityView(t){if(agentFor(t).kind==="claude")return externalActivityView(t);const latest=state.reviews[t.id]?['记录人工验收',state.reviewNotes[t.id]||'已记录结论','刚刚']:state.approvals[t.id]?['处理工具请求',state.approvals[t.id]==='once'?'已模拟允许一次':'已模拟拒绝或取消','刚刚']:t.id==='game'?['提交本轮成果','试玩版本与验证材料已提交，等待人工验收。','17:04']:t.id==='test'?['申请工具授权','申请运行浏览器回归测试。','17:10']:['更新工作进展',t.description,'17:12'];const ev=[latest,['完成阶段工作',t.id==='game'?'移动、射击和碰撞逻辑已提交。':'提交当前工作的阶段说明。','16:56'],['领取任务',`${agentFor(t).tool} · ${agentFor(t).name} 接收本轮任务。`,'16:35']];return `<div class="ce-timeline">${ev.map(([title,desc,time])=>`<div class="ce-timeline-row"><span class="ce-timeline-dot"></span><div><strong>${title}</strong><p>${escapeHtml(desc)}</p></div><time>${time}</time></div>`).join('')}</div><p class="ce-subtle">以上为示例事件；实际记录应以 Agent 上报与人工操作为准。</p>`;}
-  function settingsView(t){const s=status(t),locked=['running','approval','review','done'].includes(s);return `<div class="ce-setting-row"><div><strong>负责人</strong><p>${agentFor(t).tool} · ${agentFor(t).name}</p>${locked?'<p>当前运行或验收状态下不可改派。</p>':''}</div><button type="button" class="ce-button cursor-interaction" data-action="assignment" ${locked?'disabled':''}>更换负责人</button></div>${state.settingsOpen==='assignment'?`<div class="ce-form"><label class="ce-field">选择已登记的 Agent<select data-input="assignee" aria-label="选择负责人">${Object.entries(agents).map(([k,a])=>`<option value="${k}" ${(state.assignees[t.id]||t.agent)===k?'selected':''}>${a.tool} · ${a.name}</option>`).join('')}</select></label></div>`:''}<div class="ce-setting-row"><div><strong>需求与验收标准</strong><p>${t.id==='game'?'可双人对战，支持移动、射击与胜负判定。':'保留项目上下文，主要操作可通过键盘完成。'}</p></div></div><div class="ce-setting-row"><div><strong>补充交接</strong><p>${state.handoffs[t.id]?escapeHtml(state.handoffs[t.id]):'给下一轮留下说明或核验要求。'}</p></div>${button('编辑说明','handoff','','','pencil')}</div>${state.settingsOpen==='handoff'?`<div class="ce-form"><label class="ce-field">交接说明<textarea data-input="handoff" aria-label="补充交接说明">${escapeHtml(state.handoffs[t.id]||'')}</textarea></label>${button('保存说明','save-handoff',t.id,'ce-primary')}</div>`:''}<div class="ce-setting-row"><div><strong>关联会话</strong><p>查看来源与任务关系。</p></div>${button('查看会话','task-sessions',t.project)}</div>`;}
-  function sessionView(){const s=sessions.find(item=>item.id===state.sessionId);if(!s)return projectView();return `<div class="ce-backline">${button('返回示例会话','close-session','','ce-plain','arrow-left')}</div><article class="ce-detail-surface"><div class="ce-agenthead">${provider(agents[s.agent])}<span>${agents[s.agent].tool} · ${agents[s.agent].name}</span></div><h1 class="ce-detail-title">${s.title}</h1><p class="ce-plain-copy">已关联到「${task(s.task).title}」。这里只保存会话来源与关联信息，没有同步聊天正文。</p><div class="ce-setting-row"><div><strong>来源实例</strong><p>${agents[s.agent].tool} · ${agents[s.agent].name}</p></div></div><div class="ce-setting-row"><div><strong>活动状态</strong><p>未知 · 不能由关联信息判断是否正在运行。</p></div></div><div class="ce-setting-row"><div><strong>关联时间</strong><p>${s.time}</p></div></div><div class="ce-actions">${button('查看关联任务','task',s.task,'ce-primary','arrow-up-right')}</div></article>`;}
-  function searchView(){const q=state.query.trim().toLowerCase(),ts=tasks.filter(t=>(t.title+project(t.project).name+agentFor(t).name+agentFor(t).tool).toLowerCase().includes(q));return `<div class="ce-heading"><div><h1>示例搜索结果</h1><p>“${escapeHtml(state.query.trim())}” · ${ts.length} 个示例任务</p></div>${button('清除搜索','clear-search','','ce-plain','x')}</div><div class="ce-search-results">${ts.length?`<div class="ce-task-list">${ts.map(taskRow).join('')}</div>`:'<div class="ce-empty">没有匹配的示例任务。实际项目请在 Orca 内查找。</div>'}</div>`;}
-  function runsView(){const list=active();return `<div class="ce-heading"><div><h1>运行概览</h1><p>按具体 Agent 查看正在执行、等待授权和待验收的工作。</p></div></div><div class="ce-run-grid">${list.length?list.map(t=>`<button type="button" class="ce-run-row cursor-interaction" data-action="task" data-id="${t.id}">${provider(agentFor(t))}<span class="ce-run-copy"><strong>${agentFor(t).tool} · ${agentFor(t).name}</strong><p>${project(t.project).name} / ${t.title}</p></span>${badge(status(t))}</button>`).join(''):'<div class="ce-empty">当前没有进行中的运行。</div>'}</div>`;}
-  function toolsView(){return `<div class="ce-heading"><div><h1>工具与设置</h1><p>集中管理接入、用量和工作空间偏好。</p></div></div><div class="ce-tool-grid"><article class="ce-tool-card">${icon('bot',22)}<h2>Agent 与接入</h2><p>4 个已登记实例，分别保留名称、工具类型和接入方式。</p>${button('查看 Agent','tool-agents','','','arrow-up-right')}</article><article class="ce-tool-card">${icon('activity',22)}<h2>跨项目运行</h2><p>在同一处查看具体 Agent 当前负责的任务。</p>${button('查看运行','runs','','','arrow-up-right')}</article><article class="ce-tool-card">${icon('palette',22)}<h2>外观</h2><p>暖中性浅色，配套炭灰深色。</p>${button(state.theme==='light'?'切换深色':'切换浅色','theme','','',state.theme==='light'?'moon':'sun')}</article><article class="ce-tool-card">${icon('folder-input',22)}<h2>未归类与导入</h2><p>未归属项目的事项与来源会话，在这里统一整理。</p>${button('查看示例','tool-unassigned','','','arrow-up-right')}</article></div>${state.settingsOpen==='agents'?`<div style="margin-top:24px"><div class="ce-sectionhead"><h2>已登记 Agent</h2></div><div class="ce-session-list">${Object.values(agents).map(a=>`<div class="ce-session">${provider(a)}<div><strong>${a.tool} · ${a.name}</strong><p>${a.kind==='claude'?'自定义 Agent · 外部协作':'原生执行接入'}</p></div></div>`).join('')}</div></div>`:''}${state.settingsOpen==='unassigned'?'<div class="ce-empty">此预览没有未归类事项。实际导入与归属管理保留独立入口。</div>':''}`;}
-  function keepReviewDraft(){if(state.detailId)state.reviewDrafts[state.detailId]={mode:state.reviewMode,text:state.reviewDraft,checked:state.reviewChecked};}
-  function openTask(id){const t=task(id);if(!t)return;keepReviewDraft();const draft=state.reviewDrafts[id]||{};state.route='example';state.project=t.project;state.detailId=id;state.detailTab='result';state.sessionId=null;state.query='';state.reviewMode=draft.mode||null;state.reviewDraft=draft.text||'';state.reviewChecked=Boolean(draft.checked);state.artifact=null;state.settingsOpen=null;}
-  function clearDetail(){keepReviewDraft();state.detailId=null;state.reviewMode=null;state.artifact=null;state.settingsOpen=null;}
-  function navigate(route){state.route=route;state.query='';state.sessionId=null;clearDetail();state.toast='';}
-  root.addEventListener('click',event=>{const el=event.target.closest('[data-action]');if(!el||el.disabled)return;const a=el.dataset.action,id=el.dataset.id;let focus={selector:`[data-action="${a}"]${id?`[data-id="${id}"]`:''}`};
-    if(a==='home'){navigate('home');focus={selector:'[data-action="home"]'};}
-    else if(a==='project'){navigate('project');focus={selector:'#orca-title'};}
-    else if(a==='project-tasks'){navigate('example');state.project=id;state.tab='tasks';}
-    else if(a==='runs'||a==='tools'){navigate(a);}
-    else if(a==='attention'){focus={selector:'.ce-decisions button'};}
-    else if(a==='theme')state.theme=state.theme==='light'?'dark':'light';
-    else if(a==='project-filter')state.projectFilter=id;
-    else if(a==='task-filter')state.taskFilter=id;
-    else if(a==='tab'){state.tab=id;clearDetail();state.sessionId=null;}
-    else if(a==='task'){openTask(id);focus={selector:'[data-action="close-detail"]'};}
-    else if(a==='close-detail'){navigate('home');focus={selector:'[data-action="home"]'};}
-    else if(a==='detail-tab'){state.detailTab=id;state.artifact=null;}
-    else if(a==='approve'||a==='deny'||a==='cancel-run'){state.approvals[id]=a==='approve'?'once':a==='deny'?'reject':'cancel';state.toast='已更新示例状态；没有执行真实命令。';focus={selector:'[data-action="detail-tab"][data-id="result"]'};}
-    else if(a==='review-mode'){state.reviewMode=id;focus={selector:'[data-input="review"]'};}
-    else if(a==='review-cancel'){state.reviewMode=null;focus={selector:'[data-action="review-mode"][data-id="pass"]'};}
-    else if(a==='review-submit'){if(!state.reviewDraft.trim()||!state.reviewChecked){state.toast='请填写验收或反馈内容，并确认已经查看材料。';focus={selector:!state.reviewDraft.trim()?'[data-input="review"]':'[data-input="review-check"]'};}else{state.reviews[id]=state.reviewMode;state.reviewNotes[id]=state.reviewDraft;state.reviewMode=null;state.toast='验收结论已记录到当前预览。';focus={selector:'[data-action="detail-tab"][data-id="result"]'};}}
-    else if(a==='artifact'){state.artifact=state.artifact===id?null:id;}
-    else if(a==='artifact-close'){state.artifact=null;focus={selector:'[data-action="artifact"]'};}
-    else if(a==='session'){state.sessionId=id;state.detailId=null;focus={selector:'[data-action="close-session"]'};}
-    else if(a==='close-session'){const old=state.sessionId;state.sessionId=null;state.tab='sessions';focus={selector:`[data-action="session"][data-id="${old}"]`};}
-    else if(a==='task-sessions'){clearDetail();state.route='example';state.project=id;state.tab='sessions';focus={selector:'[data-action="tab"][data-id="sessions"]'};}
-    else if(a==='clear-search'){state.query='';focus={selector:'[data-input="search"]'};}
-    else if(a==='dismiss')state.toast='';
-    else if(a==='assignment'){state.settingsOpen=state.settingsOpen==='assignment'?null:'assignment';focus={selector:'[data-input="assignee"]'};}
-    else if(a==='handoff'){state.settingsOpen=state.settingsOpen==='handoff'?null:'handoff';focus={selector:'[data-input="handoff"]'};}
-    else if(a==='save-handoff'){state.settingsOpen=null;state.toast='交接说明已保存在预览中，没有发送给 Agent。';focus={selector:'[data-action="handoff"]'};}
-    else if(a==='tool-agents'){state.settingsOpen=state.settingsOpen==='agents'?null:'agents';}
-    else if(a==='tool-unassigned'){state.settingsOpen=state.settingsOpen==='unassigned'?null:'unassigned';}
-    render(focus);if(a==='attention')root.querySelector('.ce-decisions')?.scrollIntoView({block:'nearest'});save();
+  root.addEventListener('click', event => {
+    const action = event.target.closest('[data-action]')?.dataset.action;
+    if (action === 'refresh') void refresh();
+    if (action === 'theme') { root.dataset.theme = root.dataset.theme === 'dark' ? 'light' : 'dark'; try { localStorage.setItem('ce-studio-theme', root.dataset.theme); } catch { /* Preferences are optional. */ } }
+    const taskId = event.target.closest('[data-task]')?.dataset.task;
+    if (taskId) { const item = state.items.find(row => row.id === taskId); if (item) { navigate('attention'); $('studio-agent-board').hidden = false; void board.open(item); } }
   });
-  root.addEventListener('input',event=>{const el=event.target,key=el.dataset.input;if(key==='search'){state.query=el.value;render({selector:'[data-input="search"]',start:el.selectionStart,end:el.selectionEnd});save();}else if(key==='review'){state.reviewDraft=el.value;save();}else if(key==='handoff'){state.handoffs[state.detailId]=el.value;save();}});
-  root.addEventListener('change',event=>{const el=event.target;if(el.dataset.input==='review-check'){state.reviewChecked=el.checked;save();}if(el.dataset.input==='assignee'){state.assignees[state.detailId]=el.value;state.toast='负责人已在示例中更新，未派发或执行。';render({selector:'[data-input="assignee"]'});save();}});
-  root.addEventListener('keydown',event=>{if(event.key==='Escape'){if(state.query){state.query='';render({selector:'[data-input="search"]'});}else if(state.artifact){state.artifact=null;render({selector:'[data-action="artifact"]'});}else if(state.detailId){const old=state.detailId;clearDetail();render({selector:`[data-action="task"][data-id="${old}"]`});}else if(state.sessionId){state.sessionId=null;state.tab='sessions';render({selector:'[data-action="tab"][data-id="sessions"]'});}save();}});
-  render();
+  root.addEventListener('input', event => {
+    if (event.target.id !== 'studio-project-search') return;
+    query = event.target.value; const position = event.target.selectionStart; content.innerHTML = home();
+    const input = $('studio-project-search'); input.focus(); input.setSelectionRange(position, position);
+  });
+  window.addEventListener('hashchange', () => { render(); if (initialized) void refresh(); });
+  render(); void refresh();
 })();
