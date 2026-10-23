@@ -43,20 +43,39 @@ export async function createWebRuntimeAgentSessionTerminal(
 ): Promise<{
   outcome: WebRuntimeTerminalCreateOutcome
   promptDelivered: boolean
+  hostTabId?: string
 }> {
   const created = await createWebRuntimeSessionTerminalResult(args)
   if (created.outcome.status === 'failed' || !created.hostTabId) {
     return { outcome: created.outcome, promptDelivered: false }
   }
 
-  const promptDelivered = await deliverLaunchPromptToAgentTab({
-    tabId: toWebTerminalSurfaceTabId(created.hostTabId),
-    content: args.promptAfterReady,
-    agent: args.agent,
-    submit: args.submitPrompt,
-    forcePaste: args.forcePromptPaste
-  })
-  return { outcome: created.outcome, promptDelivered }
+  let unconfirmed = false
+  let promptDelivered = false
+  try {
+    promptDelivered = await deliverLaunchPromptToAgentTab({
+      tabId: toWebTerminalSurfaceTabId(created.hostTabId),
+      content: args.promptAfterReady,
+      agent: args.agent,
+      submit: args.submitPrompt,
+      forcePaste: args.forcePromptPaste,
+      ...(args.requireHostAuthority
+        ? {
+            onUnconfirmedDelivery: () => {
+              unconfirmed = true
+            }
+          }
+        : {})
+    })
+  } catch (error) {
+    // A task must retain the created terminal even when later prompt delivery loses its reply.
+    if (!args.requireHostAuthority) throw error
+  }
+  return {
+    outcome: created.outcome,
+    promptDelivered: promptDelivered && !unconfirmed,
+    hostTabId: created.hostTabId
+  }
 }
 
 /**

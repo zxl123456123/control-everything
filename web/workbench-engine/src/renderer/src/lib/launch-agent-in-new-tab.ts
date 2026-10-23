@@ -46,6 +46,8 @@ type LaunchAgentInNewTabRequest =
     }
 
 export type LaunchAgentInNewTabArgs = LaunchAgentInNewTabRequest & {
+  /** Require the Web host's configuration; refuse local and legacy command routes. */
+  requireHostAuthority?: true
   requestedSurface?: AgentSessionLaunchRequest['requestedSurface']
   selectedExecutionHostId?: AgentSessionLaunchRequest['selectedExecutionHostId']
   agent: TuiAgent
@@ -140,6 +142,14 @@ function launchAgentInNewTabInternal(args: LaunchAgentInNewTabArgs): LaunchAgent
     activate
   } = args
   const store = useAppStore.getState()
+  if (
+    args.requireHostAuthority &&
+    (args.requestedSurface !== 'terminal' ||
+      !isWebRuntimeSessionActive(runtimeEnvironmentIdOrLocalUnlessTwin(store, worktreeId)))
+  ) {
+    args.focusIntent?.cancel()
+    return null
+  }
   const executionContext = resolveAgentLaunchExecutionContext(store, { worktreeId, launchPlatform })
   if (!executionContext) {
     args.focusIntent?.cancel()
@@ -229,6 +239,7 @@ function launchAgentInNewTabInternal(args: LaunchAgentInNewTabArgs): LaunchAgent
     }
     const webHostDelivery = launchAgentInWebHostTab({
       agent,
+      ...(args.requireHostAuthority ? { requireHostAuthority: true } : {}),
       worktreeId,
       environmentId: runtimeEnvironmentId,
       groupId,

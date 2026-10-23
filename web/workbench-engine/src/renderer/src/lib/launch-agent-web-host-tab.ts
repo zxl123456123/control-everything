@@ -24,6 +24,7 @@ import { toAgentLaunchPreferences } from '../../../shared/agent-launch-preferenc
  */
 export function launchAgentInWebHostTab(args: {
   agent: TuiAgent
+  requireHostAuthority?: true
   worktreeId: string
   environmentId: string | null
   groupId?: string
@@ -60,6 +61,7 @@ export function launchAgentInWebHostTab(args: {
     promptDelivery === 'draft' ? 'draft' : 'auto-submit'
   const launch = {
     worktreeId,
+    ...(args.requireHostAuthority ? { requireHostAuthority: true as const } : {}),
     environmentId,
     targetGroupId: groupId,
     activate: args.activate !== false,

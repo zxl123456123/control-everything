@@ -8,8 +8,22 @@ export async function runRemoteAgentSessionLaunch<TResult>(args: {
   environmentId: string
   hostAuthority?: () => Promise<TResult>
   hostAuthorityCapability?: RuntimeCapability
+  /** A business launch must use its owner's settings, never renderer fallback commands. */
+  requireHostAuthority?: true
   legacy: (options: { skipCompatibilityCheck: boolean }) => Promise<TResult>
 }): Promise<TResult> {
+  if (args.requireHostAuthority) {
+    if (!args.hostAuthority) throw new Error('Host-owned agent launch is unavailable')
+    if (
+      !(await runtimeEnvironmentSupportsCapability(
+        args.environmentId,
+        args.hostAuthorityCapability ?? AGENT_SESSION_HOST_AUTHORITY_CAPABILITY
+      ))
+    ) {
+      throw new Error('Host-owned agent launch is unsupported')
+    }
+    return await args.hostAuthority()
+  }
   if (!args.hostAuthority) {
     return await args.legacy({ skipCompatibilityCheck: false })
   }

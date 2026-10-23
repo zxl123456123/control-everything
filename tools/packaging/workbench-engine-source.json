@@ -326964,6 +326964,12 @@
       "reason": "M1a-R6: exact platform Web entry uses bundled icons or existing glyphs without third-party favicon requests; standalone behavior preserved; M1a navigation: preserve a single project workspace while integrating platform business views"
     },
     {
+      "path": "src/renderer/src/lib/agent-launch-caller-routing.test.ts",
+      "upstream_sha256": "4c23cd839f95a2da806bd98ada71b8c77bf9afd4c688ff6cc1fc2653d156e248",
+      "current_sha256": "01d03a7e237ef94b146a1a291b71331a46e2ee5b0d9c0ae3df82256573e881c6",
+      "reason": "Unify project ownership, task editing and native Agent activity in the integrated workspace"
+    },
+    {
       "path": "src/renderer/src/lib/app-keyboard-router.test.ts",
       "upstream_sha256": "3f64489e57debe23c1e70591d5b84a71b94511a1f1b9d8adda057a91f65d1b5e",
       "current_sha256": "fd1348d2430665d0f549ee94ade1a87d01208b1d324667ea08ba02cfa95856e1",
@@ -326976,10 +326982,58 @@
       "reason": "M1a navigation: preserve a single project workspace while integrating platform business views"
     },
     {
+      "path": "src/renderer/src/lib/launch-agent-in-new-tab.ts",
+      "upstream_sha256": "8aab577588aba3c5c05755e73b3936330bc96a5f67c4e462531d774b296d9826",
+      "current_sha256": "888876f853451ffc7078289ee9caba8c5835414b38220dd634bf0f7e4f52aff3",
+      "reason": "Unify project ownership, task editing and native Agent activity in the integrated workspace"
+    },
+    {
+      "path": "src/renderer/src/lib/launch-agent-web-host-tab.ts",
+      "upstream_sha256": "1687d3858586133df237a79bb784c437f5021f7868e9bd44f7306ef58e35882c",
+      "current_sha256": "fe61bc357a17eb7a396fcb39de25f00d0beb0187a9e01fb001a07eea203d2e9a",
+      "reason": "Unify project ownership, task editing and native Agent activity in the integrated workspace"
+    },
+    {
       "path": "src/renderer/src/lib/open-in-app-catalog.tsx",
       "upstream_sha256": "e65c2ffb17d74d27d876f9797591350430903cc2e1759c94f5f9e369aa117967",
       "current_sha256": "03a80a8c228ec962be112156c87f4973b6597d8e06c53a922bf24102ff84217e",
       "reason": "M1a-R6: exact platform Web entry uses bundled icons or existing glyphs without third-party favicon requests; standalone behavior preserved; M1a navigation: preserve a single project workspace while integrating platform business views"
+    },
+    {
+      "path": "src/renderer/src/runtime/remote-agent-session-launch.test.ts",
+      "upstream_sha256": "c6698293271f01dc3f9ce0ad20903d84cfdcd5ebb4d1d686a80161f3b3fe9319",
+      "current_sha256": "bea5e8e1ba198fc014d33ae9c117b11f29e5c90983f45b315a2e6ceab8d48b11",
+      "reason": "Unify project ownership, task editing and native Agent activity in the integrated workspace"
+    },
+    {
+      "path": "src/renderer/src/runtime/remote-agent-session-launch.ts",
+      "upstream_sha256": "d9e3042e76a6031b29fbbb11986c3384eb68dd4547d3db638bb803a56f90d72e",
+      "current_sha256": "7e944f4ced6202fb8733bb480606002cfef6f450f9b18bd72aecb3dd784ccd93",
+      "reason": "Unify project ownership, task editing and native Agent activity in the integrated workspace"
+    },
+    {
+      "path": "src/renderer/src/runtime/web-runtime-session-terminal-host-authority.test.ts",
+      "upstream_sha256": "74bc3280ab9558d63f17e7cd43b09974d9bb33a9b3ca7f976c36b6918dc2ecdd",
+      "current_sha256": "6fe64019d8a55571028a2a2b21da8a845018842f73cf361a4061404746390026",
+      "reason": "Unify project ownership, task editing and native Agent activity in the integrated workspace"
+    },
+    {
+      "path": "src/renderer/src/runtime/web-runtime-session-types.ts",
+      "upstream_sha256": "6fb0fa9341843a72aba4f531ffa14a612f7262f0bc6fed79f2cb38a16b9caa57",
+      "current_sha256": "f925c449c57235264ec0d58de507a9514d5ba799b52f344c2cb77ca66c006210",
+      "reason": "Unify project ownership, task editing and native Agent activity in the integrated workspace"
+    },
+    {
+      "path": "src/renderer/src/runtime/web-runtime-terminal-create-operation.ts",
+      "upstream_sha256": "058629251be7c30c329d454afe80770e8703f206bf12732797e828591947e6ac",
+      "current_sha256": "2d88d28a241f62807b2b6bd5e28cfd9ce11a6664ae43c48f3b3ff48ca9da8c08",
+      "reason": "Unify project ownership, task editing and native Agent activity in the integrated workspace"
+    },
+    {
+      "path": "src/renderer/src/runtime/web-runtime-terminal-creation.ts",
+      "upstream_sha256": "f59e4d4e70f7a1c5b39131f0cc51b0bf3aeeb6ba73eb44c777a9e34c4fa46eff",
+      "current_sha256": "dcc3f2badc62cd1f52ac5460be30e846497e752286971297baa64ef95dcf8cca",
+      "reason": "Unify project ownership, task editing and native Agent activity in the integrated workspace"
     },
     {
       "path": "src/renderer/src/store/slices/ui/ui-slice-modal-actions.ts",

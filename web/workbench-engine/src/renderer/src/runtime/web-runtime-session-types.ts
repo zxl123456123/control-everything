@@ -16,6 +16,7 @@ export type WebRuntimeTerminalCreateOutcome =
 
 export type CreateWebRuntimeSessionTerminalArgs = {
   worktreeId: string
+  requireHostAuthority?: true
   environmentId?: string | null
   afterTabId?: string
   targetGroupId?: string

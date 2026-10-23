@@ -127,6 +127,47 @@ describe('agent launch caller routing', () => {
     expect(mockLaunchAgentInWebHostTab).not.toHaveBeenCalled()
   })
 
+  it('refuses strict host launches without an active Web terminal route', async () => {
+    const { launchAgentInNewTab } = await import('./launch-agent-in-new-tab')
+    expect(
+      launchAgentInNewTab({
+        requestId: 'strict',
+        agent: 'codex',
+        worktreeId: 'wt-1',
+        requestedSurface: 'terminal',
+        requireHostAuthority: true
+      })
+    ).toBeNull()
+    mockIsWebRuntimeSessionActive.mockReturnValue(true)
+    expect(
+      launchAgentInNewTab({
+        requestId: 'strict-chat',
+        agent: 'codex',
+        worktreeId: 'wt-1',
+        requestedSurface: 'chat',
+        requireHostAuthority: true
+      })
+    ).toBeNull()
+    expect(store.createTab).not.toHaveBeenCalled()
+    expect(mockLaunchAgentInWebHostTab).not.toHaveBeenCalled()
+  })
+
+  it('carries the explicit host requirement into the existing Web launcher', async () => {
+    mockIsWebRuntimeSessionActive.mockReturnValue(true)
+    const { launchAgentInNewTab } = await import('./launch-agent-in-new-tab')
+    const result = launchAgentInNewTab({
+      requestId: 'strict',
+      agent: 'claude',
+      worktreeId: 'wt-1',
+      requestedSurface: 'terminal',
+      requireHostAuthority: true
+    })
+    expect(result?.surface.kind).toBe('host-published')
+    expect(mockLaunchAgentInWebHostTab).toHaveBeenCalledWith(
+      expect.objectContaining({ requireHostAuthority: true })
+    )
+  })
+
   it.each(cases)(
     'routes %s to the paired host when a web runtime owns it',
     async (_id, profile) => {

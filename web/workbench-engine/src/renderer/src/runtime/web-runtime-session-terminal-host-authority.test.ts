@@ -118,6 +118,41 @@ describe('createWebRuntimeSessionTerminal', () => {
     expect(selectedHosts).toEqual([RUNTIME_EXECUTION_HOST_ID])
   })
 
+  it('does not send renderer commands when a strict host launch is unsupported', async () => {
+    const runtimeCall = vi.fn(async (_request: { method: string }) => ({
+      id: 'status',
+      ok: true,
+      result: {
+        runtimeId: 'runtime-1',
+        graphStatus: 'ready',
+        runtimeProtocolVersion: 3,
+        minCompatibleRuntimeClientVersion: 2,
+        capabilities: []
+      }
+    }))
+    stubRuntimeEnvironmentBridge({ call: runtimeCall })
+    const result = await createWebRuntimeAgentSessionTerminal({
+      worktreeId: WORKTREE_ID,
+      environmentId: ENVIRONMENT_ID,
+      agentSessionKind: 'fresh',
+      agent: 'codex',
+      requireHostAuthority: true,
+      command: 'renderer-command-must-not-run',
+      promptAfterReady: 'task',
+      submitPrompt: true,
+      forcePromptPaste: true
+    })
+    expect(result.outcome.status).toBe('failed')
+    expect(result.promptDelivered).toBe(false)
+    expect(result.hostTabId).toBeUndefined()
+    expect(
+      runtimeCall.mock.calls.every(
+        ([request]) => (request as { method: string }).method === 'status.get'
+      )
+    ).toBe(true)
+    expect(mocks.deliverLaunchPromptToAgentTab).not.toHaveBeenCalled()
+  })
+
   it.each(
     [
       { sessionKind: 'fresh' as const, activate: true },
@@ -515,65 +550,95 @@ describe('createWebRuntimeSessionTerminal', () => {
     expect(operationIds[0]).toBe(operationIds[1])
   })
 
-  it('delivers generated continuation context after host-authoritative creation', async () => {
-    const runtimeCall = vi.fn(async (request: { method: string; params?: unknown }) => {
-      if (request.method === 'status.get') {
-        return {
-          id: 'status',
-          ok: true,
-          result: {
-            runtimeId: 'runtime-1',
-            graphStatus: 'ready',
-            runtimeProtocolVersion: 3,
-            minCompatibleRuntimeClientVersion: 2,
-            capabilities: ['agent-session.host-authority.v1']
+  it.each(['confirmed', 'transport-rejected', 'unconfirmed', 'ordinary-rejected'] as const)(
+    'retains host creation with %s prompt delivery',
+    async (delivery) => {
+      const runtimeCall = vi.fn(async (request: { method: string; params?: unknown }) => {
+        if (request.method === 'status.get') {
+          return {
+            id: 'status',
+            ok: true,
+            result: {
+              runtimeId: 'runtime-1',
+              graphStatus: 'ready',
+              runtimeProtocolVersion: 3,
+              minCompatibleRuntimeClientVersion: 2,
+              capabilities: ['agent-session.host-authority.v1']
+            }
           }
         }
-      }
-      if (request.method === 'terminal.createAgentSession') {
-        return {
-          id: 'create',
-          ok: true,
-          result: {
-            terminal: {
-              handle: 'term_created',
-              worktreeId: WORKTREE_ID,
-              tabId: 'host-tab-2',
-              paneKey: `host-tab-2:${FOCUS_LEAF_ID}`
-            },
-            disposition: 'created'
+        if (request.method === 'terminal.createAgentSession') {
+          return {
+            id: 'create',
+            ok: true,
+            result: {
+              terminal: {
+                handle: 'term_created',
+                worktreeId: WORKTREE_ID,
+                tabId: 'host-tab-2',
+                paneKey: `host-tab-2:${FOCUS_LEAF_ID}`
+              },
+              disposition: 'created'
+            }
           }
         }
+        return { id: 'list', ok: true, result: makeSnapshot() }
+      })
+      stubRuntimeEnvironmentBridge({ call: runtimeCall })
+      if (delivery === 'transport-rejected' || delivery === 'ordinary-rejected') {
+        mocks.deliverLaunchPromptToAgentTab.mockRejectedValueOnce(
+          new Error('synthetic transport loss')
+        )
+      } else if (delivery === 'unconfirmed') {
+        mocks.deliverLaunchPromptToAgentTab.mockImplementationOnce(
+          async (input: { onUnconfirmedDelivery?: () => void }) => {
+            input.onUnconfirmedDelivery?.()
+            return true
+          }
+        )
       }
-      return { id: 'list', ok: true, result: makeSnapshot() }
-    })
-    stubRuntimeEnvironmentBridge({ call: runtimeCall })
 
-    await expect(
-      createWebRuntimeAgentSessionTerminal({
+      const creation = createWebRuntimeAgentSessionTerminal({
         worktreeId: WORKTREE_ID,
         agentSessionKind: 'fresh',
         agent: 'claude',
         command: 'claude',
+        ...(delivery !== 'ordinary-rejected' ? { requireHostAuthority: true as const } : {}),
         promptAfterReady: 'continue the unfinished task',
         submitPrompt: true,
         forcePromptPaste: true
       })
-    ).resolves.toEqual({ outcome: { status: 'created' }, promptDelivered: true })
+      if (delivery === 'ordinary-rejected') {
+        await expect(creation).rejects.toThrow('synthetic transport loss')
+      } else {
+        await expect(creation).resolves.toEqual({
+          outcome: { status: 'created' },
+          promptDelivered: delivery === 'confirmed',
+          hostTabId: 'host-tab-2'
+        })
+      }
 
-    const createRequest = runtimeCall.mock.calls.find(
-      ([request]) => request.method === 'terminal.createAgentSession'
-    )?.[0]
-    expect(createRequest).toMatchObject({ params: { agent: 'claude' } })
-    expect(createRequest?.params).not.toHaveProperty('prompt')
-    expect(mocks.deliverLaunchPromptToAgentTab).toHaveBeenCalledWith({
-      tabId: 'web-terminal-host-tab-2',
-      content: 'continue the unfinished task',
-      agent: 'claude',
-      submit: true,
-      forcePaste: true
-    })
-  })
+      const createRequest = runtimeCall.mock.calls.find(
+        ([request]) => request.method === 'terminal.createAgentSession'
+      )?.[0]
+      expect(createRequest).toMatchObject({ params: { agent: 'claude' } })
+      expect(createRequest?.params).not.toHaveProperty('prompt')
+      expect(
+        runtimeCall.mock.calls.filter(
+          ([request]) => request.method === 'terminal.createAgentSession'
+        )
+      ).toHaveLength(1)
+      expect(mocks.deliverLaunchPromptToAgentTab).toHaveBeenCalledOnce()
+      expect(mocks.deliverLaunchPromptToAgentTab).toHaveBeenCalledWith({
+        tabId: 'web-terminal-host-tab-2',
+        content: 'continue the unfinished task',
+        agent: 'claude',
+        submit: true,
+        forcePaste: true,
+        ...(delivery !== 'ordinary-rejected' ? { onUnconfirmedDelivery: expect.any(Function) } : {})
+      })
+    }
+  )
 
   it('seeds the chat composer for a draft that rode in on the launch command', async () => {
     const runtimeCall = vi.fn(async (request: { method: string; params?: unknown }) => {

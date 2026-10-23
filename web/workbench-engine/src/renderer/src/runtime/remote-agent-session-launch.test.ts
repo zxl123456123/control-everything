@@ -26,6 +26,39 @@ describe('remote agent-session launch routing', () => {
     mocks.supportsCapability.mockReset()
   })
 
+  it.each([
+    'unsupported',
+    'probe-error',
+    'missing-owner',
+    'method_not_found',
+    'agent_session_legacy_required',
+    'unknown-result'
+  ])('strict host configuration never falls back for %s', async (failure) => {
+    const legacy = vi.fn()
+    const hostAuthority = vi.fn().mockResolvedValue('host')
+    mocks.supportsCapability.mockResolvedValue(failure !== 'unsupported')
+    if (failure === 'probe-error') mocks.supportsCapability.mockRejectedValue(new Error('offline'))
+    if (failure === 'method_not_found' || failure === 'agent_session_legacy_required') {
+      hostAuthority.mockRejectedValue(
+        new RuntimeRpcCallError({
+          id: 'request',
+          ok: false,
+          error: { code: failure, message: failure }
+        })
+      )
+    }
+    if (failure === 'unknown-result') hostAuthority.mockRejectedValue(new Error('response lost'))
+    await expect(
+      runRemoteAgentSessionLaunch({
+        environmentId: 'env-1',
+        requireHostAuthority: true,
+        ...(failure !== 'missing-owner' ? { hostAuthority } : {}),
+        legacy
+      })
+    ).rejects.toThrow()
+    expect(legacy).not.toHaveBeenCalled()
+  })
+
   it('uses host authority only when the host advertises it', async () => {
     const hostAuthority = vi.fn().mockResolvedValue('structured')
     const legacy = vi.fn().mockResolvedValue('legacy')
