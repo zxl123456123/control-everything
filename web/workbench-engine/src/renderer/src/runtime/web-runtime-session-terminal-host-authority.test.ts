@@ -637,7 +637,7 @@ describe('createWebRuntimeSessionTerminal', () => {
         submit: true,
         forcePaste: true,
         ...(delivery !== 'ordinary-rejected'
-          ? { allowUnconfirmedDelivery: false, onUnconfirmedDelivery: expect.any(Function) }
+          ? { timeoutMs: 60_000, allowUnconfirmedDelivery: false, onUnconfirmedDelivery: expect.any(Function) }
           : {})
       })
     }

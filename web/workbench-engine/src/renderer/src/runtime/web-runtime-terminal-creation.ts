@@ -61,6 +61,8 @@ export async function createWebRuntimeAgentSessionTerminal(
       forcePaste: args.forcePromptPaste,
       ...(args.requireHostAuthority
         ? {
+            // Match the host's agent-launch composer budget for cold CLI startup.
+            timeoutMs: 60_000,
             allowUnconfirmedDelivery: false,
             onUnconfirmedDelivery: () => {
               unconfirmed = true

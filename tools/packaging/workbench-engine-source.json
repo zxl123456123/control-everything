@@ -327077,7 +327077,7 @@
     {
       "path": "src/renderer/src/runtime/web-runtime-session-terminal-host-authority.test.ts",
       "upstream_sha256": "74bc3280ab9558d63f17e7cd43b09974d9bb33a9b3ca7f976c36b6918dc2ecdd",
-      "current_sha256": "8b43c7ba5b38ebaebeda85deca789f966180f1592ea041a49cea8c2e3475638f",
+      "current_sha256": "d0ec82b972abb2df0ab3cdeb75315656bfbffe8e1f39fdd302cce925b697c200",
       "reason": "Unify project ownership, task editing and native Agent activity in the integrated workspace"
     },
     {
@@ -327095,7 +327095,7 @@
     {
       "path": "src/renderer/src/runtime/web-runtime-terminal-creation.ts",
       "upstream_sha256": "f59e4d4e70f7a1c5b39131f0cc51b0bf3aeeb6ba73eb44c777a9e34c4fa46eff",
-      "current_sha256": "732b7876c648fb11554a1695abcdcc1ea3095fdb61e0868b611c934964e00d47",
+      "current_sha256": "28dcf0b1bec43551103d2096fe0e316b9565f01ca0fe8d725bb58ee16fc4114c",
       "reason": "Unify project ownership, task editing and native Agent activity in the integrated workspace"
     },
     {
