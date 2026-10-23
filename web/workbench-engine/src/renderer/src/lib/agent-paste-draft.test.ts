@@ -165,6 +165,23 @@ describe('pasteDraftWhenAgentReady', () => {
     }
   )
 
+  it('uses the exact host readiness when the Codex stream missed its composer marker', async () => {
+    testState.callRuntimeRpc.mockResolvedValue({ wait: { status: 'running', satisfied: true } })
+    const promise = pasteDraftWhenAgentReady({
+      tabId: 'tab-1', content: ISSUE_URL, agent: 'codex', forcePaste: true,
+      submit: true, timeoutMs: 100, allowUnconfirmedDelivery: false
+    })
+    await flushMicrotasks()
+    await vi.advanceTimersByTimeAsync(100 + POST_PASTE_SUBMIT_DELAY_MS + CODEX_SUBMIT_RETRY_DELAY_MS)
+    await expect(promise).resolves.toBe(true)
+    expect(testState.callRuntimeRpc).toHaveBeenCalledExactlyOnceWith(
+      { kind: 'environment', environmentId: 'task-host' }, 'terminal.wait',
+      { terminal: 'term-task-launch', for: 'tui-idle', timeoutMs: 100 }, { timeoutMs: 100 }
+    )
+    expect(testState.inspectRuntimeTerminalProcess).not.toHaveBeenCalled()
+    expect(testState.sendRuntimePtyInputVerified).toHaveBeenCalledWith('pty-1', PASTED_ISSUE_URL)
+  })
+
   it.each(['trust', 'unsatisfied', 'exited', 'timeout', 'missing-owner'])(
     'refuses strict delivery after Claude quiet readiness when the host reports %s',
     async (failure) => {

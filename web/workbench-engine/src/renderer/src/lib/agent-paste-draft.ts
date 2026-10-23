@@ -108,11 +108,7 @@ export async function pasteDraftWhenAgentReady(args: {
   }
 
   const { ptyId } = readiness
-  if (!readiness.ready) {
-    if (args.allowUnconfirmedDelivery === false) {
-      onUnconfirmedDelivery?.()
-      return false
-    }
+  if (!readiness.ready && args.allowUnconfirmedDelivery !== false) {
     // Why: fast-starting TUIs can emit the paste-ready escape sequence before
     // this sidecar subscription attaches. If process/title inspection says the
     // launched agent owns the PTY, fall back to a best-effort paste instead of
@@ -133,8 +129,8 @@ export async function pasteDraftWhenAgentReady(args: {
   }
 
   if (args.allowUnconfirmedDelivery === false) {
-    // A quiet renderer stream also settles over trust dialogs. The host's existing wait reads
-    // the rendered screen and its blockers; only this PTY's owner can confirm it accepts input.
+    // A renderer stream may miss the composer or settle over a trust dialog. The host reads
+    // the current screen and its blockers; only this PTY's owner can confirm it accepts input.
     const owner = getRemoteRuntimePtyOwner(ptyId)
     let hostReady = false
     if (owner) {
