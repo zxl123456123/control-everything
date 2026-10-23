@@ -87,7 +87,7 @@ function studioFixture({ savedCreatorUrl = null, monitorAvailable = true, unifie
     fail() { failed = true; }, flush,
     async route(value) { location.hash = '#' + value; callbacks.hashchange(); await flush(); },
     submit(value) { creatorInput.value = value; nodes.get('ce-studio').listeners.submit({ preventDefault() {}, target: { dataset: { creatorForm: 'true' } } }); },
-    openProject(id) { nodes.get('ce-studio').listeners.click({ target: { closest: selector => selector === '[data-open-project]' ? { dataset: { openProject: id } } : null } }); },
+    openProject(id) { let prevented = false; nodes.get('ce-studio').listeners.click({ preventDefault() { prevented = true; }, target: { closest: selector => selector === '[data-open-project]' ? { dataset: { openProject: id } } : null } }); return prevented; },
     click(action) { nodes.get('ce-studio').listeners.click({ target: { closest: selector => selector === '[data-action]' ? { dataset: { action } } : null } }); }
   };
 }
@@ -196,10 +196,10 @@ test('outer navigation shows projects only and legacy task routes retain their b
 
 test('unified project opens as a view action and retains the overview until the native surface takes over', async () => {
   const f = studioFixture({ unified: true }); await f.flush();
-  assert.match(f.nodes.get('studio-content').innerHTML, /<button[^>]+data-open-project="server-project"/);
+  assert.match(f.nodes.get('studio-content').innerHTML, /<a[^>]+class="ce-project-entry"[^>]+href="#project\/server-project\/workspace"[^>]+data-open-project="server-project"/);
   assert.equal(f.nodes.get('ce-studio').dataset.theme, 'dark');
   const overview = f.nodes.get('studio-content').innerHTML;
-  f.openProject('server-project');
+  assert.equal(f.openProject('server-project'), true);
   assert.equal(f.location.pathname, '/studio');
   assert.equal(f.location.hash, '#project/server-project/workspace');
   assert.equal(f.editorMounts(), 1);

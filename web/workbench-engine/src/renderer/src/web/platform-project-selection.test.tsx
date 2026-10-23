@@ -1,8 +1,16 @@
+import { createElement } from 'react'
+import { useVisibleSidebarWorktrees } from '../components/sidebar/worktree-list/listing/use-visible-worktrees'
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
-import { act, cleanup, render, waitFor } from '@testing-library/react'
+import { act, cleanup, render, renderHook, waitFor } from '@testing-library/react'
 import type { PlatformProjectBootstrap } from './platform-project-bootstrap'
 import PlatformNavigation from './platform-project-navigation-view'
+import {
+  PlatformProjectScopeContext,
+  filterPlatformProjectRepos,
+  isPlatformProjectPathVisible
+} from './platform-project-context'
+import type { Repo } from '../../../shared/repo-types'
 
 const fixture = vi.hoisted(() => ({ state: {} as Record<string, any>, activate: vi.fn() }))
 vi.mock('../store', () => ({
@@ -64,47 +72,89 @@ afterEach(() => {
   vi.clearAllMocks()
 })
 
-it.each([false, true])('waits for the clicked project and respects navigation away: %s', (navigateAway) => {
-  window.history.replaceState(null, '', '/studio#project/p-one/workspace')
-  const second = { id: 'p-two', name: 'Two', directory: 'C:/example/navigation-two' }
-  fixture.state.repos.push({ id: 'repo-b', displayName: 'Two', path: second.directory, executionHostId: 'runtime:env-a' })
-  fixture.state.worktrees.b = [{ id: 'second-main', repoId: 'repo-b', runtimeOwnerEnvironmentId: 'env-a', isMainWorktree: true }]
-  const secondData = { ...data, project: { id: 'p-two', name: 'Two' }, target: { repoId: 'repo-b' } }
-  const allProjects = [...projects, second]
-  const ui = (target: PlatformProjectBootstrap, canCreateWorkspace: boolean) => (
-    <PlatformNavigation data={target} projects={allProjects} active canCreateWorkspace={canCreateWorkspace} onSelection={() => {}} />
-  )
-  const { rerender } = render(ui(data, true))
-  act(() => window.dispatchEvent(new CustomEvent('platform-create-workspace', {
-    detail: { repoId: 'repo-b', executionHostId: 'runtime:env-a' }
-  })))
-  expect(window.location.hash).toBe('#project/p-two/workspace')
-  expect(fixture.state.openModal).not.toHaveBeenCalled()
-  rerender(ui(data, false))
-  expect(fixture.state.openModal).not.toHaveBeenCalled()
-  if (navigateAway) {
-    act(() => {
-      window.history.replaceState(null, '', '/studio#home')
-      window.dispatchEvent(new HashChangeEvent('hashchange'))
+it.each([false, true])(
+  'waits for the clicked project and respects navigation away: %s',
+  (navigateAway) => {
+    window.history.replaceState(null, '', '/studio#project/p-one/workspace')
+    const second = { id: 'p-two', name: 'Two', directory: 'C:/example/navigation-two' }
+    fixture.state.repos.push({
+      id: 'repo-b',
+      displayName: 'Two',
+      path: second.directory,
+      executionHostId: 'runtime:env-a'
     })
-    window.history.replaceState(null, '', '/studio#project/p-two/workspace')
-  }
-  rerender(ui(secondData, true))
-  if (navigateAway) {
+    fixture.state.worktrees.b = [
+      {
+        id: 'second-main',
+        repoId: 'repo-b',
+        runtimeOwnerEnvironmentId: 'env-a',
+        isMainWorktree: true
+      }
+    ]
+    const secondData = {
+      ...data,
+      project: { id: 'p-two', name: 'Two' },
+      target: { repoId: 'repo-b' }
+    }
+    const allProjects = [...projects, second]
+    const ui = (target: PlatformProjectBootstrap, canCreateWorkspace: boolean) => (
+      <PlatformNavigation
+        data={target}
+        projects={allProjects}
+        active
+        canCreateWorkspace={canCreateWorkspace}
+        onSelection={() => {}}
+      />
+    )
+    const { rerender } = render(ui(data, true))
+    act(() =>
+      window.dispatchEvent(
+        new CustomEvent('platform-create-workspace', {
+          detail: { repoId: 'repo-b', executionHostId: 'runtime:env-a' }
+        })
+      )
+    )
+    expect(window.location.hash).toBe('#project/p-two/workspace')
     expect(fixture.state.openModal).not.toHaveBeenCalled()
-    return
+    rerender(ui(data, false))
+    expect(fixture.state.openModal).not.toHaveBeenCalled()
+    if (navigateAway) {
+      act(() => {
+        window.history.replaceState(null, '', '/studio#home')
+        window.dispatchEvent(new HashChangeEvent('hashchange'))
+      })
+      window.history.replaceState(null, '', '/studio#project/p-two/workspace')
+    }
+    rerender(ui(secondData, true))
+    if (navigateAway) {
+      expect(fixture.state.openModal).not.toHaveBeenCalled()
+      return
+    }
+    expect(fixture.state.openModal).toHaveBeenCalledExactlyOnceWith('new-workspace-composer', {
+      initialRepoId: 'repo-b',
+      telemetrySource: 'sidebar'
+    })
   }
-  expect(fixture.state.openModal).toHaveBeenCalledExactlyOnceWith('new-workspace-composer', {
-    initialRepoId: 'repo-b', telemetrySource: 'sidebar'
-  })
-})
+)
 
 it('does not reinterpret a clicked row from another host as the local project', () => {
   window.history.replaceState(null, '', '/studio#project/p-one/workspace')
-  render(<PlatformNavigation data={data} projects={projects} active canCreateWorkspace onSelection={() => {}} />)
-  act(() => window.dispatchEvent(new CustomEvent('platform-create-workspace', {
-    detail: { repoId: 'repo-a', executionHostId: 'runtime:other-host' }
-  })))
+  render(
+    <PlatformNavigation
+      data={data}
+      projects={projects}
+      active
+      canCreateWorkspace
+      onSelection={() => {}}
+    />
+  )
+  act(() =>
+    window.dispatchEvent(
+      new CustomEvent('platform-create-workspace', {
+        detail: { repoId: 'repo-a', executionHostId: 'runtime:other-host' }
+      })
+    )
+  )
   expect(fixture.state.openModal).not.toHaveBeenCalled()
   expect(window.location.hash).toBe('#project/p-one/workspace')
 })
@@ -207,4 +257,70 @@ it('follows the native open-terminal action out of activity without reopening ac
   rerender(ui())
   expect(window.location.hash).toBe('#project/p-one/workspace')
   expect(fixture.state.openActivityPage).toHaveBeenCalledTimes(1)
+})
+
+it('projects only active registered directories on their runtime host and restores without deleting native records', () => {
+  const active = fixture.state.repos[0] as Repo
+  const archived = { ...active, id: 'archived', path: 'C:/example/archived' }
+  const twin = { ...active, executionHostId: 'runtime:other' } as Repo
+  const all = [active, archived, twin]
+  const scope = { projects, executionHostId: 'runtime:env-a' as const }
+  expect(filterPlatformProjectRepos(all, scope)).toEqual([active])
+  expect(filterPlatformProjectRepos(all, { ...scope, projects: [] })).toEqual([])
+  expect(filterPlatformProjectRepos(all, undefined)).toBe(all)
+  expect(
+    filterPlatformProjectRepos(all, {
+      ...scope,
+      projects: [...projects, { id: 'p-archived', name: 'Archived', directory: archived.path }]
+    })
+  ).toEqual([active, archived])
+  expect(all).toEqual([active, archived, twin])
+  expect(
+    isPlatformProjectPathVisible('C:/example/navigation-one/sub', 'runtime:env-a', scope)
+  ).toBe(false)
+  expect(
+    isPlatformProjectPathVisible('C:/example/navigation-one-extra', 'runtime:env-a', scope)
+  ).toBe(false)
+  expect(isPlatformProjectPathVisible(active.path, 'runtime:other', scope)).toBe(false)
+})
+
+it('filters the store-backed worktree stream before grouping, including a forced archived agent target', () => {
+  const archived = {
+    ...fixture.state.repos[0],
+    id: 'archived',
+    path: 'C:/example/navigation-one/archived'
+  }
+  fixture.state.worktrees.b = [
+    { id: 'hidden', repoId: 'archived', runtimeOwnerEnvironmentId: 'env-a' }
+  ]
+  fixture.state.worktrees.other = [
+    { id: 'twin', repoId: 'repo-a', runtimeOwnerEnvironmentId: 'other' }
+  ]
+  const native = fixture.state.worktrees
+  const wrapper = ({ children }: { children: React.ReactNode }) =>
+    createElement(
+      PlatformProjectScopeContext.Provider,
+      { value: { projects, executionHostId: 'runtime:env-a' } },
+      children
+    )
+  const { result, rerender } = renderHook(
+    ({ rows }: { rows: Repo[] }) =>
+      useVisibleSidebarWorktrees({
+        filterState: { showSleepingWorkspaces: true, filterRepoIds: new Set() } as any,
+        sortBy: 'manual',
+        sortedIds: ['main', 'hidden', 'twin'],
+        repoMap: new Map(rows.map((row) => [row.id, row])),
+        worktreeLineageById: {},
+        defaultHostId: 'runtime:env-a',
+        agentSendTargetWorktreeId: 'hidden'
+      }),
+    { wrapper, initialProps: { rows: [fixture.state.repos[0]] } }
+  )
+  expect(result.current.visibleWorktrees.map((row) => row.id)).toEqual(['main'])
+  rerender({ rows: [] })
+  expect(result.current.visibleWorktrees).toEqual([])
+  rerender({ rows: [fixture.state.repos[0], archived] })
+  expect(result.current.visibleWorktrees.map((row) => row.id)).toEqual(['main', 'hidden'])
+  expect(fixture.state.worktrees).toBe(native)
+  expect(native.b[0].id).toBe('hidden')
 })

@@ -100,3 +100,19 @@ describe('app keyboard router', () => {
     expect([...seen, ...tail]).toEqual(['stops propagation', 'later owner', 'pane'])
   })
 })
+
+it('leaves project management typing to the dialog while the workspace remains visible', () => {
+  const seen: string[] = []
+  onApp(() => seen.push('workspace'))
+  document.documentElement.dataset.platformView = 'workspace'
+  const host = document.createElement('div')
+  host.dataset.platformProjectDialog = ''
+  const input = document.createElement('input')
+  host.attachShadow({ mode: 'open' }).append(input)
+  document.body.append(host)
+  cleanups.push(() => host.remove())
+  input.dispatchEvent(
+    new KeyboardEvent('keydown', { key: 'a', ctrlKey: true, bubbles: true, composed: true })
+  )
+  expect(seen).toEqual([])
+})

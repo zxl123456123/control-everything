@@ -1,4 +1,4 @@
-import { Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { lazyWithRetry as lazy } from '@/lib/lazy-with-retry'
 import { installWebPreloadApi } from './web-preload-api'
 import { saveStoredWebRuntimeEnvironment } from './web-runtime-environment'
@@ -11,7 +11,7 @@ import {
 } from './platform-project-bootstrap'
 import PlatformStudioSurface, { type PlatformProject } from './platform-studio-surface'
 import { readPlatformRoute, projectRoute } from './platform-route'
-import { PlatformProjectContext } from './platform-project-context'
+import { PlatformProjectContext, PlatformProjectScopeContext } from './platform-project-context'
 
 const App = lazy(() => import('../App'))
 const PlatformNavigation = lazy(() => import('./platform-project-navigation-view'))
@@ -80,6 +80,10 @@ export default function PlatformProjectEntry(): React.JSX.Element {
     )
       setProjects(rows)
   }, [])
+  const projectScope = useMemo(
+    () => ({ projects, executionHostId: data ? `runtime:${data.runtime.environmentId}` : '' }),
+    [projects, data?.runtime.environmentId]
+  )
   const projectId = route.view === 'project' ? route.id : ''
   const developing = route.view === 'project' && ['workspace', 'activity'].includes(route.tab)
   const chosen = projects.find((project) => project.id === projectId)
@@ -105,15 +109,17 @@ export default function PlatformProjectEntry(): React.JSX.Element {
         next.tab !== 'workspace'
       ) {
         window.history.replaceState(null, '', acceptedHash.current)
-        setNavigationNotice('当前开发目录未关联登记项目，请先从项目选择器选择项目。')
+        setNavigationNotice('当前开发目录未关联登记项目，请从左侧项目栏选择已登记项目。')
         return
       }
       const studio = document.querySelector('.platform-studio-host')?.shadowRoot
+      const projectDialog = document.querySelector('[data-platform-project-dialog]')?.shadowRoot
       const dialogs = [
         ...document.querySelectorAll(
           '[role="dialog"], [role="alertdialog"], [role="menu"], dialog[open]'
         ),
-        ...(studio?.querySelectorAll('dialog[open]') || [])
+        ...(studio?.querySelectorAll('dialog[open]') || []),
+        ...(projectDialog?.querySelectorAll('dialog[open]') || [])
       ]
       if (
         dialogs.some(
@@ -210,34 +216,11 @@ export default function PlatformProjectEntry(): React.JSX.Element {
           <a href="#home" className="platform-project-back">
             ‹ 项目
           </a>
-          <label className="platform-project-picker">
-            <span className="sr-only">切换项目</span>
-            <select
-              aria-label="切换项目"
-              value={developing && unlinkedWorkspace ? '' : projectId}
-              onChange={(event) => {
-                const id = event.target.value
-                if (id === projectId && unlinkedWorkspace) {
-                  cache.current.delete(id)
-                  setRetry((value) => value + 1)
-                } else window.location.hash = projectRoute(id)
-              }}
-            >
-              {developing && unlinkedWorkspace && (
-                <option value="" disabled>
-                  未关联的开发目录
-                </option>
-              )}
-              {!chosen && (
-                <option value={projectId}>{connected ? data!.project.name : '项目工作区'}</option>
-              )}
-              {projects.map((project) => (
-                <option key={project.id} value={project.id}>
-                  {project.name}
-                </option>
-              ))}
-            </select>
-          </label>
+          <span className="platform-project-name" aria-label="当前项目" title={chosen?.directory}>
+            {developing && unlinkedWorkspace
+              ? '未关联的开发目录'
+              : chosen?.name || data?.project.name || '项目工作区'}
+          </span>
           <div className="platform-project-tablist">
             {(
               [
@@ -261,7 +244,9 @@ export default function PlatformProjectEntry(): React.JSX.Element {
                 onClick={(event) => {
                   if (developing && unlinkedWorkspace && tab !== 'workspace') {
                     event.preventDefault()
-                    setNavigationNotice('当前开发目录未关联登记项目，请先从项目选择器选择项目。')
+                    setNavigationNotice(
+                      '当前开发目录未关联登记项目，请从左侧项目栏选择已登记项目。'
+                    )
                   }
                 }}
               >
@@ -276,7 +261,11 @@ export default function PlatformProjectEntry(): React.JSX.Element {
           {navigationNotice}
         </p>
       )}
-      <PlatformStudioSurface hidden={showWorkspace} pending={developing && !showWorkspace && !error} onProjects={onProjects} />
+      <PlatformStudioSurface
+        hidden={showWorkspace}
+        pending={developing && !showWorkspace && !error}
+        onProjects={onProjects}
+      />
       {developing && !showWorkspace && !error && (
         <div className="platform-navigation-notice" role="status">
           正在打开{chosen?.name || '项目'}… <a href="#home">取消</a>
@@ -305,7 +294,9 @@ export default function PlatformProjectEntry(): React.JSX.Element {
             data={data}
             projects={projects}
             active={developing && connected}
-            canCreateWorkspace={route.tab === 'workspace' && connected && readyData === data && !unlinkedWorkspace}
+            canCreateWorkspace={
+              route.tab === 'workspace' && connected && readyData === data && !unlinkedWorkspace
+            }
             surface={
               route.view === 'project' && route.tab === 'activity' ? 'activity' : 'workspace'
             }
@@ -315,17 +306,20 @@ export default function PlatformProjectEntry(): React.JSX.Element {
           <PlatformAgentBridge data={data} />
         </Suspense>
       )}
-      <div
-        className="platform-project-content"
-        hidden={!showWorkspace}
-        inert={!showWorkspace}
-      >
+      <div className="platform-project-content" hidden={!showWorkspace} inert={!showWorkspace}>
         <PlatformProjectContext.Provider
           value={connected && readyData === data && !unlinkedWorkspace ? data : null}
         >
-          <Suspense fallback={null}>
-            {data && <><App /><WorkspaceMounted onReady={onAppMounted} /></>}
-          </Suspense>
+          <PlatformProjectScopeContext.Provider value={projectScope}>
+            <Suspense fallback={null}>
+              {data && (
+                <>
+                  <App />
+                  <WorkspaceMounted onReady={onAppMounted} />
+                </>
+              )}
+            </Suspense>
+          </PlatformProjectScopeContext.Provider>
         </PlatformProjectContext.Provider>
       </div>
     </div>

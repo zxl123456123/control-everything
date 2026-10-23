@@ -11,7 +11,15 @@ let installedOn: Window | null = null
 
 function dispatch(type: AppKeyEventType, event: KeyboardEvent): void {
   // The mounted developer workspace must not handle the platform's task editors.
-  if (document.documentElement.dataset.platformView === 'studio') return
+  if (
+    document.documentElement.dataset.platformView === 'studio' ||
+    event
+      .composedPath()
+      .some(
+        (node) => node instanceof HTMLElement && node.hasAttribute('data-platform-project-dialog')
+      )
+  )
+    return
   // Why: like native listeners, owners added during a dispatch first see the next event.
   const snapshot = registrations[type].slice()
   let stoppedImmediately = false

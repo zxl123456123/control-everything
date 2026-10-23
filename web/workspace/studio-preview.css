@@ -377,3 +377,21 @@ body:has(#ce-studio){margin:0;background:#f7f7f5}
 #ce-studio>.onboarding-dialog.ce-business-module label{color:var(--ce-text);line-height:1.5}
 #ce-studio>.onboarding-dialog.ce-business-module :is(.onboarding-choices,.onboarding-candidate,.onboarding-drop){border-color:var(--ce-line)}
 #ce-studio>.onboarding-dialog.ce-business-module .onboarding-drop{background:var(--ce-bg);color:var(--ce-sub)}
+
+/* Project cards are workspace entries; management remains a separate control. */
+#ce-studio .ce-project-card{position:relative;min-height:240px;padding:20px 20px 0;display:flex!important;grid-column:auto!important}
+#ce-studio .ce-project-top{position:relative;z-index:2;pointer-events:none}
+#ce-studio .ce-project-top button{pointer-events:auto;cursor:pointer}
+#ce-studio .ce-project-entry{color:inherit;text-decoration:none;display:flex;flex-direction:column;gap:12px;outline:none}
+#ce-studio .ce-project-entry::after{content:"";position:absolute;inset:0;border-radius:17px}
+#ce-studio .ce-project-entry:focus-visible::after{outline:2px solid var(--ce-blue);outline-offset:3px}
+#ce-studio .ce-project-entry .ce-project-title{margin-bottom:0}
+#ce-studio .ce-project-open{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--ce-blue);font-weight:500}
+#ce-studio .ce-project-desc{margin:14px 0 20px;font-size:12px;line-height:1.6;overflow-wrap:anywhere;white-space:normal;color:var(--ce-sub)}
+#ce-studio .ce-project-foot{margin-top:auto;justify-content:flex-start;flex-wrap:wrap;font-size:12px;gap:7px}
+#ce-studio .ce-project-state,#ce-studio .ce-project-archived{padding:3px 8px;border-radius:5px;background:var(--ce-soft);color:var(--ce-sub);font-size:12px}
+#ce-studio .ce-project-state[data-state="blocked"]{color:var(--ce-red);background:var(--ce-red-bg)}
+#ce-studio .ce-project-state[data-state="review"]{color:var(--ce-amber);background:var(--ce-amber-bg)}
+#ce-studio .ce-project-state[data-state="doing"]{color:var(--ce-blue);background:var(--ce-blue-bg)}
+#ce-studio .ce-project-state[data-state="done"]{color:var(--ce-green);background:var(--ce-green-bg)}
+#ce-studio .ce-project-settings{margin:auto;max-height:calc(100dvh - 32px);overflow:auto}

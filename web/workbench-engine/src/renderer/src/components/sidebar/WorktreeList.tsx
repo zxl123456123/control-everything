@@ -1,4 +1,9 @@
-import React, { useCallback, useMemo } from 'react'
+import {
+  PlatformProjectScopeContext,
+  isPlatformProjectPathVisible,
+  usePlatformProjectRepos
+} from '@/web/platform-project-context'
+import React, { useCallback, useContext, useMemo } from 'react'
 import { useAppStore } from '@/store'
 import { useShallow } from 'zustand/react/shallow'
 import {
@@ -67,9 +72,14 @@ const WorktreeList = React.memo(function WorktreeList({
 }: WorktreeListProps) {
   // ── Granular selectors (each is a primitive or shallow-stable ref) ──
   const allWorktrees = useAllWorktrees()
-  const repoMap = useRepoMap()
+  const nativeRepoMap = useRepoMap()
   const worktreeMap = useWorktreeMap()
-  const repos = useAppStore((s) => s.repos)
+  const scope = useContext(PlatformProjectScopeContext)
+  const repos = usePlatformProjectRepos(useAppStore((s) => s.repos))
+  const repoMap = useMemo(
+    () => (scope ? new Map(repos.map((repo) => [repo.id, repo])) : nativeRepoMap),
+    [nativeRepoMap, repos, scope]
+  )
   const worktreeLineageById = useAppStore((s) => s.worktreeLineageById)
   const workspaceLineageByChildKey = useAppStore((s) => s.workspaceLineageByChildKey)
   const detectedWorktreesByRepo = useAppStore((s) => selectDetectedWorktreesByRepo(s))
@@ -95,8 +105,41 @@ const WorktreeList = React.memo(function WorktreeList({
   const clearPendingRevealSidebarRow = useAppStore((s) => s.clearPendingRevealSidebarRow)
   const collapsedGroups = useAppStore((s) => s.collapsedGroups)
   const toggleGroup = useAppStore((s) => s.toggleCollapsedGroup)
-  const projectGroups = useAppStore((s) => s.projectGroups ?? EMPTY_PROJECT_GROUPS)
-  const folderWorkspaces = useAppStore((s) => selectFolderWorkspaces(s))
+  const allProjectGroups = useAppStore((s) => s.projectGroups ?? EMPTY_PROJECT_GROUPS)
+  const allFolderWorkspaces = useAppStore((s) => selectFolderWorkspaces(s))
+  const projectGroups = useMemo(() => {
+    if (!scope) return allProjectGroups
+    const ids = new Set(repos.map((repo) => repo.projectGroupId).filter(Boolean))
+    for (const group of allProjectGroups) {
+      if (
+        group.parentPath &&
+        isPlatformProjectPathVisible(group.parentPath, group.executionHostId || 'local', scope)
+      )
+        ids.add(group.id)
+    }
+    for (let changed = true; changed;) {
+      changed = false
+      for (const group of allProjectGroups)
+        if (ids.has(group.id) && group.parentGroupId && !ids.has(group.parentGroupId)) {
+          ids.add(group.parentGroupId)
+          changed = true
+        }
+    }
+    return allProjectGroups.filter((group) => ids.has(group.id))
+  }, [allProjectGroups, repos, scope])
+  const folderWorkspaces = useMemo(
+    () =>
+      scope
+        ? allFolderWorkspaces.filter((folder) =>
+            isPlatformProjectPathVisible(
+              folder.folderPath,
+              folder.executionHostId || 'local',
+              scope
+            )
+          )
+        : allFolderWorkspaces,
+    [allFolderWorkspaces, scope]
+  )
   const settings = useAppStore((s) => s.settings)
   const cardProps = useAppStore((s) => s.worktreeCardProperties)
   const { prCache, hostedReviewCache } = useAppStore(
@@ -120,7 +163,8 @@ const WorktreeList = React.memo(function WorktreeList({
     () => buildWorktreeManualOrderCatalog({ worktrees: allWorktrees, folderWorkspaces }),
     [allWorktrees, folderWorkspaces]
   )
-  const { visibleWorktrees, visibleScope, externalWorktreeCards, rowModel } = useSidebarListModel({
+  const useListModel = scope ? useWindowSidebarListModel : useSidebarListModel
+  const { visibleWorktrees, visibleScope, externalWorktreeCards, rowModel } = useListModel({
     filterState,
     sortBy,
     groupBy,

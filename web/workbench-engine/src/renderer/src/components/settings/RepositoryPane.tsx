@@ -98,7 +98,9 @@ export function RepositoryPane({
     useAppStore.getState().closeModal()
     requestAnimationFrame(() =>
       window.dispatchEvent(
-        new CustomEvent('platform-manage-project', { detail: { directory: repo.path } })
+        new CustomEvent('platform-manage-project', {
+          detail: { directory: repo.path, executionHostId: getRepoExecutionHostId(repo) }
+        })
       )
     )
   }
@@ -291,7 +293,7 @@ export function RepositoryPane({
             <div className="flex items-center justify-between gap-3">
               <span className="text-sm">{repo.displayName}</span>
               <Button type="button" variant="outline" size="sm" onClick={manageProject}>
-                项目设置
+                项目管理
               </Button>
             </div>
           ) : (

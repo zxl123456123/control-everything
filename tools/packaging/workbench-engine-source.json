@@ -326916,8 +326916,8 @@
     {
       "path": "src/renderer/src/components/settings/RepositoryPane.tsx",
       "upstream_sha256": "33bbc3100ac92f090ecc231cf8d7cf3d01ab1634a04a1be396cebd16c1fc5cd8",
-      "current_sha256": "84538033627ddecb10caf105885eb863567aef1d06b8e2ab5e5edda0e5f42683",
-      "reason": "Unify project ownership, task editing and native Agent activity in the integrated workspace"
+      "current_sha256": "ee37a5391cccd0bc3ec7ae4e491aaaef619b053be3b361af24ee5515fd2ffde0",
+      "reason": "Unify project ownership, task editing and native Agent activity in the integrated workspace; Align project visibility and retain native settings in the integrated workspace"
     },
     {
       "path": "src/renderer/src/components/settings/repository-source-control-ai-labels.ts",
@@ -326928,8 +326928,8 @@
     {
       "path": "src/renderer/src/components/settings/use-settings-store-model.ts",
       "upstream_sha256": "c1adccb7554ed76181f8a84db82c57ea57281bb1acb2b5a6c1975a6ba74964dc",
-      "current_sha256": "806cbcf73392ae526564861e912fd261a2322ddc2bee8eb7707caf5f0df4ab25",
-      "reason": "Unify project ownership, task editing and native Agent activity in the integrated workspace"
+      "current_sha256": "e4777fe526edce4ae651e07be0d851f034a89478306cabcbb8070601531e3ee3",
+      "reason": "Unify project ownership, task editing and native Agent activity in the integrated workspace; Align project visibility and retain native settings in the integrated workspace"
     },
     {
       "path": "src/renderer/src/components/settings/use-ssh-target-selection.ts",
@@ -326974,22 +326974,40 @@
       "reason": "M1a-W: platform help without official service entrances; preserve license attribution; M1a navigation: preserve a single project workspace while integrating platform business views"
     },
     {
+      "path": "src/renderer/src/components/sidebar/WorktreeList.tsx",
+      "upstream_sha256": "5a8aa0bac4b1b7b2d37f4283cbaec26b15fe9705b9c0f8f32caf865cb6faafc4",
+      "current_sha256": "2529f8558155ea117582eb5860ee179e37e6d887bcda3ee997f187d623e51807",
+      "reason": "Align project visibility and retain native settings in the integrated workspace"
+    },
+    {
       "path": "src/renderer/src/components/sidebar/sidebar-header-actions.tsx",
       "upstream_sha256": "6e45c500d9870974c6868c8f60e1743c45150a8415cea9efd0e61513f347798a",
       "current_sha256": "e89e4acc6785c96fa7275c7aa2f9c2aaf264768ee51b76bfdcab7c0525ad92f3",
       "reason": "Keep project registration in the Studio overview and preserve workspace creation; Unify project ownership, task editing and native Agent activity in the integrated workspace"
     },
     {
+      "path": "src/renderer/src/components/sidebar/worktree-list/listing/use-visible-worktrees.ts",
+      "upstream_sha256": "0bf645aa3d4c6fc48b59f660a7a4830eb721757adb90e74e985f79ea1a4ae254",
+      "current_sha256": "a064e22363e822afd44093c6f145d654f9b87a3353b948abc191e57da275d3aa",
+      "reason": "Align project visibility and retain native settings in the integrated workspace"
+    },
+    {
       "path": "src/renderer/src/components/sidebar/worktree-list/rows/repo-header-project-actions.tsx",
       "upstream_sha256": "f87de2c55e0c16983bb17c95d2606ac2c1b1666f68b1c036ac8e0f427077d8f6",
-      "current_sha256": "d5016a4d1a8778b31f0d8489d9a9aec68c6d1955da014e2856995da8ca3062c2",
-      "reason": "Unify project ownership, task editing and native Agent activity in the integrated workspace"
+      "current_sha256": "751a6e14d7b684be12d9913afedfc4c3a2bd923edf2f7da0188334d9a57b29b3",
+      "reason": "Unify project ownership, task editing and native Agent activity in the integrated workspace; Align project visibility and retain native settings in the integrated workspace"
     },
     {
       "path": "src/renderer/src/components/ui/dialog.tsx",
       "upstream_sha256": "3906c5b0a4404270e37e1a8b3ba9a6f25948ccfa546b24d2fe5554eca62a2617",
       "current_sha256": "d3beb60226d0c30d24c237091ffedd564293a5b23e8367da9c65120de36711f4",
       "reason": "M1a navigation: preserve a single project workspace while integrating platform business views"
+    },
+    {
+      "path": "src/renderer/src/hooks/useSettingsNavigationMetadata.ts",
+      "upstream_sha256": "d678fed0fc0e90b83dd2e486e6bb21edffb6cf59c406d54a0f21a6fb0c592690",
+      "current_sha256": "231d6cc3854e85c43fd3504456cba42bae751c856aa1d1b13fcdec908b80cf47",
+      "reason": "Align project visibility and retain native settings in the integrated workspace"
     },
     {
       "path": "src/renderer/src/i18n/i18n.ts",
@@ -327036,14 +327054,14 @@
     {
       "path": "src/renderer/src/lib/app-keyboard-router.test.ts",
       "upstream_sha256": "3f64489e57debe23c1e70591d5b84a71b94511a1f1b9d8adda057a91f65d1b5e",
-      "current_sha256": "fd1348d2430665d0f549ee94ade1a87d01208b1d324667ea08ba02cfa95856e1",
-      "reason": "M1a navigation: preserve a single project workspace while integrating platform business views"
+      "current_sha256": "c96d0bb3327b20027639b99b5ae82bd1406365cf020ffa068abd53a16e5bb208",
+      "reason": "M1a navigation: preserve a single project workspace while integrating platform business views; Align project visibility and retain native settings in the integrated workspace"
     },
     {
       "path": "src/renderer/src/lib/app-keyboard-router.ts",
       "upstream_sha256": "f7dfc46d333fccab1c00dc10998ee6e5233b33061f2061c2d9cac8fbb0ce01e4",
-      "current_sha256": "93d55932273d668eac09d4d2da5f1303a46ec9f5d6f8ac370f6e9e06a40ad7fa",
-      "reason": "M1a navigation: preserve a single project workspace while integrating platform business views"
+      "current_sha256": "4d31631eb5d1c46721be28831645a828b3dde63e1e4914168d318cab51ab643c",
+      "reason": "M1a navigation: preserve a single project workspace while integrating platform business views; Align project visibility and retain native settings in the integrated workspace"
     },
     {
       "path": "src/renderer/src/lib/launch-agent-in-new-tab.ts",

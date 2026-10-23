@@ -1,3 +1,4 @@
+import { usePlatformProjectRepos } from '@/web/platform-project-context'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useShallow } from 'zustand/react/shallow'
@@ -114,7 +115,7 @@ export function useSettingsNavigationMetadata(): SettingsNavSection[] {
   // stuck in the old language until Settings is remounted.
   const { i18n } = useTranslation()
   const activeLocale = i18n.language
-  const repos = useAppStore((state) => state.repos)
+  const repos = usePlatformProjectRepos(useAppStore((state) => state.repos))
   const projectHostSetupProjection = useProjectHostSetupProjection()
   const settings = useAppStore((state) => state.settings)
   const [managedBrowserCreationEnabled, mobileEmulatorCreationEnabled] = useAppStore(

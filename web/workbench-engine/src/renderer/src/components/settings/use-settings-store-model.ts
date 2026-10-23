@@ -1,3 +1,4 @@
+import { usePlatformProjectRepos } from '@/web/platform-project-context'
 import { useCallback, useMemo, useState } from 'react'
 import type { OrcaHooks } from '../../../../shared/orca-yaml-hook-types'
 import type { ProjectHostSetup } from '../../../../shared/project-types'
@@ -50,7 +51,7 @@ export function useSettingsStoreModel() {
   const fetchSettings = useAppStore((s) => s.fetchSettings)
   const fetchKeybindings = useAppStore((s) => s.fetchKeybindings)
   const closeSettingsPage = useAppStore((s) => s.closeSettingsPage)
-  const repos = useAppStore((s) => s.repos)
+  const repos = usePlatformProjectRepos(useAppStore((s) => s.repos))
   const projects = useAppStore((s) => s.projects)
   const projectHostSetups = useAppStore((s) => s.projectHostSetups)
   const updateProject = useAppStore((s) => s.updateProject)

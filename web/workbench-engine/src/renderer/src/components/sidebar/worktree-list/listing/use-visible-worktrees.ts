@@ -1,4 +1,6 @@
-import { useMemo } from 'react'
+import { PlatformProjectScopeContext } from '@/web/platform-project-context'
+import { worktreeOwnerHostIds } from '@/lib/worktree-runtime-owner-index'
+import { useContext, useMemo } from 'react'
 import { ORCA_SIDEBAR_INPUTS_IS_MAIN } from '../../../../../../shared/sidebar-inputs-switch'
 import { useAppStore } from '@/store'
 import { getAgentStatusEpochNow } from '@/lib/agent-status-epoch-clock'
@@ -50,7 +52,24 @@ export function useVisibleSidebarWorktrees(args: {
     visibleWorkspaceHostIds,
     workspaceHostScope
   } = filterState
-  const worktreesByRepo = useAppStore((s) => selectWorktreesByRepo(s))
+  const scope = useContext(PlatformProjectScopeContext)
+  const nativeWorktreesByRepo = useAppStore((s) => selectWorktreesByRepo(s))
+  const worktreesByRepo = useMemo(
+    () =>
+      scope
+        ? Object.fromEntries(
+            Object.entries(nativeWorktreesByRepo).map(([id, rows]) => [
+              id,
+              rows.filter(
+                (row) =>
+                  repoMap.has(row.repoId) &&
+                  worktreeOwnerHostIds(row).some((hostId) => hostId === scope.executionHostId)
+              )
+            ])
+          )
+        : nativeWorktreesByRepo,
+    [nativeWorktreesByRepo, repoMap, scope]
+  )
   const agentStatusEpoch = useAppStore((s) => (!showSleepingWorkspaces ? s.agentStatusEpoch : 0))
   // Why: skip the clock entirely when the epoch is the opt-out sentinel, so a
   // sleeping-workspaces list cannot evict the sample the live lists share.

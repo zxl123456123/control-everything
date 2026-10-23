@@ -87,7 +87,9 @@ export function RepoHeaderProjectActionsMenu({
     useAppStore.getState().closeModal()
     requestAnimationFrame(() =>
       window.dispatchEvent(
-        new CustomEvent('platform-manage-project', { detail: { directory: repo.path } })
+        new CustomEvent('platform-manage-project', {
+          detail: { directory: repo.path, executionHostId: getRepoExecutionHostId(repo) }
+        })
       )
     )
   }
@@ -254,9 +256,11 @@ export function RepoHeaderCreateWorkspaceButton({
               event.preventDefault()
               event.stopPropagation()
               if (platformMode) {
-                window.dispatchEvent(new CustomEvent('platform-create-workspace', {
-                  detail: { repoId: repo.id, executionHostId: getRepoExecutionHostId(repo) }
-                }))
+                window.dispatchEvent(
+                  new CustomEvent('platform-create-workspace', {
+                    detail: { repoId: repo.id, executionHostId: getRepoExecutionHostId(repo) }
+                  })
+                )
               } else onCreateForRepo(repo.id)
             }}
           >
