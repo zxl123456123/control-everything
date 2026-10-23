@@ -57,16 +57,27 @@ window.WorkspaceMonitorScene = (() => {
     }
     function paint(c) {
       const { cw, ch, width, height } = geometry;
+      const style = getComputedStyle(canvas), palette = new Map();
+      if (style.getPropertyValue('--monitor-bg').trim()) {
+        // Recolor the original cell art at paint time; identities and animation stay intact.
+        const colors = { bg: style.getPropertyValue('--monitor-bg').trim(), panel: style.getPropertyValue('--monitor-panel').trim(),
+          ink: style.getPropertyValue('--monitor-ink').trim(), soft: style.getPropertyValue('--monitor-soft').trim() };
+        if (style.colorScheme === 'light') Object.assign(colors, { faint: '#64748b', line: '#cbd5e1',
+          manager: '#9a4c16', jevA: '#7544bd', jevB: '#aa2869', sol: '#285e9c', working: '#267342',
+          waiting: '#94600f', done: '#176b78', unknown: '#7544bd', idle: '#64748b', error: '#94600f' });
+        for (const [key, value] of Object.entries(colors)) palette.set(art.P[key], value);
+      }
+      const color = value => palette.get(value) || value;
       // Full clears prevent old glyphs surviving fractional cell edges.
-      ctx.fillStyle = art.P.bg; ctx.fillRect(0, 0, width, height);
+      ctx.fillStyle = color(art.P.bg); ctx.fillRect(0, 0, width, height);
       ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
       let lastFont = '';
       for (let y = 0; y < c.rows; y++) {
-        for (let x = 0; x < c.cols; x++) { ctx.fillStyle = c.cells[y][x].bg; ctx.fillRect(x * cw, y * ch, cw + 0.25, ch + 0.25); }
+        for (let x = 0; x < c.cols; x++) { ctx.fillStyle = color(c.cells[y][x].bg); ctx.fillRect(x * cw, y * ch, cw + 0.25, ch + 0.25); }
         for (let x = 0; x < c.cols; x++) {
           const cell = c.cells[y][x]; if (!cell.ch || cell.ch === ' ') continue;
           const px = x * cw, py = y * ch, cp = cell.ch.codePointAt(0);
-          ctx.fillStyle = cell.fg;
+          ctx.fillStyle = color(cell.fg);
           if (cp === 0x2580) { ctx.fillRect(px, py, cw, ch / 2); continue; }
           if (cp >= 0x2581 && cp <= 0x2588) { const h = ch * (cp - 0x2580) / 8; ctx.fillRect(px, py + ch - h, cw, h); continue; }
           const font = `${cell.bold ? 600 : 400} ${cw * 1.83}px "Cascadia Mono", Consolas, "Liberation Mono", "Microsoft YaHei", monospace`;
@@ -126,6 +137,9 @@ window.WorkspaceMonitorScene = (() => {
       }, delay);
     }
     function refresh() { if (visible()) { measure(); render(); schedule(); } }
+    const themeObserver = new MutationObserver(refresh);
+    const themeRoot = canvas.closest('#ce-studio');
+    if (themeRoot) themeObserver.observe(themeRoot, { attributes: true, attributeFilter: ['data-theme'] });
     const observer = new ResizeObserver(() => {
       if (!visible()) return;
       const measured = canvas.parentElement?.getBoundingClientRect().width || canvas.getBoundingClientRect().width;
@@ -178,6 +192,7 @@ window.WorkspaceMonitorScene = (() => {
       destroy() {
         if (destroyed) return;
         destroyed = true; stop(); seen.clear(); hitboxes = [];
+        themeObserver.disconnect();
         document.removeEventListener('visibilitychange', onVisibility);
         motion.removeEventListener('change', onMotion);
         canvas.removeEventListener('click', onClick);

@@ -553,8 +553,11 @@ window.WorkspaceAgentBoard = (() => {
     const actions = el('div', 'form-actions');
     const addAgent = btn('＋ 添加 Agent', onRegister), addProject = btn('＋ 添加项目文件夹', onAddProject);
     const refresh = btn('刷新工作台', () => load());
-    actions.append(btn('＋ 新建待办', () => openNew()), addAgent, addProject, refresh);
+    const addTodo = btn('＋ 新建待办', () => openNew(), 'button primary');
+    addTodo.dataset.action = 'create-item'; refresh.dataset.action = 'refresh-items';
+    actions.append(addTodo, addAgent, addProject, refresh);
     const management = el('a', 'button secondary', '事项管理'); management.href = '#tasks'; actions.append(management);
+    management.dataset.action = 'manage-items';
     const header = el('div', 'section-heading'); header.append(title, actions);
     const status = id(el('p', 'section-note', '正在读取工作台…'), 'ab-status'); status.setAttribute('role', 'status'); status.setAttribute('aria-live', 'polite');
     const agentStrip = id(el('div', 'agent-presence'), 'ab-agents');
@@ -658,16 +661,16 @@ window.WorkspaceAgentBoard = (() => {
         status.textContent = `已读取 ${items.length} 项 · 分配后由外部 Agent 领取；完成须人工审核。${registryAvailable ? '' : ' Agent 注册表读取失败。'}`;
       } else status.textContent = '工作台读取失败或未读完整。保留上次记录，数量暂不可确认，请刷新重试。';
       render();
-      if (complete && window.WorkspaceExecution?.createTaskApprovals && !detail.open && !writing && !hasDraft()
+      if (!root.hidden && complete && window.WorkspaceExecution?.createTaskApprovals && !detail.open && !writing && !hasDraft()
           && chosenItems().some(item => item.assignment_state === 'waiting_user')) {
         try {
           const listing = await fetchJson('/api/workspace/execution');
-          if (disposed || current !== request || detail.open || writing || hasDraft()) return;
+          if (root.hidden || disposed || current !== request || detail.open || writing || hasDraft()) return;
           for (const execution of listing.active || []) {
             const task = chosenItems().find(item => item.id === execution.task_id);
             if (!task || execution.state !== 'waiting_approval') continue;
             const pending = await fetchJson('/api/workspace/execution/runs/' + encodeURIComponent(execution.id) + '?after=0');
-            if (disposed || current !== request || detail.open || writing || hasDraft()) return;
+            if (root.hidden || disposed || current !== request || detail.open || writing || hasDraft()) return;
             if (!chosenItems().some(item => item.id === task.id)) continue;
             if (pending.run?.id !== execution.id || pending.run?.task_id !== task.id) continue;
             const ids = (pending.approvals || []).filter(row => row.status === 'pending').map(row => row.id).sort();

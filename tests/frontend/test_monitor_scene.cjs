@@ -7,8 +7,9 @@ const { test } = require('node:test');
 const directory = path.resolve(__dirname, '../../web/workspace');
 const sources = ['monitor-art.js', 'monitor-scene.js'].map(name => fs.readFileSync(path.join(directory, name), 'utf8'));
 
-function harness({ width = 1024, reduced = false, ratio = 1 } = {}) {
-  let time = 0, sequence = 0, available = width, draws = 0, glyphs = [];
+function harness({ width = 1024, reduced = false, ratio = 1, scheme = 'dark', surface = '' } = {}) {
+  let time = 0, sequence = 0, available = width, draws = 0, glyphs = [], background = '';
+  const themeObservers = [], themeRoot = {};
   const scheduled = new Map(), observers = [], selections = [];
   const events = value => Object.assign(value, {
     listeners: new Map(),
@@ -20,15 +21,22 @@ function harness({ width = 1024, reduced = false, ratio = 1 } = {}) {
   const document = events({ hidden: false }), media = events({ matches: reduced });
   const parent = { getBoundingClientRect: () => ({ width: available }) };
   const canvas = events({ width: 0, height: 0, style: {}, attrs: {}, parentElement: parent,
+    closest: () => themeRoot,
     setAttribute(name, value) { this.attrs[name] = value; },
     getBoundingClientRect() { return { width: available, height: parseFloat(this.style.height) || 0, left: 12, top: 20 }; },
   });
   const ctx = { setTransform() {}, fillRect(x, y, w, h) {
-    if (x === 0 && y === 0 && w === available && h === parseFloat(canvas.style.height)) { draws++; glyphs = []; }
+    if (x === 0 && y === 0 && w === available && h === parseFloat(canvas.style.height)) { draws++; glyphs = []; background = this.fillStyle; }
   }, fillText(text, x, y) { glyphs.push({ text, x, y }); } };
   canvas.getContext = () => ctx;
   const schedule = (callback, delay, kind) => { const id = ++sequence; scheduled.set(id, { callback, at: time + delay, kind }); return id; };
   const context = vm.createContext({ window: { matchMedia: () => media, devicePixelRatio: ratio }, document,
+    getComputedStyle: () => ({ colorScheme: scheme, getPropertyValue: key => surface ? ({ '--monitor-bg': surface, '--monitor-panel': surface, '--monitor-ink': '#252622', '--monitor-soft': '#696b63' }[key] || '') : '' }),
+    MutationObserver: class {
+      constructor(callback) { this.callback = callback; this.connected = false; themeObservers.push(this); }
+      observe() { this.connected = true; }
+      disconnect() { this.connected = false; }
+    },
     performance: { now: () => time },
     setTimeout: (callback, delay) => schedule(callback, delay, 'timer'), clearTimeout: id => scheduled.delete(id),
     requestAnimationFrame: callback => schedule(callback, 16, 'raf'), cancelAnimationFrame: id => scheduled.delete(id),
@@ -52,6 +60,8 @@ function harness({ width = 1024, reduced = false, ratio = 1 } = {}) {
     time = end;
   }
   return { scene, canvas, document, media, observers, selections, advance,
+    get background() { return background; },
+    theme(nextScheme, nextSurface) { scheme = nextScheme; surface = nextSurface; themeObservers.filter(item => item.connected).forEach(item => item.callback()); },
     art: context.window.WorkspaceMonitorArt, layout: context.window.WorkspaceMonitorScene.layout,
     createScene: target => context.window.WorkspaceMonitorScene.create({ canvas: target }),
     get draws() { return draws; }, get text() { return glyphs.map(value => value.text).join(''); },
@@ -67,6 +77,19 @@ function harness({ width = 1024, reduced = false, ratio = 1 } = {}) {
 const agent = (id = 'a', status = 'unknown') => ({ id, label: '同名 Agent', provider: 'Codex', status, taskId: 't', taskTitle: '真实事项', evidence: '执行记录' });
 const view = (agents = [agent()], flows = []) => ({ agents, tasks: [{ id: 't', title: '真实事项', state: 'doing' }], flows, stale: false, notice: '' });
 const flow = id => ({ id, taskId: 't', label: '真实事项', from: '$tasks', to: 'a' });
+
+test('canvas follows its host surface theme without replacing the scene or scheduling hidden work', () => {
+  const h = harness({ scheme: 'light', surface: '#ffffff' });
+  h.scene.update(view([])); h.scene.setActive(true);
+  assert.equal(h.background, '#ffffff');
+  h.theme('dark', '#0a0a0a');
+  assert.equal(h.background, '#0a0a0a');
+  h.scene.setActive(false); const before = h.draws;
+  h.theme('light', '#ffffff'); assert.equal(h.draws, before);
+  h.scene.setActive(true); assert.equal(h.background, '#ffffff');
+  h.scene.destroy(); const last = h.draws;
+  h.theme('dark', '#0a0a0a'); assert.equal(h.draws, last);
+});
 
 test('upstream poses, monitor rhythm, identities and both complete notices remain available', () => {
   const { art } = harness();

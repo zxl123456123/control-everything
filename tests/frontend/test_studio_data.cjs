@@ -53,14 +53,15 @@ test('product page loads real management modules and has no iframe pairing contr
   assert.doesNotMatch(html, /iframe|orca-surface|orca-client-url/);
 });
 
-function studioFixture({ savedCreatorUrl = null, monitorAvailable = true } = {}) {
+function studioFixture({ savedCreatorUrl = null, monitorAvailable = true, unified = false } = {}) {
   const nodes = new Map();
   for (const id of ['ce-studio', 'studio-content', 'studio-status', 'studio-tasks', 'studio-agent-board', 'studio-monitor', 'studio-monitor-content', 'studio-rail', 'studio-topbar']) {
     nodes.set(id, { dataset: {}, innerHTML: '', textContent: '', hidden: false, listeners: {},
       addEventListener(name, callback) { this.listeners[name] = callback; }, classList: { remove() {}, add() {} } });
   }
   const creatorInput = { value: '', focus() {} }, writes = [], removed = [], mounts = [], monitorCalls = [];
-  nodes.get('ce-studio').querySelector = selector => selector === '[data-creator-url]' ? creatorInput : null;
+  if (unified) { nodes.get('ce-studio').dataset.unified = 'true'; nodes.get('ce-studio').dataset.theme = 'dark'; }
+  nodes.get('ce-studio').querySelector = selector => selector === '[data-creator-url]' ? creatorInput : nodes.get(selector.slice(1));
   Object.defineProperty(nodes.get('ce-studio'), 'innerHTML', { set() { throw new Error('Do not replace the stable shell'); } });
   let failed = false, updates = 0, editorMounts = 0;
   const snapshot = { workspace: { projects: { items: [{ id: 'server-project', name: '<Real project>', directories: [{ path: 'C:/example/fixture' }] }] } }, agents: [], items: [] };
@@ -86,6 +87,7 @@ function studioFixture({ savedCreatorUrl = null, monitorAvailable = true } = {})
     fail() { failed = true; }, flush,
     async route(value) { location.hash = '#' + value; callbacks.hashchange(); await flush(); },
     submit(value) { creatorInput.value = value; nodes.get('ce-studio').listeners.submit({ preventDefault() {}, target: { dataset: { creatorForm: 'true' } } }); },
+    openProject(id) { nodes.get('ce-studio').listeners.click({ target: { closest: selector => selector === '[data-open-project]' ? { dataset: { openProject: id } } : null } }); },
     click(action) { nodes.get('ce-studio').listeners.click({ target: { closest: selector => selector === '[data-action]' ? { dataset: { action } } : null } }); }
   };
 }
@@ -161,4 +163,35 @@ test('missing monitoring module is an honest unavailable state', async () => {
   const f = studioFixture({ monitorAvailable: false }); await f.flush(); await f.route('project/server-project/monitor');
   assert.match(f.nodes.get('studio-monitor-content').textContent, /监控资源尚未就绪/);
   assert.equal(f.mounts.length, 0); assert.equal(f.nodes.get('studio-agent-board').hidden, true);
+});
+
+test('outer navigation shows projects only and legacy task routes retain their business modules', async () => {
+  const f = studioFixture(); await f.flush();
+  assert.match(f.nodes.get('studio-rail').innerHTML, />项目<\/a>/);
+  assert.doesNotMatch(f.nodes.get('studio-rail').innerHTML, /事项收件箱|全部事项|待处理/);
+  assert.doesNotMatch(f.nodes.get('studio-content').innerHTML, /事项收件箱|需要你确认|ce-home-lower/);
+  await f.route('attention');
+  assert.match(f.nodes.get('studio-content').innerHTML, /事项收件箱/);
+  assert.equal(f.nodes.get('studio-agent-board').hidden, false);
+  await f.route('project/server-project/tasks');
+  assert.match(f.nodes.get('studio-content').innerHTML, /项目事项/);
+  await f.route('project/server-project/workspace');
+  assert.equal(f.nodes.get('studio-agent-board').hidden, true);
+  await f.route('project/server-project/review');
+  assert.match(f.nodes.get('studio-content').innerHTML, /验收与确认/);
+  await f.route('inbox/manage');
+  assert.match(f.nodes.get('studio-content').innerHTML, /编辑事项/);
+  assert.equal(f.nodes.get('studio-tasks').hidden, false);
+  assert.equal(f.nodes.get('studio-agent-board').hidden, true);
+  assert.equal(f.editorMounts(), 2);
+});
+
+test('unified project opens as a view action and retains the developer theme', async () => {
+  const f = studioFixture({ unified: true }); await f.flush();
+  assert.match(f.nodes.get('studio-content').innerHTML, /<button[^>]+data-open-project="server-project"/);
+  assert.equal(f.nodes.get('ce-studio').dataset.theme, 'dark');
+  f.openProject('server-project');
+  assert.equal(f.location.pathname, '/studio');
+  assert.equal(f.location.hash, '#project/server-project/workspace');
+  assert.equal(f.editorMounts(), 2);
 });

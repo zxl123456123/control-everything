@@ -680,6 +680,20 @@ test('a late approval notification cannot open a task outside the newly selected
   await loading; assert.equal(f.node('ab-detail').open, false); assert.equal(f.posts.length, 0);
 });
 
+test('a late approval notification never opens a dialog after its business surface is hidden', async () => {
+  let resolve;
+  const row = item('hidden-task', { state: 'doing', assignment_state: 'waiting_user' });
+  const f = fixture({ rows: [row], execution: { createTaskApprovals() {} }, read: async url => {
+    if (url === '/api/workspace/execution') return { active: [{ id: 'exec-hidden', task_id: row.id, state: 'waiting_approval' }] };
+    if (url.includes('/execution/runs/')) return new Promise(done => { resolve = done; });
+  } });
+  const loading = f.api.load(); await new Promise(setImmediate); f.root.hidden = true;
+  resolve({ run: { id: 'exec-hidden', task_id: row.id }, approvals: [{ id: 'approval-hidden', status: 'pending' }] });
+  await loading;
+  assert.equal(f.node('ab-detail').open, false);
+  assert.equal(f.posts.length, 0);
+});
+
 for (const adapter of ['codex', 'dsh']) test(`${adapter} auto execution without a project cannot silently save an unstarted todo`, async () => {
   const f = fixture({ agents: [{ ...agent, adapter }] }); await f.api.load();
   f.root.all.find(node => node.textContent === '＋ 新建待办').listeners.click();

@@ -325,3 +325,22 @@ body:has(#ce-studio){margin:0;background:#f7f7f5}
 #ce-studio .monitor-fact{color:var(--ce-sub)}
 #ce-studio .monitor-status{color:var(--ce-green)}
 #ce-studio .monitor-warning{color:var(--ce-amber)}
+#ce-studio[data-unified="true"]{min-height:100%;height:auto}
+#ce-studio[data-unified="true"]{--ce-bg:var(--platform-bg);--ce-panel:var(--platform-panel);--ce-text:var(--platform-text);--ce-sub:var(--platform-sub);--ce-soft:var(--platform-soft);--ce-faint:var(--platform-line);--ce-line:var(--platform-line);--ce-hover:var(--platform-hover);--ce-primary:var(--platform-primary);--ce-on-primary:var(--platform-on-primary)}
+#ce-studio[data-unified="true"] [data-action="theme"]{display:none}
+#ce-studio .monitor-stage{background:var(--ce-bg);border-color:var(--ce-line)}
+#ce-studio .monitor-task{border-color:var(--ce-line)}
+#ce-studio .monitor-event pre{background:var(--ce-soft);color:var(--ce-text)}
+#ce-studio .monitor-stage canvas{--monitor-bg:var(--ce-bg);--monitor-panel:var(--ce-panel);--monitor-ink:var(--ce-text);--monitor-soft:var(--ce-sub)}
+#ce-studio[data-unified="true"] .ce-shell{min-height:100%}
+#ce-studio[data-unified="true"][data-project-surface="true"] .ce-shell{display:block}
+#ce-studio[data-unified="true"][data-project-surface="true"] .ce-rail,
+#ce-studio[data-unified="true"][data-project-surface="true"] #studio-topbar{display:none}
+#ce-studio[data-unified="true"][data-project-surface="true"] .ce-content{padding-top:24px}
+#ce-studio .ce-tabs a[aria-current="page"]{color:var(--ce-text);border-bottom:2px solid var(--ce-primary);font-weight:500}
+#ce-studio .ce-tabs{margin-bottom:20px}
+#ce-studio[data-unified="true"] #ab-project-tabs,
+#ce-studio[data-unified="true"] #studio-agent-board>.section-heading>h2{display:none}
+#ce-studio .ce-business-module .button{color:var(--ce-text);background:var(--ce-panel)}
+#ce-studio .ce-business-module .button.primary{color:var(--ce-on-primary);background:var(--ce-primary)}
+#ce-studio[data-unified="true"][data-project-surface="true"] #studio-agent-board [data-action="manage-items"]{display:none}
