@@ -32,7 +32,9 @@ const testState = vi.hoisted(() => ({
   isRemoteRuntimePtyId: vi.fn(),
   sendRuntimePtyInputVerified: vi.fn(),
   inspectRuntimeTerminalProcess: vi.fn(),
-  subscribeToRuntimeTerminalData: vi.fn()
+  subscribeToRuntimeTerminalData: vi.fn(),
+  getRemoteRuntimePtyOwner: vi.fn(),
+  callRuntimeRpc: vi.fn()
 }))
 
 vi.mock('@/store', () => ({
@@ -69,7 +71,11 @@ vi.mock('@/runtime/runtime-terminal-verified-input', () => ({
 }))
 
 vi.mock('@/runtime/runtime-terminal-stream', () => ({
-  subscribeToRuntimeTerminalData: testState.subscribeToRuntimeTerminalData
+  subscribeToRuntimeTerminalData: testState.subscribeToRuntimeTerminalData,
+  getRemoteRuntimePtyOwner: testState.getRemoteRuntimePtyOwner
+}))
+vi.mock('@/runtime/runtime-rpc-client', () => ({
+  callRuntimeRpc: testState.callRuntimeRpc
 }))
 
 const DECSET_BRACKETED_PASTE = '\x1b[?2004h'
@@ -114,6 +120,12 @@ describe('pasteDraftWhenAgentReady', () => {
       hasChildProcesses: false
     })
     testState.subscribeToRuntimeTerminalData.mockReset()
+    testState.getRemoteRuntimePtyOwner.mockReset()
+    testState.getRemoteRuntimePtyOwner.mockReturnValue({
+      target: { kind: 'environment', environmentId: 'task-host' },
+      terminal: 'term-task-launch'
+    })
+    testState.callRuntimeRpc.mockReset()
   })
 
   afterEach(() => {
@@ -152,6 +164,93 @@ describe('pasteDraftWhenAgentReady', () => {
       }
     }
   )
+
+  it.each(['trust', 'unsatisfied', 'exited', 'timeout', 'missing-owner'])(
+    'refuses strict delivery after Claude quiet readiness when the host reports %s',
+    async (failure) => {
+      const unconfirmed = vi.fn()
+      if (failure === 'missing-owner') testState.getRemoteRuntimePtyOwner.mockReturnValue(null)
+      if (failure === 'timeout') testState.callRuntimeRpc.mockRejectedValue(new Error('timeout'))
+      else
+        testState.callRuntimeRpc.mockResolvedValue({
+          wait: {
+            status: failure === 'exited' ? 'exited' : 'running',
+            satisfied: failure === 'exited',
+            ...(failure === 'trust' ? { blockedReason: 'agent-trust-workspace' } : {})
+          }
+        })
+      const promise = pasteDraftWhenAgentReady({
+        tabId: 'tab-1',
+        content: 'Task details',
+        agent: 'claude',
+        forcePaste: true,
+        submit: true,
+        timeoutMs: 4000,
+        allowUnconfirmedDelivery: false,
+        onUnconfirmedDelivery: unconfirmed
+      })
+      await flushMicrotasks()
+      testState.ptyObserver?.(`${DECSET_BRACKETED_PASTE}Do you trust this folder?\r\n> No, exit`)
+      await vi.advanceTimersByTimeAsync(2000)
+      await expect(promise).resolves.toBe(false)
+      expect(testState.getRemoteRuntimePtyOwner).toHaveBeenCalledWith('pty-1')
+      if (failure === 'missing-owner') expect(testState.callRuntimeRpc).not.toHaveBeenCalled()
+      else {
+        expect(testState.callRuntimeRpc).toHaveBeenCalledExactlyOnceWith(
+          { kind: 'environment', environmentId: 'task-host' },
+          'terminal.wait',
+          { terminal: 'term-task-launch', for: 'tui-idle', timeoutMs: 4000 },
+          { timeoutMs: 4000 }
+        )
+      }
+      expect(unconfirmed).toHaveBeenCalledOnce()
+      expect(testState.sendRuntimePtyInputVerified).not.toHaveBeenCalled()
+      expect(vi.getTimerCount()).toBe(0)
+    }
+  )
+
+  it('waits for the exact host before strict input and leaves ordinary quiet delivery unchanged', async () => {
+    let answerHost!: (value: unknown) => void
+    testState.callRuntimeRpc.mockImplementation(
+      () => new Promise((resolve) => (answerHost = resolve))
+    )
+    const promise = pasteDraftWhenAgentReady({
+      tabId: 'tab-1',
+      content: ISSUE_URL,
+      agent: 'claude',
+      forcePaste: true,
+      submit: true,
+      timeoutMs: 4000,
+      allowUnconfirmedDelivery: false
+    })
+    await flushMicrotasks()
+    testState.ptyObserver?.(DECSET_BRACKETED_PASTE)
+    await vi.advanceTimersByTimeAsync(1500)
+    expect(testState.sendRuntimePtyInputVerified).not.toHaveBeenCalled()
+    answerHost({ wait: { status: 'running', satisfied: true } })
+    await vi.advanceTimersByTimeAsync(POST_PASTE_SUBMIT_DELAY_MS)
+    await expect(promise).resolves.toBe(true)
+    expect(testState.sendRuntimePtyInputVerified).toHaveBeenNthCalledWith(
+      1,
+      'pty-1',
+      PASTED_ISSUE_URL
+    )
+    expect(testState.sendRuntimePtyInputVerified).toHaveBeenNthCalledWith(2, 'pty-1', '\r')
+    testState.callRuntimeRpc.mockClear()
+    const ordinary = pasteDraftWhenAgentReady({
+      tabId: 'tab-1',
+      content: ISSUE_URL,
+      agent: 'claude',
+      forcePaste: true,
+      submit: true,
+      timeoutMs: 4000
+    })
+    await flushMicrotasks()
+    testState.ptyObserver?.(DECSET_BRACKETED_PASTE)
+    await vi.advanceTimersByTimeAsync(1500 + POST_PASTE_SUBMIT_DELAY_MS)
+    await expect(ordinary).resolves.toBe(true)
+    expect(testState.callRuntimeRpc).not.toHaveBeenCalled()
+  })
 
   it('pastes into Codex as soon as its composer prompt renders after bracketed paste is enabled', async () => {
     const promise = pasteDraftWhenAgentReady({

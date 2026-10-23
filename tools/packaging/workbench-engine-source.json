@@ -327023,13 +327023,13 @@
     {
       "path": "src/renderer/src/lib/agent-paste-draft.test.ts",
       "upstream_sha256": "b1c8cb972438b25463df94cffe9d663d7655eb5e8e42d1ea3af9666cbf8ffcfb",
-      "current_sha256": "173a63f30297b18e3991ff127a244975e3bbc251e53d92b1de060807311c6765",
+      "current_sha256": "6a2564cd3430415bba99e84168a0f0ed60e42979d51c5ac01de64bc72a51cb91",
       "reason": "Unify project ownership, task editing and native Agent activity in the integrated workspace"
     },
     {
       "path": "src/renderer/src/lib/agent-paste-draft.ts",
       "upstream_sha256": "13f3173f8bec13c4b58b7bb0ceff5e0c485f5f8acc32434b22162f24b4571a86",
-      "current_sha256": "a258a15edf2739611dc16b6a5a8d12f6cd1a37e685709171c609f9cc22271d60",
+      "current_sha256": "f5655a48790e6614df36cd1918f428196baf59494f36e255a9e8e9cb364c602e",
       "reason": "Unify project ownership, task editing and native Agent activity in the integrated workspace"
     },
     {

@@ -17,6 +17,9 @@ import { sendAgentDraftPasteContentNow } from './agent-draft-paste-content'
 import { agentDeliversDraftViaNativePrefill } from './agent-native-draft-prefill'
 import { waitForAgentDraftInputReady } from './agent-draft-readiness'
 import { isExpectedAgentProcess } from '../../../shared/agent-process-recognition'
+import type { RuntimeTerminalWait } from '../../../shared/runtime-types'
+import { getRemoteRuntimePtyOwner } from '@/runtime/runtime-terminal-stream'
+import { callRuntimeRpc } from '@/runtime/runtime-rpc-client'
 export {
   AGENT_DRAFT_PASTE_CHUNK_MAX_BYTES,
   AGENT_DRAFT_PASTE_DIRECT_MAX_BYTES,
@@ -66,7 +69,7 @@ export async function pasteDraftWhenAgentReady(args: {
   timeoutMs?: number
   onTimeout?: () => void
   onUnconfirmedDelivery?: () => void
-  /** False requires the existing input-readiness signal; process presence alone cannot authorize a paste. */
+  /** False requires host confirmation before input and never uses process-only fallback. */
   allowUnconfirmedDelivery?: boolean
   /** The launch pane's PTY once its spawn says the agent started there; null when it didn't. */
   launchPty?: Promise<string | null>
@@ -127,6 +130,30 @@ export async function pasteDraftWhenAgentReady(args: {
     // budget expired mid-startup, #22479). Callers must be able to tell this blind write apart
     // from a real delivery.
     onUnconfirmedDelivery?.()
+  }
+
+  if (args.allowUnconfirmedDelivery === false) {
+    // A quiet renderer stream also settles over trust dialogs. The host's existing wait reads
+    // the rendered screen and its blockers; only this PTY's owner can confirm it accepts input.
+    const owner = getRemoteRuntimePtyOwner(ptyId)
+    let hostReady = false
+    if (owner) {
+      try {
+        const { wait } = await callRuntimeRpc<{ wait: RuntimeTerminalWait }>(
+          owner.target,
+          'terminal.wait',
+          { terminal: owner.terminal, for: 'tui-idle', timeoutMs: readinessTimeoutMs },
+          { timeoutMs: readinessTimeoutMs }
+        )
+        hostReady = wait.status === 'running' && wait.satisfied === true && !wait.blockedReason
+      } catch {
+        // An unavailable host cannot confirm the composer; do not write or retry.
+      }
+    }
+    if (!hostReady) {
+      onUnconfirmedDelivery?.()
+      return false
+    }
   }
 
   return await sendBracketedPasteToAgent({
