@@ -83,6 +83,8 @@ export function NewWorkspaceComposerProjectSection({
   connectButtonLabel,
   selectedProjectName
 }: NewWorkspaceComposerProjectSectionProps): React.JSX.Element {
+  // Integrated Studio registers projects from its project overview.
+  const allowProjectRegistration = !document.documentElement.hasAttribute('data-platform-view')
   return (
     <fieldset disabled={disabled} className="space-y-1">
       <div className="space-y-1">
@@ -91,7 +93,7 @@ export function NewWorkspaceComposerProjectSection({
             {projectLabel ??
               translate('auto.components.NewWorkspaceComposerCard.969a8bff66', 'Project')}
           </label>
-          {showAddProjectButton ? (
+          {showAddProjectButton && allowProjectRegistration ? (
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
@@ -120,7 +122,7 @@ export function NewWorkspaceComposerProjectSection({
             value={selectedProjectId}
             onValueChange={onProjectChange}
             onValueSelected={focusNameInput}
-            onAddProject={onAddProject}
+            onAddProject={allowProjectRegistration ? onAddProject : undefined}
             placeholder={
               projectPlaceholder ??
               translate('auto.components.NewWorkspaceComposerCard.dccd26d4e4', 'Choose project')

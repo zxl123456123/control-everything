@@ -25,6 +25,7 @@ function AddProjectButton({
           type="button"
           className="text-muted-foreground"
           aria-label={label}
+          data-project-registration-entry=""
           data-workspace-board-preserve-open={preserveWorkspaceBoardOpen ? '' : undefined}
           onClick={() => openModal('add-repo')}
         >

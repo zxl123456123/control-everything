@@ -340,11 +340,14 @@ const SidebarFilter = React.memo(function SidebarFilter({
           </>
         )}
 
-        <DropdownMenuSeparator />
-        {/* Why: "Add project" stays visible regardless of project count so users
+        <DropdownMenuSeparator data-project-registration-entry={!hasAnyFilter ? '' : undefined} />
+        {/* Why: "Add project" stays visible in the standalone client regardless of project count so users
             can recover from the 0/1-project state where the project section is
             hidden. Reset sits beside it only when a filter is active. */}
-        <div className="flex items-center justify-between gap-1 px-1 py-1">
+        <div
+          className="flex items-center justify-between gap-1 px-1 py-1"
+          data-project-registration-entry={!hasAnyFilter ? '' : undefined}
+        >
           {hasAnyFilter ? (
             <button
               type="button"
@@ -359,6 +362,7 @@ const SidebarFilter = React.memo(function SidebarFilter({
           <button
             type="button"
             onClick={() => addRepo()}
+            data-project-registration-entry=""
             className="inline-flex items-center gap-1.5 rounded-[5px] px-2 py-1 text-[11px] text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
           >
             <FolderPlus className="size-3.5" />

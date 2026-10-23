@@ -326845,6 +326845,12 @@
       "reason": "M1a-W: platform mobile status does not mount upstream pairing effects; M1a navigation: preserve a single project workspace while integrating platform business views"
     },
     {
+      "path": "src/renderer/src/components/new-workspace/NewWorkspaceComposerProjectSection.tsx",
+      "upstream_sha256": "52018013bc22b3bfd286e3365915a1a0f752cede231aeea926af1dbb6d3e070e",
+      "current_sha256": "196cd58237b876d83a7e59dc75b7d7fcb1955861be346e3cfb96c5485d2b7b91",
+      "reason": "Keep project registration in the Studio overview and preserve workspace creation"
+    },
+    {
       "path": "src/renderer/src/components/settings/MobileSettingsPane.tsx",
       "upstream_sha256": "d2fc14224af0c98d0c879439f98c57b85ce39a5400032c4e63bf40379dc2f165",
       "current_sha256": "6409eb33a4a2bb566f79e89e0dda144d65f1767118738c00acf74fc984d71afa",
@@ -326861,6 +326867,12 @@
       "upstream_sha256": "498e4903182316cc6fb1c82870fd4d03d82f9bb9968ec06390dc03c86e339005",
       "current_sha256": "78d87977127360f409ba49fa33c5da8ab9fa46d635035d14a36455bfaaf8ee96",
       "reason": "M1a navigation: preserve a single project workspace while integrating platform business views"
+    },
+    {
+      "path": "src/renderer/src/components/sidebar/SidebarFilter.tsx",
+      "upstream_sha256": "7bae553e386d7e38ba7df381941fce185b1af37619459157ff6c9936ce2d81c3",
+      "current_sha256": "ba4ec709730d17674bd6fd6561103940b87f1817d2d66aacc79e1b1ebce85539",
+      "reason": "Keep project registration in the Studio overview and preserve workspace creation"
     },
     {
       "path": "src/renderer/src/components/sidebar/SidebarNav.test.tsx",
@@ -326885,6 +326897,12 @@
       "upstream_sha256": "8f35317e72bfc9f11179dd74dc2af60e29f055ee1da99f84607f103e0823c215",
       "current_sha256": "06d1a38026d7c3857faced7b75da68a8ec7fd1e04a4d852a65ed4eec33afeb1d",
       "reason": "M1a-W: platform help without official service entrances; preserve license attribution; M1a navigation: preserve a single project workspace while integrating platform business views"
+    },
+    {
+      "path": "src/renderer/src/components/sidebar/sidebar-header-actions.tsx",
+      "upstream_sha256": "6e45c500d9870974c6868c8f60e1743c45150a8415cea9efd0e61513f347798a",
+      "current_sha256": "b17d05517c257f8866b436d135425ce0b8c615ac39bd3a16c6b62c30a1255153",
+      "reason": "Keep project registration in the Studio overview and preserve workspace creation"
     },
     {
       "path": "src/renderer/src/components/ui/dialog.tsx",
