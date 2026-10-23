@@ -326757,6 +326757,7 @@
     "src/renderer/src/web/platform-project-selection.test.tsx",
     "src/renderer/src/web/platform-route.test.ts",
     "src/renderer/src/web/platform-route.ts",
+    "src/renderer/src/web/platform-studio-surface.test.tsx",
     "src/renderer/src/web/platform-studio-surface.tsx",
     "src/renderer/src/web/preload-api/web-runtime-credentials.test.ts",
     "src/renderer/src/web/preload-api/web-wsl-host-unavailable.test.ts"
@@ -326945,7 +326946,7 @@
     {
       "path": "src/renderer/src/components/sidebar/SidebarHeader.test.tsx",
       "upstream_sha256": "84782ef2660c58949ecd9d38e53e7341fb5c17dc8d09a284bd7261ae1685f652",
-      "current_sha256": "2730a2945bf51321f88ebbcfcebf8aac8e32013b1015d8578885605c45ec2caf",
+      "current_sha256": "9ab771c9d0b3ae8780495ef8ab45eda4ada9b91ed2f640694596e9a2e13dcaad",
       "reason": "Unify project ownership, task editing and native Agent activity in the integrated workspace"
     },
     {
@@ -326975,13 +326976,13 @@
     {
       "path": "src/renderer/src/components/sidebar/sidebar-header-actions.tsx",
       "upstream_sha256": "6e45c500d9870974c6868c8f60e1743c45150a8415cea9efd0e61513f347798a",
-      "current_sha256": "84b5790b920fcfb738e806475cd17ff7d58164edfe448f8ae80fd0a2a049361b",
+      "current_sha256": "e89e4acc6785c96fa7275c7aa2f9c2aaf264768ee51b76bfdcab7c0525ad92f3",
       "reason": "Keep project registration in the Studio overview and preserve workspace creation; Unify project ownership, task editing and native Agent activity in the integrated workspace"
     },
     {
       "path": "src/renderer/src/components/sidebar/worktree-list/rows/repo-header-project-actions.tsx",
       "upstream_sha256": "f87de2c55e0c16983bb17c95d2606ac2c1b1666f68b1c036ac8e0f427077d8f6",
-      "current_sha256": "8f538aebf50dbe3a5ab556e1f77aca8ef260da93d780f4e194ec13fae4a7b39b",
+      "current_sha256": "d5016a4d1a8778b31f0d8489d9a9aec68c6d1955da014e2856995da8ca3062c2",
       "reason": "Unify project ownership, task editing and native Agent activity in the integrated workspace"
     },
     {
@@ -327107,8 +327108,8 @@
     {
       "path": "src/renderer/src/web/main.tsx",
       "upstream_sha256": "15dfb0a6b72637f667f480272f8459140ac81aa024ae30eabddef3a689030004",
-      "current_sha256": "f92bfa7fe617207d668ccca7e9ff465d8480c505b5d661fea63dae3336c3ee6a",
-      "reason": "M1a-W: protected platform entry with original complete App; M1a navigation: preserve a single project workspace while integrating platform business views"
+      "current_sha256": "9c1f7f2c289ea718f2749fa0d303240817f3736c18ea54e64a21641391a9b7ac",
+      "reason": "M1a-W: protected platform entry with original complete App; M1a navigation: preserve a single project workspace while integrating platform business views; Unify project ownership, task editing and native Agent activity in the integrated workspace"
     },
     {
       "path": "src/renderer/src/web/preload-api/web-app-api.ts",

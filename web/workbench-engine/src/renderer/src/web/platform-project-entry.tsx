@@ -17,6 +17,11 @@ const App = lazy(() => import('../App'))
 const PlatformNavigation = lazy(() => import('./platform-project-navigation-view'))
 const PlatformAgentBridge = lazy(() => import('./platform-agent-bridge'))
 
+function WorkspaceMounted({ onReady }: { onReady: () => void }): null {
+  useLayoutEffect(onReady, [onReady])
+  return null
+}
+
 export default function PlatformProjectEntry(): React.JSX.Element {
   const [data, setData] = useState<PlatformProjectBootstrap | null>(null)
   const [error, setError] = useState('')
@@ -29,6 +34,8 @@ export default function PlatformProjectEntry(): React.JSX.Element {
   const latestProjects = useRef<PlatformProject[]>([])
   const [projectsReady, setProjectsReady] = useState(false)
   const [readyData, setReadyData] = useState<PlatformProjectBootstrap | null>(null)
+  const [appMounted, setAppMounted] = useState(false)
+  const onAppMounted = useCallback(() => setAppMounted(true), [])
   const environment = useRef('')
   const endpoint = useRef('')
   const [unlinkedWorkspace, setUnlinkedWorkspace] = useState(false)
@@ -83,6 +90,7 @@ export default function PlatformProjectEntry(): React.JSX.Element {
     cache.current.get(projectId)?.project.directory === chosen.directory &&
     !error
   )
+  const showWorkspace = developing && connected && appMounted
   useEffect(() => {
     const changed = () => {
       const next = readPlatformRoute(window.location)
@@ -125,13 +133,13 @@ export default function PlatformProjectEntry(): React.JSX.Element {
     return () => window.removeEventListener('hashchange', changed)
   }, [])
   useLayoutEffect(() => {
-    document.documentElement.dataset.platformView = developing && connected ? 'workspace' : 'studio'
+    document.documentElement.dataset.platformView = showWorkspace ? 'workspace' : 'studio'
     window.dispatchEvent(new Event('platform-surface-change'))
     return () => {
       delete document.documentElement.dataset.platformView
     }
-  }, [developing, connected])
-  useEffect(() => {
+  }, [showWorkspace])
+  useLayoutEffect(() => {
     if (!projectId || !projectsReady) return
     if (!chosen) {
       setError('项目已归档或不存在，请返回项目总览。')
@@ -146,6 +154,7 @@ export default function PlatformProjectEntry(): React.JSX.Element {
     }
     const requestedProject = { ...chosen }
     const isCurrentProject = () =>
+      readPlatformRoute(window.location).id === projectId &&
       latestProjects.current.some(
         (project) =>
           project.id === requestedProject.id &&
@@ -196,7 +205,7 @@ export default function PlatformProjectEntry(): React.JSX.Element {
   }, [connected, chosen?.name])
   return (
     <div className="platform-project-entry bg-background">
-      {projectId && (
+      {projectId && (!developing || showWorkspace || error) && (
         <nav className="platform-project-tabs" aria-label="项目工作区导航">
           <a href="#home" className="platform-project-back">
             ‹ 项目
@@ -267,10 +276,15 @@ export default function PlatformProjectEntry(): React.JSX.Element {
           {navigationNotice}
         </p>
       )}
-      <PlatformStudioSurface hidden={developing} onProjects={onProjects} />
-      {developing && !connected && (
+      <PlatformStudioSurface hidden={showWorkspace} pending={developing && !showWorkspace && !error} onProjects={onProjects} />
+      {developing && !showWorkspace && !error && (
+        <div className="platform-navigation-notice" role="status">
+          正在打开{chosen?.name || '项目'}… <a href="#home">取消</a>
+        </div>
+      )}
+      {developing && !connected && error && (
         <div className="platform-surface-feedback" role={error ? 'alert' : 'status'}>
-          {error || '正在连接并恢复项目…'}
+          {error}
           {error && (
             <button
               type="button"
@@ -282,7 +296,7 @@ export default function PlatformProjectEntry(): React.JSX.Element {
               重试连接
             </button>
           )}
-          <a href="#home">返回项目</a>
+          {error && <a href="#home">返回项目</a>}
         </div>
       )}
       {data && (
@@ -291,6 +305,7 @@ export default function PlatformProjectEntry(): React.JSX.Element {
             data={data}
             projects={projects}
             active={developing && connected}
+            canCreateWorkspace={route.tab === 'workspace' && connected && readyData === data && !unlinkedWorkspace}
             surface={
               route.view === 'project' && route.tab === 'activity' ? 'activity' : 'workspace'
             }
@@ -302,14 +317,14 @@ export default function PlatformProjectEntry(): React.JSX.Element {
       )}
       <div
         className="platform-project-content"
-        hidden={!developing || !connected}
-        inert={!developing || !connected}
+        hidden={!showWorkspace}
+        inert={!showWorkspace}
       >
         <PlatformProjectContext.Provider
           value={connected && readyData === data && !unlinkedWorkspace ? data : null}
         >
-          <Suspense fallback={<div className="p-6">正在恢复工作区…</div>}>
-            {data && <App />}
+          <Suspense fallback={null}>
+            {data && <><App /><WorkspaceMounted onReady={onAppMounted} /></>}
           </Suspense>
         </PlatformProjectContext.Provider>
       </div>

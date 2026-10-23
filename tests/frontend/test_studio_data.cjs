@@ -98,7 +98,7 @@ test('Studio preserves mounted editors on refresh and renders only server projec
   assert.match(f.nodes.get('studio-content').innerHTML, /project_id=server-project/);
   assert.doesNotMatch(f.nodes.get('studio-content').innerHTML, /Tank Frontline|local-session|iframe/);
   f.fail(); await f.route('home');
-  assert.equal(f.editorMounts(), 2); assert.equal(f.updates(), 1);
+  assert.equal(f.editorMounts(), 1); assert.equal(f.updates(), 0);
   assert.match(f.nodes.get('studio-status').textContent, /offline.*上次读取/);
   assert.match(f.nodes.get('studio-content').innerHTML, /&lt;Real project&gt;/);
 });
@@ -111,9 +111,9 @@ test('creator is an independent top-level and narrow-screen link without project
   assert.doesNotMatch(link, /data-action|data-route/);
   assert.match(f.nodes.get('studio-topbar').innerHTML, /ce-creator-mobile.*href="http:\/\/127\.0\.0\.1:8770\/"/);
   f.nodes.get('ce-studio').listeners.click({ target: { closest: () => null } });
-  assert.equal(f.location.hash, '#home'); assert.equal(f.editorMounts(), 2);
+  assert.equal(f.location.hash, '#home'); assert.equal(f.editorMounts(), 1);
   f.click('theme'); assert.equal(f.nodes.get('ce-studio').dataset.theme, 'dark');
-  assert.equal(f.editorMounts(), 2);
+  assert.equal(f.editorMounts(), 1);
 });
 
 test('creator URL writes one independent key and rejects all credential-bearing forms', async () => {
@@ -129,7 +129,7 @@ test('creator URL writes one independent key and rejects all credential-bearing 
     assert.match(f.nodes.get('studio-rail').innerHTML, /href="https:\/\/creator\.example\.test\/workbench\/"/);
   }
   assert.match(f.nodes.get('studio-topbar').innerHTML, /href="https:\/\/creator\.example\.test\/workbench\/"/);
-  assert.equal(f.editorMounts(), 2);
+  assert.equal(f.editorMounts(), 1);
 });
 
 test('invalid stored creator URLs are discarded without echoing token material', async () => {
@@ -149,14 +149,22 @@ test('project monitor reuses an instance, deactivates hidden views and destroys 
   await f.route('project/server-project/monitor'); assert.equal(f.mounts.length, 1);
   await f.route('home'); assert.deepEqual(f.monitorCalls.at(-1), ['server-project', 'active', false]);
   await f.route('project/server-project/monitor'); assert.equal(f.mounts.length, 1);
-  f.mounts[0].onTask('task'); assert.equal(f.location.hash, '#project/server-project/manage');
+  f.mounts[0].onTask('task'); assert.equal(f.location.hash, '#project/server-project/tasks');
   f.snapshot.workspace.projects.items.push({ id: 'second', name: 'Second' });
   await f.route('project/second/monitor');
   assert.ok(f.monitorCalls.some(row => row[0] === 'server-project' && row[1] === 'destroy'));
   assert.equal(f.mounts.length, 2); assert.equal(f.mounts[1].projectId, 'second');
   f.snapshot.workspace.projects.items = []; await f.route('project/second/monitor');
   assert.deepEqual(f.monitorCalls.at(-1), ['second', 'destroy']); assert.equal(f.nodes.get('studio-monitor').hidden, true);
-  assert.equal(f.editorMounts(), 2);
+  assert.equal(f.editorMounts(), 1);
+});
+
+test('unified navigation deactivates the retained monitor before native workspace handover', async () => {
+  const f = studioFixture({ unified: true }); await f.flush();
+  await f.route('project/server-project/monitor');
+  assert.deepEqual(f.monitorCalls.at(-1), ['server-project', 'active', true]);
+  await f.route('project/server-project/workspace');
+  assert.deepEqual(f.monitorCalls.at(-1), ['server-project', 'active', false]);
 });
 
 test('missing monitoring module is an honest unavailable state', async () => {
@@ -171,31 +179,33 @@ test('outer navigation shows projects only and legacy task routes retain their b
   assert.doesNotMatch(f.nodes.get('studio-rail').innerHTML, /事项收件箱|全部事项|待处理/);
   assert.doesNotMatch(f.nodes.get('studio-content').innerHTML, /事项收件箱|需要你确认|ce-home-lower/);
   await f.route('attention');
-  assert.match(f.nodes.get('studio-content').innerHTML, /事项收件箱/);
+  assert.match(f.nodes.get('studio-content').innerHTML, /<h1>事项<\/h1>/);
   assert.equal(f.nodes.get('studio-agent-board').hidden, false);
   await f.route('project/server-project/tasks');
-  assert.match(f.nodes.get('studio-content').innerHTML, /项目事项/);
+  assert.match(f.nodes.get('studio-content').innerHTML, /<h1>事项<\/h1>/);
   await f.route('project/server-project/workspace');
   assert.equal(f.nodes.get('studio-agent-board').hidden, true);
   await f.route('project/server-project/review');
-  assert.match(f.nodes.get('studio-content').innerHTML, /验收与确认/);
+  assert.match(f.nodes.get('studio-content').innerHTML, /aria-current="page">待验收/);
   await f.route('inbox/manage');
-  assert.match(f.nodes.get('studio-content').innerHTML, /编辑事项/);
-  assert.equal(f.nodes.get('studio-tasks').hidden, false);
-  assert.equal(f.nodes.get('studio-agent-board').hidden, true);
-  assert.equal(f.editorMounts(), 2);
+  assert.match(f.nodes.get('studio-content').innerHTML, /<h1>事项<\/h1>/);
+  assert.equal(f.nodes.get('studio-tasks').hidden, true);
+  assert.equal(f.nodes.get('studio-agent-board').hidden, false);
+  assert.equal(f.editorMounts(), 1);
 });
 
-test('unified project opens as a view action and retains the developer theme', async () => {
+test('unified project opens as a view action and retains the overview until the native surface takes over', async () => {
   const f = studioFixture({ unified: true }); await f.flush();
   assert.match(f.nodes.get('studio-content').innerHTML, /<button[^>]+data-open-project="server-project"/);
   assert.equal(f.nodes.get('ce-studio').dataset.theme, 'dark');
+  const overview = f.nodes.get('studio-content').innerHTML;
   f.openProject('server-project');
   assert.equal(f.location.pathname, '/studio');
   assert.equal(f.location.hash, '#project/server-project/workspace');
-  assert.equal(f.editorMounts(), 2);
+  assert.equal(f.editorMounts(), 1);
   f.location.search = '?project_id=server-project';
   await f.route('');
-  assert.equal(f.nodes.get('ce-studio').dataset.projectSurface, 'true');
+  assert.equal(f.nodes.get('ce-studio').dataset.projectSurface, 'false');
+  assert.equal(f.nodes.get('studio-content').innerHTML, overview);
   assert.equal(f.nodes.get('studio-agent-board').hidden, true);
 });

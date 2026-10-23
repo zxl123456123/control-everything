@@ -160,7 +160,17 @@ function mountStudio(root, { onProjects = () => {} } = {}) {
     monitor.setActive(true);
   }
   function render() {
-    const current = route(); renderChrome(current);
+    const current = route();
+    // The native surface takes over when ready; retain the previous page during preparation.
+    if (root.dataset.unified === 'true' && current.view === 'project' && ['workspace', 'activity'].includes(current.tab)) {
+      monitor?.setActive(false);
+      if (state.workspace && !content.innerHTML.trim()) {
+        renderChrome({ view: 'home', id: '', tab: 'workspace' });
+        root.dataset.projectSurface = 'false'; content.innerHTML = home();
+      }
+      return;
+    }
+    renderChrome(current);
     root.dataset.projectSurface = current.view === 'project' ? 'true' : 'false';
     const chosen = projects().find(p => p.id === current.id);
     const showBoard = current.view === 'inbox' || current.view === 'project' && ['tasks', 'review', 'attention'].includes(current.tab);

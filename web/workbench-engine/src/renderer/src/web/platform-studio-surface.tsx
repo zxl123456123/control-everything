@@ -25,24 +25,23 @@ const scripts = [
 let modules: Promise<void> | null = null
 function loadModules(): Promise<void> {
   if (!modules)
-    modules = scripts
-      .reduce(
-        (previous, src) =>
-          previous.then(
-            () =>
-              new Promise<void>((resolve, reject) => {
-                const script = document.createElement('script')
-                script.src = src
-                script.onload = () => resolve()
-                script.onerror = () => {
-                  script.remove()
-                  reject(new Error('工作台资源加载失败，请重新加载页面。'))
-                }
-                document.head.append(script)
-              })
-          ),
-        Promise.resolve()
+    modules = Promise.all(
+      scripts.map(
+        (src) =>
+          new Promise<void>((resolve, reject) => {
+            const script = document.createElement('script')
+            // Download together while preserving the existing dependency order.
+            script.async = false
+            script.src = src
+            script.onload = () => resolve()
+            script.onerror = () => {
+              script.remove()
+              reject(new Error('工作台资源加载失败，请重新加载页面。'))
+            }
+            document.head.append(script)
+          })
       )
+    ).then(() => undefined)
       .catch((error) => {
         modules = null
         throw error
@@ -52,9 +51,11 @@ function loadModules(): Promise<void> {
 
 export default function PlatformStudioSurface({
   hidden,
+  pending = false,
   onProjects
 }: {
   hidden: boolean
+  pending?: boolean
   onProjects: (projects: PlatformProject[]) => void
 }): React.JSX.Element {
   const host = useRef<HTMLDivElement>(null)
@@ -127,7 +128,7 @@ export default function PlatformStudioSurface({
     }
   }, [onProjects])
   return (
-    <section className="platform-studio-surface" hidden={hidden} aria-label="项目与事项">
+    <section className="platform-studio-surface" hidden={hidden} inert={pending && ready} aria-label="项目与事项">
       {!ready && (
         <div className="platform-surface-feedback" role={error ? 'alert' : 'status'}>
           {error || '正在打开项目工作台…'}

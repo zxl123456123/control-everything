@@ -132,7 +132,7 @@ afterEach(() => {
 })
 
 describe('SidebarHeader', () => {
-  it('labels the integrated workspace action and waits for a current project', () => {
+  it('opens shared project registration from the integrated top-level action', () => {
     act(() =>
       root.render(
         <PlatformProjectContext.Provider value={null}>
@@ -140,10 +140,12 @@ describe('SidebarHeader', () => {
         </PlatformProjectContext.Provider>
       )
     )
-    const button = headerButton('新建工作区')
-    expect(button.textContent).toBe('新建工作区')
-    expect(button.disabled).toBe(true)
+    const button = headerButton('新建项目')
+    expect(button.textContent).toBe('新建项目')
+    expect(button.disabled).toBe(false)
+    expect(button.hasAttribute('data-project-registration-entry')).toBe(false)
     act(() => button.click())
+    expect(mockState.openModal).toHaveBeenCalledWith('add-repo')
     expect(mocks.openWorkspaceCreationComposerWithTourHandoff).not.toHaveBeenCalled()
   })
   it('keeps New workspace clickable with zero projects, since the composer adds the first one', async () => {

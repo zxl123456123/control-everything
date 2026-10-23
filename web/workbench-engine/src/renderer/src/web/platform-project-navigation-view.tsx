@@ -15,6 +15,7 @@ export default function PlatformNavigation({
   data,
   projects,
   active,
+  canCreateWorkspace = false,
   surface = 'workspace',
   onSelection,
   onReady
@@ -22,6 +23,7 @@ export default function PlatformNavigation({
   data: PlatformProjectBootstrap
   projects: PlatformProject[]
   active: boolean
+  canCreateWorkspace?: boolean
   surface?: 'workspace' | 'activity'
   onSelection: (id: string | null) => void
   onReady?: (data: PlatformProjectBootstrap | null) => void
@@ -47,10 +49,52 @@ export default function PlatformNavigation({
   )
   const [notice, setNotice] = useState('正在恢复项目工作区…')
   const [catalogError, setCatalogError] = useState('')
+  const [pendingCreation, setPendingCreation] = useState<{ projectId: string; repoId: string } | null>(null)
   const project = projects.find((row) => row.id === data.project.id)
   const normalize = (value: string) => value.replaceAll('\\', '/').replace(/\/+$/, '').toLowerCase()
   const isProjectRepo = (repo: (typeof repos)[number]) =>
     Boolean(project?.directory && normalize(project.directory) === normalize(repo.path))
+
+  useEffect(() => {
+    const create = (event: Event) => {
+      if (!active) return
+      const { repoId, executionHostId } = (event as CustomEvent<{ repoId: string; executionHostId: string }>).detail ?? {}
+      const repo = useAppStore.getState().repos.find((row) => row.id === repoId &&
+        getRepoExecutionHostId(row) === executionHostId &&
+        getRepoExecutionHostId(row) === toRuntimeExecutionHostId(data.runtime.environmentId))
+      const selected = repo && projects.find((row) => row.directory && normalize(row.directory) === normalize(repo.path))
+      if (!repo || !selected) {
+        setCatalogError('请先将这个目录添加为项目。')
+        return
+      }
+      // Route before opening the modal so its existing project scope is the clicked row.
+      setPendingCreation({ projectId: selected.id, repoId: repo.id })
+      window.location.hash = projectRoute(selected.id)
+    }
+    window.addEventListener('platform-create-workspace', create)
+    return () => window.removeEventListener('platform-create-workspace', create)
+  }, [active, data.runtime.environmentId, projects])
+
+  useEffect(() => {
+    if (!pendingCreation) return
+    const stillRequested = () => {
+      const current = readPlatformRoute(window.location)
+      return current.id === pendingCreation.projectId && current.tab === 'workspace'
+    }
+    const cancelAfterNavigation = () => {
+      if (!stillRequested()) setPendingCreation(null)
+    }
+    window.addEventListener('hashchange', cancelAfterNavigation)
+    if (!stillRequested()) setPendingCreation(null)
+    else if (active && canCreateWorkspace && data.project.id === pendingCreation.projectId &&
+      data.target.repoId === pendingCreation.repoId) {
+      setPendingCreation(null)
+      useAppStore.getState().openModal('new-workspace-composer', {
+        initialRepoId: pendingCreation.repoId, telemetrySource: 'sidebar'
+      })
+    }
+    return () => window.removeEventListener('hashchange', cancelAfterNavigation)
+  }, [pendingCreation, active, canCreateWorkspace, data])
 
   useEffect(() => {
     if (

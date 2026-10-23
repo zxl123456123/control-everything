@@ -23,6 +23,14 @@ import { I18nProvider } from '../i18n/I18nProvider'
 import { translate } from '../i18n/i18n'
 import { installOsFileDropCancellationGuard } from '../lib/os-file-drop-cancellation-guard'
 import { installAppKeyboardRouter } from '../lib/app-keyboard-router'
+import { applyDocumentTheme, type DocumentThemePreference } from '../lib/document-theme'
+import { readJson, SETTINGS_STORAGE_KEY } from './preload-api/web-storage'
+
+// Use the same saved appearance before the project runtime and App finish loading.
+applyDocumentTheme(
+  readJson<{ theme: DocumentThemePreference }>(SETTINGS_STORAGE_KEY, { theme: 'system' }).theme,
+  { disableTransitions: false }
+)
 
 const disposeOsFileDropGuard = installOsFileDropCancellationGuard()
 import.meta.hot?.dispose(disposeOsFileDropGuard)

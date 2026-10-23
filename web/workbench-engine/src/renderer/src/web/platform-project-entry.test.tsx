@@ -45,12 +45,12 @@ vi.mock('./platform-agent-bridge', () => ({
   }
 }))
 vi.mock('./platform-studio-surface', () => ({
-  default: ({ onProjects }: { onProjects: (rows: PlatformProject[]) => void }) => {
+  default: ({ hidden, onProjects }: { hidden: boolean; onProjects: (rows: PlatformProject[]) => void }) => {
     useEffect(() => {
       fixture.projects = onProjects
       fixture.mounts()
     }, [onProjects])
-    return null
+    return <div data-testid="studio-surface" hidden={hidden}>Projects</div>
   }
 }))
 vi.mock('../App', () => ({
@@ -110,6 +110,35 @@ it('cannot revive an archived project with a late bootstrap response', async () 
   await act(async () => resolve(bootstrap()))
   expect(screen.queryByTestId('project-context')).toBeNull()
   expect(window.location.hash).toBe('#home')
+})
+
+it('retains the overview while preparing the workspace and reuses it on return', async () => {
+  let resolve!: (value: unknown) => void
+  fixture.load.mockReturnValue(new Promise((done) => { resolve = done }))
+  render(<PlatformProjectEntry />)
+  publish([project])
+  const overview = screen.getByTestId('studio-surface') as HTMLElement
+  expect(overview.hidden).toBe(false)
+  await act(async () => resolve(bootstrap()))
+  await waitFor(() => expect(overview.hidden).toBe(true))
+  const app = screen.getByTestId('project-context')
+  await act(async () => { window.location.hash = '#home' })
+  await waitFor(() => expect(overview.hidden).toBe(false))
+  await act(async () => { window.location.hash = '#project/p-one/workspace' })
+  await waitFor(() => expect(overview.hidden).toBe(true))
+  expect(screen.getByTestId('project-context')).toBe(app)
+  expect(fixture.load).toHaveBeenCalledTimes(1)
+})
+
+it('keeps the overview when project preparation is cancelled before bootstrap returns', async () => {
+  let resolve!: (value: unknown) => void
+  fixture.load.mockReturnValue(new Promise((done) => { resolve = done }))
+  render(<PlatformProjectEntry />)
+  publish([project])
+  await act(async () => { window.location.hash = '#home' })
+  await act(async () => resolve(bootstrap()))
+  expect((screen.getByTestId('studio-surface') as HTMLElement).hidden).toBe(false)
+  expect(screen.queryByTestId('project-context')).toBeNull()
 })
 
 it('keeps the app and pending agent bridge mounted across task and activity tabs', async () => {

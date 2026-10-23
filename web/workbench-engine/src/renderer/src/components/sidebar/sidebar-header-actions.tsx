@@ -15,22 +15,24 @@ function AddProjectButton({
   preserveWorkspaceBoardOpen: boolean
 }): React.JSX.Element {
   const openModal = useAppStore((s) => s.openModal)
-  const label = translate('auto.components.sidebar.SidebarHeader.addProject', 'Add project')
+  const platformMode = useContext(PlatformProjectContext) !== undefined
+  const label = platformMode ? '新建项目' : translate('auto.components.sidebar.SidebarHeader.addProject', 'Add project')
 
   return (
     <Tooltip>
       <TooltipTrigger asChild>
         <Button
           variant="ghost"
-          size="icon-xs"
+          size={platformMode ? 'xs' : 'icon-xs'}
           type="button"
           className="text-muted-foreground"
           aria-label={label}
-          data-project-registration-entry=""
+          data-project-registration-entry={platformMode ? undefined : ''}
           data-workspace-board-preserve-open={preserveWorkspaceBoardOpen ? '' : undefined}
           onClick={() => openModal('add-repo')}
         >
           <FolderPlus className="size-3.5" strokeWidth={2.25} />
+          {platformMode && <span>{label}</span>}
         </Button>
       </TooltipTrigger>
       <TooltipContent side="bottom" sideOffset={6}>
@@ -94,6 +96,7 @@ export function SidebarHeaderActions({
   onWorkspaceBoardMenuOpenChange: (open: boolean) => void
   agentsViewActive?: boolean
 }): React.JSX.Element {
+  const platformMode = useContext(PlatformProjectContext) !== undefined
   return (
     <div className="flex shrink-0 items-center gap-1" data-sidebar-header-actions="">
       {/* Why only options swap: the activity view portals its own options button into this slot
@@ -105,7 +108,7 @@ export function SidebarHeaderActions({
         />
       )}
       <AddProjectButton preserveWorkspaceBoardOpen />
-      <NewWorkspaceButton preserveWorkspaceBoardOpen />
+      {!platformMode && <NewWorkspaceButton preserveWorkspaceBoardOpen />}
     </div>
   )
 }

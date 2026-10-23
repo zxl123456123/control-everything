@@ -30,6 +30,7 @@ import { translate } from '@/i18n/i18n'
 import { getRepositoryIconSectionId } from '@/components/settings/repository-settings-targets'
 import type { ProjectGroup } from '../../../../../../shared/project-group-types'
 import type { Repo } from '../../../../../../shared/repo-types'
+import { getRepoExecutionHostId } from '../../../../../../shared/execution-host'
 import type { WorktreeVisibilityDefaults } from '../../../../../../shared/global-settings-types'
 import { isGitRepoKind } from '../../../../../../shared/repo-kind'
 import {
@@ -206,6 +207,7 @@ export function RepoHeaderCreateWorkspaceButton({
   createState: ReturnType<typeof getRepoHeaderCreateState> | null
   onCreateForRepo: (projectId: string) => void
 }): React.JSX.Element {
+  const platformMode = useContext(PlatformProjectContext) !== undefined
   const fallbackLabel = translate(
     'auto.components.sidebar.WorktreeList.bb85cd86ba',
     'Create workspace for {{value0}}',
@@ -251,7 +253,11 @@ export function RepoHeaderCreateWorkspaceButton({
             onClick={(event) => {
               event.preventDefault()
               event.stopPropagation()
-              onCreateForRepo(repo.id)
+              if (platformMode) {
+                window.dispatchEvent(new CustomEvent('platform-create-workspace', {
+                  detail: { repoId: repo.id, executionHostId: getRepoExecutionHostId(repo) }
+                }))
+              } else onCreateForRepo(repo.id)
             }}
           >
             <Plus className="size-3" />

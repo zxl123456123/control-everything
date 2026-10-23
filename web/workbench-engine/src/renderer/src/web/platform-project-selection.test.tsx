@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
-import { cleanup, render, waitFor } from '@testing-library/react'
+import { act, cleanup, render, waitFor } from '@testing-library/react'
 import type { PlatformProjectBootstrap } from './platform-project-bootstrap'
 import PlatformNavigation from './platform-project-navigation-view'
 
@@ -40,6 +40,7 @@ beforeEach(() => {
     },
     activeWorktreeId: 'main',
     activeView: 'terminal',
+    openModal: vi.fn(),
     openActivityPage: vi.fn(() => {
       fixture.state.activeView = 'activity'
     }),
@@ -61,6 +62,51 @@ beforeEach(() => {
 afterEach(() => {
   cleanup()
   vi.clearAllMocks()
+})
+
+it.each([false, true])('waits for the clicked project and respects navigation away: %s', (navigateAway) => {
+  window.history.replaceState(null, '', '/studio#project/p-one/workspace')
+  const second = { id: 'p-two', name: 'Two', directory: 'C:/example/navigation-two' }
+  fixture.state.repos.push({ id: 'repo-b', displayName: 'Two', path: second.directory, executionHostId: 'runtime:env-a' })
+  fixture.state.worktrees.b = [{ id: 'second-main', repoId: 'repo-b', runtimeOwnerEnvironmentId: 'env-a', isMainWorktree: true }]
+  const secondData = { ...data, project: { id: 'p-two', name: 'Two' }, target: { repoId: 'repo-b' } }
+  const allProjects = [...projects, second]
+  const ui = (target: PlatformProjectBootstrap, canCreateWorkspace: boolean) => (
+    <PlatformNavigation data={target} projects={allProjects} active canCreateWorkspace={canCreateWorkspace} onSelection={() => {}} />
+  )
+  const { rerender } = render(ui(data, true))
+  act(() => window.dispatchEvent(new CustomEvent('platform-create-workspace', {
+    detail: { repoId: 'repo-b', executionHostId: 'runtime:env-a' }
+  })))
+  expect(window.location.hash).toBe('#project/p-two/workspace')
+  expect(fixture.state.openModal).not.toHaveBeenCalled()
+  rerender(ui(data, false))
+  expect(fixture.state.openModal).not.toHaveBeenCalled()
+  if (navigateAway) {
+    act(() => {
+      window.history.replaceState(null, '', '/studio#home')
+      window.dispatchEvent(new HashChangeEvent('hashchange'))
+    })
+    window.history.replaceState(null, '', '/studio#project/p-two/workspace')
+  }
+  rerender(ui(secondData, true))
+  if (navigateAway) {
+    expect(fixture.state.openModal).not.toHaveBeenCalled()
+    return
+  }
+  expect(fixture.state.openModal).toHaveBeenCalledExactlyOnceWith('new-workspace-composer', {
+    initialRepoId: 'repo-b', telemetrySource: 'sidebar'
+  })
+})
+
+it('does not reinterpret a clicked row from another host as the local project', () => {
+  window.history.replaceState(null, '', '/studio#project/p-one/workspace')
+  render(<PlatformNavigation data={data} projects={projects} active canCreateWorkspace onSelection={() => {}} />)
+  act(() => window.dispatchEvent(new CustomEvent('platform-create-workspace', {
+    detail: { repoId: 'repo-a', executionHostId: 'runtime:other-host' }
+  })))
+  expect(fixture.state.openModal).not.toHaveBeenCalled()
+  expect(window.location.hash).toBe('#project/p-one/workspace')
 })
 
 it('clears the business project for a folder or missing worktree and restores an explicitly reselected target', () => {
