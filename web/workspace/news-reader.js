@@ -431,7 +431,7 @@
   function pointResearch(event) {
     if (!researchEngine || paused || !$('research-panel').open) return;
     const source = [...document.querySelectorAll('.research-source')].find(button => button.dataset.host === eventHost(event, true));
-    researchEngine.pointAt(source?.querySelector('.source-symbol') || $('research-host'), event.stage || '浏览');
+    researchEngine.pointAt(source?.querySelector('.source-name') || $('research-host'), event.stage || '浏览');
   }
   function eventHost(event, source = false) {
     try {
@@ -483,11 +483,18 @@
   }
   function acceptResearch(value, restoring = false) {
     if (!value || typeof value.job_id !== 'string' || !['running','complete','partial','failed'].includes(value.state)) throw new Error('本次采集状态不可用。');
+    const arriving = researchJob !== value.job_id || $('research-panel').dataset.state === 'running' || restoring;
     researchJob = value.job_id; appendResearchEvents(value.events); $('research-panel').dataset.state = value.state;
+    const events = [...researchData.values()], latest = events.at(-1);
+    const start = Date.parse(events[0]?.time), end = value.state === 'running' ? Date.now() : Date.parse(value.finished_at || latest?.time);
+    $('research-timing').textContent = Number.isFinite(start) && Number.isFinite(end) ? `${value.state === 'running' ? '已用' : '耗时'} ${Math.max(0, Math.round((end - start) / 1000))} 秒` : '';
+    $('research-frame-mode').textContent = value.state === 'running' ? '采集中 · 步骤截图' : '已结束 · 截图回放';
+    $('research-activity').textContent = value.state === 'running' ? latest?.message || '等待采集进展…' : '本次采集已结束。下方是步骤截图，可点来源回看；新内容在阅读室查看。';
     const labels = {running:'正在采集', complete:'采集完成', partial:'部分来源已采集', failed:'采集未完成'};
     $('research-state').textContent = labels[value.state];
     if (value.state === 'running') { setCollecting(true); clearTimeout(researchTimer); researchTimer = setTimeout(pollResearch, 1000); return; }
     clearTimeout(researchTimer); setCollecting(false);
+    if (arriving) { const extracted = events.findLast(event => event.stage === 'extract' && frameUrl(event.screenshot)); if (extracted) showResearchFrame(extracted); }
     if (value.result) { if (!restoring) applySnapshot(value.result, true, true); $('research-outcome').textContent = restoring ? '上次采集记录，可点选步骤与来源回看。' : value.state === 'partial' ? '可用内容已收集，部分来源受阻。' : '新内容已收集，阅读进度已保留。'; if (!restoring) notice($('research-outcome').textContent); }
     else { $('research-outcome').textContent = value.state === 'failed' ? '本次未取得可用信息，已有内容与阅读进度已保留。' : '本次没有新的可用信息，已有内容已保留。'; }
     if (value.error && typeof value.error === 'string') $('research-outcome').textContent += ` ${value.error}`;
@@ -533,13 +540,14 @@
     event.preventDefault(); if (researchBusy) return; const query = $('research-query').value.trim(); if (!query) { $('research-query').focus(); return; }
     clearTimeout(researchTimer); frameRequest++; researchJob = null; researchFrameSeq = null; researchEvents.clear(); researchData.clear(); $('research-events').replaceChildren(); $('research-events-empty').hidden = false; researchOverview([]);
     researchEngine?.pointAt(null);
+    $('research-timing').textContent = ''; $('research-frame-mode').textContent = '采集中 · 步骤截图'; $('research-activity').textContent = '正在启动浏览器…';
     $('frame-position').textContent = '0 / 0'; $('frame-previous').disabled = true; $('frame-next').disabled = true; $('research-host').textContent = '等待页面'; document.querySelector('.research-log').open = false;
     $('research-frame').hidden = true; $('research-frame').removeAttribute('src'); $('research-frame-empty').hidden = false; $('research-frame-empty').textContent = '等待实际访问页面的截图…';
     $('research-url').textContent = '准备检索'; $('research-frame-caption').textContent = '只显示本次采集实际获得的页面画面。'; $('research-outcome').textContent = '关闭工作台后，采集仍会继续。'; $('research-state').textContent = '正在开始'; $('research-count').textContent = '0 条记录'; $('research-log-count').textContent = '0'; setCollecting(true);
     try {
       const response = await readerFetch('/research', {method:'POST', headers:{'Content-Type':'application/json', 'X-Preview-Request':'1'}, body:JSON.stringify({query, topic:researchTopic})});
       const value = await response.json(); if (!response.ok && !(response.status === 409 && value.job_id)) throw new Error('采集暂时无法开始，请稍后重试。'); acceptResearch(value);
-    } catch (error) { setCollecting(false); $('research-state').textContent = '未能开始'; $('research-outcome').textContent = error.message; }
+    } catch (error) { setCollecting(false); $('research-state').textContent = '未能开始'; $('research-frame-mode').textContent = '未开始'; $('research-activity').textContent = error.message; $('research-outcome').textContent = error.message; }
   });
   document.addEventListener('keydown', event => {
     if ($('research-panel').open) return;

@@ -809,7 +809,7 @@ class CyberSpider {
   update() {
     this.stateTimer++;
     probeTarget = probe && probeTicks-- > 0 ? targetPosition(probe) : null;
-    if (!probeTarget) probe = null;
+    if (!probeTarget) { probe?.element.classList.remove('news-spider-probe'); probe = null; }
     while (!active && queue.length && !destroyed) {
       const next = queue.shift();
       const target = targetPosition(next);
@@ -1534,12 +1534,14 @@ class CyberSpider {
     const api = {
       pointAt(element, label = '') {
         if (destroyed) return false;
+        probe?.element.classList.remove('news-spider-probe');
         probe = null; probeTarget = null; probeTicks = 0;
         if (!element || !root.contains(element)) return false;
         const item = {id: element.id || label, element, label};
         const target = targetPosition(item);
         if (!target) return false;
         probe = item;
+        element.classList.add('news-spider-probe');
         probeTicks = Math.ceil(Math.hypot(target.x - crawler.x, target.y - crawler.y) / crawler.speed) + 180;
         return true;
       },
@@ -1640,6 +1642,7 @@ class CyberSpider {
         for (const element of Array.from(transientTargets.keys())) cleanTarget(element);
         queue.length = 0;
         active = null;
+        probe?.element.classList.remove('news-spider-probe');
         probe = null; probeTarget = null;
         crawler.userTetheredPills.length = 0;
         activeFireworks.length = 0;

@@ -19,19 +19,18 @@ function safeResource(value){try{const u=new URL(value);return u.protocol==='htt
 function directLink(value){try{const u=new URL(value);if(u.hostname==='www.bing.com'&&u.pathname==='/ck/a'){const wrapped=u.searchParams.get('u');if(wrapped?.startsWith('a1'))value=Buffer.from(wrapped.slice(2),'base64url').toString('utf8');}return safePage(value);}catch{return null;}}
 async function frame(stage,message,url,extra={}){
  let screenshot;
- try{const name=`frame-${String(++frameNumber).padStart(3,'0')}.jpg`;await page.screenshot({path:path.join(root,name),type:'jpeg',quality:70,timeout:5000});screenshot=`/api/workspace/news/research-frame?job=${config.job_id}&name=${name}`;}catch{}
+ try{const name=`frame-${String(++frameNumber).padStart(3,'0')}.jpg`;await page.screenshot({path:path.join(root,name),type:'jpeg',quality:70,animations:'disabled',timeout:5000});screenshot=`/api/workspace/news/research-frame?job=${config.job_id}&name=${name}`;}catch{}
  emit(stage,message,{url:page.url()==='about:blank'?url:page.url(),requested_url:url,screenshot,...extra});
 }
 async function visit(url,label){
  emit('visit',label,{url});
  try{
   const response=await page.goto(url,{waitUntil:'domcontentloaded',timeout:18000});
-  await page.waitForTimeout(650);
   const final=safePage(page.url());
   if(!final){await frame('blocked','来源跳转到未支持页面，未提取',url);return false;}
-  await frame('visit','页面已打开',final,{title:await page.title()});
+  if(response&&response.status()>=400){await frame('blocked',`来源返回 HTTP ${response.status()}，未将错误页作为新闻`,final);return false;}
+  await frame('visit','页面已打开，等待提取内容',final,{title:await page.title()});
   fs.writeFileSync(path.join(root,`page-${frameNumber}.html`),await page.content());
-  if(response&&response.status()>=400){emit('blocked',`来源返回 HTTP ${response.status()}，未将错误页作为新闻`,{url:final});return false;}
   return true;
  }catch(error){await frame('blocked','页面打开失败，保留实际画面',url,{detail:String(error.message).split('\n')[0]});return false;}
 }
@@ -39,6 +38,10 @@ async function extract(url){
  if(['/', '/technology/ai/', '/learn/codex'].includes(new URL(url).pathname)||/\/(?:tags|category|categories)\//.test(new URL(url).pathname)){
   emit('blocked','这是来源目录页，不把多篇标题列表当成一篇全文',{url});return;
  }
+ try { await page.waitForFunction(() => {
+  const article=document.querySelector('article')||document.querySelector('.prose')||document.querySelector('main');
+  return [...article?.querySelectorAll('p,li,pre,.notion-text')||[]].some(node=>node.getClientRects().length&&!node.closest('nav,header,footer,[role="navigation"],.cookie-banner')&&(node.innerText||'').trim().length>=80);
+ }, null, {timeout:3000}); } catch {}
  const data=await page.evaluate(sourceUrl=>{
   const visible=node=>!!node.getClientRects().length;
   const post=document.querySelector('article [data-testid="tweetText"]');
@@ -110,7 +113,13 @@ async function extract(url){
  const item={id,source_id:sourceId,source_name:(data.post?'X · ':'')+new URL(url).hostname.replace(/^www\./,''),title:data.title,url,summary:textBlocks.find(b=>b.type==='p')?.text.slice(0,500)||null,stream:'ai',published_at:timestamp,published_raw:data.published,author:data.author,fetched_at:new Date().toISOString(),body_blocks:textBlocks,images,content_kind:'full_text',content_origin:data.post?'social_post':'browser_article',content_type:data.post?'post':'article',completeness:'captured_body',references:references.slice(0,20),references_total:references.length,discovery:config.query,discovery_method:'public_browser'};
  items.push(item);
  checkpoint();
- await page.evaluate(()=>window.scrollBy(0,Math.min(innerHeight*.7,document.documentElement.scrollHeight)));
+ // Show the extracted text, rather than a hero video or iframe still loading above it.
+ await page.evaluate(()=>{
+  const article=document.querySelector('article')||document.querySelector('.prose')||document.querySelector('main');
+  const candidates=[...article?.querySelectorAll('.notion-text,pre')||[],...article?.querySelectorAll('p,li')||[]];
+  const paragraph=candidates.find(node=>node.getClientRects().length&&!node.closest('nav,header,footer,aside,[role="navigation"],.cookie-banner')&&(node.innerText||'').trim().length>=80);
+  paragraph?.scrollIntoView({block:'center',behavior:'instant'});
+ });
  await frame('extract',`已提取 ${textBlocks.length} 段正文、${images.length} 张图片`,url,{title:data.title,counts:{blocks:textBlocks.length,images:images.length,characters:chars}});
 }
 function postUrl(value){try{return canonicalPost(value);}catch{return null;}}
@@ -164,7 +173,7 @@ async function capturePosts(urls){
  }
  const searchUrl='https://www.bing.com/search?q='+encodeURIComponent('site:x.com '+config.query);
  if(!found.length&&await visit(searchUrl,'打开公开搜索，查找关键词相关 X 帖子')){
-  try{await page.locator('li.b_algo').first().waitFor({timeout:8000});}catch{}
+  try{await page.locator('li.b_algo').first().waitFor({state:'attached',timeout:3000});}catch{}
   found=await page.locator('li.b_algo h2 a').evaluateAll(nodes=>nodes.map(node=>node.href));
   found=[...new Set(found.map(directLink).filter(url=>url&&/^https:\/\/(?:x|twitter)\.com\/[^/]+\/status\/\d+/.test(url)))].slice(0,3);
   await frame('search',found.length?`搜索页找到 ${found.length} 条公开帖子链接`:'当前搜索页未返回可用帖子链接',page.url(),{counts:{links:found.length}});

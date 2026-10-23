@@ -75,13 +75,14 @@
     <div class="research-topics" role="group" aria-label="关注主题"><button type="button" data-topic="coding" aria-pressed="true">AI Coding</button><button type="button" data-topic="agents" aria-pressed="false">Agent</button><button type="button" data-topic="claude" aria-pressed="false">Claude Code</button><button type="button" data-topic="models" aria-pressed="false">GPT / Gemini</button><button type="button" data-topic="tibo" aria-pressed="false">Tibo</button></div>
     <label class="sr-only" for="research-query">关键词或 X 帖子链接</label><div class="research-query-row"><input id="research-query" name="query" type="search" maxlength="240" placeholder="关键词或 X 帖子链接" value="AI coding workflow coding agents tips" required autofocus><button id="research-start" type="submit">开始采集 ↗</button></div>
   </form>
-  <div class="research-progress"><span id="research-state" role="status">准备开始</span><span id="research-count">0 条记录</span></div>
+  <div class="research-progress"><span id="research-state" role="status">准备开始</span><span id="research-timing"></span><span id="research-count">0 条记录</span></div>
+  <p id="research-activity" role="status">开始后显示实际进展；页面画面按步骤截取。</p>
   <nav class="research-steps" aria-label="采集步骤回看"><button type="button" data-step="search" disabled><span>⌕</span> 检索</button><button type="button" data-step="visit" disabled><span>▣</span> 浏览</button><button type="button" data-step="extract" disabled><span>▤</span> 提取</button><button type="button" data-step="merge" disabled><span>✓</span> 收集</button></nav>
   <div class="research-workspace" id="research-animation-stage">
     <canvas id="research-spider-canvas" aria-hidden="true"></canvas>
     <div class="research-spider-home"><div id="research-web-depot" aria-hidden="true"></div><span>点来源，快速回看</span><button id="research-pause" type="button">暂停动画</button></div>
     <section class="research-browser" aria-label="实际页面画面">
-      <div class="browser-address"><span aria-hidden="true">◉</span><span id="research-host">等待页面</span><span class="frame-badge">实拍</span></div>
+      <div class="browser-address"><span aria-hidden="true">◉</span><span id="research-host">等待页面</span><span class="frame-badge" id="research-frame-mode">步骤截图</span></div>
       <div id="research-frame-wrap"><img id="research-frame" alt="采集过程中实际访问页面的截图" hidden><p id="research-frame-empty">开始采集后，在这里看实际浏览过程。</p></div>
       <div class="research-replay"><button id="frame-previous" type="button" aria-label="上一张采集截图" disabled>←</button><span id="frame-position">0 / 0</span><button id="frame-next" type="button" aria-label="下一张采集截图" disabled>→</button><details class="frame-details"><summary>画面详情</summary><p id="research-frame-caption">等待实际页面截图</p><p id="research-url">尚未访问页面</p></details></div>
     </section>
