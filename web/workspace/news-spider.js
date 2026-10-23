@@ -13,7 +13,7 @@
 (function (global) {
   'use strict';
   const mounts = new WeakMap();
-  function mount({root, canvas, depot, onCapture, onDelivered, onCancel, followPointer = true}) {
+  function mount({root, canvas, depot, onCapture, onDelivered, onCancel, followPointer = false}) {
     if (!root || !canvas || !depot || !root.contains(canvas) || !root.contains(depot)) {
       throw new TypeError('NewsSpider requires root, canvas and depot in the same stage');
     }
@@ -27,6 +27,7 @@
     const pointer = {inside: false, x: 0, y: 0};
     const queue = [];
     let active = null;
+    let probe = null, probeTarget = null, probeTicks = 0;
     const transientTargets = new Map();
     const previousCanvasStyle = canvas.getAttribute('style');
     const style = document.createElement('style');
@@ -106,6 +107,10 @@
     }
 
     function idleDestination(spider) {
+      if (probeTarget) {
+        const angle = Math.atan2(probeTarget.y - spider.y, probeTarget.x - spider.x);
+        return boundedPoint(probeTarget.x - Math.cos(angle) * 48 * spider.scale, probeTarget.y - Math.sin(angle) * 48 * spider.scale);
+      }
       if (followPointer && pointer.inside) {
         const angle = Math.atan2(pointer.y - spider.y, pointer.x - spider.x);
         return boundedPoint(pointer.x - Math.cos(angle) * 60, pointer.y - Math.sin(angle) * 60);
@@ -803,6 +808,8 @@ class CyberSpider {
   }
   update() {
     this.stateTimer++;
+    probeTarget = probe && probeTicks-- > 0 ? targetPosition(probe) : null;
+    if (!probeTarget) { probe?.element.classList.remove('news-spider-probe'); probe = null; }
     while (!active && queue.length && !destroyed) {
       const next = queue.shift();
       const target = targetPosition(next);
@@ -974,9 +981,18 @@ class CyberSpider {
       const idealFootX = hipX + Math.cos(this.angle + leg.restAngleOffset) * leg.restDist + cos * lead;
       const idealFootY = hipY + Math.sin(this.angle + leg.restAngleOffset) * leg.restDist + sin * lead;
 
+      // Reaching front feet leave the walking gait until the probe ends.
+      const targetX = probeTarget?.x, targetY = probeTarget?.y + (leg.isRightSide ? 5 : -5);
+      leg.probing = !active && !!probeTarget && leg.legIndex === 0 && Math.hypot(targetX - hipX, targetY - hipY) < leg.l1 + leg.l2 - 2;
+      if (leg.probing) {
+        leg.footX += (targetX - leg.footX) * 0.3;
+        leg.footY += (targetY - leg.footY) * 0.3;
+        leg.liftZ = 0;
+        leg.isStepping = false;
+      }
       const pullDist = Math.hypot(leg.footX - idealFootX, leg.footY - idealFootY);
 
-      if (!leg.isStepping && pullDist > this.strideThreshold && leg.gaitGroup === this.gaitGroup) {
+      if (!leg.probing && !leg.isStepping && pullDist > this.strideThreshold && leg.gaitGroup === this.gaitGroup) {
         leg.isStepping = true;
         leg.stepProgress = 0;
         leg.prevFootX = leg.footX;
@@ -986,7 +1002,7 @@ class CyberSpider {
         playSound('step', this.scale);
       }
 
-      if (leg.isStepping) {
+      if (!leg.probing && leg.isStepping) {
         leg.stepProgress += 0.18 * (this.isHuntingFly ? this.speedMultiplier * 1.5 : this.speedMultiplier);
         if (leg.stepProgress >= 1.0) {
           leg.isStepping = false;
@@ -1267,6 +1283,13 @@ class CyberSpider {
       ctx.beginPath();
       ctx.arc(fx, fy, 2 * sc, 0, Math.PI * 2);
       ctx.fill();
+      if (leg.probing) {
+        ctx.strokeStyle = this.cfg.legColor;
+        ctx.lineWidth = sc;
+        ctx.beginPath();
+        ctx.arc(fx, fy, (5 + Math.sin(this.stateTimer * 0.15) * 2) * sc, 0, Math.PI * 2);
+        ctx.stroke();
+      }
     }
     ctx.restore();
 
@@ -1479,8 +1502,10 @@ class CyberSpider {
       resizeObserver.observe(depot);
     }
     global.addEventListener('resize', resize);
-    root.addEventListener('pointermove', pointerMove, {passive: true});
-    root.addEventListener('pointerleave', pointerLeave, {passive: true});
+    if (followPointer) {
+      root.addEventListener('pointermove', pointerMove, {passive: true});
+      root.addEventListener('pointerleave', pointerLeave, {passive: true});
+    }
 
     function render(time) {
       rafId = null;
@@ -1507,6 +1532,19 @@ class CyberSpider {
     }
 
     const api = {
+      pointAt(element, label = '') {
+        if (destroyed) return false;
+        probe?.element.classList.remove('news-spider-probe');
+        probe = null; probeTarget = null; probeTicks = 0;
+        if (!element || !root.contains(element)) return false;
+        const item = {id: element.id || label, element, label};
+        const target = targetPosition(item);
+        if (!target) return false;
+        probe = item;
+        element.classList.add('news-spider-probe');
+        probeTicks = Math.ceil(Math.hypot(target.x - crawler.x, target.y - crawler.y) / crawler.speed) + 180;
+        return true;
+      },
       capture({id, element, label}) {
         if (destroyed || id === undefined || id === null || !element || !root.contains(element)) return false;
         const key = String(id);
@@ -1576,7 +1614,8 @@ class CyberSpider {
       inspect() {
         return {
           running, destroyed, collecting, followPointer,
-          phase: crawler.isScanning ? 'scanning' : crawler.isStashingFood ? 'carrying' : active ? 'approaching' : followPointer && pointer.inside ? 'following' : collecting ? 'collecting' : 'idle',
+          probe: probe ? {id: probe.id, contact: !!probeTarget && crawler.legs.some(leg => leg.probing && Math.hypot(leg.footX - probeTarget.x, leg.footY - probeTarget.y - (leg.isRightSide ? 5 : -5)) < 2)} : null,
+          phase: crawler.isScanning ? 'scanning' : crawler.isStashingFood ? 'carrying' : active ? 'approaching' : probe ? 'probing' : followPointer && pointer.inside ? 'following' : collecting ? 'collecting' : 'idle',
           activeId: active ? active.id : null,
           queueIds: queue.map(item => item.id),
           deliveredIds: webLair.cachedPrey.map(item => item.id),
@@ -1603,6 +1642,8 @@ class CyberSpider {
         for (const element of Array.from(transientTargets.keys())) cleanTarget(element);
         queue.length = 0;
         active = null;
+        probe?.element.classList.remove('news-spider-probe');
+        probe = null; probeTarget = null;
         crawler.userTetheredPills.length = 0;
         activeFireworks.length = 0;
         activeShockwaves.length = 0;
