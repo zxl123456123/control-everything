@@ -98,7 +98,7 @@ function ExternalMenuItem({
 }
 
 export function SidebarSettingsHelpMenu(): React.JSX.Element {
-  return window.location.pathname === '/workbench/web-index.html' ? (
+  return ['/studio', '/workbench/web-index.html'].includes(window.location.pathname) ? (
     <PlatformSettingsHelpMenu />
   ) : (
     <StandaloneSettingsHelpMenu />

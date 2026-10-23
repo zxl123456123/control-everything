@@ -26,7 +26,7 @@ import {
 
 export default function MobilePage(): React.JSX.Element {
   const closeMobilePage = useAppStore((s) => s.closeMobilePage)
-  return window.location.pathname === '/workbench/web-index.html' ? (
+  return ['/studio', '/workbench/web-index.html'].includes(window.location.pathname) ? (
     <div className="space-y-4 p-8">
       <div role="status" className="space-y-2">
         <h1 className="text-lg font-medium">移动端未配置</h1>

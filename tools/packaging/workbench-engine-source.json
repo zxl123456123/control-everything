@@ -326731,6 +326731,7 @@
     "src/renderer/src/i18n/platform-ui-copy.test.ts",
     "src/renderer/src/i18n/platform-ui-copy.ts",
     "src/renderer/src/lib/platform-catalog-icons.test.tsx",
+    "src/renderer/src/web/platform-dialog-visibility.test.tsx",
     "src/renderer/src/web/platform-project-bootstrap.test.ts",
     "src/renderer/src/web/platform-project-bootstrap.ts",
     "src/renderer/src/web/platform-project-entry.css",
@@ -326738,6 +326739,10 @@
     "src/renderer/src/web/platform-project-navigation-view.tsx",
     "src/renderer/src/web/platform-project-navigation.test.ts",
     "src/renderer/src/web/platform-project-navigation.ts",
+    "src/renderer/src/web/platform-project-selection.test.tsx",
+    "src/renderer/src/web/platform-route.test.ts",
+    "src/renderer/src/web/platform-route.ts",
+    "src/renderer/src/web/platform-studio-surface.tsx",
     "src/renderer/src/web/preload-api/web-runtime-credentials.test.ts",
     "src/renderer/src/web/preload-api/web-wsl-host-unavailable.test.ts"
   ],
@@ -326823,32 +326828,38 @@
     {
       "path": "src/renderer/src/app-shell/TitlebarLeftControls.tsx",
       "upstream_sha256": "274b5e3bd1414e927003fb42de2a292fe261df9776fa6d6c9b0feb155fb5d201",
-      "current_sha256": "014ff718b6bd511dad3604ae2fbca6de5c8ffd884465be14452f96c6425e1265",
-      "reason": "M1a-W: product app-name and accessibility label in paired Web"
+      "current_sha256": "6ee67c150491a3e23e1a10970d88b571bf2c1f38121007d8bdbe9ed26f32f6fc",
+      "reason": "M1a-W: product app-name and accessibility label in paired Web; M1a navigation: preserve a single project workspace while integrating platform business views"
     },
     {
       "path": "src/renderer/src/components/Landing.tsx",
       "upstream_sha256": "95a03113ca62680422a3e49bc68b659debe3620faba37bd7448ac0369e7d8390",
-      "current_sha256": "21350a794529fb874643d82b5126efdc521ad3fedcafe4e51608255f4b3cc0fc",
-      "reason": "M1a-W: product landing identity without official GitHub support entrance"
+      "current_sha256": "b2c60cb5eb376551943034b5421b08a0a5b7f32cb8ec918461343f0457ec6d70",
+      "reason": "M1a-W: product landing identity without official GitHub support entrance; M1a navigation: preserve a single project workspace while integrating platform business views"
     },
     {
       "path": "src/renderer/src/components/mobile/MobilePage.tsx",
       "upstream_sha256": "15f121aa2d13a6daafd67fa8244fbf6e9542cae3c15e652c615b2ff25d0a478c",
-      "current_sha256": "53cab468892e4c75217f43af725ed5175e480ea4dd243c3c02e4d754521db245",
-      "reason": "M1a-W: platform mobile status does not mount upstream pairing effects"
+      "current_sha256": "2f5b23fdeec77c3b3f6875732ed7962381f612dcf0bcf49718bb14d8adbf88a3",
+      "reason": "M1a-W: platform mobile status does not mount upstream pairing effects; M1a navigation: preserve a single project workspace while integrating platform business views"
     },
     {
       "path": "src/renderer/src/components/settings/MobileSettingsPane.tsx",
       "upstream_sha256": "d2fc14224af0c98d0c879439f98c57b85ce39a5400032c4e63bf40379dc2f165",
-      "current_sha256": "a55552675de2499ff935a6b22a4bda78d2fc53c26a65f66dcb91033f83c176ae",
-      "reason": "M1a-W: platform mobile status instead of official client install/pairing"
+      "current_sha256": "6409eb33a4a2bb566f79e89e0dda144d65f1767118738c00acf74fc984d71afa",
+      "reason": "M1a-W: platform mobile status instead of official client install/pairing; M1a navigation: preserve a single project workspace while integrating platform business views"
     },
     {
       "path": "src/renderer/src/components/settings/repository-source-control-ai-labels.ts",
       "upstream_sha256": "36b0830bf58c9fc53795767125181eb409f6e283f9259c3d1c6ae23f6dec7e38",
       "current_sha256": "0a0c03861feb68ae84f0952948746124d9e5bac73c99483c3557bcc5e46dac8e",
       "reason": "M1a-W: default prompt label uses the central platform copy while standalone keeps its original text"
+    },
+    {
+      "path": "src/renderer/src/components/settings/use-ssh-target-selection.ts",
+      "upstream_sha256": "498e4903182316cc6fb1c82870fd4d03d82f9bb9968ec06390dc03c86e339005",
+      "current_sha256": "78d87977127360f409ba49fa33c5da8ab9fa46d635035d14a36455bfaaf8ee96",
+      "reason": "M1a navigation: preserve a single project workspace while integrating platform business views"
     },
     {
       "path": "src/renderer/src/components/sidebar/SidebarNav.test.tsx",
@@ -326859,8 +326870,8 @@
     {
       "path": "src/renderer/src/components/sidebar/SidebarNav.tsx",
       "upstream_sha256": "f0e68df8edcdc64da455c2104433843fec0baf6dcb85513a0129bb21957b9ff1",
-      "current_sha256": "c5b9252eb8f4126aca367aab1b46c93763ea947b526f5dfe25fd5fc37e6386e0",
-      "reason": "M1a-W: platform mobile entry states unconfigured"
+      "current_sha256": "cd7c0381cda324b54a197444061bf756079e3a394ff34434fb3256514d00f039",
+      "reason": "M1a-W: platform mobile entry states unconfigured; M1a navigation: preserve a single project workspace while integrating platform business views"
     },
     {
       "path": "src/renderer/src/components/sidebar/SidebarSettingsHelpMenu.test.tsx",
@@ -326871,32 +326882,50 @@
     {
       "path": "src/renderer/src/components/sidebar/SidebarSettingsHelpMenu.tsx",
       "upstream_sha256": "8f35317e72bfc9f11179dd74dc2af60e29f055ee1da99f84607f103e0823c215",
-      "current_sha256": "e5d2674ebe8cebd454b17465ff56b0e45e3438a70227eb79197b0bff0ebdaeb3",
-      "reason": "M1a-W: platform help without official service entrances; preserve license attribution"
+      "current_sha256": "06d1a38026d7c3857faced7b75da68a8ec7fd1e04a4d852a65ed4eec33afeb1d",
+      "reason": "M1a-W: platform help without official service entrances; preserve license attribution; M1a navigation: preserve a single project workspace while integrating platform business views"
+    },
+    {
+      "path": "src/renderer/src/components/ui/dialog.tsx",
+      "upstream_sha256": "3906c5b0a4404270e37e1a8b3ba9a6f25948ccfa546b24d2fe5554eca62a2617",
+      "current_sha256": "d3beb60226d0c30d24c237091ffedd564293a5b23e8367da9c65120de36711f4",
+      "reason": "M1a navigation: preserve a single project workspace while integrating platform business views"
     },
     {
       "path": "src/renderer/src/i18n/i18n.ts",
       "upstream_sha256": "eb9a73fb7cfeb99c352004b9099159d8aa7ccb31bd7a576054c854475f86a882",
-      "current_sha256": "fc13917c1a594049dc1cf765d69e8b82fd85dac08e4c52cf58e7c3df6e92344f",
-      "reason": "M1a-W: exact platform route selects confirmed copy in an independent namespace without marking lazy translation catalogs loaded"
+      "current_sha256": "628ca40658188ffd4863fd220557f9e143ab15e40ba70a597d37ca20f01df5da",
+      "reason": "M1a-W: exact platform route selects confirmed copy in an independent namespace without marking lazy translation catalogs loaded; M1a navigation: preserve a single project workspace while integrating platform business views"
     },
     {
       "path": "src/renderer/src/lib/agent-catalog.tsx",
       "upstream_sha256": "74caa70794bc019836fd28cc2deefb6dc0a72bd19e9e7f01b6c6f67e6e4a3df6",
-      "current_sha256": "1063223dcbaef1e789e899e01d190864660c3a57ca74a9ce653accfe489e7972",
-      "reason": "M1a-R6: exact platform Web entry uses bundled icons or existing glyphs without third-party favicon requests; standalone behavior preserved"
+      "current_sha256": "d0920b461de15906cb902e4e14b4cfd279c1b70f8e03c1f6db7170c350cf1128",
+      "reason": "M1a-R6: exact platform Web entry uses bundled icons or existing glyphs without third-party favicon requests; standalone behavior preserved; M1a navigation: preserve a single project workspace while integrating platform business views"
+    },
+    {
+      "path": "src/renderer/src/lib/app-keyboard-router.test.ts",
+      "upstream_sha256": "3f64489e57debe23c1e70591d5b84a71b94511a1f1b9d8adda057a91f65d1b5e",
+      "current_sha256": "fd1348d2430665d0f549ee94ade1a87d01208b1d324667ea08ba02cfa95856e1",
+      "reason": "M1a navigation: preserve a single project workspace while integrating platform business views"
+    },
+    {
+      "path": "src/renderer/src/lib/app-keyboard-router.ts",
+      "upstream_sha256": "f7dfc46d333fccab1c00dc10998ee6e5233b33061f2061c2d9cac8fbb0ce01e4",
+      "current_sha256": "93d55932273d668eac09d4d2da5f1303a46ec9f5d6f8ac370f6e9e06a40ad7fa",
+      "reason": "M1a navigation: preserve a single project workspace while integrating platform business views"
     },
     {
       "path": "src/renderer/src/lib/open-in-app-catalog.tsx",
       "upstream_sha256": "e65c2ffb17d74d27d876f9797591350430903cc2e1759c94f5f9e369aa117967",
-      "current_sha256": "aed95b6d2c5ab2b2c3c0d865f465253a26c541ed6785d347fc4abf186e79b409",
-      "reason": "M1a-R6: exact platform Web entry uses bundled icons or existing glyphs without third-party favicon requests; standalone behavior preserved"
+      "current_sha256": "03a80a8c228ec962be112156c87f4973b6597d8e06c53a922bf24102ff84217e",
+      "reason": "M1a-R6: exact platform Web entry uses bundled icons or existing glyphs without third-party favicon requests; standalone behavior preserved; M1a navigation: preserve a single project workspace while integrating platform business views"
     },
     {
       "path": "src/renderer/src/web/main.tsx",
       "upstream_sha256": "15dfb0a6b72637f667f480272f8459140ac81aa024ae30eabddef3a689030004",
-      "current_sha256": "e090e70c811f434beb426687ea4f2f229935b77f85d2c062730d62b1c4272736",
-      "reason": "M1a-W: protected platform entry with original complete App"
+      "current_sha256": "f92bfa7fe617207d668ccca7e9ff465d8480c505b5d661fea63dae3336c3ee6a",
+      "reason": "M1a-W: protected platform entry with original complete App; M1a navigation: preserve a single project workspace while integrating platform business views"
     },
     {
       "path": "src/renderer/src/web/preload-api/web-app-api.ts",

@@ -57,7 +57,11 @@ lint-imports --config tools/architecture/importlinter.ini --no-cache --no-logo
 
 ### Studio 与内置项目工作台开发预览
 
-产品入口 `/studio` 使用 `studio-preview.*` 的已选布局与真实平台 API；进入项目直接打开同源完整工作台。`orca-surface.js/css` 保留旧预览历史，但产品入口不再装配外部 iframe。
+产品入口 `/studio` 在内置运行时已装配时使用同文档项目界面。项目外复用 `studio-preview.*` 的已选布局；项目内通过“开发、事项、验收、协作监控”切换，完整工作台实例保持挂载。原业务模块在 Shadow DOM 中隔离样式，仍访问同源真实 API，不使用 iframe。`/studio-shell` 只提供固定的 Studio 模板，脚本与样式由入口明确列出；未装配运行时的服务继续提供独立 Studio。
+
+项目路径使用 `#project/<id>/workspace` 等片段，旧直接项目 URL 和旧事项入口保持兼容。原工作区侧栏切换已登记目录时同步项目身份；未关联目录不能沿用旧项目的事项操作。离开前先处理已打开的编辑窗口，草稿不因页面切换丢失。`orca-surface.js/css` 仅保留旧预览历史。
+
+外层以项目总览选项目，事项、验收与监控在项目内操作；旧跨项目事项链接保留读取入口。集成后的 Studio 与监控画布跟随开发区主题，背景、卡片和边框共用原主题变量，外观在开发区设置中统一调整。
 
 先初始化独立测试 profile，注册合成 Git 项目，完成源码单元构建与运行隔离验证后，用开发入口启动。`--workspace-root` 只填写本次允许测试的目录，可重复传入；各路径必须使用本机实际绝对路径：
 

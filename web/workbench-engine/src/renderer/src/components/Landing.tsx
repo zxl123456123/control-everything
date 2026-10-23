@@ -223,7 +223,7 @@ function PreflightBanner({
 }
 
 export default function Landing(): React.JSX.Element {
-  const platformMode = window.location.pathname === '/workbench/web-index.html'
+  const platformMode = ['/studio', '/workbench/web-index.html'].includes(window.location.pathname)
   const repos = useAppStore((s) => s.repos)
   const openModal = useAppStore((s) => s.openModal)
 

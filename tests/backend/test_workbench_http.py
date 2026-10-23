@@ -139,7 +139,24 @@ class WorkbenchHTTPTests(unittest.TestCase):
         self.assertEqual(self.request(page)[0], 503)
         self.runtime.start.assert_not_called()
         self.assertEqual(self.request("/studio")[0], 200)
+        self.assertIn(b"id='root'", self.last_handler.reply.call_args.args[1])
+        self.assertIn("connect-src 'self' ws://127.0.0.1:23456;", self.last_handler.reply.call_args.kwargs['csp'])
+        self.assertEqual(self.request("/studio-shell")[0], 200)
         self.assertIn(b'data-isolated-preview="true"', self.last_handler.reply.call_args.args[1])
+
+    def test_studio_entry_keeps_manifest_checks_and_resolves_fixed_asset_urls(self):
+        files = {"web-index.html": b'<script type="module" src="./assets/main.js"></script><link rel="stylesheet" href="./assets/main.css">',
+                 "assets/main.js": b'export {}', "assets/main.css": b'body{}'}
+        self.server.workbench_assets = WorkbenchAssets(self.root / 'web', asset_fixture(self.root / 'web', files))
+        self.assertEqual(self.request('/studio')[0], 200)
+        body = self.last_handler.reply.call_args.args[1]
+        self.assertIn(b'src="/workbench/assets/main.js"', body)
+        self.assertIn(b'href="/workbench/assets/main.css"', body)
+        self.assertNotIn(b'iframe', body)
+        self.assertEqual(self.request('/studio-shell?src=elsewhere')[0], 400)
+        (self.root / 'web/web-index.html').write_bytes(b'tampered')
+        self.assertEqual(self.request('/studio')[0], 503)
+        self.runtime.start.assert_not_called()
 
 
 if __name__ == "__main__":

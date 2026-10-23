@@ -14,6 +14,7 @@ from control_everything.workspace.validation import project_id_valid
 WEB = web_root()
 STUDIO_RESOURCES = {
     "/studio": ("studio-preview.html", "text/html; charset=utf-8"),
+    "/studio-shell": ("studio-preview.html", "text/html; charset=utf-8"),
     "/studio-preview.css": ("studio-preview.css", "text/css; charset=utf-8"),
     "/studio-preview.js": ("studio-preview.js", "text/javascript; charset=utf-8"),
     "/studio-data.js": ("studio-data.js", "text/javascript; charset=utf-8"),
@@ -101,11 +102,19 @@ def handle_get(handler, path):
             handler.reject(400, "invalid_request")
             return True
         try:
+            manager = getattr(handler.server, "workbench_runtime", None)
+            assets = getattr(handler.server, "workbench_assets", None)
+            if path.path == "/studio" and manager is not None and assets is not None:
+                body, mime = assets.read("web-index.html")
+                # The verified Web entry uses relative build assets; Studio is one level higher.
+                body = body.replace(b'="./assets/', b'="/workbench/assets/')
+                handler.reply(200, body, mime, csp=_workbench_csp(manager))
+                return True
             body = (WEB / "workspace" / resource[0]).read_bytes()
-            if path.path == "/studio" and getattr(handler.server, "workbench_runtime", None) is not None:
+            if path.path in ("/studio", "/studio-shell") and manager is not None:
                 body = body.replace(b'id="ce-studio"', b'id="ce-studio" data-isolated-preview="true"', 1)
             handler.reply(200, body, resource[1], csp=STUDIO_CSP)
-        except OSError:
+        except (OSError, ValueError, WorkbenchUnavailable):
             handler.reject(503, "studio_assets_unavailable")
         return True
     if not path.path.startswith("/workbench/"):

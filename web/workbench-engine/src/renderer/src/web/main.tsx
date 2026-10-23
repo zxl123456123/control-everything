@@ -29,7 +29,7 @@ import.meta.hot?.dispose(disposeOsFileDropGuard)
 installAppKeyboardRouter()
 const App = lazy(() => import('../App'))
 const PlatformProjectEntry = lazy(() => import('./platform-project-entry'))
-const platformMode = window.location.pathname === '/workbench/web-index.html'
+const platformMode = ['/studio', '/workbench/web-index.html'].includes(window.location.pathname)
 
 function WebRoot(): React.JSX.Element {
   const initialPairingInput = useMemo(() => readPairingInputFromLocation(window.location), [])

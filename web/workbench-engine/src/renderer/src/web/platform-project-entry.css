@@ -6,12 +6,28 @@
   overflow: hidden;
 }
 
-.platform-project-entry > nav,
-.platform-project-entry > .platform-project-navigation-loading {
-  flex: 0 0 44px;
-  height: 44px;
-  min-height: 44px;
-}
+.platform-project-tabs {display:flex;align-items:center;gap:20px;flex:0 0 52px;padding:0 20px;border-bottom:1px solid var(--border);color:var(--foreground);background:var(--background);font-size:14px;min-width:0}
+.platform-project-back {white-space:nowrap;color:var(--muted-foreground);text-decoration:none}
+.platform-project-picker {min-width:90px;max-width:260px}
+.platform-project-picker select {width:100%;background:transparent;color:inherit;border:0;overflow:hidden;text-overflow:ellipsis;font:inherit}
+.platform-project-tablist {display:flex;gap:4px;height:100%;align-items:center;overflow-x:auto;white-space:nowrap}
+.platform-project-tablist a {padding:7px 14px;border-radius:7px;text-decoration:none;color:var(--muted-foreground);transition:background 140ms,color 140ms}
+.platform-project-tablist a[aria-current=page] {background:var(--accent);color:var(--accent-foreground);font-weight:500}
+.platform-project-tabs a:focus-visible,.platform-project-picker select:focus-visible {outline:2px solid var(--ring);outline-offset:3px}
+.platform-runtime-status {flex:0 0 22px;padding:2px 18px;text-align:right;font-size:11px;color:var(--muted-foreground)}
+:root[data-platform-view=studio] .platform-runtime-status {display:none}
+.platform-studio-surface {flex:1 1 0;min-height:0;overflow:auto;background:var(--background)}
+.platform-studio-host {display:block;min-height:100%;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif}
+.platform-studio-host {--platform-bg:var(--background);--platform-panel:var(--card);--platform-text:var(--foreground);--platform-sub:var(--muted-foreground);--platform-soft:var(--muted);--platform-line:var(--border);--platform-hover:var(--accent);--platform-primary:var(--primary);--platform-on-primary:var(--primary-foreground)}
+.platform-surface-feedback {padding:32px;display:flex;flex-wrap:wrap;gap:16px;align-items:center;color:var(--foreground)}
+.platform-surface-feedback button,.platform-surface-feedback a {padding:8px 14px;border:1px solid var(--border);border-radius:7px}
+.platform-navigation-notice {padding:6px 20px;background:var(--accent);color:var(--foreground);font-size:13px}
+.platform-project-tablist a[aria-disabled=true] {opacity:.45}
+.platform-project-content:not([hidden]),.platform-studio-surface:not([hidden]) {animation:platform-enter 160ms ease-out}
+.platform-project-entry [hidden] {display:none!important}
+@keyframes platform-enter {from {opacity:.65;transform:translateY(4px)} to {opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce) {.platform-project-content,.platform-studio-surface {animation:none!important}.platform-project-tablist a{transition:none}}
+@media(max-width:700px) {.platform-project-tabs {gap:10px;padding:0 10px;flex-wrap:wrap;flex-basis:auto;min-height:86px}.platform-project-picker {flex:1;max-width:none}.platform-project-tablist {width:100%;height:39px}.platform-project-tablist a{padding:6px 12px}}
 
 .platform-project-entry > .platform-project-content {
   flex: 1 1 0%;

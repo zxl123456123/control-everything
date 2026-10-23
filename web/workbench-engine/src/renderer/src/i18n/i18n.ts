@@ -105,7 +105,7 @@ i18n.store.on('removed', advanceTranslationResourceVersion)
 
 export function translate(key: string, fallback: string, options?: TOptions): string {
   const platformKey =
-    typeof window !== 'undefined' && window.location?.pathname === '/workbench/web-index.html'
+    typeof window !== 'undefined' && ['/studio', '/workbench/web-index.html'].includes(window.location?.pathname)
       ? PLATFORM_UI_COPY_KEYS[key]
       : undefined
   const value = platformKey

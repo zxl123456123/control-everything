@@ -15,7 +15,7 @@ const ORCA_IOS_APP_STORE_URL = 'https://apps.apple.com/app/orca-ide/id6766130217
 const ORCA_ANDROID_APK_URL = 'https://www.onorca.dev/download/android'
 
 export function MobileSettingsPane(): React.JSX.Element {
-  return window.location.pathname === '/workbench/web-index.html' ? (
+  return ['/studio', '/workbench/web-index.html'].includes(window.location.pathname) ? (
     <div className="space-y-2 py-2" role="status">
       <h3 className="font-medium">移动端未配置</h3>
       <p className="text-sm text-muted-foreground">

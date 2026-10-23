@@ -24,7 +24,7 @@ import type { AppChromeLayout } from './use-app-chrome-layout'
  * header so the agent badge popover isn't duplicated.
  */
 export function TitlebarLeftControls({ layout }: { layout: AppChromeLayout }): React.JSX.Element {
-  const platformMode = window.location.pathname === '/workbench/web-index.html'
+  const platformMode = ['/studio', '/workbench/web-index.html'].includes(window.location.pathname)
   const toggleSidebar = useAppStore((s) => s.toggleSidebar)
   const updateSettings = useAppStore((s) => s.updateSettings)
   const canGoBackWorktree = useAppStore(canGoBackWorktreeHistory)

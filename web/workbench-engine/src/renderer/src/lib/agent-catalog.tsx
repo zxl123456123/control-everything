@@ -104,7 +104,7 @@ export function AgentIcon({
   }
   // The platform supplies its own UI assets; keep the existing letter fallback offline.
   const platformWeb =
-    typeof window !== 'undefined' && window.location.pathname === '/workbench/web-index.html'
+    typeof window !== 'undefined' && ['/studio', '/workbench/web-index.html'].includes(window.location.pathname)
   if (catalogEntry?.faviconDomain && !platformWeb) {
     // Why: agents without a published SVG icon or bundled favicon fall back to
     // their site favicon via Google's favicon service — same source the README

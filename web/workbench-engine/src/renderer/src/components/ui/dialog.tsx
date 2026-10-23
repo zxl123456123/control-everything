@@ -12,8 +12,28 @@ import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { translate } from '@/i18n/i18n'
 
+const subscribePlatformSurface = (changed: () => void) => {
+  window.addEventListener('platform-surface-change', changed)
+  return () => window.removeEventListener('platform-surface-change', changed)
+}
+const workspaceVisible = () => document.documentElement.dataset.platformView !== 'studio'
+
 function Dialog({ ...props }: React.ComponentProps<typeof DialogPrimitive.Root>) {
-  return <DialogPrimitive.Root data-slot="dialog" {...props} />
+  const visible = React.useSyncExternalStore(subscribePlatformSurface, workspaceVisible, () => true)
+  const [open, setOpen] = React.useState(props.defaultOpen ?? false)
+  // Background work may request a dialog while the user is editing a platform task.
+  // Keep that request pending without mounting a body portal or trapping task-editor focus.
+  return (
+    <DialogPrimitive.Root
+      data-slot="dialog"
+      {...props}
+      open={visible && (props.open ?? open)}
+      onOpenChange={(value) => {
+        setOpen(value)
+        props.onOpenChange?.(value)
+      }}
+    />
+  )
 }
 
 function DialogTrigger({ ...props }: React.ComponentProps<typeof DialogPrimitive.Trigger>) {

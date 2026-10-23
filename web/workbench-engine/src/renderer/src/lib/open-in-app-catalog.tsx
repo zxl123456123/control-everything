@@ -62,7 +62,7 @@ export function OpenInApplicationIcon({
   const preset = getOpenInAppPreset(application)
   // The platform uses the existing app glyph without a third-party favicon request.
   const platformWeb =
-    typeof window !== 'undefined' && window.location.pathname === '/workbench/web-index.html'
+    typeof window !== 'undefined' && ['/studio', '/workbench/web-index.html'].includes(window.location.pathname)
   if (preset && !platformWeb) {
     return (
       <img

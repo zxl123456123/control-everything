@@ -71,6 +71,7 @@ export function useSshTargetSelection(visibleIds: readonly string[]): SshTargetS
     }
     // Why capture: Settings closes on a bubbling Escape; with rows selected, Escape clears them first.
     const onKeyDown = (event: KeyboardEvent): void => {
+      if (document.documentElement.dataset.platformView === 'studio') return
       if (event.key !== 'Escape' || event.isComposing || hasVisibleOverlay()) {
         return
       }

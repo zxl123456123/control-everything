@@ -12,6 +12,7 @@ installAppKeyboardRouter(window)
 const cleanups: (() => void)[] = []
 afterEach(() => {
   cleanups.splice(0).forEach((cleanup) => cleanup())
+  delete document.documentElement.dataset.platformView
 })
 
 function onWindow(listener: (event: KeyboardEvent) => void): void {
@@ -39,6 +40,16 @@ function press(): string[] {
 }
 
 describe('app keyboard router', () => {
+  it('does not claim editing keys on the platform business surface and resumes on return', () => {
+    const seen: string[] = []
+    onApp(() => seen.push('workspace'))
+    document.documentElement.dataset.platformView = 'studio'
+    expect(press()).toContain('terminal input')
+    expect(seen).toEqual([])
+    document.documentElement.dataset.platformView = 'workspace'
+    press()
+    expect(seen).toEqual(['workspace'])
+  })
   // STA-11205: a tab shortcut owner re-registered after the terminal pane still runs first.
   it.each(['pane first', 'app owner first'])(
     'runs app owners ahead of the terminal pane whatever the registration order (%s)',
