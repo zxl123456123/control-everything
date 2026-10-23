@@ -62,7 +62,8 @@ export function ActivityThreadOptionsMenu({
   showSearch = false,
   onShowSearchChange,
   unreadOnly = false,
-  onUnreadOnlyChange
+  onUnreadOnlyChange,
+  lockProjectScope = false
 }: {
   groupBy?: ActivityGroupBy
   onGroupByChange?: (groupBy: ActivityGroupBy) => void
@@ -78,10 +79,11 @@ export function ActivityThreadOptionsMenu({
   onShowSearchChange?: (showSearch: boolean) => void
   unreadOnly?: boolean
   onUnreadOnlyChange?: (unreadOnly: boolean) => void
+  lockProjectScope?: boolean
 }): React.JSX.Element {
   const skipCloseAutoFocusRef = React.useRef(false)
   const activeFilterCount =
-    useActivityScopeFilterCount() + (onUnreadOnlyChange && unreadOnly ? 1 : 0)
+    useActivityScopeFilterCount(lockProjectScope) + (onUnreadOnlyChange && unreadOnly ? 1 : 0)
   const activeFilterLabel = formatActiveFilterLabel(activeFilterCount)
   const optionsLabel =
     activeFilterCount > 0
@@ -167,7 +169,7 @@ export function ActivityThreadOptionsMenu({
             )}
           </DropdownMenuCheckboxItem>
         ) : null}
-        <ActivityScopeFilterMenuItems />
+        <ActivityScopeFilterMenuItems lockProjectScope={lockProjectScope} />
         <DropdownMenuSeparator />
         <DropdownMenuLabel>
           {translate('auto.components.activity.ActivityPrototypePage.viewSection', 'View')}

@@ -326728,6 +326728,10 @@
     "src/main/orcad/platform-runtime-isolation.test.ts",
     "src/main/platform-runtime-policy.ts",
     "src/main/windows/windows-process-table-loader.test.ts",
+    "src/renderer/src/components/activity/activity-bound-project-scope.test.ts",
+    "src/renderer/src/components/activity/activity-bound-project-scope.ts",
+    "src/renderer/src/components/activity/activity-scope-filter-controls.platform.test.tsx",
+    "src/renderer/src/components/activity/use-agent-pane-threads.bound-scope.test.tsx",
     "src/renderer/src/i18n/platform-ui-copy.test.ts",
     "src/renderer/src/i18n/platform-ui-copy.ts",
     "src/renderer/src/lib/platform-catalog-icons.test.tsx",
@@ -326735,6 +326739,7 @@
     "src/renderer/src/web/platform-dialog-visibility.test.tsx",
     "src/renderer/src/web/platform-project-bootstrap.test.ts",
     "src/renderer/src/web/platform-project-bootstrap.ts",
+    "src/renderer/src/web/platform-project-context.ts",
     "src/renderer/src/web/platform-project-entry.css",
     "src/renderer/src/web/platform-project-entry.tsx",
     "src/renderer/src/web/platform-project-navigation-view.tsx",
@@ -326839,6 +326844,42 @@
       "reason": "M1a-W: product landing identity without official GitHub support entrance; M1a navigation: preserve a single project workspace while integrating platform business views"
     },
     {
+      "path": "src/renderer/src/components/activity/ActivityPrototypePage.tsx",
+      "upstream_sha256": "bc0524c2d723510bef7db608f37fbd6491e03cfebad43a82689a72d90b45fc29",
+      "current_sha256": "77efeba473bc91ceb34c74deeb024aa3f5917257b0088b8d7c7e87f5fa07217b",
+      "reason": "Unify project ownership, task editing and native Agent activity in the integrated workspace"
+    },
+    {
+      "path": "src/renderer/src/components/activity/activity-scope-filter-controls.tsx",
+      "upstream_sha256": "725ef0e243381292276e75aa588e4b7567cdb7119d53ef186b6d3cdf13bac8c7",
+      "current_sha256": "6d061ce245e8806f64edc89a6e9f7f2bd80049b40969f087d1caa0b16fe2d2cf",
+      "reason": "Unify project ownership, task editing and native Agent activity in the integrated workspace"
+    },
+    {
+      "path": "src/renderer/src/components/activity/activity-thread-list-pane.tsx",
+      "upstream_sha256": "e7cdd5dc4b91355b413bf123812cab7a49d767633bf2e706cad7e1eff9a2b8ae",
+      "current_sha256": "c16fdee3f00a9a3001b8252b437779303bf8b58d058f130f50ef2379e01aa148",
+      "reason": "Unify project ownership, task editing and native Agent activity in the integrated workspace"
+    },
+    {
+      "path": "src/renderer/src/components/activity/activity-thread-list-toolbar.tsx",
+      "upstream_sha256": "ef5943b185d5aec6e79ddb25a8a1d59afc178009b36efab02f11cf00a9343318",
+      "current_sha256": "6a83e331e7d8838198242b7c5378d3e13358d94ee473c24b611a0979894f9570",
+      "reason": "Unify project ownership, task editing and native Agent activity in the integrated workspace"
+    },
+    {
+      "path": "src/renderer/src/components/activity/activity-thread-options-menu.tsx",
+      "upstream_sha256": "975196003193463890fb106e38388673b98b52536e806a3fce05b94aab150d81",
+      "current_sha256": "27ea415e2cdb04f224a7a1891ac479e70cd1ca7ab4f1d2f5f6200db2bb03b454",
+      "reason": "Unify project ownership, task editing and native Agent activity in the integrated workspace"
+    },
+    {
+      "path": "src/renderer/src/components/activity/use-agent-pane-threads.ts",
+      "upstream_sha256": "52942fcf89cf3b2c79df72a2d60da2170a1d2651030b8d250bcd0f137507fb90",
+      "current_sha256": "dee267c5e2c2b6b62619b2b9a1ef6dc5deb80e7a49aa966a36c7969fe733891f",
+      "reason": "Unify project ownership, task editing and native Agent activity in the integrated workspace"
+    },
+    {
       "path": "src/renderer/src/components/mobile/MobilePage.tsx",
       "upstream_sha256": "15f121aa2d13a6daafd67fa8244fbf6e9542cae3c15e652c615b2ff25d0a478c",
       "current_sha256": "2f5b23fdeec77c3b3f6875732ed7962381f612dcf0bcf49718bb14d8adbf88a3",
@@ -326877,14 +326918,14 @@
     {
       "path": "src/renderer/src/components/sidebar/SidebarNav.test.tsx",
       "upstream_sha256": "60f8dbd6f22d356b42cfbf9862016f010f2faaf6a5a2d01ff597e7d60c2b21fa",
-      "current_sha256": "12bd530945c215d9e154e3e240df010944cf48a820b537da8709344758109600",
-      "reason": "M1a-W: rendered platform mobile entry regression"
+      "current_sha256": "6157805c467587e075566cd14a37f989891cc02e4a627a608e9d2da3605cdbb1",
+      "reason": "M1a-W: rendered platform mobile entry regression; Unify project ownership, task editing and native Agent activity in the integrated workspace"
     },
     {
       "path": "src/renderer/src/components/sidebar/SidebarNav.tsx",
       "upstream_sha256": "f0e68df8edcdc64da455c2104433843fec0baf6dcb85513a0129bb21957b9ff1",
-      "current_sha256": "cd7c0381cda324b54a197444061bf756079e3a394ff34434fb3256514d00f039",
-      "reason": "M1a-W: platform mobile entry states unconfigured; M1a navigation: preserve a single project workspace while integrating platform business views"
+      "current_sha256": "11590b47f5d295bb1128e2fa2593f16a842ed018fab4c7919ff19a66dc1d48a3",
+      "reason": "M1a-W: platform mobile entry states unconfigured; M1a navigation: preserve a single project workspace while integrating platform business views; Unify project ownership, task editing and native Agent activity in the integrated workspace"
     },
     {
       "path": "src/renderer/src/components/sidebar/SidebarSettingsHelpMenu.test.tsx",

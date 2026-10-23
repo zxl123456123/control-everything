@@ -77,6 +77,7 @@ export function ActivityThreadListPane({
   showFilterControls = true,
   showOptionsMenu = true,
   showInlineActions = true,
+  lockProjectScope = false,
   collapsedGroupKeys,
   onToggleGroupCollapse,
   scrollTopRef
@@ -115,6 +116,7 @@ export function ActivityThreadListPane({
   showFilterControls?: boolean
   showOptionsMenu?: boolean
   showInlineActions?: boolean
+  lockProjectScope?: boolean
   collapsedGroupKeys?: ReadonlySet<string>
   onToggleGroupCollapse?: (groupKey: string) => void
   /** Optional view-local scroll memory; updated without triggering React renders. */
@@ -328,6 +330,7 @@ export function ActivityThreadListPane({
         showFilterControls={showFilterControls}
         showOptionsMenu={showOptionsMenu}
         showInlineActions={showInlineActions}
+        lockProjectScope={lockProjectScope}
       />
       <div className="relative min-h-0 flex-1">
         <div

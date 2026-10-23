@@ -35,7 +35,8 @@ export function ActivityThreadListToolbar({
   resizable,
   showFilterControls,
   showOptionsMenu,
-  showInlineActions = true
+  showInlineActions = true,
+  lockProjectScope = false
 }: {
   activityFilterInputRef: React.RefObject<HTMLInputElement | null>
   query: string
@@ -56,6 +57,7 @@ export function ActivityThreadListToolbar({
   showFilterControls: boolean
   showOptionsMenu: boolean
   showInlineActions?: boolean
+  lockProjectScope?: boolean
 }): React.JSX.Element | null {
   const showToolbar = showFilterControls || showOptionsMenu
   if (!showToolbar) {
@@ -173,6 +175,7 @@ export function ActivityThreadListToolbar({
           ) : null}
           {showOptionsMenu ? (
             <ActivityThreadOptionsMenu
+              lockProjectScope={lockProjectScope}
               groupBy={groupBy}
               onGroupByChange={onGroupByChange}
               compactMode={compactMode}

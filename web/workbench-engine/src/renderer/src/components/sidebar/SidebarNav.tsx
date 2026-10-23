@@ -15,7 +15,6 @@ import { HideSidebarMenu } from './sidebar-nav-controls'
 import { translate } from '@/i18n/i18n'
 import { lazyWithRetry } from '@/lib/lazy-with-retry'
 import type { GlobalSettings } from '../../../../shared/global-settings-types'
-import { readPlatformRoute, projectRoute } from '../../web/platform-route'
 
 export function shouldShowMobileButton(
   settings: Partial<Pick<GlobalSettings, 'showMobileButton'>> | null | undefined
@@ -120,21 +119,7 @@ const SidebarNav = React.memo(function SidebarNav() {
         </span>
       </button>
       <SetupGuideSidebarEntry />
-      {platformMode ? (
-        <button
-          type="button"
-          className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[13px] text-worktree-sidebar-foreground/60 hover:bg-worktree-sidebar-foreground/8"
-          onClick={() => {
-            const route = readPlatformRoute(window.location)
-            window.location.hash = route.id ? projectRoute(route.id, 'tasks') : '#inbox'
-          }}
-        >
-          <Files className="size-4 shrink-0" strokeWidth={1.5} />
-          项目事项
-        </button>
-      ) : (
-        <SidebarTaskNavButton />
-      )}
+      {platformMode ? null : <SidebarTaskNavButton />}
       {showArtifactsButton ? (
         <ContextMenu>
           <ContextMenuTrigger asChild>

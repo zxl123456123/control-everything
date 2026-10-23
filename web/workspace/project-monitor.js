@@ -19,10 +19,10 @@ window.WorkspaceProjectMonitor = (() => {
     let offset = 0, agentPage = 0, selection = null, detailGeneration = 0;
     let readAbort = null, detailAbort = null, executionPanel = null;
     const heading = node('div', undefined, 'monitor-heading');
-    const title = node('div'); title.append(node('p', 'PROJECT ACTIVITY', 'eyebrow'), node('h3', '协作监控'));
+    const title = node('div'); title.append(node('h3', '业务进度'));
     const refresh = button('刷新', () => load(true)); heading.append(title, refresh);
     const status = node('p', '正在读取项目记录…', 'monitor-status'); status.setAttribute('role', 'status');
-    const coverage = node('p', '内部 Agent 活动尚未接通。外部会话仅显示关联信息，活动状态未知。', 'section-note');
+    const coverage = node('p', '事项、交接与人工验收记录。终端的实时状态在项目“活动”中查看。', 'section-note');
     const canvas = node('canvas', '项目活动图。下方列表提供相同的任务与 Agent 入口。');
     canvas.setAttribute('aria-label', '项目协作活动图');
     const stage = node('div', undefined, 'monitor-stage'); stage.append(canvas);

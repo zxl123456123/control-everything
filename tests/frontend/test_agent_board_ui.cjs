@@ -35,8 +35,10 @@ const agent = { id: 'a', name: 'Synthetic Agent', enabled: true, online: true, l
 const item = (id, extra = {}) => ({ id, title: `Task ${id}`, state: 'todo', project_id: 'p', revision: 7, assigned_agent_id: null, assignment_state: 'unassigned', ...extra });
 function fixture(options = {}) {
   const root = new Element('section');
-  const context = { window: { confirm: () => true }, document: { createElement: tag => new Element(tag), getElementById: () => null }, URLSearchParams, TextEncoder, console };
+  const events = [];
+  const context = { window: { confirm: () => true, dispatchEvent: event => { events.push(event); return !options.acceptNative; } }, CustomEvent: class { constructor(type, init) { Object.assign(this, init); this.type = type; } }, document: { createElement: tag => new Element(tag), getElementById: () => null }, URLSearchParams, TextEncoder, console };
   if (options.execution) context.window.WorkspaceExecution = options.execution;
+  if (options.sessions) vm.runInNewContext(fs.readFileSync(path.resolve(__dirname, '../../web/workspace/project-space.js'), 'utf8'), context);
   vm.runInNewContext(source, context);
   const calls = [], posts = [];
   let rows = options.rows || [item('one')], projects = options.projects || [{ id: 'p', name: 'Project' }], agents = options.agents || [agent];
@@ -66,11 +68,118 @@ function fixture(options = {}) {
     return {};
   };
   const callbacks = [];
-  const api = context.window.WorkspaceAgentBoard.create({ root, fetchJson, postJson, now: () => Date.parse(stamp), onRegister: () => callbacks.push('register'), onAddProject: () => callbacks.push('project') });
+  const api = context.window.WorkspaceAgentBoard.create({ root, fetchJson, postJson, unified: options.unified, now: () => Date.parse(stamp), onRegister: () => callbacks.push('register'), onAddProject: () => callbacks.push('project') });
   const node = id => { const found = root.querySelector('#' + id); assert.ok(found, id); return found; };
   const submit = async () => { const form = node('ab-review-submit').parentElement.parentElement; await form.listeners.submit({ preventDefault() {} }); };
-  return { api, root, node, calls, posts, state, callbacks, submit, groupItems: context.window.WorkspaceAgentBoard.groupItems };
+  return { api, root, node, calls, posts, state, callbacks, events, submit, groupItems: context.window.WorkspaceAgentBoard.groupItems };
 }
+
+const saveEdit = f => f.node('ab-edit-save').parentElement.parentElement.listeners.submit({ preventDefault() {} });
+const effectivelyDisabled = node => Boolean(node && (node.disabled || effectivelyDisabled(node.parentElement)));
+test('unified board groups manual doing by business state and review excludes attention-only items', async () => {
+  const f = fixture({ unified: true, rows: [item('doing', { state: 'doing' }), item('review', { state: 'review' }), item('failed', { assignment_state: 'failed' }), item('blocked', { state: 'blocked' })] });
+  await f.api.load(); f.api.setProject('p');
+  assert.match(f.node('ab-groups').textContent, /进行中 · 1Task doing/);
+  assert.doesNotMatch(f.node('ab-groups').textContent, /未分配/);
+  f.api.setProject('p', 'review'); assert.match(f.node('ab-groups').textContent, /Task review/);
+  assert.doesNotMatch(f.node('ab-groups').textContent, /Task (doing|failed|blocked)/);
+  f.api.setProject('p', true); assert.match(f.node('ab-groups').textContent, /Task failed/); assert.match(f.node('ab-groups').textContent, /Task blocked/);
+});
+test('detail editing posts only changed fields and preserves manual completion and reopening', async () => {
+  const row = item('edit', { origin: 'todo' }), f = fixture({ rows: [row] });
+  await f.api.load(); await f.api.open(row);
+  f.node('ab-edit-title').value = 'Changed title'; f.node('ab-edit-title').listeners.input(); await saveEdit(f);
+  assert.deepEqual(JSON.parse(JSON.stringify(f.posts[0].body)), { id: 'edit', expected_revision: 7, changes: { title: 'Changed title' } });
+  f.node('ab-edit-state').value = 'done'; f.node('ab-edit-state').listeners.input(); await saveEdit(f);
+  f.node('ab-edit-state').value = 'todo'; f.node('ab-edit-state').listeners.input(); await saveEdit(f);
+  assert.equal(f.posts[1].body.changes.state, 'done'); assert.equal(f.posts[2].body.changes.state, 'todo');
+});
+test('conflicting edit retains its draft and never reloads or retries the detail', async () => {
+  const row = item('conflict-edit'), f = fixture({ rows: [row] }); await f.api.load(); await f.api.open(row);
+  f.node('ab-edit-title').value = 'Keep draft'; f.node('ab-edit-title').listeners.input(); f.state.failPost = true;
+  const reads = f.calls.length; await saveEdit(f);
+  assert.equal(f.posts.length, 1); assert.equal(f.calls.length, reads); assert.equal(f.node('ab-edit-title').value, 'Keep draft');
+  await f.api.open(row, true); assert.equal(f.calls.length, reads); assert.equal(f.node('ab-edit-title').value, 'Keep draft');
+});
+test('review and active-run details lock state and project while title remains editable', async () => {
+  for (const extra of [{ state: 'review' }, { assignment_state: 'running' }]) {
+    const row = item('locked', extra), f = fixture({ rows: [row] }); await f.api.load(); await f.api.open(row);
+    assert.equal(f.node('ab-edit-state').disabled, true); assert.equal(f.node('ab-edit-project').disabled, true);
+    f.node('ab-edit-state').value = 'done'; f.node('ab-edit-title').value = 'Only title'; f.node('ab-edit-title').listeners.input(); await saveEdit(f);
+    assert.deepEqual(Object.keys(f.posts[0].body.changes), ['title']);
+  }
+});
+test('title and review drafts block each other without losing either input', async () => {
+  const row = item('drafts', { state: 'review' }), f = fixture({ rows: [row] }); await f.api.load(); await f.api.open(row);
+  f.node('ab-review-reason').value = 'Keep reason'; f.node('ab-review-reason').listeners.input();
+  f.node('ab-review-verdict').value = 'approved'; f.node('ab-review-confirm').checked = true;
+  f.node('ab-edit-title').value = 'Keep title'; f.node('ab-edit-title').listeners.input();
+  await saveEdit(f); await f.submit();
+  assert.equal(f.posts.length, 0); assert.equal(f.node('ab-review-reason').value, 'Keep reason'); assert.equal(f.node('ab-edit-title').value, 'Keep title');
+});
+test('title and assignment drafts block each other without changing assignments', async () => {
+  const row = item('assignment-drafts'), f = fixture({ rows: [row] }); await f.api.load(); await f.api.open(row);
+  f.node('ab-assignee').value = 'a'; f.node('ab-assignee').listeners.change();
+  f.node('ab-edit-title').value = 'Keep title'; f.node('ab-edit-title').listeners.input();
+  await saveEdit(f); await f.node('ab-assign').listeners.click();
+  assert.equal(f.posts.length, 0); assert.equal(f.node('ab-assignee').value, 'a'); assert.equal(f.node('ab-edit-title').value, 'Keep title');
+});
+test('saving a title disables the other detail forms until the write settles', async () => {
+  let finish;
+  const row = item('busy-editor', { state: 'review' });
+  const f = fixture({ rows: [row], post: () => new Promise(resolve => { finish = resolve; }) });
+  await f.api.load(); await f.api.open(row);
+  f.node('ab-edit-title').value = 'Saved title'; f.node('ab-edit-title').listeners.input();
+  const pending = saveEdit(f);
+  assert.equal(effectivelyDisabled(f.node('ab-review-submit')), true);
+  assert.equal(effectivelyDisabled(f.node('ab-edit-save')), true);
+  assert.equal(effectivelyDisabled(f.node('ab-assignee')), true);
+  finish({ item: { ...row, title: 'Saved title' } }); await pending;
+  assert.equal(f.node('ab-review-submit').parentElement.disabled, false);
+});
+test('late brief, message and session loads cannot release a pending title write lock or retain a stale loading lock', async () => {
+  let finishBrief, finishMessages, finishSessions, finishTitle, briefReads = 0, messageReads = 0, sessionReads = 0;
+  const row = item('late-brief', { origin: 'task' });
+  const brief = { item: row, brief: { revision: 3, request_text: 'Original request', references: [] }, directories: [] };
+  const f = fixture({ rows: [row], sessions: true, read: url => {
+    if (url.endsWith('/brief')) return briefReads++ ? brief : new Promise(resolve => { finishBrief = resolve; });
+    if (url.endsWith('/messages')) return messageReads++ ? { item: row, items: [] } : new Promise(resolve => { finishMessages = resolve; });
+    if (url.endsWith('/sessions')) return sessionReads++ ? { item: row, items: [] } : new Promise(resolve => { finishSessions = resolve; });
+    if (url.endsWith('/dispatches')) return { items: [] };
+  }, post: url => url.endsWith('/items/update') ? new Promise(resolve => { finishTitle = resolve; }) : { brief: { revision: 4 } } });
+  await f.api.load(); await f.api.open(row);
+  assert.equal(effectivelyDisabled(f.node('td-request_text')), true);
+  f.node('ab-edit-title').value = 'Saved title'; f.node('ab-edit-title').listeners.input();
+  const saving = saveEdit(f);
+  finishBrief(brief); finishMessages({ item: row, items: [] });
+  finishSessions({ item: row, items: [{ id: 'linked-session', task_id: row.id, title: 'Existing session', source: 'codex', external_id: 'synthetic', updated_at: stamp }] });
+  await new Promise(setImmediate);
+  assert.equal(f.node('td-save').parentElement.disabled, false);
+  assert.equal(effectivelyDisabled(f.node('td-request_text')), true);
+  assert.equal(effectivelyDisabled(f.node('tm-body')), true);
+  assert.equal(effectivelyDisabled(f.node('sl-source')), true);
+  const unlink = f.node('ab-detail').all.find(node => node.tagName === 'button' && node.textContent === '解除此事项关联');
+  assert.ok(unlink); assert.equal(effectivelyDisabled(unlink), true);
+  finishTitle({ item: { ...row, title: 'Saved title' } }); await saving; await new Promise(setImmediate);
+  assert.equal(effectivelyDisabled(f.node('td-request_text')), false);
+  assert.equal(effectivelyDisabled(f.node('tm-body')), false);
+  assert.equal(effectivelyDisabled(f.node('sl-source')), false);
+  f.node('td-request_text').value = 'Editable after title save'; f.node('td-request_text').listeners.input();
+  await f.node('td-save').parentElement.parentElement.listeners.submit({ preventDefault() {} });
+  assert.equal(f.posts.filter(post => post.url.endsWith('/brief')).length, 1);
+});
+test('native start closes the detail and emits a cancelable request without writing business state', async () => {
+  const row = item('native', { origin: 'task' }), f = fixture({ rows: [row], unified: true, acceptNative: true }); await f.api.load(); await f.api.open(row);
+  f.node('ab-edit-title').value = 'Draft'; f.node('ab-edit-title').listeners.input(); await f.node('ab-native-start').listeners.click(); assert.equal(f.events.length, 0);
+  f.node('ab-edit-title').value = row.title; f.node('ab-edit-title').listeners.input(); await f.node('ab-native-start').listeners.click();
+  assert.equal(f.node('ab-detail').open, false); assert.equal(f.events[0].type, 'platform-start-task-agent'); assert.equal(f.events[0].cancelable, true);
+  assert.deepEqual(JSON.parse(JSON.stringify(f.events[0].detail)), { projectId: 'p', taskId: 'native' }); assert.equal(f.posts.length, 0);
+});
+test('unhandled native start reopens detail with feedback and legacy todo has no native action', async () => {
+  const row = item('native-missing', { origin: 'task' }), f = fixture({ rows: [row], unified: true }); await f.api.load(); await f.api.open(row);
+  await f.node('ab-native-start').listeners.click(); assert.equal(f.node('ab-detail').open, true); assert.match(f.node('ab-feedback').textContent, /工作区尚未连接/);
+  row.origin = 'todo'; await f.api.open(row); assert.equal(f.root.querySelector('#ab-native-start'), null);
+});
 
 function dispatchFixture(options = {}) {
   const root = new Element('section'), calls = [], posts = [], dirty = [];
@@ -730,7 +839,7 @@ test('a real pending execution opens its task once and embeds the existing appro
     } });
   await f.api.load(); assert.equal(f.node('ab-detail').open, true);
   assert.equal(panels[0].taskId, row.id); assert.equal(panels[0].dispatchId, 'dispatch-one');
-  assert.equal(f.node('ab-tool-approvals').parentElement, f.node('ab-detail'));
+  assert.equal(f.node('ab-detail').all.includes(f.node('ab-tool-approvals')), true);
   f.node('ab-detail').close(); await f.api.load(); assert.equal(f.node('ab-detail').open, false);
   pendingId = 'approval-two'; await f.api.load(); assert.equal(f.node('ab-detail').open, true);
   assert.equal(f.posts.length, 0);

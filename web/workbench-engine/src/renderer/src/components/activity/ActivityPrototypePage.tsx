@@ -1,4 +1,12 @@
-import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import React, {
+  useCallback,
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState
+} from 'react'
 import { useAppStore } from '@/store'
 import { useSidebarResize } from '@/hooks/useSidebarResize'
 import {
@@ -10,6 +18,8 @@ import {
   resolveActivityPortalSwap
 } from './activity-portal-thread-reconciliation'
 import { useAgentPaneThreads } from './use-agent-pane-threads'
+import { PlatformProjectContext } from '../../web/platform-project-context'
+import { toRuntimeExecutionHostId } from '../../../../shared/execution-host'
 import { handleActivityFilterFocusShortcut } from './activity-filter-focus-shortcut'
 import { hasActivityThreadWorkspace } from './activity-thread-actions'
 import { useActivityThreadActionBindings } from './use-activity-thread-action-bindings'
@@ -31,6 +41,19 @@ import {
 export * from './activity-prototype-page-exports'
 
 export default function ActivityPrototypePage(): React.JSX.Element {
+  const platformProject = useContext(PlatformProjectContext)
+  const boundScope = useMemo(
+    () =>
+      platformProject === undefined
+        ? undefined
+        : platformProject === null
+          ? null
+          : {
+              repoId: platformProject.target.repoId,
+              hostId: toRuntimeExecutionHostId(platformProject.runtime.environmentId)
+            },
+    [platformProject]
+  )
   const [query, setQuery] = useState('')
   const activityFilterInputRef = useRef<HTMLInputElement | null>(null)
   // Why: bounds auto mark-read to one acknowledgement per selected thread turn.
@@ -73,7 +96,14 @@ export default function ActivityPrototypePage(): React.JSX.Element {
     visibleThreads,
     markAllReadThreads,
     visibleThreadGroups
-  } = useAgentPaneThreads({ query, readFilter, groupBy, selectedPaneKey, showChildAgents })
+  } = useAgentPaneThreads({
+    query,
+    readFilter,
+    groupBy,
+    selectedPaneKey,
+    showChildAgents,
+    boundScope
+  })
   if (!selectedPaneKeyIsLive) {
     // Why: rows disappear when agent retention or tab state changes; clear stale selection before detail/portal rendering targets it.
     setSelectedPaneKey(null)
@@ -327,6 +357,7 @@ export default function ActivityPrototypePage(): React.JSX.Element {
     <div ref={setActivityPageRef} className="flex h-full min-h-0 flex-col bg-background pb-3">
       <main className="flex min-h-0 flex-1 overflow-hidden">
         <ActivityThreadListPane
+          lockProjectScope={platformProject !== undefined}
           threadListRef={threadListRef}
           threadListWidth={threadListWidth}
           activityFilterInputRef={activityFilterInputRef}

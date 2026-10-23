@@ -278,6 +278,14 @@ describe('SidebarNav', () => {
     expect(mocks.openMobilePage).toHaveBeenCalledTimes(1)
   })
 
+  it('keeps platform tasks in the outer project navigation only', async () => {
+    window.history.replaceState(null, '', '/studio#project/sample/workspace')
+    const container = await renderSidebarNav()
+    expect(container.textContent).not.toContain('项目事项')
+    expect(queryButtonByText(container, 'Tasks')).toBeNull()
+    expect(mocks.openTaskPage).not.toHaveBeenCalled()
+  })
+
   it('hides the Artifacts entry by default for older settings', () => {
     expect(shouldShowArtifactsButton(null)).toBe(false)
     expect(shouldShowArtifactsButton({})).toBe(false)

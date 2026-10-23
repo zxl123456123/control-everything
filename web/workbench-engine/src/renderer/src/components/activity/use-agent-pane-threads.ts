@@ -11,6 +11,7 @@ import { buildActivityEvents, createActivityEventBuildCache } from './activity-e
 import { projectActivityTabs, type ActivityTabProjection } from './activity-tab-projection'
 import { buildAgentPaneThreads, createAgentPaneThreadReuseCache } from './activity-thread-builder'
 import { collectChildAgentPaneKeys } from './activity-thread-child-agent'
+import { bindActivityThreads, type BoundActivityScope } from './activity-bound-project-scope'
 import {
   EMPTY_PAIRED_DEVICE_IDS_BY_ENVIRONMENT,
   getPairedDeviceIdsByEnvironment
@@ -70,6 +71,7 @@ export function useAgentPaneThreads(args: {
   groupBy: ActivityGroupBy
   selectedPaneKey: string | null
   showChildAgents?: boolean
+  boundScope?: BoundActivityScope | null
 }): {
   storeData: AgentPaneThreadsStoreData
   allThreads: AgentPaneThread[]
@@ -84,7 +86,7 @@ export function useAgentPaneThreads(args: {
   markAllReadThreads: AgentPaneThread[]
   visibleThreadGroups: ActivityThreadGroup[]
 } {
-  const { query, readFilter, groupBy, selectedPaneKey, showChildAgents = false } = args
+  const { query, readFilter, groupBy, selectedPaneKey, showChildAgents = false, boundScope } = args
   const agentsVisibleHostIds = useAppStore((s) => s.agentsVisibleHostIds)
   const agentsFilterRepoIds = useAppStore((s) => s.agentsFilterRepoIds)
   const hideWorkspacesFromOtherDevices = useAppStore((s) => s.agentsHideWorkspacesFromOtherDevices)
@@ -185,7 +187,7 @@ export function useAgentPaneThreads(args: {
     [storeData, agentStatusEpoch]
   )
 
-  const allThreads = useMemo(
+  const rawThreads = useMemo(
     () =>
       buildAgentPaneThreads(
         {
@@ -199,6 +201,11 @@ export function useAgentPaneThreads(args: {
     [allEvents, liveAgentByPaneKey, paneEntryByPaneKey, storeData.generatedTitlesEnabled]
   )
 
+  const allThreads = useMemo(
+    () => bindActivityThreads(rawThreads, boundScope),
+    [rawThreads, boundScope]
+  )
+
   const selectedPaneKeyIsLive =
     selectedPaneKey === null || allThreads.some((thread) => thread.paneKey === selectedPaneKey)
   const effectiveSelectedPaneKey = selectedPaneKeyIsLive ? selectedPaneKey : null
@@ -210,8 +217,11 @@ export function useAgentPaneThreads(args: {
       filterThreadsByActivityScope({
         threads: allThreads,
         scope: {
-          visibleHostIds: agentsVisibleHostIds,
-          filterRepoIds: resolveActivityScopeRepoIds(agentsFilterRepoIds, storeData.repoMap),
+          visibleHostIds: boundScope === undefined ? agentsVisibleHostIds : null,
+          filterRepoIds:
+            boundScope === undefined
+              ? resolveActivityScopeRepoIds(agentsFilterRepoIds, storeData.repoMap)
+              : [],
           defaultHostId: storeData.defaultHostId,
           hideWorkspacesFromOtherDevices,
           pairedDeviceIdsByEnvironment,
@@ -222,6 +232,7 @@ export function useAgentPaneThreads(args: {
       }),
     [
       allThreads,
+      boundScope,
       agentsVisibleHostIds,
       agentsFilterRepoIds,
       storeData.repoMap,
@@ -239,8 +250,8 @@ export function useAgentPaneThreads(args: {
   // reclassify its workers as orphans.
   // Skipped entirely when children are shown: nothing reads the set then.
   const childAgentPaneKeys = useMemo(
-    () => (showChildAgents ? EMPTY_PANE_KEYS : collectChildAgentPaneKeys(allThreads)),
-    [allThreads, showChildAgents]
+    () => (showChildAgents ? EMPTY_PANE_KEYS : collectChildAgentPaneKeys(rawThreads)),
+    [rawThreads, showChildAgents]
   )
 
   // Why deferred: filtering hundreds of threads is interruptible background work; the input

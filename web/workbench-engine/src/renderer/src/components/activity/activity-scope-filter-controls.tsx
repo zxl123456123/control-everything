@@ -16,7 +16,11 @@ import { useSidebarHostScopeOptions } from '@/components/sidebar/use-sidebar-hos
  * deliberately separate from the workspace-nav filters. The parent owns the Filters label and
  * separator.
  */
-export function ActivityScopeFilterMenuItems(): React.JSX.Element {
+export function ActivityScopeFilterMenuItems({
+  lockProjectScope = false
+}: {
+  lockProjectScope?: boolean
+}): React.JSX.Element {
   const agentsVisibleHostIds = useAppStore((s) => s.agentsVisibleHostIds)
   const setAgentsVisibleHostIds = useAppStore((s) => s.setAgentsVisibleHostIds)
   const agentsFilterRepoIds = useAppStore((s) => s.agentsFilterRepoIds)
@@ -78,7 +82,7 @@ export function ActivityScopeFilterMenuItems(): React.JSX.Element {
           )}
         </DropdownMenuCheckboxItem>
       ) : null}
-      {showHostScopeControls ? (
+      {!lockProjectScope && showHostScopeControls ? (
         <SidebarHostScopeMenuSection
           hostVisibilityLabel={getSidebarHostVisibilityLabel(agentsVisibleHostIds, hostOptions)}
           hostOptions={hostOptions}
@@ -89,11 +93,13 @@ export function ActivityScopeFilterMenuItems(): React.JSX.Element {
           setVisibleWorkspaceHostIds={setAgentsVisibleHostIds}
         />
       ) : null}
-      <SidebarRepositoryFilterSection
-        filterRepoIds={agentsFilterRepoIds}
-        setFilterRepoIds={setAgentsFilterRepoIds}
-      />
-      {hasScopeFilter ? (
+      {!lockProjectScope && (
+        <SidebarRepositoryFilterSection
+          filterRepoIds={agentsFilterRepoIds}
+          setFilterRepoIds={setAgentsFilterRepoIds}
+        />
+      )}
+      {!lockProjectScope && hasScopeFilter ? (
         <DropdownMenuItem
           onSelect={() => {
             setAgentsVisibleHostIds(null)
@@ -112,11 +118,12 @@ export function ActivityScopeFilterMenuItems(): React.JSX.Element {
 
 /** Active persisted agents-view filters, for the options trigger badge; a filter that survives
  *  restarts must not silently hide running agents. Stale repo ids count so they stay resettable. */
-export function useActivityScopeFilterCount(): number {
+export function useActivityScopeFilterCount(lockProjectScope = false): number {
   return useAppStore(
     (state) =>
-      (state.agentsVisibleHostIds !== null ? 1 : 0) +
-      state.agentsFilterRepoIds.length +
+      (lockProjectScope
+        ? 0
+        : (state.agentsVisibleHostIds !== null ? 1 : 0) + state.agentsFilterRepoIds.length) +
       (state.agentsHideWorkspacesFromOtherDevices ? 1 : 0) +
       (state.agentsHideAutomationGeneratedWorkspaces ? 1 : 0) +
       (state.agentsHideCliCreatedWorkspaces ? 1 : 0)

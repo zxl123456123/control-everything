@@ -47,6 +47,13 @@ function fixture(reader = async () => snapshot()) {
 }
 const flush = async () => { for (let i = 0; i < 8; i++) await Promise.resolve(); };
 
+test('business progress names its records separately from native runtime activity', () => {
+  const f = fixture();
+  assert.match(f.root.textContent, /业务进度/);
+  assert.match(f.root.textContent, /事项、交接与人工验收记录/);
+  assert.doesNotMatch(f.root.textContent, /内部 Agent 活动尚未接通/);
+});
+
 test('execution completion remains pending human acceptance and metadata stays unknown', () => {
   const f = fixture(), data = snapshot();
   const view = f.model.project(data);
