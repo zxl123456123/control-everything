@@ -326722,12 +326722,14 @@
   "local_files": [
     "build-origin.json",
     "src/main/ai-vault/platform-ai-vault-roots.test.ts",
+    "src/main/orcad/platform-owner-client.test.ts",
     "src/main/orcad/platform-owner-client.ts",
     "src/main/orcad/platform-owner-methods.test.ts",
     "src/main/orcad/platform-owner-methods.ts",
     "src/main/orcad/platform-runtime-isolation.test.ts",
     "src/main/platform-runtime-policy.ts",
     "src/main/windows/windows-process-table-loader.test.ts",
+    "src/renderer/src/components/NewWorkspaceComposerModal.platform-project.test.tsx",
     "src/renderer/src/components/activity/activity-bound-project-scope.test.ts",
     "src/renderer/src/components/activity/activity-bound-project-scope.ts",
     "src/renderer/src/components/activity/activity-scope-filter-controls.platform.test.tsx",
@@ -326746,7 +326748,9 @@
     "src/renderer/src/web/platform-project-bootstrap.ts",
     "src/renderer/src/web/platform-project-context.ts",
     "src/renderer/src/web/platform-project-entry.css",
+    "src/renderer/src/web/platform-project-entry.test.tsx",
     "src/renderer/src/web/platform-project-entry.tsx",
+    "src/renderer/src/web/platform-project-management.test.ts",
     "src/renderer/src/web/platform-project-navigation-view.tsx",
     "src/renderer/src/web/platform-project-navigation.test.ts",
     "src/renderer/src/web/platform-project-navigation.ts",
@@ -326849,6 +326853,12 @@
       "reason": "M1a-W: product landing identity without official GitHub support entrance; M1a navigation: preserve a single project workspace while integrating platform business views"
     },
     {
+      "path": "src/renderer/src/components/NewWorkspaceComposerModal.tsx",
+      "upstream_sha256": "6c7c805458e0ef37d8df3260469e15b809ac595b136ecc9f95f3da2162d6676d",
+      "current_sha256": "26dc6aa89045126c48bb6b8d170ad34bb329b0ddc20c744c4d0c527c013dccb2",
+      "reason": "Unify project ownership, task editing and native Agent activity in the integrated workspace"
+    },
+    {
       "path": "src/renderer/src/components/activity/ActivityPrototypePage.tsx",
       "upstream_sha256": "bc0524c2d723510bef7db608f37fbd6491e03cfebad43a82689a72d90b45fc29",
       "current_sha256": "77efeba473bc91ceb34c74deeb024aa3f5917257b0088b8d7c7e87f5fa07217b",
@@ -326903,6 +326913,12 @@
       "reason": "M1a-W: platform mobile status instead of official client install/pairing; M1a navigation: preserve a single project workspace while integrating platform business views"
     },
     {
+      "path": "src/renderer/src/components/settings/RepositoryPane.tsx",
+      "upstream_sha256": "33bbc3100ac92f090ecc231cf8d7cf3d01ab1634a04a1be396cebd16c1fc5cd8",
+      "current_sha256": "84538033627ddecb10caf105885eb863567aef1d06b8e2ab5e5edda0e5f42683",
+      "reason": "Unify project ownership, task editing and native Agent activity in the integrated workspace"
+    },
+    {
       "path": "src/renderer/src/components/settings/repository-source-control-ai-labels.ts",
       "upstream_sha256": "36b0830bf58c9fc53795767125181eb409f6e283f9259c3d1c6ae23f6dec7e38",
       "current_sha256": "0a0c03861feb68ae84f0952948746124d9e5bac73c99483c3557bcc5e46dac8e",
@@ -326925,6 +326941,12 @@
       "upstream_sha256": "7bae553e386d7e38ba7df381941fce185b1af37619459157ff6c9936ce2d81c3",
       "current_sha256": "ba4ec709730d17674bd6fd6561103940b87f1817d2d66aacc79e1b1ebce85539",
       "reason": "Keep project registration in the Studio overview and preserve workspace creation"
+    },
+    {
+      "path": "src/renderer/src/components/sidebar/SidebarHeader.test.tsx",
+      "upstream_sha256": "84782ef2660c58949ecd9d38e53e7341fb5c17dc8d09a284bd7261ae1685f652",
+      "current_sha256": "2730a2945bf51321f88ebbcfcebf8aac8e32013b1015d8578885605c45ec2caf",
+      "reason": "Unify project ownership, task editing and native Agent activity in the integrated workspace"
     },
     {
       "path": "src/renderer/src/components/sidebar/SidebarNav.test.tsx",
@@ -326953,8 +326975,14 @@
     {
       "path": "src/renderer/src/components/sidebar/sidebar-header-actions.tsx",
       "upstream_sha256": "6e45c500d9870974c6868c8f60e1743c45150a8415cea9efd0e61513f347798a",
-      "current_sha256": "b17d05517c257f8866b436d135425ce0b8c615ac39bd3a16c6b62c30a1255153",
-      "reason": "Keep project registration in the Studio overview and preserve workspace creation"
+      "current_sha256": "84b5790b920fcfb738e806475cd17ff7d58164edfe448f8ae80fd0a2a049361b",
+      "reason": "Keep project registration in the Studio overview and preserve workspace creation; Unify project ownership, task editing and native Agent activity in the integrated workspace"
+    },
+    {
+      "path": "src/renderer/src/components/sidebar/worktree-list/rows/repo-header-project-actions.tsx",
+      "upstream_sha256": "f87de2c55e0c16983bb17c95d2606ac2c1b1666f68b1c036ac8e0f427077d8f6",
+      "current_sha256": "8f538aebf50dbe3a5ab556e1f77aca8ef260da93d780f4e194ec13fae4a7b39b",
+      "reason": "Unify project ownership, task editing and native Agent activity in the integrated workspace"
     },
     {
       "path": "src/renderer/src/components/ui/dialog.tsx",

@@ -122,8 +122,12 @@ class WorkbenchRuntimeTests(unittest.TestCase):
         if method == 'repo.list':
             return {'repos': self.repos}
         if method == 'repo.add':
-            repo = {'id': 'repo-id', 'path': params['path']}
+            repo = {'id': 'repo-id', 'path': params['path'], 'displayName': params['displayName']}
             self.repos.append(repo)
+            return {'repo': repo}
+        if method == 'repo.update':
+            repo = next(row for row in self.repos if 'id:' + row['id'] == params['repo'])
+            repo.update(params['updates'])
             return {'repo': repo}
         if method == 'worktree.list':
             return {'worktrees': []}
@@ -246,13 +250,23 @@ class WorkbenchRuntimeTests(unittest.TestCase):
 
     def test_bootstrap_reuses_existing_repo_without_changing_kind(self):
         (self.repo / '.git').mkdir()
-        existing = {'id': 'existing-repo', 'path': str(self.repo), 'kind': 'folder'}
+        existing = {'id': 'existing-repo', 'path': str(self.repo), 'kind': 'folder', 'displayName': 'Demo'}
         self.repos.append(existing.copy())
         self.start()
         result = self.manager.bootstrap('project', 'Demo', self.repo)
         self.assertEqual(result['target'], {'repoId': 'existing-repo'})
         self.assertEqual(self.repos, [existing])
         self.assertEqual([method for method, _ in self.rpc_calls], ['repo.list', 'worktree.list', 'platform.bootstrapDevice'])
+
+    def test_bootstrap_updates_project_name_without_replacing_repo_or_sessions(self):
+        self.repos.append({'id': 'existing-repo', 'path': str(self.repo), 'kind': 'folder', 'displayName': 'Old'})
+        self.start()
+        result = self.manager.bootstrap('project', 'Renamed', self.repo)
+        self.assertEqual(result['target'], {'repoId': 'existing-repo'})
+        self.assertEqual(self.repos[0]['kind'], 'folder')
+        self.assertEqual(self.repos[0]['displayName'], 'Renamed')
+        self.assertEqual(self.rpc_calls[1], ('repo.update', {'repo': 'id:existing-repo', 'updates': {'displayName': 'Renamed'}}))
+        self.assertEqual([method for method, _ in self.rpc_calls], ['repo.list', 'repo.update', 'worktree.list', 'platform.bootstrapDevice'])
 
     def test_bootstrap_does_not_downgrade_invalid_git_marker_after_rpc_failure(self):
         (self.repo / '.git').write_text('invalid git marker')

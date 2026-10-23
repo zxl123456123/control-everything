@@ -3,7 +3,7 @@
 function mountStudio(root, { onProjects = () => {} } = {}) {
   const $ = id => root.querySelector('#' + id);
   const content = $('studio-content'), status = $('studio-status');
-  if (!window.StudioData || !window.WorkspaceTaskCenter || !window.WorkspaceAgentBoard) {
+  if (!window.StudioData || !window.WorkspaceAgentBoard) {
     status.textContent = '工作台资源尚未就绪，请通过本地服务的 /studio 页面打开。'; return;
   }
   const client = window.StudioData.create();
@@ -31,12 +31,11 @@ function mountStudio(root, { onProjects = () => {} } = {}) {
     if (saved) creatorUrl = validateCreatorUrl(saved);
   } catch (_) { try { window.localStorage?.removeItem(CREATOR_URL_KEY); } catch (_) { /* Storage can be disabled. */ } }
   const escape = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
-  let state = { workspace: null, agents: [], items: [] }, request = 0, query = '', initialized = false, disposed = false;
+  let state = { workspace: null, agents: [], items: [] }, request = 0, query = '', archivedProjects = false, initialized = false, disposed = false;
   let pendingTask = null;
   try { if (root.dataset.unified !== 'true') root.dataset.theme = localStorage.getItem('ce-studio-theme') === 'dark' ? 'dark' : 'light'; } catch { /* Preferences are optional. */ }
-  const tasks = window.WorkspaceTaskCenter.create({ root: $('studio-tasks'), fetchJson: client.api, postJson: client.post,
-    canWrite: client.canWrite, onSaved: refresh, onProject: id => navigate('project/' + encodeURIComponent(id) + '/manage') });
   const board = window.WorkspaceAgentBoard.create({ root: $('studio-agent-board'), fetchJson: client.api, postJson: client.post,
+    unified: root.dataset.unified === 'true',
     onRegister: () => { location.href = '/workspace-admin#settings'; }, onAddProject: () => requestProject(),
     onProject: id => navigate(id ? 'project/' + encodeURIComponent(id) + '/tasks' : 'inbox') });
   const projects = () => state.workspace?.projects.items || [];
@@ -47,8 +46,8 @@ function mountStudio(root, { onProjects = () => {} } = {}) {
     let id = ''; try { id = decodeURIComponent(parts[1] || ''); } catch { /* Invalid route stays on the overview. */ }
     const legacyProject = new URLSearchParams(location.search).get('project_id');
     if (!parts[0] && legacyProject && /^[a-z0-9][a-z0-9-]{0,63}$/.test(legacyProject)) return { view: 'project', id: legacyProject, tab: 'workspace' };
-    if (['inbox', 'tasks', 'attention'].includes(parts[0])) return { view: 'inbox', id: '', tab: parts[1] === 'manage' ? 'manage' : parts[0] === 'attention' || parts[1] === 'attention' ? 'attention' : 'all' };
-    return { view: ['tools', 'settings', 'agents'].includes(parts[0]) ? 'tools' : parts[0] === 'project' ? 'project' : 'home', id, tab: parts[2] === 'attention' ? 'review' : parts[2] === 'sessions' ? 'workspace' : parts[2] || 'workspace' };
+    if (['inbox', 'tasks', 'attention'].includes(parts[0])) return { view: 'inbox', id: '', tab: parts[0] === 'attention' || parts[1] === 'attention' ? 'attention' : parts[1] === 'review' ? 'review' : 'all' };
+    return { view: ['tools', 'settings', 'agents'].includes(parts[0]) ? 'tools' : parts[0] === 'project' ? 'project' : 'home', id, tab: parts[2] === 'manage' ? 'tasks' : parts[2] === 'sessions' ? 'workspace' : parts[2] || 'workspace' };
   }
   function navigate(value) { if (location.hash === '#' + value) render(); else location.hash = value; }
   let onboarding = null, openingProject = false, pendingProject = false, returnTo = '', addedProject = '';
@@ -84,24 +83,62 @@ function mountStudio(root, { onProjects = () => {} } = {}) {
     if (location.hash !== '#home') { pendingProject = true; navigate('home'); }
     else void openProjectDialog();
   }
+  let projectSettings = null, pendingSettings = '';
+  function openProjectSettings(id) {
+    const project = projects().find(row => row.id === id);
+    if (!project || project.read_only || project.source?.kind === 'codex') return;
+    projectSettings?.remove();
+    const dialog = document.createElement('dialog'); projectSettings = dialog;
+    dialog.className = 'ce-project-settings';
+    dialog.innerHTML = `<form><h2>项目设置</h2><fieldset><label>项目名称<input name="name" required maxlength="80" value="${escape(project.name)}"></label><label>项目目录<span class="ce-project-directory">${escape(project.directories?.find(row => row.id === 'main')?.path || project.root || '')}</span></label><label class="ce-project-archive"><input name="archived" type="checkbox"${project.archived ? ' checked' : ''}>归档项目</label><p class="ce-subtle">归档后从常用项目中收起，保留事项、文件和已打开的终端。</p><p class="ce-project-feedback" role="status"></p><div class="ce-project-settings-actions"><button type="button" class="ce-button" data-cancel-project>取消</button><button type="submit" class="ce-button ce-primary">保存</button></div></fieldset></form>`;
+    root.append(dialog);
+    const fields = dialog.querySelector('fieldset'), feedback = dialog.querySelector('[role="status"]');
+    dialog.querySelector('[data-cancel-project]').addEventListener('click', () => dialog.close());
+    dialog.addEventListener('cancel', event => { if (fields.disabled) event.preventDefault(); });
+    dialog.querySelector('form').addEventListener('submit', async event => {
+      event.preventDefault(); if (fields.disabled) return;
+      fields.disabled = true; feedback.textContent = '';
+      try {
+        const result = await client.post('/api/workspace/projects/save', { id: project.id,
+          name: dialog.querySelector('[name="name"]').value.trim(), archived: dialog.querySelector('[name="archived"]').checked,
+          directories: project.directories.map(row => ({ id: row.id || row.binding_id, path: row.path })), source: project.source });
+        if (result.status !== 'ok' || result.project?.id !== project.id) throw new Error('服务未确认保存');
+        // Close before refresh can navigate away from an archived project.
+        dialog.close(); await refresh();
+      } catch (error) { feedback.textContent = error.reason === 'directory_conflict' ? '此目录已由其他活动项目使用，请先核对项目列表。' : error.message; }
+      finally { fields.disabled = false; }
+    });
+    dialog.showModal(); dialog.querySelector('[name="name"]').focus();
+  }
+  const manageProject = event => {
+    const normalize = value => String(value || '').replaceAll('\\', '/').replace(/\/+$/, '').toLowerCase();
+    const directory = event.detail?.directory;
+    const matches = directory ? projects().filter(project => normalize(project.directories?.find(row => row.id === 'main')?.path || project.root) === normalize(directory)) : [];
+    if (matches.length !== 1 || matches[0].read_only || matches[0].source?.kind === 'codex') {
+      status.textContent = '请从项目总览管理已登记的项目。'; return;
+    }
+    pendingSettings = matches[0].id;
+    if (location.hash !== '#home') navigate('home');
+    else requestAnimationFrame(() => { const id = pendingSettings; pendingSettings = ''; if (!disposed) openProjectSettings(id); });
+  };
   function nav(label, href, name, active) { return `<a class="ce-nav${active ? ' is-current' : ''}" href="${href}">${icon(name)}${label}</a>`; }
   function creatorLink(className='ce-nav'){return `<a class="${className} ce-creator-link" href="${escape(creatorUrl)}" target="_blank" rel="noopener noreferrer" aria-label="在新页面打开游戏创作">${icon('grid')}游戏创作${icon('arrow')}</a>`;}
   function creatorAddressForm(){return `<section class="ce-creator-address"><div><h2>游戏创作地址</h2><p>导航中的“游戏创作”会在新页面打开此地址。请先启动独立创作服务。</p></div><form data-creator-form="true"><label for="studio-creator-url">普通 HTTP(S) 页面地址</label><div class="ce-creator-address-row"><input id="studio-creator-url" data-creator-url type="text" inputmode="url" autocomplete="off" spellcheck="false" value="${escape(creatorUrl)}" aria-describedby="studio-creator-error"${creatorUrlError?' aria-invalid="true"':''}><button type="submit" class="ce-button">保存地址</button></div><p id="studio-creator-error" role="status">${escape(creatorUrlError)}</p></form></section>`;}
   function renderChrome(current) {
-    $('studio-rail').innerHTML = `<div class="ce-brand"><span class="ce-monogram">CE</span><span>Control<br>Everything</span></div><nav class="ce-navgroup">${nav('项目', '#home', 'grid', current.view === 'home')}${nav('新闻', '/news', 'grid', false)}</nav><nav class="ce-navgroup" aria-label="项目"><div class="ce-rail-label">项目</div>${projects().filter(p => !p.archived).map(p => `<a class="ce-nav ce-project-nav${current.id === p.id ? ' is-current' : ''}" href="${projectUrl(p.id)}"><span class="ce-navdot"></span>${escape(p.name)}</a>`).join('') || '<span class="ce-subtle">尚无登记项目</span>'}</nav><nav class="ce-navgroup" aria-label="创作">${creatorLink()}</nav><div class="ce-rail-bottom">${nav('工具与设置', '#tools', 'settings', current.view === 'tools')}<div class="ce-profile"><span class="ce-profile-avatar">CE</span><span>本地工作台</span></div></div>`;
+    $('studio-rail').innerHTML = `<div class="ce-brand"><span class="ce-monogram">CE</span><span>Control<br>Everything</span></div><nav class="ce-navgroup">${nav('项目', '#home', 'grid', current.view === 'home')}${nav('新闻', '/news', 'grid', false)}</nav><nav class="ce-navgroup" aria-label="项目"><div class="ce-rail-label">项目</div>${projects().filter(p => !p.archived).map(p => `<a class="ce-nav ce-project-nav${current.id === p.id ? ' is-current' : ''}" href="${projectUrl(p.id)}"><span class="ce-navdot"></span>${escape(p.name)}</a>`).join('') || '<span class="ce-subtle">尚无登记项目</span>'}</nav><nav class="ce-navgroup" aria-label="创作">${creatorLink()}</nav><div class="ce-rail-bottom">${nav('高级管理', '#tools', 'settings', current.view === 'tools')}<div class="ce-profile"><span class="ce-profile-avatar">CE</span><span>本地工作台</span></div></div>`;
     const chosen = projects().find(p => p.id === current.id);
-    $('studio-topbar').innerHTML = `<header class="ce-topbar"><div class="ce-crumbs"><a href="#home">项目</a>${current.view !== 'home' ? `<span> / ${escape(chosen?.name || ({ inbox: '事项收件箱', tools: '工具与设置' }[current.view] || '项目'))}</span>` : ''}</div><a class="ce-button ce-plain ce-creator-mobile" href="/news">新闻</a>${creatorLink('ce-button ce-plain ce-creator-mobile')}<button class="ce-button ce-plain" data-action="refresh" type="button">刷新</button><button class="ce-iconbtn" data-action="theme" type="button" aria-label="切换外观">${icon('moon')}</button></header>`;
+    $('studio-topbar').innerHTML = `<header class="ce-topbar"><div class="ce-crumbs"><a href="#home">项目</a>${current.view !== 'home' ? `<span> / ${escape(chosen?.name || ({ inbox: '事项', tools: '高级管理' }[current.view] || '项目'))}</span>` : ''}</div><a class="ce-button ce-plain ce-creator-mobile" href="/news">新闻</a>${creatorLink('ce-button ce-plain ce-creator-mobile')}<button class="ce-button ce-plain" data-action="refresh" type="button">刷新</button><button class="ce-iconbtn" data-action="theme" type="button" aria-label="切换外观">${icon('moon')}</button></header>`;
   }
   function projectCard(project) {
     const items = projectItems(project.id), pending = items.filter(item => ['review', 'blocked'].includes(item.state)).length;
-    const title = root.dataset.unified === 'true'
+    const title = project.archived ? `<span class="ce-project-title">${escape(project.name)}</span>` : root.dataset.unified === 'true'
       ? `<button type="button" class="ce-project-title" data-open-project="${escape(project.id)}">${escape(project.name)}</button>`
       : `<a class="ce-project-title" href="${projectUrl(project.id)}">${escape(project.name)}</a>`;
-    return `<article class="ce-project-card"><div class="ce-project-top"><span class="ce-project-icon">${icon('folder')}</span></div>${title}<p class="ce-project-desc" title="${escape(project.root || project.directories?.[0]?.path || '')}">${escape((project.root || project.directories?.[0]?.path || '').replaceAll('\\', '/').split('/').filter(Boolean).at(-1) || '')}</p><div class="ce-project-foot"><span>${items.filter(item => item.state !== 'done').length} 项待完成${pending ? ` · ${pending} 项待确认` : ''}</span></div></article>`;
+    return `<article class="ce-project-card"><div class="ce-project-top"><span class="ce-project-icon">${icon('folder')}</span>${!project.read_only && project.source?.kind !== 'codex' ? `<button type="button" class="ce-iconbtn" data-project-settings="${escape(project.id)}" aria-label="项目设置：${escape(project.name)}" title="项目设置">⋯</button>` : ''}</div>${title}<p class="ce-project-desc" title="${escape(project.root || project.directories?.[0]?.path || '')}">${escape((project.root || project.directories?.[0]?.path || '').replaceAll('\\', '/').split('/').filter(Boolean).at(-1) || '')}</p><div class="ce-project-foot"><span>${items.filter(item => item.state !== 'done').length} 项待完成${pending ? ` · ${pending} 项待确认` : ''}</span></div></article>`;
   }
   function home() {
-    const filtered = projects().filter(p => !p.archived && p.name.toLowerCase().includes(query.toLowerCase()));
-    return `<div class="ce-heading"><div><h1>项目</h1></div><button type="button" class="ce-button ce-primary" data-action="add-project">添加项目</button></div><div class="ce-toolbar"><span class="ce-count">${filtered.length} 个项目</span><label class="ce-search"><input id="studio-project-search" aria-label="筛选项目" placeholder="查找项目" value="${escape(query)}"></label></div><section class="ce-project-grid" aria-label="真实项目">${filtered.map(projectCard).join('') || '<div class="ce-empty">没有匹配的项目。先登记一个项目文件夹，再进入工作区。</div>'}</section>`;
+    const filtered = projects().filter(p => Boolean(p.archived) === archivedProjects && p.name.toLowerCase().includes(query.toLowerCase()));
+    return `<div class="ce-heading"><div><h1>项目</h1></div><button type="button" class="ce-button ce-primary" data-action="add-project">添加项目</button></div><div class="ce-toolbar"><span class="ce-count">${filtered.length} 个项目</span><button type="button" class="ce-button ce-plain" data-action="archived-projects" aria-pressed="${archivedProjects}">${archivedProjects ? '返回常用项目' : '已归档'}</button><label class="ce-search"><input id="studio-project-search" aria-label="筛选项目" placeholder="查找项目" value="${escape(query)}"></label></div><section class="ce-project-grid" aria-label="真实项目">${filtered.map(projectCard).join('') || `<div class="ce-empty">${archivedProjects ? '没有已归档项目。' : '没有匹配的项目。先登记一个项目文件夹，再进入工作区。'}</div>`}</section>`;
   }
   let monitor = null, monitorProject = '';
   function renderMonitor(current, chosen) {
@@ -118,7 +155,7 @@ function mountStudio(root, { onProjects = () => {} } = {}) {
     if (!monitor) {
       monitorProject = chosen.id;
       monitor = window.WorkspaceProjectMonitor.create({ root: $('studio-monitor-content'), projectId: chosen.id,
-        fetchJson: client.api, onTask: () => navigate('project/' + encodeURIComponent(chosen.id) + '/manage') });
+        fetchJson: client.api, onTask: () => navigate('project/' + encodeURIComponent(chosen.id) + '/tasks') });
     }
     monitor.setActive(true);
   }
@@ -126,17 +163,20 @@ function mountStudio(root, { onProjects = () => {} } = {}) {
     const current = route(); renderChrome(current);
     root.dataset.projectSurface = current.view === 'project' ? 'true' : 'false';
     const chosen = projects().find(p => p.id === current.id);
-    const manage = ['project', 'inbox'].includes(current.view) && current.tab === 'manage';
-    const showBoard = current.view === 'inbox' && !manage || current.view === 'project' && ['tasks', 'review'].includes(current.tab);
+    const showBoard = current.view === 'inbox' || current.view === 'project' && ['tasks', 'review', 'attention'].includes(current.tab);
     renderMonitor(current, chosen);
-    $('studio-tasks').hidden = !manage; $('studio-agent-board').hidden = !showBoard;
-    if (manage && initialized) tasks.setContext({ projectId: current.view === 'project' ? current.id : '' });
-    if (showBoard) board.setProject(current.view === 'project' ? current.id : '', current.tab === 'attention' || current.tab === 'review');
+    $('studio-tasks').hidden = true; $('studio-agent-board').hidden = !showBoard;
+    if (showBoard) board.setProject(current.view === 'project' ? current.id : '', current.tab === 'review' ? 'review' : current.tab === 'attention' ? 'attention' : 'all');
     if (!state.workspace) { content.innerHTML = '<div class="ce-empty">正在读取真实项目与事项。无法连接时请使用上方“刷新”重试。</div>'; return; }
     if (current.view === 'home') content.innerHTML = home();
-    else if (current.view === 'tools') content.innerHTML = `<div class="ce-heading"><div><h1>工具与设置</h1></div></div>${creatorAddressForm()}<div class="ce-tool-grid"><article class="ce-tool-card">${icon('settings')}<h2>高级接入</h2><p>外部任务执行器与旧数据。</p><a class="ce-button" href="/workspace-admin#settings">高级设置</a></article><article class="ce-tool-card">${icon('folder')}<h2>项目档案</h2><a class="ce-button" href="/workspace-admin#projects">归档与来源</a></article></div>`;
-    else if (current.view === 'project') content.innerHTML = chosen ? `<div class="ce-heading"><div><h1>${escape({ tasks: '项目事项', manage: '编辑事项', review: '验收与确认', monitor: '协作监控', workspace: chosen.name }[current.tab] || '项目事项')}</h1></div>${current.tab === 'manage' ? `<a class="ce-button" href="#project/${encodeURIComponent(chosen.id)}/tasks">返回项目事项</a>` : `<a class="ce-button" href="#project/${encodeURIComponent(chosen.id)}/manage" data-edit-items>编辑事项</a>`}</div>${root.dataset.unified === 'true' ? '' : `<div class="ce-tabs"><a href="${projectUrl(chosen.id)}">开发</a><a href="#project/${encodeURIComponent(chosen.id)}/tasks">事项</a><a href="#project/${encodeURIComponent(chosen.id)}/review">验收</a><a href="#project/${encodeURIComponent(chosen.id)}/monitor">协作监控</a></div>`}` : '<div class="ce-empty">项目已移出或不存在，请返回项目列表重新选择。</div>';
-    else content.innerHTML = `<div class="ce-heading"><div><h1>${manage ? '编辑事项' : '事项收件箱'}</h1><p>跨项目查看事项；进入项目后，开发和交付在同一处继续。</p></div>${manage ? '<a class="ce-button" href="#inbox">返回收件箱</a>' : ''}</div>${manage ? '' : `<nav class="ce-tabs" aria-label="事项筛选"><a href="#inbox" aria-current="${current.tab !== 'attention' ? 'page' : 'false'}">全部</a><a href="#inbox/attention" aria-current="${current.tab === 'attention' ? 'page' : 'false'}">需要我处理</a></nav>`}`;
+    else if (current.view === 'tools') content.innerHTML = `<div class="ce-heading"><div><h1>高级管理</h1></div></div>${creatorAddressForm()}<div class="ce-tool-grid"><article class="ce-tool-card">${icon('settings')}<h2>高级接入</h2><p>外部任务执行器与旧数据。</p><a class="ce-button" href="/workspace-admin#settings">高级设置</a></article><article class="ce-tool-card">${icon('folder')}<h2>项目档案</h2><a class="ce-button" href="/workspace-admin#projects">来源与历史</a></article></div>`;
+    else if (current.view === 'project') content.innerHTML = chosen ? `<div class="ce-heading"><div><h1>${current.tab === 'monitor' ? '业务进度' : showBoard ? '事项' : escape(chosen.name)}</h1></div>${current.tab === 'monitor' ? `<a class="ce-button ce-plain" href="#project/${encodeURIComponent(chosen.id)}/tasks">返回事项</a>` : showBoard ? `<a class="ce-button ce-plain" href="#project/${encodeURIComponent(chosen.id)}/monitor">业务进度</a>` : ''}</div>${showBoard ? itemFilters(current) : ''}` : '<div class="ce-empty">项目已移出或不存在，请返回项目列表重新选择。</div>';
+    else content.innerHTML = `<div class="ce-heading"><h1>事项</h1></div>${itemFilters(current)}`;
+  }
+  function itemFilters(current) {
+    const href = filter => current.view === 'project' ? '#project/' + encodeURIComponent(current.id) + '/' + (filter === 'all' ? 'tasks' : filter) : '#inbox' + (filter === 'all' ? '' : '/' + filter);
+    const selected = ['review', 'attention'].includes(current.tab) ? current.tab : 'all';
+    return `<nav class="ce-tabs" aria-label="事项筛选">${[['all', '全部'], ['review', '待验收'], ['attention', '需处理']].map(([value, label]) => `<a href="${href(value)}"${selected === value ? ' aria-current="page"' : ''}>${label}</a>`).join('')}</nav>`;
   }
   async function refresh() {
     const current = ++request; status.textContent = state.workspace ? '正在更新，暂保留上次记录…' : '正在读取本地工作台…'; status.classList.remove('error');
@@ -146,7 +186,7 @@ function mountStudio(root, { onProjects = () => {} } = {}) {
       if (disposed || current !== request) return;
       state = next;
       onProjects(projects().filter(project => !project.archived).map(project => ({ id: project.id, name: project.name, directory: project.directories?.find(row => row.id === 'main')?.path || project.root })));
-      tasks.update(state.workspace); render();
+      render();
       status.textContent = `${root.dataset.isolatedPreview === 'true' ? '隔离测试数据' : '本地数据'} · ${projects().filter(p => !p.archived).length} 个项目 · ${state.items.length} 项事项`;
       if (!$('studio-agent-board').hidden) await board.load();
     } catch (error) {
@@ -157,9 +197,12 @@ function mountStudio(root, { onProjects = () => {} } = {}) {
   root.addEventListener('click', event => {
     const project = event.target.closest('[data-open-project]')?.dataset.openProject;
     if (project) navigate('project/' + encodeURIComponent(project) + '/workspace');
+    const settingsId = event.target.closest('[data-project-settings]')?.dataset.projectSettings;
+    if (settingsId) openProjectSettings(settingsId);
     const action = event.target.closest('[data-action]')?.dataset.action;
     if (action === 'refresh') void refresh();
     if (action === 'add-project') requestProject();
+    if (action === 'archived-projects') { archivedProjects = !archivedProjects; render(); }
     if (action === 'theme') { root.dataset.theme = root.dataset.theme === 'dark' ? 'light' : 'dark'; try { localStorage.setItem('ce-studio-theme', root.dataset.theme); } catch { /* Preferences are optional. */ } }
     const taskId = event.target.closest('[data-task]')?.dataset.task;
     if (taskId) {
@@ -194,12 +237,14 @@ function mountStudio(root, { onProjects = () => {} } = {}) {
   const changed = () => {
     render(); if (initialized) void refresh();
     if (pendingProject && route().view === 'home') { pendingProject = false; requestAnimationFrame(() => void openProjectDialog()); }
+    if (pendingSettings && route().view === 'home') { const id = pendingSettings; pendingSettings = ''; requestAnimationFrame(() => { if (!disposed && route().view === 'home') openProjectSettings(id); }); }
     if (pendingTask) { const pending = pendingTask; pendingTask = null; if (location.hash === pending.hash) void board.open(pending.item); }
   };
   window.addEventListener('hashchange', changed);
   window.addEventListener('platform-add-project', requestProject);
+  window.addEventListener('platform-manage-project', manageProject);
   render(); void refresh();
-  return () => { disposed = true; request++; window.removeEventListener('hashchange', changed); window.removeEventListener('platform-add-project', requestProject); monitor?.destroy(); board.dispose?.(); };
+  return () => { disposed = true; request++; window.removeEventListener('hashchange', changed); window.removeEventListener('platform-add-project', requestProject); window.removeEventListener('platform-manage-project', manageProject); projectSettings?.remove(); monitor?.destroy(); board.dispose?.(); };
 }
 window.StudioPreview = { mount: mountStudio };
 const standaloneStudio = document.getElementById('ce-studio');

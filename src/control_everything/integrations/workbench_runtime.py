@@ -360,6 +360,10 @@ class WorkbenchRuntime:
                 repo = self._rpc("repo.add", {"path": str(path), "displayName": str(project_name), "kind": kind})["repo"]
             if not repo.get("id") or safe_path(repo["path"]) != path:
                 raise WorkbenchUnavailable("project_directory_mismatch")
+            if matches and repo.get("displayName") != str(project_name):
+                # The platform owns the project name; preserve the native repo and its sessions.
+                repo = self._rpc("repo.update", {"repo": "id:" + repo["id"],
+                                 "updates": {"displayName": str(project_name)}})["repo"]
             self._rpc("worktree.list", {"repo": "id:" + repo["id"]})
             paired = self._rpc("platform.bootstrapDevice", {"name": "Platform Web " + str(project_id)})
             if not paired.get("available"):

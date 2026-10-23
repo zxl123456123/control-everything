@@ -1,5 +1,15 @@
 import type { AgentLaunchSurface } from '@/lib/agent-session-launch-plan'
-import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import React, {
+  Suspense,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState
+} from 'react'
+import { PlatformProjectContext } from '@/web/platform-project-context'
+import { getRepoExecutionHostId, toRuntimeExecutionHostId } from '../../../shared/execution-host'
 import { useAppStore } from '@/store'
 import { lazyWithRetry } from '@/lib/lazy-with-retry'
 import {
@@ -28,7 +38,10 @@ import type { TaskSourceContext } from '../../../shared/task-source-context'
 import { translate } from '@/i18n/i18n'
 import { getWorkspaceComposerInitialFocusTarget } from '@/lib/workspace-composer-initial-focus'
 import { getFolderWorkspacePrimaryActionLabel } from '@/components/sidebar/folder-workspace-composer-helpers'
-import type { WorkspaceCreationTargetHint } from '@/lib/project-host-workspace-target'
+import {
+  getRepoWorkspaceCreationTargetHint,
+  type WorkspaceCreationTargetHint
+} from '@/lib/project-host-workspace-target'
 import { useAgentMenuObservation } from '@/components/tab-bar/use-new-tab-agent-menu-rows'
 import { addAppKeyListener, removeAppKeyListener } from '@/lib/app-keyboard-router'
 
@@ -129,6 +142,36 @@ function QuickTabBody({
   active: boolean
 }): React.JSX.Element {
   const settings = useAppStore((s) => s.settings)
+  const platformProject = useContext(PlatformProjectContext)
+  const platformMode = platformProject !== undefined
+  const projectRepoId = platformProject?.target.repoId
+  const projectHostId = platformProject
+    ? toRuntimeExecutionHostId(platformProject.runtime.environmentId)
+    : null
+  const projectRepo = useAppStore((state) =>
+    platformProject
+      ? state.repos.find(
+          (repo) => repo.id === projectRepoId && getRepoExecutionHostId(repo) === projectHostId
+        )
+      : undefined
+  )
+  const projectHostSetups = useAppStore((state) => state.projectHostSetups)
+  const projectTarget = useMemo(
+    () => (projectRepo ? getRepoWorkspaceCreationTargetHint(projectRepo, projectHostSetups) : null),
+    [projectRepo, projectHostSetups]
+  )
+  const matchingTaskSource =
+    !platformMode ||
+    Boolean(
+      projectTarget &&
+      modalData.taskSourceContext?.projectId === projectTarget.projectId &&
+      modalData.taskSourceContext.hostId === projectTarget.hostId
+    )
+  const matchingLinkedItem =
+    !platformMode ||
+    Boolean(
+      projectRepoId && (modalData.linkedWorkItem?.repoId === projectRepoId || matchingTaskSource)
+    )
   const {
     cardProps,
     composerRef,
@@ -142,13 +185,19 @@ function QuickTabBody({
     // Why: the modal is quick-create only now, so prompt-prefill state is
     // intentionally ignored even if older callers still send it.
     initialPrompt: '',
-    initialLinkedWorkItem: modalData.linkedWorkItem ?? null,
-    initialGitHubWorkItem: modalData.initialGitHubWorkItem ?? null,
-    initialTaskSourceContext: modalData.taskSourceContext ?? null,
-    initialWorkspaceTarget: modalData.initialWorkspaceTarget ?? null,
-    initialRepoId: modalData.initialRepoId,
-    initialEphemeralVmRecipeId: modalData.initialEphemeralVmRecipeId,
-    initialProjectGroupId: modalData.initialProjectGroupId,
+    initialLinkedWorkItem: matchingLinkedItem ? (modalData.linkedWorkItem ?? null) : null,
+    initialGitHubWorkItem:
+      !platformMode || modalData.initialGitHubWorkItem?.repoId === projectRepoId
+        ? (modalData.initialGitHubWorkItem ?? null)
+        : null,
+    initialTaskSourceContext: matchingTaskSource ? (modalData.taskSourceContext ?? null) : null,
+    initialWorkspaceTarget: platformMode
+      ? projectTarget
+      : (modalData.initialWorkspaceTarget ?? null),
+    initialRepoId: projectRepoId ?? modalData.initialRepoId,
+    repoIdOverride: projectRepoId,
+    initialEphemeralVmRecipeId: platformMode ? undefined : modalData.initialEphemeralVmRecipeId,
+    initialProjectGroupId: platformMode ? undefined : modalData.initialProjectGroupId,
     initialWorkspaceStatus: modalData.initialWorkspaceStatus,
     ...(modalData.initialBaseBranch ? { initialBaseBranch: modalData.initialBaseBranch } : {}),
     persistDraft: false,
@@ -203,7 +252,15 @@ function QuickTabBody({
     cardProps.agentRows?.detectionTarget
   )
   const launchSelection = observation.selectionFor(quickAgent, quickAgentSurface)
-  const createDisabled = formDisabled || !launchSelection.ready
+  const platformTargetReady =
+    !platformMode ||
+    Boolean(
+      platformProject &&
+      cardProps.repoId === projectRepoId &&
+      cardProps.selectedRepo &&
+      getRepoExecutionHostId(cardProps.selectedRepo) === projectHostId
+    )
+  const createDisabled = formDisabled || !launchSelection.ready || !platformTargetReady
 
   const handleQuickAgentChange = useCallback(
     (agent: TuiAgent | null, surface?: AgentLaunchSurface) => {
@@ -317,12 +374,14 @@ function QuickTabBody({
     <>
       <DialogHeader className="gap-1">
         <DialogTitle className="text-base font-semibold">
-          {isFolderWorkspaceTarget
-            ? translate(
-                'auto.components.sidebar.FolderWorkspaceComposerDialog.title',
-                'Create Folder Workspace'
-              )
-            : primaryActionLabel}
+          {platformMode
+            ? '新建工作区'
+            : isFolderWorkspaceTarget
+              ? translate(
+                  'auto.components.sidebar.FolderWorkspaceComposerDialog.title',
+                  'Create Folder Workspace'
+                )
+              : primaryActionLabel}
         </DialogTitle>
         <DialogDescription className="sr-only">
           {translate(
@@ -344,6 +403,25 @@ function QuickTabBody({
         quickSetupOnly={quickSetupOnly}
         onQuickSetupOnlySelect={handleQuickSetupOnlySelect}
         {...cardProps}
+        projectLabel={platformMode ? '所属项目' : undefined}
+        projectOptions={
+          platformMode
+            ? platformProject
+              ? cardProps.projectOptions.filter(
+                  (option) => option.id === cardProps.selectedProjectId
+                )
+              : []
+            : cardProps.projectOptions
+        }
+        projectHostSetupOptions={
+          platformMode
+            ? (cardProps.projectHostSetupOptions || []).filter(
+                (option) => option.hostId === projectHostId
+              )
+            : cardProps.projectHostSetupOptions
+        }
+        ephemeralVmRecipes={platformMode ? [] : cardProps.ephemeralVmRecipes}
+        allowSmartNameAddProject={platformMode ? false : cardProps.allowSmartNameAddProject}
         createDisabled={createDisabled}
         agentSurfaceRows={
           cardProps.agentRows

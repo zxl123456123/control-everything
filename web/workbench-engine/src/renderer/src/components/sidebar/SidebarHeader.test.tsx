@@ -4,6 +4,7 @@ import React, { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import SidebarHeader from './SidebarHeader'
+import { PlatformProjectContext } from '@/web/platform-project-context'
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
 
@@ -131,6 +132,20 @@ afterEach(() => {
 })
 
 describe('SidebarHeader', () => {
+  it('labels the integrated workspace action and waits for a current project', () => {
+    act(() =>
+      root.render(
+        <PlatformProjectContext.Provider value={null}>
+          <SidebarHeader onWorkspaceBoardMenuOpenChange={vi.fn()} />
+        </PlatformProjectContext.Provider>
+      )
+    )
+    const button = headerButton('新建工作区')
+    expect(button.textContent).toBe('新建工作区')
+    expect(button.disabled).toBe(true)
+    act(() => button.click())
+    expect(mocks.openWorkspaceCreationComposerWithTourHandoff).not.toHaveBeenCalled()
+  })
   it('keeps New workspace clickable with zero projects, since the composer adds the first one', async () => {
     act(() => {
       root.render(<SidebarHeader onWorkspaceBoardMenuOpenChange={vi.fn()} />)

@@ -3,7 +3,7 @@ import { createConnection } from 'node:net'
 import { randomUUID } from 'node:crypto'
 import { decodePairingOffer } from '../../shared/pairing'
 
-const METHODS = new Set(['repo.list', 'repo.add', 'worktree.list', 'platform.bootstrapDevice', 'platform.revokeDevice'])
+const METHODS = new Set(['repo.list', 'repo.add', 'repo.update', 'worktree.list', 'platform.bootstrapDevice', 'platform.revokeDevice'])
 const MAX_BYTES = 1024 * 1024
 
 async function main(): Promise<void> {
@@ -18,6 +18,17 @@ async function main(): Promise<void> {
       typeof request.endpoint !== 'string' || !request.endpoint.startsWith('\\\\.\\pipe\\') ||
       typeof request.expectedRuntimeId !== 'string' || !request.expectedRuntimeId) {
     throw new Error('owner_request_invalid')
+  }
+  if (request.method === 'repo.update') {
+    const params = request.params
+    // The platform owns project names, not arbitrary native repository settings.
+    if (!params || typeof params !== 'object' || Object.keys(params).sort().join(',') !== 'repo,updates'
+        || typeof params.repo !== 'string' || !params.repo.startsWith('id:') || params.repo.length <= 3
+        || !params.updates || typeof params.updates !== 'object'
+        || Object.keys(params.updates).join(',') !== 'displayName'
+        || typeof params.updates.displayName !== 'string' || !params.updates.displayName.trim()) {
+      throw new Error('owner_request_invalid')
+    }
   }
   const id = randomUUID()
   const response = await new Promise<{ ok: boolean; result?: unknown }>((resolve, reject) => {

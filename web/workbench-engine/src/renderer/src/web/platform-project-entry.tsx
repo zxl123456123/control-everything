@@ -11,9 +11,11 @@ import {
 } from './platform-project-bootstrap'
 import PlatformStudioSurface, { type PlatformProject } from './platform-studio-surface'
 import { readPlatformRoute, projectRoute } from './platform-route'
+import { PlatformProjectContext } from './platform-project-context'
 
 const App = lazy(() => import('../App'))
 const PlatformNavigation = lazy(() => import('./platform-project-navigation-view'))
+const PlatformAgentBridge = lazy(() => import('./platform-agent-bridge'))
 
 export default function PlatformProjectEntry(): React.JSX.Element {
   const [data, setData] = useState<PlatformProjectBootstrap | null>(null)
@@ -21,7 +23,12 @@ export default function PlatformProjectEntry(): React.JSX.Element {
   const [route, setRoute] = useState(() => readPlatformRoute(window.location))
   const [projects, setProjects] = useState<PlatformProject[]>([])
   const [retry, setRetry] = useState(0)
-  const cache = useRef(new Map<string, PlatformProjectBootstrap>())
+  const cache = useRef(
+    new Map<string, { project: PlatformProject; data: PlatformProjectBootstrap }>()
+  )
+  const latestProjects = useRef<PlatformProject[]>([])
+  const [projectsReady, setProjectsReady] = useState(false)
+  const [readyData, setReadyData] = useState<PlatformProjectBootstrap | null>(null)
   const environment = useRef('')
   const endpoint = useRef('')
   const [unlinkedWorkspace, setUnlinkedWorkspace] = useState(false)
@@ -35,10 +42,47 @@ export default function PlatformProjectEntry(): React.JSX.Element {
     window.location.hash || (route.id ? projectRoute(route.id, route.tab) : '#home')
   )
   const [navigationNotice, setNavigationNotice] = useState('')
-  const onProjects = useCallback((rows: PlatformProject[]) => setProjects(rows), [])
+  const onProjects = useCallback((rows: PlatformProject[]) => {
+    const previous = latestProjects.current
+    latestProjects.current = rows
+    setProjectsReady(true)
+    for (const [id, saved] of cache.current) {
+      const project = rows.find((row) => row.id === id)
+      if (
+        !project ||
+        project.name !== saved.project.name ||
+        project.directory !== saved.project.directory
+      )
+        cache.current.delete(id)
+    }
+    const current = readPlatformRoute(window.location)
+    if (
+      current.view === 'project' &&
+      previous.some((row) => row.id === current.id) &&
+      !rows.some((row) => row.id === current.id)
+    )
+      window.location.hash = '#home'
+    if (
+      previous.length !== rows.length ||
+      rows.some(
+        (row, index) =>
+          row.id !== previous[index]?.id ||
+          row.name !== previous[index]?.name ||
+          row.directory !== previous[index]?.directory
+      )
+    )
+      setProjects(rows)
+  }, [])
   const projectId = route.view === 'project' ? route.id : ''
-  const developing = route.view === 'project' && route.tab === 'workspace'
-  const connected = data?.project.id === projectId && !error
+  const developing = route.view === 'project' && ['workspace', 'activity'].includes(route.tab)
+  const chosen = projects.find((project) => project.id === projectId)
+  const connected = Boolean(
+    chosen &&
+    data?.project.id === projectId &&
+    data.project.name === chosen.name &&
+    cache.current.get(projectId)?.project.directory === chosen.directory &&
+    !error
+  )
   useEffect(() => {
     const changed = () => {
       const next = readPlatformRoute(window.location)
@@ -88,23 +132,35 @@ export default function PlatformProjectEntry(): React.JSX.Element {
     }
   }, [developing, connected])
   useEffect(() => {
-    if (!projectId) return
+    if (!projectId || !projectsReady) return
+    if (!chosen) {
+      setError('项目已归档或不存在，请返回项目总览。')
+      return
+    }
     setError('')
     const previous = cache.current.get(projectId)
     if (previous) {
       // An explicit return from the project list must reveal this project's worktree again.
-      setData({ ...previous })
+      setData({ ...previous.data })
       return
     }
+    const requestedProject = { ...chosen }
+    const isCurrentProject = () =>
+      latestProjects.current.some(
+        (project) =>
+          project.id === requestedProject.id &&
+          project.name === requestedProject.name &&
+          project.directory === requestedProject.directory
+      )
     const controller = new AbortController()
     let cancelled = false
     const timer = window.setTimeout(() => controller.abort(), 45_000)
     void (async () => {
       try {
         const result = await loadPlatformProjectBootstrap(projectId, controller.signal)
-        if (cancelled) return
+        if (cancelled || !isCurrentProject()) return
         await initWebDeviceKeySupport()
-        if (cancelled) return
+        if (cancelled || !isCurrentProject()) return
         if (
           environment.current &&
           (environment.current !== result.runtime.environmentId ||
@@ -118,7 +174,7 @@ export default function PlatformProjectEntry(): React.JSX.Element {
           endpoint.current = result.runtime.offer.endpoint
         }
         document.title = `${result.project.name} · 掌控一切`
-        cache.current.set(projectId, result)
+        cache.current.set(projectId, { project: requestedProject, data: result })
         setData(result)
       } catch {
         if (!cancelled)
@@ -134,8 +190,10 @@ export default function PlatformProjectEntry(): React.JSX.Element {
       controller.abort()
       window.clearTimeout(timer)
     }
-  }, [projectId, retry])
-  const chosen = projects.find((project) => project.id === projectId)
+  }, [projectId, retry, projectsReady, chosen?.name, chosen?.directory])
+  useEffect(() => {
+    if (connected && chosen) document.title = `${chosen.name} · 掌控一切`
+  }, [connected, chosen?.name])
   return (
     <div className="platform-project-entry bg-background">
       {projectId && (
@@ -176,14 +234,18 @@ export default function PlatformProjectEntry(): React.JSX.Element {
               [
                 ['workspace', '开发'],
                 ['tasks', '事项'],
-                ['review', '验收'],
-                ['monitor', '协作监控']
+                ['activity', '活动']
               ] as const
             ).map(([tab, label]) => (
               <a
                 key={tab}
                 href={projectRoute(projectId, tab)}
-                aria-current={route.tab === tab ? 'page' : undefined}
+                aria-current={
+                  route.tab === tab ||
+                  (tab === 'tasks' && ['review', 'attention', 'monitor'].includes(route.tab))
+                    ? 'page'
+                    : undefined
+                }
                 aria-disabled={
                   developing && unlinkedWorkspace && tab !== 'workspace' ? true : undefined
                 }
@@ -229,8 +291,13 @@ export default function PlatformProjectEntry(): React.JSX.Element {
             data={data}
             projects={projects}
             active={developing && connected}
+            surface={
+              route.view === 'project' && route.tab === 'activity' ? 'activity' : 'workspace'
+            }
             onSelection={onWorkspaceSelection}
+            onReady={setReadyData}
           />
+          <PlatformAgentBridge data={data} />
         </Suspense>
       )}
       <div
@@ -238,7 +305,13 @@ export default function PlatformProjectEntry(): React.JSX.Element {
         hidden={!developing || !connected}
         inert={!developing || !connected}
       >
-        <Suspense fallback={<div className="p-6">正在恢复工作区…</div>}>{data && <App />}</Suspense>
+        <PlatformProjectContext.Provider
+          value={connected && readyData === data && !unlinkedWorkspace ? data : null}
+        >
+          <Suspense fallback={<div className="p-6">正在恢复工作区…</div>}>
+            {data && <App />}
+          </Suspense>
+        </PlatformProjectContext.Provider>
       </div>
     </div>
   )
