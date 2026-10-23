@@ -553,6 +553,7 @@ describe('createWebRuntimeSessionTerminal', () => {
   it.each(['confirmed', 'transport-rejected', 'unconfirmed', 'ordinary-rejected'] as const)(
     'retains host creation with %s prompt delivery',
     async (delivery) => {
+      const prompt = 'Full task context\n' + 'x'.repeat(40_000)
       const runtimeCall = vi.fn(async (request: { method: string; params?: unknown }) => {
         if (request.method === 'status.get') {
           return {
@@ -604,7 +605,7 @@ describe('createWebRuntimeSessionTerminal', () => {
         agent: 'claude',
         command: 'claude',
         ...(delivery !== 'ordinary-rejected' ? { requireHostAuthority: true as const } : {}),
-        promptAfterReady: 'continue the unfinished task',
+        promptAfterReady: prompt,
         submitPrompt: true,
         forcePromptPaste: true
       })
@@ -631,11 +632,13 @@ describe('createWebRuntimeSessionTerminal', () => {
       expect(mocks.deliverLaunchPromptToAgentTab).toHaveBeenCalledOnce()
       expect(mocks.deliverLaunchPromptToAgentTab).toHaveBeenCalledWith({
         tabId: 'web-terminal-host-tab-2',
-        content: 'continue the unfinished task',
+        content: prompt,
         agent: 'claude',
         submit: true,
         forcePaste: true,
-        ...(delivery !== 'ordinary-rejected' ? { onUnconfirmedDelivery: expect.any(Function) } : {})
+        ...(delivery !== 'ordinary-rejected'
+          ? { allowUnconfirmedDelivery: false, onUnconfirmedDelivery: expect.any(Function) }
+          : {})
       })
     }
   )

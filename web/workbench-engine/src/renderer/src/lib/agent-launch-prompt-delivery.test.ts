@@ -53,6 +53,24 @@ describe('deliverLaunchPromptToAgentTab', () => {
     mocks.pasteDraftWhenAgentReady.mockResolvedValue(true)
   })
 
+  it('carries the no-blind-delivery policy to the existing paste helper', async () => {
+    mocks.pasteDraftWhenAgentReady.mockResolvedValueOnce(false)
+    await expect(
+      deliverLaunchPromptToAgentTab({
+        tabId: 'tab-1',
+        agent: 'claude',
+        content: 'Task after user trust',
+        submit: true,
+        forcePaste: true,
+        allowUnconfirmedDelivery: false
+      })
+    ).resolves.toBe(false)
+    expect(mocks.pasteDraftWhenAgentReady).toHaveBeenCalledWith(
+      expect.objectContaining({ allowUnconfirmedDelivery: false })
+    )
+    expect(mocks.markNativeChatLaunchPromptFailed).toHaveBeenCalledWith('tab-1')
+  })
+
   it('seeds a native-chat launch prompt for supported submitted content', async () => {
     await expect(
       deliverLaunchPromptToAgentTab({

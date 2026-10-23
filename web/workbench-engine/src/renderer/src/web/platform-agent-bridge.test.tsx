@@ -152,6 +152,7 @@ describe('platform native Agent bridge', () => {
       })
     )
     expect(mocks.brief).toHaveBeenCalledTimes(2)
+    expect(mocks.toast.info).toHaveBeenCalledWith('事项内容已送达，请在终端继续。')
     expect(mocks.settings).toHaveBeenCalledWith({ environmentId: 'env' })
     expect(mocks.link).not.toHaveBeenCalled()
     mocks.state.agentStatusByPaneKey = {

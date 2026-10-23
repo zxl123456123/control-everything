@@ -61,6 +61,7 @@ export async function createWebRuntimeAgentSessionTerminal(
       forcePaste: args.forcePromptPaste,
       ...(args.requireHostAuthority
         ? {
+            allowUnconfirmedDelivery: false,
             onUnconfirmedDelivery: () => {
               unconfirmed = true
             }

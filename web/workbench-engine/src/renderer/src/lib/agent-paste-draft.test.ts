@@ -121,6 +121,38 @@ describe('pasteDraftWhenAgentReady', () => {
     vi.useRealTimers()
   })
 
+  it.each([false, undefined])(
+    'handles a Claude first-trust screen without composer readiness, allowUnconfirmedDelivery=%s',
+    async (allowUnconfirmedDelivery) => {
+      const unconfirmed = vi.fn()
+      testState.inspectRuntimeTerminalProcess.mockResolvedValue({
+        foregroundProcess: 'claude',
+        hasChildProcesses: true
+      })
+      const promise = pasteDraftWhenAgentReady({
+        tabId: 'tab-1',
+        content: 'Task details',
+        agent: 'claude',
+        forcePaste: true,
+        submit: true,
+        timeoutMs: 100,
+        allowUnconfirmedDelivery,
+        onUnconfirmedDelivery: unconfirmed
+      })
+      await flushMicrotasks()
+      testState.ptyObserver?.('Do you trust this folder?\r\n> No, exit')
+      await vi.advanceTimersByTimeAsync(1500)
+      await expect(promise).resolves.toBe(allowUnconfirmedDelivery !== false)
+      expect(unconfirmed).toHaveBeenCalledOnce()
+      if (allowUnconfirmedDelivery === false) {
+        expect(testState.sendRuntimePtyInputVerified).not.toHaveBeenCalled()
+        expect(testState.inspectRuntimeTerminalProcess).not.toHaveBeenCalled()
+      } else {
+        expect(testState.sendRuntimePtyInputVerified).toHaveBeenCalledWith('pty-1', '\r')
+      }
+    }
+  )
+
   it('pastes into Codex as soon as its composer prompt renders after bracketed paste is enabled', async () => {
     const promise = pasteDraftWhenAgentReady({
       tabId: 'tab-1',

@@ -33,8 +33,9 @@ export function deliverLaunchPromptToAgentTab(args: {
   forcePaste: boolean
   timeoutMs?: number
   onTimeout?: () => void
-  /** The paste was written without ever observing the agent's composer. */
+  /** The composer was not observed; delivery cannot be confirmed. */
   onUnconfirmedDelivery?: () => void
+  allowUnconfirmedDelivery?: boolean
   /** The launch pane's PTY once its agent started; the chat copy is seeded only then. */
   launchPty?: Promise<string | null>
 }): Promise<boolean> {
@@ -83,6 +84,9 @@ export function deliverLaunchPromptToAgentTab(args: {
     timeoutMs,
     onTimeout,
     onUnconfirmedDelivery,
+    ...(args.allowUnconfirmedDelivery !== undefined
+      ? { allowUnconfirmedDelivery: args.allowUnconfirmedDelivery }
+      : {}),
     ...(launchPty ? { launchPty } : {})
   }).then(
     (delivered) => {

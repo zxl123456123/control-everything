@@ -168,6 +168,43 @@ describe('agent launch caller routing', () => {
     )
   })
 
+  it.each(['codex', 'claude'] as const)(
+    'keeps a long strict %s task prompt out of the startup command',
+    async (agent) => {
+      mockIsWebRuntimeSessionActive.mockReturnValue(true)
+      const { launchAgentInNewTab } = await import('./launch-agent-in-new-tab')
+      const prompt = 'Full task context\n' + 'x'.repeat(40_000)
+      const result = launchAgentInNewTab({
+        requestId: 'task-ready',
+        agent,
+        worktreeId: 'wt-1',
+        requestedSurface: 'terminal',
+        requireHostAuthority: true,
+        prompt,
+        promptDelivery: 'submit-after-ready'
+      })
+      expect(result?.surface.kind).toBe('host-published')
+      expect(mockLaunchAgentInWebHostTab).toHaveBeenCalledOnce()
+      expect(mockLaunchAgentInWebHostTab).toHaveBeenCalledWith(
+        expect.objectContaining({
+          agent,
+          prompt,
+          requireHostAuthority: true,
+          promptDelivery: 'submit-after-ready',
+          pastePromptAfterReady: prompt,
+          submitPastedPrompt: true
+        })
+      )
+      expect(
+        mockLaunchAgentInWebHostTab.mock.calls[0][0].startupPlan.launchCommand.length
+      ).toBeLessThan(1000)
+      expect(mockLaunchAgentInWebHostTab.mock.calls[0][0].startupPlan.launchCommand).not.toContain(
+        'Full task context'
+      )
+      expect(result?.promptDeliveryResult).toBeDefined()
+    }
+  )
+
   it.each(cases)(
     'routes %s to the paired host when a web runtime owns it',
     async (_id, profile) => {

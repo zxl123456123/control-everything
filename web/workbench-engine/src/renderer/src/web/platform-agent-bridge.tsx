@@ -254,8 +254,8 @@ export default function PlatformAgentBridge({
           !completed.tabId
             ? '终端已打开，会话尚未关联，请在开发区核对；无需重新启动。'
             : delivery?.delivered
-              ? '事项内容已送达；会话身份返回后自动关联。'
-              : '终端已打开，事项内容未确认送达，请在终端核对；不会重复发送。'
+              ? '事项内容已送达，请在终端继续。'
+              : '终端已打开，事项内容未确认送达；请先在终端中完成首次确认，再正常对话。'
         )
     } catch (failure) {
       const message = failure instanceof Error ? failure.message : '启动未确认，请先检查开发区。'

@@ -327005,7 +327005,31 @@
     {
       "path": "src/renderer/src/lib/agent-launch-caller-routing.test.ts",
       "upstream_sha256": "4c23cd839f95a2da806bd98ada71b8c77bf9afd4c688ff6cc1fc2653d156e248",
-      "current_sha256": "01d03a7e237ef94b146a1a291b71331a46e2ee5b0d9c0ae3df82256573e881c6",
+      "current_sha256": "8684c3ba11cdd7a6c9e4ddcc5a07386f2a482076b8c14403559669631001a5e6",
+      "reason": "Unify project ownership, task editing and native Agent activity in the integrated workspace"
+    },
+    {
+      "path": "src/renderer/src/lib/agent-launch-prompt-delivery.test.ts",
+      "upstream_sha256": "848d3cec36fb4ecd9cbc75d84e6e0cc35cf1034b5a431ced7f5ab559408f58bd",
+      "current_sha256": "28a8ccad5605ae80446a8de50aa1f6b1db99cc86dfefe046cb3d172a67a15100",
+      "reason": "Unify project ownership, task editing and native Agent activity in the integrated workspace"
+    },
+    {
+      "path": "src/renderer/src/lib/agent-launch-prompt-delivery.ts",
+      "upstream_sha256": "76354945c510c33552748c8900a3b44a14ba3ea9d336f988fcf3b0fb63603305",
+      "current_sha256": "884956899358e2e83a1d99d2a6aeaad6d6777f9cfd879820e6744e20bf18e7d3",
+      "reason": "Unify project ownership, task editing and native Agent activity in the integrated workspace"
+    },
+    {
+      "path": "src/renderer/src/lib/agent-paste-draft.test.ts",
+      "upstream_sha256": "b1c8cb972438b25463df94cffe9d663d7655eb5e8e42d1ea3af9666cbf8ffcfb",
+      "current_sha256": "173a63f30297b18e3991ff127a244975e3bbc251e53d92b1de060807311c6765",
+      "reason": "Unify project ownership, task editing and native Agent activity in the integrated workspace"
+    },
+    {
+      "path": "src/renderer/src/lib/agent-paste-draft.ts",
+      "upstream_sha256": "13f3173f8bec13c4b58b7bb0ceff5e0c485f5f8acc32434b22162f24b4571a86",
+      "current_sha256": "a258a15edf2739611dc16b6a5a8d12f6cd1a37e685709171c609f9cc22271d60",
       "reason": "Unify project ownership, task editing and native Agent activity in the integrated workspace"
     },
     {
@@ -327053,7 +327077,7 @@
     {
       "path": "src/renderer/src/runtime/web-runtime-session-terminal-host-authority.test.ts",
       "upstream_sha256": "74bc3280ab9558d63f17e7cd43b09974d9bb33a9b3ca7f976c36b6918dc2ecdd",
-      "current_sha256": "6fe64019d8a55571028a2a2b21da8a845018842f73cf361a4061404746390026",
+      "current_sha256": "8b43c7ba5b38ebaebeda85deca789f966180f1592ea041a49cea8c2e3475638f",
       "reason": "Unify project ownership, task editing and native Agent activity in the integrated workspace"
     },
     {
@@ -327071,7 +327095,7 @@
     {
       "path": "src/renderer/src/runtime/web-runtime-terminal-creation.ts",
       "upstream_sha256": "f59e4d4e70f7a1c5b39131f0cc51b0bf3aeeb6ba73eb44c777a9e34c4fa46eff",
-      "current_sha256": "dcc3f2badc62cd1f52ac5460be30e846497e752286971297baa64ef95dcf8cca",
+      "current_sha256": "732b7876c648fb11554a1695abcdcc1ea3095fdb61e0868b611c934964e00d47",
       "reason": "Unify project ownership, task editing and native Agent activity in the integrated workspace"
     },
     {

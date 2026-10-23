@@ -66,6 +66,8 @@ export async function pasteDraftWhenAgentReady(args: {
   timeoutMs?: number
   onTimeout?: () => void
   onUnconfirmedDelivery?: () => void
+  /** False requires the existing input-readiness signal; process presence alone cannot authorize a paste. */
+  allowUnconfirmedDelivery?: boolean
   /** The launch pane's PTY once its spawn says the agent started there; null when it didn't. */
   launchPty?: Promise<string | null>
 }): Promise<boolean> {
@@ -104,6 +106,10 @@ export async function pasteDraftWhenAgentReady(args: {
 
   const { ptyId } = readiness
   if (!readiness.ready) {
+    if (args.allowUnconfirmedDelivery === false) {
+      onUnconfirmedDelivery?.()
+      return false
+    }
     // Why: fast-starting TUIs can emit the paste-ready escape sequence before
     // this sidecar subscription attaches. If process/title inspection says the
     // launched agent owns the PTY, fall back to a best-effort paste instead of
