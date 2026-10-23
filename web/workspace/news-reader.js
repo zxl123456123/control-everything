@@ -18,7 +18,7 @@
   const articles = new Map(), nodes = new Map(), documents = new Map(), loading = new Map();
   const tasks = new Map(), translations = new Map(), failedImages = new Set();
   let records = {}, currentId = null, selected = 'inbox', stream = 'ai', language = 'original';
-  let engine = null, paused = false, collecting = false, undo = null, arrivalQueue = [];
+  let engine = null, researchEngine = null, paused = false, collecting = false, undo = null, arrivalQueue = [];
   let visibleIds = [], translationRun = 0, translationAbort = null, renderedKey = '', destroyed = false;
   let mediaView = 'article', imageIndex = 0, mediaKey = '';
   let researchJob = null, researchTimer = null, researchTopic = 'coding', researchBusy = false, researchFrameSeq = null;
@@ -156,6 +156,7 @@
     for (const [taskId, task] of tasks) if (task.kind === 'archive' && task.node === $('article-title')) cancelTask(taskId);
     currentId = id; stopTranslation(); renderedKey = ''; mediaKey = ''; imageIndex = 0; $('article-scroll').scrollTop = 0;
     setDirectory(false); render();
+    if (!paused) engine?.pointAt($('article-title'), '阅读');
     if (focus) $('article-title').focus({preventScroll:true});
   }
   function docFor(item) { const entry = documents.get(item.id); return entry?.signature === itemSignature(item) ? entry : null; }
@@ -382,12 +383,20 @@
   $('dismiss').addEventListener('click', () => { $('toast').hidden = true; });
   document.querySelectorAll('[data-language]').forEach(control => control.addEventListener('click', () => { language = control.dataset.language; stopTranslation(); document.querySelectorAll('[data-language]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.language === language))); renderedKey = ''; renderArticle(); }));
   $('theme').addEventListener('click', () => { const dark = document.documentElement.dataset.theme !== 'dark'; document.documentElement.dataset.theme = dark ? 'dark' : 'light'; $('theme').setAttribute('aria-label', dark ? '切换浅色' : '切换深色'); });
-  $('pause').addEventListener('click', () => { paused = !paused; if (paused) engine?.pause(); else engine?.resume(); $('pause').textContent = paused ? '继续动画' : '暂停动画'; $('spider-state').textContent = paused ? '休息一会儿' : collecting ? '正在搜集新信息' : '陪你慢慢读'; if (!paused) runArrival(); });
+  function syncMotion() {
+    const show = !paused && !document.hidden;
+    if (show && !$('research-panel').open) engine?.resume(); else engine?.pause();
+    if (show && $('research-panel').open) researchEngine?.resume(); else researchEngine?.pause();
+    $('pause').textContent = $('research-pause').textContent = paused ? '继续动画' : '暂停动画';
+  }
+  $('pause').addEventListener('click', () => { paused = !paused; syncMotion(); $('spider-state').textContent = paused ? '休息一会儿' : collecting ? '正在搜集新信息' : '陪你慢慢读'; if (!paused) runArrival(); });
+  $('research-pause').addEventListener('click', () => $('pause').click());
   document.querySelectorAll('button[data-media-view]').forEach(button => button.addEventListener('click', () => { mediaView = button.dataset.mediaView; $('article-scroll').scrollTop = 0; renderMedia(articles.get(currentId)); }));
   $('image-previous').addEventListener('click', () => { imageIndex--; renderMedia(articles.get(currentId)); });
   $('image-next').addEventListener('click', () => { imageIndex++; renderMedia(articles.get(currentId)); });
   function setCollecting(active) {
     collecting = active; researchBusy = active; engine?.setCollecting?.(active);
+    researchEngine?.setCollecting(active);
     $('refresh').textContent = active ? '◌ 查看采集过程' : researchJob ? '↻ 采集工作台' : '↻ 采集新信息';
     $('research-panel').dataset.running = String(active);
     $('research-start').disabled = active; $('research-start').textContent = active ? '采集中…' : '开始采集 ↗';
@@ -417,6 +426,12 @@
     $('frame-previous').disabled = index <= 0; $('frame-next').disabled = index >= frames.length - 1;
     document.querySelectorAll('[data-step]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.step === eventStep(event))));
     document.querySelectorAll('.research-source').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.host === eventHost(event, true))));
+    pointResearch(event);
+  }
+  function pointResearch(event) {
+    if (!researchEngine || paused || !$('research-panel').open) return;
+    const source = [...document.querySelectorAll('.research-source')].find(button => button.dataset.host === eventHost(event, true));
+    researchEngine.pointAt(source?.querySelector('.source-symbol') || $('research-host'), event.stage || '浏览');
   }
   function eventHost(event, source = false) {
     try {
@@ -463,7 +478,7 @@
       row.append(button); $('research-events').append(row); researchEvents.set(event.seq, row);
       if (!event.screenshot && safeUrl(event.url) && researchFrameSeq === null) $('research-url').textContent = event.url;
     }
-    if (changed) researchOverview([...researchData.values()]); if (latestFrame) showResearchFrame(latestFrame);
+    if (changed) { researchOverview([...researchData.values()]); pointResearch([...researchData.values()].at(-1)); } if (latestFrame) showResearchFrame(latestFrame);
     $('research-count').textContent = `${researchEvents.size} 条记录`; $('research-log-count').textContent = researchEvents.size; $('research-events-empty').hidden = researchEvents.size > 0;
   }
   function acceptResearch(value, restoring = false) {
@@ -492,9 +507,19 @@
     try { const response = await readerFetch('/research?id=' + encodeURIComponent(researchJob), {cache:'no-store'}); if (!response.ok) throw new Error('采集状态连接暂时中断'); acceptResearch(await response.json()); }
     catch { if (!destroyed && researchBusy) { $('research-state').textContent = '连接暂时中断，正在重试'; researchTimer = setTimeout(pollResearch, 3000); } }
   }
-  $('refresh').addEventListener('click', () => { if (!$('research-panel').open) $('research-panel').showModal(); if (researchBusy) $('research-close').focus(); });
+  $('refresh').addEventListener('click', () => {
+    if (!$('research-panel').open) $('research-panel').showModal();
+    if (!researchEngine && window.NewsSpider) {
+      researchEngine = window.NewsSpider.mount({root:$('research-animation-stage'), canvas:$('research-spider-canvas'), depot:$('research-web-depot')});
+      researchEngine.setOptions({scale:0.7}); researchEngine.setCollecting(collecting);
+    }
+    syncMotion();
+    const event = researchData.get(researchFrameSeq) || [...researchData.values()].at(-1);
+    if (event) pointResearch(event);
+    if (researchBusy) $('research-close').focus();
+  });
   for (const id of ['research-close','research-return']) $(id).addEventListener('click', () => $('research-panel').close());
-  $('research-panel').addEventListener('close', () => $('refresh').focus());
+  $('research-panel').addEventListener('close', () => { researchEngine?.pointAt(null); syncMotion(); $('refresh').focus(); });
   $('research-frame').addEventListener('error', () => { $('research-frame').hidden = true; $('research-frame-empty').hidden = false; $('research-frame-empty').textContent = '这张实际截图暂时无法载入，可继续查看采集记录。'; });
   for (const [id, direction] of [['frame-previous', -1], ['frame-next', 1]]) $(id).addEventListener('click', () => { const frames = [...researchData.values()].filter(event => frameUrl(event.screenshot)), index = frames.findIndex(event => event.seq === researchFrameSeq); if (frames[index + direction]) showResearchFrame(frames[index + direction]); });
   document.querySelectorAll('[data-step]').forEach(button => button.addEventListener('click', () => {
@@ -507,6 +532,7 @@
   $('research-form').addEventListener('submit', async event => {
     event.preventDefault(); if (researchBusy) return; const query = $('research-query').value.trim(); if (!query) { $('research-query').focus(); return; }
     clearTimeout(researchTimer); frameRequest++; researchJob = null; researchFrameSeq = null; researchEvents.clear(); researchData.clear(); $('research-events').replaceChildren(); $('research-events-empty').hidden = false; researchOverview([]);
+    researchEngine?.pointAt(null);
     $('frame-position').textContent = '0 / 0'; $('frame-previous').disabled = true; $('frame-next').disabled = true; $('research-host').textContent = '等待页面'; document.querySelector('.research-log').open = false;
     $('research-frame').hidden = true; $('research-frame').removeAttribute('src'); $('research-frame-empty').hidden = false; $('research-frame-empty').textContent = '等待实际访问页面的截图…';
     $('research-url').textContent = '准备检索'; $('research-frame-caption').textContent = '只显示本次采集实际获得的页面画面。'; $('research-outcome').textContent = '关闭工作台后，采集仍会继续。'; $('research-state').textContent = '正在开始'; $('research-count').textContent = '0 条记录'; $('research-log-count').textContent = '0'; setCollecting(true);
@@ -530,9 +556,9 @@
     $('directory').inert = mobile && $('animation-stage').dataset.directory !== 'open';
   }
   $('article-scroll').addEventListener('scroll', cancelInvisible, {passive:true}); $('title-list').addEventListener('scroll', cancelInvisible, {passive:true}); window.addEventListener('resize', () => { syncHomeLayout(); cancelInvisible(); });
-  document.addEventListener('visibilitychange', () => { if (document.hidden) engine?.pause(); else if (!paused) engine?.resume(); });
-  window.addEventListener('pagehide', event => { if (event.persisted) engine?.pause(); else { destroyed = true; clearTimeout(researchTimer); clearTimeout(feedTimer); clearTimeout(articleRetry); if (frameObjectUrl) URL.revokeObjectURL(frameObjectUrl); stopTranslation(); engine?.destroy(); } });
-  window.addEventListener('pageshow', event => { if (event.persisted && !paused) engine?.resume(); });
+  document.addEventListener('visibilitychange', syncMotion);
+  window.addEventListener('pagehide', event => { if (event.persisted) { engine?.pause(); researchEngine?.pause(); } else { destroyed = true; clearTimeout(researchTimer); clearTimeout(feedTimer); clearTimeout(articleRetry); if (frameObjectUrl) URL.revokeObjectURL(frameObjectUrl); stopTranslation(); engine?.destroy(); researchEngine?.destroy(); } });
+  window.addEventListener('pageshow', event => { if (event.persisted) syncMotion(); });
   async function readFeeds(refresh = false, attempt = 0) {
     clearTimeout(feedTimer); $('refresh-feeds').disabled = true;
     try {
@@ -550,7 +576,8 @@
       engine = window.NewsSpider.mount({root:$('animation-stage'), canvas:$('spider-canvas'), depot:$('web-depot'), onCapture:event => { const task = tasks.get(typeof event === 'string' ? event : event.id); $('spider-state').textContent = task?.kind === 'arrival' ? '正在接住新信息' : '正在收进仓库'; }, onDelivered:settleTask, onCancel:settleTask});
       if (matchMedia('(prefers-reduced-motion: reduce)').matches) { paused = true; engine.pause(); $('pause').textContent = '启用动画'; $('spider-state').textContent = '已减少动效'; }
     }
-    window.NewsReader = {inspect:() => ({items:articles.size, visible:visibleIds.length, currentId, selected, stream, language, mediaView, imageIndex, researchJob, researchEvents:researchEvents.size, pending:[...tasks.keys()], reading:JSON.parse(JSON.stringify(records)), collecting, engine:engine?.inspect(), destroyed}), engine, applySnapshot};
+    syncMotion();
+    window.NewsReader = {inspect:() => ({items:articles.size, visible:visibleIds.length, currentId, selected, stream, language, mediaView, imageIndex, researchJob, researchEvents:researchEvents.size, pending:[...tasks.keys()], reading:JSON.parse(JSON.stringify(records)), collecting, engine:engine?.inspect(), researchEngine:researchEngine?.inspect(), destroyed}), engine, applySnapshot};
     await readFeeds();
     restoreResearch();
   }
