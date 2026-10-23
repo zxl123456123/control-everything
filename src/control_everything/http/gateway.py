@@ -8,6 +8,7 @@ import secrets
 import socket
 import sys
 import threading
+import subprocess
 import time
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -30,6 +31,8 @@ from control_everything.workspace.service import WorkspaceService
 from control_everything.execution.service import dispatch_execution_context
 from control_everything.workspace import project_dirs
 from control_everything.workspace.news_source import NewsSource
+from control_everything.http import news_reader
+from control_everything.paths import default_profile_dir
 from control_everything.workspace.store import WorkspaceError
 from control_everything.profiles.profile import Profile, ProfileError, strict_json
 from control_everything.profiles import agent_adapters
@@ -238,6 +241,8 @@ class PanelHandler(BaseHTTPRequestHandler):
             return self.agent_get(path)
         if not self.allowed(api=path.path.startswith("/api/")):
             return
+        if news_reader.handle_get(self, path):
+            return
         if workbench.handle_get(self, path):
             return
         if path.path == "/health" and not path.query:
@@ -354,6 +359,13 @@ class PanelHandler(BaseHTTPRequestHandler):
             return self.agent_heartbeat(path)
         if not self.allowed(api=True, focus=True):
             return
+        try:
+            if news_reader.handle_post(self, path):
+                return
+        except BodyTooLarge:
+            return self.reject(413, 'body_too_large')
+        except (ValueError, TypeError, UnicodeError):
+            return self.reject(400, 'invalid_request')
         if workbench.handle_post(self, path):
             return
         if AGENT_BROWSER_CANCEL_ROUTE.fullmatch(path.path):
@@ -1184,6 +1196,20 @@ class PanelServer(ThreadingHTTPServer):
                     observer.start()
 
     def server_close(self):
+        reader_error = None
+        lock = self.__dict__.get('_news_reader_lock')
+        if lock is not None:
+            with lock:
+                self._news_reader_closed = True
+                reader = self.__dict__.pop('news_reader', None)
+        else:
+            self._news_reader_closed = True
+            reader = self.__dict__.pop('news_reader', None)
+        if reader is not None:
+            try:
+                reader.close()
+            except (OSError, RuntimeError, subprocess.SubprocessError) as error:
+                reader_error = error
         try:
             source = self.__dict__.get('news_source')
             lease = self.__dict__.pop('_news_lease', None)
@@ -1203,6 +1229,8 @@ class PanelServer(ThreadingHTTPServer):
                     installation.close()
             finally:
                 super().server_close()
+        if reader_error is not None:
+            raise reader_error
 
     def server_bind(self):
         if sys.platform == "win32":
@@ -1242,6 +1270,10 @@ def make_server(service, address=(HOST, PORT), *, workspace=None, execution=None
     server.origin = f"http://{server.expected_host}"
     server.csrf_token = secrets.token_urlsafe(32)
     server.news_source = workspace.news_source if workspace is not None else NewsSource()
+    server.news_reader = None
+    server.news_reader_root = (profile.data_dir if profile is not None else default_profile_dir()) / 'news-reader'
+    server._news_reader_lock = threading.Lock()
+    server._news_reader_closed = False
     server._news_lease = server.news_source.acquire()
     return server
 

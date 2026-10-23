@@ -119,6 +119,7 @@ function post(path, body, options = {}) {
 }
 
 function showView(view) {
+  if (view === 'news') { location.assign('/news'); return; }
   if (integrationAdmin && !['settings', 'agents', 'projects', 'runs', 'usage', 'news'].includes(view)) {
     location.replace('/studio#' + (view.startsWith('project/') ? view : 'home'));
     return;

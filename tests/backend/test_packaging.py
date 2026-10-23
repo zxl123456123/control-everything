@@ -33,7 +33,11 @@ class PackagingTests(TestCase):
         studio = next(node for node in workbench.body if isinstance(node, ast.Assign)
                       and any(isinstance(target, ast.Name) and target.id == "STUDIO_RESOURCES" for target in node.targets))
         studio_paths = {"workspace/" + value[0] for value in ast.literal_eval(studio.value).values()}
-        self.assertEqual(set(assets.WEB_ASSETS), {value[0] for value in http.values()} | studio_paths)
+        from control_everything.http.news_reader import ASSETS as reader_assets
+        reader_paths = {'workspace/' + value[0] for value in reader_assets.values()}
+        # Browser workers are packaged for the server, but never served as public assets.
+        worker_paths = {'workspace/news-browser.js', 'workspace/news-public-embed.js'}
+        self.assertEqual(set(assets.WEB_ASSETS), {value[0] for value in http.values()} | studio_paths | reader_paths | worker_paths)
         self.assertEqual(len(assets.WEB_ASSETS), len(set(assets.WEB_ASSETS)))
         manifest = (ROOT / "MANIFEST.in").read_text(encoding="utf-8").splitlines()
         included = {name for line in manifest if line.startswith("include web/") for name in line.split()[1:]}

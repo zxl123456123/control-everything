@@ -385,3 +385,25 @@ Ctrl+C 停网关即可停本批查询，原 Claude/SSH/Zellij 对话继续运行
 
 
 项目接入由 `sessions/project_sources.py` 提供固定三来源只读元数据，`workspace/project_selection.py` 负责显式加入和移出，`profiles/workbench_settings.py` 保存许可与移出意图，`http/onboarding_routes.py` 只装配请求。前端完整选择流程在 `web/workspace/onboarding.js`，主脚本负责刷新协调；资源必须同时纳入 HTTP、MANIFEST 和 build_assets 白名单。合成合同：`python -m unittest -v tests.backend.test_project_sources tests.backend.test_workbench_selection tests.backend.test_onboarding_routes` 与 `node --test tests/frontend/test_onboarding_ui.cjs`。真实产品启动和浏览器验收另由验收负责人留证。
+
+
+### 新闻阅读器
+
+正式同源入口为 `/news`，由 Studio 首页/手机顶部及旧 `/workspace#news` 进入。旧 `news.ts/news.js` 与固定 RSS API 保持兼容；新阅读展示在 `web/workspace/news-reader.*`，蜘蛛动画在 `news-spider.js`。`news-browser.js`、`news-public-embed.js` 是仅服务端执行的浏览 worker，按白名单入包，不作为 HTTP 静态文件提供；普通阅读和 RSS 无需 Node。
+
+后端 `workspace/news_reader.py` 管理所选 profile 的 `news-reader/` 数据，`news_research.py` 管理单槽、有截止时间的独占浏览进程，`news_article.py` 提取固定来源正文。HTTP 装配在 `http/news_reader.py`，沿用 Host、Origin、client header 和 CSRF 校验。截图经带权限头的 fetch 转为 Blob 显示。研究数据、模型、截图和个人工具路径不提交。
+
+扩展正文与本地翻译依赖通过 `python -m pip install -e ".[news]"` 安装；浏览采集使用 Node 与 Playwright 1.62.1，按 Playwright 官方说明安装浏览器。Windows 默认使用 Edge，其他平台使用 Playwright Chromium。`CONTROL_EVERYTHING_NEWS_NODE` 可指定 Node 可执行文件，Playwright 按标准 Node 模块解析（包括 `NODE_PATH`）。依赖缺失时保留已有新闻并返回明确不可用状态。
+
+`python tools/scripts/prepare_news_translation.py --data-dir <PROFILE_DIR>` 下载校验后的公开英译中模型；默认模型目录为默认 profile 的 `news-reader/translation-model/translate-en_zh-1_9`，使用其他 profile 时通过 `CONTROL_EVERYTHING_NEWS_MODEL` 指定已准备的模型目录。模型只在用户切换中文时载入，不自动下载或调用云翻译。
+
+定向验证：
+
+```powershell
+python -m unittest -v tests.backend.test_news_reader tests.backend.test_news_article tests.backend.test_daily_news_http tests.backend.test_packaging
+node tests/e2e/verify_news_reader.cjs
+python tools/scripts/check_architecture.py layout
+lint-imports --config tools/architecture/importlinter.ini --no-cache --no-logo
+```
+
+E2E 使用明确标记的合成页面，截图保存在 ignored `work/news-reader-tests/`；真实 RSS、X 官方嵌入和本地翻译另行记录实际结果。公开嵌入的节选和媒体失败不代表完整线程或稳定全量抓取。
