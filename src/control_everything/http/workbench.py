@@ -18,6 +18,7 @@ STUDIO_RESOURCES = {
     "/studio-preview.css": ("studio-preview.css", "text/css; charset=utf-8"),
     "/studio-preview.js": ("studio-preview.js", "text/javascript; charset=utf-8"),
     "/studio-data.js": ("studio-data.js", "text/javascript; charset=utf-8"),
+    "/workspace-admin": ("workspace.html", "text/html; charset=utf-8"),
 }
 STUDIO_CSP = ("default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
               "img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; "
@@ -96,6 +97,16 @@ def _workbench_csp(manager):
 
 
 def handle_get(handler, path):
+    if (path.path == "/workspace" and not path.query
+            and getattr(handler.server, "workbench_runtime", None) is not None
+            and getattr(handler.server, "workbench_assets", None) is not None):
+        # Browsers retain the original fragment when Location has none.
+        handler.send_response(302)
+        handler.send_header("Location", "/studio")
+        handler.send_header("Content-Length", "0")
+        handler.send_header("Cache-Control", "no-store")
+        handler.end_headers()
+        return True
     resource = STUDIO_RESOURCES.get(path.path)
     if resource:
         if path.query:
@@ -111,6 +122,8 @@ def handle_get(handler, path):
                 handler.reply(200, body, mime, csp=_workbench_csp(manager))
                 return True
             body = (WEB / "workspace" / resource[0]).read_bytes()
+            if path.path == "/workspace-admin":
+                body = body.replace(b'<body>', b'<body data-integration-admin="true">', 1)
             if path.path in ("/studio", "/studio-shell") and manager is not None:
                 body = body.replace(b'id="ce-studio"', b'id="ce-studio" data-isolated-preview="true"', 1)
             handler.reply(200, body, resource[1], csp=STUDIO_CSP)

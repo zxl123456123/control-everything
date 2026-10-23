@@ -27,7 +27,11 @@ export function readPlatformRoute(location: Pick<Location, 'hash' | 'search'>): 
       id: '',
       tab: view === 'attention' || encoded === 'attention' ? 'attention' : 'all'
     }
-  return { view: view === 'tools' ? 'tools' : 'home', id: '', tab: '' }
+  return {
+    view: ['tools', 'settings', 'agents'].includes(view) ? 'tools' : 'home',
+    id: '',
+    tab: ''
+  }
 }
 
 export function projectRoute(id: string, tab = 'workspace'): string {

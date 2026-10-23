@@ -23,6 +23,10 @@ describe('platform page routes', () => {
     expect(read('#attention')).toEqual({ view: 'inbox', id: '', tab: 'attention' })
     expect(read('#tasks')).toEqual({ view: 'inbox', id: '', tab: 'all' })
     expect(read('#inbox/attention').tab).toBe('attention')
+    expect(read('#overview').view).toBe('home')
+    expect(read('#settings').view).toBe('tools')
+    expect(read('#agents').view).toBe('tools')
+    expect(read('#projects').view).toBe('home')
     expect(projectRoute('p-one', 'tasks')).toBe('#project/p-one/tasks')
   })
   it.each(['#project/%ZZ', '#project/%2Fetc/review', '#project/../tasks'])(

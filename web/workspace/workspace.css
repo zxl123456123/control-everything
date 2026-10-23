@@ -765,3 +765,9 @@ body.agent-board-active #project-space{display:none!important}
 .task-session-row h4 { margin: 0 0 8px; }
 .session-confirm { display: flex; align-items: flex-start; gap: 10px; margin: 16px 0; }
 .session-confirm input { flex: 0 0 auto; width: auto; }
+/* Integrated projects keep this page only for advanced administration. */
+body[data-integration-admin] .sidebar .nav-label,
+body[data-integration-admin] #project-navigation,
+body[data-integration-admin] .sidebar-links,
+body[data-integration-admin] .local-note,
+body[data-integration-admin] .navigation button:not([data-view="settings"]):not([data-view="projects"]) { display: none !important; }

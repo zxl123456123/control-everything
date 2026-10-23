@@ -294,6 +294,30 @@ test('project task creation captures its owner even when navigation changes duri
   assert.equal(f.posts.at(-1).body.project_id, 'p');
 });
 
+test('project boards show only populated groups and omit repeated project captions', async () => {
+  const f = fixture({ rows: [item('one')], projects: [{ id: 'p', name: 'Project' }, { id: 'empty', name: 'Empty project' }] });
+  await f.api.load();
+  assert.match(f.node('ab-groups').textContent, /Project/);
+  f.api.setProject('p');
+  assert.equal(f.node('ab-status').textContent, '1 项事项');
+  assert.equal(f.node('ab-groups').children.length, 1);
+  assert.doesNotMatch(f.node('ab-groups').textContent, /Project|未分配 Agent|暂无事项/);
+  f.api.setProject('empty');
+  assert.equal(f.node('ab-status').textContent, '0 项事项');
+  assert.equal(f.node('ab-groups').children.length, 1);
+  assert.match(f.node('ab-groups').textContent, /还没有事项/);
+  f.api.setProject('empty', true); assert.equal(f.node('ab-groups').textContent, '没有待处理事项');
+  f.state.failItems = true; await f.api.load();
+  assert.match(f.node('ab-status').textContent, /读取失败|未读完整/);
+  assert.match(f.node('ab-groups').textContent, /尚未完整读取/);
+  assert.doesNotMatch(f.node('ab-groups').textContent, /没有待处理事项|还没有事项/);
+});
+
+test('project item totals still surface an unavailable agent registry', async () => {
+  const f = fixture(); f.state.failRegistry = true; await f.api.load(); f.api.setProject('p');
+  assert.equal(f.node('ab-status').textContent, '1 项事项 Agent 注册表读取失败。');
+});
+
 test('legacy management and session routes remain visible outside the Agent board', () => {
   const root = new Element('section'); const flags = {};
   const context = { window: {}, document: { getElementById: name => name === 'agent-board' ? root : null, body: { classList: { toggle: (name, value) => { flags[name] = value; } } } } };
@@ -396,7 +420,7 @@ test('404 detail never fabricates progress or output, nor permits unsafe reassig
   const row = item('missing', { assigned_agent_id: 'a', assignment_state: 'assigned' });
   const f = fixture({ rows: [row], detail: new Error('404 not found') }); await f.api.load(); await f.api.open(row);
   assert.match(f.node('ab-detail').textContent, /没有可确认的进度或产出/);
-  assert.match(f.node('ab-detail').textContent, /进度：未上报/); assert.equal(f.node('ab-assignee').disabled, true); assert.equal(f.posts.length, 0);
+  assert.doesNotMatch(f.node('ab-detail').textContent, /执行进度|Agent 提交内容/); assert.equal(f.node('ab-assignee').disabled, true); assert.equal(f.posts.length, 0);
 });
 
 test('assignment uses enabled registry entries and optimistic revision without starting a run', async () => {
@@ -406,7 +430,34 @@ test('assignment uses enabled registry entries and optimistic revision without s
   f.node('ab-assignee').value = 'a'; await f.node('ab-assign').listeners.click();
   assert.equal(f.posts.length, 1); assert.equal(f.posts[0].url, '/api/workspace/items/update');
   assert.deepEqual(JSON.parse(JSON.stringify(f.posts[0].body)), { id: 'assign', expected_revision: 7, changes: { assigned_agent_id: 'a' } });
-  assert.match(f.node('ab-detail').textContent, /进度：未上报/);
+  assert.doesNotMatch(f.node('ab-detail').textContent, /执行进度|Agent 提交内容/);
+});
+
+test('a plain todo keeps execution details collapsed without empty progress or review sections', async () => {
+  const row = item('plain', { origin: 'todo' });
+  const f = fixture({ rows: [row] }); await f.api.load(); await f.api.open(row);
+  const detail = f.node('ab-detail'), options = f.node('ab-execution-options');
+  assert.equal(options.tagName, 'details'); assert.equal(options.open, false);
+  assert.equal(f.node('ab-assignee').parentElement.parentElement.parentElement, options);
+  assert.doesNotMatch(detail.textContent, /未上报|未提交|活动记录|人工审核|验收结果/);
+  assert.equal(detail.querySelector('#ab-review-submit'), null); assert.equal(f.posts.length, 0);
+});
+
+test('review keeps mandatory consent visible and optional evidence collapsed without starting another run', async () => {
+  const row = item('review-simple', { state: 'review', assigned_agent_id: 'a', origin: 'todo' });
+  const f = fixture({ rows: [row], agents: [{ ...agent, adapter: 'codex' }] });
+  await f.api.load(); await f.api.open(row);
+  const evidence = f.node('ab-review-evidence').parentElement.parentElement;
+  assert.equal(evidence.tagName, 'details'); assert.equal(evidence.open, false);
+  assert.equal(f.node('ab-review-reason').required, true);
+  assert.equal(f.node('ab-review-confirm').checked, false);
+  assert.equal(f.node('ab-review-resume').checked, false);
+  assert.equal(f.node('ab-review-resume').parentElement.hidden, true);
+  f.node('ab-review-verdict').value = 'changes_requested'; f.node('ab-review-verdict').listeners.change();
+  assert.equal(f.node('ab-review-resume').parentElement.hidden, false);
+  f.node('ab-review-reason').value = '补充测试'; await f.submit(); assert.equal(f.posts.length, 0);
+  f.node('ab-review-confirm').checked = true; await f.submit();
+  assert.equal(f.posts.length, 1); assert.equal(f.posts[0].url, '/api/workspace/reviews');
 });
 
 const scopeAgents = [agent, { ...agent, id: 'empty', name: 'Unrestricted', project_ids: [] },
@@ -618,6 +669,19 @@ test('return message uses only the latest review and never revives an older reje
   const g=messageFixture({reviews:[{verdict:'changes_requested',reason:'补充测试'}]});await new Promise(setImmediate);g.get('tm-kind').value='return';g.get('tm-kind').listeners.change();assert.equal(g.get('tm-body').value,'补充测试');assert.equal(g.posts.length,0);
 });
 
+test('creating a todo only records it until the user explicitly opts into execution', async () => {
+  const f = fixture({ agents: [{ ...agent, adapter: 'codex' }] }); await f.api.load(); f.api.setProject('p');
+  f.root.all.find(node => node.textContent === '＋ 新建待办').listeners.click();
+  assert.equal(f.node('ab-new-execution-options').open, false);
+  assert.equal(f.node('ab-new-project').parentElement.hidden, true);
+  f.node('ab-new-title').value = 'Keep this project note';
+  f.node('ab-new-agent').value = 'a'; f.node('ab-new-agent').listeners.change();
+  assert.equal(f.node('ab-new-execute').checked, false);
+  await f.node('ab-new-title').parentElement.parentElement.parentElement.listeners.submit({ preventDefault() {} });
+  assert.equal(f.posts.length, 1); assert.equal(f.posts[0].url, '/api/workspace/items');
+  assert.equal(f.posts[0].body.assigned_agent_id, 'a'); assert.equal(f.node('ab-detail').open, false);
+});
+
 for (const adapter of ['dsh', 'codex']) test(`new ${adapter} todo explicitly starts a real execution request`, async () => {
   const row = item('new', { assigned_agent_id: 'a' });
   const f = fixture({ agents: [{ ...agent, adapter }], read: async url => {
@@ -633,6 +697,8 @@ for (const adapter of ['dsh', 'codex']) test(`new ${adapter} todo explicitly sta
   f.node('ab-new-title').value = 'Read input.txt'; f.node('ab-new-agent').value = 'a';
   f.node('ab-new-agent').listeners.change();
   assert.equal(f.node('ab-new-execute').disabled, false);
+  assert.equal(f.node('ab-new-execute').checked, false);
+  f.node('ab-new-execute').checked = true;
   await f.node('ab-new-title').parentElement.parentElement.parentElement.listeners.submit({ preventDefault() {} });
   assert.equal(f.posts.filter(row => row.url.endsWith('/execute')).length, 1);
   assert.equal(f.posts.find(row => row.url.endsWith('/dispatch')).body.delivery_mode, 'auto');
@@ -647,6 +713,7 @@ test('saved rejection followed by execution failure cannot resubmit the review',
   }, post: async url => url.endsWith('/reviews') ? { item: saved } : undefined });
   await f.api.load(); await f.api.open(row);
   f.node('ab-review-verdict').value = 'rejected'; f.node('ab-review-reason').value = '补充工具结果'; f.node('ab-review-confirm').checked = true;
+  f.node('ab-review-resume').checked = true;
   await f.submit();
   assert.equal(f.posts.filter(row => row.url.endsWith('/reviews')).length, 1);
   assert.match(f.node('ab-feedback').textContent, /驳回理由已保存/);
@@ -663,6 +730,7 @@ test('a real pending execution opens its task once and embeds the existing appro
     } });
   await f.api.load(); assert.equal(f.node('ab-detail').open, true);
   assert.equal(panels[0].taskId, row.id); assert.equal(panels[0].dispatchId, 'dispatch-one');
+  assert.equal(f.node('ab-tool-approvals').parentElement, f.node('ab-detail'));
   f.node('ab-detail').close(); await f.api.load(); assert.equal(f.node('ab-detail').open, false);
   pendingId = 'approval-two'; await f.api.load(); assert.equal(f.node('ab-detail').open, true);
   assert.equal(f.posts.length, 0);
@@ -698,6 +766,7 @@ for (const adapter of ['codex', 'dsh']) test(`${adapter} auto execution without 
   const f = fixture({ agents: [{ ...agent, adapter }] }); await f.api.load();
   f.root.all.find(node => node.textContent === '＋ 新建待办').listeners.click();
   f.node('ab-new-title').value = 'Reply received'; f.node('ab-new-agent').value = 'a'; f.node('ab-new-agent').listeners.change();
+  f.node('ab-new-execute').checked = true;
   const form = f.node('ab-new-title').parentElement.parentElement.parentElement;
   await form.listeners.submit({ preventDefault() {} });
   assert.equal(f.posts.length, 0); assert.match(f.node('ab-feedback').textContent, /请选择所属项目/);

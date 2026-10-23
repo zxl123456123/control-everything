@@ -64,7 +64,7 @@
 #ce-studio .ce-segment{display:inline-flex;gap:3px;padding:3px;background:var(--ce-soft);border:1px solid var(--ce-faint);border-radius:8px;flex-wrap:wrap}
 #ce-studio .ce-segment button{font-size:14px;padding:5px 11px;border:0;background:none;border-radius:5px;color:var(--ce-sub);min-height:30px}
 #ce-studio .ce-segment button[aria-pressed="true"]{background:var(--ce-panel);color:var(--ce-text);box-shadow:0 1px 3px var(--ce-shadow-deep)}
-#ce-studio .ce-count{font-size:14px;color:var(--ce-sub);font-variant-numeric:tabular-nums}
+#ce-studio .ce-count{white-space:nowrap;flex-shrink:0;font-size:14px;color:var(--ce-sub);font-variant-numeric:tabular-nums}
 #ce-studio .ce-project-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px}
 #ce-studio .ce-project-card{background:var(--ce-panel);border:1px solid var(--ce-faint);box-shadow:0 1px 2px var(--ce-shadow),0 5px 12px var(--ce-shadow);border-radius:17px;padding:17px 17px 0;display:flex;flex-direction:column;min-width:0;transition:transform 160ms,box-shadow 160ms}
 #ce-studio .ce-project-card:hover{transform:translateY(-2px);box-shadow:0 2px 3px var(--ce-shadow),0 9px 18px var(--ce-shadow-deep)}
@@ -249,6 +249,7 @@
 #ce-studio .ce-topbar{padding:12px 18px;flex-wrap:wrap;gap:8px}
 #ce-studio .ce-topbar .ce-crumbs{flex:1}
 #ce-studio .ce-search{order:2;width:100%}
+#ce-studio .ce-toolbar .ce-search{flex:1;min-width:0;width:auto}
 #ce-studio .ce-main{padding:23px 18px}
 #ce-studio .ce-heading{margin-bottom:23px}
 #ce-studio h1{font-size:26px}
@@ -344,3 +345,23 @@ body:has(#ce-studio){margin:0;background:#f7f7f5}
 #ce-studio .ce-business-module .button{color:var(--ce-text);background:var(--ce-panel)}
 #ce-studio .ce-business-module .button.primary{color:var(--ce-on-primary);background:var(--ce-primary)}
 #ce-studio[data-unified="true"][data-project-surface="true"] #studio-agent-board [data-action="manage-items"]{display:none}
+#ce-studio .ce-business-module .agent-task-detail{width:min(720px,calc(100vw - 32px));padding:24px}
+#ce-studio .agent-task-detail>.section-heading{gap:20px}
+#ce-studio .agent-task-detail .section-heading .form-actions{flex-wrap:nowrap}
+#ce-studio .agent-task-detail .section-heading .button{min-height:32px;padding:5px 12px;flex:none}
+#ce-studio .agent-task-detail .feedback:empty{display:none}
+#ce-studio .agent-detail-state{display:inline-block;margin-bottom:0}
+#ce-studio .agent-detail-options{margin:12px 0;padding:14px 16px;border:1px solid var(--ce-line);border-radius:8px;background:var(--ce-bg)}
+#ce-studio .agent-detail-options>summary{cursor:pointer;font-size:14px;font-weight:500;line-height:1.5}
+#ce-studio .agent-detail-options[open]>summary{margin-bottom:16px}
+#ce-studio .agent-detail-options>.agent-detail-section:first-of-type{border-top:0;padding-top:0}
+#ce-studio .agent-task-detail .field:has(input[type="checkbox"]){display:flex;flex-direction:row;align-items:flex-start;gap:10px}
+#ce-studio .agent-task-detail input[type="checkbox"]{order:-1;flex:none;min-width:16px;width:16px;height:16px;margin-top:3px}
+#ce-studio .agent-task-detail [hidden]{display:none}
+#ce-studio .agent-task-detail .agent-review-form{margin-top:16px;padding:12px 0}
+@media(max-width:600px){#ce-studio .ce-business-module .agent-task-detail{padding:20px}#ce-studio .agent-task-detail>.section-heading{gap:12px}}
+#ce-studio>.onboarding-dialog.ce-business-module{background:var(--ce-panel);color:var(--ce-text);border-color:var(--ce-line);max-height:85vh;overflow-y:auto;padding-top:28px}
+#ce-studio>.onboarding-dialog.ce-business-module :is(input,textarea,select){background:var(--ce-bg);color:var(--ce-text);border-color:var(--ce-line)}
+#ce-studio>.onboarding-dialog.ce-business-module label{color:var(--ce-text);line-height:1.5}
+#ce-studio>.onboarding-dialog.ce-business-module :is(.onboarding-choices,.onboarding-candidate,.onboarding-drop){border-color:var(--ce-line)}
+#ce-studio>.onboarding-dialog.ce-business-module .onboarding-drop{background:var(--ce-bg);color:var(--ce-sub)}

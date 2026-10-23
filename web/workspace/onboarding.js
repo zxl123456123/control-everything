@@ -94,7 +94,7 @@
         }
         if (!['created', 'registered'].includes(result.status) || !result.project?.id) throw new Error('未收到有效的项目保存凭据。');
         folderSaved = true; dirty = false; verified = null;
-        try { await onChanged(); dialog.close(); }
+        try { await onChanged(result.project); dialog.close(); }
         catch { feedback('项目已保存，但列表刷新失败。请关闭此窗口并刷新工作台，无需再次创建。', true); }
       } catch (error) {
         verified = null; $('onboarding-directory-confirm').checked = false;

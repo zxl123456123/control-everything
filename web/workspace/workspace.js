@@ -1,6 +1,11 @@
 'use strict';
 
 const $ = id => document.getElementById(id);
+const integrationAdmin = document.body?.dataset?.integrationAdmin === 'true';
+if (integrationAdmin) {
+  const brand = document.querySelector('.brand');
+  brand.href = '/studio'; brand.lastElementChild.textContent = '返回项目';
+}
 const providerNames = { codex: 'Codex', claude: 'Claude Code', grok: 'Grok', dsh: 'DSH', opencode: 'OpenCode' };
 const stateNames = { todo: '待办', doing: '进行中', blocked: '阻塞', review: '待验收', done: '完成' };
 const statusNames = { not_checked: '未查询', available: '可用', unavailable: '不可用', stale: '旧缓存' };
@@ -114,6 +119,10 @@ function post(path, body, options = {}) {
 }
 
 function showView(view) {
+  if (integrationAdmin && !['settings', 'agents', 'projects', 'runs', 'usage', 'news'].includes(view)) {
+    location.replace('/studio#' + (view.startsWith('project/') ? view : 'home'));
+    return;
+  }
   if (view.startsWith('codex-sessions/')) {
     app.sessionRoute = view; app.projectSpace?.routeSessions(view.split('/')[1]); view = 'codex-sessions';
   }

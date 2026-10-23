@@ -219,6 +219,57 @@ class WorkbenchRuntimeTests(unittest.TestCase):
             self.manager.bootstrap('project', 'Demo', self.root)
         self.assertEqual(self.rpc_calls, [])
 
+    def test_bootstrap_opens_plain_project_directory_as_folder(self):
+        self.start()
+        self.manager.bootstrap('project', 'Demo', self.repo)
+        self.assertIn(('repo.add', {'path': str(self.repo), 'displayName': 'Demo', 'kind': 'folder'}), self.rpc_calls)
+        self.assertFalse((self.repo / '.git').exists())
+
+    def test_bootstrap_does_not_expand_plain_project_to_parent_repository(self):
+        (self.repo.parent / '.git').mkdir()
+        self.start()
+        self.manager.bootstrap('project', 'Demo', self.repo)
+        self.assertIn(('repo.add', {'path': str(self.repo), 'displayName': 'Demo', 'kind': 'folder'}), self.rpc_calls)
+
+    def test_bootstrap_preserves_git_directory_and_linked_worktree_registration(self):
+        self.start()
+        for marker in ('directory', 'file'):
+            with self.subTest(marker=marker):
+                project = self.repo / marker
+                project.mkdir()
+                if marker == 'directory':
+                    (project / '.git').mkdir()
+                else:
+                    (project / '.git').write_text('gitdir: ../repository/.git/worktrees/linked\n')
+                self.manager.bootstrap('project', 'Demo', project)
+                self.assertIn(('repo.add', {'path': str(project), 'displayName': 'Demo', 'kind': 'git'}), self.rpc_calls)
+
+    def test_bootstrap_reuses_existing_repo_without_changing_kind(self):
+        (self.repo / '.git').mkdir()
+        existing = {'id': 'existing-repo', 'path': str(self.repo), 'kind': 'folder'}
+        self.repos.append(existing.copy())
+        self.start()
+        result = self.manager.bootstrap('project', 'Demo', self.repo)
+        self.assertEqual(result['target'], {'repoId': 'existing-repo'})
+        self.assertEqual(self.repos, [existing])
+        self.assertEqual([method for method, _ in self.rpc_calls], ['repo.list', 'worktree.list', 'platform.bootstrapDevice'])
+
+    def test_bootstrap_does_not_downgrade_invalid_git_marker_after_rpc_failure(self):
+        (self.repo / '.git').write_text('invalid git marker')
+        self.start()
+        def rejected(method, params):
+            if method == 'repo.add':
+                self.rpc_calls.append((method, params))
+                raise WorkbenchUnavailable('runtime_protocol_error')
+            return self.rpc(method, params)
+        with patch.object(self.manager, '_owner_call', side_effect=rejected):
+            with self.assertRaisesRegex(WorkbenchUnavailable, 'runtime_protocol_error'):
+                self.manager.bootstrap('project', 'Demo', self.repo)
+        self.assertEqual(self.rpc_calls, [
+            ('repo.list', {}),
+            ('repo.add', {'path': str(self.repo), 'displayName': 'Demo', 'kind': 'git'}),
+        ])
+
     def test_assignment_failure_terminates_only_created_process_and_owned_job(self):
         self.api.fail_assign = True
         with self.assertRaisesRegex(ProcessError, 'assign_failed'):

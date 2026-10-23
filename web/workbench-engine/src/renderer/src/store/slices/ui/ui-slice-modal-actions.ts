@@ -6,6 +6,14 @@ export function createUiModalActions(set: UISliceSet, get: UISliceGet): Partial<
     activeModal: 'none',
     modalData: {},
     openModal: (modal, data = {}) => {
+      if (
+        modal === 'add-repo' &&
+        typeof window !== 'undefined' &&
+        ['/studio', '/workbench/web-index.html'].includes(window.location.pathname)
+      ) {
+        window.dispatchEvent(new Event('platform-add-project'))
+        return
+      }
       if (modal === 'add-repo' || modal === 'create-worktree') {
         get().recordFeatureInteraction?.('workspace-creation')
       }

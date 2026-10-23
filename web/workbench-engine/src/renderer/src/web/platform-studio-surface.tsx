@@ -10,6 +10,7 @@ type StudioWindow = Window & {
   }
 }
 const scripts = [
+  '/onboarding.js',
   '/execution.js',
   '/task-center.js',
   '/monitor-art.js',

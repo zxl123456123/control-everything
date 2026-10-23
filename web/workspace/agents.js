@@ -602,7 +602,7 @@ window.WorkspaceAgentBoard = (() => {
       management.href = inProject ? `#project/${encodeURIComponent(selectedProject)}/manage` : '#tasks';
       management.textContent = inProject ? '本项目事项管理' : '事项管理';
       refresh.textContent = inProject ? '刷新项目' : '刷新工作台';
-      if (complete) status.textContent = `已读取 ${chosenItems().length} 项${inProject ? ' · 仅当前项目' : ''} · 分配后由外部 Agent 领取；完成须人工审核。${registryAvailable ? '' : ' Agent 注册表读取失败。'}`;
+      if (complete) status.textContent = (inProject ? `${chosenItems().length} 项事项` : `已读取 ${chosenItems().length} 项 · 分配后由外部 Agent 领取；完成须人工审核。`) + (registryAvailable ? '' : ' Agent 注册表读取失败。');
       const selection = selectedProject; project.replaceChildren(); option(project, '', '全部项目'); option(project, '__global__', '全局事项');
       for (const p of projects) option(project, p.id, p.name); project.value = selection;
       title.textContent = selectedProject === '__global__' ? '全局事项' : selectedProject ? `${projects.find(p => p.id === selectedProject)?.name || '当前项目'} · Agent 工作台` : 'Agent 工作台';
@@ -614,6 +614,7 @@ window.WorkspaceAgentBoard = (() => {
       const grouped = groupItems(chosenItems()); groups.replaceChildren();
       for (const [key, rows] of Object.entries(grouped)) {
         if (attentionOnly && !['waiting_user', 'waiting_review', 'blocked', 'failed'].includes(key)) continue;
+        if (inProject && complete && !rows.length) continue;
         if ((key === 'blocked' || key === 'failed') && !rows.length) continue;
         const section = el('section', `agent-task-group group-${key}`); section.setAttribute('aria-label', labels[key]);
         section.append(el('h3', '', `${labels[key]} · ${complete ? rows.length : '—'}`));
@@ -623,7 +624,11 @@ window.WorkspaceAgentBoard = (() => {
           const openButton = btn(item.title, () => open(item), 'agent-task-title');
           openButton.dataset.taskId = item.id;
           const p = projects.find(row => row.id === item.project_id), agent = agents.find(row => row.id === item.assigned_agent_id);
-          card.append(openButton, el('p', 'section-note', `${p?.name || (item.project_id ? '项目未登记' : '全局事项')} · ${agent?.name || (item.assigned_agent_id ? '原 Agent 不可用' : '未分配 Agent')}`), el('span', 'badge', states[item.state] || '状态未知'));
+          const assignee = agent?.name || (item.assigned_agent_id ? '原 Agent 不可用' : '未分配 Agent');
+          const caption = inProject ? item.assigned_agent_id ? assignee : '' : `${p?.name || (item.project_id ? '项目未登记' : '全局事项')} · ${assignee}`;
+          card.append(openButton);
+          if (caption) card.append(el('p', 'section-note', caption));
+          card.append(el('span', 'badge', states[item.state] || '状态未知'));
           if (key === 'assigned') card.append(el('p', 'section-note', !item.project_id ? '尚未派发：打开详情选择项目并执行' : '已分配，尚未确认接收；打开详情核对派发与执行'));
           if (key === 'waiting_user') card.append(el('p', 'section-note', 'Agent 正在等待你的授权、输入或决定'));
           if (item.connection_state === 'unknown' && ['running', 'waiting_user', 'blocked'].includes(key)) card.append(el('p', 'section-note', '最近联系未知 · 运行占用保留'));
@@ -631,6 +636,7 @@ window.WorkspaceAgentBoard = (() => {
         }
         groups.append(section);
       }
+      if (inProject && complete && !chosenItems().length) groups.append(el('p', 'empty-state', attentionOnly ? '没有待处理事项' : '还没有事项，点击“新建待办”开始记录。'));
       if (focusedTask) [...groups.querySelectorAll('button')].find(node => node.dataset.taskId === focusedTask)?.focus({ preventScroll: true });
     }
     async function readItems() {
@@ -693,7 +699,7 @@ window.WorkspaceAgentBoard = (() => {
       detail.replaceChildren();
       const close = btn('关闭详情', () => { if (!writing && (!hasDraft() || window.confirm('尚有未提交内容，关闭并放弃本次编辑？'))) { detailsRequest++; detail.close(); detailDirty = false; briefDirty = false; sessionDirty = false; messageDirty = false; } });
       const tools = el('div', 'form-actions');
-      if (item.id) tools.append(btn('刷新进度与材料', () => { if (hasDraft()) feedback('有未提交内容，请保留或放弃草稿后再刷新详情。'); else void open(item, true); }));
+      if (item.id) tools.append(btn('刷新', () => { if (hasDraft()) feedback('有未提交内容，请保留或放弃草稿后再刷新详情。'); else void open(item, true); }));
       tools.append(close);
       const heading = el('div', 'section-heading'); heading.append(el('h2', '', item.title), tools); detail.append(heading);
       const note = id(el('p', 'feedback'), 'ab-feedback'); note.setAttribute('role', 'status'); note.setAttribute('aria-live', 'polite'); detail.append(note);
@@ -710,7 +716,7 @@ window.WorkspaceAgentBoard = (() => {
       owner.value = targetProject || ''; owner.disabled = Boolean(targetProject);
       const agent = id(el('select'), 'ab-new-agent');
       agent.disabled = !registryAvailable;
-      const execute = id(el('input'), 'ab-new-execute'); execute.type = 'checkbox'; execute.checked = true;
+      const execute = id(el('input'), 'ab-new-execute'); execute.type = 'checkbox'; execute.checked = false;
       const executionNote = el('p', 'section-note');
       function syncExecute() {
         const selected = agents.find(row => row.id === agent.value);
@@ -731,9 +737,12 @@ window.WorkspaceAgentBoard = (() => {
         syncExecute();
       }
       agent.addEventListener('change', syncExecute); owner.addEventListener('change', renderAgents); renderAgents();
-      for (const control of [name, owner, agent]) control.addEventListener('input', () => { detailDirty = true; });
-      const save = el('button', 'button primary', '确认创建待办'); save.type = 'submit';
-      fields.append(field('要做什么', name), field('所属项目', owner), field('分配 Agent（可选）', agent), field('创建后立即交给所选 Agent 执行', execute), executionNote, save); form.append(fields); detail.append(form);
+      for (const control of [name, owner, agent, execute]) control.addEventListener('input', () => { detailDirty = true; });
+      const save = el('button', 'button primary', '创建待办'); save.type = 'submit';
+      const execution = id(el('details', 'agent-detail-options'), 'ab-new-execution-options');
+      execution.append(el('summary', '', '交给 Agent 执行（可选）'), field('Agent', agent), field('创建后立即执行', execute), executionNote);
+      const ownerField = field('所属项目', owner); ownerField.hidden = Boolean(targetProject);
+      fields.append(field('要做什么', name), ownerField, execution, save); form.append(fields); detail.append(form);
       form.addEventListener('submit', async event => {
         event.preventDefault(); if (writing) return;
         if (!name.value.trim() || [...name.value].length > 2000) { feedback('请填写待办，最多 2000 字。', true); return; }
@@ -755,8 +764,10 @@ window.WorkspaceAgentBoard = (() => {
     function renderDetail(data, failure = '') {
       const item = data.item || selected; selected = item; detailHeader(item);
       const run = data.run || null;
-      detail.append(el('p', 'section-note', `人工状态：${states[item.state] || '未知'} · ${item.assigned_agent_id ? '已分配 Agent' : '尚未分配 Agent'}`));
+      detail.append(el('span', 'badge agent-detail-state', states[item.state] || '状态未知'));
       if (failure) detail.append(el('p', 'feedback error', failure));
+      const options = id(el('details', 'agent-detail-options'), 'ab-execution-options');
+      options.append(el('summary', '', '执行与关联'));
       const assignment = el('section', 'agent-detail-section'); assignment.append(el('h3', '', '分配 Agent'));
       const select = id(el('select'), 'ab-assignee'); option(select, '', '暂不分配');
       for (const agent of agents.filter(row => canAssign(row, item.project_id))) option(select, agent.id, agent.name);
@@ -781,7 +792,7 @@ window.WorkspaceAgentBoard = (() => {
         finally { writing = false; assign.disabled = false; select.disabled = !registryAvailable || !!active || unverified || item.state === 'done'; }
       }), 'ab-assign'); assign.disabled = select.disabled;
       select.addEventListener('change', () => { detailDirty = true; });
-      assignment.append(field('已注册且启用的 Agent', select), assign, el('p', 'section-note', active ? '当前有活跃运行，暂不能改派。' : unverified ? '运行详情无法核对，暂不能改派。' : '分配不等于启动；Agent 离线时仍可等待其连接领取。')); detail.append(assignment);
+      assignment.append(field('已注册且启用的 Agent', select), assign, el('p', 'section-note', active ? '当前有活跃运行，暂不能改派。' : unverified ? '运行详情无法核对，暂不能改派。' : '分配后，需由外部 Agent 领取或手动启动。')); options.append(assignment);
       if (!active && !unverified && !['review', 'done'].includes(item.state) && canExecute(agents.find(row => row.id === item.assigned_agent_id))) {
         const launch = el('section', 'agent-detail-section'); launch.append(el('h3', '', '交给 Agent 执行'));
         const owner = id(el('select'), 'ab-start-project'); option(owner, '', '选择本次执行所属项目');
@@ -804,9 +815,9 @@ window.WorkspaceAgentBoard = (() => {
           } finally { writing = false; start.disabled = false; owner.disabled = Boolean(currentItem.project_id); }
         }), 'ab-start-execution');
         launch.append(el('p', 'section-note', '已分配不代表已经派发。此按钮会将当前需求交给所选 Agent；完成后仍需你审核。'), field('执行所属项目', owner), start);
-        detail.append(launch);
+        options.append(launch);
       }
-      const progress = el('section', 'agent-detail-section'); progress.append(el('h3', '', '工作进度 · Agent 上报'));
+      const progress = el('section', 'agent-detail-section'); progress.append(el('h3', '', '执行进度'));
       const events = Array.isArray(data.events) ? data.events : [];
       const reports = events.filter(e => (e.kind === 'progress' || e.kind === 'blocked') && (!run?.id || e.run_id === run.id));
       const last = reports.at(-1), payload = last?.payload || last?.payload_json;
@@ -815,14 +826,15 @@ window.WorkspaceAgentBoard = (() => {
       const percent = typeof report.percent === 'number' && Number.isFinite(report.percent) && report.percent >= 0 && report.percent <= 100 ? report.percent : null;
       const runLabels = { claimed: '已领取', running: '运行中', waiting_review: '等待人工审核', changes_requested: '等待修改', completed: '已通过审核', failed: '失败', cancelled: '已取消' };
       const stageLabels = { analyzing: '分析', implementing: '实现', testing: '测试', blocked: '阻塞', waiting_user: '等待你处理' };
-      progress.append(el('p', '', `运行状态：${runLabels[run?.status] || run?.status || '未上报'} · 阶段：${stageLabels[report.stage] || report.stage || '未上报'} · 进度：${percent === null ? '未上报' : percent + '%'}`));
+      progress.append(el('p', '', `运行状态：${runLabels[run?.status] || run?.status || '未上报'}${report.stage ? ' · 阶段：' + (stageLabels[report.stage] || report.stage) : ''} · 进度：${percent === null ? '未上报' : percent + '%'}`));
       if (percent !== null) { const meter = el('progress'); meter.max = 100; meter.value = percent; meter.setAttribute('aria-label', 'Agent 自报进度'); progress.append(meter); }
       const contact = data.last_contact_at ?? run?.heartbeat_at;
       const contactAge = now() - Date.parse(contact);
       const contactUnknown = run && ['claimed', 'running'].includes(run.status) && (data.connection_state === 'unknown' || !data.connection_state && (!Number.isFinite(contactAge) || contactAge < 0 || contactAge >= 60000));
-      progress.append(el('p', 'section-note', `运行最近联系：${when(contact)}`));
+      if (contact) progress.append(el('p', 'section-note', `最近更新：${when(contact)}`));
       if (contactUnknown) progress.append(el('p', 'feedback agent-contact-unknown', '最近没有新的运行消息，连接情况未知；运行和任务占用保留，不代表工具已停止或任务失败。'));
-      if (report.message) progress.append(el('p', 'agent-report-text', report.message)); detail.append(progress);
+      if (report.message) progress.append(el('p', 'agent-report-text', report.message));
+      if (run) detail.append(progress);
       if (active && report.stage === 'waiting_user') {
         const waiting = id(el('section', 'agent-detail-section'), 'ab-waiting-user');
         const kinds = { tool_authorization: '等待工具授权', user_input: '等待你输入', external_approval: '等待外部批准', unknown: '等待事项未分类' };
@@ -833,26 +845,27 @@ window.WorkspaceAgentBoard = (() => {
         waiting.append(el('p', 'section-note', run?.dispatch_id && window.WorkspaceExecution?.createTaskApprovals
           ? '请在本页工具审批区核对并答复。本次工具授权与任务完成后的结果审核分别处理。'
           : '请回到对应的外部 Agent 处理此请求。这里的结果审核不能替代工具执行前的授权。'));
-        detail.insertBefore(waiting, assignment);
+        detail.append(waiting);
       }
       if (run?.dispatch_id && window.WorkspaceExecution?.createTaskApprovals && !failure) {
         const panel = id(el('section', 'agent-detail-section'), 'ab-tool-approvals'), version = detailsRequest;
-        detail.insertBefore(panel, assignment);
+        detail.append(panel);
         approvalPanel = window.WorkspaceExecution.createTaskApprovals({ root: panel, taskId: item.id,
           dispatchId: run.dispatch_id, fetchJson, postJson,
           isCurrent: () => !disposed && version === detailsRequest && detail.open,
           onSettled: async () => { if (!writing && !hasDraft()) { await load(); if (version === detailsRequest && detail.open) await open(item, true); } }
         });
       }
-      const output = el('section', 'agent-detail-section'); output.append(el('h3', '', 'Agent 做了什么'));
-      output.append(el('p', 'section-note', '以下是 Agent 自述与提交材料，需你核验；不表示系统已验证。'), el('p', 'agent-report-text', run?.summary || 'Agent 未提交说明'));
       const evidence = Array.isArray(run?.evidence) ? run.evidence : [];
-      if (!evidence.length) output.append(el('p', 'section-note', '未提交证据或变更文件清单。'));
-      for (const entry of evidence) output.append(el('pre', 'agent-evidence', typeof entry === 'string' ? entry : JSON.stringify(entry, null, 2)));
-      detail.append(output);
+      if (run?.summary || evidence.length) {
+        const output = el('section', 'agent-detail-section'); output.append(el('h3', '', 'Agent 提交内容'));
+        if (run?.summary) output.append(el('p', 'agent-report-text', run.summary));
+        for (const entry of evidence) output.append(el('pre', 'agent-evidence', typeof entry === 'string' ? entry : JSON.stringify(entry, null, 2)));
+        detail.append(output);
+      }
       const timeline = el('ol', 'agent-event-timeline');
       for (const event of events) { const row = el('li'); row.append(el('strong', '', event.kind || '事件'), el('small', '', when(event.created_at)), el('pre', 'agent-evidence', JSON.stringify(event.payload ?? event.payload_json ?? {}, null, 2))); timeline.append(row); }
-      const history = el('details'); history.append(el('summary', '', `事件时间线 · ${events.length}`), timeline); detail.append(history);
+      if (events.length) { const history = el('details', 'agent-detail-options'); history.append(el('summary', '', `活动记录 · ${events.length}`), timeline); detail.append(history); }
       if (Array.isArray(data.reviews) && data.reviews.length) {
         const records = el('details'); records.append(el('summary', '', `人工审核历史 · ${data.reviews.length}`));
         for (const record of data.reviews) records.append(el('p', 'agent-report-text', `${when(record.created_at)} · ${record.verdict}\n${record.reason}`));
@@ -860,30 +873,30 @@ window.WorkspaceAgentBoard = (() => {
       }
       if (item.state === 'review') renderReview(item);
       if (item.origin !== 'todo' && window.WorkspaceSessionList) {
-        const panel = el('section', 'agent-detail-section'); detail.append(panel); const version = detailsRequest;
+        const panel = el('section', 'agent-detail-section'); options.append(panel); const version = detailsRequest;
         const current = () => !disposed && version === detailsRequest && detail.open;
         const sessions = window.WorkspaceSessionList.create({ root: panel, taskId: item.id, agents,
           postJson, isBusy: () => writing, onBusy: value => { writing = value; },
           read: () => fetchJson('/api/workspace/tasks/' + encodeURIComponent(item.id) + '/sessions'),
           isCurrent: current });
-        const editor = el('section', 'agent-detail-section'); detail.append(editor);
+        const editor = el('section', 'agent-detail-section'); options.append(editor);
         window.WorkspaceSessionList.createEditor({ root: editor, item, agents, postJson, refresh: sessions.refresh,
           isCurrent: current, isBusy: () => writing, onBusy: value => { writing = value; }, onDirty: value => { sessionDirty = value; } });
       }
       if (run && ['claimed', 'running', 'waiting_review'].includes(run.status) && !failure) renderRelease(item);
       if (item.origin !== 'todo' && !failure) {
-        const panel = el('section', 'agent-detail-section'); detail.append(panel); const version = detailsRequest;
+        const panel = el('section', 'agent-detail-section'); options.append(panel); const version = detailsRequest;
         window.WorkspaceTaskMessages.create({ root: panel, item, run, reviews: data.reviews || [], agents, fetchJson, postJson,
           isCurrent: () => !disposed && version === detailsRequest && detail.open, isBusy: () => writing,
           onBusy: value => { writing = value; }, onDirty: value => { messageDirty = value; } });
       }
       if (item.origin !== 'todo' && !failure) {
-        const panel = el('section'); detail.append(panel); const version = detailsRequest;
+        const panel = el('section'); options.append(panel); const version = detailsRequest;
         window.WorkspaceTaskDispatch.create({ root: panel, item, agents, active: Boolean(active), fetchJson, postJson,
           isCurrent: () => !disposed && version === detailsRequest && detail.open,
           isBusy: () => writing, onBusy: value => { writing = value; }, onDirty: value => { briefDirty = value; }, onChanged: load });
       }
-      showDetail();
+      detail.append(options); showDetail();
     }
     function renderRelease(item) {
       const section = el('details', 'agent-detail-section'); section.append(el('summary', '', '人工释放本次运行'));
@@ -908,18 +921,19 @@ window.WorkspaceAgentBoard = (() => {
       });
     }
     function renderReview(item) {
-      const form = el('form', 'agent-review-form'), fields = el('fieldset'); fields.append(el('legend', '', '人工审核'));
+      const form = el('form', 'agent-review-form'), fields = el('fieldset'); fields.append(el('legend', '', '验收结果'));
       const verdict = id(el('select'), 'ab-review-verdict'); option(verdict, '', '请选择审核结论'); option(verdict, 'approved', '通过 → 已完成'); option(verdict, 'changes_requested', '要求修改 → 进行中'); option(verdict, 'rejected', '拒绝 → 待办');
       const reason = id(el('textarea'), 'ab-review-reason'); reason.required = true; reason.maxLength = 4000; reason.rows = 3;
       const evidence = id(el('textarea'), 'ab-review-evidence'); evidence.rows = 2; evidence.placeholder = '人工核验证据，每行一条（可选）';
       const confirm = id(el('input'), 'ab-review-confirm'); confirm.type = 'checkbox'; confirm.checked = false;
-      const resume = id(el('input'), 'ab-review-resume'); resume.type = 'checkbox'; resume.checked = true;
+      const resume = id(el('input'), 'ab-review-resume'); resume.type = 'checkbox'; resume.checked = false;
       resume.disabled = !canExecute(agents.find(row => row.id === item.assigned_agent_id)) || !item.project_id;
-      const impact = el('p', 'section-note', '提交会保存一条人工审核记录，并按所选结论更新事项状态。');
-      verdict.addEventListener('change', () => { impact.textContent = `本次影响：${verdict.options?.[verdict.selectedIndex]?.textContent || verdict.value || '请先选择结论'}，同时保存人工审核记录。`; detailDirty = true; });
-      for (const control of [reason, evidence, confirm]) control.addEventListener('input', () => { detailDirty = true; });
-      const submit = id(el('button', 'button primary', '确认提交审核'), 'ab-review-submit'); submit.type = 'submit';
-      fields.append(field('审核结论', verdict), field('核验结论与理由（必填）', reason), field('我的证据说明', evidence), field('驳回或要求修改后，立即交给原 Agent 按理由继续执行', resume), field('我已核对材料，确认上述状态变更', confirm), impact, submit); form.append(fields);
+      const resumeField = field('退回后立即交给原 Agent 继续执行', resume); resumeField.hidden = true;
+      verdict.addEventListener('change', () => { resumeField.hidden = resume.disabled || !['changes_requested', 'rejected'].includes(verdict.value); detailDirty = true; });
+      for (const control of [reason, evidence, confirm, resume]) control.addEventListener('input', () => { detailDirty = true; });
+      const submit = id(el('button', 'button primary', '提交验收'), 'ab-review-submit'); submit.type = 'submit';
+      const proof = el('details', 'agent-detail-options'); proof.append(el('summary', '', '补充证据（可选）'), field('证据说明', evidence));
+      fields.append(field('结论', verdict), field('验收理由', reason), proof, resumeField, field('我已核对材料，确认上述状态变更', confirm), submit); form.append(fields);
       form.addEventListener('submit', async event => {
         event.preventDefault(); if (writing) return;
         if (briefDirty || sessionDirty || messageDirty) { feedback('请先保存或放弃事项说明、会话关联和补充草稿，再提交人工审核。'); return; }

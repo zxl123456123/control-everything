@@ -326731,6 +326731,7 @@
     "src/renderer/src/i18n/platform-ui-copy.test.ts",
     "src/renderer/src/i18n/platform-ui-copy.ts",
     "src/renderer/src/lib/platform-catalog-icons.test.tsx",
+    "src/renderer/src/web/platform-add-project.test.ts",
     "src/renderer/src/web/platform-dialog-visibility.test.tsx",
     "src/renderer/src/web/platform-project-bootstrap.test.ts",
     "src/renderer/src/web/platform-project-bootstrap.ts",
@@ -326920,6 +326921,12 @@
       "upstream_sha256": "e65c2ffb17d74d27d876f9797591350430903cc2e1759c94f5f9e369aa117967",
       "current_sha256": "03a80a8c228ec962be112156c87f4973b6597d8e06c53a922bf24102ff84217e",
       "reason": "M1a-R6: exact platform Web entry uses bundled icons or existing glyphs without third-party favicon requests; standalone behavior preserved; M1a navigation: preserve a single project workspace while integrating platform business views"
+    },
+    {
+      "path": "src/renderer/src/store/slices/ui/ui-slice-modal-actions.ts",
+      "upstream_sha256": "e2bc74612b85eb73dcc9c3569ed807a365b9808e13b3a3e0f7c270ce05b7cbb2",
+      "current_sha256": "901217ba985533434c7b042d1d3635380aa33ce2c5e2d03573372714d9ef8d29",
+      "reason": "M1a project shell: reuse project registration and retain the native developer workspace"
     },
     {
       "path": "src/renderer/src/web/main.tsx",

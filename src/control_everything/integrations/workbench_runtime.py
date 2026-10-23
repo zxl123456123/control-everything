@@ -352,7 +352,12 @@ class WorkbenchRuntime:
             matches = [repo for repo in repos if repo.get("path") and Path(repo["path"]).resolve() == path]
             if len(matches) > 1:
                 raise WorkbenchUnavailable("project_directory_mismatch")
-            repo = matches[0] if matches else self._rpc("repo.add", {"path": str(path), "displayName": str(project_name)})["repo"]
+            if matches:
+                repo = matches[0]
+            else:
+                # Keep the registered directory as the project boundary, including non-Git folders.
+                kind = "git" if (path / ".git").exists() else "folder"
+                repo = self._rpc("repo.add", {"path": str(path), "displayName": str(project_name), "kind": kind})["repo"]
             if not repo.get("id") or safe_path(repo["path"]) != path:
                 raise WorkbenchUnavailable("project_directory_mismatch")
             self._rpc("worktree.list", {"repo": "id:" + repo["id"]})

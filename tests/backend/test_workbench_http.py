@@ -158,6 +158,23 @@ class WorkbenchHTTPTests(unittest.TestCase):
         self.assertEqual(self.request('/studio')[0], 503)
         self.runtime.start.assert_not_called()
 
+    def test_legacy_entry_returns_to_integrated_projects_and_admin_remains_explicit(self):
+        self.request('/studio')
+        handler = self.last_handler
+        handler.path = '/workspace'
+        handler.send_response, handler.send_header, handler.end_headers = Mock(), Mock(), Mock()
+        handler.reply.reset_mock()
+        handler.do_GET()
+        handler.send_response.assert_called_once_with(302)
+        handler.send_header.assert_any_call('Location', '/studio')
+        handler.reply.assert_not_called()
+        self.assertEqual(self.request('/workspace-admin')[0], 200)
+        self.assertIn(b'data-integration-admin="true"', self.last_handler.reply.call_args.args[1])
+        self.assertEqual(self.request('/workspace-admin?src=elsewhere')[0], 400)
+        self.server.workbench_runtime = None
+        self.assertEqual(self.request('/workspace')[0], 200)
+        self.assertNotIn(b'data-integration-admin="true"', self.last_handler.reply.call_args.args[1])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -78,7 +78,7 @@ function studioFixture({ savedCreatorUrl = null, monitorAvailable = true, unifie
     mounts.push(options); return { setActive: value => monitorCalls.push([options.projectId, 'active', value]), destroy: () => monitorCalls.push([options.projectId, 'destroy']) };
   } };
   vm.runInNewContext(fs.readFileSync(path.resolve(__dirname, '../../web/workspace/studio-preview.js'), 'utf8'), {
-    URL, window, document: { getElementById: id => nodes.get(id) }, location, localStorage, console,
+    URL, URLSearchParams, window, document: { getElementById: id => nodes.get(id) }, location, localStorage, console,
     fetch() { throw new Error('Studio must not probe the creator service'); },
   });
   const flush = () => new Promise(resolve => setImmediate(resolve));
@@ -194,4 +194,8 @@ test('unified project opens as a view action and retains the developer theme', a
   assert.equal(f.location.pathname, '/studio');
   assert.equal(f.location.hash, '#project/server-project/workspace');
   assert.equal(f.editorMounts(), 2);
+  f.location.search = '?project_id=server-project';
+  await f.route('');
+  assert.equal(f.nodes.get('ce-studio').dataset.projectSurface, 'true');
+  assert.equal(f.nodes.get('studio-agent-board').hidden, true);
 });
