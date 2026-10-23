@@ -326732,6 +326732,7 @@
     "src/renderer/src/components/activity/activity-bound-project-scope.ts",
     "src/renderer/src/components/activity/activity-scope-filter-controls.platform.test.tsx",
     "src/renderer/src/components/activity/use-agent-pane-threads.bound-scope.test.tsx",
+    "src/renderer/src/components/settings/use-settings-store-model.host-scope.test.tsx",
     "src/renderer/src/i18n/platform-ui-copy.test.ts",
     "src/renderer/src/i18n/platform-ui-copy.ts",
     "src/renderer/src/lib/platform-catalog-icons.test.tsx",
@@ -326906,6 +326907,12 @@
       "upstream_sha256": "36b0830bf58c9fc53795767125181eb409f6e283f9259c3d1c6ae23f6dec7e38",
       "current_sha256": "0a0c03861feb68ae84f0952948746124d9e5bac73c99483c3557bcc5e46dac8e",
       "reason": "M1a-W: default prompt label uses the central platform copy while standalone keeps its original text"
+    },
+    {
+      "path": "src/renderer/src/components/settings/use-settings-store-model.ts",
+      "upstream_sha256": "c1adccb7554ed76181f8a84db82c57ea57281bb1acb2b5a6c1975a6ba74964dc",
+      "current_sha256": "806cbcf73392ae526564861e912fd261a2322ddc2bee8eb7707caf5f0df4ab25",
+      "reason": "Unify project ownership, task editing and native Agent activity in the integrated workspace"
     },
     {
       "path": "src/renderer/src/components/settings/use-ssh-target-selection.ts",

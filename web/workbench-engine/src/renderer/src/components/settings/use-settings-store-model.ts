@@ -168,18 +168,17 @@ export function useSettingsStoreModel() {
     defaultScope.kind === 'environment' ? defaultScope.environmentId : null
   // Why: keyed on ids so status-only catalog updates keep the scope (and its loads) stable.
   const savedEnvironmentIdsKey = runtimeEnvironments.map((environment) => environment.id).join('\n')
-  // Why: the web client's only host is its server, so it never offers a choice.
+  // Explicit project deep-links own the settings scope, including in Web clients without a picker.
   const settingsHostScope = useMemo(
     () =>
       resolveSettingsHostScope({
-        choice: isWebClient ? null : settingsHostChoice,
+        choice: settingsHostChoice,
         defaultEnvironmentId: defaultRuntimeEnvironmentId,
         savedEnvironmentIds: savedEnvironmentIdsKey ? savedEnvironmentIdsKey.split('\n') : [],
         catalogHydrated: runtimeEnvironmentCatalogHydrated
       }),
     [
       defaultRuntimeEnvironmentId,
-      isWebClient,
       runtimeEnvironmentCatalogHydrated,
       savedEnvironmentIdsKey,
       settingsHostChoice
