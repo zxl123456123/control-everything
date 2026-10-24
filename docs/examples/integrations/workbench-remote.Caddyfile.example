@@ -77,7 +77,7 @@ https://workbench.example.test {
                 copy_headers X-CE-Upstream X-CE-Device-Proof X-CE-Page-Context X-CE-Storage-Scope
             }
             @runtime path /workbench-runtime
-            rewrite @runtime /workbench-runtime?orca-client=web
+            rewrite @runtime /?orca-client=web
             reverse_proxy {http.request.header.X-CE-Upstream} {
                 header_up Host {http.request.hostport}
                 header_up -Authorization

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { readFileSync } from 'node:fs'
 import { platformUpgradeAllowed, platformRemoteHealth, readPlatformRuntimePolicy } from './platform-runtime-policy'
 
 const proof = 'a'.repeat(43)
@@ -23,6 +24,16 @@ describe('per-device platform runtime admission', () => {
     for (const url of ['/?unknown=1','/?orca-client=web&orca-client=web','/workbench-runtime','/?ce_context=x']) {
       expect(platformUpgradeAllowed(headers,url,12345,policy)).toBe(false)
     }
+  })
+  it('rewrites the authorized public endpoint to the native root upgrade contract', () => {
+    const caddy = readFileSync(new URL('../../../../docs/examples/integrations/workbench-remote.Caddyfile.example', import.meta.url), 'utf8')
+    const rewrites = [...caddy.matchAll(/^\s*rewrite @runtime (\S+)$/gm)]
+    expect(rewrites).toHaveLength(1)
+    const policy = readPlatformRuntimePolicy(env)
+    expect(platformUpgradeAllowed(headers, '/workbench-runtime?orca-client=web', 12345, policy)).toBe(false)
+    expect(platformUpgradeAllowed(headers, rewrites[0][1], 12345, policy)).toBe(true)
+    expect(rewrites[0][1]).toBe('/?orca-client=web')
+    expect(caddy).toContain('@runtime path /workbench-runtime')
   })
   it('keeps the exact local runtime available without exposing a LAN listener', () => {
     const policy=readPlatformRuntimePolicy(env)
