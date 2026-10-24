@@ -73,6 +73,20 @@ function harness(opts: {
 const checks = (h: Harness) => vi.mocked(h.source.check).mock.calls.length
 
 describe('app update checker', () => {
+  it('without a source never loads old upstream results, subscribes or schedules', async () => {
+    const h = harness({ stored: { latest: RELEASE_051 } })
+    const foreground = vi.spyOn(h.deps, 'subscribeForeground')
+    const timers = vi.spyOn(h.deps, 'setTimer')
+    const checker = createAppUpdateChecker({ ...h.deps, source: null })
+    const stop = checker.start()
+    await expect(checker.checkNow()).resolves.toBe('failed')
+    expect(h.deps.loadPreferences).not.toHaveBeenCalled()
+    expect(foreground).not.toHaveBeenCalled()
+    expect(timers).not.toHaveBeenCalled()
+    expect(checker.getSnapshot().available).toBeNull()
+    expect(checks(h)).toBe(0)
+    stop()
+  })
   beforeEach(() => {
     vi.useFakeTimers()
     vi.setSystemTime(T0)

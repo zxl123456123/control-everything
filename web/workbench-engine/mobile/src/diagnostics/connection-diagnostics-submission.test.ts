@@ -35,32 +35,15 @@ describe('submitConnectionDiagnostics', () => {
     expect(boundConnectionDiagnosticsReport(input, limit)).toBe(expected)
   })
 
-  it('sends a bounded report through the diagnostics lane', async () => {
-    const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(new Response(null, { status: 204 }))
-    const result = await submitConnectionDiagnostics(
-      { report: 'x'.repeat(100_000), appVersion: '0.0.47', platform: 'android 36' },
-      fetchImpl
-    )
-
-    expect(result).toEqual({ ok: true })
-    expect(fetchImpl).toHaveBeenCalledWith(
-      'https://www.onorca.dev/v1/feedback',
-      expect.objectContaining({ method: 'POST' })
-    )
-    const request = fetchImpl.mock.calls[0]?.[1]
-    const body = JSON.parse(String(request?.body)) as { feedback: string; submissionType: string }
-    expect(body.submissionType).toBe('connection_diagnostics')
-    expect(new TextEncoder().encode(body.feedback).byteLength).toBeLessThanOrEqual(64 * 1024)
-  })
-
-  it('returns a safe failure for a rejected response', async () => {
-    const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(new Response(null, { status: 503 }))
+  it('refuses direct submission before creating any network request', async () => {
+    const fetchImpl = vi.fn<typeof fetch>()
     await expect(
       submitConnectionDiagnostics(
-        { report: 'report', appVersion: '0.0.47', platform: 'android' },
+        { report: 'synthetic report', appVersion: '0.0.47', platform: 'android' },
         fetchImpl
       )
-    ).resolves.toEqual({ ok: false, error: 'status 503' })
+    ).resolves.toEqual({ ok: false, error: '本平台诊断提交渠道未配置' })
+    expect(fetchImpl).not.toHaveBeenCalled()
   })
 
   it('preserves the newest complete events when bounding a UTF-8 report', () => {

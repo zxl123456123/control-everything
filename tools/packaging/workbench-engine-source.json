@@ -326764,7 +326764,9 @@
     "src/renderer/src/web/preload-api/web-runtime-credentials.test.ts",
     "src/renderer/src/web/preload-api/web-wsl-host-unavailable.test.ts",
     "src/renderer/src/web/standalone-web-root.test.tsx",
-    "src/renderer/src/web/standalone-web-root.tsx"
+    "src/renderer/src/web/standalone-web-root.tsx",
+    "mobile/src/app-update/app-update-runtime.test.ts",
+    "mobile/src/diagnostics/connection-diagnostics-view.test.tsx"
   ],
   "adapted_files": [
     {
@@ -327246,6 +327248,66 @@
       "upstream_sha256": "4b2f70fb94a280e40827decc34d7d09a13abee5e8bdaa136a0dcefd4c3e83eab",
       "current_sha256": "13336baf1a139e3be68bd8de3a29bbaf9f571473a4394b6de99f3aa9bdb988ca",
       "reason": "Keep sidebar visibility browser-local and use narrow-screen defaults without overriding explicit preferences"
+    },
+    {
+      "path": "mobile/app.config.js",
+      "upstream_sha256": "799f4d86740ee04a8463b9c805f9222f4e98b73aa4174a3f1bac2d6873886e9c",
+      "current_sha256": "200c7015935caf445f49d03ee3bf5bd237ce741752f6de1fa3485e3c90e1c64d",
+      "reason": "Add self-hosted native account access and isolate platform credentials and outbound services."
+    },
+    {
+      "path": "mobile/package.json",
+      "upstream_sha256": "5874334ec32a7e9f260969b6e2e028ca96421959dc8e808f6c19b0d6da1500c5",
+      "current_sha256": "572209da1db7259fb436acb583ecdbb78fd6aa3ad6eee265f45b6b579e7f0163",
+      "reason": "Add self-hosted native account access and isolate platform credentials and outbound services."
+    },
+    {
+      "path": "mobile/pnpm-lock.yaml",
+      "upstream_sha256": "2dd860731e8a6e7f0b6736066e5d6e1f1a4925b21d711df919fb98e9f661b30e",
+      "current_sha256": "64427a0d0d152b05ef192479b90054ee1ac8c7d2b79a2a4faf043f3197d3cd50",
+      "reason": "Add self-hosted native account access and isolate platform credentials and outbound services."
+    },
+    {
+      "path": "mobile/src/app-update/app-update-checker.test.ts",
+      "upstream_sha256": "3e0f03fa75c0be36f55ee7325f3f62e926bc96a6029539d50956882477ad7639",
+      "current_sha256": "26404e635ed26a4b8f6f5e5d7ad115f1c1c70564f4ed437016c4e75f7e447152",
+      "reason": "Add self-hosted native account access and isolate platform credentials and outbound services."
+    },
+    {
+      "path": "mobile/src/app-update/app-update-checker.ts",
+      "upstream_sha256": "006a6d412a5121202dd4c88d1e408243ff3abe9fb3934ce7ce9342acc9f1c913",
+      "current_sha256": "c1461e84f018b8aa1ba533404abe3acc9b509847d68ebc11a23ed8e4701e2163",
+      "reason": "Add self-hosted native account access and isolate platform credentials and outbound services."
+    },
+    {
+      "path": "mobile/src/app-update/app-update-runtime.ts",
+      "upstream_sha256": "ba0c7a73094de53c26e3c731b10b4e7ed20a74f4d01e28938699bc0f58d451aa",
+      "current_sha256": "b33d223f9b277a80d584bcf5749ae0ef6547e2c6ede8c7b2310e6f4c59437b0f",
+      "reason": "Add self-hosted native account access and isolate platform credentials and outbound services."
+    },
+    {
+      "path": "mobile/src/diagnostics/connection-diagnostics-submission.test.ts",
+      "upstream_sha256": "e56bc75172e97759a9d6e118326e28ccfd21cb3c686c0e1fdde8be1df8ec7566",
+      "current_sha256": "ea2b8e362c5e7d619b19b6ec133ac944bf8becf4f331e20d89c367dd6c86d6bc",
+      "reason": "Add self-hosted native account access and isolate platform credentials and outbound services."
+    },
+    {
+      "path": "mobile/src/diagnostics/connection-diagnostics-submission.ts",
+      "upstream_sha256": "a7a1fb16bd4c02bc699d5b3643909fa0ec5036a939cb334f6b699f2e3af4aec3",
+      "current_sha256": "aa96ecaa83e6cb514fb06aac01553abbdddb73fa2235c7da9a26962fc64736fd",
+      "reason": "Add self-hosted native account access and isolate platform credentials and outbound services."
+    },
+    {
+      "path": "mobile/src/diagnostics/connection-diagnostics-view.tsx",
+      "upstream_sha256": "98d20c8ea2361bf332f7e5f6642948905bb367e85fcdbdfd0de06af908509313",
+      "current_sha256": "37cfe4294b6acfdc80d5adbe324e0b34fca0365e177dfc5b17ffc4b7b019371b",
+      "reason": "Add self-hosted native account access and isolate platform credentials and outbound services."
+    },
+    {
+      "path": "mobile/src/settings/settings-app-update-section.tsx",
+      "upstream_sha256": "9dadbfe20a30fbfeb79b8ed89a69b6299ab892c2d433f3e229ef45a9eab8edfa",
+      "current_sha256": "0f9577fb1a3825fa432c300f72dc8847a039a09d7fc49427d6221fb0d9b41406",
+      "reason": "Add self-hosted native account access and isolate platform credentials and outbound services."
     }
   ],
   "reviewed_findings": [

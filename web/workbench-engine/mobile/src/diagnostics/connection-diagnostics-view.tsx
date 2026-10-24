@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { View, Text, Pressable } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { ChevronLeft, Copy, Check, Send } from 'lucide-react-native'
+import { ChevronLeft, Copy, Check } from 'lucide-react-native'
 import { colors, spacing } from '../theme/mobile-theme'
 import { ConnectionLog } from '../components/ConnectionLog'
 import { connectionDiagnosticsScreenStyles as styles } from './connection-diagnostics-screen-styles'
@@ -18,8 +18,6 @@ export function ConnectionDiagnosticsView({
   copied,
   copyDiagnostics,
   diagnosis,
-  submissionState,
-  sendDiagnostics,
   entries,
   onBack
 }: {
@@ -73,34 +71,9 @@ export function ConnectionDiagnosticsView({
               <Text style={styles.diagnosisHeading}>What this suggests</Text>
               <Text style={styles.diagnosisText}>{diagnosis.likelyCause}</Text>
               <Text style={styles.diagnosisNext}>{diagnosis.nextStep}</Text>
-              {diagnosis.reportability === 'orca-relay' && (
-                <>
-                  <Text style={styles.privacyHint}>
-                    Sends a size-limited redacted report including host name, endpoint, versions,
-                    connection state, and events—never terminal contents or credentials.
-                  </Text>
-                  <Pressable
-                    style={styles.sendButton}
-                    onPress={() => void sendDiagnostics()}
-                    disabled={submissionState === 'sending'}
-                  >
-                    {submissionState === 'sent' ? (
-                      <Check size={14} color={colors.statusGreen} />
-                    ) : (
-                      <Send size={14} color={colors.textPrimary} />
-                    )}
-                    <Text style={styles.sendButtonText}>
-                      {submissionState === 'sending'
-                        ? 'Sending…'
-                        : submissionState === 'sent'
-                          ? 'Diagnostics sent'
-                          : submissionState === 'failed'
-                            ? 'Retry sending'
-                            : 'Send diagnostics to Orca'}
-                    </Text>
-                  </Pressable>
-                </>
-              )}
+              <Text style={styles.privacyHint}>
+                本平台诊断提交渠道未配置，可在本机查看或复制报告。
+              </Text>
             </View>
           )}
           {entries.length > 0 ? (
