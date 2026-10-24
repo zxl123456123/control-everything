@@ -1,10 +1,6 @@
 // Studio owns navigation and composition; management modules own task actions.
 'use strict';
-function projectEntryTab(items) {
-  if (items.some(item => item.state === 'review')) return 'review';
-  if (items.some(item => item.state === 'doing')) return 'tasks';
-  return 'tasks';
-}
+function projectEntryTab() { return 'tasks'; }
 function mountStudio(root, { onProjects = () => {} } = {}) {
   const $ = id => root.querySelector('#' + id);
   const content = $('studio-content'), status = $('studio-status');
@@ -37,6 +33,7 @@ function mountStudio(root, { onProjects = () => {} } = {}) {
   } catch (_) { try { window.localStorage?.removeItem(CREATOR_URL_KEY); } catch (_) { /* Storage can be disabled. */ } }
   const escape = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
   let state = { workspace: null, agents: [], items: [] }, request = 0, query = '', archivedProjects = false, initialized = false, disposed = false;
+  let attentionOnly = false, projectSort = 'updated';
   let pendingTask = null;
   try { if (root.dataset.unified !== 'true') root.dataset.theme = localStorage.getItem('ce-studio-theme') === 'dark' ? 'dark' : 'light'; } catch { /* Preferences are optional. */ }
   const board = window.WorkspaceAgentBoard.create({ root: $('studio-agent-board'), fetchJson: client.api, postJson: client.post,
@@ -44,8 +41,8 @@ function mountStudio(root, { onProjects = () => {} } = {}) {
     onRegister: () => { location.href = '/workspace-admin#settings'; }, onAddProject: () => requestProject(),
     onProject: id => navigate(id ? 'project/' + encodeURIComponent(id) + '/tasks' : 'inbox') });
   const projects = () => state.workspace?.projects.items || [];
-  const projectItems = id => state.items.filter(item => item.project_id === id);
-  const projectUrl = (id, items = projectItems(id)) => root.dataset.unified === 'true' ? '#project/' + encodeURIComponent(id) + '/' + projectEntryTab(items) : '/workbench/web-index.html?project_id=' + encodeURIComponent(id);
+  const projectUrl = id => '#project/' + encodeURIComponent(id) + '/' + projectEntryTab();
+  const developmentUrl = id => root.dataset.unified === 'true' ? '#project/' + encodeURIComponent(id) + '/workspace' : '/workbench/web-index.html?project_id=' + encodeURIComponent(id);
   function route() {
     const parts = location.hash.slice(1).split('/');
     let id = ''; try { id = decodeURIComponent(parts[1] || ''); } catch { /* Invalid route stays on the overview. */ }
@@ -166,40 +163,32 @@ function mountStudio(root, { onProjects = () => {} } = {}) {
     const chosen = projects().find(p => p.id === current.id);
     $('studio-topbar').innerHTML = `<header class="ce-topbar"><div class="ce-crumbs"><a href="#home">项目</a>${current.view !== 'home' ? `<span> / ${escape(chosen?.name || ({ inbox: '事项', tools: '高级管理', mobile: '手机与设备' }[current.view] || '项目'))}</span>` : ''}</div><a class="ce-button ce-plain ce-mobile-entry-mobile${current.view === 'mobile' ? ' is-current' : ''}" href="#mobile"${current.view === 'mobile' ? ' aria-current="page"' : ''}>手机与设备</a><a class="ce-button ce-plain ce-creator-mobile" href="/news">新闻</a>${creatorLink('ce-button ce-plain ce-creator-mobile')}<button class="ce-button ce-plain" data-action="refresh" type="button">刷新</button><button class="ce-iconbtn" data-action="theme" type="button" aria-label="切换外观">${icon('moon')}</button></header>`;
   }
-  function projectCard(project) {
-    const items = projectItems(project.id);
-    const directory = project.directories?.find(row => row.id === 'main')?.path || project.root || '';
-    const counts = [['todo', '待办'], ['doing', '进行中'], ['blocked', '阻塞'], ['review', '待验收'], ['done', '已完成']]
-      .map(([value, label]) => { const count = items.filter(item => item.state === value).length; return count ? `<span class="ce-project-state" data-state="${value}">${count} ${label}</span>` : ''; }).join('');
-    const entry = project.archived ? '<span class="ce-project-archived">已归档</span>' : `<a class="ce-project-entry" href="${projectUrl(project.id)}"${root.dataset.unified === 'true' ? ` data-open-project="${escape(project.id)}"` : ''} aria-label="进入工作区：${escape(project.name)}"><span class="ce-project-title">${escape(project.name)}</span><span class="ce-project-open">进入工作区 ${icon('arrow')}</span></a>`;
-    return `<article class="ce-project-card${project.archived ? ' is-archived' : ''}"><div class="ce-project-top"><span class="ce-project-icon">${icon('folder')}</span>${!project.read_only && project.source?.kind !== 'codex' ? `<button type="button" class="ce-iconbtn" data-project-settings="${escape(project.id)}" aria-label="项目管理：${escape(project.name)}" title="项目管理">⋯</button>` : ''}</div>${project.archived ? `<span class="ce-project-title">${escape(project.name)}</span>` : ''}${entry}<p class="ce-project-desc" title="${escape(directory)}">${escape(directory || '未登记目录')}</p><div class="ce-project-foot">${counts || '<span>暂无事项</span>'}</div></article>`;
-  }
   const stateLabel = { todo: '待办', doing: '进行中', blocked: '阻塞', review: '待验收', done: '已完成' };
-  function latestItem(items) {
-    const stamped = items.filter(item => item.updated_at);
-    return [...stamped].sort((a, b) => String(b.updated_at).localeCompare(String(a.updated_at)))[0] || items[0];
-  }
-  function entryRow(project, item, label) {
-    const when = item?.updated_at ? escape(item.updated_at) : '时间未知';
-    const title = item ? escape(item.title || '未命名事项') : '尚未开始';
-    const detail = item ? `${escape(stateLabel[item.state] || item.state)} · ${when}` : '尚未开始';
-    const contents = `<span>${escape(label || project.name)}</span><strong>${title}</strong><span>${project.archived ? '已归档 · ' : ''}${detail}</span>`;
-    const main = project.archived ? `<div class="ce-entry-main">${contents}</div>` : `<a class="ce-entry-main" href="${projectUrl(project.id, item ? [item] : [])}"${root.dataset.unified === 'true' ? ` data-open-project="${escape(project.id)}"` : ''}>${contents}</a>`;
+  function projectCard({ project, items, counts, latest }) {
+    const name = escape(project.name), id = encodeURIComponent(project.id);
+    const link = (tab, label, className) => `<a class="${className}" href="${tab === 'workspace' ? developmentUrl(project.id) : '#project/' + id + '/' + tab}"${root.dataset.unified === 'true' ? ` data-open-project="${escape(project.id)}"` : ''}>${label}</a>`;
+    const title = project.archived ? `<h2>${name}</h2>` : `<h2>${link('tasks', name, 'ce-project-title-link')}</h2>`;
+    const badges = Object.entries(stateLabel).filter(([key]) => counts[key]).map(([key, label]) => `<span class="ce-project-state" data-state="${key}">${label} <b>${counts[key]}</b></span>`).join('');
+    const updated = latest?.updated_at ? `<time datetime="${escape(latest.updated_at)}">${escape(latest.updated_at.replace('T', ' '))}</time>` : '更新时间未知';
+    const recent = latest ? `<span class="ce-recent-label">最近事项</span><span class="ce-recent-title">${escape(latest.title || '未命名事项')}</span><span class="ce-recent-state">${escape(stateLabel[latest.state] || latest.state)} · ${updated}</span>` : `<span class="ce-recent-title">尚无事项记录</span><span class="ce-recent-state">${project.archived ? '恢复项目后可继续添加事项。' : '可进入项目添加事项，开发活动在工作区查看。'}</span>`;
+    const progress = items.length ? `<div class="ce-recorded-progress"><span>已记录事项 <b>${counts.done || 0}/${items.length}</b> 已完成</span><progress max="${items.length}" value="${counts.done || 0}" aria-label="已记录事项完成数"></progress></div>` : '';
+    const actions = project.archived ? '<span class="ce-project-archived">已归档</span>' : `${counts.review ? link('review', `待验收 <b>${counts.review}</b>`, 'ce-button ce-review-shortcut') : ''}${link('workspace', `打开开发 ${icon('arrow')}`, 'ce-button ce-development-shortcut')}`;
     const management = !project.read_only && project.source?.kind !== 'codex' ? `<button type="button" class="ce-iconbtn" data-project-settings="${escape(project.id)}" aria-label="项目管理：${escape(project.name)}" title="项目管理">⋯</button>` : '';
-    return `<div class="ce-entry-row">${main}${management}</div>`;
+    return `<article class="ce-overview-card${project.archived ? ' is-archived' : ''}" data-project-card="${escape(project.id)}"><div class="ce-overview-title"><span class="ce-project-icon">${icon('folder')}</span><div>${title}<div class="ce-overview-states">${badges || '<span>尚无事项</span>'}</div></div>${management}</div><div class="ce-overview-recent">${recent}</div><div class="ce-overview-bottom">${progress}<div class="ce-overview-actions">${actions}</div></div></article>`;
   }
   function home() {
-    const filtered = projects().filter(p => Boolean(p.archived) === archivedProjects && p.name.toLowerCase().includes(query.toLowerCase()));
-    const attention = state.items.filter(item => ['review', 'blocked'].includes(item.state) && filtered.some(project => project.id === item.project_id));
-    const active = filtered.filter(project => projectItems(project.id).some(item => item.state === 'doing'));
-    const rest = filtered.filter(project => !active.some(row => row.id === project.id) && !attention.some(item => item.project_id === project.id));
-    const section = (title, rows) => rows.length ? `<section class="ce-entry-section"><h2>${title}</h2>${rows.join('')}</section>` : '';
-    const body = archivedProjects
-      ? filtered.map(project => entryRow(project, latestItem(projectItems(project.id)))).join('')
-      : section('需要你处理', attention.map(item => entryRow(filtered.find(project => project.id === item.project_id), item)))
-        + section('正在进行', active.map(project => entryRow(project, latestItem(projectItems(project.id).filter(item => item.state === 'doing')))))
-        + section('其余项目', rest.map(project => entryRow(project, latestItem(projectItems(project.id)))));
-    return `<div class="ce-heading"><div><h1>项目</h1></div><button type="button" class="ce-button ce-primary" data-action="add-project">添加项目</button></div><div class="ce-toolbar"><span class="ce-count">${filtered.length} 个项目</span><button type="button" class="ce-button ce-plain" data-action="archived-projects" aria-pressed="${archivedProjects}">${archivedProjects ? '返回常用项目' : '已归档'}</button><label class="ce-search"><input id="studio-project-search" aria-label="筛选项目" placeholder="查找项目" value="${escape(query)}"></label></div>${body || `<div class="ce-empty">${archivedProjects ? '没有已归档项目。' : '没有匹配的项目。先登记一个项目文件夹。'}</div>`}`;
+    const grouped = new Map(projects().map(project => [project.id, { project, items: [], counts: {}, latest: null }]));
+    for (const item of state.items) {
+      const row = grouped.get(item.project_id); if (!row) continue;
+      row.items.push(item); row.counts[item.state] = (row.counts[item.state] || 0) + 1;
+      if (!row.latest || String(item.updated_at || '') > String(row.latest.updated_at || '')) row.latest = item;
+    }
+    const catalog = [...grouped.values()].filter(row => Boolean(row.project.archived) === archivedProjects);
+    const needsAttention = row => row.counts.review || row.counts.blocked;
+    const filtered = catalog.filter(row => (!attentionOnly || needsAttention(row)) && row.project.name.toLowerCase().includes(query.trim().toLowerCase()));
+    filtered.sort((a, b) => (projectSort === 'updated' ? String(b.latest?.updated_at || '').localeCompare(String(a.latest?.updated_at || '')) : 0) || a.project.name.localeCompare(b.project.name, 'zh-CN'));
+    const empty = query || attentionOnly ? '没有匹配的项目。' : archivedProjects ? '没有已归档项目。' : '尚无项目，添加一个项目文件夹开始。';
+    return `<div class="ce-heading ce-overview-heading"><div><span class="ce-eyebrow">工作台 / 项目总览</span><h1>项目</h1><p>查看事项进展，继续项目开发。</p></div><button type="button" class="ce-button ce-primary" data-action="add-project">＋ 添加项目</button></div><div class="ce-overview-stats" aria-label="${archivedProjects ? '已归档' : '常用'}项目统计"><div><span>${archivedProjects ? '归档' : '常用'}项目总数</span><strong>${catalog.length}</strong></div><div><span>进行中项目</span><strong>${catalog.filter(row => row.counts.doing).length}</strong></div><div><span>需关注项目</span><strong>${catalog.filter(needsAttention).length}</strong></div></div><div class="ce-toolbar ce-overview-toolbar"><div class="ce-segment" aria-label="项目筛选"><button type="button" data-action="all-projects" aria-pressed="${!attentionOnly}">全部</button><button type="button" data-action="attention-projects" aria-pressed="${attentionOnly}">需关注</button></div><label class="ce-search"><span aria-hidden="true">⌕</span><input id="studio-project-search" type="search" aria-label="搜索项目名称" placeholder="搜索项目名称…" value="${escape(query)}"></label><select id="studio-project-sort" aria-label="项目排序"><option value="updated"${projectSort === 'updated' ? ' selected' : ''}>最近更新</option><option value="name"${projectSort === 'name' ? ' selected' : ''}>项目名称</option></select><button type="button" class="ce-button ce-archive-toggle" data-action="archived-projects" aria-pressed="${archivedProjects}">${archivedProjects ? '返回常用项目' : '已归档'}</button></div><div class="ce-overview-list-heading"><h2>${archivedProjects ? '已归档项目' : '你的项目'}</h2><span class="ce-count" role="status">${filtered.length} 个项目</span></div><div class="ce-overview-list">${filtered.map(projectCard).join('') || `<div class="ce-empty">${empty}${query || attentionOnly ? '<button type="button" class="ce-button" data-action="clear-project-filters">清除筛选</button>' : ''}</div>`}</div>`;
   }
   let monitor = null, monitorProject = '';
   function renderMonitor(current, chosen) {
@@ -282,7 +271,9 @@ function mountStudio(root, { onProjects = () => {} } = {}) {
     const action = event.target.closest('[data-action]')?.dataset.action;
     if (action === 'refresh') void refresh();
     if (action === 'add-project') requestProject();
-    if (action === 'archived-projects') { archivedProjects = !archivedProjects; render(); }
+    if (action === 'archived-projects') { archivedProjects = !archivedProjects; attentionOnly = false; render(); }
+    if (action === 'all-projects' || action === 'attention-projects') { attentionOnly = action === 'attention-projects'; render(); }
+    if (action === 'clear-project-filters') { query = ''; attentionOnly = false; render(); }
     if (action === 'theme') { root.dataset.theme = root.dataset.theme === 'dark' ? 'light' : 'dark'; try { localStorage.setItem('ce-studio-theme', root.dataset.theme); } catch { /* Preferences are optional. */ } }
     const taskId = event.target.closest('[data-task]')?.dataset.task;
     if (taskId) {
@@ -313,6 +304,11 @@ function mountStudio(root, { onProjects = () => {} } = {}) {
     if (event.target.id !== 'studio-project-search') return;
     query = event.target.value; const position = event.target.selectionStart; content.innerHTML = home();
     const input = $('studio-project-search'); input.focus(); input.setSelectionRange(position, position);
+  });
+  root.addEventListener('change', event => {
+    if (event.target.id !== 'studio-project-sort') return;
+    projectSort = event.target.value === 'name' ? 'name' : 'updated'; content.innerHTML = home();
+    $('studio-project-sort').focus();
   });
   const changed = () => {
     const next = route();

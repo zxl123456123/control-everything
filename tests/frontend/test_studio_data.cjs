@@ -88,9 +88,9 @@ function studioFixture({ savedCreatorUrl = null, monitorAvailable = true, unifie
   }
   const body = element('body');
   const nodes = new Map();
-  for (const id of ['ce-studio', 'studio-content', 'studio-status', 'studio-tasks', 'studio-agent-board', 'studio-monitor', 'studio-monitor-content', 'studio-rail', 'studio-topbar']) {
+  for (const id of ['ce-studio', 'studio-content', 'studio-status', 'studio-tasks', 'studio-agent-board', 'studio-monitor', 'studio-monitor-content', 'studio-rail', 'studio-topbar', 'studio-project-search', 'studio-project-sort']) {
     nodes.set(id, { dataset: {}, innerHTML: '', textContent: '', hidden: false, listeners: {},
-      addEventListener(name, callback) { this.listeners[name] = callback; }, classList: { remove() {}, add() {} } });
+      focus() {}, setSelectionRange() {}, addEventListener(name, callback) { this.listeners[name] = callback; }, classList: { remove() {}, add() {} } });
   }
   const creatorInput = { value: '', focus() {} }, writes = [], removed = [], mounts = [], monitorCalls = [];
   if (unified) { nodes.get('ce-studio').dataset.unified = 'true'; nodes.get('ce-studio').dataset.theme = 'dark'; }
@@ -136,6 +136,8 @@ function studioFixture({ savedCreatorUrl = null, monitorAvailable = true, unifie
     submit(value) { creatorInput.value = value; nodes.get('ce-studio').listeners.submit({ preventDefault() {}, target: { dataset: { creatorForm: 'true' } } }); },
     openProject(id, href = '#project/' + id + '/tasks', modifiers = {}) { let prevented = false; nodes.get('ce-studio').listeners.click({ ...modifiers, preventDefault() { prevented = true; }, target: { closest: selector => selector === '[data-open-project]' ? { dataset: { openProject: id }, getAttribute: () => href } : null } }); return prevented; },
     manage(id) { nodes.get('ce-studio').listeners.click({ target: { closest: selector => selector === '[data-project-settings]' ? { dataset: { projectSettings: id } } : null } }); },
+    search(value) { nodes.get('ce-studio').listeners.input({ target: { id: 'studio-project-search', value, selectionStart: value.length } }); },
+    sort(value) { nodes.get('ce-studio').listeners.change({ target: { id: 'studio-project-sort', value } }); },
     click(action) { nodes.get('ce-studio').listeners.click({ target: { closest: selector => selector === '[data-action]' ? { dataset: { action } } : null } }); }
   };
 }
@@ -274,9 +276,9 @@ test('outer navigation shows projects only and legacy task routes retain their b
 
 test('unified project opens as a view action and retains the overview until the native surface takes over', async () => {
   const f = studioFixture({ unified: true }); await f.flush();
-  assert.match(f.nodes.get('studio-content').innerHTML, /<a[^>]+class="ce-entry-main"[^>]+href="#project\/server-project\/tasks"[^>]+data-open-project="server-project"/);
-  assert.match(f.nodes.get('studio-content').innerHTML, /尚未开始/);
-  assert.doesNotMatch(f.nodes.get('studio-content').innerHTML, /ce-project-card|进入工作区/);
+  assert.match(f.nodes.get('studio-content').innerHTML, /<a[^>]+class="ce-project-title-link"[^>]+href="#project\/server-project\/tasks"[^>]+data-open-project="server-project"/);
+  assert.match(f.nodes.get('studio-content').innerHTML, /尚无事项记录/);
+  assert.match(f.nodes.get('studio-content').innerHTML, /href="#project\/server-project\/workspace"[^>]*>打开开发/);
   assert.equal(f.nodes.get('ce-studio').dataset.theme, 'dark');
   const overview = f.nodes.get('studio-content').innerHTML;
   assert.equal(f.openProject('server-project'), true);
@@ -290,12 +292,57 @@ test('unified project opens as a view action and retains the overview until the 
   assert.equal(f.nodes.get('studio-agent-board').hidden, true);
 });
 
-test('project entry follows review, otherwise tasks, and never uses sessions', () => {
+test('project title always enters tasks even when review is pending', () => {
   const context = vm.createContext({ window: {}, document: { getElementById() {} } });
   vm.runInContext(fs.readFileSync(path.resolve(__dirname, '../../web/workspace/studio-preview.js'), 'utf8'), context);
-  assert.equal(context.window.StudioPreview.projectEntryTab([{ state: 'doing' }, { state: 'review' }]), 'review');
+  assert.equal(context.window.StudioPreview.projectEntryTab([{ state: 'doing' }, { state: 'review' }]), 'tasks');
   assert.equal(context.window.StudioPreview.projectEntryTab([{ state: 'doing', title: '继续' }]), 'tasks');
   assert.equal(context.window.StudioPreview.projectEntryTab([]), 'tasks');
+});
+
+test('overview renders one progress card per project with stable tasks and separate shortcuts', async () => {
+  const f = studioFixture({ unified: true }); await f.flush();
+  f.snapshot.items.push(
+    { id: 'doing', project_id: 'server-project', state: 'doing', title: 'Older work', updated_at: '2026-10-20T10:00:00Z' },
+    { id: 'review-1', project_id: 'server-project', state: 'review', title: 'Review one', updated_at: '2026-10-21T10:00:00Z' },
+    { id: 'review-2', project_id: 'server-project', state: 'review', title: '<Latest & result>', updated_at: '2026-10-23T10:00:00+00:00' },
+    { id: 'blocked', project_id: 'server-project', state: 'blocked', title: 'Blocked', updated_at: '2026-10-22T10:00:00Z' },
+    { id: 'done', project_id: 'server-project', state: 'done', title: 'Done' });
+  await f.route('home');
+  const html = f.nodes.get('studio-content').innerHTML;
+  assert.equal((html.match(/data-project-card="server-project"/g) || []).length, 1);
+  assert.match(html, /ce-project-title-link" href="#project\/server-project\/tasks"/);
+  assert.match(html, /ce-review-shortcut" href="#project\/server-project\/review"[^>]*>待验收 <b>2<\/b>/);
+  assert.match(html, /ce-development-shortcut" href="#project\/server-project\/workspace"/);
+  assert.match(html, /已记录事项 <b>1\/5<\/b> 已完成/);
+  assert.match(html, /<progress max="5" value="1"/);
+  assert.match(html, /&lt;Latest &amp; result&gt;/);
+  assert.match(html, /<time datetime="2026-10-23T10:00:00\+00:00">2026-10-23 10:00:00\+00:00<\/time>/);
+  assert.equal(html.includes(f.snapshot.workspace.projects.items[0].directories[0].path), false);
+  assert.doesNotMatch(html, /Older work/);
+  for (const label of ['项目总数', '进行中项目', '需关注项目']) assert.match(html, new RegExp(label + '<\\/span><strong>1<\\/strong>'));
+});
+
+test('overview filters and sorting stay in memory while statistics keep their catalog scope', async () => {
+  const f = studioFixture({ unified: true }); await f.flush();
+  f.snapshot.workspace.projects.items.push({ id: 'alpha', name: 'Alpha' }, { id: 'zeta', name: 'Zeta' }, { id: 'old', name: 'Archived', archived: true });
+  f.snapshot.items.push({ id: 'a', project_id: 'alpha', state: 'doing', updated_at: '2026-10-21T10:00:00Z' },
+    { id: 'z', project_id: 'zeta', state: 'review', updated_at: '2026-10-23T10:00:00Z' });
+  await f.route('home');
+  let reads = 0; const read = f.client.snapshot; f.client.snapshot = async () => { reads++; return read(); };
+  const html = () => f.nodes.get('studio-content').innerHTML;
+  assert.ok(html().indexOf('data-project-card="zeta"') < html().indexOf('data-project-card="alpha"'));
+  assert.ok(html().indexOf('data-project-card="alpha"') < html().indexOf('data-project-card="server-project"'));
+  f.sort('name'); assert.ok(html().indexOf('data-project-card="alpha"') < html().indexOf('data-project-card="zeta"'));
+  f.click('attention-projects'); assert.match(html(), /data-project-card="zeta"/); assert.doesNotMatch(html(), /data-project-card="alpha"/);
+  assert.match(html(), /项目总数<\/span><strong>3<\/strong>/);
+  f.search('missing'); assert.match(html(), /没有匹配的项目/); assert.match(html(), /data-action="clear-project-filters"/);
+  f.click('clear-project-filters'); assert.match(html(), /data-project-card="alpha"/);
+  f.search('  ALPHA  '); assert.match(html(), /data-project-card="alpha"/); assert.doesNotMatch(html(), /data-project-card="zeta"/);
+  f.click('clear-project-filters'); f.click('attention-projects'); f.click('archived-projects');
+  assert.match(html(), /data-project-card="old"/); assert.doesNotMatch(html(), /data-open-project|打开开发|href="#project/);
+  assert.match(html(), /项目总数<\/span><strong>1<\/strong>/);
+  assert.equal(reads, 0);
 });
 
 test('project registration uses a styled visible target and every close stays on the current page', async () => {
@@ -343,7 +390,7 @@ test('an unregistered directory notice stays on the current page', async () => {
   notice.querySelector('button').listeners.click[0](); assert.equal(notice.isConnected, false);
 });
 
-test('mixed project rows use the row state while the sidebar uses project priority', async () => {
+test('mixed states retain stable project navigation and explicit shortcut routes', async () => {
   const f = studioFixture({ unified: true }); await f.flush();
   f.snapshot.items = [
     { id: 'r', project_id: 'server-project', title: 'Review work', state: 'review', updated_at: '2026-10-23' },
@@ -352,13 +399,12 @@ test('mixed project rows use the row state while the sidebar uses project priori
   ];
   await f.route('home');
   const html = f.nodes.get('studio-content').innerHTML;
-  for (const [title, tab] of [['Review work', 'review'], ['Doing work', 'tasks'], ['Blocked work', 'tasks']]) {
-    const anchor = [...html.matchAll(/<a\b[^>]*>[^]*?<\/a>/g)].map(match => match[0]).find(row => row.includes(title));
-    assert.match(anchor, new RegExp('href="#project/server-project/' + tab + '"'));
+  for (const [className, tab] of [['ce-project-title-link', 'tasks'], ['ce-review-shortcut', 'review'], ['ce-development-shortcut', 'workspace']]) {
+    assert.match(html, new RegExp('class="[^"\\n]*' + className + '" href="#project/server-project/' + tab + '"'));
     assert.equal(f.openProject('server-project', '#project/server-project/' + tab), true);
     assert.equal(f.location.hash, '#project/server-project/' + tab);
   }
-  assert.match(f.nodes.get('studio-rail').innerHTML, /href="#project\/server-project\/review"/);
+  assert.match(f.nodes.get('studio-rail').innerHTML, /href="#project\/server-project\/tasks"/);
   assert.equal(f.openProject('server-project', '#project/server-project/tasks', { ctrlKey: true }), false);
   const standalone = studioFixture(); await standalone.flush();
   assert.equal(standalone.openProject('server-project', '/workbench/web-index.html?project_id=server-project'), false);
@@ -368,7 +414,7 @@ test('mixed project rows use the row state while the sidebar uses project priori
 test('project rows keep management separate and archived projects restore through the existing save API', async () => {
   const f = studioFixture({ unified: true }); await f.flush();
   let html = f.nodes.get('studio-content').innerHTML;
-  assert.match(html, /<\/a><button[^>]+data-project-settings="server-project"/);
+  assert.match(html, /<\/a><\/h2>[\s\S]*<\/div><\/div><button[^>]+data-project-settings="server-project"/);
   f.snapshot.workspace.projects.items[0].archived = true;
   f.click('archived-projects'); html = f.nodes.get('studio-content').innerHTML;
   assert.match(html, /已归档/); assert.match(html, /data-project-settings="server-project"/);
@@ -406,5 +452,9 @@ test('latest real timestamp wins while undated items retain a truthful unknown t
   const f = studioFixture({ unified: true }); await f.flush();
   f.snapshot.items = [{ project_id: 'server-project', title: 'Undated', state: 'todo' }, { project_id: 'server-project', title: 'Dated', state: 'done', updated_at: '2026-10-23' }];
   await f.route('home'); assert.match(f.nodes.get('studio-content').innerHTML, /Dated/); assert.doesNotMatch(f.nodes.get('studio-content').innerHTML, /Undated/);
+  for (const timestamp of ['2026-10-23T10:00:00Z', '2026-10-23T18:00:00+08:00']) {
+    f.snapshot.items[1].updated_at = timestamp; await f.route('home');
+    assert.ok(f.nodes.get('studio-content').innerHTML.includes('>' + timestamp.replace('T', ' ') + '</time>'));
+  }
   f.snapshot.items.pop(); await f.route('home'); assert.match(f.nodes.get('studio-content').innerHTML, /Undated/); assert.match(f.nodes.get('studio-content').innerHTML, /时间未知/);
 });

@@ -390,27 +390,72 @@ body:has(#ce-studio){margin:0;background:#f7f7f5}
 #ce-studio>.onboarding-dialog.ce-business-module :is(.onboarding-choices,.onboarding-candidate,.onboarding-drop){border-color:var(--ce-line)}
 #ce-studio>.onboarding-dialog.ce-business-module .onboarding-drop{background:var(--ce-bg);color:var(--ce-sub)}
 
-#ce-studio .ce-entry-section{display:flex;flex-direction:column;gap:8px;margin-top:18px}
-#ce-studio .ce-entry-section h2{font-size:15px;font-weight:600}
-#ce-studio .ce-entry-row{display:flex;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--ce-faint)}
-#ce-studio .ce-entry-main{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr) auto;gap:12px;align-items:baseline;flex:1;min-width:0;color:inherit;text-decoration:none}
-#ce-studio .ce-entry-main:focus-visible,#ce-studio .ce-entry-row>.ce-iconbtn:focus-visible{outline:2px solid var(--ce-blue);outline-offset:3px;border-radius:5px}
-@media(max-width:700px){#ce-studio .ce-entry-main{grid-template-columns:minmax(0,1fr);gap:4px}}
-#ce-studio .ce-entry-row strong{font-size:15px;font-weight:600}
-#ce-studio .ce-entry-row span{color:var(--ce-sub);font-size:13px;overflow-wrap:anywhere}
-#ce-studio .ce-project-card{position:relative;min-height:240px;padding:20px 20px 0;display:flex!important;grid-column:auto!important}
-#ce-studio .ce-project-top{position:relative;z-index:2;pointer-events:none}
-#ce-studio .ce-project-top button{pointer-events:auto;cursor:pointer}
-#ce-studio .ce-project-entry{color:inherit;text-decoration:none;display:flex;flex-direction:column;gap:12px;outline:none}
-#ce-studio .ce-project-entry::after{content:"";position:absolute;inset:0;border-radius:17px}
-#ce-studio .ce-project-entry:focus-visible::after{outline:2px solid var(--ce-blue);outline-offset:3px}
-#ce-studio .ce-project-entry .ce-project-title{margin-bottom:0}
-#ce-studio .ce-project-open{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--ce-blue);font-weight:500}
-#ce-studio .ce-project-desc{margin:14px 0 20px;font-size:12px;line-height:1.6;overflow-wrap:anywhere;white-space:normal;color:var(--ce-sub)}
-#ce-studio .ce-project-foot{margin-top:auto;justify-content:flex-start;flex-wrap:wrap;font-size:12px;gap:7px}
+#ce-studio .ce-overview-heading{align-items:center;margin-bottom:24px}
+#ce-studio .ce-eyebrow{display:block;font-size:11px;font-weight:500;letter-spacing:1px;color:var(--ce-sub);margin-bottom:10px}
+#ce-studio .ce-overview-heading h1{font-size:30px;font-weight:600}
+#ce-studio .ce-overview-heading p{font-size:13px;margin-top:8px}
+#ce-studio .ce-overview-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border:1px solid var(--ce-faint);border-radius:12px;background:var(--ce-panel);margin-bottom:28px;box-shadow:0 1px 2px var(--ce-shadow)}
+#ce-studio .ce-overview-stats>div{display:flex;flex-direction:column;gap:8px;padding:18px 22px}
+#ce-studio .ce-overview-stats>div+div{border-left:1px solid var(--ce-faint)}
+#ce-studio .ce-overview-stats span{font-size:12px;color:var(--ce-sub)}
+#ce-studio .ce-overview-stats strong{font-size:28px;line-height:1.15;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-1px}
+#ce-studio .ce-overview-toolbar{justify-content:flex-start;gap:10px;margin-bottom:24px;flex-wrap:wrap}
+#ce-studio .ce-overview-toolbar .ce-segment{margin-right:auto;flex:none}
+#ce-studio .ce-overview-toolbar .ce-search{width:220px;height:36px;border-color:var(--ce-line);box-shadow:none}
+#ce-studio .ce-overview-toolbar select{min-width:116px;height:36px;padding:0 28px 0 11px;border:1px solid var(--ce-line);border-radius:7px;background:var(--ce-panel);font-size:12px}
+#ce-studio .ce-archive-toggle{font-size:12px}
+#ce-studio .ce-archive-toggle[aria-pressed="true"]{background:var(--ce-soft);border-color:var(--ce-sub)}
+#ce-studio .ce-overview-list-heading{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+#ce-studio .ce-overview-list-heading h2{font-size:14px;font-weight:600;letter-spacing:0}
+#ce-studio .ce-overview-list-heading .ce-count{font-size:12px}
+#ce-studio .ce-overview-list{display:grid;gap:12px}
+#ce-studio .ce-overview-card{min-width:0;border:1px solid var(--ce-line);border-radius:12px;padding:20px 22px;background:var(--ce-panel);box-shadow:0 1px 2px var(--ce-shadow)}
+#ce-studio .ce-overview-card:hover{border-color:var(--ce-sub)}
+#ce-studio .ce-overview-title{display:flex;align-items:flex-start;gap:12px}
+#ce-studio .ce-overview-title>.ce-project-icon{width:40px;height:40px;border-radius:10px;margin-top:1px}
+#ce-studio .ce-overview-title>div{flex:1;min-width:0}
+#ce-studio .ce-overview-title h2{font-size:17px;font-weight:600;letter-spacing:-.2px;overflow-wrap:anywhere;line-height:1.5}
+#ce-studio .ce-project-title-link:hover{color:var(--ce-blue)}
+#ce-studio .ce-overview-states{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px;font-size:12px;color:var(--ce-sub)}
+#ce-studio .ce-overview-states b,#ce-studio .ce-recorded-progress b{font-weight:500;font-variant-numeric:tabular-nums}
+#ce-studio .ce-overview-recent{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;margin:17px 0 18px;padding-left:52px;font-size:12px;color:var(--ce-sub);min-width:0}
+#ce-studio .ce-recent-label{font-size:11px;flex:none}
+#ce-studio .ce-recent-title{color:var(--ce-text);overflow-wrap:anywhere}
+#ce-studio .ce-recent-state{font-size:11px;overflow-wrap:anywhere}
+#ce-studio .ce-overview-bottom{display:flex;align-items:center;gap:24px;border-top:1px solid var(--ce-faint);padding-top:15px}
+#ce-studio .ce-recorded-progress{width:min(240px,50%);display:grid;gap:8px;font-size:11px;color:var(--ce-sub)}
+#ce-studio .ce-recorded-progress b{color:var(--ce-text);margin:0 3px}
+#ce-studio .ce-recorded-progress progress{appearance:none;display:block;width:100%;height:4px;border:0;background:var(--ce-soft);border-radius:3px;overflow:hidden}
+#ce-studio .ce-recorded-progress progress::-webkit-progress-bar{background:var(--ce-soft)}
+#ce-studio .ce-recorded-progress progress::-webkit-progress-value{background:var(--ce-green);border-radius:3px}
+#ce-studio .ce-recorded-progress progress::-moz-progress-bar{background:var(--ce-green);border-radius:3px}
+#ce-studio .ce-overview-actions{margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+#ce-studio .ce-overview-actions .ce-button{font-size:12px;min-height:32px;padding:6px 11px;white-space:nowrap;box-shadow:none}
+#ce-studio .ce-development-shortcut{color:var(--ce-blue);border-color:var(--ce-line)}
+#ce-studio .ce-review-shortcut{color:var(--ce-amber);background:var(--ce-amber-bg);border-color:transparent}
+#ce-studio .ce-overview-list .ce-empty{display:grid;justify-items:center;gap:14px;padding:40px 20px;border:1px dashed var(--ce-line);border-radius:12px}
+#ce-studio .ce-overview-list :is(a,button):focus-visible,#ce-studio .ce-overview-toolbar :is(button,input,select):focus-visible{outline:2px solid var(--ce-blue);outline-offset:3px;border-radius:5px}
 #ce-studio .ce-project-state,#ce-studio .ce-project-archived{padding:3px 8px;border-radius:5px;background:var(--ce-soft);color:var(--ce-sub);font-size:12px}
 #ce-studio .ce-project-state[data-state="blocked"]{color:var(--ce-red);background:var(--ce-red-bg)}
 #ce-studio .ce-project-state[data-state="review"]{color:var(--ce-amber);background:var(--ce-amber-bg)}
 #ce-studio .ce-project-state[data-state="doing"]{color:var(--ce-blue);background:var(--ce-blue-bg)}
 #ce-studio .ce-project-state[data-state="done"]{color:var(--ce-green);background:var(--ce-green-bg)}
 #ce-studio .ce-project-settings{margin:auto;max-height:calc(100dvh - 32px);overflow:auto}
+/* Keep business task surfaces compact without changing their dialogs or native workspace. */
+#ce-studio #studio-agent-board{padding-top:0}
+#ce-studio #studio-agent-board>.section-heading{align-items:center;margin-bottom:10px}
+#ce-studio #studio-agent-board>.section-heading .form-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+#ce-studio #studio-agent-board>.section-heading .button{font-size:12px;min-height:34px;padding:6px 12px}
+#ce-studio #studio-agent-board>#ab-status{font-size:12px;color:var(--ce-sub);margin:0 0 18px}
+#ce-studio #studio-agent-board .agent-board-groups{gap:12px;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));align-items:start}
+#ce-studio #studio-agent-board .agent-task-group{padding:12px;background:var(--ce-soft);border-color:var(--ce-faint);border-radius:10px}
+#ce-studio #studio-agent-board .agent-task-group>h3{font-size:12px;font-weight:600;padding:0 2px 8px;letter-spacing:0}
+#ce-studio #studio-agent-board .agent-task-card{padding:12px;margin:8px 0 0;border-color:var(--ce-line);border-radius:8px;background:var(--ce-panel);box-shadow:0 1px 2px var(--ce-shadow)}
+#ce-studio #studio-agent-board .agent-task-title{font-size:13px;line-height:1.6;font-weight:500}
+#ce-studio #studio-agent-board .agent-task-card .badge{display:inline-block;font-size:10px;padding:2px 6px;margin-top:9px;border-radius:4px;background:var(--ce-soft);color:var(--ce-sub)}
+#ce-studio #studio-agent-board .group-review .badge{color:var(--ce-amber);background:var(--ce-amber-bg)}
+#ce-studio #studio-agent-board .group-blocked .badge{color:var(--ce-red);background:var(--ce-red-bg)}
+#ce-studio #studio-agent-board .group-doing .badge{color:var(--ce-blue);background:var(--ce-blue-bg)}
+#ce-studio #studio-agent-board .group-done .badge{color:var(--ce-green);background:var(--ce-green-bg)}
+@media(max-width:700px){#ce-studio .ce-overview-toolbar .ce-search{order:2;width:auto;flex:1 1 100%}#ce-studio .ce-overview-toolbar .ce-segment{margin-right:auto}#ce-studio .ce-overview-recent{padding-left:0}}
+@media(max-width:520px){#ce-studio .ce-overview-heading{align-items:flex-start;gap:10px}#ce-studio .ce-overview-heading .ce-button{font-size:12px;padding:8px;flex:none}#ce-studio .ce-overview-stats>div{padding:14px 12px}#ce-studio .ce-overview-stats strong{font-size:24px}#ce-studio .ce-overview-stats span{font-size:10px}#ce-studio .ce-overview-toolbar{gap:8px}#ce-studio .ce-overview-toolbar .ce-segment button{font-size:12px;padding:5px 8px}#ce-studio .ce-overview-toolbar select{min-width:104px;padding-left:8px}#ce-studio .ce-overview-card{padding:16px}#ce-studio .ce-overview-title{gap:9px}#ce-studio .ce-overview-title h2{font-size:16px}#ce-studio .ce-overview-title>.ce-project-icon{width:32px;height:32px}#ce-studio .ce-overview-bottom{flex-wrap:wrap;gap:14px}#ce-studio .ce-recorded-progress{width:100%}#ce-studio .ce-overview-actions{width:100%;justify-content:flex-end}#ce-studio .ce-overview-states .ce-project-state{font-size:10px;padding:2px 6px}}
