@@ -7,7 +7,7 @@ import { ORCAD_LINEAR_SDK_ENTRY } from '../../src/shared/orcad-artifacts.ts'
  * Why bundled rather than copied: the package ships hashed chunk names that change every release.
  */
 export async function stageOrcadLinearSdk(root, outputDir) {
-  await build({
+  return build({
     stdin: {
       contents: "module.exports = require('@linear/sdk')",
       resolveDir: root,
@@ -20,6 +20,7 @@ export async function stageOrcadLinearSdk(root, outputDir) {
     outfile: join(outputDir, ORCAD_LINEAR_SDK_ENTRY),
     minify: true,
     sourcemap: false,
+    metafile: true,
     logLevel: 'error'
   })
 }

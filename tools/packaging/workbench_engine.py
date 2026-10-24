@@ -2,6 +2,7 @@
 
 import argparse
 import hashlib
+import importlib.util
 import json
 import os
 from pathlib import Path, PurePosixPath
@@ -349,8 +350,16 @@ def check_output(run_dir, root=ROOT):
                        'android_apk': 'not_built', 'native_branding': 'pending_M3'},
                        'distribution': 'not_verified'})
     write_json(run_dir / 'build-provenance.json', provenance)
-    if missing or gaps:
-        raise BuildError('dependency_notices_incomplete: see dependency-gaps.json')
+    # Materialized dependency gaps remain diagnostic; only the actual distribution gates release.
+    spec = importlib.util.spec_from_file_location('workbench_distribution', Path(__file__).with_name('workbench_distribution.py'))
+    distribution = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(distribution)
+    try:
+        distribution.collect(unit, rows, run_dir)
+    except (ValueError, OSError) as error:
+        raise BuildError('distribution_notices_incomplete:' + str(error)) from error
+    provenance['distribution'] = 'closure_verified'
+    write_json(run_dir / 'build-provenance.json', provenance)
     return provenance
 
 

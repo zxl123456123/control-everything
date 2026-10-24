@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { writeDistributionRecord } from './distribution-record.mjs'
 // Package the server separately from its compatibility launcher.
 import { fork, spawnSync } from 'node:child_process'
 import { build } from 'esbuild'
@@ -15,12 +16,14 @@ import {
 import { createRequire } from 'node:module'
 import {
   chmodSync,
-  copyFileSync,
-  cpSync,
+  copyFileSync as rawCopyFileSync,
+  cpSync as rawCpSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  readdirSync,
+  statSync,
   rmSync,
   writeFileSync
 } from 'node:fs'
@@ -38,6 +41,7 @@ import { stageOrcadLinearSdk } from './orcad-linear-sdk-package.mjs'
 import { stageOrcadMobileWebBundle } from './orcad-mobile-web-bundle.mjs'
 import {
   ORCAD_EMOJI_SHORTCODE_DATASET,
+  ORCAD_MOBILE_WEB_DIR,
   ORCAD_CLI_ENTRY_FILENAME,
   ORCAD_CLI_PACKAGE_FILENAME,
   ORCAD_COMPUTER_USE_RUNTIME_ARTIFACTS,
@@ -64,9 +68,22 @@ import { resolveBuildSourceCommit } from './build-source-commit.mjs'
 const { darkBuildMarkers } = createRequire(import.meta.url)('../dark-build-switches.cjs')
 
 const ROOT = join(import.meta.dirname, '..', '..')
+const copiedInputs = []
+function copyFileSync(source, output) {
+  rawCopyFileSync(source, output)
+  copiedInputs.push({ source, output })
+}
 const OUT_DIR = process.env.ORCAD_OUT_DIR
   ? resolve(process.env.ORCAD_OUT_DIR)
   : join(ROOT, 'out', 'orcad')
+function cpSync(source, output, options) {
+  rawCpSync(source, output, options)
+  recordCopiedTree(source, output)
+}
+function recordCopiedTree(from, to) {
+    if (statSync(from).isDirectory()) for (const name of readdirSync(from)) recordCopiedTree(join(from, name), join(to, name))
+    else copiedInputs.push({ source: from, output: to })
+}
 // Why beside orcad.js: every forked child and worker resolves its entry in the app root, and a
 // deployment has no desktop out/main to fall back to. A missing one only shows on a host as a
 // feature that never starts (the daemon's absence makes every restart kill every terminal).
@@ -101,6 +118,7 @@ const AGENT_BROWSER_SOURCE = join(ROOT, 'node_modules', 'agent-browser', 'bin', 
 const AGENT_BROWSER_OUTPUT = join(OUT_DIR, AGENT_BROWSER_NAME)
 const WATCHER_MODULE_DIR = join(OUT_DIR, 'node_modules', '@parcel', 'watcher')
 
+const wrapperMetafiles = []
 async function stageParcelWatcher(target) {
   const requireFromWatcher = createRequire(
     join(ROOT, 'node_modules', '@parcel', 'watcher', 'index.js')
@@ -108,7 +126,7 @@ async function stageParcelWatcher(target) {
   const nativeSource = await materializeWatcherPackage(target)
   const wrapperSource = requireFromWatcher.resolve('@parcel/watcher/wrapper.js')
   mkdirSync(WATCHER_MODULE_DIR, { recursive: true })
-  await build({
+  const wrapper = await build({
     ...ORCAD_COMMONJS_MODULE_OPTIONS,
     stdin: {
       contents:
@@ -125,8 +143,10 @@ async function stageParcelWatcher(target) {
     external: ['./watcher.node'],
     minify: true,
     sourcemap: false,
-    logLevel: 'error'
+    logLevel: 'error',
+    metafile: true
   })
+  wrapperMetafiles.push(wrapper.metafile)
   copyFileSync(nativeSource, join(OUT_DIR, ORCAD_PARCEL_WATCHER_NATIVE))
 }
 
@@ -184,7 +204,7 @@ copyFileSync(
   createRequire(import.meta.url).resolve('emojibase-data/en/shortcodes/emojibase.json'),
   emojiDatasetOutput
 )
-await stageOrcadLinearSdk(ROOT, OUT_DIR)
+const linearResult = await stageOrcadLinearSdk(ROOT, OUT_DIR)
 // The desktop template omits it: ~10 MB per target, and orcad already treats it as optional.
 if (existsSync(AGENT_BROWSER_SOURCE) && process.env.ORCAD_OMIT_AGENT_BROWSER !== '1') {
   copyFileSync(AGENT_BROWSER_SOURCE, AGENT_BROWSER_OUTPUT)
@@ -216,6 +236,7 @@ for (const artifact of ORCAD_COMPUTER_USE_RUNTIME_ARTIFACTS) {
   copyFileSync(join(ROOT, 'native', ...artifact.split('/')), join(OUT_DIR, ...artifact.split('/')))
 }
 stageOrcadMobileWebBundle(OUT_DIR)
+recordCopiedTree(join(ROOT, 'out/mobile-web'), join(OUT_DIR, ...ORCAD_MOBILE_WEB_DIR.split('/')))
 
 /** Why one call per child and not one `outdir` build: esbuild mirrors each entry's source
  *  directory under `outdir`, and both children must land flat beside orcad.js — that is where
@@ -285,6 +306,8 @@ function collectImporters(metafiles, matches) {
 }
 
 const metafiles = [
+  ...wrapperMetafiles,
+  linearResult.metafile,
   launcherResult.metafile,
   result.metafile,
   cliResult.metafile,
@@ -421,6 +444,10 @@ if (process.exitCode !== 1) {
     agentBrowserFilename: AGENT_BROWSER_NAME
   })
   writeFileSync(join(OUT_DIR, ORCAD_VERSION_FILENAME), fullVersion)
+  for (const name of [ORCAD_SERVER_TARGET_FILENAME, ORCAD_NODE_RUNTIME_MARKER_FILENAME, ORCAD_CLI_PACKAGE_FILENAME, ORCAD_VERSION_FILENAME]) {
+    copiedInputs.push({ source: join(ROOT, 'config/scripts/build-orcad.mjs'), output: join(OUT_DIR, name) })
+  }
+  writeDistributionRecord(ROOT, 'runtime', metafiles, {}, copiedInputs)
   console.log(
     `[build-orcad] ok — ${fullVersion}, ${(output.bytes / 1024 / 1024).toFixed(2)} MB, ${Object.keys(output.inputs).length} modules, zero electron and node:sqlite imports, Node ${NODE_RUNTIME_PIN.version} referenced.`
   )

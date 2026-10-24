@@ -1,0 +1,153 @@
+const test = require('node:test')
+const assert = require('node:assert/strict')
+const fs = require('node:fs')
+const path = require('node:path')
+const os = require('node:os')
+const { createHash } = require('node:crypto')
+const { createRequire } = require('node:module')
+const { pathToFileURL } = require('node:url')
+const { spawnSync } = require('node:child_process')
+const root = path.resolve(__dirname, '../..')
+const engine = path.join(root, 'web/workbench-engine')
+const req = createRequire(path.join(engine, 'package.json'))
+const hash = bytes => createHash('sha256').update(bytes).digest('hex')
+
+function fixture(t) {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'distribution-cross-'))
+  t.after(() => fs.rmSync(directory, { recursive: true, force: true }))
+  return directory
+}
+
+test('real mobile product producer records its actual mobile inputs and renamed output bytes', async t => {
+  const directory = fixture(t)
+  const out = path.join(directory, 'out/mobile-web')
+  const records = path.join(directory, 'records')
+  const { buildMobileWebAppBundle } = await import(pathToFileURL(path.join(engine, 'config/scripts/build-mobile-web-app-bundle.mjs')).href)
+  const result = await buildMobileWebAppBundle({ outDir: out, distributionDir: records })
+  const record = JSON.parse(fs.readFileSync(path.join(records, 'mobile.json')))
+  const allOutputs = new Set(result.manifest.assets.map(asset => 'out/mobile-web/' + asset.path))
+  allOutputs.add('out/mobile-web/manifest.json')
+  let count = 0
+  for (const bundle of record.bundles) {
+    const owners = new Map(bundle.owners.map(owner => [owner.input, owner]))
+    for (const [input, info] of Object.entries(bundle.inputs)) {
+      count++
+      const owner = owners.get(input)
+      assert.ok(owner && (!owner.unresolved || owner.virtual), input)
+      if (!owner.virtual) {
+        assert.ok(owner.package?.name && owner.package?.version, input)
+      }
+      for (const imported of info.imports) if (!imported.external) assert.ok(Object.hasOwn(bundle.inputs, imported.path), imported.path)
+    }
+    for (const [inputOutput, output] of Object.entries(bundle.outputs)) {
+      const actual = record.outputMap[inputOutput]
+      assert.ok(allOutputs.has(actual), actual)
+      assert.equal(output.sha256, hash(fs.readFileSync(path.join(directory, actual))))
+      for (const input of Object.keys(output.inputs)) assert.ok(Object.hasOwn(bundle.inputs, input), input)
+      for (const imported of output.imports) if (!imported.external) assert.ok(allOutputs.has(imported.path), imported.path)
+    }
+  }
+  assert.ok(count > 1000, 'the test must consume the actual mobile graph')
+  const rows = [...allOutputs].map(name => ({ path: name,
+    sha256: hash(fs.readFileSync(path.join(directory, name))) }))
+  const validation = path.join(directory, 'mobile-validation.json')
+  function validateMobile(selected, prepared = []) {
+    fs.writeFileSync(validation, JSON.stringify({ rows, records: selected, prepared }))
+    return spawnSync(process.env.PYTHON || 'python', ['-X', 'utf8', '-c',
+      "import importlib.util,json,sys;from pathlib import Path;s=importlib.util.spec_from_file_location('d',sys.argv[1]);m=importlib.util.module_from_spec(s);s.loader.exec_module(m);p=json.loads(Path(sys.argv[2]).read_text());m.validate(Path(sys.argv[3]),p['rows'],p['records'],[],p['prepared'])",
+      path.join(root, 'tools/packaging/workbench_distribution.py'), validation, engine], { encoding: 'utf8' })
+  }
+  const probe = validateMobile([record])
+  assert.ok(!probe.error, String(probe.error))
+  if (probe.status !== 0) {
+    assert.match(probe.stderr, /DistributionError: distribution_notice_missing:/)
+    assert.doesNotMatch(probe.stderr, /KeyError|distribution_package_unresolved/)
+    t.diagnostic(probe.stderr.trim().split('\n').at(-1))
+  }
+  await t.test('complete mobile graph and generated helper validate with prepared official notices',
+    { skip: !process.env.PACKAGING_NOTICE_INPUTS }, () => {
+      const prepared = JSON.parse(fs.readFileSync(process.env.PACKAGING_NOTICE_INPUTS, 'utf8'))
+      const accepted = validateMobile([record], prepared)
+      assert.equal(accepted.status, 0, accepted.stdout + accepted.stderr)
+      const findHelper = selected => Object.values(selected[0].bundles[0].outputs).find(output => output.generated)
+      assert.ok(findHelper([record]))
+      for (const [mutate, error] of [
+        [output => { delete output.generated }, /distribution_output_without_inputs/],
+        [output => { output.imports = [{ path: 'unattributed-generated-external', external: true }] }, /distribution_generated_imports/],
+        [output => { output.generated.kind = 'unknown' }, /distribution_generated_identity/],
+        [output => { output.generated.producer.sha256 = '0'.repeat(64) }, /distribution_generated_source/],
+        [output => { output.generated.tool.package.version = '0.0.0' }, /distribution_generated_identity/],
+        [output => { output.generated.tool.package.notices = [] }, /distribution_notice_missing/],
+        [output => { output.generated.producer.package.notices = [] }, /distribution_notice_missing/],
+        [output => { output.generated.producer.package.notices = structuredClone(output.generated.tool.package.notices) }, /distribution_generated_notice_source/],
+        [output => { output.sha256 = '0'.repeat(64) }, /distribution_output_hash/]
+      ]) {
+        const changed = [structuredClone(record)]
+        mutate(findHelper(changed))
+        const rejected = validateMobile(changed, prepared)
+        assert.notEqual(rejected.status, 0)
+        assert.match(rejected.stderr, error)
+      }
+    })
+})
+
+test('real Vite worker graph validates across Python and fails without its provider or correct hash', async t => {
+  const directory = fixture(t)
+  const renderer = path.join(directory, 'src/renderer')
+  fs.mkdirSync(renderer, { recursive: true })
+  fs.writeFileSync(path.join(directory, 'package.json'), JSON.stringify({ name: 'fixture', version: '1.0.0', type: 'module' }))
+  fs.writeFileSync(path.join(directory, 'LICENSE'), 'MIT fixture')
+  fs.writeFileSync(path.join(renderer, 'web-index.html'), '<script type="module" src="./main.js"></script>')
+  fs.writeFileSync(path.join(renderer, 'main.js'), "new Worker(new URL('./worker.js',import.meta.url),{type:'module'});")
+  fs.writeFileSync(path.join(renderer, 'worker.js'), "self.onmessage=()=>postMessage('ok');")
+  const source = fs.readFileSync(path.join(engine, 'vite.web.config.ts'), 'utf8')
+  const functionSource = source.slice(source.indexOf('export function distributionPlugin'), source.indexOf('export default defineConfig'))
+  assert.ok(functionSource.startsWith('export function distributionPlugin'))
+  const compiled = req('esbuild').transformSync(functionSource, { loader: 'ts', format: 'esm' }).code
+  const modulePath = path.join(directory, 'actual-product-plugin.mjs')
+  fs.writeFileSync(modulePath, "import {resolve} from 'node:path'; import {createHash} from 'node:crypto';\n" +
+    `import {writeDistributionRecord} from '${pathToFileURL(path.join(engine, 'config/scripts/distribution-record.mjs')).href}';\n` + compiled)
+  const { distributionPlugin } = await import(pathToFileURL(modulePath).href)
+  const vite = await import(pathToFileURL(req.resolve('vite')).href)
+  const previous = process.cwd()
+  process.chdir(directory)
+  try {
+    await vite.build({ configFile: false, root: renderer, logLevel: 'error',
+      plugins: [distributionPlugin('web')], build: { emptyOutDir: true, outDir: path.join(directory, 'out/web'),
+        rollupOptions: { input: path.join(renderer, 'web-index.html') } },
+      worker: { format: 'es', plugins: () => [distributionPlugin('web-worker')] } })
+  } finally { process.chdir(previous) }
+  const recordDir = path.join(directory, '.build/distribution')
+  const names = fs.readdirSync(recordDir)
+  const records = names.map(name => JSON.parse(fs.readFileSync(path.join(recordDir, name))))
+  assert.ok(names.some(name => name.startsWith('web-worker-')))
+  assert.ok(records.some(record => record.bundles.some(bundle => Object.values(bundle.outputs).some(output => output.sharedOutput))))
+  const rows = []
+  function walk(dir) {
+    for (const name of fs.readdirSync(dir)) {
+      const file = path.join(dir, name)
+      if (fs.statSync(file).isDirectory()) walk(file)
+      else rows.push({ path: path.relative(directory, file).replaceAll('\\', '/'), bytes: fs.statSync(file).size, sha256: hash(fs.readFileSync(file)) })
+    }
+  }
+  walk(path.join(directory, 'out/web'))
+  const python = process.env.PYTHON || 'python'
+  function validate(selected) {
+    const input = path.join(directory, 'validation.json')
+    fs.writeFileSync(input, JSON.stringify({ rows, records: selected }))
+    return spawnSync(python, ['-c',
+      "import importlib.util,json,sys;from pathlib import Path;s=importlib.util.spec_from_file_location('d',sys.argv[1]);m=importlib.util.module_from_spec(s);s.loader.exec_module(m);p=json.loads(Path(sys.argv[2]).read_text());m.validate(Path(sys.argv[3]),p['rows'],p['records'],[])",
+      path.join(root, 'tools/packaging/workbench_distribution.py'), input, directory], { encoding: 'utf8' })
+  }
+  const accepted = validate(records)
+  assert.equal(accepted.status, 0, accepted.stdout + accepted.stderr)
+  const missing = validate(records.filter((_record, index) => !names[index].startsWith('web-worker-')))
+  assert.notEqual(missing.status, 0)
+  assert.match(missing.stderr, /distribution_shared_output_unresolved/)
+  const changed = structuredClone(records)
+  const worker = changed[names.findIndex(name => name.startsWith('web-worker-'))]
+  Object.values(worker.bundles[0].outputs)[0].sha256 = '0'.repeat(64)
+  const tampered = validate(changed)
+  assert.notEqual(tampered.status, 0)
+  assert.match(tampered.stderr, /distribution_(output_hash|shared_output_unresolved)/)
+})

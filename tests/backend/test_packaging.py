@@ -28,7 +28,11 @@ class PackagingTests(TestCase):
         declarations = [node for node in ast.walk(tree) if isinstance(node, ast.Assign)
                         and any(isinstance(target, ast.Name) and target.id == "static" for target in node.targets)]
         self.assertEqual(len(declarations), 1)
-        http = ast.literal_eval(declarations[0].value)
+        value = declarations[0].value
+        if isinstance(value, ast.Name):
+            value = next(node.value for node in tree.body if isinstance(node, ast.Assign)
+                         and any(isinstance(target, ast.Name) and target.id == value.id for target in node.targets))
+        http = ast.literal_eval(value)
         workbench = ast.parse((ROOT / "src/control_everything/http/workbench.py").read_text(encoding="utf-8"))
         studio = next(node for node in workbench.body if isinstance(node, ast.Assign)
                       and any(isinstance(target, ast.Name) and target.id == "STUDIO_RESOURCES" for target in node.targets))
@@ -37,7 +41,16 @@ class PackagingTests(TestCase):
         reader_paths = {'workspace/' + value[0] for value in reader_assets.values()}
         # Browser workers are packaged for the server, but never served as public assets.
         worker_paths = {'workspace/news-browser.js', 'workspace/news-public-embed.js'}
-        self.assertEqual(set(assets.WEB_ASSETS), {value[0] for value in http.values()} | studio_paths | reader_paths | worker_paths)
+        # Central account assets are served by Caddy, while /desktop is a local guarded document.
+        edge = (ROOT / 'docs/examples/integrations/workbench-remote.Caddyfile.example').read_text(encoding='utf-8')
+        self.assertIn('@account path /remote /remote/ /remote/remote-account.js /remote/remote-account.css', edge)
+        self.assertIn('rewrite /remote /remote/remote-account.html', edge)
+        self.assertIn('uri strip_prefix /remote', edge)
+        central_paths = {'workspace/remote-account.html', 'workspace/remote-account.js', 'workspace/remote-account.css'}
+        self.assertIn('(WEB / "workspace/desktop.html").read_bytes()',
+                      (ROOT / 'src/control_everything/http/gateway.py').read_text(encoding='utf-8'))
+        self.assertEqual(set(assets.WEB_ASSETS), {value[0] for value in http.values()} | studio_paths | reader_paths
+                         | worker_paths | central_paths | {'workspace/desktop.html'})
         self.assertEqual(len(assets.WEB_ASSETS), len(set(assets.WEB_ASSETS)))
         manifest = (ROOT / "MANIFEST.in").read_text(encoding="utf-8").splitlines()
         included = {name for line in manifest if line.startswith("include web/") for name in line.split()[1:]}
@@ -69,7 +82,7 @@ class PackagingTests(TestCase):
     def test_metadata_has_one_runtime_dependency_and_version_source(self):
         metadata = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
         self.assertEqual(metadata["project"]["name"], "control-everything")
-        self.assertEqual(metadata["project"]["version"], "0.1.0a1")
+        self.assertEqual(metadata["project"]["version"], "0.1.0a2")
         setuptools = metadata["tool"]["setuptools"]
         self.assertEqual(setuptools["dynamic"]["dependencies"], {"file": ["requirements.txt"]})
         self.assertEqual(setuptools["package-dir"], {"": "src"})

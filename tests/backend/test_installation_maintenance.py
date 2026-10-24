@@ -10,6 +10,23 @@ from tests.backend.test_installation_registry import InstallationFixture, REGIST
 
 
 class MaintenanceTests(InstallationFixture):
+    def test_new_desktop_product_commit_activates_version_pinned_desktop_launcher(self):
+        from tests.backend.test_windows_bundle import BUILD, SOURCE
+        payload, _ = self.payload()
+        (payload / 'desktop-runtime.json').write_text('{}', encoding='utf-8')
+        document = BUILD.write_product_manifest(payload, '0.1.0a2', SOURCE)
+        key = REGISTRY.version_id(document)
+        code, receipt = self.run_preflight(payload=payload)
+        self.assertEqual(code, 0)
+        destination = self.install / 'versions' / key
+        payload.rename(destination)
+        context = REGISTRY.ProductContext.load(destination)
+        result = MAINTENANCE.commit_install(context, self.install, api=self.api, receipt=receipt)
+        self.assertEqual(result['status'], 'committed')
+        launcher = (self.install / 'session-panel.cmd').read_bytes()
+        self.assertIn(b'-m control_everything.http.desktop', launcher)
+        self.assertIn(('--product-root "%~dp0versions\\' + key + '"').encode('ascii'), launcher)
+
     def test_temp_reparse_is_rejected_before_alias_resolution(self):
         import stat
         from types import SimpleNamespace

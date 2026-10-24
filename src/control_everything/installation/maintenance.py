@@ -403,8 +403,7 @@ def commit_install(context, install_root, *, invocation=None, receipt=None, api=
             if not backup.exists():
                 with backup.open('xb') as stream:
                     stream.write(raw)
-        raw = ('@echo off\r\n"%~dp0versions\\' + context.version_id
-               + '\\runtime\\python.exe" -I -B -X utf8 -m control_everything.gateway %*\r\n').encode('ascii')
+        raw = launcher_bytes(context.version_id, desktop='desktop-runtime.json' in {row['path'] for row in context.document['files']})
         temporary = root / ('.session-panel-' + uuid.uuid4().hex + '.tmp')
         try:
             with temporary.open('xb') as stream:
@@ -463,5 +462,11 @@ def main(argv=None):
         return code
 
 
+def launcher_bytes(version_id, *, desktop):
+    prefix = '%~dp0versions\\' + version_id
+    entry = ('control_everything.http.desktop --product-root "' + prefix + '"') if desktop else 'control_everything.gateway'
+    return ('@echo off\r\n"' + prefix + '\\runtime\\python.exe" -I -B -X utf8 -m ' + entry + ' %*\r\n').encode('ascii')
+
 if __name__ == '__main__':
     raise SystemExit(main())
+

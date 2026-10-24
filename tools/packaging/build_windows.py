@@ -159,6 +159,8 @@ def verify_wheels(wheel, wheelhouse, lock, version):
 def verify_product_sources(wheel, inputs, version):
     """Bind wheel contents to the same publication sources recorded in product.json."""
     from packaging.requirements import Requirement
+    from packaging.markers import Marker
+    from packaging.utils import canonicalize_name
     api = contract()
     candidates = {row['path']: row['sha256'] for row in inputs}
 
@@ -183,6 +185,14 @@ def verify_product_sources(wheel, inputs, version):
     requirements = sorted(str(Requirement(line.strip())) for line in
                           source_bytes('requirements.txt').decode('utf-8').splitlines()
                           if line.strip() and not line.lstrip().startswith('#'))
+    extras = project.get('optional-dependencies', {})
+    for extra, dependencies in extras.items():
+        for dependency in dependencies:
+            requirement = Requirement(dependency)
+            condition = f'extra == "{canonicalize_name(extra)}"'
+            requirement.marker = Marker(f'({requirement.marker}) and {condition}' if requirement.marker else condition)
+            requirements.append(str(requirement))
+    requirements.sort()
     readme = source_bytes(project['readme']).decode('utf-8').replace('\r\n', '\n').rstrip()
     info = 'control_everything-' + version + '.dist-info/'
     expected[info + 'licenses/LICENSE'] = source_bytes('LICENSE')
@@ -199,6 +209,7 @@ def verify_product_sources(wheel, inputs, version):
                 or metadata['Summary'] != project['description']
                 or metadata['License-Expression'] != project['license']
                 or metadata.get_all('License-File', []) != project['license-files']
+                or sorted(metadata.get_all('Provides-Extra', [])) != sorted(canonicalize_name(extra) for extra in extras)
                 or sorted(str(Requirement(value)) for value in metadata.get_all('Requires-Dist', [])) != requirements
                 or metadata.get_payload(decode=True).decode('utf-8').replace('\r\n', '\n').rstrip() != readme
                 or archive.read(info + 'top_level.txt').strip() != b'control_everything'):
@@ -404,7 +415,8 @@ def write_product_manifest(stage, version, source):
 
 
 def build_payload(wheel, wheelhouse, runtime_zip, observer_release, output, cargo_packages, inno_license,
-                  *, release=False, runner=subprocess.run):
+                  *, engine_root=None, engine_run=None, portable_git=None, git_receipt=None, endpoints=None,
+                  release=False, runner=subprocess.run):
     api, output = contract(), Path(output)
     if not output.is_absolute() or output.exists():
         raise BuildError('new_absolute_output_required')
@@ -417,6 +429,8 @@ def build_payload(wheel, wheelhouse, runtime_zip, observer_release, output, carg
     lock = locked_requirements(lockfile)
     wheels, identities = verify_wheels(wheel, wheelhouse, lock, version)
     verify_product_sources(wheel, inputs, version)
+    if any(value is None for value in (engine_root, engine_run, portable_git, git_receipt, endpoints)):
+        raise BuildError("desktop_prepared_inputs_required")
     release_observer_info(observer_release)
     for path in (runtime_zip, cargo_packages, inno_license):
         api.no_links(path)
@@ -433,12 +447,13 @@ def build_payload(wheel, wheelhouse, runtime_zip, observer_release, output, carg
     validate_target_metadata(probe, identities)
     compile_runtime(runtime, output, runner)
     helper('notices').collect_notices(output, [wheel, *wheels], runtime / 'LICENSE.txt', cargo_packages, inno_license)
-    provenance = {'source_inputs': inputs, 'wheel_inputs': identities, 'native_build': native,
+    desktop = helper('desktop_payload').stage(output, engine_root, engine_run, portable_git, git_receipt, endpoints, api, helper)
+    provenance = {'desktop': desktop, 'source_inputs': inputs, 'wheel_inputs': identities, 'native_build': native,
                   'runtime': DOWNLOADS['python'], 'installer_tool': DOWNLOADS['inno'],
                   'numeric_version': version_info(version), 'lock_sha256': api.sha256(lockfile),
                   'project_license': 'MIT', 'product_signature': 'unsigned'}
     (output / 'BUILD-INPUTS.json').write_bytes(api.canonical_json(provenance) + b'\n')
-    (output / 'session-panel.cmd').write_bytes(b'@echo off\r\n"%~dp0runtime\\python.exe" -I -B -X utf8 -m control_everything.gateway %*\r\n')
+    (output / 'session-panel.cmd').write_bytes(b'@echo off\r\n"%~dp0runtime\\python.exe" -I -B -X utf8 -m control_everything.http.desktop --product-root "%~dp0." %*\r\n')
     manifest = write_product_manifest(output, version, source)
     api.verify_payload(output, strict_native=True)
     return {'version': version, 'closure': manifest['closure'], 'version_id': version + '-' + manifest['closure'][:16],
@@ -449,11 +464,14 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ('wheel', 'wheelhouse', 'runtime-zip', 'observer-release', 'output', 'cargo-packages', 'inno-license'):
         parser.add_argument('--' + name, type=Path, required=True)
+    for name in ('engine-root', 'engine-run', 'portable-git', 'git-receipt', 'endpoints'):
+        parser.add_argument('--' + name, type=Path, required=True)
     parser.add_argument('--release', action='store_true', help='Require a clean, committed source tree.')
     args = parser.parse_args(argv)
     try:
         result = build_payload(args.wheel, args.wheelhouse, args.runtime_zip, args.observer_release,
-                               args.output, args.cargo_packages, args.inno_license, release=args.release)
+                               args.output, args.cargo_packages, args.inno_license, engine_root=args.engine_root, engine_run=args.engine_run,
+                               portable_git=args.portable_git, git_receipt=args.git_receipt, endpoints=args.endpoints, release=args.release)
         print(json.dumps(result))
         return 0
     except (OSError, ValueError, KeyError, zipfile.BadZipFile) as error:

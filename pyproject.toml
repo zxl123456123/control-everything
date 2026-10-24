@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "control-everything"
-version = "0.1.0a1"
+version = "0.1.0a2"
 description = "Local session observation and project management panel"
 readme = "README.md"
 license = "MIT"

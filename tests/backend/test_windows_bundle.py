@@ -6,6 +6,7 @@ import hashlib
 import importlib.util
 import io
 import json
+import os
 from pathlib import Path
 import tempfile
 from types import SimpleNamespace
@@ -273,18 +274,24 @@ class BuilderTests(PayloadFixture):
             ]}
             return SimpleNamespace(returncode=0, stdout=json.dumps(result), stderr='')
         stage = self.root / 'completed'
-        with patch.object(BUILD, 'source_identity', return_value=(dict(SOURCE), [])), \
+        original_helper = BUILD.helper
+        desktop = SimpleNamespace(stage=lambda *args: {'engine_source': {'sourceTreeSha256': 'd' * 64}})
+        with patch.object(BUILD, 'helper', side_effect=lambda name: desktop if name == 'desktop_payload' else original_helper(name)), \
+                patch.object(BUILD, 'source_identity', return_value=(dict(SOURCE), [])), \
                 patch.object(BUILD, 'verify_product_sources') as source_binding, \
                 patch.object(BUILD, 'product_version', return_value='0.1.0a1'), \
                 patch.object(BUILD, 'locked_requirements', return_value=lock), \
                 patch.object(BUILD, 'observer_builder', return_value=producer), \
                 patch.dict(BUILD.DOWNLOADS['python'], {'sha256': MANIFEST.sha256(archive)}):
-            receipt = BUILD.build_payload(product, house, archive, prepared, stage, cargo, license_file, runner=runner)
+            receipt = BUILD.build_payload(product, house, archive, prepared, stage, cargo, license_file, runner=runner,
+                                          engine_root=self.root, engine_run=self.root, portable_git=self.root,
+                                          git_receipt=self.root / "git.json", endpoints=self.root / "endpoints.json")
         document = MANIFEST.verify_payload(stage, strict_native=True)
         self.assertEqual(receipt['closure'], document['closure'])
         source_binding.assert_called_once_with(product, [], '0.1.0a1')
         self.assertEqual(receipt['version_id'], '0.1.0a1-' + document['closure'][:16])
         self.assertEqual(len(calls), 4)
+        self.assertIn(b'-m control_everything.http.desktop --product-root', (stage / 'session-panel.cmd').read_bytes())
         self.assertNotIn(str(self.root), (stage / 'BUILD-INPUTS.json').read_text())
         self.assertFalse((stage / 'native/observer/build-info.json').exists())
         self.assertEqual((stage / 'LICENSE').read_bytes(), (ROOT / 'LICENSE').read_bytes())
@@ -398,6 +405,43 @@ class BuilderTests(PayloadFixture):
 
 
 class ProductSourceTests(PayloadFixture):
+    @unittest.skipUnless(os.environ.get('PACKAGING_PRODUCT_WHEEL') and os.environ.get('PACKAGING_SOURCE_RECEIPT'),
+                         'requires the retained real product wheel and source receipt')
+    def test_real_current_wheel_optional_metadata_and_record_consistent_tampering(self):
+        path = Path(os.environ['PACKAGING_PRODUCT_WHEEL'])
+        inputs = json.loads(Path(os.environ['PACKAGING_SOURCE_RECEIPT']).read_text(encoding='utf-8'))
+        version = BUILD.wheel_info(path)['version']
+        BUILD.verify_product_sources(path, inputs, version)
+        with zipfile.ZipFile(path) as archive:
+            original = {name: archive.read(name) for name in archive.namelist()}
+        metadata_name = next(name for name in original if name.endswith('.dist-info/METADATA'))
+        record_name = next(name for name in original if name.endswith('.dist-info/RECORD'))
+        metadata = original[metadata_name]
+        optional_line = next(line for line in metadata.splitlines(keepends=True) if line.startswith(b'Requires-Dist: trafilatura'))
+        extra_line = next(line for line in metadata.splitlines(keepends=True) if line.startswith(b'Provides-Extra: news'))
+        self.assertIn(b'extra == "news"', optional_line)
+        for index, changed in enumerate((
+                metadata.replace(optional_line, b''),
+                metadata.replace(b'trafilatura==2.3.1', b'trafilatura==0.0.0'),
+                metadata.replace(b'extra == "news"', b'extra == "unknown"'),
+                metadata.replace(b'extra == "news"', b'python_version < "3.0" and extra == "news"'),
+                metadata.replace(extra_line, b''),
+                metadata.replace(extra_line, extra_line + b'Provides-Extra: unknown\r\n'))):
+            self.assertTrue(changed != metadata, 'tamper must change actual metadata')
+            contents = {**original, metadata_name: changed}
+            contents.pop(record_name)
+            stream = io.StringIO()
+            csv.writer(stream, lineterminator='\n').writerows([
+                *[(name, 'sha256=' + base64.urlsafe_b64encode(hashlib.sha256(raw).digest()).rstrip(b'=').decode(), str(len(raw)))
+                  for name, raw in contents.items()], (record_name, '', '')])
+            candidate = self.root / path.name
+            with zipfile.ZipFile(candidate, 'w') as archive:
+                for name, raw in {**contents, record_name: stream.getvalue().encode()}.items():
+                    archive.writestr(name, raw)
+            BUILD.wheel_info(candidate)
+            with self.subTest(tamper=index), self.assertRaisesRegex(BUILD.BuildError, 'product_source_metadata'):
+                BUILD.verify_product_sources(candidate, inputs, version)
+
     def sources(self):
         source = self.root / 'source'
         assets = BUILD.helper('build_assets').WEB_ASSETS
@@ -464,6 +508,30 @@ class ProductSourceTests(PayloadFixture):
             (source / 'src/control_everything/__init__.py').write_bytes(b'# changed after snapshot\n')
             with self.assertRaisesRegex(BUILD.BuildError, 'product_source_changed'):
                 BUILD.verify_product_sources(self.write_wheel(contents), inputs, '0.1.0a1')
+
+    def test_optional_metadata_preserves_markers_and_rejects_missing_unknown_or_changed_extras(self):
+        source, inputs, contents = self.sources()
+        project = source / 'pyproject.toml'
+        project.write_bytes(project.read_bytes() + b'\n[project.optional-dependencies]\n'
+                            b'"News_Feeds"=["reader==2.0; python_version >= \'3.12\' or sys_platform == \'win32\'"]\n')
+        for row in inputs:
+            if row['path'] == 'pyproject.toml':
+                row['sha256'] = hashlib.sha256(project.read_bytes()).hexdigest()
+        name = 'control_everything-0.1.0a1.dist-info/METADATA'
+        extra = (b'Provides-Extra: news-feeds\n'
+                 b'Requires-Dist: reader==2.0; (python_version >= "3.12" or sys_platform == "win32") and extra == "news-feeds"\n')
+        metadata = contents[name].replace(b'License-Expression:', extra + b'License-Expression:')
+        with patch.object(BUILD, 'ROOT', source):
+            BUILD.verify_product_sources(self.write_wheel({**contents, name: metadata}), inputs, '0.1.0a1')
+            for changed in (
+                    metadata.replace(extra, b''),
+                    metadata.replace(b'reader==2.0', b'reader==1.0'),
+                    metadata.replace(b'and extra ==', b'or extra =='),
+                    metadata.replace(b'news-feeds', b'unknown'),
+                    metadata.replace(b'Provides-Extra: news-feeds\n', b''),
+                    metadata.replace(b'Provides-Extra: news-feeds\n', b'Provides-Extra: news-feeds\nProvides-Extra: unknown\n')):
+                with self.subTest(metadata=changed), self.assertRaisesRegex(BUILD.BuildError, 'product_source_metadata'):
+                    BUILD.verify_product_sources(self.write_wheel({**contents, name: changed}), inputs, '0.1.0a1')
 
     def test_source_rejection_precedes_output_creation_and_any_payload_command(self):
         source, inputs, contents = self.sources()

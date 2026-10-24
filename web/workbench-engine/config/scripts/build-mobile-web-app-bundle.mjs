@@ -1,3 +1,4 @@
+import { sourceOwner, writeDistributionRecord } from './distribution-record.mjs'
 import { readFile } from 'node:fs/promises'
 import { readRouteSnapshot } from './mobile-web-app-route-snapshot.mjs'
 import { realpathSync } from 'node:fs'
@@ -552,6 +553,15 @@ export async function bundleMobileWebApp({ appDir = defaultAppDir } = {}) {
   const images = others.filter(({ emittedName }) => !isScriptOutput(emittedName)).sort(byName)
   const closure = entryStaticClosure(result.metafile, entryOutputPath)
   return {
+    distribution: { absWorkingDir: mobileDir,
+      metafile: { ...result.metafile, outputs: Object.fromEntries(Object.entries(result.metafile.outputs)
+        .map(([name, output]) => [name, { ...output, sha256: sha256Hex(renamed.get(basename(name)).bytes),
+          ...(isScriptOutput(name) && !Object.keys(output.inputs).length ? { generated: {
+            kind: 'mobile-esbuild-helper', toolVersion: esbuild.version,
+            producer: sourceOwner(projectDir, 'config/scripts/build-mobile-web-app-bundle.mjs'),
+            tool: sourceOwner(projectDir, 'node_modules/esbuild/lib/main.js')
+          } } : {}) }])) },
+      outputMap: Object.fromEntries([...renamed].map(([old, value]) => [old, 'out/mobile-web/assets/' + value.name])) },
     script: entry.bytes,
     chunks,
     images,
@@ -605,12 +615,13 @@ export function resolveMobileWebPageRoutes(routeKeys, declared = MOBILE_WEB_PAGE
 export async function buildMobileWebAppBundle({
   appDir,
   outDir = defaultOutDir,
+  distributionDir,
   pageRoutes = MOBILE_WEB_PAGE_ROUTES
 } = {}) {
   const [
     desktopVersion,
     protocolWindow,
-    { script, chunks, images, entryStaticBytes, routeChunks, routeKeys },
+    { script, chunks, images, entryStaticBytes, routeChunks, routeKeys, distribution },
     scrollbarStyle
   ] = await Promise.all([
     readDesktopVersion(),
@@ -662,6 +673,12 @@ export async function buildMobileWebAppBundle({
     protocolWindow,
     routes: resolveMobileWebPageRoutes(routeKeys, pageRoutes)
   })
+  const generated = await Promise.all([MOBILE_WEB_BUNDLE_ENTRYPOINT, 'manifest.json'].map(async name => ({
+    source: join(projectDir, 'config/scripts/build-mobile-web-app-bundle.mjs'),
+    output: join(projectDir, 'out/mobile-web', name), sha256: sha256Hex(await readFile(join(outDir, name)))
+  })))
+  writeDistributionRecord(projectDir, 'mobile', [distribution.metafile], distribution.outputMap, generated,
+    { absWorkingDir: distribution.absWorkingDir, recordDirectory: distributionDir })
   return {
     manifest,
     outDir,
