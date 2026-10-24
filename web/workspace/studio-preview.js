@@ -1,5 +1,10 @@
 // Studio owns navigation and composition; management modules own task actions.
 'use strict';
+function projectEntryTab(items) {
+  if (items.some(item => item.state === 'review')) return 'review';
+  if (items.some(item => item.state === 'doing')) return 'tasks';
+  return 'tasks';
+}
 function mountStudio(root, { onProjects = () => {} } = {}) {
   const $ = id => root.querySelector('#' + id);
   const content = $('studio-content'), status = $('studio-status');
@@ -40,7 +45,7 @@ function mountStudio(root, { onProjects = () => {} } = {}) {
     onProject: id => navigate(id ? 'project/' + encodeURIComponent(id) + '/tasks' : 'inbox') });
   const projects = () => state.workspace?.projects.items || [];
   const projectItems = id => state.items.filter(item => item.project_id === id);
-  const projectUrl = id => root.dataset.unified === 'true' ? '#project/' + encodeURIComponent(id) + '/workspace' : '/workbench/web-index.html?project_id=' + encodeURIComponent(id);
+  const projectUrl = (id, items = projectItems(id)) => root.dataset.unified === 'true' ? '#project/' + encodeURIComponent(id) + '/' + projectEntryTab(items) : '/workbench/web-index.html?project_id=' + encodeURIComponent(id);
   function route() {
     const parts = location.hash.slice(1).split('/');
     let id = ''; try { id = decodeURIComponent(parts[1] || ''); } catch { /* Invalid route stays on the overview. */ }
@@ -50,67 +55,76 @@ function mountStudio(root, { onProjects = () => {} } = {}) {
     return { view: ['tools', 'settings', 'agents'].includes(parts[0]) ? 'tools' : parts[0] === 'project' ? 'project' : 'home', id, tab: parts[2] === 'manage' ? 'tasks' : parts[2] === 'sessions' ? 'workspace' : parts[2] || 'workspace' };
   }
   function navigate(value) { if (location.hash === '#' + value) render(); else location.hash = value; }
-  let onboarding = null, openingProject = false, pendingProject = false, returnTo = '', addedProject = '';
+  let onboarding = null, onboardingDialog = null, openingProject = false, projectTrigger = null;
   async function openProjectDialog() {
     if (openingProject) return;
-    if (!window.WorkspaceOnboarding) { location.href = '/workspace#projects'; return; }
+    if (!window.WorkspaceOnboarding) { showPlatformNotice('添加项目暂不可用，请刷新页面后重试。'); return; }
     openingProject = true;
+    projectTrigger = currentFocus();
     try {
       if (!onboarding) {
-        const response = await fetch('/workspace-admin', { credentials: 'same-origin' });
+        const response = await fetch(new URL('/workspace-admin', location.origin), { credentials: 'same-origin' });
         if (!response.ok) throw new Error('添加项目暂不可用');
         const template = new DOMParser().parseFromString(await response.text(), 'text/html');
         const dialog = template.getElementById('onboarding-dialog');
         if (!dialog) throw new Error('添加项目界面未就绪');
         if (disposed) return;
-        dialog.classList.add('ce-business-module'); root.append(dialog);
+        onboardingDialog = dialog;
+        dialog.classList.add('ce-business-module'); visibleDialogTarget().append(dialog);
         onboarding = window.WorkspaceOnboarding.create({ dialog, fetchJson: client.api, postJson: client.post,
-          onChanged: async project => { await refresh(); addedProject = project?.id || ''; },
+          onChanged: async () => { await refresh(); },
           manual: () => onboarding.open({ mode: 'existing' }), manage: () => { location.href = '/workspace-admin#projects'; } });
-        dialog.addEventListener('close', () => {
-          const destination = addedProject ? 'project/' + encodeURIComponent(addedProject) + '/workspace' : returnTo;
-          addedProject = ''; returnTo = '';
-          if (destination) navigate(destination);
-        });
+        dialog.addEventListener('close', () => restoreFocus(projectTrigger));
       }
+      visibleDialogTarget();
       await onboarding.open();
-    } catch (error) { status.textContent = error.message; status.classList.add('error'); }
+    } catch (error) { if (!disposed) showPlatformNotice(error.message); }
     finally { openingProject = false; }
   }
-  function requestProject() {
-    const current = route();
-    if (current.view === 'project') returnTo = 'project/' + encodeURIComponent(current.id) + '/' + current.tab;
-    if (location.hash !== '#home') { pendingProject = true; navigate('home'); }
-    else void openProjectDialog();
+  function requestProject() { void openProjectDialog(); }
+  let projectDialogHost = null, projectDialogTarget = null;
+  const currentFocus = () => document.activeElement?.shadowRoot?.activeElement || document.activeElement;
+  const restoreFocus = trigger => { if (trigger?.isConnected) trigger.focus({ preventScroll: true }); };
+  function visibleDialogTarget() {
+    if (root.dataset.unified !== 'true') return root;
+    if (!projectDialogHost) {
+      // Dialogs must retain their scoped styles outside the hidden Studio surface.
+      projectDialogHost = document.createElement('div');
+      projectDialogHost.className = 'platform-project-dialog-host';
+      projectDialogHost.dataset.platformProjectDialog = '';
+      const shadow = projectDialogHost.attachShadow({ mode: 'open' });
+      const style = document.createElement('style');
+      style.textContent = [...(root.getRootNode().styleSheets || [])]
+        .filter(sheet => ['/workspace.css', '/studio-preview.css'].some(path => sheet.href?.endsWith(path)))
+        .map(sheet => [...sheet.cssRules].map(rule => rule.cssText).join('\n')).join('\n');
+      projectDialogTarget = document.createElement('div'); projectDialogTarget.id = 'ce-studio';
+      projectDialogTarget.dataset.unified = 'true'; projectDialogTarget.style.display = 'contents';
+      shadow.append(style, projectDialogTarget); document.body.append(projectDialogHost);
+    }
+    projectDialogTarget.dataset.theme = root.dataset.theme || 'light';
+    return projectDialogTarget;
   }
-  let projectSettings = null, projectDialogHost = null;
-  function openProjectSettings(id, outsideSurface = false) {
+  function showPlatformNotice(text) {
+    const host = visibleDialogTarget(), trigger = currentFocus();
+    const dialog = document.createElement('dialog');
+    dialog.className = 'ce-project-settings';
+    dialog.innerHTML = `<form><p role="status">${escape(text)}</p><button type="button" class="ce-button">关闭</button></form>`;
+    dialog.querySelector('button').addEventListener('click', () => dialog.close());
+    dialog.addEventListener('close', () => { dialog.remove(); restoreFocus(trigger); }, { once: true });
+    host.append(dialog);
+    dialog.showModal();
+  }
+  let projectSettings = null;
+  function openProjectSettings(id) {
     const project = projects().find(row => row.id === id);
     if (!project || project.read_only || project.source?.kind === 'codex') return;
-    projectSettings?.close(); projectSettings?.remove(); projectDialogHost?.remove();
+    projectSettings?.close(); projectSettings?.remove();
     const dialog = document.createElement('dialog'); projectSettings = dialog;
     dialog.className = 'ce-project-settings';
     dialog.setAttribute('aria-label', '项目管理');
-    const previousFocus = document.activeElement?.shadowRoot?.activeElement || document.activeElement;
-    let target = root;
-    if (outsideSurface) {
-      // A dialog under the hidden Studio surface cannot enter the visible top layer.
-      projectDialogHost = document.createElement('div');
-      projectDialogHost.dataset.platformProjectDialog = '';
-      projectDialogHost.className = 'platform-project-dialog-host';
-      const shadow = projectDialogHost.attachShadow({ mode: 'open' });
-      const style = document.createElement('style');
-      const sheets = root.getRootNode().styleSheets || [];
-      style.textContent = [...sheets].filter(sheet => sheet.href?.endsWith('/studio-preview.css')).map(sheet => [...sheet.cssRules].map(rule => rule.cssText).join('\n')).join('\n');
-      target = document.createElement('div'); target.id = 'ce-studio'; target.dataset.unified = 'true'; target.dataset.theme = root.dataset.theme || 'light';
-      target.style.display = 'contents';
-      shadow.append(style, target); document.body.append(projectDialogHost);
-    }
-    const ownHost = projectDialogHost;
+    const previousFocus = currentFocus(), target = visibleDialogTarget();
     dialog.addEventListener('close', () => {
-      ownHost?.remove();
-      if (projectDialogHost === ownHost) projectDialogHost = null;
-      if (previousFocus?.isConnected) previousFocus.focus({ preventScroll: true });
+      dialog.remove(); restoreFocus(previousFocus);
     }, { once: true });
     dialog.innerHTML = `<form><h2>项目管理</h2><fieldset><label>项目名称<input name="name" required maxlength="80" value="${escape(project.name)}"></label><label>项目目录<span class="ce-project-directory">${escape(project.directories?.find(row => row.id === 'main')?.path || project.root || '')}</span></label><label class="ce-project-archive"><input name="archived" type="checkbox"${project.archived ? ' checked' : ''}>归档项目</label><p class="ce-subtle">归档后从常用项目中收起，保留事项、文件和已打开的终端。</p><p class="ce-project-feedback" role="status"></p><div class="ce-project-settings-actions"><button type="button" class="ce-button" data-cancel-project>取消</button><button type="submit" class="ce-button ce-primary">保存</button></div></fieldset></form>`;
     target.append(dialog);
@@ -125,8 +139,9 @@ function mountStudio(root, { onProjects = () => {} } = {}) {
           name: dialog.querySelector('[name="name"]').value.trim(), archived: dialog.querySelector('[name="archived"]').checked,
           directories: project.directories.map(row => ({ id: row.id || row.binding_id, path: row.path })), source: project.source });
         if (result.status !== 'ok' || result.project?.id !== project.id) throw new Error('服务未确认保存');
-        // Close before refresh can navigate away from an archived project.
-        dialog.close(); await refresh();
+        // Close before publishing the refreshed project list to both surfaces.
+        dialog.close();
+        await refresh();
       } catch (error) { feedback.textContent = error.reason === 'directory_conflict' ? '此目录已由其他活动项目使用，请先核对项目列表。' : error.message; }
       finally { fields.disabled = false; }
     });
@@ -137,9 +152,9 @@ function mountStudio(root, { onProjects = () => {} } = {}) {
     const directory = event.detail?.directory;
     const matches = directory ? projects().filter(project => !project.archived && normalize(project.directories?.find(row => row.id === 'main')?.path || project.root) === normalize(directory)) : [];
     if (matches.length !== 1 || matches[0].read_only || matches[0].source?.kind === 'codex') {
-      status.textContent = '请从项目总览管理已登记的项目。'; return;
+      showPlatformNotice('请从项目总览管理已登记的项目。'); return;
     }
-    openProjectSettings(matches[0].id, true);
+    openProjectSettings(matches[0].id);
   };
   function nav(label, href, name, active) { return `<a class="ce-nav${active ? ' is-current' : ''}" href="${href}">${icon(name)}${label}</a>`; }
   function creatorLink(className='ce-nav'){return `<a class="${className} ce-creator-link" href="${escape(creatorUrl)}" target="_blank" rel="noopener noreferrer" aria-label="在新页面打开游戏创作">${icon('grid')}游戏创作${icon('arrow')}</a>`;}
@@ -157,9 +172,32 @@ function mountStudio(root, { onProjects = () => {} } = {}) {
     const entry = project.archived ? '<span class="ce-project-archived">已归档</span>' : `<a class="ce-project-entry" href="${projectUrl(project.id)}"${root.dataset.unified === 'true' ? ` data-open-project="${escape(project.id)}"` : ''} aria-label="进入工作区：${escape(project.name)}"><span class="ce-project-title">${escape(project.name)}</span><span class="ce-project-open">进入工作区 ${icon('arrow')}</span></a>`;
     return `<article class="ce-project-card${project.archived ? ' is-archived' : ''}"><div class="ce-project-top"><span class="ce-project-icon">${icon('folder')}</span>${!project.read_only && project.source?.kind !== 'codex' ? `<button type="button" class="ce-iconbtn" data-project-settings="${escape(project.id)}" aria-label="项目管理：${escape(project.name)}" title="项目管理">⋯</button>` : ''}</div>${project.archived ? `<span class="ce-project-title">${escape(project.name)}</span>` : ''}${entry}<p class="ce-project-desc" title="${escape(directory)}">${escape(directory || '未登记目录')}</p><div class="ce-project-foot">${counts || '<span>暂无事项</span>'}</div></article>`;
   }
+  const stateLabel = { todo: '待办', doing: '进行中', blocked: '阻塞', review: '待验收', done: '已完成' };
+  function latestItem(items) {
+    const stamped = items.filter(item => item.updated_at);
+    return [...stamped].sort((a, b) => String(b.updated_at).localeCompare(String(a.updated_at)))[0] || items[0];
+  }
+  function entryRow(project, item, label) {
+    const when = item?.updated_at ? escape(item.updated_at) : '时间未知';
+    const title = item ? escape(item.title || '未命名事项') : '尚未开始';
+    const detail = item ? `${escape(stateLabel[item.state] || item.state)} · ${when}` : '尚未开始';
+    const contents = `<span>${escape(label || project.name)}</span><strong>${title}</strong><span>${project.archived ? '已归档 · ' : ''}${detail}</span>`;
+    const main = project.archived ? `<div class="ce-entry-main">${contents}</div>` : `<a class="ce-entry-main" href="${projectUrl(project.id, item ? [item] : [])}"${root.dataset.unified === 'true' ? ` data-open-project="${escape(project.id)}"` : ''}>${contents}</a>`;
+    const management = !project.read_only && project.source?.kind !== 'codex' ? `<button type="button" class="ce-iconbtn" data-project-settings="${escape(project.id)}" aria-label="项目管理：${escape(project.name)}" title="项目管理">⋯</button>` : '';
+    return `<div class="ce-entry-row">${main}${management}</div>`;
+  }
   function home() {
     const filtered = projects().filter(p => Boolean(p.archived) === archivedProjects && p.name.toLowerCase().includes(query.toLowerCase()));
-    return `<div class="ce-heading"><div><h1>项目</h1></div><button type="button" class="ce-button ce-primary" data-action="add-project">添加项目</button></div><div class="ce-toolbar"><span class="ce-count">${filtered.length} 个项目</span><button type="button" class="ce-button ce-plain" data-action="archived-projects" aria-pressed="${archivedProjects}">${archivedProjects ? '返回常用项目' : '已归档'}</button><label class="ce-search"><input id="studio-project-search" aria-label="筛选项目" placeholder="查找项目" value="${escape(query)}"></label></div><section class="ce-project-grid" aria-label="真实项目">${filtered.map(projectCard).join('') || `<div class="ce-empty">${archivedProjects ? '没有已归档项目。' : '没有匹配的项目。先登记一个项目文件夹，再进入工作区。'}</div>`}</section>`;
+    const attention = state.items.filter(item => ['review', 'blocked'].includes(item.state) && filtered.some(project => project.id === item.project_id));
+    const active = filtered.filter(project => projectItems(project.id).some(item => item.state === 'doing'));
+    const rest = filtered.filter(project => !active.some(row => row.id === project.id) && !attention.some(item => item.project_id === project.id));
+    const section = (title, rows) => rows.length ? `<section class="ce-entry-section"><h2>${title}</h2>${rows.join('')}</section>` : '';
+    const body = archivedProjects
+      ? filtered.map(project => entryRow(project, latestItem(projectItems(project.id)))).join('')
+      : section('需要你处理', attention.map(item => entryRow(filtered.find(project => project.id === item.project_id), item)))
+        + section('正在进行', active.map(project => entryRow(project, latestItem(projectItems(project.id).filter(item => item.state === 'doing')))))
+        + section('其余项目', rest.map(project => entryRow(project, latestItem(projectItems(project.id)))));
+    return `<div class="ce-heading"><div><h1>项目</h1></div><button type="button" class="ce-button ce-primary" data-action="add-project">添加项目</button></div><div class="ce-toolbar"><span class="ce-count">${filtered.length} 个项目</span><button type="button" class="ce-button ce-plain" data-action="archived-projects" aria-pressed="${archivedProjects}">${archivedProjects ? '返回常用项目' : '已归档'}</button><label class="ce-search"><input id="studio-project-search" aria-label="筛选项目" placeholder="查找项目" value="${escape(query)}"></label></div>${body || `<div class="ce-empty">${archivedProjects ? '没有已归档项目。' : '没有匹配的项目。先登记一个项目文件夹。'}</div>`}`;
   }
   let monitor = null, monitorProject = '';
   function renderMonitor(current, chosen) {
@@ -167,7 +205,7 @@ function mountStudio(root, { onProjects = () => {} } = {}) {
         || current.view === 'project' && current.id !== monitorProject)) {
       monitor.destroy(); monitor = null; monitorProject = '';
     }
-    const active = current.view === 'project' && current.tab === 'monitor' && Boolean(chosen);
+    const active = current.view === 'project' && current.tab === 'monitor' && Boolean(chosen && !chosen.archived);
     $('studio-monitor').hidden = !active;
     if (!active) { monitor?.setActive(false); return; }
     if (!window.WorkspaceProjectMonitor) {
@@ -182,8 +220,9 @@ function mountStudio(root, { onProjects = () => {} } = {}) {
   }
   function render() {
     const current = route();
+    const chosen = projects().find(p => p.id === current.id);
     // The native surface takes over when ready; retain the previous page during preparation.
-    if (root.dataset.unified === 'true' && current.view === 'project' && ['workspace', 'activity'].includes(current.tab)) {
+    if (root.dataset.unified === 'true' && current.view === 'project' && ['workspace', 'activity'].includes(current.tab) && (!state.workspace || chosen && !chosen.archived)) {
       monitor?.setActive(false);
       if (state.workspace && !content.innerHTML.trim()) {
         renderChrome({ view: 'home', id: '', tab: 'workspace' });
@@ -193,15 +232,14 @@ function mountStudio(root, { onProjects = () => {} } = {}) {
     }
     renderChrome(current);
     root.dataset.projectSurface = current.view === 'project' ? 'true' : 'false';
-    const chosen = projects().find(p => p.id === current.id);
-    const showBoard = current.view === 'inbox' || current.view === 'project' && ['tasks', 'review', 'attention'].includes(current.tab);
+    const showBoard = current.view === 'inbox' || current.view === 'project' && chosen && !chosen.archived && ['tasks', 'review', 'attention'].includes(current.tab);
     renderMonitor(current, chosen);
     $('studio-tasks').hidden = true; $('studio-agent-board').hidden = !showBoard;
     if (showBoard) board.setProject(current.view === 'project' ? current.id : '', current.tab === 'review' ? 'review' : current.tab === 'attention' ? 'attention' : 'all');
     if (!state.workspace) { content.innerHTML = '<div class="ce-empty">正在读取真实项目与事项。无法连接时请使用上方“刷新”重试。</div>'; return; }
     if (current.view === 'home') content.innerHTML = home();
     else if (current.view === 'tools') content.innerHTML = `<div class="ce-heading"><div><h1>高级管理</h1></div></div>${creatorAddressForm()}<div class="ce-tool-grid"><article class="ce-tool-card">${icon('settings')}<h2>高级接入</h2><p>外部任务执行器与旧数据。</p><a class="ce-button" href="/workspace-admin#settings">高级设置</a></article><article class="ce-tool-card">${icon('folder')}<h2>项目档案</h2><a class="ce-button" href="/workspace-admin#projects">来源与历史</a></article></div>`;
-    else if (current.view === 'project') content.innerHTML = chosen ? `<div class="ce-heading"><div><h1>${current.tab === 'monitor' ? '业务进度' : showBoard ? '事项' : escape(chosen.name)}</h1></div>${current.tab === 'monitor' ? `<a class="ce-button ce-plain" href="#project/${encodeURIComponent(chosen.id)}/tasks">返回事项</a>` : showBoard ? `<a class="ce-button ce-plain" href="#project/${encodeURIComponent(chosen.id)}/monitor">业务进度</a>` : ''}</div>${showBoard ? itemFilters(current) : ''}` : '<div class="ce-empty">项目已移出或不存在，请返回项目列表重新选择。</div>';
+    else if (current.view === 'project') content.innerHTML = chosen?.archived ? '<div class="ce-empty">项目已归档，仍停在当前页。<a class="ce-button" href="#home">返回项目</a><p>在“已归档”列表的项目管理中取消归档即可恢复。</p></div>' : chosen ? `<div class="ce-heading"><div><h1>${current.tab === 'monitor' ? '业务进度' : showBoard ? '事项' : escape(chosen.name)}</h1></div>${current.tab === 'monitor' ? `<a class="ce-button ce-plain" href="#project/${encodeURIComponent(chosen.id)}/tasks">返回事项</a>` : showBoard ? `<a class="ce-button ce-plain" href="#project/${encodeURIComponent(chosen.id)}/monitor">业务进度</a>` : ''}</div>${showBoard ? itemFilters(current) : ''}` : '<div class="ce-empty">项目已移出或不存在，<a href="#home">返回项目</a>重新选择。</div>';
     else content.innerHTML = `<div class="ce-heading"><h1>事项</h1></div>${itemFilters(current)}`;
   }
   function itemFilters(current) {
@@ -216,7 +254,9 @@ function mountStudio(root, { onProjects = () => {} } = {}) {
       const next = await client.snapshot();
       if (disposed || current !== request) return;
       state = next;
-      onProjects(projects().filter(project => !project.archived).map(project => ({ id: project.id, name: project.name, directory: project.directories?.find(row => row.id === 'main')?.path || project.root })));
+      const summarizeProject = project => ({ id: project.id, name: project.name, directory: project.directories?.find(row => row.id === 'main')?.path || project.root });
+      onProjects(projects().filter(project => !project.archived).map(summarizeProject), {
+        archived: projects().filter(project => project.archived).map(summarizeProject) });
       render();
       status.textContent = `${root.dataset.isolatedPreview === 'true' ? '隔离测试数据' : '本地数据'} · ${projects().filter(p => !p.archived).length} 个项目 · ${state.items.length} 项事项`;
       if (!$('studio-agent-board').hidden) await board.load();
@@ -226,8 +266,10 @@ function mountStudio(root, { onProjects = () => {} } = {}) {
     }
   }
   root.addEventListener('click', event => {
-    const project = event.target.closest('[data-open-project]')?.dataset.openProject;
-    if (project) { event.preventDefault(); navigate('project/' + encodeURIComponent(project) + '/workspace'); }
+    const projectLink = event.target.closest('[data-open-project]');
+    if (projectLink && root.dataset.unified === 'true' && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey && (!event.button || event.button === 0)) {
+      event.preventDefault(); navigate(projectLink.getAttribute('href').slice(1));
+    }
     const settingsId = event.target.closest('[data-project-settings]')?.dataset.projectSettings;
     if (settingsId) openProjectSettings(settingsId);
     const action = event.target.closest('[data-action]')?.dataset.action;
@@ -267,15 +309,14 @@ function mountStudio(root, { onProjects = () => {} } = {}) {
   });
   const changed = () => {
     render(); if (initialized) void refresh();
-    if (pendingProject && route().view === 'home') { pendingProject = false; requestAnimationFrame(() => void openProjectDialog()); }
     if (pendingTask) { const pending = pendingTask; pendingTask = null; if (location.hash === pending.hash) void board.open(pending.item); }
   };
   window.addEventListener('hashchange', changed);
   window.addEventListener('platform-add-project', requestProject);
   window.addEventListener('platform-manage-project', manageProject);
   render(); void refresh();
-  return () => { disposed = true; request++; window.removeEventListener('hashchange', changed); window.removeEventListener('platform-add-project', requestProject); window.removeEventListener('platform-manage-project', manageProject); projectSettings?.close(); projectSettings?.remove(); projectDialogHost?.remove(); monitor?.destroy(); board.dispose?.(); };
+  return () => { disposed = true; request++; window.removeEventListener('hashchange', changed); window.removeEventListener('platform-add-project', requestProject); window.removeEventListener('platform-manage-project', manageProject); onboardingDialog?.close(); onboardingDialog?.remove(); projectSettings?.close(); projectSettings?.remove(); projectDialogTarget?.querySelectorAll('dialog').forEach(dialog => dialog.close()); projectDialogHost?.remove(); monitor?.destroy(); board.dispose?.(); };
 }
-window.StudioPreview = { mount: mountStudio };
+window.StudioPreview = { mount: mountStudio, projectEntryTab };
 const standaloneStudio = document.getElementById('ce-studio');
 if (standaloneStudio) mountStudio(standaloneStudio);

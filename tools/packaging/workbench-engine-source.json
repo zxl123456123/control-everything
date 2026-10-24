@@ -326908,6 +326908,24 @@
       "reason": "Keep project registration in the Studio overview and preserve workspace creation"
     },
     {
+      "path": "src/renderer/src/components/settings/AgentCatalogRow.tsx",
+      "upstream_sha256": "75f25789aa139db9ac9990d1088078e0049b9c3eeff8904878db0c297acf14d9",
+      "current_sha256": "d7d05fc5e47ec3460a2a6199f2de599b8f4c06856dff7a7f7b4a1b3154b4983f",
+      "reason": "Studio S6: allow enabled undetected agents to configure host launch settings without changing detection or default eligibility; cover host-only writes and explicit refresh"
+    },
+    {
+      "path": "src/renderer/src/components/settings/AgentLaunchSettingsCatalog.tsx",
+      "upstream_sha256": "2aee68e9695fa1eacc03301f0bc13d843d1d41a8c206252b667a30adfe238c64",
+      "current_sha256": "53b0c9bd0bcbe3be3bdf99f517e0f245c846b3c13c324ff55185e5df2ffd5eb0",
+      "reason": "Studio S6: allow enabled undetected agents to configure host launch settings without changing detection or default eligibility; cover host-only writes and explicit refresh"
+    },
+    {
+      "path": "src/renderer/src/components/settings/HostAgentLaunchSettings.test.tsx",
+      "upstream_sha256": "8e144cfa536c8ec890dcc519833e3b89cfe644b8695d2d1f80c5dafda874e61a",
+      "current_sha256": "cff3a729b789dac8f49f90ebd04b771e1e40c7ac97f60081faf0727ee690f436",
+      "reason": "Studio S6: allow enabled undetected agents to configure host launch settings without changing detection or default eligibility; cover host-only writes and explicit refresh"
+    },
+    {
       "path": "src/renderer/src/components/settings/MobileSettingsPane.tsx",
       "upstream_sha256": "d2fc14224af0c98d0c879439f98c57b85ce39a5400032c4e63bf40379dc2f165",
       "current_sha256": "6409eb33a4a2bb566f79e89e0dda144d65f1767118738c00acf74fc984d71afa",

@@ -9,7 +9,10 @@ import {
   loadPlatformProjectBootstrap,
   type PlatformProjectBootstrap
 } from './platform-project-bootstrap'
-import PlatformStudioSurface, { type PlatformProject } from './platform-studio-surface'
+import PlatformStudioSurface, {
+  type PlatformProject,
+  type PlatformProjectsListener
+} from './platform-studio-surface'
 import { readPlatformRoute, projectRoute } from './platform-route'
 import { PlatformProjectContext, PlatformProjectScopeContext } from './platform-project-context'
 
@@ -27,6 +30,7 @@ export default function PlatformProjectEntry(): React.JSX.Element {
   const [error, setError] = useState('')
   const [route, setRoute] = useState(() => readPlatformRoute(window.location))
   const [projects, setProjects] = useState<PlatformProject[]>([])
+  const [archivedProjects, setArchivedProjects] = useState<PlatformProject[]>([])
   const [retry, setRetry] = useState(0)
   const cache = useRef(
     new Map<string, { project: PlatformProject; data: PlatformProjectBootstrap }>()
@@ -49,9 +53,11 @@ export default function PlatformProjectEntry(): React.JSX.Element {
     window.location.hash || (route.id ? projectRoute(route.id, route.tab) : '#home')
   )
   const [navigationNotice, setNavigationNotice] = useState('')
-  const onProjects = useCallback((rows: PlatformProject[]) => {
+  const onProjects = useCallback<PlatformProjectsListener>((rows, metadata) => {
     const previous = latestProjects.current
     latestProjects.current = rows
+    const archived = metadata?.archived ?? []
+    setArchivedProjects(archived)
     setProjectsReady(true)
     for (const [id, saved] of cache.current) {
       const project = rows.find((row) => row.id === id)
@@ -65,10 +71,15 @@ export default function PlatformProjectEntry(): React.JSX.Element {
     const current = readPlatformRoute(window.location)
     if (
       current.view === 'project' &&
-      previous.some((row) => row.id === current.id) &&
-      !rows.some((row) => row.id === current.id)
+      archived.some((row) => row.id === current.id)
     )
-      window.location.hash = '#home'
+      setNavigationNotice('已归档，仍停在当前页。')
+    else if (
+      current.view === 'project' &&
+      rows.some((row) => row.id === current.id) &&
+      !previous.some((row) => row.id === current.id)
+    )
+      setNavigationNotice('')
     if (
       previous.length !== rows.length ||
       rows.some(
@@ -85,8 +96,10 @@ export default function PlatformProjectEntry(): React.JSX.Element {
     [projects, data?.runtime.environmentId]
   )
   const projectId = route.view === 'project' ? route.id : ''
+  const currentData = data?.project.id === projectId ? data : null
   const developing = route.view === 'project' && ['workspace', 'activity'].includes(route.tab)
   const chosen = projects.find((project) => project.id === projectId)
+  const archived = archivedProjects.find((project) => project.id === projectId)
   const connected = Boolean(
     chosen &&
     data?.project.id === projectId &&
@@ -95,6 +108,7 @@ export default function PlatformProjectEntry(): React.JSX.Element {
     !error
   )
   const showWorkspace = developing && connected && appMounted
+  const preparingWorkspace = developing && !showWorkspace && !error && !archived
   useEffect(() => {
     const changed = () => {
       const next = readPlatformRoute(window.location)
@@ -148,7 +162,7 @@ export default function PlatformProjectEntry(): React.JSX.Element {
   useLayoutEffect(() => {
     if (!projectId || !projectsReady) return
     if (!chosen) {
-      setError('项目已归档或不存在，请返回项目总览。')
+      setError(archived ? '' : '项目不存在，仍停在当前页。')
       return
     }
     setError('')
@@ -205,21 +219,22 @@ export default function PlatformProjectEntry(): React.JSX.Element {
       controller.abort()
       window.clearTimeout(timer)
     }
-  }, [projectId, retry, projectsReady, chosen?.name, chosen?.directory])
+  }, [projectId, retry, projectsReady, chosen?.name, chosen?.directory, archived?.id])
   useEffect(() => {
-    if (connected && chosen) document.title = `${chosen.name} · 掌控一切`
-  }, [connected, chosen?.name])
+    if (archived) document.title = `${archived.name} · 掌控一切`
+    else if (connected && chosen) document.title = `${chosen.name} · 掌控一切`
+  }, [connected, chosen?.name, archived?.name])
   return (
     <div className="platform-project-entry bg-background">
-      {projectId && (!developing || showWorkspace || error) && (
+      {projectId && (!developing || showWorkspace || error || archived) && (
         <nav className="platform-project-tabs" aria-label="项目工作区导航">
           <a href="#home" className="platform-project-back">
             ‹ 项目
           </a>
-          <span className="platform-project-name" aria-label="当前项目" title={chosen?.directory}>
+          <span className="platform-project-name" aria-label="当前项目" title={chosen?.directory || archived?.directory}>
             {developing && unlinkedWorkspace
               ? '未关联的开发目录'
-              : chosen?.name || data?.project.name || '项目工作区'}
+              : chosen?.name || archived?.name || currentData?.project.name || '项目工作区'}
           </span>
           <div className="platform-project-tablist">
             {(
@@ -263,15 +278,15 @@ export default function PlatformProjectEntry(): React.JSX.Element {
       )}
       <PlatformStudioSurface
         hidden={showWorkspace}
-        pending={developing && !showWorkspace && !error}
+        pending={Boolean(preparingWorkspace)}
         onProjects={onProjects}
       />
-      {developing && !showWorkspace && !error && (
+      {preparingWorkspace && (
         <div className="platform-navigation-notice" role="status">
           正在打开{chosen?.name || '项目'}… <a href="#home">取消</a>
         </div>
       )}
-      {developing && !connected && error && (
+      {developing && !connected && error && !archived && (
         <div className="platform-surface-feedback" role={error ? 'alert' : 'status'}>
           {error}
           {error && (

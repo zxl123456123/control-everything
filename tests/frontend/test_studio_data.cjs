@@ -54,6 +54,39 @@ test('product page loads real management modules and has no iframe pairing contr
 });
 
 function studioFixture({ savedCreatorUrl = null, monitorAvailable = true, unified = false } = {}) {
+  const elements = [];
+  const active = { isConnected: true, focusCount: 0, focus() { this.focusCount++; } };
+  function element(tag = 'div') {
+    const node = { tagName: tag, children: [], dataset: {}, style: {}, listeners: {}, open: false, isConnected: true,
+      classList: { add() {} }, className: '', textContent: '',
+      append(...values) { values.forEach(value => { value.parent = this; this.children.push(value); }); },
+      attachShadow() { this.shadowRoot = element('shadow'); return this.shadowRoot; },
+      remove() { this.isConnected = false; if (this.parent) this.parent.children = this.parent.children.filter(child => child !== this); },
+      addEventListener(name, callback) { (this.listeners[name] ||= []).push(callback); },
+      setAttribute(name, value) { this[name] = value; },
+      focus() {},
+      showModal() { this.open = true; },
+      close() { this.open = false; for (const callback of this.listeners.close || []) callback(); },
+      querySelector(selector) {
+        const all = this.children.flatMap(child => [child, ...child.descendants()]);
+        return all.find(child => selector === '#' + child.id || selector === child.tagName
+          || selector.match(/^\[([^=\]]+)(?:="([^"]*)")?\]$/)?.slice(1).every((value, index, parts) => index === 1 || (parts[1] === undefined ? Object.hasOwn(child, value) : child[value] === parts[1])));
+      },
+      descendants() { return this.children.flatMap(child => [child, ...child.descendants()]); }
+    };
+    node.querySelectorAll = selector => node.descendants().filter(child => child.tagName === selector);
+    Object.defineProperty(node, 'innerHTML', { get() { return this.html || ''; }, set(value) {
+      this.html = value; this.children = [];
+      for (const match of value.matchAll(/<(form|fieldset|input|button|p)\b([^>]*)>/g)) {
+        const child = element(match[1]);
+        for (const attribute of match[2].matchAll(/([\w-]+)(?:="([^"]*)")?/g)) child[attribute[1]] = attribute[2] ?? '';
+        child.checked = Object.hasOwn(child, 'checked');
+        this.append(child);
+      }
+    } });
+    elements.push(node); return node;
+  }
+  const body = element('body');
   const nodes = new Map();
   for (const id of ['ce-studio', 'studio-content', 'studio-status', 'studio-tasks', 'studio-agent-board', 'studio-monitor', 'studio-monitor-content', 'studio-rail', 'studio-topbar']) {
     nodes.set(id, { dataset: {}, innerHTML: '', textContent: '', hidden: false, listeners: {},
@@ -62,32 +95,45 @@ function studioFixture({ savedCreatorUrl = null, monitorAvailable = true, unifie
   const creatorInput = { value: '', focus() {} }, writes = [], removed = [], mounts = [], monitorCalls = [];
   if (unified) { nodes.get('ce-studio').dataset.unified = 'true'; nodes.get('ce-studio').dataset.theme = 'dark'; }
   nodes.get('ce-studio').querySelector = selector => selector === '[data-creator-url]' ? creatorInput : nodes.get(selector.slice(1));
+  nodes.get('ce-studio').getRootNode = () => ({ styleSheets: [{ href: 'http://127.0.0.1/workspace.css', cssRules: [{ cssText: '.onboarding-dialog{padding:28px}' }] }, { href: 'http://127.0.0.1/studio-preview.css', cssRules: [{ cssText: '#ce-studio .ce-project-settings{color:red}' }] }] });
+  nodes.get('ce-studio').append = (...values) => body.append(...values);
   Object.defineProperty(nodes.get('ce-studio'), 'innerHTML', { set() { throw new Error('Do not replace the stable shell'); } });
   let failed = false, updates = 0, editorMounts = 0;
   const snapshot = { workspace: { projects: { items: [{ id: 'server-project', name: '<Real project>', directories: [{ path: 'C:/example/fixture' }] }] } }, agents: [], items: [] };
-  const callbacks = {}, location = new URL('http://127.0.0.1:8772/studio#home');
-  const client = { bootstrap: async () => {}, api() {}, post() {}, canWrite: () => true,
+  const callbacks = {}, boardProjects = [], projectSnapshots = [], posts = [], location = new URL('http://127.0.0.1:8772/studio#home');
+  const client = { bootstrap: async () => {}, api() {}, post: async (url, value) => { posts.push({ url, value }); return { status: 'ok', project: { id: value.id } }; }, canWrite: () => true,
     snapshot: async () => { if (failed) throw new Error('offline'); return snapshot; } };
   const localStorage = { getItem: key => key === 'ce-studio-creator-url' ? savedCreatorUrl : null,
     setItem: (...args) => writes.push(args), removeItem: key => removed.push(key) };
   const window = { localStorage, addEventListener(name, callback) { callbacks[name] = callback; },
+    removeEventListener(name) { delete callbacks[name]; }, dispatchEvent(event) { callbacks[event.type]?.(event); },
     StudioData: { create: () => client },
     WorkspaceTaskCenter: { create: () => { editorMounts++; return { update() { updates++; }, setContext() {} }; } },
-    WorkspaceAgentBoard: { create: () => { editorMounts++; return { load: async () => {}, setProject() {}, open() {} }; } } };
+    WorkspaceAgentBoard: { create: () => { editorMounts++; return { load: async () => {}, setProject: (...args) => boardProjects.push(args), open() {} }; } } };
   if (monitorAvailable) window.WorkspaceProjectMonitor = { create(options) {
     mounts.push(options); return { setActive: value => monitorCalls.push([options.projectId, 'active', value]), destroy: () => monitorCalls.push([options.projectId, 'destroy']) };
   } };
+  window.fetch = () => Promise.resolve({ ok: false, text: async () => '' });
+  let onboardingOptions, dispose;
+  const dialog = element('dialog'); dialog.id = 'onboarding-dialog';
+  window.WorkspaceOnboarding = { create(options) { onboardingOptions = options; return { open: async () => options.dialog.showModal() }; } };
+  const document = { activeElement: active, getElementById: () => null, createElement: element, body };
   vm.runInNewContext(fs.readFileSync(path.resolve(__dirname, '../../web/workspace/studio-preview.js'), 'utf8'), {
-    URL, URLSearchParams, window, document: { getElementById: id => nodes.get(id) }, location, localStorage, console,
-    fetch() { throw new Error('Studio must not probe the creator service'); },
+    URL: class FixtureURL extends URL { constructor(value, base) { super(value, base || location.href); } }, URLSearchParams, window, document, location, localStorage, console,
+    DOMParser: class { parseFromString() { return { getElementById: () => dialog }; } },
+    CustomEvent: class { constructor(type, options) { this.type = type; this.detail = options?.detail; } },
+    fetch: (...args) => window.fetch(...args),
   });
+  dispose = window.StudioPreview.mount(nodes.get('ce-studio'), { onProjects: (rows, metadata) => projectSnapshots.push({ rows, metadata }) });
   const flush = () => new Promise(resolve => setImmediate(resolve));
-  return { nodes, snapshot, client, location, writes, removed, mounts, monitorCalls, callbacks,
+  return { nodes, snapshot, client, location, writes, removed, mounts, monitorCalls, callbacks, window, body, elements, dialog, active, boardProjects, projectSnapshots, posts,
+    onboarding: () => onboardingOptions, dispose: () => dispose(),
     editorMounts: () => editorMounts, updates: () => updates,
     fail() { failed = true; }, flush,
     async route(value) { location.hash = '#' + value; callbacks.hashchange(); await flush(); },
     submit(value) { creatorInput.value = value; nodes.get('ce-studio').listeners.submit({ preventDefault() {}, target: { dataset: { creatorForm: 'true' } } }); },
-    openProject(id) { let prevented = false; nodes.get('ce-studio').listeners.click({ preventDefault() { prevented = true; }, target: { closest: selector => selector === '[data-open-project]' ? { dataset: { openProject: id } } : null } }); return prevented; },
+    openProject(id, href = '#project/' + id + '/tasks', modifiers = {}) { let prevented = false; nodes.get('ce-studio').listeners.click({ ...modifiers, preventDefault() { prevented = true; }, target: { closest: selector => selector === '[data-open-project]' ? { dataset: { openProject: id }, getAttribute: () => href } : null } }); return prevented; },
+    manage(id) { nodes.get('ce-studio').listeners.click({ target: { closest: selector => selector === '[data-project-settings]' ? { dataset: { projectSettings: id } } : null } }); },
     click(action) { nodes.get('ce-studio').listeners.click({ target: { closest: selector => selector === '[data-action]' ? { dataset: { action } } : null } }); }
   };
 }
@@ -196,16 +242,137 @@ test('outer navigation shows projects only and legacy task routes retain their b
 
 test('unified project opens as a view action and retains the overview until the native surface takes over', async () => {
   const f = studioFixture({ unified: true }); await f.flush();
-  assert.match(f.nodes.get('studio-content').innerHTML, /<a[^>]+class="ce-project-entry"[^>]+href="#project\/server-project\/workspace"[^>]+data-open-project="server-project"/);
+  assert.match(f.nodes.get('studio-content').innerHTML, /<a[^>]+class="ce-entry-main"[^>]+href="#project\/server-project\/tasks"[^>]+data-open-project="server-project"/);
+  assert.match(f.nodes.get('studio-content').innerHTML, /尚未开始/);
+  assert.doesNotMatch(f.nodes.get('studio-content').innerHTML, /ce-project-card|进入工作区/);
   assert.equal(f.nodes.get('ce-studio').dataset.theme, 'dark');
   const overview = f.nodes.get('studio-content').innerHTML;
   assert.equal(f.openProject('server-project'), true);
   assert.equal(f.location.pathname, '/studio');
-  assert.equal(f.location.hash, '#project/server-project/workspace');
+  assert.equal(f.location.hash, '#project/server-project/tasks');
   assert.equal(f.editorMounts(), 1);
   f.location.search = '?project_id=server-project';
   await f.route('');
   assert.equal(f.nodes.get('ce-studio').dataset.projectSurface, 'false');
   assert.equal(f.nodes.get('studio-content').innerHTML, overview);
   assert.equal(f.nodes.get('studio-agent-board').hidden, true);
+});
+
+test('project entry follows review, otherwise tasks, and never uses sessions', () => {
+  const context = vm.createContext({ window: {}, document: { getElementById() {} } });
+  vm.runInContext(fs.readFileSync(path.resolve(__dirname, '../../web/workspace/studio-preview.js'), 'utf8'), context);
+  assert.equal(context.window.StudioPreview.projectEntryTab([{ state: 'doing' }, { state: 'review' }]), 'review');
+  assert.equal(context.window.StudioPreview.projectEntryTab([{ state: 'doing', title: '继续' }]), 'tasks');
+  assert.equal(context.window.StudioPreview.projectEntryTab([]), 'tasks');
+});
+
+test('project registration uses a styled visible target and every close stays on the current page', async () => {
+  const f = studioFixture({ unified: true }); await f.flush();
+  await f.route('project/server-project/workspace');
+  const hash = f.location.hash;
+  f.window.fetch = async () => ({ ok: true, text: async () => '<dialog id="onboarding-dialog"></dialog>' });
+  for (const reason of ['cancel', 'escape', 'saved']) {
+    f.callbacks['platform-add-project'](); await f.flush();
+    assert.equal(f.dialog.open, true);
+    const host = f.body.children.find(node => Object.hasOwn(node.dataset, 'platformProjectDialog'));
+    assert.ok(host.shadowRoot, 'the body target must isolate and carry existing styles');
+    const wrapper = host.shadowRoot.querySelector('#ce-studio');
+    assert.equal(wrapper.dataset.unified, 'true'); assert.equal(wrapper.dataset.theme, 'dark');
+    assert.equal(f.dialog.parent, wrapper);
+    assert.match(host.shadowRoot.querySelector('style').textContent, /onboarding-dialog/);
+    assert.match(host.shadowRoot.querySelector('style').textContent, /ce-project-settings/);
+    if (reason === 'saved') await f.onboarding().onChanged({ id: 'new-project' });
+    f.dialog.close(); assert.equal(f.location.hash, hash);
+    assert.ok(f.active.focusCount > 0);
+  }
+  f.callbacks['platform-add-project'](); await f.flush(); f.dispose();
+  assert.equal(f.dialog.open, false); assert.equal(f.body.children.length, 0);
+});
+
+test('registration load failure is visible and allows a retry from the development page', async () => {
+  const f = studioFixture({ unified: true }); await f.flush(); await f.route('project/server-project/workspace');
+  f.callbacks['platform-add-project']();
+  await f.flush();
+  const notice = f.elements.find(node => node.tagName === 'dialog' && node.open);
+  assert.match(notice.innerHTML, /添加项目暂不可用/);
+  notice.querySelector('button').listeners.click[0](); assert.equal(notice.isConnected, false);
+  f.window.fetch = async () => ({ ok: true, text: async () => '' });
+  f.callbacks['platform-add-project'](); await f.flush();
+  assert.equal(f.dialog.open, true); assert.equal(f.location.hash, '#project/server-project/workspace');
+});
+
+test('an unregistered directory notice stays on the current page', async () => {
+  const f = studioFixture({ unified: true }); await f.flush();
+  await f.route('project/server-project/workspace');
+  f.callbacks['platform-manage-project']({ detail: { directory: 'C:/example/unregistered' } });
+  assert.equal(f.location.hash, '#project/server-project/workspace');
+  const notice = f.elements.find(node => node.tagName === 'dialog' && node.open);
+  assert.match(notice.innerHTML, /请从项目总览管理已登记的项目/);
+  notice.querySelector('button').listeners.click[0](); assert.equal(notice.isConnected, false);
+});
+
+test('mixed project rows use the row state while the sidebar uses project priority', async () => {
+  const f = studioFixture({ unified: true }); await f.flush();
+  f.snapshot.items = [
+    { id: 'r', project_id: 'server-project', title: 'Review work', state: 'review', updated_at: '2026-10-23' },
+    { id: 'd', project_id: 'server-project', title: 'Doing work', state: 'doing', updated_at: '2026-10-24' },
+    { id: 'b', project_id: 'server-project', title: 'Blocked work', state: 'blocked' }
+  ];
+  await f.route('home');
+  const html = f.nodes.get('studio-content').innerHTML;
+  for (const [title, tab] of [['Review work', 'review'], ['Doing work', 'tasks'], ['Blocked work', 'tasks']]) {
+    const anchor = [...html.matchAll(/<a\b[^>]*>[^]*?<\/a>/g)].map(match => match[0]).find(row => row.includes(title));
+    assert.match(anchor, new RegExp('href="#project/server-project/' + tab + '"'));
+    assert.equal(f.openProject('server-project', '#project/server-project/' + tab), true);
+    assert.equal(f.location.hash, '#project/server-project/' + tab);
+  }
+  assert.match(f.nodes.get('studio-rail').innerHTML, /href="#project\/server-project\/review"/);
+  assert.equal(f.openProject('server-project', '#project/server-project/tasks', { ctrlKey: true }), false);
+  const standalone = studioFixture(); await standalone.flush();
+  assert.equal(standalone.openProject('server-project', '/workbench/web-index.html?project_id=server-project'), false);
+  assert.equal(standalone.location.hash, '#home');
+});
+
+test('project rows keep management separate and archived projects restore through the existing save API', async () => {
+  const f = studioFixture({ unified: true }); await f.flush();
+  let html = f.nodes.get('studio-content').innerHTML;
+  assert.match(html, /<\/a><button[^>]+data-project-settings="server-project"/);
+  f.snapshot.workspace.projects.items[0].archived = true;
+  f.click('archived-projects'); html = f.nodes.get('studio-content').innerHTML;
+  assert.match(html, /已归档/); assert.match(html, /data-project-settings="server-project"/);
+  assert.doesNotMatch(html, /data-open-project|href="#project/);
+  f.manage('server-project');
+  const dialog = f.elements.find(node => node.tagName === 'dialog' && node.open);
+  assert.equal(dialog.querySelector('[name="archived"]').checked, true);
+  dialog.querySelector('[name="archived"]').checked = false;
+  dialog.querySelector('[name="name"]').value = 'Restored project';
+  await dialog.querySelector('form').listeners.submit[0]({ preventDefault() {} });
+  assert.equal(f.posts.length, 1); assert.equal(f.posts[0].url, '/api/workspace/projects/save');
+  assert.equal(f.posts[0].value.archived, false); assert.equal(dialog.open, false); assert.equal(f.location.hash, '#home');
+});
+
+test('archived task views show a recovery state without exposing active task actions', async () => {
+  const f = studioFixture({ unified: true }); await f.flush();
+  f.snapshot.workspace.projects.items[0].archived = true;
+  await f.route('project/server-project/review');
+  assert.equal(f.nodes.get('studio-agent-board').hidden, true);
+  assert.match(f.nodes.get('studio-content').innerHTML, /已归档/);
+  assert.match(f.nodes.get('studio-content').innerHTML, /href="#home"/);
+  assert.equal(f.location.hash, '#project/server-project/review');
+});
+
+test('project snapshots send archived identity separately from active native candidates', async () => {
+  const f = studioFixture({ unified: true }); await f.flush();
+  f.snapshot.workspace.projects.items.push({ id: 'archived-project', name: 'Archived project', archived: true, directories: [{ id: 'main', path: 'C:/example/archived' }] });
+  await f.route('home');
+  const published = f.projectSnapshots.at(-1);
+  assert.deepEqual(Array.from(published.rows, row => row.id), ['server-project']);
+  assert.deepEqual(JSON.parse(JSON.stringify(published.metadata)), { archived: [{ id: 'archived-project', name: 'Archived project', directory: 'C:/example/archived' }] });
+});
+
+test('latest real timestamp wins while undated items retain a truthful unknown time', async () => {
+  const f = studioFixture({ unified: true }); await f.flush();
+  f.snapshot.items = [{ project_id: 'server-project', title: 'Undated', state: 'todo' }, { project_id: 'server-project', title: 'Dated', state: 'done', updated_at: '2026-10-23' }];
+  await f.route('home'); assert.match(f.nodes.get('studio-content').innerHTML, /Dated/); assert.doesNotMatch(f.nodes.get('studio-content').innerHTML, /Undated/);
+  f.snapshot.items.pop(); await f.route('home'); assert.match(f.nodes.get('studio-content').innerHTML, /Undated/); assert.match(f.nodes.get('studio-content').innerHTML, /时间未知/);
 });

@@ -95,7 +95,7 @@ export function AgentLaunchSettingsCatalog({
     isDetected,
     isEnabled: isTuiAgentEnabled(agent.id, settings.disabledTuiAgents),
     isDefault: isDetected && settings.defaultTuiAgent === agent.id,
-    cmdOverride: isDetected ? settings.agentCmdOverrides[agent.id] : undefined,
+    cmdOverride: settings.agentCmdOverrides[agent.id],
     argsOverride: resolveTuiAgentLaunchArgs(agent.id, settings.agentDefaultArgs),
     envOverride: local ? resolveTuiAgentLaunchEnv(agent.id, local.settings.agentDefaultEnv) : {},
     permission: permissions.rows.get(agent.id),

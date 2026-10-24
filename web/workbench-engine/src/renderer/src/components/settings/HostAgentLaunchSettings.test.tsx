@@ -18,6 +18,8 @@ const transport = vi.hoisted(() => ({
   read: vi.fn(),
   mutate: vi.fn(),
   detection: vi.fn(),
+  detectedIds: ['claude'] as string[],
+  refresh: vi.fn(),
   auto: vi.fn(),
   native: vi.fn()
 }))
@@ -31,10 +33,10 @@ vi.mock('@/hooks/useDetectedAgents', () => ({
   useDetectedAgents: (target: unknown) => {
     transport.detection(target)
     return {
-      detectedIds: ['claude'],
+      detectedIds: transport.detectedIds,
       detectionFailed: false,
       isRefreshing: false,
-      refresh: vi.fn()
+      refresh: transport.refresh
     }
   }
 }))
@@ -63,11 +65,88 @@ beforeEach(() => {
   transport.read.mockReset().mockResolvedValue(host())
   transport.mutate.mockReset().mockResolvedValue(host())
   transport.detection.mockClear()
+  transport.detectedIds = ['claude']
+  transport.refresh.mockReset().mockResolvedValue(undefined)
   transport.auto.mockReset().mockResolvedValue(true)
   transport.native.mockReset().mockResolvedValue(true)
 })
 
 describe('host launch settings form', () => {
+  it('edits enabled undetected agents on the selected host and refreshes detection explicitly', async () => {
+    transport.detectedIds = []
+    let saved = { ...host(), agentCmdOverrides: { claude: 'C:/example/claude.exe' } }
+    transport.read.mockImplementation(async () => saved)
+    transport.mutate.mockImplementation(async (_owner, mutation) => {
+      if (mutation.type === 'command') saved = { ...saved, agentCmdOverrides: { claude: mutation.value } }
+      if (mutation.type === 'arguments') saved = { ...saved, agentDefaultArgs: { claude: mutation.value } }
+      return saved
+    })
+    transport.refresh.mockImplementation(async () => { transport.detectedIds = ['claude'] })
+    const desktop = createGlobalSettingsFixture({ agentCmdOverrides: { claude: 'desktop-command' } })
+    useAppStore.setState({ settings: desktop })
+    const { container } = render(pane(17))
+    const command = await screen.findByDisplayValue('C:/example/claude.exe')
+    expect(screen.getByText('Available to install')).toBeTruthy()
+    expect(screen.queryByText('Installed')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Set default' })).toBeNull()
+    const args = screen.getByDisplayValue('--host-marker')
+    const secret = container.querySelector<HTMLInputElement>('[aria-label="Value for API_KEY"]')!
+    expect(secret.type).toBe('password')
+    expect(secret.value).toBe('')
+    expect(container.innerHTML).not.toContain('host-secret')
+    fireEvent.change(command, { target: { value: 'C:/example/next-claude.exe' } })
+    fireEvent.blur(command)
+    await waitFor(() => expect(screen.getByDisplayValue('C:/example/next-claude.exe')).toHaveProperty('readOnly', false))
+    fireEvent.change(args, { target: { value: '--model test-model' } })
+    fireEvent.blur(args)
+    await waitFor(() => expect(screen.getByDisplayValue('--model test-model')).toHaveProperty('readOnly', false))
+    fireEvent.change(secret, { target: { value: 'fixture-value' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    await waitFor(() => expect(secret.value).toBe(''))
+    expect(transport.mutate.mock.calls.map((call) => call[1])).toEqual([
+      { type: 'command', agent: 'claude', value: 'C:/example/next-claude.exe' },
+      { type: 'arguments', agent: 'claude', value: '--model test-model' },
+      { type: 'environment-set', agent: 'claude', name: 'API_KEY', value: 'fixture-value' }
+    ])
+    for (const call of transport.mutate.mock.calls) {
+      expect(call[0]).toEqual({ environmentId: 'ssh-host', pairingRevision: 17 })
+      expect(call[2]).toBeInstanceOf(AbortSignal)
+    }
+    expect(useAppStore.getState().settings).toBe(desktop)
+    expect(transport.refresh).not.toHaveBeenCalled()
+    expect(screen.queryByText('Installed')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh' }))
+    await screen.findByText('Installed')
+    expect(transport.refresh).toHaveBeenCalledTimes(1)
+    expect(transport.read).toHaveBeenCalledTimes(2)
+    expect(transport.detection).toHaveBeenLastCalledWith({ kind: 'runtime', environmentId: 'ssh-host' })
+    expect(screen.getByRole('button', { name: 'Set default' })).toBeTruthy()
+  })
+
+  it('opens startup editors for an enabled undetected agent without an override', async () => {
+    transport.detectedIds = []
+    transport.read.mockResolvedValue(projectAgentLaunchSettings({ agentDefaultArgs: { claude: '' } }))
+    render(pane(17))
+    const availability = await screen.findByRole('radiogroup', { name: 'Claude availability' })
+    const row = availability.closest('.py-3') as HTMLElement
+    fireEvent.click(within(row).getByRole('button', { name: 'Expand agent settings' }))
+    expect(within(row).getByDisplayValue('claude')).toBeTruthy()
+    expect(within(row).getByText('Arguments')).toBeTruthy()
+    expect(within(row).getByRole('textbox', { name: 'Environment variable name' })).toBeTruthy()
+  })
+
+  it('shows saved commands for disabled undetected agents without offering startup editors', async () => {
+    transport.detectedIds = []
+    transport.read.mockResolvedValue({ ...host(), disabledTuiAgents: ['claude'], agentCmdOverrides: { claude: 'C:/example/saved-claude.exe' } })
+    render(pane(17))
+    const availability = await screen.findByRole('radiogroup', { name: 'Claude availability' })
+    const row = availability.closest('.py-3') as HTMLElement
+    expect(within(row).getByText('C:/example/saved-claude.exe')).toBeTruthy()
+    expect(within(row).queryByDisplayValue('C:/example/saved-claude.exe')).toBeNull()
+    expect(within(row).queryByText('Arguments')).toBeNull()
+    expect(within(row).queryByRole('button', { name: 'Set default' })).toBeNull()
+  })
+
   it.each([true, false])(
     'offers automatic permissions only when supported: %s',
     async (supported) => {
@@ -343,9 +422,9 @@ describe('host launch settings form', () => {
 
   it('renders host arguments and masked values, then writes the selected host', async () => {
     const { container } = render(pane(17))
-    await screen.findByDisplayValue('--host-marker')
+    const args = await screen.findByDisplayValue('--host-marker')
     expect(transport.detection).toHaveBeenCalledWith({ kind: 'runtime', environmentId: 'ssh-host' })
-    expect(screen.getByRole('textbox', { name: 'Environment variable name' })).toBeTruthy()
+    expect(within(args.closest('.py-3') as HTMLElement).getByRole('textbox', { name: 'Environment variable name' })).toBeTruthy()
     const secret = container.querySelector<HTMLInputElement>('[aria-label="Value for API_KEY"]')
     expect(secret?.type).toBe('password')
     expect(secret?.value).toBe('')

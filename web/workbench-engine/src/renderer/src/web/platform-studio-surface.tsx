@@ -1,11 +1,15 @@
 import { useEffect, useRef, useState } from 'react'
 
 export type PlatformProject = { id: string; name: string; directory?: string }
+export type PlatformProjectsListener = (
+  projects: PlatformProject[],
+  metadata?: { archived: PlatformProject[] }
+) => void
 type StudioWindow = Window & {
   StudioPreview?: {
     mount(
       root: HTMLElement,
-      options: { onProjects: (projects: PlatformProject[]) => void }
+      options: { onProjects: PlatformProjectsListener }
     ): () => void
   }
 }
@@ -56,7 +60,7 @@ export default function PlatformStudioSurface({
 }: {
   hidden: boolean
   pending?: boolean
-  onProjects: (projects: PlatformProject[]) => void
+  onProjects: PlatformProjectsListener
 }): React.JSX.Element {
   const host = useRef<HTMLDivElement>(null)
   const [error, setError] = useState('')

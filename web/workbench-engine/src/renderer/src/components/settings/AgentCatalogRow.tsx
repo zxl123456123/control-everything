@@ -132,7 +132,7 @@ export function AgentCatalogRow({
       )?.focus()
     })
   }
-  const expandable = isDetected || permission !== undefined
+  const expandable = isDetected || isEnabled || permission !== undefined
 
   return (
     <div className={cn('py-3', !isDetected && 'opacity-70')}>
@@ -253,7 +253,7 @@ export function AgentCatalogRow({
               controlRef={permissionRef}
             />
           )}
-          {isDetected && (
+          {(isDetected || isEnabled) && (
             <div>
               <AgentCommandOverrideInput
                 key={cmdOverride ?? defaultCmd}

@@ -378,7 +378,14 @@ body:has(#ce-studio){margin:0;background:#f7f7f5}
 #ce-studio>.onboarding-dialog.ce-business-module :is(.onboarding-choices,.onboarding-candidate,.onboarding-drop){border-color:var(--ce-line)}
 #ce-studio>.onboarding-dialog.ce-business-module .onboarding-drop{background:var(--ce-bg);color:var(--ce-sub)}
 
-/* Project cards are workspace entries; management remains a separate control. */
+#ce-studio .ce-entry-section{display:flex;flex-direction:column;gap:8px;margin-top:18px}
+#ce-studio .ce-entry-section h2{font-size:15px;font-weight:600}
+#ce-studio .ce-entry-row{display:flex;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--ce-faint)}
+#ce-studio .ce-entry-main{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr) auto;gap:12px;align-items:baseline;flex:1;min-width:0;color:inherit;text-decoration:none}
+#ce-studio .ce-entry-main:focus-visible,#ce-studio .ce-entry-row>.ce-iconbtn:focus-visible{outline:2px solid var(--ce-blue);outline-offset:3px;border-radius:5px}
+@media(max-width:700px){#ce-studio .ce-entry-main{grid-template-columns:minmax(0,1fr);gap:4px}}
+#ce-studio .ce-entry-row strong{font-size:15px;font-weight:600}
+#ce-studio .ce-entry-row span{color:var(--ce-sub);font-size:13px;overflow-wrap:anywhere}
 #ce-studio .ce-project-card{position:relative;min-height:240px;padding:20px 20px 0;display:flex!important;grid-column:auto!important}
 #ce-studio .ce-project-top{position:relative;z-index:2;pointer-events:none}
 #ce-studio .ce-project-top button{pointer-events:auto;cursor:pointer}
