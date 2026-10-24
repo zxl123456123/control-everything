@@ -68,7 +68,7 @@ function fixture(options = {}) {
     return {};
   };
   const callbacks = [];
-  const api = context.window.WorkspaceAgentBoard.create({ root, fetchJson, postJson, unified: options.unified, now: () => Date.parse(stamp), onRegister: () => callbacks.push('register'), onAddProject: () => callbacks.push('project') });
+  const api = context.window.WorkspaceAgentBoard.create({ root, fetchJson, postJson, unified: options.unified, onRefresh: options.onRefresh, now: () => Date.parse(stamp), onRegister: () => callbacks.push('register'), onAddProject: () => callbacks.push('project') });
   const node = id => { const found = root.querySelector('#' + id); assert.ok(found, id); return found; };
   const submit = async () => { const form = node('ab-review-submit').parentElement.parentElement; await form.listeners.submit({ preventDefault() {} }); };
   return { api, root, node, calls, posts, state, callbacks, events, submit, groupItems: context.window.WorkspaceAgentBoard.groupItems };
@@ -76,6 +76,21 @@ function fixture(options = {}) {
 
 const saveEdit = f => f.node('ab-edit-save').parentElement.parentElement.listeners.submit({ preventDefault() {} });
 const effectivelyDisabled = node => Boolean(node && (node.disabled || effectivelyDisabled(node.parentElement)));
+test('a shared snapshot retains unchanged cards and the refresh action returns to its owner', async () => {
+  let refreshed = 0;
+  const f = fixture({ unified: true, onRefresh: async () => refreshed++ });
+  const value = { workspace: { projects: { items: [{ id: 'p', name: 'Project' }] } }, agents: [agent], items: [item('one')] };
+  await f.api.update(value); f.api.setProject('p');
+  const card = f.node('ab-groups').children[0];
+  await f.api.update(JSON.parse(JSON.stringify(value)));
+  assert.equal(f.node('ab-groups').children[0], card); assert.equal(f.calls.length, 0);
+  assert.equal(f.node('ab-status').textContent, '1 项事项');
+  await f.api.load(); assert.equal(refreshed, 1); assert.equal(f.calls.length, 0);
+  value.items[0].title = 'Changed'; await f.api.update(value);
+  assert.notEqual(f.node('ab-groups').children[0], card); assert.match(f.node('ab-groups').textContent, /Changed/);
+  f.api.unavailable(); assert.match(f.node('ab-status').textContent, /数量暂不可确认/);
+});
+
 test('unified board groups manual doing by business state and review excludes attention-only items', async () => {
   const f = fixture({ unified: true, rows: [item('doing', { state: 'doing' }), item('review', { state: 'review' }), item('failed', { assignment_state: 'failed' }), item('blocked', { state: 'blocked' })] });
   await f.api.load(); f.api.setProject('p');

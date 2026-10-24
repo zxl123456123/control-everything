@@ -101,9 +101,10 @@ function studioFixture({ savedCreatorUrl = null, monitorAvailable = true, unifie
   let failed = initialFailure === 'snapshot', updates = 0, editorMounts = 0;
   const mobileMounts = [], mobileDisposals = [];
   const snapshot = { workspace: { projects: { items: [{ id: 'server-project', name: '<Real project>', directories: [{ path: 'C:/example/fixture' }] }] } }, agents: [], items: [] };
-  const callbacks = {}, boardProjects = [], projectSnapshots = [], posts = [], location = new URL(initialUrl);
+  const callbacks = {}, boardProjects = [], projectSnapshots = [], posts = [], boardSnapshots = [], snapshotReads = [], timers = new Map(), location = new URL(initialUrl);
+  let timerId = 0, clock = Date.now();
   const client = { bootstrap: async () => { if (initialFailure === 'bootstrap') throw new Error('bootstrap offline'); }, api() {}, post: async (url, value) => { posts.push({ url, value }); return { status: 'ok', project: { id: value.id } }; }, canWrite: () => true,
-    snapshot: async () => { if (failed) throw new Error('offline'); return snapshot; } };
+    snapshot: async () => { snapshotReads.push(true); if (failed) throw new Error('offline'); return snapshot; } };
   const localStorage = { getItem: key => key === 'ce-studio-creator-url' ? savedCreatorUrl : null,
     setItem: (...args) => writes.push(args), removeItem: key => removed.push(key) };
   const window = { localStorage, addEventListener(name, callback) { callbacks[name] = callback; },
@@ -111,7 +112,7 @@ function studioFixture({ savedCreatorUrl = null, monitorAvailable = true, unifie
     StudioData: { create: () => client },
     StudioMobileEntry: { mount: (container, options) => { mobileMounts.push(options); container.innerHTML = '手机与设备说明'; return () => mobileDisposals.push(options); } },
     WorkspaceTaskCenter: { create: () => { editorMounts++; return { update() { updates++; }, setContext() {} }; } },
-    WorkspaceAgentBoard: { create: () => { editorMounts++; return { load: async () => {}, setProject: (...args) => boardProjects.push(args), open() {} }; } } };
+    WorkspaceAgentBoard: { create: options => { editorMounts++; return { load: () => options.onRefresh(), update: value => boardSnapshots.push(value), unavailable() {}, setProject: (...args) => boardProjects.push(args), open() {} }; } } };
   if (monitorAvailable) window.WorkspaceProjectMonitor = { create(options) {
     mounts.push(options); return { setActive: value => monitorCalls.push([options.projectId, 'active', value]), destroy: () => monitorCalls.push([options.projectId, 'destroy']) };
   } };
@@ -119,19 +120,23 @@ function studioFixture({ savedCreatorUrl = null, monitorAvailable = true, unifie
   let onboardingOptions, dispose;
   const dialog = element('dialog'); dialog.id = 'onboarding-dialog';
   window.WorkspaceOnboarding = { create(options) { onboardingOptions = options; return { open: async () => options.dialog.showModal() }; } };
-  const document = { activeElement: active, getElementById: () => null, createElement: element, body };
+  const document = { activeElement: active, hidden: false, getElementById: () => null, createElement: element, body,
+    addEventListener: (name, callback) => { callbacks['document:' + name] = callback; }, removeEventListener: name => { delete callbacks['document:' + name]; } };
   vm.runInNewContext(fs.readFileSync(path.resolve(__dirname, '../../web/workspace/studio-preview.js'), 'utf8'), {
     URL: class FixtureURL extends URL { constructor(value, base) { super(value, base || location.href); } }, URLSearchParams, window, document, location, localStorage, console,
     DOMParser: class { parseFromString() { return { getElementById: () => dialog }; } },
     CustomEvent: class { constructor(type, options) { this.type = type; this.detail = options?.detail; } },
-    fetch: (...args) => window.fetch(...args),
+    fetch: (...args) => window.fetch(...args), Date: class extends Date { static now() { return clock; } },
+    setTimeout: callback => { timers.set(++timerId, callback); return timerId; }, clearTimeout: id => timers.delete(id),
   });
   dispose = window.StudioPreview.mount(nodes.get('ce-studio'), { onProjects: (rows, metadata) => projectSnapshots.push({ rows, metadata }) });
   const flush = () => new Promise(resolve => setImmediate(resolve));
-  return { nodes, snapshot, client, location, writes, removed, mounts, monitorCalls, callbacks, window, body, elements, dialog, active, boardProjects, projectSnapshots, posts, mobileMounts, mobileDisposals,
+  return { nodes, snapshot, client, location, writes, removed, mounts, monitorCalls, callbacks, window, body, elements, dialog, active, boardProjects, projectSnapshots, posts, mobileMounts, mobileDisposals, boardSnapshots, snapshotReads, timers, document,
     onboarding: () => onboardingOptions, dispose: () => dispose(),
     editorMounts: () => editorMounts, updates: () => updates,
     fail() { failed = true; }, flush,
+    async advance(ms) { clock += ms; const callbacks = [...timers.values()]; timers.clear(); for (const callback of callbacks) callback(); await flush(); },
+    async hidden(value) { document.hidden = value; callbacks['document:visibilitychange'](); await flush(); },
     async route(value) { location.hash = '#' + value; callbacks.hashchange(); await flush(); },
     submit(value) { creatorInput.value = value; nodes.get('ce-studio').listeners.submit({ preventDefault() {}, target: { dataset: { creatorForm: 'true' } } }); },
     openProject(id, href = '#project/' + id + '/tasks', modifiers = {}) { let prevented = false; nodes.get('ce-studio').listeners.click({ ...modifiers, preventDefault() { prevented = true; }, target: { closest: selector => selector === '[data-open-project]' ? { dataset: { openProject: id }, getAttribute: () => href } : null } }); return prevented; },
@@ -177,7 +182,7 @@ test('Studio preserves mounted editors on refresh and renders only server projec
   assert.match(f.nodes.get('studio-content').innerHTML, /&lt;Real project&gt;/);
   assert.match(f.nodes.get('studio-content').innerHTML, /project_id=server-project/);
   assert.doesNotMatch(f.nodes.get('studio-content').innerHTML, /Tank Frontline|local-session|iframe/);
-  f.fail(); await f.route('home');
+  f.fail(); f.click('refresh'); await f.flush();
   assert.equal(f.editorMounts(), 1); assert.equal(f.updates(), 0);
   assert.match(f.nodes.get('studio-status').textContent, /offline.*上次读取/);
   assert.match(f.nodes.get('studio-content').innerHTML, /&lt;Real project&gt;/);
@@ -442,10 +447,60 @@ test('archived task views show a recovery state without exposing active task act
 test('project snapshots send archived identity separately from active native candidates', async () => {
   const f = studioFixture({ unified: true }); await f.flush();
   f.snapshot.workspace.projects.items.push({ id: 'archived-project', name: 'Archived project', archived: true, directories: [{ id: 'main', path: 'C:/example/archived' }] });
-  await f.route('home');
+  f.click('refresh'); await f.flush();
   const published = f.projectSnapshots.at(-1);
   assert.deepEqual(Array.from(published.rows, row => row.id), ['server-project']);
   assert.deepEqual(JSON.parse(JSON.stringify(published.metadata)), { archived: [{ id: 'archived-project', name: 'Archived project', directory: 'C:/example/archived' }] });
+});
+
+test('warm business filters share the published snapshot without another data read', async () => {
+  const f = studioFixture({ unified: true }); await f.flush();
+  assert.equal(f.snapshotReads.length, 1); assert.equal(f.boardSnapshots.length, 1);
+  assert.equal(f.boardSnapshots[0], f.snapshot);
+  for (const tab of ['tasks', 'review', 'attention', 'workspace', 'activity', 'tasks']) await f.route('project/server-project/' + tab);
+  assert.equal(f.snapshotReads.length, 1);
+  assert.equal(f.nodes.get('studio-agent-board').hidden, false);
+  assert.doesNotMatch(f.nodes.get('studio-status').textContent, /正在更新/);
+  f.dispose(); assert.equal(f.timers.size, 0);
+});
+
+test('quiet refresh pauses in development and hidden documents, then rechecks stale data on return', async () => {
+  const f = studioFixture({ unified: true }); await f.flush();
+  await f.route('project/server-project/workspace');
+  assert.equal(f.nodes.get('studio-agent-board').hidden, true); assert.equal(f.timers.size, 0);
+  await f.advance(16000); assert.equal(f.snapshotReads.length, 1);
+  await f.route('project/server-project/tasks'); assert.equal(f.snapshotReads.length, 2);
+  await f.hidden(true); assert.equal(f.timers.size, 0);
+  await f.advance(16000); assert.equal(f.snapshotReads.length, 2);
+  await f.hidden(false); assert.equal(f.snapshotReads.length, 3);
+  await f.advance(15000); assert.equal(f.snapshotReads.length, 4);
+  assert.doesNotMatch(f.nodes.get('studio-status').textContent, /正在更新/);
+  f.dispose();
+});
+
+test('concurrent refreshes share an in-flight read and retain a write-triggered follow-up', async () => {
+  const f = studioFixture(); await f.flush();
+  const pending = []; let reads = 0;
+  f.client.snapshot = () => { reads++; return new Promise(resolve => pending.push(resolve)); };
+  f.click('refresh'); f.click('refresh'); f.click('refresh');
+  assert.equal(reads, 1);
+  pending.shift()(f.snapshot); await f.flush(); assert.equal(reads, 2);
+  pending.shift()(f.snapshot); await f.flush(); assert.equal(reads, 2);
+  assert.equal(f.boardSnapshots.length, 3); f.dispose();
+});
+
+test('unchanged refresh preserves normalized DOM and mobile return invalidates the content owner', async () => {
+  const f=studioFixture(); await f.flush(); const writes=[];
+  for (const id of ['studio-content','studio-rail','studio-topbar']) {
+    const node=f.nodes.get(id); let html=node.innerHTML;
+    Object.defineProperty(node,'innerHTML',{get:()=>html.replace(/\/>/g,'>'),set:value=>{writes.push(id);html=value;}});
+  }
+  await f.advance(15000); assert.deepEqual(writes,[]);
+  f.search('nothing'); assert.ok(writes.includes('studio-content')); writes.length=0;
+  await f.advance(15000); assert.deepEqual(writes,[]);
+  await f.route('mobile'); await f.route('home');
+  assert.match(f.nodes.get('studio-content').innerHTML,/没有匹配的项目/);
+  assert.equal(f.mobileMounts.length,1); assert.equal(f.mobileDisposals.length,1);
 });
 
 test('latest real timestamp wins while undated items retain a truthful unknown time', async () => {
