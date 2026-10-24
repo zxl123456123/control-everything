@@ -326823,7 +326823,7 @@
     {
       "path": "config/scripts/orcad-entry-build.mjs",
       "upstream_sha256": "aeae234e5f9a97cd16aaf44cba0a256930d50d5d50859c49b0f421a42d3b6347",
-      "current_sha256": "de126ae0a62ce7fdb80b297d42355aa8d2b9b01e17a93f1b2ec2226c66f8b087",
+      "current_sha256": "dc1309024c6a5d631d9395f8fa379fee6abf9d09f8bee54f175d9c51fe31413a",
       "reason": "M1a-R: compile bounded owner-pipe helper with existing builder"
     },
     {
@@ -327717,7 +327717,7 @@
     {
       "path": "vite.web.config.ts",
       "upstream_sha256": "ee91ccdb61743a54d9bc8fe4a05e1660026659539357fb3a5602900e530ea10c",
-      "current_sha256": "daf30cc76de6a8183a8b2c408357f9de9459960e2d539ab203d64085b0df2500",
+      "current_sha256": "43d64dc658f7728928c31e22526e70d39b178bfd49d3e7692035facebcf7e96d",
       "reason": "S2: disable marketing wall and emit Vite manifest"
     }
   ],

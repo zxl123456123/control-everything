@@ -213,3 +213,121 @@ test('copied web records follow completed PDF writes and preserve upstream build
     })
   }
 })
+
+test('actual ws bundle uses product JS and Node fallbacks with no optional native imports', async t => {
+  const directory = fixture(t)
+  const { ORCAD_COMMONJS_MODULE_OPTIONS } = await import(pathToFileURL(path.join(engine, 'config/scripts/orcad-entry-build.mjs')).href)
+  const esbuild = req('esbuild')
+  const ws = req.resolve('ws')
+  const input = { contents: `module.exports = require(${JSON.stringify(ws)})`, resolveDir: engine, loader: 'js' }
+  const baseline = await esbuild.build({ stdin: input, bundle: true, platform: 'node', format: 'cjs', write: false, metafile: true })
+  const external = result => Object.values(result.metafile.outputs).flatMap(output => output.imports.filter(i => i.external).map(i => i.path))
+  assert.ok(external(baseline).includes('bufferutil'))
+  assert.ok(external(baseline).includes('utf-8-validate'))
+  const outfile = path.join(directory, 'ws-fallback.cjs')
+  const result = await esbuild.build({ ...ORCAD_COMMONJS_MODULE_OPTIONS, stdin: input, outfile,
+    bundle: true, platform: 'node', format: 'cjs', metafile: true })
+  assert.ok(!external(result).includes('bufferutil'))
+  assert.ok(!external(result).includes('utf-8-validate'))
+  const runner = path.join(directory, 'roundtrip.cjs')
+  fs.writeFileSync(runner, `
+const assert = require('node:assert/strict');
+const Module = require('node:module');
+const { once } = require('node:events');
+process.env.WS_NO_BUFFER_UTIL = '';
+process.env.WS_NO_UTF_8_VALIDATE = '';
+let nativeAttempts = 0;
+const original = Module._load;
+Module._load = function(name, ...args) {
+  if (name === 'bufferutil' || name === 'utf-8-validate') { nativeAttempts++; throw Error('native provider absent'); }
+  return original.call(this, name, ...args);
+};
+const WebSocket = require('./ws-fallback.cjs');
+(async () => {
+  const server = new WebSocket.WebSocketServer({ host: '127.0.0.1', port: 0 });
+  try {
+    await once(server, 'listening');
+    const accepted = once(server, 'connection');
+    const client = new WebSocket('ws://127.0.0.1:' + server.address().port);
+    const [peer] = await accepted;
+    peer.on('message', (data, binary) => peer.send(data, { binary }));
+    await once(client, 'open');
+    for (const payload of ['UTF-8: 你好 🌍'.repeat(200), Buffer.alloc(1024, 173)]) {
+      const response = once(client, 'message'); client.send(payload);
+      const [actual, binary] = await response;
+      assert.equal(binary, Buffer.isBuffer(payload));
+      assert.deepEqual(actual, Buffer.from(payload));
+    }
+    const closed = once(client, 'close'); client.close(); await closed;
+    assert.equal(nativeAttempts, 0);
+    console.log('masked text and binary roundtrips; no optional native provider loaded');
+  } finally { for (const client of server.clients) client.terminate(); await new Promise(resolve => server.close(resolve)); }
+})().catch(error => { console.error(error); process.exitCode = 1; });
+`)
+  const probe = spawnSync(process.execPath, [runner], { encoding: 'utf8', timeout: 15000 })
+  assert.equal(probe.status, 0, probe.stdout + probe.stderr)
+  assert.match(probe.stdout, /no optional native provider loaded/)
+})
+
+test('actual Vite browser external input records its exact stub and rejects lost or changed provenance', async t => {
+  const directory = fixture(t)
+  const renderer = path.join(directory, 'src/renderer')
+  fs.mkdirSync(renderer, { recursive: true })
+  fs.writeFileSync(path.join(directory, 'package.json'), JSON.stringify({ name: 'fixture', version: '1.0.0' }))
+  fs.writeFileSync(path.join(directory, 'LICENSE'), 'MIT fixture')
+  fs.writeFileSync(path.join(renderer, 'web-index.html'), '<script type="module" src="./main.js"></script>')
+  fs.writeFileSync(path.join(renderer, 'main.js'), "import fs from 'node:fs'; import icon from './fixture.svg'; console.log(fs, icon);")
+  fs.writeFileSync(path.join(renderer, 'fixture.svg'), '<svg xmlns="http://www.w3.org/2000/svg"><path d="M0 0"/></svg>')
+  const source = fs.readFileSync(path.join(engine, 'vite.web.config.ts'), 'utf8')
+  fs.writeFileSync(path.join(directory, 'vite.web.config.ts'), source)
+  const actualVite = path.dirname(req.resolve('vite/package.json'))
+  const fixtureVite = path.join(directory, 'node_modules/vite')
+  for (const name of ['package.json', 'dist/node/chunks/node.js', ...fs.readdirSync(actualVite).filter(n => /^(license|notice)/i.test(n))]) {
+    const target = path.join(fixtureVite, name)
+    fs.mkdirSync(path.dirname(target), { recursive: true })
+    fs.copyFileSync(path.join(actualVite, name), target)
+  }
+  const functions = source.slice(source.indexOf('export function distributionPlugin'), source.indexOf('export default defineConfig'))
+  const modulePath = path.join(directory, 'actual-product-plugin.mjs')
+  fs.writeFileSync(modulePath, "import {resolve} from 'node:path'; import {createHash} from 'node:crypto';\n" +
+    `import {sourceOwner,writeDistributionRecord} from '${pathToFileURL(path.join(engine, 'config/scripts/distribution-record.mjs')).href}';\n` +
+    req('esbuild').transformSync(functions, { loader: 'ts', format: 'esm' }).code)
+  const { distributionPlugin } = await import(pathToFileURL(modulePath).href)
+  const vite = await import(pathToFileURL(req.resolve('vite')).href)
+  const previous = process.cwd()
+  process.chdir(directory)
+  try {
+    await vite.build({ configFile: false, root: renderer, logLevel: 'silent', plugins: [distributionPlugin('web')],
+      build: { outDir: path.join(directory, 'out/web'), assetsInlineLimit: 0, rollupOptions: { input: path.join(renderer, 'web-index.html') } } })
+  } finally { process.chdir(previous) }
+  const record = JSON.parse(fs.readFileSync(path.join(directory, '.build/distribution/web.json')))
+  const info = record.bundles[0].inputs['__vite-browser-external']
+  assert.equal(info.generated.code, 'module.exports = {}')
+  assert.ok(record.bundles[0].owners.some(owner => owner.input === 'src/renderer/fixture.svg' && owner.package?.name === 'fixture'))
+  const rows = Object.entries(record.bundles[0].outputs).map(([name, output]) => ({ path: name, sha256: output.sha256 }))
+  function validate(selected) {
+    const input = path.join(directory, 'stub-validation.json')
+    fs.writeFileSync(input, JSON.stringify({ rows, records: [selected] }))
+    return spawnSync(process.env.PYTHON || 'python', ['-X', 'utf8', '-c',
+      "import importlib.util,json,sys;from pathlib import Path;s=importlib.util.spec_from_file_location('d',sys.argv[1]);m=importlib.util.module_from_spec(s);s.loader.exec_module(m);p=json.loads(Path(sys.argv[2]).read_text());m.validate(Path(sys.argv[3]),p['rows'],p['records'],[])",
+      path.join(root, 'tools/packaging/workbench_distribution.py'), input, directory], { encoding: 'utf8' })
+  }
+  const accepted = validate(record)
+  assert.equal(accepted.status, 0, accepted.stdout + accepted.stderr)
+  for (const [mutate, error] of [
+    [row => { delete row.generated }, /distribution_vite_browser_identity/],
+    [row => { row.generated.code = 'invented stub' }, /distribution_vite_browser_identity/],
+    [row => { row.generated.sha256 = '0'.repeat(64) }, /distribution_vite_browser_identity/],
+    [row => { row.imports = [{ path: 'unknown', external: true }] }, /distribution_vite_browser_identity/],
+    [row => { row.generated.tool.sha256 = '0'.repeat(64) }, /distribution_vite_browser_source/],
+    [row => { row.generated.tool.package.notices = [] }, /distribution_notice_missing/],
+    [row => { row.generated.producer.package.notices = [] }, /distribution_notice_missing/],
+    [row => { row.generated.tool.package.version = '0.0.0' }, /distribution_vite_browser_package/]
+  ]) {
+    const changed = structuredClone(record)
+    mutate(changed.bundles[0].inputs['__vite-browser-external'])
+    const rejected = validate(changed)
+    assert.notEqual(rejected.status, 0)
+    assert.match(rejected.stderr, error)
+  }
+})

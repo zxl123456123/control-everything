@@ -40,6 +40,9 @@ export const ORCAD_COMMONJS_MODULE_OPTIONS = {
   },
   define: {
     'import.meta.url': '__orcadModuleUrl',
+    // Ship ws's own JS masking and Node UTF-8 fallback, without optional native providers.
+    'process.env.WS_NO_BUFFER_UTIL': 'true',
+    'process.env.WS_NO_UTF_8_VALIDATE': 'true',
     // Why only when on: an undeclared switch already reads as off, so other builds keep their bytes.
     ...turnedOnDarkBuildDefines()
   },
@@ -171,6 +174,10 @@ export function buildOrcadCli(outfile) {
     outfile,
     metafile: true,
     minify: true,
+    define: {
+      'process.env.WS_NO_BUFFER_UTIL': 'true',
+      'process.env.WS_NO_UTF_8_VALIDATE': 'true'
+    },
     sourcemap: false,
     logLevel: 'error'
   })

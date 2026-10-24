@@ -1,10 +1,16 @@
 """Distribution gates reject missing ownership, stale chunks and incomplete notices."""
 
+import base64
+import copy
 import hashlib
 import importlib.util
+import io
 import json
+import os
 from pathlib import Path
 import unittest
+import tarfile
+import tempfile
 
 from control_everything.installation.maintenance import launcher_bytes
 
@@ -70,6 +76,118 @@ class DistributionTests(unittest.TestCase):
             D.validate(ROOT, self.rows, [self.record], [], [prepared])
         prepared['metadata_sha256'] = 'e' * 64
         D.validate(ROOT, self.rows, [self.record], [], [prepared])
+
+    def test_fixed_repository_transport_fragment_and_lowercase_notice(self):
+        for repository in ['git://github.com/example/mono.git', 'git+https://github.com/example/mono.git#main']:
+            with self.subTest(repository=repository):
+                package = {'name': 'pkg', 'version': '1.0.0', 'metadataSha256': 'e' * 64, 'notices': []}
+                registry = json.dumps({'name': 'pkg', 'version': '1.0.0', 'gitHead': 'f' * 40,
+                                       'repository': {'url': repository}})
+                prepared = {'name': 'pkg', 'version': '1.0.0', 'metadata_sha256': 'e' * 64,
+                            'registry_metadata': registry, 'registry_metadata_sha256': hashlib.sha256(registry.encode()).hexdigest(),
+                            'notices': [{**self.notice, 'source': 'https://raw.githubusercontent.com/example/mono/' + 'f' * 40 + '/license'}]}
+                D.resolve_notices(package, [prepared])
+                for source in ['https://raw.githubusercontent.com/other/mono/' + 'f' * 40 + '/license',
+                               'https://raw.githubusercontent.com/example/mono/main/license']:
+                    changed = copy.deepcopy(prepared)
+                    changed['notices'][0]['source'] = source
+                    with self.assertRaisesRegex(D.DistributionError, 'distribution_notice_source_mismatch'):
+                        D.resolve_notices({**package, 'notices': []}, [changed])
+
+    def archive_notice_fixture(self):
+        metadata = json.dumps({'name': 'pkg', 'version': '1.0.0'}).encode()
+        output = io.BytesIO()
+        with tarfile.open(fileobj=output, mode='w:gz') as archive:
+            for name, data in [('package/package.json', metadata), ('package/README.md', b'MIT fixture'),
+                               ('package/index.js', b'fixture code')]:
+                member = tarfile.TarInfo(name)
+                member.size = len(data)
+                archive.addfile(member, io.BytesIO(data))
+        data = output.getvalue()
+        registry = {'name': 'pkg', 'version': '1.0.0', 'dist': {
+            'tarball': 'https://registry.npmjs.org/pkg/-/pkg-1.0.0.tgz',
+            'integrity': 'sha512-' + base64.b64encode(hashlib.sha512(data).digest()).decode()}}
+        package = {'name': 'pkg', 'version': '1.0.0', 'metadataSha256': hashlib.sha256(metadata).hexdigest(), 'notices': []}
+        raw = json.dumps(registry)
+        prepared = {'name': 'pkg', 'version': '1.0.0', 'metadata_sha256': package['metadataSha256'],
+                    'registry_metadata': raw, 'registry_metadata_sha256': hashlib.sha256(raw.encode()).hexdigest(),
+                    'registry_tarball': {'base64': base64.b64encode(data).decode()},
+                    'notices': [{**self.notice, 'source': registry['dist']['tarball'] + '!package/README.md'}]}
+        return package, prepared, registry
+
+    def test_registry_archive_binds_metadata_and_complete_original_notice_member(self):
+        package, prepared, _registry = self.archive_notice_fixture()
+        D.resolve_notices(copy.deepcopy(package), [prepared])
+        for mutate, error in [
+            (lambda p: p['registry_tarball'].update(base64=base64.b64encode(b'wrong archive').decode()), 'archive_integrity'),
+            (lambda p: p['notices'][0].update(source=p['notices'][0]['source'].replace('README.md', 'missing.md')), 'archive_member'),
+            (lambda p: p['notices'][0].update(text='different', sha256=hashlib.sha256(b'different').hexdigest()), 'archive_member'),
+            (lambda p: p['notices'][0].update(source=p['notices'][0]['source'].replace('registry.npmjs.org', 'example.test')), 'archive_member'),
+        ]:
+            with self.subTest(error=error):
+                changed = copy.deepcopy(prepared)
+                mutate(changed)
+                with self.assertRaisesRegex(D.DistributionError, error):
+                    D.resolve_notices(copy.deepcopy(package), [changed])
+        changed = copy.deepcopy(prepared)
+        changed['metadata_sha256'] = 'f' * 64
+        with self.assertRaisesRegex(D.DistributionError, 'archive_metadata'):
+            D.resolve_notices({**package, 'metadataSha256': 'f' * 64}, [changed])
+
+    def test_registry_archive_integrity_must_also_equal_actual_dependency_lock(self):
+        package, prepared, registry = self.archive_notice_fixture()
+        record = copy.deepcopy(self.record)
+        record['bundles'][0]['owners'][0]['package'] = package
+        record['bundles'][0]['owners'][0]['sha256'] = hashlib.sha256(b'fixture code').hexdigest()
+        with tempfile.TemporaryDirectory() as temporary:
+            unit = Path(temporary) / 'unit'
+            directory = unit / '.build/distribution'
+            directory.mkdir(parents=True)
+            run = Path(temporary) / 'run'
+            run.mkdir()
+            for label in ['runtime', 'web', 'mobile']:
+                (directory / (label + '.json')).write_text(json.dumps(record))
+            (run / 'package-license-inputs.json').write_text(json.dumps([prepared]))
+            names = ['pinned-node', 'windows-security', 'windows-cli-launcher', 'node-pty-conpty', 'ripgrep']
+            external = [dict(name=name, version='1', integrity='fixture', output_paths=['out/web/main.js'],
+                             output_hashes={'out/web/main.js': 'a' * 64}, notices=[self.notice]) for name in names]
+            (run / 'external-dependency-notices.json').write_text(json.dumps(external))
+            lock = {'packages': [{'name': 'pkg', 'version': '1.0.0', 'integrity': registry['dist']['integrity']}]}
+            (run / 'dependency-manifest.json').write_text(json.dumps(lock))
+            D.collect(unit, self.rows, run)
+            lock['packages'][0]['integrity'] = 'sha512-other-published-archive'
+            (run / 'dependency-manifest.json').write_text(json.dumps(lock))
+            with self.assertRaisesRegex(D.DistributionError, 'distribution_notice_registry_integrity'):
+                D.collect(unit, self.rows, run)
+
+    @unittest.skipUnless(os.environ.get('PACKAGING_ACTUAL_NOTICE_INPUTS'), 'actual fixed r2 notice materials not supplied')
+    def test_actual_release_notice_chains_and_tampering(self):
+        entries = json.loads(Path(os.environ['PACKAGING_ACTUAL_NOTICE_INPUTS']).read_text(encoding='utf-8'))
+        owners = json.loads(Path(os.environ['PACKAGING_ACTUAL_NOTICE_OWNERS']).read_text(encoding='utf-8'))
+        for key, owner in owners.items():
+            entry = next(row for row in entries if key == row['name'] + '@' + row['version'])
+            package = copy.deepcopy(owner['package'])
+            D.resolve_notices(package, [entry])
+            D.check_registry_input(package, owner)
+        cases = [
+            ('format@0.2.2', lambda e: e['linked_license']['materials'][0].update(sha256='0' * 64), 'linked_materials'),
+            ('format@0.2.2', lambda e: e['notices'][0].update(text='new invented copyright'), 'linked_body'),
+            ('react-remove-scroll-bar@2.3.8', lambda e: e['same_content_license'].update(original_source_zip=base64.b64encode(b'fake source').decode()), 'same_content_source'),
+            ('react-remove-scroll-bar@2.3.8', lambda e: e['same_content_license'].update(licensed_source_zip=base64.b64encode(b'fake licensed source').decode()), 'same_content_source'),
+            ('react-remove-scroll-bar@2.3.8', lambda e: e['notices'][-1].update(text='different license'), 'same_content_body'),
+        ]
+        for key, mutate, error in cases:
+            with self.subTest(key=key, error=error):
+                entry = copy.deepcopy(next(row for row in entries if key == row['name'] + '@' + row['version']))
+                mutate(entry)
+                with self.assertRaisesRegex(D.DistributionError, error):
+                    D.resolve_notices(copy.deepcopy(owners[key]['package']), [entry])
+        key = 'react-remove-scroll-bar@2.3.8'
+        entry = next(row for row in entries if key == row['name'] + '@' + row['version'])
+        package = copy.deepcopy(owners[key]['package'])
+        D.resolve_notices(package, [entry])
+        with self.assertRaisesRegex(D.DistributionError, 'archive_input'):
+            D.check_registry_input(package, {**owners[key], 'sha256': '0' * 64})
 
     def test_missing_external_dll_notice_rejected(self):
         self.rows.append({'path': 'out/orcad/native.dll', 'sha256': 'c' * 64, 'bytes': 1})

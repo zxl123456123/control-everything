@@ -3,7 +3,7 @@ import { readdirSync, statSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import type { Plugin } from 'vite'
 import { createHash } from 'node:crypto'
-import { writeDistributionRecord } from './config/scripts/distribution-record.mjs'
+import { sourceOwner, writeDistributionRecord } from './config/scripts/distribution-record.mjs'
 import { markdownParserAliases } from './config/build-plugins/markdown-parser-exports'
 import { resolve } from 'node:path'
 import { defineConfig } from 'vite'
@@ -15,11 +15,13 @@ import { resolveBuildSourceCommit } from './config/scripts/build-source-commit.m
 
 
 export function distributionPlugin(label: string): Plugin {
+  let viteRoot: string
   return {
       name: 'distribution-record-' + label,
+      configResolved(config) { viteRoot = config.root },
       generateBundle: { order: 'post', handler(_options, bundle) {
         const outputs = Object.fromEntries(Object.values(bundle).filter(item => item.fileName !== '.vite/manifest.json').map(item => {
-          let sources = item.type === 'chunk' ? Object.keys(item.modules) : item.originalFileNames
+          let sources = item.type === 'chunk' ? Object.keys(item.modules) : item.originalFileNames.map(name => resolve(viteRoot, name))
           if (item.type === 'asset' && item.fileName.endsWith('.css')) {
             sources = Object.values(bundle).flatMap(chunk => {
               if (chunk.type !== 'chunk') return []
@@ -35,6 +37,16 @@ export function distributionPlugin(label: string): Plugin {
               imports: item.type === 'chunk' ? [...item.imports, ...item.dynamicImports].map(path => ({ path })) : [] }]
         }))
         const inputs = Object.fromEntries(Object.values(outputs).flatMap(output => Object.keys(output.inputs)).map(id => [id, {}]))
+        if (Object.hasOwn(inputs, '__vite-browser-external')) {
+          const code = this.getModuleInfo('__vite-browser-external')?.code
+          if (code !== 'module.exports = {}') throw Error('distribution_vite_browser_stub_changed')
+          inputs['__vite-browser-external'] = { generated: {
+            kind: 'vite-browser-external', code,
+            sha256: createHash('sha256').update(code).digest('hex'),
+            producer: sourceOwner(resolve('.'), 'vite.web.config.ts'),
+            tool: sourceOwner(resolve('.'), 'node_modules/vite/dist/node/chunks/node.js')
+          } }
+        }
         writeDistributionRecord(resolve('.'), label === 'web-worker' ? label + '-' + createHash('sha256').update(Object.keys(outputs).join('\n')).digest('hex').slice(0, 16) : label, [{ inputs, outputs }])
       } }
     }
