@@ -1,0 +1,22 @@
+[Unit]
+Description=Account-owned workbench admission hub
+After=network-online.target ce-device-provisioner.socket
+Requires=ce-device-provisioner.socket
+
+[Service]
+User=ce-remote-hub
+Group=ce-remote-hub
+UMask=0077
+StateDirectory=ce-remote-hub
+StateDirectoryMode=0700
+ExecStart=/opt/ce-remote/venv/bin/python /opt/ce-remote/tools/scripts/remote_hub_admin.py --config /etc/ce-remote-hub/config.json serve
+Restart=on-failure
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ReadWritePaths=/var/lib/ce-remote-hub
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+
+[Install]
+WantedBy=multi-user.target

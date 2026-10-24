@@ -1,0 +1,19 @@
+[Unit]
+Description=Restricted device SSH provisioner
+Requires=ce-device-provisioner.socket
+After=ce-device-provisioner.socket
+
+[Service]
+User=root
+Group=root
+ExecStart=/opt/ce-remote/venv/bin/python /opt/ce-remote/tools/scripts/remote_ssh_provisioner.py --hub-user ce-remote-hub
+UMask=0077
+StateDirectory=ce-device-ssh
+StateDirectoryMode=0755
+ProtectHome=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ReadWritePaths=/var/lib/ce-device-ssh /etc
+# useradd locks and atomically replaces account files; no shell or arbitrary RPC command is accepted.
+RestrictAddressFamilies=AF_UNIX
+Restart=on-failure

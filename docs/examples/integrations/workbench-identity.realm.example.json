@@ -1,0 +1,42 @@
+{
+  "realm": "workbench",
+  "enabled": true,
+  "registrationAllowed": true,
+  "resetPasswordAllowed": false,
+  "verifyEmail": false,
+  "bruteForceProtected": true,
+  "passwordPolicy": "length(12) and notUsername(undefined)",
+  "clients": [
+    {
+      "clientId": "workbench-web",
+      "enabled": true,
+      "publicClient": false,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": ["https://workbench.example.test/oauth2/callback"],
+      "webOrigins": ["https://workbench.example.test"],
+      "protocol": "openid-connect",
+      "protocolMappers": [{"name": "hub-audience", "protocol": "openid-connect", "protocolMapper": "oidc-audience-mapper", "config": {"included.client.audience": "workbench-hub", "access.token.claim": "true", "id.token.claim": "false"}}]
+    },
+    {
+      "clientId": "workbench-desktop",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "protocol": "openid-connect",
+      "attributes": {"oauth2.device.authorization.grant.enabled": "true"},
+      "protocolMappers": [{"name": "hub-audience", "protocol": "openid-connect", "protocolMapper": "oidc-audience-mapper", "config": {"included.client.audience": "workbench-hub", "access.token.claim": "true", "id.token.claim": "false"}}]
+    },
+    {
+      "clientId": "workbench-hub",
+      "enabled": true,
+      "publicClient": false,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "protocol": "openid-connect"
+    }
+  ]
+}
