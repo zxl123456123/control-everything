@@ -42,3 +42,206 @@
   width: 100%;
   height: 100%;
 }
+
+/* Platform chrome owns its palette; terminal ANSI and editor syntax stay native. */
+:root[data-platform-view='workspace'] {
+  --background: #f8fafb;
+  --foreground: #203139;
+  --card: #ffffff;
+  --card-foreground: #203139;
+  --popover: #ffffff;
+  --popover-foreground: #203139;
+  --primary: #0f766e;
+  --primary-foreground: #ffffff;
+  --secondary: #edf2f3;
+  --secondary-foreground: #334b53;
+  --muted: #edf2f3;
+  --muted-foreground: #60747d;
+  --accent: #e0f0ec;
+  --accent-foreground: #115e59;
+  --border: #dbe4e6;
+  --input: #d3dfe1;
+  --ring: #158577;
+  --sidebar: #edf2f3;
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: var(--accent);
+  --sidebar-accent-foreground: var(--accent-foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
+  --worktree-sidebar: var(--sidebar);
+  --worktree-sidebar-foreground: var(--foreground);
+  --worktree-sidebar-accent: var(--accent);
+  --worktree-sidebar-accent-foreground: var(--accent-foreground);
+  --worktree-sidebar-border: var(--border);
+  --worktree-sidebar-ring: var(--ring);
+}
+
+:root.dark[data-platform-view='workspace'] {
+  --background: #121c24;
+  --foreground: #e2ecee;
+  --card: #18262f;
+  --card-foreground: #e2ecee;
+  --popover: #1d2c35;
+  --popover-foreground: #e2ecee;
+  --primary: #5bd3bc;
+  --primary-foreground: #102d29;
+  --secondary: #1b2b34;
+  --secondary-foreground: #c9dadd;
+  --muted: #1b2b34;
+  --muted-foreground: #9aafb8;
+  --accent: #203d3d;
+  --accent-foreground: #9ce8d8;
+  --border: #2b3c46;
+  --input: #344a55;
+  --ring: #5bd3bc;
+  --sidebar: #17242d;
+}
+
+.platform-project-entry {
+  --platform-brand: #0f766e;
+  font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+}
+
+.dark .platform-project-entry { --platform-brand: #5bd3bc; }
+
+.platform-project-tabs {
+  flex-basis: 60px;
+  gap: 22px;
+  padding: 0 22px;
+  background: var(--card);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--border) 55%, transparent);
+}
+
+.platform-project-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--foreground);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* A small geometric platform mark needs no extra image or font request. */
+.platform-project-back::before {
+  content: '';
+  width: 9px;
+  height: 9px;
+  margin: 0 7px 7px 0;
+  border-radius: 2px;
+  background: var(--platform-brand);
+  box-shadow: 11px 0 0 color-mix(in srgb, var(--platform-brand) 45%, transparent),
+    0 11px 0 color-mix(in srgb, var(--platform-brand) 45%, transparent),
+    11px 11px 0 var(--platform-brand);
+}
+
+.platform-project-name {
+  padding-left: 20px;
+  border-left: 1px solid var(--border);
+  letter-spacing: .02em;
+}
+
+.platform-project-tablist {
+  height: auto;
+  gap: 3px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--muted);
+}
+
+.platform-project-tablist a {
+  padding: 6px 18px;
+  border-radius: 7px;
+  font-size: 12px;
+}
+
+.platform-project-tablist a[aria-current='page'] {
+  background: var(--card);
+  color: var(--platform-brand);
+  box-shadow: 0 1px 3px #00000012;
+  font-weight: 650;
+}
+
+:root[data-platform-view='workspace'] :is(.titlebar, .titlebar-left) {
+  background: var(--sidebar);
+  border-color: var(--border);
+}
+
+:root[data-platform-view='workspace'] .titlebar-app-name-main {
+  color: var(--primary);
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: .06em;
+}
+
+:root[data-platform-view='workspace'] :is(.sidebar-toggle, .titlebar-icon-button) {
+  border-radius: 7px;
+}
+
+:root[data-platform-view='workspace'] :is(.sidebar-toggle, .titlebar-icon-button) svg {
+  stroke-width: 1.65;
+}
+
+:root[data-platform-view='workspace'] [data-worktree-card-surface] {
+  border-radius: 9px;
+}
+
+:root[data-platform-view='workspace'] [data-worktree-card-surface][data-worktree-card-active='primary'] {
+  background: var(--accent);
+  border-color: color-mix(in srgb, var(--primary) 32%, var(--border));
+  box-shadow: inset 3px 0 0 var(--primary);
+}
+
+:root[data-platform-view='workspace'] [data-tab-id][data-active='true'] {
+  background: var(--accent);
+  color: var(--accent-foreground);
+  box-shadow: inset 0 -2px 0 var(--primary);
+}
+
+:root[data-platform-view='workspace'] [data-slot='button'] {
+  border-radius: 7px;
+  transition-property: background-color, border-color, color, box-shadow;
+}
+
+:root[data-platform-view='workspace'] [data-slot='button'][data-variant='default'] {
+  box-shadow: 0 1px 2px #00000014;
+}
+
+/* Keep keyboard focus visible even where platform decoration replaces a shadow. */
+:root[data-platform-view='workspace'] :is([data-slot='button'], [data-tab-id], [data-worktree-card-surface]):focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: -2px;
+}
+
+:root[data-platform-view='workspace'] [data-slot='button'][data-variant='default']:focus-visible {
+  outline-color: var(--primary-foreground);
+}
+
+:root[data-platform-view='workspace'] :is([data-slot='input'], [data-slot='select-trigger']) {
+  border-radius: 7px;
+  background-color: var(--background);
+}
+
+/* Portaled controls share the same document scope as the project surface. */
+:root[data-platform-view='workspace'] :is([data-slot='dialog-content'], [data-slot='dropdown-menu-content'], [data-slot='select-content']) {
+  border-color: var(--border);
+  border-radius: 12px;
+  box-shadow: 0 18px 54px #00000026, 0 2px 8px #0000000d;
+}
+
+:root[data-platform-view='workspace'] :is([data-slot='dropdown-menu-item'], [data-slot='select-item']) {
+  border-radius: 6px;
+}
+
+@media (max-width: 700px) {
+  .platform-project-tabs { flex-basis: auto; min-height: 94px; gap: 10px; padding: 10px 12px; }
+  .platform-project-name { padding-left: 12px; }
+  .platform-project-tablist { width: 100%; justify-content: stretch; }
+  .platform-project-tablist a { flex: 1; text-align: center; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root[data-platform-view='workspace'] [data-slot='button'] { transition: none; }
+}
