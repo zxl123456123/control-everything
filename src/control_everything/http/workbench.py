@@ -16,6 +16,7 @@ STUDIO_RESOURCES = {
     "/studio": ("studio-preview.html", "text/html; charset=utf-8"),
     "/studio-shell": ("studio-preview.html", "text/html; charset=utf-8"),
     "/studio-preview.css": ("studio-preview.css", "text/css; charset=utf-8"),
+    "/mobile-device-entry.js": ("mobile-device-entry.js", "text/javascript; charset=utf-8"),
     "/studio-preview.js": ("studio-preview.js", "text/javascript; charset=utf-8"),
     "/studio-data.js": ("studio-data.js", "text/javascript; charset=utf-8"),
     "/workspace-admin": ("workspace.html", "text/html; charset=utf-8"),

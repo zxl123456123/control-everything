@@ -1,0 +1,56 @@
+'use strict';
+window.StudioMobileEntry = {
+  mount(container, { returnHash = '#home' } = {}) {
+    let disposed = false;
+    const make = (tag, text, className) => {
+      const node = document.createElement(tag);
+      if (text) node.textContent = text;
+      if (className) node.className = className;
+      return node;
+    };
+    const page = make('section', '', 'ce-mobile-entry');
+    page.append(make('h1', '手机与设备'), make('p', '先用手机浏览器打开工作台。开发操作仍在项目工作区中进行。'));
+    const connection = make('section', '', 'ce-mobile-entry-card');
+    connection.append(make('h2', '浏览器访问地址'));
+    const address = new URL('/studio', window.location.origin);
+    const label = make('label', '当前服务入口');
+    const input = make('input');
+    input.type = 'text'; input.readOnly = true; input.value = address.href;
+    input.spellcheck = false;
+    label.append(input);
+    const copy = make('button', '复制地址', 'ce-button');
+    copy.type = 'button';
+    const feedback = make('p', '', 'ce-mobile-entry-feedback');
+    feedback.setAttribute('role', 'status');
+    const hostname = address.hostname.toLowerCase();
+    const loopback = hostname === 'localhost' || hostname.endsWith('.localhost')
+      || hostname === '[::1]' || /^127(?:\.\d{1,3}){3}$/.test(hostname);
+    connection.append(label, copy, feedback, make('p', loopback
+      ? '这是本机地址，在手机上打开会指向手机自身；请使用已配置的手机可访问地址。'
+      : '请先确认手机可访问此地址。当前浏览器地址不代表手机已经能够连接。', 'ce-mobile-entry-note'));
+    const steps = make('section', '', 'ce-mobile-entry-card');
+    const list = make('ol');
+    for (const text of ['确认手机已能访问你配置的服务地址。', '在 iPhone Safari 中打开该地址，进入 /studio 工作台。', '选择项目，使用现有项目工作区；本页仅提供接入说明。']) list.append(make('li', text));
+    steps.append(make('h2', '在 iPhone 上使用'), list);
+    const capabilities = make('section', '', 'ce-mobile-entry-card');
+    capabilities.append(make('h2', '独立 App 与设备授权'), make('p', '独立 App、配对与设备授权尚未接通。App 安装包、App 的账号登录和设备授权需要后续单独接入。'));
+    const back = make('a', returnHash === '#home' ? '返回项目总览' : '返回原项目', 'ce-button');
+    back.href = returnHash;
+    page.append(connection, steps, capabilities, back);
+    container.replaceChildren(page);
+    const onCopy = async () => {
+      try {
+        if (typeof navigator.clipboard?.writeText !== 'function') throw new Error('unavailable');
+        await navigator.clipboard.writeText(address.href);
+        if (!disposed) feedback.textContent = '地址已复制';
+      } catch {
+        if (!disposed) {
+          feedback.textContent = '无法自动复制，请选中地址后手动复制。';
+          input.focus(); input.select();
+        }
+      }
+    };
+    copy.addEventListener('click', onCopy);
+    return () => { disposed = true; copy.removeEventListener('click', onCopy); };
+  }
+};

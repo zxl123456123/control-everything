@@ -53,7 +53,7 @@ test('product page loads real management modules and has no iframe pairing contr
   assert.doesNotMatch(html, /iframe|orca-surface|orca-client-url/);
 });
 
-function studioFixture({ savedCreatorUrl = null, monitorAvailable = true, unified = false } = {}) {
+function studioFixture({ savedCreatorUrl = null, monitorAvailable = true, unified = false, initialUrl = 'http://127.0.0.1:8772/studio#home', initialFailure = '' } = {}) {
   const elements = [];
   const active = { isConnected: true, focusCount: 0, focus() { this.focusCount++; } };
   function element(tag = 'div') {
@@ -98,16 +98,18 @@ function studioFixture({ savedCreatorUrl = null, monitorAvailable = true, unifie
   nodes.get('ce-studio').getRootNode = () => ({ styleSheets: [{ href: 'http://127.0.0.1/workspace.css', cssRules: [{ cssText: '.onboarding-dialog{padding:28px}' }] }, { href: 'http://127.0.0.1/studio-preview.css', cssRules: [{ cssText: '#ce-studio .ce-project-settings{color:red}' }] }] });
   nodes.get('ce-studio').append = (...values) => body.append(...values);
   Object.defineProperty(nodes.get('ce-studio'), 'innerHTML', { set() { throw new Error('Do not replace the stable shell'); } });
-  let failed = false, updates = 0, editorMounts = 0;
+  let failed = initialFailure === 'snapshot', updates = 0, editorMounts = 0;
+  const mobileMounts = [], mobileDisposals = [];
   const snapshot = { workspace: { projects: { items: [{ id: 'server-project', name: '<Real project>', directories: [{ path: 'C:/example/fixture' }] }] } }, agents: [], items: [] };
-  const callbacks = {}, boardProjects = [], projectSnapshots = [], posts = [], location = new URL('http://127.0.0.1:8772/studio#home');
-  const client = { bootstrap: async () => {}, api() {}, post: async (url, value) => { posts.push({ url, value }); return { status: 'ok', project: { id: value.id } }; }, canWrite: () => true,
+  const callbacks = {}, boardProjects = [], projectSnapshots = [], posts = [], location = new URL(initialUrl);
+  const client = { bootstrap: async () => { if (initialFailure === 'bootstrap') throw new Error('bootstrap offline'); }, api() {}, post: async (url, value) => { posts.push({ url, value }); return { status: 'ok', project: { id: value.id } }; }, canWrite: () => true,
     snapshot: async () => { if (failed) throw new Error('offline'); return snapshot; } };
   const localStorage = { getItem: key => key === 'ce-studio-creator-url' ? savedCreatorUrl : null,
     setItem: (...args) => writes.push(args), removeItem: key => removed.push(key) };
   const window = { localStorage, addEventListener(name, callback) { callbacks[name] = callback; },
     removeEventListener(name) { delete callbacks[name]; }, dispatchEvent(event) { callbacks[event.type]?.(event); },
     StudioData: { create: () => client },
+    StudioMobileEntry: { mount: (container, options) => { mobileMounts.push(options); container.innerHTML = '手机与设备说明'; return () => mobileDisposals.push(options); } },
     WorkspaceTaskCenter: { create: () => { editorMounts++; return { update() { updates++; }, setContext() {} }; } },
     WorkspaceAgentBoard: { create: () => { editorMounts++; return { load: async () => {}, setProject: (...args) => boardProjects.push(args), open() {} }; } } };
   if (monitorAvailable) window.WorkspaceProjectMonitor = { create(options) {
@@ -126,7 +128,7 @@ function studioFixture({ savedCreatorUrl = null, monitorAvailable = true, unifie
   });
   dispose = window.StudioPreview.mount(nodes.get('ce-studio'), { onProjects: (rows, metadata) => projectSnapshots.push({ rows, metadata }) });
   const flush = () => new Promise(resolve => setImmediate(resolve));
-  return { nodes, snapshot, client, location, writes, removed, mounts, monitorCalls, callbacks, window, body, elements, dialog, active, boardProjects, projectSnapshots, posts,
+  return { nodes, snapshot, client, location, writes, removed, mounts, monitorCalls, callbacks, window, body, elements, dialog, active, boardProjects, projectSnapshots, posts, mobileMounts, mobileDisposals,
     onboarding: () => onboardingOptions, dispose: () => dispose(),
     editorMounts: () => editorMounts, updates: () => updates,
     fail() { failed = true; }, flush,
@@ -138,6 +140,36 @@ function studioFixture({ savedCreatorUrl = null, monitorAvailable = true, unifie
   };
 }
 
+test('mobile navigation survives initial API failure and refresh without remounting', async () => {
+  for (const initialFailure of ['bootstrap', 'snapshot', '']) {
+    const f = studioFixture({ initialUrl: 'http://example.test/studio?project_id=p#mobile', initialFailure });
+    await f.flush();
+    assert.equal(f.mobileMounts.length, 1); assert.equal(f.mobileMounts[0].returnHash, '#home');
+    assert.equal(f.nodes.get('studio-content').innerHTML, '手机与设备说明');
+    for (const id of ['studio-rail', 'studio-topbar']) assert.match(f.nodes.get(id).innerHTML, /href="#mobile"[^>]*aria-current="page"/);
+    assert.match(f.nodes.get('studio-topbar').innerHTML, /手机与设备/);
+    f.click('refresh'); await f.flush(); assert.equal(f.mobileMounts.length, 1);
+    f.dispose(); assert.equal(f.mobileDisposals.length, 1);
+  }
+});
+test('mobile return context follows project, legacy, and history routes without stale reuse', async () => {
+  for (const initialUrl of ['http://example.test/studio#project/p/review', 'http://example.test/studio?project_id=p']) {
+    const f = studioFixture({ initialUrl, unified: true }); await f.flush();
+    const expected = initialUrl.includes('#') ? '#project/p/review' : '#project/p/workspace';
+    await f.route('mobile'); assert.equal(f.mobileMounts.at(-1).returnHash, expected);
+    await f.route(expected.slice(1)); assert.equal(f.mobileDisposals.length, 1);
+    await f.route('mobile'); assert.equal(f.mobileMounts.at(-1).returnHash, expected);
+    await f.route('home'); await f.route('mobile'); assert.equal(f.mobileMounts.at(-1).returnHash, '#home');
+    f.dispose();
+  }
+});
+test('mobile resource is loaded before Studio in both assembly paths', () => {
+  for (const file of ['web/workspace/studio-preview.html', 'web/workbench-engine/src/renderer/src/web/platform-studio-surface.tsx']) {
+    const text = fs.readFileSync(path.resolve(__dirname, '../..', file), 'utf8');
+    assert.ok(text.indexOf('/mobile-device-entry.js') >= 0);
+    assert.ok(text.indexOf('/mobile-device-entry.js') < text.indexOf('/studio-preview.js'));
+  }
+});
 test('Studio preserves mounted editors on refresh and renders only server projects', async () => {
   const f = studioFixture(); await f.flush();
   assert.match(f.nodes.get('studio-content').innerHTML, /&lt;Real project&gt;/);

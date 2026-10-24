@@ -3,6 +3,11 @@ import { projectRoute, readPlatformRoute } from './platform-route'
 
 describe('platform page routes', () => {
   const read = (hash: string, search = '') => readPlatformRoute({ hash, search })
+  it('opens mobile independently of a legacy project query', () => {
+    expect(read('#mobile')).toEqual({ view: 'mobile', id: '', tab: '' })
+    expect(read('#mobile', '?project_id=p-one')).toEqual({ view: 'mobile', id: '', tab: '' })
+    expect(read(projectRoute('p-one'), '?project_id=p-two').id).toBe('p-one')
+  })
   it('opens legacy project links and returns home without falling back to their old query', () => {
     expect(read('', '?project_id=p-one')).toEqual({
       view: 'project',

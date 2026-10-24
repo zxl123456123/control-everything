@@ -214,6 +214,30 @@ it('keeps the overview when project preparation is cancelled before bootstrap re
   expect(screen.queryByTestId('project-context')).toBeNull()
 })
 
+it('preserves the project app and bridge across the mobile page and rejects dialog navigation', async () => {
+  render(<PlatformProjectEntry />)
+  publish([project])
+  await waitFor(() => expect(screen.getByTestId('project-context').textContent).toBe('One'))
+  const app = screen.getByTestId('project-context')
+  const overview = screen.getByTestId('studio-surface') as HTMLElement
+  await act(async () => { window.location.hash = '#mobile' })
+  await waitFor(() => expect(overview.hidden).toBe(false))
+  expect(screen.getByTestId('project-context')).toBe(app)
+  await act(async () => { window.location.hash = '#project/p-one/workspace' })
+  await waitFor(() => expect(overview.hidden).toBe(true))
+  expect(screen.getByTestId('project-context')).toBe(app)
+  expect(fixture.load).toHaveBeenCalledTimes(1)
+  expect(fixture.bridgeMounts).toHaveBeenCalledTimes(1)
+  expect(fixture.bridgeUnmounts).not.toHaveBeenCalled()
+  const dialog = document.createElement('dialog')
+  dialog.setAttribute('open', '')
+  document.body.append(dialog)
+  await act(async () => { window.location.hash = '#mobile' })
+  await waitFor(() => expect(window.location.hash).toBe('#project/p-one/workspace'))
+  expect(overview.hidden).toBe(true)
+  dialog.remove()
+})
+
 it('keeps the app and pending agent bridge mounted across task and activity tabs', async () => {
   render(<PlatformProjectEntry />)
   publish([project])

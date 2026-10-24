@@ -29,11 +29,17 @@ export default function MobilePage(): React.JSX.Element {
   return ['/studio', '/workbench/web-index.html'].includes(window.location.pathname) ? (
     <div className="space-y-4 p-8">
       <div role="status" className="space-y-2">
-        <h1 className="text-lg font-medium">移动端未配置</h1>
+        <h1 className="text-lg font-medium">手机与设备</h1>
         <p className="text-sm text-muted-foreground">
-          本平台移动客户端与服务地址尚未配置。当前请使用 Web 项目工作区。
+          入口已移到工作台的“手机与设备”，可查看手机浏览器使用说明。
         </p>
       </div>
+      <button type="button" onClick={() => {
+        closeMobilePage()
+        window.location.hash = 'mobile'
+      }} className="block text-sm underline">
+        打开手机与设备
+      </button>
       <button type="button" onClick={closeMobilePage} className="text-sm underline">
         返回工作区
       </button>

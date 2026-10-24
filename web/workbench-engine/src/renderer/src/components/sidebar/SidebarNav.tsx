@@ -56,6 +56,7 @@ const SidebarNav = React.memo(function SidebarNav() {
   const worktreePaletteShortcutCombos = useShortcutKeyComboDetails('worktree.palette')
   const openAutomationsPage = useAppStore((s) => s.openAutomationsPage)
   const openMobilePage = useAppStore((s) => s.openMobilePage)
+  const closeMobilePage = useAppStore((s) => s.closeMobilePage)
   const openArtifactsPage = useAppStore((s) => s.openArtifactsPage)
   const openSkillsPage = useAppStore((s) => s.openSkillsPage)
   const openModal = useAppStore((s) => s.openModal)
@@ -67,7 +68,7 @@ const SidebarNav = React.memo(function SidebarNav() {
   const showArtifactsButton = useAppStore((s) => shouldShowArtifactsButton(s.settings))
   const showSkillsButton = useAppStore((s) => shouldShowSkillsButton(s.settings))
   const automationsActive = activeView === 'automations'
-  const mobileActive = activeView === 'mobile'
+  const mobileActive = !platformMode && activeView === 'mobile'
   const artifactsActive = activeView === 'artifacts'
   const skillsActive = activeView === 'skills'
   const mobileOnboardingBadge = useMobileSidebarOnboardingBadge(showMobileButton)
@@ -226,6 +227,11 @@ const SidebarNav = React.memo(function SidebarNav() {
               <button
                 type="button"
                 onClick={() => {
+                  if (platformMode) {
+                    if (activeView === 'mobile') closeMobilePage()
+                    window.location.hash = 'mobile'
+                    return
+                  }
                   mobileOnboardingBadge.dismiss()
                   openMobilePage()
                 }}
@@ -241,7 +247,7 @@ const SidebarNav = React.memo(function SidebarNav() {
                 />
                 <span className="min-w-0 flex-1 truncate">
                   {platformMode
-                    ? '移动端未配置'
+                    ? '手机与设备'
                     : translate('auto.components.sidebar.SidebarNav.1b5c41caee', 'Orca Mobile')}
                 </span>
                 {!platformMode && mobileOnboardingBadge.visible ? (

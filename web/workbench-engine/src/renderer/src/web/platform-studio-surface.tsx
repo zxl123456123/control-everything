@@ -24,6 +24,7 @@ const scripts = [
   '/project-space.js',
   '/agents.js',
   '/studio-data.js',
+  '/mobile-device-entry.js',
   '/studio-preview.js'
 ]
 let modules: Promise<void> | null = null

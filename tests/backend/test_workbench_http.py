@@ -158,6 +158,15 @@ class WorkbenchHTTPTests(unittest.TestCase):
         self.assertEqual(self.request('/studio')[0], 503)
         self.runtime.start.assert_not_called()
 
+    def test_mobile_guide_is_an_exact_public_javascript_resource(self):
+        from control_everything.http.workbench import WEB
+        self.assertEqual(self.request('/mobile-device-entry.js')[0], 200)
+        reply = self.last_handler.reply.call_args.args
+        self.assertEqual(reply[1], (WEB / 'workspace/mobile-device-entry.js').read_bytes())
+        self.assertEqual(reply[2], 'text/javascript; charset=utf-8')
+        self.assertEqual(self.request('/mobile-device-entry.js?token=fixture')[0], 400)
+        self.runtime.start.assert_not_called()
+
     def test_legacy_entry_returns_to_integrated_projects_and_admin_remains_explicit(self):
         self.request('/studio')
         handler = self.last_handler

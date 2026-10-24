@@ -20,7 +20,7 @@ WEB_ASSETS = (
     "workspace/news.js", "workspace/quota.js",
     "workspace/news-reader.html", "workspace/news-reader.css", "workspace/news-reader.js",
     "workspace/news-spider.js", "workspace/news-browser.js", "workspace/news-public-embed.js",
-    "workspace/studio-preview.html", "workspace/studio-preview.css", "workspace/studio-preview.js",
+    "workspace/mobile-device-entry.js", "workspace/studio-preview.html", "workspace/studio-preview.css", "workspace/studio-preview.js",
     "workspace/studio-data.js",
     "workspace/monitor-art.js", "workspace/monitor-scene.js", "workspace/monitor-model.js",
     "workspace/project-monitor.js", "workspace/project-monitor.css",

@@ -326760,7 +326760,8 @@
     "src/renderer/src/web/platform-studio-surface.test.tsx",
     "src/renderer/src/web/platform-studio-surface.tsx",
     "src/renderer/src/web/preload-api/web-runtime-credentials.test.ts",
-    "src/renderer/src/web/preload-api/web-wsl-host-unavailable.test.ts"
+    "src/renderer/src/web/preload-api/web-wsl-host-unavailable.test.ts",
+    "src/renderer/src/components/mobile/MobilePage.platform.test.tsx"
   ],
   "adapted_files": [
     {
@@ -326898,8 +326899,8 @@
     {
       "path": "src/renderer/src/components/mobile/MobilePage.tsx",
       "upstream_sha256": "15f121aa2d13a6daafd67fa8244fbf6e9542cae3c15e652c615b2ff25d0a478c",
-      "current_sha256": "2f5b23fdeec77c3b3f6875732ed7962381f612dcf0bcf49718bb14d8adbf88a3",
-      "reason": "M1a-W: platform mobile status does not mount upstream pairing effects; M1a navigation: preserve a single project workspace while integrating platform business views"
+      "current_sha256": "b39ed08729458031898297f72de4eeea3bab9c9385df1c93f2f7048ff04f216f",
+      "reason": "M1a-W: platform mobile status does not mount upstream pairing effects; M1a navigation: preserve a single project workspace while integrating platform business views; Mobile entry: unify Studio access and restore the previous project view"
     },
     {
       "path": "src/renderer/src/components/new-workspace/NewWorkspaceComposerProjectSection.tsx",
@@ -326970,14 +326971,14 @@
     {
       "path": "src/renderer/src/components/sidebar/SidebarNav.test.tsx",
       "upstream_sha256": "60f8dbd6f22d356b42cfbf9862016f010f2faaf6a5a2d01ff597e7d60c2b21fa",
-      "current_sha256": "6157805c467587e075566cd14a37f989891cc02e4a627a608e9d2da3605cdbb1",
-      "reason": "M1a-W: rendered platform mobile entry regression; Unify project ownership, task editing and native Agent activity in the integrated workspace"
+      "current_sha256": "2891de732e4a4f54056e04e615e70356296c95a1fae3ad73fe94bb5f79e73332",
+      "reason": "M1a-W: rendered platform mobile entry regression; Unify project ownership, task editing and native Agent activity in the integrated workspace; Mobile entry: unify Studio access and restore the previous project view"
     },
     {
       "path": "src/renderer/src/components/sidebar/SidebarNav.tsx",
       "upstream_sha256": "f0e68df8edcdc64da455c2104433843fec0baf6dcb85513a0129bb21957b9ff1",
-      "current_sha256": "11590b47f5d295bb1128e2fa2593f16a842ed018fab4c7919ff19a66dc1d48a3",
-      "reason": "M1a-W: platform mobile entry states unconfigured; M1a navigation: preserve a single project workspace while integrating platform business views; Unify project ownership, task editing and native Agent activity in the integrated workspace"
+      "current_sha256": "ff4336c0807f6ef47cbb00ac0e5ed90602f61632db9b71c0e49c88e4224db802",
+      "reason": "M1a-W: platform mobile entry states unconfigured; M1a navigation: preserve a single project workspace while integrating platform business views; Unify project ownership, task editing and native Agent activity in the integrated workspace; Mobile entry: unify Studio access and restore the previous project view"
     },
     {
       "path": "src/renderer/src/components/sidebar/SidebarSettingsHelpMenu.test.tsx",

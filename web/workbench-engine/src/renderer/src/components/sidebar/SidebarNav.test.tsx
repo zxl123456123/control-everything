@@ -17,6 +17,7 @@ const mocks = vi.hoisted(() => ({
   openAutomationsPage: vi.fn(),
   openActivityPage: vi.fn(),
   openMobilePage: vi.fn(),
+  closeMobilePage: vi.fn(),
   openArtifactsPage: vi.fn(),
   openModal: vi.fn(),
   updateSettings: vi.fn(),
@@ -130,6 +131,7 @@ function setSidebarState({
     openAutomationsPage: mocks.openAutomationsPage,
     openActivityPage: mocks.openActivityPage,
     openMobilePage: mocks.openMobilePage,
+    closeMobilePage: mocks.closeMobilePage,
     openArtifactsPage: mocks.openArtifactsPage,
     openModal: mocks.openModal,
     updateSettings: mocks.updateSettings,
@@ -269,13 +271,37 @@ describe('SidebarNav', () => {
     expect(shouldShowMobileButton({})).toBe(true)
   })
 
-  it('labels the platform mobile entry as unconfigured without an install badge', async () => {
-    window.history.replaceState(null, '', '/workbench/web-index.html?project_id=sample')
+  it.each(['/studio', '/workbench/web-index.html?project_id=sample'])('opens unified mobile from a normal view at %s', async (url) => {
+    window.history.replaceState(null, '', url)
+    mocks.state.activeView = 'terminal'
     const container = await renderSidebarNav()
-    const button = getButtonByText(container, '移动端未配置')
+    const button = getButtonByText(container, '手机与设备')
     expect(container.textContent).not.toContain('Orca Mobile')
     await clickButton(button)
-    expect(mocks.openMobilePage).toHaveBeenCalledTimes(1)
+    expect(window.location.hash).toBe('#mobile')
+    expect(mocks.state.activeView).toBe('terminal')
+    expect(mocks.openMobilePage).not.toHaveBeenCalled()
+    expect(mocks.closeMobilePage).not.toHaveBeenCalled()
+    expect(mocks.dismissMobileOnboardingBadge).not.toHaveBeenCalled()
+  })
+
+  it.each(['/studio', '/workbench/web-index.html?project_id=sample'])('restores a persisted mobile view before navigating at %s', async (url) => {
+    window.history.replaceState(null, '', url)
+    mocks.state.activeView = 'mobile'
+    mocks.state.previousViewBeforeMobile = 'terminal'
+    mocks.closeMobilePage.mockImplementation(() => {
+      expect(window.location.hash).toBe('')
+      mocks.state.activeView = mocks.state.previousViewBeforeMobile
+    })
+    const container = await renderSidebarNav()
+    const button = getButtonByText(container, '手机与设备')
+    expect(button.hasAttribute('aria-current')).toBe(false)
+    await clickButton(button)
+    expect(mocks.closeMobilePage).toHaveBeenCalledTimes(1)
+    expect(mocks.state.activeView).toBe('terminal')
+    expect(window.location.hash).toBe('#mobile')
+    expect(mocks.openMobilePage).not.toHaveBeenCalled()
+    expect(mocks.dismissMobileOnboardingBadge).not.toHaveBeenCalled()
   })
 
   it('keeps platform tasks in the outer project navigation only', async () => {
@@ -284,6 +310,16 @@ describe('SidebarNav', () => {
     expect(container.textContent).not.toContain('项目事项')
     expect(queryButtonByText(container, 'Tasks')).toBeNull()
     expect(mocks.openTaskPage).not.toHaveBeenCalled()
+  })
+
+  it('keeps the standalone mobile action in dismissal then open order', async () => {
+    const container = await renderSidebarNav()
+    await clickButton(getButtonByText(container, 'Orca Mobile'))
+    expect(mocks.dismissMobileOnboardingBadge).toHaveBeenCalledTimes(1)
+    expect(mocks.openMobilePage).toHaveBeenCalledTimes(1)
+    expect(mocks.dismissMobileOnboardingBadge.mock.invocationCallOrder[0]).toBeLessThan(mocks.openMobilePage.mock.invocationCallOrder[0])
+    expect(mocks.closeMobilePage).not.toHaveBeenCalled()
+    expect(window.location.hash).toBe('')
   })
 
   it('hides the Artifacts entry by default for older settings', () => {
