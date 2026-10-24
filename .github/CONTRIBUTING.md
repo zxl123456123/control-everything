@@ -2,7 +2,7 @@
 
 仓库协作约定见 [AGENTS.md](../AGENTS.md)。本指南约束共同交付结果，不要求成员使用同一助手、模型或个人技能。
 
-公开架构、使用说明和开发文档统一放在 `docs/`，文档入口见[项目文档](../docs/README.md)；接入示例放在 `docs/examples/`，开发脚本放在 `tools/scripts/`。`docs/current/` 及已有私人记录仍只留本机，新开发记录放 ignored `work/`。下文命令均从仓库根目录执行。
+公开架构、使用说明和开发文档统一放在 `docs/`，文档入口见[项目文档](../docs/README.md)；接入示例放在 `docs/examples/`，开发脚本放在 `tools/scripts/`。活跃任务的需求、调研、方案、实施与审查记录统一放 ignored `docs/current/<feature>/`，以 README.md 记录当前状态、负责人、文件归属及证据链接；日志、截图、隔离数据与构建产物放 ignored `work/<feature>/`。两者均只留本机、不提交。已有私人记录保留原路径和历史证据，恢复时由任务 README 链接定位，不批量搬迁。下文命令均从仓库根目录执行。
 
 ## 功能目录与新增代码归属
 
