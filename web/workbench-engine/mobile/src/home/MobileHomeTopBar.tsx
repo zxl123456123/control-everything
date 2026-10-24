@@ -3,7 +3,13 @@ import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { OrcaLogo } from '../components/OrcaLogo'
 import { colors, spacing } from '../theme/mobile-theme'
 
-export function MobileHomeTopBar({ onOpenSettings }: { onOpenSettings: () => void }) {
+export function MobileHomeTopBar({
+  onOpenSettings,
+  onOpenPlatformAccount
+}: {
+  onOpenSettings: () => void
+  onOpenPlatformAccount: () => void
+}) {
   return (
     <View style={styles.topBar}>
       <View style={styles.brandLockup}>
@@ -12,15 +18,25 @@ export function MobileHomeTopBar({ onOpenSettings }: { onOpenSettings: () => voi
         </View>
         <Text style={styles.brandName}>Orca</Text>
       </View>
-      <Pressable
-        style={({ pressed }) => [styles.iconButton, pressed && styles.iconButtonPressed]}
-        onPress={onOpenSettings}
-        hitSlop={8}
-        accessibilityRole="button"
-        accessibilityLabel="Settings"
-      >
-        <Settings size={18} color={colors.textSecondary} />
-      </Pressable>
+      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="平台账号"
+          onPress={onOpenPlatformAccount}
+          style={{ minHeight: 44, justifyContent: 'center', padding: spacing.sm }}
+        >
+          <Text style={{ color: colors.textSecondary }}>平台账号</Text>
+        </Pressable>
+        <Pressable
+          style={({ pressed }) => [styles.iconButton, pressed && styles.iconButtonPressed]}
+          onPress={onOpenSettings}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel="Settings"
+        >
+          <Settings size={18} color={colors.textSecondary} />
+        </Pressable>
+      </View>
     </View>
   )
 }

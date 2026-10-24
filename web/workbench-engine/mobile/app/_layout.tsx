@@ -26,6 +26,7 @@ import { extractPairingCodeFromUrl } from '../src/transport/pairing'
 import { recoverMobileRelayPairing } from '../src/transport/mobile-relay-pairing-recovery'
 import { appUpdateChecker } from '../src/app-update/app-update-runtime'
 import { SideSafeArea } from '../src/layout/side-safe-area'
+import { startPlatformAccount } from '../src/platform-account/controller'
 
 // Why: keeps the native splash screen visible until the React tree is mounted
 // and ready to render. Without this the user sees a blank white/black frame
@@ -73,6 +74,7 @@ export default function RootLayout() {
   useEffect(() => startPushTokenSync(), [])
   // Cold start, then foreground and timer checks on the desktop updater's cadence.
   useEffect(() => appUpdateChecker.start(), [])
+  useEffect(() => startPlatformAccount(), [])
   useEffect(() => startAndroidForegroundPushPresentation(), [])
 
   // Why: route `orca://pair?...` deep links to the confirm screen so
@@ -231,6 +233,8 @@ export default function RootLayout() {
               options={{ headerShown: false, presentation: 'modal', gestureEnabled: false }}
             />
             <Stack.Screen name="settings" options={{ headerShown: false }} />
+            <Stack.Screen name="platform-account" options={{ title: '平台账号' }} />
+            <Stack.Screen name="oauth/callback" options={{ title: '平台账号授权' }} />
             <Stack.Screen name="terminal-settings" options={{ headerShown: false }} />
             <Stack.Screen name="native-chat-settings" options={{ headerShown: false }} />
             <Stack.Screen name="browser-settings" options={{ headerShown: false }} />

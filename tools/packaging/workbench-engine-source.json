@@ -326765,8 +326765,20 @@
     "src/renderer/src/web/preload-api/web-wsl-host-unavailable.test.ts",
     "src/renderer/src/web/standalone-web-root.test.tsx",
     "src/renderer/src/web/standalone-web-root.tsx",
+    "mobile/app/oauth/callback.tsx",
+    "mobile/app/platform-account.tsx",
     "mobile/src/app-update/app-update-runtime.test.ts",
-    "mobile/src/diagnostics/connection-diagnostics-view.test.tsx"
+    "mobile/src/diagnostics/connection-diagnostics-view.test.tsx",
+    "mobile/src/platform-account/PlatformAccountScreen.test.tsx",
+    "mobile/src/platform-account/PlatformAccountScreen.tsx",
+    "mobile/src/platform-account/config.test.ts",
+    "mobile/src/platform-account/config.ts",
+    "mobile/src/platform-account/controller.test.ts",
+    "mobile/src/platform-account/controller.ts",
+    "mobile/src/platform-account/oidc.test.ts",
+    "mobile/src/platform-account/oidc.ts",
+    "mobile/src/platform-account/secure-store.test.ts",
+    "mobile/src/platform-account/secure-store.ts"
   ],
   "adapted_files": [
     {
@@ -327256,6 +327268,12 @@
       "reason": "Add self-hosted native account access and isolate platform credentials and outbound services."
     },
     {
+      "path": "mobile/app/_layout.tsx",
+      "upstream_sha256": "338d89b78b34c628b2b610ece65a47f5c4a7493c35dd9207be93558a6f178b2c",
+      "current_sha256": "f825a6a27d477162ad1e725ef82901329af09219ed7bd3eacc58092a65552d59",
+      "reason": "Add self-hosted native account access and isolate platform credentials and outbound services."
+    },
+    {
       "path": "mobile/package.json",
       "upstream_sha256": "5874334ec32a7e9f260969b6e2e028ca96421959dc8e808f6c19b0d6da1500c5",
       "current_sha256": "572209da1db7259fb436acb583ecdbb78fd6aa3ad6eee265f45b6b579e7f0163",
@@ -327304,9 +327322,27 @@
       "reason": "Add self-hosted native account access and isolate platform credentials and outbound services."
     },
     {
+      "path": "mobile/src/home/MobileHomeScreen.tsx",
+      "upstream_sha256": "e829d38edd458c51f1745cfbcedbc9dd865b02fd354a3f4fc259d41f49687aba",
+      "current_sha256": "c50d8f37bcf0e290f6597285e235e8d6aa08f1fa9600627e73c46cfc20186889",
+      "reason": "Add self-hosted native account access and isolate platform credentials and outbound services."
+    },
+    {
+      "path": "mobile/src/home/MobileHomeTopBar.tsx",
+      "upstream_sha256": "037c6fd7cc48517d990eeeda469fc15b09e585e7aab41fe115d5054e63145069",
+      "current_sha256": "0631d8ef2f44a0b81733fa7979076974ccb8bc497a14811dfa3461ad0dea196c",
+      "reason": "Add self-hosted native account access and isolate platform credentials and outbound services."
+    },
+    {
       "path": "mobile/src/settings/settings-app-update-section.tsx",
       "upstream_sha256": "9dadbfe20a30fbfeb79b8ed89a69b6299ab892c2d433f3e229ef45a9eab8edfa",
       "current_sha256": "0f9577fb1a3825fa432c300f72dc8847a039a09d7fc49427d6221fb0d9b41406",
+      "reason": "Add self-hosted native account access and isolate platform credentials and outbound services."
+    },
+    {
+      "path": "mobile/src/test-support/expo-crypto-node.ts",
+      "upstream_sha256": "dc72792e1331e9055b8df81d0571acaf66e5dd813c3ff6e7fa638d4a73564aa6",
+      "current_sha256": "85675ba8e5412410972f3321c5d5a4a5ebd8c07c17e637d3dbf576d5281591c8",
       "reason": "Add self-hosted native account access and isolate platform credentials and outbound services."
     }
   ],
