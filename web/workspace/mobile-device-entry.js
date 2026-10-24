@@ -33,7 +33,7 @@ window.StudioMobileEntry = {
     for (const text of ['确认手机已能访问你配置的服务地址。', '在 iPhone Safari 中打开该地址，进入 /studio 工作台。', '选择项目，使用现有项目工作区；本页仅提供接入说明。']) list.append(make('li', text));
     steps.append(make('h2', '在 iPhone 上使用'), list);
     const capabilities = make('section', '', 'ce-mobile-entry-card');
-    capabilities.append(make('h2', '独立 App 与设备授权'), make('p', '独立 App、配对与设备授权尚未接通。App 安装包、App 的账号登录和设备授权需要后续单独接入。'));
+    capabilities.append(make('h2', '独立 App 与设备授权'), make('p', '原生 App 已加入平台账号接入代码，需要配置自建身份服务并重新构建后验证。iPhone 安装与真实登录尚未验证。平台账号登录不等于电脑授权；电脑授权与原生远程连接尚未接入。'));
     const back = make('a', returnHash === '#home' ? '返回项目总览' : '返回原项目', 'ce-button');
     back.href = returnHash;
     page.append(connection, steps, capabilities, back);

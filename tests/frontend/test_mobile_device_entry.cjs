@@ -29,8 +29,10 @@ test('uses only origin and explains browser access and unconfigured capabilities
   const f = fixture('https://example.test:8443', undefined, '#project/p/review');
   assert.equal(f.input.value, 'https://example.test:8443/studio');
   assert.ok(f.elements.some(n => n.href === '#project/p/review' && n.textContent === '返回原项目'));
-  assert.match(f.text(), /Safari/); assert.match(f.text(), /尚未接通/);
-  assert.match(f.text(), /App 的账号登录和设备授权/);
+  assert.match(f.text(), /Safari/); assert.match(f.text(), /尚未接入/);
+  assert.match(f.text(), /平台账号登录不等于电脑授权/);
+  assert.match(f.text(), /iPhone 安装与真实登录尚未验证/);
+  assert.match(f.text(), /配置自建身份服务并重新构建后验证/);
   assert.match(f.text(), /确认手机可访问/);
   assert.doesNotMatch(f.text(), /0 台|已连接|公网可达|private|下载|配对码/);
   assert.equal(f.elements.filter(n => n.tagName === 'button').length, 1);
