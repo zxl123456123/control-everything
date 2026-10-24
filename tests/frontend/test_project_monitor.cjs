@@ -87,6 +87,19 @@ test('mount is inert; polling is serial and invisible views abort and ignore lat
   assert.equal(f.draws.length, 1); assert.equal(f.draws[0].flows.length, 0); assert.equal(f.timers.size, 1);
   f.monitor.destroy(); assert.equal(f.timers.size, 0); assert.equal(f.listeners.size, 0); assert.equal(f.destroyed(), 1);
 });
+test('unchanged polling updates its timestamp without rebuilding controls or redrawing the scene', async () => {
+  let stamp = 0;
+  const f = fixture(async () => ({ ...snapshot(), sampled_at: `2026-10-23T00:00:0${stamp++}Z` }));
+  f.monitor.setActive(true); await flush();
+  const control = f.root.all.find(row => row.attributes['data-monitor-control'] === 'task:task');
+  control.focus();
+  f.tick(); await flush();
+  assert.equal(f.reads.length, 2); assert.equal(f.draws.length, 1);
+  assert.equal(f.document.activeElement, control);
+  assert.equal(f.root.all.find(row => row.attributes['data-monitor-control'] === 'task:task'), control);
+  f.monitor.destroy();
+});
+
 test('failed reads preserve facts as stale and recovery does not replay history', async () => {
   let fail = false; const f = fixture(async () => { if (fail) throw new Error('offline'); return snapshot(); });
   f.monitor.setActive(true); await flush(); fail = true; f.tick(); await flush();

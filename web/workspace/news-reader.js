@@ -22,6 +22,9 @@
   let visibleIds = [], translationRun = 0, translationAbort = null, renderedKey = '', destroyed = false;
   let mediaView = 'article', imageIndex = 0, mediaKey = '';
   let researchJob = null, researchTimer = null, researchTopic = 'coding', researchBusy = false, researchFrameSeq = null;
+  let feedReading = false, researchReading = false, suspended = false, feedAttempt = 0, lastFeedKey = '', feedFailed = false;
+  let historyReading = false, historyRestored = false;
+  const canPoll = () => !destroyed && !suspended && !document.hidden;
   const researchEvents = new Map(), researchData = new Map();
   const topicQueries = {coding:'AI coding workflow coding agents tips', agents:'AI agents context engineering tools workflows', claude:'Claude Code coding tips workflows', models:'GPT Gemini coding models releases', tibo:'Tibo AI coding agents'};
   const changeText = (node, text) => { if (node.textContent !== text) node.textContent = text; };
@@ -384,7 +387,7 @@
   document.querySelectorAll('[data-language]').forEach(control => control.addEventListener('click', () => { language = control.dataset.language; stopTranslation(); document.querySelectorAll('[data-language]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.language === language))); renderedKey = ''; renderArticle(); }));
   $('theme').addEventListener('click', () => { const dark = document.documentElement.dataset.theme !== 'dark'; document.documentElement.dataset.theme = dark ? 'dark' : 'light'; $('theme').setAttribute('aria-label', dark ? '切换浅色' : '切换深色'); });
   function syncMotion() {
-    const show = !paused && !document.hidden;
+    const show = !paused && canPoll();
     if (show && !$('research-panel').open) engine?.resume(); else engine?.pause();
     if (show && $('research-panel').open) researchEngine?.resume(); else researchEngine?.pause();
     $('pause').textContent = $('research-pause').textContent = paused ? '继续动画' : '暂停动画';
@@ -492,7 +495,7 @@
     $('research-activity').textContent = value.state === 'running' ? latest?.message || '等待采集进展…' : '本次采集已结束。下方是步骤截图，可点来源回看；新内容在阅读室查看。';
     const labels = {running:'正在采集', complete:'采集完成', partial:'部分来源已采集', failed:'采集未完成'};
     $('research-state').textContent = labels[value.state];
-    if (value.state === 'running') { setCollecting(true); clearTimeout(researchTimer); researchTimer = setTimeout(pollResearch, 1000); return; }
+    if (value.state === 'running') { setCollecting(true); clearTimeout(researchTimer); if (canPoll()) researchTimer = setTimeout(pollResearch, 1000); return; }
     clearTimeout(researchTimer); setCollecting(false);
     if (arriving) { const extracted = events.findLast(event => event.stage === 'extract' && frameUrl(event.screenshot)); if (extracted) showResearchFrame(extracted); }
     if (value.result) { if (!restoring) applySnapshot(value.result, true, true); $('research-outcome').textContent = restoring ? '上次采集记录，可点选步骤与来源回看。' : value.state === 'partial' ? '可用内容已收集，部分来源受阻。' : '新内容已收集，阅读进度已保留。'; if (!restoring) notice($('research-outcome').textContent); }
@@ -500,19 +503,27 @@
     if (value.error && typeof value.error === 'string') $('research-outcome').textContent += ` ${value.error}`;
   }
   async function restoreResearch() {
+    if (!canPoll() || historyReading || historyRestored) return;
+    historyReading = true;
     try {
-      const response = await readerFetch('/research/latest', {cache:'no-store'}); if (!response.ok || researchJob || researchBusy) return;
-      const value = await response.json(), job = value?.job; if (!job || researchJob || researchBusy) return;
+      const response = await readerFetch('/research/latest', {cache:'no-store'}); if (!response.ok || destroyed) return;
+      if (researchJob || researchBusy) return;
+      const value = await response.json(), job = value?.job; if (destroyed) return;
+      historyRestored = true;
+      if (!job || researchJob || researchBusy) return;
       if (typeof job.query === 'string') $('research-query').value = job.query;
       if (topicQueries[job.topic]) researchTopic = job.topic;
       document.querySelectorAll('[data-topic]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.topic === researchTopic)));
       acceptResearch(job, true);
     } catch { /* Reading remains available when history cannot be loaded. */ }
+    finally { historyReading = false; }
   }
   async function pollResearch() {
-    if (destroyed || !researchBusy || !researchJob) return;
-    try { const response = await readerFetch('/research?id=' + encodeURIComponent(researchJob), {cache:'no-store'}); if (!response.ok) throw new Error('采集状态连接暂时中断'); acceptResearch(await response.json()); }
-    catch { if (!destroyed && researchBusy) { $('research-state').textContent = '连接暂时中断，正在重试'; researchTimer = setTimeout(pollResearch, 3000); } }
+    if (!canPoll() || researchReading || !researchBusy || !researchJob) return;
+    clearTimeout(researchTimer); researchReading = true;
+    try { const response = await readerFetch('/research?id=' + encodeURIComponent(researchJob), {cache:'no-store'}); if (!response.ok) throw new Error('采集状态连接暂时中断'); const value = await response.json(); if (!destroyed) acceptResearch(value); }
+    catch { if (canPoll() && researchBusy) { $('research-state').textContent = '连接暂时中断，正在重试'; researchTimer = setTimeout(pollResearch, 3000); } }
+    finally { researchReading = false; }
   }
   $('refresh').addEventListener('click', () => {
     if (!$('research-panel').open) $('research-panel').showModal();
@@ -564,18 +575,31 @@
     $('directory').inert = mobile && $('animation-stage').dataset.directory !== 'open';
   }
   $('article-scroll').addEventListener('scroll', cancelInvisible, {passive:true}); $('title-list').addEventListener('scroll', cancelInvisible, {passive:true}); window.addEventListener('resize', () => { syncHomeLayout(); cancelInvisible(); });
-  document.addEventListener('visibilitychange', syncMotion);
-  window.addEventListener('pagehide', event => { if (event.persisted) { engine?.pause(); researchEngine?.pause(); } else { destroyed = true; clearTimeout(researchTimer); clearTimeout(feedTimer); clearTimeout(articleRetry); if (frameObjectUrl) URL.revokeObjectURL(frameObjectUrl); stopTranslation(); engine?.destroy(); researchEngine?.destroy(); } });
-  window.addEventListener('pageshow', event => { if (event.persisted) syncMotion(); });
+  function syncActivity() {
+    syncMotion();
+    if (!canPoll()) { clearTimeout(researchTimer); clearTimeout(feedTimer); return; }
+    void readFeeds(false, feedAttempt).then(() => restoreResearch());
+    if (researchBusy) void pollResearch();
+  }
+  document.addEventListener('visibilitychange', syncActivity);
+  window.addEventListener('pagehide', event => { if (event.persisted) { suspended = true; syncActivity(); } else { destroyed = true; clearTimeout(researchTimer); clearTimeout(feedTimer); clearTimeout(articleRetry); if (frameObjectUrl) URL.revokeObjectURL(frameObjectUrl); stopTranslation(); engine?.destroy(); researchEngine?.destroy(); } });
+  window.addEventListener('pageshow', event => { if (event.persisted) { suspended = false; syncActivity(); } });
   async function readFeeds(refresh = false, attempt = 0) {
+    if (!canPoll() || feedReading) return;
+    feedReading = true; feedAttempt = attempt;
     clearTimeout(feedTimer); $('refresh-feeds').disabled = true;
     try {
       const response = await readerFetch(refresh ? '/reader/refresh' : '/sample', refresh ? {method:'POST', headers:{'Content-Type':'application/json'}, body:'{}'} : {cache:'no-store'});
       if (!response.ok) throw new Error('新闻暂未更新，保留本机阅读记录。');
-      const value = await response.json(); applySnapshot(value, refresh, true);
-      if (value.refreshing && attempt < 35) feedTimer = setTimeout(() => { if (!destroyed) readFeeds(false, attempt + 1); }, 1500);
-    } catch (error) { $('snapshot-note').textContent = error.message; render(); }
-    finally { $('refresh-feeds').disabled = false; }
+      const value = await response.json(); if (destroyed) return;
+      const key = JSON.stringify([value.reader_id, value.sample?.captured_at,
+        value.sample?.sources?.map(source => [source.id, source.source_id, source.reason]),
+        Object.entries(value.sample?.streams || {}).map(([name, envelope]) => [name, envelope.items]), value.covers?.items]);
+      if (key !== lastFeedKey || feedFailed) { applySnapshot(value, refresh, true); lastFeedKey = key; }
+      feedFailed = false;
+      if (canPoll() && value.refreshing && attempt < 35) feedTimer = setTimeout(() => readFeeds(false, attempt + 1), 1500);
+    } catch (error) { if (!destroyed) { feedFailed = true; $('snapshot-note').textContent = error.message; } }
+    finally { feedReading = false; if (!destroyed) $('refresh-feeds').disabled = false; }
   }
   $('refresh-feeds').addEventListener('click', () => readFeeds(true));
   async function start() {
