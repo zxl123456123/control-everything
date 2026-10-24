@@ -18,7 +18,7 @@ from tests.e2e import remote_device_acceptance as harness
 
 class AcceptanceHarnessTests(unittest.TestCase):
     def setUp(self):
-        self.options, self.posts = {}, []
+        self.options, self.posts, self.client_headers = {}, [], []
         self.states = {"a": "online", "b": "online"}
         case = self
         class Handler(BaseHTTPRequestHandler):
@@ -26,6 +26,7 @@ class AcceptanceHarnessTests(unittest.TestCase):
                 pass
 
             def serve(self):
+                case.client_headers.append((self.path, self.headers.get_all("X-Session-Client", [])))
                 cookie = SimpleCookie(self.headers.get("Cookie", ""))
                 owner = cookie["oauth"].value if "oauth" in cookie else None
                 valid = owner in ("a", "b") and (cookie.get("__Host-ce_remote") is not None
@@ -47,6 +48,8 @@ class AcceptanceHarnessTests(unittest.TestCase):
                         return self.reply(503, {})
                     return self.reply(200, '<head><meta name="ce-remote-context" content="' + owner.upper() * 32 + '"></head>')
                 if self.path == "/api/bootstrap":
+                    if self.headers.get_all("X-Session-Client", []) != ["panel"]:
+                        return self.reply(403, {"error": "client_header_required"})
                     if self.headers.get("X-CE-Context") != owner.upper() * 32 and not case.options.get("accept_cross_context"):
                         return self.reply(403, {})
                     if case.states[owner] != "online":
@@ -94,6 +97,15 @@ class AcceptanceHarnessTests(unittest.TestCase):
         report = {"checks": []}
         harness.run(self.config, report, **options)
         return report
+
+    def test_peer_sends_actual_panel_header_before_context_negative_checks(self):
+        peer = harness.Peer(self.config["origin"], self.config["a"])
+        status, _, _ = peer.request("/api/bootstrap", headers={"X-CE-Context": "A" * 32})
+        self.assertEqual(self.client_headers[-1], ("/api/bootstrap", ["panel"]))
+        self.assertEqual(status, 200)
+        status, _, _ = peer.request("/api/bootstrap", headers={"X-CE-Context": "B" * 32})
+        self.assertEqual(status, 403)
+        self.assertEqual(self.client_headers[-1], ("/api/bootstrap", ["panel"]))
 
     def test_default_checks_pass_without_any_post(self):
         report = self.run_harness()

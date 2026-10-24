@@ -35,7 +35,7 @@ class Peer:
         authority = urlsplit(self.origin).netloc
         connection = http.client.HTTPSConnection(authority, timeout=timeout)
         values = {"Cookie": cookie if cookie is not None else "; ".join(f"{key}={item.value}" for key, item in self.cookies.items()),
-                  "Origin": self.origin, **(headers or {})}
+                  "Origin": self.origin, "X-Session-Client": "panel", **(headers or {})}
         if body is not None:
             values["Content-Type"] = "application/json"
         try:
