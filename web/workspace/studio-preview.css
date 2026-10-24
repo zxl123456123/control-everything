@@ -459,3 +459,26 @@ body:has(#ce-studio){margin:0;background:#f7f7f5}
 #ce-studio #studio-agent-board .group-done .badge{color:var(--ce-green);background:var(--ce-green-bg)}
 @media(max-width:700px){#ce-studio .ce-overview-toolbar .ce-search{order:2;width:auto;flex:1 1 100%}#ce-studio .ce-overview-toolbar .ce-segment{margin-right:auto}#ce-studio .ce-overview-recent{padding-left:0}}
 @media(max-width:520px){#ce-studio .ce-overview-heading{align-items:flex-start;gap:10px}#ce-studio .ce-overview-heading .ce-button{font-size:12px;padding:8px;flex:none}#ce-studio .ce-overview-stats>div{padding:14px 12px}#ce-studio .ce-overview-stats strong{font-size:24px}#ce-studio .ce-overview-stats span{font-size:10px}#ce-studio .ce-overview-toolbar{gap:8px}#ce-studio .ce-overview-toolbar .ce-segment button{font-size:12px;padding:5px 8px}#ce-studio .ce-overview-toolbar select{min-width:104px;padding-left:8px}#ce-studio .ce-overview-card{padding:16px}#ce-studio .ce-overview-title{gap:9px}#ce-studio .ce-overview-title h2{font-size:16px}#ce-studio .ce-overview-title>.ce-project-icon{width:32px;height:32px}#ce-studio .ce-overview-bottom{flex-wrap:wrap;gap:14px}#ce-studio .ce-recorded-progress{width:100%}#ce-studio .ce-overview-actions{width:100%;justify-content:flex-end}#ce-studio .ce-overview-states .ce-project-state{font-size:10px;padding:2px 6px}}
+
+/* Project groups share the same business columns in global and project views. */
+#ce-studio .agent-board-groups[data-business-groups="true"]{display:block}
+#ce-studio .agent-project-group{margin:0 0 18px;border:1px solid var(--ce-line);border-radius:12px;background:var(--ce-panel)}
+#ce-studio .agent-project-group>summary{cursor:pointer;padding:14px 16px;display:flex;align-items:center;flex-wrap:wrap;gap:6px 10px;font-size:14px;overflow-wrap:anywhere}
+#ce-studio .agent-project-group>summary::before{content:"";width:6px;height:6px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(-45deg);flex:none}
+#ce-studio .agent-project-group[open]>summary::before{transform:rotate(45deg)}
+#ce-studio .agent-project-group>summary strong{flex:1;min-width:0;font-weight:600}
+#ce-studio .agent-project-stats{flex:1 1 100%;margin-left:16px;font-size:12px;font-weight:400;color:var(--ce-sub)}
+#ce-studio .agent-project-attention{padding:2px 7px;border-radius:5px;font-size:11px;font-weight:500;white-space:nowrap;color:var(--ce-amber);background:var(--ce-amber-bg)}
+#ce-studio .agent-project-group[open]>summary{border-bottom:1px solid var(--ce-faint)}
+#ce-studio .agent-project-group>div,#ce-studio .agent-project-group>.group-unknown,#ce-studio .agent-project-group>.agent-task-history{margin:14px}
+#ce-studio .agent-project-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+#ce-studio .agent-project-actions .button{font-size:12px;min-height:32px;padding:5px 10px}
+#ce-studio .agent-task-columns{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:start}
+#ce-studio .agent-task-history{margin-top:14px;padding:12px;border-top:1px solid var(--ce-faint)}
+#ce-studio .agent-task-history>summary{cursor:pointer;font-size:13px;color:var(--ce-sub)}
+#ce-studio .agent-task-card[data-state="blocked"] .badge{color:var(--ce-red);background:var(--ce-red-bg)}
+#ce-studio .ce-scope-note{font-size:13px;color:var(--ce-sub);margin-bottom:16px}
+#ce-studio .ce-scope-note a{margin-left:10px;color:var(--ce-primary)}
+@media(max-width:760px){#ce-studio .agent-task-columns{grid-template-columns:1fr}#ce-studio .agent-project-group>summary{padding:12px}}
+
+#ce-studio .agent-task-card .agent-task-attention{margin-left:6px;color:var(--ce-amber);background:var(--ce-amber-bg)}

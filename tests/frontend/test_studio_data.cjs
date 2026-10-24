@@ -543,3 +543,35 @@ test('project count retains failed refresh evidence after changing task routes',
   assert.match(f.nodes.get('studio-status').textContent, /本项目 1 项事项.*offline.*上次读取/);
   f.dispose();
 });
+
+
+test('unified tasks expose global navigation, omit permanent filters and keep legacy ranges explicit', async () => {
+  const f = studioFixture({ unified: true }); await f.flush();
+  await f.route('inbox');
+  assert.match(f.nodes.get('studio-rail').innerHTML, /href="#inbox"[^>]*aria-current="page"/);
+  assert.match(f.nodes.get('studio-topbar').innerHTML, /href="#inbox"[^>]*aria-current="page">事项/);
+  assert.doesNotMatch(f.nodes.get('studio-topbar').innerHTML, /<span> \/ 事项<\/span>/);
+  assert.doesNotMatch(f.nodes.get('studio-topbar').innerHTML, /data-action="refresh"/);
+  assert.doesNotMatch(f.nodes.get('studio-content').innerHTML, /aria-label="事项筛选"|ce-tabs/);
+  const reads = f.snapshotReads.length;
+  await f.route('inbox/review');
+  assert.match(f.nodes.get('studio-content').innerHTML, /当前仅显示待验收事项.*href="#inbox">返回全部事项/);
+  assert.deepEqual(f.boardProjects.at(-1), ['', 'review']);
+  await f.route('project/server-project/attention');
+  assert.match(f.nodes.get('studio-content').innerHTML, /当前仅显示需处理事项.*href="#project\/server-project\/tasks">返回本项目全部/);
+  assert.deepEqual(f.boardProjects.at(-1), ['server-project', 'attention']);
+  assert.equal(f.snapshotReads.length, reads);
+  f.dispose();
+});
+
+
+test('unified task pages omit the old duplicate progress link while monitor keeps its return action', async () => {
+  const f = studioFixture({ unified: true }); await f.flush();
+  for (const tab of ['tasks', 'review']) {
+    await f.route('project/server-project/' + tab);
+    assert.doesNotMatch(f.nodes.get('studio-content').innerHTML, />业务进度<\/a>/);
+  }
+  await f.route('project/server-project/monitor');
+  assert.match(f.nodes.get('studio-content').innerHTML, /href="#project\/server-project\/tasks">返回事项/);
+  f.dispose();
+});

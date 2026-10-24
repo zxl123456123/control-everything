@@ -516,7 +516,8 @@ window.WorkspaceAgentBoard = (() => {
   function create({ root, fetchJson, postJson, onRegister = () => {}, onAddProject = () => {}, onProject = null, onRefresh = null, sandboxButton = null, unified = false, now = () => Date.now() }) {
     let items = [], projects = [], agents = [], request = 0, detailsRequest = 0, selectedProject = '', complete = false, writing = false, selected = null;
     let loaded = false, detailDirty = false, editDirty = false, briefDirty = false, sessionDirty = false, messageDirty = false, registryAvailable = false, disposed = false, itemFilter = 'all';
-    let groupsKey = '';
+    let groupsKey = '', loadFailed = false;
+    const expandedPanels = new Map();
     const detailDrafts = new Set();
     let approvalPanel = null;
     const shownApprovals = new Set();
@@ -586,8 +587,10 @@ window.WorkspaceAgentBoard = (() => {
     function feedback(text, failed = false) {
       const node = detail.querySelector('#ab-feedback'); if (node) { node.textContent = text; node.classList.toggle('error', failed); }
     }
+    const isAttentionItem = item => item.state !== 'done' && (['review', 'blocked'].includes(item.state)
+      || ['waiting_user', 'waiting_review', 'blocked', 'failed'].includes(item.assignment_state));
     function chosenItems() { return items.filter(item => (!selectedProject || (selectedProject === '__global__' ? !item.project_id : item.project_id === selectedProject))
-      && (itemFilter === 'review' ? item.state === 'review' : itemFilter !== 'attention' || ['review', 'blocked'].includes(item.state) || ['waiting_user', 'waiting_review', 'blocked', 'failed'].includes(item.assignment_state))); }
+      && (itemFilter === 'review' ? item.state === 'review' : itemFilter !== 'attention' || isAttentionItem(item))); }
     function renderAgents() {
       agentStrip.replaceChildren();
       if (!registryAvailable) { agentStrip.append(el('p', 'section-note', 'Agent 注册表不可用，暂不能分配。')); return; }
@@ -599,11 +602,13 @@ window.WorkspaceAgentBoard = (() => {
       }
     }
     function render() {
-      const focusedTask = document.activeElement?.dataset?.taskId;
+      const focused = root.getRootNode?.()?.activeElement || document.activeElement;
+      const focusedTask = focused?.dataset?.taskId;
       renderAgents();
       const inProject = Boolean(selectedProject && selectedProject !== '__global__');
       addAgent.hidden = addProject.hidden = agentStrip.hidden = unified || inProject;
-      projectScope.hidden = inProject; management.hidden = unified;
+      projectScope.hidden = unified || inProject; management.hidden = unified;
+      refresh.hidden = unified && !loadFailed;
       sandboxActions.replaceChildren();
       const chosenProject = projects.find(item => item.id === selectedProject);
       if (inProject && chosenProject && sandboxButton) {
@@ -627,6 +632,7 @@ window.WorkspaceAgentBoard = (() => {
         projects.map(item => [item.id, item.name]), agents.map(item => [item.id, item.name])]);
       if (groupsKey === nextGroupsKey) return;
       groupsKey = nextGroupsKey;
+      if (unified) { renderBusinessGroups(focusedTask, focused?.dataset?.boardFocus); return; }
       const groupLabels = unified ? { todo: '待办', doing: '进行中', blocked: '阻塞', review: '待验收', done: '已完成' } : labels;
       const grouped = unified ? Object.fromEntries(Object.keys(groupLabels).map(key => [key, chosenItems().filter(item => item.state === key)])) : groupItems(chosenItems()); groups.replaceChildren();
       for (const [key, rows] of Object.entries(grouped)) {
@@ -657,6 +663,87 @@ window.WorkspaceAgentBoard = (() => {
       if (inProject && complete && !chosenItems().length) groups.append(el('p', 'empty-state', itemFilter === 'review' ? '没有待验收事项' : itemFilter === 'attention' ? '没有待处理事项' : '还没有事项，点击“新建待办”开始记录。'));
       if (focusedTask) [...groups.querySelectorAll('button')].find(node => node.dataset.taskId === focusedTask)?.focus({ preventScroll: true });
     }
+    function renderBusinessGroups(focusedTask, focusedControl) {
+      for (const panel of groups.querySelectorAll('details')) expandedPanels.set(panel.dataset.panelKey, panel.open);
+      groups.replaceChildren(); groups.dataset.businessGroups = 'true';
+      const rows = chosenItems();
+      const inProject = selectedProject && selectedProject !== '__global__';
+      const scopes = inProject ? [{ id: selectedProject, rows }] : selectedProject === '__global__'
+        ? [{ id: '', rows }]
+        : [...projects.map(project => ({ id: project.id, rows: rows.filter(item => item.project_id === project.id) })),
+          ...(!rows.some(item => !item.project_id) ? [] : [{ id: '', rows: rows.filter(item => !item.project_id) }])];
+      function panel(key, label, initiallyOpen) {
+        const node = el('details', 'agent-project-group'), summary = el('summary', '', label);
+        node.dataset.panelKey = key; summary.dataset.boardFocus = key;
+        node.open = expandedPanels.get(key) ?? initiallyOpen;
+        node.addEventListener('toggle', () => expandedPanels.set(key, node.open));
+        node.append(summary); return node;
+      }
+      function card(item) {
+        const node = el('article', 'agent-task-card'); node.dataset.state = item.state;
+        const button = btn(item.title, () => open(item), 'agent-task-title'); button.dataset.taskId = item.id;
+        node.append(button, el('span', 'badge', item.state === 'review' ? '待验收' : states[item.state] || `状态未知：${item.state || '未提供'}`));
+        const attention = { waiting_user: '等你处理', waiting_review: '等你处理', blocked: '执行阻塞', failed: '执行失败' }[item.assignment_state];
+        if (attention && isAttentionItem(item)) node.append(el('span', 'badge agent-task-attention', attention));
+        return node;
+      }
+      for (const scope of scopes) {
+        const project = projects.find(project => project.id === scope.id);
+        const attention = scope.rows.filter(isAttentionItem).length;
+        const counts = [['待推进', ['todo', 'blocked']], ['进行中', ['doing']], ['待验收', ['review']]]
+          .map(([label, states]) => `${label} ${complete ? scope.rows.filter(item => states.includes(item.state)).length : '—'}`).join(' / ');
+        const container = inProject ? el('section', 'agent-project-board') : panel('project:' + scope.id, '', false);
+        if (!inProject) {
+          const summary = container.children[0];
+          summary.append(el('strong', '', project?.name || '未归属项目'));
+          if (attention) summary.append(el('span', 'agent-project-attention', `需处理 ${complete ? attention : '—'}`));
+          summary.append(el('span', 'agent-project-stats', `${complete ? scope.rows.length : '—'} 项事项 · ${counts}`));
+        }
+        if (scope.id) {
+          const actions = el('div', 'agent-project-actions');
+          for (const [tab, text] of [['monitor', '进展记录'], ['workspace', '进入开发']]) {
+            const link = el('a', 'button secondary', text); link.href = `#project/${encodeURIComponent(scope.id)}/${tab}`;
+            link.dataset.boardFocus = scope.id + ':' + tab; actions.append(link);
+          }
+          if (!inProject) {
+            const create = btn('＋ 新建待办', () => openNew(scope.id)); create.dataset.boardFocus = scope.id + ':new';
+            actions.append(create);
+          }
+          container.append(actions);
+        }
+        const columns = el('div', 'agent-task-columns');
+        for (const [key, label, matches] of [
+          ['todo', '待推进', item => ['todo', 'blocked'].includes(item.state)],
+          ['doing', '进行中', item => item.state === 'doing'],
+          ['review', '待验收', item => item.state === 'review']
+        ]) {
+          const matching = scope.rows.filter(matches), column = el('section', 'agent-task-group group-' + key);
+          column.setAttribute('aria-label', label); column.append(el('h3', '', `${label} · ${complete ? matching.length : '—'}`));
+          if (!matching.length) column.append(el('p', 'section-note', complete ? '暂无事项' : '尚未完整读取'));
+          for (const item of matching) column.append(card(item));
+          columns.append(column);
+        }
+        container.append(columns);
+        const unknown = scope.rows.filter(item => !Object.hasOwn(states, item.state));
+        if (unknown.length) {
+          const other = el('section', 'agent-task-group group-unknown'); other.append(el('h3', '', `其他状态 · ${unknown.length}`));
+          for (const item of unknown) other.append(card(item));
+          container.append(other);
+        }
+        const completed = scope.rows.filter(item => item.state === 'done');
+        if (completed.length) {
+          const history = panel('history:' + scope.id, `已完成 · ${completed.length}`, false);
+          history.className = 'agent-task-history';
+          for (const item of completed) history.append(card(item));
+          container.append(history);
+        }
+        groups.append(container);
+      }
+      if (!scopes.length) groups.append(el('p', 'empty-state', '尚无项目，可先添加项目再记录事项。'));
+      if (focusedTask) [...groups.querySelectorAll('button')].find(node => node.dataset.taskId === focusedTask)?.focus({ preventScroll: true });
+      else if (focusedControl) ['summary', 'button', 'a'].flatMap(tag => [...groups.querySelectorAll(tag)])
+        .find(node => node.dataset.boardFocus === focusedControl)?.focus({ preventScroll: true });
+    }
     async function readItems() {
       let offset = 0, revision = null, result = [];
       while (true) {
@@ -677,26 +764,26 @@ window.WorkspaceAgentBoard = (() => {
       projects = value.workspace.projects.items.filter(p => !p.archived);
       const visible = new Set(projects.map(p => p.id));
       items = [...new Map(value.items.filter(item => !item.project_id || visible.has(item.project_id)).map(item => [item.id, item])).values()];
-      complete = true; loaded = true;
+      complete = true; loaded = true; loadFailed = false;
       render();
     }
     function unavailable() {
       if (disposed) return;
       request++;
-      complete = false; render();
+      complete = false; loadFailed = true; render();
       status.textContent = '工作台读取失败或未读完整。保留上次记录，数量暂不可确认，请刷新重试。';
     }
     async function load() {
       if (disposed) return;
       if (onRefresh) return onRefresh();
-      const current = ++request; complete = false; status.textContent = loaded ? '正在更新，暂保留上次记录…' : '正在读取工作台…'; render();
+      const current = ++request; complete = false; loadFailed = false; status.textContent = loaded ? '正在更新，暂保留上次记录…' : '正在读取工作台…'; render();
       const results = await Promise.allSettled([fetchJson('/api/workspace'), fetchJson('/api/workspace/agents'), readItems()]);
       if (disposed || current !== request) return;
       registryAvailable = results[1].status === 'fulfilled';
       if (registryAvailable) agents = results[1].value.items || [];
       if (results[0].status === 'fulfilled' && results[0].value.projects?.status === 'available' && results[2].status === 'fulfilled') {
         update({ workspace: results[0].value, agents, items: results[2].value }, registryAvailable);
-      } else status.textContent = '工作台读取失败或未读完整。保留上次记录，数量暂不可确认，请刷新重试。';
+      } else { loadFailed = true; status.textContent = '工作台读取失败或未读完整。保留上次记录，数量暂不可确认，请刷新重试。'; }
       render();
       await inspectApprovals(current);
     }
@@ -740,14 +827,16 @@ window.WorkspaceAgentBoard = (() => {
       const heading = el('div', 'section-heading'); heading.append(el('h2', '', item.title), tools); detail.append(heading);
       const note = id(el('p', 'feedback'), 'ab-feedback'); note.setAttribute('role', 'status'); note.setAttribute('aria-live', 'polite'); detail.append(note, detailBody);
     }
-    function openNew() {
+    function openNew(projectId = null) {
+      if (unified && detail.open && hasDraft()) { feedback('已有未提交草稿，请先保存或关闭后再新建。', true); return; }
       if (writing || detail.open && hasDraft() && !window.confirm('放弃未提交内容，新建待办？')) return;
       editDirty = detailDirty = briefDirty = sessionDirty = messageDirty = false; detailDrafts.clear(); detailsRequest++; detailHeader({ title: '新建待办' });
       const form = el('form'), fields = el('fieldset');
       const name = id(el('textarea'), 'ab-new-title'); name.required = true; name.maxLength = 4000; name.rows = 3;
-      const targetProject = selectedProject && selectedProject !== '__global__' ? selectedProject : null;
+      const targetProject = projectId || (selectedProject && selectedProject !== '__global__' ? selectedProject : null);
       const owner = id(el('select'), 'ab-new-project');
-      if (!targetProject) option(owner, '', '未归属项目的事项');
+      if (!targetProject) option(owner, '', unified ? '请选择所属项目' : '未归属项目的事项');
+      owner.required = unified;
       for (const p of projects.filter(row => !targetProject || row.id === targetProject)) option(owner, p.id, p.name);
       owner.value = targetProject || ''; owner.disabled = Boolean(targetProject);
       const agent = id(el('select'), 'ab-new-agent');
@@ -782,6 +871,7 @@ window.WorkspaceAgentBoard = (() => {
       form.addEventListener('submit', async event => {
         event.preventDefault(); if (writing) return;
         if (!name.value.trim() || [...name.value].length > 2000) { feedback('请填写待办，最多 2000 字。', true); return; }
+        if (unified && !(targetProject || owner.value)) { feedback('请选择所属项目后创建待办。', true); return; }
         if (agent.value && !agents.some(row => row.id === agent.value && canAssign(row, targetProject || owner.value || null))) { feedback('所选 Agent 无权访问当前项目；请重新选择或明确取消分配。', true); return; }
         if (execute.checked && !execute.disabled && !(targetProject || owner.value)) { feedback('请选择所属项目再执行；或取消勾选立即执行，仅保存全局待办。', true); return; }
         setWriting(true); fields.disabled = true;

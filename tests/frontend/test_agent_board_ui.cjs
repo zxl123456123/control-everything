@@ -20,7 +20,7 @@ class Element {
   get textContent() { return this.text + this.children.map(node => node.textContent).join(''); }
   setAttribute(key, value) { this.attributes[key] = String(value); }
   addEventListener(name, fn) { this.listeners[name] = fn; }
-  focus() {}
+  focus() { this.focused = true; }
   removeEventListener(name) { delete this.listeners[name]; }
   get all() { return [this, ...this.children.flatMap(node => node.all)]; }
   querySelector(selector) { return this.all.find(node => selector.startsWith('#') ? node.id === selector.slice(1) : node.tagName === selector) || null; }
@@ -34,7 +34,8 @@ const stamp = '2026-10-19T00:00:00Z';
 const agent = { id: 'a', name: 'Synthetic Agent', enabled: true, online: true, last_seen_at: stamp };
 const item = (id, extra = {}) => ({ id, title: `Task ${id}`, state: 'todo', project_id: 'p', revision: 7, assigned_agent_id: null, assignment_state: 'unassigned', ...extra });
 function fixture(options = {}) {
-  const root = new Element('section');
+  const root = new Element('section'), shadowRoot = { activeElement: null };
+  root.getRootNode = () => shadowRoot;
   const events = [];
   const context = { window: { confirm: () => true, dispatchEvent: event => { events.push(event); return !options.acceptNative; } }, CustomEvent: class { constructor(type, init) { Object.assign(this, init); this.type = type; } }, document: { createElement: tag => new Element(tag), getElementById: () => null }, URLSearchParams, TextEncoder, console };
   if (options.execution) context.window.WorkspaceExecution = options.execution;
@@ -71,7 +72,7 @@ function fixture(options = {}) {
   const api = context.window.WorkspaceAgentBoard.create({ root, fetchJson, postJson, unified: options.unified, onRefresh: options.onRefresh, now: () => Date.parse(stamp), onRegister: () => callbacks.push('register'), onAddProject: () => callbacks.push('project') });
   const node = id => { const found = root.querySelector('#' + id); assert.ok(found, id); return found; };
   const submit = async () => { const form = node('ab-review-submit').parentElement.parentElement; await form.listeners.submit({ preventDefault() {} }); };
-  return { api, root, node, calls, posts, state, callbacks, events, submit, groupItems: context.window.WorkspaceAgentBoard.groupItems };
+  return { api, root, shadowRoot, node, calls, posts, state, callbacks, events, submit, document: context.document, groupItems: context.window.WorkspaceAgentBoard.groupItems };
 }
 
 const saveEdit = f => f.node('ab-edit-save').parentElement.parentElement.listeners.submit({ preventDefault() {} });
@@ -941,4 +942,158 @@ test('a submitted reply waiting for human review is not presented as an unrespon
   await f.api.load(); await f.api.open(row);
   assert.match(f.node('ab-detail').textContent, /已收到/);
   assert.doesNotMatch(f.node('ab-detail').textContent, /最近没有新的运行消息/);
+});
+
+
+test('unified global groups preserve project ownership, blocked labels, completed history and unknown states', async () => {
+  const f = fixture({ unified: true, projects: [{ id: 'p', name: 'Project' }, { id: 'q', name: 'Other' }], rows: [
+    item('todo'), item('blocked', { state: 'blocked' }), item('doing', { state: 'doing', assignment_state: 'unassigned' }),
+    item('review', { state: 'review' }), item('done', { state: 'done' }), item('unknown', { state: 'custom-state' }),
+    item('other', { project_id: 'q' }), item('loose', { project_id: null })
+  ] });
+  await f.api.load();
+  const groups = f.node('ab-groups').children;
+  assert.equal(groups.length, 3);
+  assert.equal(groups[0].open, false);
+  assert.equal(groups[0].children[0].querySelector('strong').textContent, 'Project');
+  assert.match(groups[0].children[0].textContent, /需处理 2.*6 项事项/);
+  const columns = groups[0].children.find(node => node.className === 'agent-task-columns');
+  assert.deepEqual(columns.children.map(node => node.attributes['aria-label']), ['待推进', '进行中', '待验收']);
+  assert.match(columns.children[0].textContent, /Task todo.*Task blocked.*阻塞/);
+  assert.match(columns.children[1].textContent, /Task doing/);
+  assert.doesNotMatch(groups[0].textContent, /Task other|Task loose|未分配 Agent/);
+  assert.match(groups[0].textContent, /其他状态 · 1Task unknown状态未知：custom-state/);
+  const history = groups[0].children.find(node => node.className === 'agent-task-history');
+  assert.equal(history.open, false); assert.match(history.textContent, /已完成 · 1Task done/);
+  assert.match(groups[2].children[0].textContent, /未归属项目1 项事项/);
+  assert.match(groups[2].textContent, /Task loose/);
+  assert.ok(groups[0].all.some(node => node.tagName === 'a' && node.textContent === '进展记录' && node.href === '#project/p/monitor'));
+  assert.ok(groups[0].all.some(node => node.tagName === 'a' && node.textContent === '进入开发' && node.href === '#project/p/workspace'));
+  f.api.setProject('p'); assert.doesNotMatch(f.node('ab-groups').textContent, /Task other|Task loose/);
+});
+
+test('unified changed snapshots preserve project and history expansion without fetching on toggle', async () => {
+  const f = fixture({ unified: true });
+  const snapshot = { workspace: { projects: { items: [{ id: 'p', name: 'Project' }] } }, agents: [agent], items: [item('one'), item('done', { state: 'done' })] };
+  await f.api.update(snapshot);
+  const first = f.node('ab-groups').children[0], history = first.children.find(node => node.className === 'agent-task-history');
+  first.open = true; first.listeners.toggle(); history.open = true; history.listeners.toggle();
+  const calls = f.calls.length;
+  snapshot.items.push(item('another')); await f.api.update(snapshot);
+  const changed = f.node('ab-groups').children[0];
+  assert.notEqual(changed, first); assert.equal(changed.open, true);
+  assert.equal(changed.children.find(node => node.className === 'agent-task-history').open, true);
+  changed.open = false; changed.listeners.toggle();
+  snapshot.items[0].title = 'New title'; await f.api.update(snapshot);
+  assert.equal(f.node('ab-groups').children[0].open, false);
+  assert.equal(f.calls.length, calls);
+  const stable = f.node('ab-groups').children[0]; await f.api.update(JSON.parse(JSON.stringify(snapshot)));
+  assert.equal(f.node('ab-groups').children[0], stable);
+});
+
+test('unified row creation binds its project and a second create never discards an existing draft', async () => {
+  const f = fixture({ unified: true, projects: [{ id: 'p', name: 'Project' }, { id: 'q', name: 'Other' }] });
+  await f.api.load();
+  const row = f.node('ab-groups').children[1];
+  row.all.find(node => node.tagName === 'button' && node.textContent === '＋ 新建待办').listeners.click();
+  assert.equal(f.node('ab-new-project').value, 'q'); assert.equal(f.node('ab-new-project').disabled, true);
+  const title = f.node('ab-new-title'); title.value = 'Keep this draft'; title.listeners.input();
+  f.node('ab-groups').children[0].all.find(node => node.tagName === 'button' && node.textContent === '＋ 新建待办').listeners.click();
+  assert.equal(f.node('ab-new-title'), title); assert.equal(title.value, 'Keep this draft');
+  assert.equal(f.node('ab-new-project').value, 'q'); assert.equal(f.posts.length, 0);
+  f.api.setProject('p');
+  await title.parentElement.parentElement.parentElement.listeners.submit({ preventDefault() {} });
+  assert.equal(f.posts.at(-1).body.project_id, 'q');
+});
+
+test('unified global creation requires a project and only failed reads reveal the refresh action', async () => {
+  const f = fixture({ unified: true }); await f.api.load();
+  const refresh = f.root.all.find(node => node.dataset.action === 'refresh-items');
+  assert.equal(refresh.hidden, true); assert.equal(f.node('ab-project').parentElement.hidden, true);
+  f.root.all.find(node => node.dataset.action === 'create-item').listeners.click();
+  f.node('ab-new-title').value = 'Need an owner';
+  const form = f.node('ab-new-title').parentElement.parentElement.parentElement;
+  await form.listeners.submit({ preventDefault() {} });
+  assert.equal(f.posts.length, 0); assert.match(f.node('ab-feedback').textContent, /请选择所属项目/);
+  assert.equal(f.node('ab-new-project').required, true);
+  f.node('ab-new-project').value = 'p'; await form.listeners.submit({ preventDefault() {} });
+  assert.equal(f.posts[0].body.project_id, 'p');
+  f.api.unavailable(); assert.equal(refresh.hidden, false);
+  await f.api.load(); assert.equal(refresh.hidden, true);
+});
+
+
+test('unified first-load failures expose retry and successful recovery removes it', async () => {
+  const f = fixture({ unified: true }); f.state.failItems = true;
+  await f.api.load();
+  const refresh = f.root.all.find(node => node.dataset.action === 'refresh-items');
+  assert.equal(refresh.hidden, false); assert.match(f.node('ab-status').textContent, /读取失败/);
+  f.state.failItems = false; await refresh.listeners.click();
+  assert.equal(refresh.hidden, true); assert.match(f.node('ab-groups').textContent, /Task one/);
+});
+
+test('unified project rename preserves expansion and changed snapshots restore focused summaries', async () => {
+  const f = fixture({ unified: true });
+  const snapshot = { workspace: { projects: { items: [{ id: 'p', name: 'Project' }, { id: 'old', name: 'Archived', archived: true }] } },
+    agents: [agent], items: [item('one'), item('loose', { project_id: null }), item('archived', { project_id: 'old' }), item('removed', { project_id: 'gone' })] };
+  await f.api.update(snapshot);
+  const group = f.node('ab-groups').children[0]; group.open = true; group.listeners.toggle();
+  f.document.activeElement = group.children[0];
+  snapshot.workspace.projects.items[0].name = 'Renamed'; await f.api.update(snapshot);
+  const renamed = f.node('ab-groups').children[0];
+  assert.equal(renamed.open, true); assert.match(renamed.children[0].textContent, /Renamed/);
+  assert.equal(renamed.children[0].focused, true);
+  assert.equal(f.node('ab-groups').children.length, 2);
+  assert.doesNotMatch(f.node('ab-groups').textContent, /Task archived|Task removed/);
+});
+
+
+test('unified collapsed counts retain every business column and actionable execution markers exclude done', async () => {
+  const f = fixture({ unified: true, rows: [
+    item('failed', { assignment_state: 'failed' }), item('waiting', { state: 'doing', assignment_state: 'waiting_user' }),
+    item('reply', { assignment_state: 'waiting_review' }), item('blocked', { state: 'blocked' }),
+    item('review', { state: 'review' }), item('done', { state: 'done', assignment_state: 'failed' })
+  ] });
+  await f.api.load();
+  const group = f.node('ab-groups').children[0], summary = group.children[0];
+  assert.equal(group.open, false);
+  assert.match(summary.textContent, /需处理 5.*待推进 3 \/ 进行中 1 \/ 待验收 1/);
+  assert.match(group.textContent, /Task failed待办执行失败/);
+  assert.match(group.textContent, /Task waiting进行中等你处理/);
+  assert.match(group.textContent, /Task reply待办等你处理/);
+  assert.match(group.textContent, /Task review待验收/);
+  const done = group.all.find(node => node.dataset.taskId === 'done').parentElement;
+  assert.doesNotMatch(done.textContent, /执行失败|等你处理/);
+  f.api.setProject('p', 'attention');
+  assert.match(f.node('ab-groups').textContent, /Task failed|Task waiting/);
+  assert.doesNotMatch(f.node('ab-groups').textContent, /Task done/);
+});
+
+
+test('unified changed snapshots restore summary and card focus from their shadow root instead of the document host', async () => {
+  const f = fixture({ unified: true });
+  const snapshot = { workspace: { projects: { items: [{ id: 'p', name: 'Project' }] } }, agents: [agent], items: [item('one')] };
+  await f.api.update(snapshot);
+  f.document.activeElement = { dataset: { platformHost: 'true' } };
+  f.shadowRoot.activeElement = f.node('ab-groups').children[0].children[0];
+  snapshot.items.push(item('another')); await f.api.update(snapshot);
+  const group = f.node('ab-groups').children[0], summary = group.children[0];
+  assert.equal(summary.focused, true);
+  assert.equal(summary.querySelector('strong').textContent, 'Project');
+  assert.ok(summary.children.some(node => node.className === 'agent-project-stats'));
+  group.open = true; group.listeners.toggle();
+  f.shadowRoot.activeElement = group.all.find(node => node.dataset.taskId === 'one');
+  snapshot.items[0].title = 'Changed with focus'; await f.api.update(snapshot);
+  const focused = f.node('ab-groups').all.find(node => node.dataset.taskId === 'one');
+  assert.equal(focused.focused, true); assert.equal(f.node('ab-groups').children[0].open, true);
+});
+
+
+test('unified project view keeps only the top create action while global project rows retain bound creation', async () => {
+  const f = fixture({ unified: true }); await f.api.load();
+  const createButtons = () => f.root.all.filter(node => node.tagName === 'button' && node.textContent === '＋ 新建待办');
+  assert.equal(createButtons().length, 2);
+  f.api.setProject('p'); assert.equal(createButtons().length, 1);
+  createButtons()[0].listeners.click(); assert.equal(f.node('ab-new-project').value, 'p');
+  assert.ok(f.node('ab-groups').all.some(node => node.tagName === 'a' && node.textContent === '进展记录'));
 });
