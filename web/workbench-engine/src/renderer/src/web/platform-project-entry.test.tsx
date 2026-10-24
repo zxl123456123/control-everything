@@ -9,11 +9,16 @@ import PlatformProjectEntry from './platform-project-entry'
 
 const fixture = vi.hoisted(() => ({
   load: vi.fn(),
-  projects: null as ((rows: PlatformProject[], metadata?: { archived: PlatformProject[] }) => void) | null,
+  projects: null as
+    | ((rows: PlatformProject[], metadata?: { archived: PlatformProject[] }) => void)
+    | null,
   nativeProjects: [] as PlatformProject[],
+  navigationData: [] as PlatformProjectBootstrap[],
   mounts: vi.fn(),
   bridgeMounts: vi.fn(),
-  bridgeUnmounts: vi.fn()
+  bridgeUnmounts: vi.fn(),
+  agentRequestData: [] as PlatformProjectBootstrap[],
+  agentRequests: vi.fn()
 }))
 vi.mock('./platform-project-bootstrap', () => ({
   loadPlatformProjectBootstrap: fixture.load,
@@ -35,16 +40,36 @@ vi.mock('./platform-project-navigation-view', () => ({
     projects: PlatformProject[]
   }) => {
     fixture.nativeProjects = projects
+    fixture.navigationData.push(data)
     useEffect(() => onReady(data), [data, onReady])
     return null
   }
 }))
 vi.mock('./platform-agent-bridge', () => ({
-  default: () => {
+  default: ({
+    data,
+    onReady
+  }: {
+    data: PlatformProjectBootstrap
+    onReady?: (data: PlatformProjectBootstrap) => void
+  }) => {
     useEffect(() => {
       fixture.bridgeMounts()
       return () => fixture.bridgeUnmounts()
     }, [])
+    useEffect(() => {
+      const receive = (event: Event) => {
+        event.preventDefault()
+        fixture.agentRequestData.push(data)
+        fixture.agentRequests((event as CustomEvent).detail)
+        window.location.hash = '#project/' + data.project.id + '/workspace'
+      }
+      window.addEventListener('platform-start-task-agent', receive)
+      onReady?.(data)
+      return () => {
+        window.removeEventListener('platform-start-task-agent', receive)
+      }
+    }, [data, onReady])
     return null
   }
 }))
@@ -69,7 +94,7 @@ vi.mock('./platform-studio-surface', () => ({
     )
   }
 }))
-vi.mock('../App', () => ({
+vi.mock('./platform-workspace-app', () => ({
   default: () => {
     const project = useContext(PlatformProjectContext)
     return <div data-testid="project-context">{project?.project.name || 'unbound'}</div>
@@ -82,18 +107,281 @@ const bootstrap = (name = 'One') => ({
   runtime: { environmentId: 'env-a', offer: { endpoint: 'ws:/example//127.0.0.1:1234' } },
   target: { repoId: 'repo-a' }
 })
-const publish = (rows: PlatformProject[], archived: PlatformProject[] = []) => act(() => fixture.projects!(rows, { archived }))
+const publish = (rows: PlatformProject[], archived: PlatformProject[] = []) =>
+  act(() => fixture.projects!(rows, { archived }))
 beforeEach(() => {
   fixture.mounts.mockClear()
   fixture.bridgeMounts.mockClear()
   fixture.bridgeUnmounts.mockClear()
+  fixture.agentRequests.mockClear()
+  fixture.agentRequestData = []
   fixture.load.mockReset()
   fixture.projects = null
   fixture.nativeProjects = []
+  fixture.navigationData = []
   fixture.load.mockResolvedValue(bootstrap())
   window.history.replaceState(null, '', '/studio#project/p-one/workspace')
 })
 afterEach(() => cleanup())
+
+it('keeps a cold overview independent of the developer runtime', async () => {
+  window.history.replaceState(null, '', '#home')
+  render(<PlatformProjectEntry />)
+  publish([project])
+  await act(async () => {})
+  expect(fixture.load).not.toHaveBeenCalled()
+  expect(fixture.bridgeMounts).not.toHaveBeenCalled()
+  expect(screen.queryByTestId('project-context')).toBeNull()
+})
+
+it('initializes development when activity is the first requested view', async () => {
+  window.history.replaceState(null, '', '#project/p-one/activity')
+  render(<PlatformProjectEntry />)
+  publish([project])
+  await waitFor(() => expect(screen.getByTestId('project-context').textContent).toBe('One'))
+  expect(fixture.load).toHaveBeenCalledTimes(1)
+  expect(screen.getByRole('link', { name: '活动' }).getAttribute('aria-current')).toBe('page')
+})
+
+it.each(['workspace', 'tasks'])(
+  'reveals the cached project on returning through %s, without remounting the app',
+  async (tab) => {
+    render(<PlatformProjectEntry />)
+    publish([project])
+    await waitFor(() => expect(screen.getByTestId('project-context').textContent).toBe('One'))
+    const firstData = fixture.navigationData.at(-1)
+    const app = screen.getByTestId('project-context')
+    await act(async () => {
+      window.location.hash = '#project/p-one/tasks'
+    })
+    await waitFor(() => expect(screen.getByTestId('studio-surface').hidden).toBe(false))
+    await act(async () => {
+      window.location.hash = '#project/p-one/workspace'
+    })
+    await waitFor(() => expect(screen.getByTestId('studio-surface').hidden).toBe(true))
+    expect(fixture.navigationData.at(-1)).toBe(firstData)
+    await act(async () => {
+      window.location.hash = '#home'
+    })
+    await waitFor(() => expect(screen.queryByLabelText('当前项目')).toBeNull())
+    await act(async () => {
+      window.location.hash = '#project/p-one/' + tab
+    })
+    await waitFor(() => expect(screen.getByLabelText('当前项目').textContent).toBe('One'))
+    await act(async () => {
+      window.location.hash = '#project/p-one/workspace'
+    })
+    await waitFor(() => expect(fixture.navigationData.at(-1)).not.toBe(firstData))
+    expect(screen.getByTestId('project-context')).toBe(app)
+    expect(fixture.bridgeMounts).toHaveBeenCalledTimes(1)
+    expect(fixture.load).toHaveBeenCalledTimes(1)
+  }
+)
+
+it.each(['tasks', 'review', 'attention', 'monitor'])(
+  'keeps cold %s independent of the developer runtime',
+  async (tab) => {
+    window.history.replaceState(null, '', '#project/p-one/' + tab)
+    render(<PlatformProjectEntry />)
+    publish([project])
+    await act(async () => {})
+    expect(screen.getByLabelText('当前项目').textContent).toBe('One')
+    expect(document.title).toBe('One · 掌控一切')
+    expect(fixture.load).not.toHaveBeenCalled()
+    expect(fixture.bridgeMounts).not.toHaveBeenCalled()
+    expect(screen.queryByTestId('project-context')).toBeNull()
+  }
+)
+
+it('opens development only when requested and preserves the mounted app on return to tasks', async () => {
+  window.history.replaceState(null, '', '#project/p-one/tasks')
+  render(<PlatformProjectEntry />)
+  publish([project])
+  await act(async () => {})
+  expect(fixture.load).not.toHaveBeenCalled()
+  await act(async () => {
+    window.location.hash = '#project/p-one/workspace'
+  })
+  await waitFor(() => expect(screen.getByTestId('project-context').textContent).toBe('One'))
+  const app = screen.getByTestId('project-context')
+  await act(async () => {
+    window.location.hash = '#project/p-one/tasks'
+  })
+  await waitFor(() => expect(screen.getByTestId('studio-surface').hidden).toBe(false))
+  expect(screen.getByTestId('project-context')).toBe(app)
+  expect(fixture.load).toHaveBeenCalledTimes(1)
+})
+
+it('keeps a cold task Agent request until the development surface and bridge are ready', async () => {
+  window.history.replaceState(null, '', '#project/p-one/tasks')
+  let resolve!: (value: unknown) => void
+  fixture.load.mockImplementation(
+    () =>
+      new Promise((done) => {
+        resolve = done
+      })
+  )
+  render(<PlatformProjectEntry />)
+  publish([project])
+  const request = { projectId: 'p-one', taskId: 'task-one' }
+  let accepted = false
+  act(() => {
+    accepted = !window.dispatchEvent(
+      new CustomEvent('platform-start-task-agent', { cancelable: true, detail: request })
+    )
+  })
+  expect(accepted).toBe(true)
+  await waitFor(() => expect(window.location.hash).toBe('#project/p-one/workspace'))
+  await waitFor(() => expect(fixture.load).toHaveBeenCalledTimes(1))
+  await act(async () => resolve(bootstrap()))
+  await waitFor(() => expect(fixture.agentRequests).toHaveBeenCalledTimes(1))
+  expect(fixture.agentRequests).toHaveBeenCalledWith(request)
+})
+
+it('delivers a warm overview task request only to the reactivated project bridge', async () => {
+  render(<PlatformProjectEntry />)
+  publish([project])
+  await waitFor(() => expect(screen.getByTestId('project-context').textContent).toBe('One'))
+  const firstData = fixture.navigationData.at(-1)
+  await act(async () => {
+    window.location.hash = '#home'
+  })
+  await waitFor(() => expect(screen.queryByLabelText('当前项目')).toBeNull())
+  await act(async () => {
+    window.location.hash = '#project/p-one/tasks'
+  })
+  await waitFor(() => expect(screen.getByLabelText('当前项目').textContent).toBe('One'))
+  const request = { projectId: 'p-one', taskId: 'task-one' }
+  act(() => {
+    window.dispatchEvent(
+      new CustomEvent('platform-start-task-agent', { cancelable: true, detail: request })
+    )
+  })
+  await waitFor(() => expect(window.location.hash).toBe('#project/p-one/workspace'))
+  await waitFor(() => expect(fixture.agentRequests).toHaveBeenCalledTimes(1))
+  expect(fixture.agentRequests).toHaveBeenCalledWith(request)
+  expect(fixture.agentRequestData[0]).toBe(fixture.navigationData.at(-1))
+  expect(fixture.agentRequestData[0]).not.toBe(firstData)
+  expect(fixture.bridgeMounts).toHaveBeenCalledTimes(1)
+  expect(fixture.load).toHaveBeenCalledTimes(1)
+})
+
+it('cancels a cold Agent request after leaving development before bootstrap returns', async () => {
+  window.history.replaceState(null, '', '#project/p-one/tasks')
+  let resolve!: (value: unknown) => void
+  fixture.load.mockImplementation(
+    () =>
+      new Promise((done) => {
+        resolve = done
+      })
+  )
+  render(<PlatformProjectEntry />)
+  publish([project])
+  act(() => {
+    window.dispatchEvent(
+      new CustomEvent('platform-start-task-agent', {
+        cancelable: true,
+        detail: { projectId: 'p-one', taskId: 'task-one' }
+      })
+    )
+  })
+  await waitFor(() => expect(window.location.hash).toBe('#project/p-one/workspace'))
+  await act(async () => {
+    window.location.hash = '#home'
+  })
+  await act(async () => resolve(bootstrap()))
+  expect(fixture.agentRequests).not.toHaveBeenCalled()
+  expect(screen.queryByTestId('project-context')).toBeNull()
+})
+
+it('does not replay a failed cold Agent request when the user later retries development', async () => {
+  window.history.replaceState(null, '', '#project/p-one/tasks')
+  fixture.load.mockRejectedValueOnce(new Error('offline'))
+  render(<PlatformProjectEntry />)
+  publish([project])
+  act(() => {
+    window.dispatchEvent(
+      new CustomEvent('platform-start-task-agent', {
+        cancelable: true,
+        detail: { projectId: 'p-one', taskId: 'task-one' }
+      })
+    )
+  })
+  await waitFor(() => expect(screen.getByRole('alert').textContent).toContain('未能连接'))
+  await act(async () => {
+    screen.getByRole('button', { name: '重试连接' }).click()
+  })
+  await waitFor(() => expect(screen.getByTestId('project-context').textContent).toBe('One'))
+  expect(fixture.agentRequests).not.toHaveBeenCalled()
+})
+
+it('does not send a project B cold request to the mounted bridge for project A', async () => {
+  const second = { id: 'p-two', name: 'Two', directory: 'C:/example/two' }
+  fixture.load.mockImplementation((id: string) =>
+    Promise.resolve(
+      id === 'p-one' ? bootstrap() : { ...bootstrap('Two'), project: { id: 'p-two', name: 'Two' } }
+    )
+  )
+  render(<PlatformProjectEntry />)
+  publish([project, second])
+  await waitFor(() => expect(screen.getByTestId('project-context').textContent).toBe('One'))
+  await act(async () => {
+    window.location.hash = '#project/p-two/tasks'
+  })
+  expect(fixture.load).toHaveBeenCalledTimes(1)
+  const request = { projectId: 'p-two', taskId: 'task-two' }
+  act(() => {
+    window.dispatchEvent(
+      new CustomEvent('platform-start-task-agent', { cancelable: true, detail: request })
+    )
+  })
+  await waitFor(() => expect(fixture.agentRequests).toHaveBeenCalledTimes(1))
+  expect(fixture.agentRequests).toHaveBeenCalledWith(request)
+  expect(screen.getByTestId('project-context').textContent).toBe('Two')
+})
+
+it('does not let a cancelled project A failure clear the pending request for project B', async () => {
+  window.history.replaceState(null, '', '#project/p-one/tasks')
+  let rejectA!: (error: Error) => void
+  let resolveB!: (value: unknown) => void
+  fixture.load.mockImplementation((id: string) =>
+    id === 'p-one'
+      ? new Promise((_resolve, reject) => {
+          rejectA = reject
+        })
+      : new Promise((resolve) => {
+          resolveB = resolve
+        })
+  )
+  render(<PlatformProjectEntry />)
+  publish([project, { id: 'p-two', name: 'Two', directory: 'C:/example/two' }])
+  act(() => {
+    window.dispatchEvent(
+      new CustomEvent('platform-start-task-agent', {
+        cancelable: true,
+        detail: { projectId: 'p-one', taskId: 'task-one' }
+      })
+    )
+  })
+  await waitFor(() => expect(fixture.load).toHaveBeenCalledTimes(1))
+  await act(async () => {
+    window.location.hash = '#project/p-two/tasks'
+  })
+  const request = { projectId: 'p-two', taskId: 'task-two' }
+  act(() => {
+    window.dispatchEvent(
+      new CustomEvent('platform-start-task-agent', { cancelable: true, detail: request })
+    )
+  })
+  await waitFor(() => expect(fixture.load).toHaveBeenCalledTimes(2))
+  await act(async () => {
+    rejectA(new Error('late failure'))
+    resolveB({ ...bootstrap('Two'), project: { id: 'p-two', name: 'Two' } })
+  })
+  await waitFor(() => expect(fixture.agentRequests).toHaveBeenCalledTimes(1))
+  expect(fixture.agentRequests).toHaveBeenCalledWith(request)
+  expect(screen.queryByRole('alert')).toBeNull()
+})
 
 it('waits for authoritative projects and preserves the mounted app on equivalent refreshes', async () => {
   render(<PlatformProjectEntry />)
@@ -141,24 +429,31 @@ it('cannot revive an archived project with a late bootstrap response', async () 
   expect(screen.queryByRole('button', { name: '重试连接' })).toBeNull()
 })
 
-it.each(['workspace', 'activity', 'tasks', 'review'])('recognizes an archived %s route on a cold start without runtime bootstrap', async (tab) => {
-  window.history.replaceState(null, '', '#project/p-one/' + tab)
-  render(<PlatformProjectEntry />)
-  publish([], [project])
-  await waitFor(() => expect(screen.getByLabelText('当前项目').textContent).toBe('One'))
-  expect(fixture.load).not.toHaveBeenCalled()
-  expect(screen.queryByRole('alert')).toBeNull()
-  expect(screen.queryByRole('button', { name: '重试连接' })).toBeNull()
-  const studio = screen.getByTestId('studio-surface') as HTMLElement
-  expect(studio.hidden).toBe(false)
-  expect(studio.dataset.pending).toBe('false')
-  expect(screen.queryByText(/正在打开/)).toBeNull()
-  expect(screen.queryByTestId('project-context')).toBeNull()
-  expect(window.location.hash).toBe('#project/p-one/' + tab)
-})
+it.each(['workspace', 'activity', 'tasks', 'review'])(
+  'recognizes an archived %s route on a cold start without runtime bootstrap',
+  async (tab) => {
+    window.history.replaceState(null, '', '#project/p-one/' + tab)
+    render(<PlatformProjectEntry />)
+    publish([], [project])
+    await waitFor(() => expect(screen.getByLabelText('当前项目').textContent).toBe('One'))
+    expect(fixture.load).not.toHaveBeenCalled()
+    expect(screen.queryByRole('alert')).toBeNull()
+    expect(screen.queryByRole('button', { name: '重试连接' })).toBeNull()
+    const studio = screen.getByTestId('studio-surface') as HTMLElement
+    expect(studio.hidden).toBe(false)
+    expect(studio.dataset.pending).toBe('false')
+    expect(screen.queryByText(/正在打开/)).toBeNull()
+    expect(screen.queryByTestId('project-context')).toBeNull()
+    expect(window.location.hash).toBe('#project/p-one/' + tab)
+  }
+)
 
 it('bootstraps a restored cold-start project and keeps archived metadata out of native selection', async () => {
-  const archivedOther = { id: 'p-archived', name: 'Archived other', directory: 'C:/example/archived' }
+  const archivedOther = {
+    id: 'p-archived',
+    name: 'Archived other',
+    directory: 'C:/example/archived'
+  }
   render(<PlatformProjectEntry />)
   publish([], [project, archivedOther])
   await waitFor(() => expect(screen.getByLabelText('当前项目').textContent).toBe('One'))
@@ -220,10 +515,14 @@ it('preserves the project app and bridge across the mobile page and rejects dial
   await waitFor(() => expect(screen.getByTestId('project-context').textContent).toBe('One'))
   const app = screen.getByTestId('project-context')
   const overview = screen.getByTestId('studio-surface') as HTMLElement
-  await act(async () => { window.location.hash = '#mobile' })
+  await act(async () => {
+    window.location.hash = '#mobile'
+  })
   await waitFor(() => expect(overview.hidden).toBe(false))
   expect(screen.getByTestId('project-context')).toBe(app)
-  await act(async () => { window.location.hash = '#project/p-one/workspace' })
+  await act(async () => {
+    window.location.hash = '#project/p-one/workspace'
+  })
   await waitFor(() => expect(overview.hidden).toBe(true))
   expect(screen.getByTestId('project-context')).toBe(app)
   expect(fixture.load).toHaveBeenCalledTimes(1)
@@ -232,7 +531,9 @@ it('preserves the project app and bridge across the mobile page and rejects dial
   const dialog = document.createElement('dialog')
   dialog.setAttribute('open', '')
   document.body.append(dialog)
-  await act(async () => { window.location.hash = '#mobile' })
+  await act(async () => {
+    window.location.hash = '#mobile'
+  })
   await waitFor(() => expect(window.location.hash).toBe('#project/p-one/workspace'))
   expect(overview.hidden).toBe(true)
   dialog.remove()
@@ -275,7 +576,9 @@ it('does not label a missing project with the previous project identity', async 
   render(<PlatformProjectEntry />)
   publish([project])
   await waitFor(() => expect(screen.getByTestId('project-context').textContent).toBe('One'))
-  await act(async () => { window.location.hash = '#project/p-missing/workspace' })
+  await act(async () => {
+    window.location.hash = '#project/p-missing/workspace'
+  })
   await waitFor(() => expect(screen.getByRole('alert').textContent).toContain('不存在'))
   expect(screen.getByLabelText('当前项目').textContent).toBe('项目工作区')
   expect(screen.getByRole('link', { name: '返回项目' }).getAttribute('href')).toBe('#home')
@@ -308,12 +611,18 @@ it('keeps a cold-start unknown project distinct from archived identity', async (
 
 it('keeps project B when a slower project A bootstrap arrives after switching', async () => {
   let resolveA!: (value: unknown) => void
-  fixture.load.mockImplementation((id: string) => id === project.id
-    ? new Promise((resolve) => { resolveA = resolve })
-    : Promise.resolve({ ...bootstrap('Two'), project: { id: 'p-two', name: 'Two' } }))
+  fixture.load.mockImplementation((id: string) =>
+    id === project.id
+      ? new Promise((resolve) => {
+          resolveA = resolve
+        })
+      : Promise.resolve({ ...bootstrap('Two'), project: { id: 'p-two', name: 'Two' } })
+  )
   render(<PlatformProjectEntry />)
   publish([project, { id: 'p-two', name: 'Two', directory: 'C:/example/fixture/two' }])
-  await act(async () => { window.location.hash = '#project/p-two/workspace' })
+  await act(async () => {
+    window.location.hash = '#project/p-two/workspace'
+  })
   await waitFor(() => expect(screen.getByTestId('project-context').textContent).toBe('Two'))
   await act(async () => resolveA(bootstrap()))
   expect(screen.getByLabelText('当前项目').textContent).toBe('Two')
@@ -334,16 +643,24 @@ it('guards body shadow dialogs and accepts the next navigation after closing', a
   shadow.append(dialog)
   document.body.append(host)
   try {
-    await act(async () => { window.location.hash = '#project/p-one/review' })
+    await act(async () => {
+      window.location.hash = '#project/p-one/review'
+    })
     await waitFor(() => expect(screen.getByRole('status').textContent).toContain('请先完成或关闭'))
     expect(window.location.hash).toBe('#project/p-one/workspace')
     expect(screen.getByRole('link', { name: '开发' }).getAttribute('aria-current')).toBe('page')
     expect(screen.getByLabelText('当前项目').textContent).toBe('One')
     expect((screen.getByTestId('studio-surface') as HTMLElement).hidden).toBe(true)
     dialog.removeAttribute('open')
-    await act(async () => { window.location.hash = '#project/p-one/review' })
-    await waitFor(() => expect(screen.getByRole('link', { name: '事项' }).getAttribute('aria-current')).toBe('page'))
+    await act(async () => {
+      window.location.hash = '#project/p-one/review'
+    })
+    await waitFor(() =>
+      expect(screen.getByRole('link', { name: '事项' }).getAttribute('aria-current')).toBe('page')
+    )
     expect((screen.getByTestId('studio-surface') as HTMLElement).hidden).toBe(false)
     expect(screen.getByLabelText('当前项目').textContent).toBe('One')
-  } finally { host.remove() }
+  } finally {
+    host.remove()
+  }
 })

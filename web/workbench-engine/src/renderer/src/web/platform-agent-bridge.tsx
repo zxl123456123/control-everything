@@ -29,9 +29,11 @@ type Choice = Request & { title: string; settings: AgentLaunchSettings; sequence
 const agentLabels = { codex: 'Codex', claude: 'Claude Code' } as const
 
 export default function PlatformAgentBridge({
-  data
+  data,
+  onReady
 }: {
   data: PlatformProjectBootstrap
+  onReady?: (data: PlatformProjectBootstrap) => void
 }): React.JSX.Element {
   const [choice, setChoice] = useState<Choice | null>(null)
   const [agent, setAgent] = useState<PlatformTaskAgent>('codex')
@@ -180,12 +182,13 @@ export default function PlatformAgentBridge({
       })
     }
     window.addEventListener('platform-start-task-agent', receive)
+    onReady?.(data)
     return () => {
       sequence.current++
       setChoice(null)
       window.removeEventListener('platform-start-task-agent', receive)
     }
-  }, [data])
+  }, [data, onReady])
 
   const start = async () => {
     if (!choice || starting.current) return

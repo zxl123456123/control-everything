@@ -130,6 +130,24 @@ afterEach(() => {
 })
 
 describe('platform native Agent bridge', () => {
+  it('announces readiness only after its request listener can accept the cold request', async () => {
+    const onReady = vi.fn(() => {
+      expect(
+        window.dispatchEvent(
+          new CustomEvent('platform-start-task-agent', {
+            cancelable: true,
+            detail: { projectId: 'project', taskId: 'task' }
+          })
+        )
+      ).toBe(false)
+    })
+    await act(async () => {
+      render(<PlatformAgentBridge data={data} onReady={onReady} />)
+    })
+    expect(onReady).toHaveBeenCalledWith(data)
+    expect(screen.getByRole('dialog')).toBeTruthy()
+    expect(mocks.launch).not.toHaveBeenCalled()
+  })
   it('launches once using the current host arguments and links only a real provider identity', async () => {
     render(<PlatformAgentBridge data={data} />)
     await request()

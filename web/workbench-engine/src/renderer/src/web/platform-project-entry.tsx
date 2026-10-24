@@ -1,6 +1,5 @@
 import { Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { lazyWithRetry as lazy } from '@/lib/lazy-with-retry'
-import { installWebPreloadApi } from './web-preload-api'
 import { saveStoredWebRuntimeEnvironment } from './web-runtime-environment'
 import { initWebDeviceKeySupport } from './web-device-key-support'
 import './platform-project-entry.css'
@@ -16,7 +15,7 @@ import PlatformStudioSurface, {
 import { readPlatformRoute, projectRoute } from './platform-route'
 import { PlatformProjectContext, PlatformProjectScopeContext } from './platform-project-context'
 
-const App = lazy(() => import('../App'))
+const App = lazy(() => import('./platform-workspace-app'))
 const PlatformNavigation = lazy(() => import('./platform-project-navigation-view'))
 const PlatformAgentBridge = lazy(() => import('./platform-agent-bridge'))
 
@@ -40,6 +39,8 @@ export default function PlatformProjectEntry(): React.JSX.Element {
   const [readyData, setReadyData] = useState<PlatformProjectBootstrap | null>(null)
   const [appMounted, setAppMounted] = useState(false)
   const onAppMounted = useCallback(() => setAppMounted(true), [])
+  const [bridgeReadyData, setBridgeReadyData] = useState<PlatformProjectBootstrap | null>(null)
+  const pendingAgentRequest = useRef<{ projectId: string; taskId: string } | null>(null)
   const environment = useRef('')
   const endpoint = useRef('')
   const [unlinkedWorkspace, setUnlinkedWorkspace] = useState(false)
@@ -69,10 +70,7 @@ export default function PlatformProjectEntry(): React.JSX.Element {
         cache.current.delete(id)
     }
     const current = readPlatformRoute(window.location)
-    if (
-      current.view === 'project' &&
-      archived.some((row) => row.id === current.id)
-    )
+    if (current.view === 'project' && archived.some((row) => row.id === current.id))
       setNavigationNotice('已归档，仍停在当前页。')
     else if (
       current.view === 'project' &&
@@ -96,6 +94,8 @@ export default function PlatformProjectEntry(): React.JSX.Element {
     [projects, data?.runtime.environmentId]
   )
   const projectId = route.view === 'project' ? route.id : ''
+  const previousProjectId = useRef(projectId)
+  const pendingProjectReveal = useRef(false)
   const currentData = data?.project.id === projectId ? data : null
   const developing = route.view === 'project' && ['workspace', 'activity'].includes(route.tab)
   const chosen = projects.find((project) => project.id === projectId)
@@ -146,6 +146,11 @@ export default function PlatformProjectEntry(): React.JSX.Element {
         return
       }
       acceptedHash.current = window.location.hash
+      if (
+        pendingAgentRequest.current &&
+        (next.id !== pendingAgentRequest.current.projectId || next.tab !== 'workspace')
+      )
+        pendingAgentRequest.current = null
       setNavigationNotice('')
       setRoute(readPlatformRoute(window.location))
     }
@@ -159,17 +164,62 @@ export default function PlatformProjectEntry(): React.JSX.Element {
       delete document.documentElement.dataset.platformView
     }
   }, [showWorkspace])
+  useEffect(() => {
+    const receive = (event: Event) => {
+      const request = (event as CustomEvent<{ projectId: string; taskId: string }>).detail
+      const current = readPlatformRoute(window.location)
+      if (
+        !request ||
+        typeof request.taskId !== 'string' ||
+        !request.taskId ||
+        current.view !== 'project' ||
+        current.id !== request.projectId ||
+        !latestProjects.current.some((project) => project.id === request.projectId)
+      )
+        return
+      if (
+        data?.project.id === request.projectId &&
+        bridgeReadyData === data &&
+        !pendingProjectReveal.current
+      )
+        return
+      // Own the cold request before a bridge for another project can consume it.
+      event.preventDefault()
+      event.stopImmediatePropagation()
+      setBridgeReadyData(null)
+      pendingAgentRequest.current = request
+      window.location.hash = projectRoute(request.projectId)
+    }
+    window.addEventListener('platform-start-task-agent', receive, true)
+    return () => window.removeEventListener('platform-start-task-agent', receive, true)
+  }, [data, bridgeReadyData])
+  useEffect(() => {
+    const request = pendingAgentRequest.current
+    if (!request || !showWorkspace || readyData !== data || bridgeReadyData !== data) return
+    pendingAgentRequest.current = null
+    const current = readPlatformRoute(window.location)
+    if (current.id === request.projectId && current.tab === 'workspace')
+      window.dispatchEvent(
+        new CustomEvent('platform-start-task-agent', { cancelable: true, detail: request })
+      )
+  }, [showWorkspace, readyData, bridgeReadyData, data])
   useLayoutEffect(() => {
+    if (previousProjectId.current !== projectId) pendingProjectReveal.current = true
+    previousProjectId.current = projectId
     if (!projectId || !projectsReady) return
     if (!chosen) {
+      pendingAgentRequest.current = null
       setError(archived ? '' : '项目不存在，仍停在当前页。')
       return
     }
     setError('')
+    if (!developing) return
     const previous = cache.current.get(projectId)
     if (previous) {
       // An explicit return from the project list must reveal this project's worktree again.
-      setData({ ...previous.data })
+      if (data?.project.id !== projectId || pendingProjectReveal.current)
+        setData({ ...previous.data })
+      pendingProjectReveal.current = false
       return
     }
     const requestedProject = { ...chosen }
@@ -186,7 +236,10 @@ export default function PlatformProjectEntry(): React.JSX.Element {
     const timer = window.setTimeout(() => controller.abort(), 45_000)
     void (async () => {
       try {
-        const result = await loadPlatformProjectBootstrap(projectId, controller.signal)
+        const [result, { installWebPreloadApi }] = await Promise.all([
+          loadPlatformProjectBootstrap(projectId, controller.signal),
+          import('./web-preload-api')
+        ])
         if (cancelled || !isCurrentProject()) return
         await initWebDeviceKeySupport()
         if (cancelled || !isCurrentProject()) return
@@ -204,12 +257,15 @@ export default function PlatformProjectEntry(): React.JSX.Element {
         }
         document.title = `${result.project.name} · 掌控一切`
         cache.current.set(projectId, { project: requestedProject, data: result })
+        pendingProjectReveal.current = false
         setData(result)
       } catch {
-        if (!cancelled)
+        if (!cancelled) {
+          pendingAgentRequest.current = null
           setError(
             '项目工作区未能连接。请确认本地服务正在运行，再重新加载；已有会话状态需在恢复连接后核对。'
           )
+        }
       } finally {
         window.clearTimeout(timer)
       }
@@ -219,10 +275,10 @@ export default function PlatformProjectEntry(): React.JSX.Element {
       controller.abort()
       window.clearTimeout(timer)
     }
-  }, [projectId, retry, projectsReady, chosen?.name, chosen?.directory, archived?.id])
+  }, [projectId, developing, retry, projectsReady, chosen?.name, chosen?.directory, archived?.id])
   useEffect(() => {
     if (archived) document.title = `${archived.name} · 掌控一切`
-    else if (connected && chosen) document.title = `${chosen.name} · 掌控一切`
+    else if (chosen) document.title = `${chosen.name} · 掌控一切`
   }, [connected, chosen?.name, archived?.name])
   return (
     <div className="platform-project-entry bg-background">
@@ -231,7 +287,11 @@ export default function PlatformProjectEntry(): React.JSX.Element {
           <a href="#home" className="platform-project-back">
             ‹ 项目
           </a>
-          <span className="platform-project-name" aria-label="当前项目" title={chosen?.directory || archived?.directory}>
+          <span
+            className="platform-project-name"
+            aria-label="当前项目"
+            title={chosen?.directory || archived?.directory}
+          >
             {developing && unlinkedWorkspace
               ? '未关联的开发目录'
               : chosen?.name || archived?.name || currentData?.project.name || '项目工作区'}
@@ -318,7 +378,7 @@ export default function PlatformProjectEntry(): React.JSX.Element {
             onSelection={onWorkspaceSelection}
             onReady={setReadyData}
           />
-          <PlatformAgentBridge data={data} />
+          <PlatformAgentBridge data={data} onReady={setBridgeReadyData} />
         </Suspense>
       )}
       <div className="platform-project-content" hidden={!showWorkspace} inert={!showWorkspace}>

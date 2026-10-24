@@ -326734,6 +326734,7 @@
     "src/renderer/src/components/activity/activity-bound-project-scope.ts",
     "src/renderer/src/components/activity/activity-scope-filter-controls.platform.test.tsx",
     "src/renderer/src/components/activity/use-agent-pane-threads.bound-scope.test.tsx",
+    "src/renderer/src/components/mobile/MobilePage.platform.test.tsx",
     "src/renderer/src/components/settings/use-settings-store-model.host-scope.test.tsx",
     "src/renderer/src/i18n/platform-ui-copy.test.ts",
     "src/renderer/src/i18n/platform-ui-copy.ts",
@@ -326759,9 +326760,11 @@
     "src/renderer/src/web/platform-route.ts",
     "src/renderer/src/web/platform-studio-surface.test.tsx",
     "src/renderer/src/web/platform-studio-surface.tsx",
+    "src/renderer/src/web/platform-workspace-app.tsx",
     "src/renderer/src/web/preload-api/web-runtime-credentials.test.ts",
     "src/renderer/src/web/preload-api/web-wsl-host-unavailable.test.ts",
-    "src/renderer/src/components/mobile/MobilePage.platform.test.tsx"
+    "src/renderer/src/web/standalone-web-root.test.tsx",
+    "src/renderer/src/web/standalone-web-root.tsx"
   ],
   "adapted_files": [
     {
@@ -327145,8 +327148,8 @@
     {
       "path": "src/renderer/src/web/main.tsx",
       "upstream_sha256": "15dfb0a6b72637f667f480272f8459140ac81aa024ae30eabddef3a689030004",
-      "current_sha256": "9c1f7f2c289ea718f2749fa0d303240817f3736c18ea54e64a21641391a9b7ac",
-      "reason": "M1a-W: protected platform entry with original complete App; M1a navigation: preserve a single project workspace while integrating platform business views; Unify project ownership, task editing and native Agent activity in the integrated workspace"
+      "current_sha256": "1c33c4c3c53de278d663fc77a3afc1d8ceb75f6959ef78360140cbe23a1beaf0",
+      "reason": "M1a-W: protected platform entry with original complete App; M1a navigation: preserve a single project workspace while integrating platform business views; Unify project ownership, task editing and native Agent activity in the integrated workspace; Performance: defer standalone pairing, store-backed language provider and terminal preparation until the developer workspace is requested"
     },
     {
       "path": "src/renderer/src/web/preload-api/web-app-api.ts",
