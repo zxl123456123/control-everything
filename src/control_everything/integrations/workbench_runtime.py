@@ -1,6 +1,6 @@
 """Own one isolated workspace runtime; browser requests never select executables."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import hashlib
 import json
 import os
@@ -14,6 +14,7 @@ from urllib.parse import urlsplit
 import uuid
 
 from control_everything.platform.windows_jobs import ProcessError, WindowsAPI
+from control_everything.integrations.remote_access import public_origin
 
 MAX_MESSAGE = 1024 * 1024
 
@@ -31,6 +32,11 @@ class RuntimeConfig:
     data_root: Path
     git_executable: Path
     allowed_workspace_roots: tuple[Path, ...]
+    public_origin: str | None = None
+    device_proof: str | None = field(default=None, repr=False)
+    remote_device_id: str | None = None
+    remote_generation: int | None = None
+    platform_installation_id: str | None = None
 
 
 def safe_path(value):
@@ -75,7 +81,7 @@ def loopback_origin(value, scheme="http"):
     return f"{scheme}://127.0.0.1:{port}"
 
 
-def isolated_environment(data_root, node, git, origin, ambient=None):
+def isolated_environment(data_root, node, git, origin, ambient=None, *, remote_origin=None, device_proof=None):
     ambient = os.environ if ambient is None else ambient
     system = ambient.get("SystemRoot") or ambient.get("SYSTEMROOT")
     if not system or not Path(system).is_absolute():
@@ -97,6 +103,11 @@ def isolated_environment(data_root, node, git, origin, ambient=None):
            "DO_NOT_TRACK": "1", "ORCA_TELEMETRY_DISABLED": "1", "CE_WORKBENCH_ISOLATED": "1",
            "CE_WORKBENCH_ORIGIN": loopback_origin(origin), "GIT_CONFIG_NOSYSTEM": "1",
            "GIT_CONFIG_GLOBAL": str(home / ".gitconfig")}
+    if remote_origin is not None:
+        from control_everything.integrations.remote_access import RemoteAccess
+        RemoteAccess(remote_origin, device_proof)
+        env["CE_WORKBENCH_PUBLIC_ORIGIN"] = public_origin(remote_origin)
+        env["CE_WORKBENCH_DEVICE_PROOF"] = device_proof
     return env
 
 
@@ -177,7 +188,15 @@ class WorkbenchRuntime:
                 json.dump({"schema": 1, "kind": "isolated-workbench", "id": str(uuid.uuid4())}, stream)
         elif read_json(marker, 4096).get("kind") != "isolated-workbench":
             raise WorkbenchUnavailable("runtime_profile_not_isolated")
-        self._env = isolated_environment(data, self._node, git, self._origin)
+        self._env = isolated_environment(data, self._node, git, self._origin, remote_origin=self.config.public_origin, device_proof=self.config.device_proof)
+        remote_identity = (self.config.remote_device_id, self.config.remote_generation, self.config.platform_installation_id)
+        if any(value is not None for value in remote_identity):
+            device, generation, installation = remote_identity
+            if (not self.config.public_origin or not isinstance(device, str) or not re.fullmatch(r"[A-Za-z0-9_-]{1,128}", device)
+                    or type(generation) is not int or generation < 1 or not isinstance(installation, str)
+                    or not re.fullmatch(r"[A-Za-z0-9_-]{16,128}", installation)):
+                raise WorkbenchUnavailable("runtime_remote_identity_invalid")
+            self._env.update(CE_REMOTE_DEVICE_ID=device, CE_REMOTE_GENERATION=str(generation), CE_REMOTE_INSTALLATION_ID=installation)
         # Both the lock and managed-stop context read this variable, with different
         # upstream fallbacks. Pin it to the verified artifact so their identities agree.
         self._env["ORCA_VERSION"] = version
@@ -342,7 +361,7 @@ class WorkbenchRuntime:
             raise WorkbenchUnavailable("runtime_protocol_error")
         return reply["result"]
 
-    def bootstrap(self, project_id, project_name, directory):
+    def bootstrap(self, project_id, project_name, directory, *, remote=False):
         with self._lock:
             path = safe_path(directory)
             roots = tuple(safe_path(value) for value in self.config.allowed_workspace_roots)
@@ -384,8 +403,59 @@ class WorkbenchRuntime:
                     self._rpc("platform.revokeDevice", {"deviceId": paired["deviceId"]})
                 raise
             result = {"runtime": {"environmentId": environment, "offer": offer}, "target": {"repoId": repo["id"]}}
+            if remote:
+                # Journal before exposing the offer; an earlier crash cannot expose its token.
+                try:
+                    self._write_remote_grants(self._read_remote_grants() | {offer["pairedDeviceId"]})
+                except BaseException:
+                    self._rpc("platform.revokeDevice", {"deviceId": offer["pairedDeviceId"]})
+                    raise
             self._devices[offer["pairedDeviceId"]] = offer["deviceToken"]
             return result
+
+    def _read_remote_grants(self):
+        path = self.config.data_root / "platform-remote-grants.json"
+        try:
+            value = read_json(path)
+        except FileNotFoundError:
+            return set()
+        ids = value.get("device_ids")
+        if (value.get("schema") != 1 or not isinstance(ids, list) or len(ids) > 10000
+                or any(not isinstance(item, str) or not re.fullmatch(r"[A-Za-z0-9_.:-]{1,255}", item) for item in ids)):
+            raise WorkbenchUnavailable("runtime_remote_grants_invalid")
+        return set(ids)
+
+    def _write_remote_grants(self, devices):
+        path = safe_path(self.config.data_root / "platform-remote-grants.json")
+        temporary = safe_path(self.config.data_root / (".remote-grants-" + uuid.uuid4().hex))
+        try:
+            with temporary.open("x", encoding="utf-8") as stream:
+                json.dump({"schema": 1, "device_ids": sorted(devices)}, stream)
+                stream.flush()
+                os.fsync(stream.fileno())
+            os.replace(temporary, path)
+        finally:
+            temporary.unlink(missing_ok=True)
+
+    def revoke_remote_devices(self):
+        """Retire only platform remote offers, including those exposed before a restart."""
+        with self._lock:
+            remaining = self._read_remote_grants()
+            for device in tuple(remaining):
+                self.revoke_device(device)
+                remaining.remove(device)
+                self._write_remote_grants(remaining)
+            return {"revoked": True}
+
+    def revoke_device(self, device_id):
+        if not isinstance(device_id, str) or not re.fullmatch(r"[A-Za-z0-9_.:-]{1,255}", device_id):
+            raise ValueError("invalid_device_id")
+        with self._lock:
+            result = self._rpc("platform.revokeDevice", {"deviceId": device_id})
+            if not isinstance(result, dict) or type(result.get("revoked")) is not bool:
+                raise WorkbenchUnavailable("runtime_protocol_error")
+            self._devices.pop(device_id, None)
+            return result["revoked"]
 
     def discard_bootstrap(self, result):
         with self._lock:
@@ -395,6 +465,9 @@ class WorkbenchRuntime:
             if token and secrets.compare_digest(token, offer.get("deviceToken", "")):
                 self._rpc("platform.revokeDevice", {"deviceId": device})
                 del self._devices[device]
+                remote = self._read_remote_grants()
+                if device in remote:
+                    self._write_remote_grants(remote - {device})
 
     def stop(self, *, retire_idle_daemon=False):
         with self._lock:

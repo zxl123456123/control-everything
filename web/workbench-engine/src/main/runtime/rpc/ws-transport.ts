@@ -1,5 +1,6 @@
 // WebSocket transport letting mobile clients reach the Orca runtime over LAN (ws://); auth is per-device tokens, and E2EE runs above this layer.
 import { createServer as createHttpServer, type Server as HttpServer } from 'node:http'
+import type { Duplex } from 'node:stream'
 import { WebSocketServer, type WebSocket } from 'ws'
 import type { RpcTransport } from './transport'
 import { answerWithoutWebClient, createStaticWebClientHandler } from './static-web-client-handler'
@@ -14,7 +15,8 @@ import {
 import { RemoteRuntimeServerHeartbeat } from './remote-runtime-server-heartbeat'
 import { assertPortNotShadowingListener } from './shadowed-port-probe'
 import { REMOTE_RUNTIME_MAX_INBOUND_FRAME_BYTES } from '../../../shared/remote-runtime-memory-limits'
-import { platformUpgradeAllowed, readPlatformRuntimePolicy } from '../../platform-runtime-policy'
+import { platformUpgradeAllowed, platformRemoteHealth, readPlatformRuntimePolicy } from '../../platform-runtime-policy'
+import { RemoteWebSocketAdmission } from './remote-websocket-admission'
 
 export const WEBSOCKET_TRANSPORT_MAX_MESSAGE_BYTES = REMOTE_RUNTIME_MAX_INBOUND_FRAME_BYTES
 // Why: one desktop remote-host client can hold many concurrent streams, so keep the cap high enough that stale streams don't starve control RPCs.
@@ -36,6 +38,8 @@ export type WebSocketTransportOptions = {
   heartbeatNow?: () => number
   // Why: test-only override. Production uses PRE_AUTH_TIMEOUT_MS.
   preAuthTimeoutMs?: number
+  // Why: admission uses monotonic time; tests can advance it without delaying socket I/O.
+  remoteAdmissionNow?: () => number
   // Why: the pairing server can also serve the browser client, avoiding a second static server.
   staticRoot?: string
   // Why: devices paired while the fallback port was active point at it, so it must bind first on later launches or those pairings strand (STA-1511).
@@ -67,6 +71,9 @@ export class WebSocketTransport implements RpcTransport {
   private wsClientIds = new Map<WebSocket, string>()
   private heartbeatConnections = new Set<WebSocket>()
   private preAuthTimers = new WeakMap<WebSocket, ReturnType<typeof setTimeout>>()
+  private readonly remoteAdmissionNow: (() => number) | undefined
+  private pendingUpgrades = new Map<Duplex, () => void>()
+  private remotePreAuth = new Map<WebSocket, () => void>()
 
   constructor({
     host,
@@ -74,6 +81,7 @@ export class WebSocketTransport implements RpcTransport {
     heartbeatIntervalMs,
     heartbeatNow,
     preAuthTimeoutMs,
+    remoteAdmissionNow,
     staticRoot,
     fallbackPort,
     preferPinnedPort,
@@ -88,6 +96,7 @@ export class WebSocketTransport implements RpcTransport {
       WEBSOCKET_TRANSPORT_MAX_CONNECTIONS
     )
     this.preAuthTimeoutMs = preAuthTimeoutMs ?? PRE_AUTH_TIMEOUT_MS
+    this.remoteAdmissionNow = remoteAdmissionNow
     this.staticRoot = staticRoot
     this.fallbackPort = fallbackPort
     this.preferPinnedPort = preferPinnedPort === true
@@ -112,6 +121,7 @@ export class WebSocketTransport implements RpcTransport {
   setClientId(ws: WebSocket, clientId: string): void {
     this.wsClientIds.set(ws, clientId)
     clearNodeWebSocketPreAuthTimer(ws, this.preAuthTimers)
+    this.remotePreAuth.get(ws)?.()
   }
 
   terminateClientConnections(clientId: string): number {
@@ -197,9 +207,19 @@ export class WebSocketTransport implements RpcTransport {
     if (policy && this.host !== '127.0.0.1') throw new Error('platform_loopback_required')
     await assertPortNotShadowingListener(this.host, port)
     // Why the 404: with no 'request' listener Node never answers plain HTTP, so it hung (#30100).
-    const httpServer = createHttpServer(
-      this.staticRoot && !policy ? createStaticWebClientHandler(this.staticRoot) : answerWithoutWebClient
-    )
+    const ordinaryRequest = this.staticRoot && !policy ? createStaticWebClientHandler(this.staticRoot) : answerWithoutWebClient
+    const httpServer: HttpServer = createHttpServer((request, response) => {
+      if (policy && request.url?.split('?')[0] === '/__ce_remote_health') {
+        const address = httpServer.address()
+        const actualPort = address && typeof address === 'object' ? address.port : port
+        const result = platformRemoteHealth(request.rawHeaders, request.url, request.method, actualPort,
+          this.wss !== null && this.messageHandler !== null, policy)
+        response.writeHead(result.status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' })
+        response.end(JSON.stringify(result.body))
+        return
+      }
+      ordinaryRequest(request, response)
+    })
 
     await new Promise<void>((resolve, reject) => {
       httpServer.once('error', reject)
@@ -216,6 +236,7 @@ export class WebSocketTransport implements RpcTransport {
       noServer: true,
       maxPayload: WEBSOCKET_TRANSPORT_MAX_MESSAGE_BYTES
     })
+    const admission = policy?.publicOrigin ? new RemoteWebSocketAdmission(this.remoteAdmissionNow) : null
     httpServer.on('upgrade', (request, socket, head) => {
       const address = httpServer.address()
       const actualPort = address && typeof address === 'object' ? address.port : port
@@ -224,7 +245,27 @@ export class WebSocketTransport implements RpcTransport {
         socket.destroy()
         return
       }
-      wss.handleUpgrade(request, socket, head, ws => wss.emit('connection', ws, request))
+      const reservation = admission?.reserve()
+      if (reservation && reservation.status !== 200) {
+        const reason = reservation.status === 429 ? 'Too Many Requests' : 'Service Unavailable'
+        socket.write(`HTTP/1.1 ${reservation.status} ${reason}\r\nConnection: close\r\nContent-Length: 0\r\n\r\n`)
+        socket.destroy()
+        return
+      }
+      const handoff = reservation ? this.reserveRemoteUpgrade(socket, reservation.release) : null
+      try {
+        wss.handleUpgrade(request, socket, head, ws => {
+          if (handoff && !handoff(ws)) {
+            ws.terminate()
+            return
+          }
+          wss.emit('connection', ws, request)
+        })
+      } catch (error) {
+        socket.destroy()
+        // Local mode keeps its existing error semantics; remote reservations survive until close.
+        if (!handoff) throw error
+      }
     })
 
     wss.on('connection', (ws) => {
@@ -244,12 +285,55 @@ export class WebSocketTransport implements RpcTransport {
     const httpServer = this.httpServer
     this.wss = null
     this.httpServer = null
+    for (const [socket, release] of this.pendingUpgrades) {
+      socket.destroy()
+      release()
+    }
     await stopNodeWebSocketTransport({
       wss,
       httpServer,
       heartbeat: this.heartbeat,
       heartbeatConnections: this.heartbeatConnections
     })
+    for (const release of this.remotePreAuth.values()) release()
+  }
+
+  /** The raw socket owns the reservation until a successful WS upgrade transfers it. */
+  private reserveRemoteUpgrade(socket: Duplex, releaseSlot: () => void): (ws: WebSocket) => boolean {
+    let state: 'raw' | 'websocket' | 'released' = 'raw'
+    const destroyRaw = (): void => { socket.destroy() }
+    const deadline = setTimeout(destroyRaw, this.preAuthTimeoutMs)
+    deadline.unref?.()
+    const detachRaw = (): void => {
+      clearTimeout(deadline)
+      socket.off('close', releaseRaw)
+      socket.off('error', destroyRaw)
+      this.pendingUpgrades.delete(socket)
+    }
+    const releaseRaw = (): void => {
+      if (state !== 'raw') return
+      state = 'released'
+      detachRaw()
+      releaseSlot()
+    }
+    this.pendingUpgrades.set(socket, releaseRaw)
+    socket.once('close', releaseRaw)
+    socket.once('error', destroyRaw)
+    return (ws) => {
+      if (state !== 'raw' || socket.destroyed) return false
+      state = 'websocket'
+      detachRaw()
+      const releaseWebSocket = (): void => {
+        if (state !== 'websocket') return
+        state = 'released'
+        ws.off('close', releaseWebSocket)
+        this.remotePreAuth.delete(ws)
+        releaseSlot()
+      }
+      this.remotePreAuth.set(ws, releaseWebSocket)
+      ws.once('close', releaseWebSocket)
+      return true
+    }
   }
 
   private handleConnection(ws: WebSocket): void {

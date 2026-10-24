@@ -143,6 +143,46 @@ class WorkbenchRuntimeTests(unittest.TestCase):
     def start(self):
         self.manager.start('http://127.0.0.1:12345', timeout=.1)
 
+    def test_remote_grants_are_journaled_before_exposure_and_retired_after_restart(self):
+        from unittest.mock import Mock
+        self.start()
+        original = self.manager._owner_call
+        names = iter(('local-device', 'remote-device'))
+        def owner(method, params):
+            value = original(method, params)
+            if method == 'platform.bootstrapDevice':
+                device = next(names)
+                value['deviceId'] = value['offer']['pairedDeviceId'] = device
+            return value
+        self.manager._owner_call = owner
+        self.manager.bootstrap('p1', 'Project', self.repo)
+        self.manager.bootstrap('p1', 'Project', self.repo, remote=True)
+        self.assertEqual(self.manager._read_remote_grants(), {'remote-device'})
+        restored = WorkbenchRuntime(self.config)
+        restored._rpc = Mock(return_value={'revoked': True})
+        restored.revoke_remote_devices()
+        restored._rpc.assert_called_once_with('platform.revokeDevice', {'deviceId': 'remote-device'})
+        self.assertEqual(restored._read_remote_grants(), set())
+
+    def test_remote_ledger_failure_revokes_offer_before_return(self):
+        self.start()
+        with patch.object(self.manager, '_write_remote_grants', side_effect=OSError('synthetic failure')):
+            with self.assertRaises(OSError):
+                self.manager.bootstrap('p1', 'Project', self.repo, remote=True)
+        self.assertEqual(self.rpc_calls[-1], ('platform.revokeDevice', {'deviceId': 'device-id'}))
+        self.assertFalse(self.manager._devices)
+
+    def test_remote_proof_only_enters_controlled_environment(self):
+        from dataclasses import replace
+        self.manager.config = replace(self.config, public_origin='https://workbench.example.test', device_proof='A'*43,
+            remote_device_id='device-1', remote_generation=1, platform_installation_id='platform-installation-1')
+        self.start()
+        spawn = next(row for row in self.api.calls if row[0] == 'spawn')
+        self.assertNotIn('A'*43, str(spawn[2]))
+        self.assertEqual(spawn[3]['CE_WORKBENCH_DEVICE_PROOF'], 'A'*43)
+        self.assertEqual(spawn[3]['CE_REMOTE_INSTALLATION_ID'], 'platform-installation-1')
+        self.assertNotIn('A'*43, repr(self.manager.config))
+
     def test_constructor_and_not_ready_status_do_not_start(self):
         self.assertFalse(self.manager.ready)
         self.assertEqual(self.api.calls, [])
