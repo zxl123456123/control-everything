@@ -327344,6 +327344,18 @@
       "upstream_sha256": "dc72792e1331e9055b8df81d0571acaf66e5dd813c3ff6e7fa638d4a73564aa6",
       "current_sha256": "85675ba8e5412410972f3321c5d5a4a5ebd8c07c17e637d3dbf576d5281591c8",
       "reason": "Add self-hosted native account access and isolate platform credentials and outbound services."
+    },
+    {
+      "path": "src/renderer/src/components/NewWorkspaceComposerCard.start-from.test.tsx",
+      "upstream_sha256": "7658f3df99d2edb885e9d3e58717aaff2a4efcf8c15edafe2aa476db760567c9",
+      "current_sha256": "f46032968bba22775e79ad479c5a1a8de725ae590bf95a0037a3126d0b8f0c4a",
+      "reason": "Workspace context: explain actual directory relationship and verify creation guidance"
+    },
+    {
+      "path": "src/renderer/src/components/NewWorkspaceComposerCard.tsx",
+      "upstream_sha256": "0fd3f0e4c04785f3a93eb4168d0c35cd3d8ab929ed6ed135aa85f8cd7639102b",
+      "current_sha256": "e54aaa1e5087765f96c456c84c64d921203599c6ad7f66b26dde9a749b0a8624",
+      "reason": "Workspace context: explain actual directory relationship and verify creation guidance"
     }
   ],
   "reviewed_findings": [

@@ -262,7 +262,7 @@ test('outer navigation shows projects only and legacy task routes retain their b
   assert.match(f.nodes.get('studio-content').innerHTML, /<h1>事项<\/h1>/);
   assert.equal(f.nodes.get('studio-agent-board').hidden, false);
   await f.route('project/server-project/tasks');
-  assert.match(f.nodes.get('studio-content').innerHTML, /<h1>事项<\/h1>/);
+  assert.match(f.nodes.get('studio-content').innerHTML, /<h1>&lt;Real project&gt; · 事项<\/h1>/);
   await f.route('project/server-project/workspace');
   assert.equal(f.nodes.get('studio-agent-board').hidden, true);
   await f.route('project/server-project/review');
@@ -457,4 +457,34 @@ test('latest real timestamp wins while undated items retain a truthful unknown t
     assert.ok(f.nodes.get('studio-content').innerHTML.includes('>' + timestamp.replace('T', ' ') + '</time>'));
   }
   f.snapshot.items.pop(); await f.route('home'); assert.match(f.nodes.get('studio-content').innerHTML, /Undated/); assert.match(f.nodes.get('studio-content').innerHTML, /时间未知/);
+});
+
+
+test('project task heading, filters and counts stay scoped through navigation and refresh', async () => {
+  const f = studioFixture(); await f.flush();
+  f.nodes.get('ce-studio').dataset.isolatedPreview = 'true';
+  f.snapshot.items = [{ id: 'a', project_id: 'server-project' }, { id: 'b', project_id: 'other' }, { id: 'c', project_id: 'server-project' }];
+  await f.route('project/server-project/tasks');
+  assert.match(f.nodes.get('studio-content').innerHTML, /&lt;Real project&gt; · 事项/);
+  assert.match(f.nodes.get('studio-content').innerHTML, /本项目全部/);
+  assert.equal(f.nodes.get('studio-status').textContent, '隔离测试数据 · 本项目 2 项事项');
+  f.click('refresh'); await f.flush();
+  assert.equal(f.nodes.get('studio-status').textContent, '隔离测试数据 · 本项目 2 项事项');
+  await f.route('project/other/review');
+  assert.equal(f.nodes.get('studio-status').textContent, '隔离测试数据 · 本项目 1 项事项');
+  await f.route('inbox');
+  assert.equal(f.nodes.get('studio-status').textContent, '隔离测试数据 · 1 个项目 · 3 项事项');
+  assert.doesNotMatch(f.nodes.get('studio-content').innerHTML, /本项目全部/);
+  f.dispose();
+});
+
+
+test('project count retains failed refresh evidence after changing task routes', async () => {
+  const f = studioFixture(); await f.flush();
+  f.snapshot.items = [{ project_id: 'server-project' }, { project_id: 'other' }];
+  f.fail(); await f.route('project/server-project/tasks');
+  assert.match(f.nodes.get('studio-status').textContent, /本项目 1 项事项.*offline.*上次读取/);
+  await f.route('project/other/review');
+  assert.match(f.nodes.get('studio-status').textContent, /本项目 1 项事项.*offline.*上次读取/);
+  f.dispose();
 });

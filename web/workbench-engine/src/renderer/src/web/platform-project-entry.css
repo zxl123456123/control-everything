@@ -13,7 +13,7 @@
 .platform-project-tablist a {padding:7px 14px;border-radius:7px;text-decoration:none;color:var(--muted-foreground);transition:background 140ms,color 140ms}
 .platform-project-tablist a[aria-current=page] {background:var(--accent);color:var(--accent-foreground);font-weight:500}
 .platform-project-tabs a:focus-visible {outline:2px solid var(--ring);outline-offset:3px}
-.platform-runtime-status {flex:0 0 22px;padding:2px 18px;text-align:right;font-size:11px;color:var(--muted-foreground)}
+.platform-runtime-status {flex:0 0 auto;min-height:22px;position:relative;padding:2px 18px;text-align:right;font-size:11px;color:var(--muted-foreground)}
 :root[data-platform-view=studio] .platform-runtime-status {display:none}
 .platform-studio-surface {flex:1 1 0;min-height:0;overflow:auto;background:var(--background)}
 .platform-studio-host {display:block;min-height:100%;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif}
@@ -166,3 +166,8 @@
 @media (prefers-reduced-motion: reduce) {
   :root[data-platform-view='workspace'] [data-slot='button'] { transition: none; }
 }
+
+.platform-workspace-context {display:inline-block;max-width:100%;text-align:left}
+.platform-workspace-context summary {cursor:pointer;overflow-wrap:anywhere}
+.platform-workspace-context > div {position:absolute;right:10px;top:100%;z-index:30;max-width:min(560px,calc(100vw - 20px));padding:10px 14px;border:1px solid var(--border);border-radius:7px;background:var(--background);box-shadow:0 4px 16px #0002;overflow-wrap:anywhere}
+.platform-workspace-context p {margin:3px 0}

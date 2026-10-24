@@ -33,7 +33,7 @@ function mountStudio(root, { onProjects = () => {} } = {}) {
   } catch (_) { try { window.localStorage?.removeItem(CREATOR_URL_KEY); } catch (_) { /* Storage can be disabled. */ } }
   const escape = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
   let state = { workspace: null, agents: [], items: [] }, request = 0, query = '', archivedProjects = false, initialized = false, disposed = false;
-  let attentionOnly = false, projectSort = 'updated';
+  let attentionOnly = false, projectSort = 'updated', refreshMessage = '';
   let pendingTask = null;
   try { if (root.dataset.unified !== 'true') root.dataset.theme = localStorage.getItem('ce-studio-theme') === 'dark' ? 'dark' : 'light'; } catch { /* Preferences are optional. */ }
   const board = window.WorkspaceAgentBoard.create({ root: $('studio-agent-board'), fetchJson: client.api, postJson: client.post,
@@ -211,6 +211,7 @@ function mountStudio(root, { onProjects = () => {} } = {}) {
   }
   function render() {
     const current = route();
+    renderStatus(current);
     if (current.view !== 'mobile' && disposeMobile) { disposeMobile(); disposeMobile = null; }
     const chosen = projects().find(p => p.id === current.id);
     // The native surface takes over when ready; retain the previous page during preparation.
@@ -235,30 +236,38 @@ function mountStudio(root, { onProjects = () => {} } = {}) {
     if (!state.workspace) { content.innerHTML = '<div class="ce-empty">正在读取真实项目与事项。无法连接时请使用上方“刷新”重试。</div>'; return; }
     if (current.view === 'home') content.innerHTML = home();
     else if (current.view === 'tools') content.innerHTML = `<div class="ce-heading"><div><h1>高级管理</h1></div></div>${creatorAddressForm()}<div class="ce-tool-grid"><article class="ce-tool-card">${icon('settings')}<h2>高级接入</h2><p>外部任务执行器与旧数据。</p><a class="ce-button" href="/workspace-admin#settings">高级设置</a></article><article class="ce-tool-card">${icon('folder')}<h2>项目档案</h2><a class="ce-button" href="/workspace-admin#projects">来源与历史</a></article></div>`;
-    else if (current.view === 'project') content.innerHTML = chosen?.archived ? '<div class="ce-empty">项目已归档，仍停在当前页。<a class="ce-button" href="#home">返回项目</a><p>在“已归档”列表的项目管理中取消归档即可恢复。</p></div>' : chosen ? `<div class="ce-heading"><div><h1>${current.tab === 'monitor' ? '业务进度' : showBoard ? '事项' : escape(chosen.name)}</h1></div>${current.tab === 'monitor' ? `<a class="ce-button ce-plain" href="#project/${encodeURIComponent(chosen.id)}/tasks">返回事项</a>` : showBoard ? `<a class="ce-button ce-plain" href="#project/${encodeURIComponent(chosen.id)}/monitor">业务进度</a>` : ''}</div>${showBoard ? itemFilters(current) : ''}` : '<div class="ce-empty">项目已移出或不存在，<a href="#home">返回项目</a>重新选择。</div>';
+    else if (current.view === 'project') content.innerHTML = chosen?.archived ? '<div class="ce-empty">项目已归档，仍停在当前页。<a class="ce-button" href="#home">返回项目</a><p>在“已归档”列表的项目管理中取消归档即可恢复。</p></div>' : chosen ? `<div class="ce-heading"><div><h1>${current.tab === 'monitor' ? '业务进度' : showBoard ? escape(chosen.name) + ' · 事项' : escape(chosen.name)}</h1></div>${current.tab === 'monitor' ? `<a class="ce-button ce-plain" href="#project/${encodeURIComponent(chosen.id)}/tasks">返回事项</a>` : showBoard ? `<a class="ce-button ce-plain" href="#project/${encodeURIComponent(chosen.id)}/monitor">业务进度</a>` : ''}</div>${showBoard ? itemFilters(current) : ''}` : '<div class="ce-empty">项目已移出或不存在，<a href="#home">返回项目</a>重新选择。</div>';
     else content.innerHTML = `<div class="ce-heading"><h1>事项</h1></div>${itemFilters(current)}`;
   }
   function itemFilters(current) {
     const href = filter => current.view === 'project' ? '#project/' + encodeURIComponent(current.id) + '/' + (filter === 'all' ? 'tasks' : filter) : '#inbox' + (filter === 'all' ? '' : '/' + filter);
     const selected = ['review', 'attention'].includes(current.tab) ? current.tab : 'all';
-    return `<nav class="ce-tabs" aria-label="事项筛选">${[['all', '全部'], ['review', '待验收'], ['attention', '需处理']].map(([value, label]) => `<a href="${href(value)}"${selected === value ? ' aria-current="page"' : ''}>${label}</a>`).join('')}</nav>`;
+    return `<nav class="ce-tabs" aria-label="事项筛选">${[['all', current.view === 'project' ? '本项目全部' : '全部'], ['review', '待验收'], ['attention', '需处理']].map(([value, label]) => `<a href="${href(value)}"${selected === value ? ' aria-current="page"' : ''}>${label}</a>`).join('')}</nav>`;
+  }
+  function renderStatus(current) {
+    if (!state.workspace) { status.textContent = refreshMessage; return; }
+    const label = root.dataset.isolatedPreview === 'true' ? '隔离测试数据' : '本地数据';
+    const scope = current.view === 'project'
+      ? `${label} · 本项目 ${state.items.filter(item => item.project_id === current.id).length} 项事项`
+      : `${label} · ${projects().filter(p => !p.archived).length} 个项目 · ${state.items.length} 项事项`;
+    status.textContent = scope + (refreshMessage ? ' · ' + refreshMessage : '');
   }
   async function refresh() {
-    const current = ++request; status.textContent = state.workspace ? '正在更新，暂保留上次记录…' : '正在读取本地工作台…'; status.classList.remove('error');
+    const current = ++request; refreshMessage = state.workspace ? '正在更新，暂保留上次记录…' : '正在读取本地工作台…'; renderStatus(route()); status.classList.remove('error');
     try {
       if (!initialized) { await client.bootstrap(); initialized = true; }
       const next = await client.snapshot();
       if (disposed || current !== request) return;
-      state = next;
+      state = next; refreshMessage = '';
       const summarizeProject = project => ({ id: project.id, name: project.name, directory: project.directories?.find(row => row.id === 'main')?.path || project.root });
       onProjects(projects().filter(project => !project.archived).map(summarizeProject), {
         archived: projects().filter(project => project.archived).map(summarizeProject) });
       render();
-      status.textContent = `${root.dataset.isolatedPreview === 'true' ? '隔离测试数据' : '本地数据'} · ${projects().filter(p => !p.archived).length} 个项目 · ${state.items.length} 项事项`;
+      renderStatus(route());
       if (!$('studio-agent-board').hidden) await board.load();
     } catch (error) {
       if (disposed || current !== request) return;
-      status.textContent = `${error.message}。${state.workspace ? '仍显示上次读取的数据。' : '没有使用示例数据。'}`; status.classList.add('error');
+      refreshMessage = `${error.message}。${state.workspace ? '仍显示上次读取的数据。' : '没有使用示例数据。'}`; renderStatus(route()); status.classList.add('error');
     }
   }
   root.addEventListener('click', event => {

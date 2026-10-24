@@ -1,7 +1,35 @@
-import { toRuntimeExecutionHostId } from '../../../shared/execution-host'
+import { getRepoKind } from '../../../shared/repo-kind'
+import type { Repo } from '../../../shared/repo-types'
+import { getRepoExecutionHostId, toRuntimeExecutionHostId } from '../../../shared/execution-host'
 import type { Worktree } from '../../../shared/worktree/types'
 import { worktreeOwnerHostIds } from '../lib/worktree-runtime-owner-index'
 import type { PlatformProjectBootstrap } from './platform-project-bootstrap'
+
+// Describe only catalog records belonging to this project and execution host.
+export function describePlatformWorkspace(
+  repos: readonly Repo[],
+  worktree: Worktree | null,
+  data: PlatformProjectBootstrap
+) {
+  const hostId = toRuntimeExecutionHostId(data.runtime.environmentId)
+  const repo = repos.find(
+    (row) => row.id === data.target.repoId && getRepoExecutionHostId(row) === hostId
+  )
+  if (!repo || !worktree || worktree.repoId !== repo.id || !worktreeOwnerHostIds(worktree).includes(hostId))
+    return null
+  return {
+    name: worktree.displayName || '未命名工作区',
+    mode: getRepoKind(repo) === 'folder'
+      ? '共享项目目录'
+      : worktree.isMainWorktree === true
+        ? '项目原目录'
+        : worktree.isMainWorktree === false
+          ? '独立代码目录（Git worktree）'
+          : '目录模式尚未读取',
+    path: worktree.path || '',
+    branch: getRepoKind(repo) === 'git' ? worktree.branch || '' : ''
+  }
+}
 
 export function choosePlatformWorktree(
   rows: readonly Worktree[],

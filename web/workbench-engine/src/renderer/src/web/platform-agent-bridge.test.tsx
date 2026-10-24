@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import type { PlatformTaskBrief } from './platform-agent-launch'
 import type { PlatformProjectBootstrap } from './platform-project-bootstrap'
 import PlatformAgentBridge from './platform-agent-bridge'
 
@@ -56,7 +57,7 @@ const data = {
   runtime: { environmentId: 'env' },
   target: { repoId: 'repo' }
 } as PlatformProjectBootstrap
-const fresh = () => ({
+const fresh = (): PlatformTaskBrief => ({
   item: { id: 'task', origin: 'task', title: 'Build search', project_id: 'project' },
   brief: {
     request_text: 'Search titles',
@@ -94,6 +95,7 @@ beforeEach(() => {
     terminalStartupRestorationReady: true,
     startupWorktreeRefreshCompleted: true,
     activeWorktreeId: 'worktree',
+    repos: [{ id: 'repo', kind: 'git', executionHostId: 'runtime:env' }],
     runtimeStatusByEnvironmentId: new Map([
       ['env', { snapshot: { verification: 'verified', transport: 'ready' } }]
     ]),
@@ -101,6 +103,8 @@ beforeEach(() => {
       repo: [
         {
           id: 'worktree',
+          displayName: 'Main workspace',
+          branch: 'main',
           repoId: 'repo',
           runtimeOwnerEnvironmentId: 'env',
           path: 'C:/example/Repo',
@@ -130,6 +134,49 @@ afterEach(() => {
 })
 
 describe('platform native Agent bridge', () => {
+  it('shows the same workspace and task subdirectory passed to launch', async () => {
+    const brief = fresh()
+    brief.brief.execution_directory_id = 'docs'
+    brief.directories = [{ binding_id: 'docs', path: 'C:/example/Repo/docs' }]
+    mocks.brief.mockResolvedValue(brief)
+    render(<PlatformAgentBridge data={data} />)
+    await request()
+    const target = screen.getByLabelText('启动目标').textContent
+    expect(target).toContain('Main workspace')
+    expect(target).toContain('项目原目录')
+    expect(target).toContain('C:/example/Repo/docs')
+    await act(async () => { fireEvent.click(screen.getByText('开始')) })
+    expect(mocks.launch).toHaveBeenCalledWith(expect.objectContaining({ worktreeId: 'worktree', initialCwd: 'C:/example/Repo/docs' }))
+  })
+  it.each(['selection', 'instance', 'path', 'cwd', 'branch', 'mode'])('refuses an unseen target after %s changes', async (change) => {
+    render(<PlatformAgentBridge data={data} />)
+    await request()
+    const worktree = mocks.state.worktrees.repo[0]
+    if (change === 'selection') {
+      mocks.state.worktrees.repo.push({ ...worktree, id: 'other', isMainWorktree: false, path: 'C:/example/other' })
+      mocks.state.activeWorktreeId = 'other'
+    } else if (change === 'instance') worktree.instanceId = 'replacement'
+    else if (change === 'path') worktree.path = 'C:/example/changed'
+    else if (change === 'branch') worktree.branch = 'different'
+    else if (change === 'mode') mocks.state.repos[0].kind = 'folder'
+    else {
+      const changed = fresh()
+      changed.brief.execution_directory_id = 'docs'
+      changed.directories = [{ binding_id: 'docs', path: 'C:/example/Repo/docs' }]
+      mocks.brief.mockResolvedValue(changed)
+    }
+    await act(async () => { fireEvent.click(screen.getByText('开始')) })
+    expect(mocks.launch).not.toHaveBeenCalled()
+    expect(screen.getByRole('alert').textContent).toContain('启动目标已变化')
+  })
+  it('shows an unavailable path and keeps start disabled without selecting another workspace', async () => {
+    mocks.state.worktrees.repo = []
+    render(<PlatformAgentBridge data={data} />)
+    await request()
+    expect(screen.getByLabelText('启动目标').textContent).toContain('尚不可解析')
+    expect((screen.getByText('开始') as HTMLButtonElement).disabled).toBe(true)
+    expect(mocks.launch).not.toHaveBeenCalled()
+  })
   it('announces readiness only after its request listener can accept the cold request', async () => {
     const onReady = vi.fn(() => {
       expect(

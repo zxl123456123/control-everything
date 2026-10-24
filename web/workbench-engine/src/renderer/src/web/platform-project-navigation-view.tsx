@@ -6,6 +6,7 @@ import { getRepoExecutionHostId, toRuntimeExecutionHostId } from '../../../share
 import type { PlatformProjectBootstrap } from './platform-project-bootstrap'
 import {
   choosePlatformWorktree,
+  describePlatformWorkspace,
   createPlatformProjectNavigator
 } from './platform-project-navigation'
 import type { PlatformProject } from './platform-studio-surface'
@@ -298,11 +299,23 @@ export default function PlatformNavigation({
     (snapshot.transport === 'disconnected' ||
       snapshot.verification === 'blocked' ||
       snapshot.verification === 'unavailable')
+  const selected = Object.values(worktrees).flat().find((row) => row.id === activeWorktreeId) ?? null
+  const workspace = hydrated && catalogReady ? describePlatformWorkspace(repos, selected, data) : null
   return (
     <div className="platform-runtime-status" aria-live="polite">
       <span role="status">
-        {catalogError || (disconnected ? '连接已中断；运行组件重启后请重新加载。' : notice)}
+        {catalogError || (disconnected ? '连接已中断；运行组件重启后请重新加载。' : workspace ? null : notice)}
       </span>
+      {workspace && (
+        <details className="platform-workspace-context">
+          <summary>工作区：{workspace.name} · {workspace.mode}</summary>
+          <div>
+            <p>目录：{workspace.path || '尚未读取'}</p>
+            {workspace.branch && <p>分支：{workspace.branch}</p>}
+            <p>同一目录内的 Agent 共用文件，项目设置也可能包含共享路径；工作区不是运行安全沙箱。</p>
+          </div>
+        </details>
+      )}
     </div>
   )
 }

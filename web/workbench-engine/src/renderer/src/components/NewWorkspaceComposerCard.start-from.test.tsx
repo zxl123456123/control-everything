@@ -4,6 +4,8 @@ import React, { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import NewWorkspaceComposerCard from './NewWorkspaceComposerCard'
+import { PlatformProjectContext } from '@/web/platform-project-context'
+import type { PlatformProjectBootstrap } from '@/web/platform-project-bootstrap'
 
 vi.mock('@/store', () => ({
   useAppStore: Object.assign(
@@ -78,12 +80,14 @@ vi.mock('@/components/repo/CreateFromPicker', () => ({
 }))
 
 function renderCard(
-  overrides: Partial<React.ComponentProps<typeof NewWorkspaceComposerCard>> = {}
+  overrides: Partial<React.ComponentProps<typeof NewWorkspaceComposerCard>> = {},
+  platformProject?: PlatformProjectBootstrap | null
 ): HTMLDivElement {
   const container = document.createElement('div')
   document.body.appendChild(container)
   act(() => {
     createRoot(container).render(
+      <PlatformProjectContext.Provider value={platformProject}>
       <NewWorkspaceComposerCard
         quickAgent={null}
         onQuickAgentChange={() => {}}
@@ -145,6 +149,7 @@ function renderCard(
         startFromResetHint={null}
         {...overrides}
       />
+      </PlatformProjectContext.Provider>
     )
   })
   return container
@@ -158,6 +163,41 @@ function clickButton(container: HTMLDivElement, label: string): void {
 }
 
 describe('NewWorkspaceComposerCard start from', () => {
+  const platformProject = { target: { repoId: 'repo-a' }, runtime: { environmentId: 'env-a' } } as PlatformProjectBootstrap
+  const selected = { eligibleRepos: [{ id: 'repo-a', displayName: 'Fixture', path: 'C:/example/repo' }] as any,
+    selectedRepoExecutionHostId: 'runtime:env-a' as const }
+  it.each([true, false])('uses the workspace action label in integrated mode for Git=%s', (selectedRepoIsGit) => {
+    const onCreate = vi.fn()
+    const card = renderCard({ ...selected, selectedRepoIsGit, primaryActionLabel: '创建工作树', onCreate }, platformProject)
+    const button = [...card.querySelectorAll('button')].find((row) => row.textContent?.includes('创建工作区'))
+    expect(button).toBeTruthy()
+    expect(card.textContent).not.toContain('创建工作树')
+    act(() => button?.click())
+    expect(onCreate).toHaveBeenCalledOnce()
+    card.remove()
+  })
+  it('keeps standalone action labels and uses workspace terminology while platform selection is pending', () => {
+    const standalone = renderCard({ primaryActionLabel: 'Create worktree' })
+    expect(standalone.textContent).toContain('Create worktree')
+    const pending = renderCard({ primaryActionLabel: '创建工作树' }, null)
+    expect(pending.textContent).toContain('创建工作区')
+    expect(pending.textContent).not.toContain('创建工作树')
+    standalone.remove(); pending.remove()
+  })
+  it('explains Git creation and folder sharing only for the verified selected project', () => {
+    const git = renderCard(selected, platformProject)
+    expect(git.querySelector('[data-platform-workspace-help]')?.textContent).toContain('不自动带入未提交文件')
+    const folder = renderCard({ ...selected, selectedRepoIsGit: false }, platformProject)
+    expect(folder.querySelector('[data-platform-workspace-help]')?.textContent).toContain('文件仍共用项目目录')
+    for (const project of [undefined, null, { ...platformProject, target: { repoId: 'other' } }]) {
+      const card = renderCard(selected, project)
+      expect(card.querySelector('[data-platform-workspace-help]')).toBeNull()
+      card.remove()
+    }
+    const remote = renderCard({ ...selected, selectedRepoExecutionHostId: 'runtime:other' }, platformProject)
+    expect(remote.querySelector('[data-platform-workspace-help]')).toBeNull()
+    git.remove(); folder.remove(); remote.remove()
+  })
   let container: HTMLDivElement | null = null
 
   afterEach(() => {

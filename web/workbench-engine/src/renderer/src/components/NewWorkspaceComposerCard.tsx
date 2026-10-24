@@ -1,4 +1,6 @@
 import React from 'react'
+import { PlatformProjectContext } from '@/web/platform-project-context'
+import { toRuntimeExecutionHostId } from '../../../shared/execution-host'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { useAppStore } from '@/store'
@@ -58,6 +60,7 @@ export default function NewWorkspaceComposerCard(
   props: NewWorkspaceComposerCardProps
 ): React.JSX.Element {
   useTranslation()
+  const platformProject = React.useContext(PlatformProjectContext)
   const {
     contextualTourSource,
     containerClassName,
@@ -330,6 +333,14 @@ export default function NewWorkspaceComposerCard(
           connectButtonLabel={connectButtonLabel}
           selectedProjectName={selectedProjectName}
         />
+        {platformProject && selectedRepo && repoId === platformProject.target.repoId &&
+          selectedRepoExecutionHostId === toRuntimeExecutionHostId(platformProject.runtime.environmentId) && (
+          <p className="text-sm text-muted-foreground" data-platform-workspace-help>
+            {selectedRepoIsGit
+              ? '从所选起点准备独立代码目录（Git worktree），不自动带入未提交文件。项目设置可能包含共享路径，依赖和本地配置需另行核对。'
+              : '此工作区分开保存工作现场，文件仍共用项目目录；在任一工作区修改文件，其他工作区也会看到。'}
+          </p>
+        )}
         <NewWorkspaceComposerNameSection {...props} onNamePlainEnter={handleNamePlainEnter} />
         <NewWorkspaceComposerAgentSection
           {...props}
@@ -361,6 +372,7 @@ export default function NewWorkspaceComposerCard(
         <div className="shrink-0 space-y-1">
           <NewWorkspaceComposerFooter
             {...props}
+            primaryActionLabel={platformProject !== undefined ? '创建工作区' : props.primaryActionLabel}
             submitShortcutModifierLabel={getScreenSubmitModifierLabel()}
           />
         </div>

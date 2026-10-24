@@ -12,7 +12,8 @@ import { toRuntimeExecutionHostId } from '../../../shared/execution-host'
 import { resolveTuiAgentLaunchArgs } from '../../../shared/tui-agent-launch-defaults'
 import type { AgentLaunchSettings } from '../../../shared/agent-launch-settings'
 import type { PlatformProjectBootstrap } from './platform-project-bootstrap'
-import { choosePlatformWorktree } from './platform-project-navigation'
+import type { Worktree } from '../../../shared/worktree/types'
+import { choosePlatformWorktree, describePlatformWorkspace } from './platform-project-navigation'
 import { projectRoute, readPlatformRoute } from './platform-route'
 import {
   findPlatformProviderSession,
@@ -25,7 +26,15 @@ import {
 } from './platform-agent-launch'
 
 type Request = { projectId: string; taskId: string }
-type Choice = Request & { title: string; settings: AgentLaunchSettings; sequence: number }
+type Choice = Request & {
+  title: string
+  settings: AgentLaunchSettings
+  sequence: number
+  worktree: Worktree | null
+  cwd: string | null
+  targetError: string
+  workspace: ReturnType<typeof describePlatformWorkspace>
+}
 const agentLabels = { codex: 'Codex', claude: 'Claude Code' } as const
 
 export default function PlatformAgentBridge({
@@ -175,7 +184,23 @@ export default function PlatformAgentBridge({
             ? (settings.defaultTuiAgent as PlatformTaskAgent)
             : (enabled[0] ?? 'codex')
         )
-        setChoice({ ...request, title: brief.item.title, settings, sequence: operation })
+        const state = useAppStore.getState()
+        const worktree = choosePlatformWorktree(
+          Object.values(selectWorktreesByRepo(state)).flat(), data, state.activeWorktreeId
+        )
+        let cwd: string | null = null
+        let targetError = ''
+        try {
+          if (!worktree) throw new Error('项目尚无可用工作区，请先打开或创建工作区。')
+          cwd = platformTaskCwd(brief, request.taskId, request.projectId, worktree.path)
+        } catch (failure) {
+          targetError = failure instanceof Error ? failure.message : '执行目录尚不可解析。'
+        }
+        setChoice({
+          ...request, title: brief.item.title, settings, sequence: operation,
+          worktree: worktree ? { ...worktree } : null, cwd, targetError,
+          workspace: describePlatformWorkspace(state.repos, worktree, data)
+        })
       })().catch((failure) => {
         if (operation === sequence.current)
           toast.error(failure instanceof Error ? failure.message : '事项暂不可打开。')
@@ -213,6 +238,15 @@ export default function PlatformAgentBridge({
       )
       if (!worktree) throw new Error('项目尚无可用工作区，请先打开或创建工作区。')
       const initialCwd = platformTaskCwd(fresh, request.taskId, request.projectId, worktree.path)
+      const workspace = describePlatformWorkspace(state.repos, worktree, data)
+      if (
+        !request.cwd || !request.worktree || worktree.id !== request.worktree.id ||
+        worktree.instanceId !== request.worktree.instanceId || worktree.path !== request.worktree.path ||
+        initialCwd !== request.cwd || workspace?.mode !== request.workspace?.mode ||
+        workspace?.branch !== request.workspace?.branch
+      ) {
+        throw new Error('启动目标已变化，请关闭窗口后重新打开并核对。')
+      }
       if (
         !activateAndRevealWorktree(worktree.id, {
           executionHostId: toRuntimeExecutionHostId(environmentId)
@@ -282,6 +316,16 @@ export default function PlatformAgentBridge({
       <DialogContent className="sm:max-w-md">
         <DialogTitle>在工作区开始</DialogTitle>
         <DialogDescription>{choice?.title}</DialogDescription>
+        {choice && (
+          <div className="min-w-0 space-y-1 break-all text-sm" aria-label="启动目标">
+            <p>项目：{data.project.name}</p>
+            <p>工作区：{choice.workspace?.name || choice.worktree?.displayName || '尚不可定位'}</p>
+            <p>目录模式：{choice.workspace?.mode || '尚未读取'}</p>
+            <p>启动目录：{choice.cwd || '尚不可解析'}</p>
+            {choice.workspace?.branch && <p>分支：{choice.workspace.branch}</p>}
+            {choice.targetError && <p role="alert">{choice.targetError}</p>}
+          </div>
+        )}
         <label className="grid gap-2 text-sm">
           Agent
           <select
@@ -325,7 +369,7 @@ export default function PlatformAgentBridge({
             Agent 设置
           </Button>
           <Button
-            disabled={busy || !choice || choice.settings.disabledTuiAgents.includes(agent)}
+            disabled={busy || !choice || !choice.cwd || choice.settings.disabledTuiAgents.includes(agent)}
             onClick={() => {
               void start()
             }}
