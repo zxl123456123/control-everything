@@ -84,6 +84,54 @@ class Peer:
         raise AssertionError(path)
 
 
+class ConnectorConfigTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.tool = Path(self.temp.name).resolve() / 'synthetic-tool.exe'
+        self.tool.write_bytes(b'not executable; configuration validation only')
+
+    def config(self, issuer, **overrides):
+        values = dict(issuer=issuer, hub_origin='https://workbench.example.test',
+                      ssh_executable=self.tool, keygen_executable=self.tool)
+        values.update(overrides)
+        return ConnectorConfig(**values)
+
+    def test_root_and_deployed_identity_context_issuers_are_preserved(self):
+        for path in ('/realms/team', '/identity/realms/control-everything'):
+            issuer = 'https://identity.example.test' + path
+            with self.subTest(path=path):
+                self.assertEqual(self.config(issuer).issuer, issuer)
+
+    def test_issuer_rejects_other_prefix_encoding_traversal_and_url_components(self):
+        paths = ('/auth/realms/team', '/identity-other/realms/team', '/prefix/identity/realms/team',
+                 '/identity//realms/team', '/identity/realms/', '/identity/realms/team/',
+                 '/identity/realms/team/extra', '/identity/../realms/team',
+                 '/identity/realms/.', '/identity/realms/..', '/realms/.', '/realms/..',
+                 '/%69dentity/realms/team', '/identity/realms/%2e%2e',
+                 '/identity/realms/team%2Fextra', '/identity/realms/team?x=1',
+                 '/identity/realms/team#fragment')
+        for path in paths:
+            with self.subTest(path=path), self.assertRaises(ValueError):
+                self.config('https://identity.example.test' + path)
+        for issuer in ('http://identity.example.test/identity/realms/team',
+                       'https://user@identity.example.test/identity/realms/team',
+                       'https://identity.example.test:443/identity/realms/team',
+                       'https://identity.example.test:0/identity/realms/team',
+                       'https://identity.example.test%2fother/identity/realms/team'):
+            with self.subTest(issuer=issuer), self.assertRaises(ValueError):
+                self.config(issuer)
+
+    def test_prefixed_issuer_retains_client_hub_and_tool_checks(self):
+        issuer = 'https://identity.example.test/identity/realms/team'
+        for overrides, code in (({'client_id': 'other-client'}, 'remote_client_invalid'),
+                                ({'hub_origin': 'http://workbench.example.test'}, 'remote_origin_invalid'),
+                                ({'ssh_executable': self.tool.parent / 'missing.exe'}, 'remote_tool_missing'),
+                                ({'keygen_executable': self.tool.parent / 'missing.exe'}, 'remote_tool_missing')):
+            with self.subTest(fields=tuple(overrides)), self.assertRaisesRegex(ValueError, code):
+                self.config(issuer, **overrides)
+
+
 class ConnectorTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()

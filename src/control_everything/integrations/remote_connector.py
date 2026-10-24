@@ -47,7 +47,8 @@ class ConnectorConfig:
         parsed = urlsplit(self.issuer)
         public_origin("https://" + parsed.netloc)
         if (parsed.scheme != "https" or parsed.query or parsed.fragment or
-                not re.fullmatch(r"/realms/[A-Za-z0-9_.-]+", parsed.path)):
+                not re.fullmatch(r"/(?:identity/)?realms/[A-Za-z0-9_.-]+", parsed.path) or
+                parsed.path.rsplit("/", 1)[-1] in (".", "..")):
             raise ValueError("remote_issuer_invalid")
         if self.client_id != "workbench-desktop":
             raise ValueError("remote_client_invalid")
