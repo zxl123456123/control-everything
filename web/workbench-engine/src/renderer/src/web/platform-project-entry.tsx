@@ -107,7 +107,7 @@ export default function PlatformProjectEntry(): React.JSX.Element {
     cache.current.get(projectId)?.project.directory === chosen.directory &&
     !error
   )
-  const showWorkspace = developing && connected && appMounted
+  const showWorkspace = developing && connected && appMounted && readyData === data
   const preparingWorkspace = developing && !showWorkspace && !error && !archived
   useEffect(() => {
     const changed = () => {
@@ -260,7 +260,7 @@ export default function PlatformProjectEntry(): React.JSX.Element {
         pendingProjectReveal.current = false
         setData(result)
       } catch {
-        if (!cancelled) {
+        if (!cancelled && isCurrentProject()) {
           pendingAgentRequest.current = null
           setError(
             '项目工作区未能连接。请确认本地服务正在运行，再重新加载；已有会话状态需在恢复连接后核对。'
@@ -282,10 +282,13 @@ export default function PlatformProjectEntry(): React.JSX.Element {
   }, [connected, chosen?.name, archived?.name])
   return (
     <div className="platform-project-entry bg-background">
-      {projectId && (!developing || showWorkspace || error || archived) && (
+      {projectId && (
         <nav className="platform-project-tabs" aria-label="项目工作区导航">
           <a href="#home" className="platform-project-back">
             ‹ 项目
+          </a>
+          <a href="#inbox" className="platform-project-all-tasks">
+            全部事项
           </a>
           <span
             className="platform-project-name"
@@ -338,12 +341,12 @@ export default function PlatformProjectEntry(): React.JSX.Element {
       )}
       <PlatformStudioSurface
         hidden={showWorkspace}
-        pending={Boolean(preparingWorkspace)}
+        pending={Boolean(developing && !showWorkspace && !archived)}
         onProjects={onProjects}
       />
       {preparingWorkspace && (
         <div className="platform-navigation-notice" role="status">
-          正在打开{chosen?.name || '项目'}… <a href="#home">取消</a>
+          {connected ? `${chosen?.name || '项目'}的工作区尚未就绪。` : `正在打开${chosen?.name || '项目'}…`} <a href="#home">取消</a>
         </div>
       )}
       {developing && !connected && error && !archived && (
@@ -369,6 +372,7 @@ export default function PlatformProjectEntry(): React.JSX.Element {
             data={data}
             projects={projects}
             active={developing && connected}
+            pending={Boolean(preparingWorkspace && connected)}
             canCreateWorkspace={
               route.tab === 'workspace' && connected && readyData === data && !unlinkedWorkspace
             }

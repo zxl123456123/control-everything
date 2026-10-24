@@ -16,6 +16,7 @@ export default function PlatformNavigation({
   data,
   projects,
   active,
+  pending = false,
   canCreateWorkspace = false,
   surface = 'workspace',
   onSelection,
@@ -24,6 +25,7 @@ export default function PlatformNavigation({
   data: PlatformProjectBootstrap
   projects: PlatformProject[]
   active: boolean
+  pending?: boolean
   canCreateWorkspace?: boolean
   surface?: 'workspace' | 'activity'
   onSelection: (id: string | null) => void
@@ -302,11 +304,21 @@ export default function PlatformNavigation({
   const selected = Object.values(worktrees).flat().find((row) => row.id === activeWorktreeId) ?? null
   const workspace = hydrated && catalogReady ? describePlatformWorkspace(repos, selected, data) : null
   return (
-    <div className="platform-runtime-status" aria-live="polite">
+    <div className="platform-runtime-status" data-pending={pending} hidden={!active} aria-live="polite">
       <span role="status">
-        {catalogError || (disconnected ? '连接已中断；运行组件重启后请重新加载。' : workspace ? null : notice)}
+        {catalogError || (disconnected ? '连接已中断；运行组件重启后请重新加载。' : notice !== '项目已打开'
+          ? pending && notice.startsWith('项目中尚无')
+            ? '项目中尚无可定位的工作区，请返回项目检查目录，或重新加载工作区。'
+            : notice
+          : null)}
       </span>
-      {workspace && (
+      {pending && (
+        <div className="platform-runtime-recovery">
+          <button type="button" onClick={() => window.location.reload()}>重新加载工作区</button>
+          <a href="#home">返回项目</a>
+        </div>
+      )}
+      {workspace && !pending && (
         <details className="platform-workspace-context">
           <summary>工作区：{workspace.name} · {workspace.mode}</summary>
           <div>

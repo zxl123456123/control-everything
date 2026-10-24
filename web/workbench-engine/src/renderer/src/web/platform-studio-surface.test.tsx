@@ -25,15 +25,17 @@ it('downloads dependencies in order once and keeps load-error recovery available
   expect(scripts.map((script) => new URL(script.src).pathname)).toEqual([
     '/onboarding.js', '/execution.js', '/task-center.js', '/monitor-art.js',
     '/monitor-scene.js', '/monitor-model.js', '/project-monitor.js',
-    '/project-space.js', '/agents.js', '/studio-data.js', '/studio-preview.js'
+    '/project-space.js', '/agents.js', '/studio-data.js', '/mobile-device-entry.js', '/studio-preview.js'
   ])
   expect(scripts.every((script) => script.async === false)).toBe(true)
   view.rerender(<PlatformStudioSurface hidden onProjects={onProjects} />)
   view.rerender(<PlatformStudioSurface hidden={false} pending onProjects={onProjects} />)
   expect(view.container.querySelector('section')?.hasAttribute('inert')).toBe(false)
+  expect(view.container.querySelector<HTMLElement>('.platform-studio-host')?.hidden).toBe(true)
   view.rerender(<PlatformStudioSurface hidden={false} onProjects={onProjects} />)
   expect(view.container.querySelector('section')?.hasAttribute('inert')).toBe(false)
-  expect(scripts).toHaveLength(11)
+  expect(view.container.querySelector<HTMLElement>('.platform-studio-host')?.hidden).toBe(false)
+  expect(scripts).toHaveLength(12)
   view.rerender(<PlatformStudioSurface hidden={false} pending onProjects={onProjects} />)
   await act(async () => { scripts[0].dispatchEvent(new Event('error')) })
   expect(screen.getByRole('alert').textContent).toContain('工作台资源加载失败')

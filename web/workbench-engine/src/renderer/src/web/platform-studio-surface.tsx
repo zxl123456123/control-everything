@@ -144,7 +144,7 @@ export default function PlatformStudioSurface({
           )}
         </div>
       )}
-      <div ref={host} className="platform-studio-host" />
+      <div ref={host} className="platform-studio-host" hidden={pending} />
     </section>
   )
 }

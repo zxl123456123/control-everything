@@ -14,6 +14,8 @@ const fixture = vi.hoisted(() => ({
     | null,
   nativeProjects: [] as PlatformProject[],
   navigationData: [] as PlatformProjectBootstrap[],
+  navigationReady: true,
+  markReady: null as ((data: PlatformProjectBootstrap) => void) | null,
   mounts: vi.fn(),
   bridgeMounts: vi.fn(),
   bridgeUnmounts: vi.fn(),
@@ -41,7 +43,10 @@ vi.mock('./platform-project-navigation-view', () => ({
   }) => {
     fixture.nativeProjects = projects
     fixture.navigationData.push(data)
-    useEffect(() => onReady(data), [data, onReady])
+    fixture.markReady = onReady
+    useEffect(() => {
+      if (fixture.navigationReady) onReady(data)
+    }, [data, onReady])
     return null
   }
 }))
@@ -119,6 +124,8 @@ beforeEach(() => {
   fixture.projects = null
   fixture.nativeProjects = []
   fixture.navigationData = []
+  fixture.navigationReady = true
+  fixture.markReady = null
   fixture.load.mockResolvedValue(bootstrap())
   window.history.replaceState(null, '', '/studio#project/p-one/workspace')
 })
@@ -605,7 +612,7 @@ it('keeps a cold-start unknown project distinct from archived identity', async (
   expect(screen.getByLabelText('当前项目').textContent).toBe('项目工作区')
   expect(screen.getByRole('button', { name: '重试连接' })).toBeTruthy()
   expect(fixture.load).not.toHaveBeenCalled()
-  expect((screen.getByTestId('studio-surface') as HTMLElement).dataset.pending).toBe('false')
+  expect((screen.getByTestId('studio-surface') as HTMLElement).dataset.pending).toBe('true')
   expect(window.location.hash).toBe('#project/p-one/workspace')
 })
 
@@ -663,4 +670,43 @@ it('guards body shadow dialogs and accepts the next navigation after closing', a
   } finally {
     host.remove()
   }
+})
+
+
+it('keeps the target title and hides the workspace until that project is activated', async () => {
+  render(<PlatformProjectEntry />)
+  const second = { id: 'p-two', name: 'Two', directory: 'C:/example/two' }
+  publish([project, second])
+  await waitFor(() => expect(screen.getByTestId('project-context').textContent).toBe('One'))
+  const app = screen.getByTestId('project-context')
+  fixture.navigationReady = false
+  let resolve!: (value: unknown) => void
+  fixture.load.mockReturnValueOnce(new Promise((done) => { resolve = done }))
+  await act(async () => { window.location.hash = '#project/p-two/workspace' })
+  await waitFor(() => expect(fixture.load).toHaveBeenCalledTimes(2))
+  expect(screen.getByLabelText('当前项目').textContent).toBe('Two')
+  expect(document.title).toBe('Two · 掌控一切')
+  expect(app.closest('.platform-project-content')?.hasAttribute('hidden')).toBe(true)
+  expect(screen.getByTestId('studio-surface').dataset.pending).toBe('true')
+  expect(screen.getByRole('link', { name: '全部事项' }).getAttribute('href')).toBe('#inbox')
+  expect(screen.getByRole('link', { name: '‹ 项目' }).getAttribute('href')).toBe('#home')
+  await act(async () => resolve({ ...bootstrap('Two'), project: { id: 'p-two', name: 'Two' } }))
+  await waitFor(() => expect(fixture.navigationData.at(-1)?.project.id).toBe('p-two'))
+  expect(app.closest('.platform-project-content')?.hasAttribute('hidden')).toBe(true)
+  expect(screen.queryByRole('alert')).toBeNull()
+  act(() => fixture.markReady!(fixture.navigationData.at(-1)!))
+  await waitFor(() => expect(app.closest('.platform-project-content')?.hasAttribute('hidden')).toBe(false))
+  expect(screen.getByTestId('project-context')).toBe(app)
+  expect(app.textContent).toBe('Two')
+})
+
+
+it('keeps the Studio host pending after bootstrap failure instead of revealing an old scope', async () => {
+  fixture.load.mockRejectedValueOnce(new Error('offline'))
+  render(<PlatformProjectEntry />)
+  publish([project])
+  await waitFor(() => expect(screen.getByRole('alert').textContent).toContain('未能连接'))
+  expect(screen.getByTestId('studio-surface').dataset.pending).toBe('true')
+  expect(screen.getByRole('button', { name: '重试连接' })).toBeTruthy()
+  expect(screen.queryByTestId('project-context')).toBeNull()
 })

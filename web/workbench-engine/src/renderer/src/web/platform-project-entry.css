@@ -171,3 +171,9 @@
 .platform-workspace-context summary {cursor:pointer;overflow-wrap:anywhere}
 .platform-workspace-context > div {position:absolute;right:10px;top:100%;z-index:30;max-width:min(560px,calc(100vw - 20px));padding:10px 14px;border:1px solid var(--border);border-radius:7px;background:var(--background);box-shadow:0 4px 16px #0002;overflow-wrap:anywhere}
 .platform-workspace-context p {margin:3px 0}
+
+.platform-project-all-tasks {white-space:nowrap;color:var(--muted-foreground);font-size:12px;text-decoration:none}
+
+:root[data-platform-view=studio] .platform-runtime-status[data-pending=true]:not([hidden]) {display:block;padding:16px 20px;text-align:left;font-size:13px}
+.platform-runtime-recovery {display:flex;gap:16px;align-items:center;margin-top:12px}
+.platform-runtime-recovery button,.platform-runtime-recovery a {padding:8px 14px;border:1px solid var(--border);border-radius:7px;color:var(--foreground)}
