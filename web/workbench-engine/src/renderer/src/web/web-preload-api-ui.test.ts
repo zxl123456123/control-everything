@@ -29,7 +29,7 @@ describe('web before-unload persistence', () => {
           hostId: 'runtime:web-env-1'
         }
       ],
-      ui: { activeView: 'settings' }
+      ui: { activeView: 'settings', sidebarOpen: false, rightSidebarOpen: true }
     })
 
     expect(JSON.parse(storage.getItem('orca.web.workspaceSession.v1') ?? '{}')).toMatchObject({
@@ -39,8 +39,12 @@ describe('web before-unload persistence', () => {
       JSON.parse(storage.getItem('orca.web.workspaceSession.v1.runtime:web-env-1') ?? '{}')
     ).toMatchObject({ activeWorktreeId: 'remote-worktree' })
     expect(JSON.parse(storage.getItem('orca.web.ui.v1') ?? '{}')).toMatchObject({
-      activeView: 'settings'
+      activeView: 'settings',
+      sidebarOpen: false,
+      rightSidebarOpen: true
     })
+    const { readLocalWebUIState } = await import('./preload-api/web-preferences-store')
+    expect(readLocalWebUIState()).toMatchObject({ sidebarOpen: false, rightSidebarOpen: true })
   })
 })
 
@@ -70,6 +74,7 @@ describe('web UI preload API', () => {
 
     const ui = await api.ui.get()
 
+    expect(ui.sidebarOpen).toBe(true)
     expect(ui.rightSidebarOpen).toBe(false)
   })
 
@@ -80,6 +85,150 @@ describe('web UI preload API', () => {
     const ui = await api.ui.get()
 
     expect(ui.rightSidebarOpen).toBe(true)
+  })
+
+  it.each(
+    [390, 700, 701, 844, 1280].flatMap((width) =>
+      [false, true].map((legacy) => ({ width, legacy }))
+    )
+  )('defaults both sidebars at $width with legacy right=$legacy', async ({ width, legacy }) => {
+    const globals = installBrowserGlobals('Linux')
+    const media = {
+      matches: width <= 700,
+      media: '(max-width: 700px)',
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(() => true)
+    } satisfies MediaQueryList
+    globals.window.matchMedia = vi.fn(() => media)
+    globals.storage.setItem(
+      'orca.web.settings.v1',
+      JSON.stringify({ rightSidebarOpenByDefault: legacy })
+    )
+    const { readLocalWebUIState } = await import('./preload-api/web-preferences-store')
+    expect(readLocalWebUIState()).toMatchObject({
+      sidebarOpen: width > 700,
+      rightSidebarOpen: width > 700 && legacy
+    })
+  })
+
+  it.each([390, 700])('pins narrow defaults against an old host at %s', async (width) => {
+    vi.doMock('./web-runtime-client', () => ({
+      WebRuntimeClient: class {
+        call(method: string): Promise<RuntimeRpcResponse<unknown>> {
+          return Promise.resolve({
+            id: method,
+            ok: true,
+            result: { ui: { sidebarOpen: true, rightSidebarOpen: true, sidebarWidth: 320 } },
+            _meta: { runtimeId: 'runtime-1' }
+          })
+        }
+        close(): void {}
+      }
+    }))
+    const globals = installBrowserGlobals('Linux')
+    globals.window.matchMedia = vi.fn(() => ({
+      matches: width <= 700,
+      media: '',
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(() => true)
+    }))
+    writeStoredRuntimeEnvironment(globals.storage)
+    const { installWebPreloadApi } = await import('./web-preload-api')
+    installWebPreloadApi()
+    await expect(globals.window.api.ui.get()).resolves.toMatchObject({
+      sidebarOpen: false,
+      rightSidebarOpen: false,
+      sidebarWidth: 320
+    })
+    expect(JSON.parse(globals.storage.getItem('orca.web.ui.v1') ?? '{}')).toMatchObject({
+      sidebarOpen: false,
+      rightSidebarOpen: false
+    })
+  })
+
+  it.each(
+    [700, 701].flatMap((width) =>
+      [true, false, undefined, null, 'true'].flatMap((left) =>
+        [true, false, undefined, null, 'false'].map((right) => ({ width, left, right }))
+      )
+    )
+  )('normalizes local sidebar values at $width: $left / $right', async ({ width, left, right }) => {
+    vi.doMock('./web-runtime-client', () => ({
+      WebRuntimeClient: class {
+        call(method: string): Promise<RuntimeRpcResponse<unknown>> {
+          return Promise.resolve({
+            id: method,
+            ok: true,
+            result: { ui: { sidebarOpen: left !== true, rightSidebarOpen: right !== true } },
+            _meta: { runtimeId: 'runtime-1' }
+          })
+        }
+        close(): void {}
+      }
+    }))
+    const globals = installBrowserGlobals('Linux')
+    globals.window.matchMedia = vi.fn(() => ({
+      matches: width <= 700,
+      media: '',
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(() => true)
+    }))
+    globals.storage.setItem(
+      'orca.web.settings.v1',
+      JSON.stringify({ rightSidebarOpenByDefault: true })
+    )
+    globals.storage.setItem(
+      'orca.web.ui.v1',
+      JSON.stringify({ sidebarOpen: left, rightSidebarOpen: right })
+    )
+    writeStoredRuntimeEnvironment(globals.storage)
+    const { installWebPreloadApi } = await import('./web-preload-api')
+    installWebPreloadApi()
+    await expect(globals.window.api.ui.get()).resolves.toMatchObject({
+      sidebarOpen: typeof left === 'boolean' ? left : width > 700,
+      rightSidebarOpen: typeof right === 'boolean' ? right : width > 700
+    })
+  })
+
+  it('keeps stored choices through viewport changes without listeners or writes', async () => {
+    const { api, storage, window } = await installApi('Linux')
+    let width = 390
+    const addListener = vi.fn()
+    const addEventListener = vi.fn()
+    window.matchMedia = vi.fn(() => ({
+      matches: width <= 700,
+      media: '',
+      onchange: null,
+      addListener,
+      removeListener: vi.fn(),
+      addEventListener,
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(() => true)
+    }))
+    await api.ui.set({ sidebarOpen: true, rightSidebarOpen: false })
+    const { readLocalWebUIState } = await import('./preload-api/web-preferences-store')
+    readLocalWebUIState()
+    const writes = vi.spyOn(storage, 'setItem')
+    const listeners = vi.mocked(window.addEventListener).mock.calls.length
+    for (width of [844, 390]) {
+      expect(readLocalWebUIState()).toMatchObject({ sidebarOpen: true, rightSidebarOpen: false })
+    }
+    expect(writes).not.toHaveBeenCalled()
+    expect(window.addEventListener).toHaveBeenCalledTimes(listeners)
+    expect(addListener).not.toHaveBeenCalled()
+    expect(addEventListener).not.toHaveBeenCalled()
   })
 
   it('seeds missing local card display properties from runtime-backed compact settings when ui.get is unavailable', async () => {

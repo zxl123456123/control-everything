@@ -75,6 +75,7 @@ export function mergeHostWebUIState(
     manualRepoOrder: local.manualRepoOrder,
     workspaceHostOrder: local.workspaceHostOrder,
     sidebarOpen: local.sidebarOpen,
+    rightSidebarOpen: local.rightSidebarOpen,
     agentsVisibleHostIds: local.agentsVisibleHostIds,
     agentsFilterRepoIds: local.agentsFilterRepoIds,
     agentsHideWorkspacesFromOtherDevices: local.agentsHideWorkspacesFromOtherDevices === true,
@@ -135,7 +136,7 @@ export function mergeContextualTourSeenIds(
 
 export function mergeOsc52ClipboardNoticePending(
   current: PersistedUIState,
-  incoming: PersistedUIState
+  incoming: PairedUiState
 ): boolean {
   return (
     current.osc52ClipboardDefaultOnNoticePending === true ||

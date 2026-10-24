@@ -327194,6 +327194,54 @@
       "upstream_sha256": "ee91ccdb61743a54d9bc8fe4a05e1660026659539357fb3a5602900e530ea10c",
       "current_sha256": "1f9ad206238b96318fca2ae74670ae67c12ed823ef0ea4f5e051bd52fd98abf6",
       "reason": "S2: disable marketing wall and emit Vite manifest"
+    },
+    {
+      "path": "src/shared/pairing-local-ui-fields.ts",
+      "upstream_sha256": "38384600cbc3e59f486828979d345b90bf054ceb7d7c638e2f2a591620f7557b",
+      "current_sha256": "223c2ff2940880d6735dfb08d84d818c6257bd1491921e0076563897a56a4ca4",
+      "reason": "Keep sidebar visibility browser-local and use narrow-screen defaults without overriding explicit preferences"
+    },
+    {
+      "path": "src/renderer/src/web/preload-api/web-preference-normalization.ts",
+      "upstream_sha256": "184b52a6c7fb6fa9c31bf4a0c84e993d6aa1cab1263109015d244fedecaf7a1c",
+      "current_sha256": "5000200633d39ff670a83d1d189a971597df7e48f8bf9dafaf0b5a4ffdee6363",
+      "reason": "Keep sidebar visibility browser-local and use narrow-screen defaults without overriding explicit preferences"
+    },
+    {
+      "path": "src/renderer/src/web/preload-api/web-preferences-store.ts",
+      "upstream_sha256": "4713b98be31fe678e656a1d48355ce11bb309ca816d5912e522ab55c25b62f4d",
+      "current_sha256": "59fbb78f27667d80eb2c7fbe7736ee899dc40fce3167b841e75648f62f6a31c1",
+      "reason": "Keep sidebar visibility browser-local and use narrow-screen defaults without overriding explicit preferences"
+    },
+    {
+      "path": "src/shared/pairing-local-ui-fields.test.ts",
+      "upstream_sha256": "6da696b5b7380d83ac890f20ee29f278fb98c2e595941ae30ebc9261cb5cf879",
+      "current_sha256": "5f310387c9aaac36ce610724ccd34fb58856a242d4e83ab4d3cc891922097b97",
+      "reason": "Keep sidebar visibility browser-local and use narrow-screen defaults without overriding explicit preferences"
+    },
+    {
+      "path": "src/main/runtime/rpc/methods/client-ui-pairing-local-fields.test.ts",
+      "upstream_sha256": "5376767a14fb1b04feb790b603fb16d5ae1bd2d4e25eca5b37f32b3cd67d331b",
+      "current_sha256": "edbcf688f4030232fd735b83ed37bdf3353cbdb825aa773b0ad9b81de128139e",
+      "reason": "Keep sidebar visibility browser-local and use narrow-screen defaults without overriding explicit preferences"
+    },
+    {
+      "path": "src/main/runtime/rpc/methods/client-ui.test.ts",
+      "upstream_sha256": "21f427e4932a388ec0698baeea0d3e99e5cd453f8ef88170b97d4e4d1fd8b9f5",
+      "current_sha256": "e4c38b62402582904421b863aa5eb944c42f0277f60e3a576096a9c84fcded3c",
+      "reason": "Keep sidebar visibility browser-local and use narrow-screen defaults without overriding explicit preferences"
+    },
+    {
+      "path": "src/renderer/src/web/web-preload-api-ui-pairing-local-fields.test.ts",
+      "upstream_sha256": "fd1bbb79a16ebb58dc7e462528bf3aa3215005c25755ae9c7c16879f4b9d552a",
+      "current_sha256": "e71bf86789f0a5a6acdcb7bf7cc32e6add352cdece0dba1d3559f0a3c0256c99",
+      "reason": "Keep sidebar visibility browser-local and use narrow-screen defaults without overriding explicit preferences"
+    },
+    {
+      "path": "src/renderer/src/web/web-preload-api-ui.test.ts",
+      "upstream_sha256": "4b2f70fb94a280e40827decc34d7d09a13abee5e8bdaa136a0dcefd4c3e83eab",
+      "current_sha256": "13336baf1a139e3be68bd8de3a29bbaf9f571473a4394b6de99f3aa9bdb988ca",
+      "reason": "Keep sidebar visibility browser-local and use narrow-screen defaults without overriding explicit preferences"
     }
   ],
   "reviewed_findings": [

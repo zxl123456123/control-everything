@@ -41,6 +41,7 @@ describe('web UI preload API pairing-local fields', () => {
     manualRepoOrder: [{ hostId: 'runtime:web-env-1', repoId: 'repo-b' }],
     workspaceHostOrder: ['runtime:web-env-1', 'local'],
     sidebarOpen: false,
+    rightSidebarOpen: false,
     agentsVisibleHostIds: ['runtime:web-env-1'],
     agentsFilterRepoIds: ['repo-b'],
     agentsHideWorkspacesFromOtherDevices: true,
@@ -60,6 +61,7 @@ describe('web UI preload API pairing-local fields', () => {
     manualRepoOrder: [{ hostId: 'local', repoId: 'repo-a' }],
     workspaceHostOrder: ['local', 'ssh:box'],
     sidebarOpen: true,
+    rightSidebarOpen: true,
     agentsVisibleHostIds: ['local'],
     agentsFilterRepoIds: ['repo-a'],
     agentsHideWorkspacesFromOtherDevices: false,
@@ -103,13 +105,24 @@ describe('web UI preload API pairing-local fields', () => {
       if (!write) {
         throw new Error('Missing UI write method')
       }
-      await write({ ...browserLocal, sidebarWidth: 280 })
+      await write({
+        ...browserLocal,
+        sidebarOpen: false,
+        rightSidebarOpen: false,
+        rightSidebarTab: 'checks',
+        sidebarWidth: 280
+      })
 
-      expect(runtimeCalls[0]).toEqual({ method: 'ui.set', params: { sidebarWidth: 280 } })
+      expect(runtimeCalls[0]).toEqual({
+        method: 'ui.set',
+        params: { rightSidebarTab: 'checks', sidebarWidth: 280 }
+      })
       await expect(globals.window.api.ui.get()).resolves.toMatchObject(browserLocal)
-      expect(JSON.parse(globals.storage.getItem('orca.web.ui.v1') ?? '{}')).toMatchObject(
-        browserLocal
-      )
+      expect(JSON.parse(globals.storage.getItem('orca.web.ui.v1') ?? '{}')).toMatchObject({
+        ...browserLocal,
+        sidebarOpen: false,
+        rightSidebarOpen: false
+      })
     }
   )
 })

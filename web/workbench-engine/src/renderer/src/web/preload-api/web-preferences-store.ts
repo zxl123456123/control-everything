@@ -312,12 +312,22 @@ export function readLocalWebUIState(): PersistedUIState {
       storedSettings.compactWorktreeCards ? 'Compact' : 'Default'
     )
   }
-  if (typeof stored.rightSidebarOpen === 'boolean') {
-    return mergeWebUIState(base, stored)
-  }
+  const narrow =
+    typeof window.matchMedia === 'function' && window.matchMedia('(max-width: 700px)').matches
   return mergeWebUIState(base, {
     ...stored,
-    // Why: web fallback lacks main-process normalization; migrate the retired setting only when local UI preference is absent.
-    rightSidebarOpen: storedSettings.rightSidebarOpenByDefault
+    // Explicit local choices survive viewport changes; only missing choices use viewport defaults.
+    sidebarOpen:
+      typeof stored.sidebarOpen === 'boolean'
+        ? stored.sidebarOpen
+        : narrow
+          ? false
+          : (defaults.sidebarOpen ?? true),
+    rightSidebarOpen:
+      typeof stored.rightSidebarOpen === 'boolean'
+        ? stored.rightSidebarOpen
+        : narrow
+          ? false
+          : storedSettings.rightSidebarOpenByDefault
   })
 }

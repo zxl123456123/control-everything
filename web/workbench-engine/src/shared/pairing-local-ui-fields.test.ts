@@ -11,6 +11,7 @@ describe('pairing-local UI fields', () => {
       'manualRepoOrder',
       'workspaceHostOrder',
       'sidebarOpen',
+      'rightSidebarOpen',
       'agentsVisibleHostIds',
       'agentsFilterRepoIds',
       'agentsHideWorkspacesFromOtherDevices',
@@ -31,11 +32,18 @@ describe('pairing-local UI fields', () => {
       hideWorkspacesFromOtherDevices: true,
       manualRepoOrder: [{ hostId: 'local' as const, repoId: 'repo-a' }],
       workspaceHostOrder: ['local' as const],
+      sidebarOpen: true,
+      rightSidebarOpen: false,
+      rightSidebarTab: 'checks',
       sidebarWidth: 280,
       activeView: 'tasks' as const
     }
 
-    expect(omitPairingLocalUiFields(state)).toEqual({ sidebarWidth: 280, activeView: 'tasks' })
+    expect(omitPairingLocalUiFields(state)).toEqual({
+      rightSidebarTab: 'checks',
+      sidebarWidth: 280,
+      activeView: 'tasks'
+    })
   })
 
   it('leaves a payload that carries no member untouched', () => {
