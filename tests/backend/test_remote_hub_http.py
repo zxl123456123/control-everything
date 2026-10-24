@@ -1,5 +1,6 @@
 """Loopback-only fake-peer HTTP framing and identity boundary tests."""
 
+from concurrent.futures import ThreadPoolExecutor
 import http.client
 import json
 from pathlib import Path
@@ -41,6 +42,41 @@ class RemoteHubHTTPTests(unittest.TestCase):
         connection.request(method, path, body, headers or {})
         response = connection.getresponse()
         return response.status, json.loads(response.read()), dict(response.getheaders())
+
+    def test_cold_authorization_burst_is_queued_then_processed_without_connection_loss(self):
+        # Pause accept, not handlers: exercise the real listen backlog under a connection burst.
+        server = build_server(("127.0.0.1", 0), self.hub)
+        headers = {"X-Auth-Request-Access-Token": "synthetic-access-token", "X-Auth-Request-User": A.sub,
+                   "X-CE-Route-Proof": self.hub.route_proof}
+        def connect(_):
+            connection = http.client.HTTPConnection(*server.server_address, timeout=0.75)
+            try:
+                connection.request("GET", "/remote/api/session", headers=headers)
+                return connection
+            except OSError:
+                connection.close()
+                return None
+        with ThreadPoolExecutor(max_workers=32) as pool:
+            connections = list(pool.map(connect, range(32)))
+        thread = threading.Thread(target=server.serve_forever, kwargs={"poll_interval": 0.01}, daemon=True)
+        thread.start()
+        statuses = []
+        try:
+            for connection in connections:
+                if connection is not None:
+                    connection.sock.settimeout(10)
+                    response = connection.getresponse()
+                    statuses.append(response.status)
+                    response.read()
+            self.assertEqual(len(statuses), 32, 'cold burst connections must survive the accept pause')
+            self.assertEqual(statuses, [200] * 32)
+        finally:
+            for connection in connections:
+                if connection is not None:
+                    connection.close()
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=2)
 
     def test_desktop_challenge_and_invalid_fields_have_no_secrets(self):
         body = {"installation_id": INSTALL, "public_key": KEY, "name": "Computer"}

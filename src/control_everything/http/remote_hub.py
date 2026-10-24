@@ -99,6 +99,11 @@ def dispatch(service, method, uri, headers, body):
     raise HubError("not_found", 404)
 
 
+class HubHTTPServer(ThreadingHTTPServer):
+    # Cold Web bundles can authorize many independent asset connections at once.
+    request_queue_size = 128
+
+
 def build_server(address, service):
     if address[0] not in ("127.0.0.1", "::1"):
         raise ValueError("hub_requires_loopback_listener")
@@ -145,7 +150,7 @@ def build_server(address, service):
 
         do_GET = do_POST = handle_request
 
-    server = ThreadingHTTPServer(address, Handler)
+    server = HubHTTPServer(address, Handler)
     server.daemon_threads = True
     return server
 
