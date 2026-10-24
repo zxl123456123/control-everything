@@ -16,6 +16,7 @@ window.WorkspaceProjectMonitor = (() => {
     const stamp = value => Number.isFinite(Date.parse(value)) ? new Date(value).toLocaleString('zh-CN', { hour12: false }) : '未提供';
     let active = false, destroyed = false, generation = 0, timer = 0, reading = false;
     let snapshot = null, previous = null, view = { agents: [], tasks: [], flows: [] };
+    let snapshotKey = '';
     let offset = 0, agentPage = 0, selection = null, detailGeneration = 0;
     let readAbort = null, detailAbort = null, executionPanel = null;
     const heading = node('div', undefined, 'monitor-heading');
@@ -163,12 +164,17 @@ window.WorkspaceProjectMonitor = (() => {
             || data.pagination?.offset !== offset || !data.events_page) throw new Error('mismatch');
         const delta = model.changes(previous, data);
         if (delta.gap) scene.setActive(false);
-        snapshot = data; previous = data; view = model.project(data);
+        const nextKey = JSON.stringify([data.project, data.items, data.events, data.pagination, data.events_page, data.coverage]);
+        const changed = !snapshot || view.stale || nextKey !== snapshotKey;
+        snapshotKey = nextKey;
+        snapshot = data; previous = data;
+        if (changed) view = model.project(data);
         agentPage = Math.min(agentPage, Math.max(0, Math.ceil(view.agents.length / 12) - 1));
         status.textContent = `${stamp(data.sampled_at)} 读取 · 本页 ${data.items.length} 项 · 最近活动快照${delta.gap ? ' · 活动窗口出现缺口，已重新同步' : ''}`;
         status.className = 'monitor-status';
         coverage.textContent = `内部 Agent 活动尚未接通。显示本页事项的最新认领与关联会话；活动窗口 ${data.events.length} / ${data.events_page.total} 条${data.events_page.has_more ? '，较早记录未载入' : ''}。动作按记录状态展示，进程存活未核验；外部会话活动未知。`;
-        keepFocus(() => { paint(delta.flows); scene.setActive(visible()); renderLists(); renderDetail(); });
+        if (changed) keepFocus(() => { paint(delta.flows); scene.setActive(visible()); renderLists(); renderDetail(); });
+        else scene.setActive(visible());
       } catch (error) {
         if (request !== generation || !visible()) return;
         previous = null; detailGeneration++;

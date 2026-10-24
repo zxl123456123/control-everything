@@ -513,9 +513,10 @@ window.WorkspaceAgentBoard = (() => {
     }
     return groups;
   }
-  function create({ root, fetchJson, postJson, onRegister = () => {}, onAddProject = () => {}, onProject = null, sandboxButton = null, unified = false, now = () => Date.now() }) {
+  function create({ root, fetchJson, postJson, onRegister = () => {}, onAddProject = () => {}, onProject = null, onRefresh = null, sandboxButton = null, unified = false, now = () => Date.now() }) {
     let items = [], projects = [], agents = [], request = 0, detailsRequest = 0, selectedProject = '', complete = false, writing = false, selected = null;
     let loaded = false, detailDirty = false, editDirty = false, briefDirty = false, sessionDirty = false, messageDirty = false, registryAvailable = false, disposed = false, itemFilter = 'all';
+    let groupsKey = '';
     const detailDrafts = new Set();
     let approvalPanel = null;
     const shownApprovals = new Set();
@@ -621,6 +622,11 @@ window.WorkspaceAgentBoard = (() => {
         const link = el('a', 'project-tab', label); link.href = `#project/${encodeURIComponent(selectedProject)}/${tab}`;
         if (tab === (itemFilter === 'attention' ? 'attention' : 'tasks')) link.setAttribute('aria-current', 'page'); navigation.append(link);
       }
+      const nextGroupsKey = JSON.stringify([selectedProject, itemFilter, complete, registryAvailable,
+        chosenItems().map(item => [item.id, item.title, item.project_id, item.state, item.assigned_agent_id, item.assignment_state, item.connection_state]),
+        projects.map(item => [item.id, item.name]), agents.map(item => [item.id, item.name])]);
+      if (groupsKey === nextGroupsKey) return;
+      groupsKey = nextGroupsKey;
       const groupLabels = unified ? { todo: '待办', doing: '进行中', blocked: '阻塞', review: '待验收', done: '已完成' } : labels;
       const grouped = unified ? Object.fromEntries(Object.keys(groupLabels).map(key => [key, chosenItems().filter(item => item.state === key)])) : groupItems(chosenItems()); groups.replaceChildren();
       for (const [key, rows] of Object.entries(grouped)) {
@@ -664,22 +670,38 @@ window.WorkspaceAgentBoard = (() => {
         if (!page.items.length) throw new Error('事项列表未完整读取');
       }
     }
+    function update(value, available = true) {
+      if (disposed) return;
+      registryAvailable = available;
+      if (available) agents = value.agents;
+      projects = value.workspace.projects.items.filter(p => !p.archived);
+      const visible = new Set(projects.map(p => p.id));
+      items = [...new Map(value.items.filter(item => !item.project_id || visible.has(item.project_id)).map(item => [item.id, item])).values()];
+      complete = true; loaded = true;
+      render();
+    }
+    function unavailable() {
+      if (disposed) return;
+      request++;
+      complete = false; render();
+      status.textContent = '工作台读取失败或未读完整。保留上次记录，数量暂不可确认，请刷新重试。';
+    }
     async function load() {
       if (disposed) return;
+      if (onRefresh) return onRefresh();
       const current = ++request; complete = false; status.textContent = loaded ? '正在更新，暂保留上次记录…' : '正在读取工作台…'; render();
       const results = await Promise.allSettled([fetchJson('/api/workspace'), fetchJson('/api/workspace/agents'), readItems()]);
       if (disposed || current !== request) return;
       registryAvailable = results[1].status === 'fulfilled';
       if (registryAvailable) agents = results[1].value.items || [];
       if (results[0].status === 'fulfilled' && results[0].value.projects?.status === 'available' && results[2].status === 'fulfilled') {
-        projects = results[0].value.projects.items.filter(p => !p.archived);
-        const visible = new Set(projects.map(p => p.id));
-        items = [...new Map(results[2].value.filter(item => !item.project_id || visible.has(item.project_id)).map(item => [item.id, item])).values()];
-        complete = true; loaded = true;
-        status.textContent = `已读取 ${items.length} 项 · 分配后由外部 Agent 领取；完成须人工审核。${registryAvailable ? '' : ' Agent 注册表读取失败。'}`;
+        update({ workspace: results[0].value, agents, items: results[2].value }, registryAvailable);
       } else status.textContent = '工作台读取失败或未读完整。保留上次记录，数量暂不可确认，请刷新重试。';
       render();
-      if (!root.hidden && complete && window.WorkspaceExecution?.createTaskApprovals && !detail.open && !writing && !hasDraft()
+      await inspectApprovals(current);
+    }
+    async function inspectApprovals(current) {
+      if (!root.hidden && !document.hidden && complete && window.WorkspaceExecution?.createTaskApprovals && !detail.open && !writing && !hasDraft()
           && chosenItems().some(item => item.assignment_state === 'waiting_user')) {
         try {
           const listing = await fetchJson('/api/workspace/execution');
@@ -703,6 +725,7 @@ window.WorkspaceAgentBoard = (() => {
       const nextFilter = filter === true ? 'attention' : ['review', 'attention'].includes(filter) ? filter : 'all';
       if (selectedProject === value && itemFilter === nextFilter) return;
       selectedProject = value || ''; itemFilter = nextFilter; project.value = selectedProject; render();
+      if (complete) void inspectApprovals(++request);
     }
     function showDetail() {
       if (!detail.open) { if (typeof detail.showModal === 'function') detail.showModal(); else if (typeof detail.show === 'function') detail.show(); }
@@ -1025,7 +1048,7 @@ window.WorkspaceAgentBoard = (() => {
         renderDetail({ item, run: null, events: [] }, `运行详情暂不可用：${error.message}。没有可确认的进度或产出。`);
       }
     }
-    return { load, setProject, open, dispose() { disposed = true; approvalPanel?.dispose(); request++; detailsRequest++; if (detail.open) detail.close(); },
+    return { load, update(value) { const current = ++request; update(value); return inspectApprovals(current); }, unavailable, setProject, open, dispose() { disposed = true; approvalPanel?.dispose(); request++; detailsRequest++; if (detail.open) detail.close(); },
       refreshPresence: renderAgents };
   }
   function onView(view, project = '', tab = 'tasks') {
