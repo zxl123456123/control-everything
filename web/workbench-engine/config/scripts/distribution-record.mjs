@@ -11,21 +11,34 @@ export function sourceOwner(root, input) {
   const file = resolve(root, clean)
   if (!existsSync(file) || !statSync(file).isFile()) return { input, virtual: input.startsWith('\0') || input.startsWith('<') || ['orcad-parcel-watcher-entry.js', 'orcad-linear-sdk-entry.js'].includes(input), unresolved: true }
   const physical = realpathSync(file)
+  const isPackageRoot = directory => basename(dirname(directory)) === 'node_modules' ||
+    (basename(dirname(directory)).startsWith('@') && basename(dirname(dirname(directory))) === 'node_modules')
+  let dependencyRoot = dirname(physical)
+  while (!isPackageRoot(dependencyRoot) && dirname(dependencyRoot) !== dependencyRoot) dependencyRoot = dirname(dependencyRoot)
+  if (!isPackageRoot(dependencyRoot)) dependencyRoot = null
+  const scopeVersions = []
   let directory = dirname(physical)
   while (true) {
-    const packageRoot = basename(dirname(directory)) === 'node_modules' ||
-      (basename(dirname(directory)).startsWith('@') && basename(dirname(dirname(directory))) === 'node_modules')
+    const packageRoot = isPackageRoot(directory)
     const metadata = join(directory, 'package.json')
     if (existsSync(metadata)) {
       const pkg = JSON.parse(readFileSync(metadata, 'utf8'))
       if (typeof pkg.name !== 'string' || !pkg.name || typeof pkg.version !== 'string' || !pkg.version) {
         const scopeFields = ['type', 'main', 'module', 'types', 'typings', 'exports', 'imports', 'browser', 'react-native', 'sideEffects']
-        if (!packageRoot && !Object.hasOwn(pkg, 'name') && !Object.hasOwn(pkg, 'version') &&
-            Object.keys(pkg).length && Object.keys(pkg).every(key => scopeFields.includes(key))) {
+        const plainScope = !Object.hasOwn(pkg, 'version') && Object.keys(pkg).length && Object.keys(pkg).every(key => scopeFields.includes(key))
+        // Published packages may carry typed subscopes with additional tooling fields.
+        // Only their actual dependency root may supply identity, and any repeated version must agree.
+        const dependencyScope = dependencyRoot && ['module', 'commonjs'].includes(pkg.type) &&
+          (!Object.hasOwn(pkg, 'version') || typeof pkg.version === 'string' && pkg.version.length > 0)
+        if (!packageRoot && !Object.hasOwn(pkg, 'name') && (plainScope || dependencyScope)) {
+          if (dependencyScope) scopeVersions.push(pkg.version)
           directory = dirname(directory)
           continue
         }
         throw Error('distribution_package_identity_incomplete:' + relative(root, metadata).replaceAll('\\', '/'))
+      }
+      if (scopeVersions.length && (directory !== dependencyRoot || scopeVersions.some(version => version !== undefined && version !== pkg.version))) {
+        throw Error('distribution_package_scope_version_mismatch:' + relative(root, metadata).replaceAll('\\', '/'))
       }
       const local = !relative(root, physical).startsWith('..') && !physical.replaceAll('\\', '/').includes('/node_modules/')
       let noticeRoot = local && !existsSync(join(directory, 'LICENSE')) ? root : directory

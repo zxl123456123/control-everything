@@ -327717,7 +327717,7 @@
     {
       "path": "vite.web.config.ts",
       "upstream_sha256": "ee91ccdb61743a54d9bc8fe4a05e1660026659539357fb3a5602900e530ea10c",
-      "current_sha256": "ae20fd8a8344de0b0cc56112c37a213b097e683e54d9d58fba94e6faf5406014",
+      "current_sha256": "daf30cc76de6a8183a8b2c408357f9de9459960e2d539ab203d64085b0df2500",
       "reason": "S2: disable marketing wall and emit Vite manifest"
     }
   ],

@@ -151,3 +151,65 @@ test('real Vite worker graph validates across Python and fails without its provi
   assert.notEqual(tampered.status, 0)
   assert.match(tampered.stderr, /distribution_(output_hash|shared_output_unresolved)/)
 })
+
+test('copied web records follow completed PDF writes and preserve upstream build errors', async t => {
+  const source = fs.readFileSync(path.join(engine, 'vite.web.config.ts'), 'utf8')
+  const functions = source.slice(source.indexOf('export function distributionPlugin'), source.indexOf('export default defineConfig'))
+  const compiled = req('esbuild').transformSync(functions, { loader: 'ts', format: 'esm' }).code
+  const pdfSource = fs.readFileSync(path.join(engine, 'config/build-plugins/pdfjs-viewer-assets.ts'), 'utf8')
+  const vite = await import(pathToFileURL(req.resolve('vite')).href)
+  for (const mode of ['delayed-copy', 'missing-copy', 'upstream-error']) {
+    await t.test(mode, async t => {
+      const directory = fixture(t)
+      const renderer = path.join(directory, 'src/renderer')
+      fs.mkdirSync(renderer, { recursive: true })
+      fs.writeFileSync(path.join(directory, 'package.json'), JSON.stringify({ name: 'fixture', version: '1.0.0' }))
+      fs.writeFileSync(path.join(directory, 'LICENSE'), 'MIT fixture')
+      fs.writeFileSync(path.join(directory, 'vite.web.config.ts'), source)
+      fs.writeFileSync(path.join(renderer, 'web-index.html'), '<script type="module" src="./main.js"></script>')
+      fs.writeFileSync(path.join(renderer, 'main.js'), "console.log('fixture');")
+      const modulePath = path.join(directory, 'actual-product-plugins.mjs')
+      fs.writeFileSync(modulePath, "import {resolve,dirname,join} from 'node:path'; import {readdirSync,statSync} from 'node:fs'; import {createHash} from 'node:crypto'; import {createRequire as nativeRequire} from 'node:module';\n" +
+        `const createRequire=()=>nativeRequire(${JSON.stringify(path.join(engine, 'package.json'))});\n` +
+        `import {writeDistributionRecord} from '${pathToFileURL(path.join(engine, 'config/scripts/distribution-record.mjs')).href}';\n` + compiled)
+      const pdfModule = path.join(directory, 'actual-pdf-plugin.mjs')
+      fs.writeFileSync(pdfModule, req('esbuild').transformSync(pdfSource, { loader: 'ts', format: 'esm' }).code)
+      const { copiedWebAssetsPlugin } = await import(pathToFileURL(modulePath).href)
+      const { createPdfjsViewerAssetsPlugin } = await import(pathToFileURL(pdfModule).href)
+      const pdf = createPdfjsViewerAssetsPlugin(path.dirname(req.resolve('pdfjs-dist/package.json')))
+      const originalCopy = pdf.writeBundle
+      let copied = false
+      pdf.writeBundle = async function (...args) {
+        await new Promise(resolve => setImmediate(resolve))
+        originalCopy.apply(this, args)
+        copied = true
+        if (mode === 'missing-copy') fs.unlinkSync(path.join(directory, 'out/web/cmaps/78-EUC-H.bcmap'))
+      }
+      const previous = process.cwd()
+      process.chdir(directory)
+      try {
+        const build = vite.build({ configFile: false, root: renderer, logLevel: 'silent',
+          plugins: [copiedWebAssetsPlugin(), pdf, {
+            name: 'upstream-error-fixture',
+            generateBundle() { if (mode === 'upstream-error') throw Error('original-generate-bundle-failure') }
+          }], build: { manifest: true, outDir: path.join(directory, 'out/web'), emptyOutDir: true,
+            rollupOptions: { input: path.join(renderer, 'web-index.html') } } })
+        if (mode === 'upstream-error') {
+          await assert.rejects(build, /original-generate-bundle-failure/)
+          assert.equal(copied, false)
+        } else if (mode === 'missing-copy') {
+          await assert.rejects(build, /ENOENT.*78-EUC-H\.bcmap/s)
+          assert.equal(copied, true)
+        } else {
+          await build
+          assert.equal(copied, true)
+          const record = JSON.parse(fs.readFileSync(path.join(directory, '.build/distribution/web-copies.json')))
+          assert.ok(record.copies.length > 100)
+          for (const row of record.copies) assert.equal(row.sha256, hash(fs.readFileSync(path.join(directory, row.output))))
+          assert.ok(record.copies.some(row => row.output === 'out/web/.vite/manifest.json'))
+        }
+        if (mode !== 'delayed-copy') assert.equal(fs.existsSync(path.join(directory, '.build/distribution/web-copies.json')), false)
+      } finally { process.chdir(previous) }
+    })
+  }
+})

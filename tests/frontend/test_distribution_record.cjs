@@ -40,6 +40,37 @@ test('module scopes retain package identity without crossing dependency or vendo
   assert.throws(() => sourceOwner(root, 'node_modules/@scope/missing/index.js'), /distribution_package_identity_incomplete/)
 })
 
+test('actual noble and react-i18next typed subscopes retain their exact published identity', async t => {
+  const { sourceOwner } = await helper
+  for (const [name, relative, version] of [['@noble/hashes', 'esm/sha256.js', '1.8.0'],
+    ['react-i18next', 'dist/es/index.js', '17.0.15']]) {
+    const store = path.join(engine, 'node_modules/.pnpm')
+    const prefix = name.replace('/', '+') + '@' + version
+    const slot = fs.readdirSync(store).find(name => name === prefix || name.startsWith(prefix + '_'))
+    assert.ok(slot, prefix)
+    const metadata = path.join(store, slot, 'node_modules', name, 'package.json')
+    const file = path.join(path.dirname(metadata), relative)
+    assert.ok(fs.existsSync(file), file)
+    const owner = sourceOwner(engine, file)
+    assert.equal(owner.package.name, name)
+    assert.equal(owner.package.version, version)
+    assert.equal(owner.package.metadataSha256, require('node:crypto').createHash('sha256').update(fs.readFileSync(metadata)).digest('hex'))
+  }
+  const { root, write } = fixture(t)
+  const scope = 'node_modules/@scope/pkg/esm/'
+  write(scope + 'package.json', JSON.stringify({ type: 'module', version: '1.0.0', node: { './crypto': './crypto.js' } }))
+  write(scope + 'index.js', 'export default 1')
+  assert.equal(sourceOwner(root, scope + 'index.js').unresolved, true)
+  for (const invalid of [{ type: 'module' }, { name: '@scope/pkg' }, { version: '1.0.0' }]) {
+    write('node_modules/@scope/pkg/package.json', JSON.stringify(invalid))
+    assert.throws(() => sourceOwner(root, scope + 'index.js'), /distribution_package_identity_incomplete/)
+  }
+  write('node_modules/@scope/pkg/package.json', JSON.stringify({ name: '@scope/pkg', version: '2.0.0' }))
+  assert.throws(() => sourceOwner(root, scope + 'index.js'), /distribution_package_scope_version_mismatch/)
+  write(scope + 'package.json', JSON.stringify({ type: 'module', name: 'incomplete-named-scope' }))
+  assert.throws(() => sourceOwner(root, scope + 'index.js'), /distribution_package_identity_incomplete/)
+})
+
 test('actual esbuild dynamic chunk inputs and hashes survive recording', async t => {
   const { root, write } = fixture(t)
   write('main.js', "export const load = () => import('./lazy.js')")

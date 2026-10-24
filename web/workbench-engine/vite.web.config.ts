@@ -40,17 +40,10 @@ export function distributionPlugin(label: string): Plugin {
     }
 }
 
-export default defineConfig({
-  root: resolve('src/renderer'),
-  cacheDir: resolve('.cache/vite/web'),
-  // Why: pairing URLs may live under a reverse-proxy path prefix like
-  // /orca/web-index.html, so built assets must resolve relative to the page.
-  base: './',
-  plugins: [
-    distributionPlugin('web'),
-    {
+export function copiedWebAssetsPlugin(): Plugin {
+  return {
       name: 'distribution-copied-web-assets',
-      closeBundle() {
+      writeBundle: { order: 'post', sequential: true, handler() {
         const pdf = dirname(createRequire(import.meta.url).resolve('pdfjs-dist/package.json'))
         const copies: {source: string; output: string}[] = []
         function walk(source: string, output: string) {
@@ -63,8 +56,19 @@ export default defineConfig({
         for (const name of ['cmaps', 'standard_fonts', 'wasm']) walk(join(pdf, name), resolve('out/web', name))
         copies.push({source: resolve('vite.web.config.ts'), output: resolve('out/web/.vite/manifest.json')})
         writeDistributionRecord(resolve('.'), 'web-copies', [], {}, copies)
-      }
-    },
+      } }
+    }
+}
+
+export default defineConfig({
+  root: resolve('src/renderer'),
+  cacheDir: resolve('.cache/vite/web'),
+  // Why: pairing URLs may live under a reverse-proxy path prefix like
+  // /orca/web-index.html, so built assets must resolve relative to the page.
+  base: './',
+  plugins: [
+    distributionPlugin('web'),
+    copiedWebAssetsPlugin(),
     react(),
     tailwindcss(),
     createPdfjsViewerAssetsPlugin(),
