@@ -22,6 +22,16 @@ PUBLIC_DOCS = {"docs/README.md", "docs/architecture.md", "docs/usage.md", "docs/
                "docs/workbench-contract.md",
                "docs/examples/integrations/codex.toml.example",
                "docs/examples/integrations/integration-settings.example.json",
+               "docs/examples/integrations/workbench-device-provisioner.service.example",
+               "docs/examples/integrations/workbench-device-provisioner.socket.example",
+               "docs/examples/integrations/workbench-device-sshd.example.conf",
+               "docs/examples/integrations/workbench-device-sshd.service.example",
+               "docs/examples/integrations/workbench-identity.README.md",
+               "docs/examples/integrations/workbench-identity.hub.example.json",
+               "docs/examples/integrations/workbench-identity.hub.service.example",
+               "docs/examples/integrations/workbench-identity.oauth2-proxy.example.cfg",
+               "docs/examples/integrations/workbench-identity.realm.example.json",
+               "docs/examples/integrations/workbench-remote.Caddyfile.example",
                "docs/examples/legacy/progress-manual.example.json",
                "docs/examples/legacy/progress-registry.example.json"}
 WINDOWS_PATH = re.compile(r"(?i)(?<![\w])(?:[a-z]:[\\/]+(?:users|documents and settings)[\\/]+[^\s'\"<>]+|[a-z]:[\\/]+(?!temporary(?:[\\/]|$)|temp(?:[\\/]|$)|example(?:[\\/]|$))[^\s'\"<>]+)")

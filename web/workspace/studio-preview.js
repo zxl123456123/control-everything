@@ -28,9 +28,9 @@ function mountStudio(root, { onProjects = () => {} } = {}) {
     return parsed.href;
   }
   try {
-    const saved = window.localStorage?.getItem(CREATOR_URL_KEY);
+    const saved = (window.CERemoteContext ? window.CERemoteContext.storage('localStorage') : window.localStorage)?.getItem(CREATOR_URL_KEY);
     if (saved) creatorUrl = validateCreatorUrl(saved);
-  } catch (_) { try { window.localStorage?.removeItem(CREATOR_URL_KEY); } catch (_) { /* Storage can be disabled. */ } }
+  } catch (_) { try { (window.CERemoteContext ? window.CERemoteContext.storage('localStorage') : window.localStorage)?.removeItem(CREATOR_URL_KEY); } catch (_) { /* Storage can be disabled. */ } }
   const escape = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
   let state = { workspace: null, agents: [], items: [] }, request = 0, query = '', archivedProjects = false, initialized = false, disposed = false;
   let attentionOnly = false, projectSort = 'updated', refreshMessage = '';
@@ -39,8 +39,8 @@ function mountStudio(root, { onProjects = () => {} } = {}) {
   const refreshInterval = 15000;
   const visibleBusiness = () => !disposed && !document.hidden && !(root.dataset.unified === 'true' && route().view === 'project' && ['workspace', 'activity'].includes(route().tab));
   const renderedHtml = new WeakMap();
-  const setHtml = (node, html) => { if (renderedHtml.get(node) !== html) { node.innerHTML = html; renderedHtml.set(node, html); } };
-  try { if (root.dataset.unified !== 'true') root.dataset.theme = localStorage.getItem('ce-studio-theme') === 'dark' ? 'dark' : 'light'; } catch { /* Preferences are optional. */ }
+  const setHtml = (node, html) => { if (disposed) return; window.CERemoteContext?.assertActive(); if (renderedHtml.get(node) !== html) { node.innerHTML = html; renderedHtml.set(node, html); } };
+  try { if (root.dataset.unified !== 'true') root.dataset.theme = (window.CERemoteContext ? window.CERemoteContext.storage('localStorage') : window.localStorage).getItem('ce-studio-theme') === 'dark' ? 'dark' : 'light'; } catch { /* Preferences are optional. */ }
   const board = window.WorkspaceAgentBoard.create({ root: $('studio-agent-board'), fetchJson: client.api, postJson: client.post,
     unified: root.dataset.unified === 'true',
     onRefresh: () => refresh(),
@@ -68,7 +68,7 @@ function mountStudio(root, { onProjects = () => {} } = {}) {
     projectTrigger = currentFocus();
     try {
       if (!onboarding) {
-        const response = await fetch(new URL('/workspace-admin', location.origin), { credentials: 'same-origin' });
+        const response = await (typeof window !== 'undefined' && window.CERemoteContext ? window.CERemoteContext.fetch : fetch)(new URL('/workspace-admin', location.origin), { credentials: 'same-origin' });
         if (!response.ok) throw new Error('添加项目暂不可用');
         const template = new DOMParser().parseFromString(await response.text(), 'text/html');
         const dialog = template.getElementById('onboarding-dialog');
@@ -162,8 +162,8 @@ function mountStudio(root, { onProjects = () => {} } = {}) {
     openProjectSettings(matches[0].id);
   };
   function nav(label, href, name, active) { return `<a class="ce-nav${active ? ' is-current' : ''}" href="${href}"${active ? ' aria-current="page"' : ''}>${icon(name)}${label}</a>`; }
-  function creatorLink(className='ce-nav'){return `<a class="${className} ce-creator-link" href="${escape(creatorUrl)}" target="_blank" rel="noopener noreferrer" aria-label="在新页面打开游戏创作">${icon('grid')}游戏创作${icon('arrow')}</a>`;}
-  function creatorAddressForm(){return `<section class="ce-creator-address"><div><h2>游戏创作地址</h2><p>导航中的“游戏创作”会在新页面打开此地址。请先启动独立创作服务。</p></div><form data-creator-form="true"><label for="studio-creator-url">普通 HTTP(S) 页面地址</label><div class="ce-creator-address-row"><input id="studio-creator-url" data-creator-url type="text" inputmode="url" autocomplete="off" spellcheck="false" value="${escape(creatorUrl)}" aria-describedby="studio-creator-error"${creatorUrlError?' aria-invalid="true"':''}><button type="submit" class="ce-button">保存地址</button></div><p id="studio-creator-error" role="status">${escape(creatorUrlError)}</p></form></section>`;}
+  function creatorLink(className='ce-nav'){if(window.CERemoteContext?.context)return '';return `<a class="${className} ce-creator-link" href="${escape(creatorUrl)}" target="_blank" rel="noopener noreferrer" aria-label="在新页面打开游戏创作">${icon('grid')}游戏创作${icon('arrow')}</a>`;}
+  function creatorAddressForm(){if(window.CERemoteContext?.context)return '';return `<section class="ce-creator-address"><div><h2>游戏创作地址</h2><p>导航中的“游戏创作”会在新页面打开此地址。请先启动独立创作服务。</p></div><form data-creator-form="true"><label for="studio-creator-url">普通 HTTP(S) 页面地址</label><div class="ce-creator-address-row"><input id="studio-creator-url" data-creator-url type="text" inputmode="url" autocomplete="off" spellcheck="false" value="${escape(creatorUrl)}" aria-describedby="studio-creator-error"${creatorUrlError?' aria-invalid="true"':''}><button type="submit" class="ce-button">保存地址</button></div><p id="studio-creator-error" role="status">${escape(creatorUrlError)}</p></form></section>`;}
   function renderChrome(current) {
     setHtml($('studio-rail'), `<div class="ce-brand"><span class="ce-monogram">CE</span><span>Control<br>Everything</span></div><nav class="ce-navgroup">${nav('项目', '#home', 'grid', current.view === 'home')}${nav('事项', '#inbox', 'check', current.view === 'inbox')}${nav('新闻', '/news', 'grid', false)}${nav('手机与设备', '#mobile', 'settings', current.view === 'mobile')}</nav><nav class="ce-navgroup" aria-label="项目"><div class="ce-rail-label">项目</div>${projects().filter(p => !p.archived).map(p => `<a class="ce-nav ce-project-nav${current.id === p.id ? ' is-current' : ''}" href="${projectUrl(p.id)}"><span class="ce-navdot"></span>${escape(p.name)}</a>`).join('') || '<span class="ce-subtle">尚无登记项目</span>'}</nav><nav class="ce-navgroup" aria-label="创作">${creatorLink()}</nav><div class="ce-rail-bottom">${nav('高级管理', '#tools', 'settings', current.view === 'tools')}<div class="ce-profile"><span class="ce-profile-avatar">CE</span><span>本地工作台</span></div></div>`);
     const chosen = projects().find(p => p.id === current.id);
@@ -216,6 +216,7 @@ function mountStudio(root, { onProjects = () => {} } = {}) {
     monitor.setActive(true);
   }
   function render() {
+    if (disposed || window.CERemoteContext?.active === false) return;
     const current = route();
     renderStatus(current);
     if (current.view !== 'mobile' && disposeMobile) { disposeMobile(); disposeMobile = null; }
@@ -253,6 +254,7 @@ function mountStudio(root, { onProjects = () => {} } = {}) {
     return `<nav class="ce-tabs" aria-label="事项筛选">${[['all', current.view === 'project' ? '本项目全部' : '全部'], ['review', '待验收'], ['attention', '需处理']].map(([value, label]) => `<a href="${href(value)}"${selected === value ? ' aria-current="page"' : ''}>${label}</a>`).join('')}</nav>`;
   }
   function renderStatus(current) {
+    if (disposed || window.CERemoteContext?.active === false) return;
     if (!state.workspace) { status.textContent = refreshMessage; return; }
     const label = root.dataset.isolatedPreview === 'true' ? '隔离测试数据' : '本地数据';
     const scope = current.view === 'project'
@@ -307,7 +309,7 @@ function mountStudio(root, { onProjects = () => {} } = {}) {
     if (action === 'archived-projects') { archivedProjects = !archivedProjects; attentionOnly = false; render(); }
     if (action === 'all-projects' || action === 'attention-projects') { attentionOnly = action === 'attention-projects'; render(); }
     if (action === 'clear-project-filters') { query = ''; attentionOnly = false; render(); }
-    if (action === 'theme') { root.dataset.theme = root.dataset.theme === 'dark' ? 'light' : 'dark'; try { localStorage.setItem('ce-studio-theme', root.dataset.theme); } catch { /* Preferences are optional. */ } }
+    if (action === 'theme') { root.dataset.theme = root.dataset.theme === 'dark' ? 'light' : 'dark'; try { (window.CERemoteContext ? window.CERemoteContext.storage('localStorage') : window.localStorage).setItem('ce-studio-theme', root.dataset.theme); } catch { /* Preferences are optional. */ } }
     const taskId = event.target.closest('[data-task]')?.dataset.task;
     if (taskId) {
       const item = state.items.find(row => row.id === taskId);
@@ -329,7 +331,7 @@ function mountStudio(root, { onProjects = () => {} } = {}) {
     try {
       creatorUrl = validateCreatorUrl(root.querySelector('[data-creator-url]').value);
       creatorUrlError = '';
-      try { window.localStorage?.setItem(CREATOR_URL_KEY, creatorUrl); } catch { /* Keep the address for this page. */ }
+      try { (window.CERemoteContext ? window.CERemoteContext.storage('localStorage') : window.localStorage)?.setItem(CREATOR_URL_KEY, creatorUrl); } catch { /* Keep the address for this page. */ }
     } catch (error) { creatorUrlError = error.message; }
     render(); root.querySelector('[data-creator-url]')?.focus({ preventScroll: true });
   });
@@ -365,7 +367,9 @@ function mountStudio(root, { onProjects = () => {} } = {}) {
   };
   document.addEventListener('visibilitychange', visibilityChanged);
   render(); void refresh();
-  return () => { disposed = true; request++; clearTimeout(refreshTimer); document.removeEventListener('visibilitychange', visibilityChanged); disposeMobile?.(); window.removeEventListener('hashchange', changed); window.removeEventListener('platform-add-project', requestProject); window.removeEventListener('platform-manage-project', manageProject); onboardingDialog?.close(); onboardingDialog?.remove(); projectSettings?.close(); projectSettings?.remove(); projectDialogTarget?.querySelectorAll('dialog').forEach(dialog => dialog.close()); projectDialogHost?.remove(); monitor?.destroy(); board.dispose?.(); };
+  const dispose = () => { disposed = true; request++; clearTimeout(refreshTimer); document.removeEventListener('visibilitychange', visibilityChanged); disposeMobile?.(); window.removeEventListener('hashchange', changed); window.removeEventListener('platform-add-project', requestProject); window.removeEventListener('platform-manage-project', manageProject); onboardingDialog?.close(); onboardingDialog?.remove(); projectSettings?.close(); projectSettings?.remove(); projectDialogTarget?.querySelectorAll('dialog').forEach(dialog => dialog.close()); projectDialogHost?.remove(); monitor?.destroy(); board.dispose?.(); };
+  const unsubscribeContext = window.CERemoteContext?.onInactive(dispose);
+  return () => { unsubscribeContext?.(); dispose(); };
 }
 window.StudioPreview = { mount: mountStudio, projectEntryTab };
 const standaloneStudio = document.getElementById('ce-studio');

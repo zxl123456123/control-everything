@@ -37,7 +37,7 @@ const sourceText = source => source ? `${source.user}@${source.host} · ${source
 const timeText = value => value ? new Date(value).toLocaleString('zh-CN', { hour12: false }) : '未观察';
 function element(tag, text, className) { const node = document.createElement(tag); if (text !== undefined) node.textContent = text; if (className) node.className = className; return node; }
 async function query(path, options = {}) {
-  const response = await fetch(path, { cache: 'no-store', ...options, headers: { 'X-Session-Client': 'panel', ...options.headers } });
+  const response = await (typeof window !== 'undefined' && window.CERemoteContext ? window.CERemoteContext.fetch : fetch)(path, { cache: 'no-store', ...options, headers: { 'X-Session-Client': 'panel', ...options.headers } });
   const result = await response.json();
   if (!response.ok) throw Object.assign(new Error(reasonText(result.reason) || '请求失败'), { result });
   return result;
@@ -79,6 +79,7 @@ function capability(name) {
   return state.initialized && state.capabilities?.[name] === true;
 }
 function renderWorkbench() {
+  if (window.CERemoteContext?.active === false) return;
   if (state.initialized && !capability('workbench')) {
     $('workbench-state').textContent = '终端工作台 · 未配置或已禁用';
     $('workbench-notice').textContent = '可在工作台的来源设置中查看接入状态和本机配置指引。';
@@ -140,6 +141,7 @@ function clearCodex(error) {
   Object.assign(codexState, { items: [], selected: null, available: false, received: 0, sampledAt: null, total: null, coverage: {}, nextOffset: null, error });
 }
 function renderCodexCoverage() {
+  if (window.CERemoteContext?.active === false) return;
   const fresh = codexFresh(), coverage = codexState.coverage;
   $('codex-status').textContent = fresh ? `本机身份索引 · 采样于 ${timeText(codexState.sampledAt)} · 证据年龄 ${((performance.now() - codexState.received) / 1000).toFixed(1)} 秒` : '本机 Codex 身份索引未确认';
   $('codex-coverage').textContent = fresh ? `本页 ${codexState.items.length} / 交互 ${codexState.total} · 全库 ${coverage.total_count} · 排除归档 ${coverage.archived_count}、子代理 ${coverage.excluded_subagent_count}、其他来源 ${coverage.excluded_other_source_count}` : '当前记录不可用；不显示旧记录为当前身份。';
@@ -150,6 +152,7 @@ function renderCodexCoverage() {
   $('codex-page-range').textContent = fresh ? `${codexState.offset + (codexState.items.length ? 1 : 0)}–${codexState.offset + codexState.items.length} / ${codexState.total}` : '';
 }
 function renderCodexThreads() {
+  if (window.CERemoteContext?.active === false) return;
   renderCodexCoverage();
   const root = $('codex-list'), focused = document.activeElement?.dataset.sessionKey;
   root.replaceChildren();
@@ -230,6 +233,7 @@ function currentReasons(record) {
   return record.reason_codes || [];
 }
 function renderCoverage() {
+  if (window.CERemoteContext?.active === false) return;
   if (state.initialized && !capability('remote_sessions')) {
     $('source').textContent = '远端会话未配置或已禁用';
     $('coverage').textContent = '本机 Codex 元数据可单独配置；远端不会自动连接。';
@@ -246,6 +250,7 @@ function renderCoverage() {
   renderEvidenceFlow();
 }
 function renderEvidenceFlow() {
+  if (window.CERemoteContext?.active === false) return;
   const codex = codexFresh() && codexState.items.find(item => item.session_key === codexState.selected);
   const record = state.records.find(item => item.session_id === state.selected);
   const fresh = state.connected && state.snapshotAge !== null && state.snapshotAge + performance.now() - state.received <= 30000;
@@ -296,6 +301,7 @@ function renderEvidenceFlow() {
   $('mapping-next').textContent = canFocus ? '查看身份与历史后，可在详情中定位原终端。' : '可复制完整 UUID、查看独立历史页或刷新观察；定位条件见上方原因与工作台详情。';
 }
 function renderSessions() {
+  if (window.CERemoteContext?.active === false) return;
   const root = $('sessions');
   const focusedId = document.activeElement?.dataset.sessionId;
   root.replaceChildren();
@@ -326,6 +332,7 @@ function renderSessions() {
   renderCoverage();
 }
 function renderSelection() {
+  if (window.CERemoteContext?.active === false) return;
   renderEvidenceFlow();
   const record = state.records.find(item => item.session_id === state.selected);
   $('selection-empty').hidden = Boolean(state.selected); $('selected').hidden = !state.selected;
@@ -388,6 +395,7 @@ function updatePaging() {
   $('page-range').textContent = page ? `${page.offset + (page.items.length ? 1 : 0)}–${page.offset + page.items.length} / ${page.total_visible}` : '';
 }
 function renderMessages(page) {
+  if (window.CERemoteContext?.active === false) return;
   $('messages').replaceChildren(...page.items.map(item => {
     const card = element('article', undefined, 'message');
     const heading = element('div', undefined, 'message-head'); heading.append(element('strong', item.type === 'assistant' ? 'Claude' : item.type === 'user' ? '用户' : item.type), element('span', item.uuid)); card.append(heading);
@@ -464,9 +472,10 @@ $('copy-mapping-key').addEventListener('click', async () => {
   try { await navigator.clipboard.writeText(key); $('mapping-copy-notice').textContent = '完整身份键已复制'; }
   catch { $('mapping-copy-notice').textContent = '复制不可用，请手动选择上方完整身份键'; }
 });
-document.addEventListener('visibilitychange', () => { if (!document.hidden) { refreshObservations(); } });
-setInterval(() => { if (!document.hidden) { refreshObservations(); } }, 10000);
-setInterval(() => { if (!document.hidden) { renderWorkbench(); renderSelection(); renderCoverage(); expireCodexThreads(); if (state.records.some(record => age(record) > 30000)) renderSessions(); } }, 1000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden && window.CERemoteContext?.active !== false) { refreshObservations(); } });
+const observationTimer = setInterval(() => { if (!document.hidden) { refreshObservations(); } }, 10000);
+const renderTimer = setInterval(() => { if (!document.hidden) { renderWorkbench(); renderSelection(); renderCoverage(); expireCodexThreads(); if (state.records.some(record => age(record) > 30000)) renderSessions(); } }, 1000);
+window.CERemoteContext?.onInactive(() => { clearInterval(observationTimer); clearInterval(renderTimer); state.epoch++; });
 async function initializeSessionPage() {
   try {
     const result = await query('/api/bootstrap');

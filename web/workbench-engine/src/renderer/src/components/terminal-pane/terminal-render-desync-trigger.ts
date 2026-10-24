@@ -1,3 +1,4 @@
+import { browserStorage } from '../../web/remote-context'
 import { forEachLivePaneForDesyncSentinel } from '@/lib/pane-manager/pane-manager-registry'
 import {
   captureRenderDesyncNow,
@@ -15,7 +16,7 @@ import {
  *
  * Off by default; enabled via localStorage so a production build can arm it
  * from DevTools without a settings-schema change:
- *   localStorage.setItem('orca:render-desync-sentinel', '1')  // then reload
+ *   browserStorage('localStorage').setItem('orca:render-desync-sentinel', '1')  // then reload
  */
 export const RENDER_DESYNC_SENTINEL_FLAG = 'orca:render-desync-sentinel'
 
@@ -73,7 +74,7 @@ export function isTerminalRenderDesyncSentinelArmed(): boolean {
     return sessionArmedOverride
   }
   try {
-    return globalThis.localStorage?.getItem(RENDER_DESYNC_SENTINEL_FLAG) === '1'
+    return browserStorage('localStorage')?.getItem(RENDER_DESYNC_SENTINEL_FLAG) === '1'
   } catch {
     return false
   }
@@ -87,7 +88,7 @@ export function isTerminalRenderDesyncSentinelArmed(): boolean {
  */
 export function setTerminalRenderDesyncSentinelArmed(armed: boolean): void {
   try {
-    const storage = globalThis.localStorage
+    const storage = browserStorage('localStorage')
     if (!storage) {
       sessionArmedOverride = armed
     } else if (armed) {

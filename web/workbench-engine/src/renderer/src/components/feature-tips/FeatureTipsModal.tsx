@@ -1,3 +1,4 @@
+import { browserStorage } from '../../web/remote-context'
 import { useEffect, useRef, useState, type JSX } from 'react'
 import { toast } from 'sonner'
 import { getDefaultVoiceSettings } from '../../../../shared/constants'
@@ -128,8 +129,8 @@ export default function FeatureTipsModal(): JSX.Element | null {
   }
 
   const enableOrchestrationSkillSetup = (): void => {
-    localStorage.setItem(ORCHESTRATION_ENABLED_STORAGE_KEY, '1')
-    localStorage.removeItem(ORCHESTRATION_SETUP_DISMISSED_STORAGE_KEY)
+    browserStorage('localStorage').setItem(ORCHESTRATION_ENABLED_STORAGE_KEY, '1')
+    browserStorage('localStorage').removeItem(ORCHESTRATION_SETUP_DISMISSED_STORAGE_KEY)
     notifyOrchestrationSetupStateChanged()
   }
 

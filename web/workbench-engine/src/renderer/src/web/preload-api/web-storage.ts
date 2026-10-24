@@ -1,3 +1,4 @@
+import { browserStorage } from '../remote-context'
 export const SETTINGS_STORAGE_KEY = 'orca.web.settings.v1'
 
 export const UI_STORAGE_KEY = 'orca.web.ui.v1'
@@ -21,7 +22,7 @@ export function getBrowserPlatform(): NodeJS.Platform {
 }
 
 export function readJson<T>(key: string, fallback: T): T {
-  const raw = window.localStorage.getItem(key)
+  const raw = browserStorage('localStorage').getItem(key)
   if (!raw) {
     return cloneJson(fallback)
   }
@@ -33,7 +34,7 @@ export function readJson<T>(key: string, fallback: T): T {
 }
 
 export function writeJson<T>(key: string, value: T): void {
-  window.localStorage.setItem(key, JSON.stringify(value))
+  browserStorage('localStorage').setItem(key, JSON.stringify(value))
 }
 
 export function cloneJson<T>(value: T): T {

@@ -1,3 +1,4 @@
+import { browserStorage } from '../../web/remote-context'
 import type { PRCommentGroupActionState } from '@/lib/pr-comment-action-state'
 import { cn } from '@/lib/utils'
 
@@ -137,12 +138,12 @@ function isVariant(value: string | null): value is PRCommentPresentationVariant 
 }
 
 /** Resolve the active variant. In dev, override with
- *  localStorage.setItem('orca:pr-comment-presentation', 'cards' | 'flat' | 'focus'). */
+ *  browserStorage('localStorage').setItem('orca:pr-comment-presentation', 'cards' | 'flat' | 'focus'). */
 export function resolvePRCommentPresentationVariant(): PRCommentPresentationVariant {
   if (typeof window === 'undefined') {
     return DEFAULT_PR_COMMENT_PRESENTATION_VARIANT
   }
-  const stored = window.localStorage.getItem(STORAGE_KEY)
+  const stored = browserStorage('localStorage').getItem(STORAGE_KEY)
   if (isVariant(stored)) {
     return stored
   }

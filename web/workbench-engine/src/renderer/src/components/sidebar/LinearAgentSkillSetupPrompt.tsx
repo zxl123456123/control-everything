@@ -1,3 +1,4 @@
+import { browserStorage } from '../../web/remote-context'
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import { RefreshCw, TicketCheck, X } from 'lucide-react'
 import type { ProjectExecutionRuntimeResolution } from '../../../../shared/project-execution-runtime'
@@ -158,7 +159,7 @@ export function LinearAgentSkillSetupPrompt({
     }
   }, [explicitCheckMatchesContext, missingSetup, setupCheckResult, setupReady])
   const dismissPermanently = (): void => {
-    localStorage.setItem(localDismissStorageKey, '1')
+    browserStorage('localStorage').setItem(localDismissStorageKey, '1')
     setLocalDismissed(true)
     setSetupDialogOpen(false)
     dismissLinearAgentSkillSetupReminderToast(localDismissStorageKey)

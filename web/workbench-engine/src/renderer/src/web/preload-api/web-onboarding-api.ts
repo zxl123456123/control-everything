@@ -1,3 +1,4 @@
+import { browserStorage } from '../remote-context'
 import type { PreloadApi } from '../../../../preload/api-types'
 import {
   ONBOARDING_FLOW_VERSION,
@@ -7,7 +8,7 @@ import type { OnboardingState } from '../../../../shared/onboarding-state-types'
 import { ONBOARDING_STORAGE_KEY, readJson, writeJson } from './web-storage'
 
 export function getStoredOnboarding(): OnboardingState {
-  const storedRaw = window.localStorage.getItem(ONBOARDING_STORAGE_KEY)
+  const storedRaw = browserStorage('localStorage').getItem(ONBOARDING_STORAGE_KEY)
   if (storedRaw) {
     const stored = readJson(ONBOARDING_STORAGE_KEY, getDefaultOnboardingState())
     if (stored.checklist.dismissed) {

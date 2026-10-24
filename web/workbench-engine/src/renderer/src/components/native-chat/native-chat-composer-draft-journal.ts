@@ -1,3 +1,4 @@
+import { browserStorage } from '../../web/remote-context'
 // The unload journal: changes storage had not confirmed when a window went away, written
 // synchronously to localStorage and replayed by the next load. Every window of the app shares it,
 // so each entry is pruned the moment any window confirms a change to that draft.
@@ -81,7 +82,7 @@ function parseEntry(entry: unknown): JournalEntry[] {
 
 function readEntries(): JournalEntry[] {
   try {
-    const raw = localStorage.getItem(JOURNAL_KEY)
+    const raw = browserStorage('localStorage').getItem(JOURNAL_KEY)
     const entries: unknown = raw === null ? [] : JSON.parse(raw)
     return Array.isArray(entries) ? entries.flatMap(parseEntry) : []
   } catch {
@@ -92,9 +93,9 @@ function readEntries(): JournalEntry[] {
 function writeEntries(entries: readonly JournalEntry[]): boolean {
   try {
     if (entries.length === 0) {
-      localStorage.removeItem(JOURNAL_KEY)
+      browserStorage('localStorage').removeItem(JOURNAL_KEY)
     } else {
-      localStorage.setItem(JOURNAL_KEY, JSON.stringify(entries))
+      browserStorage('localStorage').setItem(JOURNAL_KEY, JSON.stringify(entries))
     }
     return true
   } catch {
@@ -203,7 +204,7 @@ export function journalNativeChatComposerDraftAddition(
  *  replay never brings back what was sent or replaced since. */
 export function pruneNativeChatComposerDraftJournal(scopeKey: string, confirmedAt: number): void {
   try {
-    if (localStorage.getItem(JOURNAL_KEY) === null) {
+    if (browserStorage('localStorage').getItem(JOURNAL_KEY) === null) {
       return
     }
   } catch {

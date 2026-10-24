@@ -1,3 +1,4 @@
+import { browserStorage } from '../../../web/remote-context'
 // Layout-owner build: main starts the pane and resumes its agent, so the window's "session
 // restored" or "resume unavailable" banner comes from the outcome main publishes for that start.
 
@@ -20,7 +21,9 @@ const startOf = ({ ptyId, ptyGeneration }: TerminalPaneResumeOutcome): string =>
 
 function readShownStarts(): string[] {
   try {
-    const stored: unknown = JSON.parse(globalThis.sessionStorage.getItem(SHOWN_STARTS_KEY) ?? '[]')
+    const stored: unknown = JSON.parse(
+      browserStorage('sessionStorage').getItem(SHOWN_STARTS_KEY) ?? '[]'
+    )
     return Array.isArray(stored) ? stored.filter((key) => typeof key === 'string') : []
   } catch {
     return []
@@ -36,7 +39,7 @@ function noteShown(start: string, outcomes: Outcomes): boolean {
   shownHere.add(start)
   const live = new Set(Object.values(outcomes).map(startOf))
   try {
-    globalThis.sessionStorage.setItem(
+    browserStorage('sessionStorage').setItem(
       SHOWN_STARTS_KEY,
       JSON.stringify([...shown.filter((key) => live.has(key)), start])
     )

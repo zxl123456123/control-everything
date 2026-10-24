@@ -1,6 +1,7 @@
 """Same-origin Studio and a manifest-bound, internally managed project client."""
 
 import hashlib
+import copy
 import json
 from pathlib import Path, PurePosixPath
 import re
@@ -10,6 +11,7 @@ from control_everything.input_validation import ProfileError
 from control_everything.integrations.workbench_runtime import WorkbenchUnavailable
 from control_everything.paths import web_root
 from control_everything.workspace.validation import project_id_valid
+from control_everything.http import remote_context
 
 WEB = web_root()
 STUDIO_RESOURCES = {
@@ -84,7 +86,12 @@ class WorkbenchAssets:
         return body, entry["mime"]
 
 
-def _workbench_csp(manager):
+def _workbench_csp(manager, access=None):
+    if access:
+        return ("default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
+                "img-src 'self' data: blob:; font-src 'self' data:; worker-src 'self' blob:; "
+                f"connect-src 'self' {access.websocket_origin}; object-src 'none'; frame-src 'self' blob:; "
+                "frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
     origin = manager.websocket_origin
     parsed = urlsplit(origin)
     if (parsed.scheme != "ws" or parsed.hostname != "127.0.0.1" or parsed.username or parsed.password
@@ -120,7 +127,8 @@ def handle_get(handler, path):
                 body, mime = assets.read("web-index.html")
                 # The verified Web entry uses relative build assets; Studio is one level higher.
                 body = body.replace(b'="./assets/', b'="/workbench/assets/')
-                handler.reply(200, body, mime, csp=_workbench_csp(manager))
+                handler.reply(200, body, mime, csp=_workbench_csp(manager, remote_context.access_for(handler.server)
+                              if remote_context.remote_request(handler) else None))
                 return True
             body = (WEB / "workspace" / resource[0]).read_bytes()
             if path.path == "/workspace-admin":
@@ -143,7 +151,8 @@ def handle_get(handler, path):
             manager = getattr(handler.server, "workbench_runtime", None)
             if manager is None or not manager.ready:
                 raise WorkbenchUnavailable("runtime_unavailable")
-            csp = _workbench_csp(manager)
+            csp = _workbench_csp(manager, remote_context.access_for(handler.server)
+                                 if remote_context.remote_request(handler) else None)
         else:
             if path.query:
                 raise ValueError("invalid_request")
@@ -197,12 +206,19 @@ def handle_post(handler, path):
         if manager is None or not manager.ready:
             raise WorkbenchUnavailable("runtime_unavailable")
         project = _project(handler.server.workspace, body["project_id"])
-        result = manager.bootstrap(project["id"], project["name"], project["directory"])
+        refresh = handler.server.__dict__.get("refresh_workspace_roots")
+        if refresh:
+            refresh()
+        is_remote = remote_context.remote_request(handler)
+        result = manager.bootstrap(project["id"], project["name"], project["directory"], **({"remote": True} if is_remote else {}))
         if _project(handler.server.workspace, project["id"]) != project:
             raise ProfileError("project_directory_changed", status=409)
         response = {"project": {"id": project["id"], "name": project["name"]},
                     "runtime": result["runtime"], "target": result["target"],
                     "returnUrl": "/studio#project/" + quote(project["id"], safe="")}
+        if is_remote:
+            response = copy.deepcopy(response)
+            response["runtime"]["offer"]["endpoint"] = remote_context.access_for(handler.server).websocket_endpoint
         handler.reply(200, response)
         return True
     except ProfileError as error:

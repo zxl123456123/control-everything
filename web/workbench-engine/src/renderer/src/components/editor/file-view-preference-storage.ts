@@ -1,3 +1,4 @@
+import { browserStorage } from '../../web/remote-context'
 const MAX_PREFERENCES = 100
 const MAX_STORAGE_LENGTH = 2 * 1024 * 1024
 
@@ -17,7 +18,7 @@ export function buildFileViewPreferenceKey(input: {
 
 function storage(): Storage | null {
   try {
-    return globalThis.localStorage ?? null
+    return browserStorage('localStorage') ?? null
   } catch {
     return null
   }

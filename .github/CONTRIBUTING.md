@@ -28,6 +28,8 @@
 
 公开配置样例属于 `docs/examples/integrations`，受支持的旧记录格式样例属于 `docs/examples/legacy`；它们不是真实运行数据。新记录写入所选 profile，旧根 JSON/SQLite 的默认位置和显式导入合同保持。远端 reader 的独立依赖在 `tools/remote-reader/requirements.txt`，不要装进本机环境。根 `requirements.txt`、`rust-toolchain.toml` 和 `.cargo/config.toml` 保持现有工具入口。
 
+账号与电脑接入的无秘密部署样例为 `docs/examples/integrations/workbench-identity.*`、`workbench-device-*` 和 `workbench-remote.Caddyfile.example`；精确归属在 `tools/scripts/check_architecture.py` 登记。远程账号页静态文件由中央站点的 `/remote` 提供，不依赖某台已绑定电脑。`http/desktop.py` 仅消费产品清单校验后的资源；`http/remote_context.py` 处理逐设备证明后的页面元数据。浏览器在任何存储读取之前冻结页面 context，显式分区 Storage 与聊天草稿 IndexedDB；远程环境的设备密钥仅保留在页面内存。真实部署、两个账号 HTTP/WS、安装与手机验收须分别留证，单元测试不代表新 EXE 或原生 iOS/Android 已交付。
+
 ## 环境和验证
 
 ### 内置项目工作台源码与构建
@@ -165,6 +167,8 @@ python -m venv .venv
 基础测试使用合成配置、临时文件和 mock，不需要作者服务器或个人工具。首次完整测试涉及固定 Gitleaks 检查时，先按下文安装已核验工具；不能把缺工具跳过称为完整检查通过。本机 requirements 固定 MCP 1.30.0，远端新 reader 环境另用 tools/remote-reader/requirements.txt，不能把两套环境混为一次升级。
 
 ### Python 分发构建
+
+发行闭包的依赖归属与许可校验归 `tools/packaging/workbench_distribution.py`；Windows payload 组装归 `tools/packaging/desktop_payload.py`，稳定启动与维护入口归 `installation/maintenance.py`。engine 的 `config/scripts/distribution-record.mjs` 收集实际构建输入、外部文件与输出关系，由现有 runtime、mobile、SDK、Vite 构建脚本调用；新增脚本也须通过来源清单的精确成员校验，不扩大 HTTP 文件服务根。`tests/backend/test_workbench_distribution.py`、`test_desktop_payload.py` 覆盖 Python 合同；`tests/frontend/test_distribution_record.cjs` 与 `test_distribution_cross_tool.cjs` 验证 JavaScript producer 及跨工具输入。`tests/e2e/remote_device_acceptance.py` 是显式目标的现场验收入口，其合成测试归 `tests/backend/test_remote_device_acceptance.py`；源码单测不能替代公网与物理设备验收。
 
 `pyproject.toml` 是产品版本的唯一来源，运行依赖只从根 `requirements.txt` 读取。`tools/packaging` 负责分发构建，不放业务逻辑；其工具依赖单独固定，不加入运行 requirements。完整开发测试中的构建合同也需要这些固定工具：
 

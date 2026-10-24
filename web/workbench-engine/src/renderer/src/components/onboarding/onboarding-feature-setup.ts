@@ -1,3 +1,4 @@
+import { browserStorage } from '../../web/remote-context'
 import type {
   ComputerUsePermissionSetupResult,
   ComputerUsePermissionStatusResult
@@ -170,8 +171,8 @@ export function createOnboardingFeatureSetupDeps(): OnboardingFeatureSetupDeps {
     writeClipboardText: (text) => window.api.ui.writeClipboardText(text),
     getComputerUsePermissionStatus: () => window.api.computerUsePermissions.getStatus(),
     openComputerUsePermissionSetup: () => window.api.computerUsePermissions.openSetup(),
-    setStorageItem: (key, value) => localStorage.setItem(key, value),
-    removeStorageItem: (key) => localStorage.removeItem(key),
+    setStorageItem: (key, value) => browserStorage('localStorage').setItem(key, value),
+    removeStorageItem: (key) => browserStorage('localStorage').removeItem(key),
     notifyOrchestrationStateChanged: notifyOrchestrationSetupStateChanged
   }
 }

@@ -1,3 +1,4 @@
+import { browserStorage } from '../../web/remote-context'
 import type { GlobalSettings } from '../../../../shared/global-settings-types'
 import type { ProjectExecutionRuntimeResolution } from '../../../../shared/project-execution-runtime'
 import type { SkillDiscoveryTarget } from '../../../../shared/skills'
@@ -132,7 +133,7 @@ export function readLocalDismissed(storageKey: string): boolean {
   if (typeof window === 'undefined') {
     return false
   }
-  return localStorage.getItem(storageKey) === '1'
+  return browserStorage('localStorage').getItem(storageKey) === '1'
 }
 
 function getProjectRuntimeIdentity(

@@ -1,3 +1,4 @@
+import { browserStorage } from '../web/remote-context'
 import type { ContextualTourId } from '../../../shared/contextual-tours'
 import type { EventName, EventProps } from '../../../shared/telemetry-events'
 import {
@@ -133,12 +134,13 @@ export function trackTerminalPaneSplit(args: {
 }
 
 export function readEmittedSetupGuideStepIds(): Set<FeatureWallSetupStepId> {
-  if (globalThis.localStorage === undefined) {
+  if (browserStorage('localStorage') === undefined) {
     return new Set()
   }
   try {
     const raw = JSON.parse(
-      globalThis.localStorage.getItem(SETUP_GUIDE_TELEMETRY_COMPLETED_STEPS_STORAGE_KEY) ?? '[]'
+      browserStorage('localStorage').getItem(SETUP_GUIDE_TELEMETRY_COMPLETED_STEPS_STORAGE_KEY) ??
+        '[]'
     )
     if (!Array.isArray(raw)) {
       return new Set()
@@ -150,13 +152,13 @@ export function readEmittedSetupGuideStepIds(): Set<FeatureWallSetupStepId> {
 }
 
 export function persistEmittedSetupGuideStepId(id: FeatureWallSetupStepId): void {
-  if (globalThis.localStorage === undefined) {
+  if (browserStorage('localStorage') === undefined) {
     return
   }
   try {
     const next = readEmittedSetupGuideStepIds()
     next.add(id)
-    globalThis.localStorage.setItem(
+    browserStorage('localStorage').setItem(
       SETUP_GUIDE_TELEMETRY_COMPLETED_STEPS_STORAGE_KEY,
       JSON.stringify([...next])
     )
@@ -170,7 +172,7 @@ export function reserveTerminalPaneSplitTelemetry(
   source: TerminalPaneSplitSource,
   direction: 'vertical' | 'horizontal'
 ): boolean {
-  if (globalThis.localStorage === undefined) {
+  if (browserStorage('localStorage') === undefined) {
     return true
   }
   try {
@@ -180,7 +182,7 @@ export function reserveTerminalPaneSplitTelemetry(
       return false
     }
     emitted.add(key)
-    globalThis.localStorage.setItem(
+    browserStorage('localStorage').setItem(
       TERMINAL_PANE_SPLIT_TELEMETRY_STORAGE_KEY,
       JSON.stringify([...emitted].slice(-32))
     )
@@ -218,7 +220,7 @@ function clampSetupGuideStepCount(value: number, min = 0): number {
 
 function readTerminalPaneSplitTelemetryKeys(): Set<string> {
   const raw = JSON.parse(
-    globalThis.localStorage?.getItem(TERMINAL_PANE_SPLIT_TELEMETRY_STORAGE_KEY) ?? '[]'
+    browserStorage('localStorage')?.getItem(TERMINAL_PANE_SPLIT_TELEMETRY_STORAGE_KEY) ?? '[]'
   )
   if (!Array.isArray(raw)) {
     return new Set()

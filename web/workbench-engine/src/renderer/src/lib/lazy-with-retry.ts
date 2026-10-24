@@ -1,3 +1,4 @@
+import { browserStorage } from '../web/remote-context'
 import {
   createElement,
   lazy,
@@ -74,7 +75,7 @@ function readChunkReloadGuardState(): ReloadGuardState {
     return 'unavailable'
   }
   try {
-    const stored = window.sessionStorage.getItem(RELOAD_GUARD_KEY)
+    const stored = browserStorage('sessionStorage').getItem(RELOAD_GUARD_KEY)
     if (stored === null) {
       return 'not-attempted'
     }
@@ -88,7 +89,7 @@ function readChunkReloadGuardState(): ReloadGuardState {
 
 function markChunkReloadAttempted(): boolean {
   try {
-    window.sessionStorage.setItem(RELOAD_GUARD_KEY, currentDocumentReloadToken())
+    browserStorage('sessionStorage').setItem(RELOAD_GUARD_KEY, currentDocumentReloadToken())
     return true
   } catch {
     // A reload without a durable guard can loop, so treat write failure as unavailable.
@@ -98,7 +99,7 @@ function markChunkReloadAttempted(): boolean {
 
 function clearChunkReloadGuard(): void {
   try {
-    window.sessionStorage.removeItem(RELOAD_GUARD_KEY)
+    browserStorage('sessionStorage').removeItem(RELOAD_GUARD_KEY)
   } catch {
     // Best effort: a document that cannot clear the guard just forfeits its retry.
   }

@@ -1,3 +1,4 @@
+import { browserStorage } from '../../web/remote-context'
 // Why: column widths are a renderer-only preference. Persisted in
 // localStorage (not settings) for the same reasons hidden columns are —
 // purely cosmetic per device and a noisy debounced settings write would
@@ -22,7 +23,7 @@ type WidthMap = Record<string, Record<string, number>>
 
 function readMap(): WidthMap {
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY)
+    const raw = browserStorage('localStorage').getItem(STORAGE_KEY)
     if (!raw) {
       return {}
     }
@@ -35,7 +36,7 @@ function readMap(): WidthMap {
 
 function writeMap(map: WidthMap): void {
   try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(map))
+    browserStorage('localStorage').setItem(STORAGE_KEY, JSON.stringify(map))
   } catch {
     // localStorage may be disabled — widths just won't persist this session.
   }

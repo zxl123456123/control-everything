@@ -1,3 +1,4 @@
+import { browserStorage } from '../../web/remote-context'
 import { useCallback, useState } from 'react'
 import { usePairedMobileDevices } from '../mobile/paired-mobile-devices'
 
@@ -5,7 +6,7 @@ const DISMISS_KEY = 'orca.mobile.sidebar-onboarding-dismissed'
 
 function readDismissed(): boolean {
   try {
-    return window.localStorage.getItem(DISMISS_KEY) === '1'
+    return browserStorage('localStorage').getItem(DISMISS_KEY) === '1'
   } catch {
     return false
   }
@@ -34,7 +35,7 @@ export function useMobileSidebarOnboardingBadge(enabled = true): {
       return
     }
     try {
-      window.localStorage.setItem(DISMISS_KEY, '1')
+      browserStorage('localStorage').setItem(DISMISS_KEY, '1')
     } catch {
       // Best-effort; if storage is unavailable the badge will reappear next mount.
     }

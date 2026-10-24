@@ -1,3 +1,4 @@
+import { browserStorage } from '../web/remote-context'
 import { Keyboard } from 'lucide-react'
 import { toast } from 'sonner'
 import {
@@ -16,7 +17,7 @@ const NOTICE_DURATION_MS = 20_000
 
 function hasShownNotice(actionId: KeybindingActionId): boolean {
   try {
-    return localStorage.getItem(`${STORAGE_PREFIX}${actionId}`) === 'true'
+    return browserStorage('localStorage').getItem(`${STORAGE_PREFIX}${actionId}`) === 'true'
   } catch {
     return false
   }
@@ -24,7 +25,7 @@ function hasShownNotice(actionId: KeybindingActionId): boolean {
 
 function markNoticeShown(actionId: KeybindingActionId): void {
   try {
-    localStorage.setItem(`${STORAGE_PREFIX}${actionId}`, 'true')
+    browserStorage('localStorage').setItem(`${STORAGE_PREFIX}${actionId}`, 'true')
   } catch {
     // Ignore storage failures; the notification still gives the user the path.
   }

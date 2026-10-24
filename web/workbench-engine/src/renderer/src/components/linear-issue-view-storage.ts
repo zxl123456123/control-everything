@@ -1,3 +1,4 @@
+import { browserStorage } from '../web/remote-context'
 import {
   normalizeLinearIssueViewResumeState,
   resolveLinearIssueViewResumeState,
@@ -11,7 +12,7 @@ const STORAGE_KEY = 'orca.linear.issue-view.v1'
 
 export function loadLinearIssueView(): LinearIssueViewResumeState {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
+    const raw = browserStorage('localStorage').getItem(STORAGE_KEY)
     return resolveLinearIssueViewResumeState(raw ? (JSON.parse(raw) as unknown) : undefined)
   } catch {
     return resolveLinearIssueViewResumeState(undefined)
@@ -24,10 +25,10 @@ export function saveLinearIssueView(view: LinearIssueViewResumeState): void {
     // list clears the key instead of pinning today's defaults against a future change.
     const normalized = normalizeLinearIssueViewResumeState(view)
     if (!normalized) {
-      localStorage.removeItem(STORAGE_KEY)
+      browserStorage('localStorage').removeItem(STORAGE_KEY)
       return
     }
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized))
+    browserStorage('localStorage').setItem(STORAGE_KEY, JSON.stringify(normalized))
   } catch {
     // The live view stays usable when browser storage is unavailable or full.
   }

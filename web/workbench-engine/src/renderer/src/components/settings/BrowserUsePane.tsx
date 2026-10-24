@@ -1,3 +1,4 @@
+import { browserStorage } from '../../web/remote-context'
 import { useEffect, useState } from 'react'
 import {
   ORCA_CLI_SKILL_INSTALL_COMMAND,
@@ -43,12 +44,12 @@ export function BrowserUseSetup({
     : ORCA_CLI_SKILL_INSTALL_COMMAND
 
   const [browserUseEnabled, setBrowserUseEnabled] = useState<boolean>(() => {
-    return localStorage.getItem(BROWSER_USE_ENABLED_STORAGE_KEY) === '1'
+    return browserStorage('localStorage').getItem(BROWSER_USE_ENABLED_STORAGE_KEY) === '1'
   })
 
   const toggleBrowserUse = (value: boolean): void => {
     setBrowserUseEnabled(value)
-    localStorage.setItem(BROWSER_USE_ENABLED_STORAGE_KEY, value ? '1' : '0')
+    browserStorage('localStorage').setItem(BROWSER_USE_ENABLED_STORAGE_KEY, value ? '1' : '0')
     if (value) {
       useAppStore.getState().recordFeatureInteraction('agent-browser-setup')
     }

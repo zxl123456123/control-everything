@@ -1,3 +1,4 @@
+import { browserStorage } from '../../web/remote-context'
 import React from 'react'
 import { LoaderCircle, RotateCw, TriangleAlert, X } from 'lucide-react'
 import { toast } from 'sonner'
@@ -25,7 +26,7 @@ function incarnationKey(daemon: PtyManagementSeveredDaemon): string {
 
 function readDismissed(): string | null {
   try {
-    return window.localStorage.getItem(DISMISSED_KEY)
+    return browserStorage('localStorage').getItem(DISMISSED_KEY)
   } catch {
     return null
   }
@@ -33,7 +34,7 @@ function readDismissed(): string | null {
 
 function writeDismissed(key: string): void {
   try {
-    window.localStorage.setItem(DISMISSED_KEY, key)
+    browserStorage('localStorage').setItem(DISMISSED_KEY, key)
   } catch {
     // Dismissal is a convenience; the banner simply shows again.
   }

@@ -10,6 +10,9 @@ window.StudioMobileEntry = {
     };
     const page = make('section', '', 'ce-mobile-entry');
     page.append(make('h1', '手机与设备'), make('p', '先用手机浏览器打开工作台。开发操作仍在项目工作区中进行。'));
+    const account = make('a', window.CERemoteContext?.context ? '管理我的账号与电脑' : '绑定这台电脑到账号', 'ce-button');
+    account.href = window.CERemoteContext?.context ? '/remote' : '/desktop';
+    page.append(account);
     const connection = make('section', '', 'ce-mobile-entry-card');
     connection.append(make('h2', '浏览器访问地址'));
     const address = new URL('/studio', window.location.origin);
@@ -33,7 +36,7 @@ window.StudioMobileEntry = {
     for (const text of ['确认手机已能访问你配置的服务地址。', '在 iPhone Safari 中打开该地址，进入 /studio 工作台。', '选择项目，使用现有项目工作区；本页仅提供接入说明。']) list.append(make('li', text));
     steps.append(make('h2', '在 iPhone 上使用'), list);
     const capabilities = make('section', '', 'ce-mobile-entry-card');
-    capabilities.append(make('h2', '独立 App 与设备授权'), make('p', '原生 App 已加入平台账号接入代码，需要配置自建身份服务并重新构建后验证。iPhone 安装与真实登录尚未验证。平台账号登录不等于电脑授权；电脑授权与原生远程连接尚未接入。'));
+    capabilities.append(make('h2', '浏览器与独立 App'), make('p', 'iPhone Safari 与 Android 浏览器使用同一个自建网站。Windows 软件中确认账号后绑定电脑。原生 iOS、Android 安装包当前未交付；网站可用不代表原生安装与真机登录已经验证。'));
     const back = make('a', returnHash === '#home' ? '返回项目总览' : '返回原项目', 'ce-button');
     back.href = returnHash;
     page.append(connection, steps, capabilities, back);

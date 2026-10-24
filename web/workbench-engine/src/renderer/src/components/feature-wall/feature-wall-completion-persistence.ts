@@ -1,3 +1,4 @@
+import { browserStorage } from '../../web/remote-context'
 import type { AgentsStepId } from '../../../../shared/agents-orchestration-steps'
 import {
   FEATURE_WALL_WORKFLOW_IDS,
@@ -78,7 +79,7 @@ export function readPersistedVisitedWorkflows(): Set<FeatureWallWorkflowId> {
   try {
     return new Set(
       normalizeFeatureWallVisitedWorkflows(
-        JSON.parse(localStorage.getItem(VISITED_WORKFLOWS_STORAGE_KEY) ?? '[]')
+        JSON.parse(browserStorage('localStorage').getItem(VISITED_WORKFLOWS_STORAGE_KEY) ?? '[]')
       )
     )
   } catch {
@@ -93,7 +94,7 @@ export function readPersistedCompletedWorkflows(): Set<FeatureWallWorkflowId> {
   try {
     return new Set(
       normalizeFeatureWallVisitedWorkflows(
-        JSON.parse(localStorage.getItem(COMPLETED_WORKFLOWS_STORAGE_KEY) ?? '[]')
+        JSON.parse(browserStorage('localStorage').getItem(COMPLETED_WORKFLOWS_STORAGE_KEY) ?? '[]')
       )
     )
   } catch {
@@ -108,7 +109,7 @@ export function readPersistedVisitedAgentSteps(): Set<AgentsStepId> {
   try {
     return new Set(
       normalizeFeatureWallVisitedAgentSteps(
-        JSON.parse(localStorage.getItem(VISITED_AGENT_STEPS_STORAGE_KEY) ?? '[]')
+        JSON.parse(browserStorage('localStorage').getItem(VISITED_AGENT_STEPS_STORAGE_KEY) ?? '[]')
       )
     )
   } catch {
@@ -123,7 +124,9 @@ export function readPersistedCompletedAgentSteps(): Set<AgentsStepId> {
   try {
     return new Set(
       normalizeFeatureWallVisitedAgentSteps(
-        JSON.parse(localStorage.getItem(COMPLETED_AGENT_STEPS_STORAGE_KEY) ?? '[]')
+        JSON.parse(
+          browserStorage('localStorage').getItem(COMPLETED_AGENT_STEPS_STORAGE_KEY) ?? '[]'
+        )
       )
     )
   } catch {
@@ -138,7 +141,9 @@ export function readPersistedVisitedWorkbenchSteps(): Set<WorkbenchStepId> {
   try {
     return new Set(
       normalizeFeatureWallVisitedWorkbenchSteps(
-        JSON.parse(localStorage.getItem(VISITED_WORKBENCH_STEPS_STORAGE_KEY) ?? '[]')
+        JSON.parse(
+          browserStorage('localStorage').getItem(VISITED_WORKBENCH_STEPS_STORAGE_KEY) ?? '[]'
+        )
       )
     )
   } catch {
@@ -153,7 +158,9 @@ export function readPersistedCompletedWorkbenchSteps(): Set<WorkbenchStepId> {
   try {
     return new Set(
       normalizeFeatureWallVisitedWorkbenchSteps(
-        JSON.parse(localStorage.getItem(COMPLETED_WORKBENCH_STEPS_STORAGE_KEY) ?? '[]')
+        JSON.parse(
+          browserStorage('localStorage').getItem(COMPLETED_WORKBENCH_STEPS_STORAGE_KEY) ?? '[]'
+        )
       )
     )
   } catch {
@@ -168,7 +175,7 @@ export function readPersistedVisitedReviewSteps(): Set<ReviewStepId> {
   try {
     return new Set(
       normalizeFeatureWallVisitedReviewSteps(
-        JSON.parse(localStorage.getItem(VISITED_REVIEW_STEPS_STORAGE_KEY) ?? '[]')
+        JSON.parse(browserStorage('localStorage').getItem(VISITED_REVIEW_STEPS_STORAGE_KEY) ?? '[]')
       )
     )
   } catch {
@@ -183,7 +190,9 @@ export function readPersistedCompletedReviewSteps(): Set<ReviewStepId> {
   try {
     return new Set(
       normalizeFeatureWallVisitedReviewSteps(
-        JSON.parse(localStorage.getItem(COMPLETED_REVIEW_STEPS_STORAGE_KEY) ?? '[]')
+        JSON.parse(
+          browserStorage('localStorage').getItem(COMPLETED_REVIEW_STEPS_STORAGE_KEY) ?? '[]'
+        )
       )
     )
   } catch {
@@ -198,7 +207,7 @@ export function persistVisitedWorkflow(id: FeatureWallWorkflowId): void {
   try {
     const next = readPersistedVisitedWorkflows()
     next.add(id)
-    localStorage.setItem(VISITED_WORKFLOWS_STORAGE_KEY, JSON.stringify([...next]))
+    browserStorage('localStorage').setItem(VISITED_WORKFLOWS_STORAGE_KEY, JSON.stringify([...next]))
   } catch {
     // localStorage can be unavailable in hardened browser contexts; completion
     // still works for the current open modal from React state.
@@ -212,7 +221,10 @@ export function persistCompletedWorkflow(id: FeatureWallWorkflowId): void {
   try {
     const next = readPersistedCompletedWorkflows()
     next.add(id)
-    localStorage.setItem(COMPLETED_WORKFLOWS_STORAGE_KEY, JSON.stringify([...next]))
+    browserStorage('localStorage').setItem(
+      COMPLETED_WORKFLOWS_STORAGE_KEY,
+      JSON.stringify([...next])
+    )
   } catch {
     // localStorage can be unavailable in hardened browser contexts; completion
     // still works for the current open modal from React state.
@@ -226,7 +238,10 @@ export function persistVisitedAgentStep(id: AgentsStepId): void {
   try {
     const next = readPersistedVisitedAgentSteps()
     next.add(id)
-    localStorage.setItem(VISITED_AGENT_STEPS_STORAGE_KEY, JSON.stringify([...next]))
+    browserStorage('localStorage').setItem(
+      VISITED_AGENT_STEPS_STORAGE_KEY,
+      JSON.stringify([...next])
+    )
   } catch {
     // localStorage can be unavailable in hardened browser contexts; completion
     // still works for the current open modal from React state.
@@ -240,7 +255,10 @@ export function persistCompletedAgentStep(id: AgentsStepId): void {
   try {
     const next = readPersistedCompletedAgentSteps()
     next.add(id)
-    localStorage.setItem(COMPLETED_AGENT_STEPS_STORAGE_KEY, JSON.stringify([...next]))
+    browserStorage('localStorage').setItem(
+      COMPLETED_AGENT_STEPS_STORAGE_KEY,
+      JSON.stringify([...next])
+    )
   } catch {
     // localStorage can be unavailable in hardened browser contexts; completion
     // still works for the current open modal from React state.
@@ -254,7 +272,10 @@ export function persistVisitedWorkbenchStep(id: WorkbenchStepId): void {
   try {
     const next = readPersistedVisitedWorkbenchSteps()
     next.add(id)
-    localStorage.setItem(VISITED_WORKBENCH_STEPS_STORAGE_KEY, JSON.stringify([...next]))
+    browserStorage('localStorage').setItem(
+      VISITED_WORKBENCH_STEPS_STORAGE_KEY,
+      JSON.stringify([...next])
+    )
   } catch {
     // localStorage can be unavailable in hardened browser contexts; completion
     // still works for the current open modal from React state.
@@ -268,7 +289,10 @@ export function persistCompletedWorkbenchStep(id: WorkbenchStepId): void {
   try {
     const next = readPersistedCompletedWorkbenchSteps()
     next.add(id)
-    localStorage.setItem(COMPLETED_WORKBENCH_STEPS_STORAGE_KEY, JSON.stringify([...next]))
+    browserStorage('localStorage').setItem(
+      COMPLETED_WORKBENCH_STEPS_STORAGE_KEY,
+      JSON.stringify([...next])
+    )
   } catch {
     // localStorage can be unavailable in hardened browser contexts; completion
     // still works for the current open modal from React state.
@@ -282,7 +306,10 @@ export function persistVisitedReviewStep(id: ReviewStepId): void {
   try {
     const next = readPersistedVisitedReviewSteps()
     next.add(id)
-    localStorage.setItem(VISITED_REVIEW_STEPS_STORAGE_KEY, JSON.stringify([...next]))
+    browserStorage('localStorage').setItem(
+      VISITED_REVIEW_STEPS_STORAGE_KEY,
+      JSON.stringify([...next])
+    )
   } catch {
     // localStorage can be unavailable in hardened browser contexts; completion
     // still works for the current open modal from React state.
@@ -296,7 +323,10 @@ export function persistCompletedReviewStep(id: ReviewStepId): void {
   try {
     const next = readPersistedCompletedReviewSteps()
     next.add(id)
-    localStorage.setItem(COMPLETED_REVIEW_STEPS_STORAGE_KEY, JSON.stringify([...next]))
+    browserStorage('localStorage').setItem(
+      COMPLETED_REVIEW_STEPS_STORAGE_KEY,
+      JSON.stringify([...next])
+    )
   } catch {
     // localStorage can be unavailable in hardened browser contexts; completion
     // still works for the current open modal from React state.

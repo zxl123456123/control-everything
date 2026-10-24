@@ -1,3 +1,4 @@
+import { browserStorage } from '../../web/remote-context'
 import type { JSX } from 'react'
 import {
   ORCA_CLI_SKILL_INSTALL_COMMAND,
@@ -24,7 +25,7 @@ export function BrowserUseSkillSetupCard(props: {
 
   const handleBeforeOpenTerminal = (): void => {
     useAppStore.getState().recordFeatureInteraction('agent-browser-setup')
-    localStorage.setItem(BROWSER_USE_ENABLED_STORAGE_KEY, '1')
+    browserStorage('localStorage').setItem(BROWSER_USE_ENABLED_STORAGE_KEY, '1')
   }
 
   const setupPanel = (

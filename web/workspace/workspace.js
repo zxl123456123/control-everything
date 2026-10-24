@@ -95,12 +95,13 @@ const apiError = (message, status, reason) => Object.assign(new Error(message), 
 async function api(path, options = {}) {
   const controller = new AbortController();
   const abort = () => controller.abort();
+  const unsubscribeContext = typeof window !== 'undefined' ? window.CERemoteContext?.onInactive(abort) : undefined;
   options.signal?.addEventListener('abort', abort, { once: true });
   if (options.signal?.aborted) controller.abort();
   const timer = setTimeout(() => controller.abort(), 40000);
   let status = null;
   try {
-    const response = await fetch(path, { ...options, signal: controller.signal, headers: { 'X-Session-Client': 'panel', ...options.headers } });
+    const response = await (typeof window !== 'undefined' && window.CERemoteContext ? window.CERemoteContext.fetch : fetch)(path, { ...options, signal: controller.signal, headers: { 'X-Session-Client': 'panel', ...options.headers } });
     status = response.status;
     const result = await response.json();
     if (!response.ok) throw Object.assign(apiError(reason(result?.reason), status, typeof result?.reason === 'string' ? result.reason : 'http_error'), { field: result.field, detail: result.message });
@@ -111,7 +112,7 @@ async function api(path, options = {}) {
     if (error instanceof SyntaxError) throw apiError('无法连接工作台服务，请检查服务是否已启动', status, 'invalid_response');
     if (error instanceof TypeError) throw apiError('无法连接工作台服务，请检查服务是否已启动', null, 'network_error');
     throw error;
-  } finally { clearTimeout(timer); options.signal?.removeEventListener('abort', abort); }
+  } finally { unsubscribeContext?.(); clearTimeout(timer); options.signal?.removeEventListener('abort', abort); }
 }
 function post(path, body, options = {}) {
   if (!app.csrf) return Promise.reject(apiError('保存凭据尚未就绪，请刷新页面后重试', null, 'csrf_unavailable'));
@@ -167,6 +168,7 @@ function showView(view) {
   history.replaceState(null, '', `#${view === 'project' ? (app.projectRoute || view) : view === 'codex-sessions' ? (app.sessionRoute || 'codex-sessions/projectless') : view}`);
 }
 function renderStats() {
+  if (window.CERemoteContext?.active === false) return;
   const snapshot = app.snapshot;
   const pending = app.profileMode ? snapshot.projects.items.reduce((sum, project) => sum + (project.task_counts?.total || 0) - (project.task_counts?.done || 0), 0) : snapshot.tasks.items.filter(task => task.state !== 'done').length;
   const stats = [
@@ -180,6 +182,7 @@ function renderStats() {
   }));
 }
 function renderProjects() {
+  if (window.CERemoteContext?.active === false) return;
   const segment = app.snapshot.projects, root = $('projects-list'); root.replaceChildren();
   if (segment.status !== 'available') { empty(root, '项目信息暂时不可用', reason(segment.reason)); return; }
   const items = app.view === 'overview' ? segment.items.slice(0, 4) : segment.items;
@@ -217,6 +220,7 @@ function renderProjects() {
   if (app.profileMode) window.WorkspaceObservation?.renderProjectRefs();
 }
 function renderTasks() {
+  if (window.CERemoteContext?.active === false) return;
   const segment = app.snapshot.tasks, root = $('tasks-list'); root.replaceChildren();
   if (app.profileMode) pager('tasks-pager', segment, 'tasks', () => loadTasks());
   if (segment.status !== 'available') { empty(root, '任务暂时不可用', reason(segment.reason)); return; }
@@ -245,6 +249,7 @@ function renderTasks() {
   }
 }
 function renderTodos() {
+  if (window.CERemoteContext?.active === false) return;
   const segment = app.snapshot.todos, root = $('todos-list'); root.replaceChildren();
   if (segment.status !== 'available') { empty(root, '待办来源暂不可用', reason(segment.reason)); return; }
   const items = app.profileMode ? segment.items : [...segment.items].sort((a, b) => Number(a.done) - Number(b.done)).slice(0, 4);
@@ -260,6 +265,7 @@ function renderTodos() {
   if (segment.items.length > items.length) root.append(el('p', 'section-note', `显示 ${items.length} / ${segment.items.length} 条 · 在旧页查看全部`));
 }
 function renderProviders() {
+  if (window.CERemoteContext?.active === false) return;
   const root = $('providers-list'); root.replaceChildren();
   const other = el('details', 'technical-details'); other.append(el('summary', '', '其他接入'));
   const discovery = { found: '已发现命令', not_found: '未发现命令', unknown: '发现状态未知' };
@@ -316,6 +322,7 @@ async function loadBase(options = {}) {
         state.dirty = editing();
         if (options.background && state.dirty) { state.pendingSnapshot = snapshot; message('workspace-status', '有更新；编辑结束后自动显示。'); break; }
         state.pendingSnapshot = null;
+        window.CERemoteContext?.assertActive();
         app.snapshot = snapshot;
         if (app.profileMode && window.WorkspaceObservation) window.WorkspaceObservation.projects = snapshot.projects.items;
         $('today').textContent = `${snapshot.today} · 北京时间`;
@@ -339,10 +346,11 @@ async function loadBase(options = {}) {
 }
 
 function setupAutomaticRefresh() {
-  let timer, debounce;
-  const refresh = () => { if (!document.hidden) { loadBase({ background: true }); app.onboarding?.refresh(); } };
-  const schedule = () => { clearTimeout(debounce); if (!document.hidden) debounce = setTimeout(refresh, 1000); };
-  const visibility = () => { clearInterval(timer); clearTimeout(debounce); if (!document.hidden) { timer = setInterval(refresh, 30000); schedule(); } };
+  let timer, debounce, retired = false;
+  window.CERemoteContext?.onInactive(() => { retired = true; clearInterval(timer); clearTimeout(debounce); app.projectSpace?.dispose?.(); });
+  const refresh = () => { if (!retired && !document.hidden) { loadBase({ background: true }); app.onboarding?.refresh(); } };
+  const schedule = () => { clearTimeout(debounce); if (!retired && !document.hidden) debounce = setTimeout(refresh, 1000); };
+  const visibility = () => { clearInterval(timer); clearTimeout(debounce); if (!retired && !document.hidden) { timer = setInterval(refresh, 30000); schedule(); } };
   document.addEventListener('visibilitychange', visibility);
   window.addEventListener('focus', schedule);
   window.addEventListener('pagehide', () => { clearInterval(timer); clearTimeout(debounce); });
@@ -394,6 +402,7 @@ async function saveTask(event) {
 }
 
 function renderQuota(quota) {
+  if (window.CERemoteContext?.active === false) return;
   window.WorkspaceQuota.render(quota, { root: $('quota-detail'), summary: $('quota-summary'),
     refreshButton: $('refresh-quota'), el, dateTime, reason, statusNames });
 }
@@ -547,6 +556,7 @@ async function loadProfile(preserveDraft = false) {
   await Promise.all([loadCompatibility(), loadLaunchers()]);
 }
 function renderIntegrations(value) {
+  if (window.CERemoteContext?.active === false) return;
   const root = $('integration-statuses'); root.replaceChildren();
   const names = { remote: '远端 Claude', terminal: '终端观察', workbench: '终端工作台', launchers: '本机启动器' };
   const statuses = { not_configured: '未配置', disabled: '已禁用', configured: '已配置 · 连接与工具状态待核验' };
@@ -698,6 +708,7 @@ async function saveSettings(event) {
   finally { $('settings-fields').disabled = false; }
 }
 function renderImport(value) {
+  if (window.CERemoteContext?.active === false) return;
   const root = $('import-result'); root.replaceChildren(el('h3', '', '导入收据'));
   for (const [kind, count] of Object.entries(value.counts || {})) root.append(el('p', '', `${kind}：${count}`));
   root.append(el('p', '', `未导入：${(value.excluded_domains || ['execution', 'approvals', 'events', 'private_messages']).join('、')}`));

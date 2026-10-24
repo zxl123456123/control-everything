@@ -1,3 +1,4 @@
+import { browserStorage } from '../../web/remote-context'
 // The stored form of composer drafts and the storage they live in. Drafts are kept in their own
 // store (IndexedDB), not localStorage, so they never compete with other saved state for its quota
 // and need no budget: every draft comes back.
@@ -171,14 +172,14 @@ const LEGACY_LOCAL_STORAGE_PREFIX = 'orca:nativeChatComposerDraft:v1:'
 export function removeLegacyLocalStorageNativeChatComposerDrafts(): void {
   try {
     const keys: string[] = []
-    for (let position = 0; position < localStorage.length; position += 1) {
-      const key = localStorage.key(position)
+    for (let position = 0; position < browserStorage('localStorage').length; position += 1) {
+      const key = browserStorage('localStorage').key(position)
       if (key?.startsWith(LEGACY_LOCAL_STORAGE_PREFIX)) {
         keys.push(key)
       }
     }
     for (const key of keys) {
-      localStorage.removeItem(key)
+      browserStorage('localStorage').removeItem(key)
     }
   } catch {
     // No localStorage: nothing was kept there either.

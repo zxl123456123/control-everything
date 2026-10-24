@@ -1,3 +1,4 @@
+import { browserStorage } from '../../web/remote-context'
 import { recordRendererCrashBreadcrumb } from '@/lib/crash-breadcrumb-recorder'
 
 export const TERMINAL_STARTUP_TIMING_KEY = 'orca:terminal-startup-timing'
@@ -21,7 +22,7 @@ export function createTerminalStartupTiming(options: {
   onRender(callback: () => void): Disposable
 }): TerminalStartupTiming | undefined {
   try {
-    if (localStorage.getItem(TERMINAL_STARTUP_TIMING_KEY) !== '1') {
+    if (browserStorage('localStorage').getItem(TERMINAL_STARTUP_TIMING_KEY) !== '1') {
       return undefined
     }
   } catch {

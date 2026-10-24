@@ -8,6 +8,12 @@ include web/progress/progress.html web/progress/progress.js web/progress/progres
 include web/product/index.html web/product/product.css web/product/product.js
 include web/workspace/workspace.html web/workspace/workspace.js web/workspace/workspace.css
 include web/workspace/onboarding.js
+include web/workspace/desktop.html
+include web/workspace/desktop.js
+include web/workspace/remote-context.js
+include web/workspace/remote-account.html
+include web/workspace/remote-account.js
+include web/workspace/remote-account.css
 include web/workspace/agents.js
 include web/workspace/task-center.js
 include web/workspace/project-space.js web/workspace/execution.js web/workspace/observation.js

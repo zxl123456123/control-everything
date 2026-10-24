@@ -232,6 +232,7 @@ function orderedProjects() {
 }
 
 function paintBoard() {
+  if (window.CERemoteContext?.active === false) return;
   glance.replaceChildren();
   for (const project of orderedProjects()) {
     const button = document.createElement("button");
@@ -276,6 +277,7 @@ function paintBoard() {
 }
 
 function paintRail() {
+  if (window.CERemoteContext?.active === false) return;
   if (!rail) return;
   rail.replaceChildren();
   rail.className = "rail";
@@ -319,6 +321,7 @@ const launchGroups = [
 ];
 
 function paintSide(desk) {
+  if (window.CERemoteContext?.active === false) return;
   deskSnapshot = desk;
   todoZone.replaceChildren();
   const form = document.createElement("form");
@@ -401,7 +404,7 @@ async function save(projectId, state, note, percent) {
   if (saving) return;
   saving = true; if (profileMode) { built.fields.disabled = true; built.feedback.textContent = '正在保存…'; }
   try {
-    const response = await fetch("/api/progress/set", {
+    const response = await (typeof window !== 'undefined' && window.CERemoteContext ? window.CERemoteContext.fetch : fetch)("/api/progress/set", {
       method: "POST",
       headers: {...headers(), "Content-Type": "application/json", "Origin": location.origin},
       body: JSON.stringify({project_id: projectId, state, note, percent}),
@@ -419,12 +422,12 @@ async function save(projectId, state, note, percent) {
 }
 
 async function refreshDesk() {
-  const desk = await fetch("/api/desk", {headers: headers()});
-  if (desk.ok) { const value = await desk.json(); if (profileMode) { const response = await fetch(`/api/workspace/todos?offset=${todoOffset}&limit=20`, { headers: headers() }); if (!response.ok) throw new Error('待办分页读取失败'); const page = await response.json(); value.todos = page.items; value.todos_total = page.total; } paintSide(value); }
+  const desk = await (typeof window !== 'undefined' && window.CERemoteContext ? window.CERemoteContext.fetch : fetch)("/api/desk", {headers: headers()});
+  if (desk.ok) { const value = await desk.json(); if (profileMode) { const response = await (typeof window !== 'undefined' && window.CERemoteContext ? window.CERemoteContext.fetch : fetch)(`/api/workspace/todos?offset=${todoOffset}&limit=20`, { headers: headers() }); if (!response.ok) throw new Error('待办分页读取失败'); const page = await response.json(); value.todos = page.items; value.todos_total = page.total; } paintSide(value); }
 }
 
 async function createTodo(text, projectId) {
-  const response = await fetch("/api/todos", {
+  const response = await (typeof window !== 'undefined' && window.CERemoteContext ? window.CERemoteContext.fetch : fetch)("/api/todos", {
     method: "POST",
     headers: {...headers(), "Content-Type": "application/json", "Origin": location.origin},
     body: JSON.stringify({text, project_id: projectId || ""}),
@@ -434,7 +437,7 @@ async function createTodo(text, projectId) {
 }
 
 async function toggleTodo(id) {
-  const response = await fetch("/api/todos/toggle", {
+  const response = await (typeof window !== 'undefined' && window.CERemoteContext ? window.CERemoteContext.fetch : fetch)("/api/todos/toggle", {
     method: "POST",
     headers: {...headers(), "Content-Type": "application/json", "Origin": location.origin},
     body: JSON.stringify({id}),
@@ -445,7 +448,7 @@ async function toggleTodo(id) {
 
 async function launch(id, button) {
   button.classList.add("is-busy");
-  const response = await fetch("/api/launch", {
+  const response = await (typeof window !== 'undefined' && window.CERemoteContext ? window.CERemoteContext.fetch : fetch)("/api/launch", {
     method: "POST",
     headers: {...headers(), "Content-Type": "application/json", "Origin": location.origin},
     body: JSON.stringify({id}),
@@ -460,11 +463,11 @@ document.querySelector("#progress-date").textContent = new Intl.DateTimeFormat("
 }).format(new Date());
 
 async function load() {
-  const bootstrap = await fetch("/api/bootstrap", {headers: headers()});
+  const bootstrap = await (typeof window !== 'undefined' && window.CERemoteContext ? window.CERemoteContext.fetch : fetch)("/api/bootstrap", {headers: headers()});
   if (!bootstrap.ok) throw new Error("bootstrap");
   const boot = await bootstrap.json(); csrf = boot.csrf_token; profileMode = boot.capabilities?.profile === true;
-  if (profileMode) { const response = await fetch('/api/profile', { headers: headers() }); if (!response.ok) throw new Error('profile'); profile = await response.json(); document.querySelector('.topbar nav').replaceChildren(profileLink('项目管理', '/workspace#tasks'), profileLink('来源与导入', '/workspace#settings')); }
-  const progress = await fetch("/api/progress", {headers: headers()});
+  if (profileMode) { const response = await (typeof window !== 'undefined' && window.CERemoteContext ? window.CERemoteContext.fetch : fetch)('/api/profile', { headers: headers() }); if (!response.ok) throw new Error('profile'); profile = await response.json(); document.querySelector('.topbar nav').replaceChildren(profileLink('项目管理', '/workspace#tasks'), profileLink('来源与导入', '/workspace#settings')); }
+  const progress = await (typeof window !== 'undefined' && window.CERemoteContext ? window.CERemoteContext.fetch : fetch)("/api/progress", {headers: headers()});
   if (!progress.ok) throw new Error("progress");
   projects = ((await progress.json()).projects || []).map(item => ({ ...item, records: item.records || [], sessions: item.sessions || [] }));
   selected = (projects.find((item) => item.state === "在做") || projects[0] || {}).id || "";
@@ -474,7 +477,7 @@ async function load() {
   showProject(false);
   if (profileMode) { const info = document.createElement('p'); info.className = 'profile-info'; info.textContent = `当前 data-dir：${profile.data_dir}`; glance.before(info); if (!projects.length) { const empty = document.createElement('div'); empty.className = 'profile-empty'; const title = document.createElement('p'); title.textContent = '还没有登记项目。添加项目后可记录人工进度与任务。'; empty.append(title, profileLink('添加项目', '/workspace#tasks'), profileLink('导入旧目录', '/workspace#settings'), profileLink('来源设置', '/workspace#settings')); glance.append(empty); } }
   window.WorkspaceNews?.startLegacy({ fetchJson: async (url, options) => {
-    const response = await fetch(url, { ...options, headers: headers() });
+    const response = await (typeof window !== 'undefined' && window.CERemoteContext ? window.CERemoteContext.fetch : fetch)(url, { ...options, headers: headers() });
     if (!response.ok) throw new Error('资讯读取失败');
     return response.json();
   } });
@@ -496,7 +499,7 @@ async function loadHistory() {
   built.history.textContent = '正在读取人工历史…';
   let value;
   try {
-    const response = await fetch(`/api/workspace/progress/history?project_id=${encodeURIComponent(projectId)}&offset=${offset}&limit=20`, { headers: headers() });
+    const response = await (typeof window !== 'undefined' && window.CERemoteContext ? window.CERemoteContext.fetch : fetch)(`/api/workspace/progress/history?project_id=${encodeURIComponent(projectId)}&offset=${offset}&limit=20`, { headers: headers() });
     if (!current()) return;
     if (!response.ok) throw new Error('人工历史读取失败');
     value = await response.json();

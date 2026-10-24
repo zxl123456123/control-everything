@@ -1,3 +1,4 @@
+import { browserStorage } from '../../web/remote-context'
 import {
   AI_VAULT_AGENTS,
   AI_VAULT_SEARCH_SORTS,
@@ -92,7 +93,7 @@ function getRendererStorage(): AiVaultViewOptionsStorage | null {
     return null
   }
   try {
-    return window.localStorage
+    return browserStorage('localStorage')
   } catch {
     return null
   }

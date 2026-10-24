@@ -1,3 +1,4 @@
+import { browserStorage } from '../../web/remote-context'
 export const DEFAULT_PANEL_WIDTH = 920
 export const DEFAULT_PANEL_HEIGHT = 560
 export const MIN_PANEL_WIDTH = 420
@@ -60,8 +61,8 @@ function clampValue(value: number, min: number, max: number): number {
 }
 
 function getWindowStorage(): Storage | null {
-  return typeof window !== 'undefined' && window.localStorage !== undefined
-    ? window.localStorage
+  return typeof window !== 'undefined' && browserStorage('localStorage') !== undefined
+    ? browserStorage('localStorage')
     : null
 }
 

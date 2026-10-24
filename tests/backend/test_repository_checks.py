@@ -264,6 +264,23 @@ class RepositoryChecksTests(unittest.TestCase):
                 self.assertEqual(code, 1)
                 self.assertTrue(report["blocked"])
 
+    def test_workbench_public_samples_are_exactly_registered(self):
+        names = {
+            "workbench-device-provisioner.service.example", "workbench-device-provisioner.socket.example",
+            "workbench-device-sshd.example.conf", "workbench-device-sshd.service.example",
+            "workbench-identity.README.md", "workbench-identity.hub.example.json",
+            "workbench-identity.hub.service.example", "workbench-identity.oauth2-proxy.example.cfg",
+            "workbench-identity.realm.example.json", "workbench-remote.Caddyfile.example",
+        }
+        prefix = "docs/examples/integrations/"
+        for name in names:
+            with self.subTest(name=name):
+                self.assertIsNone(CHECKS.forbidden(prefix + name))
+        for name in ("workbench-private.json", "workbench-identity.hub.example.json.bak",
+                     "nested/workbench-remote.Caddyfile.example"):
+            with self.subTest(name=name):
+                self.assertEqual(CHECKS.forbidden(prefix + name), "excluded-directory")
+
     def test_existing_video_text_modifications_reach_full_interval_scanner(self):
         self.save(".gitignore", "/work/\n")
         names = ["videos/demo/STORYBOARD.md", "videos/demo/manifest.json", "videos/demo/capture.mjs"]

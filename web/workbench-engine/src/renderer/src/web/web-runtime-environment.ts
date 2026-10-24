@@ -1,3 +1,5 @@
+import { browserStorage } from './remote-context'
+import { remoteContext, assertContextActive } from './remote-context'
 import {
   pairedRuntimeConnectionFromOffer,
   type PairedRuntimeConnection
@@ -37,10 +39,12 @@ const ENVIRONMENT_STORAGE_KEY = 'orca.web.runtimeEnvironment.v1'
 let sessionEnvironment: StoredWebRuntimeEnvironment | null = null
 
 export function readStoredWebRuntimeEnvironment(): StoredWebRuntimeEnvironment | null {
+  assertContextActive()
   if (sessionEnvironment) {
     return sessionEnvironment
   }
-  const raw = window.localStorage.getItem(ENVIRONMENT_STORAGE_KEY)
+  if (remoteContext()) return null
+  const raw = browserStorage('localStorage').getItem(ENVIRONMENT_STORAGE_KEY)
   if (!raw) {
     return null
   }
@@ -82,10 +86,11 @@ export function readStoredWebRuntimeEnvironment(): StoredWebRuntimeEnvironment |
 }
 
 export function saveStoredWebRuntimeEnvironment(environment: StoredWebRuntimeEnvironment): void {
-  if (environment.sessionOnly) {
+  assertContextActive()
+  if (environment.sessionOnly || remoteContext()) {
     sessionEnvironment = environment
     // Why: a new session pairing replaces whatever older pairing (and its code) was stored.
-    window.localStorage.removeItem(ENVIRONMENT_STORAGE_KEY)
+    browserStorage('localStorage').removeItem(ENVIRONMENT_STORAGE_KEY)
     return
   }
   sessionEnvironment = null
@@ -94,7 +99,7 @@ export function saveStoredWebRuntimeEnvironment(environment: StoredWebRuntimeEnv
   if (stored?.id === environment.id && pairingRevision(stored) > pairingRevision(environment)) {
     return
   }
-  window.localStorage.setItem(
+  browserStorage('localStorage').setItem(
     ENVIRONMENT_STORAGE_KEY,
     JSON.stringify(keepMigratedPlaceholders(environment, stored))
   )
@@ -126,7 +131,7 @@ function pairingRevision(environment: StoredWebRuntimeEnvironment): number {
 
 export function clearStoredWebRuntimeEnvironment(): void {
   sessionEnvironment = null
-  window.localStorage.removeItem(ENVIRONMENT_STORAGE_KEY)
+  browserStorage('localStorage').removeItem(ENVIRONMENT_STORAGE_KEY)
 }
 
 export function createStoredWebRuntimeEnvironment(args: {

@@ -1,3 +1,4 @@
+import { browserStorage } from '../web/remote-context'
 import {
   getProjectIdentityKey,
   isGitHubBackedRepo
@@ -32,7 +33,7 @@ export function githubProjectKeys(repos: readonly Repo[]): string[] {
 
 function readRecord(issueId: string): DismissalRecord | null {
   try {
-    const raw = localStorage.getItem(storageKey(issueId))
+    const raw = browserStorage('localStorage').getItem(storageKey(issueId))
     if (!raw) {
       return null
     }
@@ -58,7 +59,7 @@ export function isPreflightIssueDismissed(issueId: string, repos: readonly Repo[
 export function dismissPreflightIssue(issueId: string, repos: readonly Repo[]): void {
   try {
     const record: DismissalRecord = { githubKeys: githubProjectKeys(repos) }
-    localStorage.setItem(storageKey(issueId), JSON.stringify(record))
+    browserStorage('localStorage').setItem(storageKey(issueId), JSON.stringify(record))
   } catch {
     // Why: a blocked storage write shouldn't break dismiss for the session;
     // the in-memory state in PreflightBanner still hides it until relaunch.

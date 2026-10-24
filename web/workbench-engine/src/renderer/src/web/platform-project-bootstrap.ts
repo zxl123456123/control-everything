@@ -1,3 +1,4 @@
+import { contextFetch, remoteContext } from './remote-context'
 import { z } from 'zod'
 import { PairingOfferSchema } from '../../../shared/mobile-relay-pairing-offer'
 import {
@@ -48,9 +49,10 @@ export function parsePlatformProjectBootstrap(
     data.project.id !== projectId ||
     data.returnUrl !== `/studio#project/${encodeURIComponent(projectId)}` ||
     data.runtime.offer.scope !== 'runtime' ||
-    endpoint.protocol !== 'ws:' ||
-    endpoint.hostname !== '127.0.0.1' ||
-    !endpoint.port ||
+    (remoteContext()
+      ? endpoint.origin !== window.location.origin.replace(/^https:/, 'wss:') ||
+        endpoint.pathname !== '/workbench-runtime'
+      : endpoint.protocol !== 'ws:' || endpoint.hostname !== '127.0.0.1' || !endpoint.port) ||
     endpoint.username ||
     endpoint.password ||
     endpoint.hash ||
@@ -64,7 +66,7 @@ export function parsePlatformProjectBootstrap(
 export async function loadPlatformProjectBootstrap(
   projectId: string,
   signal: AbortSignal,
-  fetcher: typeof fetch = fetch
+  fetcher: typeof fetch = contextFetch
 ): Promise<PlatformProjectBootstrap> {
   const bootstrap = await fetcher('/api/bootstrap', {
     signal,

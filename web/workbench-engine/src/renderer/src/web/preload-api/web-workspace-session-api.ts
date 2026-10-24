@@ -1,3 +1,4 @@
+import { browserStorage } from '../remote-context'
 import type { PreloadApi } from '../../../../preload/api-types'
 import { getDefaultWorkspaceSession } from '../../../../shared/constants'
 import {
@@ -27,8 +28,8 @@ export function sessionStorageKeyForHost(hostId?: string | null): string {
 export function listStoredWorkspaceSessionHostIds(): ExecutionHostId[] {
   const hostIds = new Set<ExecutionHostId>([LOCAL_EXECUTION_HOST_ID])
   const prefix = `${SESSION_STORAGE_KEY}.`
-  for (let index = 0; index < localStorage.length; index += 1) {
-    const key = localStorage.key(index)
+  for (let index = 0; index < browserStorage('localStorage').length; index += 1) {
+    const key = browserStorage('localStorage').key(index)
     if (!key?.startsWith(prefix)) {
       continue
     }

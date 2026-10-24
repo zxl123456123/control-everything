@@ -27,8 +27,8 @@ window.WorkspaceExecution = (() => {
   function resetConfirmation() { $('execution-confirm').checked = false; }
   function remember() {
     try {
-      if (attempt) sessionStorage.setItem(storageKey, JSON.stringify({ request_id: attempt.request_id, task_id: attempt.task_id }));
-      else sessionStorage.removeItem(storageKey);
+      if (attempt) (window.CERemoteContext ? window.CERemoteContext.storage('sessionStorage') : sessionStorage).setItem(storageKey, JSON.stringify({ request_id: attempt.request_id, task_id: attempt.task_id }));
+      else (window.CERemoteContext ? window.CERemoteContext.storage('sessionStorage') : sessionStorage).removeItem(storageKey);
     } catch { /* Receipt recovery remains available in this page if storage is disabled. */ }
   }
   function facts(id, entries) {
@@ -336,7 +336,7 @@ window.WorkspaceExecution = (() => {
     $('execution-prepare-again').addEventListener('click', () => another(run?.task_id));
     document.addEventListener('visibilitychange', () => onView(view));
     try {
-      const saved = JSON.parse(sessionStorage.getItem(storageKey));
+      const saved = JSON.parse((window.CERemoteContext ? window.CERemoteContext.storage('sessionStorage') : sessionStorage).getItem(storageKey));
       const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
       if (saved && uuid.test(saved.request_id) && uuid.test(saved.task_id)) attempt = { state: 'unknown', request_id: saved.request_id, task_id: saved.task_id };
     } catch { /* Invalid local receipt metadata never causes a submission. */ }

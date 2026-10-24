@@ -1,3 +1,4 @@
+import { browserStorage } from '../web/remote-context'
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
 import { ExternalLink, Settings } from 'lucide-react'
 
@@ -92,12 +93,12 @@ export function LinkRoutingPreferenceDialogProvider({
     if (!import.meta.env.DEV || typeof window === 'undefined') {
       return
     }
-    if (window.sessionStorage.getItem(PREVIEW_STORAGE_KEY) !== '1') {
+    if (browserStorage('sessionStorage').getItem(PREVIEW_STORAGE_KEY) !== '1') {
       return
     }
-    const previewDefault = window.sessionStorage.getItem(PREVIEW_DEFAULT_STORAGE_KEY)
-    window.sessionStorage.removeItem(PREVIEW_STORAGE_KEY)
-    window.sessionStorage.removeItem(PREVIEW_DEFAULT_STORAGE_KEY)
+    const previewDefault = browserStorage('sessionStorage').getItem(PREVIEW_DEFAULT_STORAGE_KEY)
+    browserStorage('sessionStorage').removeItem(PREVIEW_STORAGE_KEY)
+    browserStorage('sessionStorage').removeItem(PREVIEW_DEFAULT_STORAGE_KEY)
     void requestPreference({
       openLinksInAppDefault: previewDefault === 'orca',
       preview: true,

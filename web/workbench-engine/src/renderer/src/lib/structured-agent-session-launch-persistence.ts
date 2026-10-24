@@ -1,3 +1,4 @@
+import { browserStorage } from '../web/remote-context'
 import { structuredAgentSessionTabId } from '../../../shared/structured-agent-session-projection'
 import {
   validRecord,
@@ -35,7 +36,7 @@ function load(): void {
     return
   }
   try {
-    const stored = JSON.parse(localStorage.getItem(LAUNCH_STORAGE_KEY) ?? '[]')
+    const stored = JSON.parse(browserStorage('localStorage').getItem(LAUNCH_STORAGE_KEY) ?? '[]')
     if (Array.isArray(stored)) {
       for (const value of stored) {
         if (validRecord(value)) {
@@ -58,7 +59,9 @@ function load(): void {
         }
       }
     }
-    const storedTombstones = JSON.parse(localStorage.getItem(TOMBSTONE_STORAGE_KEY) ?? '[]')
+    const storedTombstones = JSON.parse(
+      browserStorage('localStorage').getItem(TOMBSTONE_STORAGE_KEY) ?? '[]'
+    )
     if (Array.isArray(storedTombstones)) {
       for (const value of storedTombstones) {
         loadTombstone(value)
@@ -117,9 +120,12 @@ function writeRecords(): void {
   }
   try {
     if (records.size === 0) {
-      localStorage.removeItem(LAUNCH_STORAGE_KEY)
+      browserStorage('localStorage').removeItem(LAUNCH_STORAGE_KEY)
     } else {
-      localStorage.setItem(LAUNCH_STORAGE_KEY, JSON.stringify([...records.values()]))
+      browserStorage('localStorage').setItem(
+        LAUNCH_STORAGE_KEY,
+        JSON.stringify([...records.values()])
+      )
     }
   } catch {
     // Why: persistence is recovery bookkeeping and must never block a launch.
@@ -133,9 +139,9 @@ function writeTombstones(): void {
   }
   try {
     if (tombstones.size === 0) {
-      localStorage.removeItem(TOMBSTONE_STORAGE_KEY)
+      browserStorage('localStorage').removeItem(TOMBSTONE_STORAGE_KEY)
     } else {
-      localStorage.setItem(
+      browserStorage('localStorage').setItem(
         TOMBSTONE_STORAGE_KEY,
         JSON.stringify(
           [...tombstones].map(([sessionId, executionHostId]) =>

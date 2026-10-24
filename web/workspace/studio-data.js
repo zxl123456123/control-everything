@@ -12,11 +12,14 @@
   };
   const failure = (reason, status = null) => Object.assign(new Error(reasons[reason] || '请求未成功，请重新读取后重试'), { reason, status });
   function create({ fetchImpl = window.fetch.bind(window), timeoutMs = 40000 } = {}) {
+    const rawFetch = fetchImpl;
+    fetchImpl = (input, options) => window.CERemoteContext ? window.CERemoteContext.fetchWith(rawFetch, input, options) : rawFetch(input, options);
     let csrf = '';
     async function api(path, options = {}) {
       if (typeof path !== 'string' || !path.startsWith('/api/') || path.includes('\\') || path.includes('#')) throw failure('invalid_request');
       const controller = new AbortController();
       const abort = () => controller.abort();
+      const unsubscribeContext = window.CERemoteContext?.onInactive(abort);
       options.signal?.addEventListener('abort', abort, { once: true });
       if (options.signal?.aborted) abort();
       const timer = setTimeout(abort, timeoutMs);
@@ -25,13 +28,15 @@
           headers: { ...options.headers, 'X-Session-Client': 'panel' } });
         const result = await response.json();
         if (!response.ok) throw Object.assign(failure(result?.reason || 'http_error', response.status), { field: result?.field });
+        window.CERemoteContext?.assertActive();
         return result;
       } catch (error) {
-        if (typeof error.reason === 'string') throw error;
+        if (typeof error.reason === 'string' || error.message === 'remote_context_inactive') throw error;
         throw Object.assign(failure(error.name === 'AbortError' ? 'timeout' : 'network_error'), {
           message: error.name === 'AbortError' ? '读取超时，现有草稿保留，请重试' : '无法连接本地工作台，现有草稿保留，请检查服务',
         });
       } finally {
+        unsubscribeContext?.();
         clearTimeout(timer); options.signal?.removeEventListener('abort', abort);
       }
     }
@@ -61,6 +66,7 @@
     async function snapshot() {
       const [workspace, agents, items] = await Promise.all([api('/api/workspace'), api('/api/workspace/agents'), readItems()]);
       if (workspace.projects?.status !== 'available' || !Array.isArray(workspace.projects.items) || !Array.isArray(agents.items)) throw failure('workspace_unavailable');
+      window.CERemoteContext?.assertActive();
       return { workspace, agents: agents.items, items };
     }
     return { api, post, bootstrap, snapshot, canWrite: () => Boolean(csrf) };

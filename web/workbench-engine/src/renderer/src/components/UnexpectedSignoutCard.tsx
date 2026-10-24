@@ -1,3 +1,4 @@
+import { browserStorage } from '../web/remote-context'
 import { useEffect, useState } from 'react'
 import { BookOpen, ChevronDown, CircleUserRound, Files, Smartphone, X } from 'lucide-react'
 import { useAppStore } from '../store'
@@ -17,7 +18,7 @@ function readPreviewFlag(): boolean {
     if (new URLSearchParams(window.location.search).get('showSignoutCard') === '1') {
       return true
     }
-    return window.localStorage.getItem('orca-debug-show-signout-card') === '1'
+    return browserStorage('localStorage').getItem('orca-debug-show-signout-card') === '1'
   } catch {
     return false
   }

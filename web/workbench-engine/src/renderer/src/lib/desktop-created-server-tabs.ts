@@ -1,3 +1,4 @@
+import { browserStorage } from '../web/remote-context'
 // Tabs this desktop created in a paired server's workspace that the server's layout never lists (a
 // simulator, a client-hosted browser tab), by tab-bar or entity id: that server's frame builds keep
 // them as drawn, inside the server's own groups (ledgers L273, L274). A tab the server published is
@@ -27,7 +28,7 @@ function recordMap(): Map<string, Entry> {
   }
   records = new Map()
   try {
-    const saved: unknown = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '[]')
+    const saved: unknown = JSON.parse(browserStorage('localStorage').getItem(STORAGE_KEY) ?? '[]')
     for (const entry of Array.isArray(saved) ? saved : []) {
       if (
         Array.isArray(entry) &&
@@ -62,9 +63,9 @@ function save(map: Map<string, Entry>): void {
   try {
     const entries = [...map.values()].map((e) => [e.environmentId, e.worktreeId, [...e.ids]])
     if (entries.length === 0) {
-      localStorage.removeItem(STORAGE_KEY)
+      browserStorage('localStorage').removeItem(STORAGE_KEY)
     } else {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(entries))
+      browserStorage('localStorage').setItem(STORAGE_KEY, JSON.stringify(entries))
     }
   } catch {}
 }
@@ -170,6 +171,6 @@ export function _reloadDesktopCreatedServerTabsForTests(): void {
 export function _resetDesktopCreatedServerTabsForTests(): void {
   records = new Map()
   try {
-    localStorage.removeItem(STORAGE_KEY)
+    browserStorage('localStorage').removeItem(STORAGE_KEY)
   } catch {}
 }

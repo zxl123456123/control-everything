@@ -39,7 +39,7 @@ function matches(node, selector) {
 const sample = (refreshing = true) => ({ reader_id: 'fixture', sample: {captured_at: null, sources: [{id:'fixture',reason:null,cache_age_ms:0}], streams: {ai:{items:[]},hn:{items:[]}}}, covers:{items:[]}, refreshing });
 const running = () => ({job_id:'fixture-job',state:'running',events:[]});
 const flush = async () => { for (let i = 0; i < 30; i++) await Promise.resolve(); };
-function fixture() {
+function fixture(remote = false) {
   const tree = new Element(), ids = new Map(), timers = new Map(), windowEvents = {}, documentEvents = {}, calls = [], writes = [];
   let timerId = 0;
   const html = fs.readFileSync(path.join(root, 'web/workspace/news-reader.html'), 'utf8');
@@ -61,7 +61,13 @@ function fixture() {
   };
   const window = {addEventListener:(key,callback) => {windowEvents[key]=callback;}};
   const context = {window,document,URL,Headers,AbortController,console,location:new URL('http://fixture.test/news'),matchMedia:() => ({matches:false}),innerWidth:1280,innerHeight:800,
-    fetch,localStorage:{getItem:() => null,setItem:(key,value) => writes.push({key,value})},queueMicrotask, setTimeout:(callback,ms) => {timers.set(++timerId,{callback,ms});return timerId;},clearTimeout:id => timers.delete(id)};
+    fetch,Request,localStorage:{getItem:() => null,setItem:(key,value) => writes.push({key,value})},queueMicrotask, setTimeout:(callback,ms) => {timers.set(++timerId,{callback,ms});return timerId;},clearTimeout:id => timers.delete(id)};
+  if (remote) {
+    const query = document.querySelector;
+    document.querySelector = selector => selector.includes('ce-remote-context') ? {content:'A'.repeat(32)} : selector.includes('ce-storage-scope') ? {content:'a'.repeat(64)} : query(selector);
+    Object.assign(window,{location:new URL('https://workbench.example.test/news'),document,fetch,localStorage:context.localStorage,sessionStorage:context.localStorage});
+    vm.runInNewContext(fs.readFileSync(path.join(root,'web/workspace/remote-context.js'),'utf8'),context);
+  }
   vm.runInNewContext(fs.readFileSync(path.join(root,'web/workspace/news-reader.js'),'utf8'),context);
   return {calls,writes,timers,state,document,windowEvents,node:id => ids.get(id),
     async hidden(value) {document.hidden=value;documentEvents.visibilitychange();await flush();},
@@ -118,4 +124,15 @@ test('BFCache suspension pauses timers and a destroyed page ignores late feed re
   f.windowEvents.pagehide({persisted:false}); const writes=f.writes.length;
   const value=sample(); value.sample.captured_at='2026-10-25T00:00:00Z'; finish(value); await flush();
   assert.equal(f.writes.length,writes); assert.equal(f.timers.size,0);
+});
+
+test('remote retirement destroys the existing reader, cancels polling and ignores admitted late feeds',async()=>{
+  const f=fixture(true);await flush();
+  let release;f.state.feed=()=>new Promise(resolve=>{release=resolve});
+  await f.tick(1500);const written=f.writes.length;
+  f.windowEvents.storage({key:'ce.remote.session-change',newValue:'opaque-session-change'});
+  assert.equal(f.timers.size,0);
+  release(sample(false));await flush();assert.equal(f.writes.length,written);
+  const calls=f.calls.length;await f.hidden(false);assert.equal(f.calls.length,calls);
+  f.windowEvents.pageshow({persisted:true});await flush();assert.equal(f.calls.length,calls);
 });

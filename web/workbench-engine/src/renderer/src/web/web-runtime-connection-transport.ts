@@ -1,3 +1,4 @@
+import { remoteWebSocketEndpoint, onContextInactive, assertContextActive } from './remote-context'
 import type { PairedRuntimeConnection } from '../../../shared/paired-runtime-connection'
 import { withReconnectJitter } from '../../../shared/reconnect-jitter'
 import { WebRuntimeConnectionHeartbeat } from './web-runtime-connection-heartbeat'
@@ -36,6 +37,7 @@ export class WebRuntimeConnectionTransport {
   private requestCounter = 0
   private reconnectAttempt = 0
   private intentionallyClosed = false
+  private unsubscribeContext: (() => void) | undefined
   private readonly timers = new WebRuntimeConnectionTimers()
   private readonly subscriptionRegistry: WebRuntimeSubscriptionRegistry
   readonly requestRegistry: WebRuntimeRequestRegistry
@@ -81,14 +83,16 @@ export class WebRuntimeConnectionTransport {
         }),
       handleDeadSocket: (socket) => this.handleSocketClosed(socket)
     })
-    this.openConnection()
+    this.unsubscribeContext = onContextInactive(() => this.close())
+    if (!this.intentionallyClosed) this.openConnection()
   }
 
   readonly call: WebRuntimeRequestRegistry['call'] = (method, params, options) =>
-    this.requestRegistry.call(method, params, options)
+    { assertContextActive(); return this.requestRegistry.call(method, params, options) }
 
   close(options: { notifySubscriptions?: boolean } = {}): void {
     this.intentionallyClosed = true
+    this.unsubscribeContext?.()
     this.clearTimers()
     this.requestRegistry.rejectAll('Remote Orca runtime connection closed.')
     this.connectionWaiters.rejectAll(new Error('Remote Orca runtime connection closed.'))
@@ -200,7 +204,9 @@ export class WebRuntimeConnectionTransport {
   private openSocket(plan: WebRuntimeAuthPlan): void {
     let socket: WebSocket
     try {
-      socket = new WebSocket(withWebClientUpgradeMarker(this.connection.endpoint))
+      socket = new WebSocket(
+        remoteWebSocketEndpoint(withWebClientUpgradeMarker(this.connection.endpoint))
+      )
     } catch (error) {
       this.requestRegistry.rejectAll(error instanceof Error ? error.message : String(error))
       this.scheduleReconnect()

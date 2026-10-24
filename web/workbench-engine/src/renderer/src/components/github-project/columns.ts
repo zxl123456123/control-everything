@@ -1,3 +1,4 @@
+import { browserStorage } from '../../web/remote-context'
 // Why: column visibility is a renderer-only preference — GitHub's view
 // definition is the source of truth for which fields exist, and we layer a
 // local visibility filter on top. Persisted in localStorage (not settings)
@@ -33,7 +34,7 @@ type HiddenMap = Record<string, string[]>
 
 function readMap(): HiddenMap {
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY)
+    const raw = browserStorage('localStorage').getItem(STORAGE_KEY)
     if (!raw) {
       return {}
     }
@@ -46,7 +47,7 @@ function readMap(): HiddenMap {
 
 function writeMap(map: HiddenMap): void {
   try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(map))
+    browserStorage('localStorage').setItem(STORAGE_KEY, JSON.stringify(map))
   } catch {
     // localStorage may be disabled — visibility just won't persist this session.
   }

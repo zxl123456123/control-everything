@@ -1,3 +1,4 @@
+import { browserStorage } from '../web/remote-context'
 import type { CSSProperties } from 'react'
 import { translate } from '@/i18n/i18n'
 
@@ -90,7 +91,7 @@ export function resolveJiraListColumnIds(raw: unknown): Set<JiraListColumnId> {
 
 export function loadJiraListColumnIds(): Set<JiraListColumnId> {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
+    const raw = browserStorage('localStorage').getItem(STORAGE_KEY)
     return resolveJiraListColumnIds(raw ? JSON.parse(raw) : undefined)
   } catch {
     return defaultJiraListColumnIds()
@@ -99,7 +100,7 @@ export function loadJiraListColumnIds(): Set<JiraListColumnId> {
 
 export function saveJiraListColumnIds(ids: ReadonlySet<JiraListColumnId>): void {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify([...ids]))
+    browserStorage('localStorage').setItem(STORAGE_KEY, JSON.stringify([...ids]))
   } catch {
     // The live view stays usable when browser storage is unavailable or full.
   }

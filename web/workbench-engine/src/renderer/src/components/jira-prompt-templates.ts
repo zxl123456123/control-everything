@@ -1,3 +1,4 @@
+import { browserStorage } from '../web/remote-context'
 import type { JiraIssue } from '../../../shared/jira-types'
 import { translate } from '@/i18n/i18n'
 
@@ -45,14 +46,16 @@ export function renderJiraPromptTemplate(
 const CUSTOM_TEMPLATE_KEY = 'orca.jira.copy-prompt-template.v1'
 export function loadCustomJiraPromptTemplate(): string {
   try {
-    return localStorage.getItem(CUSTOM_TEMPLATE_KEY) ?? '$jira-issue\n\n$other-prompt'
+    return (
+      browserStorage('localStorage').getItem(CUSTOM_TEMPLATE_KEY) ?? '$jira-issue\n\n$other-prompt'
+    )
   } catch {
     return '$jira-issue\n\n$other-prompt'
   }
 }
 export function saveCustomJiraPromptTemplate(template: string): void {
   try {
-    localStorage.setItem(CUSTOM_TEMPLATE_KEY, template)
+    browserStorage('localStorage').setItem(CUSTOM_TEMPLATE_KEY, template)
   } catch {
     // Copying remains available when device storage is full.
   }

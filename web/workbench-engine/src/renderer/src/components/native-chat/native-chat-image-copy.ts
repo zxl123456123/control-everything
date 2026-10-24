@@ -1,3 +1,4 @@
+import { contextFetch } from '../../web/remote-context'
 import { toast } from 'sonner'
 import { translate } from '@/i18n/i18n'
 import { copyImageToClipboard } from '@/lib/clipboard-image-copy'
@@ -16,7 +17,7 @@ export function copyableNativeChatImageSrc(src: string | undefined): string | un
 export type NativeChatCopyImage = () => Promise<Blob>
 
 async function readImageBlob(src: string): Promise<Blob> {
-  const response = await fetch(src)
+  const response = await contextFetch(src)
   if (!response.ok) {
     throw new Error(`Image request failed (HTTP ${response.status})`)
   }

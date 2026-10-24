@@ -1,3 +1,4 @@
+import { browserStorage } from '../../web/remote-context'
 import { vi } from 'vitest'
 import { hookRuntime } from './floating-terminal-panel-test-harness'
 import type { FloatingTerminalPanelBounds } from './floating-terminal-panel-bounds'
@@ -139,7 +140,7 @@ export function getMockedLocalStorage(): {
   getItem: ReturnType<typeof vi.fn>
   setItem: ReturnType<typeof vi.fn>
 } {
-  return window.localStorage as unknown as {
+  return browserStorage('localStorage') as unknown as {
     clear: ReturnType<typeof vi.fn>
     getItem: ReturnType<typeof vi.fn>
     setItem: ReturnType<typeof vi.fn>

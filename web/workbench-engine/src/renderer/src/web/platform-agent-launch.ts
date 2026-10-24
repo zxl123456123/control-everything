@@ -1,3 +1,4 @@
+import { contextFetch } from './remote-context'
 import type { AgentStatusEntry } from '../../../shared/agent-status-types'
 import { isPathInsideOrEqual, resolveRuntimePath } from '../../../shared/cross-platform-path'
 import { parsePaneKey } from '../../../shared/stable-pane-id'
@@ -85,7 +86,7 @@ export function findPlatformProviderSession(
 }
 
 export async function readPlatformTaskBrief(taskId: string): Promise<PlatformTaskBrief> {
-  const response = await fetch(`/api/workspace/tasks/${encodeURIComponent(taskId)}/brief`, {
+  const response = await contextFetch(`/api/workspace/tasks/${encodeURIComponent(taskId)}/brief`, {
     credentials: 'same-origin',
     headers: { 'X-Session-Client': 'panel' }
   })
@@ -101,7 +102,7 @@ export async function linkPlatformTaskSession(
   if (fresh.item.project_id !== pending.projectId) {
     throw new Error('事项所属项目已变化，终端保留，会话尚未关联。')
   }
-  const bootstrap = await fetch('/api/bootstrap', {
+  const bootstrap = await contextFetch('/api/bootstrap', {
     credentials: 'same-origin',
     headers: { 'X-Session-Client': 'panel' }
   })
@@ -109,7 +110,7 @@ export async function linkPlatformTaskSession(
   if (!bootstrap.ok || typeof credentials?.csrf_token !== 'string' || !credentials.csrf_token) {
     throw new Error('保存凭据不可用，终端保留，会话尚未关联。')
   }
-  const response = await fetch(
+  const response = await contextFetch(
     `/api/workspace/tasks/${encodeURIComponent(pending.taskId)}/sessions`,
     {
       method: 'POST',

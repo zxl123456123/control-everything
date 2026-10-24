@@ -1,0 +1,100 @@
+# Replace example host and private UI directory. Secrets are supplied by service environment.
+# Merge with the existing identity/TLS routes; this sample is not a deployed configuration.
+https://workbench.example.test {
+    route {
+        @health path /__ce_remote_health /__ce_remote_health/*
+        respond @health 404
+        # Never accept caller-supplied routing or page metadata.
+        request_header -X-CE-Device-Proof
+        request_header -X-CE-Page-Context
+        request_header -X-CE-Storage-Scope
+        request_header -X-CE-Upstream
+        request_header -X-CE-Route-Proof
+        request_header -X-Auth-Request-User
+        request_header -X-Auth-Request-Access-Token
+        # The site entry and the identity provider's logout landing return to the account page.
+        @accountNavigation {
+            method GET HEAD
+            header !X-CE-Context
+            header !Upgrade
+            expression `{http.request.uri} == '/' && (!header({'Origin': '*'}) || {http.request.header.Origin} == {http.request.scheme} + '://' + {http.request.hostport})`
+        }
+        redir @accountNavigation /remote 303
+        handle /oauth2/* {
+            reverse_proxy 127.0.0.1:18868
+        }
+        # Desktop enrollment retains its explicit Bearer. It never uses browser identity.
+        handle /remote/desktop/* {
+            reverse_proxy 127.0.0.1:18869
+        }
+        @account path /remote /remote/ /remote/remote-account.js /remote/remote-account.css
+        handle @account {
+            root * /srv/control-everything/remote-ui
+            rewrite /remote /remote/remote-account.html
+            rewrite /remote/ /remote/remote-account.html
+            uri strip_prefix /remote
+            file_server
+            header Cache-Control no-store
+        }
+        handle /remote/api/* {
+            forward_auth 127.0.0.1:18868 {
+                uri /oauth2/auth?
+                copy_headers X-Auth-Request-User X-Auth-Request-Access-Token
+            }
+            reverse_proxy 127.0.0.1:18869 {
+                header_up X-CE-Route-Proof {$CE_ROUTE_PROOF}
+            }
+        }
+        handle {
+          route {
+            # Preserve empty Upgrade rejection before proxy hop-by-hop header removal.
+            @emptyUpgrade header Upgrade ""
+            respond @emptyUpgrade 401
+            # Classify the original request before forward_auth rewrites its clone.
+            @documentNavigation {
+                method GET HEAD
+                header !X-CE-Context
+                header !Upgrade
+                expression `{http.request.uri} in ['/studio', '/workspace', '/workspace-admin', '/news', '/sessions', '/progress'] && (!header({'Origin': '*'}) || {http.request.header.Origin} == {http.request.scheme} + '://' + {http.request.hostport})`
+            }
+            vars @documentNavigation ce_document_navigation yes
+            forward_auth 127.0.0.1:18868 {
+                uri /oauth2/auth?
+                copy_headers X-Auth-Request-User X-Auth-Request-Access-Token
+                @anonymous status 401
+                handle_response @anonymous {
+                    route {
+                        @documentNavigationFailure vars ce_document_navigation yes
+                        redir @documentNavigationFailure /remote 303
+                        copy_response_headers
+                        copy_response
+                    }
+                }
+            }
+            forward_auth 127.0.0.1:18869 {
+                uri /internal/authorize?
+                header_up X-CE-Route-Proof {$CE_ROUTE_PROOF}
+                copy_headers X-CE-Upstream X-CE-Device-Proof X-CE-Page-Context X-CE-Storage-Scope
+            }
+            @runtime path /workbench-runtime
+            rewrite @runtime /workbench-runtime?orca-client=web
+            reverse_proxy {http.request.header.X-CE-Upstream} {
+                header_up Host {http.request.hostport}
+                header_up -Authorization
+                header_up -Cookie
+                header_up -X-Auth-Request-User
+                header_up -X-Auth-Request-Access-Token
+                header_up -X-CE-Route-Proof
+                header_up -X-CE-Upstream
+                # The context is checked by hub; Orca only receives its web marker.
+                stream_timeout 60s
+                transport http {
+                    response_header_timeout 15s
+                    read_timeout 60s
+                    write_timeout 60s
+                }
+            }
+          }
+        }
+    }
+}

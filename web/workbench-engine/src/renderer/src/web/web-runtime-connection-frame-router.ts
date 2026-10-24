@@ -1,3 +1,4 @@
+import { assertContextActive } from './remote-context'
 import type { RuntimeRpcResponse } from '../../../shared/runtime-rpc-envelope'
 import { isKeepaliveFrame } from '../../../shared/runtime-rpc-envelope'
 import type {
@@ -64,6 +65,7 @@ export async function routeWebRuntimeConnectionFrame(
   sourceWs: WebSocket | undefined,
   context: WebRuntimeConnectionFrameContext
 ): Promise<void> {
+  try { assertContextActive() } catch { return }
   const raw = typeof rawData === 'string' ? rawData : null
   const handshake = context.getHandshake()
   if (context.getState() === 'handshaking') {
@@ -98,6 +100,7 @@ export async function routeWebRuntimeConnectionFrame(
   }
   if (raw === null) {
     const encrypted = await websocketPayloadToUint8(rawData)
+    try { assertContextActive() } catch { return }
     if (sourceWs && context.getSocket() !== sourceWs) {
       return
     }

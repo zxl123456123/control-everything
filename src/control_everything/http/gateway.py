@@ -23,7 +23,7 @@ from urllib.parse import parse_qs, urlsplit
 from control_everything.sessions.source import HOST, PORT, canonical_uuid
 from control_everything.sessions.codex_index import list_threads as list_codex_threads
 from control_everything.sessions.observer_client import ObserverClient
-from control_everything.http import observation_routes, onboarding_routes, sandbox_routes, workbench
+from control_everything.http import observation_routes, onboarding_routes, sandbox_routes, workbench, workbench_remote, remote_context
 from control_everything.workspace.progress import MANUAL, REGISTRY, TODOS, add_todo, board, set_progress, toggle_todo, load_todos
 from control_everything.integrations.launchers import LauncherCatalog, catalog, start
 from control_everything.integrations.desk import headlines, pulse
@@ -163,7 +163,73 @@ def result_status(result):
     return 200
 
 
+WEB_ASSETS = {
+    "/remote-context.js": ("workspace/remote-context.js", "text/javascript; charset=utf-8"),
+    "/desktop.js": ("workspace/desktop.js", "text/javascript; charset=utf-8"),
+    "/": ("sessions/index.html", "text/html; charset=utf-8"),
+    "/sessions": ("sessions/index.html", "text/html; charset=utf-8"),
+    "/app.js": ("sessions/app.js", "text/javascript; charset=utf-8"),
+    "/style.css": ("sessions/style.css", "text/css; charset=utf-8"),
+    "/progress": ("progress/progress.html", "text/html; charset=utf-8"),
+    "/progress.js": ("progress/progress.js", "text/javascript; charset=utf-8"),
+    "/progress.css": ("progress/progress.css", "text/css; charset=utf-8"),
+    "/product": ("product/index.html", "text/html; charset=utf-8"),
+    "/product.css": ("product/product.css", "text/css; charset=utf-8"),
+    "/product.js": ("product/product.js", "text/javascript; charset=utf-8"),
+    "/workspace": ("workspace/workspace.html", "text/html; charset=utf-8"),
+    "/workspace.js": ("workspace/workspace.js", "text/javascript; charset=utf-8"),
+    "/onboarding.js": ("workspace/onboarding.js", "text/javascript; charset=utf-8"),
+    "/agents.js": ("workspace/agents.js", "text/javascript; charset=utf-8"),
+    "/project-space.js": ("workspace/project-space.js", "text/javascript; charset=utf-8"),
+    "/monitor-art.js": ("workspace/monitor-art.js", "text/javascript; charset=utf-8"),
+    "/monitor-scene.js": ("workspace/monitor-scene.js", "text/javascript; charset=utf-8"),
+    "/monitor-model.js": ("workspace/monitor-model.js", "text/javascript; charset=utf-8"),
+    "/project-monitor.js": ("workspace/project-monitor.js", "text/javascript; charset=utf-8"),
+    "/project-monitor.css": ("workspace/project-monitor.css", "text/css; charset=utf-8"),
+    "/task-center.js": ("workspace/task-center.js", "text/javascript; charset=utf-8"),
+    "/execution.js": ("workspace/execution.js", "text/javascript; charset=utf-8"),
+    "/observation.js": ("workspace/observation.js", "text/javascript; charset=utf-8"),
+    "/news.js": ("workspace/news.js", "text/javascript; charset=utf-8"),
+    "/quota.js": ("workspace/quota.js", "text/javascript; charset=utf-8"),
+    "/workspace.css": ("workspace/workspace.css", "text/css; charset=utf-8"),
+}
+
+
 class PanelHandler(BaseHTTPRequestHandler):
+    def parse_request(self):
+        if not super().parse_request():
+            return False
+        if self.command not in {"GET", "POST", "OPTIONS"}:
+            self.reply(403, {"reason": "method_not_allowed"})
+            return False
+        return True
+
+    def remote_gate(self):
+        access = remote_context.access_for(self.server)
+        has_proof = remote_context.remote_request(self)
+        if not has_proof:
+            if self.headers.get_all("Host", []) != [self.server.expected_host] or any(
+                    self.headers.get_all(name, []) for name in
+                    ("X-CE-Page-Context", "X-CE-Storage-Scope", "X-CE-Context", "X-CE-Proxy-Token")):
+                self.reply(403, {"reason": "host_rejected"})
+                return False
+            return True
+        if not access or not access.accept_proxy_request(self.headers):
+            self.reply(403, {"reason": "remote_proxy_rejected"})
+            return False
+        path = urlsplit(self.path)
+        if (path.path.startswith("/api/agent/") or path.path == "/api/workspace/agents/heartbeat"
+                or self.headers.get_all("X-Session-Client", []) == ["stdio"]):
+            self.reply(403, {"reason": "remote_agent_route_rejected"})
+            return False
+        if path.path.startswith("/api/desktop/") or path.path in {"/desktop", "/product", "/", "/health", "/workbench/web-index.html"}:
+            self.reply(403, {"reason": "remote_local_route_rejected"})
+            return False
+        if not remote_context.static_path(self.server, path.path) and remote_context.metadata(self) is None:
+            self.reply(403, {"reason": "remote_context_required"})
+            return False
+        return True
+
     def profile(self):
         # Mock fixtures must not gain profile behavior through dynamic attributes.
         return self.server.__dict__.get("profile")
@@ -173,6 +239,9 @@ class PanelHandler(BaseHTTPRequestHandler):
         pass
 
     def reply(self, status, payload, content_type="application/json; charset=utf-8", *, csp=None):
+        if (status == 200 and isinstance(payload, bytes) and content_type.startswith("text/html")
+                and remote_context.remote_request(self)):
+            payload = remote_context.inject(self, payload)
         body = payload if isinstance(payload, bytes) else json.dumps(payload, ensure_ascii=False).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", content_type)
@@ -186,7 +255,10 @@ class PanelHandler(BaseHTTPRequestHandler):
 
     def reject(self, status, reason):
         self._discard_rejected_post_body()
-        self.reply(status, {"status": "unknown", "reason": reason, "source": self.server.__dict__.get("source"),
+        local = (not remote_context.remote_request(self)
+                 and self.headers.get_all("Host", []) == [self.server.expected_host]
+                 and self.headers.get_all("Origin", []) in ([], [self.server.origin]))
+        self.reply(status, {"status": "unknown", "reason": reason, "source": self.server.__dict__.get("source") if local else None,
                             "observed_at": datetime.now(timezone.utc).isoformat()})
 
     def _discard_rejected_post_body(self):
@@ -217,26 +289,48 @@ class PanelHandler(BaseHTTPRequestHandler):
             self.connection.settimeout(previous_timeout)
 
     def allowed(self, *, api=False, focus=False):
-        if self.headers.get_all("Host", []) != [self.server.expected_host]:
+        access = remote_context.access_for(self.server) if remote_context.remote_request(self) else None
+        expected_host = access.authority if access else self.server.expected_host
+        expected_origin = access.public_origin if access else self.server.origin
+        if self.headers.get_all("Host", []) != [expected_host]:
             self.reject(403, "host_rejected")
             return False
         origins = self.headers.get_all("Origin", [])
-        if origins and origins != [self.server.origin]:
+        if origins and origins != [expected_origin]:
             self.reject(403, "origin_rejected")
             return False
         if api and self.headers.get_all("X-Session-Client", []) not in (["panel"], ["stdio"]):
             self.reject(403, "client_header_required")
             return False
-        if focus and (origins != [self.server.origin] or self.headers.get_all("X-Session-CSRF", []) != [self.server.csrf_token]):
+        if focus and (origins != [expected_origin] or self.headers.get_all("X-Session-CSRF", []) != [self.server.csrf_token]):
             self.reject(403, "csrf_rejected")
             return False
         return True
 
     def do_OPTIONS(self):
-        self.reject(403, "cross_origin_not_allowed")
+        self.reply(403, {"reason": "cross_origin_not_allowed"})
 
     def do_GET(self):
+        if workbench_remote.handle_health(self, self.path):
+            return
+        if not self.remote_gate():
+            return
         path = urlsplit(self.path)
+        if path.path in workbench_remote.PATHS and path.query:
+            return self.reject(400, "invalid_request")
+        if path.path == "/api/desktop/remote/status" and workbench_remote.local_control_allowed(self):
+            connector = self.server.__dict__.get("remote_connector")
+            value = connector.status() if connector else {"state": "unbound", "code": "remote_not_configured", "configured": False}
+            desktop = self.server.__dict__.get("desktop")
+            self.reply(200, {**value, "runtime_restart_required": bool(desktop and desktop.restart_required)})
+            return
+        if workbench_remote.handle_get(self, path.path):
+            return
+        if path.path == "/desktop" and not path.query:
+            if not self.allowed():
+                return
+            return self.reply(200, (WEB / "workspace/desktop.html").read_bytes(), "text/html; charset=utf-8",
+                              csp="default-src 'self'; script-src 'self'; style-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'none'")
         if path.path.startswith("/api/agent/"):
             return self.agent_get(path)
         if not self.allowed(api=path.path.startswith("/api/")):
@@ -254,33 +348,7 @@ class PanelHandler(BaseHTTPRequestHandler):
             self.send_header("Cache-Control", "no-store")
             self.end_headers()
             return
-        static = {
-            "/": ("sessions/index.html", "text/html; charset=utf-8"),
-            "/app.js": ("sessions/app.js", "text/javascript; charset=utf-8"),
-            "/style.css": ("sessions/style.css", "text/css; charset=utf-8"),
-            "/progress": ("progress/progress.html", "text/html; charset=utf-8"),
-            "/progress.js": ("progress/progress.js", "text/javascript; charset=utf-8"),
-            "/progress.css": ("progress/progress.css", "text/css; charset=utf-8"),
-            "/product": ("product/index.html", "text/html; charset=utf-8"),
-            "/product.css": ("product/product.css", "text/css; charset=utf-8"),
-            "/product.js": ("product/product.js", "text/javascript; charset=utf-8"),
-            "/workspace": ("workspace/workspace.html", "text/html; charset=utf-8"),
-            "/workspace.js": ("workspace/workspace.js", "text/javascript; charset=utf-8"),
-            "/onboarding.js": ("workspace/onboarding.js", "text/javascript; charset=utf-8"),
-            "/agents.js": ("workspace/agents.js", "text/javascript; charset=utf-8"),
-            "/project-space.js": ("workspace/project-space.js", "text/javascript; charset=utf-8"),
-            "/monitor-art.js": ("workspace/monitor-art.js", "text/javascript; charset=utf-8"),
-            "/monitor-scene.js": ("workspace/monitor-scene.js", "text/javascript; charset=utf-8"),
-            "/monitor-model.js": ("workspace/monitor-model.js", "text/javascript; charset=utf-8"),
-            "/project-monitor.js": ("workspace/project-monitor.js", "text/javascript; charset=utf-8"),
-            "/project-monitor.css": ("workspace/project-monitor.css", "text/css; charset=utf-8"),
-            "/task-center.js": ("workspace/task-center.js", "text/javascript; charset=utf-8"),
-            "/execution.js": ("workspace/execution.js", "text/javascript; charset=utf-8"),
-            "/observation.js": ("workspace/observation.js", "text/javascript; charset=utf-8"),
-            "/news.js": ("workspace/news.js", "text/javascript; charset=utf-8"),
-            "/quota.js": ("workspace/quota.js", "text/javascript; charset=utf-8"),
-            "/workspace.css": ("workspace/workspace.css", "text/css; charset=utf-8"),
-        }
+        static = WEB_ASSETS
         if path.path in static and not path.query:
             filename, mime = static[path.path]
             try:
@@ -352,7 +420,21 @@ class PanelHandler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         self._post_body_pending = True
+        if workbench_remote.handle_health(self, self.path, "POST"):
+            return
+        if not self.remote_gate():
+            return
         path = urlsplit(self.path)
+        if path.path in workbench_remote.PATHS:
+            if not workbench_remote.local_control_allowed(self, write=True):
+                return self.reject(403, "local_control_required")
+            try:
+                if path.query or self.read_json_body(max_bytes=1024, strict=True) != {}:
+                    raise ValueError("invalid_request")
+            except (ValueError, TypeError, UnicodeError):
+                return self.reject(400, "invalid_request")
+        if workbench_remote.handle_post(self, path.path):
+            return
         if path.path.startswith('/api/agent/'):
             return self.agent_post(path)
         if path.path == '/api/workspace/agents/heartbeat':
@@ -622,7 +704,7 @@ class PanelHandler(BaseHTTPRequestHandler):
                 "session_project_mismatch", "invalid_item", "text_budget"} else "storage_error"
             extra = {}
         self._discard_rejected_post_body()
-        self.reply(status, {"status": "unknown", "reason": reason, "source": self.server.__dict__.get("source"),
+        self.reply(status, {"status": "unknown", "reason": reason, "source": None if remote_context.remote_request(self) else self.server.__dict__.get("source"),
                             "observed_at": datetime.now(timezone.utc).isoformat(), **extra})
 
     def _agent_seen(self, identity):
@@ -1242,7 +1324,7 @@ class PanelServer(ThreadingHTTPServer):
 
 def make_server(service, address=(HOST, PORT), *, workspace=None, execution=None, profile=None,
                 launchers=None, capabilities=None, startup_integrations=None, source=None, observer=None,
-                workbench_runtime=None, workbench_assets=None):
+                workbench_runtime=None, workbench_assets=None, remote_access=None):
     # The address injection exists for temporary fixture tests. Production is fixed.
     if address[0] != HOST:
         raise ValueError("loopback_only")
@@ -1258,6 +1340,7 @@ def make_server(service, address=(HOST, PORT), *, workspace=None, execution=None
     server.observer = observer
     server.workbench_runtime = workbench_runtime
     server.workbench_assets = workbench_assets
+    server.remote_access = remote_access
     server.execution = execution
     server.execution_reason = None
     server.profile = profile
@@ -1268,6 +1351,7 @@ def make_server(service, address=(HOST, PORT), *, workspace=None, execution=None
     server.source = copy.deepcopy(source if source is not None else service_source if isinstance(service_source, dict) else None)
     server.expected_host = f"{HOST}:{server.server_address[1]}"
     server.origin = f"http://{server.expected_host}"
+    server.local_origin = server.origin
     server.csrf_token = secrets.token_urlsafe(32)
     server.news_source = workspace.news_source if workspace is not None else NewsSource()
     server.news_reader = None

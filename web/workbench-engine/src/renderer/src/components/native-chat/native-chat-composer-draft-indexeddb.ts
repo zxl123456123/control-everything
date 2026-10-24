@@ -1,3 +1,4 @@
+import { storageKey, assertContextActive, onContextInactive } from '../../web/remote-context'
 // Composer drafts in IndexedDB: one record per scope, keyed by the scope. Kept thin on purpose;
 // the draft store holds every rule, and unit tests drive it through the in-memory storage.
 
@@ -31,8 +32,9 @@ export function createIndexedDbNativeChatComposerDraftStorage(
 ): NativeChatComposerDraftStorage {
   let opened: Promise<IDBDatabase> | null = null
   const database = (): Promise<IDBDatabase> => {
+    assertContextActive()
     opened ??= new Promise<IDBDatabase>((resolve, reject) => {
-      const request = factory.open(DATABASE_NAME, DATABASE_VERSION)
+      const request = factory.open(storageKey(DATABASE_NAME), DATABASE_VERSION)
       request.onupgradeneeded = () => {
         if (!request.result.objectStoreNames.contains(DRAFTS)) {
           request.result.createObjectStore(DRAFTS)
@@ -58,21 +60,27 @@ export function createIndexedDbNativeChatComposerDraftStorage(
   }
 
   const change = async (apply: (drafts: IDBObjectStore) => void): Promise<void> => {
-    const transaction = (await database()).transaction(DRAFTS, 'readwrite')
+    const db = await database()
+    assertContextActive()
+    const transaction = db.transaction(DRAFTS, 'readwrite')
     const done = committed(transaction)
+    const unsubscribe = onContextInactive(() => { try { transaction.abort() } catch { /* Already settled. */ } })
     apply(transaction.objectStore(DRAFTS))
     // Why: commit now rather than when the task ends, so a quit right after still lands it.
     transaction.commit?.()
-    await done
+    try { await done; assertContextActive() } finally { unsubscribe() }
   }
 
   return {
     loadAll: async () => {
-      const drafts = (await database()).transaction(DRAFTS, 'readonly').objectStore(DRAFTS)
+      const db = await database()
+      assertContextActive()
+      const drafts = db.transaction(DRAFTS, 'readonly').objectStore(DRAFTS)
       const [keys, values] = await Promise.all([
         settled(drafts.getAllKeys()),
         settled(drafts.getAll())
       ])
+      assertContextActive()
       const loaded = new Map<string, unknown>()
       if (Array.isArray(keys) && Array.isArray(values)) {
         keys.forEach((key, index) => {
@@ -83,8 +91,13 @@ export function createIndexedDbNativeChatComposerDraftStorage(
       }
       return loaded
     },
-    read: async (scopeKey) =>
-      settled((await database()).transaction(DRAFTS, 'readonly').objectStore(DRAFTS).get(scopeKey)),
+    read: async (scopeKey) => {
+      const db = await database()
+      assertContextActive()
+      const result = await settled(db.transaction(DRAFTS, 'readonly').objectStore(DRAFTS).get(scopeKey))
+      assertContextActive()
+      return result
+    },
     write: (scopeKey, draft: StoredNativeChatComposerDraft) =>
       change((drafts) => drafts.put(draft, scopeKey)),
     remove: (scopeKeys) =>
@@ -94,13 +107,18 @@ export function createIndexedDbNativeChatComposerDraftStorage(
         }
       }),
     update: async (scopeKey, apply) => {
-      const transaction = (await database()).transaction(DRAFTS, 'readwrite')
+      const db = await database()
+      assertContextActive()
+      const transaction = db.transaction(DRAFTS, 'readwrite')
+      const unsubscribe = onContextInactive(() => { try { transaction.abort() } catch { /* Already settled. */ } })
       const done = committed(transaction)
       const drafts = transaction.objectStore(DRAFTS)
       const read = drafts.get(scopeKey)
       // Why inside the read's callback: the write must land in the same transaction as the read.
       read.onsuccess = () => {
+        try { assertContextActive() } catch { transaction.abort(); return }
         const next = apply(read.result)
+        try { assertContextActive() } catch { transaction.abort(); return }
         if (next) {
           drafts.put(next, scopeKey)
         } else {
@@ -108,7 +126,7 @@ export function createIndexedDbNativeChatComposerDraftStorage(
         }
         transaction.commit?.()
       }
-      await done
+      try { await done; assertContextActive() } finally { unsubscribe() }
     }
   }
 }

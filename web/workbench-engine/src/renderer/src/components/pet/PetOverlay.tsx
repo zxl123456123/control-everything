@@ -1,3 +1,4 @@
+import { browserStorage } from '../../web/remote-context'
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { usePrefersReducedMotion } from '@/hooks/usePrefersReducedMotion'
 import { usePetUrl } from './usePetUrl'
@@ -265,10 +266,10 @@ function loadStoredPosition(size: number = SIZE): Position | null {
     return null
   }
   try {
-    let raw = window.localStorage.getItem(POSITION_STORAGE_KEY)
+    let raw = browserStorage('localStorage').getItem(POSITION_STORAGE_KEY)
     let migratedFromLegacy = false
     if (!raw) {
-      raw = window.localStorage.getItem(LEGACY_POSITION_STORAGE_KEY)
+      raw = browserStorage('localStorage').getItem(LEGACY_POSITION_STORAGE_KEY)
       if (!raw) {
         return null
       }
@@ -280,7 +281,7 @@ function loadStoredPosition(size: number = SIZE): Position | null {
     }
     if (migratedFromLegacy) {
       try {
-        window.localStorage.setItem(POSITION_STORAGE_KEY, raw)
+        browserStorage('localStorage').setItem(POSITION_STORAGE_KEY, raw)
       } catch {
         // ignore storage failures
       }
@@ -366,7 +367,7 @@ export function PetOverlay(): React.JSX.Element {
       return
     }
     try {
-      window.localStorage.setItem(POSITION_STORAGE_KEY, JSON.stringify(position))
+      browserStorage('localStorage').setItem(POSITION_STORAGE_KEY, JSON.stringify(position))
     } catch {
       // ignore storage failures
     }

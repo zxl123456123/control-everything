@@ -1,3 +1,4 @@
+import { browserStorage } from '../../../web/remote-context'
 import { useCallback, useRef, useSyncExternalStore } from 'react'
 import { useAppStore } from '@/store'
 
@@ -16,10 +17,10 @@ const MARKUP_DRAW_HINT_SEEN_KEY = 'orca.browser.markup-draw-hint-seen'
 // risks nagging on every open.
 function claimFirstView(): boolean {
   try {
-    if (window.localStorage.getItem(MARKUP_DRAW_HINT_SEEN_KEY) === 'true') {
+    if (browserStorage('localStorage').getItem(MARKUP_DRAW_HINT_SEEN_KEY) === 'true') {
       return false
     }
-    window.localStorage.setItem(MARKUP_DRAW_HINT_SEEN_KEY, 'true')
+    browserStorage('localStorage').setItem(MARKUP_DRAW_HINT_SEEN_KEY, 'true')
     return true
   } catch {
     return false

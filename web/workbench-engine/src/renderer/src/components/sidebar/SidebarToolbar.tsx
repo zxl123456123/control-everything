@@ -1,3 +1,4 @@
+import { browserStorage } from '../../web/remote-context'
 import React from 'react'
 import { Kanban } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -49,10 +50,12 @@ const SidebarToolbar = React.memo(function SidebarToolbar({
       return
     }
     try {
-      if (window.localStorage.getItem(WORKSPACE_BOARD_MOVED_HINT_STORAGE_KEY) === 'true') {
+      if (
+        browserStorage('localStorage').getItem(WORKSPACE_BOARD_MOVED_HINT_STORAGE_KEY) === 'true'
+      ) {
         return
       }
-      window.localStorage.setItem(WORKSPACE_BOARD_MOVED_HINT_STORAGE_KEY, 'true')
+      browserStorage('localStorage').setItem(WORKSPACE_BOARD_MOVED_HINT_STORAGE_KEY, 'true')
     } catch {
       return
     }

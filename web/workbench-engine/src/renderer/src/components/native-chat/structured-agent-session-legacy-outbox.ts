@@ -1,3 +1,4 @@
+import { browserStorage } from '../../web/remote-context'
 // Older builds kept each chat's unsent messages in localStorage and sent them on their own. Nothing
 // sends from that copy any more: the first time a chat opens, each message there that its host does
 // not hold goes back to the chat's composer, and the copy is deleted once that is saved.
@@ -53,7 +54,9 @@ function legacyQueuedAt(entry: unknown): number {
 /** In the order they were sent, as the older build read them. */
 export function readLegacyStructuredAgentSessionOutbox(sessionId: string): LegacyOutboxMessage[] {
   try {
-    const value: unknown = JSON.parse(localStorage.getItem(legacyKey(sessionId)) ?? '[]')
+    const value: unknown = JSON.parse(
+      browserStorage('localStorage').getItem(legacyKey(sessionId)) ?? '[]'
+    )
     return Array.isArray(value)
       ? [...value]
           .sort((left: unknown, right: unknown) => legacyQueuedAt(left) - legacyQueuedAt(right))
@@ -96,7 +99,7 @@ export async function recoverLegacyStructuredAgentSessionOutbox(args: {
   const messages = readLegacyStructuredAgentSessionOutbox(sessionId)
   if (messages.length === 0) {
     try {
-      localStorage.removeItem(legacyKey(sessionId))
+      browserStorage('localStorage').removeItem(legacyKey(sessionId))
     } catch {
       // Nothing to recover; a key storage refuses to drop is read as empty again next time.
     }
@@ -141,7 +144,7 @@ export async function recoverLegacyStructuredAgentSessionOutbox(args: {
       setStructuredAgentSessionSendNotice(sessionId, agentSessionWriteNoticeText(notice))
     }
     if (durable) {
-      localStorage.removeItem(legacyKey(sessionId))
+      browserStorage('localStorage').removeItem(legacyKey(sessionId))
     }
   } catch {
     // Storage refused: the copy stays for the next open, and nothing waits on it.

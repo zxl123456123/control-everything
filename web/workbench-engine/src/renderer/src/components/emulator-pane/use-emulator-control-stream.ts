@@ -1,3 +1,4 @@
+import { remoteContext } from '../../web/remote-context'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   encodeServeSimKeyboardFrame,
@@ -79,7 +80,7 @@ export function useEmulatorControlStream(
   }, [clearKeyboardTimers, releasePressedKeyboardUsages])
 
   useEffect(() => {
-    if (!enabled || !wsUrl) {
+    if (!enabled || !wsUrl || remoteContext()) {
       setConnected(false)
       return
     }

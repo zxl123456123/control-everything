@@ -1,3 +1,4 @@
+import { browserStorage } from '../../web/remote-context'
 import { useStore } from 'zustand'
 import { useShallow } from 'zustand/react/shallow'
 import { createStore } from 'zustand/vanilla'
@@ -50,7 +51,9 @@ const ENVIRONMENTS_STORAGE_KEY = 'orca.notebookPythonEnvironments'
 
 function loadEnvironments(): Record<string, PythonEnvironment> {
   try {
-    const stored: unknown = JSON.parse(localStorage.getItem(ENVIRONMENTS_STORAGE_KEY) ?? '{}')
+    const stored: unknown = JSON.parse(
+      browserStorage('localStorage').getItem(ENVIRONMENTS_STORAGE_KEY) ?? '{}'
+    )
     return isRecord(stored)
       ? Object.fromEntries(
           Object.entries(stored).flatMap(([filePath, env]) =>
@@ -148,7 +151,10 @@ export function setEnvironment(filePath: string, environment: PythonEnvironment)
     environments: { ...environments, [filePath]: environment }
   }))
   try {
-    localStorage.setItem(ENVIRONMENTS_STORAGE_KEY, JSON.stringify(store.getState().environments))
+    browserStorage('localStorage').setItem(
+      ENVIRONMENTS_STORAGE_KEY,
+      JSON.stringify(store.getState().environments)
+    )
   } catch {
     // Storage full or unavailable: the choice still holds for this session.
   }

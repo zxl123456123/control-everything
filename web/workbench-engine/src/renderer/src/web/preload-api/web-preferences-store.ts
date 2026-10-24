@@ -1,3 +1,4 @@
+import { browserStorage } from '../remote-context'
 import type { PreloadApi } from '../../../../preload/api-types'
 import { normalizeAutoRenameBranchFromWorkDefaultOn } from '../../../../shared/auto-rename-branch-from-work-settings'
 import {
@@ -35,7 +36,7 @@ export type WebSettingsApi = NonNullable<PreloadApi['settings']>
 export function getStoredSettings(): GlobalSettings {
   webRuntimeState.activeEnvironment ??= readStoredWebRuntimeEnvironment()
   const defaults = getDefaultSettings('~')
-  const rawStoredSettings = window.localStorage.getItem(SETTINGS_STORAGE_KEY)
+  const rawStoredSettings = browserStorage('localStorage').getItem(SETTINGS_STORAGE_KEY)
   const stored = readJson<Partial<GlobalSettings>>(SETTINGS_STORAGE_KEY, {})
   const migratedStored = {
     ...stored,

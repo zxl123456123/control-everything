@@ -1,3 +1,4 @@
+import { browserStorage } from '../../web/remote-context'
 import type { LocalNetworkConnectionTestResult } from '../../../../shared/developer-permissions-types'
 
 const STORAGE_KEY = 'orca.developer-permissions.local-network-last-success.v1'
@@ -25,7 +26,7 @@ function isSavedSuccess(value: unknown): value is LocalNetworkConnectionSuccess 
 
 export function loadLocalNetworkConnectionSuccess(): LocalNetworkConnectionSuccess | null {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
+    const raw = browserStorage('localStorage').getItem(STORAGE_KEY)
     if (!raw) {
       return null
     }
@@ -38,7 +39,7 @@ export function loadLocalNetworkConnectionSuccess(): LocalNetworkConnectionSucce
 
 export function saveLocalNetworkConnectionSuccess(success: LocalNetworkConnectionSuccess): void {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(success))
+    browserStorage('localStorage').setItem(STORAGE_KEY, JSON.stringify(success))
   } catch {
     // The live result remains useful when browser storage is unavailable.
   }

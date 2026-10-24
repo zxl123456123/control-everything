@@ -1,3 +1,4 @@
+import { browserStorage, storageKey, assertContextActive } from '../remote-context'
 import type { PreloadApi } from '../../../../preload/api-types'
 import {
   findKeybindingConflicts,
@@ -77,7 +78,7 @@ export function getWebKeybindingSnapshot(): KeybindingFileSnapshot {
   return {
     path: 'Browser local storage',
     platform,
-    exists: window.localStorage.getItem(KEYBINDINGS_STORAGE_KEY) !== null,
+    exists: browserStorage('localStorage').getItem(KEYBINDINGS_STORAGE_KEY) !== null,
     overrides,
     commonOverrides,
     platformOverrides,
@@ -160,7 +161,8 @@ export function createWebKeybindingsApi(): WebKeybindingsApi {
     onChanged: (callback) => {
       webKeybindingListeners.add(callback)
       const onStorage = (event: StorageEvent): void => {
-        if (event.key === KEYBINDINGS_STORAGE_KEY) {
+        if (event.key === storageKey(KEYBINDINGS_STORAGE_KEY)) {
+          try { assertContextActive() } catch { return }
           callback(getWebKeybindingSnapshot())
         }
       }

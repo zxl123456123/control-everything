@@ -1,3 +1,4 @@
+import { browserStorage } from '../web/remote-context'
 import { useSyncExternalStore } from 'react'
 import { useAppStore } from '@/store'
 import type { AppState } from '@/store/types'
@@ -18,7 +19,7 @@ function historyMap(): Map<string, readonly string[]> {
   }
   histories = new Map()
   try {
-    const saved: unknown = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '[]')
+    const saved: unknown = JSON.parse(browserStorage('localStorage').getItem(STORAGE_KEY) ?? '[]')
     if (Array.isArray(saved)) {
       for (const entry of saved.slice(-MAX_HISTORY_SCOPES)) {
         if (Array.isArray(entry) && typeof entry[0] === 'string' && Array.isArray(entry[1])) {
@@ -114,7 +115,7 @@ export function recordQuickOpenFileVisit(state: AppState, file: OpenFile | undef
     map.delete(oldest)
   }
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify([...map]))
+    browserStorage('localStorage').setItem(STORAGE_KEY, JSON.stringify([...map]))
   } catch {}
   listeners.forEach((listener) => listener())
 }

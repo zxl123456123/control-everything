@@ -1,3 +1,4 @@
+import { assertContextActive } from './remote-context'
 import { Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { lazyWithRetry as lazy } from '@/lib/lazy-with-retry'
 import { saveStoredWebRuntimeEnvironment } from './web-runtime-environment'
@@ -241,6 +242,7 @@ export default function PlatformProjectEntry(): React.JSX.Element {
           import('./web-preload-api')
         ])
         if (cancelled || !isCurrentProject()) return
+        assertContextActive()
         await initWebDeviceKeySupport()
         if (cancelled || !isCurrentProject()) return
         if (
@@ -255,6 +257,7 @@ export default function PlatformProjectEntry(): React.JSX.Element {
           environment.current = result.runtime.environmentId
           endpoint.current = result.runtime.offer.endpoint
         }
+        assertContextActive()
         document.title = `${result.project.name} · 掌控一切`
         cache.current.set(projectId, { project: requestedProject, data: result })
         pendingProjectReveal.current = false

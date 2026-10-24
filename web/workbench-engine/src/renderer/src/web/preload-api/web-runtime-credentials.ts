@@ -1,4 +1,5 @@
 import { readWebDeviceKeySupport } from '../web-device-key-support'
+import { remoteContext, assertContextActive } from '../remote-context'
 import {
   createIndexedDbWebDeviceKeyStore,
   createMemoryWebDeviceKeyStore,
@@ -26,10 +27,11 @@ export function webRuntimeCredentialFor(
     forgetPairing: () => void
   }
 ): WebRuntimeCredentialSource {
+  assertContextActive()
   const endpoint =
     environment.endpoints.find((entry) => entry.id === environment.preferredEndpointId) ??
     environment.endpoints[0]
-  const storage = environment.sessionOnly ? 'session' : 'persisted'
+  const storage = environment.sessionOnly || remoteContext() ? 'session' : 'persisted'
   const cacheKey = `${environment.id}\0${environment.pairingRevision ?? environment.createdAt}\0${endpoint?.publicKeyB64}\0${storage}`
   const existing = sources.get(cacheKey)
   if (existing) {

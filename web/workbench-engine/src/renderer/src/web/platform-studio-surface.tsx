@@ -1,3 +1,4 @@
+import { contextFetch, assertContextActive, onContextInactive } from './remote-context'
 import { useEffect, useRef, useState } from 'react'
 
 export type PlatformProject = { id: string; name: string; directory?: string }
@@ -7,10 +8,7 @@ export type PlatformProjectsListener = (
 ) => void
 type StudioWindow = Window & {
   StudioPreview?: {
-    mount(
-      root: HTMLElement,
-      options: { onProjects: PlatformProjectsListener }
-    ): () => void
+    mount(root: HTMLElement, options: { onProjects: PlatformProjectsListener }): () => void
   }
 }
 const scripts = [
@@ -46,7 +44,8 @@ function loadModules(): Promise<void> {
             document.head.append(script)
           })
       )
-    ).then(() => undefined)
+    )
+      .then(() => undefined)
       .catch((error) => {
         modules = null
         throw error
@@ -71,9 +70,16 @@ export default function PlatformStudioSurface({
     let dispose: (() => void) | undefined
     const controller = new AbortController()
     const timer = window.setTimeout(() => controller.abort(), 30_000)
+    const stop = () => {
+      disposed = true
+      controller.abort()
+      window.clearTimeout(timer)
+      dispose?.()
+    }
+    const unsubscribeContext = onContextInactive(stop)
     void (async () => {
       const [response] = await Promise.all([
-        fetch('/studio-shell', { signal: controller.signal, credentials: 'same-origin' }),
+        contextFetch('/studio-shell', { signal: controller.signal, credentials: 'same-origin' }),
         loadModules()
       ])
       if (!response.ok) throw new Error('工作台暂不可用，请重新加载页面。')
@@ -111,6 +117,7 @@ export default function PlatformStudioSurface({
         attributes: true,
         attributeFilter: ['class']
       })
+      assertContextActive()
       shadow.append(root)
       const unmount = (window as StudioWindow).StudioPreview!.mount(root, { onProjects })
       dispose = () => {
@@ -126,14 +133,17 @@ export default function PlatformStudioSurface({
       })
       .finally(() => window.clearTimeout(timer))
     return () => {
-      disposed = true
-      controller.abort()
-      window.clearTimeout(timer)
-      dispose?.()
+      unsubscribeContext()
+      stop()
     }
   }, [onProjects])
   return (
-    <section className="platform-studio-surface" hidden={hidden} inert={pending && ready} aria-label="项目与事项">
+    <section
+      className="platform-studio-surface"
+      hidden={hidden}
+      inert={pending && ready}
+      aria-label="项目与事项"
+    >
       {!ready && (
         <div className="platform-surface-feedback" role={error ? 'alert' : 'status'}>
           {error || '正在打开项目工作台…'}

@@ -22,7 +22,7 @@
 
   function create({root, storage}) {
     if (storage === undefined) {
-      try { storage = scope.localStorage; } catch (_) { storage = null; }
+      try { storage = scope.CERemoteContext ? scope.CERemoteContext.storage('localStorage') : scope.localStorage; } catch (_) { storage = null; }
     }
     const element = name => root.querySelector(`[data-orca="${name}"]`);
     const input = element('url');

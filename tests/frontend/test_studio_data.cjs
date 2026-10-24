@@ -53,7 +53,7 @@ test('product page loads real management modules and has no iframe pairing contr
   assert.doesNotMatch(html, /iframe|orca-surface|orca-client-url/);
 });
 
-function studioFixture({ savedCreatorUrl = null, monitorAvailable = true, unified = false, initialUrl = 'http://127.0.0.1:8772/studio#home', initialFailure = '' } = {}) {
+function studioFixture({ remote = false, savedCreatorUrl = null, monitorAvailable = true, unified = false, initialUrl = 'http://127.0.0.1:8772/studio#home', initialFailure = '' } = {}) {
   const elements = [];
   const active = { isConnected: true, focusCount: 0, focus() { this.focusCount++; } };
   function element(tag = 'div') {
@@ -129,6 +129,13 @@ function studioFixture({ savedCreatorUrl = null, monitorAvailable = true, unifie
     fetch: (...args) => window.fetch(...args), Date: class extends Date { static now() { return clock; } },
     setTimeout: callback => { timers.set(++timerId, callback); return timerId; }, clearTimeout: id => timers.delete(id),
   });
+  if (remote) {
+    let active = true; const listeners = new Set();
+    window.CERemoteContext = {context:'A'.repeat(32),get active(){return active;},storage:()=>localStorage,
+      assertActive(){if(!active)throw new Error('remote_context_inactive');},
+      onInactive(callback){listeners.add(callback);return ()=>listeners.delete(callback);},
+      invalidate(){if(!active)return;active=false;for(const callback of [...listeners])callback();}};
+  }
   dispose = window.StudioPreview.mount(nodes.get('ce-studio'), { onProjects: (rows, metadata) => projectSnapshots.push({ rows, metadata }) });
   const flush = () => new Promise(resolve => setImmediate(resolve));
   return { nodes, snapshot, client, location, writes, removed, mounts, monitorCalls, callbacks, window, body, elements, dialog, active, boardProjects, projectSnapshots, posts, mobileMounts, mobileDisposals, boardSnapshots, snapshotReads, timers, document,
@@ -574,4 +581,16 @@ test('unified task pages omit the old duplicate progress link while monitor keep
   await f.route('project/server-project/monitor');
   assert.match(f.nodes.get('studio-content').innerHTML, /href="#project\/server-project\/tasks">返回事项/);
   f.dispose();
+});
+
+test('retiring Studio uses its existing dispose and rejects late snapshots without rescheduling',async()=>{
+  const f=studioFixture({remote:true});await f.flush();
+  const previous=f.nodes.get('studio-content').innerHTML;
+  let release;f.client.snapshot=()=>new Promise(resolve=>{release=resolve});
+  f.click('refresh');await f.flush();
+  const updates=f.boardSnapshots.length;
+  f.window.CERemoteContext.invalidate();assert.equal(f.timers.size,0);
+  release({...f.snapshot,items:[{id:'late-private-item'}]});await f.flush();
+  assert.equal(f.boardSnapshots.length,updates);assert.equal(f.nodes.get('studio-content').innerHTML,previous);
+  f.click('refresh');await f.flush();assert.equal(f.timers.size,0);
 });

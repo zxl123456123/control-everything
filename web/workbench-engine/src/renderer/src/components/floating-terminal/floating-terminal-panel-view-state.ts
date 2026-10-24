@@ -1,3 +1,4 @@
+import { browserStorage } from '../../web/remote-context'
 export const FLOATING_TERMINAL_PANEL_VIEW_STATE_STORAGE_KEY =
   'orca-floating-terminal-panel-view-state-v1'
 
@@ -7,7 +8,7 @@ export type FloatingTerminalPanelViewState = {
 }
 
 function getWindowStorage(): Storage | null {
-  return typeof window === 'undefined' ? null : window.localStorage
+  return typeof window === 'undefined' ? null : browserStorage('localStorage')
 }
 
 /**

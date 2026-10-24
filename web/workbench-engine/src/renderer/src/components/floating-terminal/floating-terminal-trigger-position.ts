@@ -1,3 +1,4 @@
+import { browserStorage } from '../../web/remote-context'
 const TRIGGER_SIZE = 36
 const DEFAULT_RIGHT_GAP = 24
 const DEFAULT_BOTTOM_GAP = 72
@@ -48,8 +49,8 @@ function isAnchorY(value: unknown): value is FloatingTerminalAnchorY {
 }
 
 function getWindowStorage(): Storage | null {
-  return typeof window !== 'undefined' && window.localStorage !== undefined
-    ? window.localStorage
+  return typeof window !== 'undefined' && browserStorage('localStorage') !== undefined
+    ? browserStorage('localStorage')
     : null
 }
 
