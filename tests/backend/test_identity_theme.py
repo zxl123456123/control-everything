@@ -29,7 +29,7 @@ class IdentityThemeTests(unittest.TestCase):
         config = properties(THEME / "theme.properties")
         self.assertEqual(config, {
             "parent": "keycloak.v2", "import": "common/keycloak",
-            "styles": "css/styles.css css/studio.css", "locales": "zh-Hans,en",
+            "styles": "css/styles.css css/studio.css?v=20261025-2", "locales": "zh-Hans,en",
         })
         self.assertTrue((THEME / "resources/css/studio.css").is_file())
 

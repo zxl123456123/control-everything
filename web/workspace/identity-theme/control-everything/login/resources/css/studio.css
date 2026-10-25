@@ -46,6 +46,8 @@ body, .login-pf body, .pf-v5-c-login {
 .pf-v5-c-login { min-height: 100dvh; padding: 40px 24px; }
 .pf-v5-c-login__container { grid-template-columns: minmax(0, 440px); gap: 24px; margin: auto; max-width: 100%; }
 .pf-v5-c-login__header { color: var(--studio-text); text-align: center; }
+/* The parent pins the wrapper's light text with !important. */
+#kc-header, #kc-header-wrapper { color: var(--studio-text) !important; }
 #kc-header-wrapper { font-size: 16px; font-weight: 650; letter-spacing: -.02em; text-transform: none; padding: 0; }
 .pf-v5-c-login__main {
   background: var(--studio-card);
