@@ -82,13 +82,13 @@
   gap: 4px;
   padding: 3px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 999px;
   background: var(--muted);
 }
 
 .platform-project-tablist a {
-  padding: 6px 14px;
-  border-radius: 6px;
+  padding: 6px 16px;
+  border-radius: 999px;
   font-size: 12px;
 }
 
@@ -100,7 +100,7 @@
 
 .platform-project-tabs a:focus-visible {
   outline-color: var(--foreground);
-  outline-offset: -2px;
+  outline-offset: 3px;
 }
 
 :root[data-platform-view='workspace'] :is(.titlebar, .titlebar-left) {
@@ -115,17 +115,17 @@
 }
 
 :root[data-platform-view='workspace'] :is(.sidebar-toggle, .titlebar-icon-button) {
-  border-radius: 7px;
+  border-radius: 999px;
 }
 
 :root[data-platform-view='workspace'] [data-worktree-card-surface] {
-  border-radius: 8px;
+  border-radius: 12px;
 }
 
 :root[data-platform-view='workspace'] [data-worktree-card-surface][data-worktree-card-active='primary'] {
   background: var(--accent);
   border-color: var(--border);
-  border-inline-start: 2px solid var(--primary);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--foreground) 12%, transparent);
 }
 
 :root[data-platform-view='workspace'] [data-tab-id][data-active='true'] {
@@ -148,7 +148,7 @@
 /* Portaled controls share the same document scope as the project surface. */
 :root[data-platform-view='workspace'] :is([data-slot='dialog-content'], [data-slot='dropdown-menu-content'], [data-slot='select-content']) {
   border-color: var(--border);
-  border-radius: 10px;
+  border-radius: 18px;
   box-shadow: 0 12px 32px #0000001a, 0 2px 6px #0000000d;
 }
 
@@ -177,3 +177,28 @@
 :root[data-platform-view=studio] .platform-runtime-status[data-pending=true]:not([hidden]) {display:block;padding:16px 20px;text-align:left;font-size:13px}
 .platform-runtime-recovery {display:flex;gap:16px;align-items:center;margin-top:12px}
 .platform-runtime-recovery button,.platform-runtime-recovery a {padding:8px 14px;border:1px solid var(--border);border-radius:7px;color:var(--foreground)}
+
+/* Keep soft chrome confined to navigation and small native controls. */
+.platform-project-tablist a:hover {background:var(--accent);color:var(--foreground)}
+.platform-project-tablist a:active {background:var(--muted);box-shadow:inset 0 1px 2px #00000012}
+.platform-project-tablist a[aria-current='page'] {box-shadow:0 1px 4px #0000000d}
+.platform-project-back {padding:7px 10px;border-radius:999px}
+.platform-project-back:hover {background:var(--accent)}
+:root[data-platform-view='workspace'] :is(.sidebar-toggle,.titlebar-icon-button) {transition:background-color 140ms,box-shadow 140ms}
+:root[data-platform-view='workspace'] :is(.sidebar-toggle,.titlebar-icon-button):hover {background:var(--accent)}
+:root[data-platform-view='workspace'] :is(.sidebar-toggle,.titlebar-icon-button):active {box-shadow:inset 0 1px 3px #00000018}
+@supports (backdrop-filter:blur(8px)) {
+  .platform-project-tablist {background:color-mix(in srgb,var(--muted) 78%,transparent);backdrop-filter:blur(8px)}
+}
+@media (prefers-reduced-transparency:reduce) {
+  .platform-project-tablist {background:var(--muted);backdrop-filter:none}
+}
+@media (prefers-reduced-motion:reduce) {
+  :root[data-platform-view='workspace'] :is(.sidebar-toggle,.titlebar-icon-button) {transition:none}
+}
+@media (forced-colors:active) {
+  .platform-project-tablist {background:Canvas;backdrop-filter:none;border-color:ButtonText}
+  .platform-project-tablist a[aria-current='page'] {outline:1px solid Highlight;outline-offset:-2px}
+  .platform-project-tabs a:focus-visible {outline-color:Highlight}
+  :root[data-platform-view='workspace'] [data-worktree-card-active='primary'] {outline:1px solid Highlight}
+}
