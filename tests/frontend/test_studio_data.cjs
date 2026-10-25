@@ -552,11 +552,11 @@ test('project count retains failed refresh evidence after changing task routes',
 });
 
 
-test('unified tasks expose global navigation, omit permanent filters and keep legacy ranges explicit', async () => {
+test('unified legacy inbox stays readable without a top-level task entry and exact filters remain explicit', async () => {
   const f = studioFixture({ unified: true }); await f.flush();
   await f.route('inbox');
-  assert.match(f.nodes.get('studio-rail').innerHTML, /href="#inbox"[^>]*aria-current="page"/);
-  assert.match(f.nodes.get('studio-topbar').innerHTML, /href="#inbox"[^>]*aria-current="page">事项/);
+  assert.doesNotMatch(f.nodes.get('studio-rail').innerHTML, /href="#inbox"/);
+  assert.doesNotMatch(f.nodes.get('studio-topbar').innerHTML, /href="#inbox"/);
   assert.doesNotMatch(f.nodes.get('studio-topbar').innerHTML, /<span> \/ 事项<\/span>/);
   assert.doesNotMatch(f.nodes.get('studio-topbar').innerHTML, /data-action="refresh"/);
   assert.doesNotMatch(f.nodes.get('studio-content').innerHTML, /aria-label="事项筛选"|ce-tabs/);
@@ -565,7 +565,7 @@ test('unified tasks expose global navigation, omit permanent filters and keep le
   assert.match(f.nodes.get('studio-content').innerHTML, /当前仅显示待验收事项.*href="#inbox">返回全部事项/);
   assert.deepEqual(f.boardProjects.at(-1), ['', 'review']);
   await f.route('project/server-project/attention');
-  assert.match(f.nodes.get('studio-content').innerHTML, /当前仅显示需处理事项.*href="#project\/server-project\/tasks">返回本项目全部/);
+  assert.match(f.nodes.get('studio-content').innerHTML, /当前仅显示需处理事项.*href="#project\/server-project\/tasks">返回全部事项/);
   assert.deepEqual(f.boardProjects.at(-1), ['server-project', 'attention']);
   assert.equal(f.snapshotReads.length, reads);
   f.dispose();
@@ -593,4 +593,18 @@ test('retiring Studio uses its existing dispose and rejects late snapshots witho
   release({...f.snapshot,items:[{id:'late-private-item'}]});await f.flush();
   assert.equal(f.boardSnapshots.length,updates);assert.equal(f.nodes.get('studio-content').innerHTML,previous);
   f.click('refresh');await f.flush();assert.equal(f.timers.size,0);
+});
+
+test('minimal project tasks declare all-project scope, preserve context sessions and hide successful debug counts', async () => {
+  const f = studioFixture({ unified: true }); await f.flush();
+  f.nodes.get('ce-studio').dataset.isolatedPreview = 'true';
+  await f.route('project/server-project/tasks');
+  assert.match(f.nodes.get('studio-content').innerHTML, /<h1>事项<\/h1>/);
+  assert.match(f.nodes.get('studio-content').innerHTML, /所有项目/);
+  assert.match(f.nodes.get('studio-content').innerHTML, /href="#project\/server-project\/activity">会话/);
+  assert.equal(f.nodes.get('studio-status').textContent, '隔离预览');
+  f.fail(); f.click('refresh'); await f.flush();
+  assert.match(f.nodes.get('studio-status').textContent, /offline.*上次读取/);
+  assert.equal(f.nodes.get('studio-status').hidden, false);
+  f.dispose();
 });

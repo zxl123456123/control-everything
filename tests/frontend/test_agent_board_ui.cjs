@@ -72,7 +72,7 @@ function fixture(options = {}) {
   const api = context.window.WorkspaceAgentBoard.create({ root, fetchJson, postJson, unified: options.unified, onRefresh: options.onRefresh, now: () => Date.parse(stamp), onRegister: () => callbacks.push('register'), onAddProject: () => callbacks.push('project') });
   const node = id => { const found = root.querySelector('#' + id); assert.ok(found, id); return found; };
   const submit = async () => { const form = node('ab-review-submit').parentElement.parentElement; await form.listeners.submit({ preventDefault() {} }); };
-  return { api, root, shadowRoot, node, calls, posts, state, callbacks, events, submit, document: context.document, groupItems: context.window.WorkspaceAgentBoard.groupItems };
+  return { api, root, shadowRoot, node, calls, posts, state, callbacks, events, submit, window: context.window, document: context.document, groupItems: context.window.WorkspaceAgentBoard.groupItems };
 }
 
 const saveEdit = f => f.node('ab-edit-save').parentElement.parentElement.listeners.submit({ preventDefault() {} });
@@ -85,7 +85,7 @@ test('a shared snapshot retains unchanged cards and the refresh action returns t
   const card = f.node('ab-groups').children[0];
   await f.api.update(JSON.parse(JSON.stringify(value)));
   assert.equal(f.node('ab-groups').children[0], card); assert.equal(f.calls.length, 0);
-  assert.equal(f.node('ab-status').textContent, '1 项事项');
+  assert.equal(f.node('ab-status').textContent, ''); assert.equal(f.node('ab-status').hidden, true);
   await f.api.load(); assert.equal(refreshed, 1); assert.equal(f.calls.length, 0);
   value.items[0].title = 'Changed'; await f.api.update(value);
   assert.notEqual(f.node('ab-groups').children[0], card); assert.match(f.node('ab-groups').textContent, /Changed/);
@@ -954,9 +954,9 @@ test('unified global groups preserve project ownership, blocked labels, complete
   await f.api.load();
   const groups = f.node('ab-groups').children;
   assert.equal(groups.length, 3);
-  assert.equal(groups[0].open, false);
+  assert.equal(groups[0].open, true);
   assert.equal(groups[0].children[0].querySelector('strong').textContent, 'Project');
-  assert.match(groups[0].children[0].textContent, /需处理 2.*6 项事项/);
+  assert.match(groups[0].children[0].textContent, /需处理 2.*待推进 2/);
   const columns = groups[0].children.find(node => node.className === 'agent-task-columns');
   assert.deepEqual(columns.children.map(node => node.attributes['aria-label']), ['待推进', '进行中', '待验收']);
   assert.match(columns.children[0].textContent, /Task todo.*Task blocked.*阻塞/);
@@ -965,11 +965,12 @@ test('unified global groups preserve project ownership, blocked labels, complete
   assert.match(groups[0].textContent, /其他状态 · 1Task unknown状态未知：custom-state/);
   const history = groups[0].children.find(node => node.className === 'agent-task-history');
   assert.equal(history.open, false); assert.match(history.textContent, /已完成 · 1Task done/);
-  assert.match(groups[2].children[0].textContent, /未归属项目1 项事项/);
+  assert.equal(groups[2].children[0].querySelector('strong').textContent, '未归属项目');
   assert.match(groups[2].textContent, /Task loose/);
   assert.ok(groups[0].all.some(node => node.tagName === 'a' && node.textContent === '进展记录' && node.href === '#project/p/monitor'));
   assert.ok(groups[0].all.some(node => node.tagName === 'a' && node.textContent === '进入开发' && node.href === '#project/p/workspace'));
-  f.api.setProject('p'); assert.doesNotMatch(f.node('ab-groups').textContent, /Task other|Task loose/);
+  f.api.setProject('p'); assert.match(f.node('ab-groups').textContent, /Task other/); assert.match(f.node('ab-groups').textContent, /Task loose/);
+  f.api.setProject('p', 'review'); assert.doesNotMatch(f.node('ab-groups').textContent, /Task other|Task loose/);
 });
 
 test('unified changed snapshots preserve project and history expansion without fetching on toggle', async () => {
@@ -996,11 +997,11 @@ test('unified row creation binds its project and a second create never discards 
   await f.api.load();
   const row = f.node('ab-groups').children[1];
   row.all.find(node => node.tagName === 'button' && node.textContent === '＋ 新建待办').listeners.click();
-  assert.equal(f.node('ab-new-project').value, 'q'); assert.equal(f.node('ab-new-project').disabled, true);
+  assert.equal(f.root.querySelector('#ab-new-project'), null);
   const title = f.node('ab-new-title'); title.value = 'Keep this draft'; title.listeners.input();
   f.node('ab-groups').children[0].all.find(node => node.tagName === 'button' && node.textContent === '＋ 新建待办').listeners.click();
   assert.equal(f.node('ab-new-title'), title); assert.equal(title.value, 'Keep this draft');
-  assert.equal(f.node('ab-new-project').value, 'q'); assert.equal(f.posts.length, 0);
+  assert.equal(f.root.querySelector('#ab-new-project'), null); assert.equal(f.posts.length, 0);
   f.api.setProject('p');
   await title.parentElement.parentElement.parentElement.listeners.submit({ preventDefault() {} });
   assert.equal(f.posts.at(-1).body.project_id, 'q');
@@ -1056,7 +1057,7 @@ test('unified collapsed counts retain every business column and actionable execu
   ] });
   await f.api.load();
   const group = f.node('ab-groups').children[0], summary = group.children[0];
-  assert.equal(group.open, false);
+  assert.equal(group.open, true); group.open = false; group.listeners.toggle();
   assert.match(summary.textContent, /需处理 5.*待推进 3 \/ 进行中 1 \/ 待验收 1/);
   assert.match(group.textContent, /Task failed待办执行失败/);
   assert.match(group.textContent, /Task waiting进行中等你处理/);
@@ -1089,11 +1090,85 @@ test('unified changed snapshots restore summary and card focus from their shadow
 });
 
 
-test('unified project view keeps only the top create action while global project rows retain bound creation', async () => {
+test('unified overview retains context creation and explicit project group creation', async () => {
   const f = fixture({ unified: true }); await f.api.load();
   const createButtons = () => f.root.all.filter(node => node.tagName === 'button' && node.textContent === '＋ 新建待办');
   assert.equal(createButtons().length, 2);
-  f.api.setProject('p'); assert.equal(createButtons().length, 1);
-  createButtons()[0].listeners.click(); assert.equal(f.node('ab-new-project').value, 'p');
+  f.api.setProject('p'); assert.equal(createButtons().length, 2);
+  createButtons()[0].listeners.click(); assert.equal(f.root.querySelector('#ab-new-project'), null);
+  f.node('ab-new-title').value = 'Context task';
+  await f.node('ab-new-title').parentElement.parentElement.parentElement.listeners.submit({ preventDefault() {} });
+  assert.equal(f.posts[0].body.project_id, 'p');
   assert.ok(f.node('ab-groups').all.some(node => node.tagName === 'a' && node.textContent === '进展记录'));
+});
+
+
+test('minimal overview lists all active projects while legacy exact filters retain the context owner', async () => {
+  const f = fixture({ unified: true, projects: [{ id: 'p', name: 'Project' }, { id: 'q', name: 'Other' }], rows: [
+    item('p-review', { state: 'review' }), item('q-review', { project_id: 'q', state: 'review' }), item('loose', { project_id: null })
+  ] });
+  await f.api.load(); const reads = f.calls.length; f.api.setProject('p');
+  assert.equal(f.node('ab-groups').children.length, 3);
+  assert.ok(f.node('ab-groups').children.every(node => node.open));
+  assert.match(f.node('ab-groups').textContent, /Task q-review/); assert.match(f.node('ab-groups').textContent, /Task loose/);
+  f.api.setProject('p', 'review'); assert.match(f.node('ab-groups').textContent, /Task p-review/);
+  assert.doesNotMatch(f.node('ab-groups').textContent, /Task q-review|Task loose/);
+  f.api.setProject('q', 'attention'); assert.match(f.node('ab-groups').textContent, /Task q-review/);
+  assert.doesNotMatch(f.node('ab-groups').textContent, /Task p-review|Task loose/);
+  f.api.setProject('__global__'); assert.match(f.node('ab-groups').textContent, /Task loose/);
+  assert.doesNotMatch(f.node('ab-groups').textContent, /Task p-review|Task q-review/);
+  assert.equal(f.calls.length, reads);
+});
+
+test('minimal context creation has one text field and saves without assigning or executing an Agent', async () => {
+  const f = fixture({ unified: true }); await f.api.load(); f.api.setProject('p');
+  f.root.all.find(node => node.dataset.action === 'create-item').listeners.click();
+  assert.equal(f.node('ab-detail-body').querySelectorAll('textarea').length, 1);
+  assert.equal(f.root.querySelector('#ab-new-project'), null);
+  for (const id of ['ab-new-agent', 'ab-new-execute', 'ab-new-execution-options']) assert.equal(f.root.querySelector('#' + id), null);
+  f.node('ab-new-title').value = 'Simple work';
+  f.api.setProject('q');
+  await f.node('ab-new-title').parentElement.parentElement.parentElement.listeners.submit({ preventDefault() {} });
+  assert.deepEqual(JSON.parse(JSON.stringify(f.posts)), [{ url: '/api/workspace/items', body: { title: 'Simple work', project_id: 'p', assigned_agent_id: null } }]);
+});
+
+test('minimal cross-project detail never mounts manual wiring and native start uses the actual item owner', async () => {
+  const row = item('cross', { project_id: 'q', origin: 'task' });
+  const f = fixture({ unified: true, acceptNative: true, rows: [row], projects: [{ id: 'p', name: 'Project' }, { id: 'q', name: 'Other' }] });
+  let wired = 0;
+  f.window.WorkspaceSessionList = { create() { wired++; }, createEditor() { wired++; } };
+  f.window.WorkspaceTaskMessages = { create() { wired++; } };
+  f.window.WorkspaceTaskDispatch = { create() { wired++; } };
+  await f.api.load(); f.api.setProject('p'); await f.api.open(row);
+  for (const id of ['ab-assignee', 'ab-assign', 'ab-start-execution', 'ab-execution-options', 'td-request_text', 'tm-body', 'sl-source']) assert.equal(f.root.querySelector('#' + id), null);
+  assert.equal(wired, 0); assert.equal(f.node('ab-edit-project').value, 'q');
+  assert.equal(f.node('ab-native-start').textContent, '开始开发');
+  f.node('ab-native-start').listeners.click();
+  assert.deepEqual(JSON.parse(JSON.stringify(f.events[0].detail)), { projectId: 'q', taskId: 'cross' });
+  assert.equal(f.posts.length, 0);
+  assert.equal(f.calls.some(url => /\/(brief|messages|sessions)(\?|$)/.test(url)), false);
+  await f.api.open(row); f.node('ab-edit-title').value = 'Edited cross title'; f.node('ab-edit-title').listeners.input(); await saveEdit(f);
+  assert.deepEqual(JSON.parse(JSON.stringify(f.posts[0].body.changes)), { title: 'Edited cross title' });
+});
+
+test('minimal detail keeps real run approval, recovery and actual output without mounting setup', async () => {
+  const row = item('active-minimal', { origin: 'task', state: 'doing', assignment_state: 'running' });
+  let approvals = 0;
+  const detail = { item: row, run: { id: 'run', task_id: row.id, status: 'running', dispatch_id: 'dispatch', summary: 'Actual report', evidence: ['Actual proof'] },
+    events: [{ kind: 'progress', run_id: 'run', payload: { stage: 'waiting_user', message: 'Needs an approval' } }] };
+  const f = fixture({ unified: true, rows: [row], detail, execution: { createTaskApprovals() { approvals++; return { dispose() {} }; } } });
+  await f.api.load(); await f.api.open(row);
+  assert.equal(approvals, 1); assert.ok(f.node('ab-tool-approvals')); assert.ok(f.node('ab-waiting-user')); assert.ok(f.node('ab-release-reason'));
+  assert.match(f.node('ab-detail-body').textContent, /Actual report.*Actual proof/);
+  assert.equal(f.root.querySelector('#ab-execution-options'), null); assert.equal(f.root.querySelector('#ab-native-start'), null);
+});
+
+test('minimal review keeps required consent and never offers automatic external continuation', async () => {
+  const row = item('review-minimal', { origin: 'task', state: 'review', assigned_agent_id: 'a' });
+  const f = fixture({ unified: true, rows: [row], agents: [{ ...agent, adapter: 'codex' }] }); await f.api.load(); await f.api.open(row);
+  assert.ok(f.node('ab-review-verdict')); assert.ok(f.node('ab-review-reason')); assert.ok(f.node('ab-review-confirm'));
+  assert.equal(f.root.querySelector('#ab-review-resume'), null);
+  f.node('ab-review-verdict').value = 'approved'; f.node('ab-review-reason').value = 'Verified'; f.node('ab-review-confirm').checked = true;
+  await f.submit();
+  assert.equal(f.posts.length, 1); assert.equal(f.posts[0].url, '/api/workspace/reviews'); assert.equal(f.posts[0].body.task_id, row.id);
 });

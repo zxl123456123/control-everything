@@ -455,3 +455,18 @@ describe('platform native Agent bridge', () => {
     }
   )
 })
+
+
+it('keeps workspace details collapsed and uses the host default Agent without starting automatically', async () => {
+  mocks.settings.mockResolvedValue({ ...settings(), defaultTuiAgent: 'claude' })
+  render(<PlatformAgentBridge data={data} />)
+  await request()
+  expect(screen.getByRole('heading', { name: '开始对话' })).toBeTruthy()
+  const target = screen.getByLabelText('启动目标')
+  expect(target.querySelector('p')?.textContent).toBe('Project · Main workspace')
+  expect(target.querySelector('details')?.open).toBe(false)
+  expect(target.querySelector('details')?.textContent).toContain('C:/example/Repo')
+  expect(target.querySelector('details')?.textContent).toContain('main')
+  expect((screen.getByLabelText('执行 Agent') as HTMLSelectElement).value).toBe('claude')
+  expect(mocks.launch).not.toHaveBeenCalled()
+})

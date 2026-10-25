@@ -121,7 +121,8 @@ export default function PlatformProjectEntry(): React.JSX.Element {
         unlinked.current &&
         next.view === 'project' &&
         next.id === previous.id &&
-        next.tab !== 'workspace'
+        next.tab !== 'workspace' &&
+        next.tab !== 'tasks'
       ) {
         window.history.replaceState(null, '', acceptedHash.current)
         setNavigationNotice('当前开发目录未关联登记项目，请从左侧项目栏选择已登记项目。')
@@ -174,11 +175,12 @@ export default function PlatformProjectEntry(): React.JSX.Element {
         typeof request.taskId !== 'string' ||
         !request.taskId ||
         current.view !== 'project' ||
-        current.id !== request.projectId ||
+        (current.id !== request.projectId && current.tab !== 'tasks') ||
         !latestProjects.current.some((project) => project.id === request.projectId)
       )
         return
       if (
+        current.id === request.projectId &&
         data?.project.id === request.projectId &&
         bridgeReadyData === data &&
         !pendingProjectReveal.current
@@ -290,9 +292,6 @@ export default function PlatformProjectEntry(): React.JSX.Element {
           <a href="#home" className="platform-project-back">
             ‹ 项目
           </a>
-          <a href="#inbox" className="platform-project-all-tasks">
-            全部事项
-          </a>
           <span
             className="platform-project-name"
             aria-label="当前项目"
@@ -306,8 +305,7 @@ export default function PlatformProjectEntry(): React.JSX.Element {
             {(
               [
                 ['workspace', '开发'],
-                ['tasks', '事项'],
-                ['activity', '活动']
+                ['tasks', '事项']
               ] as const
             ).map(([tab, label]) => (
               <a
@@ -315,21 +313,11 @@ export default function PlatformProjectEntry(): React.JSX.Element {
                 href={projectRoute(projectId, tab)}
                 aria-current={
                   route.tab === tab ||
+                  (tab === 'workspace' && route.tab === 'activity') ||
                   (tab === 'tasks' && ['review', 'attention', 'monitor'].includes(route.tab))
                     ? 'page'
                     : undefined
                 }
-                aria-disabled={
-                  developing && unlinkedWorkspace && tab !== 'workspace' ? true : undefined
-                }
-                onClick={(event) => {
-                  if (developing && unlinkedWorkspace && tab !== 'workspace') {
-                    event.preventDefault()
-                    setNavigationNotice(
-                      '当前开发目录未关联登记项目，请从左侧项目栏选择已登记项目。'
-                    )
-                  }
-                }}
               >
                 {label}
               </a>

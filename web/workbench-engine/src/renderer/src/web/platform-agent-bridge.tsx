@@ -314,15 +314,17 @@ export default function PlatformAgentBridge({
       }}
     >
       <DialogContent className="sm:max-w-md">
-        <DialogTitle>在工作区开始</DialogTitle>
+        <DialogTitle>开始对话</DialogTitle>
         <DialogDescription>{choice?.title}</DialogDescription>
         {choice && (
           <div className="min-w-0 space-y-1 break-all text-sm" aria-label="启动目标">
-            <p>项目：{data.project.name}</p>
-            <p>工作区：{choice.workspace?.name || choice.worktree?.displayName || '尚不可定位'}</p>
-            <p>目录模式：{choice.workspace?.mode || '尚未读取'}</p>
-            <p>启动目录：{choice.cwd || '尚不可解析'}</p>
-            {choice.workspace?.branch && <p>分支：{choice.workspace.branch}</p>}
+            <p>{data.project.name} · {choice.workspace?.name || choice.worktree?.displayName || '尚不可定位'}</p>
+            <details>
+              <summary>工作区详情</summary>
+              <p>目录模式：{choice.workspace?.mode || '尚未读取'}</p>
+              <p>启动目录：{choice.cwd || '尚不可解析'}</p>
+              {choice.workspace?.branch && <p>分支：{choice.workspace.branch}</p>}
+            </details>
             {choice.targetError && <p role="alert">{choice.targetError}</p>}
           </div>
         )}
