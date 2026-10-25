@@ -147,7 +147,7 @@ it('initializes development when activity is the first requested view', async ()
   publish([project])
   await waitFor(() => expect(screen.getByTestId('project-context').textContent).toBe('One'))
   expect(fixture.load).toHaveBeenCalledTimes(1)
-  expect(screen.getByRole('link', { name: '活动' }).getAttribute('aria-current')).toBe('page')
+  expect(screen.getByRole('link', { name: '开发' }).getAttribute('aria-current')).toBe('page')
 })
 
 it.each(['workspace', 'tasks'])(
@@ -333,9 +333,10 @@ it('does not send a project B cold request to the mounted bridge for project A',
   publish([project, second])
   await waitFor(() => expect(screen.getByTestId('project-context').textContent).toBe('One'))
   await act(async () => {
-    window.location.hash = '#project/p-two/tasks'
+    window.location.hash = '#project/p-one/tasks'
   })
   expect(fixture.load).toHaveBeenCalledTimes(1)
+  expect(fixture.navigationData.at(-1)?.project.id).toBe('p-one')
   const request = { projectId: 'p-two', taskId: 'task-two' }
   act(() => {
     window.dispatchEvent(
@@ -559,7 +560,7 @@ it('keeps the app and pending agent bridge mounted across task and activity tabs
       expect(
         screen
           .getByRole('link', {
-            name: tab === 'activity' ? '活动' : tab === 'workspace' ? '开发' : '事项'
+            name: ['activity', 'workspace'].includes(tab) ? '开发' : '事项'
           })
           .getAttribute('aria-current')
       ).toBe('page')
@@ -688,7 +689,7 @@ it('keeps the target title and hides the workspace until that project is activat
   expect(document.title).toBe('Two · 掌控一切')
   expect(app.closest('.platform-project-content')?.hasAttribute('hidden')).toBe(true)
   expect(screen.getByTestId('studio-surface').dataset.pending).toBe('true')
-  expect(screen.getByRole('link', { name: '全部事项' }).getAttribute('href')).toBe('#inbox')
+  expect(screen.queryByRole('link', { name: '全部事项' })).toBeNull()
   expect(screen.getByRole('link', { name: '‹ 项目' }).getAttribute('href')).toBe('#home')
   await act(async () => resolve({ ...bootstrap('Two'), project: { id: 'p-two', name: 'Two' } }))
   await waitFor(() => expect(fixture.navigationData.at(-1)?.project.id).toBe('p-two'))
@@ -709,4 +710,30 @@ it('keeps the Studio host pending after bootstrap failure instead of revealing a
   expect(screen.getByTestId('studio-surface').dataset.pending).toBe('true')
   expect(screen.getByRole('button', { name: '重试连接' })).toBeTruthy()
   expect(screen.queryByTestId('project-context')).toBeNull()
+})
+
+
+it('keeps only development and tasks in the primary navigation', async () => {
+  render(<PlatformProjectEntry />)
+  publish([project])
+  await waitFor(() => expect(screen.getByTestId('project-context').textContent).toBe('One'))
+  expect(screen.getByRole('link', { name: '开发' })).toBeTruthy()
+  expect(screen.getByRole('link', { name: '事项' })).toBeTruthy()
+  expect(screen.queryByRole('link', { name: '活动' })).toBeNull()
+  expect(screen.queryByRole('link', { name: '全部事项' })).toBeNull()
+})
+
+it('does not bootstrap an unregistered cross-project task request', async () => {
+  window.history.replaceState(null, '', '#project/p-one/tasks')
+  render(<PlatformProjectEntry />)
+  publish([project])
+  act(() => {
+    window.dispatchEvent(new CustomEvent('platform-start-task-agent', {
+      cancelable: true, detail: { projectId: 'unregistered', taskId: 'task' }
+    }))
+  })
+  await act(async () => {})
+  expect(fixture.load).not.toHaveBeenCalled()
+  expect(window.location.hash).toBe('#project/p-one/tasks')
+  expect(fixture.agentRequests).not.toHaveBeenCalled()
 })
