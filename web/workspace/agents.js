@@ -589,7 +589,7 @@ window.WorkspaceAgentBoard = (() => {
     }
     const isAttentionItem = item => item.state !== 'done' && (['review', 'blocked'].includes(item.state)
       || ['waiting_user', 'waiting_review', 'blocked', 'failed'].includes(item.assignment_state));
-    function chosenItems() { return items.filter(item => (!selectedProject || (selectedProject === '__global__' ? !item.project_id : item.project_id === selectedProject))
+    function chosenItems() { return items.filter(item => (unified && itemFilter === 'all' && selectedProject !== '__global__' || !selectedProject || (selectedProject === '__global__' ? !item.project_id : item.project_id === selectedProject))
       && (itemFilter === 'review' ? item.state === 'review' : itemFilter !== 'attention' || isAttentionItem(item))); }
     function renderAgents() {
       agentStrip.replaceChildren();
@@ -618,7 +618,8 @@ window.WorkspaceAgentBoard = (() => {
       management.href = inProject ? `#project/${encodeURIComponent(selectedProject)}/manage` : '#tasks';
       management.textContent = inProject ? '本项目事项管理' : '事项管理';
       refresh.textContent = inProject ? '刷新项目' : '刷新工作台';
-      if (complete) status.textContent = (inProject || unified ? `${chosenItems().length} 项事项` : `已读取 ${chosenItems().length} 项 · 分配后由外部 Agent 领取；完成须人工审核。`) + (registryAvailable || unified ? '' : ' Agent 注册表读取失败。');
+      status.hidden = unified && complete && !loadFailed;
+      if (complete) status.textContent = unified ? '' : (inProject || unified ? `${chosenItems().length} 项事项` : `已读取 ${chosenItems().length} 项 · 分配后由外部 Agent 领取；完成须人工审核。`) + (registryAvailable || unified ? '' : ' Agent 注册表读取失败。');
       const selection = selectedProject; project.replaceChildren(); option(project, '', '全部项目'); option(project, '__global__', '全局事项');
       for (const p of projects) option(project, p.id, p.name); project.value = selection;
       title.textContent = selectedProject === '__global__' ? '全局事项' : selectedProject ? `${projects.find(p => p.id === selectedProject)?.name || '当前项目'} · Agent 工作台` : 'Agent 工作台';
@@ -667,7 +668,7 @@ window.WorkspaceAgentBoard = (() => {
       for (const panel of groups.querySelectorAll('details')) expandedPanels.set(panel.dataset.panelKey, panel.open);
       groups.replaceChildren(); groups.dataset.businessGroups = 'true';
       const rows = chosenItems();
-      const inProject = selectedProject && selectedProject !== '__global__';
+      const inProject = selectedProject && selectedProject !== '__global__' && itemFilter !== 'all';
       const scopes = inProject ? [{ id: selectedProject, rows }] : selectedProject === '__global__'
         ? [{ id: '', rows }]
         : [...projects.map(project => ({ id: project.id, rows: rows.filter(item => item.project_id === project.id) })),
@@ -692,12 +693,12 @@ window.WorkspaceAgentBoard = (() => {
         const attention = scope.rows.filter(isAttentionItem).length;
         const counts = [['待推进', ['todo', 'blocked']], ['进行中', ['doing']], ['待验收', ['review']]]
           .map(([label, states]) => `${label} ${complete ? scope.rows.filter(item => states.includes(item.state)).length : '—'}`).join(' / ');
-        const container = inProject ? el('section', 'agent-project-board') : panel('project:' + scope.id, '', false);
+        const container = inProject ? el('section', 'agent-project-board') : panel('project:' + scope.id, '', true);
         if (!inProject) {
           const summary = container.children[0];
           summary.append(el('strong', '', project?.name || '未归属项目'));
           if (attention) summary.append(el('span', 'agent-project-attention', `需处理 ${complete ? attention : '—'}`));
-          summary.append(el('span', 'agent-project-stats', `${complete ? scope.rows.length : '—'} 项事项 · ${counts}`));
+          summary.append(el('span', 'agent-project-stats', counts));
         }
         if (scope.id) {
           const actions = el('div', 'agent-project-actions');
@@ -827,7 +828,37 @@ window.WorkspaceAgentBoard = (() => {
       const heading = el('div', 'section-heading'); heading.append(el('h2', '', item.title), tools); detail.append(heading);
       const note = id(el('p', 'feedback'), 'ab-feedback'); note.setAttribute('role', 'status'); note.setAttribute('aria-live', 'polite'); detail.append(note, detailBody);
     }
+    function openMinimalNew(projectId) {
+      if (writing) return;
+      if (detail.open && hasDraft()) { feedback('已有未提交草稿，请先保存或关闭后再新建。', true); return; }
+      editDirty = detailDirty = briefDirty = sessionDirty = messageDirty = false; detailDrafts.clear(); detailsRequest++;
+      detailHeader({ title: '新建事项' });
+      const targetProject = projectId || (selectedProject && selectedProject !== '__global__' ? selectedProject : null);
+      const form = el('form'), fields = el('fieldset'), name = id(el('textarea'), 'ab-new-title');
+      name.required = true; name.maxLength = 4000; name.rows = 3;
+      const owner = id(el('select'), 'ab-new-project'); owner.required = true;
+      if (!targetProject) { option(owner, '', '请选择所属项目'); for (const project of projects) option(owner, project.id, project.name); }
+      owner.value = targetProject || '';
+      for (const control of [name, owner]) control.addEventListener('input', () => { detailDirty = true; });
+      const save = el('button', 'button primary', '创建事项'); save.type = 'submit';
+      fields.append(field('要做什么', name));
+      if (!targetProject) fields.append(field('所属项目', owner));
+      fields.append(save); form.append(fields); detailBody.append(form);
+      form.addEventListener('submit', async event => {
+        event.preventDefault(); if (writing) return;
+        if (!name.value.trim() || [...name.value].length > 2000) { feedback('请填写事项，最多 2000 字。', true); return; }
+        if (!(targetProject || owner.value)) { feedback('请选择所属项目后创建事项。', true); return; }
+        setWriting(true); fields.disabled = true;
+        try {
+          await postJson('/api/workspace/items', { title: name.value.trim(), project_id: targetProject || owner.value, assigned_agent_id: null });
+          detailDirty = false; await load(); detail.close();
+        } catch (error) { feedback(`创建结果未确认：${failureReason(error)}。输入已保留，请先核对再决定是否重试。`, true); }
+        finally { setWriting(false); fields.disabled = false; }
+      });
+      showDetail(); name.focus();
+    }
     function openNew(projectId = null) {
+      if (unified) return openMinimalNew(projectId);
       if (unified && detail.open && hasDraft()) { feedback('已有未提交草稿，请先保存或关闭后再新建。', true); return; }
       if (writing || detail.open && hasDraft() && !window.confirm('放弃未提交内容，新建待办？')) return;
       editDirty = detailDirty = briefDirty = sessionDirty = messageDirty = false; detailDrafts.clear(); detailsRequest++; detailHeader({ title: '新建待办' });
@@ -890,23 +921,13 @@ window.WorkspaceAgentBoard = (() => {
     function renderDetail(data, failure = '') {
       const item = data.item || selected; selected = item; detailHeader(item);
       const run = data.run || null;
-      detailBody.append(el('span', 'badge agent-detail-state', states[item.state] || '状态未知'));
+      detailBody.append(el('span', 'badge agent-detail-state', unified && item.state === 'review' ? '待验收' : states[item.state] || '状态未知'));
       if (failure) detailBody.append(el('p', 'feedback error', failure));
-      const options = id(el('details', 'agent-detail-options'), 'ab-execution-options');
-      options.append(el('summary', '', unified ? '更多选项' : '执行与关联'));
-      const assignment = el('section', 'agent-detail-section'); assignment.append(el('h3', '', '分配 Agent'));
-      const select = id(el('select'), 'ab-assignee'); option(select, '', '暂不分配');
-      for (const agent of agents.filter(row => canAssign(row, item.project_id))) option(select, agent.id, agent.name);
-      if (item.assigned_agent_id && !agents.some(row => row.id === item.assigned_agent_id && canAssign(row, item.project_id))) {
-        const original = agents.find(row => row.id === item.assigned_agent_id);
-        option(select, item.assigned_agent_id, original?.enabled ? '原 Agent 无权访问当前项目（授权范围已变化）' : '原 Agent 已禁用或移除').disabled = true;
-      }
-      select.value = item.assigned_agent_id || '';
       const active = run && ['claimed', 'running', 'waiting_review'].includes(run.status) || ['running', 'waiting_user', 'waiting_review'].includes(item.assignment_state);
       const unverified = !!(failure && item.assigned_agent_id);
       renderEditor(item, Boolean(active || failure || item.state === 'review'));
       if (unified && item.id && item.project_id && item.origin === 'task' && !active && !failure && !['review', 'done'].includes(item.state)) {
-        const start = id(btn('在工作区开始', () => {
+        const start = id(btn('开始开发', () => {
           if (writing || hasDraft()) { feedback('请先保存或放弃当前草稿，再在工作区开始。', true); return; }
           const event = new CustomEvent('platform-start-task-agent', { cancelable: true, detail: { projectId: item.project_id, taskId: item.id } });
           detail.close();
@@ -914,44 +935,56 @@ window.WorkspaceAgentBoard = (() => {
         }, 'button primary'), 'ab-native-start');
         detailBody.append(start);
       }
-      select.disabled = !registryAvailable || !!active || unverified || item.state === 'done';
-      const assign = id(btn('确认分配', async () => {
-        const value = select.value || null;
-        if (writing || select.disabled || value === (item.assigned_agent_id || null)) return;
-        if (value && !agents.some(row => row.id === value && canAssign(row, item.project_id))) { feedback('所选 Agent 无权访问当前项目；请重新选择或明确取消分配。', true); return; }
-        if (otherDrafts('assignment')) { feedback('请先保存或放弃其他草稿，再修改分配。'); return; }
-        setWriting(true); assign.disabled = true; select.disabled = true;
-        try {
-          const saved = await postJson('/api/workspace/items/update', { id: item.id, expected_revision: item.revision, changes: { assigned_agent_id: value } });
-          detailDirty = false; detailDrafts.clear(); feedback('分配已保存，等待外部 Agent 领取。'); await load(); await open(saved.item, true);
-        } catch (error) { feedback(`分配未确认：${failureReason(error)}。选择已保留，请刷新核对版本后再提交。`, true); }
-        finally { setWriting(false); assign.disabled = false; select.disabled = !registryAvailable || !!active || unverified || item.state === 'done'; }
-      }), 'ab-assign'); assign.disabled = select.disabled;
-      select.addEventListener('change', () => { markDetailDraft('assignment'); });
-      assignment.append(field('已注册且启用的 Agent', select), assign, el('p', 'section-note', active ? '当前有活跃运行，暂不能改派。' : unverified ? '运行详情无法核对，暂不能改派。' : '分配后，需由外部 Agent 领取或手动启动。')); options.append(assignment);
-      if (!active && !unverified && !['review', 'done'].includes(item.state) && canExecute(agents.find(row => row.id === item.assigned_agent_id))) {
-        const launch = el('section', 'agent-detail-section'); launch.append(el('h3', '', '交给 Agent 执行'));
-        const owner = id(el('select'), 'ab-start-project'); option(owner, '', '选择本次执行所属项目');
-        for (const p of projects) option(owner, p.id, p.name);
-        owner.value = item.project_id || ''; owner.disabled = Boolean(item.project_id);
-        const start = id(btn('执行此待办', async () => {
-          if (writing) return;
-          if (hasDraft()) { feedback('请先保存或放弃当前草稿，再执行待办。', true); return; }
-          if (!owner.value) { feedback('请选择所属项目，Agent 才能取得明确的执行目录。', true); return; }
-          setWriting(true); start.disabled = true; owner.disabled = true;
-          let currentItem = item;
+      const options = id(el('details', 'agent-detail-options'), 'ab-execution-options');
+      if (!unified) {
+        options.append(el('summary', '', unified ? '更多选项' : '执行与关联'));
+        const assignment = el('section', 'agent-detail-section'); assignment.append(el('h3', '', '分配 Agent'));
+        const select = id(el('select'), 'ab-assignee'); option(select, '', '暂不分配');
+        for (const agent of agents.filter(row => canAssign(row, item.project_id))) option(select, agent.id, agent.name);
+        if (item.assigned_agent_id && !agents.some(row => row.id === item.assigned_agent_id && canAssign(row, item.project_id))) {
+          const original = agents.find(row => row.id === item.assigned_agent_id);
+          option(select, item.assigned_agent_id, original?.enabled ? '原 Agent 无权访问当前项目（授权范围已变化）' : '原 Agent 已禁用或移除').disabled = true;
+        }
+        select.value = item.assigned_agent_id || '';
+        select.disabled = !registryAvailable || !!active || unverified || item.state === 'done';
+        const assign = id(btn('确认分配', async () => {
+          const value = select.value || null;
+          if (writing || select.disabled || value === (item.assigned_agent_id || null)) return;
+          if (value && !agents.some(row => row.id === value && canAssign(row, item.project_id))) { feedback('所选 Agent 无权访问当前项目；请重新选择或明确取消分配。', true); return; }
+          if (otherDrafts('assignment')) { feedback('请先保存或放弃其他草稿，再修改分配。'); return; }
+          setWriting(true); assign.disabled = true; select.disabled = true;
           try {
-            if (!item.project_id) currentItem = (await postJson('/api/workspace/items/update', {
-              id: item.id, expected_revision: item.revision, changes: { project_id: owner.value }
-            })).item;
-            await executeTask(currentItem); await load(); await open(currentItem, true);
-          } catch (error) {
-            await load(); await open(currentItem, true);
-            feedback(`待办已保存，执行尚未确认：${failureReason(error)}。请核对交接历史与进度；已有快照会复用，不需要重建待办。`, true);
-          } finally { setWriting(false); start.disabled = false; owner.disabled = Boolean(currentItem.project_id); }
-        }), 'ab-start-execution');
-        launch.append(el('p', 'section-note', '已分配不代表已经派发。此按钮会将当前需求交给所选 Agent；完成后仍需你审核。'), field('执行所属项目', owner), start);
-        options.append(launch);
+            const saved = await postJson('/api/workspace/items/update', { id: item.id, expected_revision: item.revision, changes: { assigned_agent_id: value } });
+            detailDirty = false; detailDrafts.clear(); feedback('分配已保存，等待外部 Agent 领取。'); await load(); await open(saved.item, true);
+          } catch (error) { feedback(`分配未确认：${failureReason(error)}。选择已保留，请刷新核对版本后再提交。`, true); }
+          finally { setWriting(false); assign.disabled = false; select.disabled = !registryAvailable || !!active || unverified || item.state === 'done'; }
+        }), 'ab-assign'); assign.disabled = select.disabled;
+        select.addEventListener('change', () => { markDetailDraft('assignment'); });
+        assignment.append(field('已注册且启用的 Agent', select), assign, el('p', 'section-note', active ? '当前有活跃运行，暂不能改派。' : unverified ? '运行详情无法核对，暂不能改派。' : '分配后，需由外部 Agent 领取或手动启动。')); options.append(assignment);
+        if (!active && !unverified && !['review', 'done'].includes(item.state) && canExecute(agents.find(row => row.id === item.assigned_agent_id))) {
+          const launch = el('section', 'agent-detail-section'); launch.append(el('h3', '', '交给 Agent 执行'));
+          const owner = id(el('select'), 'ab-start-project'); option(owner, '', '选择本次执行所属项目');
+          for (const p of projects) option(owner, p.id, p.name);
+          owner.value = item.project_id || ''; owner.disabled = Boolean(item.project_id);
+          const start = id(btn('执行此待办', async () => {
+            if (writing) return;
+            if (hasDraft()) { feedback('请先保存或放弃当前草稿，再执行待办。', true); return; }
+            if (!owner.value) { feedback('请选择所属项目，Agent 才能取得明确的执行目录。', true); return; }
+            setWriting(true); start.disabled = true; owner.disabled = true;
+            let currentItem = item;
+            try {
+              if (!item.project_id) currentItem = (await postJson('/api/workspace/items/update', {
+                id: item.id, expected_revision: item.revision, changes: { project_id: owner.value }
+              })).item;
+              await executeTask(currentItem); await load(); await open(currentItem, true);
+            } catch (error) {
+              await load(); await open(currentItem, true);
+              feedback(`待办已保存，执行尚未确认：${failureReason(error)}。请核对交接历史与进度；已有快照会复用，不需要重建待办。`, true);
+            } finally { setWriting(false); start.disabled = false; owner.disabled = Boolean(currentItem.project_id); }
+          }), 'ab-start-execution');
+          launch.append(el('p', 'section-note', '已分配不代表已经派发。此按钮会将当前需求交给所选 Agent；完成后仍需你审核。'), field('执行所属项目', owner), start);
+          options.append(launch);
+        }
       }
       const progress = el('section', 'agent-detail-section'); progress.append(el('h3', '', '执行进度'));
       const events = Array.isArray(data.events) ? data.events : [];
@@ -1008,7 +1041,7 @@ window.WorkspaceAgentBoard = (() => {
         detailBody.append(records);
       }
       if (item.state === 'review') renderReview(item);
-      if (item.origin !== 'todo' && window.WorkspaceSessionList) {
+      if (!unified && item.origin !== 'todo' && window.WorkspaceSessionList) {
         const panel = el('section', 'agent-detail-section'); options.append(panel); const version = detailsRequest;
         const current = () => !disposed && version === detailsRequest && detail.open;
         const sessions = window.WorkspaceSessionList.create({ root: panel, taskId: item.id, agents,
@@ -1020,19 +1053,20 @@ window.WorkspaceAgentBoard = (() => {
           isCurrent: current, isBusy: () => writing || editDirty || detailDirty || briefDirty || messageDirty, onBusy: setWriting, onDirty: value => { sessionDirty = value; } });
       }
       if (run && ['claimed', 'running', 'waiting_review'].includes(run.status) && !failure) renderRelease(item);
-      if (item.origin !== 'todo' && !failure) {
+      if (!unified && item.origin !== 'todo' && !failure) {
         const panel = el('section', 'agent-detail-section'); options.append(panel); const version = detailsRequest;
         window.WorkspaceTaskMessages.create({ root: panel, item, run, reviews: data.reviews || [], agents, fetchJson, postJson,
           isCurrent: () => !disposed && version === detailsRequest && detail.open, isBusy: () => writing || editDirty || detailDirty || briefDirty || sessionDirty,
           onBusy: setWriting, onDirty: value => { messageDirty = value; } });
       }
-      if (item.origin !== 'todo' && !failure) {
+      if (!unified && item.origin !== 'todo' && !failure) {
         const panel = el('section'); options.append(panel); const version = detailsRequest;
         window.WorkspaceTaskDispatch.create({ root: panel, item, agents, active: Boolean(active), fetchJson, postJson,
           isCurrent: () => !disposed && version === detailsRequest && detail.open,
           isBusy: () => writing || editDirty || detailDirty || sessionDirty || messageDirty, onBusy: setWriting, onDirty: value => { briefDirty = value; }, onChanged: load });
       }
-      detailBody.append(options); showDetail();
+      if (!unified) detailBody.append(options);
+      showDetail();
     }
     function renderEditor(item, locked) {
       const section = el('details', 'agent-detail-options'); section.append(el('summary', '', '编辑事项'));
@@ -1098,13 +1132,13 @@ window.WorkspaceAgentBoard = (() => {
       const evidence = id(el('textarea'), 'ab-review-evidence'); evidence.rows = 2; evidence.placeholder = '人工核验证据，每行一条（可选）';
       const confirm = id(el('input'), 'ab-review-confirm'); confirm.type = 'checkbox'; confirm.checked = false;
       const resume = id(el('input'), 'ab-review-resume'); resume.type = 'checkbox'; resume.checked = false;
-      resume.disabled = !canExecute(agents.find(row => row.id === item.assigned_agent_id)) || !item.project_id;
+      resume.disabled = unified || !canExecute(agents.find(row => row.id === item.assigned_agent_id)) || !item.project_id;
       const resumeField = field('退回后立即交给原 Agent 继续执行', resume); resumeField.hidden = true;
       verdict.addEventListener('change', () => { resumeField.hidden = resume.disabled || !['changes_requested', 'rejected'].includes(verdict.value); markDetailDraft('review'); });
       for (const control of [reason, evidence, confirm, resume]) control.addEventListener('input', () => { markDetailDraft('review'); });
       const submit = id(el('button', 'button primary', '提交验收'), 'ab-review-submit'); submit.type = 'submit';
       const proof = el('details', 'agent-detail-options'); proof.append(el('summary', '', '补充证据（可选）'), field('证据说明', evidence));
-      fields.append(field('结论', verdict), field('验收理由', reason), proof, resumeField, field('我已核对材料，确认上述状态变更', confirm), submit); form.append(fields);
+      fields.append(field('结论', verdict), field('验收理由', reason), proof, ...(!unified ? [resumeField] : []), field('我已核对材料，确认上述状态变更', confirm), submit); form.append(fields);
       form.addEventListener('submit', async event => {
         event.preventDefault(); if (writing) return;
         if (otherDrafts('review')) { feedback('请先保存或放弃其他草稿，再提交人工审核。'); return; }
