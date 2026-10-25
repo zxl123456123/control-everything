@@ -9,8 +9,8 @@ import threading
 import unittest
 
 from control_everything.http.remote_hub import build_server
-from control_everything.integrations.remote_hub.identity import HubError
-from .test_remote_hub_support import A, INSTALL, KEY, service
+from control_everything.integrations.remote_hub.identity import HubError, TokenIntrospector
+from .test_remote_hub_support import A, INSTALL, KEY, bind, service
 
 
 class FakeIdentities:
@@ -77,6 +77,86 @@ class RemoteHubHTTPTests(unittest.TestCase):
             server.shutdown()
             server.server_close()
             thread.join(timeout=2)
+
+    def refresh_session_fixture(self):
+        now = [1000]
+        self.hub.store.clock = lambda: now[0]
+        def introspect(token):
+            if token == 'synthetic-unavailable-token':
+                raise OSError('synthetic introspection failure')
+            result = dict(active=True, iss=A.issuer, sub=A.sub, sid='same-sid',
+                          aud=['workbench-hub'], azp='workbench-web', exp=1060 if token == 'synthetic-short-token' else 10000)
+            if token == 'synthetic-inactive-token': result['active'] = False
+            if token == 'synthetic-wrong-aud-token': result['aud'] = ['other']
+            if token == 'synthetic-wrong-azp-token': result['azp'] = 'other'
+            if token == 'synthetic-wrong-sub-token': result['sub'] = 'other-subject'
+            if token == 'synthetic-wrong-issuer-token': result['iss'] = 'https://other.example.test/realms/test'
+            if token == 'synthetic-other-sid-token': result['sid'] = 'synthetic-other-sid-token'
+            if token == 'synthetic-missing-sid-token': result.pop('sid')
+            return result
+        self.hub.identities = TokenIntrospector(A.issuer, 'workbench-hub', 'synthetic-secret',
+                                                clock=lambda: now[0], transport=introspect)
+        device = bind(self.hub)
+        self.hub.heartbeat(device['control_token'], INSTALL, True)
+        headers = {'X-Auth-Request-Access-Token': 'synthetic-short-token', 'X-Auth-Request-User': A.sub,
+                   'X-CE-Route-Proof': self.hub.route_proof}
+        status, session, extra = self.request('GET', '/remote/api/session', headers=headers)
+        self.assertEqual(status, 200)
+        headers['Cookie'] = extra['Set-Cookie'].split(';', 1)[0]
+        headers['X-Forwarded-Method'] = 'GET'
+        headers['X-Forwarded-Uri'] = '/studio'
+        status, _, extra = self.request('GET', '/internal/authorize', headers=headers)
+        self.assertEqual(status, 200)
+        headers['X-CE-Context'] = extra['X-CE-Page-Context']
+        headers['X-Forwarded-Uri'] = '/api/bootstrap'
+        return now, device, headers, session
+
+    def test_refreshed_token_preserves_original_context_until_absolute_session_deadline(self):
+        now, device, headers, first = self.refresh_session_fixture()
+        cookie = headers['Cookie'].split('=', 1)[1]
+        original_expiry = self.hub.sessions.validate(self.hub.identities.authenticate('synthetic-short-token', 'browser'), cookie)['expires']
+        now[0] = 1061
+        self.hub.heartbeat(device['control_token'], INSTALL, True)
+        self.assertEqual(self.request('GET', '/internal/authorize', headers=headers)[0], 401)
+        headers['X-Auth-Request-Access-Token'] = 'synthetic-refreshed-token'
+        self.assertEqual(self.request('GET', '/internal/authorize', headers=headers)[0], 200)
+        status, current, extra = self.request('GET', '/remote/api/session', headers=headers)
+        self.assertEqual((status, current['csrf'], current['session_changed']), (200, first['csrf'], False))
+        self.assertNotIn('Set-Cookie', extra)
+        identity = self.hub.identities.authenticate('synthetic-refreshed-token', 'browser')
+        self.assertEqual(self.hub.sessions.validate(identity, cookie)['expires'], original_expiry)
+        self.assertEqual(original_expiry, 2800)
+        now[0] = 2799
+        self.hub.heartbeat(device['control_token'], INSTALL, True)
+        self.assertEqual(self.request('GET', '/internal/authorize', headers=headers)[0], 200)
+        self.assertEqual(self.request('GET', '/remote/api/session', headers=headers)[1]['session_changed'], False)
+        now[0] = 2800
+        self.hub.heartbeat(device['control_token'], INSTALL, True)
+        self.assertEqual(self.request('GET', '/internal/authorize', headers=headers)[0], 401)
+        _, created, extra = self.request('GET', '/remote/api/session', headers=headers)
+        self.assertTrue(created['session_changed'])
+        headers['Cookie'] = extra['Set-Cookie'].split(';', 1)[0]
+        self.assertEqual(self.request('GET', '/internal/authorize', headers=headers)[0], 403)
+
+    def test_session_ttl_does_not_bypass_token_identity_sid_or_logout(self):
+        now, device, headers, first = self.refresh_session_fixture()
+        now[0] = 1061
+        self.hub.heartbeat(device['control_token'], INSTALL, True)
+        for token, expected in [('synthetic-short-token', 401), ('synthetic-inactive-token', 401), ('synthetic-wrong-aud-token', 403), ('synthetic-wrong-azp-token', 403),
+                                ('synthetic-wrong-sub-token', 403), ('synthetic-wrong-issuer-token', 401), ('synthetic-other-sid-token', 401),
+                                ('synthetic-missing-sid-token', 401), ('synthetic-unavailable-token', 503)]:
+            with self.subTest(token=token):
+                request = {**headers, 'X-Auth-Request-Access-Token': token}
+                self.assertEqual(self.request('GET', '/internal/authorize', headers=request)[0], expected)
+        headers['X-Auth-Request-Access-Token'] = 'synthetic-refreshed-token'
+        self.assertEqual(self.request('GET', '/internal/authorize', headers=headers)[0], 200)
+        logout = {**headers, 'Origin': self.hub.public_origin, 'X-CE-CSRF': first['csrf'], 'Content-Type': 'application/json'}
+        self.assertEqual(self.request('POST', '/remote/api/logout', '{}', logout)[0], 200)
+        self.assertEqual(self.request('GET', '/internal/authorize', headers=headers)[0], 401)
+        _, created, extra = self.request('GET', '/remote/api/session', headers=headers)
+        self.assertTrue(created['session_changed'])
+        headers['Cookie'] = extra['Set-Cookie'].split(';', 1)[0]
+        self.assertEqual(self.request('GET', '/internal/authorize', headers=headers)[0], 403)
 
     def test_desktop_challenge_and_invalid_fields_have_no_secrets(self):
         body = {"installation_id": INSTALL, "public_key": KEY, "name": "Computer"}

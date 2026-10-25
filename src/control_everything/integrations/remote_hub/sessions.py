@@ -32,7 +32,7 @@ class BrowserSessions:
             token, csrf = secrets.token_urlsafe(32), secrets.token_urlsafe(32)
             db.execute("INSERT INTO browser_sessions VALUES(?,?,?,?,?,?,0)",
                        (token_hash(token), identity.issuer, identity.sub, identity.sid, csrf,
-                        min(identity.expires_at, self.store.clock() + 1800)))
+                        self.store.clock() + 1800))
             return csrf, f"{COOKIE_NAME}={token}; Path=/; Secure; HttpOnly; SameSite=Lax"
 
     def validate(self, identity, cookie, *, csrf=None, origin=None):
