@@ -29,6 +29,8 @@
 
 
 .news-settings-dialog{width:min(720px,calc(100vw - 24px));max-height:90dvh;overflow:auto;background:var(--paper);color:var(--ink);border:1px solid var(--line);border-radius:16px;padding:24px;font-size:16px}.news-settings-dialog section{margin:20px 0}.news-settings-dialog label{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:12px 0}.news-settings-dialog input:not([type=checkbox]),.news-settings-dialog select{width:60%;min-width:0}.news-settings-dialog details{border:1px solid var(--line);border-radius:10px;padding:8px;margin:10px 0}.news-settings-dialog footer{display:flex;gap:12px;flex-wrap:wrap}.news-settings-dialog [role=alert]{color:#b54d39}#schedule-status{padding:4px 0 10px;flex:none}.filters{flex-wrap:wrap}@media(max-width:720px){.top{height:auto;min-height:64px;flex-wrap:wrap;padding:10px 0}.top-actions{flex-wrap:wrap}.news-settings-dialog label{align-items:stretch;flex-direction:column;gap:4px}.news-settings-dialog input:not([type=checkbox]),.news-settings-dialog select{width:100%}}
+/* Keep mobile source controls within two rows so the article retains reading space. */
+@media(max-width:720px){#news-room .filters{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px}#news-room .filters>label,#news-room .filters>select{grid-column:span 2;min-width:0}#news-room .filters>button{grid-column:span 3}#news-room .filters select,#news-room .filters button{width:100%;min-width:0;min-height:38px;padding-inline:6px;font-size:14px}}
 }
 
 body:has(>.news-reader-root){margin:0;height:100dvh;overflow:hidden}

@@ -29,3 +29,12 @@ test('research selected topics, steps and submit retain explicit on-color above 
     const declarations=css.slice(start,css.indexOf('}',start));assert.match(declarations,/background:var\(--chosen\)/);assert.match(declarations,/color:var\(--on\)/);
   }
 });
+
+test('mobile filters reserve two compact rows without removing source or collection controls',()=>{
+  const css=fs.readFileSync('web/workspace/news-reader.css','utf8');
+  assert.match(css,/#news-room \.filters\{display:grid;grid-template-columns:repeat\(6,minmax\(0,1fr\)\);gap:6px\}/);
+  assert.match(css,/#news-room \.filters>label,#news-room \.filters>select\{grid-column:span 2;min-width:0\}/);
+  assert.match(css,/#news-room \.filters>button\{grid-column:span 3\}/);
+  assert.match(css,/#news-room \.filters select,#news-room \.filters button\{width:100%;min-width:0;min-height:38px/);
+  const html=fs.readFileSync('web/workspace/news-reader.html','utf8');for(const id of ['stream','source-filter','group-filter','refresh-feeds','refresh'])assert.match(html,new RegExp('id="'+id+'"'));
+});
