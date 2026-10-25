@@ -19,10 +19,11 @@ STUDIO_RESOURCES = {
     "/mobile-device-entry.js": ("mobile-device-entry.js", "text/javascript; charset=utf-8"),
     "/studio-preview.js": ("studio-preview.js", "text/javascript; charset=utf-8"),
     "/studio-data.js": ("studio-data.js", "text/javascript; charset=utf-8"),
+    "/news-surface.js": ("news-surface.js", "text/javascript; charset=utf-8"),
     "/workspace-admin": ("workspace.html", "text/html; charset=utf-8"),
 }
 STUDIO_CSP = ("default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
-              "img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; "
+              "img-src 'self' data: https: blob:; font-src 'self'; connect-src 'self'; object-src 'none'; "
               "frame-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
 ASSET_SUFFIXES = {"", ".html", ".js", ".mjs", ".css", ".json", ".png", ".svg", ".webp", ".ico",
                   ".woff", ".woff2", ".ttf", ".otf", ".wasm", ".bcmap", ".pfb"}
@@ -92,7 +93,7 @@ def _workbench_csp(manager):
             or origin != f"ws://127.0.0.1:{parsed.port}"):
         raise WorkbenchUnavailable("runtime_protocol_error")
     return ("default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
-            "img-src 'self' data: blob:; font-src 'self' data:; worker-src 'self' blob:; "
+            "img-src 'self' data: https: blob:; font-src 'self' data:; worker-src 'self' blob:; "
             f"connect-src 'self' {origin}; object-src 'none'; frame-src 'self' blob:; "
             "frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
 

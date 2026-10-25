@@ -5,12 +5,13 @@ export type PlatformProjectsListener = (
   projects: PlatformProject[],
   metadata?: { archived: PlatformProject[] }
 ) => void
+type StudioHandle = (() => void) & { setVisible?: (visible: boolean) => void }
 type StudioWindow = Window & {
   StudioPreview?: {
     mount(
       root: HTMLElement,
       options: { onProjects: PlatformProjectsListener }
-    ): () => void
+    ): StudioHandle
   }
 }
 const scripts = [
@@ -25,6 +26,7 @@ const scripts = [
   '/agents.js',
   '/studio-data.js',
   '/mobile-device-entry.js',
+  '/news-surface.js',
   '/studio-preview.js'
 ]
 let modules: Promise<void> | null = null
@@ -64,6 +66,12 @@ export default function PlatformStudioSurface({
   onProjects: PlatformProjectsListener
 }): React.JSX.Element {
   const host = useRef<HTMLDivElement>(null)
+  const studioHandle = useRef<StudioHandle | undefined>(undefined)
+  const visibility = useRef(!hidden)
+  visibility.current = !hidden
+  const projectsListener = useRef(onProjects)
+  projectsListener.current = onProjects
+  useEffect(() => { studioHandle.current?.setVisible?.(!hidden) }, [hidden])
   const [error, setError] = useState('')
   const [ready, setReady] = useState(false)
   useEffect(() => {
@@ -112,9 +120,12 @@ export default function PlatformStudioSurface({
         attributeFilter: ['class']
       })
       shadow.append(root)
-      const unmount = (window as StudioWindow).StudioPreview!.mount(root, { onProjects })
+      const unmount = (window as StudioWindow).StudioPreview!.mount(root, { onProjects: (...args) => projectsListener.current(...args) })
+      studioHandle.current = unmount
+      unmount.setVisible?.(visibility.current)
       dispose = () => {
         unmount()
+        studioHandle.current = undefined
         themeObserver.disconnect()
         shadow.removeEventListener('keydown', stopKeyboardBubble)
         shadow.removeEventListener('keyup', stopKeyboardBubble)
@@ -131,7 +142,7 @@ export default function PlatformStudioSurface({
       window.clearTimeout(timer)
       dispose?.()
     }
-  }, [onProjects])
+  }, [])
   return (
     <section className="platform-studio-surface" hidden={hidden} inert={pending && ready} aria-label="项目与事项">
       {!ready && (

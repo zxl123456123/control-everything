@@ -19,6 +19,7 @@
   <script defer src="/agents.js"></script>
   <script defer src="/studio-data.js"></script>
   <script defer src="/mobile-device-entry.js"></script>
+  <script defer src="/news-surface.js"></script>
   <script defer src="/studio-preview.js"></script>
 </head>
 <body>
@@ -30,6 +31,7 @@
         <p id="studio-status" class="ce-preview-notice" role="status" aria-live="polite">正在读取本地工作台…</p>
         <main class="ce-content" aria-label="工作区">
           <div id="studio-content" class="ce-main"></div>
+          <section id="studio-news" hidden inert aria-label="新闻"></section>
           <section id="studio-tasks" class="ce-business-module ce-main" aria-label="事项管理" hidden></section>
           <section id="studio-agent-board" class="ce-business-module ce-main" aria-label="任务进度与人工审核" hidden></section>
           <section id="studio-monitor" class="ce-business-module ce-main" aria-label="项目协作监控" hidden><div id="studio-monitor-content"></div></section>

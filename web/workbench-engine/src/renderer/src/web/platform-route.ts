@@ -1,5 +1,5 @@
 export type PlatformRoute =
-  | { view: 'home' | 'tools' | 'inbox' | 'mobile'; id: ''; tab: string }
+  | { view: 'home' | 'tools' | 'inbox' | 'mobile' | 'news'; id: ''; tab: string }
   | {
       view: 'project'
       id: string
@@ -36,6 +36,7 @@ export function readPlatformRoute(location: Pick<Location, 'hash' | 'search'>): 
             ? 'review'
             : 'all'
     }
+  if (view === 'news') return { view: 'news', id: '', tab: '' }
   if (view === 'mobile') return { view: 'mobile', id: '', tab: '' }
   return {
     view: ['tools', 'settings', 'agents'].includes(view) ? 'tools' : 'home',

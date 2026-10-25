@@ -6,13 +6,15 @@
   <title>新闻 · 阅读室</title>
   <link rel="stylesheet" href="/news-reader.css">
   <script src="/news-spider.js" defer></script>
+  <script src="/news-settings.js" defer></script>
   <script src="/news-reader.js" defer></script>
 </head>
 <body>
+<div class="news-reader-root">
 <main id="news-room">
   <header class="top">
     <div class="brand-line"><span class="brand" aria-hidden="true">m</span><a class="workspace-name" href="/studio">工作空间</a><span class="slash" aria-hidden="true">/</span><h1>新闻</h1><span class="room-name">阅读室</span></div>
-    <div class="top-actions"><span class="local-note">阅读记录保存在此浏览器</span><button id="theme" type="button" aria-label="切换深色">◐</button></div>
+    <div class="top-actions"><button id="source-settings" type="button">来源与更新</button><button id="spider-visible" type="button" aria-pressed="true">隐藏蜘蛛</button><span class="local-note">阅读记录保存在此浏览器</span><button id="theme" type="button" aria-label="切换深色">◐</button></div>
   </header>
   <div class="toolbar">
     <nav aria-label="阅读筛选">
@@ -22,10 +24,11 @@
       <button data-view="archived" aria-pressed="false">归档 <span data-count="archived">0</span></button>
     </nav>
     <div class="filters">
-      <label><span class="sr-only">频道</span><select id="stream"><option value="ai">AI 新闻</option><option value="hn">Hacker News</option></select></label>
-      <button id="refresh-feeds" type="button">更新新闻</button><button id="refresh" type="button"><span aria-hidden="true">↻</span> 采集新信息</button>
+      <label><span class="sr-only">频道</span><select id="stream"><option value="ai">订阅新闻</option><option value="hn">Hacker News</option></select></label>
+      <select id="source-filter" aria-label="来源"><option value="">全部来源</option></select><select id="group-filter" aria-label="分组"><option value="">全部分组</option></select><button id="refresh-feeds" type="button">更新新闻</button><button id="refresh" type="button"><span aria-hidden="true">↻</span> 采集新信息</button>
     </div>
   </div>
+  <p id="schedule-status" role="status">正在读取更新设置…</p>
   <p id="storage-warning" role="alert" hidden>当前浏览器无法保存阅读记录；重新打开后可能丢失。</p>
   <section id="animation-stage" aria-label="新闻阅读室">
     <canvas id="spider-canvas" aria-hidden="true"></canvas>
@@ -94,5 +97,6 @@
   <details class="research-log"><summary>完整采集记录 <span id="research-log-count">0</span></summary><ol id="research-events"></ol><p id="research-events-empty">还没有采集记录。</p></details>
   <footer class="research-footer"><p id="research-outcome">关闭工作台后，采集仍会继续。</p><button id="research-return" type="button">返回阅读</button></footer>
 </dialog>
+</div>
 </body>
 </html>

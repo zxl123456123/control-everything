@@ -88,13 +88,14 @@ function studioFixture({ savedCreatorUrl = null, monitorAvailable = true, unifie
   }
   const body = element('body');
   const nodes = new Map();
-  for (const id of ['ce-studio', 'studio-content', 'studio-status', 'studio-tasks', 'studio-agent-board', 'studio-monitor', 'studio-monitor-content', 'studio-rail', 'studio-topbar', 'studio-project-search', 'studio-project-sort']) {
+  for (const id of ['ce-studio', 'studio-content', 'studio-news', 'studio-status', 'studio-tasks', 'studio-agent-board', 'studio-monitor', 'studio-monitor-content', 'studio-rail', 'studio-topbar', 'studio-project-search', 'studio-project-sort']) {
     nodes.set(id, { dataset: {}, innerHTML: '', textContent: '', hidden: false, listeners: {},
       focus() {}, setSelectionRange() {}, addEventListener(name, callback) { this.listeners[name] = callback; }, classList: { remove() {}, add() {} } });
   }
   const creatorInput = { value: '', focus() {} }, writes = [], removed = [], mounts = [], monitorCalls = [];
   if (unified) { nodes.get('ce-studio').dataset.unified = 'true'; nodes.get('ce-studio').dataset.theme = 'dark'; }
   nodes.get('ce-studio').querySelector = selector => selector === '[data-creator-url]' ? creatorInput : nodes.get(selector.slice(1));
+  nodes.get('ce-studio').querySelectorAll = selector => elements.filter(node => node.tagName === 'dialog' && (selector !== 'dialog[open]' || node.open));
   nodes.get('ce-studio').getRootNode = () => ({ styleSheets: [{ href: 'http://127.0.0.1/workspace.css', cssRules: [{ cssText: '.onboarding-dialog{padding:28px}' }] }, { href: 'http://127.0.0.1/studio-preview.css', cssRules: [{ cssText: '#ce-studio .ce-project-settings{color:red}' }] }] });
   nodes.get('ce-studio').append = (...values) => body.append(...values);
   Object.defineProperty(nodes.get('ce-studio'), 'innerHTML', { set() { throw new Error('Do not replace the stable shell'); } });
@@ -107,7 +108,8 @@ function studioFixture({ savedCreatorUrl = null, monitorAvailable = true, unifie
     snapshot: async () => { snapshotReads.push(true); if (failed) throw new Error('offline'); return snapshot; } };
   const localStorage = { getItem: key => key === 'ce-studio-creator-url' ? savedCreatorUrl : null,
     setItem: (...args) => writes.push(args), removeItem: key => removed.push(key) };
-  const window = { localStorage, addEventListener(name, callback) { callbacks[name] = callback; },
+  const newsCalls = [];
+  const window = { NewsSurface:{mount:() => {newsCalls.push(['mount']);return {setVisible:value=>newsCalls.push(['visible',value]),destroy:()=>newsCalls.push(['destroy'])};}}, localStorage, addEventListener(name, callback) { callbacks[name] = callback; },
     removeEventListener(name) { delete callbacks[name]; }, dispatchEvent(event) { callbacks[event.type]?.(event); },
     StudioData: { create: () => client },
     StudioMobileEntry: { mount: (container, options) => { mobileMounts.push(options); container.innerHTML = '手机与设备说明'; return () => mobileDisposals.push(options); } },
@@ -131,7 +133,7 @@ function studioFixture({ savedCreatorUrl = null, monitorAvailable = true, unifie
   });
   dispose = window.StudioPreview.mount(nodes.get('ce-studio'), { onProjects: (rows, metadata) => projectSnapshots.push({ rows, metadata }) });
   const flush = () => new Promise(resolve => setImmediate(resolve));
-  return { nodes, snapshot, client, location, writes, removed, mounts, monitorCalls, callbacks, window, body, elements, dialog, active, boardProjects, projectSnapshots, posts, mobileMounts, mobileDisposals, boardSnapshots, snapshotReads, timers, document,
+  return { newsCalls, nodes, snapshot, client, location, writes, removed, mounts, monitorCalls, callbacks, window, body, elements, dialog, active, boardProjects, projectSnapshots, posts, mobileMounts, mobileDisposals, boardSnapshots, snapshotReads, timers, document,
     onboarding: () => onboardingOptions, dispose: () => dispose(),
     editorMounts: () => editorMounts, updates: () => updates,
     fail() { failed = true; }, flush,
@@ -574,4 +576,21 @@ test('unified task pages omit the old duplicate progress link while monitor keep
   await f.route('project/server-project/monitor');
   assert.match(f.nodes.get('studio-content').innerHTML, /href="#project\/server-project\/tasks">返回事项/);
   f.dispose();
+});
+
+
+test('news uses one retained host and pauses business refresh without changing project grouping', async()=>{
+  const f=studioFixture({unified:true});await f.flush();const reads=f.snapshotReads.length;
+  await f.route('news');assert.equal(f.nodes.get('studio-news').hidden,false);assert.equal(f.nodes.get('studio-content').hidden,true);assert.equal(f.nodes.get('studio-agent-board').hidden,true);
+  await f.advance(16000);assert.equal(f.snapshotReads.length,reads);
+  await f.route('home');await f.route('news');assert.equal(f.newsCalls.filter(call=>call[0]==='mount').length,1);
+  f.dispose();assert.equal(f.newsCalls.at(-1)[0],'destroy');
+});
+
+test('monitor to news hides the retained monitor and uses the news breadcrumb',async()=>{
+  const f=studioFixture();await f.flush();await f.route('project/server-project/monitor');assert.equal(f.nodes.get('studio-monitor').hidden,false);
+  await f.route('news');assert.equal(f.nodes.get('studio-monitor').hidden,true);assert.deepEqual(f.monitorCalls.at(-1),['server-project','active',false]);assert.match(f.nodes.get('studio-topbar').innerHTML,/\/ 新闻/);
+});
+test('mobile to news disposes its polling owner once before showing news',async()=>{
+  const f=studioFixture();await f.flush();await f.route('mobile');assert.equal(f.mobileMounts.length,1);await f.route('news');assert.equal(f.mobileDisposals.length,1);await f.route('home');assert.equal(f.mobileDisposals.length,1);
 });

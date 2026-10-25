@@ -1,6 +1,13 @@
 'use strict';
 (function () {
-  const $ = id => document.getElementById(id);
+const mounted = new WeakMap();
+function mount(root, {embedded = false, onReturn, themeHost = root} = {}) {
+  if (mounted.has(root)) return mounted.get(root);
+  const document = root.ownerDocument || globalThis.document;
+  const lifecycle = new AbortController(), requests = new Set();
+  let visible = true;
+  const listen = (target, name, callback, options = {}) => target?.addEventListener(name, callback, {...options, signal:lifecycle.signal});
+  const $ = id => root.querySelector('#' + id);
   let csrf = null, frameObjectUrl = null, feedTimer = null, frameRequest = 0;
   async function readerFetch(url, options = {}) {
     const aliases = {'/sample':'reader', '/article':'article', '/research':'research', '/research/latest':'research/latest', '/translate':'translate', '/reader/refresh':'reader/refresh'};
@@ -11,20 +18,60 @@
       if (!csrf) { const response = await fetch('/api/bootstrap', {headers:{'X-Session-Client':'panel'}}); if (!response.ok) throw new Error('无法连接新闻服务'); csrf = (await response.json()).csrf_token; }
       headers.set('X-Session-CSRF', csrf);
     }
-    return fetch(target, {...options, headers});
+    if (options.method === 'POST') return fetch(target, {...options, headers});
+    const controller = new AbortController(); requests.add(controller);
+    try { return await fetch(target, {...options, headers, signal:controller.signal}); } finally { requests.delete(controller); }
   }
   let storeKey = null, articleRetry = null;
   const articleAttempts = new Map();
   const articles = new Map(), nodes = new Map(), documents = new Map(), loading = new Map();
   const tasks = new Map(), translations = new Map(), failedImages = new Set();
   let records = {}, currentId = null, selected = 'inbox', stream = 'ai', language = 'original';
+  let spiderVisible = true, spiderKey = null;
   let engine = null, researchEngine = null, paused = false, collecting = false, undo = null, arrivalQueue = [];
   let visibleIds = [], translationRun = 0, translationAbort = null, renderedKey = '', destroyed = false;
   let mediaView = 'article', imageIndex = 0, mediaKey = '';
   let researchJob = null, researchTimer = null, researchTopic = 'coding', researchBusy = false, researchFrameSeq = null;
+  let feedAgain = false;
   let feedReading = false, researchReading = false, suspended = false, feedAttempt = 0, lastFeedKey = '', feedFailed = false;
   let historyReading = false, historyRestored = false;
-  const canPoll = () => !destroyed && !suspended && !document.hidden;
+  let settings = null, settingsTimer = null, settingsReading = false, statusKey = '';
+  const settingsUI = window.NewsSettings?.mount(root, {request:readerFetch, onSettings:acceptSettings});
+  function acceptSettings(value) {
+    const changed = settings?.revision !== value.settings.revision;
+    settings = value.settings;
+    const status = $('schedule-status'); if (status) status.textContent = window.NewsSettings.runtimeText(value.runtime, settings);
+    if (value.reader_id && !storeKey) restoreStorage(value.reader_id);
+    if (changed && canPoll()) { renderFilters(); render(); }
+  }
+  function renderFilters() {
+    for (const [id, key, values] of [['source-filter','source_id', settings.sources.map(source => [source.id,source.name])], ['group-filter','group', [...new Set(settings.sources.map(source=>source.group).filter(Boolean))].map(group=>[group,group])]]) {
+      const select = $(id); if (!select) continue;
+      select.replaceChildren(); const all = make('option', '', id === 'source-filter' ? '全部来源' : '全部分组'); all.value=''; select.append(all);
+      for (const [value,title] of values) { const option=make('option','',title);option.value=value;select.append(option); }
+      select.value=settings.view[key] || '';
+    }
+  }
+  async function readSettings() {
+    if (!settingsUI || !canPoll() || settingsReading) return;
+    settingsReading = true; clearTimeout(settingsTimer);
+    try {
+      const response=await readerFetch('/api/workspace/news/settings', {cache:'no-store'});
+      const value=await response.json();if(!response.ok)throw new Error(value.message || '来源设置暂不可用，请重试。');
+      if(destroyed)return;
+      const key=JSON.stringify([value.settings.revision,value.runtime?.run_id,value.runtime?.state,value.runtime?.result]);
+      settingsUI.setSnapshot(value);
+      if(statusKey && statusKey!==key) { if(feedReading) feedAgain=true; else void readFeeds(); }statusKey=key;
+    } catch(error) {if(!destroyed && $('schedule-status')) $('schedule-status').textContent=error.message;}
+    finally {settingsReading=false;if(canPoll())settingsTimer=setTimeout(readSettings,15000);}
+  }
+  listen($('source-settings'), 'click', () => {if(settings) settingsUI?.open();else void readSettings().then(()=>settingsUI?.open());});
+  for (const [id,key] of [['source-filter','source_id'],['group-filter','group']]) listen($(id), 'change', async()=>{
+    if(!settings)return;
+    const candidate={...settings,view:{...settings.view,[key]:$(id).value||null}};
+    try {const response=await readerFetch('/api/workspace/news/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({expected_revision:settings.revision,sources:candidate.sources,view:candidate.view,schedule:candidate.schedule})});const value=await response.json();if(!response.ok)throw new Error('筛选保存失败，请重试。');if(!destroyed)settingsUI.setSnapshot(value);}catch(error){notice(error.message);renderFilters();}
+  });
+  const canPoll = () => visible && !destroyed && !suspended && !document.hidden;
   const researchEvents = new Map(), researchData = new Map();
   const topicQueries = {coding:'AI coding workflow coding agents tips', agents:'AI agents context engineering tools workflows', claude:'Claude Code coding tips workflows', models:'GPT Gemini coding models releases', tibo:'Tibo AI coding agents'};
   const changeText = (node, text) => { if (node.textContent !== text) node.textContent = text; };
@@ -62,9 +109,12 @@
   function restoreStorage(scope) {
     if (typeof scope !== 'string' || !/^[a-zA-Z0-9_-]{1,64}$/.test(scope)) throw new Error('新闻数据目录尚未确认。');
     const key = 'news-focused-reader-v2:' + scope;
-    if (storeKey && key !== storeKey) { location.reload(); throw new Error('数据目录已切换，正在重新载入。'); }
+    if (storeKey && key !== storeKey) { throw new Error('数据目录已切换，请重新打开新闻。'); }
     if (storeKey) return;
     storeKey = key;
+    spiderKey = 'news-spider-visible-v1:' + scope;
+    try { spiderVisible = localStorage.getItem(spiderKey) !== 'false'; } catch {}
+    syncSpiderVisibility();
     try {
       const stored = JSON.parse(localStorage.getItem(storeKey) || '{}');
       if (stored && typeof stored === 'object' && !Array.isArray(stored)) records = stored;
@@ -107,17 +157,17 @@
     const row = make('button', 'title-row'); row.type = 'button'; row.dataset.id = item.id;
     const title = make('span', 'title-row-title'), meta = make('span', 'title-row-meta'), content = make('span', 'title-row-content'), thumbnail = make('img', 'title-row-thumbnail');
     thumbnail.alt = ''; thumbnail.loading = 'lazy'; thumbnail.referrerPolicy = 'no-referrer';
-    thumbnail.addEventListener('error', () => { failedImages.add(thumbnail.src); thumbnail.hidden = true; });
+    listen(thumbnail, 'error', () => { failedImages.add(thumbnail.src); thumbnail.hidden = true; });
     content.append(title, make('span', 'title-row-summary')); meta.append(make('span', 'row-dot'), make('span', 'row-source'), make('span', 'row-type'), make('span', 'row-date'), make('span', 'row-state'));
-    row.append(content, thumbnail, meta); row.addEventListener('click', () => selectArticle(item.id, true)); return row;
+    row.append(content, thumbnail, meta); listen(row, 'click', () => selectArticle(item.id, true)); return row;
   }
   function render() {
     const previousIndex = Math.max(0, visibleIds.indexOf(currentId));
     const query = $('search').value.trim().toLocaleLowerCase();
     const items = [...articles.values()].filter(item => item.stream === stream);
     for (const view of ['inbox', 'read', 'saved', 'archived']) {
-      document.querySelector(`[data-count="${view}"]`).textContent = items.filter(item => matches(item, view)).length;
-      document.querySelector(`[data-view="${view}"]`).setAttribute('aria-pressed', String(selected === view));
+      root.querySelector(`[data-count="${view}"]`).textContent = items.filter(item => matches(item, view)).length;
+      root.querySelector(`[data-view="${view}"]`).setAttribute('aria-pressed', String(selected === view));
     }
     visibleIds = [];
     let cursor = $('title-list').firstElementChild;
@@ -125,7 +175,7 @@
       let node = nodes.get(item.id);
       if (!node) { node = createRow(item); nodes.set(item.id, node); }
       const row = state(item.id), moving = tasks.has(item.id);
-      const eligible = item.stream === stream && (matches(item) || moving && selected === 'inbox') && (!query || [displayTitle(item), item.title, item.source_name, item.summary || ''].join(' ').toLocaleLowerCase().includes(query));
+      const eligible = (!window.NewsSettings || window.NewsSettings.matches(item, settings, selected)) && item.stream === stream && (matches(item) || moving && selected === 'inbox') && (!query || [displayTitle(item), item.title, item.source_name, item.summary || ''].join(' ').toLocaleLowerCase().includes(query));
       node.hidden = !eligible; if (eligible) visibleIds.push(item.id);
       node.dataset.pending = String(moving);
       changeText(node.querySelector('.title-row-title'), displayTitle(item));
@@ -134,8 +184,8 @@
       const images = imageList(item), thumbnail = node.querySelector('.title-row-thumbnail');
       const thumbnailUrl = images.find(image => !failedImages.has(image.url))?.url;
       thumbnail.hidden = !thumbnailUrl; if (thumbnailUrl && thumbnail.getAttribute('src') !== thumbnailUrl) thumbnail.src = thumbnailUrl;
-      changeText(node.querySelector('.row-type'), images.length > 1 ? `${images.length} 图` : images.length ? '图文' : docFor(item)?.content_kind === 'full_text' || item.body_blocks?.length ? '正文' : item.summary ? '摘要' : '仅标题');
-      changeText(node.querySelector('.row-source'), item.source_name);
+      changeText(node.querySelector('.row-type'), images.length > 1 ? `${images.length} 图` : images.length ? '图文' : docFor(item)?.content_kind === 'full_text' || item.body_blocks?.length && item.content_kind !== 'summary' ? '正文' : item.summary ? '摘要' : '仅标题');
+      changeText(node.querySelector('.row-source'), (settings?.sources.find(source=>source.id===item.source_id)?.name || item.source_name) + (settings?.sources.find(source=>source.id===item.source_id)?.enabled === false ? ' · 已停用' : ''));
       changeText(node.querySelector('.row-date'), dateText(item.submitted_at || item.published_at));
       changeText(node.querySelector('.row-state'), moving ? '归档中' : row.saved ? '◇' : row.read_at ? '已读' : '');
       node.querySelector('.row-dot').hidden = !!row.read_at;
@@ -159,7 +209,7 @@
     for (const [taskId, task] of tasks) if (task.kind === 'archive' && task.node === $('article-title')) cancelTask(taskId);
     currentId = id; stopTranslation(); renderedKey = ''; mediaKey = ''; imageIndex = 0; $('article-scroll').scrollTop = 0;
     setDirectory(false); render();
-    if (!paused) engine?.pointAt($('article-title'), '阅读');
+    if (canPoll() && spiderVisible && !paused) engine?.pointAt($('article-title'), '阅读');
     if (focus) $('article-title').focus({preventScroll:true});
   }
   function docFor(item) { const entry = documents.get(item.id); return entry?.signature === itemSignature(item) ? entry : null; }
@@ -184,7 +234,7 @@
     $('article-content').hidden = !item; $('reader-empty').hidden = !!item;
     if (!item) {
       mediaView = 'article';
-      $('empty-message').textContent = selected === 'archived' ? '看完的内容会收在这里。' : '换个筛选，或采集新的信息。';
+      $('empty-message').textContent = selected === 'inbox' && settings?.sources.length && settings.sources.every(source=>!source.enabled) ? '所有来源已停用。在“来源与更新”中启用；收藏和归档仍保留。' : selected === 'archived' ? '看完的内容会收在这里。' : '换个筛选，或采集新的信息。';
       $('translation-status').hidden = true; $('reader-state').textContent = '选择一条新闻开始阅读'; return;
     }
     const row = state(item.id), entry = docFor(item), blocks = bodyBlocks(item), key = translationKey(item), translated = translations.get(key);
@@ -195,7 +245,7 @@
     const titlePair = language === 'bilingual' && translated?.[0] !== undefined;
     $('article-title-original').hidden = !titlePair; changeText($('article-title-original'), titlePair ? displayTitle(item) : '');
     const references = (entry?.references || item.references || []).filter(reference => safeUrl(reference.url));
-    changeText($('article-source'), `${item.source_name}${references.length ? ` · ${references.length} 引用` : ''}`);
+    changeText($('article-source'), `${settings?.sources.find(source=>source.id===item.source_id)?.name || item.source_name}${settings?.sources.find(source=>source.id===item.source_id)?.enabled === false ? ' · 已停用' : ''}${references.length ? ` · ${references.length} 引用` : ''}`);
     const incomplete = !!(entry?.incomplete || item.incomplete), referencesTotal = entry?.references_total || item.references_total || references.length;
     const provenanceKey = JSON.stringify([item.id, item.author, item.published_at, item.submitted_at, item.published_raw, entry?.author, entry?.published_raw, references, referencesTotal, incomplete]);
     if ($('article-provenance').dataset.key !== provenanceKey) {
@@ -208,7 +258,7 @@
       for (const reference of references) {
         const link = make('a', '', reference.label || (reference.kind === 'x_post' ? '文中引用的 X 帖子' : reference.kind === 'paper' ? '相关论文' : '相关来源'));
         link.href = safeUrl(reference.url); link.target = '_blank'; link.rel = 'noopener noreferrer';
-        link.addEventListener('click', event => { const local = [...articles.values()].find(article => article.url === reference.url); if (local) { event.preventDefault(); if (!matches(local)) selected = state(local.id).archived_at ? 'archived' : 'inbox'; stream = local.stream; $('stream').value = stream; $('search').value = ''; selectArticle(local.id, true); } });
+        listen(link, 'click', event => { const local = [...articles.values()].find(article => article.url === reference.url); if (local) { event.preventDefault(); if (!matches(local)) selected = state(local.id).archived_at ? 'archived' : 'inbox'; stream = local.stream; $('stream').value = stream; $('search').value = ''; selectArticle(local.id, true); } });
         details.append(link);
       }
       $('article-provenance').replaceChildren(details); $('article-provenance').dataset.key = provenanceKey; $('source-details').open = false;
@@ -217,9 +267,9 @@
     $('article-summary').hidden = !summary; changeText($('article-summary'), textAt(1, summary));
     const summaryPair = !!summary && language === 'bilingual' && translated?.[1] !== undefined;
     $('article-summary-original').hidden = !summaryPair; changeText($('article-summary-original'), summaryPair ? summary : '');
-    const hasBody = entry?.content_kind === 'full_text' || item.body_blocks?.length > 0;
-    $('content-badge').textContent = item.content_origin === 'x_public_embed' ? incomplete ? '帖文节选' : '公开帖文' : hasBody ? '正文' : '来源摘要';
-    $('content-status').textContent = hasBody ? '' : !entry ? '正在载入正文，先读来源摘要…' : '暂未取得完整正文，目前展示来源摘要。';
+    const hasBody = entry?.content_kind === 'full_text' || entry?.content_kind === 'feed_content' || item.body_blocks?.length > 0 && item.content_kind !== 'summary';
+    $('content-badge').textContent = item.content_origin === 'x_public_embed' ? incomplete ? '帖文节选' : '公开帖文' : hasBody ? (item.content_kind === 'feed_content' || entry?.content_kind === 'feed_content' ? '订阅正文' : '正文') : '来源摘要';
+    $('content-status').textContent = item.content_truncated || entry?.content_truncated ? '订阅内容较长，当前展示已截取部分。' : hasBody ? '' : !entry ? '正在载入正文，先读来源摘要…' : '暂未取得完整正文，目前展示来源摘要。';
     if (entry && !blocks.length && !summary) $('content-status').textContent = '来源暂未提供正文或摘要，目前仅有标题。';
     renderMedia(item);
     const bodyKey = JSON.stringify([key, language, translated]);
@@ -247,8 +297,8 @@
     picture.alt = image.alt || `文章图片 ${index + 1}`; picture.referrerPolicy = 'no-referrer'; picture.decoding = 'async'; picture.loading = gallery || index === 0 ? 'eager' : 'lazy';
     missing.hidden = !failedImages.has(image.url); picture.hidden = !missing.hidden;
     pending.hidden = !missing.hidden;
-    picture.addEventListener('load', () => { pending.hidden = true; });
-    picture.addEventListener('error', () => { failedImages.add(image.url); picture.hidden = true; pending.hidden = true; missing.hidden = false; });
+    listen(picture, 'load', () => { pending.hidden = true; });
+    listen(picture, 'error', () => { failedImages.add(image.url); picture.hidden = true; pending.hidden = true; missing.hidden = false; });
     if (missing.hidden) picture.src = image.url;
     figure.append(picture, pending, missing);
     if (image.caption || image.alt) {
@@ -263,7 +313,7 @@
     $('article-content').dataset.mediaView = mediaView;
     $('article-scroll').dataset.mediaView = mediaView;
     $('media-toolbar').hidden = !images.length; $('media-total').textContent = `${images.length} 张图片`;
-    document.querySelectorAll('button[data-media-view]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.mediaView === mediaView)));
+    root.querySelectorAll('button[data-media-view]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.mediaView === mediaView)));
     $('article-cover').hidden = !images.length || mediaView === 'gallery'; $('article-gallery').hidden = !images.length || mediaView !== 'gallery';
     const key = JSON.stringify([item.id, images, mediaView, imageIndex]); if (key === mediaKey) return;
     mediaKey = key;
@@ -276,7 +326,7 @@
     $('image-previous').disabled = imageIndex <= 0; $('image-next').disabled = imageIndex >= images.length - 1;
   }
   function validDocument(value, item) {
-    return value && value.id === item.id && ['full_text', 'summary'].includes(value.content_kind) && Array.isArray(value.blocks) && value.blocks.every(block => block && ['p', 'h2', 'li'].includes(block.type) && typeof block.text === 'string');
+    return value && value.id === item.id && ['full_text', 'feed_content', 'summary'].includes(value.content_kind) && Array.isArray(value.blocks) && value.blocks.every(block => block && ['p', 'h2', 'li'].includes(block.type) && typeof block.text === 'string');
   }
   async function loadArticle(item) {
     const signature = itemSignature(item), requestKey = item.id + signature;
@@ -286,8 +336,8 @@
       const response = await readerFetch('/article?id=' + encodeURIComponent(item.id));
       if (!response.ok) throw new Error('正文读取未完成');
       const value = await response.json(); if (!validDocument(value, item)) throw new Error('正文格式不可用');
-      if (articles.has(item.id) && itemSignature(articles.get(item.id)) === signature) documents.set(item.id, {...value, signature});
-      if (value.reason === 'reader_busy' && (articleAttempts.get(requestKey) || 0) < 12) {
+      if (!destroyed && articles.has(item.id) && itemSignature(articles.get(item.id)) === signature) documents.set(item.id, {...value, signature});
+      if (!destroyed && value.reason === 'reader_busy' && (articleAttempts.get(requestKey) || 0) < 12) {
         articleAttempts.set(requestKey, (articleAttempts.get(requestKey) || 0) + 1);
         clearTimeout(articleRetry);
         articleRetry = setTimeout(() => {
@@ -295,10 +345,10 @@
         }, 1500);
       }
     } catch {
-      if (articles.has(item.id) && itemSignature(articles.get(item.id)) === signature) documents.set(item.id, {id:item.id, signature, blocks:[], images:[], content_kind:'summary', reason:'unavailable'});
+      if (!destroyed && articles.has(item.id) && itemSignature(articles.get(item.id)) === signature) documents.set(item.id, {id:item.id, signature, blocks:[], images:[], content_kind:'summary', reason:'unavailable'});
     } finally {
       loading.delete(requestKey);
-      if (currentId === item.id) { stopTranslation(); renderedKey = ''; render(); }
+      if (canPoll() && currentId === item.id) { stopTranslation(); renderedKey = ''; render(); }
     }
   }
   let translatingKey = null;
@@ -332,7 +382,7 @@
     } finally { if (run === translationRun) { translationAbort = null; translatingKey = null; } }
   }
   function runArrival() {
-    if (!engine || paused || tasks.size || !arrivalQueue.length) return;
+    if (!canPoll() || !spiderVisible || !engine || paused || tasks.size || !arrivalQueue.length) return;
     const item = arrivalQueue.shift(); $('arrival-title').textContent = '新消息 · ' + displayTitle(item); $('arrival-title').hidden = false; $('reader-state').hidden = true;
     const id = 'arrival:' + item.id;
     try { if (engine.capture({id, element:$('arrival-title'), label:displayTitle(item)})) { tasks.set(id, {kind:'arrival', node:$('arrival-title'), articleId:item.id}); $('spider-state').textContent = '新信息正在入站'; return; } } catch {}
@@ -342,12 +392,13 @@
     const item = articles.get(currentId); if (!item) return; const row = state(item.id);
     if (row.archived_at) { cancelTask(item.id); row.archived_at = null; save(); render(); notice('已移回阅读。'); return; }
     undo = {id:item.id, read_at:row.read_at, archived_at:row.archived_at}; row.read_at ||= new Date().toISOString(); row.archived_at = new Date().toISOString();
+    save();
     let target = $('article-title');
     if (!visibleElement(target)) target = nodes.get(item.id)?.querySelector('.title-row-title');
-    if (engine && !paused && visibleElement(target)) {
+    if (canPoll() && spiderVisible && engine && !paused && visibleElement(target)) {
       try { if (engine.capture({id:item.id, element:target, label:displayTitle(item)})) tasks.set(item.id, {kind:'archive', node:target, articleId:item.id}); } catch {}
     }
-    save(); render(); notice('已读并归档。', true);
+    render(); notice('已读并归档。', true);
   }
   function applySnapshot(value, animate = false, append = false) {
     if (!value?.sample?.streams || !Array.isArray(value.sample.sources)) throw new Error('本次采集未返回可用内容。');
@@ -362,48 +413,67 @@
     for (const [id, item] of incoming) articles.set(id, item);
     for (const [id, item] of retained) articles.set(id, item);
     if (!currentId) currentId = [...articles.values()].find(item => item.stream === stream)?.id || null;
-    const failureCount = failedSources.size, count = append ? articles.size : incoming.size;
+    const failureCount = [...failedSources].filter(id=>settings?.sources.find(source=>source.id===id)?.enabled !== false).length, count = append ? articles.size : incoming.size;
     const time = new Date(value.sample.captured_at || NaN);
     const stamp = Number.isFinite(time.getTime()) ? new Intl.DateTimeFormat('zh-CN', {hour:'2-digit', minute:'2-digit', timeZone:'Asia/Shanghai'}).format(time) : '';
     $('snapshot-note').textContent = `${stamp ? stamp + ' 最近采集 · ' : ''}${count} 条信息${failureCount ? ` · ${failureCount} 个来源暂未更新，保留已有内容` : ''}`;
-    if (animate) arrivalQueue.push(...[...incoming.values()].filter(item => !oldIds.has(item.id)).slice(0, 3));
-    save(); render(); cancelInvisible(); if (animate) runArrival();
+    if (animate && canPoll() && spiderVisible) arrivalQueue.push(...[...incoming.values()].filter(item => !oldIds.has(item.id)).slice(0, 3));
+    save(); if (canPoll()) { render(); cancelInvisible(); if (animate) runArrival(); }
   }
-  document.querySelectorAll('[data-view]').forEach(control => control.addEventListener('click', () => { for (const [id, task] of tasks) if (task.kind === 'archive') cancelTask(id); selected = control.dataset.view; render(); }));
-  $('search').addEventListener('input', () => { render(); cancelInvisible(); });
-  $('stream').addEventListener('change', () => { for (const [id, task] of tasks) if (task.kind === 'archive') cancelTask(id); stream = $('stream').value; render(); });
-  $('clear-search').addEventListener('click', () => { $('search').value = ''; render(); $('search').focus(); });
-  $('directory-summary').addEventListener('click', event => { const show = event.currentTarget.getAttribute('aria-pressed') !== 'true'; event.currentTarget.setAttribute('aria-pressed', String(show)); event.currentTarget.setAttribute('aria-label', show ? '隐藏目录摘要' : '显示目录摘要'); $('directory').dataset.summaries = String(show); });
-  $('previous').addEventListener('click', () => { const index = visibleIds.indexOf(currentId); if (index > 0) selectArticle(visibleIds[index - 1]); });
-  $('next').addEventListener('click', () => { const index = visibleIds.indexOf(currentId); if (index < visibleIds.length - 1) selectArticle(visibleIds[index + 1]); });
-  $('open-directory').addEventListener('click', () => { setDirectory(true); $('search').focus(); });
-  $('close-directory').addEventListener('click', () => { setDirectory(false); $('open-directory').focus(); cancelInvisible(); });
-  $('directory-backdrop').addEventListener('click', () => { setDirectory(false); $('open-directory').focus(); cancelInvisible(); });
-  $('mark-read').addEventListener('click', () => { if (!currentId) return; const row = state(currentId); row.read_at = row.read_at ? null : new Date().toISOString(); save(); render(); });
-  $('save-article').addEventListener('click', () => { if (!currentId) return; const row = state(currentId); row.saved = !row.saved; save(); render(); });
-  $('archive-article').addEventListener('click', archiveCurrent);
-  $('undo').addEventListener('click', () => { if (!undo) return; const {id, read_at, archived_at} = undo; cancelTask(id); Object.assign(state(id), {read_at, archived_at}); undo = null; save(); currentId = id; render(); notice('已撤销归档。'); });
-  $('dismiss').addEventListener('click', () => { $('toast').hidden = true; });
-  document.querySelectorAll('[data-language]').forEach(control => control.addEventListener('click', () => { language = control.dataset.language; stopTranslation(); document.querySelectorAll('[data-language]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.language === language))); renderedKey = ''; renderArticle(); }));
-  $('theme').addEventListener('click', () => { const dark = document.documentElement.dataset.theme !== 'dark'; document.documentElement.dataset.theme = dark ? 'dark' : 'light'; $('theme').setAttribute('aria-label', dark ? '切换浅色' : '切换深色'); });
+  root.querySelectorAll('[data-view]').forEach(control => listen(control, 'click', () => { for (const [id, task] of tasks) if (task.kind === 'archive') cancelTask(id); selected = control.dataset.view; render(); }));
+  listen($('search'), 'input', () => { render(); cancelInvisible(); });
+  listen($('stream'), 'change', () => { for (const [id, task] of tasks) if (task.kind === 'archive') cancelTask(id); stream = $('stream').value; render(); });
+  listen($('clear-search'), 'click', () => { $('search').value = ''; render(); $('search').focus(); });
+  listen($('directory-summary'), 'click', event => { const show = event.currentTarget.getAttribute('aria-pressed') !== 'true'; event.currentTarget.setAttribute('aria-pressed', String(show)); event.currentTarget.setAttribute('aria-label', show ? '隐藏目录摘要' : '显示目录摘要'); $('directory').dataset.summaries = String(show); });
+  listen($('previous'), 'click', () => { const index = visibleIds.indexOf(currentId); if (index > 0) selectArticle(visibleIds[index - 1]); });
+  listen($('next'), 'click', () => { const index = visibleIds.indexOf(currentId); if (index < visibleIds.length - 1) selectArticle(visibleIds[index + 1]); });
+  listen($('open-directory'), 'click', () => { setDirectory(true); $('search').focus(); });
+  listen($('close-directory'), 'click', () => { setDirectory(false); $('open-directory').focus(); cancelInvisible(); });
+  listen($('directory-backdrop'), 'click', () => { setDirectory(false); $('open-directory').focus(); cancelInvisible(); });
+  listen($('mark-read'), 'click', () => { if (!currentId) return; const row = state(currentId); row.read_at = row.read_at ? null : new Date().toISOString(); save(); render(); });
+  listen($('save-article'), 'click', () => { if (!currentId) return; const row = state(currentId); row.saved = !row.saved; save(); render(); });
+  listen($('archive-article'), 'click', archiveCurrent);
+  listen($('undo'), 'click', () => { if (!undo) return; const {id, read_at, archived_at} = undo; cancelTask(id); Object.assign(state(id), {read_at, archived_at}); undo = null; save(); currentId = id; render(); notice('已撤销归档。'); });
+  listen($('dismiss'), 'click', () => { $('toast').hidden = true; });
+  root.querySelectorAll('[data-language]').forEach(control => listen(control, 'click', () => { language = control.dataset.language; stopTranslation(); root.querySelectorAll('[data-language]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.language === language))); renderedKey = ''; renderArticle(); }));
+  $('theme').hidden = embedded;
+  listen($('theme'), 'click', () => { const dark = themeHost.dataset.theme !== 'dark'; themeHost.dataset.theme = dark ? 'dark' : 'light'; $('theme').setAttribute('aria-label', dark ? '切换浅色' : '切换深色'); });
   function syncMotion() {
-    const show = !paused && canPoll();
+    const show = spiderVisible && !paused && canPoll();
     if (show && !$('research-panel').open) engine?.resume(); else engine?.pause();
     if (show && $('research-panel').open) researchEngine?.resume(); else researchEngine?.pause();
     $('pause').textContent = $('research-pause').textContent = paused ? '继续动画' : '暂停动画';
   }
-  $('pause').addEventListener('click', () => { paused = !paused; syncMotion(); $('spider-state').textContent = paused ? '休息一会儿' : collecting ? '正在搜集新信息' : '陪你慢慢读'; if (!paused) runArrival(); });
-  $('research-pause').addEventListener('click', () => $('pause').click());
-  document.querySelectorAll('button[data-media-view]').forEach(button => button.addEventListener('click', () => { mediaView = button.dataset.mediaView; $('article-scroll').scrollTop = 0; renderMedia(articles.get(currentId)); }));
-  $('image-previous').addEventListener('click', () => { imageIndex--; renderMedia(articles.get(currentId)); });
-  $('image-next').addEventListener('click', () => { imageIndex++; renderMedia(articles.get(currentId)); });
+  function syncSpiderVisibility() {
+    if (!spiderVisible) {
+      arrivalQueue = [];
+      for (const id of [...tasks.keys()]) cancelTask(id);
+      researchEngine?.pointAt(null); engine?.pointAt(null);
+    }
+    for (const selector of ['#spider-canvas', '.spider-home', '#research-spider-canvas', '.research-spider-home']) {
+      const node = root.querySelector(selector); if (node) node.hidden = !spiderVisible;
+    }
+    const toggle = $('spider-visible');
+    if (toggle) { toggle.setAttribute('aria-pressed', String(spiderVisible)); toggle.textContent = spiderVisible ? '隐藏蜘蛛' : '显示蜘蛛'; }
+    syncMotion();
+  }
+  listen($('spider-visible'), 'click', () => {
+    spiderVisible = !spiderVisible;
+    if (spiderKey) try { localStorage.setItem(spiderKey, String(spiderVisible)); } catch {}
+    syncSpiderVisibility(); render();
+  });
+  listen($('pause'), 'click', () => { paused = !paused; syncMotion(); $('spider-state').textContent = paused ? '休息一会儿' : collecting ? '正在搜集新信息' : '陪你慢慢读'; if (!paused) runArrival(); });
+  listen($('research-pause'), 'click', () => $('pause').click());
+  root.querySelectorAll('button[data-media-view]').forEach(button => listen(button, 'click', () => { mediaView = button.dataset.mediaView; $('article-scroll').scrollTop = 0; renderMedia(articles.get(currentId)); }));
+  listen($('image-previous'), 'click', () => { imageIndex--; renderMedia(articles.get(currentId)); });
+  listen($('image-next'), 'click', () => { imageIndex++; renderMedia(articles.get(currentId)); });
   function setCollecting(active) {
     collecting = active; researchBusy = active; engine?.setCollecting?.(active);
     researchEngine?.setCollecting(active);
     $('refresh').textContent = active ? '◌ 查看采集过程' : researchJob ? '↻ 采集工作台' : '↻ 采集新信息';
     $('research-panel').dataset.running = String(active);
     $('research-start').disabled = active; $('research-start').textContent = active ? '采集中…' : '开始采集 ↗';
-    $('research-query').disabled = active; document.querySelectorAll('[data-topic]').forEach(button => { button.disabled = active; });
+    $('research-query').disabled = active; root.querySelectorAll('[data-topic]').forEach(button => { button.disabled = active; });
     if (!tasks.size) $('spider-state').textContent = paused ? '休息一会儿' : active ? '正在搜集新信息' : '陪你慢慢读';
   }
   function frameUrl(value) {
@@ -427,13 +497,13 @@
     const frames = [...researchData.values()].filter(item => frameUrl(item.screenshot)), index = frames.findIndex(item => item.seq === event.seq);
     $('frame-position').textContent = `${index + 1} / ${frames.length}`;
     $('frame-previous').disabled = index <= 0; $('frame-next').disabled = index >= frames.length - 1;
-    document.querySelectorAll('[data-step]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.step === eventStep(event))));
-    document.querySelectorAll('.research-source').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.host === eventHost(event, true))));
+    root.querySelectorAll('[data-step]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.step === eventStep(event))));
+    root.querySelectorAll('.research-source').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.host === eventHost(event, true))));
     pointResearch(event);
   }
   function pointResearch(event) {
-    if (!researchEngine || paused || !$('research-panel').open) return;
-    const source = [...document.querySelectorAll('.research-source')].find(button => button.dataset.host === eventHost(event, true));
+    if (!canPoll() || !spiderVisible || !researchEngine || paused || !$('research-panel').open) return;
+    const source = [...root.querySelectorAll('.research-source')].find(button => button.dataset.host === eventHost(event, true));
     researchEngine.pointAt(source?.querySelector('.source-name') || $('research-host'), event.stage || '浏览');
   }
   function eventHost(event, source = false) {
@@ -460,10 +530,10 @@
       button.type = 'button'; button.dataset.host = host; button.dataset.state = blocked ? 'blocked' : entry.extracted ? 'ready' : 'visited';
       button.append(make('span', 'source-symbol', blocked ? '!' : entry.extracted ? '✓' : '↗'), make('span', 'source-name', host), make('span', 'source-state', blocked ? '受阻' : entry.extracted ? '已提取' : '已浏览'));
       button.disabled = !entry.frame; button.setAttribute('aria-label', `${host}，${blocked ? '访问受阻' : entry.extracted ? '已提取' : '已浏览'}${entry.frame ? '，回看页面' : '，暂无截图'}`);
-      if (entry.frame) button.addEventListener('click', () => showResearchFrame(entry.frame)); fragment.append(button);
+      if (entry.frame) listen(button, 'click', () => showResearchFrame(entry.frame)); fragment.append(button);
     }
     $('research-sources').replaceChildren(fragment);
-    document.querySelectorAll('[data-step]').forEach(button => { const group = events.filter(event => eventStep(event) === button.dataset.step); button.disabled = !group.length; button.dataset.done = String(group.length > 0); });
+    root.querySelectorAll('[data-step]').forEach(button => { const group = events.filter(event => eventStep(event) === button.dataset.step); button.disabled = !group.length; button.dataset.done = String(group.length > 0); });
   }
   function appendResearchEvents(events) {
     let latestFrame = null, changed = false;
@@ -476,7 +546,7 @@
       button.type = 'button'; button.append(make('span', 'research-event-stage', stageNames[event.stage] || String(event.stage || '采集')), make('span', 'research-event-message', event.message));
       if (safeUrl(event.url) || safeUrl(event.requested_url)) button.append(make('span', 'research-event-url', safeUrl(event.url) || safeUrl(event.requested_url)));
       if (Number.isFinite(time.getTime())) button.append(make('time', '', new Intl.DateTimeFormat('zh-CN', {hour:'2-digit', minute:'2-digit', second:'2-digit', timeZone:'Asia/Shanghai'}).format(time)));
-      if (frameUrl(event.screenshot)) { button.addEventListener('click', () => showResearchFrame(event)); latestFrame = event; button.setAttribute('aria-label', `${event.message}，查看实际页面截图`); }
+      if (frameUrl(event.screenshot)) { listen(button, 'click', () => showResearchFrame(event)); latestFrame = event; button.setAttribute('aria-label', `${event.message}，查看实际页面截图`); }
       else { button.disabled = true; }
       row.append(button); $('research-events').append(row); researchEvents.set(event.seq, row);
       if (!event.screenshot && safeUrl(event.url) && researchFrameSeq === null) $('research-url').textContent = event.url;
@@ -513,7 +583,7 @@
       if (!job || researchJob || researchBusy) return;
       if (typeof job.query === 'string') $('research-query').value = job.query;
       if (topicQueries[job.topic]) researchTopic = job.topic;
-      document.querySelectorAll('[data-topic]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.topic === researchTopic)));
+      root.querySelectorAll('[data-topic]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.topic === researchTopic)));
       acceptResearch(job, true);
     } catch { /* Reading remains available when history cannot be loaded. */ }
     finally { historyReading = false; }
@@ -525,7 +595,7 @@
     catch { if (canPoll() && researchBusy) { $('research-state').textContent = '连接暂时中断，正在重试'; researchTimer = setTimeout(pollResearch, 3000); } }
     finally { researchReading = false; }
   }
-  $('refresh').addEventListener('click', () => {
+  listen($('refresh'), 'click', () => {
     if (!$('research-panel').open) $('research-panel').showModal();
     if (!researchEngine && window.NewsSpider) {
       researchEngine = window.NewsSpider.mount({root:$('research-animation-stage'), canvas:$('research-spider-canvas'), depot:$('research-web-depot')});
@@ -536,62 +606,75 @@
     if (event) pointResearch(event);
     if (researchBusy) $('research-close').focus();
   });
-  for (const id of ['research-close','research-return']) $(id).addEventListener('click', () => $('research-panel').close());
-  $('research-panel').addEventListener('close', () => { researchEngine?.pointAt(null); syncMotion(); $('refresh').focus(); });
-  $('research-frame').addEventListener('error', () => { $('research-frame').hidden = true; $('research-frame-empty').hidden = false; $('research-frame-empty').textContent = '这张实际截图暂时无法载入，可继续查看采集记录。'; });
-  for (const [id, direction] of [['frame-previous', -1], ['frame-next', 1]]) $(id).addEventListener('click', () => { const frames = [...researchData.values()].filter(event => frameUrl(event.screenshot)), index = frames.findIndex(event => event.seq === researchFrameSeq); if (frames[index + direction]) showResearchFrame(frames[index + direction]); });
-  document.querySelectorAll('[data-step]').forEach(button => button.addEventListener('click', () => {
-    document.querySelectorAll('[data-step]').forEach(control => control.setAttribute('aria-pressed', String(control === button)));
+  for (const id of ['research-close','research-return']) listen($(id), 'click', () => $('research-panel').close());
+  listen($('research-panel'), 'close', () => { researchEngine?.pointAt(null); syncMotion(); $('refresh').focus(); });
+  listen($('research-frame'), 'error', () => { $('research-frame').hidden = true; $('research-frame-empty').hidden = false; $('research-frame-empty').textContent = '这张实际截图暂时无法载入，可继续查看采集记录。'; });
+  for (const [id, direction] of [['frame-previous', -1], ['frame-next', 1]]) listen($(id), 'click', () => { const frames = [...researchData.values()].filter(event => frameUrl(event.screenshot)), index = frames.findIndex(event => event.seq === researchFrameSeq); if (frames[index + direction]) showResearchFrame(frames[index + direction]); });
+  root.querySelectorAll('[data-step]').forEach(button => listen(button, 'click', () => {
+    root.querySelectorAll('[data-step]').forEach(control => control.setAttribute('aria-pressed', String(control === button)));
     const events = [...researchData.values()].filter(event => eventStep(event) === button.dataset.step), event = events.findLast(event => frameUrl(event.screenshot));
     if (event) showResearchFrame(event);
-    else if (events.length) { document.querySelector('.research-log').open = true; researchEvents.get(events.at(-1).seq)?.scrollIntoView({block:'nearest'}); }
+    else if (events.length) { root.querySelector('.research-log').open = true; researchEvents.get(events.at(-1).seq)?.scrollIntoView({block:'nearest'}); }
   }));
-  document.querySelectorAll('[data-topic]').forEach(button => button.addEventListener('click', () => { researchTopic = button.dataset.topic; $('research-query').value = topicQueries[researchTopic]; document.querySelectorAll('[data-topic]').forEach(control => control.setAttribute('aria-pressed', String(control === button))); }));
-  $('research-form').addEventListener('submit', async event => {
+  root.querySelectorAll('[data-topic]').forEach(button => listen(button, 'click', () => { researchTopic = button.dataset.topic; $('research-query').value = topicQueries[researchTopic]; root.querySelectorAll('[data-topic]').forEach(control => control.setAttribute('aria-pressed', String(control === button))); }));
+  listen($('research-form'), 'submit', async event => {
     event.preventDefault(); if (researchBusy) return; const query = $('research-query').value.trim(); if (!query) { $('research-query').focus(); return; }
     clearTimeout(researchTimer); frameRequest++; researchJob = null; researchFrameSeq = null; researchEvents.clear(); researchData.clear(); $('research-events').replaceChildren(); $('research-events-empty').hidden = false; researchOverview([]);
     researchEngine?.pointAt(null);
     $('research-timing').textContent = ''; $('research-frame-mode').textContent = '采集中 · 步骤截图'; $('research-activity').textContent = '正在启动浏览器…';
-    $('frame-position').textContent = '0 / 0'; $('frame-previous').disabled = true; $('frame-next').disabled = true; $('research-host').textContent = '等待页面'; document.querySelector('.research-log').open = false;
+    $('frame-position').textContent = '0 / 0'; $('frame-previous').disabled = true; $('frame-next').disabled = true; $('research-host').textContent = '等待页面'; root.querySelector('.research-log').open = false;
     $('research-frame').hidden = true; $('research-frame').removeAttribute('src'); $('research-frame-empty').hidden = false; $('research-frame-empty').textContent = '等待实际访问页面的截图…';
     $('research-url').textContent = '准备检索'; $('research-frame-caption').textContent = '只显示本次采集实际获得的页面画面。'; $('research-outcome').textContent = '关闭工作台后，采集仍会继续。'; $('research-state').textContent = '正在开始'; $('research-count').textContent = '0 条记录'; $('research-log-count').textContent = '0'; setCollecting(true);
     try {
       const response = await readerFetch('/research', {method:'POST', headers:{'Content-Type':'application/json', 'X-Preview-Request':'1'}, body:JSON.stringify({query, topic:researchTopic})});
-      const value = await response.json(); if (!response.ok && !(response.status === 409 && value.job_id)) throw new Error('采集暂时无法开始，请稍后重试。'); acceptResearch(value);
+      const value = await response.json(); if (!response.ok && !(response.status === 409 && value.job_id)) throw new Error(response.status===409 ? '当前已有更新正在进行，请等待完成。' : '采集暂时无法开始，请稍后重试。'); acceptResearch(value);
     } catch (error) { setCollecting(false); $('research-state').textContent = '未能开始'; $('research-frame-mode').textContent = '未开始'; $('research-activity').textContent = error.message; $('research-outcome').textContent = error.message; }
   });
-  document.addEventListener('keydown', event => {
+  listen(root, 'keydown', event => {
+    if (!canPoll()) return;
+    const target = event.composedPath?.()[0] || event.target;
     if ($('research-panel').open) return;
-    if (/INPUT|TEXTAREA|SELECT/.test(event.target.tagName) || event.target.isContentEditable || event.ctrlKey || event.metaKey || event.altKey) return;
+    if (/INPUT|TEXTAREA|SELECT/.test(target.tagName) || target.isContentEditable || event.ctrlKey || event.metaKey || event.altKey) return;
     if (event.key === 'Escape' && $('animation-stage').dataset.directory === 'open') { setDirectory(false); $('open-directory').focus(); }
     if (event.key === 'ArrowLeft') { const button = mediaView === 'gallery' ? $('image-previous') : $('previous'); if (!button.disabled) { event.preventDefault(); button.click(); } }
     if (event.key === 'ArrowRight') { const button = mediaView === 'gallery' ? $('image-next') : $('next'); if (!button.disabled) { event.preventDefault(); button.click(); } }
   });
   function syncHomeLayout() {
-    const home = document.querySelector('.spider-home');
+    const home = root.querySelector('.spider-home');
     const mobile = matchMedia('(max-width:720px)').matches;
-    if (mobile) { if (home.parentElement !== $('reader')) $('reader').insertBefore(home, document.querySelector('.reader-footer')); }
+    if (mobile) { if (home.parentElement !== $('reader')) $('reader').insertBefore(home, root.querySelector('.reader-footer')); }
     else { if (home.parentElement !== $('directory')) $('directory').append(home); setDirectory(false); }
     $('directory').inert = mobile && $('animation-stage').dataset.directory !== 'open';
   }
-  $('article-scroll').addEventListener('scroll', cancelInvisible, {passive:true}); $('title-list').addEventListener('scroll', cancelInvisible, {passive:true}); window.addEventListener('resize', () => { syncHomeLayout(); cancelInvisible(); });
+  listen($('article-scroll'), 'scroll', cancelInvisible, {passive:true}); listen($('title-list'), 'scroll', cancelInvisible, {passive:true}); listen(window, 'resize', () => { syncHomeLayout(); cancelInvisible(); });
   function syncActivity() {
     syncMotion();
-    if (!canPoll()) { clearTimeout(researchTimer); clearTimeout(feedTimer); return; }
+    if (!canPoll()) { clearTimeout(researchTimer); clearTimeout(feedTimer); clearTimeout(settingsTimer); return; }
+    void readSettings();
     void readFeeds(false, feedAttempt).then(() => restoreResearch());
     if (researchBusy) void pollResearch();
   }
-  document.addEventListener('visibilitychange', syncActivity);
-  window.addEventListener('pagehide', event => { if (event.persisted) { suspended = true; syncActivity(); } else { destroyed = true; clearTimeout(researchTimer); clearTimeout(feedTimer); clearTimeout(articleRetry); if (frameObjectUrl) URL.revokeObjectURL(frameObjectUrl); stopTranslation(); engine?.destroy(); researchEngine?.destroy(); } });
-  window.addEventListener('pageshow', event => { if (event.persisted) { suspended = false; syncActivity(); } });
+  listen(document, 'visibilitychange', syncActivity);
+  function destroy() {
+    if (destroyed) return;
+    destroyed = true; mounted.delete(root); lifecycle.abort();
+    for (const controller of requests) controller.abort(); requests.clear();
+    clearTimeout(researchTimer); clearTimeout(feedTimer); clearTimeout(articleRetry); clearTimeout(settingsTimer); settingsUI?.destroy();
+    if (frameObjectUrl) URL.revokeObjectURL(frameObjectUrl);
+    stopTranslation(); engine?.destroy(); researchEngine?.destroy();
+    root.querySelectorAll('dialog').forEach(dialog => { if (dialog.open) dialog.close(); });
+  }
+  listen(window, 'pagehide', event => { if (event.persisted) { suspended = true; syncActivity(); } else destroy(); });
+  listen(window, 'pageshow', event => { if (event.persisted) { suspended = false; syncActivity(); } });
   async function readFeeds(refresh = false, attempt = 0) {
     if (!canPoll() || feedReading) return;
     feedReading = true; feedAttempt = attempt;
     clearTimeout(feedTimer); $('refresh-feeds').disabled = true;
     try {
       const response = await readerFetch(refresh ? '/reader/refresh' : '/sample', refresh ? {method:'POST', headers:{'Content-Type':'application/json'}, body:'{}'} : {cache:'no-store'});
-      if (!response.ok) throw new Error('新闻暂未更新，保留本机阅读记录。');
       const value = await response.json(); if (destroyed) return;
+      if (value.runtime && settingsUI) { settingsUI.setRuntime(value.runtime); if (canPoll()) $('schedule-status').textContent=window.NewsSettings.runtimeText(value.runtime,settings); }
+      if (!response.ok) throw new Error(response.status===409 ? '当前已有更新正在进行，请等待完成。' : response.status===503 ? '新闻更新服务受限，请查看来源与更新。' : '新闻暂未更新，保留本机阅读记录。');
       const key = JSON.stringify([value.reader_id, value.sample?.captured_at,
         value.sample?.sources?.map(source => [source.id, source.source_id, source.reason]),
         Object.entries(value.sample?.streams || {}).map(([name, envelope]) => [name, envelope.items]), value.covers?.items]);
@@ -599,9 +682,9 @@
       feedFailed = false;
       if (canPoll() && value.refreshing && attempt < 35) feedTimer = setTimeout(() => readFeeds(false, attempt + 1), 1500);
     } catch (error) { if (!destroyed) { feedFailed = true; $('snapshot-note').textContent = error.message; } }
-    finally { feedReading = false; if (!destroyed) $('refresh-feeds').disabled = false; }
+    finally { feedReading = false; if (!destroyed) $('refresh-feeds').disabled = false; if (feedAgain && canPoll()) { feedAgain=false; void readFeeds(); } }
   }
-  $('refresh-feeds').addEventListener('click', () => readFeeds(true));
+  listen($('refresh-feeds'), 'click', () => readFeeds(true));
   async function start() {
     syncHomeLayout(); render();
     if (window.NewsSpider) {
@@ -609,9 +692,20 @@
       if (matchMedia('(prefers-reduced-motion: reduce)').matches) { paused = true; engine.pause(); $('pause').textContent = '启用动画'; $('spider-state').textContent = '已减少动效'; }
     }
     syncMotion();
-    window.NewsReader = {inspect:() => ({items:articles.size, visible:visibleIds.length, currentId, selected, stream, language, mediaView, imageIndex, researchJob, researchEvents:researchEvents.size, pending:[...tasks.keys()], reading:JSON.parse(JSON.stringify(records)), collecting, engine:engine?.inspect(), researchEngine:researchEngine?.inspect(), destroyed}), engine, applySnapshot};
+    if (!embedded) window.NewsReader = {inspect:() => ({items:articles.size, visible:visibleIds.length, currentId, selected, stream, language, mediaView, imageIndex, researchJob, researchEvents:researchEvents.size, pending:[...tasks.keys()], reading:JSON.parse(JSON.stringify(records)), collecting, engine:engine?.inspect(), researchEngine:researchEngine?.inspect(), destroyed}), engine, applySnapshot};
+    void readSettings();
     await readFeeds();
     restoreResearch();
   }
-  start();
+  const handle = {setVisible(next) { if (destroyed) return; if (visible !== !!next) { visible = !!next; if (visible) { if (settings) renderFilters(); render(); } syncActivity(); } }, destroy,
+    inspect:() => ({mounted:true, visible, destroyed, currentId, pending:[...tasks.keys()], engine:engine?.inspect(), researchEngine:researchEngine?.inspect()}), applySnapshot};
+  const back = root.querySelector('.workspace-name');
+  if (embedded && back) listen(back, 'click', event => { event.preventDefault(); onReturn?.(); });
+  mounted.set(root, handle);
+  queueMicrotask(() => { if (!destroyed) void start(); });
+  return handle;
+}
+window.NewsReaderUI = {mount};
+const standalone = document.querySelector('.news-reader-root');
+if (standalone && !standalone.dataset.embedded) mount(standalone);
 })();

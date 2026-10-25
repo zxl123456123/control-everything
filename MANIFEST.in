@@ -13,6 +13,7 @@ include web/workspace/task-center.js
 include web/workspace/project-space.js web/workspace/execution.js web/workspace/observation.js
 include web/workspace/news.js web/workspace/quota.js
 include web/workspace/news-reader.html web/workspace/news-reader.css web/workspace/news-reader.js
+include web/workspace/news-settings.js web/workspace/news-surface.js
 include web/workspace/news-spider.js web/workspace/news-browser.js web/workspace/news-public-embed.js
 include web/workspace/mobile-device-entry.js
 include web/workspace/studio-preview.html web/workspace/studio-preview.css web/workspace/studio-preview.js

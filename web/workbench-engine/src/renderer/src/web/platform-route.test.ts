@@ -3,6 +3,9 @@ import { projectRoute, readPlatformRoute } from './platform-route'
 
 describe('platform page routes', () => {
   const read = (hash: string, search = '') => readPlatformRoute({ hash, search })
+  it('opens news without adopting a legacy project', () => {
+    expect(read('#news', '?project_id=p-one')).toEqual({view:'news', id:'', tab:''})
+  })
   it('opens mobile independently of a legacy project query', () => {
     expect(read('#mobile')).toEqual({ view: 'mobile', id: '', tab: '' })
     expect(read('#mobile', '?project_id=p-one')).toEqual({ view: 'mobile', id: '', tab: '' })

@@ -391,7 +391,11 @@ Ctrl+C 停网关即可停本批查询，原 Claude/SSH/Zellij 对话继续运行
 
 ### 新闻阅读器
 
-正式同源入口为 `/news`，由 Studio 首页/手机顶部及旧 `/workspace#news` 进入。旧 `news.ts/news.js` 与固定 RSS API 保持兼容；新阅读展示在 `web/workspace/news-reader.*`，蜘蛛动画在 `news-spider.js`。`news-browser.js`、`news-public-embed.js` 是仅服务端执行的浏览 worker，按白名单入包，不作为 HTTP 静态文件提供；普通阅读和 RSS 无需 Node。
+Studio 首页和手机顶部通过 `#news` 在当前工作台内打开新闻；`/news` 保留独立入口。新闻实例由 `news-surface.js` 挂载并保留阅读状态，来源设置由 `news-settings.js` 管理。旧 `news.ts/news.js` 与固定 RSS API 保持兼容；阅读展示在 `web/workspace/news-reader.*`，蜘蛛动画在 `news-spider.js`。隐藏蜘蛛只停止动画展示，不停止阅读或已启用的更新。`news-browser.js`、`news-public-embed.js` 是仅服务端执行的浏览 worker，按白名单入包，不作为 HTTP 静态文件提供；普通阅读和 RSS 无需 Node。
+
+“来源与更新”支持内置来源启停、公开 HTTPS RSS/Atom/RSSHub 订阅地址、分组及包含/排除关键词。不连接私网、localhost、带凭据地址或自签名服务，不自动部署 RSSHub。筛选只影响阅读视图，停用来源保留旧内容；已读、收藏、归档仍使用当前浏览器按 reader 身份保存的阅读记录。订阅正文按源实际内容展示；摘要不会被标为全文，自定义来源不自动抓取任意网页正文。
+
+计划默认关闭；启用时明确选择间隔频率（15 分钟至 7 天）或每日时刻与时区。公开浏览采集须另外选择纳入计划、主题和关键词。计划由服务启动恢复，关闭网页仍执行，服务退出即停止；重启后错过多次只合并一次。保存设置与执行成功分开，界面显示下次、上次和失败状态。同一 profile 只允许一个服务写入及一项采集；繁忙的手动请求不会排队，未核验进程清理时停止新采集。升级或回退前先停止该 profile 的旧服务，旧版本不能识别新 owner 锁。
 
 后端 `workspace/news_reader.py` 管理所选 profile 的 `news-reader/` 数据，`news_research.py` 管理单槽、有截止时间的独占浏览进程，`news_article.py` 提取固定来源正文。HTTP 装配在 `http/news_reader.py`，沿用 Host、Origin、client header 和 CSRF 校验。截图经带权限头的 fetch 转为 Blob 显示。研究数据、模型、截图和个人工具路径不提交。
 

@@ -4,6 +4,9 @@ function projectEntryTab() { return 'tasks'; }
 function mountStudio(root, { onProjects = () => {} } = {}) {
   const $ = id => root.querySelector('#' + id);
   const content = $('studio-content'), status = $('studio-status');
+  let studioVisible = true, newsReturnHash = '#home';
+  const newsHost = $('studio-news');
+  const newsSurface = newsHost && window.NewsSurface?.mount(newsHost, {themeHost:root, onReturn:() => { location.hash = newsReturnHash; }});
   if (!window.StudioData || !window.WorkspaceAgentBoard) {
     status.textContent = '工作台资源尚未就绪，请通过本地服务的 /studio 页面打开。'; return;
   }
@@ -37,7 +40,7 @@ function mountStudio(root, { onProjects = () => {} } = {}) {
   let pendingTask = null;
   let refreshPromise = null, refreshAgain = false, refreshTimer = null, lastRead = 0;
   const refreshInterval = 15000;
-  const visibleBusiness = () => !disposed && !document.hidden && !(root.dataset.unified === 'true' && route().view === 'project' && ['workspace', 'activity'].includes(route().tab));
+  const visibleBusiness = () => !disposed && studioVisible && !document.hidden && route().view !== 'news' && !(root.dataset.unified === 'true' && route().view === 'project' && ['workspace', 'activity'].includes(route().tab));
   const renderedHtml = new WeakMap();
   const setHtml = (node, html) => { if (renderedHtml.get(node) !== html) { node.innerHTML = html; renderedHtml.set(node, html); } };
   try { if (root.dataset.unified !== 'true') root.dataset.theme = localStorage.getItem('ce-studio-theme') === 'dark' ? 'dark' : 'light'; } catch { /* Preferences are optional. */ }
@@ -55,6 +58,7 @@ function mountStudio(root, { onProjects = () => {} } = {}) {
     const legacyProject = new URLSearchParams(location.search).get('project_id');
     if (!parts[0] && legacyProject && /^[a-z0-9][a-z0-9-]{0,63}$/.test(legacyProject)) return { view: 'project', id: legacyProject, tab: 'workspace' };
     if (['inbox', 'tasks', 'attention'].includes(parts[0])) return { view: 'inbox', id: '', tab: parts[0] === 'attention' || parts[1] === 'attention' ? 'attention' : parts[1] === 'review' ? 'review' : 'all' };
+    if (parts[0] === 'news') return { view:'news', id:'', tab:'' };
     if (parts[0] === 'mobile') return { view: 'mobile', id: '', tab: '' };
     return { view: ['tools', 'settings', 'agents'].includes(parts[0]) ? 'tools' : parts[0] === 'project' ? 'project' : 'home', id, tab: parts[2] === 'manage' ? 'tasks' : parts[2] === 'sessions' ? 'workspace' : parts[2] || 'workspace' };
   }
@@ -165,9 +169,9 @@ function mountStudio(root, { onProjects = () => {} } = {}) {
   function creatorLink(className='ce-nav'){return `<a class="${className} ce-creator-link" href="${escape(creatorUrl)}" target="_blank" rel="noopener noreferrer" aria-label="在新页面打开游戏创作">${icon('grid')}游戏创作${icon('arrow')}</a>`;}
   function creatorAddressForm(){return `<section class="ce-creator-address"><div><h2>游戏创作地址</h2><p>导航中的“游戏创作”会在新页面打开此地址。请先启动独立创作服务。</p></div><form data-creator-form="true"><label for="studio-creator-url">普通 HTTP(S) 页面地址</label><div class="ce-creator-address-row"><input id="studio-creator-url" data-creator-url type="text" inputmode="url" autocomplete="off" spellcheck="false" value="${escape(creatorUrl)}" aria-describedby="studio-creator-error"${creatorUrlError?' aria-invalid="true"':''}><button type="submit" class="ce-button">保存地址</button></div><p id="studio-creator-error" role="status">${escape(creatorUrlError)}</p></form></section>`;}
   function renderChrome(current) {
-    setHtml($('studio-rail'), `<div class="ce-brand"><span class="ce-monogram">CE</span><span>Control<br>Everything</span></div><nav class="ce-navgroup">${nav('项目', '#home', 'grid', current.view === 'home')}${nav('事项', '#inbox', 'check', current.view === 'inbox')}${nav('新闻', '/news', 'grid', false)}${nav('手机与设备', '#mobile', 'settings', current.view === 'mobile')}</nav><nav class="ce-navgroup" aria-label="项目"><div class="ce-rail-label">项目</div>${projects().filter(p => !p.archived).map(p => `<a class="ce-nav ce-project-nav${current.id === p.id ? ' is-current' : ''}" href="${projectUrl(p.id)}"><span class="ce-navdot"></span>${escape(p.name)}</a>`).join('') || '<span class="ce-subtle">尚无登记项目</span>'}</nav><nav class="ce-navgroup" aria-label="创作">${creatorLink()}</nav><div class="ce-rail-bottom">${nav('高级管理', '#tools', 'settings', current.view === 'tools')}<div class="ce-profile"><span class="ce-profile-avatar">CE</span><span>本地工作台</span></div></div>`);
+    setHtml($('studio-rail'), `<div class="ce-brand"><span class="ce-monogram">CE</span><span>Control<br>Everything</span></div><nav class="ce-navgroup">${nav('项目', '#home', 'grid', current.view === 'home')}${nav('事项', '#inbox', 'check', current.view === 'inbox')}${nav('新闻', '#news', 'grid', current.view === 'news')}${nav('手机与设备', '#mobile', 'settings', current.view === 'mobile')}</nav><nav class="ce-navgroup" aria-label="项目"><div class="ce-rail-label">项目</div>${projects().filter(p => !p.archived).map(p => `<a class="ce-nav ce-project-nav${current.id === p.id ? ' is-current' : ''}" href="${projectUrl(p.id)}"><span class="ce-navdot"></span>${escape(p.name)}</a>`).join('') || '<span class="ce-subtle">尚无登记项目</span>'}</nav><nav class="ce-navgroup" aria-label="创作">${creatorLink()}</nav><div class="ce-rail-bottom">${nav('高级管理', '#tools', 'settings', current.view === 'tools')}<div class="ce-profile"><span class="ce-profile-avatar">CE</span><span>本地工作台</span></div></div>`);
     const chosen = projects().find(p => p.id === current.id);
-    setHtml($('studio-topbar'), `<header class="ce-topbar"><div class="ce-crumbs"><a href="#home">项目</a><a href="#inbox"${current.view === 'inbox' ? ' aria-current="page"' : ''}>事项</a>${!['home', 'inbox'].includes(current.view) ? `<span> / ${escape(chosen?.name || ({ inbox: '事项', tools: '高级管理', mobile: '手机与设备' }[current.view] || '项目'))}</span>` : ''}</div><a class="ce-button ce-plain ce-mobile-entry-mobile${current.view === 'mobile' ? ' is-current' : ''}" href="#mobile"${current.view === 'mobile' ? ' aria-current="page"' : ''}>手机与设备</a><a class="ce-button ce-plain ce-creator-mobile" href="/news">新闻</a>${creatorLink('ce-button ce-plain ce-creator-mobile')}${root.dataset.unified === 'true' && (current.view === 'inbox' || current.view === 'project' && ['tasks', 'review', 'attention'].includes(current.tab)) ? '' : '<button class="ce-button ce-plain" data-action="refresh" type="button">刷新</button>'}<button class="ce-iconbtn" data-action="theme" type="button" aria-label="切换外观">${icon('moon')}</button></header>`);
+    setHtml($('studio-topbar'), `<header class="ce-topbar"><div class="ce-crumbs"><a href="#home">项目</a><a href="#inbox"${current.view === 'inbox' ? ' aria-current="page"' : ''}>事项</a>${!['home', 'inbox'].includes(current.view) ? `<span> / ${escape(chosen?.name || ({ inbox: '事项', tools: '高级管理', mobile: '手机与设备', news: '新闻' }[current.view] || '项目'))}</span>` : ''}</div><a class="ce-button ce-plain ce-mobile-entry-mobile${current.view === 'mobile' ? ' is-current' : ''}" href="#mobile"${current.view === 'mobile' ? ' aria-current="page"' : ''}>手机与设备</a><a class="ce-button ce-plain ce-creator-mobile" href="#news">新闻</a>${creatorLink('ce-button ce-plain ce-creator-mobile')}${root.dataset.unified === 'true' && (current.view === 'inbox' || current.view === 'project' && ['tasks', 'review', 'attention'].includes(current.tab)) ? '' : '<button class="ce-button ce-plain" data-action="refresh" type="button">刷新</button>'}<button class="ce-iconbtn" data-action="theme" type="button" aria-label="切换外观">${icon('moon')}</button></header>`);
   }
   const stateLabel = { todo: '待办', doing: '进行中', blocked: '阻塞', review: '待验收', done: '已完成' };
   function projectCard({ project, items, counts, latest }) {
@@ -217,8 +221,15 @@ function mountStudio(root, { onProjects = () => {} } = {}) {
   }
   function render() {
     const current = route();
-    renderStatus(current);
+    const inNews = current.view === 'news';
+    root.dataset.newsSurface = String(inNews);
     if (current.view !== 'mobile' && disposeMobile) { disposeMobile(); disposeMobile = null; }
+    if (!inNews) newsReturnHash = location.hash || '#home';
+    if (newsHost) { newsHost.hidden = !inNews; newsHost.inert = !inNews; }
+    newsSurface?.setVisible(studioVisible && inNews);
+    content.hidden = inNews;
+    renderStatus(current);
+    if (inNews) { root.dataset.projectSurface = 'false'; renderChrome(current); monitor?.setActive(false); $('studio-monitor').hidden = true; $('studio-agent-board').hidden = true; $('studio-tasks').hidden = true; return; }
     const chosen = projects().find(p => p.id === current.id);
     // The native surface takes over when ready; retain the previous page during preparation.
     if (root.dataset.unified === 'true' && current.view === 'project' && ['workspace', 'activity'].includes(current.tab) && (!state.workspace || chosen && !chosen.archived)) {
@@ -345,6 +356,9 @@ function mountStudio(root, { onProjects = () => {} } = {}) {
   });
   const changed = () => {
     const next = route();
+    if (root.dataset.unified !== 'true' && next.view !== previousRoute.view && [...root.querySelectorAll('dialog[open]')].length) {
+      location.hash = previousRoute.view === 'news' ? '#news' : newsReturnHash; return;
+    }
     if (next.view === 'mobile' && previousRoute.view !== 'mobile') {
       const tab = ['workspace', 'tasks', 'review', 'attention', 'activity', 'monitor'].includes(previousRoute.tab) ? previousRoute.tab : 'workspace';
       mobileReturnHash = previousRoute.view === 'project' && /^[a-z0-9][a-z0-9-]{0,63}$/.test(previousRoute.id)
@@ -365,7 +379,9 @@ function mountStudio(root, { onProjects = () => {} } = {}) {
   };
   document.addEventListener('visibilitychange', visibilityChanged);
   render(); void refresh();
-  return () => { disposed = true; request++; clearTimeout(refreshTimer); document.removeEventListener('visibilitychange', visibilityChanged); disposeMobile?.(); window.removeEventListener('hashchange', changed); window.removeEventListener('platform-add-project', requestProject); window.removeEventListener('platform-manage-project', manageProject); onboardingDialog?.close(); onboardingDialog?.remove(); projectSettings?.close(); projectSettings?.remove(); projectDialogTarget?.querySelectorAll('dialog').forEach(dialog => dialog.close()); projectDialogHost?.remove(); monitor?.destroy(); board.dispose?.(); };
+  const dispose = () => { newsSurface?.destroy(); disposed = true; request++; clearTimeout(refreshTimer); document.removeEventListener('visibilitychange', visibilityChanged); disposeMobile?.(); window.removeEventListener('hashchange', changed); window.removeEventListener('platform-add-project', requestProject); window.removeEventListener('platform-manage-project', manageProject); onboardingDialog?.close(); onboardingDialog?.remove(); projectSettings?.close(); projectSettings?.remove(); projectDialogTarget?.querySelectorAll('dialog').forEach(dialog => dialog.close()); projectDialogHost?.remove(); monitor?.destroy(); board.dispose?.(); };
+  dispose.setVisible = next => { studioVisible = !!next; newsSurface?.setVisible(studioVisible && route().view === 'news'); visibilityChanged(); };
+  return dispose;
 }
 window.StudioPreview = { mount: mountStudio, projectEntryTab };
 const standaloneStudio = document.getElementById('ce-studio');
