@@ -35,6 +35,13 @@ describe('per-device platform runtime admission', () => {
     expect(rewrites[0][1]).toBe('/?orca-client=web')
     expect(caddy).toContain('@runtime path /workbench-runtime')
   })
+  it('copies the anonymous upstream response once without pre-copying its headers', () => {
+    const caddy = readFileSync(new URL('../../../../docs/examples/integrations/workbench-remote.Caddyfile.example', import.meta.url), 'utf8')
+    expect(caddy).not.toMatch(/^\s*copy_response_headers\s*$/m)
+    expect([...caddy.matchAll(/^\s*copy_response\s*$/gm)]).toHaveLength(1)
+    expect(caddy).toContain('@anonymous status 401')
+    expect(caddy).toContain('redir @documentNavigationFailure /remote 303')
+  })
   it('keeps the exact local runtime available without exposing a LAN listener', () => {
     const policy=readPlatformRuntimePolicy(env)
     expect(platformUpgradeAllowed(['Host','127.0.0.1:12345','Origin',env.CE_WORKBENCH_ORIGIN],'/',12345,policy)).toBe(true)

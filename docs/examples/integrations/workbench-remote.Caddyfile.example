@@ -66,7 +66,6 @@ https://workbench.example.test {
                     route {
                         @documentNavigationFailure vars ce_document_navigation yes
                         redir @documentNavigationFailure /remote 303
-                        copy_response_headers
                         copy_response
                     }
                 }
