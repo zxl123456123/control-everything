@@ -4,12 +4,14 @@ from urllib.parse import parse_qs
 
 from control_everything.paths import web_root
 from control_everything.workspace.news_reader import NewsReader
+from control_everything.workspace.news_runtime import NewsBusy, NewsUnavailable, RevisionConflict
 
 PREFIX = '/api/workspace/news/'
 ASSETS = {'/news': ('news-reader.html', 'text/html; charset=utf-8'),
           '/news-reader.js': ('news-reader.js', 'text/javascript; charset=utf-8'),
           '/news-reader.css': ('news-reader.css', 'text/css; charset=utf-8'),
           '/news-spider.js': ('news-spider.js', 'text/javascript; charset=utf-8')}
+ASSETS['/news-settings.js'] = ('news-settings.js', 'text/javascript; charset=utf-8')
 CSP = ("default-src 'self'; img-src 'self' https: blob:; style-src 'self' 'unsafe-inline'; "
        "script-src 'self'; connect-src 'self'; object-src 'none'; frame-src 'none'; "
        "frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
@@ -20,7 +22,7 @@ def _reader(server):
         if server._news_reader_closed:
             raise OSError('news_reader_closed')
         if server.news_reader is None:
-            server.news_reader = NewsReader(server.news_reader_root, server.news_source)
+            raise OSError('news_reader_unavailable')
         return server.news_reader
 
 
@@ -40,11 +42,14 @@ def handle_get(handler, path):
             handler.reply(200, (web_root() / 'workspace' / name).read_bytes(), mime, csp=CSP)
         return True
     route = path.path.removeprefix(PREFIX)
-    if not path.path.startswith(PREFIX) or route not in {'reader', 'article', 'research', 'research/latest', 'research-frame'}:
+    if not path.path.startswith(PREFIX) or route not in {'settings', 'reader', 'article', 'research', 'research/latest', 'research-frame'}:
         return False
     try:
         reader = _reader(handler.server)
-        if route == 'reader':
+        if route == 'settings':
+            _params(path.query, ())
+            handler.reply(200, reader.runtime.envelope())
+        elif route == 'reader':
             _params(path.query, ())
             handler.reply(200, reader.sample())
         elif route == 'article':
@@ -77,22 +82,24 @@ def handle_get(handler, path):
 
 def handle_post(handler, path):
     route = path.path.removeprefix(PREFIX)
-    if not path.path.startswith(PREFIX) or route not in {'reader/refresh', 'research', 'translate'}:
+    if not path.path.startswith(PREFIX) or route not in {'settings', 'reader/refresh', 'research', 'translate'}:
         return False
     if path.query:
         handler.reject(400, 'invalid_query')
         return True
-    body = handler.read_json_body(max_bytes=150000 if route == 'translate' else 2048, strict=True)
+    body = handler.read_json_body(max_bytes=150000 if route == 'translate' else 65536 if route == 'settings' else 2048, strict=True)
     try:
         reader = _reader(handler.server)
-        if route == 'reader/refresh':
+        if route == 'settings':
+            handler.reply(200, reader.runtime.save_settings(body))
+        elif route == 'reader/refresh':
             if body != {}:
                 raise ValueError('invalid_body')
             handler.reply(200, reader.sample(refresh=True))
         elif route == 'research':
             if not isinstance(body, dict) or set(body) != {'query', 'topic'}:
                 raise ValueError('invalid_body')
-            handler.reply(202, reader.jobs.begin(body['query'], body['topic']))
+            handler.reply(202, reader.runtime.request_research(body['query'], body['topic']))
         else:
             if (not isinstance(body, dict) or set(body) != {'texts', 'source', 'target'}
                     or body['source'] != 'en' or body['target'] != 'zh'
@@ -104,8 +111,19 @@ def handle_post(handler, path):
             handler.reply(200, {'translations': translate_texts(body['texts']), 'provider': 'local'})
     except ConnectionError:
         pass
-    except ValueError:
-        handler.reject(400, 'invalid_request')
+    except RevisionConflict:
+        handler.reply(409, {'error': 'revision_conflict', 'revision': reader.runtime.settings['revision'], **reader.runtime.envelope()})
+    except NewsBusy:
+        handler.reply(409, {**(reader.jobs.latest() or {}), 'error': 'worker_busy', 'runtime': reader.runtime.snapshot()})
+    except NewsUnavailable as error:
+        handler.reply(503, {'error': str(error), 'runtime': reader.runtime.snapshot()})
+    except ValueError as error:
+        if route == 'settings':
+            field = str(error)
+            handler.reply(400, {'error': 'invalid_request', 'field': field,
+                               'message': '设置无效，请检查：' + field})
+        else:
+            handler.reject(400, 'invalid_request')
     except RuntimeError:
         if route == 'research':
             handler.reply(409, reader.jobs.latest())

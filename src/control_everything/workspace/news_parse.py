@@ -193,7 +193,7 @@ def _result(rows, scanned, filtered, duplicates, format_name, now, cap=20):
             'duplicate_count': duplicates, 'returned_count': min(len(rows), cap), 'truncated': len(rows) > cap}
 
 
-def parse_feed_result(data, source_id, source_name, fetched_at, *, feed_url=None, now=None):
+def parse_feed_result(data, source_id, source_name, fetched_at, *, feed_url=None, now=None, include_content=False):
     root = _tree(data)
     atom = root.tag == ATOM + 'feed'
     base = _base(feed_url, root)
@@ -239,8 +239,95 @@ def parse_feed_result(data, source_id, source_name, fetched_at, *, feed_url=None
             row['updated_at'] = _date(_text(element.find(ATOM + 'updated')), True)[0]
         row['summary'], row['summary_kind'], row['summary_truncated'], row['summary_reason'] = _summary(
             element.find(prefix + ('summary' if atom else 'description')), atom)
+        if include_content:
+            content = element.find(ATOM + 'content') if atom else element.find('{http://purl.org/rss/1.0/modules/content/}encoded')
+            actual = content is not None and not content.get('src')
+            selected = content if actual else element.find(prefix + ('summary' if atom else 'description'))
+            blocks, images, truncated = _feed_content(selected, atom, entry_base)
+            row.update(body_blocks=blocks, images=images, content_kind='feed_content' if actual and (blocks or images) else 'summary',
+                       content_truncated=truncated)
         rows.append(row)
     return _result(rows, len(entries), filtered, duplicates, 'atom1' if atom else 'rss2', now)
+
+
+class _FeedContent(HTMLParser):
+    def __init__(self, base):
+        super().__init__(convert_charrefs=True)
+        self.base, self.parts, self.blocks, self.images = base, [], [], []
+        self.hidden = 0
+        self.kind = 'p'
+
+    def flush(self):
+        text = ' '.join(''.join(self.parts).split())
+        if text:
+            self.blocks.append({'type': self.kind, 'text': text})
+        self.parts = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag in ('script', 'style', 'iframe', 'object'):
+            self.hidden += 1
+        if self.hidden:
+            return
+        attrs = dict(attrs)
+        if tag in ('p', 'div', 'li', 'h1', 'h2', 'h3', 'br'):
+            self.flush()
+            self.kind = 'li' if tag == 'li' else 'h2' if tag.startswith('h') else 'p'
+        if tag == 'img':
+            url = _url(attrs.get('src'), self.base)
+            if url and urlsplit(url).port in (None, 443) and not urlsplit(url).fragment:
+                self.images.append({'url': url, 'alt': (attrs.get('alt') or '')[:300], 'caption': (attrs.get('title') or '')[:300]})
+
+    def handle_endtag(self, tag):
+        if tag in ('script', 'style', 'iframe', 'object'):
+            self.hidden = max(0, self.hidden - 1)
+        elif not self.hidden and tag in ('p', 'div', 'li', 'h1', 'h2', 'h3'):
+            self.flush()
+
+    def handle_data(self, data):
+        if not self.hidden:
+            self.parts.append(data)
+
+
+def _feed_content(element, atom, base):
+    if element is None or element.get('src'):
+        return [], [], False
+    parser = _FeedContent(_base(base, element))
+    kind = element.get('type', 'text') if atom else 'html'
+    if kind == 'xhtml':
+        # Serialization retains namespace prefixes; use local tags for offline projection.
+        def visit(node):
+            if not node.tag.startswith(XHTML):
+                return
+            tag = node.tag[len(XHTML):]
+            old_base = parser.base
+            parser.base = _base(old_base, node)
+            parser.handle_starttag(tag, list(node.attrib.items()))
+            if node.text:
+                parser.handle_data(node.text)
+            for child in node:
+                visit(child)
+                if child.tail:
+                    parser.handle_data(child.tail)
+            parser.handle_endtag(tag)
+            parser.base = old_base
+        for child in element:
+            visit(child)
+    elif kind in ('html', 'text/html'):
+        parser.feed(_text(element))
+        parser.close()
+    elif kind in ('text', 'text/plain'):
+        parser.handle_data(_text(element))
+    else:
+        return [], [], False
+    parser.flush()
+    blocks, remaining = [], 24000
+    for block in parser.blocks[:64]:
+        text = block['text'][:remaining]
+        if text:
+            blocks.append({**block, 'text': text})
+        remaining -= len(text)
+    truncated = len(parser.blocks) > len(blocks) or sum(len(b['text']) for b in parser.blocks) > 24000 or len(parser.images) > 12
+    return blocks, parser.images[:12], truncated
 
 
 def _unique_object(pairs):

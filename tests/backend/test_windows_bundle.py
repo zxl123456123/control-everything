@@ -392,9 +392,12 @@ class BuilderTests(PayloadFixture):
 
     def test_lock_is_fixed_target_input_and_not_a_host_freeze(self):
         values = BUILD.locked_requirements(ROOT / 'tools/packaging/windows-cp313.lock')
-        self.assertEqual(len(values), 31)
+        self.assertEqual(len(values), 32)
         self.assertEqual(values['mcp']['version'], '1.30.0')
         self.assertEqual(values['defusedxml']['version'], '0.7.1')
+        self.assertEqual(values['tzdata'], {'version': '2026.5',
+            'sha256': 'b683bd1b6659ddcd810ff02ad09ba821d4bf1065072805063eb35c49617905ac'})
+        self.assertIn('tzdata==2026.5', (ROOT / 'requirements.txt').read_text(encoding='utf-8').splitlines())
 
 
 class ProductSourceTests(PayloadFixture):

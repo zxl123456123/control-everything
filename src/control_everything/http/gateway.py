@@ -1275,6 +1275,14 @@ def make_server(service, address=(HOST, PORT), *, workspace=None, execution=None
     server._news_reader_lock = threading.Lock()
     server._news_reader_closed = False
     server._news_lease = server.news_source.acquire()
+    try:
+        server.news_reader = news_reader.NewsReader(server.news_reader_root, server.news_source)
+        server.news_reader.runtime.start()
+    except (OSError, ValueError, RuntimeError):
+        # Base management remains available when profile news cannot initialize.
+        if server.news_reader is not None:
+            server.news_reader.close()
+        server.news_reader = None
     return server
 
 
