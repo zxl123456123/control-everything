@@ -413,3 +413,9 @@ lint-imports --config tools/architecture/importlinter.ini --no-cache --no-logo
 ```
 
 E2E 使用明确标记的合成页面，截图保存在 ignored `work/news-reader-tests/`；真实 RSS、X 官方嵌入和本地翻译另行记录实际结果。公开嵌入的节选和媒体失败不代表完整线程或稳定全量抓取。
+
+### 账号与认证界面资源
+
+账号与设备展示模块为 `web/workspace/account-device.js`，Studio、独立 `/remote` 与 `/desktop` 共用；本机精确提供 `/remote/account-device.js`、`/remote/remote-account.css`。公网 Caddy 仅直出清单中的账号静态资源；既有设备代理与 hub 静态授权范围不因此扩大。
+
+`web/workspace/identity-theme/control-everything/login/` 仅维护 `theme.properties`、`resources/css/studio.css`、`messages/messages_zh_Hans.properties` 三个身份服务部署资产。sdist 显式保留三文件，Python wheel 与 HTTP 资源不包含主题；不把主题目录当文件服务根。新增 properties 必须逐文件登记并经过内容/秘密检查，不能按目录豁免。

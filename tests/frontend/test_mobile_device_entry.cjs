@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 const { test } = require('node:test');
-function fixture(origin, clipboard, returnHash = '#home') {
+function fixture(origin, clipboard, returnHash = '#home', remote = false) {
   const elements = [];
   const element = tag => {
     const node = { tagName: tag, children: [], textContent: '', value: '', listeners: {},
@@ -16,12 +16,13 @@ function fixture(origin, clipboard, returnHash = '#home') {
       focus() { this.focused = true; }, select() { this.selected = true; } };
     elements.push(node); return node;
   };
-  const window = { location: new URL(origin + '/workbench/web-index.html?token=private#project/p/tasks') };
+  const accountMounts = [], accountDisposals = [];
+  const window = { CERemoteContext: remote ? { context: 'fixture' } : null, StudioAccountDevice: { mount(container, options) { accountMounts.push({ container, options }); return () => accountDisposals.push(options); } }, location: new URL(origin + '/workbench/web-index.html?token=private#project/p/tasks') };
   vm.runInNewContext(fs.readFileSync(path.resolve(__dirname, '../../web/workspace/mobile-device-entry.js'), 'utf8'),
     { window, document: { createElement: element }, navigator: { clipboard }, URL });
   const container = element('main');
   const dispose = window.StudioMobileEntry.mount(container, { returnHash });
-  return { elements, dispose, input: elements.find(n => n.tagName === 'input'),
+  return { elements, dispose, accountMounts, accountDisposals, input: elements.find(n => n.tagName === 'input'),
     copy: () => elements.find(n => n.tagName === 'button').listeners.click(),
     status: elements.find(n => n.role === 'status'), text: () => elements.map(n => n.textContent).join('\n') };
 }
@@ -29,11 +30,13 @@ test('uses only origin and explains browser access and unconfigured capabilities
   const f = fixture('https://example.test:8443', undefined, '#project/p/review');
   assert.equal(f.input.value, 'https://example.test:8443/studio');
   assert.ok(f.elements.some(n => n.href === '#project/p/review' && n.textContent === '返回原项目'));
-  assert.match(f.text(), /Safari/); assert.match(f.text(), /尚未接入/);
-  assert.match(f.text(), /平台账号登录不等于电脑授权/);
-  assert.match(f.text(), /iPhone 安装与真实登录尚未验证/);
-  assert.match(f.text(), /配置自建身份服务并重新构建后验证/);
+  assert.match(f.text(), /Safari/);
+  assert.equal(f.elements.filter(node => node.tagName === 'h1').length, 0);
+  assert.match(f.text(), /原生 iOS、Android 安装包当前未交付/);
   assert.match(f.text(), /确认手机可访问/);
+  assert.equal(f.accountMounts.length, 1);
+  assert.deepEqual(f.accountMounts[0].options.mode, 'local');
+  assert.equal(f.accountMounts[0].options.returnHash, '#project/p/review');
   assert.doesNotMatch(f.text(), /0 台|已连接|公网可达|private|下载|配对码/);
   assert.equal(f.elements.filter(n => n.tagName === 'button').length, 1);
   assert.ok(f.input.readOnly);
@@ -62,4 +65,12 @@ test('dispose prevents late clipboard feedback and removes its event handler', a
   const pending = f.copy(); f.dispose(); const before = f.status.textContent;
   resolve(); await pending; assert.equal(f.status.textContent, before);
   assert.equal(f.elements.find(n => n.tagName === 'button').listeners.click, undefined);
+});
+
+test('remote management is mounted inline and disposed with its host', () => {
+  const f = fixture('https://example.test', undefined, '#home', true);
+  assert.equal(f.accountMounts[0].options.mode, 'remote');
+  assert.ok(f.elements.some(node => node.children.includes(f.accountMounts[0].container)));
+  assert.ok(!f.elements.some(node => node.href === '/remote' || node.href === '/desktop'));
+  f.dispose(); assert.equal(f.accountDisposals.length, 1);
 });

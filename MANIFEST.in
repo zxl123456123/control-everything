@@ -11,6 +11,10 @@ include web/workspace/onboarding.js
 include web/workspace/desktop.html
 include web/workspace/desktop.js
 include web/workspace/remote-context.js
+include web/workspace/account-device.js
+include web/workspace/identity-theme/control-everything/login/theme.properties
+include web/workspace/identity-theme/control-everything/login/resources/css/studio.css
+include web/workspace/identity-theme/control-everything/login/messages/messages_zh_Hans.properties
 include web/workspace/remote-account.html
 include web/workspace/remote-account.js
 include web/workspace/remote-account.css

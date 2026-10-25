@@ -9,9 +9,7 @@ window.StudioMobileEntry = {
       return node;
     };
     const page = make('section', '', 'ce-mobile-entry');
-    page.append(make('h1', '手机与设备'), make('p', '先用手机浏览器打开工作台。开发操作仍在项目工作区中进行。'));
-    const account = make('a', window.CERemoteContext?.context ? '管理我的账号与电脑' : '绑定这台电脑到账号', 'ce-button');
-    account.href = window.CERemoteContext?.context ? '/remote' : '/desktop';
+    const account = make('div', '', 'ce-mobile-account');
     page.append(account);
     const connection = make('section', '', 'ce-mobile-entry-card');
     connection.append(make('h2', '浏览器访问地址'));
@@ -39,8 +37,13 @@ window.StudioMobileEntry = {
     capabilities.append(make('h2', '浏览器与独立 App'), make('p', 'iPhone Safari 与 Android 浏览器使用同一个自建网站。Windows 软件中确认账号后绑定电脑。原生 iOS、Android 安装包当前未交付；网站可用不代表原生安装与真机登录已经验证。'));
     const back = make('a', returnHash === '#home' ? '返回项目总览' : '返回原项目', 'ce-button');
     back.href = returnHash;
-    page.append(connection, steps, capabilities, back);
+    const guide = make('details', '', 'ce-mobile-guide');
+    guide.append(make('summary', '在手机浏览器中使用'), connection, steps, capabilities);
+    page.append(guide, back);
     container.replaceChildren(page);
+    const disposeAccount = window.StudioAccountDevice.mount(account, {
+      mode: window.CERemoteContext?.context ? 'remote' : 'local', returnHash
+    });
     const onCopy = async () => {
       try {
         if (typeof navigator.clipboard?.writeText !== 'function') throw new Error('unavailable');
@@ -54,6 +57,6 @@ window.StudioMobileEntry = {
       }
     };
     copy.addEventListener('click', onCopy);
-    return () => { disposed = true; copy.removeEventListener('click', onCopy); };
+    return () => { disposeAccount(); disposed = true; copy.removeEventListener('click', onCopy); };
   }
 };

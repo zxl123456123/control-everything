@@ -14,6 +14,7 @@ function mountStudio(root, { onProjects = () => {} } = {}) {
     arrow: '<path d="M7 17 17 7M7 7h10v10"/>',
     check: '<circle cx="12" cy="12" r="9"/><path d="m7 12 3 3 7-7"/>',
     settings: '<path d="M3 6h7m4 0h7M3 12h3m4 0h11M3 18h11m4 0h3M10 3v6M6 9v6m8 0v6"/>',
+    menu: '<path d="M4 6h16M4 12h16M4 18h16"/>',
     moon: '<path d="M21 13A9 9 0 0 1 11 3 9 9 0 1 0 21 13Z"/>',
   };
   const icon = name => `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icons[name] || icons.folder}</svg>`;
@@ -62,6 +63,7 @@ function mountStudio(root, { onProjects = () => {} } = {}) {
   let previousRoute = route(), mobileReturnHash = '#home', disposeMobile = null;
   let onboarding = null, onboardingDialog = null, openingProject = false, projectTrigger = null;
   async function openProjectDialog() {
+    closeNavigation();
     if (openingProject) return;
     if (!window.WorkspaceOnboarding) { showPlatformNotice('添加项目暂不可用，请刷新页面后重试。'); return; }
     openingProject = true;
@@ -91,6 +93,7 @@ function mountStudio(root, { onProjects = () => {} } = {}) {
   const currentFocus = () => document.activeElement?.shadowRoot?.activeElement || document.activeElement;
   const restoreFocus = trigger => { if (trigger?.isConnected) trigger.focus({ preventScroll: true }); };
   function visibleDialogTarget() {
+    closeNavigation();
     if (root.dataset.unified !== 'true') return root;
     if (!projectDialogHost) {
       // Dialogs must retain their scoped styles outside the hidden Studio surface.
@@ -100,7 +103,7 @@ function mountStudio(root, { onProjects = () => {} } = {}) {
       const shadow = projectDialogHost.attachShadow({ mode: 'open' });
       const style = document.createElement('style');
       style.textContent = [...(root.getRootNode().styleSheets || [])]
-        .filter(sheet => ['/workspace.css', '/studio-preview.css'].some(path => sheet.href?.endsWith(path)))
+        .filter(sheet => ['/workspace.css', '/studio-preview.css', '/remote/remote-account.css'].some(path => sheet.href?.endsWith(path)))
         .map(sheet => [...sheet.cssRules].map(rule => rule.cssText).join('\n')).join('\n');
       projectDialogTarget = document.createElement('div'); projectDialogTarget.id = 'ce-studio';
       projectDialogTarget.dataset.unified = 'true'; projectDialogTarget.style.display = 'contents';
@@ -164,10 +167,43 @@ function mountStudio(root, { onProjects = () => {} } = {}) {
   function nav(label, href, name, active) { return `<a class="ce-nav${active ? ' is-current' : ''}" href="${href}"${active ? ' aria-current="page"' : ''}>${icon(name)}${label}</a>`; }
   function creatorLink(className='ce-nav'){if(window.CERemoteContext?.context)return '';return `<a class="${className} ce-creator-link" href="${escape(creatorUrl)}" target="_blank" rel="noopener noreferrer" aria-label="在新页面打开游戏创作">${icon('grid')}游戏创作${icon('arrow')}</a>`;}
   function creatorAddressForm(){if(window.CERemoteContext?.context)return '';return `<section class="ce-creator-address"><div><h2>游戏创作地址</h2><p>导航中的“游戏创作”会在新页面打开此地址。请先启动独立创作服务。</p></div><form data-creator-form="true"><label for="studio-creator-url">普通 HTTP(S) 页面地址</label><div class="ce-creator-address-row"><input id="studio-creator-url" data-creator-url type="text" inputmode="url" autocomplete="off" spellcheck="false" value="${escape(creatorUrl)}" aria-describedby="studio-creator-error"${creatorUrlError?' aria-invalid="true"':''}><button type="submit" class="ce-button">保存地址</button></div><p id="studio-creator-error" role="status">${escape(creatorUrlError)}</p></form></section>`;}
+  const drawer = document.createElement('dialog');
+  drawer.id = 'studio-navigation'; drawer.className = 'ce-navigation-drawer';
+  drawer.setAttribute('aria-label', '工作台导航');
+  root.append(drawer);
+  let menuTrigger = null, savedScroll = null;
+  function restoreNavigation() {
+    if (savedScroll) {
+      const { host, overflow, touchAction, top, left } = savedScroll;
+      host.style.overflow = overflow; host.style.touchAction = touchAction;
+      host.scrollTop = top; host.scrollLeft = left; savedScroll = null;
+    }
+    root.querySelector('[data-action="navigation"]')?.setAttribute('aria-expanded', 'false');
+    if (!disposed) (menuTrigger?.isConnected ? menuTrigger : root.querySelector('[data-action="navigation"]'))?.focus({ preventScroll: true });
+    menuTrigger = null;
+  }
+  function closeNavigation() { if (drawer.open) drawer.close(); }
+  function openNavigation() {
+    if (drawer.open || disposed || root.querySelector('dialog[open]')) return;
+    menuTrigger = root.querySelector('[data-action="navigation"]');
+    const host = root.dataset.unified === 'true'
+      ? root.getRootNode().host?.closest('.platform-studio-surface') : document.scrollingElement;
+    if (host) {
+      savedScroll = { host, overflow: host.style.overflow, touchAction: host.style.touchAction, top: host.scrollTop, left: host.scrollLeft };
+      host.style.overflow = 'hidden'; host.style.touchAction = 'pan-y';
+    }
+    drawer.innerHTML = `<div class="ce-drawer-header"><strong>工作台导航</strong><button class="ce-iconbtn" data-action="close-navigation" type="button" aria-label="关闭导航">×</button></div>${renderNav(route())}`;
+    drawer.showModal(); menuTrigger?.setAttribute('aria-expanded', 'true');
+  }
+  drawer.addEventListener('close', restoreNavigation);
+  drawer.addEventListener('click', event => { if (event.target === drawer) closeNavigation(); });
+  const resizeNavigation = () => { if (window.innerWidth > 760) closeNavigation(); };
+  window.addEventListener('resize', resizeNavigation);
+  function renderNav(current) { return `<div class="ce-brand"><span class="ce-monogram">CE</span><span>Control<br>Everything</span></div><nav class="ce-navgroup">${nav('项目', '#home', 'grid', current.view === 'home')}${nav('新闻', '/news', 'grid', false)}${nav('账号与设备', '#mobile', 'settings', current.view === 'mobile')}</nav><nav class="ce-navgroup" aria-label="项目"><div class="ce-rail-label">项目</div>${projects().filter(p => !p.archived).map(p => `<a class="ce-nav ce-project-nav${current.id === p.id ? ' is-current' : ''}" href="${projectUrl(p.id)}"><span class="ce-navdot"></span>${escape(p.name)}</a>`).join('') || '<span class="ce-subtle">尚无登记项目</span>'}</nav><nav class="ce-navgroup" aria-label="创作">${creatorLink()}</nav><div class="ce-rail-bottom">${nav('高级管理', '#tools', 'settings', current.view === 'tools')}<div class="ce-profile"><span class="ce-profile-avatar">CE</span><span>个人工作台</span></div></div>`; }
   function renderChrome(current) {
-    setHtml($('studio-rail'), `<div class="ce-brand"><span class="ce-monogram">CE</span><span>Control<br>Everything</span></div><nav class="ce-navgroup">${nav('项目', '#home', 'grid', current.view === 'home')}${nav('新闻', '/news', 'grid', false)}${nav('手机与设备', '#mobile', 'settings', current.view === 'mobile')}</nav><nav class="ce-navgroup" aria-label="项目"><div class="ce-rail-label">项目</div>${projects().filter(p => !p.archived).map(p => `<a class="ce-nav ce-project-nav${current.id === p.id ? ' is-current' : ''}" href="${projectUrl(p.id)}"><span class="ce-navdot"></span>${escape(p.name)}</a>`).join('') || '<span class="ce-subtle">尚无登记项目</span>'}</nav><nav class="ce-navgroup" aria-label="创作">${creatorLink()}</nav><div class="ce-rail-bottom">${nav('高级管理', '#tools', 'settings', current.view === 'tools')}<div class="ce-profile"><span class="ce-profile-avatar">CE</span><span>本地工作台</span></div></div>`);
+    setHtml($('studio-rail'), renderNav(current));
     const chosen = projects().find(p => p.id === current.id);
-    setHtml($('studio-topbar'), `<header class="ce-topbar"><div class="ce-crumbs"><a href="#home">项目</a>${!['home', 'inbox'].includes(current.view) ? `<span> / ${escape(chosen?.name || ({ inbox: '事项', tools: '高级管理', mobile: '手机与设备' }[current.view] || '项目'))}</span>` : ''}</div><a class="ce-button ce-plain ce-mobile-entry-mobile${current.view === 'mobile' ? ' is-current' : ''}" href="#mobile"${current.view === 'mobile' ? ' aria-current="page"' : ''}>手机与设备</a><a class="ce-button ce-plain ce-creator-mobile" href="/news">新闻</a>${creatorLink('ce-button ce-plain ce-creator-mobile')}${root.dataset.unified === 'true' && (current.view === 'inbox' || current.view === 'project' && ['tasks', 'review', 'attention'].includes(current.tab)) ? '' : '<button class="ce-button ce-plain" data-action="refresh" type="button">刷新</button>'}<button class="ce-iconbtn" data-action="theme" type="button" aria-label="切换外观">${icon('moon')}</button></header>`);
+    setHtml($('studio-topbar'), `<header class="ce-topbar"><button class="ce-iconbtn ce-menu-trigger" data-action="navigation" type="button" aria-label="打开导航" aria-controls="studio-navigation" aria-expanded="${drawer.open}">${icon('menu')}</button><div class="ce-crumbs"><a href="#home">项目</a>${!['home', 'inbox'].includes(current.view) ? `<span> / ${escape(chosen?.name || ({ inbox: '事项', tools: '高级管理', mobile: '账号与设备' }[current.view] || '项目'))}</span>` : ''}</div><a class="ce-button ce-plain ce-mobile-entry-mobile${current.view === 'mobile' ? ' is-current' : ''}" href="#mobile"${current.view === 'mobile' ? ' aria-current="page"' : ''}>账号与设备</a><a class="ce-button ce-plain ce-creator-mobile" href="/news">新闻</a>${creatorLink('ce-button ce-plain ce-creator-mobile')}${root.dataset.unified === 'true' && (current.view === 'inbox' || current.view === 'project' && ['tasks', 'review', 'attention'].includes(current.tab)) ? '' : '<button class="ce-button ce-plain" data-action="refresh" type="button">刷新</button>'}<button class="ce-iconbtn" data-action="theme" type="button" aria-label="切换外观">${icon('moon')}</button></header>`);
   }
   const stateLabel = { todo: '待办', doing: '进行中', blocked: '阻塞', review: '待验收', done: '已完成' };
   function projectCard({ project, items, counts, latest }) {
@@ -302,6 +338,7 @@ function mountStudio(root, { onProjects = () => {} } = {}) {
     }
   }
   root.addEventListener('click', event => {
+    if (drawer.open && event.target.closest('a[href]')) closeNavigation();
     const projectLink = event.target.closest('[data-open-project]');
     if (projectLink && root.dataset.unified === 'true' && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey && (!event.button || event.button === 0)) {
       event.preventDefault(); navigate(projectLink.getAttribute('href').slice(1));
@@ -314,6 +351,8 @@ function mountStudio(root, { onProjects = () => {} } = {}) {
     if (action === 'archived-projects') { archivedProjects = !archivedProjects; attentionOnly = false; render(); }
     if (action === 'all-projects' || action === 'attention-projects') { attentionOnly = action === 'attention-projects'; render(); }
     if (action === 'clear-project-filters') { query = ''; attentionOnly = false; render(); }
+    if (action === 'navigation') openNavigation();
+    if (action === 'close-navigation') closeNavigation();
     if (action === 'theme') { root.dataset.theme = root.dataset.theme === 'dark' ? 'light' : 'dark'; try { (window.CERemoteContext ? window.CERemoteContext.storage('localStorage') : window.localStorage).setItem('ce-studio-theme', root.dataset.theme); } catch { /* Preferences are optional. */ } }
     const taskId = event.target.closest('[data-task]')?.dataset.task;
     if (taskId) {
@@ -351,6 +390,7 @@ function mountStudio(root, { onProjects = () => {} } = {}) {
     $('studio-project-sort').focus();
   });
   const changed = () => {
+    closeNavigation();
     const next = route();
     if (next.view === 'mobile' && previousRoute.view !== 'mobile') {
       const tab = ['workspace', 'tasks', 'review', 'attention', 'activity', 'monitor'].includes(previousRoute.tab) ? previousRoute.tab : 'workspace';
@@ -372,7 +412,7 @@ function mountStudio(root, { onProjects = () => {} } = {}) {
   };
   document.addEventListener('visibilitychange', visibilityChanged);
   render(); void refresh();
-  const dispose = () => { disposed = true; request++; clearTimeout(refreshTimer); document.removeEventListener('visibilitychange', visibilityChanged); disposeMobile?.(); window.removeEventListener('hashchange', changed); window.removeEventListener('platform-add-project', requestProject); window.removeEventListener('platform-manage-project', manageProject); onboardingDialog?.close(); onboardingDialog?.remove(); projectSettings?.close(); projectSettings?.remove(); projectDialogTarget?.querySelectorAll('dialog').forEach(dialog => dialog.close()); projectDialogHost?.remove(); monitor?.destroy(); board.dispose?.(); };
+  const dispose = () => { disposed = true; closeNavigation(); restoreNavigation(); drawer.remove(); window.removeEventListener('resize', resizeNavigation); request++; clearTimeout(refreshTimer); document.removeEventListener('visibilitychange', visibilityChanged); disposeMobile?.(); window.removeEventListener('hashchange', changed); window.removeEventListener('platform-add-project', requestProject); window.removeEventListener('platform-manage-project', manageProject); onboardingDialog?.close(); onboardingDialog?.remove(); projectSettings?.close(); projectSettings?.remove(); projectDialogTarget?.querySelectorAll('dialog').forEach(dialog => dialog.close()); projectDialogHost?.remove(); monitor?.destroy(); board.dispose?.(); };
   const unsubscribeContext = window.CERemoteContext?.onInactive(dispose);
   return () => { unsubscribeContext?.(); dispose(); };
 }

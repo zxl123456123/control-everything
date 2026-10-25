@@ -15,6 +15,8 @@ from control_everything.http import remote_context
 
 WEB = web_root()
 STUDIO_RESOURCES = {
+    "/remote/account-device.js": ("account-device.js", "text/javascript; charset=utf-8"),
+    "/remote/remote-account.css": ("remote-account.css", "text/css; charset=utf-8"),
     "/studio": ("studio-preview.html", "text/html; charset=utf-8"),
     "/studio-shell": ("studio-preview.html", "text/html; charset=utf-8"),
     "/studio-preview.css": ("studio-preview.css", "text/css; charset=utf-8"),

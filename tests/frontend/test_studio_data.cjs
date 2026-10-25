@@ -64,7 +64,7 @@ function studioFixture({ remote = false, savedCreatorUrl = null, monitorAvailabl
       remove() { this.isConnected = false; if (this.parent) this.parent.children = this.parent.children.filter(child => child !== this); },
       addEventListener(name, callback) { (this.listeners[name] ||= []).push(callback); },
       setAttribute(name, value) { this[name] = value; },
-      focus() {},
+      focus() { this.focusCount = (this.focusCount || 0) + 1; },
       showModal() { this.open = true; },
       close() { this.open = false; for (const callback of this.listeners.close || []) callback(); },
       querySelector(selector) {
@@ -87,6 +87,8 @@ function studioFixture({ remote = false, savedCreatorUrl = null, monitorAvailabl
     elements.push(node); return node;
   }
   const body = element('body');
+  let menu = element('button'); menu.dataset.action = 'navigation';
+  const scrollHost = { style: { overflow: 'auto', touchAction: 'pan-y' }, scrollTop: 237, scrollLeft: 4 };
   const nodes = new Map();
   for (const id of ['ce-studio', 'studio-content', 'studio-status', 'studio-tasks', 'studio-agent-board', 'studio-monitor', 'studio-monitor-content', 'studio-rail', 'studio-topbar', 'studio-project-search', 'studio-project-sort']) {
     nodes.set(id, { dataset: {}, innerHTML: '', textContent: '', hidden: false, listeners: {},
@@ -94,8 +96,8 @@ function studioFixture({ remote = false, savedCreatorUrl = null, monitorAvailabl
   }
   const creatorInput = { value: '', focus() {} }, writes = [], removed = [], mounts = [], monitorCalls = [];
   if (unified) { nodes.get('ce-studio').dataset.unified = 'true'; nodes.get('ce-studio').dataset.theme = 'dark'; }
-  nodes.get('ce-studio').querySelector = selector => selector === '[data-creator-url]' ? creatorInput : nodes.get(selector.slice(1));
-  nodes.get('ce-studio').getRootNode = () => ({ styleSheets: [{ href: 'http://127.0.0.1/workspace.css', cssRules: [{ cssText: '.onboarding-dialog{padding:28px}' }] }, { href: 'http://127.0.0.1/studio-preview.css', cssRules: [{ cssText: '#ce-studio .ce-project-settings{color:red}' }] }] });
+  nodes.get('ce-studio').querySelector = selector => selector === '[data-creator-url]' ? creatorInput : selector === '[data-action="navigation"]' ? menu : selector === 'dialog[open]' ? body.children.find(node => node.tagName === 'dialog' && node.open) : nodes.get(selector.slice(1));
+  nodes.get('ce-studio').getRootNode = () => ({ host: { closest: () => scrollHost }, styleSheets: [{ href: 'http://127.0.0.1/workspace.css', cssRules: [{ cssText: '.onboarding-dialog{padding:28px}' }] }, { href: 'http://127.0.0.1/studio-preview.css', cssRules: [{ cssText: '#ce-studio .ce-project-settings{color:red}' }] }] });
   nodes.get('ce-studio').append = (...values) => body.append(...values);
   Object.defineProperty(nodes.get('ce-studio'), 'innerHTML', { set() { throw new Error('Do not replace the stable shell'); } });
   let failed = initialFailure === 'snapshot', updates = 0, editorMounts = 0;
@@ -120,7 +122,7 @@ function studioFixture({ remote = false, savedCreatorUrl = null, monitorAvailabl
   let onboardingOptions, dispose;
   const dialog = element('dialog'); dialog.id = 'onboarding-dialog';
   window.WorkspaceOnboarding = { create(options) { onboardingOptions = options; return { open: async () => options.dialog.showModal() }; } };
-  const document = { activeElement: active, hidden: false, getElementById: () => null, createElement: element, body,
+  const document = { scrollingElement: scrollHost, activeElement: active, hidden: false, getElementById: () => null, createElement: element, body,
     addEventListener: (name, callback) => { callbacks['document:' + name] = callback; }, removeEventListener: name => { delete callbacks['document:' + name]; } };
   vm.runInNewContext(fs.readFileSync(path.resolve(__dirname, '../../web/workspace/studio-preview.js'), 'utf8'), {
     URL: class FixtureURL extends URL { constructor(value, base) { super(value, base || location.href); } }, URLSearchParams, window, document, location, localStorage, console,
@@ -138,7 +140,8 @@ function studioFixture({ remote = false, savedCreatorUrl = null, monitorAvailabl
   }
   dispose = window.StudioPreview.mount(nodes.get('ce-studio'), { onProjects: (rows, metadata) => projectSnapshots.push({ rows, metadata }) });
   const flush = () => new Promise(resolve => setImmediate(resolve));
-  return { nodes, snapshot, client, location, writes, removed, mounts, monitorCalls, callbacks, window, body, elements, dialog, active, boardProjects, projectSnapshots, posts, mobileMounts, mobileDisposals, boardSnapshots, snapshotReads, timers, document,
+  return { nodes, menu, scrollHost, snapshot, client, location, writes, removed, mounts, monitorCalls, callbacks, window, body, elements, dialog, active, boardProjects, projectSnapshots, posts, mobileMounts, mobileDisposals, boardSnapshots, snapshotReads, timers, document,
+    replaceMenu() { menu.isConnected = false; menu = element('button'); return menu; },
     onboarding: () => onboardingOptions, dispose: () => dispose(),
     editorMounts: () => editorMounts, updates: () => updates,
     fail() { failed = true; }, flush,
@@ -161,7 +164,7 @@ test('mobile navigation survives initial API failure and refresh without remount
     assert.equal(f.mobileMounts.length, 1); assert.equal(f.mobileMounts[0].returnHash, '#home');
     assert.equal(f.nodes.get('studio-content').innerHTML, '手机与设备说明');
     for (const id of ['studio-rail', 'studio-topbar']) assert.match(f.nodes.get(id).innerHTML, /href="#mobile"[^>]*aria-current="page"/);
-    assert.match(f.nodes.get('studio-topbar').innerHTML, /手机与设备/);
+    assert.match(f.nodes.get('studio-topbar').innerHTML, /账号与设备/);
     f.click('refresh'); await f.flush(); assert.equal(f.mobileMounts.length, 1);
     f.dispose(); assert.equal(f.mobileDisposals.length, 1);
   }
@@ -180,6 +183,9 @@ test('mobile return context follows project, legacy, and history routes without 
 test('mobile resource is loaded before Studio in both assembly paths', () => {
   for (const file of ['web/workspace/studio-preview.html', 'web/workbench-engine/src/renderer/src/web/platform-studio-surface.tsx']) {
     const text = fs.readFileSync(path.resolve(__dirname, '../..', file), 'utf8');
+    assert.ok(text.indexOf('/remote/account-device.js') >= 0);
+    assert.ok(text.indexOf('/remote/account-device.js') < text.indexOf('/mobile-device-entry.js'));
+    assert.ok(text.includes('/remote/remote-account.css'));
     assert.ok(text.indexOf('/mobile-device-entry.js') >= 0);
     assert.ok(text.indexOf('/mobile-device-entry.js') < text.indexOf('/studio-preview.js'));
   }
@@ -606,5 +612,58 @@ test('minimal project tasks declare all-project scope, preserve context sessions
   f.fail(); f.click('refresh'); await f.flush();
   assert.match(f.nodes.get('studio-status').textContent, /offline.*上次读取/);
   assert.equal(f.nodes.get('studio-status').hidden, false);
+  f.dispose();
+});
+
+
+test('navigation drawer shares destinations, locks the real scroll host and restores on every dismissal', async () => {
+  for (const unified of [false, true]) {
+    const f = studioFixture({ unified }); await f.flush();
+    const drawer = f.elements.find(node => node.id === 'studio-navigation');
+    f.click('navigation');
+    assert.equal(drawer.open, true);
+    assert.equal(f.scrollHost.style.overflow, 'hidden');
+    assert.match(drawer.innerHTML, /href="#home"/);
+    assert.match(drawer.innerHTML, /href="#mobile"[^>]*>.*账号与设备/);
+    assert.doesNotMatch(drawer.innerHTML, /href="#inbox"/);
+    f.scrollHost.scrollTop = 0; drawer.close();
+    assert.equal(f.menu.focusCount, 1);
+    assert.equal(f.scrollHost.style.overflow, 'auto');
+    assert.equal(f.scrollHost.scrollTop, 237);
+    assert.equal(f.menu['aria-expanded'], 'false');
+    f.click('navigation'); f.window.innerWidth = 1000; f.callbacks.resize();
+    assert.equal(drawer.open, false); assert.equal(f.scrollHost.style.overflow, 'auto');
+    f.click('navigation'); f.dispose();
+    assert.equal(drawer.open, false); assert.equal(drawer.isConnected, false);
+    assert.equal(f.scrollHost.scrollTop, 237); assert.equal(f.scrollHost.style.overflow, 'auto');
+  }
+});
+
+test('drawer links close before routing and project dialogs close it before opening', async () => {
+  const f = studioFixture({ unified: true }); await f.flush();
+  const drawer = f.elements.find(node => node.id === 'studio-navigation');
+  f.click('navigation');
+  f.nodes.get('ce-studio').listeners.click({ target: { closest: selector => selector === 'a[href]' ? { href: '#mobile' } : null } });
+  assert.equal(drawer.open, false); assert.equal(f.scrollHost.style.overflow, 'auto');
+  f.click('navigation'); f.manage('server-project');
+  assert.equal(drawer.open, false);
+  assert.equal(f.elements.find(node => node.className === 'ce-project-settings').open, true);
+  f.dispose();
+});
+
+
+test('drawer close restores the current menu after chrome replacement and backdrop dismissal', async () => {
+  const f = studioFixture(); await f.flush();
+  const drawer = f.elements.find(node => node.id === 'studio-navigation');
+  f.click('navigation');
+  const replacement = f.replaceMenu();
+  drawer.close();
+  assert.equal(replacement.focusCount, 1);
+  assert.equal(replacement['aria-expanded'], 'false');
+  f.click('navigation');
+  drawer.listeners.click[0]({ target: drawer });
+  assert.equal(drawer.open, false);
+  assert.equal(replacement.focusCount, 2);
+  assert.equal(f.scrollHost.style.overflow, 'auto');
   f.dispose();
 });

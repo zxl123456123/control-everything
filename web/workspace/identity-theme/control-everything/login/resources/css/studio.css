@@ -1,0 +1,110 @@
+/* Keycloak 26.8.1 keycloak.v2: preserve its forms, validation and accessibility. */
+:root {
+  --studio-background: #fafafa;
+  --studio-card: #ffffff;
+  --studio-text: #18181b;
+  --studio-muted: #71717a;
+  --studio-border: #e4e4e7;
+  --studio-primary: #18181b;
+  --studio-primary-text: #fafafa;
+  --studio-danger: #b91c1c;
+  --studio-success: #0f766e;
+  --pf-v5-global--FontFamily--text: system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+  --pf-v5-global--FontFamily--heading: var(--pf-v5-global--FontFamily--text);
+  --keycloak-card-top-color: transparent;
+}
+:root.pf-v5-theme-dark {
+  --studio-background: #09090b;
+  --studio-card: #18181b;
+  --studio-text: #fafafa;
+  --studio-muted: #a1a1aa;
+  --studio-border: #303036;
+  --studio-primary: #fafafa;
+  --studio-primary-text: #18181b;
+  --studio-danger: #fca5a5;
+  --studio-success: #5eead4;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --studio-background: #09090b;
+    --studio-card: #18181b;
+    --studio-text: #fafafa;
+    --studio-muted: #a1a1aa;
+    --studio-border: #303036;
+    --studio-primary: #fafafa;
+    --studio-primary-text: #18181b;
+  --studio-danger: #fca5a5;
+  --studio-success: #5eead4;
+  }
+}
+body, .login-pf body, .pf-v5-c-login {
+  background: var(--studio-background);
+  color: var(--studio-text);
+  font-family: var(--pf-v5-global--FontFamily--text);
+  font-size: 14px;
+}
+.pf-v5-c-login { min-height: 100dvh; padding: 40px 24px; }
+.pf-v5-c-login__container { grid-template-columns: minmax(0, 440px); gap: 24px; margin: auto; max-width: 100%; }
+.pf-v5-c-login__header { color: var(--studio-text); text-align: center; }
+#kc-header-wrapper { font-size: 16px; font-weight: 650; letter-spacing: -.02em; text-transform: none; padding: 0; }
+.pf-v5-c-login__main {
+  background: var(--studio-card);
+  color: var(--studio-text);
+  border: 1px solid var(--studio-border);
+  border-radius: 12px;
+  box-shadow: 0 2px 4px #00000004;
+  overflow: hidden;
+}
+.pf-v5-c-login__main-header { border-top: 0; padding: 28px 28px 20px; }
+.pf-v5-c-login__main-body { padding: 0 28px 28px; }
+.pf-v5-c-login__main-title { font-size: 24px; line-height: 1.4; font-weight: 650; letter-spacing: -.04em; }
+.pf-v5-c-login__main-footer, .pf-v5-c-login__main-footer-band { background: var(--studio-card); color: var(--studio-muted); }
+.pf-v5-c-login__main-footer-band { border-top: 1px solid var(--studio-border); padding: 20px 28px; }
+.pf-v5-c-form__label, .pf-v5-c-check__label { color: var(--studio-text); font-size: 13px; }
+.pf-v5-c-form-control {
+  --pf-v5-c-form-control--BackgroundColor: var(--studio-card);
+  --pf-v5-c-form-control--Color: var(--studio-text);
+  --pf-v5-c-form-control--BorderBottomColor: var(--studio-border);
+  --pf-v5-c-form-control--BorderTopColor: var(--studio-border);
+  --pf-v5-c-form-control--BorderLeftColor: var(--studio-border);
+  --pf-v5-c-form-control--BorderRightColor: var(--studio-border);
+  border-radius: 6px;
+  min-height: 38px;
+}
+.pf-v5-c-form-control::before, .pf-v5-c-form-control::after { border-radius: 6px; }
+.pf-v5-c-form-control input { color: var(--studio-text); font-size: 14px; }
+.pf-v5-c-button { border-radius: 6px; font-size: 14px; min-height: 38px; }
+.pf-v5-c-button::after { border-radius: 6px; }
+.pf-v5-c-button.pf-m-primary {
+  --pf-v5-c-button--m-primary--BackgroundColor: var(--studio-primary);
+  --pf-v5-c-button--m-primary--Color: var(--studio-primary-text);
+  --pf-v5-c-button--m-primary--hover--BackgroundColor: var(--studio-primary);
+  --pf-v5-c-button--m-primary--hover--Color: var(--studio-primary-text);
+  --pf-v5-c-button--m-primary--focus--BackgroundColor: var(--studio-primary);
+  --pf-v5-c-button--m-primary--focus--Color: var(--studio-primary-text);
+}
+.pf-v5-c-button.pf-m-control, .pf-v5-c-button.pf-m-secondary {
+  color: var(--studio-text); background: var(--studio-card); border: 1px solid var(--studio-border);
+}
+a { color: var(--studio-text); text-underline-offset: 4px; }
+a:hover { color: var(--studio-text); text-decoration: underline; }
+:is(a, button, input, select):focus-visible { outline: 2px solid var(--studio-text); outline-offset: 3px; }
+.pf-v5-c-alert { border-radius: 6px; box-shadow: none; }
+.pf-v5-c-alert.pf-m-danger, .kc-feedback-text.pf-m-error { color: var(--studio-danger); }
+.pf-v5-c-alert.pf-m-success { color: var(--studio-success); }
+#device-user-code { letter-spacing: .12em; font-family: ui-monospace, monospace; }
+#kc-form-buttons { display: flex; flex-wrap: wrap; gap: 12px; }
+#kc-form-buttons > div { width: 100%; }
+#kc-oauth :is(p, li, h3), #kc-info-wrapper { overflow-wrap: anywhere; }
+@media (max-width: 600px) {
+  .pf-v5-c-login { padding: 24px 16px; }
+  .pf-v5-c-login__container { width: 100%; }
+  .pf-v5-c-login__main-header { padding: 24px 20px 18px; }
+  .pf-v5-c-login__main-body { padding: 0 20px 24px; }
+  .pf-v5-c-login__main-footer-band { padding: 18px 20px; }
+  .pf-v5-c-login__main-title { font-size: 22px; }
+}
+@media (forced-colors: active) {
+  .pf-v5-c-login__main, .pf-v5-c-button { border: 1px solid ButtonText; }
+  :focus-visible { outline: 2px solid Highlight; }
+}

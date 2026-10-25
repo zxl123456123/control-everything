@@ -22,6 +22,7 @@ const scripts = [
   '/project-space.js',
   '/agents.js',
   '/studio-data.js',
+  '/remote/account-device.js',
   '/mobile-device-entry.js',
   '/studio-preview.js'
 ]
@@ -94,7 +95,7 @@ export default function PlatformStudioSurface({
       const stopKeyboardBubble = (event: Event) => event.stopPropagation()
       shadow.addEventListener('keydown', stopKeyboardBubble)
       shadow.addEventListener('keyup', stopKeyboardBubble)
-      const styles = ['/workspace.css', '/project-monitor.css', '/studio-preview.css'].map(
+      const styles = ['/workspace.css', '/project-monitor.css', '/studio-preview.css', '/remote/remote-account.css'].map(
         (href) =>
           new Promise<void>((resolve, reject) => {
             const link = document.createElement('link')

@@ -54,7 +54,15 @@ class PackagingTests(TestCase):
         self.assertEqual(len(assets.WEB_ASSETS), len(set(assets.WEB_ASSETS)))
         manifest = (ROOT / "MANIFEST.in").read_text(encoding="utf-8").splitlines()
         included = {name for line in manifest if line.startswith("include web/") for name in line.split()[1:]}
-        self.assertEqual(included, {"web/" + relative for relative in assets.WEB_ASSETS})
+        themes = {
+            "web/workspace/identity-theme/control-everything/login/theme.properties",
+            "web/workspace/identity-theme/control-everything/login/resources/css/studio.css",
+            "web/workspace/identity-theme/control-everything/login/messages/messages_zh_Hans.properties",
+        }
+        self.assertEqual(included, {"web/" + relative for relative in assets.WEB_ASSETS} | themes)
+        self.assertFalse(any("identity-theme" in name for name in assets.WEB_ASSETS))
+        self.assertIn("/remote/account-device.js", edge)
+        self.assertNotIn("/remote/*", edge.split("@account path", 1)[1].splitlines()[0])
         self.assertIn("prune web/workbench-engine", manifest)
 
     def test_workbench_export_uses_pinned_outputs_and_excludes_build_metadata(self):

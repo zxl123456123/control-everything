@@ -16,6 +16,7 @@ WEB_ASSETS = (
     "workspace/workspace.html", "workspace/workspace.js", "workspace/workspace.css",
     "workspace/onboarding.js",
     "workspace/desktop.html", "workspace/desktop.js", "workspace/remote-context.js",
+    "workspace/account-device.js",
     "workspace/remote-account.html", "workspace/remote-account.js", "workspace/remote-account.css",
     "workspace/agents.js",
     "workspace/task-center.js", "workspace/project-space.js", "workspace/execution.js", "workspace/observation.js",

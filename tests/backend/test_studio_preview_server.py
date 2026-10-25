@@ -6,9 +6,18 @@ import threading
 import unittest
 
 from tools.scripts.preview_studio import PreviewHandler, RESOURCES
+from control_everything.http.workbench import STUDIO_RESOURCES
 
 
 class StudioPreviewServerTests(unittest.TestCase):
+    def test_account_module_and_styles_have_precise_product_routes(self):
+        self.assertEqual(STUDIO_RESOURCES['/remote/account-device.js'],
+                         ('account-device.js', 'text/javascript; charset=utf-8'))
+        self.assertEqual(STUDIO_RESOURCES['/remote/remote-account.css'],
+                         ('remote-account.css', 'text/css; charset=utf-8'))
+        self.assertFalse(any('identity-theme' in name for name, _ in STUDIO_RESOURCES.values()))
+        self.assertNotIn('/remote/*', STUDIO_RESOURCES)
+
     @classmethod
     def setUpClass(cls):
         cls.server = ThreadingHTTPServer(("127.0.0.1", 0), PreviewHandler)

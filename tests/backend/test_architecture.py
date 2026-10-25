@@ -13,6 +13,13 @@ spec.loader.exec_module(policy)
 
 
 class ArchitectureTests(TestCase):
+    def test_identity_properties_have_exact_ownership(self):
+        prefix = 'web/workspace/identity-theme/control-everything/login/'
+        for name in ['theme.properties', 'messages/messages_zh_Hans.properties']:
+            self.assertIsNone(policy.ownership_error(prefix + name))
+        for name in ['other.properties', 'messages/messages_en.properties', 'theme.ftl']:
+            self.assertEqual(policy.ownership_error(prefix + name), 'unknown_frontend_owner')
+
     def test_workbench_owner_requires_exact_manifest_members(self):
         with patch.object(policy, 'workbench_policy') as source:
             source.return_value.contains.side_effect = lambda value: value == 'web/workbench-engine/src/App.tsx'

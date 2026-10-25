@@ -1,0 +1,87 @@
+const {test} = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const vm = require('node:vm');
+const source = fs.readFileSync('web/workspace/account-device.js', 'utf8');
+const settle = async () => { for(let i=0;i<30;i++) await Promise.resolve(); };
+const response = (value,status=200) => ({status,ok:status>=200&&status<300,json:async()=>value});
+const session = extra => ({csrf:'synthetic-csrf',account:{sub:'member',name:'测试成员'},membership:'active',admin:false,device:null,...extra});
+function fixture(fetcher, {mode='remote',embedded=false}={}) {
+  const nodes=new Map(),calls=[],navigations=[],notices=[],timers=new Map(),inactive=new Set();
+  let sequence=0,focused=null,unmounted=false;
+  function node(name,hidden=false) {
+    const events=new Map();
+    return {hidden,textContent:'',dataset:{},disabled:false,open:false,
+      addEventListener(name,fn){if(!events.has(name))events.set(name,new Set());events.get(name).add(fn);},
+      removeEventListener(name,fn){events.get(name)?.delete(fn);},
+      emit(name,event={}){for(const fn of [...(events.get(name)||[])])fn({currentTarget:this,preventDefault(){},...event});},
+      focus(){focused=name;},showModal(){this.open=true;},close(){this.open=false;this.emit('close');},
+      get listenerCount(){return [...events.values()].reduce((a,b)=>a+b.size,0);}};
+  }
+  const container={set innerHTML(value){for(const tag of value.matchAll(/<[^>]*data-(node|action)="([^"]+)"[^>]*>/g)){nodes.set(tag[1]+':'+tag[2],node(tag[2],/\bhidden\b/.test(tag[0])));}},querySelector(selector){const m=selector.match(/data-(node|action)="([^"]+)"/);return nodes.get(m[1]+':'+m[2]);},replaceChildren(){unmounted=true;}};
+  const context=embedded?{context:'synthetic',active:true,onInactive(fn){inactive.add(fn);return()=>inactive.delete(fn);},invalidate(){this.active=false;for(const fn of [...inactive])fn();inactive.clear();}}:null;
+  const window={document:{hidden:false},CERemoteContext:context,localStorage:{setItem:(...args)=>notices.push(args)},location:{assign:url=>navigations.push(url)},setTimeout(fn){timers.set(++sequence,fn);return sequence;},clearTimeout(id){timers.delete(id);},fetch:async(path,options)=>{calls.push({path,options});return fetcher(path,options);}};
+  vm.runInNewContext(source,{window,AbortController,FormData});
+  const dispose=window.StudioAccountDevice.mount(container,{mode,returnHash:'#projects'});
+  return {calls,navigations,notices,timers,context,dispose,window,get:name=>nodes.get('node:'+name),button:name=>nodes.get('action:'+name),click(name){nodes.get('action:'+name).emit('click');},get focused(){return focused;},get unmounted(){return unmounted;},async tick(){const [id,fn]=timers.entries().next().value;timers.delete(id);fn();await settle();}};
+}
+test('raw independent 401 never parses JSON and exposes only login',async()=>{
+  let parsed=false;const f=fixture(async()=>({status:401,ok:false,json(){parsed=true;throw Error('unexpected');}}));await settle();
+  assert.equal(parsed,false);assert.equal(f.get('login').hidden,false);assert.equal(f.get('account').textContent,'');
+  for(const name of ['activation','invitations','revoke-area','open'])assert.equal(f.get(name).hidden,true);
+  assert.match(f.get('status').textContent,/请登录/);assert.equal(f.navigations.length,0);f.dispose();
+});
+test('independent new session adopts its account and successful logout retires page state',async()=>{
+  const f=fixture(path=>response(path.endsWith('/session')?session({session_changed:true,admin:true}):{logout_url:'/oauth2/sign_out'}));await settle();
+  assert.equal(f.get('account').textContent,'测试成员');assert.equal(f.get('invitations').hidden,false);assert.equal(f.notices.length,1);
+  f.click('logout');await settle();assert.deepEqual(f.navigations,['/oauth2/sign_out']);assert.equal(f.notices.length,2);assert.equal(f.get('account').textContent,'');f.dispose();
+});
+test('remote mode never loads bootstrap and keeps unbound and offline account management usable',async()=>{
+  for(const device of [null,{device_id:'d',name:'测试电脑',state:'offline'},{device_id:'d',name:'测试电脑',state:'online'}]){
+    const f=fixture(async()=>response(session({device})));await settle();assert.equal(f.calls[0].path,'/remote/api/session');assert.equal(f.calls.length,1);
+    assert.equal(f.get('account').textContent,'测试成员');assert.equal(f.get('open').hidden,device?.state!=='online');assert.equal(f.timers.size,0);f.dispose();
+  }
+});
+test('only boolean admin exposes invitations; non-admin click cannot send a write',async()=>{
+  for(const admin of [false,'true',true]){const f=fixture(async()=>response(session({admin})));await settle();assert.equal(f.get('invitations').hidden,admin!==true);if(admin!==true){f.click('invitation');await settle();assert.equal(f.calls.length,1);}f.dispose();}
+});
+test('invitation disables repeat writes, includes CSRF and stays only in DOM',async()=>{
+  let release;const f=fixture(path=>path.endsWith('/session')?response(session({admin:true})):new Promise(resolve=>release=resolve));await settle();
+  f.click('invitation');f.click('invitation');assert.equal(f.calls.length,2);assert.equal(f.button('invitation').disabled,true);assert.equal(f.calls[1].options.headers['X-CE-CSRF'],'synthetic-csrf');assert.equal(f.calls[1].options.body,'{}');
+  release(response({invitation:'synthetic-invite'}));await settle();assert.equal(f.get('invitation-code').textContent,'synthetic-invite');assert.equal(f.notices.length,0);assert.equal(f.button('invitation').disabled,false);f.dispose();
+});
+test('business 403 preserves session, hides invitation result and permits explicit retry',async()=>{
+  const f=fixture(path=>response(path.endsWith('/session')?session({admin:true}):{error:'admin_required'},path.endsWith('/session')?200:403),{embedded:true});await settle();f.click('invitation');await settle();
+  assert.equal(f.context.active,true);assert.equal(f.navigations.length,0);assert.equal(f.get('invitation-result').hidden,true);assert.equal(f.button('invitation').disabled,false);assert.match(f.get('status').textContent,/请求未成功/);f.dispose();
+});
+test('raw embedded 401 stops same-page consumers and navigates even if invalidation disposes synchronously',async()=>{
+  let reads=0;const f=fixture(()=>++reads===1?response(session()):response({},401),{embedded:true});let stopped=false;f.context.onInactive(()=>stopped=true);await settle();f.click('refresh');await settle();
+  assert.equal(stopped,true);assert.equal(f.context.active,false);assert.equal(f.unmounted,true);assert.deepEqual(f.navigations,['/remote']);
+});
+test('session_changed and account replacement retire embedded context before rendering another identity',async()=>{
+  for(const change of [{session_changed:true},{account:{sub:'second',name:'其他人'}}]){let reads=0;const f=fixture(()=>response(session(++reads===1?{}:change)),{embedded:true});await settle();f.click('refresh');await settle();assert.equal(f.context.active,false);assert.deepEqual(f.navigations,['/remote']);assert.notEqual(f.get('account').textContent,'其他人');}
+});
+test('late invitation cannot reappear after same-tab 401, new CSRF, or unmount',async()=>{
+  for(const change of ['401','csrf','dispose']){let release,reads=0;const f=fixture(path=>path.endsWith('/invitations')?new Promise(resolve=>release=resolve):(++reads===1?response(session({admin:true})):change==='401'?response({},401):response(session({admin:true,csrf:'new-synthetic-csrf'}))));await settle();f.click('invitation');if(change==='dispose')f.dispose();else f.click('refresh');await settle();release(response({invitation:'late-synthetic-invite'}));await settle();assert.equal(f.get('invitation-code').textContent,'');assert.equal(f.get('invitation-result').hidden,true);f.dispose();}
+});
+test('logout validates destination then navigates after synchronous context disposal without refresh',async()=>{
+  for(const url of ['/oauth2/sign_out','https://example.invalid/logout']){const f=fixture(path=>response(path.endsWith('/session')?session():{logout_url:url}),{embedded:true});await settle();f.click('logout');await settle();assert.equal(f.calls.length,2);assert.deepEqual(f.navigations,url==='/oauth2/sign_out'?['/oauth2/sign_out']:[]);assert.equal(f.context.active,url!=='/oauth2/sign_out');f.dispose();}
+});
+test('revocation uses modal confirmation, cancel sends nothing and close restores focus',async()=>{
+  const f=fixture(path=>response(path.endsWith('/session')?session({device:{device_id:'device/a',state:'online'}}):{revoked:true}));await settle();f.click('revoke');assert.equal(f.get('revoke-dialog').open,true);f.click('cancel-revoke');assert.equal(f.calls.length,1);assert.equal(f.focused,'revoke');f.click('revoke');f.click('confirm-revoke');await settle();assert.equal(f.calls[1].path,'/remote/api/devices/device%2Fa/revoke');f.dispose();
+});
+test('local mode loads bootstrap once, retains explicit confirmation and disables unconfigured actions',async()=>{
+  for(const configured of [false,true]){const f=fixture(path=>response(path==='/api/bootstrap'?{csrf_token:'synthetic-local-csrf'}:{configured,state:'awaiting_local_confirmation',account:{sub:'account',name:'本机待核对'},operation:'recover'}),{mode:'local'});await settle();assert.deepEqual(f.calls.map(c=>c.path),['/api/bootstrap','/api/desktop/remote/status']);assert.equal(f.button('authorize').disabled,!configured);assert.equal(f.button('confirm').hidden,false);assert.match(f.button('confirm').textContent,/恢复/);assert.equal(f.calls.length,2);f.click('confirm');await settle();assert.equal(f.calls.length,configured?4:2);if(configured){assert.equal(f.calls[2].options.headers['X-Session-CSRF'],'synthetic-local-csrf');assert.equal(f.calls[2].options.headers['X-CE-CSRF'],undefined);}f.dispose();}
+});
+test('local account copy distinguishes unbound from saved connections without inventing identity',async()=>{
+  for(const state of ['unbound','authorizing','revoked','online','offline']) {
+    const f=fixture(path=>response(path==='/api/bootstrap'?{csrf_token:'local'}:{state,configured:true}),{mode:'local'});await settle();
+    const unbound=['unbound','authorizing','revoked'].includes(state);
+    assert.equal(f.get('account').textContent,unbound?'尚未绑定账号':'连接已保存');
+    assert.equal(f.get('device-help').textContent,unbound?'完成账号授权后，即可通过手机访问工作台。':'电脑连接状态以此处显示为准。');f.dispose();
+  }
+  const f=fixture(path=>response(path==='/api/bootstrap'?{csrf_token:'local'}:{state:'offline',configured:false}),{mode:'local'});await settle();assert.equal(f.get('account').textContent,'尚未绑定账号');f.dispose();
+});
+test('local polling is serial, visibility-aware and disposal clears timers/listeners/late responses',async()=>{
+  let release,reads=0;const f=fixture(path=>path==='/api/bootstrap'?response({csrf_token:'local'}):++reads===1?response({state:'online',configured:true}):new Promise(resolve=>release=resolve),{mode:'local'});await settle();assert.equal(f.get('account').textContent,'连接已保存');assert.equal(f.timers.size,1);f.window.document.hidden=true;await f.tick();assert.equal(reads,1);f.window.document.hidden=false;await f.tick();await f.tick();assert.equal(reads,2);const signal=f.calls.at(-1).options.signal;f.dispose();assert.equal(signal.aborted,true);assert.equal(f.timers.size,0);assert.equal(f.button('authorize').listenerCount,0);release(response({state:'offline',account:{sub:'late'}}));await settle();assert.notEqual(f.get('account').textContent,'late');
+});
