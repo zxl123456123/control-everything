@@ -12,13 +12,15 @@
 
 ## 独立 SSH 实例
 
-设备转发使用单独的 TCP 2223，不修改既有 22 端口。参数依据 [OpenSSH sshd_config](https://man.openbsd.org/sshd_config)；真实主机仍须验证有效配置和 PAM 账号策略。
+设备转发使用单独的 TCP 2223，不修改既有 22 端口。参数依据 [OpenSSH sshd_config](https://man.openbsd.org/sshd_config)；此专用非交互公钥转发实例使用 `UsePAM no`，避免 PAM session 将连接移入 `user.slice` 而破坏固定 service cgroup 归属；因此不会执行 PAM account/session、limits 或环境策略。不得将此配置用于依赖这些策略的普通账号。
 
 1. 将 SSH 配置放入 `/etc/ce-device-sshd.conf`，为 `/etc/ce-device-ssh/ssh_host_ed25519_key` 单独生成并保管 host key。把核对过的公钥写入私有 hub 配置。
 2. 将对应实例安装为 **`ce-device-sshd.service`**。进程检查固定其统一 cgroup v2 路径和 `/run/ce-device-sshd.pid`；不能改名后绕过归属检查。
 3. 将 socket/service 样例分别安装为 **`ce-device-provisioner.socket`**、**`ce-device-provisioner.service`**。root 拥有 Unix socket，模式 0660，仅 hub 专属组可连接；服务再次通过 `SO_PEERCRED` 检查调用 uid。
 4. provisioner 仅接受四种固定操作，不接收 shell、路径、UID 或 PID。它创建 `ced_<device-id>` 的独立禁交互系统账号；每把 root 控制的公钥只允许两条精确 loopback `permitlisten`。账号文件、注册记录与 key 文件不得由 hub 用户写入。
-5. root 部署前分别运行 `sshd -t -f /etc/ce-device-sshd.conf` 和 `sshd -T -f /etc/ce-device-sshd.conf -C user=<已登记设备账号>,host=localhost,addr=127.0.0.1`，并用两个实际隧道验证 PTY、shell、本地转发、非 loopback、他人端口均拒绝。
+5. root 部署前分别运行 `sshd -t -f /etc/ce-device-sshd.conf` 和 `sshd -T -f /etc/ce-device-sshd.conf -C user=<已登记设备账号>,host=<实际主机>,addr=<实际客户端地址>`，确认有效 `usepam no`，且公钥独占、禁会话和转发边界保持。只对已登记设备账号核 UID/shell、shadow 字段恰为 `*` 且非 `!` 锁定前缀、账号未过期和 nologin 可执行；不得输出 shadow 值或批量解锁。通过正常入口建立两条真实公钥隧道，确认设备进程与 root monitor 完整祖先链均在固定 service cgroup，PID/start 一致，分别有可归属连接及两条精确监听；再验证 PTY、shell、本地转发、非 loopback、他人端口均拒绝。
+
+变更现有部署前须正常断开本次 fixture 隧道并证明 2223 无任何现存连接、无未知使用者，且分配监听均已释放；不能用失真的 `connections=0` 代替清点。备份专用配置并核 hash，仅修改该文件，经候选与正式路径 `sshd -t/-T` 后只重启 `ce-device-sshd.service`，不碰公用 22、host key 或账号数据库。失败须在确认无未知连接后恢复精确备份并只重启专用 unit；恢复旧 PAM 配置不代表原归属缺陷消除，须暂停撤销验收。`UsePAM no` 的真实公钥兼容性、进程归属和恢复步骤仍须部署者在实际主机验收。
 
 撤销先拒绝路由并失效控制 token，再禁 key、以 pidfd 结束已证明归属的连接子树。无法证明 root monitor 归属、进程身份改变或监听残留时，设备停在 `revoking`，端口保留。`reconcile` 命令和服务重启会重试清理；不杀整套 sshd，不删除其他系统账号。
 

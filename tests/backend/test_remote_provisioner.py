@@ -33,6 +33,17 @@ def fake_private_root_metadata(directory):
 
 
 class ProvisionerTests(unittest.TestCase):
+    def test_dedicated_sshd_keeps_public_key_only_connections_in_service_cgroup(self):
+        sample = Path(__file__).resolve().parents[2] / "docs/examples/integrations/workbench-device-sshd.example.conf"
+        directives = dict(line.split(None, 1) for line in sample.read_text().splitlines()
+                          if line.strip() and not line.lstrip().startswith("#"))
+        for name, value in {"UsePAM": "no", "Port": "2223", "AuthenticationMethods": "publickey",
+                            "PasswordAuthentication": "no", "KbdInteractiveAuthentication": "no",
+                            "PermitTTY": "no", "MaxSessions": "0", "AllowTcpForwarding": "remote",
+                            "GatewayPorts": "no", "ForceCommand": "/usr/sbin/nologin"}.items():
+            with self.subTest(directive=name):
+                self.assertEqual(directives[name], value)
+
     def proc_fixture(self, root, pid, parent, uid, *, cgroup=GROUP):
         directory = root / str(pid)
         directory.mkdir()
@@ -76,6 +87,7 @@ class ProvisionerTests(unittest.TestCase):
             backend.ensure_device("a" * 24, KEY, 20000, 20001)
             backend.ensure_device("a" * 24, KEY, 20000, 20001)
             self.assertEqual(len(calls), 1)
+            self.assertEqual(calls[0][calls[0].index("--password") + 1], "*")
             key = (Path(directory) / "keys" / ("ced_" + "a" * 24)).read_text()
             self.assertIn('permitlisten="127.0.0.1:20000"', key)
             self.assertIn('permitlisten="127.0.0.1:20001"', key)
