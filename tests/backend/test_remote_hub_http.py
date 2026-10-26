@@ -7,9 +7,11 @@ from pathlib import Path
 import tempfile
 import threading
 import unittest
+from unittest.mock import Mock
 
 from control_everything.http.remote_hub import build_server
 from control_everything.integrations.remote_hub.identity import HubError, TokenIntrospector
+from control_everything.integrations.remote_hub.directory import KeycloakUserDirectory
 from .test_remote_hub_support import A, INSTALL, KEY, bind, service
 
 
@@ -42,6 +44,72 @@ class RemoteHubHTTPTests(unittest.TestCase):
         connection.request(method, path, body, headers or {})
         response = connection.getresponse()
         return response.status, json.loads(response.read()), dict(response.getheaders())
+
+    def test_admin_registration_directory_needs_own_session_csrf_and_admin(self):
+        self.hub.admin_subjects = frozenset([(A.issuer, A.sub)])
+        directory = self.hub.user_directory = Mock(issuer=A.issuer)
+        directory.page.return_value = ([{"sub": "registered-only", "name": "Registered member",
+                                         "registered_at": 1700000000, "enabled": True}], 1)
+        headers = {"X-Auth-Request-Access-Token": "synthetic-access-token", "X-Auth-Request-User": A.sub,
+                   "X-CE-Route-Proof": self.hub.route_proof}
+        path = "/remote/api/admin/members?limit=25&offset=0"
+        self.assertEqual(self.request("GET", path, headers=headers)[0], 401)
+        _, session, extra = self.request("GET", "/remote/api/session", headers=headers)
+        headers["Cookie"] = extra["Set-Cookie"].split(";", 1)[0]
+        self.assertEqual(self.request("GET", path, headers=headers)[0], 403)
+        headers["X-CE-CSRF"] = session["csrf"]
+        status, page, extra = self.request("GET", path, headers=headers)
+        self.assertEqual(status, 200)
+        self.assertEqual(page["items"][0]["membership"], "inactive")
+        self.assertIsNone(page["items"][0]["device"])
+        self.assertEqual(extra["Cache-Control"], "no-store")
+        self.assertNotIn("Set-Cookie", extra)
+        self.assertEqual(self.request("GET", path, headers={**headers, "Origin": self.hub.public_origin})[0], 200)
+        for change in [{"Origin": "https://elsewhere.example.test"}, {"Origin": "null"}, {"X-CE-CSRF": "wrong"}]:
+            self.assertEqual(self.request("GET", path, headers={**headers, **change})[0], 403)
+        directory.page.reset_mock()
+        self.hub.admin_subjects = frozenset()
+        self.assertEqual(self.request("GET", path, headers=headers)[0], 403)
+        directory.page.assert_not_called()
+        self.hub.admin_subjects = frozenset([(A.issuer, A.sub)])
+        self.hub.sessions.logout(A, headers["Cookie"].split("=", 1)[1], session["csrf"], self.hub.public_origin)
+        self.assertEqual(self.request("GET", path, headers=headers)[0], 401)
+
+    def test_admin_directory_pagination_is_strict_and_get_does_not_relax_post_origin(self):
+        self.hub.admin_subjects = frozenset([(A.issuer, A.sub)])
+        directory = self.hub.user_directory = Mock(issuer=A.issuer)
+        directory.page.return_value = ([], 0)
+        headers = {"X-Auth-Request-Access-Token": "synthetic-access-token", "X-Auth-Request-User": A.sub,
+                   "X-CE-Route-Proof": self.hub.route_proof}
+        _, session, extra = self.request("GET", "/remote/api/session", headers=headers)
+        headers.update({"Cookie": extra["Set-Cookie"].split(";", 1)[0], "X-CE-CSRF": session["csrf"]})
+        path = "/remote/api/admin/members"
+        self.assertEqual(self.request("GET", path, headers=headers)[0], 200)
+        directory.page.assert_called_once_with(25, 0)
+        directory.page.reset_mock()
+        for query in ["limit=0", "limit=101", "offset=-1", "offset=2147483648", "limit=1&limit=2", "other=1", "offset=", "limit=25&offset=0&other=1"]:
+            self.assertEqual(self.request("GET", path + "?" + query, headers=headers)[0], 400, query)
+        directory.page.assert_not_called()
+        self.assertEqual(self.request("GET", "/remote/api/session?limit=25", headers=headers)[0], 400)
+        post_headers = {**headers, "Content-Type": "application/json"}
+        self.assertEqual(self.request("POST", path, "{}", post_headers)[0], 405)
+        self.assertEqual(self.request("POST", "/remote/api/invitations", "{}", post_headers)[0], 403)
+        self.hub.user_directory = None
+        self.assertEqual(self.request("GET", path, headers=headers)[:2],
+                         (503, {"error": "member_directory_not_configured"}))
+
+    def test_malformed_idp_unicode_is_a_directory_error_not_a_dropped_connection(self):
+        self.hub.admin_subjects = frozenset([(A.issuer, A.sub)])
+        directory = self.hub.user_directory = KeycloakUserDirectory(A.issuer, "synthetic", "synthetic-secret")
+        headers = {"X-Auth-Request-Access-Token": "synthetic-access-token", "X-Auth-Request-User": A.sub,
+                   "X-CE-Route-Proof": self.hub.route_proof}
+        _, session, extra = self.request("GET", "/remote/api/session", headers=headers)
+        headers.update({"Cookie": extra["Set-Cookie"].split(";", 1)[0], "X-CE-CSRF": session["csrf"]})
+        for profile in [{"id": "member", "username": "bad\ud800name"}, {"id": "bad\udc00subject"}]:
+            directory._json = Mock(side_effect=[{"access_token": "synthetic"}, 1, [profile]])
+            status, body, response_headers = self.request("GET", "/remote/api/admin/members", headers=headers)
+            self.assertEqual((status, body), (503, {"error": "member_directory_unavailable"}))
+            self.assertEqual(response_headers["Cache-Control"], "no-store")
 
     def test_cold_authorization_burst_is_queued_then_processed_without_connection_loss(self):
         # Pause accept, not handlers: exercise the real listen backlog under a connection burst.

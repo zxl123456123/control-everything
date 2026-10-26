@@ -4,7 +4,7 @@ from http.cookies import SimpleCookie
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 import re
-from urllib.parse import urlsplit
+from urllib.parse import parse_qs, urlsplit
 
 from control_everything.integrations.remote_hub.identity import HubError
 from control_everything.integrations.remote_hub.sessions import COOKIE_NAME
@@ -23,11 +23,21 @@ def _bearer(headers):
     return value[7:]
 
 
+def _pagination(query):
+    try:
+        values = parse_qs(query, keep_blank_values=True, strict_parsing=True, max_num_fields=2)
+    except ValueError:
+        raise HubError("invalid_pagination", 400) from None
+    if set(values) - {"limit", "offset"} or any(len(parts) != 1 or not re.fullmatch(r"[0-9]{1,10}", parts[0]) for parts in values.values()):
+        raise HubError("invalid_pagination", 400)
+    return {"limit": int(values.get("limit", ["25"])[0]), "offset": int(values.get("offset", ["0"])[0])}
+
+
 def dispatch(service, method, uri, headers, body):
     """Return (status, JSON body, response headers); no business transitions live here."""
     parsed = urlsplit(uri)
     path = parsed.path
-    if parsed.query or parsed.fragment:
+    if parsed.fragment or (parsed.query and path != "/remote/api/admin/members"):
         raise HubError("invalid_request_uri", 400)
     cookie = SimpleCookie()
     try:
@@ -80,6 +90,12 @@ def dispatch(service, method, uri, headers, body):
     if path == "/remote/api/session" and method == "GET":
         result, set_cookie = service.session(identity, session_cookie)
         return 200, result, {"Set-Cookie": set_cookie} if set_cookie else {}
+    if path == "/remote/api/admin/members":
+        if method != "GET":
+            raise HubError("method_not_allowed", 405)
+        _fields(body, ())
+        service.sessions.validate_read(identity, session_cookie, csrf=headers.get("X-CE-CSRF", ""), origin=headers.get("Origin"))
+        return 200, service.admin_members(identity, **_pagination(parsed.query)), {}
     if method != "POST":
         raise HubError("method_not_allowed", 405)
     service.sessions.validate(identity, session_cookie, csrf=headers.get("X-CE-CSRF", ""), origin=headers.get("Origin"))
