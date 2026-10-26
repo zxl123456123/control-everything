@@ -73,17 +73,27 @@ test('revocation uses modal confirmation, cancel sends nothing and close restore
 test('local mode loads bootstrap once, retains explicit confirmation and disables unconfigured actions',async()=>{
   for(const configured of [false,true]){const f=fixture(path=>response(path==='/api/bootstrap'?{csrf_token:'synthetic-local-csrf'}:{configured,state:'awaiting_local_confirmation',account:{sub:'account',name:'本机待核对'},operation:'recover'}),{mode:'local'});await settle();assert.deepEqual(f.calls.map(c=>c.path),['/api/bootstrap','/api/desktop/remote/status']);assert.equal(f.button('authorize').disabled,!configured);assert.equal(f.button('confirm').hidden,false);assert.match(f.button('confirm').textContent,/恢复/);assert.equal(f.calls.length,2);f.click('confirm');await settle();assert.equal(f.calls.length,configured?4:2);if(configured){assert.equal(f.calls[2].options.headers['X-Session-CSRF'],'synthetic-local-csrf');assert.equal(f.calls[2].options.headers['X-CE-CSRF'],undefined);}f.dispose();}
 });
-test('local account copy distinguishes unbound from saved connections without inventing identity',async()=>{
+test('local rows show identity only when supplied and keep stable states out of the notice',async()=>{
   for(const state of ['unbound','authorizing','revoked','online','offline']) {
     const f=fixture(path=>response(path==='/api/bootstrap'?{csrf_token:'local'}:{state,configured:true}),{mode:'local'});await settle();
-    const unbound=['unbound','authorizing','revoked'].includes(state);
-    assert.equal(f.get('account').textContent,unbound?'尚未绑定账号':'连接已保存');
-    assert.equal(f.get('device-help').textContent,unbound?'完成账号授权后，即可通过手机访问工作台。':'电脑连接状态以此处显示为准。');f.dispose();
+    assert.equal(f.get('account').textContent,''); assert.equal(f.get('membership').textContent,'未登录');
+    assert.equal(f.get('status').textContent,''); assert.equal(f.get('device-help').textContent,'');
+    assert.equal(f.get('device-state').textContent,({unbound:'尚未绑定',authorizing:'授权中',revoked:'连接已撤销',online:'在线',offline:'离线'})[state]); f.dispose();
   }
-  const f=fixture(path=>response(path==='/api/bootstrap'?{csrf_token:'local'}:{state:'offline',configured:false}),{mode:'local'});await settle();assert.equal(f.get('account').textContent,'尚未绑定账号');f.dispose();
+  const f=fixture(path=>response(path==='/api/bootstrap'?{csrf_token:'local'}:{state:'unbound',configured:false}),{mode:'local'});await settle();assert.equal(f.get('membership').textContent,'账号服务未配置');assert.equal(f.get('local-actions').hidden,true);assert.equal(f.button('authorize').disabled,true);assert.equal(f.button('authorize').hidden,true);f.dispose();
 });
 test('local polling is serial, visibility-aware and disposal clears timers/listeners/late responses',async()=>{
-  let release,reads=0;const f=fixture(path=>path==='/api/bootstrap'?response({csrf_token:'local'}):++reads===1?response({state:'online',configured:true}):new Promise(resolve=>release=resolve),{mode:'local'});await settle();assert.equal(f.get('account').textContent,'连接已保存');assert.equal(f.timers.size,1);f.window.document.hidden=true;await f.tick();assert.equal(reads,1);f.window.document.hidden=false;await f.tick();await f.tick();assert.equal(reads,2);const signal=f.calls.at(-1).options.signal;f.dispose();assert.equal(signal.aborted,true);assert.equal(f.timers.size,0);assert.equal(f.button('authorize').listenerCount,0);release(response({state:'offline',account:{sub:'late'}}));await settle();assert.notEqual(f.get('account').textContent,'late');
+  let release,reads=0;const f=fixture(path=>path==='/api/bootstrap'?response({csrf_token:'local'}):++reads===1?response({state:'online',configured:true}):new Promise(resolve=>release=resolve),{mode:'local'});await settle();assert.equal(f.get('device-state').textContent,'在线');assert.equal(f.timers.size,1);f.window.document.hidden=true;await f.tick();assert.equal(reads,1);f.window.document.hidden=false;await f.tick();await f.tick();assert.equal(reads,2);const signal=f.calls.at(-1).options.signal;f.dispose();assert.equal(signal.aborted,true);assert.equal(f.timers.size,0);assert.equal(f.button('authorize').listenerCount,0);release(response({state:'offline',account:{sub:'late'}}));await settle();assert.notEqual(f.get('account').textContent,'late');
+});
+
+test('compact local rows retain authorization codes, explicit account confirmation, restart notice and read errors',async()=>{
+  let current={configured:true,state:'authorizing',verification_uri:'https://example.test/activate',user_code:'SYNTHETIC'};
+  const f=fixture(path=>response(path==='/api/bootstrap'?{csrf_token:'local'}:current),{mode:'local'});await settle();
+  assert.equal(f.get('grant').hidden,false);assert.equal(f.get('code').textContent,'SYNTHETIC');assert.equal(f.get('verification').href,current.verification_uri);assert.equal(f.button('authorize').disabled,true);
+  current={configured:true,state:'awaiting_local_confirmation',account:{sub:'synthetic-account',name:'待核对账号'}};f.click('refresh');await settle();
+  assert.equal(f.get('account').textContent,'待核对账号');assert.equal(f.button('confirm').hidden,false);assert.equal(f.button('authorize').hidden,true);assert.match(f.get('local-help').textContent,/核对账号/);assert.equal(f.calls.filter(c=>c.options.method==='POST').length,0);
+  current={configured:true,state:'online',runtime_restart_required:true};f.click('refresh');await settle();assert.match(f.get('status').textContent,/重新打开软件/);
+  current=null;f.window.fetch=async()=>{throw new Error('Synthetic unavailable');};f.click('refresh');await settle();assert.equal(f.get('status').textContent,'Synthetic unavailable');assert.equal(f.get('status').dataset.tone,'error');f.dispose();
 });
 
 test('revocation keeps the domain dialog and its target on failure, prevents repeats and blocks closing while pending',async()=>{

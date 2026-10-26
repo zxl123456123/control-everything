@@ -42,16 +42,18 @@ test('zero, all archived and unavailable projects reach the native workbench wit
   assert.match(overview({projects:[project('one')],runtimeAvailable:false}), /项目运行组件未连接/);
 });
 
-test('the sidebar exposes two effective management destinations with distinct icons and no duplicate theme entry', () => {
-  const html = shell.renderNavigation({current:{view:'settings',tab:'sources'}});
+test('the sidebar keeps account management while advanced compatibility settings stay off routine navigation', () => {
+  const html = shell.renderNavigation({current:{view:'settings',tab:'account'}});
   assert.equal((html.match(/href="#home"/g) || []).length, 1);
   assert.doesNotMatch(html, /href="#project\/|href="#workspace"|ce-navdot/);
-  for (const section of ['account','sources']) assert.ok(html.includes('href="#settings/'+section+'"'));
-  assert.doesNotMatch(html, /settings-toggle|settings\/appearance|settings\/development/);
-  assert.match(html, /href="#settings\/sources" aria-current="page"/);
+  assert.ok(html.includes('href="#settings/account"'));
+  assert.doesNotMatch(html, /settings-toggle|settings\/appearance|settings\/development|settings\/sources|来源与接入|高级接入/);
+  assert.doesNotMatch(html, /<span class="ce-rail-label">管理<\/span>/);
+  assert.match(html, /href="#settings\/account" aria-current="page"/);
   const management = html.match(/<nav class="ce-navgroup" aria-label="管理">([^]*?)<\/nav>/)[1];
   const symbols = [...management.matchAll(/<svg[^>]*>([^]*?)<\/svg>/g)].map(match => match[1]);
-  assert.equal(symbols.length, 2); assert.notEqual(symbols[0], symbols[1]);
+  assert.equal(symbols.length, 1); assert.match(symbols[0], /circle/);
+  assert.doesNotMatch(shell.renderNavigation({current:{view:'settings',tab:'sources'}}), /settings\/sources/);
   assert.equal(shell.renderProjectSetup, undefined);
 });
 
@@ -71,9 +73,15 @@ test('overview facts use progress semantics and exclude records outside register
 });
 
 
-test('source settings exposes optional external access without a second agent setup form', () => {
+test('advanced settings retains precise compatibility destinations without restoring a routine entry', () => {
   const html = shell.renderSettingsLanding({ section: 'sources', integrated: true });
   assert.equal((html.match(/data-action="external-access"/g) || []).length, 1);
-  assert.match(html, /外部程序接入/); assert.doesNotMatch(html, /agent-form|兼容|命令|审批/);
+  assert.match(html, /<h1>高级接入<\/h1>/);
+  assert.match(html, /项目与会话导入/); assert.match(html, /事项 API 接入/);
+  assert.doesNotMatch(html, /agent-form|兼容|命令|审批|项目来源|外部程序接入/);
   assert.match(html, /href="\/workspace-admin#settings"/); assert.doesNotMatch(html, /workspace-admin#projects/);
+  assert.equal((html.match(/class="ce-setting-row"/g) || []).length, 2);
+  assert.match(html, /aria-label="管理项目与会话导入">管理/);
+  assert.match(html, /aria-label="管理事项 API 接入">管理/);
+  assert.doesNotMatch(html, /<p\b|ce-tool-card|ce-access-setting/);
 });

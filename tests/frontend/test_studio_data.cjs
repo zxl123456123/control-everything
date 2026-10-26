@@ -219,13 +219,18 @@ test('creator is an independent top-level and narrow-screen link without project
 test('creator URL writes one independent key and rejects all credential-bearing forms', async () => {
   const f = studioFixture(); await f.flush(); await f.route('tools');
   assert.match(f.nodes.get('studio-content').innerHTML, /data-creator-form="true"/);
+  assert.match(f.nodes.get('studio-content').innerHTML, /<details class="ce-creator-address">/);
+  assert.doesNotMatch(f.nodes.get('studio-content').innerHTML, /请先启动独立创作服务|普通 HTTP\(S\) 页面地址/);
   f.submit('https://creator.example.test/workbench/');
   assert.deepEqual(f.writes, [['ce-studio-creator-url', 'https://creator.example.test/workbench/']]);
+  assert.match(f.nodes.get('studio-content').innerHTML, /<details class="ce-creator-address">/);
   for (const invalid of ['javascript:alert(1)', '//example.test', 'http://name:secret@example.test/',
     'https://example.test/?token=synthetic', 'https://example.test/#token', 'https://example.test/?',
     'https://example.test/#', 'https://example.test/a b', ' https://example.test/', 'https:\\example.test']) {
     f.submit(invalid); assert.equal(f.writes.length, 1);
     assert.match(f.nodes.get('studio-content').innerHTML, /aria-invalid="true"/);
+    assert.match(f.nodes.get('studio-content').innerHTML, /<details class="ce-creator-address" open>/);
+    assert.doesNotMatch(f.nodes.get('studio-content').innerHTML, /id="studio-creator-error" role="status" hidden/);
     assert.match(f.nodes.get('studio-rail').innerHTML, /href="https:\/\/creator\.example\.test\/workbench\/"/);
   }
   assert.match(f.nodes.get('studio-topbar').innerHTML, /href="https:\/\/creator\.example\.test\/workbench\/"/);

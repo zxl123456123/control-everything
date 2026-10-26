@@ -391,7 +391,7 @@ function mountStudio(root, { onProjects = () => {} } = {}) {
   document.addEventListener('pointerdown', dismissProjectMenu);
   window.addEventListener('scroll', closeProjectMenu, true);
   function creatorLink(className='ce-nav'){if(window.CERemoteContext?.context)return '';return `<a class="${className} ce-creator-link" href="${escape(creatorUrl)}" target="_blank" rel="noopener noreferrer" aria-label="在新页面打开游戏创作">${icon('grid')}游戏创作${icon('arrow')}</a>`;}
-  function creatorAddressForm(){if(window.CERemoteContext?.context)return '';return `<section class="ce-creator-address"><div><h2>游戏创作地址</h2><p>导航中的“游戏创作”会在新页面打开此地址。请先启动独立创作服务。</p></div><form data-creator-form="true"><label for="studio-creator-url">普通 HTTP(S) 页面地址</label><div class="ce-creator-address-row"><input id="studio-creator-url" data-creator-url type="text" inputmode="url" autocomplete="off" spellcheck="false" value="${escape(creatorUrl)}" aria-describedby="studio-creator-error"${creatorUrlError?' aria-invalid="true"':''}><button type="submit" class="ce-button">保存地址</button></div><p id="studio-creator-error" role="status">${escape(creatorUrlError)}</p></form></section>`;}
+  function creatorAddressForm(){if(window.CERemoteContext?.context)return '';return `<details class="ce-creator-address"${creatorUrlError?' open':''}><summary><span>游戏创作地址</span><span class="ce-setting-action">编辑<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg></span></summary><form data-creator-form="true"><label for="studio-creator-url">服务地址</label><div class="ce-creator-address-row"><input id="studio-creator-url" data-creator-url type="text" inputmode="url" autocomplete="off" spellcheck="false" value="${escape(creatorUrl)}" aria-describedby="studio-creator-error"${creatorUrlError?' aria-invalid="true"':''}><button type="submit" class="ce-button">保存地址</button></div><p id="studio-creator-error" role="status"${creatorUrlError?'':' hidden'}>${escape(creatorUrlError)}</p></form></details>`;}
   const drawer = document.createElement('dialog');
   drawer.id = 'studio-navigation'; drawer.className = 'ce-navigation-drawer';
   drawer.setAttribute('aria-label', '工作台导航');
@@ -661,7 +661,7 @@ function mountStudio(root, { onProjects = () => {} } = {}) {
       creatorUrlError = '';
       try { (window.CERemoteContext ? window.CERemoteContext.storage('localStorage') : window.localStorage)?.setItem(CREATOR_URL_KEY, creatorUrl); } catch { /* Keep the address for this page. */ }
     } catch (error) { creatorUrlError = error.message; }
-    render(); root.querySelector('[data-creator-url]')?.focus({ preventScroll: true });
+    render(); root.querySelector(creatorUrlError ? '[data-creator-url]' : '.ce-creator-address > summary')?.focus({ preventScroll: true });
   });
   root.addEventListener('input', event => {
     if (event.target.id !== 'studio-project-search') return;

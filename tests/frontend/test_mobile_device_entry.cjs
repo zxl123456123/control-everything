@@ -30,9 +30,12 @@ test('uses only origin and explains browser access and unconfigured capabilities
   const f = fixture('https://example.test:8443', undefined, '#project/p/review');
   assert.equal(f.input.value, 'https://example.test:8443/studio');
   assert.ok(f.elements.some(n => n.href === '#project/p/review' && n.textContent === '返回原项目'));
-  assert.match(f.text(), /Safari/);
+  assert.match(f.text(), /手机浏览器/);
   assert.equal(f.elements.filter(node => node.tagName === 'h1').length, 0);
-  assert.match(f.text(), /原生 iOS、Android 安装包当前未交付/);
+  assert.match(f.text(), /当前未提供原生手机安装包/);
+  const guide=f.elements.find(n=>n.tagName==='details'); assert.equal(guide.open,undefined);
+  assert.equal(guide.children[0].textContent,'手机访问');
+  assert.equal(f.elements.filter(n=>n.tagName==='h2').length,1);
   assert.match(f.text(), /确认手机可访问/);
   assert.equal(f.accountMounts.length, 1);
   assert.deepEqual(f.accountMounts[0].options.mode, 'local');
