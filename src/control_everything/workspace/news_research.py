@@ -121,10 +121,10 @@ class ResearchJobs:
             merged = self.on_result(result['items']) if result['items'] else None
             with self.lock:
                 failed = code != 0 or any(event['stage'] in ('blocked', 'error') for event in job['events'])
-                job['state'] = 'partial' if result['items'] and failed else 'complete' if result['items'] else 'failed'
+                job['state'] = 'partial' if result['items'] and failed else 'failed' if failed else 'complete'
                 if merged:
                     job['result'] = merged
-                if not result['items']:
+                if not result['items'] and failed:
                     job['error'] = '本次未取得正文，请查看来源状态或检查浏览器采集依赖。已有内容已保留。'
         except (OSError, ValueError, KeyError, subprocess.SubprocessError):
             with self.lock:

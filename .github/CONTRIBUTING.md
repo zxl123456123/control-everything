@@ -405,6 +405,8 @@ Ctrl+C 停网关即可停本批查询，原 Claude/SSH/Zellij 对话继续运行
 
 采集默认使用小弹窗，展示关键词、当前阶段进度和结果；主题与截图选项、来源与回放记录分别折叠。已知总量按 worker 事件显示处理数量，未知总量不展示百分比；保存阶段等待服务端合入结束。蜘蛛默认隐藏，显示选择按阅读器与远程账号范围保存；隐藏不挂载或暂停动画，阅读与采集继续。步骤截图需显式开启，默认不截图，回放在展开详情后读取。
 
+关键词采集优先从作者/官方订阅源筛选：AI Coding/Agent 使用 Peter Steinberger RSS 与 Anthropic 官方发布 Atom，Claude 使用官方 Atom，模型主题使用 Google DeepMind 与 OpenAI 官方 RSS；X 帖子仅按显式链接读取，不默认经过 X/Bing 搜索。每次原文访问使用独立 Page，失败页面的残留导航不能影响下一来源。同域订阅重定向有界处理；原文受限时保留带范围标签的来源内容/摘要，无关键词匹配按正常空结果处理。Atom 的更新时间独立展示，不冒充发布时间；Tibo 保留作者原文入口，并明确其不是全网搜索结果。
+
 后端 `workspace/news_reader.py` 管理所选 profile 的 `news-reader/` 数据，`news_research.py` 管理单槽、有截止时间的独占浏览进程，`news_article.py` 提取固定来源正文。HTTP 装配在 `http/news_reader.py`，沿用 Host、Origin、client header 和 CSRF 校验。截图经带权限头的 fetch 转为 Blob 显示。研究数据、模型、截图和个人工具路径不提交。
 
 普通安装包含固定版本的正文提取器；本地翻译额外依赖通过 `python -m pip install -e ".[news]"` 安装。RSS/Atom 内联内容按纯文本保留，原文受阻时回退到订阅源内容并说明是否截断；HN 只对服务端已收录的链接提取正文，仍校验公共 DNS、HTTPS 和同域跳转。页面显示具体失败原因，手动重新读取可绕过失败冷却，不丢失已有成功缓存。浏览采集使用 Node 与 Playwright 1.62.1，按 Playwright 官方说明安装浏览器。Windows 默认使用 Edge，其他平台使用 Playwright Chromium。`CONTROL_EVERYTHING_NEWS_NODE` 可指定 Node 可执行文件，Playwright 按标准 Node 模块解析（包括 `NODE_PATH`）。依赖缺失时保留已有新闻并返回明确不可用状态。
@@ -416,6 +418,7 @@ Ctrl+C 停网关即可停本批查询，原 Claude/SSH/Zellij 对话继续运行
 ```powershell
 python -m unittest -v tests.backend.test_news_reader tests.backend.test_news_article tests.backend.test_daily_news_http tests.backend.test_packaging
 node tests/e2e/verify_news_reader.cjs
+node tests/e2e/verify_news_sources.cjs
 python tools/scripts/check_architecture.py layout
 lint-imports --config tools/architecture/importlinter.ini --no-cache --no-logo
 ```

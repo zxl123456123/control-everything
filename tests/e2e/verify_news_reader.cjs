@@ -63,6 +63,16 @@ check('feed content has truthful label',await retryPage.locator('#content-badge'
 await retryPage.locator('#retry-article').click();await retryPage.waitForFunction(()=>document.getElementById('article-body').textContent==='Recovered full article.');
 check('explicit retry reaches server once and restores body',retries===1&&!(await retryPage.locator('#retry-article').isVisible()));
 await retryPage.close();
+const {page:feedPage}=await makePage();
+const feedItem={...item(c,'Official release content'),summary:null,published_at:null,updated_at:'2026-10-23T12:00:00Z',content_origin:'publisher_feed',completeness:'feed_content',incomplete:true,body_blocks:[{type:'p',text:'Actual publisher release notes, retained from Atom.'}]};
+await feedPage.route('**/api/workspace/news/article?id='+c,route=>route.fulfill({json:{id:c,title:feedItem.title,content_kind:'summary',blocks:feedItem.body_blocks,updated_at:feedItem.updated_at}}));
+await feedPage.evaluate(value=>window.NewsReader.applySnapshot(value,false,true),snap([feedItem]));await feedPage.locator('.title-row[data-id="'+c+'"]').click();
+check('publisher Atom content has a truthful reading badge',await feedPage.locator('#content-badge').innerText()==='订阅源内容');
+check('publisher Atom rows do not claim a full article',await feedPage.locator('.title-row[data-id="'+c+'"] .row-type').innerText()==='订阅内容');
+check('publisher content remains readable without claiming a complete article',await feedPage.locator('#article-body').innerText()===feedItem.body_blocks[0].text&&!(await feedPage.locator('#article-end').isVisible()));
+check('update-only feed rows show their timestamp without inventing publication',(await feedPage.locator('.title-row[data-id="'+c+'"] .row-date').innerText()).startsWith('更新 '));
+await feedPage.locator('#article-source').click();check('source details distinguish update time from publication',(await feedPage.locator('#article-provenance').innerText()).includes('更新时间'));
+await feedPage.close();
 const {page:motion}=await makePage(fixtureJob('partial'));
 await motion.locator('#spider-visible').click();
 await motion.waitForFunction(()=>window.NewsReader.inspect().researchJob==='fixture');

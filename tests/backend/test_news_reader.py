@@ -42,6 +42,31 @@ class Source:
 
 
 class ReaderTests(unittest.TestCase):
+    def test_feed_updated_time_orders_without_inventing_publication(self):
+        row = {**item('https://github.com/example/release', None, 'github_com'),
+               'updated_at': '2026-10-26T00:00:00+00:00',
+               'body_blocks': [{'type': 'p', 'text': 'Actual publisher release note.'}]}
+        result = self.reader.merge([row])
+        self.assertEqual(result['sample']['streams']['ai']['items'][0]['id'], row['id'])
+        document = self.reader.article(row['id'])
+        self.assertIsNone(document['published_at'])
+        self.assertEqual(document['updated_at'], row['updated_at'])
+
+    def test_zero_matches_complete_but_blocked_sources_fail(self):
+        for stages, expected in ((['search', 'merge'], 'complete'), (['blocked', 'merge'], 'failed')):
+            identity = ('a' if expected == 'complete' else 'b') * 32
+            folder = self.reader.jobs.root / identity
+            folder.mkdir(parents=True)
+            (folder / 'result.json').write_text(json.dumps({'items': []}), encoding='utf-8')
+            job = {'job_id': identity, 'state': 'running', 'topic': 'coding', 'events': []}
+            process = Mock(stdout=iter(json.dumps({'stage': stage, 'message': stage}) + '\n' for stage in stages))
+            process.stderr.read.return_value = ''
+            process.wait.return_value = process.poll.return_value = 0
+            with patch('control_everything.workspace.news_research.subprocess.Popen', return_value=process):
+                self.reader.jobs._run(job, folder / 'request.json', 'node')
+            self.assertEqual(job['state'], expected)
+            self.assertEqual('error' in job, expected == 'failed')
+
     def setUp(self):
         self.temporary = TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)

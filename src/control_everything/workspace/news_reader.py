@@ -50,7 +50,7 @@ class NewsReader:
             urls = {item['url'] for item in research}
             streams['ai']['items'] = research + [item for item in streams['ai']['items'] if item['url'] not in urls]
             def publication(item):
-                raw = item.get('published_at') or item.get('submitted_at') or item.get('published_raw') or ''
+                raw = item.get('published_at') or item.get('submitted_at') or item.get('updated_at') or item.get('published_raw') or ''
                 try:
                     date = datetime.fromisoformat(raw.replace('Z', '+00:00'))
                     if date.tzinfo is None:
@@ -94,7 +94,7 @@ class NewsReader:
         if item.get('body_blocks'):
             return {'id': identity, 'title': item['title'], 'blocks': item['body_blocks'], 'images': item.get('images', []),
                     'content_kind': item.get('content_kind', 'summary'), 'source_url': item['url'], 'reason': None,
-                    'fetched_at': item['fetched_at'], **{key: item[key] for key in ('author', 'published_at', 'published_raw',
+                    'fetched_at': item['fetched_at'], **{key: item[key] for key in ('author', 'published_at', 'published_raw', 'updated_at',
                         'references', 'references_total', 'content_type', 'completeness', 'incomplete', 'published_precision') if key in item}}
         if not self.article_lock.acquire(blocking=False):
             return {'id': identity, 'title': item['title'], 'blocks': [{'type': 'p', 'text': item['summary']}] if item.get('summary') else [],

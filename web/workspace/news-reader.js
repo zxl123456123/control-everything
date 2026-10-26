@@ -172,9 +172,9 @@
       const images = imageList(item), thumbnail = node.querySelector('.title-row-thumbnail');
       const thumbnailUrl = images.find(image => !failedImages.has(image.url))?.url;
       thumbnail.hidden = !thumbnailUrl; if (thumbnailUrl && thumbnail.getAttribute('src') !== thumbnailUrl) thumbnail.src = thumbnailUrl;
-      changeText(node.querySelector('.row-type'), images.length > 1 ? `${images.length} 图` : images.length ? '图文' : docFor(item)?.content_kind === 'full_text' || item.body_blocks?.length ? '正文' : item.summary ? '摘要' : '仅标题');
+      changeText(node.querySelector('.row-type'), images.length > 1 ? `${images.length} 图` : images.length ? '图文' : docFor(item)?.content_kind === 'full_text' ? '正文' : item.completeness === 'feed_content' ? '订阅内容' : item.completeness === 'feed_summary' ? '来源摘要' : item.body_blocks?.length ? '正文' : item.summary ? '摘要' : '仅标题');
       changeText(node.querySelector('.row-source'), item.source_name);
-      changeText(node.querySelector('.row-date'), dateText(item.submitted_at || item.published_at));
+      changeText(node.querySelector('.row-date'), `${!item.submitted_at && !item.published_at && item.updated_at ? '更新 ' : ''}${dateText(item.submitted_at || item.published_at || item.updated_at)}`);
       changeText(node.querySelector('.row-state'), moving ? '归档中' : row.saved ? '◇' : row.read_at ? '已读' : '');
       node.querySelector('.row-dot').hidden = !!row.read_at;
       // Only reorder a node when the incoming order changed.
@@ -237,12 +237,12 @@
     const references = (entry?.references || item.references || []).filter(reference => safeUrl(reference.url));
     changeText($('article-source'), `${item.source_name}${references.length ? ` · ${references.length} 引用` : ''}`);
     const incomplete = !!(entry?.incomplete || item.incomplete), referencesTotal = entry?.references_total || item.references_total || references.length;
-    const provenanceKey = JSON.stringify([item.id, item.author, item.published_at, item.submitted_at, item.published_raw, entry?.author, entry?.published_raw, references, referencesTotal, incomplete]);
+    const provenanceKey = JSON.stringify([item.id, item.author, item.published_at, item.submitted_at, item.published_raw, item.updated_at, entry?.updated_at, entry?.author, entry?.published_raw, references, referencesTotal, incomplete]);
     if ($('article-provenance').dataset.key !== provenanceKey) {
       const details = document.createDocumentFragment(), author = entry?.author || item.author, publishedRaw = entry?.published_raw || item.published_raw;
       if (typeof author === 'string') details.append(make('p', '', `作者：${author}`));
-      const date = item.submitted_at || item.published_at;
-      details.append(make('p', '', `${item.content_origin === 'hn_submission' ? '收录时间' : '发布时间'}：${date ? dateText(date) : publishedRaw || '日期未知'}`));
+      const updated = entry?.updated_at || item.updated_at, date = item.submitted_at || item.published_at || updated;
+      details.append(make('p', '', `${item.content_origin === 'hn_submission' ? '收录时间' : !item.published_at && updated ? '更新时间' : '发布时间'}：${date ? dateText(date) : publishedRaw || '日期未知'}`));
       if (item.content_origin === 'x_public_embed') details.append(make('p', '', incomplete ? '这是公开嵌入提供的帖文节选，未取得完整帖文或线程。' : '内容来自公开嵌入；未包含完整讨论线程。'));
       if (referencesTotal > references.length) details.append(make('p', '', `${referencesTotal} 条引用，展示其中 ${references.length} 条。`));
       for (const reference of references) {
@@ -258,8 +258,9 @@
     const summaryPair = !!summary && language === 'bilingual' && translated?.[1] !== undefined;
     $('article-summary-original').hidden = !summaryPair; changeText($('article-summary-original'), summaryPair ? summary : '');
     const hasBody = entry?.content_kind === 'full_text' || item.body_blocks?.length > 0;
-    $('content-badge').textContent = item.content_origin === 'x_public_embed' ? incomplete ? '帖文节选' : '公开帖文' : hasBody ? '正文' : entry?.feed_content ? '订阅源内容' : '来源摘要';
-    $('content-status').textContent = hasBody ? '' : !entry ? '正在载入正文，先读来源摘要…' : '暂未取得完整正文，目前展示来源摘要。';
+    const feedContent = ['feed_content','feed_summary'].includes(item.completeness);
+    $('content-badge').textContent = item.content_origin === 'x_public_embed' ? incomplete ? '帖文节选' : '公开帖文' : feedContent ? item.completeness === 'feed_content' ? '订阅源内容' : '来源摘要' : hasBody ? '正文' : entry?.feed_content ? '订阅源内容' : '来源摘要';
+    $('content-status').textContent = feedContent ? '内容由来源订阅提供，可能为节选。' : hasBody ? '' : !entry ? '正在载入正文，先读来源摘要…' : '暂未取得完整正文，目前展示来源摘要。';
     if (entry && !blocks.length && !summary) $('content-status').textContent = '来源暂未提供正文或摘要，目前仅有标题。';
     if (entry && !hasBody) {
       const reasons = {extractor_unavailable:'服务未安装正文提取组件，请安装新闻依赖后重试。', timeout:'原文请求超时。', network_error:'原文暂时无法连接。', extraction_insufficient:'原文未返回足够的可读正文。', unsupported_source:'此来源暂不支持正文提取。', redirect_rejected:'原文跳转到其他域名，未继续读取。', reader_busy:'另一篇正文正在读取，请稍候。', unavailable:'正文连接暂时中断。'};
