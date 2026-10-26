@@ -74,11 +74,11 @@ test('local mode loads bootstrap once, retains explicit confirmation and disable
   for(const configured of [false,true]){const f=fixture(path=>response(path==='/api/bootstrap'?{csrf_token:'synthetic-local-csrf'}:{configured,state:'awaiting_local_confirmation',account:{sub:'account',name:'本机待核对'},operation:'recover'}),{mode:'local'});await settle();assert.deepEqual(f.calls.map(c=>c.path),['/api/bootstrap','/api/desktop/remote/status']);assert.equal(f.button('authorize').disabled,!configured);assert.equal(f.button('confirm').hidden,false);assert.match(f.button('confirm').textContent,/恢复/);assert.equal(f.calls.length,2);f.click('confirm');await settle();assert.equal(f.calls.length,configured?4:2);if(configured){assert.equal(f.calls[2].options.headers['X-Session-CSRF'],'synthetic-local-csrf');assert.equal(f.calls[2].options.headers['X-CE-CSRF'],undefined);}f.dispose();}
 });
 test('local rows show identity only when supplied and keep stable states out of the notice',async()=>{
-  for(const state of ['unbound','authorizing','revoked','online','offline']) {
+  for(const state of ['unbound','authorizing','revoked','online','offline','connecting','enrolling']) {
     const f=fixture(path=>response(path==='/api/bootstrap'?{csrf_token:'local'}:{state,configured:true}),{mode:'local'});await settle();
-    assert.equal(f.get('account').textContent,''); assert.equal(f.get('membership').textContent,'未登录');
+    assert.equal(f.get('account').textContent,''); assert.equal(f.get('membership').textContent,['online','offline','connecting'].includes(state)?'连接已保存':'未登录');
     assert.equal(f.get('status').textContent,''); assert.equal(f.get('device-help').textContent,'');
-    assert.equal(f.get('device-state').textContent,({unbound:'尚未绑定',authorizing:'授权中',revoked:'连接已撤销',online:'在线',offline:'离线'})[state]); f.dispose();
+    assert.equal(f.get('device-state').textContent,({unbound:'尚未绑定',authorizing:'授权中',revoked:'连接已撤销',online:'在线',offline:'离线',connecting:'连接中',enrolling:'绑定中'})[state]); f.dispose();
   }
   const f=fixture(path=>response(path==='/api/bootstrap'?{csrf_token:'local'}:{state:'unbound',configured:false}),{mode:'local'});await settle();assert.equal(f.get('membership').textContent,'账号服务未配置');assert.equal(f.get('local-actions').hidden,true);assert.equal(f.button('authorize').disabled,true);assert.equal(f.button('authorize').hidden,true);f.dispose();
 });

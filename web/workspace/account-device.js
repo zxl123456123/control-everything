@@ -71,7 +71,7 @@
       if (!response.ok) throw new Error(remote ? '请求未成功，请刷新状态后重试。' : (value.reason || '本机连接不可用，请重试。'));
       return value;
     }
-    const remoteStates = {pending:'等待绑定', provisioned:'正在准备连接', online:'在线', offline:'离线', revoking:'正在撤销连接', revoked:'连接已撤销'};
+    const remoteStates = {pending:'等待绑定', provisioned:'正在准备连接', enrolling:'绑定中', connecting:'连接中', online:'在线', offline:'离线', revoking:'正在撤销连接', revoked:'连接已撤销'};
     function renderRemote(value) {
       if (value.session_changed === true || (account && account.sub !== value.account.sub)) {
         if (context) { endSession('/remote'); return; }
@@ -93,7 +93,7 @@
       configured = value.configured !== false; device = value;
       $('local-actions').hidden = !configured;
       $('account').textContent = value.account ? (value.account.name || value.account.sub) : '';
-      $('membership').textContent = !configured ? '账号服务未配置' : value.account ? '已登录' : '未登录';
+      $('membership').textContent = !configured ? '账号服务未配置' : value.account ? '已登录' : ['connecting','online','offline'].includes(value.state) ? '连接已保存' : '未登录';
       $('status').textContent = value.runtime_restart_required ? '绑定配置已保存，重新打开软件后启用远程连接；正在运行的工作请先正常结束。' : '';
       $('local-help').textContent = value.state === 'awaiting_local_confirmation' ? '请核对账号后确认绑定。' : '';
       $('device-state').textContent = remoteStates[value.state] || ({unbound:'尚未绑定',authorizing:'授权中',awaiting_local_confirmation:'等待确认'}[value.state] || '未连接');
