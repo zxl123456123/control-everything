@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<link rel="icon" href="data:,">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>奶龙嵌入示例</title>
+<link rel="stylesheet" href="naidragon-embed.css">
+<!-- same-origin external scripts only: compatible with script-src 'self' and no inline script -->
+<script src="/news-pets.js" defer></script>
+<script src="/news-pet-status.js" defer></script>
+<script src="naidragon-embed.js" defer></script>
+</head>
+<body data-theme="light">
+<header class="host-bar"><strong>宿主工作台（示意）</strong>
+  <nav><button type="button" id="host-a">任务</button><button type="button" id="host-b">新闻</button><button type="button" id="host-c">设置</button></nav>
+</header>
+<div class="host-body">
+  <aside class="host-side" aria-label="侧栏">
+    <h2>嵌入方式</h2>
+    <div class="seg" role="group" aria-label="嵌入模式">
+      <button type="button" data-mode="widget" aria-pressed="true">浮动挂件 160px</button>
+      <button type="button" data-mode="overlay" aria-pressed="false">整页覆盖</button>
+      <button type="button" data-mode="slot" aria-pressed="false">侧栏插槽</button>
+    </div>
+    <h2>选项</h2>
+    <label>尺寸 <input id="opt-size" type="range" min="60" max="140" value="84"><output id="out-size">84</output></label>
+    <label>停靠角
+      <select id="opt-dock"><option value="br">右下</option><option value="bl">左下</option><option value="tr">右上</option><option value="tl">左上</option><option value="auto">自动</option></select></label>
+    <label>边距 <input id="opt-margin" type="range" min="0" max="48" value="12"></label>
+    <label>主题
+      <select id="opt-theme"><option value="light">浅色</option><option value="dark">深色</option></select></label>
+    <label class="chk"><input id="opt-status" type="checkbox" checked> 状态条（用量 / 观察）</label>
+    <label class="chk"><input id="opt-dial" type="checkbox" checked> 操作转盘（点击宠物）</label>
+    <h2>生命周期</h2>
+    <div class="seg">
+      <button type="button" id="btn-remount">重新挂载</button>
+      <button type="button" id="btn-destroy">销毁</button>
+      <button type="button" id="btn-loss">模拟 WebGL 丢失</button>
+      <button type="button" id="btn-restore">恢复</button>
+    </div>
+    <pre id="log" aria-live="polite"></pre>
+  </aside>
+  <main class="host-main">
+    <h1>宿主页面内容</h1>
+    <p>宠物只在自己身上拦截鼠标；其余区域的点击、选择文字和滚动都属于宿主页面。</p>
+    <p><input id="host-input" type="text" placeholder="这里可以正常输入"> <button type="button" id="host-click">宿主按钮（点击计数：<span id="host-count">0</span>）</button></p>
+    <p class="lorem">这是一段用于检查遮挡的正文。奶龙停靠在容器角落，不会盖住内容；当它巡视或搬运时才离开停靠位。Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+    <div id="nd-slot" class="slot" hidden></div>
+  </main>
+</div>
+<div id="nd-widget" class="nd-stage" aria-label="宠物挂件"><canvas id="nd-canvas" aria-hidden="true"></canvas><div id="nd-depot" aria-hidden="true"></div></div>
+</body>
+</html>

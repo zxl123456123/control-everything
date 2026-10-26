@@ -36,6 +36,11 @@
   const articles = new Map(), nodes = new Map(), documents = new Map(), loading = new Map();
   const tasks = new Map(), translations = new Map(), failedImages = new Set();
   let records = {}, currentId = null, selected = 'inbox', stream = 'ai', language = 'original';
+  const PET_KEY = 'news-reader-pet';
+  // The preference follows the same scoped storage as reading records, so remote accounts never share it.
+  const prefStore = () => window.CERemoteContext ? window.CERemoteContext.storage('localStorage') : (window.localStorage ?? localStorage);
+  const loadPet = () => { try { const value = prefStore().getItem(PET_KEY); return window.NewsPets?.list().some(pet => pet.name === value) ? value : window.NewsPets?.defaultName?.() || 'spider'; } catch { return 'spider'; } };
+  let petName = loadPet(), petStatus = {agentsRunning:false, quotaLeftPercent:null}, realStatus = {...petStatus}, statusOverride = {}, statusFeed = null;
   let engine = null, researchEngine = null, paused = false, collecting = false, undo = null, arrivalQueue = [];
   let visibleIds = [], translationRun = 0, translationAbort = null, renderedKey = '', destroyed = false;
   let mediaView = 'article', imageIndex = 0, mediaKey = '';
@@ -122,6 +127,61 @@
     }
     return rect.bottom > top && rect.top < bottom && rect.right > left && rect.left < right;
   }
+  function mountPet(options) { return window.NewsPets ? window.NewsPets.mount(petName, options) : window.NewsSpider.mount(options); }
+  function mountMainPet() {
+    const api = mountPet({root:$('animation-stage'), canvas:$('spider-canvas'), depot:$('web-depot'), onCapture:event => { const task = tasks.get(typeof event === 'string' ? event : event.id); $('spider-state').textContent = task?.kind === 'arrival' ? '正在接住新信息' : '正在收进仓库'; }, onDelivered:settleTask, onCancel:settleTask, actions:petActions(), dock:petDock});
+    api.setStatus?.(petStatus); api.setCollecting?.(collecting); return api;
+  }
+  function mountResearchPet() {
+    const api = mountPet({root:$('research-animation-stage'), canvas:$('research-spider-canvas'), depot:$('research-web-depot')});
+    api.setOptions({scale:0.7}); api.setCollecting(collecting); api.setStatus?.(petStatus); return api;
+  }
+  function syncPetControls() {
+    document.documentElement.dataset.pet = petName;
+    for (const select of document.querySelectorAll('.pet-select')) select.value = petName;
+  }
+  function switchPet(name) {
+    if (destroyed || name === petName || !window.NewsPets?.list().some(pet => pet.name === name)) { syncPetControls(); return false; }
+    for (const id of [...tasks.keys()]) cancelTask(id);
+    const researchWasMounted = Boolean(researchEngine);
+    engine?.destroy(); researchEngine?.destroy(); engine = researchEngine = null;
+    petName = name; try { prefStore().setItem(PET_KEY, name); } catch {}
+    engine = mountMainPet(); if (researchWasMounted) researchEngine = mountResearchPet();
+    if (paused) { engine.pause(); researchEngine?.pause(); }
+    syncMotion(); syncPetControls();
+    if (!paused && !$('research-panel').open) engine.pointAt($('article-title'), '阅读');
+    render(); runArrival(); return true;
+  }
+  // Poll the status endpoints only while a status-aware pet is actually animating on an active, visible page.
+  function syncPetStatusFeed() {
+    const wanted = Boolean(window.PetStatusFeed) && canPoll() && !paused && typeof engine?.setStatus === 'function';
+    if (wanted && !statusFeed) {
+      const fetchJson = async (url, signal) => {
+        const response = await (window.CERemoteContext ? window.CERemoteContext.fetch : fetch)(url, {headers:{'X-Session-Client':'panel'}, credentials:'same-origin', cache:'no-store', signal});
+        if (!response.ok) throw new Error('status');
+        return response.json();
+      };
+      statusFeed = window.PetStatusFeed.start({apply:setRealPetStatus, fetchJson});
+    } else if (!wanted && statusFeed) { statusFeed.stop(); statusFeed = null; }
+  }
+  function pushPetStatus() { petStatus = {...realStatus, ...statusOverride}; engine?.setStatus?.(petStatus); researchEngine?.setStatus?.(petStatus); return {...petStatus}; }
+  function setPetStatus(next) { for (const [key, value] of Object.entries(next || {})) { if (value === undefined) delete statusOverride[key]; else statusOverride[key] = value; } return pushPetStatus(); }
+  function setRealPetStatus(next) { Object.assign(realStatus, next); return pushPetStatus(); }
+  function clearPetStatusOverride() { statusOverride = {}; return pushPetStatus(); }
+  // resting spot for the 3D pet: the reader's bottom-right gutter, just above the footer, so it never sits on the article text or title
+  function petDock() {
+    const stage = $('animation-stage'), reader = $('reader'), footer = reader?.querySelector('.reader-footer');
+    if (!stage || !footer || !reader.getClientRects().length) return null;
+    const s = stage.getBoundingClientRect(), r = reader.getBoundingClientRect(), f = footer.getBoundingClientRect();
+    return {x:Math.round(r.right - s.left - 56), y:Math.round(f.top - s.top - 6)};
+  }
+  function petActions() {
+    return [{id:'workspace', label:'打开工作台', icon:'M4 4h7v7H4z M13 4h7v7h-7z M4 13h7v7H4z M13 13h7v7h-7z', run:() => location.assign('/workspace')},
+      {id:'news', label:location.pathname === '/news' ? '刷新新闻' : '新闻阅读器', icon:location.pathname === '/news' ? 'M20 11a8 8 0 1 0-2.3 5.7 M20 4v7h-7' : 'M5 4h14v16H5z M8 9h8 M8 13h8 M8 17h5', run:() => location.pathname === '/news' ? readFeeds(true) : location.assign('/news')},
+      {id:'search', label:'搜索', icon:'M10.5 3a7.5 7.5 0 1 0 0 15a7.5 7.5 0 1 0 0-15z M16 16l5 5', run:() => $('open-directory').click()},
+      {id:'next', label:'下一条', icon:'M5 12h14 M13 6l6 6-6 6', run:() => { if (!$('next').disabled) $('next').click(); }}];
+  }
+  document.querySelectorAll('.pet-select').forEach(select => select.addEventListener('change', () => switchPet(select.value)));
   function cancelTask(id) { tasks.delete(id); engine?.cancel(id); if (id.startsWith('arrival:')) { $('arrival-title').hidden = true; $('reader-state').hidden = false; } }
   function settleTask(event) {
     if (destroyed || window.CERemoteContext?.active === false) return;    const id = typeof event === 'string' ? event : event.id, task = tasks.get(id);
@@ -430,6 +490,7 @@
     if (show && !$('research-panel').open) engine?.resume(); else engine?.pause();
     if (show && $('research-panel').open) researchEngine?.resume(); else researchEngine?.pause();
     $('pause').textContent = $('research-pause').textContent = paused ? '继续动画' : '暂停动画';
+    syncPetStatusFeed();
   }
   $('pause').addEventListener('click', () => { paused = !paused; syncMotion(); $('spider-state').textContent = paused ? '动画已暂停' : collecting ? '正在采集信息' : '等待阅读'; if (!paused) runArrival(); });
   $('research-pause').addEventListener('click', () => $('pause').click());
@@ -571,10 +632,7 @@
       try { $('research-panel').showModal(); }
       catch (error) { notice('无法打开采集工作台，请重试。' + error.message); return; }
     }
-    if (!researchEngine && window.NewsSpider) {
-      researchEngine = window.NewsSpider.mount({root:$('research-animation-stage'), canvas:$('research-spider-canvas'), depot:$('research-web-depot')});
-      researchEngine.setOptions({scale:0.7}); researchEngine.setCollecting(collecting);
-    }
+    if (!researchEngine && (window.NewsPets || window.NewsSpider)) researchEngine = mountResearchPet();
     syncMotion();
     const event = researchData.get(researchFrameSeq) || [...researchData.values()].at(-1);
     if (event) pointResearch(event);
@@ -636,7 +694,7 @@
     if (researchBusy) void pollResearch();
   }
   document.addEventListener('visibilitychange', syncActivity);
-  const destroy = () => { destroyed = true; unmountAppearance(); if ($('research-panel').open) $('research-panel').close(); clearTimeout(researchTimer); clearTimeout(feedTimer); clearTimeout(articleRetry); if (frameObjectUrl) URL.revokeObjectURL(frameObjectUrl); stopTranslation(); engine?.destroy(); researchEngine?.destroy(); };
+  const destroy = () => { destroyed = true; unmountAppearance(); if ($('research-panel').open) $('research-panel').close(); clearTimeout(researchTimer); clearTimeout(feedTimer); clearTimeout(articleRetry); if (frameObjectUrl) URL.revokeObjectURL(frameObjectUrl); stopTranslation(); statusFeed?.stop(); statusFeed = null; engine?.destroy(); researchEngine?.destroy(); };
   window.CERemoteContext?.onInactive(destroy);
   window.addEventListener('pagehide', event => { if (event.persisted) { suspended = true; unmountAppearance(); syncActivity(); } else destroy(); });
   window.addEventListener('pageshow', event => { if (event.persisted && !destroyed) { suspended = false; mountTheme(); syncActivity(); } });
@@ -660,12 +718,13 @@
   $('refresh-feeds').addEventListener('click', () => readFeeds(true));
   async function start() {
     syncHomeLayout(); render();
-    if (window.NewsSpider) {
-      engine = window.NewsSpider.mount({root:$('animation-stage'), canvas:$('spider-canvas'), depot:$('web-depot'), onCapture:event => { const task = tasks.get(typeof event === 'string' ? event : event.id); $('spider-state').textContent = task?.kind === 'arrival' ? '正在接收新信息' : '正在归档'; }, onDelivered:settleTask, onCancel:settleTask});
+    if (window.NewsPets || window.NewsSpider) {
+      engine = mountMainPet();
       if (matchMedia('(prefers-reduced-motion: reduce)').matches) { paused = true; engine.pause(); $('pause').textContent = '启用动画'; $('spider-state').textContent = '已减少动效'; }
     }
     syncMotion();
-    window.NewsReader = {setActive(value) { if (destroyed || active === value) return; active = value; if (!active) stopTranslation(); if (!active && $('research-panel').open) $('research-panel').close(); syncActivity(); }, dispose:destroy, inspect:() => ({items:articles.size, visible:visibleIds.length, currentId, selected, stream, language, readingView, mediaView, imageIndex, researchJob, researchEvents:researchEvents.size, active, pending:[...tasks.keys()], reading:JSON.parse(JSON.stringify(records)), collecting, engine:engine?.inspect(), researchEngine:researchEngine?.inspect(), destroyed}), engine, applySnapshot};
+    window.NewsReader = {setActive(value) { if (destroyed || active === value) return; active = value; if (!active) stopTranslation(); if (!active && $('research-panel').open) $('research-panel').close(); syncActivity(); }, dispose:destroy, get engine() { return engine; }, get researchEngine() { return researchEngine; }, switchPet, setPetStatus, setRealPetStatus, clearPetStatusOverride, statusFeed:() => statusFeed?.inspect() || null, refreshStatus:() => statusFeed?.refresh(), pet:() => petName, inspect:() => ({pet:petName, items:articles.size, visible:visibleIds.length, currentId, selected, stream, language, readingView, mediaView, imageIndex, researchJob, researchEvents:researchEvents.size, active, pending:[...tasks.keys()], reading:JSON.parse(JSON.stringify(records)), collecting, engine:engine?.inspect(), researchEngine:researchEngine?.inspect(), destroyed}), applySnapshot};
+    syncPetControls(); syncPetStatusFeed();
     await readFeeds();
     restoreResearch();
   }

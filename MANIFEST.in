@@ -26,6 +26,7 @@ include web/workspace/project-space.js web/workspace/execution.js web/workspace/
 include web/workspace/news.js web/workspace/quota.js
 include web/workspace/news-reader.html web/workspace/news-reader.css web/workspace/news-reader.js
 include web/workspace/news-spider.js web/workspace/news-browser.js web/workspace/news-public-embed.js
+include web/workspace/news-pets.js web/workspace/news-pet-status.js web/workspace/news-naidragon.js
 include web/workspace/mobile-device-entry.js
 include web/workspace/studio-preview.html web/workspace/studio-preview.css web/workspace/studio-preview.js
 include web/workspace/studio-data.js

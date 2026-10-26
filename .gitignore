@@ -27,6 +27,7 @@ node_modules/
 !/docs/workbench-contract.md
 !/docs/integrations.md
 !/docs/windows.md
+!/docs/EMBEDDING.md
 !/docs/examples/
 # Reviewed workbench identity/device/Caddy examples remain public; exact owners are
 # enumerated in tools/scripts/check_architecture.py, never real service configuration.

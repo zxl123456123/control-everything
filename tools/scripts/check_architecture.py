@@ -80,10 +80,13 @@ def ownership_error(value):
                 'docs/examples/integrations/workbench-remote.Caddyfile.example',
                 'docs/examples/legacy/progress-manual.example.json',
                 'docs/examples/legacy/progress-registry.example.json',
+                'docs/examples/pets/naidragon-embed.html',
+                'docs/examples/pets/naidragon-embed.css',
+                'docs/examples/pets/naidragon-embed.js',
             } else 'unknown_example_owner'
         return None if value in {'docs/README.md', 'docs/architecture.md', 'docs/usage.md',
                                 'docs/integrations.md', 'docs/windows.md',
-                                'docs/workbench-contract.md'} else 'unknown_public_guide'
+                                'docs/workbench-contract.md', 'docs/EMBEDDING.md'} else 'unknown_public_guide'
     if top == '.github':
         return None if value in {'.github/CODEOWNERS', '.github/pull_request_template.md', '.github/CONTRIBUTING.md'} or (
             section == 'workflows' and len(parts) == 3 and path.suffix in {'.yml', '.yaml'}) else 'unknown_repository_automation'

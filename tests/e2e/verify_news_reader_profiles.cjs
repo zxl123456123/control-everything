@@ -15,7 +15,7 @@ const snapshot={reader_id:'profile_b',sample:{sources:[],streams:{ai:{items:[ite
    if(u.pathname==='/api/workspace/news/reader'){await new Promise(r=>setTimeout(r,250));sampled=true;return route.fulfill({json:snapshot});}
    if(u.pathname==='/api/workspace/news/article'){requests++;early ||= !sampled;return route.fulfill({json:{id,title:item.title,content_kind:requests===1?'summary':'full_text',reason:requests===1?'reader_busy':null,blocks:requests===1?[]:[{type:'p',text:'Recovered real body'}],images:[]}});}
    if(u.pathname==='/api/workspace/news/research/latest')return route.fulfill({json:{job:null}});
-   const file=u.pathname==='/news'?'news-reader.html':u.pathname.slice(1);if(['news-reader.html','news-reader.css','news-reader.js','news-spider.js'].includes(file))return route.fulfill({path:path.join(root,file)});return route.abort();
+   const file=u.pathname==='/news'?'news-reader.html':u.pathname.slice(1);if(['news-reader.html','news-reader.css','news-reader.js','news-spider.js','news-pets.js','news-pet-status.js','news-naidragon.js'].includes(file))return route.fulfill({path:path.join(root,file)});return route.abort();
  });
  await page.goto('http://127.0.0.1:8766/news');
  await page.waitForFunction(()=>document.getElementById('article-body').textContent.includes('Recovered real body'));

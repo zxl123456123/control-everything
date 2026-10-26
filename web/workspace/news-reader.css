@@ -136,3 +136,7 @@ html[data-embedded=true] .toolbar{flex-wrap:wrap;padding:12px 0;gap:8px}
 }
 
 #open-directory{width:40px;min-height:40px;align-items:center;justify-content:center;padding:8px}
+.pet-switch{display:inline-flex;align-items:center;gap:6px;margin-left:8px;font-size:12px;color:var(--muted)}
+.pet-select{height:26px;border:1px solid var(--line);border-radius:7px;background:var(--paper);color:inherit;font:inherit;padding:0 6px}
+.pet-select:focus-visible{outline:2px solid var(--focus,#4aa3ff);outline-offset:1px}
+.spider-status .pet-switch{display:flex;margin:6px 0 0}

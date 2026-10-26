@@ -7,6 +7,8 @@
   <script src="/ui-theme.js" data-ce-theme-key="ce.news.theme"></script>
   <link rel="stylesheet" href="/news-reader.css">
   <script src="/news-spider.js" defer></script>
+  <script src="/news-pets.js" defer></script>
+  <script src="/news-pet-status.js" defer></script>
   <script src="/news-reader.js" defer></script>
 </head>
 <body>
@@ -36,7 +38,7 @@
       <label class="search-wrap"><span class="sr-only">搜索新闻</span><input id="search" type="search" placeholder="搜索标题、来源或内容"></label>
       <div id="title-list" tabindex="-1" aria-label="选择新闻"></div>
       <div id="list-empty" hidden><p id="list-empty-message">暂无新闻</p><button id="clear-search" type="button">清除搜索</button></div>
-      <div class="spider-home"><div id="web-depot" aria-label="内容仓库"></div><div class="spider-status"><p class="depot-name">内容仓库</p><p id="spider-state" role="status">等待阅读</p><button id="pause" type="button">暂停动画</button></div></div>
+      <div class="spider-home"><div id="web-depot" aria-label="内容仓库"></div><div class="spider-status"><p class="depot-name">内容仓库</p><p id="spider-state" role="status">等待阅读</p><button id="pause" type="button">暂停动画</button><label class="pet-switch"><span>宠物</span><select class="pet-select" id="pet-select" aria-label="选择动画宠物"><option value="spider">蜘蛛</option><option value="naidragon">奶龙</option></select></label></div></div>
     </aside>
     <section id="reader" aria-label="单篇阅读" inert>
       <div class="reader-toolbar">
@@ -83,7 +85,7 @@
   <nav class="research-steps" aria-label="采集步骤回看"><button type="button" data-step="search" disabled><span>⌕</span> 检索</button><button type="button" data-step="visit" disabled><span>▣</span> 浏览</button><button type="button" data-step="extract" disabled><span>▤</span> 提取</button><button type="button" data-step="merge" disabled><span>✓</span> 收集</button></nav>
   <div class="research-workspace" id="research-animation-stage">
     <canvas id="research-spider-canvas" aria-hidden="true"></canvas>
-    <div class="research-spider-home"><div id="research-web-depot" aria-hidden="true"></div><span>选择来源回看截图</span><button id="research-pause" type="button">暂停动画</button></div>
+    <div class="research-spider-home"><div id="research-web-depot" aria-hidden="true"></div><span>选择来源回看截图</span><button id="research-pause" type="button">暂停动画</button><label class="pet-switch"><span>宠物</span><select class="pet-select" id="research-pet-select" aria-label="选择动画宠物"><option value="spider">蜘蛛</option><option value="naidragon">奶龙</option></select></label></div>
     <section class="research-browser" aria-label="实际页面画面">
       <div class="browser-address"><span aria-hidden="true">◉</span><span id="research-host">等待页面</span><span class="frame-badge" id="research-frame-mode">步骤截图</span></div>
       <div id="research-frame-wrap"><img id="research-frame" alt="采集过程中实际访问页面的截图" hidden><p id="research-frame-empty">开始采集后，在这里看实际浏览过程。</p></div>
