@@ -404,6 +404,11 @@ col*=ao;float al=uP.z;gl_FragColor=vec4(min(col,vec3(1.))*al,al);}`;
   drag: ['放我下来喵~', '喵呜~！'], land: ['噗！', '啪叽'], yawn: ['哈欠…喵'], sleep: ['呼…'], surprise: ['喵！！'], wake: ['喵？'], point: ['这条喵！', '看这里~喵'], pounce: ['扑！喵']
  };
 
+// CSP-safe: constructable sheets bypass style-src (inline <style> is blocked on /workspace); <style> stays the fallback.
+function installStyle(root, css, nonce) {
+ try { const sc = root.getRootNode(); if (!nonce && Array.isArray(sc.adoptedStyleSheets)) { const sh = new CSSStyleSheet(); sh.replaceSync(css); sc.adoptedStyleSheets = [...sc.adoptedStyleSheets, sh]; return {remove() { sc.adoptedStyleSheets = sc.adoptedStyleSheets.filter(s => s !== sh); }}; } } catch (e) { /* use <style> */ }
+ const el = document.createElement('style'); if (nonce) el.setAttribute('nonce', String(nonce)); el.textContent = css; root.appendChild(el); return el;
+}
  function mount({root, canvas, depot, onCapture, onDelivered, onCancel, onAction, actions, dock, followPointer = false, options, styleNonce}) {
   if (!root || !canvas || !depot || !root.contains(canvas) || !root.contains(depot)) {
    throw new TypeError('NewsTabbycat requires root, canvas and depot in the same stage');
@@ -420,7 +425,7 @@ col*=ao;float al=uP.z;gl_FragColor=vec4(min(col,vec3(1.))*al,al);}`;
   const queue = [], transient = new Map(), perf = {n: 0, ms: 0, max: 0};
   let active = null, probe = null, probeTarget = null, probeT = 0, suppressClick = false;
   const previousStyle = canvas.getAttribute('style');
-  const style = document.createElement('style'); if (styleNonce) style.setAttribute('nonce', String(styleNonce)); style.textContent = CSS; root.appendChild(style);
+  const style = installStyle(root, CSS, styleNonce);
   // embedding: the stage must be a positioned box; every overlay is scoped by .tc-root and the --tc-z / --tc-* custom properties
   const rootPos0 = root.style.position, rootTheme0 = root.getAttribute('data-tc-theme'); let rootPosSet = false;
   if (global.getComputedStyle && global.getComputedStyle(root).position === 'static') { root.style.position = 'relative'; rootPosSet = true; }
