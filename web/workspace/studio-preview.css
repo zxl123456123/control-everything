@@ -630,8 +630,6 @@ body:has(#ce-studio){margin:0;background:var(--ce-bg,#ffffff)}
 #ce-studio .ce-brand{padding:0 12px;font-size:16px;line-height:24px;font-weight:600;letter-spacing:normal}
 #ce-studio .ce-nav{min-height:44px;padding:10px 12px;border-radius:12px;text-decoration:none;color:var(--ce-text);font-size:15px;line-height:24px}
 #ce-studio .ce-nav.is-current{background:var(--ce-hover);box-shadow:none;font-weight:600}
-#ce-studio .ce-settings-toggle{display:flex;align-items:center;justify-content:space-between;width:100%;font:inherit;cursor:pointer}
-#ce-studio .ce-settings-links{padding-left:12px}
 #ce-studio .ce-profile{padding:20px 12px 0;border-color:var(--ce-line);font-size:14px;line-height:22px}
 #ce-studio .ce-topbar{min-height:72px;padding:12px 32px;flex-wrap:nowrap}
 #ce-studio .ce-topbar .ce-crumbs{min-width:0;width:auto;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -643,8 +641,11 @@ body:has(#ce-studio){margin:0;background:var(--ce-bg,#ffffff)}
 #ce-studio :is(.ce-button,.ce-iconbtn){min-height:40px;min-width:40px;border-radius:12px;box-shadow:none;font-size:14px;line-height:22px;text-decoration:none}
 #ce-studio .ce-iconbtn{width:40px;height:40px}
 #ce-studio .ce-overview-toolbar{justify-content:flex-start;flex-wrap:wrap;gap:12px;margin:0 0 16px}
-#ce-studio .ce-overview-toolbar .ce-search{display:flex;gap:10px;flex:1;min-width:180px;width:auto;max-width:none;margin-right:auto;border:1px solid var(--ce-input-border);padding:0 14px;background:var(--ce-soft);border-radius:999px;box-shadow:none;min-height:40px;color:var(--ce-sub)}
-#ce-studio .ce-overview-toolbar .ce-search input{width:100%;height:40px;min-height:40px;padding:8px 0;border:0;border-radius:999px;background:transparent;font-size:14px;line-height:22px;box-shadow:none}
+#ce-studio .ce-overview-toolbar .ce-search{display:flex;gap:8px;flex:0 1 224px;min-width:160px;width:224px;max-width:100%;margin-right:auto;border:1px solid var(--ce-input-border);padding:0 12px;background:var(--ce-soft);border-radius:12px;box-shadow:none;min-height:40px;color:var(--ce-sub);transition:background 140ms}
+#ce-studio .ce-overview-toolbar .ce-search:hover,#ce-studio .ce-overview-toolbar .ce-search:focus-within{background:var(--ce-hover)}
+#ce-studio .ce-overview-toolbar .ce-search:has(input:focus-visible){outline:2px solid var(--ce-ring);outline-offset:2px}
+#ce-studio .ce-overview-toolbar .ce-search input{appearance:none;width:100%;height:40px;min-height:40px;padding:8px 0;border:0;border-radius:0;background:transparent;font-size:15px;line-height:24px;box-shadow:none}
+#ce-studio .ce-overview-toolbar .ce-search input:focus-visible{outline:none;box-shadow:none}
 #ce-studio .ce-overview-toolbar select{height:40px;padding:8px 12px;border:1px solid var(--ce-input-border);border-radius:12px;background:var(--ce-bg)}
 #ce-studio .ce-project-sort-control{position:relative;display:grid;place-items:center;width:40px;min-height:40px;border-radius:999px;flex:none}
 #ce-studio .ce-project-sort-control:hover{background:var(--ce-hover)}
@@ -681,9 +682,28 @@ body:has(#ce-studio){margin:0;background:var(--ce-bg,#ffffff)}
 #ce-studio .ce-overview-list[data-view=list] .ce-overview-bottom{margin:0;justify-content:flex-end}
 #ce-studio .ce-overview-list[data-view=list] .ce-project-kind-icon{display:none}
 #ce-studio .ce-setup-notice{display:flex;gap:24px;align-items:center;justify-content:space-between;margin-bottom:24px;padding:20px 24px;border-radius:16px;background:var(--ce-soft)}
-#ce-studio .ce-project-setup{display:grid;gap:24px;justify-items:start;max-width:640px;padding:32px;border:1px solid var(--ce-line);border-radius:16px;background:var(--ce-soft)}
-#ce-studio .ce-project-setup p{font-size:15px;line-height:24px;color:var(--ce-sub)}
-#ce-studio .ce-registration-results{margin:0;padding:0;list-style:none;display:grid;gap:12px}
+#ce-studio .ce-projects-empty{display:flex;flex-direction:column;align-items:center;gap:16px;padding:72px 24px;border:0;background:transparent;grid-column:1/-1}
+#ce-studio .ce-projects-empty p{color:var(--ce-sub);font-size:15px;line-height:24px}
+#ce-studio .ce-project-empty-icon{display:grid;place-items:center;width:56px;height:56px;border-radius:16px;background:var(--ce-soft);color:var(--ce-sub)}
+#ce-studio .ce-project-empty-icon svg{width:24px;height:24px}
+#ce-studio .ce-registration-actions{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0}
+#ce-studio .ce-project-settings .ce-registration-actions{max-height:min(320px,45dvh);overflow:auto}
+#ce-studio #onboarding-dialog{width:min(560px,calc(100vw - 32px));max-height:calc(100dvh - 32px);overflow:auto;padding:24px;border:1px solid var(--ce-line);border-radius:16px;background:var(--ce-bg);color:var(--ce-text)}
+#ce-studio #onboarding-dialog[data-mode=import]{width:min(760px,calc(100vw - 32px))}
+#ce-studio #onboarding-dialog :is(p,label,input,button,summary,select){font-size:15px;line-height:24px}
+#ce-studio #onboarding-dialog .section-heading{margin:0 0 20px;align-items:center}
+#ce-studio #onboarding-dialog .section-heading h2{font-size:20px;line-height:28px}
+#ce-studio #onboarding-dialog .onboarding-methods{display:flex;flex-wrap:wrap;gap:4px;padding:4px;margin:0 0 24px;border-radius:12px;background:var(--ce-soft)}
+#ce-studio #onboarding-dialog .onboarding-methods button{flex:1;min-width:120px;margin:0;border:0;background:transparent;border-radius:8px;box-shadow:none}
+#ce-studio #onboarding-dialog .onboarding-methods button[aria-pressed=true]{background:var(--ce-bg);box-shadow:0 1px 3px var(--ce-shadow-deep);color:var(--ce-text)}
+#ce-studio #onboarding-directory-fields{min-width:0;margin:0;padding:0;border:0}
+#ce-studio #onboarding-dialog :is(input:not([type=checkbox]),button,select){min-height:40px;border-radius:12px}
+#ce-studio #onboarding-dialog .checkbox-field{min-height:44px;align-items:center}
+#ce-studio #onboarding-dialog input:not([type=checkbox]){padding:8px 12px;background:var(--ce-bg);color:var(--ce-text)}
+#ce-studio #onboarding-directory-form .field{display:grid;gap:8px;margin:0 0 20px}
+#ce-studio #onboarding-directory-result{margin:16px 0;overflow-wrap:anywhere;color:var(--ce-sub)}
+#ce-studio #onboarding-dialog .onboarding-submit{justify-content:flex-end;margin-top:24px}
+#ce-studio #onboarding-dialog :is(#onboarding-feedback,#onboarding-directory-result):empty{display:none}
 #ce-studio .ce-project-menu{position:fixed;z-index:100;width:220px;overflow:auto;padding:8px;display:grid;gap:4px;border:1px solid var(--ce-line);border-radius:16px;background:var(--ce-bg);box-shadow:0 8px 32px #0002}
 #ce-studio .ce-project-menu [role=menuitem]{display:flex;align-items:center;min-height:40px;width:100%;padding:8px 12px;background:transparent;border:0;border-radius:12px;color:var(--ce-text);font-size:14px;text-align:left;text-decoration:none}
 #ce-studio .ce-project-menu [role=menuitem]:hover{background:var(--ce-hover)}
@@ -702,12 +722,14 @@ body:has(#ce-studio){margin:0;background:var(--ce-bg,#ffffff)}
  #ce-studio .ce-summary-band{align-items:flex-start;flex-direction:column;padding:20px}
  #ce-studio .ce-summary-metrics{width:100%;justify-content:space-between;gap:20px}
  #ce-studio .ce-overview-list[data-view=list] .ce-overview-card{display:flex;gap:16px}
- #ce-studio .ce-project-setup{padding:24px}#ce-studio .ce-setup-notice{padding:20px;gap:16px;flex-wrap:wrap}
+ #ce-studio .ce-setup-notice{padding:20px;gap:16px;flex-wrap:wrap}
 }
 @media(pointer:coarse){#ce-studio :is(.ce-button,.ce-iconbtn,.ce-nav,.ce-segment button,.ce-project-title-link,[role=menuitem]){min-height:44px;min-width:44px}#ce-studio .ce-iconbtn{height:44px;width:44px}}
 @media(prefers-reduced-motion:reduce){#ce-studio .ce-overview-card{transition:none}}
 
 @media(pointer:coarse){#ce-studio .ce-overview-toolbar .ce-search input{height:44px;min-height:44px}}
+@media(pointer:coarse){#ce-studio #onboarding-dialog :is(button,input:not([type=checkbox]),select){min-height:44px;min-width:44px}}
+@media(forced-colors:active){#ce-studio .ce-overview-toolbar .ce-search:has(input:focus-visible){outline-color:Highlight}}
 @media(pointer:coarse){#ce-studio .ce-project-sort-control{width:44px;min-height:44px}}
 
 /* S5 consumers share the approved management geometry. */

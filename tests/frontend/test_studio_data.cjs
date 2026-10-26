@@ -60,6 +60,8 @@ function studioFixture({ remote = false, savedCreatorUrl = null, monitorAvailabl
     const node = { tagName: tag, children: [], dataset: {}, style: {}, listeners: {}, open: false, isConnected: true,
       classList: { add() {} }, className: '', textContent: '',
       append(...values) { values.forEach(value => { value.parent = this; this.children.push(value); }); },
+      get childElementCount() { return this.children.length; },
+      after(...values) { if (this.parent) { values.forEach(value => { value.parent = this.parent; }); this.parent.children.splice(this.parent.children.indexOf(this) + 1, 0, ...values); } },
       attachShadow() { this.shadowRoot = element('shadow'); return this.shadowRoot; },
       remove() { this.isConnected = false; if (this.parent) this.parent.children = this.parent.children.filter(child => child !== this); },
       addEventListener(name, callback) { (this.listeners[name] ||= []).push(callback); },
@@ -280,7 +282,7 @@ test('outer navigation shows projects only and legacy task routes retain their b
   assert.match(f.nodes.get('studio-content').innerHTML, /<h1>事项<\/h1>/);
   assert.equal(f.nodes.get('studio-agent-board').hidden, false);
   await f.route('project/server-project/tasks');
-  assert.match(f.nodes.get('studio-content').innerHTML, /<h1[^>]*>&lt;Real project&gt; · 项目进展<\/h1>/);
+  assert.match(f.nodes.get('studio-content').innerHTML, /<h1[^>]*>项目进展<\/h1>/);
   await f.route('project/server-project/workspace');
   assert.equal(f.nodes.get('studio-agent-board').hidden, true);
   await f.route('project/server-project/review');
@@ -538,15 +540,15 @@ test('project task heading, filters and counts stay scoped through navigation an
   f.nodes.get('ce-studio').dataset.isolatedPreview = 'true';
   f.snapshot.items = [{ id: 'a', project_id: 'server-project' }, { id: 'b', project_id: 'other' }, { id: 'c', project_id: 'server-project' }];
   await f.route('project/server-project/tasks');
-  assert.match(f.nodes.get('studio-content').innerHTML, /&lt;Real project&gt; · 项目进展/);
+  assert.match(f.nodes.get('studio-content').innerHTML, /项目进展/);
   assert.match(f.nodes.get('studio-content').innerHTML, /本项目全部/);
-  assert.equal(f.nodes.get('studio-status').textContent, '隔离预览');
+  assert.equal(f.nodes.get('studio-status').textContent, ''); assert.equal(f.nodes.get('studio-status').hidden, true);
   f.click('refresh'); await f.flush();
-  assert.equal(f.nodes.get('studio-status').textContent, '隔离预览');
+  assert.equal(f.nodes.get('studio-status').textContent, ''); assert.equal(f.nodes.get('studio-status').hidden, true);
   await f.route('project/other/review');
-  assert.equal(f.nodes.get('studio-status').textContent, '隔离预览');
+  assert.equal(f.nodes.get('studio-status').textContent, ''); assert.equal(f.nodes.get('studio-status').hidden, true);
   await f.route('inbox');
-  assert.equal(f.nodes.get('studio-status').textContent, '隔离预览');
+  assert.equal(f.nodes.get('studio-status').textContent, ''); assert.equal(f.nodes.get('studio-status').hidden, true);
   assert.doesNotMatch(f.nodes.get('studio-content').innerHTML, /本项目全部/);
   f.dispose();
 });
@@ -573,10 +575,10 @@ test('unified legacy inbox stays readable without a top-level task entry and exa
   assert.doesNotMatch(f.nodes.get('studio-content').innerHTML, /aria-label="事项筛选"|ce-tabs/);
   const reads = f.snapshotReads.length;
   await f.route('inbox/review');
-  assert.match(f.nodes.get('studio-content').innerHTML, /当前仅显示待验收事项.*href="#inbox">返回全部事项/);
+  assert.doesNotMatch(f.nodes.get('studio-content').innerHTML, /当前仅显示|ce-scope-note/);
   assert.deepEqual(f.boardProjects.at(-1), ['', 'review']);
   await f.route('project/server-project/attention');
-  assert.match(f.nodes.get('studio-content').innerHTML, /当前仅显示需处理事项.*href="#project\/server-project\/tasks">返回全部事项/);
+  assert.doesNotMatch(f.nodes.get('studio-content').innerHTML, /当前仅显示|ce-scope-note/);
   assert.deepEqual(f.boardProjects.at(-1), ['server-project', 'attention']);
   assert.equal(f.snapshotReads.length, reads);
   f.dispose();
@@ -606,14 +608,14 @@ test('retiring Studio uses its existing dispose and rejects late snapshots witho
   f.click('refresh');await f.flush();assert.equal(f.timers.size,0);
 });
 
-test('minimal project tasks declare all-project scope, preserve context sessions and hide successful debug counts', async () => {
+test('minimal project tasks remove scope notes, session links, management actions and preview status', async () => {
   const f = studioFixture({ unified: true }); await f.flush();
   f.nodes.get('ce-studio').dataset.isolatedPreview = 'true';
   await f.route('project/server-project/tasks');
-  assert.match(f.nodes.get('studio-content').innerHTML, /<h1[^>]*>&lt;Real project&gt; · 项目进展<\/h1>/);
-  assert.match(f.nodes.get('studio-content').innerHTML, /查看进展不会切换开发中的项目/);
-  assert.match(f.nodes.get('studio-content').innerHTML, /href="#project\/server-project\/activity">会话/);
-  assert.equal(f.nodes.get('studio-status').textContent, '隔离预览');
+  assert.match(f.nodes.get('studio-content').innerHTML, /<h1[^>]*>项目进展<\/h1>/);
+  assert.doesNotMatch(f.nodes.get('studio-content').innerHTML, /查看进展|ce-scope-note|事项管理/);
+  assert.doesNotMatch(f.nodes.get('studio-content').innerHTML, />会话<\/a>/);
+  assert.equal(f.nodes.get('studio-status').textContent, ''); assert.equal(f.nodes.get('studio-status').hidden, true);
   f.fail(); f.click('refresh'); await f.flush();
   assert.match(f.nodes.get('studio-status').textContent, /offline.*上次读取/);
   assert.equal(f.nodes.get('studio-status').hidden, false);
@@ -673,41 +675,45 @@ test('drawer close restores the current menu after chrome replacement and backdr
   f.dispose();
 });
 
-test('first-level project requests navigate to setup and only its action opens registration', async () => {
+test('first-level project requests enter the native workbench before its registration event opens a dialog', async () => {
   const f = studioFixture({unified:true}); await f.flush();
   f.window.fetch = async () => ({ok:true,text:async()=>''});
   f.callbacks['platform-add-project'](); await f.flush();
-  assert.equal(f.location.hash, '#project-setup'); assert.equal(f.dialog.open, false);
-  await f.route('project-setup');
-  assert.match(f.nodes.get('studio-content').innerHTML, /data-action="open-project-dialog"/);
-  f.click('open-project-dialog'); await f.flush(); assert.equal(f.dialog.open, true);
-  f.dialog.close(); assert.equal(f.location.hash, '#project-setup');
+  assert.equal(f.location.hash, '#workbench'); assert.equal(f.dialog.open, false);
+  await f.route('workbench');
+  assert.doesNotMatch(f.nodes.get('studio-content').innerHTML, /data-action="open-project-dialog"|项目配置/);
+  f.callbacks['platform-add-project'](); await f.flush(); assert.equal(f.dialog.open, true);
+  f.dialog.close(); assert.equal(f.location.hash, '#workbench');
 });
 
 test('confirmed registration closes before refresh and only returned IDs determine the destination', async () => {
-  const f = studioFixture({unified:true}); await f.flush(); await f.route('project-setup');
-  f.window.fetch = async () => ({ok:true,text:async()=>''}); f.click('open-project-dialog'); await f.flush();
+  const f = studioFixture({unified:true}); await f.flush(); await f.route('workbench');
+  f.window.fetch = async () => ({ok:true,text:async()=>''}); f.callbacks['platform-add-project'](); await f.flush();
   f.snapshot.workspace.projects.items.push({id:'new-project',name:'New',directories:[{id:'main',path:'C:/example/new'}]});
   f.dialog.close(); await f.onboarding().onChanged(undefined,{kind:'registered',confirmedIDs:['new-project']});
   assert.equal(f.location.hash, '#project/new-project/workspace'); assert.equal(f.posts.length, 0);
-  await f.route('project-setup');
+  await f.route('workbench');
   await f.onboarding().onChanged(undefined,{kind:'source-saved'});
-  assert.equal(f.location.hash, '#project-setup');
+  assert.equal(f.location.hash, '#workbench');
   await f.onboarding().onChanged({id:'new-project'});
-  assert.equal(f.location.hash, '#project-setup');
+  assert.equal(f.location.hash, '#workbench');
 });
 
-test('multiple and partial receipts stay in their result area, and read failure retries without POST', async () => {
-  const f = studioFixture({unified:true}); await f.flush(); await f.route('project-setup');
-  f.window.fetch = async () => ({ok:true,text:async()=>''}); f.click('open-project-dialog'); await f.flush(); f.dialog.close();
+test('multiple and partial receipts stay in an internal notice, and read failure retries without POST', async () => {
+  const f = studioFixture({unified:true}); await f.flush(); await f.route('workbench');
+  f.window.fetch = async () => ({ok:true,text:async()=>''}); f.callbacks['platform-add-project'](); await f.flush(); f.dialog.close();
   f.snapshot.workspace.projects.items.push({id:'second',name:'Second'});
   await f.onboarding().onChanged(undefined,{kind:'registered',confirmedIDs:['server-project','second'],failedCount:1});
-  assert.equal(f.location.hash, '#project-setup');
-  assert.match(f.nodes.get('studio-content').innerHTML, /选择已加入的项目/);
-  assert.match(f.nodes.get('studio-content').innerHTML, /1 项未加入/);
+  assert.equal(f.location.hash, '#workbench');
+  const firstNotice = f.elements.findLast(node => node.className === 'ce-project-settings');
+  assert.match(firstNotice.innerHTML, /已添加 2 个项目/);
+  assert.match(firstNotice.innerHTML, /1 项未加入/);
+  firstNotice.close();
   f.fail(); await f.onboarding().onChanged(undefined,{kind:'registered',confirmedIDs:['second']});
-  assert.match(f.nodes.get('studio-content').innerHTML, /无需再次创建/);
-  f.recover(); f.click('retry-registration'); await f.flush();
+  const failedNotice = f.elements.findLast(node => node.className === 'ce-project-settings');
+  assert.match(failedNotice.innerHTML, /无需再次创建/);
+  const retry = failedNotice.descendants().find(node => node.tagName === 'button' && node.textContent === '重新读取');
+  assert.ok(retry); f.recover(); retry.listeners.click[0](); await f.flush();
   assert.equal(f.location.hash, '#project/second/workspace'); assert.equal(f.posts.length, 0);
 });
 
@@ -725,12 +731,12 @@ test('standalone asynchronous navigation guards preserve the accepted hash until
   await f.route('project-setup'); assert.equal(f.location.hash, '#home');
   resolve(false); await f.flush(); assert.equal(f.location.hash, '#home');
   await f.route('project-setup'); resolve(true); await f.flush();
-  assert.equal(f.location.hash, '#project-setup'); assert.match(f.nodes.get('studio-content').innerHTML, /项目配置/);
+  assert.equal(f.location.hash, '#workbench'); assert.match(f.nodes.get('studio-content').innerHTML, /项目运行组件未连接/);
 });
 
 test('late registration refresh does not replace a later accepted page', async () => {
-  const f = studioFixture({unified:true}); await f.flush(); await f.route('project-setup');
-  f.window.fetch = async () => ({ok:true,text:async()=>''}); f.click('open-project-dialog'); await f.flush(); f.dialog.close();
+  const f = studioFixture({unified:true}); await f.flush(); await f.route('workbench');
+  f.window.fetch = async () => ({ok:true,text:async()=>''}); f.callbacks['platform-add-project'](); await f.flush(); f.dialog.close();
   f.snapshot.workspace.projects.items.push({id:'saved-late',name:'Saved'});
   let resolve;
   f.client.snapshot = () => new Promise(done => {resolve=done;});

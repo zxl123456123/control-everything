@@ -46,6 +46,7 @@ function fixture(options = {}) {
 test('HTML resource and consent controls precede workspace and default native diagnostics are folded', () => {
   assert.ok(html.indexOf('/onboarding.js') < html.indexOf('/workspace.js'));
   assert.match(html, /id="onboarding-consent" type="checkbox"/);
+  assert.doesNotMatch(html, /onboarding-directory-confirm|onboarding-directory-title/);
   assert.match(html, /<details[^>]+id="observation-diagnostics"/);
   assert.doesNotMatch(html.match(/<details[^>]+id="observation-diagnostics"[^>]*>/)[0], /\bopen\b/);
   assert.match(html, /id="refresh-workspace"[^>]+hidden/);
@@ -64,7 +65,7 @@ test('opening project addition defaults to local folders without reading a tool 
   assert.ok(f.calls.some(url => url.includes('/onboarding')));
 });
 
-test('new folder creation requires a matching preview and explicit confirmation, with no duplicate submission', async () => {
+test('new folder creation requires a matching preview and explicit submit, with no duplicate submission', async () => {
   let complete;
   const f = fixture({ post: async (url, body) => {
     if (url.endsWith('/create-preview')) return { status: 'preview', path: 'C:/example/New', can_create: true };
@@ -76,9 +77,7 @@ test('new folder creation requires a matching preview and explicit confirmation,
   await submit(); assert.equal(f.writes.length, 0);
   await f.node('onboarding-directory-preview').listeners.click();
   assert.ok(f.node('onboarding-directory-result').textContent.includes('C:/example/New'));
-  await submit(); assert.equal(f.writes.length, 1);
-  f.node('onboarding-directory-confirm').checked = true;
-  f.node('onboarding-directory-confirm').listeners.change();
+  assert.equal(f.node('onboarding-directory-save').disabled, false);
   f.node('onboarding-directory-name').value = 'Changed';
   await submit(); assert.equal(f.writes.length, 1);
   f.node('onboarding-directory-name').value = 'New';
@@ -95,9 +94,25 @@ test('existing folders are inspected and registered without creating a directory
   await f.controller.open(); f.node('onboarding-directory-path').value = 'C:/example/Existing';
   await f.node('onboarding-directory-preview').listeners.click();
   assert.equal(f.node('onboarding-directory-name').value, 'Existing');
-  f.node('onboarding-directory-confirm').checked = true;
   await f.node('onboarding-directory-form').listeners.submit({ preventDefault() {} });
   assert.deepEqual(f.writes.map(row => row.url), ['/api/workspace/projects/inspect', '/api/workspace/projects/register']);
+});
+
+test('editing a checked directory invalidates submission until it is inspected again', async () => {
+  const f = fixture({ post: async url => url.endsWith('/inspect')
+    ? { status: 'ok', path: 'C:/example/Existing', name: 'Existing' }
+    : { status: 'registered', project: { id: 'p' } } });
+  await f.controller.open(); f.node('onboarding-directory-path').value = 'C:/example/Existing';
+  await f.node('onboarding-directory-preview').listeners.click();
+  assert.equal(f.node('onboarding-directory-save').disabled, false);
+  f.node('onboarding-directory-name').value = 'Renamed';
+  f.node('onboarding-directory-form').listeners.input({ target: f.node('onboarding-directory-name') });
+  assert.equal(f.node('onboarding-directory-save').disabled, true);
+  await f.node('onboarding-directory-form').listeners.submit({ preventDefault() {} });
+  assert.equal(f.writes.length, 1);
+  await f.node('onboarding-directory-preview').listeners.click();
+  await f.node('onboarding-directory-form').listeners.submit({ preventDefault() {} });
+  assert.deepEqual(f.writes.at(-1).body, { name: 'Renamed', path: 'C:/example/Existing' });
 });
 
 test('cancelled native picker preserves input and partial creation switches to explicit existing-folder recovery', async () => {
@@ -107,11 +122,11 @@ test('cancelled native picker preserves input and partial creation switches to e
   await f.controller.open({ mode: 'new' });
   f.node('onboarding-directory-name').value = 'New'; f.node('onboarding-directory-path').value = 'C:/example/parent';
   await f.node('onboarding-directory-pick').listeners.click(); assert.equal(f.node('onboarding-directory-path').value, 'C:/example/parent');
-  await f.node('onboarding-directory-preview').listeners.click(); f.node('onboarding-directory-confirm').checked = true;
+  await f.node('onboarding-directory-preview').listeners.click();
   await f.node('onboarding-directory-form').listeners.submit({ preventDefault() {} });
   assert.equal(f.node('onboarding-directory-path').value, 'C:/example/New');
   assert.equal(f.node('onboarding-directory-save').disabled, true);
-  assert.equal(f.node('onboarding-directory-confirm').checked, false);
+  assert.match(f.node('onboarding-directory-save').textContent, /添加项目/);
   assert.match(f.node('onboarding-feedback').textContent, /文件夹已创建，但项目登记未成功/);
   assert.equal(f.writes.filter(row => row.url.endsWith('/create')).length, 1); assert.equal(f.dialog.open, true);
 });
@@ -344,7 +359,7 @@ test('directory receipt closes before publishing confirmed identity and a refres
     ? { status: 'ok', path: 'C:/example/Existing', name: 'Existing' }
     : { status: 'registered', project: { id: 'saved-project' } }, changed: async () => { throw new Error('offline'); } });
   await f.controller.open(); f.node('onboarding-directory-path').value = 'C:/example/Existing';
-  await f.node('onboarding-directory-preview').listeners.click(); f.node('onboarding-directory-confirm').checked = true;
+  await f.node('onboarding-directory-preview').listeners.click();
   const submit = () => f.node('onboarding-directory-form').listeners.submit({preventDefault() {}});
   await submit(); await submit();
   assert.equal(f.changes[0].open, false);

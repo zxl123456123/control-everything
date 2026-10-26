@@ -9,7 +9,7 @@ const root = path.resolve(__dirname, '../..');
 const clone = value => JSON.parse(JSON.stringify(value));
 const tick = async () => { await new Promise(resolve => setTimeout(resolve, 10)); for (let i = 0; i < 6; i++) await new Promise(resolve => setImmediate(resolve)); };
 const uuid = index => `00000000-0000-4000-8000-${String(index).padStart(12, '0')}`;
-async function fixture(t, { hash = '#home', unified = false, writable = true, taskModule = true, progressModule = true } = {}) {
+async function fixture(t, { hash = '#home', unified = false, writable = true, taskModule = true, progressModule = true, registration = false } = {}) {
   const { Window } = await import(pathToFileURL(path.join(root, 'web/workbench-engine/node_modules/happy-dom/lib/index.js')).href);
   const { default: HistoryItemList } = await import(pathToFileURL(path.join(root, 'web/workbench-engine/node_modules/happy-dom/lib/history/HistoryItemList.js')).href);
   // This pinned DOM truncates forward entries in replace(). Browser replaceState keeps them.
@@ -29,7 +29,7 @@ async function fixture(t, { hash = '#home', unified = false, writable = true, ta
     { id: uuid(5), project_id: null, title: '全局事项', state: 'todo' },
     { id: uuid(6), project_id: 'p-gone', title: '移出事项', state: 'todo' }
   ].map(item => ({ origin: 'task', revision: 1, assignment_state: 'unassigned', provider_id: null, session_key: null, ...item }));
-  const reads = [], posts = [], creates = [], adapters = [];
+  const reads = [], posts = [], creates = [], adapters = [], registrations = [];
   let revision = 1, failRead = false, failWrite = false, pendingRead = null;
   function page(query) {
     let rows = items.filter(item => !query.get('project_id') || item.project_id === query.get('project_id'));
@@ -46,6 +46,7 @@ async function fixture(t, { hash = '#home', unified = false, writable = true, ta
   const workspace = () => ({ projects: { status: 'available', items: clone(projects) }, sessions: { available: true, items: [] }, codex_desktop: { status: 'available' }, items_page: page(new URLSearchParams()) });
   w.fetch = async (url, options = {}) => {
     const u = new URL(url, w.location.href), route = u.pathname; reads.push(route + u.search);
+    if (route === '/workspace-admin') return { ok: true, text: async () => fs.readFileSync(path.join(root, 'web/workspace/workspace.html'), 'utf8') };
     let body;
     if (options.method === 'POST') {
       const payload = JSON.parse(options.body); posts.push({ route, payload });
@@ -73,6 +74,10 @@ async function fixture(t, { hash = '#home', unified = false, writable = true, ta
   if (unified) host.dataset.unified = 'true';
   const modules = [...(progressModule ? ['project-progress-model.js', 'project-progress.js'] : []), 'project-space.js', 'agents.js', ...(taskModule ? ['task-center.js'] : []), 'studio-data.js', 'studio-shell.js', 'studio-preview.js'];
   for (const name of modules) w.eval(fs.readFileSync(path.join(root, 'web/workspace', name), 'utf8'));
+  if (registration) w.WorkspaceOnboarding = { create: options => {
+    registrations.push(options);
+    return { open: async () => options.dialog.showModal() };
+  } };
   for (const [name, module] of [['progress', w.ProjectProgress], ['board', w.WorkspaceAgentBoard], ['items', w.WorkspaceTaskCenter]]) if (module) {
     const create = module.create;
     module.create = options => { creates.push({ name, options }); const api = create(options); adapters.push({ name, api }); return api; };
@@ -89,28 +94,68 @@ async function fixture(t, { hash = '#home', unified = false, writable = true, ta
     else w.location.hash = hash;
     await tick();
   }
-  async function menu(tab) { node('[data-action="management-menu"]').click(); const link = [...w.document.querySelectorAll('[role="menuitem"]')].find(link => link.hash.endsWith('/' + tab)); assert.ok(link); link.click(); await tick(); }
-  return { w, host, reads, posts, creates, adapters, items, projects, node, change, input, route, menu,
+  return { w, host, reads, posts, creates, adapters, registrations, items, projects, node, change, input, route,
     failRead(value) { failRead = value; }, failWrite(value) { failWrite = value; },
     deferRead() { let resolve; const promise = new Promise(r => resolve = r); pendingRead = { promise, resolve }; return value => { pendingRead = null; resolve({ ok: true, json: async () => value }); }; } };
 }
 
-test('normal progress menu mounts exact TaskCenter and independent Board once with the same stable records', async t => {
+test('display-only progress retains direct legacy TaskCenter and Board routes with stable records', async t => {
   const f = await fixture(t); await f.route('#project/p-a/tasks');
-  assert.match(f.node('h1').textContent, /同名项目 · 项目进展/);
-  const before = f.reads.length; await f.menu('items');
+  assert.equal(f.node('h1').textContent, '项目进展'); assert.equal(f.host.querySelector('[data-action="management-menu"]'), null);
+  const before = f.reads.length; await f.route('#project/p-a/items');
   const scoped = f.reads.slice(before).filter(url => url.startsWith('/api/workspace/items?'));
   assert.equal(scoped.length, 1); const query = new URLSearchParams(scoped[0].split('?')[1]);
   assert.equal(query.get('project_id'), 'p-a'); assert.equal(query.get('scope'), 'all'); assert.equal(query.get('limit'), '50');
   assert.match(f.node('#items-list').textContent, /A 正在推进/); assert.doesNotMatch(f.node('#items-list').textContent, /B 正在推进/);
   assert.equal(f.node('#studio-agent-board').hidden, true);
-  f.node('a[href="#project/p-a/tasks"]').click(); await tick(); await f.menu('board');
+  f.node('a[href="#project/p-a/tasks"]').click(); await tick(); await f.route('#project/p-a/board');
   const legacy = f.creates.filter(row => row.name === 'board' && row.options.unified === false);
   assert.equal(legacy.length, 1); assert.equal(legacy[0].options.root.id, 'studio-legacy-board');
   assert.match(f.node('#studio-legacy-board').textContent, /A 正在推进/); assert.doesNotMatch(f.node('#studio-legacy-board').textContent, /B 正在推进|归档事项/);
   f.node('#studio-legacy-board [data-action="manage-items"]').click(); await tick();
   assert.equal(f.creates.filter(row => row.name === 'items').length, 1); assert.equal(f.posts.length, 0);
   assert.equal(f.reads.some(url => /bootstrap.*project|worktree|runtime/.test(url)), false);
+});
+
+
+test('project addition first enters the native workbench and cancelling its dialog stays inside', async t => {
+  const f = await fixture(t, { unified: true, registration: true });
+  f.w.dispatchEvent(new f.w.Event('platform-add-project')); await tick();
+  assert.equal(f.w.location.hash, '#workbench');
+  assert.equal(f.registrations.length, 0);
+  assert.equal(f.reads.includes('/workspace-admin'), false);
+  await f.route('#workbench');
+  f.w.dispatchEvent(new f.w.Event('platform-add-project')); await tick();
+  assert.equal(f.registrations.length, 1); assert.equal(f.registrations[0].dialog.open, true);
+  f.registrations[0].dialog.close(); await tick();
+  assert.equal(f.w.location.hash, '#workbench'); assert.equal(f.posts.length, 0);
+});
+
+test('batch registration keeps confirmed choices inside the native workbench and closes before opening one', async t => {
+  const f = await fixture(t, { hash: '#workbench', unified: true, registration: true });
+  f.w.dispatchEvent(new f.w.Event('platform-add-project')); await tick();
+  f.registrations[0].dialog.close();
+  await f.registrations[0].onChanged(undefined, { kind: 'registered', confirmedIDs: ['p-a', 'p-b'], failedCount: 1 });
+  assert.equal(f.w.location.hash, '#workbench');
+  const dialog = f.w.document.querySelector('[data-platform-project-dialog]').shadowRoot.querySelector('.ce-project-settings');
+  assert.equal(dialog.open, true); assert.match(dialog.textContent, /已添加 2 个项目.*1 项未加入/);
+  const choices = [...dialog.querySelectorAll('.ce-registration-actions button')];
+  assert.equal(choices.length, 2); choices[1].click(); await tick();
+  assert.equal(dialog.open, false); assert.equal(f.w.location.hash, '#project/p-b/workspace');
+  assert.equal(f.posts.length, 0);
+});
+
+test('a saved registration with a failed refresh only rereads and never submits it again', async t => {
+  const f = await fixture(t, { hash: '#workbench', unified: true, registration: true });
+  f.w.dispatchEvent(new f.w.Event('platform-add-project')); await tick();
+  f.registrations[0].dialog.close(); f.failRead(true);
+  await f.registrations[0].onChanged(undefined, { kind: 'registered', confirmedIDs: ['p-a'] });
+  const dialog = f.w.document.querySelector('[data-platform-project-dialog]').shadowRoot.querySelector('.ce-project-settings');
+  assert.match(dialog.textContent, /项目已保存.*无需再次创建/);
+  assert.equal(f.w.location.hash, '#workbench');
+  const retry = [...dialog.querySelectorAll('button')].find(button => button.textContent === '重新读取');
+  assert.ok(retry); f.failRead(false); retry.click(); await tick();
+  assert.equal(f.w.location.hash, '#project/p-a/workspace'); assert.equal(f.posts.length, 0);
 });
 
 test('project name composition keeps the dialog open and a later cancel retains its draft', async t => {
@@ -134,39 +179,41 @@ test('project name composition keeps the dialog open and a later cancel retains 
   assert.equal(open().querySelector('[name="name"]').value, '中文草稿');
 });
 
-test('accepted hash/back/forward restore actual Progress scope, filter, stable selection, scroll and trigger', async t => {
+test('accepted hash/back/forward retain all-project selection and scroll without retired controls', async t => {
   const f = await fixture(t); await f.route('#project/p-a/tasks');
-  f.change('#pp-scope', 'p-b'); f.input('#pp-search', 'B'); f.node('[data-task-id="' + uuid(3) + '"]').click(); await tick();
+  f.node('[data-task-id="' + uuid(3) + '"]').click(); await tick();
   f.node('#pp-list').scrollTop = 57; f.node('#pp-detail').scrollTop = 83;
-  await f.menu('items');
-  f.w.history.back(); await tick();
-  assert.equal(f.w.location.hash, '#project/p-a/tasks'); assert.equal(f.node('#pp-scope').value, 'p-b'); assert.equal(f.node('#pp-search').value, 'B');
+  await f.route('#project/p-a/items'); f.w.history.back(); await tick();
+  assert.equal(f.w.location.hash, '#project/p-a/tasks'); assert.equal(f.host.querySelector('#pp-scope'), null); assert.equal(f.host.querySelector('#pp-search'), null);
   assert.equal(f.node('#pp-detail').dataset.taskId, uuid(3)); assert.equal(f.node('#pp-list').scrollTop, 57); assert.equal(f.node('#pp-detail').scrollTop, 83);
-  assert.equal(f.w.document.activeElement.dataset.action, 'management-menu');
+  assert.equal(f.w.document.activeElement.id, 'pp-detail');
+  assert.match(f.node('#pp-list').textContent,/A 正在推进/); assert.match(f.node('#pp-list').textContent,/B 正在推进/);
   f.w.history.forward(); await tick(); assert.equal(f.w.location.hash, '#project/p-a/items');
-  f.w.history.back(); await tick(); assert.equal(f.node('#pp-scope').value, 'p-b'); assert.equal(f.node('#pp-detail').dataset.taskId, uuid(3));
+  f.w.history.back(); await tick(); assert.equal(f.node('#pp-detail').dataset.taskId, uuid(3));
 });
 
-test('editing veto preserves return packet and scope; an unrelated accepted project retires it', async t => {
-  const f = await fixture(t); await f.route('#project/p-a/tasks'); f.change('#pp-scope', 'p-b'); await f.menu('items');
+
+test('legacy editing veto preserves its draft and progress selection; unrelated projects retire selection', async t => {
+  const f = await fixture(t); await f.route('#project/p-a/tasks'); f.node('[data-task-id="'+uuid(3)+'"]').click(); await tick(); await f.route('#project/p-a/items');
   f.node('#items-list button').click(); f.input('#item-title', '未保存');
   await f.route('#project/p-a/tasks'); assert.equal(f.w.location.hash, '#project/p-a/items'); assert.equal(f.node('#item-title').value, '未保存');
   f.change('#studio-items-scope', 'global'); assert.equal(f.node('#studio-items-scope').value, 'current'); assert.equal(f.node('#item-title').value, '未保存');
-  f.node('#item-editor .form-actions .secondary').click(); await f.route('#project/p-a/tasks'); assert.equal(f.node('#pp-scope').value, 'p-b');
-  await f.menu('items'); await f.route('#project/p-b/tasks'); assert.equal(f.node('#pp-search').value, ''); assert.equal(f.node('#pp-scope').value, '');
-  await f.route('#project/p-a/tasks'); assert.equal(f.node('#pp-scope').value, '');
+  f.node('#item-editor .form-actions .secondary').click(); await f.route('#project/p-a/tasks'); assert.equal(f.node('#pp-detail').dataset.taskId,uuid(3));
+  await f.route('#project/p-a/items'); await f.route('#project/p-b/tasks'); assert.equal(f.node('#pp-detail').dataset.taskId,'');
+  await f.route('#project/p-a/tasks'); assert.equal(f.node('#pp-detail').dataset.taskId,'');
+  assert.match(f.node('#pp-list').textContent,/A 正在推进/); assert.match(f.node('#pp-list').textContent,/B 正在推进/);
 });
 
-test('a second async guard veto does not restore early or discard drafts', async t => {
-  const f = await fixture(t); await f.route('#project/p-a/tasks'); f.change('#pp-scope', 'p-b'); await f.menu('board');
-  let accept, reject;
-  const one = new Promise(r => accept = r), two = new Promise(r => reject = r);
-  const guard = e => { e.detail.waitUntil(one); e.detail.waitUntil(two); };
-  f.w.addEventListener('platform-before-navigate', guard);
+
+test('a second async guard veto retains legacy view and restores no progress selection early', async t => {
+  const f = await fixture(t); await f.route('#project/p-a/tasks'); f.node('[data-task-id="'+uuid(3)+'"]').click(); await tick(); await f.route('#project/p-a/board');
+  let accept, reject; const one = new Promise(r => accept = r), two = new Promise(r => reject = r);
+  const guard = e => { e.detail.waitUntil(one); e.detail.waitUntil(two); }; f.w.addEventListener('platform-before-navigate', guard);
   await f.route('#project/p-a/tasks'); accept(true); await tick(); assert.equal(f.w.location.hash, '#project/p-a/board');
   reject(false); await tick(); assert.equal(f.w.location.hash, '#project/p-a/board');
-  f.w.removeEventListener('platform-before-navigate', guard); await f.route('#project/p-a/tasks'); assert.equal(f.node('#pp-scope').value, 'p-b');
+  f.w.removeEventListener('platform-before-navigate', guard); await f.route('#project/p-a/tasks'); assert.equal(f.node('#pp-detail').dataset.taskId,uuid(3));
 });
+
 
 test('explicit global/orphan/archived scopes are exact and a missing project never reads an unscoped page', async t => {
   const f = await fixture(t, { hash: '#project/p-a/items' });
@@ -191,14 +238,14 @@ test('confirmed changes propagate by item ID across both consumers; failed chang
   assert.equal(f.node('#item-title').value, '失败草稿'); assert.match(f.node('#item-feedback').textContent, /保留/); assert.equal(f.items[0].title, '已确认的新标题');
 });
 
-test('restored deleted or filtered-out selections clear detail and actions without choosing another row', async t => {
-  const f = await fixture(t); await f.route('#project/p-a/tasks'); f.input('#pp-search', 'A 正在'); f.node('[data-task-id="' + uuid(1) + '"]').click(); await tick();
-  await f.menu('items'); f.items[0].title = '已移出原搜索'; f.node('[data-action="refresh"]').click(); await tick(); await f.route('#project/p-a/tasks');
-  assert.equal(f.node('#pp-search').value, 'A 正在'); assert.equal(f.node('#pp-detail').dataset.taskId, ''); assert.equal(f.node('#pp-detail').querySelector('button'), null);
-  assert.equal(f.node('#pp-list').querySelectorAll('[data-task-id]').length, 0);
+test('restored deleted selections clear detail without narrowing all-project rows', async t => {
+  const f = await fixture(t); await f.route('#project/p-a/tasks'); f.node('[data-task-id="' + uuid(1) + '"]').click(); await tick();
+  await f.route('#project/p-a/items'); f.items.splice(0,1); f.node('[data-action="refresh"]').click(); await tick(); await f.route('#project/p-a/tasks');
+  assert.equal(f.node('#pp-detail').dataset.taskId, ''); assert.equal(f.node('#pp-detail').querySelector('button'), null);
   assert.equal(f.node('#pp-list').querySelectorAll('.pp-column').length, 3);
-  assert.match(f.node('#pp-list').textContent, /没有匹配的记录/);
+  assert.match(f.node('#pp-list').textContent, /A 待推进/); assert.match(f.node('#pp-list').textContent, /B 正在推进/);
 });
+
 
 test('missing profile or consumer shows an honest unavailable surface', async t => {
   for (const options of [{ writable: false }, { taskModule: false }]) {
@@ -221,15 +268,16 @@ test('a newly archived Board target is rejected by the original write boundary a
   assert.equal(f.items[0].project_id, 'p-a'); assert.equal(f.items[0].title, 'A 正在推进'); assert.match(f.node('#ab-feedback').textContent, /输入已保留/);
 });
 
-test('full stylesheet cascade preserves readable progress text and actual input controls', async t => {
+test('full stylesheet cascade keeps project tags readable and refresh controls accessible', async t => {
   const f = await fixture(t, { hash: '#project/p-a/tasks' });
   for (const name of ['workspace.css', 'project-progress.css', 'project-monitor.css', 'studio-preview.css']) {
     const style = f.w.document.createElement('style'); style.textContent = fs.readFileSync(path.join(root, 'web/workspace', name), 'utf8'); f.w.document.head.append(style);
   }
-  assert.equal(f.w.getComputedStyle(f.node('h1')).fontSize, '24px');
+  assert.equal(f.w.getComputedStyle(f.node('h1')).fontSize, '24px'); assert.equal(f.node('h1').textContent,'项目进展');
   assert.equal(f.w.getComputedStyle(f.node('.pp-row-title')).fontSize, '15px');
-  assert.equal(f.w.getComputedStyle(f.node('.pp-row-summary')).fontSize, '14px');
-  assert.equal(f.w.getComputedStyle(f.node('#pp-search')).minHeight, '40px');
+  assert.equal(f.w.getComputedStyle(f.node('.pp-project-tag')).fontSize, '14px');
+  assert.equal(f.w.getComputedStyle(f.node('#pp-refresh')).minHeight, '40px');
+  assert.equal(f.node('#pp-refresh').textContent,''); assert.ok(f.node('#pp-refresh').querySelector('svg'));
 });
 
 
@@ -249,11 +297,11 @@ for (const unified of [false, true]) test(`external access uses the current Stud
   assert.equal(owner.querySelector('.ce-access'), null);
 });
 
-test('cross-project progress entry changes context and keeps the exact selected task', async t => {
-  const f = await fixture(t); await f.route('#project/p-a/tasks');
+test('viewing another project keeps the current development identity and performs no writes', async t => {
+  const f = await fixture(t); f.projects[1].name='项目 B'; f.node('[data-action="refresh"]').click(); await tick(); await f.route('#project/p-a/tasks');
   f.node('[data-task-id="' + uuid(3) + '"]').click(); await tick();
-  f.node('#pp-open-project').click(); await tick();
-  assert.equal(f.w.location.hash, '#project/p-b/tasks');
-  assert.equal(f.node('#pp-detail').dataset.taskId, uuid(3));
-  assert.equal(f.node('#pp-detail').querySelector('#pp-open-project'), null);
+  assert.equal(f.w.location.hash, '#project/p-a/tasks'); assert.equal(f.node('#pp-detail').dataset.taskId,uuid(3));
+  assert.equal(f.node('#pp-detail .pp-project-tag').textContent,'项目 B'); assert.equal(f.node('#pp-detail').querySelector('#pp-open-project'),null);
+  assert.deepEqual([...f.node('#pp-detail').querySelectorAll('button')].map(node=>node.textContent),['‹ 返回','']);
+  assert.equal(f.posts.length,0); assert.equal(f.reads.some(url=>/worktree|runtime|workbench/.test(url)),false);
 });

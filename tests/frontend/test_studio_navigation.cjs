@@ -30,30 +30,29 @@ test('cards and list share all registered records, and filters never change titl
   assert.doesNotMatch(overview(), /ce-development-shortcut|data-action="add-project"/);
 });
 
-test('zero, all archived and known unavailable projects reach one secondary configuration entry', () => {
+test('zero, all archived and unavailable projects reach the native workbench without an outer project form', () => {
   for (const projects of [[],[project('old',true)],[{...project('one'),binding_available:false}]]) {
     const html = overview({projects});
-    assert.equal((html.match(/href="#project-setup"/g) || []).length, 1);
-    assert.doesNotMatch(html, /data-action="open-project-dialog"/);
+    assert.equal((html.match(/href="#workbench"/g) || []).length, 1);
+    assert.doesNotMatch(html, /project-setup|项目配置|data-action="open-project-dialog"/);
   }
-  assert.doesNotMatch(overview({projects:[project('one')]}), /href="#project-setup"/);
-  assert.match(overview({projects:[project('one')],runtimeAvailable:false}), /href="#project-setup"/);
+  const empty = overview({projects:[]});
+  assert.match(empty, /还没有项目/); assert.doesNotMatch(empty, /studio-project-search|ce-summary-band/);
+  assert.doesNotMatch(overview({projects:[project('one')]}), /href="#workbench"/);
+  assert.match(overview({projects:[project('one')],runtimeAvailable:false}), /项目运行组件未连接/);
 });
 
-test('the main sidebar has one project destination and four distinct settings entries', () => {
-  const html = shell.renderNavigation({current:{view:'settings',tab:'development'},settingsOpen:true});
+test('the sidebar exposes two effective management destinations with distinct icons and no duplicate theme entry', () => {
+  const html = shell.renderNavigation({current:{view:'settings',tab:'sources'}});
   assert.equal((html.match(/href="#home"/g) || []).length, 1);
   assert.doesNotMatch(html, /href="#project\/|href="#workspace"|ce-navdot/);
-  for (const section of ['appearance','account','sources','development']) assert.ok(html.includes('href="#settings/'+section+'"'));
-  assert.match(html, /href="#settings\/development" aria-current="page"/);
-});
-
-test('registration results show only confirmed projects and a read failure offers reread without recreation', () => {
-  const html = shell.renderProjectSetup({result:{projects:[project('one'),project('two')],failedCount:1}});
-  assert.match(html, /href="#project\/one\/workspace"/); assert.match(html, /href="#project\/two\/workspace"/);
-  assert.doesNotMatch(html, /data-project-card|项目总览<\/h1>/);
-  const failed = shell.renderProjectSetup({result:{error:true,projects:[]}});
-  assert.match(failed, /data-action="retry-registration"/); assert.match(failed, /无需再次创建/);
+  for (const section of ['account','sources']) assert.ok(html.includes('href="#settings/'+section+'"'));
+  assert.doesNotMatch(html, /settings-toggle|settings\/appearance|settings\/development/);
+  assert.match(html, /href="#settings\/sources" aria-current="page"/);
+  const management = html.match(/<nav class="ce-navgroup" aria-label="管理">([^]*?)<\/nav>/)[1];
+  const symbols = [...management.matchAll(/<svg[^>]*>([^]*?)<\/svg>/g)].map(match => match[1]);
+  assert.equal(symbols.length, 2); assert.notEqual(symbols[0], symbols[1]);
+  assert.equal(shell.renderProjectSetup, undefined);
 });
 
 test('overview facts use progress semantics and exclude records outside registered projects', () => {
@@ -76,4 +75,5 @@ test('source settings exposes optional external access without a second agent se
   const html = shell.renderSettingsLanding({ section: 'sources', integrated: true });
   assert.equal((html.match(/data-action="external-access"/g) || []).length, 1);
   assert.match(html, /外部程序接入/); assert.doesNotMatch(html, /agent-form|兼容|命令|审批/);
+  assert.match(html, /href="\/workspace-admin#settings"/); assert.doesNotMatch(html, /workspace-admin#projects/);
 });

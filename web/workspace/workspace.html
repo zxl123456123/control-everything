@@ -59,17 +59,14 @@
       </div>
     </aside>
     <dialog id="onboarding-dialog" class="onboarding-dialog" aria-labelledby="onboarding-title">
-  <div class="section-heading"><h2 id="onboarding-title">添加项目</h2><button id="onboarding-close" type="button" class="button secondary">关闭</button></div>
-  <p class="section-note">项目属于你，可交给任何已登记的 Agent。添加项目无需选择工具。</p>
-  <div class="form-actions"><button id="onboarding-existing" type="button" class="button secondary">添加已有项目文件夹</button><button id="onboarding-new" type="button" class="button secondary">新建项目与文件夹</button><button id="onboarding-import" type="button" class="text-button">从工具导入</button></div>
+  <div class="section-heading"><h2 id="onboarding-title">添加项目</h2><button id="onboarding-close" type="button" class="button secondary">取消</button></div>
+  <nav class="onboarding-methods" aria-label="添加方式"><button id="onboarding-existing" type="button" class="button secondary">已有文件夹</button><button id="onboarding-new" type="button" class="button secondary">新建文件夹</button><button id="onboarding-import" type="button" class="button secondary">从工具导入</button></nav>
   <form id="onboarding-directory-form"><fieldset id="onboarding-directory-fields">
-    <h3 id="onboarding-directory-title">添加已有项目文件夹</h3>
     <label class="field">项目名称<input id="onboarding-directory-name" maxlength="80" required autocomplete="off"></label>
     <label class="field"><span id="onboarding-directory-label">已有文件夹路径</span><input id="onboarding-directory-path" maxlength="2048" required placeholder="填写本机绝对路径，或点击选择文件夹" autocomplete="off"></label>
-    <div class="form-actions"><button id="onboarding-directory-pick" type="button" class="button secondary">选择文件夹</button><button id="onboarding-directory-preview" type="button" class="button secondary">核对目录</button></div>
+    <div class="form-actions"><button id="onboarding-directory-pick" type="button" class="button secondary">选择文件夹</button><button id="onboarding-directory-preview" type="button" class="button secondary">检查目录</button></div>
     <p id="onboarding-directory-result" class="context-path" aria-live="polite"></p>
-    <label class="checkbox-field"><input id="onboarding-directory-confirm" type="checkbox">我已核对项目名称和完整路径，确认执行以上操作</label>
-    <button id="onboarding-directory-save" type="submit" class="button primary" disabled>确认添加项目</button>
+    <div class="form-actions onboarding-submit"><button id="onboarding-directory-save" type="submit" class="button primary" disabled>添加项目</button></div>
   </fieldset></form>
   <section id="onboarding-tool-import" hidden>
   <div class="onboarding-choices"><div><h3>从已有项目选择</h3><p class="section-note">可选：从工具中发现已有项目；只加入你选择的项目。</p></div><div><button id="onboarding-manual" type="button" class="button secondary">手工登记已有目录</button></div></div>

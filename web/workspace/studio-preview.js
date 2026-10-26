@@ -37,9 +37,9 @@ function mountStudio(root, { onProjects = () => {} } = {}) {
   } catch (_) { try { (window.CERemoteContext ? window.CERemoteContext.storage('localStorage') : window.localStorage)?.removeItem(CREATOR_URL_KEY); } catch (_) { /* Storage can be disabled. */ } }
   const escape = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
   let state = { workspace: null, agents: [], items: [] }, request = 0, query = '', archivedProjects = false, initialized = false, disposed = false;
-  let attentionOnly = false, projectSort = 'updated', refreshMessage = '', viewMode = 'cards', settingsOpen = false;
+  let attentionOnly = false, projectSort = 'updated', refreshMessage = '', viewMode = 'cards';
   let railCollapsed = false, newsHost = null, newsReader = null, newsTheme = null, externalAccess = null;
-  let registrationResult = null, registrationGeneration = 0, overviewReturn = null;
+  let registrationGeneration = 0, overviewReturn = null;
   let pendingTask = null, taskCenter = null, legacyBoard = null, taskTarget = '', itemsScope = 'current', legacyScope = null, progressReturn = null;
   const consumerSnapshots = new WeakMap();
   let refreshPromise = null, refreshAgain = false, refreshTimer = null, lastRead = 0;
@@ -116,7 +116,7 @@ function mountStudio(root, { onProjects = () => {} } = {}) {
       if (!legacyBoard) legacyBoard = window.WorkspaceAgentBoard.create({ root: $('studio-legacy-board'), fetchJson: client.api, postJson: client.post, unified: false,
         onRefresh: () => refresh(), itemsHref: id => projectHash(id && id !== '__global__' ? id : route().id, 'items'),
         onProject: id => { if (editingBlocked()) return; if (id && id !== '__global__') navigate('project/' + encodeURIComponent(id) + '/board'); else { legacyScope = id; legacyBoard.setProject(id, 'all'); } },
-        onRegister: () => navigate('settings/sources'), onAddProject: () => navigate('project-setup') });
+        onRegister: () => navigate('settings/sources'), onAddProject: () => requestProject() });
       legacyBoard.setActive(true);
       legacyBoard.setProject(legacyScope === null ? current.id : legacyScope, 'all');
       if (consumerSnapshots.get(legacyBoard) !== state) { consumerSnapshots.set(legacyBoard, state); void legacyBoard.update(state); }
@@ -135,13 +135,12 @@ function mountStudio(root, { onProjects = () => {} } = {}) {
     if (['inbox', 'tasks', 'attention'].includes(view)) return { view: 'inbox', id: '', tab: view === 'attention' || encoded === 'attention' ? 'attention' : encoded === 'review' ? 'review' : 'all' };
     if (view === 'news') return { view: 'news', id: '', tab: '' };
     if (view === 'mobile') return { view: 'mobile', id: '', tab: '' };
-    if (view === 'project-setup' || view === 'workspace') return { view: 'project-setup', id: '', tab: '' };
+    if (['workbench', 'project-setup', 'workspace'].includes(view)) return { view: 'workbench', id: '', tab: '' };
     if (view === 'settings') return { view: 'settings', id: '', tab: /^[a-z][a-z0-9-]{0,63}$/.test(id) ? id : 'appearance' };
     return { view: ['tools', 'agents'].includes(view) ? 'tools' : 'home', id: '', tab: '' };
   }
   function navigate(value) { if (location.hash === '#' + value) render(); else location.hash = value; }
   let previousRoute = route(), mobileReturnHash = '#home', disposeMobile = null;
-  if (previousRoute.view === 'settings' || previousRoute.view === 'mobile') settingsOpen = true;
   let acceptedHash = location.hash || '#home', navigationGeneration = 0, acceptedVersion = 0;
   let onboarding = null, onboardingDialog = null, openingProject = false, projectTrigger = null;
   async function openProjectDialog() {
@@ -175,23 +174,26 @@ function mountStudio(root, { onProjects = () => {} } = {}) {
   }
   function requestProject() {
     const current = route();
-    if (current.view === 'project' && ['workspace', 'activity'].includes(current.tab)) void openProjectDialog();
-    else navigate('project-setup');
+    if (root.dataset.unified === 'true' && (current.view === 'workbench' || current.view === 'project' && ['workspace', 'activity'].includes(current.tab))) void openProjectDialog();
+    else navigate('workbench');
   }
   async function finishRegistration(result) {
     const generation = ++registrationGeneration;
     const originHash = location.hash, originVersion = acceptedVersion;
     const ids = [...new Set((result.confirmedIDs || []).filter(id => typeof id === 'string' && /^[a-z0-9][a-z0-9-]{0,63}$/.test(id)))];
     if (!ids.length) return;
-    registrationResult = { ids, projects: [], error: false, failedCount: result.failedCount || 0 };
+    const failedCount = result.failedCount || 0;
     const ok = await refresh();
     if (disposed || generation !== registrationGeneration) return;
     const rows = ids.map(id => projects().find(project => project.id === id)).filter(Boolean);
-    registrationResult.projects = rows;
-    registrationResult.error = !ok || rows.length !== ids.length;
+    const incomplete = !ok || rows.length !== ids.length;
     if (location.hash !== originHash || acceptedVersion !== originVersion) return;
-    if (!registrationResult.error && rows.length === 1 && !registrationResult.failedCount) navigate('project/' + encodeURIComponent(rows[0].id) + '/workspace');
-    else { navigate('project-setup'); render(); }
+    if (!incomplete && rows.length === 1 && !failedCount) navigate('project/' + encodeURIComponent(rows[0].id) + '/workspace');
+    else showPlatformNotice(incomplete ? '项目已保存，列表尚未更新。请重新读取，无需再次创建项目。'
+      : `已添加 ${rows.length} 个项目。${failedCount ? `${failedCount} 项未加入，原选择已保留。` : '请选择要打开的项目。'}`, {
+      projects: rows,
+      retry: incomplete ? () => finishRegistration({ confirmedIDs: ids, failedCount }) : null,
+    });
   }
   let projectDialogHost = null, projectDialogTarget = null;
   let themeSaving = false;
@@ -249,12 +251,23 @@ function mountStudio(root, { onProjects = () => {} } = {}) {
       fetchJson: client.api, postJson: client.post, restoreFocus: () => restoreFocus(trigger),
       isCurrent: () => !disposed && acceptedHash === openedHash && window.CERemoteContext?.active !== false });
   }
-  function showPlatformNotice(text) {
+  function showPlatformNotice(text, { projects: savedProjects = [], retry = null } = {}) {
     const host = visibleDialogTarget(), trigger = currentFocus();
     const dialog = document.createElement('dialog');
     dialog.className = 'ce-project-settings';
     dialog.innerHTML = `<form><p role="status">${escape(text)}</p><button type="button" class="ce-button">关闭</button></form>`;
     dialog.querySelector('button').addEventListener('click', () => dialog.close());
+    const actions = document.createElement('div'); actions.className = 'ce-registration-actions';
+    for (const project of savedProjects) {
+      const button = document.createElement('button'); button.type = 'button'; button.className = 'ce-button'; button.textContent = project.name;
+      button.addEventListener('click', () => { dialog.close(); navigate('project/' + encodeURIComponent(project.id) + '/workspace'); });
+      actions.append(button);
+    }
+    if (retry) {
+      const button = document.createElement('button'); button.type = 'button'; button.className = 'ce-button ce-primary'; button.textContent = '重新读取';
+      button.addEventListener('click', () => { dialog.close(); void retry(); }); actions.append(button);
+    }
+    if (actions.childElementCount) dialog.querySelector('p').after(actions);
     dialog.addEventListener('close', () => { dialog.remove(); restoreFocus(trigger); }, { once: true });
     host.append(dialog);
     dialog.showModal();
@@ -411,7 +424,7 @@ function mountStudio(root, { onProjects = () => {} } = {}) {
   drawer.addEventListener('click', event => { if (event.target === drawer) closeNavigation(); });
   const resizeNavigation = () => { closeProjectMenu(); if (window.innerWidth > 1023) closeNavigation(); };
   window.addEventListener('resize', resizeNavigation);
-  function renderNav(current, inDrawer = false) { return window.StudioShell.renderNavigation({ current, settingsOpen, creatorLink: creatorLink(), navigationId: inDrawer ? 'studio-drawer-settings-links' : 'studio-settings-links' }); }
+  function renderNav(current) { return window.StudioShell.renderNavigation({ current, creatorLink: creatorLink() }); }
   function renderChrome(current) {
     setHtml($('studio-rail'), renderNav(current));
     const chosen = projects().find(p => p.id === current.id);
@@ -491,7 +504,7 @@ function mountStudio(root, { onProjects = () => {} } = {}) {
     if (current.view !== 'mobile' && !(current.view === 'settings' && current.tab === 'account') && disposeMobile) { disposeMobile(); disposeMobile = null; }
     const chosen = projects().find(p => p.id === current.id);
     // The native surface takes over when ready; retain the previous page during preparation.
-    if (root.dataset.unified === 'true' && current.view === 'project' && ['workspace', 'activity'].includes(current.tab) && (!state.workspace || chosen && !chosen.archived)) {
+    if (root.dataset.unified === 'true' && (current.view === 'workbench' || current.view === 'project' && ['workspace', 'activity'].includes(current.tab) && (!state.workspace || chosen && !chosen.archived))) {
       monitor?.setActive(false);
       taskCenter?.setActive(false); legacyBoard?.setActive(false); board.setActive?.(false);
       $('studio-tasks').hidden = true; if ($('studio-legacy-board')) $('studio-legacy-board').hidden = true;
@@ -513,7 +526,7 @@ function mountStudio(root, { onProjects = () => {} } = {}) {
     }
     if (!state.workspace) { setHtml(content, '<div class="ce-empty">正在读取真实项目与事项。无法连接时请使用上方“刷新”重试。</div>'); return; }
     if (current.view === 'home') renderHome();
-    else if (current.view === 'project-setup') setHtml(content, window.StudioShell.renderProjectSetup({ result: registrationResult }));
+    else if (current.view === 'workbench') setHtml(content, '<div class="ce-heading"><h1>项目工作台</h1></div><div class="ce-empty" role="status">项目运行组件未连接，请从已装配内置工作台的服务打开。</div>');
     else if (current.view === 'settings') setHtml(content, window.StudioShell.renderSettingsLanding({ section: current.tab, integrated: root.dataset.unified === 'true', creatorForm: creatorAddressForm() }));
     else if (current.view === 'project' && ['items', 'board'].includes(current.tab)) {
       const returnHash = progressReturn?.platformId === current.id ? progressReturn.originHash : projectHash(current.id, 'tasks');
@@ -531,13 +544,13 @@ function mountStudio(root, { onProjects = () => {} } = {}) {
   function itemFilters(current) {
     const href = filter => current.view === 'project' ? '#project/' + encodeURIComponent(current.id) + '/' + (filter === 'all' ? 'tasks' : filter) : '#inbox' + (filter === 'all' ? '' : '/' + filter);
     const selected = ['review', 'attention'].includes(current.tab) ? current.tab : 'all';
-    if (root.dataset.unified === 'true') return selected === 'all' ? `<div class="ce-scope-note"><span>查看进展不会切换开发中的项目</span>${current.view === 'project' ? `<a class="ce-button ce-plain" href="#project/${encodeURIComponent(current.id)}/activity">会话</a>` : ''}</div>` : `<p class="ce-scope-note">当前仅显示${selected === 'review' ? '待验收' : '需处理'}事项。<a href="${href('all')}">返回全部事项</a></p>`;
+    if (root.dataset.unified === 'true') return '';
     return `<nav class="ce-tabs" aria-label="事项筛选">${[['all', current.view === 'project' ? '本项目全部' : '全部'], ['review', '待验收'], ['attention', '需处理']].map(([value, label]) => `<a href="${href(value)}"${selected === value ? ' aria-current="page"' : ''}>${label}</a>`).join('')}</nav>`;
   }
   function renderStatus(current) {
     if (disposed || window.CERemoteContext?.active === false) return;
     if (!state.workspace) { status.hidden = false; status.textContent = refreshMessage; return; }
-    status.textContent = refreshMessage || (root.dataset.isolatedPreview === 'true' ? '隔离预览' : '');
+    status.textContent = refreshMessage || '';
     status.hidden = !status.textContent;
   }
 
@@ -600,14 +613,7 @@ function mountStudio(root, { onProjects = () => {} } = {}) {
     if (action === 'external-access') openExternalAccess();
     if (action === 'rail-toggle') { railCollapsed = !railCollapsed; root.dataset.railCollapsed = String(railCollapsed); renderChrome(route()); root.querySelector('[data-action="rail-toggle"]')?.focus(); }
     if (action === 'management-menu') openProjectMenu(route().id, event.target.closest('[data-action="management-menu"]'), true);
-    if (action === 'add-project') navigate('project-setup');
-    if (action === 'open-project-dialog') void openProjectDialog();
-    if (action === 'retry-registration' && registrationResult) void finishRegistration({ confirmedIDs: registrationResult.ids, failedCount: registrationResult.failedCount });
-    if (action === 'settings-toggle') {
-      settingsOpen = !settingsOpen; renderChrome(route());
-      if (drawer.open) drawer.innerHTML = `<div class="ce-drawer-header"><strong>工作台导航</strong><button class="ce-iconbtn" data-action="close-navigation" type="button" aria-label="关闭导航">×</button></div>${renderNav(route(), true)}`;
-      (drawer.open ? drawer : root).querySelector('[data-action="settings-toggle"]')?.focus({ preventScroll: true });
-    }
+    if (action === 'add-project') requestProject();
     if (action === 'view-cards' || action === 'view-list') { viewMode = action === 'view-list' ? 'list' : 'cards'; render(); }
     if (action === 'archived-projects') { archivedProjects = !archivedProjects; attentionOnly = false; render(); }
     if (action === 'all-projects' || action === 'attention-projects') { attentionOnly = action === 'attention-projects'; archivedProjects = false; render(); }
@@ -700,7 +706,6 @@ function mountStudio(root, { onProjects = () => {} } = {}) {
       overviewReturn = { scrollTop: host?.scrollTop || 0, trigger,
         projectId: trigger?.closest?.('[data-project-card]')?.dataset.projectCard || next.id };
     }
-    if (next.view === 'settings' || next.view === 'mobile') settingsOpen = true;
     if (next.view === 'mobile' && previousRoute.view !== 'mobile') {
       const tab = ['workspace', 'tasks', 'review', 'attention', 'activity', 'monitor'].includes(previousRoute.tab) ? previousRoute.tab : 'workspace';
       mobileReturnHash = previousRoute.view === 'project' && /^[a-z0-9][a-z0-9-]{0,63}$/.test(previousRoute.id)
@@ -728,7 +733,7 @@ function mountStudio(root, { onProjects = () => {} } = {}) {
   const requestedNavigation = () => {
     if (root.dataset.unified === 'true') return;
     const from = acceptedHash;
-    const to = location.hash === '#workspace' ? '#project-setup' : location.hash || '#home';
+    const to = ['#workspace', '#project-setup'].includes(location.hash) ? '#workbench' : location.hash || '#home';
     if (to === from) return;
     const generation = ++navigationGeneration;
     window.history.replaceState(null, '', from);

@@ -25,10 +25,10 @@
     const folderError = error => directoryErrors[error.reason] || error.message;
     function syncFolder() {
       $('onboarding-directory-fields').disabled = busy;
-      $('onboarding-directory-save').disabled = busy || folderSaved || !verified || verified.key !== folderKey() || !$('onboarding-directory-confirm').checked;
+      $('onboarding-directory-save').disabled = busy || folderSaved || !verified || verified.key !== folderKey();
     }
     function invalidateFolder() {
-      verified = null; folderSaved = false; $('onboarding-directory-confirm').checked = false;
+      verified = null; folderSaved = false;
       $('onboarding-directory-result').textContent = ''; syncFolder();
     }
     async function chooseMode(next) {
@@ -42,7 +42,7 @@
         finally { confirmation.dispose(); }
         if (!accepted || busy || !dialog.open || mode !== currentMode || requestId !== currentRequest || folderKey() !== input || window.CERemoteContext?.active === false) return;
       }
-      requestId++; mode = next; invalidateFolder();
+      requestId++; mode = next; dialog.dataset.mode = mode; invalidateFolder();
       $('onboarding-tool-import').hidden = mode !== 'import';
       $('onboarding-directory-form').hidden = mode === 'import';
       for (const [identity, value] of [['onboarding-existing', 'existing'], ['onboarding-new', 'new'], ['onboarding-import', 'import']]) $(identity).setAttribute('aria-pressed', String(mode === value));
@@ -55,11 +55,10 @@
           renderSource(); if (await reloadCandidates()) feedback('只加入你选择的项目；不会复制代码或聊天正文。');
         } catch (error) { if (mode === 'import') feedback(`${error.message}。仍可添加本机文件夹。`, true); }
       } else {
-        $('onboarding-directory-title').textContent = mode === 'new' ? '新建项目与文件夹' : '添加已有项目文件夹';
         $('onboarding-directory-label').textContent = mode === 'new' ? '父文件夹路径' : '已有文件夹路径';
-        $('onboarding-directory-preview').textContent = mode === 'new' ? '预览新文件夹路径' : '核对目录';
-        $('onboarding-directory-save').textContent = mode === 'new' ? '确认创建文件夹并添加项目' : '确认添加项目';
-        feedback(mode === 'new' ? '选择父目录并填写名称，预览完整路径后再确认创建。' : '选择或填写已有目录。添加项目不会改动目录中的文件。');
+        $('onboarding-directory-preview').textContent = mode === 'new' ? '预览创建路径' : '检查目录';
+        $('onboarding-directory-save').textContent = mode === 'new' ? '创建并添加' : '添加项目';
+        feedback('');
       }
     }
     async function pickDirectory() {
@@ -87,13 +86,13 @@
         if (!folderInput().name) { feedback('请填写项目名称。', true); return; }
         verified = { key: folderKey(), path: result.path };
         $('onboarding-directory-result').textContent = `${mode === 'new' ? '将创建并添加' : '将添加已有目录'}：${result.path}`;
-        feedback('请核对完整路径并勾选确认。');
+        feedback(mode === 'new' ? '请核对将创建的路径，再点击“创建并添加”。' : '目录可用，可以添加项目。');
       } catch (error) { feedback(folderError(error), true); }
       finally { busy = false; syncFolder(); }
     }
     async function saveDirectory(event) {
       event.preventDefault();
-      if (busy || folderSaved || !verified || verified.key !== folderKey() || !$('onboarding-directory-confirm').checked) return;
+      if (busy || folderSaved || !verified || verified.key !== folderKey()) return;
       const input = folderInput(); busy = true; syncFolder(); feedback('正在保存，请勿重复提交…');
       try {
         const result = await postJson(`/api/workspace/projects/${mode === 'new' ? 'create' : 'register'}`, mode === 'new' ? { name: input.name, parent_path: input.path, confirmed: true } : { name: input.name, path: input.path });
@@ -109,7 +108,7 @@
         try { await onChanged(result.project, { kind: 'registered', confirmedIDs: [result.project.id] }); }
         catch { feedback('项目已保存，但列表刷新失败。请关闭此窗口并刷新工作台，无需再次创建。', true); }
       } catch (error) {
-        verified = null; $('onboarding-directory-confirm').checked = false;
+        verified = null;
         feedback(`${folderError(error)} 保存结果未确认，请先核对目录和工作台记录，再决定是否重新添加。`, true);
       } finally { busy = false; syncFolder(); }
     }
@@ -321,9 +320,7 @@
     $('onboarding-import').addEventListener('click', () => chooseMode('import'));
     $('onboarding-directory-pick').addEventListener('click', pickDirectory);
     $('onboarding-directory-preview').addEventListener('click', previewDirectory);
-    $('onboarding-directory-confirm').addEventListener('change', syncFolder);
-    $('onboarding-directory-form').addEventListener('input', event => {
-      if (event.target === $('onboarding-directory-confirm')) return;
+    $('onboarding-directory-form').addEventListener('input', () => {
       dirty = true; invalidateFolder();
     });
     $('onboarding-directory-form').addEventListener('submit', saveDirectory);
