@@ -15,7 +15,23 @@ const mocks = vi.hoisted(() => ({
   state: {} as Record<string, any>,
   listener: () => {},
   openSettingsTarget: vi.fn(),
-  openSettingsPage: vi.fn()
+  openSettingsPage: vi.fn(),
+  detect: vi.fn(),
+  refresh: vi.fn(),
+  detection: {} as Record<string, any>
+}))
+vi.mock('@/hooks/useDetectedAgents', () => ({ useDetectedAgents: (target: unknown) => {
+  mocks.detect(target)
+  return { ...mocks.detection, ...(target ? {} : { detectedIds: null, isLoading: true }), refresh: mocks.refresh }
+} }))
+vi.mock('@/lib/agent-catalog', () => ({ getAgentCatalog: () =>
+  ['codex', 'claude', 'grok', 'dsh', 'pi', 'cursor', 'hermes'].map(id => ({ id, label: id }))
+}))
+vi.mock('@/components/agent/AgentCombobox', () => ({ default: ({ agents, value, onValueChange }: any) =>
+  <select aria-label="执行 Agent" value={value ?? ''} onChange={event => onValueChange(event.target.value)}>
+    <option value="">请选择</option>
+    {agents.map((agent: any) => <option key={agent.id} value={agent.id}>{agent.label}</option>)}
+  </select>
 }))
 vi.mock('@/store', () => ({
   useAppStore: {
@@ -117,6 +133,9 @@ beforeEach(() => {
     openSettingsPage: mocks.openSettingsPage
   }
   mocks.settings.mockResolvedValue(settings())
+  mocks.detection = { detectedIds: ['codex', 'claude', 'grok', 'dsh', 'pi', 'cursor', 'hermes'],
+    isLoading: false, isRefreshing: false, detectionFailed: false, needsServerUpdate: false }
+  mocks.refresh.mockImplementation(async () => mocks.detection.detectedIds ?? [])
   mocks.brief.mockResolvedValue(fresh())
   mocks.link.mockResolvedValue(undefined)
   mocks.activate.mockReturnValue({ primaryTabId: null })
@@ -134,6 +153,88 @@ afterEach(() => {
 })
 
 describe('platform native Agent bridge', () => {
+  it.each(['grok', 'dsh'])('uses the host %s agent without a platform registration', async (agent) => {
+    mocks.settings.mockResolvedValue({ ...settings(), defaultTuiAgent: agent })
+    render(<PlatformAgentBridge data={data} />)
+    await request()
+    expect(mocks.detect).toHaveBeenCalledWith({ kind: 'runtime', environmentId: 'env', worktreeId: 'worktree' })
+    expect((screen.getByLabelText('执行 Agent') as HTMLSelectElement).value).toBe(agent)
+    expect(screen.getByRole('status').textContent).toContain('无需注册')
+    await act(async () => { fireEvent.click(screen.getByText('开始')) })
+    expect(mocks.refresh).toHaveBeenCalledOnce()
+    expect(mocks.launch).toHaveBeenCalledWith(expect.objectContaining({ agent,
+      requireHostAuthority: true, selectedExecutionHostId: 'runtime:env' }))
+    mocks.state.agentStatusByPaneKey = { row: { connectionId: 'env', worktreeId: 'worktree',
+      tabId: 'web-terminal-tab', agentType: agent, providerSession: { key: 'session_id', id: 'native-id' } } }
+    await act(async () => { mocks.listener() })
+    expect(mocks.link).toHaveBeenCalledWith(expect.objectContaining({ agent }), { key: 'session_id', id: 'native-id' })
+  })
+  it.each(['isLoading', 'detectionFailed', 'needsServerUpdate'])('refuses unknown host agents when %s', async (flag) => {
+    mocks.detection[flag] = true
+    render(<PlatformAgentBridge data={data} />)
+    await request()
+    expect((screen.getByText('开始') as HTMLButtonElement).disabled).toBe(true)
+    expect(mocks.launch).not.toHaveBeenCalled()
+  })
+  it('clears a disappeared selection without silently selecting another agent', async () => {
+    const view = render(<PlatformAgentBridge data={data} />)
+    await request()
+    mocks.detection.detectedIds = ['grok']
+    view.rerender(<PlatformAgentBridge data={data} />)
+    expect((screen.getByLabelText('执行 Agent') as HTMLSelectElement).value).toBe('')
+    expect((screen.getByText('开始') as HTMLButtonElement).disabled).toBe(true)
+    expect(mocks.launch).not.toHaveBeenCalled()
+  })
+  it('waits for a first inventory before choosing the host default', async () => {
+    mocks.detection.detectedIds = null
+    const view = render(<PlatformAgentBridge data={data} />)
+    await request()
+    expect((screen.getByText('开始') as HTMLButtonElement).disabled).toBe(true)
+    mocks.detection.detectedIds = ['codex', 'grok']
+    view.rerender(<PlatformAgentBridge data={data} />)
+    expect((screen.getByLabelText('执行 Agent') as HTMLSelectElement).value).toBe('codex')
+  })
+  it('ignores selection changes while a fresh probe is pending', async () => {
+    let finish: (ids: string[]) => void = () => {}
+    mocks.refresh.mockImplementation(() => new Promise(resolve => { finish = resolve }))
+    render(<PlatformAgentBridge data={data} />)
+    await request()
+    await act(async () => { fireEvent.click(screen.getByText('开始')) })
+    fireEvent.change(screen.getByLabelText('执行 Agent'), { target: { value: 'grok' } })
+    expect((screen.getByLabelText('执行 Agent') as HTMLSelectElement).value).toBe('codex')
+    await act(async () => { finish(['codex', 'grok']) })
+    expect(mocks.launch).toHaveBeenCalledWith(expect.objectContaining({ agent: 'codex' }))
+  })
+  it('keeps the current selection and refuses launch when the fresh probe rejects', async () => {
+    render(<PlatformAgentBridge data={data} />)
+    await request()
+    mocks.refresh.mockRejectedValue(new Error('host offline'))
+    await act(async () => { fireEvent.click(screen.getByText('开始')) })
+    expect(mocks.launch).not.toHaveBeenCalled()
+    expect(screen.getByRole('alert').textContent).toContain('host offline')
+  })
+  it('rechecks installation before launch and does not fall back when the probe fails', async () => {
+    render(<PlatformAgentBridge data={data} />)
+    await request()
+    mocks.refresh.mockResolvedValue([])
+    await act(async () => { fireEvent.click(screen.getByText('开始')) })
+    expect(screen.getByRole('alert').textContent).toContain('未检测到')
+    expect((screen.getByLabelText('执行 Agent') as HTMLSelectElement).value).toBe('')
+    expect(mocks.launch).not.toHaveBeenCalled()
+    expect(mocks.activate).not.toHaveBeenCalled()
+  })
+  it('does not retry a launch without provider identity to repair its association', async () => {
+    mocks.settings.mockResolvedValue({ ...settings(), defaultTuiAgent: 'hermes' })
+    render(<PlatformAgentBridge data={data} />)
+    await request()
+    await act(async () => { fireEvent.click(screen.getByText('开始')) })
+    await act(async () => { window.dispatchEvent(new CustomEvent('platform-start-task-agent', {
+      cancelable: true, detail: { projectId: 'project', taskId: 'task' }
+    })) })
+    expect(mocks.launch).toHaveBeenCalledOnce()
+    expect(mocks.link).not.toHaveBeenCalled()
+    expect(mocks.toast.info).toHaveBeenLastCalledWith(expect.stringContaining('等待会话关联'))
+  })
   it('shows the same workspace and task subdirectory passed to launch', async () => {
     const brief = fresh()
     brief.brief.execution_directory_id = 'docs'
@@ -217,7 +318,7 @@ describe('platform native Agent bridge', () => {
       })
     )
     expect(mocks.brief).toHaveBeenCalledTimes(2)
-    expect(mocks.toast.info).toHaveBeenCalledWith('事项内容已送达，请在终端继续。')
+    expect(mocks.toast.info).toHaveBeenCalledWith('事项内容已送达，请在终端继续；会话关联需等待真实来源信息，未提供时保持未关联。')
     expect(mocks.settings).toHaveBeenCalledWith({ environmentId: 'env' })
     expect(mocks.link).not.toHaveBeenCalled()
     mocks.state.agentStatusByPaneKey = {
@@ -236,7 +337,7 @@ describe('platform native Agent bridge', () => {
     expect(mocks.link).toHaveBeenCalledOnce()
     expect(mocks.link).toHaveBeenCalledWith(
       expect.objectContaining({ taskId: 'task' }),
-      'real-session'
+      { key: 'session_id', id: 'real-session' }
     )
   })
   it('opens native settings for the actual host without changing the default host', async () => {
@@ -296,11 +397,11 @@ describe('platform native Agent bridge', () => {
     })
     expect(mocks.link).toHaveBeenCalledWith(
       expect.objectContaining({ taskId: 'task', agent: 'codex' }),
-      'codex-session'
+      { key: 'session_id', id: 'codex-session' }
     )
     expect(mocks.link).toHaveBeenCalledWith(
       expect.objectContaining({ taskId: 'second-task', agent: 'claude' }),
-      'claude-session'
+      { key: 'session_id', id: 'claude-session' }
     )
   })
   it('reads fresh ownership and rejects a task moved after opening the chooser', async () => {

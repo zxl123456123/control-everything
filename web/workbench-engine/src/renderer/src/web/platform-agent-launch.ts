@@ -2,8 +2,14 @@ import { contextFetch } from './remote-context'
 import type { AgentStatusEntry } from '../../../shared/agent-status-types'
 import { isPathInsideOrEqual, resolveRuntimePath } from '../../../shared/cross-platform-path'
 import { parsePaneKey } from '../../../shared/stable-pane-id'
+import type { TuiAgent } from '../../../shared/tui-agent'
+import {
+  agentProviderSessionsEqual,
+  normalizeAgentProviderSession,
+  type AgentProviderSessionMetadata
+} from '../../../shared/agent-session-resume'
 
-export type PlatformTaskAgent = 'codex' | 'claude'
+export type PlatformTaskAgent = TuiAgent
 export type PlatformTaskBrief = {
   item: { id: string; origin: string; project_id: string | null; title: string }
   brief: {
@@ -66,23 +72,27 @@ export function platformTaskPrompt(data: PlatformTaskBrief): string {
 export function findPlatformProviderSession(
   entries: Record<string, AgentStatusEntry | undefined>,
   pending: PlatformAgentPendingLink
-): string | null {
-  const ids = new Set<string>()
+): AgentProviderSessionMetadata | null {
+  let observed: AgentProviderSessionMetadata | undefined
   for (const entry of Object.values(entries)) {
     if (
       !entry ||
       entry.restoredUnconfirmed ||
+      ('isReplay' in entry && entry.isReplay === true) ||
+      ('providerSessionOnly' in entry && entry.providerSessionOnly === true) ||
+      ('programStatusOnly' in entry && entry.programStatusOnly === true) ||
       entry.connectionId !== pending.environmentId ||
       entry.worktreeId !== pending.worktreeId ||
       entry.agentType !== pending.agent ||
-      (entry.tabId ?? parsePaneKey(entry.paneKey)?.tabId) !== pending.tabId ||
-      entry.providerSession?.key !== 'session_id'
+      (entry.tabId ?? parsePaneKey(entry.paneKey)?.tabId) !== pending.tabId
     )
       continue
-    const id = entry.providerSession.id
-    if (id.trim() && id.length <= 256 && !id.includes('\0')) ids.add(id)
+    const provider = normalizeAgentProviderSession(entry.providerSession)
+    if (!provider || provider.id.length > 256) continue
+    if (observed && !agentProviderSessionsEqual(pending.agent, observed, provider)) return null
+    observed = provider
   }
-  return ids.size === 1 ? [...ids][0] : null
+  return observed ?? null
 }
 
 export async function readPlatformTaskBrief(taskId: string): Promise<PlatformTaskBrief> {
@@ -96,8 +106,12 @@ export async function readPlatformTaskBrief(taskId: string): Promise<PlatformTas
 
 export async function linkPlatformTaskSession(
   pending: PlatformAgentPendingLink,
-  providerId: string
+  provider: AgentProviderSessionMetadata
 ): Promise<void> {
+  const identity = normalizeAgentProviderSession(provider)
+  if (!identity || identity.id.length > 256) throw new Error('会话身份不可用，终端保留，未创建关联。')
+  // This API stores an association index, not the native runtime's complete resume credentials.
+  const providerId = identity.id
   const fresh = await readPlatformTaskBrief(pending.taskId)
   if (fresh.item.project_id !== pending.projectId) {
     throw new Error('事项所属项目已变化，终端保留，会话尚未关联。')

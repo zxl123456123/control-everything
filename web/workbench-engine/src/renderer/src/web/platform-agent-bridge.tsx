@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { useAppStore } from '@/store'
 import { selectWorktreesByRepo } from '@/store/workspace-record-selectors'
@@ -8,6 +8,10 @@ import { activateAndRevealWorktree } from '@/lib/worktree-activation'
 import { readHostAgentLaunchSettings } from '@/components/settings/agent-launch-settings-transport'
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import AgentCombobox from '@/components/agent/AgentCombobox'
+import { getAgentCatalog } from '@/lib/agent-catalog'
+import { useDetectedAgents } from '@/hooks/useDetectedAgents'
+import type { AgentProviderSessionMetadata } from '../../../shared/agent-session-resume'
 import { toRuntimeExecutionHostId } from '../../../shared/execution-host'
 import { resolveTuiAgentLaunchArgs } from '../../../shared/tui-agent-launch-defaults'
 import type { AgentLaunchSettings } from '../../../shared/agent-launch-settings'
@@ -35,7 +39,6 @@ type Choice = Request & {
   targetError: string
   workspace: ReturnType<typeof describePlatformWorkspace>
 }
-const agentLabels = { codex: 'Codex', claude: 'Claude Code' } as const
 
 export default function PlatformAgentBridge({
   data,
@@ -45,7 +48,7 @@ export default function PlatformAgentBridge({
   onReady?: (data: PlatformProjectBootstrap) => void
 }): React.JSX.Element {
   const [choice, setChoice] = useState<Choice | null>(null)
-  const [agent, setAgent] = useState<PlatformTaskAgent>('codex')
+  const [agent, setAgent] = useState<PlatformTaskAgent | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const sequence = useRef(0)
@@ -56,6 +59,26 @@ export default function PlatformAgentBridge({
   const alive = useRef(true)
   const inspectPending = useRef(() => {})
   const environmentId = data.runtime.environmentId
+  const detection = useDetectedAgents(choice?.worktree
+    ? { kind: 'runtime', environmentId, worktreeId: choice.worktree.id } : undefined)
+  const available = useMemo(() => getAgentCatalog().filter(row =>
+    detection.detectedIds?.includes(row.id) && !choice?.settings.disabledTuiAgents.includes(row.id)
+  ), [detection.detectedIds, choice?.settings])
+  const initializedChoice = useRef<number | null>(null)
+  const detectionUnavailable = detection.detectedIds === null || detection.isLoading || detection.detectionFailed || detection.needsServerUpdate
+  useEffect(() => {
+    if (!choice || detectionUnavailable) {
+      setAgent(null)
+      return
+    }
+    if (initializedChoice.current !== choice.sequence) {
+      initializedChoice.current = choice.sequence
+      setAgent(previous => available.some(row => row.id === previous) ? previous
+        : available.find(row => row.id === choice.settings.defaultTuiAgent)?.id ?? available[0]?.id ?? null)
+    } else {
+      setAgent(previous => available.some(row => row.id === previous) ? previous : null)
+    }
+  }, [choice, available, detectionUnavailable])
   const close = () => {
     sequence.current++
     setChoice(null)
@@ -93,7 +116,7 @@ export default function PlatformAgentBridge({
 
   useEffect(() => {
     alive.current = true
-    const link = async (entry: PlatformAgentPendingLink, id: string) => {
+    const link = async (entry: PlatformAgentPendingLink, id: AgentProviderSessionMetadata) => {
       if (!alive.current || writing.current.has(entry.taskId)) return
       writing.current.add(entry.taskId)
       retryLinks.current.delete(entry.taskId)
@@ -176,14 +199,6 @@ export default function PlatformAgentBridge({
         const settings = await readHostAgentLaunchSettings({ environmentId })
         if (!current(request, operation)) return
         if (!settings) throw new Error('当前宿主尚不能读取 Agent 配置。')
-        const enabled = (Object.keys(agentLabels) as PlatformTaskAgent[]).filter(
-          (value) => !settings.disabledTuiAgents.includes(value)
-        )
-        setAgent(
-          enabled.includes(settings.defaultTuiAgent as PlatformTaskAgent)
-            ? (settings.defaultTuiAgent as PlatformTaskAgent)
-            : (enabled[0] ?? 'codex')
-        )
         const state = useAppStore.getState()
         const worktree = choosePlatformWorktree(
           Object.values(selectWorktreesByRepo(state)).flat(), data, state.activeWorktreeId
@@ -216,7 +231,7 @@ export default function PlatformAgentBridge({
   }, [data, onReady])
 
   const start = async () => {
-    if (!choice || starting.current) return
+    if (!choice || !agent || detectionUnavailable || starting.current) return
     const request = choice
     starting.current = true
     setBusy(true)
@@ -225,6 +240,12 @@ export default function PlatformAgentBridge({
       assertReady(request, request.sequence)
       const fresh = await readPlatformTaskBrief(request.taskId)
       assertReady(request, request.sequence)
+      const detected = await detection.refresh()
+      assertReady(request, request.sequence)
+      if (!detected.includes(agent)) {
+        setAgent(null)
+        throw new Error('当前宿主未检测到所选 Agent，请刷新或检查 Agent 设置。')
+      }
       const hostSettings = await readHostAgentLaunchSettings({ environmentId })
       assertReady(request, request.sequence)
       if (!hostSettings || hostSettings.disabledTuiAgents.includes(agent)) {
@@ -291,7 +312,7 @@ export default function PlatformAgentBridge({
           !completed.tabId
             ? '终端已打开，会话尚未关联，请在开发区核对；无需重新启动。'
             : delivery?.delivered
-              ? '事项内容已送达，请在终端继续。'
+              ? '事项内容已送达，请在终端继续；会话关联需等待真实来源信息，未提供时保持未关联。'
               : '终端已打开，事项内容未确认送达；请先在终端中完成首次确认，再正常对话。'
         )
     } catch (failure) {
@@ -328,32 +349,30 @@ export default function PlatformAgentBridge({
             {choice.targetError && <p role="alert">{choice.targetError}</p>}
           </div>
         )}
-        <label className="grid gap-2 text-sm">
-          Agent
-          <select
-            aria-label="执行 Agent"
-            value={agent}
-            disabled={busy}
-            className="rounded border bg-background p-2"
-            onChange={(event) => setAgent(event.target.value as PlatformTaskAgent)}
-          >
-            {(Object.keys(agentLabels) as PlatformTaskAgent[]).map((value) => (
-              <option
-                key={value}
-                value={value}
-                disabled={choice?.settings.disabledTuiAgents.includes(value)}
-              >
-                {agentLabels[value]}
-              </option>
-            ))}
-          </select>
-        </label>
+        <fieldset disabled={busy || detectionUnavailable} className="grid gap-2 text-sm">
+          <legend>开发 Agent</legend>
+          <AgentCombobox agents={available} value={agent} onValueChange={value => {
+            if (!busy && !starting.current && !detectionUnavailable && available.some(row => row.id === value)) setAgent(value)
+          }}
+            defaultAgent={choice?.settings.defaultTuiAgent} allowNarrowTrigger />
+        </fieldset>
+        <p role="status" className="text-sm text-muted-foreground">
+          {detection.needsServerUpdate ? '当前宿主版本不支持工作区 Agent 检测，请更新宿主。'
+            : detection.detectionFailed ? '当前宿主的 Agent 检测失败，请刷新重试。'
+              : detection.isLoading || detection.detectedIds === null ? '正在检测当前工作区的 Agent…'
+                : available.length ? '使用工作台已有配置，无需注册外部程序或生成 Token。'
+                  : '当前工作区没有可用的 Agent，请检查安装及 Agent 设置。'}
+        </p>
         {error && (
           <p role="alert" className="text-sm text-destructive">
             {error}
           </p>
         )}
         <div className="flex justify-between gap-2">
+          <Button variant="outline" disabled={busy || detection.isRefreshing || !choice?.worktree}
+            onClick={() => { void detection.refresh().catch(() => setError('Agent 检测失败，请重试。')) }}>
+            {detection.isRefreshing ? '正在刷新…' : '刷新'}
+          </Button>
           <Button
             variant="outline"
             disabled={busy}
@@ -371,7 +390,7 @@ export default function PlatformAgentBridge({
             Agent 设置
           </Button>
           <Button
-            disabled={busy || !choice || !choice.cwd || choice.settings.disabledTuiAgents.includes(agent)}
+            disabled={busy || detectionUnavailable || detection.isRefreshing || !choice?.cwd || !agent || !available.some(row => row.id === agent)}
             onClick={() => {
               void start()
             }}

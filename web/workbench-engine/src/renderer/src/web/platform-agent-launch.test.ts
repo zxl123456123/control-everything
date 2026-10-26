@@ -78,12 +78,15 @@ describe('platform task launch scope and identity', () => {
     { tabId: 'other' },
     { agentType: 'claude' as const },
     { restoredUnconfirmed: true },
+    { isReplay: true },
+    { providerSessionOnly: true },
+    { programStatusOnly: true },
     { providerSession: undefined }
   ])('does not invent an identity from an unrelated or unverified terminal: %j', (patch) => {
     expect(findPlatformProviderSession({ row: status(patch) }, pending)).toBeNull()
   })
   it('accepts only one exact provider identity, never a tab or PTY', () => {
-    expect(findPlatformProviderSession({ row: status() }, pending)).toBe('provider-session')
+    expect(findPlatformProviderSession({ row: status() }, pending)).toEqual({ key: 'session_id', id: 'provider-session' })
     expect(
       findPlatformProviderSession(
         {
@@ -115,7 +118,7 @@ describe('platform task launch scope and identity', () => {
         })
       })
     vi.stubGlobal('fetch', fetcher)
-    await linkPlatformTaskSession(pending, 'provider-session')
+    await linkPlatformTaskSession(pending, { key: 'session_id', id: 'provider-session' })
     const [url, request] = fetcher.mock.calls[2]
     expect(url).toBe('/api/workspace/tasks/task/sessions')
     expect(request.headers['X-Session-CSRF']).toBe('fixture-csrf')
@@ -126,12 +129,40 @@ describe('platform task launch scope and identity', () => {
       title: 'Implement search'
     })
   })
+  it.each(['grok', 'dsh', 'cursor', 'pi'] as const)('preserves %s provider metadata for exact association', (agent) => {
+    const provider = agent === 'cursor' ? { key: 'conversation_id' as const, id: 'conversation' }
+      : { key: 'session_id' as const, id: 'session', ...(agent === 'pi' ? { transcriptPath: '/example/session.jsonl' } : {}) }
+    expect(findPlatformProviderSession({ row: status({ agentType: agent, providerSession: provider }) },
+      { ...pending, agent })).toEqual(provider)
+  })
+  it('rejects identical ids with conflicting provider keys or Pi resume paths', () => {
+    expect(findPlatformProviderSession({ row: status(), other: status({
+      providerSession: { key: 'conversation_id', id: 'provider-session' }
+    }) }, pending)).toBeNull()
+    const row = (path: string) => status({ agentType: 'pi', providerSession: {
+      key: 'session_id', id: 'session', transcriptPath: path
+    } })
+    expect(findPlatformProviderSession({ a: row('/first/session.jsonl'), b: row('/second/session.jsonl') },
+      { ...pending, agent: 'pi' })).toBeNull()
+  })
+  it('does not treat the association API as a provider resume store', async () => {
+    const fetcher = vi.fn().mockResolvedValueOnce({ ok: true, json: async () => brief() })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ csrf_token: 'fixture' }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ task_id: 'task', project_id: 'project',
+        source: 'pi', source_instance: 'env', external_id: 'session' }) })
+    vi.stubGlobal('fetch', fetcher)
+    await linkPlatformTaskSession({ ...pending, agent: 'pi' }, {
+      key: 'session_id', id: 'session', transcriptPath: '/example/session.jsonl'
+    })
+    expect(JSON.parse(fetcher.mock.calls[2][1].body)).toEqual({ source: 'pi', source_instance: 'env',
+      external_id: 'session', title: 'Implement search' })
+  })
   it('does not post when the task moved during the pending launch', async () => {
     const moved = brief()
     moved.item.project_id = 'other'
     const fetcher = vi.fn().mockResolvedValue({ ok: true, json: async () => moved })
     vi.stubGlobal('fetch', fetcher)
-    await expect(linkPlatformTaskSession(pending, 'provider-session')).rejects.toThrow('项目已变化')
+    await expect(linkPlatformTaskSession(pending, { key: 'session_id', id: 'provider-session' })).rejects.toThrow('项目已变化')
     expect(fetcher).toHaveBeenCalledOnce()
   })
   it('retains an existing conflicting association', async () => {
@@ -141,7 +172,7 @@ describe('platform task launch scope and identity', () => {
       .mockResolvedValueOnce({ ok: true, json: async () => ({ csrf_token: 'fixture' }) })
       .mockResolvedValueOnce({ ok: false, status: 409 })
     vi.stubGlobal('fetch', fetcher)
-    await expect(linkPlatformTaskSession(pending, 'provider-session')).rejects.toThrow(
+    await expect(linkPlatformTaskSession(pending, { key: 'session_id', id: 'provider-session' })).rejects.toThrow(
       '已关联其他事项'
     )
     expect(fetcher).toHaveBeenCalledTimes(3)
