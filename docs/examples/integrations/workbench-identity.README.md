@@ -10,6 +10,8 @@
 4. `workbench-identity.hub.service.example` 安装为独立服务。hub 只监听 `127.0.0.1:18869`；oauth2-proxy 样例的身份头与 access token 仅允许在受信服务器链路流转。Caddy 必须先清除公网伪造头，再注入内部 proof，不能公开 `/internal/authorize`。
 5. `static_paths` 必须由实际版本资源清单生成；空列表不豁免任何资产。业务 document 缺 hub session 时由边缘返回账号页；只有 `/remote/api/session` 会发送 session cookie。业务 API 缺 context 时拒绝。
 
+发布新版桌面包时，须同步登记资源：普通资源取同版 `gateway.WEB_ASSETS`、`workbench.STUDIO_RESOURCES`、`news_reader.ASSETS` 中的非 HTML 项；原生资源取完整包 `workbench-build/web-assets.json` 的非 HTML `files`，路径加 `/workbench/` 前缀。只合并仍受支持版本的精确路径，保留旧版条目，不加入 HTML、API 或通配路径。更新私有配置并重启 hub 后，从远程浏览器实测项目与终端。漏登记会使初始脚本返回 `403 context_required`，出现白屏或资源加载失败；仅重新构建桌面包不能替代这一步。
+
 ## 管理员与注册成员
 
 注册和密码由自建 Keycloak 处理。管理员使用同一 `/remote` 账号入口登录，账号与设备页显示注册成员、接入状态、角色、当前电脑及注册时间；未使用邀请码的注册者也会列出。注册成功不会自动激活接入，电脑仍须在桌面端授权并明确确认绑定。管理员身份只认私有配置中的精确 `sub`，不能因用户名相同而授予权限。
