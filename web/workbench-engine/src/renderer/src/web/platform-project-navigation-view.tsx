@@ -3,7 +3,9 @@ import { useAppStore } from '../store'
 import { selectWorktreesByRepo } from '../store/workspace-record-selectors'
 import { activateAndRevealWorktree } from '../lib/worktree-activation'
 import { getRepoExecutionHostId, toRuntimeExecutionHostId } from '../../../shared/execution-host'
-import type { PlatformProjectBootstrap } from './platform-project-bootstrap'
+import type { PlatformProjectBootstrap, PlatformRuntimeBootstrap } from './platform-project-bootstrap'
+import { getActiveSidebarWorkspaceId, parseWorkspaceKey } from '../../../shared/workspace-scope'
+import { findFolderWorkspaceOwner } from '../lib/folder-workspace-runtime-owner'
 import {
   choosePlatformWorktree,
   describePlatformWorkspace,
@@ -14,6 +16,85 @@ import { projectRoute, readPlatformRoute } from './platform-route'
 import { getProjectHostSetupProjectionFromState } from '../store/project-host-setup-selector'
 import { resolvePlatformProjectSettingsScope } from './platform-settings-navigation'
 import type { SettingsPresentationScope } from '../lib/settings-navigation-types'
+
+export function PlatformRuntimeNavigation({
+  data, projects, active, workbench, entryRevision, settingsScope, onReady
+}: {
+  data: PlatformRuntimeBootstrap
+  projects: PlatformProject[]
+  active: boolean
+  workbench: boolean
+  entryRevision: number
+  settingsScope?: SettingsPresentationScope
+  onReady: (revision: number | null) => void
+}): null {
+  const hydrated = useAppStore(state => state.hydrationSucceeded)
+  const terminalsReady = useAppStore(state => state.terminalStartupRestorationReady)
+  const catalogReady = useAppStore(state => state.startupWorktreeRefreshCompleted)
+  const activeView = useAppStore(state => state.activeView)
+  const selected = useAppStore(state => getActiveSidebarWorkspaceId(state.activeWorkspaceKey, state.activeWorktreeId))
+  const host = useAppStore(state => state.activeWorkspaceExecutionHostId)
+  const repos = useAppStore(state => state.repos)
+  const target = useAppStore(state => state.settingsNavigationTarget)
+  const snapshot = useAppStore(state => state.runtimeStatusByEnvironmentId.get(data.runtime.environmentId)?.snapshot)
+  const initialized = useRef<number | null>(null)
+  const ready = hydrated && terminalsReady && catalogReady &&
+    snapshot?.verification === 'verified' && snapshot.transport === 'ready'
+
+  useEffect(() => {
+    if (!active || !ready) { onReady(null); return }
+    const state = useAppStore.getState()
+    if (workbench && initialized.current !== entryRevision) {
+      initialized.current = entryRevision
+      state.setActiveWorktree(null)
+      state.setActiveView('terminal')
+    }
+    if (settingsScope && state.activeView !== 'settings') state.openSettingsPage()
+    onReady(entryRevision)
+  }, [active, ready, workbench, entryRevision, settingsScope, onReady])
+
+  useEffect(() => {
+    if (!active || !workbench || !ready || initialized.current !== entryRevision) return
+    const state = useAppStore.getState()
+    if (state.activeView !== activeView ||
+      getActiveSidebarWorkspaceId(state.activeWorkspaceKey, state.activeWorktreeId) !== selected) return
+    const runtimeHost = toRuntimeExecutionHostId(data.runtime.environmentId)
+    const normalize = (path: string) => path.replaceAll('\\', '/').replace(/\/+$/, '').toLowerCase()
+    const projectAt = (path: string) => {
+      const matches = projects.filter(project => project.directory && normalize(project.directory) === normalize(path))
+      return matches.length === 1 ? matches[0] : null
+    }
+    if (activeView === 'settings') {
+      if (!target || target.pane !== 'repo') window.location.hash = '#settings/' + (target?.pane ?? 'appearance')
+      else {
+        const repo = repos.find(repo => repo.id === target.repoId &&
+          getRepoExecutionHostId(repo) === (target.hostId ?? runtimeHost) && getRepoExecutionHostId(repo) === runtimeHost)
+        const project = repo && projectAt(repo.path)
+        if (project) window.location.hash = projectRoute(project.id, 'settings')
+      }
+      return
+    }
+    if (!selected || host !== runtimeHost) return
+    const scope = parseWorkspaceKey(selected)
+    const folder = scope?.type === 'folder' ? findFolderWorkspaceOwner(state, scope.folderWorkspaceId, runtimeHost) : null
+    const tree = scope?.type === 'folder' ? null : state.getKnownWorktreeById(selected, runtimeHost)
+    const repo = tree && repos.find(repo => repo.id === tree.repoId && getRepoExecutionHostId(repo) === runtimeHost)
+    const project = folder ? projectAt(folder.folderPath) : repo ? projectAt(repo.path) : null
+    if (project) window.location.hash = projectRoute(project.id)
+  }, [active, workbench, ready, entryRevision, data, selected, host, repos, projects, activeView, target])
+
+  useEffect(() => {
+    if (!active || !settingsScope) return
+    const accepted = (event: Event) => {
+      const next = readPlatformRoute({ hash: (event as CustomEvent<{ to: string }>).detail.to, search: '' })
+      if (next.view !== 'settings' && !(next.view === 'project' && next.tab === 'settings') &&
+        useAppStore.getState().activeView === 'settings') useAppStore.getState().closeSettingsPage()
+    }
+    window.addEventListener('platform-navigation-accepted', accepted)
+    return () => window.removeEventListener('platform-navigation-accepted', accepted)
+  }, [active, settingsScope])
+  return null
+}
 
 export default function PlatformNavigation({
   data,

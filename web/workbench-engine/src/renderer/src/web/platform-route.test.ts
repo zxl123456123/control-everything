@@ -49,7 +49,7 @@ describe('platform page routes', () => {
 
 
 it('separates setup, global settings and explicit project intents without changing legacy task filters', () => {
-  for (const hash of ['#workspace', '#project-setup']) expect(readPlatformRoute({ hash, search: '?project_id=p-one' })).toEqual({view:'project-setup', id:'', tab:''})
+  for (const hash of ['#workbench', '#workspace', '#project-setup']) expect(readPlatformRoute({ hash, search: '?project_id=p-one' })).toEqual({view:'workbench', id:'', tab:''})
   expect(readPlatformRoute({hash:'#settings/development',search:''})).toEqual({view:'settings',id:'',tab:'development'})
   for (const tab of ['settings','items','board']) expect(readPlatformRoute({hash:'#project/p-one/'+tab,search:''})).toEqual({view:'project',id:'p-one',tab})
   expect(readPlatformRoute({hash:'#settings/%2Fbad',search:''}).tab).toBe('appearance')

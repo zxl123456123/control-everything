@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useContext, useEffect, useMemo, useRef, useState } from 'react'
+import { PlatformProjectContext, usePlatformProjectRepos } from '../web/platform-project-context'
 import { AlertTriangle, ExternalLink, FolderPlus, GitBranchPlus, Star, X } from 'lucide-react'
 import { cn } from '../lib/utils'
 import { useAppStore } from '../store'
@@ -224,7 +225,9 @@ function PreflightBanner({
 
 export default function Landing(): React.JSX.Element {
   const platformMode = ['/studio', '/workbench/web-index.html'].includes(window.location.pathname)
-  const repos = useAppStore((s) => s.repos)
+  const repos = usePlatformProjectRepos(useAppStore((s) => s.repos))
+  const platformProject = useContext(PlatformProjectContext)
+  const canCreateWorkspace = platformProject !== null
   const openModal = useAppStore((s) => s.openModal)
 
   const createTargetLabel =
@@ -296,18 +299,18 @@ export default function Landing(): React.JSX.Element {
               {translate('auto.components.Landing.f9eaa9e12d', 'Add project')}
             </button>
 
-            <button
+            {canCreateWorkspace && <button
               className="inline-flex items-center gap-1.5 bg-secondary/70 border border-border/80 text-foreground font-medium text-sm px-4 py-2 rounded-md cursor-pointer hover:bg-accent transition-colors"
               onClick={() => openModal('new-workspace-composer', { telemetrySource: 'unknown' })}
             >
               <GitBranchPlus className="size-3.5" />
               {translate('auto.components.Landing.76a95f7f47', 'Create')}{' '}
               {createTargetLabel.toLowerCase()}
-            </button>
+            </button>}
           </div>
 
           <div className="mt-6 w-full max-w-xs space-y-2">
-            {shortcuts.map((shortcut) => (
+            {shortcuts.filter(shortcut => canCreateWorkspace || shortcut.id !== 'create').map((shortcut) => (
               <div key={shortcut.id} className="grid grid-cols-[1fr_auto] items-center gap-3">
                 <span className="text-sm text-muted-foreground">{shortcut.action}</span>
                 <ShortcutKeyCombo

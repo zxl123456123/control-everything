@@ -11,6 +11,7 @@ import type { SettingsPresentationScope } from '../lib/settings-navigation-types
 
 const fixture = vi.hoisted(() => ({
   load: vi.fn(),
+  runtimeLoad: vi.fn(),
   projects: null as
     | ((rows: PlatformProject[], metadata?: { archived: PlatformProject[] }) => void)
     | null,
@@ -30,6 +31,7 @@ const fixture = vi.hoisted(() => ({
 }))
 vi.mock('./platform-project-bootstrap', () => ({
   loadPlatformProjectBootstrap: fixture.load,
+  loadPlatformRuntimeBootstrap: fixture.runtimeLoad,
   createPlatformEnvironment: (value: unknown) => value
 }))
 vi.mock('./web-preload-api', () => ({ installWebPreloadApi: vi.fn() }))
@@ -38,6 +40,10 @@ vi.mock('./web-device-key-support', () => ({
   initWebDeviceKeySupport: vi.fn().mockResolvedValue(undefined)
 }))
 vi.mock('./platform-project-navigation-view', () => ({
+  PlatformRuntimeNavigation: ({ active, entryRevision, onReady }: { active: boolean; entryRevision: number; onReady: (revision:number|null)=>void }) => {
+    useEffect(() => { onReady(active && fixture.navigationReady ? entryRevision : null) }, [active, entryRevision, onReady])
+    return null
+  },
   default: ({
     data,
     onReady,
@@ -124,7 +130,7 @@ vi.mock('./platform-workspace-app', () => ({
       const scope = presentation?.scope
       if (fixture.settingsReady && presentation?.visible && scope &&
         (scope.kind === 'global' || scope.setupId)) presentation.onReady?.({ contextKey: scope.contextKey,
-          repoId: scope.kind === 'project' ? scope.repoId : null, sectionId: scope.kind === 'project' ? `repo-${scope.repoId}` : 'appearance',
+          repoId: scope.kind === 'project' ? scope.repoId : null, sectionId: scope.kind === 'project' ? `repo-${scope.repoId}` : scope.entry === 'development' ? 'agents' : 'appearance',
           ...(scope.kind === 'project' ? { hostId: scope.hostId, setupId: scope.setupId } : {}) })
     }, [presentation])
     return <div data-testid="project-context" data-settings-scope={JSON.stringify(presentation?.scope)}>{project?.project.name || 'unbound'}</div>
@@ -150,6 +156,7 @@ beforeEach(() => {
   fixture.settingsReady = true
   fixture.settingsCallback = null
   fixture.load.mockReset()
+  fixture.runtimeLoad.mockReset().mockResolvedValue({ runtime: bootstrap().runtime })
   fixture.projects = null
   fixture.nativeProjects = []
   fixture.navigationData = []
@@ -170,7 +177,7 @@ it('keeps a cold overview independent of the developer runtime', async () => {
   expect(screen.queryByTestId('project-context')).toBeNull()
 })
 
-it.each(['#project-setup', '#settings/appearance', '#settings/development', '#project/p-one/items', '#project/p-one/board'])(
+it.each(['#project/p-one/items', '#project/p-one/board'])(
   'keeps the cold %s management intent independent of runtime bootstrap', async (hash) => {
     window.history.replaceState(null, '', hash)
     render(<PlatformProjectEntry />)
@@ -205,14 +212,58 @@ it('keeps project settings hidden until exact scope and Settings section ready, 
   expect(document.documentElement.dataset.platformView).toBe('studio')
 })
 
-it('explains a cold development preference without selecting or bootstrapping any project', async () => {
-  window.history.replaceState(null, '', '#settings/development')
-  render(<PlatformProjectEntry />); publish([project])
-  await act(async () => {})
-  expect(screen.getByRole('status').textContent).toContain('尚未连接开发环境')
-  expect(screen.getByRole('link', { name: '返回项目总览' }).getAttribute('href')).toBe('#home')
-  expect(fixture.load).not.toHaveBeenCalled()
-  expect(fixture.navigationData).toHaveLength(0)
+it.each(['#workbench', '#project-setup', '#settings/appearance', '#settings/development'])(
+  'opens %s with an independent runtime and no invented project', async hash => {
+    window.history.replaceState(null, '', hash)
+    const view = render(<PlatformProjectEntry />); publish([])
+    await waitFor(() => expect(screen.getByTestId('project-context').textContent).toBe('unbound'))
+    expect(fixture.runtimeLoad).toHaveBeenCalledOnce()
+    expect(fixture.load).not.toHaveBeenCalled()
+    expect(fixture.bridgeMounts).not.toHaveBeenCalled()
+    await waitFor(() => expect(view.container.querySelector('.platform-project-content')?.hasAttribute('hidden')).toBe(false))
+    if (hash.includes('settings')) expect(screen.getByTestId('project-context').dataset.settingsScope).toContain('global')
+    else {
+      expect(screen.getByRole('navigation', { name: '项目工作台导航' })).toBeTruthy()
+      expect(screen.queryByRole('link', { name: '进展' })).toBeNull()
+    }
+  }
+)
+
+it('keeps the same App from empty workbench through first project and back', async () => {
+  window.history.replaceState(null, '', '#workbench')
+  render(<PlatformProjectEntry />); publish([])
+  await waitFor(() => expect(screen.getByTestId('project-context').textContent).toBe('unbound'))
+  const app = screen.getByTestId('project-context')
+  publish([project])
+  await act(async () => { window.location.hash = '#project/p-one/workspace' })
+  await waitFor(() => expect(app.textContent).toBe('One'))
+  expect(screen.getByTestId('project-context')).toBe(app)
+  await act(async () => { window.location.hash = '#workbench' })
+  await waitFor(() => expect(app.textContent).toBe('unbound'))
+  expect(screen.getByTestId('project-context')).toBe(app)
+  expect(fixture.runtimeLoad).toHaveBeenCalledOnce()
+  expect(fixture.load).toHaveBeenCalledOnce()
+})
+
+it('shows runtime failure with retry without mounting a project', async () => {
+  window.history.replaceState(null, '', '#workbench')
+  fixture.runtimeLoad.mockRejectedValueOnce(new Error('fixture offline'))
+  render(<PlatformProjectEntry />); publish([])
+  await waitFor(() => expect(screen.getByRole('alert').textContent).toContain('工作台未能连接'))
+  expect(screen.getByRole('button', { name: '重试连接' })).toBeTruthy()
+  expect(screen.queryByTestId('project-context')).toBeNull()
+})
+
+it('never mounts a late runtime response on a cold overview', async () => {
+  window.history.replaceState(null, '', '#workbench')
+  let resolve!: (value:unknown)=>void
+  fixture.runtimeLoad.mockImplementationOnce(() => new Promise(done => { resolve=done }))
+  render(<PlatformProjectEntry />); publish([])
+  await waitFor(() => expect(fixture.runtimeLoad).toHaveBeenCalledOnce())
+  await act(async () => { window.location.hash='#home' })
+  await waitFor(() => expect(window.location.hash).toBe('#home'))
+  await act(async () => resolve({runtime:bootstrap().runtime}))
+  expect(screen.queryByTestId('project-context')).toBeNull()
 })
 
 it('waits for every draft guard and publishes one accepted navigation only after all accept', async () => {
@@ -780,7 +831,7 @@ it('does not label a missing project with the previous project identity', async 
   })
   await waitFor(() => expect(screen.getByRole('alert').textContent).toContain('不存在'))
   expect(screen.getByLabelText('当前项目').textContent).toBe('项目工作区')
-  expect(screen.getByRole('link', { name: '返回项目' }).getAttribute('href')).toBe('#home')
+  expect(screen.getByRole('link', { name: '返回项目总览' }).getAttribute('href')).toBe('#home')
   expect(screen.getByRole('button', { name: '重试连接' })).toBeTruthy()
   expect(window.location.hash).toBe('#project/p-missing/workspace')
   expect(screen.getByTestId('project-context').textContent).toBe('unbound')
@@ -792,7 +843,7 @@ it('retains connection errors and retry for a registered project whose bootstrap
   publish([project])
   await waitFor(() => expect(screen.getByRole('alert').textContent).toContain('未能连接'))
   expect(screen.getByRole('button', { name: '重试连接' })).toBeTruthy()
-  expect(screen.getByRole('link', { name: '返回项目' }).getAttribute('href')).toBe('#home')
+  expect(screen.getByRole('link', { name: '返回项目总览' }).getAttribute('href')).toBe('#home')
   expect(screen.getByLabelText('当前项目').textContent).toBe('One')
   expect(window.location.hash).toBe('#project/p-one/workspace')
 })

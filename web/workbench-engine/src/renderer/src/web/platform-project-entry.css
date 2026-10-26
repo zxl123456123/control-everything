@@ -37,19 +37,6 @@
   overflow: hidden;
 }
 
-.platform-global-settings {width:100%;max-width:1236px;box-sizing:border-box;margin-inline:auto;padding:32px;overflow:auto;color:var(--foreground);font-size:15px;line-height:24px}
-.platform-global-settings h1 {font-size:24px;line-height:32px;font-weight:700;margin:24px 0}
-.platform-global-settings fieldset {display:flex;flex-wrap:wrap;gap:24px;border:0;padding:24px 0}
-.platform-global-settings label {display:flex;flex-wrap:wrap;align-items:center;gap:12px;width:240px;min-height:44px;padding:16px;border:1px solid var(--border);border-radius:12px;cursor:pointer}
-.platform-global-settings label[data-selected=true] {outline:2px solid var(--foreground);outline-offset:2px}
-.platform-theme-preview {display:flex;flex-basis:100%;height:110px;border:1px solid #d5d5d5;border-radius:6px;overflow:hidden;background:#fff}
-.platform-theme-preview span:first-child {width:26%;border-right:1px solid #d5d5d5;background:#f3f3f3}
-[data-theme-choice=dark] .platform-theme-preview {background:#181818;border-color:#404040}
-[data-theme-choice=dark] .platform-theme-preview span:first-child {background:#222;border-color:#404040}
-.platform-global-settings a {display:inline-flex;align-items:center;min-height:44px;color:var(--muted-foreground)}
-@media(max-width:1179px){.platform-global-settings{padding:24px}}
-@media(max-width:767px){.platform-global-settings{padding:16px}}
-
 /* Unlayered so the original App's unlayered viewport height cannot override it. */
 .platform-project-entry .app-layout {
   width: 100%;

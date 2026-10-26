@@ -4,7 +4,9 @@ vi.mock('./web-device-key-support', () => ({ readWebDeviceKeySupport: () => 'per
 import {
   createPlatformEnvironment,
   loadPlatformProjectBootstrap,
+  loadPlatformRuntimeBootstrap,
   parsePlatformProjectBootstrap,
+  parsePlatformRuntimeBootstrap,
   readPlatformProjectId
 } from './platform-project-bootstrap'
 import {
@@ -31,6 +33,25 @@ const data = {
 
 afterEach(() => vi.unstubAllGlobals())
 describe('platform project bootstrap', () => {
+  it('separates an empty runtime identity from a registered project identity', () => {
+    const runtime = { runtime: data.runtime }
+    expect(parsePlatformRuntimeBootstrap(runtime)).toEqual(runtime)
+    expect(() => parsePlatformRuntimeBootstrap(data)).toThrow()
+    expect(() => parsePlatformProjectBootstrap(runtime, 'fixture-project')).toThrow()
+    expect(() => parsePlatformRuntimeBootstrap({ runtime: {
+      ...data.runtime, offer: { ...data.runtime.offer, endpoint: 'ws://elsewhere:23456' }
+    } })).toThrow()
+  })
+
+  it('protects an empty bootstrap with the same CSRF flow and strict empty body', async () => {
+    const fetcher = vi.fn<typeof fetch>()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ csrf_token: 'csrf-fixture' })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ runtime: data.runtime })))
+    await expect(loadPlatformRuntimeBootstrap(new AbortController().signal, fetcher)).resolves.toEqual({ runtime: data.runtime })
+    expect(fetcher.mock.calls[1]).toMatchObject(['/api/workbench/runtime-bootstrap', {
+      method: 'POST', headers: { 'X-Session-CSRF': 'csrf-fixture' }, body: '{}'
+    }])
+  })
   it('accepts only one business project id, never endpoint or token query arguments', () => {
     expect(readPlatformProjectId('?project_id=fixture-project')).toBe('fixture-project')
     for (const query of [

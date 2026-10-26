@@ -326771,6 +326771,7 @@
     "src/renderer/src/web/platform-project-bootstrap.test.ts",
     "src/renderer/src/web/platform-project-bootstrap.ts",
     "src/renderer/src/web/platform-project-context.ts",
+    "src/renderer/src/components/Landing.platform.test.tsx",
     "src/renderer/src/web/platform-project-entry.css",
     "src/renderer/src/web/platform-project-entry.test.tsx",
     "src/renderer/src/web/platform-project-entry.tsx",
@@ -327052,8 +327053,8 @@
     {
       "path": "src/renderer/src/components/Landing.tsx",
       "upstream_sha256": "95a03113ca62680422a3e49bc68b659debe3620faba37bd7448ac0369e7d8390",
-      "current_sha256": "b2c60cb5eb376551943034b5421b08a0a5b7f32cb8ec918461343f0457ec6d70",
-      "reason": "M1a-W: product landing identity without official GitHub support entrance; M1a navigation: preserve a single project workspace while integrating platform business views"
+      "current_sha256": "adc47e63dcde2ded0bac8de9b1fb25c856d75814596012259170be9134e6ad82",
+      "reason": "M1a-W: product landing identity without official GitHub support entrance; M1a navigation: preserve a single project workspace while integrating platform business views; installed empty entry: filter platform project scope and require a verified project for workspace creation"
     },
     {
       "path": "src/renderer/src/components/NewWorkspaceComposerCard.start-from.test.tsx",

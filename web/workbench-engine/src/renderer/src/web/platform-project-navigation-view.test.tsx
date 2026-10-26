@@ -3,7 +3,7 @@ import { cleanup, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import type { PlatformProjectBootstrap } from './platform-project-bootstrap'
 import type { Worktree } from '../../../shared/worktree/types'
-import PlatformNavigation from './platform-project-navigation-view'
+import PlatformNavigation, { PlatformRuntimeNavigation } from './platform-project-navigation-view'
 
 const fixture = vi.hoisted(() => ({ state: {} as Record<string, any>, activate: vi.fn() }))
 vi.mock('../store', () => ({
@@ -28,10 +28,60 @@ beforeEach(() => {
     hydrationSucceeded: true, terminalStartupRestorationReady: true, startupWorktreeRefreshCompleted: true,
     repos: [{ id: 'repo-a', executionHostId: 'runtime:env-a', path: 'C:/example/one', displayName: 'One' }],
     worktrees: {}, activeWorktreeId: null, activeView: 'terminal',
+    activeWorkspaceKey: null, activeWorkspaceExecutionHostId: null,
     runtimeStatusByEnvironmentId: new Map([['env-a', { snapshot: { verification: 'verified', transport: 'ready' } }]]),
     fetchRepos: vi.fn().mockResolvedValue(undefined), fetchWorktrees: vi.fn().mockResolvedValue(undefined),
-    openSettingsPage: vi.fn(), closeSettingsPage: vi.fn()
+    openSettingsPage: vi.fn(), closeSettingsPage: vi.fn(),
+    setActiveView: vi.fn((view: string) => { fixture.state.activeView = view }),
+    setActiveWorktree: vi.fn(() => Object.assign(fixture.state, {
+      activeWorktreeId: null, activeWorkspaceKey: null, activeWorkspaceExecutionHostId: null, activePendingCreationId: null
+    })),
+    getKnownWorktreeById: vi.fn((id: string) => Object.values(fixture.state.worktrees).flat().find((row: any) => row.id === id))
   }
+})
+
+it('enters the native landing once after hydration without clearing tabs or jumping to the restored project', () => {
+  window.history.replaceState(null, '', '#workbench')
+  const tabs = { main: [{ id: 'editor', text: 'unsaved' }] }, session = { panes: ['pty-existing'] }
+  fixture.state.unifiedTabsByWorktree = tabs
+  fixture.state.workspaceSession = session
+  fixture.state.worktrees = { 'repo-a': [worktree] }
+  fixture.state.activeWorktreeId = 'main'
+  fixture.state.activeWorkspaceExecutionHostId = 'runtime:env-a'
+  fixture.state.hydrationSucceeded = false
+  const onReady = vi.fn()
+  const props = { data, projects, active: true, workbench: true, entryRevision: 1, onReady }
+  const view = render(<PlatformRuntimeNavigation {...props} />)
+  expect(fixture.state.setActiveWorktree).not.toHaveBeenCalled()
+  fixture.state.hydrationSucceeded = true
+  view.rerender(<PlatformRuntimeNavigation {...props} />)
+  expect(fixture.state.setActiveWorktree).toHaveBeenCalledExactlyOnceWith(null)
+  expect(fixture.state.setActiveView).toHaveBeenCalledWith('terminal')
+  expect(fixture.state.unifiedTabsByWorktree).toBe(tabs)
+  expect(fixture.state.workspaceSession).toBe(session)
+  expect(window.location.hash).toBe('#workbench')
+  view.rerender(<PlatformRuntimeNavigation {...props} />)
+  expect(fixture.state.setActiveWorktree).toHaveBeenCalledOnce()
+  expect(onReady).toHaveBeenLastCalledWith(1)
+  fixture.state.activeWorktreeId = 'main'
+  fixture.state.activeWorkspaceExecutionHostId = 'runtime:env-a'
+  view.rerender(<PlatformRuntimeNavigation {...props} />)
+  expect(window.location.hash).toBe('#project/p-one/workspace')
+  expect(fixture.state.setActiveWorktree).toHaveBeenCalledOnce()
+})
+
+it('does not promote an unregistered or wrong-host worktree into a platform project', () => {
+  window.history.replaceState(null, '', '#workbench')
+  const props = { data, projects: [], active: true, workbench: true, entryRevision: 1, onReady: vi.fn() }
+  const view = render(<PlatformRuntimeNavigation {...props} />)
+  fixture.state.worktrees = { 'repo-a': [worktree] }
+  fixture.state.activeWorktreeId = 'main'
+  fixture.state.activeWorkspaceExecutionHostId = 'runtime:other'
+  view.rerender(<PlatformRuntimeNavigation {...props} projects={projects} />)
+  expect(window.location.hash).toBe('#workbench')
+  fixture.state.activeWorkspaceExecutionHostId = 'runtime:env-a'
+  view.rerender(<PlatformRuntimeNavigation {...props} />)
+  expect(window.location.hash).toBe('#workbench')
 })
 
 it('opens exact project Settings after existing readiness gates without activating a worktree', () => {

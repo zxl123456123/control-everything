@@ -1,5 +1,5 @@
 export type PlatformRoute =
-  | { view: 'news' | 'home' | 'tools' | 'inbox' | 'mobile' | 'project-setup' | 'settings'; id: ''; tab: string }
+  | { view: 'news' | 'home' | 'tools' | 'inbox' | 'mobile' | 'workbench' | 'settings'; id: ''; tab: string }
   | {
       view: 'project'
       id: string
@@ -38,8 +38,8 @@ export function readPlatformRoute(location: Pick<Location, 'hash' | 'search'>): 
     }
   if (view === 'news') return { view: 'news', id: '', tab: '' }
   if (view === 'mobile') return { view: 'mobile', id: '', tab: '' }
-  if (view === 'project-setup' || view === 'workspace')
-    return { view: 'project-setup', id: '', tab: '' }
+  if (view === 'workbench' || view === 'project-setup' || view === 'workspace')
+    return { view: 'workbench', id: '', tab: '' }
   if (view === 'settings')
     return { view: 'settings', id: '', tab: /^[a-z][a-z0-9-]{0,63}$/.test(id) ? id : 'appearance' }
   return {

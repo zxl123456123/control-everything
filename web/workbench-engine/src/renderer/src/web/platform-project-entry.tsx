@@ -1,5 +1,5 @@
 import { assertContextActive, onContextInactive, remoteContext } from './remote-context'
-import { Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
+import { Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { lazyWithRetry as lazy } from '@/lib/lazy-with-retry'
 import { saveStoredWebRuntimeEnvironment } from './web-runtime-environment'
 import { initWebDeviceKeySupport } from './web-device-key-support'
@@ -7,6 +7,8 @@ import './platform-project-entry.css'
 import {
   createPlatformEnvironment,
   loadPlatformProjectBootstrap,
+  loadPlatformRuntimeBootstrap,
+  type PlatformRuntimeBootstrap,
   type PlatformProjectBootstrap
 } from './platform-project-bootstrap'
 import PlatformStudioSurface, {
@@ -17,10 +19,10 @@ import { readPlatformRoute, projectRoute } from './platform-route'
 import { PlatformProjectContext, PlatformProjectScopeContext } from './platform-project-context'
 import { PlatformSettingsContext, type SettingsTargetReady } from './platform-settings-navigation'
 import { isSettingsNavigationTarget, type SettingsPresentationScope } from '../lib/settings-navigation-types'
-import { platformAppearance } from './platform-appearance'
 
 const App = lazy(() => import('./platform-workspace-app'))
 const PlatformNavigation = lazy(() => import('./platform-project-navigation-view'))
+const PlatformRuntimeNavigation = lazy(() => import('./platform-project-navigation-view').then(module => ({ default: module.PlatformRuntimeNavigation })))
 const PlatformAgentBridge = lazy(() => import('./platform-agent-bridge'))
 const TASK_ACTION_EVENTS = ['platform-start-task-agent', 'platform-open-task-session', 'platform-adopt-task-session'] as const
 type TaskActionDetail = { projectId: string; taskId: string; resume?: boolean; sessionId?: string }
@@ -30,26 +32,12 @@ function WorkspaceMounted({ onReady }: { onReady: () => void }): null {
   return null
 }
 
-function ColdGlobalSettings({ appearance }: { appearance: boolean }): React.JSX.Element {
-  const theme = useSyncExternalStore(platformAppearance.subscribe, platformAppearance.getSnapshot)
-  return <section className="platform-global-settings ce-management-surface" aria-label={appearance ? '外观设置' : '开发偏好'}>
-    <a href="#home">返回项目总览</a>
-    <h1>{appearance ? '外观' : '开发偏好'}</h1>
-    {appearance ? <>
-      <fieldset disabled={theme.pending}><legend>主题</legend>
-        {(['light', 'dark'] as const).map(value => <label key={value} data-theme-choice={value} data-selected={theme.theme === value}>
-          <span className="platform-theme-preview" aria-hidden="true"><span /><span /></span>
-          <input type="radio" name="application-theme" value={value} checked={theme.theme === value}
-            onChange={() => void platformAppearance.requestTheme(value)} />{value === 'light' ? '浅色' : '深色'}
-        </label>)}
-      </fieldset>
-      {theme.error && <p role="alert">{theme.error}</p>}
-    </> : <p role="status">尚未连接开发环境。请先打开已登记项目，再访问开发偏好。</p>}
-  </section>
-}
-
 export default function PlatformProjectEntry(): React.JSX.Element {
   const [data, setData] = useState<PlatformProjectBootstrap | null>(null)
+  const [runtimeData, setRuntimeData] = useState<PlatformRuntimeBootstrap | null>(null)
+  const [runtimeError, setRuntimeError] = useState('')
+  const [runtimeReadyRevision, setRuntimeReadyRevision] = useState<number | null>(null)
+  const onRuntimeReady = useCallback((revision: number | null) => setRuntimeReadyRevision(revision), [])
   const [error, setError] = useState('')
   const [route, setRoute] = useState(() => readPlatformRoute(window.location))
   const [projects, setProjects] = useState<PlatformProject[]>([])
@@ -82,6 +70,7 @@ export default function PlatformProjectEntry(): React.JSX.Element {
   const navigationGeneration = useRef(0)
   const pendingNavigation = useRef<{ from: string; to: string; generation: number } | null>(null)
   const [acceptedRevision, setAcceptedRevision] = useState(0)
+  useEffect(() => setRuntimeError(''), [acceptedRevision])
   const trustedContextKey = useRef(remoteContext()?.scope ?? 'local-page')
   const drafts = useRef(new Map<string, unknown>())
   const settingsOrigin = useRef('#home')
@@ -137,8 +126,8 @@ export default function PlatformProjectEntry(): React.JSX.Element {
       setProjects(rows)
   }, [])
   const projectScope = useMemo(
-    () => ({ projects, executionHostId: data ? `runtime:${data.runtime.environmentId}` : '' }),
-    [projects, data?.runtime.environmentId]
+    () => ({ projects, executionHostId: runtimeData ? `runtime:${runtimeData.runtime.environmentId}` : '' }),
+    [projects, runtimeData?.runtime.environmentId]
   )
   const projectId = route.view === 'project' ? route.id : ''
   const previousProjectId = useRef(projectId)
@@ -146,6 +135,8 @@ export default function PlatformProjectEntry(): React.JSX.Element {
   const currentData = data?.project.id === projectId ? data : null
   const developing = route.view === 'project' && ['workspace', 'activity'].includes(route.tab)
   const needsProjectRuntime = developing || projectSettings
+  const workbench = route.view === 'workbench'
+  const needsRuntime = workbench || nativeSettings || needsProjectRuntime
   const chosen = projects.find((project) => project.id === projectId)
   const archived = archivedProjects.find((project) => project.id === projectId)
   const connected = Boolean(
@@ -165,8 +156,8 @@ export default function PlatformProjectEntry(): React.JSX.Element {
     }
     return { kind: 'global', contextKey: trustedContextKey.current,
       entry: route.tab === 'appearance' ? 'appearance' : 'development',
-      ...(globalSettings && data ? { environmentId: data.runtime.environmentId } : {}) }
-  }, [projectSettings, globalSettings, projectId, chosen, data, exactSettings, settingsRequestKey, route.tab])
+      ...(globalSettings && runtimeData ? { environmentId: runtimeData.runtime.environmentId } : {}) }
+  }, [projectSettings, globalSettings, projectId, chosen, data, runtimeData, exactSettings, settingsRequestKey, route.tab])
   const onSettingsScope = useCallback((value: Extract<SettingsPresentationScope, { kind: 'project' }> | null) => {
     if (currentSettingsRequest.current !== settingsRequestKey) return
     setExactSettings(previous => value ?
@@ -194,14 +185,15 @@ export default function PlatformProjectEntry(): React.JSX.Element {
   const presentation = useMemo(() => ({ scope, initialTarget, visible: (globalSettings || (projectSettings && connected)) && contextActive,
     onReady: onSettingsReady, onClose: closeSettings, drafts: drafts.current
   }), [scope, initialTarget, globalSettings, projectSettings, connected, contextActive, onSettingsReady, closeSettings])
-  const showSettings = nativeSettings && contextActive && appMounted && Boolean(data) &&
+  const showSettings = nativeSettings && contextActive && appMounted && Boolean(runtimeData) &&
     settingsReady?.request === settingsRequestKey && (globalSettings || connected)
-  const coldGlobalSettings = globalSettings && !data
-  const preparingWorkspace = needsProjectRuntime && !showWorkspace && !showSettings && !error && !archived
+  const showWorkbench = workbench && contextActive && appMounted && Boolean(runtimeData) && runtimeReadyRevision === acceptedRevision
+  const preparationError = needsProjectRuntime ? error : runtimeError
+  const preparingWorkspace = needsRuntime && !showWorkspace && !showSettings && !showWorkbench && !preparationError && !archived
   useEffect(() => {
     const changed = () => {
       const from = acceptedHash.current || '#home'
-      const to = window.location.hash === '#workspace' ? '#project-setup' : window.location.hash || '#home'
+      const to = ['#workspace', '#project-setup'].includes(window.location.hash) ? '#workbench' : window.location.hash || '#home'
       if (to === from) return
       if (pendingNavigation.current?.from === from && pendingNavigation.current.to === to) {
         window.history.replaceState(null, '', from)
@@ -297,16 +289,16 @@ export default function PlatformProjectEntry(): React.JSX.Element {
       }
     }
     window.addEventListener('hashchange', changed)
-    if (window.location.hash === '#workspace') changed()
+    if (['#workspace', '#project-setup'].includes(window.location.hash)) changed()
     return () => { navigationGeneration.current++; pendingNavigation.current = null; window.removeEventListener('hashchange', changed) }
   }, [selectionOnlyProjectId])
   useLayoutEffect(() => {
-    document.documentElement.dataset.platformView = showWorkspace ? 'workspace' : 'studio'
+    document.documentElement.dataset.platformView = showWorkspace || showWorkbench ? 'workspace' : 'studio'
     window.dispatchEvent(new Event('platform-surface-change'))
     return () => {
       delete document.documentElement.dataset.platformView
     }
-  }, [showWorkspace])
+  }, [showWorkspace, showWorkbench])
   useEffect(() => {
     const receive = (event: Event) => {
       const request = (event as CustomEvent<TaskActionDetail>).detail
@@ -350,6 +342,46 @@ export default function PlatformProjectEntry(): React.JSX.Element {
         new CustomEvent(request.name, { cancelable: true, detail: request.detail })
       )
   }, [showWorkspace, readyData, bridgeReadyData, data])
+  const installRuntime = useCallback(async (result: PlatformRuntimeBootstrap, isCurrent: () => boolean) => {
+    const { installWebPreloadApi } = await import('./web-preload-api')
+    if (!isCurrent()) return
+    assertContextActive()
+    await initWebDeviceKeySupport()
+    if (!isCurrent()) return
+    assertContextActive()
+    if (environment.current && (environment.current !== result.runtime.environmentId ||
+      endpoint.current !== result.runtime.offer.endpoint)) throw new Error('运行组件已变化，请重新加载页面。')
+    if (!environment.current) {
+      saveStoredWebRuntimeEnvironment(createPlatformEnvironment(result))
+      installWebPreloadApi()
+      environment.current = result.runtime.environmentId
+      endpoint.current = result.runtime.offer.endpoint
+    }
+    setRuntimeData(current => current ?? { runtime: result.runtime })
+  }, [])
+  useEffect(() => {
+    if (!(workbench || globalSettings) || runtimeData || !projectsReady) return
+    setRuntimeError('')
+    const controller = new AbortController()
+    let cancelled = false
+    const isCurrent = () => {
+      const current = readPlatformRoute(window.location)
+      return !cancelled && current.view === route.view && current.tab === route.tab
+    }
+    const timer = window.setTimeout(() => controller.abort(), 45_000)
+    void loadPlatformRuntimeBootstrap(controller.signal).then(async result => {
+      if (!isCurrent()) return
+      await installRuntime(result, isCurrent)
+    }).catch(() => {
+      if (!cancelled) setRuntimeError('工作台未能连接。请确认本地服务正在运行，再重试。')
+    }).finally(() => window.clearTimeout(timer))
+    return () => { cancelled = true; controller.abort(); window.clearTimeout(timer) }
+  }, [workbench, globalSettings, route.view, route.tab, runtimeData, projectsReady, retry, installRuntime])
+  useEffect(() => {
+    if (!(workbench || globalSettings) || showWorkbench || showSettings || runtimeError) return
+    const timer = window.setTimeout(() => setRuntimeError('工作台尚未就绪，请重试连接或返回项目总览。'), 45_000)
+    return () => window.clearTimeout(timer)
+  }, [workbench, globalSettings, showWorkbench, showSettings, runtimeError, retry])
   useLayoutEffect(() => {
     if (previousProjectId.current !== projectId) pendingProjectReveal.current = true
     previousProjectId.current = projectId
@@ -383,26 +415,10 @@ export default function PlatformProjectEntry(): React.JSX.Element {
     const timer = window.setTimeout(() => controller.abort(), 45_000)
     void (async () => {
       try {
-        const [result, { installWebPreloadApi }] = await Promise.all([
-          loadPlatformProjectBootstrap(projectId, controller.signal),
-          import('./web-preload-api')
-        ])
+        const result = await loadPlatformProjectBootstrap(projectId, controller.signal)
         if (cancelled || !isCurrentProject()) return
-        assertContextActive()
-        await initWebDeviceKeySupport()
+        await installRuntime(result, () => !cancelled && isCurrentProject())
         if (cancelled || !isCurrentProject()) return
-        if (
-          environment.current &&
-          (environment.current !== result.runtime.environmentId ||
-            endpoint.current !== result.runtime.offer.endpoint)
-        )
-          throw new Error('运行组件已变化，请重新加载页面。')
-        if (!environment.current) {
-          saveStoredWebRuntimeEnvironment(createPlatformEnvironment(result))
-          installWebPreloadApi()
-          environment.current = result.runtime.environmentId
-          endpoint.current = result.runtime.offer.endpoint
-        }
         assertContextActive()
         document.title = `${result.project.name} · 掌控一切`
         cache.current.set(projectId, { project: requestedProject, data: result })
@@ -424,7 +440,7 @@ export default function PlatformProjectEntry(): React.JSX.Element {
       controller.abort()
       window.clearTimeout(timer)
     }
-  }, [projectId, needsProjectRuntime, retry, projectsReady, chosen?.name, chosen?.directory, archived?.id])
+  }, [projectId, needsProjectRuntime, retry, projectsReady, chosen?.name, chosen?.directory, archived?.id, installRuntime])
   useEffect(() => {
     if (archived) document.title = `${archived.name} · 掌控一切`
     else if (chosen) document.title = `${chosen.name} · 掌控一切`
@@ -474,32 +490,33 @@ export default function PlatformProjectEntry(): React.JSX.Element {
           {navigationNotice}
         </p>
       )}
+      {workbench && <nav className="platform-project-tabs" aria-label="项目工作台导航"><a href="#home" className="platform-project-back">项目总览</a><span className="platform-project-name">项目工作台</span></nav>}
       <PlatformStudioSurface
-        hidden={showWorkspace || showSettings || coldGlobalSettings}
-        pending={Boolean(nativeSettings || (developing && !showWorkspace && !archived))}
+        hidden={showWorkspace || showSettings || showWorkbench}
+        pending={Boolean(nativeSettings || workbench || (developing && !showWorkspace && !archived))}
         onProjects={onProjects}
       />
-      {coldGlobalSettings && <ColdGlobalSettings appearance={route.tab === 'appearance'} />}
       {preparingWorkspace && (
         <div className="platform-navigation-notice" role="status">
-          {connected ? `${chosen?.name || '项目'}的${projectSettings ? '设置' : '工作区'}尚未就绪。` : `正在打开${chosen?.name || '项目'}…`} <a href="#home">取消</a>
+          {needsProjectRuntime ? (connected ? `${chosen?.name || '项目'}的${projectSettings ? '设置' : '工作区'}尚未就绪。` : `正在打开${chosen?.name || '项目'}…`) : '正在打开工作台…'} <a href="#home">取消</a>
         </div>
       )}
-      {needsProjectRuntime && !connected && error && !archived && (
-        <div className="platform-surface-feedback" role={error ? 'alert' : 'status'}>
-          {error}
-          {error && (
+      {needsRuntime && preparationError && !archived && (
+        <div className="platform-surface-feedback" role="alert">
+          {preparationError}
+          {preparationError && (
             <button
               type="button"
               onClick={() => {
                 cache.current.delete(projectId)
+                setRuntimeError('')
                 setRetry((value) => value + 1)
               }}
             >
               重试连接
             </button>
           )}
-          {error && <a href="#home">返回项目</a>}
+          <a href="#home">返回项目总览</a>
         </div>
       )}
       {data && (
@@ -509,7 +526,7 @@ export default function PlatformProjectEntry(): React.JSX.Element {
             projects={projects}
             active={needsProjectRuntime && connected}
             selectionOnly={projectSettings || selectionOnlyProjectId === data.project.id}
-            settingsScope={nativeSettings && (globalSettings || connected) ? scope : undefined}
+            settingsScope={projectSettings && connected ? scope : undefined}
             onSettingsScope={onSettingsScope}
             pending={Boolean(preparingWorkspace && connected)}
             canCreateWorkspace={
@@ -521,17 +538,20 @@ export default function PlatformProjectEntry(): React.JSX.Element {
             onSelection={onWorkspaceSelection}
             onReady={setReadyData}
           />
-          <PlatformAgentBridge data={data} onReady={setBridgeReadyData} />
+          {!workbench && <PlatformAgentBridge data={data} onReady={setBridgeReadyData} />}
         </Suspense>
       )}
-      <div className="platform-project-content" hidden={!showWorkspace && !showSettings} inert={!showWorkspace && !showSettings}>
+      {runtimeData && (workbench || globalSettings) && <Suspense fallback={null}><PlatformRuntimeNavigation data={runtimeData} projects={projects}
+        active={workbench || globalSettings} workbench={workbench} entryRevision={acceptedRevision}
+        settingsScope={globalSettings ? scope : undefined} onReady={onRuntimeReady} /></Suspense>}
+      <div className="platform-project-content" hidden={!showWorkspace && !showSettings && !showWorkbench} inert={!showWorkspace && !showSettings && !showWorkbench}>
         <PlatformProjectContext.Provider
           value={connected && readyData === data && !unlinkedWorkspace ? data : null}
         >
           <PlatformProjectScopeContext.Provider value={projectScope}>
           <PlatformSettingsContext.Provider value={presentation}>
             <Suspense fallback={null}>
-              {data && (
+              {runtimeData && (
                 <>
                   <App />
                   <WorkspaceMounted onReady={onAppMounted} />
