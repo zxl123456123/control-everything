@@ -14,6 +14,7 @@ const APS_ENVIRONMENT =
 module.exports = ({ config }) => {
   // Public native-client metadata only; credentials never belong in Expo extra.
   const platformAccount = {
+    remoteOrigin: process.env.CE_NATIVE_REMOTE_ORIGIN ?? '',
     issuer: process.env.CE_NATIVE_OIDC_ISSUER ?? '',
     clientId: process.env.CE_NATIVE_OIDC_CLIENT_ID ?? '',
     scheme: process.env.CE_NATIVE_OAUTH_SCHEME ?? '',
