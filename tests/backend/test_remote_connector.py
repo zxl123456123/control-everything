@@ -142,12 +142,20 @@ class ConnectorTests(unittest.TestCase):
         self.store.write("installation.json", {"installation_id": "installation-1"})
         self.peer, self.clock = Peer(), [0]
         keys = SimpleNamespace(ensure=lambda store: dict(IDENTITY), sign=Mock(return_value="SSHSIG fixture"))
-        config = SimpleNamespace(issuer="https://identity.example.test/realms/team", client_id="workbench-desktop", ssh_executable=root/'ssh.exe', keygen_executable=root/'ssh-keygen.exe')
+        config = SimpleNamespace(issuer="https://identity.example.test/realms/team", hub_origin="https://workbench.example.test", client_id="workbench-desktop", ssh_executable=root/'ssh.exe', keygen_executable=root/'ssh-keygen.exe')
         self.tunnel = SimpleNamespace(running=True, start=Mock(), close=Mock())
         self.connector = RemoteConnector(config, self.store, peer=self.peer, keys=keys, now=lambda: self.clock[0], tunnel_factory=lambda c: self.tunnel)
         self.connector._stop = ClockStop(self.clock)
 
     def authorize(self): self.connector._authorize()
+
+    def test_status_exposes_configured_portal_without_authorization_or_credentials(self):
+        status = self.connector.status()
+        self.assertEqual(status['portal_url'], 'https://workbench.example.test/remote')
+        self.assertEqual(status['state'], 'unbound')
+        self.assertEqual(self.peer.calls, [])
+        self.assertNotIn('account', status)
+        self.assertNotIn('token', json.dumps(status))
 
     def test_authorization_pending_and_slow_down_use_worker_interval(self):
         self.peer.tokens = [ConnectorError('authorization_pending'), ConnectorError('slow_down')]

@@ -37,6 +37,20 @@
 .ce-account-badge[data-tone=success]{color:var(--ce-green,#267448)}
 .ce-account .ce-account-refresh{display:grid;place-items:center;width:40px;height:40px;padding:10px;background:transparent;border-color:transparent;box-shadow:none}
 .ce-account-refresh svg{width:18px;height:18px}
+.ce-account-members-wrap{margin-top:16px;min-width:0}
+.ce-account-members-table{width:100%;table-layout:fixed;border-collapse:collapse;text-align:left;font:inherit}
+.ce-account-members-table :is(th,td){padding:12px 8px;vertical-align:top;font-size:15px;line-height:24px;overflow-wrap:anywhere}
+.ce-account-members-table th{font-weight:500;color:var(--account-muted);border-bottom:1px solid var(--account-line)}
+.ce-account-members-table th:nth-child(2){width:12%}
+.ce-account-members-table th:nth-child(3){width:16%}
+.ce-account-members-table th:nth-child(4),.ce-account-members-table th:nth-child(5){width:25%}
+.ce-account-members-table tbody tr+tr{border-top:1px solid var(--account-line)}
+.ce-account-members-table td:first-child{font-weight:500}
+.ce-account-pagination{display:flex;align-items:center;justify-content:flex-end;gap:12px;margin-top:16px}
+.ce-account-pagination button{display:grid;place-items:center;width:40px;padding:8px}
+.ce-account-pagination svg{width:18px;height:18px}
+.ce-account [data-node=members-status][data-tone=error]{color:var(--ce-red,#ad2424)}
+@media (max-width:640px){.ce-account-members-table thead{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}.ce-account-members-table tr{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;padding:16px 0}.ce-account-members-table td{display:block;padding:0}.ce-account-members-table td:first-child{grid-column:1/-1;font-weight:600}.ce-account-members-table td:not(:first-child)::before{content:attr(data-label);display:block;font-weight:400;color:var(--account-muted)}}
 .ce-account-notice[data-tone=error]{border-color:var(--ce-red,#ad2424);color:var(--ce-red,#ad2424)}
 .ce-account-dialog{width:440px;max-width:calc(100vw - 32px);max-height:calc(100dvh - 32px);overflow:auto;border-radius:24px;margin:auto}
 .ce-account-dialog-error{color:var(--ce-red,#ad2424)!important;overflow-wrap:anywhere;white-space:pre-wrap}
@@ -50,6 +64,7 @@
 .ce-mobile-entry summary{padding:8px 0;cursor:pointer}
 .ce-mobile-entry-feedback,.ce-mobile-entry-note{font-size:15px;line-height:24px;overflow-wrap:anywhere;margin:12px 0 0}
 .ce-mobile-entry-feedback:empty{display:none}
+.ce-mobile-entry-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .ce-mobile-entry-footer{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-top:24px}
 .ce-mobile-entry-footer>details{flex:1;min-width:0}
 #ce-studio .ce-mobile-entry .ce-mobile-guide{border:0;padding:0}

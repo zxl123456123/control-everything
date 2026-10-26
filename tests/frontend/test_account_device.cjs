@@ -6,12 +6,13 @@ const source = fs.readFileSync('web/workspace/account-device.js', 'utf8');
 const settle = async () => { for(let i=0;i<30;i++) await Promise.resolve(); };
 const response = (value,status=200) => ({status,ok:status>=200&&status<300,json:async()=>value});
 const session = extra => ({csrf:'synthetic-csrf',account:{sub:'member',name:'测试成员'},membership:'active',admin:false,device:null,...extra});
-function fixture(fetcher, {mode='remote',embedded=false}={}) {
-  const nodes=new Map(),calls=[],navigations=[],notices=[],timers=new Map(),inactive=new Set();
+function fixture(fetcher, {mode='remote',embedded=false,members=async()=>response({items:[],total:0,limit:25,offset:0})}={}) {
+  const nodes=new Map(),calls=[],navigations=[],notices=[],portals=[],timers=new Map(),inactive=new Set();
   let sequence=0,focused=null,unmounted=false;
   function node(name,hidden=false) {
     const events=new Map();
-    return {hidden,textContent:'',dataset:{},disabled:false,open:false,
+    return {hidden,textContent:'',dataset:{},disabled:false,open:false,children:[],
+      append(...children){this.children.push(...children);},replaceChildren(...children){this.children=children;},setAttribute(name,value){this[name]=value;},
       addEventListener(name,fn){if(!events.has(name))events.set(name,new Set());events.get(name).add(fn);},
       removeEventListener(name,fn){events.get(name)?.delete(fn);},
       emit(name,event={}){for(const fn of [...(events.get(name)||[])])fn({currentTarget:this,preventDefault(){},...event});},
@@ -20,10 +21,11 @@ function fixture(fetcher, {mode='remote',embedded=false}={}) {
   }
   const container={set innerHTML(value){for(const tag of value.matchAll(/<[^>]*data-(node|action)="([^"]+)"[^>]*>/g)){nodes.set(tag[1]+':'+tag[2],node(tag[2],/\bhidden\b/.test(tag[0])));}},querySelector(selector){const m=selector.match(/data-(node|action)="([^"]+)"/);return nodes.get(m[1]+':'+m[2]);},replaceChildren(){unmounted=true;}};
   const context=embedded?{context:'synthetic',active:true,onInactive(fn){inactive.add(fn);return()=>inactive.delete(fn);},invalidate(){this.active=false;for(const fn of [...inactive])fn();inactive.clear();}}:null;
-  const window={document:{hidden:false},CERemoteContext:context,localStorage:{setItem:(...args)=>notices.push(args)},location:{assign:url=>navigations.push(url)},setTimeout(fn){timers.set(++sequence,fn);return sequence;},clearTimeout(id){timers.delete(id);},fetch:async(path,options)=>{calls.push({path,options});return fetcher(path,options);}};
+  const document=node('document'),windowEvents=node('window');document.createElement=tag=>node(tag);
+  const window={document,CERemoteContext:context,addEventListener:(...args)=>windowEvents.addEventListener(...args),removeEventListener:(...args)=>windowEvents.removeEventListener(...args),localStorage:{setItem:(...args)=>notices.push(args)},location:{assign:url=>navigations.push(url)},setTimeout(fn){timers.set(++sequence,fn);return sequence;},clearTimeout(id){timers.delete(id);},fetch:async(path,options)=>{calls.push({path,options});return path.startsWith('/remote/api/admin/members?')?members(path,options):fetcher(path,options);}};
   vm.runInNewContext(source,{window,AbortController,FormData});
-  const dispose=window.StudioAccountDevice.mount(container,{mode,returnHash:'#projects'});
-  return {calls,navigations,notices,timers,context,dispose,window,get:name=>nodes.get('node:'+name),button:name=>nodes.get('action:'+name),click(name){nodes.get('action:'+name).emit('click');},get focused(){return focused;},get unmounted(){return unmounted;},async tick(){const [id,fn]=timers.entries().next().value;timers.delete(id);fn();await settle();}};
+  const dispose=window.StudioAccountDevice.mount(container,{mode,returnHash:'#projects',onPortal:value=>portals.push(value)});
+  return {calls,navigations,notices,portals,timers,context,dispose,window,windowEvents,visibility(hidden){document.hidden=hidden;document.emit('visibilitychange');},focusWindow(){windowEvents.emit('focus');},get:name=>nodes.get('node:'+name),button:name=>nodes.get('action:'+name),click(name){nodes.get('action:'+name).emit('click');},get focused(){return focused;},get unmounted(){return unmounted;},async tick(){const [id,fn]=timers.entries().next().value;timers.delete(id);fn();await settle();}};
 }
 test('raw independent 401 never parses JSON and exposes only login',async()=>{
   let parsed=false;const f=fixture(async()=>({status:401,ok:false,json(){parsed=true;throw Error('unexpected');}}));await settle();
@@ -47,7 +49,7 @@ test('only boolean admin exposes invitations; non-admin click cannot send a writ
 });
 test('invitation disables repeat writes, includes CSRF and stays only in DOM',async()=>{
   let release;const f=fixture(path=>path.endsWith('/session')?response(session({admin:true})):new Promise(resolve=>release=resolve));await settle();
-  f.click('invitation');f.click('invitation');assert.equal(f.calls.length,2);assert.equal(f.button('invitation').disabled,true);assert.equal(f.calls[1].options.headers['X-CE-CSRF'],'synthetic-csrf');assert.equal(f.calls[1].options.body,'{}');
+  f.click('invitation');f.click('invitation');assert.equal(f.calls.length,3);assert.equal(f.button('invitation').disabled,true);const write=f.calls.find(call=>call.options.method==='POST');assert.equal(write.options.headers['X-CE-CSRF'],'synthetic-csrf');assert.equal(write.options.body,'{}');
   release(response({invitation:'synthetic-invite'}));await settle();assert.equal(f.get('invitation-code').textContent,'synthetic-invite');assert.equal(f.notices.length,0);assert.equal(f.button('invitation').disabled,false);f.dispose();
 });
 test('business 403 preserves session, hides invitation result and permits explicit retry',async()=>{
@@ -61,8 +63,8 @@ test('raw embedded 401 stops same-page consumers and navigates even if invalidat
 test('session_changed and account replacement retire embedded context before rendering another identity',async()=>{
   for(const change of [{session_changed:true},{account:{sub:'second',name:'其他人'}}]){let reads=0;const f=fixture(()=>response(session(++reads===1?{}:change)),{embedded:true});await settle();f.click('refresh');await settle();assert.equal(f.context.active,false);assert.deepEqual(f.navigations,['/remote']);assert.notEqual(f.get('account').textContent,'其他人');}
 });
-test('late invitation cannot reappear after same-tab 401, new CSRF, or unmount',async()=>{
-  for(const change of ['401','csrf','dispose']){let release,reads=0;const f=fixture(path=>path.endsWith('/invitations')?new Promise(resolve=>release=resolve):(++reads===1?response(session({admin:true})):change==='401'?response({},401):response(session({admin:true,csrf:'new-synthetic-csrf'}))));await settle();f.click('invitation');if(change==='dispose')f.dispose();else f.click('refresh');await settle();release(response({invitation:'late-synthetic-invite'}));await settle();assert.equal(f.get('invitation-code').textContent,'');assert.equal(f.get('invitation-result').hidden,true);f.dispose();}
+test('late invitation cannot reappear after same-tab 401, new CSRF, role loss, or unmount',async()=>{
+  for(const change of ['401','csrf','role','dispose']){let release,reads=0;const f=fixture(path=>path.endsWith('/invitations')?new Promise(resolve=>release=resolve):(++reads===1?response(session({admin:true})):change==='401'?response({},401):response(session(change==='role'?{admin:false}:{admin:true,csrf:'new-synthetic-csrf'}))));await settle();f.click('invitation');if(change==='dispose')f.dispose();else f.click('refresh');await settle();release(response({invitation:'late-synthetic-invite'}));await settle();assert.equal(f.get('invitation-code').textContent,'');assert.equal(f.get('invitation-result').hidden,true);f.dispose();}
 });
 test('logout validates destination then navigates after synchronous context disposal without refresh',async()=>{
   for(const url of ['/oauth2/sign_out','https://example.invalid/logout']){const f=fixture(path=>response(path.endsWith('/session')?session():{logout_url:url}),{embedded:true});await settle();f.click('logout');await settle();assert.equal(f.calls.length,2);assert.deepEqual(f.navigations,url==='/oauth2/sign_out'?['/oauth2/sign_out']:[]);assert.equal(f.context.active,url!=='/oauth2/sign_out');f.dispose();}
@@ -111,4 +113,79 @@ test('revocation rejects a changed connection identity and IME cancel keeps the 
   f.get('revoke-dialog').emit('compositionend');f.click('refresh');await settle();f.click('confirm-revoke');await settle();
   assert.equal(f.calls.filter(call=>call.options.method==='POST').length,0);assert.match(f.get('revoke-error').textContent,/状态已变化/);assert.equal(f.get('revoke-dialog').open,true);
   f.get('revoke-dialog').emit('cancel');assert.equal(f.get('revoke-dialog').open,false);f.dispose();
+});
+
+const directoryMember = index => ({account:{sub:'private-sub-'+index,name:'成员 '+index,registered_at:1704067200,enabled:true},membership:'active',admin:index===0,device:index===0?{device_id:'private-device',name:'工作电脑',state:'online'}:null});
+const directoryPage = (items,total=items.length,offset=0) => ({items,total,limit:25,offset});
+test('only a real admin reads the registered directory using a same-origin CSRF-protected GET',async()=>{
+  for(const admin of [false,'true',true]) {
+    let requests=0;
+    const f=fixture(()=>response(session({admin})),{members:async(path,options)=>{requests++;assert.equal(path,'/remote/api/admin/members?limit=25&offset=0');assert.equal(options.method,'GET');assert.equal(options.credentials,'same-origin');assert.equal(options.headers['X-CE-CSRF'],'synthetic-csrf');assert.equal(options.body,undefined);return response(directoryPage([{...directoryMember(0),account:{...directoryMember(0).account,name:'<img src=x onerror=alert(1)>'}}]));}});
+    await settle();assert.equal(requests,admin===true?1:0);
+    if(admin===true){const rows=f.get('members-list').children;assert.equal(rows.length,1);assert.equal(rows[0].children.length,5);assert.equal(rows[0].children[0].textContent,'<img src=x onerror=alert(1)>');assert.equal(rows[0].children[1].textContent,'管理员');assert.equal(rows[0].children[2].textContent,'已接入');assert.equal(rows[0].children[3].textContent,'工作电脑 · 在线');assert.notEqual(rows[0].children[4].textContent,'—');assert.doesNotMatch(JSON.stringify(rows),/private-sub|private-device|deviceToken/);}
+    else {assert.equal(f.get('members-list').children.length,0);assert.equal(f.get('invitations').hidden,true);}f.dispose();
+  }
+});
+test('member pagination advances by the server page and does not duplicate a pending read',async()=>{
+  let release;const offsets=[];
+  const f=fixture(()=>response(session({admin:true})),{members:async(path)=>{const offset=Number(new URL('https://example.test'+path).searchParams.get('offset'));offsets.push(offset);if(offset===25)return new Promise(resolve=>release=resolve);return response(directoryPage(Array.from({length:25},(_,i)=>directoryMember(i)),26));}});
+  await settle();assert.equal(f.get('members-page').textContent,'1 / 2');assert.equal(f.button('members-previous').disabled,true);f.click('members-next');f.click('members-next');assert.deepEqual(offsets,[0,25]);assert.equal(f.button('members-next').disabled,true);
+  release(response(directoryPage([directoryMember(25)],26,25)));await settle();assert.equal(f.get('members-page').textContent,'2 / 2');assert.equal(f.get('members-list').children[0].children[0].textContent,'成员 25');assert.equal(f.button('members-next').disabled,true);
+  f.click('members-previous');await settle();assert.deepEqual(offsets,[0,25,0]);assert.equal(f.get('members-page').textContent,'1 / 2');f.dispose();
+});
+test('member directory configuration and read failures are real errors, never invented empty success',async()=>{
+  for(const code of ['member_directory_not_configured','member_directory_unavailable']){const f=fixture(()=>response(session({admin:true})),{members:()=>response({error:code},503)});await settle();assert.equal(f.get('members-table').hidden,true);assert.equal(f.get('members-status').dataset.tone,'error');assert.match(f.get('members-status').textContent,/未配置|不可用/);assert.doesNotMatch(f.get('members-status').textContent,/暂无注册成员/);assert.equal(f.get('invitations').hidden,false);f.dispose();}
+  const f=fixture(()=>response(session({admin:true})),{members:()=>response(directoryPage([],1))});await settle();assert.match(f.get('members-status').textContent,/未完整读取/);f.dispose();
+});
+test('directory responses cannot survive retirement, CSRF rotation, role loss or unmount',async()=>{
+  for(const change of ['401','identity','csrf','role','dispose']) {
+    let release,reads=0,memberReads=0;
+    const f=fixture(()=>++reads===1?response(session({admin:true})):change==='401'?response({},401):response(session(change==='identity'?{admin:true,account:{sub:'replacement',name:'其他账号'}}:change==='csrf'?{admin:true,csrf:'new'}:{admin:false})),{embedded:true,members:()=>++memberReads===1?new Promise(resolve=>release=resolve):response(directoryPage([]))});
+    await settle();if(change==='dispose')f.dispose();else f.click('refresh');await settle();release(response(directoryPage([directoryMember(0)])));await settle();assert.equal(f.get('members-list').children.length,0);if(change==='role')assert.equal(f.get('invitations').hidden,true);f.dispose();
+  }
+});
+test('a forbidden directory read clears previously visible rows and retains the valid account context',async()=>{
+  let reads=0;const f=fixture(()=>response(session({admin:true})),{embedded:true,members:()=>++reads===1?response(directoryPage([directoryMember(0)])):response({error:'admin_required'},403)});await settle();assert.equal(f.get('members-list').children.length,1);f.click('refresh');await settle();assert.equal(f.get('members-list').children.length,0);assert.equal(f.get('invitations').hidden,true);assert.equal(f.context.active,true);assert.match(f.get('status').textContent,/刷新状态/);f.dispose();
+});
+test('local status publishes only a configured portal while keeping account and computer confirmation separate',async()=>{
+  let state={configured:true,state:'unbound',portal_url:'https://portal.example.test/remote'};const f=fixture(path=>response(path==='/api/bootstrap'?{csrf_token:'local'}:state),{mode:'local'});await settle();assert.equal(f.portals.at(-1),state.portal_url);assert.equal(f.get('account').textContent,'');assert.equal(f.button('confirm').hidden,true);assert.equal(f.get('device-state').textContent,'尚未绑定');assert.equal(f.button('authorize').textContent,'登录 / 注册账号');
+  state={configured:false,state:'unbound',portal_url:'https://portal.example.test/remote'};f.click('refresh');await settle();assert.equal(f.portals.at(-1),'');assert.equal(f.button('authorize').hidden,true);f.dispose();
+});
+
+test('real account DOM keeps members private to admins and uses the full responsive theme cascade',async t=>{
+  const path=require('node:path');const {pathToFileURL}=require('node:url');
+  const {Window}=await import(pathToFileURL(path.resolve('web/workbench-engine/node_modules/happy-dom/lib/index.js')).href);
+  for(const theme of ['light','dark'])for(const width of [1280,390]){
+  const w=new Window({url:'https://example.test/remote',settings:{disableJavaScriptFileLoading:true,disableCSSFileLoading:true}});
+  w.happyDOM.setViewport({width,height:844});
+  t.after(()=>{w.happyDOM.abort();w.close();});
+  w.document.write('<main id="ce-studio"></main>');const root=w.document.getElementById('ce-studio');
+  root.dataset.theme=theme;
+  for(const name of ['workspace.css','remote-account.css','studio-preview.css']){const style=w.document.createElement('style');style.textContent=fs.readFileSync('web/workspace/'+name,'utf8');w.document.head.append(style);}
+  let admin=true;w.fetch=async path=>response(path.startsWith('/remote/api/admin/members?')?directoryPage([{...directoryMember(0),account:{...directoryMember(0).account,name:'<img src=x onerror=alert(1)>'}}]):session({admin}));
+  w.eval(source);const dispose=w.StudioAccountDevice.mount(root,{mode:'remote'});t.after(dispose);
+  for(let i=0;i<8;i++)await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(root.querySelectorAll('table tbody tr').length,1);assert.equal(root.querySelectorAll('img').length,0);assert.equal(root.querySelector('td').textContent,'<img src=x onerror=alert(1)>');
+  assert.equal(w.getComputedStyle(root.querySelector('td')).fontSize,'15px');assert.equal(w.getComputedStyle(root.querySelector('h2')).fontSize,'15px');assert.equal(w.getComputedStyle(root.querySelector('tbody tr')).display,width===390?'grid':'table-row');
+  admin=false;root.querySelector('[data-action="refresh"]').click();for(let i=0;i<8;i++)await new Promise(resolve=>setImmediate(resolve));assert.equal(root.querySelector('[data-node="invitations"]').hidden,true);assert.equal(root.querySelectorAll('tbody tr').length,0);
+  }
+});
+
+test('a hidden standalone page clears members and invitation before resuming into a logged-out session',async()=>{
+  let expired=false;const f=fixture(path=>expired?response({},401):response(path.endsWith('/session')?session({admin:true}):{invitation:'synthetic-private-invite'}),{members:()=>response(directoryPage([directoryMember(0)]))});await settle();f.click('invitation');await settle();assert.equal(f.get('members-list').children.length,1);assert.equal(f.get('invitation-code').textContent,'synthetic-private-invite');
+  const before=f.calls.length;f.visibility(true);assert.equal(f.get('members-list').children.length,0);assert.equal(f.get('invitation-code').textContent,'');assert.equal(f.get('invitations').hidden,true);assert.equal(f.calls.length,before);
+  expired=true;f.visibility(false);assert.equal(f.get('members-list').children.length,0);assert.equal(f.get('invitations').hidden,true);await settle();assert.equal(f.get('login').hidden,false);assert.equal(f.calls.filter(call=>call.path.startsWith('/remote/api/admin/members?')).length,1);f.dispose();
+});
+test('directory and invitation replies from before concealment cannot repopulate the hidden or resumed admin view',async()=>{
+  let finishDirectory;const delayed=fixture(()=>response(session({admin:true})),{members:()=>new Promise(resolve=>finishDirectory=resolve)});await settle();delayed.visibility(true);finishDirectory(response(directoryPage([directoryMember(0)])));await settle();assert.equal(delayed.get('members-list').children.length,0);assert.equal(delayed.get('invitations').hidden,true);delayed.dispose();
+  let finishInvite;const f=fixture(path=>path.endsWith('/session')?response(session({admin:true})):new Promise(resolve=>finishInvite=resolve));await settle();f.click('invitation');f.visibility(true);f.visibility(false);await settle();finishInvite(response({invitation:'old-private-invite'}));await settle();assert.equal(f.get('invitation-code').textContent,'');assert.equal(f.get('invitation-result').hidden,true);f.dispose();
+});
+test('focus clears the directory before serial reauthorization and disposal removes the lifecycle listeners',async()=>{
+  let reads=0,finish;const f=fixture(()=>++reads===1?response(session({admin:true})):new Promise(resolve=>finish=resolve),{members:()=>response(directoryPage([directoryMember(0)]))});await settle();assert.equal(f.get('members-list').children.length,1);
+  f.focusWindow();f.focusWindow();assert.equal(f.get('members-list').children.length,0);assert.equal(f.get('invitations').hidden,true);assert.equal(reads,2);
+  finish(response(session({admin:false})));await settle();assert.equal(f.get('members-list').children.length,0);assert.equal(f.get('invitations').hidden,true);assert.equal(f.window.document.listenerCount,1);assert.equal(f.windowEvents.listenerCount,1);
+  f.dispose();assert.equal(f.window.document.listenerCount,0);assert.equal(f.windowEvents.listenerCount,0);const calls=f.calls.length;f.focusWindow();f.visibility(false);await settle();assert.equal(f.calls.length,calls);
+});
+test('local connector polling does not gain remote admin view listeners',async()=>{
+  const f=fixture(path=>response(path==='/api/bootstrap'?{csrf_token:'local'}:{configured:false,state:'unbound'}),{mode:'local'});await settle();assert.equal(f.window.document.listenerCount,0);assert.equal(f.windowEvents.listenerCount,0);const calls=f.calls.length;f.focusWindow();f.visibility(false);await settle();assert.equal(f.calls.length,calls);f.dispose();
 });
