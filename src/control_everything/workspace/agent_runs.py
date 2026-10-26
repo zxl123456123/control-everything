@@ -229,7 +229,8 @@ def claim(store, agent_id, task_id, expected_revision, project_ids=None):
             raise WorkspaceError("item_changed")
         if item["state"] in ("review", "done"):
             raise WorkspaceError("review_not_ready")
-        if _active_run(connection, task_id) is not None:
+        if (_active_run(connection, task_id) is not None or connection.execute(
+                "SELECT 1 FROM task_native_runs WHERE task_id=? AND active_slot=1", (task_id,)).fetchone()):
             raise WorkspaceError("run_conflict")
         stamp = now_utc()
         run_id = str(uuid4())
@@ -266,7 +267,8 @@ def claim_dispatch_in_transaction(store, connection, *, dispatch_id, task_id, ag
         raise WorkspaceError("not_assigned")
     if item["state"] in ("review", "done"):
         raise WorkspaceError("review_not_ready")
-    if _active_run(connection, task_id) is not None:
+    if (_active_run(connection, task_id) is not None or connection.execute(
+                "SELECT 1 FROM task_native_runs WHERE task_id=? AND active_slot=1", (task_id,)).fetchone()):
         raise WorkspaceError("run_conflict")
     stamp = now_utc()
     run_id = str(uuid4())

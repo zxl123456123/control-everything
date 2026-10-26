@@ -35,6 +35,7 @@ it('downloads dependencies in order once and keeps load-error recovery available
   const view = render(<PlatformStudioSurface hidden={false} onProjects={onProjects} />)
   // Every download is scheduled before the first script finishes, without changing execution order.
   expect(scripts.map((script) => new URL(script.src).pathname)).toEqual([
+    '/ui-dialog.js',
     '/onboarding.js',
     '/execution.js',
     '/task-center.js',
@@ -43,10 +44,13 @@ it('downloads dependencies in order once and keeps load-error recovery available
     '/monitor-model.js',
     '/project-monitor.js',
     '/project-space.js',
+    '/project-progress-model.js',
+    '/project-progress.js',
     '/agents.js',
     '/studio-data.js',
     '/remote/account-device.js',
     '/mobile-device-entry.js',
+    '/studio-shell.js',
     '/studio-preview.js'
   ])
   expect(new Headers(vi.mocked(fetch).mock.calls[0][1]?.headers).get('X-CE-Context')).toBe(
@@ -60,7 +64,7 @@ it('downloads dependencies in order once and keeps load-error recovery available
   view.rerender(<PlatformStudioSurface hidden={false} onProjects={onProjects} />)
   expect(view.container.querySelector('section')?.hasAttribute('inert')).toBe(false)
   expect(view.container.querySelector<HTMLElement>('.platform-studio-host')?.hidden).toBe(false)
-  expect(scripts).toHaveLength(13)
+  expect(scripts).toHaveLength(17)
   view.rerender(<PlatformStudioSurface hidden={false} pending onProjects={onProjects} />)
   await act(async () => {
     scripts[0].dispatchEvent(new Event('error'))

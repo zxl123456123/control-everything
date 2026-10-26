@@ -6,6 +6,7 @@ const glance = document.querySelector("#progress-board");
 const stage = document.querySelector("#progress-stage");
 const side = document.querySelector("#progress-side");
 const states = ["未开始", "在做", "等我", "完成"];
+const stateName = value => ({'未开始':'未开始','在做':'进行中','等我':'待处理','完成':'已完成'}[value] || value || '未记录');
 const accents = {
   biji: "#3ecfb8",
   "mianban-develop": "#7aa2ff",
@@ -80,7 +81,7 @@ function ensureStage() {
   note.maxLength = 24;
   if (profileMode) note.maxLength = 1000;
   note.id = 'progress-note';
-  note.placeholder = "用一句话写下现在在做的事";
+  note.placeholder = "用一句话填写当前进度说明";
   const slider = document.createElement("input");
   slider.className = "slider";
   slider.type = "range";
@@ -109,7 +110,7 @@ function ensureStage() {
   for (const name of states) {
     const choice = document.createElement("button");
     choice.type = "button";
-    choice.textContent = name;
+    choice.textContent = stateName(name); choice.dataset.state = name;
     choice.addEventListener("click", () => {
       const project = currentProject();
       if (profileMode) { built.state.value = name; for (const button of choices.children) button.setAttribute('aria-pressed', String(button === choice)); return; }
@@ -127,7 +128,7 @@ function ensureStage() {
     const fields = document.createElement('fieldset'); fields.id = 'progress-manual-fields';
     const stateLabel = document.createElement('label'); stateLabel.textContent = '人工状态';
     const state = document.createElement('select'); state.id = 'progress-manual-state'; state.required = true;
-    for (const name of ['', ...states]) { const option = document.createElement('option'); option.value = name; option.textContent = name || '请选择状态'; state.append(option); } stateLabel.append(state);
+    for (const name of ['', ...states]) { const option = document.createElement('option'); option.value = name; option.textContent = name ? stateName(name) : '请选择状态'; state.append(option); } stateLabel.append(state);
     const enabledLabel = document.createElement('label'); const enabled = document.createElement('input'); enabled.type = 'checkbox'; enabled.id = 'progress-percent-enabled'; enabledLabel.append(enabled, document.createTextNode('记录百分比（关闭则保存为空）'));
     const percentLabel = document.createElement('label'); percentLabel.textContent = '人工百分比';
     const percent = document.createElement('input'); percent.id = 'progress-percent'; percent.type = 'number'; percent.min = '0'; percent.max = '100'; percent.step = 'any'; percentLabel.append(percent);
@@ -193,7 +194,7 @@ function showProject(animate) {
     if (selected !== project.id) return;
     const accent = accentOf(project);
     stage.style.setProperty("--accent", accent);
-    built.kicker.textContent = `人工记录 · ${project.state || '未记录'}${project.archived ? ' · 已归档' : ''}`;
+    built.kicker.textContent = `人工记录 · ${stateName(project.state)}${project.archived ? ' · 已归档' : ''}`;
     built.heading.textContent = project.name;
     if (document.activeElement !== built.note || built.projectId !== project.id) built.note.value = project.note || "";
     built.note.setAttribute("aria-label", project.name);
@@ -204,7 +205,7 @@ function showProject(animate) {
     if (profileMode) { built.state.value = project.state || ''; built.enabled.checked = Number.isFinite(project.percent); built.percent.value = Number.isFinite(project.percent) ? project.percent : ''; built.percent.disabled = built.slider.disabled = !built.enabled.checked; if (built.projectId !== project.id) historyOffset = 0; loadHistory().catch(error => { built.feedback.textContent = error.message; }); }
     built.projectId = project.id;
     for (const choice of built.choices.children) {
-      choice.setAttribute("aria-pressed", String(choice.textContent === project.state));
+      choice.setAttribute("aria-pressed", String(choice.dataset.state === project.state));
     }
     fillRecords(project);
     stage.classList.remove("is-out");
@@ -234,6 +235,12 @@ function orderedProjects() {
 function paintBoard() {
   if (window.CERemoteContext?.active === false) return;
   glance.replaceChildren();
+  if (!projects.length && !profileMode) {
+    const empty = document.createElement('p');
+    empty.className = 'empty';
+    empty.textContent = '尚无项目进度记录。';
+    glance.append(empty);
+  }
   for (const project of orderedProjects()) {
     const button = document.createElement("button");
     button.type = "button";
@@ -246,12 +253,12 @@ function paintBoard() {
     const name = document.createElement("strong");
     name.textContent = project.name;
     const state = document.createElement("em");
-    state.textContent = (project.state || '未记录') + ' · ' + (Number.isFinite(project.percent) ? project.percent + '%' : '未填写百分比');
+    state.textContent = stateName(project.state) + ' · ' + (Number.isFinite(project.percent) ? project.percent + '%' : '未填写百分比');
     row.append(name, state);
     const feature = document.createElement("b");
     feature.textContent = project.records[0]?.feature || "没有未收口记录";
     const text = document.createElement("span");
-    text.textContent = project.records[0] ? project.records[0].text : "进度由你在下面设定";
+    text.textContent = project.records[0] ? project.records[0].text : "暂无进度说明";
     button.append(row, feature, text);
     if ((project.sessions || []).length && !profileMode) {
       const chips = document.createElement("div");
@@ -292,7 +299,7 @@ function paintRail() {
     const name = document.createElement("strong");
     name.textContent = project.name;
     const meta = document.createElement("em");
-    meta.textContent = (project.state || '未记录') + " · " + (project.records[0]?.feature || "无记录");
+    meta.textContent = stateName(project.state) + " · " + (project.records[0]?.feature || "无记录");
     words.append(name, meta);
     const meter = document.createElement("b");
     meter.className = "meter";
@@ -314,10 +321,10 @@ function paintRail() {
 }
 
 const launchGroups = [
-  ["desk", "工作台", "你平时写代码的那套终端"],
-  ["code", "用 Grok 写", "网关开着之后，再选短或长上下文"],
+  ["desk", "工作台", "已配置的开发终端"],
+  ["code", "Grok 编程", "网关运行后选择上下文入口"],
   ["lab", "原油实验", "看进度不会启动实验"],
-  ["net", "网络", "偶尔才用"],
+  ["net", "网络", "网络工具入口"],
 ];
 
 function paintSide(desk) {
@@ -417,7 +424,7 @@ async function save(projectId, state, note, percent) {
     paintBoard();
     showProject(false);
     if (profileMode) built.feedback.textContent = '人工记录已保存。';
-  } catch (error) { if (profileMode) built.feedback.textContent = error.message; else statusLine.textContent = '没有记下。'; }
+  } catch (error) { if (profileMode) built.feedback.textContent = error.message; else statusLine.textContent = '进度保存失败，当前输入已保留。'; }
   finally { saving = false; if (profileMode) built.fields.disabled = false; }
 }
 
@@ -432,7 +439,7 @@ async function createTodo(text, projectId) {
     headers: {...headers(), "Content-Type": "application/json", "Origin": location.origin},
     body: JSON.stringify({text, project_id: projectId || ""}),
   });
-  if (!response.ok) statusLine.textContent = "待办没有记下。";
+  if (!response.ok) statusLine.textContent = "待办保存失败，输入已保留。";
   else await refreshDesk();
 }
 
@@ -442,7 +449,7 @@ async function toggleTodo(id) {
     headers: {...headers(), "Content-Type": "application/json", "Origin": location.origin},
     body: JSON.stringify({id}),
   });
-  if (!response.ok) statusLine.textContent = "待办没有改成。";
+  if (!response.ok) statusLine.textContent = "待办更新失败，请重试。";
   else await refreshDesk();
 }
 
@@ -454,7 +461,7 @@ async function launch(id, button) {
     body: JSON.stringify({id}),
   });
   button.classList.remove("is-busy");
-  if (!response.ok) statusLine.textContent = "这个入口没有打开。";
+  if (!response.ok) statusLine.textContent = "启动器未打开，请重试。";
   else paintSide(await response.json());
 }
 
@@ -510,4 +517,17 @@ async function loadHistory() {
   built.history.append(pageControls(value.total, offset, 20, async nextOffset => { historyOffset = nextOffset; await loadHistory(); }));
 }
 
-load().catch(() => { statusLine.textContent = "工作台没有读出来。"; });
+let progressTheme, progressUnmountTheme, progressInitialTheme = window.CEUITheme?.pageTheme;
+function mountProgressTheme() {
+  if (window.CERemoteContext?.active === false) return;
+  const toggle = document.querySelector('#progress-theme'), status = document.querySelector('#progress-theme-error');
+  progressTheme = progressInitialTheme || window.CEUITheme?.earlyRead('ce.progress.theme'); progressInitialTheme = null;
+  if (progressTheme) { toggle.disabled = false; progressUnmountTheme = progressTheme.mount({roots: [document.querySelector('.desk')], toggles: [toggle], status, aliases: {'--bg':'--ce-bg','--panel':'--ce-panel','--line':'--ce-line','--text':'--ce-text','--muted':'--ce-sub','--profile-line':'--ce-input-border'}}); }
+  else { toggle.disabled = true; status.hidden = false; status.textContent = '主题资源未加载，请刷新后重试。'; }
+}
+function disposeProgressTheme() { progressUnmountTheme?.(); progressUnmountTheme = null; progressTheme?.dispose(); progressTheme = null; }
+mountProgressTheme();
+window.addEventListener?.('pagehide', disposeProgressTheme);
+window.addEventListener?.('pageshow', event => { if (event.persisted && window.CERemoteContext?.active !== false) mountProgressTheme(); });
+window.CERemoteContext?.onInactive(disposeProgressTheme);
+load().catch(() => { statusLine.textContent = "人工进度加载失败，请刷新后重试。"; });

@@ -4,8 +4,10 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Control Everything</title>
+  <script src="/ui-theme.js" data-ce-theme-key="ce-studio-theme"></script>
   <link rel="stylesheet" href="/workspace.css">
   <link rel="stylesheet" href="/project-monitor.css">
+  <script src="/ui-dialog.js" defer></script>
   <script src="/execution.js" defer></script>
   <script src="/observation.js" defer></script>
   <script src="/task-center.js" defer></script>
@@ -20,7 +22,7 @@
   <script src="/agents.js" defer></script>
   <script src="/workspace.js" defer></script>
 </head>
-<body>
+<body class="ce-workspace-management">
   <svg class="icon-library" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs>
     <symbol id="icon-workspace" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 3v18M9 9h12"/></symbol>
     <symbol id="icon-inbox" viewBox="0 0 24 24"><path d="m4 4-2 10v5a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-5L20 4ZM2 14h6l2 3h4l2-3h6"/></symbol>
@@ -90,8 +92,9 @@
   <p id="onboarding-feedback" class="feedback" role="status" aria-live="polite"></p>
 </dialog>
     <main id="main" tabindex="-1">
-      <header class="topbar"><p>工作空间 <span>/</span> <b id="breadcrumb">总览</b></p><span id="today" class="muted">北京时间</span></header>
-      <div class="page-heading"><div><p class="eyebrow" id="page-eyebrow">YOUR DEVELOPMENT DESK</p><h1 id="page-title">今天，从这里开始。</h1><p id="page-description" class="muted">把项目、任务和工具，放回一个清晰的工作空间。</p></div><button id="refresh-workspace" class="button secondary" type="button" hidden>重试更新</button></div>
+      <header class="topbar"><p>工作台 <span>/</span> <b id="breadcrumb">总览</b></p><div class="workspace-header-actions"><span id="today" class="muted">北京时间</span><button id="workspace-theme-toggle" class="workspace-theme-toggle" type="button" aria-label="切换主题"></button></div></header>
+      <p id="workspace-theme-status" class="feedback" role="status" hidden></p>
+      <div class="page-heading"><div><p class="eyebrow" id="page-eyebrow"></p><h1 id="page-title">工作总览</h1><p id="page-description" class="muted"></p></div><button id="refresh-workspace" class="button secondary" type="button" hidden>重试更新</button></div>
       <p id="workspace-status" class="source-line" role="status" aria-live="polite">正在读取本地工作空间…</p>
       <section id="agent-board" class="section agent-board" aria-label="Agent 工作台" hidden></section>
       <section id="project-space" class="section project-space" hidden aria-label="项目工作空间"></section>
@@ -125,29 +128,7 @@
         <p class="usage-footnote">目前支持 Codex。其他工具接入后再展示。</p>
       </section>
       <section id="news-view" class="view" hidden aria-labelledby="news-title"><div class="section"><div class="section-heading"><div><p class="eyebrow">AI READING LIST</p><h2 id="news-title">AI 新闻</h2></div><div class="news-toolbar"><label for="news-stream">频道</label><select id="news-stream"><option value="ai">AI 新闻</option><option value="hn">Hacker News</option></select><button id="refresh-news" type="button" class="button secondary">刷新新闻</button></div></div><div class="news-search-row"><label for="news-search">搜索已返回的文章</label><input id="news-search" type="search" placeholder="标题、来源或摘要" autocomplete="off" aria-controls="news-list"><span>仅筛选当前频道，不额外联网</span></div><details class="news-source-details"><summary>来源与采集状态</summary><div id="news-sources" class="news-sources"></div></details><p id="news-status" class="section-note" role="status"></p><div id="news-list" class="news-list"></div></div></section>
-      <section id="settings-view" class="view" hidden aria-labelledby="settings-title"><section class="section"><h2 id="settings-title">来源设置</h2><p id="settings-profile-path" class="section-note"></p><p id="codex-source-status" class="section-note"></p><form id="settings-form" class="editor"><fieldset id="settings-fields"><label class="checkbox-field"><input id="codex-enabled" type="checkbox">启用 Codex 项目与会话</label><label class="field full">Codex 元数据库绝对路径<input id="codex-db-path" maxlength="2048" placeholder="选择自己的 state 数据库路径"></label><p class="form-hint">只读所选数据库及同目录桌面配置中的项目、会话标题和归属，不读取消息正文。禁用时保留路径并停止读取。</p><button class="button primary" type="submit">保存来源设置</button></fieldset><p id="settings-feedback" class="feedback" role="status"></p></form></section><section id="agent-settings" class="section" aria-labelledby="agent-settings-title">
-<div class="section-heading"><div><p class="eyebrow">AGENTS</p><h2 id="agent-settings-title">Agents</h2></div><div class="form-actions"><button id="refresh-agents" class="button secondary" type="button">刷新状态</button><button id="agent-new" class="button secondary" type="button">注册 Agent</button></div></div>
-<p class="section-note">登记本机 coding agent 的身份与命令。保存不会安装、启动或向 Agent 发送任务；后续 MCP/CLI 接入在此身份上扩展。</p>
-<p id="agents-status" class="section-note" role="status" aria-live="polite"></p>
-<div id="agents-list" class="form-grid"></div>
-<p id="agent-token" class="feedback" role="status" aria-live="polite"></p>
-<form id="agent-form" class="editor" hidden><fieldset id="agent-fields"><legend id="agent-form-title">注册 Agent</legend>
-<div class="form-grid">
-<label class="field">显示名<input id="agent-name" required maxlength="80" placeholder="例如 Codex"></label>
-<label class="field">类型<select id="agent-kind"><option value="codex">Codex</option><option value="dsh">DeepSeek Harness</option><option value="custom">自定义 Agent</option></select></label>
-<label class="field full">执行权限<select id="agent-permission"><option value="read-only">只读（项目内不可写）</option><option value="workspace-write">项目内读写（推荐）</option><option value="danger-full-access">完全访问（危险）</option></select></label>
-<label class="field">网络<select id="agent-network"><option value="allowed">允许联网（不逐次审批）</option><option value="denied">禁止联网（当前仅 Codex 默认）</option></select></label>
-<label class="field">审批<select id="agent-approval"><option value="request_user">需要新增权限时请求我（审批桥尚未接通）</option><option value="deny">直接拒绝例外</option><option value="never">不请求（完全访问使用）</option></select></label>
-<label class="field full">接入方式<select id="agent-adapter"><option value="">普通登记（稍后配置接入）</option></select></label>
-<label class="field full">命令或可执行文件路径<input id="agent-command" maxlength="2048" placeholder="命令或可执行文件路径（可留空）"></label>
-</div>
-<p id="agent-adapters-status" class="section-note" role="status"></p>
-<div id="agent-connection-fields" class="form-grid"></div>
-<p id="agent-setup" class="section-note agent-setup"></p>
-<label class="checkbox-field"><input id="agent-enabled" type="checkbox" checked>启用此 Agent</label>
-<div class="form-actions"><button type="submit" class="button primary">保存 Agent</button><button id="cancel-agent" type="button" class="button secondary">取消</button></div>
-</fieldset><p id="agent-feedback" class="feedback" role="status" aria-live="polite"></p></form>
-</section><details id="registration-settings" class="section"><summary>工具与环境登记</summary>
+      <section id="settings-view" class="view" hidden aria-labelledby="settings-title"><section class="section"><h2 id="settings-title">来源设置</h2><p id="settings-profile-path" class="section-note"></p><p id="codex-source-status" class="section-note"></p><form id="settings-form" class="editor"><fieldset id="settings-fields"><label class="checkbox-field"><input id="codex-enabled" type="checkbox">启用 Codex 项目与会话</label><label class="field full">Codex 元数据库绝对路径<input id="codex-db-path" maxlength="2048" placeholder="选择自己的 state 数据库路径"></label><p class="form-hint">只读所选数据库及同目录桌面配置中的项目、会话标题和归属，不读取消息正文。禁用时保留路径并停止读取。</p><button class="button primary" type="submit">保存来源设置</button></fieldset><p id="settings-feedback" class="feedback" role="status"></p></form></section><section id="agent-settings" class="section"><a class="button secondary" href="/studio#settings/sources">外部程序接入</a></section><details id="registration-settings" class="section"><summary>工具与环境登记</summary>
 <p class="section-note">本机 Windows · 一次安装供多个项目复用。A 内置适配核验工具来源；B 自定义 EXE 只表示用户指定程序。保存不会执行程序，登记不授予会话读取权限。恢复后须确认本机路径重新绑定。</p>
 <p id="registrations-status" class="section-note" role="status"></p><div id="registrations-list" class="form-grid"></div>
 <h3>发现的安装候选</h3><div id="registration-candidates" class="registration-candidates"></div>

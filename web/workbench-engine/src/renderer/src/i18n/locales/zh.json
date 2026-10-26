@@ -1,4 +1,31 @@
 {
+  "management": {
+    "telemetry": {
+      "noticeTitle": "匿名使用统计",
+      "noticeDescription": "匿名统计仅记录功能使用次数，不含文件内容、提示词、终端输出或身份信息。继续或关闭本通知将启用统计，也可选择关闭统计；之后可随时在“设置 → 隐私”中更改。",
+      "optOut": "关闭统计",
+      "acknowledge": "了解并继续",
+      "dismiss": "了解并关闭通知"
+    }
+  },
+  "crashReport": {
+    "title": {
+      "manual": "问题诊断",
+      "recoverable": "界面出现可恢复错误",
+      "crash": "应用意外关闭"
+    },
+    "description": {
+      "manual": "可发送诊断报告，并按需附上近期已脱敏的诊断日志。",
+      "recoverable": "诊断报告用于排查发生错误的界面。发送前可查看内容并选择是否附上日志。",
+      "crash": "诊断报告用于排查意外关闭。发送前可查看内容并选择是否附上日志。"
+    },
+    "notes": {
+      "manual": "可选：描述发生的问题",
+      "recoverable": "可选：描述错误发生前的操作",
+      "crash": "可选：描述应用关闭前的操作",
+      "label": "补充说明（可选）"
+    }
+  },
   "app": {
     "saving": {
       "delayedTitle": "配置存储操作耗时比平时更长",

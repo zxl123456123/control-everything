@@ -53,6 +53,12 @@ def list_messages(store, task_id):
 
 
 def create_message(store, task_id, body):
+    with store.connection() as connection:
+        connection.execute("BEGIN IMMEDIATE")
+        return create_message_in_connection(connection, task_id, body)
+
+
+def create_message_in_connection(connection, task_id, body):
     required = {"kind", "body_text"}
     allowed = required | {"agent_id", "run_id", "client_token"}
     if type(body) is not dict or not required <= set(body) or set(body) - allowed:
@@ -64,28 +70,26 @@ def create_message(store, task_id, body):
     agent_id = _text(body.get("agent_id"), "agent_id", 64)
     run_id = _text(body.get("run_id"), "run_id", 64)
     client_token = _text(body.get("client_token"), "client_token", 128)
-    with store.connection() as connection:
-        connection.execute("BEGIN IMMEDIATE")
-        item = _task(connection, task_id)
-        if client_token is not None:
-            existing = connection.execute(
-                "SELECT * FROM task_messages WHERE task_id=? AND client_token=?", (task_id, client_token)).fetchone()
-            if existing is not None:
-                return {"status": "existing", "message": dict(existing)}
-        if run_id is not None:
-            run = connection.execute("SELECT id FROM agent_runs WHERE id=? AND task_id=?", (run_id, task_id)).fetchone()
-            if run is None:
-                raise ProfileError("run_not_found", "run_id", status=404)
-        stamp = now_utc()
-        identity = str(uuid4())
-        connection.execute(
-            "INSERT INTO task_messages(id,task_id,run_id,agent_id,client_token,direction,kind,body_text,"
-            "delivery_mode,delivery_state,created_at,sent_at,updated_at) "
-            "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",
-            (identity, task_id, run_id, agent_id, client_token, "human_to_agent", kind, text,
-             "manual", "previewed", stamp, None, stamp))
-        return {"status": "created",
-                "message": dict(connection.execute("SELECT * FROM task_messages WHERE id=?", (identity,)).fetchone())}
+    item = _task(connection, task_id)
+    if client_token is not None:
+        existing = connection.execute(
+            "SELECT * FROM task_messages WHERE task_id=? AND client_token=?", (task_id, client_token)).fetchone()
+        if existing is not None:
+            return {"status": "existing", "message": dict(existing)}
+    if run_id is not None:
+        run = connection.execute("SELECT id FROM agent_runs WHERE id=? AND task_id=?", (run_id, task_id)).fetchone()
+        if run is None:
+            raise ProfileError("run_not_found", "run_id", status=404)
+    stamp = now_utc()
+    identity = str(uuid4())
+    connection.execute(
+        "INSERT INTO task_messages(id,task_id,run_id,agent_id,client_token,direction,kind,body_text,"
+        "delivery_mode,delivery_state,created_at,sent_at,updated_at) "
+        "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        (identity, task_id, run_id, agent_id, client_token, "human_to_agent", kind, text,
+         "manual", "previewed", stamp, None, stamp))
+    return {"status": "created",
+            "message": dict(connection.execute("SELECT * FROM task_messages WHERE id=?", (identity,)).fetchone())}
 
 
 def mark_sent(store, message_id):
@@ -94,6 +98,8 @@ def mark_sent(store, message_id):
         row = connection.execute("SELECT * FROM task_messages WHERE id=?", (message_id,)).fetchone()
         if row is None:
             raise ProfileError("message_not_found", status=404)
+        if connection.execute("SELECT 1 FROM task_native_message_delivery WHERE message_id=?", (message_id,)).fetchone():
+            raise ProfileError("native_managed_message", status=409)
         if row["delivery_state"] != "previewed":
             raise ProfileError("message_state_conflict", "delivery_state", status=409)
         stamp = now_utc()
@@ -108,6 +114,8 @@ def cancel_message(store, message_id):
         row = connection.execute("SELECT * FROM task_messages WHERE id=?", (message_id,)).fetchone()
         if row is None:
             raise ProfileError("message_not_found", status=404)
+        if connection.execute('SELECT 1 FROM task_native_message_delivery WHERE message_id=?', (message_id,)).fetchone():
+            raise ProfileError('native_managed_message', status=409)
         if row["delivery_state"] != "previewed":
             raise ProfileError("message_state_conflict", "delivery_state", status=409)
         connection.execute("UPDATE task_messages SET delivery_state='cancelled',updated_at=? WHERE id=?",

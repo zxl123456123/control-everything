@@ -12,12 +12,17 @@ import { installOsFileDropCancellationGuard } from '../lib/os-file-drop-cancella
 import { installAppKeyboardRouter } from '../lib/app-keyboard-router'
 import { applyDocumentTheme, type DocumentThemePreference } from '../lib/document-theme'
 import { readJson, SETTINGS_STORAGE_KEY } from './preload-api/web-storage'
+import { initializePlatformAppearance } from './platform-appearance'
 
 // Use the same saved appearance before the project runtime and App finish loading.
-applyDocumentTheme(
-  readJson<{ theme: DocumentThemePreference }>(SETTINGS_STORAGE_KEY, { theme: 'system' }).theme,
-  { disableTransitions: false }
-)
+if (['/studio', '/workbench/web-index.html'].includes(window.location.pathname)) {
+  initializePlatformAppearance()
+} else {
+  applyDocumentTheme(
+    readJson<{ theme: DocumentThemePreference }>(SETTINGS_STORAGE_KEY, { theme: 'light' }).theme,
+    { disableTransitions: false }
+  )
+}
 
 const disposeOsFileDropGuard = installOsFileDropCancellationGuard()
 import.meta.hot?.dispose(disposeOsFileDropGuard)
@@ -59,7 +64,11 @@ function WebRootBoundary(): React.JSX.Element {
 void (platformMode ? Promise.resolve() : initWebDeviceKeySupport())
   .catch((error: unknown) => console.warn('[web] Device key probe failed', error))
   .finally(() => {
-    try { assertContextActive() } catch { return }
+    try {
+      assertContextActive()
+    } catch {
+      return
+    }
     const element = document.getElementById('root') as HTMLElement
     const root = ReactDOM.createRoot(element)
     root.render(<WebRootBoundary />)

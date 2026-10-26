@@ -34,8 +34,8 @@ describe('prepareSkippedOnboardingPreferences', () => {
       })
     ).resolves.toBe(false)
 
-    expect(setTheme).toHaveBeenCalledWith('dark')
-    expect(applyTheme).toHaveBeenCalledWith('dark')
+    expect(setTheme).not.toHaveBeenCalled()
+    expect(applyTheme).not.toHaveBeenCalled()
     expect(updateSettings).toHaveBeenCalledWith({ theme: 'dark' })
     expect(setError).toHaveBeenCalledWith('settings IPC failed')
     expect(toast.error).toHaveBeenCalledWith('Could not save progress', {

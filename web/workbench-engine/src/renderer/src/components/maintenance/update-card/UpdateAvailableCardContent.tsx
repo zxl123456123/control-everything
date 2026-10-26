@@ -10,7 +10,7 @@ function isAnimatedGif(url: string | undefined): boolean {
 /** A package manager owns this install: the release is real but Orca can never apply it here. */
 function ExternallyManagedNote(): React.JSX.Element {
   return (
-    <p className="text-xs leading-relaxed text-muted-foreground">
+    <p className="text-sm leading-[22px] text-muted-foreground">
       {translate(
         'auto.components.UpdateCard.7f1a4c9e02',
         'Your system package manager installed Orca, so update it from there — Orca cannot install this release itself.'
@@ -45,15 +45,15 @@ export function UpdateAvailableRichContent({
   const showMedia =
     release.mediaUrl && !mediaFailed && !(prefersReducedMotion && isAnimatedGif(release.mediaUrl))
   return (
-    <div className="flex flex-col gap-3 p-4">
+    <div className="flex flex-col gap-4 p-6">
       <div className="flex items-start justify-between gap-2">
-        <h3 className="text-sm font-semibold">
+        <h3 className="text-lg font-semibold leading-[26px]">
           {translate('auto.components.UpdateCard.f58b5c57a6', 'New:')} {release.title}
         </h3>
         <Button
           variant="ghost"
           size="icon"
-          className="size-7 shrink-0 min-w-[44px] min-h-[44px] -m-2"
+          className="size-11 shrink-0"
           onClick={onClose}
           aria-label={translate('auto.components.UpdateCard.318d3b4bc7', 'Dismiss update')}
         >
@@ -85,7 +85,7 @@ export function UpdateAvailableRichContent({
             {' '}
             <button
               type="button"
-              className="text-xs text-muted-foreground/70 underline hover:text-foreground inline"
+              className="inline-flex min-h-11 items-center text-sm text-muted-foreground underline hover:text-foreground"
               onClick={() => void window.api.shell.openUrl(release.releaseNotesUrl)}
             >
               +{releasesBehind - 1}{' '}
@@ -96,7 +96,7 @@ export function UpdateAvailableRichContent({
       </p>
       <button
         type="button"
-        className="text-xs text-muted-foreground underline hover:text-foreground self-start"
+        className="inline-flex min-h-11 items-center self-start text-sm text-muted-foreground underline hover:text-foreground"
         onClick={() => void window.api.shell.openUrl(release.releaseNotesUrl)}
       >
         {translate('auto.components.UpdateCard.aad383aecc', 'Read the full release notes')}
@@ -126,15 +126,15 @@ export function UpdateAvailableSimpleContent({
   externallyManaged?: boolean
 }): React.JSX.Element {
   return (
-    <div className="flex flex-col gap-2.5 p-3.5">
+    <div className="flex flex-col gap-4 p-6">
       <div className="flex items-start justify-between gap-2">
-        <h3 className="text-sm font-semibold">
+        <h3 className="text-lg font-semibold leading-[26px]">
           {translate('auto.components.UpdateCard.9abc59f814', 'Update Available')}
         </h3>
         <Button
           variant="ghost"
           size="icon"
-          className="size-7 shrink-0 min-w-[44px] min-h-[44px] -m-2"
+          className="size-11 shrink-0"
           onClick={onClose}
           aria-label={translate('auto.components.UpdateCard.318d3b4bc7', 'Dismiss update')}
         >
@@ -149,14 +149,14 @@ export function UpdateAvailableSimpleContent({
       {externallyManaged ? (
         <ExternallyManagedNote />
       ) : (
-        <p className="text-xs leading-relaxed text-muted-foreground">
+        <p className="text-sm leading-[22px] text-muted-foreground">
           {translate('auto.components.UpdateCard.fdd4a364fa', "Sessions won't be interrupted.")}
         </p>
       )}
       {releaseUrl && (
         <button
           type="button"
-          className="text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground self-start"
+          className="inline-flex min-h-11 items-center self-start text-sm text-muted-foreground underline underline-offset-2 hover:text-foreground"
           onClick={() => void window.api.shell.openUrl(releaseUrl)}
         >
           {translate('auto.components.UpdateCard.44324ef542', 'Release notes')}

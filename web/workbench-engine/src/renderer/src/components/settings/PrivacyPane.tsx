@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { isWebClientLocation } from '@/lib/web-client-location'
 import { ShieldCheck } from 'lucide-react'
 import { useMountedRef } from '@/hooks/useMountedRef'
 import type { GlobalSettings } from '../../../../shared/global-settings-types'
@@ -66,11 +67,12 @@ export function PrivacyPane({ settings }: PrivacyPaneProps): React.JSX.Element {
     }
   }, [settings.telemetry?.optedIn])
 
+  const webReadOnly = isWebClientLocation()
   const blocked = computeBlockedReason(consent)
   const toggleChecked = settings.telemetry?.optedIn === true
 
   const handleToggle = async (): Promise<void> => {
-    if (blocked || inFlight) {
+    if (webReadOnly || blocked || inFlight) {
       return
     }
     setInFlight(true)
@@ -119,11 +121,12 @@ export function PrivacyPane({ settings }: PrivacyPaneProps): React.JSX.Element {
             'Share anonymous usage data'
           )}
           aria-describedby={blocked ? PRIVACY_PANE_BLOCKED_HELPER_ID : undefined}
-          disabled={blocked !== null || inFlight}
+          disabled={webReadOnly || blocked !== null || inFlight}
           onCheckedChange={() => void handleToggle()}
         />
       </div>
 
+      {webReadOnly ? <p className="text-sm text-muted-foreground">请在对应电脑管理遥测设置。</p> : null}
       {blocked ? <BlockedHelper blocked={blocked} id={PRIVACY_PANE_BLOCKED_HELPER_ID} /> : null}
       <PrivacyDiagnosticsSection />
     </div>

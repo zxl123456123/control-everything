@@ -1,5 +1,6 @@
 import { contextFetch, assertContextActive, onContextInactive } from './remote-context'
 import { useEffect, useRef, useState } from 'react'
+import { platformAppearance } from './platform-appearance'
 
 export type PlatformProject = { id: string; name: string; directory?: string }
 export type PlatformProjectsListener = (
@@ -12,6 +13,7 @@ type StudioWindow = Window & {
   }
 }
 const scripts = [
+  '/ui-dialog.js',
   '/onboarding.js',
   '/execution.js',
   '/task-center.js',
@@ -20,10 +22,13 @@ const scripts = [
   '/monitor-model.js',
   '/project-monitor.js',
   '/project-space.js',
+  '/project-progress-model.js',
+  '/project-progress.js',
   '/agents.js',
   '/studio-data.js',
   '/remote/account-device.js',
   '/mobile-device-entry.js',
+  '/studio-shell.js',
   '/studio-preview.js'
 ]
 let modules: Promise<void> | null = null
@@ -95,7 +100,13 @@ export default function PlatformStudioSurface({
       const stopKeyboardBubble = (event: Event) => event.stopPropagation()
       shadow.addEventListener('keydown', stopKeyboardBubble)
       shadow.addEventListener('keyup', stopKeyboardBubble)
-      const styles = ['/workspace.css', '/project-monitor.css', '/studio-preview.css', '/remote/remote-account.css'].map(
+      const styles = [
+        '/workspace.css',
+        '/project-monitor.css',
+        '/studio-preview.css',
+        '/project-progress.css',
+        '/remote/remote-account.css'
+      ].map(
         (href) =>
           new Promise<void>((resolve, reject) => {
             const link = document.createElement('link')
@@ -110,20 +121,16 @@ export default function PlatformStudioSurface({
       if (disposed) return
       root.dataset.unified = 'true'
       const syncTheme = () => {
-        root.dataset.theme = document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+        root.dataset.theme = platformAppearance.getSnapshot().theme
       }
       syncTheme()
-      const themeObserver = new MutationObserver(syncTheme)
-      themeObserver.observe(document.documentElement, {
-        attributes: true,
-        attributeFilter: ['class']
-      })
+      const unsubscribeAppearance = platformAppearance.subscribe(syncTheme)
       assertContextActive()
       shadow.append(root)
       const unmount = (window as StudioWindow).StudioPreview!.mount(root, { onProjects })
       dispose = () => {
         unmount()
-        themeObserver.disconnect()
+        unsubscribeAppearance()
         shadow.removeEventListener('keydown', stopKeyboardBubble)
         shadow.removeEventListener('keyup', stopKeyboardBubble)
       }
@@ -143,7 +150,7 @@ export default function PlatformStudioSurface({
       className="platform-studio-surface"
       hidden={hidden}
       inert={pending && ready}
-      aria-label="项目与事项"
+      aria-label="项目与进展"
     >
       {!ready && (
         <div className="platform-surface-feedback" role={error ? 'alert' : 'status'}>

@@ -2,6 +2,7 @@
 
 import sqlite3
 import threading
+import time
 import json
 from contextlib import contextmanager
 from datetime import datetime, timezone
@@ -16,11 +17,29 @@ from control_everything.workspace.validation import (
 from control_everything.workspace import task_schema as tasks
 from control_everything.workspace.task_schema import BASE_SCHEMA, MANAGEMENT_SCHEMA
 
-MANAGEMENT_TABLES = tasks.SCHEMA9_TABLES
+MANAGEMENT_TABLES = tasks.SCHEMA10_TABLES
 
 
 def now_utc():
     return datetime.now(timezone.utc).isoformat()
+
+
+@contextmanager
+def connection_lock(lock, deadline=None, cancel_event=None):
+    if deadline is None:
+        with lock:
+            yield
+        return
+    while True:
+        remaining = deadline - time.monotonic()
+        if remaining <= 0 or cancel_event is not None and cancel_event.is_set():
+            raise WorkspaceError('store_busy')
+        if lock.acquire(timeout=min(.05, remaining)):
+            break
+    try:
+        yield
+    finally:
+        lock.release()
 
 
 class WorkspaceError(Exception):
@@ -43,15 +62,20 @@ class WorkspaceStore:
         tasks.register_writer(connection)
 
     @contextmanager
-    def connection(self):
+    def connection(self, *, timeout=None, cancel_event=None):
         connection = None
+        deadline = None if timeout is None else time.monotonic() + timeout
         try:
-            connection = sqlite3.connect(self.path, timeout=5 if self.profile else 3)
+            busy_timeout = (5 if self.profile else 3) if timeout is None else max(0, min(timeout, .05))
+            connection = sqlite3.connect(self.path, timeout=busy_timeout)
             connection.row_factory = sqlite3.Row
-            connection.execute("PRAGMA busy_timeout=5000" if self.profile else "PRAGMA busy_timeout=3000")
+            connection.execute(f"PRAGMA busy_timeout={int(busy_timeout * 1000)}")
+            if deadline is not None:
+                connection.set_progress_handler(lambda: int(time.monotonic() >= deadline or
+                    cancel_event is not None and cancel_event.is_set()), 100)
             if self.profile:
                 connection.execute("PRAGMA foreign_keys=ON")
-            with self._schema_lock:
+            with connection_lock(self._schema_lock, deadline, cancel_event):
                 version = connection.execute("PRAGMA user_version").fetchone()[0]
                 if self.profile:
                     tables = connection.execute("SELECT name FROM sqlite_master").fetchall()
@@ -60,12 +84,12 @@ class WorkspaceStore:
                         try:
                             # A second process might have initialized while we waited.
                             if not connection.execute("SELECT name FROM sqlite_master").fetchone():
-                                tasks.install_schema9(connection, fresh=True)
+                                tasks.install_schema10(connection, fresh=True)
                             connection.commit()
                         except Exception:
                             connection.rollback()
                             raise
-                    elif version in (1, 2, 3, 4, 5, 6, 7, 8):
+                    elif version in (1, 2, 3, 4, 5, 6, 7, 8, 9):
                         self.validate_schema(connection, version)
                         raise WorkspaceError("migration_required")
                     self.checked_management_connection(connection)
@@ -87,7 +111,7 @@ class WorkspaceStore:
                         );
                         """)
                 self._initialized = True
-            with self.write_lock, connection:
+            with connection_lock(self.write_lock, deadline, cancel_event), connection:
                 yield connection
         except (sqlite3.Error, OSError, OverflowError) as error:
             reason = "store_busy" if self.profile and isinstance(error, sqlite3.OperationalError) and ("locked" in str(error) or "busy" in str(error)) else "storage_error" if self.profile else "storage_unavailable"
@@ -215,6 +239,11 @@ class WorkspaceStore:
             imported_edit = existing is not None and imported_id_valid(identity) and not restore
             item = validate_project(body, restore=restore, allow_imported_id=imported_edit)
             old_bindings = {tuple(row) for row in connection.execute("SELECT binding_id,path_key FROM project_directories WHERE project_id=?", (identity,))}
+            if (existing is not None and self.profile and
+                    (old_bindings != {(row['id'], row['path_key']) for row in item['directories']}
+                     or item['archived'] != bool(existing['archived'])) and
+                    connection.execute("SELECT 1 FROM task_native_runs WHERE project_id=? AND active_slot=1", (identity,)).fetchone()):
+                raise ProfileError('native_managed_project', status=409)
             marker = connection.execute("SELECT kind FROM project_sources WHERE project_id=?", (identity,)).fetchone()
             if marker is not None and marker[0] == "codex":
                 raise ProfileError("invalid_project", "id", message="read_only_project")
@@ -434,7 +463,8 @@ class WorkspaceStore:
                    state=state, session_key=fields['session_key'], source=source,
                    created_at=created_at, updated_at=updated_at, todo_position=todo_position,
                    sort_index=order, resume_state=state if state != 'done' else 'todo', revision=1,
-                   priority=priority, focus=focus, assigned_agent_id=assigned_agent_id)
+                   priority=priority, focus=focus, assigned_agent_id=assigned_agent_id,
+                   progress_revision=0, current_delivery_id=None, accepted_delivery_id=None)
         tasks.insert_item(connection, row)
         tasks.bump_list_revision(connection)
         return row
@@ -444,6 +474,9 @@ class WorkspaceStore:
         # Internal execution projection and human review use their own guarded transactions.
         protected = {'project_id', 'provider_id', 'state', 'session_key', 'assigned_agent_id'}
         if any(key in protected and fields[key] != current[key] for key in fields):
+            if connection.execute("SELECT 1 FROM task_native_runs WHERE task_id=? AND active_slot=1",
+                                  (current['id'],)).fetchone():
+                raise ProfileError('native_managed_item', status=409)
             managed = connection.execute(
                 "SELECT 1 FROM agent_runs ar JOIN task_dispatches d ON d.id=ar.dispatch_id "
                 "WHERE ar.task_id=? AND ar.status IN ('claimed','running','waiting_review') "

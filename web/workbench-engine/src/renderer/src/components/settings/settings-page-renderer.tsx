@@ -1,4 +1,4 @@
-import { ActiveSettingsSectionProvider } from './SettingsSection'
+import { ActiveSettingsSectionProvider, SettingsSectionScopeProvider } from './SettingsSection'
 import { SettingsContentScrollElementProvider } from './settings-content-scroll-element'
 import { SettingsSidebar } from './SettingsSidebar'
 import { cn } from '@/lib/utils'
@@ -61,15 +61,19 @@ import {
 } from './SettingsHostScopePicker'
 
 export function renderSettingsLoading(
-  interactions: SettingsInteractionController
+  interactions: SettingsInteractionController,
+  unavailable?: 'environment' | 'entry'
 ): React.JSX.Element {
   return (
     <div
       ref={interactions.setSettingsRootNode}
-      className="settings-view-shell flex min-h-0 flex-1 overflow-hidden bg-background"
+      className="settings-view-shell ce-management-surface flex min-h-0 flex-1 overflow-hidden bg-background"
     >
-      <div className="flex flex-1 items-center justify-center text-muted-foreground">
-        {translate('auto.components.settings.Settings.c7ad095d96', 'Loading settings...')}
+      <div className="flex flex-1 flex-col items-center justify-center gap-4 text-muted-foreground" role="status">
+        {unavailable ? (unavailable === 'environment'
+          ? '尚未连接开发环境。请先打开已登记项目，再访问开发偏好。' : '当前设置入口不可用，请返回后选择可用的设置。')
+          : translate('auto.components.settings.Settings.c7ad095d96', 'Loading settings...')}
+        {unavailable && <button type="button" onClick={() => void interactions.closeSettingsPageWithPromptGuard()}>返回</button>}
       </div>
     </div>
   )
@@ -80,7 +84,7 @@ export function renderSettingsPage(context: SettingsRenderContext): React.JSX.El
   return (
     <div
       ref={interactions.setSettingsRootNode}
-      className="settings-view-shell flex min-h-0 flex-1 overflow-hidden bg-background"
+      className="settings-view-shell ce-management-surface flex min-h-0 flex-1 overflow-hidden bg-background"
     >
       <SettingsSidebar
         settings={model.settings}
@@ -88,6 +92,8 @@ export function renderSettingsPage(context: SettingsRenderContext): React.JSX.El
         generalGroups={view.generalNavGroups}
         repoSections={view.repoNavSections}
         hasRepos={model.repos.length > 0}
+        showProjects={model.presentation?.scope.kind !== 'global'}
+        showSetupGuide={!model.presentation || navigation.navSections.some((section) => section.id === 'setup-guide')}
         searchInputRef={interactions.searchInputRef}
         // Why: deep-links open panes/modals that own focus; plain entry lands in search.
         searchAutoFocus={model.settingsNavigationTarget == null}
@@ -95,7 +101,7 @@ export function renderSettingsPage(context: SettingsRenderContext): React.JSX.El
         onSelectSection={actions.scrollToSection}
       />
 
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+      <div className="settings-content-column flex min-h-0 min-w-0 flex-1 flex-col">
         {!model.isWebClient &&
         shouldShowSettingsHostScopePicker(model.settingsHostScope, model.runtimeEnvironments) ? (
           <SettingsHostScopePicker
@@ -113,9 +119,9 @@ export function renderSettingsPage(context: SettingsRenderContext): React.JSX.El
         >
           <div
             className={cn(
-              'mx-auto flex w-full flex-col gap-10 px-8 pt-10',
+              'settings-content-body mx-auto flex w-full flex-col gap-10 pt-10',
               view.isFocusedShortcutsPane ? 'h-full pb-6' : 'pb-24',
-              view.isFocusedSetupGuidePane ? 'max-w-6xl' : 'max-w-4xl'
+              'max-w-none'
             )}
           >
             {navigation.visibleNavSections.length === 0 ? (
@@ -129,6 +135,7 @@ export function renderSettingsPage(context: SettingsRenderContext): React.JSX.El
               </div>
             ) : (
               <SettingsContentScrollElementProvider value={interactions.contentScrollElement}>
+                <SettingsSectionScopeProvider value={model.presentation ? new Set(navigation.navSections.map((section) => section.id)) : undefined}>
                 <ActiveSettingsSectionProvider value={model.activeSectionId}>
                   {renderAgentsSettingsSection(context)}
                   {renderAccountsSettingsSection(context)}
@@ -167,6 +174,7 @@ export function renderSettingsPage(context: SettingsRenderContext): React.JSX.El
                   {renderPluginsSettingsSection(context)}
                   {renderProjectSettingsSections(context)}
                 </ActiveSettingsSectionProvider>
+                </SettingsSectionScopeProvider>
               </SettingsContentScrollElementProvider>
             )}
           </div>

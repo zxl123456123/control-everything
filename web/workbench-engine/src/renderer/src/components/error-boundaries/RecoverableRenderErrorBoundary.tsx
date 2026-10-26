@@ -77,8 +77,8 @@ export class RecoverableRenderErrorBoundary extends React.Component<Props, State
     return (
       <div
         className={cn(
-          'flex flex-col items-center justify-center gap-3 px-6 text-center text-sm text-muted-foreground',
-          this.props.compact ? 'min-h-9 py-2' : 'h-full min-h-0 py-8',
+          'ce-management-surface flex min-w-0 flex-col items-center justify-center gap-4 overflow-auto px-6 text-center text-muted-foreground',
+          this.props.compact ? 'min-h-11 py-4' : 'h-full min-h-0 py-8',
           this.props.className
         )}
         role="alert"
@@ -86,21 +86,21 @@ export class RecoverableRenderErrorBoundary extends React.Component<Props, State
         <div className="flex size-8 items-center justify-center rounded-full border border-destructive/25 bg-destructive/10 text-destructive">
           <AlertTriangle className="size-4" />
         </div>
-        <div className="space-y-1">
-          <div className="font-medium text-foreground">
+        <div className="min-w-0 space-y-2 [overflow-wrap:anywhere]">
+          <h2 className="text-foreground">
             {this.props.title ??
               translate(
                 'auto.components.error.boundaries.RecoverableRenderErrorBoundary.ab855c11f4',
                 'This part of Orca hit an error.'
               )}
-          </div>
-          <div className="max-w-md text-xs">
+          </h2>
+          <p className="max-w-lg text-sm leading-[22px]">
             {this.props.description ??
               translate(
                 'auto.components.error.boundaries.RecoverableRenderErrorBoundary.34a189ae0f',
                 'The rest of the app is still running. Retry this surface or switch away and come back.'
               )}
-          </div>
+          </p>
         </div>
         <Button type="button" variant="outline" size="sm" onClick={this.handleReset}>
           <RotateCw className="size-3.5" />

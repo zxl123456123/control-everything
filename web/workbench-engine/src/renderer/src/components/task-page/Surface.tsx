@@ -1,3 +1,4 @@
+import { ManagementSurfaceProvider } from '@/components/ui/management-surface'
 import type { TaskPageComposerActionsModel } from '../use-task-page-composer-actions'
 import { TaskPageFrame } from './Frame'
 import { TaskPageGitHubIssueDialog } from './github/IssueDialog'
@@ -13,22 +14,24 @@ export function TaskPageSurface({
   model: TaskPageComposerActionsModel
 }): React.JSX.Element {
   return (
-    <div className="relative flex h-full min-h-0 flex-1 overflow-hidden bg-background text-foreground">
-      <TaskPageFrame model={model} />
+    <ManagementSurfaceProvider value={true}>
+      <div className="ce-management-surface relative mx-auto flex h-full min-h-0 w-full max-w-[1100px] flex-1 overflow-hidden bg-background text-foreground">
+        <TaskPageFrame model={model} />
 
-      <TaskPageGitHubIssueDialog model={model} />
+        <TaskPageGitHubIssueDialog model={model} />
 
-      <TaskPageLinearProjectDialog model={model} />
+        <TaskPageLinearProjectDialog model={model} />
 
-      <TaskPageLinearIssueDialog model={model} />
+        <TaskPageLinearIssueDialog model={model} />
 
-      <TaskPageJiraIssueDialog model={model} />
+        <TaskPageJiraIssueDialog model={model} />
 
-      <TaskPageGitLabDialog model={model} />
+        <TaskPageGitLabDialog model={model} />
 
-      <TaskPageLinearConnectDialog model={model} />
+        <TaskPageLinearConnectDialog model={model} />
 
-      <TaskPageJiraConnectDialog model={model} />
-    </div>
+        <TaskPageJiraConnectDialog model={model} />
+      </div>
+    </ManagementSurfaceProvider>
   )
 }

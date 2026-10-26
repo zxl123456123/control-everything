@@ -18,6 +18,7 @@ import { FeatureWallSetupChecklist } from '../feature-wall/FeatureWallSetupCheck
 import { useSetupGuideProgress } from './use-setup-guide-progress'
 import { useSetupGuideOpenCloseTelemetry } from './use-setup-guide-telemetry'
 import { translate } from '@/i18n/i18n'
+import { ManagementSurfaceProvider } from '@/components/ui/management-surface'
 
 const SETUP_GUIDE_CLOSE_LINGER_MS = 300
 
@@ -133,47 +134,52 @@ function SetupGuideModalContent({
   }, [setSetupGuideSidebarDismissed])
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent
-        className="grid h-[min(780px,calc(100vh-2rem))] w-[min(1080px,calc(100vw-2rem))] max-w-none grid-rows-[auto_minmax(0,1fr)] gap-0 p-0 sm:max-w-none"
-        tabIndex={-1}
-      >
-        {/* Why: labeled so it can't be mistaken for close; hidden below sm, where the header
-            centers the title under it (the sidebar entry keeps its own hide control). */}
-        <Button
-          type="button"
-          variant="ghost"
-          size="xs"
-          onClick={handleHideFromSidebar}
-          className="absolute right-11 top-3.5 hidden sm:inline-flex"
+    <ManagementSurfaceProvider value>
+      <Dialog open={open} onOpenChange={handleOpenChange}>
+        <DialogContent
+          className="grid max-h-[calc(100dvh-2rem)] w-[min(820px,calc(100vw-2rem))] max-w-none grid-rows-[auto_minmax(0,1fr)] gap-0 p-0 sm:max-w-none"
+          tabIndex={-1}
         >
-          {translate(
-            'auto.components.setup.guide.SetupGuideModal.f3b5ffb2a6',
-            'Hide checklist from sidebar'
-          )}
-        </Button>
-        <DialogHeader className="gap-1 border-b border-border px-7 py-4">
-          <DialogTitle className="text-lg">
-            {translate('auto.components.setup.guide.SetupGuideModal.48a9e5ef2d', 'Getting started')}
-          </DialogTitle>
-          <DialogDescription className="text-sm text-muted-foreground">
+          {/* Why: keep the sidebar preference separate from closing; on narrow screens its
+            existing sidebar entry retains the same hide control. */}
+          <Button
+            type="button"
+            variant="ghost"
+            size="xs"
+            onClick={handleHideFromSidebar}
+            className="absolute right-16 top-4 hidden sm:inline-flex"
+          >
             {translate(
-              'auto.components.setup.guide.SetupGuideModal.3598a3ca0c',
-              'Finish the core workflows that make Orca useful for parallel agent work.'
+              'auto.components.setup.guide.SetupGuideModal.f3b5ffb2a6',
+              'Hide checklist from sidebar'
             )}
-          </DialogDescription>
-        </DialogHeader>
-        <div className="min-h-0 overflow-hidden px-7 py-6">
-          <FeatureWallSetupChecklist
-            activeStep={activeStep}
-            progress={progress}
-            onSelectStep={handleSelectStep}
-            onOrchestrationSkillInstalledChange={setOrchestrationSkillInstalled}
-            onBrowserUseSkillInstalledChange={setBrowserUseSkillInstalled}
-          />
-        </div>
-      </DialogContent>
-    </Dialog>
+          </Button>
+          <DialogHeader className="gap-2 border-b border-border p-6 pt-16 sm:pr-16">
+            <DialogTitle className="text-lg">
+              {translate(
+                'auto.components.setup.guide.SetupGuideModal.48a9e5ef2d',
+                'Getting started'
+              )}
+            </DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground">
+              {translate(
+                'auto.components.setup.guide.SetupGuideModal.3598a3ca0c',
+                'Finish the core workflows that make Orca useful for parallel agent work.'
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="min-h-0 overflow-y-auto p-6">
+            <FeatureWallSetupChecklist
+              activeStep={activeStep}
+              progress={progress}
+              onSelectStep={handleSelectStep}
+              onOrchestrationSkillInstalledChange={setOrchestrationSkillInstalled}
+              onBrowserUseSkillInstalledChange={setBrowserUseSkillInstalled}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
+    </ManagementSurfaceProvider>
   )
 }
 

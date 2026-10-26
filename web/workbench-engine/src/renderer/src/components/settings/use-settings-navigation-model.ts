@@ -41,7 +41,7 @@ export function useSettingsNavigationModel(
   }, [])
 
   const displayedGitUsername = model.repos[0]?.gitUsername ?? ''
-  const baseNavSections = useSettingsNavigationMetadata()
+  const baseNavSections = useSettingsNavigationMetadata(model.presentation?.scope)
   const { installed: orchestrationSkillInstalled, loading: orchestrationSkillLoading } =
     model.orchestrationSkill
   const {
@@ -170,30 +170,40 @@ export function useSettingsNavigationModel(
     const projectById = new Map(projection.projects.map((project) => [project.id, project]))
     const nextProjectByRepoId = new Map<string, (typeof projection.projects)[number]>()
     for (const setup of projection.setups) {
+      const scope = model.presentation?.scope
+      if (scope?.kind === 'project' && (setup.id !== scope.setupId || setup.repoId !== scope.repoId ||
+        setup.hostId !== scope.hostId)) continue
       const project = projectById.get(setup.projectId)
       if (project && setup.repoId.trim()) {
         nextProjectByRepoId.set(setup.repoId, project)
       }
     }
     return nextProjectByRepoId
-  }, [model.projectHostSetups, model.projects, model.repos])
+  }, [model.projectHostSetups, model.projects, model.repos, model.presentation?.scope])
   const neededSectionIds = useMemo(
-    () =>
-      deriveNeededSectionIds({
+    () => {
+      const needed = deriveNeededSectionIds({
         navSectionIds: navSections.map((section) => section.id),
         mountedSectionIds: model.mountedSectionIds,
         activeSectionId: model.activeSectionId,
         pendingSectionId: interactions.pendingNavSectionRef.current,
         query: model.settingsSearchQuery,
         visibleSectionIds
-      }),
+      })
+      // Mounted history cannot keep an out-of-scope host/pane effect alive.
+      return model.presentation
+        ? new Set([...needed].filter((id) => navSectionById.has(id)))
+        : needed
+    },
     [
       model.activeSectionId,
       model.mountedSectionIds,
       interactions.pendingNavSectionRef,
       navSections,
       model.settingsSearchQuery,
-      visibleSectionIds
+      visibleSectionIds,
+      model.presentation,
+      navSectionById
     ]
   )
 

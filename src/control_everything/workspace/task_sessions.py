@@ -103,6 +103,12 @@ def list_sessions(store, project_id=None):
 
 
 def link_session(store, task_id, body):
+    with store.connection() as connection:
+        connection.execute("BEGIN IMMEDIATE")
+        return link_session_in_connection(connection, task_id, body)
+
+
+def link_session_in_connection(connection, task_id, body):
     required = {"source", "external_id"}
     allowed = required | {"source_instance", "title", "url", "agent_id", "last_seen_at"}
     if type(body) is not dict or not required <= set(body) or set(body) - allowed:
@@ -114,29 +120,27 @@ def link_session(store, task_id, body):
     url = _url(body.get("url"))
     agent_id = _text(body.get("agent_id"), "agent_id", 64)
     last_seen = _time(body.get("last_seen_at"), "last_seen_at")
-    with store.connection() as connection:
-        connection.execute("BEGIN IMMEDIATE")
-        item = _task(connection, task_id)
-        existing = connection.execute(
-            "SELECT * FROM task_sessions WHERE source=? AND source_instance=? AND external_id=?",
-            (source, source_instance, external_id)).fetchone()
-        stamp = now_utc()
-        if existing is not None:
-            if existing["task_id"] not in (None, task_id):
-                raise ProfileError("session_conflict", "external_id", status=409)
-            connection.execute(
-                "UPDATE task_sessions SET task_id=?,project_id=?,agent_id=?,title=?,url=?,last_seen_at=?,updated_at=? "
-                "WHERE id=?",
-                (task_id, item["project_id"], agent_id or existing["agent_id"], title or existing["title"],
-                 url or existing["url"], last_seen or existing["last_seen_at"], stamp, existing["id"]))
-            return _view(connection.execute("SELECT * FROM task_sessions WHERE id=?", (existing["id"],)).fetchone())
-        identity = str(uuid4())
+    item = _task(connection, task_id)
+    existing = connection.execute(
+        "SELECT * FROM task_sessions WHERE source=? AND source_instance=? AND external_id=?",
+        (source, source_instance, external_id)).fetchone()
+    stamp = now_utc()
+    if existing is not None:
+        if existing["task_id"] not in (None, task_id):
+            raise ProfileError("session_conflict", "external_id", status=409)
         connection.execute(
-            "INSERT INTO task_sessions(id,task_id,project_id,agent_id,source,source_instance,external_id,title,url,"
-            "last_seen_at,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",
-            (identity, task_id, item["project_id"], agent_id, source, source_instance, external_id, title, url,
-             last_seen, stamp, stamp))
-        return _view(connection.execute("SELECT * FROM task_sessions WHERE id=?", (identity,)).fetchone())
+            "UPDATE task_sessions SET task_id=?,project_id=?,agent_id=?,title=?,url=?,last_seen_at=?,updated_at=? "
+            "WHERE id=?",
+            (task_id, item["project_id"], agent_id or existing["agent_id"], title or existing["title"],
+             url or existing["url"], last_seen or existing["last_seen_at"], stamp, existing["id"]))
+        return _view(connection.execute("SELECT * FROM task_sessions WHERE id=?", (existing["id"],)).fetchone())
+    identity = str(uuid4())
+    connection.execute(
+        "INSERT INTO task_sessions(id,task_id,project_id,agent_id,source,source_instance,external_id,title,url,"
+        "last_seen_at,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",
+        (identity, task_id, item["project_id"], agent_id, source, source_instance, external_id, title, url,
+         last_seen, stamp, stamp))
+    return _view(connection.execute("SELECT * FROM task_sessions WHERE id=?", (identity,)).fetchone())
 
 
 def unlink_session(store, session_id, body):
@@ -153,6 +157,9 @@ def unlink_session(store, session_id, body):
             raise ProfileError("session_not_found", status=404)
         if row["task_id"] != expected_task_id or row["updated_at"] != expected_updated_at:
             raise ProfileError("session_changed", status=409)
+        if connection.execute("SELECT 1 FROM task_native_runs WHERE task_id=? AND active_slot=1 AND "
+                              "environment_id=? AND provider_session_id=?", (expected_task_id, row['source_instance'], row['external_id'])).fetchone():
+            raise ProfileError("native_managed_item", status=409)
         connection.execute("UPDATE task_sessions SET task_id=NULL,project_id=NULL,updated_at=? WHERE id=?",
                            (now_utc(), session_id))
         return _view(connection.execute("SELECT * FROM task_sessions WHERE id=?", (session_id,)).fetchone())

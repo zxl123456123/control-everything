@@ -6,6 +6,7 @@ import { useAppStore } from '../store'
 import { Card } from './ui/card'
 import { Button } from './ui/button'
 import { translate } from '@/i18n/i18n'
+import { isImeOwnedKeyboardEvent } from '@/lib/ime-composition-keyboard-event'
 import { UpdateCardStateContent } from './maintenance/update-card/UpdateCardStateContent'
 import { buildUpdateCardErrorModel } from './maintenance/update-card/update-card-error-model'
 import {
@@ -194,7 +195,7 @@ export function UpdateCard(): React.JSX.Element | null {
     }, 150)
   }
   const handleKeyDown = (event: React.KeyboardEvent): void => {
-    if (event.key !== 'Escape') {
+    if (event.key !== 'Escape' || event.defaultPrevented || isImeOwnedKeyboardEvent(event)) {
       return
     }
     event.preventDefault()
@@ -238,12 +239,12 @@ export function UpdateCard(): React.JSX.Element | null {
     !reassuranceSeen &&
     ((status.state === 'available' && !status.externallyManaged) || status.state === 'downloading')
   return (
-    <div ref={cardRootRef} className="flex flex-col gap-2">
+    <div ref={cardRootRef} className="ce-management-surface flex min-w-0 flex-col gap-4">
       {showReassurance && (
-        <Card className={`py-0 gap-0 ${animationClass}`}>
-          <div className="flex items-center gap-3 p-3">
+        <Card className={`gap-0 rounded-2xl bg-background py-0 ${animationClass}`}>
+          <div className="flex items-center gap-3 p-4">
             <div className="flex-1 min-w-0">
-              <p className="text-xs text-muted-foreground">
+              <p className="text-sm text-muted-foreground">
                 {translate(
                   'auto.components.UpdateCard.b1d867f4fb',
                   "Your terminal sessions won't be interrupted during the update."
@@ -253,7 +254,7 @@ export function UpdateCard(): React.JSX.Element | null {
             <Button
               variant="ghost"
               size="icon"
-              className="size-7 shrink-0"
+              className="size-11 shrink-0"
               onClick={markReassuranceSeen}
               aria-label={translate('auto.components.UpdateCard.7274ef6e59', 'Dismiss tip')}
             >
@@ -268,7 +269,7 @@ export function UpdateCard(): React.JSX.Element | null {
         aria-live="polite"
         tabIndex={-1}
         onKeyDown={handleKeyDown}
-        className={`py-0 gap-0 ${animationClass}`}
+        className={`min-w-0 gap-0 rounded-2xl bg-background py-0 [overflow-wrap:anywhere] ${animationClass}`}
       >
         {cardContent}
       </Card>

@@ -7,6 +7,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2] / "web" / "workspace"
 RESOURCES = {
+    "/ui-theme.js": ("ui-theme.js", "text/javascript; charset=utf-8"),
+    "/ui-dialog.js": ("ui-dialog.js", "text/javascript; charset=utf-8"),
+    "/studio-shell.js": ("studio-shell.js", "text/javascript; charset=utf-8"),
     "/": ("studio-preview.html", "text/html; charset=utf-8"),
     "/studio-preview.html": ("studio-preview.html", "text/html; charset=utf-8"),
     "/studio-preview.css": ("studio-preview.css", "text/css; charset=utf-8"),

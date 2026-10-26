@@ -1,4 +1,6 @@
 import { useEffect } from 'react'
+import { isSettingsSectionInScope, type SettingsNavSection } from '@/lib/settings-navigation-types'
+import { resolvePlatformSettingsTarget } from '@/web/platform-settings-navigation'
 import { toast } from 'sonner'
 import { useAppStore } from '../../store'
 import { keybindingMatchesAction } from '../../../../shared/keybindings'
@@ -22,7 +24,8 @@ import {
 
 export function useSettingsPageEffects(
   model: SettingsStoreModel,
-  interactions: SettingsInteractionController
+  interactions: SettingsInteractionController,
+  sections: readonly SettingsNavSection[] = []
 ): void {
   const {
     activeSectionId,
@@ -49,10 +52,9 @@ export function useSettingsPageEffects(
   } = model
   const {
     closeSettingsPageWithPromptGuard,
-    hasUnsavedSourceControlAiPromptChangesRef,
+    askToLeaveSettings,
     pendingNavSectionRef,
     pendingScrollTargetRef,
-    promptDiscardSourceControlAiPromptChanges,
     searchInputRef,
     shortcutsEscapeConfirmUntilRef
   } = interactions
@@ -129,12 +131,9 @@ export function useSettingsPageEffects(
       if (isIntentionalAppRestartInProgress()) {
         return true
       }
-      if (!hasUnsavedSourceControlAiPromptChangesRef.current) {
-        return true
-      }
-      return promptDiscardSourceControlAiPromptChanges()
+      return askToLeaveSettings()
     })
-  }, [hasUnsavedSourceControlAiPromptChangesRef, promptDiscardSourceControlAiPromptChanges])
+  }, [askToLeaveSettings])
 
   useEffect(() => {
     const handleFindShortcut = (event: KeyboardEvent): void => {
@@ -167,6 +166,15 @@ export function useSettingsPageEffects(
       settingsNavigationTarget.repoId,
       repoIdToRepresentative
     )
+    const scope = model.presentation?.scope
+    if (scope && !resolvePlatformSettingsTarget(scope, {
+      repos: model.repos, projects: settingsProjectList, sections
+    }, settingsNavigationTarget)) return
+    if (!isSettingsSectionInScope(paneSectionId, scope) ||
+      (scope?.kind === 'global' && settingsNavigationTarget.repoId !== null) ||
+      (scope?.kind === 'project' && (settingsNavigationTarget.pane !== 'repo' ||
+        settingsNavigationTarget.repoId !== scope.repoId ||
+        (settingsNavigationTarget.hostId !== undefined && settingsNavigationTarget.hostId !== scope.hostId)))) return
     // Why: select the target repo's host before scrolling so its host-specific subsection anchor renders and the scroll lands.
     const targetRepoId = resolveSettingsTargetRepoId(
       settingsNavigationTarget,
@@ -239,6 +247,9 @@ export function useSettingsPageEffects(
     setSshHostAddIntentSignal,
     settings,
     settingsProjectList,
-    settingsNavigationTarget
+    settingsNavigationTarget,
+    model.presentation?.scope,
+    model.repos,
+    sections
   ])
 }

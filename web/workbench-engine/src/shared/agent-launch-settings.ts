@@ -37,6 +37,7 @@ export type AgentLaunchSettingsSource = Partial<
     | 'agentDefaultEnv'
     | 'nativeChatPermissionMode'
     | 'agentNativeChatPermissionModes'
+    | 'agentStatusHooksEnabled'
   >
 >
 
@@ -51,6 +52,8 @@ export type AgentLaunchSettings = {
   autoPermissionMode?: true
   /** With Auto on: the combined mode of agents Auto doesn't cover. Absent from older hosts. */
   nonAutoPermissionMode?: 'manual' | 'yolo' | 'mixed'
+  /** Read-only capability hint; absent on older hosts and not proof of live observations. */
+  agentStatusHooksEnabled?: boolean
 }
 
 export type AgentLaunchSettingsMutation =
@@ -76,6 +79,8 @@ export function projectAgentLaunchSettings(
   return {
     defaultTuiAgent: settings.defaultTuiAgent ?? null,
     newWorkspaceSetupOnly: false,
+    ...(typeof settings.agentStatusHooksEnabled === 'boolean'
+      ? { agentStatusHooksEnabled: settings.agentStatusHooksEnabled } : {}),
     disabledTuiAgents: normalizeDisabledTuiAgents(settings.disabledTuiAgents),
     agentCmdOverrides: { ...settings.agentCmdOverrides },
     agentDefaultArgs: normalizeTuiAgentArgsRecord(settings.agentDefaultArgs),

@@ -1,4 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { settingsDraftKey, type SettingsDraftParticipant, type PlatformBeforeNavigateDetail,
+  type PlatformNavigationAcceptedDetail } from '@/web/platform-settings-navigation'
 import type { SourceControlAiSettingsPatch } from '../../../../shared/source-control-ai-types'
 import { useAppStore } from '../../store'
 import { translate } from '@/i18n/i18n'
@@ -29,9 +31,12 @@ export type SettingsInteractionModel = Pick<
   | 'setSourceControlAiPromptDiscardSignal'
   | 'settings'
   | 'updateSettingsOrThrow'
->
+> & { presentation?: SettingsStoreModel['presentation'] }
 
 export function useSettingsInteractionController(model: SettingsInteractionModel) {
+  const presentation = model.presentation
+  const participants = useRef(new Map<string, SettingsDraftParticipant>())
+  const localDrafts = useRef(new Map<string, unknown>())
   const {
     closeSettingsPage,
     confirm,
@@ -63,6 +68,7 @@ export function useSettingsInteractionController(model: SettingsInteractionModel
   const repoHooksRequestSeqRef = useRef(0)
   const shortcutsEscapeConfirmUntilRef = useRef(0)
   const sourceControlAiWriteQueueRef = useRef<Promise<void>>(undefined!)
+  const closingRef = useRef(false)
   sourceControlAiWriteQueueRef.current ??= Promise.resolve()
 
   const hasUnsavedSourceControlAiPromptChanges =
@@ -182,35 +188,94 @@ export function useSettingsInteractionController(model: SettingsInteractionModel
     })
   }, [confirm])
 
-  const confirmDiscardSourceControlAiPromptChanges = useCallback(async (): Promise<boolean> => {
-    if (!hasUnsavedSourceControlAiPromptChanges) {
-      return true
+  const askToLeaveSettings = useCallback(async (): Promise<boolean> => {
+    if (hasUnsavedSourceControlAiPromptChangesRef.current &&
+      !(await promptDiscardSourceControlAiPromptChanges())) return false
+    for (const participant of participants.current.values()) {
+      if (!(await participant.ask())) return false
     }
-    const shouldDiscard = await promptDiscardSourceControlAiPromptChanges()
-    if (shouldDiscard) {
+    return true
+  }, [promptDiscardSourceControlAiPromptChanges])
+
+  const commitSettingsDiscard = useCallback((): void => {
+    if (hasUnsavedSourceControlAiPromptChangesRef.current) {
       setSourceControlAiPromptDiscardSignal((signal) => signal + 1)
       setHasUnsavedCommitPromptChanges(false)
       setHasUnsavedBranchPromptChanges(false)
       setHasUnsavedChatPromptChanges(false)
     }
+    for (const participant of participants.current.values()) participant.discard?.()
+  }, [setSourceControlAiPromptDiscardSignal, setHasUnsavedCommitPromptChanges,
+    setHasUnsavedBranchPromptChanges, setHasUnsavedChatPromptChanges])
+
+  const draftContext = useMemo(() => ({
+    keyPrefix: presentation ? settingsDraftKey(presentation.scope) : 'standalone',
+    drafts: presentation?.drafts ?? localDrafts.current,
+    register: (participant: SettingsDraftParticipant) => {
+      participants.current.set(participant.key, participant)
+      return () => {
+        if (participants.current.get(participant.key) === participant)
+          participants.current.delete(participant.key)
+      }
+    },
+    confirmDiscard: promptDiscardSourceControlAiPromptChanges
+  }), [presentation?.scope, presentation?.drafts, promptDiscardSourceControlAiPromptChanges])
+
+  useEffect(() => {
+    if (!presentation || presentation.visible === false) return
+    let pending: { from: string; to: string; accepted: boolean } | null = null
+    const before = (event: Event) => {
+      const detail = (event as CustomEvent<PlatformBeforeNavigateDetail>).detail
+      if (!detail || typeof detail.waitUntil !== 'function') return
+      const request = { from: detail.from, to: detail.to, accepted: false }
+      pending = request
+      detail.waitUntil(askToLeaveSettings().then((accepted) => {
+        if (pending === request) request.accepted = accepted
+        return accepted
+      }))
+    }
+    const accepted = (event: Event) => {
+      const detail = (event as CustomEvent<PlatformNavigationAcceptedDetail>).detail
+      if (pending?.accepted && pending.from === detail?.from && pending.to === detail.to) {
+        pending = null
+        commitSettingsDiscard()
+      }
+    }
+    window.addEventListener('platform-before-navigate', before)
+    window.addEventListener('platform-navigation-accepted', accepted)
+    return () => {
+      pending = null
+      window.removeEventListener('platform-before-navigate', before)
+      window.removeEventListener('platform-navigation-accepted', accepted)
+    }
+  }, [presentation?.scope, presentation?.visible, askToLeaveSettings, commitSettingsDiscard])
+
+  const confirmDiscardSourceControlAiPromptChanges = useCallback(async (): Promise<boolean> => {
+    const shouldDiscard = await askToLeaveSettings()
+    if (shouldDiscard) commitSettingsDiscard()
     return shouldDiscard
   }, [
-    promptDiscardSourceControlAiPromptChanges,
-    hasUnsavedSourceControlAiPromptChanges,
-    setSourceControlAiPromptDiscardSignal,
-    setHasUnsavedCommitPromptChanges,
-    setHasUnsavedBranchPromptChanges,
-    setHasUnsavedChatPromptChanges
+    askToLeaveSettings,
+    commitSettingsDiscard
   ])
 
   const closeSettingsPageWithPromptGuard = useCallback(async (): Promise<void> => {
-    if (!(await confirmDiscardSourceControlAiPromptChanges())) {
+    if (presentation?.onClose) {
+      presentation.onClose()
       return
     }
-    closeSettingsPage()
-  }, [closeSettingsPage, confirmDiscardSourceControlAiPromptChanges])
+    if (closingRef.current) return
+    closingRef.current = true
+    try {
+      if (await confirmDiscardSourceControlAiPromptChanges()) closeSettingsPage()
+    } finally {
+      closingRef.current = false
+    }
+  }, [closeSettingsPage, confirmDiscardSourceControlAiPromptChanges, presentation?.onClose])
 
   return {
+    askToLeaveSettings,
+    draftContext,
     contentScrollRef,
     contentScrollElement,
     searchInputRef,

@@ -2,6 +2,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { getAgentCatalog } from '@/lib/agent-catalog'
 import { useAppStore } from '@/store'
+import {
+  fixedApplicationTheme,
+  isPlatformAppearance,
+  platformAppearance
+} from '../../web/platform-appearance'
 import { applyDocumentTheme } from '@/lib/document-theme'
 import { track } from '@/lib/telemetry'
 import { buildAgentPickedPayload } from './agent-picked-payload'
@@ -32,7 +37,23 @@ export function useOnboardingFlow(
   onOnboardingChange: (state: OnboardingState) => void
 ) {
   const settings = useAppStore((s) => s.settings)
-  const updateSettings = useAppStore((s) => s.updateSettings)
+  const updateSettingsDefault = useAppStore((s) => s.updateSettings)
+  const updateSettingsOrThrow = useAppStore((s) => s.updateSettingsOrThrow)
+  const updateSettings = useCallback(
+    async (updates: Partial<GlobalSettings>) => {
+      if (updates.theme === undefined) return updateSettingsDefault(updates)
+      const theme = fixedApplicationTheme(updates.theme)
+      if (isPlatformAppearance()) {
+        const result = await platformAppearance.requestTheme(theme)
+        if (result.error) throw new Error(result.error)
+        if (result.theme !== theme) throw new Error('外观正在保存，请重试。')
+        const rest = { ...updates }
+        delete rest.theme
+        if (Object.keys(rest).length) await updateSettingsOrThrow(rest)
+      } else await updateSettingsOrThrow({ ...updates, theme })
+    },
+    [updateSettingsDefault, updateSettingsOrThrow]
+  )
   const refreshDetectedAgents = useAppStore((s) => s.refreshDetectedAgents)
   const detectedAgentIds = useAppStore((s) => s.detectedAgentIds)
   const isDetectingAgents = useAppStore((s) => s.isDetectingAgents || s.isRefreshingAgents)
@@ -69,7 +90,9 @@ export function useOnboardingFlow(
   const { yoloPermissions, yoloPermissionsChosen, setYoloPermissionsInteractive } =
     useOnboardingYoloPermissions(settings)
   // Why: hydrate theme from saved settings so users who already chose one see it preselected.
-  const [theme, setTheme] = useState<GlobalSettings['theme']>(settings?.theme ?? 'dark')
+  const [theme, setTheme] = useState<GlobalSettings['theme']>(
+    fixedApplicationTheme(settings?.theme)
+  )
   const [busyLabel, setBusyLabel] = useState<string | null>(null)
   const [, setError] = useState<string | null>(null)
 
@@ -98,7 +121,7 @@ export function useOnboardingFlow(
   // Why: track interaction so async settings hydration doesn't overwrite a value the user chose.
   const setThemeInteractive = useCallback((value: GlobalSettings['theme']) => {
     themeInteractedRef.current = true
-    setTheme(value)
+    setTheme(fixedApplicationTheme(value))
   }, [])
   // `fromCollapsedSection`: whether the picked agent lived under AgentStep's `<details>` disclosure — only that call site knows.
   const detectedAgentIdsRef = useRef<readonly TuiAgent[]>(detectedAgentIds ?? [])
@@ -159,8 +182,8 @@ export function useOnboardingFlow(
   const startTimeRef = useRef<number>(initialStartTime)
 
   // Why: ref so the unmount-only revert reads the freshest theme without retriggering on each settings change.
-  const persistedThemeRef = useRef<GlobalSettings['theme']>(settings?.theme ?? 'dark')
-  persistedThemeRef.current = settings?.theme ?? 'dark'
+  const persistedThemeRef = useRef<GlobalSettings['theme']>(fixedApplicationTheme(settings?.theme))
+  persistedThemeRef.current = fixedApplicationTheme(settings?.theme)
   const themeStepEntryThemeRef = useRef<GlobalSettings['theme'] | null>(null)
   const themeStepEntryCapturedRef = useRef(false)
   useEffect(() => {
@@ -173,7 +196,7 @@ export function useOnboardingFlow(
     }
     // Why: capture entry theme so "Skip to project setup" keeps the preference the user arrived with.
     themeStepEntryCapturedRef.current = true
-    themeStepEntryThemeRef.current = settings.theme
+    themeStepEntryThemeRef.current = fixedApplicationTheme(settings.theme)
   }, [currentStep.id, settings])
 
   // Apply preview when local theme changes.

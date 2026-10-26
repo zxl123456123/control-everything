@@ -2,32 +2,32 @@
 (function () {
   'use strict';
   const toggle = document.querySelector('[data-theme-toggle]');
-  const preference = 'ce.account.theme';
-  const media = window.matchMedia('(prefers-color-scheme: dark)');
-  let selected;
-  try { selected = localStorage.getItem(preference); } catch { /* Optional appearance preference. */ }
-  function applyTheme() {
-    const dark = selected ? selected === 'dark' : media.matches;
-    document.documentElement.dataset.theme = dark ? 'dark' : 'light';
-    toggle.textContent = dark ? '浅色模式' : '深色模式';
-    toggle.setAttribute('aria-label', '切换到' + toggle.textContent);
-  }
-  function changeTheme() {
-    selected = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
-    try { localStorage.setItem(preference, selected); } catch { /* Appearance remains usable without storage. */ }
-    applyTheme();
-  }
-  let dispose;
+  const status = document.querySelector('[data-theme-error]');
+  let dispose, theme, unmountTheme, started = false, initialTheme = window.CEUITheme?.pageTheme;
   function start() {
-    if (dispose) return;
-    applyTheme(); toggle.addEventListener('click', changeTheme); media.addEventListener('change', applyTheme);
-    dispose = window.StudioAccountDevice.mount(document.querySelector('[data-account-root]'), {mode:'remote'});
+    if (started || window.CERemoteContext?.active === false) return;
+    started = true; theme = initialTheme || window.CEUITheme?.earlyRead('ce.account.theme'); initialTheme = null;
+    if (theme) {
+      toggle.disabled = false;
+      unmountTheme = theme.mount({roots: [document.body], toggles: [toggle], status,
+        aliases: {'--ce-surface':'--ce-panel', '--ce-muted':'--ce-sub', '--ce-accent':'--ce-primary', '--ce-on-accent':'--ce-on-primary'}});
+    } else {
+      toggle.disabled = true; status.hidden = false;
+      status.textContent = '主题资源未加载，请刷新后重试。';
+    }
+    if (window.StudioAccountDevice) {
+      dispose = window.StudioAccountDevice.mount(document.querySelector('[data-account-root]'), {mode: 'remote'});
+    } else {
+      status.hidden = false; status.textContent = '账号与设备资源未加载，请刷新后重试。';
+    }
   }
   function stop() {
+    started = false;
     dispose?.(); dispose = null;
-    toggle.removeEventListener('click', changeTheme); media.removeEventListener('change', applyTheme);
+    unmountTheme?.(); unmountTheme = null; theme?.dispose(); theme = null;
   }
   start();
+  window.CERemoteContext?.onInactive(stop);
   window.addEventListener('pagehide', stop);
   window.addEventListener('pageshow', start);
 })();

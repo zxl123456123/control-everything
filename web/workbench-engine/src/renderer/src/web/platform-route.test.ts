@@ -3,6 +3,9 @@ import { projectRoute, readPlatformRoute } from './platform-route'
 
 describe('platform page routes', () => {
   const read = (hash: string, search = '') => readPlatformRoute({ hash, search })
+  it('keeps news inside Studio independently of a legacy project query', () => {
+    expect(read('#news', '?project_id=p-one')).toEqual({ view: 'news', id: '', tab: '' })
+  })
   it('opens mobile independently of a legacy project query', () => {
     expect(read('#mobile')).toEqual({ view: 'mobile', id: '', tab: '' })
     expect(read('#mobile', '?project_id=p-one')).toEqual({ view: 'mobile', id: '', tab: '' })
@@ -31,7 +34,7 @@ describe('platform page routes', () => {
     expect(read('#inbox/attention').tab).toBe('attention')
     expect(read('#inbox/review').tab).toBe('review')
     expect(read('#overview').view).toBe('home')
-    expect(read('#settings').view).toBe('tools')
+    expect(read('#settings')).toEqual({ view: 'settings', id: '', tab: 'appearance' })
     expect(read('#agents').view).toBe('tools')
     expect(read('#projects').view).toBe('home')
     expect(projectRoute('p-one', 'tasks')).toBe('#project/p-one/tasks')
@@ -42,4 +45,12 @@ describe('platform page routes', () => {
       expect(read(hash).view).toBe('home')
     }
   )
+})
+
+
+it('separates setup, global settings and explicit project intents without changing legacy task filters', () => {
+  for (const hash of ['#workspace', '#project-setup']) expect(readPlatformRoute({ hash, search: '?project_id=p-one' })).toEqual({view:'project-setup', id:'', tab:''})
+  expect(readPlatformRoute({hash:'#settings/development',search:''})).toEqual({view:'settings',id:'',tab:'development'})
+  for (const tab of ['settings','items','board']) expect(readPlatformRoute({hash:'#project/p-one/'+tab,search:''})).toEqual({view:'project',id:'p-one',tab})
+  expect(readPlatformRoute({hash:'#settings/%2Fbad',search:''}).tab).toBe('appearance')
 })

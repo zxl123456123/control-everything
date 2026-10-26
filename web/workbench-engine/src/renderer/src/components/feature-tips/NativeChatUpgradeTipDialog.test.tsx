@@ -63,7 +63,7 @@ function renderDialog(chatModeOn: boolean): string {
 describe('NativeChatUpgradeTipDialog', () => {
   it('shows the approved copy with one Got It button and the Experimental settings link', () => {
     const text = textOf(renderDialog(true))
-    expect(text).toContain('NEW')
+    expect(text).toContain('New')
     expect(text).toContain('Native chat got an upgrade')
     expect(text).toContain(
       'New chats with supported agents now open in the upgraded chat view. To move between chat and CLI, open Agent Session History in the right sidebar:'
@@ -76,7 +76,8 @@ describe('NativeChatUpgradeTipDialog', () => {
     expect(text).toContain('Got It')
     expect(text).not.toContain('Maybe Later')
     expect(text).not.toContain('Turn on chat mode')
-    expect(renderDialog(true)).toContain('27rem')
+    expect(renderDialog(true)).toContain('max-h-[calc(100dvh-2rem)]')
+    expect(renderDialog(true)).not.toContain('md:!h-')
   })
 
   it('shows only Got It when chat mode is already on', () => {
@@ -96,7 +97,8 @@ describe('NativeChatUpgradeTipDialog', () => {
     expect(text).not.toContain('Got It')
     expect(text).not.toContain('Turn on chat mode')
     expect(html).not.toContain('role="switch"')
-    expect(html).toContain('27rem')
+    expect(html).toContain('max-h-[calc(100dvh-2rem)]')
+    expect(html).not.toContain('md:!h-')
     // The way back to the terminal stays in the tip.
     expect(text).toContain('Resume in New Terminal copies a Claude or Codex chat')
   })

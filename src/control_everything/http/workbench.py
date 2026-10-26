@@ -15,6 +15,7 @@ from control_everything.http import remote_context
 
 WEB = web_root()
 STUDIO_RESOURCES = {
+    "/studio-shell.js": ("studio-shell.js", "text/javascript; charset=utf-8"),
     "/remote/account-device.js": ("account-device.js", "text/javascript; charset=utf-8"),
     "/remote/remote-account.css": ("remote-account.css", "text/css; charset=utf-8"),
     "/studio": ("studio-preview.html", "text/html; charset=utf-8"),
@@ -90,7 +91,7 @@ class WorkbenchAssets:
 
 def _workbench_csp(manager, access=None):
     if access:
-        return ("default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
+        return ("default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; "
                 "img-src 'self' data: blob:; font-src 'self' data:; worker-src 'self' blob:; "
                 f"connect-src 'self' {access.websocket_origin}; object-src 'none'; frame-src 'self' blob:; "
                 "frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
@@ -100,7 +101,7 @@ def _workbench_csp(manager, access=None):
             or parsed.path or parsed.query or parsed.fragment or not parsed.port
             or origin != f"ws://127.0.0.1:{parsed.port}"):
         raise WorkbenchUnavailable("runtime_protocol_error")
-    return ("default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
+    return ("default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; "
             "img-src 'self' data: blob:; font-src 'self' data:; worker-src 'self' blob:; "
             f"connect-src 'self' {origin}; object-src 'none'; frame-src 'self' blob:; "
             "frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
@@ -134,10 +135,16 @@ def handle_get(handler, path):
                 return True
             body = (WEB / "workspace" / resource[0]).read_bytes()
             if path.path == "/workspace-admin":
-                body = body.replace(b'<body>', b'<body data-integration-admin="true">', 1)
+                body = re.sub(br'(<body)(?=[\s>])', br'\1 data-integration-admin="true"', body, count=1, flags=re.I)
             if path.path in ("/studio", "/studio-shell") and manager is not None:
                 body = body.replace(b'id="ce-studio"', b'id="ce-studio" data-isolated-preview="true"', 1)
-            handler.reply(200, body, resource[1], csp=STUDIO_CSP)
+            # Only the fixed same-origin news document may be embedded by standalone Studio.
+            csp = STUDIO_CSP
+            if path.path in ("/studio", "/studio-shell"):
+                origin = (remote_context.access_for(handler.server).public_origin
+                          if remote_context.remote_request(handler) else handler.server.origin)
+                csp = csp.replace("frame-src 'none'", f"frame-src {origin}/news")
+            handler.reply(200, body, resource[1], csp=csp)
         except (OSError, ValueError, WorkbenchUnavailable):
             handler.reject(503, "studio_assets_unavailable")
         return True

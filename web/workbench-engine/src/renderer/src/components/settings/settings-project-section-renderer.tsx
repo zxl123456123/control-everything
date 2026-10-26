@@ -9,13 +9,17 @@ import {
 } from './settings-project-list'
 import { translate } from '@/i18n/i18n'
 import type { SettingsRenderContext } from './settings-render-context'
+import { settingsDraftKey } from '@/web/platform-settings-navigation'
 
 export function renderProjectSettingsSections(context: SettingsRenderContext): React.ReactNode {
   const { model, navigation, terminal, view } = context
   return model.settingsProjectList.map((settingsProject) => {
     const repoSectionId = `repo-${settingsProject.representativeRepoId}`
     // Why: use the switcher-selected host's repo so identity/host-specific edits follow "Available Hosts".
-    const hostSelection = getSettingsEntryHostSelection(
+    const scope = model.presentation?.scope
+    const hostSelection = scope?.kind === 'project'
+      ? { hostId: scope.hostId, setupId: scope.setupId }
+      : getSettingsEntryHostSelection(
       settingsProject,
       model.settingsProjectHostSelection,
       model.settingsProjectSetupSelection
@@ -48,7 +52,7 @@ export function renderProjectSettingsSections(context: SettingsRenderContext): R
         {view.isSectionMounted(repoSectionId) ? (
           // Why: re-key per host so same-id hosts don't reuse the prior host's drafts/effects.
           <RepositoryPane
-            key={repoHostIdentity}
+            key={scope ? `${settingsDraftKey(scope)}:${repoHostIdentity}` : repoHostIdentity}
             repo={repo}
             yamlHooks={repoHooksState?.hooks ?? null}
             hasHooksFile={repoHooksState?.hasHooks ?? false}
@@ -64,6 +68,7 @@ export function renderProjectSettingsSections(context: SettingsRenderContext): R
                 ? new Set(settingsProject.setups.map((setup) => setup.repoId))
                 : undefined
             }
+            fixedHostSetup={scope?.kind === 'project'}
             removalScope={getSettingsProjectRemovalScope(settingsProject)}
             isLocalWindowsProject={
               getRepoExecutionHostId(repo) === LOCAL_EXECUTION_HOST_ID &&

@@ -78,10 +78,12 @@ class WorkspaceService:
     def __init__(self, db_path=DEFAULT_DB, *, registry_path=progress.REGISTRY,
                  manual_path=progress.MANUAL, todos_path=progress.TODOS,
                  session_reader=None, quota_source=None, news_source=None, profile=None, observer=None,
-                 desktop_reader=None):
+                 desktop_reader=None, progress_adapter=None):
         self.profile = profile
         self.observer = observer
         self.store = profile.store if profile is not None else WorkspaceStore(db_path)
+        from control_everything.workspace.native_progress import NativeProgress
+        self.native_progress = NativeProgress(self.store, progress_adapter)
         self.registry_path, self.manual_path, self.todos_path = registry_path, manual_path, todos_path
         self.session_reader = profile.codex_threads if profile is not None else session_reader or list_threads
         self.quota_source = quota_source or CodexQuotaSource()
@@ -454,8 +456,11 @@ class WorkspaceService:
             from control_everything.workspace import agent_runs
             states = agent_runs.assignment_states(self.store, [row["id"] for row in page["items"]])
         items = []
+        native = self.native_progress.projections([row['id'] for row in page['items']])
         for row in page["items"]:
             projected = self._item_projection(row, sessions, context)
+            if row['id'] in native:
+                projected['progress'] = native[row['id']]
             if assignment:
                 info = states.get(row["id"]) or {}
                 projected["assignment_state"] = self._assignment_state(row, info)

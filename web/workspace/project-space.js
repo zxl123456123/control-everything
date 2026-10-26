@@ -1,5 +1,11 @@
 // Project navigation uses the existing snapshot and a single task editor.
 'use strict';
+async function confirmSessionChange(owner, message, report, trigger) {
+  if (!window.CEUIDialog) { report('确认界面尚未就绪，未执行操作。'); return false; }
+  const confirmation = window.CEUIDialog.create({ root: owner, owner, fallback: owner.querySelector?.('h2, h3'), onError: error => report(error.message) });
+  try { return await confirmation.confirm({ title: '确认操作', message, trigger }); }
+  finally { confirmation.dispose(); }
+}
 window.WorkspaceSessionList = (() => {
   function create({ root, read, taskId = null, projectId = null, agents = [], postJson = null, isBusy = () => false, onBusy = () => {}, isCurrent = () => true }) {
     let request = 0, writing = false, uncertain = false, actions = [];
@@ -12,7 +18,8 @@ window.WorkspaceSessionList = (() => {
     function render(items, message) {
       actions = [];
       root.replaceChildren(node('h3', '事项会话'));
-      root.append(node('p', '围绕事项与 Agent 的交流记录。当前仅提供会话信息，未同步聊天正文。', 'section-note'));
+      const source = node('details', undefined, 'technical-details');
+      source.append(node('summary', '来源说明'), node('p', '当前仅提供会话信息，未同步聊天正文。', 'section-note')); root.append(source);
       const refresh = node('button', '重新读取会话', 'button secondary'); refresh.type = 'button';
       refresh.disabled = writing;
       actions.push(refresh);
@@ -39,7 +46,9 @@ window.WorkspaceSessionList = (() => {
           unlink.addEventListener('click', async () => {
             if (writing || uncertain) return;
             if (isBusy()) { status.textContent = '请先完成当前操作，再解除会话关联。'; return; }
-            if (!window.confirm(`确认解除“${session.title || session.external_id}”与当前事项的关联？外部聊天及其内容会保留。`)) return;
+            const version = request;
+            if (!await confirmSessionChange(root, `确认解除“${session.title || session.external_id}”与当前事项的关联？外部聊天及其内容会保留。`, text => { status.textContent = text; }, unlink)
+                || writing || uncertain || isBusy() || !isCurrent() || request !== version || row.isConnected === false || window.CERemoteContext?.active === false) return;
             writing = true; onBusy(true); render(items, '正在解除关联…');
             try {
               const result = await postJson('/api/workspace/sessions/' + encodeURIComponent(session.id) + '/unlink', {
@@ -107,7 +116,14 @@ window.WorkspaceSessionList = (() => {
     for (const control of Object.values(controls)) control.addEventListener('input', changed);
     agent.addEventListener('change', changed); confirmed.addEventListener('change', () => { onDirty(true); sync(); });
     function clear() { for (const control of Object.values(controls)) control.value = ''; agent.value = ''; confirmed.checked = false; onDirty(false); sync(); }
-    discard.addEventListener('click', () => { if (busy || isBusy()) return; if (window.confirm('放弃尚未保存的会话关联信息？')) { clear(); status.textContent = uncertain ? '上次保存结果未知，请先重新核对。' : '关联草稿已放弃。'; } });
+    discard.addEventListener('click', async () => {
+      if (busy || isBusy() || !isCurrent()) return;
+      const draft = JSON.stringify([...Object.values(controls).map(input => input.value), agent.value, confirmed.checked]);
+      if (await confirmSessionChange(root, '放弃尚未保存的会话关联信息？', text => { status.textContent = text; }, discard)
+          && !busy && !isBusy() && isCurrent() && draft === JSON.stringify([...Object.values(controls).map(input => input.value), agent.value, confirmed.checked]) && window.CERemoteContext?.active !== false) {
+        clear(); status.textContent = uncertain ? '上次保存结果未知，请先重新核对。' : '关联草稿已放弃。';
+      }
+    });
     const check = node('button', '核对关联结果'); check.type = 'button'; check.setAttribute('class', 'button secondary'); box.append(check);
     check.addEventListener('click', async () => {
       if (busy || isBusy()) return;
@@ -138,7 +154,8 @@ window.WorkspaceSessionList = (() => {
         status.textContent = error.reason === 'session_conflict' ? '会话已关联其他事项；草稿已保留，请核对来源实例和会话标识。' : uncertain ? '保存结果未知；草稿已保留，请先核对关联结果，不会自动重发。' : '关联未保存；草稿已保留，请检查填写内容。';
       } finally { busy = false; onBusy(false); if (isCurrent()) sync(); }
     });
-    return { isUncertain: () => uncertain };
+    const choice = window.WorkspaceAgents?.attachCollectionChoice(agent, '交流对象');
+    return { isUncertain: () => uncertain, dispose() { choice?.dispose(); } };
   }
   return { create, createEditor };
 })();
@@ -147,7 +164,7 @@ window.WorkspaceSessionList = (() => {
   function create({ root, navigation, taskRoot, tasks, navigate, manage, manual, remove, readSessions, readTaskSessions, onSession, fetchJson, postJson }) {
     let snapshot = null, selected = null, tab = 'tasks', view = 'overview', managementRefresh = false;
     let monitor = null, monitorRoot = null, monitorProject = null;
-    const sandboxStates = new Map(), sandboxRequests = new Map(), sandboxButtons = new Map();
+    const sandboxStates = new Map(), sandboxRequests = new Map(), sandboxButtons = new Map(), sandboxFeedbackNodes = new WeakMap();
     function sandboxEndpoint(item) {
       return '/api/workspace/projects/' + encodeURIComponent(item.id) + '/sandbox-preparation?directory_id=main';
     }
@@ -369,20 +386,24 @@ window.WorkspaceSessionList = (() => {
       for (const control of sandboxButtons.get(item.id) || []) {
         control.textContent = state?.status === 'ready' ? '沙箱已准备' : state?.status === 'required' ? '准备沙箱' : '检查沙箱';
         control.disabled = !state || state.status === 'ready' || sandboxRequests.has(item.id);
+        const feedback = sandboxFeedbackNodes.get(control); if (feedback) feedback.textContent = state?.message || '';
       }
     }
     function sandboxButton(item) {
       const control = button('检查沙箱', () => prepareSandbox(item), 'text-button');
+      const wrapper = node('span', 'sandbox-control'), feedback = node('span', 'feedback'); feedback.setAttribute('role', 'status');
+      wrapper.append(control, feedback); sandboxFeedbackNodes.set(control, feedback);
       const controls = sandboxButtons.get(item.id) || new Set();
       for (const previous of controls) if (previous.isConnected === false) controls.delete(previous);
       controls.add(control); sandboxButtons.set(item.id, controls);
       updateSandboxButtons(item);
       refreshSandbox(item);
-      return control;
+      return wrapper;
     }
     async function prepareSandbox(item) {
       if (!fetchJson || !postJson || sandboxRequests.has(item.id)) return;
       const token = { key: JSON.stringify(item.directories || []) };
+      const viewKey = JSON.stringify([view, selected, tab]);
       sandboxRequests.set(item.id, token);
       updateSandboxButtons(item);
       try {
@@ -392,17 +413,18 @@ window.WorkspaceSessionList = (() => {
           sandboxStates.set(item.id, { ...status, key: JSON.stringify(item.directories || []), sampledAt: Date.now() });
           return;
         }
-        if (!window.confirm(`将为当前用户补充此目录的沙箱准备权限：${status.canonical_path}。不会修改文件内容。DSH 后续运行还会留下文件权限及低完整性标签，可能允许同用户的其他低权限进程写入项目；恢复能力有限。确认准备？`)) return;
+        if (!await confirmSessionChange(root, `将为当前用户补充此目录的沙箱准备权限：${status.canonical_path}。不会修改文件内容。DSH 后续运行还会留下文件权限及低完整性标签，可能允许同用户的其他低权限进程写入项目；恢复能力有限。确认准备？`, text => {
+          sandboxStates.set(item.id, { ...status, key: token.key, sampledAt: Date.now(), message: text }); updateSandboxButtons(item);
+        }) || sandboxRequests.get(item.id) !== token || viewKey !== JSON.stringify([view, selected, tab])
+            || token.key !== JSON.stringify(snapshot?.projects.items.find(project => project.id === item.id)?.directories || []) || window.CERemoteContext?.active === false) return;
         const endpoint = '/api/workspace/projects/' + encodeURIComponent(item.id) + '/sandbox-preparation';
         const value = await postJson(endpoint, { confirmed: true, path: status.canonical_path,
           directory_id: status.directory_id, confirmation_hash: status.confirmation_hash });
-        sandboxStates.set(item.id, { ...value, key: JSON.stringify(item.directories || []), sampledAt: Date.now() });
-        window.alert('项目沙箱准备权限已核对。');
+        sandboxStates.set(item.id, { ...value, key: token.key, sampledAt: Date.now(), message: '项目沙箱准备权限已核对。' });
       } catch (error) {
-        sandboxStates.set(item.id, { status: 'unknown', key: JSON.stringify(item.directories || []), sampledAt: Date.now() });
-        window.alert('准备失败：' + error.message);
+        sandboxStates.set(item.id, { status: 'unknown', key: token.key, sampledAt: Date.now(), message: '准备失败：' + error.message });
       } finally {
-        sandboxRequests.delete(item.id);
+        if (sandboxRequests.get(item.id) === token) sandboxRequests.delete(item.id);
         updateSandboxButtons(item);
       }
     }
@@ -460,7 +482,6 @@ window.WorkspaceSessionList = (() => {
     };
   }
   function prepareChrome() {
-    document.documentElement.dataset.theme = 'dark';
     const toggle = document.getElementById('mobile-menu-toggle'), content = document.getElementById('workspace-navigation');
     const setMenu = open => { toggle.setAttribute('aria-expanded', String(open)); content.dataset.open = String(open); };
     toggle.addEventListener('click', () => setMenu(toggle.getAttribute('aria-expanded') !== 'true'));

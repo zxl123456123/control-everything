@@ -398,7 +398,7 @@ def validate_backup(directory):
             invalid("manifest", "budget_exceeded")
         manifest = strict_json(manifest_path.read_text(encoding="utf-8"))
         if (not isinstance(manifest, dict) or set(manifest) != {"version", "schema_version", "created_at", "origin_data_dir", "files", "counts"}
-                or type(manifest["version"]) is not int or manifest["version"] not in (1, 2, 3, 4, 5, 6, 7, 8, 9)
+                or type(manifest["version"]) is not int or manifest["version"] not in (1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
                 or type(manifest["schema_version"]) is not int or manifest["schema_version"] != manifest['version']
                 or not isinstance(manifest["files"], dict) or set(manifest["files"]) != BACKUP_FILES
                 or not isinstance(manifest["counts"], dict) or set(manifest["counts"]) != set(

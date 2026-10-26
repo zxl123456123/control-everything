@@ -1,3 +1,4 @@
+import { ManagementSurfaceProvider } from '@/components/ui/management-surface'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Share2, Trash2 } from 'lucide-react'
 import { readIpcErrorDetail } from '@/lib/ipc-error'
@@ -237,181 +238,189 @@ export default function SkillsPage(): React.JSX.Element {
   }
 
   return (
-    <main className="flex min-h-0 flex-1 flex-col bg-background">
-      {selectionMode ? (
-        <SkillsSelectionHeader
-          title={
-            deleting
-              ? translate(
-                  'auto.components.skills.SkillsSelectionHeader.deleteTitle',
-                  'Select skills to delete'
-                )
-              : translate(
-                  'auto.components.skills.SkillsSelectionHeader.title',
-                  'Select skills to share'
-                )
-          }
-          icon={
-            deleting ? (
-              <Trash2 className="size-4 shrink-0 text-muted-foreground" />
-            ) : (
-              <Share2 className="size-4 shrink-0 text-muted-foreground" />
-            )
-          }
-          actionIcon={deleting ? <Trash2 className="size-3.5" /> : <Share2 className="size-3.5" />}
-          actionLabel={
-            deleting
-              ? skillDeleteActionLabel(selectedSkillIds.size)
-              : shareSelectionActionLabel(selectedSkillIds.size)
-          }
-          destructive={deleting}
-          busy={deleting && deleteFlow.running}
-          selectedCount={selectedSkillIds.size}
-          eligibleCount={eligibleCount}
-          onSelectAll={() => setSelectedSkillIds((current) => addSelected(current, visibleSkills))}
-          onClear={() => setSelectedSkillIds(new Set())}
-          onCancel={exitSelection}
-          onSubmit={() => {
-            const selected = skills.filter((skill) => selectedSkillIds.has(skill.id))
-            if (deleting) {
-              void deleteFlow.requestDelete(selected)
+    <ManagementSurfaceProvider value={true}>
+      <main className="ce-management-surface mx-auto flex h-full min-h-0 w-full max-w-[1100px] flex-1 flex-col bg-background">
+        {selectionMode ? (
+          <SkillsSelectionHeader
+            title={
+              deleting
+                ? translate(
+                    'auto.components.skills.SkillsSelectionHeader.deleteTitle',
+                    'Select skills to delete'
+                  )
+                : translate(
+                    'auto.components.skills.SkillsSelectionHeader.title',
+                    'Select skills to share'
+                  )
+            }
+            icon={
+              deleting ? (
+                <Trash2 className="size-4 shrink-0 text-muted-foreground" />
+              ) : (
+                <Share2 className="size-4 shrink-0 text-muted-foreground" />
+              )
+            }
+            actionIcon={
+              deleting ? <Trash2 className="size-3.5" /> : <Share2 className="size-3.5" />
+            }
+            actionLabel={
+              deleting
+                ? skillDeleteActionLabel(selectedSkillIds.size)
+                : shareSelectionActionLabel(selectedSkillIds.size)
+            }
+            destructive={deleting}
+            busy={deleting && deleteFlow.running}
+            selectedCount={selectedSkillIds.size}
+            eligibleCount={eligibleCount}
+            onSelectAll={() =>
+              setSelectedSkillIds((current) => addSelected(current, visibleSkills))
+            }
+            onClear={() => setSelectedSkillIds(new Set())}
+            onCancel={exitSelection}
+            onSubmit={() => {
+              const selected = skills.filter((skill) => selectedSkillIds.has(skill.id))
+              if (deleting) {
+                void deleteFlow.requestDelete(selected)
+                return
+              }
+              setShareSkills(selected)
+            }}
+          />
+        ) : (
+          <SkillsPageHeader
+            skillCount={skills.length}
+            sourceEntries={sourceEntries}
+            scannedSourceCount={scannedSkillSourceCount(sourceEntries)}
+            hostLabel={hostLabel}
+            onClose={closeSkillsPage}
+            onStartShare={() => {
+              setSelectionMode('share')
+              setSelectedSkillIds(new Set())
+            }}
+            deleteSupported={deleteFlow.supported}
+            deleteUnsupportedReason={deleteFlow.unsupportedReason}
+            onStartDelete={() => {
+              setSelectionMode('delete')
+              setSelectedSkillIds(new Set())
+            }}
+            onInstallFromLink={openInstallDialog}
+            onManageInstalls={() => setManagementOpen(true)}
+            onOpenSharedLinks={openSharedLinks}
+          />
+        )}
+        <SkillsFilterToolbar
+          view={view}
+          filters={filters}
+          agentOptions={agentOptions}
+          sourceCounts={sourceCounts}
+          totalCount={skills.length}
+          resultCount={visibleSkills.length}
+          linkCount={ownedShares.shares.length}
+          loading={view === 'shared' ? ownedShares.loading : loading}
+          onViewChange={(next) => (next === 'shared' ? openSharedLinks() : exitSharedLinks())}
+          onFiltersChange={setFilters}
+          onRefresh={() => {
+            if (view === 'shared') {
+              ownedShares.refresh()
               return
             }
-            setShareSkills(selected)
-          }}
-        />
-      ) : (
-        <SkillsPageHeader
-          skillCount={skills.length}
-          sourceEntries={sourceEntries}
-          scannedSourceCount={scannedSkillSourceCount(sourceEntries)}
-          hostLabel={hostLabel}
-          onClose={closeSkillsPage}
-          onStartShare={() => {
-            setSelectionMode('share')
-            setSelectedSkillIds(new Set())
-          }}
-          deleteSupported={deleteFlow.supported}
-          deleteUnsupportedReason={deleteFlow.unsupportedReason}
-          onStartDelete={() => {
-            setSelectionMode('delete')
-            setSelectedSkillIds(new Set())
-          }}
-          onInstallFromLink={openInstallDialog}
-          onManageInstalls={() => setManagementOpen(true)}
-          onOpenSharedLinks={openSharedLinks}
-        />
-      )}
-      <SkillsFilterToolbar
-        view={view}
-        filters={filters}
-        agentOptions={agentOptions}
-        sourceCounts={sourceCounts}
-        totalCount={skills.length}
-        resultCount={visibleSkills.length}
-        linkCount={ownedShares.shares.length}
-        loading={view === 'shared' ? ownedShares.loading : loading}
-        onViewChange={(next) => (next === 'shared' ? openSharedLinks() : exitSharedLinks())}
-        onFiltersChange={setFilters}
-        onRefresh={() => {
-          if (view === 'shared') {
-            ownedShares.refresh()
-            return
-          }
-          deleteFlow.reprobe()
-          void loadSkills()
-        }}
-      />
-      {scanError ? (
-        <SkillsScanErrorBand
-          detail={scanError.detail}
-          disabled={loading}
-          onRetry={() => {
             deleteFlow.reprobe()
             void loadSkills()
           }}
         />
-      ) : null}
-      {deleteFlow.result ? (
-        <SkillDeleteResultBand result={deleteFlow.result} onDismiss={deleteFlow.dismissResult} />
-      ) : null}
+        {scanError ? (
+          <SkillsScanErrorBand
+            detail={scanError.detail}
+            disabled={loading}
+            onRetry={() => {
+              deleteFlow.reprobe()
+              void loadSkills()
+            }}
+          />
+        ) : null}
+        {deleteFlow.result ? (
+          <SkillDeleteResultBand result={deleteFlow.result} onDismiss={deleteFlow.dismissResult} />
+        ) : null}
 
-      <section className="scrollbar-sleek min-h-0 flex-1 overflow-y-auto">
-        <div className={cn(SKILLS_PAGE_COLUMN, 'py-2')} data-skills-page-list="true">
-          {view === 'shared' ? (
-            <SkillSharedLinksView query={filters.query} shares={ownedShares} />
-          ) : (
-            <>
-              {hostLabel && !local ? <SkillsRemoteShareNotice hostLabel={hostLabel} /> : null}
-              {loading && skills.length === 0 ? (
-                <SkillsListSkeleton />
-              ) : visibleSkills.length > 0 ? (
-                <SkillsList
-                  skills={visibleSkills}
-                  allSkills={skills}
-                  local={local}
-                  ownerHostId={
-                    runtimeTarget ? getRuntimeTargetHostId(runtimeTarget) : UNRESOLVED_OWNER_HOST_ID
-                  }
-                  agentByRootPath={agentByRootPath}
-                  selectedIds={selectedSkillIds}
-                  selectionMode={selectionMode}
-                  deleteSupported={deleteFlow.supported}
-                  deleteUnsupportedReason={deleteFlow.unsupportedReason}
-                  onSelectedChange={(skillId, selected) =>
-                    setSelectedSkillIds((current) =>
-                      updatedSkillSelection(
-                        current,
-                        skillId,
-                        selected,
-                        selectionMode === 'delete' ? MAX_SKILL_DELETE_BATCH : undefined
+        <section className="scrollbar-sleek min-h-0 flex-1 overflow-y-auto">
+          <div className={cn(SKILLS_PAGE_COLUMN, 'py-6')} data-skills-page-list="true">
+            {view === 'shared' ? (
+              <SkillSharedLinksView query={filters.query} shares={ownedShares} />
+            ) : (
+              <>
+                {hostLabel && !local ? <SkillsRemoteShareNotice hostLabel={hostLabel} /> : null}
+                {loading && skills.length === 0 ? (
+                  <SkillsListSkeleton />
+                ) : visibleSkills.length > 0 ? (
+                  <SkillsList
+                    skills={visibleSkills}
+                    allSkills={skills}
+                    local={local}
+                    ownerHostId={
+                      runtimeTarget
+                        ? getRuntimeTargetHostId(runtimeTarget)
+                        : UNRESOLVED_OWNER_HOST_ID
+                    }
+                    agentByRootPath={agentByRootPath}
+                    selectedIds={selectedSkillIds}
+                    selectionMode={selectionMode}
+                    deleteSupported={deleteFlow.supported}
+                    deleteUnsupportedReason={deleteFlow.unsupportedReason}
+                    onSelectedChange={(skillId, selected) =>
+                      setSelectedSkillIds((current) =>
+                        updatedSkillSelection(
+                          current,
+                          skillId,
+                          selected,
+                          selectionMode === 'delete' ? MAX_SKILL_DELETE_BATCH : undefined
+                        )
                       )
-                    )
-                  }
-                  onSelectResults={(results) =>
-                    setSelectedSkillIds((current) => addSelected(current, results))
-                  }
-                  onShare={(skill) => setShareSkills([skill])}
-                  onDelete={(skill) => void deleteFlow.requestDelete([skill])}
-                />
-              ) : skills.length > 0 ? (
-                <SkillsNoMatchesState onClearFilters={() => setFilters(NO_FILTERS)} />
-              ) : result ? (
-                <SkillsEmptyState
-                  onRefresh={() => {
-                    deleteFlow.reprobe()
-                    void loadSkills()
-                  }}
-                  onInstallFromLink={openInstallDialog}
-                />
-              ) : null}
-            </>
-          )}
-        </div>
-      </section>
+                    }
+                    onSelectResults={(results) =>
+                      setSelectedSkillIds((current) => addSelected(current, results))
+                    }
+                    onShare={(skill) => setShareSkills([skill])}
+                    onDelete={(skill) => void deleteFlow.requestDelete([skill])}
+                  />
+                ) : skills.length > 0 ? (
+                  <SkillsNoMatchesState onClearFilters={() => setFilters(NO_FILTERS)} />
+                ) : result ? (
+                  <SkillsEmptyState
+                    onRefresh={() => {
+                      deleteFlow.reprobe()
+                      void loadSkills()
+                    }}
+                    onInstallFromLink={openInstallDialog}
+                  />
+                ) : null}
+              </>
+            )}
+          </div>
+        </section>
 
-      <SkillShareDialog
-        skills={shareSkills}
-        open={shareSkills.length > 0}
-        onOpenChange={(nextOpen) => {
-          if (!nextOpen) {
-            setShareSkills([])
-            exitSelection()
-          }
-        }}
-      />
-      <SkillInstallDialog
-        key={installLink || 'manual-install'}
-        open={installOpen}
-        initialLink={installLink}
-        onOpenChange={(next) => {
-          setInstallOpen(next)
-          if (!next) {
-            setInstallLink('')
-          }
-        }}
-      />
-      <SkillInstallManagementDialog open={managementOpen} onOpenChange={setManagementOpen} />
-    </main>
+        <SkillShareDialog
+          skills={shareSkills}
+          open={shareSkills.length > 0}
+          onOpenChange={(nextOpen) => {
+            if (!nextOpen) {
+              setShareSkills([])
+              exitSelection()
+            }
+          }}
+        />
+        <SkillInstallDialog
+          key={installLink || 'manual-install'}
+          open={installOpen}
+          initialLink={installLink}
+          onOpenChange={(next) => {
+            setInstallOpen(next)
+            if (!next) {
+              setInstallLink('')
+            }
+          }}
+        />
+        <SkillInstallManagementDialog open={managementOpen} onOpenChange={setManagementOpen} />
+      </main>
+    </ManagementSurfaceProvider>
   )
 }

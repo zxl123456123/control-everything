@@ -63,6 +63,7 @@ type RepositoryPaneProps = {
   selectedProjectSetupId?: string
   settingsSelectionKey?: string
   settingsEntryRepoIds?: ReadonlySet<string>
+  fixedHostSetup?: boolean
   removalScope?: SettingsProjectRemovalScope
   isLocalWindowsProject?: boolean
   wslAvailable?: boolean
@@ -86,6 +87,7 @@ export function RepositoryPane({
   selectedProjectSetupId,
   settingsSelectionKey,
   settingsEntryRepoIds,
+  fixedHostSetup = false,
   removalScope = 'project',
   isLocalWindowsProject = false,
   wslAvailable = false,
@@ -160,10 +162,10 @@ export function RepositoryPane({
     [clearCopiedTemplateResetTimer]
   )
 
-  const updateSelectedRepoHookSettings = (nextSettings: RepoHookSettings) => {
-    updateSelectedRepo(repo.id, {
+  const updateSelectedRepoHookSettings = (nextSettings: RepoHookSettings): Promise<boolean> => {
+    return Promise.resolve(updateSelectedRepo(repo.id, {
       hookSettings: nextSettings
-    })
+    })).then((result) => result === true)
   }
 
   const handleCopyTemplate = async () => {
@@ -344,6 +346,7 @@ export function RepositoryPane({
               selectedProjectSetupId={selectedProjectSetupId}
               settingsSelectionKey={settingsSelectionKey}
               settingsEntryRepoIds={settingsEntryRepoIds}
+              fixedHostSetup={fixedHostSetup}
               forceVisible={forceFullPaneForRepoMatch}
               searchQuery={searchQuery}
               searchEntries={hostSetupEntries}

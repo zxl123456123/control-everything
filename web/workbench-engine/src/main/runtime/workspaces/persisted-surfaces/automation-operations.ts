@@ -16,6 +16,8 @@ import {
   type AutomationListResult
 } from '../../../../shared/automation-list-scope'
 import { OrchestrationDb } from '../../orchestration/db'
+import Database from '../../../sqlite/sync-database'
+import { getLocalMutationCallerFingerprint, getMutationReceipt } from '../../orchestration/db/mutation-receipts/mutation-receipt-store'
 import { join } from 'node:path'
 import { existsSync } from 'node:fs'
 import { getAppEnvironment } from '../../../../shared/app-environment'
@@ -161,6 +163,18 @@ export abstract class OrcaRuntimeWithAutomationOperations extends OrcaRuntimeWit
     return this._orchestrationDb || existsSync(this.orchestrationDbPath())
       ? this.getOrchestrationDb()
       : null
+  }
+
+  /** A cold receipt read must not run migrations, create identities or start relays. */
+  readPlatformTaskProgressReceiptRecord(requestId: string) {
+    const path = this.orchestrationDbPath()
+    if (!this._orchestrationDb && !existsSync(path)) return { fingerprint: undefined, row: undefined }
+    const owned = !this._orchestrationDb
+    const db = this._orchestrationDb?.db ?? new Database(path, { readonly: true, fileMustExist: true, timeout: 100 })
+    try {
+      const fingerprint = getLocalMutationCallerFingerprint.call({ db })
+      return { fingerprint, row: fingerprint ? getMutationReceipt.call({ db }, fingerprint, requestId) : undefined }
+    } finally { if (owned) db.close() }
   }
 
   private orchestrationDbPath(): string {

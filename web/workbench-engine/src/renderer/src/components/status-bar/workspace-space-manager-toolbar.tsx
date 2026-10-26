@@ -34,7 +34,7 @@ export function WorkspaceSpaceManagerToolbar({
     <>
       {selectedDeletableIds.length > 0 ? (
         <div className="flex items-center justify-between gap-2 rounded-md border border-border/70 bg-background/95 px-2 py-1 shadow-xs">
-          <div className="min-w-0 text-xs text-muted-foreground">
+          <div className="min-w-0 text-sm leading-[22px] text-muted-foreground">
             <span className="font-medium text-foreground">
               {selectedDeletableIds.length}{' '}
               {translate(
@@ -82,7 +82,7 @@ export function WorkspaceSpaceManagerToolbar({
       ) : null}
 
       {hasRows ? (
-        <div className="flex min-w-0 items-center gap-2">
+        <div className="flex min-w-0 flex-wrap items-center gap-3">
           <div className="min-w-0 flex-1">
             <Input
               value={query}
@@ -91,7 +91,7 @@ export function WorkspaceSpaceManagerToolbar({
                 'auto.components.status.bar.WorkspaceSpaceManagerPanel.6f8f6a6b04',
                 'Filter workspaces'
               )}
-              className="h-8"
+              className="h-10"
             />
           </div>
 
@@ -133,6 +133,7 @@ export function WorkspaceSpaceManagerToolbar({
           <Button
             variant={onlyDeletable ? 'secondary' : 'outline'}
             size="sm"
+            aria-pressed={onlyDeletable}
             onClick={() => setOnlyDeletable((current) => !current)}
             className="w-24"
             aria-label={translate(

@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>新闻 · 阅读室</title>
+  <script src="/ui-theme.js" data-ce-theme-key="ce.news.theme"></script>
   <link rel="stylesheet" href="/news-reader.css">
   <script src="/news-spider.js" defer></script>
   <script src="/news-reader.js" defer></script>
@@ -11,9 +12,10 @@
 <body>
 <main id="news-room">
   <header class="top">
-    <div class="brand-line"><span class="brand" aria-hidden="true">m</span><a class="workspace-name" href="/studio">工作空间</a><span class="slash" aria-hidden="true">/</span><h1>新闻</h1><span class="room-name">阅读室</span></div>
-    <div class="top-actions"><span class="local-note">阅读记录保存在此浏览器</span><button id="theme" type="button" aria-label="切换深色">◐</button></div>
+    <div class="brand-line"><span class="brand" aria-hidden="true">CE</span><a class="workspace-name" href="/studio">项目总览</a><span class="slash" aria-hidden="true">/</span><h1>新闻</h1></div>
+    <div class="top-actions"><button id="theme" type="button" aria-label="切换到深色主题"></button></div>
   </header>
+  <p id="theme-error" role="status" aria-live="polite" hidden></p>
   <div class="toolbar">
     <nav aria-label="阅读筛选">
       <button data-view="inbox" aria-pressed="true">阅读 <span data-count="inbox">0</span></button>
@@ -23,22 +25,22 @@
     </nav>
     <div class="filters">
       <label><span class="sr-only">频道</span><select id="stream"><option value="ai">AI 新闻</option><option value="hn">Hacker News</option></select></label>
-      <button id="refresh-feeds" type="button">更新新闻</button><button id="refresh" type="button"><span aria-hidden="true">↻</span> 采集新信息</button>
+      <button id="refresh-feeds" type="button" aria-label="更新新闻" title="更新新闻" aria-busy="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M20 7v5h-5M20 12a8 8 0 1 1-2.3-5.7"/></svg></button><button id="refresh" type="button"><span aria-hidden="true">↻</span> 采集新信息</button>
     </div>
   </div>
   <p id="storage-warning" role="alert" hidden>当前浏览器无法保存阅读记录；重新打开后可能丢失。</p>
-  <section id="animation-stage" aria-label="新闻阅读室">
+  <section id="animation-stage" data-reading-view="list" aria-label="新闻阅读室">
     <canvas id="spider-canvas" aria-hidden="true"></canvas>
     <aside id="directory" aria-label="新闻标题目录">
-      <div class="directory-head"><span>标题目录</span><span id="list-total">0 条</span><button id="directory-summary" type="button" aria-pressed="false" aria-label="显示目录摘要">摘要</button><button id="close-directory" type="button" aria-label="收起标题目录">×</button></div>
+      <div class="directory-head"><span id="directory-title">文章列表</span><span id="list-total">0 条</span><button id="directory-summary" type="button" aria-pressed="false" aria-label="显示目录摘要">摘要</button><button id="close-directory" type="button" aria-label="收起标题目录">×</button></div>
       <label class="search-wrap"><span class="sr-only">搜索新闻</span><input id="search" type="search" placeholder="搜索标题、来源或内容"></label>
       <div id="title-list" tabindex="-1" aria-label="选择新闻"></div>
-      <div id="list-empty" hidden><p>没有找到内容</p><button id="clear-search" type="button">清除搜索</button></div>
-      <div class="spider-home"><div id="web-depot" aria-label="内容仓库"></div><div class="spider-status"><p class="depot-name">内容仓库</p><p id="spider-state" role="status">陪你慢慢读</p><button id="pause" type="button">暂停动画</button></div></div>
+      <div id="list-empty" hidden><p id="list-empty-message">暂无新闻</p><button id="clear-search" type="button">清除搜索</button></div>
+      <div class="spider-home"><div id="web-depot" aria-label="内容仓库"></div><div class="spider-status"><p class="depot-name">内容仓库</p><p id="spider-state" role="status">等待阅读</p><button id="pause" type="button">暂停动画</button></div></div>
     </aside>
-    <section id="reader" aria-label="单篇阅读">
+    <section id="reader" aria-label="单篇阅读" inert>
       <div class="reader-toolbar">
-        <div class="reader-nav"><button id="open-directory" type="button" aria-controls="directory" aria-expanded="false">☰ 目录</button><button id="previous" type="button" aria-label="上一条">←</button><span id="article-position">0 / 0</span><button id="next" type="button" aria-label="下一条">→</button></div>
+        <div class="reader-nav"><button id="back-to-list" type="button" aria-label="返回文章列表"><span aria-hidden="true">←</span><span class="back-label">返回列表</span></button><button id="open-directory" type="button" aria-controls="directory" aria-expanded="false" aria-label="展开新闻目录" title="展开新闻目录"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16"/></svg></button><button id="previous" type="button" aria-label="上一条">←</button><span id="article-position">0 / 0</span><button id="next" type="button" aria-label="下一条">→</button></div>
         <div class="language-switch" role="group" aria-label="阅读语言"><button type="button" data-language="original" aria-pressed="true">原文</button><button type="button" data-language="zh" aria-pressed="false">中文</button><button type="button" data-language="bilingual" aria-pressed="false">双语</button></div>
       </div>
       <div id="translation-status" class="translation-status" role="status" hidden></div>
@@ -57,7 +59,7 @@
           <div id="article-images"></div>
           <p class="article-end" id="article-end" hidden>· 已到文末 ·</p>
         </article>
-        <div id="reader-empty"><span class="empty-mark" aria-hidden="true">⌑</span><h2>留一点时间，读一条新消息。</h2><p id="empty-message">正在载入新闻…</p></div>
+        <div id="reader-empty"><span class="empty-mark" aria-hidden="true">⌑</span><h2>选择新闻开始阅读</h2><p id="empty-message">正在载入新闻…</p></div>
       </div>
       <footer class="reader-footer">
         <div class="arrival-area"><span id="arrival-title" hidden></span><span id="reader-state">选择一条新闻开始阅读</span></div>
@@ -66,11 +68,12 @@
     </section>
     <button id="directory-backdrop" type="button" aria-label="收起标题目录" hidden></button>
   </section>
-  <footer class="room-footer"><p id="snapshot-note" role="status">正在载入新闻…</p><span>一次一条，从容阅读</span></footer>
+  <footer class="room-footer"><p id="snapshot-note" role="status">正在载入新闻…</p></footer>
   <div id="toast" role="status" hidden><span id="toast-text"></span><button id="undo" type="button" hidden>撤销</button><button id="dismiss" type="button" aria-label="关闭提示">×</button></div>
 </main>
 <dialog id="research-panel" aria-labelledby="research-title" aria-describedby="research-description">
-  <header class="research-head"><div><h2 id="research-title">采集工作台</h2><p id="research-description">边找边看，点选步骤回看页面。</p></div><button id="research-close" type="button" aria-label="关闭采集工作台">×</button></header>
+  <header class="research-head"><div><h2 id="research-title">采集工作台</h2><p id="research-description">查看采集进展、步骤截图与来源。</p></div><button id="research-close" type="button" aria-label="关闭采集工作台">×</button></header>
+  <div class="research-body">
   <form id="research-form">
     <div class="research-topics" role="group" aria-label="关注主题"><button type="button" data-topic="coding" aria-pressed="true">AI Coding</button><button type="button" data-topic="agents" aria-pressed="false">Agent</button><button type="button" data-topic="claude" aria-pressed="false">Claude Code</button><button type="button" data-topic="models" aria-pressed="false">GPT / Gemini</button><button type="button" data-topic="tibo" aria-pressed="false">Tibo</button></div>
     <label class="sr-only" for="research-query">关键词或 X 帖子链接</label><div class="research-query-row"><input id="research-query" name="query" type="search" maxlength="240" placeholder="关键词或 X 帖子链接" value="AI coding workflow coding agents tips" required autofocus><button id="research-start" type="submit">开始采集 ↗</button></div>
@@ -80,7 +83,7 @@
   <nav class="research-steps" aria-label="采集步骤回看"><button type="button" data-step="search" disabled><span>⌕</span> 检索</button><button type="button" data-step="visit" disabled><span>▣</span> 浏览</button><button type="button" data-step="extract" disabled><span>▤</span> 提取</button><button type="button" data-step="merge" disabled><span>✓</span> 收集</button></nav>
   <div class="research-workspace" id="research-animation-stage">
     <canvas id="research-spider-canvas" aria-hidden="true"></canvas>
-    <div class="research-spider-home"><div id="research-web-depot" aria-hidden="true"></div><span>点来源，快速回看</span><button id="research-pause" type="button">暂停动画</button></div>
+    <div class="research-spider-home"><div id="research-web-depot" aria-hidden="true"></div><span>选择来源回看截图</span><button id="research-pause" type="button">暂停动画</button></div>
     <section class="research-browser" aria-label="实际页面画面">
       <div class="browser-address"><span aria-hidden="true">◉</span><span id="research-host">等待页面</span><span class="frame-badge" id="research-frame-mode">步骤截图</span></div>
       <div id="research-frame-wrap"><img id="research-frame" alt="采集过程中实际访问页面的截图" hidden><p id="research-frame-empty">开始采集后，在这里看实际浏览过程。</p></div>
@@ -92,6 +95,7 @@
     </aside>
   </div>
   <details class="research-log"><summary>完整采集记录 <span id="research-log-count">0</span></summary><ol id="research-events"></ol><p id="research-events-empty">还没有采集记录。</p></details>
+  </div>
   <footer class="research-footer"><p id="research-outcome">关闭工作台后，采集仍会继续。</p><button id="research-return" type="button">返回阅读</button></footer>
 </dialog>
 </body>

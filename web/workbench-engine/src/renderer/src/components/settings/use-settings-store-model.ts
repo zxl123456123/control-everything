@@ -1,8 +1,10 @@
 import { usePlatformProjectRepos } from '@/web/platform-project-context'
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { PlatformSettingsContext, settingsScopeRepos } from '@/web/platform-settings-navigation'
 import type { OrcaHooks } from '../../../../shared/orca-yaml-hook-types'
 import type { ProjectHostSetup } from '../../../../shared/project-types'
 import { DEFAULT_APP_FONT_FAMILY } from '../../../../shared/constants'
+import { parseExecutionHostId } from '../../../../shared/execution-host'
 import { useAppStore } from '../../store'
 import { useProjectHostSetupProjection } from '@/store/selectors'
 import { useSystemPrefersDark } from '@/components/terminal-pane/use-system-prefers-dark'
@@ -41,6 +43,8 @@ import {
 } from '@/components/sidebar/removal-unsaved-files'
 
 export function useSettingsStoreModel() {
+  const presentation = useContext(PlatformSettingsContext)
+  const scope = presentation?.scope
   const settings = useAppStore((s) => s.settings)
   const keybindings = useAppStore((s) => s.keybindings)
   const updateSettings = useAppStore((s) => s.updateSettings)
@@ -51,7 +55,8 @@ export function useSettingsStoreModel() {
   const fetchSettings = useAppStore((s) => s.fetchSettings)
   const fetchKeybindings = useAppStore((s) => s.fetchKeybindings)
   const closeSettingsPage = useAppStore((s) => s.closeSettingsPage)
-  const repos = usePlatformProjectRepos(useAppStore((s) => s.repos))
+  const platformRepos = usePlatformProjectRepos(useAppStore((s) => s.repos))
+  const repos = useMemo(() => settingsScopeRepos(platformRepos, scope), [platformRepos, scope])
   const projects = useAppStore((s) => s.projects)
   const projectHostSetups = useAppStore((s) => s.projectHostSetups)
   const updateProject = useAppStore((s) => s.updateProject)
@@ -71,13 +76,23 @@ export function useSettingsStoreModel() {
 
   const projectHostSetupProjection = useProjectHostSetupProjection()
   // Why: same inputs as nav metadata so both lists agree — the source of truth for the pane list.
+  const canonicalSettingsProjects = useMemo(
+    () => buildSettingsProjectList(platformRepos, {
+      projects: projectHostSetupProjection.projects, projectHostSetups: projectHostSetupProjection.setups
+    }), [platformRepos, projectHostSetupProjection]
+  )
   const settingsProjectList = useMemo(
-    () =>
-      buildSettingsProjectList(repos, {
-        projects: projectHostSetupProjection.projects,
-        projectHostSetups: projectHostSetupProjection.setups
-      }),
-    [repos, projectHostSetupProjection]
+    () => {
+      if (!scope) return canonicalSettingsProjects
+      if (scope.kind === 'global') return []
+      const setup = projectHostSetupProjection.setups.find((entry) =>
+        entry.id === scope.setupId && entry.repoId === scope.repoId && entry.hostId === scope.hostId)
+      if (!setup) return []
+      return canonicalSettingsProjects.filter((entry) => entry.setups.some((candidate) =>
+        candidate.repoId === scope.repoId && candidate.hostId === scope.hostId))
+        .map((entry) => ({ ...entry, setups: [setup], representativeRepoId: scope.repoId }))
+    },
+    [canonicalSettingsProjects, projectHostSetupProjection, scope]
   )
   const repoIdToRepresentative = useMemo(
     () => buildRepoIdToRepresentative(settingsProjectList),
@@ -91,6 +106,12 @@ export function useSettingsStoreModel() {
   // Why: removes the entry on every host, not just the selected one; an entry of a split project holds only its own part (clones keep their own entries).
   const removeProjectAllHosts = useCallback(
     async (setups: readonly ProjectHostSetup[]): Promise<void> => {
+      if (scope?.kind === 'project') {
+        const originalEntry = canonicalSettingsProjects.find(entry => entry.setups.some(setup =>
+          setup.repoId === scope.repoId && setup.hostId === scope.hostId))
+        if (!originalEntry) return
+        setups = originalEntry.setups
+      }
       // Why block: this inline confirm has no room for a file list, and the folders stay on disk.
       const targets = projectRemovalTargets(
         useAppStore.getState(),
@@ -101,7 +122,7 @@ export function useSettingsStoreModel() {
         await removeSettingsProjectFromAllHosts(setups, removeProject)
       }
     },
-    [removeProject]
+    [removeProject, scope, canonicalSettingsProjects]
   )
 
   const [repoHooksMap, setRepoHooksMap] = useState<
@@ -114,22 +135,25 @@ export function useSettingsStoreModel() {
   const showDesktopOnlySettings = !isWebClient
   // Why: mirror the nav registry's gate so the Linear sidebar entry and section appear/disappear together.
   const linearConnected = useLinearProviderConnected()
-  const activeSkillRuntime = useActiveProjectSkillRuntime()
+  const scopeAllowsCapabilities = !scope || (scope.kind === 'global' && scope.entry === 'development' &&
+    Boolean(scope.environmentId) && presentation?.visible !== false)
+  const activeSkillRuntime = useActiveProjectSkillRuntime(!scope)
   const orchestrationSkill = useInstalledAgentSkill(ORCHESTRATION_SKILL_NAME, {
+    enabled: scopeAllowsCapabilities,
     discoveryTarget: activeSkillRuntime.discoveryTarget,
     sourceKinds: GLOBAL_AGENT_SKILL_SOURCE_KINDS
   })
   const linearSkill = useInstalledAgentSkillNames(LINEAR_AGENT_SKILL_NAMES, {
-    enabled: linearConnected,
+    enabled: scopeAllowsCapabilities && linearConnected,
     discoveryTarget: activeSkillRuntime.discoveryTarget,
     sourceKinds: GLOBAL_AGENT_SKILL_SOURCE_KINDS
   })
   const computerUseSkill = useInstalledAgentSkill(COMPUTER_USE_SKILL_NAME, {
-    enabled: showDesktopOnlySettings,
+    enabled: scopeAllowsCapabilities && showDesktopOnlySettings,
     discoveryTarget: activeSkillRuntime.discoveryTarget,
     sourceKinds: GLOBAL_AGENT_SKILL_SOURCE_KINDS
   })
-  const skillFreshnessApplies = activeSkillRuntime.canUseLocalSkillFreshness
+  const skillFreshnessApplies = scopeAllowsCapabilities && activeSkillRuntime.canUseLocalSkillFreshness
   const { inventory: skillFreshnessInventory } = useSkillFreshness(skillFreshnessApplies)
   const [voiceModelStatesLoading, setVoiceModelStatesLoading] = useState(showDesktopOnlySettings)
   // Why: trim platform-only Terminal entries from the shared search index so search never reveals hidden controls.
@@ -160,20 +184,38 @@ export function useSettingsStoreModel() {
   const [hasUnsavedBranchPromptChanges, setHasUnsavedBranchPromptChanges] = useState(false)
   const [hasUnsavedChatPromptChanges, setHasUnsavedChatPromptChanges] = useState(false)
   const [sourceControlAiPromptDiscardSignal, setSourceControlAiPromptDiscardSignal] = useState(0)
-  const confirm = useConfirmationDialog()
+  const confirmationScope = useMemo(() => {
+    const lifecycle = { controller: new AbortController() }
+    return { lifecycle, management: true, visible: !presentation || presentation.visible === true,
+      get signal() { return lifecycle.controller.signal } }
+  }, [scope, presentation?.visible])
+  useEffect(() => {
+    // StrictMode replays effects; a new request must use the replay's live signal.
+    if (confirmationScope.visible && confirmationScope.signal.aborted)
+      confirmationScope.lifecycle.controller = new AbortController()
+    if (!confirmationScope.visible) confirmationScope.lifecycle.controller.abort()
+    return () => confirmationScope.lifecycle.controller.abort()
+  }, [confirmationScope])
+  const confirm = useConfirmationDialog(confirmationScope)
   // Why: session-only (deliberately not persisted) unlock — Option-click the Experimental page title reveals the hidden group.
   const [hiddenExperimentalUnlocked, setHiddenExperimentalUnlocked] = useState(false)
   const [settingsHostChoice, setSettingsHostChoice] = useState<RuntimeClientTarget | null>(null)
   const defaultScope = defaultScopeHost(settings)
   const defaultRuntimeEnvironmentId =
     defaultScope.kind === 'environment' ? defaultScope.environmentId : null
+  const projectHost = scope?.kind === 'project' ? parseExecutionHostId(scope.hostId) : null
+  const explicitEnvironment = scope?.kind === 'global' ? scope.environmentId
+    : projectHost?.kind === 'runtime' ? projectHost.environmentId : undefined
   // Why: keyed on ids so status-only catalog updates keep the scope (and its loads) stable.
   const savedEnvironmentIdsKey = runtimeEnvironments.map((environment) => environment.id).join('\n')
   // Explicit project deep-links own the settings scope, including in Web clients without a picker.
   const settingsHostScope = useMemo(
     () =>
       resolveSettingsHostScope({
-        choice: settingsHostChoice,
+        choice: explicitEnvironment
+          ? { kind: 'environment', environmentId: explicitEnvironment }
+          : scope ? { kind: 'local' }
+          : settingsHostChoice,
         defaultEnvironmentId: defaultRuntimeEnvironmentId,
         savedEnvironmentIds: savedEnvironmentIdsKey ? savedEnvironmentIdsKey.split('\n') : [],
         catalogHydrated: runtimeEnvironmentCatalogHydrated
@@ -182,11 +224,14 @@ export function useSettingsStoreModel() {
       defaultRuntimeEnvironmentId,
       runtimeEnvironmentCatalogHydrated,
       savedEnvironmentIdsKey,
-      settingsHostChoice
+      settingsHostChoice,
+      scope,
+      explicitEnvironment
     ]
   )
 
   return {
+    presentation,
     settings,
     keybindings,
     updateSettings,

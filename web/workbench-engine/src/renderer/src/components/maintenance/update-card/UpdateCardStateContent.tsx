@@ -88,10 +88,10 @@ export function UpdateCardStateContent({
   if (status.state === 'downloaded') {
     if (status.installing) {
       return (
-        <div className="flex flex-col gap-3 p-4" aria-busy="true">
+        <div className="flex flex-col gap-4 p-6" aria-busy="true">
           <div className="flex items-center gap-2">
             <Loader2 className="size-4 animate-spin text-muted-foreground" />
-            <h3 className="text-sm font-semibold">
+            <h3 className="text-lg font-semibold leading-[26px]">
               {translate('updates.installBlock.preparingTitle', 'Preparing your update')}
             </h3>
           </div>
@@ -105,7 +105,7 @@ export function UpdateCardStateContent({
       )
     }
     return hasStartedDownload ? (
-      <div className="p-4">
+      <div className="p-6">
         <p className="text-sm">
           {translate('auto.components.UpdateCard.09a55c39b5', 'Installing...')}
         </p>

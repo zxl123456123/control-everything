@@ -41,26 +41,26 @@ export function CliSetupTipDialog({
 }): JSX.Element {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      {/* Why: the CLI tip sits over terminal surfaces, so it needs a local token-mixed surface. */}
+      {/* Why: only the copy and footer are management surfaces; the live terminal stays compact. */}
       <DialogContent
-        className="!flex max-h-[calc(100vh-2rem)] flex-col gap-0 overflow-hidden bg-[color-mix(in_srgb,var(--foreground)_8%,var(--background))] p-0 dark:bg-[color-mix(in_srgb,var(--foreground)_16%,var(--background))] sm:max-w-4xl md:!h-[min(31rem,calc(100vh-2rem))] md:!flex-row"
+        className="!flex max-h-[calc(100dvh-2rem)] flex-col gap-0 overflow-hidden bg-background p-0 sm:max-w-[820px] md:!flex-row"
         showCloseButton={!skillTerminalOpen}
       >
         <div
-          className={`scrollbar-sleek flex min-h-0 min-w-0 flex-1 flex-col justify-between overflow-y-auto px-8 py-9 transition-[flex-basis] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none md:shrink-0 ${
+          className={`scrollbar-sleek flex min-h-0 min-w-0 flex-1 flex-col gap-6 overflow-y-auto p-6 pt-16 md:pt-6 ${
             skillTerminalOpen ? 'basis-auto md:basis-full' : 'basis-auto md:basis-[47.5%]'
           }`}
         >
           <DialogHeader className={`${skillTerminalOpen ? 'gap-2' : 'gap-4'} text-left`}>
-            <div>
+            <div className="ce-management-surface">
               <DialogTitle
-                className={`text-3xl font-semibold leading-tight tracking-tight ${
+                className={`text-xl font-semibold leading-7 tracking-normal ${
                   skillTerminalOpen ? 'max-w-2xl' : 'max-w-[22rem]'
                 }`}
               >
                 {tip.title}
               </DialogTitle>
-              <DialogDescription className="mt-3 max-w-2xl text-sm leading-relaxed">
+              <DialogDescription className="mt-3 max-w-2xl text-[15px] leading-6">
                 {tip.description}
               </DialogDescription>
               <div
@@ -114,7 +114,7 @@ export function CliSetupTipDialog({
             {skillTerminalOpen ? <CliSkillSetupTerminal /> : null}
           </DialogHeader>
 
-          <DialogFooter className="mt-8 flex sm:justify-stretch">
+          <DialogFooter className="ce-management-surface mt-0 flex sm:justify-stretch">
             {skillTerminalOpen ? (
               <Button className="w-full" onClick={onSkip}>
                 {translate('auto.components.feature.tips.FeatureTipsModal.c169298e4d', 'Done')}
@@ -135,7 +135,7 @@ export function CliSetupTipDialog({
           className={`min-h-0 min-w-0 shrink-0 overflow-hidden transition-[flex-basis,max-height] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none ${
             skillTerminalOpen
               ? 'pointer-events-none max-h-0 basis-0 md:max-h-none md:basis-0'
-              : 'max-h-[40rem] basis-auto md:basis-[52.5%]'
+              : 'hidden max-h-[40rem] basis-auto md:block md:basis-[52.5%]'
           }`}
         >
           <div

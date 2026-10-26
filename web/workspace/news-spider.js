@@ -31,7 +31,7 @@
     const transientTargets = new Map();
     const previousCanvasStyle = canvas.getAttribute('style');
     const style = document.createElement('style');
-    style.textContent = "    @keyframes newsSpiderScanningBuzz {\n      0% { transform: translate(0, 0) scale(1.05); }\n      20% { transform: translate(-2px, 1px) scale(1.06) skewX(-2deg); }\n      40% { transform: translate(2px, -1.5px) scale(1.05) skewX(2deg); }\n      60% { transform: translate(-1.5px, -1px) scale(1.06) rotate(1deg); }\n      80% { transform: translate(1.5px, 1.5px) scale(1.05) rotate(-1deg); }\n      100% { transform: translate(0, 0) scale(1.05); }\n    }\n\n    .news-spider-target.is-being-scanned {\n      animation: newsSpiderScanningBuzz 0.12s infinite linear !important;\n      outline: 2px solid #00f0ff !important;\n      outline-offset: 2px !important;\n      box-shadow: 0 0 18px rgba(0, 240, 255, 0.9), inset 0 0 10px rgba(255, 0, 127, 0.6) !important;\n      background: rgba(0, 240, 255, 0.28) !important;\n      color: #ffffff !important;\n      text-shadow: 0 0 8px #00f0ff, -1.5px 0 #ff007f, 1.5px 0 #00f0ff !important;\n      z-index: 10;\n    }\n\n    /* 2. 抓取完成瞬间：强力弹性爆震扭曲 (Capture Burst Wobble) */\n    @keyframes newsSpiderCaptureWobble {\n      0% { transform: scale(1); }\n      25% { transform: scale(1.32) rotate(3.5deg) skewX(-6deg); box-shadow: 0 0 28px #ff007f, 0 0 40px #00f0ff; }\n      50% { transform: scale(0.9) rotate(-3deg) skewX(5deg); }\n      75% { transform: scale(1.14) rotate(1.2deg); }\n      90% { transform: scale(0.98); }\n      100% { transform: scale(1); }\n    }\n\n    .news-spider-target.captured-burst-wobble {\n      animation: newsSpiderCaptureWobble 0.8s cubic-bezier(0.18, 0.89, 0.32, 1.28) forwards !important;\n      z-index: 15;\n    }";
+    style.textContent = `.news-spider-target.is-being-scanned{outline:2px solid currentColor!important;outline-offset:3px!important;background:var(--soft,transparent)!important;color:inherit!important;text-shadow:none!important;box-shadow:none!important}.news-spider-target.captured-burst-wobble{outline:2px solid currentColor!important;outline-offset:3px!important}@media(prefers-reduced-motion:reduce){.news-spider-target{animation:none!important;transition:none!important}}`;
     root.appendChild(style);
     style.textContent += '\n.news-spider-paused .news-spider-target { animation-play-state: paused !important; }';
     canvas.style.position = 'absolute';
@@ -368,10 +368,10 @@ class CyberWebLair {
       ctx.arc(x, y, 14, 0, Math.PI * 2);
       ctx.stroke();
 
-      ctx.font = 'bold 9px "JetBrains Mono", monospace';
+      ctx.font = '500 14px Geist, "Microsoft YaHei", sans-serif';
       const textW = ctx.measureText(prey.text).width;
       const pillW = textW + 12;
-      const pillH = 16;
+      const pillH = 24;
 
       // 极简暗灰轻量化数据食物茧
       ctx.fillStyle = prey.bgCol === '#ff1e42' ? '#ff1e42' : 'rgba(20, 26, 36, 0.92)';
@@ -582,11 +582,11 @@ class UserTetheredPill {
     ctx.translate(screenX, screenY);
     ctx.rotate(this.angle);
 
-    const fontSize = Math.round(10.5 * Math.min(1.3, this.scale));
-    ctx.font = `500 ${fontSize}px "JetBrains Mono", monospace`;
+    const fontSize = Math.max(14, Math.round(14 * Math.min(1.3, this.scale)));
+    ctx.font = `500 ${fontSize}px Geist, "Microsoft YaHei", sans-serif`;
     const textW = ctx.measureText(this.text).width;
     const pillW = textW + 14 * this.scale;
-    const pillH = 18 * this.scale;
+    const pillH = Math.max(24, 24 * this.scale);
 
     // 暗灰半透底板 + 极细无色边框 (零 shadowBlur，零卡顿)
     ctx.fillStyle = 'rgba(18, 24, 34, 0.9)';
@@ -1456,17 +1456,17 @@ class CyberSpider {
 
     // 9. 背部微型状态标签
     ctx.save();
-    const badgeFontSize = Math.round(9.5 * Math.min(1.4, sc));
-    ctx.font = `bold ${badgeFontSize}px "JetBrains Mono", monospace`;
+    const badgeFontSize = Math.max(14, Math.round(14 * Math.min(1.4, sc)));
+    ctx.font = `500 ${badgeFontSize}px Geist, "Microsoft YaHei", sans-serif`;
     let badgeText = this.bodyBadge;
-    if (this.isDancing) badgeText = '💃 CELEBRATION DANCE! 🎉';
-    else if (this.isCleaningWeb) badgeText = '🧹 CLEANING WEB LAIR!';
-    else if (this.isHuntingFly) badgeText = '🚨 HUNTING INSECT!';
-    else if (this.isCarryingFly) badgeText = '🪰 CARRYING PREY...';
-    else if (this.isStashingFood) badgeText = '🕸️ STASHING PREY...';
+    if (this.isDancing) badgeText = '完成动画';
+    else if (this.isCleaningWeb) badgeText = '整理动画';
+    else if (this.isHuntingFly) badgeText = '捕捉动画';
+    else if (this.isCarryingFly) badgeText = '转移动画';
+    else if (this.isStashingFood) badgeText = '归档动画';
 
     const badgeW = ctx.measureText(badgeText).width + 10 * sc;
-    const badgeH = 15 * sc;
+    const badgeH = Math.max(24, 24 * sc);
     const bx = screenX - badgeW / 2;
     const by = screenY - 30 * sc;
 

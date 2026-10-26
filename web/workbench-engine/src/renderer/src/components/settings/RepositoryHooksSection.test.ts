@@ -31,7 +31,7 @@ const repo: Repo = {
 }
 
 function renderRepositoryHooksSection(args: {
-  onUpdateHookSettings: (settings: NonNullable<Repo['hookSettings']>) => void
+  onUpdateHookSettings: (settings: NonNullable<Repo['hookSettings']>) => Promise<boolean>
   repo?: Repo
 }): { container: HTMLDivElement; root: Root } {
   const container = document.createElement('div')
@@ -139,7 +139,7 @@ describe('RepositoryHooksSection setup startup policy', () => {
   it('persists wait-for-setup when the repository toggle is checked', () => {
     const updates: NonNullable<Repo['hookSettings']>[] = []
     rendered = renderRepositoryHooksSection({
-      onUpdateHookSettings: (settings) => updates.push(settings)
+      onUpdateHookSettings: async (settings) => { updates.push(settings); return true }
     })
 
     const waitSwitch = rendered.container.querySelector<HTMLElement>(
@@ -162,7 +162,7 @@ describe('RepositoryHooksSection execution ownership', () => {
     vi.mocked(readRuntimeIssueCommand).mockClear()
     await act(async () => {
       rendered = renderRepositoryHooksSection({
-        onUpdateHookSettings: () => {},
+        onUpdateHookSettings: async () => true,
         repo: { ...repo, executionHostId: 'runtime:hub' }
       })
       await Promise.resolve()

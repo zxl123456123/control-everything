@@ -23,6 +23,7 @@ window.StudioMobileEntry = {
     copy.type = 'button';
     const feedback = make('p', '', 'ce-mobile-entry-feedback');
     feedback.setAttribute('role', 'status');
+    feedback.setAttribute('aria-live', 'polite');
     const hostname = address.hostname.toLowerCase();
     const loopback = hostname === 'localhost' || hostname.endsWith('.localhost')
       || hostname === '[::1]' || /^127(?:\.\d{1,3}){3}$/.test(hostname);
@@ -45,6 +46,8 @@ window.StudioMobileEntry = {
       mode: window.CERemoteContext?.context ? 'remote' : 'local', returnHash
     });
     const onCopy = async () => {
+      if (disposed || copy.disabled) return;
+      copy.disabled = true; copy.setAttribute('aria-busy', 'true');
       try {
         if (typeof navigator.clipboard?.writeText !== 'function') throw new Error('unavailable');
         await navigator.clipboard.writeText(address.href);
@@ -54,7 +57,7 @@ window.StudioMobileEntry = {
           feedback.textContent = '无法自动复制，请选中地址后手动复制。';
           input.focus(); input.select();
         }
-      }
+      } finally { if (!disposed) { copy.disabled = false; copy.setAttribute('aria-busy', 'false'); } }
     };
     copy.addEventListener('click', onCopy);
     return () => { disposeAccount(); disposed = true; copy.removeEventListener('click', onCopy); };

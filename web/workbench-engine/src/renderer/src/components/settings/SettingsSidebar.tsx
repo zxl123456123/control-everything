@@ -12,6 +12,7 @@ import { RepoIconGlyph } from '../repo/repo-icon'
 import { RepoForkIndicator } from '../repo/repo-fork-indicator'
 import { Button } from '../ui/button'
 import { Input } from '../ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select'
 import { SetupGuideProgressRing } from '../setup-guide/SetupGuideProgressRing'
 import { useSettingsSetupGuideProgress } from './settings-setup-guide-progress'
 import type { SettingsSetupGuideProgress } from './settings-setup-guide-progress'
@@ -47,6 +48,8 @@ type SettingsSidebarProps = {
   generalGroups: NavGroup[]
   repoSections: RepoNavSection[]
   hasRepos: boolean
+  showProjects?: boolean
+  showSetupGuide?: boolean
   searchInputRef?: RefObject<HTMLInputElement | null>
   searchAutoFocus?: boolean
   onBack: () => void
@@ -154,12 +157,14 @@ export function SettingsSidebar({
   generalGroups,
   repoSections,
   hasRepos,
+  showProjects = true,
+  showSetupGuide = true,
   searchInputRef,
   searchAutoFocus = false,
   onBack,
   onSelectSection
 }: SettingsSidebarProps): React.JSX.Element {
-  const setupGuideProgress = useSettingsSetupGuideProgress(true)
+  const setupGuideProgress = useSettingsSetupGuideProgress(showSetupGuide)
   const systemPrefersDark = useSystemPrefersDark()
   const leftSidebarStyle = useMemo(
     () => resolveLeftSidebarStyleVariables(settings, systemPrefersDark),
@@ -169,6 +174,7 @@ export function SettingsSidebar({
   // Why: "Hide from sidebar" only hides the top-left app sidebar prompt;
   // Settings should remain a stable place to reopen the checklist.
   const showSetupGuideTopRow =
+    showSetupGuide &&
     setupGuideProgress.ready && setupGuideProgress.doneCount < setupGuideProgress.total
   const navItemClassName = (isActive: boolean): string =>
     cn(
@@ -196,7 +202,7 @@ export function SettingsSidebar({
 
   return (
     <aside
-      className="flex w-[280px] shrink-0 flex-col border-r border-worktree-sidebar-border bg-worktree-sidebar"
+      className="settings-sidebar flex shrink-0 flex-col bg-worktree-sidebar"
       style={leftSidebarStyle}
     >
       <div className="border-b border-worktree-sidebar-border px-3 py-3">
@@ -213,6 +219,17 @@ export function SettingsSidebar({
 
       <SettingsSearchField searchInputRef={searchInputRef} searchAutoFocus={searchAutoFocus} />
 
+      <div className="settings-section-picker">
+        <Select value={activeSectionId} onValueChange={onSelectSection}>
+          <SelectTrigger aria-label="设置分区" className="w-full"><SelectValue /></SelectTrigger>
+          <SelectContent className="ce-management-surface">
+            {[...generalGroups.flatMap((group) => group.sections), ...repoSections].map((section) =>
+              <SelectItem key={section.id} value={section.id}>{section.title}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="settings-sidebar-directory flex min-h-0 flex-1 flex-col">
       {showSetupGuideTopRow ? (
         <div className="border-b border-worktree-sidebar-border px-3 py-3">
           <SettingsSetupGuideNavRow
@@ -263,7 +280,7 @@ export function SettingsSidebar({
             </div>
           ))}
 
-          <div className="space-y-2">
+          {showProjects ? <div className="space-y-2">
             <p className="px-3 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
               {translate('auto.components.settings.SettingsSidebar.5c9669ff9c', 'Projects')}
             </p>
@@ -312,8 +329,9 @@ export function SettingsSidebar({
                     )}
               </p>
             )}
-          </div>
+          </div> : null}
         </div>
+      </div>
       </div>
     </aside>
   )

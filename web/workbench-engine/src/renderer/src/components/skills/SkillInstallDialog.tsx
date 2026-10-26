@@ -1,3 +1,4 @@
+import { ManagementSurfaceProvider } from '@/components/ui/management-surface'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Loader2 } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -272,120 +273,126 @@ export function SkillInstallDialog({
   const bundleVersion = preview && isSkillBundleVersion(preview.version) ? preview.version : null
 
   return (
-    <Dialog open={open} onOpenChange={(next) => !next && !busy && !bundleBusy && close()}>
-      {/* Why: DialogContent is a grid, so a child that cannot wrap (a digest, a
+    <ManagementSurfaceProvider value={true}>
+      <Dialog open={open} onOpenChange={(next) => !next && !busy && !bundleBusy && close()}>
+        {/* Why: DialogContent is a grid, so a child that cannot wrap (a digest, a
           path, a long name) raises the grid's minimum width and the whole dialog
           scrolls sideways with its content clipped. min-w-0 lets children reflow
           at the dialog width; overflow-x-hidden makes sideways scroll impossible
           even if some future child still refuses to shrink. */}
-      <DialogContent
-        className="max-h-[calc(100vh-3rem)] overflow-x-hidden overflow-y-auto scrollbar-sleek sm:max-w-xl [&>*]:min-w-0"
-        aria-describedby={undefined}
-      >
-        <DialogHeader>
-          <DialogTitle>
-            {bundleVersion
-              ? translate(
-                  'auto.components.skills.SkillInstallDialog.01c5a14e01',
-                  'Install shared skills'
-                )
-              : translate(
-                  'auto.components.skills.SkillInstallDialog.fcbec627cc',
-                  'Install shared skill'
-                )}
-          </DialogTitle>
-        </DialogHeader>
+        <DialogContent
+          className="ce-management-surface max-h-[calc(100vh-3rem)] overflow-x-hidden overflow-y-auto scrollbar-sleek sm:max-w-[560px] [&>*]:min-w-0"
+          aria-describedby={undefined}
+        >
+          <DialogHeader>
+            <DialogTitle>
+              {bundleVersion
+                ? translate(
+                    'auto.components.skills.SkillInstallDialog.01c5a14e01',
+                    'Install shared skills'
+                  )
+                : translate(
+                    'auto.components.skills.SkillInstallDialog.fcbec627cc',
+                    'Install shared skill'
+                  )}
+            </DialogTitle>
+          </DialogHeader>
 
-        {resolvingInitialLink ? (
-          // Why: the paste form would flash for the length of the round-trip
-          // before being replaced by a review the caller already asked for.
-          <p className="flex items-center gap-2 py-6 text-sm text-muted-foreground">
-            <Loader2 className="size-4 animate-spin" />
-            {translate('auto.components.skills.SkillInstallDialog.opening', 'Opening this link…')}
-          </p>
-        ) : !preview ? (
-          <SkillShareLinkInputForm
-            link={link}
-            onLinkChange={setLink}
-            onSubmit={() => void inspect()}
-          />
-        ) : bundleVersion ? (
-          <SkillBundleInstallFlow
-            shareId={preview.shareId}
-            version={bundleVersion}
-            onClose={close}
-            onBusyChange={setBundleBusy}
-          />
-        ) : result && result.status !== 'conflict' ? (
-          <SkillInstallOutcome result={result} />
-        ) : (
-          <SkillInstallReview
-            preview={preview}
-            destinationPreview={destinationPreview}
-            result={result}
-            busy={busy}
-            riskSummary={installRisk!}
-            onDiscard={() => void install(true)}
-          >
-            <SkillInstallTargetFields
-              environmentId={environmentId}
-              onEnvironmentChange={(value) => {
-                setEnvironmentId(value)
-                setDestinationPreview(null)
-              }}
-              scope={scope}
-              onScopeChange={(value) => {
-                setScope(value)
-                setDestinationPreview(null)
-              }}
-              workspace={workspace}
-              onWorkspaceChange={(value) => {
-                setWorkspace(value)
-                setDestinationPreview(null)
-              }}
-              executionTarget={executionTarget}
-              onExecutionTargetChange={(value) => {
-                setExecutionTarget(value)
-                setDestinationPreview(null)
-              }}
-              providers={providers}
-              detectedAgents={detectedAgents}
-              onProvidersChange={setProviderChoice}
-              busy={busy}
-              runtimeEnvironments={runtimeEnvironments}
-              runtimeStatus={runtimeStatus}
-              sshConnections={sshConnections}
-              workspaceChoices={workspaceChoices}
+          {resolvingInitialLink ? (
+            // Why: the paste form would flash for the length of the round-trip
+            // before being replaced by a review the caller already asked for.
+            <p className="flex items-center gap-2 py-6 text-sm text-muted-foreground">
+              <Loader2 className="size-4 animate-spin" />
+              {translate('auto.components.skills.SkillInstallDialog.opening', 'Opening this link…')}
+            </p>
+          ) : !preview ? (
+            <SkillShareLinkInputForm
+              link={link}
+              onLinkChange={setLink}
+              onSubmit={() => void inspect()}
             />
-          </SkillInstallReview>
-        )}
+          ) : bundleVersion ? (
+            <SkillBundleInstallFlow
+              shareId={preview.shareId}
+              version={bundleVersion}
+              onClose={close}
+              onBusyChange={setBundleBusy}
+            />
+          ) : result && result.status !== 'conflict' ? (
+            <SkillInstallOutcome result={result} />
+          ) : (
+            <SkillInstallReview
+              preview={preview}
+              destinationPreview={destinationPreview}
+              result={result}
+              busy={busy}
+              riskSummary={installRisk!}
+              onDiscard={() => void install(true)}
+            >
+              <SkillInstallTargetFields
+                environmentId={environmentId}
+                onEnvironmentChange={(value) => {
+                  setEnvironmentId(value)
+                  setDestinationPreview(null)
+                }}
+                scope={scope}
+                onScopeChange={(value) => {
+                  setScope(value)
+                  setDestinationPreview(null)
+                }}
+                workspace={workspace}
+                onWorkspaceChange={(value) => {
+                  setWorkspace(value)
+                  setDestinationPreview(null)
+                }}
+                executionTarget={executionTarget}
+                onExecutionTargetChange={(value) => {
+                  setExecutionTarget(value)
+                  setDestinationPreview(null)
+                }}
+                providers={providers}
+                detectedAgents={detectedAgents}
+                onProvidersChange={setProviderChoice}
+                busy={busy}
+                runtimeEnvironments={runtimeEnvironments}
+                runtimeStatus={runtimeStatus}
+                sshConnections={sshConnections}
+                workspaceChoices={workspaceChoices}
+              />
+            </SkillInstallReview>
+          )}
 
-        {!bundleVersion && error ? (
-          <p className="text-xs text-destructive" role="alert">
-            {error}
-          </p>
-        ) : null}
-        {!bundleVersion && installProgress.phaseLabel ? (
-          <p className="text-xs text-muted-foreground" role="status" aria-live="polite">
-            {installProgress.phaseLabel}
-          </p>
-        ) : null}
-        <SkillInstallDialogFooter
-          activeOperationId={installProgress.activeOperationId}
-          busy={busy}
-          hasBundleVersion={Boolean(bundleVersion)}
-          hasPreview={Boolean(preview)}
-          link={link}
-          resolvingInitialLink={resolvingInitialLink}
-          result={result}
-          scope={scope}
-          workspace={workspace}
-          onCancelInstall={() => void cancelInstall()}
-          onClose={close}
-          onInspect={() => void inspect()}
-          onInstall={(discardLocal) => void install(discardLocal)}
-        />
-      </DialogContent>
-    </Dialog>
+          {!bundleVersion && error ? (
+            <p className="text-sm leading-[22px] text-destructive" role="alert">
+              {error}
+            </p>
+          ) : null}
+          {!bundleVersion && installProgress.phaseLabel ? (
+            <p
+              className="text-sm leading-[22px] text-muted-foreground"
+              role="status"
+              aria-live="polite"
+            >
+              {installProgress.phaseLabel}
+            </p>
+          ) : null}
+          <SkillInstallDialogFooter
+            activeOperationId={installProgress.activeOperationId}
+            busy={busy}
+            hasBundleVersion={Boolean(bundleVersion)}
+            hasPreview={Boolean(preview)}
+            link={link}
+            resolvingInitialLink={resolvingInitialLink}
+            result={result}
+            scope={scope}
+            workspace={workspace}
+            onCancelInstall={() => void cancelInstall()}
+            onClose={close}
+            onInspect={() => void inspect()}
+            onInstall={(discardLocal) => void install(discardLocal)}
+          />
+        </DialogContent>
+      </Dialog>
+    </ManagementSurfaceProvider>
   )
 }

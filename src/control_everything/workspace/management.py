@@ -194,6 +194,8 @@ def save_review(store, body):
         if row is None:
             raise WorkspaceError('item_not_found')
         old = dict(row)
+        if connection.execute("SELECT 1 FROM task_native_runs WHERE task_id=? AND active_slot=1", (identity,)).fetchone():
+            raise ProfileError('native_managed_item', status=409)
         if old['revision'] != revision:
             raise WorkspaceError('item_changed')
         if old['state'] != 'review':
@@ -252,5 +254,8 @@ def list_reviews(store, *, offset=0, limit=50, task_id=None, project_id=None, ve
         for row in rows:
             item = dict(row)
             item['evidence'] = json.loads(item.pop('evidence_json') or '[]')
+            for key in ('delivery_id', 'native_run_id', 'client_token', 'request_hash'):
+                if item.get(key) is None:
+                    item.pop(key, None)
             items.append(item)
         return {'items': items, 'total': total, 'offset': offset, 'limit': limit}

@@ -11,6 +11,15 @@ import { reconcileStartupManagedAgentHooks } from '../agent-hooks/managed-agent-
 import { refreshInstalledOpenCodeStatusPlugins } from '../opencode/opencode-status-plugin-startup-refresh'
 import type { ProfilePreferences } from '../persistence/loading-store/profile-preferences'
 import type { OrcadRuntimeCleanup } from './orcad-runtime-lifetime'
+import type { GlobalSettings } from '../../shared/global-settings-types'
+
+export function orcadStatusHooksEnabled(
+  settings: Pick<GlobalSettings, 'agentStatusHooksEnabled'>
+): boolean {
+  return isPlatformRuntime()
+    ? settings.agentStatusHooksEnabled === true
+    : isAgentStatusHooksEnabled(settings)
+}
 
 /**
  * Keeps this host's hook server and its agents' hook configs true to its settings. The startup
@@ -23,7 +32,15 @@ export function startOrcadManagedAgentHooks(
   registerCleanup: (cleanup: OrcadRuntimeCleanup) => void
 ): void {
   if (isPlatformRuntime()) {
-    setStatusHooksEnabled(false)
+    // The platform may observe explicitly enabled hooks, but never installs or
+    // rewrites an agent's home configuration. Missing settings remain disabled.
+    setStatusHooksEnabled(orcadStatusHooksEnabled(store.getSettings()))
+    const removeSettingsListener = store.onSettingsChanged((updates, settings) => {
+      if ('agentStatusHooksEnabled' in updates) {
+        setStatusHooksEnabled(orcadStatusHooksEnabled(settings))
+      }
+    })
+    registerCleanup(() => removeSettingsListener())
     return
   }
   let stopping = false

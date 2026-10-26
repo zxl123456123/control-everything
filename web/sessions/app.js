@@ -488,3 +488,17 @@ async function initializeSessionPage() {
   } catch (error) { $('list-notice').textContent = error.message; }
 }
 initializeSessionPage();
+
+let sessionsTheme, sessionsUnmountTheme, sessionsInitialTheme = window.CEUITheme?.pageTheme;
+function mountSessionsTheme() {
+  if (window.CERemoteContext?.active === false) return;
+  const toggle = document.querySelector('#sessions-theme'), status = document.querySelector('#sessions-theme-error');
+  sessionsTheme = sessionsInitialTheme || window.CEUITheme?.earlyRead('ce.sessions.theme'); sessionsInitialTheme = null;
+  if (sessionsTheme) { toggle.disabled = false; sessionsUnmountTheme = sessionsTheme.mount({roots: [document.body], toggles: [toggle], status, aliases: {'--bg':'--ce-bg','--panel':'--ce-panel','--line':'--ce-line','--text':'--ce-text','--muted':'--ce-sub','--accent':'--ce-primary','--warn':'--ce-amber'}}); }
+  else { toggle.disabled = true; status.hidden = false; status.textContent = '主题资源未加载，请刷新后重试。'; }
+}
+function disposeSessionsTheme() { sessionsUnmountTheme?.(); sessionsUnmountTheme = null; sessionsTheme?.dispose(); sessionsTheme = null; }
+mountSessionsTheme();
+window.addEventListener('pagehide', event => { disposeSessionsTheme(); if (!event.persisted) { clearInterval(observationTimer); clearInterval(renderTimer); state.epoch++; } });
+window.addEventListener('pageshow', event => { if (event.persisted && window.CERemoteContext?.active !== false) mountSessionsTheme(); });
+window.CERemoteContext?.onInactive(disposeSessionsTheme);

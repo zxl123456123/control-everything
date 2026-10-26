@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import type { HookSaveStatus } from './use-repository-hook-settings-draft'
 import { AlertTriangle, Plus } from 'lucide-react'
 import { Button } from '../ui/button'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip'
@@ -68,7 +69,7 @@ function EnvVarChips(): React.JSX.Element {
   )
 }
 
-function SaveIndicator({ status }: { status: 'idle' | 'saving' | 'saved' }) {
+function SaveIndicator({ status }: { status: HookSaveStatus }) {
   if (status === 'idle') {
     return null
   }
@@ -79,9 +80,9 @@ function SaveIndicator({ status }: { status: 'idle' | 'saving' | 'saved' }) {
       aria-live="polite"
     >
       <span
-        className={`size-1.5 rounded-full ${isSaving ? 'animate-pulse bg-amber-500' : 'bg-emerald-500'}`}
+        className={`size-1.5 rounded-full ${status === 'error' ? 'bg-destructive' : isSaving ? 'animate-pulse bg-amber-500' : 'bg-emerald-500'}`}
       />
-      {isSaving
+      {status === 'error' ? '保存失败，请重试' : isSaving
         ? translate('auto.components.settings.RepositoryHooksSection.81057d5f71', 'Saving...')
         : translate('auto.components.settings.RepositoryHooksSection.2b6356e744', 'Saved')}
     </span>
@@ -95,6 +96,8 @@ export function RepositoryHookScriptSetting({
   sharedScript,
   onChange,
   onCommit,
+  saveStatus,
+  focusOnError = false,
   sectionId
 }: {
   field: LocalHookField
@@ -102,36 +105,16 @@ export function RepositoryHookScriptSetting({
   hasShared: boolean
   sharedScript: string | undefined
   onChange: (next: string) => void
-  onCommit: () => void
+  onCommit: () => Promise<boolean>
+  saveStatus: HookSaveStatus
+  focusOnError?: boolean
   sectionId?: string
 }): React.JSX.Element {
   const [showLocal, setShowLocal] = useState(value.length > 0)
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
-  const lastValueRef = useRef(value)
-  const savedTimerRef = useRef<number | null>(null)
+  const inputRef = useRef<HTMLTextAreaElement>(null)
   useEffect(() => {
-    if (value === lastValueRef.current) {
-      return
-    }
-    lastValueRef.current = value
-    setSaveStatus('saving')
-    if (savedTimerRef.current !== null) {
-      window.clearTimeout(savedTimerRef.current)
-    }
-    savedTimerRef.current = window.setTimeout(() => {
-      setSaveStatus('saved')
-      savedTimerRef.current = window.setTimeout(() => {
-        setSaveStatus('idle')
-        savedTimerRef.current = null
-      }, 1500)
-    }, 250)
-    return () => {
-      if (savedTimerRef.current !== null) {
-        window.clearTimeout(savedTimerRef.current)
-        savedTimerRef.current = null
-      }
-    }
-  }, [value])
+    if (saveStatus === 'error' && focusOnError && inputRef.current?.isConnected) inputRef.current.focus()
+  }, [saveStatus, focusOnError])
 
   const showLocalEditor = showLocal || value.length > 0 || !hasShared
   return (
@@ -194,10 +177,12 @@ export function RepositoryHookScriptSetting({
             <SaveIndicator status={saveStatus} />
           </div>
           <textarea
+            ref={inputRef}
+            aria-invalid={saveStatus === 'error'}
             value={value}
             aria-label={field.label}
             onChange={(event) => onChange(event.target.value)}
-            onBlur={onCommit}
+            onBlur={() => void onCommit()}
             placeholder={field.placeholder}
             spellCheck={false}
             rows={getRepositoryHookScriptTextareaRows(value)}

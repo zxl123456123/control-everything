@@ -6,6 +6,7 @@ const vm = require('node:vm');
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const source = fs.readFileSync(path.resolve(__dirname, '../../web/workspace/agents.js'), 'utf8');
+const confirmationFixture = context => { context.window.CEUIDialog = { create: () => ({ confirm: () => Promise.resolve(context.window.confirm?.() ?? true), dispose() {} }) }; };
 
 class Element {
   constructor(tag) {
@@ -38,9 +39,10 @@ function fixture(options = {}) {
   root.getRootNode = () => shadowRoot;
   const events = [];
   const context = { window: { confirm: () => true, dispatchEvent: event => { events.push(event); return !options.acceptNative; } }, CustomEvent: class { constructor(type, init) { Object.assign(this, init); this.type = type; } }, document: { createElement: tag => new Element(tag), getElementById: () => null }, URLSearchParams, TextEncoder, console };
+  confirmationFixture(context);
   if (options.execution) context.window.WorkspaceExecution = options.execution;
   if (options.sessions) vm.runInNewContext(fs.readFileSync(path.resolve(__dirname, '../../web/workspace/project-space.js'), 'utf8'), context);
-  vm.runInNewContext(source, context);
+  vm.runInNewContext(source, context); context.window.WorkspaceAgents.attachCollectionChoice = () => null; context.window.WorkspaceAgents.disposeCollectionChoices = () => {};
   const calls = [], posts = [];
   let rows = options.rows || [item('one')], projects = options.projects || [{ id: 'p', name: 'Project' }], agents = options.agents || [agent];
   const state = { failItems: false, failRegistry: false, failProjects: false, failPost: false, detail: options.detail, pageRevision: 9 };
@@ -69,7 +71,7 @@ function fixture(options = {}) {
     return {};
   };
   const callbacks = [];
-  const api = context.window.WorkspaceAgentBoard.create({ root, fetchJson, postJson, unified: options.unified, onRefresh: options.onRefresh, now: () => Date.parse(stamp), onRegister: () => callbacks.push('register'), onAddProject: () => callbacks.push('project') });
+  const api = context.window.WorkspaceAgentBoard.create({ root, fetchJson, postJson, unified: options.unified, itemsHref: options.itemsHref, onRefresh: options.onRefresh, now: () => Date.parse(stamp), onRegister: () => callbacks.push('register'), onAddProject: () => callbacks.push('project') });
   const node = id => { const found = root.querySelector('#' + id); assert.ok(found, id); return found; };
   const submit = async () => { const form = node('ab-review-submit').parentElement.parentElement; await form.listeners.submit({ preventDefault() {} }); };
   return { api, root, shadowRoot, node, calls, posts, state, callbacks, events, submit, window: context.window, document: context.document, groupItems: context.window.WorkspaceAgentBoard.groupItems };
@@ -77,6 +79,32 @@ function fixture(options = {}) {
 
 const saveEdit = f => f.node('ab-edit-save').parentElement.parentElement.listeners.submit({ preventDefault() {} });
 const effectivelyDisabled = node => Boolean(node && (node.disabled || effectivelyDisabled(node.parentElement)));
+test('Studio itemsHref changes only the legacy management and all-items links', async () => {
+  const f = fixture({ itemsHref: id => '#project/' + id + '/items' }); await f.api.load(); f.api.setProject('p');
+  const manage = f.root.all.find(node => node.dataset.action === 'manage-items'); assert.equal(manage.href, '#project/p/items');
+  assert.equal(f.node('ab-project-tabs').children[0].href, '#project/p/items');
+  assert.equal(f.node('ab-project-tabs').children[2].href, '#project/p/sessions');
+});
+test('Board excludes new archived targets and keeps only an existing unavailable owner', async () => {
+  const old = item('old', { project_id: 'removed' });
+  const f = fixture({ projects: [{ id: 'p', name: 'Active' }, { id: 'archived', name: 'Archived', archived: true }], rows: [old], detail: { item: old, run: null, events: [] } });
+  await f.api.load(); await f.api.open(old);
+  assert.deepEqual(f.node('ab-edit-project').children.map(node => node.value), ['', 'p', 'removed']);
+  f.node('ab-edit-title').value = '保留原归属'; await saveEdit(f);
+  assert.deepEqual(JSON.parse(JSON.stringify(f.posts[0].body.changes)), { title: '保留原归属' });
+});
+test('Board detail failure locks owner and state while title stays editable', async () => {
+  const f = fixture({ detail: new Error('unavailable') }); await f.api.load(); await f.api.open(item('one'));
+  assert.equal(f.node('ab-edit-project').disabled, true); assert.equal(f.node('ab-edit-state').disabled, true); assert.equal(f.node('ab-edit-title').disabled, false);
+});
+test('Board setActive retires an outstanding detail read without repainting hidden DOM', async () => {
+  const f = fixture(); await f.api.load(); let resolve;
+  f.state.detailPromise = new Promise(r => resolve = r); const pending = f.api.open(item('one'));
+  f.api.setActive(false); const before = f.node('ab-detail').textContent;
+  resolve({ item: item('one', { title: '晚到' }), run: null, events: [] }); await pending;
+  assert.equal(f.node('ab-detail').textContent, before); assert.equal(f.api.isEditing(), true);
+  f.api.dispose(); assert.equal(f.node('ab-detail').open, false);
+});
 test('a shared snapshot retains unchanged cards and the refresh action returns to its owner', async () => {
   let refreshed = 0;
   const f = fixture({ unified: true, onRefresh: async () => refreshed++ });
@@ -118,11 +146,18 @@ test('conflicting edit retains its draft and never reloads or retries the detail
   await f.api.open(row, true); assert.equal(f.calls.length, reads); assert.equal(f.node('ab-edit-title').value, 'Keep draft');
 });
 test('review and active-run details lock state and project while title remains editable', async () => {
-  for (const extra of [{ state: 'review' }, { assignment_state: 'running' }]) {
+  for (const extra of [{ state: 'review' }, { assignment_state: 'running' }, { assignment_state: 'waiting_user' }, { assignment_state: 'waiting_review' }]) {
     const row = item('locked', extra), f = fixture({ rows: [row] }); await f.api.load(); await f.api.open(row);
     assert.equal(f.node('ab-edit-state').disabled, true); assert.equal(f.node('ab-edit-project').disabled, true);
     f.node('ab-edit-state').value = 'done'; f.node('ab-edit-title').value = 'Only title'; f.node('ab-edit-title').listeners.input(); await saveEdit(f);
     assert.deepEqual(Object.keys(f.posts[0].body.changes), ['title']);
+  }
+});
+test('claimed, running and waiting_review run records each lock owner and state', async () => {
+  for (const status of ['claimed', 'running', 'waiting_review']) {
+    const row = item('run-lock'), f = fixture({ rows: [row], detail: { item: row, run: { id: 'r', task_id: row.id, status }, events: [] } });
+    await f.api.load(); await f.api.open(row);
+    assert.equal(f.node('ab-edit-state').disabled, true); assert.equal(f.node('ab-edit-project').disabled, true); assert.equal(f.node('ab-edit-title').disabled, false);
   }
 });
 test('title and review drafts block each other without losing either input', async () => {
@@ -200,7 +235,8 @@ test('unhandled native start reopens detail with feedback and legacy todo has no
 function dispatchFixture(options = {}) {
   const root = new Element('section'), calls = [], posts = [], dirty = [];
   const context = { window: { confirm: () => true }, document: { createElement: tag => new Element(tag) }, URLSearchParams, TextEncoder, console };
-  vm.runInNewContext(source, context);
+  confirmationFixture(context);
+  vm.runInNewContext(source, context); context.window.WorkspaceAgents.attachCollectionChoice = () => null; context.window.WorkspaceAgents.disposeCollectionChoices = () => {};
   const task = item('brief'), record = { id: 'dispatch-one', agent_id: 'a', directory_path: 'C:/example/project', content_text: 'Saved request', brief_sha256: 'a'.repeat(64), delivery_state: 'previewed' };
   const state = { current: true, revision: 3, records: [], globalBusy: false };
   const briefResult = () => ({ item: task, brief: { revision: state.revision, request_text: 'Build a small feature', references: [], execution_directory_id: 'main' }, directories: [{ binding_id: 'main', path: 'C:/example/project' }] });
@@ -446,7 +482,7 @@ test('project item totals still surface an unavailable agent registry', async ()
 test('legacy management and session routes remain visible outside the Agent board', () => {
   const root = new Element('section'); const flags = {};
   const context = { window: {}, document: { getElementById: name => name === 'agent-board' ? root : null, body: { classList: { toggle: (name, value) => { flags[name] = value; } } } } };
-  vm.runInNewContext(source, context);
+  vm.runInNewContext(source, context); context.window.WorkspaceAgents.attachCollectionChoice = () => null; context.window.WorkspaceAgents.disposeCollectionChoices = () => {};
   for (const view of ['tasks', 'attention', 'legacy-project-sessions']) {
     context.window.WorkspaceAgentBoard.onView(view); assert.equal(root.hidden, true); assert.equal(flags['agent-board-active'], false);
   }
@@ -457,7 +493,7 @@ test('the project monitor remains visible through the Agent board route wrapper'
   const root = new Element('section'), flags = {}, calls = [];
   const context = { window: { WorkspaceProjectSpace: { create: () => ({ route: (...args) => calls.push(args), show: view => calls.push(view) }) } },
     document: { getElementById: name => name === 'agent-board' ? root : null, body: { classList: { toggle: (name, value) => { flags[name] = value; } } } } };
-  vm.runInNewContext(source, context);
+  vm.runInNewContext(source, context); context.window.WorkspaceAgents.attachCollectionChoice = () => null; context.window.WorkspaceAgents.disposeCollectionChoices = () => {};
   const space = context.window.WorkspaceProjectSpace.create({});
   space.route('p', 'monitor'); space.show('project');
   assert.equal(root.hidden, true); assert.equal(flags['agent-board-active'], false);
@@ -738,7 +774,7 @@ for (const action of ['close', 'escape']) test(`${action} during detail fetch pr
   else {
     let prevented = false;
     f.node('ab-detail').listeners.cancel({ preventDefault() { prevented = true; } });
-    assert.equal(prevented, false); f.node('ab-detail').close();
+    assert.equal(prevented, true); assert.equal(f.node('ab-detail').open, false);
   }
   resolve({ item: row, run: { id: 'late', status: 'running' }, events: [] }); await pending;
   assert.equal(f.node('ab-detail').open, false); assert.equal(f.node('ab-detail').querySelector('progress'), null);
@@ -758,7 +794,7 @@ test('progress from an old run cannot replace the current run report', async () 
 
 function messageFixture(options={}) {
   const root=new Element('section'),posts=[],dirty=[];let rows=[],current=true,sequence=0,failRead=false;
-  const context={window:{confirm:()=>true,crypto:{randomUUID:()=>`client-${++sequence}`}},document:{createElement:tag=>new Element(tag),getElementById:()=>null},URLSearchParams,TextEncoder,console};vm.runInNewContext(source,context);
+  const context={window:{confirm:()=>true,crypto:{randomUUID:()=>`client-${++sequence}`}},document:{createElement:tag=>new Element(tag),getElementById:()=>null},URLSearchParams,TextEncoder,console};confirmationFixture(context);vm.runInNewContext(source,context);context.window.WorkspaceAgents.attachCollectionChoice=()=>null;context.window.WorkspaceAgents.disposeCollectionChoices=()=>{};
   const fetchJson=async()=>{if(failRead)throw Error('offline');return {item:{id:'task-a'},items:rows};};
   const postJson=async(url,body)=>{posts.push({url,body});if(url.endsWith('/messages')){const row={id:'msg-'+posts.length,task_id:'task-a',delivery_state:'previewed',...body};rows=[row,...rows];return {message:row};}const id=url.split('/').at(-2),row=rows.find(row=>row.id===id);row.delivery_state=url.endsWith('/sent')?'sent':'cancelled';return {message:row};};
   context.window.WorkspaceTaskMessages.create({root,item:{id:'task-a',title:'Task',assigned_agent_id:'a',project_id:'p'},run:null,agents:[{id:'a',name:'Agent',enabled:true}],fetchJson,postJson,isCurrent:()=>current,onDirty:value=>dirty.push(value),...options});

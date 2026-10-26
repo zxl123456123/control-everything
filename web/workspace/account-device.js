@@ -6,12 +6,12 @@
     const remote = mode === 'remote';
     const context = remote && scope.CERemoteContext?.context ? scope.CERemoteContext : null;
     let disposed = false, generation = 0, csrf = '', account = null, device = null;
-    let admin = false, busy = false, reading = false, timer, configured = false;
+    let admin = false, busy = false, reading = false, timer, configured = false, revokeTarget = null, composing = false;
     const pending = new Set();
     let controller = new AbortController();
     const listeners = [];
     container.innerHTML = `<section class="ce-account">
-      <header class="ce-account-heading"><div><p class="ce-account-eyebrow">工作台 / 账号与设备</p><h1>账号与设备</h1><p>管理你的账号接入与电脑连接。</p></div><button type="button" data-action="refresh">刷新状态</button></header>
+      <header class="ce-account-heading"><h1 tabindex="-1">账号与设备</h1><button type="button" data-action="refresh">刷新状态</button></header>
       <p class="ce-account-notice" data-node="status" role="status" aria-live="polite">正在读取连接状态…</p>
       <div class="ce-account-grid">
         <section class="ce-account-card"><div class="ce-account-card-title"><span class="ce-account-icon" aria-hidden="true">◎</span><div><h2>${remote ? '我的账号' : '本机账号接入'}</h2><p>${remote ? '账号身份与小组接入' : '授权后在本机核对并确认'}</p></div><span class="ce-account-badge" data-node="membership">读取中</span></div>
@@ -24,7 +24,7 @@
         <section class="ce-account-card"><div class="ce-account-card-title"><span class="ce-account-icon" aria-hidden="true">▣</span><div><h2 data-node="device-name">我的电脑</h2><p>项目保留在你的电脑上</p></div><span class="ce-account-badge" data-node="device-state">读取中</span></div><p data-node="device-help"></p><p><a class="ce-account-primary" data-node="open" href="/studio" hidden>进入工作台 →</a></p><div class="ce-account-danger-zone" data-node="revoke-area" hidden><h3>断开远程连接</h3><p>撤销只断开远程连接，不会删除本机项目。</p><button class="ce-account-danger" type="button" data-action="revoke">撤销电脑连接</button></div></section>
         <section class="ce-account-card ce-account-invitations" data-node="invitations" hidden><div class="ce-account-card-title"><span class="ce-account-icon" aria-hidden="true">＋</span><div><h2>邀请成员</h2><p>为需要接入的小组成员生成一次性邀请码</p></div></div><button type="button" data-action="invitation">生成邀请码</button><p>邀请码有效 24 小时，只能使用一次。请自行交给需要接入的成员。</p><p data-node="invitation-result" hidden>本次邀请码：<output class="ce-account-code" data-node="invitation-code"></output></p></section>
       </div><p class="ce-account-footnote">iPhone 与 Android 可通过网站访问；当前未提供原生安装包。</p>
-      <dialog class="ce-account-dialog" data-node="revoke-dialog" aria-label="撤销电脑连接"><h2>撤销电脑连接？</h2><p>这台电脑的远程连接将断开，不会删除本机项目。需要重新授权后才能恢复远程访问。</p><div class="ce-account-dialog-actions"><button type="button" data-action="cancel-revoke">取消</button><button class="ce-account-danger" type="button" data-action="confirm-revoke">确认撤销连接</button></div></dialog>
+      <dialog class="ce-account-dialog" data-node="revoke-dialog" aria-label="撤销电脑连接"><h2>撤销电脑连接？</h2><p>这台电脑的远程连接将断开，不会删除本机项目。需要重新授权后才能恢复远程访问。</p><p data-node="revoke-error" class="ce-account-dialog-error" role="alert" tabindex="-1" hidden></p><div class="ce-account-dialog-actions"><button type="button" data-action="cancel-revoke" autofocus>取消</button><button class="ce-account-danger" type="button" data-action="confirm-revoke">确认撤销连接</button></div></dialog>
     </section>`;
     const $ = name => container.querySelector(`[data-node="${name}"]`);
     const action = name => container.querySelector(`[data-action="${name}"]`);
@@ -48,7 +48,12 @@
       // Invalidation may synchronously dispose this component; navigation must still happen.
       scope.location.assign(destination);
     }
-    function error(error) { if (!disposed && error.name !== 'AbortError') { $('status').textContent = error.message; $('status').dataset.tone = 'error'; } }
+    function error(error) {
+      if (!disposed && error.name !== 'AbortError') {
+        $('status').textContent = error.message; $('status').dataset.tone = 'error';
+        if (dialog.open) { $('revoke-error').textContent = error.message; $('revoke-error').hidden = false; $('revoke-error').focus(); }
+      }
+    }
     async function request(path, body) {
       const mine = generation;
       const response = await scope.fetch(path, {method: body ? 'POST' : 'GET', credentials: 'same-origin', signal: controller.signal,
@@ -121,6 +126,8 @@
       pending.add(kind);
       busy = true; const mine = generation, requestCsrf = csrf;
       const button = action(kind); if (button) button.disabled = true;
+      if (kind === 'revoke') { action('cancel-revoke').disabled = true; action('confirm-revoke').disabled = true; }
+      if (button) button.setAttribute?.('aria-busy', 'true');
       if (kind === 'invitation') clearInvitation();
       try {
         const path = remote ? '/remote/api/' + (kind === 'invitation' ? 'invitations' : kind === 'revoke' ? 'devices/' + encodeURIComponent(device.device_id) + '/revoke' : kind) : '/api/desktop/remote/' + kind;
@@ -134,16 +141,33 @@
           if (typeof value.invitation !== 'string' || !value.invitation) throw new Error('邀请码未生成，请重试。');
           $('invitation-code').textContent = value.invitation; $('invitation-result').hidden = false;
         } else { busy = false; await refresh(); }
+        return true;
       } catch (failure) { if (mine === generation) error(failure); }
-      finally { if (!disposed && mine === generation) { pending.delete(kind); busy = pending.size > 0; if (button) button.disabled = !remote && (!configured || (kind === 'authorize' && device?.state === 'authorizing')); } }
+      finally { if (!disposed && mine === generation) { pending.delete(kind); busy = pending.size > 0; if (button) { button.disabled = !remote && (!configured || (kind === 'authorize' && device?.state === 'authorizing')); button.setAttribute?.('aria-busy', 'false'); } if (kind === 'revoke') { action('cancel-revoke').disabled = false; action('confirm-revoke').disabled = false; } } }
+      return false;
     }
     on(action('refresh'), 'click', () => { void refresh(); });
     on($('activation'), 'submit', event => { event.preventDefault(); void mutate('activate', {invite: new FormData(event.currentTarget).get('invite')}); });
     for (const kind of ['invitation','logout','authorize','confirm']) on(action(kind), 'click', () => { void mutate(kind); });
-    on(action('revoke'), 'click', () => { if (!disposed && !busy && device) dialog.showModal(); });
-    on(action('cancel-revoke'), 'click', () => dialog.close());
-    on(action('confirm-revoke'), 'click', () => { dialog.close(); void mutate('revoke'); });
-    on(dialog, 'close', () => { if (!disposed) action('revoke').focus(); });
+    const revokeIdentity = () => device && JSON.stringify([generation, csrf, remote ? device.device_id : device.account?.sub, device.state]);
+    on(action('revoke'), 'click', () => {
+      if (disposed || busy || reading || !device) return;
+      revokeTarget = revokeIdentity(); $('revoke-error').hidden = true;
+      try { dialog.showModal(); action('cancel-revoke').focus(); }
+      catch (failure) { error(new Error('无法打开撤销确认，请重试。' + failure.message)); }
+    });
+    const closeRevoke = () => { if (!busy) dialog.close(); };
+    on(action('cancel-revoke'), 'click', closeRevoke);
+    on(action('confirm-revoke'), 'click', async () => {
+      if (disposed || busy || reading || !dialog.open) return;
+      if (!revokeTarget || revokeTarget !== revokeIdentity()) { error(new Error('电脑连接状态已变化，请取消后重新核对。')); return; }
+      if (await mutate('revoke')) { if (!disposed && dialog.open) dialog.close(); }
+    });
+    on(dialog, 'compositionstart', () => { composing = true; });
+    on(dialog, 'compositionend', () => { composing = false; });
+    on(dialog, 'cancel', event => { event.preventDefault(); if (!composing && !event.isComposing) closeRevoke(); });
+    on(dialog, 'keydown', event => { if (event.key === 'Escape') { event.stopPropagation?.(); if (composing || event.isComposing || event.keyCode === 229) event.preventDefault(); } });
+    on(dialog, 'close', () => { revokeTarget = null; if (!disposed) action('revoke').focus(); });
     function poll() { timer = scope.setTimeout(() => { if (disposed) return; if (!scope.document.hidden) void refresh(); poll(); }, 2000); }
     function dispose() {
       if (disposed) return; disposed = true; ++generation; csrf = ''; account = device = null;

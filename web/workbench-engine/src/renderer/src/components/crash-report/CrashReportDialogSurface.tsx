@@ -29,6 +29,7 @@ import {
   getCrashReportSubmitWarningNotice
 } from './crash-report-submit-notice'
 import { useCrashReportCopy } from './use-crash-report-copy'
+import { ManagementSurfaceProvider } from '@/components/ui/management-surface'
 
 function formatSummary(report: CrashReportRecord): string {
   if (isReactErrorBoundaryReport(report)) {
@@ -42,29 +43,41 @@ function formatSummary(report: CrashReportRecord): string {
 
 function getDialogTitle(report: CrashReportRecord | null): string {
   if (!report) {
-    return 'Report a crash'
+    return translate('crashReport.title.manual', 'Problem diagnostics')
   }
   return report && isReactErrorBoundaryReport(report)
-    ? 'Orca hit a recoverable UI error'
-    : 'Orca closed unexpectedly'
+    ? translate('crashReport.title.recoverable', 'A recoverable interface error occurred')
+    : translate('crashReport.title.crash', 'The application closed unexpectedly')
 }
 
 function getDialogDescription(report: CrashReportRecord | null): string {
   if (!report) {
-    return 'Send a privacy-safe crash report. Recent redacted diagnostic logs are included when available.'
+    return translate(
+      'crashReport.description.manual',
+      'Send a diagnostic report and optionally attach recent redacted diagnostic logs.'
+    )
   }
   return report && isReactErrorBoundaryReport(report)
-    ? 'Send a privacy-safe diagnostic report to help us understand the failed UI surface.'
-    : 'Send a privacy-safe diagnostic report to help us understand what happened.'
+    ? translate(
+        'crashReport.description.recoverable',
+        'Use a diagnostic report to investigate the failed interface. Review its contents and choose whether to attach logs before sending.'
+      )
+    : translate(
+        'crashReport.description.crash',
+        'Use a diagnostic report to investigate the unexpected exit. Review its contents and choose whether to attach logs before sending.'
+      )
 }
 
 function getNotesPlaceholder(report: CrashReportRecord | null): string {
   if (!report) {
-    return 'Optional: what happened?'
+    return translate('crashReport.notes.manual', 'Optional: describe the problem')
   }
   return report && isReactErrorBoundaryReport(report)
-    ? 'Optional: what were you doing before this UI error?'
-    : 'Optional: what were you doing before Orca closed?'
+    ? translate('crashReport.notes.recoverable', 'Optional: describe your actions before the error')
+    : translate(
+        'crashReport.notes.crash',
+        'Optional: describe your actions before the application closed'
+      )
 }
 
 type CrashReportDialogSurfaceProps = {
@@ -215,137 +228,158 @@ export function CrashReportDialogSurface({
   }
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(nextOpen) => {
-        if (submitting && !nextOpen) {
-          return
-        }
-        if (!nextOpen) {
-          clearViewer()
-          void dismissReportIfNeeded().finally(() => {
-            if (mountedRef.current) {
-              onOpenChange(false)
-            }
-          })
-          return
-        }
-        onOpenChange(true)
-      }}
-    >
-      <DialogContent className="sm:max-w-xl">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-sm">
-            <AlertTriangle className="size-4 text-destructive" />
-            {getDialogTitle(report)}
-          </DialogTitle>
-          <DialogDescription className="text-xs">{getDialogDescription(report)}</DialogDescription>
-        </DialogHeader>
+    <ManagementSurfaceProvider value>
+      <Dialog
+        open={open}
+        onOpenChange={(nextOpen) => {
+          if (submitting && !nextOpen) {
+            return
+          }
+          if (!nextOpen) {
+            clearViewer()
+            void dismissReportIfNeeded().finally(() => {
+              if (mountedRef.current) {
+                onOpenChange(false)
+              }
+            })
+            return
+          }
+          onOpenChange(true)
+        }}
+      >
+        <DialogContent className="max-h-[calc(100dvh-2rem)] grid-rows-[auto_minmax(0,1fr)_auto] gap-6 sm:max-w-[560px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 pr-11 text-xl font-semibold leading-7">
+              <AlertTriangle className="size-4 text-destructive" />
+              {getDialogTitle(report)}
+            </DialogTitle>
+            <DialogDescription className="text-sm leading-[22px]">
+              {getDialogDescription(report)}
+            </DialogDescription>
+          </DialogHeader>
 
-        <div className="min-w-0 space-y-3">
-          {report ? (
-            <>
-              <div className="rounded-md border border-border/70 bg-muted/30 p-3 text-xs">
-                <div className="font-medium text-foreground">{formatSummary(report)}</div>
-                <div className="mt-1 text-muted-foreground">
-                  {new Date(report.createdAt).toLocaleString()} · {report.platform} {report.arch} ·
-                  {translate('auto.components.crash.report.CrashReportDialog.835037edc9', 'Orca')}{' '}
-                  {report.appVersion}
+          <div className="scrollbar-sleek min-h-0 min-w-0 space-y-4 overflow-y-auto">
+            {report ? (
+              <>
+                <div className="rounded-2xl border border-border bg-muted p-4 text-sm [overflow-wrap:anywhere]">
+                  <div className="font-medium text-foreground">{formatSummary(report)}</div>
+                  <div className="mt-1 text-muted-foreground">
+                    {new Date(report.createdAt).toLocaleString()} · {report.platform} {report.arch}{' '}
+                    ·
+                    {translate('auto.components.crash.report.CrashReportDialog.835037edc9', 'Orca')}{' '}
+                    {report.appVersion}
+                  </div>
                 </div>
+                <details className="min-w-0 space-y-2">
+                  <summary className="min-h-11 cursor-pointer py-3 text-sm font-medium text-muted-foreground">
+                    {translate(
+                      'auto.components.crash.report.CrashReportDialog.6d3ebe216a',
+                      'Diagnostic text'
+                    )}
+                  </summary>
+                  <pre className="max-h-44 overflow-auto whitespace-pre-wrap [overflow-wrap:anywhere] rounded-xl border border-border bg-muted p-4 font-mono text-sm leading-[22px] text-muted-foreground scrollbar-sleek">
+                    {diagnosticText}
+                  </pre>
+                </details>
+              </>
+            ) : (
+              <div
+                className="rounded-2xl border border-border bg-muted p-4 text-sm text-muted-foreground"
+                role="status"
+              >
+                {loading
+                  ? translate(
+                      'auto.components.crash.report.CrashReportDialog.765591798d',
+                      'Checking for crash reports...'
+                    )
+                  : translate(
+                      'auto.components.crash.report.CrashReportDialog.ead6fc0510',
+                      'No automatic crash report was captured. You can still send details and include recent diagnostic logs when available.'
+                    )}
               </div>
-              <div className="min-w-0 space-y-1.5">
-                <div className="text-[11px] font-medium text-muted-foreground">
-                  {translate(
-                    'auto.components.crash.report.CrashReportDialog.6d3ebe216a',
-                    'Diagnostic text'
-                  )}
-                </div>
-                <pre className="max-h-44 overflow-auto whitespace-pre-wrap [overflow-wrap:anywhere] rounded-md border border-border bg-muted/20 p-3 font-mono text-[11px] leading-5 text-muted-foreground scrollbar-sleek">
-                  {diagnosticText}
-                </pre>
-              </div>
-            </>
-          ) : (
-            <div className="rounded-md border border-border/70 bg-muted/30 p-3 text-xs text-muted-foreground">
-              {loading
-                ? translate(
-                    'auto.components.crash.report.CrashReportDialog.765591798d',
-                    'Checking for crash reports...'
-                  )
-                : translate(
-                    'auto.components.crash.report.CrashReportDialog.ead6fc0510',
-                    'No automatic crash report was captured. You can still send details and include recent diagnostic logs when available.'
-                  )}
-            </div>
-          )}
-          <div className="space-y-1">
-            <textarea
-              value={notes}
-              onChange={(event) => setNotes(event.target.value)}
-              rows={4}
-              // Keep the UI and formatter on the same input budget.
-              maxLength={MAX_USER_NOTES_LENGTH}
-              placeholder={getNotesPlaceholder(report)}
-              className="min-h-24 w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-            />
-            <div
-              aria-hidden="true"
-              className="text-right text-[11px] tabular-nums text-muted-foreground"
-            >
-              {notes.length.toLocaleString()} / {MAX_USER_NOTES_LENGTH.toLocaleString()}
-            </div>
-          </div>
-          <div className="flex items-start gap-2 rounded-md border border-border/70 bg-muted/20 p-3">
-            <Checkbox
-              id="crash-report-attach-diagnostics"
-              checked={includeDiagnosticLogs}
-              onCheckedChange={(checked) => setIncludeDiagnosticLogs(checked === true)}
-              disabled={submitting}
-              className="mt-0.5"
-            />
-            <div className="space-y-1">
-              <Label htmlFor="crash-report-attach-diagnostics" className="text-xs">
-                {translate(
-                  'auto.components.crash.report.CrashReportDialog.b082f27490',
-                  'Attach recent diagnostic logs'
-                )}
+            )}
+            <div className="space-y-2">
+              <Label htmlFor="crash-report-notes">
+                {translate('crashReport.notes.label', 'Additional details (optional)')}
               </Label>
-              <div className="text-xs leading-5 text-muted-foreground">
-                {translate(
-                  'auto.components.crash.report.CrashReportDialog.e59f0b9427',
-                  'Sends a capped redacted log bundle with the report.'
-                )}
+              <textarea
+                id="crash-report-notes"
+                value={notes}
+                onChange={(event) => setNotes(event.target.value)}
+                rows={4}
+                // Keep the UI and formatter on the same input budget.
+                maxLength={MAX_USER_NOTES_LENGTH}
+                placeholder={getNotesPlaceholder(report)}
+                className="min-h-24 w-full rounded-xl border border-input bg-background px-3 py-2 text-[15px] leading-6 outline-none ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              />
+              <div
+                aria-hidden="true"
+                className="text-right text-[13px] tabular-nums text-muted-foreground"
+              >
+                {notes.length.toLocaleString()} / {MAX_USER_NOTES_LENGTH.toLocaleString()}
+              </div>
+            </div>
+            <div className="flex items-start gap-3 rounded-2xl border border-border bg-muted p-4">
+              <Checkbox
+                id="crash-report-attach-diagnostics"
+                checked={includeDiagnosticLogs}
+                onCheckedChange={(checked) => setIncludeDiagnosticLogs(checked === true)}
+                disabled={submitting}
+                className="mt-3.5"
+              />
+              <div className="space-y-1">
+                <Label
+                  htmlFor="crash-report-attach-diagnostics"
+                  className="flex min-h-11 items-center text-sm"
+                >
+                  {translate(
+                    'auto.components.crash.report.CrashReportDialog.b082f27490',
+                    'Attach recent diagnostic logs'
+                  )}
+                </Label>
+                <div className="text-sm leading-[22px] text-muted-foreground">
+                  {translate(
+                    'auto.components.crash.report.CrashReportDialog.e59f0b9427',
+                    'Sends a capped redacted log bundle with the report.'
+                  )}
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        <DialogFooter className="gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => void copyCrashReportDetails()}
-            disabled={loading}
-          >
-            <Clipboard className="size-3.5" />
-            {translate('auto.components.crash.report.CrashReportDialog.50b00dc327', 'Copy Details')}
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={handleDismiss}
-            disabled={submitting}
-          >
-            {translate('auto.components.crash.report.CrashReportDialog.88fea8e84e', "Don't Send")}
-          </Button>
-          <Button type="button" size="sm" onClick={handleSubmit} disabled={loading || submitting}>
-            <Send className="size-3.5" />
-            {translate('auto.components.crash.report.CrashReportDialog.b4951cd27c', 'Send Report')}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          <DialogFooter className="gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => void copyCrashReportDetails()}
+              disabled={loading}
+            >
+              <Clipboard className="size-3.5" />
+              {translate(
+                'auto.components.crash.report.CrashReportDialog.50b00dc327',
+                'Copy Details'
+              )}
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={handleDismiss}
+              disabled={submitting}
+            >
+              {translate('auto.components.crash.report.CrashReportDialog.88fea8e84e', "Don't Send")}
+            </Button>
+            <Button type="button" size="sm" onClick={handleSubmit} disabled={loading || submitting}>
+              <Send className="size-3.5" />
+              {translate(
+                'auto.components.crash.report.CrashReportDialog.b4951cd27c',
+                'Send Report'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </ManagementSurfaceProvider>
   )
 }

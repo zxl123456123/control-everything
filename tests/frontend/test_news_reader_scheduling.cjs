@@ -25,7 +25,7 @@ class Element {
   get nextElementSibling() { return this.parentElement?.children[this.parentElement.children.indexOf(this) + 1] || null; }
   insertBefore(node, before) { node.remove(); node.parentElement = this; const index = this.children.indexOf(before); this.children.splice(index < 0 ? this.children.length : index, 0, node); }
   closest() { return null; }
-  focus() {}
+  focus() { this.focused = true; }
   showModal() { this.open = true; }
   close() { this.open = false; this.listeners.close?.(); }
 }
@@ -39,7 +39,7 @@ function matches(node, selector) {
 const sample = (refreshing = true) => ({ reader_id: 'fixture', sample: {captured_at: null, sources: [{id:'fixture',reason:null,cache_age_ms:0}], streams: {ai:{items:[]},hn:{items:[]}}}, covers:{items:[]}, refreshing });
 const running = () => ({job_id:'fixture-job',state:'running',events:[]});
 const flush = async () => { for (let i = 0; i < 30; i++) await Promise.resolve(); };
-function fixture(remote = false) {
+function fixture(remote = false, withTheme = true) {
   const tree = new Element(), ids = new Map(), timers = new Map(), windowEvents = {}, documentEvents = {}, calls = [], writes = [];
   let timerId = 0;
   const html = fs.readFileSync(path.join(root, 'web/workspace/news-reader.html'), 'utf8');
@@ -54,13 +54,15 @@ function fixture(remote = false) {
   const response = value => ({ok:true,status:200,json:async () => value});
   const fetch = async (url, options = {}) => {
     calls.push({url,method:options.method || 'GET'});
-    if (url === '/api/bootstrap') return response({csrf_token:'fixture'});
+    if (url === '/api/bootstrap') return response(state.bootstrap ? await state.bootstrap() : {csrf_token:'fixture'});
     if (url.includes('research/latest')) return response({job:null});
     if (url.includes('/research')) return response(await (state.research ? state.research(url,options) : running()));
     return response(await (state.feed ? state.feed(url,options) : state.value));
   };
   const window = {addEventListener:(key,callback) => {windowEvents[key]=callback;}};
-  const context = {window,document,URL,Headers,AbortController,console,location:new URL('http://fixture.test/news'),matchMedia:() => ({matches:false}),innerWidth:1280,innerHeight:800,
+  const themeReads=[],themeMounts=[],themeDisposals=[];
+  if(withTheme)window.CEUITheme={earlyRead(key){if(window.CERemoteContext)assert.equal(Object.isFrozen(window.CERemoteContext),true);themeReads.push(key);return{mount(options){themeMounts.push(options);return()=>{};},dispose(){themeDisposals.push(key);}};}};
+  const context = {window,document,URL,URLSearchParams,Headers,AbortController,console,location:new URL('http://fixture.test/news'),matchMedia:() => ({matches:false}),innerWidth:1280,innerHeight:800,
     fetch,Request,localStorage:{getItem:() => null,setItem:(key,value) => writes.push({key,value})},queueMicrotask, setTimeout:(callback,ms) => {timers.set(++timerId,{callback,ms});return timerId;},clearTimeout:id => timers.delete(id)};
   if (remote) {
     const query = document.querySelector;
@@ -69,7 +71,7 @@ function fixture(remote = false) {
     vm.runInNewContext(fs.readFileSync(path.join(root,'web/workspace/remote-context.js'),'utf8'),context);
   }
   vm.runInNewContext(fs.readFileSync(path.join(root,'web/workspace/news-reader.js'),'utf8'),context);
-  return {calls,writes,timers,state,document,windowEvents,node:id => ids.get(id),
+  return {calls,writes,timers,state,window,document,windowEvents,themeReads,themeMounts,themeDisposals,node:id => ids.get(id),
     async hidden(value) {document.hidden=value;documentEvents.visibilitychange();await flush();},
     async tick(ms) {const timer=[...timers].find(([,timer]) => timer.ms===ms); assert.ok(timer,`timer ${ms}`);timers.delete(timer[0]);timer[1].callback();await flush();}};
 }
@@ -135,4 +137,119 @@ test('remote retirement destroys the existing reader, cancels polling and ignore
   release(sample(false));await flush();assert.equal(f.writes.length,written);
   const calls=f.calls.length;await f.hidden(false);assert.equal(f.calls.length,calls);
   f.windowEvents.pageshow({persisted:true});await flush();assert.equal(f.calls.length,calls);
+});
+
+test('news theme uses its exact key and actual roots, suspends for BFCache and disposes on context retirement',async()=>{
+  const f=fixture(true);await flush();assert.deepEqual(f.themeReads,['ce.news.theme']);
+  assert.equal(f.themeMounts[0].roots[0],f.document.documentElement);assert.equal(f.themeMounts[0].roots[1],f.node('news-room'));assert.equal(f.themeMounts[0].roots[2],f.node('research-panel'));assert.equal(f.themeMounts[0].toggles[0],f.node('theme'));assert.equal(f.themeMounts[0].status,f.node('theme-error'));
+  f.windowEvents.pagehide({persisted:true});assert.equal(f.themeDisposals.length,1);f.windowEvents.pageshow({persisted:true});await flush();assert.equal(f.themeReads.length,2);
+  f.windowEvents.storage({key:'ce.remote.session-change',newValue:'fixture-retired'});assert.equal(f.themeDisposals.length,2);assert.equal(f.timers.size,0);
+});
+
+test('missing news theme resource is visible and cannot fake a successful theme change',async()=>{
+  const f=fixture(false,false);await flush();assert.equal(f.node('theme').disabled,true);assert.equal(f.node('theme-error').hidden,false);assert.match(f.node('theme-error').textContent,/资源未加载/);assert.equal(f.node('theme').listeners.click,undefined);
+});
+
+test('research IME consumes only the dialog cancel, returns focus and never creates a collection job',async()=>{
+  const f=fixture();await flush();f.node('refresh').listeners.click();assert.equal(f.node('research-panel').open,true);
+  const panel=f.node('research-panel');let prevented=0;panel.listeners.compositionstart();panel.listeners.cancel({preventDefault(){prevented++;}});assert.equal(prevented,1);assert.equal(panel.open,true);
+  panel.listeners.compositionend();panel.listeners.cancel({preventDefault(){}});assert.equal(panel.open,false);assert.equal(f.node('refresh').focused,true);assert.equal(f.calls.filter(c=>c.method==='POST').length,0);
+});
+
+test('news opens with cards and restores the same filtered list, selection and scroll after reading',async()=>{
+  const f=fixture();await flush();
+  const id='a'.repeat(24), value=sample(false);
+  value.sample.streams.ai.items=[{id,title:'Design review',source_id:'fixture',source_name:'Example',url:'https://example.test/article',summary:'Actual article summary',body_blocks:[{type:'p',text:'Article body.'}]}];
+  f.windowEvents.resize();
+  f.window.NewsReader.applySnapshot(value);
+  const list=f.node('title-list'), card=list.querySelector('.title-row');
+  assert.equal(f.window.NewsReader.inspect().readingView,'list');
+  assert.equal(f.node('directory').inert,false);
+  f.node('search').value='Design';f.node('search').listeners.input();list.scrollTop=145;
+  card.listeners.click();await flush();
+  assert.equal(f.window.NewsReader.inspect().readingView,'article');
+  assert.equal(f.node('reader').inert,false);
+  assert.equal(f.node('article-title').textContent,'Design review');
+  f.node('back-to-list').listeners.click();
+  assert.equal(f.window.NewsReader.inspect().readingView,'list');
+  assert.equal(f.node('reader').inert,true);
+  assert.equal(f.node('search').value,'Design');
+  assert.equal(f.window.NewsReader.inspect().currentId,id);
+  assert.equal(list.scrollTop,145);assert.equal(card.focused,true);
+  assert.equal(f.calls.filter(call=>call.method==='POST').length,0);
+});
+
+test('news card empty states distinguish search results from an empty collection',async()=>{
+  const f=fixture();await flush();
+  assert.match(f.node('list-empty-message').textContent,/暂无新闻/);
+  assert.equal(f.node('clear-search').hidden,true);
+  f.node('search').value='missing';f.node('search').listeners.input();
+  assert.equal(f.node('list-empty-message').textContent,'没有匹配的新闻');
+  assert.equal(f.node('clear-search').hidden,false);
+});
+
+test('full news cascade gives list cards intrinsic rows without changing the compact reader directory',async()=>{
+  const {pathToFileURL}=require('node:url');
+  const {Window}=await import(pathToFileURL(path.join(root,'web/workbench-engine/node_modules/happy-dom/lib/index.js')).href);
+  function resolved(view){
+    const w=new Window();
+    try {
+      w.document.body.innerHTML=`<main id="news-room"><section id="animation-stage" data-reading-view="${view}"><aside id="directory"><div id="title-list"><button class="title-row"><span class="title-row-content"><span class="title-row-title">Long article title</span><span class="title-row-summary">Article summary</span></span><img class="title-row-thumbnail"><span class="title-row-meta">Source</span></button></div></aside></section></main>`;
+      const style=w.document.createElement('style');style.textContent=fs.readFileSync(path.join(root,'web/workspace/news-reader.css'),'utf8');w.document.head.append(style);
+      const list=w.document.getElementById('title-list'),card=list.querySelector('.title-row');
+      return {rows:w.getComputedStyle(list).gridAutoRows,minHeight:w.getComputedStyle(card).minHeight,alignSelf:w.getComputedStyle(card).alignSelf};
+    } finally {w.happyDOM.abort();w.close();}
+  }
+  const list=resolved('list'),reader=resolved('article');
+  assert.equal(list.rows,'max-content');assert.equal(list.minHeight,'min-content');assert.equal(list.alignSelf,'start');
+  assert.notEqual(reader.rows,'max-content');assert.equal(reader.minHeight,'40px');
+});
+
+
+test('retained reader pauses feed requests while inactive and preserves its instance', async () => {
+  const f=fixture(); await flush(); const before=f.calls.length, reader=f.window.NewsReader;
+  reader.setActive(false); assert.equal(f.timers.size,0);
+  await f.hidden(true); await f.hidden(false); assert.equal(f.calls.length,before);
+  reader.setActive(true); await flush(); assert.equal(f.calls.length,before+1);
+  assert.equal(f.window.NewsReader,reader); assert.equal(reader.inspect().active,true);
+  reader.setActive(false); reader.dispose(); reader.setActive(true); await flush();
+  assert.equal(reader.inspect().destroyed,true); assert.equal(f.calls.length,before+1);
+});
+
+
+test('hidden reader rejects late feed writes and research screenshot follow-ups', async () => {
+  const f=fixture(); await flush();
+  let finishFeed; f.state.feed=()=>new Promise(resolve=>{finishFeed=resolve;});
+  await f.tick(1500);
+  f.node('research-query').value='AI agents';
+  await f.node('research-form').listeners.submit({preventDefault(){}}); await flush();
+  let finishResearch; f.state.research=()=>new Promise(resolve=>{finishResearch=resolve;});
+  await f.tick(1000);
+  f.window.NewsReader.setActive(false); const calls=f.calls.length, writes=f.writes.length;
+  const value=sample(false); value.sample.captured_at='2026-10-26T01:00:00Z'; finishFeed(value);
+  finishResearch({...running(),events:[{seq:1,message:'fixture screenshot',stage:'capture',url:'https://example.com',screenshot:'/api/workspace/news/research-frame?job=fixture-job&name=1.jpg'}]});
+  await flush(); assert.equal(f.calls.length,calls); assert.equal(f.writes.length,writes); assert.equal(f.timers.size,0);
+});
+
+
+test('hiding during bootstrap prevents the pending collection POST and never replays it', async () => {
+  const f=fixture(); await flush(); let bootstrap;
+  f.state.bootstrap=()=>new Promise(resolve=>{bootstrap=resolve;});
+  f.node('research-query').value='AI agents';
+  const submit=f.node('research-form').listeners.submit({preventDefault(){}}); await flush();
+  f.window.NewsReader.setActive(false); bootstrap({csrf_token:'fixture'}); await submit; await flush();
+  assert.equal(f.calls.filter(call=>call.method==='POST').length,0);
+  f.window.NewsReader.setActive(true); await flush();
+  assert.equal(f.calls.filter(call=>call.method==='POST').length,0);
+});
+
+
+test('resuming before bootstrap returns cannot revive a cancelled collection intent', async () => {
+  const f=fixture(); await flush(); let bootstrap;
+  f.state.bootstrap=()=>new Promise(resolve=>{bootstrap=resolve;});
+  f.node('research-query').value='AI agents';
+  const submit=f.node('research-form').listeners.submit({preventDefault(){}}); await flush();
+  f.window.NewsReader.setActive(false); f.window.NewsReader.setActive(true);
+  bootstrap({csrf_token:'fixture'}); await submit; await flush();
+  assert.equal(f.calls.filter(call=>call.method==='POST').length,0);
 });

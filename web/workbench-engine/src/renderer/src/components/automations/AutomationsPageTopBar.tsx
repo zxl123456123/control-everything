@@ -31,7 +31,7 @@ export function AutomationsPageTopBar({
   return (
     <>
       <header
-        className="flex shrink-0 items-center px-3 pb-3 md:px-5"
+        className="flex shrink-0 items-center px-4 pb-6 md:px-8"
         style={{ paddingRight: 'max(0.75rem, var(--window-controls-width, 0px))' }}
       >
         {pageView === 'runs' || pageView === 'run' ? (
@@ -49,7 +49,7 @@ export function AutomationsPageTopBar({
             onBackToAutomations={showAutomationsList}
           />
         ) : (
-          <h1 className="truncate text-base font-semibold leading-8">
+          <h1 className="truncate text-2xl font-bold leading-8">
             {translate('auto.components.automations.AutomationsPage.77c2778945', 'Automations')}
           </h1>
         )}

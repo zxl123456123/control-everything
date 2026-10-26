@@ -135,9 +135,9 @@ describe('ArtifactsPage', () => {
     expect(row).toBeInTheDocument()
     expect(screen.queryByRole('heading', { level: 2, name: 'Quarterly report' })).toBeNull()
     const title = screen.getByRole('heading', { level: 1, name: 'Artifacts' })
-    expect(title).toHaveClass('text-base', 'font-semibold', 'leading-8')
-    expect(title.closest('header')).toHaveClass('px-3', 'pb-3', 'md:px-5')
-    expect(screen.getByRole('main')).toHaveClass('pt-5', 'md:pt-6')
+    expect(title).toHaveClass('text-2xl', 'font-bold', 'leading-8')
+    expect(title.closest('header')).toHaveClass('px-4', 'pb-6', 'md:px-8')
+    expect(screen.getByRole('main')).toHaveClass('pt-6', 'md:pt-8')
     expect(screen.queryByRole('button', { name: 'Close artifacts' })).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Refresh' })).toHaveClass('border', 'border-border')
 
@@ -146,7 +146,7 @@ describe('ArtifactsPage', () => {
       await screen.findByRole('heading', { level: 2, name: 'Quarterly report' })
     ).toBeInTheDocument()
     expect(document.querySelector('[data-slot="sheet-content"]')).toHaveClass(
-      'w-[min(96rem,calc(100vw-var(--mac-traffic-lights-width,0px)))]'
+      'w-[min(600px,calc(100vw-var(--mac-traffic-lights-width,0px)))]'
     )
     // Why: the drawer is right-anchored under the fixed Windows/Linux window-controls
     // overlay, so its actions must sit inside an element inset past that overlay.
@@ -189,6 +189,15 @@ describe('ArtifactsPage', () => {
     expect(await screen.findByText('Preview unavailable')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Copy link' })).toBeEnabled()
     expect(screen.getByRole('button', { name: 'Open in browser' })).toBeEnabled()
+  })
+
+  it('keeps the current page and draft focus during IME Escape', async () => {
+    render(<ArtifactsPage />)
+    const search = await screen.findByRole('textbox')
+    search.focus()
+    fireEvent.keyDown(search, { key: 'Escape', isComposing: true })
+    expect(document.activeElement).toBe(search)
+    expect(mocks.closePage).not.toHaveBeenCalled()
   })
 
   it('closes the drawer on Escape, then the page', async () => {

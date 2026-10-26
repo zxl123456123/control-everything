@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { resolveOnboardingSettingsHydration } from './onboarding-settings-hydration'
 import type { GlobalSettings } from '../../../../shared/global-settings-types'
 
@@ -49,6 +49,26 @@ describe('resolveOnboardingSettingsHydration', () => {
       theme: 'light',
       selectedAgent: 'codex'
     })
+  })
+
+  it('normalizes a legacy system preference to the already resolved application theme', () => {
+    vi.stubGlobal('document', {
+      documentElement: { classList: { contains: (value: string) => value === 'dark' } }
+    })
+    try {
+      expect(
+        resolveOnboardingSettingsHydration({
+          settings: { ...settings, theme: 'system' },
+          settingsHydrated: false,
+          themeInteracted: false,
+          agentInteracted: false,
+          currentTheme: 'light',
+          currentAgent: null
+        })?.theme
+      ).toBe('dark')
+    } finally {
+      vi.unstubAllGlobals()
+    }
   })
 
   it('does not overwrite fields the user already changed', () => {

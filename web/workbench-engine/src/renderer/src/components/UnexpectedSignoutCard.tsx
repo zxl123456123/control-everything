@@ -37,8 +37,8 @@ function FeatureRow({
     <div className="flex items-start gap-2.5">
       <Icon className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
       <div className="space-y-0.5">
-        <p className="text-xs font-medium">{title}</p>
-        <p className="text-xs leading-5 text-muted-foreground">{description}</p>
+        <p className="text-sm font-medium">{title}</p>
+        <p className="text-sm leading-[22px] text-muted-foreground">{description}</p>
       </div>
     </div>
   )
@@ -148,18 +148,18 @@ export function UnexpectedSignoutCard(): React.JSX.Element | null {
   }
 
   return (
-    <div>
+    <div className="ce-management-surface min-w-0">
       <Card
-        className="py-0 gap-0 shadow-floating"
+        className="gap-0 rounded-2xl bg-background py-0 shadow-floating"
         role="complementary"
         aria-live="polite"
         aria-labelledby="unexpected-signout-heading"
       >
-        <div className="flex flex-col gap-2.5 p-3.5">
+        <div className="flex min-w-0 flex-col gap-4 p-6 [overflow-wrap:anywhere]">
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-center gap-2">
               <CircleUserRound className="size-4 text-muted-foreground" />
-              <h3 id="unexpected-signout-heading" className="text-sm font-semibold">
+              <h3 id="unexpected-signout-heading" className="text-lg font-semibold leading-[26px]">
                 {translate(
                   'auto.components.UnexpectedSignoutCard.9f2c1a4b7d',
                   "You've been signed out"
@@ -169,7 +169,7 @@ export function UnexpectedSignoutCard(): React.JSX.Element | null {
             <Button
               variant="ghost"
               size="icon"
-              className="size-7 shrink-0"
+              className="size-11 shrink-0"
               onClick={handleDismiss}
               aria-label={translate('auto.components.UnexpectedSignoutCard.3e8f5c2a91', 'Dismiss')}
             >
@@ -195,7 +195,7 @@ export function UnexpectedSignoutCard(): React.JSX.Element | null {
               <Button
                 variant="ghost"
                 size="sm"
-                className="w-fit gap-1 px-1 text-xs text-muted-foreground"
+                className="w-fit gap-1 px-1 text-sm text-muted-foreground"
                 aria-expanded={expanded}
               >
                 {translate('auto.components.UnexpectedSignoutCard.1f6b2c9d4e', 'What you get back')}

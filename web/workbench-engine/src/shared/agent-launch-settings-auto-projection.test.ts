@@ -6,6 +6,14 @@ import {
 import { applyAgentPermissionMode, AUTO_TUI_AGENT_ARGS } from './tui-agent-permissions'
 
 describe('agent launch permission projection compatibility', () => {
+  it.each([true, false])('projects the explicit status hook setting %s without changing it', enabled => {
+    const source = { agentStatusHooksEnabled: enabled }
+    expect(projectAgentLaunchSettings(source)).toHaveProperty('agentStatusHooksEnabled', enabled)
+    expect(source.agentStatusHooksEnabled).toBe(enabled)
+  })
+  it('does not invent a status hook setting for an older host', () => {
+    expect(projectAgentLaunchSettings({})).not.toHaveProperty('agentStatusHooksEnabled')
+  })
   it('publishes Auto through an optional marker alongside the existing Mixed value', () => {
     const settings = projectAgentLaunchSettings(applyAgentPermissionMode({ mode: 'auto' }))
     expect(settings.permissionMode).toBe('mixed')

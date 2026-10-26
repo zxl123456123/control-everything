@@ -56,13 +56,13 @@ class Schema9Tests(unittest.TestCase):
             self.assertEqual(ExecutionStore(reopened.store).snapshot(run['id']), before)
         backup = backups.create_backup(profile)
         manifest = backups.validate_backup(backup)
-        self.assertEqual(manifest['version'], 9)
+        self.assertEqual(manifest['version'], schema.SCHEMA_VERSION)
         for name in ['execution_runs', 'execution_events', 'execution_approvals']:
             self.assertEqual(manifest['counts'][name], 1)
         target = backups.restore_backup(str(backup), str(self.root/'restored'))
         restored = Profile.open(str(target))
         self.assertEqual(ExecutionStore(restored.store).snapshot(run['id']), before)
-        self.assertEqual(migration.preserve_tasks(str(target))['schema_version'], 9)
+        self.assertEqual(migration.preserve_tasks(str(target))['schema_version'], schema.SCHEMA_VERSION)
 
     def test_all_old_schema_versions_upgrade_preserve_facts_and_idempotency(self):
         for version in range(1, 9):
@@ -77,12 +77,12 @@ class Schema9Tests(unittest.TestCase):
                             original_rows[table] = (columns, [tuple(row) for row in conn.execute(
                                 'SELECT '+','.join(columns)+' FROM '+table+' ORDER BY '+columns[0])])
                 result = migration.migrate_tasks(str(root))
-                self.assertEqual(result['schema_version'], 9)
+                self.assertEqual(result['schema_version'], schema.SCHEMA_VERSION)
                 self.assertEqual(backups.validate_backup(result['backup'])['version'], version)
                 profile = Profile.open(str(root))
                 with profile.store.connection() as conn:
-                    schema.validate_schema(conn, 9)
-                    after = schema.table_facts(conn, 9)
+                    schema.validate_schema(conn, schema.SCHEMA_VERSION)
+                    after = schema.table_facts(conn, schema.SCHEMA_VERSION)
                 kept = schema.KEPT_TABLES if version == 1 else [x for x in schema.tables_for(version) if x != 'task_center_meta']
                 for table in kept:
                     if version == 1:
@@ -125,11 +125,17 @@ class Schema9Tests(unittest.TestCase):
             conn.execute("INSERT INTO task_events VALUES('event','task','run','completed','{}','stamp')")
             conn.commit()
             before = schema.table_facts(conn, 8)
+            original = {}
+            for table in schema.SCHEMA8_TABLES:
+                columns = [row[1] for row in conn.execute('PRAGMA table_info(' + table + ')')]
+                original[table] = (columns, [tuple(row) for row in conn.execute('SELECT ' + ','.join(columns) + ' FROM ' + table)])
         migration.migrate_tasks(str(root))
         with Profile.open(str(root)).store.connection() as conn:
-            after = schema.table_facts(conn, 9)
+            after = schema.table_facts(conn, schema.SCHEMA_VERSION)
             for table in schema.SCHEMA8_TABLES:
-                self.assertEqual(before[table], after[table], table)
+                self.assertEqual(before[table]['count'], after[table]['count'], table)
+                columns, rows = original[table]
+                self.assertEqual(rows, [tuple(row) for row in conn.execute('SELECT ' + ','.join(columns) + ' FROM ' + table)], table)
 
     def test_failed_partial_ddl_rolls_back_and_keeps_valid_backup(self):
         root = self.old_profile(8)
@@ -173,7 +179,7 @@ class Schema9Tests(unittest.TestCase):
         first = migration.migrate_tasks(str(root))
         target = backups.restore_backup(first['backup'], str(self.root/'restored-v8'))
         self.assertEqual(migration.migration_status(str(target))['schema_version'], 8)
-        self.assertEqual(migration.migrate_tasks(str(target))['schema_version'], 9)
+        self.assertEqual(migration.migrate_tasks(str(target))['schema_version'], schema.SCHEMA_VERSION)
         Profile.open(str(target))
 
 

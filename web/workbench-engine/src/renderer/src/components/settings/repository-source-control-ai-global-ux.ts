@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useContext, useEffect, useMemo, useRef, useState } from 'react'
+import { SettingsDraftContext } from '@/web/platform-settings-navigation'
 import type { GlobalSettings } from '../../../../shared/global-settings-types'
 import type { TuiAgent } from '../../../../shared/tui-agent'
 import { CUSTOM_AGENT_ID } from '../../../../shared/commit-message-agent-spec'
@@ -39,6 +40,7 @@ type HostedReviewDefaultKey = keyof NonNullable<RepoSourceControlAiOverrides['pr
 
 type UseRepositorySourceControlAiGlobalUxArgs = {
   repoId: string
+  repoHostIdentity?: string
   persistedRepoAi: RepoSourceControlAiOverrides
   settings: GlobalSettings | null
   source: SourceControlAiSettings
@@ -52,11 +54,18 @@ type UseRepositorySourceControlAiGlobalUxArgs = {
  */
 export function useRepositorySourceControlAiGlobalUx({
   repoId,
+  repoHostIdentity = repoId,
   persistedRepoAi,
   settings,
   source,
   updateRepo
 }: UseRepositorySourceControlAiGlobalUxArgs) {
+  const draftContext = useContext(SettingsDraftContext)
+  const draftKey = `${draftContext?.keyPrefix ?? 'standalone'}:source-control-ai:${repoHostIdentity}`
+  const savedDraft = draftContext?.drafts.get(draftKey) as {
+    actions: Partial<Record<SourceControlActionId, ActionRecipeTextDraft>>
+    command: string | null
+  } | undefined
   const mountedRef = useMountedRef()
   const persistedSerialized = useMemo(() => JSON.stringify(persistedRepoAi), [persistedRepoAi])
   const persistedRef = useRef(persistedRepoAi)
@@ -75,13 +84,17 @@ export function useRepositorySourceControlAiGlobalUx({
   setBaselineRepoAiRef.current = setBaselineRepoAi
   const [actionTextDrafts, setActionTextDrafts] = useState<
     Partial<Record<SourceControlActionId, ActionRecipeTextDraft>>
-  >({})
-  const [customCommandDraft, setCustomCommandDraft] = useState<string | null>(null)
+  >(() => savedDraft?.actions ?? {})
+  const [customCommandDraft, setCustomCommandDraft] = useState<string | null>(() => savedDraft?.command ?? null)
   const [savingActionIds, setSavingActionIds] = useState<
     Partial<Record<SourceControlActionId, boolean>>
   >({})
   const lastSyncedRepoIdRef = useRef(repoId)
   const pendingWritesRef = useRef(0)
+  const approvedDraftRef = useRef<string | null>(null)
+  const currentDraftIdentity = JSON.stringify([repoHostIdentity, actionTextDrafts, customCommandDraft])
+  const draftIdentityRef = useRef(currentDraftIdentity)
+  draftIdentityRef.current = currentDraftIdentity
 
   const queueRef = useRef<ReturnType<typeof createRepoAiPersistQueue>>(undefined!)
   queueRef.current ??= createRepoAiPersistQueue({
@@ -250,6 +263,32 @@ export function useRepositorySourceControlAiGlobalUx({
     () => computeActionDirtyById(immediateRepoAi, baselineRepoAi, actionTextDrafts),
     [actionTextDrafts, baselineRepoAi, immediateRepoAi]
   )
+
+  useEffect(() => {
+    if (Object.values(actionDirtyById).some(Boolean) || customCommandDraft !== null) {
+      draftContext?.drafts.set(draftKey, { actions: actionTextDrafts, command: customCommandDraft })
+    } else draftContext?.drafts.delete(draftKey)
+  }, [actionDirtyById, customCommandDraft, actionTextDrafts, draftContext?.drafts, draftKey])
+
+  useEffect(() => draftContext?.register({
+    key: draftKey,
+    ask: async () => {
+      if (pendingWritesRef.current > 0) return false
+      const identity = draftIdentityRef.current
+      const accepted = !(Object.values(actionDirtyById).some(Boolean) || customCommandDraft !== null) ||
+        await draftContext.confirmDiscard()
+      if (!accepted || draftIdentityRef.current !== identity) return false
+      approvedDraftRef.current = identity
+      return true
+    },
+    discard: () => {
+      if (approvedDraftRef.current !== draftIdentityRef.current) return
+      approvedDraftRef.current = null
+      setActionTextDrafts({})
+      setCustomCommandDraft(null)
+      draftContext.drafts.delete(draftKey)
+    }
+  }), [actionDirtyById, customCommandDraft, draftContext, draftKey])
 
   const saveActionRecipeText = async (actionId: SourceControlActionId): Promise<void> => {
     if (!actionDirtyById[actionId] || savingActionIds[actionId]) {

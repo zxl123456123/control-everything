@@ -1,3 +1,4 @@
+import { fixedApplicationTheme } from '../../web/platform-appearance'
 import type { GlobalSettings } from '../../../../shared/global-settings-types'
 import type { TuiAgent } from '../../../../shared/tui-agent'
 
@@ -31,7 +32,7 @@ export function resolveOnboardingSettingsHydration({
   }
 
   if (!themeInteracted && currentTheme !== settings.theme) {
-    update.theme = settings.theme
+    update.theme = fixedApplicationTheme(settings.theme)
   }
 
   const settingsAgent =

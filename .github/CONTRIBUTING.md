@@ -59,17 +59,20 @@ lint-imports --config tools/architecture/importlinter.ini --no-cache --no-logo
 
 ### Studio 与内置项目工作台开发预览
 
-产品入口 `/studio` 在内置运行时已装配时使用同文档项目界面。项目外复用 `studio-preview.*` 的已选布局；项目内通过“开发、事项”切换，完整工作台实例保持挂载，会话由事项页的次级入口进入。验收保留事项页的精确筛选，业务进度从事项页进入，旧路由继续可用。原业务模块在 Shadow DOM 中隔离样式，仍访问同源真实 API，不使用 iframe。`/studio-shell` 只提供固定的 Studio 模板，脚本与样式由入口明确列出；未装配运行时的服务继续提供独立 Studio。
+产品入口 `/studio` 在内置运行时已装配时使用同文档项目界面。项目外复用 `studio-preview.*` 的已选布局；项目内通过“开发、进展”切换，完整工作台实例保持挂载，会话由事项页的次级入口进入。验收保留事项页的精确筛选，业务进度从事项页进入，旧路由继续可用。原业务模块在 Shadow DOM 中隔离样式，仍访问同源真实 API，不使用 iframe。`/studio-shell` 只提供固定的 Studio 模板，脚本与样式由入口明确列出；未装配运行时的服务继续提供独立 Studio。
 
 项目路径使用 `#project/<id>/workspace` 等片段，旧直接项目 URL 和旧事项入口保持兼容。原工作区侧栏切换已登记目录时同步项目身份；未关联开发目录仍可查看事项总览，会话等项目范围能力不能沿用旧项目。离开前先处理已打开的编辑窗口，草稿不因页面切换丢失。`orca-surface.js/css` 仅保留旧预览历史。
 
-集成服务的旧 `/workspace` 入口回到 `/studio`，保留项目片段；未装配运行时的服务维持原入口。项目总览的“添加项目”和内层侧栏顶部的“新建项目”复用 `onboarding.js` 的同一个登记弹窗，保存后进入已登记项目，取消返回原项目。项目行上的加号只创建该项目下的工作区；筛选菜单中的重复登记入口隐藏，其他 `add-repo` 快捷入口也进入同一登记流程。来源管理与外部 Agent 配置保留在 `/workspace-admin`。新登记目录自身有 `.git` 标记时使用 Git 项目，否则使用原生普通目录项目；不自动初始化 Git，也不把子目录扩展到父仓库。已有原生项目保持身份与类型。
+集成服务的旧 `/workspace` 入口回到 `/studio`，保留项目片段；未装配运行时的服务维持原入口。项目配置页 `#project-setup` 提供“新建项目”，零个可开发项目时也可进入；总览不重复放添加入口。内层侧栏顶部及其他 `add-repo` 快捷入口复用 `onboarding.js` 的同一个登记弹窗，保存后进入已登记项目，取消返回原项目。项目行上的加号只创建该项目下的工作区；筛选菜单中的重复登记入口隐藏。来源管理与外部 Agent 配置保留在 `/workspace-admin`。新登记目录自身有 `.git` 标记时使用 Git 项目，否则使用原生普通目录项目；不自动初始化 Git，也不把子目录扩展到父仓库。已有原生项目保持身份与类型。
 
 项目总览与内层“项目管理”复用同一改名和归档表单，管理窗口在当前页打开，保存使用原管理事务，原生项目名称在 bootstrap 时同步。归档只投影到项目、工作区侧栏与设置项目列表，不调用原生 repo.rm 或停止终端；恢复后重新显示。原生“项目设置”保留图标、Hooks、Git、MCP 等配置。顶部仅显示当前项目名称，切换项目使用原生侧栏。内层工作区创建绑定当前已登记项目及宿主，不能被旧筛选或旧创建草稿切到另一项目。项目入口提供 PlatformProjectContext：undefined 表示独立工作台，null 表示平台尚无已验证项目，活动页在后者显示空范围而非全局数据。
 
-集成事项的新建入口只填写需求，继承当前项目或所选项目组；没有项目上下文时才选择归属。详情保留基本编辑、开始开发、实际运行结果和必要审批验收，不挂载旧手填会话、交接和消息配置；旧管理页保留这些能力。原生 Agent 启动复用当前宿主的 Agent 配置和终端启动接口，要求宿主执行，不回退使用浏览器侧命令或环境配置；事项投递使用原生输入就绪信号，禁用仅凭进程存在的盲投递回退。临时 tab 仅用于匹配真实 provider session，永久关联沿用事项 sessions 接口；当前平台模式禁用原生全局状态钩子，因此隔离预览尚未接通自动关联，不能用终端标题或 PTY ID 代替。启动和会话结束均不代替业务状态更新或人工验收。新建待办默认只记录，人工验收继续要求结论、理由和确认。
+项目内“进展”使用 `web/workspace/project-progress.js`、`project-progress-model.js` 与作用域样式 `project-progress.css`，从目标、当前来源、实际交付和必要动作组织内容。新建只输入目标，继承当前项目或所选项目组；没有上下文时才选择归属。需求保存在原事项记录中，API 和稳定 task ID 沿用旧合同。看板与下方详情保留草稿，筛选不切换开发上下文；默认集中展示全部项目的待推进、进行中、待验收三栏，已完成事项保留在独立历史中，卡片标明项目归属，旧待验收、待处理链接保持精准范围，旧事项深链继续选中同一 ID。原外部执行器、人工记录与会话关联保留历史入口，不转成原生执行。
 
-外层总览只展示项目；项目内的事项基本总览按项目分组三栏显示所有未归档项目，查看时保留原开发上下文。点击另一项目事项的开始开发后，才进入其真实项目工作区并重新核验启动条件。旧验收、待处理链接保留项目精确范围，旧跨项目事项链接继续可读。集成后的 Studio 与监控画布跟随开发区主题，背景、卡片和边框共用原主题变量，外观在开发区设置中统一调整。
+原生开发由后端持久启动意图、宿主唯一绑定与有界观察形成进展。原生输入通过受限 owner 方法和持久回执处理，浏览器不直接发送终端输入，也不以临时 tab/PTY 作为永久会话身份。后台只读观察已有目标和发送回执；刷新、查询与服务重启不会自动创建会话或重发消息。没有可信绑定或交付材料时显示来源缺口，Agent 正常结束只产生未独立验证的候选成果，不能自动确认完成。缺少结构化请求身份的提问或权限操作返回原会话处理。
+
+原生交付的“确认完成”是单按钮动作，提交当前 delivery ID 和版本，无须另填通过理由或勾选常规确认；旧人工验收仍要求结论、理由和确认。修改意见只写一次，默认“发送并继续”，可选“仅保存”；保存、输入已接受、观察到继续执行与完成分别展示。送达未知不能自动重发。项目外工作台样式和开发区保持原职责；本模块继承宿主主题，真实 Shadow DOM、黑白主题与窄屏交互须另行验证。
+
 
 先初始化独立测试 profile，注册合成 Git 项目，完成源码单元构建与运行隔离验证后，用开发入口启动。`--workspace-root` 只填写本次允许测试的目录，可重复传入；各路径必须使用本机实际绝对路径：
 
@@ -359,9 +362,10 @@ main 的远端规则仅保留防强推与防删分支，不要求 PR 或必需 C
 | Codex 元数据库、项目文档来源 | 用户按需登记；不配置也可人工管理，不自动读取私人来源 |
 | SSH/远端 reader、终端、工作台、个人启动器 | 按需接入；终端依赖远端，工作台依赖终端，启动器可独立启用 |
 | 公开资讯与官方额度 | 资讯按源容忍超时；额度仅显式查询，未配置账号不影响管理 |
-| Node、TypeScript、Rust 编译器、浏览器测试工具 | 开发或验证工具，不属于普通用户的业务依赖 |
+| 固定 Node 运行时与内置工作台 | 标准桌面包内置，由平台构建和管理，不要求另装官方客户端 |
+| TypeScript、Rust 编译器、浏览器测试工具 | 开发或验证工具，普通用户无需安装 |
 
-当前产品不开放 Agent 执行、审批或费用试跑。Orca 不属于产品运行依赖；仓库中的 `tools/scripts/orca_preflight.py` 及其测试仅为未接入工作台的历史离线预检工具。
+项目开发复用内置工作台的宿主 Agent 探测和选择，启动取决于宿主已安装并配置的能力。平台持久记录任务与会话绑定，实际交付仍需人工验收；外部程序注册为可选接入。`web/workbench-engine` 是标准桌面包的运行组成，固定来源单独构建并验证分发闭包，不进入普通 Python wheel。仓库中的 `tools/scripts/orca_preflight.py` 及其测试保留为历史离线预检工具，不能替代当前构建和实际会话验收。
 
 公开接入样例放在 `docs/examples/integrations`；`docs/examples/legacy` 的 [项目登记样例](../docs/examples/legacy/progress-registry.example.json) 和 [人工进度样例](../docs/examples/legacy/progress-manual.example.json) 说明仍受支持的旧记录格式，供显式导入时参考。正常使用的数据保存在所选 profile；整理样例不会移动源码旁已有的私人文件。固定 TypeScript 配置与编译器清单位于 `tools/typescript`，远端正文 reader 的依赖单独位于 `tools/remote-reader/requirements.txt`；本机依赖仍使用根 `requirements.txt`。
 
@@ -416,6 +420,25 @@ E2E 使用明确标记的合成页面，截图保存在 ignored `work/news-reade
 
 ### 账号与认证界面资源
 
-账号与设备展示模块为 `web/workspace/account-device.js`，Studio、独立 `/remote` 与 `/desktop` 共用；本机精确提供 `/remote/account-device.js`、`/remote/remote-account.css`。公网 Caddy 仅直出清单中的账号静态资源；既有设备代理与 hub 静态授权范围不因此扩大。
+账号与设备展示模块为 `web/workspace/account-device.js`，Studio、独立 `/remote` 与 `/desktop` 共用；本机精确提供 `/remote/account-device.js`、`/remote/remote-account.css`。中央站点的 `remote-ui` 目录只复制 `web/workspace/` 中 `remote-account.html`、`remote-account.js`、`remote-account.css`、`account-device.js`、`ui-theme.js` 五个源文件，保持同名。Caddy 仅以 `/remote`、`/remote/` 两个文档别名提供 HTML，并精确提供 `/remote/remote-account.js`、`/remote/remote-account.css`、`/remote/account-device.js`、`/remote/ui-theme.js`；不开放 `/remote/*` 或直接 HTML URL。既有设备代理与 hub 静态授权范围不因此扩大。该样例需要部署负责人在自建现场核验，源码检查不代表已重载 Caddy。
 
 `web/workspace/identity-theme/control-everything/login/` 仅维护 `theme.properties`、`resources/css/studio.css`、`messages/messages_zh_Hans.properties` 三个身份服务部署资产。sdist 显式保留三文件，Python wheel 与 HTTP 资源不包含主题；不把主题目录当文件服务根。新增 properties 必须逐文件登记并经过内容/秘密检查，不能按目录豁免。
+
+### 管理界面主题、字体与确认资源
+
+普通页面共用 `web/workspace/ui-theme.js`，确认原语为 `ui-dialog.js`，Studio 导航壳为 `studio-shell.js`。网关精确提供 `/ui-theme.js`、`/ui-dialog.js`，Studio provider 提供 `/studio-shell.js`；三个文件同时列入 `build_assets.py` 和 `MANIFEST.in`。独立创作服务仅增加 `/ui-theme.js`；新闻 provider 保留原资源表，由网关提供共用脚本。静态 Studio 预览精确提供三脚本，仍无业务 API。
+
+普通文档在 head 用外部同步 script 的 `data-ce-theme-key` 声明该页既有 key；`CEUITheme.pageTheme` 是早读生成的同一个只读 controller 引用，消费者复用它 mount，并在页面退役时 dispose。远程元数据与 context 必须先冻结，再读任何存储。BFCache 恢复时不复用已 dispose 的 controller；不新建主题 key、另一份 store 或跨账号广播。集成 React 页面沿自己的 authority 与 document-theme，不能再加载普通主题 helper。`ui-dialog.js` 应先于 onboarding、agents、project-space，`studio-shell.js` 先于 studio-preview；确认样式在已加载的 `workspace.css`，不注入 inline style 或新增 CSS URL。
+
+管理正文使用 Geist 与系统中文 fallback；终端、代码、diff、技术标识保持自己的字体。唯一字体源为 `web/workbench-engine/src/renderer/src/assets/fonts/Geist-Variable.woff2`（69436 字节，SHA256 `e24cec106619c03f0b3519e31b9bc55e0d5e926b6a95b8d798cd8cef215b1505`），完整许可在 `web/workbench-engine/licenses/Geist-OFL-notice.md`。`tools/packaging/build_ui_font.py` 只替换两个既有资产的标记块，不手写另一份字体、不新增 HTTP 字体 URL。普通 helper 将标记块中的 base64 解码为原字体 bytes，以 `FontFace` 的 BufferSource 供给，适配现有禁止 inline script 与 data 字体 URL 的 CSP；不放宽策略。登录 CSS 继续使用同一字节生成块与父 `keycloak.v2` 主题，父 CSP 下的字体加载须现场验证。
+
+从源码检出目录运行（使用显式 Python/Node 24）：
+
+```powershell
+python tools/packaging/build_ui_font.py build
+python tools/packaging/build_ui_font.py check
+python -m unittest -v tests.backend.test_ui_font_assets tests.backend.test_identity_theme tests.backend.test_packaging tests.backend.test_creator_http tests.backend.test_architecture
+node --test tests/frontend/test_ui_theme.cjs tests/frontend/test_ui_dialog.cjs
+```
+
+`build` 后连同两资产的生成块检查 diff；`check` 不写文件并核完整原字节与 OFL。登录固定三资产、中央固定五文件、实际字体加载、两 Shadow 焦点和权限写入分别验收；纯单元不证明真实部署。`tests/e2e/verify_workbench_interactions.cjs` 属于隔离产品预览验收，新闻 harness `tests/e2e/verify_news_reader.cjs` 使用全部路由截获的合成数据及原新闻 CSP；两者由验收负责人运行并保留浏览器报告。

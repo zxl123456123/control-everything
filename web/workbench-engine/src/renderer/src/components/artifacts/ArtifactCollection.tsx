@@ -41,8 +41,8 @@ export function ArtifactCollection({
   const [scrollElement, setScrollElement] = useState<HTMLDivElement | null>(null)
 
   return (
-    <section className="flex min-h-0 flex-1 flex-col overflow-hidden px-3 pb-4 md:px-5">
-      <div className="flex min-h-0 flex-1 flex-col gap-4">
+    <section className="flex min-h-0 flex-1 flex-col overflow-hidden px-4 pb-8 md:px-8">
+      <div className="flex min-h-0 flex-1 flex-col gap-6">
         <ArtifactListToolbar
           query={query}
           onQueryChange={onQueryChange}
@@ -51,7 +51,10 @@ export function ArtifactCollection({
         />
         <div
           ref={setScrollElement}
-          className={cn('scrollbar-sleek min-h-0 flex-1 overflow-auto', LIST_TABLE_CONTAINER_CLASS)}
+          className={cn(
+            LIST_TABLE_CONTAINER_CLASS,
+            'scrollbar-sleek min-h-0 flex-1 overflow-auto rounded-2xl bg-card'
+          )}
         >
           <ArtifactListTableHeader />
           {/* Why no width wrapper around the rows: a `w-fit` band sizes to the full scroll width,
@@ -67,7 +70,10 @@ export function ArtifactCollection({
               deleteArtifact={deleteArtifact}
             />
           ) : (
-            <p className="px-3 py-6 text-center text-sm text-muted-foreground">
+            <p
+              role="status"
+              className="px-6 py-12 text-center text-sm leading-[22px] text-muted-foreground"
+            >
               {translate('auto.components.artifacts.ArtifactCollection.noMatches', 'No matches')}
             </p>
           )}

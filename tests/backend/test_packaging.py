@@ -4,6 +4,8 @@ import ast
 import hashlib
 import json
 import importlib.util
+import io
+from email.message import Message
 from importlib.machinery import PathFinder
 from pathlib import Path
 import runpy
@@ -12,6 +14,7 @@ import tomllib
 from types import SimpleNamespace
 from unittest import TestCase
 from unittest.mock import Mock, patch
+from urllib.parse import urlsplit
 
 from setuptools import Distribution
 from setuptools.command.editable_wheel import editable_wheel
@@ -23,6 +26,19 @@ spec.loader.exec_module(assets)
 
 
 class PackagingTests(TestCase):
+    def test_admin_marker_is_scoped_and_preserves_the_real_document_body(self):
+        from control_everything.http.workbench import handle_get
+        handler = SimpleNamespace(server=SimpleNamespace(origin="http://127.0.0.1:1"),
+                                  headers=Message(), reply=Mock(), reject=Mock())
+        self.assertTrue(handle_get(handler, urlsplit('/workspace-admin')))
+        body = handler.reply.call_args.args[1]
+        self.assertEqual(body.count(b'data-integration-admin="true"'), 1)
+        self.assertRegex(body, br'<body\b[^>]*class="ce-workspace-management"')
+        handler.reply.reset_mock()
+        self.assertTrue(handle_get(handler, urlsplit('/studio-shell')))
+        self.assertNotIn(b'data-integration-admin="true"', handler.reply.call_args.args[1])
+        handler.reject.assert_not_called()
+
     def test_asset_set_matches_http_allowlist_and_sdist(self):
         tree = ast.parse((ROOT / "src/control_everything/http/gateway.py").read_text(encoding="utf-8"))
         declarations = [node for node in ast.walk(tree) if isinstance(node, ast.Assign)
@@ -46,7 +62,8 @@ class PackagingTests(TestCase):
         self.assertIn('@account path /remote /remote/ /remote/remote-account.js /remote/remote-account.css', edge)
         self.assertIn('rewrite /remote /remote/remote-account.html', edge)
         self.assertIn('uri strip_prefix /remote', edge)
-        central_paths = {'workspace/remote-account.html', 'workspace/remote-account.js', 'workspace/remote-account.css'}
+        central_paths = {'workspace/remote-account.html', 'workspace/remote-account.js', 'workspace/remote-account.css',
+                         'workspace/account-device.js', 'workspace/ui-theme.js'}
         self.assertIn('(WEB / "workspace/desktop.html").read_bytes()',
                       (ROOT / 'src/control_everything/http/gateway.py').read_text(encoding='utf-8'))
         self.assertEqual(set(assets.WEB_ASSETS), {value[0] for value in http.values()} | studio_paths | reader_paths
@@ -62,8 +79,46 @@ class PackagingTests(TestCase):
         self.assertEqual(included, {"web/" + relative for relative in assets.WEB_ASSETS} | themes)
         self.assertFalse(any("identity-theme" in name for name in assets.WEB_ASSETS))
         self.assertIn("/remote/account-device.js", edge)
+        self.assertIn("/remote/ui-theme.js", edge)
+        account_paths = edge.split("@account path ", 1)[1].splitlines()[0].split()
+        self.assertEqual(set(account_paths), {'/remote', '/remote/', '/remote/remote-account.js',
+                                             '/remote/remote-account.css', '/remote/account-device.js',
+                                             '/remote/ui-theme.js'})
+        self.assertEqual(len(account_paths), 6)
         self.assertNotIn("/remote/*", edge.split("@account path", 1)[1].splitlines()[0])
         self.assertIn("prune web/workbench-engine", manifest)
+
+    def test_ui_resources_keep_precise_hosts_and_preview_rejects_aliases(self):
+        def mapping(relative, name):
+            tree = ast.parse((ROOT / relative).read_text(encoding='utf-8'))
+            return next(ast.literal_eval(node.value) for node in tree.body if isinstance(node, ast.Assign)
+                        and any(isinstance(target, ast.Name) and target.id == name for target in node.targets))
+        gateway = mapping('src/control_everything/http/gateway.py', 'WEB_ASSETS')
+        studio = mapping('src/control_everything/http/workbench.py', 'STUDIO_RESOURCES')
+        creator = mapping('src/control_everything/http/creator.py', 'RESOURCES')
+        news = mapping('src/control_everything/http/news_reader.py', 'ASSETS')
+        self.assertEqual(gateway['/ui-theme.js'], ('workspace/ui-theme.js', 'text/javascript; charset=utf-8'))
+        self.assertEqual(gateway['/ui-dialog.js'], ('workspace/ui-dialog.js', 'text/javascript; charset=utf-8'))
+        self.assertEqual(studio['/studio-shell.js'], ('studio-shell.js', 'text/javascript; charset=utf-8'))
+        self.assertEqual(creator['/ui-theme.js'], ('ui-theme.js', 'text/javascript; charset=utf-8'))
+        helpers = {'/ui-theme.js', '/ui-dialog.js', '/studio-shell.js'}
+        self.assertEqual(helpers & creator.keys(), {'/ui-theme.js'})
+        self.assertFalse(helpers & news.keys())
+        from tools.scripts.preview_studio import PreviewHandler, RESOURCES
+        self.assertTrue(helpers <= RESOURCES.keys())
+        for url in (*helpers, '/ui-theme.js?x=1', '/remote/ui-theme.js', '/ui-theme.js/extra',
+                    '/%75i-theme.js', '/../ui-theme.js'):
+            handler = PreviewHandler.__new__(PreviewHandler)
+            handler.path, handler.wfile = url, io.BytesIO()
+            handler.send_response, handler.send_header = Mock(), Mock()
+            handler.end_headers, handler.send_error = Mock(), Mock()
+            handler._serve(include_body=True)
+            if url in helpers:
+                handler.send_response.assert_called_once_with(200)
+                self.assertEqual(handler.wfile.getvalue(), (ROOT / 'web/workspace' / url[1:]).read_bytes())
+            else:
+                handler.send_error.assert_called_once_with(404)
+                self.assertEqual(handler.wfile.getvalue(), b'')
 
     def test_workbench_export_uses_pinned_outputs_and_excludes_build_metadata(self):
         with TemporaryDirectory() as temporary:

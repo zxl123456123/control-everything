@@ -23,6 +23,9 @@ export function LeftSidebarAppearanceSetting({
   settings,
   updateSettings
 }: LeftSidebarAppearanceSettingProps): React.JSX.Element {
+  if (document.documentElement.hasAttribute('data-platform-view')) {
+    return <p className="py-4 text-sm text-muted-foreground">侧栏使用当前应用外观。</p>
+  }
   return (
     <div className="space-y-2">
       <SettingsRow

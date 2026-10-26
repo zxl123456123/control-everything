@@ -71,6 +71,17 @@ class DshProtocolTests(unittest.TestCase):
                         process_factory=factory, resolver=lambda: 'C:/example/fixture/dsh.cmd')
         return worker, process
 
+    def test_sent_prompt_is_running_before_reading_tool_output(self):
+        worker, process = self.worker([{'type': 'tool_start'},
+                                      {'type': 'status', 'phase': 'turn_end', 'reason': {'kind': 'completed'}},
+                                      {'type': 'final', 'text': 'fixture final'}])
+        observed = []
+        process.on_read = lambda: observed.append(worker.record['state'])
+        worker.run()
+        self.assertTrue(observed)
+        self.assertTrue(all(state == 'running' for state in observed))
+        self.assertEqual(worker.record['state'], 'completed')
+
     def test_prompt_uses_stdin_and_confirmed_directory(self):
         worker, process = self.worker()
         worker.run()

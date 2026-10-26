@@ -35,8 +35,8 @@ export function WorkspaceSpaceManagerOverview({
   } = model
   if (!analysis && !isScanning) {
     return (
-      <div className="flex min-h-80 flex-col items-center justify-center rounded-lg border border-border bg-card px-6 py-10 text-center">
-        <div className="mb-5 flex size-12 items-center justify-center rounded-lg border border-border bg-muted/40">
+      <div className="flex min-h-80 flex-col items-center justify-center rounded-2xl border border-border bg-card px-6 py-10 text-center">
+        <div className="mb-5 flex size-12 items-center justify-center rounded-2xl border border-border bg-muted/40">
           <HardDrive className="size-6 text-muted-foreground" />
         </div>
         <h2 className="text-lg font-semibold text-foreground">
@@ -57,9 +57,9 @@ export function WorkspaceSpaceManagerOverview({
     )
   }
   return (
-    <div className="shrink-0 space-y-2.5">
-      <div className="flex min-w-0 items-center rounded-lg border border-border/65 bg-background/35">
-        <div className="grid min-w-0 flex-1 grid-cols-4 divide-x divide-border/60">
+    <div className="shrink-0 space-y-6">
+      <div className="flex min-w-0 items-center rounded-2xl border border-border/65 bg-background/35">
+        <div className="grid min-w-0 flex-1 grid-cols-2 gap-y-4 md:grid-cols-4 divide-x divide-border/60">
           <Metric
             label={translate(
               'auto.components.status.bar.WorkspaceSpaceManagerPanel.09960d86bd',
@@ -126,7 +126,7 @@ export function WorkspaceSpaceManagerOverview({
       </div>
 
       {isScanning ? (
-        <div className="flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
+        <div className="flex min-w-0 items-center gap-2 text-sm leading-[22px] text-muted-foreground">
           <Loader2 className="size-4 shrink-0 animate-spin" />
           <span className="truncate">
             {analysis
@@ -145,7 +145,7 @@ export function WorkspaceSpaceManagerOverview({
       ) : null}
 
       {scanError ? (
-        <div className="flex items-start gap-2 rounded-md border border-destructive/35 bg-destructive/8 px-2 py-1.5 text-xs text-destructive">
+        <div className="flex items-start gap-2 rounded-md border border-destructive/35 bg-destructive/8 px-2 py-1.5 text-sm leading-[22px] text-destructive">
           <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
           <span className="min-w-0 break-words">
             {scanError}
@@ -160,7 +160,7 @@ export function WorkspaceSpaceManagerOverview({
       ) : null}
 
       {repoErrors.length > 0 ? (
-        <div className="rounded-md border border-border/70 bg-muted/20 px-2 py-1.5 text-xs text-muted-foreground">
+        <div className="rounded-md border border-border/70 bg-muted/20 px-2 py-1.5 text-sm leading-[22px] text-muted-foreground">
           {repoErrors.slice(0, 1).map((repo) => (
             <div key={repo.repoId} className="flex items-start gap-2">
               <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
@@ -183,7 +183,7 @@ export function WorkspaceSpaceManagerOverview({
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent align="end" className="w-80">
-                    <div className="max-h-56 space-y-2 overflow-y-auto scrollbar-sleek text-xs">
+                    <div className="max-h-56 space-y-2 overflow-y-auto scrollbar-sleek text-sm leading-[22px]">
                       {repoErrors.map((entry) => (
                         <div key={entry.repoId} className="break-words">
                           <span className="font-medium">{entry.displayName}:</span> {entry.error}
@@ -199,7 +199,7 @@ export function WorkspaceSpaceManagerOverview({
       ) : null}
 
       {hasRows || isInitialScan ? (
-        <div className="grid min-h-0 grid-cols-[minmax(0,1.4fr)_minmax(16rem,0.6fr)] gap-2.5">
+        <div className="grid min-h-0 grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(16rem,0.6fr)]">
           <WorkspaceSpaceTreemap
             rows={sourceRows}
             isScanning={isInitialScan}

@@ -22,7 +22,7 @@ class Element {
 function fixture() {
   const nodes = new Map(), requests = [], writes = [];
   const node = id => { if (!nodes.has(id)) nodes.set(id, new Element()); return nodes.get(id); };
-  const context = vm.createContext({ document: { createElement: () => new Element() }, $: node,
+  const context = vm.createContext({ window: {}, document: { createElement: () => new Element() }, $: node,
     api: url => new Promise((resolve, reject) => requests.push({ url, resolve, reject })),
     clearFieldErrors: id => { node(id).textContent = ''; }, dateTime: value => value, taskSummary: () => '', observationSummary: () => '',
     post: async (url, body) => { writes.push({ url, body }); }, loadBase: async () => {}, loadCompatibility: async () => {},

@@ -25,13 +25,13 @@ function AutomationTemplateCard({
     <button
       type="button"
       onClick={onSelect}
-      className="rounded-md border border-border/70 bg-background px-3 py-2 text-left shadow-xs transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+      className="rounded-2xl border border-border/70 bg-background px-3 py-2 text-left shadow-xs transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
     >
-      <div className="text-[11px] font-medium uppercase text-muted-foreground">
-        {template.category}
-      </div>
+      <div className="text-sm font-medium text-muted-foreground">{template.category}</div>
       <div className="mt-1 text-sm font-medium">{template.label}</div>
-      <div className="mt-1 line-clamp-2 text-xs text-muted-foreground">{template.description}</div>
+      <div className="mt-1 line-clamp-2 text-sm leading-[22px] text-muted-foreground">
+        {template.description}
+      </div>
     </button>
   )
 }
@@ -60,8 +60,10 @@ export function AutomationEditorDialogHeader({
   const title = getEditorTitle({ isEditing })
 
   return (
-    <DialogHeader className="flex-row items-center justify-between gap-3 border-b border-border/50 px-5 py-2.5 pr-12 text-left">
-      <DialogTitle className="min-w-0 truncate text-sm font-medium">{title}</DialogTitle>
+    <DialogHeader className="flex-row items-center justify-between gap-3 border-b border-border/50 px-6 py-4 pr-16 text-left">
+      <DialogTitle className="min-w-0 truncate text-lg font-semibold leading-[26px]">
+        {title}
+      </DialogTitle>
       {isCreateMode ? (
         <div className="flex shrink-0 items-center gap-2">
           <Popover open={templateOpen} onOpenChange={onTemplateOpenChange}>
@@ -74,7 +76,10 @@ export function AutomationEditorDialogHeader({
                 )}
               </Button>
             </PopoverTrigger>
-            <PopoverContent align="end" className="w-96 p-3">
+            <PopoverContent
+              align="end"
+              className="w-[min(400px,calc(100vw-2rem))] max-h-[min(480px,var(--radix-popover-content-available-height))] overflow-y-auto p-4"
+            >
               <div className="grid gap-2">
                 {templates.map((template) => (
                   <AutomationTemplateCard

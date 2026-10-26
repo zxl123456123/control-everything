@@ -206,6 +206,7 @@ class DshRun:
                     return
                 self._update(turn_send_started=True)
                 self.process.write_text(self.record["prompt"], close=True)
+                self._update(state="cancel_requested" if self.cancelled else "running")
             self.event("phase", phase="started", adapter="dsh")
             while True:
                 try:

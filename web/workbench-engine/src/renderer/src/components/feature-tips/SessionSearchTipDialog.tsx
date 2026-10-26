@@ -67,11 +67,11 @@ function IndexProgress({
           <span className="block h-full w-2/5 animate-[skill-update-slide_1.35s_ease-in-out_infinite] rounded-full bg-primary motion-reduce:w-full motion-reduce:animate-none motion-reduce:opacity-40" />
         </span>
       ) : null}
-      <span className="block text-xs font-medium tabular-nums text-foreground">
+      <span className="block text-sm font-medium tabular-nums text-foreground">
         {progressMessage(status)}
       </span>
       {sessionSearchStatusDetails(status).map((line) => (
-        <span key={line} className="block text-xs text-muted-foreground">
+        <span key={line} className="block text-sm text-muted-foreground">
           {line}
         </span>
       ))}
@@ -114,7 +114,7 @@ export function SessionSearchTipDialog({
       <DialogHeader className="gap-4 text-left">
         <div>
           <FeatureTipEyebrow label={tip.eyebrow} />
-          <DialogTitle className="text-2xl font-semibold leading-tight tracking-tight md:text-[1.75rem]">
+          <DialogTitle className="text-xl font-semibold leading-7 tracking-normal">
             {copy.title}
           </DialogTitle>
           <DialogDescription className="mt-3 max-w-2xl space-y-3 text-sm leading-relaxed">
@@ -144,7 +144,7 @@ export function SessionSearchTipDialog({
         </div>
       </DialogHeader>
 
-      <DialogFooter className="mt-8 flex sm:justify-stretch">
+      <DialogFooter className="mt-0 flex sm:justify-stretch">
         <FeatureTipActions
           currentTip={tip}
           primaryBusy={primaryBusy}

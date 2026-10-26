@@ -87,7 +87,7 @@ class Schema3Tests(unittest.TestCase):
         item = profile.store.save_item({"title": "Task", "project_id": project["id"], "provider_id": None,
                                         "state": "review", "session_key": None})
         with profile.store.connection() as connection:
-            connection.execute("INSERT INTO task_reviews VALUES('r1',?,'run-1','approved','ok',NULL,'manual','now')",
+            connection.execute("INSERT INTO task_reviews(id,task_id,run_id,verdict,reason,evidence_json,reviewer,created_at) VALUES('r1',?,'run-1','approved','ok',NULL,'manual','now')",
                                (item["id"],))
             connection.execute("""INSERT INTO project_decisions VALUES('d1',?,'Choose SQLite','Keep local',
                 'Simple','[]','accepted','[]','now','now')""", (project["id"],))

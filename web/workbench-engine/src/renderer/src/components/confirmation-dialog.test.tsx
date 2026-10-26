@@ -18,12 +18,14 @@ import {
 
 function Harness({
   options,
-  onSettled
+  onSettled,
+  presentation
 }: {
   options: ConfirmationDialogOptions
   onSettled: (confirmed: boolean) => void
+  presentation?: Parameters<typeof useConfirmationDialog>[0]
 }): React.JSX.Element {
-  const confirm = useConfirmationDialog()
+  const confirm = useConfirmationDialog(presentation)
   return (
     <button type="button" onClick={() => void confirm(options).then(onSettled)}>
       ask
@@ -42,7 +44,43 @@ function renderDialog(options: ConfirmationDialogOptions): { onSettled: ReturnTy
 }
 
 describe('ConfirmationDialogProvider', () => {
-  afterEach(cleanup)
+  afterEach(() => { cleanup(); delete document.documentElement.dataset.platformView })
+
+  it('shows only an explicitly foreground Settings request through the original outer provider', async () => {
+    document.documentElement.dataset.platformView = 'studio'
+    const controller = new AbortController()
+    const settled = vi.fn()
+    const view = render(<ConfirmationDialogProvider><Harness options={{ title: 'Settings guard' }} onSettled={settled}
+      presentation={{ management: true, visible: true, signal: controller.signal }} /></ConfirmationDialogProvider>)
+    fireEvent.click(screen.getByRole('button', { name: 'ask' }))
+    const dialog = await screen.findByRole('dialog')
+    expect(dialog).toHaveClass('ce-management-surface')
+    await act(async () => controller.abort())
+    expect(settled).toHaveBeenCalledWith(false)
+    expect(screen.queryByRole('dialog')).toBeNull()
+    view.unmount()
+    renderDialog({ title: 'Background management' })
+    fireEvent.click(screen.getByRole('button', { name: 'ask' }))
+    expect(screen.queryByRole('dialog')).toBeNull()
+  })
+
+  it('retires queued Settings requests as false before they can surface or confirm another object', async () => {
+    document.documentElement.dataset.platformView = 'studio'
+    const controller = new AbortController()
+    const settled = vi.fn()
+    const view = render(<ConfirmationDialogProvider>
+      <Harness options={{ title: 'Background request' }} onSettled={vi.fn()} />
+      <Harness options={{ title: 'Retired project A' }} onSettled={settled}
+        presentation={{ management: true, visible: true, signal: controller.signal }} />
+    </ConfirmationDialogProvider>)
+    fireEvent.click(screen.getAllByRole('button', { name: 'ask' })[0])
+    fireEvent.click(screen.getAllByRole('button', { name: 'ask' })[1])
+    await act(async () => controller.abort())
+    expect(settled).toHaveBeenCalledExactlyOnceWith(false)
+    expect(screen.queryByText('Retired project A')).toBeNull()
+    expect(screen.queryByRole('dialog')).toBeNull()
+    view.unmount()
+  })
 
   it('focuses the primary action when requested and confirms with Enter', async () => {
     const { onSettled } = renderDialog({

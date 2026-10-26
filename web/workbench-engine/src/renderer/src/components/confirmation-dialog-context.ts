@@ -1,4 +1,4 @@
-import { createContext, useContext } from 'react'
+import { createContext, useCallback, useContext } from 'react'
 import type { LucideIcon } from 'lucide-react'
 
 // Keep the context component-free so Fast Refresh preserves its identity.
@@ -11,6 +11,8 @@ export type ConfirmationDialogField = {
 }
 
 export type ConfirmationDialogOptions = {
+  /** Presentation only; a scoped caller also supplies its retirement signal. */
+  presentation?: { management: boolean; visible: boolean }
   title: string
   description?: string
   descriptionClassName?: string
@@ -44,10 +46,22 @@ export type ConfirmationDialogContextValue = (
 
 export const ConfirmationDialogContext = createContext<ConfirmationDialogContextValue | null>(null)
 
-export function useConfirmationDialog(): ConfirmationDialogContextValue {
+export function useConfirmationDialog(presentation?: {
+  management: boolean
+  visible: boolean
+  signal: AbortSignal
+}): ConfirmationDialogContextValue {
   const confirm = useContext(ConfirmationDialogContext)
   if (!confirm) {
     throw new Error('useConfirmationDialog must be used inside ConfirmationDialogProvider')
   }
-  return confirm
+  return useCallback(async (options) => {
+    if (!presentation) return confirm(options)
+    if (!presentation.visible || presentation.signal.aborted) return false
+    const signal = options.signal ? AbortSignal.any([options.signal, presentation.signal]) : presentation.signal
+    const accepted = await confirm({ ...options, presentation: {
+      management: presentation.management, visible: presentation.visible
+    }, signal })
+    return accepted && !signal.aborted
+  }, [confirm, presentation])
 }

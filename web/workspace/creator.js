@@ -67,34 +67,65 @@
   }
 
   function create({root, document = scope.document, fetch: request = scope.fetch.bind(scope), clipboard = scope.navigator?.clipboard,
-    serviceOrigin = scope.location?.origin || '', setTimeout: later = scope.setTimeout.bind(scope), clearTimeout: cancel = scope.clearTimeout.bind(scope)}) {
+    serviceOrigin = scope.location?.origin || '', appearance = scope.CEUITheme, setTimeout: later = scope.setTimeout.bind(scope), clearTimeout: cancel = scope.clearTimeout.bind(scope)}) {
     const element = name => root.querySelector(`[data-creator="${name}"]`);
     const node = (tag, text = '', className = '') => { const item = document.createElement(tag); item.textContent = bounded(text, 8000); item.className = className; return item; };
     let snapshot = null, connected = false, selectedId = null, detail = null, detailRequest = 0;
     let loadingDetail = false, posting = false, disposed = false, refreshing = null, timer = null, stateRequestSequence = 0;
-    let projectSignature = '', operationSignature = '';
+    let projectSignature = '', operationSignature = '', selectedTab = 'engine', suspended = false;
     const drafts = new Map(), awaiting = new Map();
+    const tabNames = ['engine', 'brief', 'resources', 'runs'];
+    const listeners = [];
+    const on = (target, event, handler) => { target.addEventListener(event, handler); listeners.push(() => target.removeEventListener?.(event, handler)); };
+    let theme, unmountTheme, initialTheme = appearance?.pageTheme;
+    function startTheme() {
+      theme = initialTheme || appearance?.earlyRead('ce.creator.theme'); initialTheme = null;
+      if (theme) { element('theme').disabled = false; unmountTheme = theme.mount({roots: [root], toggles: [element('theme')], status: element('theme-error')}); }
+      else { element('theme').disabled = true; element('theme-error').hidden = false; element('theme-error').textContent = '主题资源未加载，请刷新后重试。'; }
+    }
+    function stopTheme() { unmountTheme?.(); unmountTheme = null; theme?.dispose(); theme = null; }
+    function renderTabs() {
+      element('run-history').hidden = Boolean(selectedId) && (!detail || selectedTab !== 'runs');
+      element('run-history').open = Boolean(detail);
+      for (const name of tabNames) {
+        const active = selectedTab === name;
+        element('tab-' + name).setAttribute('aria-selected', String(active));
+        element('tab-' + name).tabIndex = active ? 0 : -1;
+        element('panel-' + name).hidden = name === 'runs' && !detail ? false : !active;
+      }
+      element('panel-runs').setAttribute('role', detail ? 'tabpanel' : 'region');
+      element('panel-runs').setAttribute('aria-labelledby', detail ? 'creator-tab-runs' : 'creator-runs-title');
+    }
+    function activateTab(name) { if (!tabNames.includes(name) || disposed) return; keepDraft(); selectedTab = name; renderTabs(); }
 
     function message(text, error = false) {
       element('message').textContent = bounded(text);
       element('message').hidden = !text;
       element('message').dataset.error = String(error);
     }
-    function keepDraft() { if (selectedId && drafts.has(selectedId) && !loadingDetail) drafts.get(selectedId).text = element('brief').value; }
+    function fieldError(name, text) {
+      message(text, true); element(name).setAttribute('aria-invalid', 'true');
+      element(name).setAttribute('aria-describedby', 'creator-message');
+      element(name).focus?.();
+    }
+    function keepDraft() { if (selectedId && detail?.project.id === selectedId && drafts.has(selectedId) && !loadingDetail) drafts.get(selectedId).text = element('brief').value; }
     function stopTimer() { if (timer !== null) cancel(timer); timer = null; }
     function schedule() {
       stopTimer();
       const active = snapshot?.busy_project_ids.length || ACTIONS.some(action => ['starting', 'running'].includes(snapshot?.operations[action]?.state));
-      if (!disposed && connected && !document.hidden && (active || awaiting.size)) timer = later(() => { timer = null; void refreshState(); }, 2000);
+      if (!disposed && !suspended && connected && !document.hidden && (active || awaiting.size)) timer = later(() => { timer = null; void refreshState(); }, 2000);
     }
     function pendingProject(id) { return [...awaiting.values()].some(value => value.projectId === id); }
 
     function renderProjects() {
       if (!snapshot) return;
-      const signature = JSON.stringify([snapshot.projects, selectedId, snapshot.busy_project_ids]);
+      const query = element('project-search').value.trim().toLocaleLowerCase();
+      const kind = element('project-filter').value;
+      const projects = snapshot.projects.filter(project => (!query || project.name.toLocaleLowerCase().includes(query)) && (!kind || project.kind === kind));
+      const signature = JSON.stringify([projects, selectedId, snapshot.busy_project_ids]);
       if (signature === projectSignature) return;
       projectSignature = signature;
-      const buttons = snapshot.projects.map(project => {
+      const buttons = projects.map(project => {
         const button = node('button', '', 'ce-creator-project');
         button.type = 'button'; button.dataset.projectId = project.id; button.setAttribute('aria-pressed', String(project.id === selectedId));
         const copy = node('span'); copy.append(node('strong', project.name), node('small', snapshot.busy_project_ids.includes(project.id) ? '本服务中运行' : '打开工程'));
@@ -104,6 +135,7 @@
       });
       element('projects').replaceChildren(...buttons);
       element('count').textContent = String(snapshot.projects.length);
+      element('project-no-match').hidden = !snapshot.projects.length || projects.length > 0;
     }
 
     function renderOperations() {
@@ -139,18 +171,22 @@
       const selectedReady = Boolean(detail && detail.project.id === selectedId && !loadingDetail);
       const busy = snapshot?.busy_project_ids.includes(selectedId) || pendingProject(selectedId);
       element('create').disabled = !connected || posting || snapshot?.capabilities.create !== true;
+      element('cancel-create').disabled = posting;
+      element('back-library').disabled = posting;
       for (const action of ACTIONS) element(action).disabled = !connected || posting || !selectedReady || busy || awaiting.has(action) || snapshot?.capabilities[action] !== true;
       element('save-brief').disabled = !connected || posting || !selectedReady;
       element('copy').disabled = !selectedReady;
       element('brief').disabled = !selectedReady;
       element('refresh').disabled = posting || Boolean(refreshing) || loadingDetail;
+      element('create-form').setAttribute('aria-busy', String(posting));
+      element('project-panel').setAttribute('aria-busy', String(posting || loadingDetail));
       element('busy').hidden = !busy;
       element('busy').textContent = busy ? '本项目有原生操作进行中，请在对应窗口结束后再启动其他操作。' : '';
       const draft = drafts.get(selectedId);
       element('draft-state').textContent = draft && draft.text !== draft.saved ? '未保存 · 切换项目会保留草稿' : '说明已保存';
       element('help').hidden = connected;
       element('library-empty').hidden = connected && Boolean(snapshot?.projects.length);
-      element('library-empty').textContent = connected ? '项目库还是空的，从一个新工程开始。' : '项目库尚未读取成功。';
+      element('library-empty').textContent = connected ? '项目库为空，请创建 2D 或 3D 工程。' : '项目库尚未读取成功。';
       if (snapshot) {
         element('library-path').textContent = bounded(snapshot.library_path, 2000);
         const configured = Boolean(snapshot.agent.client_url);
@@ -162,15 +198,19 @@
     }
 
     function renderDetail() {
+      root.dataset.view = selectedId ? 'project' : 'library';
       element('empty').hidden = Boolean(detail && !loadingDetail);
       element('project-panel').hidden = !detail || loadingDetail;
       element('context-panel').hidden = true;
+      renderTabs();
       if (!detail || loadingDetail) {
-        element('empty-title').textContent = loadingDetail ? '正在打开工程…' : '让一个想法有自己的工程';
+        element('empty-title').textContent = loadingDetail ? '正在打开工程…' : '选择或创建游戏工程';
         element('empty-copy').textContent = loadingDetail ? '读取场景、资源和创作说明。' : '创建 2D 或 3D 空白工程，或从项目库打开已有项目。';
         return;
       }
       const draft = drafts.get(selectedId);
+      element('brief').removeAttribute('aria-invalid');
+      element('brief').removeAttribute('aria-describedby');
       element('name').textContent = detail.project.name;
       element('kind').textContent = `${detail.project.kind.toUpperCase()} · GODOT 工程`;
       element('project-path').textContent = detail.project.project_path;
@@ -258,9 +298,10 @@
 
     async function createProject(name = element('project-name').value, kind = element('project-kind').value) {
       if (disposed || element('create').disabled) return;
-      if (/[\u0000-\u001f\u007f]/u.test(name)) { message('项目名称不能包含换行或控制字符。', true); return; }
+      element('project-name').removeAttribute('aria-invalid');
+      if (/[\u0000-\u001f\u007f]/u.test(name)) { fieldError('project-name', '项目名称不能包含换行或控制字符。'); return; }
       name = name.trim();
-      if (!name || [...name].length > 80 || /[\u0000-\u001f\u007f]/u.test(name) || !['2d', '3d'].includes(kind)) { message('请填写 1～80 字的项目名称并选择 2D 或 3D。', true); return; }
+      if (!name || [...name].length > 80 || /[\u0000-\u001f\u007f]/u.test(name) || !['2d', '3d'].includes(kind)) { fieldError('project-name', '请填写 1～80 字的项目名称并选择 2D 或 3D。'); return; }
       posting = true; renderControls();
       try {
         const result = await post('/api/creator/projects', {name, kind}, 201);
@@ -270,7 +311,8 @@
         message(`项目“${result.project.name}”已创建。`);
         await refreshState(); await selectProject(result.project.id);
         element('create-form').hidden = true;
-      } catch (error) { if (!disposed) message(error.message, true); }
+        element('new').setAttribute('aria-expanded', 'false');
+      } catch (error) { if (!disposed) fieldError('project-name', error.message); }
       finally { posting = false; if (!disposed) renderControls(); }
     }
 
@@ -278,7 +320,8 @@
       if (disposed || element('save-brief').disabled) return;
       keepDraft();
       const projectId = selectedId, text = drafts.get(projectId).text;
-      if ([...text].length > 4000) { message('创作说明最多 4000 字。', true); return; }
+      element('brief').removeAttribute('aria-invalid');
+      if ([...text].length > 4000) { fieldError('brief', '创作说明最多 4000 字。'); return; }
       posting = true; renderControls();
       try {
         const result = await post('/api/creator/brief', {project_id: projectId, text}, 200);
@@ -286,7 +329,7 @@
         if (disposed) return;
         drafts.get(projectId).saved = text;
         message(`“${snapshot.projects.find(project => project.id === projectId)?.name || projectId}”的创作说明已保存。`);
-      } catch (error) { if (!disposed) message(error.message, true); }
+      } catch (error) { if (!disposed) { message(error.message, true); if (selectedId === projectId) { activateTab('brief'); fieldError('brief', error.message); } } }
       finally { posting = false; if (!disposed) renderControls(); }
     }
 
@@ -334,20 +377,47 @@
       }
     }
 
-    element('create-form').addEventListener('submit', event => { event.preventDefault(); void createProject(); });
-    element('new').addEventListener('click', () => { element('create-form').hidden = false; element('project-name').focus?.(); });
-    element('brief').addEventListener('input', () => { keepDraft(); renderControls(); });
-    element('save-brief').addEventListener('click', () => { void saveBrief(); });
-    element('copy').addEventListener('click', () => { void copyContext(); });
-    for (const action of ACTIONS) element(action).addEventListener('click', () => { void sendAction(action); });
-    element('refresh').addEventListener('click', () => { message(''); void refresh(); });
-    element('theme').addEventListener('click', () => {
-      const dark = root.dataset.theme !== 'dark'; root.dataset.theme = dark ? 'dark' : 'light';
-      element('theme').textContent = dark ? '浅色主题' : '深色主题'; element('theme').setAttribute('aria-label', `切换为${dark ? '浅色' : '深色'}主题`);
+    on(element('create-form'), 'submit', event => { event.preventDefault(); void createProject(); });
+    on(element('new'), 'click', () => { element('create-form').hidden = false; element('new').setAttribute('aria-expanded', 'true'); element('project-name').focus?.(); });
+    on(element('cancel-create'), 'click', () => { if (posting) return; element('create-form').hidden = true; element('new').setAttribute('aria-expanded', 'false'); element('new').focus?.(); });
+    on(element('back-library'), 'click', () => {
+      if (posting) return;
+      keepDraft(); detailRequest++; selectedId = null; detail = null; loadingDetail = false;
+      renderProjects(); renderDetail(); renderControls(); element('project-search').focus?.();
     });
+    on(element('brief'), 'input', () => { keepDraft(); renderControls(); });
+    on(element('save-brief'), 'click', () => { void saveBrief(); });
+    on(element('copy'), 'click', () => { void copyContext(); });
+    for (const action of ACTIONS) on(element(action), 'click', () => { void sendAction(action); });
+    on(element('refresh'), 'click', () => { message(''); void refresh(); });
+    on(element('project-search'), 'input', renderProjects);
+    on(element('project-filter'), 'change', renderProjects);
+    for (const name of tabNames) {
+      const tab = element('tab-' + name);
+      on(tab, 'click', () => activateTab(name));
+      on(tab, 'keydown', event => {
+        if (event.isComposing || event.keyCode === 229 || event.altKey || event.ctrlKey || event.metaKey) return;
+        const enabled = tabNames.filter(key => !element('tab-' + key).disabled);
+        const index = enabled.indexOf(name);
+        let next;
+        if (event.key === 'ArrowRight') next = enabled[(index + 1) % enabled.length];
+        if (event.key === 'ArrowLeft') next = enabled[(index - 1 + enabled.length) % enabled.length];
+        if (event.key === 'Home') next = enabled[0];
+        if (event.key === 'End') next = enabled.at(-1);
+        if (next) { event.preventDefault(); for (const key of tabNames) element('tab-' + key).tabIndex = key === next ? 0 : -1; element('tab-' + next).focus(); }
+        if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); activateTab(name); }
+      });
+    }
     function visibilityChanged() { stopTimer(); if (!document.hidden) void refreshState(); }
-    document.addEventListener('visibilitychange', visibilityChanged);
-    function dispose() { disposed = true; stopTimer(); document.removeEventListener('visibilitychange', visibilityChanged); }
+    on(document, 'visibilitychange', visibilityChanged);
+    function dispose() { if (disposed) return; disposed = true; stopTimer(); stopTheme(); for (const remove of listeners) remove(); }
+    if (scope.addEventListener) {
+      on(scope, 'pagehide', event => { if (event.persisted) { suspended = true; stopTimer(); stopTheme(); } else dispose(); });
+      on(scope, 'pageshow', event => { if (event.persisted && !disposed) { suspended = false; startTheme(); void refreshState(); } });
+    }
+    const unsubscribe = scope.CERemoteContext?.onInactive(dispose);
+    if (unsubscribe) listeners.push(unsubscribe);
+    if (!disposed) { startTheme(); renderDetail(); }
     const ready = refreshState();
     return {ready, refresh, refreshState, selectProject, createProject, saveBrief, sendAction, copyContext, dispose};
   }

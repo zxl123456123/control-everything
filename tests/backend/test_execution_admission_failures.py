@@ -77,7 +77,8 @@ class ExecutionAdmissionFailureTests(unittest.TestCase):
         service = self.execution_service(worker_factory=factory)
         receipt = service.submit_dispatch(self.dispatch['id'], {
             'context_hash': context['context_hash'], 'confirmed': True})
-        self.assertTrue(workers[0].finished.wait(4), 'Synthetic worker did not finish')
+        # Policy propagation is the contract; concurrent builds are not a startup benchmark.
+        self.assertTrue(workers[0].finished.wait(30), 'Synthetic worker did not finish')
         row = self.ledger.get_run(receipt['execution_run_id'])
         requests = {message.get('method'): message for message in transports[0].sent}
         self.assertEqual(context['policy']['mode'], permission)

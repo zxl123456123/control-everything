@@ -319,18 +319,43 @@ class WorkbenchRuntime:
                     self._close_job(force=True)
                 raise
 
-    def _capture(self, argv, request=None, timeout=30):
+    def _capture(self, argv, request=None, timeout=30, cancel_event=None):
+        deadline = time.monotonic() + timeout
         process, stdin, stdout, _, _ = self._spawn(argv)
         output = bytearray()
+        writer = None
         try:
             if request is not None:
                 raw = (json.dumps(request, allow_nan=False) + "\n").encode()
-                if len(raw) > MAX_MESSAGE or self.api.write(stdin, raw) != len(raw):
+                if len(raw) > MAX_MESSAGE:
                     raise WorkbenchUnavailable("runtime_protocol_error")
+                written, write_done = [], threading.Event()
+                def write_request():
+                    try:
+                        written.append(self.api.write(stdin, raw))
+                    except (ProcessError, OSError):
+                        written.append(None)
+                    finally:
+                        write_done.set()
+                # A helper that stops reading its anonymous pipe must not pin the
+                # observer in synchronous WriteFile. Terminating this owned helper
+                # in finally closes its read end and releases the pending write.
+                writer = threading.Thread(target=write_request, name='workbench-request-input', daemon=True)
+                writer.start()
+                while not write_done.is_set():
+                    if cancel_event is not None and cancel_event.is_set():
+                        raise WorkbenchUnavailable('runtime_request_cancelled')
+                    remaining = deadline - time.monotonic()
+                    if remaining <= 0:
+                        raise WorkbenchUnavailable('runtime_request_timeout')
+                    write_done.wait(min(.01, remaining))
+                if written != [len(raw)]:
+                    raise WorkbenchUnavailable('runtime_protocol_error')
             self.api.close(stdin)
             stdin = None
-            deadline = time.monotonic() + timeout
             while time.monotonic() < deadline:
+                if cancel_event is not None and cancel_event.is_set():
+                    raise WorkbenchUnavailable('runtime_request_cancelled')
                 chunk = self.api.read_available(stdout)
                 if chunk:
                     output.extend(chunk)
@@ -341,22 +366,34 @@ class WorkbenchRuntime:
                         raise WorkbenchUnavailable("runtime_protocol_error")
                     return json.loads(output.decode().splitlines()[-1])
                 else:
-                    time.sleep(.01)
+                    if cancel_event is not None:
+                        cancel_event.wait(min(.01, max(0, deadline - time.monotonic())))
+                    else:
+                        time.sleep(.01)
             raise WorkbenchUnavailable("runtime_request_timeout")
         finally:
             if self.api.exit_code(process) == 259:
                 self.api.terminate_process(process)
+            if writer is not None:
+                writer.join(timeout=.2)
             for handle in (stdin, stdout, process):
                 self.api.close(handle)
+            if writer is not None and writer.is_alive():
+                raise WorkbenchUnavailable('runtime_helper_cleanup_unverified')
 
-    def _rpc(self, method, params):
+    def _rpc(self, method, params, *, timeout=30, cancel_event=None, orchestration_request_id=None):
         if not self.ready:
             raise WorkbenchUnavailable()
         metadata, _, pipe, _ = self._read_identity()
         if self._owner_call:
             return self._owner_call(method, params)
-        reply = self._capture([self._helper], {"endpoint": pipe, "authToken": metadata["authToken"],
-                              "expectedRuntimeId": metadata["runtimeId"], "method": method, "params": params})
+        request = {"endpoint": pipe, "authToken": metadata["authToken"],
+                   "expectedRuntimeId": metadata["runtimeId"], "method": method, "params": params}
+        if orchestration_request_id is not None:
+            if method != 'platform.taskProgress.send' or not isinstance(orchestration_request_id, str) or not re.fullmatch(r'[A-Za-z0-9_-]{1,128}', orchestration_request_id):
+                raise WorkbenchUnavailable('runtime_protocol_error')
+            request.update(orchestrationContractVersion=1, orchestrationRequestId=orchestration_request_id)
+        reply = self._capture([self._helper], request, timeout=timeout, cancel_event=cancel_event)
         if not reply.get("ok"):
             raise WorkbenchUnavailable("runtime_protocol_error")
         return reply["result"]

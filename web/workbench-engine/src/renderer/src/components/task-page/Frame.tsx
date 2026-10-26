@@ -1,3 +1,4 @@
+import { translate } from '@/i18n/i18n'
 import type { TaskPageComposerActionsModel } from '../use-task-page-composer-actions'
 import { TaskPageListChrome } from './ListChrome'
 import { TaskPageContent } from './Content'
@@ -8,8 +9,12 @@ export function TaskPageFrame({
 }): React.JSX.Element | null {
   return (
     <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
-      {/* Why: pt-1.5 (6px) aligns this 32px icon cluster's center with the sidebar Tasks row, 22px below the titlebar. */}
-      <div className="mx-auto flex min-h-0 min-w-0 w-full flex-1 flex-col px-5 pt-1.5 pb-4 md:px-8 md:pt-1.5 md:pb-5">
+      <div className="mx-auto flex min-h-0 min-w-0 w-full flex-1 flex-col px-4 py-6 md:px-8 md:py-8">
+        {!model.taskPageListChromeHidden && (
+          <h1 className="mb-6 shrink-0 text-2xl font-bold leading-8">
+            {translate('auto.components.task.page.TaskPage.title', 'Tasks')}
+          </h1>
+        )}
         <TaskPageListChrome model={model} />
 
         <TaskPageContent model={model} />

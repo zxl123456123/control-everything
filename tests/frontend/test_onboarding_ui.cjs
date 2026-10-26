@@ -38,8 +38,9 @@ function fixture(options = {}) {
     return { selected: true, changed: true, requires_rejoin: false, project_id: item.project_id, selection_token: 'new-token' };
   };
   const window = { confirm: () => true };
+  window.CEUIDialog = { create: () => ({ confirm: () => Promise.resolve(window.confirm()), dispose() {} }) };
   vm.runInNewContext(source, { window, document: { createElement: tag => new Element(tag) }, Map, Set, console });
-  const controller = window.WorkspaceOnboarding.create({ dialog, fetchJson, postJson, onChanged: async () => changes.push(true), manual: () => manual.push(true), configure() {}, manage() {} });
+  const controller = window.WorkspaceOnboarding.create({ dialog, fetchJson, postJson, onChanged: async (project, metadata) => { changes.push({project, metadata, open: dialog.open}); if (options.changed) await options.changed(project, metadata); }, manual: () => manual.push(true), configure() {}, manage() {} });
   return { controller, window, dialog, node, calls, writes, changes, manual, page, overview, item };
 }
 test('HTML resource and consent controls precede workspace and default native diagnostics are folded', () => {
@@ -328,7 +329,7 @@ test('manual directory conflict preserves draft and offers the existing project 
   node('project-name').value = 'Unsaved name';
   const app = { snapshot: { projects: { items: [{ id: 'existing', name: 'Existing', directories: [{ path: 'C:/example/project' }] }] } },
     projectSpace: { open: id => opened.push(id) }, onboarding: { open: () => opened.push('picker') } };
-  const context = vm.createContext({ app, $: node, TextEncoder, projectBody: () => ({ id: null, directories: [{ path: 'C:/example/project' }] }),
+  const context = vm.createContext({ app, $: node, TextEncoder, window: {}, projectWrite: null, projectEditorKey: 'new-project', projectDrafts: new Map(), captureProjectDraft: () => ({}), projectBody: () => ({ id: null, directories: [{ path: 'C:/example/project' }] }),
     clearFieldErrors() {}, fieldError() {}, post: async () => { throw Object.assign(new Error('conflict'), { reason: 'directory_conflict' }); },
     action: (label, fn) => { const button = new Element('button'); button.textContent = label; button.click = fn; return button; } });
   vm.runInContext(workspaceSource.match(/async function saveProject\([^]*?\n\}/)[0], context);
@@ -336,4 +337,41 @@ test('manual directory conflict preserves draft and offers the existing project 
   assert.equal(node('project-name').value, 'Unsaved name');
   assert.match(node('project-feedback').textContent, /打开已有项目.*重新加入/);
   node('project-feedback').children[0].click(); assert.deepEqual(opened, ['existing']);
+});
+
+test('directory receipt closes before publishing confirmed identity and a refresh failure never recreates it', async () => {
+  const f = fixture({ post: async url => url.endsWith('/inspect')
+    ? { status: 'ok', path: 'C:/example/Existing', name: 'Existing' }
+    : { status: 'registered', project: { id: 'saved-project' } }, changed: async () => { throw new Error('offline'); } });
+  await f.controller.open(); f.node('onboarding-directory-path').value = 'C:/example/Existing';
+  await f.node('onboarding-directory-preview').listeners.click(); f.node('onboarding-directory-confirm').checked = true;
+  const submit = () => f.node('onboarding-directory-form').listeners.submit({preventDefault() {}});
+  await submit(); await submit();
+  assert.equal(f.changes[0].open, false);
+  assert.deepEqual(JSON.parse(JSON.stringify(f.changes[0].metadata)), {kind:'registered',confirmedIDs:['saved-project']});
+  assert.equal(f.writes.filter(write => write.url.endsWith('/register')).length, 1);
+  assert.match(f.node('onboarding-feedback').textContent, /项目已保存.*无需再次创建/);
+});
+
+test('batch publishes only confirmed selected IDs after close, retaining unsuccessful selections', async () => {
+  const f = fixture({post: async (_url, body) => {
+    if (body.candidate_id === 'bad') throw new Error('fixture rejection');
+    return {selected:true,project_id:'saved-project',selection_token:'next'};
+  }});
+  f.page.items.push({...f.item,candidate_id:'bad',project_id:'not-saved'});
+  await f.controller.open({mode:'import'});
+  for (const row of f.node('onboarding-candidates').children) { row.children[0].checked = true; row.children[0].listeners.change(); }
+  await f.controller.joinSelected();
+  assert.equal(f.changes.length, 1); assert.equal(f.changes[0].open, false);
+  assert.deepEqual(JSON.parse(JSON.stringify(f.changes[0].metadata)), {kind:'registered',confirmedIDs:['saved-project'],failedCount:1});
+  assert.equal(f.node('onboarding-candidates').children[1].children[0].checked, true);
+});
+
+test('source save publishes a separate result without a project registration receipt', async () => {
+  const f = fixture(); await f.controller.open({mode:'import'});
+  f.node('onboarding-consent').checked = true;
+  await f.node('onboarding-source-form').listeners.submit({preventDefault() {}});
+  assert.equal(f.changes.length, 1);
+  assert.deepEqual(JSON.parse(JSON.stringify(f.changes[0].metadata)), {kind:'source-saved'});
+  assert.equal(f.changes[0].open, true);
 });

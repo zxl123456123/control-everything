@@ -148,6 +148,9 @@ class CreatorHTTPTests(unittest.TestCase):
         self.assertEqual(self.request("/api/creator/projects/" + "a" * 32)[1]["error"], "project_read_failed")
 
     def test_only_static_allowlist_and_same_origin_csp(self):
+        self.assertEqual(RESOURCES['/ui-theme.js'], ('ui-theme.js', 'text/javascript; charset=utf-8'))
+        self.assertNotIn('/ui-dialog.js', RESOURCES)
+        self.assertNotIn('/remote-context.js', RESOURCES)
         for path in RESOURCES:
             status, content, headers = self.request(path)
             self.assertEqual(status, 200)
@@ -157,7 +160,9 @@ class CreatorHTTPTests(unittest.TestCase):
             self.assertIn("frame-src 'none'", headers["Content-Security-Policy"])
             self.assertIn("frame-ancestors 'none'", headers["Content-Security-Policy"])
             self.assertFalse(any(name.startswith("Access-Control-") for name in headers))
-        for path in ("/creator.js?x=1", "/api/creator/state?x=1", "/../AGENTS.md", "/%2e%2e/library",
+        for path in ("/creator.js?x=1", "/ui-theme.js?x=1", "/ui-theme.js/extra", "/%75i-theme.js",
+                     "/remote/ui-theme.js", "/ui-dialog.js", "/remote-context.js", "/studio-shell.js",
+                     "/api/creator/state?x=1", "/../AGENTS.md", "/%2e%2e/library",
                      "/api/creator/projects/../../../file", "/api/creator/projects/" + "A" * 32,
                      "/api/creator/projects/" + "a" * 32 + "?x=1", "/project.godot", "/library/",
                      "//creator.js", "/creator.html", "/api/creator/files/main.tscn"):

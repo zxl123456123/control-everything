@@ -16,6 +16,7 @@ import { getAppEnvironment } from '../../shared/app-environment'
 import { isPlatformRuntime, readPlatformRuntimePolicy } from '../platform-runtime-policy'
 import { ALL_RPC_METHODS } from '../runtime/rpc/methods'
 import { platformOwnerMethods } from './platform-owner-methods'
+import { PLATFORM_TASK_PROGRESS_METHODS } from './platform-task-progress-methods'
 import { resolveOrcadInstallRoot, resolveUserDataPath } from './orcad-app-paths'
 import { prepareOrcadCliLauncher } from './orcad-cli-launcher'
 import {
@@ -127,11 +128,10 @@ async function startOrcadRuntime(
   // Why importable here: the singleton's module tree never reaches Electron, and orcad supplies
   // its persistence and endpoint paths explicitly below.
   const { agentHookServer } = await import('../agent-hooks/server')
-  const { isAgentStatusHooksEnabled } = await import('../agent-hooks/managed-agent-hook-controls')
   const { agentHookRuntimeDeps } = await import('../agent-hooks/agent-hook-runtime-deps')
   const { installHookStatusSessionTabsRepublish } =
     await import('../agent-hooks/hook-status-session-tabs-republish')
-  const { startOrcadManagedAgentHooks } = await import('./orcad-managed-agent-hooks')
+  const { orcadStatusHooksEnabled, startOrcadManagedAgentHooks } = await import('./orcad-managed-agent-hooks')
   const { AgentStatusObservedPaneIdentities, AgentStatusObservedPaneIdentityCapture } =
     await import('../runtime/agent-status-observed-pane-identity')
 
@@ -190,7 +190,7 @@ async function startOrcadRuntime(
   await agentHookServer.start({
     env: 'production',
     userDataPath: runtimeUserDataPath,
-    statusHooksEnabled: isAgentStatusHooksEnabled(profileStore.getSettings())
+    statusHooksEnabled: orcadStatusHooksEnabled(profileStore.getSettings())
   })
 
   // Before hook reconcile, the daemon and the runtime: each reads or inherits this env.
@@ -358,7 +358,7 @@ async function startOrcadRuntime(
     // restart after its first client paired.
     pinnedBindHost: bindHost,
     webClientRoot: isPlatformRuntime() ? undefined : resolveOrcadWebClientRoot(options.webClientRoot),
-    ...(isPlatformRuntime() ? { methods: [...ALL_RPC_METHODS, ...platformOwnerMethods(() => rpc)] } : {}),
+    ...(isPlatformRuntime() ? { methods: [...ALL_RPC_METHODS, ...platformOwnerMethods(() => rpc), ...PLATFORM_TASK_PROGRESS_METHODS] } : {}),
     ...orcadWsPortOptions(options.port)
   })
   // Stops first: no RPC may write while the rest of the runtime is torn down.

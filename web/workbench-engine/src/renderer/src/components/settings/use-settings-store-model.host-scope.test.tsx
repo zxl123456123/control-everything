@@ -8,13 +8,15 @@ import {
 } from '../../../../shared/agent-launch-settings'
 import { useSettingsStoreModel } from './use-settings-store-model'
 import { AgentLaunchSettingsSection } from './AgentLaunchSettingsSection'
+import { PlatformSettingsContext } from '@/web/platform-settings-navigation'
 
 const mocks = vi.hoisted(() => ({
   state: {} as Record<string, unknown>,
   read: vi.fn(),
   mutate: vi.fn(),
   update: vi.fn(),
-  defaultHost: vi.fn()
+  defaultHost: vi.fn(),
+  confirmationScopes: [] as Array<{ signal: AbortSignal; visible: boolean }>
 }))
 vi.mock('@/store', () => ({
   useAppStore: Object.assign(
@@ -33,7 +35,10 @@ vi.mock('@/components/terminal-pane/pane-helpers', () => ({
   isWindowsUserAgent: () => true
 }))
 vi.mock('@/components/confirmation-dialog-context', () => ({
-  useConfirmationDialog: () => vi.fn()
+  useConfirmationDialog: (presentation: { signal: AbortSignal; visible: boolean }) => {
+    mocks.confirmationScopes.push(presentation)
+    return vi.fn()
+  }
 }))
 vi.mock('@/hooks/useSettingsNavigationMetadata', () => ({ isWebClientLocation: () => true }))
 vi.mock('@/hooks/useInstalledAgentSkills', () => ({
@@ -95,6 +100,7 @@ function Probe() {
 }
 beforeEach(() => {
   vi.clearAllMocks()
+  mocks.confirmationScopes = []
   mocks.state = {
     settings: createGlobalSettingsFixture({ activeRuntimeEnvironmentId: null }),
     repos: [],
@@ -117,6 +123,30 @@ beforeEach(() => {
 afterEach(cleanup)
 
 describe('Web settings host choice through the real model and launch settings section', () => {
+  it('retires the live confirmation signal when its exact host or foreground scope changes', () => {
+    const scope = { kind: 'global' as const, contextKey: 'trusted', entry: 'development' as const, environmentId: 'project-host' }
+    const view = render(<PlatformSettingsContext.Provider value={{ scope, visible: true }}><Probe /></PlatformSettingsContext.Provider>)
+    const first = mocks.confirmationScopes.at(-1)!.signal
+    expect(first.aborted).toBe(false)
+    view.rerender(<PlatformSettingsContext.Provider value={{ scope: { ...scope, environmentId: 'default-host' }, visible: true }}><Probe /></PlatformSettingsContext.Provider>)
+    expect(first.aborted).toBe(true)
+    const second = mocks.confirmationScopes.at(-1)!.signal
+    expect(second.aborted).toBe(false)
+    view.rerender(<PlatformSettingsContext.Provider value={{ scope, visible: false }}><Probe /></PlatformSettingsContext.Provider>)
+    expect(second.aborted).toBe(true)
+    expect(mocks.confirmationScopes.at(-1)!.signal.aborted).toBe(true)
+  })
+  it('uses the explicit project host despite a different saved default and ignores picker changes', async () => {
+    mocks.state.settings = createGlobalSettingsFixture({ activeRuntimeEnvironmentId: 'default-host' })
+    const view = render(<PlatformSettingsContext.Provider value={{ scope: { kind: 'project', contextKey: 'trusted',
+      platformId: 'p', repoId: 'repo', hostId: 'runtime:project-host', setupId: 'setup', name: 'Project', path: '/p' } }}>
+      <Probe />
+    </PlatformSettingsContext.Provider>)
+    await screen.findByText('Save Project host')
+    expect(view.container.querySelector('output')?.textContent).toContain('project-host')
+    expect(mocks.read).toHaveBeenCalledWith({ environmentId: 'project-host', pairingRevision: 17 }, expect.any(AbortSignal))
+    expect(mocks.defaultHost).not.toHaveBeenCalled()
+  })
   it('reads and writes the explicit project host while the client default stays local', async () => {
     render(<Probe />)
     expect(screen.getByText('Save client')).toBeTruthy()

@@ -70,9 +70,12 @@ function envelope(items = [item()], fields = {}) {
     refresh: { state: 'idle', reason: null, retry_after_ms: 0 }, ...fields };
 }
 async function deliver(f, value, index = f.reads.length - 1) { f.reads[index].resolve(value); await tick(); }
-test('public scripts keep four original relative positions and both news consumers', () => {
+test('public scripts preserve news consumers and the current explicit dependency order', () => {
   const scripts = [...html.matchAll(/<script src="([^"]+)" defer/g)].map(row => row[1]);
-  assert.deepEqual(scripts, ['/execution.js', '/observation.js', '/task-center.js', '/news.js', '/quota.js', '/project-space.js', '/onboarding.js', '/agents.js', '/workspace.js']);
+  assert.deepEqual(scripts, ['/ui-dialog.js', '/execution.js', '/observation.js', '/task-center.js', '/news.js', '/quota.js',
+    '/monitor-art.js', '/monitor-scene.js', '/monitor-model.js', '/project-monitor.js',
+    '/project-space.js', '/onboarding.js', '/agents.js', '/workspace.js']);
+  assert.match(html, /<script src="\/ui-theme.js" data-ce-theme-key="ce-studio-theme"><\/script>/);
   assert.match(legacyHtml, /src="\/news.js" defer[^]*src="\/progress.js" defer/);
   const workspace = fs.readFileSync(path.join(repo, 'web/workspace/workspace.js'), 'utf8');
   assert.match(workspace, /WorkspaceNews\?\.startWorkspace\(\{ fetchJson: api, postJson: post \}\)/);
@@ -177,7 +180,8 @@ test('hanging explicit refresh is aborted at watchdog and never replayed or late
 });
 test('actual workspace transport forwards news cancellation while keeping 40 second and CSRF defaults', async () => {
   const source = fs.readFileSync(path.join(repo, 'web/workspace/workspace.js'), 'utf8'), calls = [];
-  const sandbox = { document: {}, AbortController, setTimeout, clearTimeout, Error, SyntaxError, TypeError,
+  // This transport-only fixture has no mounted theme; lifecycle is covered by the theme consumers suite.
+  const sandbox = { document: {}, window: { CEUITheme: { pageTheme: null } }, AbortController, setTimeout, clearTimeout, Error, SyntaxError, TypeError,
     fetch: (url, options) => new Promise((_resolve, reject) => { calls.push({ url, options }); options.signal.addEventListener('abort', () => reject(Object.assign(new Error('aborted'), { name: 'AbortError' })), { once: true }); }) };
   vm.createContext(sandbox); vm.runInContext(source.slice(0, source.indexOf('\nfunction showView')) + '\nthis.api=api;this.post=post;this.app=app;', sandbox);
   assert.match(source, /controller\.abort\(\), 40000/);

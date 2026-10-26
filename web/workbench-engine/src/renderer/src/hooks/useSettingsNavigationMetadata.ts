@@ -13,7 +13,8 @@ import { getTerminalPaneSearchEntries } from '@/components/settings/terminal-sea
 import { isMacUserAgent, isWindowsUserAgent } from '@/components/terminal-pane/pane-helpers'
 import { useLinearProviderConnected } from '@/hooks/useLinearProviderConnected'
 import { getClientCreationActionPolicy } from '@/lib/client-creation-action-policy'
-import type { SettingsNavSection } from '@/lib/settings-navigation-types'
+import { isSettingsSectionInScope, type SettingsNavSection, type SettingsPresentationScope } from '@/lib/settings-navigation-types'
+import { settingsScopeRepos } from '@/web/platform-settings-navigation'
 import { isWebClientLocation } from '@/lib/web-client-location'
 import {
   isWindowsTerminalCapabilityHost,
@@ -25,6 +26,7 @@ import { useProjectHostSetupProjection } from '@/store/selectors'
 import { useStructuredAgentSessionHostQueuesMessages } from '@/runtime/structured-agent-session-host-capability'
 import type { ProjectGroupingModel } from '../../../shared/project-section-grouping'
 import type { Repo } from '../../../shared/repo-types'
+import type { RuntimeClientTarget } from '../../../shared/runtime-client-target'
 import {
   buildCapabilitySettingsSections,
   buildSetupSettingsSections
@@ -108,14 +110,15 @@ export function buildSettingsNavigationMetadata({
   ]
 }
 
-export function useSettingsNavigationMetadata(): SettingsNavSection[] {
+export function useSettingsNavigationMetadata(scope?: SettingsPresentationScope): SettingsNavSection[] {
   // Why: useTranslation subscribes to language changes, but the active locale
   // must also be a memo dependency below — a rerender alone returns the cached
   // previous-language sections, leaving the Settings sidebar and Cmd+J palette
   // stuck in the old language until Settings is remounted.
   const { i18n } = useTranslation()
   const activeLocale = i18n.language
-  const repos = usePlatformProjectRepos(useAppStore((state) => state.repos))
+  const platformRepos = usePlatformProjectRepos(useAppStore((state) => state.repos))
+  const repos = useMemo(() => settingsScopeRepos(platformRepos, scope), [platformRepos, scope])
   const projectHostSetupProjection = useProjectHostSetupProjection()
   const settings = useAppStore((state) => state.settings)
   const [managedBrowserCreationEnabled, mobileEmulatorCreationEnabled] = useAppStore(
@@ -134,13 +137,18 @@ export function useSettingsNavigationMetadata(): SettingsNavSection[] {
   const isWebClient = isWebClientLocation()
   const isLinearConnected = useLinearProviderConnected()
   const windowsTerminalCapabilityOwnerKey = useWindowsTerminalCapabilityOwnerKey(
-    settings?.activeRuntimeEnvironmentId
+    scope?.kind === 'project' && scope.hostId.startsWith('runtime:') ? scope.hostId.slice(8)
+      : scope?.kind === 'global' ? scope.environmentId : settings?.activeRuntimeEnvironmentId
   )
   // Why: navigation is shared with the palette, which has no host picker.
-  const runtimeTarget = defaultScopeHost(settings)
+  const explicitEnvironmentId = scope?.kind === 'project' && scope.hostId.startsWith('runtime:') ? scope.hostId.slice(8)
+    : scope?.kind === 'global' ? scope.environmentId : undefined
+  const runtimeTarget: RuntimeClientTarget = explicitEnvironmentId ? { kind: 'environment', environmentId: explicitEnvironmentId }
+    : scope ? { kind: 'local' } : defaultScopeHost(settings)
   const capabilityLoadTarget = isWebClient ? { kind: 'local' as const } : runtimeTarget
   const windowsTerminalCapabilities = useWindowsTerminalCapabilities(
-    isWindows || isWebClient || runtimeTarget.kind === 'environment',
+    (!scope || scope.kind === 'project' || (scope.entry === 'development' && Boolean(scope.environmentId))) &&
+      (isWindows || isWebClient || runtimeTarget.kind === 'environment'),
     false,
     windowsTerminalCapabilityOwnerKey,
     capabilityLoadTarget
@@ -183,7 +191,7 @@ export function useSettingsNavigationMetadata(): SettingsNavSection[] {
           projects: projectHostSetupProjection.projects,
           projectHostSetups: projectHostSetupProjection.setups
         }
-      }),
+      }).filter((section) => isSettingsSectionInScope(section.id, scope)),
     // oxlint-disable-next-line react-hooks/exhaustive-deps -- activeLocale is read implicitly by the translate() calls inside buildSettingsNavigationMetadata; without it the memo keeps the previous language's sections.
     [
       isMac,
@@ -198,7 +206,8 @@ export function useSettingsNavigationMetadata(): SettingsNavSection[] {
       isLinearConnected,
       repos,
       projectHostSetupProjection,
-      activeLocale
+      activeLocale,
+      scope
     ]
   )
 }

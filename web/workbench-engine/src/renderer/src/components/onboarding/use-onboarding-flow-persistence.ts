@@ -1,3 +1,4 @@
+import { fixedApplicationTheme } from '../../web/platform-appearance'
 import { useCallback, useRef } from 'react'
 import { track } from '@/lib/telemetry'
 import { useAppStore } from '@/store'
@@ -211,7 +212,7 @@ export function usePersistCurrentStep({
         return { ok: true }
       }
       if (currentStepId === 'theme') {
-        await updateSettings({ theme })
+        await updateSettings({ theme: fixedApplicationTheme(theme) })
         onOnboardingChange(await persistStep(2))
         return { ok: true }
       }

@@ -14,6 +14,7 @@ from control_everything.paths import web_root
 
 
 RESOURCES = {"/": ("creator.html", "text/html; charset=utf-8"),
+             "/ui-theme.js": ("ui-theme.js", "text/javascript; charset=utf-8"),
              "/creator.css": ("creator.css", "text/css; charset=utf-8"),
              "/creator.js": ("creator.js", "text/javascript; charset=utf-8"),
              "/studio-preview.css": ("studio-preview.css", "text/css; charset=utf-8")}

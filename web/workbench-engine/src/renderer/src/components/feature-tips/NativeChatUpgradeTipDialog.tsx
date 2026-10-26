@@ -78,7 +78,7 @@ export function NativeChatUpgradeTipDialog({
       onOpenChange={onOpenChange}
       onOpenAutoFocus={(event) => {
         event.preventDefault()
-        // Why: longer locales overflow the fixed frame; scrolling to the button would hide the title.
+        // Why: focusing an action in long localized copy must not scroll the title out of view.
         primaryButtonRef.current?.focus({ preventScroll: true })
       }}
       visual={<NativeChatUpgradeFeatureTipVisual />}
@@ -86,7 +86,7 @@ export function NativeChatUpgradeTipDialog({
       <DialogHeader className="text-left">
         <div>
           <FeatureTipEyebrow label={translate('featureTips.nativeChatUpgrade.eyebrow', 'New')} />
-          <DialogTitle size="display">
+          <DialogTitle className="text-xl font-semibold leading-7 tracking-normal">
             {translate('featureTips.nativeChatUpgrade.title', 'Native chat got an upgrade')}
           </DialogTitle>
           <DialogDescription className="mt-3 max-w-2xl">
@@ -146,14 +146,14 @@ export function NativeChatUpgradeTipDialog({
         </div>
       </DialogHeader>
 
-      <DialogFooter className="mt-8 flex flex-row items-center">
+      <DialogFooter className="mt-0 flex flex-wrap items-center gap-3">
         {offerChatMode ? (
           // Why: plain text, flush with the copy, so Enable Now reads as the only button.
           <button
             type="button"
             onClick={() => onOpenChange(false)}
             disabled={primaryBusy}
-            className="mr-4 shrink-0 cursor-pointer rounded-sm text-sm font-medium whitespace-nowrap text-muted-foreground transition-colors outline-none hover:text-foreground focus-visible:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50"
+            className="min-h-11 shrink-0 cursor-pointer rounded-xl px-3 text-sm font-medium whitespace-nowrap text-muted-foreground transition-colors outline-none hover:text-foreground focus-visible:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50"
           >
             {translate('featureTips.nativeChatUpgrade.leaveOff', 'Leave Off')}
           </button>

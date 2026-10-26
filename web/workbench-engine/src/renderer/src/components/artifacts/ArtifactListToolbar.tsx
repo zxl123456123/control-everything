@@ -17,10 +17,10 @@ export function ArtifactListToolbar({
   isRefreshing: boolean
 }): React.JSX.Element {
   return (
-    <div className="flex shrink-0 items-center gap-2">
+    <div className="flex shrink-0 flex-wrap items-center gap-3">
       <ArtifactListSearchField
         query={query}
-        className="w-56"
+        className="min-w-0 flex-1 sm:max-w-md"
         onQueryChange={onQueryChange}
         onClear={() => onQueryChange('')}
       />
@@ -33,7 +33,7 @@ export function ArtifactListToolbar({
             aria-label={translate('auto.components.artifacts.ArtifactsPage.refresh', 'Refresh')}
             onClick={onRefresh}
             disabled={isRefreshing}
-            className="shrink-0 border border-border bg-background shadow-none hover:bg-muted/50"
+            className="size-11 shrink-0 border border-border bg-background shadow-none hover:bg-muted/50"
           >
             <RefreshCw className={cn('size-4', isRefreshing && 'animate-spin')} />
           </Button>

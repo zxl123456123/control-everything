@@ -13,8 +13,11 @@ export function ArtifactsPageErrorBanner({
   onRetry: () => void
 }): React.JSX.Element {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-destructive/30 bg-destructive/10 px-3 py-2 md:px-5">
-      <p className="min-w-0 flex-1 text-xs text-destructive">{error}</p>
+    <div
+      role="alert"
+      className="flex flex-wrap items-center justify-between gap-3 border-b border-destructive/30 bg-destructive/10 px-3 py-2 md:px-5"
+    >
+      <p className="min-w-0 flex-1 text-sm text-destructive">{error}</p>
       <Button type="button" variant="outline" size="xs" disabled={loading} onClick={onRetry}>
         {translate('auto.components.artifacts.ArtifactsPage.retry', 'Retry')}
       </Button>
@@ -32,10 +35,10 @@ export function ArtifactsPageAuthState({
   onOpenAccountSettings: () => void
 }): React.JSX.Element {
   return (
-    <div className="flex min-h-72 flex-1 flex-col items-center justify-center gap-3 px-5 py-5 text-center md:px-8">
+    <div className="flex min-h-72 flex-1 flex-col items-center justify-center gap-4 px-6 py-12 text-center md:px-8">
       <Files className="size-8 text-muted-foreground" />
-      <div className="space-y-1">
-        <h2 className="text-sm font-semibold">
+      <div className="space-y-2">
+        <h2 className="text-lg font-semibold leading-[26px]">
           {needsReconnect
             ? translate(
                 'auto.components.artifacts.ArtifactsPage.reconnectHeading',
@@ -46,7 +49,7 @@ export function ArtifactsPageAuthState({
                 'Sign in to share artifacts'
               )}
         </h2>
-        <p className="max-w-sm text-xs leading-5 text-muted-foreground">
+        <p className="max-w-sm text-sm leading-5 text-muted-foreground">
           {needsReconnect
             ? translate(
                 'auto.components.artifacts.ArtifactsPage.reconnectCopy',
@@ -72,7 +75,7 @@ export function ArtifactsPageAuthState({
         </>
       ) : (
         <div className="flex flex-col items-center gap-2">
-          <p className="max-w-sm text-xs leading-5 text-muted-foreground">
+          <p className="max-w-sm text-sm leading-5 text-muted-foreground">
             {translate(
               'auto.components.artifacts.ArtifactsPage.unconfiguredCopy',
               'Orca account sign-in is not configured on this machine yet.'
@@ -105,9 +108,9 @@ export function ArtifactsPageEmptyState({
   onOpenArtifactsSettings: () => void
 }): React.JSX.Element {
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-2 px-5 py-5 text-center md:px-8">
+    <div className="flex flex-1 flex-col items-center justify-center gap-4 px-6 py-12 text-center md:px-8">
       <Files className="size-8 text-muted-foreground" />
-      <h2 className="text-sm font-semibold">
+      <h2 className="text-lg font-semibold leading-[26px]">
         {hasMore
           ? translate(
               'auto.components.artifacts.ArtifactsPage.moreAvailable',
@@ -120,7 +123,7 @@ export function ArtifactsPageEmptyState({
               )
             : translate('auto.components.artifacts.ArtifactsPage.empty', 'No shared artifacts')}
       </h2>
-      <p className="max-w-sm text-xs leading-5 text-muted-foreground">
+      <p className="max-w-sm text-sm leading-5 text-muted-foreground">
         {hasMore
           ? translate(
               'auto.components.artifacts.ArtifactsPage.moreAvailableCopy',

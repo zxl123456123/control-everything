@@ -21,8 +21,8 @@ class Element {
   get all() { return [this, ...this.children.flatMap(value => value.all)]; }
 }
 
-function fixture(fetchJson, postJson = async () => ({ status: 'ready' })) {
-  const context = vm.createContext({ window: { alert() {}, confirm: () => true }, document: { createElement: tag => new Element(tag),
+function fixture(fetchJson, postJson = async () => ({ status: 'ready' }), confirmResult = true) {
+  const context = vm.createContext({ window: { CEUIDialog: { create: () => ({ confirm: async () => confirmResult, dispose() {} }) } }, document: { createElement: tag => new Element(tag),
     createElementNS: (_namespace, tag) => new Element(tag) } });
   vm.runInContext(fs.readFileSync(path.resolve(__dirname, '../../web/workspace/project-space.js'), 'utf8'), context);
   const root = new Element('section'), navigation = new Element('nav');
@@ -88,4 +88,13 @@ test('an old response cannot overwrite the state for a changed project directory
   await new Promise(resolve => setImmediate(resolve));
   assert.ok(root.all.some(value => value.tag === 'button' && value.textContent === '准备沙箱' && !value.disabled));
   assert.ok(!root.all.some(value => value.textContent === '沙箱已准备'));
+});
+
+
+test('cancelled sandbox confirmation performs no permission write', async () => {
+  const calls=[];const plan={status:'required',canonical_path:'C:/example/project',directory_id:'main',confirmation_hash:'a'.repeat(64)};
+  const {root}=fixture(async()=>plan,async(...args)=>calls.push(args),false);
+  await new Promise(resolve=>setImmediate(resolve));
+  await root.all.find(value=>value.tag==='button'&&value.textContent==='准备沙箱').listeners.click();
+  assert.equal(calls.length,0);
 });

@@ -16,8 +16,8 @@
 .platform-runtime-status {flex:0 0 auto;min-height:22px;position:relative;padding:2px 18px;text-align:right;font-size:11px;color:var(--muted-foreground)}
 :root[data-platform-view=studio] .platform-runtime-status {display:none}
 .platform-studio-surface {flex:1 1 0;min-height:0;overflow:auto;background:var(--background)}
-.platform-studio-host {display:block;min-height:100%;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif}
-.platform-studio-host,.platform-project-dialog-host {--platform-bg:var(--background);--platform-panel:var(--card);--platform-text:var(--foreground);--platform-sub:var(--muted-foreground);--platform-soft:var(--muted);--platform-line:var(--border);--platform-hover:var(--accent);--platform-primary:var(--primary);--platform-on-primary:var(--primary-foreground)}
+.platform-studio-host {display:block;min-height:100%;font-family:var(--app-font-family)}
+.platform-studio-host,.platform-project-dialog-host {--platform-bg:var(--background);--platform-panel:var(--card);--platform-text:var(--foreground);--platform-sub:var(--muted-foreground);--platform-soft:var(--muted);--platform-line:var(--border);--platform-input-border:var(--input);--platform-ring:var(--ring);--platform-hover:var(--accent);--platform-primary:var(--primary);--platform-on-primary:var(--primary-foreground)}
 .platform-surface-feedback {padding:32px;display:flex;flex-wrap:wrap;gap:16px;align-items:center;color:var(--foreground)}
 .platform-surface-feedback button,.platform-surface-feedback a {padding:8px 14px;border:1px solid var(--border);border-radius:7px}
 .platform-navigation-notice {padding:6px 20px;background:var(--accent);color:var(--foreground);font-size:13px}
@@ -36,6 +36,19 @@
   min-height: 0;
   overflow: hidden;
 }
+
+.platform-global-settings {width:100%;max-width:1236px;box-sizing:border-box;margin-inline:auto;padding:32px;overflow:auto;color:var(--foreground);font-size:15px;line-height:24px}
+.platform-global-settings h1 {font-size:24px;line-height:32px;font-weight:700;margin:24px 0}
+.platform-global-settings fieldset {display:flex;flex-wrap:wrap;gap:24px;border:0;padding:24px 0}
+.platform-global-settings label {display:flex;flex-wrap:wrap;align-items:center;gap:12px;width:240px;min-height:44px;padding:16px;border:1px solid var(--border);border-radius:12px;cursor:pointer}
+.platform-global-settings label[data-selected=true] {outline:2px solid var(--foreground);outline-offset:2px}
+.platform-theme-preview {display:flex;flex-basis:100%;height:110px;border:1px solid #d5d5d5;border-radius:6px;overflow:hidden;background:#fff}
+.platform-theme-preview span:first-child {width:26%;border-right:1px solid #d5d5d5;background:#f3f3f3}
+[data-theme-choice=dark] .platform-theme-preview {background:#181818;border-color:#404040}
+[data-theme-choice=dark] .platform-theme-preview span:first-child {background:#222;border-color:#404040}
+.platform-global-settings a {display:inline-flex;align-items:center;min-height:44px;color:var(--muted-foreground)}
+@media(max-width:1179px){.platform-global-settings{padding:24px}}
+@media(max-width:767px){.platform-global-settings{padding:16px}}
 
 /* Unlayered so the original App's unlayered viewport height cannot override it. */
 .platform-project-entry .app-layout {
@@ -57,19 +70,6 @@
   color: var(--foreground);
   font-size: 12px;
   font-weight: 600;
-}
-
-/* A small geometric platform mark needs no extra image or font request. */
-.platform-project-back::before {
-  content: '';
-  width: 9px;
-  height: 9px;
-  margin: 0 7px 7px 0;
-  border-radius: 2px;
-  background: var(--foreground);
-  box-shadow: 11px 0 0 color-mix(in srgb, var(--foreground) 35%, transparent),
-    0 11px 0 color-mix(in srgb, var(--foreground) 35%, transparent),
-    11px 11px 0 var(--foreground);
 }
 
 .platform-project-name {
@@ -201,4 +201,16 @@
   .platform-project-tablist a[aria-current='page'] {outline:1px solid Highlight;outline-offset:-2px}
   .platform-project-tabs a:focus-visible {outline-color:Highlight}
   :root[data-platform-view='workspace'] [data-worktree-card-active='primary'] {outline:1px solid Highlight}
+}
+
+.platform-project-back,.platform-project-tablist a{min-height:40px;display:inline-flex;align-items:center;font-size:14px;line-height:22px;border-radius:12px}
+.platform-project-tabs{min-height:64px;flex-basis:64px}
+.platform-project-tablist{border:0;backdrop-filter:none;background:var(--muted);border-radius:12px}
+.platform-project-name{font-size:15px;line-height:24px}
+@media(pointer:coarse){.platform-project-back,.platform-project-tablist a{min-height:44px;min-width:44px}}
+/* Wrapped project navigation must reserve both rows above the retained workbench. */
+@media(max-width:700px){
+  .platform-project-tabs{flex:0 0 auto;min-height:0;padding:12px 16px;gap:8px}
+  .platform-project-tablist{flex-shrink:0;min-height:46px}
+  .platform-project-tablist a{justify-content:center}
 }

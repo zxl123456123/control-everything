@@ -1,3 +1,4 @@
+import { ManagementSurfaceProvider } from '@/components/ui/management-surface'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Loader2, Share2 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -263,113 +264,121 @@ export function SkillShareDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={(next) => !next && !publishing && void close()}>
-      {/* Why: the review scrolls on its own so progress, errors, and the primary
+    <ManagementSurfaceProvider value={true}>
+      <Dialog open={open} onOpenChange={(next) => !next && !publishing && void close()}>
+        {/* Why: the review scrolls on its own so progress, errors, and the primary
           action stay visible on a short window instead of below the fold. */}
-      <DialogContent
-        className="grid max-h-[calc(100vh-3rem)] grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden sm:max-w-xl [&>*]:min-w-0"
-        {...(skillShareDialogHasDescription(Boolean(shareUrl), publishingNewVersion)
-          ? {}
-          : { 'aria-describedby': undefined })}
-      >
-        <SkillShareDialogHeader
-          published={Boolean(shareUrl)}
-          publishingNewVersion={publishingNewVersion}
-          skillCount={selectedSkills.length}
-        />
+        <DialogContent
+          className="ce-management-surface grid max-h-[calc(100vh-3rem)] grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden sm:max-w-[560px] [&>*]:min-w-0"
+          {...(skillShareDialogHasDescription(Boolean(shareUrl), publishingNewVersion)
+            ? {}
+            : { 'aria-describedby': undefined })}
+        >
+          <SkillShareDialogHeader
+            published={Boolean(shareUrl)}
+            publishingNewVersion={publishingNewVersion}
+            skillCount={selectedSkills.length}
+          />
 
-        <div className="scrollbar-sleek -mx-1 min-h-0 overflow-y-auto px-1">
-          {preparing ? (
-            <div className="flex min-h-40 items-center justify-center gap-2 text-sm text-muted-foreground">
-              <Loader2 className="size-4 animate-spin" />
-              {translate('auto.components.skills.SkillShareDialog.preparing', 'Preparing preview…')}
-            </div>
-          ) : preview && !shareUrl ? (
-            <SkillSharePreparationReview
-              preview={preview}
-              hasCloudAccount={hasCloudAccount}
-              releaseNotes={releaseNotes}
-              publishingNewVersion={publishingNewVersion}
-              onReleaseNotesChange={setReleaseNotes}
-              onSubmit={() => void publish()}
-            />
-          ) : shareUrl && preview ? (
-            <SkillSharePublishedLink
-              shareUrl={shareUrl}
-              packageDigest={preview.packageDigest}
-              onCopy={() => void copyLink()}
-              onManageLinks={() => {
-                openSettingsTarget({ pane: 'share-skills', repoId: null })
-                openSettingsPage()
-                void close()
-              }}
-            />
-          ) : null}
-        </div>
+          <div className="scrollbar-sleek -mx-1 min-h-0 overflow-y-auto px-1">
+            {preparing ? (
+              <div className="flex min-h-40 items-center justify-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="size-4 animate-spin" />
+                {translate(
+                  'auto.components.skills.SkillShareDialog.preparing',
+                  'Preparing preview…'
+                )}
+              </div>
+            ) : preview && !shareUrl ? (
+              <SkillSharePreparationReview
+                preview={preview}
+                hasCloudAccount={hasCloudAccount}
+                releaseNotes={releaseNotes}
+                publishingNewVersion={publishingNewVersion}
+                onReleaseNotesChange={setReleaseNotes}
+                onSubmit={() => void publish()}
+              />
+            ) : shareUrl && preview ? (
+              <SkillSharePublishedLink
+                shareUrl={shareUrl}
+                packageDigest={preview.packageDigest}
+                onCopy={() => void copyLink()}
+                onManageLinks={() => {
+                  openSettingsTarget({ pane: 'share-skills', repoId: null })
+                  openSettingsPage()
+                  void close()
+                }}
+              />
+            ) : null}
+          </div>
 
-        <div className="space-y-3">
-          {publishing ? (
-            <SkillSharePublishProgress progress={progress} progressPercent={progressPercent} />
-          ) : null}
-          {error ? (
-            <p className="text-xs text-destructive" role="alert">
-              {error}
-            </p>
-          ) : null}
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => void close()}
-              disabled={publishing}
-            >
-              {shareUrl
-                ? translate('auto.components.skills.SkillShareDialog.3af85f6add', 'Done')
-                : translate('auto.components.skills.SkillShareDialog.30985d4fc0', 'Cancel')}
-            </Button>
-            {!shareUrl ? (
-              publishing ? (
-                <Button
-                  type="button"
-                  variant="secondary"
-                  disabled={cancelling}
-                  onClick={() => void cancelPublish()}
-                >
-                  {cancelling
-                    ? translate('auto.components.skills.SkillShareDialog.e9d652ae3d', 'Cancelling…')
-                    : translate(
-                        'auto.components.skills.SkillShareDialog.3a51d0f34f',
-                        'Cancel upload'
-                      )}
-                </Button>
-              ) : (
-                <Button
-                  ref={publishButtonRef}
-                  type="button"
-                  disabled={!preview || preparing}
-                  onClick={() => void publish()}
-                >
-                  <Share2 className="size-4" />
-                  {publishingNewVersion
-                    ? translate(
-                        'auto.components.skills.SkillShareDialog.7aa4ba0dba',
-                        'Publish new version'
-                      )
-                    : selectedSkills.length > 1
+          <div className="space-y-3">
+            {publishing ? (
+              <SkillSharePublishProgress progress={progress} progressPercent={progressPercent} />
+            ) : null}
+            {error ? (
+              <p className="text-sm leading-[22px] text-destructive" role="alert">
+                {error}
+              </p>
+            ) : null}
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => void close()}
+                disabled={publishing}
+              >
+                {shareUrl
+                  ? translate('auto.components.skills.SkillShareDialog.3af85f6add', 'Done')
+                  : translate('auto.components.skills.SkillShareDialog.30985d4fc0', 'Cancel')}
+              </Button>
+              {!shareUrl ? (
+                publishing ? (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    disabled={cancelling}
+                    onClick={() => void cancelPublish()}
+                  >
+                    {cancelling
                       ? translate(
-                          'auto.components.skills.SkillShareDialog.publishBundle',
-                          'Publish bundle'
+                          'auto.components.skills.SkillShareDialog.e9d652ae3d',
+                          'Cancelling…'
                         )
                       : translate(
-                          'auto.components.skills.SkillShareDialog.0f07fa2a79',
-                          'Publish skill'
+                          'auto.components.skills.SkillShareDialog.3a51d0f34f',
+                          'Cancel upload'
                         )}
-                </Button>
-              )
-            ) : null}
-          </DialogFooter>
-        </div>
-      </DialogContent>
-    </Dialog>
+                  </Button>
+                ) : (
+                  <Button
+                    ref={publishButtonRef}
+                    type="button"
+                    disabled={!preview || preparing}
+                    onClick={() => void publish()}
+                  >
+                    <Share2 className="size-4" />
+                    {publishingNewVersion
+                      ? translate(
+                          'auto.components.skills.SkillShareDialog.7aa4ba0dba',
+                          'Publish new version'
+                        )
+                      : selectedSkills.length > 1
+                        ? translate(
+                            'auto.components.skills.SkillShareDialog.publishBundle',
+                            'Publish bundle'
+                          )
+                        : translate(
+                            'auto.components.skills.SkillShareDialog.0f07fa2a79',
+                            'Publish skill'
+                          )}
+                  </Button>
+                )
+              ) : null}
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </ManagementSurfaceProvider>
   )
 }

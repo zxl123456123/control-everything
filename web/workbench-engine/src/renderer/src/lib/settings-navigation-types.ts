@@ -82,6 +82,35 @@ export type SettingsNavigationTarget = {
   intent?: (typeof SETTINGS_NAV_INTENTS)[number]
 }
 
+/** Renderer-only presentation scope. Omission retains the standalone Orca directory. */
+export type SettingsPresentationScope =
+  | {
+      kind: 'global'
+      entry: 'appearance' | 'development'
+      contextKey: string
+      environmentId?: string
+    }
+  | {
+      kind: 'project'
+      contextKey: string
+      platformId: string
+      repoId: string
+      hostId: ExecutionHostId
+      setupId: string
+      name: string
+      path: string
+    }
+
+export function isSettingsSectionInScope(
+  sectionId: string,
+  scope: SettingsPresentationScope | undefined
+): boolean {
+  if (!scope) return true
+  if (scope.kind === 'project') return sectionId === `repo-${scope.repoId}`
+  return !sectionId.startsWith('repo-') &&
+    (scope.entry === 'appearance' ? sectionId === 'appearance' : sectionId !== 'appearance')
+}
+
 function isRuntimeClientTarget(value: unknown): value is RuntimeClientTarget {
   if (typeof value !== 'object' || value === null || !('kind' in value)) {
     return false

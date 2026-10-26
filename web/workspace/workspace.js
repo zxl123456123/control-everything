@@ -54,6 +54,19 @@ Object.assign(viewCopy, {
   news: ['新闻', '新闻', '', ''], settings: ['设置与导入', '设置与导入', '', ''],
 });
 const app = { view: 'overview', csrf: '', snapshot: null, usage: null, taskId: null, profileMode: false, profile: null, capabilities: {}, projectId: null, restoreId: null, manualId: null, historyRequest: 0, pages: { tasks: 0, todos: 0, history: 0, compatibility: 0 } };
+const projectDrafts = new Map();
+let projectEditorKey = null, projectWrite = null, projectDialogTrigger = null;
+const projectDraftKey = (id, restoreId) => JSON.stringify(['platform', id || restoreId || 'new-project', 'project-management', window.CERemoteContext?.context || null, window.CERemoteContext?.storageScope || null]);
+let initialWorkspaceTheme = window.CEUITheme?.pageTheme || null, workspaceTheme = null, unmountWorkspaceTheme = null;
+function mountWorkspaceTheme() {
+  if (workspaceTheme || window.CERemoteContext?.active === false) return;
+  const status = $('workspace-theme-status'), toggle = $('workspace-theme-toggle');
+  workspaceTheme = initialWorkspaceTheme || window.CEUITheme?.earlyRead('ce-studio-theme'); initialWorkspaceTheme = null;
+  if (!workspaceTheme) { if (toggle) toggle.disabled = true; if (status) { status.hidden = false; status.textContent = '主题资源尚未就绪。'; } return; }
+  unmountWorkspaceTheme = workspaceTheme.mount({ roots: [document.documentElement, document.body], toggles: toggle ? [toggle] : [], status,
+    aliases: { '--bg':'--ce-bg','--surface':'--ce-soft','--raised':'--ce-hover','--line':'--ce-line','--text':'--ce-text','--muted':'--ce-sub','--quiet':'--ce-sub','--accent':'--ce-primary','--on-accent':'--ce-on-primary','--blue':'--ce-blue','--amber':'--ce-amber','--red':'--ce-red','--green':'--ce-green','--soft':'--ce-soft','--focus':'--ce-ring','--input-border':'--ce-input-border' } });
+}
+function disposeWorkspaceTheme() { unmountWorkspaceTheme?.(); unmountWorkspaceTheme = null; workspaceTheme?.dispose(); workspaceTheme = null; }
 
 function el(tag, className, text) {
   const node = ['svg', 'circle', 'rect'].includes(tag) ? document.createElementNS('http://www.w3.org/2000/svg', tag) : document.createElement(tag);
@@ -89,7 +102,7 @@ function fillOptions(select, options, selected = '') {
   select.replaceChildren(...options.map(([value, label]) => {
     const option = el('option', '', label); option.value = value; return option;
   }));
-  select.value = selected;
+  select.value = selected; select.ceCollectionChoice?.refresh();
 }
 const apiError = (message, status, reason) => Object.assign(new Error(message), { status, reason });
 async function api(path, options = {}) {
@@ -502,9 +515,14 @@ function setupProfile() {
   $('new-project').addEventListener('click', () => app.onboarding?.open()); $('empty-add-project').addEventListener('click', () => app.onboarding?.open());
   $('empty-import').addEventListener('click', () => { showView('settings'); $('import-source-dir').focus(); });
   $('empty-settings').addEventListener('click', () => { showView('settings'); $('codex-db-path').focus(); });
-  $('cancel-project').addEventListener('click', () => { $('project-form').hidden = true; $('project-dialog').close(); });
+  $('cancel-project').addEventListener('click', requestProjectClose);
+  $('project-dialog').querySelector('.dialog-toolbar').addEventListener('submit', event => { event.preventDefault(); requestProjectClose(); });
+  $('project-dialog').addEventListener('cancel', event => { event.preventDefault(); if (!event.isComposing && event.keyCode !== 229) requestProjectClose(); });
+  $('project-dialog').addEventListener('close', () => { if (projectDialogTrigger?.isConnected) projectDialogTrigger.focus({ preventScroll: true }); });
   $('add-directory').addEventListener('click', () => { if (directoryRows().length < 8) addDirectory(`d-${crypto.randomUUID().replaceAll('-', '')}`, ''); syncSource(); });
-  $('project-source-kind').addEventListener('change', syncSource); $('project-form').addEventListener('input', projectBytes);
+  $('project-source-kind').addEventListener('change', syncSource);
+  $('project-form').addEventListener('input', () => { captureProjectDraft(); projectBytes(); });
+  $('project-form').addEventListener('change', captureProjectDraft);
   $('project-form').addEventListener('submit', saveProject); $('manual-form').addEventListener('submit', saveManual);
   $('clear-percent').addEventListener('click', () => { $('manual-percent').value = ''; });
   $('refresh-launchers').addEventListener('click', () => loadLaunchers().catch(error => message('integrations-feedback', error.message, true)));
@@ -609,35 +627,62 @@ function projectBody() {
     source: { kind, directory_id: kind === 'none' ? null : $('project-source-directory').value, relative_path: kind === 'none' ? null : kind === 'wfc' ? 'docs/current' : $('project-source-path').value } };
 }
 function projectBytes() { const size = new TextEncoder().encode(JSON.stringify(projectBody())).length; $('project-body-size').textContent = `提交大小 ${size} / 16384 bytes`; }
+function captureProjectDraft() {
+  if (!projectEditorKey || $('project-form').hidden) return null;
+  const draft = { ...projectBody(), name: $('project-name').value };
+  projectDrafts.set(projectEditorKey, draft); return draft;
+}
+function requestProjectClose() {
+  if (projectWrite) { projectWrite.closeRequested = true; return; }
+  captureProjectDraft(); $('project-form').hidden = true; $('project-dialog').close();
+}
 function showProjectDialog() {
   const dialog = $('project-dialog');
   if (!$('project-form').closest('dialog')) dialog.append($('project-form'), $('manual-panel'));
-  if (!dialog.open) dialog.showModal();
+  if (!dialog.open) { projectDialogTrigger = document.activeElement; dialog.showModal(); }
 }
 function openProject(project = null, restoreId = null) {
+  if (projectWrite || window.CERemoteContext?.active === false) return;
   if (project?.read_only || project?.source?.kind === 'codex') { showView('settings'); return; }
+  captureProjectDraft();
   $('manual-panel').hidden = true;
   showProjectDialog();
   clearFieldErrors('project-feedback');
   app.projectId = project?.id || null; app.restoreId = restoreId; $('project-form').hidden = false;
+  projectEditorKey = projectDraftKey(app.projectId, restoreId);
+  const draft = projectDrafts.get(projectEditorKey);
   $('project-form-title').textContent = restoreId ? '恢复未登记项目' : project ? '编辑项目' : '添加项目';
-  $('project-identity').textContent = project?.id || restoreId || '保存后生成稳定项目 ID'; $('project-name').value = project?.name || '';
-  $('project-archived').checked = project?.archived || false; $('project-archived').disabled = !project;
+  $('project-identity').textContent = project?.id || restoreId || '保存后生成稳定项目 ID'; $('project-name').value = draft?.name ?? project?.name ?? '';
+  $('project-archived').checked = draft?.archived ?? project?.archived ?? false; $('project-archived').disabled = !project;
   $('project-directories').replaceChildren();
-  for (const directory of project?.directories || [{ id: 'main', path: '' }]) addDirectory(directory.id || directory.binding_id, directory.path);
-  $('project-source-kind').value = project?.source?.kind || 'none'; $('project-source-path').value = project?.source?.relative_path || '';
-  syncSource(); $('project-source-directory').value = project?.source?.directory_id || 'main'; message('project-feedback', '');
+  for (const directory of draft?.directories || project?.directories || [{ id: 'main', path: '' }]) addDirectory(directory.id || directory.binding_id, directory.path);
+  const source = draft?.source || project?.source;
+  $('project-source-kind').value = source?.kind || 'none'; $('project-source-path').value = source?.relative_path || '';
+  syncSource(); $('project-source-directory').value = source?.directory_id || 'main'; message('project-feedback', '');
+  captureProjectDraft();
   $('project-form').scrollIntoView({ block: 'nearest' }); $('project-name').focus();
 }
 async function saveProject(event) {
-  event.preventDefault(); const body = projectBody(); let route = '/api/workspace/projects/save';
+  event.preventDefault(); if (projectWrite || window.CERemoteContext?.active === false) return;
+  const current = app.projectId && app.snapshot.projects.items.find(project => project.id === app.projectId);
+  if (app.projectId && (!current || current.read_only || current.source?.kind === 'codex')) return;
+  const body = projectBody(); let route = '/api/workspace/projects/save';
   clearFieldErrors('project-feedback');
   if (app.restoreId) { route = '/api/workspace/projects/restore'; delete body.id; delete body.archived; body.project_id = app.restoreId; }
   if (new TextEncoder().encode(JSON.stringify(body)).length > 16384) { message('project-feedback', reasons.body_too_large, true); return; }
+  const pending = { key: projectEditorKey, draft: captureProjectDraft(), closeRequested: false }; projectWrite = pending;
+  let failed = false;
   $('project-fields').disabled = true;
   try { const result = await post(route, body); if (result.status !== 'ok' || !result.project) throw new Error('服务未确认保存');
-    $('project-form').hidden = true; await loadBase(); await loadProfile(true); openManual(app.snapshot.projects.items.find(item => item.id === result.project.id));
+    if (window.CERemoteContext?.active === false || projectWrite !== pending) return;
+    if (projectDrafts.get(pending.key) === pending.draft) projectDrafts.delete(pending.key);
+    $('project-form').hidden = true;
+    if (pending.closeRequested) $('project-dialog').close();
+    await loadBase(); await loadProfile(true);
+    if (!pending.closeRequested && projectWrite === pending && window.CERemoteContext?.active !== false) openManual(app.snapshot.projects.items.find(item => item.id === result.project.id));
   } catch (error) {
+    failed = true;
+    if (window.CERemoteContext?.active === false || projectWrite !== pending) return;
     fieldError('project-feedback', error, { name: $('project-name'), source: $('project-source-kind'), 'source.relative_path': $('project-source-path'), 'source.directory_id': $('project-source-directory') });
     if (error.reason === 'directory_conflict') {
       const key = path => path.replaceAll('\\', '/').replace(/\/+$/, '').toLocaleLowerCase();
@@ -646,7 +691,15 @@ async function saveProject(event) {
       $('project-feedback').append(action('查看之前管理过的项目并重新加入', () => { $('project-dialog').close(); return app.onboarding?.open(); }));
     }
   }
-  finally { $('project-fields').disabled = false; }
+  finally {
+    if (projectWrite === pending) {
+      projectWrite = null; $('project-fields').disabled = false;
+      if (failed && $('project-dialog').open) {
+        const target = $('project-form').querySelector('[aria-invalid="true"]') || $('project-feedback');
+        target.setAttribute('tabindex', '-1'); target.focus();
+      }
+    }
+  }
 }
 async function archiveProject(project) {
   const body = { id: project.id, name: project.name, archived: !project.archived, directories: project.directories.map(row => ({ id: row.id || row.binding_id, path: row.path })), source: project.source };
@@ -720,5 +773,16 @@ async function importLegacy(event) {
   catch (error) { fieldError('import-feedback', error, { source_dir: $('import-source-dir') }); }
   finally { $('import-fields').disabled = false; }
 }
+let fallbackChoices = [];
+function mountFallbackChoices() { if (window.CERemoteContext?.active !== false && !fallbackChoices.length) fallbackChoices = ['project-filter','task-project','task-session'].map(id => window.WorkspaceAgents?.attachCollectionChoice($(id), { 'project-filter':'项目筛选','task-project':'所属项目','task-session':'关联会话' }[id])); }
+function disposeFallbackChoices() { for (const choice of fallbackChoices) choice?.dispose(); fallbackChoices = []; }
+mountFallbackChoices();
+window.addEventListener('pagehide', disposeFallbackChoices);
+window.addEventListener('pageshow', mountFallbackChoices);
+window.CERemoteContext?.onInactive(disposeFallbackChoices);
+mountWorkspaceTheme();
+window.addEventListener('pagehide', disposeWorkspaceTheme);
+window.addEventListener('pageshow', mountWorkspaceTheme);
+window.CERemoteContext?.onInactive(() => { disposeWorkspaceTheme(); projectDrafts.clear(); projectEditorKey = null; });
 window.WorkspaceProjectSpace?.prepareChrome();
 bootstrap();

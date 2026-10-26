@@ -35,7 +35,7 @@ function Harness({
 }: {
   repo: Repo
   identity: string
-  persist: (settings: NonNullable<Repo['hookSettings']>) => void
+  persist: (settings: NonNullable<Repo['hookSettings']>) => Promise<boolean>
 }): null {
   latest = useRepositoryHookSettingsDraft({
     repo,
@@ -48,7 +48,7 @@ function Harness({
 function renderHarness(
   repo: Repo,
   identity: string,
-  persist: (settings: NonNullable<Repo['hookSettings']>) => void
+  persist: (settings: NonNullable<Repo['hookSettings']>) => Promise<boolean>
 ): void {
   if (!root) {
     container = document.createElement('div')
@@ -70,6 +70,45 @@ afterEach(() => {
 })
 
 describe('repository hook draft persistence', () => {
+  it('reports failure and retains the same draft for retry when the store returns false', async () => {
+    const persist = vi.fn().mockResolvedValueOnce(false).mockResolvedValueOnce(true)
+    renderHarness(baseRepo, 'local\0repo-1', persist)
+    act(() => latest?.updateScriptDraft('setup', 'keep this draft'))
+    await act(async () => { expect(await latest?.commitScriptDraft()).toBe(false) })
+    expect(latest?.saveStatus).toBe('error')
+    expect(latest?.hookSettingsDraft.scripts.setup).toBe('keep this draft')
+    await act(async () => { expect(await latest?.commitScriptDraft()).toBe(true) })
+    expect(persist).toHaveBeenCalledTimes(2)
+    expect(latest?.saveStatus).toBe('saved')
+  })
+
+  it('does not acknowledge an older success as a newer edit being saved', async () => {
+    let resolve!: (ok: boolean) => void
+    const persist = vi.fn().mockImplementationOnce(() => new Promise<boolean>((done) => { resolve = done }))
+      .mockResolvedValue(true)
+    renderHarness(baseRepo, 'local\0repo-1', persist)
+    act(() => latest?.updateScriptDraft('setup', 'first'))
+    let first!: Promise<boolean>
+    act(() => { first = latest!.commitScriptDraft() })
+    act(() => latest?.updateScriptDraft('setup', 'second'))
+    await act(async () => { resolve(true); expect(await first).toBe(false) })
+    expect(latest?.saveStatus).toBe('saving')
+    expect(latest?.hookSettingsDraft.scripts.setup).toBe('second')
+    await act(async () => { expect(await latest?.commitScriptDraft()).toBe(true) })
+    expect(persist).toHaveBeenCalledTimes(2)
+  })
+
+  it('reuses one pending promise for blur and repeated close requests', async () => {
+    let resolve!: (ok: boolean) => void
+    const persist = vi.fn(() => new Promise<boolean>((done) => { resolve = done }))
+    renderHarness(baseRepo, 'local\0repo-1', persist)
+    act(() => latest?.updateScriptDraft('setup', 'one write'))
+    let blur!: Promise<boolean>, close!: Promise<boolean>
+    act(() => { blur = latest!.commitScriptDraft(); close = latest!.commitScriptDraft() })
+    expect(close).toBe(blur)
+    expect(persist).toHaveBeenCalledTimes(1)
+    await act(async () => { resolve(true); expect(await close).toBe(true) })
+  })
   it('coalesces typing and makes blur cancel the pending duplicate save', () => {
     const persist = vi.fn()
     renderHarness(baseRepo, 'local\0repo-1', persist)

@@ -64,29 +64,26 @@ export function FirstLaunchBanner({
 
   return (
     // Fixed non-modal overlay; centered + narrow so it clears the macOS traffic lights.
-    // `relative` is load-bearing: the absolutely-positioned ✕ anchors to this container.
+    // The positioned banner anchors its close control without covering the copy.
     <div
-      className="fixed left-1/2 top-2 z-40 flex w-[min(44.625rem,calc(100vw-2rem))] -translate-x-1/2 items-start gap-4 rounded-lg border border-border bg-card/95 py-3 pl-4 pr-3 shadow-lg backdrop-blur"
+      className="ce-management-surface fixed left-1/2 top-4 z-40 flex max-h-[calc(100dvh-2rem)] w-[min(44.625rem,calc(100vw-2rem))] -translate-x-1/2 flex-wrap items-start gap-4 overflow-y-auto rounded-2xl border border-border bg-background p-6 pr-16 shadow-floating"
       role="region"
       aria-label={translate('auto.components.FirstLaunchBanner.fcbee32f08', 'Telemetry notice')}
       aria-live="polite"
     >
-      {/* Text column — flex-1 so the action column never wraps the copy. */}
-      <div className="flex-1 space-y-0.5 pr-1 text-sm">
-        <p className="font-medium leading-snug">
-          {translate(
-            'auto.components.FirstLaunchBanner.9784b4d7bc',
-            'Help us decide what to build next'
-          )}
+      {/* Copy and actions wrap independently on narrow windows. */}
+      <div className="min-w-0 flex-1 basis-72 space-y-2 text-sm">
+        <p className="text-lg font-semibold leading-[26px]">
+          {translate('management.telemetry.noticeTitle', 'Anonymous usage statistics')}
         </p>
-        <p className="text-xs leading-snug text-muted-foreground">
+        <p className="text-sm leading-[22px] text-muted-foreground">
           {translate(
-            'auto.components.FirstLaunchBanner.958d2cc31b',
-            'Anonymous counts of which features you use help us prioritize what to build. No file contents, prompts, terminal output, or anything that identifies you. Change anytime in Settings -> Privacy & Telemetry.'
+            'management.telemetry.noticeDescription',
+            'Anonymous statistics count feature usage without file contents, prompts, terminal output, or identifying information. Continuing or closing this notice enables statistics; you can opt out instead and change this later in Settings → Privacy.'
           )}{' '}
           <button
             type="button"
-            className="underline underline-offset-2 hover:text-foreground"
+            className="inline-flex min-h-11 items-center underline underline-offset-2 hover:text-foreground"
             onClick={() => void window.api.shell.openUrl(PRIVACY_URL)}
           >
             {translate('auto.components.FirstLaunchBanner.d1deebb050', 'Privacy policy')}
@@ -95,7 +92,7 @@ export function FirstLaunchBanner({
         </p>
       </div>
       {/* Action column — "Got it" primary reads as the easy path; "Turn off" outline marks the explicit opt-out. */}
-      <div className="flex shrink-0 items-center gap-2 self-center pr-6">
+      <div className="flex flex-wrap items-center gap-2 self-center">
         <Button
           variant="outline"
           size="sm"
@@ -103,19 +100,19 @@ export function FirstLaunchBanner({
           disabled={inFlight}
           className="border-border/60 text-muted-foreground"
         >
-          {translate('auto.components.FirstLaunchBanner.fc5cc29955', 'Opt out')}
+          {translate('management.telemetry.optOut', 'Turn off statistics')}
         </Button>
         <Button size="sm" onClick={handleAcknowledge} disabled={inFlight}>
-          {translate('auto.components.FirstLaunchBanner.94cc673726', 'Got it')}
+          {translate('management.telemetry.acknowledge', 'Acknowledge and continue')}
         </Button>
       </div>
-      {/* aria-label says "Dismiss" but this persists silent opt-in, not just hides the UI. */}
+      {/* Closing acknowledges the notice and persists opt-in through the original IPC path. */}
       <button
         type="button"
-        aria-label={translate('auto.components.FirstLaunchBanner.b9e1b966c7', 'Dismiss notice')}
+        aria-label={translate('management.telemetry.dismiss', 'Acknowledge and close notice')}
         onClick={handleAcknowledge}
         disabled={inFlight}
-        className="absolute right-1.5 top-1.5 rounded p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+        className="absolute right-3 top-3 grid size-11 place-items-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
       >
         <X className="size-3.5" />
       </button>

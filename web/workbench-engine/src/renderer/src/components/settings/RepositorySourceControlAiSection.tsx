@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { getRepoExecutionHostId } from '../../../../shared/execution-host'
 import type React from 'react'
 import type { Repo } from '../../../../shared/repo-types'
 import { normalizeSourceControlAiSettings } from '../../../../shared/source-control-ai'
@@ -58,6 +59,7 @@ export function RepositorySourceControlAiSection({
     commitCustomCommand
   } = useRepositorySourceControlAiGlobalUx({
     repoId: repo.id,
+    repoHostIdentity: `${getRepoExecutionHostId(repo)}\0${repo.id}`,
     persistedRepoAi,
     settings,
     source,

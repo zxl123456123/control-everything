@@ -41,10 +41,11 @@ def ownership_error(value):
         if len(parts) == 3:
             return None if parts[2] in PACKAGE_FILES else 'package_root_is_for_entries_and_foundations'
         return None if parts[2] in PACKAGES and path.suffix == '.py' else 'unknown_backend_owner'
-    if value in {
+    if value.startswith('web/workspace/identity-theme/'):
+        return None if value in {
             'web/workspace/identity-theme/control-everything/login/theme.properties',
-            'web/workspace/identity-theme/control-everything/login/messages/messages_zh_Hans.properties'}:
-        return None
+            'web/workspace/identity-theme/control-everything/login/resources/css/studio.css',
+            'web/workspace/identity-theme/control-everything/login/messages/messages_zh_Hans.properties'} else 'unknown_frontend_owner'
     if top == 'web':
         if section == 'workbench-engine':
             try:

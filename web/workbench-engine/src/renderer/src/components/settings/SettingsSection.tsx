@@ -8,6 +8,8 @@ import { matchesSettingsSearch } from './settings-search'
 // Why: avoids threading `activeSectionId` through every <SettingsSection /> call
 // site in Settings.tsx — the page wraps its content tree in this provider.
 const ActiveSettingsSectionContext = createContext<string | null>(null)
+const SettingsSectionScopeContext = createContext<ReadonlySet<string> | undefined>(undefined)
+export const SettingsSectionScopeProvider = SettingsSectionScopeContext.Provider
 
 export const ActiveSettingsSectionProvider = ActiveSettingsSectionContext.Provider
 
@@ -53,6 +55,8 @@ export function SettingsSection({
 }: SettingsSectionProps): React.JSX.Element | null {
   const query = useAppStore((state) => state.settingsSearchQuery)
   const activeFromContext = useContext(ActiveSettingsSectionContext)
+  const allowedSectionIds = useContext(SettingsSectionScopeContext)
+  if (allowedSectionIds && !allowedSectionIds.has(id)) return null
   const sectionIsActive = isActive ?? activeFromContext === id
   const hasQuery = query.trim() !== ''
   const matchesQuery = !searchEntries || matchesSettingsSearch(query, searchEntries)
@@ -68,7 +72,7 @@ export function SettingsSection({
 
   return (
     <section id={id} data-settings-section={id} className={cn('scroll-mt-8 space-y-6', className)}>
-      <div className="flex flex-wrap items-start justify-between gap-4 border-b border-border/60 pb-5">
+      <div className="ce-settings-section-header flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0 space-y-2">
           <h2
             className="flex flex-wrap items-center gap-2 text-2xl font-semibold leading-tight text-foreground"
@@ -86,12 +90,10 @@ export function SettingsSection({
         </div>
         {headerAction ? <div className="shrink-0">{headerAction}</div> : null}
       </div>
-      {/* Why: body content sits in a visually distinct band — a soft card with
-          rounded corners and tight inner padding — so each row group reads as
-          contained inside the section, not as a continuation of the sidebar. */}
+      {/* Appearance owns its row groups; avoid placing another card around them. */}
       <div
         className={cn(
-          'rounded-xl border border-border/50 bg-card/50 px-7 py-6 shadow-xs',
+          id === 'appearance' ? 'space-y-4' : 'rounded-2xl bg-card px-6 py-5',
           bodyClassName
         )}
       >

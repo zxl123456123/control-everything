@@ -43,6 +43,15 @@ function buildSettings(
 }
 
 describe('PrivacyPane — toggle markup reflects stored preference', () => {
+  it('keeps the Web telemetry noop switch unavailable', () => {
+    vi.stubGlobal('window', { __ORCA_WEB_CLIENT__: true })
+    try {
+      const markup = renderToStaticMarkup(React.createElement(PrivacyPane, { settings: buildSettings({ optedIn: false }) }))
+      expect(markup).toContain('disabled=""')
+      expect(markup).toContain('请在对应电脑管理遥测设置。')
+      expect(setOptInMock).not.toHaveBeenCalled()
+    } finally { vi.unstubAllGlobals() }
+  })
   beforeEach(() => {
     getConsentStateMock.mockReset()
     getConsentStateMock.mockResolvedValue({ effective: 'enabled' })

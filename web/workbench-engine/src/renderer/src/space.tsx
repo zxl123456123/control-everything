@@ -1,5 +1,5 @@
 import './assets/main.css'
-import { StrictMode, useEffect } from 'react'
+import { StrictMode, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Toaster } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
@@ -12,16 +12,25 @@ import {
   selectSpaceWindowAnalysis
 } from './components/workspace-space/space-window-state'
 import { RecoverableRenderErrorBoundary } from './components/error-boundaries/RecoverableRenderErrorBoundary'
-import { applyDocumentTheme } from './lib/document-theme'
-import { buildAppFontFamily } from './lib/app-font-family'
+import { applyStandaloneAppearance } from './lib/standalone-appearance'
 import { getOrCreateRendererRoot } from './lib/react-renderer-root'
 import { I18nProvider } from './i18n/I18nProvider'
 import { useAppStore } from './store'
+import type { GlobalSettings } from '../../shared/global-settings-types'
+
+let startupSettings: GlobalSettings | null = null
+try {
+  startupSettings = window.api.settings.getSync()
+} catch {
+  // The original window-state hydration can still provide settings later.
+}
+applyStandaloneAppearance(startupSettings)
 
 function SpaceWindowRoot(): React.JSX.Element {
   const { t } = useTranslation()
   const settings = useAppStore((state) => state.settings)
   const activeModal = useAppStore((state) => state.activeModal)
+  const migratedLegacyTheme = useRef(false)
 
   useEffect(() => {
     const api = window.api.workspaceSpace
@@ -53,18 +62,19 @@ function SpaceWindowRoot(): React.JSX.Element {
   }, [])
 
   useEffect(() => {
-    applyDocumentTheme(settings?.theme ?? 'system', { disableTransitions: false })
-    document.documentElement.style.setProperty(
-      '--app-font-family',
-      buildAppFontFamily(settings?.appFontFamily)
-    )
-    if (settings?.theme !== 'system') {
-      return
+    // Keep the synchronous first frame until the original window-state hydration arrives.
+    if (!settings) return
+    const theme = applyStandaloneAppearance(settings)
+    if (settings?.theme === 'system' && !migratedLegacyTheme.current) {
+      migratedLegacyTheme.current = true
+      // The original writer's publication fence retires this result after a newer settings write.
+      void useAppStore
+        .getState()
+        .updateSettingsOrThrow({ theme })
+        .catch((error) => {
+          console.error('Failed to save theme:', error)
+        })
     }
-    const media = window.matchMedia('(prefers-color-scheme: dark)')
-    const handleChange = (): void => applyDocumentTheme('system')
-    media.addEventListener('change', handleChange)
-    return () => media.removeEventListener('change', handleChange)
   }, [settings?.theme, settings?.appFontFamily])
 
   return (

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
+import { Button } from '@/components/ui/button'
 import { useMountedRef } from '@/hooks/useMountedRef'
 import { useAppStore } from '@/store'
 import type { Platform, StepIndex } from './MobileHero'
@@ -27,22 +28,26 @@ import {
 export default function MobilePage(): React.JSX.Element {
   const closeMobilePage = useAppStore((s) => s.closeMobilePage)
   return ['/studio', '/workbench/web-index.html'].includes(window.location.pathname) ? (
-    <div className="space-y-4 p-8">
+    <div className="ce-management-surface mx-auto flex h-full w-full max-w-[1100px] flex-col gap-6 overflow-y-auto px-4 py-8 md:px-8">
       <div role="status" className="space-y-2">
-        <h1 className="text-lg font-medium">手机与设备</h1>
+        <h1 className="text-2xl font-bold leading-8">账号与设备</h1>
         <p className="text-sm text-muted-foreground">
-          入口已移到工作台的“手机与设备”，可查看手机浏览器使用说明。
+          在工作台管理账号、连接设备和查看手机访问说明。
         </p>
       </div>
-      <button type="button" onClick={() => {
-        closeMobilePage()
-        window.location.hash = 'mobile'
-      }} className="block text-sm underline">
-        打开手机与设备
-      </button>
-      <button type="button" onClick={closeMobilePage} className="text-sm underline">
+      <Button
+        type="button"
+        onClick={() => {
+          closeMobilePage()
+          window.location.hash = 'mobile'
+        }}
+        className="w-fit"
+      >
+        打开账号与设备
+      </Button>
+      <Button type="button" variant="outline" onClick={closeMobilePage} className="w-fit">
         返回工作区
-      </button>
+      </Button>
     </div>
   ) : (
     <StandaloneMobilePage />

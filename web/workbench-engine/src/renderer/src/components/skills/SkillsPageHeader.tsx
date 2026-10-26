@@ -46,13 +46,13 @@ export function SkillsPageHeader({
 }): React.JSX.Element {
   return (
     <header className="shrink-0 border-b border-border">
-      <div className={cn(SKILLS_PAGE_COLUMN, 'flex items-center gap-2 py-3')}>
+      <div className={cn(SKILLS_PAGE_COLUMN, 'flex flex-wrap items-center gap-3 py-6')}>
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
               variant="ghost"
               size="icon"
-              className="size-7 shrink-0 rounded-full"
+              className="size-11 shrink-0 rounded-xl"
               onClick={onClose}
               aria-label={translate(
                 'auto.components.skills.SkillsPage.closeSkills',
@@ -69,10 +69,10 @@ export function SkillsPageHeader({
         <div className="mx-1 h-5 w-px bg-border/50" aria-hidden />
         <BookOpen className="size-4 shrink-0 text-muted-foreground" />
         <div className="min-w-0 flex-1">
-          <h1 className="truncate text-sm font-semibold">
+          <h1 className="truncate text-2xl font-bold leading-8">
             {translate('auto.components.skills.SkillsPage.f43ad6edf3', 'Skills')}
           </h1>
-          <div className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
+          <div className="mt-1 flex min-w-0 flex-wrap items-center gap-2 text-sm leading-[22px] text-muted-foreground">
             <span className="shrink-0">{skillCountLabel(skillCount)}</span>
             {sourceEntries.length > 0 ? (
               <>
@@ -113,7 +113,10 @@ export function SkillsPageHeader({
               <MoreHorizontal />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
+          <DropdownMenuContent
+            align="end"
+            className="ce-management-surface max-h-[min(400px,var(--radix-dropdown-menu-content-available-height))] overflow-y-auto p-2 [&_[role=menuitem]]:min-h-10 [&_[role=menuitem]]:text-sm"
+          >
             <DropdownMenuItem onSelect={onManageInstalls}>
               <History />
               {translate('auto.components.skills.SkillsPage.c13b82793c', 'Manage installs')}

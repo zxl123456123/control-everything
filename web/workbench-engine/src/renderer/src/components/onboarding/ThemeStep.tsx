@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { Check, Monitor, Moon, Settings2, Sun } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { Check, Moon, Settings2, Sun } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { track } from '@/lib/telemetry'
@@ -8,6 +8,7 @@ import { GhosttyDiscoveryRow } from './GhosttyDiscoveryRow'
 import type { GhosttyImportPreview, GlobalSettings } from '../../../../shared/global-settings-types'
 import type { DiscoveryStatusEmitted } from '../../../../shared/onboarding-state-types'
 import { translate } from '@/i18n/i18n'
+import { fixedApplicationTheme } from '../../web/platform-appearance'
 import { ChromePreview } from './theme-chrome-preview'
 
 type ThemeStepProps = {
@@ -17,15 +18,14 @@ type ThemeStepProps = {
   updateSettings: (updates: Partial<GlobalSettings>) => Promise<void>
 }
 
-export function applyOnboardingThemeSelection(
+export async function applyOnboardingThemeSelection(
   id: GlobalSettings['theme'],
   onThemeChange: (theme: GlobalSettings['theme']) => void,
   updateSettings: (updates: Partial<GlobalSettings>) => Promise<void>
-): void {
-  onThemeChange(id)
-  // Why: later onboarding controls also save settings. Persist the theme at
-  // selection time so those unrelated writes cannot reapply the old theme.
-  void updateSettings({ theme: id })
+): Promise<void> {
+  const theme = fixedApplicationTheme(id)
+  await updateSettings({ theme })
+  onThemeChange(theme)
 }
 
 // The two UI-only states (`'idle'`, `'detecting'`) never fire telemetry. The
@@ -62,6 +62,23 @@ function fieldGroupCountBucket(count: number): '0' | '1-3' | '4-7' | '8+' {
 
 export function ThemeStep({ theme, onThemeChange, settings, updateSettings }: ThemeStepProps) {
   const [importing, setImporting] = useState(false)
+  const themePending = useRef(false)
+  const [themeBusy, setThemeBusy] = useState(false)
+  const [themeError, setThemeError] = useState('')
+  const selectTheme = async (next: GlobalSettings['theme']) => {
+    if (themePending.current) return
+    themePending.current = true
+    setThemeBusy(true)
+    setThemeError('')
+    try {
+      await applyOnboardingThemeSelection(next, onThemeChange, updateSettings)
+    } catch (error) {
+      if (mountedRef.current) setThemeError(error instanceof Error ? error.message : String(error))
+    } finally {
+      themePending.current = false
+      if (mountedRef.current) setThemeBusy(false)
+    }
+  }
   const [discovery, setDiscovery] = useState<DiscoveryState>({ status: 'idle' })
   const mountedRef = useMountedRef()
 
@@ -144,6 +161,7 @@ export function ThemeStep({ theme, onThemeChange, settings, updateSettings }: Th
       }
       await updateSettings({
         ...resolved.diff,
+        ...(resolved.diff.theme ? { theme: fixedApplicationTheme(resolved.diff.theme) } : {}),
         ...(resolved.diff.terminalColorOverrides
           ? {
               terminalColorOverrides: {
@@ -156,7 +174,7 @@ export function ThemeStep({ theme, onThemeChange, settings, updateSettings }: Th
       // Why: parent controller holds local `theme` state that overwrites
       // settings.theme on Continue; sync it so the import isn't clobbered.
       if (resolved.diff.theme && mountedRef.current) {
-        onThemeChange(resolved.diff.theme)
+        onThemeChange(fixedApplicationTheme(resolved.diff.theme))
       }
       const importedFields = humanFields(resolved.diff)
       if (mountedRef.current) {
@@ -190,14 +208,8 @@ export function ThemeStep({ theme, onThemeChange, settings, updateSettings }: Th
     id: GlobalSettings['theme']
     label: string
     hint: string
-    icon: typeof Monitor
+    icon: typeof Sun
   }[] = [
-    {
-      id: 'system',
-      label: translate('auto.components.onboarding.ThemeStep.827ea7b4a2', 'System'),
-      hint: translate('components.onboarding.theme.hints.system', 'Match OS'),
-      icon: Monitor
-    },
     {
       id: 'dark',
       label: translate('auto.components.onboarding.ThemeStep.fa7b673ea9', 'Dark'),
@@ -214,9 +226,9 @@ export function ThemeStep({ theme, onThemeChange, settings, updateSettings }: Th
 
   return (
     <div className="space-y-5">
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 gap-3">
         {themes.map(({ id, label, hint, icon: Icon }) => {
-          const selected = theme === id
+          const selected = fixedApplicationTheme(theme) === id
           return (
             <button
               key={id}
@@ -224,7 +236,11 @@ export function ThemeStep({ theme, onThemeChange, settings, updateSettings }: Th
                 'group overflow-hidden rounded-xl border p-3 text-left transition-colors',
                 selected ? 'border-foreground/60 bg-accent' : 'border-border hover:bg-accent/60'
               )}
-              onClick={() => applyOnboardingThemeSelection(id, onThemeChange, updateSettings)}
+              disabled={themeBusy || importing || !settings}
+              aria-pressed={selected}
+              onClick={() => {
+                void selectTheme(id)
+              }}
             >
               <div className="relative mb-3 h-24 overflow-hidden rounded-lg border border-border">
                 <ChromePreview variant={id} />
@@ -239,21 +255,26 @@ export function ThemeStep({ theme, onThemeChange, settings, updateSettings }: Th
                   <Icon className="size-3.5 text-muted-foreground" />
                   {label}
                 </div>
-                <div className="text-[11px] text-muted-foreground">{hint}</div>
+                <div className="text-sm text-muted-foreground">{hint}</div>
               </div>
             </button>
           )
         })}
       </div>
 
+      {themeError && (
+        <p role="alert" className="text-sm text-destructive">
+          {themeError}
+        </p>
+      )}
       <GhosttyDiscoveryRow
         discovery={discovery}
         importing={importing}
-        disabled={!settings}
+        disabled={!settings || themeBusy}
         onImport={importGhostty}
       />
 
-      <div className="flex items-center gap-2 px-1 text-[12px] text-muted-foreground">
+      <div className="flex items-center gap-2 px-1 text-sm text-muted-foreground">
         <Settings2 className="size-3.5" />
         <span>
           {translate(

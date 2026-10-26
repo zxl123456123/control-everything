@@ -1,5 +1,6 @@
 // @vitest-environment happy-dom
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { useState } from 'react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { TooltipProvider } from '../ui/tooltip'
 import { SettingsSegmentedControl } from './SettingsFormControls'
@@ -29,6 +30,22 @@ function renderControl(onChange = vi.fn()): { onChange: ReturnType<typeof vi.fn>
 }
 
 describe('SettingsSegmentedControl unavailable options', () => {
+  it('uses Radix roving focus and Arrow/Home/End radio selection with numeric values', async () => {
+    function Control() {
+      const [value, setValue] = useState(1)
+      return <SettingsSegmentedControl value={value} onChange={setValue}
+        options={[{ value: 1, label: 'One' }, { value: 2, label: 'Two' }, { value: 3, label: 'Three' }]} />
+    }
+    render(<Control />)
+    const one = screen.getByRole('radio', { name: 'One' })
+    one.focus()
+    fireEvent.keyDown(one, { key: 'ArrowRight' })
+    await waitFor(() => expect(screen.getByRole('radio', { name: 'Two' }).getAttribute('aria-checked')).toBe('true'))
+    fireEvent.keyDown(document.activeElement!, { key: 'End' })
+    await waitFor(() => expect(screen.getByRole('radio', { name: 'Three' }).getAttribute('aria-checked')).toBe('true'))
+    fireEvent.keyDown(document.activeElement!, { key: 'Home' })
+    await waitFor(() => expect(one.getAttribute('aria-checked')).toBe('true'))
+  })
   // Why: a native disabled button leaves the tab order, so keyboard users can never
   // focus it to open the tooltip explaining why the option is unavailable.
   it('marks unavailable options aria-disabled so their tooltip stays reachable', async () => {

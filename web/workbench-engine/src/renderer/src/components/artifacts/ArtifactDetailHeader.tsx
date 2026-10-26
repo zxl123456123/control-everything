@@ -27,9 +27,9 @@ export function ArtifactDetailHeader({
   return (
     // Why: the drawer is right-anchored under the fixed Windows/Linux window-controls
     // overlay, which paints above it — inset the actions so they stay clickable.
-    <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border/50 px-4 py-3 pr-[max(1rem,var(--window-controls-width,0px))]">
+    <div className="flex flex-wrap items-start justify-between gap-4 border-b border-border px-6 py-6 pr-[max(1rem,var(--window-controls-width,0px))]">
       {/* Why: a floor rather than min-w-0 — otherwise the title truncates to nothing before the actions wrap. */}
-      <div className="min-w-40 flex-1 space-y-0.5">
+      <div className="min-w-40 flex-1 space-y-2">
         {title}
         <div className="flex min-w-0 items-center gap-1.5">
           <Tooltip>
@@ -49,9 +49,9 @@ export function ArtifactDetailHeader({
               'Anyone with this link can view it'
             )}
           </span>
-          <p className="truncate font-mono text-xs text-muted-foreground">{item.shareUrl}</p>
+          <p className="truncate font-mono text-sm text-muted-foreground">{item.shareUrl}</p>
         </div>
-        <p className="truncate text-[11px] text-muted-foreground">
+        <p className="truncate text-sm leading-[22px] text-muted-foreground">
           {formatArtifactUpdatedAt(item.artifact.updatedAt)} ·{' '}
           {formatByteSize(item.artifact.byteSize)} · {formatArtifactExpiry(item.artifact.expiresAt)}
         </p>
@@ -61,7 +61,8 @@ export function ArtifactDetailHeader({
         <Button
           type="button"
           variant="ghost"
-          size="icon-sm"
+          size="icon"
+          className="size-11"
           onClick={onClose}
           aria-label={translate('auto.components.artifacts.ArtifactDetailHeader.close', 'Close')}
         >

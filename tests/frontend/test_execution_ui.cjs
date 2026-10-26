@@ -14,7 +14,7 @@ const tick = () => new Promise(resolve => setImmediate(resolve));
 async function settle() { for (let i = 0; i < 8; i++) await tick(); }
 function check(label, condition) { results.push({ label, passed: Boolean(condition) }); assert.ok(condition, label); }
 function apiHarness() {
-  const sandbox = { document: {}, AbortController, setTimeout, clearTimeout, Error, TypeError, SyntaxError, fetch: null };
+  const sandbox = { document: {}, window: {}, AbortController, setTimeout, clearTimeout, Error, TypeError, SyntaxError, fetch: null };
   vm.createContext(sandbox);
   vm.runInContext(source.slice(0, source.indexOf('\nfunction showView')) + '\nthis.api=api;this.post=post;this.app=app;', sandbox);
   return sandbox;
@@ -161,6 +161,14 @@ async function main() {
     check(`${authMode}/${model} labels only native configuration receipts`, authMode === 'native-config'
       ? rows.get('模型配置来源') === 'DSH headless 原生配置；provider/model 启动前未探测'
       : !rows.has('模型配置来源'));
+  }
+  for (const adapter of ['dsh', 'codex']) {
+    const providerRun = { id: randomUUID(), state: 'completed', effective_policy: { adapter } };
+    const h = uiHarness({ detail: { run: providerRun, approvals: [], events: [{seq:1,kind:'agent_message',payload:{text:'fixture output'}}], next_cursor:1 } });
+    h.list.runs=[providerRun]; h.ui.onView('runs'); await settle();
+    h.get('execution-history').children[0].fire(); await settle();
+    const heading=h.get('execution-events').children[0].children[0].textContent;
+    check(adapter + ' event attribution follows the actual run adapter', heading.includes((adapter === 'dsh' ? 'DSH' : 'Codex') + ' / 本地主机通知') && heading.startsWith('Agent 消息'));
   }
   check('execution is loaded before workspace and has guarded bootstrap/view wiring', fs.readFileSync(path.join(root, 'web/workspace/workspace.html'), 'utf8').indexOf('/execution.js') < fs.readFileSync(path.join(root, 'web/workspace/workspace.html'), 'utf8').indexOf('/workspace.js') && source.includes('window.WorkspaceExecution?.init') && source.includes('window.WorkspaceExecution?.onView'));
   check('Agent output never uses HTML sinks', !/innerHTML|outerHTML|insertAdjacentHTML|document\.write/.test(executionSource));

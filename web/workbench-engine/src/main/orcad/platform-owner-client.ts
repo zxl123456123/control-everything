@@ -2,8 +2,10 @@
 import { createConnection } from 'node:net'
 import { randomUUID } from 'node:crypto'
 import { decodePairingOffer } from '../../shared/pairing'
+import { ORCHESTRATION_CONTRACT_VERSION } from '../../shared/protocol-version'
 
 const METHODS = new Set(['repo.list', 'repo.add', 'repo.update', 'worktree.list', 'platform.bootstrapDevice', 'platform.revokeDevice'])
+for (const operation of ['create', 'observe', 'resume', 'send', 'receipt']) METHODS.add(`platform.taskProgress.${operation}`)
 const MAX_BYTES = 1024 * 1024
 
 async function main(): Promise<void> {
@@ -31,6 +33,12 @@ async function main(): Promise<void> {
     }
   }
   const id = randomUUID()
+  const mutation = request.method === 'platform.taskProgress.send'
+  if (mutation && (request.orchestrationContractVersion !== ORCHESTRATION_CONTRACT_VERSION ||
+      typeof request.orchestrationRequestId !== 'string' || request.orchestrationRequestId !== request.params?.origin?.requestId))
+    throw new Error('owner_request_invalid')
+  if (!mutation && (request.orchestrationContractVersion !== undefined || request.orchestrationRequestId !== undefined))
+    throw new Error('owner_request_invalid')
   const response = await new Promise<{ ok: boolean; result?: unknown }>((resolve, reject) => {
     const socket = createConnection(request.endpoint)
     socket.setEncoding('utf8')
@@ -44,7 +52,9 @@ async function main(): Promise<void> {
     }
     socket.once('error', error => finish(error))
     socket.once('connect', () => socket.write(JSON.stringify({ id, method: request.method,
-      params: request.params, authToken: request.authToken }) + '\n'))
+      params: request.params, authToken: request.authToken,
+      ...(mutation ? { orchestrationContractVersion: request.orchestrationContractVersion,
+        orchestrationRequestId: request.orchestrationRequestId } : {}) }) + '\n'))
     socket.on('data', chunk => {
       pending += chunk.toString('utf8')
       if (Buffer.byteLength(pending) > MAX_BYTES) return finish(new Error('owner_reply_too_large'))

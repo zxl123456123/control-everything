@@ -17,7 +17,7 @@ export type MutationReplayNudge =
 const CALLER_ORCA_SESSION_ID_KEY = '__orcaCallerOrcaSessionId'
 
 export function replayStableCallerParams(
-  runtime: OrcaRuntimeService,
+  runtime: Pick<OrcaRuntimeService, 'getTerminalPaneKey'>,
   params: unknown,
   callerOrcaSessionId?: OrcaSessionId
 ): unknown {

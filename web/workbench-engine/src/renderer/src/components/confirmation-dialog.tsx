@@ -20,6 +20,7 @@ import {
 import { useAppStore } from '@/store'
 import { translate } from '@/i18n/i18n'
 import { cn } from '@/lib/utils'
+import { ManagementSurfaceProvider, ManagementSurfaceVisibleProvider } from './ui/management-surface'
 
 type ConfirmationDialogRequest = {
   id: number
@@ -129,6 +130,8 @@ export function ConfirmationDialogProvider({
   return (
     <ConfirmationDialogContext.Provider value={confirm}>
       {children}
+      <ManagementSurfaceProvider value={activeRequest?.options.presentation?.management === true}>
+      <ManagementSurfaceVisibleProvider value={activeRequest?.options.presentation?.visible === true && !activeRequest.options.signal?.aborted}>
       <Dialog
         open={activeRequest !== null}
         onOpenChange={(open) => !open && settleActiveRequest(false)}
@@ -253,6 +256,8 @@ export function ConfirmationDialogProvider({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      </ManagementSurfaceVisibleProvider>
+      </ManagementSurfaceProvider>
     </ConfirmationDialogContext.Provider>
   )
 }

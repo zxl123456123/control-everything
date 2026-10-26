@@ -9,11 +9,15 @@ const SKELETON_ROWS = [0, 1, 2, 3, 4, 5, 6, 7]
 export function SkillsListSkeleton(): React.JSX.Element {
   return (
     <div>
-      <p className="px-2 py-2 text-xs text-muted-foreground" role="status" aria-live="polite">
+      <p
+        className="px-2 py-2 text-sm leading-[22px] text-muted-foreground"
+        role="status"
+        aria-live="polite"
+      >
         {translate('auto.components.skills.SkillsPage.cd7893fbc1', 'Scanning skills')}
       </p>
       {SKELETON_ROWS.map((row) => (
-        <div key={row} className="flex items-start gap-3 border-b border-border/50 px-2 py-2.5">
+        <div key={row} className="flex items-start gap-3 border-b border-border/50 px-4 py-4">
           <div className="mt-0.5 size-4 shrink-0 animate-pulse rounded bg-muted/70" />
           <div className="min-w-0 flex-1 space-y-2">
             <div className="h-3.5 w-48 animate-pulse rounded bg-muted/70" />
@@ -32,10 +36,10 @@ export function SkillsNoMatchesState({
 }): React.JSX.Element {
   return (
     <div className="flex flex-col items-center gap-2 px-2 py-12 text-center">
-      <p className="text-sm font-semibold">
+      <p className="text-lg font-semibold leading-[26px]">
         {translate('auto.components.skills.SkillsPage.6a62a0168c', 'No matches')}
       </p>
-      <p className="max-w-sm text-xs leading-5 text-muted-foreground">
+      <p className="max-w-sm text-sm leading-[22px] leading-5 text-muted-foreground">
         {translate(
           'auto.components.skills.SkillsPage.08a321a984',
           'No skill matches the current search and filters.'
@@ -58,11 +62,11 @@ export function SkillsEmptyState({
   return (
     <div className="flex flex-col items-center gap-3 px-2 py-12 text-center">
       <BookOpen className="size-7 text-muted-foreground" />
-      <div className="space-y-1">
-        <h2 className="text-sm font-semibold">
+      <div className="space-y-2">
+        <h2 className="text-lg font-semibold leading-[26px]">
           {translate('auto.components.skills.SkillsPage.4acd6d68ec', 'No skills found')}
         </h2>
-        <p className="max-w-sm text-xs leading-5 text-muted-foreground">
+        <p className="max-w-sm text-sm leading-[22px] leading-5 text-muted-foreground">
           {translate(
             'auto.components.skills.SkillsPage.emptyCopy',
             'The scanned skill folders are empty. Install a shared bundle, or refresh after adding a skill.'
@@ -99,12 +103,12 @@ export function SkillsScanErrorBand({
       >
         {/* Announce the detail with the headline. */}
         <div className="min-w-0 flex-1" role="alert">
-          <p className={cn('text-xs text-destructive', detail && 'font-medium')}>
+          <p className={cn('text-sm leading-[22px] text-destructive', detail && 'font-medium')}>
             {translate('auto.components.skills.SkillsPage.ea72d6185b', 'Could not scan skills')}
           </p>
           {detail ? (
             // Preserve multi-line git and SSH errors.
-            <p className="whitespace-pre-line break-words text-xs leading-snug text-destructive">
+            <p className="whitespace-pre-line break-words text-sm leading-[22px] leading-snug text-destructive">
               {detail}
             </p>
           ) : null}
@@ -120,7 +124,7 @@ export function SkillsScanErrorBand({
 /** One page-level sentence instead of the same reason repeated on every row. */
 export function SkillsRemoteShareNotice({ hostLabel }: { hostLabel: string }): React.JSX.Element {
   return (
-    <p className="border-b border-border/50 px-2 py-2 text-xs text-muted-foreground">
+    <p className="border-b border-border/50 px-2 py-2 text-sm leading-[22px] text-muted-foreground">
       {translate(
         'auto.components.skills.SkillsPage.remoteShareNotice',
         'These skills live on {{host}}. Open Skills on that machine to share them.',

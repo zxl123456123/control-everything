@@ -117,7 +117,7 @@ test('projectless manual draft moved to an external project keeps selection and 
 
 
 function linkedFixture(options = {}) {
-  const context = vm.createContext({window:{confirm:()=>true},document:{createElement:tag => new Element(tag)},URL});
+  const context = vm.createContext({window:{CEUIDialog:{create:()=>({confirm:async()=>options.confirmResult !== false,dispose(){}})}},document:{createElement:tag => new Element(tag)},URL});
   vm.runInContext(fs.readFileSync(path.resolve(__dirname,'../../web/workspace/project-space.js'),'utf8'),context);
   const root = new Element('section'), reads = [];
   let current = true;
@@ -198,4 +198,12 @@ test('unlink conflict freezes stale buttons until a successful reread and hides 
   assert.equal(f.root.all.filter(row=>row.textContent==='解除此事项关联').length,1);
   await f.root.all.find(row=>row.textContent==='解除此事项关联').fire('click');assert.match(f.root.textContent,/其他窗口更新/);assert.equal(f.root.all.find(row=>row.textContent==='解除此事项关联').disabled,true);
   void f.root.all.find(row=>row.textContent==='重新读取会话').fire('click');f.reads[1].resolve({item:{id:'task-a'},items:[linked({updated_at:'2026-10-20T00:00:01Z'})]});await tick();assert.equal(f.root.all.find(row=>row.textContent==='解除此事项关联').disabled,false);
+});
+
+
+test('unlink cancellation leaves the association untouched',async()=>{
+  const writes=[];const f=linkedFixture({confirmResult:false,postJson:async(...args)=>writes.push(args)});
+  f.reads[0].resolve({item:{id:'task-a'},items:[linked({updated_at:'2026-10-20T00:00:00Z'})]});await tick();
+  await f.root.all.find(row=>row.tag==='button'&&row.textContent==='解除此事项关联').fire('click');
+  assert.equal(writes.length,0);assert.match(f.root.textContent,/关联会话/);
 });

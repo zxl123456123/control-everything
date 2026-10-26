@@ -1,5 +1,6 @@
 """Workspace observations use synthetic storage and handler dispatch, with no listener."""
 
+from email.message import Message
 import copy
 import hashlib
 import json
@@ -54,7 +55,10 @@ class WorkspaceObservationTests(unittest.TestCase):
 
     def handler(self, body=None, allowed=True):
         handler = object.__new__(gateway.PanelHandler)
-        handler.server = SimpleNamespace(observer=Mock(), workspace=Mock(), profile=None)
+        handler.server = SimpleNamespace(observer=Mock(), workspace=Mock(), profile=None,
+                                         expected_host="127.0.0.1:1", origin="http://127.0.0.1:1")
+        handler.headers = Message()
+        handler.headers["Host"] = handler.server.expected_host
         handler.server.observer.request.return_value = {"status": "available", "reason": None, "kind": "observed_instance"}
         handler.reply, handler.reject = Mock(), Mock()
         handler.allowed = Mock(return_value=allowed)

@@ -1,3 +1,4 @@
+import { ManagementSurfaceProvider } from '@/components/ui/management-surface'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Dialog } from '@/components/ui/dialog'
 import { useAppStore } from '@/store'
@@ -341,38 +342,40 @@ export function SkillInstallManagementDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={(next) => !next && !busy && close()}>
-      <SkillInstallManagementDialogContent
-        bundleResult={bundleResult}
-        busy={busy}
-        confirmRemove={confirmRemove}
-        copy={copy}
-        details={details}
-        environmentId={environmentId}
-        error={error}
-        groups={groups}
-        installs={installs}
-        installActive={Boolean(installProgress.activeOperationId)}
-        notice={notice}
-        progressLabel={installProgress.phaseLabel}
-        result={result}
-        runtimeEnvironments={runtimeEnvironments}
-        selectedKey={selectedKey}
-        sshConnectionStates={sshConnectionStates}
-        sshTargetLabels={sshTargetLabels}
-        versionId={versionId}
-        onCancelInstall={() => void cancelInstall()}
-        onClose={close}
-        onEnvironmentChange={setEnvironmentId}
-        onInstall={(discardLocal) => void installVersion(discardLocal)}
-        onOpenChange={(group, next) => (next ? void selectInstall(group) : collapse())}
-        onRemove={(discardLocal) => void remove(discardLocal)}
-        onSendToMachine={(shareId) => {
-          close()
-          useAppStore.getState().openSkillShare(shareId)
-        }}
-        onVersionChange={setVersionId}
-      />
-    </Dialog>
+    <ManagementSurfaceProvider value={true}>
+      <Dialog open={open} onOpenChange={(next) => !next && !busy && close()}>
+        <SkillInstallManagementDialogContent
+          bundleResult={bundleResult}
+          busy={busy}
+          confirmRemove={confirmRemove}
+          copy={copy}
+          details={details}
+          environmentId={environmentId}
+          error={error}
+          groups={groups}
+          installs={installs}
+          installActive={Boolean(installProgress.activeOperationId)}
+          notice={notice}
+          progressLabel={installProgress.phaseLabel}
+          result={result}
+          runtimeEnvironments={runtimeEnvironments}
+          selectedKey={selectedKey}
+          sshConnectionStates={sshConnectionStates}
+          sshTargetLabels={sshTargetLabels}
+          versionId={versionId}
+          onCancelInstall={() => void cancelInstall()}
+          onClose={close}
+          onEnvironmentChange={setEnvironmentId}
+          onInstall={(discardLocal) => void installVersion(discardLocal)}
+          onOpenChange={(group, next) => (next ? void selectInstall(group) : collapse())}
+          onRemove={(discardLocal) => void remove(discardLocal)}
+          onSendToMachine={(shareId) => {
+            close()
+            useAppStore.getState().openSkillShare(shareId)
+          }}
+          onVersionChange={setVersionId}
+        />
+      </Dialog>
+    </ManagementSurfaceProvider>
   )
 }

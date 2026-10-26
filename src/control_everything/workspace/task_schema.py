@@ -30,7 +30,7 @@ CREATE TABLE manual_records (id TEXT PRIMARY KEY, provider_id TEXT NOT NULL, pro
 SCHEMA1_TABLES = ("projects", "project_directories", "project_sources", "project_manual", "project_manual_history",
                      "todos", "tasks", "manual_records", "profile_imports")
 
-SCHEMA_VERSION = 9
+SCHEMA_VERSION = 10
 STATES = ("todo", "doing", "blocked", "review", "done")
 MAX_REVISION = (1 << 53) - 1
 MAX_BODY_BYTES = 262144
@@ -43,6 +43,7 @@ SCHEMA6_TABLES = (*SCHEMA5_TABLES, "task_sessions")
 SCHEMA7_TABLES = SCHEMA6_TABLES
 SCHEMA8_TABLES = (*SCHEMA7_TABLES, "task_messages")
 SCHEMA9_TABLES = (*SCHEMA8_TABLES, "execution_runs", "execution_events", "execution_approvals")
+SCHEMA10_TABLES = (*SCHEMA9_TABLES, "task_native_runs", "task_deliveries", "task_native_message_delivery")
 ITEM_COLUMNS = ("id", "origin", "origin_id", "title", "project_id", "provider_id", "state", "session_key",
                 "source", "created_at", "updated_at", "todo_position", "sort_index", "resume_state", "revision",
                 "priority", "focus", "assigned_agent_id")
@@ -110,7 +111,8 @@ VIEWS = (
  created_at,updated_at,todo_position AS position FROM task_items WHERE origin='todo'""",
 )
 _SCHEMA_TABLES = {1: SCHEMA1_TABLES, 2: SCHEMA2_TABLES, 3: SCHEMA3_TABLES, 4: SCHEMA4_TABLES,
-                  5: SCHEMA5_TABLES, 6: SCHEMA6_TABLES, 7: SCHEMA7_TABLES, 8: SCHEMA8_TABLES, 9: SCHEMA9_TABLES}
+                  5: SCHEMA5_TABLES, 6: SCHEMA6_TABLES, 7: SCHEMA7_TABLES, 8: SCHEMA8_TABLES, 9: SCHEMA9_TABLES,
+                  10: SCHEMA10_TABLES}
 
 
 def tables_for(version):
@@ -302,6 +304,61 @@ def install_schema9(connection, *, fresh=False):
         add_schema9(connection)
 
 
+def add_schema10(connection):
+    for column in ("progress_revision INTEGER NOT NULL DEFAULT 0", "current_delivery_id TEXT", "accepted_delivery_id TEXT"):
+        connection.execute("ALTER TABLE task_items ADD COLUMN " + column)
+    for column in ("delivery_id TEXT", "native_run_id TEXT", "client_token TEXT", "request_hash TEXT"):
+        connection.execute("ALTER TABLE task_reviews ADD COLUMN " + column)
+    statements = (
+        """CREATE TABLE task_native_runs(
+ id TEXT PRIMARY KEY, task_id TEXT NOT NULL REFERENCES task_items(id), project_id TEXT NOT NULL,
+ directory_id TEXT NOT NULL, worktree_id TEXT, environment_id TEXT, runtime_id TEXT, agent TEXT NOT NULL,
+ client_token TEXT NOT NULL, launch_operation_id TEXT NOT NULL UNIQUE, request_hash TEXT NOT NULL,
+ brief_snapshot_json TEXT NOT NULL, provider_session_id TEXT, terminal_binding_json TEXT NOT NULL DEFAULT '{}',
+ launch_state TEXT NOT NULL CHECK(launch_state IN ('reserved','created','unknown','failed')),
+ observation_state TEXT NOT NULL DEFAULT 'unknown' CHECK(observation_state IN ('unknown','working','waiting','blocked','idle','interrupted')),
+ observation_json TEXT NOT NULL DEFAULT '{}', observed_at TEXT, binding_revision INTEGER NOT NULL DEFAULT 0,
+ active_slot INTEGER NOT NULL DEFAULT 1 CHECK(active_slot IN (0,1)), created_at TEXT NOT NULL, updated_at TEXT NOT NULL,
+ UNIQUE(task_id,client_token))""",
+        "CREATE UNIQUE INDEX idx_task_native_active ON task_native_runs(task_id) WHERE active_slot=1",
+        """CREATE TABLE task_deliveries(
+ id TEXT PRIMARY KEY, task_id TEXT NOT NULL REFERENCES task_items(id), native_run_id TEXT REFERENCES task_native_runs(id),
+ source TEXT NOT NULL CHECK(source IN ('native_turn','legacy_review')), source_key TEXT NOT NULL,
+ summary TEXT NOT NULL, material_json TEXT NOT NULL, verification TEXT NOT NULL DEFAULT 'unverified',
+ created_at TEXT NOT NULL, UNIQUE(task_id,source,source_key))""",
+        """CREATE TABLE task_native_message_delivery(
+ message_id TEXT PRIMARY KEY REFERENCES task_messages(id), native_run_id TEXT NOT NULL REFERENCES task_native_runs(id),
+ source_delivery_id TEXT REFERENCES task_deliveries(id), request_id TEXT NOT NULL UNIQUE,
+ payload_hash TEXT NOT NULL, payload_text TEXT NOT NULL, binding_revision INTEGER NOT NULL,
+ send_params_json TEXT NOT NULL, expected_binding_json TEXT NOT NULL,
+ state TEXT NOT NULL CHECK(state IN ('saved','sending','input_accepted','turn_started','refused','unknown')),
+ receipt_json TEXT NOT NULL DEFAULT '{}', attempts_json TEXT NOT NULL DEFAULT '[]', created_at TEXT NOT NULL, updated_at TEXT NOT NULL)""",
+        "CREATE UNIQUE INDEX idx_task_reviews_client ON task_reviews(task_id,client_token) WHERE client_token IS NOT NULL",
+    )
+    for statement in statements:
+        connection.execute(statement)
+
+
+def install_schema10(connection, *, fresh=False):
+    if fresh:
+        install_schema9(connection, fresh=True)
+    add_schema10(connection)
+    if fresh:
+        finish_schema10(connection)
+
+
+def finish_schema10(connection, receipt=None):
+    register_writer(connection, 10)
+    for table in SCHEMA10_TABLES:
+        for action in ("insert", "update", "delete"):
+            connection.execute(f"DROP TRIGGER IF EXISTS guard_{table}_{action}")
+    for statement in guard_statements(10):
+        connection.execute(statement)
+    if receipt is not None:
+        connection.execute("UPDATE task_center_meta SET migration_json=? WHERE id=1", (json.dumps(receipt, sort_keys=True),))
+    connection.execute("PRAGMA user_version=10")
+
+
 def finish_schema2(connection, receipt):
     register_writer(connection, 2)
     for statement in (*VIEWS, *guard_statements(2)):
@@ -451,7 +508,7 @@ def schema_signature(connection):
 
 
 def validate_schema(connection, version):
-    if type(version) is not int or version not in (1, 2, 3, 4, 5, 6, 7, 8, 9):
+    if type(version) is not int or version not in _SCHEMA_TABLES:
         fail("schema_error")
     if connection.execute("PRAGMA user_version").fetchone()[0] != version:
         fail("schema_error")
@@ -474,11 +531,13 @@ def validate_schema(connection, version):
             install_schema7(expected, fresh=True)
         elif version == 8:
             install_schema8(expected, fresh=True)
-        else:
+        elif version == 9:
             install_schema9(expected, fresh=True)
+        else:
+            install_schema10(expected, fresh=True)
         if schema_signature(connection) != schema_signature(expected):
             fail("schema_error")
-        if version in (2, 3, 4, 5, 6, 7, 8, 9):
+        if version >= 2:
             meta = connection.execute("SELECT * FROM task_center_meta").fetchall()
             if len(meta) != 1 or meta[0][0] != 1 or type(meta[0][1]) is not int or not 1 <= meta[0][1] <= MAX_REVISION:
                 fail("schema_error")

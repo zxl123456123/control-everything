@@ -1,3 +1,5 @@
+import { ManagementSurfaceProvider } from '@/components/ui/management-surface'
+import { isImeOwnedKeyboardEvent } from '@/lib/ime-composition-keyboard-event'
 import { useEffect, useState } from 'react'
 import type { ArtifactCloudOperation, ArtifactListItem } from '../../../../shared/artifacts'
 import { useConfirmationDialog } from '@/components/confirmation-dialog-context'
@@ -63,7 +65,7 @@ export default function ArtifactsPage(): React.JSX.Element {
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent): void {
-      if (event.key !== 'Escape' || event.defaultPrevented) {
+      if (event.key !== 'Escape' || event.defaultPrevented || isImeOwnedKeyboardEvent(event)) {
         return
       }
       const target = event.target
@@ -166,68 +168,70 @@ export default function ArtifactsPage(): React.JSX.Element {
   }
 
   return (
-    <main className="relative flex h-full min-h-0 flex-1 flex-col bg-background pt-5 text-foreground md:pt-6">
-      <header
-        className="flex shrink-0 items-center px-3 pb-3 md:px-5"
-        // Why: no stacked center titlebar on this page; keep the title clear of Windows/Linux window controls.
-        style={
-          {
-            paddingRight: 'max(0.75rem, var(--window-controls-width, 0px))'
-          } as React.CSSProperties
-        }
-      >
-        <h1 className="truncate text-base font-semibold leading-8">
-          {translate('auto.components.artifacts.ArtifactsPage.title', 'Artifacts')}
-        </h1>
-      </header>
+    <ManagementSurfaceProvider value={true}>
+      <main className="ce-management-surface relative mx-auto flex h-full min-h-0 w-full max-w-[1100px] flex-1 flex-col bg-background pt-6 text-foreground md:pt-8">
+        <header
+          className="flex shrink-0 items-center px-4 pb-6 md:px-8"
+          // Why: no stacked center titlebar on this page; keep the title clear of Windows/Linux window controls.
+          style={
+            {
+              paddingRight: 'max(0.75rem, var(--window-controls-width, 0px))'
+            } as React.CSSProperties
+          }
+        >
+          <h1 className="truncate text-2xl font-bold leading-8">
+            {translate('auto.components.artifacts.ArtifactsPage.title', 'Artifacts')}
+          </h1>
+        </header>
 
-      {error ? (
-        <ArtifactsPageErrorBanner
-          error={error}
-          loading={loading}
-          onRetry={() => void loadArtifacts()}
-        />
-      ) : null}
-      {!signedIn ? (
-        <ArtifactsPageAuthState
-          needsReconnect={needsReconnect}
-          configured={authStatus?.configured === true}
-          onOpenAccountSettings={openAccountSettings}
-        />
-      ) : loading && artifacts.length === 0 ? (
-        <ArtifactsPageSkeleton />
-      ) : artifacts.length === 0 ? (
-        <ArtifactsPageEmptyState
-          hasMore={Boolean(nextCursor)}
-          loadingMore={loadingMore}
-          publishingBlocked={publishingBlocked}
-          onLoadMore={() => void loadMoreArtifacts()}
-          onOpenArtifactsSettings={() => {
-            openSettingsTarget({ pane: 'artifacts', repoId: null })
-            openSettingsPage()
-          }}
-        />
-      ) : (
-        <ArtifactCollection
-          artifacts={artifacts}
-          deletingId={deletingId}
-          selectedSlug={selectedSlug}
-          selectArtifact={setSelectedSlug}
-          deleteArtifact={(target) => void deleteArtifact(target)}
-          hasMore={Boolean(nextCursor)}
-          loadingMore={loadingMore}
-          loadMore={() => void loadMoreArtifacts()}
-          onRefresh={() => void loadArtifacts()}
-          isRefreshing={loading}
-        />
-      )}
+        {error ? (
+          <ArtifactsPageErrorBanner
+            error={error}
+            loading={loading}
+            onRetry={() => void loadArtifacts()}
+          />
+        ) : null}
+        {!signedIn ? (
+          <ArtifactsPageAuthState
+            needsReconnect={needsReconnect}
+            configured={authStatus?.configured === true}
+            onOpenAccountSettings={openAccountSettings}
+          />
+        ) : loading && artifacts.length === 0 ? (
+          <ArtifactsPageSkeleton />
+        ) : artifacts.length === 0 ? (
+          <ArtifactsPageEmptyState
+            hasMore={Boolean(nextCursor)}
+            loadingMore={loadingMore}
+            publishingBlocked={publishingBlocked}
+            onLoadMore={() => void loadMoreArtifacts()}
+            onOpenArtifactsSettings={() => {
+              openSettingsTarget({ pane: 'artifacts', repoId: null })
+              openSettingsPage()
+            }}
+          />
+        ) : (
+          <ArtifactCollection
+            artifacts={artifacts}
+            deletingId={deletingId}
+            selectedSlug={selectedSlug}
+            selectArtifact={setSelectedSlug}
+            deleteArtifact={(target) => void deleteArtifact(target)}
+            hasMore={Boolean(nextCursor)}
+            loadingMore={loadingMore}
+            loadMore={() => void loadMoreArtifacts()}
+            onRefresh={() => void loadArtifacts()}
+            isRefreshing={loading}
+          />
+        )}
 
-      <ArtifactDetailDrawer
-        item={selectedArtifact}
-        deleting={deletingId === selectedArtifact?.artifact.slug}
-        onClose={() => setSelectedSlug(null)}
-        onDelete={(target) => void deleteArtifact(target)}
-      />
-    </main>
+        <ArtifactDetailDrawer
+          item={selectedArtifact}
+          deleting={deletingId === selectedArtifact?.artifact.slug}
+          onClose={() => setSelectedSlug(null)}
+          onDelete={(target) => void deleteArtifact(target)}
+        />
+      </main>
+    </ManagementSurfaceProvider>
   )
 }

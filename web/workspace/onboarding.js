@@ -5,6 +5,8 @@
   const names = { codex: 'Codex', claude: 'Claude Code', opencode: 'OpenCode' };
   const statuses = { not_configured: '尚未确认读取来源', available: '来源可读', unavailable: '来源暂不可用',
     unsupported_format: '不支持此格式，可新建项目', limited: '读取受限，暂不能加入', stale: '旧样本，请重试' };
+  // Registration callbacks receive optional kind/confirmedIDs metadata after the layer closes.
+  // Source and removal notifications preserve the existing callback's first argument.
   function create({ dialog, fetchJson, postJson, onChanged, manual, manage }) {
     const $ = id => dialog.querySelector(`#${id}`);
     const node = (tag, text, cls = '') => { const value = document.createElement(tag); value.className = cls; if (text !== undefined) value.textContent = text; return value; };
@@ -31,7 +33,15 @@
     }
     async function chooseMode(next) {
       if (busy) return;
-      if (dirty && next !== mode && !window.confirm('尚有未保存的输入，确认切换添加方式？')) return;
+      if (dirty && next !== mode) {
+        if (!window.CEUIDialog) { feedback('确认界面尚未就绪，未切换添加方式。', true); return; }
+        const currentMode = mode, currentRequest = requestId, input = folderKey();
+        const confirmation = window.CEUIDialog.create({ root: dialog, owner: dialog, fallback: $('onboarding-title'), onError: error => feedback(error.message, true) });
+        let accepted;
+        try { accepted = await confirmation.confirm({ title: '切换添加方式', message: '尚有未保存的输入，确认切换添加方式？' }); }
+        finally { confirmation.dispose(); }
+        if (!accepted || busy || !dialog.open || mode !== currentMode || requestId !== currentRequest || folderKey() !== input || window.CERemoteContext?.active === false) return;
+      }
       requestId++; mode = next; invalidateFolder();
       $('onboarding-tool-import').hidden = mode !== 'import';
       $('onboarding-directory-form').hidden = mode === 'import';
@@ -94,7 +104,9 @@
         }
         if (!['created', 'registered'].includes(result.status) || !result.project?.id) throw new Error('未收到有效的项目保存凭据。');
         folderSaved = true; dirty = false; verified = null;
-        try { await onChanged(result.project); dialog.close(); }
+        // Publish only after closing, so routing cannot be vetoed by this dialog.
+        dialog.close();
+        try { await onChanged(result.project, { kind: 'registered', confirmedIDs: [result.project.id] }); }
         catch { feedback('项目已保存，但列表刷新失败。请关闭此窗口并刷新工作台，无需再次创建。', true); }
       } catch (error) {
         verified = null; $('onboarding-directory-confirm').checked = false;
@@ -227,8 +239,15 @@
       savedExcluded.delete(result.project_id);
       feedback(result.archived ? '已加入 · 已归档。可在项目管理中取消归档。' : '已加入工作台。');
       if (result.archived) $('onboarding-previous').append(button('打开项目管理', () => { close(); manage(); }));
-      await onChanged();
       return result;
+    }
+    async function publishRegistered(results, failedCount = 0) {
+      const confirmedIDs = [...new Set(results.filter(result => result?.selected && typeof result.project_id === 'string').map(result => result.project_id))];
+      if (!confirmedIDs.length) return;
+      dirty = false;
+      dialog.close();
+      try { await onChanged(undefined, { kind: 'registered', confirmedIDs, failedCount }); }
+      catch { feedback('项目已保存，但列表刷新失败。无需再次加入，请重新读取工作台。', true); }
     }
     async function joinOne(id) {
       if (sampleNeedsRefresh) await refreshJoinSample();
@@ -240,39 +259,44 @@
         ? await postJson('/api/workspace/project-selection', { action: 'rejoin', project_id: item.project_id, selection_token: overview.selection_token })
         : await postJson('/api/workspace/project-selection', { action: 'join', provider, candidate_id: id,
             snapshot_token: page.snapshot_token, selection_token: overview.selection_token });
-      await consume(result); sampleNeedsRefresh = rejoining || result.requires_rejoin;
-      item.selected = true; selected.delete(id); return true;
+      const consumed = await consume(result); sampleNeedsRefresh = rejoining || result.requires_rejoin;
+      item.selected = true; selected.delete(id); return consumed;
     }
     async function join(id) {
       if (busy) return;
       busy = true; renderCandidates();
-      try { await joinOne(id); }
+      let saved = null;
+      try { saved = await joinOne(id); }
       catch (error) {
         if (!savedExcluded.size) feedback(`${error.message}。选择已保留，请重试。`, true);
         await reloadOverview();
         if (error.reason === 'candidate_changed' || error.status === 409) { sampleNeedsRefresh = true; try { await refreshJoinSample(); } catch (refreshError) { feedback(refreshError.message, true); } }
       }
       finally { busy = false; renderCandidates(); }
+      if (saved) await publishRegistered([saved]);
     }
     async function joinSelected() {
       if (busy) return;
       busy = true; renderCandidates();
-      let success = 0, failed = 0;
+      const saved = []; let failed = 0;
       for (const id of [...selected]) {
-        try { if (await joinOne(id)) success++; }
+        try { const result = await joinOne(id); if (result) saved.push(result); }
         catch (error) {
           failed++; try { await reloadOverview(); } catch { /* Keep selected items when offline. */ }
           if (error.reason === 'candidate_changed' || error.status === 409) { sampleNeedsRefresh = true; try { await refreshJoinSample(); } catch { /* Explicit reread remains available. */ } }
         }
       }
-      busy = false; renderCandidates(); feedback(`已加入 ${success} 项，${failed} 项未加入${failed ? '；未成功项仍保留选择，可重试。' : '。'}`, failed > 0);
+      busy = false; renderCandidates(); feedback(`已加入 ${saved.length} 项，${failed} 项未加入${failed ? '；未成功项仍保留选择，可重试。' : '。'}`, failed > 0);
+      if (saved.length) await publishRegistered(saved, failed);
     }
     async function rejoin(id) {
       if (busy) return;
       busy = true;
-      try { await consume(await postJson('/api/workspace/project-selection', { action: 'rejoin', project_id: id, selection_token: overview.selection_token })); sampleNeedsRefresh = true; await reloadOverview(); }
+      let saved = null;
+      try { saved = await consume(await postJson('/api/workspace/project-selection', { action: 'rejoin', project_id: id, selection_token: overview.selection_token })); sampleNeedsRefresh = true; await reloadOverview(); }
       catch (error) { feedback(`${error.message}。项目和历史仍保留。`, true); await reloadOverview(); }
       finally { busy = false; }
+      if (saved) await publishRegistered([saved]);
     }
     async function saveSource(event) {
       event.preventDefault(); if (busy) return;
@@ -283,7 +307,7 @@
           enabled: $('onboarding-consent').checked, path: $('onboarding-path').value || null });
         drafts.delete(provider); dirty = false; selected.clear(); await reloadOverview();
         $('onboarding-source-details').open = !$('onboarding-consent').checked;
-        await reloadCandidates(); await onChanged(); feedback('来源设置已保存。请明确选择要加入的项目。');
+        await reloadCandidates(); await onChanged(undefined, { kind: 'source-saved' }); feedback('来源设置已保存。请明确选择要加入的项目。');
       } catch (error) { $('onboarding-source-details').open = true; feedback(`${error.message}。输入已保留。`, true); await reloadOverview(); }
       finally { busy = false; $('onboarding-source-fields').disabled = false; renderCandidates(); }
     }
@@ -338,7 +362,7 @@
       async remove(project) {
         await reloadOverview();
         const value = await postJson('/api/workspace/project-selection', { action: 'remove', project_id: project.id, selection_token: overview.selection_token });
-        overview.selection_token = value.selection_token; await onChanged(); return value;
+        overview.selection_token = value.selection_token; await onChanged(undefined, { kind: 'removed' }); return value;
       },
       isEditing: () => dialog.open && (dirty || busy),
     };

@@ -1,6 +1,8 @@
 // @vitest-environment happy-dom
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { renderHook } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { act, renderHook } from '@testing-library/react'
+import * as capabilityRead from '@/lib/windows-terminal-capability-read'
+import { resetWindowsTerminalCapabilitiesForTests } from '@/lib/windows-terminal-capabilities'
 import { getDefaultSettings } from '../../../shared/constants'
 import { useAppStore } from '@/store'
 import {
@@ -38,7 +40,29 @@ describe('useActiveProjectSkillRuntime', () => {
   })
 
   afterEach(() => {
+    vi.restoreAllMocks()
+    resetWindowsTerminalCapabilitiesForTests()
     delete (window as unknown as { api?: unknown }).api
+  })
+
+  it('does not probe or retain an old active runtime when explicitly disabled', async () => {
+    resetWindowsTerminalCapabilitiesForTests()
+    const probe = vi.spyOn(capabilityRead, 'readWindowsTerminalCapabilities').mockResolvedValue({
+      wslAvailable: true, wslDistros: ['Ubuntu'], pwshAvailable: true, gitBashAvailable: false,
+      hostPlatform: 'win32', isLoading: false
+    })
+    setGlobalWslDefault('Ubuntu')
+    const view = renderHook(({ enabled }) => useActiveProjectSkillRuntime(enabled), { initialProps: { enabled: false } })
+    await act(async () => {})
+    expect(probe).not.toHaveBeenCalled()
+    expect(view.result.current).toEqual({ installDisabledReason: null, canUseLocalSkillFreshness: false })
+    view.rerender({ enabled: true })
+    await act(async () => {})
+    expect(probe).toHaveBeenCalledOnce()
+    expect(view.result.current.agentRuntime?.runtime).toBe('wsl')
+    view.rerender({ enabled: false })
+    expect(view.result.current).toEqual({ installDisabledReason: null, canUseLocalSkillFreshness: false })
+    expect(probe).toHaveBeenCalledOnce()
   })
 
   // Why: with no local project runtime, buildSkillCommandForRuntime still emits the

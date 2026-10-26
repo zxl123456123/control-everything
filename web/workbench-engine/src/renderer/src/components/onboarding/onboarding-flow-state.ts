@@ -1,3 +1,4 @@
+import { fixedApplicationTheme } from '../../web/platform-appearance'
 import { toast } from 'sonner'
 import type { AppState } from '@/store/types'
 import { translate } from '@/i18n/i18n'
@@ -147,9 +148,10 @@ export async function prepareSkippedOnboardingPreferences({
     if (currentStepId === 'theme') {
       const themeToRestore = themeBeforePreview ?? settingsTheme
       if (themeToRestore) {
-        setTheme(themeToRestore)
-        applyTheme(themeToRestore)
-        await updateSettings({ theme: themeToRestore })
+        const confirmed = fixedApplicationTheme(themeToRestore)
+        await updateSettings({ theme: confirmed })
+        setTheme(confirmed)
+        applyTheme(confirmed)
       }
     }
     // Why: skipping bypasses step persistence, so save the visible agent choice before closing.

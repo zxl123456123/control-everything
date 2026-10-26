@@ -6,6 +6,13 @@ import type { OrchestrationDb } from '../orchestration-db'
 
 // ── Durable mutation receipts ──
 
+/** Inspection must never create a caller identity, even when an old cache exists. */
+export function getLocalMutationCallerFingerprint(this: Pick<OrchestrationDb, 'db'>): string | undefined {
+  const row = this.db.prepare('SELECT caller_fingerprint FROM mutation_caller_identities WHERE transport = ?')
+    .get('local_authenticated_transport') as { caller_fingerprint: string } | undefined
+  return row?.caller_fingerprint
+}
+
 export function getOrCreateLocalMutationCallerFingerprint(this: OrchestrationDb): string {
   if (this.localMutationCallerFingerprint) {
     return this.localMutationCallerFingerprint
@@ -158,7 +165,7 @@ export function discardPendingMutationReceipt(
 }
 
 export function getMutationReceipt(
-  this: OrchestrationDb,
+  this: Pick<OrchestrationDb, 'db'>,
   callerFingerprint: string,
   requestId: string
 ): MutationReceiptRow | undefined {
@@ -171,6 +178,7 @@ export function getMutationReceipt(
 }
 
 export type MutationReceiptStoreMethods = {
+  getLocalMutationCallerFingerprint: typeof getLocalMutationCallerFingerprint
   getOrCreateLocalMutationCallerFingerprint: typeof getOrCreateLocalMutationCallerFingerprint
   beginMutationReceipt: typeof beginMutationReceipt
   completeMutationReceipt: typeof completeMutationReceipt
@@ -181,6 +189,7 @@ export type MutationReceiptStoreMethods = {
 
 export function attachMutationReceiptStore(ctor: { prototype: object }): void {
   Object.assign(ctor.prototype, {
+    getLocalMutationCallerFingerprint,
     getOrCreateLocalMutationCallerFingerprint,
     beginMutationReceipt,
     completeMutationReceipt,

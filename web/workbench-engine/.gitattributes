@@ -106,3 +106,19 @@
 /resources/skills/*.json linguist-generated=true text eol=lf
 # Vitest writes snapshots with LF, so checkout bytes must match on every host.
 **/__snapshots__/*.snap text eol=lf
+
+# License and reviewed source pins are byte-exact across checkout platforms.
+/LICENSE text eol=lf
+/licenses/Geist-OFL-notice.md text eol=lf
+/mobile/app.json text eol=lf
+/mobile/assets/fonts/SymbolsNerdFontMono-OFL.txt text eol=lf
+/mobile/scripts/start-emulator.mjs text eol=lf
+/native/windows-agent-hook/app.manifest text eol=lf
+/native/windows-cli-launcher/app.manifest text eol=lf
+/src/renderer/src/assets/fonts/SymbolsNerdFontMono-OFL.txt text eol=lf
+/src/renderer/src/i18n/locales/en.json text eol=lf
+/src/renderer/src/i18n/locales/es.json text eol=lf
+/src/renderer/src/i18n/locales/fr.json text eol=lf
+/src/renderer/src/i18n/locales/ja.json text eol=lf
+/src/renderer/src/i18n/locales/ko.json text eol=lf
+/src/renderer/src/i18n/locales/pt.json text eol=lf

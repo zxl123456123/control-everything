@@ -224,6 +224,8 @@ def _execution_facts(connection, profile, dispatch_id, agent_settings):
             or dispatch["external_ref"] is not None):
         raise ProfileError("dispatch_state_conflict", "delivery_state", status=409)
     task = _task(connection, dispatch["task_id"])
+    if connection.execute('SELECT 1 FROM task_native_runs WHERE task_id=? AND active_slot=1', (task['id'],)).fetchone():
+        raise ProfileError('session_conflict', status=409)
     if task["state"] in ("review", "done"):
         raise ProfileError("dispatch_state_conflict", "state", status=409)
     if connection.execute(
@@ -360,6 +362,8 @@ def create_dispatch(profile, task_id, body):
         item = _task(connection, task_id)
         if item["state"] in ("review", "done"):
             raise ProfileError("dispatch_state_conflict", status=409)
+        if connection.execute('SELECT 1 FROM task_native_runs WHERE task_id=? AND active_slot=1', (task_id,)).fetchone():
+            raise ProfileError('session_conflict', status=409)
         brief = _brief(connection, task_id)
         if brief["revision"] != revision:
             raise ProfileError("brief_changed", status=409)

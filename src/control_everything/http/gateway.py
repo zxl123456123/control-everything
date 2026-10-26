@@ -32,6 +32,7 @@ from control_everything.execution.service import dispatch_execution_context
 from control_everything.workspace import project_dirs
 from control_everything.workspace.news_source import NewsSource
 from control_everything.http import news_reader
+from control_everything.http import project_progress_routes
 from control_everything.paths import default_profile_dir
 from control_everything.workspace.store import WorkspaceError
 from control_everything.profiles.profile import Profile, ProfileError, strict_json
@@ -164,6 +165,8 @@ def result_status(result):
 
 
 WEB_ASSETS = {
+    "/ui-theme.js": ("workspace/ui-theme.js", "text/javascript; charset=utf-8"),
+    "/ui-dialog.js": ("workspace/ui-dialog.js", "text/javascript; charset=utf-8"),
     "/remote-context.js": ("workspace/remote-context.js", "text/javascript; charset=utf-8"),
     "/desktop.js": ("workspace/desktop.js", "text/javascript; charset=utf-8"),
     "/": ("sessions/index.html", "text/html; charset=utf-8"),
@@ -180,6 +183,9 @@ WEB_ASSETS = {
     "/workspace.js": ("workspace/workspace.js", "text/javascript; charset=utf-8"),
     "/onboarding.js": ("workspace/onboarding.js", "text/javascript; charset=utf-8"),
     "/agents.js": ("workspace/agents.js", "text/javascript; charset=utf-8"),
+    "/project-progress.js": ("workspace/project-progress.js", "text/javascript; charset=utf-8"),
+    "/project-progress-model.js": ("workspace/project-progress-model.js", "text/javascript; charset=utf-8"),
+    "/project-progress.css": ("workspace/project-progress.css", "text/css; charset=utf-8"),
     "/project-space.js": ("workspace/project-space.js", "text/javascript; charset=utf-8"),
     "/monitor-art.js": ("workspace/monitor-art.js", "text/javascript; charset=utf-8"),
     "/monitor-scene.js": ("workspace/monitor-scene.js", "text/javascript; charset=utf-8"),
@@ -339,6 +345,8 @@ class PanelHandler(BaseHTTPRequestHandler):
             return
         if workbench.handle_get(self, path):
             return
+        if project_progress_routes.handle(self, path):
+            return
         if path.path == "/health" and not path.query:
             return self.reply(200, {"app": APP, "protocol_version": 1})
         if path.path == "/progress" and not path.query and self.profile() is not None:
@@ -450,6 +458,11 @@ class PanelHandler(BaseHTTPRequestHandler):
             return self.reject(400, 'invalid_request')
         if workbench.handle_post(self, path):
             return
+        try:
+            if project_progress_routes.handle(self, path, write=True):
+                return
+        except BodyTooLarge:
+            return self.reject(413, 'body_too_large')
         if AGENT_BROWSER_CANCEL_ROUTE.fullmatch(path.path):
             return self.agent_cancel(path)
         if (TASK_BRIEF_ROUTE.fullmatch(path.path) or TASK_DISPATCH_ROUTE.fullmatch(path.path)
@@ -1256,6 +1269,20 @@ class PanelServer(ThreadingHTTPServer):
         self.agent_presence = {}
         self.agent_presence_lock = threading.Lock()
 
+    def attach_workbench_runtime(self, runtime):
+        previous = self.__dict__.get('native_progress_observer')
+        if previous is not None:
+            previous.close()
+        self.workbench_runtime = runtime
+        self.native_progress_observer = None
+        if self.workspace is not None and self.profile is not None:
+            from control_everything.integrations.workbench_progress import WorkbenchProgressAdapter
+            from control_everything.workspace.native_progress_observer import NativeProgressObserver
+            self.workspace.native_progress.adapter = WorkbenchProgressAdapter(runtime) if runtime is not None else None
+            if runtime is not None:
+                self.native_progress_observer = NativeProgressObserver(self.workspace.native_progress)
+                self.native_progress_observer.start()
+
     def agent_seen(self, identity):
         with self.agent_presence_lock:
             self.agent_presence[identity] = time.time()
@@ -1278,6 +1305,9 @@ class PanelServer(ThreadingHTTPServer):
                     observer.start()
 
     def server_close(self):
+        progress_observer = self.__dict__.get('native_progress_observer')
+        if progress_observer is not None:
+            progress_observer.close()
         reader_error = None
         lock = self.__dict__.get('_news_reader_lock')
         if lock is not None:
@@ -1339,6 +1369,7 @@ def make_server(service, address=(HOST, PORT), *, workspace=None, execution=None
     server.workspace = workspace
     server.observer = observer
     server.workbench_runtime = workbench_runtime
+    server.native_progress_observer = None
     server.workbench_assets = workbench_assets
     server.remote_access = remote_access
     server.execution = execution
@@ -1359,6 +1390,8 @@ def make_server(service, address=(HOST, PORT), *, workspace=None, execution=None
     server._news_reader_lock = threading.Lock()
     server._news_reader_closed = False
     server._news_lease = server.news_source.acquire()
+    if workbench_runtime is not None:
+        server.attach_workbench_runtime(workbench_runtime)
     return server
 
 

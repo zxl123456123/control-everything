@@ -511,6 +511,18 @@ describe('UpdateCard Linux package-install recovery', () => {
 })
 
 describe('UpdateCard recovery keyboard and motion', () => {
+  it.each([
+    { isComposing: true, keyCode: 27 },
+    { isComposing: false, keyCode: 229 }
+  ])('keeps the recovery card open while the IME owns Escape (%j)', (composition) => {
+    mockReducedMotion(true)
+    renderAfterAvailableStatus()
+    showPackageRecovery()
+    fireEvent.keyDown(screen.getByRole('complementary'), { key: 'Escape', ...composition })
+    expect(useAppStore.getState().updateCardCollapsed).toBe(false)
+    expect(screen.getByText('Manual Install Required')).toBeTruthy()
+  })
+
   it('minimizes the recovery card on Escape', () => {
     mockReducedMotion(true)
     renderAfterAvailableStatus()

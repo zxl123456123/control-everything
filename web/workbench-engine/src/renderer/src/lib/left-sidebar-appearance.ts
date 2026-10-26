@@ -117,6 +117,11 @@ export function resolveLeftSidebarStyleVariables(
   settings: LeftSidebarAppearanceSettings | null | undefined,
   systemPrefersDark: boolean
 ): LeftSidebarStyleVariables | undefined {
+  if (
+    typeof document !== 'undefined' &&
+    document.documentElement.hasAttribute('data-platform-view')
+  )
+    return undefined
   if (!settings) {
     return undefined
   }

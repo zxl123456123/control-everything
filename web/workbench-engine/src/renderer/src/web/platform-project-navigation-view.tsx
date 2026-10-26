@@ -11,25 +11,34 @@ import {
 } from './platform-project-navigation'
 import type { PlatformProject } from './platform-studio-surface'
 import { projectRoute, readPlatformRoute } from './platform-route'
+import { getProjectHostSetupProjectionFromState } from '../store/project-host-setup-selector'
+import { resolvePlatformProjectSettingsScope } from './platform-settings-navigation'
+import type { SettingsPresentationScope } from '../lib/settings-navigation-types'
 
 export default function PlatformNavigation({
   data,
   projects,
   active,
+  selectionOnly = false,
   pending = false,
   canCreateWorkspace = false,
   surface = 'workspace',
   onSelection,
-  onReady
+  onReady,
+  settingsScope,
+  onSettingsScope
 }: {
   data: PlatformProjectBootstrap
   projects: PlatformProject[]
   active: boolean
+  selectionOnly?: boolean
   pending?: boolean
   canCreateWorkspace?: boolean
   surface?: 'workspace' | 'activity'
   onSelection: (id: string | null) => void
   onReady?: (data: PlatformProjectBootstrap | null) => void
+  settingsScope?: SettingsPresentationScope
+  onSettingsScope?: (scope: Extract<SettingsPresentationScope, { kind: 'project' }> | null) => void
 }): React.JSX.Element {
   const hydrated = useAppStore((state) => state.hydrationSucceeded)
   const terminalsReady = useAppStore((state) => state.terminalStartupRestorationReady)
@@ -38,6 +47,8 @@ export default function PlatformNavigation({
   const worktrees = useAppStore(selectWorktreesByRepo)
   const activeWorktreeId = useAppStore((state) => state.activeWorktreeId)
   const activeView = useAppStore((state) => state.activeView)
+  const settingsTarget = useAppStore((state) => state.settingsNavigationTarget)
+  const hostSetups = useAppStore(getProjectHostSetupProjectionFromState)
   const activated = useRef<PlatformProjectBootstrap | null>(null)
   const shownSurface = useRef<{
     data: PlatformProjectBootstrap
@@ -57,6 +68,48 @@ export default function PlatformNavigation({
   const normalize = (value: string) => value.replaceAll('\\', '/').replace(/\/+$/, '').toLowerCase()
   const isProjectRepo = (repo: (typeof repos)[number]) =>
     Boolean(project?.directory && normalize(project.directory) === normalize(repo.path))
+
+  const runtimeReady = hydrated && terminalsReady && catalogReady &&
+    snapshot?.verification === 'verified' && snapshot.transport === 'ready'
+  useEffect(() => {
+    const accepted = (event: Event) => {
+      if (!settingsScope) return
+      const next = readPlatformRoute({ hash: (event as CustomEvent<{ to: string }>).detail.to, search: '' })
+      const staysNative = (next.view === 'project' && next.tab === 'settings') ||
+        (next.view === 'settings' && !['account', 'sources'].includes(next.tab))
+      if (!staysNative && useAppStore.getState().activeView === 'settings')
+        useAppStore.getState().closeSettingsPage()
+    }
+    window.addEventListener('platform-navigation-accepted', accepted)
+    return () => window.removeEventListener('platform-navigation-accepted', accepted)
+  }, [settingsScope])
+  useEffect(() => {
+    if (!settingsScope || !runtimeReady) { onSettingsScope?.(null); return }
+    if (settingsScope.kind === 'project') {
+      const exact = resolvePlatformProjectSettingsScope(settingsScope.contextKey, data, project, repos, hostSetups.setups)
+      onSettingsScope?.(exact)
+      if (!exact) return
+    }
+    // Open only the original page. Its scoped catalog and section handshake owns reveal.
+    if (useAppStore.getState().activeView !== 'settings') useAppStore.getState().openSettingsPage()
+  }, [settingsScope, runtimeReady, data, project, repos, hostSetups, onSettingsScope])
+
+  useEffect(() => {
+    if (!active || selectionOnly || activeView !== 'settings' || settingsScope) return
+    // A restored settings view cannot replace the explicit incoming project route.
+    // Reflect native settings actions only after this requested surface was revealed.
+    if (!runtimeReady || shownSurface.current?.data !== data ||
+      shownSurface.current.surface !== surface || useAppStore.getState().activeView !== 'settings') return
+    const target = settingsTarget
+    if (!target || target.pane !== 'repo') {
+      window.location.hash = '#settings/' + (target?.pane ?? 'appearance')
+      return
+    }
+    const repo = repos.find(row => row.id === target.repoId &&
+      getRepoExecutionHostId(row) === (target.hostId ?? toRuntimeExecutionHostId(data.runtime.environmentId)))
+    const matches = repo ? projects.filter(row => row.directory && normalize(row.directory) === normalize(repo.path)) : []
+    if (matches.length === 1) window.location.hash = projectRoute(matches[0].id, 'settings')
+  }, [active, selectionOnly, activeView, settingsScope, settingsTarget, repos, projects, data, surface, runtimeReady])
 
   useEffect(() => {
     const create = (event: Event) => {
@@ -155,6 +208,7 @@ export default function PlatformNavigation({
   ])
 
   useEffect(() => {
+    if (!active) return
     const hostId = toRuntimeExecutionHostId(data.runtime.environmentId)
     const repo = repos.find(
       (row) =>
@@ -172,7 +226,7 @@ export default function PlatformNavigation({
       catalogReady &&
       snapshot?.verification === 'verified' &&
       snapshot.transport === 'ready'
-    const message = navigate({
+    const message = selectionOnly ? (ready && repo ? '项目已打开' : '正在恢复项目工作区…') : navigate({
       ready,
       hasRepo: Boolean(repo),
       worktrees: Object.values(worktrees).flat(),
@@ -182,6 +236,8 @@ export default function PlatformNavigation({
     onReady?.(ready && repo && message === '项目已打开' ? data : null)
     setNotice(message)
   }, [
+    active,
+    selectionOnly,
     data,
     project?.name,
     project?.directory,
@@ -196,7 +252,7 @@ export default function PlatformNavigation({
   ])
 
   useEffect(() => {
-    if (!active) {
+    if (!active || selectionOnly) {
       shownSurface.current = null
       return
     }
@@ -243,6 +299,7 @@ export default function PlatformNavigation({
     shownSurface.current = { data, surface }
   }, [
     active,
+    selectionOnly,
     data,
     surface,
     hydrated,
@@ -282,6 +339,7 @@ export default function PlatformNavigation({
         row.id === selected?.repoId &&
         getRepoExecutionHostId(row) === toRuntimeExecutionHostId(data.runtime.environmentId)
     )
+    if (selectionOnly && repo?.id !== data.target.repoId) return
     if (!repo) {
       onSelection(null)
       return
@@ -294,7 +352,7 @@ export default function PlatformNavigation({
       (project) => project.directory && normalize(project.directory) === normalize(repo.path)
     )
     onSelection(matches.length === 1 ? matches[0].id : null)
-  }, [active, data, projects, activeWorktreeId, repos, worktrees, onSelection])
+  }, [active, selectionOnly, data, projects, activeWorktreeId, repos, worktrees, onSelection])
 
   const disconnected =
     snapshot &&

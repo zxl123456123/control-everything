@@ -1,4 +1,11 @@
 import type React from 'react'
+import { useRef, useState, useSyncExternalStore } from 'react'
+import {
+  type AppearanceSnapshot,
+  fixedApplicationTheme,
+  isPlatformAppearance,
+  platformAppearance
+} from '../../web/platform-appearance'
 
 import type { GlobalSettings } from '../../../../shared/global-settings-types'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select'
@@ -8,12 +15,7 @@ import { AppearanceAdvancedDisclosure } from './AppearanceAdvancedDisclosure'
 import { useAppStore } from '../../store'
 import { useShortcutKeyComboDetails } from '@/hooks/useShortcutLabel'
 import { ShortcutHintList } from './AppearanceShortcutHintList'
-import {
-  FontAutocomplete,
-  SettingsRow,
-  SettingsSegmentedControl,
-  SettingsSwitchRow
-} from './SettingsFormControls'
+import { FontAutocomplete, SettingsRow, SettingsSwitchRow } from './SettingsFormControls'
 import { DEFAULT_APP_FONT_FAMILY } from '../../../../shared/constants'
 import {
   getLanguageEntries,
@@ -33,6 +35,9 @@ import { translate } from '@/i18n/i18n'
 import type { UiLanguage } from '../../../../shared/ui-language'
 import { matchesSettingsSearch, normalizeSettingsSearchQuery } from './settings-search'
 import { usePluginLanguagePacks } from '@/store/plugin-language-packs'
+
+const noAppearanceSubscription = () => () => {}
+const noAppearanceSnapshot = () => null
 
 type AppearanceInterfaceSectionProps = {
   settings: GlobalSettings
@@ -55,6 +60,35 @@ export function AppearanceInterfaceSection({
   onRequestFontSuggestions,
   forceVisiblePrimary = false
 }: AppearanceInterfaceSectionProps): React.JSX.Element {
+  const platform = isPlatformAppearance()
+  const appearance = useSyncExternalStore<AppearanceSnapshot | null>(
+    platform ? platformAppearance.subscribe : noAppearanceSubscription,
+    platform ? platformAppearance.getSnapshot : noAppearanceSnapshot,
+    noAppearanceSnapshot
+  )
+  const savingTheme = useRef(false)
+  const [themeError, setThemeError] = useState('')
+  const [themeBusy, setThemeBusy] = useState(false)
+  const saveTheme = async (theme: 'light' | 'dark') => {
+    if (savingTheme.current) return
+    savingTheme.current = true
+    setThemeBusy(true)
+    setThemeError('')
+    try {
+      if (platform) {
+        const result = await platformAppearance.requestTheme(theme)
+        if (result.error) throw new Error(result.error)
+      } else {
+        await useAppStore.getState().updateSettingsOrThrow({ theme })
+        applyTheme(theme)
+      }
+    } catch (error) {
+      setThemeError(error instanceof Error ? error.message : String(error))
+    } finally {
+      savingTheme.current = false
+      setThemeBusy(false)
+    }
+  }
   const searchQuery = useAppStore((state) => state.settingsSearchQuery)
   const pluginLanguagePacks = usePluginLanguagePacks()
   const isSearching = normalizeSettingsSearchQuery(searchQuery).length > 0
@@ -77,40 +111,54 @@ export function AppearanceInterfaceSection({
   const languageTitle = translate('settings.appearance.language.title', 'Language')
 
   return (
-    <div className="divide-y divide-border/40">
+    <div className="ce-management-surface divide-y divide-border/40">
       <SearchableSetting
         title={themeLabel}
         description={themeEntry?.description}
-        keywords={themeEntry?.keywords ?? ['dark', 'light', 'system']}
+        keywords={themeEntry?.keywords ?? ['dark', 'light']}
         forceVisible={forceVisiblePrimary}
       >
         <SettingsRow
           label={themeLabel}
           control={
-            <SettingsSegmentedControl
-              ariaLabel={themeLabel}
-              value={settings.theme}
-              onChange={(option) => {
-                updateSettings({ theme: option })
-                applyTheme(option)
-              }}
-              options={[
-                {
-                  value: 'system',
-                  label: translate('auto.components.settings.AppearancePane.fb0e0b4453', 'System')
-                },
-                {
-                  value: 'dark',
-                  label: translate('auto.components.settings.AppearancePane.7d26ccabe8', 'Dark')
-                },
-                {
-                  value: 'light',
-                  label: translate('auto.components.settings.AppearancePane.fd89b5487c', 'Light')
-                }
-              ]}
-            />
+            <div
+              role="group"
+              aria-label={themeLabel}
+              className="flex gap-3"
+              aria-busy={themeBusy || appearance?.pending}
+            >
+              {(['light', 'dark'] as const).map((theme) => (
+                <button
+                  key={theme}
+                  type="button"
+                  data-slot="button"
+                  data-theme-choice={theme}
+                  aria-pressed={
+                    (appearance?.theme ?? fixedApplicationTheme(settings.theme)) === theme
+                  }
+                  disabled={themeBusy || appearance?.pending}
+                  onClick={() => {
+                    void saveTheme(theme)
+                  }}
+                  className="min-w-28 rounded-xl border border-input p-3 text-sm font-medium aria-pressed:border-foreground aria-pressed:bg-accent disabled:opacity-50"
+                >
+                  <span
+                    aria-hidden="true"
+                    className={`mb-2 block h-12 rounded-md border border-border ${theme === 'light' ? 'bg-white' : 'bg-[#1f1f1f]'}`}
+                  />
+                  {theme === 'light'
+                    ? translate('auto.components.settings.AppearancePane.fd89b5487c', 'Light')
+                    : translate('auto.components.settings.AppearancePane.7d26ccabe8', 'Dark')}
+                </button>
+              ))}
+            </div>
           }
         />
+        {(themeError || appearance?.error) && (
+          <p role="alert" className="text-sm text-destructive">
+            {themeError || appearance?.error}
+          </p>
+        )}
       </SearchableSetting>
 
       {SHOW_UI_LANGUAGE_SETTING ? (

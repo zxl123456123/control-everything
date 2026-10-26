@@ -3,6 +3,11 @@
 (() => {
   const reasons = {
     item_changed: '这条事项已被其他窗口修改，请重新读取后核对草稿',
+    delivery_changed: '已有新的交付，请核对最新内容，修改意见仍保留',
+    binding_changed: '会话来源发生变化，请回到会话核对',
+    runtime_unavailable: '开发宿主暂不可用，请稍后重试',
+    source_only: '请回到原会话处理，意见仍会保留',
+    delivery_unknown: '送达情况未确认，请回到会话核对',
     list_changed: '事项列表已变化，请重新读取',
     csrf_rejected: '保存凭据已失效，请刷新页面后重试',
     workspace_unavailable: '本地工作台尚未就绪',
@@ -27,7 +32,7 @@
         const response = await fetchImpl(path, { ...options, credentials: 'same-origin', signal: controller.signal,
           headers: { ...options.headers, 'X-Session-Client': 'panel' } });
         const result = await response.json();
-        if (!response.ok) throw Object.assign(failure(result?.reason || 'http_error', response.status), { field: result?.field });
+        if (!response.ok) throw Object.assign(failure(result?.reason || result?.error || 'http_error', response.status), { field: result?.field });
         window.CERemoteContext?.assertActive();
         return result;
       } catch (error) {
@@ -69,7 +74,11 @@
       window.CERemoteContext?.assertActive();
       return { workspace, agents: agents.items, items };
     }
-    return { api, post, bootstrap, snapshot, canWrite: () => Boolean(csrf) };
+    const taskPath = id => '/api/workspace/tasks/' + encodeURIComponent(id);
+    return { api, post, bootstrap, snapshot, canWrite: () => Boolean(csrf),
+      readProgress: id => api(taskPath(id) + '/progress'),
+      saveProgressFeedback: (id, body) => post(taskPath(id) + '/native-feedback', body),
+      reviewDelivery: (id, body) => post(taskPath(id) + '/delivery-review', body) };
   }
   window.StudioData = { create };
 })();

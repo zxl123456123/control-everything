@@ -159,6 +159,24 @@ class ReaderHTTPTests(unittest.TestCase):
             _news_reader_closed=False,
             expected_host='127.0.0.1:1234', origin='http://127.0.0.1:1234', csrf_token='token')
 
+    def test_only_explicit_same_origin_embedding_changes_ancestor_policy(self):
+        from urllib.parse import urlsplit
+        from control_everything.http.news_reader import handle_get, CSP
+        handler = Mock()
+        for route in ('/news', '/news?embedded=1'):
+            handler.reset_mock()
+            self.assertTrue(handle_get(handler, urlsplit(route)))
+            csp = handler.reply.call_args.kwargs['csp']
+            expected = CSP.replace("frame-ancestors 'none'", "frame-ancestors 'self'") if '?' in route else CSP
+            self.assertEqual(csp, expected)
+            self.assertEqual(handler.reply.call_args.args[0], 200)
+        for route in ('/news?embedded=0', '/news?embedded=1&embedded=1', '/news?embedded=1&url=https://example.com', '/news-reader.js?embedded=1'):
+            handler.reset_mock()
+            handle_get(handler, urlsplit(route))
+            handler.reject.assert_called_once_with(400, 'invalid_query')
+            handler.reply.assert_not_called()
+        self.assertEqual(self.request('/news?embedded=1', headers={'Host': 'evil'})[0], 403)
+
     def test_existing_permission_gate_precedes_all_reader_work(self):
         for headers in ({'Host': 'evil'}, {'X-Session-Client': ''}):
             self.assertEqual(self.request('/api/workspace/news/reader', headers=headers)[0], 403)

@@ -62,7 +62,7 @@ export function CmdJPaletteTipDialog({
                 short Mac label (⌘⇧J) stays on one line, while a wide label like
                 "Ctrl+Shift+J" wraps to the next line only when it doesn't fit —
                 instead of being pushed to the right edge on Win/Linux. */}
-          <DialogTitle className="text-2xl font-semibold leading-tight tracking-tight md:text-[1.75rem]">
+          <DialogTitle className="text-xl font-semibold leading-7 tracking-normal">
             {titlePrefix.trimEnd()}
             {displayShortcutLabel ? (
               <>
@@ -91,7 +91,7 @@ export function CmdJPaletteTipDialog({
         </div>
       </DialogHeader>
 
-      <DialogFooter className="mt-8 flex sm:justify-stretch">
+      <DialogFooter className="mt-0 flex sm:justify-stretch">
         <FeatureTipActions
           currentTip={tip}
           primaryBusy={primaryBusy}

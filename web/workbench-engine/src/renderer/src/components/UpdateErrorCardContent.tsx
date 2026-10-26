@@ -62,7 +62,7 @@ function ActionButton({
       aria-disabled={action.isPending || action.disabled}
       // Why: ui/button styles only `disabled:`, so aria-disabled needs its own dimming or a busy
       // action looks fully live while it silently refuses.
-      className="flex-1 gap-1.5 aria-disabled:cursor-default aria-disabled:opacity-50"
+      className="min-w-0 flex-1 whitespace-normal gap-2 aria-disabled:cursor-default aria-disabled:opacity-50"
     >
       {action.isPending ? <Loader2 className="size-3.5 animate-spin" /> : leadingIcon}
       {action.isPending && action.pendingLabel ? action.pendingLabel : action.label}
@@ -99,7 +99,7 @@ export function UpdateErrorCardContent({
         ? Clock3
         : AlertCircle
   return (
-    <div className="flex flex-col gap-3 p-4">
+    <div className="flex flex-col gap-4 p-6">
       <div className="flex items-start gap-3">
         <div
           className={`mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-md border bg-muted/50 ${
@@ -111,13 +111,13 @@ export function UpdateErrorCardContent({
           <Icon className="size-4" />
         </div>
         <div className="min-w-0 flex-1 space-y-1">
-          <h3 className="text-sm font-semibold">{title}</h3>
+          <h3 className="text-lg font-semibold leading-[26px]">{title}</h3>
           <p className="text-sm leading-relaxed text-muted-foreground">{summary}</p>
         </div>
         <Button
           variant="ghost"
           size="icon"
-          className="shrink-0 min-w-[44px] min-h-[44px] -m-2"
+          className="size-11 shrink-0"
           onClick={onClose}
           aria-label={translate('auto.components.UpdateCard.8acbdd3961', 'Minimize to status bar')}
         >
@@ -127,7 +127,7 @@ export function UpdateErrorCardContent({
 
       {explainer ? (
         <div className="rounded-md border border-border/70 bg-muted/30 px-3 py-2">
-          <p className="text-xs leading-relaxed text-muted-foreground">{explainer}</p>
+          <p className="text-sm leading-[22px] text-muted-foreground">{explainer}</p>
         </div>
       ) : null}
 
@@ -137,7 +137,7 @@ export function UpdateErrorCardContent({
           className="space-y-2"
         >
           {blockers.map(({ pid, kind }) => (
-            <li key={pid} className="flex items-center justify-between gap-3 text-xs">
+            <li key={pid} className="flex items-center justify-between gap-3 text-sm">
               <span>
                 {kind === 'browser'
                   ? translate('updates.installBlock.browserLabel', 'Background browser')
@@ -176,10 +176,10 @@ export function UpdateErrorCardContent({
           </Button>
           {showDetails ? (
             <div id={detailId} className="rounded-md bg-muted/40 px-3 py-2">
-              <p className="mb-1 text-[11px] font-medium uppercase text-muted-foreground">
+              <p className="mb-1 text-sm font-medium text-muted-foreground">
                 {translate('auto.components.UpdateCard.3553a8672f', 'Details')}
               </p>
-              <p className="scrollbar-sleek max-h-20 overflow-auto break-words font-mono text-xs leading-relaxed text-muted-foreground">
+              <p className="scrollbar-sleek max-h-20 overflow-auto break-words font-mono text-sm leading-[22px] text-muted-foreground">
                 {detail}
               </p>
             </div>
@@ -188,7 +188,7 @@ export function UpdateErrorCardContent({
       ) : null}
 
       <div className="flex flex-col gap-2">
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {primaryAction && (
             <ActionButton
               action={primaryAction}
@@ -223,7 +223,7 @@ export function UpdateErrorCardContent({
             type="button"
             variant="link"
             size="xs"
-            className="-ml-1 min-h-[44px] self-start p-0 text-xs aria-disabled:cursor-default aria-disabled:opacity-50"
+            className="-ml-1 min-h-[44px] self-start whitespace-normal p-0 text-left text-sm aria-disabled:cursor-default aria-disabled:opacity-50"
             onClick={tertiaryAction.onClick}
             aria-disabled={tertiaryAction.isPending || tertiaryAction.disabled}
           >
@@ -234,7 +234,7 @@ export function UpdateErrorCardContent({
         )}
         {footnote && (
           <p
-            className={`text-xs leading-relaxed ${
+            className={`text-sm leading-[22px] ${
               footnote.tone === 'destructive' ? 'text-destructive' : 'text-muted-foreground'
             }`}
           >

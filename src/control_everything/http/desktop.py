@@ -20,7 +20,7 @@ class Desktop:
         self._stop = threading.Event()
         self._worker = None
         self.restart_required = False
-        server.workbench_runtime = runtime
+        server.attach_workbench_runtime(runtime)
         server.remote_connector = connector
         server.desktop = self
         server.refresh_workspace_roots = self.refresh_workspace_roots

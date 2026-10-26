@@ -1,3 +1,7 @@
+import { ArrowLeft } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { ManagementSurfaceProvider } from '@/components/ui/management-surface'
+import { translate } from '@/i18n/i18n'
 import React, {
   useCallback,
   useContext,
@@ -55,6 +59,7 @@ export default function ActivityPrototypePage(): React.JSX.Element {
     [platformProject]
   )
   const [query, setQuery] = useState('')
+  const [mobileDetailOpen, setMobileDetailOpen] = useState(false)
   const activityFilterInputRef = useRef<HTMLInputElement | null>(null)
   // Why: bounds auto mark-read to one acknowledgement per selected thread turn.
   const autoAcknowledgedTurnRef = useRef<string | null>(null)
@@ -356,52 +361,73 @@ export default function ActivityPrototypePage(): React.JSX.Element {
   return (
     <div ref={setActivityPageRef} className="flex h-full min-h-0 flex-col bg-background pb-3">
       <main className="flex min-h-0 flex-1 overflow-hidden">
-        <ActivityThreadListPane
-          lockProjectScope={platformProject !== undefined}
-          threadListRef={threadListRef}
-          threadListWidth={threadListWidth}
-          activityFilterInputRef={activityFilterInputRef}
-          query={query}
-          onQueryChange={setQuery}
-          groupBy={groupBy}
-          onGroupByChange={setGroupBy}
-          readFilter={readFilter}
-          onReadFilterChange={setReadFilter}
-          compactMode={compactMode}
-          showChildAgents={showChildAgents}
-          hasUnreadThreads={hasUnreadThreads}
-          onCompactModeChange={setCompactMode}
-          onShowChildAgentsChange={setShowChildAgents}
-          onMarkAllThreadsRead={markAllThreadsRead}
-          hasCompletedThreads={hasCompletedThreads}
-          onClearCompleted={handleClearCompleted}
-          visibleThreadGroups={visibleThreadGroups}
-          visibleThreadCount={visibleThreads.length}
-          selectedPaneKey={selectedThread?.paneKey ?? null}
-          onSelectThread={selectThread}
-          onJumpToWorkspace={jumpToWorkspace}
-          onMarkThreadRead={markThreadRead}
-          onMarkThreadUnread={markThreadUnread}
-          onMarkThreadsRead={markThreadsRead}
-          onMarkThreadsUnread={markThreadsUnread}
-          canJumpToWorkspace={canJumpToWorkspace}
-          isThreadListResizing={isThreadListResizing}
-          onResizeStart={onResizeStart}
-        />
-        <ActivityThreadDetailPane
-          selectedThread={selectedThread}
-          selectedHasLiveTab={Boolean(selectedHasLiveTab)}
-          selectedWorktreeAvailable={selectedWorktreeAvailable}
-          visibleThread={visibleThread}
-          stagedThread={stagedThread}
-          activePortalSlotId={activePortalSlotId}
-          setPrimaryPortalTarget={setPrimaryPortalTarget}
-          setSecondaryPortalTarget={setSecondaryPortalTarget}
-          visiblePortalReady={visiblePortalReady}
-          visiblePortalUnavailable={visiblePortalUnavailable}
-          showTerminalLoadingLabel={showTerminalLoadingLabel}
-          visibleThreadCount={visibleThreads.length}
-        />
+        <div className={mobileDetailOpen ? 'hidden min-h-0 max-w-full md:contents' : 'contents'}>
+          <ManagementSurfaceProvider value={true}>
+            <ActivityThreadListPane
+              lockProjectScope={platformProject !== undefined}
+              threadListRef={threadListRef}
+              threadListWidth={threadListWidth}
+              activityFilterInputRef={activityFilterInputRef}
+              query={query}
+              onQueryChange={setQuery}
+              groupBy={groupBy}
+              onGroupByChange={setGroupBy}
+              readFilter={readFilter}
+              onReadFilterChange={setReadFilter}
+              compactMode={compactMode}
+              showChildAgents={showChildAgents}
+              hasUnreadThreads={hasUnreadThreads}
+              onCompactModeChange={setCompactMode}
+              onShowChildAgentsChange={setShowChildAgents}
+              onMarkAllThreadsRead={markAllThreadsRead}
+              hasCompletedThreads={hasCompletedThreads}
+              onClearCompleted={handleClearCompleted}
+              visibleThreadGroups={visibleThreadGroups}
+              visibleThreadCount={visibleThreads.length}
+              selectedPaneKey={selectedThread?.paneKey ?? null}
+              onSelectThread={(thread) => {
+                selectThread(thread)
+                setMobileDetailOpen(true)
+              }}
+              onJumpToWorkspace={jumpToWorkspace}
+              onMarkThreadRead={markThreadRead}
+              onMarkThreadUnread={markThreadUnread}
+              onMarkThreadsRead={markThreadsRead}
+              onMarkThreadsUnread={markThreadsUnread}
+              canJumpToWorkspace={canJumpToWorkspace}
+              isThreadListResizing={isThreadListResizing}
+              onResizeStart={onResizeStart}
+            />
+          </ManagementSurfaceProvider>
+        </div>
+        <div
+          className={
+            mobileDetailOpen
+              ? 'flex min-h-0 min-w-0 flex-1 flex-col'
+              : 'hidden min-h-0 min-w-0 flex-1 flex-col md:flex'
+          }
+        >
+          <div className="ce-management-surface shrink-0 p-4 md:hidden">
+            <Button type="button" variant="outline" onClick={() => setMobileDetailOpen(false)}>
+              <ArrowLeft className="size-4" />
+              {translate('auto.components.workspace.space.WorkspaceSpacePage.ecf72fdc3b', 'Back')}
+            </Button>
+          </div>
+          <ActivityThreadDetailPane
+            selectedThread={selectedThread}
+            selectedHasLiveTab={Boolean(selectedHasLiveTab)}
+            selectedWorktreeAvailable={selectedWorktreeAvailable}
+            visibleThread={visibleThread}
+            stagedThread={stagedThread}
+            activePortalSlotId={activePortalSlotId}
+            setPrimaryPortalTarget={setPrimaryPortalTarget}
+            setSecondaryPortalTarget={setSecondaryPortalTarget}
+            visiblePortalReady={visiblePortalReady}
+            visiblePortalUnavailable={visiblePortalUnavailable}
+            showTerminalLoadingLabel={showTerminalLoadingLabel}
+            visibleThreadCount={visibleThreads.length}
+          />
+        </div>
       </main>
     </div>
   )

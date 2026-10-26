@@ -1,3 +1,4 @@
+import { useManagementSurface } from '@/components/ui/management-surface'
 import React from 'react'
 import { CheckCheck, ListChecks, Search, Trash2, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -59,6 +60,7 @@ export function ActivityThreadListToolbar({
   showInlineActions?: boolean
   lockProjectScope?: boolean
 }): React.JSX.Element | null {
+  const management = useManagementSurface()
   const showToolbar = showFilterControls || showOptionsMenu
   if (!showToolbar) {
     return null
@@ -66,8 +68,8 @@ export function ActivityThreadListToolbar({
 
   return (
     <>
-      <div className="shrink-0 border-b border-border px-2 py-1.5">
-        <div className="flex items-center justify-end gap-1">
+      <div className={cn('shrink-0 border-b border-border px-2 py-1.5', management && 'px-4 py-4')}>
+        <div className={cn('flex items-center justify-end gap-1', management && 'flex-wrap gap-3')}>
           {showFilterControls ? (
             <div className="relative min-w-0 flex-1">
               <Search className="pointer-events-none absolute left-2 top-1/2 size-3 -translate-y-1/2 text-muted-foreground" />
@@ -80,7 +82,9 @@ export function ActivityThreadListToolbar({
                   'Filter...'
                 )}
                 className={cn(
-                  'h-7 w-full pl-6 text-[11px] shadow-none focus-visible:ring-0',
+                  management
+                    ? 'h-10 w-full pl-8 text-sm'
+                    : 'h-7 w-full pl-6 text-[11px] shadow-none focus-visible:ring-0',
                   query ? 'pr-6' : ''
                 )}
               />
@@ -111,7 +115,11 @@ export function ActivityThreadListToolbar({
             >
               <SelectTrigger
                 size="sm"
-                className="h-7 w-[116px] shrink-0 px-2 text-[11px]"
+                className={
+                  management
+                    ? 'h-10 w-[150px] shrink-0 px-3 text-sm'
+                    : 'h-7 w-[116px] shrink-0 px-2 text-[11px]'
+                }
                 aria-label={translate(
                   'auto.components.activity.ActivityPrototypePage.770d458144',
                   'Group agent activity by'
@@ -153,6 +161,7 @@ export function ActivityThreadListToolbar({
                   size="sm"
                   className={cn(
                     'size-7 shrink-0 p-0 rounded-md transition-all',
+                    management && 'size-11',
                     readFilter === 'unread'
                       ? '!border border-primary/30 !bg-primary/10 !text-primary/90 shadow-xs hover:!bg-primary/15 hover:!text-primary'
                       : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'

@@ -2,30 +2,28 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { useAppStore } from '@/store'
 import { selectWorktreesByRepo } from '@/store/workspace-record-selectors'
-import { launchAgentInNewTab } from '@/lib/launch-agent-in-new-tab'
-import { newAgentLaunchRequestId } from '@/lib/agent-launch-request-id'
-import { activateAndRevealWorktree } from '@/lib/worktree-activation'
 import { readHostAgentLaunchSettings } from '@/components/settings/agent-launch-settings-transport'
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import AgentCombobox from '@/components/agent/AgentCombobox'
 import { getAgentCatalog } from '@/lib/agent-catalog'
 import { useDetectedAgents } from '@/hooks/useDetectedAgents'
-import type { AgentProviderSessionMetadata } from '../../../shared/agent-session-resume'
+import { isTuiAgent } from '../../../shared/tui-agent-config'
 import { toRuntimeExecutionHostId } from '../../../shared/execution-host'
-import { resolveTuiAgentLaunchArgs } from '../../../shared/tui-agent-launch-defaults'
+import { worktreeWorkspaceKey } from '../../../shared/workspace-scope'
 import type { AgentLaunchSettings } from '../../../shared/agent-launch-settings'
 import type { PlatformProjectBootstrap } from './platform-project-bootstrap'
 import type { Worktree } from '../../../shared/worktree/types'
 import { choosePlatformWorktree, describePlatformWorkspace } from './platform-project-navigation'
 import { projectRoute, readPlatformRoute } from './platform-route'
 import {
-  findPlatformProviderSession,
-  linkPlatformTaskSession,
+  readPlatformTaskProgress,
+  startPlatformTaskProgress,
+  resumePlatformTaskProgress,
+  adoptPlatformTaskProgress,
   platformTaskCwd,
-  platformTaskPrompt,
   readPlatformTaskBrief,
-  type PlatformAgentPendingLink,
+  type PlatformTaskProgress,
   type PlatformTaskAgent
 } from './platform-agent-launch'
 
@@ -34,6 +32,8 @@ type Choice = Request & {
   title: string
   settings: AgentLaunchSettings
   sequence: number
+  clientToken: string
+  frozenRequest?: Record<string, unknown>
   worktree: Worktree | null
   cwd: string | null
   targetError: string
@@ -53,11 +53,7 @@ export default function PlatformAgentBridge({
   const [error, setError] = useState('')
   const sequence = useRef(0)
   const starting = useRef(false)
-  const pending = useRef(new Map<string, PlatformAgentPendingLink>())
-  const writing = useRef(new Set<string>())
-  const retryLinks = useRef(new Map<string, () => void>())
   const alive = useRef(true)
-  const inspectPending = useRef(() => {})
   const environmentId = data.runtime.environmentId
   const detection = useDetectedAgents(choice?.worktree
     ? { kind: 'runtime', environmentId, worktreeId: choice.worktree.id } : undefined)
@@ -69,6 +65,11 @@ export default function PlatformAgentBridge({
   useEffect(() => {
     if (!choice || detectionUnavailable) {
       setAgent(null)
+      return
+    }
+    if (choice.frozenRequest) {
+      const saved = choice.frozenRequest.agent
+      setAgent(isTuiAgent(saved) && available.some(row => row.id === saved) ? saved : null)
       return
     }
     if (initializedChoice.current !== choice.sequence) {
@@ -116,46 +117,80 @@ export default function PlatformAgentBridge({
 
   useEffect(() => {
     alive.current = true
-    const link = async (entry: PlatformAgentPendingLink, id: AgentProviderSessionMetadata) => {
-      if (!alive.current || writing.current.has(entry.taskId)) return
-      writing.current.add(entry.taskId)
-      retryLinks.current.delete(entry.taskId)
-      pending.current.delete(entry.taskId)
-      try {
-        await linkPlatformTaskSession(entry, id)
-        if (alive.current) toast.success('会话已关联到事项；完成后仍需验收。')
-      } catch (failure) {
-        if (alive.current) {
-          const retry = () => {
-            void link(entry, id)
-          }
-          retryLinks.current.set(entry.taskId, retry)
-          toast.error(failure instanceof Error ? failure.message : '会话尚未关联。', {
-            action: { label: '重试关联', onClick: retry }
-          })
-        }
-      } finally {
-        writing.current.delete(entry.taskId)
-      }
-    }
-    const inspect = () => {
-      const statuses = useAppStore.getState().agentStatusByPaneKey
-      for (const entry of pending.current.values()) {
-        const id = findPlatformProviderSession(statuses, entry)
-        if (id) void link(entry, id)
-      }
-    }
-    const unsubscribe = useAppStore.subscribe(inspect)
-    inspectPending.current = inspect
-    return () => {
-      alive.current = false
-      sequence.current++
-      pending.current.clear()
-      retryLinks.current.clear()
-      unsubscribe()
-      inspectPending.current = () => {}
-    }
+    return () => { alive.current = false; sequence.current++ }
   }, [])
+
+  const reveal = (progress: PlatformTaskProgress) => {
+    const run = progress.native_run
+    const binding = run?.terminal_binding
+    if (progress.item.project_id !== data.project.id || !binding ||
+        binding.environmentId !== environmentId || !binding.tabId) throw new Error('会话暂不可定位，请在开发区核对。')
+    const state = useAppStore.getState()
+    const worktree = Object.values(selectWorktreesByRepo(state)).flat().find(row =>
+      row.id === binding.worktreeId && row.repoId === data.target.repoId)
+    const tab = state.tabsByWorktree[binding.worktreeId]?.find(row => row.id === binding.tabId)
+    if (!worktree || !tab || !state.ptyIdsByTabId[binding.tabId]?.includes(binding.ptyId))
+      throw new Error('会话尚未同步或已关闭，请稍后返回或显式恢复。')
+    // Selection only: even setActiveWorktree marks sleeping tabs for a new spawn.
+    useAppStore.setState({ activeRepoId: worktree.repoId, activeView: 'terminal',
+      activeWorktreeId: worktree.id, activeWorkspaceKey: worktreeWorkspaceKey(worktree.id),
+      activeWorkspaceExecutionHostId: toRuntimeExecutionHostId(environmentId), activePendingCreationId: null })
+    state.setActiveTab(binding.tabId)
+    state.setActiveTabType('terminal', worktree.id)
+    window.location.hash = projectRoute(data.project.id)
+  }
+
+  useEffect(() => {
+    const receive = (event: Event) => {
+      const request = (event as CustomEvent<Request & { resume?: boolean }>).detail
+      if (!request || request.projectId !== data.project.id || !request.taskId) return
+      event.preventDefault()
+      const operation = ++sequence.current
+      const requestedHash = window.location.hash
+      const sourceCurrent = () => alive.current && sequence.current === operation &&
+        window.location.hash === requestedHash && readPlatformRoute(window.location).id === request.projectId
+      void (async () => {
+        let progress = await readPlatformTaskProgress(request.taskId)
+        if (!sourceCurrent() || progress.item.project_id !== request.projectId) return
+        if (request.resume === true) {
+          progress = await resumePlatformTaskProgress(progress, crypto.randomUUID())
+          if (!alive.current) return
+          window.dispatchEvent(new CustomEvent('platform-task-progress-updated', { detail: { taskId: request.taskId } }))
+          if (!sourceCurrent()) return
+        }
+        reveal(progress)
+      })().catch(failure => {
+        if (sourceCurrent()) toast.error(failure instanceof Error ? failure.message : '会话暂不可定位。')
+      })
+    }
+    window.addEventListener('platform-open-task-session', receive)
+    return () => window.removeEventListener('platform-open-task-session', receive)
+  }, [data])
+
+  useEffect(() => {
+    const receive = (event: Event) => {
+      const request = (event as CustomEvent<Request & { sessionId: string }>).detail
+      if (!request || request.projectId !== data.project.id || !request.taskId || !request.sessionId) return
+      event.preventDefault()
+      if (starting.current) return
+      const state = useAppStore.getState()
+      const worktree = choosePlatformWorktree(Object.values(selectWorktreesByRepo(state)).flat(), data, state.activeWorktreeId)
+      if (!worktree) { toast.error('请先选择会话所在的工作区。'); return }
+      starting.current = true
+      const operation = ++sequence.current
+      void (async () => {
+        const progress = await readPlatformTaskProgress(request.taskId)
+        if (!alive.current || sequence.current !== operation || readPlatformRoute(window.location).id !== request.projectId) return
+        if (progress.item.project_id !== data.project.id) throw new Error('项目归属已变化，请刷新进展。')
+        await adoptPlatformTaskProgress(progress, request.sessionId, worktree.id, crypto.randomUUID())
+        window.dispatchEvent(new CustomEvent('platform-task-progress-updated', { detail: { taskId: request.taskId } }))
+        toast.success('已跟踪这段会话，进展按实际来源更新。')
+      })().catch(failure => toast.error(failure instanceof Error ? failure.message : '会话尚不能跟踪。'))
+        .finally(() => { starting.current = false })
+    }
+    window.addEventListener('platform-adopt-task-session', receive)
+    return () => window.removeEventListener('platform-adopt-task-session', receive)
+  }, [data])
 
   useEffect(() => {
     const receive = (event: Event) => {
@@ -172,25 +207,15 @@ export default function PlatformAgentBridge({
         toast.error('事项与当前项目不一致，请重新打开。')
         return
       }
-      const retryLink = retryLinks.current.get(request.taskId)
-      if (retryLink) {
-        toast.info('该事项已有终端，会话尚未关联；无需重新启动。', {
-          action: { label: '重试关联', onClick: retryLink }
-        })
-        return
-      }
-      if (
-        starting.current ||
-        pending.current.has(request.taskId) ||
-        writing.current.has(request.taskId)
-      ) {
-        toast.info('该事项的终端正在打开或等待会话关联，请先在开发区核对。')
-        return
-      }
+      if (starting.current) { toast.info('启动正在核对，请稍候。'); return }
       const operation = ++sequence.current
       setError('')
       window.location.hash = projectRoute(request.projectId)
       void (async () => {
+        const progress = await readPlatformTaskProgress(request.taskId)
+        if (!current(request, operation)) return
+        const activeRun = progress.native_run?.active_slot === 1 ? progress.native_run : null
+        if (activeRun?.launch_state === 'created') { reveal(progress); return }
         const brief = await readPlatformTaskBrief(request.taskId)
         if (!current(request, operation)) return
         if (brief.item.project_id !== request.projectId || brief.item.origin !== 'task') {
@@ -199,8 +224,10 @@ export default function PlatformAgentBridge({
         const settings = await readHostAgentLaunchSettings({ environmentId })
         if (!current(request, operation)) return
         if (!settings) throw new Error('当前宿主尚不能读取 Agent 配置。')
+        const frozenRequest = activeRun?.brief_snapshot?.request
         const state = useAppStore.getState()
-        const worktree = choosePlatformWorktree(
+        const worktree = frozenRequest ? Object.values(selectWorktreesByRepo(state)).flat().find(row =>
+          row.id === frozenRequest.worktree_id && row.repoId === data.target.repoId) ?? null : choosePlatformWorktree(
           Object.values(selectWorktreesByRepo(state)).flat(), data, state.activeWorktreeId
         )
         let cwd: string | null = null
@@ -213,6 +240,8 @@ export default function PlatformAgentBridge({
         }
         setChoice({
           ...request, title: brief.item.title, settings, sequence: operation,
+          clientToken: activeRun?.client_token || crypto.randomUUID(),
+          frozenRequest,
           worktree: worktree ? { ...worktree } : null, cwd, targetError,
           workspace: describePlatformWorkspace(state.repos, worktree, data)
         })
@@ -252,7 +281,8 @@ export default function PlatformAgentBridge({
         throw new Error('该 Agent 未启用，请在当前宿主的 Agent 设置中核对。')
       }
       const state = useAppStore.getState()
-      const worktree = choosePlatformWorktree(
+      const worktree = request.frozenRequest ? Object.values(selectWorktreesByRepo(state)).flat().find(row =>
+        row.id === request.frozenRequest!.worktree_id && row.repoId === data.target.repoId) ?? null : choosePlatformWorktree(
         Object.values(selectWorktreesByRepo(state)).flat(),
         data,
         state.activeWorktreeId
@@ -268,58 +298,28 @@ export default function PlatformAgentBridge({
       ) {
         throw new Error('启动目标已变化，请关闭窗口后重新打开并核对。')
       }
-      if (
-        !activateAndRevealWorktree(worktree.id, {
-          executionHostId: toRuntimeExecutionHostId(environmentId)
-        })
-      ) {
-        throw new Error('工作区暂不可定位，请刷新后重试。')
-      }
-      const result = launchAgentInNewTab({
-        requestId: newAgentLaunchRequestId(),
-        agent,
-        worktreeId: worktree.id,
-        requestedSurface: 'terminal',
-        requireHostAuthority: true,
-        selectedExecutionHostId: toRuntimeExecutionHostId(environmentId),
-        agentArgs: resolveTuiAgentLaunchArgs(agent, hostSettings.agentDefaultArgs),
-        initialCwd,
-        prompt: platformTaskPrompt(fresh),
-        promptDelivery: 'submit-after-ready'
+      const result = await startPlatformTaskProgress(fresh, {
+        agent, worktreeId: worktree.id, clientToken: request.clientToken, frozenRequest: request.frozenRequest
       })
-      if (!result?.terminalCompletion)
-        throw new Error('当前宿主未能启动 Agent，请检查连接和 Agent 设置。')
-      setChoice(null)
-      const completed = await result.terminalCompletion
-      if (completed.outcome.status !== 'created')
-        throw new Error('Agent 启动未确认，请在开发区核对后再试。')
       if (!alive.current) return
-      if (completed.tabId) {
-        pending.current.set(request.taskId, {
-          taskId: request.taskId,
-          projectId: request.projectId,
-          title: fresh.item.title,
-          agent,
-          environmentId,
-          worktreeId: worktree.id,
-          tabId: completed.tabId
-        })
-        inspectPending.current()
+      window.dispatchEvent(new CustomEvent('platform-task-progress-updated', { detail: { taskId: request.taskId } }))
+      // The persistent launch may finish after navigation; only its current UI may reveal it.
+      if (!current(request, request.sequence)) {
+        setChoice(value => value?.sequence === request.sequence ? null : value)
+        return
       }
-      const delivery = await result.promptDeliveryResult
-      if (alive.current)
-        toast.info(
-          !completed.tabId
-            ? '终端已打开，会话尚未关联，请在开发区核对；无需重新启动。'
-            : delivery?.delivered
-              ? '事项内容已送达，请在终端继续；会话关联需等待真实来源信息，未提供时保持未关联。'
-              : '终端已打开，事项内容未确认送达；请先在终端中完成首次确认，再正常对话。'
-        )
+      if (result.native_run?.launch_state !== 'created') throw new Error('启动尚未确认；记录已保留，请返回进展核对。')
+      setChoice(null)
+      toast.info('终端已打开；收到可核验的会话信息后更新进展。')
+      try { reveal(result) } catch { toast.info('会话正在同步，可在开发区查看。') }
+
     } catch (failure) {
       const message = failure instanceof Error ? failure.message : '启动未确认，请先检查开发区。'
-      if (alive.current && request.sequence === sequence.current) {
+      if (current(request, request.sequence)) {
         setError(message)
         toast.error(message)
+      } else if (alive.current) {
+        setChoice(value => value?.sequence === request.sequence ? null : value)
       }
     } finally {
       starting.current = false
@@ -337,6 +337,13 @@ export default function PlatformAgentBridge({
       <DialogContent className="sm:max-w-md">
         <DialogTitle>开始对话</DialogTitle>
         <DialogDescription>{choice?.title}</DialogDescription>
+        {choice && choice.settings.agentStatusHooksEnabled !== true && (
+          <p className="text-sm text-muted-foreground">
+            {choice.settings.agentStatusHooksEnabled === false
+              ? '自动进展记录未启用，开发可继续；可在 Agent 设置开启。'
+              : '自动进展记录能力尚未确认，开发可继续；请在 Agent 设置核对。'}
+          </p>
+        )}
         {choice && (
           <div className="min-w-0 space-y-1 break-all text-sm" aria-label="启动目标">
             <p>{data.project.name} · {choice.workspace?.name || choice.worktree?.displayName || '尚不可定位'}</p>
@@ -349,20 +356,19 @@ export default function PlatformAgentBridge({
             {choice.targetError && <p role="alert">{choice.targetError}</p>}
           </div>
         )}
-        <fieldset disabled={busy || detectionUnavailable} className="grid gap-2 text-sm">
+        <fieldset disabled={busy || detectionUnavailable || Boolean(choice?.frozenRequest)} className="grid gap-2 text-sm">
           <legend>开发 Agent</legend>
           <AgentCombobox agents={available} value={agent} onValueChange={value => {
-            if (!busy && !starting.current && !detectionUnavailable && available.some(row => row.id === value)) setAgent(value)
+            if (!choice?.frozenRequest && !busy && !starting.current && !detectionUnavailable && available.some(row => row.id === value)) setAgent(value)
           }}
             defaultAgent={choice?.settings.defaultTuiAgent} allowNarrowTrigger />
         </fieldset>
-        <p role="status" className="text-sm text-muted-foreground">
+        {(detectionUnavailable || !available.length) && <p role="status" className="text-sm text-muted-foreground">
           {detection.needsServerUpdate ? '当前宿主版本不支持工作区 Agent 检测，请更新宿主。'
             : detection.detectionFailed ? '当前宿主的 Agent 检测失败，请刷新重试。'
               : detection.isLoading || detection.detectedIds === null ? '正在检测当前工作区的 Agent…'
-                : available.length ? '使用工作台已有配置，无需注册外部程序或生成 Token。'
-                  : '当前工作区没有可用的 Agent，请检查安装及 Agent 设置。'}
-        </p>
+                : '当前工作区没有可用的 Agent，请检查安装及 Agent 设置。'}
+        </p>}
         {error && (
           <p role="alert" className="text-sm text-destructive">
             {error}
@@ -373,6 +379,7 @@ export default function PlatformAgentBridge({
             onClick={() => { void detection.refresh().catch(() => setError('Agent 检测失败，请重试。')) }}>
             {detection.isRefreshing ? '正在刷新…' : '刷新'}
           </Button>
+
           <Button
             variant="outline"
             disabled={busy}

@@ -1,3 +1,4 @@
+import { ManagementSurfaceProvider } from '@/components/ui/management-surface'
 import React from 'react'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { getAgentCatalog } from '@/lib/agent-catalog'
@@ -134,88 +135,90 @@ export function AutomationEditorDialog({
   }, [draft.agentId, settings?.disabledTuiAgents])
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        className="flex h-[min(880px,90vh)] w-[min(1080px,calc(100vw-2rem))] max-w-[calc(100vw-2rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-[1080px]"
-        aria-describedby={undefined}
-        ref={dialogContentRef}
-        onOpenAutoFocus={(event) => {
-          event.preventDefault()
-        }}
-        onEscapeKeyDown={(event) => {
-          // Why: Radix listens on document, so currentTarget is not the
-          // dialog. Use the content ref to scope find to this prompt editor.
-          const dialog =
-            dialogContentRef.current ??
-            (event.target instanceof Element
-              ? event.target.closest('[data-slot="dialog-content"]')
-              : null)
-          if (
-            closeUnfocusedMonacoFindOrPreventDialogDismiss({
-              root: getAutomationPromptEditorRoot(dialog),
-              eventTarget: event.target
-            })
-          ) {
+    <ManagementSurfaceProvider value={true}>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent
+          className="ce-management-surface flex h-auto max-h-[calc(100dvh-2rem)] w-full max-w-[calc(100vw-2rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-[820px]"
+          aria-describedby={undefined}
+          ref={dialogContentRef}
+          onOpenAutoFocus={(event) => {
             event.preventDefault()
-          }
-        }}
-      >
-        <AutomationEditorDialogHeader
-          isEditing={isEditing}
-          isCreateMode={isCreateMode}
-          templateOpen={templateOpen}
-          templates={getAutomationTemplates()}
-          onTemplateOpenChange={setTemplateOpen}
-          onApplyTemplate={(template) => {
-            onApplyTemplate(template)
-            setTemplateOpen(false)
           }}
-        />
-
-        <div className="flex min-h-0 flex-1 flex-row">
-          <AutomationEditorPromptSection
-            draft={draft}
-            onDraftChange={onDraftChange}
-            onDismiss={() => onOpenChange(false)}
+          onEscapeKeyDown={(event) => {
+            // Why: Radix listens on document, so currentTarget is not the
+            // dialog. Use the content ref to scope find to this prompt editor.
+            const dialog =
+              dialogContentRef.current ??
+              (event.target instanceof Element
+                ? event.target.closest('[data-slot="dialog-content"]')
+                : null)
+            if (
+              closeUnfocusedMonacoFindOrPreventDialogDismiss({
+                root: getAutomationPromptEditorRoot(dialog),
+                eventTarget: event.target
+              })
+            ) {
+              event.preventDefault()
+            }
+          }}
+        >
+          <AutomationEditorDialogHeader
+            isEditing={isEditing}
+            isCreateMode={isCreateMode}
+            templateOpen={templateOpen}
+            templates={getAutomationTemplates()}
+            onTemplateOpenChange={setTemplateOpen}
+            onApplyTemplate={(template) => {
+              onApplyTemplate(template)
+              setTemplateOpen(false)
+            }}
           />
-          <AutomationEditorSettingsSidebar
-            destination={destination}
-            repos={repos}
-            projectHostSetups={projectHostSetups}
-            automationYamlHooksByRepoKey={automationYamlHooksByRepoKey}
-            getAutomationHooksCacheKey={getAutomationHooksCacheKey}
-            repoMap={repoMap}
-            worktrees={worktrees}
-            settings={settings}
-            draft={draft}
-            visibleAgents={visibleAgents}
-            pickerTriggerClassName={AUTOMATION_EDITOR_PICKER_TRIGGER_CLASS}
-            segmentedGroupClassName={AUTOMATION_EDITOR_SEGMENTED_GROUP_CLASS}
-            segmentedItemClassName={AUTOMATION_EDITOR_SEGMENTED_ITEM_CLASS}
-            onProjectChange={onProjectChange}
-            getRepoHostLabel={getRepoHostLabel}
-            allowAddProject={allowAddProject}
-            onDraftChange={onDraftChange}
-            onSetupDecisionTouched={onSetupDecisionTouched}
+
+          <div className="scrollbar-sleek flex min-h-0 flex-1 flex-col overflow-y-auto md:flex-row">
+            <AutomationEditorPromptSection
+              draft={draft}
+              onDraftChange={onDraftChange}
+              onDismiss={() => onOpenChange(false)}
+            />
+            <AutomationEditorSettingsSidebar
+              destination={destination}
+              repos={repos}
+              projectHostSetups={projectHostSetups}
+              automationYamlHooksByRepoKey={automationYamlHooksByRepoKey}
+              getAutomationHooksCacheKey={getAutomationHooksCacheKey}
+              repoMap={repoMap}
+              worktrees={worktrees}
+              settings={settings}
+              draft={draft}
+              visibleAgents={visibleAgents}
+              pickerTriggerClassName={AUTOMATION_EDITOR_PICKER_TRIGGER_CLASS}
+              segmentedGroupClassName={AUTOMATION_EDITOR_SEGMENTED_GROUP_CLASS}
+              segmentedItemClassName={AUTOMATION_EDITOR_SEGMENTED_ITEM_CLASS}
+              onProjectChange={onProjectChange}
+              getRepoHostLabel={getRepoHostLabel}
+              allowAddProject={allowAddProject}
+              onDraftChange={onDraftChange}
+              onSetupDecisionTouched={onSetupDecisionTouched}
+            />
+          </div>
+
+          <AutomationOwnerConflictNotice
+            notice={notice ?? null}
+            className="mx-5 mb-1"
+            onRecover={onNoticeRecover}
+            onDismiss={onNoticeDismiss}
           />
-        </div>
 
-        <AutomationOwnerConflictNotice
-          notice={notice ?? null}
-          className="mx-5 mb-1"
-          onRecover={onNoticeRecover}
-          onDismiss={onNoticeDismiss}
-        />
-
-        <AutomationEditorDialogFooter
-          isEditing={isEditing}
-          isSaving={isSaving}
-          canSave={canSave}
-          hasProjects={repos.length > 0}
-          onOpenChange={onOpenChange}
-          onSave={onSave}
-        />
-      </DialogContent>
-    </Dialog>
+          <AutomationEditorDialogFooter
+            isEditing={isEditing}
+            isSaving={isSaving}
+            canSave={canSave}
+            hasProjects={repos.length > 0}
+            onOpenChange={onOpenChange}
+            onSave={onSave}
+          />
+        </DialogContent>
+      </Dialog>
+    </ManagementSurfaceProvider>
   )
 }

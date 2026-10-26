@@ -144,10 +144,37 @@ test('late page response cannot replace newer page or updated snapshot; drafts s
   const stale = f.api.refresh(0); f.api.update({ ...f.snapshot, items_page: page([item({ title: 'SNAPSHOT' })]) });
   f.reads[2].resolve(page([item({ title: 'LATE' })])); await stale; assert.match(f.get('items-list').textContent, /SNAPSHOT/); assert.equal(f.get('item-quick-title').value, 'quick draft');
 });
-test('read failure is visible, keeps draft, removes old page and recovers', async () => {
-  const f = fixture(); f.api.open(item()); f.get('item-title').value = 'draft'; const pending = f.api.refresh(0);
-  f.reads[0].reject(new Error('read lost')); await pending; assert.match(f.get('items-status').textContent, /读取失败/); assert.ok(!f.get('items-list').textContent.includes('原任务'));
+test('same-scope read failure keeps the last page with stale feedback and retains the editor', async () => {
+  const f = fixture(page([item({ title: '已读快照' })])); f.api.open(item()); f.get('item-title').value = 'draft'; const pending = f.api.refresh(0);
+  f.reads[0].reject(new Error('read lost')); await pending; assert.match(f.get('items-status').textContent, /读取失败.*上次记录/); assert.match(f.get('items-list').textContent, /已读快照/);
   const recovered = f.api.refresh(0); f.reads[1].resolve(page()); await recovered; assert.match(f.get('items-list').textContent, /编辑详情/); assert.equal(f.get('item-title').value, 'draft');
+});
+
+test('metadata-only update reads no unscoped page and context replacement clears the previous project before GET', async () => {
+  const f = fixture(page([item({ title: '旧范围快照' })]), { projects: [{ id: 'a', name: 'A' }, { id: 'b', name: 'B' }] });
+  f.api.update(f.snapshot, { refresh: false }); assert.equal(f.reads.length, 0);
+  const first = f.api.setContext({ projectId: 'a', scope: 'all', state: '' });
+  assert.doesNotMatch(f.get('items-list').textContent, /旧范围快照/); assert.match(f.reads[0].url, /project_id=a/);
+  const next = f.api.setContext({ projectId: 'b', scope: 'all', state: '' });
+  f.reads[0].resolve(page([item({ title: 'A 晚到' })])); await first;
+  f.reads[1].reject(new Error('B unavailable')); await next;
+  assert.doesNotMatch(f.get('items-list').textContent, /A 晚到|旧范围快照/); assert.match(f.get('items-status').textContent, /读取失败/);
+});
+
+test('setActive and dispose retire late reads without closing a hidden draft or accepting a stale page', async () => {
+  const f = fixture(); f.api.open(item()); f.get('item-title').value = '保留';
+  const pending = f.api.refresh(0); f.api.setActive(false); f.reads[0].resolve(page([item({ title: '隐藏晚到' })])); await pending;
+  assert.equal(f.get('item-editor').open, true); assert.equal(f.get('item-title').value, '保留'); assert.doesNotMatch(f.get('items-list').textContent, /隐藏晚到/);
+  f.api.setActive(true); const retired = f.api.refresh(0); f.api.dispose(); const before = f.host.textContent;
+  f.reads[1].resolve(page([item({ title: '退役晚到' })])); await retired;
+  assert.equal(f.get('item-editor').open, false); assert.equal(f.host.textContent, before); assert.equal(f.reads.length, 2);
+});
+
+test('a confirmed write after disposal has one receipt and never refreshes or reopens retired DOM', async () => {
+  let saved = 0; const f = fixture(page(), { onSaved: () => saved++ }); f.get('item-quick-title').value = '已发送';
+  const pending = f.get('item-quick-form').fire('submit'); f.api.dispose(); const before = f.host.textContent;
+  f.writes[0].resolve({ item: item() }); await pending;
+  assert.equal(f.writes.length, 1); assert.equal(f.reads.length, 0); assert.equal(saved, 0); assert.equal(f.host.textContent, before);
 });
 test('archived/orphan original associations and unavailable sessions are preserved on state-only edit', async () => {
   const f = fixture(page(), { projects: [{ id: 'archived', name: '旧项目', archived: true }] });

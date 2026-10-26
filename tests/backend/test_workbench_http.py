@@ -2,12 +2,16 @@
 
 import hashlib
 import json
+from email.message import Message
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from types import SimpleNamespace
+from urllib.parse import urlsplit
 import unittest
 from unittest.mock import Mock, patch
 
-from control_everything.http.workbench import WorkbenchAssets
+from control_everything.http.workbench import WorkbenchAssets, STUDIO_CSP, handle_get
+from control_everything.integrations.remote_access import RemoteAccess
 from tests.backend import test_profile_http as fixtures
 from tests.backend.test_project_management import project_body
 
@@ -144,6 +148,49 @@ class WorkbenchHTTPTests(unittest.TestCase):
         self.assertEqual(self.request("/studio-shell")[0], 200)
         self.assertIn(b'data-isolated-preview="true"', self.last_handler.reply.call_args.args[1])
 
+    def test_workbench_only_allows_wasm_compilation_without_js_eval_or_new_origins(self):
+        baseline = ("default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
+                    "img-src 'self' data: blob:; font-src 'self' data:; worker-src 'self' blob:; "
+                    "connect-src 'self' {socket}; object-src 'none'; frame-src 'self' blob:; "
+                    "frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
+        for remote in (False, True):
+            for route in ('/studio', '/workbench/web-index.html?project_id=' + self.project['id']):
+                with self.subTest(remote=remote, route=route):
+                    if remote:
+                        access = RemoteAccess('https://workbench.example.test', 'A' * 43)
+                        self.server.remote_access = access
+                        headers = Message()
+                        headers['X-CE-Device-Proof'] = 'A' * 43
+                        handler = SimpleNamespace(server=self.server, headers=headers, reply=Mock(), reject=Mock())
+                        self.assertTrue(handle_get(handler, urlsplit(route)))
+                        handler.reject.assert_not_called()
+                        socket = access.websocket_origin
+                    else:
+                        self.assertEqual(self.request(route)[0], 200)
+                        handler, socket = self.last_handler, self.runtime.websocket_origin
+                    policy = handler.reply.call_args.kwargs['csp']
+                    directives = {part.strip().split()[0]: part.strip().split()[1:] for part in policy.split(';') if part.strip()}
+                    self.assertEqual(directives['script-src'], ["'self'", "'wasm-unsafe-eval'"])
+                    self.assertNotIn("'unsafe-eval'", directives['script-src'])
+                    self.assertEqual(policy.replace(" 'wasm-unsafe-eval'", ''), baseline.format(socket=socket))
+        for route in ('/studio-shell', '/workspace-admin'):
+            self.assertEqual(self.request(route)[0], 200)
+            expected = STUDIO_CSP.replace("frame-src 'none'", f"frame-src {self.server.origin}/news") if route == '/studio-shell' else STUDIO_CSP
+            self.assertEqual(self.last_handler.reply.call_args.kwargs['csp'], expected)
+            self.assertNotIn("'wasm-unsafe-eval'", STUDIO_CSP)
+            self.assertNotIn("'unsafe-eval'", STUDIO_CSP)
+
+    def test_remote_standalone_news_frame_uses_the_verified_public_origin(self):
+        from email.message import Message
+        from urllib.parse import urlsplit
+        self.server.remote_access = RemoteAccess('https://workbench.example.test', 'A' * 43)
+        headers = Message()
+        headers['X-CE-Device-Proof'] = 'A' * 43
+        handler = SimpleNamespace(server=self.server, headers=headers, reply=Mock(), reject=Mock())
+        self.assertTrue(handle_get(handler, urlsplit('/studio-shell')))
+        policy = handler.reply.call_args.kwargs['csp']
+        self.assertEqual(policy, STUDIO_CSP.replace("frame-src 'none'", 'frame-src https://workbench.example.test/news'))
+
     def test_studio_entry_keeps_manifest_checks_and_resolves_fixed_asset_urls(self):
         files = {"web-index.html": b'<script type="module" src="./assets/main.js"></script><link rel="stylesheet" href="./assets/main.css">',
                  "assets/main.js": b'export {}', "assets/main.css": b'body{}'}
@@ -179,10 +226,14 @@ class WorkbenchHTTPTests(unittest.TestCase):
         handler.reply.assert_not_called()
         self.assertEqual(self.request('/workspace-admin')[0], 200)
         self.assertIn(b'data-integration-admin="true"', self.last_handler.reply.call_args.args[1])
+        self.assertRegex(self.last_handler.reply.call_args.args[1],
+                         br'<body\b[^>]*class="ce-workspace-management"')
         self.assertEqual(self.request('/workspace-admin?src=elsewhere')[0], 400)
         self.server.workbench_runtime = None
         self.assertEqual(self.request('/workspace')[0], 200)
         self.assertNotIn(b'data-integration-admin="true"', self.last_handler.reply.call_args.args[1])
+        self.assertRegex(self.last_handler.reply.call_args.args[1],
+                         br'<body\b[^>]*class="ce-workspace-management"')
 
 
 if __name__ == "__main__":

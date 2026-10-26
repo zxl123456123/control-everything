@@ -33,11 +33,13 @@ def _params(query, keys):
 
 def handle_get(handler, path):
     if path.path in ASSETS:
-        if path.query:
+        embedded = path.path == '/news' and path.query == 'embedded=1'
+        if path.query and not embedded:
             handler.reject(400, 'invalid_query')
         else:
             name, mime = ASSETS[path.path]
-            handler.reply(200, (web_root() / 'workspace' / name).read_bytes(), mime, csp=CSP)
+            handler.reply(200, (web_root() / 'workspace' / name).read_bytes(), mime,
+                          csp=CSP.replace("frame-ancestors 'none'", "frame-ancestors 'self'") if embedded else CSP)
         return True
     route = path.path.removeprefix(PREFIX)
     if not path.path.startswith(PREFIX) or route not in {'reader', 'article', 'research', 'research/latest', 'research-frame'}:

@@ -24,7 +24,7 @@ class DesktopAssemblyTests(unittest.TestCase):
         config = RuntimeConfig(root, root, root / 'data', root / 'git.exe', ())
         runtime = Mock(config=config, ready=True, websocket_origin='ws://127.0.0.1:24000')
         server = SimpleNamespace(local_origin='http://127.0.0.1:1234', server_address=('127.0.0.1', 1234),
-                                 workspace=Mock())
+                                 workspace=Mock(), attach_workbench_runtime=Mock())
         connector = Mock(remote_access=None, health_identity=None)
         return Desktop(server, runtime, connector), root
 

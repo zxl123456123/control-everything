@@ -6,6 +6,8 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { PlatformProjectContext } from './platform-project-context'
 import type { PlatformProject } from './platform-studio-surface'
 import PlatformProjectEntry from './platform-project-entry'
+import { PlatformSettingsContext, type SettingsTargetReady } from './platform-settings-navigation'
+import type { SettingsPresentationScope } from '../lib/settings-navigation-types'
 
 const fixture = vi.hoisted(() => ({
   load: vi.fn(),
@@ -20,7 +22,11 @@ const fixture = vi.hoisted(() => ({
   bridgeMounts: vi.fn(),
   bridgeUnmounts: vi.fn(),
   agentRequestData: [] as PlatformProjectBootstrap[],
-  agentRequests: vi.fn()
+  agentRequests: vi.fn(),
+  actionNames: [] as string[],
+  selectionOnly: false,
+  settingsReady: true,
+  settingsCallback: null as ((ready: SettingsTargetReady | null) => void) | null
 }))
 vi.mock('./platform-project-bootstrap', () => ({
   loadPlatformProjectBootstrap: fixture.load,
@@ -35,18 +41,26 @@ vi.mock('./platform-project-navigation-view', () => ({
   default: ({
     data,
     onReady,
-    projects
+    projects,
+    selectionOnly, settingsScope, onSettingsScope
   }: {
     data: PlatformProjectBootstrap
     onReady: (data: PlatformProjectBootstrap) => void
     projects: PlatformProject[]
+    selectionOnly?: boolean
+    settingsScope?: SettingsPresentationScope
+    onSettingsScope?: (scope: SettingsPresentationScope | null) => void
   }) => {
+    fixture.selectionOnly = Boolean(selectionOnly)
     fixture.nativeProjects = projects
     fixture.navigationData.push(data)
     fixture.markReady = onReady
     useEffect(() => {
       if (fixture.navigationReady) onReady(data)
     }, [data, onReady])
+    useEffect(() => {
+      if (settingsScope?.kind === 'project') onSettingsScope?.({ ...settingsScope, setupId: 'setup-exact' })
+    }, [settingsScope, onSettingsScope])
     return null
   }
 }))
@@ -65,14 +79,16 @@ vi.mock('./platform-agent-bridge', () => ({
     useEffect(() => {
       const receive = (event: Event) => {
         event.preventDefault()
+        fixture.actionNames.push(event.type)
         fixture.agentRequestData.push(data)
         fixture.agentRequests((event as CustomEvent).detail)
         window.location.hash = '#project/' + data.project.id + '/workspace'
       }
-      window.addEventListener('platform-start-task-agent', receive)
+      const actions = ['platform-start-task-agent', 'platform-open-task-session', 'platform-adopt-task-session']
+      for (const action of actions) window.addEventListener(action, receive)
       onReady?.(data)
       return () => {
-        window.removeEventListener('platform-start-task-agent', receive)
+        for (const action of actions) window.removeEventListener(action, receive)
       }
     }, [data, onReady])
     return null
@@ -102,7 +118,16 @@ vi.mock('./platform-studio-surface', () => ({
 vi.mock('./platform-workspace-app', () => ({
   default: () => {
     const project = useContext(PlatformProjectContext)
-    return <div data-testid="project-context">{project?.project.name || 'unbound'}</div>
+    const presentation = useContext(PlatformSettingsContext)
+    fixture.settingsCallback = presentation?.onReady ?? null
+    useEffect(() => {
+      const scope = presentation?.scope
+      if (fixture.settingsReady && presentation?.visible && scope &&
+        (scope.kind === 'global' || scope.setupId)) presentation.onReady?.({ contextKey: scope.contextKey,
+          repoId: scope.kind === 'project' ? scope.repoId : null, sectionId: scope.kind === 'project' ? `repo-${scope.repoId}` : 'appearance',
+          ...(scope.kind === 'project' ? { hostId: scope.hostId, setupId: scope.setupId } : {}) })
+    }, [presentation])
+    return <div data-testid="project-context" data-settings-scope={JSON.stringify(presentation?.scope)}>{project?.project.name || 'unbound'}</div>
   }
 }))
 
@@ -120,6 +145,10 @@ beforeEach(() => {
   fixture.bridgeUnmounts.mockClear()
   fixture.agentRequests.mockClear()
   fixture.agentRequestData = []
+  fixture.actionNames = []
+  fixture.selectionOnly = false
+  fixture.settingsReady = true
+  fixture.settingsCallback = null
   fixture.load.mockReset()
   fixture.projects = null
   fixture.nativeProjects = []
@@ -139,6 +168,110 @@ it('keeps a cold overview independent of the developer runtime', async () => {
   expect(fixture.load).not.toHaveBeenCalled()
   expect(fixture.bridgeMounts).not.toHaveBeenCalled()
   expect(screen.queryByTestId('project-context')).toBeNull()
+})
+
+it.each(['#project-setup', '#settings/appearance', '#settings/development', '#project/p-one/items', '#project/p-one/board'])(
+  'keeps the cold %s management intent independent of runtime bootstrap', async (hash) => {
+    window.history.replaceState(null, '', hash)
+    render(<PlatformProjectEntry />)
+    publish([project])
+    await act(async () => {})
+    expect(fixture.load).not.toHaveBeenCalled()
+    expect(fixture.bridgeMounts).not.toHaveBeenCalled()
+    expect(screen.queryByTestId('project-context')).toBeNull()
+    expect(screen.getByTestId('studio-surface').getAttribute('data-pending')).toBe(String(hash.startsWith('#settings/')))
+  }
+)
+
+it('keeps project settings hidden until exact scope and Settings section ready, using selectionOnly', async () => {
+  window.history.replaceState(null, '', '#project/p-one/settings')
+  fixture.settingsReady = false
+  const view = render(<PlatformProjectEntry />)
+  publish([project])
+  await waitFor(() => expect(fixture.settingsCallback).toBeTypeOf('function'))
+  await waitFor(() => expect(screen.getByTestId('project-context').dataset.settingsScope).toContain('setup-exact'))
+  const app = view.container.querySelector('.platform-project-content')!
+  expect(app.hasAttribute('hidden')).toBe(true)
+  expect(app.hasAttribute('inert')).toBe(true)
+  expect(fixture.load).toHaveBeenCalledTimes(1)
+  expect(fixture.selectionOnly).toBe(true)
+  await act(async () => fixture.settingsCallback!({ contextKey: 'local-page', repoId: 'repo-wrong',
+    hostId: 'runtime:env-a', setupId: 'setup-exact', sectionId: 'repo-repo-wrong' }))
+  expect(app.hasAttribute('hidden')).toBe(true)
+  await act(async () => fixture.settingsCallback!({ contextKey: 'local-page', repoId: 'repo-a',
+    hostId: 'runtime:env-a', setupId: 'setup-exact', sectionId: 'repo-repo-a' }))
+  expect(app.hasAttribute('hidden')).toBe(false)
+  expect(app.hasAttribute('inert')).toBe(false)
+  expect(document.documentElement.dataset.platformView).toBe('studio')
+})
+
+it('explains a cold development preference without selecting or bootstrapping any project', async () => {
+  window.history.replaceState(null, '', '#settings/development')
+  render(<PlatformProjectEntry />); publish([project])
+  await act(async () => {})
+  expect(screen.getByRole('status').textContent).toContain('尚未连接开发环境')
+  expect(screen.getByRole('link', { name: '返回项目总览' }).getAttribute('href')).toBe('#home')
+  expect(fixture.load).not.toHaveBeenCalled()
+  expect(fixture.navigationData).toHaveLength(0)
+})
+
+it('waits for every draft guard and publishes one accepted navigation only after all accept', async () => {
+  window.history.replaceState(null, '', '#home')
+  render(<PlatformProjectEntry />); publish([project])
+  let first!: (value: boolean) => void, second!: (value: boolean) => void
+  const accepted = vi.fn()
+  let requests = 0
+  const guard = (event: Event) => {
+    requests++
+    const detail = (event as CustomEvent<{ waitUntil: (result: Promise<boolean>) => void }>).detail
+    detail.waitUntil(new Promise(resolve => { first = resolve }))
+    detail.waitUntil(new Promise(resolve => { second = resolve }))
+  }
+  window.addEventListener('platform-before-navigate', guard)
+  window.addEventListener('platform-navigation-accepted', accepted)
+  try {
+    await act(async () => { window.location.hash = '#project/p-one/items' })
+    await waitFor(() => expect(first).toBeTypeOf('function'))
+    expect(window.location.hash).toBe('#home')
+    await act(async () => { window.location.hash = '#project/p-one/items'; await new Promise(resolve => setTimeout(resolve, 0)) })
+    expect(requests).toBe(1)
+    await act(async () => first(true)); expect(accepted).not.toHaveBeenCalled()
+    await act(async () => second(false)); expect(window.location.hash).toBe('#home')
+    await act(async () => { window.location.hash = '#project/p-one/items' })
+    await waitFor(() => expect(requests).toBe(2))
+    await act(async () => { first(true); second(true) })
+    await waitFor(() => expect(accepted).toHaveBeenCalledTimes(1))
+    expect((accepted.mock.calls[0][0] as CustomEvent).detail).toEqual({from:'#home',to:'#project/p-one/items'})
+    expect(fixture.load).not.toHaveBeenCalled()
+  } finally {
+    window.removeEventListener('platform-before-navigate', guard)
+    window.removeEventListener('platform-navigation-accepted', accepted)
+  }
+})
+
+it('does not let an older pending guard replace a later accepted destination', async () => {
+  window.history.replaceState(null, '', '#home')
+  render(<PlatformProjectEntry />); publish([project])
+  let resolve!: (value: boolean) => void
+  const guard = (event: Event) => {
+    const detail = (event as CustomEvent<{to:string; waitUntil:(result:Promise<boolean>)=>void}>).detail
+    if (detail.to.endsWith('/items')) detail.waitUntil(new Promise(done => {resolve=done}))
+  }
+  const accepted = vi.fn()
+  window.addEventListener('platform-before-navigate', guard)
+  window.addEventListener('platform-navigation-accepted', accepted)
+  try {
+    await act(async () => { window.location.hash = '#project/p-one/items' })
+    await waitFor(() => expect(resolve).toBeTypeOf('function'))
+    await act(async () => { window.location.hash = '#settings/appearance' })
+    await waitFor(() => expect(window.location.hash).toBe('#settings/appearance'))
+    await act(async () => resolve(true))
+    expect(window.location.hash).toBe('#settings/appearance')
+    expect(accepted).toHaveBeenCalledTimes(1)
+  } finally {
+    window.removeEventListener('platform-before-navigate', guard)
+    window.removeEventListener('platform-navigation-accepted', accepted)
+  }
 })
 
 it('initializes development when activity is the first requested view', async () => {
@@ -217,6 +350,64 @@ it('opens development only when requested and preserves the mounted app on retur
   await waitFor(() => expect(screen.getByTestId('studio-surface').hidden).toBe(false))
   expect(screen.getByTestId('project-context')).toBe(app)
   expect(fixture.load).toHaveBeenCalledTimes(1)
+})
+
+const progressActions = [
+  ['platform-open-task-session', {}],
+  ['platform-open-task-session', { resume: true }],
+  ['platform-adopt-task-session', { sessionId: 'session-record' }]
+] as const
+it.each(progressActions)('does not accept cold %s for an absent project', async (action, extra) => {
+  window.history.replaceState(null, '', '#project/p-one/tasks')
+  render(<PlatformProjectEntry />)
+  publish([project])
+  let accepted = false
+  act(() => { accepted = !window.dispatchEvent(new CustomEvent(action, { cancelable: true,
+    detail: { projectId: 'absent', taskId: 'task', ...extra } })) })
+  expect(accepted).toBe(false)
+  expect(fixture.load).not.toHaveBeenCalled()
+  expect(fixture.agentRequests).not.toHaveBeenCalled()
+})
+it.each(progressActions)('cancels repeated cold %s after navigation away', async (action, extra) => {
+  window.history.replaceState(null, '', '#project/p-one/tasks')
+  let resolve!: (value: unknown) => void
+  fixture.load.mockImplementation(() => new Promise(done => { resolve = done }))
+  render(<PlatformProjectEntry />)
+  publish([project])
+  const request = { projectId: 'p-one', taskId: 'task-one', ...extra }
+  act(() => { for (let i = 0; i < 2; i++) window.dispatchEvent(new CustomEvent(action, { cancelable: true, detail: request })) })
+  await waitFor(() => expect(fixture.load).toHaveBeenCalledTimes(1))
+  await act(async () => { window.location.hash = '#home' })
+  await act(async () => resolve(bootstrap()))
+  expect(fixture.agentRequests).not.toHaveBeenCalled()
+})
+it.each(progressActions)('routes cold %s with its complete payload', async (action, extra) => {
+  window.history.replaceState(null, '', '#project/p-one/tasks')
+  render(<PlatformProjectEntry />)
+  publish([project])
+  const request = { projectId: 'p-one', taskId: 'task-one', ...extra }
+  let accepted = false
+  act(() => { accepted = !window.dispatchEvent(new CustomEvent(action, { cancelable: true, detail: request })) })
+  expect(accepted).toBe(true)
+  await waitFor(() => expect(fixture.agentRequests).toHaveBeenCalledTimes(1))
+  expect(fixture.agentRequests).toHaveBeenCalledWith(request)
+  expect(fixture.actionNames).toEqual([action])
+  expect(fixture.selectionOnly).toBe(true)
+})
+it.each(progressActions)('routes cross-project %s only to the destination bridge', async (action, extra) => {
+  fixture.load.mockImplementation((id: string) => Promise.resolve(id === 'p-one' ? bootstrap() :
+    { ...bootstrap('Two'), project: { id: 'p-two', name: 'Two' } }))
+  render(<PlatformProjectEntry />)
+  publish([project, { id: 'p-two', name: 'Two', directory: 'C:/example/two' }])
+  await waitFor(() => expect(screen.getByTestId('project-context').textContent).toBe('One'))
+  await act(async () => { window.location.hash = '#project/p-one/tasks' })
+  const request = { projectId: 'p-two', taskId: 'task-two', ...extra }
+  act(() => { window.dispatchEvent(new CustomEvent(action, { cancelable: true, detail: request })) })
+  await waitFor(() => expect(fixture.agentRequests).toHaveBeenCalledTimes(1))
+  expect(fixture.agentRequestData[0].project.id).toBe('p-two')
+  expect(fixture.agentRequests).toHaveBeenCalledWith(request)
+  expect(fixture.actionNames).toEqual([action])
+  expect(fixture.selectionOnly).toBe(true)
 })
 
 it('keeps a cold task Agent request until the development surface and bridge are ready', async () => {
@@ -560,7 +751,7 @@ it('keeps the app and pending agent bridge mounted across task and activity tabs
       expect(
         screen
           .getByRole('link', {
-            name: ['activity', 'workspace'].includes(tab) ? '开发' : '事项'
+            name: ['activity', 'workspace'].includes(tab) ? '开发' : '进展'
           })
           .getAttribute('aria-current')
       ).toBe('page')
@@ -664,7 +855,7 @@ it('guards body shadow dialogs and accepts the next navigation after closing', a
       window.location.hash = '#project/p-one/review'
     })
     await waitFor(() =>
-      expect(screen.getByRole('link', { name: '事项' }).getAttribute('aria-current')).toBe('page')
+      expect(screen.getByRole('link', { name: '进展' }).getAttribute('aria-current')).toBe('page')
     )
     expect((screen.getByTestId('studio-surface') as HTMLElement).hidden).toBe(false)
     expect(screen.getByLabelText('当前项目').textContent).toBe('One')
@@ -690,7 +881,7 @@ it('keeps the target title and hides the workspace until that project is activat
   expect(app.closest('.platform-project-content')?.hasAttribute('hidden')).toBe(true)
   expect(screen.getByTestId('studio-surface').dataset.pending).toBe('true')
   expect(screen.queryByRole('link', { name: '全部事项' })).toBeNull()
-  expect(screen.getByRole('link', { name: '‹ 项目' }).getAttribute('href')).toBe('#home')
+  expect(screen.getByRole('link', { name: '项目总览' }).getAttribute('href')).toBe('#home')
   await act(async () => resolve({ ...bootstrap('Two'), project: { id: 'p-two', name: 'Two' } }))
   await waitFor(() => expect(fixture.navigationData.at(-1)?.project.id).toBe('p-two'))
   expect(app.closest('.platform-project-content')?.hasAttribute('hidden')).toBe(true)
@@ -718,7 +909,7 @@ it('keeps only development and tasks in the primary navigation', async () => {
   publish([project])
   await waitFor(() => expect(screen.getByTestId('project-context').textContent).toBe('One'))
   expect(screen.getByRole('link', { name: '开发' })).toBeTruthy()
-  expect(screen.getByRole('link', { name: '事项' })).toBeTruthy()
+  expect(screen.getByRole('link', { name: '进展' })).toBeTruthy()
   expect(screen.queryByRole('link', { name: '活动' })).toBeNull()
   expect(screen.queryByRole('link', { name: '全部事项' })).toBeNull()
 })

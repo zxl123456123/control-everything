@@ -147,6 +147,25 @@ function countAcknowledgeWrites(): { readonly count: () => number; stop: () => v
 }
 
 describe('Activity auto mark-read loop (React #185)', () => {
+  it('keeps the live terminal target outside management styling when returning to the list', async () => {
+    seedThreadStampedByLocalClock()
+    useAppStore.setState({ tabsByWorktree: { [worktree.id]: [tab] } })
+    await mountActivityPage()
+    await selectSeededThread()
+    const target = seededContainer.querySelector('[data-activity-terminal-slot-id="primary"]')
+    expect(target).not.toBeNull()
+    expect(target?.closest('.ce-management-surface')).toBeNull()
+    const back = [...seededContainer.querySelectorAll('button')].find(
+      (button) => button.textContent === 'Back'
+    )
+    expect(back).toBeDefined()
+    await act(async () => {
+      back?.click()
+    })
+    expect(seededContainer.querySelector('[data-activity-terminal-slot-id="primary"]')).toBe(target)
+    expect(seededContainer.querySelector('[role="listitem"][aria-current="true"]')).not.toBeNull()
+  })
+
   it('acknowledges a selected thread once even when its unread flag cannot clear', async () => {
     seedThreadStampedAheadOfLocalClock()
     await mountActivityPage()

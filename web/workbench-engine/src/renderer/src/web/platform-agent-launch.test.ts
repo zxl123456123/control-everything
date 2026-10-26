@@ -3,6 +3,9 @@ import type { AgentStatusEntry } from '../../../shared/agent-status-types'
 import {
   findPlatformProviderSession,
   linkPlatformTaskSession,
+  startPlatformTaskProgress,
+  resumePlatformTaskProgress,
+  adoptPlatformTaskProgress,
   platformTaskCwd,
   platformTaskPrompt,
   type PlatformAgentPendingLink,
@@ -42,6 +45,42 @@ const status = (patch: Partial<AgentStatusEntry> = {}): AgentStatusEntry =>
 afterEach(() => vi.unstubAllGlobals())
 
 describe('platform task launch scope and identity', () => {
+  it('does not resume a released historical run', () => {
+    const fetcher = vi.fn(); vi.stubGlobal('fetch', fetcher)
+    expect(() => resumePlatformTaskProgress({ item: brief().item, native_run: { id: 'old', client_token: 'old',
+      launch_state: 'created', active_slot: 0, binding_revision: 2, terminal_binding: null } }, 'new')).toThrow('活跃会话')
+    expect(fetcher).not.toHaveBeenCalled()
+  })
+  it('submits one persistent launch intent with CSRF and no commands or copied prompt', async () => {
+    const value = brief(); value.item.revision = 4; value.brief.revision = 3
+    const fetcher = vi.fn().mockResolvedValueOnce({ ok: true, json: async () => ({ csrf_token: 'fixture' }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ item: value.item, native_run: null }) })
+    vi.stubGlobal('fetch', fetcher)
+    await startPlatformTaskProgress(value, { agent: 'codex', worktreeId: 'worktree', clientToken: 'intent' })
+    expect(fetcher.mock.calls[1][0]).toBe('/api/workspace/tasks/task/native-start')
+    expect(fetcher.mock.calls[1][1].headers['X-Session-CSRF']).toBe('fixture')
+    expect(JSON.parse(fetcher.mock.calls[1][1].body)).toEqual({ expected_revision: 4, brief_revision: 3,
+      client_token: 'intent', agent: 'codex', worktree_id: 'worktree' })
+  })
+  it('replays the saved start payload rather than current revisions', async () => {
+    const saved = { expected_revision: 2, brief_revision: 1, client_token: 'saved', agent: 'claude', worktree_id: 'original' }
+    const fetcher = vi.fn().mockResolvedValueOnce({ ok: true, json: async () => ({ csrf_token: 'fixture' }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({}) })
+    vi.stubGlobal('fetch', fetcher)
+    await startPlatformTaskProgress(brief(), { agent: 'codex', worktreeId: 'other', clientToken: 'new', frozenRequest: saved })
+    expect(JSON.parse(fetcher.mock.calls[1][1].body)).toEqual(saved)
+  })
+  it('keeps resume and adopt as separate explicit actions', async () => {
+    const progress = { item: { ...brief().item, revision: 5 }, native_run: { id: 'run', client_token: 'saved',
+      launch_state: 'created', active_slot: 1, binding_revision: 3, terminal_binding: null } }
+    const fetcher = vi.fn().mockImplementation(async (url: string) => ({ ok: true, json: async () =>
+      url === '/api/bootstrap' ? { csrf_token: 'fixture' } : progress }))
+    vi.stubGlobal('fetch', fetcher)
+    await resumePlatformTaskProgress(progress, 'resume-token')
+    expect(JSON.parse(fetcher.mock.calls[1][1].body)).toEqual({ native_run_id: 'run', expected_binding_revision: 3, client_token: 'resume-token' })
+    await adoptPlatformTaskProgress(progress, 'session-row', 'worktree', 'adopt-token')
+    expect(JSON.parse(fetcher.mock.calls[3][1].body)).toEqual({ session_id: 'session-row', worktree_id: 'worktree', expected_revision: 5, client_token: 'adopt-token' })
+  })
   it('resolves Windows separators, case and dot segments within the workspace', () => {
     const value = brief()
     value.directories[0].path = String.raw`c:\example\REPO\src\..\docs`

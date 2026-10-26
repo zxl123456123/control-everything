@@ -43,7 +43,7 @@ type RepositoryHooksSectionProps = {
   copiedTemplate: boolean
   forceVisible?: boolean
   onCopyTemplate: () => void
-  onUpdateHookSettings: (settings: RepoHookSettings) => void
+  onUpdateHookSettings: (settings: RepoHookSettings) => Promise<boolean>
 }
 
 export function RepositoryHooksSection({
@@ -70,6 +70,8 @@ export function RepositoryHooksSection({
       : 'missing'
   const {
     hookSettingsDraft,
+    saveStatus,
+    lastEditedHook,
     updateScriptDraft,
     commitScriptDraft,
     flushScriptDraftOnUnmount,
@@ -151,6 +153,8 @@ export function RepositoryHooksSection({
           sharedScript={sharedSetupScript}
           onChange={(next) => updateScriptDraft('setup', next)}
           onCommit={commitScriptDraft}
+          saveStatus={saveStatus}
+          focusOnError={lastEditedHook === 'setup'}
           sectionId={getRepositoryLocalCommandsSectionId(repo.id)}
         />
       </SearchableSetting>
@@ -204,6 +208,8 @@ export function RepositoryHooksSection({
           sharedScript={sharedArchiveScript}
           onChange={(next) => updateScriptDraft('archive', next)}
           onCommit={commitScriptDraft}
+          saveStatus={saveStatus}
+          focusOnError={lastEditedHook === 'archive'}
         />
       </SearchableSetting>
       {localCommandSourceNotice ? (

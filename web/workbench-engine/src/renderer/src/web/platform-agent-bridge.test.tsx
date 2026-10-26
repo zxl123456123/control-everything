@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { PlatformTaskBrief } from './platform-agent-launch'
 import type { PlatformProjectBootstrap } from './platform-project-bootstrap'
@@ -8,6 +8,9 @@ import PlatformAgentBridge from './platform-agent-bridge'
 const mocks = vi.hoisted(() => ({
   settings: vi.fn(),
   brief: vi.fn(),
+  progress: vi.fn(),
+  resume: vi.fn(),
+  adopt: vi.fn(),
   launch: vi.fn(),
   link: vi.fn(),
   activate: vi.fn(),
@@ -16,9 +19,7 @@ const mocks = vi.hoisted(() => ({
   listener: () => {},
   openSettingsTarget: vi.fn(),
   openSettingsPage: vi.fn(),
-  detect: vi.fn(),
-  refresh: vi.fn(),
-  detection: {} as Record<string, any>
+  detect: vi.fn(), refresh: vi.fn(), detection: {} as Record<string, any>
 }))
 vi.mock('@/hooks/useDetectedAgents', () => ({ useDetectedAgents: (target: unknown) => {
   mocks.detect(target)
@@ -36,6 +37,7 @@ vi.mock('@/components/agent/AgentCombobox', () => ({ default: ({ agents, value, 
 vi.mock('@/store', () => ({
   useAppStore: {
     getState: () => mocks.state,
+    setState: (patch: any) => Object.assign(mocks.state, patch),
     subscribe: (callback: () => void) => {
       mocks.listener = callback
       return () => {
@@ -56,6 +58,10 @@ vi.mock('sonner', () => ({ toast: mocks.toast }))
 vi.mock('./platform-agent-launch', async (actual) => ({
   ...(await actual<typeof import('./platform-agent-launch')>()),
   readPlatformTaskBrief: mocks.brief,
+  readPlatformTaskProgress: mocks.progress,
+  startPlatformTaskProgress: mocks.launch,
+  resumePlatformTaskProgress: mocks.resume,
+  adoptPlatformTaskProgress: mocks.adopt,
   linkPlatformTaskSession: mocks.link
 }))
 vi.mock('@/components/ui/dialog', () => ({
@@ -74,9 +80,9 @@ const data = {
   target: { repoId: 'repo' }
 } as PlatformProjectBootstrap
 const fresh = (): PlatformTaskBrief => ({
-  item: { id: 'task', origin: 'task', title: 'Build search', project_id: 'project' },
+  item: { id: 'task', origin: 'task', title: 'Build search', project_id: 'project', revision: 1 },
   brief: {
-    request_text: 'Search titles',
+    revision: 1, request_text: 'Search titles',
     acceptance_text: '',
     constraints_text: '',
     references: [],
@@ -84,6 +90,8 @@ const fresh = (): PlatformTaskBrief => ({
   },
   directories: []
 })
+const progress = () => ({ item: fresh().item, native_run: { id: 'run', client_token: 'token', launch_state: 'created', active_slot: 1, binding_revision: 1,
+  terminal_binding: { environmentId: 'env', worktreeId: 'worktree', tabId: 'tab', ptyId: 'pty' } } })
 const settings = () => ({
   disabledTuiAgents: [],
   defaultTuiAgent: 'codex',
@@ -128,7 +136,8 @@ beforeEach(() => {
         }
       ]
     },
-    agentStatusByPaneKey: {},
+    agentStatusByPaneKey: {}, tabsByWorktree: { worktree: [{ id: 'tab' }] }, ptyIdsByTabId: { tab: ['pty'] },
+    setActiveRepo: vi.fn(), setActiveView: vi.fn(), setActiveWorktree: vi.fn(), setActiveTab: vi.fn(), setActiveTabType: vi.fn(),
     openSettingsTarget: mocks.openSettingsTarget,
     openSettingsPage: mocks.openSettingsPage
   }
@@ -139,13 +148,10 @@ beforeEach(() => {
   mocks.brief.mockResolvedValue(fresh())
   mocks.link.mockResolvedValue(undefined)
   mocks.activate.mockReturnValue({ primaryTabId: null })
-  mocks.launch.mockReturnValue({
-    terminalCompletion: Promise.resolve({
-      outcome: { status: 'created' },
-      tabId: 'web-terminal-tab'
-    }),
-    promptDeliveryResult: Promise.resolve({ delivered: true })
-  })
+  mocks.progress.mockResolvedValue({ item: fresh().item, native_run: null })
+  mocks.launch.mockResolvedValue(progress())
+  mocks.resume.mockResolvedValue(progress())
+  mocks.adopt.mockResolvedValue(progress())
 })
 afterEach(() => {
   cleanup()
@@ -153,21 +159,28 @@ afterEach(() => {
 })
 
 describe('platform native Agent bridge', () => {
-  it.each(['grok', 'dsh'])('uses the host %s agent without a platform registration', async (agent) => {
+  it.each(['grok', 'dsh'])('uses %s through the durable task start without registration', async agent => {
     mocks.settings.mockResolvedValue({ ...settings(), defaultTuiAgent: agent })
     render(<PlatformAgentBridge data={data} />)
     await request()
     expect(mocks.detect).toHaveBeenCalledWith({ kind: 'runtime', environmentId: 'env', worktreeId: 'worktree' })
     expect((screen.getByLabelText('执行 Agent') as HTMLSelectElement).value).toBe(agent)
-    expect(screen.getByRole('status').textContent).toContain('无需注册')
     await act(async () => { fireEvent.click(screen.getByText('开始')) })
-    expect(mocks.refresh).toHaveBeenCalledOnce()
-    expect(mocks.launch).toHaveBeenCalledWith(expect.objectContaining({ agent,
-      requireHostAuthority: true, selectedExecutionHostId: 'runtime:env' }))
-    mocks.state.agentStatusByPaneKey = { row: { connectionId: 'env', worktreeId: 'worktree',
-      tabId: 'web-terminal-tab', agentType: agent, providerSession: { key: 'session_id', id: 'native-id' } } }
-    await act(async () => { mocks.listener() })
-    expect(mocks.link).toHaveBeenCalledWith(expect.objectContaining({ agent }), { key: 'session_id', id: 'native-id' })
+    expect(mocks.launch).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ agent,
+      worktreeId: 'worktree', clientToken: expect.any(String) }))
+    expect(mocks.link).not.toHaveBeenCalled()
+  })
+  it('keeps a saved Grok launch fixed while reconciling its outcome', async () => {
+    const frozen = { agent: 'grok', worktree_id: 'worktree', client_token: 'original', expected_revision: 1, brief_revision: 1 }
+    mocks.progress.mockResolvedValue({ item: fresh().item, native_run: { ...progress().native_run,
+      launch_state: 'unknown', client_token: 'original', brief_snapshot: { request: frozen } } })
+    render(<PlatformAgentBridge data={data} />)
+    await request()
+    fireEvent.change(screen.getByLabelText('执行 Agent'), { target: { value: 'codex' } })
+    expect((screen.getByLabelText('执行 Agent') as HTMLSelectElement).value).toBe('grok')
+    await act(async () => { fireEvent.click(screen.getByText('开始')) })
+    expect(mocks.launch).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ agent: 'grok',
+      clientToken: 'original', frozenRequest: frozen }))
   })
   it.each(['isLoading', 'detectionFailed', 'needsServerUpdate'])('refuses unknown host agents when %s', async (flag) => {
     mocks.detection[flag] = true
@@ -203,7 +216,7 @@ describe('platform native Agent bridge', () => {
     fireEvent.change(screen.getByLabelText('执行 Agent'), { target: { value: 'grok' } })
     expect((screen.getByLabelText('执行 Agent') as HTMLSelectElement).value).toBe('codex')
     await act(async () => { finish(['codex', 'grok']) })
-    expect(mocks.launch).toHaveBeenCalledWith(expect.objectContaining({ agent: 'codex' }))
+    expect(mocks.launch).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ agent: 'codex' }))
   })
   it('keeps the current selection and refuses launch when the fresh probe rejects', async () => {
     render(<PlatformAgentBridge data={data} />)
@@ -223,17 +236,38 @@ describe('platform native Agent bridge', () => {
     expect(mocks.launch).not.toHaveBeenCalled()
     expect(mocks.activate).not.toHaveBeenCalled()
   })
-  it('does not retry a launch without provider identity to repair its association', async () => {
-    mocks.settings.mockResolvedValue({ ...settings(), defaultTuiAgent: 'hermes' })
+
+  it.each([false, undefined])('explains status hook capability %s before allowing development', async enabled => {
+    mocks.settings.mockResolvedValue({ ...settings(), agentStatusHooksEnabled: enabled })
     render(<PlatformAgentBridge data={data} />)
     await request()
+    expect(screen.getByText(enabled === false
+      ? '自动进展记录未启用，开发可继续；可在 Agent 设置开启。'
+      : '自动进展记录能力尚未确认，开发可继续；请在 Agent 设置核对。')).toBeTruthy()
+    expect((screen.getByText('开始') as HTMLButtonElement).disabled).toBe(false)
+    expect(mocks.launch).not.toHaveBeenCalled()
+  })
+  it('does not report disabled hooks when the host explicitly enables them', async () => {
+    mocks.settings.mockResolvedValue({ ...settings(), agentStatusHooksEnabled: true })
+    render(<PlatformAgentBridge data={data} />)
+    await request()
+    expect(screen.queryByText(/自动进展记录/)).toBeNull()
+  })
+  it.each(['created', 'unknown'])('starts a new intent after release of a historical %s run', async launchState => {
+    const historical = { ...progress().native_run, active_slot: 0, launch_state: launchState,
+      client_token: 'released-token', brief_snapshot: { request: { client_token: 'released-token',
+        expected_revision: 0, brief_revision: 0, agent: 'claude', worktree_id: 'historical-worktree' } } }
+    mocks.progress.mockResolvedValue({ item: fresh().item, native_run: historical })
+    render(<PlatformAgentBridge data={data} />)
+    await request()
+    expect(mocks.state.setActiveTab).not.toHaveBeenCalled()
     await act(async () => { fireEvent.click(screen.getByText('开始')) })
-    await act(async () => { window.dispatchEvent(new CustomEvent('platform-start-task-agent', {
-      cancelable: true, detail: { projectId: 'project', taskId: 'task' }
-    })) })
     expect(mocks.launch).toHaveBeenCalledOnce()
-    expect(mocks.link).not.toHaveBeenCalled()
-    expect(mocks.toast.info).toHaveBeenLastCalledWith(expect.stringContaining('等待会话关联'))
+    const options = mocks.launch.mock.calls[0][1]
+    expect(options.clientToken).not.toBe('released-token')
+    expect(options.frozenRequest).toBeUndefined()
+    expect(options.worktreeId).toBe('worktree')
+    expect(options.agent).toBe('codex')
   })
   it('shows the same workspace and task subdirectory passed to launch', async () => {
     const brief = fresh()
@@ -247,7 +281,7 @@ describe('platform native Agent bridge', () => {
     expect(target).toContain('项目原目录')
     expect(target).toContain('C:/example/Repo/docs')
     await act(async () => { fireEvent.click(screen.getByText('开始')) })
-    expect(mocks.launch).toHaveBeenCalledWith(expect.objectContaining({ worktreeId: 'worktree', initialCwd: 'C:/example/Repo/docs' }))
+    expect(mocks.launch).toHaveBeenCalledWith(brief, expect.objectContaining({ worktreeId: 'worktree' }))
   })
   it.each(['selection', 'instance', 'path', 'cwd', 'branch', 'mode'])('refuses an unseen target after %s changes', async (change) => {
     render(<PlatformAgentBridge data={data} />)
@@ -296,49 +330,13 @@ describe('platform native Agent bridge', () => {
     expect(screen.getByRole('dialog')).toBeTruthy()
     expect(mocks.launch).not.toHaveBeenCalled()
   })
-  it('launches once using the current host arguments and links only a real provider identity', async () => {
+  it('starts exactly once through the persistent API, without browser-owned linking', async () => {
     render(<PlatformAgentBridge data={data} />)
     await request()
-    const button = screen.getByText('开始')
-    await act(async () => {
-      fireEvent.click(button)
-      fireEvent.click(button)
-    })
+    await act(async () => { fireEvent.click(screen.getByText('开始')); fireEvent.click(screen.getByText('开始')) })
     expect(mocks.launch).toHaveBeenCalledOnce()
-    expect(mocks.launch).toHaveBeenCalledWith(
-      expect.objectContaining({
-        agent: 'codex',
-        worktreeId: 'worktree',
-        requestedSurface: 'terminal',
-        requireHostAuthority: true,
-        selectedExecutionHostId: 'runtime:env',
-        initialCwd: 'C:/example/Repo',
-        agentArgs: '--sandbox read-only',
-        promptDelivery: 'submit-after-ready'
-      })
-    )
-    expect(mocks.brief).toHaveBeenCalledTimes(2)
-    expect(mocks.toast.info).toHaveBeenCalledWith('事项内容已送达，请在终端继续；会话关联需等待真实来源信息，未提供时保持未关联。')
-    expect(mocks.settings).toHaveBeenCalledWith({ environmentId: 'env' })
+    expect(mocks.launch).toHaveBeenCalledWith(fresh(), expect.objectContaining({ agent: 'codex', worktreeId: 'worktree', clientToken: expect.any(String) }))
     expect(mocks.link).not.toHaveBeenCalled()
-    mocks.state.agentStatusByPaneKey = {
-      row: {
-        connectionId: 'env',
-        worktreeId: 'worktree',
-        tabId: 'web-terminal-tab',
-        agentType: 'codex',
-        providerSession: { key: 'session_id', id: 'real-session' }
-      }
-    }
-    await act(async () => {
-      mocks.listener()
-      mocks.listener()
-    })
-    expect(mocks.link).toHaveBeenCalledOnce()
-    expect(mocks.link).toHaveBeenCalledWith(
-      expect.objectContaining({ taskId: 'task' }),
-      { key: 'session_id', id: 'real-session' }
-    )
   })
   it('opens native settings for the actual host without changing the default host', async () => {
     render(<PlatformAgentBridge data={data} />)
@@ -351,58 +349,6 @@ describe('platform native Agent bridge', () => {
     })
     expect(mocks.openSettingsPage).toHaveBeenCalledOnce()
     expect(screen.queryByRole('dialog')).toBeNull()
-  })
-  it('keeps two different task and agent launches independently awaiting their exact sessions', async () => {
-    render(<PlatformAgentBridge data={data} />)
-    await request()
-    await act(async () => {
-      fireEvent.click(screen.getByText('开始'))
-    })
-    const second = fresh()
-    second.item.id = 'second-task'
-    mocks.brief.mockResolvedValue(second)
-    mocks.launch.mockReturnValue({
-      terminalCompletion: Promise.resolve({
-        outcome: { status: 'created' },
-        tabId: 'web-terminal-claude'
-      }),
-      promptDeliveryResult: Promise.resolve({ delivered: true })
-    })
-    await request('second-task')
-    fireEvent.change(screen.getByLabelText('执行 Agent'), { target: { value: 'claude' } })
-    await act(async () => {
-      fireEvent.click(screen.getByText('开始'))
-    })
-    expect(mocks.launch).toHaveBeenCalledTimes(2)
-    expect(mocks.launch.mock.calls[1][0]).toMatchObject({ agent: 'claude', agentArgs: '' })
-    expect(mocks.link).not.toHaveBeenCalled()
-    mocks.state.agentStatusByPaneKey = {
-      first: {
-        connectionId: 'env',
-        worktreeId: 'worktree',
-        tabId: 'web-terminal-tab',
-        agentType: 'codex',
-        providerSession: { key: 'session_id', id: 'codex-session' }
-      },
-      second: {
-        connectionId: 'env',
-        worktreeId: 'worktree',
-        tabId: 'web-terminal-claude',
-        agentType: 'claude',
-        providerSession: { key: 'session_id', id: 'claude-session' }
-      }
-    }
-    await act(async () => {
-      mocks.listener()
-    })
-    expect(mocks.link).toHaveBeenCalledWith(
-      expect.objectContaining({ taskId: 'task', agent: 'codex' }),
-      { key: 'session_id', id: 'codex-session' }
-    )
-    expect(mocks.link).toHaveBeenCalledWith(
-      expect.objectContaining({ taskId: 'second-task', agent: 'claude' }),
-      { key: 'session_id', id: 'claude-session' }
-    )
   })
   it('reads fresh ownership and rejects a task moved after opening the chooser', async () => {
     render(<PlatformAgentBridge data={data} />)
@@ -439,135 +385,144 @@ describe('platform native Agent bridge', () => {
     await act(async () => release(fresh()))
     expect(mocks.launch).not.toHaveBeenCalled()
   })
-  it('does not retry launch after host refusal', async () => {
-    mocks.launch.mockReturnValue({
-      terminalCompletion: Promise.resolve({ outcome: { status: 'failed', message: 'offline' } })
-    })
+  it('keeps the same token after an unconfirmed response', async () => {
+    mocks.launch.mockRejectedValue(new Error('unconfirmed'))
     render(<PlatformAgentBridge data={data} />)
     await request()
-    await act(async () => {
-      fireEvent.click(screen.getByText('开始'))
-    })
-    expect(mocks.launch).toHaveBeenCalledOnce()
-    expect(mocks.link).not.toHaveBeenCalled()
-    expect(mocks.toast.error).toHaveBeenCalled()
+    await act(async () => { fireEvent.click(screen.getByText('开始')) })
+    await act(async () => { fireEvent.click(screen.getByText('开始')) })
+    expect(mocks.launch).toHaveBeenCalledTimes(2)
+    expect(mocks.launch.mock.calls[0][1].clientToken).toBe(mocks.launch.mock.calls[1][1].clientToken)
   })
-
-  it('does not promise automatic association when the host returns no tab correlation', async () => {
-    mocks.launch.mockReturnValue({
-      terminalCompletion: Promise.resolve({ outcome: { status: 'created' } }),
-      promptDeliveryResult: Promise.resolve({ delivered: true })
-    })
+  it.each(['#project/project/tasks', '#project/other/workspace', 'superseded'])('keeps %s after an already-issued launch resolves', async destination => {
+    let release!: (value: ReturnType<typeof progress>) => void
+    mocks.launch.mockReturnValueOnce(new Promise(resolve => { release = resolve }))
     render(<PlatformAgentBridge data={data} />)
     await request()
-    await act(async () => {
-      fireEvent.click(screen.getByText('开始'))
-    })
-    expect(mocks.toast.info).toHaveBeenLastCalledWith(
-      '终端已打开，会话尚未关联，请在开发区核对；无需重新启动。'
-    )
-    expect(mocks.link).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByText('开始'))
+    await waitFor(() => expect(mocks.launch).toHaveBeenCalledOnce())
+    if (destination === 'superseded') {
+      mocks.progress.mockReturnValueOnce(new Promise(() => {}))
+      window.dispatchEvent(new CustomEvent('platform-open-task-session', {
+        detail: { projectId: 'project', taskId: 'other-task' }
+      }))
+    } else window.location.hash = destination
+    const before = window.location.hash
+    const updated = vi.fn()
+    window.addEventListener('platform-task-progress-updated', updated)
+    try {
+      await act(async () => release(progress()))
+      expect(updated).toHaveBeenCalledOnce()
+    } finally {
+      window.removeEventListener('platform-task-progress-updated', updated)
+    }
+    expect(window.location.hash).toBe(before)
+    expect(mocks.state.setActiveTab).not.toHaveBeenCalled()
     expect(mocks.launch).toHaveBeenCalledOnce()
+    expect(mocks.toast.info).not.toHaveBeenCalled()
+    expect(screen.queryByRole('dialog')).toBeNull()
   })
-  it('retries association without opening another terminal, and drops pending state on unmount', async () => {
-    mocks.link.mockRejectedValueOnce(new Error('temporary link error'))
-    const mounted = render(<PlatformAgentBridge data={data} />)
+  it('does not report an old launch error after leaving the workspace', async () => {
+    let reject!: (error: Error) => void
+    mocks.launch.mockReturnValueOnce(new Promise((_resolve, fail) => { reject = fail }))
+    render(<PlatformAgentBridge data={data} />)
     await request()
-    await act(async () => {
-      fireEvent.click(screen.getByText('开始'))
-    })
-    mocks.state.agentStatusByPaneKey = {
-      row: {
-        connectionId: 'env',
-        worktreeId: 'worktree',
-        tabId: 'web-terminal-tab',
-        agentType: 'codex',
-        providerSession: { key: 'session_id', id: 'real-session' }
-      }
-    }
-    await act(async () => {
-      mocks.listener()
-    })
-    const options = mocks.toast.error.mock.calls.at(-1)?.[1]
-    expect(options.action.label).toBe('重试关联')
-    await act(async () => {
-      options.action.onClick()
-    })
-    expect(mocks.link).toHaveBeenCalledTimes(2)
+    fireEvent.click(screen.getByText('开始'))
+    await waitFor(() => expect(mocks.launch).toHaveBeenCalledOnce())
+    window.location.hash = '#project/project/tasks'
+    await act(async () => reject(new Error('late launch failure')))
+    expect(mocks.toast.error).not.toHaveBeenCalled()
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(window.location.hash).toBe('#project/project/tasks')
     expect(mocks.launch).toHaveBeenCalledOnce()
-    mounted.unmount()
-    await act(async () => {
-      mocks.listener()
-    })
-    expect(mocks.link).toHaveBeenCalledTimes(2)
   })
-  it.each(['pending', 'failed'] as const)(
-    'keeps the same task reserved while association is %s',
-    async (state) => {
-      let settle!: () => void
-      if (state === 'pending')
-        mocks.link.mockReturnValueOnce(
-          new Promise<void>((resolve) => {
-            settle = resolve
-          })
-        )
-      else mocks.link.mockRejectedValueOnce(new Error('link failed'))
-      render(<PlatformAgentBridge data={data} />)
-      await request()
-      await act(async () => {
-        fireEvent.click(screen.getByText('开始'))
-      })
-      mocks.state.agentStatusByPaneKey = {
-        row: {
-          connectionId: 'env',
-          worktreeId: 'worktree',
-          tabId: 'web-terminal-tab',
-          agentType: 'codex',
-          providerSession: { key: 'session_id', id: 'real-session' }
-        }
-      }
-      await act(async () => {
-        mocks.listener()
-      })
-      expect(mocks.link).toHaveBeenCalledOnce()
-      await act(async () => {
-        window.dispatchEvent(
-          new CustomEvent('platform-start-task-agent', {
-            cancelable: true,
-            detail: { projectId: 'project', taskId: 'task' }
-          })
-        )
-      })
-      expect(screen.queryByText('开始')).toBeNull()
-      expect(mocks.launch).toHaveBeenCalledOnce()
-      if (state === 'pending')
-        await act(async () => {
-          settle()
-        })
-      else {
-        const retry = mocks.toast.info.mock.calls.at(-1)?.[1]
-        expect(retry.action.label).toBe('重试关联')
-        await act(async () => {
-          retry.action.onClick()
-        })
-        expect(mocks.link).toHaveBeenCalledTimes(2)
-      }
-      expect(mocks.launch).toHaveBeenCalledOnce()
-    }
-  )
-})
-
-
-it('keeps workspace details collapsed and uses the host default Agent without starting automatically', async () => {
-  mocks.settings.mockResolvedValue({ ...settings(), defaultTuiAgent: 'claude' })
-  render(<PlatformAgentBridge data={data} />)
-  await request()
-  expect(screen.getByRole('heading', { name: '开始对话' })).toBeTruthy()
-  const target = screen.getByLabelText('启动目标')
-  expect(target.querySelector('p')?.textContent).toBe('Project · Main workspace')
-  expect(target.querySelector('details')?.open).toBe(false)
-  expect(target.querySelector('details')?.textContent).toContain('C:/example/Repo')
-  expect(target.querySelector('details')?.textContent).toContain('main')
-  expect((screen.getByLabelText('执行 Agent') as HTMLSelectElement).value).toBe('claude')
-  expect(mocks.launch).not.toHaveBeenCalled()
+  it('opens a persisted source without create, resume or link', async () => {
+    mocks.progress.mockResolvedValue(progress())
+    render(<PlatformAgentBridge data={data} />)
+    await act(async () => { window.dispatchEvent(new CustomEvent('platform-open-task-session', {
+      cancelable: true, detail: { projectId: 'project', taskId: 'task' }
+    })) })
+    expect(mocks.state.setActiveTab).toHaveBeenCalledWith('tab')
+    expect(mocks.launch).not.toHaveBeenCalled()
+    expect(mocks.resume).not.toHaveBeenCalled()
+    expect(mocks.link).not.toHaveBeenCalled()
+  })
+  it('requires an explicit resume event to restore the saved provider', async () => {
+    mocks.progress.mockResolvedValue(progress())
+    render(<PlatformAgentBridge data={data} />)
+    await act(async () => { window.dispatchEvent(new CustomEvent('platform-open-task-session', {
+      cancelable: true, detail: { projectId: 'project', taskId: 'task', resume: true }
+    })) })
+    expect(mocks.resume).toHaveBeenCalledOnce()
+    expect(mocks.launch).not.toHaveBeenCalled()
+  })
+  it.each(['read', 'resume'])('keeps a later route when a source %s finishes', async phase => {
+    let release!: (value: ReturnType<typeof progress>) => void
+    mocks.progress.mockResolvedValue(progress())
+    const pending = new Promise(resolve => { release = resolve })
+    if (phase === 'read') mocks.progress.mockReturnValueOnce(pending)
+    else mocks.resume.mockReturnValueOnce(pending)
+    render(<PlatformAgentBridge data={data} />)
+    await act(async () => { window.dispatchEvent(new CustomEvent('platform-open-task-session', {
+      detail: { projectId: 'project', taskId: 'task', resume: phase === 'resume' }
+    })) })
+    if (phase === 'resume') expect(mocks.resume).toHaveBeenCalledOnce()
+    window.location.hash = '#project/other/tasks'
+    const updated = vi.fn()
+    window.addEventListener('platform-task-progress-updated', updated)
+    try {
+      await act(async () => release(progress()))
+      expect(updated).toHaveBeenCalledTimes(phase === 'resume' ? 1 : 0)
+    } finally { window.removeEventListener('platform-task-progress-updated', updated) }
+    expect(window.location.hash).toBe('#project/other/tasks')
+    expect(mocks.state.setActiveTab).not.toHaveBeenCalled()
+    expect(mocks.toast.error).not.toHaveBeenCalled()
+    expect(mocks.launch).not.toHaveBeenCalled()
+    expect(mocks.resume).toHaveBeenCalledTimes(phase === 'resume' ? 1 : 0)
+  })
+  it.each(['read', 'resume'])('does not show a stale source %s error after navigation', async phase => {
+    let reject!: (error: Error) => void
+    mocks.progress.mockResolvedValue(progress())
+    const pending = new Promise((_resolve, fail) => { reject = fail })
+    if (phase === 'read') mocks.progress.mockReturnValueOnce(pending)
+    else mocks.resume.mockReturnValueOnce(pending)
+    render(<PlatformAgentBridge data={data} />)
+    await act(async () => { window.dispatchEvent(new CustomEvent('platform-open-task-session', {
+      detail: { projectId: 'project', taskId: 'task', resume: phase === 'resume' }
+    })) })
+    window.location.hash = '#home'
+    await act(async () => reject(new Error('stale source failure')))
+    expect(mocks.toast.error).not.toHaveBeenCalled()
+    expect(window.location.hash).toBe('#home')
+    expect(mocks.state.setActiveTab).not.toHaveBeenCalled()
+  })
+  it('does not wake or recreate a closed source tab during navigation', async () => {
+    mocks.progress.mockResolvedValue(progress())
+    mocks.state.ptyIdsByTabId = {}
+    render(<PlatformAgentBridge data={data} />)
+    await act(async () => { window.dispatchEvent(new CustomEvent('platform-open-task-session', {
+      cancelable: true, detail: { projectId: 'project', taskId: 'task' }
+    })) })
+    expect(mocks.state.setActiveTab).not.toHaveBeenCalled()
+    expect(mocks.state.setActiveWorktree).not.toHaveBeenCalled()
+    expect(mocks.launch).not.toHaveBeenCalled()
+    expect(mocks.resume).not.toHaveBeenCalled()
+  })
+  it('adopts an existing session only on the explicit event and current worktree', async () => {
+    render(<PlatformAgentBridge data={data} />)
+    await act(async () => { window.dispatchEvent(new CustomEvent('platform-adopt-task-session', {
+      cancelable: true, detail: { projectId: 'project', taskId: 'task', sessionId: 'session-record' }
+    })) })
+    expect(mocks.adopt).toHaveBeenCalledWith(expect.objectContaining({ item: fresh().item }), 'session-record', 'worktree', expect.any(String))
+    expect(mocks.launch).not.toHaveBeenCalled()
+    expect(mocks.resume).not.toHaveBeenCalled()
+  })
+  it('uses the saved launch payload and token after a reload', async () => {
+    const saved = { expected_revision: 1, brief_revision: 1, agent: 'codex', worktree_id: 'worktree', client_token: 'frozen' }
+    mocks.progress.mockResolvedValue({ ...progress(), native_run: { ...progress().native_run, launch_state: 'unknown', client_token: 'frozen', brief_snapshot: { request: saved } } })
+    render(<PlatformAgentBridge data={data} />)
+    await request()
+    await act(async () => { fireEvent.click(screen.getByText('开始')) })
+    expect(mocks.launch).toHaveBeenCalledWith(fresh(), expect.objectContaining({ clientToken: 'frozen', frozenRequest: saved }))
+  })
 })

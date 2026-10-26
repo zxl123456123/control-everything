@@ -3,16 +3,13 @@ import type { AgentStatusEntry } from '../../../shared/agent-status-types'
 import { isPathInsideOrEqual, resolveRuntimePath } from '../../../shared/cross-platform-path'
 import { parsePaneKey } from '../../../shared/stable-pane-id'
 import type { TuiAgent } from '../../../shared/tui-agent'
-import {
-  agentProviderSessionsEqual,
-  normalizeAgentProviderSession,
-  type AgentProviderSessionMetadata
-} from '../../../shared/agent-session-resume'
+import { agentProviderSessionsEqual, normalizeAgentProviderSession, type AgentProviderSessionMetadata } from '../../../shared/agent-session-resume'
 
 export type PlatformTaskAgent = TuiAgent
 export type PlatformTaskBrief = {
-  item: { id: string; origin: string; project_id: string | null; title: string }
+  item: { id: string; origin: string; project_id: string | null; title: string; revision?: number }
   brief: {
+    revision?: number
     request_text: string
     acceptance_text: string
     constraints_text: string
@@ -20,6 +17,60 @@ export type PlatformTaskBrief = {
     execution_directory_id: string | null
   }
   directories: { binding_id: string; path: string }[]
+}
+export type PlatformTaskProgress = {
+  item: PlatformTaskBrief['item']
+  native_run: null | {
+    id: string; client_token: string; launch_state: string; active_slot: number; binding_revision: number
+    terminal_binding: { environmentId: string; worktreeId: string; tabId?: string; ptyId: string } | null
+    brief_snapshot?: { request?: Record<string, unknown> }
+  }
+}
+
+export async function readPlatformTaskProgress(taskId: string): Promise<PlatformTaskProgress> {
+  const response = await contextFetch(`/api/workspace/tasks/${encodeURIComponent(taskId)}/progress`, {
+    credentials: 'same-origin', headers: { 'X-Session-Client': 'panel' }
+  })
+  if (!response.ok) throw new Error('进展暂不可读取，请刷新后重试。')
+  return response.json()
+}
+
+async function writeProgress(taskId: string, action: string, body: Record<string, unknown>): Promise<PlatformTaskProgress> {
+  const bootstrap = await contextFetch('/api/bootstrap', {
+    credentials: 'same-origin', headers: { 'X-Session-Client': 'panel' }
+  })
+  const auth = await bootstrap.json()
+  if (!bootstrap.ok || typeof auth.csrf_token !== 'string' || !auth.csrf_token) throw new Error('保存凭据不可用，请刷新重试。')
+  const response = await contextFetch(`/api/workspace/tasks/${encodeURIComponent(taskId)}/${action}`, {
+    method: 'POST', credentials: 'same-origin', headers: { 'X-Session-Client': 'panel',
+      'Content-Type': 'application/json', 'X-Session-CSRF': auth.csrf_token }, body: JSON.stringify(body)
+  })
+  if (response.status === 409) throw new Error('进展已变化，请返回进展核对；已保存的启动不会重复创建。')
+  if (!response.ok) throw new Error('操作尚未确认，记录已保留，请返回进展核对。')
+  return response.json()
+}
+
+export function startPlatformTaskProgress(brief: PlatformTaskBrief, options: {
+  agent: PlatformTaskAgent; worktreeId: string; clientToken: string; frozenRequest?: Record<string, unknown>
+}): Promise<PlatformTaskProgress> {
+  return writeProgress(brief.item.id, 'native-start', options.frozenRequest ?? {
+    expected_revision: brief.item.revision, brief_revision: brief.brief.revision,
+    client_token: options.clientToken, agent: options.agent, worktree_id: options.worktreeId
+  })
+}
+
+export function resumePlatformTaskProgress(progress: PlatformTaskProgress, clientToken: string): Promise<PlatformTaskProgress> {
+  if (!progress.native_run || progress.native_run.active_slot !== 1) throw new Error('没有可恢复的活跃会话。')
+  return writeProgress(progress.item.id, 'native-resume', {
+    native_run_id: progress.native_run.id, expected_binding_revision: progress.native_run.binding_revision,
+    client_token: clientToken
+  })
+}
+
+export function adoptPlatformTaskProgress(progress: PlatformTaskProgress, sessionId: string, worktreeId: string,
+  clientToken: string): Promise<PlatformTaskProgress> {
+  return writeProgress(progress.item.id, 'native-adopt', { session_id: sessionId, worktree_id: worktreeId,
+    expected_revision: progress.item.revision, client_token: clientToken })
 }
 export type PlatformAgentPendingLink = {
   taskId: string

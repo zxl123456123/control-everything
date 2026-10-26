@@ -12,7 +12,7 @@ export function ActivityTitlebarControls(): React.JSX.Element {
   const closeActivityPage = useAppStore((s) => s.closeActivityPage)
 
   return (
-    <div className="flex h-full min-w-0 flex-1 items-center gap-3 border-l border-border px-3">
+    <div className="ce-management-surface flex h-full min-w-0 flex-1 items-center gap-4 border-l border-border px-4">
       <div
         className="flex min-w-0 items-center gap-2"
         style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
@@ -25,7 +25,8 @@ export function ActivityTitlebarControls(): React.JSX.Element {
             <Button
               type="button"
               variant="ghost"
-              size="icon-xs"
+              size="icon"
+              className="size-11"
               onClick={closeActivityPage}
               aria-label={translate(
                 'auto.components.activity.ActivityTitlebarControls.dc708f3eff',
@@ -43,10 +44,10 @@ export function ActivityTitlebarControls(): React.JSX.Element {
           </TooltipContent>
         </Tooltip>
         <Bell className="size-3.5 shrink-0 text-muted-foreground" />
-        <span className="truncate text-xs font-medium">
+        <h1 className="truncate text-lg font-semibold leading-[26px]">
           {translate('auto.components.activity.ActivityTitlebarControls.d6a8de3934', 'agents')}
-        </span>
-        <Badge variant="secondary" className="h-5 px-1.5 text-[11px] font-normal">
+        </h1>
+        <Badge variant="secondary" className="min-h-6 px-2 text-[13px] font-normal">
           {unreadCount}{' '}
           {translate('auto.components.activity.ActivityTitlebarControls.f915168c8e', 'unread')}
         </Badge>

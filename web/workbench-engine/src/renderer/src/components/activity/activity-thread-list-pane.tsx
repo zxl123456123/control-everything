@@ -1,3 +1,4 @@
+import { useManagementSurface } from '@/components/ui/management-surface'
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import {
   defaultRangeExtractor,
@@ -122,6 +123,7 @@ export function ActivityThreadListPane({
   /** Optional view-local scroll memory; updated without triggering React renders. */
   scrollTopRef?: React.MutableRefObject<number>
 }): React.JSX.Element {
+  const management = useManagementSurface()
   const [internalCollapsedGroupKeys, setInternalCollapsedGroupKeys] = useState<Set<string>>(
     () => new Set()
   )
@@ -306,9 +308,14 @@ export function ActivityThreadListPane({
       ref={threadListRef}
       className={cn(
         'relative flex min-h-0 flex-col',
+        management && 'ce-management-surface bg-card',
         resizable ? 'shrink-0 border-r border-border' : 'min-w-0 flex-1'
       )}
-      style={resizable ? { width: threadListWidth } : undefined}
+      style={
+        resizable
+          ? { width: threadListWidth, ...(management ? { maxWidth: '100%' } : {}) }
+          : undefined
+      }
     >
       <ActivityThreadListToolbar
         activityFilterInputRef={activityFilterInputRef}

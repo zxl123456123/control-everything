@@ -27,23 +27,23 @@
     };
     const options = (select, rows, selected = '') => {
       select.replaceChildren(...rows.map(([value, label]) => { const option = node('option', '', label); option.value = value; return option; }));
-      select.value = selected;
+      select.value = selected; select.ceCollectionChoice?.refresh();
     };
     const label = (text, control) => { const value = node('label', 'field', text); value.append(control); return value; };
     const feedback = (target, text, failed = false) => { target.textContent = text; target.classList.toggle('error', failed); };
     let projects = [], sessions = [], page = null, request = 0, reading = false, writing = false;
     let original = null, editingId = null, initialTitle = '', initialFields = {};
-    let contextKey = '', contextProject = '', quickProject = null;
+    let contextKey = '', contextProject = '', quickProject = null, active = true, disposed = false;
     const pickedSessions = new Map();
     let desktopStatus = null;
-    const heading = node('div', 'section-heading'), title = node('h2', '', '任务中心');
+    const heading = node('div', 'section-heading'), title = node('h2', '', '全部事项');
     heading.append(title, button('详细新建', () => open(null), 'button secondary'));
     const hint = node('p', 'section-note', ''); hint.hidden = true;
     const quick = named('form', 'item-quick-form', 'item-quick'), quickFields = node('fieldset');
     const quickTitle = named('textarea', 'item-quick-title'); quickTitle.rows = 2; quickTitle.maxLength = 4000; quickTitle.required = true;
-    quickTitle.placeholder = '写下一个具体的下一步（可不选项目）';
-    const quickSave = node('button', 'button primary', '快速记录'); quickSave.type = 'submit';
-    quickFields.append(label('快速记录', quickTitle), quickSave, button('取消草稿', () => { quickTitle.value = ''; quickProject = null; hint.hidden = true; feedback(quickFeedback, ''); syncBusy(); }, 'text-button')); quick.append(quickFields);
+    quickTitle.placeholder = '输入事项名称';
+    const quickSave = node('button', 'button primary', '新建事项'); quickSave.type = 'submit';
+    quickFields.append(label('新建事项', quickTitle), quickSave, button('取消草稿', () => { quickTitle.value = ''; quickProject = null; hint.hidden = true; feedback(quickFeedback, ''); syncBusy(); }, 'text-button')); quick.append(quickFields);
     const quickFeedback = named('p', 'item-quick-feedback', 'feedback'); quickFeedback.setAttribute('role', 'status');
     const toolbar = node('div', 'task-toolbar item-toolbar');
     const scope = named('select', 'item-scope'), project = named('select', 'item-project-filter');
@@ -72,6 +72,7 @@
     const details = node('details', 'item-details'); details.append(node('summary', '', '来源与限制'), identity, meter);
     form.append(formTitle, details, editorFields, editorFeedback); dialog.append(form);
     root.replaceChildren(heading, hint, quick, quickFeedback, toolbar, status, list, pager, refreshButton, dialog);
+    const choices = [[project,'项目'],[controls.project_id,'所属项目'],[controls.session_key,'关联 Codex 会话']].map(([select,label]) => window.WorkspaceAgents?.attachCollectionChoice(select,label));
     root.hidden = false;
 
     function projectName(id) {
@@ -80,6 +81,7 @@
       return found ? `${found.name}${found.archived ? '（已归档）' : ''}` : `未登记项目 · ${id}`;
     }
     function syncBusy() {
+      if (disposed) return;
       quickFields.disabled = editorFields.disabled = writing || !canWrite();
       heading.lastElementChild.disabled = writing || !canWrite();
       quickSave.disabled = writing || !canWrite();
@@ -111,7 +113,8 @@
       pager.append(previous, node('span', '', `${page.total ? page.offset + 1 : 0}–${Math.min(page.offset + page.limit, page.total)} / ${page.total} 条`), next);
       syncBusy();
     }
-    async function refresh(offset = 0, changed = false) {
+    async function refresh(offset = page?.offset || 0, changed = false) {
+      if (disposed || !active) return;
       const current = ++request, revision = page?.list_revision;
       const query = new URLSearchParams({ offset, limit: 50, scope: scope.value });
       if (offset > 0 && revision !== undefined) query.set('list_revision', revision);
@@ -119,14 +122,14 @@
       reading = true; syncBusy(); feedback(status, '正在读取事项…');
       try {
         const result = await fetchJson(`/api/workspace/items?${query}`);
-        if (current !== request) return;
+        if (disposed || !active || current !== request) return;
         page = result; reading = false; render();
         if (changed) feedback(status, issues.list_changed);
       } catch (error) {
-        if (current !== request) return;
+        if (disposed || !active || current !== request) return;
         reading = false;
         if (error.status === 409 && error.reason === 'list_changed' && offset > 0) return refresh(0, true);
-        page = null; render(); feedback(status, `事项读取失败：${error.message}。编辑草稿已保留，可重新读取。`, true);
+        render(); feedback(status, `事项读取失败：${error.message}。${page ? '暂保留当前范围的上次记录。' : ''}编辑草稿已保留，可重新读取。`, true);
       } finally { if (current === request) { reading = false; syncBusy(); } }
     }
     function sessionOptions(selected = controls.session_key.value) {
@@ -155,7 +158,7 @@
           (selected.assignment_state === 'projectless' && externalTarget)) throw new Error(issues.session_project_mismatch);
     }
     function open(item = null) {
-      if (writing) return;
+      if (writing || disposed || !active) return;
       original = item ? { ...item } : null; editingId = item === null ? null : item.id;
       editorTitle.value = item?.title ?? '';
       // Textarea normalizes CRLF. Compare with the DOM value, never rewrite untouched text.
@@ -209,16 +212,19 @@
       if (bytes(payload) > 262144) throw new Error(issues.body_too_large);
     }
     async function write(payload, target, success) {
-      if (writing || !canWrite()) return;
+      if (writing || disposed || !active || !canWrite()) return;
       writing = true; syncBusy(); feedback(target, '正在保存…');
       let confirmed = false;
       try {
         const result = await postJson(editingId !== null && target === editorFeedback ? '/api/workspace/items/update' : '/api/workspace/items', payload);
         if (!result.item || typeof result.item.id !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(result.item.id) || !Number.isSafeInteger(result.item.revision) || result.item.revision < 1) throw new Error('服务没有返回确认回执');
-        confirmed = true; success(); feedback(target, '事项已保存。');
+        confirmed = true;
+        if (disposed) return;
+        success(); feedback(target, '事项已保存。');
         await refresh(0);
-        if (onSaved) await onSaved();
+        if (!disposed && onSaved) await onSaved();
       } catch (error) {
+        if (disposed) return;
         if (confirmed) feedback(target, '事项保存已确认；项目信息刷新失败，请重新读取。', true);
         else {
           feedback(target, `${issues[error.reason] || error.message}。输入已保留；未自动重试。请先重新读取并核对列表。`, true);
@@ -252,14 +258,16 @@
       try { checkBinding(); feedback(editorFeedback, ''); }
       catch (error) { feedback(editorFeedback, `${error.message} 原关联已保留。`, true); }
     });
-    for (const control of [scope, project, provider, state]) control.addEventListener('change', () => refresh(0));
-    function update(snapshot) {
+    for (const control of [scope, project, provider, state]) control.addEventListener('change', () => { page = null; render(); return refresh(0); });
+    function update(snapshot, { refresh: shouldRefresh = true } = {}) {
+      if (disposed) return;
       projects = snapshot.projects.items; sessions = snapshot.sessions.available ? snapshot.sessions.items : [];
       desktopStatus = snapshot.codex_desktop?.status || null;
       const selected = project.value;
       options(project, [['', '全部项目'], ...projects.map(row => [row.id, `${row.name}${row.archived ? '（已归档）' : ''}`])], selected);
       if (selected && !projects.some(row => row.id === selected)) { const option = node('option', '', `未登记项目 · ${selected}`); option.value = selected; project.append(option); project.value = selected; }
       // A snapshot refresh never touches an open editor or quick draft.
+      if (!shouldRefresh || !active) { syncBusy(); return; }
       if (scope.value === 'all' && !project.value && !provider.value && !state.value) {
         request++; reading = false; page = snapshot.items_page ?? null; render();
       } else refresh(0);
@@ -267,13 +275,14 @@
     }
     render();
     function setContext({ projectId = '', scope: nextScope = 'all', state: nextState = '' } = {}) {
+      if (disposed) return;
       const key = JSON.stringify([projectId, nextScope, nextState]);
       if (key === contextKey) return;
       contextKey = key; contextProject = projectId;
       quick.hidden = nextScope === 'attention' && !quickTitle.value;
       heading.lastElementChild.hidden = nextScope === 'attention';
       scopeField.hidden = Boolean(projectId) || nextScope !== 'all'; projectField.hidden = Boolean(projectId) || nextScope === 'global';
-      title.textContent = nextScope === 'attention' ? '待处理' : nextScope === 'global' ? '未归类事项' : '任务';
+      title.textContent = nextScope === 'attention' ? '待处理' : nextScope === 'global' ? '全局事项' : '全部事项';
       if (quickTitle.value) {
         if (quickProject === null) quickProject = '';
         hint.textContent = `未保存草稿属于：${projectName(quickProject)}`; hint.hidden = false;
@@ -282,12 +291,16 @@
       if (projectId && !projects.some(row => row.id === projectId)) {
         const pending = node('option', '', projectName(projectId)); pending.value = projectId; project.append(pending);
       }
-      project.value = projectId; provider.value = ''; state.value = nextState;
+      project.value = projectId; project.ceCollectionChoice?.refresh(); provider.value = ''; state.value = nextState;
       quickTitle.placeholder = projectId ? '写下这个项目的下一步' : '写下一个具体的下一步';
+      request++; page = null; render();
       return refresh(0);
     }
     return { update, refresh, open, openSession, setContext,
       isEditing: () => writing || dialog.open || Boolean(quickTitle.value),
+      focusEditor() { if (dialog.open) editorTitle.focus(); else quickTitle.focus(); },
+      setActive(value) { if (disposed || active === Boolean(value)) return; active = Boolean(value); request++; reading = false; syncBusy(); },
+      dispose() { disposed = true; active = false; for (const choice of choices) choice?.dispose(); request++; if (dialog.open) dialog.close(); },
       filterState(value) { state.value = value; return refresh(0); },
       filterProject(id) { return setContext({ projectId: id }); } };
   }

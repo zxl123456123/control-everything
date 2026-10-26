@@ -31,6 +31,7 @@ import { createDispatcherStreamingFeatureEmitter } from './dispatcher-streaming-
 import { recordRuntimeFeatureInteraction } from './runtime-feature-interaction'
 import type { RpcCallerScope } from './rpc-caller-scope'
 import { admitRpcRequest } from './rpc-request-admission-prologue'
+import { ORCHESTRATION_CONTRACT_VERSION } from '../../../shared/protocol-version'
 
 export type DispatcherOptions = {
   runtime: OrcaRuntimeService
@@ -172,6 +173,21 @@ export class RpcDispatcher {
   ): Promise<unknown> {
     const { runtime, orchestrationMutations, legacyOrchestration } = this
     const context = rpcContextFromTransport(runtime, request, options, caller)
+    // Fence before durable replay as well: a completed receipt can bypass its handler.
+    if (request.method.startsWith('platform.taskProgress.') &&
+        (context.caller?.kind !== 'local-cli' || context.orchestrationCaller || request.orchestrationCompatibilityEvidence)) {
+      throw new Error('platform_owner_required')
+    }
+    if (request.method === 'platform.taskProgress.send' &&
+        (request.orchestrationContractVersion !== ORCHESTRATION_CONTRACT_VERSION ||
+          !request.orchestrationRequestId || request.orchestrationRequestId !==
+            (params as { origin: { requestId: string } }).origin.requestId)) {
+      throw new Error('durable_context_required')
+    }
+    if (request.method === 'platform.taskProgress.receipt' &&
+        (request.orchestrationRequestId !== undefined || request.orchestrationContractVersion !== undefined)) {
+      throw new Error('receipt_read_only_required')
+    }
     // Why: test fakes of the runtime omit the client-hosted browser route.
     const clientHostedBrowser = await (runtime.routeClientHostedBrowserRpc?.(
       request.method,

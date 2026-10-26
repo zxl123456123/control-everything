@@ -123,6 +123,7 @@ export function ArtifactListRow({
           className={cn(
             ARTIFACTS_TABLE_GRID_CLASS,
             LIST_TABLE_ROW_CLASS,
+            'min-h-16 gap-4 px-4 py-4 text-sm',
             showDivider && LIST_TABLE_ROW_DIVIDER_CLASS,
             isSelected && LIST_TABLE_ROW_SELECTED_CLASS
           )}
@@ -148,14 +149,17 @@ export function ArtifactListRow({
                 type="button"
                 variant="ghost"
                 size="icon-xs"
-                className="size-7 text-muted-foreground"
+                className="size-11 text-muted-foreground"
                 aria-label={translate('auto.components.artifacts.actions', 'Artifact actions')}
                 onClick={(event) => event.stopPropagation()}
               >
                 <MoreHorizontal className="size-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuContent
+              align="end"
+              className="ce-management-surface w-56 p-2 [&_[role=menuitem]]:min-h-10 [&_[role=menuitem]]:text-sm"
+            >
               {rowActions.map(({ key, label, icon: Icon, onSelect, destructive, disabled }) => (
                 <Fragment key={key}>
                   {destructive ? <DropdownMenuSeparator /> : null}
@@ -173,7 +177,7 @@ export function ArtifactListRow({
           </DropdownMenu>
         </div>
       </ContextMenuTrigger>
-      <ContextMenuContent className="w-48">
+      <ContextMenuContent className="ce-management-surface w-56 p-2 [&_[role=menuitem]]:min-h-10 [&_[role=menuitem]]:text-sm">
         {rowActions.map(({ key, label, icon: Icon, onSelect, destructive, disabled }) => (
           <Fragment key={key}>
             {destructive ? <ContextMenuSeparator /> : null}

@@ -6,7 +6,7 @@ import './lib/react-devtools-commit-hook-shim'
 import './lib/react-commit-cascade-observer'
 import './assets/main.css'
 
-import { StrictMode, useEffect } from 'react'
+import { StrictMode, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { DashboardPopoutRoot } from './components/dashboard-popout/DashboardPopoutRoot'
 import { RecoverableRenderErrorBoundary } from './components/error-boundaries/RecoverableRenderErrorBoundary'
@@ -14,8 +14,7 @@ import {
   installRendererCrashDiagnostics,
   recordRendererCrashBreadcrumb
 } from './lib/crash-diagnostics'
-import { applyDocumentTheme } from './lib/document-theme'
-import { buildAppFontFamily } from './lib/app-font-family'
+import { applyStandaloneAppearance } from './lib/standalone-appearance'
 import { I18nProvider } from './i18n/I18nProvider'
 import { translate } from './i18n/i18n'
 import { useAppStore } from './store'
@@ -34,14 +33,6 @@ recordRendererCrashBreadcrumb('popout_bootstrap_started', { dev: import.meta.env
 installRendererCrashDiagnostics('dashboard-popout')
 setReactCommitCascadeRendererSurface('dashboard-popout')
 
-function applyPopoutAppearance(settings: GlobalSettings | null): void {
-  applyDocumentTheme(settings?.theme ?? 'system', { disableTransitions: false })
-  document.documentElement.style.setProperty(
-    '--app-font-family',
-    buildAppFontFamily(settings?.appFontFamily)
-  )
-}
-
 // Why: the popout owns a separate renderer store; seed appearance synchronously
 // so a forced light/dark theme does not flash the OS theme before first paint.
 let startupSettings: GlobalSettings | null = null
@@ -53,7 +44,7 @@ try {
 if (startupSettings) {
   useAppStore.setState({ settings: startupSettings })
 }
-applyPopoutAppearance(startupSettings)
+applyStandaloneAppearance(startupSettings)
 
 const rootElement = document.getElementById('root')
 if (!rootElement) {
@@ -63,6 +54,7 @@ if (!rootElement) {
 
 function PopoutSettingsSync(): null {
   const settings = useAppStore((state) => state.settings)
+  const migratedLegacyTheme = useRef(false)
 
   useEffect(() => {
     let disposed = false
@@ -91,15 +83,17 @@ function PopoutSettingsSync(): null {
   }, [])
 
   useEffect(() => {
-    applyPopoutAppearance(settings)
-    if (settings?.theme !== 'system') {
-      return
+    const theme = applyStandaloneAppearance(settings)
+    if (settings?.theme === 'system' && !migratedLegacyTheme.current) {
+      migratedLegacyTheme.current = true
+      void useAppStore
+        .getState()
+        .updateSettingsOrThrow({ theme })
+        .catch((error) => {
+          console.error('Failed to save theme:', error)
+        })
     }
-    const media = window.matchMedia('(prefers-color-scheme: dark)')
-    const handleChange = (): void => applyDocumentTheme('system')
-    media.addEventListener('change', handleChange)
-    return () => media.removeEventListener('change', handleChange)
-  }, [settings])
+  }, [settings?.theme, settings?.appFontFamily])
 
   return null
 }

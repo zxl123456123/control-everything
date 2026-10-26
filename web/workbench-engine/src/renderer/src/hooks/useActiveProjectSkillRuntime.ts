@@ -65,7 +65,7 @@ function wslOnly(
   return targetsWsl ? resolution : undefined
 }
 
-export function useActiveProjectSkillRuntime(): ActiveProjectSkillRuntime {
+export function useActiveProjectSkillRuntime(enabled = true): ActiveProjectSkillRuntime {
   const runtimeState = useAppStore(
     useShallow((state) => ({
       activeRepoId: state.activeRepoId,
@@ -77,10 +77,11 @@ export function useActiveProjectSkillRuntime(): ActiveProjectSkillRuntime {
     }))
   )
   const currentPlatform = getCurrentPlatform()
-  const windowsCapabilities = useWindowsTerminalCapabilities(currentPlatform === 'win32')
+  const windowsCapabilities = useWindowsTerminalCapabilities(enabled && currentPlatform === 'win32')
   const runtimeTarget = useActiveSkillDiscoveryRuntimeTarget()
 
   const resolved = useMemo(() => {
+    if (!enabled) return EMPTY_ACTIVE_PROJECT_SKILL_RUNTIME
     const wslContext = {
       wslAvailable: windowsCapabilities.isLoading ? undefined : windowsCapabilities.wslAvailable,
       availableWslDistros: windowsCapabilities.isLoading ? null : windowsCapabilities.wslDistros
@@ -133,7 +134,7 @@ export function useActiveProjectSkillRuntime(): ActiveProjectSkillRuntime {
       installDisabledReason: getProjectSkillInstallDisabledReason(projectRuntime),
       canUseLocalSkillFreshness: shouldUseLocalSkillFreshness(runtimeTarget, agentRuntime)
     }
-  }, [currentPlatform, runtimeState, runtimeTarget, windowsCapabilities])
+  }, [enabled, currentPlatform, runtimeState, runtimeTarget, windowsCapabilities])
 
   // Content-equal runtimes keep one reference so effect keys do not thrash.
   // Adjust during render (not a ref write) when serialized identity changes.

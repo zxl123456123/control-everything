@@ -91,11 +91,14 @@ export default defineConfig({
     ORCA_BUILD_COMMIT: JSON.stringify(resolveBuildSourceCommit())
   },
   resolve: {
-    alias: {
-      ...markdownParserAliases,
-      '@renderer': resolve('src/renderer/src'),
-      '@': resolve('src/renderer/src')
-    }
+    alias: [
+      // Match the existing package patch: its UMD main is browser-safe; the ESM
+      // artifact bundles Node diagnostics_channel and crashes during browser import.
+      { find: /^@xterm\/addon-ligatures$/, replacement: createRequire(import.meta.url).resolve('@xterm/addon-ligatures') },
+      ...Object.entries(markdownParserAliases).map(([find, replacement]) => ({ find, replacement })),
+      { find: '@renderer', replacement: resolve('src/renderer/src') },
+      { find: '@', replacement: resolve('src/renderer/src') }
+    ]
   },
   build: {
     manifest: true,

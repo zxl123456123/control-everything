@@ -74,6 +74,7 @@ test('profile capability setup keeps local registration navigation visible when 
   const node = id => {
     if (!nodes.has(id)) {
       const value = new Element(); value.after = () => {}; value.parentElement = { prepend() {} };
+      if (id === 'project-dialog') value.querySelector = () => node('project-dialog-toolbar');
       // The actual Codex heading now has local session buttons, with no anchor.
       value.previousElementSibling = { querySelector: () => null };
       nodes.set(id, value);
@@ -85,7 +86,7 @@ test('profile capability setup keeps local registration navigation visible when 
       if (selector === '#agents-view .section-heading a') return node('open-registration-settings');
       return node(selector);
     } }, el: () => new Element(), link: () => new Element(), fillOptions() {}, showView() {},
-    saveProject() {}, saveManual() {}, saveSettings() {}, importLegacy() {}, syncSource() {}, projectBytes() {} });
+    saveProject() {}, saveManual() {}, saveSettings() {}, importLegacy() {}, syncSource() {}, projectBytes() {}, requestProjectClose() {}, captureProjectDraft() {} });
   vm.runInContext(setup + '\nsetupProfile();', context);
   assert.equal(node('open-registration-settings').hidden, false);
   assert.equal(node('provider-sessions-link').hidden, true);

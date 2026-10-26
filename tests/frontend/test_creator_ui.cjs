@@ -11,6 +11,7 @@ const A = '1'.repeat(32), B = '2'.repeat(32), C = '3'.repeat(32);
 class Element {
   constructor(tag = 'div') { this.tagName = tag; this.listeners = {}; this.dataset = {}; this.attributes = {}; this.children = []; this._text = ''; this.value = ''; this.hidden = false; this.disabled = false; }
   addEventListener(name, handler) { this.listeners[name] = handler; }
+  removeEventListener(name) { delete this.listeners[name]; }
   setAttribute(name, value) { this.attributes[name] = value; }
   removeAttribute(name) { delete this.attributes[name]; if (name === 'href') delete this.href; }
   append(...children) { this.children.push(...children); }
@@ -44,8 +45,10 @@ async function fixture(initial = state()) {
   const root = new Element(); root.dataset.theme = 'light'; root.querySelector = selector => elements[selector.match(/"(.+)"/)[1]];
   const document = {hidden: false, listeners: {}, createElement: tag => new Element(tag), addEventListener(name, handler) { this.listeners[name] = handler; }, removeEventListener(name) { delete this.listeners[name]; }};
   const requests = [], timers = new Map(), copied = []; let nextTimer = 0;
-  const f = {elements, root, document, requests, timers, copied, state: initial, details: new Map(initial.projects.map(value => [value.id, detail(value)]))};
-  f.controller = Creator.create({root, document, serviceOrigin: 'http://127.0.0.1:8770', clipboard: {writeText: async text => { if (f.copyHandler) return f.copyHandler(text); copied.push(text); }},
+  const themeKeys = [], themeMounts = [], themeDisposals = [];
+  const appearance = {earlyRead(key) { themeKeys.push(key); return {mount(options) { themeMounts.push(options); options.roots[0].dataset.theme = 'light'; const toggle = options.toggles[0]; toggle.addEventListener('click', () => { root.dataset.theme = root.dataset.theme === 'dark' ? 'light' : 'dark'; }); return () => toggle.removeEventListener('click'); }, dispose() { themeDisposals.push(key); }}; }};
+  const f = {elements, root, document, requests, timers, copied, themeKeys, themeMounts, themeDisposals, state: initial, details: new Map(initial.projects.map(value => [value.id, detail(value)]))};
+  f.controller = Creator.create({root, document, appearance, serviceOrigin: 'http://127.0.0.1:8770', clipboard: {writeText: async text => { if (f.copyHandler) return f.copyHandler(text); copied.push(text); }},
     fetch: async (url, request) => {
       requests.push({url, ...request});
       if (request.method === 'POST') {
@@ -281,11 +284,90 @@ test('manual refresh rereads selected files but keeps unsaved text; state-only u
 });
 
 test('page includes actual project controls and standalone resources without fake editor or old game protocol', () => {
-  assert.deepEqual([...html.matchAll(/<script[^>]+src="([^"]+)"/g)].map(match => match[1]), ['/creator.js']);
+  assert.deepEqual([...html.matchAll(/<script[^>]+src="([^"]+)"/g)].map(match => match[1]), ['/ui-theme.js', '/creator.js']);
   assert.deepEqual([...html.matchAll(/<link[^>]+href="([^"]+)"/g)].map(match => match[1]), ['/studio-preview.css', '/creator.css']);
   assert.match(html, /<h1 id="creator-title">游戏创作<\/h1>/); assert.match(html, /data-creator="create-form"/);
   assert.match(html, /data-creator="message" role="status"/); assert.match(html, /data-creator="context" readonly/);
   assert.doesNotMatch(html, /<iframe|<canvas|Orca|save_exit|体素|海岸|花园|一键生成/);
   const script = fs.readFileSync(path.join(__dirname, '../../web/workspace/creator.js'), 'utf8');
   assert.doesNotMatch(script, /innerHTML|save_exit|ce-mode|verify_write|verify_read/);
+});
+
+test('four real panels use manual tabs, arrow keys move focus and activation keeps the current project draft',async()=>{
+  const f=await fixture(state([project()]));await f.controller.selectProject(A);f.typeBrief('切换时保留说明');
+  const tab=f.elements['tab-engine'];let prevented=0;
+  tab.listeners.keydown({key:'ArrowRight',preventDefault(){prevented++;}});
+  assert.equal(prevented,1);assert.equal(f.elements['tab-brief'].focused,true);assert.equal(tab.attributes['aria-selected'],'true');assert.equal(f.elements['panel-brief'].hidden,true);
+  f.elements['tab-brief'].listeners.keydown({key:'Enter',preventDefault(){}});
+  assert.equal(f.elements['tab-brief'].attributes['aria-selected'],'true');assert.equal(f.elements['panel-brief'].hidden,false);assert.equal(f.elements['panel-engine'].hidden,true);assert.equal(f.elements.brief.value,'切换时保留说明');
+  f.elements['tab-resources'].disabled=true;f.elements['tab-brief'].listeners.keydown({key:'ArrowRight',preventDefault(){}});assert.equal(f.elements['tab-runs'].focused,true);
+  f.elements['tab-runs'].listeners.keydown({key:' ',preventDefault(){}});assert.equal(f.elements['panel-runs'].hidden,false);assert.equal(f.elements['panel-brief'].hidden,true);
+  f.elements['tab-runs'].listeners.keydown({key:'Home',preventDefault(){}});assert.equal(tab.focused,true);
+  f.elements['tab-brief'].listeners.click();assert.equal(f.elements.brief.value,'切换时保留说明');assert.equal(f.requests.filter(r=>r.method==='POST').length,0);
+  for(const name of ['engine','brief','resources','runs']){
+    assert.match(html,new RegExp(`role="tab" id="creator-tab-${name}"[^>]*aria-controls="creator-panel-${name}"`));
+    assert.match(html,new RegExp(`id="creator-panel-${name}" role="tabpanel" aria-labelledby="creator-tab-${name}"`));
+  }
+  f.controller.dispose();assert.deepEqual(f.themeKeys,['ce.creator.theme']);assert.equal(f.themeMounts[0].roots[0],f.root);assert.equal(f.themeDisposals.length,1);assert.equal(f.elements['tab-brief'].listeners.click,undefined);
+});
+
+test('failed project reads cannot overwrite another saved draft or selected resources',async()=>{
+  const f=await fixture(state([project(A,'甲'),project(B,'乙')]));await f.controller.selectProject(B);f.typeBrief('乙的保留草稿');
+  const input=f.elements.files.children[0].children[0];input.checked=true;input.listeners.change();
+  await f.controller.selectProject(A);f.typeBrief('甲的新稿');
+  f.detailHandler=id=>id===B?response({message:'合成读取失败'},503):response(f.details.get(id));
+  await f.controller.selectProject(B);assert.equal(f.elements['project-panel'].hidden,true);assert.match(f.elements.message.textContent,/读取失败/);
+  await f.controller.selectProject(A);assert.equal(f.elements.brief.value,'甲的新稿');delete f.detailHandler;await f.controller.selectProject(B);
+  assert.equal(f.elements.brief.value,'乙的保留草稿');assert.equal(f.elements.files.children[0].children[0].checked,true);
+});
+
+test('brief rejection leaves the draft visible in its panel with field error and no successful receipt',async()=>{
+  const f=await fixture(state([project()]));await f.controller.selectProject(A);f.typeBrief('服务拒绝也保留');
+  f.elements['tab-resources'].listeners.click();f.post=()=>response({message:'合成保存失败'},409);await f.controller.saveBrief();
+  assert.equal(f.elements.brief.value,'服务拒绝也保留');assert.match(f.elements['draft-state'].textContent,/未保存/);assert.equal(f.elements['panel-brief'].hidden,false);assert.equal(f.elements.brief.attributes['aria-invalid'],'true');assert.equal(f.elements.brief.attributes['aria-describedby'],'creator-message');assert.equal(f.elements.brief.focused,true);
+});
+
+test('library search and kind filter remain local and do not replace the selected project or its draft',async()=>{
+  const f=await fixture(state([project(A,'甲工程','2d'),project(B,'乙工程','3d')]));await f.controller.selectProject(A);f.typeBrief('筛选中保留');
+  const before=f.requests.length;f.elements['project-search'].value='乙';f.elements['project-search'].listeners.input();assert.equal(f.elements.projects.children.length,1);assert.equal(f.elements.projects.children[0].dataset.projectId,B);assert.equal(f.elements.brief.value,'筛选中保留');
+  f.elements['project-filter'].value='2d';f.elements['project-filter'].listeners.change();assert.equal(f.elements.projects.children.length,0);assert.equal(f.elements['project-no-match'].hidden,false);assert.equal(f.requests.length,before);
+  f.elements['project-search'].value='';f.elements['project-filter'].value='';f.elements['project-filter'].listeners.change();assert.equal(f.elements.projects.children.length,2);assert.equal(f.elements.name.textContent,'甲工程');
+});
+
+test('returning to the card library keeps the project draft and creation cancel keeps its input', async () => {
+  const f = await fixture(state([project(A), project(B, '另一工程', '2d')]));
+  assert.equal(f.root.dataset.view, 'library');
+  assert.equal(f.elements['run-history'].open, false);
+  assert.equal(f.elements['run-history'].hidden, false);
+  await f.controller.selectProject(A); f.typeBrief('保留的创作草稿');
+  const requests = f.requests.length;
+  f.elements['back-library'].listeners.click();
+  assert.equal(f.root.dataset.view, 'library');
+  assert.equal(f.requests.length, requests);
+  assert.equal(f.elements['project-search'].focused, true);
+  f.elements.new.listeners.click(); f.elements['project-name'].value = '未提交的工程名';
+  assert.equal(f.elements.new.attributes['aria-expanded'], 'true');
+  f.elements['cancel-create'].listeners.click();
+  assert.equal(f.elements['create-form'].hidden, true);
+  assert.equal(f.elements.new.attributes['aria-expanded'], 'false');
+  assert.equal(f.elements['project-name'].value, '未提交的工程名');
+  assert.equal(f.elements.new.focused, true);
+  await f.controller.selectProject(A);
+  assert.equal(f.root.dataset.view, 'project');
+  assert.equal(f.elements.brief.value, '保留的创作草稿');
+  f.elements['tab-runs'].listeners.click();
+  assert.equal(f.elements['run-history'].open, true);
+  assert.equal(f.elements['run-history'].hidden, false);
+  assert.equal(f.elements['panel-runs'].hidden, false);
+});
+
+test('returning to the library retires an in-flight project read', async () => {
+  const f = await fixture(state([project(A)]));
+  const pending = deferred(); f.detailHandler = () => pending.promise;
+  const selecting = f.controller.selectProject(A);
+  f.elements['back-library'].listeners.click();
+  pending.resolve(response(detail(project(A)))); await selecting;
+  assert.equal(f.root.dataset.view, 'library');
+  assert.equal(f.elements['project-panel'].hidden, true);
+  assert.equal(f.requests.filter(request => request.method === 'POST').length, 0);
 });

@@ -19,3 +19,15 @@
 .monitor-event pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 320px; overflow-y: auto; padding: 10px; background: #10151e; }
 .monitor-pager { justify-content: center; flex-wrap: wrap; font-size: 12px; }
 @media (max-width: 700px) { .monitor-body { grid-template-columns: 1fr; } .monitor-list, .monitor-detail { padding: 12px; } }
+
+/* The canvas and the native runtime keep their own state and drawing model. */
+.project-monitor{color:var(--text);font-size:15px;line-height:24px}
+.monitor-status,.monitor-fact,.monitor-event,.monitor-pager,.monitor-task>.button:not(:first-child){font-size:14px;line-height:22px;color:var(--muted)}
+.monitor-warning{color:var(--amber)}
+.monitor-stage,.monitor-list,.monitor-detail{border-color:var(--line);border-radius:16px;background:var(--surface)}
+.monitor-list,.monitor-detail{padding:24px}
+.monitor-task{border-color:var(--line);gap:16px;padding:16px 0}
+.monitor-event pre{background:var(--raised);font-size:14px;line-height:22px;padding:16px;border-radius:12px}
+.monitor-event summary{min-height:40px;display:flex;align-items:center}
+@media(pointer:coarse){.monitor-event summary,.project-monitor .button{min-height:44px;min-width:44px}}
+@media(width < 768px){.monitor-body{grid-template-columns:1fr}.monitor-list,.monitor-detail{padding:16px}}

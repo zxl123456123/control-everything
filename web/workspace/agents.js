@@ -1,244 +1,282 @@
 'use strict';
 
+// Presentation for existing collection selects. Their IDs, options and events remain authoritative.
+let collectionChoiceSequence = 0;
+function attachCollectionChoice(select, label) {
+  if (select.ceCollectionChoice) return select.ceCollectionChoice;
+  const document = select.ownerDocument, scope = document.defaultView;
+  const wrapper = document.createElement('div'); wrapper.className = 'ce-collection-choice';
+  const input = document.createElement('input'); input.type = 'search'; input.id = select.id + '-query';
+  input.setAttribute('role', 'combobox'); input.setAttribute('aria-label', label); input.setAttribute('aria-autocomplete', 'list'); input.setAttribute('aria-expanded', 'false');
+  const list = document.createElement('div'); list.id = 'ce-choice-list-' + ++collectionChoiceSequence; list.className = 'ce-choice-list'; list.setAttribute('role', 'listbox'); list.hidden = true;
+  input.setAttribute('aria-controls', list.id);
+  const status = document.createElement('p'); status.className = 'ce-choice-status'; status.setAttribute('role', 'status'); status.hidden = true;
+  wrapper.append(input, list, status); select.after(wrapper);
+  const previous = { hidden: select.hidden, tabIndex: select.getAttribute('tabindex'), ariaHidden: select.getAttribute('aria-hidden') };
+  select.hidden = true; select.tabIndex = -1; select.setAttribute('aria-hidden', 'true');
+  let query = '', selectedId = select.value, activeIndex = -1, opened = false, composing = false, disposed = false, visible = [], listKey = '';
+  const listeners = [];
+  const listen = (node, name, fn) => { node.addEventListener(name, fn); listeners.push(() => node.removeEventListener(name, fn)); };
+  const options = () => [...select.options];
+  const disabled = () => {
+    if (select.disabled) return true;
+    for (let node = select.parentElement; node; node = node.parentElement) if (node.tagName === 'FIELDSET' && node.disabled) return true;
+    return false;
+  };
+  function close() { opened = false; query = ''; activeIndex = -1; list.hidden = true; status.hidden = true; input.setAttribute('aria-expanded', 'false'); input.removeAttribute('aria-activedescendant'); input.value = options().find(option => option.value === select.value)?.textContent || ''; }
+  function choose(option) {
+    if (disposed || disabled() || option.disabled) return;
+    select.value = selectedId = option.value; close(); input.focus({ preventScroll: true });
+    select.dispatchEvent(new scope.Event('input', { bubbles: true })); select.dispatchEvent(new scope.Event('change', { bubbles: true }));
+  }
+  function render() {
+    if (!opened || disposed) return;
+    visible = options().filter(option => !option.hidden && option.textContent.toLocaleLowerCase().includes(query.toLocaleLowerCase()));
+    activeIndex = Math.min(activeIndex, visible.length - 1);
+    if (activeIndex >= 0) input.setAttribute('aria-activedescendant', list.id + '-' + activeIndex);
+    else input.removeAttribute('aria-activedescendant');
+    status.textContent = visible.length ? '' : '没有匹配的选项。'; status.hidden = Boolean(visible.length);
+    const nextKey = JSON.stringify([select.value, activeIndex, visible.map(option => [option.value, option.textContent, option.disabled])]);
+    // Keep pointer/focus targets stable when polling only replaces equivalent source options.
+    if (nextKey === listKey) return;
+    listKey = nextKey; list.replaceChildren();
+    for (const [index, option] of visible.entries()) {
+      const row = document.createElement('button'); row.type = 'button'; row.id = list.id + '-' + index; row.tabIndex = -1;
+      row.setAttribute('role', 'option'); row.setAttribute('aria-selected', String(option.value === select.value)); row.dataset.active = String(index === activeIndex); row.disabled = option.disabled; row.textContent = option.textContent;
+      // Keep DOM focus on the combobox until click commits the option.
+      row.addEventListener('mousedown', event => { if (event.button === 0) event.preventDefault(); });
+      row.addEventListener('click', () => choose(option)); list.append(row);
+    }
+    if (activeIndex >= 0) list.children[activeIndex]?.scrollIntoView({ block: 'nearest' });
+  }
+  function open() { if (disposed || disabled()) return; opened = true; list.hidden = false; input.setAttribute('aria-expanded', 'true'); render(); }
+  function refresh({ preserveMissing = false } = {}) {
+    if (disposed) return;
+    if (preserveMissing && selectedId && !options().some(option => option.value === selectedId)) {
+      const orphan = document.createElement('option'); orphan.value = selectedId; orphan.textContent = '原选项已失效（保留原值）'; orphan.disabled = true; select.append(orphan); select.value = selectedId;
+    }
+    selectedId = select.value; input.disabled = disabled();
+    if (input.disabled) close();
+    if (!opened) input.value = options().find(option => option.value === selectedId)?.textContent || '';
+    else render();
+  }
+  listen(input, 'input', () => { query = input.value; activeIndex = -1; open(); });
+  listen(input, 'click', open);
+  listen(input, 'compositionstart', () => { composing = true; }); listen(input, 'compositionend', () => { composing = false; });
+  listen(input, 'keydown', event => {
+    if (composing || event.isComposing || event.keyCode === 229) { if (event.key === 'Enter' || event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); } return; }
+    if (event.key === 'Escape' && opened) { event.preventDefault(); event.stopPropagation(); close(); input.focus(); return; }
+    if (event.key === 'Enter' && opened) { event.preventDefault(); event.stopPropagation(); if (activeIndex >= 0) choose(visible[activeIndex]); return; }
+    if (!['ArrowDown','ArrowUp','Home','End'].includes(event.key)) return;
+    event.preventDefault(); open();
+    const candidates = visible.map((option, index) => option.disabled ? -1 : index).filter(index => index >= 0);
+    if (!candidates.length) return;
+    const current = candidates.indexOf(activeIndex);
+    activeIndex = event.key === 'Home' ? candidates[0] : event.key === 'End' ? candidates.at(-1) : current < 0 ? event.key === 'ArrowUp' ? candidates.at(-1) : candidates[0] : candidates[Math.max(0, Math.min(candidates.length - 1, current + (event.key === 'ArrowDown' ? 1 : -1)))]; render();
+  });
+  listen(wrapper, 'focusout', () => { scope.queueMicrotask(() => { if (!wrapper.contains(wrapper.getRootNode().activeElement)) close(); }); });
+  listen(select, 'change', () => { selectedId = select.value; refresh(); });
+  listen(select, 'invalid', event => { event.preventDefault(); if (!disabled()) { input.focus(); open(); status.textContent = '请选择有效选项。'; status.hidden = false; } });
+  const observer = new scope.MutationObserver(records => refresh({ preserveMissing: records.some(record => record.type === 'childList') }));
+  observer.observe(select, { childList: true, subtree: true, attributes: true, attributeFilter: ['disabled','label','hidden','selected'] });
+  for (let node = select.parentElement; node; node = node.parentElement) if (node.tagName === 'FIELDSET') observer.observe(node, { attributes: true, attributeFilter: ['disabled'] });
+  let unsubscribeContext;
+  const api = { refresh, close, dispose() { if (disposed) return; disposed = true; observer.disconnect(); unsubscribeContext?.(); for (const remove of listeners) remove(); wrapper.remove(); select.hidden = previous.hidden; for (const [name, value] of [['tabindex', previous.tabIndex], ['aria-hidden', previous.ariaHidden]]) { if (value === null) select.removeAttribute(name); else select.setAttribute(name, value); } delete select.ceCollectionChoice; } };
+  select.ceCollectionChoice = api; refresh(); unsubscribeContext = scope.CERemoteContext?.onInactive(() => api.dispose()); return api;
+}
+function disposeCollectionChoices(root) { for (const select of root.querySelectorAll('select')) select.ceCollectionChoice?.dispose(); }
+
+async function confirmAgentChange(owner, message, report, trigger) {
+  if (!owner || !window.CEUIDialog) { report('确认界面尚未就绪，未执行操作。', true); return false; }
+  const confirmation = window.CEUIDialog.create({ root: owner, owner, fallback: owner.querySelector('h2, h3'), onError: error => report(error.message, true) });
+  try { return await confirmation.confirm({ title: '确认操作', message, trigger }); }
+  finally { confirmation.dispose(); }
+}
+
 window.WorkspaceAgents = (() => {
-  const kinds = { codex: 'Codex', dsh: 'DeepSeek Harness', custom: '自定义 Agent' };
-  let fetchJson = null, postJson = null, state = { revision: 0, items: [], tokens: {} }, editing = null, busy = false, bound = false, board = null, timer = null;
-  let adapters = [], catalogAvailable = false, adapterId = '', connectionDraft = {}, connectionControls = new Map(), draftItems = null, draftRevision = null;
-  const $ = id => document.getElementById(id);
+  let activeAccess = null, legacyFetch = null, board = null, timer = null;
   const editable = row => ({ id: row.id, name: row.name, kind: row.kind, command: row.command, enabled: row.enabled,
     ...(Array.isArray(row.project_ids) ? { project_ids: [...row.project_ids] } : {}),
     ...(Object.hasOwn(row, 'adapter') ? { adapter: row.adapter } : {}),
     ...(row.connection && typeof row.connection === 'object' ? { connection: JSON.parse(JSON.stringify(row.connection)) } : {}),
-    permission: row.permission || 'workspace-write',
-    network: row.network || (row.adapter === 'dsh' ? 'allowed' : 'denied'),
-    approval: row.approval || 'request_user' });
-  function renderConnection() {
-    const select = $('agent-adapter'), root = $('agent-connection-fields'); if (!select || !root) return;
-    select.replaceChildren();
-    const add = (value, label) => { const option = document.createElement('option'); option.value = value; option.textContent = label; select.append(option); };
-    add('', '普通登记（稍后配置接入）');
-    for (const adapter of adapters) add(adapter.id, adapter.name);
-    if (adapterId && !adapters.some(row => row.id === adapterId)) add(adapterId, '已保存的接入方式（定义暂不可用）');
-    select.value = adapterId;
-    const adapter = adapters.find(row => row.id === adapterId);
-    $('agent-kind').disabled = !!adapter;
-    $('agent-command').required = !!adapter?.fields.find(field => field.key === 'command')?.required;
-    $('agent-adapters-status').textContent = catalogAvailable ? '连接参数仅登记在本机；保存后还需在外部 Agent 配置工作台连接。' : '接入方式目录暂不可用；仍可编辑普通登记，已有连接参数会保留。';
-    $('agent-setup').textContent = adapter ? `${adapter.description || ''}\n${adapter.setup || ''}` : adapterId ? '保留已有接入方式和连接参数；目录恢复后可继续配置。' : '选择接入方式可填写参数；登记不会启动外部程序。';
-    root.replaceChildren(); connectionControls = new Map();
-    for (const field of adapter?.fields || []) {
-      if (field.key === 'command') continue;
-      const label = document.createElement('label'); label.className = 'field full';
-      label.textContent = field.type === 'args' ? `${field.label}（JSON 字符串数组）` : field.label;
-      const input = document.createElement(field.type === 'args' ? 'textarea' : 'input');
-      input.id = 'agent-connection-' + field.key;
-      input.required = !!field.required; input.maxLength = field.type === 'args' ? 16384 : 4096;
-      input.placeholder = field.type === 'args' ? '["--example", "value"]' : field.placeholder || '';
-      const stored = connectionDraft[field.key];
-      input.value = stored == null ? '' : typeof stored === 'string' ? stored : JSON.stringify(stored);
-      connectionControls.set(field.key, { input, field, initial: input.value });
-      label.append(input);
-      if (field.type === 'args' && typeof stored === 'string') { const hint = document.createElement('small'); hint.textContent = '已有旧格式未修改时会保留；修改时请使用 JSON 数组。'; label.append(hint); }
-      if (field.help) { const help = document.createElement('small'); help.textContent = field.help; label.append(help); }
-      root.append(label);
+    ...Object.fromEntries(['permission', 'network', 'approval'].filter(key => Object.hasOwn(row, key)).map(key => [key, row[key]])) });
+  function openAccess({ host, fetchJson, postJson, restoreFocus = () => {}, isCurrent = () => true }) {
+    if (activeAccess?.isOpen()) return activeAccess;
+    activeAccess?.dispose();
+    const document = host.ownerDocument, scope = document.defaultView;
+    const context = scope.CERemoteContext || null;
+    const contextKey = JSON.stringify([context?.context, context?.storageScope]);
+    let disposed = false, busy = false, confirming = false, operation = 0, registry = { revision: 0, items: [], tokens: {} };
+    let projects = [], projectsAvailable = false, draft = null, initialDraft = '', token = '', unsubscribeContext;
+    const node = (tag, className = '', text) => { const el = document.createElement(tag); el.className = className; if (text !== undefined) el.textContent = text; return el; };
+    const dialog = node('dialog', 'ce-project-settings ce-access'); dialog.setAttribute('aria-label', '外部程序接入');
+    const header = node('div', 'ce-access-heading'), title = node('h2', '', '外部程序接入'); title.tabIndex = -1;
+    const content = node('div', 'ce-access-content'), feedback = node('p', 'ce-project-feedback'); feedback.setAttribute('role', 'status'); feedback.tabIndex = -1;
+    const button = (text, handler, primary = false) => { const el = node('button', 'ce-button' + (primary ? ' ce-primary' : ''), text); el.type = 'button'; el.addEventListener('click', handler); return el; };
+    const closeButton = button('×', () => { void requestClose(); }); closeButton.setAttribute('aria-label', '关闭'); closeButton.classList.add('ce-plain');
+    header.append(title, closeButton); dialog.append(header, content, feedback); host.append(dialog);
+    const current = () => !disposed && activeAccess === api && isCurrent() && context === (scope.CERemoteContext || null)
+      && context?.active !== false && contextKey === JSON.stringify([context?.context, context?.storageScope]);
+    const draftKey = () => draft ? JSON.stringify([draft.id, draft.name.value, draft.all.checked, [...draft.projects].filter(([, input]) => input.checked).map(([id]) => id)]) : '';
+    const dirty = () => Boolean(draft && draftKey() !== initialDraft);
+    const report = message => { if (current()) feedback.textContent = message; };
+    const lock = value => { busy = value; for (const el of dialog.querySelectorAll('button, input, select')) el.disabled = value; };
+    function clearToken() { token = ''; for (const el of dialog.querySelectorAll('[data-access-token]')) el.value = ''; }
+    function dispose() {
+      if (disposed) return; disposed = true; operation++; clearToken(); draft = null; unsubscribeContext?.();
+      if (dialog.open) dialog.close(); dialog.remove(); if (activeAccess === api) activeAccess = null; restoreFocus();
     }
-  }
-  function collectConnection() {
-    const value = { ...connectionDraft };
-    for (const [key, { input, field, initial }] of connectionControls) {
-      const text = input.value.trim();
-      if (!text && field.required) throw new Error(`请填写${field.label}。`);
-      if (input.value === initial) continue;
-      if (!text) { delete value[key]; continue; }
-      if (field.type === 'args') {
-        let args; try { args = JSON.parse(text); } catch { throw new Error(`${field.label}须填写 JSON 字符串数组，例如 ["--example"]。`); }
-        if (!Array.isArray(args) || args.length > 20 || args.some(row => typeof row !== 'string' || [...row].length > 512 || /[\x00-\x1f]/.test(row))) throw new Error(`${field.label}最多 20 个字符串参数，每个最多 512 字。`);
-        value[key] = args;
-      } else {
-        if ([...text].length > 2048 || /[\x00-\x1f]/.test(text)) throw new Error(`${field.label}最多 2048 字且不能包含控制字符。`);
-        if (field.type === 'url') {
-          let url; try { url = new URL(text); } catch { throw new Error(`${field.label}须填写有效的本机 HTTP 地址。`); }
-          if (!['http:', 'https:'].includes(url.protocol) || !['127.0.0.1', '[::1]', 'localhost'].includes(url.hostname) || url.username || url.password) throw new Error(`${field.label}须使用本机地址，且不能包含用户名或密码。`);
-        }
-        value[key] = text;
+    async function confirm(message, trigger) {
+      if (!current() || busy || confirming) return false;
+      const revision = registry.revision, generation = operation, before = draftKey(); confirming = true;
+      try {
+        const accepted = await confirmAgentChange(dialog, message, report, trigger);
+        return accepted && current() && !busy && generation === operation && registry.revision === revision && before === draftKey();
+      } finally { confirming = false; }
+    }
+    async function requestClose() {
+      if (!current()) { dispose(); return true; }
+      if (busy || confirming) return false;
+      if (dirty() && !await confirm('放弃未保存的修改？', closeButton)) return false;
+      dispose(); return true;
+    }
+    function acceptRegistry(value) {
+      if (!Number.isSafeInteger(value?.revision) || !Array.isArray(value.items)) throw new Error('接入列表暂不可用。');
+      registry = { revision: value.revision, items: value.items, tokens: value.tokens || {} };
+    }
+    async function load() {
+      const generation = ++operation; clearToken(); draft = null; initialDraft = ''; title.textContent = '外部程序接入';
+      content.replaceChildren(node('p', 'ce-subtle', '正在读取…')); feedback.textContent = '';
+      const [saved, workspace] = await Promise.allSettled([fetchJson('/api/workspace/agents'), fetchJson('/api/workspace')]);
+      if (!current() || generation !== operation) return;
+      try {
+        if (saved.status !== 'fulfilled') throw saved.reason; acceptRegistry(saved.value);
+        projectsAvailable = workspace.status === 'fulfilled' && workspace.value?.projects?.status === 'available' && Array.isArray(workspace.value.projects.items);
+        projects = projectsAvailable ? workspace.value.projects.items : []; renderList();
+      } catch (error) { content.replaceChildren(button('重试', () => { void load(); })); report(error.message || '接入列表暂不可用。'); }
+    }
+    function renderList() {
+      clearToken(); draft = null; initialDraft = ''; title.textContent = '外部程序接入'; feedback.textContent = ''; content.replaceChildren();
+      const list = node('div', 'ce-access-list');
+      if (!registry.items.length) list.append(node('p', 'ce-access-empty', '暂无接入'));
+      for (const row of registry.items) {
+        const entry = node('div', 'ce-access-row'), name = node('strong', '', row.name), status = node('span', 'ce-subtle', row.enabled ? '已启用' : '已停用');
+        const menu = node('details', 'ce-access-menu'), trigger = node('summary', '', '•••'); trigger.setAttribute('aria-label', row.name + '的操作');
+        const actions = node('div', 'ce-access-menu-items');
+        const action = (label, handler) => { const control = button(label, () => { menu.open = false; void handler(control); }); actions.append(control); };
+        action('编辑', () => renderEditor(row));
+        action(registry.tokens[row.id]?.has_token ? '更换凭据' : '生成凭据', control => rotate(row, control));
+        action(row.enabled ? '停用' : '启用', control => changeEnabled(row, control));
+        action('移除', control => remove(row, control));
+        menu.append(trigger, actions); entry.append(name, status, menu); list.append(entry);
       }
+      const actions = node('div', 'ce-project-settings-actions'); actions.append(button('添加', () => renderEditor(), true));
+      content.append(list, actions);
     }
-    return value;
-  }
-  function changeAdapter() {
-    const next = $('agent-adapter').value;
-    if (next === adapterId) return;
-    if ((Object.keys(connectionDraft).length || $('agent-command').value.trim() || [...connectionControls.values()].some(row => row.input.value.trim())) && !window.confirm('切换接入方式将清空当前连接参数并更新命令，确认切换？')) { $('agent-adapter').value = adapterId; return; }
-    adapterId = next; connectionDraft = {};
-    const adapter = adapters.find(row => row.id === adapterId);
-    if (adapter) { $('agent-kind').value = adapter.kind_suggestion || 'custom'; $('agent-command').value = adapter.default_command || ''; }
-    $('agent-network').value = next === 'dsh' ? 'allowed' : 'denied';
-    renderConnection();
-  }
-  const note = (text, failed = false) => {
-    const node = $('agent-feedback'); node.textContent = text; node.classList.toggle('error', failed);
-    if ($('agent-form').hidden) {
-      $('agents-status').textContent = text; $('agents-status').classList.toggle('error', failed);
+    function renderEditor(previous = null) {
+      if (!current() || busy || confirming) return;
+      clearToken(); title.textContent = previous ? '编辑接入' : '添加接入'; feedback.textContent = ''; content.replaceChildren();
+      const form = node('form'), fields = node('fieldset'), nameLabel = node('label', '', '名称'), name = node('input');
+      name.name = 'name'; name.required = true; name.maxLength = 80; name.value = previous?.name || ''; nameLabel.append(name);
+      const projectLabel = node('div', 'ce-access-project-field'), label = node('span', '', '项目');
+      const picker = node('details', 'ce-access-project-picker'), summary = node('summary', '', '选择项目'), choices = node('div', 'ce-access-project-options');
+      picker.setAttribute('aria-label', '项目'); const selected = previous?.project_ids || [];
+      const all = node('input'); all.type = 'checkbox'; all.checked = Boolean(previous && !selected.length);
+      const allLabel = node('label', 'ce-project-archive'); allLabel.append(all, node('span', '', '全部项目'));
+      choices.append(allLabel); const controls = new Map();
+      const available = new Map(projects.map(row => [row.id, row.name + (row.archived ? '（已归档）' : '')]));
+      for (const id of selected) if (!available.has(id)) available.set(id, '已授权项目 · ' + id);
+      const sync = () => { const names = [...controls].filter(([, input]) => input.checked).map(([id]) => available.get(id)); summary.textContent = all.checked ? '全部项目' : names.length ? names.join('、') : '选择项目'; };
+      for (const [id, projectName] of available) {
+        const control = node('input'); control.type = 'checkbox'; control.checked = selected.includes(id); control.dataset.projectId = id;
+        const choice = node('label', 'ce-project-archive'); choice.append(control, node('span', '', projectName)); choices.append(choice); controls.set(id, control);
+        control.addEventListener('change', () => { if (control.checked) all.checked = false; sync(); });
+      }
+      all.addEventListener('change', () => { if (all.checked) for (const control of controls.values()) control.checked = false; sync(); });
+      picker.append(summary, choices); projectLabel.append(label, picker); fields.append(nameLabel, projectLabel);
+      const actions = node('div', 'ce-project-settings-actions');
+      actions.append(button('取消', async () => { if (dirty() && !await confirm('放弃未保存的修改？', name)) return; if (current() && !busy) renderList(); }));
+      const save = node('button', 'ce-button ce-primary', '保存'); save.type = 'submit'; actions.append(save); fields.append(actions); form.append(fields); content.append(form);
+      draft = { id: previous?.id || null, name, all, projects: controls }; initialDraft = draftKey(); sync(); name.focus();
+      if (!projectsAvailable) report('项目暂不可用，已有授权已保留。');
+      form.addEventListener('submit', async event => {
+        event.preventDefault(); if (!current() || busy || confirming) return;
+        const value = name.value.trim(); if (!value) { report('请输入名称。'); name.focus(); return; }
+        const projectIds = all.checked ? [] : [...controls].filter(([, input]) => input.checked).map(([id]) => id);
+        if (!all.checked && !projectIds.length) { report('请选择项目。'); summary.focus(); return; }
+        const expanded = !previous ? all.checked : previous.project_ids?.length && (all.checked || projectIds.some(id => !previous.project_ids.includes(id)));
+        if (expanded && !await confirm(all.checked ? '授权全部项目，包括以后新增的项目？' : '扩大此接入的项目授权？', save)) return;
+        if (!current() || busy) return;
+        const next = { ...(previous ? editable(previous) : { id: null, kind: 'custom', command: null, enabled: true }), name: value, project_ids: projectIds };
+        const items = registry.items.map(editable); if (previous) items.splice(items.findIndex(row => row.id === previous.id), 1, next); else items.push(next);
+        await write(items);
+      });
     }
-  };
-  const button = (text, className, onClick) => {
-    const node = document.createElement('button'); node.type = 'button'; node.className = className; node.textContent = text;
-    node.addEventListener('click', onClick); return node;
-  };
-  function render() {
-    const root = $('agents-list'); if (!root) return;
-    root.replaceChildren();
-    if (!state.items.length) {
-      const empty = document.createElement('p'); empty.className = 'empty-state'; empty.textContent = '还没有注册 Agent。';
-      root.append(empty); return;
+    async function write(items) {
+      if (!current() || busy || confirming) return;
+      const generation = ++operation; lock(true); feedback.textContent = '';
+      try {
+        const result = await postJson('/api/workspace/agents', { expected_revision: registry.revision, items });
+        if (!current() || generation !== operation) return; acceptRegistry(result); renderList();
+      } catch (error) { report(error.message || '保存未确认，输入已保留。'); }
+      finally { if (current() && generation === operation) lock(false); }
     }
-    for (const item of state.items) {
-      const card = document.createElement('article'); card.className = 'agent-card';
-      const heading = document.createElement('div'); heading.className = 'section-heading';
-      const copy = document.createElement('div');
-      const title = document.createElement('strong'); title.textContent = item.name;
-      const token = state.tokens[item.id];
-      const age = Date.now() - Date.parse(item.last_seen_at);
-      const online = item.enabled && item.online === true && Number.isFinite(age) && age >= 0 && age < 60000;
-      const last = item.last_seen_at ? `最近心跳 ${new Date(item.last_seen_at).toLocaleTimeString()}` : '尚无心跳';
-      const meta = document.createElement('p'); meta.className = 'section-note';
-      meta.textContent = `${adapters.find(row => row.id === item.adapter)?.name || kinds[item.kind] || item.kind} · ${item.command || '未填写命令'} · ${item.permission || 'workspace-write'} · ${item.enabled ? '已启用' : '已禁用'} · ${online ? '在线' : '离线 / 联系未知'} · ${last} · ${token?.has_token ? `token ${token.prefix}…` : '未生成 token'}`;
-      const scope = document.createElement('p'); scope.className = 'section-note'; scope.textContent = item.project_ids?.length ? `授权范围：${item.project_ids.length} 个项目` : '授权范围：全部项目';
-      copy.append(title, meta, scope);
-      const actions = document.createElement('div'); actions.className = 'form-actions';
-      actions.append(button('编辑', 'button secondary', () => open(item)),
-                     button(token?.has_token ? '重置 token' : '生成 token', 'button secondary', () => rotate(item)),
-                     button('移除', 'button secondary', () => remove(item.id)));
-      heading.append(copy, actions); card.append(heading); root.append(card);
+    async function changeEnabled(row, trigger) {
+      if (!current() || busy || confirming) return;
+      const message = row.enabled ? '停用此接入？已有外部进程不会结束。' : row.permission === 'danger-full-access' ? '此接入保留了完全访问的执行配置，确认启用？' : null;
+      if (message && !await confirm(message, trigger)) return;
+      if (current()) await write(registry.items.map(item => item.id === row.id ? { ...editable(item), enabled: !row.enabled } : editable(item)));
     }
-  }
-  function open(item = null) {
-    if (busy) return;
-    editing = item ? item.id : null;
-    draftItems = state.items.map(editable); draftRevision = state.revision;
-    adapterId = item?.adapter || ''; connectionDraft = item?.connection ? JSON.parse(JSON.stringify(item.connection)) : {};
-    $('agent-form-title').textContent = item ? '编辑 Agent' : '注册 Agent';
-    $('agent-name').value = item?.name || '';
-    $('agent-kind').value = item?.kind || 'codex';
-    $('agent-command').value = item?.command || '';
-    $('agent-permission').value = item?.permission || 'workspace-write';
-    $('agent-network').value = item?.network || (item?.adapter === 'dsh' ? 'allowed' : 'denied');
-    $('agent-approval').value = item?.approval || 'request_user';
-    $('agent-enabled').checked = item ? item.enabled : true;
-    renderConnection();
-    $('agent-form').hidden = false;
-    $('agent-name').focus();
-    note('保存只登记身份与命令，不安装、不启动、不发送任务。');
-  }
-  function close() {
-    editing = null; $('agent-form').hidden = true; $('agent-form').reset(); $('agent-enabled').checked = true;
-    draftItems = null; draftRevision = null; adapterId = ''; connectionDraft = {}; connectionControls = new Map();
-    $('agent-token').textContent = '';
-  }
-  async function load() {
-    if (!fetchJson) return;
-    try {
-      const [registry, catalog] = await Promise.allSettled([fetchJson('/api/workspace/agents'), fetchJson('/api/workspace/agent-adapters')]);
-      catalogAvailable = catalog.status === 'fulfilled' && Array.isArray(catalog.value?.adapters) && catalog.value.adapters.every(row => row && typeof row.id === 'string' && typeof row.name === 'string' && Array.isArray(row.fields) && row.fields.every(field => field && typeof field.key === 'string' && /^[a-z][a-z0-9_]*$/.test(field.key)));
-      adapters = catalogAvailable ? catalog.value.adapters : [];
-      if (registry.status === 'rejected') throw registry.reason;
-      const value = registry.value;
-      state = { revision: value.revision, items: value.items || [], tokens: value.tokens || {} };
-      render(); $('agents-status').textContent = `已注册 ${state.items.length} 个 Agent`;
-      return true;
-    } catch (error) {
-      $('agents-status').textContent = `Agent 注册表读取失败：${error.message}`;
-      return false;
+    async function remove(row, trigger) {
+      if (!await confirm('移除此接入并撤销其凭据？', trigger)) return;
+      if (current()) await write(registry.items.filter(item => item.id !== row.id).map(editable));
     }
+    async function rotate(row, trigger) {
+      if (!current() || busy || confirming) return;
+      if (registry.tokens[row.id]?.has_token && !await confirm('更换凭据后，旧凭据立即失效。继续？', trigger)) return;
+      if (!current() || busy) return;
+      const generation = ++operation; lock(true); clearToken();
+      try {
+        const result = await postJson('/api/workspace/agents/token', { id: row.id });
+        if (!current() || generation !== operation) return;
+        acceptRegistry(result.agents); if (typeof result.token !== 'string' || !result.token) throw new Error('凭据未确认，请刷新后核对。');
+        token = result.token; title.textContent = '接入凭据'; content.replaceChildren(); feedback.textContent = '';
+        const value = node('textarea', 'ce-access-token'); value.readOnly = true; value.value = token; value.dataset.accessToken = ''; value.setAttribute('aria-label', '接入凭据');
+        const actions = node('div', 'ce-project-settings-actions');
+        actions.append(button('完成', renderList), button('复制', async () => {
+          const copied = token; if (!current() || !copied) return;
+          try { await scope.navigator.clipboard.writeText(copied); if (current() && token === copied) report('已复制。'); }
+          catch { if (current()) { report('请手动选择并复制。'); value.focus(); value.select(); } }
+        }, true));
+        content.append(node('p', '', '请保存，此凭据仅显示一次。'), value, actions);
+      } catch (error) { report(error.message || '生成凭据未确认。'); }
+      finally { if (current() && generation === operation) lock(false); }
+    }
+    const api = { dispose, requestClose, isOpen: () => current() && dialog.open };
+    activeAccess = api;
+    let composing = false;
+    dialog.addEventListener('compositionstart', () => { composing = true; }); dialog.addEventListener('compositionend', () => { composing = false; });
+    dialog.addEventListener('cancel', event => { event.preventDefault(); if (!composing) void requestClose(); });
+    dialog.addEventListener('keydown', event => { if ((composing || event.isComposing || event.keyCode === 229) && ['Enter', 'Escape'].includes(event.key)) { event.preventDefault(); event.stopPropagation(); } });
+    dialog.addEventListener('close', dispose, { once: true });
+    unsubscribeContext = context?.onInactive(dispose);
+    dialog.showModal(); title.focus(); void load(); return api;
   }
-  async function save(event) {
-    event.preventDefault();
-    if (busy) return;
-    const name = $('agent-name').value.trim();
-    if (!name) { note('请填写显示名。', true); $('agent-name').focus(); return; }
-    let connection; try { connection = collectConnection(); } catch (error) { note(error.message, true); return; }
-    if ($('agent-command').required && !$('agent-command').value.trim()) { note('请填写命令或可执行文件路径。', true); return; }
-    const permission = $('agent-permission').value;
-    if (permission === 'danger-full-access' && !window.confirm('完全访问会让该 Agent 读写项目外文件并执行系统命令。只应对可信任务开启。确认保存？')) return;
-    busy = true; $('agent-fields').disabled = true;
-    try {
-      const items = (draftItems || state.items).map(editable), previous = items.find(row => row.id === editing);
-      const next = { id: editing, name, kind: $('agent-kind').value, command: $('agent-command').value.trim() || null,
-                     enabled: $('agent-enabled').checked,
-                     permission, network: $('agent-network').value, approval: $('agent-approval').value,
-                     ...(Array.isArray(previous?.project_ids) ? { project_ids: [...previous.project_ids] } : {}),
-                     ...(adapterId || Object.hasOwn(previous || {}, 'adapter') ? { adapter: adapterId || null } : {}),
-                     ...(adapterId || Object.hasOwn(previous || {}, 'connection') ? { connection } : {}) };
-      if (editing) items.splice(items.findIndex(row => row.id === editing), 1, next); else items.push(next);
-      const value = await postJson('/api/workspace/agents', { expected_revision: draftRevision ?? state.revision, items });
-      state = { revision: value.revision, items: value.items || [], tokens: value.tokens || {} };
-      close(); render(); $('agents-status').textContent = `已注册 ${state.items.length} 个 Agent`;
-      note('Agent 已保存。');
-      if (board) void board.load();
-    } catch (error) { note(`${error.message}。输入已保留。`, true); }
-    finally { busy = false; $('agent-fields').disabled = false; }
-  }
-  async function rotate(item) {
-    if (busy) return;
-    if (state.tokens[item.id]?.has_token && !window.confirm('重置后旧 token 立即失效，确认重置？')) return;
-    busy = true;
-    try {
-      const value = await postJson('/api/workspace/agents/token', { id: item.id });
-      state = { revision: value.agents.revision, items: value.agents.items, tokens: value.agents.tokens };
-      render();
-      $('agent-token').textContent = `Token（只显示一次，请立即复制）：${value.token}`;
-      if (window.setTimeout) window.setTimeout(() => { $('agent-token').textContent = ''; }, 60000);
-      note('Token 已生成；旧 token 已失效。');
-    } catch (error) { note(`${error.message}。`, true); }
-    finally { busy = false; }
-  }
-  async function remove(identity) {
-    if (busy || !window.confirm('移除这个 Agent 登记？不会结束任何外部进程。')) return;
-    busy = true;
-    try {
-      const items = state.items.filter(row => row.id !== identity)
-        .map(editable);
-      const value = await postJson('/api/workspace/agents', { expected_revision: state.revision, items });
-      state = { revision: value.revision, items: value.items || [], tokens: value.tokens || {} };
-      render(); $('agents-status').textContent = `已注册 ${state.items.length} 个 Agent`; note('Agent 登记已移除。');
-    } catch (error) { note(`${error.message}。`, true); }
-    finally { busy = false; }
-  }
-  function bind() {
-    if (bound) return; bound = true;
-    $('agent-new').addEventListener('click', async () => { if (await load()) open(); });
-    $('refresh-agents').addEventListener('click', () => load());
-    $('cancel-agent').addEventListener('click', close);
-    $('agent-form').addEventListener('submit', save);
-    $('agent-kind').addEventListener('change', () => {
-      $('agent-command').placeholder = '命令或可执行文件路径，例如 C:/example/agent.exe（可留空）';
-    });
-    $('agent-adapter')?.addEventListener('change', changeAdapter);
-  }
+  async function load() { if (legacyFetch) await legacyFetch('/api/workspace/agents'); }
   function init(options) {
-    fetchJson = options.fetchJson; postJson = options.postJson;
-    bind();
-    board = window.WorkspaceAgentBoard?.mount({ fetchJson, postJson, sandboxButton: options.sandboxButton,
-      onRegister: () => {
-        const show = async () => { if (await load() && window.location.hash === '#settings') { open(); $('agent-form').scrollIntoView?.({ block: 'center' }); $('agent-name').focus(); } };
-        if (window.location.hash === '#settings') show();
-        else { window.addEventListener('hashchange', show, { once: true }); window.location.hash = 'settings'; }
-      },
-      onAddProject: () => $('new-project')?.click(),
-      onProject: value => { window.location.hash = value === '__global__' ? 'global' : value ? `project/${encodeURIComponent(value)}/tasks` : 'overview'; },
-    });
+    legacyFetch = options.fetchJson;
+    board = window.WorkspaceAgentBoard?.mount({ ...options,
+      onRegister: () => { window.location.href = '/studio#settings/sources'; },
+      onAddProject: () => document.getElementById('new-project')?.click(),
+      onProject: value => { window.location.hash = value === '__global__' ? 'global' : value ? `project/${encodeURIComponent(value)}/tasks` : 'overview'; } });
     if (board) {
       void board.load();
-      for (const identity of ['onboarding-dialog', 'project-dialog']) $(identity)?.addEventListener('close', () => { void board.load(); });
-      if (window.setInterval && !timer) timer = window.setInterval(() => {
-        if (!$('agent-board').hidden && !document.hidden) void board.load();
-        board.refreshPresence();
-        if (window.location.hash === '#settings') render();
-      }, 15000);
+      for (const id of ['onboarding-dialog', 'project-dialog']) document.getElementById(id)?.addEventListener('close', () => { void board.load(); });
+      if (window.setInterval && !timer) timer = window.setInterval(() => { if (!document.getElementById('agent-board')?.hidden && !document.hidden) void board.load(); board.refreshPresence(); }, 15000);
     }
     return { load };
   }
-  return { init, load };
+  return { init, load, openAccess, attachCollectionChoice, disposeCollectionChoices };
 })();
 
 // The board consumes browser-authorized management APIs; it never uses Agent tokens.
@@ -320,8 +358,11 @@ window.WorkspaceTaskDispatch = (() => {
       el('p', '未勾选时只保存手动交接内容，不启动程序；勾选后由工作台后台启动所选 Agent，不会打开窗口。'), previewButton,
       field('完整交接预览', content), field('我已核对内容，确认保存本次交接快照', confirm), createButton);
     const history = el('fieldset', undefined, 'td-history');
-    const reload = button('重新读取说明与交接记录', () => {
-      if (dirty && !window.confirm('重新读取会放弃本次事项说明草稿，确认继续？')) return;
+    const reload = button('重新读取说明与交接记录', async () => {
+      if (busy || isBusy() || !isCurrent()) return;
+      const draft = JSON.stringify(Object.values(controls).map(input => input.value));
+      if (dirty && !await confirmAgentChange(root, '重新读取会放弃本次事项说明草稿，确认继续？', message)) return;
+      if (busy || isBusy() || !isCurrent() || draft !== JSON.stringify(Object.values(controls).map(input => input.value))) return;
       return load();
     });
     root.append(el('h3', '事项说明与手动交接'), el('p', '修改说明用于下一次交接，已有快照保持原样。交接后的结果仍需人工审核。'), status, reload, form, delivery, el('h4', '交接历史'), history);
@@ -371,11 +412,15 @@ window.WorkspaceTaskDispatch = (() => {
           }, true));
           row.append(field('我已将本次快照手动粘贴并发送给目标 Agent', sentConfirm), mark);
         }
-        if (['previewed', 'sent', 'delivered'].includes(record.delivery_state) && !record.run_id) row.append(button('取消这条交接记录', () => run(async () => {
-          if (!window.confirm('确认取消交接记录？这不会停止已在外部启动的 Agent 或工具。')) return;
-          await postJson('/api/workspace/dispatches/' + encodeURIComponent(record.id) + '/cancel', {});
-          await refreshHistory(); message('交接记录已取消；外部执行不会因此停止。');
-        }, true)));
+        if (['previewed', 'sent', 'delivered'].includes(record.delivery_state) && !record.run_id) row.append(button('取消这条交接记录', async () => {
+          if (busy || isBusy() || !isCurrent()) return;
+          if (!await confirmAgentChange(root, '确认取消交接记录？这不会停止已在外部启动的 Agent 或工具。', message)
+              || busy || isBusy() || !isCurrent() || row.isConnected === false || window.CERemoteContext?.active === false) return;
+          return run(async () => {
+            await postJson('/api/workspace/dispatches/' + encodeURIComponent(record.id) + '/cancel', {});
+            await refreshHistory(); message('交接记录已取消；外部执行不会因此停止。');
+          }, true);
+        }));
         history.append(row);
       }
       if (!result.items.length) history.append(el('p', '尚无交接记录。'));
@@ -411,7 +456,8 @@ window.WorkspaceTaskDispatch = (() => {
     syncAuto();
     sync();
     const ready = load();
-    return { ready };
+    const choice = window.WorkspaceAgents.attachCollectionChoice(agent, '目标 Agent');
+    return { ready, dispose() { choice?.dispose(); } };
   }
   return { create };
 })();
@@ -444,7 +490,12 @@ window.WorkspaceTaskMessages = (() => {
     kind.addEventListener('change', () => { if (kind.value === 'return' && !body.value) { const review = reviews[0]; if (review && ['changes_requested','rejected'].includes(review.verdict)) body.value = review.reason || ''; } changed(); });
     confirm.addEventListener('change', () => { onDirty(true); sync(); });
     function clear() { body.value = ''; confirm.checked = false; clientToken = null; onDirty(false); }
-    discard.addEventListener('click', () => { if (busy || isBusy()) return; if (window.confirm('放弃尚未保存的补充内容？')) { clear(); sync(); } });
+    discard.addEventListener('click', async () => {
+      if (busy || isBusy() || !isCurrent()) return;
+      const draft = JSON.stringify([body.value, agent.value, kind.value]);
+      if (await confirmAgentChange(root, '放弃尚未保存的补充内容？', text => { status.textContent = text; })
+          && !busy && !isBusy() && isCurrent() && draft === JSON.stringify([body.value, agent.value, kind.value]) && window.CERemoteContext?.active !== false) { clear(); sync(); }
+    });
     function render(rows) {
       history.replaceChildren(el('legend', `最近交接记录 · ${rows.length}（最多 100 条）`));
       if (!rows.length) history.append(el('p', '暂无交接记录。'));
@@ -459,7 +510,11 @@ window.WorkspaceTaskMessages = (() => {
           const send = el('button', '标记这条内容已发送'); send.type = 'button'; send.className = 'button secondary';
           send.addEventListener('click', () => { if (sent.checked) void action(() => postJson('/api/workspace/messages/' + encodeURIComponent(row.id) + '/sent', {})); });
           const cancel = el('button', '取消这条未发送记录'); cancel.type = 'button'; cancel.className = 'button secondary';
-          cancel.addEventListener('click', () => { if (window.confirm('确认取消这条未发送记录？这不会停止外部 Agent。')) void action(() => postJson('/api/workspace/messages/' + encodeURIComponent(row.id) + '/cancel', {})); });
+          cancel.addEventListener('click', async () => {
+            if (busy || isBusy() || !isCurrent()) return;
+            if (await confirmAgentChange(root, '确认取消这条未发送记录？这不会停止外部 Agent。', text => { status.textContent = text; })
+                && !busy && !isBusy() && isCurrent() && entry.isConnected !== false && window.CERemoteContext?.active !== false) return action(() => postJson('/api/workspace/messages/' + encodeURIComponent(row.id) + '/cancel', {}));
+          });
           entry.append(consent, send, cancel);
         }
         history.append(entry);
@@ -496,7 +551,8 @@ window.WorkspaceTaskMessages = (() => {
       });
     });
     void action();
-    return {};
+    const choice = window.WorkspaceAgents.attachCollectionChoice(agent, '接收 Agent');
+    return { dispose() { choice?.dispose(); } };
   }
   return { create };
 })();
@@ -513,15 +569,18 @@ window.WorkspaceAgentBoard = (() => {
     }
     return groups;
   }
-  function create({ root, fetchJson, postJson, onRegister = () => {}, onAddProject = () => {}, onProject = null, onRefresh = null, sandboxButton = null, unified = false, now = () => Date.now() }) {
+  function create({ root, fetchJson, postJson, onRegister = () => {}, onAddProject = () => {}, onProject = null, onRefresh = null, sandboxButton = null, itemsHref = null, unified = false, now = () => Date.now() }) {
+    if (unified && window.ProjectProgress) return window.ProjectProgress.create({ root, fetchJson, postJson, onRefresh, itemsHref, onProject,
+      legacyCreate: options => create({ ...options, onRegister, onAddProject, sandboxButton, itemsHref, unified: false, now }) });
     let items = [], projects = [], agents = [], request = 0, detailsRequest = 0, selectedProject = '', complete = false, writing = false, selected = null;
     let loaded = false, detailDirty = false, editDirty = false, briefDirty = false, sessionDirty = false, messageDirty = false, registryAvailable = false, disposed = false, itemFilter = 'all';
-    let groupsKey = '', loadFailed = false;
+    let groupsKey = '', loadFailed = false, active = true;
     const expandedPanels = new Map();
     const detailDrafts = new Set();
     let approvalPanel = null;
     const shownApprovals = new Set();
     const hasDraft = () => editDirty || detailDirty || briefDirty || sessionDirty || messageDirty;
+    const detailDraftKey = () => JSON.stringify([...detail.querySelectorAll('input,select,textarea')].map(node => [node.id, node.value, node.checked]));
     const markDetailDraft = kind => { detailDirty = true; detailDrafts.add(kind); };
     const otherDrafts = kind => editDirty || briefDirty || sessionDirty || messageDirty || [...detailDrafts].some(value => value !== kind);
     const el = (tag, cls = '', text) => { const node = document.createElement(tag); node.className = cls; if (text !== undefined) node.textContent = text; return node; };
@@ -572,13 +631,18 @@ window.WorkspaceAgentBoard = (() => {
     const groups = id(el('div', 'agent-board-groups'), 'ab-groups');
     const detail = id(el('dialog', 'agent-task-detail'), 'ab-detail'); detail.setAttribute('aria-label', '任务进度与人工审核');
     const detailBody = id(el('fieldset'), 'ab-detail-body');
-    detail.addEventListener('cancel', event => {
-      if (writing || hasDraft() && !window.confirm('尚有未提交内容，关闭并放弃本次编辑？')) event.preventDefault();
-      else { detailsRequest++; editDirty = detailDirty = briefDirty = sessionDirty = messageDirty = false; detailDrafts.clear(); }
-    });
+    detail.addEventListener('cancel', event => { event.preventDefault(); if (!event.isComposing && event.keyCode !== 229) void requestCloseDetail(); });
+    async function requestCloseDetail() {
+      if (writing || disposed || !active) return false;
+      const version = detailsRequest, draft = detailDraftKey();
+      if (hasDraft() && !await confirmAgentChange(detail, '尚有未提交内容，关闭并放弃本次编辑？', feedback)) return false;
+      if (writing || disposed || !active || version !== detailsRequest || draft !== detailDraftKey() || window.CERemoteContext?.active === false) return false;
+      detailsRequest++; detail.close(); editDirty = detailDirty = briefDirty = sessionDirty = messageDirty = false; detailDrafts.clear(); return true;
+    }
     const projectScope = field('项目范围', project);
     const sandboxActions = el('div', 'form-actions');
     root.replaceChildren(header, status, agentStrip, projectScope, navigation, sandboxActions, groups, detail);
+    const scopeChoice = window.WorkspaceAgents.attachCollectionChoice(project, '项目范围');
     function setWriting(value) {
       writing = value;
       // The ancestor owns the temporary write lock; child forms keep their own loading and permission state.
@@ -615,17 +679,17 @@ window.WorkspaceAgentBoard = (() => {
         const control = sandboxButton(chosenProject);
         if (control) sandboxActions.append(control);
       }
-      management.href = inProject ? `#project/${encodeURIComponent(selectedProject)}/manage` : '#tasks';
+      management.href = itemsHref ? itemsHref(selectedProject) : inProject ? `#project/${encodeURIComponent(selectedProject)}/manage` : '#tasks';
       management.textContent = inProject ? '本项目事项管理' : '事项管理';
       refresh.textContent = inProject ? '刷新项目' : '刷新工作台';
       status.hidden = unified && complete && !loadFailed;
       if (complete) status.textContent = unified ? '' : (inProject || unified ? `${chosenItems().length} 项事项` : `已读取 ${chosenItems().length} 项 · 分配后由外部 Agent 领取；完成须人工审核。`) + (registryAvailable || unified ? '' : ' Agent 注册表读取失败。');
       const selection = selectedProject; project.replaceChildren(); option(project, '', '全部项目'); option(project, '__global__', '全局事项');
-      for (const p of projects) option(project, p.id, p.name); project.value = selection;
+      for (const p of projects) option(project, p.id, p.name); project.value = selection; project.ceCollectionChoice?.refresh({ preserveMissing: true });
       title.textContent = selectedProject === '__global__' ? '全局事项' : selectedProject ? `${projects.find(p => p.id === selectedProject)?.name || '当前项目'} · Agent 工作台` : 'Agent 工作台';
       navigation.replaceChildren(); navigation.hidden = !selectedProject || selectedProject === '__global__';
       if (!navigation.hidden) for (const [tab, label] of [['tasks', '全部事项'], ['attention', '待处理'], ['sessions', '会话'], ['monitor', '协作监控']]) {
-        const link = el('a', 'project-tab', label); link.href = `#project/${encodeURIComponent(selectedProject)}/${tab}`;
+        const link = el('a', 'project-tab', label); link.href = tab === 'tasks' && itemsHref ? itemsHref(selectedProject) : `#project/${encodeURIComponent(selectedProject)}/${tab}`;
         if (tab === (itemFilter === 'attention' ? 'attention' : 'tasks')) link.setAttribute('aria-current', 'page'); navigation.append(link);
       }
       const nextGroupsKey = JSON.stringify([selectedProject, itemFilter, complete, registryAvailable,
@@ -775,11 +839,11 @@ window.WorkspaceAgentBoard = (() => {
       status.textContent = '工作台读取失败或未读完整。保留上次记录，数量暂不可确认，请刷新重试。';
     }
     async function load() {
-      if (disposed) return;
+      if (disposed || !active) return;
       if (onRefresh) return onRefresh();
       const current = ++request; complete = false; loadFailed = false; status.textContent = loaded ? '正在更新，暂保留上次记录…' : '正在读取工作台…'; render();
       const results = await Promise.allSettled([fetchJson('/api/workspace'), fetchJson('/api/workspace/agents'), readItems()]);
-      if (disposed || current !== request) return;
+      if (disposed || !active || current !== request) return;
       registryAvailable = results[1].status === 'fulfilled';
       if (registryAvailable) agents = results[1].value.items || [];
       if (results[0].status === 'fulfilled' && results[0].value.projects?.status === 'available' && results[2].status === 'fulfilled') {
@@ -789,16 +853,16 @@ window.WorkspaceAgentBoard = (() => {
       await inspectApprovals(current);
     }
     async function inspectApprovals(current) {
-      if (!root.hidden && !document.hidden && complete && window.WorkspaceExecution?.createTaskApprovals && !detail.open && !writing && !hasDraft()
+      if (active && !disposed && !root.hidden && !document.hidden && complete && window.WorkspaceExecution?.createTaskApprovals && !detail.open && !writing && !hasDraft()
           && chosenItems().some(item => item.assignment_state === 'waiting_user')) {
         try {
           const listing = await fetchJson('/api/workspace/execution');
-          if (root.hidden || disposed || current !== request || detail.open || writing || hasDraft()) return;
+          if (!active || root.hidden || disposed || current !== request || detail.open || writing || hasDraft()) return;
           for (const execution of listing.active || []) {
             const task = chosenItems().find(item => item.id === execution.task_id);
             if (!task || execution.state !== 'waiting_approval') continue;
             const pending = await fetchJson('/api/workspace/execution/runs/' + encodeURIComponent(execution.id) + '?after=0');
-            if (root.hidden || disposed || current !== request || detail.open || writing || hasDraft()) return;
+            if (!active || root.hidden || disposed || current !== request || detail.open || writing || hasDraft()) return;
             if (!chosenItems().some(item => item.id === task.id)) continue;
             if (pending.run?.id !== execution.id || pending.run?.task_id !== task.id) continue;
             const ids = (pending.approvals || []).filter(row => row.status === 'pending').map(row => row.id).sort();
@@ -812,16 +876,20 @@ window.WorkspaceAgentBoard = (() => {
     function setProject(value, filter = 'all') {
       const nextFilter = filter === true ? 'attention' : ['review', 'attention'].includes(filter) ? filter : 'all';
       if (selectedProject === value && itemFilter === nextFilter) return;
-      selectedProject = value || ''; itemFilter = nextFilter; project.value = selectedProject; render();
+      selectedProject = value || ''; itemFilter = nextFilter; project.value = selectedProject; project.ceCollectionChoice?.refresh(); render();
       if (complete) void inspectApprovals(++request);
     }
     function showDetail() {
+      for (const [name, label] of [['ab-new-project','所属项目'],['ab-new-agent','Agent'],['ab-assignee','已注册且启用的 Agent'],['ab-start-project','本次执行所属项目'],['ab-edit-project','所属项目']]) {
+        const select = detail.querySelector('#' + name); if (select) window.WorkspaceAgents.attachCollectionChoice(select, label);
+      }
       if (!detail.open) { if (typeof detail.showModal === 'function') detail.showModal(); else if (typeof detail.show === 'function') detail.show(); }
     }
     function detailHeader(item) {
       approvalPanel?.dispose(); approvalPanel = null;
+      window.WorkspaceAgents.disposeCollectionChoices(detail);
       detail.replaceChildren(); detailBody.replaceChildren(); detailBody.disabled = writing;
-      const close = btn('关闭详情', () => { if (!writing && (!hasDraft() || window.confirm('尚有未提交内容，关闭并放弃本次编辑？'))) { detailsRequest++; detail.close(); editDirty = detailDirty = briefDirty = sessionDirty = messageDirty = false; detailDrafts.clear(); } });
+      const close = btn('关闭详情', requestCloseDetail);
       const tools = el('div', 'form-actions');
       if (item.id) tools.append(btn('刷新', () => { if (hasDraft()) feedback('有未提交内容，请保留或放弃草稿后再刷新详情。'); else void open(item, true); }));
       tools.append(close);
@@ -857,10 +925,13 @@ window.WorkspaceAgentBoard = (() => {
       });
       showDetail(); name.focus();
     }
-    function openNew(projectId = null) {
+    async function openNew(projectId = null) {
       if (unified) return openMinimalNew(projectId);
       if (unified && detail.open && hasDraft()) { feedback('已有未提交草稿，请先保存或关闭后再新建。', true); return; }
-      if (writing || detail.open && hasDraft() && !window.confirm('放弃未提交内容，新建待办？')) return;
+      if (writing || disposed || !active) return;
+      const version = detailsRequest, draft = detailDraftKey(), projectAtRequest = selectedProject;
+      if (detail.open && hasDraft() && !await confirmAgentChange(detail, '放弃未提交内容，新建待办？', feedback)) return;
+      if (writing || disposed || !active || version !== detailsRequest || draft !== detailDraftKey() || projectAtRequest !== selectedProject || window.CERemoteContext?.active === false) return;
       editDirty = detailDirty = briefDirty = sessionDirty = messageDirty = false; detailDrafts.clear(); detailsRequest++; detailHeader({ title: '新建待办' });
       const form = el('form'), fields = el('fieldset');
       const name = id(el('textarea'), 'ab-new-title'); name.required = true; name.maxLength = 4000; name.rows = 3;
@@ -889,7 +960,7 @@ window.WorkspaceAgentBoard = (() => {
         agent.replaceChildren(); option(agent, '', '暂不分配 Agent');
         for (const row of available) option(agent, row.id, row.name);
         if (previous && !available.some(row => row.id === previous)) option(agent, previous, '原选择无权访问当前项目，请重新选择或取消分配').disabled = true;
-        agent.value = previous;
+        agent.value = previous; agent.ceCollectionChoice?.refresh();
         syncExecute();
       }
       agent.addEventListener('change', syncExecute); owner.addEventListener('change', renderAgents); renderAgents();
@@ -1116,7 +1187,9 @@ window.WorkspaceAgentBoard = (() => {
         event.preventDefault(); if (writing) return;
         if (otherDrafts('release')) { feedback('请先保存或放弃其他草稿，再释放运行。'); return; }
         if (!reason.value.trim() || [...reason.value].length > 1000 || !confirm.checked) { feedback('请填写最多 1000 字的释放理由，并确认已处理外部旧执行。', true); return; }
-        if (!window.confirm('确认释放本次运行？任务将返回待办；这不会停止任何外部工具。')) return;
+        const version = detailsRequest, draft = detailDraftKey();
+        if (!await confirmAgentChange(detail, '确认释放本次运行？任务将返回待办；这不会停止任何外部工具。', feedback)
+            || writing || disposed || !active || version !== detailsRequest || draft !== detailDraftKey() || selected?.id !== item.id || window.CERemoteContext?.active === false) return;
         setWriting(true); fields.disabled = true;
         try {
           await postJson('/api/workspace/agent-tasks/' + encodeURIComponent(item.id) + '/cancel', { expected_revision: item.revision, reason: reason.value.trim() });
@@ -1159,20 +1232,30 @@ window.WorkspaceAgentBoard = (() => {
       }); detailBody.append(form);
     }
     async function open(item, replace = false) {
+      if (disposed || !active) return;
       if (replace && hasDraft()) { feedback('请先保存或放弃当前草稿，再刷新详情。', true); return; }
-      if (!replace && (writing || detail.open && hasDraft() && !window.confirm('放弃未提交内容，打开另一项？'))) return;
+      if (!replace) {
+        if (writing) return;
+        const version = detailsRequest, draft = detailDraftKey();
+        if (detail.open && hasDraft() && !await confirmAgentChange(detail, '放弃未提交内容，打开另一项？', feedback)) return;
+        if (writing || disposed || !active || version !== detailsRequest || draft !== detailDraftKey() || window.CERemoteContext?.active === false) return;
+      }
       const current = ++detailsRequest; selected = item; editDirty = detailDirty = briefDirty = sessionDirty = messageDirty = false; detailDrafts.clear(); detailHeader(item); detailBody.append(el('p', 'section-note', '正在读取进度与审核材料…')); showDetail();
       try {
         const data = await fetchJson('/api/workspace/agent-tasks/' + encodeURIComponent(item.id));
-        if (current !== detailsRequest || disposed) return;
+        if (current !== detailsRequest || disposed || !active) return;
         if (data?.item?.id !== item.id || !Array.isArray(data.events) || data.run?.task_id && data.run.task_id !== item.id) throw new Error('详情与当前事项不一致或尚未完整读取');
         renderDetail(data);
       } catch (error) {
-        if (current !== detailsRequest || disposed) return;
+        if (current !== detailsRequest || disposed || !active) return;
         renderDetail({ item, run: null, events: [] }, `运行详情暂不可用：${error.message}。没有可确认的进度或产出。`);
       }
     }
-    return { load, update(value) { const current = ++request; update(value); return inspectApprovals(current); }, unavailable, setProject, open, dispose() { disposed = true; approvalPanel?.dispose(); request++; detailsRequest++; if (detail.open) detail.close(); },
+    return { load, update(value) { if (disposed || !active) return; const current = ++request; update(value); return inspectApprovals(current); }, unavailable, setProject, open,
+      isEditing: () => writing || detail.open || hasDraft(),
+      focusEditor() { (detail.querySelector('textarea') || detail.querySelector('button'))?.focus(); },
+      setActive(value) { if (disposed || active === Boolean(value)) return; active = Boolean(value); request++; detailsRequest++; if (!active) { approvalPanel?.dispose(); approvalPanel = null; } },
+      dispose() { disposed = true; active = false; approvalPanel?.dispose(); scopeChoice?.dispose(); window.WorkspaceAgents.disposeCollectionChoices(detail); request++; detailsRequest++; if (detail.open) detail.close(); },
       refreshPresence: renderAgents };
   }
   function onView(view, project = '', tab = 'tasks') {

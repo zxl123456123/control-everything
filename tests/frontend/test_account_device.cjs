@@ -85,3 +85,20 @@ test('local account copy distinguishes unbound from saved connections without in
 test('local polling is serial, visibility-aware and disposal clears timers/listeners/late responses',async()=>{
   let release,reads=0;const f=fixture(path=>path==='/api/bootstrap'?response({csrf_token:'local'}):++reads===1?response({state:'online',configured:true}):new Promise(resolve=>release=resolve),{mode:'local'});await settle();assert.equal(f.get('account').textContent,'连接已保存');assert.equal(f.timers.size,1);f.window.document.hidden=true;await f.tick();assert.equal(reads,1);f.window.document.hidden=false;await f.tick();await f.tick();assert.equal(reads,2);const signal=f.calls.at(-1).options.signal;f.dispose();assert.equal(signal.aborted,true);assert.equal(f.timers.size,0);assert.equal(f.button('authorize').listenerCount,0);release(response({state:'offline',account:{sub:'late'}}));await settle();assert.notEqual(f.get('account').textContent,'late');
 });
+
+test('revocation keeps the domain dialog and its target on failure, prevents repeats and blocks closing while pending',async()=>{
+  let release;const f=fixture(path=>path.endsWith('/session')?response(session({device:{device_id:'synthetic-device',state:'online'}})):new Promise(resolve=>release=resolve));await settle();
+  f.click('revoke');assert.equal(f.focused,'cancel-revoke');f.click('confirm-revoke');f.click('confirm-revoke');
+  assert.equal(f.calls.length,2);assert.equal(f.get('revoke-dialog').open,true);assert.equal(f.button('confirm-revoke').disabled,true);
+  f.click('cancel-revoke');assert.equal(f.get('revoke-dialog').open,true);
+  release(response({},403));await settle();assert.equal(f.get('revoke-dialog').open,true);assert.equal(f.get('revoke-error').hidden,false);assert.match(f.get('revoke-error').textContent,/请求未成功/);assert.equal(f.focused,'revoke-error');assert.equal(f.button('confirm-revoke').disabled,false);
+  f.click('cancel-revoke');assert.equal(f.focused,'revoke');f.dispose();
+});
+
+test('revocation rejects a changed connection identity and IME cancel keeps the current layer',async()=>{
+  let reads=0;const f=fixture(()=>response(session({device:{device_id:++reads===1?'first':'replacement',state:'online'}})));await settle();f.click('revoke');
+  let prevented=0;f.get('revoke-dialog').emit('compositionstart');f.get('revoke-dialog').emit('cancel',{preventDefault(){prevented++;}});assert.equal(prevented,1);assert.equal(f.get('revoke-dialog').open,true);
+  f.get('revoke-dialog').emit('compositionend');f.click('refresh');await settle();f.click('confirm-revoke');await settle();
+  assert.equal(f.calls.filter(call=>call.options.method==='POST').length,0);assert.match(f.get('revoke-error').textContent,/状态已变化/);assert.equal(f.get('revoke-dialog').open,true);
+  f.get('revoke-dialog').emit('cancel');assert.equal(f.get('revoke-dialog').open,false);f.dispose();
+});

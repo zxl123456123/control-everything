@@ -29,7 +29,7 @@ class IdentityThemeTests(unittest.TestCase):
         config = properties(THEME / "theme.properties")
         self.assertEqual(config, {
             "parent": "keycloak.v2", "import": "common/keycloak",
-            "styles": "css/styles.css css/studio.css?v=20261025-2", "locales": "zh-Hans,en",
+            "styles": "css/styles.css css/studio.css?v=20261026-1", "locales": "zh-Hans,en",
         })
         self.assertTrue((THEME / "resources/css/studio.css").is_file())
 
@@ -44,12 +44,26 @@ class IdentityThemeTests(unittest.TestCase):
     def test_no_template_script_external_asset_or_secret_boundary(self):
         for relative in FILES:
             source = (THEME / relative).read_text(encoding="utf-8")
+            if relative == "resources/css/studio.css":
+                begin, end = "/* BEGIN CE GENERATED GEIST FONT */", "/* END CE GENERATED GEIST FONT */"
+                self.assertEqual(source.count(begin), 1)
+                self.assertEqual(source.count(end), 1)
+                prefix, generated = source.split(begin)
+                generated, suffix = generated.split(end)
+                syntax = re.sub(r"/\*.*?\*/", "", generated, flags=re.S)
+                urls = re.findall(r"url\s*\([\"']?([^\"')]+)", syntax)
+                self.assertEqual(len(urls), 1)
+                self.assertTrue(urls[0].startswith("data:font/woff2;base64,"))
+                self.assertNotRegex(syntax, r"(?i)<script|<#|https?://|@import")
+                source = prefix + suffix
             self.assertNotRegex(source, r"(?i)<script|<#|https?://|@import|url\s*\(")
         css = (THEME / "resources/css/studio.css").read_text(encoding="utf-8")
         self.assertIn(":root.pf-v5-theme-dark", css)
-        self.assertIn("prefers-color-scheme: dark", css)
+        self.assertNotIn("prefers-color-scheme", css)
         self.assertIn("forced-colors: active", css)
         self.assertIn(":focus-visible", css)
+        self.assertIn("--studio-input: #858585", css)
+        self.assertIn("--studio-input: #929292", css)
 
     def test_theme_is_sdist_source_but_not_a_wheel_web_asset(self):
         manifest = (ROOT / "MANIFEST.in").read_text(encoding="utf-8")

@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import {
+  getRepoExecutionHostId,
   getExecutionHostLabel,
   parseExecutionHostId,
   toRuntimeExecutionHostId,
@@ -36,6 +37,7 @@ type RepositoryHostSetupsSectionProps = {
   selectedProjectSetupId?: string
   settingsSelectionKey?: string
   settingsEntryRepoIds?: ReadonlySet<string>
+  fixedHostSetup?: boolean
   forceVisible: boolean
   searchQuery: string
   searchEntries: SettingsSearchEntry[]
@@ -64,6 +66,7 @@ export function RepositoryHostSetupsSection({
   selectedProjectSetupId,
   settingsSelectionKey,
   settingsEntryRepoIds,
+  fixedHostSetup = false,
   forceVisible,
   searchQuery,
   searchEntries
@@ -111,7 +114,8 @@ export function RepositoryHostSetupsSection({
     getProjectHostSetupProjectionFromState(state)
   )
   const repoProjectHostSetup = projectHostSetupProjection.setups.find(
-    (setup) => setup.repoId === repo.id
+    (setup) => setup.repoId === repo.id && (!fixedHostSetup ||
+      (setup.id === selectedProjectSetupId && setup.hostId === getRepoExecutionHostId(repo)))
   )
   const selectedProjectHostSetup =
     projectHostSetupProjection.setups.find(
@@ -130,7 +134,8 @@ export function RepositoryHostSetupsSection({
   const projectHostSetups = setupsByOwnedExecutionHost(
     allProjectHostSetups.filter(
       (setup) =>
-        !settingsEntryRepoIds || !setup.repoId.trim() || settingsEntryRepoIds.has(setup.repoId)
+        (!fixedHostSetup || setup.id === selectedProjectSetupId) &&
+        (!settingsEntryRepoIds || !setup.repoId.trim() || settingsEntryRepoIds.has(setup.repoId))
     ),
     selectedProjectHostSetup?.id ?? ''
   )
@@ -182,7 +187,7 @@ export function RepositoryHostSetupsSection({
           <Label className="text-sm font-semibold">
             {translate('auto.components.settings.RepositoryPane.availableHosts', 'Available Hosts')}
           </Label>
-          {switchableProjectHostSetups.length > 1 ? (
+          {!fixedHostSetup && switchableProjectHostSetups.length > 1 ? (
             <div className="flex items-center gap-2">
               <span className="text-xs text-muted-foreground">
                 {translate('auto.components.settings.RepositoryPane.viewingHost', 'Viewing host')}
@@ -381,7 +386,7 @@ export function RepositoryHostSetupsSection({
           )
         })}
       </div>
-      {selectedProjectHostSetup ? (
+      {!fixedHostSetup && selectedProjectHostSetup ? (
         <RepositoryHostSetupActions
           repoDisplayName={repo.displayName}
           selectedProjectHostSetup={selectedProjectHostSetup}

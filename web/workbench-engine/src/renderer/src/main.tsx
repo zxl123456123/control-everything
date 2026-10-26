@@ -15,7 +15,8 @@ import {
   recordRendererCrashBreadcrumb
 } from './lib/crash-diagnostics'
 import { installAutomationHostDiagnostic } from './components/automations/automation-host-diagnostics'
-import { applyDocumentTheme } from './lib/document-theme'
+import { applyStandaloneAppearance } from './lib/standalone-appearance'
+import type { GlobalSettings } from '../../shared/global-settings-types'
 import { installTypingLatencyDiagnostic } from './lib/typing-latency/diagnostic'
 import { installAppKeyboardRouter } from './lib/app-keyboard-router'
 import { shouldEnableReactGrab } from './lib/react-grab-dev-gate'
@@ -46,7 +47,14 @@ if (
   void import('react-grab/styles.css')
 }
 
-applyDocumentTheme('system', { disableTransitions: false })
+// Why: the preload's original settings authority is available before React hydration.
+let startupSettings: GlobalSettings | null = null
+try {
+  startupSettings = window.api.settings.getSync()
+} catch {
+  // Async hydration remains available; a missing startup value uses the light background.
+}
+applyStandaloneAppearance(startupSettings)
 const browserClientPageRenderer = installBrowserClientPageRenderer()
 import.meta.hot?.dispose(() => browserClientPageRenderer?.dispose())
 

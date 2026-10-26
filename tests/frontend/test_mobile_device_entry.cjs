@@ -74,3 +74,9 @@ test('remote management is mounted inline and disposed with its host', () => {
   assert.ok(!f.elements.some(node => node.href === '/remote' || node.href === '/desktop'));
   f.dispose(); assert.equal(f.accountDisposals.length, 1);
 });
+
+test('copy waits once, exposes busy semantics and permits retry after rejection', async () => {
+  let reject,calls=0;const f=fixture('https://example.test',{writeText(){calls++;return new Promise((_,fail)=>{reject=fail;});}});
+  const button=f.elements.find(n=>n.tagName==='button');const first=f.copy();await f.copy();assert.equal(calls,1);assert.equal(button.disabled,true);assert.equal(button['aria-busy'],'true');
+  reject(new Error('denied'));await first;assert.equal(button.disabled,false);assert.equal(button['aria-busy'],'false');assert.ok(f.input.selected);
+});

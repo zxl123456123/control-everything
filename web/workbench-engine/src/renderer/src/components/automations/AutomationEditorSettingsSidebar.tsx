@@ -63,7 +63,7 @@ export function AutomationEditorSettingsSidebar({
   onSetupDecisionTouched
 }: AutomationEditorSettingsSidebarProps): React.JSX.Element {
   return (
-    <aside className="flex w-[320px] shrink-0 flex-col overflow-auto border-l border-border/50 bg-muted/20 px-5 py-5 scrollbar-sleek">
+    <aside className="flex w-full shrink-0 flex-col overflow-visible border-t border-border bg-card px-6 py-6 md:w-[300px] md:overflow-auto md:border-t-0 md:border-l scrollbar-sleek">
       <div className="flex flex-col">
         <div className="mb-4 flex flex-col gap-5">
           <Field

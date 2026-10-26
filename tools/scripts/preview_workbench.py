@@ -34,7 +34,8 @@ def main(argv=None):
         runtime = WorkbenchRuntime(RuntimeConfig(engine, args.build_run, args.data_dir / "workbench",
                                                  args.git, tuple(args.workspace_root)))
         runtime.start(server.origin)
-        server.workbench_runtime, server.workbench_assets = runtime, assets
+        server.attach_workbench_runtime(runtime)
+        server.workbench_assets = assets
         print(f"平台工作台：{server.origin}/studio（独立测试数据）", flush=True)
         server.serve_forever()
     except KeyboardInterrupt:

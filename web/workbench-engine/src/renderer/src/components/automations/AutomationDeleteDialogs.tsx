@@ -35,23 +35,24 @@ export function AutomationDeleteDialog({
   onCancel: () => void
   onConfirm: () => void
 }): React.JSX.Element {
+  const cancelButtonRef = React.useRef<HTMLButtonElement>(null)
   return (
     <Dialog open={deleteTarget !== null} onOpenChange={onOpenChange}>
       <DialogContent
-        className="max-w-md"
+        className="ce-management-surface max-h-[calc(100dvh-2rem)] overflow-y-auto scrollbar-sleek sm:max-w-[440px]"
         onOpenAutoFocus={(event) => {
           event.preventDefault()
-          confirmButtonRef.current?.focus()
+          cancelButtonRef.current?.focus()
         }}
       >
         <DialogHeader>
-          <DialogTitle className="text-sm">
+          <DialogTitle className="text-lg font-semibold leading-[26px]">
             {translate(
               'auto.components.automations.AutomationsPage.080dcb5fbb',
               'Delete Automation'
             )}
           </DialogTitle>
-          <DialogDescription className="text-xs">
+          <DialogDescription className="text-sm leading-[22px]">
             {translate('auto.components.automations.AutomationsPage.15e0bfb13b', 'Delete')}{' '}
             <span className="break-all font-medium text-foreground">{deleteTarget?.name}</span>{' '}
             {translate(
@@ -61,7 +62,7 @@ export function AutomationDeleteDialog({
           </DialogDescription>
         </DialogHeader>
         {deleteTarget ? (
-          <div className="rounded-md border border-border/70 bg-muted/35 px-3 py-2 text-xs">
+          <div className="rounded-md border border-border/70 bg-muted/35 px-3 py-2 text-sm leading-[22px]">
             <div className="break-all font-medium text-foreground">{deleteTarget.name}</div>
             <div className="mt-1 text-muted-foreground">
               {deleteTarget.workspaceMode === 'new_per_run'
@@ -81,7 +82,7 @@ export function AutomationDeleteDialog({
           role="checkbox"
           aria-checked={dontAskDeleteAgain}
           onClick={onDontAskAgainToggle}
-          className="flex items-center gap-2 rounded-sm px-1 py-1 text-xs text-foreground/80 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="flex items-center gap-2 min-h-11 rounded-xl px-2 py-2 text-sm leading-[22px] text-foreground/80 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <span
             className={`flex size-4 items-center justify-center rounded-sm border transition-colors ${
@@ -95,7 +96,7 @@ export function AutomationDeleteDialog({
           {translate('auto.components.automations.AutomationsPage.1e2e41392f', "Don't ask again")}
         </button>
         <DialogFooter>
-          <Button variant="outline" onClick={onCancel}>
+          <Button ref={cancelButtonRef} variant="outline" onClick={onCancel}>
             {translate('auto.components.automations.AutomationsPage.73f630b49d', 'Cancel')}
           </Button>
           <Button ref={confirmButtonRef} variant="destructive" onClick={onConfirm}>
@@ -124,23 +125,24 @@ export function ExternalAutomationDeleteDialog({
   onCancel: () => void
   onConfirm: () => void
 }): React.JSX.Element {
+  const cancelButtonRef = React.useRef<HTMLButtonElement>(null)
   return (
     <Dialog open={externalDeleteTarget !== null} onOpenChange={onOpenChange}>
       <DialogContent
-        className="max-w-md"
+        className="ce-management-surface max-h-[calc(100dvh-2rem)] overflow-y-auto scrollbar-sleek sm:max-w-[440px]"
         onOpenAutoFocus={(event) => {
           event.preventDefault()
-          confirmButtonRef.current?.focus()
+          cancelButtonRef.current?.focus()
         }}
       >
         <DialogHeader>
-          <DialogTitle className="text-sm">
+          <DialogTitle className="text-lg font-semibold leading-[26px]">
             {translate(
               'auto.components.automations.AutomationsPage.9adfab2596',
               'Delete External Automation'
             )}
           </DialogTitle>
-          <DialogDescription className="text-xs">
+          <DialogDescription className="text-sm leading-[22px]">
             {translate('auto.components.automations.AutomationsPage.15e0bfb13b', 'Delete')}{' '}
             <span className="break-all font-medium text-foreground">
               {externalDeleteTarget?.job.name}
@@ -157,7 +159,7 @@ export function ExternalAutomationDeleteDialog({
           </DialogDescription>
         </DialogHeader>
         {externalDeleteTarget ? (
-          <div className="rounded-md border border-border/70 bg-muted/35 px-3 py-2 text-xs">
+          <div className="rounded-md border border-border/70 bg-muted/35 px-3 py-2 text-sm leading-[22px]">
             <div className="break-all font-medium text-foreground">
               {externalDeleteTarget.job.name}
             </div>
@@ -172,7 +174,7 @@ export function ExternalAutomationDeleteDialog({
           </div>
         ) : null}
         <DialogFooter>
-          <Button variant="outline" onClick={onCancel}>
+          <Button ref={cancelButtonRef} variant="outline" onClick={onCancel}>
             {translate('auto.components.automations.AutomationsPage.73f630b49d', 'Cancel')}
           </Button>
           <Button ref={confirmButtonRef} variant="destructive" onClick={onConfirm}>

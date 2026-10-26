@@ -51,8 +51,8 @@ export function SkillsFilterToolbar({
     filters.query.trim() !== '' || filters.sourceKind !== 'all' || filters.agent !== 'all'
   return (
     <section className="shrink-0 border-b border-border">
-      <div className={cn(SKILLS_PAGE_COLUMN, 'flex flex-col gap-2 py-3')}>
-        <div className="flex items-center gap-2">
+      <div className={cn(SKILLS_PAGE_COLUMN, 'flex flex-col gap-4 py-4')}>
+        <div className="flex flex-wrap items-center gap-3">
           <div className="relative min-w-0 flex-1">
             <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -68,7 +68,7 @@ export function SkillsFilterToolbar({
                   ? translate('auto.components.skills.SkillsPage.searchLinks', 'Search links')
                   : translate('auto.components.skills.SkillsPage.a68dee6a32', 'Search skills')
               }
-              className="h-8 pl-8 text-sm"
+              className="h-10 pl-8 text-sm"
             />
           </div>
           {sharedView ? null : (
@@ -77,7 +77,7 @@ export function SkillsFilterToolbar({
               onValueChange={(value) => onFiltersChange({ ...filters, agent: value })}
             >
               <SelectTrigger
-                className="h-8 w-[170px]"
+                className="h-10 w-[170px]"
                 aria-label={translate(
                   'auto.components.skills.SkillsPage.filterProvider',
                   'Filter by agent'
@@ -85,7 +85,7 @@ export function SkillsFilterToolbar({
               >
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="ce-management-surface [&_[role=option]]:min-h-10 [&_[role=option]]:text-sm">
                 <SelectItem value="all">
                   {translate('auto.components.skills.filter.allAgents', 'All agents')}
                 </SelectItem>
@@ -128,10 +128,10 @@ export function SkillsFilterToolbar({
             onValueChange={(value) => onViewChange((value || 'skills') as SkillsPageView)}
             aria-label={translate('auto.components.skills.SkillsPage.viewSwitch', 'Show')}
           >
-            <ToggleGroupItem value="skills" className="rounded-full px-2.5 text-xs">
+            <ToggleGroupItem value="skills" className="min-h-10 rounded-xl px-3 text-sm">
               {translate('auto.components.skills.SkillsPage.f43ad6edf3', 'Skills')}
             </ToggleGroupItem>
-            <ToggleGroupItem value="shared" className="rounded-full px-2.5 text-xs">
+            <ToggleGroupItem value="shared" className="min-h-10 rounded-xl px-3 text-sm">
               {translate('auto.components.skills.SkillsPage.sharedLinks', 'Shared links')}
             </ToggleGroupItem>
           </ToggleGroup>
@@ -157,7 +157,7 @@ export function SkillsFilterToolbar({
                   'Filter by source'
                 )}
               >
-                <ToggleGroupItem value="all" className="gap-1.5 rounded-full px-2.5 text-xs">
+                <ToggleGroupItem value="all" className="gap-1.5 min-h-10 rounded-xl px-3 text-sm">
                   {translate('auto.components.skills.SkillsPage.allSources', 'All')}
                   <span className="tabular-nums text-muted-foreground">{totalCount}</span>
                 </ToggleGroupItem>
@@ -165,7 +165,7 @@ export function SkillsFilterToolbar({
                   <ToggleGroupItem
                     key={sourceKind}
                     value={sourceKind}
-                    className="gap-1.5 rounded-full px-2.5 text-xs"
+                    className="gap-1.5 min-h-10 rounded-xl px-3 text-sm"
                   >
                     {sourceKindLabel(sourceKind)}
                     <span className="tabular-nums text-muted-foreground">
@@ -174,7 +174,7 @@ export function SkillsFilterToolbar({
                   </ToggleGroupItem>
                 ))}
               </ToggleGroup>
-              <div className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">
+              <div className="ml-auto flex items-center gap-2 text-sm leading-[22px] text-muted-foreground">
                 <span role="status" aria-live="polite">
                   {resultCountLabel(resultCount)}
                 </span>
@@ -199,7 +199,7 @@ export function SkillsFilterToolbar({
           )}
           {sharedView ? (
             <span
-              className="ml-auto text-xs text-muted-foreground"
+              className="ml-auto text-sm leading-[22px] text-muted-foreground"
               role="status"
               aria-live="polite"
             >

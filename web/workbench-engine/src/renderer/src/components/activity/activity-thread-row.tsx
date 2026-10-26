@@ -1,3 +1,4 @@
+import { useManagementSurface } from '@/components/ui/management-surface'
 import React from 'react'
 import { Bell, ExternalLink, X } from 'lucide-react'
 import { AgentTypeIcon } from '@/lib/agent-type-icon'
@@ -26,6 +27,7 @@ function ActivityThreadRowAction({
   keyboardReachable?: boolean
   children: React.ReactNode
 }): React.JSX.Element {
+  const management = useManagementSurface()
   return (
     <Tooltip>
       <TooltipTrigger asChild>
@@ -35,6 +37,7 @@ function ActivityThreadRowAction({
           size="icon-xs"
           className={cn(
             'size-4 p-0 text-muted-foreground transition-opacity hover:text-foreground can-hover:pointer-events-none can-hover:opacity-0 can-hover:group-hover:pointer-events-auto can-hover:group-hover:opacity-100 focus-visible:opacity-100',
+            management && 'size-11',
             !keyboardReachable && 'can-hover:invisible can-hover:group-hover:visible'
           )}
           aria-label={label}
@@ -85,6 +88,7 @@ export const ActivityThreadRow = React.memo(function ActivityThreadRow({
   showJumpAction?: boolean
   previewSuppressed?: boolean
 }): React.JSX.Element {
+  const management = useManagementSurface()
   const { taskTitle, statusLine, statusKind, needsAttention, workspaceLabel } =
     activityThreadRowCopy(thread)
   const showMarkdownStatus = statusKind === 'message'
@@ -106,7 +110,10 @@ export const ActivityThreadRow = React.memo(function ActivityThreadRow({
         role="listitem"
         aria-label={taskTitle}
         aria-current={selected ? 'true' : undefined}
-        className="group relative flex w-full cursor-pointer flex-col gap-1 rounded-lg border border-transparent px-1.5 py-1.5 text-left transition-[background-color,border-color,opacity,box-shadow] duration-200 outline-none select-none worktree-sidebar-card-hover focus-visible:ring-1 focus-visible:ring-ring"
+        className={cn(
+          'group relative flex w-full cursor-pointer flex-col gap-1 rounded-lg border border-transparent px-1.5 py-1.5 text-left transition-[background-color,border-color,opacity,box-shadow] duration-200 outline-none select-none worktree-sidebar-card-hover focus-visible:ring-1 focus-visible:ring-ring',
+          management && 'gap-3 rounded-2xl border-border p-4'
+        )}
       >
         <div className="flex min-w-0 items-start gap-1.5">
           <span className="mt-0.5 inline-flex shrink-0">
@@ -124,6 +131,7 @@ export const ActivityThreadRow = React.memo(function ActivityThreadRow({
               }}
               className={cn(
                 'block min-w-0 w-full cursor-pointer text-left text-[13px] leading-5 outline-none focus-visible:ring-1 focus-visible:ring-ring',
+                management && 'min-h-11 text-[15px] leading-6',
                 compactMode ? 'truncate' : 'line-clamp-2 break-words',
                 thread.unread ? 'font-semibold text-foreground' : 'font-medium text-foreground'
               )}
@@ -136,7 +144,7 @@ export const ActivityThreadRow = React.memo(function ActivityThreadRow({
                 <CommentMarkdown
                   content={statusLine}
                   className={cn(
-                    'min-w-0 break-words text-[13px] leading-5 text-foreground/80',
+                    'min-w-0 break-words text-[13px] leading-5 text-foreground/80 in-[.ce-management-surface]:text-sm in-[.ce-management-surface]:leading-[22px]',
                     compactMode ? 'line-clamp-2' : 'line-clamp-3',
                     '[&_*]:!m-0 [&_*]:!p-0 [&_br]:hidden [&_ol]:list-none [&_ul]:list-none',
                     // Why: code blocks and tables otherwise render as scroll boxes the line clamp cannot cut.
@@ -157,7 +165,7 @@ export const ActivityThreadRow = React.memo(function ActivityThreadRow({
               )
             ) : null}
 
-            <div className="flex min-w-0 items-center gap-1.5 pt-0.5 text-[11px] text-muted-foreground">
+            <div className="flex min-w-0 items-center gap-1.5 pt-0.5 text-[11px] in-[.ce-management-surface]:text-[13px] text-muted-foreground">
               <span className="inline-flex shrink-0" title={agentLabel}>
                 <AgentTypeIcon agentType={thread.agentType} size={13} />
               </span>
@@ -187,7 +195,7 @@ export const ActivityThreadRow = React.memo(function ActivityThreadRow({
                   <X className="size-2.5" />
                 </ActivityThreadRowAction>
               ) : null}
-              <span className="inline-flex size-3.5 shrink-0 items-center justify-center">
+              <span className="inline-flex size-3.5 shrink-0 items-center justify-center in-[.ce-management-surface]:size-11">
                 {thread.unread ? (
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -198,7 +206,7 @@ export const ActivityThreadRow = React.memo(function ActivityThreadRow({
                           onMarkRead(thread)
                         }}
                         onMouseDown={(event) => event.stopPropagation()}
-                        className="flex size-3.5 shrink-0 cursor-pointer items-center justify-center rounded hover:bg-accent/80 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                        className="flex size-3.5 shrink-0 in-[.ce-management-surface]:size-11 cursor-pointer items-center justify-center rounded hover:bg-accent/80 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                         aria-label={translate(
                           'auto.components.activity.ActivityPrototypePage.markThreadRead',
                           'Mark thread as read'

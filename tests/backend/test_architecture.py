@@ -15,9 +15,10 @@ spec.loader.exec_module(policy)
 class ArchitectureTests(TestCase):
     def test_identity_properties_have_exact_ownership(self):
         prefix = 'web/workspace/identity-theme/control-everything/login/'
-        for name in ['theme.properties', 'messages/messages_zh_Hans.properties']:
+        for name in ['theme.properties', 'messages/messages_zh_Hans.properties', 'resources/css/studio.css']:
             self.assertIsNone(policy.ownership_error(prefix + name))
-        for name in ['other.properties', 'messages/messages_en.properties', 'theme.ftl']:
+        for name in ['other.properties', 'messages/messages_en.properties', 'theme.ftl',
+                     'resources/css/other.css', 'resources/js/theme.js', 'other/login/resources/css/studio.css']:
             self.assertEqual(policy.ownership_error(prefix + name), 'unknown_frontend_owner')
 
     def test_workbench_owner_requires_exact_manifest_members(self):
@@ -41,7 +42,9 @@ class ArchitectureTests(TestCase):
             self.assertTrue(set(names).issubset(sys.stdlib_module_names))
 
     def test_known_owners_allow_legitimate_cross_feature_changes(self):
-        for path in ['src/control_everything/workspace/validation.py', 'src/control_everything/profiles/profile_import.py',
+        for path in ['web/workspace/project-progress.js', 'web/workspace/project-progress-model.js',
+                     'web/workspace/project-progress.css',
+                     'src/control_everything/workspace/validation.py', 'src/control_everything/profiles/profile_import.py',
                      'src/control_everything/platform/windows_jobs.py', 'src/control_everything/input_validation.py',
                      'src/control_everything/platform/windows_installation.py', 'src/control_everything/installation/registry.py',
                      'src/control_everything/installation/maintenance.py', 'src/control_everything/installation/manifest.py',

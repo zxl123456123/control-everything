@@ -13,6 +13,7 @@ import type { StatusBarItem } from '../../../../shared/ui-chrome-types'
 
 const mocks = vi.hoisted(() => ({
   state: {
+    updateSettingsOrThrow: vi.fn(),
     appPlatform: 'linux' as NodeJS.Platform,
     availableStatusBarToggles: [] as {
       description: string
@@ -34,7 +35,10 @@ const mocks = vi.hoisted(() => ({
 }))
 
 vi.mock('../../store', () => ({
-  useAppStore: (selector: (state: typeof mocks.state) => unknown) => selector(mocks.state)
+  useAppStore: Object.assign(
+    (selector: (state: typeof mocks.state) => unknown) => selector(mocks.state),
+    { getState: () => mocks.state }
+  )
 }))
 
 vi.mock('@/hooks/useShortcutLabel', async (importOriginal) => ({
@@ -283,6 +287,46 @@ describe('AppearancePane', () => {
     expect(
       container.querySelector('button[role="switch"][aria-label="Titlebar App Name"]')
     ).toBeNull()
+  })
+
+  it('keeps the confirmed theme until the throwing writer resolves and prevents duplicate clicks', async () => {
+    mocks.state.settingsSearchQuery = 'theme'
+    let finish!: () => void
+    mocks.state.updateSettingsOrThrow.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          finish = resolve
+        })
+    )
+    const container = await renderAppearancePane({ ...getDefaultSettings('/tmp'), theme: 'light' })
+    const dark = container.querySelector<HTMLButtonElement>('[data-theme-choice="dark"]')!
+    const light = container.querySelector<HTMLButtonElement>('[data-theme-choice="light"]')!
+    await act(async () => {
+      dark.click()
+      dark.click()
+    })
+    expect(mocks.state.updateSettingsOrThrow).toHaveBeenCalledTimes(1)
+    expect(mocks.state.updateSettingsOrThrow).toHaveBeenCalledWith({ theme: 'dark' })
+    expect(light.getAttribute('aria-pressed')).toBe('true')
+    expect(dark.disabled).toBe(true)
+    await act(async () => {
+      finish()
+    })
+    expect(dark.disabled).toBe(false)
+  })
+
+  it('shows a save failure next to the two theme choices without selecting the rejected theme', async () => {
+    mocks.state.settingsSearchQuery = 'theme'
+    mocks.state.updateSettingsOrThrow.mockRejectedValue(new Error('theme denied'))
+    const container = await renderAppearancePane({ ...getDefaultSettings('/tmp'), theme: 'light' })
+    await act(async () => {
+      container.querySelector<HTMLButtonElement>('[data-theme-choice="dark"]')!.click()
+    })
+    expect(container.querySelector('[role="alert"]')?.textContent).toBe('theme denied')
+    expect(
+      container.querySelector('[data-theme-choice="light"]')?.getAttribute('aria-pressed')
+    ).toBe('true')
+    expect(container.querySelectorAll('[data-theme-choice]')).toHaveLength(2)
   })
 
   it('renders the language dropdown with every built-in language option', async () => {
