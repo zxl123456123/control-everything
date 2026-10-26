@@ -608,7 +608,7 @@ test('wiring: feed script is registered everywhere and the reader keeps manual/d
   assert.match(feedSource, /'X-Session-Client': 'panel'/);
   const reader = read('web/workspace/news-reader.js');
   assert.match(reader, /petStatus = \{\.\.\.realStatus, \.\.\.statusOverride\}/);
-  assert.match(reader, /PetStatusFeed\.start\(\{apply:setRealPetStatus\}\)/);
+  assert.match(reader, /PetStatusFeed\.start\(\{apply:setRealPetStatus, fetchJson\}\)/);
   assert.match(reader, /actions:petActions\(\)/);
   assert.match(petsSource, /'setActions', 'openMenu', 'closeMenu', 'toggleMenu'/);
   const sizes = ['news-naidragon.js', 'news-pet-status.js'].map(f => Buffer.byteLength(read('web/workspace/' + f)));

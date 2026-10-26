@@ -170,3 +170,11 @@ git apply -R naidragon-demo-extras.patch
 | 开启了转盘但点击没有反应 | 需要先 `setActions(list)`，或在 `mount` 时传入 `actions`；`options.dial` 不能是 `false` |
 | 窗口拖到另一块屏幕后发糊 | 每帧会检查 `devicePixelRatio`；若自行缓存了画布尺寸，请不要覆盖宠物设置的 `width/height` |
 | 控制台出现 WebGL 警告 | 软件渲染或上下文被回收时的正常提示；宠物会自动降级为 2D，之后自动恢复 |
+
+## 狸花猫（第二只 3D 宠物）
+
+`news-tabbycat.js` 是与奶龙并列注册的第二只宠物：id 为 `tabbycat`，全局对象 `NewsTabbycat`，通过 `window.NewsPets` 注册并懒加载。挂载接口、实例接口（`setStatus`、`destroy`、`inspect()` 等）、选项、转盘（点击宠物展开，没有键盘快捷方式）、状态反应（额度低担心、额度 0 难过、Agent 运行中东张西望、Agent 数量下降庆祝）和 WebGL 丢失后的 2D 回退都与奶龙相同，用法见上文，只需把 `'naidragon'` 换成 `'tabbycat'`。
+
+- 体积：约 136.0 KB 原始 / 45.9 KB gzip（奶龙约 116.6 / 39.8 KB）；打包位置和登记方式与奶龙相同（`ASSETS`、`MANIFEST.in`、`build_assets.py`）。
+- 待机时网格约 8200 个三角形（上限 1.2 万，`tests/frontend/test_news_tabbycat.cjs` 逐动作检查）。
+- 想让页面在没有这只宠物时也能工作：不加载 `news-tabbycat.js` 即可，`NewsPets.list()` 里仍会有狸花猫，挂载失败时回退到蜘蛛。

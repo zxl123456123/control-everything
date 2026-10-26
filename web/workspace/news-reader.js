@@ -138,7 +138,11 @@
   }
   function syncPetControls() {
     document.documentElement.dataset.pet = petName;
-    for (const select of document.querySelectorAll('.pet-select')) select.value = petName;
+    const allowed = new Set((window.NewsPets?.list() || [{name:'spider'}]).map(pet => pet.name));
+    for (const select of document.querySelectorAll('.pet-select')) {
+      for (const option of [...select.options]) if (!allowed.has(option.value)) option.remove();
+      select.value = petName; select.closest('.pet-switch').hidden = select.options.length < 2;
+    }
   }
   function switchPet(name) {
     if (destroyed || name === petName || !window.NewsPets?.list().some(pet => pet.name === name)) { syncPetControls(); return false; }

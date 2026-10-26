@@ -10,12 +10,21 @@
     const key = String(name || '').trim();
     if (!/^[a-z][a-z0-9-]*$/.test(key)) throw new TypeError('invalid pet name');
     if (!definition || typeof definition.mount !== 'function') throw new TypeError('pet needs mount()');
-    pets.set(key, {name: key, label: String(definition.label || key), mount: definition.mount});
+    pets.set(key, {name: key, label: String(definition.label || key), mount: definition.mount, enabled: definition.enabled !== false});
     return key;
+  }
+  // Exclusion flag: a pet is switched off by `enabled: false` in its register() call (a source-level default) or by the host
+  // page via <html data-pets-disabled="naidragon,tabbycat"> (read on every call, so no script ordering needed).
+  // Disabled pets disappear from list()/mount() and the switcher, their code and assets stay in the repo, and the 'spider'
+  // fallback can never be disabled. A disabled pet's script is never requested.
+  function isEnabled(pet) {
+    if (!pet.enabled) return false;
+    if (pet.name === 'spider') return true;
+    try { return !(document.documentElement.dataset.petsDisabled || '').split(/[\s,]+/).includes(pet.name); } catch (e) { return true; }
   }
   function mount(name, options) {
     const pet = pets.get(name);
-    if (!pet) throw new Error('unknown pet: ' + name);
+    if (!pet || !isEnabled(pet)) throw new Error('unknown pet: ' + name);
     const api = pet.mount(options);
     for (const method of METHODS) if (typeof api[method] !== 'function') throw new TypeError(pet.name + ' is missing ' + method + '()');
     if (typeof api.setStatus !== 'function') api.setStatus = () => {};
@@ -65,8 +74,10 @@
       return proxy;
     };
   }
-  const list = () => [...pets.values()].map(pet => ({name: pet.name, label: pet.label}));
+  const list = () => [...pets.values()].filter(isEnabled).map(pet => ({name: pet.name, label: pet.label}));
   if (global.NewsSpider) register('spider', {label: '蜘蛛', mount: options => global.NewsSpider.mount(options)});
   register('naidragon', {label: '奶龙', mount: lazy('NewsNaidragon', 'news-naidragon.js', ['spider'])});
-  global.NewsPets = Object.freeze({register, mount, list});
+  register('tabbycat', {label: '狸花猫', mount: lazy('NewsTabbycat', 'news-tabbycat.js', ['spider'])});
+  const defaultName = () => { const all = list(); return (all.find(pet => pet.name === 'spider') || all[0] || {}).name || 'spider'; };
+  global.NewsPets = Object.freeze({register, mount, list, defaultName});
 })(window);
