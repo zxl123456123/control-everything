@@ -173,6 +173,8 @@ python -m venv .venv
 
 发行闭包的依赖归属与许可校验归 `tools/packaging/workbench_distribution.py`；Windows payload 组装归 `tools/packaging/desktop_payload.py`，稳定启动与维护入口归 `installation/maintenance.py`。engine 的 `config/scripts/distribution-record.mjs` 收集实际构建输入、外部文件与输出关系，由现有 runtime、mobile、SDK、Vite 构建脚本调用；新增脚本也须通过来源清单的精确成员校验，不扩大 HTTP 文件服务根。`tests/backend/test_workbench_distribution.py`、`test_desktop_payload.py` 覆盖 Python 合同；`tests/frontend/test_distribution_record.cjs` 与 `test_distribution_cross_tool.cjs` 验证 JavaScript producer 及跨工具输入。`tests/e2e/remote_device_acceptance.py` 是显式目标的现场验收入口，其合成测试归 `tests/backend/test_remote_device_acceptance.py`；源码单测不能替代公网与物理设备验收。
 
+Windows 构建同时生成运行 payload 和同级 `session-panel-<version>-sources.zip`。对应源码归档不安装到用户目录；安装包中的 `SOURCE-AVAILABILITY.json` 记录准确文件名、大小、SHA256和源码成员索引。发布时必须将源码附件与安装器、校验和在同一版本中一并提供等效下载，不得只发布 exe。Git/SSH/终端文件及逐组件许可仍完整保留；缺失或篡改对应材料会阻断构建。原始模块图、包元数据和许可证据保留在 ignored build run，安装包只交付按摘要去重的完整许可文本与组件对应表，不能以精简交付记录替代构建期的闭包验证。每轮输出使用新目录，已有源码附件拒绝覆盖。
+
 `pyproject.toml` 是产品版本的唯一来源，运行依赖只从根 `requirements.txt` 读取。`tools/packaging` 负责分发构建，不放业务逻辑；其工具依赖单独固定，不加入运行 requirements。完整开发测试中的构建合同也需要这些固定工具：
 
 ```powershell

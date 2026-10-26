@@ -6,6 +6,7 @@ from pathlib import Path
 import tempfile
 from types import SimpleNamespace
 import unittest
+import zipfile
 
 from control_everything.installation import manifest
 
@@ -106,6 +107,66 @@ class DesktopPayloadTests(unittest.TestCase):
         (self.engine / 'out/orcad/orcad.js').write_bytes(b'changed')
         with self.assertRaisesRegex(ValueError, 'desktop_input_changed'):
             self.stage()
+
+    def corresponding_source(self):
+        source = self.root / 'source-materials/example.tar.gz'
+        source.parent.mkdir()
+        source.write_bytes(b'fixture corresponding source bytes')
+        self.git_data['components'][0].update(license='GPL-2.0-only',
+            fulfillment={'method': 'corresponding-source'}, source_materials=[
+                {'path': 'source-materials/example.tar.gz', 'sha256': manifest.sha256(source)}])
+        self.save()
+        return source
+
+    def test_sources_are_recoverable_from_hash_bound_companion_not_installed(self):
+        source = self.corresponding_source()
+        self.stage()
+        availability = json.loads((self.output / 'SOURCE-AVAILABILITY.json').read_text())
+        archive = self.root / availability['archive']
+        self.assertEqual(manifest.sha256(archive), availability['sha256'])
+        with zipfile.ZipFile(archive) as zipped:
+            index = json.loads(zipped.read('SOURCE-INDEX.json'))
+            row = index['files'][0]
+            self.assertEqual(zipped.read(row['path']), source.read_bytes())
+            self.assertEqual(row['sha256'], manifest.sha256(source))
+            self.assertEqual(index['components'][0]['fulfillment']['method'], 'corresponding-source')
+        self.assertFalse((self.output / 'third-party-sources').exists())
+        self.assertFalse((self.output / 'workbench-build/distribution-notices.json').exists())
+        self.assertIn(availability['archive'], (self.output / 'THIRD-PARTY-NOTICES.txt').read_text())
+
+    def test_source_tampering_and_missing_material_still_fail_closed(self):
+        source = self.corresponding_source()
+        source.write_bytes(b'changed')
+        with self.assertRaisesRegex(ValueError, 'portable_git_source_hash'):
+            self.stage()
+        source.unlink()
+        with self.assertRaises(OSError):
+            self.stage()
+        self.assertFalse((self.output / 'desktop-runtime.json').exists())
+
+    def test_notice_dedup_preserves_each_component_and_complete_license_text(self):
+        self.git_data['components'].append({**self.git_data['components'][0], 'name': 'second-component'})
+        self.save()
+        self.stage()
+        document = json.loads((self.output / 'DESKTOP-NOTICES.json').read_text())
+        self.assertEqual(len(document['components']), 2)
+        self.assertEqual(len(document['notices']), 1)
+        digest = self.git_data['components'][0]['notices'][0]['sha256']
+        self.assertEqual(document['notices'][digest]['text'], 'fixture')
+        self.assertTrue(all(row['notices'] == [digest] for row in document['components']))
+        self.assertIn('fixture 1, second-component 1', (self.output / 'THIRD-PARTY-NOTICES.txt').read_text())
+
+    def test_companion_archive_never_overwrites_an_existing_release_asset(self):
+        archive = self.root / 'product-sources.zip'
+        archive.write_bytes(b'existing release asset')
+        with self.assertRaisesRegex(ValueError, 'desktop_source_archive_exists'):
+            self.stage()
+        self.assertEqual(archive.read_bytes(), b'existing release asset')
+
+    def test_source_archive_is_outside_the_installed_file_tree(self):
+        with self.assertRaisesRegex(ValueError, 'desktop_source_archive_location'):
+            D.stage(self.output, self.engine, self.run, self.git, self.receipt, self.endpoints,
+                    manifest, self.helpers, self.output / 'sources.zip')
 
 
 if __name__ == '__main__':

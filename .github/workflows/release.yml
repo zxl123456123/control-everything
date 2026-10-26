@@ -157,6 +157,11 @@ jobs:
           $product = Get-Content -Raw "$base/payload/product.json" | ConvertFrom-Json
           $wheelVersion = python -c "import pathlib,zipfile,email; p=next(pathlib.Path('work/release/dist').glob('*.whl')); z=zipfile.ZipFile(p); m=next(n for n in z.namelist() if n.endswith('.dist-info/METADATA')); print(email.message_from_bytes(z.read(m))['Version'])"
           if ($LASTEXITCODE -ne 0 -or $wheelVersion -cne $product.version -or $product.source.dirty -or $product.source.commit -cne '${{ steps.identity.outputs.commit }}') { throw 'Release metadata mismatch' }
+          $sources = Get-Content -Raw "$base/payload/SOURCE-AVAILABILITY.json" | ConvertFrom-Json
+          if ($sources.archive -cne "session-panel-$wheelVersion-sources.zip") { throw 'Source asset version mismatch' }
+          $sourceArchive = Join-Path $base $sources.archive
+          if ((Get-Item -LiteralPath $sourceArchive).Length -ne $sources.bytes -or (Get-FileHash -LiteralPath $sourceArchive -Algorithm SHA256).Hash.ToLowerInvariant() -cne $sources.sha256) { throw 'Source asset mismatch' }
+          Copy-Item -LiteralPath $sourceArchive, "$base/payload/SOURCE-AVAILABILITY.json" -Destination $public
           git archive --format=zip --output="$public/session-panel-$wheelVersion-source.zip" HEAD
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           @"
@@ -171,6 +176,7 @@ jobs:
           Target: Windows 10/11 x64. Hosted-runner controlled-PATH acceptance does not establish a full clean Windows 10/11 machine matrix.
           This run checks one-version install/reinstall/uninstall, two profiles, NULL/zero, backup/restore, HTTP maintenance blocking, resources, native availability and suspended-news-Job cancellation. Separate two-version/rollback, normal-running news collection, desktop and optional SSH evidence remain release limitations unless independently recorded.
           Control Everything is licensed under MIT; LICENSE is attached. Third-party components retain their own licenses, with notices and exact hashes attached.
+          Corresponding dependency source is supplied in session-panel-$wheelVersion-sources.zip alongside this installer. Keep both assets available together.
           Profiles and backups are separate from application files and are retained on uninstall. See README for normal shutdown and rollback.
           "@ | Set-Content -Encoding utf8 "$public/RELEASE-NOTES.md"
           $lines = @(Get-ChildItem -LiteralPath $public -File | Sort-Object Name | ForEach-Object { (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant() + '  ' + $_.Name })
@@ -231,6 +237,10 @@ jobs:
           if (@(Compare-Object $verified $actualNames).Count) { throw 'Unhashed public asset' }
           $product = Get-Content -Raw "$public/product.json" | ConvertFrom-Json
           if ($product.source.commit -cne $env:RELEASE_COMMIT -or $product.version -cne $env:RELEASE_VERSION -or $product.source.dirty) { throw 'Release source mismatch' }
+          $sources = Get-Content -Raw "$public/SOURCE-AVAILABILITY.json" | ConvertFrom-Json
+          if ($sources.archive -cne "session-panel-$env:RELEASE_VERSION-sources.zip" -or $verified -cnotcontains $sources.archive) { throw 'Corresponding source asset required' }
+          $sourceArchive = Join-Path $public $sources.archive
+          if ((Get-Item -LiteralPath $sourceArchive).Length -ne $sources.bytes -or (Get-FileHash -LiteralPath $sourceArchive -Algorithm SHA256).Hash.ToLowerInvariant() -cne $sources.sha256) { throw 'Corresponding source hash mismatch' }
           $tag = 'v' + $env:RELEASE_VERSION
           if ($tag -cnotmatch '^v[0-9]+\.[0-9]+\.[0-9]+(?:a|b|rc)[0-9]+$') { throw 'Only technical prerelease versions are allowed' }
           $tags = @(git ls-remote origin "refs/tags/$tag" "refs/tags/$tag^{}")

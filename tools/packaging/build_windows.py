@@ -425,6 +425,9 @@ def build_payload(wheel, wheelhouse, runtime_zip, observer_release, output, carg
     api.no_links(output)
     source, inputs = source_identity(release, runner)
     version = product_version()
+    source_bundle = output.parent / f'session-panel-{version}-sources.zip'
+    if source_bundle.exists():
+        raise BuildError('source_bundle_already_exists')
     lockfile = HERE / 'windows-cp313.lock'
     lock = locked_requirements(lockfile)
     wheels, identities = verify_wheels(wheel, wheelhouse, lock, version)
@@ -447,7 +450,8 @@ def build_payload(wheel, wheelhouse, runtime_zip, observer_release, output, carg
     validate_target_metadata(probe, identities)
     compile_runtime(runtime, output, runner)
     helper('notices').collect_notices(output, [wheel, *wheels], runtime / 'LICENSE.txt', cargo_packages, inno_license)
-    desktop = helper('desktop_payload').stage(output, engine_root, engine_run, portable_git, git_receipt, endpoints, api, helper)
+    desktop = helper('desktop_payload').stage(output, engine_root, engine_run, portable_git, git_receipt, endpoints, api, helper,
+                                               source_bundle)
     provenance = {'desktop': desktop, 'source_inputs': inputs, 'wheel_inputs': identities, 'native_build': native,
                   'runtime': DOWNLOADS['python'], 'installer_tool': DOWNLOADS['inno'],
                   'numeric_version': version_info(version), 'lock_sha256': api.sha256(lockfile),
@@ -457,7 +461,7 @@ def build_payload(wheel, wheelhouse, runtime_zip, observer_release, output, carg
     manifest = write_product_manifest(output, version, source)
     api.verify_payload(output, strict_native=True)
     return {'version': version, 'closure': manifest['closure'], 'version_id': version + '-' + manifest['closure'][:16],
-            'source': source, 'files': len(manifest['files'])}
+            'source': source, 'files': len(manifest['files']), 'source_bundle': desktop.get('source_bundle')}
 
 
 def main(argv=None):
