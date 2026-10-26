@@ -10,7 +10,7 @@
     const key = String(name || '').trim();
     if (!/^[a-z][a-z0-9-]*$/.test(key)) throw new TypeError('invalid pet name');
     if (!definition || typeof definition.mount !== 'function') throw new TypeError('pet needs mount()');
-    pets.set(key, {name: key, label: String(definition.label || key), mount: definition.mount, enabled: definition.enabled !== false});
+    pets.set(key, {name: key, label: String(definition.label || key), mount: definition.mount, enabled: definition.enabled !== false, status: definition.status === true});
     return key;
   }
   // Exclusion flag: a pet is switched off by `enabled: false` in its register() call (a source-level default) or by the host
@@ -74,10 +74,11 @@
       return proxy;
     };
   }
-  const list = () => [...pets.values()].filter(isEnabled).map(pet => ({name: pet.name, label: pet.label}));
+  const list = () => [...pets.values()].filter(isEnabled).map(pet => ({name: pet.name, label: pet.label, status: pet.status}));
   if (global.NewsSpider) register('spider', {label: '蜘蛛', mount: options => global.NewsSpider.mount(options)});
-  register('naidragon', {label: '奶龙', mount: lazy('NewsNaidragon', 'news-naidragon.js', ['spider'])});
-  register('tabbycat', {label: '狸花猫', mount: lazy('NewsTabbycat', 'news-tabbycat.js', ['spider'])});
+  register('naidragon', {label: '奶龙', status: true, mount: lazy('NewsNaidragon', 'news-naidragon.js', ['spider'])});
+  register('tabbycat', {label: '狸花猫', status: true, mount: lazy('NewsTabbycat', 'news-tabbycat.js', ['spider'])});
+  // `status: true` marks pets that draw the usage/agent status chip; only they make the reader poll the status endpoints.
   const defaultName = () => { const all = list(); return (all.find(pet => pet.name === 'spider') || all[0] || {}).name || 'spider'; };
   global.NewsPets = Object.freeze({register, mount, list, defaultName});
 })(window);

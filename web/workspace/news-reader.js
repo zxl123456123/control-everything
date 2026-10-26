@@ -140,8 +140,10 @@
     document.documentElement.dataset.pet = petName;
     const allowed = new Set((window.NewsPets?.list() || [{name:'spider'}]).map(pet => pet.name));
     for (const select of document.querySelectorAll('.pet-select')) {
-      for (const option of [...select.options]) if (!allowed.has(option.value)) option.remove();
-      select.value = petName; select.closest('.pet-switch').hidden = select.options.length < 2;
+      const options = [...(select.options || [])];
+      for (const option of options) if (!allowed.has(option.value)) option.remove();
+      select.value = petName;
+      const group = select.closest('.pet-switch'); if (group) group.hidden = allowed.size < 2;
     }
   }
   function switchPet(name) {
@@ -158,7 +160,7 @@
   }
   // Poll the status endpoints only while a status-aware pet is actually animating on an active, visible page.
   function syncPetStatusFeed() {
-    const wanted = Boolean(window.PetStatusFeed) && canPoll() && !paused && typeof engine?.setStatus === 'function';
+    const wanted = Boolean(window.PetStatusFeed) && canPoll() && !paused && Boolean(window.NewsPets?.list().find(pet => pet.name === petName)?.status);
     if (wanted && !statusFeed) {
       const fetchJson = async (url, signal) => {
         const response = await (window.CERemoteContext ? window.CERemoteContext.fetch : fetch)(url, {headers:{'X-Session-Client':'panel'}, credentials:'same-origin', cache:'no-store', signal});
