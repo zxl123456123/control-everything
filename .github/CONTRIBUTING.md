@@ -405,7 +405,7 @@ Ctrl+C 停网关即可停本批查询，原 Claude/SSH/Zellij 对话继续运行
 
 后端 `workspace/news_reader.py` 管理所选 profile 的 `news-reader/` 数据，`news_research.py` 管理单槽、有截止时间的独占浏览进程，`news_article.py` 提取固定来源正文。HTTP 装配在 `http/news_reader.py`，沿用 Host、Origin、client header 和 CSRF 校验。截图经带权限头的 fetch 转为 Blob 显示。研究数据、模型、截图和个人工具路径不提交。
 
-扩展正文与本地翻译依赖通过 `python -m pip install -e ".[news]"` 安装；浏览采集使用 Node 与 Playwright 1.62.1，按 Playwright 官方说明安装浏览器。Windows 默认使用 Edge，其他平台使用 Playwright Chromium。`CONTROL_EVERYTHING_NEWS_NODE` 可指定 Node 可执行文件，Playwright 按标准 Node 模块解析（包括 `NODE_PATH`）。依赖缺失时保留已有新闻并返回明确不可用状态。
+普通安装包含固定版本的正文提取器；本地翻译额外依赖通过 `python -m pip install -e ".[news]"` 安装。RSS/Atom 内联内容按纯文本保留，原文受阻时回退到订阅源内容并说明是否截断；HN 只对服务端已收录的链接提取正文，仍校验公共 DNS、HTTPS 和同域跳转。页面显示具体失败原因，手动重新读取可绕过失败冷却，不丢失已有成功缓存。浏览采集使用 Node 与 Playwright 1.62.1，按 Playwright 官方说明安装浏览器。Windows 默认使用 Edge，其他平台使用 Playwright Chromium。`CONTROL_EVERYTHING_NEWS_NODE` 可指定 Node 可执行文件，Playwright 按标准 Node 模块解析（包括 `NODE_PATH`）。依赖缺失时保留已有新闻并返回明确不可用状态。
 
 `python tools/scripts/prepare_news_translation.py --data-dir <PROFILE_DIR>` 下载校验后的公开英译中模型；默认模型目录为默认 profile 的 `news-reader/translation-model/translate-en_zh-1_9`，使用其他 profile 时通过 `CONTROL_EVERYTHING_NEWS_MODEL` 指定已准备的模型目录。模型只在用户切换中文时载入，不自动下载或调用云翻译。
 

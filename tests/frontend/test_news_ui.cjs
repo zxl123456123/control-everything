@@ -70,6 +70,12 @@ function envelope(items = [item()], fields = {}) {
     refresh: { state: 'idle', reason: null, retry_after_ms: 0 }, ...fields };
 }
 async function deliver(f, value, index = f.reads.length - 1) { f.reads[index].resolve(value); await tick(); }
+test('inline publisher content remains readable in the legacy news consumer', async () => {
+  const f = fixture();
+  await deliver(f, envelope([item({summary_kind:'rss_content',summary:'Inline publisher text'})]));
+  assert.equal(f.cards('news-list').length, 1);
+  assert.match(f.node('news-list').textContent, /Inline publisher text/);
+});
 test('public scripts preserve news consumers and the current explicit dependency order', () => {
   const scripts = [...html.matchAll(/<script src="([^"]+)" defer/g)].map(row => row[1]);
   assert.deepEqual(scripts, ['/ui-dialog.js', '/execution.js', '/observation.js', '/task-center.js', '/news.js', '/quota.js',

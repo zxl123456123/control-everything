@@ -399,7 +399,8 @@ class BuilderTests(PayloadFixture):
 
     def test_lock_is_fixed_target_input_and_not_a_host_freeze(self):
         values = BUILD.locked_requirements(ROOT / 'tools/packaging/windows-cp313.lock')
-        self.assertEqual(len(values), 31)
+        self.assertEqual(len(values), 48)
+        self.assertEqual(values['trafilatura']['version'], '2.3.1')
         self.assertEqual(values['mcp']['version'], '1.30.0')
         self.assertEqual(values['defusedxml']['version'], '0.7.1')
 
@@ -417,12 +418,14 @@ class ProductSourceTests(PayloadFixture):
         metadata_name = next(name for name in original if name.endswith('.dist-info/METADATA'))
         record_name = next(name for name in original if name.endswith('.dist-info/RECORD'))
         metadata = original[metadata_name]
-        optional_line = next(line for line in metadata.splitlines(keepends=True) if line.startswith(b'Requires-Dist: trafilatura'))
+        extractor_line = next(line for line in metadata.splitlines(keepends=True) if line.startswith(b'Requires-Dist: trafilatura'))
+        self.assertNotIn(b'extra ==', extractor_line)
+        optional_line = next(line for line in metadata.splitlines(keepends=True) if line.startswith(b'Requires-Dist: ctranslate2'))
         extra_line = next(line for line in metadata.splitlines(keepends=True) if line.startswith(b'Provides-Extra: news'))
         self.assertIn(b'extra == "news"', optional_line)
         for index, changed in enumerate((
                 metadata.replace(optional_line, b''),
-                metadata.replace(b'trafilatura==2.3.1', b'trafilatura==0.0.0'),
+                metadata.replace(b'ctranslate2==4.8.3', b'ctranslate2==0.0.0'),
                 metadata.replace(b'extra == "news"', b'extra == "unknown"'),
                 metadata.replace(b'extra == "news"', b'python_version < "3.0" and extra == "news"'),
                 metadata.replace(extra_line, b''),
