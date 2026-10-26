@@ -65,7 +65,7 @@ git cherry-pick 9659b9b1 0d392b34 8c79e186 6f31295f   # 以导出时的哈希为
 
 ## 4. 验证命令
 
-Node 需要 24（和 CI 一致；Node 20 下有几个无关测试会因为内置 API 不同而失败）。
+Node 用 24 跑（我的验证全部在 Node 24 下完成）。
 
 ```bash
 # 宠物测试
@@ -77,8 +77,8 @@ for f in tests/frontend/*.cjs; do node --test "$f"; done
 # 结构与仓库检查
 python tools/scripts/check_architecture.py layout
 python tools/scripts/check_repository.py changes --base <40位SHA> --head <40位SHA> --report work/repo_report.json
-# 打包资源（只做 dry run）
-python tools/packaging/build_assets.py --help
+# 打包：构建 wheel（需要 setuptools、wheel），确认四个宠物脚本都在 _assets/web/workspace/ 里
+pip wheel . --no-deps --no-build-isolation -w /tmp/whl
 # 真实网关冒烟：启动网关后打开 /news，在底部「宠物」下拉切换三只
 ```
 
