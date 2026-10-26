@@ -182,6 +182,23 @@ test('mobile return context follows project, legacy, and history routes without 
     f.dispose();
   }
 });
+
+test('account routes identify their page and leave refresh to the account panel', async () => {
+  for (const unified of [false, true]) {
+    const f = studioFixture({ unified }); await f.flush();
+    for (const route of ['settings/account', 'mobile']) {
+      await f.route(route);
+      const chrome = f.nodes.get('studio-topbar').innerHTML;
+      assert.match(chrome, /<span> \/ 账号与设备<\/span>/);
+      assert.match(chrome, /href="#settings\/account" aria-current="page"/);
+      assert.doesNotMatch(chrome, /data-action="refresh"/);
+    }
+    await f.route('home');
+    assert.match(f.nodes.get('studio-topbar').innerHTML, /data-action="refresh"/);
+    assert.equal(f.posts.length, 0);
+    f.dispose();
+  }
+});
 test('mobile resource is loaded before Studio in both assembly paths', () => {
   for (const file of ['web/workspace/studio-preview.html', 'web/workbench-engine/src/renderer/src/web/platform-studio-surface.tsx']) {
     const text = fs.readFileSync(path.resolve(__dirname, '../..', file), 'utf8');
