@@ -24,7 +24,7 @@
           <button type="button" data-action="logout" hidden>退出账号</button>
         </section>
         <section class="ce-account-card"><div class="ce-account-card-title"><h2 data-node="device-name">电脑接入</h2><span class="ce-account-badge" data-node="device-state">读取中</span></div><p data-node="device-help"></p><p><a class="ce-account-primary" data-node="open" href="/studio" hidden>进入工作台 →</a></p><div class="ce-account-danger-zone" data-node="revoke-area" hidden><button class="ce-account-danger" type="button" data-action="revoke">撤销电脑连接</button></div></section>
-        <section class="ce-account-card ce-account-members" data-node="invitations" hidden><div class="ce-account-card-title"><h2 data-node="members-title">成员</h2><button type="button" data-action="invitation">邀请成员</button></div><p data-node="invitation-result" hidden><output class="ce-account-code" data-node="invitation-code"></output><br>24 小时内有效，仅可使用一次。</p><p data-node="members-status" role="status" aria-live="polite"></p><div class="ce-account-members-wrap" data-node="members-table" hidden><table class="ce-account-members-table"><thead><tr><th scope="col">成员</th><th scope="col">角色</th><th scope="col">接入状态</th><th scope="col">电脑</th><th scope="col">注册时间</th></tr></thead><tbody data-node="members-list"></tbody></table></div><nav class="ce-account-pagination" data-node="members-pages" aria-label="成员分页" hidden><button type="button" data-action="members-previous" aria-label="上一页" title="上一页"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m15 5-7 7 7 7"/></svg></button><span data-node="members-page"></span><button type="button" data-action="members-next" aria-label="下一页" title="下一页"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg></button></nav></section>
+        <section class="ce-account-card ce-account-members" data-node="invitations" hidden><div class="ce-account-card-title"><h2 data-node="members-title">成员</h2><button type="button" data-action="invitation">邀请成员</button></div><p data-node="invitation-result" hidden><output class="ce-account-code" data-node="invitation-code"></output><br>24 小时内有效，仅可使用一次。</p><p data-node="members-status" role="status" aria-live="polite"></p><div class="ce-account-members-wrap" data-node="members-table" hidden><table class="ce-account-members-table"><thead><tr><th scope="col">成员</th><th scope="col">角色</th><th scope="col">成员状态</th><th scope="col">电脑</th><th scope="col">注册时间</th></tr></thead><tbody data-node="members-list"></tbody></table></div><nav class="ce-account-pagination" data-node="members-pages" aria-label="成员分页" hidden><button type="button" data-action="members-previous" aria-label="上一页" title="上一页"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m15 5-7 7 7 7"/></svg></button><span data-node="members-page"></span><button type="button" data-action="members-next" aria-label="下一页" title="下一页"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg></button></nav></section>
       </div>
       <dialog class="ce-account-dialog" data-node="revoke-dialog" aria-label="撤销电脑连接"><h2>撤销电脑连接？</h2><p>这台电脑的远程连接将断开，不会删除本机项目。需要重新授权后才能恢复远程访问。</p><p data-node="revoke-error" class="ce-account-dialog-error" role="alert" tabindex="-1" hidden></p><div class="ce-account-dialog-actions"><button type="button" data-action="cancel-revoke" autofocus>取消</button><button class="ce-account-danger" type="button" data-action="confirm-revoke">确认撤销连接</button></div></dialog>
     </section>`;
@@ -102,14 +102,14 @@
         if (offset && offset >= value.total) { void loadMembers(0); return; }
         const rows = value.items.map(member => {
           const row = scope.document.createElement('tr'); row.setAttribute('role', 'row');
-          const joined = member.account?.enabled === false ? '账号停用' : ({active:'已接入',disabled:'接入停用',inactive:'未接入'})[member.membership] || '状态未知';
+          const joined = member.account?.enabled === false ? '账号停用' : ({active:'已激活',disabled:'接入停用',inactive:'待激活'})[member.membership] || '状态未知';
           const registered = typeof member.account?.registered_at === 'number' && Number.isFinite(member.account.registered_at)
             ? new Date(member.account.registered_at * 1000).toLocaleString('zh-CN', {hour12:false}) : '—';
           const values = [member.account?.name || '未命名成员', member.admin === true ? '管理员' : '成员', joined,
             member.device ? `${member.device.name || '电脑'} · ${remoteStates[member.device.state] || '状态未知'}` : '未绑定', registered];
           for (const [index, text] of values.entries()) {
             const cell = scope.document.createElement('td'); cell.setAttribute('role', 'cell'); cell.textContent = text;
-            cell.dataset.label = ['成员','角色','接入状态','电脑','注册时间'][index]; row.append(cell);
+            cell.dataset.label = ['成员','角色','成员状态','电脑','注册时间'][index]; row.append(cell);
           }
           return row;
         });
@@ -146,7 +146,7 @@
       $('device-name').textContent = device?.name || '电脑接入';
       $('device-state').textContent = device ? (remoteStates[device.state] || '状态未知') : '尚未绑定';
       $('device-state').dataset.tone = device?.state === 'online' ? 'success' : 'neutral';
-      $('device-help').textContent = !device ? '请在电脑端登录账号并确认绑定。' : '';
+      $('device-help').textContent = !device ? (value.membership === 'active' ? '请在电脑端登录账号并确认绑定。' : '激活小组接入后，在电脑端登录账号并确认绑定。') : '';
       $('open').hidden = device?.state !== 'online'; $('revoke-area').hidden = !device || device.state === 'revoked';
       if (admin) void loadMembers();
     }
