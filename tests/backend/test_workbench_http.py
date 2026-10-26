@@ -84,6 +84,8 @@ class WorkbenchHTTPTests(unittest.TestCase):
         self.runtime = Mock(ready=True, websocket_origin="ws://127.0.0.1:23456")
         self.runtime.bootstrap.return_value = {"runtime": {"environmentId": "fixture-host", "offer": {"v": 2}},
                                                "target": {"repoId": "fixture-repo"}}
+        self.runtime.bootstrap_runtime.return_value = {"runtime": {"environmentId": "fixture-host",
+                                                                  "offer": {"v": 2, "endpoint": "ws://127.0.0.1:23456"}}}
         self.server.workbench_runtime = self.runtime
         self.server.workbench_assets = WorkbenchAssets(self.root / "web", asset_fixture(self.root / "web"))
 
@@ -95,6 +97,41 @@ class WorkbenchHTTPTests(unittest.TestCase):
         self.runtime.bootstrap.assert_called_once_with(self.project["id"], self.project["name"], str(self.root / "repo"))
         self.assertNotIn("authToken", json.dumps(value))
         self.assertEqual(value["returnUrl"], "/studio#project/" + self.project["id"])
+
+    def test_runtime_bootstrap_needs_no_registered_project_and_keeps_project_contract(self):
+        self.workspace.registered_projects = Mock(return_value=[])
+        status, value = self.request('/api/workbench/runtime-bootstrap', 'POST', {})
+        self.assertEqual((status, set(value)), (200, {'runtime'}))
+        self.runtime.bootstrap_runtime.assert_called_once_with()
+        self.runtime.bootstrap.assert_not_called()
+        self.workspace.registered_projects.assert_not_called()
+        self.assertEqual(self.request('/api/workbench/bootstrap', 'POST', {})[0], 400)
+
+    def test_runtime_bootstrap_validates_permissions_and_exact_body_before_mint(self):
+        path = '/api/workbench/runtime-bootstrap'
+        for headers in ({'Host': 'evil'}, {'Origin': 'http://elsewhere'}, {'X-Session-CSRF': 'bad'},
+                        {'X-Session-Client': ''}, {'Origin': [self.server.origin] * 2}):
+            with self.subTest(headers=headers):
+                self.assertEqual(self.request(path, 'POST', {}, headers)[0], 403)
+        for body in ({'project_id': self.project['id']}, {'endpoint': 'ws://elsewhere'}, None, [], {'directory': 'C:/example/project'}):
+            with self.subTest(body=body):
+                self.assertEqual(self.request(path, 'POST', body)[0], 400)
+        self.assertEqual(self.request(path + '?x=1', 'POST', {})[0], 400)
+        self.runtime.bootstrap_runtime.assert_not_called()
+
+    def test_runtime_bootstrap_remote_context_and_endpoint_are_not_relaxed(self):
+        self.server.remote_access = RemoteAccess('https://workbench.example.test', 'A' * 43)
+        headers = {'Host': 'workbench.example.test', 'Origin': 'https://workbench.example.test',
+                   'X-CE-Device-Proof': 'A' * 43}
+        path = '/api/workbench/runtime-bootstrap'
+        self.assertEqual(self.request(path, 'POST', {}, headers)[0], 403)
+        self.runtime.bootstrap_runtime.assert_not_called()
+        headers.update({'X-CE-Page-Context': 'B' * 32, 'X-CE-Storage-Scope': 'c' * 64})
+        status, value = self.request(path, 'POST', {}, headers)
+        self.assertEqual(status, 200)
+        self.runtime.bootstrap_runtime.assert_called_once_with(remote=True)
+        self.assertEqual(value['runtime']['offer']['endpoint'], 'wss://workbench.example.test/workbench-runtime')
+        self.assertEqual(self.runtime.bootstrap_runtime.return_value['runtime']['offer']['endpoint'], 'ws://127.0.0.1:23456')
 
     def test_security_and_body_validation_precede_runtime(self):
         body = {"project_id": self.project["id"]}

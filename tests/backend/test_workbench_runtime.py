@@ -172,6 +172,37 @@ class WorkbenchRuntimeTests(unittest.TestCase):
         self.assertEqual(self.rpc_calls[-1], ('platform.revokeDevice', {'deviceId': 'device-id'}))
         self.assertFalse(self.manager._devices)
 
+    def test_empty_workbench_only_bootstraps_runtime_without_project_or_root(self):
+        from dataclasses import replace
+        self.manager.config = replace(self.config, allowed_workspace_roots=())
+        self.start()
+        result = self.manager.bootstrap_runtime()
+        self.assertEqual(set(result), {'runtime'})
+        self.assertEqual([method for method, _ in self.rpc_calls], ['platform.bootstrapDevice'])
+        self.assertEqual(self.repos, [])
+        self.assertNotIn('authToken', json.dumps(result))
+        self.manager.discard_bootstrap(result)
+        self.assertEqual(self.rpc_calls[-1], ('platform.revokeDevice', {'deviceId': 'device-id'}))
+
+    def test_empty_workbench_reuses_remote_journal_and_identity_cleanup(self):
+        self.start()
+        with patch.object(self.manager, '_write_remote_grants', side_effect=OSError('synthetic failure')):
+            with self.assertRaises(OSError):
+                self.manager.bootstrap_runtime(remote=True)
+        self.assertEqual(self.rpc_calls[-1], ('platform.revokeDevice', {'deviceId': 'device-id'}))
+        self.assertFalse(self.manager._devices)
+        original = self.manager._owner_call
+        def wrong_identity(method, params):
+            value = original(method, params)
+            if method == 'platform.bootstrapDevice':
+                value['offer']['hostDescriptor']['installationId'] = str(uuid.uuid4())
+            return value
+        self.manager._owner_call = wrong_identity
+        with self.assertRaisesRegex(WorkbenchUnavailable, 'runtime_identity_mismatch'):
+            self.manager.bootstrap_runtime()
+        self.assertEqual(self.rpc_calls[-1], ('platform.revokeDevice', {'deviceId': 'device-id'}))
+        self.assertFalse(self.manager._devices)
+
     def test_remote_proof_only_enters_controlled_environment(self):
         from dataclasses import replace
         self.manager.config = replace(self.config, public_origin='https://workbench.example.test', device_proof='A'*43,

@@ -421,34 +421,42 @@ class WorkbenchRuntime:
                 repo = self._rpc("repo.update", {"repo": "id:" + repo["id"],
                                  "updates": {"displayName": str(project_name)}})["repo"]
             self._rpc("worktree.list", {"repo": "id:" + repo["id"]})
-            paired = self._rpc("platform.bootstrapDevice", {"name": "Platform Web " + str(project_id)})
-            if not paired.get("available"):
-                raise WorkbenchUnavailable("pairing_unavailable")
-            offer = paired.get("offer")
+            result = self._bootstrap_runtime("Platform Web " + str(project_id), remote=remote)
+            return {**result, "target": {"repoId": repo["id"]}}
+
+    def bootstrap_runtime(self, *, remote=False):
+        with self._lock:
+            return self._bootstrap_runtime("Platform Web Workbench", remote=remote)
+
+    def _bootstrap_runtime(self, name, *, remote):
+        paired = self._rpc("platform.bootstrapDevice", {"name": name})
+        if not paired.get("available"):
+            raise WorkbenchUnavailable("pairing_unavailable")
+        offer = paired.get("offer")
+        try:
+            if (not isinstance(offer, dict) or offer.get("v") != 2 or offer.get("scope") != "runtime"
+                    or loopback_origin(offer.get("endpoint", ""), "ws") != self._ws_origin
+                    or not offer.get("deviceToken") or not offer.get("pairedDeviceId")
+                    or paired.get("deviceId") != offer["pairedDeviceId"]):
+                raise WorkbenchUnavailable("runtime_protocol_error")
+            installation = read_json(self.config.data_root / "state/host-installation.json", 4096)["installationId"]
+            if offer.get("hostDescriptor", {}).get("installationId") != installation:
+                raise WorkbenchUnavailable("runtime_identity_mismatch")
+            environment = str(uuid.uuid5(uuid.NAMESPACE_URL, "control-everything:workbench:" + str(uuid.UUID(installation))))
+        except (WorkbenchUnavailable, ValueError, KeyError, OSError):
+            if paired.get("deviceId"):
+                self._rpc("platform.revokeDevice", {"deviceId": paired["deviceId"]})
+            raise
+        result = {"runtime": {"environmentId": environment, "offer": offer}}
+        if remote:
+            # Journal before exposing the offer; an earlier crash cannot expose its token.
             try:
-                if (not isinstance(offer, dict) or offer.get("v") != 2 or offer.get("scope") != "runtime"
-                        or loopback_origin(offer.get("endpoint", ""), "ws") != self._ws_origin
-                        or not offer.get("deviceToken") or not offer.get("pairedDeviceId")
-                        or paired.get("deviceId") != offer["pairedDeviceId"]):
-                    raise WorkbenchUnavailable("runtime_protocol_error")
-                installation = read_json(self.config.data_root / "state/host-installation.json", 4096)["installationId"]
-                if offer.get("hostDescriptor", {}).get("installationId") != installation:
-                    raise WorkbenchUnavailable("runtime_identity_mismatch")
-                environment = str(uuid.uuid5(uuid.NAMESPACE_URL, "control-everything:workbench:" + str(uuid.UUID(installation))))
-            except (WorkbenchUnavailable, ValueError, KeyError, OSError):
-                if paired.get("deviceId"):
-                    self._rpc("platform.revokeDevice", {"deviceId": paired["deviceId"]})
+                self._write_remote_grants(self._read_remote_grants() | {offer["pairedDeviceId"]})
+            except BaseException:
+                self._rpc("platform.revokeDevice", {"deviceId": offer["pairedDeviceId"]})
                 raise
-            result = {"runtime": {"environmentId": environment, "offer": offer}, "target": {"repoId": repo["id"]}}
-            if remote:
-                # Journal before exposing the offer; an earlier crash cannot expose its token.
-                try:
-                    self._write_remote_grants(self._read_remote_grants() | {offer["pairedDeviceId"]})
-                except BaseException:
-                    self._rpc("platform.revokeDevice", {"deviceId": offer["pairedDeviceId"]})
-                    raise
-            self._devices[offer["pairedDeviceId"]] = offer["deviceToken"]
-            return result
+        self._devices[offer["pairedDeviceId"]] = offer["deviceToken"]
+        return result
 
     def _read_remote_grants(self):
         path = self.config.data_root / "platform-remote-grants.json"

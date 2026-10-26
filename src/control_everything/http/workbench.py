@@ -200,7 +200,7 @@ def _project(workspace, identity):
 
 
 def handle_post(handler, path):
-    if path.path != "/api/workbench/bootstrap":
+    if path.path not in ("/api/workbench/bootstrap", "/api/workbench/runtime-bootstrap"):
         return False
     if not handler.allowed(api=True, focus=True):
         return True
@@ -210,21 +210,29 @@ def handle_post(handler, path):
         if path.query:
             raise ValueError("invalid_request")
         body = handler.read_json_body(max_bytes=4096, strict=True)
-        if set(body) != {"project_id"} or not project_id_valid(body["project_id"]):
+        runtime_only = path.path == "/api/workbench/runtime-bootstrap"
+        if runtime_only:
+            if body != {}:
+                raise ValueError("invalid_request")
+        elif set(body) != {"project_id"} or not project_id_valid(body["project_id"]):
             raise ValueError("invalid_request")
         if manager is None or not manager.ready:
             raise WorkbenchUnavailable("runtime_unavailable")
-        project = _project(handler.server.workspace, body["project_id"])
-        refresh = handler.server.__dict__.get("refresh_workspace_roots")
-        if refresh:
-            refresh()
         is_remote = remote_context.remote_request(handler)
-        result = manager.bootstrap(project["id"], project["name"], project["directory"], **({"remote": True} if is_remote else {}))
-        if _project(handler.server.workspace, project["id"]) != project:
-            raise ProfileError("project_directory_changed", status=409)
-        response = {"project": {"id": project["id"], "name": project["name"]},
-                    "runtime": result["runtime"], "target": result["target"],
-                    "returnUrl": "/studio#project/" + quote(project["id"], safe="")}
+        if runtime_only:
+            result = manager.bootstrap_runtime(**({"remote": True} if is_remote else {}))
+            response = {"runtime": result["runtime"]}
+        else:
+            project = _project(handler.server.workspace, body["project_id"])
+            refresh = handler.server.__dict__.get("refresh_workspace_roots")
+            if refresh:
+                refresh()
+            result = manager.bootstrap(project["id"], project["name"], project["directory"], **({"remote": True} if is_remote else {}))
+            if _project(handler.server.workspace, project["id"]) != project:
+                raise ProfileError("project_directory_changed", status=409)
+            response = {"project": {"id": project["id"], "name": project["name"]},
+                        "runtime": result["runtime"], "target": result["target"],
+                        "returnUrl": "/studio#project/" + quote(project["id"], safe="")}
         if is_remote:
             response = copy.deepcopy(response)
             response["runtime"]["offer"]["endpoint"] = remote_context.access_for(handler.server).websocket_endpoint
