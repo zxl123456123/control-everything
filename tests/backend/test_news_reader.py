@@ -195,6 +195,14 @@ class ReaderHTTPTests(unittest.TestCase):
         self.assertEqual(self.request('/api/workspace/news/research', 'POST', b' ' * 2049)[0], 413)
         self.assertEqual(self.request('/api/workspace/news/translate', 'POST', {'texts': [1], 'source': 'en', 'target': 'zh'})[0], 400)
 
+    def test_article_retry_is_explicit_and_rejects_other_parameters(self):
+        identity = 'a' * 24
+        self.reader.article.return_value = {'id': identity}
+        self.assertEqual(self.request('/api/workspace/news/article?id=' + identity + '&retry=1')[0], 200)
+        self.reader.article.assert_called_once_with(identity, retry=True)
+        for suffix in ('&retry=0', '&retry=', '&retry=1&retry=1', '&retry=1&url=https://example.com'):
+            self.assertEqual(self.request('/api/workspace/news/article?id=' + identity + suffix)[0], 400)
+
     def test_unknown_document_and_active_job_status(self):
         self.reader.article.return_value = None
         self.assertEqual(self.request('/api/workspace/news/article?id=' + 'a' * 24)[0], 404)

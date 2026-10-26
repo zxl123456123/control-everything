@@ -90,11 +90,11 @@ async function extract(url){
   return {title,blocks,images,published,author:[...new Set(authors)].slice(0,10).join(', ')||null,references,post:!!post};
  },url);
  if(!data){emit('blocked','未识别到可读正文，保留实际页面供查看',{url});return;}
- const chars=data.blocks.reduce((n,b)=>n+b.text.length,0);
+ const textBlocks=data.blocks.filter(b=>b.text!==data.title);
+ const chars=textBlocks.reduce((n,b)=>n+b.text.length,0);
  if(chars<(data.post?15:300)||(!data.post&&/sign in|log in|access denied|just a moment|verify you are human/i.test(data.title))){emit('blocked','正文不足或访问受限，未用标题冒充全文',{url});return;}
  const sourceId=new URL(url).hostname.replace(/^www\./,'').replace(/[^a-z0-9]/g,'_');
  const images=data.images.filter(row=>safeResource(row.url)).filter((row,i,all)=>all.findIndex(r=>r.url===row.url)===i).slice(0,12);
- const textBlocks=data.blocks.filter(b=>b.text!==data.title);
  const references=[],referenceUrls=new Set();
  for(const row of data.references){
   if(!safeResource(row.url))continue;

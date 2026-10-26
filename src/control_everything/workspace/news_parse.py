@@ -71,22 +71,23 @@ def _date(value, atom=False):
 
 
 class _Text(HTMLParser):
-    def __init__(self):
+    def __init__(self, paragraphs=False):
         super().__init__(convert_charrefs=True)
         self.parts = []
         self.hidden = 0
+        self.paragraphs = paragraphs
 
     def handle_starttag(self, tag, attrs):
-        if tag in ('script', 'style'):
+        if tag in ('script', 'style', 'iframe', 'object'):
             self.hidden += 1
         elif not self.hidden:
-            self.parts.append(' ')
+            self.parts.append('\n' if self.paragraphs and tag in ('p', 'div', 'li', 'h1', 'h2', 'h3', 'br') else ' ')
 
     def handle_endtag(self, tag):
-        if tag in ('script', 'style'):
+        if tag in ('script', 'style', 'iframe', 'object'):
             self.hidden = max(0, self.hidden - 1)
         elif not self.hidden:
-            self.parts.append(' ')
+            self.parts.append('\n' if self.paragraphs and tag in ('p', 'div', 'li', 'h1', 'h2', 'h3') else ' ')
 
     def handle_data(self, data):
         if not self.hidden:
@@ -132,6 +133,23 @@ def _summary(element, atom):
         return None, kind, False, 'unsupported_type'
     text = ' '.join(text.split())
     return text[:600] or None, kind, len(text) > 600, None if text else 'empty'
+
+
+def _feed_content(element, atom):
+    """Keep inline publisher content as bounded plain text, never fetch Atom src."""
+    if element is None or element.get('src'):
+        return ''
+    kind = element.get('type', 'text') if atom else 'html'
+    if kind == 'xhtml':
+        return ' '.join(_xhtml_text(child) for child in element)
+    if kind in ('text', 'text/plain'):
+        return _text(element)
+    if kind in ('html', 'text/html'):
+        parser = _Text(paragraphs=True)
+        parser.feed(_text(element))
+        parser.close()
+        return ''.join(parser.parts)
+    return ''
 
 
 def _tree(data):
@@ -239,8 +257,23 @@ def parse_feed_result(data, source_id, source_name, fetched_at, *, feed_url=None
             row['updated_at'] = _date(_text(element.find(ATOM + 'updated')), True)[0]
         row['summary'], row['summary_kind'], row['summary_truncated'], row['summary_reason'] = _summary(
             element.find(prefix + ('summary' if atom else 'description')), atom)
+        content = element.find(ATOM + 'content' if atom else '{http://purl.org/rss/1.0/modules/content/}encoded')
+        text = '\n\n'.join(' '.join(line.split()) for line in _feed_content(content, atom).splitlines() if line.strip())
+        if text:
+            row['feed_content'] = text
+            if not row['summary']:
+                row.update(summary=' '.join(text.split())[:600], summary_kind='atom_content' if atom else 'rss_content',
+                           summary_truncated=len(' '.join(text.split())) > 600, summary_reason=None)
         rows.append(row)
-    return _result(rows, len(entries), filtered, duplicates, 'atom1' if atom else 'rss2', now)
+    result = _result(rows, len(entries), filtered, duplicates, 'atom1' if atom else 'rss2', now)
+    remaining = 96000
+    for row in result['items']:
+        if 'feed_content' in row:
+            raw = row['feed_content'].encode('utf-8')
+            row['feed_content'] = raw[:min(12000, remaining)].decode('utf-8', errors='ignore')
+            row['feed_content_truncated'] = len(row['feed_content'].encode('utf-8')) < len(raw)
+            remaining -= len(row['feed_content'].encode('utf-8'))
+    return result
 
 
 def _unique_object(pairs):

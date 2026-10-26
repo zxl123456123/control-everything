@@ -50,10 +50,13 @@ def handle_get(handler, path):
             _params(path.query, ())
             handler.reply(200, reader.sample())
         elif route == 'article':
-            identity = _params(path.query, ('id',))['id']
+            params = _params(path.query, ('id', 'retry') if 'retry' in parse_qs(path.query) else ('id',))
+            identity = params['id']
             if not re.fullmatch('[a-f0-9]{24}', identity):
                 raise ValueError('invalid_article')
-            doc = reader.article(identity)
+            if 'retry' in params and params['retry'] != '1':
+                raise ValueError('invalid_retry')
+            doc = reader.article(identity, retry=True) if 'retry' in params else reader.article(identity)
             handler.reply(200 if doc else 404, doc or {'error': 'unknown_article'})
         elif route == 'research/latest':
             _params(path.query, ())

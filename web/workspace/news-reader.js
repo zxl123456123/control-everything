@@ -51,7 +51,7 @@
   function safeUrl(value) { try { const url = new URL(value); return url.protocol === 'https:' && !url.username && !url.password ? url.href : null; } catch { return null; } }
   function validItem(item) { return item && /^[a-f0-9]{24}$/.test(item.id) && typeof item.title === 'string' && typeof item.source_name === 'string' && typeof item.source_id === 'string' && safeUrl(item.url) && ['ai', 'hn'].includes(item.stream) && (item.summary === null || typeof item.summary === 'string'); }
   function state(id) { return records[id] && typeof records[id] === 'object' ? records[id] : (records[id] = {read_at:null, archived_at:null, saved:false}); }
-  function itemSignature(item) { return JSON.stringify([item.title, item.summary, item.url, item.body_blocks, item.images]); }
+  function itemSignature(item) { return JSON.stringify([item.title, item.summary, item.url, item.body_blocks, item.images, item.feed_content, item.feed_content_truncated]); }
   function displayTitle(item) {
     if (item.content_origin !== 'x_public_embed') return item.title;
     const paragraph = (item.body_blocks || []).find(block => block.type === 'p' && typeof block.text === 'string' && block.text.trim())?.text || item.title;
@@ -254,9 +254,16 @@
     const summaryPair = !!summary && language === 'bilingual' && translated?.[1] !== undefined;
     $('article-summary-original').hidden = !summaryPair; changeText($('article-summary-original'), summaryPair ? summary : '');
     const hasBody = entry?.content_kind === 'full_text' || item.body_blocks?.length > 0;
-    $('content-badge').textContent = item.content_origin === 'x_public_embed' ? incomplete ? '帖文节选' : '公开帖文' : hasBody ? '正文' : '来源摘要';
+    $('content-badge').textContent = item.content_origin === 'x_public_embed' ? incomplete ? '帖文节选' : '公开帖文' : hasBody ? '正文' : entry?.feed_content ? '订阅源内容' : '来源摘要';
     $('content-status').textContent = hasBody ? '' : !entry ? '正在载入正文，先读来源摘要…' : '暂未取得完整正文，目前展示来源摘要。';
     if (entry && !blocks.length && !summary) $('content-status').textContent = '来源暂未提供正文或摘要，目前仅有标题。';
+    if (entry && !hasBody) {
+      const reasons = {extractor_unavailable:'服务未安装正文提取组件，请安装新闻依赖后重试。', timeout:'原文请求超时。', network_error:'原文暂时无法连接。', extraction_insufficient:'原文未返回足够的可读正文。', unsupported_source:'此来源暂不支持正文提取。', redirect_rejected:'原文跳转到其他域名，未继续读取。', reader_busy:'另一篇正文正在读取，请稍候。', unavailable:'正文连接暂时中断。'};
+      const reason = /^http_\d{3}$/.test(entry.reason) ? `原文返回 HTTP ${entry.reason.slice(5)}。` : reasons[entry.reason] || '原文暂时无法提取。';
+      $('content-status').textContent = `${reason}${entry.feed_content ? `已保留订阅源内容${entry.feed_content_truncated ? '（有截断）' : '（可能为节选）'}。` : summary ? '已保留来源摘要。' : '来源仅提供标题。'}`;
+    }
+    $('retry-article').hidden = !entry || hasBody || !!item.body_blocks?.length;
+    $('retry-article').disabled = [...loading.keys()].some(key => key.startsWith(item.id));
     renderMedia(item);
     const bodyKey = JSON.stringify([key, language, translated]);
     if (bodyKey !== renderedKey) {
@@ -314,13 +321,13 @@
   function validDocument(value, item) {
     return value && value.id === item.id && ['full_text', 'summary'].includes(value.content_kind) && Array.isArray(value.blocks) && value.blocks.every(block => block && ['p', 'h2', 'li'].includes(block.type) && typeof block.text === 'string');
   }
-  async function loadArticle(item) {
+  async function loadArticle(item, retry = false) {
     if (!canPoll()) return;
     const signature = itemSignature(item), requestKey = item.id + signature;
     if (loading.has(requestKey)) return;
     loading.set(requestKey, true);
     try {
-      const response = await readerFetch('/article?id=' + encodeURIComponent(item.id));
+      const response = await readerFetch('/article?id=' + encodeURIComponent(item.id) + (retry ? '&retry=1' : ''));
       if (!response.ok) throw new Error('正文读取未完成');
       const value = await response.json(); if (!validDocument(value, item)) throw new Error('正文格式不可用');
       if (articles.has(item.id) && itemSignature(articles.get(item.id)) === signature) documents.set(item.id, {...value, signature});
@@ -338,6 +345,11 @@
       if (currentId === item.id) { stopTranslation(); renderedKey = ''; render(); }
     }
   }
+  $('retry-article').addEventListener('click', () => {
+    const item = articles.get(currentId); if (!item) return;
+    $('retry-article').disabled = true; $('content-status').textContent = '正在重新读取正文…';
+    void loadArticle(item, true);
+  });
   let translatingKey = null;
   function showTranslation(text) { $('translation-status').hidden = !text; $('translation-status').textContent = text; }
   async function ensureTranslation(item) {

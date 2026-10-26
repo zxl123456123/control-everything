@@ -83,7 +83,7 @@ class NewsReader:
             self._write('research-items.json', list(incoming.values()))
         return self.sample()
 
-    def article(self, identity):
+    def article(self, identity, *, retry=False):
         if not isinstance(identity, str) or not re.fullmatch('[a-f0-9]{24}', identity):
             return None
         with self.lock:
@@ -91,7 +91,7 @@ class NewsReader:
         if item is None:
             saved = self._read('article-cache/' + identity + '.json', None)
             return saved if isinstance(saved, dict) and saved.get('id') == identity else None
-        if 'body_blocks' in item:
+        if item.get('body_blocks'):
             return {'id': identity, 'title': item['title'], 'blocks': item['body_blocks'], 'images': item.get('images', []),
                     'content_kind': item.get('content_kind', 'summary'), 'source_url': item['url'], 'reason': None,
                     'fetched_at': item['fetched_at'], **{key: item[key] for key in ('author', 'published_at', 'published_raw',
@@ -100,7 +100,7 @@ class NewsReader:
             return {'id': identity, 'title': item['title'], 'blocks': [{'type': 'p', 'text': item['summary']}] if item.get('summary') else [],
                     'images': [], 'content_kind': 'summary', 'source_url': item['url'], 'reason': 'reader_busy', 'fetched_at': item['fetched_at']}
         try:
-            return load_article(item, self.root / 'article-cache')
+            return load_article(item, self.root / 'article-cache', retry=retry)
         finally:
             self.article_lock.release()
 

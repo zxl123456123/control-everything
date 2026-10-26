@@ -269,7 +269,11 @@ def validate_result(result, key, name, stream):
               'updated_at', 'submitted_at', 'content_origin', 'summary', 'summary_kind', 'summary_truncated', 'summary_reason', 'title_truncated'}
     seen = set()
     for item in items:
-        if not isinstance(item, dict) or set(item) != fields or item['source_id'] != key or item['source_name'] != name:
+        content_fields = {'feed_content', 'feed_content_truncated'} if isinstance(item, dict) and 'feed_content' in item and stream == 'ai' else set()
+        if not isinstance(item, dict) or set(item) != fields | content_fields or item['source_id'] != key or item['source_name'] != name:
+            raise ValueError('worker_failed')
+        if content_fields and (not isinstance(item['feed_content'], str) or len(item['feed_content'].encode('utf-8')) > 12000
+                               or type(item['feed_content_truncated']) is not bool):
             raise ValueError('worker_failed')
         if not isinstance(item['id'], str) or not re.fullmatch('[a-f0-9]{24}', item['id']) or item['id'] in seen:
             raise ValueError('worker_failed')
@@ -286,12 +290,14 @@ def validate_result(result, key, name, stream):
             if value is not None:
                 if not isinstance(value, str) or len(value) > 64 or datetime.fromisoformat(value).tzinfo is None:
                     raise ValueError('worker_failed')
-        if item['date_reason'] not in (None, 'missing', 'invalid', 'timezone_unknown') or item['summary_kind'] not in (None, 'rss_description', 'atom_summary') or item['summary_reason'] not in (None, 'missing', 'empty', 'summary_too_long', 'unsupported_type'):
+        if item['date_reason'] not in (None, 'missing', 'invalid', 'timezone_unknown') or item['summary_kind'] not in (None, 'rss_description', 'atom_summary', 'rss_content', 'atom_content') or item['summary_reason'] not in (None, 'missing', 'empty', 'summary_too_long', 'unsupported_type'):
             raise ValueError('worker_failed')
         if item['content_origin'] != ('hn_submission' if stream == 'hn' else 'publisher_feed') or stream == 'hn' and item['published_at'] is not None:
             raise ValueError('worker_failed')
         if any(type(item[field]) is not bool for field in ('summary_truncated', 'title_truncated')):
             raise ValueError('worker_failed')
+    if sum(len(item.get('feed_content', '').encode('utf-8')) for item in items) > 96000:
+        raise ValueError('worker_failed')
 
 
 class OwnedBatch:
