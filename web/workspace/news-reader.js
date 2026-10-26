@@ -177,7 +177,7 @@
   // resting spot for the 3D pet: the reader's bottom-right gutter, just above the footer, so it never sits on the article text or title
   function petDock() {
     const stage = $('animation-stage'), reader = $('reader'), footer = reader?.querySelector('.reader-footer');
-    if (!stage || !footer || !reader.getClientRects().length) return null;
+    if (!stage || !footer || !reader.getClientRects().length || innerWidth < 720) return null; // narrow screens: stay at the depot, the pet-switch row sits where the dock would be
     const s = stage.getBoundingClientRect(), r = reader.getBoundingClientRect(), f = footer.getBoundingClientRect();
     return {x:Math.round(r.right - s.left - 56), y:Math.round(f.top - s.top - 6)};
   }

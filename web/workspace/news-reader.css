@@ -108,6 +108,7 @@ body{letter-spacing:normal}
 #animation-stage[data-reading-view=list] .spider-home{height:64px;padding:0 4px;gap:12px}
 #animation-stage[data-reading-view=list] #web-depot{width:64px;height:60px}
 #animation-stage[data-reading-view=list] .spider-status{display:flex;align-items:center;gap:12px;flex:1}
+html:is([data-pet=naidragon],[data-pet=tabbycat]) #animation-stage[data-reading-view=list] #web-depot{width:96px}
 #animation-stage[data-reading-view=list] .depot-name{display:none}
 #animation-stage[data-reading-view=list] #spider-state{min-height:0;margin:0;flex:1}
 #animation-stage[data-reading-view=list] #list-empty{padding:32px 16px;margin:auto}
