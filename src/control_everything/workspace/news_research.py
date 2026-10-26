@@ -27,9 +27,9 @@ class ResearchJobs:
         self.closed = False
         self.blocked = False
 
-    def begin(self, query, topic):
+    def begin(self, query, topic, *, capture_frames=False):
         if (not isinstance(query, str) or not 1 <= len(query.strip()) <= 240
-                or not isinstance(topic, str) or topic not in TOPICS):
+                or not isinstance(topic, str) or topic not in TOPICS or type(capture_frames) is not bool):
             raise ValueError('invalid_research_request')
         node = os.environ.get('CONTROL_EVERYTHING_NEWS_NODE') or shutil.which('node')
         if not node or not Path(node).is_file():
@@ -42,7 +42,8 @@ class ResearchJobs:
             identity = uuid.uuid4().hex
             folder = self.root / identity
             folder.mkdir(parents=True)
-            job = {'job_id': identity, 'state': 'running', 'query': query.strip(), 'topic': topic, 'events': []}
+            job = {'job_id': identity, 'state': 'running', 'query': query.strip(), 'topic': topic,
+                   'capture_frames': capture_frames, 'events': []}
             self.jobs[identity] = job
             config = folder / 'request.json'
             config.write_text(json.dumps(job, ensure_ascii=False), encoding='utf-8')

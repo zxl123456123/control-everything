@@ -136,3 +136,43 @@ html[data-embedded=true] .toolbar{flex-wrap:wrap;padding:12px 0;gap:8px}
 }
 
 #open-directory{width:40px;min-height:40px;align-items:center;justify-content:center;padding:8px}
+
+/* Collection progress updates from worker events; optional companions stay off by default. */
+.capture-option{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:14px;flex-wrap:wrap}
+#research-panel .capture-option input{width:16px;height:16px;min-height:16px;min-width:16px;accent-color:var(--chosen)}
+.capture-option span{color:var(--muted);font-size:13px}
+.collection-meter{height:6px;border-radius:99px;overflow:hidden;background:var(--line);margin-top:12px}
+.collection-meter>span{display:block;height:100%;background:var(--chosen);transform:scaleX(0);transform-origin:left;transition:transform .2s ease}
+.collection-meter.indeterminate>span{width:40%;animation:collection-wait 1.8s ease-in-out infinite}
+.collection-meter[data-state=partial]>span{background:var(--ce-amber,#a56412)}
+.collection-meter[data-state=failed]>span{background:var(--ce-red,#ad2424)}
+.collection-meter-label{color:var(--muted);font-size:13px;margin:8px 0 12px}
+#research-panel .research-steps button[data-current=true]{border-color:var(--chosen);background:var(--soft);font-weight:600}
+#research-panel .research-workspace:has(#research-browser[hidden]){grid-template-columns:minmax(0,1fr);min-height:0}
+#research-panel .research-workspace:has(#research-browser[hidden]) .research-results{max-height:none}
+#retry-article{margin-bottom:16px}
+@keyframes collection-wait{from{transform:translateX(-100%)}to{transform:translateX(350%)}}
+@media(prefers-reduced-motion:reduce){.collection-meter.indeterminate>span{animation:none;transform:scaleX(1)!important}.collection-meter>span{transition:none}}
+
+/* Keep the primary collection flow to a query, progress and one result. */
+#research-panel{width:min(560px,calc(100vw - 32px));border-radius:16px}
+#research-panel .research-head{padding:20px 20px 12px}
+#research-panel .research-body{padding:0 20px 16px}
+#research-panel .research-head h2{font-size:18px;line-height:26px}
+#research-panel .research-query-row{flex-wrap:nowrap;gap:8px}
+#research-panel .research-query-row input{width:0;flex:1;min-width:0;font-size:14px}
+#research-panel #research-start{flex:none;padding-inline:14px}
+#research-panel :is(.collection-settings,.collection-details)>summary{padding:8px 0;min-height:36px;color:var(--muted);font-size:13px}
+#research-panel .collection-settings{margin-top:6px}
+#research-feedback{padding-top:12px}
+#research-panel .research-progress{margin:0;font-size:14px;gap:8px}
+#research-panel #research-timing{font-size:12px}
+#research-outcome{font-size:14px;line-height:22px;color:var(--muted);margin-top:12px}
+#research-panel .collection-details{margin-top:12px}
+#research-panel .collection-details>summary span{font-size:12px;margin-left:8px}
+#research-panel .research-metrics{display:block;padding:0 0 12px;margin:0 0 12px;font-size:13px;color:var(--muted)}
+#research-panel .research-metrics strong{font:inherit;color:var(--ink)}
+#research-panel .research-results{padding:0;border:0;background:none}
+#research-panel .research-source{border:0;border-bottom:1px solid var(--line);border-radius:0;background:none;margin:0;padding:10px 0}
+#research-panel .research-footer{padding:12px 20px;justify-content:flex-end}
+@media(max-width:380px){#research-panel{width:calc(100vw - 16px)}#research-panel .research-head{padding:16px 16px 12px}#research-panel .research-body{padding:0 16px 12px}#research-panel #research-start{padding-inline:10px}#research-panel .research-footer{padding:12px 16px}}

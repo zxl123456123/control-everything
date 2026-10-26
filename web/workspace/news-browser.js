@@ -19,7 +19,7 @@ function safeResource(value){try{const u=new URL(value);return u.protocol==='htt
 function directLink(value){try{const u=new URL(value);if(u.hostname==='www.bing.com'&&u.pathname==='/ck/a'){const wrapped=u.searchParams.get('u');if(wrapped?.startsWith('a1'))value=Buffer.from(wrapped.slice(2),'base64url').toString('utf8');}return safePage(value);}catch{return null;}}
 async function frame(stage,message,url,extra={}){
  let screenshot;
- try{const name=`frame-${String(++frameNumber).padStart(3,'0')}.jpg`;await page.screenshot({path:path.join(root,name),type:'jpeg',quality:70,animations:'disabled',timeout:5000});screenshot=`/api/workspace/news/research-frame?job=${config.job_id}&name=${name}`;}catch{}
+ if(config.capture_frames)try{const name=`frame-${String(++frameNumber).padStart(3,'0')}.jpg`;await page.screenshot({path:path.join(root,name),type:'jpeg',quality:70,animations:'disabled',timeout:5000});screenshot=`/api/workspace/news/research-frame?job=${config.job_id}&name=${name}`;}catch{}
  emit(stage,message,{url:page.url()==='about:blank'?url:page.url(),requested_url:url,screenshot,...extra});
 }
 async function visit(url,label){
@@ -30,7 +30,7 @@ async function visit(url,label){
   if(!final){await frame('blocked','来源跳转到未支持页面，未提取',url);return false;}
   if(response&&response.status()>=400){await frame('blocked',`来源返回 HTTP ${response.status()}，未将错误页作为新闻`,final);return false;}
   await frame('visit','页面已打开，等待提取内容',final,{title:await page.title()});
-  fs.writeFileSync(path.join(root,`page-${frameNumber}.html`),await page.content());
+  if(config.capture_frames)fs.writeFileSync(path.join(root,`page-${frameNumber}.html`),await page.content());
   return true;
  }catch(error){await frame('blocked','页面打开失败，保留实际画面',url,{detail:String(error.message).split('\n')[0]});return false;}
 }
@@ -126,8 +126,10 @@ function postUrl(value){try{return canonicalPost(value);}catch{return null;}}
 async function capturePosts(urls){
  const referenced=items.flatMap(item=>(item.references||[]).filter(row=>row.kind==='x_post').map(row=>row.url));
  const posts=[...new Set([...referenced,...urls].map(postUrl).filter(Boolean))].slice(0,2);
+ let completed=0;
+ if(posts.length)emit('extract','准备读取公开帖文',{progress:{phase:'extract',completed,total:posts.length}});
  for(const url of posts){
-  if(items.some(item=>postUrl(item.url)===url))continue;
+  if(items.some(item=>postUrl(item.url)===url)){completed++;continue;}
   const discoveredFrom=items.filter(item=>(item.references||[]).some(row=>postUrl(row.url)===url)).map(item=>item.url);
   emit('visit','从已知链接读取 X 公开帖子',{url,source_url:url,discovered_from:discoveredFrom});
   try{
@@ -143,6 +145,7 @@ async function capturePosts(urls){
     discovery:config.query,discovery_method:'official_public_embed',discovered_from:discoveredFrom});
    checkpoint();
   }catch{ /* The helper records the real failure frame; other sources remain readable. */ }
+  emit('extract','公开帖文检查进展',{progress:{phase:'extract',completed:++completed,total:posts.length}});
  }
 }
 (async()=>{
@@ -150,7 +153,7 @@ async function capturePosts(urls){
  const context=await browser.newContext({viewport:{width:1120,height:740},locale:'en-US',acceptDownloads:false,serviceWorkers:'block'});
  await context.route('**/*',async route=>{
   const request=route.request(),url=request.url();
-  if(!safeResource(url))return route.abort();
+  if(!safeResource(url)||['media','font'].includes(request.resourceType()))return route.abort();
   if(request.isNavigationRequest()&&request.frame()===page?.mainFrame()&&!safePage(url))return route.abort();
   return route.continue();
  });
@@ -181,7 +184,9 @@ async function capturePosts(urls){
  const seeds=presets[config.topic]||presets.coding;
  if(!found.length)emit('search','公开检索未取得帖子，继续检查预设关注作者与官方来源；这些不是本次搜索结果');
  const urls=[...new Set([...found,...seeds])].slice(0,found.length?4:3);
- for(const url of urls){if(!postUrl(url)&&await visit(url,'访问来源并读取正文与图片'))await extract(url);}
+ const articles=urls.filter(url=>!postUrl(url));let completed=0;
+ if(articles.length)emit('visit','准备检查来源正文',{progress:{phase:'visit',completed,total:articles.length}});
+ for(const url of articles){if(await visit(url,'访问来源并读取正文与图片'))await extract(url);emit('visit','来源正文检查进展',{progress:{phase:'visit',completed:++completed,total:articles.length}});}
  await capturePosts(urls);
  emit('merge',items.length?`本次取得 ${items.length} 篇可读内容，准备合入阅读器`:'本次未取得可读正文，保留已有内容',{counts:{articles:items.length,images:items.reduce((n,i)=>n+i.images.length,0)}});
 })().catch(error=>{emit('error','采集遇到错误，已有阅读记录保留',{detail:error.name});process.exitCode=1;}).finally(async()=>{checkpoint();if(browser)await browser.close();});

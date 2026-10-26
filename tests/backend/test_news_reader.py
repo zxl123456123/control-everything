@@ -203,6 +203,15 @@ class ReaderHTTPTests(unittest.TestCase):
         for suffix in ('&retry=0', '&retry=', '&retry=1&retry=1', '&retry=1&url=https://example.com'):
             self.assertEqual(self.request('/api/workspace/news/article?id=' + identity + suffix)[0], 400)
 
+    def test_screenshot_capture_is_optional_and_boolean(self):
+        self.reader.jobs.begin.return_value = {'job_id': 'a' * 32}
+        for capture in (False, True):
+            self.assertEqual(self.request('/api/workspace/news/research', 'POST',
+                             {'query': 'AI', 'topic': 'coding', 'capture_frames': capture})[0], 202)
+            self.reader.jobs.begin.assert_called_with('AI', 'coding', capture_frames=capture)
+        self.assertEqual(self.request('/api/workspace/news/research', 'POST',
+                         {'query': 'AI', 'topic': 'coding', 'capture_frames': 'false'})[0], 400)
+
     def test_unknown_document_and_active_job_status(self):
         self.reader.article.return_value = None
         self.assertEqual(self.request('/api/workspace/news/article?id=' + 'a' * 24)[0], 404)

@@ -403,6 +403,8 @@ Ctrl+C 停网关即可停本批查询，原 Claude/SSH/Zellij 对话继续运行
 
 正式同源入口为 `/news`，由 Studio 首页/手机顶部及旧 `/workspace#news` 进入。旧 `news.ts/news.js` 与固定 RSS API 保持兼容；新阅读展示在 `web/workspace/news-reader.*`，蜘蛛动画在 `news-spider.js`。`news-browser.js`、`news-public-embed.js` 是仅服务端执行的浏览 worker，按白名单入包，不作为 HTTP 静态文件提供；普通阅读和 RSS 无需 Node。
 
+采集默认使用小弹窗，展示关键词、当前阶段进度和结果；主题与截图选项、来源与回放记录分别折叠。已知总量按 worker 事件显示处理数量，未知总量不展示百分比；保存阶段等待服务端合入结束。蜘蛛默认隐藏，显示选择按阅读器与远程账号范围保存；隐藏不挂载或暂停动画，阅读与采集继续。步骤截图需显式开启，默认不截图，回放在展开详情后读取。
+
 后端 `workspace/news_reader.py` 管理所选 profile 的 `news-reader/` 数据，`news_research.py` 管理单槽、有截止时间的独占浏览进程，`news_article.py` 提取固定来源正文。HTTP 装配在 `http/news_reader.py`，沿用 Host、Origin、client header 和 CSRF 校验。截图经带权限头的 fetch 转为 Blob 显示。研究数据、模型、截图和个人工具路径不提交。
 
 普通安装包含固定版本的正文提取器；本地翻译额外依赖通过 `python -m pip install -e ".[news]"` 安装。RSS/Atom 内联内容按纯文本保留，原文受阻时回退到订阅源内容并说明是否截断；HN 只对服务端已收录的链接提取正文，仍校验公共 DNS、HTTPS 和同域跳转。页面显示具体失败原因，手动重新读取可绕过失败冷却，不丢失已有成功缓存。浏览采集使用 Node 与 Playwright 1.62.1，按 Playwright 官方说明安装浏览器。Windows 默认使用 Edge，其他平台使用 Playwright Chromium。`CONTROL_EVERYTHING_NEWS_NODE` 可指定 Node 可执行文件，Playwright 按标准 Node 模块解析（包括 `NODE_PATH`）。依赖缺失时保留已有新闻并返回明确不可用状态。

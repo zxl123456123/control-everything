@@ -95,9 +95,10 @@ def handle_post(handler, path):
                 raise ValueError('invalid_body')
             handler.reply(200, reader.sample(refresh=True))
         elif route == 'research':
-            if not isinstance(body, dict) or set(body) != {'query', 'topic'}:
+            if (not isinstance(body, dict) or set(body) not in ({'query', 'topic'}, {'query', 'topic', 'capture_frames'})
+                    or type(body.get('capture_frames', False)) is not bool):
                 raise ValueError('invalid_body')
-            handler.reply(202, reader.jobs.begin(body['query'], body['topic']))
+            handler.reply(202, reader.jobs.begin(body['query'], body['topic'], capture_frames=body.get('capture_frames', False)))
         else:
             if (not isinstance(body, dict) or set(body) != {'texts', 'source', 'target'}
                     or body['source'] != 'en' or body['target'] != 'zh'

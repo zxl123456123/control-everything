@@ -8,7 +8,7 @@ const vm = require('node:vm');
 const root = path.resolve(__dirname, '../..');
 
 class Element {
-  constructor(tag = 'div') { this.tagName = tag.toUpperCase(); this.children = []; this.dataset = {}; this.attributes = {}; this.listeners = {}; this.value = ''; this.text = ''; this.hidden = false; this.open = false; this.isConnected = true; this.classList = {add() {}, remove() {}, toggle() {}}; }
+  constructor(tag = 'div') { this.tagName = tag.toUpperCase(); this.children = []; this.dataset = {}; this.attributes = {}; this.listeners = {}; this.style = {}; this.value = ''; this.text = ''; this.hidden = false; this.open = false; this.isConnected = true; this.classList = {add() {}, remove() {}, toggle() {}}; }
   append(...nodes) { for (const node of nodes) { node.remove(); node.parentElement = this; this.children.push(node); } }
   remove() { if (this.parentElement) this.parentElement.children = this.parentElement.children.filter(node => node !== this); this.parentElement = null; }
   replaceChildren(...nodes) { this.children = []; this.text = ''; this.append(...nodes); }

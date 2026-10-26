@@ -36,6 +36,7 @@
   const articles = new Map(), nodes = new Map(), documents = new Map(), loading = new Map();
   const tasks = new Map(), translations = new Map(), failedImages = new Set();
   let records = {}, currentId = null, selected = 'inbox', stream = 'ai', language = 'original';
+  let spiderVisible = false, spiderKey = null;
   let engine = null, researchEngine = null, paused = false, collecting = false, undo = null, arrivalQueue = [];
   let visibleIds = [], translationRun = 0, translationAbort = null, renderedKey = '', destroyed = false;
   let mediaView = 'article', imageIndex = 0, mediaKey = '';
@@ -85,6 +86,9 @@
     if (storeKey && key !== storeKey) { location.reload(); throw new Error('数据目录已切换，正在重新载入。'); }
     if (storeKey) return;
     storeKey = key;
+    spiderKey = 'news-spider-visible-v1:' + scope;
+    try { spiderVisible = (window.CERemoteContext ? window.CERemoteContext.storage('localStorage') : (window.localStorage ?? localStorage)).getItem(spiderKey) === 'true'; } catch {}
+    syncSpiderVisibility();
     try {
       const stored = JSON.parse((window.CERemoteContext ? window.CERemoteContext.storage('localStorage') : (window.localStorage ?? localStorage)).getItem(storeKey) || '{}');
       if (stored && typeof stored === 'object' && !Array.isArray(stored)) records = stored;
@@ -195,7 +199,7 @@
     for (const [taskId, task] of tasks) if (task.kind === 'archive' && task.node === $('article-title')) cancelTask(taskId);
     currentId = id; stopTranslation(); renderedKey = ''; mediaKey = ''; imageIndex = 0; $('article-scroll').scrollTop = 0;
     setReadingView('article'); render();
-    if (!paused) engine?.pointAt($('article-title'), '阅读');
+    if (spiderVisible && !paused) engine?.pointAt($('article-title'), '阅读');
     if (focus) $('article-title').focus({preventScroll:true});
   }
   function docFor(item) { const entry = documents.get(item.id); return entry?.signature === itemSignature(item) ? entry : null; }
@@ -382,7 +386,7 @@
     } finally { if (run === translationRun) { translationAbort = null; translatingKey = null; } }
   }
   function runArrival() {
-    if (destroyed || window.CERemoteContext?.active === false) return;    if (!engine || paused || tasks.size || !arrivalQueue.length) return;
+    if (destroyed || window.CERemoteContext?.active === false) return;    if (!spiderVisible || !engine || paused || tasks.size || !arrivalQueue.length) return;
     const item = arrivalQueue.shift(); $('arrival-title').textContent = '新消息 · ' + displayTitle(item); $('arrival-title').hidden = false; $('reader-state').hidden = true;
     const id = 'arrival:' + item.id;
     try { if (engine.capture({id, element:$('arrival-title'), label:displayTitle(item)})) { tasks.set(id, {kind:'arrival', node:$('arrival-title'), articleId:item.id}); $('spider-state').textContent = '新信息正在入站'; return; } } catch {}
@@ -394,7 +398,7 @@
     undo = {id:item.id, read_at:row.read_at, archived_at:row.archived_at}; row.read_at ||= new Date().toISOString(); row.archived_at = new Date().toISOString();
     let target = $('article-title');
     if (!visibleElement(target)) target = nodes.get(item.id)?.querySelector('.title-row-title');
-    if (engine && !paused && visibleElement(target)) {
+    if (spiderVisible && engine && !paused && visibleElement(target)) {
       try { if (engine.capture({id:item.id, element:target, label:displayTitle(item)})) tasks.set(item.id, {kind:'archive', node:target, articleId:item.id}); } catch {}
     }
     save(); render(); notice('已读并归档。', true);
@@ -417,7 +421,7 @@
     const time = new Date(value.sample.captured_at || NaN);
     const stamp = Number.isFinite(time.getTime()) ? new Intl.DateTimeFormat('zh-CN', {hour:'2-digit', minute:'2-digit', timeZone:'Asia/Shanghai'}).format(time) : '';
     $('snapshot-note').textContent = `${stamp ? stamp + ' 最近采集 · ' : ''}${count} 条信息${failureCount ? ` · ${failureCount} 个来源暂未更新，保留已有内容` : ''}`;
-    if (animate) arrivalQueue.push(...[...incoming.values()].filter(item => !oldIds.has(item.id)).slice(0, 3));
+    if (animate && spiderVisible) arrivalQueue.push(...[...incoming.values()].filter(item => !oldIds.has(item.id)).slice(0, 3));
     save(); render(); cancelInvisible(); if (animate) runArrival();
   }
   document.querySelectorAll('[data-view]').forEach(control => control.addEventListener('click', () => { for (const [id, task] of tasks) if (task.kind === 'archive') cancelTask(id); selected = control.dataset.view; render(); }));
@@ -438,11 +442,31 @@
   $('dismiss').addEventListener('click', () => { $('toast').hidden = true; });
   document.querySelectorAll('[data-language]').forEach(control => control.addEventListener('click', () => { language = control.dataset.language; stopTranslation(); document.querySelectorAll('[data-language]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.language === language))); renderedKey = ''; renderArticle(); }));
   function syncMotion() {
-    if (destroyed || window.CERemoteContext?.active === false) return;    const show = !paused && canPoll();
+    if (destroyed || window.CERemoteContext?.active === false) return;    const show = spiderVisible && !paused && canPoll();
     if (show && !$('research-panel').open) engine?.resume(); else engine?.pause();
-    if (show && $('research-panel').open) researchEngine?.resume(); else researchEngine?.pause();
+    if (show && $('research-panel').open && $('research-details').open) researchEngine?.resume(); else researchEngine?.pause();
     $('pause').textContent = $('research-pause').textContent = paused ? '继续动画' : '暂停动画';
   }
+  function syncSpiderVisibility() {
+    if (spiderVisible && window.NewsSpider && !engine) {
+      engine = window.NewsSpider.mount({root:$('animation-stage'), canvas:$('spider-canvas'), depot:$('web-depot'), onCapture:event => { const task = tasks.get(typeof event === 'string' ? event : event.id); $('spider-state').textContent = task?.kind === 'arrival' ? '正在接收新信息' : '正在归档'; }, onDelivered:settleTask, onCancel:settleTask});
+      engine.setCollecting(collecting);
+    }
+    if (spiderVisible && window.NewsSpider && $('research-panel').open && $('research-details').open && !researchEngine) {
+      researchEngine = window.NewsSpider.mount({root:$('research-animation-stage'), canvas:$('research-spider-canvas'), depot:$('research-web-depot')});
+      researchEngine.setOptions({scale:0.7}); researchEngine.setCollecting(collecting);
+    }
+    if (!spiderVisible) { arrivalQueue = []; for (const id of [...tasks.keys()]) cancelTask(id); engine?.pointAt(null); researchEngine?.pointAt(null); }
+    for (const node of [$('spider-canvas'), document.querySelector('.spider-home'), $('research-spider-canvas'), document.querySelector('.research-spider-home')]) node.hidden = !spiderVisible;
+    $('spider-visible').disabled = !spiderKey; $('spider-visible').setAttribute('aria-pressed', String(spiderVisible));
+    $('spider-visible').textContent = spiderVisible ? '隐藏蜘蛛' : '显示蜘蛛'; syncMotion();
+  }
+  $('spider-visible').addEventListener('click', () => {
+    spiderVisible = !spiderVisible;
+    try { (window.CERemoteContext ? window.CERemoteContext.storage('localStorage') : (window.localStorage ?? localStorage)).setItem(spiderKey, String(spiderVisible)); }
+    catch { notice('显示设置暂时无法保存，本页选择仍然生效。'); }
+    syncSpiderVisibility();
+  });
   $('pause').addEventListener('click', () => { paused = !paused; syncMotion(); $('spider-state').textContent = paused ? '动画已暂停' : collecting ? '正在采集信息' : '等待阅读'; if (!paused) runArrival(); });
   $('research-pause').addEventListener('click', () => $('pause').click());
   document.querySelectorAll('button[data-media-view]').forEach(button => button.addEventListener('click', () => { mediaView = button.dataset.mediaView; $('article-scroll').scrollTop = 0; renderMedia(articles.get(currentId)); }));
@@ -451,18 +475,20 @@
   function setCollecting(active) {
     collecting = active; researchBusy = active; engine?.setCollecting?.(active);
     researchEngine?.setCollecting(active);
-    $('refresh').textContent = active ? '◌ 查看采集过程' : researchJob ? '↻ 采集工作台' : '↻ 采集新信息';
+    $('refresh').textContent = active ? '查看采集进度' : '采集新闻';
     $('research-panel').dataset.running = String(active);
-    $('research-start').disabled = active; $('research-start').textContent = active ? '采集中…' : '开始采集 ↗';
+    $('research-start').disabled = active; $('research-start').textContent = active ? '采集中…' : '开始采集';
     $('research-query').disabled = active; document.querySelectorAll('[data-topic]').forEach(button => { button.disabled = active; });
+    $('capture-frames').disabled = active;
     if (!tasks.size) $('spider-state').textContent = paused ? '动画已暂停' : active ? '正在采集信息' : '等待阅读';
   }
   function frameUrl(value) {
     try { const url = new URL(value, location.href); return url.origin === location.origin && url.pathname === '/api/workspace/news/research-frame' && url.searchParams.has('job') && url.searchParams.has('name') ? url.href : null; } catch { return null; }
   }
   async function showResearchFrame(event) {
-    if (!canPoll()) return;
+    if (!canPoll() || !$('research-panel').open || !$('research-details').open) return;
     const url = frameUrl(event.screenshot); if (!url) return;
+    $('research-browser').hidden = false;
     const request = ++frameRequest, job = researchJob;
     researchFrameSeq = event.seq; $('research-frame').hidden = false; $('research-frame-empty').hidden = true;
     try {
@@ -501,7 +527,7 @@
     for (const event of events) {
       const host = eventHost(event, true);
       if (host) { const prior = sources.get(host) || {}; sources.set(host, {event, frame:frameUrl(event.screenshot) ? event : prior.frame, extracted:prior.extracted || event.stage === 'extract'}); }
-      if (event.stage === 'extract') { articleCount++; imageCount += Number(event.counts?.images) || 0; }
+      if (event.stage === 'extract' && !event.progress) { articleCount++; imageCount += Number(event.counts?.images) || 0; }
       if (event.stage === 'merge' && Number.isFinite(event.counts?.articles)) { articleCount = event.counts.articles; imageCount = Number(event.counts.images) || imageCount; }
     }
     $('research-article-count').textContent = articleCount; $('research-image-count').textContent = imageCount; $('research-source-count').textContent = sources.size;
@@ -533,8 +559,27 @@
       row.append(button); $('research-events').append(row); researchEvents.set(event.seq, row);
       if (!event.screenshot && safeUrl(event.url) && researchFrameSeq === null) $('research-url').textContent = event.url;
     }
-    if (changed) { researchOverview([...researchData.values()]); pointResearch([...researchData.values()].at(-1)); } if (latestFrame) showResearchFrame(latestFrame);
+    if (changed) { researchOverview([...researchData.values()]); pointResearch([...researchData.values()].at(-1)); } if (latestFrame && $('research-panel').open && $('research-details').open) showResearchFrame(latestFrame);
     $('research-count').textContent = `${researchEvents.size} 条记录`; $('research-log-count').textContent = researchEvents.size; $('research-events-empty').hidden = researchEvents.size > 0;
+  }
+  function renderResearchProgress(value) {
+    const events = [...researchData.values()], latest = events.at(-1), measured = events.findLast(event => event.progress)?.progress;
+    const phase = latest ? eventStep(latest) : 'search', running = value.state === 'running';
+    const known = measured?.phase === phase && Number.isInteger(measured.completed) && Number.isInteger(measured.total) && measured.total > 0 && measured.completed >= 0 && measured.completed <= measured.total;
+    const names = {search:'检索来源',visit:'检查来源正文',extract:'提取公开内容',merge:'保存到阅读器'};
+    const percent = known ? Math.round(measured.completed / measured.total * 100) : 0;
+    const text = running ? `${names[phase]}${known ? ` · 已处理 ${measured.completed} / ${measured.total}` : ' · 等待来源响应'}` : {complete:'采集结束，内容已保存',partial:'采集结束，部分来源受阻',failed:'采集未完成，已有内容已保留'}[value.state];
+    const meter = $('research-meter'); meter.dataset.state = value.state; meter.classList.toggle('indeterminate', running && !known);
+    $('research-feedback').hidden = false; meter.hidden = value.state === 'failed'; $('research-meter-label').hidden = !running;
+    $('research-details').hidden = events.length === 0;
+    meter.setAttribute('aria-valuetext', text); changeText($('research-meter-label'), text);
+    if (running && !known) meter.removeAttribute('aria-valuenow'); else meter.setAttribute('aria-valuenow', value.state === 'complete' || value.state === 'partial' ? '100' : String(percent));
+    $('research-meter-fill').style.transform = `scaleX(${(value.state === 'complete' || value.state === 'partial' ? 100 : percent) / 100})`;
+    document.querySelectorAll('[data-step]').forEach(button => {
+      const current = button.dataset.step === phase;
+      if (running && current) button.setAttribute('aria-current', 'step'); else button.removeAttribute('aria-current');
+      button.dataset.current = String(current && running);
+    });
   }
   function acceptResearch(value, restoring = false) {
     if (destroyed || window.CERemoteContext?.active === false) return;    if (!value || typeof value.job_id !== 'string' || !['running','complete','partial','failed'].includes(value.state)) throw new Error('本次采集状态不可用。');
@@ -544,15 +589,16 @@
     const start = Date.parse(events[0]?.time), end = value.state === 'running' ? Date.now() : Date.parse(value.finished_at || latest?.time);
     $('research-timing').textContent = Number.isFinite(start) && Number.isFinite(end) ? `${value.state === 'running' ? '已用' : '耗时'} ${Math.max(0, Math.round((end - start) / 1000))} 秒` : '';
     $('research-frame-mode').textContent = value.state === 'running' ? '采集中 · 步骤截图' : '已结束 · 截图回放';
-    $('research-activity').textContent = value.state === 'running' ? latest?.message || '等待采集进展…' : '本次采集已结束。下方是步骤截图，可点来源回看；新内容在阅读室查看。';
+    $('research-activity').textContent = value.state === 'running' ? latest?.message || '等待采集进展…' : events.some(event => frameUrl(event.screenshot)) ? '本次采集已结束。下方是步骤截图，可点来源回看；新内容在阅读室查看。' : '本次采集已结束，可展开采集记录查看各来源的处理情况。';
+    if (value.state !== 'running' && typeof value.error === 'string') $('research-activity').textContent = value.error;
     const labels = {running:'正在采集', complete:'采集完成', partial:'部分来源已采集', failed:'采集未完成'};
     $('research-state').textContent = labels[value.state];
+    renderResearchProgress(value);
     if (value.state === 'running') { setCollecting(true); clearTimeout(researchTimer); if (canPoll()) researchTimer = setTimeout(pollResearch, 1000); return; }
     clearTimeout(researchTimer); setCollecting(false);
-    if (arriving) { const extracted = events.findLast(event => event.stage === 'extract' && frameUrl(event.screenshot)); if (extracted) showResearchFrame(extracted); }
+    if (arriving && $('research-panel').open && $('research-details').open) { const extracted = events.findLast(event => event.stage === 'extract' && frameUrl(event.screenshot)); if (extracted) showResearchFrame(extracted); }
     if (value.result) { if (!restoring) applySnapshot(value.result, true, true); $('research-outcome').textContent = restoring ? '上次采集记录，可点选步骤与来源回看。' : value.state === 'partial' ? '可用内容已收集，部分来源受阻。' : '新内容已收集，阅读进度已保留。'; if (!restoring) notice($('research-outcome').textContent); }
-    else { $('research-outcome').textContent = value.state === 'failed' ? '本次未取得可用信息，已有内容与阅读进度已保留。' : '本次没有新的可用信息，已有内容已保留。'; }
-    if (value.error && typeof value.error === 'string') $('research-outcome').textContent += ` ${value.error}`;
+    else { $('research-outcome').textContent = value.state === 'failed' ? '本次未取得新内容，已有新闻已保留。' : '本次没有新的可用信息，已有内容已保留。'; }
   }
   async function restoreResearch() {
     if (!canPoll() || historyReading || historyRestored) return;
@@ -565,6 +611,7 @@
       if (!job || researchJob || researchBusy) return;
       if (typeof job.query === 'string') $('research-query').value = job.query;
       if (topicQueries[job.topic]) researchTopic = job.topic;
+      $('capture-frames').checked = job.capture_frames === true;
       document.querySelectorAll('[data-topic]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.topic === researchTopic)));
       acceptResearch(job, true);
     } catch { /* Reading remains available when history cannot be loaded. */ }
@@ -583,16 +630,21 @@
       try { $('research-panel').showModal(); }
       catch (error) { notice('无法打开采集工作台，请重试。' + error.message); return; }
     }
-    if (!researchEngine && window.NewsSpider) {
-      researchEngine = window.NewsSpider.mount({root:$('research-animation-stage'), canvas:$('research-spider-canvas'), depot:$('research-web-depot')});
-      researchEngine.setOptions({scale:0.7}); researchEngine.setCollecting(collecting);
-    }
-    syncMotion();
-    const event = researchData.get(researchFrameSeq) || [...researchData.values()].at(-1);
-    if (event) pointResearch(event);
+    syncSpiderVisibility();
+    const events = [...researchData.values()];
+    const event = researchData.get(researchFrameSeq) || (!researchBusy && events.findLast(event => event.stage === 'extract' && frameUrl(event.screenshot))) || events.findLast(event => frameUrl(event.screenshot));
+    if (event && $('research-details').open) showResearchFrame(event);
     if (researchBusy) $('research-close').focus();
   });
   for (const id of ['research-close','research-return']) $(id).addEventListener('click', () => $('research-panel').close());
+  $('research-details').addEventListener('toggle', () => {
+    syncSpiderVisibility();
+    if ($('research-details').open && $('research-panel').open) {
+      const events = [...researchData.values()];
+      const event = researchData.get(researchFrameSeq) || (!researchBusy && events.findLast(event => event.stage === 'extract' && frameUrl(event.screenshot))) || events.findLast(event => frameUrl(event.screenshot));
+      if (event) showResearchFrame(event);
+    }
+  });
   $('research-panel').addEventListener('compositionstart', () => { researchComposing = true; });
   $('research-panel').addEventListener('compositionend', () => { researchComposing = false; });
   $('research-panel').addEventListener('cancel', event => { event.preventDefault(); if (!researchComposing && !event.isComposing) $('research-panel').close(); });
@@ -610,15 +662,16 @@
   $('research-form').addEventListener('submit', async event => {
     event.preventDefault(); if (destroyed || window.CERemoteContext?.active === false || researchBusy) return; const query = $('research-query').value.trim(); if (!query) { $('research-query').focus(); return; }
     clearTimeout(researchTimer); frameRequest++; researchJob = null; researchFrameSeq = null; researchEvents.clear(); researchData.clear(); $('research-events').replaceChildren(); $('research-events-empty').hidden = false; researchOverview([]);
+    $('research-browser').hidden = true; renderResearchProgress({state:'running'});
     researchEngine?.pointAt(null);
     $('research-timing').textContent = ''; $('research-frame-mode').textContent = '采集中 · 步骤截图'; $('research-activity').textContent = '正在启动浏览器…';
     $('frame-position').textContent = '0 / 0'; $('frame-previous').disabled = true; $('frame-next').disabled = true; $('research-host').textContent = '等待页面'; document.querySelector('.research-log').open = false;
     $('research-frame').hidden = true; $('research-frame').removeAttribute('src'); $('research-frame-empty').hidden = false; $('research-frame-empty').textContent = '等待实际访问页面的截图…';
     $('research-url').textContent = '准备检索'; $('research-frame-caption').textContent = '只显示本次采集实际获得的页面画面。'; $('research-outcome').textContent = '关闭工作台后，采集仍会继续。'; $('research-state').textContent = '正在开始'; $('research-count').textContent = '0 条记录'; $('research-log-count').textContent = '0'; setCollecting(true);
     try {
-      const response = await readerFetch('/research', {method:'POST', headers:{'Content-Type':'application/json', 'X-Preview-Request':'1'}, body:JSON.stringify({query, topic:researchTopic})});
+      const response = await readerFetch('/research', {method:'POST', headers:{'Content-Type':'application/json', 'X-Preview-Request':'1'}, body:JSON.stringify({query, topic:researchTopic, capture_frames:$('capture-frames').checked})});
       const value = await response.json(); if (!response.ok && !(response.status === 409 && value.job_id)) throw new Error('采集暂时无法开始，请稍后重试。'); acceptResearch(value);
-    } catch (error) { setCollecting(false); $('research-state').textContent = '未能开始'; $('research-frame-mode').textContent = '未开始'; $('research-activity').textContent = error.message; $('research-outcome').textContent = error.message; }
+    } catch (error) { setCollecting(false); renderResearchProgress({state:'failed'}); $('research-state').textContent = '未能开始'; $('research-frame-mode').textContent = '未开始'; $('research-activity').textContent = error.message; $('research-outcome').textContent = error.message; }
   });
   document.addEventListener('keydown', event => {
     if (!canPoll() || event.isComposing || event.keyCode === 229) return;
@@ -672,12 +725,9 @@
   $('refresh-feeds').addEventListener('click', () => readFeeds(true));
   async function start() {
     syncHomeLayout(); render();
-    if (window.NewsSpider) {
-      engine = window.NewsSpider.mount({root:$('animation-stage'), canvas:$('spider-canvas'), depot:$('web-depot'), onCapture:event => { const task = tasks.get(typeof event === 'string' ? event : event.id); $('spider-state').textContent = task?.kind === 'arrival' ? '正在接收新信息' : '正在归档'; }, onDelivered:settleTask, onCancel:settleTask});
-      if (matchMedia('(prefers-reduced-motion: reduce)').matches) { paused = true; engine.pause(); $('pause').textContent = '启用动画'; $('spider-state').textContent = '已减少动效'; }
-    }
-    syncMotion();
-    window.NewsReader = {setActive(value) { if (destroyed || active === value) return; active = value; if (!active) stopTranslation(); if (!active && $('research-panel').open) $('research-panel').close(); syncActivity(); }, dispose:destroy, inspect:() => ({items:articles.size, visible:visibleIds.length, currentId, selected, stream, language, readingView, mediaView, imageIndex, researchJob, researchEvents:researchEvents.size, active, pending:[...tasks.keys()], reading:JSON.parse(JSON.stringify(records)), collecting, engine:engine?.inspect(), researchEngine:researchEngine?.inspect(), destroyed}), engine, applySnapshot};
+    paused = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    syncSpiderVisibility();
+    window.NewsReader = {setActive(value) { if (destroyed || active === value) return; active = value; if (!active) stopTranslation(); if (!active && $('research-panel').open) $('research-panel').close(); syncActivity(); }, dispose:destroy, inspect:() => ({items:articles.size, visible:visibleIds.length, currentId, selected, stream, language, readingView, mediaView, imageIndex, researchJob, researchEvents:researchEvents.size, active, pending:[...tasks.keys()], reading:JSON.parse(JSON.stringify(records)), collecting, spiderVisible, engine:engine?.inspect(), researchEngine:researchEngine?.inspect(), destroyed}), get engine() { return engine; }, applySnapshot};
     await readFeeds();
     restoreResearch();
   }
