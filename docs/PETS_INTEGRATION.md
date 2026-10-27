@@ -137,6 +137,40 @@ pip wheel . --no-deps --no-build-isolation -w /tmp/whl
 - 保留：`docs/examples/pets/naidragon-embed.*`（嵌入示例，被 `check_repository` 公开文档清单登记）。如果你不想让公开仓库带示例，可以删这三个文件和两个检查脚本里对应的清单项、`.gitignore` 的 `!/docs/examples/` 不用动（它也被别的示例使用）。
 - 保留：`window.NewsReader` 上的诊断接口（`inspect`、`switchPet`、`setPetStatus`…），测试和 e2e 在用。
 
+## 8. 宠物设置页、开关与转盘
+
+**入口**：个人工作台（`/studio`）左下角「设置」→「外观」（地址 `#settings/appearance`），里面有「宠物」开关和形象下拉（蜘蛛 / 奶龙 / 狸花猫）。阅读器顶部的「宠物」下拉与「显示宠物 / 隐藏宠物」按钮是同一份偏好的另一个入口。
+
+**偏好与同步**（统一由 `web/workspace/news-pet-prefs.js` 提供 `window.NewsPetPrefs`，设置页和阅读器都只通过它读写）：
+
+| 键（`localStorage`，经 `CERemoteContext.storage` 隔离远程账号） | 取值 | 默认 |
+| --- | --- | --- |
+| `news-reader-pet` | `spider` / `naidragon` / `tabbycat`，不认识的值回退到蜘蛛 | 蜘蛛 |
+| `news-reader-pet-enabled` | `true` 开启，其余视为关闭 | **关闭**（蜘蛛原本就是可选的） |
+
+- `NewsPetPrefs.read()`、`setPet(name)`、`setEnabled(flag)`、`subscribe(fn)`；只有值真的变化时才通知，写入失败返回 `false`，设置页会提示“无法保存设置”。
+- 同一浏览器的其它标签页、嵌入的阅读器 iframe 通过 `storage` 事件实时跟随，不需要刷新。
+- `data-pets-disabled` 仍然是宿主级的否决开关，不会被这个开关改写；被排除的宠物不会出现在设置页的下拉里。
+- 3D 宠物脚本加载失败时，阅读器退回蜘蛛并派发 `window` 事件 `news-pet-fallback`；下拉仍显示用户的选择，转盘按钮隐藏。
+- 开发分支里旧的 `news-spider-visible-v1:<scope>` 没有迁移（它只存在于未发布的 develop 版本）。
+
+**转盘**（奶龙、狸花猫；蜘蛛没有转盘，`#pet-dial` 按钮会隐藏）：点宠物或点顶部「转盘」按钮展开，第一页最多 6 个宿主动作，由 `news-reader.js` 的 `petActions()` 提供，都作用在真实应用上：
+
+| 动作 | 效果 |
+| --- | --- |
+| 打开工作台 | 跳到 `#home`（嵌入时改父页面的 hash） |
+| 下一条 | 同顶部「下一条」按钮 |
+| 搜索 | 打开阅读器搜索 |
+| 采集新闻 | 同顶部「采集」按钮，打开采集面板 |
+| 宠物设置 | 跳到 `#settings/appearance` |
+| 隐藏宠物 | 关闭开关，焦点回到「显示宠物」，并提示在哪里再打开 |
+
+键盘：不设全局快捷键。Tab 到「转盘」按钮按 Enter/空格，焦点进入转盘；方向键在动作间移动，Enter 执行，Esc 关闭并把焦点还给「转盘」按钮。窄屏（<720px）宠物没有停靠点，转盘仍可从按钮打开。
+
+**新增脚本要登记的位置**：`news-pet-prefs.js` 在 `news_reader.py` 的 `ASSETS`；`studio-pet-settings.js` 在 `workbench.py` 的资源表、`preview_studio.py`；两者都在 `build_assets.py`、`MANIFEST.in`、`studio-preview.html`、桌面端 `platform-studio-surface.tsx` 的脚本列表，以及 e2e 资源白名单（`verify_news_reader*.cjs`）。
+
+**测试**：`tests/frontend/test_news_pet_prefs.cjs`（偏好与回退事件）、`test_studio_pet_settings.cjs`（设置页）、`test_studio_navigation.cjs`（左下角入口）；`tests/e2e/verify_news_reader.cjs` 覆盖键盘开转盘与 Esc 还焦点。
+
 ## 6. 回滚
 
 - **还没合并**：直接删除分支 `integrate/pets`。
