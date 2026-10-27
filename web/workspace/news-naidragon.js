@@ -384,7 +384,7 @@ function installStyle(root, css, nonce) {
   const dctx = typeof dcv.getContext === 'function' ? dcv.getContext('2d') : null;
   if (dctx) {
    dcv.setAttribute('aria-hidden', 'true');
-   Object.assign(dcv.style, {position: 'absolute', pointerEvents: 'none', zIndex: 'calc(var(--nd-z, 5) - 1)', left: '0', top: '0'});
+   Object.assign(dcv.style, {position: 'absolute', pointerEvents: 'none', opacity: '0', transition: 'opacity .45s ease', zIndex: 'calc(var(--nd-z, 5) - 1)', left: '0', top: '0'});
    root.insertBefore(dcv, canvas);
   }
   const bubbleEl = document.createElement('div'); bubbleEl.className = 'nd-bubble'; bubbleEl.setAttribute('aria-hidden', 'true'); root.appendChild(bubbleEl);
@@ -461,7 +461,7 @@ function installStyle(root, css, nonce) {
   }
 
   const lair = {
-   hubX: 0, hubY: 0, w: 130, h: 110, wobble: 0, phase: 0, prey: [], dirty: true, key: '', dpr: 1,
+   hubX: 0, hubY: 0, w: 130, h: 110, wobble: 0, phase: 0, prey: [], dirty: true, lastActive: -99, shown: false, key: '', dpr: 1,
    update(force) {
     const r = localRect(depot), cx = r.left + r.width / 2, cy = r.top + r.height / 2, w = Math.round(Math.min(150, r.width || 130)), h = Math.round(Math.min(130, r.height || 110));
     this.hubX = cx; this.hubY = cy;
@@ -475,31 +475,35 @@ function installStyle(root, css, nonce) {
    },
    stash(pill) {
     this.wobble = Math.min(1.5, this.wobble + 1);
+    this.lastActive = simTime;
     this.prey.push({id: pill.id, text: pill.text, ang: ((this.prey.length) * 2.399) % TAU, ring: .45 + (this.prey.length % 3) * .22, born: simTime});
     if (this.prey.length > 12) this.prey.shift();
     this.dirty = true;
    },
-   step(dt) {
+   step(dt) { // the tray is only there while it is in use: collecting, or for a few seconds after the last delivery
+    if (collecting) this.lastActive = simTime;
+    const want = this.wobble > .005 || simTime - this.lastActive < 6;
+    if (want !== this.shown) { this.shown = want; dcv.style.opacity = want ? '1' : '0'; }
     if (this.wobble > .005) { this.wobble *= Math.pow(.06, dt); this.phase += dt * 12; this.dirty = true; } else if (this.wobble) { this.wobble = 0; this.dirty = true; }
    },
-   draw() { // a soft round cushion nest with the delivered headlines as little chips
+   draw() { // a neutral, pet-agnostic collection tray (shown only while collecting or just after) with the delivered headlines as little chips
     if (!dctx || !this.dirty) return; this.dirty = false;
     const c = dctx, w = this.w, h = this.h, x = w / 2, y = h * .56, rx = Math.min(w * .44, 62), ry = rx * .46, t = simTime;
     c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, w, h);
     const wob = Math.sin(this.phase) * this.wobble * 2.2;
-    c.fillStyle = 'rgba(110,60,0,.16)'; c.beginPath(); c.ellipse(x, y + ry * .55, rx * 1.04, ry * .6, 0, 0, TAU); c.fill();
+    c.fillStyle = 'rgba(30,41,59,.14)'; c.beginPath(); c.ellipse(x, y + ry * .55, rx * 1.04, ry * .6, 0, 0, TAU); c.fill();
     const g = c.createRadialGradient(x - rx * .25, y - ry * .5, 2, x, y, rx * 1.1);
-    g.addColorStop(0, '#fff3c6'); g.addColorStop(.6, '#ffe08a'); g.addColorStop(1, '#f6b93b');
-    c.fillStyle = g; c.strokeStyle = 'rgba(214,140,20,.75)'; c.lineWidth = 2;
+    g.addColorStop(0, '#f8fafc'); g.addColorStop(.6, '#e2e8f0'); g.addColorStop(1, '#cbd5e1');
+    c.fillStyle = g; c.strokeStyle = 'rgba(100,116,139,.75)'; c.lineWidth = 2;
     c.beginPath(); c.ellipse(x, y + wob * .3, rx, ry, 0, 0, TAU); c.fill(); c.stroke();
-    c.strokeStyle = 'rgba(214,140,20,.45)'; c.setLineDash([4, 5]); c.beginPath(); c.ellipse(x, y + wob * .3, rx * .78, ry * .66, 0, 0, TAU); c.stroke(); c.setLineDash([]);
+    c.strokeStyle = 'rgba(100,116,139,.45)'; c.setLineDash([4, 5]); c.beginPath(); c.ellipse(x, y + wob * .3, rx * .78, ry * .66, 0, 0, TAU); c.stroke(); c.setLineDash([]);
     c.font = '700 9px system-ui,"PingFang SC","Microsoft YaHei",sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
     for (const p of this.prey) {
      const a = p.ang, px = x + Math.cos(a) * rx * p.ring * 1.05, py = y + Math.sin(a) * ry * p.ring * .9 + wob * .4;
      const age = c01((t - p.born) / .4), label = Array.from(p.text).slice(0, 4).join(''), tw = c.measureText(label).width + 9;
-     c.fillStyle = '#fffaf0'; c.strokeStyle = '#f5a623'; c.lineWidth = 1.4;
+     c.fillStyle = '#ffffff'; c.strokeStyle = '#94a3b8'; c.lineWidth = 1.4;
      c.beginPath(); c.roundRect(px - tw / 2, py - 6.5 * age, tw, 13 * age, 6.5); c.fill(); c.stroke();
-     if (age > .8) { c.fillStyle = '#6b3f08'; c.fillText(label, px, py + .5); }
+     if (age > .8) { c.fillStyle = '#334155'; c.fillText(label, px, py + .5); }
     }
    }
   };

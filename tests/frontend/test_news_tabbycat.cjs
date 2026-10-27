@@ -610,7 +610,8 @@ test('wiring: feed script is registered everywhere and the reader keeps manual/d
   const reader = read('web/workspace/news-reader.js');
   assert.match(reader, /petStatus = \{\.\.\.realStatus, \.\.\.statusOverride\}/);
   assert.match(reader, /PetStatusFeed\.start\(\{apply:setRealPetStatus, fetchJson\}\)/);
-  assert.match(reader, /actions:petActions\(\)/);
+  assert.doesNotMatch(reader, /actions:petActions\(\)/, 'the engine gets no actions: the host wheel owns the dial');
+  assert.match(reader, /setOptions\(\{scale:0\.7, dial:false\}\)/, 'the research pet is decorative and never draws a dial');
   assert.match(petsSource, /'setActions', 'openMenu', 'closeMenu', 'toggleMenu'/);
   const sizes = ['news-tabbycat.js', 'news-pet-status.js'].map(f => Buffer.byteLength(read('web/workspace/' + f)));
   assert.ok(sizes[0] + sizes[1] < 156 * 1024, 'pet + feed script stay modest: ' + (sizes[0] + sizes[1]) + ' B');
@@ -932,5 +933,17 @@ test('with the built-in dial off, a tap and a double tap are reported to the hos
   assert.equal(taps().length, 2); assert.equal(taps()[1].detail.double, true);
   api.setOptions({dial: true}); clickPet(t, api); t.step(2);
   assert.equal(taps().length, 2, 'with its own dial on, the pet keeps the tap to itself');
+  api.destroy();
+});
+
+test('the collection tray is neutral and pet-agnostic: hidden at rest, shown while collecting and for a few seconds after', () => {
+  const t = setup(); const api = t.context.window.NewsTabbycat.mount(mountOpts(t)); api.resume();
+  t.stage.querySelectorAll = () => [t.row];
+  const tray = t.stage.children.find(node => node.style && node.style.transition && /opacity/.test(node.style.transition));
+  assert.ok(tray, 'the tray canvas sits beside the pet canvas');
+  t.step(30); assert.equal(tray.style.opacity, '0', 'nothing to collect: no tray (and no coloured nest) next to the pet');
+  api.setCollecting(true); t.step(30); assert.equal(tray.style.opacity, '1', 'collecting: the tray fades in');
+  api.setCollecting(false); t.step(30); assert.equal(tray.style.opacity, '1', 'it lingers briefly after a delivery');
+  t.step(600); assert.equal(tray.style.opacity, '0', 'and fades away again');
   api.destroy();
 });
