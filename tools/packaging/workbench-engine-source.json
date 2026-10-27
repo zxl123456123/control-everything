@@ -327342,8 +327342,8 @@
     {
       "path": "src/renderer/src/components/settings/RepositoryPane.tsx",
       "upstream_sha256": "33bbc3100ac92f090ecc231cf8d7cf3d01ab1634a04a1be396cebd16c1fc5cd8",
-      "current_sha256": "04e54c5e511d275cdace28fcc0326a3848037b9bce565ab7b0040bde64f54ac2",
-      "reason": "Unify project ownership, task editing and native Agent activity in the integrated workspace; Align project visibility and retain native settings in the integrated workspace UI r1 S4: explicit settings scope, accessible fields and draft/portal lifecycle; RepositoryPane.tsx."
+      "current_sha256": "83a9013630bdd1ca7253a37f71bfab0e889b70b9a321d7fbc8b4d30654e2083e",
+      "reason": "N1: restore native project controls and upstream presentation while preserving platform identity, project registration, draft protection and the single global account surface."
     },
     {
       "path": "src/renderer/src/components/settings/local-network-connection-history.ts",
@@ -327456,8 +327456,8 @@
     {
       "path": "src/renderer/src/components/sidebar/worktree-list/rows/repo-header-project-actions.tsx",
       "upstream_sha256": "f87de2c55e0c16983bb17c95d2606ac2c1b1666f68b1c036ac8e0f427077d8f6",
-      "current_sha256": "751a6e14d7b684be12d9913afedfc4c3a2bd923edf2f7da0188334d9a57b29b3",
-      "reason": "Unify project ownership, task editing and native Agent activity in the integrated workspace; Align project visibility and retain native settings in the integrated workspace"
+      "current_sha256": "ca4f4ef758103527cfab43f7fa9cadbd1135a7d846ecff77c2961d492cd6c055",
+      "reason": "N1: restore native project controls and upstream presentation while preserving platform identity, project registration, draft protection and the single global account surface."
     },
     {
       "path": "src/renderer/src/components/terminal-pane/pty-connection/main-pane-resume-banner.ts",
@@ -328080,8 +328080,8 @@
     {
       "path": "src/renderer/src/components/settings/Settings.tsx",
       "upstream_sha256": "b814c3658c9641e587940484503f11d8ca2a6d42fdae7c86c9fa122c23bac8d7",
-      "current_sha256": "dafa5c140c1fca522c85f164804503ac566e0693f210b38881069b9a031644ab",
-      "reason": "UI r1 S4: explicit settings scope, accessible fields and draft/portal lifecycle; Settings.tsx."
+      "current_sha256": "0376eaaf937d6e57a33404d437f5f717d6e8e70fe48e33914d79e58a062b6c67",
+      "reason": "N1: restore native project controls and upstream presentation while preserving platform identity, project registration, draft protection and the single global account surface."
     },
     {
       "path": "src/renderer/src/components/settings/SettingsFormControls.segmented-control.test.tsx",
@@ -328321,6 +328321,30 @@
       "path": "src/renderer/src/store/slices/repos-update-serialization.spec.ts",
       "upstream_sha256": "ec1f49163e128eed121a7c2689d1adee7ef3636681b79abedec77c5c085b7842",
       "current_sha256": "166fa844ae2c3e77f2aab26521620d3fd6bdb0d08b7d708fa853d86f2073dd29",
+      "reason": "N1: restore native project controls and upstream presentation while preserving platform identity, project registration, draft protection and the single global account surface."
+    },
+    {
+      "path": "src/renderer/src/components/settings/RepositoryPane.test.ts",
+      "upstream_sha256": "253007a426ae9e5549e1f8f545d927600d85aaf0a7cb98f84e1e6bbc2e33257c",
+      "current_sha256": "c7393d2852532a26fb9e76314135e1ffeeecf455f9797c84ced8016a3c580c38",
+      "reason": "N1: restore native project controls and upstream presentation while preserving platform identity, project registration, draft protection and the single global account surface."
+    },
+    {
+      "path": "src/renderer/src/components/settings/RepositoryRemoveProjectButton.tsx",
+      "upstream_sha256": "32d1e681e88091a9c11241db7152c1effa43b45c0f2d8822b287ba12b0cc0877",
+      "current_sha256": "7b54a0b2b92a771e4f4517b0eb68c6f67026734b45b671fb987d6a76d9a8f170",
+      "reason": "N1: restore native project controls and upstream presentation while preserving platform identity, project registration, draft protection and the single global account surface."
+    },
+    {
+      "path": "src/renderer/src/components/sidebar/RemoveFolderDialog.test.tsx",
+      "upstream_sha256": "38d0ddb99b789f6f262ac9535f869735adeed902e1b221efe12e6b345fa812f6",
+      "current_sha256": "2cd4b3d16c83f90aa354a9fa01ab2f3568fe9f859966783500b3bc3e2014dc18",
+      "reason": "N1: restore native project controls and upstream presentation while preserving platform identity, project registration, draft protection and the single global account surface."
+    },
+    {
+      "path": "src/renderer/src/components/sidebar/RemoveFolderDialog.tsx",
+      "upstream_sha256": "2be0690829cb1b6bb58042039732aa02485fb8dea9879d46fec4602d6530c002",
+      "current_sha256": "67278d8a147763babb02403bbaa9be6938efe1a00a6f3c1762ab31b21fe75144",
       "reason": "N1: restore native project controls and upstream presentation while preserving platform identity, project registration, draft protection and the single global account surface."
     }
   ],
@@ -329519,28 +329543,28 @@
       "path": "src/renderer/src/i18n/locales/zh.json",
       "rule": "absolute-windows-path",
       "line": 11903,
-      "sha256": "20b6532d7707cef586af61dc88b0ec4a929a3a7bc233cae9007a4db007c3559f",
+      "sha256": "b095b10819c30eb57d92079c8b5e7495cd54f4f56935ab83b97f1e049611faea",
       "reason": "上游公开代码注释、CLI/界面示例中的路径语法，用来解释drive/root/UNC/转义等规则；非读取的个人配置，限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/zh.json",
       "rule": "personal-home-path",
       "line": 11903,
-      "sha256": "20b6532d7707cef586af61dc88b0ec4a929a3a7bc233cae9007a4db007c3559f",
+      "sha256": "b095b10819c30eb57d92079c8b5e7495cd54f4f56935ab83b97f1e049611faea",
       "reason": "公开的路径模板、跨平台解析说明或通用示例；未读取本机账号/目录，保留语义并限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/zh.json",
       "rule": "absolute-windows-path",
       "line": 11917,
-      "sha256": "20b6532d7707cef586af61dc88b0ec4a929a3a7bc233cae9007a4db007c3559f",
+      "sha256": "b095b10819c30eb57d92079c8b5e7495cd54f4f56935ab83b97f1e049611faea",
       "reason": "上游公开代码注释、CLI/界面示例中的路径语法，用来解释drive/root/UNC/转义等规则；非读取的个人配置，限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/zh.json",
       "rule": "personal-home-path",
       "line": 11917,
-      "sha256": "20b6532d7707cef586af61dc88b0ec4a929a3a7bc233cae9007a4db007c3559f",
+      "sha256": "b095b10819c30eb57d92079c8b5e7495cd54f4f56935ab83b97f1e049611faea",
       "reason": "公开的路径模板、跨平台解析说明或通用示例；未读取本机账号/目录，保留语义并限定具体行及文件hash。"
     },
     {

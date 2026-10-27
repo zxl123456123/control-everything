@@ -62,7 +62,7 @@ export function resolvePlatformProjectSettingsScope(
   setups: readonly ProjectHostSetup[]
 ): Extract<SettingsPresentationScope, { kind: 'project' }> | null {
   const hostId = `runtime:${data.runtime.environmentId}` as const
-  if (!project?.directory || project.id !== data.project.id || project.name !== data.project.name) return null
+  if (!project?.directory || project.id !== data.project.id) return null
   const scope = { kind: 'project' as const, contextKey, platformId: project.id,
     repoId: data.target.repoId, hostId, setupId: '', name: project.name, path: project.directory }
   if (settingsScopeRepos(repos, scope).length !== 1) return null
@@ -85,7 +85,7 @@ export function settingsScopeRepos(
   if (!scope) return repos
   if (scope.kind === 'global') return []
   return repos.filter((repo) => repo.id === scope.repoId &&
-    getRepoExecutionHostId(repo) === scope.hostId && repo.displayName === scope.name &&
+    getRepoExecutionHostId(repo) === scope.hostId &&
     normalizeRuntimePathForComparison(repo.path) === normalizeRuntimePathForComparison(scope.path))
 }
 

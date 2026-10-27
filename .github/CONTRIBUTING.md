@@ -38,6 +38,8 @@
 
 项目之外沿用 Studio；项目内部接入完整原工作台和配置。项目添加沿用原生目录浏览、新建和克隆控件，成功后由 `/api/workbench/adopt-repo` 根据当前受管运行时的真实 Repo 幂等登记，不让平台表单替换原流程；列表确认失败只重试登记或读取，不重放创建、克隆。账号与设备统一使用 Studio 全局页面，原生旧移动入口仅保留兼容转入。源码持有与构建不代表运行时、Android APK或自建账号服务已验收。旧独立 iframe 预览保留为历史开发工具，不是最终产品接入方案。普通 Python wheel 当前不包含此源码树、Node或原生产物，HTTP也不递归提供该目录。
 
+项目名称和移除沿用原控件；集成模式的移除保存平台归档，保留事项、文件、终端和草稿，不调用原生清理。名称编辑复用原宿主更新队列，平台保存、原生回显和列表确认逐步完成；部分成功不得伪装成回滚。原生动作与 Studio 项目编辑通过既有保存接口的可选 `expected` 项目快照，在同库事务内核对名称、归档、目录和来源；旧页面冲突返回 `project_changed`，保留输入，不自动覆盖另一窗口。
+
 构建使用显式 Node 24 和 pnpm 12.14.0 原生可执行文件；开发 Node 与随包运行时的 pin 分开核对。root/mobile/cloud 保持各自锁文件，依赖准备禁用未列出的安装脚本。入口不安装全局工具、不启动客户端、不运行个人 Agent：
 
 ```powershell
@@ -63,9 +65,9 @@ lint-imports --config tools/architecture/importlinter.ini --no-cache --no-logo
 
 项目路径使用 `#project/<id>/workspace` 等片段，旧直接项目 URL 和旧事项入口保持兼容。原工作区侧栏切换已登记目录时同步项目身份；未关联开发目录仍可查看事项总览，会话等项目范围能力不能沿用旧项目。离开前先处理已打开的编辑窗口，草稿不因页面切换丢失。`orca-surface.js/css` 仅保留旧预览历史。
 
-集成服务的旧 `/workspace` 入口回到 `/studio`，保留项目片段；未装配运行时的服务维持原入口。零项目总览的“进入工作台”打开 `#workbench`，以受保护的 runtime-only bootstrap 加载完整原生空工作台；旧 `#workspace`、`#project-setup` 映射到同一入口，不再提供外层项目配置页。内层侧栏顶部及其他 `add-repo` 快捷入口复用 `onboarding.js` 的同一个登记弹窗，保存后进入已登记项目，取消返回当前工作台。目录经 inspect/create-preview 核对后由明确提交操作保存，不额外勾选常规确认；来源读取许可仍须单独授予。项目行上的加号只创建该项目下的工作区；筛选菜单中的重复登记入口隐藏。来源管理与外部 Agent 配置保留在 `/workspace-admin`。新登记目录自身有 `.git` 标记时使用 Git 项目，否则使用原生普通目录项目；不自动初始化 Git，也不把子目录扩展到父仓库。已有原生项目保持身份与类型。
+集成服务的旧 `/workspace` 入口回到 `/studio`，保留项目片段；未装配运行时的服务维持原入口。零项目总览的“进入工作台”打开 `#workbench`，以受保护的 runtime-only bootstrap 加载完整原生空工作台；旧 `#workspace`、`#project-setup` 映射到同一入口。内层 `add-repo`、侧栏及筛选菜单沿用原生添加、浏览宿主、新建 Git 项目和克隆流程，取消保留当前工作台。原生操作成功后由 `/api/workbench/adopt-repo` 按受管运行时中的真实 Repo 幂等登记，确认平台列表后继续原生流程；未确认时不重放创建或克隆。新建 Git 项目沿原生规则初始化和首次提交，需要该运行环境具备提交身份；添加已有 Git 目录按原生仓库根解析。普通目录沿用原添加目录流程。项目行加号只创建该项目下的工作区；来源许可与外部 Agent 配置保留在高级管理入口。
 
-项目总览与内层“项目管理”复用同一改名和归档表单，管理窗口在当前页打开，保存使用原管理事务，原生项目名称在 bootstrap 时同步。归档只投影到项目、工作区侧栏与设置项目列表，不调用原生 repo.rm 或停止终端；恢复后重新显示。原生“项目设置”保留图标、Hooks、Git、MCP 等配置。顶部仅显示当前项目名称，切换项目使用原生侧栏。内层工作区创建绑定当前已登记项目及宿主，不能被旧筛选或旧创建草稿切到另一项目。项目入口提供 PlatformProjectContext：undefined 表示独立工作台，null 表示平台尚无已验证项目，活动页在后者显示空范围而非全局数据。
+项目总览保留平台改名和归档表单，原生项目名称在 bootstrap 时同步；内层恢复原名称编辑、移除按钮和原确认控件。集成模式的移除保存平台归档，保留文件、事项、终端与草稿，不调用原生 repo.rm；恢复后重新显示。原生“项目设置”保留图标、Hooks、Git、MCP 等配置。顶部显示当前项目名称，切换项目使用原生侧栏。内层工作区创建绑定当前已登记项目及宿主，不能被旧筛选或旧创建草稿切到另一项目。PlatformProjectContext 的 undefined 表示独立工作台，null 表示平台尚无已验证项目，活动页在后者显示空范围而非全局数据。
 
 项目内“进展”使用 `web/workspace/project-progress.js`、`project-progress-model.js` 与作用域样式 `project-progress.css`，只读展示目标、当前来源、实际交付与历史记录。普通入口固定展示全部未归档项目的待推进、进行中、待验收三栏，已完成事项保留在独立历史中；卡片用普通字号的语义色标签标明项目归属。没有范围选择、搜索、视角筛选、新建、事项管理或会话入口，刷新只显示图标并保留无障碍名称。详情不提供编辑、执行、反馈发送和验收写操作，查看记录不改变开发上下文。旧待验收、待处理链接保持精准范围，旧事项深链继续选中同一 ID；恢复普通入口时不接受旧导航快照中的范围、筛选或搜索条件。API、稳定 task ID 与兼容管理页沿用旧合同。
 
@@ -91,7 +93,7 @@ python -m unittest tests.backend.test_studio_preview_server -v
 
 ### 独立游戏创作预览
 
-Studio 顶层“游戏创作”链接打开独立页面，窄屏入口位于顶栏；工具与设置可更换普通 HTTP(S) 地址。默认 `http://127.0.0.1:8770/`，不接受凭据、查询参数、片段或空白。入口不探测服务或启动引擎，不改变项目工作区容器。
+游戏创作保留为独立源码检出预览，需显式启动后访问其实际本机地址。Studio 顶层导航、窄屏顶栏和设置页不再提供游戏入口或地址配置；下述独立预览命令及项目库边界继续适用。
 
 此功能是源码检出预览。显式配置 Godot 引擎和已存在的本机项目库目录：
 
@@ -396,7 +398,7 @@ Ctrl+C 停网关即可停本批查询，原 Claude/SSH/Zellij 对话继续运行
 本机 Codex 项目适配器为 `sessions/codex_desktop.py`：只读显式来源及相邻桌面配置，先合并归属再分页，不按目录合并项目。旧 `codex_index.py` 与六字段、12 条接口保持兼容。内部完整快照不直接返回工作台首页；会话页通过 `/api/workspace/codex/sessions` 分页获取。外部项目使用来源实例与项目 ID 的稳定身份，只读刷新不写管理库；用户显式加入时先在同一事务内保存项目、目录及规范 `codex` 来源标记，后续事项仍在同库事务内校验保存。标记复用已有管理表与备份闭包，schema 和 manifest 版本保持；手工项目保存拒绝该来源，已有外部项目也不得通过伪造来源覆盖。来源陈旧、读取不完整或归属冲突不得授权新关联，原事项状态编辑须保留。
 
 
-项目接入由 `sessions/project_sources.py` 提供固定三来源只读元数据，`workspace/project_selection.py` 负责显式加入和移出，`profiles/workbench_settings.py` 保存许可与移出意图，`http/onboarding_routes.py` 只装配请求。前端完整选择流程在 `web/workspace/onboarding.js`，主脚本负责刷新协调；资源必须同时纳入 HTTP、MANIFEST 和 build_assets 白名单。合成合同：`python -m unittest -v tests.backend.test_project_sources tests.backend.test_workbench_selection tests.backend.test_onboarding_routes` 与 `node --test tests/frontend/test_onboarding_ui.cjs`。真实产品启动和浏览器验收另由验收负责人留证。
+项目接入由 `sessions/project_sources.py` 提供固定三来源只读元数据，`workspace/project_selection.py` 负责显式加入和移出，`profiles/workbench_settings.py` 保存许可与移出意图，`http/onboarding_routes.py` 只装配请求。`/workspace-admin` 的高级来源及历史项目接入流程位于 `web/workspace/onboarding.js`，由对应管理页协调刷新，不接管内置工作台的原生 AddRepoDialog；资源必须同时纳入 HTTP、MANIFEST 和 build_assets 白名单。合成合同：`python -m unittest -v tests.backend.test_project_sources tests.backend.test_workbench_selection tests.backend.test_onboarding_routes` 与 `node --test tests/frontend/test_onboarding_ui.cjs`。真实产品启动和浏览器验收另由验收负责人留证。
 
 
 ### 新闻阅读器

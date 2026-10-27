@@ -1,6 +1,5 @@
 import React, { useContext } from 'react'
 import { PlatformProjectContext } from '@/web/platform-project-context'
-import { useAppStore } from '@/store'
 import {
   CircleX,
   Ellipsis,
@@ -82,17 +81,6 @@ export function RepoHeaderProjectActionsMenu({
   projectGroups: readonly ProjectGroup[]
   actions: RepoHeaderProjectActions
 }): React.JSX.Element {
-  const platformMode = useContext(PlatformProjectContext) !== undefined
-  const manageProject = () => {
-    useAppStore.getState().closeModal()
-    requestAnimationFrame(() =>
-      window.dispatchEvent(
-        new CustomEvent('platform-manage-project', {
-          detail: { directory: repo.path, executionHostId: getRepoExecutionHostId(repo) }
-        })
-      )
-    )
-  }
   return (
     <DropdownMenu modal={false}>
       <Tooltip>
@@ -180,18 +168,9 @@ export function RepoHeaderProjectActionsMenu({
           </DropdownMenuItem>
         ) : null}
         <DropdownMenuSeparator />
-        <DropdownMenuItem
-          variant={platformMode ? 'default' : 'destructive'}
-          onSelect={platformMode ? manageProject : () => actions.onRemoveProject(repo)}
-        >
-          {platformMode ? (
-            <SlidersHorizontal className="size-3.5" />
-          ) : (
-            <Trash2 className="size-3.5" />
-          )}
-          {platformMode
-            ? '管理项目'
-            : translate('auto.components.sidebar.WorktreeList.c83968f87f', 'Remove Project')}
+        <DropdownMenuItem variant="destructive" onSelect={() => actions.onRemoveProject(repo)}>
+          <Trash2 className="size-3.5" />
+          {translate('auto.components.sidebar.WorktreeList.c83968f87f', 'Remove Project')}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

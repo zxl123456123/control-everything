@@ -30,7 +30,10 @@ function Settings(): React.JSX.Element {
   const resolved = presentation ? resolvePlatformSettingsTarget(presentation.scope, catalog, presentation.initialTarget) ??
     (presentation.scope.kind === 'global' && !presentation.initialTarget?.intent
       ? resolvePlatformSettingsTarget(presentation.scope, catalog) : null) : null
-  const targetKey = resolved ? JSON.stringify([presentation?.scope, resolved.target]) : ''
+  const targetKey = resolved ? JSON.stringify([
+    presentation?.scope.kind === 'project' ? { ...presentation.scope, name: undefined } : presentation?.scope,
+    resolved.target
+  ]) : ''
   const appliedTarget = useRef('')
   useEffect(() => {
     if (presentation?.visible === false) {

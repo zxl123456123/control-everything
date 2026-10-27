@@ -105,6 +105,7 @@ export default function PlatformProjectEntry(): React.JSX.Element {
     setSettingsReady(null)
   }), [])
   const onProjects = useCallback<PlatformProjectsListener>((rows, metadata) => {
+    try { assertContextActive() } catch { return }
     const previous = latestProjects.current
     latestProjects.current = rows
     const archived = metadata?.archived ?? []
@@ -114,10 +115,22 @@ export default function PlatformProjectEntry(): React.JSX.Element {
       const project = rows.find((row) => row.id === id)
       if (
         !project ||
-        project.name !== saved.project.name ||
-        project.directory !== saved.project.directory
-      )
+        project.directory !== saved.project.directory ||
+        saved.data.runtime.environmentId !== environment.current ||
+        saved.data.runtime.offer.endpoint !== endpoint.current
+      ) {
         cache.current.delete(id)
+      } else if (project.name !== saved.project.name) {
+        // A label update keeps the verified target, ready handshakes and mounted editor.
+        const renamed = { ...saved.data, project: { ...saved.data.project, name: project.name } }
+        cache.current.set(id, { project: { ...project }, data: renamed })
+        const updateName = (current: PlatformProjectBootstrap | null) =>
+          current?.project.id === id && current.runtime === saved.data.runtime &&
+            current.target === saved.data.target ? renamed : current
+        setData(updateName)
+        setReadyData(updateName)
+        setBridgeReadyData(updateName)
+      }
     }
     const current = readPlatformRoute(window.location)
     if (current.view === 'project' && archived.some((row) => row.id === current.id))
@@ -154,7 +167,7 @@ export default function PlatformProjectEntry(): React.JSX.Element {
   const chosen = projects.find((project) => project.id === projectId)
   const archived = archivedProjects.find((project) => project.id === projectId)
   const connected = Boolean(
-    chosen &&
+    contextActive && chosen &&
     data?.project.id === projectId &&
     data.project.name === chosen.name &&
     cache.current.get(projectId)?.project.directory === chosen.directory &&

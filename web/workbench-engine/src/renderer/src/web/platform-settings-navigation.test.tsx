@@ -3,7 +3,7 @@ import type { Repo } from '../../../shared/repo-types'
 import type { SettingsNavSection, SettingsPresentationScope } from '@/lib/settings-navigation-types'
 import { isSettingsSectionInScope } from '@/lib/settings-navigation-types'
 import { buildSettingsProjectList } from '@/components/settings/settings-project-list'
-import { resolvePlatformSettingsTarget, settingsDraftKey, settingsScopeRepos } from './platform-settings-navigation'
+import { resolvePlatformProjectSettingsScope, resolvePlatformSettingsTarget, settingsDraftKey, settingsScopeRepos } from './platform-settings-navigation'
 import { buildSettingsNavigationMetadata } from '@/hooks/useSettingsNavigationMetadata'
 
 const repo: Repo = { id: 'same', path: '/projects/b', displayName: 'B', addedAt: 1,
@@ -48,14 +48,25 @@ describe('platform settings exact target', () => {
     expect(resolvePlatformSettingsTarget(global, catalog, { pane: 'agents', repoId: null, sectionId: 'repo-same' })).toBeNull()
     expect(resolvePlatformSettingsTarget(global, catalog, { pane: 'appearance', repoId: null })).toBeNull()
   })
-  it('requires the exact repo, execution host, setup, name, path and section', () => {
+  it('requires the exact repo, execution host, setup, path and section', () => {
     expect(resolvePlatformSettingsTarget(scope, catalog)?.ready).toEqual({ contextKey: 'trusted-1',
       repoId: 'same', hostId: 'runtime:server-b', setupId: scope.setupId, sectionId: 'repo-same' })
-    for (const patch of [{ hostId: 'local' }, { setupId: 'missing' }, { name: 'A' }, { path: '/projects/a' }]) {
+    for (const patch of [{ hostId: 'local' }, { setupId: 'missing' }, { path: '/projects/a' }]) {
       expect(resolvePlatformSettingsTarget({ ...scope, ...patch } as SettingsPresentationScope, catalog)).toBeNull()
     }
     expect(resolvePlatformSettingsTarget(scope, { ...catalog, sections: [] })).toBeNull()
     expect(resolvePlatformSettingsTarget(scope, { ...catalog, projects: [] })).toBeNull()
+  })
+  it('keeps the exact settings binding when the native name echo precedes the Studio label', () => {
+    const renamed = { ...repo, displayName: 'Renamed' }
+    expect(settingsScopeRepos([renamed], scope)).toEqual([renamed])
+    expect(resolvePlatformSettingsTarget(scope, { ...catalog, repos: [renamed] })?.ready)
+      .toEqual(resolvePlatformSettingsTarget(scope, catalog)?.ready)
+    const data = { project: { id: 'b', name: 'Old bootstrap label' }, target: { repoId: repo.id },
+      runtime: { environmentId: 'server-b' } } as Parameters<typeof resolvePlatformProjectSettingsScope>[1]
+    expect(resolvePlatformProjectSettingsScope('trusted-1', data,
+      { id: 'b', name: 'Latest Studio label', directory: repo.path }, [renamed], projects[0].setups))
+      .toMatchObject({ repoId: repo.id, hostId: scope.hostId, setupId: scope.setupId, path: repo.path })
   })
   it('does not borrow the same repo id on another host or consume an out-of-scope intent', () => {
     const other = { ...repo, executionHostId: 'local' as const }

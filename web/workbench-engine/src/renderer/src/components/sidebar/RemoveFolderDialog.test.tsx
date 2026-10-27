@@ -1,5 +1,7 @@
+// @vitest-environment happy-dom
 import { renderToStaticMarkup } from 'react-dom/server'
-import type { ReactNode } from 'react'
+import { act, type ReactNode } from 'react'
+import { createRoot } from 'react-dom/client'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Repo } from '../../../../shared/repo-types'
 
@@ -12,6 +14,7 @@ const mocks = vi.hoisted(() => {
   const ptyIdsByTabId: Record<string, string[]> = {}
   const runtimeEnvironments: { id: string; orcadDeployment?: { sshTargetId: string } }[] = []
   return {
+    archive: vi.fn(), error: vi.fn(), discard: vi.fn(),
     state: {
       activeModal: 'confirm-remove-folder' as string | null,
       modalData: {
@@ -34,8 +37,16 @@ const mocks = vi.hoisted(() => {
 })
 
 vi.mock('@/store', () => ({
-  useAppStore: (selector: (state: typeof mocks.state) => unknown) => selector(mocks.state)
+  useAppStore: Object.assign((selector: (state: typeof mocks.state) => unknown) => selector(mocks.state), {
+    getState: () => mocks.state
+  })
 }))
+vi.mock('@/web/platform-project-actions', () => ({ archivePlatformProject: mocks.archive }))
+vi.mock('sonner', () => ({ toast: { error: mocks.error } }))
+vi.mock('@/store/slices/worktrees/teardown/removed-workspace-unsaved-files', async importOriginal => ({
+  ...await importOriginal<object>(), confirmUnsavedDiscard: mocks.discard
+}))
+vi.mock('./RemovalUnsavedFilesNotice', () => ({ RemovalUnsavedFilesNotice: () => <span data-unsaved-notice="" /> }))
 
 vi.mock('@/components/ui/dialog', () => ({
   Dialog: ({ open, children }: { open: boolean; children: ReactNode }) =>
@@ -48,7 +59,7 @@ vi.mock('@/components/ui/dialog', () => ({
 }))
 
 vi.mock('@/components/ui/button', () => ({
-  Button: ({ children }: { children: ReactNode }) => <button>{children}</button>
+  Button: ({ children, ...props }: { children: ReactNode }) => <button {...props}>{children}</button>
 }))
 
 vi.mock('@/i18n/i18n', () => ({
@@ -60,6 +71,7 @@ vi.mock('@/i18n/i18n', () => ({
 }))
 
 import RemoveFolderDialog from './RemoveFolderDialog'
+import { PlatformProjectContext } from '@/web/platform-project-context'
 
 function repo(connectionId: string | null, executionHostId: Repo['executionHostId']): Repo {
   return {
@@ -146,5 +158,65 @@ describe('RemoveFolderDialog', () => {
     expect(renderToStaticMarkup(<RemoveFolderDialog />)).toContain(
       '2 open terminals in this project will be closed.'
     )
+  })
+
+  it('keeps platform archive confirmation free of terminal-close and discard promises', () => {
+    mocks.state.modalData.hostId = 'runtime:env-1'
+    mocks.state.repos = [repo(null, 'runtime:env-1')]
+    const html = renderToStaticMarkup(<PlatformProjectContext.Provider value={null}><RemoveFolderDialog /></PlatformProjectContext.Provider>)
+    expect(html).toContain('保留事项、文件、已打开的终端和草稿')
+    expect(html).not.toContain('will be closed')
+    expect(html).not.toContain('data-unsaved-notice')
+  })
+
+  it('archives after confirmation, keeps a failed dialog open, and never discards or removes native state', async () => {
+    const container = document.createElement('div'), root = createRoot(container)
+    document.body.append(container)
+    mocks.state.modalData.hostId = 'runtime:env-1'
+    mocks.state.repos = [repo(null, 'runtime:env-1')]
+    mocks.archive.mockRejectedValueOnce(Error('已有托管任务，暂不能归档。')).mockResolvedValueOnce(undefined)
+    try {
+      await act(async () => root.render(<PlatformProjectContext.Provider value={null}><RemoveFolderDialog /></PlatformProjectContext.Provider>))
+      const buttons = container.querySelectorAll('button')
+      await act(async () => buttons[1].click())
+      expect(mocks.error).toHaveBeenCalledWith('已有托管任务，暂不能归档。')
+      expect(mocks.state.closeModal).not.toHaveBeenCalled()
+      expect(mocks.discard).not.toHaveBeenCalled()
+      expect(mocks.state.removeProject).not.toHaveBeenCalled()
+      await act(async () => buttons[1].click())
+      expect(mocks.archive).toHaveBeenCalledTimes(2)
+      expect(mocks.state.closeModal).toHaveBeenCalledOnce()
+    } finally { act(() => root.unmount()); container.remove() }
+  })
+
+  it('cancels platform removal with no request', async () => {
+    const container = document.createElement('div'), root = createRoot(container)
+    document.body.append(container)
+    try {
+      await act(async () => root.render(<PlatformProjectContext.Provider value={null}><RemoveFolderDialog /></PlatformProjectContext.Provider>))
+      await act(async () => container.querySelector('button')!.click())
+      expect(mocks.state.closeModal).toHaveBeenCalledOnce()
+      expect(mocks.archive).not.toHaveBeenCalled()
+      expect(mocks.discard).not.toHaveBeenCalled()
+      expect(mocks.state.removeProject).not.toHaveBeenCalled()
+    } finally { act(() => root.unmount()); container.remove() }
+  })
+  it('blocks duplicate confirmation and cannot close a newer modal after a late success', async () => {
+    const container = document.createElement('div'), root = createRoot(container)
+    document.body.append(container)
+    mocks.state.modalData.hostId = 'runtime:env-1'
+    mocks.state.repos = [repo(null, 'runtime:env-1')]
+    let resolve!: () => void
+    mocks.archive.mockImplementation(() => new Promise<void>(ready => { resolve = ready }))
+    try {
+      await act(async () => root.render(<PlatformProjectContext.Provider value={null}><RemoveFolderDialog /></PlatformProjectContext.Provider>))
+      const button = container.querySelectorAll('button')[1]
+      act(() => { button.click(); button.click() })
+      expect(mocks.archive).toHaveBeenCalledOnce()
+      mocks.state.activeModal = 'settings'
+      await act(async () => resolve())
+      expect(mocks.state.closeModal).not.toHaveBeenCalled()
+      expect(mocks.discard).not.toHaveBeenCalled()
+    } finally { act(() => root.unmount()); container.remove() }
   })
 })

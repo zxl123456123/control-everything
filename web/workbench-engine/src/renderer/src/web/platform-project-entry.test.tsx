@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { useContext, useEffect } from 'react'
-import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import type { PlatformProjectBootstrap } from './platform-project-bootstrap'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { PlatformProjectContext } from './platform-project-context'
@@ -8,6 +8,7 @@ import type { PlatformProject } from './platform-studio-surface'
 import PlatformProjectEntry from './platform-project-entry'
 import { PlatformSettingsContext, type SettingsTargetReady } from './platform-settings-navigation'
 import type { SettingsPresentationScope } from '../lib/settings-navigation-types'
+import * as pageContext from './remote-context'
 
 const fixture = vi.hoisted(() => ({
   load: vi.fn(),
@@ -138,7 +139,11 @@ vi.mock('./platform-workspace-app', () => ({
           repoId: scope.kind === 'project' ? scope.repoId : null, sectionId: scope.kind === 'project' ? `repo-${scope.repoId}` : scope.entry === 'development' ? 'agents' : 'appearance',
           ...(scope.kind === 'project' ? { hostId: scope.hostId, setupId: scope.setupId } : {}) })
     }, [presentation])
-    return <div data-testid="project-context" data-settings-scope={JSON.stringify(presentation?.scope)}>{project?.project.name || 'unbound'}</div>
+    return <div data-testid="project-context" data-settings-scope={JSON.stringify(presentation?.scope)}>
+      {project?.project.name || 'unbound'}
+      {presentation?.visible && presentation.scope.kind === 'project' &&
+        <input aria-label="Native name draft" defaultValue="" />}
+    </div>
   }
 }))
 
@@ -249,6 +254,76 @@ it('keeps project settings hidden until exact scope and Settings section ready, 
   expect(app.hasAttribute('hidden')).toBe(false)
   expect(app.hasAttribute('inert')).toBe(false)
   expect(document.documentElement.dataset.platformView).toBe('studio')
+})
+
+it('keeps the focused native name input and its newer draft while a saved name is published', async () => {
+  window.history.replaceState(null, '', '#project/p-one/settings')
+  const view = render(<PlatformProjectEntry />)
+  publish([project])
+  const input = await screen.findByRole<HTMLInputElement>('textbox', { name: 'Native name draft' })
+  await waitFor(() => expect(screen.getByTestId('project-context').dataset.settingsScope).toContain('setup-exact'))
+  input.focus()
+  fireEvent.change(input, { target: { value: 'Renamed and still typing' } })
+  // A metadata-only save must not require a new bootstrap to keep this editor mounted.
+  fixture.load.mockImplementation(() => new Promise(() => {}))
+  publish([{ ...project, name: 'Renamed' }])
+  expect(input.isConnected).toBe(true)
+  expect(document.activeElement).toBe(input)
+  expect(input.value).toBe('Renamed and still typing')
+  expect(screen.getByRole('textbox', { name: 'Native name draft' })).toBe(input)
+  expect(view.container.querySelector('.platform-project-content')!.hasAttribute('hidden')).toBe(false)
+  expect(fixture.load).toHaveBeenCalledTimes(1)
+})
+
+it.each(['directory', 'archive'])(
+  'still retires the settings editor when its %s changes', async change => {
+    window.history.replaceState(null, '', '#project/p-one/settings')
+    const view = render(<PlatformProjectEntry />)
+    publish([project])
+    const input = await screen.findByRole('textbox', { name: 'Native name draft' })
+    input.focus()
+    fixture.load.mockImplementation(() => new Promise(() => {}))
+    if (change === 'directory') publish([{ ...project, name: 'Renamed', directory: 'C:/example/moved' }])
+    else publish([], [{ ...project, name: 'Renamed' }])
+    expect(input.isConnected).toBe(false)
+    expect(view.container.querySelector('.platform-project-content')!.hasAttribute('hidden')).toBe(true)
+    expect(fixture.load).toHaveBeenCalledTimes(change === 'directory' ? 2 : 1)
+  }
+)
+
+it('does not reuse a renamed settings binding after the directory bootstrap switches runtime', async () => {
+  window.history.replaceState(null, '', '#project/p-one/settings')
+  const view = render(<PlatformProjectEntry />)
+  publish([project])
+  const input = await screen.findByRole('textbox', { name: 'Native name draft' })
+  fixture.load.mockResolvedValue({ ...bootstrap('Renamed'), runtime: { environmentId: 'env-foreign',
+    offer: { endpoint: 'ws://127.0.0.1:4321' } } })
+  publish([{ ...project, name: 'Renamed', directory: 'C:/example/moved' }])
+  await waitFor(() => expect(screen.getByRole('alert').textContent).toContain('未能连接'))
+  expect(input.isConnected).toBe(false)
+  expect(view.container.querySelector('.platform-project-content')!.hasAttribute('hidden')).toBe(true)
+})
+
+it('cannot reveal a renamed editor after its trusted context is retired', async () => {
+  let inactive = false, retire!: () => void
+  const subscribe = vi.spyOn(pageContext, 'onContextInactive').mockImplementation(callback => {
+    retire = callback
+    return () => {}
+  })
+  const assertActive = vi.spyOn(pageContext, 'assertContextActive').mockImplementation(() => {
+    if (inactive) throw new Error('remote_context_inactive')
+  })
+  try {
+    window.history.replaceState(null, '', '#project/p-one/settings')
+    const view = render(<PlatformProjectEntry />)
+    publish([project])
+    const input = await screen.findByRole('textbox', { name: 'Native name draft' })
+    act(() => { inactive = true; retire() })
+    publish([{ ...project, name: 'Renamed' }])
+    expect(input.isConnected).toBe(false)
+    expect(view.container.querySelector('.platform-project-content')!.hasAttribute('hidden')).toBe(true)
+    expect(fixture.load).toHaveBeenCalledTimes(1)
+  } finally { subscribe.mockRestore(); assertActive.mockRestore() }
 })
 
 it.each(['#workbench', '#project-setup', '#settings/appearance', '#settings/development'])(
@@ -684,7 +759,7 @@ it('waits for authoritative projects and preserves the mounted app on equivalent
   fixture.load.mockResolvedValue(bootstrap('Renamed'))
   publish([{ ...project, name: 'Renamed' }])
   await waitFor(() => expect(screen.getByTestId('project-context').textContent).toBe('Renamed'))
-  expect(fixture.load).toHaveBeenCalledTimes(2)
+  expect(fixture.load).toHaveBeenCalledTimes(1)
   publish([], [{ ...project, name: 'Renamed' }])
   await waitFor(() => expect(screen.getByRole('status').textContent).toContain('已归档'))
   expect(window.location.hash).toBe('#project/p-one/workspace')
