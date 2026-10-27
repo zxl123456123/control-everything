@@ -41,6 +41,10 @@ def _params(query, keys):
 
 
 def handle_get(handler, path):
+    if path.path == '/favicon.ico':
+        # The standalone page has no icon file; answer with an empty success so the browser stops logging a 404.
+        handler.reply(204, b'', 'image/x-icon')
+        return True
     if path.path in ASSETS:
         embedded = path.path == '/news' and path.query == 'embedded=1'
         if path.query and not embedded:

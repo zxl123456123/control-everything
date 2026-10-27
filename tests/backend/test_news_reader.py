@@ -295,6 +295,10 @@ class ReaderHTTPTests(unittest.TestCase):
         self.assertEqual(response[0], 409)
         self.assertEqual(response[1]['state'], 'running')
 
+    def test_favicon_request_is_answered_without_an_error(self):
+        self.assertEqual(self.request('/favicon.ico')[0], 204)
+        self.reader.sample.assert_not_called()
+
     def test_static_reader_csp_and_no_network_side_effect(self):
         self.assertEqual(self.request('/news')[0], 200)
         self.assertIn('img-src', self.last_handler.reply.call_args.kwargs['csp'])
