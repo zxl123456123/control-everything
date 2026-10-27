@@ -18,6 +18,8 @@ VERSION = "8.30.1"
 MEDIA = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".ico", ".bmp",
          ".mp4", ".mov", ".webm", ".avi", ".mp3", ".wav", ".ogg", ".woff", ".woff2"}
 PRIVATE_NAMES = {"progress-registry.json", "progress-manual.json", "progress-todos.json"}
+LEGACY_PUBLIC_DOCS = {"docs/architecture.md", "docs/usage.md", "docs/integrations.md", "docs/windows.md",
+                      "docs/workbench-contract.md", "docs/EMBEDDING.md", "docs/PETS_INTEGRATION.md"}
 PUBLIC_DOCS = {"docs/README.md", "docs/architecture/architecture.md", "docs/guides/usage.md", "docs/guides/integrations.md", "docs/guides/windows.md",
                "docs/architecture/workbench-contract.md", "docs/guides/EMBEDDING.md", "docs/guides/PETS_INTEGRATION.md",
                "docs/examples/integrations/codex.toml.example",
@@ -267,7 +269,7 @@ def commit(root, value):
     return git(root, "rev-parse", "--verify", value + "^{commit}").decode("ascii").strip()
 
 
-def added_findings(root, parent, current, report):
+def added_findings(root, parent, current, report, historical_docs=()):
     difference = ["diff", parent, current] if parent else ["diff-tree", "--root", "--no-commit-id", "-r", current]
     records = git(root, *difference, "--name-status", "-z", "--find-renames").decode("utf-8").split("\0")
     findings = []
@@ -289,6 +291,8 @@ def added_findings(root, parent, current, report):
         for name in names:
             resource = policy.resource(name) if policy else None
             reason = forbidden(name, reviewed_resource=resource is not None)
+            if reason == "excluded-directory" and name in historical_docs:
+                reason = None
             if name.startswith(UNIT) and (policy is None or not policy.contains(name)):
                 reason = "unregistered-workbench-source"
             path = relative_path(name)
@@ -363,14 +367,20 @@ def check_changes(root, base, head, report, executable):
     commits = git(root, "rev-list", "--reverse", "--topo-order", interval).decode("ascii").splitlines()
     if not commits:
         raise CheckError("empty-commit-range")
+    # Retired public paths remain scan candidates only when absent from the final tree.
+    remaining_legacy_docs = set(git(root, "ls-tree", "--name-only", "-z", head, "--",
+                                    *sorted(LEGACY_PUBLIC_DOCS)).decode("utf-8").split("\0")) - {""}
+    historical_docs = LEGACY_PUBLIC_DOCS - remaining_legacy_docs
+    report["blocked"].extend({"path": name, "reason": "excluded-directory"}
+                             for name in sorted(remaining_legacy_docs))
     for current in commits:
         parents = git(root, "rev-list", "--parents", "-n", "1", current).decode("ascii").split()[1:]
-        findings = added_findings(root, parents[0] if parents else None, current, report)
+        findings = added_findings(root, parents[0] if parents else None, current, report, historical_docs)
         # Imported parent content is already covered where its new commit introduced it.
         for parent in parents[1:]:
             if not findings:
                 break
-            other = added_findings(root, parent, current, report)
+            other = added_findings(root, parent, current, report, historical_docs)
             keys = {(item["path"], item["line"], item["rule"]) for item in other}
             findings = [item for item in findings if (item["path"], item["line"], item["rule"]) in keys]
         record_findings(report, [dict(item, commit=current) for item in findings], committed_policy(root, current))

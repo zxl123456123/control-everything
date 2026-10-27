@@ -377,6 +377,105 @@ class RepositoryChecksTests(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertEqual(report["findings"][0]["rule"], "absolute-windows-path")
 
+    def test_legacy_public_guides_can_move_without_skipping_range_scan(self):
+        self.save('.gitignore', '/work/\n')
+        destinations = {
+            'architecture.md': 'architecture/architecture.md',
+            'workbench-contract.md': 'architecture/workbench-contract.md',
+            **{name: 'guides/' + name for name in ('usage.md', 'windows.md', 'integrations.md',
+                                                  'EMBEDDING.md', 'PETS_INTEGRATION.md')}}
+        for name in destinations:
+            self.save('docs/' + name, 'Public guide: ' + name + '\n')
+        base = self.commit()
+        for name, destination in destinations.items():
+            (self.root / 'docs' / destination).parent.mkdir(parents=True, exist_ok=True)
+            self.git('mv', 'docs/' + name, 'docs/' + destination)
+        head = self.commit()
+        code, report = self.check('changes', '--base', base, '--head', head)
+        self.assertEqual(code, 0)
+        self.assertEqual(report['blocked'], [])
+        self.assertEqual({item['path'] for item in report['included']},
+                         {'docs/' + name for name in destinations.values()})
+        self.assertEqual(self.scanner.call_args.args[-1], base + '..' + head)
+
+    def test_legacy_guide_additions_and_edits_before_migration_are_scanned(self):
+        self.save('.gitignore', '/work/\n')
+        base = self.commit()
+        self.save('docs/usage.md', 'Initial guide\n')
+        added = self.commit()
+        self.save('docs/usage.md', 'Initial guide\nAdditional instructions\n')
+        edited = self.commit()
+        (self.root / 'docs/guides').mkdir()
+        self.git('mv', 'docs/usage.md', 'docs/guides/usage.md')
+        head = self.commit()
+        code, report = self.check('changes', '--base', base, '--head', head)
+        self.assertEqual(code, 0)
+        for revision in (added, edited):
+            self.assertIn({'path': 'docs/usage.md', 'commit': revision}, report['included'])
+        self.assertEqual(self.scanner.call_args.args[-1], base + '..' + head)
+
+    def test_legacy_guide_privacy_remains_reported_after_cleanup_and_migration(self):
+        self.save('.gitignore', '/work/\n')
+        base = self.commit()
+        self.save('docs/usage.md', self.personal_path() + '\n')
+        introduced = self.commit()
+        self.save('docs/usage.md', 'Public guide\n')
+        self.commit()
+        (self.root / 'docs/guides').mkdir()
+        self.git('mv', 'docs/usage.md', 'docs/guides/usage.md')
+        head = self.commit()
+        code, report = self.check('changes', '--base', base, '--head', head)
+        self.assertEqual(code, 1)
+        self.assertEqual(report['blocked'], [])
+        self.assertTrue(any(item['path'] == 'docs/usage.md' and item['commit'] == introduced
+                            and item['rule'] == 'absolute-windows-path' for item in report['findings']))
+        self.assertNotIn(self.personal_path(), json.dumps(report))
+        self.assertEqual(self.scanner.call_args.args[-1], base + '..' + head)
+
+    @unittest.skipUnless(GITLEAKS.is_file(), 'Pinned local Gitleaks is installed separately')
+    def test_legacy_guide_secret_before_migration_reaches_real_gitleaks(self):
+        self.save('.gitignore', '/work/\n')
+        base = self.commit()
+        secret = 'ghp_' + 'aB3dE6gH9jK2mN5pQ8sT1vW4yZ7cF0iL3oR6'
+        self.save('docs/usage.md', 'token = "' + secret + '"\n')
+        introduced = self.commit()
+        self.save('docs/usage.md', 'Public guide\n')
+        self.commit()
+        (self.root / 'docs/guides').mkdir()
+        self.git('mv', 'docs/usage.md', 'docs/guides/usage.md')
+        head = self.commit()
+        with patch.object(CHECKS, 'scan_gitleaks', wraps=REAL_SCAN_GITLEAKS):
+            code, report = self.check('changes', '--base', base, '--head', head,
+                                      '--gitleaks', str(GITLEAKS.resolve()))
+        self.assertEqual(code, 1)
+        self.assertEqual(report['blocked'], [])
+        self.assertEqual(report['gitleaks']['exit_code'], 1)
+        self.assertTrue(any(item['path'] == 'docs/usage.md' and item['commit'] == introduced
+                            for item in report['gitleaks']['findings']))
+        self.assertNotIn(secret, json.dumps(report))
+
+    def test_private_doc_rename_to_public_guide_is_still_blocked(self):
+        self.save('.gitignore', '/work/\n')
+        self.save('docs/current/usage.md', 'Private record\n')
+        base = self.commit()
+        (self.root / 'docs/guides').mkdir()
+        self.git('mv', 'docs/current/usage.md', 'docs/guides/usage.md')
+        code, report = self.check('changes', '--base', base, '--head', self.commit())
+        self.assertEqual(code, 1)
+        self.assertIn({'path': 'docs/current/usage.md', 'reason': 'excluded-directory'}, report['blocked'])
+        self.scanner.assert_not_called()
+
+    def test_legacy_guides_still_present_at_head_or_release_are_blocked(self):
+        self.save('.gitignore', '/work/\n')
+        self.save('docs/usage.md', 'Legacy guide\n')
+        base = self.commit()
+        self.save('safe.txt', 'Unrelated change\n')
+        code, report = self.check('changes', '--base', base, '--head', self.commit())
+        self.assertEqual(code, 1)
+        self.assertIn({'path': 'docs/usage.md', 'reason': 'excluded-directory'}, report['blocked'])
+        self.assertEqual(self.release(['docs/usage.md'])[0], 1)
+        self.scanner.assert_not_called()
+
     def test_private_docs_cannot_use_public_filename_to_bypass_scope(self):
         for name in ["docs/current/architecture.md", "docs/DEVELOPMENT_STATUS.md",
                      "docs/Docs.Maintenance.Conventions.md", "docs/examples/private.json"]:
