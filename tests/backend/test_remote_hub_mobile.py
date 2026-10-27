@@ -107,7 +107,8 @@ class MobileServiceTests(unittest.TestCase):
         self.assertEqual(result, {"logged_out": True, "sessions_invalidated": 2})
         self.assertEqual(self.hub.mobile_logout(MOBILE_A)["sessions_invalidated"], 0)
         with self.hub.store.transaction() as db:
-            live = [row[0] for row in db.execute("SELECT sub FROM browser_sessions WHERE invalidated=0")]
+            live = [row[0] for row in db.execute(
+                "SELECT i.sub FROM browser_sessions s JOIN identities i ON i.account_id=s.account_id WHERE s.invalidated=0")]
         self.assertEqual(live, ["account-b"])
 
     def test_disabling_a_member_invalidates_their_browser_sessions(self):

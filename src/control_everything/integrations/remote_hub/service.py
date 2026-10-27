@@ -55,29 +55,39 @@ class RemoteHubService:
         with self.store.transaction() as db:
             self.store.require_member(db, identity)
 
-    def desktop_identity(self, identity):
+    def is_admin(self, identity):
+        """Configured administrator pair, or any identity linked to the same internal account as one."""
+        if (identity.issuer, identity.sub) in self.admin_subjects:
+            return True
         with self.store.transaction() as db:
-            member = db.execute("SELECT status FROM members WHERE issuer=? AND sub=?", (identity.issuer, identity.sub)).fetchone()
+            return self._admin_check(db, identity.issuer, identity.sub)
+
+    def _admin_check(self, db, issuer, sub):
+        if (issuer, sub) in self.admin_subjects:
+            return True
+        account = self.store.lookup_account(db, issuer, sub)
+        return account is not None and account in self.store.admin_accounts(db, self.admin_subjects)
+
+    def desktop_identity(self, identity):
         return {"account": {"issuer": identity.issuer, "sub": identity.sub, "name": identity.name or identity.sub},
-                "member_active": bool(member and member[0] == "active")}
+                "member_active": self.store.member_status(identity) == "active"}
 
     def session(self, identity, cookie):
         csrf, set_cookie = self.sessions.open(identity, cookie)
-        with self.store.transaction() as db:
-            member = db.execute("SELECT status FROM members WHERE issuer=? AND sub=?", (identity.issuer, identity.sub)).fetchone()
+        membership = self.store.member_status(identity)
         device = self.store.own_device(identity)
-        return {"account": {"sub": identity.sub, "name": identity.name or identity.sub}, "membership": member[0] if member else "inactive",
-                "admin": (identity.issuer, identity.sub) in self.admin_subjects,
+        return {"account": {"sub": identity.sub, "name": identity.name or identity.sub}, "membership": membership,
+                "admin": self.is_admin(identity),
                 "device": public_device(device) if device else None, "csrf": csrf, "session_changed": bool(set_cookie)}, set_cookie
 
     def create_invitation(self, identity):
-        if (identity.issuer, identity.sub) not in self.admin_subjects:
+        if not self.is_admin(identity):
             raise HubError("admin_required", 403)
         self.limit((identity.issuer, identity.sub, "invitation"), 10)
         return {"invitation": self.store.create_invitation(), "expires_in": 86400}
 
     def admin_members(self, identity, limit=25, offset=0):
-        if (identity.issuer, identity.sub) not in self.admin_subjects:
+        if not self.is_admin(identity):
             raise HubError("admin_required", 403)
         if type(limit) is not int or not 1 <= limit <= 100 or type(offset) is not int or not 0 <= offset <= 2147483647:
             raise HubError("invalid_pagination", 400)
@@ -92,13 +102,14 @@ class RemoteHubService:
             items = []
             for account in accounts:
                 owner = (issuer, account["sub"])
-                member = db.execute("SELECT status FROM members WHERE issuer=? AND sub=?", owner).fetchone()
-                device = db.execute("SELECT device_id,name,state,last_heartbeat FROM devices WHERE issuer=? AND sub=? AND state!='revoked'", owner).fetchone()
+                owner_account = self.store.lookup_account(db, *owner)
+                member = db.execute("SELECT status FROM members WHERE account_id=?", (owner_account,)).fetchone()
+                device = db.execute("SELECT device_id,name,state,last_heartbeat FROM devices WHERE account_id=? AND state!='revoked'", (owner_account,)).fetchone()
                 current = {key: device[key] for key in ("device_id", "name", "state")} if device else None
                 if current and current["state"] == "online" and (device["last_heartbeat"] is None or self.store.clock() - device["last_heartbeat"] > 45):
                     current["state"] = "offline"
                 items.append({"account": account, "membership": member[0] if member else "inactive",
-                              "admin": owner in self.admin_subjects, "device": current})
+                              "admin": self._admin_check(db, *owner), "device": current})
         result = {"items": items, "total": total, "limit": limit, "offset": offset}
         if self.user_directory is None:
             result["source"] = "hub_members"
@@ -106,9 +117,10 @@ class RemoteHubService:
 
     @staticmethod
     def _hub_members(db, issuer, limit, offset):
-        total = db.execute("SELECT COUNT(*) FROM members WHERE issuer=?", (issuer,)).fetchone()[0]
-        rows = db.execute("SELECT sub FROM members WHERE issuer=? ORDER BY rowid LIMIT ? OFFSET ?",
-                          (issuer, limit, offset)).fetchall()
+        total = db.execute("SELECT COUNT(*) FROM members m JOIN identities i ON i.account_id=m.account_id WHERE i.issuer=?",
+                           (issuer,)).fetchone()[0]
+        rows = db.execute("SELECT i.sub FROM members m JOIN identities i ON i.account_id=m.account_id "
+                          "WHERE i.issuer=? ORDER BY m.rowid,i.sub LIMIT ? OFFSET ?", (issuer, limit, offset)).fetchall()
         return [{"sub": row[0], "name": row[0], "registered_at": None, "enabled": None} for row in rows], total
 
     def activate(self, identity, invite):
@@ -132,7 +144,7 @@ class RemoteHubService:
         return {"account": {"sub": identity.sub, "name": identity.name or identity.sub,
                             "display_name": identity.display_name or None, "email": identity.email or None},
                 "membership": self.store.member_status(identity),
-                "admin": (identity.issuer, identity.sub) in self.admin_subjects}
+                "admin": self.is_admin(identity)}
 
     def mobile_devices(self, identity):
         self.limit((identity.issuer, identity.sub, "mobile-read"), 60)
@@ -241,8 +253,7 @@ class RemoteHubService:
     def config(self, token):
         device = self.store.authenticate_control(token)
         with self.store.transaction() as db:
-            from .identity import Identity
-            self.store.require_member(db, Identity(device["issuer"], device["sub"], "", 0))
+            self.store.require_account_member(db, device["account_id"])
         return {"device_id": device["device_id"], "generation": device["generation"],
                 "credential_revision": device["credential_revision"], "public_origin": self.public_origin,
                 "ssh": {"host": self.ssh_host, "port": self.ssh_port,
@@ -279,8 +290,7 @@ class RemoteHubService:
 
     def revoke(self, identity, device_id):
         device = self.store.device(device_id)
-        if ((device["issuer"], device["sub"]) != (identity.issuer, identity.sub)
-                and (identity.issuer, identity.sub) not in self.admin_subjects):
+        if device["account_id"] != self.store.account_id(identity) and not self.is_admin(identity):
             raise HubError("device_not_found", 404)
         return self._revoke(device)
 
