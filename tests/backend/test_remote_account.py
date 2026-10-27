@@ -108,6 +108,15 @@ class AccountTests(unittest.TestCase):
         self.assertEqual(self.account._stop.waits, [1, 1, 6])
         self.assertEqual(self.account.status()["state"], "signed_in")
 
+    def test_directory_identity_rejection_clears_saved_admin_immediately(self):
+        self.login()
+        self.peer.identity_error = ConnectorError("invalid_identity", 401)
+        with self.assertRaisesRegex(ConnectorError, "invalid_identity"):
+            self.account.members()
+        self.assertIsNone(self.account.status()["account"])
+        self.assertFalse(self.account.status()["admin"])
+        self.assertIsNone(self.store.read("account-oauth.json", protected=True))
+
     def test_cross_origin_authorization_and_cancelled_late_token_are_rejected(self):
         self.peer.grant["verification_uri"] = "https://other.example.test/device"
         with self.assertRaisesRegex(ConnectorError, "remote_grant_invalid"):

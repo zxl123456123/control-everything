@@ -222,6 +222,12 @@ test('local account login and logout never confirm or revoke the computer',async
   const writes=f.calls.filter(call=>call.options.method==='POST');assert.deepEqual(writes.map(call=>call.path),['/api/desktop/account/authorize','/api/desktop/account/logout']);for(const call of writes)assert.equal(call.options.headers['X-Session-CSRF'],'local-csrf');f.dispose();
 });
 
+test('pending local login keeps its button disabled and cannot start another grant',async()=>{
+  let current={configured:true,state:'signed_out',account:null,admin:false};
+  const f=fixture(path=>{if(path.endsWith('/account/authorize'))current={...current,state:'authorizing',verification_uri:'https://id.example.test/device',user_code:'SYNTHETIC-CODE'};return response(path==='/api/bootstrap'?{csrf_token:'local-csrf'}:{configured:true,state:'unbound'});},{mode:'local',accountSession:()=>current});
+  await settle();f.click('account-authorize');await settle();assert.equal(f.button('account-authorize').disabled,true);assert.equal(f.get('account-code').textContent,'SYNTHETIC-CODE');f.click('account-authorize');await settle();assert.equal(f.calls.filter(call=>call.path.endsWith('/account/authorize')).length,1);f.dispose();
+});
+
 test('local account privacy listeners are removed on disposal',async()=>{
   const f=fixture(path=>response(path==='/api/bootstrap'?{csrf_token:'local'}:{configured:false,state:'unbound'}),{mode:'local'});await settle();assert.equal(f.window.document.listenerCount,1);assert.equal(f.windowEvents.listenerCount,1);f.dispose();assert.equal(f.window.document.listenerCount,0);assert.equal(f.windowEvents.listenerCount,0);
 });
