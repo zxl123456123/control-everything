@@ -170,7 +170,7 @@ test('real account DOM keeps members private to admins and uses the full respons
   w.eval(source);const dispose=w.StudioAccountDevice.mount(root,{mode:'remote'});t.after(dispose);
   for(let i=0;i<8;i++)await new Promise(resolve=>setImmediate(resolve));
   assert.equal(root.querySelectorAll('table tbody tr').length,3);assert.equal(root.querySelectorAll('img').length,0);assert.equal(root.querySelector('td').textContent,'<img src=x onerror=alert(1)>');
-  assert.equal(w.getComputedStyle(root.querySelector('td')).fontSize,'15px');assert.equal(w.getComputedStyle(root.querySelector('h2')).fontSize,'16px');assert.equal(w.getComputedStyle(root.querySelector('tbody tr')).display,width===390?'grid':'table-row');
+  assert.equal(w.getComputedStyle(root.querySelector('td')).fontSize,'15px');assert.equal(w.getComputedStyle(root.querySelector('h2')).fontSize,'18px');assert.equal(w.getComputedStyle(root.querySelector('tbody tr')).display,width===390?'grid':'table-row');
   const rows=[...root.querySelectorAll('tbody tr')];
   assert.equal(rows[0].cells[2].textContent,'已激活');assert.equal(rows[0].cells[2].querySelector('.ce-account-badge').dataset.tone,'success');
   assert.equal(rows[0].cells[3].textContent,'工作电脑 · 离线');assert.equal(rows[0].cells[3].querySelector('.ce-account-badge').dataset.tone,'neutral');
@@ -181,13 +181,13 @@ test('real account DOM keeps members private to admins and uses the full respons
   assert.equal(rows[0].cells[1].querySelector('svg').getAttribute('aria-hidden'),'true');
   const icons=[...root.querySelectorAll('.ce-account-setting .ce-account-media svg')];assert.equal(icons.length,2);assert.notEqual(icons[0].innerHTML,icons[1].innerHTML);assert.ok(icons.every(icon=>icon.getAttribute('aria-hidden')==='true'));
   assert.equal(root.querySelector('.ce-account-grid').contains(root.querySelector('[data-node="invitations"]')),false);assert.equal(root.querySelectorAll('th').length,5);assert.equal(root.querySelector('input[type="checkbox"]'),null);
-  assert.equal(w.getComputedStyle(root.querySelector('.ce-account-media')).width,'32px');assert.equal(w.getComputedStyle(root.querySelector('.ce-account-members-wrap')).borderRadius,'8px');
-  const refreshStyle=w.getComputedStyle(root.querySelector('[data-action="refresh"]'));assert.equal(refreshStyle.minHeight,width===390?'44px':'36px');assert.match(refreshStyle.transition,/transform 180ms/);
+  assert.equal(w.getComputedStyle(root.querySelector('.ce-account-media')).width,'40px');assert.equal(w.getComputedStyle(root.querySelector('.ce-account-members-wrap')).borderRadius,'20px');
+  const refreshStyle=w.getComputedStyle(root.querySelector('[data-action="refresh"]'));assert.equal(refreshStyle.minHeight,'44px');assert.match(refreshStyle.transition,/transform 335ms/);
   const themeButton=brand.querySelector('[data-theme-toggle]');assert.equal(themeButton.closest('.ce-account'),null);
-  assert.equal(w.getComputedStyle(themeButton).minHeight,width===390?'44px':'36px');assert.match(w.getComputedStyle(themeButton).transition,/transform 180ms/);
+  assert.equal(w.getComputedStyle(themeButton).minHeight,'44px');assert.match(w.getComputedStyle(themeButton).transition,/transform 335ms/);
   themeButton.disabled=true;assert.equal(Number(w.getComputedStyle(themeButton).opacity),0.5);themeButton.disabled=false;
   themeButton.setAttribute('aria-busy','true');assert.equal(w.getComputedStyle(themeButton).cursor,'wait');themeButton.removeAttribute('aria-busy');
-  assert.equal(w.getComputedStyle(root.querySelector('input')).fontSize,width===390?'16px':'15px');
+  assert.equal(w.getComputedStyle(root.querySelector('input')).fontSize,'16px');
   admin=false;root.querySelector('[data-action="refresh"]').click();for(let i=0;i<8;i++)await new Promise(resolve=>setImmediate(resolve));assert.equal(root.querySelector('[data-node="invitations"]').hidden,true);assert.equal(root.querySelectorAll('tbody tr').length,0);
   }
 });
