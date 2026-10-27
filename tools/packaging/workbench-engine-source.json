@@ -326800,6 +326800,8 @@
     "mobile/src/platform-account/config.ts",
     "mobile/src/platform-account/controller.test.ts",
     "mobile/src/platform-account/controller.ts",
+    "mobile/src/platform-account/hub-logout.test.ts",
+    "mobile/src/platform-account/hub-logout.ts",
     "mobile/src/platform-account/oidc.test.ts",
     "mobile/src/platform-account/oidc.ts",
     "mobile/src/platform-account/secure-store.test.ts",

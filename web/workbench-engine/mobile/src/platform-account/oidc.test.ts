@@ -129,7 +129,7 @@ describe('real SDK code flow over the narrow native transport', () => {
   it('uses system AuthRequest Code/S256, random state/nonce and the public token request model', async () => {
     const result = await login()
     expect(authorization.searchParams.get('response_type')).toBe('code')
-    expect(authorization.searchParams.get('scope')).toBe('openid profile')
+    expect(authorization.searchParams.get('scope')).toBe('openid profile email')
     expect(authorization.searchParams.get('code_challenge_method')).toBe('S256')
     expect(authorization.searchParams.get('state')!.length).toBeGreaterThanOrEqual(22)
     expect(authorization.searchParams.get('nonce')!.length).toBeGreaterThanOrEqual(22)
@@ -154,6 +154,17 @@ describe('real SDK code flow over the narrow native transport', () => {
     const firstState = authorization.searchParams.get('state')
     await login()
     expect(authorization.searchParams.get('state')).not.toBe(firstState)
+  })
+  it('keeps the userinfo email on the session when present, and omits it otherwise', async () => {
+    profile = { sub: 'subject-1', name: 'Synthetic User', email: 'user@example.test' }
+    expect((await login()).session).toMatchObject({
+      displayName: 'Synthetic User',
+      email: 'user@example.test'
+    })
+    for (const email of [undefined, '', 42, null]) {
+      profile = { sub: 'subject-1', name: 'Synthetic User', email }
+      expect((await login()).session).not.toHaveProperty('email')
+    }
   })
   it.each([
     (url: URL) => `${config.redirectUri}?code=x&state=wrong`,

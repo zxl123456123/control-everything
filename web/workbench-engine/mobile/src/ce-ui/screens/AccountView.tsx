@@ -46,6 +46,8 @@ export function AccountView(props: AccountViewProps) {
   const expired = snapshot.status === 'expired'
   const loggingOut = snapshot.status === 'logging-out'
   const name = snapshot.account?.displayName ?? me?.name ?? snapshot.account?.subject ?? null
+  // The hub's answer wins; the identity service's userinfo covers a hub that is not reachable.
+  const email = me?.email ?? snapshot.account?.email ?? null
   const seed = snapshot.account?.subject ?? me?.subject ?? 'anonymous'
   const signedIn = snapshot.status === 'signed-in'
   return (
@@ -73,9 +75,9 @@ export function AccountView(props: AccountViewProps) {
             <CeText variant="title" numberOfLines={1} testID="ce-account-name">
               {name ?? '未命名账号'}
             </CeText>
-            {me?.email ? (
-              <CeText variant="body" color="muted" numberOfLines={1}>
-                {me.email}
+            {email ? (
+              <CeText variant="body" color="muted" numberOfLines={1} testID="ce-account-email">
+                {email}
               </CeText>
             ) : null}
           </View>

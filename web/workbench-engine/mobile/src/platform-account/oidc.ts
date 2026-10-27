@@ -23,6 +23,8 @@ export type AccountSession = {
   issuer: string
   subject: string
   displayName?: string
+  /** From the userinfo reply (needs the `email` scope); absent when the account has none. */
+  email?: string
   accessToken: string
   expiresAt: number
 }
@@ -327,7 +329,8 @@ async function exchange(
       subject: identity.subject,
       accessToken: token.accessToken,
       expiresAt,
-      ...(nonempty(profile.name) ? { displayName: profile.name } : {})
+      ...(nonempty(profile.name) ? { displayName: profile.name } : {}),
+      ...(nonempty(profile.email) ? { email: profile.email } : {})
     },
     recovery: refreshToken
       ? {
@@ -360,7 +363,7 @@ export const platformAccountOidc = {
       responseType: ResponseType.Code,
       usePKCE: true,
       codeChallengeMethod: CodeChallengeMethod.S256,
-      scopes: ['openid', 'profile'],
+      scopes: ['openid', 'profile', 'email'],
       state: base64url(Crypto.getRandomBytes(32)),
       extraParams: { nonce }
     })
