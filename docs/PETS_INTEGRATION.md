@@ -181,7 +181,7 @@ pip wheel . --no-deps --no-build-isolation -w /tmp/whl
 
 **新增脚本要登记的位置**：`news-pet-prefs.js`、`news-pet-director.js` 在 `news_reader.py` 的 `ASSETS`；`studio-pet-settings.js`、`studio-mascot.js` 在 `workbench.py` 的资源表、`preview_studio.py`；两者都在 `build_assets.py`、`MANIFEST.in`、`studio-preview.html`、桌面端 `platform-studio-surface.tsx` 的脚本列表，以及 e2e 资源白名单（`verify_news_reader*.cjs`）。
 
-**测试**：`tests/frontend/test_news_pet_prefs.cjs`（偏好与回退事件）、`test_studio_pet_settings.cjs`（设置页）、`test_studio_navigation.cjs`（左下角入口）；`tests/e2e/verify_news_reader.cjs` 覆盖键盘开转盘与 Esc 还焦点。
+**测试**：`tests/frontend/test_news_pet_prefs.cjs`（偏好与回退事件）、`test_studio_pet_settings.cjs`（设置页）、`test_studio_navigation.cjs`（左下角入口）；`tests/e2e/verify_news_reader.cjs` 覆盖键盘开转盘与 Esc 还焦点；`tests/e2e/verify_ui_polish.cjs` 覆盖设置页的“只在新闻页出现”提示和 390px 新闻页工具栏。
 
 ## 9. 个人工作台吉祥物与新闻页互动（mascot notes）
 
@@ -259,7 +259,7 @@ pip wheel . --no-deps --no-build-isolation -w /tmp/whl
 
 **触发与无障碍**：点宠物（或键盘 Tab 到「宠物转盘」按钮）打开；方向键在按钮间移动，Enter 执行，Esc 收起；没有全局快捷键；触屏目标 ≥ 40px；按下“外部点击关闭”后 700ms 内的宠物点击会被吞掉，避免“关了又立刻重开”。
 
-**设置页**：只剩标题行 + 开关 / 分段控件，说明放在 `title` 与 `aria-description` 里，可见文字只有“转盘功能”下的一行提示；转盘动作旁边有实时的环形预览（选中的动作落在环上）。
+**设置页**：只剩标题行 + 开关 / 分段控件，说明放在 `title` 与 `aria-description` 里，可见文字只有“转盘功能”下的一行提示；选了只在新闻页出现的宠物（蜘蛛）时，形象卡片下多一行“只在新闻页出现，想在工作台里看到请选奶龙或狸花猫”（`#studio-pet-news-only`，该宠物在工作台里也出现时自动隐藏）；转盘动作旁边有实时的环形预览（选中的动作落在环上）。
 
 **蜘蛛核对**：`web/workspace/news-spider.js` 与 `origin/develop` 上的文件完全一致，没有改动；注册表用 `register('spider', {mount: options => global.NewsSpider.mount(options)})` 直接挂载原模型。蜘蛛“超出边界”的修复只在 `news-reader.css`（2 行，提交 214ea3ac）和工作台外壳的内边距（ea6a928b）。设置页预览里的蜘蛛是手绘静态 SVG 缩略图，**不是**真模型；工作台不挂载蜘蛛。蜘蛛没有点击事件，所以它的转盘只能通过阅读器顶部的「宠物转盘」按钮打开。
 
