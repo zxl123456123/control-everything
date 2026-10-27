@@ -326818,7 +326818,9 @@
     "mobile/src/platform-account/browser-portal.ts",
     "config/scripts/orcad-playwright-core-package.mjs",
     "src/renderer/src/web/preload-api/platform-native-repo-adoption.ts",
-    "src/renderer/src/web/preload-api/platform-native-repo-adoption.test.ts"
+    "src/renderer/src/web/preload-api/platform-native-repo-adoption.test.ts",
+    "src/renderer/src/web/platform-project-actions.test.ts",
+    "src/renderer/src/web/platform-project-actions.ts"
   ],
   "adapted_files": [
     {
@@ -328301,6 +328303,24 @@
       "path": "src/renderer/src/web/preload-api/web-runtime-calls.ts",
       "upstream_sha256": "8d5ae359c9c95e649250cdc5fb10dd45c2d306f7ee80eb997b7a79e140cda272",
       "current_sha256": "16021f070100f478f4f832da29672d8bfe7279a11a2fb310782efbdc72181c4f",
+      "reason": "N1: restore native project controls and upstream presentation while preserving platform identity, project registration, draft protection and the single global account surface."
+    },
+    {
+      "path": "src/renderer/src/store/repos/repo-update.ts",
+      "upstream_sha256": "270d9acee929d45869f183d681c23ef5ce35f9828d61cc9062e0b8ac0f5fb4eb",
+      "current_sha256": "be04e4788c6f0e223d158b07332c98a928f1cc654b251b9137b62edd58ade8af",
+      "reason": "N1: restore native project controls and upstream presentation while preserving platform identity, project registration, draft protection and the single global account surface."
+    },
+    {
+      "path": "src/renderer/src/store/slices/repos-project-mutations.test.ts",
+      "upstream_sha256": "107d7f522db04fd8809dee0ca0522787effa93b9dcaff5a8b690079cfeaff4e8",
+      "current_sha256": "4a9fe05e3aaf4e5f4fc783777e7e767757fdf2e80229ebd0abe17eef2b89f250",
+      "reason": "N1: restore native project controls and upstream presentation while preserving platform identity, project registration, draft protection and the single global account surface."
+    },
+    {
+      "path": "src/renderer/src/store/slices/repos-update-serialization.spec.ts",
+      "upstream_sha256": "ec1f49163e128eed121a7c2689d1adee7ef3636681b79abedec77c5c085b7842",
+      "current_sha256": "166fa844ae2c3e77f2aab26521620d3fd6bdb0d08b7d708fa853d86f2073dd29",
       "reason": "N1: restore native project controls and upstream presentation while preserving platform identity, project registration, draft protection and the single global account surface."
     }
   ],

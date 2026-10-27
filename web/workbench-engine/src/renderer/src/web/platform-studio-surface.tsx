@@ -9,7 +9,7 @@ export type PlatformProjectsListener = (
 ) => void
 type StudioWindow = Window & {
   StudioPreview?: {
-    mount(root: HTMLElement, options: { onProjects: PlatformProjectsListener }): () => void
+    mount(root: HTMLElement, options: { onProjects: PlatformProjectsListener; runtimeHost: () => string | null }): () => void
   }
 }
 const scripts = [
@@ -62,13 +62,17 @@ function loadModules(): Promise<void> {
 export default function PlatformStudioSurface({
   hidden,
   pending = false,
-  onProjects
+  onProjects,
+  runtimeHost = null
 }: {
   hidden: boolean
   pending?: boolean
   onProjects: PlatformProjectsListener
+  runtimeHost?: string | null
 }): React.JSX.Element {
   const host = useRef<HTMLDivElement>(null)
+  const currentRuntimeHost = useRef(runtimeHost)
+  currentRuntimeHost.current = runtimeHost
   const [error, setError] = useState('')
   const [ready, setReady] = useState(false)
   useEffect(() => {
@@ -127,7 +131,9 @@ export default function PlatformStudioSurface({
       const unsubscribeAppearance = platformAppearance.subscribe(syncTheme)
       assertContextActive()
       shadow.append(root)
-      const unmount = (window as StudioWindow).StudioPreview!.mount(root, { onProjects })
+      const unmount = (window as StudioWindow).StudioPreview!.mount(root, {
+        onProjects, runtimeHost: () => currentRuntimeHost.current
+      })
       dispose = () => {
         unmount()
         unsubscribeAppearance()

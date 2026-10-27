@@ -140,8 +140,9 @@ function studioFixture({ remote = false, savedCreatorUrl = null, monitorAvailabl
       onInactive(callback){listeners.add(callback);return ()=>listeners.delete(callback);},
       invalidate(){if(!active)return;active=false;for(const callback of [...listeners])callback();}};
   }
+  let runtimeHost = unified ? 'runtime:owned-environment' : null;
   dispose = window.StudioPreview.mount(nodes.get('ce-studio'), {
-    onProjects: (rows, metadata) => projectSnapshots.push({ rows, metadata })
+    onProjects: (rows, metadata) => projectSnapshots.push({ rows, metadata }), runtimeHost: () => runtimeHost
   });
   const flush = () => new Promise(resolve => setImmediate(resolve));
   return { nodes, menu, scrollHost, snapshot, client, location, storageReads, writes, removed, mounts, monitorCalls, callbacks, window, body, elements, dialog, active, boardProjects, projectSnapshots, posts, mobileMounts, mobileDisposals, boardSnapshots, snapshotReads, timers, document,
@@ -149,6 +150,7 @@ function studioFixture({ remote = false, savedCreatorUrl = null, monitorAvailabl
     onboarding: () => onboardingOptions, dispose: () => dispose(),
     editorMounts: () => editorMounts, updates: () => updates,
     fail() { failed = true; }, recover() { failed = false; }, flush,
+    setRuntimeHost(value) { runtimeHost = value; },
     async advance(ms) { clock += ms; const callbacks = [...timers.values()]; timers.clear(); for (const callback of callbacks) callback(); await flush(); },
     async hidden(value) { document.hidden = value; callbacks['document:visibilitychange'](); await flush(); },
     async route(value) { const from = location.hash; location.hash = '#' + value; if (unified) callbacks['platform-navigation-accepted']({detail: {from, to: location.hash}}); else callbacks.hashchange(); await flush(); },
@@ -810,4 +812,78 @@ test('successful reads stay quiet and a failed refresh remains visible until rec
   f.recover(); f.click('refresh'); await f.flush();
   assert.equal(f.nodes.get('studio-status').hidden, true);
   assert.equal(f.nodes.get('studio-status').textContent, '');
+});
+
+function projectAction(f, action, changes = {}) {
+  const controller = new AbortController(), waits = [];
+  f.callbacks['platform-native-project-action']({ detail: {
+    action, repoId: 'native-repo', directory: 'C:/example/fixture', executionHostId: 'runtime:owned-environment',
+    signal: controller.signal, waitUntil: value => waits.push(value), ...changes
+  } });
+  return { controller, result: waits[0] };
+}
+
+test('native name edits preserve the complete registered project and confirm after its native echo', async () => {
+  const f = studioFixture({ unified: true }); await f.flush();
+  const row = f.snapshot.workspace.projects.items[0];
+  row.directories.push({ id: 'assets', path: 'C:/example/assets' }); row.source = { kind: 'none' };
+  const edit = projectAction(f, 'rename', { name: 'Renamed' });
+  const confirm = await edit.result;
+  assert.equal(typeof confirm, 'function'); assert.equal(f.posts.length, 1);
+  assert.equal(f.posts[0].value.id, row.id); assert.equal(f.posts[0].value.name, 'Renamed');
+  assert.deepEqual(Array.from(f.posts[0].value.directories, entry => entry.id), ['main', 'assets']);
+  assert.equal(f.posts[0].value.archived, false); assert.equal(f.posts[0].value.source.kind, 'none');
+  assert.equal(f.posts[0].value.expected.name, '<Real project>');
+  assert.equal(f.posts[0].value.expected.archived, false);
+  assert.equal(f.posts[0].value.expected.directories.length, 2);
+  const other = projectAction(f, 'archive');
+  await assert.rejects(other.result, /项目正在保存/); assert.equal(f.posts.length, 1);
+  row.name = 'Renamed'; await confirm(); edit.controller.abort();
+  const archive = projectAction(f, 'archive'); row.archived = true;
+  await archive.result; archive.controller.abort();
+  assert.equal(f.posts.length, 2); assert.equal(f.posts[1].value.name, 'Renamed');
+  assert.equal(f.posts[1].value.archived, true); assert.equal(f.location.hash, '#home');
+  f.dispose();
+});
+
+test('native project actions reject wrong hosts, stale context, ambiguous and read-only directories before a write', async () => {
+  const f = studioFixture({ unified: true }); await f.flush();
+  const row = f.snapshot.workspace.projects.items[0];
+  await assert.rejects(projectAction(f, 'archive', { executionHostId: 'runtime:foreign' }).result, /电脑已变化/);
+  row.read_only = true; await assert.rejects(projectAction(f, 'archive').result, /登记已变化/); delete row.read_only;
+  f.snapshot.workspace.projects.items.push({ ...row, id: 'duplicate' });
+  await assert.rejects(projectAction(f, 'archive').result, /登记已变化/); f.snapshot.workspace.projects.items.pop();
+  await assert.rejects(projectAction(f, 'rename', { name: ' ' }).result, /1 至 80/);
+  assert.equal(f.posts.length, 0);
+  let resolve;
+  f.client.post = () => new Promise(done => { resolve = done; });
+  const late = projectAction(f, 'rename', { name: 'Late' });
+  f.setRuntimeHost('runtime:another'); resolve({ status: 'ok', project: { id: row.id } });
+  await assert.rejects(late.result, /电脑已变化/); late.controller.abort();
+  f.dispose();
+});
+
+test('failed and cancelled native project actions release their exact busy owner without replaying writes', async () => {
+  const f = studioFixture({ unified: true }); await f.flush();
+  const row = f.snapshot.workspace.projects.items[0];
+  const first = projectAction(f, 'rename', { name: 'First' }); await first.result; first.controller.abort();
+  const second = projectAction(f, 'rename', { name: 'Second' }); const confirm = await second.result;
+  first.controller.abort();
+  await assert.rejects(projectAction(f, 'archive').result, /正在保存/);
+  row.name = 'Second'; f.fail(); await assert.rejects(confirm(), /列表尚未确认/);
+  second.controller.abort(); f.recover();
+  const third = projectAction(f, 'rename', { name: 'Third' }); const finalConfirm = await third.result;
+  row.name = 'Third'; await finalConfirm(); third.controller.abort();
+  assert.equal(f.posts.length, 3); f.dispose();
+});
+
+test('native project conflicts preserve the current input and never retry an old save', async () => {
+  const f = studioFixture({ unified: true }); await f.flush();
+  let writes = 0;
+  f.client.post = async () => { writes++; throw Object.assign(new Error('project changed'), { reason: 'project_changed' }); };
+  const edit = projectAction(f, 'rename', { name: 'Retained input' });
+  await assert.rejects(edit.result, error => error.reason === 'project_changed');
+  edit.controller.abort(); assert.equal(writes, 1);
+  assert.equal(f.snapshot.workspace.projects.items[0].name, '<Real project>');
+  assert.equal(f.location.hash, '#home'); f.dispose();
 });

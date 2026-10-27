@@ -2,7 +2,7 @@
 'use strict';
 function projectEntryTab() { return 'workspace'; }
 let initialStudioTheme = window.CEUITheme?.pageTheme || window.CEStudioTheme || null;
-function mountStudio(root, { onProjects = () => {} } = {}) {
+function mountStudio(root, { onProjects = () => {}, runtimeHost = () => null } = {}) {
   const $ = id => root.querySelector('#' + id);
   const content = $('studio-content'), status = $('studio-status');
   if (!window.StudioData || !window.WorkspaceAgentBoard || !window.StudioShell) {
@@ -527,6 +527,63 @@ function mountStudio(root, { onProjects = () => {} } = {}) {
       return Boolean(ok && !disposed && projects().some(project => project.id === detail.projectId && !project.archived));
     })());
   }
+  const nativeProjectWrites = new Map();
+  function nativeProjectAction(event) {
+    const detail = event.detail;
+    if (root.dataset.unified !== 'true' || disposed || !detail ||
+      !['rename', 'archive'].includes(detail.action) || typeof detail.waitUntil !== 'function') return;
+    detail.waitUntil((async () => {
+      const normalize = value => String(value || '').replaceAll('\\', '/').replace(/\/+$/, '').toLowerCase();
+      const host = runtimeHost();
+      const signal = detail.signal;
+      const check = () => {
+        window.CERemoteContext?.assertActive();
+        if (disposed || !signal || signal.aborted || host !== runtimeHost() || !host ||
+          detail.executionHostId !== host) throw new Error('项目所在电脑已变化，请重新打开项目。');
+      };
+      check();
+      if (typeof signal.addEventListener !== 'function' || typeof signal.removeEventListener !== 'function' ||
+        typeof detail.repoId !== 'string' || !detail.repoId ||
+        typeof detail.directory !== 'string' || !detail.directory) throw new Error('项目身份未确认。');
+      const matches = projects().filter(project => !project.archived &&
+        normalize(project.directories?.find(row => (row.id || row.binding_id) === 'main')?.path || project.root) === normalize(detail.directory));
+      if (matches.length !== 1 || matches[0].read_only || matches[0].source?.kind === 'codex')
+        throw new Error('项目登记已变化，请重新选择项目。');
+      const project = matches[0];
+      if (nativeProjectWrites.has(project.id)) throw new Error('项目正在保存，请稍后重试。');
+      const name = detail.action === 'rename' ? detail.name : project.name;
+      if (typeof name !== 'string' || !name.trim() || Array.from(name.trim()).length > 80) throw new Error('项目名称须为 1 至 80 个字符。');
+      const release = () => {
+        if (nativeProjectWrites.get(project.id) === signal) nativeProjectWrites.delete(project.id);
+        signal.removeEventListener('abort', release);
+      };
+      nativeProjectWrites.set(project.id, signal);
+      signal.addEventListener('abort', release, { once: true });
+      const confirm = async () => {
+        check();
+        if (!await refresh(true)) throw new Error('项目已保存，但列表尚未确认，请重新读取。');
+        check();
+        const saved = projects().find(row => row.id === project.id);
+        if (!saved || saved.name !== name.trim() || Boolean(saved.archived) !== (detail.action === 'archive') ||
+          normalize(saved.directories?.find(row => (row.id || row.binding_id) === 'main')?.path || saved.root) !== normalize(detail.directory))
+          throw new Error('项目已保存，但列表尚未确认，请重新读取。');
+      };
+      try {
+        check();
+        const result = await client.post('/api/workspace/projects/save', {
+          id: project.id, name: name.trim(), archived: detail.action === 'archive',
+          directories: project.directories.map(row => ({ id: row.id || row.binding_id, path: row.path })), source: project.source,
+          expected: { name: project.name, archived: Boolean(project.archived),
+            directories: project.directories.map(row => ({ id: row.id || row.binding_id, path: row.path })), source: project.source }
+        }, { signal });
+        check();
+        if (result.status !== 'ok' || result.project?.id !== project.id) throw new Error('服务未确认保存项目。');
+        if (detail.action === 'rename') return confirm;
+        await confirm();
+        release();
+      } catch (error) { release(); throw error; }
+    })());
+  }
   async function readSnapshot(force) {
     const current = ++request;
     if (!state.workspace || force) refreshMessage = state.workspace ? '正在更新，暂保留上次记录…' : '正在读取本地工作台…';
@@ -701,6 +758,7 @@ function mountStudio(root, { onProjects = () => {} } = {}) {
   if (location.hash === '#workspace' && root.dataset.unified !== 'true') requestedNavigation();
   window.addEventListener('platform-add-project', requestProject);
   window.addEventListener('platform-native-project-adopted', nativeProjectAdopted);
+  window.addEventListener('platform-native-project-action', nativeProjectAction);
   window.addEventListener('platform-manage-project', manageProject);
   const visibilityChanged = () => {
     if (document.hidden) { board.setActive?.(false); taskCenter?.setActive(false); legacyBoard?.setActive(false); }
@@ -713,7 +771,7 @@ function mountStudio(root, { onProjects = () => {} } = {}) {
   };
   document.addEventListener('visibilitychange', visibilityChanged);
   render(); void refresh();
-  const dispose = () => { disposed = true; externalAccess?.dispose(); newsReader?.dispose(); newsTheme?.disconnect(); newsHost?.remove(); projectDrafts.clear(); progressReturn = null; navigationGeneration++; unsubscribeAppearance?.(); unmountTheme?.(); standaloneTheme?.dispose(); closeProjectMenu(); closeNavigation(); restoreNavigation(); drawer.remove(); window.removeEventListener('resize', resizeNavigation); window.removeEventListener('scroll', closeProjectMenu, true); document.removeEventListener('pointerdown', dismissProjectMenu); request++; clearTimeout(refreshTimer); document.removeEventListener('visibilitychange', visibilityChanged); disposeMobile?.(); window.removeEventListener('hashchange', requestedNavigation); window.removeEventListener('platform-before-navigate', beforeNavigate); window.removeEventListener('platform-navigation-accepted', changed); window.removeEventListener('platform-add-project', requestProject); window.removeEventListener('platform-native-project-adopted', nativeProjectAdopted); window.removeEventListener('platform-manage-project', manageProject); projectSettings?.close(); projectSettings?.remove(); projectDialogTarget?.querySelectorAll('dialog').forEach(dialog => dialog.close()); projectDialogHost?.remove(); monitor?.destroy(); taskCenter?.dispose(); legacyBoard?.dispose(); board.dispose?.(); };
+  const dispose = () => { disposed = true; externalAccess?.dispose(); newsReader?.dispose(); newsTheme?.disconnect(); newsHost?.remove(); projectDrafts.clear(); progressReturn = null; navigationGeneration++; unsubscribeAppearance?.(); unmountTheme?.(); standaloneTheme?.dispose(); closeProjectMenu(); closeNavigation(); restoreNavigation(); drawer.remove(); window.removeEventListener('resize', resizeNavigation); window.removeEventListener('scroll', closeProjectMenu, true); document.removeEventListener('pointerdown', dismissProjectMenu); request++; clearTimeout(refreshTimer); document.removeEventListener('visibilitychange', visibilityChanged); disposeMobile?.(); window.removeEventListener('hashchange', requestedNavigation); window.removeEventListener('platform-before-navigate', beforeNavigate); window.removeEventListener('platform-navigation-accepted', changed); window.removeEventListener('platform-add-project', requestProject); window.removeEventListener('platform-native-project-adopted', nativeProjectAdopted); window.removeEventListener('platform-native-project-action', nativeProjectAction); nativeProjectWrites.clear(); window.removeEventListener('platform-manage-project', manageProject); projectSettings?.close(); projectSettings?.remove(); projectDialogTarget?.querySelectorAll('dialog').forEach(dialog => dialog.close()); projectDialogHost?.remove(); monitor?.destroy(); taskCenter?.dispose(); legacyBoard?.dispose(); board.dispose?.(); };
   const unsubscribeContext = window.CERemoteContext?.onInactive(dispose);
   return () => { unsubscribeContext?.(); dispose(); };
 }

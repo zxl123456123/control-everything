@@ -1,4 +1,13 @@
-import { describe } from 'vitest'
+import { describe, vi } from 'vitest'
+vi.mock('@/web/platform-project-actions', () => ({
+  isPlatformProjectActionMode: vi.fn(() => false),
+  preparePlatformProjectRename: vi.fn(),
+  capturePlatformProjectActionGuard: vi.fn(() => () => undefined)
+}))
+vi.mock('sonner', async importOriginal => {
+  const original = await importOriginal<typeof import('sonner')>()
+  return { ...original, toast: Object.assign(original.toast, { error: vi.fn() }) }
+})
 import { registerReposProjectHostLifecycleTests } from './repos-project-host-lifecycle.spec'
 import { registerReposProjectHostCapabilityTests } from './repos-project-host-capability.spec'
 import { registerReposProjectRuntimeTests } from './repos-project-runtime.spec'

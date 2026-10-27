@@ -76,6 +76,20 @@ export default function PlatformProjectEntry(): React.JSX.Element {
   const settingsOrigin = useRef('#home')
   const settingsTrigger = useRef<HTMLElement | null>(null)
   const [contextActive, setContextActive] = useState(true)
+  const projectActionHost = contextActive && runtimeData ? `runtime:${runtimeData.runtime.environmentId}` : null
+  useEffect(() => {
+    if (!projectActionHost) return
+    let active = true
+    const actions = import('./platform-project-actions')
+    void Promise.all([actions, import('./preload-api/web-runtime-session')]).then(([module, session]) => {
+      if (active) module.setPlatformProjectActionHost(projectActionHost, session)
+    },
+      () => { if (active) setNavigationNotice('项目操作暂不可用，请重新加载页面。') })
+    return () => {
+      active = false
+      void actions.then(module => module.setPlatformProjectActionHost(null), () => {})
+    }
+  }, [projectActionHost])
   const projectSettings = route.view === 'project' && route.tab === 'settings'
   const globalSettings = route.view === 'settings' && !['account', 'sources'].includes(route.tab)
   const nativeSettings = projectSettings || globalSettings
@@ -510,6 +524,7 @@ export default function PlatformProjectEntry(): React.JSX.Element {
         hidden={showWorkspace || showSettings || showWorkbench}
         pending={Boolean(nativeSettings || workbench || (developing && !showWorkspace && !archived))}
         onProjects={onProjects}
+        runtimeHost={projectActionHost}
       />
       {preparingWorkspace && (
         <div className="platform-navigation-notice" role="status">

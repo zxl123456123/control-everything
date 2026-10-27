@@ -13,6 +13,7 @@ const fixture = vi.hoisted(() => ({
   load: vi.fn(),
   runtimeLoad: vi.fn(),
   openModal: vi.fn(),
+  setActionHost: vi.fn(),
   projects: null as
     | ((rows: PlatformProject[], metadata?: { archived: PlatformProject[] }) => void)
     | null,
@@ -37,6 +38,8 @@ vi.mock('./platform-project-bootstrap', () => ({
 }))
 vi.mock('./web-preload-api', () => ({ installWebPreloadApi: vi.fn() }))
 vi.mock('../store', () => ({ useAppStore: { getState: () => ({ openModal: fixture.openModal }) } }))
+vi.mock('./platform-project-actions', () => ({ setPlatformProjectActionHost: fixture.setActionHost }))
+vi.mock('./preload-api/web-runtime-session', () => ({ webRuntimeState: {}, manuallyDisconnectedEnvironmentIds: new Set() }))
 vi.mock('./web-runtime-environment', () => ({ saveStoredWebRuntimeEnvironment: vi.fn() }))
 vi.mock('./web-device-key-support', () => ({
   initWebDeviceKeySupport: vi.fn().mockResolvedValue(undefined)
@@ -150,6 +153,7 @@ const publish = (rows: PlatformProject[], archived: PlatformProject[] = []) =>
 beforeEach(() => {
   fixture.mounts.mockClear()
   fixture.openModal.mockClear()
+  fixture.setActionHost.mockClear()
   fixture.bridgeMounts.mockClear()
   fixture.bridgeUnmounts.mockClear()
   fixture.agentRequests.mockClear()
@@ -176,6 +180,9 @@ it.each(['#workbench', '#project/p-one/workspace'])(
     render(<PlatformProjectEntry />)
     publish([project])
     await waitFor(() => expect(document.documentElement.dataset.platformView).toBe('workspace'))
+    await waitFor(() => expect(fixture.setActionHost).toHaveBeenCalledWith('runtime:env-a', expect.objectContaining({
+      webRuntimeState: expect.any(Object), manuallyDisconnectedEnvironmentIds: expect.any(Set)
+    })))
     await act(async () => window.dispatchEvent(new Event('platform-open-add-repo')))
     expect(fixture.openModal).toHaveBeenCalledExactlyOnceWith('add-repo')
     await act(async () => { window.location.hash = '#home' })
@@ -206,6 +213,7 @@ it('keeps a cold overview independent of the developer runtime', async () => {
   expect(fixture.load).not.toHaveBeenCalled()
   expect(fixture.bridgeMounts).not.toHaveBeenCalled()
   expect(screen.queryByTestId('project-context')).toBeNull()
+  expect(fixture.setActionHost).not.toHaveBeenCalled()
 })
 
 it.each(['#project/p-one/items', '#project/p-one/board'])(
