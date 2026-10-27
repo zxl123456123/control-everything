@@ -50,7 +50,10 @@ it('downloads dependencies in order once and keeps load-error recovery available
     '/studio-data.js',
     '/remote/account-device.js',
     '/mobile-device-entry.js',
+    '/news-pets.js',
+    '/news-pet-prefs.js',
     '/studio-shell.js',
+    '/studio-pet-settings.js',
     '/studio-preview.js'
   ])
   expect(new Headers(vi.mocked(fetch).mock.calls[0][1]?.headers).get('X-CE-Context')).toBe(
@@ -64,7 +67,7 @@ it('downloads dependencies in order once and keeps load-error recovery available
   view.rerender(<PlatformStudioSurface hidden={false} onProjects={onProjects} />)
   expect(view.container.querySelector('section')?.hasAttribute('inert')).toBe(false)
   expect(view.container.querySelector<HTMLElement>('.platform-studio-host')?.hidden).toBe(false)
-  expect(scripts).toHaveLength(17)
+  expect(scripts).toHaveLength(20)
   view.rerender(<PlatformStudioSurface hidden={false} pending onProjects={onProjects} />)
   await act(async () => {
     scripts[0].dispatchEvent(new Event('error'))

@@ -28,7 +28,10 @@ const scripts = [
   '/studio-data.js',
   '/remote/account-device.js',
   '/mobile-device-entry.js',
+  '/news-pets.js',
+  '/news-pet-prefs.js',
   '/studio-shell.js',
+  '/studio-pet-settings.js',
   '/studio-preview.js'
 ]
 let modules: Promise<void> | null = null

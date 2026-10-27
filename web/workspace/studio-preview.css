@@ -56,6 +56,19 @@
 #ce-studio .ce-settings-group>*+*{border-top:1px solid var(--ce-line)}
 #ce-studio .ce-settings-page .ce-settings-group>.ce-setting-row{display:flex;flex-direction:row;align-items:center;justify-content:space-between;gap:20px;padding:16px 20px;min-height:76px;border-bottom:0}
 #ce-studio .ce-setting-row h2{margin:0;font-size:15px;font-weight:500;line-height:24px}
+#ce-studio .ce-pet-title{margin:0 0 10px;font-size:14px;font-weight:500;line-height:24px;color:var(--ce-sub)}
+#ce-studio .ce-setting-text{min-width:0}
+#ce-studio .ce-setting-text h3{margin:0;font-size:15px;font-weight:500;line-height:24px}
+#ce-studio .ce-setting-text p{margin:2px 0 0;font-size:14px;line-height:22px;color:var(--ce-sub)}
+#ce-studio .ce-switch{position:relative;flex:none;width:46px;height:26px;min-height:26px;padding:0;border:1px solid var(--ce-input-border);border-radius:13px;background:var(--ce-soft);cursor:pointer;transition:background .15s,border-color .15s}
+#ce-studio .ce-switch-thumb{position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:var(--ce-text);transition:transform .15s}
+#ce-studio .ce-switch[aria-checked="true"]{background:var(--ce-primary);border-color:var(--ce-primary)}
+#ce-studio .ce-switch[aria-checked="true"] .ce-switch-thumb{transform:translateX(20px);background:var(--ce-on-primary)}
+#ce-studio .ce-switch:focus-visible,#ce-studio .ce-pet-select:focus-visible{outline:2px solid var(--ce-ring);outline-offset:3px}
+#ce-studio .ce-pet-select{flex:none;min-width:150px;min-height:40px;padding:6px 12px;border:1px solid var(--ce-input-border);border-radius:12px;background:var(--ce-bg);color:var(--ce-text);font:inherit}
+#ce-studio .ce-pet-status:not(:empty){margin:10px 0 0;font-size:14px;line-height:22px;color:var(--ce-red)}
+@media(prefers-reduced-motion:reduce){#ce-studio .ce-switch,#ce-studio .ce-switch-thumb{transition:none}}
+@media(max-width:760px){#ce-studio .ce-pet-select{width:100%}#ce-studio .ce-switch{align-self:flex-start}}
 #ce-studio .ce-setting-row .ce-button{flex:none;font-size:15px}
 #ce-studio .ce-creator-address{padding:0;background:var(--ce-panel)}
 #ce-studio .ce-creator-address>summary{display:flex;align-items:center;justify-content:space-between;gap:20px;min-height:76px;padding:16px 20px;font-size:15px;line-height:24px;font-weight:500;cursor:pointer;list-style:none}

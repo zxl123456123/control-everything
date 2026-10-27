@@ -18,7 +18,7 @@
   const available = project => !project.archived && project.binding_available !== false && Boolean(project.directories?.find(row => row.id === 'main')?.path || project.root);
   function renderNavigation({ current, creatorLink = '' }) {
     const link = (label, href, active, symbol) => `<a class="ce-nav${active ? ' is-current' : ''}" href="${href}"${active ? ' aria-current="page"' : ''} title="${escape(label)}" aria-label="${escape(label)}">${icon(symbol)}<span>${label}</span></a>`;
-    return `<div class="ce-brand">Control Everything</div><nav class="ce-navgroup" aria-label="主导航">${link('项目总览', '#home', current.view === 'home', 'folder')}${link('新闻', '#news', current.view === 'news', 'news')}${creatorLink}</nav><div class="ce-rail-bottom"><nav class="ce-navgroup" aria-label="管理">${link(labels.account, '#settings/account', current.view === 'settings' && current.tab === 'account' || current.view === 'mobile', 'account')}</nav><div class="ce-profile">个人工作台</div></div>`;
+    return `<div class="ce-brand">Control Everything</div><nav class="ce-navgroup" aria-label="主导航">${link('项目总览', '#home', current.view === 'home', 'folder')}${link('新闻', '#news', current.view === 'news', 'news')}${creatorLink}</nav><div class="ce-rail-bottom"><nav class="ce-navgroup" aria-label="管理">${link('设置', '#settings/appearance', current.view === 'settings' && current.tab !== 'account', 'settings')}${link(labels.account, '#settings/account', current.view === 'settings' && current.tab === 'account' || current.view === 'mobile', 'account')}</nav><div class="ce-profile">个人工作台</div></div>`;
   }
   function projectCard({ project, items, counts, facts }, { developmentUrl }) {
     const name = escape(project.name), id = escape(project.id);
