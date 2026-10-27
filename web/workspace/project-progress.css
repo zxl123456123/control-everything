@@ -4,7 +4,8 @@
 #ce-studio .project-progress :is(h2,h3){font-family:inherit;letter-spacing:0;overflow-wrap:anywhere}
 #ce-studio .project-progress h2{font-size:20px;font-weight:600;line-height:28px}
 #ce-studio .project-progress h3{font-size:15px;font-weight:600;line-height:24px}
-#ce-studio .pp-toolbar{display:flex;justify-content:flex-end;align-items:center;margin-bottom:8px}
+#ce-studio .pp-toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:8px}
+#ce-studio .pp-scope-note{margin:0;min-width:0;font-size:14px;line-height:22px;color:var(--ce-sub);overflow-wrap:anywhere}
 #ce-studio .pp-button{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid transparent;background:transparent;padding:7px 12px;border-radius:12px;min-height:40px;text-align:left;cursor:pointer;font-size:14px;font-weight:500;line-height:24px;transition:background 120ms,color 120ms}
 #ce-studio .pp-button:hover{background:var(--ce-hover)}
 #ce-studio .pp-button:focus-visible,#ce-studio .project-progress summary:focus-visible{outline:2px solid var(--ce-blue);outline-offset:3px}
@@ -17,8 +18,8 @@
 #ce-studio .pp-split[data-empty="true"]{grid-template-columns:1fr}
 #ce-studio .pp-split[data-empty="true"] .pp-detail{display:none}
 #ce-studio .pp-list{min-width:0;padding:12px 0;max-height:calc(100dvh - 230px);overflow:auto;scrollbar-gutter:stable}
-#ce-studio .pp-board{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;align-items:start}
-#ce-studio .pp-column{min-width:0;min-height:220px;padding:12px;background:var(--ce-panel);border:1px solid var(--ce-line);border-radius:12px}
+#ce-studio .pp-board{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;align-items:stretch}
+#ce-studio .pp-column{min-width:0;padding:12px;background:var(--ce-panel);border:1px solid var(--ce-line);border-radius:12px}
 #ce-studio .pp-column>h3{margin:0 0 12px;color:var(--ce-sub)}
 #ce-studio .pp-row{display:flex;flex-direction:column;align-items:flex-start;width:100%;gap:6px;padding:13px 12px;margin:8px 0;border-radius:9px;background:var(--ce-bg);border:1px solid var(--ce-faint)}
 #ce-studio .pp-row[aria-pressed="true"]{background:var(--ce-soft);border-color:var(--ce-faint)}
@@ -38,6 +39,7 @@
 #ce-studio .pp-copy{font-size:15px;line-height:24px;white-space:pre-wrap;overflow-wrap:anywhere}
 #ce-studio .pp-result{display:grid;gap:13px}
 #ce-studio .pp-result-empty{padding:20px 0}
+#ce-studio .pp-column>.pp-empty{padding:18px 8px;text-align:center;border:1px dashed var(--ce-faint);border-radius:9px}
 #ce-studio .pp-empty{padding:30px 14px;color:var(--ce-sub);font-size:14px;line-height:1.8;overflow-wrap:anywhere}
 #ce-studio .pp-material{display:grid;gap:8px;padding-top:9px}
 #ce-studio .pp-file{font-size:14px;line-height:22px;overflow-wrap:anywhere}

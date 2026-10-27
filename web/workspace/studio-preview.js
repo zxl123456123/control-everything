@@ -507,7 +507,7 @@ function mountStudio(root, { onProjects = () => {}, runtimeHost = () => null } =
     const href = filter => current.view === 'project' ? '#project/' + encodeURIComponent(current.id) + '/' + (filter === 'all' ? 'tasks' : filter) : '#inbox' + (filter === 'all' ? '' : '/' + filter);
     const selected = ['review', 'attention'].includes(current.tab) ? current.tab : 'all';
     if (root.dataset.unified === 'true') return '';
-    return `<nav class="ce-tabs" aria-label="事项筛选">${[['all', current.view === 'project' ? '本项目全部' : '全部'], ['review', '待验收'], ['attention', '需处理']].map(([value, label]) => `<a href="${href(value)}"${selected === value ? ' aria-current="page"' : ''}>${label}</a>`).join('')}</nav>`;
+    return `<nav class="ce-tabs" aria-label="事项筛选">${[['all', current.view === 'project' ? '全部项目' : '全部'], ['review', '待验收'], ['attention', '需处理']].map(([value, label]) => `<a href="${href(value)}"${selected === value ? ' aria-current="page"' : ''}>${label}</a>`).join('')}</nav>`;
   }
   function renderStatus(current) {
     if (disposed || window.CERemoteContext?.active === false) return;

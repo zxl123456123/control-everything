@@ -86,8 +86,17 @@ test('legacy review and attention links stay precise while ordinary tasks reset 
   await f.api.update(f.snapshot); f.api.setProject('project-a','review');
   assert.match(f.node('pp-list').textContent,/修复过滤器/); assert.doesNotMatch(f.node('pp-list').textContent,/整理文档/);
   f.api.setProject('project-b','attention'); assert.match(f.node('pp-list').textContent,/整理文档/); assert.doesNotMatch(f.node('pp-list').textContent,/修复过滤器/);
+  assert.equal(f.node('pp-scope-note').textContent,'仅显示「资料整理」的事项');
   f.api.setProject('project-b'); assert.match(f.node('pp-list').textContent,/修复过滤器/); assert.match(f.node('pp-list').textContent,/整理文档/);
+  assert.equal(f.node('pp-scope-note').textContent,'显示全部项目的事项');
   assert.equal(f.root.querySelectorAll('select').length,0); assert.equal(f.posts.length,0);
+});
+
+test('a row names its state only when the column does not already say it',async()=>{
+  const f=fixture(); f.snapshot.items[0].state='review'; f.snapshot.items[1].state='blocked';
+  await f.api.update(f.snapshot); f.api.setProject('project-a');
+  const metas=f.root.all.filter(node=>node.className==='pp-meta').map(node=>node.textContent);
+  assert.deepEqual(metas,['事项状态：受阻']);
 });
 
 test('three columns partition all unfinished records once and completion stays in history',async()=>{

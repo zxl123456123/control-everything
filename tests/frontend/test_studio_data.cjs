@@ -573,7 +573,7 @@ test('project task heading, filters and counts stay scoped through navigation an
   f.snapshot.items = [{ id: 'a', project_id: 'server-project' }, { id: 'b', project_id: 'other' }, { id: 'c', project_id: 'server-project' }];
   await f.route('project/server-project/tasks');
   assert.match(f.nodes.get('studio-content').innerHTML, /项目进展/);
-  assert.match(f.nodes.get('studio-content').innerHTML, /本项目全部/);
+  assert.match(f.nodes.get('studio-content').innerHTML, /全部项目/);
   assert.equal(f.nodes.get('studio-status').textContent, ''); assert.equal(f.nodes.get('studio-status').hidden, true);
   f.click('refresh'); await f.flush();
   assert.equal(f.nodes.get('studio-status').textContent, ''); assert.equal(f.nodes.get('studio-status').hidden, true);
@@ -581,7 +581,7 @@ test('project task heading, filters and counts stay scoped through navigation an
   assert.equal(f.nodes.get('studio-status').textContent, ''); assert.equal(f.nodes.get('studio-status').hidden, true);
   await f.route('inbox');
   assert.equal(f.nodes.get('studio-status').textContent, ''); assert.equal(f.nodes.get('studio-status').hidden, true);
-  assert.doesNotMatch(f.nodes.get('studio-content').innerHTML, /本项目全部/);
+  assert.doesNotMatch(f.nodes.get('studio-content').innerHTML, /全部项目/);
   f.dispose();
 });
 
