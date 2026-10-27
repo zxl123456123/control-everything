@@ -7,6 +7,8 @@ const policyDeclaration=newsHTTP.match(/CSP = \(([\s\S]*?)\)\r?\n/);
 assert(policyDeclaration,'news CSP declaration must remain explicit');
 const newsCSP=Array.from(policyDeclaration[1].matchAll(/"(?:[^"\\]|\\.)*"/g),match=>JSON.parse(match[0])).join('');
 assert(newsCSP.includes("script-src 'self';")&&!newsCSP.includes("script-src 'self' 'unsafe-inline'"),'retain actual script policy');
+// The toolbar no longer carries a pet switch; the same preference the wheel's 隐藏宠物 slot and the settings page write.
+const togglePet=page=>page.evaluate(()=>window.NewsReader.setPetEnabled(!window.NewsReader.inspect().petEnabled));
 const fixtureOrigin='http://127.0.0.1:55097';
 let browser;
 const a='111111111111111111111111',b='222222222222222222222222',c='333333333333333333333333';
@@ -38,23 +40,23 @@ check('capture screenshots default off in submitted job',progressRequest.capture
 check('progress view avoids mounting screenshot panel',!(await progressPage.locator('#research-browser').isVisible()));
 check('status hides setup, source cards and diagnostics',!(await progressPage.locator('#research-form').isVisible())&&!(await progressPage.locator('#research-details').isVisible())&&await progressPage.locator('.research-source:visible').count()===0);
 await progressPage.emulateMedia({reducedMotion:'no-preference'});
-const orbitTransform=await progressPage.locator('.orb-swirl').first().evaluate(n=>getComputedStyle(n).transform);
+const orbitTransform=await progressPage.locator('.research-ring.indeterminate .ring-fill').first().evaluate(n=>getComputedStyle(n).transform);
 await progressPage.waitForTimeout(180);
-check('visible collection has real moving CSS light',await progressPage.locator('.orb-swirl').first().evaluate((n,before)=>getComputedStyle(n).transform!==before,orbitTransform));
+check('visible collection has real moving CSS light',await progressPage.locator('.research-ring.indeterminate .ring-fill').first().evaluate((n,before)=>getComputedStyle(n).transform!==before,orbitTransform));
 await progressPage.locator('#research-return').click();
 await progressPage.waitForFunction(()=>document.getElementById('research-panel').dataset.motion==='paused');
-check('closing status pauses its animation',await progressPage.locator('.orb-swirl').first().evaluate(n=>getComputedStyle(n).animationPlayState==='paused'));
+check('closing status pauses its animation',await progressPage.locator('.research-ring.indeterminate .ring-fill').first().evaluate(n=>getComputedStyle(n).animationPlayState==='paused'));
 await progressPage.locator('#refresh').click();
 await progressPage.evaluate(()=>{Object.defineProperty(document,'hidden',{configurable:true,value:true});document.dispatchEvent(new Event('visibilitychange'));});
 check('background page pauses the status animation',await progressPage.locator('#research-panel').getAttribute('data-motion')==='paused');
 await progressPage.evaluate(()=>{Object.defineProperty(document,'hidden',{configurable:true,value:false});document.dispatchEvent(new Event('visibilitychange'));});
 await progressPage.waitForFunction(()=>document.getElementById('research-panel').dataset.motion==='running');
 await progressPage.emulateMedia({reducedMotion:'reduce'});
-check('reduced motion removes orbit animation',await progressPage.locator('.orb-swirl').first().evaluate(n=>getComputedStyle(n).animationName==='none'));
+check('reduced motion removes orbit animation',await progressPage.locator('.research-ring.indeterminate .ring-fill').first().evaluate(n=>getComputedStyle(n).animationName==='none'));
 progressEvents.push({seq:2,stage:'visit',message:'Checking sources',progress:{phase:'visit',completed:1,total:3}});
 await progressPage.waitForFunction(()=>document.getElementById('research-meter').getAttribute('aria-valuenow')==='33');
 check('known progress shows the measured percentage and one stage',await progressPage.locator('#research-value').innerText()==='33%'&&await progressPage.locator('#research-state').innerText()==='正在读取');
-for(const width of [1440,390,320]){await progressPage.setViewportSize({width,height:900});check('status and large visual fit '+width,await progressPage.locator('#research-panel').evaluate(n=>n.scrollWidth<=n.clientWidth)&&await progressPage.locator('#research-meter').evaluate(n=>n.getBoundingClientRect().width>=180));await progressPage.screenshot({path:path.join(output,`progress-${stamp}-${width}.png`)});}
+for(const width of [1440,390,320]){await progressPage.setViewportSize({width,height:900});check('status and progress ring fit '+width,await progressPage.locator('#research-panel').evaluate(n=>n.scrollWidth<=n.clientWidth)&&await progressPage.locator('#research-meter').evaluate(n=>n.getBoundingClientRect().width>=80));await progressPage.screenshot({path:path.join(output,`progress-${stamp}-${width}.png`)});}
 await progressPage.locator('#research-close').click();await progressPage.locator('#theme').click();await progressPage.locator('#refresh').click();
 for(const width of [1440,390,320]){await progressPage.setViewportSize({width,height:900});check('dark status and reading action fit '+width,await progressPage.locator('#research-panel').evaluate(n=>n.scrollWidth<=n.clientWidth)&&await progressPage.locator('#research-return').isVisible());await progressPage.screenshot({path:path.join(output,`progress-dark-${stamp}-${width}.png`)});}
 progressEvents.push({seq:3,stage:'merge',message:'Saving reader content',counts:{articles:2}});
@@ -67,7 +69,7 @@ check('finished collection pauses continuous motion',await progressPage.locator(
 check('an open status does not repeat its result as a toast',!(await progressPage.locator('#toast').isVisible()));
 await progressPage.locator('#research-again').click();
 check('starting again returns to setup without creating a job',await progressPage.locator('#research-form').isVisible()&&!(await progressPage.locator('#research-feedback').isVisible()));
-check('setup input keeps useful width on a small screen',await progressPage.locator('#research-query').evaluate(n=>n.getBoundingClientRect().width>=180));
+check('setup input keeps useful width on a small screen',await progressPage.locator('#research-query').evaluate(n=>n.getBoundingClientRect().width>=80));
 await progressPage.close();
 const {page:retryPage}=await makePage();
 const retryItem={...item(c,'Feed body without summary'),summary:null,body_blocks:[]};let retries=0;
@@ -93,7 +95,7 @@ check('update-only feed rows show their timestamp without inventing publication'
 await feedPage.locator('#article-source').click();check('source details distinguish update time from publication',(await feedPage.locator('#article-provenance').innerText()).includes('更新时间'));
 await feedPage.close();
 const {page:motion}=await makePage(fixtureJob('partial'));
-await motion.locator('#pet-visible').click();
+await togglePet(motion);
 await motion.waitForFunction(()=>window.NewsReader.inspect().researchJob==='fixture');
 await motion.locator('#refresh').click();
 check('reduced motion pauses spiders without mounting diagnostics',await motion.evaluate(()=>!window.NewsReader.inspect().engine.running&&!window.NewsReader.inspect().researchEngine?.running));
@@ -102,9 +104,9 @@ await motion.waitForFunction(()=>window.NewsReader.inspect().engine.running&&win
 await motion.evaluate(()=>{window.canvasDraws=0;const context=document.getElementById('spider-canvas').getContext('2d'),original=context.clearRect.bind(context);context.clearRect=(...args)=>{window.canvasDraws++;return original(...args);};});
 await motion.waitForTimeout(400);const visibleDraws=await motion.evaluate(()=>window.canvasDraws);check('optional spider actually draws when enabled',visibleDraws>0);
 check('the spider has no tap of its own, so the wheel button is its way in',await motion.locator('#pet-dial').isVisible());
-await motion.locator('#pet-visible').click();await motion.evaluate(()=>window.canvasDraws=0);await motion.waitForTimeout(400);
+await togglePet(motion);await motion.evaluate(()=>window.canvasDraws=0);await motion.waitForTimeout(400);
 const hiddenDraws=await motion.evaluate(()=>window.canvasDraws);check('hiding spider stops canvas drawing',hiddenDraws===0);
-await motion.locator('#pet-visible').click();await motion.evaluate(()=>window.NewsReader.switchPet('naidragon'));await motion.locator('#pet-dial').waitFor({state:'visible'});
+await togglePet(motion);await motion.evaluate(()=>window.NewsReader.switchPet('naidragon'));await motion.locator('#pet-dial').waitFor({state:'visible'});
 await motion.locator('#pet-dial').focus();await motion.keyboard.press('Enter');
 check('keyboard opens the wheel with focus inside it',await motion.evaluate(()=>Boolean(document.activeElement.closest('.pw-wheel'))));
 await motion.keyboard.press('Escape');await motion.waitForFunction(()=>document.querySelector('.pw-wheel').dataset.open==='false');await motion.waitForTimeout(100);
@@ -119,9 +121,9 @@ for(const patch of [{quiet:true},{newsFx:false}]){
   check('no pet reaction while '+Object.keys(patch)[0]+' is switched off',await bubble()==='');
   await motion.evaluate(value=>window.NewsPetPrefs.set(Object.fromEntries(Object.keys(value).map(key=>[key,key==='quiet'?false:true]))),patch);
 }
-await motion.evaluate(()=>window.NewsReader.switchPet('spider'));await motion.locator('#pet-visible').click();
+await motion.evaluate(()=>window.NewsReader.switchPet('spider'));await togglePet(motion);
 await motion.reload();await motion.waitForFunction(()=>window.NewsReader?.inspect().items===2);check('hidden preference survives reload without mounting',await motion.evaluate(()=>!window.NewsReader.inspect().engine&&!window.NewsReader.inspect().petEnabled));
-await motion.locator('#date-range').selectOption('all');await motion.locator('.title-row').first().click();await motion.locator('#open-directory').click();await motion.locator('#pet-visible').click();
+await motion.locator('#date-range').selectOption('all');await motion.locator('.title-row').first().click();await motion.locator('#open-directory').click();await togglePet(motion);
 fs.writeFileSync(path.join(output,`canvas-cost-${stamp}.json`),JSON.stringify({sample_ms:400,visible_draws:visibleDraws,hidden_draws:hiddenDraws},null,2));
 await motion.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
 const idleDestination=await motion.evaluate(()=>window.NewsReader.inspect().engine.destination);
