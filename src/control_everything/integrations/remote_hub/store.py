@@ -94,6 +94,34 @@ class RemoteHubStore:
             db.execute("INSERT INTO members VALUES(?,?,?) ON CONFLICT(issuer,sub) DO UPDATE SET status=excluded.status",
                        (identity.issuer, identity.sub, status))
 
+    def roster_page(self, limit, offset, issuer):
+        """Hub-side member roster: status, devices and last activity. Never returns keys, tokens or ports."""
+        with self.transaction() as db:
+            total = db.execute("SELECT COUNT(*) FROM members WHERE issuer=?", (issuer,)).fetchone()[0]
+            members = db.execute("SELECT sub,status FROM members WHERE issuer=? ORDER BY sub LIMIT ? OFFSET ?",
+                                 (issuer, limit, offset)).fetchall()
+            now, rows = self.clock(), []
+            for member in members:
+                devices = [dict(row) for row in db.execute(
+                    "SELECT device_id,name,state,generation,last_heartbeat,cleanup_error IS NOT NULL AS cleanup_failed "
+                    "FROM devices WHERE issuer=? AND sub=? ORDER BY generation DESC LIMIT 5", (issuer, member["sub"]))]
+                live, newest = db.execute(
+                    "SELECT COALESCE(SUM(invalidated=0 AND expires>?),0),MAX(expires) FROM browser_sessions WHERE issuer=? AND sub=?",
+                    (now, issuer, member["sub"])).fetchone()
+                rows.append({"sub": member["sub"], "status": member["status"], "devices": devices,
+                             "sessions": int(live), "last_login": newest - 1800 if newest is not None else None})
+            return rows, total
+
+    def set_member_status(self, issuer, sub, status):
+        """Change an existing member only; disabling also ends that member's browser sessions."""
+        if status not in ("active", "disabled"):
+            raise HubError("invalid_member_status", 400)
+        with self.transaction() as db:
+            if db.execute("UPDATE members SET status=? WHERE issuer=? AND sub=?", (status, issuer, sub)).rowcount != 1:
+                raise HubError("member_not_found", 404)
+            if status == "disabled":
+                db.execute("UPDATE browser_sessions SET invalidated=1 WHERE issuer=? AND sub=?", (issuer, sub))
+
     def create_invitation(self):
         token = secrets.token_urlsafe(32)
         with self.transaction() as db:

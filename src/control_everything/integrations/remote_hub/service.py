@@ -97,6 +97,51 @@ class RemoteHubService:
                               "admin": owner in self.admin_subjects, "device": current})
         return {"items": items, "total": total, "limit": limit, "offset": offset}
 
+    def _require_admin(self, identity):
+        if (identity.issuer, identity.sub) not in self.admin_subjects:
+            raise HubError("admin_required", 403)
+
+    def admin_roster(self, identity, limit=25, offset=0):
+        """Admin-only roster of hub members. Names are best-effort from the optional directory."""
+        self._require_admin(identity)
+        if type(limit) is not int or not 1 <= limit <= 100 or type(offset) is not int or not 0 <= offset <= 2147483647:
+            raise HubError("invalid_pagination", 400)
+        rows, total = self.store.roster_page(limit, offset, identity.issuer)
+        names = {}
+        if self.user_directory is not None:
+            try:
+                names = {account["sub"]: account["name"] for account in self.user_directory.page(100, 0)[0]}
+            except HubError:
+                names = {}
+        now, items = self.store.clock(), []
+        for row in rows:
+            devices = []
+            for device in row["devices"]:
+                state = device["state"]
+                fresh = device["last_heartbeat"] is not None and now - device["last_heartbeat"] <= 45
+                if state == "online" and not fresh:
+                    state = "offline"
+                devices.append({"device_id": device["device_id"], "name": device["name"], "state": state,
+                                "generation": device["generation"], "last_seen": device["last_heartbeat"],
+                                "cleanup_failed": bool(device["cleanup_failed"])})
+            stamps = [value for value in (row["last_login"], *(d["last_seen"] for d in devices)) if value is not None]
+            items.append({"sub": row["sub"], "name": names.get(row["sub"]) or None, "membership": row["status"],
+                          "admin": (identity.issuer, row["sub"]) in self.admin_subjects, "devices": devices,
+                          "sessions": row["sessions"], "last_active": max(stamps) if stamps else None})
+        return {"items": items, "total": total, "limit": limit, "offset": offset, "names_available": self.user_directory is not None}
+
+    def set_member_status(self, identity, sub, status):
+        self._require_admin(identity)
+        if not isinstance(sub, str) or not 1 <= len(sub) <= 256 or any(ord(char) < 32 for char in sub):
+            raise HubError("invalid_member", 400)
+        if status not in ("active", "disabled"):
+            raise HubError("invalid_member_status", 400)
+        self.limit((identity.issuer, identity.sub, "member-status"), 30)
+        if (identity.issuer, sub) in self.admin_subjects:
+            raise HubError("cannot_change_admin", 409)
+        self.store.set_member_status(identity.issuer, sub, status)
+        return {"sub": sub, "membership": status}
+
     def activate(self, identity, invite):
         self.limit((identity.issuer, identity.sub, "activate"), 10)
         if not isinstance(invite, str) or not 16 <= len(invite) <= 128:

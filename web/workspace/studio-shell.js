@@ -2,7 +2,7 @@
 'use strict';
 (() => {
   const escape = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
-  const labels = { appearance: '外观', account: '账号与设备', sources: '高级接入', development: '开发工具偏好' };
+  const labels = { appearance: '外观', account: '账号与设备', members: '成员管理', sources: '高级接入', development: '开发工具偏好' };
   const projectUrl = (id, tab = 'workspace') => '#project/' + encodeURIComponent(id) + '/' + tab;
   const icons = {
     news: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 8h10M7 12h10M7 16h6"/>',
@@ -66,9 +66,9 @@
     return `<div class="ce-heading"><h1>${title}</h1></div><section class="ce-empty" role="status">${integrated ? '此设置入口尚未就绪。' : '请在已连接的项目工作台中使用开发设置。'}<a class="ce-button" href="#home">返回项目总览</a></section>`;
   }
   /** Section switcher shown above every settings page; the developer-preferences stub is not offered. */
-  function renderSettingsTabs(current) {
+  function renderSettingsTabs(current, { members = false } = {}) {
     const link = tab => `<a href="#settings/${tab}"${tab === current ? ' aria-current="page"' : ''}>${labels[tab]}</a>`;
-    return ['appearance', 'account', 'sources'].map(link).join('');
+    return ['appearance', 'account', ...(members ? ['members'] : []), 'sources'].map(link).join('');
   }
   function renderProgressHeading({ project, tab, returnHash, scope = 'current' }) {
     const name = escape(project.name), management = ['items', 'board'].includes(tab);
