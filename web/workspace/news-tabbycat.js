@@ -695,6 +695,8 @@ function installStyle(root, css, nonce) {
    if (e.preventDefault) e.preventDefault();
    global.addEventListener('pointerup', pointerUp); global.addEventListener('pointercancel', pointerUp);
   }
+  /* With the built-in dial off, a tap on the pet is reported to the host (which owns the dial) as a `news-pet-tap` event; detail.double marks the second tap of a double tap. */
+  function tapped(double) { try { root.dispatchEvent(new CustomEvent('news-pet-tap', {detail: {double}})); } catch (e) {} }
   function pointerUp() {
    global.removeEventListener('pointerup', pointerUp); global.removeEventListener('pointercancel', pointerUp);
    const d = pointer.down; pointer.down = false;
@@ -702,8 +704,8 @@ function installStyle(root, css, nonce) {
    if (destroyed || !d) return;
    if (M.drag) { endDrag(); return; }
    const now = performance.now();
-   if (now - M.clickT < 380) { M.clickT = 0; closeMenu(); poke('belly'); }
-   else { M.clickT = now; poke('click'); if (hostActions.length && opt.dial) toggleMenu(); }
+   if (now - M.clickT < 380) { M.clickT = 0; closeMenu(); poke('belly'); if (!opt.dial) tapped(true); }
+   else { M.clickT = now; poke('click'); if (hostActions.length && opt.dial) toggleMenu(); else if (!opt.dial) tapped(false); }
   }
   /* action dial beside the pet: click a sector, or drag / wheel the ring and click the hub to confirm; the corner toggle flips pages (max 6 sectors) */
   const DW = 216, DC = 108, RI = 40, RO = 92, RB = 66;

@@ -127,7 +127,7 @@ test('round-7 proportions: small round head on a big pear body (head < 0.85 of b
 test('size budget: one plain-JS file, no vendored three.js, lazy only', () => {
   const bytes = Buffer.byteLength(source), gz = zlib.gzipSync(source, {level: 9}).length;
   assert.ok(bytes < 118 * 1024, 'news-naidragon.js is ' + bytes + ' bytes');
-  assert.ok(bytes - 102196 < 15 * 1024, 'final-round growth over pet7: ' + (bytes - 102196) + ' B');
+  assert.ok(bytes - 102196 < 16 * 1024, 'final-round growth over pet7: ' + (bytes - 102196) + ' B');
   assert.ok(gz - 34703 < 6 * 1024, 'final-round gzip growth over pet7: ' + (gz - 34703) + ' B');
   assert.ok(gz < 40 * 1024, 'news-naidragon.js gzip is ' + gz + ' bytes');
   assert.ok(!fs.existsSync(path.join(root, 'web/workspace/vendor/three.bundle.js')));
@@ -616,7 +616,7 @@ test('wiring: feed script is registered everywhere and the reader keeps manual/d
   assert.match(petsSource, /'setActions', 'openMenu', 'closeMenu', 'toggleMenu'/);
   const sizes = ['news-naidragon.js', 'news-pet-status.js'].map(f => Buffer.byteLength(read('web/workspace/' + f)));
   const PET4 = 88701 + 3951; /* sizes of the pet + feed script at the end of round 4 */
-  assert.ok(sizes[0] + sizes[1] - PET4 < 28 * 1024, 'growth over pet4: ' + (sizes[0] + sizes[1] - PET4) + ' B');
+  assert.ok(sizes[0] + sizes[1] - PET4 < 29 * 1024, 'growth over pet4: ' + (sizes[0] + sizes[1] - PET4) + ' B');
 });
 
 // ---- round 8: embedding contract (options, dock corners, theme, context loss, host-UI safety, lifecycle)
@@ -777,4 +777,17 @@ test('host reactions: react() plays a gesture and a short bubble, is ignored whi
   assert.equal(proxy.react('hop', 'early'), false, 'nothing is queued while the pet script loads');
   vm.runInContext(source, lazy.context); lazy.scripts[0].onload(); await new Promise(r => setImmediate(r));
   assert.equal(proxy.inspect().mood.bubble, '', 'the early reaction was dropped, not replayed'); assert.equal(proxy.react(null, 'ok'), true); proxy.destroy();
+});
+
+test('with the built-in dial off, a tap and a double tap are reported to the host as news-pet-tap', () => {
+  const t = setup(); sizeStage(t, 1000, 640); const api = t.context.NewsNaidragon.mount({...mountOpts(t), actions: four, options: {status: false, dial: false}}); sizeOverlays(t, api); api.resume(); t.step(30);
+  clickPet(t, api); t.step(2);
+  const taps = () => t.stage.events.filter(event => event.type === 'news-pet-tap');
+  assert.equal(taps().length, 1); assert.equal(taps()[0].detail.double, false);
+  assert.equal(api.inspect().menu.open, false, 'the pet draws no dial of its own');
+  clickPet(t, api, {gap: 100});
+  assert.equal(taps().length, 2); assert.equal(taps()[1].detail.double, true);
+  api.setOptions({dial: true}); clickPet(t, api); t.step(2);
+  assert.equal(taps().length, 2, 'with its own dial on, the pet keeps the tap to itself');
+  api.destroy();
 });

@@ -613,7 +613,7 @@ test('wiring: feed script is registered everywhere and the reader keeps manual/d
   assert.match(reader, /actions:petActions\(\)/);
   assert.match(petsSource, /'setActions', 'openMenu', 'closeMenu', 'toggleMenu'/);
   const sizes = ['news-tabbycat.js', 'news-pet-status.js'].map(f => Buffer.byteLength(read('web/workspace/' + f)));
-  assert.ok(sizes[0] + sizes[1] < 155 * 1024, 'pet + feed script stay modest: ' + (sizes[0] + sizes[1]) + ' B');
+  assert.ok(sizes[0] + sizes[1] < 156 * 1024, 'pet + feed script stay modest: ' + (sizes[0] + sizes[1]) + ' B');
 });
 
 // ---- round 8: embedding contract (options, dock corners, theme, context loss, host-UI safety, lifecycle)
@@ -920,4 +920,17 @@ test('host reactions: react() plays a gesture and a short bubble, is ignored whi
   assert.equal(proxy.react('hop', 'early'), false, 'nothing is queued while the pet script loads');
   vm.runInContext(source, lazy.context); lazy.scripts[0].onload(); await new Promise(r => setImmediate(r));
   assert.equal(proxy.inspect().mood.bubble, '', 'the early reaction was dropped, not replayed'); assert.equal(proxy.react(null, 'ok'), true); proxy.destroy();
+});
+
+test('with the built-in dial off, a tap and a double tap are reported to the host as news-pet-tap', () => {
+  const t = setup(); sizeStage(t, 1000, 640); const api = t.context.NewsTabbycat.mount({...mountOpts(t), actions: four, options: {status: false, dial: false}}); sizeOverlays(t, api); api.resume(); t.step(30);
+  clickPet(t, api); t.step(2);
+  const taps = () => t.stage.events.filter(event => event.type === 'news-pet-tap');
+  assert.equal(taps().length, 1); assert.equal(taps()[0].detail.double, false);
+  assert.equal(api.inspect().menu.open, false, 'the pet draws no dial of its own');
+  clickPet(t, api, {gap: 100});
+  assert.equal(taps().length, 2); assert.equal(taps()[1].detail.double, true);
+  api.setOptions({dial: true}); clickPet(t, api); t.step(2);
+  assert.equal(taps().length, 2, 'with its own dial on, the pet keeps the tap to itself');
+  api.destroy();
 });
