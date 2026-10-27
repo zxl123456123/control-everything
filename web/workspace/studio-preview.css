@@ -960,3 +960,33 @@ body:has(#ce-studio){margin:0;background:var(--ce-bg,#ffffff)}
 @keyframes ce-skeleton{to{background-position:-200% 0}}
 @media(max-width:900px){#ce-studio .ce-skeleton{grid-template-columns:1fr}}
 @media(prefers-reduced-motion:reduce){#ce-studio .ce-skeleton span{animation:none}}
+
+/* UI polish: skip link, settings switcher, larger hit areas and a quieter setup strip. */
+#ce-studio .ce-skip{position:fixed;left:16px;top:-64px;z-index:60;min-height:40px;padding:0 16px;border:1px solid var(--ce-line);border-radius:10px;background:var(--ce-panel);color:var(--ce-text);font:inherit;font-size:14px;box-shadow:0 6px 18px rgba(15,23,42,.18);cursor:pointer;transition:top .15s ease}
+#ce-studio .ce-skip:focus-visible{top:16px;outline:2px solid var(--ce-ring);outline-offset:2px}
+#ce-studio main.ce-content:focus{outline:none}
+#ce-studio .ce-settings-tabs{width:min(800px,calc(100% - 48px));margin:16px auto 0}
+#ce-studio .ce-settings-tabs a{display:inline-flex;align-items:center;min-height:40px;padding:0;color:var(--ce-sub);text-decoration:none;transition:color .15s ease}
+#ce-studio .ce-settings-tabs a:hover{color:var(--ce-text)}
+#ce-studio .ce-settings-tabs[hidden]{display:none}
+#ce-studio .ce-crumbs a{display:inline-flex;align-items:center;min-height:32px;margin:0 -6px;padding:0 6px;border-radius:6px;transition:background-color .15s ease}
+#ce-studio .ce-crumbs a:hover{background:var(--ce-hover)}
+#ce-studio .ce-setup-notice{gap:12px;margin-bottom:16px;padding:10px 14px;border:1px solid var(--ce-line);border-radius:10px;font-size:14px;line-height:22px;background:var(--ce-soft)}
+#ce-studio .ce-setup-notice::before{content:"";flex:none;width:8px;height:8px;border-radius:50%;background:var(--ce-amber)}
+#ce-studio .ce-setup-notice>span{flex:1 1 auto;min-width:0}
+#ce-studio .ce-setup-notice .ce-button{min-height:32px}
+#ce-studio .ce-pet-note{margin:12px 2px 0;font-size:13px;line-height:20px;color:var(--ce-sub)}
+#ce-studio .ce-pet-note[hidden]{display:none}
+#ce-studio .ce-mascot-depot{right:max(24px,env(safe-area-inset-right));bottom:max(24px,env(safe-area-inset-bottom))}
+#ce-studio .ce-mascot-key{right:max(24px,env(safe-area-inset-right));bottom:max(24px,env(safe-area-inset-bottom))}
+@media(max-width:809px){#ce-studio .ce-settings-tabs{width:calc(100% - 32px)}}
+@media(max-width:520px){
+ #ce-studio .ce-summary-metrics{gap:6px}
+ #ce-studio .ce-summary-metrics>div{padding:8px 10px}
+ #ce-studio .ce-summary-metrics>div>svg{display:none}
+ #ce-studio .ce-summary-metrics dt{font-size:13px;line-height:20px}
+ #ce-studio .ce-summary-metrics dd{margin-top:2px;font-size:20px;line-height:26px}
+ #ce-studio .ce-setup-notice{padding:8px 12px;flex-wrap:nowrap}
+}
+@media(pointer:coarse){#ce-studio :is(.ce-crumbs a,.ce-settings-tabs a){min-height:44px}}
+@media(prefers-reduced-motion:reduce){#ce-studio :is(.ce-skip,.ce-settings-tabs a,.ce-crumbs a){transition:none}}

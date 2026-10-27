@@ -39,7 +39,10 @@ test('zero, all archived and unavailable projects reach the native workbench wit
   const empty = overview({projects:[]});
   assert.match(empty, /还没有项目/); assert.doesNotMatch(empty, /studio-project-search|ce-summary-band/);
   assert.doesNotMatch(overview({projects:[project('one')]}), /href="#workbench"/);
-  assert.match(overview({projects:[project('one')],runtimeAvailable:false}), /项目运行组件未连接/);
+  const offline = overview({projects:[project('one')],runtimeAvailable:false});
+  assert.match(offline, /项目运行组件未连接，暂时只能查看项目与事项进展/);
+  assert.doesNotMatch(offline, /href="#workbench"/, 'no call to action that leads nowhere while the runtime is down');
+  assert.match(offline, /<section class="ce-setup-notice" role="status">/);
 });
 
 test('the sidebar offers settings and account management while advanced compatibility settings stay off routine navigation', () => {
@@ -90,4 +93,16 @@ test('advanced settings retains precise compatibility destinations without resto
   assert.match(html, /aria-label="管理事项 API 接入">管理/);
   assert.doesNotMatch(html, /<p\b|ce-tool-card|ce-access-setting/);
   assert.doesNotMatch(html, /游戏创作|data-creator-form/);
+});
+
+test('settings and account carry their own icons and the settings pages get a three-way switcher', () => {
+  const html = shell.renderNavigation({current:{view:'home'}});
+  assert.ok(html.includes('<circle cx="12" cy="12" r="3"/>'), 'settings uses a gear');
+  assert.ok(!html.includes('M3 6h18M3 12h18'), 'the sliders glyph is gone');
+  assert.ok(html.includes('<circle cx="12" cy="8" r="4"/>'), 'account uses a person');
+  const tabs = shell.renderSettingsTabs('appearance');
+  assert.equal((tabs.match(/<a /g) || []).length, 3);
+  assert.equal((tabs.match(/aria-current="page"/g) || []).length, 1);
+  assert.doesNotMatch(tabs, /development/, 'the developer-preferences stub is not offered');
+  assert.doesNotMatch(shell.renderSettingsTabs('development'), /aria-current/);
 });

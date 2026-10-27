@@ -372,6 +372,11 @@ function mountStudio(root, { onProjects = () => {}, runtimeHost = () => null } =
     const chosen = projects().find(p => p.id === current.id);
     const accountPage = current.view === 'mobile' || current.view === 'settings' && current.tab === 'account';
     setHtml($('studio-topbar'), `<header class="ce-topbar"><button class="ce-iconbtn ce-rail-toggle" data-action="rail-toggle" type="button" aria-label="${railCollapsed ? '展开导航' : '收起导航'}" title="${railCollapsed ? '展开导航' : '收起导航'}" aria-controls="studio-rail" aria-expanded="${!railCollapsed}">${icon('sidebar')}</button><button class="ce-iconbtn ce-menu-trigger" data-action="navigation" type="button" aria-label="打开导航" aria-controls="studio-navigation" aria-expanded="${drawer.open}">${icon('menu')}</button><div class="ce-crumbs"><a href="#home">项目</a>${!['home', 'inbox'].includes(current.view) ? `<span> / ${escape(accountPage ? '账号与设备' : chosen?.name || ({ inbox: '事项', tools: '高级管理', mobile: '账号与设备', news: '新闻', settings: '设置', project: state.workspace ? '未找到项目' : '项目' }[current.view] || '项目'))}</span>` : ''}</div><a class="ce-button ce-plain ce-mobile-entry-mobile${accountPage ? ' is-current' : ''}" href="#settings/account"${accountPage ? ' aria-current="page"' : ''}>账号与设备</a><a class="ce-button ce-plain ce-creator-mobile" href="#news">新闻</a>${accountPage || current.view === 'news' || root.dataset.unified === 'true' && (current.view === 'inbox' || current.view === 'project' && ['tasks', 'review', 'attention'].includes(current.tab)) ? '' : `<button class="ce-iconbtn" data-action="refresh" type="button" title="刷新当前页面" aria-label="刷新当前页面" aria-busy="false">${icon('refresh')}</button>`}<button class="ce-iconbtn" data-action="theme" type="button" aria-label="${root.dataset.theme === 'dark' ? '切换浅色外观' : '切换深色外观'}">${icon(root.dataset.theme === 'dark' ? 'sun' : 'moon')}</button></header>`);
+    const settingsNav = $('studio-settings-nav');
+    if (settingsNav) {
+      settingsNav.hidden = !accountPage && current.view !== 'settings';
+      if (!settingsNav.hidden) setHtml(settingsNav, window.StudioShell.renderSettingsTabs(accountPage ? 'account' : current.tab));
+    }
     syncAppearance();
   }
   function home() {
@@ -648,6 +653,7 @@ function mountStudio(root, { onProjects = () => {}, runtimeHost = () => null } =
     if (menuId) { event.preventDefault(); openProjectMenu(menuId, event.target.closest('[data-project-menu]')); }
     const action = event.target.closest('[data-action]')?.dataset.action;
     if (action === 'refresh') void refresh();
+    if (action === 'skip-to-content') root.querySelector('main.ce-content')?.focus();
     if (action === 'external-access') openExternalAccess();
     if (action === 'rail-toggle') { railCollapsed = !railCollapsed; root.dataset.railCollapsed = String(railCollapsed); renderChrome(route()); root.querySelector('[data-action="rail-toggle"]')?.focus(); }
     if (action === 'management-menu') openProjectMenu(route().id, event.target.closest('[data-action="management-menu"]'), true);

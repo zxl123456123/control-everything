@@ -40,13 +40,15 @@
 </head>
 <body>
   <section id="ce-studio" data-theme="light" aria-label="Control Everything 工作台">
+    <button type="button" class="ce-skip" data-action="skip-to-content">跳到主要内容</button>
     <div class="ce-shell">
       <aside id="studio-rail" class="ce-rail" aria-label="应用导航"></aside>
       <div class="ce-app">
         <div id="studio-topbar"></div>
         <p id="studio-status" class="ce-preview-notice" role="status" aria-live="polite">正在读取本地工作台…</p>
         <p id="studio-theme-status" class="ce-preview-notice" role="status" hidden></p>
-        <main class="ce-content" aria-label="工作区">
+        <nav id="studio-settings-nav" class="ce-tabs ce-settings-tabs" aria-label="设置分区" hidden></nav>
+        <main class="ce-content" aria-label="工作区" tabindex="-1">
           <div id="studio-content" class="ce-main"></div>
           <section id="studio-tasks" class="ce-business-module ce-main" aria-label="事项管理" hidden></section>
           <section id="studio-legacy-board" class="ce-business-module ce-main" aria-label="事项看板" hidden></section>
