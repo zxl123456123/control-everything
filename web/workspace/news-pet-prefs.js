@@ -8,8 +8,9 @@
  *   news-reader-pet-news-fx  'false' = no news-page interactions; absent = on
  *   news-reader-pet-size     'small' | 'medium' | 'large', default medium
  *   news-reader-pet-dock     'auto' | 'bl' | 'br' resting corner, default auto
- *   news-reader-pet-dial-pin 'true' = the wheel stays open after an action and ignores outside clicks (default off)
- *   news-reader-pet-dial     comma list of dial action ids (NewsPetDial), absent = the defaults
+ *
+ * The wheel has six fixed slots and nothing to store: the keys `news-reader-pet-dial` and `news-reader-pet-dial-pin`
+ * of earlier versions are deleted the first time the preference is read (nothing is migrated).
  * `<html data-pets-disabled>` stays a host-level veto owned by the embedding page: the registry drops the
  * listed pets from `list()`, so a stored choice of such a pet resolves to the default form.
  */
@@ -18,14 +19,14 @@
   const PREFIX = 'news-reader-pet';
   const SIZES = Object.freeze(['small', 'medium', 'large']);
   const DOCKS = Object.freeze(['auto', 'bl', 'br']);
+  const RETIRED_KEYS = Object.freeze([PREFIX + '-dial', PREFIX + '-dial-pin']);
   const listeners = new Set();
-  let last = null;
+  let last = null, retired = false;
 
   // Remote accounts keep their own copy: the context prefixes every key with the account scope.
   const storage = () => global.CERemoteContext ? global.CERemoteContext.storage('localStorage') : global.localStorage;
   const names = () => global.NewsPets ? global.NewsPets.list().map(pet => pet.name) : ['spider'];
   const fallbackName = () => global.NewsPets?.defaultName() || 'spider';
-  const dial = () => global.NewsPetDial;
   const flag = (raw, fallback) => raw === 'true' ? true : raw === 'false' ? false : fallback;
   const pick = (allowed, fallback) => raw => allowed.includes(raw) ? raw : fallback;
 
@@ -37,16 +38,21 @@
     newsFx: {key: PREFIX + '-news-fx', parse: raw => flag(raw, true), valid: value => typeof value === 'boolean', write: String},
     size: {key: PREFIX + '-size', parse: pick(SIZES, 'medium'), valid: value => SIZES.includes(value), write: String},
     dock: {key: PREFIX + '-dock', parse: pick(DOCKS, 'auto'), valid: value => DOCKS.includes(value), write: String},
-    dialPin: {key: PREFIX + '-dial-pin', parse: raw => raw === 'true', valid: value => typeof value === 'boolean', write: String},
-    dial: {key: PREFIX + '-dial', parse: raw => dial() ? dial().parse(raw) : [], valid: value => Array.isArray(value) && Boolean(dial()), write: value => dial().serialize(value)},
   };
   const same = (a, b) => Boolean(a) && Object.keys(FIELDS).every(field => String(a[field]) === String(b[field]));
 
-  /** @returns {{pet: string, enabled: boolean, quiet: boolean, newsFx: boolean, size: string, dock: string, dialPin: boolean, dial: string[]}} the stored preference, always valid. */
+  /** Removes the keys of the retired wheel settings, once; the flag is only set when the storage accepted every removal. */
+  function retireLegacyKeys(store) {
+    if (retired || !store) return;
+    try { for (const key of RETIRED_KEYS) store.removeItem(key); retired = true; } catch { /* read-only storage: try again next time */ }
+  }
+
+  /** @returns {{pet: string, enabled: boolean, quiet: boolean, newsFx: boolean, size: string, dock: string}} the stored preference, always valid. */
   function read() {
     const out = {};
     let store = null;
     try { store = storage(); } catch { /* storage blocked: defaults */ }
+    retireLegacyKeys(store);
     for (const [field, spec] of Object.entries(FIELDS)) {
       let raw = null;
       try { raw = store ? store.getItem(spec.key) : null; } catch { /* unreadable key: default */ }

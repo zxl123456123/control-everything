@@ -1,4 +1,4 @@
-// The news-page pet director (news-pet-director.js): dial actions, size/dock options and the throttled reactor.
+// The news-page pet director (news-pet-director.js): the shared wheel actions, size/dock options and the throttled reactor.
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -23,12 +23,70 @@ function setup({enabled = true, engineHasReact = true} = {}) {
   return {state, reactor};
 }
 
-test('buildActions keeps only ids that have a handler, in the given order', () => {
-  const run = () => {};
-  const actions = director.buildActions(['workspace', 'next', 'bogus', 'quiet'], {workspace: run, next: run, quiet: run});
-  assert.deepEqual(plain(actions.map(a => a.id)), ['workspace', 'next', 'quiet']);
-  assert.ok(actions.every(a => a.label && a.icon && a.run === run));
-  assert.deepEqual(plain(director.buildActions(['next'], {})), []);
+function host(overrides = {}) {
+  const log = {went: [], told: [], hid: 0, searched: 0}, stored = {quiet: false, enabled: true};
+  const prefs = {
+    read: () => ({...stored}),
+    set: patch => { if (overrides.refuse) return false; Object.assign(stored, patch); return true; },
+    setEnabled: value => { if (overrides.refuse) return false; stored.enabled = value; return true; },
+  };
+  const actions = director.createActions({
+    here: 'news', go: hash => log.went.push(hash), search: () => { log.searched++; }, prefs, notify: text => log.told.push(text), afterHide: () => { log.hid++; }, ...overrides,
+  });
+  return {log, stored, actions, by: id => actions.find(action => action.id === id)};
+}
+
+test('buildActions always returns all six slots in clock order, with a noop and a reason for a missing handler', () => {
+  const actions = director.buildActions({});
+  assert.deepEqual(plain(actions.map(a => [a.id, a.angle])), [['workspace', 0], ['news', 60], ['search', 120], ['quiet', 180], ['pet-settings', 240], ['hide-pet', 300]]);
+  assert.ok(actions.every(a => a.label && a.icon && typeof a.run === 'function' && a.enabled === false && a.reason));
+  let ran = 0;
+  const some = director.buildActions({news: {run: () => { ran++; }}, quiet: {run: () => {}, checked: true}});
+  assert.equal(some.find(a => a.id === 'news').enabled, true);
+  some.find(a => a.id === 'news').run(); assert.equal(ran, 1);
+  assert.equal(some.find(a => a.id === 'quiet').checked, true);
+  assert.equal(some.find(a => a.id === 'workspace').enabled, false);
+  assert.equal('checked' in some.find(a => a.id === 'news'), false, 'only the quiet switch has a state');
+});
+
+test('on the news page: the news slot is greyed as 当前页 and search works', () => {
+  const {by, log} = host();
+  assert.equal(by('news').enabled, false); assert.equal(by('news').reason, '当前页');
+  assert.equal(by('workspace').enabled, true);
+  by('workspace').run(); assert.deepEqual(plain(log.went), ['#home']);
+  assert.equal(by('search').enabled, true);
+  by('search').run(); assert.equal(log.searched, 1);
+});
+
+test('in the Studio: the page you are on is greyed and search says 仅新闻页', () => {
+  const home = host({here: 'home', search: null});
+  assert.equal(home.by('workspace').enabled, false); assert.equal(home.by('workspace').reason, '当前页');
+  assert.equal(home.by('news').enabled, true);
+  assert.equal(home.by('search').enabled, false); assert.equal(home.by('search').reason, '仅新闻页');
+  const inbox = host({here: 'inbox', search: null});
+  assert.equal(inbox.by('workspace').enabled, true, 'any other page can go home');
+  inbox.by('news').run(); assert.deepEqual(plain(inbox.log.went), ['#news']);
+  inbox.by('pet-settings').run(); assert.deepEqual(plain(inbox.log.went), ['#news', '#settings/appearance']);
+});
+
+test('quiet mode toggles through the preference, shows its state and tells the user', () => {
+  const {by, stored, log} = host();
+  assert.equal(by('quiet').checked, false);
+  by('quiet').run(); assert.equal(stored.quiet, true);
+  by('quiet').run(); assert.equal(stored.quiet, false);
+  assert.deepEqual(plain(log.told), ['安静模式已开启，宠物不再有动作和提示。', '安静模式已关闭。']);
+  const refused = host({refuse: true});
+  refused.by('quiet').run(); assert.deepEqual(plain(refused.log.told), [], 'nothing is announced when nothing was saved');
+});
+
+test('hiding the pet stores the switch, says how to bring it back, and lets the page move focus', () => {
+  const {by, stored, log} = host();
+  by('hide-pet').run();
+  assert.equal(stored.enabled, false); assert.equal(log.hid, 1);
+  assert.match(log.told[0], /设置 → 外观 → 宠物/);
+  const refused = host({refuse: true});
+  refused.by('hide-pet').run();
+  assert.equal(refused.log.hid, 0); assert.match(refused.log.told[0], /无法保存/);
 });
 
 test('petOptions maps size and dock for full pets only', () => {

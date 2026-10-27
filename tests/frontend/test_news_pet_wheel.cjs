@@ -1,4 +1,4 @@
-// The shortcut wheel's pure parts (news-pet-wheel.js): ring layout and the deterministic placement beside the pet.
+// The shortcut wheel's pure parts (news-pet-wheel.js): slot geometry and the deterministic placement beside the pet.
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -12,21 +12,27 @@ vm.runInContext(source, context);
 const wheel = context.window.NewsPetWheel;
 const plain = value => JSON.parse(JSON.stringify(value));
 
-test('the first button is at the top and the rest follow clockwise at equal angles', () => {
-  const spots = plain(wheel.layout(4, 100));
-  assert.deepEqual(spots.map(spot => [Math.round(spot.x), Math.round(spot.y)]), [[0, -100], [100, 0], [0, 100], [-100, 0]]);
-  const six = plain(wheel.layout(6, 100));
-  assert.equal(six.length, 6);
-  for (const spot of six) assert.ok(Math.abs(Math.hypot(spot.x, spot.y) - 100) < 0.05);
-  assert.deepEqual(plain(wheel.layout(0, 100)), []);
+test('a slot angle puts its button on the ring: 0 is the top and angles grow clockwise', () => {
+  const at = angle => plain(wheel.slotPosition(angle, 100));
+  assert.deepEqual(at(0), {x: 0, y: -100});
+  assert.deepEqual(at(180), {x: 0, y: 100});
+  assert.deepEqual(at(90), {x: 100, y: 0});
+  assert.deepEqual(at(270), {x: -100, y: 0});
+  const two = at(60);
+  assert.ok(two.x > 80 && two.y < 0, 'the 2 o\'clock slot is up and to the right');
 });
 
-test('buttons never overlap: neighbours stay at least a button plus a gap apart for 3 to 6 actions', () => {
-  for (let count = 3; count <= 6; count++) for (const width of [1440, 390]) {
-    const spots = plain(wheel.layout(count, wheel.ringRadius(width)));
-    for (let i = 0; i < count; i++) {
-      const a = spots[i], b = spots[(i + 1) % count];
-      assert.ok(Math.hypot(a.x - b.x, a.y - b.y) >= wheel.BUTTON + 8, `${count} actions at ${width}px`);
+test('the position belongs to the angle, so it never depends on how many slots are shown', () => {
+  assert.deepEqual(plain(wheel.slotPosition(120, 100)), plain(wheel.slotPosition(120, 100)));
+  for (const angle of [0, 60, 120, 180, 240, 300]) assert.ok(Math.abs(Math.hypot(wheel.slotPosition(angle, 84).x, wheel.slotPosition(angle, 84).y) - 84) < 0.05);
+});
+
+test('six buttons never overlap: neighbours stay at least a button plus a gap apart, narrow or wide', () => {
+  for (const width of [1440, 390]) {
+    const spots = [0, 60, 120, 180, 240, 300].map(angle => plain(wheel.slotPosition(angle, wheel.ringRadius(width))));
+    for (let i = 0; i < 6; i++) {
+      const a = spots[i], b = spots[(i + 1) % 6];
+      assert.ok(Math.hypot(a.x - b.x, a.y - b.y) >= wheel.BUTTON + 8, `at ${width}px`);
     }
   }
 });
@@ -56,36 +62,4 @@ test('place() keeps the whole plate inside the viewport, even in a tiny one', ()
       if (viewport.height >= 2 * half + 24) assert.ok(spot.y - half >= 0 && spot.y + half <= viewport.height, JSON.stringify([viewport, slot, spot]));
     }
   }
-});
-
-test('placeRail() runs a pinned rail from the pet towards the middle of the screen, inside the viewport', () => {
-  const viewport = {width: 1440, height: 900};
-  const corner = plain(wheel.placeRail({left: 1328, top: 780, width: 96, height: 96}, viewport, 6));
-  assert.equal(corner.dir, -1, 'a pet in the lower half grows the rail upwards');
-  assert.equal(corner.side, 'left', 'names appear towards the page, away from the edge');
-  assert.ok(corner.x >= 12 + 34 && corner.x <= viewport.width - 12 - 34 && corner.y - corner.reach >= 12 && corner.y <= viewport.height - 12);
-  assert.equal(corner.x, 1376, 'the rail hugs the pet\'s own column, clear of content that ends before it');
-  const top = plain(wheel.placeRail({left: 16, top: 20, width: 96, height: 60}, viewport, 4));
-  assert.equal(top.dir, 1, 'a pet in the upper half grows the rail downwards');
-  assert.equal(top.side, 'right');
-  assert.deepEqual(plain(wheel.placeRail({left: 16, top: 20, width: 96, height: 60}, viewport, 4)), top, 'same input, same output');
-});
-
-test('placeRail() keeps a tall rail inside a short viewport and a narrow rail width inside a thin one', () => {
-  const short = plain(wheel.placeRail({left: 300, top: 300, width: 96, height: 60}, {width: 390, height: 420}, 6));
-  assert.ok(short.y - short.reach >= 12 - 1e-6 || short.dir === 1, 'clamped to the top edge when it would overflow');
-  const thin = plain(wheel.placeRail({left: 0, top: 500, width: 10, height: 10}, {width: 390, height: 800}, 3));
-  assert.ok(thin.x >= 46, 'never pushed off the left edge: ' + thin.x);
-});
-
-test('placeRail() keeps below a host-supplied top limit by tightening the button pitch, never below the minimum', () => {
-  const viewport = {width: 390, height: 800};
-  const free = plain(wheel.placeRail({left: 16, top: 730, width: 96, height: 60}, viewport, 6));
-  const tight = plain(wheel.placeRail({left: 16, top: 730, width: 96, height: 60}, viewport, 6, 420));
-  assert.equal(free.step, 56);
-  assert.ok(tight.step < 56 && tight.step >= 44, 'pitch tightened: ' + tight.step);
-  assert.ok(tight.y - tight.reach >= 420 - 1e-6, 'the rail stops below the limit');
-  assert.equal(plain(wheel.placeRail({left: 16, top: 730, width: 96, height: 60}, viewport, 6, 700)).step, 44, 'floor of the pitch');
-  assert.equal(tight.edge, 'left');
-  assert.equal(plain(wheel.placeRail({left: 300, top: 730, width: 96, height: 60}, viewport, 6)).edge, 'right');
 });
