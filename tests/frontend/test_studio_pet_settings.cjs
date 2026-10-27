@@ -11,7 +11,8 @@ const read = file => fs.readFileSync(path.join(root, 'web/workspace', file), 'ut
 class Node {
   constructor(tag) {
     this.tag = tag; this.className = ''; this.children = []; this.attrs = {}; this.listeners = {}; this.dataset = {};
-    this.textContent = ''; this.value = ''; this.checked = false; this.hidden = false;
+    this.textContent = ''; this.value = ''; this.checked = false; this.hidden = false; this.title = '';
+    this.style = {setProperty(name, value) { this[name] = value; }};
   }
   append(...nodes) { this.children.push(...nodes); }
   replaceChildren(...nodes) { this.children.length = 0; this.children.push(...nodes); }
@@ -44,6 +45,7 @@ function setup({withPrefs = true} = {}) {
     window.NewsPets.register('tabbycat', {label: '狸花猫', mount: () => ({})});`, context);
   vm.runInContext(read('news-pet-dial.js'), context);
   if (withPrefs) vm.runInContext(read('news-pet-prefs.js'), context); else delete window.NewsPetPrefs;
+  vm.runInContext(read('news-pet-wheel.js'), context);
   vm.runInContext(read('studio-pet-settings.js'), context);
   const container = new Node('div');
   const dispose = window.StudioPetSettings.mount(container);
@@ -52,7 +54,7 @@ function setup({withPrefs = true} = {}) {
   const chip = id => container.find(node => node.dataset.action === id);
   const radio = (name, value) => container.find(node => node.tag === 'input' && node.name === name && node.value === value);
   const text = className => container.find(node => node.className === className).textContent;
-  return {window, storage, listeners, container, dispose, cards, chip, radio, text, toggle: control('studio-pet-enabled'), quiet: control('studio-pet-quiet'), newsFx: control('studio-pet-news-fx'), reset: control('studio-pet-dial-reset')};
+  return {window, storage, listeners, container, dispose, cards, chip, radio, text, toggle: control('studio-pet-enabled'), quiet: control('studio-pet-quiet'), newsFx: control('studio-pet-news-fx'), pin: control('studio-pet-dial-pin'), reset: control('studio-pet-dial-reset')};
 }
 
 const checked = node => node.getAttribute('aria-checked');
@@ -133,11 +135,34 @@ test('reset restores the default dial', () => {
   assert.equal(text('ce-dial-count'), '已选 6 / 6');
 });
 
-test('the dial hint explains that the spider has no dial', () => {
-  const {text, cards} = setup();
-  assert.match(text('ce-pet-dial-hint'), /蜘蛛没有转盘/);
-  cards()[1].choose();
-  assert.match(text('ce-pet-dial-hint'), /方向键/);
+test('the page keeps its visible helper text to one line; the rest is a tooltip', () => {
+  const {container, text} = setup();
+  const lines = container.all(node => node.tag === 'p');
+  assert.equal(lines.filter(node => node.textContent).length, 1, 'only the dial hint is visible text');
+  assert.match(text('ce-pet-dial-hint'), /3–6/);
+  const rows = container.all(node => /ce-pet-row/.test(node.className));
+  assert.equal(rows.length, 6);
+  for (const row of rows) assert.ok(row.title.length > 0, 'each row carries its tooltip');
+});
+
+test('the pin switch stores dialPin and follows it from elsewhere', () => {
+  const {pin, storage, window} = setup();
+  assert.equal(pin.getAttribute('role'), 'switch'); assert.equal(pin.getAttribute('aria-label'), '固定转盘'); assert.equal(checked(pin), 'false');
+  pin.fire('click');
+  assert.equal(storage.get('news-reader-pet-dial-pin'), 'true'); assert.equal(checked(pin), 'true');
+  window.NewsPetPrefs.set({dialPin: false}); assert.equal(checked(pin), 'false');
+});
+
+test('the ring preview places the chosen actions on the ring in order and folds the others away', () => {
+  const {container, chip} = setup();
+  const dots = () => container.all(node => /ce-dial-dot/.test(node.className));
+  const on = () => dots().filter(node => node.dataset.on === 'true');
+  assert.equal(on().length, 6);
+  chip('hide-pet').fire('click'); // not in the defaults, and the dial is full: nothing changes
+  assert.equal(on().length, 6);
+  chip('quiet').fire('click');
+  assert.equal(on().length, 5);
+  for (const dot of dots().filter(node => node.dataset.on === 'false')) assert.equal(dot.style['--x'], '0px');
 });
 
 test('reports a write failure instead of pretending it was saved', () => {

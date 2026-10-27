@@ -5,7 +5,8 @@
  * elsewhere (the reader's own switcher, the dial's quiet or hide action) shows up here without a reload.
  * Press feedback, the switch and the sliding segmented control are CSS only (studio-preview.css, .ce-pet-*),
  * so prefers-reduced-motion and the light/dark tokens are handled in one place.
- * Requires news-pets.js, news-pet-dial.js and news-pet-prefs.js to be loaded first.
+ * The page is deliberately quiet: short labels, one helper line, the rest lives in tooltips and aria-labels.
+ * Requires news-pets.js, news-pet-dial.js and news-pet-prefs.js to be loaded first; news-pet-wheel.js adds the live ring preview.
  */
 'use strict';
 (function () {
@@ -17,7 +18,7 @@
 
   // Static thumbnails drawn from the pets' own colours: nothing is mounted until the pet is switched on.
   const PORTRAITS = {
-    spider: {blurb: '轻巧的网络管家', dial: false, shapes: [
+    spider: {blurb: '轻巧的网络管家', shapes: [
       ['path', {d: 'M32 4v56 M4 32h56 M12 12l40 40 M52 12L12 52', stroke: 'currentColor', 'stroke-opacity': '.14', 'stroke-width': '1', fill: 'none'}],
       ['circle', {cx: 32, cy: 32, r: 11, stroke: 'currentColor', 'stroke-opacity': '.14', fill: 'none'}],
       ['circle', {cx: 32, cy: 32, r: 22, stroke: 'currentColor', 'stroke-opacity': '.14', fill: 'none'}],
@@ -27,7 +28,7 @@
       ['circle', {cx: 32, cy: 25, r: 8, fill: '#383849'}],
       ['circle', {cx: 28.5, cy: 24, r: 2.5, fill: '#fff'}], ['circle', {cx: 35.5, cy: 24, r: 2.5, fill: '#fff'}],
       ['circle', {cx: 28.9, cy: 24.3, r: 1.2, fill: '#111'}], ['circle', {cx: 35.1, cy: 24.3, r: 1.2, fill: '#111'}]]},
-    naidragon: {blurb: '圆滚滚的小黄龙', dial: true, shapes: [
+    naidragon: {blurb: '圆滚滚的小黄龙', shapes: [
       ['ellipse', {cx: 32, cy: 57, rx: 17, ry: 3, fill: 'currentColor', 'fill-opacity': '.12'}],
       ['ellipse', {cx: 22, cy: 55, rx: 6, ry: 3.2, fill: '#f2b61f'}], ['ellipse', {cx: 42, cy: 55, rx: 6, ry: 3.2, fill: '#f2b61f'}],
       ['ellipse', {cx: 32, cy: 42, rx: 17, ry: 14, fill: '#ffcf33'}],
@@ -39,7 +40,7 @@
       ['circle', {cx: 26.7, cy: 25, r: .8, fill: '#fff'}], ['circle', {cx: 38.7, cy: 25, r: .8, fill: '#fff'}],
       ['circle', {cx: 20.5, cy: 31, r: 2.8, fill: '#ff9aa5', 'fill-opacity': '.8'}], ['circle', {cx: 43.5, cy: 31, r: 2.8, fill: '#ff9aa5', 'fill-opacity': '.8'}],
       ['path', {d: 'M29 31q3 3 6 0', stroke: '#1f1a12', 'stroke-width': '1.6', 'stroke-linecap': 'round', fill: 'none'}]]},
-    tabbycat: {blurb: '懒洋洋的狸花猫', dial: true, shapes: [
+    tabbycat: {blurb: '懒洋洋的狸花猫', shapes: [
       ['ellipse', {cx: 32, cy: 52, rx: 15, ry: 9, fill: '#a8723a'}],
       ['path', {d: 'M16 30L18 9l13 11z', fill: '#a8723a'}], ['path', {d: 'M48 30L46 9 33 20z', fill: '#a8723a'}],
       ['path', {d: 'M20 25l1-9 6 6z', fill: '#f2a7a7'}], ['path', {d: 'M44 25l-1-9-6 6z', fill: '#f2a7a7'}],
@@ -52,7 +53,7 @@
       ['path', {d: 'M32 40.4v1.4 M32 41.8q-2 2-4 1 M32 41.8q2 2 4 1', stroke: '#6b4423', 'stroke-width': '1.1', 'stroke-linecap': 'round', fill: 'none'}],
       ['path', {d: 'M14 38h8 M14 42l8-2 M50 38h-8 M50 42l-8-2', stroke: '#6b4423', 'stroke-opacity': '.5', 'stroke-width': '1', fill: 'none'}]]},
   };
-  const GENERIC_PORTRAIT = {blurb: '', dial: false, shapes: [['circle', {cx: 32, cy: 34, r: 18, fill: 'currentColor', 'fill-opacity': '.2'}]]};
+  const GENERIC_PORTRAIT = {blurb: '', shapes: [['circle', {cx: 32, cy: 34, r: 18, fill: 'currentColor', 'fill-opacity': '.2'}]]};
 
   const make = (tag, className, text) => {
     const node = document.createElement(tag);
@@ -73,10 +74,12 @@
     return root;
   };
   const icon = path => svg([['path', {d: path, fill: 'none', stroke: 'currentColor', 'stroke-width': '2', 'stroke-linecap': 'round', 'stroke-linejoin': 'round'}]], 18, 'ce-chip-icon', 24);
-  const row = (title, description, control) => {
+  /** One setting: a short label and its control. `hint` is a tooltip and the control's accessible description, never visible text. */
+  const row = (title, hint, control) => {
     const text = make('div', 'ce-setting-text');
-    text.append(make('h3', '', title), make('p', '', description));
-    const node = make('div', 'ce-setting-row');
+    text.append(make('h3', '', title));
+    const node = make('div', 'ce-setting-row ce-pet-row');
+    node.title = hint; control.setAttribute('aria-description', hint);
     node.append(text, control);
     return node;
   };
@@ -143,6 +146,7 @@
       // --- 行为 ---
       const quiet = makeSwitch('studio-pet-quiet', '安静模式');
       const newsFx = makeSwitch('studio-pet-news-fx', '新闻页互动');
+      const pin = makeSwitch('studio-pet-dial-pin', '固定转盘');
       const size = makeSegmented('studio-pet-size', '宠物大小', SIZE_OPTIONS);
       const dock = makeSegmented('studio-pet-dock', '宠物位置', DOCK_OPTIONS);
 
@@ -151,10 +155,16 @@
       const reset = make('button', 'ce-link-button ce-press', '恢复默认'); reset.type = 'button'; reset.id = 'studio-pet-dial-reset';
       const dialHead = make('div', 'ce-dial-head');
       const dialTitle = make('div', 'ce-setting-text');
-      const dialHint = make('p', 'ce-pet-dial-hint');
+      const dialHint = make('p', 'ce-pet-dial-hint', `点击宠物打开，选 ${dial.MIN}–${dial.MAX} 个`);
       dialTitle.append(make('h3', '', '转盘功能'), dialHint);
       const dialTools = make('div', 'ce-dial-tools'); dialTools.append(count, reset);
       dialHead.append(dialTitle, dialTools);
+      const preview = make('div', 'ce-dial-preview'); preview.setAttribute('aria-hidden', 'true');
+      const previewIcons = new Map();
+      for (const action of dial.POOL) {
+        const node = make('span', 'ce-dial-dot'); node.append(svg([['path', {d: action.icon, fill: 'none', stroke: 'currentColor', 'stroke-width': '2', 'stroke-linecap': 'round', 'stroke-linejoin': 'round'}]], 16, '', 24));
+        previewIcons.set(action.id, node); preview.append(node);
+      }
       const chips = new Map();
       const chipGroups = make('div', 'ce-dial-groups');
       for (const scope of Object.keys(SCOPE_TITLES)) {
@@ -169,17 +179,17 @@
         }
         chipGroups.append(group);
       }
-      const dialBody = make('div', 'ce-dial-card'); dialBody.append(dialHead, chipGroups);
+      const dialPicker = make('div', 'ce-dial-picker'); dialPicker.append(preview, chipGroups);
+      const dialBody = make('div', 'ce-dial-card'); dialBody.append(dialHead, dialPicker);
 
       page.append(
-        section('宠物',
-          row('显示宠物', '个人工作台的小伙伴：奶龙和狸花猫会留在首页、事项和设置页，也会陪你读新闻；蜘蛛只在新闻页。', enabled), pickerRow),
+        section('宠物', row('显示宠物', '个人工作台的小伙伴；蜘蛛只在新闻页', enabled), pickerRow),
         section('行为',
-          row('安静模式', '宠物原地休息，没有动作和提示，也不再查询状态。', quiet),
-          row('新闻页互动', '新文章、读完、搜索无结果、采集失败时给一点小反应。', newsFx),
-          row('大小', '宠物在页面里的大小。', size.node),
-          row('位置', '自动停在右下角；左下会停在侧栏右边，不挡住侧栏入口。窄屏的工作台页面里不显示。', dock.node)),
-        section('转盘', dialBody), status);
+          row('安静模式', '宠物原地休息，没有动作和提示', quiet),
+          row('新闻页互动', '新文章、读完、采集失败时给一点小反应', newsFx),
+          row('大小', '宠物在页面里的大小', size.node),
+          row('位置', '左下会停在侧栏右边；窄屏的工作台页面里不显示', dock.node)),
+        section('转盘', row('固定转盘', '展开后留在原处，点击别处不收起；Esc 或再点宠物收起', pin), dialBody), status);
       container.replaceChildren(page);
 
       // --- state -> DOM ---
@@ -192,7 +202,8 @@
           const input = make('input'); input.type = 'radio'; input.name = 'studio-pet-form'; input.value = form.name;
           const art = make('span', 'ce-pet-art'); art.append(svg(portrait.shapes, 72, 'ce-pet-portrait'));
           const meta = make('span', 'ce-pet-meta');
-          meta.append(make('span', 'ce-pet-name', form.label), make('span', 'ce-pet-blurb', portrait.blurb + (portrait.blurb ? ' · ' : '') + (portrait.dial ? '有转盘' : '无转盘')));
+          meta.append(make('span', 'ce-pet-name', form.label));
+          label.title = portrait.blurb;
           const tick = make('span', 'ce-pet-tick'); tick.append(svg([['path', {d: 'M18 33l10 10 18-22', fill: 'none', stroke: 'currentColor', 'stroke-width': '7', 'stroke-linecap': 'round', 'stroke-linejoin': 'round'}]], 14, '', 64));
           label.append(input, art, meta, tick);
           input.addEventListener('change', () => { if (input.checked) saved(prefs.setPet(form.name)); });
@@ -212,20 +223,28 @@
         const forms = pets.list();
         if (cardInputs.size !== forms.length || forms.some(form => !cardInputs.has(form.name))) buildCards(forms);
         for (const [name, input] of cardInputs) input.checked = name === next.pet;
-        mark(enabled, next.enabled); mark(quiet, next.quiet); mark(newsFx, next.newsFx);
+        mark(enabled, next.enabled); mark(quiet, next.quiet); mark(newsFx, next.newsFx); mark(pin, next.dialPin);
         selectOption(size, next.size); selectOption(dock, next.dock);
         for (const [id, chip] of chips) chip.setAttribute('aria-pressed', String(next.dial.includes(id)));
         count.textContent = `已选 ${next.dial.length} / ${dial.MAX}`;
         dialBody.dataset.full = String(next.dial.length >= dial.MAX);
         reset.hidden = dial.serialize(next.dial) === dial.serialize(dial.DEFAULTS);
-        dialHint.textContent = next.pet === 'spider'
-          ? `至少 ${dial.MIN} 个，最多 ${dial.MAX} 个。蜘蛛没有转盘，换成奶龙或狸花猫后生效。`
-          : `至少 ${dial.MIN} 个，最多 ${dial.MAX} 个。点击宠物打开转盘，方向键选择，回车执行，Esc 关闭。`;
+        layoutPreview(next.dial);
+      }
+      /** The ring preview: chosen actions sit on the ring in order, the others are folded into the hub. */
+      function layoutPreview(ids) {
+        const wheel = window.NewsPetWheel, spots = wheel ? wheel.layout(ids.length, 46) : [];
+        for (const [id, node] of previewIcons) {
+          const at = ids.indexOf(id);
+          node.dataset.on = String(at >= 0 && Boolean(spots[at]));
+          node.style.setProperty('--x', (spots[at] ? spots[at].x : 0) + 'px'); node.style.setProperty('--y', (spots[at] ? spots[at].y : 0) + 'px');
+          node.style.setProperty('--i', String(Math.max(0, at)));
+        }
       }
       function saved(ok) { notify(ok ? '' : '无法保存设置，请检查浏览器的存储权限。', 'error'); sync(); }
 
       const bindSwitch = (node, field) => node.addEventListener('click', () => saved(prefs.set({[field]: node.getAttribute('aria-checked') !== 'true'})));
-      bindSwitch(enabled, 'enabled'); bindSwitch(quiet, 'quiet'); bindSwitch(newsFx, 'newsFx');
+      bindSwitch(enabled, 'enabled'); bindSwitch(quiet, 'quiet'); bindSwitch(newsFx, 'newsFx'); bindSwitch(pin, 'dialPin');
       for (const [group, field] of [[size, 'size'], [dock, 'dock']]) {
         for (const input of group.inputs) input.addEventListener('change', () => { if (input.checked) saved(prefs.set({[field]: input.value})); });
       }

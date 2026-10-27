@@ -115,7 +115,24 @@
 #ce-studio .ce-pet-status[data-tone="error"]:not(:empty){color:var(--ce-red)}
 @media(prefers-reduced-motion:reduce){#ce-studio .ce-pet-settings *,#ce-studio .ce-pet-settings *::before{transition:none!important;animation:none!important}#ce-studio .ce-pet-settings .ce-press:active{transform:none}}
 @media(max-width:760px){#ce-studio .ce-settings-page .ce-settings-group>.ce-setting-row{flex-wrap:wrap}#ce-studio .ce-setting-text{flex:1 1 200px}#ce-studio .ce-switch,#ce-studio .ce-seg{align-self:flex-start}#ce-studio .ce-dial-scope{width:100%}}
-@media(max-width:620px){#ce-studio .ce-pet-picker{padding:4px 16px 16px}#ce-studio .ce-pet-cards{grid-template-columns:1fr}#ce-studio .ce-pet-card{flex-direction:row;gap:14px;padding:10px 44px 10px 10px;text-align:left}#ce-studio .ce-pet-art{width:80px;flex:none;aspect-ratio:1.1}#ce-studio .ce-pet-tick{top:50%;right:14px;margin-top:-11px}#ce-studio .ce-dial-card{padding:14px 16px 18px}#ce-studio .ce-dial-head{flex-wrap:wrap}}
+/* pet settings v3: short rows, quiet hierarchy, live ring preview */
+#ce-studio .ce-pet-settings.ce-settings-page .ce-settings-group>.ce-pet-row{min-height:60px;padding:10px 20px}
+#ce-studio .ce-pet-settings .ce-settings-group{border:1px solid var(--ce-line)}
+#ce-studio .ce-pet-settings .ce-pet-title{margin:0 0 8px 4px;font-size:13px;font-weight:600;letter-spacing:.04em}
+#ce-studio .ce-pet-settings .ce-pet-picker{padding:4px 16px 16px}
+#ce-studio .ce-pet-settings .ce-pet-card{gap:8px;padding:10px 10px 12px}
+#ce-studio .ce-pet-settings .ce-pet-art{aspect-ratio:1.5;max-height:96px}
+#ce-studio .ce-pet-settings .ce-pet-portrait{width:64px;height:64px}
+#ce-studio .ce-pet-settings .ce-dial-card{gap:16px;padding:16px 20px 20px}
+#ce-studio .ce-pet-settings .ce-dial-hint,#ce-studio .ce-pet-settings .ce-pet-dial-hint{font-size:13px;line-height:20px}
+#ce-studio .ce-dial-picker{display:grid;grid-template-columns:148px minmax(0,1fr);gap:24px;align-items:center}
+#ce-studio .ce-dial-preview{position:relative;width:148px;height:148px;border-radius:50%;background:var(--ce-soft);border:1px solid var(--ce-line)}
+#ce-studio .ce-dial-preview::after{content:"";position:absolute;left:50%;top:50%;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;background:var(--ce-faint)}
+#ce-studio .ce-dial-dot{position:absolute;left:50%;top:50%;width:32px;height:32px;margin:-16px 0 0 -16px;display:grid;place-items:center;border-radius:50%;background:var(--ce-panel);color:var(--ce-text);box-shadow:0 1px 3px #0002,0 3px 8px var(--ce-shadow-deep);opacity:0;transform:translate3d(0,0,0) scale(.3);transition:transform .5s var(--spring) calc(var(--i,0) * 30ms),opacity .2s}
+#ce-studio .ce-dial-dot[data-on="true"]{opacity:1;transform:translate3d(var(--x),var(--y),0) scale(1)}
+#ce-studio .ce-pet-settings .ce-chip{min-height:40px}
+@media(max-width:760px){#ce-studio .ce-dial-picker{grid-template-columns:1fr;justify-items:start}#ce-studio .ce-dial-preview{justify-self:center}}
+@media(max-width:620px){#ce-studio .ce-pet-settings .ce-pet-picker{padding:4px 16px 16px}#ce-studio .ce-pet-settings .ce-pet-cards{grid-template-columns:1fr}#ce-studio .ce-pet-settings .ce-pet-card{flex-direction:row;gap:14px;padding:10px 44px 10px 10px;text-align:left}#ce-studio .ce-pet-settings .ce-pet-art{width:80px;flex:none;aspect-ratio:1.1}#ce-studio .ce-pet-settings .ce-pet-tick{top:50%;right:14px;margin-top:-11px}#ce-studio .ce-pet-settings .ce-dial-card{padding:14px 16px 18px}#ce-studio .ce-pet-settings .ce-dial-head{flex-wrap:wrap}}
 #ce-studio .ce-setting-row .ce-button{flex:none;font-size:15px}
 #ce-studio .ce-creator-address{padding:0;background:var(--ce-panel)}
 #ce-studio .ce-creator-address>summary{display:flex;align-items:center;justify-content:space-between;gap:20px;min-height:76px;padding:16px 20px;font-size:15px;line-height:24px;font-weight:500;cursor:pointer;list-style:none}
