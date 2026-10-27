@@ -127,6 +127,31 @@ class ArticleTests(unittest.TestCase):
         self.assertTrue(any(row['type'] == 'li' for row in blocks))
         self.assertTrue(all(set(row) == {'type', 'text'} for row in blocks))
 
+    def test_extraction_preserves_headings_quotes_and_indented_code_as_text(self):
+        paragraph = 'Measured results include the method, observed outcomes, and limitations of the comparison. ' * 5
+        code = 'def collect():\n    value = 1\n    if value:\n        return value'
+        quote = 'Quoted observation: repeated measurements reveal limits and require independent confirmation.'
+        html = ('<html><body><nav>POISON_NAV</nav><article><h1>Article title</h1><p>' + paragraph +
+                '</p><h2>Measured research methods</h2><p>' + paragraph + ' Method ends.</p>' +
+                '<h3>Independent reproduction process</h3><p>' + paragraph + ' Reproduction ends.</p>' +
+                '<h4>Detailed command reference</h4><p>' + paragraph + ' Details end.</p>' +
+                '<blockquote><p>' + quote + '</p></blockquote><pre><code>' + code + '</code></pre>' +
+                '<ul><li>A measured observation with enough actual information to survive extraction.</li>' +
+                '<li>A second independently measured observation with different actual information.</li></ul>' +
+                '<script>POISON_SCRIPT</script><p hidden>POISON_HIDDEN</p><p>' + paragraph +
+                ' End.</p></article><footer>POISON_FOOTER</footer></body></html>').encode()
+        blocks = content.extract_blocks(html, 'https://blog.google/article')
+        headings = [(row['type'], row['text']) for row in blocks if row['type'].startswith('h')]
+        self.assertEqual(headings, [('h2', 'Article title'), ('h2', 'Measured research methods'),
+                                    ('h3', 'Independent reproduction process'), ('h4', 'Detailed command reference')])
+        self.assertEqual([row['text'] for row in blocks if row['type'] == 'quote'], [quote])
+        self.assertEqual([row['text'] for row in blocks if row['type'] == 'code'], [code])
+        self.assertEqual(len([row for row in blocks if row['type'] == 'li']), 2)
+        self.assertLess(next(i for i, row in enumerate(blocks) if row['type'] == 'quote'),
+                        next(i for i, row in enumerate(blocks) if row['type'] == 'code'))
+        self.assertNotIn('POISON', '\n'.join(row['text'] for row in blocks))
+        self.assertTrue(all(set(row) == {'type', 'text'} for row in blocks))
+
     def test_rejects_non_public_url_shapes(self):
         for url in ('http://blog.google/a', 'https://blog.google:444/a',
                     'https://user:pass@blog.google/a', 'https://127.0.0.1/a',

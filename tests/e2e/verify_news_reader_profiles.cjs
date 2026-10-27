@@ -13,20 +13,21 @@ const snapshot={reader_id:'profile_b',sample:{sources:[],streams:{ai:{items:[ite
  },{id,item});
  await page.route('**/*',async route=>{const u=new URL(route.request().url());
    if(u.pathname==='/api/workspace/news/reader'){await new Promise(r=>setTimeout(r,250));sampled=true;return route.fulfill({json:snapshot});}
-   if(u.pathname==='/api/workspace/news/article'){requests++;early ||= !sampled;return route.fulfill({json:{id,title:item.title,content_kind:requests===1?'summary':'full_text',reason:requests===1?'reader_busy':null,blocks:requests===1?[]:[{type:'p',text:'Recovered real body'}],images:[]}});}
+   if(u.pathname==='/api/workspace/news/article'){requests++;early ||= !sampled;return route.fulfill({json:{id:u.searchParams.get('id'),title:item.title,content_kind:requests===1?'summary':'full_text',reason:requests===1?'reader_busy':null,blocks:requests===1?[]:[{type:'p',text:'Recovered real body'}],images:[]}});}
    if(u.pathname==='/api/workspace/news/research/latest')return route.fulfill({json:{job:null}});
    const file=u.pathname==='/news'?'news-reader.html':u.pathname.slice(1);if(['news-reader.html','news-reader.css','news-reader.js','news-spider.js'].includes(file))return route.fulfill({path:path.join(root,file)});return route.abort();
  });
  await page.goto('http://127.0.0.1:8766/news');
+ await page.waitForFunction(()=>window.NewsReader?.inspect().items===1);await page.locator('#date-range').selectOption('all');await page.locator('.title-row[data-id="'+id+'"]').click();
  await page.waitForFunction(()=>document.getElementById('article-body').textContent.includes('Recovered real body'));
  assert.equal(early,false);checks.push('no article read before profile sample and known IDs');
  assert.equal(requests,2);checks.push('busy document retries and recovers');
  assert.equal(await page.locator('#save-article').getAttribute('aria-pressed'),'false');checks.push('only matching profile reading state restored');
  assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('news-focused-reader-v2:profile_a'))['a'.repeat(24)].saved),true);checks.push('other profile storage untouched');
  snapshot.sample.streams.ai.items=[item,{...item,id:'b'.repeat(24),title:'Second article',url:'https://example.com/second'}];requests=0;sampled=false;
- await page.reload();await page.waitForFunction(()=>window.NewsReader?.inspect().items===2);await page.waitForTimeout(100);
+ await page.reload();await page.waitForFunction(()=>window.NewsReader?.inspect().items===2);await page.locator('#date-range').selectOption('all');await page.waitForTimeout(100);
  await page.locator('.title-row[data-id="'+ 'b'.repeat(24)+'"]').click();await page.waitForTimeout(1700);
- await page.locator('.title-row[data-id="'+id+'"]').click();await page.waitForFunction(()=>document.getElementById('article-body').textContent.includes('Recovered real body'));
+ await page.locator('#back-to-list').click();await page.locator('.title-row[data-id="'+id+'"]').click();await page.waitForFunction(()=>document.getElementById('article-body').textContent.includes('Recovered real body'));
  assert.ok(requests>=3);checks.push('busy article is retried after leaving and returning');
  snapshot.reader_id='profile_c';snapshot.sample.streams.ai.items=[];sampled=false;
  await page.reload();await page.waitForFunction(()=>window.NewsReader?.inspect().items===0);assert.equal(await page.evaluate(()=>Object.keys(window.NewsReader.inspect().reading).length),0);checks.push('empty new profile never shows previous snapshots');

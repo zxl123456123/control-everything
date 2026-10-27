@@ -31,7 +31,7 @@
     if (!canPoll() || generation !== activityGeneration) throw new Error('新闻已暂停，请返回新闻后重试。');
     return (typeof window !== 'undefined' && window.CERemoteContext ? window.CERemoteContext.fetch : fetch)(target, {...options, headers});
   }
-  let storeKey = null, articleRetry = null;
+  let storeKey = null, articleRetry = null, dayTimer = null, pendingOpen = null;
   const articleAttempts = new Map();
   const articles = new Map(), nodes = new Map(), documents = new Map(), loading = new Map();
   const tasks = new Map(), translations = new Map(), failedImages = new Set();
@@ -66,7 +66,8 @@
     const documentImages = docFor(item)?.images;
     const candidates = [...(Array.isArray(documentImages) ? documentImages : []), ...(Array.isArray(item.images) ? item.images : [])];
     if (item.cover_url && !candidates.some(image => image?.kind === 'cover' && safeUrl(image.url))) candidates.push({url:item.cover_url, kind:'cover'});
-    for (const raw of candidates) {
+    const ordered = [...candidates.filter(image => image?.kind !== 'cover'), ...candidates.filter(image => image?.kind === 'cover')];
+    for (const raw of ordered) {
       const image = typeof raw === 'string' ? {url:raw} : raw;
       const url = safeUrl(image?.url); if (!url || seen.has(url)) continue;
       seen.add(url); images.push({url, alt:typeof image.alt === 'string' ? image.alt : '', caption:typeof image.caption === 'string' ? image.caption : ''});
@@ -96,6 +97,15 @@
     for (const [id, row] of Object.entries(records)) if (row && validItem(row.snapshot) && row.snapshot.id === id) articles.set(id, row.snapshot);
   }
   function dateText(value) { const date = new Date(value); if (!value || !Number.isFinite(date.getTime())) return '日期未知'; const year = new Intl.DateTimeFormat('en', {year:'numeric', timeZone:'Asia/Shanghai'}); return new Intl.DateTimeFormat('zh-CN', {year:year.format(date) === year.format(new Date()) ? undefined : 'numeric', month:'short', day:'numeric', timeZone:'Asia/Shanghai'}).format(date); }
+  function dayKey(value) { const date = new Date(value); return value && Number.isFinite(date.getTime()) ? new Intl.DateTimeFormat('en-CA', {timeZone:'Asia/Shanghai', year:'numeric', month:'2-digit', day:'2-digit'}).format(date) : ''; }
+  function publication(item) { return item.stream === 'hn' ? item.submitted_at : item.published_at || item.updated_at || (/^\d{4}-\d{2}-\d{2}$/.test(item.published_raw || '') ? item.published_raw : null); }
+  function inDateRange(item) { return $('date-range').value === 'all' || dayKey(publication(item)) === dayKey(Date.now()); }
+  function unavailable(item) { return item.completeness === 'feed_summary' || state(item.id).unavailable_signature === itemSignature(item); }
+  function firstParagraph(item) { return bodyBlocks(item).find(block => block.type === 'p' && block.text.trim())?.text || ''; }
+  function scheduleDayChange() {
+    clearTimeout(dayTimer); if (!canPoll()) return;
+    dayTimer = setTimeout(() => { render(); scheduleDayChange(); }, Date.parse(dayKey(Date.now()) + 'T00:00:00+08:00') + 86400000 - Date.now() + 50);
+  }
   function matches(item, view = selected) { const row = state(item.id); return view === 'read' ? !!row.read_at : view === 'saved' ? !!row.saved : view === 'archived' ? !!row.archived_at : !row.archived_at; }
   function notice(text, canUndo = false) { $('toast-text').textContent = text; $('toast').hidden = false; $('undo').hidden = !canUndo; }
   let narrowLayout = null, desktopDirectoryOpen = false;
@@ -104,7 +114,7 @@
     if (readingView === 'list' && view === 'article') listScroll = $('title-list').scrollTop;
     readingView = view; $('animation-stage').dataset.readingView = view;
     $('reader').inert = view !== 'article';
-    $('directory-title').textContent = view === 'list' ? '文章列表' : '标题目录';
+    $('directory-title').textContent = view === 'list' ? $('date-range').value === 'all' ? '全部新闻' : '今日新闻' : '标题目录';
     setDirectory(view === 'article' && !matchMedia('(max-width:720px)').matches && desktopDirectoryOpen); syncHomeLayout();
     if (view === 'list') {
       $('title-list').scrollTop = listScroll;
@@ -152,7 +162,8 @@
     if (!canPoll()) return;
     const previousIndex = Math.max(0, visibleIds.indexOf(currentId));
     const query = $('search').value.trim().toLocaleLowerCase();
-    const items = [...articles.values()].filter(item => item.stream === stream);
+    const items = [...articles.values()].filter(item => item.stream === stream && inDateRange(item) && !unavailable(item));
+    $('directory-title').textContent = readingView === 'article' ? '标题目录' : $('date-range').value === 'all' ? '全部新闻' : '今日新闻';
     for (const view of ['inbox', 'read', 'saved', 'archived']) {
       document.querySelector(`[data-count="${view}"]`).textContent = items.filter(item => matches(item, view)).length;
       document.querySelector(`[data-view="${view}"]`).setAttribute('aria-pressed', String(selected === view));
@@ -163,20 +174,22 @@
       let node = nodes.get(item.id);
       if (!node) { node = createRow(item); nodes.set(item.id, node); }
       const row = state(item.id), moving = tasks.has(item.id);
-      const eligible = item.stream === stream && (matches(item) || moving && selected === 'inbox') && (!query || [displayTitle(item), item.title, item.source_name, item.summary || ''].join(' ').toLocaleLowerCase().includes(query));
+      const eligible = item.stream === stream && inDateRange(item) && !unavailable(item) && (matches(item) || moving && selected === 'inbox') && (!query || [displayTitle(item), item.title, item.source_name, firstParagraph(item)].join(' ').toLocaleLowerCase().includes(query));
       node.hidden = !eligible; if (eligible) visibleIds.push(item.id);
       node.dataset.pending = String(moving);
       changeText(node.querySelector('.title-row-title'), displayTitle(item));
-      const excerpt = item.summary || item.body_blocks?.find(block => block.type === 'p')?.text || '';
+      const excerpt = firstParagraph(item);
       changeText(node.querySelector('.title-row-summary'), excerpt); node.querySelector('.title-row-summary').hidden = !excerpt;
       const images = imageList(item), thumbnail = node.querySelector('.title-row-thumbnail');
       const thumbnailUrl = images.find(image => !failedImages.has(image.url))?.url;
       thumbnail.hidden = !thumbnailUrl; if (thumbnailUrl && thumbnail.getAttribute('src') !== thumbnailUrl) thumbnail.src = thumbnailUrl;
-      changeText(node.querySelector('.row-type'), images.length > 1 ? `${images.length} 图` : images.length ? '图文' : docFor(item)?.content_kind === 'full_text' ? '正文' : item.completeness === 'feed_content' ? '订阅内容' : item.completeness === 'feed_summary' ? '来源摘要' : item.body_blocks?.length ? '正文' : item.summary ? '摘要' : '仅标题');
+      changeText(node.querySelector('.row-type'), images.length ? '图文' : '文章');
       changeText(node.querySelector('.row-source'), item.source_name);
-      changeText(node.querySelector('.row-date'), `${!item.submitted_at && !item.published_at && item.updated_at ? '更新 ' : ''}${dateText(item.submitted_at || item.published_at || item.updated_at)}`);
-      changeText(node.querySelector('.row-state'), moving ? '归档中' : row.saved ? '◇' : row.read_at ? '已读' : '');
-      node.querySelector('.row-dot').hidden = !!row.read_at;
+      changeText(node.querySelector('.row-date'), `${!item.submitted_at && !item.published_at && item.updated_at ? '更新 ' : ''}${dateText(publication(item))}`);
+      node.querySelector('.row-date').hidden = $('date-range').value !== 'all' || !publication(item);
+      changeText(node.querySelector('.row-state'), moving ? '归档中' : row.saved ? '★' : '');
+      node.dataset.read = String(!!row.read_at);
+      const dot = node.querySelector('.row-dot'); dot.setAttribute('role', 'img'); dot.setAttribute('aria-label', row.read_at ? '已读' : '未读'); dot.title = row.read_at ? '已读' : '未读';
       // Only reorder a node when the incoming order changed.
       if (node !== cursor) $('title-list').insertBefore(node, cursor);
       cursor = node.nextElementSibling;
@@ -188,14 +201,20 @@
     }
     for (const [id, node] of nodes) node.setAttribute('aria-current', String(id === currentId));
     $('list-total').textContent = `${visibleIds.length} 条`; $('list-empty').hidden = visibleIds.length > 0;
-    $('list-empty-message').textContent = query ? '没有匹配的新闻' : ({read:'暂无已读新闻', saved:'暂无收藏新闻', archived:'暂无归档新闻'}[selected] || '暂无新闻，可更新新闻或采集信息。');
+    $('list-empty-message').textContent = query ? '没有匹配的新闻' : ({read:'暂无已读新闻', saved:'暂无收藏新闻', archived:'暂无归档新闻'}[selected] || ($('date-range').value === 'all' ? '暂无可读新闻' : '今天还没有可读新闻'));
     $('clear-search').hidden = !query;
+    $('show-history').hidden = $('date-range').value === 'all';
     renderArticle();
   }
   function stopTranslation() { translationRun++; translationAbort?.abort(); translationAbort = null; }
   function selectArticle(id, focus = false) {
-    if (!articles.has(id)) return;
+    if (!canPoll() || !articles.has(id)) return;
+    if (pendingOpen) nodes.get(pendingOpen.id)?.removeAttribute('aria-busy');
+    pendingOpen = null;
     if (documents.get(id)?.reason === 'reader_busy') documents.delete(id);
+    const item = articles.get(id);
+    if (unavailable(item)) return;
+    if (!bodyBlocks(item).length) { pendingOpen = {id, focus}; nodes.get(id)?.setAttribute('aria-busy', 'true'); void loadArticle(item); return; }
     for (const [taskId, task] of tasks) if (task.kind === 'archive' && task.node === $('article-title')) cancelTask(taskId);
     currentId = id; stopTranslation(); renderedKey = ''; mediaKey = ''; imageIndex = 0; $('article-scroll').scrollTop = 0;
     setReadingView('article'); render();
@@ -208,11 +227,9 @@
     const blocks = entry?.content_kind === 'full_text' ? entry.blocks : item.body_blocks?.length ? item.body_blocks : entry?.blocks || [];
     const normalize = text => String(text || '').normalize('NFKC').replace(/[\s\p{P}\p{S}]+/gu, '').toLocaleLowerCase();
     const titles = new Set([normalize(item.title), normalize(entry?.title)].filter(Boolean));
-    let firstParagraph = true;
     return blocks.filter(block => {
-      if (!block || !['p','h2','li'].includes(block.type) || typeof block.text !== 'string') return false;
-      if (block.type === 'p') { const opening = firstParagraph; firstParagraph = false; if (block.text === item.summary && (opening || entry?.content_kind !== 'full_text')) return false; }
-      return block.type !== 'h2' || !titles.has(normalize(block.text));
+      if (!block || !['p','h2','h3','h4','li','quote','code'].includes(block.type) || typeof block.text !== 'string') return false;
+      return !/^h[234]$/.test(block.type) || !titles.has(normalize(block.text));
     });
   }
   function translationKey(item) { return item.id + ':' + JSON.stringify([displayTitle(item), item.summary, bodyBlocks(item).map(block => [block.type, block.text])]); }
@@ -248,56 +265,57 @@
       for (const reference of references) {
         const link = make('a', '', reference.label || (reference.kind === 'x_post' ? '文中引用的 X 帖子' : reference.kind === 'paper' ? '相关论文' : '相关来源'));
         link.href = safeUrl(reference.url); link.target = '_blank'; link.rel = 'noopener noreferrer';
-        link.addEventListener('click', event => { const local = [...articles.values()].find(article => article.url === reference.url); if (local) { event.preventDefault(); if (!matches(local)) selected = state(local.id).archived_at ? 'archived' : 'inbox'; stream = local.stream; $('stream').value = stream; $('search').value = ''; selectArticle(local.id, true); } });
+        link.addEventListener('click', event => { const local = [...articles.values()].find(article => article.url === reference.url); if (local) { event.preventDefault(); if (!matches(local)) selected = state(local.id).archived_at ? 'archived' : 'inbox'; stream = local.stream; $('stream').value = stream; $('search').value = ''; if (!inDateRange(local)) $('date-range').value = 'all'; selectArticle(local.id, true); } });
         details.append(link);
       }
       $('article-provenance').replaceChildren(details); $('article-provenance').dataset.key = provenanceKey; $('source-details').open = false;
     }
-    const summary = item.summary || '';
-    $('article-summary').hidden = !summary; changeText($('article-summary'), textAt(1, summary));
-    const summaryPair = !!summary && language === 'bilingual' && translated?.[1] !== undefined;
-    $('article-summary-original').hidden = !summaryPair; changeText($('article-summary-original'), summaryPair ? summary : '');
+    $('article-summary').hidden = true;
+    $('article-summary-original').hidden = true;
     const hasBody = entry?.content_kind === 'full_text' || item.body_blocks?.length > 0;
-    const feedContent = ['feed_content','feed_summary'].includes(item.completeness);
-    $('content-badge').textContent = item.content_origin === 'x_public_embed' ? incomplete ? '帖文节选' : '公开帖文' : feedContent ? item.completeness === 'feed_content' ? '订阅源内容' : '来源摘要' : hasBody ? '正文' : entry?.feed_content ? '订阅源内容' : '来源摘要';
-    $('content-status').textContent = feedContent ? '内容由来源订阅提供，可能为节选。' : hasBody ? '' : !entry ? '正在载入正文，先读来源摘要…' : '暂未取得完整正文，目前展示来源摘要。';
-    if (entry && !blocks.length && !summary) $('content-status').textContent = '来源暂未提供正文或摘要，目前仅有标题。';
-    if (entry && !hasBody) {
-      const reasons = {extractor_unavailable:'服务未安装正文提取组件，请安装新闻依赖后重试。', timeout:'原文请求超时。', network_error:'原文暂时无法连接。', extraction_insufficient:'原文未返回足够的可读正文。', unsupported_source:'此来源暂不支持正文提取。', redirect_rejected:'原文跳转到其他域名，未继续读取。', reader_busy:'另一篇正文正在读取，请稍候。', unavailable:'正文连接暂时中断。'};
-      const reason = /^http_\d{3}$/.test(entry.reason) ? `原文返回 HTTP ${entry.reason.slice(5)}。` : reasons[entry.reason] || '原文暂时无法提取。';
-      $('content-status').textContent = `${reason}${entry.feed_content ? `已保留订阅源内容${entry.feed_content_truncated ? '（有截断）' : '（可能为节选）'}。` : summary ? '已保留来源摘要。' : '来源仅提供标题。'}`;
-    }
-    $('retry-article').hidden = !entry || hasBody || !!item.body_blocks?.length;
+    $('content-badge').textContent = imageList(item).length ? '图文' : '文章';
+    $('content-status').hidden = true;
+    $('retry-article').hidden = true;
     $('retry-article').disabled = [...loading.keys()].some(key => key.startsWith(item.id));
     renderMedia(item);
     const bodyKey = JSON.stringify([key, language, translated]);
     if (bodyKey !== renderedKey) {
       const fragment = document.createDocumentFragment();
+      let list = null;
       blocks.forEach((block, offset) => {
-        const value = textAt(offset + 2, block.text), tag = block.type === 'h2' ? 'h3' : block.type === 'li' ? 'li' : 'p';
-        const node = make(tag, 'body-block', value);
-        if (language === 'bilingual' && translated?.[offset + 2] !== undefined) { const pair = make('div', 'body-pair'); pair.append(node, make('p', 'original-text', block.text)); fragment.append(pair); }
+        const value = textAt(offset + 2, block.text), tag = /^h[234]$/.test(block.type) ? 'h' + Math.min(5, Number(block.type[1]) + 1) : {li:'li', quote:'blockquote', code:'pre'}[block.type] || 'p';
+        const node = make(tag, 'body-block');
+        if (block.type === 'code') node.append(make('code', '', block.text)); else node.textContent = value;
+        if (block.type === 'li') {
+          if (!list) { list = make('ul', 'body-list'); fragment.append(list); }
+          if (language === 'bilingual' && translated?.[offset + 2] !== undefined) node.append(make('p', 'original-text', block.text));
+          list.append(node); return;
+        }
+        list = null;
+        if (block.type !== 'code' && language === 'bilingual' && translated?.[offset + 2] !== undefined) { const pair = make('div', 'body-pair'); pair.append(node, make('p', 'original-text', block.text)); fragment.append(pair); }
         else fragment.append(node);
       });
       $('article-body').replaceChildren(fragment); renderedKey = bodyKey;
     }
     $('article-end').hidden = !hasBody || incomplete;
     $('mark-read').textContent = row.read_at ? '标为未读' : '标为已读';
-    $('save-article').textContent = row.saved ? '◆ 已收藏' : '◇ 收藏'; $('save-article').setAttribute('aria-pressed', String(!!row.saved));
-    $('archive-article').textContent = row.archived_at ? '↶' : '×'; $('archive-article').setAttribute('aria-label', row.archived_at ? '移回阅读' : '已读并归档'); $('archive-article').disabled = tasks.has(item.id);
+    $('mark-read').setAttribute('aria-pressed', String(!!row.read_at));
+    $('save-article').textContent = row.saved ? '已收藏' : '收藏'; $('save-article').setAttribute('aria-pressed', String(!!row.saved));
+    $('archive-article').textContent = row.archived_at ? '移回' : '归档'; $('archive-article').setAttribute('aria-label', row.archived_at ? '移回阅读' : '已读并归档'); $('archive-article').disabled = tasks.has(item.id);
     $('reader-state').textContent = tasks.has(item.id) ? '正在归档…' : row.archived_at ? '已归档' : row.read_at ? '已读' : '未读';
-    if (!entry) loadArticle(item);
+    if (!entry && readingView === 'article') loadArticle(item);
     if (language !== 'original') ensureTranslation(item);
     else $('translation-status').hidden = true;
   }
   function imageFigure(image, index, gallery = false) {
     const figure = make('figure', 'article-image'), picture = make('img'), missing = make('p', 'image-unavailable', '这张图片暂时无法载入。'), pending = make('p', 'image-loading', '正在载入图片…');
     picture.alt = image.alt || `文章图片 ${index + 1}`; picture.referrerPolicy = 'no-referrer'; picture.decoding = 'async'; picture.loading = gallery || index === 0 ? 'eager' : 'lazy';
-    missing.hidden = !failedImages.has(image.url); picture.hidden = !missing.hidden;
-    pending.hidden = !missing.hidden;
+    const failed = failedImages.has(image.url);
+    figure.hidden = failed && !gallery; missing.hidden = !failed; picture.hidden = failed;
+    pending.hidden = failed || !gallery;
     picture.addEventListener('load', () => { pending.hidden = true; });
-    picture.addEventListener('error', () => { failedImages.add(image.url); picture.hidden = true; pending.hidden = true; missing.hidden = false; });
-    if (missing.hidden) picture.src = image.url;
+    picture.addEventListener('error', () => { failedImages.add(image.url); picture.hidden = true; pending.hidden = true; missing.hidden = false; figure.hidden = !gallery; });
+    if (!failed) picture.src = image.url;
     figure.append(picture, pending, missing);
     if (image.caption || image.alt) {
       const caption = make('figcaption'), details = make('details');
@@ -324,29 +342,40 @@
     $('image-previous').disabled = imageIndex <= 0; $('image-next').disabled = imageIndex >= images.length - 1;
   }
   function validDocument(value, item) {
-    return value && value.id === item.id && ['full_text', 'summary'].includes(value.content_kind) && Array.isArray(value.blocks) && value.blocks.every(block => block && ['p', 'h2', 'li'].includes(block.type) && typeof block.text === 'string');
+    return value && value.id === item.id && ['full_text', 'summary'].includes(value.content_kind) && Array.isArray(value.blocks) && value.blocks.every(block => block && ['p', 'h2', 'h3', 'h4', 'li', 'quote', 'code'].includes(block.type) && typeof block.text === 'string');
   }
   async function loadArticle(item, retry = false) {
     if (!canPoll()) return;
-    const signature = itemSignature(item), requestKey = item.id + signature;
+    const signature = itemSignature(item), requestKey = item.id + signature, generation = activityGeneration;
     if (loading.has(requestKey)) return;
     loading.set(requestKey, true);
     try {
       const response = await readerFetch('/article?id=' + encodeURIComponent(item.id) + (retry ? '&retry=1' : ''));
       if (!response.ok) throw new Error('正文读取未完成');
       const value = await response.json(); if (!validDocument(value, item)) throw new Error('正文格式不可用');
+      if (!canPoll() || generation !== activityGeneration) return;
       if (articles.has(item.id) && itemSignature(articles.get(item.id)) === signature) documents.set(item.id, {...value, signature});
+      if (value.content_kind !== 'full_text' && !value.feed_content && value.reason !== 'reader_busy' && !item.body_blocks?.length) { state(item.id).unavailable_signature = signature; save(); }
       if (value.reason === 'reader_busy' && (articleAttempts.get(requestKey) || 0) < 12) {
         articleAttempts.set(requestKey, (articleAttempts.get(requestKey) || 0) + 1);
         clearTimeout(articleRetry);
         articleRetry = setTimeout(() => {
-          if (canPoll() && articles.has(item.id) && itemSignature(articles.get(item.id)) === signature) { documents.delete(item.id); if (currentId === item.id) render(); }
+          if (canPoll() && articles.has(item.id) && itemSignature(articles.get(item.id)) === signature) { documents.delete(item.id); if (currentId === item.id || pendingOpen?.id === item.id) void loadArticle(item); }
         }, 1500);
       }
     } catch {
-      if (articles.has(item.id) && itemSignature(articles.get(item.id)) === signature) documents.set(item.id, {id:item.id, signature, blocks:[], images:[], content_kind:'summary', reason:'unavailable'});
+      if (!canPoll() || generation !== activityGeneration) return;
+      if (articles.has(item.id) && itemSignature(articles.get(item.id)) === signature) { documents.set(item.id, {id:item.id, signature, blocks:[], images:[], content_kind:'summary', reason:'unavailable'}); if (!item.body_blocks?.length && !item.feed_content) { state(item.id).unavailable_signature = signature; save(); } }
     } finally {
       loading.delete(requestKey);
+      if (destroyed) return;
+      if (pendingOpen?.id !== item.id) nodes.get(item.id)?.removeAttribute('aria-busy');
+      if (pendingOpen?.id === item.id && canPoll() && generation !== activityGeneration) { void loadArticle(item); return; }
+      if (pendingOpen?.id === item.id && canPoll() && (docFor(item)?.reason !== 'reader_busy' || articleAttempts.get(requestKey) >= 12)) {
+        const pending = pendingOpen; pendingOpen = null; nodes.get(item.id)?.removeAttribute('aria-busy');
+        if (visibleIds.includes(item.id) && !unavailable(item) && bodyBlocks(item).length) selectArticle(item.id, pending.focus);
+      }
+      if (unavailable(item)) render();
       if (currentId === item.id) { stopTranslation(); renderedKey = ''; render(); }
     }
   }
@@ -359,7 +388,7 @@
   function showTranslation(text) { $('translation-status').hidden = !text; $('translation-status').textContent = text; }
   async function ensureTranslation(item) {
     if (!canPoll()) return;
-    const key = translationKey(item), blocks = bodyBlocks(item), texts = [displayTitle(item), item.summary || '', ...blocks.map(block => block.text)];
+    const key = translationKey(item), blocks = bodyBlocks(item), texts = [displayTitle(item), '', ...blocks.map(block => block.type === 'code' ? '' : block.text)];
     const cache = translations.get(key);
     if (cache?.length === texts.length && texts.every((_, index) => typeof cache[index] === 'string')) { showTranslation('已翻译为中文 · 机器翻译，仅供参考'); return; }
     if (translatingKey === key && translationAbort && !translationAbort.signal.aborted) return;
@@ -427,6 +456,8 @@
   }
   document.querySelectorAll('[data-view]').forEach(control => control.addEventListener('click', () => { for (const [id, task] of tasks) if (task.kind === 'archive') cancelTask(id); selected = control.dataset.view; render(); }));
   $('search').addEventListener('input', () => { render(); cancelInvisible(); });
+  $('date-range').addEventListener('change', () => { render(); cancelInvisible(); });
+  $('show-history').addEventListener('click', () => { $('date-range').value = 'all'; render(); });
   $('stream').addEventListener('change', () => { for (const [id, task] of tasks) if (task.kind === 'archive') cancelTask(id); stream = $('stream').value; render(); });
   $('clear-search').addEventListener('click', () => { $('search').value = ''; render(); $('search').focus(); });
   $('directory-summary').addEventListener('click', event => { const show = event.currentTarget.getAttribute('aria-pressed') !== 'true'; event.currentTarget.setAttribute('aria-pressed', String(show)); event.currentTarget.setAttribute('aria-label', show ? '隐藏目录摘要' : '显示目录摘要'); $('directory').dataset.summaries = String(show); });
@@ -712,14 +743,16 @@
   function syncActivity() {
     if (destroyed) return;
     syncMotion();
-    if (!canPoll()) { activityGeneration++; clearTimeout(researchTimer); clearTimeout(feedTimer); clearTimeout(articleRetry); return; }
+    if (!canPoll()) { activityGeneration++; clearTimeout(researchTimer); clearTimeout(feedTimer); clearTimeout(articleRetry); clearTimeout(dayTimer); return; }
+    scheduleDayChange();
     if (documents.get(currentId)?.reason === 'reader_busy') documents.delete(currentId);
+    if (pendingOpen && articles.has(pendingOpen.id)) { if (documents.get(pendingOpen.id)?.reason === 'reader_busy') documents.delete(pendingOpen.id); void loadArticle(articles.get(pendingOpen.id)); }
     render();
     void readFeeds(false, feedAttempt).then(() => restoreResearch());
     if (researchBusy) void pollResearch();
   }
   document.addEventListener('visibilitychange', syncActivity);
-  const destroy = () => { destroyed = true; $('research-panel').dataset.motion = 'paused'; unmountAppearance(); if ($('research-panel').open) $('research-panel').close(); clearTimeout(researchTimer); clearTimeout(feedTimer); clearTimeout(articleRetry); if (frameObjectUrl) URL.revokeObjectURL(frameObjectUrl); stopTranslation(); engine?.destroy(); researchEngine?.destroy(); };
+  const destroy = () => { destroyed = true; if (pendingOpen) nodes.get(pendingOpen.id)?.removeAttribute('aria-busy'); pendingOpen = null; $('research-panel').dataset.motion = 'paused'; unmountAppearance(); if ($('research-panel').open) $('research-panel').close(); clearTimeout(researchTimer); clearTimeout(feedTimer); clearTimeout(articleRetry); clearTimeout(dayTimer); if (frameObjectUrl) URL.revokeObjectURL(frameObjectUrl); stopTranslation(); engine?.destroy(); researchEngine?.destroy(); };
   window.CERemoteContext?.onInactive(destroy);
   window.addEventListener('pagehide', event => { if (event.persisted) { suspended = true; unmountAppearance(); syncActivity(); } else destroy(); });
   window.addEventListener('pageshow', event => { if (event.persisted && !destroyed) { suspended = false; mountTheme(); syncActivity(); } });
@@ -743,6 +776,7 @@
   $('refresh-feeds').addEventListener('click', () => readFeeds(true));
   async function start() {
     syncHomeLayout(); render();
+    scheduleDayChange();
     paused = matchMedia('(prefers-reduced-motion: reduce)').matches;
     syncSpiderVisibility();
     window.NewsReader = {setActive(value) { if (destroyed || active === value) return; active = value; if (!active) stopTranslation(); if (!active && $('research-panel').open) $('research-panel').close(); syncActivity(); }, dispose:destroy, inspect:() => ({items:articles.size, visible:visibleIds.length, currentId, selected, stream, language, readingView, mediaView, imageIndex, researchJob, researchEvents:researchEvents.size, active, pending:[...tasks.keys()], reading:JSON.parse(JSON.stringify(records)), collecting, spiderVisible, engine:engine?.inspect(), researchEngine:researchEngine?.inspect(), destroyed}), get engine() { return engine; }, applySnapshot};
