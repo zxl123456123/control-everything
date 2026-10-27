@@ -145,12 +145,12 @@
   // Only the full 3D pets (the ones that draw a status chip and own a dial) take the size and dock preferences.
   const fullPet = () => !petFallback && Boolean(window.NewsPets.list().find(pet => pet.name === petName)?.status);
   function mountMainPet() {
-    const api = mountPet({root:$('animation-stage'), canvas:$('spider-canvas'), depot:$('web-depot'), onCapture:event => { const task = tasks.get(typeof event === 'string' ? event : event.id); $('spider-state').textContent = task?.kind === 'arrival' ? '正在接住新信息' : '正在收进仓库'; }, onDelivered:settleTask, onCancel:settleTask, actions:petActions(), dock:petDock, options:director.petOptions(petPrefs, fullPet())});
+    const api = mountPet({root:$('animation-stage'), canvas:$('spider-canvas'), depot:$('web-depot'), onCapture:event => { const task = tasks.get(typeof event === 'string' ? event : event.id); $('spider-state').textContent = task?.kind === 'arrival' ? '正在接住新信息' : '正在收进仓库'; }, onDelivered:settleTask, onCancel:settleTask, dock:petDock, options:director.petOptions(petPrefs, fullPet())});
     api.setStatus?.(petStatus); api.setCollecting?.(collecting); return api;
   }
   function mountResearchPet() {
     const api = mountPet({root:$('research-animation-stage'), canvas:$('research-spider-canvas'), depot:$('research-web-depot')});
-    api.setOptions({scale:0.7}); api.setCollecting(collecting); api.setStatus?.(petStatus); return api;
+    api.setOptions({scale:0.7, dial:false}); api.setCollecting(collecting); api.setStatus?.(petStatus); return api;
   }
   function syncPetControls() {
     document.documentElement.dataset.pet = petName;
@@ -191,7 +191,7 @@
     if (switched) { petFallback = null; wheel?.close('api'); destroyPets(); }
     syncPets();
     if (!switched && engine) {
-      if (next.dial.join() !== before.dial.join()) { engine.setActions?.(petActions()); wheel?.refresh(); }
+      if (next.dial.join() !== before.dial.join()) wheel?.refresh();
       if (next.size !== before.size || next.dock !== before.dock) engine.setOptions?.(director.petOptions(next, fullPet()));
     }
     wheel?.setPinned(next.dialPin);

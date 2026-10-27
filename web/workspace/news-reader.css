@@ -242,3 +242,5 @@ html[data-embedded=true] .toolbar{flex-wrap:wrap;padding:12px 0;gap:8px}
 @keyframes collection-breathe{0%,100%{transform:scale(.92);opacity:.65}50%{transform:scale(1.08);opacity:1}}
 @media(prefers-reduced-motion:reduce){#research-panel :is(.orb-swirl,.orb-halo){animation:none}#research-meter-fill{transition:none}}
 @media(max-width:380px){#research-panel{width:calc(100vw - 16px);border-radius:20px}#research-panel .research-head{padding:16px 18px 4px}#research-panel .research-body{padding:0 18px 20px}#research-panel .research-footer{padding:8px 18px 20px}.collection-orb{width:200px;height:200px}#research-panel #research-state{font-size:22px}}
+/* One pet at a time: while the research panel shows its own pet, the main stage pet (behind the modal) is hidden. */
+body:has(#research-panel[open] #research-details[open]) :is(#animation-stage>:is(canvas,.tc-bubble,.tc-chip,.nd-bubble,.nd-chip),#spider-canvas){visibility:hidden}

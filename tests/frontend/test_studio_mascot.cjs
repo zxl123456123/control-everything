@@ -51,10 +51,9 @@ function setup({prefs = {}, route = {view: 'home', tab: ''}, compact = false, re
       const engine = {name, options, calls: [], destroyed: false, menu: {open: false}, reactReturns: true,
         pause() { this.calls.push('pause'); }, resume() { this.calls.push('resume'); },
         setStatus(value) { this.status = value; }, setOptions(value) { this.options = {...this.options, ...value}; },
-        setActions(value) { this.actions = value; }, openMenu(keyboard) { this.opened = keyboard; },
         react(kind, text) { this.calls.push('react:' + text); return this.reactReturns; },
         inspect() { return {menu: this.menu}; }, destroy() { this.destroyed = true; }};
-      engine.actions = options.actions; engines.push(engine); return engine;
+      engines.push(engine); return engine;
     },
   };
   window.NewsPets = {...pets, defaultName: () => 'spider'};
@@ -81,7 +80,8 @@ function setup({prefs = {}, route = {view: 'home', tab: ''}, compact = false, re
   return api;
 }
 
-const ids = engine => JSON.parse(JSON.stringify(engine.actions.map(item => item.id)));
+// the dial's actions live in the wheel the host owns; the engine is never given any
+const ids = wheel => JSON.parse(JSON.stringify(wheel.config.actions().map(item => item.id)));
 
 test('policy shows the mascot on workbench pages and hides it on focused or self-owned surfaces', () => {
   const {policy} = setup().window.StudioMascot;
@@ -96,6 +96,8 @@ test('policy shows the mascot on workbench pages and hides it on focused or self
 test('mounts the stored 3D pet on a workbench page and follows the route', () => {
   const t = setup({prefs: {'news-reader-pet': 'tabbycat'}});
   assert.equal(t.engine().name, 'tabbycat');
+  assert.equal(t.engine().options.options.dial, false, 'the engine\'s own dial stays off: the host wheel is the only dial');
+  assert.equal(t.engine().options.actions, undefined, 'and the engine is not handed any actions');
   assert.equal(t.engine().options.options.dock, 'br');
   t.go({view: 'project', id: 'a', tab: 'workspace'});
   assert.equal(t.live().length, 0);
@@ -179,13 +181,13 @@ test('the first-run hint shows once, never in quiet mode, and retries while the 
 
 test('the dial uses the studio surface, hides the useless home entry and navigates through hashes', () => {
   const t = setup({prefs: {'news-reader-pet': 'naidragon'}});
-  assert.deepEqual(ids(t.engine()), ['quiet', 'pet-settings', 'news']);
-  t.engine().actions.find(item => item.id === 'news').run();
-  t.engine().actions.find(item => item.id === 'pet-settings').run();
+  assert.deepEqual(ids(t.liveWheel()), ['quiet', 'pet-settings', 'news']);
+  t.liveWheel().config.actions().find(item => item.id === 'news').run();
+  t.liveWheel().config.actions().find(item => item.id === 'pet-settings').run();
   assert.deepEqual(t.navigations, ['#news', '#settings/appearance']);
   t.go({view: 'tools'});
-  assert.deepEqual(ids(t.engine()), ['workspace', 'quiet', 'pet-settings']);
-  t.engine().actions.find(item => item.id === 'workspace').run();
+  assert.deepEqual(ids(t.liveWheel()), ['workspace', 'quiet', 'pet-settings']);
+  t.liveWheel().config.actions().find(item => item.id === 'workspace').run();
   assert.equal(t.navigations.at(-1), '#home');
 });
 
@@ -193,13 +195,13 @@ test('dial quiet and hide entries write preferences and announce through the liv
   const t = setup({prefs: {'news-reader-pet': 'naidragon'}});
   const note = t.host.querySelector('.ce-mascot-note');
   assert.equal(note.hidden, true);
-  t.engine().actions.find(item => item.id === 'quiet').run();
+  t.liveWheel().config.actions().find(item => item.id === 'quiet').run();
   assert.equal(t.window.NewsPetPrefs.read().quiet, true);
   assert.match(note.textContent, /安静模式已开启/);
   assert.equal(note.hidden, false);
-  t.engine().actions.find(item => item.id === 'hide-pet')?.run();
+  t.liveWheel().config.actions().find(item => item.id === 'hide-pet')?.run();
   t.set({dial: ['quiet', 'hide-pet', 'pet-settings']});
-  t.engine().actions.find(item => item.id === 'hide-pet').run();
+  t.liveWheel().config.actions().find(item => item.id === 'hide-pet').run();
   assert.equal(t.window.NewsPetPrefs.read().enabled, false);
   assert.equal(t.live().length, 0);
   assert.match(note.textContent, /重新打开/);

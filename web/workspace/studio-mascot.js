@@ -115,7 +115,7 @@
     function mount() {
       parts = buildParts(); place();
       try {
-        engine = pets.mount(current.pet, {root: parts.root, canvas: parts.canvas, depot: parts.depot, actions: actions(), options: options()});
+        engine = pets.mount(current.pet, {root: parts.root, canvas: parts.canvas, depot: parts.depot, options: options()});
       } catch { fail(); return; }
       lastActions = actions().map(item => item.id).join();
       wheel = deps.wheel.create({
@@ -170,7 +170,7 @@
       else if (!wanted() && engine) unmount();
       else if (engine) {
         const ids = actions().map(item => item.id).join();
-        if (ids !== lastActions) { lastActions = ids; engine.setActions?.(actions()); wheel?.refresh(); }
+        if (ids !== lastActions) { lastActions = ids; wheel?.refresh(); }
         wheel?.setPinned(current.dialPin);
         engine.setOptions?.(options()); place(); syncMotion();
       }
