@@ -30,21 +30,28 @@ function renderControl(onChange = vi.fn()): { onChange: ReturnType<typeof vi.fn>
 }
 
 describe('SettingsSegmentedControl unavailable options', () => {
-  it('uses Radix roving focus and Arrow/Home/End radio selection with numeric values', async () => {
+  it('retains upstream option buttons and typed clicks without a custom arrow controller', async () => {
+    const onChange = vi.fn()
     function Control() {
       const [value, setValue] = useState(1)
-      return <SettingsSegmentedControl value={value} onChange={setValue}
+      return <SettingsSegmentedControl value={value} onChange={(next) => { onChange(next); setValue(next) }}
         options={[{ value: 1, label: 'One' }, { value: 2, label: 'Two' }, { value: 3, label: 'Three' }]} />
     }
     render(<Control />)
     const one = screen.getByRole('radio', { name: 'One' })
+    const two = screen.getByRole('radio', { name: 'Two' })
+    for (const radio of screen.getAllByRole('radio')) {
+      expect(radio.tagName).toBe('BUTTON')
+      expect(radio.tabIndex).toBe(0)
+    }
     one.focus()
-    fireEvent.keyDown(one, { key: 'ArrowRight' })
-    await waitFor(() => expect(screen.getByRole('radio', { name: 'Two' }).getAttribute('aria-checked')).toBe('true'))
-    fireEvent.keyDown(document.activeElement!, { key: 'End' })
-    await waitFor(() => expect(screen.getByRole('radio', { name: 'Three' }).getAttribute('aria-checked')).toBe('true'))
-    fireEvent.keyDown(document.activeElement!, { key: 'Home' })
-    await waitFor(() => expect(one.getAttribute('aria-checked')).toBe('true'))
+    for (const key of ['ArrowRight', 'End', 'Home']) fireEvent.keyDown(one, { key })
+    expect(document.activeElement).toBe(one)
+    expect(one.getAttribute('aria-checked')).toBe('true')
+    expect(onChange).not.toHaveBeenCalled()
+    fireEvent.click(two)
+    await waitFor(() => expect(two.getAttribute('aria-checked')).toBe('true'))
+    expect(onChange).toHaveBeenLastCalledWith(2)
   })
   // Why: a native disabled button leaves the tab order, so keyboard users can never
   // focus it to open the tooltip explaining why the option is unavailable.

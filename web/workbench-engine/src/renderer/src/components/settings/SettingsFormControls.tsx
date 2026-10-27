@@ -1,5 +1,4 @@
 import type React from 'react'
-import * as RadioGroup from 'radix-ui/radio-group'
 import { useState } from 'react'
 import { Input } from '../ui/input'
 import { Label } from '../ui/label'
@@ -147,12 +146,8 @@ export function SettingsSegmentedControl<T extends string | number>({
   wrap = false
 }: SettingsSegmentedControlProps<T>): React.JSX.Element {
   return (
-    <RadioGroup.Root
-      value={String(value)}
-      onValueChange={(next) => {
-        const option = options.find((entry) => String(entry.value) === next)
-        if (option && !option.disabled) onChange(option.value)
-      }}
+    <div
+      role="radiogroup"
       aria-label={ariaLabel}
       className={cn(
         'inline-flex items-center rounded-md border border-border bg-background/50 p-0.5',
@@ -163,9 +158,8 @@ export function SettingsSegmentedControl<T extends string | number>({
       {options.map((opt) => {
         const active = opt.value === value
         const button = (
-          <RadioGroup.Item
+          <button
             key={String(opt.value)}
-            value={String(opt.value)}
             type="button"
             role="radio"
             aria-checked={active}
@@ -174,9 +168,10 @@ export function SettingsSegmentedControl<T extends string | number>({
             // order, so keyboard users can never focus it to open the tooltip explaining
             // why the option is unavailable. The click guard below keeps it inert.
             aria-disabled={opt.disabled}
-            onClick={(event) => {
-              if (opt.disabled) event.preventDefault()
-              else if (active) onChange(opt.value)
+            onClick={() => {
+              if (!opt.disabled) {
+                onChange(opt.value)
+              }
             }}
             className={cn(
               'rounded-sm text-center outline-none transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/50',
@@ -190,7 +185,7 @@ export function SettingsSegmentedControl<T extends string | number>({
             )}
           >
             {opt.label}
-          </RadioGroup.Item>
+          </button>
         )
         if (opt.tooltip == null) {
           return button
@@ -202,7 +197,7 @@ export function SettingsSegmentedControl<T extends string | number>({
           </Tooltip>
         )
       })}
-    </RadioGroup.Root>
+    </div>
   )
 }
 

@@ -327482,8 +327482,8 @@
     {
       "path": "src/renderer/src/components/ui/dialog.tsx",
       "upstream_sha256": "3906c5b0a4404270e37e1a8b3ba9a6f25948ccfa546b24d2fe5554eca62a2617",
-      "current_sha256": "122b61111cc0c9523772e36a70d8c7ae667a12e83486e6b13d69cda8c2bd1767",
-      "reason": "M1a navigation: preserve a single project workspace while integrating platform business views UI r1 S4: explicit settings scope, accessible fields and draft/portal lifecycle; dialog.tsx."
+      "current_sha256": "182f55bb27aecc38f891f988ef785fa7780cb15e74b505243974523d30e70676",
+      "reason": "N1: restore native project controls and upstream presentation while preserving platform identity, project registration, draft protection and the single global account surface."
     },
     {
       "path": "src/renderer/src/hooks/useSettingsNavigationMetadata.ts",
@@ -327806,8 +327806,8 @@
     {
       "path": "src/renderer/src/assets/main.css",
       "upstream_sha256": "144736d3a3bc065d2fda3761b2e81c2ae8e8368ba125da5e0c4bea1be1f8d1a7",
-      "current_sha256": "3b9893b0d5fff0ba34b9e723993dec5947f660d0f43edf64b705643336e65714",
-      "reason": "UI r1 S4: explicit settings scope, accessible fields and draft/portal lifecycle; main.css.; UI r1 S9 QA: complete actual management controls at 40px, preserve 44px touch and compact selection indicators, natural tabs and bounded icon grid.; UI convergence: approved Eigent settings hierarchy, responsive project navigation and incoming workspace route restoration."
+      "current_sha256": "d08f8a9c94c17ab83b61f848aa5c9119cc1d09ca2fb440d1e736fbfeefa05f5e",
+      "reason": "N1: restore native project controls and upstream presentation while preserving platform identity, project registration, draft protection and the single global account surface."
     },
     {
       "path": "src/renderer/src/components/FirstLaunchBanner.tsx",
@@ -328244,20 +328244,14 @@
     {
       "path": "src/renderer/src/components/settings/SettingsFormControls.segmented-control.test.tsx",
       "upstream_sha256": "2ba12ea72911914910914984b3f9eb61a9333a27e3c901bcad91a32479ce6af4",
-      "current_sha256": "3a99f9b293697dbbed16e9b583d98369ba3365cab299368361726c1887401923",
-      "reason": "UI r1 S4: explicit settings scope, accessible fields and draft/portal lifecycle; SettingsFormControls.segmented-control.test.tsx."
-    },
-    {
-      "path": "src/renderer/src/components/settings/SettingsFormControls.tsx",
-      "upstream_sha256": "2cee1d606e12fbb8e147dd6c0a6966f6ee69974f68c09541320d5c1ae7b6b49d",
-      "current_sha256": "53306b57b364adc3b30aac1b3d03f5063e786fb9c0e06d9bf1d265cf344a8f1c",
-      "reason": "UI r1 S4: explicit settings scope, accessible fields and draft/portal lifecycle; SettingsFormControls.tsx."
+      "current_sha256": "e66a6ca09fc9dfd8e5c353f336c3a0898e96d32abd206909443bce210541f83c",
+      "reason": "N1: restore native project controls and upstream presentation while preserving platform identity, project registration, draft protection and the single global account surface."
     },
     {
       "path": "src/renderer/src/components/settings/SettingsSection.tsx",
       "upstream_sha256": "7b34b08d41aa86fb8b077d3aa61e539fbbfc363ebeed1cb8f9a7788b182bfdd8",
-      "current_sha256": "5c8f1e5d70df2501c3991fec7e65dd1cd9d2fc16233f358186bea99cc51a0a80",
-      "reason": "UI r1 S4: explicit settings scope, accessible fields and draft/portal lifecycle; SettingsSection.tsx.; UI convergence: approved Eigent settings hierarchy, responsive project navigation and incoming workspace route restoration."
+      "current_sha256": "301a703ed7f012047357af274d0fd2d0e94a6b17f10316a7c40918d49f9937bc",
+      "reason": "N1: restore native project controls and upstream presentation while preserving platform identity, project registration, draft protection and the single global account surface."
     },
     {
       "path": "src/renderer/src/components/settings/SettingsSidebar.tsx",
@@ -328434,28 +328428,16 @@
       "reason": "UI r1 S8: native nondevelopment presentation with original actions and gates; workspace-space-manager-view.tsx."
     },
     {
-      "path": "src/renderer/src/components/task-page/Frame.tsx",
-      "upstream_sha256": "524365db38ce69390e0668a364ace7f22359b373df54781c99e40089602d8825",
-      "current_sha256": "56843a3b771aa09207d2f012052b919337e5272b80df75e8ad0044beacdd6739",
-      "reason": "UI r1 S8: native nondevelopment presentation with original actions and gates; Frame.tsx."
-    },
-    {
       "path": "src/renderer/src/components/task-page/Surface.tsx",
       "upstream_sha256": "823cbfaf26576beba35c0e018e0ad659bbfa05d51118a91512b45097e256e3db",
-      "current_sha256": "51a09bded83a742fac025c8243ea8a1c334a136381966ba4b7ddc53ab4993c61",
-      "reason": "UI r1 S8: native nondevelopment presentation with original actions and gates; Surface.tsx."
+      "current_sha256": "50589e48ab7c3214a62b1a637086eb17efd7260381add07131bf1fa4cff7fe19",
+      "reason": "N1: restore native project controls and upstream presentation while preserving platform identity, project registration, draft protection and the single global account surface."
     },
     {
       "path": "src/renderer/src/components/ui/dropdown-menu.tsx",
       "upstream_sha256": "b20e72fd80f69767d5768bc34898b508bcf24f39b4ac44243b0a737e1279ad5f",
       "current_sha256": "9b2dcbd44d0a29b5b566c624b690272e29f07d277855aa446331d46d30ad1df5",
       "reason": "UI r1 S4: explicit settings scope, accessible fields and draft/portal lifecycle; dropdown-menu.tsx."
-    },
-    {
-      "path": "src/renderer/src/components/ui/input.tsx",
-      "upstream_sha256": "e55551ab0ae670bbe90d1056369889aa1bcc1e869aaf29412c3eb54656e60a37",
-      "current_sha256": "6b9a6d96ef3e2874584f0f9df324258e308e17c3340529e0467decd3d0f68f35",
-      "reason": "UI r1 S1: fixed management theme, typography and scoped primitives; input.tsx."
     },
     {
       "path": "src/renderer/src/components/ui/popover.tsx",

@@ -15,7 +15,7 @@ export function TaskPageSurface({
 }): React.JSX.Element {
   return (
     <ManagementSurfaceProvider value={true}>
-      <div className="ce-management-surface relative mx-auto flex h-full min-h-0 w-full max-w-[1100px] flex-1 overflow-hidden bg-background text-foreground">
+      <div className="ce-management-surface relative flex h-full min-h-0 flex-1 overflow-hidden bg-background text-foreground">
         <TaskPageFrame model={model} />
 
         <TaskPageGitHubIssueDialog model={model} />
