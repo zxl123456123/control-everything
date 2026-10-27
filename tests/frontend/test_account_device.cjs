@@ -137,6 +137,7 @@ test('member pagination advances by the server page and does not duplicate a pen
 test('member directory configuration and read failures are real errors, never invented empty success',async()=>{
   for(const code of ['member_directory_not_configured','member_directory_unavailable']){const f=fixture(()=>response(session({admin:true})),{members:()=>response({error:code},503)});await settle();assert.equal(f.get('members-table').hidden,true);assert.equal(f.get('members-status').dataset.tone,'error');assert.match(f.get('members-status').textContent,/未配置|不可用/);assert.doesNotMatch(f.get('members-status').textContent,/暂无注册成员/);assert.equal(f.get('invitations').hidden,false);f.dispose();}
   const f=fixture(()=>response(session({admin:true})),{members:()=>response(directoryPage([],1))});await settle();assert.match(f.get('members-status').textContent,/未完整读取/);f.dispose();
+  {const f=fixture(()=>response(session({admin:true})),{members:()=>response({...directoryPage([directoryMember(0)]),source:'hub_members'})});await settle();assert.equal(f.get('members-table').hidden,false);assert.match(f.get('members-status').textContent,/目录未配置/);f.dispose();}
 });
 test('directory responses cannot survive retirement, CSRF rotation, role loss or unmount',async()=>{
   for(const change of ['401','identity','csrf','role','dispose']) {

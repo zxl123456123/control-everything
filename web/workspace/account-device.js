@@ -146,7 +146,7 @@
         });
         membersOffset = value.offset; membersTotal = value.total;
         $('members-list').replaceChildren(...rows); $('members-title').textContent = `成员 · ${membersTotal}`;
-        $('members-status').textContent = rows.length ? '' : '暂无注册成员。';
+        $('members-status').textContent = rows.length ? (value.source === 'hub_members' ? '成员目录未配置，仅显示已激活或已停用的成员。' : '') : '暂无注册成员。';
         $('members-table').hidden = !rows.length; $('members-pages').hidden = membersTotal <= membersLimit;
         $('members-page').textContent = `${Math.floor(membersOffset / membersLimit) + 1} / ${Math.max(1, Math.ceil(membersTotal / membersLimit))}`;
       } catch (failure) {
