@@ -181,7 +181,7 @@ test('real account DOM keeps members private to admins and uses the full respons
   assert.equal(rows[0].cells[1].querySelector('svg').getAttribute('aria-hidden'),'true');
   const icons=[...root.querySelectorAll('.ce-account-setting .ce-account-media svg')];assert.equal(icons.length,2);assert.notEqual(icons[0].innerHTML,icons[1].innerHTML);assert.ok(icons.every(icon=>icon.getAttribute('aria-hidden')==='true'));
   assert.equal(root.querySelector('.ce-account-grid').contains(root.querySelector('[data-node="invitations"]')),false);assert.equal(root.querySelectorAll('th').length,5);assert.equal(root.querySelector('input[type="checkbox"]'),null);
-  assert.equal(w.getComputedStyle(root.querySelector('.ce-account-media')).width,'40px');assert.equal(w.getComputedStyle(root.querySelector('.ce-account-members-wrap')).borderRadius,'20px');
+  assert.equal(w.getComputedStyle(root.querySelector('.ce-account-media')).width,'40px');assert.equal(w.getComputedStyle(root.querySelector('.ce-account-members-wrap')).borderRadius,'16px');
   const refreshStyle=w.getComputedStyle(root.querySelector('[data-action="refresh"]'));assert.equal(refreshStyle.minHeight,'44px');assert.match(refreshStyle.transition,/transform 335ms/);
   const themeButton=brand.querySelector('[data-theme-toggle]');assert.equal(themeButton.closest('.ce-account'),null);
   assert.equal(w.getComputedStyle(themeButton).minHeight,'44px');assert.match(w.getComputedStyle(themeButton).transition,/transform 335ms/);

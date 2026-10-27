@@ -1,36 +1,56 @@
-/* Keycloak 26.8.1 keycloak.v2: preserve its forms, validation and accessibility.
-   Visual language mirrors the Studio account page (remote-account.css) and the mobile ce-ui tokens:
-   slate palette, 4px grid, radii 14/20/28/pill, 44px touch targets, spring motion.
-   The parent theme switches dark mode by adding .pf-v5-theme-dark to :root, so no system colour-scheme media rules are needed. */
+/* Keycloak 26.8.1 keycloak.v2 child theme — "Calm Glass" (v2).
+   Overrides CSS only: every form, validation message and ARIA contract of the parent stays untouched.
+   Tone follows the personal workspace (Studio): neutral grey canvas, ink primary button, hairline borders, Geist,
+   one quiet blue for focus and links. Transparency is kept but light: the card is a lightly translucent white/graphite
+   surface with a backdrop blur, a 1px border and a soft shadow. No animated backdrop, grid, grain or glow.
+   Same --ca-* tokens as the Studio account page (remote-account.css) and the mobile app (ce-ui/theme/tokens.ts).
+   Dark mode is switched by the parent theme through .pf-v5-theme-dark on :root (no OS colour-scheme media rules here).
+   Fallbacks: no backdrop-filter / prefers-reduced-transparency -> opaque surface; prefers-reduced-motion -> no motion.
+   Patterns studied (not copied): Eigent (calm canvas, ink pills, hairlines) and Supabase Auth UI / Studio (1px control borders). */
 :root {
   color-scheme: light;
-  --ca-bg: #f8fafc;
+  --ca-bg: #f6f6f6;
   --ca-surface: #ffffff;
-  --ca-soft: #f1f5f9;
-  --ca-text: #0f172a;
-  --ca-muted: #566277;
-  --ca-line: #e2e8f0;
-  --ca-input: #7b8aa0;
-  --ca-accent: #2563eb;
+  --ca-soft: rgba(255, 255, 255, .72);
+  --ca-text: #202020;
+  --ca-muted: #5c5c5c;
+  --ca-line: rgba(32, 32, 32, .12);
+  --ca-input: #858585;
+  --ca-accent: #202020;
+  --ca-accent-a: #202020;
+  --ca-accent-b: #202020;
   --ca-on-accent: #ffffff;
-  --ca-accent-text: #1d4ed8;
+  --ca-accent-text: #285e9b;
   --ca-danger: #dc2626;
   --ca-danger-text: #b91c1c;
-  --ca-danger-bg: rgba(185, 28, 28, .08);
-  --ca-success: #166534;
-  --ca-success-bg: rgba(22, 101, 52, .1);
-  --ca-ring: rgba(37, 99, 235, .35);
-  --ca-glow: rgba(37, 99, 235, .12);
-  --ca-shadow: 0 1px 2px rgba(15, 23, 42, .05), 0 12px 32px rgba(15, 23, 42, .08);
-  --ca-r-button: 14px;
-  --ca-r-card: 20px;
-  --ca-r-sheet: 28px;
+  --ca-danger-bg: rgba(220, 38, 38, .08);
+  --ca-success: #15803d;
+  --ca-success-bg: rgba(21, 128, 61, .1);
+  --ca-ring: rgba(40, 94, 155, .28);
+  --ca-tint: rgba(40, 94, 155, .09);
+  /* light glass material */
+  --ca-glass: rgba(255, 255, 255, .74);
+  --ca-glass-solid: #ffffff;
+  --ca-glass-blur: 16px;
+  --ca-glass-sat: 1.2;
+  --ca-field: rgba(255, 255, 255, .7);
+  --ca-field-hover: rgba(255, 255, 255, .95);
+  --ca-field-edge: var(--ca-input);
+  --ca-icon: #6b6b6b;
+  --ca-shadow: 0 1px 2px rgba(0, 0, 0, .04), 0 12px 32px -12px rgba(0, 0, 0, .14);
+  --ca-r-button: 12px;
+  --ca-r-card: 16px;
+  --ca-r-sheet: 20px;
   --ca-hit: 44px;
   --ca-ease-spring: cubic-bezier(.2, .9, .3, 1.15);
   --ca-ease-enter: cubic-bezier(.2, .9, .3, 1.05);
-  --pf-v5-global--FontFamily--text: system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
   --pf-v5-global--FontFamily--heading: var(--pf-v5-global--FontFamily--text);
   --keycloak-card-top-color: transparent;
+  --ca-i-brand: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M15 6v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3V6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3'/%3E%3C/svg%3E");
+  --ca-i-user: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='12' cy='7' r='4'/%3E%3C/svg%3E");
+  --ca-i-lock: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect width='18' height='11' x='3' y='11' rx='2.5'/%3E%3Cpath d='M7 11V7a5 5 0 0 1 10 0v4'/%3E%3C/svg%3E");
+  --ca-i-mail: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect width='20' height='16' x='2' y='4' rx='3'/%3E%3Cpath d='m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7'/%3E%3C/svg%3E");
+  --ca-i-hash: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 9h16M4 15h16M10 3 8 21M16 3l-2 18'/%3E%3C/svg%3E");
 }
 @supports (transition-timing-function: linear(0, 1)) {
   :root {
@@ -40,221 +60,303 @@
 }
 :root.pf-v5-theme-dark {
   color-scheme: dark;
-  --ca-bg: #020617;
-  --ca-surface: #0f172a;
-  --ca-soft: #1e293b;
-  --ca-text: #f8fafc;
-  --ca-muted: #94a3b8;
-  --ca-line: #263247;
-  --ca-input: #6d7f9a;
-  --ca-accent-text: #60a5fa;
-  --ca-danger-text: #f87171;
+  --ca-bg: #1f1f1f;
+  --ca-surface: #282828;
+  --ca-soft: rgba(255, 255, 255, .06);
+  --ca-text: #f4f4f4;
+  --ca-muted: #b4b4b4;
+  --ca-line: rgba(255, 255, 255, .12);
+  --ca-input: #929292;
+  --ca-accent: #f4f4f4;
+  --ca-accent-a: #f4f4f4;
+  --ca-accent-b: #f4f4f4;
+  --ca-on-accent: #202020;
+  --ca-accent-text: #a6c8f1;
+  --ca-danger: #f87171;
+  --ca-danger-text: #fca5a5;
   --ca-danger-bg: rgba(248, 113, 113, .12);
   --ca-success: #4ade80;
-  --ca-success-bg: rgba(74, 222, 128, .14);
-  --ca-ring: rgba(96, 165, 250, .45);
-  --ca-glow: rgba(37, 99, 235, .22);
-  --ca-shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 12px 32px rgba(0, 0, 0, .45);
+  --ca-success-bg: rgba(74, 222, 128, .13);
+  --ca-ring: rgba(166, 200, 241, .35);
+  --ca-tint: rgba(166, 200, 241, .08);
+  --ca-glass: rgba(40, 40, 40, .72);
+  --ca-glass-solid: #282828;
+  --ca-field: rgba(255, 255, 255, .05);
+  --ca-field-hover: rgba(255, 255, 255, .09);
+  --ca-icon: #a0a0a0;
+  --ca-shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 12px 32px -12px rgba(0, 0, 0, .6);
+  --ca-i-brand: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23202020' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M15 6v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3V6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3'/%3E%3C/svg%3E");
 }
 
-/* ---- page ---- */
-body, .login-pf body, .pf-v5-c-login {
-  background: var(--ca-bg);
+/* ---- canvas: flat Studio grey with one static, very faint tint at the top (nothing animates) ---- */
+html { background: var(--ca-bg); }
+body, body#keycloak-bg, .login-pf body {
+  background: radial-gradient(70% 40% at 50% -10%, var(--ca-tint), transparent 72%), var(--ca-bg);
+  background-attachment: fixed;
   color: var(--ca-text);
   font-family: var(--pf-v5-global--FontFamily--text);
   font-size: 16px;
   line-height: 24px;
+  min-height: 100dvh;
+  overflow-x: hidden;
 }
 .pf-v5-c-login {
-  min-height: 100dvh;
-  padding: 48px 24px;
-  background: radial-gradient(60% 50% at 50% 0%, var(--ca-glow), transparent 70%), var(--ca-bg);
+  position: relative; z-index: 1; isolation: isolate;
+  min-height: 100dvh; box-sizing: border-box;
+  padding: max(40px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right)) max(48px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left));
+  background: transparent;
+  display: grid;
 }
-.pf-v5-c-login__container { grid-template-columns: minmax(0, 440px); gap: 24px; margin: auto; max-width: 100%; }
-.pf-v5-c-login__header { color: var(--ca-text); text-align: center; }
-/* The parent pins the wrapper's light text with !important. */
+.pf-v5-c-login__container { grid-template-columns: minmax(0, 420px); gap: 24px; margin: auto; max-width: 100%; justify-content: center; }
+
+/* ---- brand: ink square with the workspace's command mark (same as the Studio sidebar) + name ---- */
+.pf-v5-c-login__header { color: var(--ca-text); text-align: center; display: flex; justify-content: center; margin: 0; padding: 0; }
 #kc-header, #kc-header-wrapper { color: var(--ca-text) !important; }
 #kc-header-wrapper {
-  display: flex; align-items: center; justify-content: center; gap: 12px;
-  font-size: 18px; line-height: 26px; font-weight: 600; letter-spacing: normal; text-transform: none; padding: 0;
+  display: inline-flex; align-items: center; gap: 10px;
+  padding: 0; border-radius: 0;
+  font-size: 16px; line-height: 24px; font-weight: 600; letter-spacing: 0; text-transform: none;
+  background: none; box-shadow: none;
 }
 #kc-header-wrapper::before {
-  content: "CE";
-  display: grid; place-items: center; flex: none; width: 36px; height: 36px; border-radius: 12px;
-  background: linear-gradient(135deg, var(--ca-accent), color-mix(in srgb, var(--ca-accent) 60%, #7c3aed));
-  color: #ffffff; font-size: 14px; line-height: 14px; font-weight: 700; letter-spacing: .02em;
+  content: ""; flex: none; width: 32px; height: 32px; border-radius: 9px;
+  background: var(--ca-i-brand) center / 56% no-repeat, var(--ca-accent);
 }
 
-/* ---- card ---- */
+/* ---- card: lightly translucent surface, 1px border, soft shadow ---- */
 .pf-v5-c-login__main {
-  background: var(--ca-surface);
+  position: relative; isolation: isolate; overflow: hidden;
   color: var(--ca-text);
+  background: var(--ca-glass);
   border: 1px solid var(--ca-line);
   border-radius: var(--ca-r-sheet);
   box-shadow: var(--ca-shadow);
-  overflow: hidden;
+  -webkit-backdrop-filter: blur(var(--ca-glass-blur)) saturate(var(--ca-glass-sat));
+  backdrop-filter: blur(var(--ca-glass-blur)) saturate(var(--ca-glass-sat));
 }
-.pf-v5-c-login__main-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; border-top: 0; padding: 32px 32px 20px; }
+.pf-v5-c-login__main-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px 12px; border-top: 0; padding: 28px 32px 4px; }
 .pf-v5-c-login__main-header-utilities { order: -1; flex: 1 0 100%; display: flex; justify-content: flex-end; margin: 0; }
 .pf-v5-c-login__main-title { flex: 1 1 auto; min-width: 0; margin: 0; }
-.pf-v5-c-login__main-body { padding: 0 32px 32px; }
-.pf-v5-c-login__main-title, .pf-v5-c-title { font-size: 24px; line-height: 32px; font-weight: 700; letter-spacing: -.2px; color: var(--ca-text); overflow-wrap: anywhere; }
+.pf-v5-c-login__main-body { padding: 16px 32px 32px; }
+#kc-page-title, .pf-v5-c-login__main-title, .pf-v5-c-title, .pf-v5-c-title.pf-m-3xl {
+  --pf-v5-c-title--m-3xl--FontWeight: 600; --pf-v5-c-title--m-3xl--FontSize: 26px;
+  font-size: 26px; line-height: 34px; font-weight: 600; letter-spacing: -.02em; color: var(--ca-text); overflow-wrap: anywhere;
+}
 .pf-v5-c-login__main-title p { margin: 0; }
-.pf-v5-c-login__main-footer, .pf-v5-c-login__main-footer-band { background: var(--ca-surface); color: var(--ca-muted); }
-.pf-v5-c-login__main-footer-band { border-top: 1px solid var(--ca-line); padding: 20px 32px; font-size: 15px; line-height: 22px; }
+.pf-v5-c-login__main-footer, .pf-v5-c-login__main-footer-band { background: transparent; color: var(--ca-muted); }
+.pf-v5-c-login__main-footer-band {
+  position: relative; border-top: 1px solid var(--ca-line); padding: 20px 32px 24px; font-size: 15px; line-height: 22px;
+}
 .pf-v5-c-login__main-footer-band-item { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 4px 8px; }
 
-/* ---- language switch ---- */
-.pf-v5-c-login__main-header-utilities .pf-v5-c-form-control { width: auto; min-width: 132px; max-width: 100%; }
-.pf-v5-c-login__main-header-utilities select { min-height: 44px; padding-inline: 16px 36px; font-size: 15px; cursor: pointer; }
+/* ---- language switch: small quiet select ---- */
+.pf-v5-c-login__main-header-utilities .pf-v5-c-form-control { width: auto; min-width: 0; max-width: 100%; min-height: 40px; border-radius: 10px; }
+.pf-v5-c-login__main-header-utilities select { min-height: 40px; padding-inline: 16px 38px; font-size: 14px; line-height: 20px; font-weight: 500; cursor: pointer; border-radius: 10px; color: var(--ca-muted); }
+.pf-v5-c-login__main-header-utilities select option { color: #0b1020; background: #fff; }
+.pf-v5-c-login__main-header-utilities .pf-v5-c-form-control__utilities { color: var(--ca-muted); }
 
 /* ---- forms ---- */
-.pf-v5-c-form { gap: 20px; }
-.pf-v5-c-form__label, .pf-v5-c-check__label { color: var(--ca-text); font-size: 15px; line-height: 22px; font-weight: 600; }
+.pf-v5-c-form { gap: 18px; }
+.pf-v5-c-form__group-label { padding-bottom: 8px; }
+.pf-v5-c-form__label, .pf-v5-c-check__label { color: var(--ca-text); font-size: 14px; line-height: 20px; font-weight: 500; }
 .pf-v5-c-form__label-required { color: var(--ca-danger-text); }
 .pf-v5-c-form-control:not(input) {
   position: relative;
   border-radius: var(--ca-r-button);
-  background: var(--ca-soft);
+  background: var(--ca-field);
   box-shadow: inset 0 0 0 1px var(--ca-input);
   min-height: 48px;
-  transition: box-shadow 200ms ease, background-color 200ms ease;
+  transition: box-shadow 220ms ease, background-color 220ms ease, transform 335ms var(--ca-ease-spring);
 }
 .pf-v5-c-form-control::before, .pf-v5-c-form-control::after { display: none; }
-/* Some parent templates put the control class on the input inside the styled wrapper. */
 input.pf-v5-c-form-control { background: transparent; box-shadow: none; border: 0; }
-.pf-v5-c-form-control:not(input):focus-within { background: var(--ca-surface); box-shadow: inset 0 0 0 2px var(--ca-accent), 0 0 0 4px var(--ca-ring); }
-.pf-v5-c-form-control:not(input):has([aria-invalid="true"]) { box-shadow: inset 0 0 0 2px var(--ca-danger); }
-.pf-v5-c-form-control:not(input):has([aria-invalid="true"]):focus-within { box-shadow: inset 0 0 0 2px var(--ca-danger), 0 0 0 4px var(--ca-danger-bg); }
+.pf-v5-c-form-control:not(input):hover { background: var(--ca-field-hover); }
+.pf-v5-c-form-control:not(input):focus-within {
+  background: var(--ca-field-hover);
+  box-shadow: inset 0 0 0 1px var(--ca-accent-text), 0 0 0 3px var(--ca-ring);
+}
+.pf-v5-c-form-control:not(input):has([aria-invalid="true"]) { box-shadow: inset 0 0 0 1px var(--ca-danger); }
+.pf-v5-c-form-control:not(input):has([aria-invalid="true"]):focus-within { box-shadow: inset 0 0 0 1px var(--ca-danger), 0 0 0 3px var(--ca-danger-bg); }
 .pf-v5-c-form-control :is(input, select) {
   width: 100%; min-height: 48px; padding: 8px 16px;
   background: transparent; border: 0; border-radius: var(--ca-r-button); outline: 0; box-shadow: none;
-  color: var(--ca-text); font-size: 16px; line-height: 24px; font-family: inherit;
+  color: var(--ca-text); font-size: 16px; line-height: 24px; font-family: inherit; caret-color: var(--ca-accent-text);
 }
 .pf-v5-c-form-control :is(input, select):focus-visible { outline: 0; }
-.pf-v5-c-form-control input::placeholder { color: var(--ca-muted); opacity: 1; }
-.pf-v5-c-input-group { gap: 8px; align-items: stretch; }
-.pf-v5-c-input-group > .pf-v5-c-form-control { flex: 1 1 auto; min-width: 0; }
+.pf-v5-c-form-control input::placeholder { color: var(--ca-muted); opacity: .8; }
+/* autofill must not paint the browser's yellow/blue box (pattern from Logto's InputField) */
+.pf-v5-c-form-control input:-webkit-autofill, .pf-v5-c-form-control input:-webkit-autofill:hover, .pf-v5-c-form-control input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--ca-text); caret-color: var(--ca-text); transition: background-color 999999s ease-in-out 0s; background-color: transparent;
+}
+/* icon inside the field */
+.pf-v5-c-form-control:has(> input[name="username"], > input[name="password"], > input[name="password-new"], > input[name="password-confirm"], > input[name="email"], > input[name="firstName"], > input[name="lastName"], > input[name="device_user_code"])::before {
+  content: ""; display: block; position: absolute; left: 16px; top: 50%; width: 20px; height: 20px; translate: 0 -50%; pointer-events: none;
+  background: var(--ca-icon); transition: background-color 200ms ease;
+  -webkit-mask: var(--ca-i-user) center / contain no-repeat; mask: var(--ca-i-user) center / contain no-repeat;
+}
+.pf-v5-c-form-control:has(> input[name^="password"])::before { -webkit-mask-image: var(--ca-i-lock); mask-image: var(--ca-i-lock); }
+.pf-v5-c-form-control:has(> input[name="email"])::before { -webkit-mask-image: var(--ca-i-mail); mask-image: var(--ca-i-mail); }
+.pf-v5-c-form-control:has(> input[name="device_user_code"])::before { -webkit-mask-image: var(--ca-i-hash); mask-image: var(--ca-i-hash); }
+.pf-v5-c-form-control:focus-within::before { background: var(--ca-accent-text); }
+.pf-v5-c-form-control:has(> input[name="username"], > input[name^="password"], > input[name="email"], > input[name="firstName"], > input[name="lastName"], > input[name="device_user_code"]) > input { padding-left: 48px; }
+
+/* password reveal lives inside the field, not as a detached square */
+.pf-v5-c-input-group { position: relative; display: block; }
+.pf-v5-c-input-group > .pf-v5-c-input-group__item.pf-m-fill { width: 100%; }
+.pf-v5-c-input-group > .pf-v5-c-input-group__item { border: 0; background: transparent; }
+.pf-v5-c-input-group > .pf-v5-c-input-group__item:not(.pf-m-fill) { position: absolute; top: 6px; right: 6px; z-index: 2; }
+.pf-v5-c-input-group .pf-v5-c-form-control > input { padding-right: 56px; }
+.pf-v5-c-input-group .pf-v5-c-button.pf-m-control {
+  min-width: 40px; width: 40px; min-height: 40px; height: 40px; padding: 0; border-radius: 12px; background: transparent; color: var(--ca-icon);
+  --pf-v5-c-button--after--BorderWidth: 0; border: 0; box-shadow: none;
+}
+.pf-v5-c-input-group .pf-v5-c-button.pf-m-control::after, .pf-v5-c-input-group .pf-v5-c-button.pf-m-control::before { display: none; border: 0; }
+.pf-v5-c-input-group .pf-v5-c-button.pf-m-control:hover { background: var(--ca-line); color: var(--ca-text); }
 .pf-v5-c-helper-text__item-text { font-size: 14px; line-height: 20px; color: var(--ca-muted); }
 .pf-v5-c-helper-text__item.pf-m-error, .pf-v5-c-helper-text__item.pf-m-error .pf-v5-c-helper-text__item-text, .kc-feedback-text { color: var(--ca-danger-text); font-size: 14px; line-height: 20px; }
 .pf-v5-c-helper-text__item.pf-m-error { animation: ca-shake 330ms linear both; }
 
 /* ---- buttons ---- */
 .pf-v5-c-button {
-  position: relative;
-  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  position: relative; overflow: hidden; isolation: isolate;
+  display: inline-flex; align-items: center; justify-content: center; gap: 10px;
   min-height: var(--ca-hit); padding: 0 20px;
-  border-radius: var(--ca-r-button); font-size: 15px; line-height: 22px; font-weight: 600; cursor: pointer;
+  border-radius: var(--ca-r-button); font-size: 16px; line-height: 24px; font-weight: 600; cursor: pointer;
   touch-action: manipulation; transform: scale(1);
-  transition: background-color 120ms ease, color 120ms ease, border-color 120ms ease, box-shadow 200ms ease, transform 335ms var(--ca-ease-spring);
+  transition: background-color 160ms ease, color 160ms ease, box-shadow 260ms ease, transform 335ms var(--ca-ease-spring);
 }
 .pf-v5-c-button::after { border-radius: var(--ca-r-button); }
 .pf-v5-c-button:active { transform: scale(.97); transition-duration: 70ms; }
 .pf-v5-c-button.pf-m-primary {
-  min-height: 52px;
+  min-height: 48px; border: 0; color: var(--ca-on-accent);
   --pf-v5-c-button--m-primary--BackgroundColor: var(--ca-accent);
   --pf-v5-c-button--m-primary--Color: var(--ca-on-accent);
-  --pf-v5-c-button--m-primary--hover--BackgroundColor: color-mix(in srgb, var(--ca-accent) 88%, #000);
+  --pf-v5-c-button--m-primary--hover--BackgroundColor: color-mix(in srgb, var(--ca-accent) 86%, var(--ca-bg));
   --pf-v5-c-button--m-primary--hover--Color: var(--ca-on-accent);
-  --pf-v5-c-button--m-primary--focus--BackgroundColor: color-mix(in srgb, var(--ca-accent) 88%, #000);
+  --pf-v5-c-button--m-primary--focus--BackgroundColor: var(--ca-accent);
   --pf-v5-c-button--m-primary--focus--Color: var(--ca-on-accent);
-  --pf-v5-c-button--m-primary--active--BackgroundColor: color-mix(in srgb, var(--ca-accent) 80%, #000);
+  --pf-v5-c-button--m-primary--active--BackgroundColor: var(--ca-accent);
   --pf-v5-c-button--m-primary--active--Color: var(--ca-on-accent);
-  box-shadow: 0 1px 2px rgba(37, 99, 235, .25);
+  background-color: var(--ca-accent);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .12);
+}
+.pf-v5-c-button.pf-m-primary::after { display: none; }
+.pf-v5-c-button.pf-m-primary:hover { background-color: color-mix(in srgb, var(--ca-accent) 86%, var(--ca-bg)); }
+/* the parent disables the submit button on submit: show a spinner instead of a dead button */
+.pf-v5-c-button.pf-m-primary:disabled::before {
+  content: ""; width: 18px; height: 18px; flex: none; border-radius: 999px;
+  border: 2px solid color-mix(in srgb, var(--ca-on-accent) 35%, transparent); border-top-color: var(--ca-on-accent); animation: ca-spin 700ms linear infinite;
 }
 .pf-v5-c-button.pf-m-control, .pf-v5-c-button.pf-m-secondary {
-  min-width: var(--ca-hit); min-height: 48px; padding: 0 14px; color: var(--ca-text); background: var(--ca-surface);
+  min-width: var(--ca-hit); min-height: 48px; padding: 0 16px; color: var(--ca-text); background: var(--ca-field);
   --pf-v5-c-button--after--BorderColor: var(--ca-line);
   --pf-v5-c-button--after--BorderWidth: 1px;
   border: 0;
 }
-.pf-v5-c-button.pf-m-control { background: var(--ca-soft); --pf-v5-c-button--after--BorderColor: var(--ca-input); }
-.pf-v5-c-button.pf-m-secondary { min-height: 52px; padding: 0 20px; }
-.pf-v5-c-button.pf-m-control:hover, .pf-v5-c-button.pf-m-secondary:hover { background: var(--ca-soft); color: var(--ca-text); }
+.pf-v5-c-button.pf-m-secondary { min-height: 48px; padding: 0 20px; }
+.pf-v5-c-button.pf-m-control:hover, .pf-v5-c-button.pf-m-secondary:hover { background: var(--ca-field-hover); color: var(--ca-text); }
 .pf-v5-c-button.pf-m-link { color: var(--ca-accent-text); }
-.pf-v5-c-button:disabled, .pf-v5-c-button.pf-m-disabled { opacity: .55; cursor: not-allowed; }
+.pf-v5-c-button:disabled, .pf-v5-c-button.pf-m-disabled { cursor: not-allowed; }
+.pf-v5-c-button.pf-m-primary:disabled { opacity: .78; }
+.pf-v5-c-button.pf-m-secondary:disabled, .pf-v5-c-button.pf-m-control:disabled { opacity: .55; }
 #kc-form-buttons, .pf-v5-c-form__actions { display: flex; flex-wrap: wrap; gap: 12px; }
 #kc-form-buttons > div { width: 100%; }
 .pf-v5-c-form__actions > .pf-v5-c-button.pf-m-block { flex: 1 1 140px; }
 
 /* ---- links, checkboxes ---- */
-a { color: var(--ca-accent-text); text-underline-offset: 4px; }
-a:hover { color: var(--ca-accent-text); text-decoration: underline; }
+a { color: var(--ca-accent-text); text-underline-offset: 4px; font-weight: 600; text-decoration: none; transition: color 160ms ease; }
+a:hover { color: var(--ca-text); text-decoration: underline; }
 .pf-v5-c-check { min-height: 44px; align-items: center; gap: 12px; }
 .pf-v5-c-check__label { display: flex; align-items: center; min-height: 44px; font-weight: 500; }
 .pf-v5-c-check__input { width: 20px; height: 20px; accent-color: var(--ca-accent); }
-:is(a, button, input, select):focus-visible { outline: 2px solid var(--ca-accent); outline-offset: 3px; }
+:is(a, button, input, select):focus-visible { outline: 2px solid var(--ca-accent-text); outline-offset: 3px; }
+
+/* ---- social providers (none configured today; styled so adding one does not break the look) ---- */
+#kc-social-providers { margin-top: 24px; }
+#kc-social-providers h2 { display: flex; align-items: center; gap: 12px; margin: 0 0 16px; font-size: 13px; line-height: 18px; font-weight: 500; color: var(--ca-muted); text-transform: uppercase; letter-spacing: .08em; }
+#kc-social-providers h2::before, #kc-social-providers h2::after { content: ""; flex: 1; height: 1px; background: var(--ca-line); }
+#kc-social-providers ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
 
 /* ---- alerts, errors, success ---- */
 .pf-v5-c-alert {
-  border-radius: var(--ca-r-button); box-shadow: none; border: 1px solid var(--ca-line); background: var(--ca-soft);
+  border-radius: var(--ca-r-button); box-shadow: none; border: 1px solid var(--ca-line); background: var(--ca-field);
   font-size: 15px; line-height: 22px; overflow-wrap: anywhere;
   animation: ca-rise 525ms var(--ca-ease-enter) both;
 }
 .pf-v5-c-alert__title { color: inherit; font-size: 15px; line-height: 22px; font-weight: 600; }
-.pf-v5-c-alert.pf-m-danger { color: var(--ca-danger-text); background: var(--ca-danger-bg); border-color: color-mix(in srgb, var(--ca-danger) 40%, var(--ca-line)); }
-.pf-v5-c-alert.pf-m-danger { animation: ca-rise 525ms var(--ca-ease-enter) both, ca-shake 330ms 120ms linear both; }
-.pf-v5-c-alert.pf-m-success { color: var(--ca-success); background: var(--ca-success-bg); border-color: color-mix(in srgb, var(--ca-success) 40%, var(--ca-line)); }
+.pf-v5-c-alert.pf-m-danger { color: var(--ca-danger-text); background: var(--ca-danger-bg); border-color: color-mix(in srgb, var(--ca-danger) 45%, transparent); animation: ca-rise 525ms var(--ca-ease-enter) both, ca-shake 330ms 120ms linear both; }
+.pf-v5-c-alert.pf-m-success { color: var(--ca-success); background: var(--ca-success-bg); border-color: color-mix(in srgb, var(--ca-success) 45%, transparent); }
 .pf-v5-c-alert.pf-m-warning, .pf-v5-c-alert.pf-m-info { color: var(--ca-text); }
-#kc-info-message, #kc-error-message { display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 4px 0; text-align: center; }
+#kc-info-message, #kc-error-message { display: flex; flex-direction: column; align-items: center; gap: 18px; padding: 8px 0 4px; text-align: center; }
 #kc-info-message p, #kc-error-message p { margin: 0; font-size: 16px; line-height: 24px; color: var(--ca-muted); overflow-wrap: anywhere; }
 #kc-info-message::before, #kc-error-message::before {
   display: grid; place-items: center; width: 56px; height: 56px; border-radius: 999px;
-  font-size: 28px; line-height: 28px; font-weight: 700;
+  font-size: 26px; line-height: 26px; font-weight: 600;
   animation: ca-pop 775ms var(--ca-ease-spring) both;
 }
 #kc-info-message::before { content: "\2713"; color: var(--ca-success); background: var(--ca-success-bg); }
-#kc-info-message:has(a)::before { content: "i"; color: var(--ca-accent-text); background: color-mix(in srgb, var(--ca-accent) 14%, transparent); }
+#kc-info-message:has(a)::before { content: "i"; color: var(--ca-accent-text); background: color-mix(in srgb, var(--ca-accent-text) 14%, transparent); }
 #kc-error-message::before { content: "!"; color: var(--ca-danger-text); background: var(--ca-danger-bg); }
 #kc-error-message a, #kc-info-message a { display: inline-flex; align-items: center; min-height: 44px; }
 
 /* ---- device authorization ---- */
 #device_user_code, #device-user-code {
-  text-align: center; text-transform: uppercase; letter-spacing: .2em; font-size: 24px; line-height: 32px; font-weight: 600;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; min-height: 60px;
+  text-align: center; text-transform: uppercase; letter-spacing: .24em; font-size: 26px; line-height: 34px; font-weight: 600;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; min-height: 64px;
 }
-#kc-user-verify-device-user-code-form .pf-v5-c-form-control { min-height: 60px; }
+#kc-user-verify-device-user-code-form .pf-v5-c-form-control { min-height: 64px; }
+#kc-user-verify-device-user-code-form .pf-v5-c-form-control > input { padding-left: 52px; padding-right: 20px; }
 #kc-oauth { display: flex; flex-direction: column; gap: 16px; }
-#kc-oauth h3 { margin: 0; font-size: 18px; line-height: 26px; font-weight: 600; }
+#kc-oauth h3 { margin: 0; font-size: 18px; line-height: 26px; font-weight: 600; letter-spacing: -.01em; }
 #kc-oauth ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
 #kc-oauth li {
-  display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 8px 16px;
-  border-radius: var(--ca-r-button); background: var(--ca-soft); font-size: 16px; line-height: 24px;
+  display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 8px 16px;
+  border-radius: var(--ca-r-button); background: var(--ca-field); box-shadow: inset 0 0 0 1px var(--ca-line);
+  font-size: 16px; line-height: 24px;
   animation: ca-rise 525ms var(--ca-ease-enter) both;
 }
-#kc-oauth li::before { content: "\2713"; flex: none; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 999px; background: var(--ca-success-bg); color: var(--ca-success); font-size: 14px; line-height: 14px; font-weight: 700; }
+#kc-oauth li::before { content: "\2713"; flex: none; display: grid; place-items: center; width: 26px; height: 26px; border-radius: 999px; background: var(--ca-success-bg); color: var(--ca-success); font-size: 14px; line-height: 14px; font-weight: 700; }
 #kc-oauth li:nth-child(2) { animation-delay: 55ms; }
 #kc-oauth li:nth-child(3) { animation-delay: 110ms; }
 #kc-oauth li:nth-child(n+4) { animation-delay: 165ms; }
 #kc-oauth :is(p, li, h3), #kc-info-wrapper { overflow-wrap: anywhere; }
 
-/* ---- motion: card enters with a spring, groups follow one after another ---- */
-@keyframes ca-card-in { from { opacity: 0; transform: translateY(16px) scale(.98); } to { opacity: 1; transform: none; } }
+/* ---- motion: card eases in with a light spring, groups follow one after another ---- */
+@keyframes ca-card-in { from { opacity: 0; transform: translateY(14px) scale(.985); } to { opacity: 1; transform: none; } }
 @keyframes ca-rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 @keyframes ca-pop { from { opacity: 0; transform: scale(.4); } to { opacity: 1; transform: none; } }
+@keyframes ca-spin { to { transform: rotate(360deg); } }
 @keyframes ca-shake { 0%, 100% { translate: 0; } 20% { translate: -6px; } 40% { translate: 5px; } 60% { translate: -4px; } 80% { translate: 2px; } }
-.pf-v5-c-login__main { animation: ca-card-in 525ms var(--ca-ease-enter) both; }
-#kc-header { animation: ca-rise 525ms var(--ca-ease-enter) both; }
-.pf-v5-c-login__main-body > :is(form, div, p) { animation: ca-rise 525ms 80ms var(--ca-ease-enter) both; }
-.pf-v5-c-form__group { animation: ca-rise 525ms var(--ca-ease-enter) both; }
-.pf-v5-c-form__group:nth-child(2) { animation-delay: 55ms; }
-.pf-v5-c-form__group:nth-child(3) { animation-delay: 110ms; }
-.pf-v5-c-form__group:nth-child(4) { animation-delay: 165ms; }
-.pf-v5-c-form__group:nth-child(5) { animation-delay: 220ms; }
-.pf-v5-c-form__group:nth-child(n+6) { animation-delay: 275ms; }
+.pf-v5-c-login__main { animation: ca-card-in 700ms var(--ca-ease-enter) both; }
+#kc-header { animation: ca-rise 600ms var(--ca-ease-enter) both; }
+.pf-v5-c-login__main-body > :is(form, div, p) { animation: ca-rise 600ms 90ms var(--ca-ease-enter) both; }
+.pf-v5-c-form__group { animation: ca-rise 600ms var(--ca-ease-enter) both; }
+.pf-v5-c-form__group:nth-child(2) { animation-delay: 70ms; }
+.pf-v5-c-form__group:nth-child(3) { animation-delay: 140ms; }
+.pf-v5-c-form__group:nth-child(4) { animation-delay: 210ms; }
+.pf-v5-c-form__group:nth-child(5) { animation-delay: 280ms; }
+.pf-v5-c-form__group:nth-child(n+6) { animation-delay: 350ms; }
 
 @media (max-width: 600px) {
-  .pf-v5-c-login { padding: 24px 16px 32px; }
-  .pf-v5-c-login__container { width: 100%; gap: 16px; }
-  .pf-v5-c-login__main-header { padding: 20px 20px 16px; }
-  .pf-v5-c-login__main-body { padding: 0 20px 24px; }
-  .pf-v5-c-login__main-footer-band { padding: 16px 20px; }
-  .pf-v5-c-login__main-title, .pf-v5-c-title { font-size: 22px; line-height: 30px; }
+  .pf-v5-c-login { padding: max(28px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(28px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); }
+  .pf-v5-c-login__container { width: 100%; gap: 20px; }
+  .pf-v5-c-login__main-header { padding: 24px 22px 4px; }
+  .pf-v5-c-login__main-body { padding: 14px 22px 26px; }
+  .pf-v5-c-login__main-footer-band { padding: 18px 22px 22px; }
+  .pf-v5-c-login__main-title, .pf-v5-c-title { font-size: 24px; line-height: 32px; }
   .pf-v5-c-form__actions > .pf-v5-c-button.pf-m-block { flex-basis: 100%; }
 }
 @media (pointer: coarse), (max-width: 760px) {
   .pf-v5-c-login :is(a, label) { min-height: 44px; }
   .pf-v5-c-login a { display: inline-flex; align-items: center; }
+  .pf-v5-c-login__main-header-utilities .pf-v5-c-form-control, .pf-v5-c-login__main-header-utilities select { min-height: 44px; }
+}
+/* no backdrop-filter, or the user asked for less transparency: opaque surfaces, same layout */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .pf-v5-c-login__main { background: var(--ca-glass-solid); }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .pf-v5-c-login__main { background: var(--ca-glass-solid); -webkit-backdrop-filter: none; backdrop-filter: none; }
 }
 @media (prefers-reduced-motion: reduce) {
   .pf-v5-c-login *, .pf-v5-c-login *::before, .pf-v5-c-login *::after, #kc-header { transition: none !important; animation: none !important; }

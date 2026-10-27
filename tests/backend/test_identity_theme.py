@@ -29,7 +29,7 @@ class IdentityThemeTests(unittest.TestCase):
         config = properties(THEME / "theme.properties")
         self.assertEqual(config, {
             "parent": "keycloak.v2", "import": "common/keycloak",
-            "styles": "css/styles.css css/studio.css?v=20261027-1", "locales": "zh-Hans,en",
+            "styles": "css/styles.css css/studio.css?v=20261028-2", "locales": "zh-Hans,en",
         })
         self.assertTrue((THEME / "resources/css/studio.css").is_file())
 
@@ -64,14 +64,30 @@ class IdentityThemeTests(unittest.TestCase):
                 self.assertTrue(urls[0].startswith("data:font/woff2;base64,"))
                 self.assertNotRegex(syntax, r"(?i)<script|<#|https?://|@import")
                 source = prefix + suffix
-            self.assertNotRegex(source, r"(?i)<script|<#|https?://|@import|url\s*\(")
+            if relative == "resources/css/studio.css":
+                # Calm Glass: the only url() allowed besides the font is an inline SVG data URI (icon masks and brand
+                # mark); its xmlns is a namespace identifier, never fetched.
+                inline = re.findall(r"url\(([^)]*)\)", source)
+                for target in inline:
+                    self.assertRegex(target, r"^[\"']?(data:image/svg\+xml,|#)", target)
+                stripped = re.sub(r"url\([^)]*\)", "", source)
+                self.assertNotRegex(stripped, r"(?i)<script|<#|https?://|@import")
+            else:
+                self.assertNotRegex(source, r"(?i)<script|<#|https?://|@import|url\s*\(")
         css = (THEME / "resources/css/studio.css").read_text(encoding="utf-8")
         self.assertIn(":root.pf-v5-theme-dark", css)
         self.assertNotIn("prefers-color-scheme", css)
         self.assertIn("forced-colors: active", css)
         self.assertIn(":focus-visible", css)
-        self.assertIn("--ca-input: #7b8aa0", css)
-        self.assertIn("--ca-input: #6d7f9a", css)
+        self.assertIn("--ca-input: #858585", css)
+        self.assertIn("--ca-input: #929292", css)
+        # Calm Glass contract: light glass blur + fallbacks, motion and transparency opt-outs, no decorative layers.
+        for needle in ("backdrop-filter", "@supports not", "prefers-reduced-transparency: reduce",
+                       "prefers-reduced-motion: reduce"):
+            self.assertIn(needle, css)
+        for banned in ("ca-drift", "i-grain", "--ca-glow", "--ca-blob", "mask-composite", "mix-blend-mode"):
+            self.assertNotIn(banned, css)
+        self.assertIn("--ca-accent-text: #285e9b", css)
 
     def test_theme_is_sdist_source_but_not_a_wheel_web_asset(self):
         manifest = (ROOT / "MANIFEST.in").read_text(encoding="utf-8")

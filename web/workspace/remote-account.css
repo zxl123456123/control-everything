@@ -297,3 +297,53 @@
 @media (prefers-reduced-motion:reduce){.ce-mobile-entry .ce-mobile-guide>summary::before{transition:none}}
 @media(max-width:760px){.ce-mobile-entry-card{padding:16px}}
 @media (pointer:coarse),(max-width:760px){.ce-mobile-entry :is(button,input,a.ce-button,summary){min-height:44px;min-width:44px}}
+
+
+/* ======================================================================
+   Calm Glass layer (v2): the account surface follows the personal workspace tone (neutral grey, ink buttons, Geist),
+   with a light touch of transparency. Re-tints the --ca-* tokens above and softens the material; no animated backdrop,
+   grid, grain or glow. Patterns studied: Eigent (restrained canvas, ink pills, hairlines, diffuse shadow) and
+   Supabase Studio / Auth UI (1px control borders, one quiet accent, generous whitespace). Only patterns, no code copied.
+   Components keep their structure, states and ARIA contract.
+   ====================================================================== */
+.ce-account-page,.ce-account-brand,.ce-account{--ca-bg:#f6f6f6;--ca-surface:rgba(255,255,255,.78);--ca-soft:rgba(32,32,32,.05);--ca-text:#202020;--ca-muted:#5c5c5c;--ca-line:rgba(32,32,32,.12);--ca-accent:#202020;--ca-on-accent:#ffffff;--ca-accent-text:#285e9b;--ca-ring:rgba(40,94,155,.28);--ca-scrim:rgba(20,20,20,.38);--ca-info-fg:#285e9b;--ca-info-bg:rgba(40,94,155,.09);--ca-info-dot:#285e9b;--ca-neutral-fg:#5c5c5c;--ca-neutral-bg:rgba(32,32,32,.07);--ca-neutral-dot:#8a8a8a;--ca-glass-solid:#ffffff;--ca-field:rgba(255,255,255,.7);--ca-field-hover:rgba(255,255,255,.95);--ca-field-edge:#858585;--ca-tint:rgba(40,94,155,.09);--ca-shadow:0 1px 2px rgba(0,0,0,.04),0 10px 28px -12px rgba(0,0,0,.12);--ca-shadow-high:0 24px 64px rgba(0,0,0,.2);--ca-r-button:12px;--ca-r-card:16px;--ca-r-sheet:20px}
+[data-theme="dark"] :is(.ce-account-page,.ce-account-brand,.ce-account),:is(.ce-account-page,.ce-account-brand,.ce-account)[data-theme="dark"]{--ca-bg:#1f1f1f;--ca-surface:rgba(44,44,44,.72);--ca-soft:rgba(255,255,255,.06);--ca-text:#f4f4f4;--ca-muted:#b4b4b4;--ca-line:rgba(255,255,255,.12);--ca-accent:#f4f4f4;--ca-on-accent:#202020;--ca-accent-text:#a6c8f1;--ca-ring:rgba(166,200,241,.35);--ca-scrim:rgba(0,0,0,.58);--ca-info-fg:#a6c8f1;--ca-info-bg:rgba(166,200,241,.12);--ca-info-dot:#a6c8f1;--ca-neutral-fg:#b4b4b4;--ca-neutral-bg:rgba(255,255,255,.09);--ca-neutral-dot:#7c7c7c;--ca-glass-solid:#282828;--ca-field:rgba(255,255,255,.05);--ca-field-hover:rgba(255,255,255,.09);--ca-field-edge:#929292;--ca-tint:rgba(166,200,241,.09);--ca-shadow:0 1px 2px rgba(0,0,0,.3),0 10px 28px -12px rgba(0,0,0,.55);--ca-shadow-high:0 24px 64px rgba(0,0,0,.6)}
+@media (prefers-color-scheme:dark){:is(.ce-account-page,.ce-account-brand,.ce-account):not(:where([data-theme],[data-theme] *)){--ca-bg:#1f1f1f;--ca-surface:rgba(44,44,44,.72);--ca-soft:rgba(255,255,255,.06);--ca-text:#f4f4f4;--ca-muted:#b4b4b4;--ca-line:rgba(255,255,255,.12);--ca-accent:#f4f4f4;--ca-on-accent:#202020;--ca-accent-text:#a6c8f1;--ca-ring:rgba(166,200,241,.35);--ca-scrim:rgba(0,0,0,.58);--ca-info-fg:#a6c8f1;--ca-info-bg:rgba(166,200,241,.12);--ca-info-dot:#a6c8f1;--ca-neutral-fg:#b4b4b4;--ca-neutral-bg:rgba(255,255,255,.09);--ca-neutral-dot:#7c7c7c;--ca-glass-solid:#282828;--ca-field:rgba(255,255,255,.05);--ca-field-hover:rgba(255,255,255,.09);--ca-field-edge:#929292;--ca-tint:rgba(166,200,241,.09);--ca-shadow:0 1px 2px rgba(0,0,0,.3),0 10px 28px -12px rgba(0,0,0,.55);--ca-shadow-high:0 24px 64px rgba(0,0,0,.6)}}
+
+/* a single static tint at the top edge gives the translucent surfaces something to pick up */
+.ce-account-page{background:radial-gradient(70% 36% at 50% -8%,var(--ca-tint),transparent 72%),var(--ca-bg)}
+.ce-account-brand{background:color-mix(in srgb,var(--ca-bg) 72%,transparent);border-bottom:1px solid var(--ca-line);-webkit-backdrop-filter:blur(14px) saturate(1.3);backdrop-filter:blur(14px) saturate(1.3)}
+.ce-account-brand a>span{background:var(--ca-accent);color:var(--ca-on-accent);border-radius:10px;box-shadow:none}
+.ce-account h1{font-size:28px;line-height:36px;font-weight:600;letter-spacing:-.02em}
+.ce-account h2{font-weight:600}
+.ce-account-card,.ce-account-members-wrap{background:var(--ca-surface);box-shadow:var(--ca-shadow);-webkit-backdrop-filter:blur(16px) saturate(1.2);backdrop-filter:blur(16px) saturate(1.2)}
+.ce-account-members-table th{background:transparent}
+.ce-account-media{border-radius:10px;background:var(--ca-soft);color:var(--ca-text)}
+.ce-account-empty-art{background:var(--ca-soft);color:var(--ca-muted)}
+
+/* controls: ink primary button, hairline fields, blue focus */
+.ce-account :is(button,input,a.ce-account-primary){border:1px solid var(--ca-line);background:transparent;box-shadow:none}
+.ce-account :is(button,a.ce-account-primary):not(:disabled):not([aria-disabled=true]):not([aria-busy=true]):hover{background:var(--ca-soft)}
+.ce-account button.ce-account-primary,.ce-account a.ce-account-primary{border-color:transparent;background:var(--ca-accent);color:var(--ca-on-accent);box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.ce-account :is(button.ce-account-primary,a.ce-account-primary):not(:disabled):not([aria-disabled=true]):not([aria-busy=true]):hover{background:color-mix(in srgb,var(--ca-accent) 86%,var(--ca-bg))}
+.ce-account button.ce-account-danger{background:transparent;border-color:color-mix(in srgb,var(--ca-danger) 45%,var(--ca-line))}
+.ce-account input{background:var(--ca-field);border-color:var(--ca-field-edge);min-height:48px}
+.ce-account input:hover{background:var(--ca-field-hover)}
+.ce-account input:focus{background:var(--ca-field-hover);border-color:var(--ca-accent-text);box-shadow:0 0 0 3px var(--ca-ring)}
+.ce-account input:user-invalid{border-color:var(--ca-danger-dot)}
+.ce-account .ce-account-refresh{background:transparent;border-color:transparent}
+.ce-account :is(button,input,a,summary):focus-visible{outline:2px solid var(--ca-accent-text);outline-offset:2px}
+.ce-account-notice{border-radius:var(--ca-r-button)}
+.ce-account-banner{background-color:var(--ca-surface);-webkit-backdrop-filter:blur(14px) saturate(1.2);backdrop-filter:blur(14px) saturate(1.2)}
+.ce-account-code{background:var(--ca-soft)}
+.ce-account-dialog{background:color-mix(in srgb,var(--ca-glass-solid) 92%,transparent);-webkit-backdrop-filter:blur(20px) saturate(1.2);backdrop-filter:blur(20px) saturate(1.2);box-shadow:var(--ca-shadow-high)}
+.ce-account-dialog h2{font-weight:600}
+@media (max-width:760px){.ce-account h1{font-size:24px;line-height:30px}}
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+  .ce-account-brand,.ce-account-card,.ce-account-members-wrap,.ce-account-banner{background:var(--ca-glass-solid)}
+  .ce-account-dialog{background:var(--ca-glass-solid)}
+}
+@media (prefers-reduced-transparency:reduce){
+  .ce-account-brand,.ce-account-card,.ce-account-members-wrap,.ce-account-banner,.ce-account-dialog{background:var(--ca-glass-solid);-webkit-backdrop-filter:none;backdrop-filter:none}
+}
+@media (forced-colors:active){.ce-account-brand,.ce-account-card,.ce-account-members-wrap{border:1px solid ButtonText}}
