@@ -14,19 +14,24 @@ fs.mkdirSync(output, {recursive:true});
 const checks = [];
 const paragraph = 'A measured coding workflow records methods, useful results and the limits of its observations. '.repeat(5);
 const rss = rows => '<rss version="2.0"><channel>' + rows.join('') + '</channel></rss>';
-const entry = (url, title = 'Coding report') => `<item><title>${title}</title><link>${url}</link><description>A source-provided coding summary.</description></item>`;
+const entry = (url, title = 'Coding report') => `<item><title>${title}</title><link>${url}</link><pubDate>Mon, 26 Oct 2026 00:00:00 GMT</pubDate><description>A source-provided coding summary.</description></item>`;
 const html = '<article><h1>Measured coding report</h1><p>' + paragraph + '</p><p>Second paragraph: ' + paragraph + '</p></article>';
 let browser;
 function check(name, value) { assert(value, name); checks.push(name); }
 
-async function run(name, topic, query, feedFor) {
+async function run(name, topic, query, feedFor, knownUrls=[]) {
   const folder = path.join(output, name); fs.mkdirSync(folder);
   const config = path.join(folder, 'request.json');
-  fs.writeFileSync(config, JSON.stringify({job_id:'a'.repeat(32),topic,query,capture_frames:false}));
+  fs.writeFileSync(config, JSON.stringify({job_id:'a'.repeat(32),topic,query,capture_frames:false,known_urls:knownUrls}));
   let context, resolve, exitCode = 0;
-  const events = [], navigations = [], pages = [];
+  const events = [], navigations = [], pages = [], requests = [], errors = [];
   const done = new Promise(ready => {resolve = ready;});
   const request = {get:async url => {
+    requests.push(url);
+    if(/qbitai\.com|sspai\.com/.test(new URL(url).hostname)&&new URL(url).pathname!=='/feed')return {
+      ok:()=>true,status:()=>200,headers:()=>({'content-type':'text/html'}),
+      body:async()=>Buffer.from(html.replace('<article>','<div class="article">').replace('</article>','</div><script>throw new Error("page script must not execute")</script>'))
+    };
     const value = feedFor(url);
     return {ok:()=>typeof value==='string',status:()=>typeof value==='string'?200:value.status,
       headers:()=>typeof value==='string'?{}:{location:value.location},body:async()=>Buffer.from(value)};
@@ -36,7 +41,7 @@ async function run(name, topic, query, feedFor) {
       context = await browser.newContext(options);
       context.request.get = request.get;
       const newPage = context.newPage.bind(context), route = context.route.bind(context);
-      context.newPage = async () => {const page = await newPage(); pages.push(page); return page;};
+      context.newPage = async () => {const page = await newPage(); page.on('pageerror',error=>errors.push(error.message)); pages.push(page); return page;};
       context.route = async (pattern, handler) => route(pattern, incoming => handler({
         request:()=>incoming.request(), abort:()=>incoming.abort(),
         continue:async()=>{
@@ -62,12 +67,40 @@ async function run(name, topic, query, feedFor) {
     check(name + ': source navigations use distinct pages', new Set(navigations.map(row=>row.page)).size===navigations.length);
     check(name + ': default collection skips X and search engines', navigations.every(row=>!/(?:x\.com|bing\.com)/.test(new URL(row.url).hostname)));
     const result = JSON.parse(fs.readFileSync(path.join(folder,'result.json'),'utf8'));
-    return {...result,events,navigations};
+    return {...result,events,navigations,requests,errors};
   } finally {await context?.close();}
 }
 
 (async()=>{
   browser = await chromium.launch({channel:'msedge',headless:true});
+  const domestic = await run('domestic-first','models','models',url=>rss([entry(url.includes('qbitai')?'https://www.qbitai.com/2026/10/test.html':'https://sspai.com/post/test','新的模型发布')]));
+  check('domestic feeds supply matching Chinese content without visiting foreign sources', domestic.items.length===2&&domestic.requests.every(url=>/qbitai\.com|sspai\.com/.test(new URL(url).hostname)));
+  check('domestic publishers retain their names and readable body', domestic.items.every(row=>['量子位','少数派'].includes(row.source_name)&&row.content_kind==='full_text'));
+  check('feed publication survives pages without publication metadata', domestic.items.every(row=>row.published_at==='2026-10-26T00:00:00.000Z'));
+  check('static publisher extraction needs no navigation or script execution', domestic.navigations.length===0&&domestic.errors.length===0);
+  const manyEntries=Array.from({length:35},(_,n)=>entry(`https://www.qbitai.com/2026/10/batch-${n}.html`));
+  const batch=await run('larger-batch','coding','coding',()=>rss(manyEntries));
+  check('a populated source supplies twenty readable articles instead of three',batch.items.length===20&&batch.items.every(row=>row.content_kind==='full_text'&&row.body_blocks.length>0));
+  check('progress total and merged count agree with the actual larger batch',batch.events.some(row=>row.progress?.total===20)&&batch.events.at(-1).counts.articles===20);
+  const batchUrls=batch.items.map(row=>row.url);
+  const nextBatch=await run('next-batch','coding','coding',()=>rss(manyEntries),batchUrls);
+  check('the next collection reads the fifteen remaining articles without repeating the first batch',nextBatch.items.length===15&&nextBatch.items.every(row=>!batchUrls.includes(row.url)));
+  check('already captured article pages are not requested again',nextBatch.requests.every(url=>!batchUrls.includes(url)));
+  check('a feed that repeats its first page stops pagination',nextBatch.requests.filter(url=>new URL(url).searchParams.has('paged')).length===1);
+  const pagedFeed=url=>{
+    const source=new URL(url);
+    if(source.hostname!=='www.qbitai.com')return rss([]);
+    const start=(Number(source.searchParams.get('paged')||1)-1)*10;
+    return rss(Array.from({length:10},(_,n)=>entry(`https://www.qbitai.com/2026/10/paged-${start+n}.html`)));
+  };
+  const pageOne=await run('publisher-pagination','coding','coding',pagedFeed);
+  check('publisher feed pagination supplies more than its first ten entries',pageOne.items.length===20&&pageOne.requests.includes('https://www.qbitai.com/feed?paged=2'));
+  const pagedUrls=pageOne.items.map(row=>row.url);
+  const pageTwo=await run('publisher-next-pages','coding','coding',pagedFeed,pagedUrls);
+  check('a second batch advances to older feed pages and collects twenty distinct articles',pageTwo.items.length===20&&pageTwo.items.every(row=>!pagedUrls.includes(row.url))&&pageTwo.requests.includes('https://www.qbitai.com/feed?paged=4'));
+  check('publisher pagination stays bounded at four pages',!pageTwo.requests.some(url=>Number(new URL(url).searchParams.get('paged'))>4));
+  const exhausted=await run('already-collected','coding','coding',url=>/qbitai\.com|sspai\.com/.test(new URL(url).hostname)?rss(manyEntries):rss([]),[...batchUrls,...nextBatch.items.map(row=>row.url)]);
+  check('exhausted sources report zero instead of counting old content again',exhausted.items.length===0&&exhausted.events.at(-1).counts.articles===0&&exhausted.navigations.length===0);
   const recovery = await run('failed-source','models','coding',url=>{
     if(url.includes('openai.com'))throw new Error('fixture feed timeout');
     return rss([entry('https://blog.google/blocked'),entry('https://blog.google/readable'),entry('https://localhost/private')]);
@@ -85,6 +118,7 @@ async function run(name, topic, query, feedFor) {
   check('feed markup is never executable or copied into text', !JSON.stringify(inline.items).includes('POISON'));
   check('a title repeated as feed content cannot become a readable article', !inline.items.some(row=>row.url.endsWith('/title-only')));
   const redirected = await run('feed-redirect','models','coding',url=>{
+    if(/qbitai\.com|sspai\.com/.test(new URL(url).hostname))throw new Error('fixture domestic feed unavailable');
     if(url==='https://deepmind.google/blog/rss.xml')return {status:301,location:'/new-feed.xml'};
     if(url.includes('openai.com'))return {status:301,location:'https://localhost/private'};
     return rss([entry('https://blog.google/readable')]);
