@@ -336,7 +336,7 @@ test('outer navigation shows projects only and legacy task routes retain their b
 test('unified project opens as a view action and retains the overview until the native surface takes over', async () => {
   const f = studioFixture({ unified: true }); await f.flush();
   assert.match(f.nodes.get('studio-content').innerHTML, /<a[^>]+class="ce-project-title-link"[^>]+href="#project\/server-project\/workspace"[^>]+data-open-project="server-project"/);
-  assert.match(f.nodes.get('studio-content').innerHTML, /尚无事项记录/);
+  assert.doesNotMatch(f.nodes.get('studio-content').innerHTML, /尚无事项记录/);
   assert.doesNotMatch(f.nodes.get('studio-content').innerHTML, /打开开发|ce-development-shortcut/);
   assert.equal(f.nodes.get('ce-studio').dataset.theme, 'dark');
   const overview = f.nodes.get('studio-content').innerHTML;
@@ -375,7 +375,7 @@ test('overview renders one workspace title and exact review shortcut from real i
   assert.doesNotMatch(html, /ce-development-shortcut/);
   assert.doesNotMatch(html, /<progress/);
   assert.match(html, /<span>3 待处理<\/span>/);
-  assert.match(html, /<span>1 推进中<\/span>/);
+  assert.match(html, /<span>1 进行中<\/span>/);
   assert.match(html, /<span>0 有交付<\/span>/);
   assert.match(html, /&lt;Real project&gt;/);
   assert.equal(html.includes(f.snapshot.workspace.projects.items[0].directories[0].path), false);
@@ -383,7 +383,7 @@ test('overview renders one workspace title and exact review shortcut from real i
   assert.match(html, /1 个项目/);
 });
 
-test('overview filters and sorting stay in memory while statistics keep their catalog scope', async () => {
+test('overview filters default to normal and explicit all and archive remain in memory', async () => {
   const f = studioFixture({ unified: true }); await f.flush();
   f.snapshot.workspace.projects.items.push({ id: 'alpha', name: 'Alpha' }, { id: 'zeta', name: 'Zeta' }, { id: 'old', name: 'Archived', archived: true });
   f.snapshot.items.push({ id: 'a', project_id: 'alpha', state: 'doing', updated_at: '2026-10-21T10:00:00Z' },
@@ -392,16 +392,16 @@ test('overview filters and sorting stay in memory while statistics keep their ca
   let reads = 0; const read = f.client.snapshot; f.client.snapshot = async () => { reads++; return read(); };
   const html = () => f.nodes.get('studio-content').innerHTML;
   assert.ok(html().indexOf('data-project-card="zeta"') < html().indexOf('data-project-card="alpha"'));
-  assert.ok(html().indexOf('data-project-card="alpha"') < html().indexOf('data-project-card="server-project"'));
+  assert.doesNotMatch(html(), /data-project-card="old"|attention-projects/);
   f.sort('name'); assert.ok(html().indexOf('data-project-card="alpha"') < html().indexOf('data-project-card="zeta"'));
-  f.click('attention-projects'); assert.match(html(), /data-project-card="zeta"/); assert.doesNotMatch(html(), /data-project-card="alpha"/);
-  assert.match(html(), /1 个项目/);
+  f.click('all-projects'); assert.match(html(), /data-project-card="old"/); assert.match(html(), /data-project-card="alpha"/);
   f.search('missing'); assert.match(html(), /没有匹配的项目/); assert.match(html(), /data-action="clear-project-filters"/);
-  f.click('clear-project-filters'); assert.match(html(), /data-project-card="alpha"/);
+  f.click('clear-project-filters'); assert.match(html(), /data-project-card="alpha"/); assert.doesNotMatch(html(), /data-project-card="old"/);
   f.search('  ALPHA  '); assert.match(html(), /data-project-card="alpha"/); assert.doesNotMatch(html(), /data-project-card="zeta"/);
-  f.click('clear-project-filters'); f.click('attention-projects'); f.click('archived-projects');
-  assert.match(html(), /data-project-card="old"/); assert.match(html(), /href="#project\/old\/workspace"/);
-  assert.match(html(), /1 个项目/);
+  f.click('clear-project-filters'); f.click('archived-projects');
+  assert.match(html(), /data-project-card="old"/); assert.doesNotMatch(html(), /data-project-card="alpha"/);
+  assert.match(html(), /href="#project\/old\/workspace"/);
+  f.click('active-projects'); assert.doesNotMatch(html(), /data-project-card="old"/);
   assert.equal(reads, 0);
 });
 
@@ -433,14 +433,13 @@ test('native adoption waits for a published active project without navigating or
   f.dispose();
 });
 
-test('an unregistered directory notice stays on the current page', async () => {
+test('retired native manage events cannot redirect an unregistered directory or open another form', async () => {
   const f = studioFixture({ unified: true }); await f.flush();
   await f.route('project/server-project/workspace');
-  f.callbacks['platform-manage-project']({ detail: { directory: 'C:/example/unregistered' } });
+  f.window.dispatchEvent({ type: 'platform-manage-project', detail: { directory: 'C:/example/unregistered' } });
   assert.equal(f.location.hash, '#project/server-project/workspace');
-  const notice = f.elements.find(node => node.tagName === 'dialog' && node.open);
-  assert.match(notice.innerHTML, /请从项目总览管理已登记的项目/);
-  notice.querySelector('button').listeners.click[0](); assert.equal(notice.isConnected, false);
+  assert.equal(f.elements.some(node => node.tagName === 'dialog' && node.open), false);
+  assert.equal(f.posts.length, 0);
 });
 
 test('mixed states retain stable project navigation and explicit shortcut routes', async () => {
@@ -464,22 +463,13 @@ test('mixed states retain stable project navigation and explicit shortcut routes
   assert.equal(standalone.location.hash, '#home');
 });
 
-test('project rows keep management separate and archived projects restore through the existing save API', async () => {
+test('retired outer project management hooks cannot open a form or save project fields', async () => {
   const f = studioFixture({ unified: true }); await f.flush();
-  let html = f.nodes.get('studio-content').innerHTML;
-  assert.match(html, /<\/a><\/h2><button[^>]+data-project-menu="server-project"/);
-  f.snapshot.workspace.projects.items[0].archived = true;
-  f.click('archived-projects'); html = f.nodes.get('studio-content').innerHTML;
-  assert.match(html, /已归档/); assert.match(html, /data-project-menu="server-project"/);
-  assert.match(html, /href="#project\/server-project\/workspace"/);
   f.manage('server-project');
-  const dialog = f.elements.find(node => node.tagName === 'dialog' && node.open);
-  assert.equal(dialog.querySelector('[name="archived"]').checked, true);
-  dialog.querySelector('[name="archived"]').checked = false;
-  dialog.querySelector('[name="name"]').value = 'Restored project';
-  await dialog.querySelector('form').listeners.submit[0]({ preventDefault() {} });
-  assert.equal(f.posts.length, 1); assert.equal(f.posts[0].url, '/api/workspace/projects/save');
-  assert.equal(f.posts[0].value.archived, false); assert.equal(dialog.open, false); assert.equal(f.location.hash, '#home');
+  f.window.dispatchEvent({ type: 'platform-manage-project', detail: { directory: 'C:/example/fixture' } });
+  assert.equal(f.elements.some(node => node.tagName === 'dialog' && node.className === 'ce-project-settings'), false);
+  assert.equal(f.posts.length, 0);
+  assert.equal(f.location.hash, '#home');
 });
 
 test('archived task views show a recovery state without exposing active task actions', async () => {
@@ -678,15 +668,15 @@ test('navigation drawer shares destinations, locks the real scroll host and rest
   }
 });
 
-test('drawer links close before routing and project dialogs close it before opening', async () => {
+test('drawer links close before routing and retired project forms cannot be opened', async () => {
   const f = studioFixture({ unified: true }); await f.flush();
   const drawer = f.elements.find(node => node.id === 'studio-navigation');
   f.click('navigation');
   f.nodes.get('ce-studio').listeners.click({ target: { closest: selector => selector === 'a[href]' ? { href: '#mobile' } : null } });
   assert.equal(drawer.open, false); assert.equal(f.scrollHost.style.overflow, 'auto');
-  f.click('navigation'); f.manage('server-project');
-  assert.equal(drawer.open, false);
-  assert.equal(f.elements.find(node => node.className === 'ce-project-settings').open, true);
+  f.manage('server-project');
+  assert.equal(f.elements.some(node => node.className === 'ce-project-settings'), false);
+  assert.equal(f.posts.length, 0);
   f.dispose();
 });
 

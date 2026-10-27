@@ -16,17 +16,18 @@ test('integrated Studio retains its single authority-backed theme control', () =
 });
 const project = (id, archived = false) => ({id, name:id, archived, directories:[{id:'main',path:'C:/example/'+id}]});
 function overview(options = {}) {
-  return shell.renderOverview({projects:[project('one'),project('old',true)],items:[],query:'',attentionOnly:false,
-    archivedOnly:false,sort:'name',viewMode:'cards',developmentUrl:id=>'#project/'+id+'/workspace',...options});
+  return shell.renderOverview({projects:[project('one'),project('old',true)],items:[],query:'',
+    projectFilter:'active',sort:'name',viewMode:'cards',developmentUrl:id=>'#project/'+id+'/workspace',...options});
 }
 const ids = html => [...html.matchAll(/data-project-card="([^"]+)"/g)].map(match => match[1]);
 
-test('cards and list share all registered records, and filters never change title destinations', () => {
-  assert.deepEqual(ids(overview()), ['old','one']);
-  assert.deepEqual(ids(overview({viewMode:'list'})), ['old','one']);
-  assert.deepEqual(ids(overview({archivedOnly:true})), ['old']);
+test('normal is the default and explicit all and archived filters preserve title destinations', () => {
+  assert.deepEqual(ids(overview()), ['one']);
+  assert.deepEqual(ids(overview({viewMode:'list'})), ['one']);
+  assert.deepEqual(ids(overview({projectFilter:'all'})), ['old','one']);
+  assert.deepEqual(ids(overview({projectFilter:'archived'})), ['old']);
   assert.deepEqual(ids(overview({query:'ONE'})), ['one']);
-  assert.match(overview(), /href="#project\/old\/workspace"/);
+  assert.match(overview({projectFilter:'all'}), /href="#project\/old\/workspace"/);
   assert.doesNotMatch(overview(), /ce-development-shortcut|data-action="add-project"/);
 });
 
@@ -70,11 +71,12 @@ test('overview facts use progress semantics and exclude records outside register
     {project_id:'one',state:'doing'},
     {project_id:'missing',state:'review',current_delivery_id:'orphan-delivery'},
   ]});
-  assert.match(html, /<dt>项目<\/dt><dd>2<\/dd>/);
+  assert.match(html, /<dt>项目<\/dt><dd>1<\/dd>/);
+  assert.match(overview({projectFilter:'all'}), /<dt>项目<\/dt><dd>2<\/dd>/);
   assert.match(html, /<dt>待处理<\/dt><dd>1<\/dd>/);
   assert.match(html, /<dt>有交付<\/dt><dd>1<\/dd>/);
-  assert.match(html, /<span>1 推进中<\/span>/);
-  assert.deepEqual(ids(overview({attentionOnly:true,items:[{project_id:'one',state:'todo',assignment_state:'waiting_user'}]})), ['one']);
+  assert.match(html, /<span>1 进行中<\/span>/);
+  assert.deepEqual(ids(overview({projectFilter:'active',items:[{project_id:'one',state:'todo',assignment_state:'waiting_user'}]})), ['one']);
 });
 
 

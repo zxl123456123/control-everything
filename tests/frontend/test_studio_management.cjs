@@ -5,11 +5,12 @@ const path = require('node:path');
 const { pathToFileURL } = require('node:url');
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const { isDeepStrictEqual } = require('node:util');
 const root = path.resolve(__dirname, '../..');
 const clone = value => JSON.parse(JSON.stringify(value));
 const tick = async () => { await new Promise(resolve => setTimeout(resolve, 10)); for (let i = 0; i < 6; i++) await new Promise(resolve => setImmediate(resolve)); };
 const uuid = index => `00000000-0000-4000-8000-${String(index).padStart(12, '0')}`;
-async function fixture(t, { hash = '#home', unified = false, writable = true, taskModule = true, progressModule = true, registration = false } = {}) {
+async function fixture(t, { hash = '#home', unified = false, writable = true, taskModule = true, progressModule = true, registration = false, remote = false } = {}) {
   const { Window } = await import(pathToFileURL(path.join(root, 'web/workbench-engine/node_modules/happy-dom/lib/index.js')).href);
   const { default: HistoryItemList } = await import(pathToFileURL(path.join(root, 'web/workbench-engine/node_modules/happy-dom/lib/history/HistoryItemList.js')).href);
   // This pinned DOM truncates forward entries in replace(). Browser replaceState keeps them.
@@ -20,7 +21,7 @@ async function fixture(t, { hash = '#home', unified = false, writable = true, ta
     this.currentItem = item; this.items[index] = item;
   };
   const w = new Window({ url: 'http://fixture.test/studio' + hash, settings: { disableJavaScriptFileLoading: true, disableCSSFileLoading: true } });
-  const projects = ['p-a', 'p-b', 'p-old'].map((id, i) => ({ id, name: i === 2 ? '归档' : '同名项目', archived: i === 2, directories: [{ id: 'main', path: 'C:/example/' + id }] }));
+  const projects = ['p-a', 'p-b', 'p-old'].map((id, i) => ({ id, name: i === 2 ? '归档' : '同名项目', archived: i === 2, source: { kind: 'none', directory_id: null, relative_path: null }, directories: [{ id: 'main', path: 'C:/example/' + id }] }));
   const items = [
     { id: uuid(1), project_id: 'p-a', title: 'A 正在推进', state: 'doing' },
     { id: uuid(2), project_id: 'p-a', title: 'A 待推进', state: 'todo' },
@@ -31,6 +32,9 @@ async function fixture(t, { hash = '#home', unified = false, writable = true, ta
   ].map(item => ({ origin: 'task', revision: 1, assignment_state: 'unassigned', provider_id: null, session_key: null, ...item }));
   const reads = [], posts = [], creates = [], adapters = [], registrations = [];
   let revision = 1, failRead = false, failWrite = false, pendingRead = null;
+  let pendingProjectSave = null, projectFailure = '', failWorkspaceRead = false;
+  const projectFields = project => ({ name: project.name, archived: Boolean(project.archived),
+    directories: project.directories.map(row => ({ id: row.id, path: row.path })), source: project.source });
   function page(query) {
     let rows = items.filter(item => !query.get('project_id') || item.project_id === query.get('project_id'));
     const scope = query.get('scope');
@@ -51,14 +55,26 @@ async function fixture(t, { hash = '#home', unified = false, writable = true, ta
     if (options.method === 'POST') {
       const payload = JSON.parse(options.body); posts.push({ route, payload });
       if (failWrite) return { ok: false, status: 409, json: async () => ({ reason: 'item_changed' }) };
-      if (route !== '/api/workspace/items/update') throw new Error('Unexpected POST ' + route);
-      const item = items.find(item => item.id === payload.id);
-      const target = payload.changes.project_id;
-      if (target && !projects.some(p => p.id === target && !p.archived)) return { ok: false, status: 400, json: async () => ({ reason: 'invalid_item' }) };
-      assert.equal(payload.expected_revision, item.revision);
-      Object.assign(item, payload.changes); item.revision++; revision++; body = { item: clone(item) };
+      if (route === '/api/workspace/projects/save') {
+        if (pendingProjectSave) await pendingProjectSave;
+        const project = projects.find(row => row.id === payload.id);
+        const reason = projectFailure || (!project ? 'not_found' : project.read_only || project.source.kind === 'codex' ? 'invalid_project'
+          : !isDeepStrictEqual(payload.expected, projectFields(project)) ? 'project_changed' : '');
+        if (reason) return { ok: false, status: reason === 'not_found' ? 404 : 409, json: async () => ({ reason }) };
+        assert.deepEqual(Object.keys(payload).sort(), ['archived', 'directories', 'expected', 'id', 'name', 'source']);
+        assert.deepEqual({ ...payload.expected, archived: payload.archived }, { ...projectFields(project), archived: payload.archived });
+        Object.assign(project, clone({ name: payload.name, archived: payload.archived, directories: payload.directories, source: payload.source }));
+        revision++; body = { status: 'ok', project: clone(project) };
+      } else {
+        if (route !== '/api/workspace/items/update') throw new Error('Unexpected POST ' + route);
+        const item = items.find(item => item.id === payload.id);
+        const target = payload.changes.project_id;
+        if (target && !projects.some(p => p.id === target && !p.archived)) return { ok: false, status: 400, json: async () => ({ reason: 'invalid_item' }) };
+        assert.equal(payload.expected_revision, item.revision);
+        Object.assign(item, payload.changes); item.revision++; revision++; body = { item: clone(item) };
+      }
     } else if (route === '/api/bootstrap') body = { capabilities: { profile: true }, csrf_token: writable ? 'fixture-only' : '' };
-    else if (route === '/api/workspace') body = workspace();
+    else if (route === '/api/workspace') { if (failWorkspaceRead) throw new Error('fixture workspace offline'); body = workspace(); }
     else if (route === '/api/workspace/agents') body = { revision: 0, items: [], tokens: {} };
     else if (route === '/api/workspace/items') {
       if (pendingRead && u.searchParams.get('limit') === '50') return pendingRead.promise;
@@ -68,6 +84,15 @@ async function fixture(t, { hash = '#home', unified = false, writable = true, ta
     else throw new Error('Unexpected GET ' + route);
     return { ok: true, status: 200, json: async () => body };
   };
+  if (remote) {
+    let active = true; const listeners = new Set();
+    w.CERemoteContext = { context: 'fixture-remote', get active() { return active; },
+      assertActive() { if (!active) throw new Error('remote_context_inactive'); },
+      fetchWith(raw, url, options) { this.assertActive(); return raw(url, options); },
+      onInactive(callback) { listeners.add(callback); return () => listeners.delete(callback); },
+      invalidate() { active = false; for (const callback of [...listeners]) callback(); }
+    };
+  }
   const html = fs.readFileSync(path.join(root, 'web/workspace/studio-preview.html'), 'utf8').replace(/<script\b[^>]*>[\s\S]*?<\/script>/g, '').replace(/<link\b[^>]*>/g, '');
   w.document.write(html);
   const host = w.document.getElementById('ce-studio'); host.id = 'mount-later';
@@ -96,8 +121,162 @@ async function fixture(t, { hash = '#home', unified = false, writable = true, ta
   }
   return { w, host, reads, posts, creates, adapters, registrations, items, projects, node, change, input, route,
     failRead(value) { failRead = value; }, failWrite(value) { failWrite = value; },
+    projectFields, failProject(reason) { projectFailure = reason; }, failWorkspace(value) { failWorkspaceRead = value; },
+    deferProjectSave() { let release; pendingProjectSave = new Promise(resolve => { release = resolve; }); return () => { const done = release; pendingProjectSave = null; done(); }; },
     deferRead() { let resolve; const promise = new Promise(r => resolve = r); pendingRead = { promise, resolve }; return value => { pendingRead = null; resolve({ ok: true, json: async () => value }); }; } };
 }
+
+function archiveMenu(f, id) {
+  const trigger = f.node(`[data-project-menu="${id}"]`); trigger.click();
+  const menu = f.w.document.querySelector('[role="menu"]')
+    || f.w.document.querySelector('.platform-project-dialog-host')?.shadowRoot.querySelector('[role="menu"]');
+  assert.ok(menu, 'visible project menu');
+  const actions = [...menu.querySelectorAll('[role="menuitem"]')];
+  assert.equal(actions.length, 1, 'overview only offers archive or restore');
+  const action = actions[0];
+  assert.equal(action.tagName, 'BUTTON'); assert.equal(action.dataset.projectArchive, id);
+  assert.ok(action.querySelector('svg')); assert.equal(menu.querySelector('a'), null);
+  assert.doesNotMatch(menu.textContent, /项目信息|项目管理|项目设置|项目进展/);
+  return { trigger, menu, action };
+}
+const overviewIds = f => [...f.host.querySelectorAll('[data-project-card]')].map(node => node.dataset.projectCard).sort();
+
+test('catalog clearing while search is focused leaves a valid empty overview without an error', async t => {
+  const f = await fixture(t);
+  f.node('#studio-project-search').focus();
+  f.projects.length = 0;
+  f.node('[data-action="refresh"]').click();
+  await tick();
+  assert.equal(f.host.querySelector('#studio-project-search'), null);
+  assert.equal(f.w.document.activeElement, f.node('h1'));
+  assert.equal(f.node('#studio-status').classList.contains('error'), false, f.node('#studio-status').textContent);
+  assert.ok(f.host.querySelector('a[href="#workbench"]'));
+  assert.equal(f.posts.length, 0);
+});
+
+test('overview defaults to normal and explicit all and archived filters do not read or toggle scope', async t => {
+  const f = await fixture(t);
+  assert.deepEqual(overviewIds(f), ['p-a', 'p-b']);
+  assert.equal(f.node('[data-action="active-projects"]').getAttribute('aria-pressed'), 'true');
+  assert.equal(f.host.querySelector('[data-action="attention-projects"]'), null);
+  const before = f.reads.length;
+  f.node('[data-action="all-projects"]').click(); assert.deepEqual(overviewIds(f), ['p-a', 'p-b', 'p-old']);
+  f.node('[data-action="archived-projects"]').click(); assert.deepEqual(overviewIds(f), ['p-old']);
+  f.node('[data-action="archived-projects"]').click(); assert.deepEqual(overviewIds(f), ['p-old']);
+  f.node('[data-action="active-projects"]').click(); assert.deepEqual(overviewIds(f), ['p-a', 'p-b']);
+  assert.equal(f.reads.length, before); assert.equal(f.posts.length, 0);
+});
+
+for (const unified of [false, true]) test(`archive and restore save original fields with CAS and leave the current filtered list (unified=${unified})`, async t => {
+  const f = await fixture(t, { unified }), original = clone(f.projects[0]);
+  const { action } = archiveMenu(f, original.id); assert.match(action.textContent, /归档项目/);
+  action.click(); await tick();
+  assert.equal(f.posts.length, 1);
+  assert.deepEqual(f.posts[0], { route: '/api/workspace/projects/save', payload: {
+    id: original.id, ...f.projectFields(original), archived: true, expected: f.projectFields(original)
+  } });
+  assert.deepEqual(overviewIds(f), ['p-b']); assert.equal(f.w.location.hash, '#home');
+  assert.equal(f.node('.ce-summary-metrics dd').textContent, '1');
+  assert.equal(f.w.document.activeElement, f.node('h1'), 'removed project focus falls back to the overview heading');
+  f.node('[data-action="archived-projects"]').click(); assert.deepEqual(overviewIds(f), ['p-a', 'p-old']);
+  const restored = archiveMenu(f, 'p-a'); assert.match(restored.action.textContent, /恢复项目/);
+  restored.action.click(); await tick();
+  assert.equal(f.posts.length, 2); assert.equal(f.posts[1].payload.archived, false);
+  assert.equal(f.posts[1].payload.name, original.name); assert.equal(f.posts[1].payload.expected.archived, true);
+  assert.deepEqual(overviewIds(f), ['p-old']);
+  f.node('[data-action="active-projects"]').click(); assert.deepEqual(overviewIds(f), ['p-a', 'p-b']);
+  assert.equal(f.w.document.querySelector('.ce-project-settings'), null);
+});
+
+test('pending archive is busy and double activation never sends another write or removes an unconfirmed card', async t => {
+  const f = await fixture(t), release = f.deferProjectSave(), { action } = archiveMenu(f, 'p-a');
+  action.click(); action.click(); await tick();
+  assert.equal(action.disabled, true); assert.equal(action.getAttribute('aria-busy'), 'true'); assert.match(action.textContent, /正在归档/);
+  assert.equal(f.posts.length, 1); assert.deepEqual(overviewIds(f), ['p-a', 'p-b']);
+  release(); await tick(); assert.deepEqual(overviewIds(f), ['p-b']); assert.equal(f.posts.length, 1);
+});
+
+for (const reason of ['project_changed', 'native_managed_project']) test(`archive ${reason} keeps its record and reports a real failure without replay`, async t => {
+  const f = await fixture(t); f.failProject(reason); archiveMenu(f, 'p-a').action.click(); await tick();
+  assert.deepEqual(overviewIds(f), ['p-a', 'p-b']); assert.equal(f.projects[0].archived, false); assert.equal(f.posts.length, 1);
+  assert.ok(f.node('#studio-status').textContent.trim()); assert.equal(f.node('#studio-status').classList.contains('error'), true);
+  assert.equal(f.w.document.querySelector('.ce-project-settings'), null); await tick(); assert.equal(f.posts.length, 1);
+});
+
+test('another window rename makes a pending archive conflict instead of restoring the old name', async t => {
+  const f = await fixture(t), release = f.deferProjectSave(); archiveMenu(f, 'p-a').action.click(); await tick();
+  f.projects[0].name = '另一窗口已保存'; release(); await tick();
+  assert.equal(f.posts.length, 1); assert.equal(f.posts[0].payload.expected.name, '同名项目');
+  assert.equal(f.projects[0].name, '另一窗口已保存'); assert.equal(f.projects[0].archived, false);
+  assert.deepEqual(overviewIds(f), ['p-a', 'p-b']); assert.match(f.node('#studio-status').textContent, /其他窗口|重新读取|变化/);
+});
+
+test('restore directory conflicts keep the archived record and explicit error', async t => {
+  const f = await fixture(t); f.node('[data-action="archived-projects"]').click(); f.failProject('directory_conflict');
+  archiveMenu(f, 'p-old').action.click(); await tick();
+  assert.equal(f.posts.length, 1); assert.equal(f.posts[0].payload.archived, false);
+  assert.equal(f.projects[2].archived, true); assert.deepEqual(overviewIds(f), ['p-old']);
+  assert.ok(f.node('#studio-status').textContent.trim()); assert.equal(f.node('#studio-status').classList.contains('error'), true);
+});
+
+test('saved archive with failed confirmation keeps the old list and recovers by GET without another POST', async t => {
+  const f = await fixture(t); f.failWorkspace(true); archiveMenu(f, 'p-a').action.click(); await tick();
+  assert.equal(f.projects[0].archived, true); assert.deepEqual(overviewIds(f), ['p-a', 'p-b']);
+  assert.match(f.node('#studio-status').textContent, /已保存.*(?:列表|读取|确认)/); assert.equal(f.posts.length, 1);
+  f.failWorkspace(false); f.node('[data-action="refresh"]').click(); await tick();
+  assert.deepEqual(overviewIds(f), ['p-b']); assert.equal(f.posts.length, 1);
+});
+
+test('read-only, Codex and missing write capability expose no fake archive menu', async t => {
+  const f = await fixture(t); f.projects[0].read_only = true; f.projects[1].source.kind = 'codex';
+  f.node('[data-action="refresh"]').click(); await tick();
+  assert.deepEqual(overviewIds(f), ['p-a', 'p-b']); assert.equal(f.host.querySelector('[data-project-menu]'), null); assert.equal(f.posts.length, 0);
+  const readonly = await fixture(t, { writable: false }); assert.equal(readonly.host.querySelector('[data-project-menu]'), null); assert.equal(readonly.posts.length, 0);
+});
+
+test('remote retirement during a pending archive rejects late publication and never replays', async t => {
+  const f = await fixture(t, { remote: true }), release = f.deferProjectSave(); archiveMenu(f, 'p-a').action.click(); await tick();
+  const reads = f.reads.length; f.w.CERemoteContext.invalidate();
+  const html = f.node('#studio-content').innerHTML; release(); await tick();
+  assert.equal(f.posts.length, 1); assert.equal(f.reads.length, reads); assert.equal(f.node('#studio-content').innerHTML, html);
+  assert.equal(f.w.location.hash, '#home'); assert.equal(f.w.document.querySelector('[role="menu"]'), null);
+});
+
+test('archive menu keyboard focus returns to the trigger on Escape without writing', async t => {
+  const f = await fixture(t), { trigger, menu, action } = archiveMenu(f, 'p-a');
+  assert.equal(f.w.document.activeElement, action); assert.equal(trigger.getAttribute('aria-expanded'), 'true');
+  action.dispatchEvent(new f.w.KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+  assert.equal(menu.isConnected, false); assert.equal(f.w.document.activeElement, trigger);
+  assert.equal(trigger.getAttribute('aria-expanded'), 'false'); assert.equal(f.posts.length, 0);
+});
+
+test('normal and archived cards retain distinct colors and equal title size in cards and list for both themes', async t => {
+  const f = await fixture(t, { unified: true });
+  const sheets = ['workspace.css', 'project-progress.css', 'project-monitor.css', 'studio-preview.css'].map(name => ({
+    text: fs.readFileSync(path.join(root, 'web/workspace', name), 'utf8'), style: f.w.document.createElement('style')
+  }));
+  for (const sheet of sheets) f.w.document.head.append(sheet.style);
+  const rgb = value => {
+    if (/^#[a-f0-9]{6}$/i.test(value)) return [1, 3, 5].map(index => parseInt(value.slice(index, index + 2), 16));
+    const match = value.match(/^rgba?\((\d+),\s*(\d+),\s*(\d+)/); assert.ok(match, `computed color ${value}`); return match.slice(1).map(Number);
+  };
+  for (const theme of ['light', 'dark']) for (const mode of ['cards', 'list']) {
+    // The pinned simulator does not evaluate light-dark(); materialize only that standard function,
+    // retaining the full production cascade and custom-property inheritance for each real theme.
+    for (const sheet of sheets) sheet.style.textContent = sheet.text.replace(/light-dark\(\s*(#[a-f0-9]+)\s*,\s*(#[a-f0-9]+)\s*\)/gi,
+      (_match, light, dark) => theme === 'light' ? light : dark);
+    f.host.dataset.theme = theme; f.node('[data-action="all-projects"]').click(); f.node(`[data-action="view-${mode}"]`).click();
+    const normal = f.node('[data-project-card="p-a"]'), archived = f.node('[data-project-card="p-old"]');
+    const normalTitle = f.w.getComputedStyle(normal.querySelector('.ce-project-title-link')), archivedTitle = f.w.getComputedStyle(archived.querySelector('.ce-project-title-link'));
+    assert.equal(normalTitle.fontSize, '16px'); assert.equal(archivedTitle.fontSize, '16px');
+    const blue = rgb(normalTitle.color), amber = rgb(archivedTitle.color);
+    assert.ok(blue[2] > blue[0], `normal blue title at ${theme}/${mode}`); assert.ok(amber[0] > amber[2], `archive amber title at ${theme}/${mode}`);
+    assert.notEqual(normalTitle.backgroundColor, archivedTitle.backgroundColor);
+    assert.match(normal.textContent, /正常/); assert.match(archived.textContent, /已归档/);
+    assert.doesNotMatch(normal.textContent + archived.textContent, /尚无事项记录|本机项目|来源项目/);
+    assert.equal(normal.querySelector('.ce-project-title-link').getAttribute('href'), '#project/p-a/workspace');
+  }
+});
 
 test('display-only progress retains direct legacy TaskCenter and Board routes with stable records', async t => {
   const f = await fixture(t); await f.route('#project/p-a/tasks');
@@ -158,25 +337,14 @@ test('a failed native adoption refresh can retry its read without replaying regi
   assert.equal(f.w.location.hash, '#workbench'); assert.equal(f.posts.length, 0);
 });
 
-test('project name composition keeps the dialog open and a later cancel retains its draft', async t => {
+test('retired outer project management events and selectors cannot reopen a form', async t => {
   const f = await fixture(t);
-  function open() {
-    f.node('[data-project-menu="p-a"]').click();
-    f.w.document.querySelector('[data-project-settings="p-a"]').click();
-    return f.node('dialog.ce-project-settings');
-  }
-  const dialog = open();
-  const name = dialog.querySelector('[name="name"]');
-  name.value = '中文草稿'; name.dispatchEvent(new f.w.Event('input', {bubbles:true}));
-  name.dispatchEvent(new f.w.CompositionEvent('compositionstart', {bubbles:true}));
-  const escape = new f.w.KeyboardEvent('keydown', {key:'Escape',bubbles:true,cancelable:true,isComposing:true});
-  name.dispatchEvent(escape); assert.equal(escape.defaultPrevented, true);
-  dialog.dispatchEvent(new f.w.Event('cancel', {cancelable:true}));
-  assert.equal(dialog.open, true); assert.equal(f.posts.length, 0);
-  name.dispatchEvent(new f.w.CompositionEvent('compositionend', {bubbles:true}));
-  dialog.dispatchEvent(new f.w.Event('cancel', {cancelable:true}));
-  await tick(); assert.equal(dialog.open, false);
-  assert.equal(open().querySelector('[name="name"]').value, '中文草稿');
+  const retired = f.w.document.createElement('button'); retired.dataset.projectSettings = 'p-a'; f.host.append(retired);
+  retired.click(); f.w.dispatchEvent(new f.w.CustomEvent('platform-manage-project', { detail: { directory: 'C:/example/p-a' } }));
+  await tick();
+  assert.equal(f.w.document.querySelector('.ce-project-settings'), null);
+  assert.equal(f.host.querySelector('[data-action="attention-projects"]'), null);
+  assert.equal(f.posts.length, 0);
 });
 
 test('accepted hash/back/forward retain all-project selection and scroll without retired controls', async t => {

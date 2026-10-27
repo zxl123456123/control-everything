@@ -762,6 +762,11 @@ body:has(#ce-studio){margin:0;background:var(--ce-bg,#ffffff)}
 #ce-studio .ce-project-facts{display:flex;align-items:center;flex-wrap:wrap;gap:12px;color:var(--ce-sub);font-size:14px;line-height:22px}
 #ce-studio .ce-project-badges{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
 #ce-studio .ce-project-status{display:inline-flex;align-items:center;gap:6px;padding:2px 8px;border:1px solid var(--ce-line);border-radius:5px;background:var(--ce-soft);color:var(--ce-sub);font-size:14px;line-height:20px}
+#ce-studio .ce-overview-card{--ce-project-color:var(--ce-blue);--ce-project-tint:var(--ce-blue-bg);min-height:148px}
+#ce-studio .ce-overview-card.is-archived{--ce-project-color:var(--ce-amber);--ce-project-tint:var(--ce-amber-bg);border-color:color-mix(in srgb,var(--ce-project-color) 40%,var(--ce-line))}
+#ce-studio .ce-overview-card .ce-project-title-link{padding:4px 8px;min-height:32px;border-radius:6px;background:var(--ce-project-tint);color:var(--ce-project-color);font-size:16px;line-height:24px}
+#ce-studio .ce-overview-card :is(.ce-project-kind-icon,.ce-project-lifecycle){color:var(--ce-project-color);background:var(--ce-project-tint);border-color:color-mix(in srgb,var(--ce-project-color) 35%,var(--ce-line))}
+#ce-studio .ce-project-lifecycle svg{width:14px;height:14px}
 #ce-studio .ce-needs-attention{color:var(--ce-amber);border-color:color-mix(in srgb,var(--ce-amber) 35%,transparent);background:var(--ce-amber-bg)}
 #ce-studio .ce-summary-band{display:block;padding:0;margin-bottom:24px;border:0}
 #ce-studio .ce-summary-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin:0}
@@ -795,7 +800,7 @@ body:has(#ce-studio){margin:0;background:var(--ce-bg,#ffffff)}
 #ce-studio #onboarding-dialog .onboarding-submit{justify-content:flex-end;margin-top:24px}
 #ce-studio #onboarding-dialog :is(#onboarding-feedback,#onboarding-directory-result):empty{display:none}
 #ce-studio .ce-project-menu{position:fixed;z-index:100;width:220px;overflow:auto;padding:5px;display:grid;gap:2px;border:1px solid var(--ce-line);border-radius:8px;background:var(--ce-bg);box-shadow:0 6px 24px var(--ce-shadow-deep)}
-#ce-studio .ce-project-menu [role=menuitem]{display:flex;align-items:center;min-height:40px;width:100%;padding:8px 10px;background:transparent;border:0;border-radius:5px;color:var(--ce-text);font-size:14px;text-align:left;text-decoration:none}
+#ce-studio .ce-project-menu [role=menuitem]{display:flex;align-items:center;gap:10px;min-height:40px;width:100%;padding:8px 10px;background:transparent;border:0;border-radius:5px;color:var(--ce-text);font-size:14px;text-align:left;text-decoration:none}
 #ce-studio .ce-project-menu [role=menuitem]:hover{background:var(--ce-hover)}
 #ce-studio [hidden]{display:none!important}
 @media(max-width:1023px){

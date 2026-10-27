@@ -6,16 +6,40 @@ import { waitFor } from '@testing-library/dom'
 
 const source = readFileSync(resolve(process.cwd(), '../workspace/studio-shell.js'), 'utf8') + '\n' + readFileSync(resolve(process.cwd(), '../workspace/studio-preview.js'), 'utf8')
 const styles = readFileSync(resolve(process.cwd(), '../workspace/studio-preview.css'), 'utf8')
-const modal = () => document.querySelector('[data-platform-project-dialog]')?.shadowRoot?.querySelector<HTMLDialogElement>('dialog')
-function openManagement() {
+const shellMarkup = [
+  'studio-content', 'studio-status', 'studio-rail', 'studio-topbar',
+  'studio-tasks', 'studio-agent-board', 'studio-monitor', 'studio-monitor-content'
+].map(id => `<div id="${id}"></div>`).join('')
+const menu = () => document.querySelector('[data-platform-project-dialog]')?.shadowRoot?.querySelector<HTMLElement>('[role="menu"]')
+function openArchive() {
   root.querySelector<HTMLButtonElement>('[data-project-menu]')!.click()
-  document.querySelector('[data-platform-project-dialog]')!.shadowRoot!.querySelector<HTMLButtonElement>('[data-project-settings]')!.click()
-  return modal()!
+  const action = menu()!.querySelector<HTMLButtonElement>('[data-project-archive]')!
+  expect(menu()!.querySelectorAll('[role="menuitem"]')).toHaveLength(1)
+  expect(menu()!.querySelector('a')).toBeNull()
+  expect(action.querySelector('svg')).not.toBeNull()
+  return action
+}
+function nativeAction(action: 'rename' | 'archive', fields: Record<string, unknown> = {}) {
+  const waits: Promise<unknown>[] = [], controller = new AbortController()
+  window.dispatchEvent(new CustomEvent('platform-native-project-action', { detail: {
+    action, repoId: 'repo-one', directory: project.directories[0].path,
+    executionHostId: 'runtime:fixture-env', signal: controller.signal,
+    waitUntil: (promise: Promise<unknown>) => waits.push(promise), ...fields
+  } }))
+  expect(waits).toHaveLength(1)
+  return { result: waits[0], controller }
 }
 function acceptRoute(hash: string) {
   const from = window.location.hash
   window.history.replaceState(null, '', hash)
   window.dispatchEvent(new CustomEvent('platform-navigation-accepted', {detail:{from,to:hash}}))
+}
+function mountStandalone() {
+  dispose()
+  const replacement = document.createElement('div')
+  replacement.id = 'ce-studio'; replacement.dataset.unified = 'false'; replacement.innerHTML = shellMarkup
+  root.replaceWith(replacement); root = replacement
+  dispose = (window as any).StudioPreview.mount(root, { onProjects: changed })
 }
 let root: HTMLElement, dispose: () => void
 let studioStyle: HTMLStyleElement
@@ -43,30 +67,23 @@ beforeEach(async () => {
   }
   root = document.createElement('div')
   root.dataset.unified = 'true'
-  root.innerHTML = [
-    'studio-content',
-    'studio-status',
-    'studio-rail',
-    'studio-topbar',
-    'studio-tasks',
-    'studio-agent-board',
-    'studio-monitor',
-    'studio-monitor-content'
-  ]
-    .map((id) => `<div id="${id}"></div>`)
-    .join('')
+  root.innerHTML = shellMarkup
   document.body.append(root)
   studioStyle = document.createElement('style'); studioStyle.textContent = styles; document.head.append(studioStyle)
   post = vi.fn(async (_route, body) => {
-    project = { ...project, ...body }
+    const { expected, ...record } = body
+    const original = { name: project.name, archived: project.archived, directories: project.directories, source: project.source }
+    if (expected && JSON.stringify(expected) !== JSON.stringify(original))
+      throw Object.assign(new Error('Project changed'), { reason: 'project_changed' })
+    project = { ...project, ...record }
     return { status: 'ok', project }
   })
   changed = vi.fn(() => {
-    if (project.archived) expect(modal()?.open ?? false).toBe(false)
+    if (project.archived) expect(menu()).toBeNull()
   })
   scope = vi.fn()
   legacy = vi.fn()
-  createBoard = vi.fn(() => ({ load: async () => {}, update() {}, unavailable() {}, setProject: scope, dispose() {} }))
+  createBoard = vi.fn(() => ({ load: async () => {}, update() {}, unavailable() {}, setActive() {}, setProject: scope, dispose() {} }))
   Object.assign(window, {
     StudioData: {
       create: () => ({
@@ -81,90 +98,71 @@ beforeEach(async () => {
         canWrite: () => true
       })
     },
+    ProjectProgress: {}, ProjectProgressModel: {},
+    StudioPetSettings: { mount: () => () => {} },
     WorkspaceTaskCenter: { create: legacy },
     WorkspaceAgentBoard: { create: createBoard }
   })
   window.history.replaceState(null, '', '/studio#home')
   window.eval(source)
   root.id = 'ce-studio'
-  dispose = (window as any).StudioPreview.mount(root, { onProjects: changed })
+  dispose = (window as any).StudioPreview.mount(root, { onProjects: changed, runtimeHost: () => 'runtime:fixture-env' })
   await waitFor(() => expect(root.querySelector('[data-project-menu]')).not.toBeNull())
 })
 afterEach(() => {
   dispose?.()
   root.remove()
   studioStyle.remove()
+  document.body.replaceChildren()
+  delete (window as any).CERemoteContext
   vi.restoreAllMocks()
 })
 
-it('saves project metadata through the existing API and closes before publishing archived projects', async () => {
-  const dialog = openManagement()
-  dialog.querySelector<HTMLInputElement>('[name="name"]')!.value = 'Renamed'
-  dialog.querySelector<HTMLInputElement>('[name="archived"]')!.checked = true
-  dialog
-    .querySelector('form')!
-    .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+it('archives and restores through the existing CAS API, preserving fields and publishing active identities', async () => {
+  const original = structuredClone(project), archive = openArchive()
+  expect(archive.textContent).toContain('归档项目')
+  archive.click()
   await waitFor(() => expect(project.archived).toBe(true))
   expect(post).toHaveBeenCalledWith('/api/workspace/projects/save', {
-    ...project,
-    name: 'Renamed',
-    archived: true
-  })
+    ...original, archived: true,
+    expected: { name: original.name, archived: false, directories: original.directories, source: original.source }
+  }, expect.objectContaining({ signal: expect.any(AbortSignal) }))
   await waitFor(() => expect(changed.mock.calls.at(-1)?.[0]).toEqual([]))
+  await waitFor(() => expect(root.querySelector('#studio-status')?.textContent).toContain('已归档'))
+  expect(root.querySelector('[data-project-card]')).toBeNull()
   root.querySelector<HTMLButtonElement>('[data-action="archived-projects"]')!.click()
-  expect(root.querySelector('[data-project-menu]')).not.toBeNull()
   expect(root.querySelector('[data-open-project]')?.getAttribute('href')).toBe('#project/p-one/workspace')
-  const restore = openManagement()
-  restore.querySelector<HTMLInputElement>('[name="archived"]')!.checked = false
-  restore
-    .querySelector('form')!
-    .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
-  await waitFor(() =>
-    expect(changed.mock.calls.at(-1)?.[0]).toEqual([
-      { id: project.id, name: 'Renamed', directory: project.directories[0].path }
-    ])
-  )
+  const restore = openArchive(); expect(restore.textContent).toContain('恢复项目'); restore.click()
+  await waitFor(() => expect(project.archived).toBe(false))
+  await waitFor(() => expect(changed.mock.calls.at(-1)?.[0]).toEqual([
+    { id: project.id, name: original.name, directory: original.directories[0].path }
+  ]))
   expect(post).toHaveBeenCalledTimes(2)
+  expect(project.name).toBe(original.name)
+  expect(root.querySelector('[data-project-card]')).toBeNull()
 })
 
-it('preserves the edit dialog and draft when the project save is rejected', async () => {
-  post.mockRejectedValueOnce(new Error('Save rejected'))
-  const dialog = openManagement()
-  dialog.querySelector<HTMLInputElement>('[name="name"]')!.value = 'Draft'
-  dialog
-    .querySelector('form')!
-    .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
-  await waitFor(() =>
-    expect(dialog.querySelector('[role="status"]')?.textContent).toBe('Save rejected')
-  )
-  expect(dialog.open).toBe(true)
-  expect(dialog.querySelector<HTMLInputElement>('[name="name"]')!.value).toBe('Draft')
+it('keeps its card and explicit failure when CAS rejects the archive without replaying', async () => {
+  post.mockRejectedValueOnce(Object.assign(new Error('Project changed'), { reason: 'project_changed' }))
+  openArchive().click()
+  await waitFor(() => expect(root.querySelector('#studio-status')?.textContent).toContain('项目已变化'))
+  expect(root.querySelector('[data-project-card]')).not.toBeNull()
+  expect(project.archived).toBe(false)
+  expect(root.querySelector('.ce-project-settings')).toBeNull()
   expect(post).toHaveBeenCalledTimes(1)
 })
 
-it('opens project management in the current workspace and restores focus on cancel', async () => {
+it('retired native management requests cannot reopen an outer project form or change the route', async () => {
   window.history.replaceState(null, '', '/studio#project/p-one/workspace')
-  const trigger = document.createElement('button')
-  document.body.append(trigger)
-  trigger.focus()
+  const trigger = document.createElement('button'); document.body.append(trigger); trigger.focus()
   root.hidden = true
-  window.dispatchEvent(
-    new CustomEvent('platform-manage-project', {
-      detail: { directory: String.raw`C:\example\fixture\one\\` }
-    })
-  )
-  const modal = () =>
-    document
-      .querySelector('[data-platform-project-dialog]')
-      ?.shadowRoot?.querySelector<HTMLDialogElement>('dialog')
-  await waitFor(() => expect(modal()?.open).toBe(true))
+  window.dispatchEvent(new CustomEvent('platform-manage-project', {
+    detail: { directory: 'C:/example/fixture/one' }
+  }))
+  expect(document.querySelector('.ce-project-settings')).toBeNull()
+  expect(document.querySelector('[data-platform-project-dialog]')).toBeNull()
   expect(window.location.hash).toBe('#project/p-one/workspace')
-  expect(modal()!.closest('[hidden]')).toBeNull()
-  modal()!.querySelector<HTMLButtonElement>('[data-cancel-project]')!.click()
-  await waitFor(() => expect(modal()?.open ?? false).toBe(false))
-  expect(window.location.hash).toBe('#project/p-one/workspace')
-  expect(document.activeElement).toBe(trigger)
-  trigger.remove()
+  expect(document.activeElement).toBe(trigger); expect(post).not.toHaveBeenCalled()
 })
 
 it('uses one business task board and preserves review/attention filters across refreshes and legacy links', async () => {
@@ -189,99 +187,62 @@ it('uses one business task board and preserves review/attention filters across r
   }
 })
 
-it('preserves the external executor board when Studio is mounted without the native platform shell', () => {
-  dispose()
-  root.dataset.unified = 'false'
-  dispose = (window as any).StudioPreview.mount(root, { onProjects: changed })
-  expect(createBoard.mock.calls.at(-1)?.[0]).toMatchObject({ unified: false })
+it('keeps the explicit legacy executor board separate when mounted without the native shell', async () => {
+  mountStandalone()
+  await waitFor(() => expect(root.querySelector('[data-project-menu]')).not.toBeNull())
+  acceptRoute('#project/p-one/board')
+  await waitFor(() => expect(createBoard.mock.calls.at(-1)?.[0]).toMatchObject({ unified: false }))
   expect(root.querySelector('a[href$="/activity"]')).toBeNull()
+  expect(post).not.toHaveBeenCalled()
 })
 
-it('opens workspace from the project title and keeps the directory inside project information', () => {
+it('opens workspace from its title without exposing directory details or a replacement form', () => {
   const card = root.querySelector('.ce-overview-card')!
   expect(card.textContent).not.toContain(project.directories[0].path)
-  expect(card.textContent).toContain('尚无事项')
+  expect(card.textContent).not.toContain('尚无事项')
   expect(card.querySelector('[data-open-project]')?.getAttribute('href')).toBe('#project/p-one/workspace')
   expect(card.querySelector('.ce-development-shortcut')).toBeNull()
-  expect(openManagement().textContent).toContain(project.directories[0].path)
+  expect(openArchive().textContent).toContain('归档项目')
+  expect(menu()?.textContent).not.toMatch(/项目设置|项目进展|项目信息|项目管理/)
 })
 
-it('saves the platform name from native project management without leaving the workspace', async () => {
-  window.history.replaceState(null, '', '/studio#project/p-one/workspace')
-  root.hidden = true
-  window.dispatchEvent(
-    new CustomEvent('platform-manage-project', {
-      detail: { directory: project.directories[0].path }
-    })
-  )
-  const dialog = document
-    .querySelector('[data-platform-project-dialog]')!
-    .shadowRoot!.querySelector<HTMLDialogElement>('dialog')!
-  expect(dialog.closest('#ce-studio')?.getAttribute('data-unified')).toBe('true')
-  dialog.querySelector<HTMLInputElement>('[name="name"]')!.value = 'Workspace rename'
-  dialog
-    .querySelector('form')!
-    .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
-  await waitFor(() =>
-    expect(changed.mock.calls.at(-1)?.[0]).toEqual([
-      { id: project.id, name: 'Workspace rename', directory: project.directories[0].path }
-    ])
-  )
-  expect(post).toHaveBeenCalledWith('/api/workspace/projects/save', {
-    ...project,
-    name: 'Workspace rename'
-  })
+it('keeps native rename confirmation on the same workspace without the retired form', async () => {
+  acceptRoute('#project/p-one/workspace'); root.hidden = true
+  const request = nativeAction('rename', { name: 'Workspace rename' })
+  const confirm = await request.result as () => Promise<void>
+  expect(project.name).toBe('Workspace rename')
+  expect(document.querySelector('.ce-project-settings')).toBeNull()
+  await confirm(); request.controller.abort()
+  expect(changed.mock.calls.at(-1)?.[0]).toEqual([
+    { id: project.id, name: 'Workspace rename', directory: project.directories[0].path }
+  ])
   expect(window.location.hash).toBe('#project/p-one/workspace')
-  await waitFor(() => expect(modal()?.open ?? false).toBe(false))
+  expect(post).toHaveBeenCalledTimes(1)
 })
 
-it('manages the active project when an archived project retains the same directory', async () => {
+it('native actions use the active project when an archived record shares its directory', async () => {
   const archived = { ...project, id: 'p-old', name: 'Archived predecessor', archived: true }
   archivedRecords.push(archived)
-  const previous = changed.mock.calls.length
-  root.querySelector<HTMLButtonElement>('[data-action="refresh"]')!.click()
-  await waitFor(() => expect(changed).toHaveBeenCalledTimes(previous + 1))
-  window.history.replaceState(null, '', '/studio#project/p-one/workspace')
-  root.hidden = true
-  window.dispatchEvent(
-    new CustomEvent('platform-manage-project', {
-      detail: { directory: project.directories[0].path }
-    })
-  )
-  const modal = () =>
-    document
-      .querySelector('[data-platform-project-dialog]')
-      ?.shadowRoot?.querySelector<HTMLDialogElement>('dialog')
-  await waitFor(() => expect(modal()?.open).toBe(true))
-  expect(modal()!.querySelector<HTMLInputElement>('[name="name"]')!.value).toBe('One')
-  modal()!.querySelector<HTMLInputElement>('[name="name"]')!.value = 'Active renamed'
-  modal()!
-    .querySelector('form')!
-    .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
-  await waitFor(() =>
-    expect(post).toHaveBeenCalledWith('/api/workspace/projects/save', {
-      ...project,
-      id: 'p-one',
-      name: 'Active renamed'
-    })
-  )
-  expect(window.location.hash).toBe('#project/p-one/workspace')
+  await createBoard.mock.calls[0][0].onRefresh()
+  acceptRoute('#project/p-one/workspace')
+  const request = nativeAction('rename', { name: 'Active renamed' })
+  const confirm = await request.result as () => Promise<void>; await confirm(); request.controller.abort()
+  expect(post.mock.calls[0][1]).toMatchObject({ id: 'p-one', name: 'Active renamed', archived: false })
   expect(archived).toMatchObject({ id: 'p-old', name: 'Archived predecessor', archived: true })
-  await waitFor(() => expect(modal()?.open ?? false).toBe(false))
+  expect(window.location.hash).toBe('#project/p-one/workspace')
 })
 
-it('keeps the project menu separate from navigation and closes it on resize with focus restored', () => {
-  const trigger = root.querySelector<HTMLButtonElement>('[data-project-menu]')!
-  trigger.click()
+it('keeps the one-action menu separate and restores focus on resize and keyboard dismissal', () => {
+  const trigger = root.querySelector<HTMLButtonElement>('[data-project-menu]')!, action = openArchive()
   const shadow = document.querySelector('[data-platform-project-dialog]')!.shadowRoot!
-  const menu = shadow.querySelector<HTMLElement>('[role="menu"]')!
   expect(window.location.hash).toBe('#home')
-  expect(menu.querySelector('a')?.getAttribute('href')).toBe('#project/p-one/settings')
-  menu.dispatchEvent(new KeyboardEvent('keydown', {key:'ArrowDown',bubbles:true}))
-  expect(shadow.activeElement?.textContent).toBe('项目进展')
+  action.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }))
+  expect(shadow.activeElement).toBe(action)
   window.dispatchEvent(new Event('resize'))
-  expect(shadow.querySelector('[role="menu"]')).toBeNull()
-  expect(document.activeElement).toBe(trigger)
+  expect(menu()).toBeNull(); expect(document.activeElement).toBe(trigger)
+  openArchive().dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+  expect(menu()).toBeNull(); expect(document.activeElement).toBe(trigger)
+  expect(post).not.toHaveBeenCalled()
 })
 
 it('preserves the current overview search focus and selection when refreshed data changes its DOM', async () => {
@@ -295,46 +256,44 @@ it('preserves the current overview search focus and selection when refreshed dat
   expect(replacement.selectionStart).toBe(0)
 })
 
-it('opens standalone project information once without repeating its delegated action', async () => {
-  dispose(); root.dataset.unified = 'false'
-  dispose = (window as any).StudioPreview.mount(root, {onProjects:changed})
+it('standalone archive bubbling performs one save without opening another dialog', async () => {
+  mountStandalone()
   await waitFor(() => expect(root.querySelector('[data-project-menu]')).not.toBeNull())
   const show = vi.spyOn(HTMLDialogElement.prototype, 'showModal')
   root.querySelector<HTMLButtonElement>('[data-project-menu]')!.click()
-  root.querySelector<HTMLButtonElement>('[role="menu"] [data-project-settings]')!.click()
-  expect(show).toHaveBeenCalledTimes(1)
-  expect(root.querySelector<HTMLDialogElement>('.ce-project-settings')?.open).toBe(true)
+  root.querySelector<HTMLButtonElement>('[data-project-archive]')!.click()
+  await waitFor(() => expect(project.archived).toBe(true))
+  expect(post).toHaveBeenCalledTimes(1); expect(show).not.toHaveBeenCalled()
+  expect(root.querySelector('.ce-project-settings')).toBeNull()
 })
 
-it('keeps focus on the settings disclosure after expanding its entries', () => {
-  root.querySelector<HTMLButtonElement>('[data-action="settings-toggle"]')!.click()
-  const toggle = root.querySelector<HTMLButtonElement>('[data-action="settings-toggle"]')!
-  expect(toggle.getAttribute('aria-expanded')).toBe('true')
-  expect(document.activeElement).toBe(toggle)
-  expect(root.querySelector<HTMLElement>('#studio-settings-links')!.hidden).toBe(false)
+it('offers a focusable direct settings destination without the retired disclosure', () => {
+  const link = root.querySelector<HTMLAnchorElement>('#studio-rail a[href="#settings/appearance"]')!
+  link.focus(); expect(document.activeElement).toBe(link)
+  expect(root.querySelector('[data-action="settings-toggle"]')).toBeNull()
+  acceptRoute(link.getAttribute('href')!)
+  expect(root.querySelector('#studio-rail a[aria-current="page"]')?.getAttribute('href')).toBe('#settings/appearance')
 })
 
-it('resolves the drawer disclosure controls to its own unique settings list', () => {
-  root.querySelector<HTMLButtonElement>('[data-action="navigation"]')!.click()
+it('drawer settings link uses the same destination and native dialog close returns to its trigger', () => {
+  const trigger = root.querySelector<HTMLButtonElement>('[data-action="navigation"]')!; trigger.click()
   const drawer = root.querySelector<HTMLDialogElement>('#studio-navigation')!
-  drawer.querySelector<HTMLButtonElement>('[data-action="settings-toggle"]')!.click()
-  const toggle = drawer.querySelector<HTMLButtonElement>('[data-action="settings-toggle"]')!
-  const controlled = document.getElementById(toggle.getAttribute('aria-controls')!)!
-  expect(controlled.closest('dialog')).toBe(drawer)
-  expect(controlled.hidden).toBe(false)
-  expect(root.querySelectorAll('#studio-settings-links')).toHaveLength(1)
-  expect(root.querySelectorAll('#studio-drawer-settings-links')).toHaveLength(1)
-  expect(document.activeElement).toBe(toggle)
+  const link = drawer.querySelector<HTMLAnchorElement>('a[href="#settings/appearance"]')!
+  link.focus(); expect(document.activeElement).toBe(link)
+  expect(drawer.querySelector('[data-action="settings-toggle"]')).toBeNull()
+  drawer.close()
+  expect(drawer.open).toBe(false); expect(document.activeElement).toBe(trigger)
+  expect(post).not.toHaveBeenCalled()
 })
 
-it('applies overview text roles and input height after the complete Studio cascade', () => {
+it('applies overview text roles and lets the search input fill its single wrapper', () => {
   const heading = getComputedStyle(root.querySelector('h1')!)
-  const title = getComputedStyle(root.querySelector('.ce-overview-title h2')!)
+  const title = getComputedStyle(root.querySelector('.ce-project-title-link')!)
   const search = getComputedStyle(root.querySelector('#studio-project-search')!)
   expect([heading.fontSize,heading.lineHeight]).toEqual(['24px','32px'])
-  expect([title.fontSize,title.lineHeight]).toEqual(['18px','26px'])
-  expect([search.height,search.minHeight]).toEqual(['40px','40px'])
-  expect(getComputedStyle(root.querySelector('.ce-overview-recent')!).paddingLeft).toBe('0px')
+  expect([title.fontSize,title.lineHeight]).toEqual(['16px','24px'])
+  expect([search.height,search.minHeight]).toEqual(['100%','0'])
+  expect(root.querySelector('.ce-overview-recent')).toBeNull()
   root.querySelector<HTMLButtonElement>('[data-action="view-list"]')!.click()
-  expect(getComputedStyle(root.querySelector('.ce-overview-recent')!).paddingLeft).toBe('0px')
+  expect(root.querySelector('.ce-overview-recent')).toBeNull()
 })

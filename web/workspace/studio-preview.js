@@ -18,13 +18,15 @@ function mountStudio(root, { onProjects = () => {}, runtimeHost = () => null } =
     settings: '<path d="M3 6h7m4 0h7M3 12h3m4 0h11M3 18h11m4 0h3M10 3v6M6 9v6m8 0v6"/>',
     sidebar: '<rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16"/>',
     refresh: '<path d="M20 7v5h-5M20 12a8 8 0 1 1-2.3-5.7"/>',
+    archive: '<rect x="3" y="3" width="18" height="4" rx="1"/><path d="M5 7v14h14V7m-10 5h6"/>',
+    restore: '<path d="M3 7v5h5M3 12a9 9 0 1 1 3 7"/>',
     menu: '<path d="M4 6h16M4 12h16M4 18h16"/>',
     sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/>', moon: '<path d="M21 13A9 9 0 0 1 11 3 9 9 0 1 0 21 13Z"/>',
   };
   const icon = name => `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icons[name] || icons.folder}</svg>`;
   const escape = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
-  let state = { workspace: null, agents: [], items: [] }, request = 0, query = '', archivedProjects = false, initialized = false, disposed = false;
-  let attentionOnly = false, projectSort = 'updated', refreshMessage = '', viewMode = 'cards';
+  let state = { workspace: null, agents: [], items: [] }, request = 0, query = '', projectFilter = 'active', initialized = false, disposed = false;
+  let projectSort = 'updated', refreshMessage = '', viewMode = 'cards';
   let railCollapsed = false, newsHost = null, newsReader = null, newsTheme = null, externalAccess = null;
   let overviewReturn = null;
   let pendingTask = null, taskCenter = null, legacyBoard = null, taskTarget = '', itemsScope = 'current', legacyScope = null, progressReturn = null;
@@ -214,81 +216,47 @@ function mountStudio(root, { onProjects = () => {}, runtimeHost = () => null } =
     host.append(dialog);
     dialog.showModal();
   }
-  let projectSettings = null;
-  // Platform IDs belong to this trusted page context, independent of native host setups.
-  const projectDrafts = new Map();
-  const projectDraftKey = id => JSON.stringify(['platform', id, 'project-management', window.CERemoteContext?.context || null, window.CERemoteContext?.storageScope || null]);
-  function openProjectSettings(id) {
+  const pendingArchives = new Set();
+  async function setProjectArchived(id, archived, button) {
     const project = projects().find(row => row.id === id);
-    if (disposed || window.CERemoteContext?.active === false || !project || project.read_only || project.source?.kind === 'codex') return;
-    projectSettings?.close(); projectSettings?.remove();
-    const dialog = document.createElement('dialog'); projectSettings = dialog;
-    dialog.className = 'ce-project-settings';
-    dialog.setAttribute('aria-label', '项目管理');
-    const previousFocus = currentFocus(), target = visibleDialogTarget();
-    dialog.addEventListener('close', () => {
-      dialog.remove(); restoreFocus(previousFocus);
-    }, { once: true });
-    dialog.innerHTML = `<form><h2>项目管理</h2><fieldset><label>项目名称<input name="name" required maxlength="80" value="${escape(project.name)}"></label><label>项目目录<span class="ce-project-directory">${escape(project.directories?.find(row => row.id === 'main')?.path || project.root || '')}</span></label><label class="ce-project-archive"><input name="archived" type="checkbox"${project.archived ? ' checked' : ''}>归档项目</label><p class="ce-subtle">归档后从常用项目中收起，保留事项、文件和已打开的终端。</p><p class="ce-project-feedback" role="status"></p><div class="ce-project-settings-actions"><button type="button" class="ce-button" data-cancel-project>取消</button><button type="submit" class="ce-button ce-primary">保存</button></div></fieldset></form>`;
-    target.append(dialog);
-    const fields = dialog.querySelector('fieldset'), feedback = dialog.querySelector('[role="status"]');
-    feedback.id = 'ce-project-feedback-' + id; feedback.tabIndex = -1;
-    dialog.querySelector('form').setAttribute('aria-describedby', feedback.id);
-    const key = projectDraftKey(id), name = dialog.querySelector('[name="name"]'), archived = dialog.querySelector('[name="archived"]');
-    const identity = row => JSON.stringify([row.id, row.name, row.archived, row.directories, row.source, row.read_only]);
-    const openedIdentity = identity(project);
-    const draft = projectDrafts.get(key);
-    if (draft) { name.value = draft.name; archived.checked = draft.archived; }
-    const capture = () => { const value = { name: name.value, archived: archived.checked }; projectDrafts.set(key, value); return value; };
-    capture();
-    dialog.addEventListener('input', capture); dialog.addEventListener('change', capture);
-    // Save already closes after success; a pending close waits for that same outcome.
-    const close = () => { if (fields.disabled) return; capture(); dialog.close(); };
-    let composing = false;
-    dialog.addEventListener('compositionstart', () => { composing = true; });
-    dialog.addEventListener('compositionend', () => { composing = false; });
-    dialog.addEventListener('keydown', event => {
-      if (event.key === 'Escape' && (composing || event.isComposing || event.keyCode === 229)) event.preventDefault();
-    });
-    dialog.querySelector('[data-cancel-project]').addEventListener('click', close);
-    dialog.addEventListener('cancel', event => { event.preventDefault(); if (!composing) close(); });
-    dialog.querySelector('form').addEventListener('submit', async event => {
-      event.preventDefault();
-      const current = projects().find(row => row.id === id);
-      if (fields.disabled || disposed || window.CERemoteContext?.active === false || !current || current.read_only || current.source?.kind === 'codex') return;
-      if (identity(current) !== openedIdentity) { feedback.textContent = '项目登记已变化，请关闭后重新打开核对。当前草稿已保留。'; return; }
-      const submitted = capture();
-      let failed = false;
-      fields.disabled = true; feedback.textContent = '';
-      try {
-        const result = await client.post('/api/workspace/projects/save', { id: project.id,
-          name: submitted.name.trim(), archived: submitted.archived,
-          directories: project.directories.map(row => ({ id: row.id || row.binding_id, path: row.path })), source: project.source,
-          expected: { name: project.name, archived: Boolean(project.archived),
-            directories: project.directories.map(row => ({ id: row.id || row.binding_id, path: row.path })), source: project.source } });
-        if (result.status !== 'ok' || result.project?.id !== project.id) throw new Error('服务未确认保存');
-        if (disposed || window.CERemoteContext?.active === false) return;
-        const unchanged = projectDrafts.get(key) === submitted;
-        if (unchanged) projectDrafts.delete(key);
-        // Close this object before publishing; a late success cannot close a newer editor.
-        if (projectSettings === dialog && dialog.open && unchanged) dialog.close();
-        await refresh();
-      } catch (error) {
-        failed = true;
-        if (!disposed && projectSettings === dialog) feedback.textContent = error.reason === 'directory_conflict' ? '此目录已由其他活动项目使用，请先核对项目列表。' : error.message;
-      } finally { fields.disabled = false; if (failed && !disposed && projectSettings === dialog && dialog.open) feedback.focus(); }
-    });
-    dialog.showModal(); dialog.querySelector('[name="name"]').focus();
-  }
-  const manageProject = event => {
-    const normalize = value => String(value || '').replaceAll('\\', '/').replace(/\/+$/, '').toLowerCase();
-    const directory = event.detail?.directory;
-    const matches = directory ? projects().filter(project => !project.archived && normalize(project.directories?.find(row => row.id === 'main')?.path || project.root) === normalize(directory)) : [];
-    if (matches.length !== 1 || matches[0].read_only || matches[0].source?.kind === 'codex') {
-      showPlatformNotice('请从项目总览管理已登记的项目。'); return;
+    if (disposed || window.CERemoteContext?.active === false || !client.canWrite() ||
+      !project || project.read_only || project.source?.kind === 'codex' || nativeProjectWrites.has(id)) return;
+    const controller = new AbortController();
+    pendingArchives.add(controller);
+    nativeProjectWrites.set(id, controller.signal);
+    const unsubscribe = window.CERemoteContext?.onInactive(() => controller.abort());
+    const directories = project.directories.map(row => ({ id: row.id || row.binding_id, path: row.path }));
+    button.disabled = true;
+    button.setAttribute('aria-busy', 'true');
+    button.textContent = archived ? '正在归档…' : '正在恢复…';
+    try {
+      const result = await client.post('/api/workspace/projects/save', {
+        id, name: project.name, archived, directories, source: project.source,
+        expected: { name: project.name, archived: Boolean(project.archived), directories, source: project.source }
+      }, { signal: controller.signal });
+      if (disposed || controller.signal.aborted || window.CERemoteContext?.active === false) return;
+      if (result.status !== 'ok' || result.project?.id !== id || result.project.archived !== archived)
+        throw new Error('服务未确认项目状态，请刷新后重试。');
+      closeProjectMenu();
+      const confirmed = await refresh();
+      if (disposed || controller.signal.aborted || window.CERemoteContext?.active === false) return;
+      refreshMessage = confirmed
+        ? `${archived ? '已归档' : '已恢复'}「${project.name}」`
+        : '项目状态已保存，列表尚未确认，请刷新。';
+      renderStatus(route());
+    } catch (error) {
+      if (disposed || controller.signal.aborted || window.CERemoteContext?.active === false) return;
+      closeProjectMenu();
+      refreshMessage = error.reason === 'directory_conflict' ? '目录已被其他项目使用，无法恢复。'
+        : error.reason === 'native_managed_project' ? '项目仍有运行中的任务，请结束后再归档。'
+        : error.reason === 'project_changed' ? '项目已变化，请刷新后重试。' : error.message;
+      renderStatus(route()); status.classList.add('error');
+    } finally {
+      pendingArchives.delete(controller);
+      unsubscribe?.();
+      if (nativeProjectWrites.get(id) === controller.signal) nativeProjectWrites.delete(id);
     }
-    openProjectSettings(matches[0].id);
-  };
+  }
   let projectMenu = null, projectMenuTrigger = null;
   function closeProjectMenu() {
     projectMenu?.remove(); projectMenu = null;
@@ -296,15 +264,15 @@ function mountStudio(root, { onProjects = () => {}, runtimeHost = () => null } =
     if (projectMenuTrigger) restoreFocus(projectMenuTrigger.isConnected ? projectMenuTrigger : content.querySelector('h1'));
     projectMenuTrigger = null;
   }
-  function openProjectMenu(id, trigger, management = false) {
+  function openProjectMenu(id, trigger) {
     const project = projects().find(row => row.id === id);
-    if (!project) return;
+    if (!project || project.read_only || project.source?.kind === 'codex' || !client.canWrite() || nativeProjectWrites.has(id)) return;
     closeProjectMenu(); projectMenuTrigger = trigger;
     trigger.setAttribute('aria-expanded', 'true');
     const menu = document.createElement('div'); projectMenu = menu;
     menu.className = 'ce-project-menu'; menu.setAttribute('role', 'menu');
     menu.setAttribute('aria-label', project.name);
-    menu.innerHTML = management ? `<a role="menuitem" href="${projectHash(id, 'items')}">全部事项</a><a role="menuitem" href="${projectHash(id, 'board')}">事项看板</a>` : `<a role="menuitem" href="#project/${encodeURIComponent(id)}/settings">项目设置</a><a role="menuitem" href="#project/${encodeURIComponent(id)}/tasks">项目进展</a>${!project.read_only && project.source?.kind !== 'codex' ? `<button type="button" role="menuitem" data-project-settings="${escape(id)}">项目信息</button>` : ''}`;
+    menu.innerHTML = `<button type="button" role="menuitem" data-project-archive="${escape(id)}">${icon(project.archived ? 'restore' : 'archive')}<span>${project.archived ? '恢复项目' : '归档项目'}</span></button>`;
     visibleDialogTarget().append(menu);
     const bounds = trigger.getBoundingClientRect();
     menu.style.left = Math.max(8, Math.min(bounds.left, window.innerWidth - 228)) + 'px';
@@ -324,9 +292,8 @@ function mountStudio(root, { onProjects = () => {}, runtimeHost = () => null } =
     menu.addEventListener('click', event => {
       // Standalone menus live inside root; their actions must not run again in its delegate.
       event.stopPropagation();
-      const manage = event.target.closest('[data-project-settings]');
-      if (manage) { event.preventDefault(); closeProjectMenu(); openProjectSettings(id); }
-      else if (event.target.closest('a[href]')) closeProjectMenu();
+      const archive = event.target.closest('[data-project-archive]');
+      if (archive) { event.preventDefault(); void setProjectArchived(id, !project.archived, archive); }
     });
   }
   const dismissProjectMenu = event => {
@@ -375,8 +342,8 @@ function mountStudio(root, { onProjects = () => {}, runtimeHost = () => null } =
     syncAppearance();
   }
   function home() {
-    return window.StudioShell.renderOverview({ projects: projects(), items: state.items, query, attentionOnly,
-      archivedOnly: archivedProjects, sort: projectSort, viewMode, developmentUrl, runtimeAvailable: root.dataset.unified === 'true' });
+    return window.StudioShell.renderOverview({ projects: projects(), items: state.items, query, projectFilter,
+      writable: client.canWrite(), sort: projectSort, viewMode, developmentUrl, runtimeAvailable: root.dataset.unified === 'true' });
   }
   function renderHome() {
     const active = currentFocus();
@@ -387,9 +354,9 @@ function mountStudio(root, { onProjects = () => {}, runtimeHost = () => null } =
     const range = active?.id === 'studio-project-search' ? [active.selectionStart, active.selectionEnd] : null;
     setHtml(content, home());
     if (selector && !active?.isConnected) {
-      const replacement = root.querySelector(selector);
+      const replacement = root.querySelector(selector) || content.querySelector('h1');
       replacement?.focus({ preventScroll: true });
-      if (range) replacement?.setSelectionRange(...range);
+      if (range) replacement?.setSelectionRange?.(...range);
     }
     if (projectMenu && !projectMenuTrigger?.isConnected) closeProjectMenu();
   }
@@ -487,7 +454,7 @@ function mountStudio(root, { onProjects = () => {}, runtimeHost = () => null } =
     else if (current.view === 'project' && current.tab === 'settings') setHtml(content, `<div class="ce-heading"><h1>${escape(chosen?.name || '项目')} · 项目设置</h1></div><div class="ce-empty" role="status">${chosen ? '此入口尚未就绪。' : '项目已移出或不存在。'}<a class="ce-button" href="#home">返回项目总览</a></div>`);
     else if (current.view === 'tools') setHtml(content, `<div class="ce-heading"><div><h1>高级管理</h1></div></div><div class="ce-tool-grid"><article class="ce-tool-card">${icon('settings')}<h2>高级接入</h2><p>外部任务执行器与旧数据。</p><a class="ce-button" href="/workspace-admin#settings">高级设置</a></article><article class="ce-tool-card">${icon('folder')}<h2>项目档案</h2><a class="ce-button" href="/workspace-admin#projects">来源与历史</a></article></div>`);
     else if ((current.view === 'inbox' || progressRoute(current) && chosen && !chosen.archived) && !(window.ProjectProgress && window.ProjectProgressModel)) setHtml(content, '<div class="ce-heading"><h1 tabindex="-1">项目进展</h1></div><div class="ce-empty" role="status">进展资源尚未就绪，请刷新页面。<a class="ce-button" href="#home">返回项目总览</a></div>');
-    else if (current.view === 'project') setHtml(content, chosen?.archived ? '<div class="ce-empty">项目已归档，仍停在当前页。<a class="ce-button" href="#home">返回项目</a><p>在“已归档”列表的项目管理中取消归档即可恢复。</p></div>' : chosen ? showBoard ? window.StudioShell.renderProgressHeading({ project: chosen, tab: current.tab }) + itemFilters(current) : `<div class="ce-heading"><h1>${current.tab === 'monitor' ? '业务进度' : escape(chosen.name)}</h1>${current.tab === 'monitor' ? `<a class="ce-button ce-plain" href="#project/${encodeURIComponent(chosen.id)}/tasks">返回进展</a>` : ''}</div>` : '<div class="ce-empty">项目已移出或不存在，<a href="#home">返回项目</a>重新选择。</div>');
+    else if (current.view === 'project') setHtml(content, chosen?.archived ? '<div class="ce-empty">项目已归档，仍停在当前页。<a class="ce-button" href="#home">返回项目</a><p>在“已归档”列表选择恢复项目。</p></div>' : chosen ? showBoard ? window.StudioShell.renderProgressHeading({ project: chosen, tab: current.tab }) + itemFilters(current) : `<div class="ce-heading"><h1>${current.tab === 'monitor' ? '业务进度' : escape(chosen.name)}</h1>${current.tab === 'monitor' ? `<a class="ce-button ce-plain" href="#project/${encodeURIComponent(chosen.id)}/tasks">返回进展</a>` : ''}</div>` : '<div class="ce-empty">项目已移出或不存在，<a href="#home">返回项目</a>重新选择。</div>');
     else setHtml(content, `<div class="ce-heading"><h1>事项</h1></div>${itemFilters(current)}`);
   }
   function itemFilters(current) {
@@ -622,20 +589,16 @@ function mountStudio(root, { onProjects = () => {}, runtimeHost = () => null } =
     if (projectLink && root.dataset.unified === 'true' && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey && (!event.button || event.button === 0)) {
       event.preventDefault(); navigate(projectLink.getAttribute('href').slice(1));
     }
-    const settingsId = event.target.closest('[data-project-settings]')?.dataset.projectSettings;
-    if (settingsId) { event.preventDefault(); openProjectSettings(settingsId); }
     const menuId = event.target.closest('[data-project-menu]')?.dataset.projectMenu;
     if (menuId) { event.preventDefault(); openProjectMenu(menuId, event.target.closest('[data-project-menu]')); }
     const action = event.target.closest('[data-action]')?.dataset.action;
     if (action === 'refresh') void refresh();
     if (action === 'external-access') openExternalAccess();
     if (action === 'rail-toggle') { railCollapsed = !railCollapsed; root.dataset.railCollapsed = String(railCollapsed); renderChrome(route()); root.querySelector('[data-action="rail-toggle"]')?.focus(); }
-    if (action === 'management-menu') openProjectMenu(route().id, event.target.closest('[data-action="management-menu"]'), true);
     if (action === 'add-project') requestProject();
     if (action === 'view-cards' || action === 'view-list') { viewMode = action === 'view-list' ? 'list' : 'cards'; render(); }
-    if (action === 'archived-projects') { archivedProjects = !archivedProjects; attentionOnly = false; render(); }
-    if (action === 'all-projects' || action === 'attention-projects') { attentionOnly = action === 'attention-projects'; archivedProjects = false; render(); }
-    if (action === 'clear-project-filters') { query = ''; attentionOnly = false; archivedProjects = false; render(); }
+    if (['active-projects', 'all-projects', 'archived-projects'].includes(action)) { projectFilter = ({ 'active-projects': 'active', 'all-projects': 'all', 'archived-projects': 'archived' })[action]; render(); }
+    if (action === 'clear-project-filters') { query = ''; projectFilter = 'active'; render(); }
     if (action === 'navigation') openNavigation();
     if (action === 'close-navigation') closeNavigation();
     if (action === 'theme') {
@@ -747,7 +710,7 @@ function mountStudio(root, { onProjects = () => {}, runtimeHost = () => null } =
     if (to === from) return;
     const generation = ++navigationGeneration;
     window.history.replaceState(null, '', from);
-    if (projectSettings?.open || projectMenu) return;
+    if (projectMenu) return;
     const waits = [];
     const event = new CustomEvent('platform-before-navigate', { cancelable: true, detail: { from, to, waitUntil: result => waits.push(Promise.resolve(result)) } });
     window.dispatchEvent(event);
@@ -766,7 +729,6 @@ function mountStudio(root, { onProjects = () => {}, runtimeHost = () => null } =
   window.addEventListener('platform-add-project', requestProject);
   window.addEventListener('platform-native-project-adopted', nativeProjectAdopted);
   window.addEventListener('platform-native-project-action', nativeProjectAction);
-  window.addEventListener('platform-manage-project', manageProject);
   const visibilityChanged = () => {
     if (document.hidden) { board.setActive?.(false); taskCenter?.setActive(false); legacyBoard?.setActive(false); }
     else {
@@ -779,7 +741,7 @@ function mountStudio(root, { onProjects = () => {}, runtimeHost = () => null } =
   document.addEventListener('visibilitychange', visibilityChanged);
   render(); void refresh();
   if (window.StudioMascot && window.NewsPetPrefs && window.NewsPetDirector) mascot = window.StudioMascot.mount(root, { route, navigate: hash => { location.hash = hash; } });
-  const dispose = () => { disposed = true; mascot?.dispose(); externalAccess?.dispose(); newsReader?.dispose(); newsTheme?.disconnect(); newsHost?.remove(); projectDrafts.clear(); progressReturn = null; navigationGeneration++; unsubscribeAppearance?.(); unmountTheme?.(); standaloneTheme?.dispose(); closeProjectMenu(); closeNavigation(); restoreNavigation(); drawer.remove(); window.removeEventListener('resize', resizeNavigation); window.removeEventListener('scroll', closeProjectMenu, true); document.removeEventListener('pointerdown', dismissProjectMenu); request++; clearTimeout(refreshTimer); document.removeEventListener('visibilitychange', visibilityChanged); disposeMobile?.(); disposePets?.(); window.removeEventListener('hashchange', requestedNavigation); window.removeEventListener('platform-before-navigate', beforeNavigate); window.removeEventListener('platform-navigation-accepted', changed); window.removeEventListener('platform-add-project', requestProject); window.removeEventListener('platform-native-project-adopted', nativeProjectAdopted); window.removeEventListener('platform-native-project-action', nativeProjectAction); nativeProjectWrites.clear(); window.removeEventListener('platform-manage-project', manageProject); projectSettings?.close(); projectSettings?.remove(); projectDialogTarget?.querySelectorAll('dialog').forEach(dialog => dialog.close()); projectDialogHost?.remove(); monitor?.destroy(); taskCenter?.dispose(); legacyBoard?.dispose(); board.dispose?.(); };
+  const dispose = () => { disposed = true; for (const controller of pendingArchives) controller.abort(); pendingArchives.clear(); mascot?.dispose(); externalAccess?.dispose(); newsReader?.dispose(); newsTheme?.disconnect(); newsHost?.remove(); progressReturn = null; navigationGeneration++; unsubscribeAppearance?.(); unmountTheme?.(); standaloneTheme?.dispose(); closeProjectMenu(); closeNavigation(); restoreNavigation(); drawer.remove(); window.removeEventListener('resize', resizeNavigation); window.removeEventListener('scroll', closeProjectMenu, true); document.removeEventListener('pointerdown', dismissProjectMenu); request++; clearTimeout(refreshTimer); document.removeEventListener('visibilitychange', visibilityChanged); disposeMobile?.(); disposePets?.(); window.removeEventListener('hashchange', requestedNavigation); window.removeEventListener('platform-before-navigate', beforeNavigate); window.removeEventListener('platform-navigation-accepted', changed); window.removeEventListener('platform-add-project', requestProject); window.removeEventListener('platform-native-project-adopted', nativeProjectAdopted); window.removeEventListener('platform-native-project-action', nativeProjectAction); nativeProjectWrites.clear(); projectDialogTarget?.querySelectorAll('dialog').forEach(dialog => dialog.close()); projectDialogHost?.remove(); monitor?.destroy(); taskCenter?.dispose(); legacyBoard?.dispose(); board.dispose?.(); };
   const unsubscribeContext = window.CERemoteContext?.onInactive(dispose);
   return () => { unsubscribeContext?.(); dispose(); };
 }
