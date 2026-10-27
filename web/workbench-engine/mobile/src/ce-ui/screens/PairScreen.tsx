@@ -115,7 +115,7 @@ function PasteSheet({
           padding: ceSpace.md,
           borderRadius: ceRadii.input,
           borderWidth: 1,
-          borderColor: c.fieldEdge,
+          borderColor: c.inputEdge,
           backgroundColor: c.field,
           color: c.text,
           fontSize: 16,

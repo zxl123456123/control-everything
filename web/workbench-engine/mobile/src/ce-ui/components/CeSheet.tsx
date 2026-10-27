@@ -106,8 +106,8 @@ export function CeSheet({ visible, onClose, title, children, testID }: Props) {
               // Near-opaque on purpose: nothing blurs what is behind a sheet yet, so the fill carries legibility.
               backgroundColor: withAlpha(c.surface, 0.98),
               shadowColor: c.shadow,
-              shadowOpacity: 0.5,
-              shadowRadius: 32,
+              shadowOpacity: 0.25,
+              shadowRadius: 24,
               shadowOffset: { width: 0, height: -8 },
               borderTopLeftRadius: ceRadii.sheet,
               borderTopRightRadius: ceRadii.sheet,

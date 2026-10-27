@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react'
 import { View } from 'react-native'
-import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg'
 import Animated, { FadeInDown } from 'react-native-reanimated'
 import { KeyRound, MonitorSmartphone, TriangleAlert } from 'lucide-react-native'
 import type { AccountStatus } from '../../platform-account/controller'
@@ -52,9 +51,9 @@ export function LoginView({
       >
         <BrandMark muted={unusable}>
           {unusable ? (
-            <TriangleAlert size={44} color={c.muted} strokeWidth={1.8} />
+            <TriangleAlert size={36} color={c.muted} strokeWidth={1.8} />
           ) : (
-            <MonitorSmartphone size={44} color={c.onAccent} strokeWidth={1.8} />
+            <MonitorSmartphone size={36} color={c.onAccent} strokeWidth={1.8} />
           )}
         </BrandMark>
         <View style={{ gap: ceSpace.xs, alignItems: 'center' }}>
@@ -116,14 +115,14 @@ export function LoginView({
   )
 }
 
-/** 96pt app mark: accent gradient tile with a glow, or a quiet glass tile when sign-in is unusable. */
+/** 80pt app mark: a flat ink tile (the workbench's command mark), or a quiet card tile when sign-in is unusable. */
 function BrandMark({ muted, children }: { muted: boolean; children: ReactNode }) {
   const { c } = useCeTheme()
   if (muted) {
     return (
       <GlassSurface
-        radius={28}
-        style={{ width: 96, height: 96, alignItems: 'center', justifyContent: 'center' }}
+        radius={22}
+        style={{ width: 80, height: 80, alignItems: 'center', justifyContent: 'center' }}
       >
         {children}
       </GlassSurface>
@@ -132,37 +131,15 @@ function BrandMark({ muted, children }: { muted: boolean; children: ReactNode })
   return (
     <View
       style={{
-        width: 96,
-        height: 96,
-        borderRadius: 28,
+        width: 80,
+        height: 80,
+        borderRadius: 22,
         alignItems: 'center',
         justifyContent: 'center',
-        shadowColor: c.glow,
-        shadowOpacity: 1,
-        shadowRadius: 32,
-        shadowOffset: { width: 0, height: 14 }
+        backgroundColor: c.accent
       }}
     >
-      <View
-        pointerEvents="none"
-        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
-      >
-        <Svg width="100%" height="100%">
-          <Defs>
-            <LinearGradient id="ce-brand" x1="0" y1="0" x2="1" y2="1">
-              <Stop offset="0" stopColor={c.accent} />
-              <Stop offset="1" stopColor={c.accentB} />
-            </LinearGradient>
-            <LinearGradient id="ce-brand-hi" x1="0" y1="0" x2="0" y2="1">
-              <Stop offset="0" stopColor="#ffffff" stopOpacity={0.26} />
-              <Stop offset="0.5" stopColor="#ffffff" stopOpacity={0} />
-            </LinearGradient>
-          </Defs>
-          <Rect width="100%" height="100%" rx={28} fill="url(#ce-brand)" />
-          <Rect width="100%" height="100%" rx={28} fill="url(#ce-brand-hi)" />
-        </Svg>
-      </View>
-      <View style={{ zIndex: 1 }}>{children}</View>
+      {children}
     </View>
   )
 }

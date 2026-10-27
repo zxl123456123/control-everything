@@ -1,13 +1,14 @@
-// Design tokens for the Control Everything account / device screens: "Aurora Glass".
-// Same indigo -> violet accent, ink-navy dark / lavender-white light palette, radii and spacing as
+// Design tokens for the Control Everything account / device screens: "Calm Glass" (v2).
+// Follows the personal workbench (Studio) tone: neutral grey canvas, an ink primary button, hairline
+// borders, one quiet blue (accentText) for focus and links. The same values drive
 // web/workspace/remote-account.css and the Keycloak login theme (identity-theme/.../studio.css), so the
 // phone app, the browser portal and the sign-in page read as one product. The rest of the Orca app keeps
 // its graphite theme untouched.
 //
-// Solid fields (bg, surface, soft, line) stay opaque hex: they are the fallback fill, what contrast is
-// tested against, and what Android/older devices show. The glass fields (glass*, field*) are translucent
-// rgba layered on top of the animated aurora backdrop. expo-blur is NOT a dependency yet, so the blur
-// itself is simulated with translucency + a top-lit gradient + a gradient hairline (see Glass.tsx).
+// Solid fields (bg, surface, soft, line) stay opaque hex: they are the fallback fill and what contrast is
+// tested against. The glass fields (glass, field) are lightly translucent rgba on top of a flat canvas with
+// one static, very faint tint (no animated backdrop). expo-blur is NOT a dependency yet, so there is no
+// real backdrop blur on the phone: translucency is kept light and text never depends on a blur.
 
 export type CeScheme = 'light' | 'dark'
 export type CeTone = 'success' | 'warning' | 'neutral' | 'danger' | 'info'
@@ -31,22 +32,19 @@ export type CePalette = {
   onDanger: string
   /** Scrim behind sheets. */
   scrim: string
-  /** Second stop of the accent gradient (the first is `accent`). */
-  accentB: string
-  /** Colour of the accent glow under primary buttons and brand marks. */
-  glow: string
-  /** Translucent card fill, top-lit highlight laid over it, and the hairline rim gradient (start, end). */
+  /** Translucent card fill and its hairline rim (start, end; near-equal on purpose). */
   glass: string
-  glassHi: string
   glassRim: [string, string]
-  /** Translucent input / secondary-button fill and its 1px edge. */
+  /** Translucent secondary-button / pill fill and its 1px hairline. */
   field: string
   fieldEdge: string
-  /** Ambient aurora blobs behind every screen (4), in paint order. */
-  aurora: [string, string, string, string]
-  /** Outer shadow colour for glass cards. */
+  /** Border of text inputs: >= 3:1 against the surface (WCAG 1.4.11), same value as the Keycloak theme. */
+  inputEdge: string
+  /** The single static, very faint tint at the top of every screen (a radial wash over `bg`). */
+  tint: string
+  /** Outer shadow colour for cards. */
   shadow: string
-  /** Opaque `glass` flattened over the brightest aurora blob: the worst-case surface text sits on. */
+  /** Opaque `glass` flattened over the canvas and its tint: the worst-case surface text sits on. */
   glassWorst: string
   tones: Record<CeTone, { fg: string; bg: string; dot: string }>
 }
@@ -65,76 +63,62 @@ function tone(fg: string, dot: string, alpha: number): { fg: string; bg: string;
 }
 
 const dark: CePalette = {
-  bg: '#05060e',
-  surface: '#0e1020',
-  soft: '#171a32',
-  text: '#f5f7ff',
-  muted: '#b3bbd4',
-  line: '#262a47',
-  accent: '#5b5ef0',
-  accentB: '#8b4df5',
-  onAccent: '#ffffff',
-  accentText: '#aab6ff',
-  danger: '#e11d48',
+  bg: '#1f1f1f',
+  surface: '#282828',
+  soft: '#303030',
+  text: '#f4f4f4',
+  muted: '#b4b4b4',
+  line: '#3a3a3a',
+  accent: '#f4f4f4',
+  onAccent: '#202020',
+  accentText: '#a6c8f1',
+  danger: '#dc2626',
   onDanger: '#ffffff',
-  scrim: 'rgba(3, 4, 12, 0.62)',
-  glow: 'rgba(99, 102, 241, 0.6)',
-  glass: 'rgba(14, 16, 34, 0.58)',
-  glassHi: 'rgba(255, 255, 255, 0.09)',
-  glassRim: ['rgba(255, 255, 255, 0.5)', 'rgba(129, 140, 248, 0.22)'],
+  scrim: 'rgba(0, 0, 0, 0.6)',
+  glass: 'rgba(40, 40, 40, 0.62)',
+  glassRim: ['rgba(255, 255, 255, 0.12)', 'rgba(255, 255, 255, 0.12)'],
   field: 'rgba(255, 255, 255, 0.06)',
-  fieldEdge: 'rgba(255, 255, 255, 0.15)',
-  aurora: [
-    'rgba(79, 102, 255, 0.68)',
-    'rgba(192, 80, 255, 0.5)',
-    'rgba(34, 211, 238, 0.38)',
-    'rgba(236, 72, 190, 0.34)'
-  ],
+  fieldEdge: 'rgba(255, 255, 255, 0.14)',
+  inputEdge: '#929292',
+  tint: 'rgba(166, 200, 241, 0.08)',
   shadow: '#000000',
-  glassWorst: '#1b2358',
+  glassWorst: '#2a2f33',
   tones: {
     success: tone('#4ade80', '#22c55e', 0.14),
     warning: tone('#fbbf24', '#f59e0b', 0.14),
-    neutral: tone('#b3bbd4', '#6d7a9a', 0.16),
-    danger: tone('#ff9bab', '#fb7185', 0.14),
-    info: tone('#aab6ff', '#818cf8', 0.14)
+    neutral: tone('#b4b4b4', '#7c7c7c', 0.16),
+    danger: tone('#fca5a5', '#f87171', 0.14),
+    info: tone('#a6c8f1', '#7aa7dc', 0.14)
   }
 }
 
 const light: CePalette = {
-  bg: '#eef0fb',
+  bg: '#f6f6f6',
   surface: '#ffffff',
-  soft: '#f1f2fd',
-  text: '#0b1020',
-  muted: '#475069',
-  line: '#d9dcf0',
-  accent: '#4f46e5',
-  accentB: '#7c3aed',
+  soft: '#efefef',
+  text: '#202020',
+  muted: '#5c5c5c',
+  line: '#e2e2e2',
+  accent: '#202020',
   onAccent: '#ffffff',
-  accentText: '#4338ca',
-  danger: '#e11d48',
+  accentText: '#285e9b',
+  danger: '#dc2626',
   onDanger: '#ffffff',
-  scrim: 'rgba(11, 16, 32, 0.45)',
-  glow: 'rgba(79, 70, 229, 0.42)',
-  glass: 'rgba(255, 255, 255, 0.62)',
-  glassHi: 'rgba(255, 255, 255, 0.6)',
-  glassRim: ['rgba(255, 255, 255, 1)', 'rgba(79, 70, 229, 0.18)'],
+  scrim: 'rgba(20, 20, 20, 0.4)',
+  glass: 'rgba(255, 255, 255, 0.65)',
+  glassRim: ['rgba(32, 32, 32, 0.12)', 'rgba(32, 32, 32, 0.12)'],
   field: 'rgba(255, 255, 255, 0.7)',
-  fieldEdge: 'rgba(15, 23, 60, 0.16)',
-  aurora: [
-    'rgba(99, 102, 241, 0.55)',
-    'rgba(236, 72, 153, 0.38)',
-    'rgba(34, 211, 238, 0.42)',
-    'rgba(251, 191, 36, 0.28)'
-  ],
-  shadow: '#3730a3',
-  glassWorst: '#dcdffa',
+  fieldEdge: 'rgba(32, 32, 32, 0.14)',
+  inputEdge: '#858585',
+  tint: 'rgba(40, 94, 155, 0.09)',
+  shadow: '#000000',
+  glassWorst: '#e6ecf3',
   tones: {
     success: tone('#166534', '#16a34a', 0.1),
     warning: tone('#92400e', '#d97706', 0.12),
-    neutral: tone('#475069', '#8a94b0', 0.12),
-    danger: tone('#9f1239', '#e11d48', 0.1),
-    info: tone('#4338ca', '#4f46e5', 0.1)
+    neutral: tone('#5c5c5c', '#8a8a8a', 0.12),
+    danger: tone('#b91c1c', '#dc2626', 0.1),
+    info: tone('#285e9b', '#285e9b', 0.1)
   }
 }
 
@@ -163,7 +147,7 @@ export const ceSpace = {
   giant: 48
 } as const
 
-export const ceRadii = { button: 16, card: 24, sheet: 28, input: 16, pill: 999 } as const
+export const ceRadii = { button: 12, card: 16, sheet: 20, input: 12, pill: 999 } as const
 
 export const ceHit = { min: 44, primaryButton: 52 } as const
 

@@ -6,7 +6,7 @@ import { ChevronLeft } from 'lucide-react-native'
 import { PressableScale } from '../motion/PressableScale'
 import { useCeTheme } from '../theme/theme'
 import { ceHit, ceSpace } from '../theme/tokens'
-import { Aurora } from './Aurora'
+import { Canvas } from './Canvas'
 import { CeText } from './CeText'
 
 /**
@@ -86,7 +86,7 @@ export function ScreenFrame({
   }
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>
-      <Aurora />
+      <Canvas />
       <Stack.Screen options={{ headerShown: false }} />
       {scroll ? (
         <ScrollView

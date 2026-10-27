@@ -3,7 +3,7 @@ import { View } from 'react-native'
 import Animated, { FadeInDown } from 'react-native-reanimated'
 import { useMotionEnabled } from '../motion/use-motion'
 import { useCeTheme } from '../theme/theme'
-import { ceSpace, withAlpha } from '../theme/tokens'
+import { ceSpace } from '../theme/tokens'
 import { CeText } from './CeText'
 
 /** Icon disc + one headline + one sentence + the next action. */
@@ -20,7 +20,7 @@ export function EmptyState({
   action?: ReactNode
   testID?: string
 }) {
-  const { c, scheme } = useCeTheme()
+  const { c } = useCeTheme()
   const motion = useMotionEnabled()
   return (
     <Animated.View
@@ -38,13 +38,9 @@ export function EmptyState({
           width: 88,
           height: 88,
           borderRadius: 88,
-          backgroundColor: withAlpha(c.accent, scheme === 'dark' ? 0.18 : 0.1),
+          backgroundColor: c.soft,
           borderWidth: 1,
-          borderColor: withAlpha(c.accent, 0.3),
-          shadowColor: c.glow,
-          shadowOpacity: 0.9,
-          shadowRadius: 24,
-          shadowOffset: { width: 0, height: 8 },
+          borderColor: c.line,
           alignItems: 'center',
           justifyContent: 'center',
           marginBottom: ceSpace.sm

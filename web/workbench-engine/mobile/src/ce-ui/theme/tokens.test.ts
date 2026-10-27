@@ -52,7 +52,7 @@ describe('spacing, radii and touch targets', () => {
     for (const value of Object.values(ceSpace)) expect(value % 4).toBe(0)
   })
   it('keeps the agreed radii and hit sizes', () => {
-    expect(ceRadii).toMatchObject({ button: 16, card: 24, sheet: 28 })
+    expect(ceRadii).toMatchObject({ button: 12, card: 16, sheet: 20 })
     expect(ceHit.min).toBeGreaterThanOrEqual(44)
     expect(ceHit.primaryButton).toBe(52)
   })
@@ -81,52 +81,68 @@ describe.each(schemes)('%s palette', (scheme) => {
 })
 
 describe('palette parity with the browser portal and the Keycloak theme', () => {
-  it('uses the shared Aurora Glass values', () => {
+  it('uses the shared Calm Glass values (Studio neutral greys, ink accent, one quiet blue)', () => {
     expect(cePalettes.dark).toMatchObject({
-      bg: '#05060e',
-      surface: '#0e1020',
-      text: '#f5f7ff',
-      muted: '#b3bbd4',
-      accent: '#5b5ef0',
-      accentB: '#8b4df5',
-      accentText: '#aab6ff'
+      bg: '#1f1f1f',
+      text: '#f4f4f4',
+      muted: '#b4b4b4',
+      accent: '#f4f4f4',
+      accentText: '#a6c8f1',
+      inputEdge: '#929292'
     })
     expect(cePalettes.light).toMatchObject({
-      bg: '#eef0fb',
-      text: '#0b1020',
-      muted: '#475069',
-      accent: '#4f46e5',
-      accentB: '#7c3aed',
-      accentText: '#4338ca'
+      bg: '#f6f6f6',
+      text: '#202020',
+      muted: '#5c5c5c',
+      accent: '#202020',
+      accentText: '#285e9b',
+      inputEdge: '#858585'
     })
+  })
+  it('has no gradient, glow or animated blob fields left', () => {
+    for (const scheme of schemes) {
+      for (const gone of ['accentB', 'glow', 'glassHi', 'aurora']) {
+        expect(gone in cePalettes[scheme]).toBe(false)
+      }
+    }
   })
 })
 
 describe.each(schemes)('%s glass surfaces', (scheme) => {
   const p = cePalettes[scheme]
-  it('has a translucent fill in the 0.45-0.65 range', () => {
-    for (const fill of [p.glass]) {
-      const alpha = Number(fill.match(/[\d.]+/g)![3])
-      expect(alpha).toBeGreaterThanOrEqual(0.45)
-      expect(alpha).toBeLessThanOrEqual(0.65)
+  /** Independent worst case: glass over the canvas under the tint at its strongest. */
+  const worst = (): string => {
+    const tinted = over(p.tint, p.bg)
+    return over(p.glass, tinted)
+  }
+  it('has a lightly translucent fill in the 0.55-0.75 range', () => {
+    const alpha = Number(p.glass.match(/[\d.]+/g)![3])
+    expect(alpha).toBeGreaterThanOrEqual(0.55)
+    expect(alpha).toBeLessThanOrEqual(0.75)
+  })
+  it('keeps the declared glassWorst at least as bad as the computed worst case', () => {
+    expect(contrast(p.text, p.glassWorst)).toBeLessThanOrEqual(contrast(p.text, worst()) + 0.01)
+  })
+  it('keeps text AA on glass over the tinted canvas (worst case)', () => {
+    for (const surface of [p.glassWorst, worst()]) {
+      expect(contrast(p.text, surface)).toBeGreaterThanOrEqual(7)
+      expect(contrast(p.muted, surface)).toBeGreaterThanOrEqual(4.5)
+      expect(contrast(p.accentText, surface)).toBeGreaterThanOrEqual(4.5)
     }
   })
-  it('keeps text AA on glass over the brightest aurora blob (worst case)', () => {
-    expect(contrast(p.text, p.glassWorst)).toBeGreaterThanOrEqual(7)
-    expect(contrast(p.muted, p.glassWorst)).toBeGreaterThanOrEqual(4.5)
-    expect(contrast(p.accentText, p.glassWorst)).toBeGreaterThanOrEqual(4.5)
+  it('keeps button labels AA on the flat ink fill', () => {
+    expect(contrast(p.onAccent, p.accent)).toBeGreaterThanOrEqual(7)
   })
-  it('keeps both gradient stops readable under white button labels', () => {
-    expect(contrast(p.onAccent, p.accent)).toBeGreaterThanOrEqual(4.5)
-    expect(contrast(p.onAccent, p.accentB)).toBeGreaterThanOrEqual(4.5)
+  it('keeps the text-input border at 3:1 or better (WCAG 1.4.11) on surface and canvas', () => {
+    expect(contrast(p.inputEdge, p.surface)).toBeGreaterThanOrEqual(3)
+    expect(contrast(p.inputEdge, p.bg)).toBeGreaterThanOrEqual(3)
   })
   it('keeps every status tone readable on the worst-case glass', () => {
     for (const toneColors of Object.values(p.tones)) {
-      expect(contrast(toneColors.fg, over(toneColors.bg, p.glassWorst))).toBeGreaterThanOrEqual(4.5)
+      for (const surface of [p.glassWorst, worst()]) {
+        expect(contrast(toneColors.fg, over(toneColors.bg, surface))).toBeGreaterThanOrEqual(4.5)
+      }
     }
-  })
-  it('has four aurora blobs', () => {
-    expect(p.aurora).toHaveLength(4)
   })
 })
 

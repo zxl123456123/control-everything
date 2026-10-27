@@ -19,18 +19,17 @@ export function glassBox(
     backgroundColor: fill,
     borderRadius: radius,
     shadowColor: c.shadow,
-    shadowOpacity: scheme === 'dark' ? 0.5 : 0.16,
-    shadowRadius: 24,
-    shadowOffset: { width: 0, height: 12 }
+    shadowOpacity: scheme === 'dark' ? 0.4 : 0.08,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 6 }
   }
 }
 
 /**
- * Paints the "glass" details on top of a translucent fill: a top-lit highlight gradient and a
- * 1px gradient hairline rim (bright top-left -> faint bottom-right), the same two layers as the web
- * `::before` rim + inset highlight. Pure decoration: absolutely positioned, never takes touches.
- * Real backdrop blur needs expo-blur (one native rebuild) - until then the fill alpha is kept higher
- * so text contrast does not depend on a blur that is not there.
+ * Paints the hairline on top of a translucent fill: a 1px rim (start and end colours are near-equal, so
+ * it reads as a plain border) and an optional status tint. Pure decoration: absolutely positioned, never
+ * takes touches. Real backdrop blur needs expo-blur (one native rebuild) - until then the fill alpha is
+ * kept high enough that text contrast does not depend on a blur that is not there.
  */
 export function GlassLayer({
   radius = ceRadii.card,
@@ -47,7 +46,6 @@ export function GlassLayer({
   const id = useId().replace(/[^a-zA-Z0-9]/g, '')
   const [size, setSize] = useState<{ w: number; h: number } | null>(null)
   const rim = edge ?? c.glassRim
-  const hi = splitRgba(c.glassHi)
   const r0 = splitRgba(rim[0])
   const r1 = splitRgba(rim[1])
   return (
@@ -79,16 +77,11 @@ export function GlassLayer({
       {size ? (
         <Svg width={size.w} height={size.h}>
           <Defs>
-            <LinearGradient id={`${id}hi`} x1="0" y1="0" x2="0" y2="1">
-              <Stop offset="0" stopColor={hi.color} stopOpacity={hi.opacity} />
-              <Stop offset="0.55" stopColor={hi.color} stopOpacity={0} />
-            </LinearGradient>
             <LinearGradient id={`${id}rim`} x1="0" y1="0" x2="1" y2="1">
               <Stop offset="0" stopColor={r0.color} stopOpacity={r0.opacity} />
               <Stop offset="1" stopColor={r1.color} stopOpacity={r1.opacity} />
             </LinearGradient>
           </Defs>
-          <Rect x={0} y={0} width={size.w} height={size.h} rx={radius} fill={`url(#${id}hi)`} />
           <Rect
             x={0.5}
             y={0.5}
@@ -105,7 +98,7 @@ export function GlassLayer({
   )
 }
 
-/** A glass card body: translucent fill + shadow + highlight + rim, children above. */
+/** A card body: lightly translucent fill + soft shadow + hairline rim, children above. */
 export function GlassSurface({
   children,
   radius = ceRadii.card,

@@ -3,7 +3,7 @@ import type { StyleProp, ViewStyle } from 'react-native'
 import { ceRadii, ceSpace } from '../theme/tokens'
 import { GlassSurface } from './Glass'
 
-/** Glass card: translucent fill over the aurora, top highlight, gradient hairline, layered shadow. */
+/** Card: lightly translucent fill, 1px hairline, soft shadow. */
 export function Card({
   children,
   style,

@@ -36,7 +36,7 @@ export function SegmentedCodeInput({
   const [focused, setFocused] = useState(false)
   const groups = groupInvite(value)
   const caretGroup = Math.min(Math.floor(value.length / 4), groups.length - 1)
-  const border = hasError ? c.tones.danger.dot : focused ? c.accent : c.fieldEdge
+  const border = hasError ? c.tones.danger.dot : focused ? c.accent : c.inputEdge
   return (
     <Animated.View style={animatedStyle}>
       <Pressable
@@ -71,7 +71,7 @@ export function SegmentedCodeInput({
               borderRadius: ceRadii.button - 4,
               backgroundColor: group.filled ? withAlpha(c.accent, 0.16) : 'transparent',
               borderWidth: 1,
-              borderColor: index === caretGroup && focused ? c.accent : c.fieldEdge
+              borderColor: index === caretGroup && focused ? c.accent : c.inputEdge
             }}
           >
             <CeText variant="headline" style={{ letterSpacing: 2 }}>
