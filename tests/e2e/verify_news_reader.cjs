@@ -41,12 +41,16 @@ progressEvents.push({seq:2,stage:'visit',message:'Checking sources',progress:{ph
 await progressPage.waitForFunction(()=>document.getElementById('research-meter').getAttribute('aria-valuenow')==='33');
 check('known progress uses worker counts',await progressPage.locator('#research-meter-label').innerText()==='检查来源正文 · 已处理 1 / 3');
 check('actual stage node is accessible',await progressPage.locator('[data-step=visit]').getAttribute('aria-current')==='step');
-for(const width of [1440,390,320]){await progressPage.setViewportSize({width,height:900});check('lightweight progress fits '+width,await progressPage.locator('#research-panel').evaluate(n=>n.scrollWidth<=n.clientWidth));await progressPage.screenshot({path:path.join(output,`progress-${stamp}-${width}.png`)});}
+check('compact stages expose the active step without opening diagnostics',await progressPage.locator('[data-phase=visit]').getAttribute('aria-current')==='step'&&await progressPage.locator('.collection-stages').isVisible());
+for(const width of [1440,390,320]){await progressPage.setViewportSize({width,height:900});check('lightweight progress fits '+width,await progressPage.locator('#research-panel').evaluate(n=>n.scrollWidth<=n.clientWidth));check('query and action retain useful widths '+width,await progressPage.evaluate(()=>{const input=document.getElementById('research-query').getBoundingClientRect(),button=document.getElementById('research-start').getBoundingClientRect(),panel=document.getElementById('research-panel').getBoundingClientRect();return input.width>=120&&button.right<=panel.right-12;}));await progressPage.screenshot({path:path.join(output,`progress-${stamp}-${width}.png`)});}
+await progressPage.locator('#research-close').click();await progressPage.locator('#theme').click();await progressPage.locator('#refresh').click();
+for(const width of [1440,390,320]){await progressPage.setViewportSize({width,height:900});check('dark collection card and controls fit '+width,await progressPage.locator('#research-panel').evaluate(n=>n.scrollWidth<=n.clientWidth)&&await progressPage.locator('#research-start').isVisible());await progressPage.screenshot({path:path.join(output,`progress-dark-${stamp}-${width}.png`)});}
 progressEvents.push({seq:3,stage:'merge',message:'Saving reader content'});
 await progressPage.waitForFunction(()=>document.querySelector('[data-step=merge]').getAttribute('aria-current')==='step');
 check('merge waits for server completion',await progressPage.locator('#research-meter').getAttribute('aria-valuenow')===null);
 progressState='partial';await progressPage.waitForFunction(()=>document.getElementById('research-meter').dataset.state==='partial');
 check('partial completion remains explicit',(await progressPage.locator('#research-meter-label').innerText()).includes('部分来源受阻'));
+check('finished collection does not keep an active stage',await progressPage.locator('.collection-stages [aria-current]').count()===0);
 await progressPage.close();
 const {page:retryPage}=await makePage();
 const retryItem={...item(c,'Feed body without summary'),summary:null,body_blocks:[]};let retries=0;
@@ -87,6 +91,7 @@ const hiddenDraws=await motion.evaluate(()=>window.canvasDraws);check('hiding sp
 await motion.reload();await motion.waitForFunction(()=>window.NewsReader?.inspect().items===2);check('hidden preference survives reload without mounting',await motion.evaluate(()=>!window.NewsReader.inspect().engine&&!window.NewsReader.inspect().spiderVisible));
 await motion.locator('.title-row').first().click();await motion.locator('#open-directory').click();await motion.locator('#spider-visible').click();
 fs.writeFileSync(path.join(output,`canvas-cost-${stamp}.json`),JSON.stringify({sample_ms:400,visible_draws:visibleDraws,hidden_draws:hiddenDraws},null,2));
+await motion.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
 const idleDestination=await motion.evaluate(()=>window.NewsReader.inspect().engine.destination);
 await motion.mouse.move(1200,500);await motion.waitForTimeout(150);
 check('mouse does not change idle destination',await motion.evaluate(destination=>{const e=window.NewsReader.inspect().engine;return !e.followPointer&&!e.pointer.inside&&JSON.stringify(e.destination)===JSON.stringify(destination);},idleDestination));

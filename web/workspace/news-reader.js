@@ -581,6 +581,12 @@
       if (running && current) button.setAttribute('aria-current', 'step'); else button.removeAttribute('aria-current');
       button.dataset.current = String(current && running);
     });
+    document.querySelectorAll('[data-phase]').forEach(node => {
+      const current = running && node.dataset.phase === phase;
+      node.dataset.state = current ? 'active' : events.some(event => eventStep(event) === node.dataset.phase) ? 'done' : 'pending';
+      if (current) node.setAttribute('aria-current', 'step'); else node.removeAttribute('aria-current');
+    });
+    changeText(document.querySelector('.collection-background-note'), running ? '可关闭窗口，采集会继续' : '已有阅读进度已保留');
   }
   function acceptResearch(value, restoring = false) {
     if (destroyed || window.CERemoteContext?.active === false) return;    if (!value || typeof value.job_id !== 'string' || !['running','complete','partial','failed'].includes(value.state)) throw new Error('本次采集状态不可用。');
@@ -598,7 +604,7 @@
     if (value.state === 'running') { setCollecting(true); clearTimeout(researchTimer); if (canPoll()) researchTimer = setTimeout(pollResearch, 1000); return; }
     clearTimeout(researchTimer); setCollecting(false);
     if (arriving && $('research-panel').open && $('research-details').open) { const extracted = events.findLast(event => event.stage === 'extract' && frameUrl(event.screenshot)); if (extracted) showResearchFrame(extracted); }
-    if (value.result) { if (!restoring) applySnapshot(value.result, true, true); $('research-outcome').textContent = restoring ? '上次采集记录，可点选步骤与来源回看。' : value.state === 'partial' ? '可用内容已收集，部分来源受阻。' : '新内容已收集，阅读进度已保留。'; if (!restoring) notice($('research-outcome').textContent); }
+    if (value.result) { if (!restoring) applySnapshot(value.result, true, true); const count = $('research-article-count').textContent; $('research-outcome').textContent = restoring ? `上次收集 ${count} 篇可读内容。` : value.state === 'partial' ? `已收集 ${count} 篇内容，部分来源暂不可用。` : `已收集 ${count} 篇内容，可以继续阅读了。`; if (!restoring) notice($('research-outcome').textContent); }
     else { $('research-outcome').textContent = value.state === 'failed' ? '本次未取得新内容，已有新闻已保留。' : '本次没有新的可用信息，已有内容已保留。'; }
   }
   async function restoreResearch() {

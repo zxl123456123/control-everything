@@ -155,24 +155,47 @@ html[data-embedded=true] .toolbar{flex-wrap:wrap;padding:12px 0;gap:8px}
 @media(prefers-reduced-motion:reduce){.collection-meter.indeterminate>span{animation:none;transform:scaleX(1)!important}.collection-meter>span{transition:none}}
 
 /* Keep the primary collection flow to a query, progress and one result. */
-#research-panel{width:min(560px,calc(100vw - 32px));border-radius:16px}
-#research-panel .research-head{padding:20px 20px 12px}
-#research-panel .research-body{padding:0 20px 16px}
-#research-panel .research-head h2{font-size:18px;line-height:26px}
+#research-panel{--collection-accent:light-dark(#26674e,#96cdb2);width:min(560px,calc(100vw - 32px));border-radius:22px;box-shadow:0 24px 80px #0003,0 2px 8px #0001}
+#research-panel .research-head{padding:26px 26px 8px;align-items:center}
+#research-panel .research-body{padding:0 26px 20px}
+#research-panel .research-head h2{font-size:20px;line-height:28px;letter-spacing:-.3px}
+.collection-heading{display:flex;align-items:center;gap:12px;min-width:0}
+.collection-mark{display:grid;place-items:center;flex:none;width:44px;height:44px;border:1px solid color-mix(in srgb,var(--collection-accent) 20%,var(--line));border-radius:14px;background:color-mix(in srgb,var(--collection-accent) 8%,var(--paper));color:var(--collection-accent)}
+.collection-mark svg{width:22px;height:22px}
+#research-panel #research-description{font-size:13px;line-height:20px;margin-top:2px}
+#research-panel #research-close{border:0;border-radius:50%;background:var(--soft);color:var(--muted);width:32px;min-width:32px;height:32px;min-height:32px;font-size:21px}
+#research-panel #research-form{margin-top:20px}
+.collection-query-label{display:block;margin-bottom:8px;font-size:13px;font-weight:500;color:var(--ink)}
 #research-panel .research-query-row{flex-wrap:nowrap;gap:8px}
-#research-panel .research-query-row input{width:0;flex:1;min-width:0;font-size:14px}
-#research-panel #research-start{flex:none;padding-inline:14px}
+#research-panel .research-query-row input{width:0;flex:1;min-width:0;font-size:14px;min-height:44px;background:var(--bg);border-color:var(--line);padding-inline:12px}
+#research-panel #research-start{flex:none;width:auto;padding-inline:16px;border-radius:12px;min-height:44px}
 #research-panel :is(.collection-settings,.collection-details)>summary{padding:8px 0;min-height:36px;color:var(--muted);font-size:13px}
-#research-panel .collection-settings{margin-top:6px}
-#research-feedback{padding-top:12px}
-#research-panel .research-progress{margin:0;font-size:14px;gap:8px}
+#research-panel .collection-settings{margin-top:8px}
+#research-feedback{padding:18px;margin-top:14px;border:1px solid var(--line);border-radius:16px;background:linear-gradient(135deg,color-mix(in srgb,var(--collection-accent) 5%,var(--paper)),var(--paper))}
+#research-panel .research-progress{margin:0;font-size:14px;gap:8px;align-items:center}
+#research-panel #research-state{font-weight:600}
+#research-panel #research-state:before{background:var(--collection-accent);width:7px;height:7px}
+#research-panel[data-state=partial] #research-state:before,#research-panel[data-state=failed] #research-state:before{background:var(--ce-amber,#a56412)}
 #research-panel #research-timing{font-size:12px}
-#research-outcome{font-size:14px;line-height:22px;color:var(--muted);margin-top:12px}
+#research-panel .collection-meter{height:7px;margin-top:16px;background:color-mix(in srgb,var(--collection-accent) 12%,var(--line))}
+#research-panel .collection-meter>span{background:var(--collection-accent);border-radius:inherit}
+#research-panel .collection-meter[data-state=partial]>span{background:var(--ce-amber,#a56412)}
+#research-panel .collection-meter-label{font-size:12px;line-height:20px;margin:8px 0 0}
+.collection-stages{list-style:none;display:flex;justify-content:space-between;gap:6px;margin:16px 0 0;padding:0;color:var(--muted);font-size:12px;line-height:20px}
+.collection-stages li{display:flex;align-items:center;gap:6px}
+.collection-stages li:before{content:'';width:6px;height:6px;border-radius:50%;border:1px solid var(--line)}
+.collection-stages li[data-state=done]:before{background:var(--collection-accent);border-color:var(--collection-accent)}
+.collection-stages li[data-state=active]{color:var(--collection-accent);font-weight:600}
+.collection-stages li[data-state=active]:before{border-color:var(--collection-accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--collection-accent) 12%,transparent)}
+#research-outcome{font-size:13px;line-height:22px;color:var(--muted);margin-top:16px;padding-top:12px;border-top:1px solid var(--line)}
 #research-panel .collection-details{margin-top:12px}
 #research-panel .collection-details>summary span{font-size:12px;margin-left:8px}
 #research-panel .research-metrics{display:block;padding:0 0 12px;margin:0 0 12px;font-size:13px;color:var(--muted)}
 #research-panel .research-metrics strong{font:inherit;color:var(--ink)}
 #research-panel .research-results{padding:0;border:0;background:none}
 #research-panel .research-source{border:0;border-bottom:1px solid var(--line);border-radius:0;background:none;margin:0;padding:10px 0}
-#research-panel .research-footer{padding:12px 20px;justify-content:flex-end}
-@media(max-width:380px){#research-panel{width:calc(100vw - 16px)}#research-panel .research-head{padding:16px 16px 12px}#research-panel .research-body{padding:0 16px 12px}#research-panel #research-start{padding-inline:10px}#research-panel .research-footer{padding:12px 16px}}
+#research-panel .research-footer{padding:14px 26px;justify-content:space-between;background:var(--bg);gap:8px}
+.collection-background-note{font-size:12px;line-height:20px;color:var(--muted)}
+#research-panel #research-return{border:0;background:none;padding:4px 0 4px 10px;min-height:32px;font-size:13px}
+#research-return span{margin-left:4px;color:var(--muted)}
+@media(max-width:380px){#research-panel{width:calc(100vw - 16px);border-radius:18px}#research-panel .research-head{padding:20px 16px 8px}#research-panel .research-body{padding:0 16px 16px}#research-panel #research-start{padding-inline:10px}#research-panel .research-footer{padding:12px 16px}#research-feedback{padding:14px}.collection-mark{width:36px;height:36px;border-radius:12px}.collection-heading{gap:10px}.collection-background-note{font-size:11px}}
