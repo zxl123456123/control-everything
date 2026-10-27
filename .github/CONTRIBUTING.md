@@ -405,7 +405,7 @@ Ctrl+C 停网关即可停本批查询，原 Claude/SSH/Zellij 对话继续运行
 
 采集默认使用小弹窗，展示关键词、当前阶段进度和结果；主题与截图选项、来源与回放记录分别折叠。已知总量按 worker 事件显示处理数量，未知总量不展示百分比；保存阶段等待服务端合入结束。蜘蛛默认隐藏，显示选择按阅读器与远程账号范围保存；隐藏不挂载或暂停动画，阅读与采集继续。步骤截图需显式开启，默认不截图，回放在展开详情后读取。
 
-关键词采集优先从作者/官方订阅源筛选：AI Coding/Agent 使用 Peter Steinberger RSS 与 Anthropic 官方发布 Atom，Claude 使用官方 Atom，模型主题使用 Google DeepMind 与 OpenAI 官方 RSS；X 帖子仅按显式链接读取，不默认经过 X/Bing 搜索。每次原文访问使用独立 Page，失败页面的残留导航不能影响下一来源。同域订阅重定向有界处理；原文受限时保留带范围标签的来源内容/摘要，无关键词匹配按正常空结果处理。Atom 的更新时间独立展示，不冒充发布时间；Tibo 保留作者原文入口，并明确其不是全网搜索结果。
+关键词采集的 AI Coding/Agent/模型主题优先匹配量子位、少数派 RSS，有匹配时不再请求海外来源；普通采集直接解析国内来源的静态正文，不加载页面脚本，需要步骤截图时才打开完整页面。无匹配时再读取 Peter Steinberger/Anthropic 或 DeepMind/OpenAI 对应订阅；Claude 使用官方 Atom，Tibo 保留作者原文入口，显式 X 链接沿用公开嵌入。英文常用主题词同时匹配对应中文词，不把作者预设当成本次全网搜索结果。每次原文访问使用独立 Page，避免残留导航干扰；同域订阅重定向有界处理，原文受限时保留带范围标签的来源内容/摘要。页面无发布日期时保留订阅发布日期，Atom 更新时间独立展示，无关键词匹配按正常空结果处理。固定 RSS API 与其既有来源保持兼容。
 
 后端 `workspace/news_reader.py` 管理所选 profile 的 `news-reader/` 数据，`news_research.py` 管理单槽、有截止时间的独占浏览进程，`news_article.py` 提取固定来源正文。HTTP 装配在 `http/news_reader.py`，沿用 Host、Origin、client header 和 CSRF 校验。截图经带权限头的 fetch 转为 Blob 显示。研究数据、模型、截图和个人工具路径不提交。
 
