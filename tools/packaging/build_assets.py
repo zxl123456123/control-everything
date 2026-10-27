@@ -14,7 +14,7 @@ WEB_ASSETS = (
     "progress/progress.html", "progress/progress.js", "progress/progress.css",
     "product/index.html", "product/product.css", "product/product.js",
     "workspace/workspace.html", "workspace/workspace.js", "workspace/workspace.css",
-    "workspace/ui-theme.js", "workspace/ui-dialog.js", "workspace/studio-shell.js", "workspace/studio-pet-settings.js",
+    "workspace/ui-theme.js", "workspace/ui-dialog.js", "workspace/studio-shell.js", "workspace/studio-pet-settings.js", "workspace/studio-mascot.js",
     "workspace/onboarding.js",
     "workspace/desktop.html", "workspace/desktop.js", "workspace/remote-context.js",
     "workspace/account-device.js",

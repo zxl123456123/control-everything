@@ -911,3 +911,14 @@ body:has(#ce-studio){margin:0;background:var(--ce-bg,#ffffff)}
  #ce-studio :is(.ce-button,.ce-iconbtn,.pp-button,.ce-nav,.ce-segment button,.ce-project-sort-control,[role=menuitem],.ce-mobile-guide>summary):not(:disabled):not([aria-busy=true]):active,#ce-studio #onboarding-dialog button:not(:disabled):not([aria-busy=true]):active{transform:none}
  #ce-studio[data-unified=true] :is(.ce-button,.ce-business-module .button){transition:none}
 }
+/* Workbench mascot (studio-mascot.js): a click-through overlay. Only the pet itself reacts to the pointer. */
+#ce-studio .ce-mascot{position:fixed;inset:0;z-index:30;pointer-events:none;contain:strict}
+#ce-studio .ce-mascot canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+#ce-studio .ce-mascot-depot{position:absolute;right:16px;bottom:16px;width:1px;height:1px}
+/* Keyboard door to the dial: invisible until it receives focus, then a normal button. */
+#ce-studio .ce-mascot-key{position:fixed;right:16px;bottom:16px;z-index:31;min-height:36px;padding:0 14px;border:1px solid var(--ce-line);border-radius:999px;background:var(--ce-panel);color:var(--ce-text);font:inherit;font-size:13px;cursor:pointer;box-shadow:0 6px 18px rgba(15,23,42,.18)}
+#ce-studio .ce-mascot-key:not(:focus-visible){width:1px;min-height:1px;height:1px;padding:0;border:0;overflow:hidden;opacity:0;pointer-events:none;clip-path:inset(50%)}
+#ce-studio .ce-mascot-key:focus-visible{outline:2px solid var(--ce-text);outline-offset:2px}
+#ce-studio .ce-mascot-note{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:32;max-width:min(320px,calc(100vw - 32px));padding:9px 14px;border:1px solid var(--ce-line);border-radius:12px;background:var(--ce-panel);color:var(--ce-text);font-size:13px;line-height:20px;box-shadow:0 6px 18px rgba(15,23,42,.18)}
+#ce-studio .ce-mascot-note[hidden]{display:none}
+@media (prefers-reduced-motion:reduce){#ce-studio .ce-mascot-key,#ce-studio .ce-mascot-note{transition:none}}

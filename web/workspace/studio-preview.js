@@ -9,6 +9,7 @@ function mountStudio(root, { onProjects = () => {} } = {}) {
     status.textContent = '工作台资源尚未就绪，请通过本地服务的 /studio 页面打开。'; return;
   }
   const client = window.StudioData.create();
+  let mascot = null;
   const icons = {
     grid: '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
     folder: '<path d="M3 7V4h6l3 3h9v13H3Z"/>',
@@ -500,6 +501,7 @@ function mountStudio(root, { onProjects = () => {} } = {}) {
   function render() {
     if (disposed || window.CERemoteContext?.active === false) return;
     const current = route();
+    mascot?.setRoute();
     showNews(current.view === 'news'); content.hidden = current.view === 'news';
     renderStatus(current);
     if (current.view !== 'mobile' && !(current.view === 'settings' && current.tab === 'account') && disposeMobile) { disposeMobile(); disposeMobile = null; }
@@ -772,7 +774,8 @@ function mountStudio(root, { onProjects = () => {} } = {}) {
   };
   document.addEventListener('visibilitychange', visibilityChanged);
   render(); void refresh();
-  const dispose = () => { disposed = true; externalAccess?.dispose(); newsReader?.dispose(); newsTheme?.disconnect(); newsHost?.remove(); projectDrafts.clear(); progressReturn = null; navigationGeneration++; registrationGeneration++; unsubscribeAppearance?.(); unmountTheme?.(); standaloneTheme?.dispose(); closeProjectMenu(); closeNavigation(); restoreNavigation(); drawer.remove(); window.removeEventListener('resize', resizeNavigation); window.removeEventListener('scroll', closeProjectMenu, true); document.removeEventListener('pointerdown', dismissProjectMenu); request++; clearTimeout(refreshTimer); document.removeEventListener('visibilitychange', visibilityChanged); disposeMobile?.(); disposePets?.(); window.removeEventListener('hashchange', requestedNavigation); window.removeEventListener('platform-before-navigate', beforeNavigate); window.removeEventListener('platform-navigation-accepted', changed); window.removeEventListener('platform-add-project', requestProject); window.removeEventListener('platform-manage-project', manageProject); onboardingDialog?.close(); onboardingDialog?.remove(); projectSettings?.close(); projectSettings?.remove(); projectDialogTarget?.querySelectorAll('dialog').forEach(dialog => dialog.close()); projectDialogHost?.remove(); monitor?.destroy(); taskCenter?.dispose(); legacyBoard?.dispose(); board.dispose?.(); };
+  if (window.StudioMascot && window.NewsPetPrefs && window.NewsPetDirector) mascot = window.StudioMascot.mount(root, { route, navigate: hash => { location.hash = hash; } });
+  const dispose = () => { disposed = true; mascot?.dispose(); externalAccess?.dispose(); newsReader?.dispose(); newsTheme?.disconnect(); newsHost?.remove(); projectDrafts.clear(); progressReturn = null; navigationGeneration++; registrationGeneration++; unsubscribeAppearance?.(); unmountTheme?.(); standaloneTheme?.dispose(); closeProjectMenu(); closeNavigation(); restoreNavigation(); drawer.remove(); window.removeEventListener('resize', resizeNavigation); window.removeEventListener('scroll', closeProjectMenu, true); document.removeEventListener('pointerdown', dismissProjectMenu); request++; clearTimeout(refreshTimer); document.removeEventListener('visibilitychange', visibilityChanged); disposeMobile?.(); disposePets?.(); window.removeEventListener('hashchange', requestedNavigation); window.removeEventListener('platform-before-navigate', beforeNavigate); window.removeEventListener('platform-navigation-accepted', changed); window.removeEventListener('platform-add-project', requestProject); window.removeEventListener('platform-manage-project', manageProject); onboardingDialog?.close(); onboardingDialog?.remove(); projectSettings?.close(); projectSettings?.remove(); projectDialogTarget?.querySelectorAll('dialog').forEach(dialog => dialog.close()); projectDialogHost?.remove(); monitor?.destroy(); taskCenter?.dispose(); legacyBoard?.dispose(); board.dispose?.(); };
   const unsubscribeContext = window.CERemoteContext?.onInactive(dispose);
   return () => { unsubscribeContext?.(); dispose(); };
 }

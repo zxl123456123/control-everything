@@ -173,12 +173,12 @@
 
       page.append(
         section('宠物',
-          row('显示宠物', '个人工作台的小伙伴，在新闻页陪你阅读，随时可以关掉。', enabled), pickerRow),
+          row('显示宠物', '个人工作台的小伙伴：奶龙和狸花猫会留在首页、事项和设置页，也会陪你读新闻；蜘蛛只在新闻页。', enabled), pickerRow),
         section('行为',
           row('安静模式', '宠物原地休息，没有动作和提示，也不再查询状态。', quiet),
           row('新闻页互动', '新文章、读完、搜索无结果、采集失败时给一点小反应。', newsFx),
           row('大小', '宠物在页面里的大小。', size.node),
-          row('位置', '自动会停在阅读区右下角，避开正文。', dock.node)),
+          row('位置', '自动停在右下角；左下会停在侧栏右边，不挡住侧栏入口。窄屏的工作台页面里不显示。', dock.node)),
         section('转盘', dialBody), status);
       container.replaceChildren(page);
 

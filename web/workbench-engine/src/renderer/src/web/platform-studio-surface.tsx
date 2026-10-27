@@ -32,8 +32,10 @@ const scripts = [
   '/news-pet-dial.js',
   '/news-pet-prefs.js',
   '/news-pet-director.js',
+  '/news-pet-status.js',
   '/studio-shell.js',
   '/studio-pet-settings.js',
+  '/studio-mascot.js',
   '/studio-preview.js'
 ]
 let modules: Promise<void> | null = null
