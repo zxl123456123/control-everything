@@ -18,6 +18,7 @@
   'use strict';
 
   const ICON_SIZE = 24, BUTTON = 48, HUB_PAD = 14, PLATE_PAD = 34, GAP = 16, EDGE = 12;
+  const OUTSIDE_TAP_MS = 700;
   const ROOT_CLASS = 'pw-wheel';
   const PIN_PATH = 'M9 3h6l-1 6 3 3v2H7v-2l3-3z M12 14v7';
   const PIN_LABEL = {off: '固定转盘', on: '取消固定'};
@@ -29,7 +30,8 @@
 .${ROOT_CLASS}[data-open=true]{visibility:visible;transition:none}
 .${ROOT_CLASS} .pw-plate{position:absolute;left:0;top:0;border-radius:50%;background:var(--pw-plate);border:1px solid var(--pw-line);box-shadow:var(--pw-shadow);transform:translate(-50%,-50%) scale(.55);opacity:0;transition:transform .2s ease-in,opacity .16s ease-in,background-color .3s}
 .${ROOT_CLASS}[data-open=true] .pw-plate{transform:translate(-50%,-50%) scale(1);opacity:1;transition:transform .55s var(--pw-spring),opacity .18s ease-out,background-color .3s}
-.${ROOT_CLASS}[data-pinned=true] .pw-plate{opacity:.82}
+.${ROOT_CLASS}[data-pinned=true][data-open=true] .pw-plate{background:transparent;box-shadow:none;border:1.5px dashed var(--pw-line);opacity:.9}
+.${ROOT_CLASS}[data-pinned=true] .pw-label[data-on=false]{opacity:0}
 .${ROOT_CLASS} .pw-item{position:absolute;left:0;top:0;width:0;height:0;transform:translate3d(0,0,0) scale(.3);opacity:0;transition:transform .18s ease-in,opacity .12s ease-in}
 .${ROOT_CLASS}[data-open=true] .pw-item{transform:translate3d(var(--x),var(--y),0) scale(1);opacity:1;transition:transform .55s var(--pw-spring) calc(var(--i) * 32ms + 40ms),opacity .2s ease-out calc(var(--i) * 32ms + 40ms)}
 .${ROOT_CLASS} button{position:absolute;left:0;top:0;box-sizing:border-box;width:${BUTTON}px;height:${BUTTON}px;margin:-${BUTTON / 2}px 0 0 -${BUTTON / 2}px;padding:0;border:1px solid var(--pw-line);border-radius:50%;background:var(--pw-btn);color:var(--pw-ink);display:grid;place-items:center;cursor:pointer;pointer-events:auto;touch-action:manipulation;transform:scale(1);transition:transform .45s var(--pw-spring),background-color .2s,color .2s,border-color .2s,box-shadow .25s}
@@ -42,11 +44,11 @@
 .${ROOT_CLASS}[data-open=true] .pw-hub{opacity:1;transition:opacity .3s ease-out .16s}
 .${ROOT_CLASS} .pw-label{max-width:calc(var(--hub) - 28px);text-align:center;font-size:15px;font-weight:700;letter-spacing:.01em;opacity:.55;transition:opacity .18s}
 .${ROOT_CLASS} .pw-label[data-on=true]{opacity:1}
-.${ROOT_CLASS} .pw-pin{position:relative;left:auto;top:auto;margin:0;width:40px;height:40px;background:transparent;border-color:transparent;color:var(--pw-mute)}
+.${ROOT_CLASS} .pw-pin{position:relative;left:auto;top:auto;margin:0;width:40px;height:40px;background:var(--pw-btn);border-color:var(--pw-line);color:var(--pw-mute);box-shadow:0 2px 8px rgba(40,28,4,.12)}
 .${ROOT_CLASS} .pw-pin svg{width:20px;height:20px;transition:transform .45s var(--pw-spring)}
 .${ROOT_CLASS} .pw-pin[aria-checked=true]{color:var(--pw-accent)}
 .${ROOT_CLASS} .pw-pin[aria-checked=true] svg{transform:rotate(-35deg) scale(1.1);fill:currentColor}
-.${ROOT_CLASS} .pw-pin:hover,.${ROOT_CLASS} .pw-pin:focus-visible{background:transparent;color:var(--pw-accent);box-shadow:none;border-color:transparent}
+.${ROOT_CLASS} .pw-pin:hover,.${ROOT_CLASS} .pw-pin:focus-visible{background:var(--pw-btn);color:var(--pw-accent);border-color:var(--pw-accent)}
 .${ROOT_CLASS} .pw-hub .pw-pin{pointer-events:auto}
 @media (prefers-reduced-motion:reduce){
  .${ROOT_CLASS} .pw-plate,.${ROOT_CLASS} .pw-item,.${ROOT_CLASS} button,.${ROOT_CLASS} .pw-pin svg{transition:opacity .12s!important}
@@ -132,7 +134,8 @@
     document.body.append(root);
 
     let items = [], open = false, pinned = Boolean(host.pinned), active = -1, fromKeyboard = false, frame = 0, spot = null, destroyed = false;
-    let hubText = '';
+    let hubText = '', closedAt = {reason: '', time: 0};
+    const now = () => (global.performance && global.performance.now ? global.performance.now() : Date.now());
 
     function pageTheme() { return document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light'; }
     const radius = () => ringRadius(global.innerWidth);
@@ -206,7 +209,7 @@
 
     function close(reason = 'api', toTrigger = false) {
       if (!open) return false;
-      open = false; root.dataset.open = 'false';
+      open = false; root.dataset.open = 'false'; closedAt = {reason, time: now()};
       document.removeEventListener('pointerdown', onOutside, true); document.removeEventListener('keydown', onKey, true); document.removeEventListener('focusin', onFocusIn, true);
       global.removeEventListener('resize', schedule); global.removeEventListener('scroll', schedule, true);
       if (frame) { global.cancelAnimationFrame(frame); frame = 0; }
@@ -243,7 +246,9 @@
 
     const onTap = event => {
       if (event.detail && event.detail.double) { close('tap'); return; }
-      if (open) close('tap'); else openWheel(false);
+      if (open) close('tap');
+      else if (closedAt.reason === 'outside' && now() - closedAt.time < OUTSIDE_TAP_MS) closedAt = {reason: '', time: 0}; // the press that closed it was this tap
+      else openWheel(false);
     };
     host.tapTarget && host.tapTarget.addEventListener('news-pet-tap', onTap);
     const themeObserver = typeof MutationObserver === 'function' ? new MutationObserver(() => { root.dataset.theme = pageTheme(); }) : null;

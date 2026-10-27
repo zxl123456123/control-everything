@@ -103,14 +103,14 @@ await motion.locator('#research-return').click();await motion.emulateMedia({redu
 await motion.waitForFunction(()=>window.NewsReader.inspect().engine.running&&window.NewsReader.inspect().engine.phase==='idle');await motion.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
 await motion.evaluate(()=>{window.canvasDraws=0;const context=document.getElementById('spider-canvas').getContext('2d'),original=context.clearRect.bind(context);context.clearRect=(...args)=>{window.canvasDraws++;return original(...args);};});
 await motion.waitForTimeout(400);const visibleDraws=await motion.evaluate(()=>window.canvasDraws);check('optional spider actually draws when enabled',visibleDraws>0);
-check('the spider has no dial, so its button stays hidden',await motion.locator('#pet-dial').isHidden());
+check('the spider has no tap of its own, so the wheel button is its way in',await motion.locator('#pet-dial').isVisible());
 await motion.locator('#pet-visible').click();await motion.evaluate(()=>window.canvasDraws=0);await motion.waitForTimeout(400);
 const hiddenDraws=await motion.evaluate(()=>window.canvasDraws);check('hiding spider stops canvas drawing',hiddenDraws===0);
 await motion.locator('#pet-visible').click();await motion.evaluate(()=>window.NewsReader.switchPet('naidragon'));await motion.locator('#pet-dial').waitFor({state:'visible'});
 await motion.locator('#pet-dial').focus();await motion.keyboard.press('Enter');
-check('keyboard opens the dial with focus inside it',await motion.evaluate(()=>Boolean(document.activeElement.closest('.nd-dial'))));
-await motion.keyboard.press('Escape');await motion.waitForFunction(()=>!window.NewsReader.engine.inspect().menu.open);await motion.waitForTimeout(100);
-check('Esc closes the dial and returns focus to its button',await motion.evaluate(()=>document.activeElement.id==='pet-dial'&&!window.NewsReader.engine.inspect().menu.open));
+check('keyboard opens the wheel with focus inside it',await motion.evaluate(()=>Boolean(document.activeElement.closest('.pw-wheel'))));
+await motion.keyboard.press('Escape');await motion.waitForFunction(()=>document.querySelector('.pw-wheel').dataset.open==='false');await motion.waitForTimeout(100);
+check('Esc closes the wheel and returns focus to its button',await motion.evaluate(()=>document.activeElement.id==='pet-dial'&&document.querySelector('.pw-wheel').dataset.open==='false'));
 const bubble=()=>motion.evaluate(()=>window.NewsReader.engine.inspect().mood.bubble);
 await motion.locator('#save-article').click();
 await motion.waitForFunction(()=>window.NewsReader.engine.inspect().mood.bubble==='收藏好啦',{},{timeout:3000});check('saving an article makes the 3D pet answer with a short bubble',true);

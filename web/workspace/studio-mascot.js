@@ -15,6 +15,7 @@
   const MIN_WIDTH = 560;
   const HINT_KEY = 'news-reader-pet-hint';
   const HINT_DELAY = 1800;
+  const SLOT = {width: 96, height: 64};
   const HINT_TEXT = '点我，打开快捷转盘';
 
   /**
@@ -100,6 +101,17 @@
       parts.root.style.left = rect && rect.width > 0 && current.dock === 'bl' ? `${Math.round(rect.right)}px` : '0px';
     }
 
+    /**
+     * The pet's resting slot in viewport pixels. The depot element is a 1px point at the dock corner, so the slot is the
+     * pet-sized box that corner implies; the wheel is placed beside it and therefore never follows the pet's wandering.
+     */
+    function restingSlot() {
+      const point = parts?.depot.getBoundingClientRect();
+      if (!point) return null;
+      const width = SLOT.width, height = SLOT.height;
+      return current.dock === 'bl' ? {left: parts.root.getBoundingClientRect().left + 16, top: point.top - height, width, height} : {left: point.left - width, top: point.top - height, width, height};
+    }
+
     function mount() {
       parts = buildParts(); place();
       try {
@@ -107,7 +119,7 @@
       } catch { fail(); return; }
       lastActions = actions().map(item => item.id).join();
       wheel = deps.wheel.create({
-        tapTarget: parts.root, anchor: () => parts?.depot || null, actions, pinned: current.dialPin, ignore: '.ce-mascot-key', returnFocus: () => parts?.key || null,
+        tapTarget: parts.root, anchor: restingSlot, actions, pinned: current.dialPin, ignore: '.ce-mascot-key', returnFocus: () => parts?.key || null,
         onPinChange: pinned => { if (!prefs.set({dialPin: pinned})) wheel?.setPinned(pinned); },
         onOpen: () => parts?.key.setAttribute('aria-expanded', 'true'), onClose: () => parts?.key.setAttribute('aria-expanded', 'false'),
       });
