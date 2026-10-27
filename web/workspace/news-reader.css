@@ -109,6 +109,8 @@ body{letter-spacing:normal}
 #animation-stage[data-reading-view=list] #web-depot{width:64px;height:60px}
 #animation-stage[data-reading-view=list] .spider-status{display:flex;align-items:center;gap:12px;flex:1}
 html:is([data-pet=naidragon],[data-pet=tabbycat]) #animation-stage[data-reading-view=list] #web-depot{width:96px}
+/* The spider rests on the web hub; centre the hub 76px above the stage floor and 72px from its left edge so the legs stay inside the clipped stage. */
+html[data-pet=spider] #animation-stage[data-reading-view=list] #web-depot{width:136px;height:132px;margin-top:-78px;align-self:flex-start;pointer-events:none}
 #animation-stage[data-reading-view=list] .depot-name{display:none}
 #animation-stage[data-reading-view=list] #spider-state{min-height:0;margin:0;flex:1}
 #animation-stage[data-reading-view=list] #list-empty{padding:32px 16px;margin:auto}
