@@ -37,16 +37,20 @@
   const tasks = new Map(), translations = new Map(), failedImages = new Set();
   let records = {}, currentId = null, selected = 'inbox', stream = 'ai', language = 'original';
   // Which pet is shown, and whether pets are on, lives in NewsPetPrefs so the Studio settings and this page stay in step.
-  const prefs = window.NewsPetPrefs, initialPrefs = prefs.read();
-  let petName = initialPrefs.pet, petEnabled = initialPrefs.enabled, petFallback = null;
+  const director = window.NewsPetDirector, prefs = window.NewsPetPrefs, initialPrefs = prefs.read();
+  let petPrefs = initialPrefs, petName = initialPrefs.pet, petEnabled = initialPrefs.enabled, petFallback = null;
   let petStatus = {agentsRunning:false, quotaLeftPercent:null}, realStatus = {...petStatus}, statusOverride = {}, statusFeed = null;
+  // `paused` is the manual pause button; quiet mode (a stored preference) holds the pet still in the same way, see still().
   let engine = null, researchEngine = null, unsubscribePrefs = null, paused = false, collecting = false, undo = null, arrivalQueue = [];
   let visibleIds = [], translationRun = 0, translationAbort = null, renderedKey = '', destroyed = false;
   let mediaView = 'article', imageIndex = 0, mediaKey = '';
   let readingView = 'list', listScroll = 0;
   let researchJob = null, researchTimer = null, researchTopic = 'coding', researchBusy = false, researchFrameSeq = null;
-  let feedReading = false, researchReading = false, suspended = false, feedAttempt = 0, lastFeedKey = '', feedFailed = false;
+  let feedReading = false, researchReading = false, suspended = false, feedAttempt = 0, lastFeedKey = '', feedFailed = false, feedSettled = false, arrivalBatch = 0;
   let historyReading = false, historyRestored = false;
+  const still = () => paused || petPrefs.quiet;
+  const stateText = () => still() ? (petPrefs.quiet ? '安静模式' : '动画已暂停') : collecting ? '正在采集信息' : '等待阅读';
+  const reactor = director.createReactor({engine:() => engine, enabled:() => petEnabled && Boolean(engine) && !still() && petPrefs.newsFx && canPoll()});
   const canPoll = () => active && !destroyed && !suspended && !document.hidden && window.CERemoteContext?.active !== false;
   const researchEvents = new Map(), researchData = new Map();
   const topicQueries = {coding:'AI coding workflow coding agents tips', agents:'AI agents context engineering tools workflows', claude:'Claude Code coding tips workflows', models:'GPT Gemini coding models releases', tibo:'Tibo AI coding agents'};
@@ -127,8 +131,10 @@
     return rect.bottom > top && rect.top < bottom && rect.right > left && rect.left < right;
   }
   const mountPet = options => window.NewsPets.mount(petName, options);
+  // Only the full 3D pets (the ones that draw a status chip and own a dial) take the size and dock preferences.
+  const fullPet = () => !petFallback && Boolean(window.NewsPets.list().find(pet => pet.name === petName)?.status);
   function mountMainPet() {
-    const api = mountPet({root:$('animation-stage'), canvas:$('spider-canvas'), depot:$('web-depot'), onCapture:event => { const task = tasks.get(typeof event === 'string' ? event : event.id); $('spider-state').textContent = task?.kind === 'arrival' ? '正在接住新信息' : '正在收进仓库'; }, onDelivered:settleTask, onCancel:settleTask, actions:petActions(), dock:petDock});
+    const api = mountPet({root:$('animation-stage'), canvas:$('spider-canvas'), depot:$('web-depot'), onCapture:event => { const task = tasks.get(typeof event === 'string' ? event : event.id); $('spider-state').textContent = task?.kind === 'arrival' ? '正在接住新信息' : '正在收进仓库'; }, onDelivered:settleTask, onCancel:settleTask, actions:petActions(), dock:petDock, options:director.petOptions(petPrefs, fullPet())});
     api.setStatus?.(petStatus); api.setCollecting?.(collecting); return api;
   }
   function mountResearchPet() {
@@ -162,18 +168,23 @@
     // Reveal the stage first: a pet measures its surroundings when it mounts.
     for (const node of [$('spider-canvas'), document.querySelector('.spider-home'), $('research-spider-canvas'), document.querySelector('.research-spider-home')]) node.hidden = !petEnabled;
     if (petEnabled) {
-      if (!engine) { engine = mountMainPet(); if (paused) engine.pause(); }
-      if ($('research-panel').open && $('research-details').open && !researchEngine) { researchEngine = mountResearchPet(); if (paused) researchEngine.pause(); }
+      if (!engine) { engine = mountMainPet(); if (still()) engine.pause(); }
+      if ($('research-panel').open && $('research-details').open && !researchEngine) { researchEngine = mountResearchPet(); if (still()) researchEngine.pause(); }
     } else destroyPets();
     syncPetControls(); syncMotion();
   }
   function applyPrefs(next) {
     if (destroyed) return;
-    const switched = next.pet !== petName;
-    petName = next.pet; petEnabled = next.enabled;
+    const before = petPrefs, switched = next.pet !== petName;
+    petPrefs = next; petName = next.pet; petEnabled = next.enabled;
     if (switched) { petFallback = null; destroyPets(); }
     syncPets();
-    if (switched && engine) { if (!paused && !$('research-panel').open) engine.pointAt($('article-title'), '阅读'); render(); runArrival(); }
+    if (!switched && engine) {
+      if (next.dial.join() !== before.dial.join()) engine.setActions?.(petActions());
+      if (next.size !== before.size || next.dock !== before.dock) engine.setOptions?.(director.petOptions(next, fullPet()));
+    }
+    if (next.quiet !== before.quiet) { syncMotion(); $('spider-state').textContent = stateText(); if (!next.quiet) runArrival(); }
+    if (switched && engine) { if (!still() && !$('research-panel').open) engine.pointAt($('article-title'), '阅读'); render(); runArrival(); }
   }
   window.addEventListener('news-pet-fallback', event => {
     if (destroyed || event.detail.pet !== petName) return;
@@ -182,7 +193,7 @@
   });
   // Poll the status endpoints only while a status-aware pet is actually animating on an active, visible page.
   function syncPetStatusFeed() {
-    const wanted = Boolean(window.PetStatusFeed) && petEnabled && canPoll() && !paused && Boolean(window.NewsPets?.list().find(pet => pet.name === petName)?.status);
+    const wanted = Boolean(window.PetStatusFeed) && petEnabled && canPoll() && !still() && Boolean(window.NewsPets?.list().find(pet => pet.name === petName)?.status);
     if (wanted && !statusFeed) {
       const fetchJson = async (url, signal) => {
         const response = await (window.CERemoteContext ? window.CERemoteContext.fetch : fetch)(url, {headers:{'X-Session-Client':'panel'}, credentials:'same-origin', cache:'no-store', signal});
@@ -206,14 +217,16 @@
   // Inside the Studio the reader is an iframe, so navigation targets the surrounding page; stand-alone it opens the Studio.
   function goStudio(hash) { if (embedded) window.parent.location.hash = hash; else location.assign('/studio' + hash); }
   function openSearch() { if (readingView === 'article') $('open-directory').click(); $('search').focus(); }
-  // The dial holds six sectors per page; every action is a real shortcut into the app.
+  // The dial shows the actions chosen in the Studio settings (3 to 6 of the pool); each one is a real shortcut into the app.
   function petActions() {
-    return [{id:'workspace', label:'打开工作台', icon:'M4 4h7v7H4z M13 4h7v7h-7z M4 13h7v7H4z M13 13h7v7h-7z', run:() => goStudio('#home')},
-      {id:'next', label:'下一条', icon:'M5 12h14 M13 6l6 6-6 6', run:() => { if (!$('next').disabled) $('next').click(); }},
-      {id:'search', label:'搜索', icon:'M10.5 3a7.5 7.5 0 1 0 0 15a7.5 7.5 0 1 0 0-15z M16 16l5 5', run:openSearch},
-      {id:'collect', label:'采集新闻', icon:'M20 11a8 8 0 1 0-2.3 5.7 M20 4v7h-7', run:() => $('refresh').click()},
-      {id:'pet-settings', label:'宠物设置', icon:'M4 7h10 M18 7h2 M4 17h2 M10 17h10 M16 5v4 M8 15v4', run:() => goStudio('#settings/appearance')},
-      {id:'hide-pet', label:'隐藏宠物', icon:'M3 3l18 18 M10.6 6.2A9.5 9.5 0 0 1 12 6c5 0 8.5 4.5 9.5 6a14 14 0 0 1-2.4 2.9 M6.6 7.7A14 14 0 0 0 2.5 12C3.5 13.5 7 18 12 18c1.2 0 2.3-.3 3.3-.7', run:() => { prefs.setEnabled(false); $('pet-visible').focus(); notice('宠物已隐藏，可在页面顶部点“显示宠物”，或在个人工作台左下角的“设置”里重新打开。'); }}];
+    const click = id => () => { if (!$(id).disabled) $(id).click(); };
+    return director.buildActions(window.NewsPetDial.forSurface(petPrefs.dial, 'news').map(entry => entry.id), {
+      workspace:() => goStudio('#home'), next:click('next'), previous:click('previous'), search:openSearch, collect:() => $('refresh').click(),
+      save:click('save-article'), archive:click('archive-article'),
+      quiet:() => { if (prefs.set({quiet:!petPrefs.quiet})) notice(petPrefs.quiet ? '安静模式已开启，宠物不再有动作和提示。可在“设置”里关闭。' : '安静模式已关闭。'); },
+      'pet-settings':() => goStudio('#settings/appearance'),
+      'hide-pet':() => { prefs.setEnabled(false); $('pet-visible').focus(); notice('宠物已隐藏，可在页面顶部点“显示宠物”，或在个人工作台左下角的“设置”里重新打开。'); },
+    });
   }
   document.querySelectorAll('.pet-select').forEach(select => select.addEventListener('change', () => switchPet(select.value)));
   $('pet-visible').addEventListener('click', () => { if (!prefs.setEnabled(!petEnabled)) notice('宠物设置暂时无法保存，本页选择仍然生效。'); });
@@ -228,8 +241,11 @@
     if (destroyed || window.CERemoteContext?.active === false) return;    const id = typeof event === 'string' ? event : event.id, task = tasks.get(id);
     if (!task) return;
     tasks.delete(id);
-    if (task.kind === 'arrival') { $('arrival-title').hidden = true; $('reader-state').hidden = false; }
-    $('spider-state').textContent = paused ? '动画已暂停' : collecting ? '正在采集信息' : '等待阅读';
+    if (task.kind === 'arrival') {
+      $('arrival-title').hidden = true; $('reader-state').hidden = false;
+      if (!arrivalQueue.length) { if (arrivalBatch > 1) reactor.react('arrival', {count:arrivalBatch}); arrivalBatch = 0; }
+    }
+    $('spider-state').textContent = stateText();
     queueMicrotask(() => { if (!destroyed) { render(); runArrival(); } });
   }
   function cancelInvisible() {
@@ -287,7 +303,15 @@
     $('list-total').textContent = `${visibleIds.length} 条`; $('list-empty').hidden = visibleIds.length > 0;
     $('list-empty-message').textContent = query ? '没有匹配的新闻' : ({read:'暂无已读新闻', saved:'暂无收藏新闻', archived:'暂无归档新闻'}[selected] || '暂无新闻，可更新新闻或采集信息。');
     $('clear-search').hidden = !query;
+    observeNewsMood(query);
     renderArticle();
+  }
+  // Quiet, throttled reactions of the 3D pet to what the reader is showing; see NewsPetDirector for the gating and gaps.
+  function observeNewsMood(query) {
+    reactor.observeUnread([...articles.values()].filter(item => item.stream === stream && !records[item.id]?.read_at && !records[item.id]?.archived_at).length);
+    if (visibleIds.length || !canPoll() || !petEnabled) return;
+    if (query) reactor.later('search-empty', {key:query}, 800, () => !visibleIds.length && Boolean($('search').value.trim()));
+    else if (!articles.size && feedSettled) reactor.later('list-empty', {}, 1200, () => !articles.size);
   }
   function stopTranslation() { translationRun++; translationAbort?.abort(); translationAbort = null; }
   function selectArticle(id, focus = false) {
@@ -296,7 +320,7 @@
     for (const [taskId, task] of tasks) if (task.kind === 'archive' && task.node === $('article-title')) cancelTask(taskId);
     currentId = id; stopTranslation(); renderedKey = ''; mediaKey = ''; imageIndex = 0; $('article-scroll').scrollTop = 0;
     setReadingView('article'); render();
-    if (petEnabled && !paused) engine?.pointAt($('article-title'), '阅读');
+    if (petEnabled && !still() && petPrefs.newsFx) engine?.pointAt($('article-title'), '阅读');
     if (focus) $('article-title').focus({preventScroll:true});
   }
   function docFor(item) { const entry = documents.get(item.id); return entry?.signature === itemSignature(item) ? entry : null; }
@@ -484,7 +508,7 @@
     } finally { if (run === translationRun) { translationAbort = null; translatingKey = null; } }
   }
   function runArrival() {
-    if (destroyed || window.CERemoteContext?.active === false) return;    if (!petEnabled || !engine || paused || tasks.size || !arrivalQueue.length) return;
+    if (destroyed || window.CERemoteContext?.active === false) return;    if (!petEnabled || !engine || still() || !petPrefs.newsFx || tasks.size || !arrivalQueue.length) return;
     const item = arrivalQueue.shift(); $('arrival-title').textContent = '新消息 · ' + displayTitle(item); $('arrival-title').hidden = false; $('reader-state').hidden = true;
     const id = 'arrival:' + item.id;
     try { if (engine.capture({id, element:$('arrival-title'), label:displayTitle(item)})) { tasks.set(id, {kind:'arrival', node:$('arrival-title'), articleId:item.id}); $('spider-state').textContent = '新信息正在入站'; return; } } catch {}
@@ -496,9 +520,10 @@
     undo = {id:item.id, read_at:row.read_at, archived_at:row.archived_at}; row.read_at ||= new Date().toISOString(); row.archived_at = new Date().toISOString();
     let target = $('article-title');
     if (!visibleElement(target)) target = nodes.get(item.id)?.querySelector('.title-row-title');
-    if (petEnabled && engine && !paused && visibleElement(target)) {
+    if (petEnabled && engine && !still() && petPrefs.newsFx && visibleElement(target)) {
       try { if (engine.capture({id:item.id, element:target, label:displayTitle(item)})) tasks.set(item.id, {kind:'archive', node:target, articleId:item.id}); } catch {}
     }
+    if (!tasks.has(item.id)) reactor.react('archived'); // the capture is itself the pet's answer when it runs
     save(); render(); notice('已读并归档。', true);
   }
   function applySnapshot(value, animate = false, append = false) {
@@ -519,7 +544,10 @@
     const time = new Date(value.sample.captured_at || NaN);
     const stamp = Number.isFinite(time.getTime()) ? new Intl.DateTimeFormat('zh-CN', {hour:'2-digit', minute:'2-digit', timeZone:'Asia/Shanghai'}).format(time) : '';
     $('snapshot-note').textContent = `${stamp ? stamp + ' 最近采集 · ' : ''}${count} 条信息${failureCount ? ` · ${failureCount} 个来源暂未更新，保留已有内容` : ''}`;
-    if (animate && petEnabled) arrivalQueue.push(...[...incoming.values()].filter(item => !oldIds.has(item.id)).slice(0, 3));
+    if (animate && petEnabled && petPrefs.newsFx && !petPrefs.quiet) {
+      const fresh = [...incoming.values()].filter(item => !oldIds.has(item.id));
+      arrivalQueue.push(...fresh.slice(0, 3)); arrivalBatch = fresh.length;
+    }
     save(); render(); cancelInvisible(); if (animate) runArrival();
   }
   document.querySelectorAll('[data-view]').forEach(control => control.addEventListener('click', () => { for (const [id, task] of tasks) if (task.kind === 'archive') cancelTask(id); selected = control.dataset.view; render(); }));
@@ -534,20 +562,20 @@
   $('close-directory').addEventListener('click', () => { setDirectory(false); $('open-directory').focus(); cancelInvisible(); });
   $('directory-backdrop').addEventListener('click', () => { setDirectory(false); $('open-directory').focus(); cancelInvisible(); });
   $('mark-read').addEventListener('click', () => { if (!currentId) return; const row = state(currentId); row.read_at = row.read_at ? null : new Date().toISOString(); save(); render(); });
-  $('save-article').addEventListener('click', () => { if (!currentId) return; const row = state(currentId); row.saved = !row.saved; save(); render(); });
+  $('save-article').addEventListener('click', () => { if (!currentId) return; const row = state(currentId); row.saved = !row.saved; save(); render(); if (row.saved) reactor.react('saved'); });
   $('archive-article').addEventListener('click', archiveCurrent);
   $('undo').addEventListener('click', () => { if (!undo) return; const {id, read_at, archived_at} = undo; cancelTask(id); Object.assign(state(id), {read_at, archived_at}); undo = null; save(); currentId = id; render(); notice('已撤销归档。'); });
   $('dismiss').addEventListener('click', () => { $('toast').hidden = true; });
   document.querySelectorAll('[data-language]').forEach(control => control.addEventListener('click', () => { language = control.dataset.language; stopTranslation(); document.querySelectorAll('[data-language]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.language === language))); renderedKey = ''; renderArticle(); }));
   function syncMotion() {
-    if (destroyed || window.CERemoteContext?.active === false) return;    const show = petEnabled && !paused && canPoll();
+    if (destroyed || window.CERemoteContext?.active === false) return;    const show = petEnabled && !still() && canPoll();
     $('research-panel').dataset.motion = researchBusy && canPoll() && $('research-panel').open ? 'running' : 'paused';
     if (show && !$('research-panel').open) engine?.resume(); else engine?.pause();
     if (show && $('research-panel').open && $('research-details').open) researchEngine?.resume(); else researchEngine?.pause();
     $('pause').textContent = $('research-pause').textContent = paused ? '继续动画' : '暂停动画';
     syncPetStatusFeed();
   }
-  $('pause').addEventListener('click', () => { paused = !paused; syncMotion(); $('spider-state').textContent = paused ? '动画已暂停' : collecting ? '正在采集信息' : '等待阅读'; if (!paused) runArrival(); });
+  $('pause').addEventListener('click', () => { paused = !paused; syncMotion(); $('spider-state').textContent = stateText(); if (!paused) runArrival(); });
   $('research-pause').addEventListener('click', () => $('pause').click());
   document.querySelectorAll('button[data-media-view]').forEach(button => button.addEventListener('click', () => { mediaView = button.dataset.mediaView; $('article-scroll').scrollTop = 0; renderMedia(articles.get(currentId)); }));
   $('image-previous').addEventListener('click', () => { imageIndex--; renderMedia(articles.get(currentId)); });
@@ -560,7 +588,7 @@
     $('research-start').disabled = active; $('research-start').textContent = active ? '采集中…' : '开始采集';
     $('research-query').disabled = active; document.querySelectorAll('[data-topic]').forEach(button => { button.disabled = active; });
     $('capture-frames').disabled = active;
-    if (!tasks.size) $('spider-state').textContent = paused ? '动画已暂停' : active ? '正在采集信息' : '等待阅读';
+    if (!tasks.size) $('spider-state').textContent = still() ? stateText() : active ? '正在采集信息' : '等待阅读';
     syncMotion();
   }
   function frameUrl(value) {
@@ -591,7 +619,7 @@
     pointResearch(event);
   }
   function pointResearch(event) {
-    if (!researchEngine || paused || !$('research-panel').open) return;
+    if (!researchEngine || still() || !$('research-panel').open) return;
     const source = [...document.querySelectorAll('.research-source')].find(button => button.dataset.host === eventHost(event, true));
     researchEngine.pointAt(source?.querySelector('.source-name') || $('research-host'), event.stage || '浏览');
   }
@@ -786,18 +814,23 @@
     else { if (home.parentElement !== $('directory')) $('directory').append(home); }
     $('directory').inert = mobile && $('animation-stage').dataset.directory !== 'open';
   }
+  let scrollFrame = 0;
+  $('article-scroll').addEventListener('scroll', () => { // read-only and frame-throttled: it never changes scrolling
+    if (scrollFrame || !currentId) return;
+    scrollFrame = requestAnimationFrame(() => { scrollFrame = 0; const box = $('article-scroll'); reactor.observeScroll({top:box.scrollTop, height:box.scrollHeight, client:box.clientHeight, key:currentId}); });
+  }, {passive:true});
   $('article-scroll').addEventListener('scroll', cancelInvisible, {passive:true}); $('title-list').addEventListener('scroll', cancelInvisible, {passive:true}); window.addEventListener('resize', () => { syncHomeLayout(); cancelInvisible(); });
   function syncActivity() {
     if (destroyed) return;
     syncMotion();
-    if (!canPoll()) { activityGeneration++; clearTimeout(researchTimer); clearTimeout(feedTimer); clearTimeout(articleRetry); return; }
+    if (!canPoll()) { activityGeneration++; clearTimeout(researchTimer); clearTimeout(feedTimer); clearTimeout(articleRetry); reactor.cancelPending(); return; }
     if (documents.get(currentId)?.reason === 'reader_busy') documents.delete(currentId);
     render();
     void readFeeds(false, feedAttempt).then(() => restoreResearch());
     if (researchBusy) void pollResearch();
   }
   document.addEventListener('visibilitychange', syncActivity);
-  const destroy = () => { destroyed = true; $('research-panel').dataset.motion = 'paused'; document.removeEventListener('keydown', restoreDialFocus, true); unsubscribePrefs?.(); unmountAppearance(); if ($('research-panel').open) $('research-panel').close(); clearTimeout(researchTimer); clearTimeout(feedTimer); clearTimeout(articleRetry); if (frameObjectUrl) URL.revokeObjectURL(frameObjectUrl); stopTranslation(); statusFeed?.stop(); statusFeed = null; engine?.destroy(); researchEngine?.destroy(); };
+  const destroy = () => { destroyed = true; reactor.cancelPending(); $('research-panel').dataset.motion = 'paused'; document.removeEventListener('keydown', restoreDialFocus, true); unsubscribePrefs?.(); unmountAppearance(); if ($('research-panel').open) $('research-panel').close(); clearTimeout(researchTimer); clearTimeout(feedTimer); clearTimeout(articleRetry); if (frameObjectUrl) URL.revokeObjectURL(frameObjectUrl); stopTranslation(); statusFeed?.stop(); statusFeed = null; engine?.destroy(); researchEngine?.destroy(); };
   window.CERemoteContext?.onInactive(destroy);
   window.addEventListener('pagehide', event => { if (event.persisted) { suspended = true; unmountAppearance(); syncActivity(); } else destroy(); });
   window.addEventListener('pageshow', event => { if (event.persisted && !destroyed) { suspended = false; mountTheme(); syncActivity(); } });
@@ -815,10 +848,10 @@
       if (key !== lastFeedKey || feedFailed) { applySnapshot(value, refresh, true); lastFeedKey = key; }
       feedFailed = false;
       if (canPoll() && value.refreshing && attempt < 35) feedTimer = setTimeout(() => readFeeds(false, attempt + 1), 1500);
-    } catch (error) { if (!destroyed) { feedFailed = true; $('snapshot-note').textContent = error.message; } }
-    finally { feedReading = false; if (!destroyed) { $('refresh-feeds').disabled = false; $('refresh-feeds').setAttribute('aria-busy', 'false'); } }
+    } catch (error) { if (!destroyed) { feedFailed = true; $('snapshot-note').textContent = error.message; if (refresh) reactor.react('refresh-failed'); } }
+    finally { feedReading = false; feedSettled = true; if (!destroyed) { observeNewsMood($('search').value.trim()); $('refresh-feeds').disabled = false; $('refresh-feeds').setAttribute('aria-busy', 'false'); } }
   }
-  $('refresh-feeds').addEventListener('click', () => readFeeds(true));
+  $('refresh-feeds').addEventListener('click', () => { reactor.react('refreshing'); readFeeds(true); });
   async function start() {
     syncHomeLayout(); render();
     paused = matchMedia('(prefers-reduced-motion: reduce)').matches;
