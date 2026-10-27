@@ -17,9 +17,10 @@ TOPICS = {'coding', 'agents', 'claude', 'models', 'tibo'}
 
 
 class ResearchJobs:
-    def __init__(self, root, on_result):
+    def __init__(self, root, on_result, collected_urls=None):
         self.root = Path(root) / 'research-captures'
         self.on_result = on_result
+        self.collected_urls = collected_urls or (lambda: [])
         self.lock = threading.RLock()
         self.jobs = {}
         self.process = None
@@ -46,7 +47,7 @@ class ResearchJobs:
                    'capture_frames': capture_frames, 'events': []}
             self.jobs[identity] = job
             config = folder / 'request.json'
-            config.write_text(json.dumps(job, ensure_ascii=False), encoding='utf-8')
+            config.write_text(json.dumps({**job, 'known_urls': self.collected_urls()}, ensure_ascii=False), encoding='utf-8')
             self.thread = threading.Thread(target=self._run, args=(job, config, node), daemon=True)
             self.thread.start()
             return self.snapshot(identity)

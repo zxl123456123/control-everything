@@ -21,7 +21,12 @@ class NewsReader:
         self.feeds = self._read('feeds.json', {})
         self.known = {}
         self.article_lock = threading.Lock()
-        self.jobs = ResearchJobs(self.root, self.merge)
+        self.jobs = ResearchJobs(self.root, self.merge, self.collected_urls)
+
+    def collected_urls(self):
+        with self.lock:
+            return [item['url'] for item in self.research.values() if item.get('body_blocks') and
+                    (item.get('content_kind') == 'full_text' or item.get('completeness') == 'feed_content')]
 
     def _read(self, name, default):
         try:

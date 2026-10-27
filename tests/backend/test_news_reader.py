@@ -109,6 +109,26 @@ class ReaderTests(unittest.TestCase):
             self.assertIsNone(self.reader.article('a' * 24))
             fetch.assert_not_called()
 
+    def test_collection_skips_captured_bodies_but_retries_summaries_in_its_own_profile(self):
+        full = {**item('https://sspai.com/post/full'), 'content_kind': 'full_text',
+                'body_blocks': [{'type': 'p', 'text': 'A captured article body.'}]}
+        feed = {**item('https://github.com/example/release'), 'content_kind': 'summary',
+                'completeness': 'feed_content', 'body_blocks': [{'type': 'p', 'text': 'Publisher release notes.'}]}
+        summary = {**item('https://sspai.com/post/summary'), 'content_kind': 'summary',
+                   'completeness': 'feed_summary', 'body_blocks': [{'type': 'p', 'text': 'Short source excerpt.'}]}
+        self.reader.merge([full, feed, summary])
+        self.assertCountEqual(self.reader.collected_urls(), [full['url'], feed['url']])
+        restored = NewsReader(self.root, self.source)
+        self.assertCountEqual(restored.collected_urls(), [full['url'], feed['url']])
+        self.assertEqual(NewsReader(self.root / 'other', self.source).collected_urls(), [])
+        jobs = self.reader.jobs
+        with patch.dict(os.environ, {'CONTROL_EVERYTHING_NEWS_NODE': __file__}), patch.object(jobs, '_run'):
+            job = jobs.begin('coding', 'coding')
+            jobs.thread.join(timeout=1)
+        config = json.loads((jobs.root / job['job_id'] / 'request.json').read_text(encoding='utf-8'))
+        self.assertCountEqual(config['known_urls'], [full['url'], feed['url']])
+        self.assertNotIn('known_urls', job)
+
     def test_saved_document_remains_readable_after_leaving_feed_window(self):
         identity = 'a' * 24
         folder = self.root / 'article-cache'

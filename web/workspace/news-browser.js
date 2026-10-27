@@ -20,6 +20,7 @@ const feeds={
 };
 const domesticFeeds=['https://www.qbitai.com/feed','https://sspai.com/feed'];
 const sourceNames={'qbitai.com':'量子位','sspai.com':'少数派'};
+const batchSize=20,knownUrls=new Set(config.known_urls||[]);
 function emit(stage,message,extra={}){const row={seq:++sequence,time:new Date().toISOString(),stage,message,...extra};events.push(row);process.stdout.write(JSON.stringify(row)+'\n');}
 function checkpoint(){const file=path.join(root,'result.json'),temporary=file+'.tmp';fs.writeFileSync(temporary,JSON.stringify({items,events},null,2));fs.renameSync(temporary,file);}
 function safePage(value){try{const u=new URL(value);return u.protocol==='https:'&&!u.username&&!u.password&&(!u.port||u.port==='443')&&hosts.has(u.hostname)?u.href:null;}catch{return null;}}
@@ -54,8 +55,9 @@ async function visit(url,label){
  }catch(error){await frame('blocked','来源页面暂时无法读取',url,{detail:String(error.message).split('\n')[0]});return false;}
 }
 async function discoverFeeds(urls){
- const candidates=[];let available=false;
- for(const url of urls){
+ const candidates=[],seen=new Set(),pending=[...urls];let available=false;
+ for(const url of pending){
+  if(new URL(url).searchParams.has('paged')&&candidates.length>=batchSize)continue;
   emit('search','读取作者或官方订阅源',{url});
   try{
    let target=url,response;
@@ -101,12 +103,17 @@ async function discoverFeeds(urls){
    available=true;
    const aliases={coding:'编程',agents:'智能体',models:'模型',workflow:'工作流',tips:'技巧'};
    const terms=config.query.toLowerCase().split(/\s+/).filter(term=>term.length>1).flatMap(term=>aliases[term]?[term,aliases[term]]:[term]);
-   const matches=rows.filter(row=>safePage(row.url)&&(!terms.length||terms.some(term=>(row.title+' '+row.summary+' '+row.blocks.map(block=>block.text).join(' ')).toLowerCase().includes(term))));
-   candidates.push(...matches.slice(0,2));
+   const unseen=rows.filter(row=>!seen.has(row.url));rows.forEach(row=>seen.add(row.url));
+   const matches=unseen.filter(row=>safePage(row.url)&&!knownUrls.has(row.url)&&(!terms.length||terms.some(term=>(row.title+' '+row.summary+' '+row.blocks.map(block=>block.text).join(' ')).toLowerCase().includes(term))));
+   candidates.push(...matches);
    emit('search',`订阅源返回 ${rows.length} 条记录`,{url,counts:{links:rows.length}});
+   const source=new URL(url),number=Number(source.searchParams.get('paged')||1);
+   if(source.origin==='https://www.qbitai.com'&&source.pathname==='/feed'&&unseen.length&&candidates.length<batchSize&&number<4){
+    source.searchParams.set('paged',String(number+1));pending.push(source.href);
+   }
   }catch(error){emit('blocked','订阅源暂时无法读取',{url,detail:String(error.message).split('\n')[0]});}
  }
- return {available,candidates:[...new Map(candidates.map(row=>[row.url,row])).values()].sort((a,b)=>(Date.parse(b.published||b.updated)||0)-(Date.parse(a.published||a.updated)||0)).slice(0,3)};
+ return {available,candidates:[...new Map(candidates.map(row=>[row.url,row])).values()].sort((a,b)=>(Date.parse(b.published||b.updated)||0)-(Date.parse(a.published||a.updated)||0)).slice(0,batchSize)};
 }
 function keepFeedContent(row){
  const title=row.title.toLowerCase(),content=row.blocks.filter(block=>block.text.toLowerCase()!==title);
@@ -268,7 +275,7 @@ async function capturePosts(urls){
   const fallback=await discoverFeeds(feeds[config.topic]||[]);
   discovered={available:discovered.available||fallback.available,candidates:fallback.candidates};
  }
- const candidates=discovered.available?discovered.candidates:(presets[config.topic]||presets.coding).filter(url=>!postUrl(url)).map(url=>({url,blocks:[],summary:''}));
+ const candidates=discovered.available?discovered.candidates:(presets[config.topic]||presets.coding).filter(url=>!postUrl(url)&&!knownUrls.has(url)).map(url=>({url,blocks:[],summary:''}));
  if(!discovered.available)emit('search',(feeds[config.topic]||[]).length?'订阅源不可用，读取预设作者原文；这些不是本次关键词检索结果':'读取该主题的作者原文；这些不是全网关键词检索结果');
  if(discovered.available&&!candidates.length)emit('search','订阅源中暂无匹配关键词的内容');
  let completed=0;
