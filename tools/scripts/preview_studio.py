@@ -11,6 +11,7 @@ RESOURCES = {
     "/ui-dialog.js": ("ui-dialog.js", "text/javascript; charset=utf-8"),
     "/studio-shell.js": ("studio-shell.js", "text/javascript; charset=utf-8"),
     "/studio-pet-settings.js": ("studio-pet-settings.js", "text/javascript; charset=utf-8"),
+    "/studio-members-admin.js": ("studio-members-admin.js", "text/javascript; charset=utf-8"),
     "/news-pets.js": ("news-pets.js", "text/javascript; charset=utf-8"),
     "/news-pet-dial.js": ("news-pet-dial.js", "text/javascript; charset=utf-8"),
     "/news-pet-wheel.js": ("news-pet-wheel.js", "text/javascript; charset=utf-8"),

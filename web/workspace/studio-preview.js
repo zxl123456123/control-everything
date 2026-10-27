@@ -129,7 +129,7 @@ function mountStudio(root, { onProjects = () => {}, runtimeHost = () => null } =
     return { view: ['tools', 'agents'].includes(view) ? 'tools' : 'home', id: '', tab: '' };
   }
   function navigate(value) { if (location.hash === '#' + value) render(); else location.hash = value; }
-  let previousRoute = route(), mobileReturnHash = '#home', disposeMobile = null, disposePets = null;
+  let previousRoute = route(), mobileReturnHash = '#home', disposeMobile = null, disposePets = null, disposeMembers = null, membersAdmin = false;
   let acceptedHash = location.hash || '#home', navigationGeneration = 0, acceptedVersion = 0;
   function requestProject() {
     const current = route();
@@ -342,7 +342,7 @@ function mountStudio(root, { onProjects = () => {}, runtimeHost = () => null } =
     const settingsNav = $('studio-settings-nav');
     if (settingsNav) {
       settingsNav.hidden = !accountPage && current.view !== 'settings';
-      if (!settingsNav.hidden) setHtml(settingsNav, window.StudioShell.renderSettingsTabs(accountPage ? 'account' : current.tab));
+      if (!settingsNav.hidden) setHtml(settingsNav, window.StudioShell.renderSettingsTabs(accountPage ? 'account' : current.tab, { members: membersAdmin }));
     }
     syncAppearance();
   }
@@ -419,6 +419,7 @@ function mountStudio(root, { onProjects = () => {}, runtimeHost = () => null } =
     renderStatus(current);
     if (current.view !== 'mobile' && !(current.view === 'settings' && current.tab === 'account') && disposeMobile) { disposeMobile(); disposeMobile = null; }
     if (!(current.view === 'settings' && current.tab === 'appearance') && disposePets) { disposePets(); disposePets = null; }
+    if (!(current.view === 'settings' && current.tab === 'members') && disposeMembers) { disposeMembers(); disposeMembers = null; }
     const chosen = projects().find(p => p.id === current.id);
     // The native surface takes over when ready; retain the previous page during preparation.
     if (root.dataset.unified === 'true' && (current.view === 'workbench' || current.view === 'project' && ['workspace', 'activity'].includes(current.tab) && (!state.workspace || chosen && !chosen.archived))) {
@@ -443,6 +444,10 @@ function mountStudio(root, { onProjects = () => {}, runtimeHost = () => null } =
     }
     if (current.view === 'settings' && current.tab === 'appearance') {
       if (!disposePets) { renderedHtml.delete(content); disposePets = window.StudioPetSettings.mount(content); }
+      return;
+    }
+    if (current.view === 'settings' && current.tab === 'members' && window.StudioMembersAdmin && window.CERemoteContext?.context) {
+      if (!disposeMembers) { renderedHtml.delete(content); disposeMembers = window.StudioMembersAdmin.mount(content); }
       return;
     }
     if (!state.workspace) {
@@ -766,8 +771,9 @@ function mountStudio(root, { onProjects = () => {}, runtimeHost = () => null } =
   };
   document.addEventListener('visibilitychange', visibilityChanged);
   render(); void refresh();
+  if (window.CERemoteContext?.context && window.StudioMembersAdmin) void window.StudioMembersAdmin.probe().then(admin => { if (!disposed && admin !== membersAdmin) { membersAdmin = admin; if (route().view === 'settings') render(); } });
   if (window.StudioMascot && window.NewsPetPrefs && window.NewsPetDirector) mascot = window.StudioMascot.mount(root, { route, navigate: hash => { location.hash = hash; } });
-  const dispose = () => { disposed = true; for (const controller of pendingArchives) controller.abort(); pendingArchives.clear(); mascot?.dispose(); externalAccess?.dispose(); newsReader?.dispose(); newsTheme?.disconnect(); newsHost?.remove(); progressReturn = null; navigationGeneration++; unsubscribeAppearance?.(); unmountTheme?.(); standaloneTheme?.dispose(); closeProjectMenu(); closeNavigation(); restoreNavigation(); drawer.remove(); window.removeEventListener('resize', resizeNavigation); window.removeEventListener('scroll', closeProjectMenu, true); document.removeEventListener('pointerdown', dismissProjectMenu); request++; clearTimeout(refreshTimer); document.removeEventListener('visibilitychange', visibilityChanged); disposeMobile?.(); disposePets?.(); window.removeEventListener('hashchange', requestedNavigation); window.removeEventListener('platform-before-navigate', beforeNavigate); window.removeEventListener('platform-navigation-accepted', changed); window.removeEventListener('platform-add-project', requestProject); window.removeEventListener('platform-native-project-adopted', nativeProjectAdopted); window.removeEventListener('platform-native-project-action', nativeProjectAction); nativeProjectWrites.clear(); projectDialogTarget?.querySelectorAll('dialog').forEach(dialog => dialog.close()); projectDialogHost?.remove(); monitor?.destroy(); taskCenter?.dispose(); legacyBoard?.dispose(); board.dispose?.(); };
+  const dispose = () => { disposed = true; for (const controller of pendingArchives) controller.abort(); pendingArchives.clear(); mascot?.dispose(); externalAccess?.dispose(); newsReader?.dispose(); newsTheme?.disconnect(); newsHost?.remove(); progressReturn = null; navigationGeneration++; unsubscribeAppearance?.(); unmountTheme?.(); standaloneTheme?.dispose(); closeProjectMenu(); closeNavigation(); restoreNavigation(); drawer.remove(); window.removeEventListener('resize', resizeNavigation); window.removeEventListener('scroll', closeProjectMenu, true); document.removeEventListener('pointerdown', dismissProjectMenu); request++; clearTimeout(refreshTimer); document.removeEventListener('visibilitychange', visibilityChanged); disposeMobile?.(); disposePets?.(); disposeMembers?.(); window.removeEventListener('hashchange', requestedNavigation); window.removeEventListener('platform-before-navigate', beforeNavigate); window.removeEventListener('platform-navigation-accepted', changed); window.removeEventListener('platform-add-project', requestProject); window.removeEventListener('platform-native-project-adopted', nativeProjectAdopted); window.removeEventListener('platform-native-project-action', nativeProjectAction); nativeProjectWrites.clear(); projectDialogTarget?.querySelectorAll('dialog').forEach(dialog => dialog.close()); projectDialogHost?.remove(); monitor?.destroy(); taskCenter?.dispose(); legacyBoard?.dispose(); board.dispose?.(); };
   const unsubscribeContext = window.CERemoteContext?.onInactive(dispose);
   return () => { unsubscribeContext?.(); dispose(); };
 }
