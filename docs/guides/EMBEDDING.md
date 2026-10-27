@@ -45,7 +45,7 @@ const pet = window.NewsPets.mount('naidragon', {
 
 先 `destroy()` 再挂到另一个容器；同一引擎重复使用同一 canvas 挂载会替换旧实例。只有注册表与引擎不发网络状态请求，可选状态源见下文。
 
-独立转盘动作格式为 `[{id, label, icon?, run}]`。执行后调用动作 `run(detail)`、宿主 `onAction(detail)`，并派发 `news-pet-action`，`detail` 包含 `id`、`label`、`index`。应用内的阅读器和 Studio 以 `dial: false` 且不传 `actions` 使用共享 `NewsPetWheel`；内置转盘只用于独立嵌入。
+独立转盘动作格式为 `[{id, label, icon?, run}]`。执行后调用动作 `run(detail)`、宿主 `onAction(detail)`，并派发 `news-pet-action`，`detail` 包含 `id`、`label`、`index`。应用内的阅读器和 Studio 以 `dial: false` 且不传 `actions` 使用共享 `NewsPetWheel`；内置转盘只用于独立嵌入；共享转盘是六个固定槽位，不使用上面的 `[{id, label, icon?, run}]` 格式。
 
 ## 容器、输入与主题
 
