@@ -2,7 +2,9 @@
 
 仓库协作约定见 [AGENTS.md](../AGENTS.md)。本指南约束共同交付结果，不要求成员使用同一助手、模型或个人技能。
 
-公开架构、使用说明和开发文档统一放在 `docs/`，文档入口见[项目文档](../docs/README.md)；接入示例放在 `docs/examples/`，开发脚本放在 `tools/scripts/`。活跃任务的需求、调研、方案、实施与审查记录统一放 ignored `docs/current/<feature>/`，以 README.md 记录当前状态、负责人、文件归属及证据链接；日志、截图、隔离数据与构建产物放 ignored `work/<feature>/`。两者均只留本机、不提交。已有私人记录保留原路径和历史证据，恢复时由任务 README 链接定位，不批量搬迁。下文命令均从仓库根目录执行。
+公开指南放 `docs/guides/`，架构与契约放 `docs/architecture/`，接入示例放 `docs/examples/`，`docs` 根只保留 [README.md 索引](../docs/README.md)；开发脚本放 `tools/scripts/`。活跃任务记录放 ignored `docs/current/<feature>/`，以 README.md 记录目标、验收、负责人、文件归属、状态、阻塞及证据链接；历史记录放 ignored `docs/archive/<feature>/`。日志、截图、隔离数据与构建产物放 ignored `work/<feature>/`，旧材料放 `work/archive/<feature>/`；`current`、`archive` 根只放任务目录，`work` 根另保留 README.md 索引。本机记录不提交，整理时保留原文、失败证据和旧路径到新位置的清单。下文命令均从仓库根目录执行。
+
+一次性脚本、临时 clone、缓存、构建输出、预览 profile 和需留证的 TEMP/TMP 必须在本检出 `work/<feature>/` 下，不能为了缩短路径在盘根创建 `ce-*` 副本，也不能改用户或系统临时目录。正式构建沿用已有 `work/ce-native`、`work/workbench-engine-build/<run>/`；普通自动清理的单测可使用系统 Temp。需要临时环境时只给该子进程传任务内的环境变量；用完清理可重建内容，报告与失败日志按任务留存。历史脚本的旧绝对路径保留为证据，恢复前须重新核对，不能直接重跑。`python tools/scripts/check_architecture.py layout` 同时检查本机文档和 work 根散件；显式 `--files` 只检查给定发布候选。
 
 ## 功能目录与新增代码归属
 
@@ -345,7 +347,7 @@ python tools/scripts/check_repository.py release --manifest work/checks/candidat
 
 main 的远端规则仅保留防强推与防删分支，不要求 PR 或必需 CI。调整远端规则后必须读取实际生效结果；以后恢复多人协作门槛须由项目主导者另行决定，不能从旧说明自动重建。
 
-安装器发布仍是单独的手动操作，实际产品构建与验收要求见[Windows 安装与维护](../docs/windows.md)。日常快速提交不代表已发布安装器，也不替代发布验收。
+安装器发布仍是单独的手动操作，实际产品构建与验收要求见[Windows 安装与维护](../docs/guides/windows.md)。日常快速提交不代表已发布安装器，也不替代发布验收。
 
 ## 源码与测试目录
 

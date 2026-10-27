@@ -18,8 +18,8 @@ VERSION = "8.30.1"
 MEDIA = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".ico", ".bmp",
          ".mp4", ".mov", ".webm", ".avi", ".mp3", ".wav", ".ogg", ".woff", ".woff2"}
 PRIVATE_NAMES = {"progress-registry.json", "progress-manual.json", "progress-todos.json"}
-PUBLIC_DOCS = {"docs/README.md", "docs/architecture.md", "docs/usage.md", "docs/integrations.md", "docs/windows.md",
-               "docs/workbench-contract.md",
+PUBLIC_DOCS = {"docs/README.md", "docs/architecture/architecture.md", "docs/guides/usage.md", "docs/guides/integrations.md", "docs/guides/windows.md",
+               "docs/architecture/workbench-contract.md", "docs/guides/EMBEDDING.md", "docs/guides/PETS_INTEGRATION.md",
                "docs/examples/integrations/codex.toml.example",
                "docs/examples/integrations/integration-settings.example.json",
                "docs/examples/integrations/workbench-device-provisioner.service.example",
@@ -404,7 +404,8 @@ def main(argv=None):
     try:
         report_path = args.report if args.report.is_absolute() else root / args.report
         relative = report_path.absolute().relative_to(root).as_posix()
-        if not relative.startswith("work/") or ".." in PurePosixPath(relative).parts:
+        parts = PurePosixPath(relative).parts
+        if not relative.startswith("work/") or len(parts) < 3 or ".." in parts:
             raise CheckError("report-must-be-under-work")
         # Check each existing parent before creating or writing evidence.
         cursor = report_path.absolute()

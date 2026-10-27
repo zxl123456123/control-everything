@@ -1,8 +1,8 @@
 # 个人工作台最小契约 v0.1
 
-> 2026-10-21 当前实现：源码开发版已完成 Codex/DSH 页面派发、真实接收执行、Codex 工具审批及人工驳回后再次执行的最小闭环，使用条件和已知限制以[使用指南](usage.md#双-agent-最小执行流程源码开发版)为准。本文下面的阶段设计与历史进展保留，不代表完整安全隔离、DSH 异常审批或安装发布均已验收。
+> 2026-10-21 当前实现：源码开发版已完成 Codex/DSH 页面派发、真实接收执行、Codex 工具审批及人工驳回后再次执行的最小闭环，使用条件和已知限制以[使用指南](../guides/usage.md#双-agent-最小执行流程源码开发版)为准。本文下面的阶段设计与历史进展保留，不代表完整安全隔离、DSH 异常审批或安装发布均已验收。
 
-[文档入口](README.md) · [现有接口与使用指南](usage.md#重点优先级决策与验收接口) · [架构与数据边界](architecture.md)
+[文档入口](../README.md) · [现有接口与使用指南](../guides/usage.md#重点优先级决策与验收接口) · [架构与数据边界](architecture.md)
 
 本文是下一阶段前端实施基线，目标是让使用者每天能够选定重点、查看项目、处理待验收事项和记录决策。文中的“待做”尚未实现；已有接口能力与新页面要求分别标注，不能把设计稿示例当成真实运行数据。
 
@@ -253,7 +253,7 @@
 | 标记决定已取代 | 同上，`changes.status=superseded` | 保留历史，展示状态变化 | 新替代决定是另一次独立创建 |
 | 查看/返回外部工具 | 复用已有会话与工具观察导航能力 | 显示成功/失败/不可用结果 | 不新增 Agent 执行、发送、审批、取消能力；不承诺精确回到某个标签页 |
 
-请求权限、字段校验和大小限制沿用[接口说明](usage.md#重点优先级决策与验收接口)。服务端是最终校验者；前端不能根据设计稿放宽规则，也不能绕过现有同源与 CSRF 检查。安全令牌仅保留在运行会话内，不写示例、日志或文档。
+请求权限、字段校验和大小限制沿用[接口说明](../guides/usage.md#重点优先级决策与验收接口)。服务端是最终校验者；前端不能根据设计稿放宽规则，也不能绕过现有同源与 CSRF 检查。安全令牌仅保留在运行会话内，不写示例、日志或文档。
 
 错误行为统一如下：
 
@@ -314,13 +314,13 @@
 
 ## 10. 与实现对照的入口
 
-- [事项与管理 schema](../src/control_everything/workspace/task_schema.py)：持久化字段、状态及版本范围。
-- [事项存储](../src/control_everything/workspace/store.py)：重点/优先级校验、分页、顺序与写事务。
-- [工作台服务](../src/control_everything/workspace/service.py)：项目展示字段、会话关联、事项投影。
-- [决策与人工验收](../src/control_everything/workspace/management.py)：输入边界、决策状态约束与验收事务。
-- [会话元数据读取](../src/control_everything/sessions/codex_desktop.py)：来源覆盖、归属状态和当前未知的活动/完成状态。
-- [HTTP 入口](../src/control_everything/http/gateway.py)：实际路由、查询参数与权限检查。
-- [现有接口用法](usage.md#重点优先级决策与验收接口)：请求示例与返回约定。
+- [事项与管理 schema](../../src/control_everything/workspace/task_schema.py)：持久化字段、状态及版本范围。
+- [事项存储](../../src/control_everything/workspace/store.py)：重点/优先级校验、分页、顺序与写事务。
+- [工作台服务](../../src/control_everything/workspace/service.py)：项目展示字段、会话关联、事项投影。
+- [决策与人工验收](../../src/control_everything/workspace/management.py)：输入边界、决策状态约束与验收事务。
+- [会话元数据读取](../../src/control_everything/sessions/codex_desktop.py)：来源覆盖、归属状态和当前未知的活动/完成状态。
+- [HTTP 入口](../../src/control_everything/http/gateway.py)：实际路由、查询参数与权限检查。
+- [现有接口用法](../guides/usage.md#重点优先级决策与验收接口)：请求示例与返回约定。
 
 ## 11. M2 真实执行与事项会话（设计基线）
 

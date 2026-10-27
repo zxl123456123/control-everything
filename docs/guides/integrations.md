@@ -1,6 +1,6 @@
 # 可选接入
 
-[返回项目首页](../README.md) · [使用指南](usage.md) · [可选接入](integrations.md) · [Windows 安装与维护](windows.md)
+[返回项目首页](../../README.md) · [使用指南](usage.md) · [可选接入](integrations.md) · [Windows 安装与维护](windows.md)
 
 本文命令均从仓库根目录执行；安装版的专用命令另行注明。
 
@@ -8,12 +8,12 @@
 
 基础项目管理无需 SSH、Zellij、WezTerm 或 reader。已有用户也通过自己的 profile 登记这些资源；源码不提供个人服务器、工具路径、完整性摘要或启动器默认值。设置页显示每段的“未配置 / 已禁用 / 已配置”和重启提示。“已配置”仅表示通过配置校验，实际连接还会核验来源、版本和身份。
 
-高级文件采用 version 2，包含固定四段 remote、terminal、workbench、launchers。随仓库提供的 [integration-settings.example.json](examples/integrations/integration-settings.example.json) 四段均为 null，可直接校验。首次复制到 ignored `work/` 后编辑自己的值；已有本机配置文件时直接编辑，保留其现有内容：
+高级文件采用 version 2，包含固定四段 remote、terminal、workbench、launchers。随仓库提供的 [integration-settings.example.json](../examples/integrations/integration-settings.example.json) 四段均为 null，可直接校验。首次复制到 ignored `work/integrations/` 后编辑自己的值；已有本机配置文件时直接编辑，保留其现有内容：
 
 ```powershell
-New-Item -ItemType Directory -Force work | Out-Null
-Copy-Item docs/examples/integrations/integration-settings.example.json work/integration-settings.json
-$settingsFile = (Resolve-Path work/integration-settings.json).Path
+New-Item -ItemType Directory -Force work/integrations | Out-Null
+Copy-Item docs/examples/integrations/integration-settings.example.json work/integrations/integration-settings.json
+$settingsFile = (Resolve-Path work/integrations/integration-settings.json).Path
 & '.venv/Scripts/python.exe' -m control_everything.profile validate-settings --file $settingsFile
 & '.venv/Scripts/python.exe' -m control_everything.profile import-settings --file $settingsFile
 & '.venv/Scripts/python.exe' -m control_everything.profile status

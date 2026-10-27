@@ -5,6 +5,7 @@ import json
 import hashlib
 from pathlib import Path
 import subprocess
+import sys
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -43,12 +44,22 @@ class RepositoryChecksTests(unittest.TestCase):
         return self.git("rev-parse", "HEAD")
 
     def check(self, mode, *args):
-        code = CHECKS.main([mode, "--root", str(self.root), "--report", "work/report.json", *args])
-        return code, json.loads((self.root / "work/report.json").read_text(encoding="utf-8"))
+        code = CHECKS.main([mode, "--root", str(self.root), "--report", "work/fixture/report.json", *args])
+        return code, json.loads((self.root / "work/fixture/report.json").read_text(encoding="utf-8"))
 
     def release(self, files, excluded=None):
-        self.save("work/manifest.json", json.dumps({"files": files, "excluded": excluded or []}))
-        return self.check("release", "--manifest", str(self.root / "work/manifest.json"))
+        self.save("work/fixture/manifest.json", json.dumps({"files": files, "excluded": excluded or []}))
+        return self.check("release", "--manifest", str(self.root / "work/fixture/manifest.json"))
+
+    def test_cli_rejects_report_at_work_root_without_writing(self):
+        for report in ('work/report.json', str(self.root / 'work/report.json')):
+            with self.subTest(report=report):
+                result = subprocess.run([sys.executable, str(SPEC.origin), 'release',
+                                         '--root', str(self.root), '--report', report],
+                                        cwd=self.root, capture_output=True, text=True)
+                self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+                self.assertFalse((self.root / 'work/report.json').exists())
+                self.assertFalse((self.root / 'work').exists())
 
     @staticmethod
     def personal_path():
@@ -356,12 +367,12 @@ class RepositoryChecksTests(unittest.TestCase):
 
     def test_public_docs_are_scanned_in_release_and_changes(self):
         self.save(".gitignore", "/work/\n")
-        self.save("docs/architecture.md", "Public architecture\n")
+        self.save("docs/architecture/architecture.md", "Public architecture\n")
         base = self.commit()
-        self.assertEqual(self.release(["docs/architecture.md"])[0], 0)
-        self.save("docs/architecture.md", "Public architecture\n" + self.personal_path())
+        self.assertEqual(self.release(["docs/architecture/architecture.md"])[0], 0)
+        self.save("docs/architecture/architecture.md", "Public architecture\n" + self.personal_path())
         head = self.commit()
-        self.assertEqual(self.release(["docs/architecture.md"])[0], 1)
+        self.assertEqual(self.release(["docs/architecture/architecture.md"])[0], 1)
         code, report = self.check("changes", "--base", base, "--head", head)
         self.assertEqual(code, 1)
         self.assertEqual(report["findings"][0]["rule"], "absolute-windows-path")
@@ -531,8 +542,8 @@ class RepositoryChecksTests(unittest.TestCase):
 
     def test_invalid_and_non_object_manifests_fail_without_values(self):
         for content in ["[]", "null", '{"files":["."]}', '{"files":["../private"]}']:
-            self.save("work/manifest.json", content)
-            code, report = self.check("release", "--manifest", str(self.root / "work/manifest.json"))
+            self.save("work/fixture/manifest.json", content)
+            code, report = self.check("release", "--manifest", str(self.root / "work/fixture/manifest.json"))
             self.assertEqual(code, 1)
             self.assertNotIn("../private", json.dumps(report))
 

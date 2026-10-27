@@ -50,17 +50,17 @@ flowchart TD
 
 HTTP 层可以装配各功能包，功能包不能反向依赖 HTTP。会话观察不依赖管理层；项目管理可以使用会话证据，但不调用执行或配置装配层。安装模块只由 HTTP 装配层调用，底层原语不反向依赖业务。
 
-具体约束以 [Import Linter 配置](../tools/architecture/importlinter.ini) 为准。新增功能先选择已有职责目录；涉及前后端时分别落入各自模块，不在根目录建立第二份 Python 包或前端源码。
+具体约束以 [Import Linter 配置](../../tools/architecture/importlinter.ini) 为准。新增功能先选择已有职责目录；涉及前后端时分别落入各自模块，不在根目录建立第二份 Python 包或前端源码。
 
 ## 资源、数据与分发
 
-- [paths.py](../src/control_everything/paths.py) 区分源码检出、已安装包资源与用户数据目录。运行数据不写入安装包目录。
+- [paths.py](../../src/control_everything/paths.py) 区分源码检出、已安装包资源与用户数据目录。运行数据不写入安装包目录。
 - Web 资源只维护一份源码，构建 Python 包时按 HTTP 白名单复制。物理文件移动不能随意改变公开页面和资源 URL。
 - 管理库 schema、配置格式和备份格式独立版本化；旧库通过显式命令迁移，不在 HTTP 启动时隐式升级。
 - 三工具项目读取时仅产生候选，用户显式加入时才在同一管理事务内保存项目、目录和来源。Codex 事项关联继续在同库事务内校验。关联复用现有管理表与备份闭包，不升级 schema；外部同目录项目可独立保存，手工项目仍保留原目录冲突校验。外部来源失效不会删除已有事项。
-- Python wheel 包含管理后端和必要 Web 资源；Windows 安装器额外组合运行时、原生观察组件和维护入口。安装器的具体操作与限制见 [Windows 安装与维护](windows.md)。
+- Python wheel 包含管理后端和必要 Web 资源；Windows 安装器额外组合运行时、原生观察组件和维护入口。安装器的具体操作与限制见 [Windows 安装与维护](../guides/windows.md)。
 
-开发环境、检查命令和提交约定见[参与开发](../.github/CONTRIBUTING.md)；配置及数据恢复操作见[使用指南](usage.md)。
+开发环境、检查命令和提交约定见[参与开发](../../.github/CONTRIBUTING.md)；配置及数据恢复操作见[使用指南](../guides/usage.md)。
 
 
 项目发现、读取许可和加入工作台分别处理。Codex 沿用原许可字段；Claude Code/OpenCode 的许可与移出 ID 集合保存在 profile v4，v5 增加本机 Agent 注册身份与可选 project_ids 范围。已存项目默认保留，未保存的外部发现不自动进入导航。移出只写配置，不删除业务记录；首次加入只写管理库，合法悬空移出 ID 需要第二次配置请求重新加入。当前业务 schema9 与备份 manifest9 对应；agent_runs/task_events 记录领取、进度、等待人工/授权和审核证据；task_briefs/task_dispatches 记录版本化说明与人工确认的派发快照；task_sessions 只存外部会话元数据与 source_instance，不存正文；task_messages 记录人工补充/退回/等待人回答的手动交接状态；execution_runs/execution_events/execution_approvals 在同一管理库记录真实执行、事件及工具审批。连接未知只提示，不释放运行或任务，不表示宿主执行或自动完成。

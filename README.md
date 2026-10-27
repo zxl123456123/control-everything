@@ -22,7 +22,7 @@ https://github.com/user-attachments/assets/be96cc58-6bd8-4221-b0aa-77c0f9e31804
 
 例如：登记项目 → 添加任务 → 更新人工进度 → 查看工具或会话状态 → 返回工具继续开发。
 
-源码开发版现提供 Codex / DSH 最小执行闭环：选择项目与 Agent → 明确执行 → 处理具体工具审批 → 人工审核 → 填写驳回理由后继续修改。使用条件及尚未解决的 Windows 原生写入问题见[最小执行流程](docs/usage.md#双-agent-最小执行流程源码开发版)；下面已有安装包尚未随本次源码更新重新发布。
+源码开发版现提供 Codex / DSH 最小执行闭环：选择项目与 Agent → 明确执行 → 处理具体工具审批 → 人工审核 → 填写驳回理由后继续修改。使用条件及尚未解决的 Windows 原生写入问题见[最小执行流程](docs/guides/usage.md#双-agent-最小执行流程源码开发版)；下面已有安装包尚未随本次源码更新重新发布。
 
 ## 快速开始
 
@@ -32,7 +32,7 @@ https://github.com/user-attachments/assets/be96cc58-6bd8-4221-b0aa-77c0f9e31804
 2. 从开始菜单的 **Session Panel** 启动程序（安装入口暂沿用此名称）。
 3. 打开 **http://127.0.0.1:8766/workspace**，点击“添加项目”开始使用。
 
-也可按[源码启动指南](docs/usage.md#多-agent-工作台)运行。数据保存在本机；安装维护见 [Windows 安装指南](docs/windows.md)，独立数据目录、端口设置、导入与备份见[使用指南](docs/usage.md)。
+也可按[源码启动指南](docs/guides/usage.md#多-agent-工作台)运行。数据保存在本机；安装维护见 [Windows 安装指南](docs/guides/windows.md)，独立数据目录、端口设置、导入与备份见[使用指南](docs/guides/usage.md)。
 
 ## 当前边界
 
@@ -44,10 +44,10 @@ https://github.com/user-attachments/assets/be96cc58-6bd8-4221-b0aa-77c0f9e31804
 
 ## 详细说明
 
-- [架构说明](docs/architecture.md)：组件职责、目录归属、数据流与扩展边界。
-- [使用指南](docs/usage.md)：项目、任务、进度、资讯、本机观察、数据迁移与恢复。
-- [可选接入](docs/integrations.md)：远端会话、终端、启动器与只读 MCP。
-- [Windows 安装与维护](docs/windows.md)：安装、停止、升级、回退、卸载及发布验证。
+- [架构说明](docs/architecture/architecture.md)：组件职责、目录归属、数据流与扩展边界。
+- [使用指南](docs/guides/usage.md)：项目、任务、进度、资讯、本机观察、数据迁移与恢复。
+- [可选接入](docs/guides/integrations.md)：远端会话、终端、启动器与只读 MCP。
+- [Windows 安装与维护](docs/guides/windows.md)：安装、停止、升级、回退、卸载及发布验证。
 - [参与开发](.github/CONTRIBUTING.md)：环境、目录职责、构建、测试和贡献约定。
 
 ## 许可证

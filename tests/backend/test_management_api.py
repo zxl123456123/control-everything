@@ -79,7 +79,7 @@ class ManagementAPITests(unittest.TestCase):
                                      + str(first['list_revision']))[0], 409)
 
     def test_decision_draft_edit_accept_supersede_and_preserve_history(self):
-        old = self.decision(links=['docs/architecture.md'], alternatives='Remote service')
+        old = self.decision(links=['docs/architecture/architecture.md'], alternatives='Remote service')
         self.assertEqual(old['status'], 'open')
         status, body = self.update_decision(old, {'decision': 'SQLite', 'rationale': 'Local first'})
         self.assertEqual(status, 200, body)

@@ -22,15 +22,22 @@ node_modules/
 # Publish only reviewed project documentation; keep development records local.
 /docs/*
 !/docs/README.md
-!/docs/architecture.md
-!/docs/usage.md
-!/docs/workbench-contract.md
-!/docs/integrations.md
-!/docs/windows.md
+!/docs/architecture/
+/docs/architecture/*
+!/docs/architecture/architecture.md
+!/docs/architecture/workbench-contract.md
+!/docs/guides/
+/docs/guides/*
+!/docs/guides/usage.md
+!/docs/guides/integrations.md
+!/docs/guides/windows.md
+!/docs/guides/EMBEDDING.md
+!/docs/guides/PETS_INTEGRATION.md
 !/docs/examples/
 # Reviewed workbench identity/device/Caddy examples remain public; exact owners are
 # enumerated in tools/scripts/check_architecture.py, never real service configuration.
 /docs/current/
+/docs/archive/
 
 # Local video source and renders are not publication candidates
 /videos/

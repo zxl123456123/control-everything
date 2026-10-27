@@ -1,4 +1,4 @@
-"""Check file ownership for explicit or Git publication candidates."""
+"""Check publication ownership and local documentation/artifact layout."""
 
 import argparse
 import json
@@ -81,9 +81,10 @@ def ownership_error(value):
                 'docs/examples/legacy/progress-manual.example.json',
                 'docs/examples/legacy/progress-registry.example.json',
             } else 'unknown_example_owner'
-        return None if value in {'docs/README.md', 'docs/architecture.md', 'docs/usage.md',
-                                'docs/integrations.md', 'docs/windows.md',
-                                'docs/workbench-contract.md'} else 'unknown_public_guide'
+        return None if value in {'docs/README.md', 'docs/architecture/architecture.md',
+                                'docs/architecture/workbench-contract.md', 'docs/guides/usage.md',
+                                'docs/guides/integrations.md', 'docs/guides/windows.md',
+                                'docs/guides/EMBEDDING.md', 'docs/guides/PETS_INTEGRATION.md'} else 'unknown_public_guide'
     if top == '.github':
         return None if value in {'.github/CODEOWNERS', '.github/pull_request_template.md', '.github/CONTRIBUTING.md'} or (
             section == 'workflows' and len(parts) == 3 and path.suffix in {'.yml', '.yaml'}) else 'unknown_repository_automation'
@@ -100,6 +101,25 @@ def git_candidates(root=ROOT):
                    if name and root.joinpath(*PurePosixPath(name).parts).is_file()})
 
 
+def local_layout_errors(root=ROOT):
+    failures = []
+    for relative in ('docs', 'docs/current', 'docs/archive', 'work', 'work/archive'):
+        directory = root / relative
+        if not directory.is_dir():
+            continue
+        for path in sorted(directory.iterdir()):
+            if path.is_dir():
+                if relative == 'docs' and path.name not in {'guides', 'architecture', 'examples', 'current', 'archive'}:
+                    failures.append({'path': path.relative_to(root).as_posix(),
+                                     'reason': 'unknown_documentation_directory'})
+                continue
+            if relative in {'docs', 'work'} and path.name == 'README.md':
+                continue
+            failures.append({'path': path.relative_to(root).as_posix(),
+                             'reason': 'local_file_requires_feature_directory'})
+    return failures
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('mode', choices=['layout'])
@@ -110,6 +130,8 @@ def main():
         if not isinstance(files, list) or not files:
             raise ValueError('nonempty_candidate_array_required')
         failures = [{'path': value, 'reason': reason} for value in files if (reason := ownership_error(value))]
+        if not args.files:
+            failures.extend(local_layout_errors())
     except (OSError, ValueError, subprocess.SubprocessError) as error:
         print(json.dumps({'status': 'blocked', 'reason': type(error).__name__}))
         return 2

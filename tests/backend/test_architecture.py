@@ -3,7 +3,10 @@
 import importlib.util
 import ast
 import sys
+from contextlib import redirect_stdout
+from io import StringIO
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from unittest import TestCase
 from unittest.mock import patch
 
@@ -50,7 +53,10 @@ class ArchitectureTests(TestCase):
                      'src/control_everything/installation/maintenance.py', 'src/control_everything/installation/manifest.py',
                      'web/workspace/quota.js', 'tools/typescript/tsconfig.news.json',
                      'tools/packaging/build_assets.py', 'pyproject.toml', 'MANIFEST.in', 'setup.py',
-                     'docs/README.md', 'docs/architecture.md', 'LICENSE',
+                     'docs/README.md', 'docs/architecture/architecture.md',
+                     'docs/architecture/workbench-contract.md', 'docs/guides/usage.md',
+                     'docs/guides/windows.md', 'docs/guides/integrations.md',
+                     'docs/guides/EMBEDDING.md', 'docs/guides/PETS_INTEGRATION.md', 'LICENSE',
                      'docs/examples/legacy/progress-manual.example.json', 'tests/e2e/verify_architecture.py',
                      'docs/examples/integrations/codex.toml.example', 'tools/scripts/check_architecture.py',
                      '.github/CODEOWNERS', 'rust-toolchain.toml']:
@@ -63,6 +69,9 @@ class ArchitectureTests(TestCase):
                              ('tools/scripts/nested/new_feature.py', 'scripts_are_development_entries'),
                              ('docs/examples/private.json', 'unknown_example_owner'),
                              ('docs/current/architecture.md', 'unknown_public_guide'),
+                             ('docs/architecture.md', 'unknown_public_guide'),
+                             ('docs/usage.md', 'unknown_public_guide'),
+                             ('docs/guides/unknown.md', 'unknown_public_guide'),
                              ('src/control_everything/new_feature.py', 'package_root_is_for_entries_and_foundations'),
                              ('src/control_everything/utils/feature.py', 'unknown_backend_owner'),
                              ('src/another_app/main.py', 'unknown_backend_owner'),
@@ -72,6 +81,48 @@ class ArchitectureTests(TestCase):
                              ('tests/random/test_feature.py', 'unknown_test_type')]:
             with self.subTest(path=path):
                 self.assertEqual(policy.ownership_error(path), reason)
+
+    def test_local_layout_requires_feature_directories_even_for_ignored_files(self):
+        with TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            for directory in ('docs/current/task', 'docs/archive/old-task',
+                              'docs/guides', 'docs/architecture', 'docs/examples',
+                              'work/task', 'work/archive/old-task'):
+                (root / directory).mkdir(parents=True, exist_ok=True)
+            for relative in ('docs/README.md', 'work/README.md', 'docs/current/task/README.md',
+                             'docs/archive/old-task/report.md', 'work/task/report.json',
+                             'work/archive/old-task/output.log'):
+                (root / relative).touch()
+            self.assertEqual(policy.local_layout_errors(root), [])
+            scattered = ('docs/random.md', 'docs/current/loose.md',
+                         'docs/archive/old.json', 'work/report.json', 'work/archive/loose.json')
+            for relative in scattered:
+                (root / relative).touch()
+            self.assertEqual(policy.local_layout_errors(root), [
+                {'path': relative, 'reason': 'local_file_requires_feature_directory'}
+                for relative in scattered])
+
+    def test_local_docs_root_only_accepts_declared_sections(self):
+        with TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / 'docs/unknown').mkdir(parents=True)
+            self.assertEqual(policy.local_layout_errors(root), [{
+                'path': 'docs/unknown', 'reason': 'unknown_documentation_directory'}])
+
+    def test_explicit_publication_candidates_do_not_scan_local_artifacts(self):
+        with TemporaryDirectory() as temporary:
+            candidates = Path(temporary) / 'files.json'
+            candidates.write_text('["docs/README.md"]', encoding='utf-8')
+            with patch.object(sys, 'argv', ['check_architecture.py', 'layout', '--files', str(candidates)]), \
+                    patch.object(policy, 'local_layout_errors') as local, redirect_stdout(StringIO()):
+                self.assertEqual(policy.main(), 0)
+                local.assert_not_called()
+        with patch.object(sys, 'argv', ['check_architecture.py', 'layout']), \
+                patch.object(policy, 'git_candidates', return_value=['docs/README.md']), \
+                patch.object(policy, 'local_layout_errors', return_value=[{
+                    'path': 'work/report.json', 'reason': 'local_file_requires_feature_directory'}]), \
+                redirect_stdout(StringIO()):
+            self.assertEqual(policy.main(), 1)
 
     def test_relative_paths_cannot_escape_or_change_windows_meaning(self):
         for path in ['../outside.py', '/outside.py', 'web/../bad.js', 'web//bad.js',
