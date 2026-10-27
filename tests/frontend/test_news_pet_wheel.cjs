@@ -57,3 +57,23 @@ test('place() keeps the whole plate inside the viewport, even in a tiny one', ()
     }
   }
 });
+
+test('placeRail() runs a pinned rail from the pet towards the middle of the screen, inside the viewport', () => {
+  const viewport = {width: 1440, height: 900};
+  const corner = plain(wheel.placeRail({left: 1328, top: 780, width: 96, height: 96}, viewport, 6));
+  assert.equal(corner.dir, -1, 'a pet in the lower half grows the rail upwards');
+  assert.equal(corner.side, 'left', 'names appear towards the page, away from the edge');
+  assert.ok(corner.x >= 12 + 34 && corner.x <= viewport.width - 12 - 34 && corner.y - corner.reach >= 12 && corner.y <= viewport.height - 12);
+  assert.equal(corner.x, 1376, 'the rail hugs the pet\'s own column, clear of content that ends before it');
+  const top = plain(wheel.placeRail({left: 16, top: 20, width: 96, height: 60}, viewport, 4));
+  assert.equal(top.dir, 1, 'a pet in the upper half grows the rail downwards');
+  assert.equal(top.side, 'right');
+  assert.deepEqual(plain(wheel.placeRail({left: 16, top: 20, width: 96, height: 60}, viewport, 4)), top, 'same input, same output');
+});
+
+test('placeRail() keeps a tall rail inside a short viewport and a narrow rail width inside a thin one', () => {
+  const short = plain(wheel.placeRail({left: 300, top: 300, width: 96, height: 60}, {width: 390, height: 420}, 6));
+  assert.ok(short.y - short.reach >= 12 - 1e-6 || short.dir === 1, 'clamped to the top edge when it would overflow');
+  const thin = plain(wheel.placeRail({left: 0, top: 500, width: 10, height: 10}, {width: 390, height: 800}, 3));
+  assert.ok(thin.x >= 46, 'never pushed off the left edge: ' + thin.x);
+});

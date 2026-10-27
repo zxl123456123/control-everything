@@ -1,9 +1,10 @@
 /*
  * The pet's shortcut wheel, shared by every host (the news reader and the Studio mascot) and every pet.
- * The 3D pets keep their own built-in dial for stand-alone use; hosts turn it off (`dial:false`) and use this one,
- * so the wheel looks and behaves the same everywhere and never depends on where the pet happens to stand.
+ * The 3D pets keep their own built-in dial for stand-alone embeds only; every in-app host turns it off (`dial:false`, no
+ * `actions`) and uses this one, so the wheel looks and behaves the same everywhere and never depends on where the pet stands.
  *
- *   place()    pure geometry: where the wheel sits, beside the pet's resting slot (its depot), inside the viewport
+ *   place()    pure geometry: where the ring sits, beside the pet's resting slot (its depot), inside the viewport
+ *   placeRail() pure geometry of the pinned layout: a slim vertical rail on the pet's side of the screen
  *   create()   the wheel itself: DOM, motion, keyboard, pointer handling, pinning
  *
  * Design notes
@@ -12,6 +13,8 @@
  *     fold back faster; hover magnifies, press rebounds. prefers-reduced-motion reduces all of it to a fade.
  *   - The wheel never wanders with the pet: its anchor comes from the depot element, so it opens in the same place.
  *   - Pinned: the wheel stays open after an action and ignores clicks elsewhere; Esc, the pet or the trigger closes it.
+ *     A pinned wheel is a slim vertical rail (a speed dial) hugging the pet's screen edge instead of a ring, so a wheel that
+ *     stays open for a long time never sits on top of the page's own controls; names show as tooltips beside the buttons.
  *   - Only the buttons take pointer events, so the empty ring never blocks the page underneath.
  */
 (function (global) {
@@ -19,6 +22,7 @@
 
   const ICON_SIZE = 24, BUTTON = 48, HUB_PAD = 14, PLATE_PAD = 34, GAP = 16, EDGE = 12;
   const OUTSIDE_TAP_MS = 700;
+  const RAIL_STEP = 56, RAIL_FIRST = 52, RAIL_HALF_WIDTH = 34, RAIL_BEHIND = 30, RAIL_TAIL = BUTTON / 2 + 10;
   const ROOT_CLASS = 'pw-wheel';
   const PIN_PATH = 'M9 3h6l-1 6 3 3v2H7v-2l3-3z M12 14v7';
   const PIN_LABEL = {off: '固定转盘', on: '取消固定'};
@@ -50,6 +54,15 @@
 .${ROOT_CLASS} .pw-pin[aria-checked=true] svg{transform:rotate(-35deg) scale(1.1);fill:currentColor}
 .${ROOT_CLASS} .pw-pin:hover,.${ROOT_CLASS} .pw-pin:focus-visible{background:var(--pw-btn);color:var(--pw-accent);border-color:var(--pw-accent)}
 .${ROOT_CLASS} .pw-hub .pw-pin{pointer-events:auto}
+.${ROOT_CLASS}[data-layout=rail] .pw-plate{border-radius:${RAIL_HALF_WIDTH}px;transition:transform .2s ease-in,opacity .16s ease-in,top .35s ease,height .35s ease,width .35s ease}
+.${ROOT_CLASS}[data-layout=rail][data-open=true] .pw-plate{background:var(--pw-plate);border:1px solid var(--pw-line);box-shadow:0 8px 22px rgba(40,28,4,.16);opacity:1;transition:transform .55s var(--pw-spring),opacity .18s ease-out,top .35s ease,height .35s ease,width .35s ease}
+.${ROOT_CLASS}[data-layout=rail] .pw-hub{width:0;height:0;padding:0;display:block}
+.${ROOT_CLASS}[data-layout=rail] .pw-label{display:none}
+.${ROOT_CLASS}[data-layout=rail] .pw-pin{position:absolute;left:0;top:0;margin:-20px 0 0 -20px;translate:var(--px,0) var(--py,0)}
+.${ROOT_CLASS}[data-layout=rail] button::before{content:attr(aria-label);position:absolute;top:50%;padding:5px 10px;border-radius:999px;background:var(--pw-plate);border:1px solid var(--pw-line);color:var(--pw-ink);font-size:13px;font-weight:600;white-space:nowrap;pointer-events:none;opacity:0;transform:translateY(-50%);transition:opacity .15s ease-out;box-shadow:0 4px 12px rgba(40,28,4,.14)}
+.${ROOT_CLASS}[data-layout=rail][data-side=left] button::before{right:calc(100% + 12px)}
+.${ROOT_CLASS}[data-layout=rail][data-side=right] button::before{left:calc(100% + 12px)}
+.${ROOT_CLASS}[data-layout=rail] button:hover::before,.${ROOT_CLASS}[data-layout=rail] button:focus-visible::before{opacity:1}
 @media (prefers-reduced-motion:reduce){
  .${ROOT_CLASS} .pw-plate,.${ROOT_CLASS} .pw-item,.${ROOT_CLASS} button,.${ROOT_CLASS} .pw-pin svg{transition:opacity .12s!important}
  .${ROOT_CLASS}[data-open=true] .pw-plate{transform:translate(-50%,-50%) scale(1)}
@@ -90,6 +103,24 @@
       y: Math.round(clamp(centreY, half + EDGE, viewport.height - half - EDGE)),
       side,
     };
+  }
+
+  /**
+   * Geometry of the pinned layout. The rail starts at the pet's resting slot (the pin button sits there) and runs towards the
+   * middle of the screen, on the pet's own screen edge, so it stays clear of the page content beside it.
+   * @param {{left: number, top: number, width: number, height: number}} depot the pet's resting slot in viewport pixels
+   * @param {{width: number, height: number}} viewport
+   * @param {number} count number of action buttons
+   * @returns {{x: number, y: number, dir: -1|1, side: 'left'|'right', reach: number}} (x, y) is the pin's centre; dir -1 grows upwards; reach is the rail's length past the pin
+   */
+  function placeRail(depot, viewport, count) {
+    const centreX = depot.left + depot.width / 2, centreY = depot.top + depot.height / 2;
+    const dir = centreY > viewport.height / 2 ? -1 : 1;
+    const reach = RAIL_FIRST + Math.max(0, count - 1) * RAIL_STEP + RAIL_TAIL;
+    const rawY = dir < 0 ? depot.top - GAP - 20 : depot.top + depot.height + GAP + 20;
+    const clamp = (value, low, high) => Math.max(low, Math.min(Math.max(low, high), value));
+    const y = dir < 0 ? clamp(rawY, EDGE + reach, viewport.height - EDGE - RAIL_BEHIND) : clamp(rawY, EDGE + RAIL_BEHIND, viewport.height - EDGE - reach);
+    return {x: Math.round(clamp(centreX, EDGE + RAIL_HALF_WIDTH, viewport.width - EDGE - RAIL_HALF_WIDTH)), y: Math.round(y), dir, side: centreX < viewport.width / 2 ? 'right' : 'left', reach};
   }
 
   function svgIcon(path, className) {
@@ -158,12 +189,10 @@
     function build() {
       for (const entry of items) entry.node.remove();
       const actions = (host.actions() || []).slice(0, 6);
-      const r = radius(), spots = layout(actions.length, r);
-      const hubSize = (r - BUTTON / 2 - 10) * 2;
-      root.style.setProperty('--hub', hubSize + 'px');
-      plate.style.width = plate.style.height = (r + PLATE_PAD) * 2 + 'px';
+      const r = radius();
+      root.style.setProperty('--hub', (r - BUTTON / 2 - 10) * 2 + 'px');
       items = actions.map((action, i) => {
-        const node = document.createElement('div'); node.className = 'pw-item'; node.style.setProperty('--x', spots[i].x + 'px'); node.style.setProperty('--y', spots[i].y + 'px'); node.style.setProperty('--i', String(i));
+        const node = document.createElement('div'); node.className = 'pw-item'; node.style.setProperty('--i', String(i));
         node.setAttribute('role', 'none');
         const button = document.createElement('button'); button.type = 'button'; button.dataset.id = action.id; button.setAttribute('role', 'menuitem'); button.setAttribute('aria-label', action.label); button.tabIndex = -1;
         button.append(svgIcon(action.icon)); node.append(button); root.insertBefore(node, hub);
@@ -176,13 +205,32 @@
       setActive(-1); syncPin();
     }
 
+    /** Positions every button for the current layout: a ring around the hub, or a rail from the pin when pinned. */
+    function arrange() {
+      const rail = pinned && spot && spot.dir !== undefined;
+      root.dataset.layout = rail ? 'rail' : 'ring';
+      if (rail) {
+        const dir = spot.dir, last = RAIL_FIRST + Math.max(0, items.length - 1) * RAIL_STEP;
+        items.forEach((entry, i) => { entry.node.style.setProperty('--x', '0px'); entry.node.style.setProperty('--y', dir * (RAIL_FIRST + i * RAIL_STEP) + 'px'); });
+        const near = -dir * RAIL_BEHIND, far = dir * (last + RAIL_TAIL);
+        plate.style.left = '0px'; plate.style.top = (near + far) / 2 + 'px'; plate.style.width = RAIL_HALF_WIDTH * 2 + 'px'; plate.style.height = Math.abs(far - near) + 'px';
+        pin.style.setProperty('--px', '0px'); pin.style.setProperty('--py', '0px');
+      } else {
+        const r = radius(), spots = layout(items.length, r);
+        items.forEach((entry, i) => { entry.node.style.setProperty('--x', spots[i].x + 'px'); entry.node.style.setProperty('--y', spots[i].y + 'px'); });
+        plate.style.left = plate.style.top = '0px'; plate.style.width = plate.style.height = (r + PLATE_PAD) * 2 + 'px';
+      }
+    }
+
     function reposition() {
       frame = 0;
       const slot = host.anchor && host.anchor();
       const rect = slot && (typeof slot.getBoundingClientRect === 'function' ? slot.getBoundingClientRect() : slot);
       const box = rect && rect.width + rect.height > 2 ? rect : {left: global.innerWidth - 120, top: global.innerHeight - 90, width: 96, height: 60};
-      spot = place(box, {width: global.innerWidth, height: global.innerHeight}, radius());
+      const viewport = {width: global.innerWidth, height: global.innerHeight};
+      spot = pinned ? placeRail(box, viewport, items.length) : place(box, viewport, radius());
       root.style.transform = `translate3d(${spot.x}px,${spot.y}px,0)`; root.dataset.side = spot.side;
+      arrange();
     }
     const schedule = () => { if (open && !frame) frame = global.requestAnimationFrame(reposition); };
 
@@ -230,7 +278,8 @@
       if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); close('escape', true); return; }
       if (!root.contains(document.activeElement)) return;
       const buttons = items.map(entry => entry.button), here = buttons.indexOf(document.activeElement);
-      const move = {ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1}[event.key];
+      const along = spot && spot.dir !== undefined ? -spot.dir : -1; // on the rail "up" follows the rail's own direction
+      const move = {ArrowRight: 1, ArrowDown: -along, ArrowLeft: -1, ArrowUp: along}[event.key];
       if (move && here >= 0) { event.preventDefault(); fromKeyboard = true; focusItem(here + move); }
       else if (event.key === 'Home' && items.length) { event.preventDefault(); focusItem(0); }
       else if (event.key === 'End' && items.length) { event.preventDefault(); focusItem(items.length - 1); }
@@ -262,7 +311,7 @@
       isPinned: () => pinned,
       /** Re-reads the actions from the host; keeps the wheel open when it was. */
       refresh() { if (destroyed) return; build(); if (open && !items.length) close('api'); else if (open) reposition(); },
-      setPinned(next) { pinned = Boolean(next); syncPin(); },
+      setPinned(next) { const was = pinned; pinned = Boolean(next); syncPin(); if (open && was !== pinned) reposition(); },
       destroy() {
         if (destroyed) return; close('api'); destroyed = true;
         host.tapTarget && host.tapTarget.removeEventListener('news-pet-tap', onTap); themeObserver && themeObserver.disconnect(); root.remove();
@@ -274,5 +323,5 @@
     return api;
   }
 
-  global.NewsPetWheel = Object.freeze({create, place, layout, ringRadius, BUTTON, PLATE_PAD});
+  global.NewsPetWheel = Object.freeze({create, place, placeRail, layout, ringRadius, BUTTON, PLATE_PAD});
 })(window);
