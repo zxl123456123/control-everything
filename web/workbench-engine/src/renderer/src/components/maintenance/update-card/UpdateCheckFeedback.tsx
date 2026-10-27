@@ -14,18 +14,18 @@ export function UpdateCheckFeedback({
   action?: { label: string; url: string }
 }): React.JSX.Element {
   return (
-    <div className="flex items-center gap-4 p-6">
+    <div className="flex items-center gap-3 p-3">
       <div className="shrink-0 text-muted-foreground">
         {icon === 'spinner' && <Loader2 className="size-4 animate-spin" />}
         {icon === 'check' && <Check className="size-4" />}
         {icon === 'error' && <AlertCircle className="size-4" />}
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm leading-[22px] [overflow-wrap:anywhere]">{text}</p>
+        <p className="text-sm truncate">{text}</p>
         {action && (
           <button
             type="button"
-            className="inline-flex min-h-11 items-center text-sm text-muted-foreground underline hover:text-foreground"
+            className="text-xs text-muted-foreground underline hover:text-foreground mt-0.5"
             onClick={() => void window.api.shell.openUrl(action.url)}
           >
             {action.label}
@@ -36,7 +36,7 @@ export function UpdateCheckFeedback({
         <Button
           variant="ghost"
           size="icon"
-          className="size-11 shrink-0"
+          className="size-7 shrink-0"
           onClick={onClose}
           aria-label={translate('auto.components.UpdateCard.a726967bd3', 'Dismiss')}
         >

@@ -45,12 +45,12 @@ export function WorkspaceSpaceManagerTable({
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       {hasRows || isInitialScan ? (
-        <div className="flex min-h-0 flex-1 flex-col overflow-x-auto rounded-2xl border border-border bg-card">
+        <div className="flex min-h-0 flex-1 flex-col overflow-x-auto rounded-lg border border-border/70 bg-background/30">
           <div className="flex min-h-0 min-w-[54rem] flex-1 flex-col">
             <div
               className={cn(
                 WORKSPACE_SPACE_TABLE_GRID_CLASS,
-                'shrink-0 border-b border-border/60 px-4 py-3 text-sm font-medium text-muted-foreground'
+                'shrink-0 border-b border-border/60 px-3 py-1.5 text-2xs font-medium uppercase tracking-wider text-muted-foreground'
               )}
             >
               <div className="flex items-center">
@@ -74,7 +74,7 @@ export function WorkspaceSpaceManagerTable({
               <button
                 type="button"
                 onClick={() => toggleSort('name')}
-                className="flex min-h-11 items-center gap-2 text-left"
+                className="flex items-center gap-1 text-left"
               >
                 {translate(
                   'auto.components.status.bar.WorkspaceSpaceManagerPanel.e4aebea158',
@@ -85,7 +85,7 @@ export function WorkspaceSpaceManagerTable({
               <button
                 type="button"
                 onClick={() => toggleSort('repo')}
-                className="flex min-h-11 items-center gap-2 text-left"
+                className="flex items-center gap-1 text-left"
               >
                 {translate(
                   'auto.components.status.bar.WorkspaceSpaceManagerPanel.81f14d9924',
@@ -96,7 +96,7 @@ export function WorkspaceSpaceManagerTable({
               <button
                 type="button"
                 onClick={() => toggleSort('activity')}
-                className="flex min-h-11 items-center justify-end gap-2 text-right"
+                className="flex items-center justify-end gap-1 text-right"
               >
                 {translate('workspaceSpace.table.lastActive', 'Last active')}
                 <SortIndicator sortKey="activity" activeKey={sortKey} direction={sortDirection} />
@@ -104,7 +104,7 @@ export function WorkspaceSpaceManagerTable({
               <button
                 type="button"
                 onClick={() => toggleSort('size')}
-                className="flex min-h-11 items-center justify-end gap-2 text-right"
+                className="flex items-center justify-end gap-1 text-right"
               >
                 {translate(
                   'auto.components.status.bar.WorkspaceSpaceManagerPanel.33aef3e9cc',
@@ -191,7 +191,7 @@ export function WorkspaceSpaceManagerTable({
           </div>
         </div>
       ) : !analysis && !scanError ? null : (
-        <div className="rounded-2xl border border-border bg-card px-4 py-10 text-center text-sm text-muted-foreground">
+        <div className="rounded-lg border border-border/70 bg-background/30 px-4 py-10 text-center text-sm text-muted-foreground">
           {scanError
             ? translate(
                 'auto.components.status.bar.WorkspaceSpaceManagerPanel.8194a4fb29',

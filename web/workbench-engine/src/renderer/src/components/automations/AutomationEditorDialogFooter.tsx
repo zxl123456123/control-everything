@@ -26,10 +26,10 @@ export function AutomationEditorDialogFooter({
       : translate('auto.components.automations.AutomationEditorDialog.e46c1aa9ad', 'Create')
 
   return (
-    <div className="flex shrink-0 flex-wrap items-center justify-between gap-4 border-t border-border px-6 py-4">
-      <p className="flex min-w-0 items-center gap-2 text-sm leading-[22px] text-muted-foreground">
+    <div className="flex items-center justify-between gap-3 border-t border-border/50 px-5 py-3">
+      <p className="flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
         <Sparkles className="size-3.5 shrink-0" />
-        <span className="break-words">
+        <span className="truncate">
           {translate(
             'auto.components.automations.AutomationEditorDialog.e8c2a14f70',
             'Once saved, runs automatically until paused.'

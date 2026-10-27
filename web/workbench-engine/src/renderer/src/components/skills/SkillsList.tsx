@@ -149,7 +149,6 @@ export function SkillsList({
       />
       <div
         ref={listRef}
-        className="overflow-hidden rounded-2xl border border-border bg-card"
         role="listbox"
         aria-multiselectable={selectionMode !== null || undefined}
         aria-label={translate('auto.components.skills.SkillsList.listLabel', 'Skills')}

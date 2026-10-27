@@ -28,7 +28,7 @@ export function MobilePageToolbar({
       )
 
   return (
-    <div className="mp-page-toolbar mx-auto w-full max-w-[1100px] flex-wrap gap-4">
+    <div className="mp-page-toolbar">
       <div className="mp-page-toolbar-primary">
         <Tooltip>
           <TooltipTrigger asChild>
@@ -53,7 +53,7 @@ export function MobilePageToolbar({
           <Button
             variant="ghost"
             size="icon"
-            className="mp-page-toolbar-close size-11 shrink-0 rounded-xl"
+            className="mp-page-toolbar-close size-7 shrink-0 rounded-full"
             onClick={onClose}
             aria-label={translate(
               'auto.components.mobile.MobilePageToolbar.9883b58693',

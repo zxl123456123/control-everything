@@ -38,7 +38,7 @@ export function ActivityThreadDetailPane({
       {selectedThread ? (
         <div className="flex h-full min-h-0 flex-col">
           {/* Why (no header action button): per-card hover actions (Mark unread, Open) are the primary controls now, so the header keeps just the thread identity. */}
-          <div className="ce-management-surface flex shrink-0 items-start gap-4 border-b border-border px-6 py-6">
+          <div className="flex shrink-0 items-start gap-4 border-b border-border px-4 pt-2 pb-3">
             <div className="min-w-0">
               <div className="flex min-w-0 items-start gap-2">
                 <span className="inline-flex shrink-0 items-start gap-1">
@@ -47,7 +47,7 @@ export function ActivityThreadDetailPane({
                     <AgentTypeIcon agentType={selectedThread.agentType} size={16} />
                   </span>
                 </span>
-                <h2 className="line-clamp-3 break-words text-lg font-semibold leading-[26px]">
+                <h2 className="line-clamp-3 break-words text-sm font-semibold leading-snug">
                   {selectedThread.paneTitle}
                 </h2>
               </div>

@@ -47,10 +47,10 @@ export function AutomationListToolbar({
   canCreateAutomation
 }: AutomationListToolbarProps): React.JSX.Element {
   return (
-    <div className="flex shrink-0 flex-wrap items-end justify-between gap-4 pb-6">
-      <div ref={toolbarRef} className="flex min-w-0 flex-1 flex-wrap items-end gap-3">
+    <div className="flex shrink-0 items-end justify-between gap-3 pb-4">
+      <div ref={toolbarRef} className="flex min-w-0 flex-1 items-end gap-2">
         <AutomationListSearchField
-          className="min-w-0 flex-1 sm:max-w-md"
+          className="w-full max-w-xs"
           query={listSearchQuery}
           isTooLarge={isListSearchQueryTooLarge}
           onQueryChange={(query) =>
@@ -77,7 +77,7 @@ export function AutomationListToolbar({
               )}
               onClick={onRefresh}
               disabled={isRefreshing}
-              className="size-11 shrink-0 border border-border bg-background shadow-none hover:bg-muted/50"
+              className="shrink-0 border border-border bg-background shadow-none hover:bg-muted/50"
             >
               <RefreshCw className={cn('size-4', isRefreshing && 'animate-spin')} />
             </Button>

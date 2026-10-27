@@ -327816,12 +327816,6 @@
       "reason": "UI r1 S8: fixed window appearance and bounded recovery/help presentation; FirstLaunchBanner.tsx."
     },
     {
-      "path": "src/renderer/src/components/NotificationCardStack.tsx",
-      "upstream_sha256": "70295c5831b71112715d107f5cc3ec5755d9a6ace5e3664c6806de386bae1be4",
-      "current_sha256": "ec5d0998e77f9f3e6d91d1e376baecb1f2a16e15c1012240be68cd26e7ebfb3e",
-      "reason": "UI r1 S8: fixed window appearance and bounded recovery/help presentation; NotificationCardStack.tsx."
-    },
-    {
       "path": "src/renderer/src/components/UpdateCard.error-card.test.tsx",
       "upstream_sha256": "16626a8e3497939a2b9866bbde03e61daea4ff00176f948cdcb82c6e119546a2",
       "current_sha256": "1da48408ac1a146c697928cd19ef6bd2496ba59ed7f7964847330644c8e05fe6",
@@ -327834,12 +327828,6 @@
       "reason": "UI r1 S8: fixed window appearance and bounded recovery/help presentation; UpdateCard.tsx."
     },
     {
-      "path": "src/renderer/src/components/UpdateErrorCardContent.tsx",
-      "upstream_sha256": "7e0b3ee984df30371ef4e0dbfd55695c8ce221992edf6c4ae8198649e3ad2fe5",
-      "current_sha256": "e8b132f14d1ae76a3dc4a7d5e5dd6a21c7562a7ed791fdfcc8f34669f0d36e08",
-      "reason": "UI r1 S8: fixed window appearance and bounded recovery/help presentation; UpdateErrorCardContent.tsx."
-    },
-    {
       "path": "src/renderer/src/components/activity/ActivityTitlebarControls.tsx",
       "upstream_sha256": "35f678e293e03c47f16152cc41a39656f00934582cd17f3b33a2235d8341207e",
       "current_sha256": "c0d38b86363e431e5ea2d09ba30c19f5fd74daa7aaacd1f49bcbf3e37d5091d5",
@@ -327850,12 +327838,6 @@
       "upstream_sha256": "598155b19e9bcdad4d501d63748b1b6e74044147da48d1f6739a647db199cca1",
       "current_sha256": "e47b3b64459af75e5578ce2e5b3d81d421ec1db9b9f53f6e0c25b6e528e8d629",
       "reason": "UI r1 S8: native nondevelopment presentation with original actions and gates; activity-auto-mark-read-loop.react185.test.tsx."
-    },
-    {
-      "path": "src/renderer/src/components/activity/activity-thread-detail-pane.tsx",
-      "upstream_sha256": "125d21b5bf3c74d7c4f4f3f65b6538c593083503348f3a215e104227745d610b",
-      "current_sha256": "a19afd65114076875cdcb7a5cda8233557b7771ec306bc4d50bd58510bb9a6e0",
-      "reason": "UI r1 S8: native nondevelopment presentation with original actions and gates; activity-thread-detail-pane.tsx."
     },
     {
       "path": "src/renderer/src/components/activity/activity-thread-row.tsx",
@@ -327882,18 +327864,6 @@
       "reason": "UI r1 S8: native nondevelopment presentation with original actions and gates; ArtifactDetailHeader.tsx."
     },
     {
-      "path": "src/renderer/src/components/artifacts/ArtifactListRow.tsx",
-      "upstream_sha256": "7e7e29e96c3175d0a2dfd455040b555f62fa01719dd6d584ae76d1a17e41e247",
-      "current_sha256": "582001f7957912932ca1016d4a3b59f071666e5c11ed38c914baf6690dc13b06",
-      "reason": "UI r1 S8: native nondevelopment presentation with original actions and gates; ArtifactListRow.tsx."
-    },
-    {
-      "path": "src/renderer/src/components/artifacts/ArtifactListToolbar.tsx",
-      "upstream_sha256": "08f077597b55ac11705db2a68dfcd1d5ba2b6ffb710e87a8642f98e739708205",
-      "current_sha256": "5b6cdda160959d95a03be7ddfcb20a080ac30987bc7362a756938f8ebcf532a4",
-      "reason": "UI r1 S8: native nondevelopment presentation with original actions and gates; ArtifactListToolbar.tsx."
-    },
-    {
       "path": "src/renderer/src/components/artifacts/ArtifactsPage.test.tsx",
       "upstream_sha256": "26ccdc33e807c16ed9701d547df91d55565a8a8139e04415700160b2d0cc74a7",
       "current_sha256": "eebaae249f2450dff7dec50eb3d9ac974d9fd25ba6a8d204c4059b0ee1d544b0",
@@ -327914,14 +327884,8 @@
     {
       "path": "src/renderer/src/components/artifacts/artifact-list-windowing.test.tsx",
       "upstream_sha256": "89b2aff94f72fea6c50b204a83bb66b8ce8ea3f8f639deabf66cf411835de0a9",
-      "current_sha256": "73faf9c123eb6fdb289a1f6449a2d6b01fe397e6b274241a9e52dac62b82bc33",
-      "reason": "UI r1 S8: native nondevelopment presentation with original actions and gates; artifact-list-windowing.test.tsx."
-    },
-    {
-      "path": "src/renderer/src/components/artifacts/artifacts-table-layout.ts",
-      "upstream_sha256": "1fdcd8c959941bfa28221c8e0c10aeaa38b6d2213a9ca432f310fd6368ad2087",
-      "current_sha256": "9e43c7836d4ba3524889a29cc507cf9686e93c49af604afd85a50860f6165a86",
-      "reason": "UI r1 S8: native nondevelopment presentation with original actions and gates; artifacts-table-layout.ts."
+      "current_sha256": "78338843f13e7455ebde5ac35b0acdc191f3d1b588db93e3360e0be389bfe050",
+      "reason": "N1: restore native project controls and upstream presentation while preserving platform identity, project registration, draft protection and the single global account surface."
     },
     {
       "path": "src/renderer/src/components/automations/AutomationDeleteDialogs.tsx",
@@ -327936,64 +327900,16 @@
       "reason": "UI r1 S8: native nondevelopment presentation with original actions and gates; AutomationEditorDialog.tsx."
     },
     {
-      "path": "src/renderer/src/components/automations/AutomationEditorDialogFooter.tsx",
-      "upstream_sha256": "8f25756d740aa94b14c8152feb281b5dc32413928e24f141cfee82088e366c57",
-      "current_sha256": "8e6913ef6d842edd22150c96cb8ba51a941b57998648e13eaa0d7ffaf58ff5fd",
-      "reason": "UI r1 S8: native nondevelopment presentation with original actions and gates; AutomationEditorDialogFooter.tsx."
-    },
-    {
-      "path": "src/renderer/src/components/automations/AutomationEditorDialogHeader.tsx",
-      "upstream_sha256": "e970eb5d0ef9126cf99bf6b556f9df6de29f1d43839fec3809230d41a2a025bf",
-      "current_sha256": "7aca23da05f726277db2cc8cc621dbb710200a4e19ea0174a41c446d2fe5a70c",
-      "reason": "UI r1 S8: native nondevelopment presentation with original actions and gates; AutomationEditorDialogHeader.tsx."
-    },
-    {
-      "path": "src/renderer/src/components/automations/AutomationEditorPromptSection.tsx",
-      "upstream_sha256": "01912ed8d99e10692b27dbc9f25a44a62f6688c606098f36bb65fec91d3d9fba",
-      "current_sha256": "c70cb5369791a63fdba262a93e40021f33a58daeffc57c19cf6daa2e519385f1",
-      "reason": "UI r1 S8: native nondevelopment presentation with original actions and gates; AutomationEditorPromptSection.tsx."
-    },
-    {
       "path": "src/renderer/src/components/automations/AutomationEditorSettingsSidebar.tsx",
       "upstream_sha256": "973d1952294622226e928a0c94cf95771b184aee18776ce5b3f50d70b3888074",
       "current_sha256": "c10159415e7d90aede0b9e23015a087543ebe8e4022f3f9d7d01f3c499344ec9",
       "reason": "UI r1 S8: native nondevelopment presentation with original actions and gates; AutomationEditorSettingsSidebar.tsx."
     },
     {
-      "path": "src/renderer/src/components/automations/AutomationListToolbar.tsx",
-      "upstream_sha256": "8543e9b03369b3d489c41345928697e281207184383d2b811319cf476c1900ef",
-      "current_sha256": "6e6e5817fa871daccad0353741e0c0edb3bd21be124c239f568197d976d675cf",
-      "reason": "UI r1 S8: native nondevelopment presentation with original actions and gates; AutomationListToolbar.tsx."
-    },
-    {
-      "path": "src/renderer/src/components/automations/AutomationRunsTable.tsx",
-      "upstream_sha256": "bbf460a7bba3c5cab46fa8f24367372406603ef43e5e6553361da4093993fcaf",
-      "current_sha256": "b9e5298acc2e667248d62d09e10895f04eebab7d68afdb939ff0f75438df63ed",
-      "reason": "UI r1 S8: native nondevelopment presentation with original actions and gates; AutomationRunsTable.tsx."
-    },
-    {
-      "path": "src/renderer/src/components/automations/AutomationsDetailPane.tsx",
-      "upstream_sha256": "e79e4278c65caa023216b1ff7fb1771a43e92e0a37d918f3cc95714232693630",
-      "current_sha256": "4df3b609daa0975c7b8c03973f386bddb82870314bd84275025d5eba0e31a930",
-      "reason": "UI r1 S8: native nondevelopment presentation with original actions and gates; AutomationsDetailPane.tsx."
-    },
-    {
-      "path": "src/renderer/src/components/automations/AutomationsListPanel.tsx",
-      "upstream_sha256": "833ff32e3ad3bf9f11c486c065aca95f88e511c6a37a081bcd99b8dd4c39c215",
-      "current_sha256": "19a32bc68d811ec5fd54ad2469a8d4abdc152644cf07a862c3b40dbec5865519",
-      "reason": "UI r1 S8: native nondevelopment presentation with original actions and gates; AutomationsListPanel.tsx."
-    },
-    {
       "path": "src/renderer/src/components/automations/AutomationsPageSurface.tsx",
       "upstream_sha256": "116b18a372ce0d8d92a8fffa24f5af06a37a4613ab113e91dffe3fff1dffac8b",
       "current_sha256": "8b74b669ffe6c7e37b9566c2ec587cb4bb45c0fcc00148ca21e038b07fefb6e0",
       "reason": "UI r1 S8: native nondevelopment presentation with original actions and gates; AutomationsPageSurface.tsx."
-    },
-    {
-      "path": "src/renderer/src/components/automations/AutomationsPageTopBar.tsx",
-      "upstream_sha256": "190e652417b28a60fed53cbc18f2f50e83bde641b1e0380d8cf114cd573f3acc",
-      "current_sha256": "98906af17157320d6dd2b519feb83562d0d3f630ebf975f6410e6be170bc5f21",
-      "reason": "UI r1 S8: native nondevelopment presentation with original actions and gates; AutomationsPageTopBar.tsx."
     },
     {
       "path": "src/renderer/src/components/confirmation-dialog-context.ts",
@@ -328026,22 +327942,10 @@
       "reason": "UI r1 S8: fixed window appearance and bounded recovery/help presentation; RecoverableRenderErrorBoundary.tsx."
     },
     {
-      "path": "src/renderer/src/components/feature-tips/CliSetupTipDialog.tsx",
-      "upstream_sha256": "e6fd3fa319890e3771132bcc3a87e6c66a9ebe44f1e3243dd4275bb6bb886705",
-      "current_sha256": "f51e2810c3e1df061f95fab6ee35271c306e6726c5f230aa1b29e6124931e6fb",
-      "reason": "UI r1 S8: fixed window appearance and bounded recovery/help presentation; CliSetupTipDialog.tsx."
-    },
-    {
       "path": "src/renderer/src/components/feature-tips/CmdJPaletteTipDialog.test.tsx",
       "upstream_sha256": "295879f0983a4e58c4016b6efb12abd55daa8299e9fead1ae05e65580b6efc0d",
       "current_sha256": "64c8bc78620671d3edef8b42b59440dd75045b95dfacd772dec1d0613d98a85e",
       "reason": "UI r1 S8: fixed window appearance and bounded recovery/help presentation; CmdJPaletteTipDialog.test.tsx."
-    },
-    {
-      "path": "src/renderer/src/components/feature-tips/CmdJPaletteTipDialog.tsx",
-      "upstream_sha256": "baca91852a0d58589bdb232dd8314bd5022bccd32dc3252c87a5347df28e0295",
-      "current_sha256": "1c4104840bd3a16bd04249f23b036a53e090964e787b484fe111bd9049b96d28",
-      "reason": "UI r1 S8: fixed window appearance and bounded recovery/help presentation; CmdJPaletteTipDialog.tsx."
     },
     {
       "path": "src/renderer/src/components/feature-tips/FeatureTipDialogFrame.tsx",
@@ -328062,70 +327966,16 @@
       "reason": "UI r1 S8: fixed window appearance and bounded recovery/help presentation; NativeChatUpgradeTipDialog.tsx."
     },
     {
-      "path": "src/renderer/src/components/feature-tips/SessionSearchTipDialog.tsx",
-      "upstream_sha256": "30521b866340408a43f3893e352363339d5bfe3b0b7e8f97c8ae7d21c973e856",
-      "current_sha256": "a09674d14cd9bb106d054540fd95d08ed051858f3d100a43e928e89808615c84",
-      "reason": "UI r1 S8: fixed window appearance and bounded recovery/help presentation; SessionSearchTipDialog.tsx."
-    },
-    {
       "path": "src/renderer/src/components/feature-tips/VoiceDictationTipDialog.test.tsx",
       "upstream_sha256": "67359eb84aa8094e4409beb513a216191796282e3b8078c81bcbedbe1c208631",
       "current_sha256": "2a534b97b4b2b5d1c9cf619bfe54e043ec384c5ef3a6cbb8ccfd94b912424a41",
       "reason": "UI r1 S8: fixed window appearance and bounded recovery/help presentation; VoiceDictationTipDialog.test.tsx."
     },
     {
-      "path": "src/renderer/src/components/feature-tips/VoiceDictationTipDialog.tsx",
-      "upstream_sha256": "b8313ca01b207cca7b9975e0db968c7abfa25f5b9def61a517fe6bf3229fe0c7",
-      "current_sha256": "fb07bf2b6e34740d5a5b24b2804e1de414871b16a5a9b581a948216bd5e61606",
-      "reason": "UI r1 S8: fixed window appearance and bounded recovery/help presentation; VoiceDictationTipDialog.tsx."
-    },
-    {
-      "path": "src/renderer/src/components/feature-wall/FeatureWallSetupChecklist.tsx",
-      "upstream_sha256": "2fa2906c01dd94ed9e8a7c8c994d4fb533573aeebbda43243fd6b7b1422da2be",
-      "current_sha256": "b85ba1633ad837729c446a7035fe024dd07d80eace28943bbde29e1f9d22a577",
-      "reason": "UI r1 S8: fixed window appearance and bounded recovery/help presentation; FeatureWallSetupChecklist.tsx."
-    },
-    {
-      "path": "src/renderer/src/components/maintenance/update-card/UpdateAvailableCardContent.tsx",
-      "upstream_sha256": "7a78c2167d0607e6fddbb017d28eac5dc36f56540bfa331fa63bf3aab6a676f9",
-      "current_sha256": "945b3aa20fb1484fd27c2076549212e23f5531fb6d0fc5d8a812b65982e08c5d",
-      "reason": "UI r1 S8: fixed window appearance and bounded recovery/help presentation; UpdateAvailableCardContent.tsx."
-    },
-    {
-      "path": "src/renderer/src/components/maintenance/update-card/UpdateCardStateContent.tsx",
-      "upstream_sha256": "761f3d74ebd29427af03e22ff33f48cd11cb48397503175f3f73633c46a42814",
-      "current_sha256": "898f799744d2b4df2f0d6389b31b6840d0f8fb75e55891465d3baf45564258aa",
-      "reason": "UI r1 S8: fixed window appearance and bounded recovery/help presentation; UpdateCardStateContent.tsx."
-    },
-    {
-      "path": "src/renderer/src/components/maintenance/update-card/UpdateCheckFeedback.tsx",
-      "upstream_sha256": "a780de2dcbdb603cc6094bcc5054d137e5084e8ede30098fc741890d44e607a3",
-      "current_sha256": "f668232eb0a55fa3ad23c2d77ccdb649ec161e4f539995bbf9ec82e6d7a22b39",
-      "reason": "UI r1 S8: fixed window appearance and bounded recovery/help presentation; UpdateCheckFeedback.tsx."
-    },
-    {
-      "path": "src/renderer/src/components/maintenance/update-card/UpdateDownloadCardContent.tsx",
-      "upstream_sha256": "9d579fc79509c9f40ad7cb5c3894968daaa110e2ae04a96b9be6f6d53838cee3",
-      "current_sha256": "f0468b46298dbd6404fc7a53efa50a6929369e2c6758bea28f13fa712095d1d0",
-      "reason": "UI r1 S8: fixed window appearance and bounded recovery/help presentation; UpdateDownloadCardContent.tsx."
-    },
-    {
       "path": "src/renderer/src/components/mobile/MobilePageContent.tsx",
       "upstream_sha256": "6e619f043334fad53e6adad25931b6e712e260520e499181a3f5d951b9b42029",
       "current_sha256": "6ee0cf2dc4b8942f38c260e63bcc126de2fe1668cbb300f9528e5537d409b42f",
       "reason": "UI r1 S8: native nondevelopment presentation with original actions and gates; MobilePageContent.tsx."
-    },
-    {
-      "path": "src/renderer/src/components/mobile/MobilePageToolbar.tsx",
-      "upstream_sha256": "22d116384854d6f91eaefe86305b651427e5212500ba3cb86cc0f36870148e11",
-      "current_sha256": "76e1c6fa3592afa562555dc2cec76497f8bc71c3abe3496168ae8990b5c7ddb8",
-      "reason": "UI r1 S8: native nondevelopment presentation with original actions and gates; MobilePageToolbar.tsx."
-    },
-    {
-      "path": "src/renderer/src/components/onboarding/OnboardingFlow.tsx",
-      "upstream_sha256": "d546cc2b0808f938a97589e7310744ba17130e72b66df1db174dd8e1fe8485ac",
-      "current_sha256": "979c47c0e2b2a44b32ed5423685849f81971d1fed3856e97d4854acd29d32011",
-      "reason": "UI r1 S1: fixed management theme, typography and scoped primitives; OnboardingFlow.tsx."
     },
     {
       "path": "src/renderer/src/components/onboarding/ThemeStep.test.ts",
@@ -328356,46 +328206,10 @@
       "reason": "UI r1 S8: native nondevelopment presentation with original actions and gates; SkillShareDialog.tsx."
     },
     {
-      "path": "src/renderer/src/components/skills/SkillsFilterToolbar.tsx",
-      "upstream_sha256": "c48e528da9db069fdb68608d86a78aadd1820ebaa1e223bba90857a617b92e49",
-      "current_sha256": "435d6cb2451a58109ecd07540b1dce8d4b514a535565af141264b70864bdd3ff",
-      "reason": "UI r1 S8: native nondevelopment presentation with original actions and gates; SkillsFilterToolbar.tsx."
-    },
-    {
-      "path": "src/renderer/src/components/skills/SkillsList.tsx",
-      "upstream_sha256": "40b38a6260d2a1bc278cf05a3f43c27133746d016df354be8dbba1dadd2dfdd5",
-      "current_sha256": "8cdbed1e616ba0cdf01dbd5307d34b9710cbd0fe0b8d4531ad0c440540dd5393",
-      "reason": "UI r1 S8: native nondevelopment presentation with original actions and gates; SkillsList.tsx."
-    },
-    {
       "path": "src/renderer/src/components/skills/SkillsPage.tsx",
       "upstream_sha256": "96b16e328c1c0bbb55df758cee2f96a8895dca6d32e90353295f2307bdf2b2d9",
       "current_sha256": "a6fbf9d10a8a9505f49b016d1a467db99a98a7ca5eb0d6e31e3dda41021e79a7",
       "reason": "UI r1 S8: native nondevelopment presentation with original actions and gates; SkillsPage.tsx."
-    },
-    {
-      "path": "src/renderer/src/components/skills/SkillsPageHeader.tsx",
-      "upstream_sha256": "141c27650684e6cd44d253814c36d19762a99302a22216e4ec456bf6ff08c6ad",
-      "current_sha256": "cd734be4e4b385167cf8c3de5e9a964e1ee6447b82cb8d658733a6402f16eb53",
-      "reason": "UI r1 S8: native nondevelopment presentation with original actions and gates; SkillsPageHeader.tsx."
-    },
-    {
-      "path": "src/renderer/src/components/skills/SkillsSelectionHeader.tsx",
-      "upstream_sha256": "b9d074045662d8cd33dfa9bf28e2298f01989203f4ecf84d69c9a8f088152113",
-      "current_sha256": "fa15501f88f036027a48f0dd69a55a496d1bc89c0152d2bfe49e2ce40f5de9f7",
-      "reason": "UI r1 S8: native nondevelopment presentation with original actions and gates; SkillsSelectionHeader.tsx."
-    },
-    {
-      "path": "src/renderer/src/components/skills/skills-page-column.ts",
-      "upstream_sha256": "99cf1ad27e4028a21ed70516c25b62ce6e3a12184fe06b99750654076f5edcf0",
-      "current_sha256": "67314ba86d2e41acff077b1a7b5c9dc306f5a0f0261b2b23f128759acdedb149",
-      "reason": "UI r1 S8: native nondevelopment presentation with original actions and gates; skills-page-column.ts."
-    },
-    {
-      "path": "src/renderer/src/components/skills/skills-page-states.tsx",
-      "upstream_sha256": "377ccf6bb2bfcc4ce2f850264aefecd10ee0630997d78e05c22fbd6f70b3a3a5",
-      "current_sha256": "678a8137b050328df2ea79a657387d7a4e905ccfa128c0d301bfda5abb8f84e8",
-      "reason": "UI r1 S8: native nondevelopment presentation with original actions and gates; skills-page-states.tsx."
     },
     {
       "path": "src/renderer/src/components/status-bar/WorkspaceSpaceManagerPanel.tsx",
@@ -328404,28 +328218,10 @@
       "reason": "UI r1 S8: native nondevelopment presentation with original actions and gates; WorkspaceSpaceManagerPanel.tsx."
     },
     {
-      "path": "src/renderer/src/components/status-bar/workspace-space-manager-overview.tsx",
-      "upstream_sha256": "ffe82a5d239013727487e70f6577f74ac786669ff26368b1293ed735e2a384c5",
-      "current_sha256": "bcbe28f8044ebc5aecae5fb80f13e4a0ddb2ac3dff632aa31ed81dfe2474ee97",
-      "reason": "UI r1 S8: native nondevelopment presentation with original actions and gates; workspace-space-manager-overview.tsx."
-    },
-    {
-      "path": "src/renderer/src/components/status-bar/workspace-space-manager-table.tsx",
-      "upstream_sha256": "0f549410ff2201ad75a7ae909b5b98db46b2459ee8e13890d0809bc6c92751d5",
-      "current_sha256": "d3b01089603b07d945c005e9251966ad8a26f0d0c82bc86004c97ed2dc971168",
-      "reason": "UI r1 S8: native nondevelopment presentation with original actions and gates; workspace-space-manager-table.tsx."
-    },
-    {
       "path": "src/renderer/src/components/status-bar/workspace-space-manager-toolbar.tsx",
       "upstream_sha256": "517e94ee6cc6182b1191decfa0b370b6b420e63f66a81741f899728e1db6a9a9",
       "current_sha256": "468e551a872f72c9cd6ea612a494b13e2442e6604b2f3f4f6c5a5c0929b2f864",
       "reason": "UI r1 S8: native nondevelopment presentation with original actions and gates; workspace-space-manager-toolbar.tsx."
-    },
-    {
-      "path": "src/renderer/src/components/status-bar/workspace-space-manager-view.tsx",
-      "upstream_sha256": "0220c1f20a816aabb2e313980be81d816d400f5203fd9c6a76bfccdf17b0a887",
-      "current_sha256": "cb3bf1f471d9bda2bd0a858f67f99fe95be68fc6e66777744b1207fdf8864711",
-      "reason": "UI r1 S8: native nondevelopment presentation with original actions and gates; workspace-space-manager-view.tsx."
     },
     {
       "path": "src/renderer/src/components/task-page/Surface.tsx",
@@ -328450,18 +328246,6 @@
       "upstream_sha256": "61be2ecba5fdce29ea91e837b9228fa1b6f405974fcde84f3370f838dc2c6116",
       "current_sha256": "37e4a70eb49e1d3a71c5808415709c72a0ffa6213aa02cf35e2371b761d49288",
       "reason": "UI r1 S4: explicit settings scope, accessible fields and draft/portal lifecycle; select.tsx."
-    },
-    {
-      "path": "src/renderer/src/components/ui/sheet.tsx",
-      "upstream_sha256": "ad5717f16d0a02960ac86a4d8871dcc58f0e48b4f846e53e1efe3d87b0e4c662",
-      "current_sha256": "43a50d653c96b06334c12ae5a1d612830777b92a8d95e866b444069df53756d0",
-      "reason": "UI r1 S1: fixed management theme, typography and scoped primitives; sheet.tsx."
-    },
-    {
-      "path": "src/renderer/src/components/ui/textarea.tsx",
-      "upstream_sha256": "c9ec3c488213214998b5344487e8545898e323c4a0acca9a843d3c4de30365c8",
-      "current_sha256": "b7a6a6bfcdb0b78a10d983b229993a0d588245fcd12bfb2c3dda4f7afbd3f963",
-      "reason": "UI r1 S1: fixed management theme, typography and scoped primitives; textarea.tsx."
     },
     {
       "path": "src/renderer/src/components/workspace-space/WorkspaceSpacePage.tsx",
@@ -328522,12 +328306,6 @@
       "upstream_sha256": "3872aa7b740accfbd1b195aad6d5a6f8a5edcf606608398df80140e8043685af",
       "current_sha256": "09a5c299894293b7ae5c41d03ef80962ed27a286e3de52467a496ce5d306b2d1",
       "reason": "UI r1 S8: fixed window appearance and bounded recovery/help presentation; space.tsx."
-    },
-    {
-      "path": "src/renderer/src/components/settings/AppearanceSection.tsx",
-      "upstream_sha256": "c04219b40d2781d71b7c981a9628d2c01be4ec3eb55f5b9bbf72a1353bb8e017",
-      "current_sha256": "db812b83131f69a6553e84d6ffdbbe0e28b533a8362338d62de2c113cf9bd7e7",
-      "reason": "UI convergence: approved Eigent settings hierarchy, responsive project navigation and incoming workspace route restoration."
     }
   ],
   "reviewed_findings": [
