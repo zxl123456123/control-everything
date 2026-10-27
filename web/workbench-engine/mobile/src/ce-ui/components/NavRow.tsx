@@ -3,7 +3,8 @@ import { View } from 'react-native'
 import { ChevronRight } from 'lucide-react-native'
 import { PressableScale } from '../motion/PressableScale'
 import { useCeTheme } from '../theme/theme'
-import { ceRadii, ceSpace } from '../theme/tokens'
+import { ceRadii, ceSpace, withAlpha } from '../theme/tokens'
+import { GlassLayer, glassBox } from './Glass'
 import { CeText } from './CeText'
 
 /** Tappable row: icon tile, title, one-line hint, chevron. 64 high, so well past the 44 target. */
@@ -22,7 +23,7 @@ export function NavRow({
   disabled?: boolean
   testID?: string
 }) {
-  const { c } = useCeTheme()
+  const { c, scheme } = useCeTheme()
   return (
     <PressableScale
       testID={testID}
@@ -36,19 +37,19 @@ export function NavRow({
         alignItems: 'center',
         gap: ceSpace.md,
         padding: ceSpace.md,
-        borderRadius: ceRadii.card,
-        backgroundColor: c.surface,
-        borderWidth: 1,
-        borderColor: c.line,
+        ...glassBox(c, scheme, ceRadii.card),
         opacity: disabled ? 0.5 : 1
       }}
     >
+      <GlassLayer radius={ceRadii.card} />
       <View
         style={{
           width: 44,
           height: 44,
           borderRadius: ceRadii.button,
-          backgroundColor: c.soft,
+          backgroundColor: withAlpha(c.accent, scheme === 'dark' ? 0.2 : 0.1),
+          borderWidth: 1,
+          borderColor: withAlpha(c.accent, 0.28),
           alignItems: 'center',
           justifyContent: 'center'
         }}

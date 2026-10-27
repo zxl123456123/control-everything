@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest'
-import { cePalettes, ceHit, ceRadii, ceSpace, ceType, withAlpha, type CeScheme } from './tokens'
+import {
+  cePalettes,
+  ceHit,
+  ceRadii,
+  ceSpace,
+  ceType,
+  splitRgba,
+  withAlpha,
+  type CeScheme
+} from './tokens'
 
 function channel(value: number): number {
   const v = value / 255
@@ -25,8 +34,8 @@ const schemes: CeScheme[] = ['dark', 'light']
 
 describe('type scale', () => {
   it('matches the agreed scale and never drops below 13', () => {
-    expect(ceType.display).toMatchObject({ fontSize: 32, lineHeight: 38 })
-    expect(ceType.title).toMatchObject({ fontSize: 24, lineHeight: 30 })
+    expect(ceType.display).toMatchObject({ fontSize: 34, lineHeight: 40, fontWeight: '600' })
+    expect(ceType.title).toMatchObject({ fontSize: 24, lineHeight: 30, fontWeight: '600' })
     expect(ceType.headline).toMatchObject({ fontSize: 18, lineHeight: 26 })
     expect(ceType.body).toMatchObject({ fontSize: 16, lineHeight: 24 })
     expect(ceType.callout).toMatchObject({ fontSize: 15, lineHeight: 22 })
@@ -43,7 +52,7 @@ describe('spacing, radii and touch targets', () => {
     for (const value of Object.values(ceSpace)) expect(value % 4).toBe(0)
   })
   it('keeps the agreed radii and hit sizes', () => {
-    expect(ceRadii).toMatchObject({ button: 14, card: 20, sheet: 28 })
+    expect(ceRadii).toMatchObject({ button: 16, card: 24, sheet: 28 })
     expect(ceHit.min).toBeGreaterThanOrEqual(44)
     expect(ceHit.primaryButton).toBe(52)
   })
@@ -71,20 +80,61 @@ describe.each(schemes)('%s palette', (scheme) => {
   })
 })
 
-describe('palette parity with the browser portal', () => {
-  it('uses the portal slate values', () => {
+describe('palette parity with the browser portal and the Keycloak theme', () => {
+  it('uses the shared Aurora Glass values', () => {
     expect(cePalettes.dark).toMatchObject({
-      bg: '#020617',
-      surface: '#0f172a',
-      soft: '#1e293b',
-      text: '#f8fafc',
-      muted: '#94a3b8',
-      line: '#263247'
+      bg: '#05060e',
+      surface: '#0e1020',
+      text: '#f5f7ff',
+      muted: '#b3bbd4',
+      accent: '#5b5ef0',
+      accentB: '#8b4df5',
+      accentText: '#aab6ff'
     })
     expect(cePalettes.light).toMatchObject({
-      soft: '#f1f5f9',
-      text: '#0f172a',
-      line: '#e2e8f0'
+      bg: '#eef0fb',
+      text: '#0b1020',
+      muted: '#475069',
+      accent: '#4f46e5',
+      accentB: '#7c3aed',
+      accentText: '#4338ca'
+    })
+  })
+})
+
+describe.each(schemes)('%s glass surfaces', (scheme) => {
+  const p = cePalettes[scheme]
+  it('has a translucent fill in the 0.45-0.65 range', () => {
+    for (const fill of [p.glass]) {
+      const alpha = Number(fill.match(/[\d.]+/g)![3])
+      expect(alpha).toBeGreaterThanOrEqual(0.45)
+      expect(alpha).toBeLessThanOrEqual(0.65)
+    }
+  })
+  it('keeps text AA on glass over the brightest aurora blob (worst case)', () => {
+    expect(contrast(p.text, p.glassWorst)).toBeGreaterThanOrEqual(7)
+    expect(contrast(p.muted, p.glassWorst)).toBeGreaterThanOrEqual(4.5)
+    expect(contrast(p.accentText, p.glassWorst)).toBeGreaterThanOrEqual(4.5)
+  })
+  it('keeps both gradient stops readable under white button labels', () => {
+    expect(contrast(p.onAccent, p.accent)).toBeGreaterThanOrEqual(4.5)
+    expect(contrast(p.onAccent, p.accentB)).toBeGreaterThanOrEqual(4.5)
+  })
+  it('keeps every status tone readable on the worst-case glass', () => {
+    for (const toneColors of Object.values(p.tones)) {
+      expect(contrast(toneColors.fg, over(toneColors.bg, p.glassWorst))).toBeGreaterThanOrEqual(4.5)
+    }
+  })
+  it('has four aurora blobs', () => {
+    expect(p.aurora).toHaveLength(4)
+  })
+})
+
+describe('splitRgba', () => {
+  it('separates colour and opacity for SVG stops', () => {
+    expect(splitRgba('rgba(79, 102, 255, 0.68)')).toEqual({
+      color: 'rgb(79, 102, 255)',
+      opacity: 0.68
     })
   })
 })

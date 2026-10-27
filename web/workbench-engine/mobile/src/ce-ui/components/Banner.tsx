@@ -4,7 +4,8 @@ import Animated, { FadeInDown, FadeOut } from 'react-native-reanimated'
 import { Info, ShieldAlert, TriangleAlert } from 'lucide-react-native'
 import { useMotionEnabled } from '../motion/use-motion'
 import { useCeTheme } from '../theme/theme'
-import { ceRadii, ceSpace, type CeTone } from '../theme/tokens'
+import { ceRadii, ceSpace, withAlpha, type CeTone } from '../theme/tokens'
+import { GlassSurface } from './Glass'
 import { CeText } from './CeText'
 
 const bannerIcons = { info: Info, warning: TriangleAlert, danger: ShieldAlert } as const
@@ -33,31 +34,30 @@ export function Banner({
       accessibilityRole="alert"
       entering={motion ? FadeInDown.duration(220) : undefined}
       exiting={motion ? FadeOut.duration(120) : undefined}
-      style={{
-        borderRadius: ceRadii.card,
-        padding: ceSpace.lg,
-        gap: ceSpace.md,
-        backgroundColor: t.bg,
-        borderWidth: 1,
-        borderColor: t.dot
-      }}
     >
-      <View style={{ flexDirection: 'row', gap: ceSpace.md, alignItems: 'flex-start' }}>
-        <View style={{ paddingTop: 2 }}>
-          <Icon size={20} color={t.fg} strokeWidth={2.2} />
-        </View>
-        <View style={{ flex: 1, gap: ceSpace.xs }}>
-          <CeText variant="callout" weight="700" style={{ color: t.fg }}>
-            {title}
-          </CeText>
-          {message ? (
-            <CeText variant="callout" color="muted" style={{ fontWeight: '400' }}>
-              {message}
+      <GlassSurface
+        radius={ceRadii.card}
+        tint={t.bg}
+        edge={[withAlpha(t.dot, 0.85), withAlpha(t.dot, 0.25)]}
+        style={{ padding: ceSpace.lg, gap: ceSpace.md }}
+      >
+        <View style={{ flexDirection: 'row', gap: ceSpace.md, alignItems: 'flex-start' }}>
+          <View style={{ paddingTop: 2 }}>
+            <Icon size={20} color={t.fg} strokeWidth={2.2} />
+          </View>
+          <View style={{ flex: 1, gap: ceSpace.xs }}>
+            <CeText variant="callout" weight="700" style={{ color: t.fg }}>
+              {title}
             </CeText>
-          ) : null}
+            {message ? (
+              <CeText variant="callout" color="muted" style={{ fontWeight: '400' }}>
+                {message}
+              </CeText>
+            ) : null}
+          </View>
         </View>
-      </View>
-      {action}
+        {action}
+      </GlassSurface>
     </Animated.View>
   )
 }

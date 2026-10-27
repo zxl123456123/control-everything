@@ -12,7 +12,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useMotionEnabled } from '../motion/use-motion'
 import { durations, sheetDragOffset, shouldDismissSheet, springs } from '../motion/springs'
 import { useCeTheme } from '../theme/theme'
-import { ceRadii, ceSpace } from '../theme/tokens'
+import { ceRadii, ceSpace, withAlpha } from '../theme/tokens'
 import { CeText } from './CeText'
 
 type Props = {
@@ -103,12 +103,17 @@ export function CeSheet({ visible, onClose, title, children, testID }: Props) {
           style={[
             {
               maxHeight: height * 0.9,
-              backgroundColor: c.surface,
+              // Near-opaque on purpose: nothing blurs what is behind a sheet yet, so the fill carries legibility.
+              backgroundColor: withAlpha(c.surface, 0.98),
+              shadowColor: c.shadow,
+              shadowOpacity: 0.5,
+              shadowRadius: 32,
+              shadowOffset: { width: 0, height: -8 },
               borderTopLeftRadius: ceRadii.sheet,
               borderTopRightRadius: ceRadii.sheet,
               borderWidth: 1,
               borderBottomWidth: 0,
-              borderColor: c.line,
+              borderColor: c.glassRim[1],
               paddingHorizontal: ceSpace.xl,
               paddingBottom: insets.bottom + ceSpace.xl,
               // Extra below-the-fold fill so the rubber-band never reveals a gap.
@@ -118,6 +123,18 @@ export function CeSheet({ visible, onClose, title, children, testID }: Props) {
             sheetStyle
           ]}
         >
+          <View
+            pointerEvents="none"
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: ceRadii.sheet,
+              right: ceRadii.sheet,
+              height: 1,
+              backgroundColor: c.glassRim[0],
+              opacity: 0.7
+            }}
+          />
           <GestureDetector gesture={pan}>
             <View style={{ alignItems: 'center', paddingBottom: ceSpace.md }} collapsable={false}>
               <View
@@ -125,7 +142,7 @@ export function CeSheet({ visible, onClose, title, children, testID }: Props) {
                   width: 40,
                   height: 5,
                   borderRadius: 3,
-                  backgroundColor: c.line,
+                  backgroundColor: c.fieldEdge,
                   marginBottom: ceSpace.md
                 }}
               />

@@ -3,7 +3,7 @@ import { Pressable, TextInput, View } from 'react-native'
 import Animated from 'react-native-reanimated'
 import { groupInvite, INVITE_MAX_LENGTH } from '../invite/invite-code'
 import { useCeTheme } from '../theme/theme'
-import { ceHit, ceRadii, ceSpace } from '../theme/tokens'
+import { ceHit, ceRadii, ceSpace, withAlpha } from '../theme/tokens'
 import { CeText } from './CeText'
 
 type Props = {
@@ -36,7 +36,7 @@ export function SegmentedCodeInput({
   const [focused, setFocused] = useState(false)
   const groups = groupInvite(value)
   const caretGroup = Math.min(Math.floor(value.length / 4), groups.length - 1)
-  const border = hasError ? c.tones.danger.dot : focused ? c.accent : c.line
+  const border = hasError ? c.tones.danger.dot : focused ? c.accent : c.fieldEdge
   return (
     <Animated.View style={animatedStyle}>
       <Pressable
@@ -51,7 +51,12 @@ export function SegmentedCodeInput({
           borderRadius: ceRadii.input,
           borderWidth: focused || hasError ? 2 : 1,
           borderColor: border,
-          backgroundColor: c.soft
+          backgroundColor: c.field,
+          // Focus ring: a soft halo of the accent (iOS + web), plus the 2px border.
+          shadowColor: hasError ? c.tones.danger.dot : c.accent,
+          shadowOpacity: focused || hasError ? 0.45 : 0,
+          shadowRadius: 12,
+          shadowOffset: { width: 0, height: 0 }
         }}
       >
         {groups.map((group, index) => (
@@ -64,9 +69,9 @@ export function SegmentedCodeInput({
               alignItems: 'center',
               justifyContent: 'center',
               borderRadius: ceRadii.button - 4,
-              backgroundColor: group.filled ? c.surface : 'transparent',
+              backgroundColor: group.filled ? withAlpha(c.accent, 0.16) : 'transparent',
               borderWidth: 1,
-              borderColor: index === caretGroup && focused ? c.accent : c.line
+              borderColor: index === caretGroup && focused ? c.accent : c.fieldEdge
             }}
           >
             <CeText variant="headline" style={{ letterSpacing: 2 }}>

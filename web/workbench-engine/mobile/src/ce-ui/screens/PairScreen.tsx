@@ -6,6 +6,7 @@ import { useRouter } from 'expo-router'
 import { ClipboardPaste, QrCode } from 'lucide-react-native'
 import { Banner } from '../components/Banner'
 import { Button } from '../components/Button'
+import { Card } from '../components/Card'
 import { CeSheet } from '../components/CeSheet'
 import { CeText } from '../components/CeText'
 import { Expandable, Note } from '../components/Expandable'
@@ -114,8 +115,8 @@ function PasteSheet({
           padding: ceSpace.md,
           borderRadius: ceRadii.input,
           borderWidth: 1,
-          borderColor: c.line,
-          backgroundColor: c.soft,
+          borderColor: c.fieldEdge,
+          backgroundColor: c.field,
           color: c.text,
           fontSize: 16,
           textAlignVertical: 'top'
@@ -146,18 +147,8 @@ export function PairScreen() {
       <ActivityIndicator color={c.muted} />
     </View>
   ) : !permission.granted ? (
-    <View
-      style={{
-        gap: ceSpace.md,
-        alignItems: 'center',
-        padding: ceSpace.xl,
-        borderRadius: ceRadii.card,
-        backgroundColor: c.surface,
-        borderWidth: 1,
-        borderColor: c.line
-      }}
-    >
-      <QrCode size={40} color={c.muted} strokeWidth={1.6} />
+    <Card style={{ gap: ceSpace.md, alignItems: 'center', padding: ceSpace.xl }}>
+      <QrCode size={40} color={c.accentText} strokeWidth={1.6} />
       <CeText variant="headline">{copy.pair.cameraNeeded}</CeText>
       <View style={{ alignSelf: 'stretch' }}>
         <Button
@@ -170,7 +161,7 @@ export function PairScreen() {
           }
         />
       </View>
-    </View>
+    </Card>
   ) : (
     <View
       style={{

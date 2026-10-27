@@ -15,6 +15,7 @@ vi.mock('react-native-gesture-handler', async () =>
 vi.mock('react-native-safe-area-context', async () =>
   (await import('../test-support/native-mocks')).safeAreaMock()
 )
+vi.mock('react-native-svg', async () => (await import('../test-support/native-mocks')).svgMock())
 vi.mock('lucide-react-native', async () =>
   (await import('../test-support/native-mocks')).lucideMock()
 )

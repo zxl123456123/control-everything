@@ -1,8 +1,9 @@
 import type { ReactNode } from 'react'
-import { View, type StyleProp, type ViewStyle } from 'react-native'
-import { useCeTheme } from '../theme/theme'
+import type { StyleProp, ViewStyle } from 'react-native'
 import { ceRadii, ceSpace } from '../theme/tokens'
+import { GlassSurface } from './Glass'
 
+/** Glass card: translucent fill over the aurora, top highlight, gradient hairline, layered shadow. */
 export function Card({
   children,
   style,
@@ -12,21 +13,9 @@ export function Card({
   style?: StyleProp<ViewStyle>
   padded?: boolean
 }) {
-  const { c } = useCeTheme()
   return (
-    <View
-      style={[
-        {
-          backgroundColor: c.surface,
-          borderRadius: ceRadii.card,
-          borderWidth: 1,
-          borderColor: c.line,
-          padding: padded ? ceSpace.lg : 0
-        },
-        style
-      ]}
-    >
+    <GlassSurface radius={ceRadii.card} style={[{ padding: padded ? ceSpace.lg : 0 }, style]}>
       {children}
-    </View>
+    </GlassSurface>
   )
 }

@@ -1,8 +1,9 @@
 import { ActivityIndicator, View, type StyleProp, type ViewStyle } from 'react-native'
 import type { ReactNode } from 'react'
+import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg'
 import { PressableScale } from '../motion/PressableScale'
 import { useCeTheme } from '../theme/theme'
-import { ceHit, ceRadii, ceSpace } from '../theme/tokens'
+import { ceHit, ceRadii, ceSpace, withAlpha } from '../theme/tokens'
 import { CeText } from './CeText'
 
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger'
@@ -34,14 +35,17 @@ export function Button({
   testID?: string
   accessibilityHint?: string
 }) {
-  const { c } = useCeTheme()
+  const { c, scheme } = useCeTheme()
   const inactive = disabled || loading
+  const filled = variant === 'primary' || variant === 'danger'
   const palette = {
-    primary: { bg: c.accent, fg: c.onAccent, border: c.accent },
-    danger: { bg: c.danger, fg: c.onDanger, border: c.danger },
-    secondary: { bg: c.soft, fg: c.text, border: c.line },
+    primary: { bg: c.accent, fg: c.onAccent, border: 'transparent' },
+    danger: { bg: c.danger, fg: c.onDanger, border: 'transparent' },
+    secondary: { bg: c.field, fg: c.text, border: c.fieldEdge },
     ghost: { bg: 'transparent', fg: c.accentText, border: 'transparent' }
   }[variant]
+  const gradient = variant === 'danger' ? [c.danger, '#be123c'] : [c.accent, c.accentB]
+  const glow = variant === 'danger' ? withAlpha('#e11d48', 0.4) : c.glow
   return (
     <PressableScale
       testID={testID}
@@ -59,9 +63,18 @@ export function Button({
           borderRadius: ceRadii.button,
           paddingHorizontal: ceSpace.xl,
           backgroundColor: palette.bg,
-          borderWidth: 1,
+          borderWidth: filled ? 0 : 1,
           borderColor: palette.border,
           opacity: disabled && !loading ? 0.45 : 1,
+          // Glow under filled buttons (iOS + web). Android keeps the flat gradient.
+          ...(filled && !disabled
+            ? {
+                shadowColor: glow,
+                shadowOpacity: 1,
+                shadowRadius: scheme === 'dark' ? 22 : 18,
+                shadowOffset: { width: 0, height: 8 }
+              }
+            : null),
           flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'center',
@@ -70,6 +83,7 @@ export function Button({
         style
       ]}
     >
+      {filled ? <ButtonFill from={gradient[0]!} to={gradient[1]!} id={variant} /> : null}
       {loading ? (
         <ActivityIndicator size="small" color={palette.fg} />
       ) : icon ? (
@@ -79,5 +93,30 @@ export function Button({
         {label}
       </CeText>
     </PressableScale>
+  )
+}
+
+/** Diagonal accent gradient plus a 1px top highlight, sized by percentages so it needs no layout pass. */
+function ButtonFill({ from, to, id }: { from: string; to: string; id: string }) {
+  return (
+    <View
+      pointerEvents="none"
+      style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+    >
+      <Svg width="100%" height="100%">
+        <Defs>
+          <LinearGradient id={`ce-btn-${id}`} x1="0" y1="0" x2="1" y2="1">
+            <Stop offset="0" stopColor={from} />
+            <Stop offset="1" stopColor={to} />
+          </LinearGradient>
+          <LinearGradient id={`ce-btn-hi-${id}`} x1="0" y1="0" x2="0" y2="1">
+            <Stop offset="0" stopColor="#ffffff" stopOpacity={0.28} />
+            <Stop offset="0.5" stopColor="#ffffff" stopOpacity={0} />
+          </LinearGradient>
+        </Defs>
+        <Rect width="100%" height="100%" rx={ceRadii.button} fill={`url(#ce-btn-${id})`} />
+        <Rect width="100%" height="100%" rx={ceRadii.button} fill={`url(#ce-btn-hi-${id})`} />
+      </Svg>
+    </View>
   )
 }

@@ -6,6 +6,7 @@ import { ChevronLeft } from 'lucide-react-native'
 import { PressableScale } from '../motion/PressableScale'
 import { useCeTheme } from '../theme/theme'
 import { ceHit, ceSpace } from '../theme/tokens'
+import { Aurora } from './Aurora'
 import { CeText } from './CeText'
 
 /**
@@ -52,12 +53,15 @@ export function ScreenFrame({
             style={{
               width: ceHit.min,
               height: ceHit.min,
-              marginLeft: -ceSpace.sm,
+              borderRadius: ceHit.min,
+              backgroundColor: c.field,
+              borderWidth: 1,
+              borderColor: c.fieldEdge,
               alignItems: 'center',
               justifyContent: 'center'
             }}
           >
-            <ChevronLeft size={26} color={c.text} />
+            <ChevronLeft size={24} color={c.text} />
           </PressableScale>
         ) : (
           <View />
@@ -82,6 +86,7 @@ export function ScreenFrame({
   }
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>
+      <Aurora />
       <Stack.Screen options={{ headerShown: false }} />
       {scroll ? (
         <ScrollView

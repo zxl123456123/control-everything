@@ -63,7 +63,19 @@ export function PulseDot({
           ring
         ]}
       />
-      <View style={{ width: size, height: size, borderRadius: size, backgroundColor: color }} />
+      <View
+        style={{
+          width: size,
+          height: size,
+          borderRadius: size,
+          backgroundColor: color,
+          // Glow dot: a soft halo of its own colour (iOS + web).
+          shadowColor: color,
+          shadowOpacity: 0.9,
+          shadowRadius: 6,
+          shadowOffset: { width: 0, height: 0 }
+        }}
+      />
     </View>
   )
 }
