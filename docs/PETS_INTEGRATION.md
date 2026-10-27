@@ -248,8 +248,8 @@ pip wheel . --no-deps --no-build-isolation -w /tmp/whl
 | 点击转盘外面 | 关闭 | 保持打开 |
 | Esc | 关闭并还焦点 | 收起（不取消固定） |
 | 执行动作 | 关闭 | 保持打开，可以连续点 |
-| 外观 | 带底盘和阴影 | 去掉底盘和阴影，虚线外环，中心标签隐藏 |
-| 点击穿透 | 底盘拦截 | 底盘和空白环 `pointer-events:none`，只有 6 个按钮可点，不挡阅读 |
+| 外观 | 带底盘和阴影的环 | 收成贴着宠物一侧屏幕边缘的竖条（v4，见第 11 节），中心标签隐藏 |
+| 点击穿透 | 底盘拦截 | 底盘和空白区域 `pointer-events:none`，只有按钮可点，不挡阅读 |
 
 只持久化“是否固定”（`news-reader-pet-dial-pin`），不持久化“当前是否打开”：刷新页面后转盘默认收起，点宠物就回到固定位置。理由是页面一加载就弹出转盘会打扰，而“固定”表达的是“打开时别因为我点别处而消失”。
 
@@ -262,6 +262,29 @@ pip wheel . --no-deps --no-build-isolation -w /tmp/whl
 **蜘蛛核对**：`web/workspace/news-spider.js` 与 `origin/develop` 上的文件完全一致，没有改动；注册表用 `register('spider', {mount: options => global.NewsSpider.mount(options)})` 直接挂载原模型。蜘蛛“超出边界”的修复只在 `news-reader.css`（2 行，提交 214ea3ac）和工作台外壳的内边距（ea6a928b）。设置页预览里的蜘蛛是手绘静态 SVG 缩略图，**不是**真模型；工作台不挂载蜘蛛。蜘蛛没有点击事件，所以它的转盘只能通过阅读器顶部的「宠物转盘」按钮打开。
 
 **测试**：`tests/frontend/test_news_pet_wheel.cjs`（纯函数：布局、环半径、贴边）、`test_studio_pet_settings.cjs`（固定开关与环形预览）、`test_news_naidragon.cjs` / `test_news_tabbycat.cjs`（`news-pet-tap`）、`tests/e2e/verify_pet_wheel.cjs`（真实浏览器：开合、固定、外部点击、Esc、竞态、窄屏）。
+
+## 11. 同一时刻只有一只宠物、收集托盘与转盘收敛（v4）
+
+**“新闻页又有蜘蛛又有猫”的根因**：画面里粉色的“窝”不是第二只宠物，而是 3D 宠物自带的内容仓库装饰（狸花猫是粉色软垫，奶龙是黄色），它被画在阅读器原有的内容仓库（`#web-depot`）上，**常驻不消失**，和蜘蛛时代的内容仓库同在一个区域，看起来像两只宠物。排查结果：切换（蜘蛛→猫→奶龙→关→开→刷新）时旧实例都会 `destroy()`，没有残留的宠物画布。唯一真正的第二只宠物来自研究面板：它自己挂一只宠物，而模态背后的主舞台宠物依然可见。
+
+**修复**：
+- 3D 宠物的收集托盘改成中性石板灰、与具体宠物无关，只在“正在收集”以及投递后的 6 秒内淡入，平时 `opacity:0`。
+- 研究面板展开采集详情并挂出自己的宠物时，主舞台宠物用 CSS 隐藏（`news-reader.css` 末尾，条件 `:has(#research-panel[open] #research-details[open])`）。
+- 蜘蛛的模型和样子没有改动。
+
+**单宠物规则**：整个应用里，同一时刻可见的宠物画布数为 1（宠物关闭时为 0）。工作台吉祥物只给 3D 宠物，所以在工作台里选蜘蛛时不显示宠物（蜘蛛是新闻页的采集动画）；新闻页在工作台里是 iframe，吉祥物在新闻路由上隐藏，两者不会叠加。`tests/e2e/verify_pet_singleton.cjs` 在阅读器宿主和工作台宿主上走“蜘蛛→猫→奶龙→关→开→刷新”并统计可见宠物画布，另有研究面板用例；设置环境变量 `PET_BASE=http://127.0.0.1:端口` 还会在运行中的网关上走真实工作台（含 iframe），逐帧求和。
+
+**转盘收敛现状**：
+
+| 项目 | 状态 |
+| --- | --- |
+| 应用内转盘实现 | 只有 `NewsPetWheel`；阅读器与工作台都不再向引擎传 `actions`，研究面板的宠物显式 `dial:false` |
+| 动作池 | `NewsPetDial`（3～6 个）+ `NewsPetDirector.buildActions`，各页面只提供处理函数 |
+| 偏好 | `NewsPetPrefs` 字段表是唯一来源（含固定、安静、尺寸、停靠） |
+| 位置 / 固定 / 键盘 | 都在 `news-pet-wheel.js`，两处宿主同一份 |
+| 固定转盘形态 | 贴着宠物一侧屏幕边缘的竖条（`placeRail`），不再压住设置页右下角控件；悬停或聚焦时在竖条旁显示动作名 |
+| 引擎自带 SVG 转盘 | **未删除**：只给独立嵌入用，奶龙与狸花猫两份代码重复，并带一个只存在于引擎里的“更多”页。删除需要同时改 `docs/examples/pets` 与两份引擎测试，所以保留并在此注明 |
+| 蜘蛛 | 没有转盘，只能用阅读器顶部「宠物转盘」按钮；工作台上不显示 |
 
 ## 6. 回滚
 
@@ -277,5 +300,5 @@ pip wheel . --no-deps --no-build-isolation -w /tmp/whl
 - `check_repository` 里的 gitleaks 步骤在我的环境里不可用，报 `tool-unavailable`。
 - 仓库自带的几个 e2e 脚本（`verify_news_reader*.cjs`、`verify_news_navigation.cjs`）在我的 Linux + Chrome 环境里，**在没有改动的 `develop` 上同样失败**，失败位置和打补丁后完全一致，所以没法用它们做对比；改用真实网关的无头运行和单元测试做验证。
 - 奶龙的授权问题见 (f)。
-- 转盘有两套实现：宿主层 `NewsPetWheel`（阅读器和工作台使用）与引擎自带的 SVG 转盘（仅独立嵌入使用），尚未合并。
+- 转盘仍有两处代码：宿主层 `NewsPetWheel`（阅读器和工作台，应用内唯一使用）与奶龙、狸花猫引擎里自带的 SVG 转盘（只给 `docs/examples/pets` 的独立嵌入）。应用内不再向引擎传 `actions`，引擎自带转盘只有在传入 `actions` 时才会构建；两只引擎的这份代码彼此重复，且带一个只存在于引擎里的“更多”页，见第 11 节。
 - 本机网关没有 `favicon.ico`，浏览器控制台会有一条无关的 404。

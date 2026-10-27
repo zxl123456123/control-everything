@@ -43,6 +43,8 @@ const pet = window.NewsPets.mount('naidragon', {
 | `inspect()` | 只读诊断：渲染器（`webgl` 或 `canvas2d-fallback`）、三角形数、位置、画布大小与 DPR、帧耗时 |
 | `destroy()` | 幂等；移除全部监听、定时器、rAF、样式、私有画布，并释放 WebGL 上下文 |
 
+> 引擎自带转盘只用于像本文这样的独立嵌入。主项目里（阅读器与个人工作台）统一由宿主层 `NewsPetWheel` 提供转盘，宿主以 `dial:false` 且不传 `actions` 挂载宠物，详见 `docs/PETS_INTEGRATION.md` 第 10、11 节。
+
 选择一个操作后，会依次调用该项的 `run(detail)`、`onAction(detail)`，并在 `root` 上派发 `news-pet-action` 事件，`detail` 为 `{id, label, index}`。
 
 注册方式：奶龙通过 `window.NewsPets.register('naidragon', ...)` 注册，`window.NewsNaidragon` 是脚本加载后唯一的全局对象，没有其它全局泄漏。`NewsPets.list()` 返回已注册的宠物 `{name, label}`。

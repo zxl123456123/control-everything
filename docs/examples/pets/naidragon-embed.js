@@ -1,4 +1,6 @@
-/* Embedding example for the Nailong pet: floating 160px widget, full-page overlay and sidebar slot. No inline script, no eval. */
+/* Embedding example for the Nailong pet: floating 160px widget, full-page overlay and sidebar slot. No inline script, no eval.
+ * The built-in action dial (setActions / opt-dial) is for stand-alone embeds only like this one: inside the Studio and the news reader the
+ * host-level NewsPetWheel is the only dial, and those hosts mount the pet with dial:false and no actions. */
 (function () {
   'use strict';
   const $ = id => document.getElementById(id);
