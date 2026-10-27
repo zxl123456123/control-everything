@@ -141,7 +141,9 @@
       const enabled = makeSwitch('studio-pet-enabled', '显示宠物');
       const cards = make('div', 'ce-pet-cards'); cards.id = 'studio-pet-form';
       cards.setAttribute('role', 'radiogroup'); cards.setAttribute('aria-label', '宠物形象');
-      const pickerRow = make('div', 'ce-pet-picker'); pickerRow.append(cards);
+      // One visible line, only while a news-page-only form is selected: the rest of the helper text stays in tooltips.
+      const newsOnlyNote = make('p', 'ce-pet-note'); newsOnlyNote.id = 'studio-pet-news-only';
+      const pickerRow = make('div', 'ce-pet-picker'); pickerRow.append(cards, newsOnlyNote);
 
       // --- 行为 ---
       const quiet = makeSwitch('studio-pet-quiet', '安静模式');
@@ -223,6 +225,9 @@
         const forms = pets.list();
         if (cardInputs.size !== forms.length || forms.some(form => !cardInputs.has(form.name))) buildCards(forms);
         for (const [name, input] of cardInputs) input.checked = name === next.pet;
+        const everywhere = forms.filter(form => form.status).map(form => form.label), picked = forms.find(form => form.name === next.pet);
+        newsOnlyNote.hidden = !picked || picked.status || !everywhere.length;
+        newsOnlyNote.textContent = everywhere.length ? `${picked ? picked.label : ''}只在新闻页出现；想在工作台里看到，请选${everywhere.join('或')}。` : '';
         mark(enabled, next.enabled); mark(quiet, next.quiet); mark(newsFx, next.newsFx); mark(pin, next.dialPin);
         selectOption(size, next.size); selectOption(dock, next.dock);
         for (const [id, chip] of chips) chip.setAttribute('aria-pressed', String(next.dial.includes(id)));
