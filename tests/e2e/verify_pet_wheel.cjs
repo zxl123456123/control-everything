@@ -21,9 +21,11 @@ const actions = ['a', 'b', 'c', 'd', 'e', 'f'].map(id => `{id:'${id}',label:'动
   const tap = () => page.evaluate(() => document.getElementById('pet').dispatchEvent(new CustomEvent('news-pet-tap', {detail: {double: false}})));
   const settle = () => page.waitForTimeout(700);
 
+  check('a closed wheel does not block native page navigation', await page.locator('.pw-wheel').getAttribute('data-state') === 'closed');
   await tap(); await settle();
   let s = await state();
   check('a pet tap opens the wheel with every action', s.open && s.count === 6);
+  check('an open wheel exposes its popup state to native navigation', await page.locator('.pw-wheel').getAttribute('data-state') === 'open');
   const first = await page.evaluate(() => JSON.stringify([window.w.inspect().x, window.w.inspect().y]));
   await tap(); await settle(); await tap(); await settle();
   check('the same anchor gives the same place every time', first === await page.evaluate(() => JSON.stringify([window.w.inspect().x, window.w.inspect().y])));
@@ -35,6 +37,7 @@ const actions = ['a', 'b', 'c', 'd', 'e', 'f'].map(id => `{id:'${id}',label:'动
   await page.click('.pw-wheel button[data-id=b]'); await settle();
   s = await state();
   check('choosing runs the action and closes an unpinned wheel', s.ran.join() === 'b' && !s.open);
+  check('closing the wheel releases the native navigation guard', await page.locator('.pw-wheel').getAttribute('data-state') === 'closed');
 
   await tap(); await settle(); await page.mouse.click(700, 300); await settle();
   check('a click elsewhere closes an unpinned wheel', !(await state()).open);

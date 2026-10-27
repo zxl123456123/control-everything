@@ -91,7 +91,8 @@ export default function PlatformProjectEntry(): React.JSX.Element {
     }
   }, [projectActionHost])
   const projectSettings = route.view === 'project' && route.tab === 'settings'
-  const globalSettings = route.view === 'settings' && !['account', 'sources'].includes(route.tab)
+  const globalSettings = route.view === 'settings' && !['appearance', 'account', 'sources'].includes(route.tab)
+  const settingsTab = route.tab === 'workbench-appearance' ? 'appearance' : route.tab
   const nativeSettings = projectSettings || globalSettings
   const settingsRequestKey = `${acceptedRevision}:${route.view}:${route.id}:${route.tab}`
   const currentSettingsRequest = useRef(settingsRequestKey)
@@ -182,9 +183,9 @@ export default function PlatformProjectEntry(): React.JSX.Element {
         name: chosen.name, path: chosen.directory ?? '' }
     }
     return { kind: 'global', contextKey: trustedContextKey.current,
-      entry: route.tab === 'appearance' ? 'appearance' : 'development',
+      entry: settingsTab === 'appearance' ? 'appearance' : 'development',
       ...(globalSettings && runtimeData ? { environmentId: runtimeData.runtime.environmentId } : {}) }
-  }, [projectSettings, globalSettings, projectId, chosen, data, runtimeData, exactSettings, settingsRequestKey, route.tab])
+  }, [projectSettings, globalSettings, projectId, chosen, data, runtimeData, exactSettings, settingsRequestKey, settingsTab])
   const onSettingsScope = useCallback((value: Extract<SettingsPresentationScope, { kind: 'project' }> | null) => {
     if (currentSettingsRequest.current !== settingsRequestKey) return
     setExactSettings(previous => value ?
@@ -197,18 +198,18 @@ export default function PlatformProjectEntry(): React.JSX.Element {
     if (ready && (ready.contextKey !== scope.contextKey || (scope.kind === 'project'
       ? (ready.repoId !== scope.repoId || ready.hostId !== scope.hostId || ready.setupId !== scope.setupId ||
         ready.sectionId !== `repo-${scope.repoId}`)
-      : ready.repoId !== null || (ready.sectionId !== (route.tab === 'development' ? 'agents' : route.tab) &&
+      : ready.repoId !== null || (ready.sectionId !== (settingsTab === 'development' ? 'agents' : settingsTab) &&
         !(scope.entry === 'development' && ready.sectionId === 'agents'))))) return
     setSettingsReady(previous => ready ?
       (previous?.request === settingsRequestKey && JSON.stringify(previous.ready) === JSON.stringify(ready)
         ? previous : { request: settingsRequestKey, ready }) : null)
-  }, [settingsRequestKey, scope, route.tab])
+  }, [settingsRequestKey, scope, settingsTab])
   const closeSettings = useCallback(() => { window.location.hash = settingsOrigin.current }, [])
   const initialTarget = useMemo(() => {
     if (scope.kind === 'project') return { pane: 'repo' as const, repoId: scope.repoId, hostId: scope.hostId }
-    const target = { pane: route.tab === 'development' ? 'agents' : route.tab, repoId: null }
+    const target = { pane: settingsTab === 'development' ? 'agents' : settingsTab, repoId: null }
     return isSettingsNavigationTarget(target) ? target : undefined
-  }, [scope, route.tab])
+  }, [scope, settingsTab])
   const presentation = useMemo(() => ({ scope, initialTarget, visible: (globalSettings || (projectSettings && connected)) && contextActive,
     onReady: onSettingsReady, onClose: closeSettings, drafts: drafts.current
   }), [scope, initialTarget, globalSettings, projectSettings, connected, contextActive, onSettingsReady, closeSettings])

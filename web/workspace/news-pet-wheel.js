@@ -162,7 +162,8 @@
   function create(host) {
     injectStyle();
     const root = document.createElement('div');
-    root.className = ROOT_CLASS; root.dataset.open = 'false'; root.dataset.pinned = String(Boolean(host.pinned)); root.dataset.theme = pageTheme();
+    // The native navigation guard uses popup state even when CSS hides the wheel.
+    root.className = ROOT_CLASS; root.dataset.open = 'false'; root.dataset.state = 'closed'; root.dataset.pinned = String(Boolean(host.pinned)); root.dataset.theme = pageTheme();
     root.setAttribute('role', 'menu'); root.setAttribute('aria-label', '宠物转盘'); root.hidden = false;
     const plate = document.createElement('div'); plate.className = 'pw-plate';
     const hub = document.createElement('div'); hub.className = 'pw-hub';
@@ -264,7 +265,7 @@
       if (destroyed) return false;
       if (open) { if (focus) focusItem(Math.max(0, active)); return true; }
       build(); if (!items.length) return false;
-      reposition(); open = true; publishInset(); fromKeyboard = Boolean(focus); root.dataset.theme = pageTheme(); root.dataset.open = 'true';
+      reposition(); open = true; publishInset(); fromKeyboard = Boolean(focus); root.dataset.theme = pageTheme(); root.dataset.open = 'true'; root.dataset.state = 'open';
       document.addEventListener('pointerdown', onOutside, true); document.addEventListener('keydown', onKey, true); document.addEventListener('focusin', onFocusIn, true);
       global.addEventListener('resize', schedule); global.addEventListener('scroll', schedule, true);
       if (focus) focusItem(0);
@@ -275,7 +276,7 @@
 
     function close(reason = 'api', toTrigger = false) {
       if (!open) return false;
-      open = false; publishInset(); root.dataset.open = 'false'; closedAt = {reason, time: now()};
+      open = false; publishInset(); root.dataset.open = 'false'; root.dataset.state = 'closed'; closedAt = {reason, time: now()};
       document.removeEventListener('pointerdown', onOutside, true); document.removeEventListener('keydown', onKey, true); document.removeEventListener('focusin', onFocusIn, true);
       global.removeEventListener('resize', schedule); global.removeEventListener('scroll', schedule, true);
       if (frame) { global.cancelAnimationFrame(frame); frame = 0; }
