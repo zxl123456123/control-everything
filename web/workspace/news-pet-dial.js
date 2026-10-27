@@ -51,10 +51,13 @@
     return {ids: normalize([...current, id]), ok: true};
   }
 
-  /** The action definitions one surface can run; tops the list up to MIN from that surface's fallback when the choice does not fit it. */
-  function forSurface(ids, surface) {
+  /**
+   * The action definitions one surface can run; tops the list up to MIN from that surface's fallback when the choice does not fit it.
+   * `skip` names actions the host cannot run right now (for example "open the workbench" while already on it).
+   */
+  function forSurface(ids, surface, skip = []) {
     const allowed = surfaces[surface] || surfaces.news;
-    const fits = id => allowed.has(byId.get(id)?.scope);
+    const fits = id => allowed.has(byId.get(id)?.scope) && !skip.includes(id);
     let list = normalize(ids).filter(fits);
     for (const id of surface === 'studio' ? STUDIO_FALLBACK : DEFAULTS) if (list.length < MIN && fits(id) && !list.includes(id)) list.push(id);
     return list.map(id => byId.get(id));

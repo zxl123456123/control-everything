@@ -46,6 +46,7 @@ test('the news page may use news and general actions, never the Studio-only one'
 
 test('the Studio drops news-only actions but never shows fewer than three', () => {
   eq(ids(dial.forSurface(dial.DEFAULTS, 'studio')), ['workspace', 'quiet', 'pet-settings']);
+  eq(ids(dial.forSurface(dial.DEFAULTS, 'studio', ['workspace'])), ['quiet', 'pet-settings', 'news']);
   eq(ids(dial.forSurface(['next', 'search', 'collect', 'quiet'], 'studio')), ['quiet', 'workspace', 'news']);
   assert.ok(dial.forSurface(['workspace', 'news', 'quiet'], 'studio').every(a => a.scope !== 'news'));
 });
