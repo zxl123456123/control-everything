@@ -1,6 +1,14 @@
 /* Account controls keep hub and local connector trust boundaries separate. */
 (function (scope) {
   'use strict';
+  const symbols = {
+    account: '<circle cx="12" cy="8" r="3"/><path d="M5 21v-2a7 7 0 0 1 14 0v2"/>',
+    computer: '<rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8m-4-4v4"/>',
+    members: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2m20 0v-2a4 4 0 0 0-3-3.87"/><circle cx="9" cy="7" r="4"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+    shield: '<path d="M12 3 4 6v6c0 5 8 9 8 9s8-4 8-9V6Z"/><path d="m9 12 2 2 4-4"/>'
+  };
+  const icon = name => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${symbols[name]}</svg>`;
+  const connectionTone = state => state === 'online' ? 'success' : ['pending','enrolling','connecting','authorizing','awaiting_local_confirmation'].includes(state) ? 'warning' : ['revoking','revoked'].includes(state) ? 'danger' : 'neutral';
   function mount(container, {mode, returnHash, onPortal} = {}) {
     if (!['remote', 'local'].includes(mode)) throw new Error('account_mode_required');
     const remote = mode === 'remote';
@@ -16,16 +24,21 @@
       <header class="ce-account-heading"><h1 tabindex="-1">账号与设备</h1><button class="ce-account-refresh" type="button" data-action="refresh" aria-label="刷新" title="刷新"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 7v5h-5M20 12a8 8 0 1 1-2.3-5.7"/></svg></button></header>
       <p class="ce-account-notice" data-node="status" role="status" aria-live="polite">正在读取连接状态…</p>
       <div class="ce-account-grid">
-        <section class="ce-account-card"><div class="ce-account-card-title"><h2>账号</h2><span class="ce-account-badge" data-node="membership">读取中</span></div>
+        <section class="ce-account-card ce-account-setting"><div class="ce-account-card-title"><span class="ce-account-media">${icon('account')}</span><h2>账号</h2><span class="ce-account-badge" data-node="membership">读取中</span></div><div class="ce-account-body">
           <p class="ce-account-identity" data-node="account"></p>
           <p data-node="login" hidden><a class="ce-account-primary" href="/oauth2/start?rd=%2Fremote">登录 / 注册账号</a></p>
           <form data-node="activation" hidden><label>小组邀请码<input name="invite" required autocomplete="off" placeholder="输入收到的邀请码"></label><button class="ce-account-primary" type="submit">激活小组接入</button></form>
           <div data-node="local-actions" hidden><p data-node="local-help"></p><button class="ce-account-primary" type="button" data-action="authorize">登录 / 注册账号</button><div data-node="grant" hidden><p>授权码</p><output class="ce-account-code" data-node="code"></output><p><a data-node="verification" target="_blank" rel="noopener noreferrer">在浏览器中登录 / 注册 ↗</a></p></div><button class="ce-account-primary" type="button" data-action="confirm" hidden>确认绑定这台电脑</button></div>
           <button type="button" data-action="logout" hidden>退出账号</button>
-        </section>
-        <section class="ce-account-card"><div class="ce-account-card-title"><h2 data-node="device-name">电脑接入</h2><span class="ce-account-badge" data-node="device-state">读取中</span></div><p data-node="device-help"></p><p><a class="ce-account-primary" data-node="open" href="/studio" hidden>进入工作台 →</a></p><div class="ce-account-danger-zone" data-node="revoke-area" hidden><button class="ce-account-danger" type="button" data-action="revoke">撤销电脑连接</button></div></section>
-        <section class="ce-account-card ce-account-members" data-node="invitations" hidden><div class="ce-account-card-title"><h2 data-node="members-title">成员</h2><button type="button" data-action="invitation">邀请成员</button></div><p data-node="invitation-result" hidden><output class="ce-account-code" data-node="invitation-code"></output><br>24 小时内有效，仅可使用一次。</p><p data-node="members-status" role="status" aria-live="polite"></p><div class="ce-account-members-wrap" data-node="members-table" hidden><table class="ce-account-members-table"><thead><tr><th scope="col">成员</th><th scope="col">角色</th><th scope="col">成员状态</th><th scope="col">电脑</th><th scope="col">注册时间</th></tr></thead><tbody data-node="members-list"></tbody></table></div><nav class="ce-account-pagination" data-node="members-pages" aria-label="成员分页" hidden><button type="button" data-action="members-previous" aria-label="上一页" title="上一页"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m15 5-7 7 7 7"/></svg></button><span data-node="members-page"></span><button type="button" data-action="members-next" aria-label="下一页" title="下一页"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg></button></nav></section>
+        </div></section>
+        <section class="ce-account-card ce-account-setting"><div class="ce-account-card-title"><span class="ce-account-media">${icon('computer')}</span><h2 data-node="device-name">电脑接入</h2><span class="ce-account-badge" data-node="device-state">读取中</span></div><div class="ce-account-body"><p data-node="device-help"></p><p><a class="ce-account-primary" data-node="open" href="/studio" hidden>进入工作台 →</a></p><div class="ce-account-danger-zone" data-node="revoke-area" hidden><button class="ce-account-danger" type="button" data-action="revoke">撤销电脑连接</button></div></div></section>
       </div>
+      <section class="ce-account-card ce-account-members" data-node="invitations" hidden>
+        <div class="ce-account-card-title"><span class="ce-account-media">${icon('members')}</span><h2 data-node="members-title">成员</h2><button type="button" data-action="invitation">邀请成员</button></div>
+        <p data-node="invitation-result" hidden><output class="ce-account-code" data-node="invitation-code"></output><br>24 小时内有效，仅可使用一次。</p><p data-node="members-status" role="status" aria-live="polite"></p>
+        <div class="ce-account-members-wrap" data-node="members-table" hidden><table class="ce-account-members-table"><thead><tr><th scope="col">成员</th><th scope="col">角色</th><th scope="col">成员状态</th><th scope="col">电脑</th><th scope="col">注册时间</th></tr></thead><tbody data-node="members-list"></tbody></table></div>
+        <nav class="ce-account-pagination" data-node="members-pages" aria-label="成员分页" hidden><button type="button" data-action="members-previous" aria-label="上一页" title="上一页"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m15 5-7 7 7 7"/></svg></button><span data-node="members-page"></span><button type="button" data-action="members-next" aria-label="下一页" title="下一页"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg></button></nav>
+      </section>
       <dialog class="ce-account-dialog" data-node="revoke-dialog" aria-label="撤销电脑连接"><h2>撤销电脑连接？</h2><p>这台电脑的远程连接将断开，不会删除本机项目。需要重新授权后才能恢复远程访问。</p><p data-node="revoke-error" class="ce-account-dialog-error" role="alert" tabindex="-1" hidden></p><div class="ce-account-dialog-actions"><button type="button" data-action="cancel-revoke" autofocus>取消</button><button class="ce-account-danger" type="button" data-action="confirm-revoke">确认撤销连接</button></div></dialog>
     </section>`;
     const $ = name => container.querySelector(`[data-node="${name}"]`);
@@ -47,6 +60,7 @@
       csrf = ''; account = device = null; admin = false; busy = false; pending.clear();
       clearMembers(); onPortal?.('');
       clearInvitation(); $('account').textContent = ''; $('membership').textContent = '未登录';
+      $('membership').dataset.tone = $('device-state').dataset.tone = 'neutral';
       $('device-name').textContent = '电脑接入'; $('device-state').textContent = '未连接';
       $('device-help').textContent = '';
       for (const name of ['activation','invitations','revoke-area','open']) $(name).hidden = true;
@@ -108,7 +122,24 @@
           const values = [member.account?.name || '未命名成员', member.admin === true ? '管理员' : '成员', joined,
             member.device ? `${member.device.name || '电脑'} · ${remoteStates[member.device.state] || '状态未知'}` : '未绑定', registered];
           for (const [index, text] of values.entries()) {
-            const cell = scope.document.createElement('td'); cell.setAttribute('role', 'cell'); cell.textContent = text;
+            const cell = scope.document.createElement('td'); cell.setAttribute('role', 'cell');
+            const content = scope.document.createElement('span'); content.textContent = text;
+            if (index === 1) {
+              content.className = 'ce-account-role'; content.textContent = '';
+              const symbol = scope.document.createElement('span'); symbol.className = 'ce-account-role-icon'; symbol.innerHTML = icon(member.admin === true ? 'shield' : 'account');
+              const label = scope.document.createElement('span'); label.textContent = text; content.append(symbol, label);
+            } else if (index === 2) {
+              content.className = 'ce-account-badge';
+              content.dataset.tone = member.account?.enabled === false || member.membership === 'disabled' ? 'danger' : member.membership === 'active' ? 'success' : member.membership === 'inactive' ? 'warning' : 'neutral';
+            } else if (index === 3 && member.device) {
+              content.className = 'ce-account-computer'; content.textContent = '';
+              const name = scope.document.createElement('span'); name.textContent = (member.device.name || '电脑') + ' · ';
+              const state = scope.document.createElement('span'); state.className = 'ce-account-badge'; state.textContent = remoteStates[member.device.state] || '状态未知'; state.dataset.tone = connectionTone(member.device.state);
+              content.append(name, state);
+            } else if (index === 3) {
+              content.className = 'ce-account-badge'; content.dataset.tone = 'neutral';
+            }
+            cell.append(content);
             cell.dataset.label = ['成员','角色','成员状态','电脑','注册时间'][index]; row.append(cell);
           }
           return row;
@@ -140,12 +171,13 @@
       clearInvitation(); $('login').hidden = true; action('logout').hidden = false;
       $('account').textContent = account.name || account.sub;
       $('membership').textContent = value.membership === 'active' ? '已激活' : '待激活';
+      $('membership').dataset.tone = value.membership === 'active' ? 'success' : 'warning';
       $('status').textContent = '';
       $('activation').hidden = value.membership === 'active'; $('invitations').hidden = !admin || scope.document.hidden;
       if (!admin) clearMembers();
       $('device-name').textContent = device?.name || '电脑接入';
       $('device-state').textContent = device ? (remoteStates[device.state] || '状态未知') : '尚未绑定';
-      $('device-state').dataset.tone = device?.state === 'online' ? 'success' : 'neutral';
+      $('device-state').dataset.tone = connectionTone(device?.state);
       $('device-help').textContent = !device ? (value.membership === 'active' ? '请在电脑端登录账号并确认绑定。' : '激活小组接入后，在电脑端登录账号并确认绑定。') : '';
       $('open').hidden = device?.state !== 'online'; $('revoke-area').hidden = !device || device.state === 'revoked';
       if (admin) void loadMembers();
@@ -156,9 +188,11 @@
       $('local-actions').hidden = !configured;
       $('account').textContent = value.account ? (value.account.name || value.account.sub) : '';
       $('membership').textContent = !configured ? '账号服务未配置' : value.account ? '已登录' : ['connecting','online','offline'].includes(value.state) ? '连接已保存' : '未登录';
+      $('membership').dataset.tone = configured && value.account ? 'success' : 'neutral';
       $('status').textContent = value.runtime_restart_required ? '绑定配置已保存，重新打开软件后启用远程连接；正在运行的工作请先正常结束。' : '';
       $('local-help').textContent = value.state === 'awaiting_local_confirmation' ? '请核对账号后确认绑定。' : '';
       $('device-state').textContent = remoteStates[value.state] || ({unbound:'尚未绑定',authorizing:'授权中',awaiting_local_confirmation:'等待确认'}[value.state] || '未连接');
+      $('device-state').dataset.tone = connectionTone(value.state);
       $('device-help').textContent = '';
       action('authorize').disabled = !configured || value.state === 'authorizing';
       action('authorize').hidden = !configured || value.state === 'awaiting_local_confirmation';

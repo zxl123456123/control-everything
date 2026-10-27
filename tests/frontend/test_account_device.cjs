@@ -10,9 +10,10 @@ function fixture(fetcher, {mode='remote',embedded=false,members=async()=>respons
   const nodes=new Map(),calls=[],navigations=[],notices=[],portals=[],timers=new Map(),inactive=new Set();
   let sequence=0,focused=null,unmounted=false;
   function node(name,hidden=false) {
-    const events=new Map();
-    return {hidden,textContent:'',dataset:{},disabled:false,open:false,children:[],
-      append(...children){this.children.push(...children);},replaceChildren(...children){this.children=children;},setAttribute(name,value){this[name]=value;},
+    const events=new Map();let ownText='';
+    return {hidden,dataset:{},disabled:false,open:false,children:[],
+      get textContent(){return ownText+this.children.map(child=>child.textContent||'').join('');},set textContent(value){ownText=String(value);this.children=[];},
+      append(...children){this.children.push(...children);},replaceChildren(...children){ownText='';this.children=children;},setAttribute(name,value){this[name]=value;},
       addEventListener(name,fn){if(!events.has(name))events.set(name,new Set());events.get(name).add(fn);},
       removeEventListener(name,fn){events.get(name)?.delete(fn);},
       emit(name,event={}){for(const fn of [...(events.get(name)||[])])fn({currentTarget:this,preventDefault(){},...event});},
@@ -161,12 +162,32 @@ test('real account DOM keeps members private to admins and uses the full respons
   t.after(()=>{w.happyDOM.abort();w.close();});
   w.document.write('<main id="ce-studio"></main>');const root=w.document.getElementById('ce-studio');
   root.dataset.theme=theme;
+  const remotePage=new w.DOMParser().parseFromString(fs.readFileSync('web/workspace/remote-account.html','utf8'),'text/html');
+  const brand=remotePage.querySelector('.ce-account-brand');w.document.body.prepend(brand);
   for(const name of ['workspace.css','remote-account.css','studio-preview.css']){const style=w.document.createElement('style');style.textContent=fs.readFileSync('web/workspace/'+name,'utf8');w.document.head.append(style);}
-  let admin=true;w.fetch=async path=>response(path.startsWith('/remote/api/admin/members?')?directoryPage([{...directoryMember(0),account:{...directoryMember(0).account,name:'<img src=x onerror=alert(1)>'}}]):session({admin}));
+  const directory=[{...directoryMember(0),account:{...directoryMember(0).account,name:'<img src=x onerror=alert(1)>'},device:{device_id:'private-device',name:'工作电脑',state:'offline'}},{...directoryMember(1),membership:'inactive'},{...directoryMember(2),account:{...directoryMember(2).account,enabled:false}}];
+  let admin=true;w.fetch=async path=>response(path.startsWith('/remote/api/admin/members?')?directoryPage(directory):session({admin}));
   w.eval(source);const dispose=w.StudioAccountDevice.mount(root,{mode:'remote'});t.after(dispose);
   for(let i=0;i<8;i++)await new Promise(resolve=>setImmediate(resolve));
-  assert.equal(root.querySelectorAll('table tbody tr').length,1);assert.equal(root.querySelectorAll('img').length,0);assert.equal(root.querySelector('td').textContent,'<img src=x onerror=alert(1)>');
-  assert.equal(w.getComputedStyle(root.querySelector('td')).fontSize,'15px');assert.equal(w.getComputedStyle(root.querySelector('h2')).fontSize,'15px');assert.equal(w.getComputedStyle(root.querySelector('tbody tr')).display,width===390?'grid':'table-row');
+  assert.equal(root.querySelectorAll('table tbody tr').length,3);assert.equal(root.querySelectorAll('img').length,0);assert.equal(root.querySelector('td').textContent,'<img src=x onerror=alert(1)>');
+  assert.equal(w.getComputedStyle(root.querySelector('td')).fontSize,'15px');assert.equal(w.getComputedStyle(root.querySelector('h2')).fontSize,'16px');assert.equal(w.getComputedStyle(root.querySelector('tbody tr')).display,width===390?'grid':'table-row');
+  const rows=[...root.querySelectorAll('tbody tr')];
+  assert.equal(rows[0].cells[2].textContent,'已激活');assert.equal(rows[0].cells[2].querySelector('.ce-account-badge').dataset.tone,'success');
+  assert.equal(rows[0].cells[3].textContent,'工作电脑 · 离线');assert.equal(rows[0].cells[3].querySelector('.ce-account-badge').dataset.tone,'neutral');
+  assert.equal(rows[1].cells[2].textContent,'待激活');assert.equal(rows[1].cells[2].querySelector('.ce-account-badge').dataset.tone,'warning');
+  assert.equal(rows[2].cells[2].textContent,'账号停用');assert.equal(rows[2].cells[2].querySelector('.ce-account-badge').dataset.tone,'danger');
+  assert.equal(w.getComputedStyle(rows[0].cells[2].querySelector('.ce-account-badge')).fontSize,'14px');
+  assert.equal(w.getComputedStyle(rows[0].cells[1].querySelector('.ce-account-role')).fontSize,'15px');
+  assert.equal(rows[0].cells[1].querySelector('svg').getAttribute('aria-hidden'),'true');
+  const icons=[...root.querySelectorAll('.ce-account-setting .ce-account-media svg')];assert.equal(icons.length,2);assert.notEqual(icons[0].innerHTML,icons[1].innerHTML);assert.ok(icons.every(icon=>icon.getAttribute('aria-hidden')==='true'));
+  assert.equal(root.querySelector('.ce-account-grid').contains(root.querySelector('[data-node="invitations"]')),false);assert.equal(root.querySelectorAll('th').length,5);assert.equal(root.querySelector('input[type="checkbox"]'),null);
+  assert.equal(w.getComputedStyle(root.querySelector('.ce-account-media')).width,'32px');assert.equal(w.getComputedStyle(root.querySelector('.ce-account-members-wrap')).borderRadius,'8px');
+  const refreshStyle=w.getComputedStyle(root.querySelector('[data-action="refresh"]'));assert.equal(refreshStyle.minHeight,width===390?'44px':'36px');assert.match(refreshStyle.transition,/transform 180ms/);
+  const themeButton=brand.querySelector('[data-theme-toggle]');assert.equal(themeButton.closest('.ce-account'),null);
+  assert.equal(w.getComputedStyle(themeButton).minHeight,width===390?'44px':'36px');assert.match(w.getComputedStyle(themeButton).transition,/transform 180ms/);
+  themeButton.disabled=true;assert.equal(Number(w.getComputedStyle(themeButton).opacity),0.5);themeButton.disabled=false;
+  themeButton.setAttribute('aria-busy','true');assert.equal(w.getComputedStyle(themeButton).cursor,'wait');themeButton.removeAttribute('aria-busy');
+  assert.equal(w.getComputedStyle(root.querySelector('input')).fontSize,width===390?'16px':'15px');
   admin=false;root.querySelector('[data-action="refresh"]').click();for(let i=0;i<8;i++)await new Promise(resolve=>setImmediate(resolve));assert.equal(root.querySelector('[data-node="invitations"]').hidden,true);assert.equal(root.querySelectorAll('tbody tr').length,0);
   }
 });
