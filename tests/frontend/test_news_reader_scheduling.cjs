@@ -164,6 +164,7 @@ test('research IME consumes only the dialog cancel, returns focus and never crea
 test('news opens with cards and restores the same filtered list, selection and scroll after reading',async()=>{
   const f=fixture();await flush();
   const id='a'.repeat(24), value=sample(false);
+  f.node('date-range').value='all';
   value.sample.streams.ai.items=[{id,title:'Design review',source_id:'fixture',source_name:'Example',url:'https://example.test/article',summary:'Actual article summary',body_blocks:[{type:'p',text:'Article body.'}]}];
   f.windowEvents.resize();
   f.window.NewsReader.applySnapshot(value);
@@ -186,7 +187,8 @@ test('news opens with cards and restores the same filtered list, selection and s
 
 test('news card empty states distinguish search results from an empty collection',async()=>{
   const f=fixture();await flush();
-  assert.match(f.node('list-empty-message').textContent,/暂无新闻/);
+  assert.equal(f.node('list-empty-message').textContent,'今天还没有可读新闻');
+  assert.equal(f.node('show-history').hidden,false);
   assert.equal(f.node('clear-search').hidden,true);
   f.node('search').value='missing';f.node('search').listeners.input();
   assert.equal(f.node('list-empty-message').textContent,'没有匹配的新闻');

@@ -161,9 +161,12 @@ def extract_blocks(html, source_url):
             continue
         if any(parent.tag in ('p', 'head', 'item', 'cell', 'quote', 'code') for parent in node.iterancestors()):
             continue
-        text = re.sub(r'\s+', ' ', ''.join(node.itertext())).strip()
-        if text:
-            blocks.append({'type': {'head': 'h2', 'item': 'li'}.get(node.tag, 'p'), 'text': text})
+        text = ''.join(node.itertext())
+        text = text.replace('\r\n', '\n').replace('\r', '\n').strip('\n') if node.tag == 'code' else re.sub(r'\s+', ' ', text).strip()
+        kind = {'head': {'h3': 'h3', 'h4': 'h4', 'h5': 'h4', 'h6': 'h4'}.get(node.get('rend'), 'h2'),
+                'item': 'li', 'quote': 'quote', 'code': 'code'}.get(node.tag, 'p')
+        if text.strip():
+            blocks.append({'type': kind, 'text': text})
     if sum(len(row['text']) for row in blocks) < 350 or len(blocks) < 2:
         raise ValueError('extraction_insufficient')
     return blocks
