@@ -82,8 +82,15 @@ await motion.locator('#research-return').click();await motion.emulateMedia({redu
 await motion.waitForFunction(()=>window.NewsReader.inspect().engine.running&&window.NewsReader.inspect().engine.phase==='idle');await motion.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
 await motion.evaluate(()=>{window.canvasDraws=0;const context=document.getElementById('spider-canvas').getContext('2d'),original=context.clearRect.bind(context);context.clearRect=(...args)=>{window.canvasDraws++;return original(...args);};});
 await motion.waitForTimeout(400);const visibleDraws=await motion.evaluate(()=>window.canvasDraws);check('optional spider actually draws when enabled',visibleDraws>0);
+check('the spider has no dial, so its button stays hidden',await motion.locator('#pet-dial').isHidden());
 await motion.locator('#pet-visible').click();await motion.evaluate(()=>window.canvasDraws=0);await motion.waitForTimeout(400);
 const hiddenDraws=await motion.evaluate(()=>window.canvasDraws);check('hiding spider stops canvas drawing',hiddenDraws===0);
+await motion.locator('#pet-visible').click();await motion.evaluate(()=>window.NewsReader.switchPet('naidragon'));await motion.locator('#pet-dial').waitFor({state:'visible'});
+await motion.locator('#pet-dial').focus();await motion.keyboard.press('Enter');
+check('keyboard opens the dial with focus inside it',await motion.evaluate(()=>Boolean(document.activeElement.closest('.nd-dial'))));
+await motion.keyboard.press('Escape');await motion.waitForFunction(()=>!window.NewsReader.engine.inspect().menu.open);await motion.waitForTimeout(100);
+check('Esc closes the dial and returns focus to its button',await motion.evaluate(()=>document.activeElement.id==='pet-dial'&&!window.NewsReader.engine.inspect().menu.open));
+await motion.evaluate(()=>window.NewsReader.switchPet('spider'));await motion.locator('#pet-visible').click();
 await motion.reload();await motion.waitForFunction(()=>window.NewsReader?.inspect().items===2);check('hidden preference survives reload without mounting',await motion.evaluate(()=>!window.NewsReader.inspect().engine&&!window.NewsReader.inspect().petEnabled));
 await motion.locator('.title-row').first().click();await motion.locator('#open-directory').click();await motion.locator('#pet-visible').click();
 fs.writeFileSync(path.join(output,`canvas-cost-${stamp}.json`),JSON.stringify({sample_ms:400,visible_draws:visibleDraws,hidden_draws:hiddenDraws},null,2));

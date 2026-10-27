@@ -213,11 +213,16 @@
       {id:'search', label:'搜索', icon:'M10.5 3a7.5 7.5 0 1 0 0 15a7.5 7.5 0 1 0 0-15z M16 16l5 5', run:openSearch},
       {id:'collect', label:'采集新闻', icon:'M20 11a8 8 0 1 0-2.3 5.7 M20 4v7h-7', run:() => $('refresh').click()},
       {id:'pet-settings', label:'宠物设置', icon:'M4 7h10 M18 7h2 M4 17h2 M10 17h10 M16 5v4 M8 15v4', run:() => goStudio('#settings/appearance')},
-      {id:'hide-pet', label:'隐藏宠物', icon:'M3 3l18 18 M10.6 6.2A9.5 9.5 0 0 1 12 6c5 0 8.5 4.5 9.5 6a14 14 0 0 1-2.4 2.9 M6.6 7.7A14 14 0 0 0 2.5 12C3.5 13.5 7 18 12 18c1.2 0 2.3-.3 3.3-.7', run:() => { prefs.setEnabled(false); notice('宠物已隐藏，可在页面顶部的“显示宠物”或 设置 → 外观 里重新打开。'); }}];
+      {id:'hide-pet', label:'隐藏宠物', icon:'M3 3l18 18 M10.6 6.2A9.5 9.5 0 0 1 12 6c5 0 8.5 4.5 9.5 6a14 14 0 0 1-2.4 2.9 M6.6 7.7A14 14 0 0 0 2.5 12C3.5 13.5 7 18 12 18c1.2 0 2.3-.3 3.3-.7', run:() => { prefs.setEnabled(false); $('pet-visible').focus(); notice('宠物已隐藏，可在页面顶部点“显示宠物”，或在个人工作台左下角的“设置”里重新打开。'); }}];
   }
   document.querySelectorAll('.pet-select').forEach(select => select.addEventListener('change', () => switchPet(select.value)));
   $('pet-visible').addEventListener('click', () => { if (!prefs.setEnabled(!petEnabled)) notice('宠物设置暂时无法保存，本页选择仍然生效。'); });
   $('pet-dial').addEventListener('click', () => engine?.openMenu(true));
+  // Esc closes the dial (the pet handles it); focus then returns to the button so keyboard users do not lose their place.
+  const restoreDialFocus = event => {
+    if (event.key === 'Escape' && engine?.inspect().menu?.open) setTimeout(() => { if (!destroyed) $('pet-dial').focus(); });
+  };
+  document.addEventListener('keydown', restoreDialFocus, true);
   function cancelTask(id) { tasks.delete(id); engine?.cancel(id); if (id.startsWith('arrival:')) { $('arrival-title').hidden = true; $('reader-state').hidden = false; } }
   function settleTask(event) {
     if (destroyed || window.CERemoteContext?.active === false) return;    const id = typeof event === 'string' ? event : event.id, task = tasks.get(id);
@@ -775,7 +780,7 @@
     if (researchBusy) void pollResearch();
   }
   document.addEventListener('visibilitychange', syncActivity);
-  const destroy = () => { destroyed = true; unsubscribePrefs?.(); unmountAppearance(); if ($('research-panel').open) $('research-panel').close(); clearTimeout(researchTimer); clearTimeout(feedTimer); clearTimeout(articleRetry); if (frameObjectUrl) URL.revokeObjectURL(frameObjectUrl); stopTranslation(); statusFeed?.stop(); statusFeed = null; engine?.destroy(); researchEngine?.destroy(); };
+  const destroy = () => { destroyed = true; document.removeEventListener('keydown', restoreDialFocus, true); unsubscribePrefs?.(); unmountAppearance(); if ($('research-panel').open) $('research-panel').close(); clearTimeout(researchTimer); clearTimeout(feedTimer); clearTimeout(articleRetry); if (frameObjectUrl) URL.revokeObjectURL(frameObjectUrl); stopTranslation(); statusFeed?.stop(); statusFeed = null; engine?.destroy(); researchEngine?.destroy(); };
   window.CERemoteContext?.onInactive(destroy);
   window.addEventListener('pagehide', event => { if (event.persisted) { suspended = true; unmountAppearance(); syncActivity(); } else destroy(); });
   window.addEventListener('pageshow', event => { if (event.persisted && !destroyed) { suspended = false; mountTheme(); syncActivity(); } });

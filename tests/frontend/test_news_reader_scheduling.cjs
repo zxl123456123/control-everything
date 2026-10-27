@@ -49,7 +49,7 @@ function fixture(remote = false, withTheme = true) {
     for (const [, key, value = ''] of attributes.matchAll(/([\w-]+)(?:="([^"]*)")?/g)) { node.setAttribute(key, value); if (key === 'id') {node.id = value; ids.set(value, node);} if (key === 'class') node.className = value; if (key.startsWith('data-')) node.dataset[key.slice(5).replace(/-([a-z])/g, (_, char) => char.toUpperCase())] = value; }
     tree.append(node);
   }
-  const document = {hidden:false,documentElement:new Element('html'),getElementById:id => ids.get(id),createElement:tag => new Element(tag),createDocumentFragment:() => new Element('fragment'),querySelector:selector => tree.querySelector(selector),querySelectorAll:selector => tree.querySelectorAll(selector),addEventListener:(key,callback) => {documentEvents[key]=callback;}};
+  const document = {hidden:false,documentElement:new Element('html'),getElementById:id => ids.get(id),createElement:tag => new Element(tag),createDocumentFragment:() => new Element('fragment'),querySelector:selector => tree.querySelector(selector),querySelectorAll:selector => tree.querySelectorAll(selector),addEventListener:(key,callback) => {documentEvents[key]=callback;},removeEventListener:(key,callback) => {if (documentEvents[key]===callback) delete documentEvents[key];}};
   ids.get('directory').append(tree.querySelector('.spider-home'));
   const state = {value:sample(),feed:null,research:null};
   const response = value => ({ok:true,status:200,json:async () => value});

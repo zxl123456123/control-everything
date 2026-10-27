@@ -769,7 +769,8 @@ function installStyle(root, css, nonce) {
    if (destroyed || !hostActions.length || !opt.dial) return false;
    if (!MN.el) buildMenu();
    MN.open = true; MN.el.dataset.open = 'true'; if (DL.page) setPage(0); DL.f = DL.rot.x = DL.rot.v = 0; DL.btns.concat(DL.hub, DL.tog).forEach(b => { b.tabIndex = 0; }); wake(); nudge();
-   if (focus && DL.btns[0]) DL.btns[0].focus({preventScroll: true});
+   // The render loop reveals the dial on its next frame; a hidden element cannot take focus, so reveal it now.
+   if (focus && DL.btns[0]) { if (!DL.vis) { DL.vis = true; MN.el.style.visibility = 'visible'; } DL.btns[0].focus({preventScroll: true}); }
    return true;
   }
   function closeMenu() {
