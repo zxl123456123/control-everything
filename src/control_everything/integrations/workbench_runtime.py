@@ -398,6 +398,42 @@ class WorkbenchRuntime:
             raise WorkbenchUnavailable("runtime_protocol_error")
         return reply["result"]
 
+    def inspect_repo(self, environment_id, runtime_id, repo_id):
+        """Read an existing native repo from this owned runtime, without creating an offer."""
+        with self._lock:
+            if not self.ready:
+                raise WorkbenchUnavailable()
+            metadata, _, _, _ = self._read_identity()
+            try:
+                installation = read_json(self.config.data_root / 'state/host-installation.json', 4096)['installationId']
+                environment = str(uuid.uuid5(uuid.NAMESPACE_URL, 'control-everything:workbench:' + str(uuid.UUID(installation))))
+            except (KeyError, ValueError, OSError, TypeError):
+                raise WorkbenchUnavailable('runtime_identity_mismatch') from None
+            if environment_id != environment or runtime_id != metadata['runtimeId']:
+                raise WorkbenchUnavailable('runtime_identity_mismatch')
+            reply = self._rpc('repo.list', {})
+            repos = reply.get('repos') if isinstance(reply, dict) else None
+            if not isinstance(repos, list) or any(not isinstance(row, dict) for row in repos):
+                raise WorkbenchUnavailable('runtime_protocol_error')
+            matches = [row for row in repos if row.get('id') == repo_id]
+            if len(matches) != 1:
+                raise WorkbenchUnavailable('project_directory_mismatch')
+            repo = matches[0]
+            hosts = (None, 'local', 'runtime:' + environment)
+            if (repo.get('connectionId') is not None or repo.get('executionHostId') not in hosts
+                    or not isinstance(repo.get('path'), str) or not isinstance(repo.get('displayName'), str)):
+                raise WorkbenchUnavailable('project_directory_mismatch')
+            directory = safe_path(repo['path'])
+            if not directory.is_dir():
+                raise WorkbenchUnavailable('project_directory_mismatch')
+            same_directory = [row for row in repos if row.get('connectionId') is None
+                              and row.get('executionHostId') in hosts and isinstance(row.get('path'), str)
+                              and safe_path(row['path']) == directory]
+            if len(same_directory) != 1 or self._read_identity()[0]['runtimeId'] != runtime_id:
+                raise WorkbenchUnavailable('project_directory_mismatch')
+            return {'repo_id': repo_id, 'directory': str(directory), 'name': repo['displayName'],
+                    'environment_id': environment, 'runtime_id': runtime_id}
+
     def bootstrap(self, project_id, project_name, directory, *, remote=False):
         with self._lock:
             path = safe_path(directory)

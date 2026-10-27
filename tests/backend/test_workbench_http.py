@@ -12,6 +12,7 @@ from unittest.mock import Mock, patch
 
 from control_everything.http.workbench import WorkbenchAssets, STUDIO_CSP, handle_get
 from control_everything.integrations.remote_access import RemoteAccess
+from control_everything.integrations.workbench_runtime import WorkbenchUnavailable
 from tests.backend import test_profile_http as fixtures
 from tests.backend.test_project_management import project_body
 
@@ -97,6 +98,96 @@ class WorkbenchHTTPTests(unittest.TestCase):
         self.runtime.bootstrap.assert_called_once_with(self.project["id"], self.project["name"], str(self.root / "repo"))
         self.assertNotIn("authToken", json.dumps(value))
         self.assertEqual(value["returnUrl"], "/studio#project/" + self.project["id"])
+
+    def native_adopt_fixture(self, directory=None):
+        body = {'environment_id': '60a8f814-a084-44de-923e-b920354aef21',
+                'runtime_id': 'runtime-fixture', 'repo_id': 'native-repo'}
+        self.runtime.inspect_repo.return_value = {'environment_id': body['environment_id'], 'runtime_id': body['runtime_id'],
+            'repo_id': body['repo_id'], 'name': 'Native project', 'directory': str(directory or self.root / 'repo')}
+        return body
+
+    def test_adopt_reuses_project_without_offer_or_name_write_and_registers_new_directory_once(self):
+        body = self.native_adopt_fixture()
+        revision = self.profile.store.list_revision()
+        original = self.profile.store.list_projects()[0]
+        self.server.refresh_workspace_roots = Mock()
+        status, response = self.request('/api/workbench/adopt-repo', 'POST', body)
+        self.assertEqual(status, 200)
+        self.assertEqual(response, {'status': 'adopted', 'project': {'id': self.project['id'], 'name': self.project['name']},
+            'target': {'repoId': 'native-repo'}, 'runtime': {'environmentId': body['environment_id'], 'runtimeId': body['runtime_id']}})
+        self.assertEqual(self.profile.store.list_projects()[0], original)
+        self.assertEqual(self.profile.store.list_revision(), revision)
+        self.runtime.bootstrap.assert_not_called()
+        self.runtime.bootstrap_runtime.assert_not_called()
+        self.runtime.discard_bootstrap.assert_not_called()
+        self.server.refresh_workspace_roots.assert_called_once_with()
+        self.assertEqual(self.runtime.inspect_repo.call_count, 2)
+        self.native_adopt_fixture(self.root / 'new-native')
+        first = self.request('/api/workbench/adopt-repo', 'POST', body)
+        second = self.request('/api/workbench/adopt-repo', 'POST', body)
+        self.assertEqual((first[0], first[1]), (200, second[1]))
+        self.assertEqual(len(self.profile.store.list_projects()), 2)
+        self.assertEqual(self.profile.store.list_revision(), revision + 1)
+
+    def test_adopt_permissions_and_strict_body_precede_owner_reads(self):
+        body = self.native_adopt_fixture()
+        route = '/api/workbench/adopt-repo'
+        for headers in ({'Host': 'evil'}, {'Origin': 'http://elsewhere'}, {'X-Session-CSRF': 'bad'},
+                        {'X-Session-Client': ''}, {'Origin': [self.server.origin] * 2}):
+            with self.subTest(headers=headers):
+                self.assertEqual(self.request(route, 'POST', body, headers)[0], 403)
+        for invalid in ({}, None, [], {**body, 'path': str(self.root)}, {**body, 'name': 'Untrusted'},
+                        {**body, 'repo_id': ''}, {**body, 'runtime_id': 1}, {**body, 'environment_id': 'x' * 256}):
+            with self.subTest(body=invalid):
+                self.assertEqual(self.request(route, 'POST', invalid)[0], 400)
+        self.assertEqual(self.request(route + '?x=1', 'POST', body)[0], 400)
+        self.assertEqual(self.request(route, 'POST', b' ' * 4097)[0], 413)
+        self.runtime.inspect_repo.assert_not_called()
+
+    def test_adopt_preserves_remote_context_requirements_without_minting_remote_offer(self):
+        body = self.native_adopt_fixture()
+        self.server.remote_access = RemoteAccess('https://workbench.example.test', 'A' * 43)
+        headers = {'Host': 'workbench.example.test', 'Origin': 'https://workbench.example.test', 'X-CE-Device-Proof': 'A' * 43}
+        self.assertEqual(self.request('/api/workbench/adopt-repo', 'POST', body, headers)[0], 403)
+        self.runtime.inspect_repo.assert_not_called()
+        headers.update({'X-CE-Page-Context': 'B' * 32, 'X-CE-Storage-Scope': 'c' * 64})
+        status, response = self.request('/api/workbench/adopt-repo', 'POST', body, headers)
+        self.assertEqual(status, 200)
+        self.assertEqual(set(response['runtime']), {'environmentId', 'runtimeId'})
+        self.runtime.bootstrap_runtime.assert_not_called()
+
+    def test_adopt_refuses_excluded_archived_and_read_only_projects(self):
+        body = self.native_adopt_fixture()
+        route = '/api/workbench/adopt-repo'
+        with self.profile.selection_guard():
+            original, settings = self.profile.config(), self.profile.workbench_config()
+            settings['excluded_project_ids'] = [self.project['id']]
+            self.profile.write_workbench_locked(original, settings)
+        self.assertEqual(self.request(route, 'POST', body)[0], 404)
+        self.assertEqual(self.profile.workbench_config()['excluded_project_ids'], [self.project['id']])
+        with self.profile.store.connection() as connection:
+            connection.execute('UPDATE projects SET archived=1 WHERE id=?', (self.project['id'],))
+        self.assertEqual(self.request(route, 'POST', body)[0], 409)
+        with self.profile.store.connection() as connection:
+            connection.execute('UPDATE projects SET archived=0 WHERE id=?', (self.project['id'],))
+            connection.execute("UPDATE project_sources SET kind='codex' WHERE project_id=?", (self.project['id'],))
+        self.assertEqual(self.request(route, 'POST', body)[0], 422)
+
+    def test_adopt_stale_identity_never_registers_and_late_change_only_retries_adoption(self):
+        body = self.native_adopt_fixture(self.root / 'new-native')
+        self.runtime.inspect_repo.side_effect = WorkbenchUnavailable('runtime_identity_mismatch')
+        self.assertEqual(self.request('/api/workbench/adopt-repo', 'POST', body)[0], 503)
+        self.assertEqual(len(self.profile.store.list_projects()), 1)
+        repo = self.runtime.inspect_repo.return_value
+        self.runtime.inspect_repo.side_effect = [repo, WorkbenchUnavailable('runtime_identity_mismatch')]
+        self.assertEqual(self.request('/api/workbench/adopt-repo', 'POST', body)[0], 503)
+        self.assertEqual(len(self.profile.store.list_projects()), 2)
+        adopted = self.profile.store.list_projects()[1]['id']
+        self.runtime.inspect_repo.side_effect = None
+        self.assertEqual(self.request('/api/workbench/adopt-repo', 'POST', body)[1]['project']['id'], adopted)
+        self.runtime.bootstrap.assert_not_called()
+        self.runtime.bootstrap_runtime.assert_not_called()
+        self.runtime.discard_bootstrap.assert_not_called()
 
     def test_runtime_bootstrap_needs_no_registered_project_and_keeps_project_contract(self):
         self.workspace.registered_projects = Mock(return_value=[])
