@@ -74,22 +74,25 @@
   <div id="toast" role="status" hidden><span id="toast-text"></span><button id="undo" type="button" hidden>撤销</button><button id="dismiss" type="button" aria-label="关闭提示">×</button></div>
 </main>
 <dialog id="research-panel" aria-labelledby="research-title" aria-describedby="research-description">
-  <header class="research-head"><div class="collection-heading"><span class="collection-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4H4v16h16v-3M9 15 20 4M12 4h8v8"/></svg></span><div><h2 id="research-title">采集新闻</h2><p id="research-description">发现新内容，留给你慢慢读。</p></div></div><button id="research-close" type="button" aria-label="关闭采集工作台">×</button></header>
+  <header class="research-head"><h2 id="research-title">采集新闻</h2><p id="research-description" class="sr-only">显示当前采集状态。关闭窗口后仍会继续采集。</p><button id="research-close" type="button" aria-label="关闭采集窗口">×</button></header>
   <div class="research-body">
   <form id="research-form">
-    <label class="collection-query-label" for="research-query">想读些什么？</label><div class="research-query-row"><input id="research-query" name="query" type="search" maxlength="240" placeholder="关键词或 X 帖子链接" value="AI coding workflow coding agents tips" required autofocus><button id="research-start" type="submit">开始采集</button></div>
+    <label class="sr-only" for="research-query">采集关键词</label><div class="research-query-row"><input id="research-query" name="query" type="search" maxlength="240" placeholder="关键词或 X 帖子链接" value="AI coding workflow coding agents tips" required autofocus><button id="research-start" type="submit">开始采集</button></div>
     <details id="research-settings" class="collection-settings"><summary>采集设置</summary>
       <div class="research-topics" role="group" aria-label="关注主题"><button type="button" data-topic="coding" aria-pressed="true">AI Coding</button><button type="button" data-topic="agents" aria-pressed="false">Agent</button><button type="button" data-topic="claude" aria-pressed="false">Claude Code</button><button type="button" data-topic="models" aria-pressed="false">GPT / Gemini</button><button type="button" data-topic="tibo" aria-pressed="false">Tibo</button></div>
-      <label class="capture-option"><input id="capture-frames" type="checkbox">保存步骤截图<span>会增加采集耗时</span></label>
+      <label class="capture-option" hidden><input id="capture-frames" type="checkbox">保存步骤截图</label>
     </details>
   </form>
   <section id="research-feedback" hidden>
-  <div class="research-progress"><span id="research-state" role="status">准备开始</span><span id="research-timing"></span></div>
-  <div id="research-meter" class="collection-meter" role="progressbar" aria-label="当前采集阶段进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" hidden><span id="research-meter-fill"></span></div>
-  <p id="research-meter-label" class="collection-meter-label">等待开始</p>
-  <ol class="collection-stages" aria-label="采集流程"><li data-phase="search">检索</li><li data-phase="visit">读取</li><li data-phase="extract">整理</li><li data-phase="merge">保存</li></ol>
-  <p id="research-outcome">关闭窗口后，采集仍会继续。</p>
+  <div id="research-meter" class="collection-orb" role="progressbar" aria-label="当前采集阶段进度" aria-valuemin="0" aria-valuemax="100">
+    <span class="orb-halo" aria-hidden="true"></span><span class="orb-swirl" aria-hidden="true"></span><span class="orb-swirl orb-swirl-echo" aria-hidden="true"></span>
+    <svg class="orb-track" viewBox="0 0 220 220" aria-hidden="true"><defs><linearGradient id="collection-ring-color"><stop stop-color="#ffb66b"/><stop offset="1" stop-color="#fb724b"/></linearGradient></defs><circle cx="110" cy="110" r="84" class="orb-rail"/><circle id="research-meter-fill" cx="110" cy="110" r="84" pathLength="100"/></svg>
+    <div class="orb-value" aria-hidden="true"><svg id="research-symbol" viewBox="0 0 48 48" fill="currentColor"><path d="M24 4c2.5 12 7.5 17 20 20-12.5 3-17.5 8-20 20C21 32 16 27 4 24 16 21 21 16 24 4Z"/></svg><strong id="research-value"></strong><span id="research-value-label"></span></div>
+  </div>
+  <h3 id="research-state" role="status">准备开始</h3>
   </section>
+  <div id="research-archive" hidden inert>
+  <span id="research-timing"></span><p id="research-meter-label"></p><p id="research-outcome"></p>
   <details id="research-details" class="collection-details" hidden><summary>查看采集详情 <span id="research-count">0 条记录</span></summary>
   <p id="research-activity" role="status">开始后显示真实阶段；来源总量确认后展示处理数量。</p>
   <nav class="research-steps" aria-label="采集步骤回看"><button type="button" data-step="search" disabled><span>1</span> 检索</button><button type="button" data-step="visit" disabled><span>2</span> 读取</button><button type="button" data-step="extract" disabled><span>3</span> 提取</button><button type="button" data-step="merge" disabled><span>4</span> 保存</button></nav>
@@ -109,7 +112,8 @@
   <details class="research-log"><summary>完整采集记录 <span id="research-log-count">0</span></summary><ol id="research-events"></ol><p id="research-events-empty">还没有采集记录。</p></details>
   </details>
   </div>
-  <footer class="research-footer"><span class="collection-background-note">后台采集，不打断阅读</span><button id="research-return" type="button">继续阅读 <span aria-hidden="true">↗</span></button></footer>
+  </div>
+  <footer class="research-footer"><button id="research-again" type="button" hidden>再次采集</button><button id="research-return" type="button">继续阅读</button></footer>
 </dialog>
 </body>
 </html>
