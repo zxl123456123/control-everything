@@ -12,17 +12,19 @@ from control_everything.http.gateway import build_profile_server
 from control_everything.http.workbench import WorkbenchAssets
 from control_everything.installation import manifest
 from control_everything.integrations.remote_connector import ConnectorConfig, ConnectorStore, RemoteConnector, ConnectorError
+from control_everything.integrations.remote_account import RemoteAccount
 from control_everything.integrations.workbench_runtime import RuntimeConfig, WorkbenchRuntime, WorkbenchUnavailable, safe_path
 
 
 class Desktop:
-    def __init__(self, server, runtime, connector=None):
+    def __init__(self, server, runtime, connector=None, account=None):
         self.server, self.runtime, self.connector = server, runtime, connector
         self._stop = threading.Event()
         self._worker = None
         self.restart_required = False
         server.attach_workbench_runtime(runtime)
         server.remote_connector = connector
+        server.desktop_account = account
         server.desktop = self
         server.refresh_workspace_roots = self.refresh_workspace_roots
 
@@ -93,6 +95,8 @@ class Desktop:
 
     def close(self):
         self._stop.set()
+        if self.server.desktop_account:
+            self.server.desktop_account.close()
         if self._worker:
             self._worker.join(timeout=10)
         if self.connector:
@@ -145,7 +149,8 @@ def build_desktop(product_root, data_dir=None, port=8766):
         if config['issuer'] or config['hub_origin']:
             connector = RemoteConnector(ConnectorConfig(config['issuer'], config['hub_origin'], path('ssh'), path('keygen')),
                                         ConnectorStore(server.profile.data_dir / 'remote'), on_revoked=runtime.revoke_remote_devices)
-        return Desktop(server, runtime, connector)
+        account = RemoteAccount(connector.peer, connector.store) if connector else None
+        return Desktop(server, runtime, connector, account)
     except Exception:
         server.server_close()
         raise

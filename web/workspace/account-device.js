@@ -15,6 +15,7 @@
     const context = remote && scope.CERemoteContext?.context ? scope.CERemoteContext : null;
     let disposed = false, generation = 0, csrf = '', account = null, device = null;
     let admin = false, busy = false, reading = false, timer, configured = false, revokeTarget = null, composing = false;
+    let localIdentity = '', localAccountConfigured = false, localAccountAuthorizing = false;
     let membersOffset = 0, membersTotal = 0, membersEpoch = 0, membersReading = false, adminViewEpoch = 0;
     const membersLimit = 25;
     const pending = new Set();
@@ -27,11 +28,11 @@
         <section class="ce-account-card ce-account-setting"><div class="ce-account-card-title"><span class="ce-account-media">${icon('account')}</span><h2>账号</h2><span class="ce-account-badge" data-node="membership">读取中</span></div><div class="ce-account-body">
           <p class="ce-account-identity" data-node="account"></p>
           <p data-node="login" hidden><a class="ce-account-primary" href="/oauth2/start?rd=%2Fremote">登录 / 注册账号</a></p>
+          <div data-node="local-account" hidden><button class="ce-account-primary" type="button" data-action="account-authorize">登录 / 注册账号</button><div data-node="account-grant" hidden><p>登录授权码</p><output class="ce-account-code" data-node="account-code"></output><p><a data-node="account-verification" target="_blank" rel="noopener noreferrer">打开登录授权页面 ↗</a></p></div><p data-node="account-error" role="status"></p></div>
           <form data-node="activation" hidden><label>小组邀请码<input name="invite" required autocomplete="off" placeholder="输入收到的邀请码"></label><button class="ce-account-primary" type="submit">激活小组接入</button></form>
-          <div data-node="local-actions" hidden><p data-node="local-help"></p><button class="ce-account-primary" type="button" data-action="authorize">登录 / 注册账号</button><div data-node="grant" hidden><p>授权码</p><output class="ce-account-code" data-node="code"></output><p><a data-node="verification" target="_blank" rel="noopener noreferrer">在浏览器中登录 / 注册 ↗</a></p></div><button class="ce-account-primary" type="button" data-action="confirm" hidden>确认绑定这台电脑</button></div>
           <button type="button" data-action="logout" hidden>退出账号</button>
         </div></section>
-        <section class="ce-account-card ce-account-setting"><div class="ce-account-card-title"><span class="ce-account-media">${icon('computer')}</span><h2 data-node="device-name">电脑接入</h2><span class="ce-account-badge" data-node="device-state">读取中</span></div><div class="ce-account-body"><p data-node="device-help"></p><p><a class="ce-account-primary" data-node="open" href="/studio" hidden>进入工作台 →</a></p><div class="ce-account-danger-zone" data-node="revoke-area" hidden><button class="ce-account-danger" type="button" data-action="revoke">撤销电脑连接</button></div></div></section>
+        <section class="ce-account-card ce-account-setting"><div class="ce-account-card-title"><span class="ce-account-media">${icon('computer')}</span><h2 data-node="device-name">电脑接入</h2><span class="ce-account-badge" data-node="device-state">读取中</span></div><div class="ce-account-body"><p data-node="device-help"></p><div data-node="local-actions" hidden><p data-node="local-help"></p><button class="ce-account-primary" type="button" data-action="authorize">连接这台电脑</button><div data-node="grant" hidden><p>电脑授权码</p><output class="ce-account-code" data-node="code"></output><p><a data-node="verification" target="_blank" rel="noopener noreferrer">打开电脑授权页面 ↗</a></p></div><button class="ce-account-primary" type="button" data-action="confirm" hidden>确认绑定这台电脑</button></div><p><a class="ce-account-primary" data-node="open" href="/studio" hidden>进入工作台 →</a></p><div class="ce-account-danger-zone" data-node="revoke-area" hidden><button class="ce-account-danger" type="button" data-action="revoke">撤销电脑连接</button></div></div></section>
       </div>
       <section class="ce-account-card ce-account-members" data-node="invitations" hidden>
         <div class="ce-account-card-title"><span class="ce-account-media">${icon('members')}</span><h2 data-node="members-title">成员</h2><button type="button" data-action="invitation">邀请成员</button></div>
@@ -92,11 +93,15 @@
         else { retire(); notify(); $('login').hidden = false; $('status').textContent = '请登录账号后继续。'; }
         return null;
       }
+      if (!remote && path.startsWith('/api/desktop/account/') && response.status === 401) {
+        adminViewEpoch++; clearMembers(); clearInvitation(); admin = false; account = null;
+        $('invitations').hidden = true; localIdentity = '';
+      }
       let value;
       try { value = await response.json(); } catch { throw new Error('账号服务暂不可用，请稍后重试。'); }
       if (disposed || mine !== generation) return null;
       if (!response.ok) {
-        const memberError = path.startsWith('/remote/api/admin/members?') && ({member_directory_not_configured:'成员目录未配置。',member_directory_unavailable:'成员列表暂时不可用，请刷新重试。'})[value.error];
+        const memberError = (path.startsWith('/remote/api/admin/members?') || path.startsWith('/api/desktop/account/members?')) && ({member_directory_not_configured:'成员目录未配置。',member_directory_unavailable:'成员列表暂时不可用，请刷新重试。'})[value.error];
         const failure = new Error(memberError || (remote ? '请求未成功，请刷新状态后重试。' : (value.reason || '本机连接不可用，请重试。')));
         failure.status = response.status; throw failure;
       }
@@ -104,12 +109,12 @@
     }
     const remoteStates = {pending:'等待绑定', provisioned:'正在准备连接', enrolling:'绑定中', connecting:'连接中', online:'在线', offline:'离线', revoking:'正在撤销连接', revoked:'连接已撤销'};
     async function loadMembers(offset = membersOffset) {
-      if (disposed || !remote || !admin || !csrf || scope.document.hidden) return;
+      if (disposed || !admin || !csrf || scope.document.hidden) return;
       const epoch = ++membersEpoch, mine = generation, requestCsrf = csrf;
       membersReading = true; $('members-status').textContent = '正在读取成员…'; $('members-status').dataset.tone = '';
       action('members-previous').disabled = action('members-next').disabled = true;
       try {
-        const value = await request(`/remote/api/admin/members?limit=${membersLimit}&offset=${offset}`);
+        const value = await request(`${remote ? '/remote/api/admin/members' : '/api/desktop/account/members'}?limit=${membersLimit}&offset=${offset}`);
         if (!value || disposed || mine !== generation || epoch !== membersEpoch || !admin || requestCsrf !== csrf || scope.document.hidden) return;
         if (!Array.isArray(value.items) || !Number.isSafeInteger(value.total) || value.total < 0 || value.offset !== offset || value.limit !== membersLimit || value.items.length !== Math.min(membersLimit, Math.max(0, value.total - offset)))
           throw new Error('成员列表未完整读取，请刷新重试。');
@@ -186,11 +191,8 @@
       configured = value.configured !== false; device = value;
       onPortal?.(configured && typeof value.portal_url === 'string' ? value.portal_url : '');
       $('local-actions').hidden = !configured;
-      $('account').textContent = value.account ? (value.account.name || value.account.sub) : '';
-      $('membership').textContent = !configured ? '账号服务未配置' : value.account ? '已登录' : ['connecting','online','offline'].includes(value.state) ? '连接已保存' : '未登录';
-      $('membership').dataset.tone = configured && value.account ? 'success' : 'neutral';
       $('status').textContent = value.runtime_restart_required ? '绑定配置已保存，重新打开软件后启用远程连接；正在运行的工作请先正常结束。' : '';
-      $('local-help').textContent = value.state === 'awaiting_local_confirmation' ? '请核对账号后确认绑定。' : '';
+      $('local-help').textContent = value.state === 'awaiting_local_confirmation' ? '请核对账号 ' + (value.account?.name || value.account?.sub || '') + ' 后确认绑定。' : '';
       $('device-state').textContent = remoteStates[value.state] || ({unbound:'尚未绑定',authorizing:'授权中',awaiting_local_confirmation:'等待确认'}[value.state] || '未连接');
       $('device-state').dataset.tone = connectionTone(value.state);
       $('device-help').textContent = configured ? '' : '此版本没有启用账号服务，不影响本机项目的使用。';
@@ -206,7 +208,31 @@
       $('open').hidden = typeof returnHash === 'string'; $('open').textContent = '返回工作台 →';
       if (typeof returnHash === 'string' && /^#[a-zA-Z0-9/_-]*$/.test(returnHash)) $('open').href = '/studio' + returnHash;
     }
-    async function refresh() {
+    function renderLocalAccount(value, readMembers) {
+      const identity = JSON.stringify([value.account?.sub, value.admin, value.membership]);
+      const changed = identity !== localIdentity;
+      if (changed) { adminViewEpoch++; clearMembers(); clearInvitation(); }
+      localIdentity = identity; localAccountConfigured = value.configured === true;
+      localAccountAuthorizing = value.state === 'authorizing';
+      account = value.account || null; admin = value.admin === true && Boolean(account);
+      $('account').textContent = account?.name || account?.sub || '';
+      $('membership').textContent = !localAccountConfigured ? '账号服务未配置' : account ? (value.membership === 'active' ? '已激活' : '待激活') : value.state === 'authorizing' ? '等待登录授权' : '未登录';
+      $('membership').dataset.tone = account && value.membership === 'active' ? 'success' : 'neutral';
+      $('local-account').hidden = !localAccountConfigured;
+      action('account-authorize').hidden = Boolean(account);
+      action('account-authorize').disabled = !localAccountConfigured || value.state === 'authorizing';
+      action('logout').hidden = !account;
+      $('activation').hidden = !account || value.membership === 'active';
+      $('invitations').hidden = !admin || scope.document.hidden;
+      $('account-grant').hidden = !value.verification_uri;
+      $('account-code').textContent = value.user_code || '';
+      if (value.verification_uri) $('account-verification').href = value.verification_uri;
+      $('account-error').textContent = value.code ? ({expired_token:'登录授权已过期，请重新登录。',access_denied:'登录授权已取消。',remote_network_unavailable:'账号服务暂时无法连接，请刷新重试。'})[value.code] || '账号登录已失效，请重新登录。' : '';
+      // Computer enrollment remains an explicit, separate action.
+      action('authorize').textContent = device?.state === 'authorizing' ? '授权中' : ['online','offline'].includes(device?.state) ? '重新连接电脑' : '连接这台电脑';
+      if (admin && (changed || readMembers)) void loadMembers();
+    }
+    async function refresh(readMembers = true) {
       if (disposed || (!remote && busy) || reading) return;
       reading = true; const mine = generation;
       try {
@@ -215,11 +241,15 @@
         if (!value || disposed || mine !== generation) return;
         $('status').dataset.tone = '';
         if (remote) renderRemote(value); else renderLocal(value);
+        if (!remote) {
+          const identity = await request('/api/desktop/account/status');
+          if (identity && !disposed && mine === generation) renderLocalAccount(identity, readMembers);
+        }
       } catch (failure) { if (mine === generation) error(failure); }
       finally { reading = false; }
     }
     async function mutate(kind, body = {}) {
-      if (disposed || pending.has(kind) || (!remote && busy) || reading || !csrf || (kind === 'invitation' && !admin) || (!remote && !configured)) return;
+      if (disposed || pending.has(kind) || (!remote && busy) || reading || !csrf || (kind === 'invitation' && !admin) || (!remote && kind === 'account-authorize' && localAccountAuthorizing) || (!remote && !configured && !localAccountConfigured)) return;
       pending.add(kind);
       busy = true; const mine = generation, requestCsrf = csrf, requestView = adminViewEpoch;
       const button = action(kind); if (button) button.disabled = true;
@@ -227,10 +257,12 @@
       if (button) button.setAttribute?.('aria-busy', 'true');
       if (kind === 'invitation') clearInvitation();
       try {
-        const path = remote ? '/remote/api/' + (kind === 'invitation' ? 'invitations' : kind === 'revoke' ? 'devices/' + encodeURIComponent(device.device_id) + '/revoke' : kind) : '/api/desktop/remote/' + kind;
+        const accountAction = { 'account-authorize':'authorize', logout:'logout', invitation:'invitations', activate:'activate' }[kind];
+        const path = remote ? '/remote/api/' + (kind === 'invitation' ? 'invitations' : kind === 'revoke' ? 'devices/' + encodeURIComponent(device.device_id) + '/revoke' : kind) : accountAction ? '/api/desktop/account/' + accountAction : '/api/desktop/remote/' + kind;
         const value = await request(path, body);
         if (!value || disposed || mine !== generation || requestCsrf !== csrf || kind === 'invitation' && (!admin || scope.document.hidden || requestView !== adminViewEpoch)) return;
         if (kind === 'logout') {
+          if (!remote) { adminViewEpoch++; clearMembers(); clearInvitation(); localIdentity = ''; admin = false; busy = false; await refresh(); return true; }
           if (value.logout_url !== '/oauth2/sign_out') throw new Error('退出地址无效，请刷新后重试。');
           endSession(value.logout_url); return;
         }
@@ -240,18 +272,16 @@
         } else { busy = false; await refresh(); }
         return true;
       } catch (failure) { if (mine === generation) error(failure); }
-      finally { if (!disposed && mine === generation) { pending.delete(kind); busy = pending.size > 0; if (button) { button.disabled = !remote && (!configured || (kind === 'authorize' && device?.state === 'authorizing')); button.setAttribute?.('aria-busy', 'false'); } if (kind === 'revoke') { action('cancel-revoke').disabled = false; action('confirm-revoke').disabled = false; } } }
+      finally { if (!disposed && mine === generation) { pending.delete(kind); busy = pending.size > 0; if (button) { button.disabled = !remote && (!configured || (kind === 'authorize' && device?.state === 'authorizing') || (kind === 'account-authorize' && localAccountAuthorizing)); button.setAttribute?.('aria-busy', 'false'); } if (kind === 'revoke') { action('cancel-revoke').disabled = false; action('confirm-revoke').disabled = false; } } }
       return false;
     }
     on(action('refresh'), 'click', () => { void refresh(); });
-    if (remote) {
-      on(scope.document, 'visibilitychange', recheckAdminView);
-      on(scope, 'focus', recheckAdminView);
-    }
+    on(scope.document, 'visibilitychange', recheckAdminView);
+    on(scope, 'focus', recheckAdminView);
     on(action('members-previous'), 'click', () => { if (!membersReading && membersOffset > 0) void loadMembers(membersOffset - membersLimit); });
     on(action('members-next'), 'click', () => { if (!membersReading && membersOffset + membersLimit < membersTotal) void loadMembers(membersOffset + membersLimit); });
     on($('activation'), 'submit', event => { event.preventDefault(); void mutate('activate', {invite: new FormData(event.currentTarget).get('invite')}); });
-    for (const kind of ['invitation','logout','authorize','confirm']) on(action(kind), 'click', () => { void mutate(kind); });
+    for (const kind of ['invitation','logout','authorize','confirm','account-authorize']) on(action(kind), 'click', () => { void mutate(kind); });
     const revokeIdentity = () => device && JSON.stringify([generation, csrf, remote ? device.device_id : device.account?.sub, device.state]);
     on(action('revoke'), 'click', () => {
       if (disposed || busy || reading || !device) return;
@@ -271,7 +301,7 @@
     on(dialog, 'cancel', event => { event.preventDefault(); if (!composing && !event.isComposing) closeRevoke(); });
     on(dialog, 'keydown', event => { if (event.key === 'Escape') { event.stopPropagation?.(); if (composing || event.isComposing || event.keyCode === 229) event.preventDefault(); } });
     on(dialog, 'close', () => { revokeTarget = null; if (!disposed) action('revoke').focus(); });
-    function poll() { timer = scope.setTimeout(() => { if (disposed) return; if (!scope.document.hidden) void refresh(); poll(); }, 2000); }
+    function poll() { timer = scope.setTimeout(() => { if (disposed) return; if (!scope.document.hidden) void refresh(false); poll(); }, 2000); }
     function dispose() {
       if (disposed) return; disposed = true; ++generation; ++membersEpoch; csrf = ''; account = device = null;
       controller.abort(); scope.clearTimeout(timer); unsubscribe();

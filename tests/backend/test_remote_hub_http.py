@@ -45,6 +45,18 @@ class RemoteHubHTTPTests(unittest.TestCase):
         response = connection.getresponse()
         return response.status, json.loads(response.read()), dict(response.getheaders())
 
+    def test_desktop_account_directory_requires_bearer_admin_and_strict_page(self):
+        headers = {"Authorization": "Bearer synthetic-access-token"}
+        directory = self.hub.user_directory = Mock(issuer=A.issuer)
+        directory.page.return_value = ([], 0)
+        path = "/remote/desktop/admin/members?limit=25&offset=0"
+        self.assertEqual(self.request("GET", path, headers=headers)[0], 403)
+        directory.page.assert_not_called()
+        self.hub.admin_subjects = frozenset([(A.issuer, A.sub)])
+        self.assertEqual(self.request("GET", path, headers=headers)[0], 200)
+        self.assertEqual(self.request("GET", path.replace("limit=25", "limit=0"), headers=headers)[0], 400)
+        self.assertEqual(self.request("GET", path, headers={"Cookie":"forged"})[0], 401)
+
     def test_admin_registration_directory_needs_own_session_csrf_and_admin(self):
         self.hub.admin_subjects = frozenset([(A.issuer, A.sub)])
         directory = self.hub.user_directory = Mock(issuer=A.issuer)
@@ -54,6 +66,7 @@ class RemoteHubHTTPTests(unittest.TestCase):
                    "X-CE-Route-Proof": self.hub.route_proof}
         path = "/remote/api/admin/members?limit=25&offset=0"
         self.assertEqual(self.request("GET", path, headers=headers)[0], 401)
+
         _, session, extra = self.request("GET", "/remote/api/session", headers=headers)
         headers["Cookie"] = extra["Set-Cookie"].split(";", 1)[0]
         self.assertEqual(self.request("GET", path, headers=headers)[0], 403)
