@@ -37,7 +37,8 @@ export function readPlatformRoute(location: Pick<Location, 'hash' | 'search'>): 
             : 'all'
     }
   if (view === 'news') return { view: 'news', id: '', tab: '' }
-  if (view === 'mobile') return { view: 'mobile', id: '', tab: '' }
+  if (view === 'mobile' || view === 'settings' && id === 'mobile')
+    return { view: 'settings', id: '', tab: 'account' }
   if (view === 'workbench' || view === 'project-setup' || view === 'workspace')
     return { view: 'workbench', id: '', tab: '' }
   if (view === 'settings')

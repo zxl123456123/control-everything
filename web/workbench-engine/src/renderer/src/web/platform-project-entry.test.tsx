@@ -12,6 +12,7 @@ import type { SettingsPresentationScope } from '../lib/settings-navigation-types
 const fixture = vi.hoisted(() => ({
   load: vi.fn(),
   runtimeLoad: vi.fn(),
+  openModal: vi.fn(),
   projects: null as
     | ((rows: PlatformProject[], metadata?: { archived: PlatformProject[] }) => void)
     | null,
@@ -35,6 +36,7 @@ vi.mock('./platform-project-bootstrap', () => ({
   createPlatformEnvironment: (value: unknown) => value
 }))
 vi.mock('./web-preload-api', () => ({ installWebPreloadApi: vi.fn() }))
+vi.mock('../store', () => ({ useAppStore: { getState: () => ({ openModal: fixture.openModal }) } }))
 vi.mock('./web-runtime-environment', () => ({ saveStoredWebRuntimeEnvironment: vi.fn() }))
 vi.mock('./web-device-key-support', () => ({
   initWebDeviceKeySupport: vi.fn().mockResolvedValue(undefined)
@@ -147,6 +149,7 @@ const publish = (rows: PlatformProject[], archived: PlatformProject[] = []) =>
   act(() => fixture.projects!(rows, { archived }))
 beforeEach(() => {
   fixture.mounts.mockClear()
+  fixture.openModal.mockClear()
   fixture.bridgeMounts.mockClear()
   fixture.bridgeUnmounts.mockClear()
   fixture.agentRequests.mockClear()
@@ -166,6 +169,34 @@ beforeEach(() => {
   window.history.replaceState(null, '', '/studio#project/p-one/workspace')
 })
 afterEach(() => cleanup())
+
+it.each(['#workbench', '#project/p-one/workspace'])(
+  'opens the original project dialog only from a visible ready native surface at %s', async (hash) => {
+    window.history.replaceState(null, '', hash)
+    render(<PlatformProjectEntry />)
+    publish([project])
+    await waitFor(() => expect(document.documentElement.dataset.platformView).toBe('workspace'))
+    await act(async () => window.dispatchEvent(new Event('platform-open-add-repo')))
+    expect(fixture.openModal).toHaveBeenCalledExactlyOnceWith('add-repo')
+    await act(async () => { window.location.hash = '#home' })
+    await waitFor(() => expect(document.documentElement.dataset.platformView).toBe('studio'))
+    await act(async () => window.dispatchEvent(new Event('platform-open-add-repo')))
+    expect(fixture.openModal).toHaveBeenCalledTimes(1)
+  }
+)
+
+it('does not open a project dialog before native readiness or after unmount', async () => {
+  fixture.navigationReady = false
+  window.history.replaceState(null, '', '#workbench')
+  const view = render(<PlatformProjectEntry />)
+  publish([])
+  await waitFor(() => expect(screen.getByTestId('project-context')).toBeTruthy())
+  await act(async () => window.dispatchEvent(new Event('platform-open-add-repo')))
+  expect(fixture.openModal).not.toHaveBeenCalled()
+  view.unmount()
+  await act(async () => window.dispatchEvent(new Event('platform-open-add-repo')))
+  expect(fixture.openModal).not.toHaveBeenCalled()
+})
 
 it('keeps a cold overview independent of the developer runtime', async () => {
   window.history.replaceState(null, '', '#home')

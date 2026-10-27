@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
-import { Button } from '@/components/ui/button'
 import { useMountedRef } from '@/hooks/useMountedRef'
 import { useAppStore } from '@/store'
 import type { Platform, StepIndex } from './MobileHero'
@@ -8,6 +7,7 @@ import type { IosChannel } from './mobile-platform-copy'
 import type { MobileNetworkInterface } from '../settings/mobile-network-interface-selection'
 import { translate } from '@/i18n/i18n'
 import { useMobilePageEscape } from './use-mobile-page-escape'
+import { readPlatformRoute } from '@/web/platform-route'
 import { MobilePageContent } from './MobilePageContent'
 import { useMobileInstallQr } from './use-mobile-install-qr'
 import {
@@ -25,33 +25,20 @@ import {
   useMobilePairingAddressPreference
 } from './use-mobile-pairing-address-preference'
 
-export default function MobilePage(): React.JSX.Element {
+export default function MobilePage(): React.JSX.Element | null {
   const closeMobilePage = useAppStore((s) => s.closeMobilePage)
-  return ['/studio', '/workbench/web-index.html'].includes(window.location.pathname) ? (
-    <div className="ce-management-surface mx-auto flex h-full w-full max-w-[1100px] flex-col gap-6 overflow-y-auto px-4 py-8 md:px-8">
-      <div role="status" className="space-y-2">
-        <h1 className="text-2xl font-bold leading-8">账号与设备</h1>
-        <p className="text-sm text-muted-foreground">
-          在工作台管理账号、连接设备和查看手机访问说明。
-        </p>
-      </div>
-      <Button
-        type="button"
-        onClick={() => {
-          closeMobilePage()
-          window.location.hash = 'mobile'
-        }}
-        className="w-fit"
-      >
-        打开账号与设备
-      </Button>
-      <Button type="button" variant="outline" onClick={closeMobilePage} className="w-fit">
-        返回工作区
-      </Button>
-    </div>
-  ) : (
-    <StandaloneMobilePage />
-  )
+  const platformMode = ['/studio', '/workbench/web-index.html'].includes(window.location.pathname)
+  useEffect(() => {
+    if (!platformMode) return
+    const route = readPlatformRoute(window.location)
+    const nativeVisible = document.documentElement.dataset.platformView === 'workspace'
+    // Retire a persisted native page without letting the hidden app replace an explicit outer route.
+    closeMobilePage()
+    if (nativeVisible && (route.view === 'workbench' || route.view === 'project' && route.tab === 'workspace')) {
+      window.location.hash = '#settings/account'
+    }
+  }, [closeMobilePage, platformMode])
+  return platformMode ? null : <StandaloneMobilePage />
 }
 
 function StandaloneMobilePage(): React.JSX.Element {

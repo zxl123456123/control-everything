@@ -26,7 +26,7 @@ window.StudioMobileEntry = {
     open.target = '_blank'; open.rel = 'noopener noreferrer';
     const actions = make('div', '', 'ce-mobile-entry-actions'); actions.append(copy, open);
     connection.append(label, actions, feedback);
-    const back = make('a', returnHash === '#home' ? '返回项目总览' : '返回原项目', 'ce-button');
+    const back = make('a', returnHash === '#home' ? '返回项目总览' : returnHash === '#workbench' ? '返回工作台' : '返回原项目', 'ce-button');
     back.href = returnHash;
     const guide = make('details', '', 'ce-mobile-guide');
     guide.hidden = true;

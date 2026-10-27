@@ -132,7 +132,7 @@ afterEach(() => {
 })
 
 describe('SidebarHeader', () => {
-  it('opens shared project registration from the integrated top-level action', () => {
+  it('restores original project controls while an unbound platform keeps workspace creation disabled', () => {
     act(() =>
       root.render(
         <PlatformProjectContext.Provider value={null}>
@@ -140,12 +140,17 @@ describe('SidebarHeader', () => {
         </PlatformProjectContext.Provider>
       )
     )
-    const button = headerButton('新建项目')
-    expect(button.textContent).toBe('新建项目')
+    const button = headerButton('Add project')
+    expect(button.textContent).toBe('')
     expect(button.disabled).toBe(false)
     expect(button.hasAttribute('data-project-registration-entry')).toBe(false)
     act(() => button.click())
     expect(mockState.openModal).toHaveBeenCalledWith('add-repo')
+    expect(mocks.openWorkspaceCreationComposerWithTourHandoff).not.toHaveBeenCalled()
+    const workspace = headerButton('New workspace')
+    expect(workspace.textContent).toBe('')
+    expect(workspace.disabled).toBe(true)
+    act(() => workspace.click())
     expect(mocks.openWorkspaceCreationComposerWithTourHandoff).not.toHaveBeenCalled()
   })
   it('keeps New workspace clickable with zero projects, since the composer adds the first one', async () => {

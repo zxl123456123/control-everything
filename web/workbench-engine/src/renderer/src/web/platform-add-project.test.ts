@@ -7,19 +7,20 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-it('uses the shared project registration flow from the integrated native add action', () => {
-  window.history.replaceState(null, '', '/studio')
+it.each(['/studio', '/workbench/web-index.html'])('opens the original project dialog at %s', (url) => {
+  window.history.replaceState(null, '', url)
   const set = vi.fn(),
     interaction = vi.fn(),
-    opened = vi.fn()
-  window.addEventListener('platform-add-project', opened, { once: true })
+    dispatch = vi.spyOn(window, 'dispatchEvent')
   const actions = createUiModalActions(set, (() => ({
     modalData: {},
     recordFeatureInteraction: interaction
   })) as never)
-  actions.openModal!('add-repo')
-  expect(opened).toHaveBeenCalledOnce()
-  expect(set).not.toHaveBeenCalled()
+  const data = { droppedLocalPath: '/projects/existing' }
+  actions.openModal!('add-repo', data)
+  expect(dispatch).not.toHaveBeenCalled()
+  expect(set).toHaveBeenCalledWith({ activeModal: 'add-repo', modalData: data })
+  expect(interaction).toHaveBeenCalledWith('workspace-creation')
 })
 
 it('keeps the original project dialog outside the integrated platform', () => {

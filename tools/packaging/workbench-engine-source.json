@@ -326816,7 +326816,9 @@
     "src/renderer/src/web/platform-settings-navigation.ts",
     "mobile/src/platform-account/browser-portal.test.ts",
     "mobile/src/platform-account/browser-portal.ts",
-    "config/scripts/orcad-playwright-core-package.mjs"
+    "config/scripts/orcad-playwright-core-package.mjs",
+    "src/renderer/src/web/preload-api/platform-native-repo-adoption.ts",
+    "src/renderer/src/web/preload-api/platform-native-repo-adoption.test.ts"
   ],
   "adapted_files": [
     {
@@ -326876,13 +326878,13 @@
     {
       "path": "mobile/package.json",
       "upstream_sha256": "5874334ec32a7e9f260969b6e2e028ca96421959dc8e808f6c19b0d6da1500c5",
-      "current_sha256": "572209da1db7259fb436acb583ecdbb78fd6aa3ad6eee265f45b6b579e7f0163",
+      "current_sha256": "137fa4d8f8ea649ad6d08f4051748dfbc15939f6bc66f2ac02c00bc29ac3d3a4",
       "reason": "Add self-hosted native account access and isolate platform credentials and outbound services."
     },
     {
       "path": "mobile/pnpm-lock.yaml",
       "upstream_sha256": "2dd860731e8a6e7f0b6736066e5d6e1f1a4925b21d711df919fb98e9f661b30e",
-      "current_sha256": "86e0f1c9c01744e2835a48082f08cd6217e4bd8333c566933f7f81e49c32d16b",
+      "current_sha256": "64427a0d0d152b05ef192479b90054ee1ac8c7d2b79a2a4faf043f3197d3cd50",
       "reason": "Add self-hosted native account access and isolate platform credentials and outbound services."
     },
     {
@@ -327062,8 +327064,8 @@
     {
       "path": "src/renderer/src/components/NewWorkspaceComposerCard.start-from.test.tsx",
       "upstream_sha256": "7658f3df99d2edb885e9d3e58717aaff2a4efcf8c15edafe2aa476db760567c9",
-      "current_sha256": "f46032968bba22775e79ad479c5a1a8de725ae590bf95a0037a3126d0b8f0c4a",
-      "reason": "Workspace context: explain actual directory relationship and verify creation guidance"
+      "current_sha256": "ba72ca39eec44fbf0b37a180824c805b09aa7c871c9153bd5b3de2a54ca9e6d2",
+      "reason": "N1: restore native project controls and upstream presentation while preserving platform identity, project registration, draft protection and the single global account surface."
     },
     {
       "path": "src/renderer/src/components/NewWorkspaceComposerCard.tsx",
@@ -327248,8 +327250,8 @@
     {
       "path": "src/renderer/src/components/mobile/MobilePage.tsx",
       "upstream_sha256": "15f121aa2d13a6daafd67fa8244fbf6e9542cae3c15e652c615b2ff25d0a478c",
-      "current_sha256": "549d3801a982808fc019fdaaa4c477e2278386a84fe6b684dbf740706a6c07fe",
-      "reason": "M1a-W: platform mobile status does not mount upstream pairing effects; M1a navigation: preserve a single project workspace while integrating platform business views; Mobile entry: unify Studio access and restore the previous project view UI r1 S8: native nondevelopment presentation with original actions and gates; MobilePage.tsx."
+      "current_sha256": "d0c06a36f0593ae394f0d25468cf0955d9f251eaec0de29e565c43f2bc9402aa",
+      "reason": "N1: restore native project controls and upstream presentation while preserving platform identity, project registration, draft protection and the single global account surface."
     },
     {
       "path": "src/renderer/src/components/native-chat/native-chat-composer-draft-indexeddb.ts",
@@ -327280,12 +327282,6 @@
       "upstream_sha256": "816258b284916a074daed11cf33ed4af5cc3a93bea303bc79c7593c588cb5433",
       "current_sha256": "70afef4faf3e95f54dece7294afc08640c53e48fa880e99bf058e7a8ebae31d7",
       "reason": "P4: isolate immutable remote browser context and scoped storage; preserve local behavior. P4: immutable remote context and explicit scoped storage; local behavior retained."
-    },
-    {
-      "path": "src/renderer/src/components/new-workspace/NewWorkspaceComposerProjectSection.tsx",
-      "upstream_sha256": "52018013bc22b3bfd286e3365915a1a0f752cede231aeea926af1dbb6d3e070e",
-      "current_sha256": "196cd58237b876d83a7e59dc75b7d7fcb1955861be346e3cfb96c5485d2b7b91",
-      "reason": "Keep project registration in the Studio overview and preserve workspace creation"
     },
     {
       "path": "src/renderer/src/components/onboarding/onboarding-feature-setup.ts",
@@ -327392,20 +327388,20 @@
     {
       "path": "src/renderer/src/components/sidebar/SidebarHeader.test.tsx",
       "upstream_sha256": "84782ef2660c58949ecd9d38e53e7341fb5c17dc8d09a284bd7261ae1685f652",
-      "current_sha256": "9ab771c9d0b3ae8780495ef8ab45eda4ada9b91ed2f640694596e9a2e13dcaad",
-      "reason": "Unify project ownership, task editing and native Agent activity in the integrated workspace"
+      "current_sha256": "cc0d1ce77d39b45d6b2145a668c7537c9829f72ade1702f23434fb4650c39346",
+      "reason": "N1: restore native project controls and upstream presentation while preserving platform identity, project registration, draft protection and the single global account surface."
     },
     {
       "path": "src/renderer/src/components/sidebar/SidebarNav.test.tsx",
       "upstream_sha256": "60f8dbd6f22d356b42cfbf9862016f010f2faaf6a5a2d01ff597e7d60c2b21fa",
-      "current_sha256": "2891de732e4a4f54056e04e615e70356296c95a1fae3ad73fe94bb5f79e73332",
-      "reason": "M1a-W: rendered platform mobile entry regression; Unify project ownership, task editing and native Agent activity in the integrated workspace; Mobile entry: unify Studio access and restore the previous project view"
+      "current_sha256": "c610cba9ab001cd6ec9ca54611fc60534c04bd6f086a9c2b617a196d3ba7e969",
+      "reason": "N1: restore native project controls and upstream presentation while preserving platform identity, project registration, draft protection and the single global account surface."
     },
     {
       "path": "src/renderer/src/components/sidebar/SidebarNav.tsx",
       "upstream_sha256": "f0e68df8edcdc64da455c2104433843fec0baf6dcb85513a0129bb21957b9ff1",
-      "current_sha256": "ff4336c0807f6ef47cbb00ac0e5ed90602f61632db9b71c0e49c88e4224db802",
-      "reason": "M1a-W: platform mobile entry states unconfigured; M1a navigation: preserve a single project workspace while integrating platform business views; Unify project ownership, task editing and native Agent activity in the integrated workspace; Mobile entry: unify Studio access and restore the previous project view"
+      "current_sha256": "f04288fbe3bea56f2c92a8908347fa53f20ef6830dd2a9691a58513a103c609a",
+      "reason": "N1: restore native project controls and upstream presentation while preserving platform identity, project registration, draft protection and the single global account surface."
     },
     {
       "path": "src/renderer/src/components/sidebar/SidebarSettingsHelpMenu.test.tsx",
@@ -327446,8 +327442,8 @@
     {
       "path": "src/renderer/src/components/sidebar/sidebar-header-actions.tsx",
       "upstream_sha256": "6e45c500d9870974c6868c8f60e1743c45150a8415cea9efd0e61513f347798a",
-      "current_sha256": "e89e4acc6785c96fa7275c7aa2f9c2aaf264768ee51b76bfdcab7c0525ad92f3",
-      "reason": "Keep project registration in the Studio overview and preserve workspace creation; Unify project ownership, task editing and native Agent activity in the integrated workspace"
+      "current_sha256": "b34d1efef53aea8ee2c994ec2a6127d76832ebd7393a30e8bad08b38266fbfe2",
+      "reason": "N1: restore native project controls and upstream presentation while preserving platform identity, project registration, draft protection and the single global account surface."
     },
     {
       "path": "src/renderer/src/components/sidebar/worktree-list/listing/use-visible-worktrees.ts",
@@ -327640,12 +327636,6 @@
       "upstream_sha256": "f59e4d4e70f7a1c5b39131f0cc51b0bf3aeeb6ba73eb44c777a9e34c4fa46eff",
       "current_sha256": "28dcf0b1bec43551103d2096fe0e316b9565f01ca0fe8d725bb58ee16fc4114c",
       "reason": "Unify project ownership, task editing and native Agent activity in the integrated workspace"
-    },
-    {
-      "path": "src/renderer/src/store/slices/ui/ui-slice-modal-actions.ts",
-      "upstream_sha256": "e2bc74612b85eb73dcc9c3569ed807a365b9808e13b3a3e0f7c270ce05b7cbb2",
-      "current_sha256": "901217ba985533434c7b042d1d3635380aa33ce2c5e2d03573372714d9ef8d29",
-      "reason": "M1a project shell: reuse project registration and retain the native developer workspace"
     },
     {
       "path": "src/renderer/src/web/main.tsx",
@@ -328268,7 +328258,7 @@
     {
       "path": "src/renderer/src/i18n/locales/zh.json",
       "upstream_sha256": "a7ceebd563b9c0405b9b72489d6d3386dae6fe24a7abe68d1d2185df3b1231e7",
-      "current_sha256": "20b6532d7707cef586af61dc88b0ec4a929a3a7bc233cae9007a4db007c3559f",
+      "current_sha256": "b095b10819c30eb57d92079c8b5e7495cd54f4f56935ab83b97f1e049611faea",
       "reason": "UI r1 S8: fixed window appearance and bounded recovery/help presentation; zh.json."
     },
     {
@@ -328306,6 +328296,12 @@
       "upstream_sha256": "3872aa7b740accfbd1b195aad6d5a6f8a5edcf606608398df80140e8043685af",
       "current_sha256": "09a5c299894293b7ae5c41d03ef80962ed27a286e3de52467a496ce5d306b2d1",
       "reason": "UI r1 S8: fixed window appearance and bounded recovery/help presentation; space.tsx."
+    },
+    {
+      "path": "src/renderer/src/web/preload-api/web-runtime-calls.ts",
+      "upstream_sha256": "8d5ae359c9c95e649250cdc5fb10dd45c2d306f7ee80eb997b7a79e140cda272",
+      "current_sha256": "16021f070100f478f4f832da29672d8bfe7279a11a2fb310782efbdc72181c4f",
+      "reason": "N1: restore native project controls and upstream presentation while preserving platform identity, project registration, draft protection and the single global account surface."
     }
   ],
   "reviewed_findings": [

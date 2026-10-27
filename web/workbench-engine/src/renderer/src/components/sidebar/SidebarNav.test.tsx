@@ -27,6 +27,7 @@ const mocks = vi.hoisted(() => ({
   agentBucketCounts: { attention: 0, working: 0, done: 0, idle: 0 },
   getAgentBucketCounts: vi.fn(),
   dismissMobileOnboardingBadge: vi.fn(),
+  mobileBadgeEnabled: vi.fn(),
   setSetupGuideSidebarDismissed: vi.fn()
 }))
 
@@ -57,11 +58,14 @@ vi.mock('@/hooks/useShortcutLabel', () => ({
 }))
 
 vi.mock('./mobile-sidebar-onboarding-badge', () => ({
-  useMobileSidebarOnboardingBadge: () => ({
-    visible: false,
-    hasPairedDevice: mocks.hasPairedMobileDevice,
-    dismiss: mocks.dismissMobileOnboardingBadge
-  })
+  useMobileSidebarOnboardingBadge: (enabled: boolean) => {
+    mocks.mobileBadgeEnabled(enabled)
+    return {
+      visible: false,
+      hasPairedDevice: mocks.hasPairedMobileDevice,
+      dismiss: mocks.dismissMobileOnboardingBadge
+    }
+  }
 }))
 
 vi.mock('../setup-guide/use-setup-guide-progress', () => ({
@@ -271,35 +275,30 @@ describe('SidebarNav', () => {
     expect(shouldShowMobileButton({})).toBe(true)
   })
 
-  it.each(['/studio', '/workbench/web-index.html?project_id=sample'])('opens unified mobile from a normal view at %s', async (url) => {
+  it.each(['/studio', '/workbench/web-index.html?project_id=sample'])('keeps account management outside the native sidebar at %s', async (url) => {
     window.history.replaceState(null, '', url)
     mocks.state.activeView = 'terminal'
     const container = await renderSidebarNav()
-    const button = getButtonByText(container, '手机与设备')
+    expect(queryButtonByText(container, '手机与设备')).toBeNull()
     expect(container.textContent).not.toContain('Orca Mobile')
-    await clickButton(button)
-    expect(window.location.hash).toBe('#mobile')
+    expect(mocks.mobileBadgeEnabled).toHaveBeenLastCalledWith(false)
+    expect(window.location.hash).toBe('')
     expect(mocks.state.activeView).toBe('terminal')
     expect(mocks.openMobilePage).not.toHaveBeenCalled()
     expect(mocks.closeMobilePage).not.toHaveBeenCalled()
     expect(mocks.dismissMobileOnboardingBadge).not.toHaveBeenCalled()
   })
 
-  it.each(['/studio', '/workbench/web-index.html?project_id=sample'])('restores a persisted mobile view before navigating at %s', async (url) => {
+  it.each(['/studio', '/workbench/web-index.html?project_id=sample'])('does not let sidebar hydration navigate a persisted mobile view at %s', async (url) => {
     window.history.replaceState(null, '', url)
     mocks.state.activeView = 'mobile'
     mocks.state.previousViewBeforeMobile = 'terminal'
-    mocks.closeMobilePage.mockImplementation(() => {
-      expect(window.location.hash).toBe('')
-      mocks.state.activeView = mocks.state.previousViewBeforeMobile
-    })
     const container = await renderSidebarNav()
-    const button = getButtonByText(container, '手机与设备')
-    expect(button.hasAttribute('aria-current')).toBe(false)
-    await clickButton(button)
-    expect(mocks.closeMobilePage).toHaveBeenCalledTimes(1)
-    expect(mocks.state.activeView).toBe('terminal')
-    expect(window.location.hash).toBe('#mobile')
+    expect(queryButtonByText(container, '手机与设备')).toBeNull()
+    expect(mocks.mobileBadgeEnabled).toHaveBeenLastCalledWith(false)
+    expect(mocks.closeMobilePage).not.toHaveBeenCalled()
+    expect(mocks.state.activeView).toBe('mobile')
+    expect(window.location.hash).toBe('')
     expect(mocks.openMobilePage).not.toHaveBeenCalled()
     expect(mocks.dismissMobileOnboardingBadge).not.toHaveBeenCalled()
   })
@@ -319,6 +318,7 @@ describe('SidebarNav', () => {
     expect(mocks.openMobilePage).toHaveBeenCalledTimes(1)
     expect(mocks.dismissMobileOnboardingBadge.mock.invocationCallOrder[0]).toBeLessThan(mocks.openMobilePage.mock.invocationCallOrder[0])
     expect(mocks.closeMobilePage).not.toHaveBeenCalled()
+    expect(mocks.mobileBadgeEnabled).toHaveBeenLastCalledWith(true)
     expect(window.location.hash).toBe('')
   })
 

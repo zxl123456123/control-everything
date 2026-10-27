@@ -50,7 +50,13 @@ vi.mock('@/components/new-workspace/SmartWorkspaceNameField', () => ({
 }))
 
 vi.mock('@/components/new-workspace/ProjectCombobox', () => ({
-  default: () => <div data-testid="project-combobox" />
+  default: ({ onAddProject }: { onAddProject?: () => void }) => (
+    <div data-testid="project-combobox">
+      <button type="button" data-testid="project-combobox-add" onClick={onAddProject} disabled={!onAddProject}>
+        Add project from picker
+      </button>
+    </div>
+  )
 }))
 
 // Why: the picker owns its own test; here it only has to report its value and emit picks.
@@ -163,6 +169,22 @@ function clickButton(container: HTMLDivElement, label: string): void {
 }
 
 describe('NewWorkspaceComposerCard start from', () => {
+  it('keeps the original add-project button and picker action available in the platform', () => {
+    document.documentElement.dataset.platformView = 'workspace'
+    try {
+      const add = vi.fn()
+      container = renderCard({ onAddProjectOverride: add })
+      const button = container.querySelector<HTMLButtonElement>('button[aria-label="Add project"]')
+      expect(button).toBeTruthy()
+      act(() => button!.click())
+      const picker = container.querySelector<HTMLButtonElement>('[data-testid="project-combobox-add"]')!
+      expect(picker.disabled).toBe(false)
+      act(() => picker.click())
+      expect(add).toHaveBeenCalledTimes(2)
+    } finally {
+      delete document.documentElement.dataset.platformView
+    }
+  })
   const platformProject = { target: { repoId: 'repo-a' }, runtime: { environmentId: 'env-a' } } as PlatformProjectBootstrap
   const selected = { eligibleRepos: [{ id: 'repo-a', displayName: 'Fixture', path: 'C:/example/repo' }] as any,
     selectedRepoExecutionHostId: 'runtime:env-a' as const }

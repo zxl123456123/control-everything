@@ -300,6 +300,21 @@ export default function PlatformProjectEntry(): React.JSX.Element {
     }
   }, [showWorkspace, showWorkbench])
   useEffect(() => {
+    if (!contextActive || (!showWorkspace && !showWorkbench)) return
+    let active = true
+    const openProject = () => {
+      const hash = window.location.hash
+      void import('../store').then(({ useAppStore }) => {
+        if (!active || window.location.hash !== hash ||
+          document.documentElement.dataset.platformView !== 'workspace') return
+        try { assertContextActive() } catch { return }
+        useAppStore.getState().openModal('add-repo')
+      }).catch(() => { if (active) setNavigationNotice('添加项目暂不可用，请重试。') })
+    }
+    window.addEventListener('platform-open-add-repo', openProject)
+    return () => { active = false; window.removeEventListener('platform-open-add-repo', openProject) }
+  }, [contextActive, showWorkspace, showWorkbench])
+  useEffect(() => {
     const receive = (event: Event) => {
       const request = (event as CustomEvent<TaskActionDetail>).detail
       const current = readPlatformRoute(window.location)

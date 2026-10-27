@@ -36,7 +36,7 @@
 
 `web/workbench-engine` 保存固定上游的桌面、Web、移动端和运行时源码，保留内部相对目录及许可。来源清单位于 `tools/packaging/workbench-engine-source.json`，精确记录文件、资源与本地适配；新增文件须同时更新清单。它是独立 React/TypeScript/Node 构建单元，其他普通脚本页面仍遵守原目录与编译合同。
 
-项目之外沿用 Studio；项目内部接入完整原工作台和配置。源码持有与构建不代表运行时、Android APK或自建账号服务已验收。旧独立 iframe 预览保留为历史开发工具，不是最终产品接入方案。普通 Python wheel 当前不包含此源码树、Node或原生产物，HTTP也不递归提供该目录。
+项目之外沿用 Studio；项目内部接入完整原工作台和配置。项目添加沿用原生目录浏览、新建和克隆控件，成功后由 `/api/workbench/adopt-repo` 根据当前受管运行时的真实 Repo 幂等登记，不让平台表单替换原流程；列表确认失败只重试登记或读取，不重放创建、克隆。账号与设备统一使用 Studio 全局页面，原生旧移动入口仅保留兼容转入。源码持有与构建不代表运行时、Android APK或自建账号服务已验收。旧独立 iframe 预览保留为历史开发工具，不是最终产品接入方案。普通 Python wheel 当前不包含此源码树、Node或原生产物，HTTP也不递归提供该目录。
 
 构建使用显式 Node 24 和 pnpm 12.14.0 原生可执行文件；开发 Node 与随包运行时的 pin 分开核对。root/mobile/cloud 保持各自锁文件，依赖准备禁用未列出的安装脚本。入口不安装全局工具、不启动客户端、不运行个人 Agent：
 
