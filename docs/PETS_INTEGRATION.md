@@ -147,6 +147,12 @@ pip wheel . --no-deps --no-build-isolation -w /tmp/whl
 | --- | --- | --- |
 | `news-reader-pet` | `spider` / `naidragon` / `tabbycat`，不认识的值回退到蜘蛛 | 蜘蛛 |
 | `news-reader-pet-enabled` | `true` 开启，其余视为关闭 | **关闭**（蜘蛛原本就是可选的） |
+| `news-reader-pet-quiet` | `true` 为安静模式：不动、不提示、不查状态 | 关 |
+| `news-reader-pet-news-fx` | `false` 关闭新闻页互动（宠物和转盘仍在） | 开 |
+| `news-reader-pet-size` | `small` / `medium` / `large`（仅奶龙、狸花猫） | `medium` |
+| `news-reader-pet-dock` | `auto` / `bl` / `br`（仅奶龙、狸花猫） | `auto` |
+| `news-reader-pet-dial` | 转盘动作 id 的逗号列表，3～6 个 | 见下表 |
+| `news-reader-pet-hint` | 工作台首次提示是否已显示（只写不读设置） | 无 |
 
 - `NewsPetPrefs.read()`、`setPet(name)`、`setEnabled(flag)`、`subscribe(fn)`；只有值真的变化时才通知，写入失败返回 `false`，设置页会提示“无法保存设置”。
 - 同一浏览器的其它标签页、嵌入的阅读器 iframe 通过 `storage` 事件实时跟随，不需要刷新。
@@ -154,22 +160,78 @@ pip wheel . --no-deps --no-build-isolation -w /tmp/whl
 - 3D 宠物脚本加载失败时，阅读器退回蜘蛛并派发 `window` 事件 `news-pet-fallback`；下拉仍显示用户的选择，转盘按钮隐藏。
 - 开发分支里旧的 `news-spider-visible-v1:<scope>` 没有迁移（它只存在于未发布的 develop 版本）。
 
-**转盘**（奶龙、狸花猫；蜘蛛没有转盘，`#pet-dial` 按钮会隐藏）：点宠物或点顶部「转盘」按钮展开，第一页最多 6 个宿主动作，由 `news-reader.js` 的 `petActions()` 提供，都作用在真实应用上：
+**转盘**（奶龙、狸花猫；蜘蛛没有转盘，`#pet-dial` 按钮会隐藏）：点宠物或点顶部「转盘」按钮展开，第一页是用户在「设置 → 外观 → 转盘动作」里选的 3～6 个宿主动作（`news-pet-dial.js` 是纯数据模块，`news-pet-director.js` 的 `buildActions` 把 id 接到真实处理函数），第二页只保留宠物自己的互动（奶龙：摸摸、午睡、跳舞、状态；狸花猫：摸肚皮、蹭蹭、睡觉、状态）。
 
-| 动作 | 效果 |
-| --- | --- |
-| 打开工作台 | 跳到 `#home`（嵌入时改父页面的 hash） |
-| 下一条 | 同顶部「下一条」按钮 |
-| 搜索 | 打开阅读器搜索 |
-| 采集新闻 | 同顶部「采集」按钮，打开采集面板 |
-| 宠物设置 | 跳到 `#settings/appearance` |
-| 隐藏宠物 | 关闭开关，焦点回到「显示宠物」，并提示在哪里再打开 |
+| 动作 | 范围 | 默认 | 效果 |
+| --- | --- | --- | --- |
+| 打开工作台 | 任何页 | ✓ | 跳到 `#home`（嵌入时改父页面 hash；已在首页时不出现） |
+| 下一条 / 上一条 | 新闻 | 下一条 ✓ | 同列表按钮 |
+| 搜索新闻 | 新闻 | ✓ | 打开阅读器搜索 |
+| 采集新闻 | 新闻 | ✓ | 同顶部「采集」按钮 |
+| 收藏本条 / 读完归档 | 新闻 | | 同文章栏按钮，没有选中文章时按钮不可用，点了不会有动作 |
+| 去看新闻 | 工作台 | | 跳到 `#news` |
+| 安静模式 | 任何页 | ✓ | 切换 `news-reader-pet-quiet` |
+| 宠物设置 | 任何页 | ✓ | 跳到 `#settings/appearance` |
+| 隐藏宠物 | 任何页 | | 关闭开关，并提示在哪里再打开 |
+
+选择规则：最少 3 个、最多 6 个，可恢复默认；选了当前页面用不上的动作时按页面过滤，不足 3 个由该页面的备选补齐（工作台：打开工作台、去看新闻、安静模式、宠物设置）。**没有**“切换宠物”“关闭转盘”“查看版本”之类重复或低频的项目，那些都在设置页里。
 
 键盘：不设全局快捷键。Tab 到「转盘」按钮按 Enter/空格，焦点进入转盘；方向键在动作间移动，Enter 执行，Esc 关闭并把焦点还给「转盘」按钮。窄屏（<720px）宠物没有停靠点，转盘仍可从按钮打开。
 
-**新增脚本要登记的位置**：`news-pet-prefs.js` 在 `news_reader.py` 的 `ASSETS`；`studio-pet-settings.js` 在 `workbench.py` 的资源表、`preview_studio.py`；两者都在 `build_assets.py`、`MANIFEST.in`、`studio-preview.html`、桌面端 `platform-studio-surface.tsx` 的脚本列表，以及 e2e 资源白名单（`verify_news_reader*.cjs`）。
+**新增脚本要登记的位置**：`news-pet-prefs.js`、`news-pet-director.js` 在 `news_reader.py` 的 `ASSETS`；`studio-pet-settings.js`、`studio-mascot.js` 在 `workbench.py` 的资源表、`preview_studio.py`；两者都在 `build_assets.py`、`MANIFEST.in`、`studio-preview.html`、桌面端 `platform-studio-surface.tsx` 的脚本列表，以及 e2e 资源白名单（`verify_news_reader*.cjs`）。
 
 **测试**：`tests/frontend/test_news_pet_prefs.cjs`（偏好与回退事件）、`test_studio_pet_settings.cjs`（设置页）、`test_studio_navigation.cjs`（左下角入口）；`tests/e2e/verify_news_reader.cjs` 覆盖键盘开转盘与 Esc 还焦点。
+
+## 9. 个人工作台吉祥物与新闻页互动（mascot notes）
+
+宠物现在是整个软件在个人工作台里的“代表”，不再只是新闻页的装饰。下面是已经做了的、小心处理的和**故意没做**的。
+
+**什么时候出现**（`web/workspace/studio-mascot.js` 的 `policy()`，纯函数，有测试）：
+
+| 页面 | 是否显示 | 原因 |
+| --- | --- | --- |
+| 首页、事项（收件箱）、高级管理、设置（外观等） | 显示 | 不是专注输入的页面 |
+| 新闻 | 不显示 | 阅读器 iframe 里有自己的一只，两只会重影 |
+| 项目页、工作台（编辑器 / 终端） | 不显示 | 专注区域，不遮挡输入和输出 |
+| 设置 → 账号与设备 | 不显示 | 配对二维码页，不能被盖住 |
+| 窗口宽度 < 560px | 不显示 | 角落放不下，会压到内容 |
+
+**怎么放**：`position: fixed; pointer-events: none` 的透明层，只有宠物身体和转盘接收点击（引擎在 `document` 上做命中测试），所以不抢焦点、不挡点击。停靠位置只有“右下 / 左下”，左下会停在侧栏右边而不是压住左下角的「设置」入口；位置和大小来自偏好，没有拖拽，因此也没有要“记住”的拖动坐标。
+
+**安静和省电**：安静模式、系统“减少动效”、标签页隐藏，三者都会暂停动画并停止状态轮询（`PetStatusFeed`）；离开显示页面时引擎被销毁，不留 rAF、定时器和 DOM。
+
+**首次提示**：第一次在工作台里看到宠物时冒一句“点我，打开快捷转盘”，之后不再出现（`news-reader-pet-hint`）；安静模式下不提示。
+
+**键盘与无障碍**：画布 `aria-hidden`；有一个只在聚焦时出现的「宠物转盘」按钮，Enter 打开转盘，Esc 关闭后焦点回到该按钮；转盘动作的结果（如“安静模式已开启”）通过自带的 `role="status"` 提示，不借用页面状态栏（它会被页面渲染清空）。
+
+**出错**：3D 宠物脚本加载失败或抛错时，工作台里直接去掉它并提示一次，不回退蜘蛛（蜘蛛在这里没有意义），也不会在每次换页时重试；换一只宠物后才会再试。
+
+**性能预算**：`studio-mascot.js` 约 11 KB，宠物关闭时不加载引擎；开启后只在显示页面有一个渲染循环，窗口隐藏即停。奶龙 / 狸花猫的引擎脚本大小受各自测试限制。
+
+**新闻页互动**（只对奶龙 / 狸花猫，由设置里的“新闻页互动”开关控制，`news-pet-director.js` 的 `createReactor` 统一限流）：
+
+| 事件 | 反应 | 冷却 |
+| --- | --- | --- |
+| 一批新文章到达 | 跳一下 + “来了 N 条新闻” | 15 秒 |
+| 采集中 / 采集失败 | 摇摆 / 惊讶（失败不受全局间隔限制） | 10 秒 / 20 秒 |
+| 未读清零 | 跳舞 | 120 秒 |
+| 收藏 / 归档 | 摇摆 / 跳一下（归档动画已覆盖时跳过） | 2.5 秒 |
+| 搜索没有结果 | 歪头 | 15 秒 |
+| 列表为空 | 打哈欠 | 120 秒 |
+| 读到文章末尾 | 摇摆 | 8 秒 |
+
+全局至少间隔 3 秒，同一事件只提示一次（最多记 60 个）；不覆盖正文、不拦截滚动和点击；安静模式、暂停、页面隐藏时一律不反应。蜘蛛保持原有的“指向目标”行为，没有 `react()`。
+
+**故意没做的**：
+
+- 没有全局快捷键、没有声音：桌面软件的全局热键容易冲突，声音在办公场景是打扰。
+- 蜘蛛不进入工作台：它是新闻页的采集动画，没有转盘和状态条。
+- 不放在项目页、终端和编辑器上，也不叠在对话框之上。
+- 设置页里不挂第二个引擎，设置页只显示静态预览，真正的宠物是页面右下角那一只。
+- 不接对话、聊天或任务完成的主动播报；状态只来自已有的状态接口，不编造数据。
+- 不做宠物拖拽、多宠物同屏和自定义形象上传。
+
+**测试**：`tests/frontend/test_studio_mascot.cjs`（路由策略、安静/减少动效、首次提示、转盘按页面变化、失败不重试、销毁）、`test_news_pet_director.cjs`、`tests/e2e/verify_news_reader.cjs`（反应与关闭开关）。
 
 ## 6. 回滚
 
