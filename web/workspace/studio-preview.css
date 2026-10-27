@@ -132,7 +132,8 @@
 #ce-studio .ce-dial-dot[data-on="true"]{opacity:1;transform:translate3d(var(--x),var(--y),0) scale(1)}
 #ce-studio .ce-pet-settings .ce-chip{min-height:40px}
 @media(max-width:760px){#ce-studio .ce-dial-picker{grid-template-columns:1fr;justify-items:start}#ce-studio .ce-dial-preview{justify-self:center}}
-@media(max-width:620px){#ce-studio .ce-pet-settings .ce-pet-picker{padding:4px 16px 16px}#ce-studio .ce-pet-settings .ce-pet-cards{grid-template-columns:1fr}#ce-studio .ce-pet-settings .ce-pet-card{flex-direction:row;gap:14px;padding:10px 44px 10px 10px;text-align:left}#ce-studio .ce-pet-settings .ce-pet-art{width:80px;flex:none;aspect-ratio:1.1}#ce-studio .ce-pet-settings .ce-pet-tick{top:50%;right:14px;margin-top:-11px}#ce-studio .ce-pet-settings .ce-dial-card{padding:14px 16px 18px}#ce-studio .ce-pet-settings .ce-dial-head{flex-wrap:wrap}}
+@media(max-width:760px){#ce-studio .ce-pet-settings .ce-pet-row{flex-wrap:nowrap}#ce-studio .ce-pet-settings .ce-pet-row .ce-setting-text{flex:1 1 auto}#ce-studio .ce-pet-settings .ce-pet-row :is(.ce-switch,.ce-seg){align-self:center}}
+@media(max-width:620px){#ce-studio .ce-pet-settings .ce-pet-picker{padding:4px 12px 14px}#ce-studio .ce-pet-settings .ce-pet-cards{gap:8px}#ce-studio .ce-pet-settings .ce-pet-card{padding:8px 6px 10px;border-radius:14px}#ce-studio .ce-pet-settings .ce-pet-art{aspect-ratio:1.1}#ce-studio .ce-pet-settings .ce-pet-portrait{width:52px;height:52px}#ce-studio .ce-pet-settings .ce-pet-tick{top:6px;right:6px;width:20px;height:20px}#ce-studio .ce-pet-settings .ce-seg-option{min-width:48px;padding:0 8px}#ce-studio .ce-pet-settings .ce-settings-group>.ce-pet-row{padding-left:16px;padding-right:16px}#ce-studio .ce-pet-settings .ce-dial-card{padding:14px 16px 18px}#ce-studio .ce-pet-settings .ce-dial-head{flex-wrap:wrap}}
 #ce-studio .ce-setting-row .ce-button{flex:none;font-size:15px}
 #ce-studio .ce-creator-address{padding:0;background:var(--ce-panel)}
 #ce-studio .ce-creator-address>summary{display:flex;align-items:center;justify-content:space-between;gap:20px;min-height:76px;padding:16px 20px;font-size:15px;line-height:24px;font-weight:500;cursor:pointer;list-style:none}
@@ -931,6 +932,8 @@ body:has(#ce-studio){margin:0;background:var(--ce-bg,#ffffff)}
 /* Workbench mascot (studio-mascot.js): a click-through overlay. Only the pet itself reacts to the pointer. */
 #ce-studio .ce-mascot{position:fixed;inset:0;z-index:30;pointer-events:none;contain:strict}
 #ce-studio .ce-mascot canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+@keyframes ce-mascot-in{from{opacity:0}to{opacity:1}}
+#ce-studio .ce-mascot canvas{animation:ce-mascot-in .36s cubic-bezier(.22,1,.36,1) both}
 #ce-studio .ce-mascot-depot{position:absolute;right:16px;bottom:16px;width:1px;height:1px}
 /* Keyboard door to the dial: invisible until it receives focus, then a normal button. */
 #ce-studio .ce-mascot-key{position:fixed;right:16px;bottom:16px;z-index:31;min-height:36px;padding:0 14px;border:1px solid var(--ce-line);border-radius:999px;background:var(--ce-panel);color:var(--ce-text);font:inherit;font-size:13px;cursor:pointer;box-shadow:0 6px 18px rgba(15,23,42,.18)}
@@ -938,4 +941,4 @@ body:has(#ce-studio){margin:0;background:var(--ce-bg,#ffffff)}
 #ce-studio .ce-mascot-key:focus-visible{outline:2px solid var(--ce-text);outline-offset:2px}
 #ce-studio .ce-mascot-note{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:32;max-width:min(320px,calc(100vw - 32px));padding:9px 14px;border:1px solid var(--ce-line);border-radius:12px;background:var(--ce-panel);color:var(--ce-text);font-size:13px;line-height:20px;box-shadow:0 6px 18px rgba(15,23,42,.18)}
 #ce-studio .ce-mascot-note[hidden]{display:none}
-@media (prefers-reduced-motion:reduce){#ce-studio .ce-mascot-key,#ce-studio .ce-mascot-note{transition:none}}
+@media (prefers-reduced-motion:reduce){#ce-studio .ce-mascot-key,#ce-studio .ce-mascot-note{transition:none}#ce-studio .ce-mascot canvas{animation:none}}
