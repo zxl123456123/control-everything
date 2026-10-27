@@ -94,6 +94,49 @@ class ReaderTests(unittest.TestCase):
             self.assertEqual(job['state'], expected)
             self.assertEqual('error' in job, expected == 'failed')
 
+    def test_worker_startup_failure_reports_safe_missing_dependency_reason(self):
+        jobs = self.reader.jobs
+        identity = 'c' * 32
+        folder = jobs.root / identity
+        folder.mkdir(parents=True)
+        job = {'job_id': identity, 'state': 'running', 'topic': 'coding', 'events': []}
+        stderr = "Error: Cannot find module 'playwright'\nRequire stack:\nC:/example/private-profile/news-browser.js"
+        process = Mock(stdout=iter(()))
+        process.stderr.read.return_value = stderr
+        process.wait.return_value = process.poll.return_value = 1
+        with patch('control_everything.workspace.news_research.subprocess.Popen', return_value=process):
+            jobs._run(job, folder / 'request.json', 'node')
+        self.assertEqual(job['state'], 'failed')
+        self.assertIn('playwright', job['error'].lower())
+        self.assertNotIn('private-profile', json.dumps(job))
+        self.assertNotIn('Require stack', json.dumps(job))
+        self.assertEqual(json.loads((folder / 'worker-exit.json').read_text(encoding='utf-8'))['stderr'], stderr)
+
+    def test_worker_failures_keep_source_reason_for_failed_and_partial_jobs(self):
+        for has_items in (False, True):
+            with self.subTest(has_items=has_items):
+                jobs = self.reader.jobs
+                identity = ('d' if has_items else 'e') * 32
+                folder = jobs.root / identity
+                folder.mkdir(parents=True)
+                captured = [{**item('https://sspai.com/post/fixture'), 'content_kind': 'full_text',
+                             'body_blocks': [{'type': 'p', 'text': 'Synthetic captured article.'}]}] if has_items else []
+                (folder / 'result.json').write_text(json.dumps({'items': captured}), encoding='utf-8')
+                reason = '来源返回 HTTP 403，未提取'
+                event = {'stage': 'blocked', 'message': reason, 'detail': 'private diagnostic fixture'}
+                job = {'job_id': identity, 'state': 'running', 'topic': 'coding', 'events': []}
+                process = Mock(stdout=iter([json.dumps(event) + '\n']))
+                process.stderr.read.return_value = ''
+                process.wait.return_value = process.poll.return_value = 0
+                with patch('control_everything.workspace.news_research.subprocess.Popen', return_value=process):
+                    jobs._run(job, folder / 'request.json', 'node')
+                self.assertEqual(job['state'], 'partial' if has_items else 'failed')
+                self.assertIn(reason, job.get('error', ''))
+                if has_items:
+                    self.assertIn('result', job)
+                    saved = json.loads((self.root / 'research-items.json').read_text(encoding='utf-8'))
+                    self.assertEqual(saved[0]['url'], captured[0]['url'])
+
     def setUp(self):
         self.temporary = TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)

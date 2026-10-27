@@ -71,7 +71,24 @@ async function run(name, topic, query, feedFor, knownUrls=[], runtimeModule=null
   } finally {await context?.close();}
 }
 
+async function launchFailure(name, error, expected) {
+  const folder = path.join(output, name); fs.mkdirSync(folder);
+  const config = path.join(folder, 'request.json');
+  fs.writeFileSync(config, JSON.stringify({job_id:'b'.repeat(32),topic:'coding',query:'coding',capture_frames:false}));
+  const events = []; let exitCode = 0;
+  const fakeProcess = {argv:['node',worker,config],platform:process.platform,
+    stdout:{write:line=>events.push(JSON.parse(line))},set exitCode(value){exitCode=value;}};
+  await vm.runInNewContext(fs.readFileSync(worker,'utf8'), {
+    require:id=>id==='playwright'?{chromium:{launch:async()=>{throw error;}}}:workerRequire(id),
+    process:fakeProcess,Buffer,URL,console
+  }, {filename:worker});
+  check(name + ': startup failure remains a failed worker', exitCode===1);
+  check(name + ': actionable reason excludes private diagnostics', events.length===1&&events[0].stage==='error'&&events[0].message===expected&&!JSON.stringify(events).includes('private-diagnostic'));
+}
+
 (async()=>{
+  await launchFailure('missing-edge',new Error("Chromium distribution 'msedge' is not found at C:/example/private-diagnostic/browser"),'采集浏览器未安装或不可用，请安装或修复 Microsoft Edge 后再试。');
+  await launchFailure('launch-timeout',Object.assign(new Error('private-diagnostic timeout stack'),{name:'TimeoutError'}),'采集请求超时，请检查网络连接后再试。');
   browser = await chromium.launch({channel:'msedge',headless:true});
   const runtimeModule=path.join(output,'verified-core');
   const injected=await run('verified-runtime','coding','coding',()=>rss([]),[],runtimeModule);

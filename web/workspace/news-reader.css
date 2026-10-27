@@ -217,6 +217,7 @@ html[data-embedded=true] .toolbar{flex-wrap:wrap;padding:12px 0;gap:8px}
 #research-feedback{padding:0;margin:0;border:0;background:none;text-align:center}
 #research-panel #research-state{display:block;font-size:24px;line-height:34px;font-weight:600;letter-spacing:-.4px;margin:0;text-align:center}
 #research-panel #research-state:before{display:none}
+#research-panel #research-reason{margin:12px 0 0;color:var(--muted);font-size:14px;line-height:22px;white-space:pre-wrap;overflow-wrap:anywhere}
 .collection-orb{position:relative;width:220px;height:220px;margin:4px auto 12px;isolation:isolate}
 .orb-halo,.orb-swirl{position:absolute;inset:0;border-radius:50%;pointer-events:none}
 .orb-halo{inset:14px;background:radial-gradient(ellipse at 35% 25%,#ffb35f66,transparent 65%),radial-gradient(ellipse at 70% 75%,#f0809d55,transparent 65%);filter:blur(16px);animation:collection-breathe 3.2s ease-in-out infinite;animation-play-state:paused}
