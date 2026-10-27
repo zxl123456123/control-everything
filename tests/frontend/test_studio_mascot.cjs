@@ -19,7 +19,7 @@ class Node {
   addEventListener(type, fn) { (this.listeners[type] ||= []).push(fn); }
   click() { (this.listeners.click || []).forEach(fn => fn()); }
   focus() { this.focused = true; }
-  getBoundingClientRect() { return {left: 0, right: this.width || 0, width: this.width || 0}; }
+  getBoundingClientRect() { return {left: 0, top: 0, right: this.width || 0, bottom: 0, width: this.width || 0, height: 0}; }
   all(predicate, out = []) { if (predicate(this)) out.push(this); for (const child of this.children) child.all(predicate, out); return out; }
   querySelector(selector) { const cls = selector.slice(1); return this.all(node => node.className.split(' ').includes(cls))[0] || null; }
 }
@@ -221,7 +221,8 @@ test('the wheel is anchored to the depot, follows the dial setting and the pin p
   const t = setup({prefs: {'news-reader-pet': 'naidragon'}});
   const wheel = t.liveWheel();
   assert.equal(wheel.config.tapTarget.className, 'ce-mascot');
-  assert.equal(wheel.config.anchor().className, 'ce-mascot-depot');
+  const slot = wheel.config.anchor();
+  assert.ok(slot.width > 0 && slot.height > 0 && Number.isFinite(slot.left) && Number.isFinite(slot.top), 'the anchor is a pet-sized resting slot, not the 1px depot');
   assert.equal(wheel.config.pinned, false);
   wheel.config.onPinChange(true);
   assert.equal(t.window.NewsPetPrefs.read().dialPin, true, 'the pin goes through the shared preference');
