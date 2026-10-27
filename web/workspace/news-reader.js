@@ -580,7 +580,7 @@
   $('search').addEventListener('input', () => { render(); cancelInvisible(); });
   $('date-range').addEventListener('change', () => { render(); cancelInvisible(); });
   $('show-history').addEventListener('click', () => { $('date-range').value = 'all'; render(); });
-  $('stream').addEventListener('change', () => { for (const [id, task] of tasks) if (task.kind === 'archive') cancelTask(id); stream = $('stream').value; render(); });
+  bindSegmented($('stream'), value => { for (const [id, task] of tasks) if (task.kind === 'archive') cancelTask(id); stream = value; render(); });
   $('clear-search').addEventListener('click', () => { $('search').value = ''; render(); $('search').focus(); });
   $('directory-summary').addEventListener('click', event => { const show = event.currentTarget.getAttribute('aria-pressed') !== 'true'; event.currentTarget.setAttribute('aria-pressed', String(show)); event.currentTarget.setAttribute('aria-label', show ? '隐藏目录摘要' : '显示目录摘要'); $('directory').dataset.summaries = String(show); });
   $('back-to-list').addEventListener('click', () => setReadingView('list'));
@@ -608,10 +608,32 @@
   document.querySelectorAll('button[data-media-view]').forEach(button => button.addEventListener('click', () => { mediaView = button.dataset.mediaView; $('article-scroll').scrollTop = 0; renderMedia(articles.get(currentId)); }));
   $('image-previous').addEventListener('click', () => { imageIndex--; renderMedia(articles.get(currentId)); });
   $('image-next').addEventListener('click', () => { imageIndex++; renderMedia(articles.get(currentId)); });
+  /**
+   * Roving-tabindex radio group (WAI-ARIA radio pattern, the same model as Radix ToggleGroup type="single"):
+   * one tab stop, arrows/Home/End move and select, and exactly one option is always checked.
+   * @param {HTMLElement} root element with role="radiogroup" holding [role="radio"] buttons
+   * @param {(value:string) => void} onChange called with the new data-value after a user change
+   */
+  function bindSegmented(root, onChange) {
+    const items = [...root.querySelectorAll('[role="radio"]')];
+    const choose = (item, focus) => {
+      const changed = item.getAttribute('aria-checked') !== 'true';
+      for (const other of items) { const on = other === item; other.setAttribute('aria-checked', String(on)); other.tabIndex = on ? 0 : -1; }
+      if (focus) item.focus();
+      if (changed) onChange(item.dataset.value);
+    };
+    root.addEventListener('click', event => { const item = event.target.closest('[role="radio"]'); if (item && root.contains(item)) choose(item, false); });
+    root.addEventListener('keydown', event => {
+      const at = items.indexOf(document.activeElement); if (at < 0 || event.altKey || event.ctrlKey || event.metaKey) return;
+      const step = {ArrowRight:1, ArrowDown:1, ArrowLeft:-1, ArrowUp:-1}[event.key];
+      const next = event.key === 'Home' ? 0 : event.key === 'End' ? items.length - 1 : step ? (at + step + items.length) % items.length : -1;
+      if (next < 0) return; event.preventDefault(); choose(items[next], true);
+    });
+  }
   function setCollecting(active) {
     collecting = active; researchBusy = active; engine?.setCollecting?.(active);
     researchEngine?.setCollecting(active);
-    $('refresh').textContent = active ? '查看采集进度' : '采集新闻';
+    $('refresh-label').textContent = active ? '查看采集进度' : '采集新闻'; $('refresh').dataset.running = String(active);
     $('research-panel').dataset.running = String(active);
     $('research-start').disabled = active; $('research-start').textContent = active ? '采集中…' : '开始采集';
     $('research-query').disabled = active; document.querySelectorAll('[data-topic]').forEach(button => { button.disabled = active; });
@@ -659,6 +681,28 @@
     } catch { return ''; }
   }
   function eventStep(event) { return ['search','query','start'].includes(event.stage) ? 'search' : ['extract','normalize'].includes(event.stage) ? 'extract' : ['merge','complete'].includes(event.stage) ? 'merge' : 'visit'; }
+  const ICON_PATHS = {ready:'M5 12.5l4.2 4.2L19 7', visited:'M7 17 17 7M9 7h8v8', blocked:'M12 7v6M12 16.8v.2'};
+  /** Builds a 16px stroke icon from a fixed path table (no markup is parsed, so nothing from the page can reach it). */
+  function stateIcon(kind) {
+    const ns = 'http://www.w3.org/2000/svg', svg = document.createElementNS(ns, 'svg');
+    svg.setAttribute('viewBox', '0 0 24 24'); svg.setAttribute('aria-hidden', 'true');
+    if (kind === 'active') { const ring = document.createElementNS(ns, 'circle'); ring.setAttribute('cx', '12'); ring.setAttribute('cy', '12'); ring.setAttribute('r', '8'); svg.append(ring); return svg; }
+    const path = document.createElementNS(ns, 'path'); path.setAttribute('d', ICON_PATHS[kind]); svg.append(path); return svg;
+  }
+  /** Updates the per-source rows in place so a poll never replays the entry animation of rows already on screen. */
+  function renderSourceRows(sources, latest) {
+    const list = $('research-source-list'), rows = new Map([...list.querySelectorAll('.source-row')].map(row => [row.dataset.host, row]));
+    $('research-source-empty').hidden = sources.size > 0;
+    for (const [host, entry] of sources) {
+      const blocked = ['blocked','error'].includes(entry.event.stage), kind = blocked ? 'blocked' : entry.extracted ? 'ready' : researchBusy && host === latest ? 'active' : 'visited';
+      const text = {blocked:'受阻', ready:'已提取', active:'读取中', visited:'已浏览'}[kind];
+      let row = rows.get(host);
+      if (!row) { row = make('li', 'source-row'); row.dataset.host = host; row.append(make('span', 'source-icon'), make('span', 'source-host', host), make('span', 'source-status')); list.append(row); }
+      if (row.dataset.state !== kind) { row.dataset.state = kind; row.firstChild.replaceChildren(stateIcon(kind)); }
+      changeText(row.lastChild, text); row.setAttribute('aria-label', `${host}，${text}`);
+    }
+    if (researchBusy) list.scrollTop = list.scrollHeight;
+  }
   function researchOverview(events) {
     const sources = new Map(); let articleCount = 0, imageCount = 0;
     for (const event of events) {
@@ -669,6 +713,7 @@
     }
     $('research-article-count').textContent = articleCount; $('research-image-count').textContent = imageCount; $('research-source-count').textContent = sources.size;
     $('research-sources-empty').hidden = sources.size > 0;
+    renderSourceRows(sources, events.length ? eventHost(events.at(-1), true) : '');
     const fragment = document.createDocumentFragment();
     for (const [host, entry] of sources) {
       const button = make('button', 'research-source'), blocked = ['blocked','error'].includes(entry.event.stage);
@@ -711,6 +756,7 @@
     const meter = $('research-meter'); meter.dataset.state = value.state; meter.classList.toggle('indeterminate', running && !known);
     $('research-panel').dataset.state = value.state;
     $('research-feedback').hidden = false; meter.hidden = false; $('research-form').hidden = true;
+    if (running) $('research-outcome').textContent = '';
     $('research-details').hidden = true;
     $('research-again').hidden = running;
     $('research-return').textContent = running ? '先去阅读' : '继续阅读';
@@ -722,6 +768,13 @@
     meter.setAttribute('aria-valuetext', text); changeText($('research-meter-label'), text);
     if (running && !known) meter.removeAttribute('aria-valuenow'); else meter.setAttribute('aria-valuenow', value.state === 'complete' || value.state === 'partial' ? '100' : String(percent));
     $('research-meter-fill').style.strokeDashoffset = String(100 - (value.state === 'complete' || value.state === 'partial' ? 100 : percent));
+    const order = ['search','visit','extract','merge'], now = order.indexOf(phase);
+    document.querySelectorAll('.stage-steps li').forEach((item, index) => {
+      const done = value.state === 'complete' || value.state === 'partial' || index < now, here = index === now && value.state !== 'complete' && value.state !== 'partial';
+      const state = done ? 'done' : here ? (running ? 'current' : 'error') : 'pending';
+      item.dataset.state = state; if (state === 'current') item.setAttribute('aria-current', 'step'); else item.removeAttribute('aria-current');
+      item.lastChild.textContent = {done:'，已完成', current:'，进行中', error:'，未完成', pending:'，等待中'}[state];
+    });
     document.querySelectorAll('[data-step]').forEach(button => {
       const current = button.dataset.step === phase;
       if (running && current) button.setAttribute('aria-current', 'step'); else button.removeAttribute('aria-current');
@@ -745,7 +798,7 @@
     clearTimeout(researchTimer); setCollecting(false);
     if (arriving && $('research-panel').open && $('research-details').open) { const extracted = events.findLast(event => event.stage === 'extract' && frameUrl(event.screenshot)); if (extracted) showResearchFrame(extracted); }
     if (value.result) { if (!restoring) applySnapshot(value.result, true, true); const count = $('research-article-count').textContent; $('research-outcome').textContent = restoring ? `上次收集 ${count} 篇可读内容。` : value.state === 'partial' ? `已收集 ${count} 篇内容，部分来源暂不可用。` : `已收集 ${count} 篇内容，可以继续阅读了。`; if (!restoring && !$('research-panel').open) notice($('research-outcome').textContent); }
-    else { $('research-outcome').textContent = value.state === 'failed' ? '本次未取得新内容，已有新闻已保留。' : '本次没有新的可用信息，已有内容已保留。'; }
+    else { $('research-outcome').textContent = value.state === 'failed' ? `${typeof value.error === 'string' && value.error ? value.error + ' ' : ''}本次未取得新内容，已有新闻已保留。` : '本次没有新的可用信息，已有内容已保留。'; }
   }
   async function restoreResearch() {
     if (!canPoll() || historyReading || historyRestored) return;
@@ -785,7 +838,7 @@
   });
   for (const id of ['research-close','research-return']) $(id).addEventListener('click', () => $('research-panel').close());
   $('research-again').addEventListener('click', () => {
-    $('research-form').hidden = false; $('research-feedback').hidden = true; $('research-again').hidden = true;
+    $('research-form').hidden = false; $('research-feedback').hidden = true; $('research-again').hidden = true; $('research-return').textContent = '取消';
     $('research-panel').removeAttribute('data-state'); $('research-query').focus();
   });
   $('research-details').addEventListener('toggle', () => {
