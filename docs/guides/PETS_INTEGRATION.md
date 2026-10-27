@@ -13,7 +13,7 @@
 | 选择蜘蛛 | 仅在新闻阅读器显示；Studio 不挂载蜘蛛 |
 | 宠物关闭 | 不挂载宠物引擎 |
 
-同一时刻最多显示一只宠物。切换形象先销毁旧实例；新闻采集面板显示自己的宠物时隐藏主舞台宠物。设置卡片使用静态缩略图，不创建第二个引擎。
+同一时刻最多显示一只宠物。切换形象先销毁旧实例；新闻采集面板显示自己的宠物时隐藏主舞台宠物。设置卡片使用静态缩略图，不创建第二个引擎。选择蜘蛛等仅在新闻页出现的形象时，卡片下方显示对应提示；切换到工作台支持的形象后隐藏。
 
 3D 宠物的收集托盘只在采集及投递后的短暂时间出现。宠物画布不接管普通页面点击；宠物身体由引擎做命中测试，转盘按钮可独立操作。
 
@@ -92,6 +92,7 @@ python tools/scripts/check_architecture.py layout
 lint-imports --config tools/architecture/importlinter.ini --no-cache --no-logo
 node tests/e2e/verify_pet_singleton.cjs
 node tests/e2e/verify_pet_wheel.cjs
+node tests/e2e/verify_ui_polish.cjs
 ```
 
 内置工作台还应执行 `platform-studio-surface.test.tsx` 的 Vitest，检查脚本装配。E2E 需要 Playwright 与可用浏览器；`PET_BASE` 可指向本次自有网关，额外检查真实 Studio 导航。使用隔离 profile，分别检查浅深色、窄屏、开关及连续切换、固定转盘、键盘焦点和后台暂停。合成测试不代表 WebView2、DPI、多显示器或安装包现场通过。

@@ -86,8 +86,17 @@ test('legacy review and attention links stay precise while ordinary tasks reset 
   await f.api.update(f.snapshot); f.api.setProject('project-a','review');
   assert.match(f.node('pp-list').textContent,/修复过滤器/); assert.doesNotMatch(f.node('pp-list').textContent,/整理文档/);
   f.api.setProject('project-b','attention'); assert.match(f.node('pp-list').textContent,/整理文档/); assert.doesNotMatch(f.node('pp-list').textContent,/修复过滤器/);
+  assert.equal(f.node('pp-scope-note').textContent,'仅显示「资料整理」的事项');
   f.api.setProject('project-b'); assert.match(f.node('pp-list').textContent,/修复过滤器/); assert.match(f.node('pp-list').textContent,/整理文档/);
+  assert.equal(f.node('pp-scope-note').textContent,'显示全部项目的事项');
   assert.equal(f.root.querySelectorAll('select').length,0); assert.equal(f.posts.length,0);
+});
+
+test('a row names its state only when the column does not already say it',async()=>{
+  const f=fixture(); f.snapshot.items[0].state='review'; f.snapshot.items[1].state='blocked';
+  await f.api.update(f.snapshot); f.api.setProject('project-a');
+  const metas=f.root.all.filter(node=>node.className==='pp-meta').map(node=>node.textContent);
+  assert.deepEqual(metas,['事项状态：受阻']);
 });
 
 test('three columns partition all unfinished records once and completion stays in history',async()=>{
@@ -104,6 +113,8 @@ test('three columns partition all unfinished records once and completion stays i
   assert.deepEqual(ids(f.node('pp-completed')),['done']); assert.equal(f.node('pp-completed').open,false);
   assert.equal(new Set(ids(f.node('pp-list'))).size,f.snapshot.items.length);
   assert.match(column('pending').textContent,/受阻/); assert.match(column('pending').textContent,/状态未确认/);
+  const activeTodo = column('doing').all.find(node => node.dataset.taskId === 'active');
+  assert.match(activeTodo.textContent, /事项状态：待推进/, 'source activity must not hide the distinct business state');
   await f.api.open('review'); f.node('pp-list').scrollTop=77; const saved=f.api.captureViewState();
   await f.api.update(f.snapshot); await f.api.restoreViewState({...saved,scope:'project-b',filter:'delivery',query:'none'});
   assert.equal(f.api.captureViewState().scope,''); assert.equal(f.api.captureViewState().filter,'all'); assert.equal(f.api.captureViewState().query,'');

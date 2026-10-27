@@ -295,6 +295,31 @@ class ReaderHTTPTests(unittest.TestCase):
         self.assertEqual(response[0], 409)
         self.assertEqual(response[1]['state'], 'running')
 
+    def test_favicon_request_is_answered_without_an_error(self):
+        from http.client import HTTPConnection
+        from http.server import ThreadingHTTPServer
+        from control_everything.http.gateway import PanelHandler
+
+        with ThreadingHTTPServer(('127.0.0.1', 0), PanelHandler) as server:
+            server.expected_host = '127.0.0.1:' + str(server.server_port)
+            server.origin = 'http://' + server.expected_host
+            server.csrf_token = 'fixture'
+            thread = threading.Thread(target=server.serve_forever, daemon=True)
+            thread.start()
+            connection = HTTPConnection('127.0.0.1', server.server_port, timeout=5)
+            try:
+                connection.request('GET', '/favicon.ico')
+                response = connection.getresponse()
+                self.assertEqual(response.status, 204)
+                self.assertIsNone(response.getheader('Content-Length'))
+                self.assertEqual(response.read(), b'')
+            finally:
+                connection.close()
+                server.shutdown()
+                thread.join(timeout=5)
+        self.assertFalse(thread.is_alive())
+        self.reader.sample.assert_not_called()
+
     def test_static_reader_csp_and_no_network_side_effect(self):
         self.assertEqual(self.request('/news')[0], 200)
         self.assertIn('img-src', self.last_handler.reply.call_args.kwargs['csp'])

@@ -92,7 +92,7 @@ function studioFixture({ remote = false, savedCreatorUrl = null, monitorAvailabl
   let menu = element('button'); menu.dataset.action = 'navigation';
   const scrollHost = { style: { overflow: 'auto', touchAction: 'pan-y' }, scrollTop: 237, scrollLeft: 4 };
   const nodes = new Map();
-  for (const id of ['ce-studio', 'studio-content', 'studio-status', 'studio-tasks', 'studio-agent-board', 'studio-monitor', 'studio-monitor-content', 'studio-rail', 'studio-topbar', 'studio-project-search', 'studio-project-sort']) {
+  for (const id of ['ce-studio', 'studio-content', 'studio-status', 'studio-tasks', 'studio-agent-board', 'studio-monitor', 'studio-monitor-content', 'studio-rail', 'studio-topbar', 'studio-settings-nav', 'studio-project-search', 'studio-project-sort']) {
     nodes.set(id, { dataset: {}, innerHTML: '', textContent: '', hidden: false, listeners: {},
       focus() {}, setSelectionRange() {}, addEventListener(name, callback) { this.listeners[name] = callback; }, classList: { remove() {}, add() {} } });
   }
@@ -563,7 +563,7 @@ test('project task heading, filters and counts stay scoped through navigation an
   f.snapshot.items = [{ id: 'a', project_id: 'server-project' }, { id: 'b', project_id: 'other' }, { id: 'c', project_id: 'server-project' }];
   await f.route('project/server-project/tasks');
   assert.match(f.nodes.get('studio-content').innerHTML, /项目进展/);
-  assert.match(f.nodes.get('studio-content').innerHTML, /本项目全部/);
+  assert.match(f.nodes.get('studio-content').innerHTML, /全部项目/);
   assert.equal(f.nodes.get('studio-status').textContent, ''); assert.equal(f.nodes.get('studio-status').hidden, true);
   f.click('refresh'); await f.flush();
   assert.equal(f.nodes.get('studio-status').textContent, ''); assert.equal(f.nodes.get('studio-status').hidden, true);
@@ -571,7 +571,7 @@ test('project task heading, filters and counts stay scoped through navigation an
   assert.equal(f.nodes.get('studio-status').textContent, ''); assert.equal(f.nodes.get('studio-status').hidden, true);
   await f.route('inbox');
   assert.equal(f.nodes.get('studio-status').textContent, ''); assert.equal(f.nodes.get('studio-status').hidden, true);
-  assert.doesNotMatch(f.nodes.get('studio-content').innerHTML, /本项目全部/);
+  assert.doesNotMatch(f.nodes.get('studio-content').innerHTML, /全部项目/);
   f.dispose();
 });
 
@@ -876,4 +876,49 @@ test('native project conflicts preserve the current input and never retry an old
   edit.controller.abort(); assert.equal(writes, 1);
   assert.equal(f.snapshot.workspace.projects.items[0].name, '<Real project>');
   assert.equal(f.location.hash, '#home'); f.dispose();
+});
+
+test('a failed first read shows one error panel with a retry that recovers, and loading shows a skeleton', async () => {
+  const f = studioFixture({ initialUrl: 'http://example.test/studio#home', initialFailure: 'snapshot' });
+  const content = () => f.nodes.get('studio-content').innerHTML;
+  assert.match(content(), /ce-skeleton/);
+  await f.flush();
+  assert.match(content(), /role="alert"[^>]*>.*无法读取项目与事项/s);
+  assert.match(content(), /data-action="refresh"[^>]*>重试</);
+  assert.doesNotMatch(content(), /草稿保留|ce-skeleton/);
+  assert.equal(f.nodes.get('studio-status').hidden, true, 'the banner must not repeat the panel');
+  f.recover(); f.click('refresh');
+  assert.match(content(), /ce-skeleton/, 'retrying shows loading again');
+  await f.flush();
+  assert.doesNotMatch(content(), /无法读取项目与事项|ce-skeleton/);
+});
+
+test('the project workspace explains a missing engine and an unknown project offers a way back', async () => {
+  const f = studioFixture({ initialUrl: 'http://example.test/studio#project/server-project/workspace' });
+  await f.flush();
+  const html = f.nodes.get('studio-content').innerHTML;
+  assert.match(html, /项目运行组件未连接/);
+  assert.match(html, /href="#project\/server-project\/tasks">查看项目进展/);
+  assert.match(html, /href="#home">返回项目总览/);
+  await f.route('project/missing/workspace');
+  assert.match(f.nodes.get('studio-content').innerHTML, /未找到这个项目.*href="#home"/s);
+  assert.match(f.nodes.get('studio-topbar').innerHTML, /未找到项目/);
+});
+
+test('settings pages share one section switcher that is hidden elsewhere', async () => {
+  const f = studioFixture({ initialUrl: 'http://127.0.0.1:8772/studio#settings/sources' }); await f.flush();
+  const nav = f.nodes.get('studio-settings-nav');
+  assert.equal(nav.hidden, false);
+  assert.deepEqual([...nav.innerHTML.matchAll(/href="(#settings\/[a-z]+)"/g)].map(match => match[1]), ['#settings/appearance', '#settings/account', '#settings/sources']);
+  assert.match(nav.innerHTML, /<a href="#settings\/sources" aria-current="page">高级接入<\/a>/);
+  await f.route('home');
+  assert.equal(nav.hidden, true);
+  await f.route('settings/account');
+  assert.match(nav.innerHTML, /<a href="#settings\/account" aria-current="page">账号与设备<\/a>/);
+});
+test('the page opens with a skip link that moves focus into the main region', () => {
+  const html = fs.readFileSync(path.resolve(__dirname, '../../web/workspace/studio-preview.html'), 'utf8');
+  assert.match(html, /<section id="ce-studio"[^>]*>\s*<button type="button" class="ce-skip" data-action="skip-to-content">/);
+  assert.match(html, /<main class="ce-content"[^>]*tabindex="-1"/);
+  assert.match(fs.readFileSync(path.resolve(__dirname, '../../web/workspace/studio-preview.js'), 'utf8'), /skip-to-content'\) root\.querySelector\('main\.ce-content'\)\?\.focus\(\)/);
 });

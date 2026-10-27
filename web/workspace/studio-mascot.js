@@ -109,7 +109,7 @@
       const point = parts?.depot.getBoundingClientRect();
       if (!point) return null;
       const width = SLOT.width, height = SLOT.height;
-      return current.dock === 'bl' ? {left: parts.root.getBoundingClientRect().left + 16, top: point.top - height, width, height} : {left: point.left - width, top: point.top - height, width, height};
+      return current.dock === 'bl' ? {left: parts.root.getBoundingClientRect().left + 24, top: point.top - height, width, height} : {left: point.left - width, top: point.top - height, width, height};
     }
 
     function mount() {

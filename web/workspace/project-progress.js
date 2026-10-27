@@ -20,13 +20,16 @@
     };
     root.classList.add('project-progress');
     const toolbar = el('div', 'pp-toolbar');
-    toolbar.append(identify(refreshButton(() => load()), 'pp-refresh'));
+    const scopeNote = identify(el('p', 'pp-scope-note'), 'pp-scope-note');
+    toolbar.append(scopeNote, identify(refreshButton(() => load()), 'pp-refresh'));
     const status = identify(el('p', 'pp-status'), 'pp-status'); status.setAttribute('role', 'status'); status.setAttribute('aria-live', 'polite');
     const split = el('div', 'pp-split'), list = identify(el('div', 'pp-list'), 'pp-list'), panel = identify(el('section', 'pp-detail'), 'pp-detail');
     panel.setAttribute('aria-label', '目标与交付详情'); panel.tabIndex = -1;
     split.append(list, panel); root.replaceChildren(toolbar, status, split);
     const notify = (text, failed = false) => { if (disposed) return; status.textContent = text; status.classList.toggle('pp-error', failed); };
     function renderList() {
+      const scopeName = scope && projects.find(project => project.id === scope)?.name;
+      scopeNote.textContent = scope ? (scopeName ? `仅显示「${scopeName}」的事项` : '仅显示当前项目的事项') : '显示全部项目的事项';
       const visible = items.filter(item => model.matches(item, { scope, filter }));
       if (selected && !visible.some(item => item.id === selected)) {
         selected = null; facts = null; detailFresh = false; detailEpoch++; panel.dataset.taskId = ''; root.dataset.detailOpen = 'false';
@@ -54,7 +57,9 @@
           const stateLabel = { todo: '待推进', doing: '进行中', review: '待验收', blocked: '受阻', done: '已确认完成' }[item.state] || '状态未确认';
           row.append(el('span', 'pp-project-tag', projects.find(project => project.id === item.project_id)?.name || '未归属项目'), el('strong', 'pp-row-title', item.title));
           if (value.summary) row.append(el('span', 'pp-row-summary', value.summary));
-          row.append(el('span', 'pp-meta', '事项状态：' + stateLabel), caption);
+          // Native activity may place a pending task in the doing column; retain its distinct business state.
+          if (!['todo', 'doing', 'review'].includes(item.state) || item.state === 'todo' && value.active) row.append(el('span', 'pp-meta', '事项状态：' + stateLabel));
+          row.append(caption);
           container.append(row);
         }
       }

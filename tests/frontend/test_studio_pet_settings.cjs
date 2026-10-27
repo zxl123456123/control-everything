@@ -41,8 +41,8 @@ function setup({withPrefs = true} = {}) {
   const context = vm.createContext({window, document, console});
   vm.runInContext(read('news-pets.js'), context);
   vm.runInContext(`window.NewsPets.register('spider', {label: '蜘蛛', mount: () => ({})});
-    window.NewsPets.register('naidragon', {label: '奶龙', mount: () => ({})});
-    window.NewsPets.register('tabbycat', {label: '狸花猫', mount: () => ({})});`, context);
+    window.NewsPets.register('naidragon', {label: '奶龙', status: true, mount: () => ({})});
+    window.NewsPets.register('tabbycat', {label: '狸花猫', status: true, mount: () => ({})});`, context);
   vm.runInContext(read('news-pet-dial.js'), context);
   if (withPrefs) vm.runInContext(read('news-pet-prefs.js'), context); else delete window.NewsPetPrefs;
   vm.runInContext(read('news-pet-wheel.js'), context);
@@ -66,6 +66,17 @@ test('renders the switches on their defaults and one card per registered pet', (
   assert.deepEqual([checked(toggle), checked(quiet), checked(newsFx)], ['false', 'false', 'true']);
   assert.deepEqual(cards().map(input => input.value), ['spider', 'naidragon', 'tabbycat']);
   assert.deepEqual(cards().map(input => input.checked), [true, false, false]);
+});
+
+test('a form that only lives on the news page says so in one visible line', () => {
+  const {container, cards} = setup();
+  const note = container.find(node => node.id === 'studio-pet-news-only');
+  assert.equal(note.hidden, false);
+  assert.equal(note.textContent, '蜘蛛只在新闻页出现；想在工作台里看到，请选奶龙或狸花猫。');
+  cards()[1].choose();
+  assert.equal(note.hidden, true);
+  cards()[0].choose();
+  assert.equal(note.hidden, false);
 });
 
 test('the switches and the cards write the shared preference', () => {
@@ -135,10 +146,12 @@ test('reset restores the default dial', () => {
   assert.equal(text('ce-dial-count'), '已选 6 / 6');
 });
 
-test('the page keeps its visible helper text to one line; the rest is a tooltip', () => {
-  const {container, text} = setup();
-  const lines = container.all(node => node.tag === 'p');
-  assert.equal(lines.filter(node => node.textContent).length, 1, 'only the dial hint is visible text');
+test('the page keeps its visible helper text to the dial hint and the one news-page note; the rest is a tooltip', () => {
+  const {container, text, cards} = setup();
+  const visible = () => container.all(node => node.tag === 'p').filter(node => node.textContent && !node.hidden);
+  assert.deepEqual(visible().map(node => node.className), ['ce-pet-note', 'ce-pet-dial-hint']);
+  cards()[1].choose();
+  assert.deepEqual(visible().map(node => node.className), ['ce-pet-dial-hint'], 'the note goes away on a pet that shows everywhere');
   assert.match(text('ce-pet-dial-hint'), /3–6/);
   const rows = container.all(node => /ce-pet-row/.test(node.className));
   assert.equal(rows.length, 6);
