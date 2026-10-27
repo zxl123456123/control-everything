@@ -287,7 +287,8 @@ class RemoteConnector:
 
     def status(self):
         with self._lock:
-            result = {"state": self._state, "code": self._code, "configured": True}
+            result = {"state": self._state, "code": self._code, "configured": True,
+                      "portal_url": self.config.hub_origin + "/remote"}
             if self._grant and self._state == "authorizing":
                 result.update({k: self._grant[k] for k in ("user_code", "verification_uri", "expires_in")})
             if self._account and self._state == "awaiting_local_confirmation":

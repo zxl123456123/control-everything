@@ -11,6 +11,7 @@ ASSETS = {'/news': ('news-reader.html', 'text/html; charset=utf-8'),
           '/news-reader.css': ('news-reader.css', 'text/css; charset=utf-8'),
           '/news-spider.js': ('news-spider.js', 'text/javascript; charset=utf-8'),
           '/news-pets.js': ('news-pets.js', 'text/javascript; charset=utf-8'),
+          '/news-pet-prefs.js': ('news-pet-prefs.js', 'text/javascript; charset=utf-8'),
           '/news-pet-status.js': ('news-pet-status.js', 'text/javascript; charset=utf-8'),
           '/news-naidragon.js': ('news-naidragon.js', 'text/javascript; charset=utf-8'),
           '/news-tabbycat.js': ('news-tabbycat.js', 'text/javascript; charset=utf-8')}
@@ -54,10 +55,13 @@ def handle_get(handler, path):
             _params(path.query, ())
             handler.reply(200, reader.sample())
         elif route == 'article':
-            identity = _params(path.query, ('id',))['id']
+            params = _params(path.query, ('id', 'retry') if 'retry' in parse_qs(path.query) else ('id',))
+            identity = params['id']
             if not re.fullmatch('[a-f0-9]{24}', identity):
                 raise ValueError('invalid_article')
-            doc = reader.article(identity)
+            if 'retry' in params and params['retry'] != '1':
+                raise ValueError('invalid_retry')
+            doc = reader.article(identity, retry=True) if 'retry' in params else reader.article(identity)
             handler.reply(200 if doc else 404, doc or {'error': 'unknown_article'})
         elif route == 'research/latest':
             _params(path.query, ())
@@ -96,9 +100,10 @@ def handle_post(handler, path):
                 raise ValueError('invalid_body')
             handler.reply(200, reader.sample(refresh=True))
         elif route == 'research':
-            if not isinstance(body, dict) or set(body) != {'query', 'topic'}:
+            if (not isinstance(body, dict) or set(body) not in ({'query', 'topic'}, {'query', 'topic', 'capture_frames'})
+                    or type(body.get('capture_frames', False)) is not bool):
                 raise ValueError('invalid_body')
-            handler.reply(202, reader.jobs.begin(body['query'], body['topic']))
+            handler.reply(202, reader.jobs.begin(body['query'], body['topic'], capture_frames=body.get('capture_frames', False)))
         else:
             if (not isinstance(body, dict) or set(body) != {'texts', 'source', 'target'}
                     or body['source'] != 'en' or body['target'] != 'zh'

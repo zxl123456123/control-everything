@@ -7,7 +7,7 @@ declare namespace WorkspaceNewsTypes {
     date_reason: 'missing' | 'invalid' | 'timezone_unknown' | null;
     updated_at: string | null; submitted_at: string | null;
     content_origin: 'publisher_feed' | 'hn_submission'; summary: string | null;
-    summary_kind: 'rss_description' | 'atom_summary' | null;
+    summary_kind: 'rss_description' | 'atom_summary' | 'rss_content' | 'atom_content' | null;
     summary_truncated: boolean; summary_reason: 'missing' | 'empty' | 'summary_too_long' | 'unsupported_type' | null;
     title_truncated: boolean;
   }

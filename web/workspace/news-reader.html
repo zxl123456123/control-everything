@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="/news-reader.css">
   <script src="/news-spider.js" defer></script>
   <script src="/news-pets.js" defer></script>
+  <script src="/news-pet-prefs.js" defer></script>
   <script src="/news-pet-status.js" defer></script>
   <script src="/news-reader.js" defer></script>
 </head>
@@ -26,6 +27,7 @@
       <button data-view="archived" aria-pressed="false">归档 <span data-count="archived">0</span></button>
     </nav>
     <div class="filters">
+      <button id="pet-visible" type="button" aria-pressed="false">显示宠物</button><button id="pet-dial" type="button" aria-haspopup="menu" title="打开宠物旁的快捷转盘" hidden>宠物转盘</button>
       <label><span class="sr-only">频道</span><select id="stream"><option value="ai">AI 新闻</option><option value="hn">Hacker News</option></select></label>
       <button id="refresh-feeds" type="button" aria-label="更新新闻" title="更新新闻" aria-busy="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M20 7v5h-5M20 12a8 8 0 1 1-2.3-5.7"/></svg></button><button id="refresh" type="button"><span aria-hidden="true">↻</span> 采集新信息</button>
     </div>
@@ -57,6 +59,7 @@
           <div id="article-cover" hidden></div>
           <section id="article-gallery" aria-label="文章图片" hidden><div id="gallery-image"></div><div class="gallery-controls"><button id="image-previous" type="button" aria-label="上一张图片">←</button><span id="image-position" role="status"></span><button id="image-next" type="button" aria-label="下一张图片">→</button></div></section>
           <p id="content-status" class="content-status" role="status"></p>
+          <button id="retry-article" type="button" hidden>重新读取正文</button>
           <div id="article-body"></div>
           <div id="article-images"></div>
           <p class="article-end" id="article-end" hidden>· 已到文末 ·</p>
@@ -74,31 +77,41 @@
   <div id="toast" role="status" hidden><span id="toast-text"></span><button id="undo" type="button" hidden>撤销</button><button id="dismiss" type="button" aria-label="关闭提示">×</button></div>
 </main>
 <dialog id="research-panel" aria-labelledby="research-title" aria-describedby="research-description">
-  <header class="research-head"><div><h2 id="research-title">采集工作台</h2><p id="research-description">查看采集进展、步骤截图与来源。</p></div><button id="research-close" type="button" aria-label="关闭采集工作台">×</button></header>
+  <header class="research-head"><div><h2 id="research-title">采集新闻</h2><p id="research-description" class="sr-only">按关键词采集公开来源，可关闭窗口继续阅读。</p></div><button id="research-close" type="button" aria-label="关闭采集工作台">×</button></header>
   <div class="research-body">
   <form id="research-form">
-    <div class="research-topics" role="group" aria-label="关注主题"><button type="button" data-topic="coding" aria-pressed="true">AI Coding</button><button type="button" data-topic="agents" aria-pressed="false">Agent</button><button type="button" data-topic="claude" aria-pressed="false">Claude Code</button><button type="button" data-topic="models" aria-pressed="false">GPT / Gemini</button><button type="button" data-topic="tibo" aria-pressed="false">Tibo</button></div>
-    <label class="sr-only" for="research-query">关键词或 X 帖子链接</label><div class="research-query-row"><input id="research-query" name="query" type="search" maxlength="240" placeholder="关键词或 X 帖子链接" value="AI coding workflow coding agents tips" required autofocus><button id="research-start" type="submit">开始采集 ↗</button></div>
+    <label class="sr-only" for="research-query">关键词或 X 帖子链接</label><div class="research-query-row"><input id="research-query" name="query" type="search" maxlength="240" placeholder="关键词或 X 帖子链接" value="AI coding workflow coding agents tips" required autofocus><button id="research-start" type="submit">开始采集</button></div>
+    <details id="research-settings" class="collection-settings"><summary>采集设置</summary>
+      <div class="research-topics" role="group" aria-label="关注主题"><button type="button" data-topic="coding" aria-pressed="true">AI Coding</button><button type="button" data-topic="agents" aria-pressed="false">Agent</button><button type="button" data-topic="claude" aria-pressed="false">Claude Code</button><button type="button" data-topic="models" aria-pressed="false">GPT / Gemini</button><button type="button" data-topic="tibo" aria-pressed="false">Tibo</button></div>
+      <label class="capture-option"><input id="capture-frames" type="checkbox">保存步骤截图<span>会增加采集耗时</span></label>
+    </details>
   </form>
-  <div class="research-progress"><span id="research-state" role="status">准备开始</span><span id="research-timing"></span><span id="research-count">0 条记录</span></div>
-  <p id="research-activity" role="status">开始后显示实际进展；页面画面按步骤截取。</p>
-  <nav class="research-steps" aria-label="采集步骤回看"><button type="button" data-step="search" disabled><span>⌕</span> 检索</button><button type="button" data-step="visit" disabled><span>▣</span> 浏览</button><button type="button" data-step="extract" disabled><span>▤</span> 提取</button><button type="button" data-step="merge" disabled><span>✓</span> 收集</button></nav>
+  <section id="research-feedback" hidden>
+  <div class="research-progress"><span id="research-state" role="status">准备开始</span><span id="research-timing"></span></div>
+  <div id="research-meter" class="collection-meter" role="progressbar" aria-label="当前采集阶段进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" hidden><span id="research-meter-fill"></span></div>
+  <p id="research-meter-label" class="collection-meter-label">等待开始</p>
+  <p id="research-outcome">关闭窗口后，采集仍会继续。</p>
+  </section>
+  <details id="research-details" class="collection-details" hidden><summary>查看采集详情 <span id="research-count">0 条记录</span></summary>
+  <p id="research-activity" role="status">开始后显示真实阶段；来源总量确认后展示处理数量。</p>
+  <nav class="research-steps" aria-label="采集步骤回看"><button type="button" data-step="search" disabled><span>1</span> 检索</button><button type="button" data-step="visit" disabled><span>2</span> 读取</button><button type="button" data-step="extract" disabled><span>3</span> 提取</button><button type="button" data-step="merge" disabled><span>4</span> 保存</button></nav>
   <div class="research-workspace" id="research-animation-stage">
     <canvas id="research-spider-canvas" aria-hidden="true"></canvas>
     <div class="research-spider-home"><div id="research-web-depot" aria-hidden="true"></div><span>选择来源回看截图</span><button id="research-pause" type="button">暂停动画</button><label class="pet-switch"><span>宠物</span><select class="pet-select" id="research-pet-select" aria-label="选择动画宠物"><option value="spider">蜘蛛</option><option value="naidragon">奶龙</option><option value="tabbycat">狸花猫</option></select></label></div>
-    <section class="research-browser" aria-label="实际页面画面">
+    <section class="research-browser" id="research-browser" aria-label="实际页面画面" hidden>
       <div class="browser-address"><span aria-hidden="true">◉</span><span id="research-host">等待页面</span><span class="frame-badge" id="research-frame-mode">步骤截图</span></div>
       <div id="research-frame-wrap"><img id="research-frame" alt="采集过程中实际访问页面的截图" hidden><p id="research-frame-empty">开始采集后，在这里看实际浏览过程。</p></div>
       <div class="research-replay"><button id="frame-previous" type="button" aria-label="上一张采集截图" disabled>←</button><span id="frame-position">0 / 0</span><button id="frame-next" type="button" aria-label="下一张采集截图" disabled>→</button><details class="frame-details"><summary>画面详情</summary><p id="research-frame-caption">等待实际页面截图</p><p id="research-url">尚未访问页面</p></details></div>
     </section>
     <aside class="research-results" aria-label="采集结果">
-      <div class="research-metrics"><div><strong id="research-article-count">0</strong><span>篇内容</span></div><div><strong id="research-image-count">0</strong><span>张图片</span></div></div>
+      <p class="research-metrics"><strong id="research-article-count">0</strong> 篇内容 · <strong id="research-image-count">0</strong> 张图片</p>
       <h3>访问来源 <span id="research-source-count">0</span></h3><div id="research-sources"></div><p id="research-sources-empty">来源会随采集出现</p>
     </aside>
   </div>
   <details class="research-log"><summary>完整采集记录 <span id="research-log-count">0</span></summary><ol id="research-events"></ol><p id="research-events-empty">还没有采集记录。</p></details>
+  </details>
   </div>
-  <footer class="research-footer"><p id="research-outcome">关闭工作台后，采集仍会继续。</p><button id="research-return" type="button">返回阅读</button></footer>
+  <footer class="research-footer"><button id="research-return" type="button">返回阅读</button></footer>
 </dialog>
 </body>
 </html>

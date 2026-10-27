@@ -24,15 +24,69 @@ const fixtureJob=(state='complete')=>({job_id:'fixture',state,query:'saved codin
 const svg=n=>`<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800"><rect width="1200" height="800" fill="#dce3d5"/><text x="80" y="130" font-size="45">TEST FIXTURE ${n}</text></svg>`;
 function check(name,value){assert(value,name);checks.push(name)}
 (async()=>{browser=await chromium.launch({channel:'msedge',headless:true});
-async function makePage(latest=null){const page=await browser.newPage({viewport:{width:1440,height:900},reducedMotion:'reduce'});let post=null,polls=0;
-page.on('pageerror',e=>errors.push(e.message));page.on('console',message=>{if(message.type()==='error'&&/Content Security Policy|violates the following.*directive/i.test(message.text()))cspErrors.push(message.text());});await page.route('**/*',async route=>{const u=new URL(route.request().url());if(u.origin!==fixtureOrigin&&u.hostname!=='assets.example')return route.abort();if(u.pathname==='/api/bootstrap')return route.fulfill({json:{csrf_token:'fixture'}});if(u.pathname==='/api/workspace/usage'||u.pathname==='/api/workspace/observations')return route.fulfill({json:{status:'unavailable'}});if(u.pathname.startsWith('/api/')&&route.request().headers()['x-session-client']!=='panel')return route.fulfill({status:403,body:'missing client'});if(route.request().method()==='POST'&&route.request().headers()['x-session-csrf']!=='fixture')return route.fulfill({status:403,body:'missing csrf'});if(u.hostname==='assets.example')return route.fulfill({contentType:'image/svg+xml',body:svg(u.pathname)});if(u.pathname==='/api/workspace/news/reader')return route.fulfill({json:snap(base)});if(u.pathname==='/api/workspace/news/article'){const id=u.searchParams.get('id'),row=base.find(i=>i.id===id)||item(c,'New finding');return route.fulfill({json:{...row,content_kind:'full_text',blocks:row.body_blocks}});}if(u.pathname==='/api/workspace/news/translate')return route.fulfill({json:{translations:route.request().postDataJSON().texts.map(t=>'中文：'+t)}});if(u.pathname==='/api/workspace/news/research/latest')return route.fulfill({json:{job:latest}});if(u.pathname==='/api/workspace/news/research-frame')return route.fulfill({contentType:'image/svg+xml',body:svg(u.searchParams.get('name'))});if(u.pathname==='/api/workspace/news/research'){if(route.request().method()==='POST'){post=route.request().postDataJSON();return route.fulfill({status:202,json:{job_id:'fixture',state:'running',events:events.slice(0,2)}});}polls++;return route.fulfill({json:polls<2?{job_id:'fixture',state:'running',events:events.slice(0,2)}:fixtureJob('partial')});}const file=u.pathname==='/'?'news-reader.html':u.pathname.slice(1);if(['news-reader.html','news-reader.css','news-reader.js','news-spider.js','news-pets.js','news-pet-status.js','news-naidragon.js','news-tabbycat.js','ui-theme.js'].includes(file))return route.fulfill({path:path.join(root,file),headers:{'Content-Security-Policy':newsCSP}});return route.abort();});await page.goto(fixtureOrigin+'/');await page.waitForFunction(()=>window.NewsReader?.inspect().items===2);await page.locator('#title-list .title-row').first().click();await page.locator('#open-directory').click();return {page,request:()=>post};}
+async function makePage(latest=null,detailsOpen=true){const page=await browser.newPage({viewport:{width:1440,height:900},reducedMotion:'reduce'});let post=null,polls=0;
+if(detailsOpen)await page.addInitScript(()=>addEventListener('DOMContentLoaded',()=>{document.getElementById('research-settings').open=true;document.getElementById('research-details').open=true;}));
+page.on('pageerror',e=>errors.push(e.message));page.on('console',message=>{if(message.type()==='error'&&/Content Security Policy|violates the following.*directive/i.test(message.text()))cspErrors.push(message.text());});await page.route('**/*',async route=>{const u=new URL(route.request().url());if(u.origin!==fixtureOrigin&&u.hostname!=='assets.example')return route.abort();if(u.pathname==='/api/bootstrap')return route.fulfill({json:{csrf_token:'fixture'}});if(u.pathname==='/api/workspace/usage'||u.pathname==='/api/workspace/observations')return route.fulfill({json:{status:'unavailable'}});if(u.pathname.startsWith('/api/')&&route.request().headers()['x-session-client']!=='panel')return route.fulfill({status:403,body:'missing client'});if(route.request().method()==='POST'&&route.request().headers()['x-session-csrf']!=='fixture')return route.fulfill({status:403,body:'missing csrf'});if(u.hostname==='assets.example')return route.fulfill({contentType:'image/svg+xml',body:svg(u.pathname)});if(u.pathname==='/api/workspace/news/reader')return route.fulfill({json:snap(base)});if(u.pathname==='/api/workspace/news/article'){const id=u.searchParams.get('id'),row=base.find(i=>i.id===id)||item(c,'New finding');return route.fulfill({json:{...row,content_kind:'full_text',blocks:row.body_blocks}});}if(u.pathname==='/api/workspace/news/translate')return route.fulfill({json:{translations:route.request().postDataJSON().texts.map(t=>'中文：'+t)}});if(u.pathname==='/api/workspace/news/research/latest')return route.fulfill({json:{job:latest}});if(u.pathname==='/api/workspace/news/research-frame')return route.fulfill({contentType:'image/svg+xml',body:svg(u.searchParams.get('name'))});if(u.pathname==='/api/workspace/news/research'){if(route.request().method()==='POST'){post=route.request().postDataJSON();return route.fulfill({status:202,json:{job_id:'fixture',state:'running',events:events.slice(0,2)}});}polls++;return route.fulfill({json:polls<2?{job_id:'fixture',state:'running',events:events.slice(0,2)}:fixtureJob('partial')});}const file=u.pathname==='/'?'news-reader.html':u.pathname.slice(1);if(['news-reader.html','news-reader.css','news-reader.js','news-spider.js','news-pets.js','news-pet-prefs.js','news-pet-status.js','news-naidragon.js','news-tabbycat.js','ui-theme.js'].includes(file))return route.fulfill({path:path.join(root,file),headers:{'Content-Security-Policy':newsCSP}});return route.abort();});await page.goto(fixtureOrigin+'/');await page.waitForFunction(()=>window.NewsReader?.inspect().items===2);await page.locator('#title-list .title-row').first().click();await page.locator('#open-directory').click();return {page,request:()=>post};}
 const {page,request}=await makePage();await page.locator('#article-body .body-block').first().waitFor();
+check('spiders default off without mounting animation engines',await page.evaluate(()=>{const s=window.NewsReader.inspect();return !s.petEnabled&&!s.engine&&!s.researchEngine;}));
+const {page:progressPage}=await makePage(null,false);let progressEvents=[{seq:1,stage:'search',message:'Searching actual sources'}],progressState='running',progressRequest;
+await progressPage.route(/\/api\/workspace\/news\/research(?:\?|$)/,route=>{if(route.request().method()==='POST')progressRequest=route.request().postDataJSON();return route.fulfill({json:{job_id:'progress-fixture',state:progressState,events:progressEvents}});});
+await progressPage.locator('#refresh').click();await progressPage.locator('#research-start').click();
+await progressPage.waitForFunction(()=>window.NewsReader.inspect().researchJob==='progress-fixture');
+check('unknown source total omits an invented percentage',await progressPage.locator('#research-meter').getAttribute('aria-valuenow')===null);
+check('capture screenshots default off in submitted job',progressRequest.capture_frames===false);
+check('progress view avoids mounting screenshot panel',!(await progressPage.locator('#research-browser').isVisible()));
+check('collection settings and diagnostics stay folded by default',await progressPage.locator('#research-settings').evaluate(n=>!n.open)&&await progressPage.locator('#research-details').evaluate(n=>!n.open));
+progressEvents.push({seq:2,stage:'visit',message:'Checking sources',progress:{phase:'visit',completed:1,total:3}});
+await progressPage.waitForFunction(()=>document.getElementById('research-meter').getAttribute('aria-valuenow')==='33');
+check('known progress uses worker counts',await progressPage.locator('#research-meter-label').innerText()==='检查来源正文 · 已处理 1 / 3');
+check('actual stage node is accessible',await progressPage.locator('[data-step=visit]').getAttribute('aria-current')==='step');
+for(const width of [1440,390,320]){await progressPage.setViewportSize({width,height:900});check('lightweight progress fits '+width,await progressPage.locator('#research-panel').evaluate(n=>n.scrollWidth<=n.clientWidth));await progressPage.screenshot({path:path.join(output,`progress-${stamp}-${width}.png`)});}
+progressEvents.push({seq:3,stage:'merge',message:'Saving reader content'});
+await progressPage.waitForFunction(()=>document.querySelector('[data-step=merge]').getAttribute('aria-current')==='step');
+check('merge waits for server completion',await progressPage.locator('#research-meter').getAttribute('aria-valuenow')===null);
+progressState='partial';await progressPage.waitForFunction(()=>document.getElementById('research-meter').dataset.state==='partial');
+check('partial completion remains explicit',(await progressPage.locator('#research-meter-label').innerText()).includes('部分来源受阻'));
+await progressPage.close();
+const {page:retryPage}=await makePage();
+const retryItem={...item(c,'Feed body without summary'),summary:null,body_blocks:[]};let retries=0;
+await retryPage.route('**/api/workspace/news/article?**',route=>{
+ const retry=new URL(route.request().url()).searchParams.get('retry')==='1';if(retry)retries++;
+ return route.fulfill({json:{id:c,title:retryItem.title,content_kind:retry?'full_text':'summary',reason:retry?null:'http_403',
+  feed_content:!retry,blocks:[{type:'p',text:retry?'Recovered full article.':'Publisher content retained from the feed.'}],images:[]}});
+});
+await retryPage.evaluate(value=>window.NewsReader.applySnapshot(value,false,true),snap([retryItem]));
+await retryPage.locator('.title-row[data-id="'+c+'"]').click();
+await retryPage.waitForFunction(()=>document.getElementById('content-status').textContent.includes('HTTP 403'));
+check('failed page keeps readable publisher content',await retryPage.locator('#article-body').innerText()==='Publisher content retained from the feed.');
+check('feed content has truthful label',await retryPage.locator('#content-badge').innerText()==='订阅源内容');
+await retryPage.locator('#retry-article').click();await retryPage.waitForFunction(()=>document.getElementById('article-body').textContent==='Recovered full article.');
+check('explicit retry reaches server once and restores body',retries===1&&!(await retryPage.locator('#retry-article').isVisible()));
+await retryPage.close();
+const {page:feedPage}=await makePage();
+const feedItem={...item(c,'Official release content'),summary:null,published_at:null,updated_at:'2026-10-23T12:00:00Z',content_origin:'publisher_feed',completeness:'feed_content',incomplete:true,body_blocks:[{type:'p',text:'Actual publisher release notes, retained from Atom.'}]};
+await feedPage.route('**/api/workspace/news/article?id='+c,route=>route.fulfill({json:{id:c,title:feedItem.title,content_kind:'summary',blocks:feedItem.body_blocks,updated_at:feedItem.updated_at}}));
+await feedPage.evaluate(value=>window.NewsReader.applySnapshot(value,false,true),snap([feedItem]));await feedPage.locator('.title-row[data-id="'+c+'"]').click();
+check('publisher Atom content has a truthful reading badge',await feedPage.locator('#content-badge').innerText()==='订阅源内容');
+check('publisher Atom rows do not claim a full article',await feedPage.locator('.title-row[data-id="'+c+'"] .row-type').innerText()==='订阅内容');
+check('publisher content remains readable without claiming a complete article',await feedPage.locator('#article-body').innerText()===feedItem.body_blocks[0].text&&!(await feedPage.locator('#article-end').isVisible()));
+check('update-only feed rows show their timestamp without inventing publication',(await feedPage.locator('.title-row[data-id="'+c+'"] .row-date').innerText()).startsWith('更新 '));
+await feedPage.locator('#article-source').click();check('source details distinguish update time from publication',(await feedPage.locator('#article-provenance').innerText()).includes('更新时间'));
+await feedPage.close();
 const {page:motion}=await makePage(fixtureJob('partial'));
+await motion.locator('#pet-visible').click();
 await motion.waitForFunction(()=>window.NewsReader.inspect().researchJob==='fixture');
 await motion.locator('#refresh').click();
 check('reduced motion pauses both spiders',await motion.evaluate(()=>!window.NewsReader.inspect().engine.running&&!window.NewsReader.inspect().researchEngine.running));
 await motion.locator('#research-return').click();await motion.emulateMedia({reducedMotion:'no-preference'});await motion.locator('#pause').click();
 await motion.waitForFunction(()=>window.NewsReader.inspect().engine.running&&window.NewsReader.inspect().engine.phase==='idle');await motion.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+await motion.evaluate(()=>{window.canvasDraws=0;const context=document.getElementById('spider-canvas').getContext('2d'),original=context.clearRect.bind(context);context.clearRect=(...args)=>{window.canvasDraws++;return original(...args);};});
+await motion.waitForTimeout(400);const visibleDraws=await motion.evaluate(()=>window.canvasDraws);check('optional spider actually draws when enabled',visibleDraws>0);
+await motion.locator('#pet-visible').click();await motion.evaluate(()=>window.canvasDraws=0);await motion.waitForTimeout(400);
+const hiddenDraws=await motion.evaluate(()=>window.canvasDraws);check('hiding spider stops canvas drawing',hiddenDraws===0);
+await motion.reload();await motion.waitForFunction(()=>window.NewsReader?.inspect().items===2);check('hidden preference survives reload without mounting',await motion.evaluate(()=>!window.NewsReader.inspect().engine&&!window.NewsReader.inspect().petEnabled));
+await motion.locator('.title-row').first().click();await motion.locator('#open-directory').click();await motion.locator('#pet-visible').click();
+fs.writeFileSync(path.join(output,`canvas-cost-${stamp}.json`),JSON.stringify({sample_ms:400,visible_draws:visibleDraws,hidden_draws:hiddenDraws},null,2));
 const idleDestination=await motion.evaluate(()=>window.NewsReader.inspect().engine.destination);
 await motion.mouse.move(1200,500);await motion.waitForTimeout(150);
 check('mouse does not change idle destination',await motion.evaluate(destination=>{const e=window.NewsReader.inspect().engine;return !e.followPointer&&!e.pointer.inside&&JSON.stringify(e.destination)===JSON.stringify(destination);},idleDestination));
@@ -59,8 +113,9 @@ check('closing workbench removes target highlight',await motion.locator('#resear
 await motion.close();
 const lateFailureEvents=[...events.slice(0,4),{...events[2],seq:5,time:'2026-10-22T12:00:05Z',screenshot:'/api/workspace/news/research-frame?job=fixture&name=4.jpg'},{...events[4],seq:6,time:'2026-10-22T12:00:06Z'}];
 const {page:lateFailure}=await makePage({...fixtureJob('partial'),events:lateFailureEvents});
-await lateFailure.waitForFunction(()=>document.getElementById('frame-position').textContent==='3 / 4');
+await lateFailure.waitForFunction(()=>window.NewsReader.inspect().researchJob==='fixture');
 await lateFailure.locator('#refresh').click();
+await lateFailure.waitForFunction(()=>document.getElementById('frame-position').textContent==='3 / 4');
 check('terminal replay prefers extracted page over last error screen',await lateFailure.locator('#research-host').innerText()==='example.com');
 await lateFailure.locator('.research-source[data-host="x.com/@example"]').click();
 await lateFailure.waitForFunction(()=>document.getElementById('frame-position').textContent==='4 / 4');

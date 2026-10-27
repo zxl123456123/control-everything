@@ -42,6 +42,31 @@ class Source:
 
 
 class ReaderTests(unittest.TestCase):
+    def test_feed_updated_time_orders_without_inventing_publication(self):
+        row = {**item('https://github.com/example/release', None, 'github_com'),
+               'updated_at': '2026-10-26T00:00:00+00:00',
+               'body_blocks': [{'type': 'p', 'text': 'Actual publisher release note.'}]}
+        result = self.reader.merge([row])
+        self.assertEqual(result['sample']['streams']['ai']['items'][0]['id'], row['id'])
+        document = self.reader.article(row['id'])
+        self.assertIsNone(document['published_at'])
+        self.assertEqual(document['updated_at'], row['updated_at'])
+
+    def test_zero_matches_complete_but_blocked_sources_fail(self):
+        for stages, expected in ((['search', 'merge'], 'complete'), (['blocked', 'merge'], 'failed')):
+            identity = ('a' if expected == 'complete' else 'b') * 32
+            folder = self.reader.jobs.root / identity
+            folder.mkdir(parents=True)
+            (folder / 'result.json').write_text(json.dumps({'items': []}), encoding='utf-8')
+            job = {'job_id': identity, 'state': 'running', 'topic': 'coding', 'events': []}
+            process = Mock(stdout=iter(json.dumps({'stage': stage, 'message': stage}) + '\n' for stage in stages))
+            process.stderr.read.return_value = ''
+            process.wait.return_value = process.poll.return_value = 0
+            with patch('control_everything.workspace.news_research.subprocess.Popen', return_value=process):
+                self.reader.jobs._run(job, folder / 'request.json', 'node')
+            self.assertEqual(job['state'], expected)
+            self.assertEqual('error' in job, expected == 'failed')
+
     def setUp(self):
         self.temporary = TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)
@@ -194,6 +219,23 @@ class ReaderHTTPTests(unittest.TestCase):
         self.assertEqual(self.request('/api/workspace/news/research', 'POST', {'url': 'https://example.com'})[0], 400)
         self.assertEqual(self.request('/api/workspace/news/research', 'POST', b' ' * 2049)[0], 413)
         self.assertEqual(self.request('/api/workspace/news/translate', 'POST', {'texts': [1], 'source': 'en', 'target': 'zh'})[0], 400)
+
+    def test_article_retry_is_explicit_and_rejects_other_parameters(self):
+        identity = 'a' * 24
+        self.reader.article.return_value = {'id': identity}
+        self.assertEqual(self.request('/api/workspace/news/article?id=' + identity + '&retry=1')[0], 200)
+        self.reader.article.assert_called_once_with(identity, retry=True)
+        for suffix in ('&retry=0', '&retry=', '&retry=1&retry=1', '&retry=1&url=https://example.com'):
+            self.assertEqual(self.request('/api/workspace/news/article?id=' + identity + suffix)[0], 400)
+
+    def test_screenshot_capture_is_optional_and_boolean(self):
+        self.reader.jobs.begin.return_value = {'job_id': 'a' * 32}
+        for capture in (False, True):
+            self.assertEqual(self.request('/api/workspace/news/research', 'POST',
+                             {'query': 'AI', 'topic': 'coding', 'capture_frames': capture})[0], 202)
+            self.reader.jobs.begin.assert_called_with('AI', 'coding', capture_frames=capture)
+        self.assertEqual(self.request('/api/workspace/news/research', 'POST',
+                         {'query': 'AI', 'topic': 'coding', 'capture_frames': 'false'})[0], 400)
 
     def test_unknown_document_and_active_job_status(self):
         self.reader.article.return_value = None

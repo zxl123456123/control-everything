@@ -21,11 +21,11 @@ export function MobileHomeTopBar({
       <View style={{ flexDirection: 'row', alignItems: 'center' }}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="平台账号"
+          accessibilityLabel="账号与设备"
           onPress={onOpenPlatformAccount}
           style={{ minHeight: 44, justifyContent: 'center', padding: spacing.sm }}
         >
-          <Text style={{ color: colors.textSecondary }}>平台账号</Text>
+          <Text style={{ color: colors.textSecondary, fontSize: 15 }}>账号与设备</Text>
         </Pressable>
         <Pressable
           style={({ pressed }) => [styles.iconButton, pressed && styles.iconButtonPressed]}

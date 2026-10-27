@@ -83,11 +83,13 @@ function setup({reduced = false, webgl = true, loadSource = true} = {}) {
     },
     createElementNS: (ns, tag) => new FakeElement(tag),
   };
+  const dispatched = [];
   const win = {
     document: documentStub, devicePixelRatio: 3, innerWidth: 1200, innerHeight: 800,
     getComputedStyle: () => ({display: 'block', visibility: 'visible', overflowX: 'visible', overflowY: 'visible'}),
     setTimeout: (cb, ms) => { timers.push({cb, ms}); return timers.length; }, clearTimeout() {},
     requestAnimationFrame: cb => { frames.push(cb); return frames.length; }, cancelAnimationFrame() {},
+    dispatched, dispatchEvent: e => { dispatched.push(e); return true; },
     addEventListener: (k, f) => { (wl[k] ||= []).push(f); }, removeEventListener: (k, f) => { wl[k] = (wl[k] || []).filter(x => x !== f); }, matchMedia: () => ({matches: reduced, addEventListener() {}, removeEventListener() {}}),
   };
   FakeElement.doc = documentStub; const clock = {now: 0};
@@ -97,7 +99,7 @@ function setup({reduced = false, webgl = true, loadSource = true} = {}) {
   vm.runInContext(petsSource, context);
   let time = 0;
   const step = (count = 1, dt = 16.7) => { for (let i = 0; i < count; i++) { time += dt; timers.splice(0).forEach(t => t.cb()); frames.splice(0).forEach(cb => cb(time)); } };
-  return {context, stage, canvas, depot, row, stats, step, frames, timers, scripts, head, dl, wl, documentStub, clock};
+  return {context, stage, canvas, depot, row, stats, step, frames, timers, scripts, head, dl, wl, documentStub, clock, dispatched};
 }
 const mountOpts = t => ({root: t.stage, canvas: t.canvas, depot: t.depot});
 
@@ -161,6 +163,7 @@ test('lazy mount falls back to the first available pet (the spider) if the scrip
   t.scripts[0].onerror();
   await new Promise(r => setImmediate(r));
   assert.equal(api.inspect().pet, 'fallback-stub');
+  assert.deepEqual(JSON.parse(JSON.stringify(t.dispatched.map(e => [e.type, e.detail]))), [['news-pet-fallback', {pet: 'tabbycat', fallback: 'spider'}]], 'the host is told which pet was replaced');
 });
 
 test('mount validates its stage, uses a small private WebGL canvas and exposes the full pet API', () => {

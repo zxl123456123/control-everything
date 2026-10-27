@@ -1,7 +1,8 @@
 /* Pet registry for the news reader. Every pet implements the NewsSpider mount contract:
  * mount({root, canvas, depot, onCapture, onDelivered, onCancel, followPointer, actions, onAction, dock, options, styleNonce}) ->
  * `actions` are [{id,label,icon?,run}] for the click-to-open radial dial; `dock()` may return {x,y} (stage coords) = where the pet rests clear of the text.
- * {pointAt, capture, cancel, setCollecting, pause, resume, setOptions, inspect, destroy, setStatus}. */
+ * {pointAt, capture, cancel, setCollecting, pause, resume, setOptions, inspect, destroy, setStatus}.
+ * A lazy pet whose script fails to load is replaced by its fallback and announces it with a `news-pet-fallback` window event ({pet, fallback}). */
 (function (global) {
   'use strict';
   const pets = new Map();
@@ -47,7 +48,7 @@
     }
     return loading.get(src);
   }
-  function lazy(globalName, src, fallback) {
+  function lazy(petName, globalName, src, fallback) {
     return options => {
       if (global[globalName]) return global[globalName].mount(options);
       const calls = [];
@@ -69,15 +70,15 @@
       }).catch(() => {
         if (dead) return;
         state = 'failed';
-        const fb = [].concat(fallback || []).find(n => pets.has(n)); if (fb) { real = pets.get(fb).mount(options); for (const [method, args] of calls.splice(0)) { try { if (typeof real[method] === 'function') real[method](...args); } catch (e) { /* ignore */ } } }
+        const fb = [].concat(fallback || []).find(n => pets.has(n)); if (fb) { real = pets.get(fb).mount(options); global.dispatchEvent(new CustomEvent('news-pet-fallback', {detail: {pet: petName, fallback: fb}})); for (const [method, args] of calls.splice(0)) { try { if (typeof real[method] === 'function') real[method](...args); } catch (e) { /* ignore */ } } }
       });
       return proxy;
     };
   }
   const list = () => [...pets.values()].filter(isEnabled).map(pet => ({name: pet.name, label: pet.label, status: pet.status}));
-  if (global.NewsSpider) register('spider', {label: '蜘蛛', mount: options => global.NewsSpider.mount(options)});
-  register('naidragon', {label: '奶龙', status: true, mount: lazy('NewsNaidragon', 'news-naidragon.js', ['spider'])});
-  register('tabbycat', {label: '狸花猫', status: true, mount: lazy('NewsTabbycat', 'news-tabbycat.js', ['spider'])});
+  register('spider', {label: '蜘蛛', mount: options => global.NewsSpider.mount(options)});
+  register('naidragon', {label: '奶龙', status: true, mount: lazy('naidragon', 'NewsNaidragon', 'news-naidragon.js', ['spider'])});
+  register('tabbycat', {label: '狸花猫', status: true, mount: lazy('tabbycat', 'NewsTabbycat', 'news-tabbycat.js', ['spider'])});
   // `status: true` marks pets that draw the usage/agent status chip; only they make the reader poll the status endpoints.
   const defaultName = () => { const all = list(); return (all.find(pet => pet.name === 'spider') || all[0] || {}).name || 'spider'; };
   global.NewsPets = Object.freeze({register, mount, list, defaultName});

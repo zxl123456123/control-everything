@@ -182,6 +182,23 @@ test('mobile return context follows project, legacy, and history routes without 
     f.dispose();
   }
 });
+
+test('account routes identify their page and leave refresh to the account panel', async () => {
+  for (const unified of [false, true]) {
+    const f = studioFixture({ unified }); await f.flush();
+    for (const route of ['settings/account', 'mobile']) {
+      await f.route(route);
+      const chrome = f.nodes.get('studio-topbar').innerHTML;
+      assert.match(chrome, /<span> \/ 账号与设备<\/span>/);
+      assert.match(chrome, /href="#settings\/account" aria-current="page"/);
+      assert.doesNotMatch(chrome, /data-action="refresh"/);
+    }
+    await f.route('home');
+    assert.match(f.nodes.get('studio-topbar').innerHTML, /data-action="refresh"/);
+    assert.equal(f.posts.length, 0);
+    f.dispose();
+  }
+});
 test('mobile resource is loaded before Studio in both assembly paths', () => {
   for (const file of ['web/workspace/studio-preview.html', 'web/workbench-engine/src/renderer/src/web/platform-studio-surface.tsx']) {
     const text = fs.readFileSync(path.resolve(__dirname, '../..', file), 'utf8');
@@ -219,13 +236,18 @@ test('creator is an independent top-level and narrow-screen link without project
 test('creator URL writes one independent key and rejects all credential-bearing forms', async () => {
   const f = studioFixture(); await f.flush(); await f.route('tools');
   assert.match(f.nodes.get('studio-content').innerHTML, /data-creator-form="true"/);
+  assert.match(f.nodes.get('studio-content').innerHTML, /<details class="ce-creator-address">/);
+  assert.doesNotMatch(f.nodes.get('studio-content').innerHTML, /请先启动独立创作服务|普通 HTTP\(S\) 页面地址/);
   f.submit('https://creator.example.test/workbench/');
   assert.deepEqual(f.writes, [['ce-studio-creator-url', 'https://creator.example.test/workbench/']]);
+  assert.match(f.nodes.get('studio-content').innerHTML, /<details class="ce-creator-address">/);
   for (const invalid of ['javascript:alert(1)', '//example.test', 'http://name:secret@example.test/',
     'https://example.test/?token=synthetic', 'https://example.test/#token', 'https://example.test/?',
     'https://example.test/#', 'https://example.test/a b', ' https://example.test/', 'https:\\example.test']) {
     f.submit(invalid); assert.equal(f.writes.length, 1);
     assert.match(f.nodes.get('studio-content').innerHTML, /aria-invalid="true"/);
+    assert.match(f.nodes.get('studio-content').innerHTML, /<details class="ce-creator-address" open>/);
+    assert.doesNotMatch(f.nodes.get('studio-content').innerHTML, /id="studio-creator-error" role="status" hidden/);
     assert.match(f.nodes.get('studio-rail').innerHTML, /href="https:\/\/creator\.example\.test\/workbench\/"/);
   }
   assert.match(f.nodes.get('studio-topbar').innerHTML, /href="https:\/\/creator\.example\.test\/workbench\/"/);

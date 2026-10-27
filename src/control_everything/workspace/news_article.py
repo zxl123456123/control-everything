@@ -255,7 +255,7 @@ def extract_images(html, source_url):
     return images
 
 
-def load_article(item, cache_root):
+def load_article(item, cache_root, *, retry=False):
     """Accept a server-selected feed item, never a user-submitted URL parameter."""
     if not isinstance(item, dict) or not re.fullmatch('[a-f0-9]{24}', str(item.get('id', ''))):
         raise ValueError('invalid_item')
@@ -268,6 +268,8 @@ def load_article(item, cache_root):
     cache = cache_root / (item['id'] + '.json')
     summary = item.get('summary')
     summary_blocks = [{'type': 'p', 'text': summary}] if isinstance(summary, str) and summary else []
+    feed_blocks = [{'type': 'p', 'text': text} for text in item.get('feed_content', '').split('\n\n') if text.strip()]
+    fallback_blocks = feed_blocks or summary_blocks
     if cache.is_file():
         saved = json.loads(cache.read_text(encoding='utf-8'))
         if saved.get('source_url') == source_url and saved.get('id') == item['id']:
@@ -287,14 +289,19 @@ def load_article(item, cache_root):
                 age = (datetime.fromisoformat(_now()) - datetime.fromisoformat(saved['fetched_at'])).total_seconds()
             except (KeyError, TypeError, ValueError):
                 age = FAILURE_RETRY_SECONDS
-            if saved.get('reason') == 'unsupported_source' or 0 <= age < FAILURE_RETRY_SECONDS:
+            if not retry and (saved.get('reason') == 'unsupported_source' and item.get('source_id') != 'hn'
+                              or saved.get('reason') != 'unsupported_source' and 0 <= age < FAILURE_RETRY_SECONDS):
                 # Keep the attempt time; a new feed sample must not extend the cooldown.
-                return {**current, 'blocks': summary_blocks}
+                return {**current, 'blocks': fallback_blocks, 'feed_content': bool(feed_blocks),
+                        'feed_content_truncated': item.get('feed_content_truncated', False)}
     result = {'id': item['id'], 'title': item['title'],
-              'blocks': summary_blocks,
+              'blocks': fallback_blocks, 'feed_content': bool(feed_blocks),
+              'feed_content_truncated': item.get('feed_content_truncated', False),
               'images': [], 'content_kind': 'summary', 'reason': None,
               'source_url': source_url, 'fetched_at': _now()}
     host = HOSTS.get(item.get('source_id'))
+    if item.get('source_id') == 'hn':
+        host = urlsplit(source_url).hostname
     try:
         if host is None:
             raise ValueError('unsupported_source')

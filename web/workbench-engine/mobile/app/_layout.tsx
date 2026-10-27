@@ -233,7 +233,7 @@ export default function RootLayout() {
               options={{ headerShown: false, presentation: 'modal', gestureEnabled: false }}
             />
             <Stack.Screen name="settings" options={{ headerShown: false }} />
-            <Stack.Screen name="platform-account" options={{ title: '平台账号' }} />
+            <Stack.Screen name="platform-account" options={{ title: '账号与设备' }} />
             <Stack.Screen name="oauth/callback" options={{ title: '平台账号授权' }} />
             <Stack.Screen name="terminal-settings" options={{ headerShown: false }} />
             <Stack.Screen name="native-chat-settings" options={{ headerShown: false }} />

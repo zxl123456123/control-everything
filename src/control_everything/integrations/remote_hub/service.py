@@ -15,7 +15,7 @@ from .store import RECOVERABLE, public_device
 
 class RemoteHubService:
     def __init__(self, store, identities, verifier, provisioner, *, public_origin, route_proof,
-                 ssh_host, ssh_host_key, ssh_port=2223, admin_subjects=(), channel_probe=None,
+                 ssh_host, ssh_host_key, ssh_port=2223, admin_subjects=(), channel_probe=None, user_directory=None,
                  static_paths=(), document_paths=("/studio", "/workspace", "/workspace-admin", "/news", "/sessions", "/progress")):
         parsed = urlsplit(public_origin)
         if parsed.scheme != "https" or parsed.netloc != parsed.hostname or parsed.path or not route_proof:
@@ -24,6 +24,7 @@ class RemoteHubService:
         self.public_origin, self.route_proof = public_origin, route_proof
         self.ssh_host, self.ssh_host_key, self.ssh_port = ssh_host, ssh_host_key, ssh_port
         self.admin_subjects = frozenset(admin_subjects)
+        self.user_directory = user_directory
         self.sessions = BrowserSessions(store, public_origin)
         self.channel_probe = channel_probe
         self.static_paths, self.document_paths = frozenset(static_paths), frozenset(document_paths)
@@ -74,6 +75,27 @@ class RemoteHubService:
             raise HubError("admin_required", 403)
         self.limit((identity.issuer, identity.sub, "invitation"), 10)
         return {"invitation": self.store.create_invitation(), "expires_in": 86400}
+
+    def admin_members(self, identity, limit=25, offset=0):
+        if (identity.issuer, identity.sub) not in self.admin_subjects:
+            raise HubError("admin_required", 403)
+        if type(limit) is not int or not 1 <= limit <= 100 or type(offset) is not int or not 0 <= offset <= 2147483647:
+            raise HubError("invalid_pagination", 400)
+        if self.user_directory is None:
+            raise HubError("member_directory_not_configured", 503)
+        accounts, total = self.user_directory.page(limit, offset)
+        items = []
+        with self.store.transaction() as db:
+            for account in accounts:
+                owner = (self.user_directory.issuer, account["sub"])
+                member = db.execute("SELECT status FROM members WHERE issuer=? AND sub=?", owner).fetchone()
+                device = db.execute("SELECT device_id,name,state,last_heartbeat FROM devices WHERE issuer=? AND sub=? AND state!='revoked'", owner).fetchone()
+                current = {key: device[key] for key in ("device_id", "name", "state")} if device else None
+                if current and current["state"] == "online" and (device["last_heartbeat"] is None or self.store.clock() - device["last_heartbeat"] > 45):
+                    current["state"] = "offline"
+                items.append({"account": account, "membership": member[0] if member else "inactive",
+                              "admin": owner in self.admin_subjects, "device": current})
+        return {"items": items, "total": total, "limit": limit, "offset": offset}
 
     def activate(self, identity, invite):
         self.limit((identity.issuer, identity.sub, "activate"), 10)

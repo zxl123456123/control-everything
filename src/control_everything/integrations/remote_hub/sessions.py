@@ -47,6 +47,13 @@ class BrowserSessions:
         with self.store.transaction() as db:
             db.execute("UPDATE browser_sessions SET invalidated=1 WHERE session_hash=?", (token_hash(cookie),))
 
+    def validate_read(self, identity, cookie, *, csrf, origin=None):
+        # Same-origin GET normally omits Origin; the session-bound custom header is still mandatory.
+        row = self.validate(identity, cookie)
+        if (origin not in (None, self.public_origin) or not isinstance(csrf, str)
+                or not hmac.compare_digest(row["csrf"], csrf)):
+            raise HubError("csrf_rejected", 403)
+
     def context(self, identity, cookie, device, existing=None):
         with self.store.transaction() as db:
             session = self._load(db, identity, cookie)

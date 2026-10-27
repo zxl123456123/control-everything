@@ -8,7 +8,7 @@ const vm = require('node:vm');
 const root = path.resolve(__dirname, '../..');
 
 class Element {
-  constructor(tag = 'div') { this.tagName = tag.toUpperCase(); this.children = []; this.dataset = {}; this.attributes = {}; this.listeners = {}; this.value = ''; this.text = ''; this.hidden = false; this.open = false; this.isConnected = true; this.classList = {add() {}, remove() {}, toggle() {}}; }
+  constructor(tag = 'div') { this.tagName = tag.toUpperCase(); this.children = []; this.dataset = {}; this.attributes = {}; this.listeners = {}; this.style = {}; this.value = ''; this.text = ''; this.hidden = false; this.open = false; this.isConnected = true; this.classList = {add() {}, remove() {}, toggle() {}}; }
   append(...nodes) { for (const node of nodes) { node.remove(); node.parentElement = this; this.children.push(node); } }
   remove() { if (this.parentElement) this.parentElement.children = this.parentElement.children.filter(node => node !== this); this.parentElement = null; }
   replaceChildren(...nodes) { this.children = []; this.text = ''; this.append(...nodes); }
@@ -21,6 +21,7 @@ class Element {
   get all() { return this.children.flatMap(node => [node, ...node.all]); }
   querySelectorAll(selector) { return this.all.filter(node => matches(node, selector)); }
   querySelector(selector) { return this.querySelectorAll(selector)[0] || null; }
+  get options() { return this.querySelectorAll('option'); }
   get firstElementChild() { return this.children[0] || null; }
   get nextElementSibling() { return this.parentElement?.children[this.parentElement.children.indexOf(this) + 1] || null; }
   insertBefore(node, before) { node.remove(); node.parentElement = this; const index = this.children.indexOf(before); this.children.splice(index < 0 ? this.children.length : index, 0, node); }
@@ -59,7 +60,8 @@ function fixture(remote = false, withTheme = true) {
     if (url.includes('/research')) return response(await (state.research ? state.research(url,options) : running()));
     return response(await (state.feed ? state.feed(url,options) : state.value));
   };
-  const window = {addEventListener:(key,callback) => {windowEvents[key]=callback;}};
+  // Several modules listen to the same window event (remote context, pet prefs): chain them like a real window.
+  const window = {addEventListener:(key,callback) => {const previous=windowEvents[key];windowEvents[key]=previous?(...args) => {previous(...args);callback(...args);}:callback;}};
   const themeReads=[],themeMounts=[],themeDisposals=[];
   if(withTheme)window.CEUITheme={earlyRead(key){if(window.CERemoteContext)assert.equal(Object.isFrozen(window.CERemoteContext),true);themeReads.push(key);return{mount(options){themeMounts.push(options);return()=>{};},dispose(){themeDisposals.push(key);}};}};
   const context = {window,document,URL,URLSearchParams,Headers,AbortController,console,location:new URL('http://fixture.test/news'),matchMedia:() => ({matches:false}),innerWidth:1280,innerHeight:800,
@@ -70,7 +72,8 @@ function fixture(remote = false, withTheme = true) {
     Object.assign(window,{location:new URL('https://workbench.example.test/news'),document,fetch,localStorage:context.localStorage,sessionStorage:context.localStorage});
     vm.runInNewContext(fs.readFileSync(path.join(root,'web/workspace/remote-context.js'),'utf8'),context);
   }
-  vm.runInNewContext(fs.readFileSync(path.join(root,'web/workspace/news-reader.js'),'utf8'),context);
+  Object.assign(window,{localStorage:context.localStorage,removeEventListener() {},dispatchEvent() {}});
+  for (const file of ['news-pets.js','news-pet-prefs.js','news-reader.js']) vm.runInNewContext(fs.readFileSync(path.join(root,'web/workspace',file),'utf8'),context);
   return {calls,writes,timers,state,window,document,windowEvents,themeReads,themeMounts,themeDisposals,node:id => ids.get(id),
     async hidden(value) {document.hidden=value;documentEvents.visibilitychange();await flush();},
     async tick(ms) {const timer=[...timers].find(([,timer]) => timer.ms===ms); assert.ok(timer,`timer ${ms}`);timers.delete(timer[0]);timer[1].callback();await flush();}};

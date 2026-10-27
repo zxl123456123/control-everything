@@ -33,7 +33,7 @@
       nullableTime(value.published_at) && timestamp(value.fetched_at) && (value.published_raw === null || text(value.published_raw, 128)) &&
       (value.date_reason === null || oneOf(value.date_reason, ['missing', 'invalid', 'timezone_unknown'])) &&
       nullableTime(value.updated_at) && nullableTime(value.submitted_at) && oneOf(value.content_origin, ['publisher_feed', 'hn_submission']) &&
-      (value.summary === null || text(value.summary, 600)) && (value.summary_kind === null || oneOf(value.summary_kind, ['rss_description', 'atom_summary'])) &&
+      (value.summary === null || text(value.summary, 600)) && (value.summary_kind === null || oneOf(value.summary_kind, ['rss_description', 'atom_summary', 'rss_content', 'atom_content'])) &&
       typeof value.summary_truncated === 'boolean' && (value.summary_reason === null || oneOf(value.summary_reason, ['missing', 'empty', 'summary_too_long', 'unsupported_type'])) && typeof value.title_truncated === 'boolean';
   }
   function isSource(value: unknown): value is Source {

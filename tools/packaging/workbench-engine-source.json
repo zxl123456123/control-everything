@@ -326813,7 +326813,9 @@
     "src/renderer/src/web/platform-appearance.test.ts",
     "src/renderer/src/web/platform-appearance.ts",
     "src/renderer/src/web/platform-settings-navigation.test.tsx",
-    "src/renderer/src/web/platform-settings-navigation.ts"
+    "src/renderer/src/web/platform-settings-navigation.ts",
+    "mobile/src/platform-account/browser-portal.test.ts",
+    "mobile/src/platform-account/browser-portal.ts"
   ],
   "adapted_files": [
     {
@@ -326861,14 +326863,14 @@
     {
       "path": "mobile/app.config.js",
       "upstream_sha256": "799f4d86740ee04a8463b9c805f9222f4e98b73aa4174a3f1bac2d6873886e9c",
-      "current_sha256": "31694321fa71fe97f28ad05f6707ef057d299df523d37ddb9aa2d6e6137f26a8",
-      "reason": "Add self-hosted native account access and isolate platform credentials and outbound services."
+      "current_sha256": "7dccb6795f8a5c944e9212361ab2d5aecb0f63a0519eb0fd4afc671a03b02049",
+      "reason": "Retain isolated native account access and add the configured browser registration and computer portal."
     },
     {
       "path": "mobile/app/_layout.tsx",
       "upstream_sha256": "338d89b78b34c628b2b610ece65a47f5c4a7493c35dd9207be93558a6f178b2c",
-      "current_sha256": "f825a6a27d477162ad1e725ef82901329af09219ed7bd3eacc58092a65552d59",
-      "reason": "Add self-hosted native account access and isolate platform credentials and outbound services."
+      "current_sha256": "76021b5f16698d633d1e1b67ab1d98c158a95c1dd692ec5178e0e7ef4597400f",
+      "reason": "Retain isolated native account access and add the configured browser registration and computer portal."
     },
     {
       "path": "mobile/package.json",
@@ -326927,8 +326929,8 @@
     {
       "path": "mobile/src/home/MobileHomeTopBar.tsx",
       "upstream_sha256": "037c6fd7cc48517d990eeeda469fc15b09e585e7aab41fe115d5054e63145069",
-      "current_sha256": "0631d8ef2f44a0b81733fa7979076974ccb8bc497a14811dfa3461ad0dea196c",
-      "reason": "Add self-hosted native account access and isolate platform credentials and outbound services."
+      "current_sha256": "14e80b31fdb0977da66ef4450cd18d50aadbf940fb72686300bb33993f077d58",
+      "reason": "Retain isolated native account access and add the configured browser registration and computer portal."
     },
     {
       "path": "mobile/src/settings/settings-app-update-section.tsx",

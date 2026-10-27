@@ -27,9 +27,9 @@ class ResearchJobs:
         self.closed = False
         self.blocked = False
 
-    def begin(self, query, topic):
+    def begin(self, query, topic, *, capture_frames=False):
         if (not isinstance(query, str) or not 1 <= len(query.strip()) <= 240
-                or not isinstance(topic, str) or topic not in TOPICS):
+                or not isinstance(topic, str) or topic not in TOPICS or type(capture_frames) is not bool):
             raise ValueError('invalid_research_request')
         node = os.environ.get('CONTROL_EVERYTHING_NEWS_NODE') or shutil.which('node')
         if not node or not Path(node).is_file():
@@ -42,7 +42,8 @@ class ResearchJobs:
             identity = uuid.uuid4().hex
             folder = self.root / identity
             folder.mkdir(parents=True)
-            job = {'job_id': identity, 'state': 'running', 'query': query.strip(), 'topic': topic, 'events': []}
+            job = {'job_id': identity, 'state': 'running', 'query': query.strip(), 'topic': topic,
+                   'capture_frames': capture_frames, 'events': []}
             self.jobs[identity] = job
             config = folder / 'request.json'
             config.write_text(json.dumps(job, ensure_ascii=False), encoding='utf-8')
@@ -120,10 +121,10 @@ class ResearchJobs:
             merged = self.on_result(result['items']) if result['items'] else None
             with self.lock:
                 failed = code != 0 or any(event['stage'] in ('blocked', 'error') for event in job['events'])
-                job['state'] = 'partial' if result['items'] and failed else 'complete' if result['items'] else 'failed'
+                job['state'] = 'partial' if result['items'] and failed else 'failed' if failed else 'complete'
                 if merged:
                     job['result'] = merged
-                if not result['items']:
+                if not result['items'] and failed:
                     job['error'] = '本次未取得正文，请查看来源状态或检查浏览器采集依赖。已有内容已保留。'
         except (OSError, ValueError, KeyError, subprocess.SubprocessError):
             with self.lock:

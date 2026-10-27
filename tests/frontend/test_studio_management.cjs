@@ -280,6 +280,24 @@ test('full stylesheet cascade keeps project tags readable and refresh controls a
   assert.equal(f.node('#pp-refresh').textContent,''); assert.ok(f.node('#pp-refresh').querySelector('svg'));
 });
 
+test('source settings rows retain aligned padding through the complete desktop and narrow cascade', async t => {
+  const f = await fixture(t, { hash: '#settings/sources' });
+  for (const name of ['workspace.css', 'project-progress.css', 'project-monitor.css', 'studio-preview.css']) {
+    const style = f.w.document.createElement('style'); style.textContent = fs.readFileSync(path.join(root, 'web/workspace', name), 'utf8'); f.w.document.head.append(style);
+  }
+  for (const width of [1280, 390]) {
+    f.w.happyDOM.setViewport({ width, height: 844 });
+    for (const row of f.host.querySelectorAll('.ce-settings-group>.ce-setting-row')) {
+      const style = f.w.getComputedStyle(row);
+      assert.equal(style.padding, '16px 20px', `padding at ${width}`);
+      assert.equal(style.flexDirection, 'row', `direction at ${width}`);
+      assert.equal(style.alignItems, 'center'); assert.equal(style.minHeight, '76px');
+      assert.equal(style.borderBottomWidth, '0px');
+    }
+    assert.equal(f.w.getComputedStyle(f.node('.ce-creator-address>summary')).padding, '16px 20px');
+  }
+});
+
 
 for (const unified of [false, true]) test(`external access uses the current Studio dialog host and disposes on navigation (unified=${unified})`, async t => {
   const f = await fixture(t, { hash: '#settings/sources', unified });

@@ -10,6 +10,25 @@
 4. `workbench-identity.hub.service.example` 安装为独立服务。hub 只监听 `127.0.0.1:18869`；oauth2-proxy 样例的身份头与 access token 仅允许在受信服务器链路流转。Caddy 必须先清除公网伪造头，再注入内部 proof，不能公开 `/internal/authorize`。
 5. `static_paths` 必须由实际版本资源清单生成；空列表不豁免任何资产。业务 document 缺 hub session 时由边缘返回账号页；只有 `/remote/api/session` 会发送 session cookie。业务 API 缺 context 时拒绝。
 
+发布新版桌面包时，须同步登记资源：普通资源取同版 `gateway.WEB_ASSETS`、`workbench.STUDIO_RESOURCES`、`news_reader.ASSETS` 中的非 HTML 项；原生资源取完整包 `workbench-build/web-assets.json` 的非 HTML `files`，路径加 `/workbench/` 前缀。只合并仍受支持版本的精确路径，保留旧版条目，不加入 HTML、API 或通配路径。更新私有配置并重启 hub 后，从远程浏览器实测项目与终端。漏登记会使初始脚本返回 `403 context_required`，出现白屏或资源加载失败；仅重新构建桌面包不能替代这一步。
+
+## 管理员与注册成员
+
+注册和密码由自建 Keycloak 处理。管理员使用同一 `/remote` 账号入口登录，账号与设备页显示注册成员、接入状态、角色、当前电脑及注册时间；未使用邀请码的注册者也会列出。注册成功不会自动激活接入，电脑仍须在桌面端授权并明确确认绑定。管理员身份只认私有配置中的精确 `sub`，不能因用户名相同而授予权限。
+
+代理配置沿用样例中的 `backend_logout_url`：从固定 issuer 指向 Keycloak 退出端点，由代理替换 `{id_token}`。`/oauth2/sign_out` 单独使用只会清理代理 cookie，可能在下一次登录时自动回到原账号；配置后应实测“退出→再次登录”会进入登录/注册页面。无需把 ID Token 下发浏览器或增加成员管理权限。
+
+成员目录使用单独的 confidential client `workbench-user-directory`，启用 service accounts，关闭浏览器与直接密码授权，设置 `fullScopeAllowed=false`。仅向其 service account 及 client role scope 映射 `realm-management` 的 `query-users`、`view-users`，不要授予 `manage-users`、`realm-admin` 或 `impersonation`。在原 hub 私有 JSON 增加以下可选字段，秘密仅留在服务器：
+
+```json
+"user_directory": {
+  "client_id": "workbench-user-directory",
+  "client_secret": "REPLACE_IN_PRIVATE_FILE"
+}
+```
+
+未配置或身份服务读取失败时，管理员页报告目录不可用，不把空列表或仅已激活成员冒充全部注册者。目录为只读分页；普通成员不可读取。登录、注册与成员列表分别通过真实浏览器验证，不能只凭样例字段存在判断现场可用。客户端权限配置依据 [Keycloak 服务账号与角色范围](https://www.keycloak.org/docs/latest/server_admin/index.html#_service_accounts)。
+
 ## 独立 SSH 实例
 
 设备转发使用单独的 TCP 2223，不修改既有 22 端口。参数依据 [OpenSSH sshd_config](https://man.openbsd.org/sshd_config)；此专用非交互公钥转发实例使用 `UsePAM no`，避免 PAM session 将连接移入 `user.slice` 而破坏固定 service cgroup 归属；因此不会执行 PAM account/session、limits 或环境策略。不得将此配置用于依赖这些策略的普通账号。

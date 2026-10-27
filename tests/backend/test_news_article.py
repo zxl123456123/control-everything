@@ -192,14 +192,35 @@ class ArticleTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'extraction_insufficient'):
             content.extract_blocks(b'<article><p>Short teaser.</p></article>', 'https://blog.google/article')
 
-    def test_unsupported_hn_is_summary_and_never_fetched(self):
+    def test_hn_server_selected_link_attempts_public_body_extraction(self):
         data = item('hn', 'https://unknown.example/article', None)
-        with tempfile.TemporaryDirectory() as directory, patch.object(content, '_fetch_html') as fetch:
+        html = self.image_html('')
+        with tempfile.TemporaryDirectory() as directory, patch.object(content, '_fetch_html', return_value=(html, data['url'])) as fetch:
             result = content.load_article(data, directory)
-            self.assertEqual(result['content_kind'], 'summary')
-            self.assertEqual(result['reason'], 'unsupported_source')
-            self.assertEqual(result['blocks'], [])
-            fetch.assert_not_called()
+            self.assertEqual(result['content_kind'], 'full_text')
+            fetch.assert_called_once_with(data['url'], 'unknown.example')
+
+    def test_failed_page_retains_inline_feed_body_and_explicit_retry_bypasses_cooldown(self):
+        data = {**item('openai', 'https://openai.com/article', None),
+                'feed_content': 'First publisher paragraph.\n\nSecond publisher paragraph.', 'feed_content_truncated': True}
+        with tempfile.TemporaryDirectory() as directory, patch.object(content, '_fetch_html', side_effect=TimeoutError) as fetch:
+            first = content.load_article(data, directory)
+            self.assertTrue(first['feed_content'])
+            self.assertTrue(first['feed_content_truncated'])
+            self.assertEqual([row['text'] for row in first['blocks']], data['feed_content'].split('\n\n'))
+            content.load_article(data, directory)
+            self.assertEqual(fetch.call_count, 1)
+            content.load_article(data, directory, retry=True)
+            self.assertEqual(fetch.call_count, 2)
+
+    def test_hn_private_dns_is_rejected_before_connecting(self):
+        data = item('hn', 'https://attacker.example/article', None)
+        private = (socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP, '', ('127.0.0.1', 443))
+        with tempfile.TemporaryDirectory() as directory, patch.object(socket, 'getaddrinfo', return_value=[private]):
+            with patch.object(socket.socket, 'connect') as connect:
+                result = content.load_article(data, directory)
+                self.assertEqual(result['reason'], 'private_address')
+                connect.assert_not_called()
 
     def test_fallback_retains_summary_and_timestamp_and_cached_result(self):
         data = item('google_ai', 'https://blog.google/article')
