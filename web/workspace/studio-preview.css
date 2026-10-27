@@ -813,7 +813,7 @@ body:has(#ce-studio){margin:0;background:var(--ce-bg,#ffffff)}
 
 /* Shadcn Admin structure; appearance state remains owned by the host. */
 #ce-studio .ce-content{padding:0}
-#ce-studio:not([data-project-surface=true]) .ce-shell{padding:8px 8px 8px 0;background:var(--ce-soft)}
+#ce-studio:not([data-project-surface=true]) .ce-shell{box-sizing:border-box;padding:8px 8px 8px 0;background:var(--ce-soft)}
 #ce-studio:not([data-project-surface=true]) .ce-app{border:1px solid var(--ce-line);border-radius:12px;background:var(--ce-bg);overflow:clip;box-shadow:0 1px 2px var(--ce-shadow)}
 #ce-studio .ce-brand>span:last-child{max-width:154px}
 #ce-studio .ce-rail-bottom{padding-top:12px;border-top:1px solid var(--ce-line)}
