@@ -30,6 +30,19 @@
       "protocolMappers": [{"name": "hub-audience", "protocol": "openid-connect", "protocolMapper": "oidc-audience-mapper", "config": {"included.client.audience": "workbench-hub", "access.token.claim": "true", "id.token.claim": "false"}}]
     },
     {
+      "clientId": "workbench-mobile",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "redirectUris": ["com.example.workbench:/oauth/callback"],
+      "webOrigins": [],
+      "protocol": "openid-connect",
+      "attributes": {"pkce.code.challenge.method": "S256"},
+      "protocolMappers": [{"name": "hub-audience", "protocol": "openid-connect", "protocolMapper": "oidc-audience-mapper", "config": {"included.client.audience": "workbench-hub", "access.token.claim": "true", "id.token.claim": "false"}}]
+    },
+    {
       "clientId": "workbench-hub",
       "enabled": true,
       "publicClient": false,

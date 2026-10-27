@@ -1,10 +1,10 @@
 # 自建账号与独立设备 SSH 配置样例
 
-这些文件只含占位值，不代表已经部署或验收。hub 只管理成员、设备和准入，不保存本机项目数据。浏览器和桌面分别使用 `workbench-web`、`workbench-desktop`，固定资源 audience 为 `workbench-hub`。身份来源参见 [Keycloak OIDC 官方文档](https://www.keycloak.org/securing-apps/oidc-layers)。
+这些文件只含占位值，不代表已经部署或验收。hub 只管理成员、设备和准入，不保存本机项目数据。浏览器、桌面和手机端分别使用 `workbench-web`、`workbench-desktop`、`workbench-mobile`，固定资源 audience 为 `workbench-hub`。身份来源参见 [Keycloak OIDC 官方文档](https://www.keycloak.org/securing-apps/oidc-layers)。
 
 ## 身份与 hub
 
-1. 在专用 Keycloak realm 核对注册、密码策略、暴力尝试保护和两个客户端；已有 realm 应逐项应用配置，不能整体覆盖真实用户。没有 SMTP 时不启用邮件验证或邮件找回。
+1. 在专用 Keycloak realm 核对注册、密码策略、暴力尝试保护和三个客户端（web、desktop、mobile）；已有 realm 应逐项应用配置，不能整体覆盖真实用户。没有 SMTP 时不启用邮件验证或邮件找回。
 2. 为浏览器与 hub 两个 confidential client 单独设置秘密。将 hub 配置保存为仅服务账号可读的私有文件；不要提交实际配置。管理员列表必须是部署者核对过的精确 `sub`，不是用户名或首个注册者。
 3. 专用系统账号 `ce-remote-hub` 运行 hub，`/var/lib/ce-remote-hub` 权限为 0700。在已安装本包的环境执行 `python tools/scripts/remote_hub_admin.py --config /etc/ce-remote-hub/config.json bootstrap-admin`。此操作仅为配置中的管理员激活成员资格。
 4. `workbench-identity.hub.service.example` 安装为独立服务。hub 只监听 `127.0.0.1:18869`；oauth2-proxy 样例的身份头与 access token 仅允许在受信服务器链路流转。Caddy 必须先清除公网伪造头，再注入内部 proof，不能公开 `/internal/authorize`。
@@ -28,6 +28,25 @@
 ```
 
 未配置或身份服务读取失败时，管理员页报告目录不可用，不把空列表或仅已激活成员冒充全部注册者。目录为只读分页；普通成员不可读取。登录、注册与成员列表分别通过真实浏览器验证，不能只凭样例字段存在判断现场可用。客户端权限配置依据 [Keycloak 服务账号与角色范围](https://www.keycloak.org/docs/latest/server_admin/index.html#_service_accounts)。
+
+## 手机端账号与 `/remote/mobile/*`
+
+手机端与浏览器、桌面使用同一 Keycloak 身份（同一个 `sub`），只是客户端不同：
+
+1. 在 realm 增加公开客户端 `workbench-mobile`（样例见 `workbench-identity.realm.example.json`）：只开授权码流程并强制 PKCE `S256`，关闭直接密码授权和 service account；`redirectUris` 必须写成 App 实际的 `<scheme>:/oauth/callback`（样例的 `com.example.workbench` 只是占位）；同样挂 `workbench-hub` 的 audience mapper。hub 的 introspection 要求 `azp=workbench-mobile` 且 `aud` 含 `workbench-hub`，用桌面或浏览器客户端的令牌调用手机端口一律返回 403 `identity_scope_rejected`。已有 realm 请逐项应用，不要整体覆盖。
+2. `me` 返回的昵称和邮箱来自 access token 的 `name` / `email` 声明，因此客户端须申请 `profile` 与 `email` scope；缺失时对应字段为 `null`，不影响登录。
+3. **Caddy 路由**：`/remote/mobile/*` 必须与 `/remote/desktop/*` 一样直接反代到 hub（`127.0.0.1:18869`），**不得**经过 oauth2-proxy 的 `forward_auth`，也不要注入 `X-CE-Route-Proof`。手机端没有浏览器 cookie，由 hub 自己用 `Authorization: Bearer` 做 introspection 校验。写法参见 `workbench-remote.Caddyfile.example`，与 `/remote/desktop/*` 并列。不要为手机端口开放 CORS：原生 App 不需要，hub 也不会返回任何 `Access-Control-*` 头。
+4. 接口（均为 JSON，`Cache-Control: no-store`，错误统一为 `{"error": "<code>"}`；POST 需 `Content-Type: application/json`）：
+   - `GET /remote/mobile/me` → `{"account": {"sub", "name", "display_name", "email"}, "membership": "active|inactive|disabled", "admin": bool}`。
+   - `GET /remote/mobile/devices` → `{"items": [{"device_id", "name", "state", "last_seen", "created_at", "os_name", "os_version", "app_version", "cleanup_failed"}]}`，仅限本人，最近 20 台（含已撤销）；心跳超过 45 秒的 `online` 显示为 `offline`；时间为 Unix 秒，未知为 `null`。
+   - `POST /remote/mobile/activate` `{"invite": "<code>"}` → 同 `me`。被禁用成员返回 403 `member_disabled`，且不消耗邀请码。
+   - `POST /remote/mobile/devices/<device_id>/revoke` `{}` → `{"device_id", "state", "cleanup_error"}`，行为与网页撤销一致：非管理员撤销他人设备返回 404（管理员可撤销任意设备）。
+   - `POST /remote/mobile/logout` `{}` → `{"logged_out": true, "sessions_invalidated": n}`：使该成员所有浏览器会话失效并记录退出时间。它不会撤销 Keycloak 的 refresh token，App 仍须自行调用 Keycloak 的撤销/退出端点。
+   - 限速沿用 hub 内存限速：读取 60 次/分钟，撤销和退出各 10 次/分钟，激活 10 次/分钟。
+5. 数据库在首次启动时由 schema 版本 1 自动升级到 2（仅新增可空列：设备 `created_at`、`os_name`、`os_version`、`app_version`，成员 `last_logout_at`）。升级前请先备份 `hub.db`；旧版 hub 无法打开已升级的库。`os_name`、`os_version`、`app_version` 由桌面连接器心跳的可选同名字段填充，现有连接器尚未发送，未填时为 `null`。
+6. 管理员禁用成员（`set_member(..., "disabled")`）时，该成员所有浏览器会话同时失效。
+
+这些样例同样未经真实服务器验收；`/remote/mobile/*` 的路由与令牌校验须在实际 Keycloak 与 Caddy 上联调。
 
 ## 独立 SSH 实例
 

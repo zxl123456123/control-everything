@@ -32,6 +32,9 @@ class Identity:
     expires_at: float
     sid: str = ""
     name: str = ""
+    # Optional display claims, only populated when the client requested the profile/email scopes.
+    display_name: str = ""
+    email: str = ""
 
 
 class _NoRedirect(urllib.request.HTTPRedirectHandler):
@@ -42,7 +45,7 @@ class _NoRedirect(urllib.request.HTTPRedirectHandler):
 class TokenIntrospector:
     def __init__(self, issuer, client_id, client_secret, *, audience="workbench-hub",
                  browser_client="workbench-web", desktop_client="workbench-desktop",
-                 clock=time.time, transport=None):
+                 mobile_client="workbench-mobile", clock=time.time, transport=None):
         parsed = urllib.parse.urlsplit(issuer)
         if (parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password
                 or parsed.query or parsed.fragment or issuer.endswith("/")):
@@ -51,7 +54,7 @@ class TokenIntrospector:
         self.endpoint = issuer + "/protocol/openid-connect/token/introspect"
         self.client_id, self.client_secret = client_id, client_secret
         self.audience = audience
-        self.clients = {"browser": browser_client, "desktop": desktop_client}
+        self.clients = {"browser": browser_client, "desktop": desktop_client, "mobile": mobile_client}
         self.clock, self.transport = clock, transport or self._request
         self._cache, self._lock = {}, threading.Lock()
 
@@ -67,6 +70,12 @@ class TokenIntrospector:
                 raise HubError("identity_unavailable", 503)
             return json.loads(raw)
 
+    @staticmethod
+    def _claim(value):
+        if not isinstance(value, str) or len(value) > 256 or any(ord(char) < 32 for char in value):
+            return ""
+        return value
+
     def authenticate(self, token, kind, trusted_sub=None):
         if kind not in self.clients or not isinstance(token, str) or not 16 <= len(token) <= 16384:
             raise HubError("invalid_identity", 401)
@@ -79,30 +88,36 @@ class TokenIntrospector:
                 identity = cached[1]
             else:
                 self._cache.pop(key, None)
-                query_started = now
-                try:
-                    data = self.transport(token)
-                except Exception:
-                    raise HubError("identity_unavailable", 503) from None
-                now = self.clock()
-                aud = data.get("aud") if isinstance(data, dict) else None
-                aud = [aud] if isinstance(aud, str) else aud
-                exp = data.get("exp") if isinstance(data, dict) else None
-                if (not isinstance(data, dict) or data.get("active") is not True
-                        or ("iss" in data and data["iss"] != self.issuer)
-                        or not isinstance(data.get("sub"), str) or not data["sub"]
-                        or type(exp) not in (int, float) or not math.isfinite(exp) or exp <= now):
-                    raise HubError("invalid_identity", 401)
-                if not isinstance(aud, list) or self.audience not in aud or data.get("azp") != self.clients[kind]:
-                    raise HubError("identity_scope_rejected", 403)
-                name = data.get("preferred_username") or data.get("username") or data["sub"]
-                if not isinstance(name, str) or len(name) > 256 or any(ord(char) < 32 for char in name):
-                    name = data["sub"]
-                identity = Identity(self.issuer, data["sub"], data["azp"], exp,
-                                    data.get("sid") if isinstance(data.get("sid"), str) else "", name)
-                cache_expires = min(query_started + 30, exp)
-                if cache_expires <= now:
-                    raise HubError("identity_unavailable", 503)
+                identity = None
+        if identity is None:
+            # The Keycloak round trip runs outside the lock so one slow introspection cannot stall
+            # unrelated requests. Concurrent first requests for one token may each introspect once.
+            query_started = now
+            try:
+                data = self.transport(token)
+            except Exception:
+                raise HubError("identity_unavailable", 503) from None
+            now = self.clock()
+            aud = data.get("aud") if isinstance(data, dict) else None
+            aud = [aud] if isinstance(aud, str) else aud
+            exp = data.get("exp") if isinstance(data, dict) else None
+            if (not isinstance(data, dict) or data.get("active") is not True
+                    or ("iss" in data and data["iss"] != self.issuer)
+                    or not isinstance(data.get("sub"), str) or not data["sub"]
+                    or type(exp) not in (int, float) or not math.isfinite(exp) or exp <= now):
+                raise HubError("invalid_identity", 401)
+            if not isinstance(aud, list) or self.audience not in aud or data.get("azp") != self.clients[kind]:
+                raise HubError("identity_scope_rejected", 403)
+            name = data.get("preferred_username") or data.get("username") or data["sub"]
+            if not isinstance(name, str) or len(name) > 256 or any(ord(char) < 32 for char in name):
+                name = data["sub"]
+            identity = Identity(self.issuer, data["sub"], data["azp"], exp,
+                                data.get("sid") if isinstance(data.get("sid"), str) else "", name,
+                                self._claim(data.get("name")), self._claim(data.get("email")))
+            cache_expires = min(query_started + 30, exp)
+            if cache_expires <= now:
+                raise HubError("identity_unavailable", 503)
+            with self._lock:
                 # Bound memory; eviction cannot extend identity lifetime.
                 if len(self._cache) >= 1024:
                     self._cache.clear()

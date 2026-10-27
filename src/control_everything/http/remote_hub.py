@@ -10,8 +10,8 @@ from control_everything.integrations.remote_hub.identity import HubError
 from control_everything.integrations.remote_hub.sessions import COOKIE_NAME
 
 
-def _fields(body, names):
-    if not isinstance(body, dict) or set(body) != set(names):
+def _fields(body, names, optional=()):
+    if not isinstance(body, dict) or not set(names) <= set(body) <= set(names) | set(optional):
         raise HubError("invalid_request_fields", 400)
     return body
 
@@ -51,7 +51,7 @@ def dispatch(service, method, uri, headers, body):
             if path.endswith("/config") and method == "GET":
                 return 200, service.config(token), {}
             if path.endswith("/heartbeat") and method == "POST":
-                values = _fields(body, ("installation_id", "runtime_ready"))
+                values = _fields(body, ("installation_id", "runtime_ready"), ("os_name", "os_version", "app_version"))
                 return 200, service.heartbeat(token, **values), {}
             if path.endswith("/revoke") and method == "POST":
                 _fields(body, ())
@@ -71,6 +71,32 @@ def dispatch(service, method, uri, headers, body):
         match = re.fullmatch(r"/remote/desktop/enrollment/([A-Za-z0-9_-]{32})/complete", path)
         if match:
             return 200, service.complete_enrollment(identity, match[1], **_fields(body, ("signature",))), {}
+        raise HubError("not_found", 404)
+    if path.startswith("/remote/mobile/"):
+        # Bearer only: cookies, proxy identity headers and Origin play no part, and no CORS headers
+        # are ever emitted, so browsers cannot call this surface cross-origin.
+        identity = service.identities.authenticate(_bearer(headers), "mobile")
+        if path == "/remote/mobile/me":
+            if method != "GET":
+                raise HubError("method_not_allowed", 405)
+            _fields(body, ())
+            return 200, service.mobile_me(identity), {}
+        if path == "/remote/mobile/devices":
+            if method != "GET":
+                raise HubError("method_not_allowed", 405)
+            _fields(body, ())
+            return 200, service.mobile_devices(identity), {}
+        match = re.fullmatch(r"/remote/mobile/devices/([0-9a-f]{24})/revoke", path)
+        if path in ("/remote/mobile/activate", "/remote/mobile/logout") or match:
+            if method != "POST":
+                raise HubError("method_not_allowed", 405)
+            if match:
+                _fields(body, ())
+                return 200, service.mobile_revoke(identity, match[1]), {}
+            if path.endswith("/activate"):
+                return 200, service.mobile_activate(identity, **_fields(body, ("invite",))), {}
+            _fields(body, ())
+            return 200, service.mobile_logout(identity), {}
         raise HubError("not_found", 404)
     identity = service.browser_identity(headers.get("X-Auth-Request-Access-Token", ""),
                                         headers.get("X-Auth-Request-User", ""), headers.get("X-CE-Route-Proof", ""))
