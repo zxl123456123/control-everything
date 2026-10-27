@@ -38,7 +38,8 @@
   /** Pet options derived from the stored preferences; only pets with the full engine take size and dock. */
   function petOptions(prefs, full) {
     if (!full) return {};
-    return {scale: SIZE_SCALE[prefs.size] || 1, dock: prefs.dock === 'bl' || prefs.dock === 'br' ? prefs.dock : 'auto'};
+    // dial:false hands the shortcut wheel over to NewsPetWheel; the pet then only reports taps
+    return {scale: SIZE_SCALE[prefs.size] || 1, dock: prefs.dock === 'bl' || prefs.dock === 'br' ? prefs.dock : 'auto', dial: false};
   }
 
   /**

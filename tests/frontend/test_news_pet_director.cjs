@@ -32,9 +32,9 @@ test('buildActions keeps only ids that have a handler, in the given order', () =
 });
 
 test('petOptions maps size and dock for full pets only', () => {
-  assert.deepEqual(plain(director.petOptions({size: 'small', dock: 'br'}, true)), {scale: 0.8, dock: 'br'});
-  assert.deepEqual(plain(director.petOptions({size: 'large', dock: 'auto'}, true)), {scale: 1.25, dock: 'auto'});
-  assert.deepEqual(plain(director.petOptions({size: 'medium', dock: 'tl'}, true)), {scale: 1, dock: 'auto'});
+  assert.deepEqual(plain(director.petOptions({size: 'small', dock: 'br'}, true)), {scale: 0.8, dock: 'br', dial: false});
+  assert.deepEqual(plain(director.petOptions({size: 'large', dock: 'auto'}, true)), {scale: 1.25, dock: 'auto', dial: false});
+  assert.deepEqual(plain(director.petOptions({size: 'medium', dock: 'tl'}, true)), {scale: 1, dock: 'auto', dial: false});
   assert.deepEqual(plain(director.petOptions({size: 'small', dock: 'br'}, false)), {});
 });
 

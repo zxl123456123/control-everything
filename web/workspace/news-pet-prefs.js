@@ -8,6 +8,7 @@
  *   news-reader-pet-news-fx  'false' = no news-page interactions; absent = on
  *   news-reader-pet-size     'small' | 'medium' | 'large', default medium
  *   news-reader-pet-dock     'auto' | 'bl' | 'br' resting corner, default auto
+ *   news-reader-pet-dial-pin 'true' = the wheel stays open after an action and ignores outside clicks (default off)
  *   news-reader-pet-dial     comma list of dial action ids (NewsPetDial), absent = the defaults
  * `<html data-pets-disabled>` stays a host-level veto owned by the embedding page: the registry drops the
  * listed pets from `list()`, so a stored choice of such a pet resolves to the default form.
@@ -36,11 +37,12 @@
     newsFx: {key: PREFIX + '-news-fx', parse: raw => flag(raw, true), valid: value => typeof value === 'boolean', write: String},
     size: {key: PREFIX + '-size', parse: pick(SIZES, 'medium'), valid: value => SIZES.includes(value), write: String},
     dock: {key: PREFIX + '-dock', parse: pick(DOCKS, 'auto'), valid: value => DOCKS.includes(value), write: String},
+    dialPin: {key: PREFIX + '-dial-pin', parse: raw => raw === 'true', valid: value => typeof value === 'boolean', write: String},
     dial: {key: PREFIX + '-dial', parse: raw => dial() ? dial().parse(raw) : [], valid: value => Array.isArray(value) && Boolean(dial()), write: value => dial().serialize(value)},
   };
   const same = (a, b) => Boolean(a) && Object.keys(FIELDS).every(field => String(a[field]) === String(b[field]));
 
-  /** @returns {{pet: string, enabled: boolean, quiet: boolean, newsFx: boolean, size: string, dock: string, dial: string[]}} the stored preference, always valid. */
+  /** @returns {{pet: string, enabled: boolean, quiet: boolean, newsFx: boolean, size: string, dock: string, dialPin: boolean, dial: string[]}} the stored preference, always valid. */
   function read() {
     const out = {};
     let store = null;

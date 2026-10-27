@@ -8,7 +8,7 @@ const vm = require('node:vm');
 const root = path.resolve(__dirname, '../..');
 const read = file => fs.readFileSync(path.join(root, 'web/workspace', file), 'utf8');
 
-const BASE = {pet: 'spider', enabled: false, quiet: false, newsFx: true, size: 'medium', dock: 'auto', dial: ['workspace', 'next', 'search', 'collect', 'quiet', 'pet-settings']};
+const BASE = {pet: 'spider', enabled: false, quiet: false, newsFx: true, size: 'medium', dock: 'auto', dialPin: false, dial: ['workspace', 'next', 'search', 'collect', 'quiet', 'pet-settings']};
 const snap = prefs => JSON.parse(JSON.stringify(prefs));
 
 function setup({storage = new Map(), remote = null} = {}) {
@@ -131,4 +131,16 @@ test('the dial list is stored as normalised ids and read back in pool order', ()
   assert.equal(prefs.set({dial: ['quiet', 'next', 'workspace', 'nope']}), true);
   assert.equal(storage.get('news-reader-pet-dial'), 'workspace,next,quiet');
   assert.deepEqual(snap(prefs.read().dial), ['workspace', 'next', 'quiet']);
+});
+
+test('the dial pin is a boolean stored under its own key, off by default, and invalid values write nothing', () => {
+  const {prefs, storage} = setup();
+  assert.equal(prefs.read().dialPin, false);
+  assert.equal(prefs.set({dialPin: true}), true);
+  assert.equal(storage.get('news-reader-pet-dial-pin'), 'true');
+  assert.equal(prefs.read().dialPin, true);
+  assert.equal(prefs.set({dialPin: 'yes'}), false);
+  assert.equal(storage.get('news-reader-pet-dial-pin'), 'true');
+  assert.equal(prefs.set({dialPin: false}), true);
+  assert.equal(prefs.read().dialPin, false);
 });
