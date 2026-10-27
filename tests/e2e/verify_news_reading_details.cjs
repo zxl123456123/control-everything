@@ -57,7 +57,7 @@ async function makePage(rows=items,time='2026-10-27T04:00:00Z',articleFor=null){
       return route.fulfill({json:articleFor?await articleFor(id,row):value});
     }
     const file=url.pathname==='/'?'news-reader.html':url.pathname.slice(1);
-    if(['news-reader.html','news-reader.js','news-reader.css','news-spider.js','ui-theme.js'].includes(file))return route.fulfill({path:path.join(root,file),headers:{'Content-Security-Policy':csp}});
+    if(['news-reader.html','news-reader.js','news-reader.css','news-spider.js','news-pets.js','news-pet-dial.js','news-pet-wheel.js','news-pet-prefs.js','news-pet-director.js','news-pet-status.js','news-naidragon.js','news-tabbycat.js','ui-theme.js'].includes(file))return route.fulfill({path:path.join(root,file),headers:{'Content-Security-Policy':csp}});
     return route.abort();
   });
   await page.goto(origin+'/');
@@ -120,7 +120,7 @@ async function visibleIds(page){return page.locator('.title-row:visible').evalua
     for(const width of [1440,390,320]){
       await page.setViewportSize({width,height:900});
       check('news list fits '+theme+' '+width,await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)&&await page.locator('#date-range').evaluate(node=>{const r=node.getBoundingClientRect();return r.left>=0&&r.right<=innerWidth;}));
-      check('all collection toolbar controls remain inside the viewport '+theme+' '+width,await page.locator('.filters button,.filters select').evaluateAll(nodes=>nodes.every(node=>{const r=node.getBoundingClientRect();return r.width>=40&&r.left>=0&&r.right<=innerWidth;})));
+      check('all collection toolbar controls remain inside the viewport '+theme+' '+width,await page.locator('.filters button,.filters select').evaluateAll(nodes=>nodes.filter(node=>!node.hidden&&getComputedStyle(node).display!=='none').every(node=>{const r=node.getBoundingClientRect();return r.width>=40&&r.left>=0&&r.right<=innerWidth;})));
       await page.screenshot({path:path.join(output,`list-${theme}-${width}.png`)});
       await page.locator(`.title-row[data-id="${ids.a}"]`).click();
       check('reading text and action group fit '+theme+' '+width,await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)&&await page.locator('.article-actions').evaluate(node=>{const r=node.getBoundingClientRect();return r.left>=0&&r.right<=innerWidth;}));
