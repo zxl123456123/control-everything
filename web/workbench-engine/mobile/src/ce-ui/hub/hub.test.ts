@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('expo-constants', () => ({ default: { expoConfig: {} } }))
+vi.mock('react-native', () => ({ Platform: { OS: 'ios' } }))
+vi.mock('../../platform-account/controller', () => ({ platformAccountController: {} }))
 
 import { HubError } from './hub-client'
 import { createMockHubClient } from './mock-hub-client'
@@ -93,5 +95,34 @@ describe('resolveHubClient', () => {
     expect(client.kind).toBe('unavailable')
     await expect(client.listDevices()).rejects.toMatchObject({ kind: 'unavailable' })
     await expect(client.revokeDevice('x')).rejects.toMatchObject({ kind: 'unavailable' })
+  })
+  describe('with a configured remote hub and account', () => {
+    const live = {
+      origin: 'https://hub.example.test',
+      tokens: { getAccessToken: () => 'synthetic', refreshAccessToken: async () => null },
+      fetch: vi.fn()
+    }
+    it('uses the live hub in release and in development builds', () => {
+      expect(resolveHubClient({ dev: false, extra: undefined, live }).kind).toBe('live')
+      expect(resolveHubClient({ dev: true, extra: {}, live }).kind).toBe('live')
+    })
+    it('lets an explicit demo opt-in win over the live hub', () => {
+      expect(resolveHubClient({ dev: false, extra: { ceHubMock: true }, live }).kind).toBe('mock')
+    })
+    it('refuses an origin that cannot safely carry a token and falls back honestly', () => {
+      for (const origin of ['http://hub.example.test', 'https://hub.example.test/remote', ''])
+        expect(
+          resolveHubClient({ dev: false, extra: undefined, live: { ...live, origin } }).kind
+        ).toBe('unavailable')
+      expect(
+        resolveHubClient({ dev: true, extra: undefined, live: { ...live, origin: 'nope' } }).kind
+      ).toBe('mock')
+    })
+    it('falls back to mock or unavailable when the account or origin is not configured', () => {
+      expect(resolveHubClient({ dev: false, extra: undefined, live: null }).kind).toBe(
+        'unavailable'
+      )
+      expect(resolveHubClient({ dev: true, extra: undefined, live: null }).kind).toBe('mock')
+    })
   })
 })

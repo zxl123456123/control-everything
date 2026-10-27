@@ -1,9 +1,9 @@
 import type { HubDeviceState, HubMembership } from '../status/device-status'
 
-// The phone's view of the Control Everything hub. The real hub has no mobile token kind, device
-// list or revoke endpoint yet (see the PR follow-ups), so every screen talks to this interface and
-// the app ships a clearly labelled mock until a live client exists. Swap by changing
-// `resolveHubClient` only; no screen imports the mock directly.
+// The phone's view of the Control Everything hub. Every screen talks to this interface; the live
+// client (`live-hub-client.ts`) speaks to the hub's Bearer `/remote/mobile/*` API, the mock shows
+// clearly labelled sample data, and the unavailable client is the honest fallback. Swap by changing
+// `resolveHubClient` only; no screen imports an implementation directly.
 
 export type HubOs = 'windows' | 'macos' | 'linux' | 'unknown'
 
@@ -23,7 +23,8 @@ export type HubDevice = {
   state: HubDeviceState | (string & {})
   /** Epoch ms, or null when the computer never connected. */
   lastSeenAt: number | null
-  boundAt: number
+  /** Epoch ms, or null for a computer registered before the hub recorded the time. */
+  boundAt: number | null
   appVersion: string | null
 }
 
@@ -35,6 +36,8 @@ export type HubErrorKind =
   | 'unauthorized'
   | 'network'
   | 'unavailable'
+  | 'member-disabled'
+  | 'not-found'
 
 export class HubError extends Error {
   constructor(readonly kind: HubErrorKind) {

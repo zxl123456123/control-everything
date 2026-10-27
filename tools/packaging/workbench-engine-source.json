@@ -326760,6 +326760,8 @@
     "mobile/src/ce-ui/hub/hub-client.ts",
     "mobile/src/ce-ui/hub/hub-context.tsx",
     "mobile/src/ce-ui/hub/hub.test.ts",
+    "mobile/src/ce-ui/hub/live-hub-client.test.ts",
+    "mobile/src/ce-ui/hub/live-hub-client.ts",
     "mobile/src/ce-ui/hub/mock-hub-client.ts",
     "mobile/src/ce-ui/hub/unavailable-hub-client.ts",
     "mobile/src/ce-ui/hub/use-devices.ts",

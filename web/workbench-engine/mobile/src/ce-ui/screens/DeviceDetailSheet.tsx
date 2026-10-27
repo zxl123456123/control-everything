@@ -91,7 +91,9 @@ export function DeviceDetailSheet({
           <View style={{ gap: ceSpace.md }}>
             <Fact label={copy.computers.system} value={copy.computers.os[current.os]} />
             <Fact label={copy.computers.lastSeen} value={formatLastSeen(current.lastSeenAt, now)} />
-            <Fact label={copy.computers.boundAt} value={formatDate(current.boundAt)} />
+            {current.boundAt !== null ? (
+              <Fact label={copy.computers.boundAt} value={formatDate(current.boundAt)} />
+            ) : null}
             {current.appVersion ? (
               <Fact label={copy.computers.version} value={current.appVersion} />
             ) : null}
