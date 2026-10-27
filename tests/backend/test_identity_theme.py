@@ -29,7 +29,7 @@ class IdentityThemeTests(unittest.TestCase):
         config = properties(THEME / "theme.properties")
         self.assertEqual(config, {
             "parent": "keycloak.v2", "import": "common/keycloak",
-            "styles": "css/styles.css css/studio.css?v=20261027-1", "locales": "zh-Hans,en",
+            "styles": "css/styles.css css/studio.css?v=20261028-1", "locales": "zh-Hans,en",
         })
         self.assertTrue((THEME / "resources/css/studio.css").is_file())
 
@@ -64,7 +64,16 @@ class IdentityThemeTests(unittest.TestCase):
                 self.assertTrue(urls[0].startswith("data:font/woff2;base64,"))
                 self.assertNotRegex(syntax, r"(?i)<script|<#|https?://|@import")
                 source = prefix + suffix
-            self.assertNotRegex(source, r"(?i)<script|<#|https?://|@import|url\s*\(")
+            if relative == "resources/css/studio.css":
+                # Aurora Glass: the only url() allowed besides the font is an inline SVG data URI (icon masks,
+                # grain, grid); its xmlns is a namespace identifier, never fetched.
+                inline = re.findall(r"url\(([^)]*)\)", source)
+                for target in inline:
+                    self.assertRegex(target, r"^[\"']?(data:image/svg\+xml,|#)", target)
+                stripped = re.sub(r"url\([^)]*\)", "", source)
+                self.assertNotRegex(stripped, r"(?i)<script|<#|https?://|@import")
+            else:
+                self.assertNotRegex(source, r"(?i)<script|<#|https?://|@import|url\s*\(")
         css = (THEME / "resources/css/studio.css").read_text(encoding="utf-8")
         self.assertIn(":root.pf-v5-theme-dark", css)
         self.assertNotIn("prefers-color-scheme", css)
@@ -72,6 +81,10 @@ class IdentityThemeTests(unittest.TestCase):
         self.assertIn(":focus-visible", css)
         self.assertIn("--ca-input: #7b8aa0", css)
         self.assertIn("--ca-input: #6d7f9a", css)
+        # Aurora Glass contract: glass blur + fallbacks, accent gradient, motion and transparency opt-outs.
+        for needle in ("backdrop-filter", "@supports not", "prefers-reduced-transparency: reduce",
+                       "prefers-reduced-motion: reduce", "mask-composite", "linear-gradient"):
+            self.assertIn(needle, css)
 
     def test_theme_is_sdist_source_but_not_a_wheel_web_asset(self):
         manifest = (ROOT / "MANIFEST.in").read_text(encoding="utf-8")
