@@ -887,3 +887,30 @@ test('native project conflicts preserve the current input and never retry an old
   assert.equal(f.snapshot.workspace.projects.items[0].name, '<Real project>');
   assert.equal(f.location.hash, '#home'); f.dispose();
 });
+
+test('a failed first read shows one error panel with a retry that recovers, and loading shows a skeleton', async () => {
+  const f = studioFixture({ initialUrl: 'http://example.test/studio#home', initialFailure: 'snapshot' });
+  const content = () => f.nodes.get('studio-content').innerHTML;
+  assert.match(content(), /ce-skeleton/);
+  await f.flush();
+  assert.match(content(), /role="alert"[^>]*>.*无法读取项目与事项/s);
+  assert.match(content(), /data-action="refresh"[^>]*>重试</);
+  assert.doesNotMatch(content(), /草稿保留|ce-skeleton/);
+  assert.equal(f.nodes.get('studio-status').hidden, true, 'the banner must not repeat the panel');
+  f.recover(); f.click('refresh');
+  assert.match(content(), /ce-skeleton/, 'retrying shows loading again');
+  await f.flush();
+  assert.doesNotMatch(content(), /无法读取项目与事项|ce-skeleton/);
+});
+
+test('the project workspace explains a missing engine and an unknown project offers a way back', async () => {
+  const f = studioFixture({ initialUrl: 'http://example.test/studio#project/server-project/workspace' });
+  await f.flush();
+  const html = f.nodes.get('studio-content').innerHTML;
+  assert.match(html, /项目运行组件未连接/);
+  assert.match(html, /href="#project\/server-project\/tasks">查看项目进展/);
+  assert.match(html, /href="#home">返回项目总览/);
+  await f.route('project/missing/workspace');
+  assert.match(f.nodes.get('studio-content').innerHTML, /未找到这个项目.*href="#home"/s);
+  assert.match(f.nodes.get('studio-topbar').innerHTML, /未找到项目/);
+});

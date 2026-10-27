@@ -24,7 +24,7 @@ function mountStudio(root, { onProjects = () => {}, runtimeHost = () => null } =
   const icon = name => `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icons[name] || icons.folder}</svg>`;
   const escape = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
   let state = { workspace: null, agents: [], items: [] }, request = 0, query = '', archivedProjects = false, initialized = false, disposed = false;
-  let attentionOnly = false, projectSort = 'updated', refreshMessage = '', viewMode = 'cards';
+  let attentionOnly = false, projectSort = 'updated', refreshMessage = '', loadFailure = '', viewMode = 'cards';
   let railCollapsed = false, newsHost = null, newsReader = null, newsTheme = null, externalAccess = null;
   let overviewReturn = null;
   let pendingTask = null, taskCenter = null, legacyBoard = null, taskTarget = '', itemsScope = 'current', legacyScope = null, progressReturn = null;
@@ -371,7 +371,7 @@ function mountStudio(root, { onProjects = () => {}, runtimeHost = () => null } =
     setHtml($('studio-rail'), renderNav(current));
     const chosen = projects().find(p => p.id === current.id);
     const accountPage = current.view === 'mobile' || current.view === 'settings' && current.tab === 'account';
-    setHtml($('studio-topbar'), `<header class="ce-topbar"><button class="ce-iconbtn ce-rail-toggle" data-action="rail-toggle" type="button" aria-label="${railCollapsed ? '展开导航' : '收起导航'}" title="${railCollapsed ? '展开导航' : '收起导航'}" aria-controls="studio-rail" aria-expanded="${!railCollapsed}">${icon('sidebar')}</button><button class="ce-iconbtn ce-menu-trigger" data-action="navigation" type="button" aria-label="打开导航" aria-controls="studio-navigation" aria-expanded="${drawer.open}">${icon('menu')}</button><div class="ce-crumbs"><a href="#home">项目</a>${!['home', 'inbox'].includes(current.view) ? `<span> / ${escape(accountPage ? '账号与设备' : chosen?.name || ({ inbox: '事项', tools: '高级管理', mobile: '账号与设备', news: '新闻', settings: '设置' }[current.view] || '项目'))}</span>` : ''}</div><a class="ce-button ce-plain ce-mobile-entry-mobile${accountPage ? ' is-current' : ''}" href="#settings/account"${accountPage ? ' aria-current="page"' : ''}>账号与设备</a><a class="ce-button ce-plain ce-creator-mobile" href="#news">新闻</a>${accountPage || current.view === 'news' || root.dataset.unified === 'true' && (current.view === 'inbox' || current.view === 'project' && ['tasks', 'review', 'attention'].includes(current.tab)) ? '' : `<button class="ce-iconbtn" data-action="refresh" type="button" title="刷新当前页面" aria-label="刷新当前页面" aria-busy="false">${icon('refresh')}</button>`}<button class="ce-iconbtn" data-action="theme" type="button" aria-label="${root.dataset.theme === 'dark' ? '切换浅色外观' : '切换深色外观'}">${icon(root.dataset.theme === 'dark' ? 'sun' : 'moon')}</button></header>`);
+    setHtml($('studio-topbar'), `<header class="ce-topbar"><button class="ce-iconbtn ce-rail-toggle" data-action="rail-toggle" type="button" aria-label="${railCollapsed ? '展开导航' : '收起导航'}" title="${railCollapsed ? '展开导航' : '收起导航'}" aria-controls="studio-rail" aria-expanded="${!railCollapsed}">${icon('sidebar')}</button><button class="ce-iconbtn ce-menu-trigger" data-action="navigation" type="button" aria-label="打开导航" aria-controls="studio-navigation" aria-expanded="${drawer.open}">${icon('menu')}</button><div class="ce-crumbs"><a href="#home">项目</a>${!['home', 'inbox'].includes(current.view) ? `<span> / ${escape(accountPage ? '账号与设备' : chosen?.name || ({ inbox: '事项', tools: '高级管理', mobile: '账号与设备', news: '新闻', settings: '设置', project: state.workspace ? '未找到项目' : '项目' }[current.view] || '项目'))}</span>` : ''}</div><a class="ce-button ce-plain ce-mobile-entry-mobile${accountPage ? ' is-current' : ''}" href="#settings/account"${accountPage ? ' aria-current="page"' : ''}>账号与设备</a><a class="ce-button ce-plain ce-creator-mobile" href="#news">新闻</a>${accountPage || current.view === 'news' || root.dataset.unified === 'true' && (current.view === 'inbox' || current.view === 'project' && ['tasks', 'review', 'attention'].includes(current.tab)) ? '' : `<button class="ce-iconbtn" data-action="refresh" type="button" title="刷新当前页面" aria-label="刷新当前页面" aria-busy="false">${icon('refresh')}</button>`}<button class="ce-iconbtn" data-action="theme" type="button" aria-label="${root.dataset.theme === 'dark' ? '切换浅色外观' : '切换深色外观'}">${icon(root.dataset.theme === 'dark' ? 'sun' : 'moon')}</button></header>`);
     syncAppearance();
   }
   function home() {
@@ -473,9 +473,14 @@ function mountStudio(root, { onProjects = () => {}, runtimeHost = () => null } =
       if (!disposePets) { renderedHtml.delete(content); disposePets = window.StudioPetSettings.mount(content); }
       return;
     }
-    if (!state.workspace) { setHtml(content, '<div class="ce-empty">正在读取真实项目与事项。无法连接时请使用上方“刷新”重试。</div>'); return; }
+    if (!state.workspace) {
+      setHtml(content, loadFailure
+        ? window.StudioShell.renderStatePanel({ tone: 'error', title: '无法读取项目与事项', message: loadFailure, actions: window.StudioShell.retryButton() })
+        : window.StudioShell.loadingPlaceholder());
+      return;
+    }
     if (current.view === 'home') renderHome();
-    else if (current.view === 'workbench') setHtml(content, '<div class="ce-heading"><h1>项目工作台</h1></div><div class="ce-empty" role="status">项目运行组件未连接，请从已装配内置工作台的服务打开。</div>');
+    else if (current.view === 'workbench') setHtml(content, '<div class="ce-heading"><h1>项目工作台</h1></div>' + engineUnavailable());
     else if (current.view === 'settings') setHtml(content, window.StudioShell.renderSettingsLanding({ section: current.tab, integrated: root.dataset.unified === 'true' }));
     else if (current.view === 'project' && ['items', 'board'].includes(current.tab)) {
       const returnHash = progressReturn?.platformId === current.id ? progressReturn.originHash : projectHash(current.id, 'tasks');
@@ -487,8 +492,16 @@ function mountStudio(root, { onProjects = () => {}, runtimeHost = () => null } =
     else if (current.view === 'project' && current.tab === 'settings') setHtml(content, `<div class="ce-heading"><h1>${escape(chosen?.name || '项目')} · 项目设置</h1></div><div class="ce-empty" role="status">${chosen ? '此入口尚未就绪。' : '项目已移出或不存在。'}<a class="ce-button" href="#home">返回项目总览</a></div>`);
     else if (current.view === 'tools') setHtml(content, `<div class="ce-heading"><div><h1>高级管理</h1></div></div><div class="ce-tool-grid"><article class="ce-tool-card">${icon('settings')}<h2>高级接入</h2><p>外部任务执行器与旧数据。</p><a class="ce-button" href="/workspace-admin#settings">高级设置</a></article><article class="ce-tool-card">${icon('folder')}<h2>项目档案</h2><a class="ce-button" href="/workspace-admin#projects">来源与历史</a></article></div>`);
     else if ((current.view === 'inbox' || progressRoute(current) && chosen && !chosen.archived) && !(window.ProjectProgress && window.ProjectProgressModel)) setHtml(content, '<div class="ce-heading"><h1 tabindex="-1">项目进展</h1></div><div class="ce-empty" role="status">进展资源尚未就绪，请刷新页面。<a class="ce-button" href="#home">返回项目总览</a></div>');
-    else if (current.view === 'project') setHtml(content, chosen?.archived ? '<div class="ce-empty">项目已归档，仍停在当前页。<a class="ce-button" href="#home">返回项目</a><p>在“已归档”列表的项目管理中取消归档即可恢复。</p></div>' : chosen ? showBoard ? window.StudioShell.renderProgressHeading({ project: chosen, tab: current.tab }) + itemFilters(current) : `<div class="ce-heading"><h1>${current.tab === 'monitor' ? '业务进度' : escape(chosen.name)}</h1>${current.tab === 'monitor' ? `<a class="ce-button ce-plain" href="#project/${encodeURIComponent(chosen.id)}/tasks">返回进展</a>` : ''}</div>` : '<div class="ce-empty">项目已移出或不存在，<a href="#home">返回项目</a>重新选择。</div>');
+    else if (current.view === 'project') setHtml(content, chosen?.archived ? '<div class="ce-empty">项目已归档，仍停在当前页。<a class="ce-button" href="#home">返回项目</a><p>在“已归档”列表的项目管理中取消归档即可恢复。</p></div>' : chosen ? showBoard ? window.StudioShell.renderProgressHeading({ project: chosen, tab: current.tab }) + itemFilters(current) : `<div class="ce-heading"><h1>${current.tab === 'monitor' ? '业务进度' : escape(chosen.name)}</h1>${current.tab === 'monitor' ? `<a class="ce-button ce-plain" href="#project/${encodeURIComponent(chosen.id)}/tasks">返回进展</a>` : ''}</div>${current.tab === 'monitor' ? '' : engineUnavailable(chosen.id)}` : window.StudioShell.renderStatePanel({ title: '未找到这个项目', message: '它可能已被移出或删除。', actions: '<a class="ce-button ce-primary" href="#home">返回项目总览</a>' }));
     else setHtml(content, `<div class="ce-heading"><h1>事项</h1></div>${itemFilters(current)}`);
+  }
+  /** Explains the blank workspace when the embedded workbench engine is not mounted, with a way onward. */
+  function engineUnavailable(projectId = '') {
+    return window.StudioShell.renderStatePanel({
+      title: '项目运行组件未连接',
+      message: '请从已装配内置工作台的服务打开；项目进展与事项仍可在这里查看。',
+      actions: `${projectId ? `<a class="ce-button ce-primary" href="${projectHash(projectId, 'tasks')}">查看项目进展</a>` : ''}<a class="ce-button" href="#home">返回项目总览</a>`,
+    });
   }
   function itemFilters(current) {
     const href = filter => current.view === 'project' ? '#project/' + encodeURIComponent(current.id) + '/' + (filter === 'all' ? 'tasks' : filter) : '#inbox' + (filter === 'all' ? '' : '/' + filter);
@@ -498,7 +511,7 @@ function mountStudio(root, { onProjects = () => {}, runtimeHost = () => null } =
   }
   function renderStatus(current) {
     if (disposed || window.CERemoteContext?.active === false) return;
-    if (!state.workspace) { status.hidden = false; status.textContent = refreshMessage; return; }
+    if (!state.workspace) { status.textContent = refreshMessage; status.hidden = Boolean(loadFailure); return; }
     status.textContent = refreshMessage || '';
     status.hidden = !status.textContent;
   }
@@ -596,11 +609,12 @@ function mountStudio(root, { onProjects = () => {}, runtimeHost = () => null } =
     if (!state.workspace || force) refreshMessage = state.workspace ? '正在更新，暂保留上次记录…' : '正在读取本地工作台…';
     renderStatus(route());
     status.classList.remove('error');
+    if (!state.workspace && loadFailure) { loadFailure = ''; render(); }
     try {
       if (!initialized) { await client.bootstrap(); initialized = true; }
       const next = await client.snapshot();
       if (disposed || current !== request) return;
-      state = next; lastRead = Date.now(); refreshMessage = '';
+      state = next; lastRead = Date.now(); refreshMessage = ''; loadFailure = '';
       consumerSnapshots.delete(board); if (taskCenter) consumerSnapshots.delete(taskCenter); if (legacyBoard) consumerSnapshots.delete(legacyBoard);
       const summarizeProject = project => ({ id: project.id, name: project.name, directory: project.directories?.find(row => row.id === 'main')?.path || project.root });
       onProjects(projects().filter(project => !project.archived).map(summarizeProject), {
@@ -610,7 +624,13 @@ function mountStudio(root, { onProjects = () => {}, runtimeHost = () => null } =
       return true;
     } catch (error) {
       if (disposed || current !== request) return;
-      refreshMessage = `${error.message}。${state.workspace ? '仍显示上次读取的数据。' : '没有使用示例数据。'}`; renderStatus(route()); status.classList.add('error');
+      refreshMessage = `${error.message}。${state.workspace ? '仍显示上次读取的数据。' : '没有使用示例数据。'}`;
+      if (!state.workspace) {
+        // Transport errors carry draft-preservation wording meant for writes; a failed first read has no draft.
+        loadFailure = ['network_error', 'timeout'].includes(error.reason) ? (error.reason === 'timeout' ? '读取超时，本地工作台没有及时响应。' : '本地工作台没有响应，请确认服务已启动。') : error.message;
+        render();
+      }
+      renderStatus(route()); status.classList.add('error');
       if (!$('studio-agent-board').hidden) board.unavailable();
       if (!$('studio-legacy-board')?.hidden) legacyBoard?.unavailable();
       return false;

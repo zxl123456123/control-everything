@@ -18,6 +18,16 @@
   };
   const icon = name => `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icons[name]}</svg>`;
   const available = project => !project.archived && project.binding_available !== false && Boolean(project.directories?.find(row => row.id === 'main')?.path || project.root);
+  /**
+   * Shared panel for loading, error and unavailable states so every page explains what happened
+   * and offers one next step. Titles and messages are escaped here; actions are trusted markup.
+   */
+  function renderStatePanel({ tone = 'neutral', title, message = '', actions = '' }) {
+    const role = tone === 'error' ? 'alert' : 'status';
+    return `<section class="ce-state-panel" data-tone="${tone}" role="${role}"><h2>${escape(title)}</h2>${message ? `<p>${escape(message)}</p>` : ''}${actions ? `<div class="ce-state-actions">${actions}</div>` : ''}</section>`;
+  }
+  const loadingPlaceholder = () => '<div class="ce-skeleton" role="status" aria-busy="true" aria-label="正在读取项目与事项"><span></span><span></span><span></span></div>';
+  const retryButton = (label = '重试') => `<button type="button" class="ce-button ce-primary" data-action="refresh">${label}</button>`;
   function renderNavigation({ current }) {
     const link = (label, href, active, symbol) => `<a class="ce-nav${active ? ' is-current' : ''}" href="${href}"${active ? ' aria-current="page"' : ''} title="${escape(label)}" aria-label="${escape(label)}">${icon(symbol)}<span>${label}</span></a>`;
     return `<div class="ce-brand"><span class="ce-monogram" aria-hidden="true">⌘</span><span>Control Everything</span></div><nav class="ce-navgroup" aria-label="主导航">${link('项目总览', '#home', current.view === 'home', 'folder')}${link('新闻', '#news', current.view === 'news', 'news')}</nav><div class="ce-rail-bottom"><nav class="ce-navgroup" aria-label="管理">${link('设置', '#settings/appearance', current.view === 'settings' && current.tab !== 'account', 'settings')}${link(labels.account, '#settings/account', current.view === 'settings' && current.tab === 'account' || current.view === 'mobile', 'account')}</nav></div>`;
@@ -57,5 +67,5 @@
     const scopes = [['current', '当前项目'], ['all', '全部事项'], ['attention', '待处理'], ['active', '活动项目'], ['archived', '归档项目'], ['orphan', '未登记项目'], ['global', '全局事项']];
     return `<div class="ce-heading ce-progress-heading"><div><h1 tabindex="-1">${management ? name + ' · ' : ''}${title}</h1></div>${management ? `<a class="ce-button ce-plain" href="${escape(returnHash)}">返回项目进展</a>` : ''}</div>${tab === 'items' ? `<label class="ce-management-scope">查看范围<select id="studio-items-scope">${scopes.map(([value, label]) => `<option value="${value}"${scope === value ? ' selected' : ''}>${label}</option>`).join('')}</select></label>` : ''}`;
   }
-  window.StudioShell = { renderNavigation, renderOverview, renderSettingsLanding, renderProgressHeading, projectCard };
+  window.StudioShell = { renderStatePanel, loadingPlaceholder, retryButton, renderNavigation, renderOverview, renderSettingsLanding, renderProgressHeading, projectCard };
 })();

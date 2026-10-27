@@ -948,3 +948,15 @@ body:has(#ce-studio){margin:0;background:var(--ce-bg,#ffffff)}
 
 /* A pinned pet rail hugs the screen edge; on narrow windows the page leaves that gutter free so it never covers a control. */
 @media(max-width:1180px){#ce-studio .ce-content{transition:padding .25s ease}html[data-pw-rail=right] #ce-studio .ce-content{padding-right:84px}html[data-pw-rail=left] #ce-studio .ce-content{padding-left:84px}}
+
+/* UI polish: shared loading, error and unavailable states. */
+#ce-studio .ce-state-panel{display:grid;justify-items:center;gap:10px;max-width:520px;margin:48px auto;padding:32px 24px;border:1px dashed var(--ce-line);border-radius:12px;text-align:center}
+#ce-studio .ce-state-panel h2{font-size:18px;font-weight:600}
+#ce-studio .ce-state-panel p{color:var(--ce-sub);font-size:15px;line-height:1.6;overflow-wrap:anywhere}
+#ce-studio .ce-state-panel[data-tone=error]{border-style:solid;border-color:var(--ce-red);background:var(--ce-red-bg)}
+#ce-studio .ce-state-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:6px}
+#ce-studio .ce-skeleton{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px}
+#ce-studio .ce-skeleton span{display:block;height:148px;border-radius:10px;background:linear-gradient(90deg,var(--ce-soft) 25%,var(--ce-hover) 50%,var(--ce-soft) 75%);background-size:200% 100%;animation:ce-skeleton 1.4s ease-in-out infinite}
+@keyframes ce-skeleton{to{background-position:-200% 0}}
+@media(max-width:900px){#ce-studio .ce-skeleton{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){#ce-studio .ce-skeleton span{animation:none}}
