@@ -1,17 +1,22 @@
 /*
- * Shared pet preferences: whether pets are shown at all and which one.
- * Every page that hosts or configures pets (the news reader, the Studio settings) reads and writes
- * the same two localStorage keys through this module, and `subscribe` reports changes made anywhere
- * (same page, another tab, or the Studio frame around the reader) without a reload.
+ * Shared pet preferences. Every page that hosts or configures the pet (the news reader, the Studio mascot,
+ * the Studio settings) reads and writes the same localStorage keys through this module, and `subscribe`
+ * reports changes made anywhere (same page, another tab, or the Studio frame around the reader) without a reload.
  *   news-reader-pet          registered pet name, default `NewsPets.defaultName()`
- *   news-reader-pet-enabled  'true' when pets are shown, absent/other = hidden (default)
+ *   news-reader-pet-enabled  'true' when the pet is shown, absent/other = hidden (default)
+ *   news-reader-pet-quiet    'true' = quiet mode: the pet stays but rests, with no reactions (default off)
+ *   news-reader-pet-news-fx  'false' = no news-page interactions; absent = on
+ *   news-reader-pet-size     'small' | 'medium' | 'large', default medium
+ *   news-reader-pet-dock     'auto' | 'bl' | 'br' resting corner, default auto
+ *   news-reader-pet-dial     comma list of dial action ids (NewsPetDial), absent = the defaults
  * `<html data-pets-disabled>` stays a host-level veto owned by the embedding page: the registry drops the
  * listed pets from `list()`, so a stored choice of such a pet resolves to the default form.
  */
 (function (global) {
   'use strict';
-  const PET_KEY = 'news-reader-pet';
-  const ENABLED_KEY = 'news-reader-pet-enabled';
+  const PREFIX = 'news-reader-pet';
+  const SIZES = Object.freeze(['small', 'medium', 'large']);
+  const DOCKS = Object.freeze(['auto', 'bl', 'br']);
   const listeners = new Set();
   let last = null;
 
@@ -19,13 +24,33 @@
   const storage = () => global.CERemoteContext ? global.CERemoteContext.storage('localStorage') : global.localStorage;
   const names = () => global.NewsPets ? global.NewsPets.list().map(pet => pet.name) : ['spider'];
   const fallbackName = () => global.NewsPets?.defaultName() || 'spider';
-  const same = (a, b) => Boolean(a) && a.pet === b.pet && a.enabled === b.enabled;
+  const dial = () => global.NewsPetDial;
+  const flag = (raw, fallback) => raw === 'true' ? true : raw === 'false' ? false : fallback;
+  const pick = (allowed, fallback) => raw => allowed.includes(raw) ? raw : fallback;
 
-  /** @returns {{pet: string, enabled: boolean}} the stored preference, always valid. */
+  // field -> storage key, how to parse a stored string, how to validate and serialise a new value
+  const FIELDS = {
+    pet: {key: PREFIX, parse: raw => names().includes(raw) ? raw : fallbackName(), valid: value => names().includes(value), write: String},
+    enabled: {key: PREFIX + '-enabled', parse: raw => raw === 'true', valid: value => typeof value === 'boolean', write: String},
+    quiet: {key: PREFIX + '-quiet', parse: raw => raw === 'true', valid: value => typeof value === 'boolean', write: String},
+    newsFx: {key: PREFIX + '-news-fx', parse: raw => flag(raw, true), valid: value => typeof value === 'boolean', write: String},
+    size: {key: PREFIX + '-size', parse: pick(SIZES, 'medium'), valid: value => SIZES.includes(value), write: String},
+    dock: {key: PREFIX + '-dock', parse: pick(DOCKS, 'auto'), valid: value => DOCKS.includes(value), write: String},
+    dial: {key: PREFIX + '-dial', parse: raw => dial() ? dial().parse(raw) : [], valid: value => Array.isArray(value) && Boolean(dial()), write: value => dial().serialize(value)},
+  };
+  const same = (a, b) => Boolean(a) && Object.keys(FIELDS).every(field => String(a[field]) === String(b[field]));
+
+  /** @returns {{pet: string, enabled: boolean, quiet: boolean, newsFx: boolean, size: string, dock: string, dial: string[]}} the stored preference, always valid. */
   function read() {
-    let pet = null, enabled = false;
-    try { const store = storage(); pet = store.getItem(PET_KEY); enabled = store.getItem(ENABLED_KEY) === 'true'; } catch { /* storage blocked: defaults */ }
-    return {pet: names().includes(pet) ? pet : fallbackName(), enabled};
+    const out = {};
+    let store = null;
+    try { store = storage(); } catch { /* storage blocked: defaults */ }
+    for (const [field, spec] of Object.entries(FIELDS)) {
+      let raw = null;
+      try { raw = store ? store.getItem(spec.key) : null; } catch { /* unreadable key: default */ }
+      out[field] = spec.parse(raw);
+    }
+    return out;
   }
 
   function publish() {
@@ -35,20 +60,30 @@
     for (const listener of [...listeners]) listener(next);
   }
 
-  function write(key, value) {
-    try { storage().setItem(key, value); } catch { return false; }
+  /**
+   * Stores several fields at once; listeners hear about the change once.
+   * Returns false, writing nothing, when a value is invalid, or when storage refuses a write.
+   * @param {Partial<ReturnType<typeof read>>} patch
+   */
+  function set(patch) {
+    const entries = Object.entries(patch || {});
+    if (!entries.length || entries.some(([field, value]) => !FIELDS[field]?.valid(value))) return false;
+    try {
+      const store = storage();
+      for (const [field, value] of entries) store.setItem(FIELDS[field].key, FIELDS[field].write(value));
+    } catch { return false; }
     publish();
     return true;
   }
 
   /** Stores the pet form. Returns false for unknown names or when storage refuses the write. */
-  const setPet = name => names().includes(name) && write(PET_KEY, name);
+  const setPet = name => set({pet: name});
   /** Stores the on/off switch. Returns false when storage refuses the write. */
-  const setEnabled = enabled => write(ENABLED_KEY, String(Boolean(enabled)));
+  const setEnabled = enabled => set({enabled: Boolean(enabled)});
 
   /**
    * Calls `listener` with the new preference whenever it changes. Returns an unsubscribe function.
-   * @param {(prefs: {pet: string, enabled: boolean}) => void} listener
+   * @param {(prefs: ReturnType<typeof read>) => void} listener
    */
   function subscribe(listener) {
     if (!listeners.size) {
@@ -63,9 +98,7 @@
   }
 
   // Remote contexts store keys as `ce.remote.<scope>.<key>`, so match on the suffix; a null key means storage was cleared.
-  function onStorage(event) {
-    if (event.key === null || event.key.endsWith(PET_KEY) || event.key.endsWith(ENABLED_KEY)) publish();
-  }
+  const onStorage = event => { if (event.key === null || Object.values(FIELDS).some(spec => event.key.endsWith(spec.key))) publish(); };
 
-  global.NewsPetPrefs = Object.freeze({read, setPet, setEnabled, subscribe});
+  global.NewsPetPrefs = Object.freeze({read, set, setPet, setEnabled, subscribe, SIZES, DOCKS});
 })(window);

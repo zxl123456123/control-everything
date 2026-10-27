@@ -73,7 +73,7 @@ function fixture(remote = false, withTheme = true) {
     vm.runInNewContext(fs.readFileSync(path.join(root,'web/workspace/remote-context.js'),'utf8'),context);
   }
   Object.assign(window,{localStorage:context.localStorage,removeEventListener() {},dispatchEvent() {}});
-  for (const file of ['news-pets.js','news-pet-prefs.js','news-reader.js']) vm.runInNewContext(fs.readFileSync(path.join(root,'web/workspace',file),'utf8'),context);
+  for (const file of ['news-pets.js','news-pet-dial.js','news-pet-prefs.js','news-reader.js']) vm.runInNewContext(fs.readFileSync(path.join(root,'web/workspace',file),'utf8'),context);
   return {calls,writes,timers,state,window,document,windowEvents,themeReads,themeMounts,themeDisposals,node:id => ids.get(id),
     async hidden(value) {document.hidden=value;documentEvents.visibilitychange();await flush();},
     async tick(ms) {const timer=[...timers].find(([,timer]) => timer.ms===ms); assert.ok(timer,`timer ${ms}`);timers.delete(timer[0]);timer[1].callback();await flush();}};

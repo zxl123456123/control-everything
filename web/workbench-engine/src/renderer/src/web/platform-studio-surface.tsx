@@ -29,6 +29,7 @@ const scripts = [
   '/remote/account-device.js',
   '/mobile-device-entry.js',
   '/news-pets.js',
+  '/news-pet-dial.js',
   '/news-pet-prefs.js',
   '/studio-shell.js',
   '/studio-pet-settings.js',
