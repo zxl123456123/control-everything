@@ -1,183 +1,124 @@
-import { useRef, useState } from 'react'
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
-import Constants from 'expo-constants'
-import * as Linking from 'expo-linking'
+import { useEffect, useState } from 'react'
+import { View } from 'react-native'
 import { useRouter } from 'expo-router'
-import { colors, spacing } from '../theme/mobile-theme'
-import { readPlatformBrowserPortal } from './browser-portal'
+import { Globe } from 'lucide-react-native'
+import { Banner } from '../ce-ui/components/Banner'
+import { Button } from '../ce-ui/components/Button'
+import { NavRow } from '../ce-ui/components/NavRow'
+import { ScreenFrame } from '../ce-ui/components/ScreenFrame'
+import { copy } from '../ce-ui/copy'
+import type { HubMe } from '../ce-ui/hub/hub-client'
+import { useHubClient } from '../ce-ui/hub/hub-context'
+import { AccountView } from '../ce-ui/screens/AccountView'
+import { LoginView, type LoginStatus } from '../ce-ui/screens/LoginView'
+import { LogoutSheet } from '../ce-ui/screens/LogoutSheet'
+import { useCeTheme } from '../ce-ui/theme/theme'
+import { ceSpace } from '../ce-ui/theme/tokens'
+import { usePortalOpener } from '../ce-ui/use-portal'
 import { platformAccountController, usePlatformAccount } from './controller'
 
-const labels = {
-  unconfigured: '平台账号尚未配置',
-  'invalid-config': '平台账号配置不可用',
-  restoring: '正在恢复账号',
-  'signed-out': '尚未登录',
-  authorizing: '正在系统浏览器中授权',
-  'signed-in': '平台账号已登录',
-  expired: '账号会话已过期',
-  'recovery-error': '账号恢复或保存失败',
-  'login-error': '登录失败',
-  'logging-out': '正在退出此 App',
-  'logout-error': '退出未完成'
-}
+const signedInStatuses = ['signed-in', 'expired', 'logging-out', 'logout-error']
+
+/**
+ * Account entry. Signed-in states render the account view; everything else renders the login
+ * view. The controller, OIDC flow and browser-portal rules are unchanged: this is a new skin.
+ */
 export function PlatformAccountScreen() {
   const router = useRouter()
+  const { c } = useCeTheme()
   const state = usePlatformAccount()
+  const hub = useHubClient()
   const busy = ['restoring', 'authorizing', 'logging-out'].includes(state.status)
-  const portal = readPlatformBrowserPortal(Constants.expoConfig)
-  const [browserError, setBrowserError] = useState('')
-  const [openingBrowser, setOpeningBrowser] = useState(false)
+  const portal = usePortalOpener(busy)
+  const [logoutOpen, setLogoutOpen] = useState(false)
   const [cleanupRequested, setCleanupRequested] = useState(false)
-  const browserPending = useRef(false)
+  const [me, setMe] = useState<HubMe | null>(null)
+
+  const signedIn = signedInStatuses.includes(state.status)
   const nativeAccountAvailable = !['unconfigured', 'invalid-config'].includes(state.status)
 
-  async function openComputers() {
-    if (portal.status !== 'ready' || busy || browserPending.current) return
-    browserPending.current = true
-    setOpeningBrowser(true)
-    setBrowserError('')
-    try {
-      await Linking.openURL(portal.url)
-    } catch {
-      setBrowserError('无法打开系统浏览器，请重试。')
-    } finally {
-      browserPending.current = false
-      setOpeningBrowser(false)
+  // Membership comes from the hub client. A failure just leaves it empty: the account view then
+  // says membership is not connected instead of guessing.
+  useEffect(() => {
+    if (state.status !== 'signed-in') return
+    let live = true
+    hub.getMe().then(
+      (value) => live && setMe(value),
+      () => live && setMe(null)
+    )
+    return () => {
+      live = false
     }
+  }, [hub, state.status])
+
+  function confirmLogout() {
+    setCleanupRequested(true)
+    setLogoutOpen(false)
+    void platformAccountController.logout()
+  }
+
+  const portalProps = {
+    ready: portal.portal.status === 'ready',
+    opening: portal.opening,
+    error: portal.error
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.page}>
-      <Pressable accessibilityRole="button" style={styles.back} onPress={() => router.back()}>
-        <Text style={styles.link}>返回</Text>
-      </Pressable>
-      <Text style={styles.heading}>账号与设备</Text>
-      <View style={styles.card}>
-        <Text style={styles.status}>我的电脑</Text>
-        {portal.status === 'ready' ? (
-          <>
-            <Text style={styles.text}>登录或注册后，查看并打开你有权限访问的电脑。</Text>
-            <Text selectable style={styles.text}>
-              {portal.origin}
-            </Text>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityState={{ disabled: busy || openingBrowser, busy: openingBrowser }}
-              disabled={busy || openingBrowser}
-              style={styles.primaryButton}
-              onPress={() => void openComputers()}
-            >
-              <Text style={styles.primaryLabel}>
-                {openingBrowser ? '正在打开浏览器…' : '登录 / 注册并查看电脑'}
-              </Text>
-            </Pressable>
-            <Text style={styles.text}>电脑工作台将在系统浏览器中打开。</Text>
-          </>
-        ) : (
-          <Text style={styles.text}>
-            {portal.status === 'missing'
-              ? '此安装包未配置远程服务入口。'
-              : '此安装包的远程服务入口不可用。'}
-            请联系发行者获取已配置的安装包。
-          </Text>
-        )}
-        {browserError && (
-          <Text accessibilityRole="alert" style={styles.text}>
-            {browserError}
-          </Text>
-        )}
-      </View>
-      {nativeAccountAvailable && (
-        <View style={styles.card}>
-          <Text style={styles.status}>此 App 的账号</Text>
-          <Text style={styles.text}>{labels[state.status]}</Text>
-          {state.message && (
-            <Text accessibilityRole="alert" style={styles.text}>
-              {state.message}
-            </Text>
-          )}
-          {state.account && (
-            <>
-              <Text style={styles.status}>
-                {state.account.displayName ?? state.account.subject}
-              </Text>
-              {state.account.persistence === 'session-only' && (
-                <Text style={styles.text}>仅本次会话有效，重启后需要重新登录。</Text>
-              )}
-            </>
-          )}
-          {['signed-out', 'login-error', 'expired'].includes(state.status) && (
-            <Pressable
-              accessibilityRole="button"
-              style={styles.button}
-              onPress={() => void platformAccountController.login()}
-            >
-              <Text style={styles.link}>登录此 App</Text>
-            </Pressable>
-          )}
-          {['recovery-error', 'expired'].includes(state.status) && (
-            <Pressable
-              accessibilityRole="button"
-              style={styles.button}
-              onPress={() => void platformAccountController.restore()}
-            >
-              <Text style={styles.link}>重试恢复或保存</Text>
-            </Pressable>
-          )}
-          <Text style={styles.text}>此 App 的账号尚不用于电脑连接。</Text>
+    <ScreenFrame title={copy.account.title} onBack={() => router.back()}>
+      {signedIn ? (
+        <AccountView
+          snapshot={state}
+          me={me}
+          hubKind={hub.kind}
+          portal={portalProps}
+          onOpenPortal={() => void portal.open()}
+          onOpenComputers={() => router.push('/ce-computers')}
+          onOpenInvite={() => router.push('/ce-invite')}
+          onOpenPair={() => router.push('/ce-pair')}
+          onRelogin={() => void platformAccountController.login()}
+          onRestore={() => void platformAccountController.restore()}
+          onLogout={() => setLogoutOpen(true)}
+        />
+      ) : (
+        <View style={{ gap: ceSpace.lg }}>
+          <LoginView
+            status={state.status as LoginStatus}
+            message={state.message}
+            onLogin={() => void platformAccountController.login()}
+            onRestore={() => void platformAccountController.restore()}
+          />
+          {portalProps.ready ? (
+            <NavRow
+              testID="ce-nav-portal"
+              icon={<Globe size={22} color={c.accentText} />}
+              title={portalProps.opening ? copy.account.portalOpening : copy.account.portal}
+              hint="登录、注册并查看电脑"
+              disabled={busy || portalProps.opening}
+              onPress={() => void portal.open()}
+            />
+          ) : null}
+          {portalProps.error ? (
+            <Banner tone="danger" testID="ce-portal-error" title={portalProps.error} />
+          ) : null}
+          {!nativeAccountAvailable && cleanupRequested && state.message ? (
+            <Banner tone="info" testID="ce-cleanup-result" title={state.message} />
+          ) : null}
+          {!busy ? (
+            <Button
+              testID="ce-clear-button"
+              variant="ghost"
+              label={copy.account.clearRecord}
+              onPress={() => setLogoutOpen(true)}
+            />
+          ) : null}
         </View>
       )}
-      {!busy && (
-        <Pressable
-          accessibilityRole="button"
-          style={styles.button}
-          onPress={() => {
-            setCleanupRequested(true)
-            void platformAccountController.logout()
-          }}
-        >
-          <Text style={styles.link}>
-            {state.status === 'logout-error' ? '重试退出' : '退出并清除此 App 记录'}
-          </Text>
-        </Pressable>
-      )}
-      {!nativeAccountAvailable && cleanupRequested && state.message && (
-        <Text accessibilityRole="alert" style={styles.text}>
-          {state.message}
-        </Text>
-      )}
-      <Text style={styles.text}>清除 App 记录不会结束系统浏览器会话或撤销已配对电脑。</Text>
-    </ScrollView>
+      <LogoutSheet
+        visible={logoutOpen}
+        busy={state.status === 'logging-out'}
+        onClose={() => setLogoutOpen(false)}
+        onConfirm={confirmLogout}
+      />
+    </ScreenFrame>
   )
 }
-const styles = StyleSheet.create({
-  page: {
-    padding: spacing.lg,
-    paddingTop: spacing.xl,
-    gap: spacing.md,
-    backgroundColor: colors.bgBase,
-    flexGrow: 1
-  },
-  heading: { color: colors.textPrimary, fontSize: 24, fontWeight: '700' },
-  status: { color: colors.textPrimary, fontSize: 18, fontWeight: '600' },
-  text: { color: colors.textSecondary, fontSize: 15, lineHeight: 23 },
-  link: { color: colors.textPrimary, fontSize: 15 },
-  back: { minHeight: 44, minWidth: 44, justifyContent: 'center', alignSelf: 'flex-start' },
-  button: {
-    minHeight: 44,
-    justifyContent: 'center',
-    padding: spacing.md,
-    backgroundColor: colors.bgRaised,
-    borderRadius: 12
-  },
-  primaryButton: {
-    minHeight: 48,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: spacing.md,
-    backgroundColor: colors.surfaceBright,
-    borderRadius: 12
-  },
-  primaryLabel: { color: colors.bgBase, fontSize: 16, fontWeight: '600' },
-  card: { padding: spacing.md, backgroundColor: colors.bgPanel, borderRadius: 12, gap: spacing.sm }
-})
