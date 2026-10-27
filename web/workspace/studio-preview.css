@@ -990,3 +990,7 @@ body:has(#ce-studio){margin:0;background:var(--ce-bg,#ffffff)}
 }
 @media(pointer:coarse){#ce-studio :is(.ce-crumbs a,.ce-settings-tabs a){min-height:44px}}
 @media(prefers-reduced-motion:reduce){#ce-studio :is(.ce-skip,.ce-settings-tabs a,.ce-crumbs a){transition:none}}
+
+/* Section tabs keep their look; an invisible margin grows the hit area to a comfortable size. */
+#ce-studio .ce-tabs a{position:relative}
+#ce-studio .ce-tabs a::before{content:"";position:absolute;inset:-4px -10px}

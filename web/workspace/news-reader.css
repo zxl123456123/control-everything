@@ -260,3 +260,7 @@ body:has(#research-panel[open] #research-details[open]) :is(#animation-stage>:is
 .spider-status .pet-select{width:72px;min-height:44px}
 #animation-stage[data-reading-view=list] #pause{padding-inline:10px}
 }
+
+/* The breadcrumb link back to the project overview keeps its size but gets a larger hit area. */
+.workspace-name{position:relative}
+.workspace-name::before{content:"";position:absolute;inset:-12px -8px}

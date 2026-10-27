@@ -63,6 +63,7 @@ async function serve(context, api) {
     check('the skip link moves focus into the main region', await page.evaluate(() => document.activeElement?.matches('main.ce-content')));
     const tabs = await page.$$eval('#studio-settings-nav a', links => links.map(link => [link.textContent, link.getAttribute('aria-current')]));
     check('settings pages offer appearance, account and advanced access, marking the current one', JSON.stringify(tabs) === JSON.stringify([['外观', null], ['账号与设备', null], ['高级接入', 'page']]));
+    check('a narrow section tab can be hit just outside its text', await page.evaluate(() => { const link = document.querySelector('#studio-settings-nav a').getBoundingClientRect(); return document.elementFromPoint(link.left - 8, link.top + link.height / 2) === document.querySelector('#studio-settings-nav a'); }));
     const crumb = await page.locator('.ce-crumbs a').first().boundingBox();
     check('the breadcrumb link is at least 32px tall', crumb.height >= 32);
     await page.locator('#studio-settings-nav a', {hasText: '账号与设备'}).click();
@@ -92,6 +93,7 @@ async function serve(context, api) {
     const fit = await page.evaluate(() => { const bar = document.querySelector('.filters'); return {scroll: bar.scrollWidth, client: bar.clientWidth, refresh: document.getElementById('refresh').getBoundingClientRect().width, label: document.getElementById('refresh').scrollWidth <= document.getElementById('refresh').clientWidth}; });
     check('the news toolbar does not overflow at 390px', fit.scroll <= fit.client);
     check('the collect button shows its whole label', fit.refresh >= 100 && fit.label);
+    check('the breadcrumb link back to the overview can be hit well above its text', await page.evaluate(() => { const node = document.querySelector('.workspace-name'), link = node.getBoundingClientRect(); return link.height >= 44 || document.elementFromPoint(link.left + link.width / 2, link.top - 10) === node; }));
     await context.close();
   }
 
