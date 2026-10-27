@@ -609,8 +609,7 @@ function installStyle(root, css, nonce) {
   /* action dial beside the pet: click a sector, or drag / wheel the ring and click the hub to confirm; the corner toggle flips pages (max 6 sectors) */
   const DW = 216, DC = 108, RI = 40, RO = 92, RB = 66;
   const K = k => () => poke(k), MORE = [['pat', '拍肚皮', 'M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 10c0 5.5-7 10-7 10z', K('belly')], ['nap', '午睡', 'M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z', K('sleep')],
-   ['dance', '跳舞', 'M9 18V6l11-2v12 M9 18a3 3 0 1 1-6 0a3 3 0 0 1 6 0z M20 16a3 3 0 1 1-6 0a3 3 0 0 1 6 0z', K('dance')], ['tongue', '吐舌头', 'M12 3a9 9 0 1 0 0 18a9 9 0 0 0 0-18z M8 14s1.5 2.5 4 2.5S16 14 16 14 M9 9.5v.01 M15 9.5v.01', K('tongue')],
-   ['munch', '吃吃', 'M12 3a9 9 0 1 0 9 9a4 4 0 0 1-4-4a4 4 0 0 1-5-5z M9 11v.01 M14 15v.01 M8 15.5v.01', K('munch')],
+   ['dance', '跳舞', 'M9 18V6l11-2v12 M9 18a3 3 0 1 1-6 0a3 3 0 0 1 6 0z M20 16a3 3 0 1 1-6 0a3 3 0 0 1 6 0z', K('dance')],
    ['status', '状态', 'M5 20V11 M12 20V5 M19 20v-7', () => { const q = status.quotaLeftPercent, n = status.agentCount; wake(); say((q === null ? '额度未知' : '额度剩余 ' + Math.round(q) + '%') + ' · ' + n + ' 个运行中', true, 3400); }]].map(a => ({id: a[0], label: a[1], icon: a[2], run: a[3]}));
   const DL = {page: 0, f: 0, rot: sd(0), o: sd(0), items: [], btns: [], secs: [], cx: 0, cy: 0, drag: null, sw: false, wh: 0, fi: -1, lr: 9, vis: false};
   const modn = (a, n) => (a % n + n) % n, stepA = () => TAU / DL.items.length, focusIdx = () => modn(Math.round(-DL.rot.x / stepA()), DL.items.length);
@@ -1435,6 +1434,8 @@ function installStyle(root, css, nonce) {
     updateChip(0);
    },
    poke,
+   /** Host reaction: a gesture and a short bubble. */
+   react(kind, text) { if (destroyed || MN.open) return false; if (kind) poke(kind); if (text) say(`${text}`.slice(0, 24), true, 2600); return true; },
    pause() {
     if (running || rafId !== null || timerId !== null) { running = false; stopTimers(); }
     root.classList.add('nd-paused');

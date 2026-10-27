@@ -1,7 +1,7 @@
 /* Pet registry for the news reader. Every pet implements the NewsSpider mount contract:
  * mount({root, canvas, depot, onCapture, onDelivered, onCancel, followPointer, actions, onAction, dock, options, styleNonce}) ->
  * `actions` are [{id,label,icon?,run}] for the click-to-open radial dial; `dock()` may return {x,y} (stage coords) = where the pet rests clear of the text.
- * {pointAt, capture, cancel, setCollecting, pause, resume, setOptions, inspect, destroy, setStatus}.
+ * {pointAt, capture, cancel, setCollecting, pause, resume, setOptions, inspect, destroy, setStatus}; the 3D pets also offer react(kind, text), a host-driven gesture plus bubble.
  * A lazy pet whose script fails to load is replaced by its fallback and announces it with a `news-pet-fallback` window event ({pet, fallback}). */
 (function (global) {
   'use strict';
@@ -33,7 +33,7 @@
   }
   // Heavier pets are lazy: the script is injected (same-origin, CSP script-src 'self') only when that pet is picked.
   // mount() stays synchronous: the proxy queues calls until the script arrives, then replays them on the real pet.
-  const LAZY_API = ['pointAt', 'capture', 'cancel', 'setCollecting', 'pause', 'resume', 'setOptions', 'setStatus', 'poke', 'step', 'setActions', 'openMenu', 'closeMenu', 'toggleMenu'];
+  const LAZY_API = ['pointAt', 'capture', 'cancel', 'setCollecting', 'pause', 'resume', 'setOptions', 'setStatus', 'poke', 'step', 'setActions', 'openMenu', 'closeMenu', 'toggleMenu', 'react'];
   const loading = new Map();
   // Lazy scripts are resolved next to this file (works under a sub-path or a WebView virtual host); '/' when the base is unknown.
   const BASE = (() => { try { const cur = document.currentScript; return cur && cur.src ? cur.src.replace(/[^/]*$/, '') : '/'; } catch (e) { return '/'; } })();
@@ -56,7 +56,7 @@
       const proxy = {};
       for (const method of LAZY_API) proxy[method] = (...args) => {
         if (real) return typeof real[method] === 'function' ? real[method](...args) : undefined;
-        if (dead) return false;
+        if (dead || method === 'react') return false; // a reaction is only meaningful now, so it is never queued for later
         if (method === 'pause' || method === 'resume') { for (let i = calls.length - 1; i >= 0; i--) if (calls[i][0] === 'pause' || calls[i][0] === 'resume') calls.splice(i, 1); }
         calls.push([method, args]); return method === 'capture' || method === 'pointAt' || method === 'poke' ? true : undefined;
       };

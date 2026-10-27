@@ -53,6 +53,7 @@ it('downloads dependencies in order once and keeps load-error recovery available
     '/news-pets.js',
     '/news-pet-dial.js',
     '/news-pet-prefs.js',
+    '/news-pet-director.js',
     '/studio-shell.js',
     '/studio-pet-settings.js',
     '/studio-preview.js'

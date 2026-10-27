@@ -31,6 +31,7 @@ const scripts = [
   '/news-pets.js',
   '/news-pet-dial.js',
   '/news-pet-prefs.js',
+  '/news-pet-director.js',
   '/studio-shell.js',
   '/studio-pet-settings.js',
   '/studio-preview.js'

@@ -13,6 +13,7 @@ ASSETS = {'/news': ('news-reader.html', 'text/html; charset=utf-8'),
           '/news-pets.js': ('news-pets.js', 'text/javascript; charset=utf-8'),
           '/news-pet-dial.js': ('news-pet-dial.js', 'text/javascript; charset=utf-8'),
           '/news-pet-prefs.js': ('news-pet-prefs.js', 'text/javascript; charset=utf-8'),
+          '/news-pet-director.js': ('news-pet-director.js', 'text/javascript; charset=utf-8'),
           '/news-pet-status.js': ('news-pet-status.js', 'text/javascript; charset=utf-8'),
           '/news-naidragon.js': ('news-naidragon.js', 'text/javascript; charset=utf-8'),
           '/news-tabbycat.js': ('news-tabbycat.js', 'text/javascript; charset=utf-8')}

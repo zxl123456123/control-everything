@@ -498,14 +498,14 @@ test('dial pages: the toggle / arrows flip to the secondary page (max 6 sectors)
   api.setActions(four); api.openMenu(); t.step(40); const dial = dialOf(t);
   const more = items(dial).find(b => b.attributes['aria-label'] === '更多'); assert.ok(more, 'a small "more" toggle exists');
   more.listeners.click({stopPropagation() {}}); t.step(60);
-  const d2 = api.inspect().dial; assert.equal(d2.page, 1); assert.equal(d2.labels.join(), '摸肚皮,蹭蹭,踩奶,呼噜,睡觉,状态'); assert.ok(d2.o > .9, 'the dial re-pops after the page switch');
-  assert.equal(items(dial).filter(b => b.dataset.i !== undefined).length, 6); assert.equal(items(dial).find(b => b.attributes['aria-label'] === '返回').dataset.i, undefined);
-  assert.equal(api.dialHit(0, -66).i, 0); assert.equal(api.dialHit(57, 33).i, 2, 'six 60deg sectors');
+  const d2 = api.inspect().dial; assert.equal(d2.page, 1); assert.equal(d2.labels.join(), '摸肚皮,蹭蹭,睡觉,状态'); assert.ok(d2.o > .9, 'the dial re-pops after the page switch');
+  assert.equal(items(dial).filter(b => b.dataset.i !== undefined).length, 4); assert.equal(items(dial).find(b => b.attributes['aria-label'] === '返回').dataset.i, undefined);
+  assert.equal(api.dialHit(0, -66).i, 0); assert.equal(api.dialHit(0, 66).i, 2, 'four 90deg sectors');
   dial.listeners.click(ev(dial, api, 0, -66)); assert.deepEqual(reported, ['pat']); assert.equal(dial.dataset.open, 'false');
   api.openMenu(); t.step(40); assert.equal(api.inspect().dial.page, 0, 'reopening starts on the main page');
   press(t, 'ArrowDown'); assert.equal(api.inspect().dial.page, 1, 'Up/Down flip the page while open'); press(t, 'ArrowUp'); assert.equal(api.inspect().dial.page, 0);
-  assert.equal(api.dialPage(), true); t.step(30); dial.listeners.click(ev(dial, api, 0, 66)); assert.equal(reported.at(-1), 'purr', 'the lower sector of page 2 is item 3'); assert.equal(reported.length, 2);
-  api.openMenu(); t.step(30); api.dialPage(); t.step(30); dial.listeners.click({stopPropagation() {}, target: items(dial).filter(b => b.dataset.i !== undefined)[5]});
+  assert.equal(api.dialPage(), true); t.step(30); dial.listeners.click(ev(dial, api, 0, 66)); assert.equal(reported.at(-1), 'nap', 'the lower sector of page 2 is item 3'); assert.equal(reported.length, 2);
+  api.openMenu(); t.step(30); api.dialPage(); t.step(30); dial.listeners.click({stopPropagation() {}, target: items(dial).filter(b => b.dataset.i !== undefined)[3]});
   assert.equal(reported.at(-1), 'status'); assert.match(api.inspect().mood.bubble, /额度|运行/, 'the status item reports the quota / agents');
   api.destroy();
 });
@@ -908,4 +908,16 @@ test('idle cursor reactions: ears swivel toward the pointer, the pupils follow a
   let flick = 0; for (let k = 0; k < 60 * 12; k++) { if (k % 20 === 0) move(pos.x - 300 + (k % 40), pos.y - 80); api.step(1 / 60); flick = Math.max(flick, Math.abs(api.inspect().mood.tailTip)); }
   assert.ok(flick > .1, 'the tail tip flicks while the pointer hovers nearby: ' + flick);
   api.destroy();
+});
+
+test('host reactions: react() plays a gesture and a short bubble, is ignored while the dial is open, and a lazy proxy never queues it', async () => {
+  const t = setup(); const api = t.context.NewsTabbycat.mount(mountOpts(t)); api.resume(); t.step(40);
+  assert.equal(api.react('hop', '收藏好啦'), true); t.step(30); assert.equal(api.inspect().mood.bubble, '收藏好啦');
+  assert.equal(api.react(null, 'x'.repeat(60)), true); t.step(30); assert.ok(api.inspect().mood.bubble.length <= 24, 'bubbles stay short');
+  api.setActions(four); api.openMenu(); t.step(30); assert.equal(api.react('hop', 'no'), false, 'a reaction never competes with the open dial'); api.closeMenu(); api.destroy();
+  assert.equal(api.react('hop', 'late'), false, 'a destroyed pet ignores it');
+  const lazy = setup({loadSource: false}); const proxy = lazy.context.NewsPets.mount('tabbycat', mountOpts(lazy));
+  assert.equal(proxy.react('hop', 'early'), false, 'nothing is queued while the pet script loads');
+  vm.runInContext(source, lazy.context); lazy.scripts[0].onload(); await new Promise(r => setImmediate(r));
+  assert.equal(proxy.inspect().mood.bubble, '', 'the early reaction was dropped, not replayed'); assert.equal(proxy.react(null, 'ok'), true); proxy.destroy();
 });
