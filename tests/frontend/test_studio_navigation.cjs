@@ -83,28 +83,16 @@ test('overview facts use progress semantics and exclude records outside register
 });
 
 
-test('advanced settings retains precise compatibility destinations without restoring a routine entry', () => {
+test('retired advanced settings has no management controls or destinations', () => {
   const html = shell.renderSettingsLanding({ section: 'sources', integrated: true, creatorForm:'<form data-creator-form="true">游戏创作地址</form>' });
-  assert.equal((html.match(/data-action="external-access"/g) || []).length, 1);
-  assert.match(html, /<h1>高级接入<\/h1>/);
-  assert.match(html, /项目与会话导入/); assert.match(html, /事项 API 接入/);
-  assert.doesNotMatch(html, /agent-form|兼容|命令|审批|项目来源|外部程序接入/);
-  assert.match(html, /href="\/workspace-admin#settings"/); assert.doesNotMatch(html, /workspace-admin#projects/);
-  assert.equal((html.match(/class="ce-setting-row"/g) || []).length, 2);
-  assert.match(html, /aria-label="管理项目与会话导入">管理/);
-  assert.match(html, /aria-label="管理事项 API 接入">管理/);
-  assert.doesNotMatch(html, /<p\b|ce-tool-card|ce-access-setting/);
-  assert.doesNotMatch(html, /游戏创作|data-creator-form/);
+  assert.doesNotMatch(html, /高级接入|项目与会话导入|事项 API|external-access|workspace-admin|游戏创作|data-creator-form/);
 });
 
-test('settings and account carry their own icons and the settings pages get a three-way switcher', () => {
+test('settings and account keep distinct icons and no shared switcher', () => {
   const html = shell.renderNavigation({current:{view:'home'}});
   assert.ok(html.includes('<circle cx="12" cy="12" r="3"/>'), 'settings uses a gear');
   assert.ok(!html.includes('M3 6h18M3 12h18'), 'the sliders glyph is gone');
   assert.ok(html.includes('<circle cx="12" cy="8" r="4"/>'), 'account uses a person');
-  const tabs = shell.renderSettingsTabs('appearance');
-  assert.equal((tabs.match(/<a /g) || []).length, 3);
-  assert.equal((tabs.match(/aria-current="page"/g) || []).length, 1);
-  assert.doesNotMatch(tabs, /development/, 'the developer-preferences stub is not offered');
-  assert.doesNotMatch(shell.renderSettingsTabs('development'), /aria-current/);
+  assert.equal(shell.renderSettingsTabs, undefined);
+  assert.doesNotMatch(fs.readFileSync(path.resolve(__dirname, '../../web/workspace/studio-preview.html'),'utf8'), /studio-settings-nav/);
 });
