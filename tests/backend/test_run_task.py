@@ -103,6 +103,16 @@ print('error-stream', file=__import__('sys').stderr)
                 self.assertFalse((self.task_dir / 'child-started').exists())
                 self.assertFalse((self.task_dir / 'runs').exists())
 
+    def test_existing_declared_artifact_is_preserved_before_launch(self):
+        artifact = self.task_dir / 'previous-failure.json'
+        artifact.write_text('original failure evidence', encoding='utf-8')
+        process = self.invoke("from pathlib import Path; Path('child-started').touch(); "
+                              "Path('previous-failure.json').write_text('replaced')", [artifact])
+        self.assertNotEqual(process.returncode, 0)
+        self.assertEqual(artifact.read_text(encoding='utf-8'), 'original failure evidence')
+        self.assertFalse((self.task_dir / 'child-started').exists())
+        self.assertFalse((self.task_dir / 'runs').exists())
+
     def test_linked_output_parent_is_rejected_before_launch(self):
         outside = self.root / 'outside'
         outside.mkdir()

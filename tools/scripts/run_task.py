@@ -68,7 +68,8 @@ def run_task(task, command, outputs, root=ROOT):
         raise ValueError('current_task_readme_required')
     task_dir = unlinked(root / 'work' / task).resolve()
     for value in outputs:
-        owned_output(value, task_dir)
+        if owned_output(value, task_dir).exists():
+            raise ValueError('output_already_exists')
     runs = owned_output('runs', task_dir)
     runs.mkdir(parents=True, exist_ok=True)
     run_dir = owned_output(runs / uuid.uuid4().hex, task_dir)
