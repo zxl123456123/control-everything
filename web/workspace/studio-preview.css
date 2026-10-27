@@ -68,7 +68,7 @@
 #ce-studio .ce-pet-select{flex:none;min-width:150px;min-height:40px;padding:6px 12px;border:1px solid var(--ce-input-border);border-radius:12px;background:var(--ce-bg);color:var(--ce-text);font:inherit}
 #ce-studio .ce-pet-status:not(:empty){margin:10px 0 0;font-size:14px;line-height:22px;color:var(--ce-red)}
 @media(prefers-reduced-motion:reduce){#ce-studio .ce-switch,#ce-studio .ce-switch-thumb{transition:none}}
-@media(max-width:760px){#ce-studio .ce-pet-select{width:100%}#ce-studio .ce-switch{align-self:flex-start}}
+@media(max-width:760px){#ce-studio .ce-settings-page .ce-settings-group>.ce-setting-row{flex-wrap:wrap}#ce-studio .ce-setting-text{flex:1 1 200px}#ce-studio .ce-pet-select{width:100%}#ce-studio .ce-switch{align-self:flex-start}}
 #ce-studio .ce-setting-row .ce-button{flex:none;font-size:15px}
 #ce-studio .ce-creator-address{padding:0;background:var(--ce-panel)}
 #ce-studio .ce-creator-address>summary{display:flex;align-items:center;justify-content:space-between;gap:20px;min-height:76px;padding:16px 20px;font-size:15px;line-height:24px;font-weight:500;cursor:pointer;list-style:none}
