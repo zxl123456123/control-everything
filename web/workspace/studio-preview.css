@@ -408,6 +408,8 @@ body:has(#ce-studio){margin:0;background:var(--ce-bg,#ffffff)}
 #ce-studio .monitor-event pre{background:var(--ce-soft);color:var(--ce-text)}
 #ce-studio .monitor-stage canvas{--monitor-bg:var(--ce-bg);--monitor-panel:var(--ce-panel);--monitor-ink:var(--ce-text);--monitor-soft:var(--ce-sub)}
 #ce-studio[data-unified="true"] .ce-shell{min-height:100%}
+#ce-studio[data-unified="true"]:not([data-project-surface="true"]),
+#ce-studio[data-unified="true"]:not([data-project-surface="true"]) .ce-shell{min-height:100dvh}
 #ce-studio[data-unified="true"][data-project-surface="true"] .ce-shell{display:block}
 #ce-studio[data-unified="true"][data-project-surface="true"] .ce-rail,
 #ce-studio[data-unified="true"][data-project-surface="true"] #studio-topbar{display:none}
