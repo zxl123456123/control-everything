@@ -43,22 +43,18 @@ function setup({withPrefs = true} = {}) {
   vm.runInContext(`window.NewsPets.register('spider', {label: '蜘蛛', mount: () => ({})});
     window.NewsPets.register('naidragon', {label: '奶龙', status: true, mount: () => ({})});
     window.NewsPets.register('tabbycat', {label: '狸花猫', status: true, mount: () => ({})});`, context);
-  vm.runInContext(read('news-pet-dial.js'), context);
   if (withPrefs) vm.runInContext(read('news-pet-prefs.js'), context); else delete window.NewsPetPrefs;
-  vm.runInContext(read('news-pet-wheel.js'), context);
   vm.runInContext(read('studio-pet-settings.js'), context);
   const container = new Node('div');
   const dispose = window.StudioPetSettings.mount(container);
   const control = id => container.find(node => node.id === id);
   const cards = () => container.all(node => node.tag === 'input' && node.name === 'studio-pet-form');
-  const chip = id => container.find(node => node.dataset.action === id);
   const radio = (name, value) => container.find(node => node.tag === 'input' && node.name === name && node.value === value);
   const text = className => container.find(node => node.className === className).textContent;
-  return {window, storage, listeners, container, dispose, cards, chip, radio, text, toggle: control('studio-pet-enabled'), quiet: control('studio-pet-quiet'), newsFx: control('studio-pet-news-fx'), pin: control('studio-pet-dial-pin'), reset: control('studio-pet-dial-reset')};
+  return {window, storage, listeners, container, dispose, cards, radio, text, toggle: control('studio-pet-enabled'), quiet: control('studio-pet-quiet'), newsFx: control('studio-pet-news-fx')};
 }
 
 const checked = node => node.getAttribute('aria-checked');
-const dialIds = storage => storage.get('news-reader-pet-dial');
 
 test('renders the switches on their defaults and one card per registered pet', () => {
   const {toggle, quiet, newsFx, cards} = setup();
@@ -104,7 +100,7 @@ test('size and dock are segmented radios that store their value and move the thu
   assert.equal(seg('宠物位置').dataset.index, '2');
 });
 
-test('follows changes made elsewhere, such as the reader dial hiding the pet', () => {
+test('follows changes made elsewhere, such as the wheel hiding the pet', () => {
   const {window, toggle, quiet, cards, storage, listeners} = setup();
   storage.set('news-reader-pet', 'tabbycat'); storage.set('news-reader-pet-enabled', 'true'); storage.set('news-reader-pet-quiet', 'true');
   listeners.forEach(fn => fn({key: 'news-reader-pet-enabled'}));
@@ -115,67 +111,23 @@ test('follows changes made elsewhere, such as the reader dial hiding the pet', (
   assert.equal(checked(toggle), 'false');
 });
 
-test('the dial checklist shows the defaults, counts them and enforces three to six', () => {
-  const {chip, text, reset, storage, container} = setup();
-  const pressed = () => container.all(node => node.getAttribute?.('aria-pressed') === 'true').map(node => node.dataset.action);
-  assert.deepEqual(pressed(), ['workspace', 'quiet', 'pet-settings', 'next', 'search', 'collect']);
-  assert.equal(text('ce-dial-count'), '已选 6 / 6');
-  assert.equal(reset.hidden, true, 'nothing to reset yet');
-  chip('save').fire('click');
-  assert.match(text('ce-pet-status'), /最多 6 个/);
-  assert.equal(dialIds(storage), undefined, 'a refused change writes nothing');
-  chip('collect').fire('click');
-  assert.equal(dialIds(storage), 'workspace,next,search,quiet,pet-settings');
-  chip('save').fire('click');
-  assert.equal(dialIds(storage), 'workspace,next,search,save,quiet,pet-settings');
-  assert.equal(text('ce-pet-status'), '', 'a successful change clears the note');
-  assert.equal(reset.hidden, false);
-  for (const id of ['search', 'save', 'quiet']) chip(id).fire('click');
-  chip('next').fire('click');
-  assert.match(text('ce-pet-status'), /至少保留 3 个/);
-  assert.equal(text('ce-dial-count'), '已选 3 / 6');
-});
-
-test('reset restores the default dial', () => {
-  const {chip, reset, storage, text} = setup();
-  chip('collect').fire('click'); chip('hide-pet').fire('click');
-  assert.equal(dialIds(storage), 'workspace,next,search,quiet,pet-settings,hide-pet');
-  reset.fire('click');
-  assert.equal(dialIds(storage), 'workspace,next,search,collect,quiet,pet-settings');
-  assert.equal(reset.hidden, true);
-  assert.equal(text('ce-dial-count'), '已选 6 / 6');
-});
-
-test('the page keeps its visible helper text to the dial hint and the one news-page note; the rest is a tooltip', () => {
-  const {container, text, cards} = setup();
+test('the page keeps its visible helper text to the one news-page note; the rest is a tooltip', () => {
+  const {container, cards} = setup();
   const visible = () => container.all(node => node.tag === 'p').filter(node => node.textContent && !node.hidden);
-  assert.deepEqual(visible().map(node => node.className), ['ce-pet-note', 'ce-pet-dial-hint']);
+  assert.deepEqual(visible().map(node => node.className), ['ce-pet-note']);
   cards()[1].choose();
-  assert.deepEqual(visible().map(node => node.className), ['ce-pet-dial-hint'], 'the note goes away on a pet that shows everywhere');
-  assert.match(text('ce-pet-dial-hint'), /3–6/);
+  assert.deepEqual(visible().map(node => node.className), [], 'the note goes away on a pet that shows everywhere');
   const rows = container.all(node => /ce-pet-row/.test(node.className));
-  assert.equal(rows.length, 6);
+  assert.equal(rows.length, 5);
   for (const row of rows) assert.ok(row.title.length > 0, 'each row carries its tooltip');
 });
 
-test('the pin switch stores dialPin and follows it from elsewhere', () => {
-  const {pin, storage, window} = setup();
-  assert.equal(pin.getAttribute('role'), 'switch'); assert.equal(pin.getAttribute('aria-label'), '固定转盘'); assert.equal(checked(pin), 'false');
-  pin.fire('click');
-  assert.equal(storage.get('news-reader-pet-dial-pin'), 'true'); assert.equal(checked(pin), 'true');
-  window.NewsPetPrefs.set({dialPin: false}); assert.equal(checked(pin), 'false');
-});
-
-test('the ring preview places the chosen actions on the ring in order and folds the others away', () => {
-  const {container, chip} = setup();
-  const dots = () => container.all(node => /ce-dial-dot/.test(node.className));
-  const on = () => dots().filter(node => node.dataset.on === 'true');
-  assert.equal(on().length, 6);
-  chip('hide-pet').fire('click'); // not in the defaults, and the dial is full: nothing changes
-  assert.equal(on().length, 6);
-  chip('quiet').fire('click');
-  assert.equal(on().length, 5);
-  for (const dot of dots().filter(node => node.dataset.on === 'false')) assert.equal(dot.style['--x'], '0px');
+test('the wheel is not configurable: no wheel card, pin switch or action picker is rendered', () => {
+  const {container} = setup();
+  const titles = container.all(node => node.className === 'ce-pet-title').map(node => node.textContent);
+  assert.deepEqual(titles, ['宠物', '行为']);
+  assert.equal(container.find(node => /dial|chip/.test(node.className + ' ' + (node.id || ''))), null);
+  assert.equal(container.find(node => node.id === 'studio-pet-dial-pin'), null);
 });
 
 test('reports a write failure instead of pretending it was saved', () => {

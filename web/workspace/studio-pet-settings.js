@@ -2,16 +2,15 @@
  * Studio settings page for the personal-workbench pet (设置 -> 外观 -> 宠物).
  *   window.StudioPetSettings.mount(container) -> dispose()
  * Every control reads and writes NewsPetPrefs, so the pet follows live (storage events) and a change made
- * elsewhere (the reader's own switcher, the dial's quiet or hide action) shows up here without a reload.
+ * elsewhere (the reader's own switcher, the wheel's quiet or hide action) shows up here without a reload.
  * Press feedback, the switch and the sliding segmented control are CSS only (studio-preview.css, .ce-pet-*),
  * so prefers-reduced-motion and the light/dark tokens are handled in one place.
  * The page is deliberately quiet: short labels, one helper line, the rest lives in tooltips and aria-labels.
- * Requires news-pets.js, news-pet-dial.js and news-pet-prefs.js to be loaded first; news-pet-wheel.js adds the live ring preview.
+ * Requires news-pets.js and news-pet-prefs.js to be loaded first. The wheel has six fixed slots and nothing to configure here.
  */
 'use strict';
 (function () {
   const SVG_NS = 'http://www.w3.org/2000/svg';
-  const SCOPE_TITLES = {any: '通用', news: '新闻页', studio: '工作台页'};
   const SIZE_OPTIONS = [['small', '小'], ['medium', '中'], ['large', '大']];
   const DOCK_OPTIONS = [['auto', '自动'], ['bl', '左下'], ['br', '右下']];
   const ASK = '宠物组件未加载，暂时无法设置。';
@@ -73,7 +72,6 @@
     }
     return root;
   };
-  const icon = path => svg([['path', {d: path, fill: 'none', stroke: 'currentColor', 'stroke-width': '2', 'stroke-linecap': 'round', 'stroke-linejoin': 'round'}]], 18, 'ce-chip-icon', 24);
   /** One setting: a short label and its control. `hint` is a tooltip and the control's accessible description, never visible text. */
   const row = (title, hint, control) => {
     const text = make('div', 'ce-setting-text');
@@ -123,11 +121,11 @@
      * @returns {() => void} stops listening and empties the container
      */
     mount(container) {
-      const prefs = window.NewsPetPrefs, pets = window.NewsPets, dial = window.NewsPetDial;
+      const prefs = window.NewsPetPrefs, pets = window.NewsPets;
       const page = make('div', 'ce-settings-page ce-pet-settings');
       const heading = make('div', 'ce-heading'); heading.append(make('h1', '', '设置'));
       page.append(heading);
-      if (!prefs || !pets || !dial) {
+      if (!prefs || !pets) {
         const notice = make('div', 'ce-empty', ASK); notice.setAttribute('role', 'status');
         page.append(notice);
         container.replaceChildren(page);
@@ -148,50 +146,17 @@
       // --- 行为 ---
       const quiet = makeSwitch('studio-pet-quiet', '安静模式');
       const newsFx = makeSwitch('studio-pet-news-fx', '新闻页互动');
-      const pin = makeSwitch('studio-pet-dial-pin', '固定转盘');
       const size = makeSegmented('studio-pet-size', '宠物大小', SIZE_OPTIONS);
       const dock = makeSegmented('studio-pet-dock', '宠物位置', DOCK_OPTIONS);
 
-      // --- 转盘 ---
-      const count = make('span', 'ce-dial-count');
-      const reset = make('button', 'ce-link-button ce-press', '恢复默认'); reset.type = 'button'; reset.id = 'studio-pet-dial-reset';
-      const dialHead = make('div', 'ce-dial-head');
-      const dialTitle = make('div', 'ce-setting-text');
-      const dialHint = make('p', 'ce-pet-dial-hint', `点击宠物打开，选 ${dial.MIN}–${dial.MAX} 个`);
-      dialTitle.append(make('h3', '', '转盘功能'), dialHint);
-      const dialTools = make('div', 'ce-dial-tools'); dialTools.append(count, reset);
-      dialHead.append(dialTitle, dialTools);
-      const preview = make('div', 'ce-dial-preview'); preview.setAttribute('aria-hidden', 'true');
-      const previewIcons = new Map();
-      for (const action of dial.POOL) {
-        const node = make('span', 'ce-dial-dot'); node.append(svg([['path', {d: action.icon, fill: 'none', stroke: 'currentColor', 'stroke-width': '2', 'stroke-linecap': 'round', 'stroke-linejoin': 'round'}]], 16, '', 24));
-        previewIcons.set(action.id, node); preview.append(node);
-      }
-      const chips = new Map();
-      const chipGroups = make('div', 'ce-dial-groups');
-      for (const scope of Object.keys(SCOPE_TITLES)) {
-        const list = dial.POOL.filter(action => action.scope === scope);
-        if (!list.length) continue;
-        const group = make('div', 'ce-dial-group'); group.setAttribute('role', 'group'); group.setAttribute('aria-label', SCOPE_TITLES[scope]);
-        group.append(make('span', 'ce-dial-scope', SCOPE_TITLES[scope]));
-        for (const action of list) {
-          const chip = make('button', 'ce-chip ce-press'); chip.type = 'button'; chip.dataset.action = action.id;
-          chip.append(icon(action.icon), make('span', 'ce-chip-label', action.label));
-          chips.set(action.id, chip); group.append(chip);
-        }
-        chipGroups.append(group);
-      }
-      const dialPicker = make('div', 'ce-dial-picker'); dialPicker.append(preview, chipGroups);
-      const dialBody = make('div', 'ce-dial-card'); dialBody.append(dialHead, dialPicker);
-
       page.append(
-        section('宠物', row('显示宠物', '个人工作台的小伙伴；蜘蛛只在新闻页', enabled), pickerRow),
+        section('宠物', row('显示宠物', '个人工作台的小伙伴，点它打开快捷转盘；蜘蛛只在新闻页', enabled), pickerRow),
         section('行为',
           row('安静模式', '宠物原地休息，没有动作和提示', quiet),
           row('新闻页互动', '新文章、读完、采集失败时给一点小反应', newsFx),
           row('大小', '宠物在页面里的大小', size.node),
           row('位置', '左下会停在侧栏右边；窄屏的工作台页面里不显示', dock.node)),
-        section('转盘', row('固定转盘', '展开后留在原处，点击别处不收起；Esc 或再点宠物收起', pin), dialBody), status);
+        status);
       container.replaceChildren(page);
 
       // --- state -> DOM ---
@@ -228,40 +193,16 @@
         const everywhere = forms.filter(form => form.status).map(form => form.label), picked = forms.find(form => form.name === next.pet);
         newsOnlyNote.hidden = !picked || picked.status || !everywhere.length;
         newsOnlyNote.textContent = everywhere.length ? `${picked ? picked.label : ''}只在新闻页出现；想在工作台里看到，请选${everywhere.join('或')}。` : '';
-        mark(enabled, next.enabled); mark(quiet, next.quiet); mark(newsFx, next.newsFx); mark(pin, next.dialPin);
+        mark(enabled, next.enabled); mark(quiet, next.quiet); mark(newsFx, next.newsFx);
         selectOption(size, next.size); selectOption(dock, next.dock);
-        for (const [id, chip] of chips) chip.setAttribute('aria-pressed', String(next.dial.includes(id)));
-        count.textContent = `已选 ${next.dial.length} / ${dial.MAX}`;
-        dialBody.dataset.full = String(next.dial.length >= dial.MAX);
-        reset.hidden = dial.serialize(next.dial) === dial.serialize(dial.DEFAULTS);
-        layoutPreview(next.dial);
-      }
-      /** The ring preview: chosen actions sit on the ring in order, the others are folded into the hub. */
-      function layoutPreview(ids) {
-        const wheel = window.NewsPetWheel, spots = wheel ? wheel.layout(ids.length, 46) : [];
-        for (const [id, node] of previewIcons) {
-          const at = ids.indexOf(id);
-          node.dataset.on = String(at >= 0 && Boolean(spots[at]));
-          node.style.setProperty('--x', (spots[at] ? spots[at].x : 0) + 'px'); node.style.setProperty('--y', (spots[at] ? spots[at].y : 0) + 'px');
-          node.style.setProperty('--i', String(Math.max(0, at)));
-        }
       }
       function saved(ok) { notify(ok ? '' : '无法保存设置，请检查浏览器的存储权限。', 'error'); sync(); }
 
       const bindSwitch = (node, field) => node.addEventListener('click', () => saved(prefs.set({[field]: node.getAttribute('aria-checked') !== 'true'})));
-      bindSwitch(enabled, 'enabled'); bindSwitch(quiet, 'quiet'); bindSwitch(newsFx, 'newsFx'); bindSwitch(pin, 'dialPin');
+      bindSwitch(enabled, 'enabled'); bindSwitch(quiet, 'quiet'); bindSwitch(newsFx, 'newsFx');
       for (const [group, field] of [[size, 'size'], [dock, 'dock']]) {
         for (const input of group.inputs) input.addEventListener('change', () => { if (input.checked) saved(prefs.set({[field]: input.value})); });
       }
-      for (const [id, chip] of chips) {
-        chip.addEventListener('click', () => {
-          const result = dial.toggle(prefs.read().dial, id);
-          if (!result.ok) { notify(result.reason === 'min' ? `转盘至少保留 ${dial.MIN} 个功能。` : `转盘最多 ${dial.MAX} 个功能，先取消一个再添加。`); sync(); return; }
-          saved(prefs.set({dial: result.ids}));
-        });
-      }
-      reset.addEventListener('click', () => saved(prefs.set({dial: [...dial.DEFAULTS]})));
-
       const unsubscribe = prefs.subscribe(sync);
       sync();
       return () => { unsubscribe(); container.replaceChildren(); };

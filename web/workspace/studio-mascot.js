@@ -6,7 +6,7 @@
  *   hidden  news (the reader owns its own pet), project / workbench (focused editor and terminal surfaces),
  *           the mobile pairing page, and viewports narrower than MIN_WIDTH
  * Quiet mode, reduced motion and a hidden tab all stop animation and status polling. The spider is a news-only
- * creature and is never mounted here. Preferences come from NewsPetPrefs; the wheel's actions from NewsPetDial/NewsPetDirector
+ * creature and is never mounted here. Preferences come from NewsPetPrefs; the wheel's six fixed slots from NewsPetDial and their handlers from NewsPetDirector
  * and the wheel itself from NewsPetWheel. */
 (function (global) {
   'use strict';
@@ -38,7 +38,6 @@
    * @param {() => {view: string, tab?: string}} deps.route current route
    * @param {(hash: string) => void} deps.navigate
    * @param {object} deps.prefs NewsPetPrefs
-   * @param {object} deps.dial NewsPetDial
    * @param {object} deps.director NewsPetDirector
    * @param {object} deps.wheel NewsPetWheel
    * @param {object} deps.pets NewsPets registry
@@ -50,7 +49,7 @@
    * @param {Function} [deps.clearTimer]
    */
   function create(deps) {
-    const {host, prefs, dial, director, pets, feed, env} = deps, doc = host.ownerDocument;
+    const {host, prefs, director, pets, feed, env} = deps, doc = host.ownerDocument;
     const setTimer = deps.setTimer || setTimeout, clearTimer = deps.clearTimer || clearTimeout;
     let current = prefs.read(), engine = null, wheel = null, parts = null, statusFeed = null, hintTimer = null, failedPet = '', disposed = false, lastActions = '', status = {};
 
@@ -79,16 +78,10 @@
       return {root, canvas, depot, key};
     }
 
-    function actions() {
-      const route = deps.route(), click = hash => () => deps.navigate(hash), handlers = {
-        news: click('#news'), 'pet-settings': click('#settings/appearance'),
-        quiet: () => { const quiet = !current.quiet; if (prefs.set({quiet})) notify(quiet ? '安静模式已开启，宠物不再有动作和提示。' : '安静模式已关闭。'); },
-        'hide-pet': () => { prefs.setEnabled(false); notify('宠物已隐藏，可在“设置 → 宠物”里重新打开。'); },
-      };
-      const onHome = route.view === 'home'; // nothing to open when the home page is already showing
-      if (!onHome) handlers.workspace = click('#home');
-      return director.buildActions(dial.forSurface(current.dial, 'studio', onHome ? ['workspace'] : []).map(entry => entry.id), handlers);
-    }
+    /** The shared six-slot table; here is the Studio view, so the slot for the page the wheel is on is greyed. */
+    const actions = () => director.createActions({here: deps.route().view, go: deps.navigate, search: null, prefs, notify});
+    /** What the wheel shows, as text: it is rebuilt when this changes (a route change greys another slot). */
+    const signature = () => actions().map(item => `${item.id}:${item.enabled}:${item.checked}`).join();
 
     function options() {
       return {...director.petOptions(current, true), dock: current.dock === 'bl' ? 'bl' : 'br', theme: host.dataset.theme === 'dark' ? 'dark' : 'light'};
@@ -117,10 +110,9 @@
       try {
         engine = pets.mount(current.pet, {root: parts.root, canvas: parts.canvas, depot: parts.depot, options: options()});
       } catch { fail(); return; }
-      lastActions = actions().map(item => item.id).join();
+      lastActions = signature();
       wheel = deps.wheel.create({
-        tapTarget: parts.root, anchor: restingSlot, actions, pinned: current.dialPin, ignore: '.ce-mascot-key', returnFocus: () => parts?.key || null,
-        onPinChange: pinned => { if (!prefs.set({dialPin: pinned})) wheel?.setPinned(pinned); },
+        tapTarget: parts.root, anchor: restingSlot, actions, ignore: '.ce-mascot-key', returnFocus: () => parts?.key || null,
         onOpen: () => parts?.key.setAttribute('aria-expanded', 'true'), onClose: () => parts?.key.setAttribute('aria-expanded', 'false'),
       });
       syncMotion();
@@ -169,9 +161,8 @@
       if (wanted() && !engine) mount();
       else if (!wanted() && engine) unmount();
       else if (engine) {
-        const ids = actions().map(item => item.id).join();
-        if (ids !== lastActions) { lastActions = ids; wheel?.refresh(); }
-        wheel?.setPinned(current.dialPin);
+        const next = signature();
+        if (next !== lastActions) { lastActions = next; wheel?.refresh(); }
         engine.setOptions?.(options()); place(); syncMotion();
       }
     }
@@ -214,7 +205,7 @@
     let storage = null; try { storage = global.localStorage; } catch { storage = null; }
     const fetcher = global.CERemoteContext ? global.CERemoteContext.fetch : global.fetch.bind(global);
     return create({
-      host, route, navigate, storage, prefs: global.NewsPetPrefs, dial: global.NewsPetDial, director: global.NewsPetDirector, wheel: global.NewsPetWheel, pets: global.NewsPets,
+      host, route, navigate, storage, prefs: global.NewsPetPrefs, director: global.NewsPetDirector, wheel: global.NewsPetWheel, pets: global.NewsPets,
       feed: global.PetStatusFeed,
       fetchJson: async (url, signal) => {
         const response = await fetcher(url, {headers: {'X-Session-Client': 'panel'}, credentials: 'same-origin', cache: 'no-store', signal});

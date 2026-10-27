@@ -160,9 +160,7 @@
       select.value = petFallback || petName;
       const group = select.closest('.pet-switch'); if (group) group.hidden = allowed.size < 2;
     }
-    const toggle = $('pet-visible'), dial = $('pet-dial');
-    toggle.setAttribute('aria-pressed', String(petEnabled)); toggle.textContent = petEnabled ? '隐藏宠物' : '显示宠物';
-    dial.hidden = !petEnabled;
+    $('pet-dial').hidden = !petEnabled;
   }
   /** Stores the pet form; applyPrefs() reacts to the change like it does to one made in the Studio settings. */
   function switchPet(name) {
@@ -191,10 +189,8 @@
     if (switched) { petFallback = null; wheel?.close('api'); destroyPets(); }
     syncPets();
     if (!switched && engine) {
-      if (next.dial.join() !== before.dial.join()) wheel?.refresh();
       if (next.size !== before.size || next.dock !== before.dock) engine.setOptions?.(director.petOptions(next, fullPet()));
     }
-    wheel?.setPinned(next.dialPin);
     if (next.quiet !== before.quiet) { syncMotion(); $('spider-state').textContent = stateText(); if (!next.quiet) runArrival(); }
     if (switched && engine) { if (!still() && !$('research-panel').open) engine.pointAt($('article-title'), '阅读'); render(); runArrival(); }
   }
@@ -229,19 +225,12 @@
   // Inside the Studio the reader is an iframe, so navigation targets the surrounding page; stand-alone it opens the Studio.
   function goStudio(hash) { if (embedded) window.parent.location.hash = hash; else location.assign('/studio' + hash); }
   function openSearch() { if (readingView === 'article') $('open-directory').click(); $('search').focus(); }
-  // The dial shows the actions chosen in the Studio settings (3 to 6 of the pool); each one is a real shortcut into the app.
-  function petActions() {
-    const click = id => () => { if (!$(id).disabled) $(id).click(); };
-    return director.buildActions(window.NewsPetDial.forSurface(petPrefs.dial, 'news').map(entry => entry.id), {
-      workspace:() => goStudio('#home'), next:click('next'), previous:click('previous'), search:openSearch, collect:() => $('refresh').click(),
-      save:click('save-article'), archive:click('archive-article'),
-      quiet:() => { if (prefs.set({quiet:!petPrefs.quiet})) notice(petPrefs.quiet ? '安静模式已开启，宠物不再有动作和提示。可在“设置”里关闭。' : '安静模式已关闭。'); },
-      'pet-settings':() => goStudio('#settings/appearance'),
-      'hide-pet':() => { prefs.setEnabled(false); $('pet-visible').focus(); notice('宠物已隐藏，可在页面顶部点“显示宠物”，或在个人工作台左下角的“设置”里重新打开。'); },
-    });
-  }
+  // Six fixed slots (NewsPetDial); the handler table is shared with the Studio mascot, this page only says where it is.
+  const petActions = () => director.createActions({
+    here:'news', go:goStudio, search:openSearch, prefs, notify:notice,
+    afterHide:() => $('refresh').focus(),
+  });
   document.querySelectorAll('.pet-select').forEach(select => select.addEventListener('change', () => switchPet(select.value)));
-  $('pet-visible').addEventListener('click', () => { if (!prefs.setEnabled(!petEnabled)) notice('宠物设置暂时无法保存，本页选择仍然生效。'); });
   // Where the pet rests, as a viewport rectangle: the reader's dock when it has one, else the depot slot.
   function wheelAnchor() {
     const dock = petDock(), stage = $('animation-stage');
@@ -249,8 +238,7 @@
     return $('web-depot');
   }
   wheel = window.NewsPetWheel.create({
-    tapTarget:$('animation-stage'), anchor:wheelAnchor, safeTop:() => Math.max(0, ...['.toolbar', '#search'].map(selector => { const node = document.querySelector(selector), box = node && node.getBoundingClientRect(); return box && box.height > 0 ? Math.ceil(box.bottom) + 8 : 0; })), actions:petActions, pinned:petPrefs.dialPin, ignore:'#pet-dial', returnFocus:() => $('pet-dial'),
-    onPinChange:pinned => { if (!prefs.set({dialPin:pinned})) wheel.setPinned(pinned); },
+    tapTarget:$('animation-stage'), anchor:wheelAnchor, actions:petActions, ignore:'#pet-dial', returnFocus:() => $('pet-dial'),
     onOpen:() => { $('pet-dial').setAttribute('aria-expanded', 'true'); },
     onClose:() => { $('pet-dial').setAttribute('aria-expanded', 'false'); },
   });
