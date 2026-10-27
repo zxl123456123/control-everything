@@ -326815,7 +326815,8 @@
     "src/renderer/src/web/platform-settings-navigation.test.tsx",
     "src/renderer/src/web/platform-settings-navigation.ts",
     "mobile/src/platform-account/browser-portal.test.ts",
-    "mobile/src/platform-account/browser-portal.ts"
+    "mobile/src/platform-account/browser-portal.ts",
+    "config/scripts/orcad-playwright-core-package.mjs"
   ],
   "adapted_files": [
     {
@@ -326833,8 +326834,8 @@
     {
       "path": "config/scripts/build-orcad.mjs",
       "upstream_sha256": "07295bbbd5159a3cbcb42e204d8b2599d0ba3cb4301350b815c24bde9615c05c",
-      "reason": "P5: record actual build inputs and distributed output provenance.",
-      "current_sha256": "ef7f6de945f7744933355091ce7cad989c82083aca6a62aa40095a36b7a24d88"
+      "reason": "N1: export the exact pinned browser core through existing distribution ownership for desktop news collection.",
+      "current_sha256": "a6460008c5df705e3f5d8dbea9abebaa8e01c743154a015b92f35a451890c9ae"
     },
     {
       "path": "config/scripts/build-source-commit.mjs",

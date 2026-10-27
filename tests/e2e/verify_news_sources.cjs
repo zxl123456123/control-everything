@@ -19,12 +19,12 @@ const html = '<article><h1>Measured coding report</h1><p>' + paragraph + '</p><p
 let browser;
 function check(name, value) { assert(value, name); checks.push(name); }
 
-async function run(name, topic, query, feedFor, knownUrls=[]) {
+async function run(name, topic, query, feedFor, knownUrls=[], runtimeModule=null) {
   const folder = path.join(output, name); fs.mkdirSync(folder);
   const config = path.join(folder, 'request.json');
-  fs.writeFileSync(config, JSON.stringify({job_id:'a'.repeat(32),topic,query,capture_frames:false,known_urls:knownUrls}));
+  fs.writeFileSync(config, JSON.stringify({job_id:'a'.repeat(32),topic,query,capture_frames:false,known_urls:knownUrls,...(runtimeModule?{playwright_core:runtimeModule}:{})}));
   let context, resolve, exitCode = 0;
-  const events = [], navigations = [], pages = [], requests = [], errors = [];
+  const events = [], navigations = [], pages = [], requests = [], errors = [], modules = [];
   const done = new Promise(ready => {resolve = ready;});
   const request = {get:async url => {
     requests.push(url);
@@ -58,7 +58,7 @@ async function run(name, topic, query, feedFor, knownUrls=[]) {
     stdout:{write:line=>events.push(JSON.parse(line))},set exitCode(value){exitCode=value;}};
   try {
     vm.runInNewContext(fs.readFileSync(worker,'utf8'), {
-      require:id=>id==='playwright'?{chromium:{launch:async()=>ownedBrowser}}:workerRequire(id),
+      require:id=>{modules.push(id);return id===(runtimeModule||'playwright')?{chromium:{launch:async()=>ownedBrowser}}:workerRequire(id);},
       process:fakeProcess,Buffer,URL,console
     }, {filename:worker});
     await done;
@@ -67,12 +67,15 @@ async function run(name, topic, query, feedFor, knownUrls=[]) {
     check(name + ': source navigations use distinct pages', new Set(navigations.map(row=>row.page)).size===navigations.length);
     check(name + ': default collection skips X and search engines', navigations.every(row=>!/(?:x\.com|bing\.com)/.test(new URL(row.url).hostname)));
     const result = JSON.parse(fs.readFileSync(path.join(folder,'result.json'),'utf8'));
-    return {...result,events,navigations,requests,errors};
+    return {...result,events,navigations,requests,errors,modules};
   } finally {await context?.close();}
 }
 
 (async()=>{
   browser = await chromium.launch({channel:'msedge',headless:true});
+  const runtimeModule=path.join(output,'verified-core');
+  const injected=await run('verified-runtime','coding','coding',()=>rss([]),[],runtimeModule);
+  check('worker loads the injected core module without a bare development Playwright fallback',injected.modules.includes(runtimeModule)&&!injected.modules.includes('playwright'));
   const domestic = await run('domestic-first','models','models',url=>rss([entry(url.includes('qbitai')?'https://www.qbitai.com/2026/10/test.html':'https://sspai.com/post/test','新的模型发布')]));
   check('domestic feeds supply matching Chinese content without visiting foreign sources', domestic.items.length===2&&domestic.requests.every(url=>/qbitai\.com|sspai\.com/.test(new URL(url).hostname)));
   check('domestic publishers retain their names and readable body', domestic.items.every(row=>['量子位','少数派'].includes(row.source_name)&&row.content_kind==='full_text'));

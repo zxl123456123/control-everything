@@ -3,13 +3,15 @@
 from dataclasses import replace
 from io import BytesIO
 from email.message import Message
+import hashlib
+import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 import unittest
 from unittest.mock import Mock, patch
 
-from control_everything.http.desktop import Desktop
+from control_everything.http.desktop import Desktop, _news_runtime
 from control_everything.http.gateway import PanelHandler
 from control_everything.http.remote_context import inject
 from control_everything.integrations.remote_access import RemoteAccess
@@ -17,6 +19,31 @@ from control_everything.integrations.workbench_runtime import RuntimeConfig, Wor
 
 
 class DesktopAssemblyTests(unittest.TestCase):
+    def test_news_runtime_uses_only_manifest_registered_node_and_exact_core(self):
+        with TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            prefix = 'workbench-engine/out/'
+            core = prefix + 'node_modules/playwright-core/'
+            node_hash = hashlib.sha256(b'pinned node fixture').hexdigest()
+            node = prefix + 'runtimes/node-' + node_hash + '/node.exe'
+            contents = {prefix + 'orcad/.runtime-node': node_hash.encode(), node: b'pinned node fixture',
+                        core + 'index.js': b'module.exports = {}',
+                        core + 'package.json': json.dumps({'name': 'playwright-core', 'version': '1.64.0'}).encode()}
+            for name, raw in contents.items():
+                path = root / name
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes(raw)
+            files = [{'path': name, 'sha256': hashlib.sha256(raw).hexdigest()} for name, raw in contents.items()]
+            self.assertEqual(_news_runtime(root, 'workbench-engine', files),
+                             {'node': str(root / node), 'playwright_core': str(root / core)})
+            self.assertEqual(_news_runtime(root, 'workbench-engine', files[:-1]), {})
+            changed = [{**row, 'sha256': '0' * 64} if row['path'] == node else row for row in files]
+            with self.assertRaisesRegex(ValueError, 'news_runtime_node_identity'):
+                _news_runtime(root, 'workbench-engine', changed)
+            (root / (core + 'package.json')).write_text(json.dumps({'name': 'playwright-core', 'version': '1.63.0'}))
+            with self.assertRaisesRegex(ValueError, 'news_runtime_browser_identity'):
+                _news_runtime(root, 'workbench-engine', files)
+
     def setup_desktop(self):
         temporary = TemporaryDirectory()
         self.addCleanup(temporary.cleanup)

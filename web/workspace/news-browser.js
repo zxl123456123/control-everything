@@ -1,8 +1,8 @@
 // Isolated public-page research worker. It never loads a personal browser profile.
-const {chromium}=require('playwright');
 const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto');
 const {capturePublicPost,canonicalPost}=require('./news-public-embed.js');
 const config=JSON.parse(fs.readFileSync(process.argv[2],'utf8')),root=path.dirname(process.argv[2]);
+const {chromium}=require(config.playwright_core||'playwright');
 const hosts=new Set(['x.com','twitter.com','publish.x.com','www.tmaker.io','tmaker.io','steipete.me','simonwillison.net','www.anthropic.com','anthropic.com','claude.dev','openai.com','developers.openai.com','blog.google','deepmind.google','developers.googleblog.com','huggingface.co','github.com','arxiv.org','code.claude.com','www.qbitai.com','sspai.com']);
 const items=[],events=[];let browser,page,sequence=0,frameNumber=0;
 const presets={

@@ -12,7 +12,7 @@ from control_everything.workspace.news_research import ResearchJobs
 
 
 class NewsReader:
-    def __init__(self, root, source):
+    def __init__(self, root, source, *, runtime=None):
         self.root, self.source = Path(root), source
         self.reader_id = hashlib.sha256(str(self.root.resolve()).encode('utf-8')).hexdigest()[:32]
         self.lock = threading.RLock()
@@ -21,7 +21,7 @@ class NewsReader:
         self.feeds = self._read('feeds.json', {})
         self.known = {}
         self.article_lock = threading.Lock()
-        self.jobs = ResearchJobs(self.root, self.merge, self.collected_urls)
+        self.jobs = ResearchJobs(self.root, self.merge, self.collected_urls, runtime=runtime)
 
     def collected_urls(self):
         with self.lock:

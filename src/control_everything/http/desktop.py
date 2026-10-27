@@ -3,6 +3,7 @@
 import argparse
 from dataclasses import replace
 from pathlib import Path
+import re
 import threading
 import webbrowser
 from urllib.parse import urlsplit
@@ -102,6 +103,24 @@ class Desktop:
             self.server.server_close()
 
 
+def _news_runtime(root, engine_relative, files):
+    """Select only browser dependencies covered by the verified product manifest."""
+    indexed = {row['path']: row for row in files}
+    prefix = engine_relative + '/out/'
+    marker = prefix + 'orcad/.runtime-node'
+    core = prefix + 'node_modules/playwright-core/'
+    if not {marker, core + 'package.json', core + 'index.js'}.issubset(indexed):
+        return {}
+    node_hash = (root / marker).read_text(encoding='utf-8').strip()
+    node = prefix + 'runtimes/node-' + node_hash + '/node.exe'
+    if not re.fullmatch('[a-f0-9]{64}', node_hash) or indexed.get(node, {}).get('sha256') != node_hash:
+        raise ValueError('news_runtime_node_identity')
+    metadata = manifest.strict_json((root / (core + 'package.json')).read_text(encoding='utf-8'))
+    if metadata.get('name') != 'playwright-core' or metadata.get('version') != '1.64.0':
+        raise ValueError('news_runtime_browser_identity')
+    return {'node': str(root / node), 'playwright_core': str(root / core)}
+
+
 def build_desktop(product_root, data_dir=None, port=8766):
     root = manifest.no_links(product_root).resolve()
     document = manifest.verify_payload(root)
@@ -118,6 +137,7 @@ def build_desktop(product_root, data_dir=None, port=8766):
         return candidate
     server = build_profile_server(data_dir, port)
     try:
+        server.news_runtime = _news_runtime(root, config['engine_root'], document['files'])
         runtime = WorkbenchRuntime(RuntimeConfig(path('engine_root'), path('build_run'),
                                                  server.profile.data_dir / 'workbench', path('git'), ()))
         server.workbench_assets = WorkbenchAssets(path('engine_root') / 'out/web', path('build_run') / 'web-assets.json')

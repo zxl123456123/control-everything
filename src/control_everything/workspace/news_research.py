@@ -17,10 +17,11 @@ TOPICS = {'coding', 'agents', 'claude', 'models', 'tibo'}
 
 
 class ResearchJobs:
-    def __init__(self, root, on_result, collected_urls=None):
+    def __init__(self, root, on_result, collected_urls=None, *, runtime=None):
         self.root = Path(root) / 'research-captures'
         self.on_result = on_result
         self.collected_urls = collected_urls or (lambda: [])
+        self.runtime = runtime
         self.lock = threading.RLock()
         self.jobs = {}
         self.process = None
@@ -32,8 +33,13 @@ class ResearchJobs:
         if (not isinstance(query, str) or not 1 <= len(query.strip()) <= 240
                 or not isinstance(topic, str) or topic not in TOPICS or type(capture_frames) is not bool):
             raise ValueError('invalid_research_request')
-        node = os.environ.get('CONTROL_EVERYTHING_NEWS_NODE') or shutil.which('node')
-        if not node or not Path(node).is_file():
+        node = (self.runtime.get('node') if self.runtime is not None else
+                os.environ.get('CONTROL_EVERYTHING_NEWS_NODE') or shutil.which('node'))
+        if not node or not Path(node).is_file() or (self.runtime is not None and not Path(node).is_absolute()):
+            raise OSError('news_browser_unavailable')
+        core = self.runtime.get('playwright_core') if self.runtime is not None else None
+        if self.runtime is not None and (not core or not Path(core).is_absolute()
+                                        or not (Path(core) / 'index.js').is_file()):
             raise OSError('news_browser_unavailable')
         with self.lock:
             if self.closed or self.blocked:
@@ -47,7 +53,10 @@ class ResearchJobs:
                    'capture_frames': capture_frames, 'events': []}
             self.jobs[identity] = job
             config = folder / 'request.json'
-            config.write_text(json.dumps({**job, 'known_urls': self.collected_urls()}, ensure_ascii=False), encoding='utf-8')
+            private = {**job, 'known_urls': self.collected_urls()}
+            if core:
+                private['playwright_core'] = core
+            config.write_text(json.dumps(private, ensure_ascii=False), encoding='utf-8')
             self.thread = threading.Thread(target=self._run, args=(job, config, node), daemon=True)
             self.thread.start()
             return self.snapshot(identity)
