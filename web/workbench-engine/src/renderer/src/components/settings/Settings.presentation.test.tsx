@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { useContext, useEffect } from 'react'
-import { cleanup, render } from '@testing-library/react'
+import { cleanup, fireEvent, render } from '@testing-library/react'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { PlatformSettingsContext, SettingsDraftContext, type PlatformSettingsPresentation } from '@/web/platform-settings-navigation'
 import Settings from './Settings'
@@ -22,7 +22,8 @@ vi.mock('./use-settings-repo-scroll-effects', () => ({ useSettingsRepoScrollEffe
 vi.mock('./settings-view-model', () => ({ buildSettingsViewModel: () => ({}), useSettingsNavigationActions: () => ({}) }))
 vi.mock('./settings-page-renderer', () => ({
   renderSettingsLoading: (_: unknown, unavailable?: string) => <div data-testid="loading">{unavailable ?? 'pending'}</div>,
-  renderSettingsPage: (context: any) => <div data-testid="page"><DraftParticipant />{context.model.activeSectionId}</div>
+  renderSettingsPage: (context: any) => <div data-testid="page"><DraftParticipant />{context.model.activeSectionId}
+    <input aria-label="Native display name draft" defaultValue="" /></div>
 }))
 vi.mock('../window-close-request-coordinator', () => ({ registerWindowCloseGuard: (guard: () => boolean | Promise<boolean>) => {
   fixture.guard = guard
@@ -86,6 +87,29 @@ it('keeps a missing exact host/setup pending and never renders the prior project
   expect(view.getByTestId('loading').textContent).toBe('pending')
   expect(fixture.open).not.toHaveBeenCalled()
   expect(ready).toHaveBeenLastCalledWith(null)
+})
+
+it('retains the focused draft through native name echo and Studio label confirmation without replaying its target', () => {
+  fixture.model.activeSectionId = 'repo-repo-b'
+  const ready = vi.fn()
+  const presentation = { scope, visible: true, onReady: ready }
+  const view = render(page(presentation))
+  const input = view.getByRole<HTMLInputElement>('textbox', { name: 'Native display name draft' })
+  input.focus()
+  fireEvent.change(input, { target: { value: 'Renamed and newer unsaved text' } })
+  expect(fixture.open).toHaveBeenCalledOnce()
+  fixture.model.repos = [{ ...repo, displayName: 'Renamed' }]
+  view.rerender(page(presentation))
+  expect(input.isConnected).toBe(true)
+  expect(document.activeElement).toBe(input)
+  expect(input.value).toBe('Renamed and newer unsaved text')
+  view.rerender(page({ ...presentation, scope: { ...scope, name: 'Renamed' } }))
+  expect(view.getByRole('textbox', { name: 'Native display name draft' })).toBe(input)
+  expect(document.activeElement).toBe(input)
+  expect(input.value).toBe('Renamed and newer unsaved text')
+  expect(fixture.open).toHaveBeenCalledOnce()
+  expect(ready).toHaveBeenLastCalledWith({ contextKey: 'trusted', repoId: 'repo-b', hostId: 'runtime:b',
+    setupId: 'setup-b', sectionId: 'repo-repo-b' })
 })
 
 it('preserves and consumes a validated original repo subsection intent with an omitted host once', () => {

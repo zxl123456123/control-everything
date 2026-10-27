@@ -96,9 +96,9 @@ function studioFixture({ remote = false, savedCreatorUrl = null, monitorAvailabl
     nodes.set(id, { dataset: {}, innerHTML: '', textContent: '', hidden: false, listeners: {},
       focus() {}, setSelectionRange() {}, addEventListener(name, callback) { this.listeners[name] = callback; }, classList: { remove() {}, add() {} } });
   }
-  const creatorInput = { value: '', focus() {} }, writes = [], removed = [], mounts = [], monitorCalls = [];
+  const storageReads = [], writes = [], removed = [], mounts = [], monitorCalls = [];
   if (unified) { nodes.get('ce-studio').dataset.unified = 'true'; nodes.get('ce-studio').dataset.theme = 'dark'; }
-  nodes.get('ce-studio').querySelector = selector => selector === '[data-creator-url]' ? creatorInput : selector === '[data-action="navigation"]' ? menu : selector === 'dialog[open]' ? body.children.find(node => node.tagName === 'dialog' && node.open) : nodes.get(selector.slice(1));
+  nodes.get('ce-studio').querySelector = selector => selector === '[data-action="navigation"]' ? menu : selector === 'dialog[open]' ? body.children.find(node => node.tagName === 'dialog' && node.open) : nodes.get(selector.slice(1));
   nodes.get('ce-studio').getRootNode = () => ({ host: { closest: () => scrollHost }, styleSheets: [{ href: 'http://127.0.0.1/workspace.css', cssRules: [{ cssText: '.onboarding-dialog{padding:28px}' }] }, { href: 'http://127.0.0.1/studio-preview.css', cssRules: [{ cssText: '#ce-studio .ce-project-settings{color:red}' }] }] });
   nodes.get('ce-studio').append = (...values) => body.append(...values);
   Object.defineProperty(nodes.get('ce-studio'), 'innerHTML', { set() { throw new Error('Do not replace the stable shell'); } });
@@ -109,7 +109,7 @@ function studioFixture({ remote = false, savedCreatorUrl = null, monitorAvailabl
   let timerId = 0, clock = Date.now();
   const client = { bootstrap: async () => { if (initialFailure === 'bootstrap') throw new Error('bootstrap offline'); }, api() {}, post: async (url, value) => { posts.push({ url, value }); return { status: 'ok', project: { id: value.id } }; }, canWrite: () => true,
     snapshot: async () => { snapshotReads.push(true); if (failed) throw new Error('offline'); return snapshot; } };
-  const localStorage = { getItem: key => key === 'ce-studio-creator-url' ? savedCreatorUrl : null,
+  const localStorage = { getItem: key => { storageReads.push(key); return key === 'ce-studio-creator-url' ? savedCreatorUrl : null; },
     setItem: (...args) => writes.push(args), removeItem: key => removed.push(key) };
   const window = { history: { replaceState(_state, _title, hash) { location.hash = hash; } }, CEUITheme: { earlyRead: () => ({ theme: 'light', mount: () => () => {}, requestTheme(next) { this.theme = next; return {ok: true}; }, dispose() {} }) }, localStorage, addEventListener(name, callback) { callbacks[name] = callback; },
     removeEventListener(name) { delete callbacks[name]; }, dispatchEvent(event) { callbacks[event.type]?.(event); },
@@ -140,17 +140,20 @@ function studioFixture({ remote = false, savedCreatorUrl = null, monitorAvailabl
       onInactive(callback){listeners.add(callback);return ()=>listeners.delete(callback);},
       invalidate(){if(!active)return;active=false;for(const callback of [...listeners])callback();}};
   }
-  dispose = window.StudioPreview.mount(nodes.get('ce-studio'), { onProjects: (rows, metadata) => projectSnapshots.push({ rows, metadata }) });
+  let runtimeHost = unified ? 'runtime:owned-environment' : null;
+  dispose = window.StudioPreview.mount(nodes.get('ce-studio'), {
+    onProjects: (rows, metadata) => projectSnapshots.push({ rows, metadata }), runtimeHost: () => runtimeHost
+  });
   const flush = () => new Promise(resolve => setImmediate(resolve));
-  return { nodes, menu, scrollHost, snapshot, client, location, writes, removed, mounts, monitorCalls, callbacks, window, body, elements, dialog, active, boardProjects, projectSnapshots, posts, mobileMounts, mobileDisposals, boardSnapshots, snapshotReads, timers, document,
+  return { nodes, menu, scrollHost, snapshot, client, location, storageReads, writes, removed, mounts, monitorCalls, callbacks, window, body, elements, dialog, active, boardProjects, projectSnapshots, posts, mobileMounts, mobileDisposals, boardSnapshots, snapshotReads, timers, document,
     replaceMenu() { menu.isConnected = false; menu = element('button'); return menu; },
     onboarding: () => onboardingOptions, dispose: () => dispose(),
     editorMounts: () => editorMounts, updates: () => updates,
     fail() { failed = true; }, recover() { failed = false; }, flush,
+    setRuntimeHost(value) { runtimeHost = value; },
     async advance(ms) { clock += ms; const callbacks = [...timers.values()]; timers.clear(); for (const callback of callbacks) callback(); await flush(); },
     async hidden(value) { document.hidden = value; callbacks['document:visibilitychange'](); await flush(); },
     async route(value) { const from = location.hash; location.hash = '#' + value; if (unified) callbacks['platform-navigation-accepted']({detail: {from, to: location.hash}}); else callbacks.hashchange(); await flush(); },
-    submit(value) { creatorInput.value = value; nodes.get('ce-studio').listeners.submit({ preventDefault() {}, target: { dataset: { creatorForm: 'true' } } }); },
     openProject(id, href = '#project/' + id + '/workspace', modifiers = {}) { let prevented = false; nodes.get('ce-studio').listeners.click({ ...modifiers, preventDefault() { prevented = true; }, target: { closest: selector => selector === '[data-open-project]' ? { dataset: { openProject: id }, getAttribute: () => href } : null } }); return prevented; },
     manage(id) { nodes.get('ce-studio').listeners.click({ preventDefault() {}, target: { closest: selector => selector === '[data-project-settings]' ? { dataset: { projectSettings: id } } : null } }); },
     search(value) { nodes.get('ce-studio').listeners.input({ target: { id: 'studio-project-search', value, selectionStart: value.length } }); },
@@ -172,12 +175,19 @@ test('mobile navigation survives initial API failure and refresh without remount
   }
 });
 test('mobile return context follows project, legacy, and history routes without stale reuse', async () => {
-  for (const initialUrl of ['http://example.test/studio#project/p/review', 'http://example.test/studio?project_id=p']) {
+  for (const initialUrl of ['http://example.test/studio#project/p/review', 'http://example.test/studio?project_id=p', 'http://example.test/studio#workbench']) {
     const f = studioFixture({ initialUrl, unified: true }); await f.flush();
-    const expected = initialUrl.includes('#') ? '#project/p/review' : '#project/p/workspace';
-    await f.route('mobile'); assert.equal(f.mobileMounts.at(-1).returnHash, expected);
-    await f.route(expected.slice(1)); assert.equal(f.mobileDisposals.length, 1);
-    await f.route('mobile'); assert.equal(f.mobileMounts.at(-1).returnHash, expected);
+    const expected = initialUrl.endsWith('#workbench') ? '#workbench' : initialUrl.includes('#') ? '#project/p/review' : '#project/p/workspace';
+    for (const account of ['settings/account', 'mobile', 'settings/mobile']) {
+      const before = f.mobileDisposals.length;
+      await f.route(account); assert.equal(f.mobileMounts.at(-1).returnHash, expected);
+      const mounts = f.mobileMounts.length;
+      for (const alias of ['mobile', 'settings/mobile', 'settings/account']) {
+        await f.route(alias); assert.equal(f.mobileMounts.length, mounts);
+        assert.equal(f.mobileMounts.at(-1).returnHash, expected);
+      }
+      await f.route(expected.slice(1)); assert.equal(f.mobileDisposals.length, before + 1);
+    }
     await f.route('home'); await f.route('mobile'); assert.equal(f.mobileMounts.at(-1).returnHash, '#home');
     f.dispose();
   }
@@ -186,7 +196,7 @@ test('mobile return context follows project, legacy, and history routes without 
 test('account routes identify their page and leave refresh to the account panel', async () => {
   for (const unified of [false, true]) {
     const f = studioFixture({ unified }); await f.flush();
-    for (const route of ['settings/account', 'mobile']) {
+    for (const route of ['settings/account', 'mobile', 'settings/mobile']) {
       await f.route(route);
       const chrome = f.nodes.get('studio-topbar').innerHTML;
       assert.match(chrome, /<span> \/ 账号与设备<\/span>/);
@@ -220,47 +230,54 @@ test('Studio preserves mounted editors on refresh and renders only server projec
   assert.match(f.nodes.get('studio-content').innerHTML, /&lt;Real project&gt;/);
 });
 
-test('creator is an independent top-level and narrow-screen link without project routing', async () => {
+test('routine desktop, mobile topbar and drawer navigation omit the source-only creator', async () => {
   const f = studioFixture(); await f.flush();
-  const link = f.nodes.get('studio-rail').innerHTML.match(/<a [^>]+ce-creator-link[^>]*>/)[0];
-  assert.match(link, /href="http:\/\/127\.0\.0\.1:8770\/"/);
-  assert.match(link, /target="_blank" rel="noopener noreferrer"/);
-  assert.doesNotMatch(link, /data-action|data-route/);
-  assert.match(f.nodes.get('studio-topbar').innerHTML, /ce-creator-mobile.*href="http:\/\/127\.0\.0\.1:8770\/"/);
+  f.click('navigation');
+  const drawer = f.body.children.find(node => node.id === 'studio-navigation');
+  assert.equal(drawer.open, true);
+  for (const html of [f.nodes.get('studio-rail').innerHTML, f.nodes.get('studio-topbar').innerHTML, drawer.innerHTML]) {
+    assert.doesNotMatch(html, /ce-creator-link|游戏创作|127\.0\.0\.1:8770/);
+    assert.equal((html.match(/href="#news"/g) || []).length, 1);
+    assert.equal((html.match(/href="#settings\/account"/g) || []).length, 1);
+  }
   f.nodes.get('ce-studio').listeners.click({ target: { closest: () => null } });
   assert.equal(f.location.hash, '#home'); assert.equal(f.editorMounts(), 1);
   f.click('theme'); assert.equal(f.nodes.get('ce-studio').dataset.theme, 'dark');
   assert.equal(f.editorMounts(), 1);
 });
 
-test('creator URL writes one independent key and rejects all credential-bearing forms', async () => {
-  const f = studioFixture(); await f.flush(); await f.route('tools');
-  assert.match(f.nodes.get('studio-content').innerHTML, /data-creator-form="true"/);
-  assert.match(f.nodes.get('studio-content').innerHTML, /<details class="ce-creator-address">/);
-  assert.doesNotMatch(f.nodes.get('studio-content').innerHTML, /请先启动独立创作服务|普通 HTTP\(S\) 页面地址/);
-  f.submit('https://creator.example.test/workbench/');
-  assert.deepEqual(f.writes, [['ce-studio-creator-url', 'https://creator.example.test/workbench/']]);
-  assert.match(f.nodes.get('studio-content').innerHTML, /<details class="ce-creator-address">/);
-  for (const invalid of ['javascript:alert(1)', '//example.test', 'http://name:secret@example.test/',
-    'https://example.test/?token=synthetic', 'https://example.test/#token', 'https://example.test/?',
-    'https://example.test/#', 'https://example.test/a b', ' https://example.test/', 'https:\\example.test']) {
-    f.submit(invalid); assert.equal(f.writes.length, 1);
-    assert.match(f.nodes.get('studio-content').innerHTML, /aria-invalid="true"/);
-    assert.match(f.nodes.get('studio-content').innerHTML, /<details class="ce-creator-address" open>/);
-    assert.doesNotMatch(f.nodes.get('studio-content').innerHTML, /id="studio-creator-error" role="status" hidden/);
-    assert.match(f.nodes.get('studio-rail').innerHTML, /href="https:\/\/creator\.example\.test\/workbench\/"/);
+test('retired creator addresses are neither consumed nor changed in local and remote Studio', async () => {
+  for (const remote of [false, true]) for (const unified of [false, true]) {
+    for (const savedCreatorUrl of [null, 'https://creator.example.test/workbench/', 'https://example.test/#synthetic-creator-secret']) {
+      const f = studioFixture({ remote, unified, savedCreatorUrl }); await f.flush();
+      f.click('navigation');
+      const drawer = f.body.children.find(node => node.id === 'studio-navigation');
+      for (const html of [f.nodes.get('studio-rail').innerHTML, f.nodes.get('studio-topbar').innerHTML, drawer.innerHTML]) {
+        assert.doesNotMatch(html, /游戏创作|ce-creator-link|127\.0\.0\.1:8770|creator\.example\.test|synthetic-creator-secret/);
+        assert.equal((html.match(/href="#news"/g) || []).length, 1);
+        assert.equal((html.match(/href="#settings\/account"/g) || []).length, 1);
+      }
+      assert.ok(!f.storageReads.includes('ce-studio-creator-url'));
+      assert.deepEqual(f.writes, []); assert.deepEqual(f.removed, []);
+      f.dispose();
+    }
   }
-  assert.match(f.nodes.get('studio-topbar').innerHTML, /href="https:\/\/creator\.example\.test\/workbench\/"/);
-  assert.equal(f.editorMounts(), 1);
 });
 
-test('invalid stored creator URLs are discarded without echoing token material', async () => {
-  const f = studioFixture({ savedCreatorUrl: 'https://example.test/#synthetic-creator-secret' }); await f.flush();
-  assert.deepEqual(f.removed, ['ce-studio-creator-url']);
-  assert.match(f.nodes.get('studio-rail').innerHTML, /href="http:\/\/127\.0\.0\.1:8770\/"/);
-  assert.doesNotMatch(f.nodes.get('studio-rail').innerHTML, /synthetic-creator-secret/);
-  const valid = studioFixture({ savedCreatorUrl: 'https://creator.example.test/' }); await valid.flush();
-  assert.match(valid.nodes.get('studio-rail').innerHTML, /href="https:\/\/creator\.example\.test\/"/);
+test('advanced deep links retain their compatibility actions without a creator address form', async () => {
+  for (const remote of [false, true]) {
+    const f = studioFixture({ remote, savedCreatorUrl: 'https://creator.example.test/' }); await f.flush();
+    for (const route of ['tools', 'settings/sources']) {
+      await f.route(route);
+      assert.doesNotMatch(f.nodes.get('studio-content').innerHTML, /游戏创作|data-creator|studio-creator|ce-creator-address|creator\.example\.test/);
+      assert.match(f.nodes.get('studio-content').innerHTML, /href="\/workspace-admin#settings"/);
+    }
+    assert.equal((f.nodes.get('studio-content').innerHTML.match(/data-action="external-access"/g) || []).length, 1);
+    assert.equal(f.nodes.get('ce-studio').listeners.submit, undefined);
+    assert.ok(!f.storageReads.includes('ce-studio-creator-url'));
+    assert.deepEqual(f.writes, []); assert.deepEqual(f.removed, []);
+    f.dispose();
+  }
 });
 
 test('project monitor reuses an instance, deactivates hidden views and destroys stale project bindings', async () => {
@@ -388,39 +405,32 @@ test('overview filters and sorting stay in memory while statistics keep their ca
   assert.equal(reads, 0);
 });
 
-test('project registration uses a styled visible target and every close stays on the current page', async () => {
+
+test('native project requests keep the existing page and never load a replacement form', async () => {
   const f = studioFixture({ unified: true }); await f.flush();
-  await f.route('project/server-project/workspace');
-  const hash = f.location.hash;
-  f.window.fetch = async () => ({ ok: true, text: async () => '<dialog id="onboarding-dialog"></dialog>' });
-  for (const reason of ['cancel', 'escape', 'saved']) {
+  let opens = 0, fetches = 0;
+  f.window.addEventListener('platform-open-add-repo', () => { opens++; });
+  f.window.fetch = async () => { fetches++; throw new Error('replacement form forbidden'); };
+  for (const page of ['workbench', 'project/server-project/workspace', 'project/server-project/activity']) {
+    await f.route(page);
     f.callbacks['platform-add-project'](); await f.flush();
-    assert.equal(f.dialog.open, true);
-    const host = f.body.children.find(node => Object.hasOwn(node.dataset, 'platformProjectDialog'));
-    assert.ok(host.shadowRoot, 'the body target must isolate and carry existing styles');
-    const wrapper = host.shadowRoot.querySelector('#ce-studio');
-    assert.equal(wrapper.dataset.unified, 'true'); assert.equal(wrapper.dataset.theme, 'dark');
-    assert.equal(f.dialog.parent, wrapper);
-    assert.match(host.shadowRoot.querySelector('style').textContent, /onboarding-dialog/);
-    assert.match(host.shadowRoot.querySelector('style').textContent, /ce-project-settings/);
-    if (reason === 'saved') await f.onboarding().onChanged({ id: 'new-project' });
-    f.dialog.close(); assert.equal(f.location.hash, hash);
-    assert.ok(f.active.focusCount > 0);
+    assert.equal(f.location.hash, '#' + page);
+    assert.equal(f.dialog.open, false);
   }
-  f.callbacks['platform-add-project'](); await f.flush(); f.dispose();
-  assert.equal(f.dialog.open, false); assert.equal(f.body.children.length, 0);
+  assert.equal(opens, 3); assert.equal(fetches, 0); assert.equal(f.onboarding(), undefined);
+  f.dispose();
 });
 
-test('registration load failure is visible and allows a retry from the development page', async () => {
-  const f = studioFixture({ unified: true }); await f.flush(); await f.route('project/server-project/workspace');
-  f.callbacks['platform-add-project']();
-  await f.flush();
-  const notice = f.elements.find(node => node.tagName === 'dialog' && node.open);
-  assert.match(notice.innerHTML, /添加项目暂不可用/);
-  notice.querySelector('button').listeners.click[0](); assert.equal(notice.isConnected, false);
-  f.window.fetch = async () => ({ ok: true, text: async () => '' });
-  f.callbacks['platform-add-project'](); await f.flush();
-  assert.equal(f.dialog.open, true); assert.equal(f.location.hash, '#project/server-project/workspace');
+
+test('native adoption waits for a published active project without navigating or writing again', async () => {
+  const f = studioFixture({ unified: true }); await f.flush(); await f.route('workbench');
+  f.snapshot.workspace.projects.items.push({ id: 'new-project', name: 'New' });
+  const waits = [];
+  f.callbacks['platform-native-project-adopted']({ detail: { projectId: 'new-project', waitUntil: value => waits.push(value) } });
+  assert.equal(waits.length, 1); assert.equal(await waits[0], true);
+  assert.ok(f.projectSnapshots.at(-1).rows.some(project => project.id === 'new-project'));
+  assert.equal(f.location.hash, '#workbench'); assert.equal(f.posts.length, 0);
+  f.dispose();
 });
 
 test('an unregistered directory notice stays on the current page', async () => {
@@ -697,46 +707,53 @@ test('drawer close restores the current menu after chrome replacement and backdr
   f.dispose();
 });
 
-test('first-level project requests enter the native workbench before its registration event opens a dialog', async () => {
-  const f = studioFixture({unified:true}); await f.flush();
-  f.window.fetch = async () => ({ok:true,text:async()=>''});
+
+test('first-level project requests enter the native workbench and delegate to its existing dialog', async () => {
+  const f = studioFixture({ unified: true }); await f.flush();
+  let opens = 0; f.window.addEventListener('platform-open-add-repo', () => { opens++; });
   f.callbacks['platform-add-project'](); await f.flush();
-  assert.equal(f.location.hash, '#workbench'); assert.equal(f.dialog.open, false);
+  assert.equal(f.location.hash, '#workbench'); assert.equal(opens, 0);
   await f.route('workbench');
+  f.callbacks['platform-add-project'](); await f.flush();
+  assert.equal(opens, 1); assert.equal(f.dialog.open, false);
   assert.doesNotMatch(f.nodes.get('studio-content').innerHTML, /data-action="open-project-dialog"|项目配置/);
-  f.callbacks['platform-add-project'](); await f.flush(); assert.equal(f.dialog.open, true);
-  f.dialog.close(); assert.equal(f.location.hash, '#workbench');
+  f.dispose();
 });
 
-test('confirmed registration closes before refresh and only returned IDs determine the destination', async () => {
-  const f = studioFixture({unified:true}); await f.flush(); await f.route('workbench');
-  f.window.fetch = async () => ({ok:true,text:async()=>''}); f.callbacks['platform-add-project'](); await f.flush();
-  f.snapshot.workspace.projects.items.push({id:'new-project',name:'New',directories:[{id:'main',path:'C:/example/new'}]});
-  f.dialog.close(); await f.onboarding().onChanged(undefined,{kind:'registered',confirmedIDs:['new-project']});
-  assert.equal(f.location.hash, '#project/new-project/workspace'); assert.equal(f.posts.length, 0);
-  await f.route('workbench');
-  await f.onboarding().onChanged(undefined,{kind:'source-saved'});
-  assert.equal(f.location.hash, '#workbench');
-  await f.onboarding().onChanged({id:'new-project'});
-  assert.equal(f.location.hash, '#workbench');
+
+test('native adoption refuses missing or archived catalog entries and permits a read-only retry', async () => {
+  const f = studioFixture({ unified: true }); await f.flush(); await f.route('workbench');
+  const adopt = async () => {
+    const waits = [];
+    f.callbacks['platform-native-project-adopted']({ detail: { projectId: 'new-project', waitUntil: value => waits.push(value) } });
+    return waits[0];
+  };
+  assert.equal(await adopt(), false);
+  const project = { id: 'new-project', name: 'New', archived: true };
+  f.snapshot.workspace.projects.items.push(project);
+  assert.equal(await adopt(), false);
+  project.archived = false; f.fail(); assert.equal(await adopt(), false);
+  f.recover(); assert.equal(await adopt(), true);
+  assert.equal(f.posts.length, 0); assert.equal(f.location.hash, '#workbench');
+  f.dispose();
 });
 
-test('multiple and partial receipts stay in an internal notice, and read failure retries without POST', async () => {
-  const f = studioFixture({unified:true}); await f.flush(); await f.route('workbench');
-  f.window.fetch = async () => ({ok:true,text:async()=>''}); f.callbacks['platform-add-project'](); await f.flush(); f.dialog.close();
-  f.snapshot.workspace.projects.items.push({id:'second',name:'Second'});
-  await f.onboarding().onChanged(undefined,{kind:'registered',confirmedIDs:['server-project','second'],failedCount:1});
-  assert.equal(f.location.hash, '#workbench');
-  const firstNotice = f.elements.findLast(node => node.className === 'ce-project-settings');
-  assert.match(firstNotice.innerHTML, /已添加 2 个项目/);
-  assert.match(firstNotice.innerHTML, /1 项未加入/);
-  firstNotice.close();
-  f.fail(); await f.onboarding().onChanged(undefined,{kind:'registered',confirmedIDs:['second']});
-  const failedNotice = f.elements.findLast(node => node.className === 'ce-project-settings');
-  assert.match(failedNotice.innerHTML, /无需再次创建/);
-  const retry = failedNotice.descendants().find(node => node.tagName === 'button' && node.textContent === '重新读取');
-  assert.ok(retry); f.recover(); retry.listeners.click[0](); await f.flush();
-  assert.equal(f.location.hash, '#project/second/workspace'); assert.equal(f.posts.length, 0);
+
+test('native adoption waits through an older in-flight read before confirming the new project', async () => {
+  const f = studioFixture({ unified: true }); await f.flush(); await f.route('workbench');
+  const old = JSON.parse(JSON.stringify(f.snapshot));
+  const resolvers = [];
+  f.client.snapshot = () => new Promise(resolve => resolvers.push(resolve));
+  f.click('refresh'); await f.flush();
+  const waits = [];
+  f.callbacks['platform-native-project-adopted']({ detail: { projectId: 'new-project', waitUntil: value => waits.push(value) } });
+  let confirmed = false; waits[0].then(() => { confirmed = true; });
+  resolvers[0](old); await f.flush();
+  assert.equal(resolvers.length, 2); assert.equal(confirmed, false);
+  f.snapshot.workspace.projects.items.push({ id: 'new-project', name: 'New' });
+  resolvers[1](f.snapshot);
+  assert.equal(await waits[0], true); assert.equal(f.posts.length, 0);
+  f.dispose();
 });
 
 test('integrated Studio ignores a raw requested hash until the entry accepts it', async () => {
@@ -756,15 +773,33 @@ test('standalone asynchronous navigation guards preserve the accepted hash until
   assert.equal(f.location.hash, '#workbench'); assert.match(f.nodes.get('studio-content').innerHTML, /项目运行组件未连接/);
 });
 
-test('late registration refresh does not replace a later accepted page', async () => {
-  const f = studioFixture({unified:true}); await f.flush(); await f.route('workbench');
-  f.window.fetch = async () => ({ok:true,text:async()=>''}); f.callbacks['platform-add-project'](); await f.flush(); f.dialog.close();
-  f.snapshot.workspace.projects.items.push({id:'saved-late',name:'Saved'});
+
+test('late native adoption does not replace a later accepted page or confirm after disposal', async () => {
+  const f = studioFixture({ unified: true }); await f.flush(); await f.route('workbench');
   let resolve;
-  f.client.snapshot = () => new Promise(done => {resolve=done;});
-  const saved = f.onboarding().onChanged(undefined,{kind:'registered',confirmedIDs:['saved-late']});
-  await f.route('settings/sources'); resolve(f.snapshot); await saved;
+  f.client.snapshot = () => new Promise(done => { resolve = done; });
+  const waits = [];
+  f.callbacks['platform-native-project-adopted']({ detail: { projectId: 'new-project', waitUntil: value => waits.push(value) } });
+  await f.route('settings/sources');
+  f.snapshot.workspace.projects.items.push({ id: 'new-project', name: 'New' });
+  resolve(f.snapshot); assert.equal(await waits[0], true);
   assert.equal(f.location.hash, '#settings/sources');
+  f.callbacks['platform-native-project-adopted']({ detail: { projectId: 'new-project', waitUntil: value => waits.push(value) } });
+  f.dispose(); resolve(f.snapshot); assert.equal(await waits[1], false);
+  assert.equal(f.callbacks['platform-native-project-adopted'], undefined);
+});
+
+test('native adoption ignores malformed and standalone events', async () => {
+  for (const unified of [true, false]) {
+    const f = studioFixture({ unified }); await f.flush();
+    const reads = f.snapshotReads.length, waits = [];
+    for (const detail of [undefined, {}, { projectId: '../outside', waitUntil: value => waits.push(value) },
+      ...(unified ? [] : [{ projectId: 'server-project', waitUntil: value => waits.push(value) }])]) {
+      f.callbacks['platform-native-project-adopted']({ detail });
+    }
+    assert.equal(waits.length, 0); assert.equal(f.snapshotReads.length, reads);
+    f.dispose();
+  }
 });
 
 test('successful reads stay quiet and a failed refresh remains visible until recovery', async () => {
@@ -777,4 +812,78 @@ test('successful reads stay quiet and a failed refresh remains visible until rec
   f.recover(); f.click('refresh'); await f.flush();
   assert.equal(f.nodes.get('studio-status').hidden, true);
   assert.equal(f.nodes.get('studio-status').textContent, '');
+});
+
+function projectAction(f, action, changes = {}) {
+  const controller = new AbortController(), waits = [];
+  f.callbacks['platform-native-project-action']({ detail: {
+    action, repoId: 'native-repo', directory: 'C:/example/fixture', executionHostId: 'runtime:owned-environment',
+    signal: controller.signal, waitUntil: value => waits.push(value), ...changes
+  } });
+  return { controller, result: waits[0] };
+}
+
+test('native name edits preserve the complete registered project and confirm after its native echo', async () => {
+  const f = studioFixture({ unified: true }); await f.flush();
+  const row = f.snapshot.workspace.projects.items[0];
+  row.directories.push({ id: 'assets', path: 'C:/example/assets' }); row.source = { kind: 'none' };
+  const edit = projectAction(f, 'rename', { name: 'Renamed' });
+  const confirm = await edit.result;
+  assert.equal(typeof confirm, 'function'); assert.equal(f.posts.length, 1);
+  assert.equal(f.posts[0].value.id, row.id); assert.equal(f.posts[0].value.name, 'Renamed');
+  assert.deepEqual(Array.from(f.posts[0].value.directories, entry => entry.id), ['main', 'assets']);
+  assert.equal(f.posts[0].value.archived, false); assert.equal(f.posts[0].value.source.kind, 'none');
+  assert.equal(f.posts[0].value.expected.name, '<Real project>');
+  assert.equal(f.posts[0].value.expected.archived, false);
+  assert.equal(f.posts[0].value.expected.directories.length, 2);
+  const other = projectAction(f, 'archive');
+  await assert.rejects(other.result, /项目正在保存/); assert.equal(f.posts.length, 1);
+  row.name = 'Renamed'; await confirm(); edit.controller.abort();
+  const archive = projectAction(f, 'archive'); row.archived = true;
+  await archive.result; archive.controller.abort();
+  assert.equal(f.posts.length, 2); assert.equal(f.posts[1].value.name, 'Renamed');
+  assert.equal(f.posts[1].value.archived, true); assert.equal(f.location.hash, '#home');
+  f.dispose();
+});
+
+test('native project actions reject wrong hosts, stale context, ambiguous and read-only directories before a write', async () => {
+  const f = studioFixture({ unified: true }); await f.flush();
+  const row = f.snapshot.workspace.projects.items[0];
+  await assert.rejects(projectAction(f, 'archive', { executionHostId: 'runtime:foreign' }).result, /电脑已变化/);
+  row.read_only = true; await assert.rejects(projectAction(f, 'archive').result, /登记已变化/); delete row.read_only;
+  f.snapshot.workspace.projects.items.push({ ...row, id: 'duplicate' });
+  await assert.rejects(projectAction(f, 'archive').result, /登记已变化/); f.snapshot.workspace.projects.items.pop();
+  await assert.rejects(projectAction(f, 'rename', { name: ' ' }).result, /1 至 80/);
+  assert.equal(f.posts.length, 0);
+  let resolve;
+  f.client.post = () => new Promise(done => { resolve = done; });
+  const late = projectAction(f, 'rename', { name: 'Late' });
+  f.setRuntimeHost('runtime:another'); resolve({ status: 'ok', project: { id: row.id } });
+  await assert.rejects(late.result, /电脑已变化/); late.controller.abort();
+  f.dispose();
+});
+
+test('failed and cancelled native project actions release their exact busy owner without replaying writes', async () => {
+  const f = studioFixture({ unified: true }); await f.flush();
+  const row = f.snapshot.workspace.projects.items[0];
+  const first = projectAction(f, 'rename', { name: 'First' }); await first.result; first.controller.abort();
+  const second = projectAction(f, 'rename', { name: 'Second' }); const confirm = await second.result;
+  first.controller.abort();
+  await assert.rejects(projectAction(f, 'archive').result, /正在保存/);
+  row.name = 'Second'; f.fail(); await assert.rejects(confirm(), /列表尚未确认/);
+  second.controller.abort(); f.recover();
+  const third = projectAction(f, 'rename', { name: 'Third' }); const finalConfirm = await third.result;
+  row.name = 'Third'; await finalConfirm(); third.controller.abort();
+  assert.equal(f.posts.length, 3); f.dispose();
+});
+
+test('native project conflicts preserve the current input and never retry an old save', async () => {
+  const f = studioFixture({ unified: true }); await f.flush();
+  let writes = 0;
+  f.client.post = async () => { writes++; throw Object.assign(new Error('project changed'), { reason: 'project_changed' }); };
+  const edit = projectAction(f, 'rename', { name: 'Retained input' });
+  await assert.rejects(edit.result, error => error.reason === 'project_changed');
+  edit.controller.abort(); assert.equal(writes, 1);
+  assert.equal(f.snapshot.workspace.projects.items[0].name, '<Real project>');
+  assert.equal(f.location.hash, '#home'); f.dispose();
 });

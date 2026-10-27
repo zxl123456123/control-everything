@@ -282,7 +282,7 @@ export function AutomationsListPanel(props: AutomationsListPanelProps): React.JS
 
   return (
     <section
-      className="flex min-h-0 flex-1 flex-col overflow-hidden px-4 pb-8 md:px-8"
+      className="flex min-h-0 flex-1 flex-col overflow-hidden px-3 pb-4 md:px-5"
       data-contextual-tour-target="automations-list"
     >
       <AutomationListToolbar
@@ -322,20 +322,14 @@ export function AutomationsListPanel(props: AutomationsListPanelProps): React.JS
       />
       <AutomationHostLoadSummary {...hostCatalog.loadCounts} />
       {externalManagersUncheckedNotice ? (
-        <p
-          className="pb-4 text-sm leading-[22px] text-muted-foreground"
-          data-external-managers="unchecked"
-        >
+        <p className="pb-2 text-[11px] text-muted-foreground" data-external-managers="unchecked">
           {externalManagersUncheckedNotice}
         </p>
       ) : null}
 
       <div
         ref={listRef}
-        className={cn(
-          LIST_TABLE_CONTAINER_CLASS,
-          'scrollbar-sleek min-h-0 flex-1 overflow-auto rounded-2xl bg-card'
-        )}
+        className={cn('scrollbar-sleek min-h-0 flex-1 overflow-auto', LIST_TABLE_CONTAINER_CLASS)}
       >
         {hasFilteredListItems ? (
           <div className="min-w-full w-fit">

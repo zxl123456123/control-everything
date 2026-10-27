@@ -14,6 +14,7 @@ import {
   updateEnvironmentFromResponse
 } from './web-runtime-session'
 import { RUNTIME_CONNECTION_CHANGED_MESSAGE } from '../web-runtime-request-registry'
+import { adoptPlatformNativeRepo, isPlatformNativeRepoMutation } from './platform-native-repo-adoption'
 
 export type WebRuntimeResultCaller = <TResult>(
   method: string,
@@ -36,6 +37,7 @@ export async function callRuntimeEnvelope<TResult = unknown>(
   if (manuallyDisconnectedEnvironmentIds.has(environment.id)) {
     return manuallyDisconnectedResponse(environment)
   }
+  const adopt = captureNativeRepoAdoption(environment, method)
   const response = await runtimeCallQueuePool.enqueue(environment.id, method, () => {
     if (manuallyDisconnectedEnvironmentIds.has(environment.id)) {
       return Promise.resolve(manuallyDisconnectedResponse(environment))
@@ -46,7 +48,30 @@ export async function callRuntimeEnvelope<TResult = unknown>(
     return manuallyDisconnectedResponse(environment)
   }
   updateEnvironmentFromResponse(environment, response)
+  await adopt?.(response)
   return response as RuntimeRpcResponse<TResult>
+}
+
+function captureNativeRepoAdoption(
+  environment: ReturnType<typeof requireActiveEnvironment>,
+  method: string
+): ((response: RuntimeRpcResponse<unknown>) => Promise<void>) | undefined {
+  if (!isPlatformNativeRepoMutation(method)) return
+  const revision = environment.pairingRevision ?? environment.createdAt
+  const client = getClientForEnvironment(environment)
+  // A fresh registry starts at zero and increments once when its first socket is connected.
+  const epoch = client.connectionEpoch === 0 ? 1 : client.connectionEpoch
+  return async (response) => {
+    await adoptPlatformNativeRepo(method, environment.id, response, () => {
+      assertEnvironmentPairing(environment.id, revision)
+      const current = resolveEnvironment(environment.id)
+      if (manuallyDisconnectedEnvironmentIds.has(environment.id) ||
+        getClientForEnvironment(current) !== client || client.connectionEpoch !== epoch ||
+        (current.runtimeId && current.runtimeId !== response._meta?.runtimeId)) {
+        throw new Error(RUNTIME_CONNECTION_CHANGED_MESSAGE)
+      }
+    })
+  }
 }
 
 export function assertEnvironmentPairing(selector: string, expectedRevision?: number): void {
@@ -132,6 +157,7 @@ export async function callEnvironmentEnvelope<TResult = unknown>(
   if (manuallyDisconnectedEnvironmentIds.has(environment.id)) {
     return manuallyDisconnectedResponse(environment)
   }
+  const adopt = captureNativeRepoAdoption(environment, method)
   const response = await runtimeCallQueuePool.enqueue(environment.id, method, () => {
     assertPairing()
     if (manuallyDisconnectedEnvironmentIds.has(environment.id)) {
@@ -150,6 +176,7 @@ export async function callEnvironmentEnvelope<TResult = unknown>(
   }
   assertPairing()
   updateEnvironmentFromResponse(environment, response)
+  await adopt?.(response)
   return response as RuntimeRpcResponse<TResult>
 }
 

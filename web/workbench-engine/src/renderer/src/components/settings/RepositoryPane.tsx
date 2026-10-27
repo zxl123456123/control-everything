@@ -1,7 +1,7 @@
 import type { GhAccountBinding } from '../../../../shared/github/account-binding'
 import { useCallback, useContext, useRef, useState } from 'react'
 import { PlatformProjectContext } from '@/web/platform-project-context'
-import { Button } from '../ui/button'
+import { archivePlatformProject } from '@/web/platform-project-actions'
 import type { OrcaHooks, RepoHookSettings } from '../../../../shared/orca-yaml-hook-types'
 import type { Project, ProjectUpdateArgs } from '../../../../shared/project-types'
 import type { Repo } from '../../../../shared/repo-types'
@@ -96,16 +96,6 @@ export function RepositoryPane({
   updateProject
 }: RepositoryPaneProps): React.JSX.Element {
   const platformMode = useContext(PlatformProjectContext) !== undefined
-  const manageProject = () => {
-    useAppStore.getState().closeModal()
-    requestAnimationFrame(() =>
-      window.dispatchEvent(
-        new CustomEvent('platform-manage-project', {
-          detail: { directory: repo.path, executionHostId: getRepoExecutionHostId(repo) }
-        })
-      )
-    )
-  }
   const isFolder = isFolderRepo(repo)
   // Why: this pane renders the switcher-selected host's repo row. Bind every
   // edit to that host so identity/host-specific writes land on the selected
@@ -268,14 +258,18 @@ export function RepositoryPane({
               </p>
             ) : null}
           </div>
-          {!platformMode && (
-            <RepositoryRemoveProjectButton
-              repo={repo}
-              removalScope={removalScope}
-              forceVisible={forceFullPaneForRepoMatch}
-              removeProject={removeProject}
-            />
-          )}
+          <RepositoryRemoveProjectButton
+            repo={repo}
+            removalScope={removalScope}
+            forceVisible={forceFullPaneForRepoMatch}
+            removeProject={
+              platformMode
+                ? async () => {
+                    await archivePlatformProject(repo)
+                  }
+                : removeProject
+            }
+          />
         </div>
 
         <SearchableSetting
@@ -291,22 +285,13 @@ export function RepositoryPane({
           <Label htmlFor={`repo-display-name-${repo.id}`} className="text-sm font-semibold">
             {translate('auto.components.settings.RepositoryPane.c7ef4415de', 'Display Name')}
           </Label>
-          {platformMode ? (
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-sm">{repo.displayName}</span>
-              <Button type="button" variant="outline" size="sm" onClick={manageProject}>
-                项目管理
-              </Button>
-            </div>
-          ) : (
-            <RepoSettingsDraftInput
-              id={`repo-display-name-${repo.id}`}
-              repoId={repo.id}
-              storeValue={repo.displayName}
-              onTextChange={(text) => updateSelectedRepo(repo.id, { displayName: text })}
-              className="h-9 text-sm"
-            />
-          )}
+          <RepoSettingsDraftInput
+            id={`repo-display-name-${repo.id}`}
+            repoId={repo.id}
+            storeValue={repo.displayName}
+            onTextChange={(text) => updateSelectedRepo(repo.id, { displayName: text })}
+            className="h-9 text-sm"
+          />
         </SearchableSetting>
 
         <SearchableSetting

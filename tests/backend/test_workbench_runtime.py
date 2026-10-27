@@ -11,7 +11,7 @@ from unittest.mock import patch
 import uuid
 
 from control_everything.integrations.workbench_runtime import (
-    RuntimeConfig, WorkbenchRuntime, WorkbenchUnavailable, isolated_environment, loopback_origin,
+    RuntimeConfig, WorkbenchRuntime, WorkbenchUnavailable, isolated_environment, loopback_origin, safe_path,
 )
 from control_everything.platform.windows_jobs import ProcessError, WindowsAPI
 
@@ -171,6 +171,55 @@ class WorkbenchRuntimeTests(unittest.TestCase):
                 self.manager.bootstrap('p1', 'Project', self.repo, remote=True)
         self.assertEqual(self.rpc_calls[-1], ('platform.revokeDevice', {'deviceId': 'device-id'}))
         self.assertFalse(self.manager._devices)
+
+    def test_inspect_repo_checks_owned_identity_without_mutation_or_offer(self):
+        self.start()
+        environment = str(uuid.uuid5(uuid.NAMESPACE_URL, 'control-everything:workbench:60a8f814-a084-44de-923e-b920354aef21'))
+        runtime = self.manager.status()['runtimeId']
+        self.repos = [{'id': 'native-repo', 'path': str(self.repo), 'displayName': 'Native name',
+                       'connectionId': None, 'executionHostId': 'runtime:' + environment}]
+        self.assertEqual(self.manager.inspect_repo(environment, runtime, 'native-repo'),
+                         {'repo_id': 'native-repo', 'directory': str(self.repo.resolve()), 'name': 'Native name',
+                          'environment_id': environment, 'runtime_id': runtime})
+        self.assertEqual(self.rpc_calls, [('repo.list', {})])
+        self.assertEqual(self.manager._devices, {})
+        for env, identity in ((str(uuid.uuid4()), runtime), (environment, 'stale-runtime')):
+            with self.subTest(env=env, identity=identity), self.assertRaises(WorkbenchUnavailable):
+                self.manager.inspect_repo(env, identity, 'native-repo')
+        self.assertEqual(self.rpc_calls, [('repo.list', {})])
+
+    def test_inspect_repo_rejects_unknown_ssh_foreign_duplicate_and_missing_directory(self):
+        self.start()
+        environment = str(uuid.uuid5(uuid.NAMESPACE_URL, 'control-everything:workbench:60a8f814-a084-44de-923e-b920354aef21'))
+        runtime = self.manager.status()['runtimeId']
+        original = {'id': 'native-repo', 'path': str(self.repo), 'displayName': 'Native'}
+        for rows in ([], [original, original], [{**original, 'connectionId': 'ssh-id'}],
+                     [{**original, 'executionHostId': 'ssh:ssh-id'}],
+                     [{**original, 'executionHostId': 'runtime:foreign'}],
+                     [original, {**original, 'id': 'second-id'}],
+                     [{**original, 'path': str(self.root / 'missing')}],
+                     [{**original, 'path': 'relative'}], [None]):
+            self.repos = rows
+            with self.subTest(rows=rows), self.assertRaises(WorkbenchUnavailable):
+                self.manager.inspect_repo(environment, runtime, 'native-repo')
+        self.assertTrue(all(method == 'repo.list' for method, _ in self.rpc_calls))
+
+    def test_inspect_repo_rechecks_runtime_after_owner_read_and_refuses_linked_paths(self):
+        self.start()
+        environment = str(uuid.uuid5(uuid.NAMESPACE_URL, 'control-everything:workbench:60a8f814-a084-44de-923e-b920354aef21'))
+        runtime = self.manager.status()['runtimeId']
+        self.repos = [{'id': 'native-repo', 'path': str(self.repo), 'displayName': 'Native'}]
+        original = self.manager._read_identity()
+        with patch.object(self.manager, '_read_identity', side_effect=[original, original, ({**original[0], 'runtimeId': 'changed'}, *original[1:])]):
+            with self.assertRaises(WorkbenchUnavailable):
+                self.manager.inspect_repo(environment, runtime, 'native-repo')
+        def checked_path(value):
+            if Path(value) == self.repo:
+                raise WorkbenchUnavailable('runtime_path_invalid')
+            return safe_path(value)
+        with patch('control_everything.integrations.workbench_runtime.safe_path', side_effect=checked_path):
+            with self.assertRaises(WorkbenchUnavailable):
+                self.manager.inspect_repo(environment, runtime, 'native-repo')
 
     def test_empty_workbench_only_bootstraps_runtime_without_project_or_root(self):
         from dataclasses import replace

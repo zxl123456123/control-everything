@@ -15,24 +15,21 @@ function AddProjectButton({
   preserveWorkspaceBoardOpen: boolean
 }): React.JSX.Element {
   const openModal = useAppStore((s) => s.openModal)
-  const platformMode = useContext(PlatformProjectContext) !== undefined
-  const label = platformMode ? '新建项目' : translate('auto.components.sidebar.SidebarHeader.addProject', 'Add project')
+  const label = translate('auto.components.sidebar.SidebarHeader.addProject', 'Add project')
 
   return (
     <Tooltip>
       <TooltipTrigger asChild>
         <Button
           variant="ghost"
-          size={platformMode ? 'xs' : 'icon-xs'}
+          size="icon-xs"
           type="button"
           className="text-muted-foreground"
           aria-label={label}
-          data-project-registration-entry={platformMode ? undefined : ''}
           data-workspace-board-preserve-open={preserveWorkspaceBoardOpen ? '' : undefined}
           onClick={() => openModal('add-repo')}
         >
           <FolderPlus className="size-3.5" strokeWidth={2.25} />
-          {platformMode && <span>{label}</span>}
         </Button>
       </TooltipTrigger>
       <TooltipContent side="bottom" sideOffset={6}>
@@ -52,10 +49,7 @@ function NewWorkspaceButton({
   // Why primary: workspace.create binds both Mod+N and Mod+Shift+N, and listing
   // every alias in a one-line tooltip reads as noise rather than help.
   const shortcutLabel = formatOptionalPrimaryShortcutLabel('workspace.create', keybindings)
-  const label =
-    platformProject !== undefined
-      ? '新建工作区'
-      : translate('auto.components.sidebar.SidebarHeader.92154beb7e', 'New workspace')
+  const label = translate('auto.components.sidebar.SidebarHeader.92154beb7e', 'New workspace')
 
   // Why the tour handoff here: the tour highlights this button, and it is now
   // the control that performs the action rather than one that opens a menu.
@@ -68,7 +62,7 @@ function NewWorkspaceButton({
       <TooltipTrigger asChild>
         <Button
           variant="ghost"
-          size={platformProject !== undefined ? 'xs' : 'icon-xs'}
+          size="icon-xs"
           type="button"
           className="text-muted-foreground"
           aria-label={label}
@@ -78,7 +72,6 @@ function NewWorkspaceButton({
           onClick={handleCreateWorkspace}
         >
           <Plus className="size-3.5" strokeWidth={2.25} />
-          {platformProject !== undefined && <span>新建工作区</span>}
         </Button>
       </TooltipTrigger>
       <TooltipContent side="bottom" sideOffset={6}>
@@ -96,7 +89,6 @@ export function SidebarHeaderActions({
   onWorkspaceBoardMenuOpenChange: (open: boolean) => void
   agentsViewActive?: boolean
 }): React.JSX.Element {
-  const platformMode = useContext(PlatformProjectContext) !== undefined
   return (
     <div className="flex shrink-0 items-center gap-1" data-sidebar-header-actions="">
       {/* Why only options swap: the activity view portals its own options button into this slot
@@ -108,7 +100,7 @@ export function SidebarHeaderActions({
         />
       )}
       <AddProjectButton preserveWorkspaceBoardOpen />
-      {!platformMode && <NewWorkspaceButton preserveWorkspaceBoardOpen />}
+      <NewWorkspaceButton preserveWorkspaceBoardOpen />
     </div>
   )
 }

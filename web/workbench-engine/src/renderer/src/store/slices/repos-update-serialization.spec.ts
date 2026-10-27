@@ -1,6 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createTestStore } from './store-test-helpers'
 import type { Repo } from '../../../../shared/repo-types'
+import { isPlatformProjectActionMode, preparePlatformProjectRename, capturePlatformProjectActionGuard } from '@/web/platform-project-actions'
+import { toast } from 'sonner'
+const platform = { mode: vi.mocked(isPlatformProjectActionMode), prepare: vi.mocked(preparePlatformProjectRename),
+  capture: vi.mocked(capturePlatformProjectActionGuard), error: vi.mocked(toast.error) }
 
 export function registerReposUpdateSerializationTests(): void {
   const localRepo: Repo = {
@@ -33,6 +37,10 @@ export function registerReposUpdateSerializationTests(): void {
 
   beforeEach(() => {
     reposUpdate.mockReset()
+    platform.mode.mockReturnValue(false)
+    platform.prepare.mockReset()
+    platform.capture.mockReset().mockReturnValue(() => undefined)
+    platform.error.mockClear()
     vi.stubGlobal('window', {
       api: {
         repos: {
@@ -43,6 +51,85 @@ export function registerReposUpdateSerializationTests(): void {
   })
 
   describe('repo update serialization', () => {
+    it('keeps platform prepare, native echo and confirmation inside the original name queue', async () => {
+      platform.mode.mockReturnValue(true)
+      const confirmed = deferred<void>()
+      const firstConfirm = vi.fn(() => {
+        expect(store.getState().repos[0]?.displayName).toBe('First')
+        return confirmed.promise
+      })
+      const firstPrepared = { confirm: firstConfirm, cancel: vi.fn(), assertCurrent: vi.fn() }
+      const secondPrepared = { confirm: vi.fn(async () => undefined), cancel: vi.fn(), assertCurrent: vi.fn() }
+      platform.prepare.mockResolvedValueOnce(firstPrepared).mockResolvedValueOnce(secondPrepared)
+      reposUpdate.mockResolvedValue(undefined)
+      const store = createTestStore()
+      store.setState({ repos: [localRepo] })
+      const first = store.getState().updateRepo(localRepo.id, { displayName: 'First' })
+      const second = store.getState().updateRepo(localRepo.id, { displayName: 'Second' })
+      expect(platform.prepare).toHaveBeenCalledTimes(1)
+      await vi.waitFor(() => expect(firstConfirm).toHaveBeenCalledOnce())
+      expect(reposUpdate).toHaveBeenCalledTimes(1)
+      expect(platform.prepare).toHaveBeenCalledTimes(1)
+      confirmed.resolve()
+      await expect(Promise.all([first, second])).resolves.toEqual([true, true])
+      expect(store.getState().repos[0]?.displayName).toBe('Second')
+      expect(firstPrepared.cancel).toHaveBeenCalledOnce()
+      expect(secondPrepared.cancel).toHaveBeenCalledOnce()
+    })
+
+    it('cancels platform preparation on native failure and reports partial success', async () => {
+      platform.mode.mockReturnValue(true)
+      const prepared = { confirm: vi.fn(), cancel: vi.fn(), assertCurrent: vi.fn() }
+      platform.prepare.mockResolvedValue(prepared)
+      reposUpdate.mockRejectedValue(new Error('native update failed'))
+      const store = createTestStore()
+      store.setState({ repos: [localRepo] })
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+      try { await expect(store.getState().updateRepo(localRepo.id, { displayName: 'Renamed' })).resolves.toBe(false) }
+      finally { errorSpy.mockRestore() }
+      expect(prepared.cancel).toHaveBeenCalledOnce()
+      expect(prepared.confirm).not.toHaveBeenCalled()
+      expect(store.getState().repos[0]?.displayName).toBe('Local')
+      expect(platform.error.mock.calls[0][0]).toContain('项目名称已保存')
+    })
+
+    it('does not rebind a queued old name to a replacement runtime', async () => {
+      platform.mode.mockReturnValue(true)
+      let epoch = 1
+      platform.capture.mockImplementation(() => {
+        const captured = epoch
+        return () => { if (epoch !== captured) throw Error('runtime changed') }
+      })
+      platform.prepare.mockResolvedValue({ confirm: async () => { epoch++ }, cancel: vi.fn(), assertCurrent: vi.fn() })
+      reposUpdate.mockResolvedValue(undefined)
+      const store = createTestStore()
+      store.setState({ repos: [localRepo] })
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+      try {
+        const first = store.getState().updateRepo(localRepo.id, { displayName: 'First' })
+        const oldQueued = store.getState().updateRepo(localRepo.id, { displayName: 'Old queued' })
+        await expect(Promise.all([first, oldQueued])).resolves.toEqual([true, false])
+      } finally { errorSpy.mockRestore() }
+      expect(platform.prepare).toHaveBeenCalledTimes(1)
+      expect(reposUpdate).toHaveBeenCalledTimes(1)
+      expect(store.getState().repos[0]?.displayName).toBe('First')
+    })
+    it('refuses a native echo after the prepared connection changes', async () => {
+      platform.mode.mockReturnValue(true)
+      const prepared = { confirm: vi.fn(), cancel: vi.fn(), assertCurrent: vi.fn()
+        .mockImplementationOnce(() => undefined).mockImplementationOnce(() => { throw Error('connection changed') }) }
+      platform.prepare.mockResolvedValue(prepared)
+      reposUpdate.mockResolvedValue(undefined)
+      const store = createTestStore()
+      store.setState({ repos:[localRepo] })
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+      try { await expect(store.getState().updateRepo(localRepo.id, {displayName:'Late'})).resolves.toBe(false) }
+      finally { errorSpy.mockRestore() }
+      expect(store.getState().repos[0]?.displayName).toBe('Local')
+      expect(prepared.confirm).not.toHaveBeenCalled()
+      expect(prepared.cancel).toHaveBeenCalledOnce()
+    })
+
     it('serializes local repo updates for the same repo before applying state', async () => {
       const firstUpdate = deferred<void>()
       const secondUpdate = deferred<void>()

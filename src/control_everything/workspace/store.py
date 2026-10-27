@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from uuid import uuid4
 
-from control_everything.input_validation import ProfileError
+from control_everything.input_validation import ProfileError, absolute_path
 from control_everything.workspace.validation import (
     project_id_valid, path_key, validate_project, validate_codex_project, finite_number, observation_owner,
     imported_id_valid, validate_candidate_project,
@@ -227,25 +227,76 @@ class WorkspaceStore:
                 items.append(item)
             return items
 
+    def adopt_project(self, name, directory):
+        """Reuse one active main directory or register it in the same write transaction."""
+        if not absolute_path(directory):
+            raise ProfileError('invalid_project', 'directories')
+        with self.connection() as connection:
+            connection.execute('BEGIN IMMEDIATE')
+            matches = connection.execute('''SELECT p.id,p.name,p.archived,d.binding_id,d.is_primary,s.kind
+                FROM project_directories d JOIN projects p ON p.id=d.project_id
+                LEFT JOIN project_sources s ON s.project_id=p.id WHERE d.path_key=?''', (path_key(directory),)).fetchall()
+            if any(row['archived'] for row in matches):
+                raise ProfileError('project_archived', status=409)
+            if len(matches) > 1 or matches and (matches[0]['binding_id'] != 'main' or not matches[0]['is_primary']):
+                raise ProfileError('directory_conflict', 'directories', status=409)
+            if matches:
+                existing = matches[0]
+                if existing['kind'] == 'codex':
+                    raise ProfileError('invalid_project', 'id', message='read_only_project')
+                if existing['kind'] is None:
+                    raise ProfileError('invalid_source', 'source')
+                return {'id': existing['id'], 'name': existing['name']}
+            item = validate_project({'id': None, 'name': name, 'archived': False,
+                                     'directories': [{'id': 'main', 'path': directory}],
+                                     'source': {'kind': 'none', 'directory_id': None, 'relative_path': None}})
+            if connection.execute('SELECT COUNT(*) FROM projects').fetchone()[0] >= 1000:
+                raise ProfileError('invalid_project', 'projects', message='project_budget_exceeded')
+            identity, stamp = 'p-' + uuid4().hex, now_utc()
+            position = connection.execute('SELECT COALESCE(MAX(position),-1)+1 FROM projects').fetchone()[0]
+            connection.execute('INSERT INTO projects VALUES(?,?,?,?,?,?)', (identity, item['name'], 0, stamp, stamp, position))
+            connection.execute('INSERT INTO project_directories VALUES(?,?,?,?,?)',
+                               (identity, 'main', directory, item['directories'][0]['path_key'], 1))
+            connection.execute('INSERT INTO project_sources VALUES(?,?,?,?)', (identity, 'none', None, None))
+            tasks.bump_list_revision(connection)
+            return dict(connection.execute('SELECT id,name FROM projects WHERE id=?', (identity,)).fetchone())
+
     def save_project(self, body, *, restore=False):
         if type(body) is not dict:
             raise ProfileError("invalid_project", "project")
         identity, stamp = body.get("project_id" if restore else "id"), now_utc()
         if identity is not None and not project_id_valid(identity):
             raise ProfileError("invalid_project", "id")
+        expected = None
+        if 'expected' in body:
+            expected = body['expected']
+            if (restore or identity is None or type(expected) is not dict
+                    or set(expected) != {'name', 'archived', 'directories', 'source'}):
+                raise ProfileError('invalid_project', 'expected')
+            body = {key: value for key, value in body.items() if key != 'expected'}
         with self.connection() as connection:
             connection.execute("BEGIN IMMEDIATE")
             existing = connection.execute("SELECT * FROM projects WHERE id=?", (identity,)).fetchone()
             imported_edit = existing is not None and imported_id_valid(identity) and not restore
             item = validate_project(body, restore=restore, allow_imported_id=imported_edit)
             old_bindings = {tuple(row) for row in connection.execute("SELECT binding_id,path_key FROM project_directories WHERE project_id=?", (identity,))}
+            marker = connection.execute("SELECT kind,directory_id,relative_path FROM project_sources WHERE project_id=?", (identity,)).fetchone()
+            if expected is not None:
+                checked = validate_project({**expected, 'id': identity}, allow_imported_id=imported_edit)
+                if existing is None:
+                    raise ProfileError('not_found', 'id', status=404)
+                if marker is not None and marker['kind'] == 'codex':
+                    raise ProfileError('invalid_project', 'id', message='read_only_project')
+                if (existing['name'] != checked['name'] or bool(existing['archived']) != checked['archived']
+                        or old_bindings != {(row['id'], row['path_key']) for row in checked['directories']}
+                        or (dict(marker) if marker is not None else None) != checked['source']):
+                    raise ProfileError('project_changed', status=409)
             if (existing is not None and self.profile and
                     (old_bindings != {(row['id'], row['path_key']) for row in item['directories']}
                      or item['archived'] != bool(existing['archived'])) and
                     connection.execute("SELECT 1 FROM task_native_runs WHERE project_id=? AND active_slot=1", (identity,)).fetchone()):
                 raise ProfileError('native_managed_project', status=409)
-            marker = connection.execute("SELECT kind FROM project_sources WHERE project_id=?", (identity,)).fetchone()
-            if marker is not None and marker[0] == "codex":
+            if marker is not None and marker['kind'] == "codex":
                 raise ProfileError("invalid_project", "id", message="read_only_project")
             if restore:
                 references = sum(connection.execute(f"SELECT COUNT(*) FROM {table} WHERE project_id=?", (identity,)).fetchone()[0]

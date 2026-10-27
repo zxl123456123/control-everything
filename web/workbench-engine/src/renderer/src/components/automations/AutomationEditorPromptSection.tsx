@@ -33,9 +33,9 @@ export function AutomationEditorPromptSection({
   )
 
   return (
-    <div className="flex min-h-80 min-w-0 shrink-0 flex-1 flex-col overflow-hidden px-6 py-6">
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden px-8 py-6">
       {draft.scheduleWarning ? (
-        <div className="mb-4 rounded-md border border-border bg-muted/40 px-3 py-2 text-sm leading-[22px] text-muted-foreground">
+        <div className="mb-4 rounded-md border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
           {draft.scheduleWarning}
         </div>
       ) : null}
@@ -54,7 +54,7 @@ export function AutomationEditorPromptSection({
               event.preventDefault()
             }
           }}
-          className="max-w-[calc(100%-2rem)] min-w-0 resize-none overflow-hidden border-0 bg-transparent px-0 py-0 text-2xl font-bold leading-8 text-foreground shadow-none outline-none ring-0 [field-sizing:content] placeholder:text-muted-foreground/50"
+          className="max-w-[calc(100%-2rem)] min-w-0 resize-none overflow-hidden border-0 bg-transparent px-0 py-0 text-[28px] font-semibold leading-tight text-foreground shadow-none outline-none ring-0 [field-sizing:content] placeholder:text-muted-foreground/50"
         />
         <Tooltip>
           <TooltipTrigger asChild>
@@ -74,7 +74,7 @@ export function AutomationEditorPromptSection({
           </TooltipContent>
         </Tooltip>
       </div>
-      <div className="mb-2 text-sm font-semibold text-muted-foreground">
+      <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">
         {translate('auto.components.automations.AutomationEditorDialog.058c23cb3f', 'Prompt')}
       </div>
       <AutomationEditorPromptEditor
@@ -90,7 +90,7 @@ export function AutomationEditorPromptSection({
         onChange={(prompt) => onDraftChange((current) => ({ ...current, prompt }))}
         onDismiss={onDismiss}
       />
-      <p className="mt-2 text-sm leading-[22px] text-muted-foreground">
+      <p className="mt-2 text-xs text-muted-foreground">
         {translate(
           'auto.components.automations.AutomationEditorDialog.827b25a81e',
           'Supports skills, file paths, and built-in commands like'

@@ -57,7 +57,7 @@ function SetupStepRow(props: {
       onClick={onSelect}
       aria-current={active ? 'step' : undefined}
       className={cn(
-        'flex min-h-11 w-full items-center gap-3 rounded-xl px-3 py-2 text-left transition-colors',
+        'flex w-full items-center gap-3 rounded-md px-2.5 py-2 text-left transition-colors',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
         active ? 'bg-accent' : 'hover:bg-accent/60'
       )}
@@ -73,7 +73,7 @@ function SetupStepRow(props: {
         {done ? (
           <Check className="size-3" strokeWidth={3} />
         ) : (
-          <span className="text-[13px] tabular-nums">{ordinal}</span>
+          <span className="text-[11px] tabular-nums">{ordinal}</span>
         )}
       </span>
       <span
@@ -104,10 +104,10 @@ function SetupSection(props: {
   return (
     <section className="space-y-2">
       <div className="flex items-center justify-between gap-3">
-        <h4 className="text-sm font-semibold tracking-normal text-muted-foreground">
+        <h4 className="text-[11px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">
           {props.title}
         </h4>
-        <span className="text-[13px] tabular-nums text-muted-foreground">
+        <span className="text-[11px] tabular-nums text-muted-foreground">
           {doneCount}/{props.steps.length}
         </span>
       </div>
@@ -284,7 +284,7 @@ export function FeatureWallSetupChecklist(
         'grid h-full min-h-0',
         isEmbedded
           ? 'grid-rows-[auto_minmax(0,1fr)] gap-10 lg:grid-cols-[minmax(15rem,17rem)_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)] lg:gap-16'
-          : 'grid-rows-[auto_minmax(0,1fr)] gap-6 md:grid-cols-[190px_minmax(0,1fr)] md:grid-rows-[minmax(0,1fr)]'
+          : 'grid-rows-[auto_minmax(0,1fr)] gap-5 md:grid-cols-[minmax(190px,260px)_minmax(0,1fr)] md:grid-rows-[minmax(0,1fr)]'
       )}
     >
       <div
@@ -328,7 +328,7 @@ export function FeatureWallSetupChecklist(
         {activeStep ? (
           <div className={cn('flex h-full flex-col', isEmbedded ? 'gap-4' : 'gap-3')}>
             <div className="flex items-center justify-between gap-4">
-              <h3 className="min-w-0 text-xl font-semibold leading-7 tracking-normal text-foreground">
+              <h3 className="min-w-0 text-xl font-semibold tracking-tight text-foreground">
                 {getLocalizedFeatureWallSetupChecklistCopy(activeStep).name}
               </h3>
               {/* Why: a "not done" pill on every open step is noise; only completion is news. */}

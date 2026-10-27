@@ -45,7 +45,7 @@ export function VoiceDictationTipDialog({
       <DialogHeader className="gap-4 text-left">
         <div>
           <FeatureTipEyebrow label={tip.eyebrow} />
-          <DialogTitle className="text-xl font-semibold leading-7 tracking-normal">
+          <DialogTitle className="text-2xl font-semibold leading-tight tracking-tight md:text-[1.75rem]">
             {tip.title}
           </DialogTitle>
           <DialogDescription className="mt-3 max-w-2xl space-y-3 text-sm leading-relaxed">
@@ -59,14 +59,14 @@ export function VoiceDictationTipDialog({
                   keys={shortcut.keys}
                   doubleTap={shortcut.doubleTap}
                   className="mx-1 align-middle"
-                  keyCapClassName="min-w-0 bg-card px-1.5 py-0 text-[13px] text-foreground shadow-none"
+                  keyCapClassName="min-w-0 bg-card px-1.5 py-0 text-[11px] text-foreground shadow-none"
                 />{' '}
                 {translate('featureTips.voice.startInstruction', 'to start voice dictation. Press')}{' '}
                 <ShortcutKeyCombo
                   keys={shortcut.keys}
                   doubleTap={shortcut.doubleTap}
                   className="mx-1 align-middle"
-                  keyCapClassName="min-w-0 bg-card px-1.5 py-0 text-[13px] text-foreground shadow-none"
+                  keyCapClassName="min-w-0 bg-card px-1.5 py-0 text-[11px] text-foreground shadow-none"
                 />{' '}
                 {translate('featureTips.voice.stopInstruction', 'again to stop.')}
               </span>
@@ -90,7 +90,7 @@ export function VoiceDictationTipDialog({
         </div>
       </DialogHeader>
 
-      <DialogFooter className="mt-0 flex sm:justify-stretch">
+      <DialogFooter className="mt-8 flex sm:justify-stretch">
         <FeatureTipActions
           currentTip={tip}
           primaryBusy={primaryBusy}

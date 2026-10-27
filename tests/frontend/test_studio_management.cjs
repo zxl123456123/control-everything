@@ -118,44 +118,44 @@ test('display-only progress retains direct legacy TaskCenter and Board routes wi
 });
 
 
-test('project addition first enters the native workbench and cancelling its dialog stays inside', async t => {
+
+test('project addition enters the native workbench and delegates without loading another form', async t => {
   const f = await fixture(t, { unified: true, registration: true });
+  let opens = 0; f.w.addEventListener('platform-open-add-repo', () => { opens++; });
   f.w.dispatchEvent(new f.w.Event('platform-add-project')); await tick();
-  assert.equal(f.w.location.hash, '#workbench');
-  assert.equal(f.registrations.length, 0);
-  assert.equal(f.reads.includes('/workspace-admin'), false);
+  assert.equal(f.w.location.hash, '#workbench'); assert.equal(opens, 0);
   await f.route('#workbench');
   f.w.dispatchEvent(new f.w.Event('platform-add-project')); await tick();
-  assert.equal(f.registrations.length, 1); assert.equal(f.registrations[0].dialog.open, true);
-  f.registrations[0].dialog.close(); await tick();
+  assert.equal(opens, 1); assert.equal(f.registrations.length, 0);
+  assert.equal(f.reads.includes('/workspace-admin'), false);
   assert.equal(f.w.location.hash, '#workbench'); assert.equal(f.posts.length, 0);
 });
 
-test('batch registration keeps confirmed choices inside the native workbench and closes before opening one', async t => {
-  const f = await fixture(t, { hash: '#workbench', unified: true, registration: true });
-  f.w.dispatchEvent(new f.w.Event('platform-add-project')); await tick();
-  f.registrations[0].dialog.close();
-  await f.registrations[0].onChanged(undefined, { kind: 'registered', confirmedIDs: ['p-a', 'p-b'], failedCount: 1 });
-  assert.equal(f.w.location.hash, '#workbench');
-  const dialog = f.w.document.querySelector('[data-platform-project-dialog]').shadowRoot.querySelector('.ce-project-settings');
-  assert.equal(dialog.open, true); assert.match(dialog.textContent, /已添加 2 个项目.*1 项未加入/);
-  const choices = [...dialog.querySelectorAll('.ce-registration-actions button')];
-  assert.equal(choices.length, 2); choices[1].click(); await tick();
-  assert.equal(dialog.open, false); assert.equal(f.w.location.hash, '#project/p-b/workspace');
-  assert.equal(f.posts.length, 0);
+test('native adoption publishes its catalog before confirming and leaves navigation to Orca', async t => {
+  const f = await fixture(t, { hash: '#workbench', unified: true });
+  f.projects.push({ id: 'p-new', name: 'New', directories: [{ id: 'main', path: 'C:/example/new' }] });
+  const waits = [];
+  f.w.dispatchEvent(new f.w.CustomEvent('platform-native-project-adopted', {
+    detail: { projectId: 'p-new', waitUntil: value => waits.push(value) }
+  }));
+  assert.equal(waits.length, 1); assert.equal(await waits[0], true);
+  assert.equal(f.w.location.hash, '#workbench'); assert.equal(f.posts.length, 0);
+  assert.equal(f.w.document.querySelector('[data-platform-project-dialog]'), null);
 });
 
-test('a saved registration with a failed refresh only rereads and never submits it again', async t => {
-  const f = await fixture(t, { hash: '#workbench', unified: true, registration: true });
-  f.w.dispatchEvent(new f.w.Event('platform-add-project')); await tick();
-  f.registrations[0].dialog.close(); f.failRead(true);
-  await f.registrations[0].onChanged(undefined, { kind: 'registered', confirmedIDs: ['p-a'] });
-  const dialog = f.w.document.querySelector('[data-platform-project-dialog]').shadowRoot.querySelector('.ce-project-settings');
-  assert.match(dialog.textContent, /项目已保存.*无需再次创建/);
-  assert.equal(f.w.location.hash, '#workbench');
-  const retry = [...dialog.querySelectorAll('button')].find(button => button.textContent === '重新读取');
-  assert.ok(retry); f.failRead(false); retry.click(); await tick();
-  assert.equal(f.w.location.hash, '#project/p-a/workspace'); assert.equal(f.posts.length, 0);
+test('a failed native adoption refresh can retry its read without replaying registration', async t => {
+  const f = await fixture(t, { hash: '#workbench', unified: true });
+  const confirm = () => {
+    const waits = [];
+    f.w.dispatchEvent(new f.w.CustomEvent('platform-native-project-adopted', {
+      detail: { projectId: 'p-a', waitUntil: value => waits.push(value) }
+    }));
+    return waits[0];
+  };
+  f.failRead(true); assert.equal(await confirm(), false);
+  assert.match(f.node('#studio-status').textContent, /无法连接本地工作台.*仍显示上次读取/);
+  f.failRead(false); assert.equal(await confirm(), true);
+  assert.equal(f.w.location.hash, '#workbench'); assert.equal(f.posts.length, 0);
 });
 
 test('project name composition keeps the dialog open and a later cancel retains its draft', async t => {
@@ -294,7 +294,7 @@ test('source settings rows retain aligned padding through the complete desktop a
       assert.equal(style.alignItems, 'center'); assert.equal(style.minHeight, '76px');
       assert.equal(style.borderBottomWidth, '0px');
     }
-    assert.equal(f.w.getComputedStyle(f.node('.ce-creator-address>summary')).padding, '16px 20px');
+    assert.equal(f.host.querySelector('.ce-creator-address'), null);
   }
 });
 

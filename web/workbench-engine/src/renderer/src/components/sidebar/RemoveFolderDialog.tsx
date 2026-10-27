@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from 'react'
+import React, { useCallback, useContext, useMemo, useRef, useState } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -20,6 +20,9 @@ import { getRecipeVmSshTargetForHost } from '@/lib/recipe-vm-managed-host'
 import { RemovalUnsavedFilesNotice } from './RemovalUnsavedFilesNotice'
 import { confirmUnsavedDiscard } from '@/store/slices/worktrees/teardown/removed-workspace-unsaved-files'
 import { projectRemovalTargets } from './removal-unsaved-files'
+import { PlatformProjectContext } from '@/web/platform-project-context'
+import { archivePlatformProject } from '@/web/platform-project-actions'
+import { toast } from 'sonner'
 import {
   selectDetectedWorktreesByRepo,
   selectWorktreesByRepo
@@ -34,6 +37,9 @@ const RemoveFolderDialog = React.memo(function RemoveFolderDialog() {
   const modalData = useAppStore((s) => s.modalData)
   const closeModal = useAppStore((s) => s.closeModal)
   const removeProject = useAppStore((s) => s.removeProject)
+  const platformMode = useContext(PlatformProjectContext) !== undefined
+  const [pending, setPending] = useState(false)
+  const pendingRef = useRef(false)
 
   const isOpen = activeModal === 'confirm-remove-folder'
   const repoId = typeof modalData.repoId === 'string' ? modalData.repoId : ''
@@ -103,7 +109,9 @@ const RemoveFolderDialog = React.memo(function RemoveFolderDialog() {
   // SOV locales (#9294). Translate one full sentence with the name as a
   // sentinel token, then split on it to re-apply the inline emphasis.
   const description =
-    onRecipeVmServer || isRuntimeOwnedSshTargetId(sshConnectionId)
+    platformMode
+      ? `归档 ${NAME_TOKEN}，从常用项目中收起；保留事项、文件、已打开的终端和草稿。`
+      : onRecipeVmServer || isRuntimeOwnedSshTargetId(sshConnectionId)
       ? translate(
           'auto.components.sidebar.RemoveFolderDialog.removeDescriptionVmRecipe',
           'This removes {{name}} from Orca. Its VM recipe determines whether the environment and its files are permanently deleted.',
@@ -122,7 +130,23 @@ const RemoveFolderDialog = React.memo(function RemoveFolderDialog() {
           )
   const [descriptionBeforeName, descriptionAfterName] = description.split(NAME_TOKEN)
 
-  const handleConfirm = useCallback(() => {
+  const handleConfirm = useCallback(async () => {
+    if (pendingRef.current) return
+    if (platformMode) {
+      const repo = useAppStore.getState().repos.find((entry) => entry.id === repoId && getRepoExecutionHostId(entry) === hostId)
+      if (!repo) { toast.error('项目已变化，请刷新后重试。'); return }
+      pendingRef.current = true
+      setPending(true)
+      try {
+        await archivePlatformProject(repo)
+        const current = useAppStore.getState()
+        if (current.activeModal === 'confirm-remove-folder' && current.modalData.repoId === repoId &&
+            current.modalData.hostId === hostId) closeModal()
+      }
+      catch (error) { toast.error(error instanceof Error ? error.message : '项目归档未确认。') }
+      finally { pendingRef.current = false; setPending(false) }
+      return
+    }
     // Why: without the opener's host a bare id could remove another host's row (#13071).
     if (repoId && hostId) {
       void removeProject(repoId, {
@@ -132,11 +156,11 @@ const RemoveFolderDialog = React.memo(function RemoveFolderDialog() {
       })
     }
     closeModal()
-  }, [closeModal, hostId, removeProject, repoId, unsavedTargets])
+  }, [closeModal, hostId, platformMode, removeProject, repoId, unsavedTargets])
 
   const handleOpenChange = useCallback(
     (open: boolean) => {
-      if (!open) {
+      if (!open && !pendingRef.current) {
         closeModal()
       }
     },
@@ -155,16 +179,16 @@ const RemoveFolderDialog = React.memo(function RemoveFolderDialog() {
             <span className="break-all font-medium text-foreground">{displayName}</span>
             {descriptionAfterName}
           </DialogDescription>
-          {openTerminalWarning ? (
+          {!platformMode && openTerminalWarning ? (
             <p className="text-xs font-medium text-foreground">{openTerminalWarning}</p>
           ) : null}
         </DialogHeader>
-        <RemovalUnsavedFilesNotice targets={unsavedTargets} enabled={isOpen} />
+        {!platformMode ? <RemovalUnsavedFilesNotice targets={unsavedTargets} enabled={isOpen} /> : null}
         <DialogFooter>
-          <Button variant="outline" onClick={() => handleOpenChange(false)}>
+          <Button variant="outline" disabled={pending} onClick={() => handleOpenChange(false)}>
             {translate('auto.components.sidebar.RemoveFolderDialog.d36883e046', 'Cancel')}
           </Button>
-          <Button variant="destructive" onClick={handleConfirm}>
+          <Button variant="destructive" disabled={pending} onClick={() => void handleConfirm()}>
             {translate('auto.components.sidebar.RemoveFolderDialog.4dc5b5065b', 'Remove')}
           </Button>
         </DialogFooter>

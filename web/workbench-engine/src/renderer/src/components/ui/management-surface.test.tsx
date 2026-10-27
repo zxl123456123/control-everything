@@ -64,11 +64,10 @@ describe('management portal scope', () => {
 })
 
 describe('management geometry scope', () => {
-  it('covers native and slotted controls without enlarging compact development controls', () => {
+  it('leaves native and slotted controls at their own compact size', () => {
     const css = readFileSync('src/renderer/src/assets/main.css', 'utf8')
     const style = document.createElement('style')
-    style.textContent = `.compact { width: 28px; height: 28px; }` +
-      css.slice(css.indexOf('/* Management geometry is opt-in.'))
+    style.textContent = `.compact { width: 28px; height: 28px; }` + css
     document.body.append(style)
     const host = document.createElement('div')
     host.innerHTML = `<button class="compact" id="compact">Terminal</button>
@@ -82,27 +81,30 @@ describe('management geometry scope', () => {
         <input class="compact" type="color" />
         <button class="compact" data-slot="select-trigger">Account</button>
         <button class="compact" data-slot="button">Refresh</button>
-        <button data-slot="switch" role="switch">Toggle</button>
+        <button class="compact" data-slot="switch" role="switch">Toggle</button>
       </section>`
     document.body.append(host)
     for (const control of host.querySelectorAll('.ce-management-surface .compact')) {
-      expect(getComputedStyle(control).minHeight).toBe('40px')
-      expect(getComputedStyle(control).minWidth).toBe('40px')
+      const size = getComputedStyle(control)
+      expect(size.height).toBe('28px')
+      expect(size.width).toBe('28px')
+      expect(size.minHeight).not.toBe('40px')
+      expect(size.minWidth).not.toBe('40px')
     }
     const compact = getComputedStyle(host.querySelector('#compact')!)
     expect(compact.width).toBe('28px')
     expect(compact.height).toBe('28px')
     expect(compact.minHeight).not.toBe('40px')
     const toggle = getComputedStyle(host.querySelector('[role="switch"]')!)
-    expect(toggle.width).toBe('44px')
-    expect(toggle.height).toBe('44px')
+    expect(toggle.width).toBe('28px')
+    expect(toggle.height).toBe('28px')
   })
 
-  it('lets management tab groups and the icon grid accommodate their real control boxes', () => {
+  it('retains the native tab strip and icon grid layout', () => {
     const css = readFileSync('src/renderer/src/assets/main.css', 'utf8')
     const style = document.createElement('style')
-    style.textContent = `[data-slot="tabs-list"] { height: 32px; }` +
-      css.slice(css.indexOf('/* Management geometry is opt-in.'))
+    style.textContent = `[data-slot="tabs-list"] { height: 32px; }
+      .grid-cols-10 { grid-template-columns: repeat(10, minmax(0, 1fr)); }` + css
     document.body.append(style)
     const host = document.createElement('div')
     host.className = 'ce-management-surface'
@@ -110,18 +112,17 @@ describe('management geometry scope', () => {
       <div data-slot="tabs-content"><div class="grid-cols-10"><button>Icon</button></div></div>`
     document.body.append(host)
     const tabs = getComputedStyle(host.querySelector('[data-slot="tabs-list"]')!)
-    expect(tabs.height).toBe('auto')
-    expect(tabs.flexWrap).toBe('wrap')
-    expect(tabs.maxWidth).toBe('100%')
+    expect(tabs.height).toBe('32px')
+    expect(tabs.flexWrap).not.toBe('wrap')
+    expect(tabs.maxWidth).not.toBe('100%')
     const grid = getComputedStyle(host.querySelector('.grid-cols-10')!)
-    expect(grid.gridTemplateColumns).toBe('repeat(auto-fit, minmax(44px, 1fr))')
-    expect(css).toMatch(/@media \(pointer: coarse\)[\s\S]*min-width: 44px; min-height: 44px/)
+    expect(grid.gridTemplateColumns).toBe('repeat(10, minmax(0, 1fr))')
   })
 
-  it('keeps actual checkbox and radio hit boxes distinct from their compact indicators', () => {
+  it('keeps actual checkbox and radio controls without a management overlay indicator', () => {
     const css = readFileSync('src/renderer/src/assets/main.css', 'utf8')
     const style = document.createElement('style')
-    style.textContent = css.slice(css.indexOf('/* Management geometry is opt-in.'))
+    style.textContent = `.size-4 { width: 16px; height: 16px; border-width: 1px; }` + css
     document.body.append(style)
     const host = document.createElement('section')
     host.className = 'ce-management-surface'
@@ -135,22 +136,14 @@ describe('management geometry scope', () => {
       const control = host.querySelector(`[data-slot="${slot}"]`)!
       const hitBox = getComputedStyle(control)
       expect(control.tagName).toBe('BUTTON')
-      expect(hitBox.width).toBe('40px')
-      expect(hitBox.height).toBe('40px')
-      expect(hitBox.backgroundColor).toMatch(/^(transparent|rgba\(0, ?0, ?0, ?0\))$/)
-      expect(hitBox.borderWidth).toBe('0px')
-      expect(hitBox.justifyContent).toBe('center')
+      expect(control.classList.contains('size-4')).toBe(true)
+      expect(hitBox.width).toBe('16px')
+      expect(hitBox.height).toBe('16px')
+      expect(hitBox.borderWidth).toBe('1px')
     }
-    const indicator = Array.from(style.sheet!.cssRules).find(rule =>
-      rule instanceof CSSStyleRule && rule.selectorText.includes("radio-group-item'])::before")
-    ) as CSSStyleRule
-    expect(indicator.style.width).toBe('16px')
-    expect(indicator.style.height).toBe('16px')
-    expect(indicator.style.transform).toBe('translate(-50%, -50%)')
-    const checkboxOutline = Array.from(style.sheet!.cssRules).find(rule =>
-      rule instanceof CSSStyleRule && rule.selectorText === ".ce-management-surface [data-slot='checkbox']::before"
-    ) as CSSStyleRule
-    expect(checkboxOutline.style.borderColor).toBe('var(--input)')
-    expect(css).toContain("[data-slot='checkbox'][data-state='checked']::before")
+    expect(Array.from(style.sheet!.cssRules).some(rule =>
+      rule instanceof CSSStyleRule && rule.selectorText.includes('.ce-management-surface') &&
+      rule.selectorText.includes('::before')
+    )).toBe(false)
   })
 })

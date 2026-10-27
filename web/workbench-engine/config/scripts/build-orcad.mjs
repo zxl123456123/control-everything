@@ -38,6 +38,7 @@ import { stageOrcadWindowsProcessTree } from './orcad-windows-process-tree.mjs'
 import { stageOrcadWindowsCliLauncher } from './orcad-windows-cli-launcher.mjs'
 import { stageOrcadWindowsSecurity } from './orcad-windows-security.mjs'
 import { stageOrcadLinearSdk } from './orcad-linear-sdk-package.mjs'
+import { stageOrcadPlaywrightCore } from './orcad-playwright-core-package.mjs'
 import { stageOrcadMobileWebBundle } from './orcad-mobile-web-bundle.mjs'
 import {
   ORCAD_EMOJI_SHORTCODE_DATASET,
@@ -237,6 +238,7 @@ for (const artifact of ORCAD_COMPUTER_USE_RUNTIME_ARTIFACTS) {
 }
 stageOrcadMobileWebBundle(OUT_DIR)
 recordCopiedTree(join(ROOT, 'out/mobile-web'), join(OUT_DIR, ...ORCAD_MOBILE_WEB_DIR.split('/')))
+copiedInputs.push(...stageOrcadPlaywrightCore(ROOT, dirname(OUT_DIR)))
 
 /** Why one call per child and not one `outdir` build: esbuild mirrors each entry's source
  *  directory under `outdir`, and both children must land flat beside orcad.js — that is where

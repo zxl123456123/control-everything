@@ -56,7 +56,6 @@ const SidebarNav = React.memo(function SidebarNav() {
   const worktreePaletteShortcutCombos = useShortcutKeyComboDetails('worktree.palette')
   const openAutomationsPage = useAppStore((s) => s.openAutomationsPage)
   const openMobilePage = useAppStore((s) => s.openMobilePage)
-  const closeMobilePage = useAppStore((s) => s.closeMobilePage)
   const openArtifactsPage = useAppStore((s) => s.openArtifactsPage)
   const openSkillsPage = useAppStore((s) => s.openSkillsPage)
   const openModal = useAppStore((s) => s.openModal)
@@ -71,7 +70,7 @@ const SidebarNav = React.memo(function SidebarNav() {
   const mobileActive = !platformMode && activeView === 'mobile'
   const artifactsActive = activeView === 'artifacts'
   const skillsActive = activeView === 'skills'
-  const mobileOnboardingBadge = useMobileSidebarOnboardingBadge(showMobileButton)
+  const mobileOnboardingBadge = useMobileSidebarOnboardingBadge(showMobileButton && !platformMode)
   const hideAutomationsButton = React.useCallback(() => {
     void updateSettings({ showAutomationsButton: false })
   }, [updateSettings])
@@ -213,7 +212,7 @@ const SidebarNav = React.memo(function SidebarNav() {
           <AgentDashboardSidebarEntry />
         </React.Suspense>
       ) : null}
-      {showMobileButton ? (
+      {showMobileButton && !platformMode ? (
         <ContextMenu>
           <ContextMenuTrigger asChild>
             <div
@@ -227,11 +226,6 @@ const SidebarNav = React.memo(function SidebarNav() {
               <button
                 type="button"
                 onClick={() => {
-                  if (platformMode) {
-                    if (activeView === 'mobile') closeMobilePage()
-                    window.location.hash = 'mobile'
-                    return
-                  }
                   mobileOnboardingBadge.dismiss()
                   openMobilePage()
                 }}

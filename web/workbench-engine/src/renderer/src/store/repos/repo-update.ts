@@ -20,6 +20,10 @@ import type { RepoSlice, RepoUpdate } from './repo-state'
 import { adoptFromEndpoint } from '../adopt-from-endpoint'
 import { getProjectSetupRuntimeTarget } from '../projects/project-host-routing'
 import { mergeProjectCompatibilityForHostRepoChange } from './repo-catalog-identity'
+import { toast } from 'sonner'
+import { ERROR_TOAST_DURATION } from './repo-state'
+import { capturePlatformProjectActionGuard, isPlatformProjectActionMode, preparePlatformProjectRename,
+  type PreparedPlatformProjectRename } from '@/web/platform-project-actions'
 
 export function sanitizeRepoUpdate(updates: RepoUpdate): RepoUpdate {
   const sanitized = { ...updates }
@@ -124,9 +128,24 @@ export function createRepoUpdateActions(
       const ownerHostId = getRepoExecutionHostId(ownerRepo)
       const ownerTarget = getProjectSetupRuntimeTarget(ownerHostId)
       const updateChainKey = getRepoHostIdentityForParts(projectId, ownerHostId)
+      let assertPlatformCurrent: (() => void) | null = null
+      if (isPlatformProjectActionMode() && typeof updates.displayName === 'string') {
+        try { assertPlatformCurrent = capturePlatformProjectActionGuard(ownerRepo) }
+        catch (error) {
+          toast.error(error instanceof Error ? error.message : '项目身份未确认。', { duration: ERROR_TOAST_DURATION })
+          return false
+        }
+      }
       const applyRepoUpdate = async () => {
+        let platformRename: PreparedPlatformProjectRename | null = null
+        const platformName = assertPlatformCurrent !== null
         try {
           const sanitizedUpdates = sanitizeRepoUpdate(updates)
+          if (platformName) {
+            assertPlatformCurrent!()
+            platformRename = await preparePlatformProjectRename(ownerRepo, sanitizedUpdates.displayName!)
+            platformRename.assertCurrent()
+          }
           const target = ownerTarget
           const updatedRepo =
             target.kind === 'local'
@@ -143,6 +162,7 @@ export function createRepoUpdateActions(
                     { timeoutMs: 15_000 }
                   )
                 ).repo
+          platformRename?.assertCurrent()
           set((s) => {
             const nextRepos = s.repos.map((r) => {
               const matchesOwner = ownerHasExplicitHost
@@ -212,11 +232,15 @@ export function createRepoUpdateActions(
               folderWorkspacePathStatuses: {}
             }
           })
+          await platformRename?.confirm()
           return true
         } catch (err) {
           console.error('Failed to update repo:', err)
+          if (platformName) toast.error(platformRename
+            ? '项目名称已保存，但原生显示同步未确认。请刷新后重试。'
+            : err instanceof Error ? err.message : '项目名称保存未确认，请刷新后核对。', { duration: ERROR_TOAST_DURATION })
           return false
-        }
+        } finally { platformRename?.cancel() }
       }
       const previous = updateRepoChains.get(updateChainKey)
       // Why: settings persist as full nested values, so preserve per-repo call order — a slower response mustn't overwrite newer state.

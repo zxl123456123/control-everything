@@ -44,7 +44,7 @@ export function AutomationRunsTable({
   })
 
   return (
-    <div className="flex min-h-[18rem] flex-col overflow-hidden rounded-2xl border border-border bg-card">
+    <div className="flex min-h-[18rem] flex-col overflow-hidden rounded-lg border border-border/60 bg-card">
       <div
         ref={scrollRef}
         className="scrollbar-sleek flex h-[calc(100vh-21rem)] min-h-[15rem] flex-col overflow-auto"
@@ -57,7 +57,7 @@ export function AutomationRunsTable({
           }
         }}
       >
-        <div className="sticky top-0 z-10 grid shrink-0 grid-cols-[minmax(11rem,1.4fr)_minmax(10rem,1fr)_minmax(5rem,.55fr)_minmax(8rem,.8fr)_minmax(7rem,auto)] gap-3 border-b border-border/60 bg-card px-4 py-2 text-sm font-semibold text-muted-foreground">
+        <div className="sticky top-0 z-10 grid shrink-0 grid-cols-[minmax(11rem,1.4fr)_minmax(10rem,1fr)_minmax(5rem,.55fr)_minmax(8rem,.8fr)_minmax(7rem,auto)] gap-3 border-b border-border/60 bg-card px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">
           <div>
             {translate(
               'auto.components.automations.AutomationRunsDashboard.automation',
@@ -94,7 +94,7 @@ export function AutomationRunsTable({
                 'No runs yet'
               )}
             </div>
-            <div className="text-sm leading-[22px] text-muted-foreground">
+            <div className="text-xs text-muted-foreground">
               {translate(
                 'auto.components.automations.AutomationRunsDashboard.emptyDescription',
                 'Runs appear here after an automation is triggered.'
@@ -119,25 +119,22 @@ export function AutomationRunsTable({
                   <button
                     type="button"
                     data-testid="automation-runs-row"
-                    className="grid w-full grid-cols-[minmax(11rem,1.4fr)_minmax(10rem,1fr)_minmax(5rem,.55fr)_minmax(8rem,.8fr)_minmax(7rem,auto)] items-center gap-3 min-h-16 px-4 py-4 text-left text-sm transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                    className="grid w-full grid-cols-[minmax(11rem,1.4fr)_minmax(10rem,1fr)_minmax(5rem,.55fr)_minmax(8rem,.8fr)_minmax(7rem,auto)] items-center gap-3 px-4 py-2.5 text-left text-sm transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
                     onClick={() => onOpenRun(entry)}
                   >
                     <div className="min-w-0">
                       <div className="truncate font-medium">{entry.row.automation.name}</div>
-                      <div className="mt-0.5 truncate text-sm leading-[22px] text-muted-foreground">
+                      <div className="mt-0.5 truncate text-xs text-muted-foreground">
                         {entry.run.title}
                       </div>
                     </div>
-                    <div className="min-w-0 truncate text-sm leading-[22px]">
+                    <div className="min-w-0 truncate text-xs">
                       {formatAutomationDateTimeWithRelative(entry.run.scheduledFor)}
                     </div>
-                    <div className="capitalize text-sm leading-[22px] text-muted-foreground">
+                    <div className="capitalize text-xs text-muted-foreground">
                       {entry.run.trigger}
                     </div>
-                    <div
-                      className="min-w-0 truncate text-sm leading-[22px]"
-                      title={entry.row.hostLabel}
-                    >
+                    <div className="min-w-0 truncate text-xs" title={entry.row.hostLabel}>
                       {entry.row.hostLabel ||
                         translate(
                           `auto.components.automations.AutomationRunsDashboard.${entry.scope}`,

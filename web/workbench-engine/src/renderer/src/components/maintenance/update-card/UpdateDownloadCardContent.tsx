@@ -36,21 +36,21 @@ export function UpdateDownloadingContent({
   const showMedia =
     release?.mediaUrl && !mediaFailed && !(prefersReducedMotion && isAnimatedGif(release.mediaUrl))
   return (
-    <div className="flex flex-col gap-4 p-6">
+    <div className="flex flex-col gap-3 p-4">
       <div className="flex items-start justify-between gap-2">
         {release ? (
-          <h3 className="text-lg font-semibold leading-[26px]">
+          <h3 className="text-sm font-semibold">
             {translate('auto.components.UpdateCard.f58b5c57a6', 'New:')} {release.title}
           </h3>
         ) : (
-          <h3 className="text-lg font-semibold leading-[26px]">
+          <h3 className="text-sm font-semibold">
             {translate('auto.components.UpdateCard.558842597d', 'Downloading Update')}
           </h3>
         )}
         <Button
           variant="ghost"
           size="icon"
-          className="size-11 shrink-0"
+          className="size-7 shrink-0 min-w-[44px] min-h-[44px] -m-2"
           onClick={onCollapse}
           aria-label={translate('auto.components.UpdateCard.8acbdd3961', 'Minimize to status bar')}
         >
@@ -85,7 +85,7 @@ export function UpdateDownloadingContent({
       {showReleaseNotes && (
         <button
           type="button"
-          className="inline-flex min-h-11 items-center self-start text-sm text-muted-foreground underline hover:text-foreground"
+          className="text-xs text-muted-foreground underline hover:text-foreground self-start"
           onClick={() =>
             void window.api.shell.openUrl(
               release ? release.releaseNotesUrl : getReleaseNotesUrlForVersion(version)
@@ -99,7 +99,7 @@ export function UpdateDownloadingContent({
       )}
       <div className="flex flex-col gap-2 mt-1">
         <Progress value={percent} className="h-1.5" />
-        <p className="text-sm leading-[22px] text-muted-foreground">
+        <p className="text-xs text-muted-foreground">
           {translate('auto.components.UpdateCard.6e45bfa2e0', 'Downloading...')} {percent}%
         </p>
       </div>
@@ -117,15 +117,15 @@ export function UpdateReadyToInstallContent({
   onClose: () => void
 }): React.JSX.Element {
   return (
-    <div className="flex flex-col gap-4 p-6">
+    <div className="flex flex-col gap-3 p-4">
       <div className="flex items-start justify-between gap-2">
-        <h3 className="text-lg font-semibold leading-[26px]">
+        <h3 className="text-sm font-semibold">
           {translate('auto.components.UpdateCard.17412483da', 'Ready to Install')}
         </h3>
         <Button
           variant="ghost"
           size="icon"
-          className="size-11 shrink-0"
+          className="size-7 shrink-0 min-w-[44px] min-h-[44px] -m-2"
           onClick={onClose}
           aria-label={translate('auto.components.UpdateCard.8acbdd3961', 'Minimize to status bar')}
         >

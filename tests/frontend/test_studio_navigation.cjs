@@ -43,13 +43,15 @@ test('zero, all archived and unavailable projects reach the native workbench wit
 });
 
 test('the sidebar offers settings and account management while advanced compatibility settings stay off routine navigation', () => {
-  const html = shell.renderNavigation({current:{view:'settings',tab:'account'}});
+  const html = shell.renderNavigation({current:{view:'settings',tab:'account'}, creatorLink:'<a href="http://127.0.0.1:8770/">游戏创作</a>'});
   assert.equal((html.match(/href="#home"/g) || []).length, 1);
   assert.doesNotMatch(html, /href="#project\/|href="#workspace"|ce-navdot/);
   assert.ok(html.includes('href="#settings/account"'));
   assert.ok(html.includes('href="#settings/appearance"'), 'the pet settings page is reachable from the bottom-left');
   assert.doesNotMatch(html, /settings-toggle|settings\/development|settings\/sources|来源与接入|高级接入/);
   assert.doesNotMatch(html, /<span class="ce-rail-label">管理<\/span>/);
+  assert.doesNotMatch(html, /游戏创作|8770/);
+  assert.equal((html.match(/href="#news"/g) || []).length, 1);
   assert.match(html, /href="#settings\/account" aria-current="page"/);
   const management = html.match(/<nav class="ce-navgroup" aria-label="管理">([^]*?)<\/nav>/)[1];
   const symbols = [...management.matchAll(/<svg[^>]*>([^]*?)<\/svg>/g)].map(match => match[1]);
@@ -77,7 +79,7 @@ test('overview facts use progress semantics and exclude records outside register
 
 
 test('advanced settings retains precise compatibility destinations without restoring a routine entry', () => {
-  const html = shell.renderSettingsLanding({ section: 'sources', integrated: true });
+  const html = shell.renderSettingsLanding({ section: 'sources', integrated: true, creatorForm:'<form data-creator-form="true">游戏创作地址</form>' });
   assert.equal((html.match(/data-action="external-access"/g) || []).length, 1);
   assert.match(html, /<h1>高级接入<\/h1>/);
   assert.match(html, /项目与会话导入/); assert.match(html, /事项 API 接入/);
@@ -87,4 +89,5 @@ test('advanced settings retains precise compatibility destinations without resto
   assert.match(html, /aria-label="管理项目与会话导入">管理/);
   assert.match(html, /aria-label="管理事项 API 接入">管理/);
   assert.doesNotMatch(html, /<p\b|ce-tool-card|ce-access-setting/);
+  assert.doesNotMatch(html, /游戏创作|data-creator-form/);
 });

@@ -45,5 +45,5 @@ it('keeps the real CLI terminal outside the management DOM and portal context', 
   expect(terminal.getAttribute('data-management')).toBe('false')
   expect(
     screen.getByRole('button', { name: 'Done' }).closest('.ce-management-surface')
-  ).not.toBeNull()
+  ).toBeNull()
 })

@@ -1,4 +1,5 @@
 /* Studio shell; management modules inherit the same surface tokens. */
+:host(.platform-studio-host:not([hidden])){display:grid!important}
 #ce-studio .ce-topbar .ce-mobile-entry-mobile{display:none}
 #ce-studio a[href="#mobile"],#ce-studio .ce-mobile-entry .ce-button{min-height:44px}
 #ce-studio .ce-mobile-entry{display:grid;gap:20px;max-width:760px;min-width:0;overflow-wrap:anywhere}
@@ -486,6 +487,8 @@ body:has(#ce-studio){margin:0;background:var(--ce-bg,#ffffff)}
 #ce-studio .monitor-event pre{background:var(--ce-soft);color:var(--ce-text)}
 #ce-studio .monitor-stage canvas{--monitor-bg:var(--ce-bg);--monitor-panel:var(--ce-panel);--monitor-ink:var(--ce-text);--monitor-soft:var(--ce-sub)}
 #ce-studio[data-unified="true"] .ce-shell{min-height:100%}
+#ce-studio[data-unified="true"]:not([data-project-surface="true"]),
+#ce-studio[data-unified="true"]:not([data-project-surface="true"]) .ce-shell{min-height:100dvh}
 #ce-studio[data-unified="true"][data-project-surface="true"] .ce-shell{display:block}
 #ce-studio[data-unified="true"][data-project-surface="true"] .ce-rail,
 #ce-studio[data-unified="true"][data-project-surface="true"] #studio-topbar{display:none}
@@ -910,7 +913,7 @@ body:has(#ce-studio){margin:0;background:var(--ce-bg,#ffffff)}
 @keyframes ce-panel-enter{from{opacity:0;transform:translateY(-4px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
 @media(max-width:1023px){
  #ce-studio:not([data-project-surface=true]) .ce-shell{padding:0}
- #ce-studio:not([data-project-surface=true]) .ce-app{border:0;border-radius:0;box-shadow:none}
+ #ce-studio:not([data-project-surface=true]) .ce-app{min-height:100dvh;border:0;border-radius:0;box-shadow:none}
 }
 @media(max-width:767px){
  #ce-studio .ce-summary-metrics>div{padding:12px}

@@ -24,8 +24,6 @@
 .platform-project-tablist a[aria-disabled=true] {opacity:.45}
 .platform-project-content:not([hidden]),.platform-studio-surface:not([hidden]) {animation:platform-enter 160ms ease-out}
 .platform-project-entry [hidden] {display:none!important}
-/* Studio owns project registration; include sidebar menus portaled to body. */
-:root[data-platform-view] [data-project-registration-entry] {display:none!important}
 @keyframes platform-enter {from {opacity:.65;transform:translateY(4px)} to {opacity:1;transform:none}}
 @media(prefers-reduced-motion:reduce) {.platform-project-content,.platform-studio-surface {animation:none!important}.platform-project-tablist a{transition:none}}
 @media(max-width:700px) {.platform-project-tabs {gap:10px;padding:0 10px;flex-wrap:wrap;flex-basis:auto;min-height:86px}.platform-project-name {flex:1;max-width:none}.platform-project-tablist {width:100%;height:39px}.platform-project-tablist a{padding:6px 12px}}
@@ -101,47 +99,13 @@
   font-weight: 600;
 }
 
-:root[data-platform-view='workspace'] :is(.sidebar-toggle, .titlebar-icon-button) {
-  border-radius: 8px;
-}
 
-:root[data-platform-view='workspace'] [data-worktree-card-surface] {
-  border-radius: 10px;
-}
 
-:root[data-platform-view='workspace'] [data-worktree-card-surface][data-worktree-card-active='primary'] {
-  background: var(--accent);
-  border-color: var(--border);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--foreground) 12%, transparent);
-}
 
-:root[data-platform-view='workspace'] [data-tab-id][data-active='true'] {
-  background: var(--accent);
-  color: var(--accent-foreground);
-  box-shadow: inset 0 -2px 0 var(--primary);
-}
 
-/* Tabs clear their native outline; buttons retain their component's focus ring. */
-:root[data-platform-view='workspace'] :is([data-tab-id], [data-worktree-card-surface]):focus-visible {
-  outline: 2px solid var(--foreground);
-  outline-offset: -2px;
-}
 
-:root[data-platform-view='workspace'] :is([data-slot='input'], [data-slot='select-trigger']) {
-  border-radius: 7px;
-  background-color: var(--background);
-}
 
-/* Portaled controls share the same document scope as the project surface. */
-:root[data-platform-view='workspace'] :is([data-slot='dialog-content'], [data-slot='dropdown-menu-content'], [data-slot='select-content']) {
-  border-color: var(--border);
-  border-radius: 10px;
-  box-shadow: 0 12px 32px #0000001a, 0 2px 6px #0000000d;
-}
 
-:root[data-platform-view='workspace'] :is([data-slot='dropdown-menu-item'], [data-slot='select-item']) {
-  border-radius: 6px;
-}
 
 @media (max-width: 700px) {
   .platform-project-tabs { flex-basis: auto; min-height: 86px; gap: 8px; padding: 8px 12px; }
@@ -150,9 +114,6 @@
   .platform-project-tablist a { flex: 1; text-align: center; }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  :root[data-platform-view='workspace'] [data-slot='button'] { transition: none; }
-}
 
 .platform-workspace-context {display:inline-block;max-width:100%;text-align:left}
 .platform-workspace-context summary {cursor:pointer;overflow-wrap:anywhere}
@@ -171,23 +132,16 @@
 .platform-project-tablist a[aria-current='page'] {box-shadow:0 1px 4px #0000000d}
 .platform-project-back {padding:7px 10px;border-radius:999px}
 .platform-project-back:hover {background:var(--accent)}
-:root[data-platform-view='workspace'] :is(.sidebar-toggle,.titlebar-icon-button) {transition:background-color 140ms,box-shadow 140ms}
-:root[data-platform-view='workspace'] :is(.sidebar-toggle,.titlebar-icon-button):hover {background:var(--accent)}
-:root[data-platform-view='workspace'] :is(.sidebar-toggle,.titlebar-icon-button):active {box-shadow:inset 0 1px 3px #00000018}
 @supports (backdrop-filter:blur(8px)) {
   .platform-project-tablist {background:color-mix(in srgb,var(--muted) 78%,transparent);backdrop-filter:blur(8px)}
 }
 @media (prefers-reduced-transparency:reduce) {
   .platform-project-tablist {background:var(--muted);backdrop-filter:none}
 }
-@media (prefers-reduced-motion:reduce) {
-  :root[data-platform-view='workspace'] :is(.sidebar-toggle,.titlebar-icon-button) {transition:none}
-}
 @media (forced-colors:active) {
   .platform-project-tablist {background:Canvas;backdrop-filter:none;border-color:ButtonText}
   .platform-project-tablist a[aria-current='page'] {outline:1px solid Highlight;outline-offset:-2px}
   .platform-project-tabs a:focus-visible {outline-color:Highlight}
-  :root[data-platform-view='workspace'] [data-worktree-card-active='primary'] {outline:1px solid Highlight}
 }
 
 .platform-project-back,.platform-project-tablist a{min-height:40px;display:inline-flex;align-items:center;font-size:14px;line-height:22px;border-radius:12px}

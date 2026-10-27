@@ -55,6 +55,12 @@ for (const host of ['localhost', 'app.localhost', '127.0.0.1', '127.0.0.2', '[::
     assert.ok(f.elements.some(n => n.href === '#home' && n.textContent === '返回项目总览'));
   });
 }
+test('zero-project account access returns to the native workbench', () => {
+  const f = fixture('http://127.0.0.1:8772', undefined, '#workbench');
+  assert.ok(f.elements.some(n => n.href === '#workbench' && n.textContent === '返回工作台'));
+  assert.equal(f.accountMounts[0].options.returnHash, '#workbench');
+});
+
 test('reports copy success only after the receiver-bound clipboard call resolves', async () => {
   let resolve; const clipboard = { writeText(value) { assert.equal(this, clipboard); assert.equal(value, 'https://portal.example.test/remote'); return new Promise(done => resolve = done); } };
   const f = fixture('https://example.test', clipboard);f.portal('https://portal.example.test/remote'); const pending = f.copy();

@@ -28,7 +28,8 @@ def _reader(server):
         if server._news_reader_closed:
             raise OSError('news_reader_closed')
         if server.news_reader is None:
-            server.news_reader = NewsReader(server.news_reader_root, server.news_source)
+            server.news_reader = NewsReader(server.news_reader_root, server.news_source,
+                                            runtime=getattr(server, 'news_runtime', None))
         return server.news_reader
 
 

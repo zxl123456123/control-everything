@@ -3,6 +3,8 @@
 (() => {
   const reasons = {
     item_changed: '这条事项已被其他窗口修改，请重新读取后核对草稿',
+    project_changed: '项目已被其他窗口修改，请重新读取后核对当前输入',
+    native_managed_project: '项目仍有运行中的任务，请结束任务后再归档',
     delivery_changed: '已有新的交付，请核对最新内容，修改意见仍保留',
     binding_changed: '会话来源发生变化，请回到会话核对',
     runtime_unavailable: '开发宿主暂不可用，请稍后重试',

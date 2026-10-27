@@ -46,7 +46,7 @@ const VIEWPORT_HEIGHT_PX = 600
  * their own classes (`artifactRowHeightPx`), and the guard test pins that derived height to both
  * this number and the virtualizer's estimate for unmounted rows.
  */
-const SYNTHETIC_ROW_HEIGHT_PX = 77
+const SYNTHETIC_ROW_HEIGHT_PX = 53
 // Synthetic sticky-header height, and so the list's offset inside the scroller. Far larger than
 // the real `h-8`, so a lost or wrong scroll margin resolves a visibly different window.
 const HEADER_HEIGHT_PX = 300
@@ -59,12 +59,12 @@ const ARTIFACT_ROW_SELECTOR = '[role="button"][tabindex="0"]'
  * a `w-fit` band sizing every row's hover and selection wash to the scroll width, not the viewport.
  */
 const ARTIFACTS_GRID_CLASS =
-  'grid grid-cols-[minmax(0,1.6fr)_minmax(4.5rem,6.5rem)_minmax(4rem,5.5rem)_minmax(6.5rem,9rem)_minmax(6.5rem,9rem)_2.75rem]'
+  'grid grid-cols-[minmax(0,1.6fr)_minmax(4.5rem,6.5rem)_minmax(4rem,5.5rem)_minmax(6.5rem,9rem)_minmax(6.5rem,9rem)_2.5rem]'
 const SCROLLER_CLASS =
   'border border-border/50 scrollbar-sleek min-h-0 flex-1 overflow-auto rounded-2xl bg-card'
 const TABLE_HEADER_CLASS = `${ARTIFACTS_GRID_CLASS} sticky top-0 z-30 h-8 items-center gap-3 border-b border-border/50 bg-[color-mix(in_srgb,var(--muted)_40%,var(--background))] px-3 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground`
 /** An unselected row that draws its divider — every windowed row but the list-final one. */
-const ROW_CLASS = `${ARTIFACTS_GRID_CLASS} group/list-table-row w-full scroll-mt-8 cursor-pointer items-center text-left transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 min-h-16 gap-4 px-4 py-4 text-sm border-b border-border/50`
+const ROW_CLASS = `${ARTIFACTS_GRID_CLASS} group/list-table-row w-full min-h-11 scroll-mt-8 cursor-pointer items-center gap-3 px-3 py-3 text-left text-sm transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 border-b border-border/50`
 // Why `data-current` cannot stand in for the wash: it is set from a separate expression, so
 // deleting the wash leaves the attribute while the user loses the only visible selection marker.
 const SELECTED_ROW_CLASS = `${ROW_CLASS} bg-accent text-accent-foreground`
@@ -701,8 +701,8 @@ describe('artifacts list windowing — above the threshold', () => {
     renderCollection({ items: artifacts(500) })
 
     const shell = requireVirtualShell()
-    // 4 visible (600px viewport less the 300px header, over 77px rows) plus 10 overscan.
-    expect(mountedRows.count).toBe(14)
+    // 6 visible (600px viewport less the 300px header, over 53px rows) plus 10 overscan.
+    expect(mountedRows.count).toBe(16)
     expect(mountedRows.count).toBeLessThan(VIRTUALIZED_LIST_MIN_ROWS)
     expect(host.querySelectorAll('[data-index]').length).toBe(mountedRows.count)
     // The scrollbar still represents all 500 rows: mounted rows measure at the height the
@@ -730,7 +730,7 @@ describe('artifacts list windowing — above the threshold', () => {
 
     expect(tableHeader().className).toBe(TABLE_HEADER_CLASS)
     const rows = Array.from(host.querySelectorAll(`[data-index] ${ARTIFACT_ROW_SELECTOR}`))
-    expect(rows.length).toBe(14)
+    expect(rows.length).toBe(16)
     for (const row of rows) {
       expect(row.className).toBe(ROW_CLASS)
     }
@@ -765,7 +765,7 @@ describe('artifacts list windowing — above the threshold', () => {
     expect(tableHeader().className).toBe(TABLE_HEADER_CLASS)
     expect(requireVirtualShell().className).toBe(VIRTUAL_SHELL_CLASS)
     const wrappers = Array.from(host.querySelectorAll('[data-index]'))
-    expect(wrappers.length).toBe(14)
+    expect(wrappers.length).toBe(16)
     for (const wrapper of wrappers) {
       expect(wrapper.className).toBe(WINDOWED_ROW_WRAPPER_CLASS)
     }
@@ -777,7 +777,7 @@ describe('artifacts list windowing — above the threshold', () => {
     const windowedRows = Array.from(
       host.querySelectorAll<HTMLElement>('[data-index] [role="button"]')
     )
-    expect(windowedRows.length).toBe(14)
+    expect(windowedRows.length).toBe(16)
     for (const row of windowedRows) {
       expectRowDivider(row)
     }
@@ -835,8 +835,8 @@ describe('artifacts list windowing — row identity', () => {
     renderCollection({ items: base.slice(1) })
     expect(virtualShell()).toBe(shell)
     expect(rowAtIndex(0)?.textContent).toContain('Artifact 1')
-    // Still the one window — 4 visible plus 10 overscan — after insert and remove.
-    expect(mountedRows.count).toBe(14)
+    // Still the one window — 6 visible plus 10 overscan — after insert and remove.
+    expect(mountedRows.count).toBe(16)
 
     const reordered = [...base.slice(0, 30).toReversed(), ...base.slice(30)]
     renderCollection({ items: reordered, selectedSlug: 'a-29' })
@@ -876,8 +876,8 @@ describe('artifacts list windowing — row identity', () => {
     renderCollection({ items: artifacts(500) })
 
     const indexes = windowedIndexes()
-    // 4 visible plus 10 overscan.
-    expect(indexes.length).toBe(14)
+    // 6 visible plus 10 overscan.
+    expect(indexes.length).toBe(16)
     expect(new Set(indexes).size).toBe(indexes.length)
   })
 })

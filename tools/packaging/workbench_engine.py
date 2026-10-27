@@ -261,6 +261,12 @@ const web=new Set(['web-index.html','.vite/manifest.json']);
 for(const row of Object.values(vite)) for(const path of [row.file,...(row.css??[]),...(row.assets??[])]) web.add(path);
 const pdf=dirname(req.resolve('pdfjs-dist/package.json'));
 const walk=(dir,prefix='')=>readdirSync(dir,{withFileTypes:true}).flatMap(e=>e.isDirectory()?walk(join(dir,e.name),prefix+e.name+'/'):[prefix+e.name]);
+const newsCore=join(root,'out/node_modules/playwright-core');
+const newsCorePackage=JSON.parse(readFileSync(join(newsCore,'package.json'),'utf8'));
+if(newsCorePackage.name!=='playwright-core'||newsCorePackage.version!=='1.64.0'||
+ JSON.parse(readFileSync(join(root,'package.json'),'utf8')).devDependencies?.['playwright-core']!==newsCorePackage.version)
+ throw Error('news_playwright_core_identity');
+const newsRuntime={version:newsCorePackage.version,files:walk(newsCore).sort()};
 for(const dir of ['cmaps','standard_fonts','wasm']) for(const path of walk(join(pdf,dir))) web.add(dir+'/'+path);
 const yaml=req('yaml'), dependencies=[];
 for(const base of ['', 'mobile']) {
@@ -284,7 +290,7 @@ for(const base of ['', 'mobile']) {
  }
 }
 console.log(JSON.stringify({target,artifactVersion:version,node:{...NODE_RUNTIME_PIN,...nodeAsset,path:node},
- web:[...web].sort(),mobile,runtime,dependencies}));
+ web:[...web].sort(),mobile,runtime,newsRuntime,dependencies}));
 """
 
 
@@ -319,7 +325,8 @@ def check_output(run_dir, root=ROOT):
     write_json(run_dir / 'output-contract.json', data)
     rows = output_rows(unit, {'out/web': data['web'],
                              'out/mobile-web': ['manifest.json', *[a['path'] for a in data['mobile']['assets']]],
-                             'out/orcad': data['runtime']})
+                             'out/orcad': data['runtime'],
+                             'out/node_modules/playwright-core': data['newsRuntime']['files']})
     node_file = unlinked(unit / relative_path(data['node']['path']))
     if sha256(node_file) != data['node']['executableSha256']:
         raise BuildError('packaged_node_hash_mismatch')

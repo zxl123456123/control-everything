@@ -10,7 +10,7 @@ from urllib.parse import parse_qs, quote, unquote, urlsplit
 from control_everything.input_validation import ProfileError
 from control_everything.integrations.workbench_runtime import WorkbenchUnavailable
 from control_everything.paths import web_root
-from control_everything.workspace.validation import project_id_valid
+from control_everything.workspace.validation import project_id_valid, path_key
 from control_everything.http import remote_context
 
 WEB = web_root()
@@ -202,7 +202,7 @@ def _project(workspace, identity):
 
 
 def handle_post(handler, path):
-    if path.path not in ("/api/workbench/bootstrap", "/api/workbench/runtime-bootstrap"):
+    if path.path not in ("/api/workbench/bootstrap", "/api/workbench/runtime-bootstrap", "/api/workbench/adopt-repo"):
         return False
     if not handler.allowed(api=True, focus=True):
         return True
@@ -213,15 +213,41 @@ def handle_post(handler, path):
             raise ValueError("invalid_request")
         body = handler.read_json_body(max_bytes=4096, strict=True)
         runtime_only = path.path == "/api/workbench/runtime-bootstrap"
+        adopt = path.path == '/api/workbench/adopt-repo'
         if runtime_only:
             if body != {}:
                 raise ValueError("invalid_request")
+        elif adopt:
+            if (type(body) is not dict or set(body) != {'environment_id', 'runtime_id', 'repo_id'}
+                    or any(not isinstance(value, str) or not re.fullmatch(r'[A-Za-z0-9_.:-]{1,255}', value)
+                           for value in body.values())):
+                raise ValueError('invalid_request')
         elif set(body) != {"project_id"} or not project_id_valid(body["project_id"]):
             raise ValueError("invalid_request")
         if manager is None or not manager.ready:
             raise WorkbenchUnavailable("runtime_unavailable")
         is_remote = remote_context.remote_request(handler)
-        if runtime_only:
+        if adopt:
+            workspace = handler.server.workspace
+            if workspace is None or workspace.profile is None:
+                raise ProfileError('workspace_unavailable', status=503)
+            repo = manager.inspect_repo(body['environment_id'], body['runtime_id'], body['repo_id'])
+            project = workspace.store.adopt_project(repo['name'], repo['directory'])
+            current = manager.inspect_repo(body['environment_id'], body['runtime_id'], body['repo_id'])
+            if any(current[key] != repo[key] for key in ('repo_id', 'directory', 'environment_id', 'runtime_id')):
+                raise WorkbenchUnavailable('project_directory_mismatch')
+            project = _project(workspace, project['id'])
+            if path_key(project['directory']) != path_key(repo['directory']):
+                raise ProfileError('project_directory_changed', status=409)
+            refresh = handler.server.__dict__.get('refresh_workspace_roots')
+            if refresh:
+                refresh()
+            response = {'status': 'adopted', 'project': {'id': project['id'], 'name': project['name']},
+                        'target': {'repoId': repo['repo_id']},
+                        'runtime': {'environmentId': repo['environment_id'], 'runtimeId': repo['runtime_id']}}
+            handler.reply(200, response)
+            return True
+        elif runtime_only:
             result = manager.bootstrap_runtime(**({"remote": True} if is_remote else {}))
             response = {"runtime": result["runtime"]}
         else:

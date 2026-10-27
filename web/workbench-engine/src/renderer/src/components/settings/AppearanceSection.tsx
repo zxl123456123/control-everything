@@ -33,7 +33,10 @@ export function AppearanceSection({
   const contentId = `appearance-section-${id}`
   return (
     <div
-      className="overflow-hidden rounded-2xl bg-card transition-colors"
+      className={cn(
+        'overflow-hidden rounded-xl border border-border/50 bg-card transition-colors',
+        open && 'border-ring/40'
+      )}
     >
       <button
         type="button"

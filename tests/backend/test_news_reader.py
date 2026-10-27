@@ -42,6 +42,33 @@ class Source:
 
 
 class ReaderTests(unittest.TestCase):
+    def test_verified_runtime_is_private_and_never_uses_ambient_node(self):
+        node = self.root / 'pinned-node.exe'
+        node.write_bytes(b'fixture')
+        core = self.root / 'core'
+        core.mkdir()
+        (core / 'index.js').write_text('module.exports = {}')
+        jobs = NewsReader(self.root, self.source, runtime={'node': str(node), 'playwright_core': str(core)}).jobs
+        with patch.dict(os.environ, {'CONTROL_EVERYTHING_NEWS_NODE': str(self.root / 'wrong')}), \
+                patch('control_everything.workspace.news_research.shutil.which') as ambient, patch.object(jobs, '_run') as run:
+            job = jobs.begin('coding', 'coding')
+            jobs.thread.join(timeout=1)
+        ambient.assert_not_called()
+        self.assertEqual(run.call_args.args[2], str(node))
+        private = json.loads((jobs.root / job['job_id'] / 'request.json').read_text(encoding='utf-8'))
+        self.assertEqual(private['playwright_core'], str(core))
+        self.assertNotIn('playwright_core', job)
+        self.assertNotIn(str(core), json.dumps(job))
+        for runtime in ({}, {'node': str(node), 'playwright_core': str(self.root / 'missing')}):
+            unavailable = ResearchJobs(self.root, Mock(), runtime=runtime)
+            with patch.dict(os.environ, {'CONTROL_EVERYTHING_NEWS_NODE': __file__}), \
+                    patch('control_everything.workspace.news_research.shutil.which') as ambient, \
+                    patch('control_everything.workspace.news_research.subprocess.Popen') as spawn:
+                with self.assertRaises(OSError):
+                    unavailable.begin('coding', 'coding')
+            ambient.assert_not_called()
+            spawn.assert_not_called()
+
     def test_feed_updated_time_orders_without_inventing_publication(self):
         row = {**item('https://github.com/example/release', None, 'github_com'),
                'updated_at': '2026-10-26T00:00:00+00:00',
@@ -237,6 +264,8 @@ class ReaderHTTPTests(unittest.TestCase):
         self.assertEqual(self.request('/api/workspace/news/reader/refresh', 'POST', {})[0], 200)
         self.reader.sample.assert_called_once_with(refresh=True)
         self.assertEqual(self.request('/api/workspace/news/research', 'POST', {'url': 'https://example.com'})[0], 400)
+        self.assertEqual(self.request('/api/workspace/news/research', 'POST',
+                         {'query': 'coding', 'topic': 'coding', 'playwright_core': '/untrusted/module'})[0], 400)
         self.assertEqual(self.request('/api/workspace/news/research', 'POST', b' ' * 2049)[0], 413)
         self.assertEqual(self.request('/api/workspace/news/translate', 'POST', {'texts': [1], 'source': 'en', 'target': 'zh'})[0], 400)
 
@@ -298,6 +327,14 @@ class ReaderHTTPTests(unittest.TestCase):
             other = NewsReader(Path(temporary) / 'b', Source())
             self.assertEqual(first.sample()['reader_id'], again.sample()['reader_id'])
             self.assertNotEqual(first.reader_id, other.reader_id)
+
+    def test_http_injects_only_server_owned_runtime_at_reader_construction(self):
+        server = SimpleNamespace(news_reader=None, _news_reader_lock=threading.Lock(), _news_reader_closed=False,
+                                 news_reader_root=Path('owned-profile'), news_source=Mock(),
+                                 news_runtime={'node': 'verified-node', 'playwright_core': 'verified-core'})
+        with patch('control_everything.http.news_reader.NewsReader') as create:
+            self.assertIs(_reader(server), create.return_value)
+        create.assert_called_once_with(server.news_reader_root, server.news_source, runtime=server.news_runtime)
 
 
 if __name__ == '__main__':

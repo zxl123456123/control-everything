@@ -76,6 +76,20 @@ export default function PlatformProjectEntry(): React.JSX.Element {
   const settingsOrigin = useRef('#home')
   const settingsTrigger = useRef<HTMLElement | null>(null)
   const [contextActive, setContextActive] = useState(true)
+  const projectActionHost = contextActive && runtimeData ? `runtime:${runtimeData.runtime.environmentId}` : null
+  useEffect(() => {
+    if (!projectActionHost) return
+    let active = true
+    const actions = import('./platform-project-actions')
+    void Promise.all([actions, import('./preload-api/web-runtime-session')]).then(([module, session]) => {
+      if (active) module.setPlatformProjectActionHost(projectActionHost, session)
+    },
+      () => { if (active) setNavigationNotice('项目操作暂不可用，请重新加载页面。') })
+    return () => {
+      active = false
+      void actions.then(module => module.setPlatformProjectActionHost(null), () => {})
+    }
+  }, [projectActionHost])
   const projectSettings = route.view === 'project' && route.tab === 'settings'
   const globalSettings = route.view === 'settings' && !['account', 'sources'].includes(route.tab)
   const nativeSettings = projectSettings || globalSettings
@@ -91,6 +105,7 @@ export default function PlatformProjectEntry(): React.JSX.Element {
     setSettingsReady(null)
   }), [])
   const onProjects = useCallback<PlatformProjectsListener>((rows, metadata) => {
+    try { assertContextActive() } catch { return }
     const previous = latestProjects.current
     latestProjects.current = rows
     const archived = metadata?.archived ?? []
@@ -100,10 +115,22 @@ export default function PlatformProjectEntry(): React.JSX.Element {
       const project = rows.find((row) => row.id === id)
       if (
         !project ||
-        project.name !== saved.project.name ||
-        project.directory !== saved.project.directory
-      )
+        project.directory !== saved.project.directory ||
+        saved.data.runtime.environmentId !== environment.current ||
+        saved.data.runtime.offer.endpoint !== endpoint.current
+      ) {
         cache.current.delete(id)
+      } else if (project.name !== saved.project.name) {
+        // A label update keeps the verified target, ready handshakes and mounted editor.
+        const renamed = { ...saved.data, project: { ...saved.data.project, name: project.name } }
+        cache.current.set(id, { project: { ...project }, data: renamed })
+        const updateName = (current: PlatformProjectBootstrap | null) =>
+          current?.project.id === id && current.runtime === saved.data.runtime &&
+            current.target === saved.data.target ? renamed : current
+        setData(updateName)
+        setReadyData(updateName)
+        setBridgeReadyData(updateName)
+      }
     }
     const current = readPlatformRoute(window.location)
     if (current.view === 'project' && archived.some((row) => row.id === current.id))
@@ -140,7 +167,7 @@ export default function PlatformProjectEntry(): React.JSX.Element {
   const chosen = projects.find((project) => project.id === projectId)
   const archived = archivedProjects.find((project) => project.id === projectId)
   const connected = Boolean(
-    chosen &&
+    contextActive && chosen &&
     data?.project.id === projectId &&
     data.project.name === chosen.name &&
     cache.current.get(projectId)?.project.directory === chosen.directory &&
@@ -299,6 +326,21 @@ export default function PlatformProjectEntry(): React.JSX.Element {
       delete document.documentElement.dataset.platformView
     }
   }, [showWorkspace, showWorkbench])
+  useEffect(() => {
+    if (!contextActive || (!showWorkspace && !showWorkbench)) return
+    let active = true
+    const openProject = () => {
+      const hash = window.location.hash
+      void import('../store').then(({ useAppStore }) => {
+        if (!active || window.location.hash !== hash ||
+          document.documentElement.dataset.platformView !== 'workspace') return
+        try { assertContextActive() } catch { return }
+        useAppStore.getState().openModal('add-repo')
+      }).catch(() => { if (active) setNavigationNotice('添加项目暂不可用，请重试。') })
+    }
+    window.addEventListener('platform-open-add-repo', openProject)
+    return () => { active = false; window.removeEventListener('platform-open-add-repo', openProject) }
+  }, [contextActive, showWorkspace, showWorkbench])
   useEffect(() => {
     const receive = (event: Event) => {
       const request = (event as CustomEvent<TaskActionDetail>).detail
@@ -495,6 +537,7 @@ export default function PlatformProjectEntry(): React.JSX.Element {
         hidden={showWorkspace || showSettings || showWorkbench}
         pending={Boolean(nativeSettings || workbench || (developing && !showWorkspace && !archived))}
         onProjects={onProjects}
+        runtimeHost={projectActionHost}
       />
       {preparingWorkspace && (
         <div className="platform-navigation-notice" role="status">
