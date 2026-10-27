@@ -12,6 +12,16 @@
 
 发布新版桌面包时，须同步登记资源：普通资源取同版 `gateway.WEB_ASSETS`、`workbench.STUDIO_RESOURCES`、`news_reader.ASSETS` 中的非 HTML 项；原生资源取完整包 `workbench-build/web-assets.json` 的非 HTML `files`，路径加 `/workbench/` 前缀。只合并仍受支持版本的精确路径，保留旧版条目，不加入 HTML、API 或通配路径。更新私有配置并重启 hub 后，从远程浏览器实测项目与终端。漏登记会使初始脚本返回 `403 context_required`，出现白屏或资源加载失败；仅重新构建桌面包不能替代这一步。
 
+## Keycloak 登录主题
+
+`web/workspace/identity-theme/control-everything/login` 是继承官方 `keycloak.v2` 的子主题，只含 `theme.properties`、`resources/css/studio.css` 与 `messages/messages_zh_Hans.properties` 三个文件，不改模板、不含脚本。样式与账号页、手机端共用同一套 slate 色板、4px 栅格、圆角和弹簧动效，覆盖登录、注册、错误和设备授权（输入短码、确认授权、成功、拒绝）页面，明暗模式随父主题的 `pf-v5-theme-dark` 类切换，并遵守 `prefers-reduced-motion`。
+
+1. 部署：把整个 `control-everything` 目录挂载或复制到 Keycloak 的 `/opt/keycloak/themes/control-everything`（容器可用只读 bind mount），然后重启 Keycloak，或在开发模式用 `--spi-theme-cache-themes=false --spi-theme-static-max-age=-1` 免重启预览。
+2. 启用：管理控制台选择 realm → Realm settings → Themes → Login theme 选 `control-everything`；在 Localization 启用 `zh-Hans` 与 `en`，默认语言设为 `zh-Hans`。设备授权页使用同一登录主题，无需另配。
+3. 缓存：改动 `studio.css` 后同步递增 `theme.properties` 中 `studio.css?v=` 的版本号，否则浏览器可能继续使用旧样式。
+4. 约束：样式表除生成的 Geist 字体块外不得出现 `url()`、外链、`@import`；新增文件须同时更新 `tests/backend/test_identity_theme.py`、`MANIFEST.in` 与 `check_architecture.py`。
+5. 验证：本主题已用 Keycloak 26.8.1 实际渲染登录、注册、错误和设备授权页面的明暗、桌面与手机截图，但仍须在实际部署的 realm 与版本上复核；升级 Keycloak 大版本后须重新核对父主题的类名。
+
 ## 管理员与注册成员
 
 注册和密码由自建 Keycloak 处理。管理员使用同一 `/remote` 账号入口登录，账号与设备页显示注册成员、接入状态、角色、当前电脑及注册时间；未使用邀请码的注册者也会列出。注册成功不会自动激活接入，电脑仍须在桌面端授权并明确确认绑定。管理员身份只认私有配置中的精确 `sub`，不能因用户名相同而授予权限。
