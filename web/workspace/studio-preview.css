@@ -942,3 +942,6 @@ body:has(#ce-studio){margin:0;background:var(--ce-bg,#ffffff)}
 #ce-studio .ce-mascot-note{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:32;max-width:min(320px,calc(100vw - 32px));padding:9px 14px;border:1px solid var(--ce-line);border-radius:12px;background:var(--ce-panel);color:var(--ce-text);font-size:13px;line-height:20px;box-shadow:0 6px 18px rgba(15,23,42,.18)}
 #ce-studio .ce-mascot-note[hidden]{display:none}
 @media (prefers-reduced-motion:reduce){#ce-studio .ce-mascot-key,#ce-studio .ce-mascot-note{transition:none}#ce-studio .ce-mascot canvas{animation:none}}
+
+/* A pinned pet rail hugs the screen edge; on narrow windows the page leaves that gutter free so it never covers a control. */
+@media(max-width:1180px){#ce-studio .ce-content{transition:padding .25s ease}html[data-pw-rail=right] #ce-studio .ce-content{padding-right:84px}html[data-pw-rail=left] #ce-studio .ce-content{padding-left:84px}}

@@ -77,3 +77,15 @@ test('placeRail() keeps a tall rail inside a short viewport and a narrow rail wi
   const thin = plain(wheel.placeRail({left: 0, top: 500, width: 10, height: 10}, {width: 390, height: 800}, 3));
   assert.ok(thin.x >= 46, 'never pushed off the left edge: ' + thin.x);
 });
+
+test('placeRail() keeps below a host-supplied top limit by tightening the button pitch, never below the minimum', () => {
+  const viewport = {width: 390, height: 800};
+  const free = plain(wheel.placeRail({left: 16, top: 730, width: 96, height: 60}, viewport, 6));
+  const tight = plain(wheel.placeRail({left: 16, top: 730, width: 96, height: 60}, viewport, 6, 420));
+  assert.equal(free.step, 56);
+  assert.ok(tight.step < 56 && tight.step >= 44, 'pitch tightened: ' + tight.step);
+  assert.ok(tight.y - tight.reach >= 420 - 1e-6, 'the rail stops below the limit');
+  assert.equal(plain(wheel.placeRail({left: 16, top: 730, width: 96, height: 60}, viewport, 6, 700)).step, 44, 'floor of the pitch');
+  assert.equal(tight.edge, 'left');
+  assert.equal(plain(wheel.placeRail({left: 300, top: 730, width: 96, height: 60}, viewport, 6)).edge, 'right');
+});

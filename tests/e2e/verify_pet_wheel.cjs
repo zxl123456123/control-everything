@@ -51,12 +51,15 @@ const actions = ['a', 'b', 'c', 'd', 'e', 'f'].map(id => `{id:'${id}',label:'动
   check('a pinned wheel never blocks the content under it (empty ring is click-through)', await page.evaluate(() => { const r = window.w.element.getBoundingClientRect(); const plate = document.querySelector('.pw-plate'); return getComputedStyle(plate).pointerEvents === 'none' && getComputedStyle(window.w.element).pointerEvents === 'none' && r.width === 0; }));
   const pinnedSpot = JSON.stringify([(await state()).x, (await state()).y]);
   check('a pinned wheel is a rail beside the pet, not the ring', await page.evaluate(() => window.w.element.dataset.layout === 'rail'));
+  check('an open rail tells the page which edge it hugs (html[data-pw-rail])', await page.evaluate(() => ['left', 'right'].includes(document.documentElement.dataset.pwRail)));
   await page.keyboard.press('Escape'); await settle();
+  check('and the gutter hint goes away when the rail collapses', await page.evaluate(() => !document.documentElement.dataset.pwRail));
   s = await state();
   check('Esc collapses a pinned wheel without unpinning it', !s.open && s.pinned);
   await tap(); await settle();
   check('the pinned wheel reopens at the same spot', JSON.stringify([(await state()).x, (await state()).y]) === pinnedSpot);
   await page.click('.pw-pin'); await settle();
+  check('unpinning clears the gutter hint', await page.evaluate(() => !document.documentElement.dataset.pwRail));
   check('unpinning restores the click-outside close', !(await state()).pinned && (await state()).pins.join() === 'true,false');
   await page.mouse.click(700, 300); await settle();
   check('and the wheel closes on an outside click again', !(await state()).open);

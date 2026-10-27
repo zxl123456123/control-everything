@@ -22,7 +22,7 @@
 
   const ICON_SIZE = 24, BUTTON = 48, HUB_PAD = 14, PLATE_PAD = 34, GAP = 16, EDGE = 12;
   const OUTSIDE_TAP_MS = 700;
-  const RAIL_STEP = 56, RAIL_FIRST = 52, RAIL_HALF_WIDTH = 34, RAIL_BEHIND = 30, RAIL_TAIL = BUTTON / 2 + 10;
+  const RAIL_STEP = 56, RAIL_MIN_STEP = 44, RAIL_FIRST = 52, RAIL_HALF_WIDTH = 34, RAIL_BEHIND = 30, RAIL_TAIL = BUTTON / 2 + 10;
   const ROOT_CLASS = 'pw-wheel';
   const PIN_PATH = 'M9 3h6l-1 6 3 3v2H7v-2l3-3z M12 14v7';
   const PIN_LABEL = {off: '固定转盘', on: '取消固定'};
@@ -111,16 +111,23 @@
    * @param {{left: number, top: number, width: number, height: number}} depot the pet's resting slot in viewport pixels
    * @param {{width: number, height: number}} viewport
    * @param {number} count number of action buttons
-   * @returns {{x: number, y: number, dir: -1|1, side: 'left'|'right', reach: number}} (x, y) is the pin's centre; dir -1 grows upwards; reach is the rail's length past the pin
+   * @param {number} [minTop] highest viewport y the rail may reach (a host keeps its toolbar and search field clear); the button pitch shrinks, down to RAIL_MIN_STEP, to fit
+   * @returns {{x: number, y: number, dir: -1|1, side: 'left'|'right', edge: 'left'|'right', step: number, reach: number}} (x, y) is the pin's centre; dir -1 grows upwards; step is the button pitch; edge is the screen edge the rail hugs; reach is the rail's length past the pin
    */
-  function placeRail(depot, viewport, count) {
+  function placeRail(depot, viewport, count, minTop = EDGE) {
     const centreX = depot.left + depot.width / 2, centreY = depot.top + depot.height / 2;
     const dir = centreY > viewport.height / 2 ? -1 : 1;
-    const reach = RAIL_FIRST + Math.max(0, count - 1) * RAIL_STEP + RAIL_TAIL;
-    const rawY = dir < 0 ? depot.top - GAP - 20 : depot.top + depot.height + GAP + 20;
     const clamp = (value, low, high) => Math.max(low, Math.min(Math.max(low, high), value));
-    const y = dir < 0 ? clamp(rawY, EDGE + reach, viewport.height - EDGE - RAIL_BEHIND) : clamp(rawY, EDGE + RAIL_BEHIND, viewport.height - EDGE - reach);
-    return {x: Math.round(clamp(centreX, EDGE + RAIL_HALF_WIDTH, viewport.width - EDGE - RAIL_HALF_WIDTH)), y: Math.round(y), dir, side: centreX < viewport.width / 2 ? 'right' : 'left', reach};
+    const rawY = dir < 0 ? depot.top - GAP - 20 : depot.top + depot.height + GAP + 20;
+    const gaps = Math.max(0, count - 1), top = Math.max(EDGE, minTop);
+    let step = RAIL_STEP;
+    if (dir < 0 && gaps) {
+      const room = clamp(rawY, EDGE + RAIL_BEHIND, viewport.height - EDGE - RAIL_BEHIND) - top - RAIL_FIRST - RAIL_TAIL;
+      step = Math.max(RAIL_MIN_STEP, Math.min(RAIL_STEP, Math.floor(room / gaps)));
+    }
+    const reach = RAIL_FIRST + gaps * step + RAIL_TAIL;
+    const y = dir < 0 ? clamp(rawY, top + reach, viewport.height - EDGE - RAIL_BEHIND) : clamp(rawY, EDGE + RAIL_BEHIND, viewport.height - EDGE - reach);
+    return {x: Math.round(clamp(centreX, EDGE + RAIL_HALF_WIDTH, viewport.width - EDGE - RAIL_HALF_WIDTH)), y: Math.round(y), dir, side: centreX < viewport.width / 2 ? 'right' : 'left', edge: centreX < viewport.width / 2 ? 'left' : 'right', step, reach};
   }
 
   function svgIcon(path, className) {
@@ -149,6 +156,7 @@
    * @param {(reason: 'escape'|'outside'|'blur'|'choose'|'tap'|'api') => void} [host.onClose]
    * @param {() => HTMLElement|null} [host.returnFocus]  where focus goes when the wheel closes from the keyboard
    * @param {string} [host.ignore]  selector of triggers whose own click toggles the wheel (outside clicks on them are not "outside")
+   * @param {() => number} [host.safeTop]  viewport y above which the pinned rail must not reach (keeps a toolbar or search field clear)
    * @param {(id: string) => void} [host.onChoose]
    */
   function create(host) {
@@ -205,13 +213,20 @@
       setActive(-1); syncPin();
     }
 
+    /** Tells the page which screen edge the open rail hugs (html[data-pw-rail]), so a host can leave that gutter free; cleared when the rail goes away. */
+    function publishInset() {
+      const edge = open && pinned && spot && spot.dir !== undefined ? spot.edge : '';
+      const html = document.documentElement;
+      if (edge) html.dataset.pwRail = edge; else if (html.dataset.pwRail) delete html.dataset.pwRail;
+    }
+
     /** Positions every button for the current layout: a ring around the hub, or a rail from the pin when pinned. */
     function arrange() {
       const rail = pinned && spot && spot.dir !== undefined;
       root.dataset.layout = rail ? 'rail' : 'ring';
       if (rail) {
-        const dir = spot.dir, last = RAIL_FIRST + Math.max(0, items.length - 1) * RAIL_STEP;
-        items.forEach((entry, i) => { entry.node.style.setProperty('--x', '0px'); entry.node.style.setProperty('--y', dir * (RAIL_FIRST + i * RAIL_STEP) + 'px'); });
+        const dir = spot.dir, step = spot.step || RAIL_STEP, last = RAIL_FIRST + Math.max(0, items.length - 1) * step;
+        items.forEach((entry, i) => { entry.node.style.setProperty('--x', '0px'); entry.node.style.setProperty('--y', dir * (RAIL_FIRST + i * step) + 'px'); });
         const near = -dir * RAIL_BEHIND, far = dir * (last + RAIL_TAIL);
         plate.style.left = '0px'; plate.style.top = (near + far) / 2 + 'px'; plate.style.width = RAIL_HALF_WIDTH * 2 + 'px'; plate.style.height = Math.abs(far - near) + 'px';
         pin.style.setProperty('--px', '0px'); pin.style.setProperty('--py', '0px');
@@ -228,9 +243,9 @@
       const rect = slot && (typeof slot.getBoundingClientRect === 'function' ? slot.getBoundingClientRect() : slot);
       const box = rect && rect.width + rect.height > 2 ? rect : {left: global.innerWidth - 120, top: global.innerHeight - 90, width: 96, height: 60};
       const viewport = {width: global.innerWidth, height: global.innerHeight};
-      spot = pinned ? placeRail(box, viewport, items.length) : place(box, viewport, radius());
+      spot = pinned ? placeRail(box, viewport, items.length, host.safeTop ? host.safeTop() : undefined) : place(box, viewport, radius());
       root.style.transform = `translate3d(${spot.x}px,${spot.y}px,0)`; root.dataset.side = spot.side;
-      arrange();
+      arrange(); publishInset();
     }
     const schedule = () => { if (open && !frame) frame = global.requestAnimationFrame(reposition); };
 
@@ -246,7 +261,7 @@
       if (destroyed) return false;
       if (open) { if (focus) focusItem(Math.max(0, active)); return true; }
       build(); if (!items.length) return false;
-      reposition(); open = true; fromKeyboard = Boolean(focus); root.dataset.theme = pageTheme(); root.dataset.open = 'true';
+      reposition(); open = true; publishInset(); fromKeyboard = Boolean(focus); root.dataset.theme = pageTheme(); root.dataset.open = 'true';
       document.addEventListener('pointerdown', onOutside, true); document.addEventListener('keydown', onKey, true); document.addEventListener('focusin', onFocusIn, true);
       global.addEventListener('resize', schedule); global.addEventListener('scroll', schedule, true);
       if (focus) focusItem(0);
@@ -257,7 +272,7 @@
 
     function close(reason = 'api', toTrigger = false) {
       if (!open) return false;
-      open = false; root.dataset.open = 'false'; closedAt = {reason, time: now()};
+      open = false; publishInset(); root.dataset.open = 'false'; closedAt = {reason, time: now()};
       document.removeEventListener('pointerdown', onOutside, true); document.removeEventListener('keydown', onKey, true); document.removeEventListener('focusin', onFocusIn, true);
       global.removeEventListener('resize', schedule); global.removeEventListener('scroll', schedule, true);
       if (frame) { global.cancelAnimationFrame(frame); frame = 0; }

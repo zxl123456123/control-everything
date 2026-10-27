@@ -249,7 +249,7 @@
     return $('web-depot');
   }
   wheel = window.NewsPetWheel.create({
-    tapTarget:$('animation-stage'), anchor:wheelAnchor, actions:petActions, pinned:petPrefs.dialPin, ignore:'#pet-dial', returnFocus:() => $('pet-dial'),
+    tapTarget:$('animation-stage'), anchor:wheelAnchor, safeTop:() => Math.max(0, ...['.toolbar', '#search'].map(selector => { const node = document.querySelector(selector), box = node && node.getBoundingClientRect(); return box && box.height > 0 ? Math.ceil(box.bottom) + 8 : 0; })), actions:petActions, pinned:petPrefs.dialPin, ignore:'#pet-dial', returnFocus:() => $('pet-dial'),
     onPinChange:pinned => { if (!prefs.set({dialPin:pinned})) wheel.setPinned(pinned); },
     onOpen:() => { $('pet-dial').setAttribute('aria-expanded', 'true'); },
     onClose:() => { $('pet-dial').setAttribute('aria-expanded', 'false'); },
