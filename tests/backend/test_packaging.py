@@ -101,7 +101,9 @@ class PackagingTests(TestCase):
         self.assertEqual(gateway['/ui-dialog.js'], ('workspace/ui-dialog.js', 'text/javascript; charset=utf-8'))
         self.assertEqual(studio['/studio-shell.js'], ('studio-shell.js', 'text/javascript; charset=utf-8'))
         self.assertEqual(creator['/ui-theme.js'], ('ui-theme.js', 'text/javascript; charset=utf-8'))
-        helpers = {'/ui-theme.js', '/ui-dialog.js', '/studio-shell.js'}
+        self.assertEqual(studio['/studio-pet-settings.js'], ('studio-pet-settings.js', 'text/javascript; charset=utf-8'))
+        self.assertEqual(studio['/studio-mascot.js'], ('studio-mascot.js', 'text/javascript; charset=utf-8'))
+        helpers = {'/ui-theme.js', '/ui-dialog.js', '/studio-shell.js', '/studio-pet-settings.js', '/studio-mascot.js'}
         self.assertEqual(helpers & creator.keys(), {'/ui-theme.js'})
         self.assertFalse(helpers & news.keys())
         from tools.scripts.preview_studio import PreviewHandler, RESOURCES

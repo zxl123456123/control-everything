@@ -22,6 +22,7 @@ LEGACY_PUBLIC_DOCS = {"docs/architecture.md", "docs/usage.md", "docs/integration
                       "docs/workbench-contract.md", "docs/EMBEDDING.md", "docs/PETS_INTEGRATION.md"}
 PUBLIC_DOCS = {"docs/README.md", "docs/architecture/architecture.md", "docs/guides/usage.md", "docs/guides/integrations.md", "docs/guides/windows.md",
                "docs/architecture/workbench-contract.md", "docs/guides/EMBEDDING.md", "docs/guides/PETS_INTEGRATION.md",
+               "docs/examples/pets/naidragon-embed.html", "docs/examples/pets/naidragon-embed.css", "docs/examples/pets/naidragon-embed.js",
                "docs/examples/integrations/codex.toml.example",
                "docs/examples/integrations/integration-settings.example.json",
                "docs/examples/integrations/workbench-device-provisioner.service.example",

@@ -7,7 +7,7 @@ include web/sessions/index.html web/sessions/app.js web/sessions/style.css
 include web/progress/progress.html web/progress/progress.js web/progress/progress.css
 include web/product/index.html web/product/product.css web/product/product.js
 include web/workspace/workspace.html web/workspace/workspace.js web/workspace/workspace.css
-include web/workspace/ui-theme.js web/workspace/ui-dialog.js web/workspace/studio-shell.js
+include web/workspace/ui-theme.js web/workspace/ui-dialog.js web/workspace/studio-shell.js web/workspace/studio-pet-settings.js web/workspace/studio-mascot.js
 include web/workspace/onboarding.js
 include web/workspace/desktop.html
 include web/workspace/desktop.js
@@ -26,6 +26,7 @@ include web/workspace/project-space.js web/workspace/execution.js web/workspace/
 include web/workspace/news.js web/workspace/quota.js
 include web/workspace/news-reader.html web/workspace/news-reader.css web/workspace/news-reader.js
 include web/workspace/news-spider.js web/workspace/news-browser.js web/workspace/news-public-embed.js
+include web/workspace/news-pets.js web/workspace/news-pet-dial.js web/workspace/news-pet-wheel.js web/workspace/news-pet-prefs.js web/workspace/news-pet-director.js web/workspace/news-pet-status.js web/workspace/news-naidragon.js web/workspace/news-tabbycat.js
 include web/workspace/mobile-device-entry.js
 include web/workspace/studio-preview.html web/workspace/studio-preview.css web/workspace/studio-preview.js
 include web/workspace/studio-data.js

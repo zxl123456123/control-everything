@@ -9,7 +9,15 @@ PREFIX = '/api/workspace/news/'
 ASSETS = {'/news': ('news-reader.html', 'text/html; charset=utf-8'),
           '/news-reader.js': ('news-reader.js', 'text/javascript; charset=utf-8'),
           '/news-reader.css': ('news-reader.css', 'text/css; charset=utf-8'),
-          '/news-spider.js': ('news-spider.js', 'text/javascript; charset=utf-8')}
+          '/news-spider.js': ('news-spider.js', 'text/javascript; charset=utf-8'),
+          '/news-pets.js': ('news-pets.js', 'text/javascript; charset=utf-8'),
+          '/news-pet-dial.js': ('news-pet-dial.js', 'text/javascript; charset=utf-8'),
+          '/news-pet-wheel.js': ('news-pet-wheel.js', 'text/javascript; charset=utf-8'),
+          '/news-pet-prefs.js': ('news-pet-prefs.js', 'text/javascript; charset=utf-8'),
+          '/news-pet-director.js': ('news-pet-director.js', 'text/javascript; charset=utf-8'),
+          '/news-pet-status.js': ('news-pet-status.js', 'text/javascript; charset=utf-8'),
+          '/news-naidragon.js': ('news-naidragon.js', 'text/javascript; charset=utf-8'),
+          '/news-tabbycat.js': ('news-tabbycat.js', 'text/javascript; charset=utf-8')}
 CSP = ("default-src 'self'; img-src 'self' https: blob:; style-src 'self' 'unsafe-inline'; "
        "script-src 'self'; connect-src 'self'; object-src 'none'; frame-src 'none'; "
        "frame-ancestors 'none'; base-uri 'none'; form-action 'self'")

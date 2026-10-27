@@ -21,6 +21,7 @@ class Element {
   get all() { return this.children.flatMap(node => [node, ...node.all]); }
   querySelectorAll(selector) { return this.all.filter(node => matches(node, selector)); }
   querySelector(selector) { return this.querySelectorAll(selector)[0] || null; }
+  get options() { return this.querySelectorAll('option'); }
   get firstElementChild() { return this.children[0] || null; }
   get nextElementSibling() { return this.parentElement?.children[this.parentElement.children.indexOf(this) + 1] || null; }
   insertBefore(node, before) { node.remove(); node.parentElement = this; const index = this.children.indexOf(before); this.children.splice(index < 0 ? this.children.length : index, 0, node); }
@@ -48,7 +49,7 @@ function fixture(remote = false, withTheme = true) {
     for (const [, key, value = ''] of attributes.matchAll(/([\w-]+)(?:="([^"]*)")?/g)) { node.setAttribute(key, value); if (key === 'id') {node.id = value; ids.set(value, node);} if (key === 'class') node.className = value; if (key.startsWith('data-')) node.dataset[key.slice(5).replace(/-([a-z])/g, (_, char) => char.toUpperCase())] = value; }
     tree.append(node);
   }
-  const document = {hidden:false,documentElement:new Element('html'),getElementById:id => ids.get(id),createElement:tag => new Element(tag),createDocumentFragment:() => new Element('fragment'),querySelector:selector => tree.querySelector(selector),querySelectorAll:selector => tree.querySelectorAll(selector),addEventListener:(key,callback) => {documentEvents[key]=callback;}};
+  const document = {hidden:false,documentElement:new Element('html'),getElementById:id => ids.get(id),createElement:tag => new Element(tag),createDocumentFragment:() => new Element('fragment'),querySelector:selector => tree.querySelector(selector),querySelectorAll:selector => tree.querySelectorAll(selector),addEventListener:(key,callback) => {documentEvents[key]=callback;},removeEventListener:(key,callback) => {if (documentEvents[key]===callback) delete documentEvents[key];}};
   ids.get('directory').append(tree.querySelector('.spider-home'));
   const state = {value:sample(),feed:null,research:null};
   const response = value => ({ok:true,status:200,json:async () => value});
@@ -59,7 +60,8 @@ function fixture(remote = false, withTheme = true) {
     if (url.includes('/research')) return response(await (state.research ? state.research(url,options) : running()));
     return response(await (state.feed ? state.feed(url,options) : state.value));
   };
-  const window = {addEventListener:(key,callback) => {windowEvents[key]=callback;}};
+  // Several modules listen to the same window event (remote context, pet prefs): chain them like a real window.
+  const window = {addEventListener:(key,callback) => {const previous=windowEvents[key];windowEvents[key]=previous?(...args) => {previous(...args);callback(...args);}:callback;}};
   const themeReads=[],themeMounts=[],themeDisposals=[];
   if(withTheme)window.CEUITheme={earlyRead(key){if(window.CERemoteContext)assert.equal(Object.isFrozen(window.CERemoteContext),true);themeReads.push(key);return{mount(options){themeMounts.push(options);return()=>{};},dispose(){themeDisposals.push(key);}};}};
   const context = {window,document,URL,URLSearchParams,Headers,AbortController,console,location:new URL('http://fixture.test/news'),matchMedia:() => ({matches:false}),innerWidth:1280,innerHeight:800,
@@ -70,7 +72,10 @@ function fixture(remote = false, withTheme = true) {
     Object.assign(window,{location:new URL('https://workbench.example.test/news'),document,fetch,localStorage:context.localStorage,sessionStorage:context.localStorage});
     vm.runInNewContext(fs.readFileSync(path.join(root,'web/workspace/remote-context.js'),'utf8'),context);
   }
-  vm.runInNewContext(fs.readFileSync(path.join(root,'web/workspace/news-reader.js'),'utf8'),context);
+  Object.assign(window,{localStorage:context.localStorage,removeEventListener() {},dispatchEvent() {}});
+  // The wheel needs a real DOM; the reader only needs its surface here.
+  window.NewsPetWheel={create:() => ({isOpen:() => false,setPinned() {},refresh() {},close() {},destroy() {},toggle() {}})};
+  for (const file of ['news-pets.js','news-pet-dial.js','news-pet-prefs.js','news-pet-director.js','news-reader.js']) vm.runInNewContext(fs.readFileSync(path.join(root,'web/workspace',file),'utf8'),context);
   return {calls,writes,timers,state,window,document,windowEvents,themeReads,themeMounts,themeDisposals,node:id => ids.get(id),
     async hidden(value) {document.hidden=value;documentEvents.visibilitychange();await flush();},
     async tick(ms) {const timer=[...timers].find(([,timer]) => timer.ms===ms); assert.ok(timer,`timer ${ms}`);timers.delete(timer[0]);timer[1].callback();await flush();}};

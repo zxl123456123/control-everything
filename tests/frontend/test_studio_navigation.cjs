@@ -42,19 +42,22 @@ test('zero, all archived and unavailable projects reach the native workbench wit
   assert.match(overview({projects:[project('one')],runtimeAvailable:false}), /项目运行组件未连接/);
 });
 
-test('the sidebar keeps account management while advanced compatibility settings stay off routine navigation', () => {
+test('the sidebar offers settings and account management while advanced compatibility settings stay off routine navigation', () => {
   const html = shell.renderNavigation({current:{view:'settings',tab:'account'}, creatorLink:'<a href="http://127.0.0.1:8770/">游戏创作</a>'});
   assert.equal((html.match(/href="#home"/g) || []).length, 1);
   assert.doesNotMatch(html, /href="#project\/|href="#workspace"|ce-navdot/);
   assert.ok(html.includes('href="#settings/account"'));
-  assert.doesNotMatch(html, /settings-toggle|settings\/appearance|settings\/development|settings\/sources|来源与接入|高级接入/);
+  assert.ok(html.includes('href="#settings/appearance"'), 'the pet settings page is reachable from the bottom-left');
+  assert.doesNotMatch(html, /settings-toggle|settings\/development|settings\/sources|来源与接入|高级接入/);
   assert.doesNotMatch(html, /<span class="ce-rail-label">管理<\/span>/);
   assert.doesNotMatch(html, /游戏创作|8770/);
   assert.equal((html.match(/href="#news"/g) || []).length, 1);
   assert.match(html, /href="#settings\/account" aria-current="page"/);
   const management = html.match(/<nav class="ce-navgroup" aria-label="管理">([^]*?)<\/nav>/)[1];
   const symbols = [...management.matchAll(/<svg[^>]*>([^]*?)<\/svg>/g)].map(match => match[1]);
-  assert.equal(symbols.length, 1); assert.match(symbols[0], /circle/);
+  assert.equal(symbols.length, 2); assert.match(symbols[1], /circle/);
+  assert.doesNotMatch(html, /href="#settings\/appearance"[^>]*aria-current/);
+  assert.match(shell.renderNavigation({current:{view:'settings',tab:'appearance'}}), /href="#settings\/appearance" aria-current="page"/);
   assert.doesNotMatch(shell.renderNavigation({current:{view:'settings',tab:'sources'}}), /settings\/sources/);
   assert.equal(shell.renderProjectSetup, undefined);
 });

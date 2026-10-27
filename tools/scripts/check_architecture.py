@@ -80,6 +80,9 @@ def ownership_error(value):
                 'docs/examples/integrations/workbench-remote.Caddyfile.example',
                 'docs/examples/legacy/progress-manual.example.json',
                 'docs/examples/legacy/progress-registry.example.json',
+                'docs/examples/pets/naidragon-embed.html',
+                'docs/examples/pets/naidragon-embed.css',
+                'docs/examples/pets/naidragon-embed.js',
             } else 'unknown_example_owner'
         return None if value in {'docs/README.md', 'docs/architecture/architecture.md',
                                 'docs/architecture/workbench-contract.md', 'docs/guides/usage.md',

@@ -108,6 +108,9 @@ body{letter-spacing:normal}
 #animation-stage[data-reading-view=list] .spider-home{height:64px;padding:0 4px;gap:12px}
 #animation-stage[data-reading-view=list] #web-depot{width:64px;height:60px}
 #animation-stage[data-reading-view=list] .spider-status{display:flex;align-items:center;gap:12px;flex:1}
+html:is([data-pet=naidragon],[data-pet=tabbycat]) #animation-stage[data-reading-view=list] #web-depot{width:96px}
+/* The spider rests on the web hub; centre the hub 76px above the stage floor and 72px from its left edge so the legs stay inside the clipped stage. */
+html[data-pet=spider] #animation-stage[data-reading-view=list] #web-depot{width:136px;height:132px;margin-top:-78px;align-self:flex-start;pointer-events:none}
 #animation-stage[data-reading-view=list] .depot-name{display:none}
 #animation-stage[data-reading-view=list] #spider-state{min-height:0;margin:0;flex:1}
 #animation-stage[data-reading-view=list] #list-empty{padding:32px 16px;margin:auto}
@@ -136,6 +139,13 @@ html[data-embedded=true] .toolbar{flex-wrap:wrap;padding:12px 0;gap:8px}
 }
 
 #open-directory{width:40px;min-height:40px;align-items:center;justify-content:center;padding:8px}
+.pet-switch{display:inline-flex;align-items:center;gap:6px;margin-left:8px;font-size:12px;color:var(--muted)}
+.pet-select{height:26px;border:1px solid var(--line);border-radius:7px;background:var(--paper);color:inherit;font:inherit;padding:0 6px}
+.pet-select:focus-visible{outline:2px solid var(--focus,#4aa3ff);outline-offset:1px}
+.spider-status .pet-switch{display:flex;margin:6px 0 0}
+.pet-switch[hidden]{display:none!important}
+/* On narrow screens the pet buttons keep their full labels and the filter row wraps instead of clipping them. */
+@media(max-width:720px){/* The narrow list is a grid item at z-index 12; keep the dial (nd-z + 3) above it so its items stay clickable. */#animation-stage{--nd-z:10}#news-room .filters :is(#pet-visible,#pet-dial){flex:1 1 auto;white-space:nowrap}#animation-stage[data-reading-view=list] .spider-home{height:auto;min-height:64px;padding-block:6px}#animation-stage[data-reading-view=list] .spider-status{flex-wrap:wrap;gap:4px 10px}.spider-status :is(#spider-state,.pet-switch){white-space:nowrap}.spider-status .pet-switch{margin-left:0}}
 
 /* Collection progress updates from worker events; optional companions stay off by default. */
 .capture-option{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:14px;flex-wrap:wrap}
@@ -232,3 +242,5 @@ html[data-embedded=true] .toolbar{flex-wrap:wrap;padding:12px 0;gap:8px}
 @keyframes collection-breathe{0%,100%{transform:scale(.92);opacity:.65}50%{transform:scale(1.08);opacity:1}}
 @media(prefers-reduced-motion:reduce){#research-panel :is(.orb-swirl,.orb-halo){animation:none}#research-meter-fill{transition:none}}
 @media(max-width:380px){#research-panel{width:calc(100vw - 16px);border-radius:20px}#research-panel .research-head{padding:16px 18px 4px}#research-panel .research-body{padding:0 18px 20px}#research-panel .research-footer{padding:8px 18px 20px}.collection-orb{width:200px;height:200px}#research-panel #research-state{font-size:22px}}
+/* One pet at a time: while the research panel shows its own pet, the main stage pet (behind the modal) is hidden. */
+body:has(#research-panel[open] #research-details[open]) :is(#animation-stage>:is(canvas,.tc-bubble,.tc-chip,.nd-bubble,.nd-chip),#spider-canvas){visibility:hidden}
