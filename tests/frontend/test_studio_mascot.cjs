@@ -37,7 +37,13 @@ function setup({prefs = {}, route = {view: 'home', tab: ''}, compact = false, re
     localStorage: {getItem: key => (storage.has(key) ? storage.get(key) : null), setItem: (key, value) => { storage.set(key, String(value)); }},
     addEventListener: () => {}, removeEventListener: () => {},
   };
-  const engines = [];
+  const engines = [], wheels = [];
+  const wheelFactory = {create(config) {
+    const wheel = {config, open: false, pinned: config.pinned, destroyed: false, refreshed: 0,
+      toggle(keyboard) { wheel.open = !wheel.open; wheel.keyboard = keyboard; }, isOpen: () => wheel.open, setPinned(value) { wheel.pinned = value; },
+      refresh() { wheel.refreshed++; }, close() { wheel.open = false; }, destroy() { wheel.destroyed = true; }};
+    wheels.push(wheel); return wheel;
+  }};
   const pets = {
     list: () => [{name: 'spider', label: '蜘蛛', status: false}, {name: 'naidragon', label: '奶龙', status: true}, {name: 'tabbycat', label: '狸花猫', status: true}],
     mount(name, options) {
@@ -60,11 +66,11 @@ function setup({prefs = {}, route = {view: 'home', tab: ''}, compact = false, re
   const env = {compact: () => flags.compact, reduced: () => flags.reduced, onChange: fn => { envListener = fn; return () => { envListener = null; }; }};
   const mascot = context.window.StudioMascot.create({
     host, route: () => current, navigate: hash => navigations.push(hash), prefs: window.NewsPetPrefs, dial: window.NewsPetDial,
-    director: window.NewsPetDirector, pets, feed, env, storage: window.localStorage,
+    director: window.NewsPetDirector, wheel: wheelFactory, pets, feed, env, storage: window.localStorage,
     setTimer: (fn, ms) => { const timer = {fn, ms}; timers.push(timer); return timer; }, clearTimer: timer => { timers = timers.filter(item => item !== timer); },
   });
   const api = {
-    window, storage, host, mascot, engines, navigations, listeners, docListeners,
+    window, storage, host, mascot, engines, wheels, liveWheel: () => wheels.filter(item => !item.destroyed)[0], navigations, listeners, docListeners,
     engine: () => engines[engines.length - 1], live: () => engines.filter(item => !item.destroyed),
     go(next) { current = next; mascot.setRoute(); },
     set(patch) { return window.NewsPetPrefs.set(patch); },
@@ -199,15 +205,32 @@ test('dial quiet and hide entries write preferences and announce through the liv
   assert.match(note.textContent, /重新打开/);
 });
 
-test('the keyboard button opens the dial and Escape returns focus to it', () => {
+test('the key button toggles the wheel; keyboard activation (detail 0) asks it to take focus', () => {
   const t = setup({prefs: {'news-reader-pet': 'naidragon'}});
-  const key = t.host.querySelector('.ce-mascot-key');
-  key.click();
-  assert.equal(t.engine().opened, true);
-  t.engine().menu.open = true;
-  t.docListeners.keydown[0]({key: 'Escape'});
-  t.runTimers();
-  assert.equal(key.focused, true);
+  const key = t.host.querySelector('.ce-mascot-key'), wheel = t.liveWheel();
+  key.listeners.click[0]({detail: 0});
+  assert.equal(wheel.open, true);
+  assert.equal(wheel.keyboard, true);
+  key.listeners.click[0]({detail: 1});
+  assert.equal(wheel.open, false);
+  assert.equal(wheel.config.returnFocus(), key, 'Escape returns focus to the key button');
+  assert.equal(t.engine().options.options.dial, false, 'the pet itself no longer draws a dial');
+});
+
+test('the wheel is anchored to the depot, follows the dial setting and the pin preference, and dies with the pet', () => {
+  const t = setup({prefs: {'news-reader-pet': 'naidragon'}});
+  const wheel = t.liveWheel();
+  assert.equal(wheel.config.tapTarget.className, 'ce-mascot');
+  assert.equal(wheel.config.anchor().className, 'ce-mascot-depot');
+  assert.equal(wheel.config.pinned, false);
+  wheel.config.onPinChange(true);
+  assert.equal(t.window.NewsPetPrefs.read().dialPin, true, 'the pin goes through the shared preference');
+  assert.equal(wheel.pinned, true);
+  t.set({dial: ['quiet', 'hide-pet', 'pet-settings']});
+  assert.equal(wheel.refreshed, 1);
+  t.go({view: 'news'});
+  assert.equal(wheel.destroyed, true);
+  assert.equal(t.liveWheel(), undefined);
 });
 
 test('a failing mount or the lazy fallback event removes the pet quietly and does not retry until the pet changes', () => {

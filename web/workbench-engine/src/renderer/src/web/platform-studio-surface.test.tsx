@@ -52,6 +52,7 @@ it('downloads dependencies in order once and keeps load-error recovery available
     '/mobile-device-entry.js',
     '/news-pets.js',
     '/news-pet-dial.js',
+    '/news-pet-wheel.js',
     '/news-pet-prefs.js',
     '/news-pet-director.js',
     '/news-pet-status.js',
@@ -71,7 +72,7 @@ it('downloads dependencies in order once and keeps load-error recovery available
   view.rerender(<PlatformStudioSurface hidden={false} onProjects={onProjects} />)
   expect(view.container.querySelector('section')?.hasAttribute('inert')).toBe(false)
   expect(view.container.querySelector<HTMLElement>('.platform-studio-host')?.hidden).toBe(false)
-  expect(scripts).toHaveLength(22)
+  expect(scripts).toHaveLength(23)
   view.rerender(<PlatformStudioSurface hidden={false} pending onProjects={onProjects} />)
   await act(async () => {
     scripts[0].dispatchEvent(new Event('error'))

@@ -30,6 +30,7 @@ const scripts = [
   '/mobile-device-entry.js',
   '/news-pets.js',
   '/news-pet-dial.js',
+  '/news-pet-wheel.js',
   '/news-pet-prefs.js',
   '/news-pet-director.js',
   '/news-pet-status.js',

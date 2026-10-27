@@ -50,7 +50,8 @@
   let historyReading = false, historyRestored = false;
   const still = () => paused || petPrefs.quiet;
   const stateText = () => still() ? (petPrefs.quiet ? '安静模式' : '动画已暂停') : collecting ? '正在采集信息' : '等待阅读';
-  const reactor = director.createReactor({engine:() => engine, enabled:() => petEnabled && Boolean(engine) && !still() && petPrefs.newsFx && canPoll()});
+  let wheel = null; // the shortcut wheel (NewsPetWheel); while it is open the pet stays quiet so no bubble covers it
+  const reactor = director.createReactor({engine:() => engine, enabled:() => petEnabled && Boolean(engine) && !still() && petPrefs.newsFx && canPoll() && !wheel?.isOpen()});
   const canPoll = () => active && !destroyed && !suspended && !document.hidden && window.CERemoteContext?.active !== false;
   const researchEvents = new Map(), researchData = new Map();
   const topicQueries = {coding:'AI coding workflow coding agents tips', agents:'AI agents context engineering tools workflows', claude:'Claude Code coding tips workflows', models:'GPT Gemini coding models releases', tibo:'Tibo AI coding agents'};
@@ -151,7 +152,7 @@
     }
     const toggle = $('pet-visible'), dial = $('pet-dial');
     toggle.setAttribute('aria-pressed', String(petEnabled)); toggle.textContent = petEnabled ? '隐藏宠物' : '显示宠物';
-    dial.hidden = !petEnabled || Boolean(petFallback) || typeof engine?.openMenu !== 'function';
+    dial.hidden = !petEnabled;
   }
   /** Stores the pet form; applyPrefs() reacts to the change like it does to one made in the Studio settings. */
   function switchPet(name) {
@@ -170,19 +171,20 @@
     if (petEnabled) {
       if (!engine) { engine = mountMainPet(); if (still()) engine.pause(); }
       if ($('research-panel').open && $('research-details').open && !researchEngine) { researchEngine = mountResearchPet(); if (still()) researchEngine.pause(); }
-    } else destroyPets();
+    } else { wheel?.close('api'); destroyPets(); }
     syncPetControls(); syncMotion();
   }
   function applyPrefs(next) {
     if (destroyed) return;
     const before = petPrefs, switched = next.pet !== petName;
     petPrefs = next; petName = next.pet; petEnabled = next.enabled;
-    if (switched) { petFallback = null; destroyPets(); }
+    if (switched) { petFallback = null; wheel?.close('api'); destroyPets(); }
     syncPets();
     if (!switched && engine) {
-      if (next.dial.join() !== before.dial.join()) engine.setActions?.(petActions());
+      if (next.dial.join() !== before.dial.join()) { engine.setActions?.(petActions()); wheel?.refresh(); }
       if (next.size !== before.size || next.dock !== before.dock) engine.setOptions?.(director.petOptions(next, fullPet()));
     }
+    wheel?.setPinned(next.dialPin);
     if (next.quiet !== before.quiet) { syncMotion(); $('spider-state').textContent = stateText(); if (!next.quiet) runArrival(); }
     if (switched && engine) { if (!still() && !$('research-panel').open) engine.pointAt($('article-title'), '阅读'); render(); runArrival(); }
   }
@@ -230,12 +232,19 @@
   }
   document.querySelectorAll('.pet-select').forEach(select => select.addEventListener('change', () => switchPet(select.value)));
   $('pet-visible').addEventListener('click', () => { if (!prefs.setEnabled(!petEnabled)) notice('宠物设置暂时无法保存，本页选择仍然生效。'); });
-  $('pet-dial').addEventListener('click', () => engine?.openMenu(true));
-  // Esc closes the dial (the pet handles it); focus then returns to the button so keyboard users do not lose their place.
-  const restoreDialFocus = event => {
-    if (event.key === 'Escape' && engine?.inspect().menu?.open) setTimeout(() => { if (!destroyed) $('pet-dial').focus(); });
-  };
-  document.addEventListener('keydown', restoreDialFocus, true);
+  // Where the pet rests, as a viewport rectangle: the reader's dock when it has one, else the depot slot.
+  function wheelAnchor() {
+    const dock = petDock(), stage = $('animation-stage');
+    if (dock && stage && fullPet()) { const s = stage.getBoundingClientRect(); return {left:s.left + dock.x - 48, top:s.top + dock.y - 60, width:96, height:60}; }
+    return $('web-depot');
+  }
+  wheel = window.NewsPetWheel.create({
+    tapTarget:$('animation-stage'), anchor:wheelAnchor, actions:petActions, pinned:petPrefs.dialPin, ignore:'#pet-dial', returnFocus:() => $('pet-dial'),
+    onPinChange:pinned => { if (!prefs.set({dialPin:pinned})) wheel.setPinned(pinned); },
+    onOpen:() => { $('pet-dial').setAttribute('aria-expanded', 'true'); },
+    onClose:() => { $('pet-dial').setAttribute('aria-expanded', 'false'); },
+  });
+  $('pet-dial').addEventListener('click', event => { if (petEnabled) wheel.toggle(event.detail === 0); }); // detail 0: keyboard activation, so focus moves into the wheel
   function cancelTask(id) { tasks.delete(id); engine?.cancel(id); if (id.startsWith('arrival:')) { $('arrival-title').hidden = true; $('reader-state').hidden = false; } }
   function settleTask(event) {
     if (destroyed || window.CERemoteContext?.active === false) return;    const id = typeof event === 'string' ? event : event.id, task = tasks.get(id);
@@ -830,7 +839,7 @@
     if (researchBusy) void pollResearch();
   }
   document.addEventListener('visibilitychange', syncActivity);
-  const destroy = () => { destroyed = true; reactor.cancelPending(); $('research-panel').dataset.motion = 'paused'; document.removeEventListener('keydown', restoreDialFocus, true); unsubscribePrefs?.(); unmountAppearance(); if ($('research-panel').open) $('research-panel').close(); clearTimeout(researchTimer); clearTimeout(feedTimer); clearTimeout(articleRetry); if (frameObjectUrl) URL.revokeObjectURL(frameObjectUrl); stopTranslation(); statusFeed?.stop(); statusFeed = null; engine?.destroy(); researchEngine?.destroy(); };
+  const destroy = () => { destroyed = true; reactor.cancelPending(); $('research-panel').dataset.motion = 'paused'; wheel?.destroy(); unsubscribePrefs?.(); unmountAppearance(); if ($('research-panel').open) $('research-panel').close(); clearTimeout(researchTimer); clearTimeout(feedTimer); clearTimeout(articleRetry); if (frameObjectUrl) URL.revokeObjectURL(frameObjectUrl); stopTranslation(); statusFeed?.stop(); statusFeed = null; engine?.destroy(); researchEngine?.destroy(); };
   window.CERemoteContext?.onInactive(destroy);
   window.addEventListener('pagehide', event => { if (event.persisted) { suspended = true; unmountAppearance(); syncActivity(); } else destroy(); });
   window.addEventListener('pageshow', event => { if (event.persisted && !destroyed) { suspended = false; mountTheme(); syncActivity(); } });

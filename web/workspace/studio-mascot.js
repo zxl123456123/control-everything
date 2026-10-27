@@ -6,7 +6,8 @@
  *   hidden  news (the reader owns its own pet), project / workbench (focused editor and terminal surfaces),
  *           the mobile pairing page, and viewports narrower than MIN_WIDTH
  * Quiet mode, reduced motion and a hidden tab all stop animation and status polling. The spider is a news-only
- * creature and is never mounted here. Preferences come from NewsPetPrefs; the dial from NewsPetDial/NewsPetDirector. */
+ * creature and is never mounted here. Preferences come from NewsPetPrefs; the wheel's actions from NewsPetDial/NewsPetDirector
+ * and the wheel itself from NewsPetWheel. */
 (function (global) {
   'use strict';
 
@@ -38,6 +39,7 @@
    * @param {object} deps.prefs NewsPetPrefs
    * @param {object} deps.dial NewsPetDial
    * @param {object} deps.director NewsPetDirector
+   * @param {object} deps.wheel NewsPetWheel
    * @param {object} deps.pets NewsPets registry
    * @param {object} [deps.feed] PetStatusFeed (optional: without it the pet simply has no status)
    * @param {(url: string, signal?: AbortSignal) => Promise<object>} [deps.fetchJson]
@@ -49,7 +51,7 @@
   function create(deps) {
     const {host, prefs, dial, director, pets, feed, env} = deps, doc = host.ownerDocument;
     const setTimer = deps.setTimer || setTimeout, clearTimer = deps.clearTimer || clearTimeout;
-    let current = prefs.read(), engine = null, parts = null, statusFeed = null, hintTimer = null, failedPet = '', disposed = false, lastActions = '', status = {};
+    let current = prefs.read(), engine = null, wheel = null, parts = null, statusFeed = null, hintTimer = null, failedPet = '', disposed = false, lastActions = '', status = {};
 
     // A small polite live region of its own: the Studio status line is owned by page renders and would be cleared.
     const note = doc.createElement('div'); let noteTimer = null;
@@ -70,7 +72,8 @@
       canvas.setAttribute('aria-hidden', 'true'); depot.className = 'ce-mascot-depot'; depot.setAttribute('aria-hidden', 'true');
       key.type = 'button'; key.className = 'ce-mascot-key'; key.textContent = '宠物转盘'; key.setAttribute('aria-haspopup', 'menu');
       key.title = '打开宠物旁的快捷转盘';
-      key.addEventListener('click', () => engine?.openMenu?.(true));
+      // detail 0 is keyboard activation: focus then moves into the wheel
+      key.addEventListener('click', event => wheel?.toggle(event.detail === 0));
       root.append(canvas, depot); host.append(root, key);
       return {root, canvas, depot, key};
     }
@@ -103,6 +106,11 @@
         engine = pets.mount(current.pet, {root: parts.root, canvas: parts.canvas, depot: parts.depot, actions: actions(), options: options()});
       } catch { fail(); return; }
       lastActions = actions().map(item => item.id).join();
+      wheel = deps.wheel.create({
+        tapTarget: parts.root, anchor: () => parts?.depot || null, actions, pinned: current.dialPin, ignore: '.ce-mascot-key', returnFocus: () => parts?.key || null,
+        onPinChange: pinned => { if (!prefs.set({dialPin: pinned})) wheel?.setPinned(pinned); },
+        onOpen: () => parts?.key.setAttribute('aria-expanded', 'true'), onClose: () => parts?.key.setAttribute('aria-expanded', 'false'),
+      });
       syncMotion();
       scheduleHint();
     }
@@ -110,6 +118,7 @@
     function unmount() {
       clearTimer(hintTimer); hintTimer = null;
       statusFeed?.stop(); statusFeed = null;
+      wheel?.destroy(); wheel = null;
       engine?.destroy(); engine = null;
       parts?.root.remove(); parts?.key.remove(); parts = null;
     }
@@ -132,7 +141,7 @@
         hintTimer = null;
         if (!engine || still()) return;
         // react() answers false while the lazy engine is still loading; try again a few times, then give up quietly.
-        if (!engine.react?.(null, HINT_TEXT)) { if (tries > 1) scheduleHint(tries - 1); return; }
+        if (wheel?.isOpen() || !engine.react?.(null, HINT_TEXT)) { if (tries > 1) scheduleHint(tries - 1); return; }
         try { deps.storage?.setItem(HINT_KEY, '1'); } catch { /* an unwritable store only means the hint may show again */ }
       }, HINT_DELAY);
     }
@@ -149,7 +158,8 @@
       else if (!wanted() && engine) unmount();
       else if (engine) {
         const ids = actions().map(item => item.id).join();
-        if (ids !== lastActions) { lastActions = ids; engine.setActions?.(actions()); }
+        if (ids !== lastActions) { lastActions = ids; engine.setActions?.(actions()); wheel?.refresh(); }
+        wheel?.setPinned(current.dialPin);
         engine.setOptions?.(options()); place(); syncMotion();
       }
     }
@@ -161,15 +171,9 @@
       sync();
     }
     const onFallback = event => { if (!disposed && event.detail?.pet === current.pet) fail(); };
-    // Esc closes the dial inside the engine; focus then goes back to its button so keyboard users keep their place.
-    const onKey = event => {
-      if (event.key === 'Escape' && engine?.inspect?.().menu?.open) setTimer(() => { if (!disposed) parts?.key.focus(); });
-    };
-
     const unsubscribePrefs = prefs.subscribe(onPrefs);
     const unsubscribeEnv = env.onChange(sync);
     doc.defaultView.addEventListener('news-pet-fallback', onFallback);
-    doc.addEventListener('keydown', onKey, true);
     const themeObserver = typeof global.MutationObserver === 'function'
       ? new global.MutationObserver(() => engine?.setOptions?.(options())) : null;
     themeObserver?.observe(host, {attributes: true, attributeFilter: ['data-theme']});
@@ -185,7 +189,7 @@
       dispose() {
         if (disposed) return;
         disposed = true; unsubscribePrefs(); unsubscribeEnv(); themeObserver?.disconnect(); railObserver?.disconnect();
-        doc.defaultView.removeEventListener('news-pet-fallback', onFallback); doc.removeEventListener('keydown', onKey, true);
+        doc.defaultView.removeEventListener('news-pet-fallback', onFallback);
         clearTimer(noteTimer); note.remove(); unmount();
       },
     };
@@ -198,7 +202,7 @@
     let storage = null; try { storage = global.localStorage; } catch { storage = null; }
     const fetcher = global.CERemoteContext ? global.CERemoteContext.fetch : global.fetch.bind(global);
     return create({
-      host, route, navigate, storage, prefs: global.NewsPetPrefs, dial: global.NewsPetDial, director: global.NewsPetDirector, pets: global.NewsPets,
+      host, route, navigate, storage, prefs: global.NewsPetPrefs, dial: global.NewsPetDial, director: global.NewsPetDirector, wheel: global.NewsPetWheel, pets: global.NewsPets,
       feed: global.PetStatusFeed,
       fetchJson: async (url, signal) => {
         const response = await fetcher(url, {headers: {'X-Session-Client': 'panel'}, credentials: 'same-origin', cache: 'no-store', signal});

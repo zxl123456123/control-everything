@@ -73,6 +73,8 @@ function fixture(remote = false, withTheme = true) {
     vm.runInNewContext(fs.readFileSync(path.join(root,'web/workspace/remote-context.js'),'utf8'),context);
   }
   Object.assign(window,{localStorage:context.localStorage,removeEventListener() {},dispatchEvent() {}});
+  // The wheel needs a real DOM; the reader only needs its surface here.
+  window.NewsPetWheel={create:() => ({isOpen:() => false,setPinned() {},refresh() {},close() {},destroy() {},toggle() {}})};
   for (const file of ['news-pets.js','news-pet-dial.js','news-pet-prefs.js','news-pet-director.js','news-reader.js']) vm.runInNewContext(fs.readFileSync(path.join(root,'web/workspace',file),'utf8'),context);
   return {calls,writes,timers,state,window,document,windowEvents,themeReads,themeMounts,themeDisposals,node:id => ids.get(id),
     async hidden(value) {document.hidden=value;documentEvents.visibilitychange();await flush();},
