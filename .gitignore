@@ -31,6 +31,7 @@ node_modules/
 !/docs/guides/usage.md
 !/docs/guides/integrations.md
 !/docs/guides/windows.md
+!/docs/guides/development-files.md
 !/docs/guides/EMBEDDING.md
 !/docs/guides/PETS_INTEGRATION.md
 !/docs/examples/
@@ -43,6 +44,7 @@ node_modules/
 /videos/
 
 # Local configuration and user data
+/.claude/
 /.codex/*
 /.env
 /.env.*

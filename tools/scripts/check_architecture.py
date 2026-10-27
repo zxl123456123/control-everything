@@ -2,6 +2,7 @@
 
 import argparse
 import json
+import re
 from pathlib import Path, PurePosixPath
 import subprocess
 import sys
@@ -87,6 +88,7 @@ def ownership_error(value):
         return None if value in {'docs/README.md', 'docs/architecture/architecture.md',
                                 'docs/architecture/workbench-contract.md', 'docs/guides/usage.md',
                                 'docs/guides/integrations.md', 'docs/guides/windows.md',
+                                'docs/guides/development-files.md',
                                 'docs/guides/EMBEDDING.md', 'docs/guides/PETS_INTEGRATION.md'} else 'unknown_public_guide'
     if top == '.github':
         return None if value in {'.github/CODEOWNERS', '.github/pull_request_template.md', '.github/CONTRIBUTING.md'} or (
@@ -112,6 +114,15 @@ def local_layout_errors(root=ROOT):
             continue
         for path in sorted(directory.iterdir()):
             if path.is_dir():
+                if relative == 'docs/current':
+                    readme = path / 'README.md'
+                    if not readme.is_file():
+                        failures.append({'path': path.relative_to(root).as_posix(),
+                                         'reason': 'active_task_requires_readme'})
+                    elif re.search(r'^[-*] 当前状态[:：]\s*(?:已结束|已归档)\s*[。.]?\s*$',
+                                   readme.read_text(encoding='utf-8-sig').split('\n## ', 1)[0], re.M):
+                        failures.append({'path': path.relative_to(root).as_posix(),
+                                         'reason': 'closed_task_requires_archive'})
                 if relative == 'docs' and path.name not in {'guides', 'architecture', 'examples', 'current', 'archive'}:
                     failures.append({'path': path.relative_to(root).as_posix(),
                                      'reason': 'unknown_documentation_directory'})
