@@ -21,6 +21,16 @@ ROOT_FILES = {'.gitattributes', '.gitignore', 'AGENTS.md', 'README.md', 'LICENSE
               'requirements.txt', 'rust-toolchain.toml', 'pyproject.toml', 'MANIFEST.in', 'setup.py'}
 PACKAGE_FILES = {'__init__.py', 'paths.py', 'input_validation.py', 'gateway.py',
                  'profile.py', 'native_processes.py', 'mcp_stdio.py'}
+DEPLOY_REMOTE_FILES = {
+    'deploy/remote/README.zh.md', 'deploy/remote/ce-remote.env.example', 'deploy/remote/docker-compose.yml',
+    'deploy/remote/idp-keycloak.yml', 'deploy/remote/install.sh', 'deploy/remote/uninstall.sh',
+    'deploy/remote/caddy/Caddyfile', 'deploy/remote/keycloak/Dockerfile',
+    'deploy/remote/oauth2-proxy/oauth2-proxy.cfg', 'deploy/remote/realm/workbench-realm.json',
+    'deploy/remote/scripts/check.sh', 'deploy/remote/scripts/common.sh', 'deploy/remote/scripts/promote-admin.sh',
+    'deploy/remote/systemd/ce-device-provisioner.service', 'deploy/remote/systemd/ce-device-provisioner.socket',
+    'deploy/remote/systemd/ce-device-sshd.conf', 'deploy/remote/systemd/ce-device-sshd.service',
+    'deploy/remote/systemd/ce-public-ip-alias.service', 'deploy/remote/systemd/ce-remote-hub.service',
+}
 PACKAGES = {'http', 'sessions', 'workspace', 'execution', 'profiles', 'integrations', 'platform', 'installation'}
 
 
@@ -88,6 +98,8 @@ def ownership_error(value):
     if top == '.github':
         return None if value in {'.github/CODEOWNERS', '.github/pull_request_template.md', '.github/CONTRIBUTING.md'} or (
             section == 'workflows' and len(parts) == 3 and path.suffix in {'.yml', '.yaml'}) else 'unknown_repository_automation'
+    if top == 'deploy':
+        return None if value in DEPLOY_REMOTE_FILES else 'unknown_deployment_owner'
     if value == '.cargo/config.toml':
         return None
     return 'unregistered_top_level_directory'

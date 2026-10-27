@@ -1,0 +1,56 @@
+# 核心入口（与具体 IdP 无关）：Caddy（公网 80/443，IP 证书）+ oauth2-proxy。
+# 与 IdP 单元文件（idp-*.yml）叠加使用，例如：
+#   docker compose -p ce-remote --env-file /etc/ce-remote/ce-remote.env \
+#     -f docker-compose.yml -f idp-<name>.yml up -d
+# 两个容器使用 host 网络，因为 hub 与 sshd 转发端口在宿主机 127.0.0.1 上（hub 18869、设备隧道随机端口）。
+# 不触碰既有 n8n（127.0.0.1:5678）和渲染/发布栈；端口冲突由 install.sh 预检。
+name: ce-remote
+
+services:
+  caddy:
+    image: ${CE_REGISTRY_DOCKERHUB:-}caddy:2.11.7-alpine
+    container_name: ce-remote-caddy
+    network_mode: host
+    restart: unless-stopped
+    mem_limit: 128m
+    memswap_limit: 128m
+    environment:
+      CE_PUBLIC_IP: ${CE_PUBLIC_IP:?set CE_PUBLIC_IP}
+      CE_ROUTE_PROOF: ${CE_ROUTE_PROOF:?set CE_ROUTE_PROOF}
+      CE_OAUTH2_PROXY_ADDR: ${CE_OAUTH2_PROXY_ADDR:-127.0.0.1:18868}
+      CE_HUB_ADDR: ${CE_HUB_ADDR:-127.0.0.1:18869}
+      CE_IDP_UPSTREAM: ${CE_IDP_UPSTREAM:-127.0.0.1:18080}
+      CE_IDP_PUBLIC_PATHS: ${CE_IDP_PUBLIC_PATHS:?set CE_IDP_PUBLIC_PATHS}
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ${CE_REMOTE_UI_DIR:-/srv/control-everything/remote-ui}:/srv/control-everything/remote-ui:ro
+      - ce_caddy_data:/data
+      - ce_caddy_config:/config
+    logging: &log
+      driver: json-file
+      options: {max-size: "5m", max-file: "3"}
+
+  oauth2-proxy:
+    image: ${CE_REGISTRY_QUAY:-quay.io/}oauth2-proxy/oauth2-proxy:v7.15.5
+    container_name: ce-remote-oauth2-proxy
+    network_mode: host
+    restart: unless-stopped
+    mem_limit: 96m
+    memswap_limit: 96m
+    command: ["--config=/etc/oauth2-proxy/oauth2-proxy.cfg"]
+    environment:
+      OAUTH2_PROXY_HTTP_ADDRESS: ${CE_OAUTH2_PROXY_ADDR:-127.0.0.1:18868}
+      OAUTH2_PROXY_PROVIDER: ${CE_OIDC_PROVIDER:?set CE_OIDC_PROVIDER}
+      OAUTH2_PROXY_OIDC_ISSUER_URL: ${CE_OIDC_ISSUER:?set CE_OIDC_ISSUER}
+      OAUTH2_PROXY_CLIENT_ID: ${CE_OIDC_WEB_CLIENT_ID:?set CE_OIDC_WEB_CLIENT_ID}
+      OAUTH2_PROXY_CLIENT_SECRET: ${OAUTH2_PROXY_CLIENT_SECRET:?set OAUTH2_PROXY_CLIENT_SECRET}
+      OAUTH2_PROXY_COOKIE_SECRET: ${OAUTH2_PROXY_COOKIE_SECRET:?set OAUTH2_PROXY_COOKIE_SECRET}
+      OAUTH2_PROXY_REDIRECT_URL: ${CE_PUBLIC_ORIGIN:?set CE_PUBLIC_ORIGIN}/oauth2/callback
+      OAUTH2_PROXY_BACKEND_LOGOUT_URL: ${CE_OIDC_LOGOUT_URL:?set CE_OIDC_LOGOUT_URL}
+    volumes:
+      - ./oauth2-proxy/oauth2-proxy.cfg:/etc/oauth2-proxy/oauth2-proxy.cfg:ro
+    logging: *log
+
+volumes:
+  ce_caddy_data:
+  ce_caddy_config:

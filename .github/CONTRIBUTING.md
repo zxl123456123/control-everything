@@ -30,7 +30,7 @@
 
 公开配置样例属于 `docs/examples/integrations`，受支持的旧记录格式样例属于 `docs/examples/legacy`；它们不是真实运行数据。新记录写入所选 profile，旧根 JSON/SQLite 的默认位置和显式导入合同保持。远端 reader 的独立依赖在 `tools/remote-reader/requirements.txt`，不要装进本机环境。根 `requirements.txt`、`rust-toolchain.toml` 和 `.cargo/config.toml` 保持现有工具入口。
 
-账号与电脑接入的无秘密部署样例为 `docs/examples/integrations/workbench-identity.*`、`workbench-device-*` 和 `workbench-remote.Caddyfile.example`；精确归属在 `tools/scripts/check_architecture.py` 登记。远程账号页静态文件由中央站点的 `/remote` 提供，不依赖某台已绑定电脑。`http/desktop.py` 仅消费产品清单校验后的资源；`http/remote_context.py` 处理逐设备证明后的页面元数据。浏览器在任何存储读取之前冻结页面 context，显式分区 Storage 与聊天草稿 IndexedDB；远程环境的设备密钥仅保留在页面内存。真实部署、两个账号 HTTP/WS、安装与手机验收须分别留证，单元测试不代表新 EXE 或原生 iOS/Android 已交付。
+账号与电脑接入的无秘密部署样例为 `docs/examples/integrations/workbench-identity.*`、`workbench-device-*` 和 `workbench-remote.Caddyfile.example`；精确归属在 `tools/scripts/check_architecture.py` 登记。远程账号页静态文件由中央站点的 `/remote` 提供，不依赖某台已绑定电脑。`http/desktop.py` 仅消费产品清单校验后的资源；`http/remote_context.py` 处理逐设备证明后的页面元数据。浏览器在任何存储读取之前冻结页面 context，显式分区 Storage 与聊天草稿 IndexedDB；远程环境的设备密钥仅保留在页面内存。单机无域名部署包在 `deploy/remote/`（精确文件在 `tools/scripts/check_architecture.py` 登记；IdP 仅限 `idp-keycloak.yml`、`keycloak/`、`realm/` 与 env 模板的 IdP 区块，不得扩散到 Caddy、systemd 或 hub 单元；env 样例不用 `.env.*` 命名，样例 IP 只用文档地址段），其静态测试为 `tests/backend/test_remote_deploy_kit.py`，未在真实服务器验证前不得称为已部署。真实部署、两个账号 HTTP/WS、安装与手机验收须分别留证，单元测试不代表新 EXE 或原生 iOS/Android 已交付。
 
 ## 环境和验证
 

@@ -1,0 +1,21 @@
+[Unit]
+Description=Restricted device SSH provisioner
+Requires=ce-device-provisioner.socket
+After=ce-device-provisioner.socket
+
+[Service]
+User=root
+Group=root
+# 代码由 install.sh 复制到 /opt/ce-remote/src；只依赖 Python 标准库（需要 Python >= 3.12）。
+Environment=PYTHONPATH=/opt/ce-remote/src
+ExecStart=@PYTHON@ /opt/ce-remote/tools/scripts/remote_ssh_provisioner.py --hub-user ce-remote-hub
+UMask=0077
+StateDirectory=ce-device-ssh
+StateDirectoryMode=0755
+ProtectHome=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ReadWritePaths=/var/lib/ce-device-ssh /etc
+# useradd 会锁定并原子替换账号文件；服务不接受 shell 或任意 RPC 命令。
+RestrictAddressFamilies=AF_UNIX
+Restart=on-failure

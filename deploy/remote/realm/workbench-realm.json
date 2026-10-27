@@ -1,0 +1,102 @@
+{
+  "realm": "workbench",
+  "enabled": true,
+  "sslRequired": "external",
+  "registrationAllowed": true,
+  "resetPasswordAllowed": false,
+  "verifyEmail": false,
+  "bruteForceProtected": true,
+  "passwordPolicy": "length(12) and notUsername(undefined)",
+  "loginTheme": "control-everything",
+  "internationalizationEnabled": true,
+  "supportedLocales": ["zh-Hans", "en"],
+  "defaultLocale": "zh-Hans",
+  "clients": [
+    {
+      "clientId": "workbench-web",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "${WORKBENCH_WEB_CLIENT_SECRET}",
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "redirectUris": ["${CE_PUBLIC_ORIGIN}/oauth2/callback"],
+      "webOrigins": ["${CE_PUBLIC_ORIGIN}"],
+      "protocol": "openid-connect",
+      "protocolMappers": [
+        {"name": "hub-audience", "protocol": "openid-connect", "protocolMapper": "oidc-audience-mapper", "config": {"included.client.audience": "workbench-hub", "access.token.claim": "true", "id.token.claim": "false"}}
+      ]
+    },
+    {
+      "clientId": "workbench-desktop",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "protocol": "openid-connect",
+      "attributes": {"oauth2.device.authorization.grant.enabled": "true"},
+      "protocolMappers": [
+        {"name": "hub-audience", "protocol": "openid-connect", "protocolMapper": "oidc-audience-mapper", "config": {"included.client.audience": "workbench-hub", "access.token.claim": "true", "id.token.claim": "false"}}
+      ]
+    },
+    {
+      "clientId": "workbench-mobile",
+      "name": "Workbench mobile (native, PKCE)",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "protocol": "openid-connect",
+      "redirectUris": ["${CE_MOBILE_SCHEME}:/oauth/callback"],
+      "webOrigins": [],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "${CE_MOBILE_SCHEME}:/oauth/callback"
+      },
+      "protocolMappers": [
+        {"name": "hub-audience", "protocol": "openid-connect", "protocolMapper": "oidc-audience-mapper", "config": {"included.client.audience": "workbench-hub", "access.token.claim": "true", "id.token.claim": "false"}}
+      ]
+    },
+    {
+      "clientId": "workbench-hub",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "${WORKBENCH_HUB_CLIENT_SECRET}",
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "protocol": "openid-connect"
+    },
+    {
+      "clientId": "workbench-user-directory",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "${WORKBENCH_DIRECTORY_CLIENT_SECRET}",
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "fullScopeAllowed": false,
+      "protocol": "openid-connect"
+    }
+  ],
+  "users": [
+    {
+      "username": "service-account-workbench-user-directory",
+      "enabled": true,
+      "serviceAccountClientId": "workbench-user-directory",
+      "clientRoles": {"realm-management": ["query-users", "view-users"]}
+    }
+  ],
+  "clientScopeMappings": {
+    "realm-management": [
+      {"client": "workbench-user-directory", "roles": ["query-users", "view-users"]}
+    ]
+  }
+}

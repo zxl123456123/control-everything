@@ -59,7 +59,8 @@ class ArchitectureTests(TestCase):
                      'docs/guides/EMBEDDING.md', 'docs/guides/PETS_INTEGRATION.md', 'LICENSE',
                      'docs/examples/legacy/progress-manual.example.json', 'tests/e2e/verify_architecture.py',
                      'docs/examples/integrations/codex.toml.example', 'tools/scripts/check_architecture.py',
-                     '.github/CODEOWNERS', 'rust-toolchain.toml']:
+                     '.github/CODEOWNERS', 'rust-toolchain.toml',
+                     'deploy/remote/install.sh', 'deploy/remote/caddy/Caddyfile']:
             with self.subTest(path=path):
                 self.assertIsNone(policy.ownership_error(path))
 
@@ -78,6 +79,8 @@ class ArchitectureTests(TestCase):
                              ('control_everything/workspace/service.py', 'unregistered_top_level_directory'),
                              ('tools/misc/check.py', 'unknown_development_tool'),
                              ('another_app/main.py', 'unregistered_top_level_directory'),
+                             ('deploy/remote/extra.sh', 'unknown_deployment_owner'),
+                             ('deploy/other/install.sh', 'unknown_deployment_owner'),
                              ('tests/random/test_feature.py', 'unknown_test_type')]:
             with self.subTest(path=path):
                 self.assertEqual(policy.ownership_error(path), reason)
