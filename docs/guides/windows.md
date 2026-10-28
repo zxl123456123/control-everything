@@ -110,7 +110,7 @@ if ($LASTEXITCODE -ne 0) { throw 'Candidate build failed; inspect the retained r
 | --- | --- |
 | 输入与环境 | 完整 SHA、干净检出、新输出目录、Node/pnpm、Python 固定构建依赖、CPython pin、材料结构 |
 | Python 包 | `python -m build`，sdist → wheel，要求各一个 |
-| 原生观察 | 固定 `build_observer.py` 的 fmt/test/clippy/release，静态 CRT；同一工具链生成 Cargo 许可元数据 |
+| 原生观察 | 固定 `build_observer.py` 的 fmt/test/clippy/release，静态 CRT；同一工具链用 `--filter-platform x86_64-pc-windows-msvc` 生成 Cargo 元数据，从 resolve 图选择观察后台根及传递 normal/build 依赖，逐包保留完整许可校验 |
 | 内置工作台 | `workbench_engine.py build --materials ...`，源码检查、锁定依赖、编译、产物探针、材料绑定、完整许可闭包 |
 | 产品组装 | `build_windows.py --release`，完整十二项输入，源码与轮子、engine、observer、Git及源码附件逐项验证 |
 | 安装器 | `inno_include.py` → `ISCC.exe`，精确文件清单与 hash；编译器退出码非0即停止 |

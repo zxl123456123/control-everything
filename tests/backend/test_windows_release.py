@@ -1,5 +1,6 @@
 """Synthetic local release orchestration; no build, installer or network process runs."""
 import importlib.util
+import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
@@ -45,6 +46,8 @@ class WindowsReleaseTests(unittest.TestCase):
         self.engine_commit = COMMIT
         self.bad_sources = False
         self.changed_input = False
+        self.cargo_metadata = {'packages': [{'id': 'fixture', 'name': 'fixture', 'version': '1'}],
+                               'resolve': {'root': 'fixture', 'nodes': [{'id': 'fixture', 'deps': []}]}}
 
     def runner(self, argv, **kwargs):
         name = Path(kwargs['stdout'].name).name.removesuffix('.stdout.log')
@@ -53,7 +56,7 @@ class WindowsReleaseTests(unittest.TestCase):
         self.assertEqual(kwargs['cwd'], self.root)
         text = {'source-commit': COMMIT, 'source-status': ' M source' if self.dirty else '',
                 'node-version': 'v24.19.0', 'pnpm-version': '12.14.0', 'inno-version': 'Inno Setup 7.1.0',
-                'cargo-metadata': '{"packages":[{"name":"fixture","version":"1"}]}'}.get(name, 'fixture output')
+                'cargo-metadata': json.dumps(self.cargo_metadata)}.get(name, 'fixture output')
         kwargs['stdout'].write(text.encode())
         kwargs['stderr'].write(b'fixture stderr')
         if name == self.fail_step:
@@ -98,13 +101,15 @@ class WindowsReleaseTests(unittest.TestCase):
         commands = {name: argv for name, argv, _ in self.calls}
         self.assertIn('--release', commands['observer-build'])
         self.assertIn('--materials', commands['engine-build'])
+        cargo = commands['cargo-metadata']
+        self.assertEqual(cargo[cargo.index('--filter-platform') + 1], 'x86_64-pc-windows-msvc')
         product = commands['product']
         for flag in ('wheel', 'wheelhouse', 'runtime-zip', 'observer-release', 'output',
                      'cargo-packages', 'inno-license', 'engine-root', 'engine-run',
                      'portable-git', 'git-receipt', 'endpoints'):
             self.assertIn('--' + flag, product)
         self.assertIn('--release', product)
-        self.assertEqual(RELEASE.read(self.output / 'cargo-packages.json'), [{'name': 'fixture', 'version': '1'}])
+        self.assertEqual(RELEASE.read(self.output / 'cargo-packages.json'), self.cargo_metadata['packages'])
         self.assertTrue(all(row['exit_code'] == 0 for row in result['steps']))
         self.assertEqual(result['installer']['sha256'], RELEASE.sha(result['installer']['path']))
         self.assertEqual(result['source_bundle']['sha256'], RELEASE.sha(result['source_bundle']['path']))
@@ -185,4 +190,35 @@ class WindowsReleaseTests(unittest.TestCase):
         self.changed_input = True
         with self.assertRaisesRegex(ValueError, 'release_inputs_changed'):
             self.build()
+        self.assertEqual(RELEASE.read(self.output / 'build-receipt.json')['status'], 'failed')
+
+    def test_cargo_platform_graph_keeps_transitive_and_build_packages_only(self):
+        def edge(package, kind=None):
+            return {'pkg': package, 'dep_kinds': [{'kind': kind}]}
+        metadata = {'packages': [{'id': name, 'name': name} for name in
+                                ('root', 'normal', 'transitive', 'build', 'dev', 'other-platform')],
+                    'resolve': {'root': 'root', 'nodes': [
+                        {'id': 'root', 'deps': [edge('normal'), edge('build', 'build'), edge('dev', 'dev')]},
+                        {'id': 'normal', 'deps': [edge('transitive')]},
+                        {'id': 'transitive', 'deps': []}, {'id': 'build', 'deps': []},
+                        {'id': 'dev', 'deps': []}]}}
+        self.assertEqual([p['id'] for p in RELEASE.observer_packages(metadata)],
+                         ['root', 'normal', 'transitive', 'build'])
+
+    def test_cargo_missing_graph_root_node_or_package_stops_before_product(self):
+        invalid = [
+            {'packages': []},
+            {'packages': [], 'resolve': {'root': None, 'nodes': []}},
+            {'packages': [], 'resolve': {'root': 'root', 'nodes': [{'id': 'root', 'deps': []}]}},
+            {'packages': [{'id': 'root'}], 'resolve': {'root': 'root', 'nodes': []}},
+            {'packages': [{'id': 'root'}], 'resolve': {'root': 'root', 'nodes': [
+                {'id': 'root', 'deps': [{'pkg': 'missing', 'dep_kinds': [{'kind': 'build'}]}]}]}},
+        ]
+        for metadata in invalid:
+            with self.subTest(metadata=metadata), self.assertRaisesRegex(ValueError, 'cargo_dependency_'):
+                RELEASE.observer_packages(metadata)
+        self.cargo_metadata = invalid[0]
+        with self.assertRaisesRegex(ValueError, 'cargo_dependency_'):
+            self.build()
+        self.assertNotIn('engine-build', [name for name, _, _ in self.calls])
         self.assertEqual(RELEASE.read(self.output / 'build-receipt.json')['status'], 'failed')

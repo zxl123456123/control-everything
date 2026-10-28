@@ -79,6 +79,30 @@ def material_inputs(root, directory):
     return module.read_inputs(directory)['input_hashes']
 
 
+def observer_packages(metadata):
+    """Select the root's normal/build closure from Cargo's platform-filtered graph."""
+    resolve = metadata.get('resolve')
+    if not isinstance(resolve, dict) or not resolve.get('root'):
+        raise ValueError('cargo_dependency_graph_required')
+    try:
+        nodes = {node['id']: node for node in resolve['nodes']}
+        packages = {package['id']: package for package in metadata['packages']}
+        pending, selected = [resolve['root']], set()
+        while pending:
+            identity = pending.pop()
+            if identity in selected:
+                continue
+            if identity not in nodes or identity not in packages:
+                raise ValueError('cargo_dependency_package_missing:' + identity)
+            selected.add(identity)
+            for dependency in nodes[identity]['deps']:
+                if any(kind['kind'] in (None, 'build') for kind in dependency['dep_kinds']):
+                    pending.append(dependency['pkg'])
+        return [package for package in metadata['packages'] if package['id'] in selected]
+    except (KeyError, TypeError) as error:
+        raise ValueError('cargo_dependency_graph_required') from error
+
+
 def build(inputs_file, run_name, *, root=ROOT, runner=subprocess.run):
     if not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_-]{0,63}', run_name):
         raise ValueError('invalid_release_run_name')
@@ -157,10 +181,9 @@ def build(inputs_file, run_name, *, root=ROOT, runner=subprocess.run):
             args = [*python, 'tools/scripts/build_observer.py', command]
             step('observer-' + command, args + (['--release'] if command == 'build' else []), env=native_env)
         metadata_file = step('cargo-metadata', [native_tools['cargo'], 'metadata', '--manifest-path',
-                             'native/observer/Cargo.toml', '--locked', '--format-version', '1'], env=native_env)
-        packages = read(metadata_file)['packages']
-        if not isinstance(packages, list) or not packages:
-            raise ValueError('cargo_packages_required')
+                             'native/observer/Cargo.toml', '--locked', '--format-version', '1',
+                             '--filter-platform', 'x86_64-pc-windows-msvc'], env=native_env)
+        packages = observer_packages(read(metadata_file))
         write(output / 'cargo-packages.json', packages)
         step('engine-build', [*python, 'tools/packaging/workbench_engine.py', 'build',
              '--node', paths['node'], '--pnpm', paths['pnpm'], '--scratch-root', root / 'work/ce-native',
