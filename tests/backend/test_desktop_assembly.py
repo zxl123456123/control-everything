@@ -21,6 +21,22 @@ from control_everything.integrations.workbench_runtime import RuntimeConfig, Wor
 
 
 class DesktopAssemblyTests(unittest.TestCase):
+    def test_installed_desktop_uses_host_environment(self):
+        with TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            config = {'engine_root': 'engine', 'build_run': 'build', 'git': 'git.exe',
+                      'ssh': 'ssh.exe', 'keygen': 'ssh-keygen.exe', 'issuer': '', 'hub_origin': ''}
+            (root / 'desktop-runtime.json').write_text(json.dumps(config))
+            files = [{'path': name} for name in ('desktop-runtime.json', 'engine/output', 'build/output', 'git.exe')]
+            server = Mock(profile=SimpleNamespace(data_dir=root / 'profile'))
+            with patch('control_everything.http.desktop.manifest.verify_payload', return_value={'files': files}), \
+                 patch('control_everything.http.desktop.build_profile_server', return_value=server), \
+                 patch('control_everything.http.desktop._news_runtime', return_value={}), \
+                 patch('control_everything.http.desktop.WorkbenchAssets'), \
+                 patch('control_everything.http.desktop.WorkbenchRuntime') as runtime:
+                build_desktop(root)
+            self.assertTrue(runtime.call_args.args[0].inherit_host_environment)
+
     def test_news_runtime_uses_only_manifest_registered_node_and_exact_core(self):
         with TemporaryDirectory() as temporary:
             root = Path(temporary)
