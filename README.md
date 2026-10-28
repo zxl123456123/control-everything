@@ -48,7 +48,7 @@ https://github.com/user-attachments/assets/be96cc58-6bd8-4221-b0aa-77c0f9e31804
 - [使用指南](docs/guides/usage.md)：项目、任务、进度、资讯、本机观察、数据迁移与恢复。
 - [可选接入](docs/guides/integrations.md)：远端会话、终端、启动器与只读 MCP。
 - [Windows 安装与维护](docs/guides/windows.md)：安装、停止、升级、回退、卸载及发布验证。
-- [参与开发](.github/CONTRIBUTING.md)：环境、目录职责、构建、测试和贡献约定。
+- [参与开发](.github/CONTRIBUTING.md#开发与出包从这里开始)：日常开发工作流总入口；[构建新版本 EXE](docs/guides/windows.md#构建与技术预发布)按同一份流水线执行。
 
 ## 许可证
 
