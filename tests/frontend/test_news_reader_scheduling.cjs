@@ -74,6 +74,9 @@ function fixture(remote = false, withTheme = true) {
   }
   Object.assign(window,{localStorage:context.localStorage,removeEventListener() {},dispatchEvent() {}});
   // The wheel needs a real DOM; the reader only needs its surface here.
+  // Sections and the search panel are DOM-heavy and covered by the browser suites (verify_news_sections / verify_news_search); the reader only needs their surface here.
+  window.NewsSections={mount:() => { let rows=[],current=null; return {update(snapshot,wanted) { rows=Object.keys(snapshot.sample.streams).map(id => ({id})); const before=current; current=rows.some(row => row.id===wanted) ? wanted : rows[0]?.id ?? null; return before!==current && current!==wanted; },current:() => current,list:() => rows,select() {},isCustom:() => false,hasSources:() => true,problems:() => []}; }};
+  window.NewsSearch={mount:() => ({refresh() {},close() {},isOpen:() => false,recent:() => []})};
   window.NewsPetWheel={create:() => ({isOpen:() => false,setPinned() {},refresh() {},close() {},destroy() {},toggle() {}})};
   for (const file of ['news-pets.js','news-pet-dial.js','news-pet-prefs.js','news-pet-director.js','news-reader.js']) vm.runInNewContext(fs.readFileSync(path.join(root,'web/workspace',file),'utf8'),context);
   return {calls,writes,timers,state,window,document,windowEvents,themeReads,themeMounts,themeDisposals,node:id => ids.get(id),

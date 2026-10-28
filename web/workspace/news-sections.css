@@ -186,3 +186,6 @@
 #news-room .section-add[data-tip]:focus-visible::after, #news-room .section-edit[data-tip]:focus-visible::after { translate: 0 0; }
 @media (hover: hover) { #news-room .section-add[data-tip]:hover::after, #news-room .section-edit[data-tip]:hover::after { translate: 0 0; } }
 @media (max-width: 720px) { #news-room .section-edit[data-tip]::after { display: none; } }
+
+/* Reading actions on a phone: four equal cells in two rows instead of a ragged 3 + 1 wrap. */
+@media(max-width:520px){#news-room .article-actions{display:grid;grid-template-columns:1fr 1fr;width:100%}#news-room .article-actions>*{justify-content:center;text-align:center}}

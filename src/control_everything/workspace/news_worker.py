@@ -21,7 +21,7 @@ from control_everything.platform.windows_jobs import WindowsAPI, ExtendedLimits,
 from control_everything.workspace.news_parse import parse_feed_result, parse_hn_result, safe_news_url
 
 # Every preset feed must answer from mainland China and from overseas networks, serve https links on its own
-# host and stay under the 1 MiB feed budget. SOURCES.md in docs/guides records how each one was verified.
+# host and stay under the 1 MiB feed budget. docs/guides/news-sources.md records how each one was verified.
 FEEDS = (('qbitai', '量子位', 'https://www.qbitai.com/feed'),
          ('aiera', '新智元', 'https://aiera.com.cn/feed/'),
          ('infoq_cn', 'InfoQ 中文', 'https://www.infoq.cn/feed'),
