@@ -49,7 +49,7 @@ Import Linter 的固定依赖在 `tools/architecture/requirements.txt`。内容/
 
 ### 本地开发与远端流水线的边界
 
-当前快速开发不强制 PR、独立审查或等待远端 CI。`ci.yml` 仅有 `workflow_dispatch`，push/PR 不会自动触发；需要远端证据时手动运行并核对该次 SHA。`release.yml` 也为手动入口，其远端发布门禁与当前缺口见 Windows 指南。不要把“已推送”写成“CI 已通过”或“安装包已发布”。
+当前快速开发不强制 PR、独立审查或等待远端 CI。`ci.yml` 仅有 `workflow_dispatch`，push/PR 不会自动触发；需要远端证据时手动运行并核对该次 SHA。旧 `release.yml` 出包配方已退役，统一由本机 `build_windows_release.py` 生成候选，安装验收后再发布，详见 Windows 指南。不要把“已推送”写成“CI 已通过”或“安装包已发布”。
 
 组织方式参考 [uv 的贡献指南](https://docs.astral.sh/uv/reference/contributing/)：在一个开发入口里串起准备、测试与发布，并从项目元数据取版本。保留本项目的 develop 预览确认、Python/Rust/内置工作台构建器和本地验证节奏；不照搬其包管理器、自动版本更新或强制发布 PR。
 
@@ -101,11 +101,11 @@ Import Linter 的固定依赖在 `tools/architecture/requirements.txt`。内容/
 
 ```powershell
 python tools/packaging/workbench_engine.py check-source
-python tools/packaging/workbench_engine.py build --node C:/example/node24/node.exe --pnpm C:/example/pnpm/pnpm.exe --scratch-root C:/example/checkout/work/ce-native --run-dir C:/example/checkout/work/workbench-engine-build/local
+python tools/packaging/workbench_engine.py build --node C:/example/node24/node.exe --pnpm C:/example/pnpm/pnpm.exe --scratch-root C:/example/checkout/work/ce-native --run-dir C:/example/checkout/work/workbench-engine-build/local --materials C:/example/checkout/work/windows-release/inputs/engine-materials
 python tools/packaging/workbench_engine.py check-output --run-dir C:/example/checkout/work/workbench-engine-build/local
 ```
 
-替换为自己的绝对工具/检出路径。每次使用新的证据目录，Windows native scratch 路径应短；失败保留日志。构建固定执行 packages、移动资源生成、mobile web、原生依赖、Web和Windows运行时。来源SHA、宿主SHA和实际产物hash分别记录；`out/`、`.build/`、依赖缓存与证据不提交。当前外部许可材料需要人工准备，build 的编译后检查可能因此失败；材料合同和恢复步骤见 [Windows 构建流水线](../docs/guides/windows.md#构建与技术预发布)。完整桌面安装器沿同一流水线组装和验收，Android签名/推送身份与自建服务仍需分别验收，不能用本机编译成功替代。
+替换为自己的绝对工具/检出路径。每次使用新的证据目录，Windows native scratch 路径应短；失败保留日志。构建固定执行 packages、移动资源生成、mobile web、原生依赖、Web和Windows运行时。来源SHA、宿主SHA和实际产物hash分别记录；`out/`、`.build/`、依赖缓存与证据不提交。`--materials` 提供审核后的源码/提供者和许可材料，由 `workbench_materials.py` 在本次产物生成后精确绑定，再由原 collector 核完整闭包；不再依赖编译后预期失败和手工改 hash。材料准备与完整桌面出包命令只维护在 [Windows 构建流水线](../docs/guides/windows.md#构建与技术预发布)。Android签名/推送身份与自建服务仍需分别验收，不能用本机编译成功替代。
 
 字体、供应商图标、完整界面静态导入资源及Windows launcher编译图标仅按清单精确字节和完整notice放行；未知媒体、上游执行规则、私人fixture和任意嵌套docs仍拒绝。文本仍经隐私与Gitleaks扫描，changes模式按被检查commit自己的清单核验。对应用来源/构建规则的修改运行：
 

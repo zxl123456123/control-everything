@@ -29,163 +29,125 @@ $panel = Join-Path $env:LOCALAPPDATA 'Programs/SessionPanel/session-panel.cmd'
 
 ## 构建与技术预发布
 
-这里维护每次出新 EXE 的唯一流程；日常开发从 [贡献指南](../../.github/CONTRIBUTING.md#开发与出包从这里开始)进入。是否已经交付，以该版本的实际验收记录与 Release 为准。
+日常开发从 [贡献指南](../../.github/CONTRIBUTING.md#开发与出包从这里开始)进入。Windows 候选统一用 `tools/packaging/build_windows_release.py` 构建，实际安装验收和公开发布分开执行。
 
 ```text
-确认开发验收 → 冻结版本与提交 → 准备固定输入
-  → Python sdist / wheel + Rust release observer + 内置工作台
-  → 核验依赖许可与对应源码 → 组装 payload → Inno 编译 EXE
-  → 安装与真实页面验收 → 附件和 SHA256 → 发布同一提交的版本
+确认开发验收 → 冻结版本/SHA → 核验并准备固定输入
+  → 本机统一命令：Python 包 → Rust release observer → 内置工作台
+  → 当前产物许可绑定 → 严格 payload → Inno EXE → 候选待验收
+  → 专用环境安装验收 + 真实页面验收 → 校验公开附件 → 发布
 ```
 
-### 0. 当前自动化边界
+旧 `.github/workflows/release.yml` 云端出包配方已经退役，历史保留在 Git；不再维护一套与本机构建不同的配方。`ci.yml` 保留手动源码检查。以下源码合同通过不等于某个新版本已实际构建、安装或发布；以该版本的收据为准。
 
-2026-10-28 核对源码发现以下断点；它们是待补齐的实现工作，不能用文档步骤代替。
+### 1. 冻结版本与准备环境
 
-| 现有入口 | 当前状态与处理 |
-| --- | --- |
-| `tools/packaging/workbench_engine.py build` | 编译后自动核许可闭包，但没有生成外部许可输入的步骤；全新 run 缺少材料时仍会失败，按第 3 步补齐并复核 |
-| `tools/packaging/build_windows.py` | 已要求完整桌面输入；第 4 步给出全部参数 |
-| `.github/workflows/release.yml` | 仍缺五个必需参数及其准备步骤：`engine-root`、`engine-run`、`portable-git`、`git-receipt`、`endpoints`；目前不能用于完整桌面产品的一键发布 |
-| `tests/e2e/verify_installed_product.py` | 仍断言旧 gateway 启动器；当前桌面入口已是 `control_everything.http.desktop --product-root`，旧脚本会先安装再因启动器断言失败，不能直接作为新产品验收入口 |
+界面改动先完成 develop 真实预览和项目主导者确认，再进入 main 发布流程。develop 的明确提交可以构建开发候选，必须与已发布版本区分。产品版本只改 `pyproject.toml`，wheel、产品清单与安装器消费同一值；版本变更单独提交。已发布版本不换包、不移动 tag，新交付使用新版本。
 
-当前可按本地分阶段流程构建候选，安装验收由专用环境人工完成并留证。未来自动化优先补齐这几个已有入口，复用同一链路，不再增加第二套打包系统。
+按 [工作树生命周期](development-files.md#工作树的开始依赖和结束)建立独立、干净的检出，固定完整 40 位 SHA。每个 checkout 独立安装依赖；工具、下载与已审核材料可以按合同复用，依赖根不得链接到其他工作树。本机任务 README 记录版本、SHA、负责人和验收范围，旧材料先核来源和 hash，不能裸运行历史 driver。
 
-### 1. 冻结本次版本和源码
+首次准备 Python editable 环境与固定构建依赖见贡献指南；统一入口不安装或升级环境。使用 Windows x64、Node 24、pnpm 12.14.0 原生 EXE、[固定 Rust/MSVC 环境](../../.github/CONTRIBUTING.md#windows-原生观察开发)。包内 Node 与开发 Node 分别核 pin，Python 运行轮子使用 `tools/packaging/windows-cp313.lock`。
 
-- 界面改动先完成 develop 真实预览与项目主导者确认，再进入 main 发布流程。开发候选可来自明确的 develop 提交，必须标为候选；它不等于已发布版本。
-- 产品版本唯一来源是 `pyproject.toml`，wheel 元数据、产品清单与安装器消费同一值，Inno 数值版本由固定映射生成；版本变更作为独立提交。核对目标 tag/Release 是否已存在，已发布版本不换包、不移动 tag，新交付使用新版本。
-- 在独立、干净的源码检出固定完整 40 位 SHA，核对 `git rev-parse HEAD` 与 `git status --short --branch`。不要直接拿有他人修改的共享工作树出包，也不要为出包还原其内容。
-- 引擎来源清单核对实际字节；Windows 检出须注意 LF/CRLF，使用保留源码字节的独立检出。先跑 `check-source`，不要修改清单来掩盖换行漂移。
-- 在本检出 `docs/current/<feature>/README.md` 登记版本、SHA、负责人、输入和输出；每轮新建 `work/<feature>/<run>/`。保留失败目录，重试另用新目录。正式 engine、observer 输出继续使用下面的固定目录合同。
+`tools/packaging/downloads.json` 是 CPython 和 Inno Setup 下载 URL、SHA256、发布者的唯一配置。下载后核 SHA256；对 CPython 解包后的 `python.exe`、Inno 下载器及所选编译器核 Authenticode 状态和发布者，保留证据，不能把组合产品说成已签名。准备 Inno 工具目录中的 `ISCC.exe` 和 `license.txt`；准备工具不等于安装本产品。
 
-以下 PowerShell 示例从该干净检出根目录执行。替换工具绝对路径与本轮名称；`python` 使用已激活、已核验的开发环境。示例按阶段执行，不是复制后即可无人值守出包的脚本：
+### 2. 一份本机输入清单
 
-```powershell
-$repo = (Get-Location).Path
-$run = 'candidate-01'
-$releaseRoot = Join-Path $repo "work/windows-release/$run"
-$engineRoot = Join-Path $repo 'web/workbench-engine'
-$engineRun = Join-Path $repo "work/workbench-engine-build/$run"
-$buildNode = 'C:/example/node24/node.exe'
-$buildPnpm = 'C:/example/pnpm/pnpm.exe'
-if (Test-Path $releaseRoot) { throw 'Use a new release directory' }
-New-Item -ItemType Directory -Path $releaseRoot | Out-Null
+将 `inputs.json` 放在 ignored `work/windows-release/inputs/`，九项路径均使用自己的绝对路径。下例是结构说明，替换全部占位后才能执行；真实清单不提交：
+
+```json
+{
+  "schema": 1,
+  "node": "C:/example/tools/node24/node.exe",
+  "pnpm": "C:/example/tools/pnpm/pnpm.exe",
+  "engine_materials": "C:/example/checkout/work/windows-release/inputs/engine-materials",
+  "wheelhouse": "C:/example/checkout/work/windows-release/inputs/wheelhouse",
+  "runtime_zip": "C:/example/checkout/work/windows-release/inputs/python-3.13.16-embed-amd64.zip",
+  "portable_git": "C:/example/checkout/work/windows-release/inputs/portable-git",
+  "git_receipt": "C:/example/checkout/work/windows-release/inputs/portable-git-receipt.json",
+  "endpoints": "C:/example/checkout/work/windows-release/inputs/endpoints.json",
+  "inno_dir": "C:/example/checkout/work/windows-release/inputs/inno"
+}
 ```
 
-### 2. 准备固定输入
-
-工具首次准备和每次发版分开：可复用已核验工具与下载缓存，但每次仍核 pin、hash、输入来源和实际文件。所有运行材料留在 ignored work；不要提交二进制或真实配置。
-
-| 输入 | 权威来源与要求 |
-| --- | --- |
-| Python / 构建依赖 | 开发环境见贡献指南；包内 CPython 3.13.16 及 Inno Setup 7.1.0 的 URL、SHA256、发布者在 `tools/packaging/downloads.json`；构建依赖在 `tools/packaging/requirements.txt` |
-| Python 运行轮子 | `tools/packaging/windows-cp313.lock` 固定 Windows x64 / CPython 3.13 轮子及 hash；不能使用宿主 `pip freeze` 替代 |
-| Rust / MSVC | `rust-toolchain.toml` 的 Rust 1.97.1 x64 MSVC，及 Visual Studio C++ Build Tools；[首次准备步骤](../../.github/CONTRIBUTING.md#windows-原生观察开发) |
-| 内置工作台 | 显式 Node 24 与 pnpm 12.14.0 原生 EXE；`workbench-engine-source.json` 和各锁文件，开发 Node 与包内 Node 的 pin 分开核对 |
-| Portable Git | `desktop_payload.py` 固定 2.56.0.windows.3 和官方归档 hash；完整文件收据、逐组件许可、对应源码材料，不能直接打包开发机 Git |
-| 自建服务端点 | 本轮 `endpoints.json` 严格仅有 `issuer`、`hub_origin`；纯本地候选均为空字符串，接入自建服务时两者均为有效 HTTPS 地址，不含凭据，不回退官方服务 |
-
-按 `downloads.json` 下载并核 SHA256；核 CPython 解包后 `python.exe`、Inno 下载器的 Authenticode 发布者。参考 [现有 workflow 的下载与验签步骤](../../.github/workflows/release.yml)，准备本轮 `prepared/python-3.13.16-embed-amd64.zip`、`prepared/inno/ISCC.exe` 和 `prepared/inno/license.txt`；该参考不表示整个 workflow 已适配。
-
-Portable Git 暂无正式 receipt 生成命令。准备负责人须核官方归档 hash、完整解包文件的大小/hash、组件归属、完整 notice 与对应源码文件；receipt 的 `source_materials` 相对 receipt 所在目录解析。缺项必须停在准备阶段，不能手填“已验证”或套用合成测试数据。具体消费合同见 [desktop_payload.py](../../tools/packaging/desktop_payload.py)。
-
-### 3. 分别构建三部分
-
-**Python 包。** 默认先构建 sdist，再从 sdist 生成 wheel；新目录中应各有一个包。固定下载轮子，不让安装器在用户机器临时安装依赖。
+固定轮子的准备命令（在已激活的本检出环境）：
 
 ```powershell
-python -m pip install -r tools/packaging/requirements.txt
-if ($LASTEXITCODE -ne 0) { throw 'Build dependencies failed' }
-python -m pip install -e .
-if ($LASTEXITCODE -ne 0) { throw 'Project environment failed' }
-python -m pip check
-if ($LASTEXITCODE -ne 0) { throw 'Dependency check failed' }
-python -m build --outdir "$releaseRoot/dist"
-if ($LASTEXITCODE -ne 0) { throw 'Python package build failed' }
-python -m pip --isolated download --only-binary=:all: --platform win_amd64 --python-version 313 --implementation cp --abi cp313 --no-deps --require-hashes -r tools/packaging/windows-cp313.lock --dest "$releaseRoot/wheelhouse"
+python -m pip --isolated download --only-binary=:all: --platform win_amd64 --python-version 313 --implementation cp --abi cp313 --no-deps --require-hashes -r tools/packaging/windows-cp313.lock --dest work/windows-release/inputs/wheelhouse
 if ($LASTEXITCODE -ne 0) { throw 'Locked wheels failed' }
 ```
 
-**Rust 观察后台。** 在已准备的 VS Native Tools 与固定 Rust 环境执行：
+`endpoints.json` 严格仅有 `issuer`、`hub_origin`。纯本地候选两者均为空字符串；自建服务接入时均为有效 HTTPS 地址，不含凭据，不回退官方服务。
+
+**引擎材料只准备来源，不手填本轮输出 hash。** `engine_materials` 包含：
+
+- `external-components.json`：`{"schema":1,"components":[...]}`。每组件登记 name、version、完整 notices、固定 `source_inputs`（path/sha256）以及明确的 bindings；可声明外部 specifiers。五类最低组件为 pinned-node、windows-security、windows-cli-launcher、node-pty-conpty、ripgrep，实际输出涉及的其他组件也必须覆盖。
+- 每条 binding 用 `output/provider` 指定引擎内的精确输出与提供者；来自压缩包时用 `output/archive/archive_sha256/member` 指定固定归档的精确成员。路径相对引擎根；源码 pin 不得指向生成目录，提供者不得拿交付输出自身作证明。
+- `package-license-inputs.json`：沿既有 `workbench_distribution.py` 的补充包许可数组，包含实际版本、元数据/归档证明和完整 notice；没有补充项时是空数组。
+
+`workbench_materials.py` 在编译前核材料结构，编译后核源码 pin、提供者与产物字节一致，并从实际构建图及来源清单关联资源。生成本轮 external/package notice 与 `materials-receipt.json`，最后仍由原 collector 检查完整闭包。新增依赖或来源改变需重新审阅材料；不联网猜许可证、不改写旧成功收据、不中途跳过门禁。
+
+**Portable Git 使用已审核的完整收据。** 初次从官方固定归档准备运行目录时，须留存解包来源及审核后的 `reviewed-git-receipt.json`，其中包含固定 archive_sha256/version、全部 files 的大小/hash、components 的归属/notice/源码履约材料。后续复用或迁移材料时执行：
 
 ```powershell
-foreach ($command in @('fmt', 'test', 'clippy')) {
-    python tools/scripts/build_observer.py $command
-    if ($LASTEXITCODE -ne 0) { throw "Observer check failed: $command" }
-}
-python tools/scripts/build_observer.py build --release
-if ($LASTEXITCODE -ne 0) { throw 'Release observer failed' }
+python tools/packaging/desktop_payload.py prepare-git --archive C:/example/checkout/work/windows-release/inputs/PortableGit.7z.exe --portable-git C:/example/checkout/work/windows-release/inputs/portable-git --reviewed-receipt C:/example/checkout/work/windows-release/inputs/reviewed-git-receipt.json --output C:/example/checkout/work/windows-release/inputs/portable-git-receipt.json
+if ($LASTEXITCODE -ne 0) { throw 'Portable Git preparation failed' }
 ```
 
-产物在 `work/native-observer/release-install/`：EXE、`manifest.json`、`build-info.json`。普通 `install/` 是开发产物，不用于发布；release 构建固定静态 CRT。按首次准备的同一组 `RUSTUP_HOME/CARGO_HOME/CARGO_TARGET_DIR`，运行固定工具链的 `cargo metadata --manifest-path native/observer/Cargo.toml --locked --format-version 1`，检查退出码，再将结果的 `packages` 数组保存为本轮 `cargo-packages.json`。许可收集会读取其中 manifest 所在 crate 的材料，不能复用路径已经失效的旧 JSON。
+命令核 `desktop_payload.py` 固定的官方归档 SHA256，再以已审 files 逐项核当前目录，复用产品组装的组件覆盖、许可和对应源码校验；同名文件改动也会拒绝，不能重算 hash 给它重新背书。新输出与已审收据必须同父目录，使 `source_materials` 相对路径有效；输出不能在运行目录内，也不能覆盖旧收据。工具不执行解包器、不创造初始信任依据；缺少已审收据时停在材料准备，不把当前目录扫描当成官方来源证明。
 
-**内置工作台。** `scratch-root` 固定为本检出 `work/ce-native`；`run-dir` 必须全新，源码中的 `out/`、`.build/` 也不能已有产物。它按序安装锁定依赖、构建 packages、移动 Web 资源、原生组件、Web 和 Windows runtime。
+### 3. 每次只运行一个构建入口
+
+确认工作树干净、输入审核妥当、固定环境已准备，然后从本检出根执行：
 
 ```powershell
-python tools/packaging/workbench_engine.py check-source
-if ($LASTEXITCODE -ne 0) { throw 'Engine source check failed' }
-python tools/packaging/workbench_engine.py build --node $buildNode --pnpm $buildPnpm --scratch-root "$repo/work/ce-native" --run-dir $engineRun
-if ($LASTEXITCODE -ne 0) { throw 'Engine build or distribution check failed; inspect this run' }
+python tools/packaging/build_windows_release.py --inputs C:/example/checkout/work/windows-release/inputs/inputs.json --run-name candidate-01
+if ($LASTEXITCODE -ne 0) { throw 'Candidate build failed; inspect the retained receipt and logs' }
 ```
 
-**这里存在人工断点。** 按当前源码，fresh build 最后会调用 `check-output`，而它消费的 `external-dependency-notices.json` 没有自动生成步骤；缺材料会在编译后报 `distribution_notices_incomplete`。保留失败及 `steps.json`、各步日志，先确认实际失败阶段。准备负责人依据本次实际产物，在该 engine run 中补齐五类外部组件（pinned-node、windows-security、windows-cli-launcher、node-pty-conpty、ripgrep）的完整来源、notice、hash 和输出映射；实际依赖缺许可时还需 `package-license-inputs.json`。合同见 [workbench_distribution.py](../../tools/packaging/workbench_distribution.py)，目前没有正式材料准备 CLI。
+入口逐阶段调用已有工具，不启动产品或个人 Agent：
 
-只在编译产物完整、材料准备妥当后运行以下复核，不在同一目录重新执行 build：
-
-```powershell
-python tools/packaging/workbench_engine.py check-output --run-dir $engineRun
-if ($LASTEXITCODE -ne 0) { throw 'Engine distribution remains unverified' }
-```
-
-进入下一步前核 `build-provenance.json` 中 `status=build_only_verified`、`distribution=closure_verified`，并核 `hostCommit` 与本轮 SHA、源码 hash 和 `output-manifest.json` 对应。不得改写 provenance 制造成功，也不能拿旧 engine 输出配新界面源码。
-
-### 4. 组装产品并编译 EXE
-
-先准备上述真实材料，再填写全部参数；路径都必须为绝对路径。`payload` 与同级同版本 `sources.zip` 必须不存在，`--release` 要求已提交且干净的源码。
-
-```powershell
-$wheels = @(Get-ChildItem -LiteralPath "$releaseRoot/dist" -Filter '*.whl')
-if ($wheels.Count -ne 1) { throw 'Expected exactly one project wheel' }
-python tools/packaging/build_windows.py --release --wheel $wheels[0].FullName --wheelhouse "$releaseRoot/wheelhouse" --runtime-zip "$releaseRoot/prepared/python-3.13.16-embed-amd64.zip" --observer-release "$repo/work/native-observer/release-install" --output "$releaseRoot/payload" --cargo-packages "$releaseRoot/cargo-packages.json" --inno-license "$releaseRoot/prepared/inno/license.txt" --engine-root $engineRoot --engine-run $engineRun --portable-git "$releaseRoot/prepared/portable-git" --git-receipt "$releaseRoot/prepared/portable-git-receipt.json" --endpoints "$releaseRoot/prepared/endpoints.json"
-if ($LASTEXITCODE -ne 0) { throw 'Product assembly failed' }
-python tools/packaging/inno_include.py --payload "$releaseRoot/payload" --output "$releaseRoot/inno-includes"
-if ($LASTEXITCODE -ne 0) { throw 'Installer includes failed' }
-& "$releaseRoot/prepared/inno/ISCC.exe" "/DPayloadIncludeDir=$releaseRoot/inno-includes" "/DInstallerOutputDir=$releaseRoot/installer" tools/packaging/session-panel.iss
-if ($LASTEXITCODE -ne 0) { throw 'Installer compilation failed' }
-```
-
-`product.json` 记录版本、源码 SHA、文件 hash 与闭包；`BUILD-INPUTS.json` 记录构建输入。产品内包含固定 Python、Node/工作台、Git/SSH、观察后台和界面资源。Inno 的退出码 0 才是编译成功，1/2 分别表示参数/致命错误或编译失败，见 [官方编译器说明](https://jrsoftware.org/ishelp/topic_compilercmdline.htm)。
-
-主要产物：
-
-| 路径（相对本轮 releaseRoot） | 用途 |
+| 阶段 | 实际入口 / 门禁 |
 | --- | --- |
-| `dist/*.tar.gz`、`dist/*.whl` | Python 源分发与 wheel，不等于完整桌面产品 |
-| `payload/` | 已核验的完整运行闭包 |
-| `installer/session-panel-<version>-windows-x64.exe` | 本次安装器 |
-| `session-panel-<version>-sources.zip` | 依赖对应源码附件，必须随安装器发布 |
-| `payload/SOURCE-AVAILABILITY.json` | 上述附件的文件名、大小、SHA256、成员索引 |
-| `inno-includes/include-receipt.json` | 安装清单与产品闭包的绑定证据 |
+| 输入与环境 | 完整 SHA、干净检出、新输出目录、Node/pnpm、Python 固定构建依赖、CPython pin、材料结构 |
+| Python 包 | `python -m build`，sdist → wheel，要求各一个 |
+| 原生观察 | 固定 `build_observer.py` 的 fmt/test/clippy/release，静态 CRT；同一工具链生成 Cargo 许可元数据 |
+| 内置工作台 | `workbench_engine.py build --materials ...`，源码检查、锁定依赖、编译、产物探针、材料绑定、完整许可闭包 |
+| 产品组装 | `build_windows.py --release`，完整十二项输入，源码与轮子、engine、observer、Git及源码附件逐项验证 |
+| 安装器 | `inno_include.py` → `ISCC.exe`，精确文件清单与 hash；编译器退出码非0即停止 |
 
-### 5. 安装与界面验收
+每轮使用新的 run-name 和干净检出；不覆盖已有 release 输出、engine 的 `out/.build` 或已存在的 release observer。失败保留完整 stdout/stderr 与阶段退出码，修复后另建候选，不自动删目录重试。
 
-当前没有适配完整桌面入口的正式安装验收 harness；旧 `verify_installed_product.py` 的缺口见第 0 步。不要清除真实安装登记去强行运行它。选择专用 Windows 用户或干净测试机，使用合成 profile 和新证据目录，人工记录：
+| 本检出路径 | 用途 |
+| --- | --- |
+| `work/windows-release/<run>/build-receipt.json` | 每步命令、日志、退出码，最终源码/版本/闭包与安装器、源码附件 hash |
+| `work/windows-release/<run>/dist/` | sdist 与 wheel |
+| `work/windows-release/<run>/payload/` | 完整运行闭包、product.json、BUILD-INPUTS.json、SOURCE-AVAILABILITY.json |
+| `work/windows-release/<run>/installer/session-panel-<version>-windows-x64.exe` | 安装候选 |
+| `work/windows-release/<run>/session-panel-<version>-sources.zip` | 必须伴随安装器交付的依赖对应源码 |
+| `work/workbench-engine-build/<run>/` | engine 各步日志、来源/产物/许可证明 |
+| `work/native-observer/release-install/` | 固定 release 观察后台与构建身份证明 |
 
-- 首次安装、开始菜单实际启动、`/studio` 及内置工作台能打开；核产品版本、源码 SHA 和安装器 SHA256。
-- 受控 PATH 不依赖开发机 Python/Node/Rust；终端、Git、观察后台、业务读写与数据重启保留分别核验。
-- 同版本重装、运行中维护阻塞、正常停止、卸载后 profile/备份保留。
-- 使用两个真实不同版本验证升级与回退；一个版本的重装不能替代。不要默认旧程序兼容新数据格式。
-- 两种系统、真实资讯、桌面返回、远端账号/设备和 SSH 按实际覆盖逐项记证据；未配置服务、未测平台及 Android APK 均明确标注未验证。
+最终状态 `candidate-built-awaiting-acceptance` 只表示候选生成。单独开发 engine 时仍可使用底层 build（现在必须传 `--materials`）；复核已有产物用 `check-output --run-dir ...`，需要首次绑定材料时加 `--materials`。已有不同材料拒绝覆盖，不能先制造失败再手工改 hash。
 
-源码预览、浏览器 harness 和单元测试只证明各自范围。验收中任何失败保留原日志与安装状态，再决定修复或清理，不自动强杀进程。EXE 编译成功但未通过上述验收时，状态是“候选待验收”。
+### 4. 安装与真实页面验收
 
-### 6. 发布同一批受测附件
+`tests/e2e/verify_installed_product.py` 根据已安装清单区分新 desktop 与旧 gateway。新产品使用实际 Desktop 装配和生命周期，核 runtime ready、Studio、完整已登记 Web 资源与 desktop 页面。它会真实安装、运行和卸载，只在没有同 AppId/开始菜单入口的专用 Windows 用户或测试机执行：
 
-1. 在本轮 `public/` 按明确清单准备：安装器、`session-panel-<version>-sources.zip`、`SOURCE-AVAILABILITY.json`、`product.json`、`BUILD-INPUTS.json`、项目 LICENSE、完整第三方声明、版本说明，以及计划提供的 wheel/sdist/项目源码快照。不要把整个 work 或验收目录上传。
-2. 对照产品清单核 version、commit、dirty=false、闭包；核源码附件大小/hash 与 SOURCE-AVAILABILITY 一致。`git archive` 的项目源码快照不能替代依赖的 `sources.zip`。
-3. 生成覆盖所有公开附件的 `SHA256SUMS.txt`（不含它自身），重新核 hash。发布说明写变更、准确 SHA、已测范围、全部已知失败/限制、签名状态和回退条件。
-4. GitHub Release 的 tag 指向本次受测提交，技术预发布使用 `v<版本>`。手动发布时先建 draft、上传并核对附件，再公开 prerelease；已有 tag 不移动、已发布附件不覆盖。参考 [GitHub 发布流程](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository)。
-5. 发布后核 Release URL、`isDraft=false`、`isPrerelease=true` 与下载附件；更新首页/使用指南的版本和下载链接。在任务 README 留存最终证据，按文件管理规则归档。上传 Actions artifact、push 源码、创建 tag 都不单独代表发布完成。
+```powershell
+python tests/e2e/verify_installed_product.py --payload C:/example/checkout/work/windows-release/candidate-01/payload --installer C:/example/checkout/work/windows-release/candidate-01/installer/session-panel-0.1.0a2-windows-x64.exe --evidence C:/example/checkout/work/windows-release/candidate-01/installed-evidence
+if ($LASTEXITCODE -ne 0) { throw 'Installed acceptance failed; retain the installation and evidence' }
+```
 
-`release.yml` 现有设计要求完整 SHA 已在 main，且同一 SHA 的 `windows-tests`、`architecture-boundaries`、`new-content-checks` 均成功；随后只给发布 job 写权限。保留这些既有约束。待第 0 步的准备和验收缺口修复并实际验证后，才恢复用它自动发布；当前不提供会失败的 dispatch 命令作为推荐入口。
+示例文件名替换为实际版本。两个真实不同版本的升级/回退需再传 `--second-payload`、`--second-installer`，不能用同版重装冒充。测试保留已有安装拒绝、维护阻塞、profile/备份保留及失败不强杀规则；不得清除真实安装登记来强行执行。
+
+另外人工核开始菜单/cmd 实际启动、真实浏览器交互、数据重启保留及适用的资讯、终端、Git、桌面返回、远端账号/设备和 SSH。源码合同、内部 Desktop 装配不证明 cmd wrapper 已运行。Win10/11 矩阵、手机现场、Android APK、未配置服务等分别标明实际覆盖，不能以一次本机成功代替。
+
+### 5. 验收后发布
+
+1. 公开发布前确认受测提交已在 main（界面已经项目主导者确认），版本与 tag 未占用。需要远端检查时手动执行 `ci.yml` 并核同一 SHA；push 不会自动触发它。
+2. 在本轮 `public/` 按明确清单准备安装器、同版本 `sources.zip`、SOURCE-AVAILABILITY、product、BUILD-INPUTS、LICENSE、完整第三方声明、版本说明，以及计划提供的 wheel/sdist/项目源码快照。只上传审核后的公开文件；本机输入与验收日志不上传。
+3. 核 version、commit、dirty=false、闭包及对应源码附件大小/hash；生成覆盖全部附件的 `SHA256SUMS.txt`（不含自身）并重核。`git archive` 项目快照不能替代依赖对应源码附件。
+4. 建指向受测 SHA 的 `v<版本>` draft，上传并核附件后再公开 prerelease；不移动已有 tag、不覆盖已发布附件。说明写实际验收范围、所有已知失败/限制、签名状态和回退条件。参考 [GitHub 发布流程](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository)。
+5. 核 Release URL、`isDraft=false`、`isPrerelease=true` 和实际下载附件；更新首页版本/下载链接，并按文件管理指南归档本轮证据。源码推送、候选生成与公开发布分别记录。
+
+采用 [Python subprocess](https://docs.python.org/3/library/subprocess.html) 的固定 argv 与退出码记录、[Inno 官方命令行编译](https://jrsoftware.org/ishelp/topic_compilercmdline.htm) 和 GitHub draft 发布方式。保留项目现有构建器及许可校验，不新增另一套通用编排框架。
