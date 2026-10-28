@@ -134,8 +134,13 @@ class ResearchJobs:
                 job['state'] = 'partial' if result['items'] and failed else 'failed' if failed else 'complete'
                 if merged:
                     job['result'] = merged
-                if not result['items'] and failed:
-                    job['error'] = '本次未取得正文，请查看来源状态或检查浏览器采集依赖。已有内容已保留。'
+                if failed:
+                    if re.search(r"Cannot find module ['\"].*playwright", errors):
+                        job['error'] = '缺少新闻采集依赖 Playwright，浏览器尚未启动。请安装或修复采集依赖后再试，已有新闻已保留。'
+                    else:
+                        reason = next((event['message'] for event in reversed(job['events'])
+                                       if event.get('stage') in ('blocked', 'error')), None)
+                        job['error'] = reason or '采集进程异常退出，请检查采集运行环境后再试，已有新闻已保留。'
         except (OSError, ValueError, KeyError, subprocess.SubprocessError):
             with self.lock:
                 job['state'] = 'failed'

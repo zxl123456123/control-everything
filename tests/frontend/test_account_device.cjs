@@ -6,9 +6,9 @@ const source = fs.readFileSync('web/workspace/account-device.js', 'utf8');
 const settle = async () => { for(let i=0;i<30;i++) await Promise.resolve(); };
 const response = (value,status=200) => ({status,ok:status>=200&&status<300,json:async()=>value});
 const session = extra => ({csrf:'synthetic-csrf',account:{sub:'member',name:'测试成员'},membership:'active',admin:false,device:null,...extra});
-function fixture(fetcher, {mode='remote',embedded=false,members=async()=>response({items:[],total:0,limit:25,offset:0})}={}) {
+function fixture(fetcher, {mode='remote',embedded=false,members=async()=>response({items:[],total:0,limit:25,offset:0}),accountSession=null}={}) {
   const nodes=new Map(),calls=[],navigations=[],notices=[],portals=[],timers=new Map(),inactive=new Set();
-  let sequence=0,focused=null,unmounted=false;
+  let sequence=0,focused=null,unmounted=false,localConfigured=true;
   function node(name,hidden=false) {
     const events=new Map();let ownText='';
     return {hidden,dataset:{},disabled:false,open:false,children:[],
@@ -23,7 +23,7 @@ function fixture(fetcher, {mode='remote',embedded=false,members=async()=>respons
   const container={set innerHTML(value){for(const tag of value.matchAll(/<[^>]*data-(node|action)="([^"]+)"[^>]*>/g)){nodes.set(tag[1]+':'+tag[2],node(tag[2],/\bhidden\b/.test(tag[0])));}},querySelector(selector){const m=selector.match(/data-(node|action)="([^"]+)"/);return nodes.get(m[1]+':'+m[2]);},replaceChildren(){unmounted=true;}};
   const context=embedded?{context:'synthetic',active:true,onInactive(fn){inactive.add(fn);return()=>inactive.delete(fn);},invalidate(){this.active=false;for(const fn of [...inactive])fn();inactive.clear();}}:null;
   const document=node('document'),windowEvents=node('window');document.createElement=tag=>node(tag);
-  const window={document,CERemoteContext:context,addEventListener:(...args)=>windowEvents.addEventListener(...args),removeEventListener:(...args)=>windowEvents.removeEventListener(...args),localStorage:{setItem:(...args)=>notices.push(args)},location:{assign:url=>navigations.push(url)},setTimeout(fn){timers.set(++sequence,fn);return sequence;},clearTimeout(id){timers.delete(id);},fetch:async(path,options)=>{calls.push({path,options});return path.startsWith('/remote/api/admin/members?')?members(path,options):fetcher(path,options);}};
+  const window={document,CERemoteContext:context,addEventListener:(...args)=>windowEvents.addEventListener(...args),removeEventListener:(...args)=>windowEvents.removeEventListener(...args),localStorage:{setItem:(...args)=>notices.push(args)},location:{assign:url=>navigations.push(url)},setTimeout(fn){timers.set(++sequence,fn);return sequence;},clearTimeout(id){timers.delete(id);},fetch:async(path,options)=>{calls.push({path,options});if(path.startsWith('/remote/api/admin/members?')||path.startsWith('/api/desktop/account/members?'))return members(path,options);if(path==='/api/desktop/account/status')return response(accountSession?accountSession():{configured:localConfigured,state:'signed_out'});const result=await fetcher(path,options);if(path==='/api/desktop/remote/status')localConfigured=(await result.json()).configured!==false;return result;}};
   vm.runInNewContext(source,{window,AbortController,FormData});
   const dispose=window.StudioAccountDevice.mount(container,{mode,returnHash:'#projects',onPortal:value=>portals.push(value)});
   return {calls,navigations,notices,portals,timers,context,dispose,window,windowEvents,visibility(hidden){document.hidden=hidden;document.emit('visibilitychange');},focusWindow(){windowEvents.emit('focus');},get:name=>nodes.get('node:'+name),button:name=>nodes.get('action:'+name),click(name){nodes.get('action:'+name).emit('click');},get focused(){return focused;},get unmounted(){return unmounted;},async tick(){const [id,fn]=timers.entries().next().value;timers.delete(id);fn();await settle();}};
@@ -74,12 +74,12 @@ test('revocation uses modal confirmation, cancel sends nothing and close restore
   const f=fixture(path=>response(path.endsWith('/session')?session({device:{device_id:'device/a',state:'online'}}):{revoked:true}));await settle();f.click('revoke');assert.equal(f.get('revoke-dialog').open,true);f.click('cancel-revoke');assert.equal(f.calls.length,1);assert.equal(f.focused,'revoke');f.click('revoke');f.click('confirm-revoke');await settle();assert.equal(f.calls[1].path,'/remote/api/devices/device%2Fa/revoke');f.dispose();
 });
 test('local mode loads bootstrap once, retains explicit confirmation and disables unconfigured actions',async()=>{
-  for(const configured of [false,true]){const f=fixture(path=>response(path==='/api/bootstrap'?{csrf_token:'synthetic-local-csrf'}:{configured,state:'awaiting_local_confirmation',account:{sub:'account',name:'本机待核对'},operation:'recover'}),{mode:'local'});await settle();assert.deepEqual(f.calls.map(c=>c.path),['/api/bootstrap','/api/desktop/remote/status']);assert.equal(f.button('authorize').disabled,!configured);assert.equal(f.button('confirm').hidden,false);assert.match(f.button('confirm').textContent,/恢复/);assert.equal(f.calls.length,2);f.click('confirm');await settle();assert.equal(f.calls.length,configured?4:2);if(configured){assert.equal(f.calls[2].options.headers['X-Session-CSRF'],'synthetic-local-csrf');assert.equal(f.calls[2].options.headers['X-CE-CSRF'],undefined);}f.dispose();}
+  for(const configured of [false,true]){const f=fixture(path=>response(path==='/api/bootstrap'?{csrf_token:'synthetic-local-csrf'}:{configured,state:'awaiting_local_confirmation',account:{sub:'account',name:'本机待核对'},operation:'recover'}),{mode:'local'});await settle();assert.deepEqual(f.calls.map(c=>c.path),['/api/bootstrap','/api/desktop/remote/status','/api/desktop/account/status']);assert.equal(f.button('authorize').disabled,!configured);assert.equal(f.button('confirm').hidden,false);assert.match(f.button('confirm').textContent,/恢复/);assert.equal(f.calls.length,3);f.click('confirm');await settle();assert.equal(f.calls.length,configured?6:3);if(configured){assert.equal(f.calls[3].options.headers['X-Session-CSRF'],'synthetic-local-csrf');assert.equal(f.calls[3].options.headers['X-CE-CSRF'],undefined);}f.dispose();}
 });
 test('local rows show identity only when supplied and keep stable states out of the notice',async()=>{
   for(const state of ['unbound','authorizing','revoked','online','offline','connecting','enrolling']) {
     const f=fixture(path=>response(path==='/api/bootstrap'?{csrf_token:'local'}:{state,configured:true}),{mode:'local'});await settle();
-    assert.equal(f.get('account').textContent,''); assert.equal(f.get('membership').textContent,['online','offline','connecting'].includes(state)?'连接已保存':'未登录');
+    assert.equal(f.get('account').textContent,''); assert.equal(f.get('membership').textContent,'未登录');
     assert.equal(f.get('status').textContent,''); assert.equal(f.get('device-help').textContent,'');
     assert.equal(f.get('device-state').textContent,({unbound:'尚未绑定',authorizing:'授权中',revoked:'连接已撤销',online:'在线',offline:'离线',connecting:'连接中',enrolling:'绑定中'})[state]); f.dispose();
   }
@@ -94,7 +94,7 @@ test('compact local rows retain authorization codes, explicit account confirmati
   const f=fixture(path=>response(path==='/api/bootstrap'?{csrf_token:'local'}:current),{mode:'local'});await settle();
   assert.equal(f.get('grant').hidden,false);assert.equal(f.get('code').textContent,'SYNTHETIC');assert.equal(f.get('verification').href,current.verification_uri);assert.equal(f.button('authorize').disabled,true);
   current={configured:true,state:'awaiting_local_confirmation',account:{sub:'synthetic-account',name:'待核对账号'}};f.click('refresh');await settle();
-  assert.equal(f.get('account').textContent,'待核对账号');assert.equal(f.button('confirm').hidden,false);assert.equal(f.button('authorize').hidden,true);assert.match(f.get('local-help').textContent,/核对账号/);assert.equal(f.calls.filter(c=>c.options.method==='POST').length,0);
+  assert.equal(f.get('account').textContent,'');assert.equal(f.button('confirm').hidden,false);assert.equal(f.button('authorize').hidden,true);assert.match(f.get('local-help').textContent,/待核对账号/);assert.equal(f.calls.filter(c=>c.options.method==='POST').length,0);
   current={configured:true,state:'online',runtime_restart_required:true};f.click('refresh');await settle();assert.match(f.get('status').textContent,/重新打开软件/);
   current=null;f.window.fetch=async()=>{throw new Error('Synthetic unavailable');};f.click('refresh');await settle();assert.equal(f.get('status').textContent,'Synthetic unavailable');assert.equal(f.get('status').dataset.tone,'error');f.dispose();
 });
@@ -149,7 +149,7 @@ test('a forbidden directory read clears previously visible rows and retains the 
   let reads=0;const f=fixture(()=>response(session({admin:true})),{embedded:true,members:()=>++reads===1?response(directoryPage([directoryMember(0)])):response({error:'admin_required'},403)});await settle();assert.equal(f.get('members-list').children.length,1);f.click('refresh');await settle();assert.equal(f.get('members-list').children.length,0);assert.equal(f.get('invitations').hidden,true);assert.equal(f.context.active,true);assert.match(f.get('status').textContent,/刷新状态/);f.dispose();
 });
 test('local status publishes only a configured portal while keeping account and computer confirmation separate',async()=>{
-  let state={configured:true,state:'unbound',portal_url:'https://portal.example.test/remote'};const f=fixture(path=>response(path==='/api/bootstrap'?{csrf_token:'local'}:state),{mode:'local'});await settle();assert.equal(f.portals.at(-1),state.portal_url);assert.equal(f.get('account').textContent,'');assert.equal(f.button('confirm').hidden,true);assert.equal(f.get('device-state').textContent,'尚未绑定');assert.equal(f.button('authorize').textContent,'登录 / 注册账号');
+  let state={configured:true,state:'unbound',portal_url:'https://portal.example.test/remote'};const f=fixture(path=>response(path==='/api/bootstrap'?{csrf_token:'local'}:state),{mode:'local'});await settle();assert.equal(f.portals.at(-1),state.portal_url);assert.equal(f.get('account').textContent,'');assert.equal(f.button('confirm').hidden,true);assert.equal(f.get('device-state').textContent,'尚未绑定');assert.equal(f.button('authorize').textContent,'连接这台电脑');
   state={configured:false,state:'unbound',portal_url:'https://portal.example.test/remote'};f.click('refresh');await settle();assert.equal(f.portals.at(-1),'');assert.equal(f.button('authorize').hidden,true);f.dispose();
 });
 
@@ -207,6 +207,27 @@ test('focus clears the directory before serial reauthorization and disposal remo
   finish(response(session({admin:false})));await settle();assert.equal(f.get('members-list').children.length,0);assert.equal(f.get('invitations').hidden,true);assert.equal(f.window.document.listenerCount,1);assert.equal(f.windowEvents.listenerCount,1);
   f.dispose();assert.equal(f.window.document.listenerCount,0);assert.equal(f.windowEvents.listenerCount,0);const calls=f.calls.length;f.focusWindow();f.visibility(false);await settle();assert.equal(f.calls.length,calls);
 });
-test('local connector polling does not gain remote admin view listeners',async()=>{
-  const f=fixture(path=>response(path==='/api/bootstrap'?{csrf_token:'local'}:{configured:false,state:'unbound'}),{mode:'local'});await settle();assert.equal(f.window.document.listenerCount,0);assert.equal(f.windowEvents.listenerCount,0);const calls=f.calls.length;f.focusWindow();f.visibility(false);await settle();assert.equal(f.calls.length,calls);f.dispose();
+test('local admin members are inline, scoped to the signed-in account and cleared on role loss',async()=>{
+  let current={configured:true,state:'signed_in',account:{sub:'owner',name:'Owner'},membership:'active',admin:true};
+  let memberReads=0;
+  const f=fixture(path=>response(path==='/api/bootstrap'?{csrf_token:'local-csrf'}:{configured:true,state:'unbound'}),{mode:'local',accountSession:()=>current,members:async(path,options)=>{memberReads++;assert.equal(path,'/api/desktop/account/members?limit=25&offset=0');assert.equal(options.headers['X-Session-Client'],'panel');assert.equal(options.headers.Authorization,undefined);return response(directoryPage([directoryMember(0)]));}});
+  await settle();assert.equal(f.get('account').textContent,'Owner');assert.equal(f.get('invitations').hidden,false);assert.equal(f.get('members-list').children.length,1);assert.equal(memberReads,1);assert.equal(f.calls.some(call=>call.options.method==='POST'),false);
+  current={...current,admin:false};f.click('refresh');await settle();assert.equal(f.get('invitations').hidden,true);assert.equal(f.get('members-list').children.length,0);assert.equal(memberReads,1);f.dispose();
+});
+
+test('local account login and logout never confirm or revoke the computer',async()=>{
+  let current={configured:true,state:'signed_out',account:null,admin:false};
+  const f=fixture((path,options)=>{if(path.endsWith('/account/authorize'))current={configured:true,state:'signed_in',account:{sub:'owner',name:'Owner'},membership:'active',admin:false};if(path.endsWith('/account/logout'))current={configured:true,state:'signed_out',account:null,admin:false};return response(path==='/api/bootstrap'?{csrf_token:'local-csrf'}:path.startsWith('/api/desktop/account/')?{}:{configured:true,state:'online'});},{mode:'local',accountSession:()=>current});
+  await settle();f.click('account-authorize');await settle();assert.equal(f.get('account').textContent,'Owner');assert.equal(f.button('logout').hidden,false);f.click('logout');await settle();assert.equal(f.get('account').textContent,'');assert.equal(f.get('device-state').textContent,'在线');
+  const writes=f.calls.filter(call=>call.options.method==='POST');assert.deepEqual(writes.map(call=>call.path),['/api/desktop/account/authorize','/api/desktop/account/logout']);for(const call of writes)assert.equal(call.options.headers['X-Session-CSRF'],'local-csrf');f.dispose();
+});
+
+test('pending local login keeps its button disabled and cannot start another grant',async()=>{
+  let current={configured:true,state:'signed_out',account:null,admin:false};
+  const f=fixture(path=>{if(path.endsWith('/account/authorize'))current={...current,state:'authorizing',verification_uri:'https://id.example.test/device',user_code:'SYNTHETIC-CODE'};return response(path==='/api/bootstrap'?{csrf_token:'local-csrf'}:{configured:true,state:'unbound'});},{mode:'local',accountSession:()=>current});
+  await settle();f.click('account-authorize');await settle();assert.equal(f.button('account-authorize').disabled,true);assert.equal(f.get('account-code').textContent,'SYNTHETIC-CODE');f.click('account-authorize');await settle();assert.equal(f.calls.filter(call=>call.path.endsWith('/account/authorize')).length,1);f.dispose();
+});
+
+test('local account privacy listeners are removed on disposal',async()=>{
+  const f=fixture(path=>response(path==='/api/bootstrap'?{csrf_token:'local'}:{configured:false,state:'unbound'}),{mode:'local'});await settle();assert.equal(f.window.document.listenerCount,1);assert.equal(f.windowEvents.listenerCount,1);f.dispose();assert.equal(f.window.document.listenerCount,0);assert.equal(f.windowEvents.listenerCount,0);
 });

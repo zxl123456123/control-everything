@@ -761,6 +761,9 @@
     $('research-again').hidden = running;
     $('research-return').textContent = running ? '先去阅读' : '继续阅读';
     changeText($('research-state'), label);
+    const reason = !running && ['partial', 'failed'].includes(value.state)
+      ? value.error || events.findLast(event => ['blocked', 'error'].includes(event.stage))?.message || (value.state === 'partial' ? '部分来源未能完成，本次已取得的内容仍可阅读。请稍后重试。' : '本次未取得新内容，已有新闻已保留。请稍后重试。') : '';
+    changeText($('research-reason'), reason); $('research-reason').hidden = !reason;
     $('research-symbol').style.display = !running || known ? 'none' : '';
     $('research-value').hidden = running && !known;
     changeText($('research-value'), running ? `${percent}%` : value.state === 'failed' ? '!' : String(count));
@@ -839,6 +842,7 @@
   for (const id of ['research-close','research-return']) $(id).addEventListener('click', () => $('research-panel').close());
   $('research-again').addEventListener('click', () => {
     $('research-form').hidden = false; $('research-feedback').hidden = true; $('research-again').hidden = true; $('research-return').textContent = '取消';
+    changeText($('research-reason'), ''); $('research-reason').hidden = true;
     $('research-panel').removeAttribute('data-state'); $('research-query').focus();
   });
   $('research-details').addEventListener('toggle', () => {
@@ -875,8 +879,11 @@
     $('research-url').textContent = '准备检索'; $('research-frame-caption').textContent = '只显示本次采集实际获得的页面画面。'; $('research-outcome').textContent = '关闭工作台后，采集仍会继续。'; $('research-state').textContent = '正在开始'; $('research-count').textContent = '0 条记录'; $('research-log-count').textContent = '0'; setCollecting(true);
     try {
       const response = await readerFetch('/research', {method:'POST', headers:{'Content-Type':'application/json', 'X-Preview-Request':'1'}, body:JSON.stringify({query, topic:researchTopic, capture_frames:$('capture-frames').checked})});
-      const value = await response.json(); if (!response.ok && !(response.status === 409 && value.job_id)) throw new Error('采集暂时无法开始，请稍后重试。'); acceptResearch(value);
-    } catch (error) { setCollecting(false); renderResearchProgress({state:'failed'}); $('research-state').textContent = '未能开始'; $('research-frame-mode').textContent = '未开始'; $('research-activity').textContent = error.message; $('research-outcome').textContent = error.message; }
+      const value = await response.json();
+      if (!response.ok && !(response.status === 409 && value.job_id)) throw new Error(value.error === 'news_browser_unavailable'
+        ? '新闻采集浏览器不可用，请先安装或修复采集依赖，再次点击不会自动修复。' : '采集暂时无法开始，请稍后重试。');
+      acceptResearch(value);
+    } catch (error) { setCollecting(false); renderResearchProgress({state:'failed',error:error.message}); $('research-state').textContent = '未能开始'; $('research-frame-mode').textContent = '未开始'; $('research-activity').textContent = error.message; $('research-outcome').textContent = error.message; }
   });
   document.addEventListener('keydown', event => {
     if (!canPoll() || event.isComposing || event.keyCode === 229) return;

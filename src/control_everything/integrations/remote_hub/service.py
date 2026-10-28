@@ -59,7 +59,9 @@ class RemoteHubService:
         with self.store.transaction() as db:
             member = db.execute("SELECT status FROM members WHERE issuer=? AND sub=?", (identity.issuer, identity.sub)).fetchone()
         return {"account": {"issuer": identity.issuer, "sub": identity.sub, "name": identity.name or identity.sub},
-                "member_active": bool(member and member[0] == "active")}
+                "member_active": bool(member and member[0] == "active"),
+                "membership": member[0] if member else "inactive",
+                "admin": (identity.issuer, identity.sub) in self.admin_subjects}
 
     def session(self, identity, cookie):
         csrf, set_cookie = self.sessions.open(identity, cookie)

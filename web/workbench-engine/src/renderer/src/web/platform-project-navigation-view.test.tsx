@@ -84,6 +84,27 @@ it('does not promote an unregistered or wrong-host worktree into a platform proj
   expect(window.location.hash).toBe('#workbench')
 })
 
+it('keeps native appearance reachable without taking the Studio appearance route', () => {
+  window.history.replaceState(null, '', '#workbench')
+  const props = { data, projects, active: true, workbench: true, entryRevision: 1, onReady: vi.fn() }
+  const view = render(<PlatformRuntimeNavigation {...props} />)
+  fixture.state.activeView = 'settings'
+  fixture.state.settingsNavigationTarget = { pane: 'appearance', repoId: null }
+  view.rerender(<PlatformRuntimeNavigation {...props} />)
+  expect(window.location.hash).toBe('#settings/workbench-appearance')
+  expect(fixture.state.settingsNavigationTarget.pane).toBe('appearance')
+})
+
+it('closes native settings after navigation to Studio appearance is accepted', () => {
+  fixture.state.activeView = 'settings'
+  render(<PlatformNavigation data={data} projects={projects} active selectionOnly
+    settingsScope={{ kind: 'global', contextKey: 'trusted', entry: 'appearance' }} onSelection={vi.fn()} />)
+  window.dispatchEvent(new CustomEvent('platform-navigation-accepted', {
+    detail: { from: '#settings/workbench-appearance', to: '#settings/appearance' }
+  }))
+  expect(fixture.state.closeSettingsPage).toHaveBeenCalledOnce()
+})
+
 it('opens exact project Settings after existing readiness gates without activating a worktree', () => {
   window.history.replaceState(null, '', '#project/p-one/settings')
   const scope = { kind: 'project' as const, contextKey: 'trusted', platformId: 'p-one', repoId: 'repo-a',
@@ -127,7 +148,7 @@ it('restores the requested workspace before reflecting a later settings action',
   view.rerender(<PlatformNavigation {...props} />)
   fixture.state.activeView = 'settings'
   view.rerender(<PlatformNavigation {...props} />)
-  expect(window.location.hash).toBe('#settings/appearance')
+  expect(window.location.hash).toBe('#settings/workbench-appearance')
 })
 
 it.each(['empty', 'disconnected', 'activation'] as const)('keeps %s recovery reachable without showing the app', (mode) => {

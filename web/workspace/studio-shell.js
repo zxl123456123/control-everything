@@ -2,7 +2,7 @@
 'use strict';
 (() => {
   const escape = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
-  const labels = { appearance: '外观', account: '账号与设备', sources: '高级接入', development: '开发工具偏好' };
+  const labels = { appearance: '外观', account: '账号与设备', development: '开发工具偏好' };
   const projectUrl = (id, tab = 'workspace') => '#project/' + encodeURIComponent(id) + '/' + tab;
   const icons = {
     news: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 8h10M7 12h10M7 16h6"/>',
@@ -62,13 +62,7 @@
   }
   function renderSettingsLanding({ section, integrated }) {
     const title = labels[section] || labels.development;
-    if (section === 'sources') return `<section class="ce-settings-page"><div class="ce-heading"><h1>高级接入</h1></div><div class="ce-settings-group"><section class="ce-setting-row"><h2>项目与会话导入</h2><a class="ce-button ce-plain" href="/workspace-admin#settings" aria-label="管理项目与会话导入">管理</a></section><section class="ce-setting-row"><h2>事项 API 接入</h2><button class="ce-button ce-plain" type="button" data-action="external-access" aria-label="管理事项 API 接入">管理</button></section></div></section>`;
     return `<div class="ce-heading"><h1>${title}</h1></div><section class="ce-empty" role="status">${integrated ? '此设置入口尚未就绪。' : '请在已连接的项目工作台中使用开发设置。'}<a class="ce-button" href="#home">返回项目总览</a></section>`;
-  }
-  /** Section switcher shown above every settings page; the developer-preferences stub is not offered. */
-  function renderSettingsTabs(current) {
-    const link = tab => `<a href="#settings/${tab}"${tab === current ? ' aria-current="page"' : ''}>${labels[tab]}</a>`;
-    return ['appearance', 'account', 'sources'].map(link).join('');
   }
   function renderProgressHeading({ project, tab, returnHash, scope = 'current' }) {
     const name = escape(project.name), management = ['items', 'board'].includes(tab);
@@ -76,5 +70,5 @@
     const scopes = [['current', '当前项目'], ['all', '全部事项'], ['attention', '待处理'], ['active', '活动项目'], ['archived', '归档项目'], ['orphan', '未登记项目'], ['global', '全局事项']];
     return `<div class="ce-heading ce-progress-heading"><div><h1 tabindex="-1">${management ? name + ' · ' : ''}${title}</h1></div>${management ? `<a class="ce-button ce-plain" href="${escape(returnHash)}">返回项目进展</a>` : ''}</div>${tab === 'items' ? `<label class="ce-management-scope">查看范围<select id="studio-items-scope">${scopes.map(([value, label]) => `<option value="${value}"${scope === value ? ' selected' : ''}>${label}</option>`).join('')}</select></label>` : ''}`;
   }
-  window.StudioShell = { renderStatePanel, loadingPlaceholder, retryButton, renderNavigation, renderOverview, renderSettingsLanding, renderSettingsTabs, renderProgressHeading, projectCard };
+  window.StudioShell = { renderStatePanel, loadingPlaceholder, retryButton, renderNavigation, renderOverview, renderSettingsLanding, renderProgressHeading, projectCard };
 })();

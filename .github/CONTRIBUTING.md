@@ -6,6 +6,8 @@
 
 一次性脚本、临时 clone、缓存、构建输出、预览 profile 和需留证的 TEMP/TMP 必须在本检出 `work/<feature>/` 下，不能为了缩短路径在盘根创建 `ce-*` 副本，也不能改用户或系统临时目录。正式构建沿用已有 `work/ce-native`、`work/workbench-engine-build/<run>/`；普通自动清理的单测可使用系统 Temp。需要临时环境时只给该子进程传任务内的环境变量；用完清理可重建内容，报告与失败日志按任务留存。历史脚本的旧绝对路径保留为证据，恢复前须重新核对，不能直接重跑。`python tools/scripts/check_architecture.py layout` 同时检查本机文档和 work 根散件；显式 `--files` 只检查给定发布候选。
 
+具体流程见[开发文件与产物管理](../docs/guides/development-files.md)。新一次性 driver 先登记 current 任务，再经 `python tools/scripts/run_task.py <feature> --output <产物> -- <命令>` 运行；实际写入从 `CE_TASK_WORK_DIR` 派生。入口检查声明路径、固定任务 cwd 和子进程临时目录，不能替代阅读 driver 的真实写入。结项保留最终验收、实际失败、映射清单及仍被引用的构建输入，再整理其他可重建材料；不按日期清空 archive。README 顶部明确当前状态，结束后归档；暂停和待验收保持 current。提交前额外核对原有合并/变基/拣选状态，独立任务不能消费别人的未完成合并。ignored 证据需要另行备份，不自行选择外部目录或上传。
+
 ## 功能目录与新增代码归属
 
 管理后端沿用 Python，Windows 进程观察由 Rust 组件负责；前端保留 HTML/CSS 和普通脚本，本机观察与每日资讯使用 TypeScript 源码及已生成 JS，工具只在开发和验证时使用。普通启动无需 Node/npm，其他模块继续手写 JS。后端按实际职责组织，新增代码优先放入下表对应功能包；不为每个功能预建空的通用分层。
