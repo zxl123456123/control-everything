@@ -28,7 +28,7 @@ vi.mock('expo-secure-store', () => ({
   deleteItemAsync: vi.fn()
 }))
 import { createPlatformAccountController } from './controller'
-import { AccountError, type AccountCandidate } from './oidc'
+import { AccountError, type AccountCandidate, type RevocationOutcome } from './oidc'
 import type { PlatformAccountConfig } from './config'
 import type { AccountRecovery } from './secure-store'
 
@@ -80,7 +80,11 @@ function harness() {
       stored = null
     })
   }
-  const oidc = { login: vi.fn(async () => value()), restore: vi.fn(async () => value()) }
+  const oidc = {
+    login: vi.fn(async () => value()),
+    restore: vi.fn(async () => value()),
+    revoke: vi.fn(async (): Promise<RevocationOutcome> => 'unsupported')
+  }
   const controller = createPlatformAccountController({
     configuration: { status: 'ready', config },
     store,
@@ -396,5 +400,76 @@ describe('one account controller owns authentication and serialized persistence'
     expect(h.controller.getSnapshot().status).toBe('signed-out')
     expect(h.store.write).not.toHaveBeenCalled()
     expect(h.stored()).toEqual(record)
+  })
+})
+
+describe('logout also asks the identity service to revoke the refresh credential', () => {
+  async function signedIn() {
+    const h = harness()
+    h.seed(record)
+    await h.controller.restore()
+    expect(h.controller.getSnapshot().status).toBe('signed-in')
+    return h
+  }
+  it('revokes the credential it last saw, clears locally, and says so', async () => {
+    const h = await signedIn()
+    h.oidc.revoke.mockResolvedValue('revoked')
+    await h.controller.logout()
+    expect(h.oidc.revoke).toHaveBeenCalledTimes(1)
+    expect(h.oidc.revoke).toHaveBeenCalledWith(config, record, expect.any(AbortSignal))
+    expect(h.stored()).toBeNull()
+    expect(h.controller.getSnapshot()).toMatchObject({
+      status: 'signed-out',
+      message: expect.stringContaining('撤销本机授权')
+    })
+  })
+  it('keeps the local clear and reports honestly when the service cannot confirm revocation', async () => {
+    const h = await signedIn()
+    h.oidc.revoke.mockResolvedValue('failed')
+    await h.controller.logout()
+    expect(h.stored()).toBeNull()
+    expect(h.controller.getSnapshot()).toMatchObject({
+      status: 'signed-out',
+      message: expect.stringContaining('未能确认撤销')
+    })
+  })
+  it('treats a throwing revocation as failed instead of leaving the user signed in', async () => {
+    const h = await signedIn()
+    h.oidc.revoke.mockRejectedValue(new Error('synthetic'))
+    await h.controller.logout()
+    expect(h.stored()).toBeNull()
+    expect(h.controller.getSnapshot().status).toBe('signed-out')
+  })
+  it('keeps the plain message when the service offers no revocation endpoint', async () => {
+    const h = await signedIn()
+    await h.controller.logout()
+    expect(h.controller.getSnapshot().message).toBe(
+      '已退出此 App。浏览器会话与已配对电脑的权限保持独立。'
+    )
+  })
+  it('does not call the service when there is no refresh credential to revoke', async () => {
+    const h = harness()
+    await h.controller.logout()
+    expect(h.oidc.revoke).not.toHaveBeenCalled()
+    expect(h.controller.getSnapshot().status).toBe('signed-out')
+  })
+  it('does not revoke when the local delete failed, so a retry still has the credential', async () => {
+    const h = await signedIn()
+    h.store.remove.mockRejectedValueOnce(new Error('synthetic delete failure'))
+    await h.controller.logout()
+    expect(h.oidc.revoke).not.toHaveBeenCalled()
+    expect(h.controller.getSnapshot().status).toBe('logout-error')
+    h.oidc.revoke.mockResolvedValue('revoked')
+    await h.controller.logout()
+    expect(h.oidc.revoke).toHaveBeenCalledTimes(1)
+    expect(h.controller.getSnapshot().status).toBe('signed-out')
+  })
+  it('revokes a rotated credential, not the stale one', async () => {
+    const h = await signedIn()
+    const rotated = { ...value(), recovery: { ...record, refreshToken: 'rotated-refresh' } }
+    h.oidc.restore.mockResolvedValue(rotated)
+    await h.controller.restore()
+    await h.controller.logout()
+    expect(h.oidc.revoke.mock.calls[0]?.[1]).toMatchObject({ refreshToken: 'rotated-refresh' })
   })
 })

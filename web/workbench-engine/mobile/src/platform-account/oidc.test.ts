@@ -385,3 +385,84 @@ describe('refresh grant identity binding', () => {
     ).rejects.toMatchObject({ kind: 'expired', message: 'expired' })
   })
 })
+
+describe('server-side sign-out', () => {
+  const revoke = (signal = new AbortController().signal) =>
+    platformAccountOidc.revoke(config, recovery, signal)
+  const postsTo = (suffix: string) =>
+    native.fetch.mock.calls.filter(
+      ([url, init]: [string, RequestInit | undefined]) =>
+        url.endsWith(suffix) && init?.method === 'POST'
+    )
+  it('posts the refresh token to the RFC 7009 revocation endpoint', async () => {
+    discoveryChanges = { revocation_endpoint: config.issuer + '/revoke' }
+    native.fetch.mockImplementation(async (url: string) =>
+      url.endsWith('openid-configuration')
+        ? response(url, { ...discovery, ...discoveryChanges })
+        : { url, ok: true, status: 200, json: async () => ({}) }
+    )
+    await expect(revoke()).resolves.toBe('revoked')
+    const [call] = postsTo('/revoke')
+    const body = new URLSearchParams(call[1].body as string)
+    expect(body.get('token')).toBe('synthetic-refresh')
+    expect(body.get('token_type_hint')).toBe('refresh_token')
+    expect(body.get('client_id')).toBe(config.clientId)
+    expect(call[1]).toMatchObject({ redirect: 'error', credentials: 'omit' })
+  })
+  it('falls back to a direct end-session POST when only that endpoint is advertised', async () => {
+    discoveryChanges = { end_session_endpoint: config.issuer + '/logout' }
+    native.fetch.mockImplementation(async (url: string) =>
+      url.endsWith('openid-configuration')
+        ? response(url, { ...discovery, ...discoveryChanges })
+        : { url, ok: true, status: 204, json: async () => ({}) }
+    )
+    await expect(revoke()).resolves.toBe('revoked')
+    const body = new URLSearchParams(postsTo('/logout')[0][1].body as string)
+    expect(body.get('refresh_token')).toBe('synthetic-refresh')
+    expect(body.get('client_id')).toBe(config.clientId)
+  })
+  it('reports unsupported without any POST when discovery offers neither endpoint', async () => {
+    await expect(revoke()).resolves.toBe('unsupported')
+    expect(native.fetch.mock.calls.every(([, init]) => init?.method !== 'POST')).toBe(true)
+  })
+  it('ignores a cross-origin or malformed endpoint instead of failing sign-in', async () => {
+    discoveryChanges = {
+      revocation_endpoint: 'https://evil.example.test/revoke',
+      end_session_endpoint: config.issuer + '/logout?x=1'
+    }
+    await expect(revoke()).resolves.toBe('unsupported')
+    await expect(login()).resolves.toMatchObject({ session: { subject: 'subject-1' } })
+  })
+  it('reports failed on a non-2xx answer, a network error, or a record from another client', async () => {
+    discoveryChanges = { revocation_endpoint: config.issuer + '/revoke' }
+    const base = native.fetch.getMockImplementation()!
+    native.fetch.mockImplementation(async (url: string, init?: RequestInit) =>
+      url.endsWith('/revoke')
+        ? { url, ok: false, status: 503, json: async () => ({}) }
+        : base(url, init)
+    )
+    await expect(revoke()).resolves.toBe('failed')
+    native.fetch.mockImplementation(async (url: string, init?: RequestInit) => {
+      if (url.endsWith('/revoke')) throw new Error('offline')
+      return base(url, init)
+    })
+    await expect(revoke()).resolves.toBe('failed')
+    await expect(
+      platformAccountOidc.revoke(
+        config,
+        { ...recovery, clientId: 'someone-else' },
+        new AbortController().signal
+      )
+    ).resolves.toBe('failed')
+  })
+  it('does not follow a redirect from the revocation endpoint', async () => {
+    discoveryChanges = { revocation_endpoint: config.issuer + '/revoke' }
+    const base = native.fetch.getMockImplementation()!
+    native.fetch.mockImplementation(async (url: string, init?: RequestInit) =>
+      url.endsWith('/revoke')
+        ? { url: 'https://elsewhere.example.test/x', ok: true, status: 200, json: async () => ({}) }
+        : base(url, init)
+    )
+    await expect(revoke()).resolves.toBe('failed')
+  })
+})

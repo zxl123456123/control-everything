@@ -4,13 +4,15 @@ import { AppState, Platform } from 'react-native'
 import {
   accountConfigBinding,
   readPlatformAccountConfig,
+  type PlatformAccountConfig,
   type PlatformAccountConfiguration
 } from './config'
 import {
   AccountError,
   platformAccountOidc,
   type AccountCandidate,
-  type AccountSession
+  type AccountSession,
+  type RevocationOutcome
 } from './oidc'
 import { platformAccountStore } from './secure-store'
 import type { AccountRecovery } from './secure-store'
@@ -47,6 +49,12 @@ const errors = {
   expired: '账号凭据已过期，请重新登录。',
   cancelled: '已取消登录'
 }
+const logoutMessages: Record<RevocationOutcome, string> = {
+  revoked: '已退出此 App，并已通知身份服务撤销本机授权。浏览器会话与已配对电脑的权限保持独立。',
+  unsupported: '已退出此 App。浏览器会话与已配对电脑的权限保持独立。',
+  failed:
+    '已退出此 App，本机凭据已清除；身份服务未能确认撤销授权。浏览器会话与已配对电脑的权限保持独立。'
+}
 
 export function createPlatformAccountController(deps: Dependencies) {
   let configuration = deps.configuration
@@ -55,6 +63,9 @@ export function createPlatformAccountController(deps: Dependencies) {
   let storageQueue: Promise<unknown> = Promise.resolve()
   let session: AccountSession | null = null
   let candidate: AccountCandidate | null = null
+  // Last refresh credential this controller saw, kept only so logout can revoke it server-side
+  // without an extra secure-store read. Cleared as soon as logout consumes it.
+  let knownRecovery: AccountRecovery | null = null
   let logoutFailed = false
   let expiryTimer: ReturnType<typeof setTimeout> | undefined
   const listeners = new Set<() => void>()
@@ -107,6 +118,8 @@ export function createPlatformAccountController(deps: Dependencies) {
   async function commit(op: Operation, value: AccountCandidate, restoring: boolean) {
     if (!owns(op)) return
     candidate = value
+    if (value.recovery) knownRecovery = value.recovery
+    else knownRecovery = null
     try {
       await enqueue(async () => {
         if (!owns(op)) return
@@ -214,6 +227,7 @@ export function createPlatformAccountController(deps: Dependencies) {
       publish({ status: 'signed-out' })
       return
     }
+    knownRecovery = record
     try {
       const value = await deps.oidc.restore(config, record, op.signal, now)
       if (owns(op)) await commit(op, value, true)
@@ -221,8 +235,21 @@ export function createPlatformAccountController(deps: Dependencies) {
       errorState(op, error, true)
     }
   }
+  async function revokeRemotely(
+    config: PlatformAccountConfig,
+    record: AccountRecovery,
+    op: Operation
+  ): Promise<RevocationOutcome> {
+    try {
+      return await deps.oidc.revoke(config, record, op.signal)
+    } catch {
+      return 'failed'
+    }
+  }
   async function logout() {
     const op = invalidate()
+    const revokable = configuration.status === 'ready' ? knownRecovery : null
+    const readyConfig = configuration.status === 'ready' ? configuration.config : null
     // Also gate attempts while delete is pending or has failed.
     logoutFailed = true
     publish({ status: 'logging-out' })
@@ -236,9 +263,13 @@ export function createPlatformAccountController(deps: Dependencies) {
         })
       return
     }
-    if (op.generation !== generation) return
+    // The local credential is gone; a failed or slow server call must never undo that.
     logoutFailed = false
-    publish({ ...initial(), message: '已退出此 App。浏览器会话与已配对电脑的权限保持独立。' })
+    knownRecovery = null
+    const outcome: RevocationOutcome =
+      revokable && readyConfig ? await revokeRemotely(readyConfig, revokable, op) : 'unsupported'
+    if (op.generation !== generation) return
+    publish({ ...initial(), message: logoutMessages[outcome] })
   }
   return {
     login,

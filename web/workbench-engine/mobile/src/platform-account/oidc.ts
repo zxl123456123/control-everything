@@ -28,7 +28,17 @@ export type AccountSession = {
 }
 export type AccountCandidate = { session: AccountSession; recovery: AccountRecovery | null }
 type ObjectValue = Record<string, unknown>
-type Discovery = { authorizationEndpoint: string; tokenEndpoint: string; userInfoEndpoint: string }
+type Discovery = {
+  authorizationEndpoint: string
+  tokenEndpoint: string
+  userInfoEndpoint: string
+  // Optional endpoints: absent or malformed values must never break sign-in.
+  revocationEndpoint?: string
+  endSessionEndpoint?: string
+}
+/** What a best-effort server-side sign-out achieved. Local credentials are cleared either way. */
+export type RevocationOutcome = 'revoked' | 'unsupported' | 'failed'
+const REVOCATION_TIMEOUT_MS = 8_000
 const fail = (kind: AccountError['kind']): never => {
   throw new AccountError(kind)
 }
@@ -104,6 +114,44 @@ async function requestJson(
   }
 }
 
+function optionalEndpoint(value: unknown, issuer: string): string | undefined {
+  if (value === undefined) return undefined
+  try {
+    return requireEndpoint(value, issuer)
+  } catch {
+    return undefined
+  }
+}
+
+// RFC 7009 answers 200 with an empty body, so this cannot reuse requestJson, which parses JSON.
+async function postFormOk(
+  url: string,
+  body: URLSearchParams,
+  signal: AbortSignal
+): Promise<boolean> {
+  if (signal.aborted) return false
+  const controller = new AbortController()
+  const abort = () => controller.abort()
+  signal.addEventListener('abort', abort, { once: true })
+  const timer = setTimeout(abort, REVOCATION_TIMEOUT_MS)
+  try {
+    const response = await nativeFetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: body.toString(),
+      redirect: 'error',
+      credentials: 'omit',
+      signal: controller.signal
+    })
+    return response.url === url && response.ok
+  } catch {
+    return false
+  } finally {
+    clearTimeout(timer)
+    signal.removeEventListener('abort', abort)
+  }
+}
+
 async function loadDiscovery(
   config: PlatformAccountConfig,
   signal: AbortSignal
@@ -120,7 +168,9 @@ async function loadDiscovery(
   return {
     authorizationEndpoint: requireEndpoint(raw.authorization_endpoint, config.issuer),
     tokenEndpoint: requireEndpoint(raw.token_endpoint, config.issuer),
-    userInfoEndpoint: requireEndpoint(raw.userinfo_endpoint, config.issuer)
+    userInfoEndpoint: requireEndpoint(raw.userinfo_endpoint, config.issuer),
+    revocationEndpoint: optionalEndpoint(raw.revocation_endpoint, config.issuer),
+    endSessionEndpoint: optionalEndpoint(raw.end_session_endpoint, config.issuer)
   }
 }
 
@@ -359,5 +409,49 @@ export const platformAccountOidc = {
       now,
       record
     )
+  },
+  /**
+   * Best-effort server-side sign-out so a refresh token copied off the device stops working.
+   * Prefers RFC 7009 revocation; falls back to a direct end-session POST (Keycloak accepts the
+   * refresh token there). Never throws: the caller clears local credentials regardless.
+   */
+  async revoke(
+    config: PlatformAccountConfig,
+    record: AccountRecovery,
+    signal: AbortSignal
+  ): Promise<RevocationOutcome> {
+    if (
+      record.issuer !== config.issuer ||
+      record.clientId !== config.clientId ||
+      record.redirectUri !== config.redirectUri ||
+      record.nativeIdentity !== config.nativeIdentity
+    )
+      return 'failed'
+    try {
+      const discovery = await loadDiscovery(config, signal)
+      if (discovery.revocationEndpoint) {
+        const ok = await postFormOk(
+          discovery.revocationEndpoint,
+          new URLSearchParams({
+            token: record.refreshToken,
+            token_type_hint: 'refresh_token',
+            client_id: config.clientId
+          }),
+          signal
+        )
+        return ok ? 'revoked' : 'failed'
+      }
+      if (discovery.endSessionEndpoint) {
+        const ok = await postFormOk(
+          discovery.endSessionEndpoint,
+          new URLSearchParams({ refresh_token: record.refreshToken, client_id: config.clientId }),
+          signal
+        )
+        return ok ? 'revoked' : 'failed'
+      }
+      return 'unsupported'
+    } catch {
+      return 'failed'
+    }
   }
 }
