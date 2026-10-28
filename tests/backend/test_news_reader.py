@@ -41,6 +41,19 @@ class Source:
         return self.get(stream)
 
 
+def owned_browser(events=(), *, stderr='', code=0):
+    class Batch:
+        def __init__(self, node, config, stop, on_event):
+            self.api = SimpleNamespace(errors=stderr.encode(), code=code)
+            self.on_event = on_event
+
+        def run(self):
+            for event in events:
+                self.on_event(event)
+            return [], 'worker_failed' if code else None, True
+    return Batch
+
+
 class ReaderTests(unittest.TestCase):
     def test_verified_runtime_is_private_and_never_uses_ambient_node(self):
         node = self.root / 'pinned-node.exe'
@@ -48,7 +61,9 @@ class ReaderTests(unittest.TestCase):
         core = self.root / 'core'
         core.mkdir()
         (core / 'index.js').write_text('module.exports = {}')
-        jobs = NewsReader(self.root, self.source, runtime={'node': str(node), 'playwright_core': str(core)}).jobs
+        extra_reader = NewsReader(self.root, self.source, runtime={'node': str(node), 'playwright_core': str(core)})
+        self.addCleanup(extra_reader.close)
+        jobs = extra_reader.jobs
         with patch.dict(os.environ, {'CONTROL_EVERYTHING_NEWS_NODE': str(self.root / 'wrong')}), \
                 patch('control_everything.workspace.news_research.shutil.which') as ambient, patch.object(jobs, '_run') as run:
             job = jobs.begin('coding', 'coding')
@@ -86,11 +101,9 @@ class ReaderTests(unittest.TestCase):
             folder.mkdir(parents=True)
             (folder / 'result.json').write_text(json.dumps({'items': []}), encoding='utf-8')
             job = {'job_id': identity, 'state': 'running', 'topic': 'coding', 'events': []}
-            process = Mock(stdout=iter(json.dumps({'stage': stage, 'message': stage}) + '\n' for stage in stages))
-            process.stderr.read.return_value = ''
-            process.wait.return_value = process.poll.return_value = 0
-            with patch('control_everything.workspace.news_research.subprocess.Popen', return_value=process):
-                self.reader.jobs._run(job, folder / 'request.json', 'node')
+            events = [{'stage': stage, 'message': stage} for stage in stages]
+            with patch('control_everything.workspace.news_research.BrowserBatch', owned_browser(events)):
+                self.reader.jobs._run_owned(job, folder / 'request.json', 'node')
             self.assertEqual(job['state'], expected)
             self.assertEqual('error' in job, expected == 'failed')
 
@@ -101,11 +114,8 @@ class ReaderTests(unittest.TestCase):
         folder.mkdir(parents=True)
         job = {'job_id': identity, 'state': 'running', 'topic': 'coding', 'events': []}
         stderr = "Error: Cannot find module 'playwright'\nRequire stack:\nC:/example/private-profile/news-browser.js"
-        process = Mock(stdout=iter(()))
-        process.stderr.read.return_value = stderr
-        process.wait.return_value = process.poll.return_value = 1
-        with patch('control_everything.workspace.news_research.subprocess.Popen', return_value=process):
-            jobs._run(job, folder / 'request.json', 'node')
+        with patch('control_everything.workspace.news_research.BrowserBatch', owned_browser(stderr=stderr, code=1)):
+            jobs._run_owned(job, folder / 'request.json', 'node')
         self.assertEqual(job['state'], 'failed')
         self.assertIn('playwright', job['error'].lower())
         self.assertNotIn('private-profile', json.dumps(job))
@@ -125,11 +135,8 @@ class ReaderTests(unittest.TestCase):
                 reason = '来源返回 HTTP 403，未提取'
                 event = {'stage': 'blocked', 'message': reason, 'detail': 'private diagnostic fixture'}
                 job = {'job_id': identity, 'state': 'running', 'topic': 'coding', 'events': []}
-                process = Mock(stdout=iter([json.dumps(event) + '\n']))
-                process.stderr.read.return_value = ''
-                process.wait.return_value = process.poll.return_value = 0
-                with patch('control_everything.workspace.news_research.subprocess.Popen', return_value=process):
-                    jobs._run(job, folder / 'request.json', 'node')
+                with patch('control_everything.workspace.news_research.BrowserBatch', owned_browser([event])):
+                    jobs._run_owned(job, folder / 'request.json', 'node')
                 self.assertEqual(job['state'], 'partial' if has_items else 'failed')
                 self.assertIn(reason, job.get('error', ''))
                 if has_items:
@@ -142,7 +149,10 @@ class ReaderTests(unittest.TestCase):
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name)
         self.source = Source()
+        # Migration fixture: snapshots are read without touching the public collector.
+        (self.root / 'feeds.json').write_text(json.dumps({stream: self.source.get(stream) for stream in ('ai', 'hn')}), encoding='utf-8')
         self.reader = NewsReader(self.root, self.source)
+        self.addCleanup(self.reader.close)
 
     def test_real_source_replaces_snapshot_and_newest_publication_leads(self):
         self.reader.sample()
@@ -152,14 +162,18 @@ class ReaderTests(unittest.TestCase):
         self.assertEqual(sample['sample']['streams']['ai']['items'][0]['url'], self.source.items[0]['url'])
         self.assertFalse(any('body_blocks' in row for row in self.reader.feeds['ai']['items']))
         saved = NewsReader(self.root, self.source)
+        self.addCleanup(saved.close)
         self.assertIn(older['id'], saved.research)
-        self.assertNotIn(older['id'], NewsReader(self.root / 'other', self.source).research)
+        other = NewsReader(self.root / 'other', self.source)
+        self.addCleanup(other.close)
+        self.assertNotIn(older['id'], other.research)
 
     def test_same_source_url_keeps_original_identity_and_full_content(self):
         original = self.source.items[0]
         self.reader.sample()
         capture = {**original, 'id': 'a' * 24, 'source_id': 'blog_google',
-                   'body_blocks': [{'type': 'p', 'text': 'Captured text'}], 'images': [], 'content_kind': 'full_text'}
+                   'body_blocks': [{'type': 'p', 'text': 'Captured text'}], 'images': [], 'content_kind': 'full_text',
+                   'content_origin': 'publisher_feed'}
         rows = self.reader.merge([capture])['sample']['streams']['ai']['items']
         self.assertEqual(len(rows), 1)
         self.assertEqual(rows[0]['id'], original['id'])
@@ -167,12 +181,12 @@ class ReaderTests(unittest.TestCase):
 
     def test_failed_refresh_preserves_old_time_and_content(self):
         before = self.reader.sample()
-        self.source.failed = True
-        after = self.reader.sample(refresh=True)
+        self.reader.accept_feeds(self.reader.runtime.settings['sources'], [], 'timeout')
+        after = self.reader.sample()
         self.assertEqual(after['sample']['streams']['ai']['items'], before['sample']['streams']['ai']['items'])
         self.assertEqual(after['sample']['captured_at'], before['sample']['captured_at'])
         self.assertEqual(after['sample']['sources'][0]['reason'], 'timeout')
-        self.assertEqual(self.source.refreshes, ['ai'])
+        self.assertEqual(self.source.refreshes, [])
 
     def test_unknown_article_never_fetches(self):
         with patch('control_everything.workspace.news_reader.load_article') as fetch:
@@ -189,8 +203,11 @@ class ReaderTests(unittest.TestCase):
         self.reader.merge([full, feed, summary])
         self.assertCountEqual(self.reader.collected_urls(), [full['url'], feed['url']])
         restored = NewsReader(self.root, self.source)
+        self.addCleanup(restored.close)
         self.assertCountEqual(restored.collected_urls(), [full['url'], feed['url']])
-        self.assertEqual(NewsReader(self.root / 'other', self.source).collected_urls(), [])
+        other = NewsReader(self.root / 'other', self.source)
+        self.addCleanup(other.close)
+        self.assertEqual(other.collected_urls(), [])
         jobs = self.reader.jobs
         with patch.dict(os.environ, {'CONTROL_EVERYTHING_NEWS_NODE': __file__}), patch.object(jobs, '_run'):
             job = jobs.begin('coding', 'coding')
@@ -257,11 +274,14 @@ class ReaderTests(unittest.TestCase):
     def test_close_only_stops_owned_process_and_waits_its_thread(self):
         jobs = self.reader.jobs
         jobs.process, jobs.thread = Mock(), Mock()
+        jobs.thread.is_alive.return_value = False
+        jobs.process = None
+        thread = jobs.thread
         with patch.object(jobs, '_stop') as stop:
             jobs.close()
             stop.assert_called_once_with(jobs.process)
         self.assertTrue(jobs.closed)
-        jobs.thread.join.assert_called_once_with(timeout=5)
+        thread.join.assert_called_once_with(timeout=5)
 
 
 class ReaderHTTPTests(unittest.TestCase):
@@ -321,18 +341,20 @@ class ReaderHTTPTests(unittest.TestCase):
             self.assertEqual(self.request('/api/workspace/news/article?id=' + identity + suffix)[0], 400)
 
     def test_screenshot_capture_is_optional_and_boolean(self):
-        self.reader.jobs.begin.return_value = {'job_id': 'a' * 32}
+        self.reader.runtime.request_research.return_value = {'job_id': 'a' * 32}
         for capture in (False, True):
             self.assertEqual(self.request('/api/workspace/news/research', 'POST',
                              {'query': 'AI', 'topic': 'coding', 'capture_frames': capture})[0], 202)
-            self.reader.jobs.begin.assert_called_with('AI', 'coding', capture_frames=capture)
+            self.reader.runtime.request_research.assert_called_with('AI', 'coding', capture_frames=capture)
         self.assertEqual(self.request('/api/workspace/news/research', 'POST',
                          {'query': 'AI', 'topic': 'coding', 'capture_frames': 'false'})[0], 400)
 
     def test_unknown_document_and_active_job_status(self):
         self.reader.article.return_value = None
         self.assertEqual(self.request('/api/workspace/news/article?id=' + 'a' * 24)[0], 404)
-        self.reader.jobs.begin.side_effect = RuntimeError('research_running')
+        from control_everything.workspace.news_runtime import NewsBusy
+        self.reader.runtime.request_research.side_effect = NewsBusy('research_running')
+        self.reader.runtime.snapshot.return_value = {'state': 'running'}
         self.reader.jobs.latest.return_value = {'job_id': 'a' * 32, 'state': 'running', 'events': []}
         response = self.request('/api/workspace/news/research', 'POST', {'query': 'AI', 'topic': 'coding'})
         self.assertEqual(response[0], 409)
@@ -369,6 +391,33 @@ class ReaderHTTPTests(unittest.TestCase):
         self.assertIn('frame-src \'none\'', self.last_handler.reply.call_args.kwargs['csp'])
         self.reader.sample.assert_not_called()
 
+    def test_settings_envelope_cas_budget_validation_and_ownership(self):
+        from control_everything.workspace.news_runtime import RevisionConflict, NewsUnavailable
+        runtime = self.reader.runtime
+        runtime.envelope.return_value = {'reader_id': 'a', 'settings': {'revision': 2}, 'runtime': {'owner': 'owned'}}
+        runtime.settings = {'revision': 2}
+        runtime.snapshot.return_value = {'owner': 'blocked'}
+        self.assertEqual(self.request('/api/workspace/news/settings')[1]['settings']['revision'], 2)
+        runtime.save_settings.side_effect = RevisionConflict('revision_conflict')
+        self.assertEqual(self.request('/api/workspace/news/settings', 'POST', {})[0], 409)
+        runtime.save_settings.side_effect = ValueError('sources.url')
+        result = self.request('/api/workspace/news/settings', 'POST', {})
+        self.assertEqual(result[0], 400)
+        self.assertEqual(result[1]['field'], 'sources.url')
+        runtime.save_settings.side_effect = NewsUnavailable('owner_elsewhere')
+        self.assertEqual(self.request('/api/workspace/news/settings', 'POST', {})[0], 503)
+        self.assertEqual(self.request('/api/workspace/news/settings', 'POST', b' '*65537)[0], 413)
+
+    def test_studio_csp_only_adds_images_and_private_workers_not_served(self):
+        from control_everything.http import workbench, news_reader
+        self.assertIn("img-src 'self' data: https: blob:", workbench.STUDIO_CSP)
+        self.assertIn("script-src 'self'", workbench.STUDIO_CSP)
+        self.assertIn("connect-src 'self'", workbench.STUDIO_CSP)
+        self.assertNotIn('/news-browser.js', news_reader.ASSETS)
+        self.assertNotIn('/news-public-embed.js', news_reader.ASSETS)
+        self.assertIn('/news-settings.js', news_reader.ASSETS)
+        self.assertIn('/news-surface.js', workbench.STUDIO_RESOURCES)
+
     def test_disconnected_client_is_not_sent_an_error_reply(self):
         self.request('/api/workspace/news/reader', disconnect=True)
         self.last_handler.reply.assert_called_once()
@@ -395,6 +444,8 @@ class ReaderHTTPTests(unittest.TestCase):
             other = NewsReader(Path(temporary) / 'b', Source())
             self.assertEqual(first.sample()['reader_id'], again.sample()['reader_id'])
             self.assertNotEqual(first.reader_id, other.reader_id)
+            for reader in (first, again, other):
+                reader.close()
 
     def test_http_injects_only_server_owned_runtime_at_reader_construction(self):
         server = SimpleNamespace(news_reader=None, _news_reader_lock=threading.Lock(), _news_reader_closed=False,

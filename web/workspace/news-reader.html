@@ -17,9 +17,11 @@
   <script src="/news-section-editor.js" defer></script>
   <script src="/news-sections.js" defer></script>
   <script src="/news-search.js" defer></script>
+  <script src="/news-settings.js" defer></script>
   <script src="/news-reader.js" defer></script>
 </head>
 <body>
+<div class="news-reader-root">
 <main id="news-room">
   <header class="top">
     <div class="brand-line"><span class="brand" aria-hidden="true">CE</span><a class="workspace-name" href="/studio">项目总览</a><span class="slash" aria-hidden="true">/</span><h1>新闻</h1></div>
@@ -45,6 +47,7 @@
     </div>
   </div>
   <p id="storage-warning" role="alert" hidden>当前浏览器无法保存阅读记录；重新打开后可能丢失。</p>
+  <div class="news-source-controls"><button id="source-settings" type="button">来源与更新</button><label><span class="sr-only">来源筛选</span><select id="source-filter"><option value="">全部来源</option></select></label><label><span class="sr-only">分组筛选</span><select id="group-filter"><option value="">全部分组</option></select></label><span id="schedule-status" role="status">正在读取更新设置…</span></div>
   <section id="animation-stage" data-reading-view="list" aria-label="新闻阅读室">
     <canvas id="spider-canvas" aria-hidden="true"></canvas>
     <aside id="directory" aria-label="新闻标题目录">
@@ -145,5 +148,6 @@
   </div>
   <footer class="research-footer"><button id="research-again" type="button" hidden>再次采集</button><button id="research-return" type="button">取消</button></footer>
 </dialog>
+</div>
 </body>
 </html>

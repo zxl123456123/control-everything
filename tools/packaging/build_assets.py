@@ -25,6 +25,7 @@ WEB_ASSETS = (
     "workspace/news.js", "workspace/quota.js",
     "workspace/news-reader.html", "workspace/news-reader.css", "workspace/news-reader.js",
     "workspace/news-sections.css", "workspace/news-sections.js", "workspace/news-section-editor.js", "workspace/news-search.js",
+    "workspace/news-settings.js", "workspace/news-surface.js",
     "workspace/news-spider.js", "workspace/news-browser.js", "workspace/news-public-embed.js",
     "workspace/news-pets.js", "workspace/news-pet-dial.js", "workspace/news-pet-wheel.js", "workspace/news-pet-prefs.js", "workspace/news-pet-director.js", "workspace/news-pet-status.js", "workspace/news-naidragon.js", "workspace/news-tabbycat.js",
     "workspace/mobile-device-entry.js", "workspace/studio-preview.html", "workspace/studio-preview.css", "workspace/studio-preview.js",

@@ -1,3 +1,4 @@
+@scope (.news-reader-root) {
 /*
  * News reader, phase 2: one focus ring, the 专栏 (section) switcher and editor, the add-source picker,
  * the floating search panel and the reading/list actions. Loaded after news-reader.css so these rules win at equal weight.
@@ -5,8 +6,8 @@
  * Focus: ONE token, --focus-ring. A single 2px ring that replaces the border colour or sits inside the box — never an
  * outline pushed outwards next to a border, which is what drew the "double ring" around the capsule search field.
  */
-:root { --focus-ring: var(--ce-ring, #626262); --pop-shadow: 0 18px 48px -12px rgba(0,0,0,.28), 0 2px 6px rgba(0,0,0,.06); }
-:root[data-theme=dark] { --pop-shadow: 0 18px 48px -10px rgba(0,0,0,.7), 0 2px 6px rgba(0,0,0,.4); }
+:scope { --focus-ring: var(--ce-ring, #626262); --pop-shadow: 0 18px 48px -12px rgba(0,0,0,.28), 0 2px 6px rgba(0,0,0,.06); }
+:scope[data-theme=dark] { --pop-shadow: 0 18px 48px -10px rgba(0,0,0,.7), 0 2px 6px rgba(0,0,0,.4); }
 
 /* Bordered fields: the border itself turns into the ring (1px border + 1px inset = 2px, same colour, no gap). */
 #news-room :is(input, select, textarea):focus-visible,
@@ -189,3 +190,5 @@
 
 /* Reading actions on a phone: four equal cells in two rows instead of a ragged 3 + 1 wrap. */
 @media(max-width:520px){#news-room .article-actions{display:grid;grid-template-columns:1fr 1fr;width:100%}#news-room .article-actions>*{justify-content:center;text-align:center}}
+
+}

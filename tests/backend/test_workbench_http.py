@@ -300,7 +300,9 @@ class WorkbenchHTTPTests(unittest.TestCase):
                     directives = {part.strip().split()[0]: part.strip().split()[1:] for part in policy.split(';') if part.strip()}
                     self.assertEqual(directives['script-src'], ["'self'", "'wasm-unsafe-eval'"])
                     self.assertNotIn("'unsafe-eval'", directives['script-src'])
-                    self.assertEqual(policy.replace(" 'wasm-unsafe-eval'", ''), baseline.format(socket=socket))
+                    expected = baseline.format(socket=socket)
+                    expected = expected.replace("img-src 'self' data: blob:", "img-src 'self' data: https: blob:")
+                    self.assertEqual(policy.replace(" 'wasm-unsafe-eval'", ''), expected)
         for route in ('/studio-shell', '/workspace-admin'):
             self.assertEqual(self.request(route)[0], 200)
             expected = STUDIO_CSP.replace("frame-src 'none'", f"frame-src {self.server.origin}/news") if route == '/studio-shell' else STUDIO_CSP

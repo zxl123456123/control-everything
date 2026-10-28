@@ -20,7 +20,7 @@
     test: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 7v5h-5M20 12a8 8 0 1 1-2.3-5.7"/></svg>',
   };
   const make = (tag, className, text) => { const node = document.createElement(tag); if (className) node.className = className; if (text !== undefined) node.textContent = text; return node; };
-  const host = url => { try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return url; } };
+  const urlHost = url => { try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return url; } };
   const words = text => [...new Set(String(text).split(/[,，、;；\n]+/).map(word => word.trim()).filter(Boolean))];
   const copy = section => ({id: section.id || null, name: section.name || '', emoji: section.emoji || '', color: section.color || 'teal', preset: section.preset || null,
     sources: (section.sources || []).map(source => ({id: source.id, url: source.url, name: source.name})), include: [...(section.include || [])], exclude: [...(section.exclude || [])]});
@@ -51,7 +51,9 @@
    * @param {() => Promise<object>} options.restore
    * @param {(id:string) => void} options.select
    */
-  function mount({anchor, request, announce, getState, save, restore, select}) {
+  function mount({host = document.body, anchor, request, announce, getState, save, restore, select}) {
+    const lifecycle = new AbortController();
+    const listen = (target, type, callback, options = {}) => target.addEventListener(type, callback, {...options, signal:lifecycle.signal});
     let root = null, ui = null, draft = null, initial = '', trigger = null, catalog = null, catalogError = '', category = 'all', filter = '', busy = false;
     const health = new Map(); // url -> {state:'ok'|'bad'|'busy', text}
     const narrow = () => window.matchMedia('(max-width: 560px)').matches;
@@ -92,31 +94,31 @@
           <button type="button" class="ghost" data-act="close">取消</button>
           <button type="button" class="primary" data-act="save">保存</button>
         </div>`;
-      document.body.append(root);
+      host.append(root);
       const q = selector => root.querySelector(selector);
       ui = {title: q('#sp-title'), name: q('#sp-name'), emoji: q('#sp-emoji'), nameError: q('#sp-name-error'), swatches: q('.sp-swatches'), sources: q('.sp-sources'), empty: q('.sp-empty'), count: q('.sp-count'),
         sourcesField: q('.sp-sources-field'), wordsField: q('.sp-words-field'), include: q('#sp-include'), exclude: q('#sp-exclude'), presetNote: q('.sp-preset-note'), error: q('.sp-error'),
         picker: q('#sp-picker'), toggle: q('[data-act=toggle-picker]'), chips: q('.sp-chips'), filter: q('#sp-filter'), catalog: q('.sp-catalog'), url: q('#sp-url'), result: q('.sp-result'),
         restore: q('.sp-restore'), earlier: q('[data-act=earlier]'), later: q('[data-act=later]'), del: q('[data-act=delete]'), save: q('[data-act=save]')};
       ui.swatches.append(...COLORS.map(([id, label]) => { const swatch = make('button'); swatch.type = 'button'; swatch.className = 'sp-swatch'; swatch.dataset.color = id; swatch.dataset.value = id; swatch.setAttribute('role', 'radio'); swatch.setAttribute('aria-label', label); return swatch; }));
-      root.addEventListener('click', onClick);
-      root.addEventListener('keydown', onKey);
-      ui.name.addEventListener('input', () => { draft.list[draft.index].name = ui.name.value; ui.nameError.hidden = true; });
-      ui.emoji.addEventListener('input', () => { draft.list[draft.index].emoji = ui.emoji.value.trim(); });
-      ui.include.addEventListener('input', () => { draft.list[draft.index].include = words(ui.include.value); });
-      ui.exclude.addEventListener('input', () => { draft.list[draft.index].exclude = words(ui.exclude.value); });
-      ui.filter.addEventListener('input', () => { filter = ui.filter.value.trim().toLocaleLowerCase(); paintCatalog(); });
-      ui.url.addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); probe(); } });
-      ui.swatches.addEventListener('keydown', event => {
-        const items = [...ui.swatches.children], at = items.indexOf(document.activeElement); const step = {ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1}[event.key];
+      listen(root, 'click', onClick);
+      listen(root, 'keydown', onKey);
+      listen(ui.name, 'input', () => { draft.list[draft.index].name = ui.name.value; ui.nameError.hidden = true; });
+      listen(ui.emoji, 'input', () => { draft.list[draft.index].emoji = ui.emoji.value.trim(); });
+      listen(ui.include, 'input', () => { draft.list[draft.index].include = words(ui.include.value); });
+      listen(ui.exclude, 'input', () => { draft.list[draft.index].exclude = words(ui.exclude.value); });
+      listen(ui.filter, 'input', () => { filter = ui.filter.value.trim().toLocaleLowerCase(); paintCatalog(); });
+      listen(ui.url, 'keydown', event => { if (event.key === 'Enter') { event.preventDefault(); probe(); } });
+      listen(ui.swatches, 'keydown', event => {
+        const items = [...ui.swatches.children], at = items.indexOf((host.getRootNode?.().activeElement || document.activeElement)); const step = {ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1}[event.key];
         if (at < 0 || !step) return; event.preventDefault(); const next = items[(at + step + items.length) % items.length]; next.focus(); setColor(next.dataset.value);
       });
-      document.addEventListener('pointerdown', event => {
-        if (!isOpen() || root.contains(event.target) || trigger?.contains?.(event.target) || event.target.closest?.('.section-bar')) return;
+      listen(document, 'pointerdown', event => {
+        if (!isOpen() || root.contains(event.target) || event.composedPath?.().includes(root) || trigger?.contains?.(event.target) || event.target.closest?.('.section-bar')) return;
         if (dirty()) { root.animate?.([{transform: 'translateX(0)'}, {transform: 'translateX(-5px)'}, {transform: 'translateX(5px)'}, {transform: 'translateX(0)'}], {duration: 220}); return; }
         close(false);
       }, true);
-      window.addEventListener('resize', () => { if (isOpen()) place(); });
+      listen(window, 'resize', () => { if (isOpen()) place(); });
     }
 
     const isOpen = () => Boolean(root && root.dataset.open === 'true');
@@ -144,7 +146,7 @@
       const list = state.sections.map(copy); let index = list.findIndex(section => section.id === id);
       if (mode === 'new' || index < 0) { if (list.length >= 12) { announce('专栏最多 12 个，请先删除一个。'); return; } list.push({id: null, name: '', emoji: '', color: COLORS[list.length % COLORS.length][0], preset: null, sources: [], include: [], exclude: []}); index = list.length - 1; mode = 'new'; }
       draft = {mode, list, index}; initial = JSON.stringify(list.map(payloadOf));
-      trigger = from || document.activeElement; busy = false;
+      trigger = from || (host.getRootNode?.().activeElement || document.activeElement); busy = false;
       ui.toggle.setAttribute('aria-expanded', 'false'); ui.picker.hidden = true; ui.result.hidden = true; ui.url.value = ''; ui.error.hidden = true; ui.nameError.hidden = true;
       paint(); place();
       root.inert = false; root.dataset.open = 'true'; trigger?.setAttribute?.('aria-expanded', 'true');
@@ -183,7 +185,7 @@
     function paintSources() {
       const section = current();
       ui.sources.replaceChildren(...section.sources.map(source => {
-        const row = make('li', 'sp-source'), label = make('span'); label.append(make('span', 'name', source.name), make('span', 'host', host(source.url)));
+        const row = make('li', 'sp-source'), label = make('span'); label.append(make('span', 'name', source.name), make('span', 'host', urlHost(source.url)));
         const test = make('button', 'ghost icon-only'); test.type = 'button'; test.dataset.act = 'test'; test.dataset.url = source.url; test.setAttribute('aria-label', `检测 ${source.name}`); test.title = '检测'; test.innerHTML = ICON.test;
         const remove = make('button', 'ghost icon-only'); remove.type = 'button'; remove.dataset.act = 'remove'; remove.dataset.url = source.url; remove.setAttribute('aria-label', `移除 ${source.name}`); remove.title = '移除'; remove.innerHTML = ICON.close;
         row.append(dot(source.url), label, test, remove); return row;
@@ -222,7 +224,7 @@
     async function check(url, name) {
       health.set(url, {state: 'busy', text: '检测中…'}); repaintHealth();
       const result = await testSource(url);
-      health.set(url, result.ok ? {state: 'ok', text: `可访问 · ${result.title || name || host(url)}${result.latest ? ' · 最新：' + result.latest.title : ''}`} : {state: 'bad', text: `${result.error.message}${result.error.hint ? '：' + result.error.hint : ''}`});
+      health.set(url, result.ok ? {state: 'ok', text: `可访问 · ${result.title || name || urlHost(url)}${result.latest ? ' · 最新：' + result.latest.title : ''}`} : {state: 'bad', text: `${result.error.message}${result.error.hint ? '：' + result.error.hint : ''}`});
       repaintHealth(); return result;
     }
     function repaintHealth() {
@@ -251,8 +253,8 @@
       const box = ui.result; box.hidden = false; box.dataset.state = value.state; box.replaceChildren();
       if (value.state === 'busy') { box.append(make('strong', '', '正在检测…'), make('span', 'latest', '最多需要十几秒。')); return; }
       if (value.state === 'bad') { box.append(make('strong', '', value.error.message), make('span', 'fix', value.error.hint || '')); return; }
-      const {result} = value, add = make('button', 'outline', '添加到专栏'); add.type = 'button'; add.dataset.act = 'add-probed'; add.dataset.url = result.url; add.dataset.name = result.title || host(result.url); add.style.marginTop = '8px';
-      box.append(make('strong', '', `${result.title || host(result.url)} · ${result.format === 'atom' ? 'Atom' : 'RSS'} · ${result.count} 篇`),
+      const {result} = value, add = make('button', 'outline', '添加到专栏'); add.type = 'button'; add.dataset.act = 'add-probed'; add.dataset.url = result.url; add.dataset.name = result.title || urlHost(result.url); add.style.marginTop = '8px';
+      box.append(make('strong', '', `${result.title || urlHost(result.url)} · ${result.format === 'atom' ? 'Atom' : 'RSS'} · ${result.count} 篇`),
         make('span', 'latest', result.latest ? `最新：${result.latest.title}${result.latest.published_at ? '（' + ago(result.latest.published_at) + '）' : ''}` : '订阅里暂时没有文章。'));
       if (result.discovered) box.append(make('span', 'fix', `已从网页自动找到订阅地址：${result.url}`));
       if (result.china_warning) box.append(make('span', 'warn', result.china_warning));
@@ -313,7 +315,7 @@
       if (event.key === 'Enter' && event.target.matches('#sp-name, #sp-emoji, #sp-include, #sp-exclude')) { event.preventDefault(); submit(); }
     }
 
-    return {open, close, isOpen, refresh: () => { if (isOpen()) repaintHealth(); }};
+    return {destroy(){lifecycle.abort();close();root?.remove();},open, close, isOpen, refresh: () => { if (isOpen()) repaintHealth(); }};
   }
 
   window.NewsSectionEditor = {mount, normaliseUrl};

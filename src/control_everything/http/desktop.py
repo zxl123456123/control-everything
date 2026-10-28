@@ -139,9 +139,8 @@ def build_desktop(product_root, data_dir=None, port=8766):
         if relative not in names and not any(item.startswith(relative + '/') for item in names):
             raise ValueError('desktop_runtime_unlisted')
         return candidate
-    server = build_profile_server(data_dir, port)
+    server = build_profile_server(data_dir, port, news_runtime=_news_runtime(root, config['engine_root'], document['files']))
     try:
-        server.news_runtime = _news_runtime(root, config['engine_root'], document['files'])
         runtime = WorkbenchRuntime(RuntimeConfig(path('engine_root'), path('build_run'),
                                                  server.profile.data_dir / 'workbench', path('git'), ()))
         server.workbench_assets = WorkbenchAssets(path('engine_root') / 'out/web', path('build_run') / 'web-assets.json')

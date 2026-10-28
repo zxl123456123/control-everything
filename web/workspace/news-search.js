@@ -27,6 +27,8 @@
    * @returns {{refresh:() => void, close:() => void, isOpen:() => boolean, recent:() => string[]}}
    */
   function mount({input, wrap, state, setRange, setSource, clear, store}) {
+    const lifecycle = new AbortController();
+    const listen = (target, type, callback, options = {}) => target.addEventListener(type, callback, {...options, signal:lifecycle.signal});
     const panel = make('div'); panel.id = 'search-panel'; panel.setAttribute('role', 'group'); panel.setAttribute('aria-label', '搜索选项'); panel.dataset.open = 'false'; panel.inert = true;
     wrap.append(panel);
     input.setAttribute('role', 'combobox'); input.setAttribute('aria-haspopup', 'dialog'); input.setAttribute('aria-expanded', 'false'); input.setAttribute('aria-controls', panel.id); input.setAttribute('autocomplete', 'off');
@@ -44,7 +46,7 @@
     }
     function paint() {
       const s = state(); recents = store.read();
-      const keep = document.activeElement && panel.contains(document.activeElement) ? document.activeElement.dataset.key : null;
+      const keep = (wrap.getRootNode?.().activeElement || document.activeElement) && panel.contains((wrap.getRootNode?.().activeElement || document.activeElement)) ? (wrap.getRootNode?.().activeElement || document.activeElement).dataset.key : null;
       const count = make('div', 'sr-count'), total = make('span'); total.setAttribute('aria-live', 'polite'); total.append(s.query ? '找到 ' : '当前列表 ', Object.assign(make('strong'), {textContent: String(s.count)}), ' 条');
       count.append(total);
       if (s.query || s.source) { const reset = make('button', 'ghost', '清除'); reset.type = 'button'; reset.dataset.key = 'reset'; count.append(reset); }
@@ -83,23 +85,23 @@
     }
     const items = () => [...panel.querySelectorAll('button:not(:disabled)')];
 
-    input.addEventListener('pointerdown', () => open());
-    input.addEventListener('click', () => open());
+    listen(input, 'pointerdown', () => open());
+    listen(input, 'click', () => open());
     // Typing hands the screen back to the results: the list header carries the live count, and a click or ↓ brings the panel back.
-    input.addEventListener('input', () => close());
-    input.addEventListener('keydown', event => {
+    listen(input, 'input', () => close());
+    listen(input, 'keydown', event => {
       if (event.key === 'Escape' && isOpen()) { event.preventDefault(); event.stopPropagation(); close(); }
       else if (event.key === 'Enter') { event.preventDefault(); remember(input.value); close(); }
       else if (event.key === 'ArrowDown') { event.preventDefault(); if (!isOpen()) open(); items()[0]?.focus(); }
     });
-    panel.addEventListener('keydown', event => {
-      const rows = items(), at = rows.indexOf(document.activeElement);
+    listen(panel, 'keydown', event => {
+      const rows = items(), at = rows.indexOf((wrap.getRootNode?.().activeElement || document.activeElement));
       if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); close(true); }
       else if (event.key === 'ArrowDown' && at >= 0) { event.preventDefault(); rows[Math.min(at + 1, rows.length - 1)].focus(); }
       else if (event.key === 'ArrowUp' && at >= 0) { event.preventDefault(); if (at === 0) input.focus(); else rows[at - 1].focus(); }
     });
-    panel.addEventListener('mousedown', event => event.preventDefault()); // clicking a chip must not move focus out of the field
-    panel.addEventListener('click', event => {
+    listen(panel, 'mousedown', event => event.preventDefault()); // clicking a chip must not move focus out of the field
+    listen(panel, 'click', event => {
       const button = event.target.closest('button'); if (!button) return; const key = button.dataset.key || '';
       if (key === 'reset') { setSource(null); clear(); }
       else if (key === 'wipe') { store.write([]); recents = []; paint(); }
@@ -108,10 +110,10 @@
       else if (key.startsWith('del:')) { store.write(store.read().filter(item => item !== button.dataset.value)); paint(); }
       else if (key.startsWith('recent:')) { input.value = button.dataset.value; input.dispatchEvent(new Event('input', {bubbles: true})); remember(input.value); close(true); }
     });
-    wrap.addEventListener('focusout', event => { if (!event.relatedTarget || !wrap.contains(event.relatedTarget)) close(); });
-    document.addEventListener('pointerdown', event => { if (isOpen() && !wrap.contains(event.target)) close(); }, true);
+    listen(wrap, 'focusout', event => { if (!event.relatedTarget || !wrap.contains(event.relatedTarget)) close(); });
+    listen(document, 'pointerdown', event => { if (isOpen() && !wrap.contains(event.target) && !event.composedPath?.().includes(wrap)) close(); }, true);
 
-    return {refresh: () => { if (isOpen()) paint(); }, close, isOpen, recent: () => store.read()};
+    return {destroy(){lifecycle.abort();close();panel.remove();},refresh: () => { if (isOpen()) paint(); }, close, isOpen, recent: () => store.read()};
   }
 
   window.NewsSearch = {mount};

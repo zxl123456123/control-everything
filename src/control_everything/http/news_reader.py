@@ -7,6 +7,7 @@ from control_everything.paths import web_root
 from control_everything.workspace import news_catalog, news_feeds
 from control_everything.workspace.news_reader import NewsReader
 from control_everything.workspace.news_sections import SectionError
+from control_everything.workspace.news_runtime import NewsBusy, NewsUnavailable, RevisionConflict
 
 PREFIX = '/api/workspace/news/'
 ASSETS = {'/news': ('news-reader.html', 'text/html; charset=utf-8'),
@@ -25,6 +26,7 @@ ASSETS = {'/news': ('news-reader.html', 'text/html; charset=utf-8'),
           '/news-pet-status.js': ('news-pet-status.js', 'text/javascript; charset=utf-8'),
           '/news-naidragon.js': ('news-naidragon.js', 'text/javascript; charset=utf-8'),
           '/news-tabbycat.js': ('news-tabbycat.js', 'text/javascript; charset=utf-8')}
+ASSETS['/news-settings.js'] = ('news-settings.js', 'text/javascript; charset=utf-8')
 CSP = ("default-src 'self'; img-src 'self' https: blob:; style-src 'self' 'unsafe-inline'; "
        "script-src 'self'; connect-src 'self'; object-src 'none'; frame-src 'none'; "
        "frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
@@ -56,6 +58,7 @@ def _reader(server):
         if server.news_reader is None:
             server.news_reader = NewsReader(server.news_reader_root, server.news_source,
                                             runtime=getattr(server, 'news_runtime', None))
+            server.news_reader.runtime.start()
         return server.news_reader
 
 
@@ -81,11 +84,14 @@ def handle_get(handler, path):
                           csp=CSP.replace("frame-ancestors 'none'", "frame-ancestors 'self'") if embedded else CSP)
         return True
     route = path.path.removeprefix(PREFIX)
-    if not path.path.startswith(PREFIX) or route not in {'reader', 'article', 'research', 'research/latest', 'research-frame', 'catalog'}:
+    if not path.path.startswith(PREFIX) or route not in {'settings', 'reader', 'article', 'research', 'research/latest', 'research-frame', 'catalog'}:
         return False
     try:
         reader = _reader(handler.server)
-        if route == 'reader':
+        if route == 'settings':
+            _params(path.query, ())
+            handler.reply(200, reader.runtime.envelope())
+        elif route == 'reader':
             _params(path.query, ())
             handler.reply(200, reader.sample())
         elif route == 'catalog':
@@ -124,15 +130,17 @@ def handle_get(handler, path):
 
 def handle_post(handler, path):
     route = path.path.removeprefix(PREFIX)
-    if not path.path.startswith(PREFIX) or route not in {'reader/refresh', 'research', 'translate', 'sections', 'source-test'}:
+    if not path.path.startswith(PREFIX) or route not in {'settings', 'reader/refresh', 'research', 'translate', 'sections', 'source-test'}:
         return False
     if path.query:
         handler.reject(400, 'invalid_query')
         return True
-    body = handler.read_json_body(max_bytes={'translate': 150000, 'sections': 60000}.get(route, 2048), strict=True)
+    body = handler.read_json_body(max_bytes={'translate': 150000, 'sections': 60000, 'settings': 65536}.get(route, 2048), strict=True)
     try:
         reader = _reader(handler.server)
-        if route == 'reader/refresh':
+        if route == 'settings':
+            handler.reply(200, reader.runtime.save_settings(body))
+        elif route == 'reader/refresh':
             if body != {}:
                 raise ValueError('invalid_body')
             handler.reply(200, reader.sample(refresh=True))
@@ -149,7 +157,7 @@ def handle_post(handler, path):
             if (not isinstance(body, dict) or set(body) not in ({'query', 'topic'}, {'query', 'topic', 'capture_frames'})
                     or type(body.get('capture_frames', False)) is not bool):
                 raise ValueError('invalid_body')
-            handler.reply(202, reader.jobs.begin(body['query'], body['topic'], capture_frames=body.get('capture_frames', False)))
+            handler.reply(202, reader.runtime.request_research(body['query'], body['topic'], capture_frames=body.get('capture_frames', False)))
         else:
             if (not isinstance(body, dict) or set(body) != {'texts', 'source', 'target'}
                     or body['source'] != 'en' or body['target'] != 'zh'
@@ -163,8 +171,18 @@ def handle_post(handler, path):
         pass
     except SectionError as error:
         handler.reply(400, {'error': error.code})
-    except ValueError:
-        handler.reject(400, 'invalid_request')
+    except RevisionConflict:
+        handler.reply(409, {'error': 'revision_conflict', 'revision': reader.runtime.settings['revision'], **reader.runtime.envelope()})
+    except NewsBusy:
+        handler.reply(409, {**(reader.jobs.latest() or {}), 'error': 'worker_busy', 'runtime': reader.runtime.snapshot()})
+    except NewsUnavailable as error:
+        handler.reply(503, {'error': str(error), 'runtime': reader.runtime.snapshot()})
+    except ValueError as error:
+        if route == 'settings':
+            field = str(error)
+            handler.reply(400, {'error': 'invalid_request', 'field': field, 'message': '设置无效，请检查：' + field})
+        else:
+            handler.reject(400, 'invalid_request')
     except RuntimeError:
         if route == 'research':
             handler.reply(409, reader.jobs.latest())
