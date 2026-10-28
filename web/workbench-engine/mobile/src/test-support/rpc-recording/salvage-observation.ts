@@ -33,7 +33,7 @@ export function bindSalvageObserver(effect: (name: string, value: unknown) => vo
  * still moves the golden by leaving.
  */
 export function observeSalvagedReads(file: string, module: Record<string, unknown>): void {
-  if (!file.endsWith(SALVAGE_REPORTING_MODULE)) {
+  if (!file.replaceAll('\\', '/').endsWith(SALVAGE_REPORTING_MODULE)) {
     return
   }
   const classify = module[CLASSIFY]

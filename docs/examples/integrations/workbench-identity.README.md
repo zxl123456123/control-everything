@@ -24,12 +24,23 @@ python tools/scripts/keycloak_add_mobile_client.py --dry-run   # 只读：对比
 python tools/scripts/keycloak_add_mobile_client.py             # 实际写入
 ```
 
+已有管理服务账号时，用下面这组环境变量替代 `KEYCLOAK_ADMIN_USER/PASSWORD`，通过标准 `client_credentials` 认证，不需要重置管理员密码：
+
+```bash
+unset KEYCLOAK_ADMIN_USER KEYCLOAK_ADMIN_PASSWORD
+export KEYCLOAK_ADMIN_CLIENT_ID=<已有管理服务客户端 ID>
+export KEYCLOAK_ADMIN_CLIENT_SECRET=<该客户端秘密>       # 只从环境读取，不接受命令行参数
+python tools/scripts/keycloak_add_mobile_client.py --dry-run
+```
+
+两种认证方式必须二选一且成对设置；混用或只提供一半会在联网前报错，`--dry-run` 也不例外。管理账号所属 realm 默认仍为 `master`，可用 `KEYCLOAK_ADMIN_REALM` 指定；它与 `KEYCLOAK_REALM` 目标 realm 独立。服务账号必须已有目标 realm 的相应客户端管理权限，脚本不创建管理员、不提权，也不接受外部 access token 直接注入。实际秘密应由受控环境注入，不将展开值写入命令历史或日志；服务账号机制见 [Keycloak 官方说明](https://www.keycloak.org/docs/latest/server_admin/index.html#_service_accounts)。
+
 - 只写三类对象：`workbench-mobile` 客户端本身、该客户端上的 `hub-audience` 映射器（audience 为 `workbench-hub`，只进 access token），以及该客户端的默认 `email` client scope（使 access token 与 userinfo 带邮箱）。realm 设置、用户、其它客户端一律不改；realm 只读取。
 - 客户端：公共客户端，仅标准流程；关闭隐式流程、直接密码授权和 service account；PKCE 固定 S256；重定向与退出后重定向都只有 `<scheme>:/oauth/callback`。已有同名客户端时只覆盖这些受管字段（`redirectUris` 按声明式精确替换，会清除多余的地址），其它字段和属性保持原样。已有同名机密客户端默认拒绝改为公共，须显式加 `--allow-convert-confidential`。
 - 幂等：再次运行没有差异就不写入任何内容。`--dry-run` 带管理员凭据时只发起读请求；未设置管理员凭据时完全不联网，只打印目标客户端与映射器。
 - 刷新令牌轮换是 realm 级设置（Realm settings → Tokens → Revoke Refresh Token，Max Reuse 为 0），脚本不会改 realm，只在输出的 `warnings` 中提示未开启，须由管理员自行确认。同样会提示 realm 中缺少 `workbench-hub` 客户端。
-- 管理员密码走 token 请求，因此 URL 只接受 `https`（本机回环地址除外）。输出与错误信息不含密码、令牌或服务器响应体中的敏感字段。
-- 该脚本尚未对任何真实 Keycloak 运行；单元测试使用模拟的 Admin API。首次对生产 realm 使用前，先 `--dry-run` 核对步骤，并备份 realm。
+- 管理员密码或服务账号秘密走 token 请求，因此 URL 只接受 `https`（本机回环地址除外）。输出与错误信息不含密码、客户端秘密、令牌或服务器响应体；失败仅报告请求与 HTTP 状态。
+- 单元测试使用模拟的 Admin API；生产验收仍须先备份并运行 `--dry-run`，核对只涉及预期客户端，再执行写入。写入后再次试运行应没有待执行步骤，另外验证真实授权码登录、刷新及退出。
 
 发布新版桌面包时，须同步登记资源：普通资源取同版 `gateway.WEB_ASSETS`、`workbench.STUDIO_RESOURCES`、`news_reader.ASSETS` 中的非 HTML 项；原生资源取完整包 `workbench-build/web-assets.json` 的非 HTML `files`，路径加 `/workbench/` 前缀。只合并仍受支持版本的精确路径，保留旧版条目，不加入 HTML、API 或通配路径。更新私有配置并重启 hub 后，从远程浏览器实测项目与终端。漏登记会使初始脚本返回 `403 context_required`，出现白屏或资源加载失败；仅重新构建桌面包不能替代这一步。
 

@@ -17225,11 +17225,101 @@
       "reason": "preserved_internal_source_layout"
     },
     {
+      "path": "mobile/rpc-foundation/goldens/matrix-pairing.pre-profile-direct-status.json",
+      "source_path": "mobile/rpc-foundation/goldens/matrix-pairing.pre-profile-direct-status.json",
+      "git_blob": "2d3bc939299846004b38e69827966e942b03b405",
+      "sha256": "bcf25130c0edd941c4e6d5a800a2d5083fa9a942c32402595a54d2e9f8f9a4ac",
+      "bytes": 20830,
+      "kind": "test",
+      "reason": "preserved_internal_source_layout"
+    },
+    {
+      "path": "mobile/rpc-foundation/goldens/matrix-pairing.pre-profile-pairing.getendpoints-1.json",
+      "source_path": "mobile/rpc-foundation/goldens/matrix-pairing.pre-profile-pairing.getendpoints-1.json",
+      "git_blob": "8b672e93d5591180c20f1b43ba15a685726536ef",
+      "sha256": "5d11d6a4513544895c870c6584d16ddecefee05e6545f308b21eecdc61d8d654",
+      "bytes": 22825,
+      "kind": "test",
+      "reason": "preserved_internal_source_layout"
+    },
+    {
+      "path": "mobile/rpc-foundation/goldens/matrix-pairing.pre-profile-pairing.provisionrelay-1.json",
+      "source_path": "mobile/rpc-foundation/goldens/matrix-pairing.pre-profile-pairing.provisionrelay-1.json",
+      "git_blob": "92c358802d5e9f174936228e9e07d9c140adcc9b",
+      "sha256": "14ba41dec3c922250435e751280013830620b9e8405d23b524a142d2d5511fc3",
+      "bytes": 23473,
+      "kind": "test",
+      "reason": "preserved_internal_source_layout"
+    },
+    {
+      "path": "mobile/rpc-foundation/goldens/matrix-pairing.pre-profile-relay-status.json",
+      "source_path": "mobile/rpc-foundation/goldens/matrix-pairing.pre-profile-relay-status.json",
+      "git_blob": "41857ce3caec22c592ff360fdedabb1933e4f7dd",
+      "sha256": "cce30e2d8740f9df88a27abcbc295e8f0a03899ff8e2737b41b8cc72838a8f78",
+      "bytes": 20482,
+      "kind": "test",
+      "reason": "preserved_internal_source_layout"
+    },
+    {
       "path": "mobile/rpc-foundation/goldens/matrix-project-explicit-false-github.project.updateissuebyslug-1.json",
       "source_path": "mobile/rpc-foundation/goldens/matrix-project-explicit-false-github.project.updateissuebyslug-1.json",
       "git_blob": "e75b3703758ebd7971127cd858f366414c704180",
       "sha256": "554f47d3ea923991a2a0c9c28c17dedb519de5c3606e5f5a2b2959eade08f10d",
       "bytes": 24516,
+      "kind": "test",
+      "reason": "preserved_internal_source_layout"
+    },
+    {
+      "path": "mobile/rpc-foundation/goldens/matrix-relay.credential-rotation-pairing.getendpoints-1.json",
+      "source_path": "mobile/rpc-foundation/goldens/matrix-relay.credential-rotation-pairing.getendpoints-1.json",
+      "git_blob": "3d5eb2aef4bff8ebeedc636d8ce1e5c1202b04ae",
+      "sha256": "ca1f7446d17c1ec0a09c601f9b28930f2ac61fee7d7e7f9fdf5958c8c02b5797",
+      "bytes": 19882,
+      "kind": "test",
+      "reason": "preserved_internal_source_layout"
+    },
+    {
+      "path": "mobile/rpc-foundation/goldens/matrix-relay.credential-rotation-pairing.getendpoints-2.json",
+      "source_path": "mobile/rpc-foundation/goldens/matrix-relay.credential-rotation-pairing.getendpoints-2.json",
+      "git_blob": "b6d1b61c6a494815f9fc5e9f1771d46b471cce81",
+      "sha256": "c168f95b130ef14e3d7160be4b95abf35da27fba03a0eef1873166d30883dce0",
+      "bytes": 20522,
+      "kind": "test",
+      "reason": "preserved_internal_source_layout"
+    },
+    {
+      "path": "mobile/rpc-foundation/goldens/matrix-relay.credential-rotation-pairing.provisionrelay-1.json",
+      "source_path": "mobile/rpc-foundation/goldens/matrix-relay.credential-rotation-pairing.provisionrelay-1.json",
+      "git_blob": "8706ba52b2220c52811b4d865ef6e4d94d8c7b7a",
+      "sha256": "649d4c3601a854d79c87be573075c00e225011d1c360b98de962ca0a7306c22a",
+      "bytes": 21808,
+      "kind": "test",
+      "reason": "preserved_internal_source_layout"
+    },
+    {
+      "path": "mobile/rpc-foundation/goldens/matrix-relay.direct-upgrade-pairing.getendpoints-1.json",
+      "source_path": "mobile/rpc-foundation/goldens/matrix-relay.direct-upgrade-pairing.getendpoints-1.json",
+      "git_blob": "3ae62c75e1df0d521243c55f58a84175c7870a62",
+      "sha256": "9250575bf28e724d15147665d6507c69335ae4415db1eca8e5a01aad11f838fb",
+      "bytes": 19011,
+      "kind": "test",
+      "reason": "preserved_internal_source_layout"
+    },
+    {
+      "path": "mobile/rpc-foundation/goldens/matrix-relay.direct-upgrade-pairing.getendpoints-2.json",
+      "source_path": "mobile/rpc-foundation/goldens/matrix-relay.direct-upgrade-pairing.getendpoints-2.json",
+      "git_blob": "225cfb97de25fb8612cdbf06d79d5e60dc97b5e8",
+      "sha256": "f0c7ec0f309ee7bfae1d2c2a7b793a6f516b4a1ebb879711b07633940d76dfae",
+      "bytes": 19669,
+      "kind": "test",
+      "reason": "preserved_internal_source_layout"
+    },
+    {
+      "path": "mobile/rpc-foundation/goldens/matrix-relay.direct-upgrade-pairing.provisionrelay-1.json",
+      "source_path": "mobile/rpc-foundation/goldens/matrix-relay.direct-upgrade-pairing.provisionrelay-1.json",
+      "git_blob": "fd1c999a6fd2ed75440284201a9adaf976c16309",
+      "sha256": "4854025af2d34137bd0c6768a8e1598e5257ec455ddf108a7f50e2ef2e53e790",
+      "bytes": 20117,
       "kind": "test",
       "reason": "preserved_internal_source_layout"
     },
@@ -19637,6 +19727,24 @@
       "reason": "preserved_internal_source_layout"
     },
     {
+      "path": "mobile/rpc-foundation/goldens/pairing-pre-profile-direct-wins-and-provisions.json",
+      "source_path": "mobile/rpc-foundation/goldens/pairing-pre-profile-direct-wins-and-provisions.json",
+      "git_blob": "4f4eeef3c4b7f60df175694f9dc34f0b719e1f9c",
+      "sha256": "ac95918cd662e12ded40dab5e8c80e0dab9f419b5fd7d6401c7d9042a556f049",
+      "bytes": 6721,
+      "kind": "test",
+      "reason": "preserved_internal_source_layout"
+    },
+    {
+      "path": "mobile/rpc-foundation/goldens/pairing-pre-profile-provision-unsupported-saves-direct-host.json",
+      "source_path": "mobile/rpc-foundation/goldens/pairing-pre-profile-provision-unsupported-saves-direct-host.json",
+      "git_blob": "972f3317c6373a7e6deb258794b9351fdb6f99bf",
+      "sha256": "2209dfae3c4f8f2cb1486fe9ec562375894032eae72b12ae2c6d80ae7e26e298",
+      "bytes": 4725,
+      "kind": "test",
+      "reason": "preserved_internal_source_layout"
+    },
+    {
       "path": "mobile/rpc-foundation/goldens/pairing-pre-profile-times-out.json",
       "source_path": "mobile/rpc-foundation/goldens/pairing-pre-profile-times-out.json",
       "git_blob": "5493980f25a3aa2ac3ffce5a6f985c8943197699",
@@ -19871,6 +19979,15 @@
       "reason": "preserved_internal_source_layout"
     },
     {
+      "path": "mobile/rpc-foundation/goldens/relay-direct-upgrade-commits.json",
+      "source_path": "mobile/rpc-foundation/goldens/relay-direct-upgrade-commits.json",
+      "git_blob": "ed4dbd617e4c56c86ee8ef4d6ac19669efdb7c91",
+      "sha256": "640654bf99b970e3a5f48762f237d4fb8712ea3aa4dade8968b1ba3f9f56d181",
+      "bytes": 6097,
+      "kind": "test",
+      "reason": "preserved_internal_source_layout"
+    },
+    {
       "path": "mobile/rpc-foundation/goldens/relay-direct-upgrade-unsupported-host-declines.json",
       "source_path": "mobile/rpc-foundation/goldens/relay-direct-upgrade-unsupported-host-declines.json",
       "git_blob": "9a69be444e6359cde1142ac2e83a27d0ef08e59d",
@@ -19880,11 +19997,29 @@
       "reason": "preserved_internal_source_layout"
     },
     {
+      "path": "mobile/rpc-foundation/goldens/relay-pairing-recovery-invite-authorizes.json",
+      "source_path": "mobile/rpc-foundation/goldens/relay-pairing-recovery-invite-authorizes.json",
+      "git_blob": "59b42b7f25f1935f468ed3b22055f493eca4cf94",
+      "sha256": "912c2754f5c48ae3e379bb936eac33a40b3c21f92b40e79c886a328ee778da3f",
+      "bytes": 7442,
+      "kind": "test",
+      "reason": "preserved_internal_source_layout"
+    },
+    {
       "path": "mobile/rpc-foundation/goldens/relay-pairing-recovery-resume-committed.json",
       "source_path": "mobile/rpc-foundation/goldens/relay-pairing-recovery-resume-committed.json",
       "git_blob": "399e8582ffd849184631754521253dbd2b920061",
       "sha256": "304ff72f9f9525f3a02c5566d9e71159fd564cf572798ee72bcaff54fbc7a2cc",
       "bytes": 3217,
+      "kind": "test",
+      "reason": "preserved_internal_source_layout"
+    },
+    {
+      "path": "mobile/rpc-foundation/goldens/relay-rotation-installs-and-commits.json",
+      "source_path": "mobile/rpc-foundation/goldens/relay-rotation-installs-and-commits.json",
+      "git_blob": "b37e1d21bdc65ae01e4671653f3fc92513d09fba",
+      "sha256": "162819362ce46ec3587b368dfea247e517781e7ed9ba1f2d8f2ced05caf372b5",
+      "bytes": 6627,
       "kind": "test",
       "reason": "preserved_internal_source_layout"
     },
@@ -22270,6 +22405,15 @@
       "git_blob": "081ec7d07cf22fe890927d23827275646cac22e1",
       "sha256": "841965c893d4b12cc5a2ae30bb8aa9049ef760ae8bf10f827e33159b903809c4",
       "bytes": 4754,
+      "kind": "source",
+      "reason": "preserved_internal_source_layout"
+    },
+    {
+      "path": "mobile/rpc-foundation/pilot-scenarios.json",
+      "source_path": "mobile/rpc-foundation/pilot-scenarios.json",
+      "git_blob": "6236d137424d3453a666e58960881f1690b90613",
+      "sha256": "cc06139f5622f0aaa47362d90b0b49deeb61c645d306445f28682af754770344",
+      "bytes": 593725,
       "kind": "source",
       "reason": "preserved_internal_source_layout"
     },
@@ -44450,6 +44594,15 @@
       "reason": "preserved_internal_source_layout"
     },
     {
+      "path": "mobile/src/test-support/rpc-recording/relay-pairing-fixtures.ts",
+      "source_path": "mobile/src/test-support/rpc-recording/relay-pairing-fixtures.ts",
+      "git_blob": "8514275af1f49b6926dd67563f63a4798fc9e7c1",
+      "sha256": "6183db9bd480a2bbd16525ef10e08bb341ac8a6ee06b8109e3d286f83bc3b563",
+      "bytes": 3751,
+      "kind": "source",
+      "reason": "preserved_internal_source_layout"
+    },
+    {
       "path": "mobile/src/test-support/rpc-recording/reply-matrix-normal-result.ts",
       "source_path": "mobile/src/test-support/rpc-recording/reply-matrix-normal-result.ts",
       "git_blob": "61ce0e26bb162ae5bdab7ce6e1bc82897788467f",
@@ -45697,6 +45850,15 @@
       "git_blob": "e4294f56fcdc1154f14cda14b3057f59e0b2bca5",
       "sha256": "74df68d58a838fd16dd2ce53485d4eb974fb049c89a6e12fccd4b6352863b35b",
       "bytes": 3368,
+      "kind": "source",
+      "reason": "preserved_internal_source_layout"
+    },
+    {
+      "path": "mobile/src/transport/mobile-endpoint-supervisor-test-fakes.ts",
+      "source_path": "mobile/src/transport/mobile-endpoint-supervisor-test-fakes.ts",
+      "git_blob": "85e320618ce2c13d192ea91c59bee0e2620f8a04",
+      "sha256": "de2770424c588afd4620c12094320dcc599a3019e9ba7fbaf33c97be94921a4f",
+      "bytes": 8622,
       "kind": "source",
       "reason": "preserved_internal_source_layout"
     },
@@ -296837,6 +296999,15 @@
       "reason": "preserved_internal_source_layout"
     },
     {
+      "path": "src/shared/mobile-e2ee-legacy-fixtures.ts",
+      "source_path": "src/shared/mobile-e2ee-legacy-fixtures.ts",
+      "git_blob": "0b8b58e0149852796f32bd34735fb1edcfb8399e",
+      "sha256": "360ee9cdaf451a6d60ff1b44e3a895720fe8bd2ed8e34c5dd17c71223136ccd5",
+      "bytes": 903,
+      "kind": "source",
+      "reason": "preserved_internal_source_layout"
+    },
+    {
       "path": "src/shared/mobile-e2ee-v2-contract.test.ts",
       "source_path": "src/shared/mobile-e2ee-v2-contract.test.ts",
       "git_blob": "64d461ca56b61f38d3a9dec6f65d2a3313b12b69",
@@ -296851,6 +297022,15 @@
       "git_blob": "907e22d3f4d3ac7b1863c31f2c641645249f3124",
       "sha256": "038fb782cd7eb86de5b7e5709467fbc7d8a1b731d748a45bbbabeef9d700f534",
       "bytes": 8891,
+      "kind": "source",
+      "reason": "preserved_internal_source_layout"
+    },
+    {
+      "path": "src/shared/mobile-e2ee-v2-fixtures.ts",
+      "source_path": "src/shared/mobile-e2ee-v2-fixtures.ts",
+      "git_blob": "f1806223ef8130b15d2d91f0552e9054c4d5360b",
+      "sha256": "fee99528f1cab8457ecfa7f983137c19d9e6e365180aad1dbd5b073814364ce5",
+      "bytes": 1563,
       "kind": "source",
       "reason": "preserved_internal_source_layout"
     },
@@ -297049,6 +297229,15 @@
       "git_blob": "431990a79bff2b0525d5083f317ee34e9bf159b2",
       "sha256": "935a0d36c0c2bb23c9af6ab1aa4302023328e0f746ea1f03d83c9186aa2368cf",
       "bytes": 1094,
+      "kind": "source",
+      "reason": "preserved_internal_source_layout"
+    },
+    {
+      "path": "src/shared/mobile-relay-pairing-fixtures.ts",
+      "source_path": "src/shared/mobile-relay-pairing-fixtures.ts",
+      "git_blob": "2c1762fc6f03a4c835f8e37c0846bb6d084787fb",
+      "sha256": "8bc0304cd786c336a572e9f77287a237582a5b0d9dfc85a5cc6f68929d96c6f8",
+      "bytes": 4399,
       "kind": "source",
       "reason": "preserved_internal_source_layout"
     },
@@ -302305,6 +302494,15 @@
       "git_blob": "ca2213953bd724623fd6ce8cb9cadf04cbfd4093",
       "sha256": "9cb0b3a6a813495769a878b5be2cf2efe0e5ef741b734c4c036ab22f6b695af1",
       "bytes": 7331,
+      "kind": "source",
+      "reason": "preserved_internal_source_layout"
+    },
+    {
+      "path": "src/shared/project-section-parity.test-fixture.ts",
+      "source_path": "src/shared/project-section-parity.test-fixture.ts",
+      "git_blob": "07dd52ab2d08836146aea5e977ae0e3cc8b8a1c6",
+      "sha256": "2001224fdbce605a7f6eedd2f840b1d50bd73f9893ec12675bf02c198f4c3dd6",
+      "bytes": 7478,
       "kind": "source",
       "reason": "preserved_internal_source_layout"
     },
@@ -326943,6 +327141,12 @@
       "reason": "Retain isolated native account access and add the configured browser registration and computer portal."
     },
     {
+      "path": "mobile/app.json",
+      "upstream_sha256": "81fb07ccad575ca2581ab2fdc31eecfb4e749b01df2d2f63fe72b67d532b43c6",
+      "current_sha256": "3e09363918a51d37b9acf6128afeb81e084d234be64dab3fcadeb87687d5aa53",
+      "reason": "Use platform native branding and keep Firebase optional until an owned Android configuration is supplied."
+    },
+    {
       "path": "mobile/app/_layout.tsx",
       "upstream_sha256": "338d89b78b34c628b2b610ece65a47f5c4a7493c35dd9207be93558a6f178b2c",
       "current_sha256": "76021b5f16698d633d1e1b67ab1d98c158a95c1dd692ec5178e0e7ef4597400f",
@@ -326997,6 +327201,12 @@
       "reason": "Add self-hosted native account access and isolate platform credentials and outbound services."
     },
     {
+      "path": "mobile/src/hermes-array-sorting-compat.test.ts",
+      "upstream_sha256": "553ee979d4c634e799f4ca3be9c57f5fdb8ee5d85666c6479a6af31e0520de39",
+      "current_sha256": "a64bb25c8f43f4ac4c74fe0a954b1160b4ff197098af6737e1e8b5083c76e019",
+      "reason": "Skip already-excluded test files before reading their contents, preserving the complete production source guard while reducing filesystem work."
+    },
+    {
       "path": "mobile/src/home/MobileHomeScreen.tsx",
       "upstream_sha256": "e829d38edd458c51f1745cfbcedbc9dd865b02fd354a3f4fc259d41f49687aba",
       "current_sha256": "c50d8f37bcf0e290f6597285e235e8d6aa08f1fa9600627e73c46cfc20186889",
@@ -327015,10 +327225,64 @@
       "reason": "Add self-hosted native account access and isolate platform credentials and outbound services."
     },
     {
+      "path": "mobile/src/tasks/agent-launch-mobile-replay.test.ts",
+      "upstream_sha256": "38460f50a5994cce433bc2d84e7976de02213cf2942aef0b4aac79979ef7a6a2",
+      "current_sha256": "d235b5b8df5e00b0a68e2f905acc56b526734ece99cd8f1cf1266ae8d4e17b17",
+      "reason": "Keep the original mobile tests executable on Windows by closing their SQLite stores and normalizing filesystem paths at import and suffix-matching boundaries."
+    },
+    {
+      "path": "mobile/src/tasks/mobile-agent-launch-architecture.test.ts",
+      "upstream_sha256": "0362f07b01307048b24cdc14b2305ec3b76991c2d1753f3d5b735b70c31783ee",
+      "current_sha256": "f0d95a72f4f5190457a1f0aa8f51fc2acc860f9ccf01cc23e78e23296b7a2cf5",
+      "reason": "Keep the original mobile tests executable on Windows by closing their SQLite stores and normalizing filesystem paths at import and suffix-matching boundaries."
+    },
+    {
       "path": "mobile/src/test-support/expo-crypto-node.ts",
       "upstream_sha256": "dc72792e1331e9055b8df81d0571acaf66e5dd813c3ff6e7fa638d4a73564aa6",
       "current_sha256": "85675ba8e5412410972f3321c5d5a4a5ebd8c07c17e637d3dbf576d5281591c8",
       "reason": "Add self-hosted native account access and isolate platform credentials and outbound services."
+    },
+    {
+      "path": "mobile/src/test-support/rpc-recording/operation-module-loader.test.ts",
+      "upstream_sha256": "8d4947491554f9da36d8417f819d13796c2494ab06de1e1bc61808b0c1143c32",
+      "current_sha256": "e55dfeec287f75ba2cf13cfa8fd411263f4a4f68778eb442e2b2290768eb1eef",
+      "reason": "Keep the original mobile tests executable on Windows by closing their SQLite stores and normalizing filesystem paths at import and suffix-matching boundaries."
+    },
+    {
+      "path": "mobile/src/test-support/rpc-recording/operation-module-loader.ts",
+      "upstream_sha256": "b8527035e1819ad1d8239d82fc67abcb603c3e618b42513900fbce13fd96eced",
+      "current_sha256": "a484c67723233b658ec6d38c06d0052062287316eb326f59f1bbf787a8cbceef",
+      "reason": "Keep the original mobile tests executable on Windows by closing their SQLite stores and normalizing filesystem paths at import and suffix-matching boundaries."
+    },
+    {
+      "path": "mobile/src/test-support/rpc-recording/relay-pairing-fixtures.ts",
+      "upstream_sha256": "6183db9bd480a2bbd16525ef10e08bb341ac8a6ee06b8109e3d286f83bc3b563",
+      "current_sha256": "8e3bb9dfe9820be8a02212ec19d65fedbc1a8057dfcbd2a7e56678a6533972d1",
+      "reason": "Restore RPC pairing fixture using a documentation-only endpoint instead of a fixed LAN example."
+    },
+    {
+      "path": "mobile/src/test-support/rpc-recording/salvage-observation.test.ts",
+      "upstream_sha256": "ce4abaf58738afc03908a73cfb374538aaff86c6718cbc48f39e00045160392d",
+      "current_sha256": "64fdd96c16196982ea6ea127960af8a596e6f5a6b28e4f32017d14665da2b271",
+      "reason": "Keep the original mobile tests executable on Windows by closing their SQLite stores and normalizing filesystem paths at import and suffix-matching boundaries."
+    },
+    {
+      "path": "mobile/src/test-support/rpc-recording/salvage-observation.ts",
+      "upstream_sha256": "be96e8e5f9c722e966b7db4b733c68e9d73305613d680ca2b62356f1112b677e",
+      "current_sha256": "84c9e505fcdb472dd5c9a5a3ee3e2ce9821bebc013c4b7954ef2952206898831",
+      "reason": "Keep the original mobile tests executable on Windows by closing their SQLite stores and normalizing filesystem paths at import and suffix-matching boundaries."
+    },
+    {
+      "path": "mobile/src/test-support/webview-document-bundle-digest.ts",
+      "upstream_sha256": "1c3fa95550e62b9013a8a46ce1d39f5f57f1ce09e9679c39ef3e1df3e55fde36",
+      "current_sha256": "e292de36d33806fedd2f4864997f9b51291eea6aec84612328c6c51afe54e68a",
+      "reason": "Keep the original mobile tests executable on Windows by closing their SQLite stores and normalizing filesystem paths at import and suffix-matching boundaries."
+    },
+    {
+      "path": "mobile/src/transport/mobile-endpoint-supervisor-test-fakes.ts",
+      "upstream_sha256": "de2770424c588afd4620c12094320dcc599a3019e9ba7fbaf33c97be94921a4f",
+      "current_sha256": "c7f4e3c33e7d315ec02c114cc2d17694eaa0236d1fb0d49149c87b9c172cbb45",
+      "reason": "Restore the fixed upstream synthetic fixture with reserved documentation endpoints and generic example paths."
     },
     {
       "path": "src/main/ai-vault/cached-session-list.ts",
@@ -327831,6 +328095,12 @@
       "reason": "Project-progress: expose the optional read-only status-hook capability without changing source settings or writable launch-settings schema."
     },
     {
+      "path": "src/shared/mobile-relay-pairing-fixtures.ts",
+      "upstream_sha256": "8bc0304cd786c336a572e9f77287a237582a5b0d9dfc85a5cc6f68929d96c6f8",
+      "current_sha256": "e440204215b47fc683fd884bdabe8279c72af0df3d550247821412143afc3d3e",
+      "reason": "Restore the fixed upstream synthetic fixture with reserved documentation endpoints and generic example paths."
+    },
+    {
       "path": "src/shared/orcad-artifacts.ts",
       "upstream_sha256": "066f1ac0ef99b5c358b1ac51901bdd92be6a1dcdebedd87f462f1938fde0cdf9",
       "current_sha256": "0ff643d58d79a0a97515b059013e8bd2b58d335e687af09cde079b4b3f87eb4f",
@@ -327853,6 +328123,12 @@
       "upstream_sha256": "38384600cbc3e59f486828979d345b90bf054ceb7d7c638e2f2a591620f7557b",
       "current_sha256": "223c2ff2940880d6735dfb08d84d818c6257bd1491921e0076563897a56a4ca4",
       "reason": "Keep sidebar visibility browser-local and use narrow-screen defaults without overriding explicit preferences"
+    },
+    {
+      "path": "src/shared/project-section-parity.test-fixture.ts",
+      "upstream_sha256": "2001224fdbce605a7f6eedd2f840b1d50bd73f9893ec12675bf02c198f4c3dd6",
+      "current_sha256": "113dc27f5fcc93db020c31be8f2d6fd7bf0677ce4a4687629f07f6846d7d1d81",
+      "reason": "Restore the fixed upstream synthetic fixture with reserved documentation endpoints and generic example paths."
     },
     {
       "path": "vite.web.config.ts",
@@ -328480,7 +328756,7 @@
       "path": "mobile/app.json",
       "rule": "fixed-external-ipv4",
       "line": 27,
-      "sha256": "81fb07ccad575ca2581ab2fdc31eecfb4e749b01df2d2f63fe72b67d532b43c6",
+      "sha256": "3e09363918a51d37b9acf6128afeb81e084d234be64dab3fcadeb87687d5aa53",
       "reason": "已核上下文为通配绑定、环回/私网/CGNAT范围、平台DNS/组播或网络解析判定，不是私人服务器配置；不能为扫描破坏网络语义。"
     },
     {
@@ -328503,6 +328779,384 @@
       "line": 7,
       "sha256": "5349718f2c19d9319a81552580bf9618ded9b00f3707a5c6cdbbae1910849cd9",
       "reason": "已按Gitleaks精确column复核：命中FourKeyMap导出类赋值（压缩JavaScript代码），不是凭据；保留必需patch字节，限定本文件hash/rule/line。"
+    },
+    {
+      "rule": "gitleaks:generic-api-key",
+      "path": "mobile/rpc-foundation/goldens/matrix-pairing.pre-profile-direct-status.json",
+      "line": 33,
+      "sha256": "bcf25130c0edd941c4e6d5a800a2d5083fa9a942c32402595a54d2e9f8f9a4ac",
+      "reason": "SHA256 of a synthetic fixed-seed recording token or explicit fixture token; not a secret or live account credential."
+    },
+    {
+      "rule": "gitleaks:generic-api-key",
+      "path": "mobile/rpc-foundation/goldens/matrix-pairing.pre-profile-pairing.getendpoints-1.json",
+      "line": 137,
+      "sha256": "5d11d6a4513544895c870c6584d16ddecefee05e6545f308b21eecdc61d8d654",
+      "reason": "SHA256 of a synthetic fixed-seed recording token or explicit fixture token; not a secret or live account credential."
+    },
+    {
+      "rule": "gitleaks:generic-api-key",
+      "path": "mobile/rpc-foundation/goldens/matrix-pairing.pre-profile-pairing.provisionrelay-1.json",
+      "line": 28,
+      "sha256": "14ba41dec3c922250435e751280013830620b9e8405d23b524a142d2d5511fc3",
+      "reason": "SHA256 of a synthetic fixed-seed recording token or explicit fixture token; not a secret or live account credential."
+    },
+    {
+      "rule": "gitleaks:generic-api-key",
+      "path": "mobile/rpc-foundation/goldens/matrix-pairing.pre-profile-pairing.provisionrelay-1.json",
+      "line": 69,
+      "sha256": "14ba41dec3c922250435e751280013830620b9e8405d23b524a142d2d5511fc3",
+      "reason": "SHA256 of a synthetic fixed-seed recording token or explicit fixture token; not a secret or live account credential."
+    },
+    {
+      "rule": "gitleaks:generic-api-key",
+      "path": "mobile/rpc-foundation/goldens/matrix-pairing.pre-profile-pairing.provisionrelay-1.json",
+      "line": 120,
+      "sha256": "14ba41dec3c922250435e751280013830620b9e8405d23b524a142d2d5511fc3",
+      "reason": "SHA256 of a synthetic fixed-seed recording token or explicit fixture token; not a secret or live account credential."
+    },
+    {
+      "rule": "gitleaks:generic-api-key",
+      "path": "mobile/rpc-foundation/goldens/matrix-pairing.pre-profile-pairing.provisionrelay-1.json",
+      "line": 168,
+      "sha256": "14ba41dec3c922250435e751280013830620b9e8405d23b524a142d2d5511fc3",
+      "reason": "SHA256 of a synthetic fixed-seed recording token or explicit fixture token; not a secret or live account credential."
+    },
+    {
+      "rule": "gitleaks:generic-api-key",
+      "path": "mobile/rpc-foundation/goldens/matrix-pairing.pre-profile-pairing.provisionrelay-1.json",
+      "line": 201,
+      "sha256": "14ba41dec3c922250435e751280013830620b9e8405d23b524a142d2d5511fc3",
+      "reason": "SHA256 of a synthetic fixed-seed recording token or explicit fixture token; not a secret or live account credential."
+    },
+    {
+      "rule": "gitleaks:generic-api-key",
+      "path": "mobile/rpc-foundation/goldens/matrix-pairing.pre-profile-pairing.provisionrelay-1.json",
+      "line": 269,
+      "sha256": "14ba41dec3c922250435e751280013830620b9e8405d23b524a142d2d5511fc3",
+      "reason": "SHA256 of a synthetic fixed-seed recording token or explicit fixture token; not a secret or live account credential."
+    },
+    {
+      "rule": "gitleaks:generic-api-key",
+      "path": "mobile/rpc-foundation/goldens/matrix-pairing.pre-profile-pairing.provisionrelay-1.json",
+      "line": 340,
+      "sha256": "14ba41dec3c922250435e751280013830620b9e8405d23b524a142d2d5511fc3",
+      "reason": "SHA256 of a synthetic fixed-seed recording token or explicit fixture token; not a secret or live account credential."
+    },
+    {
+      "rule": "gitleaks:generic-api-key",
+      "path": "mobile/rpc-foundation/goldens/matrix-pairing.pre-profile-pairing.provisionrelay-1.json",
+      "line": 381,
+      "sha256": "14ba41dec3c922250435e751280013830620b9e8405d23b524a142d2d5511fc3",
+      "reason": "SHA256 of a synthetic fixed-seed recording token or explicit fixture token; not a secret or live account credential."
+    },
+    {
+      "rule": "gitleaks:generic-api-key",
+      "path": "mobile/rpc-foundation/goldens/matrix-pairing.pre-profile-pairing.provisionrelay-1.json",
+      "line": 414,
+      "sha256": "14ba41dec3c922250435e751280013830620b9e8405d23b524a142d2d5511fc3",
+      "reason": "SHA256 of a synthetic fixed-seed recording token or explicit fixture token; not a secret or live account credential."
+    },
+    {
+      "rule": "gitleaks:generic-api-key",
+      "path": "mobile/rpc-foundation/goldens/matrix-pairing.pre-profile-pairing.provisionrelay-1.json",
+      "line": 484,
+      "sha256": "14ba41dec3c922250435e751280013830620b9e8405d23b524a142d2d5511fc3",
+      "reason": "SHA256 of a synthetic fixed-seed recording token or explicit fixture token; not a secret or live account credential."
+    },
+    {
+      "rule": "gitleaks:generic-api-key",
+      "path": "mobile/rpc-foundation/goldens/matrix-pairing.pre-profile-pairing.provisionrelay-1.json",
+      "line": 680,
+      "sha256": "14ba41dec3c922250435e751280013830620b9e8405d23b524a142d2d5511fc3",
+      "reason": "SHA256 of a synthetic fixed-seed recording token or explicit fixture token; not a secret or live account credential."
+    },
+    {
+      "rule": "gitleaks:generic-api-key",
+      "path": "mobile/rpc-foundation/goldens/matrix-pairing.pre-profile-relay-status.json",
+      "line": 68,
+      "sha256": "cce30e2d8740f9df88a27abcbc295e8f0a03899ff8e2737b41b8cc72838a8f78",
+      "reason": "SHA256 of a synthetic fixed-seed recording token or explicit fixture token; not a secret or live account credential."
+    },
+    {
+      "rule": "gitleaks:generic-api-key",
+      "path": "mobile/rpc-foundation/goldens/matrix-relay.credential-rotation-pairing.getendpoints-1.json",
+      "line": 575,
+      "sha256": "ca1f7446d17c1ec0a09c601f9b28930f2ac61fee7d7e7f9fdf5958c8c02b5797",
+      "reason": "Synthetic relay credential from the recording scheduler fixed LCG seed (1), not a service credential."
+    },
+    {
+      "rule": "gitleaks:generic-api-key",
+      "path": "mobile/rpc-foundation/goldens/matrix-relay.credential-rotation-pairing.getendpoints-1.json",
+      "line": 628,
+      "sha256": "ca1f7446d17c1ec0a09c601f9b28930f2ac61fee7d7e7f9fdf5958c8c02b5797",
+      "reason": "SHA256 of a synthetic fixed-seed recording token or explicit fixture token; not a secret or live account credential."
+    },
+    {
+      "rule": "gitleaks:generic-api-key",
+      "path": "mobile/rpc-foundation/goldens/matrix-relay.credential-rotation-pairing.getendpoints-2.json",
+      "line": 541,
+      "sha256": "c168f95b130ef14e3d7160be4b95abf35da27fba03a0eef1873166d30883dce0",
+      "reason": "Synthetic relay credential from the recording scheduler fixed LCG seed (1), not a service credential."
+    },
+    {
+      "rule": "gitleaks:generic-api-key",
+      "path": "mobile/rpc-foundation/goldens/matrix-relay.credential-rotation-pairing.getendpoints-2.json",
+      "line": 628,
+      "sha256": "c168f95b130ef14e3d7160be4b95abf35da27fba03a0eef1873166d30883dce0",
+      "reason": "SHA256 of a synthetic fixed-seed recording token or explicit fixture token; not a secret or live account credential."
+    },
+    {
+      "rule": "gitleaks:generic-api-key",
+      "path": "mobile/rpc-foundation/goldens/matrix-relay.credential-rotation-pairing.provisionrelay-1.json",
+      "line": 34,
+      "sha256": "649d4c3601a854d79c87be573075c00e225011d1c360b98de962ca0a7306c22a",
+      "reason": "SHA256 of a synthetic fixed-seed recording token or explicit fixture token; not a secret or live account credential."
+    },
+    {
+      "rule": "gitleaks:generic-api-key",
+      "path": "mobile/rpc-foundation/goldens/matrix-relay.credential-rotation-pairing.provisionrelay-1.json",
+      "line": 71,
+      "sha256": "649d4c3601a854d79c87be573075c00e225011d1c360b98de962ca0a7306c22a",
+      "reason": "SHA256 of a synthetic fixed-seed recording token or explicit fixture token; not a secret or live account credential."
+    },
+    {
+      "rule": "gitleaks:generic-api-key",
+      "path": "mobile/rpc-foundation/goldens/matrix-relay.credential-rotation-pairing.provisionrelay-1.json",
+      "line": 105,
+      "sha256": "649d4c3601a854d79c87be573075c00e225011d1c360b98de962ca0a7306c22a",
+      "reason": "SHA256 of a synthetic fixed-seed recording token or explicit fixture token; not a secret or live account credential."
+    },
+    {
+      "rule": "gitleaks:generic-api-key",
+      "path": "mobile/rpc-foundation/goldens/matrix-relay.credential-rotation-pairing.provisionrelay-1.json",
+      "line": 148,
+      "sha256": "649d4c3601a854d79c87be573075c00e225011d1c360b98de962ca0a7306c22a",
+      "reason": "SHA256 of a synthetic fixed-seed recording token or explicit fixture token; not a secret or live account credential."
+    },
+    {
+      "rule": "gitleaks:generic-api-key",
+      "path": "mobile/rpc-foundation/goldens/matrix-relay.credential-rotation-pairing.provisionrelay-1.json",
+      "line": 185,
+      "sha256": "649d4c3601a854d79c87be573075c00e225011d1c360b98de962ca0a7306c22a",
+      "reason": "SHA256 of a synthetic fixed-seed recording token or explicit fixture token; not a secret or live account credential."
+    },
+    {
+      "rule": "gitleaks:generic-api-key",
+      "path": "mobile/rpc-foundation/goldens/matrix-relay.credential-rotation-pairing.provisionrelay-1.json",
+      "line": 229,
+      "sha256": "649d4c3601a854d79c87be573075c00e225011d1c360b98de962ca0a7306c22a",
+      "reason": "SHA256 of a synthetic fixed-seed recording token or explicit fixture token; not a secret or live account credential."
+    },
+    {
+      "rule": "gitleaks:generic-api-key",
+      "path": "mobile/rpc-foundation/goldens/matrix-relay.credential-rotation-pairing.provisionrelay-1.json",
+      "line": 270,
+      "sha256": "649d4c3601a854d79c87be573075c00e225011d1c360b98de962ca0a7306c22a",
+      "reason": "SHA256 of a synthetic fixed-seed recording token or explicit fixture token; not a secret or live account credential."
+    },
+    {
+      "rule": "gitleaks:generic-api-key",
+      "path": "mobile/rpc-foundation/goldens/matrix-relay.credential-rotation-pairing.provisionrelay-1.json",
+      "line": 306,
+      "sha256": "649d4c3601a854d79c87be573075c00e225011d1c360b98de962ca0a7306c22a",
+      "reason": "SHA256 of a synthetic fixed-seed recording token or explicit fixture token; not a secret or live account credential."
+    },
+    {
+      "rule": "gitleaks:generic-api-key",
+      "path": "mobile/rpc-foundation/goldens/matrix-relay.credential-rotation-pairing.provisionrelay-1.json",
+      "line": 374,
+      "sha256": "649d4c3601a854d79c87be573075c00e225011d1c360b98de962ca0a7306c22a",
+      "reason": "SHA256 of a synthetic fixed-seed recording token or explicit fixture token; not a secret or live account credential."
+    },
+    {
+      "rule": "gitleaks:generic-api-key",
+      "path": "mobile/rpc-foundation/goldens/matrix-relay.credential-rotation-pairing.provisionrelay-1.json",
+      "line": 436,
+      "sha256": "649d4c3601a854d79c87be573075c00e225011d1c360b98de962ca0a7306c22a",
+      "reason": "SHA256 of a synthetic fixed-seed recording token or explicit fixture token; not a secret or live account credential."
+    },
+    {
+      "rule": "gitleaks:generic-api-key",
+      "path": "mobile/rpc-foundation/goldens/matrix-relay.credential-rotation-pairing.provisionrelay-1.json",
+      "line": 595,
+      "sha256": "649d4c3601a854d79c87be573075c00e225011d1c360b98de962ca0a7306c22a",
+      "reason": "Synthetic relay credential from the recording scheduler fixed LCG seed (1), not a service credential."
+    },
+    {
+      "rule": "gitleaks:generic-api-key",
+      "path": "mobile/rpc-foundation/goldens/matrix-relay.credential-rotation-pairing.provisionrelay-1.json",
+      "line": 648,
+      "sha256": "649d4c3601a854d79c87be573075c00e225011d1c360b98de962ca0a7306c22a",
+      "reason": "SHA256 of a synthetic fixed-seed recording token or explicit fixture token; not a secret or live account credential."
+    },
+    {
+      "rule": "gitleaks:generic-api-key",
+      "path": "mobile/rpc-foundation/goldens/matrix-relay.direct-upgrade-pairing.getendpoints-1.json",
+      "line": 216,
+      "sha256": "9250575bf28e724d15147665d6507c69335ae4415db1eca8e5a01aad11f838fb",
+      "reason": "SHA256 of a synthetic fixed-seed recording token or explicit fixture token; not a secret or live account credential."
+    },
+    {
+      "rule": "gitleaks:generic-api-key",
+      "path": "mobile/rpc-foundation/goldens/matrix-relay.direct-upgrade-pairing.getendpoints-2.json",
+      "line": 151,
+      "sha256": "f0c7ec0f309ee7bfae1d2c2a7b793a6f516b4a1ebb879711b07633940d76dfae",
+      "reason": "SHA256 of a synthetic fixed-seed recording token or explicit fixture token; not a secret or live account credential."
+    },
+    {
+      "rule": "gitleaks:generic-api-key",
+      "path": "mobile/rpc-foundation/goldens/matrix-relay.direct-upgrade-pairing.provisionrelay-1.json",
+      "line": 18,
+      "sha256": "4854025af2d34137bd0c6768a8e1598e5257ec455ddf108a7f50e2ef2e53e790",
+      "reason": "SHA256 of a synthetic fixed-seed recording token or explicit fixture token; not a secret or live account credential."
+    },
+    {
+      "rule": "gitleaks:generic-api-key",
+      "path": "mobile/rpc-foundation/goldens/matrix-relay.direct-upgrade-pairing.provisionrelay-1.json",
+      "line": 68,
+      "sha256": "4854025af2d34137bd0c6768a8e1598e5257ec455ddf108a7f50e2ef2e53e790",
+      "reason": "SHA256 of a synthetic fixed-seed recording token or explicit fixture token; not a secret or live account credential."
+    },
+    {
+      "rule": "gitleaks:generic-api-key",
+      "path": "mobile/rpc-foundation/goldens/matrix-relay.direct-upgrade-pairing.provisionrelay-1.json",
+      "line": 186,
+      "sha256": "4854025af2d34137bd0c6768a8e1598e5257ec455ddf108a7f50e2ef2e53e790",
+      "reason": "SHA256 of a synthetic fixed-seed recording token or explicit fixture token; not a secret or live account credential."
+    },
+    {
+      "rule": "gitleaks:generic-api-key",
+      "path": "mobile/rpc-foundation/goldens/matrix-relay.direct-upgrade-pairing.provisionrelay-1.json",
+      "line": 239,
+      "sha256": "4854025af2d34137bd0c6768a8e1598e5257ec455ddf108a7f50e2ef2e53e790",
+      "reason": "SHA256 of a synthetic fixed-seed recording token or explicit fixture token; not a secret or live account credential."
+    },
+    {
+      "rule": "gitleaks:generic-api-key",
+      "path": "mobile/rpc-foundation/goldens/matrix-relay.direct-upgrade-pairing.provisionrelay-1.json",
+      "line": 334,
+      "sha256": "4854025af2d34137bd0c6768a8e1598e5257ec455ddf108a7f50e2ef2e53e790",
+      "reason": "SHA256 of a synthetic fixed-seed recording token or explicit fixture token; not a secret or live account credential."
+    },
+    {
+      "rule": "gitleaks:generic-api-key",
+      "path": "mobile/rpc-foundation/goldens/matrix-relay.direct-upgrade-pairing.provisionrelay-1.json",
+      "line": 367,
+      "sha256": "4854025af2d34137bd0c6768a8e1598e5257ec455ddf108a7f50e2ef2e53e790",
+      "reason": "SHA256 of a synthetic fixed-seed recording token or explicit fixture token; not a secret or live account credential."
+    },
+    {
+      "rule": "gitleaks:generic-api-key",
+      "path": "mobile/rpc-foundation/goldens/matrix-relay.direct-upgrade-pairing.provisionrelay-1.json",
+      "line": 413,
+      "sha256": "4854025af2d34137bd0c6768a8e1598e5257ec455ddf108a7f50e2ef2e53e790",
+      "reason": "SHA256 of a synthetic fixed-seed recording token or explicit fixture token; not a secret or live account credential."
+    },
+    {
+      "rule": "gitleaks:generic-api-key",
+      "path": "mobile/rpc-foundation/goldens/matrix-relay.direct-upgrade-pairing.provisionrelay-1.json",
+      "line": 474,
+      "sha256": "4854025af2d34137bd0c6768a8e1598e5257ec455ddf108a7f50e2ef2e53e790",
+      "reason": "SHA256 of a synthetic fixed-seed recording token or explicit fixture token; not a secret or live account credential."
+    },
+    {
+      "rule": "gitleaks:generic-api-key",
+      "path": "mobile/rpc-foundation/goldens/matrix-relay.direct-upgrade-pairing.provisionrelay-1.json",
+      "line": 524,
+      "sha256": "4854025af2d34137bd0c6768a8e1598e5257ec455ddf108a7f50e2ef2e53e790",
+      "reason": "SHA256 of a synthetic fixed-seed recording token or explicit fixture token; not a secret or live account credential."
+    },
+    {
+      "rule": "gitleaks:generic-api-key",
+      "path": "mobile/rpc-foundation/goldens/matrix-relay.direct-upgrade-pairing.provisionrelay-1.json",
+      "line": 559,
+      "sha256": "4854025af2d34137bd0c6768a8e1598e5257ec455ddf108a7f50e2ef2e53e790",
+      "reason": "SHA256 of a synthetic fixed-seed recording token or explicit fixture token; not a secret or live account credential."
+    },
+    {
+      "rule": "gitleaks:generic-api-key",
+      "path": "mobile/rpc-foundation/goldens/matrix-relay.direct-upgrade-pairing.provisionrelay-1.json",
+      "line": 624,
+      "sha256": "4854025af2d34137bd0c6768a8e1598e5257ec455ddf108a7f50e2ef2e53e790",
+      "reason": "SHA256 of a synthetic fixed-seed recording token or explicit fixture token; not a secret or live account credential."
+    },
+    {
+      "rule": "gitleaks:generic-api-key",
+      "path": "mobile/rpc-foundation/goldens/pairing-pre-profile-direct-wins-and-provisions.json",
+      "line": 33,
+      "sha256": "ac95918cd662e12ded40dab5e8c80e0dab9f419b5fd7d6401c7d9042a556f049",
+      "reason": "SHA256 of a synthetic fixed-seed recording token or explicit fixture token; not a secret or live account credential."
+    },
+    {
+      "rule": "gitleaks:generic-api-key",
+      "path": "mobile/rpc-foundation/goldens/pairing-pre-profile-provision-unsupported-saves-direct-host.json",
+      "line": 28,
+      "sha256": "2209dfae3c4f8f2cb1486fe9ec562375894032eae72b12ae2c6d80ae7e26e298",
+      "reason": "SHA256 of a synthetic fixed-seed recording token or explicit fixture token; not a secret or live account credential."
+    },
+    {
+      "rule": "gitleaks:generic-api-key",
+      "path": "mobile/rpc-foundation/goldens/relay-direct-upgrade-commits.json",
+      "line": 108,
+      "sha256": "640654bf99b970e3a5f48762f237d4fb8712ea3aa4dade8968b1ba3f9f56d181",
+      "reason": "SHA256 of a synthetic fixed-seed recording token or explicit fixture token; not a secret or live account credential."
+    },
+    {
+      "rule": "gitleaks:generic-api-key",
+      "path": "mobile/rpc-foundation/goldens/relay-pairing-recovery-invite-authorizes.json",
+      "line": 75,
+      "sha256": "912c2754f5c48ae3e379bb936eac33a40b3c21f92b40e79c886a328ee778da3f",
+      "reason": "SHA256 of a synthetic fixed-seed recording token or explicit fixture token; not a secret or live account credential."
+    },
+    {
+      "rule": "gitleaks:generic-api-key",
+      "path": "mobile/rpc-foundation/goldens/relay-rotation-installs-and-commits.json",
+      "line": 154,
+      "sha256": "162819362ce46ec3587b368dfea247e517781e7ed9ba1f2d8f2ced05caf372b5",
+      "reason": "Synthetic relay credential from the recording scheduler fixed LCG seed (1), not a service credential."
+    },
+    {
+      "rule": "gitleaks:generic-api-key",
+      "path": "mobile/rpc-foundation/goldens/relay-rotation-installs-and-commits.json",
+      "line": 197,
+      "sha256": "162819362ce46ec3587b368dfea247e517781e7ed9ba1f2d8f2ced05caf372b5",
+      "reason": "SHA256 of a synthetic fixed-seed recording token or explicit fixture token; not a secret or live account credential."
+    },
+    {
+      "rule": "gitleaks:generic-api-key",
+      "path": "mobile/rpc-foundation/pilot-scenarios.json",
+      "line": 10886,
+      "sha256": "cc06139f5622f0aaa47362d90b0b49deeb61c645d306445f28682af754770344",
+      "reason": "SHA256 of a synthetic fixed-seed recording token or explicit fixture token; not a secret or live account credential."
+    },
+    {
+      "rule": "gitleaks:generic-api-key",
+      "path": "mobile/rpc-foundation/pilot-scenarios.json",
+      "line": 11032,
+      "sha256": "cc06139f5622f0aaa47362d90b0b49deeb61c645d306445f28682af754770344",
+      "reason": "SHA256 of a synthetic fixed-seed recording token or explicit fixture token; not a secret or live account credential."
+    },
+    {
+      "rule": "gitleaks:generic-api-key",
+      "path": "mobile/rpc-foundation/pilot-scenarios.json",
+      "line": 11229,
+      "sha256": "cc06139f5622f0aaa47362d90b0b49deeb61c645d306445f28682af754770344",
+      "reason": "SHA256 of a synthetic fixed-seed recording token or explicit fixture token; not a secret or live account credential."
+    },
+    {
+      "rule": "gitleaks:generic-api-key",
+      "path": "mobile/rpc-foundation/pilot-scenarios.json",
+      "line": 11335,
+      "sha256": "cc06139f5622f0aaa47362d90b0b49deeb61c645d306445f28682af754770344",
+      "reason": "SHA256 of a synthetic fixed-seed recording token or explicit fixture token; not a secret or live account credential."
+    },
+    {
+      "rule": "gitleaks:generic-api-key",
+      "path": "mobile/rpc-foundation/pilot-scenarios.json",
+      "line": 11441,
+      "sha256": "cc06139f5622f0aaa47362d90b0b49deeb61c645d306445f28682af754770344",
+      "reason": "SHA256 of a synthetic fixed-seed recording token or explicit fixture token; not a secret or live account credential."
     },
     {
       "path": "mobile/scripts/start-emulator.mjs",
@@ -329756,6 +330410,27 @@
       "line": 33,
       "sha256": "a76fc48940994fcee02fdd67a9500ad6d5e52b49d07ce214b09a79170d0b1f66",
       "reason": "已核上下文为通配绑定、环回/私网/CGNAT范围、平台DNS/组播或网络解析判定，不是私人服务器配置；不能为扫描破坏网络语义。"
+    },
+    {
+      "rule": "gitleaks:generic-api-key",
+      "path": "src/shared/mobile-e2ee-legacy-fixtures.ts",
+      "line": 6,
+      "sha256": "360ee9cdaf451a6d60ff1b44e3a895720fe8bd2ed8e34c5dd17c71223136ccd5",
+      "reason": "Normative encryption test vector from repeated-byte synthetic secrets in the same fixture; verified by the mobile E2EE vector tests."
+    },
+    {
+      "rule": "gitleaks:generic-api-key",
+      "path": "src/shared/mobile-e2ee-v2-fixtures.ts",
+      "line": 44,
+      "sha256": "fee99528f1cab8457ecfa7f983137c19d9e6e365180aad1dbd5b073814364ce5",
+      "reason": "Normative encryption test vector from repeated-byte synthetic secrets in the same fixture; verified by the mobile E2EE vector tests."
+    },
+    {
+      "rule": "gitleaks:generic-api-key",
+      "path": "src/shared/mobile-e2ee-v2-fixtures.ts",
+      "line": 45,
+      "sha256": "fee99528f1cab8457ecfa7f983137c19d9e6e365180aad1dbd5b073814364ce5",
+      "reason": "Normative encryption test vector from repeated-byte synthetic secrets in the same fixture; verified by the mobile E2EE vector tests."
     },
     {
       "path": "src/shared/native-chat-href-routing.ts",
