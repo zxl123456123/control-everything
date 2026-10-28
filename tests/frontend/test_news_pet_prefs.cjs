@@ -8,12 +8,12 @@ const vm = require('node:vm');
 const root = path.resolve(__dirname, '../..');
 const read = file => fs.readFileSync(path.join(root, 'web/workspace', file), 'utf8');
 
-const BASE = {pet: 'spider', enabled: false, quiet: false, newsFx: true, size: 'medium', dock: 'auto', dialPin: false, dial: ['workspace', 'next', 'search', 'collect', 'quiet', 'pet-settings']};
+const BASE = {pet: 'spider', enabled: false, quiet: false, newsFx: true, size: 'medium', dock: 'auto'};
 const snap = prefs => JSON.parse(JSON.stringify(prefs));
 
 function setup({storage = new Map(), remote = null} = {}) {
   const listeners = new Set();
-  const localStorage = {getItem: key => (storage.has(key) ? storage.get(key) : null), setItem: (key, value) => { storage.set(key, String(value)); }};
+  const localStorage = {getItem: key => (storage.has(key) ? storage.get(key) : null), setItem: (key, value) => { storage.set(key, String(value)); }, removeItem: key => { storage.delete(key); }};
   const window = {
     localStorage,
     addEventListener: (type, fn) => { if (type === 'storage') listeners.add(fn); },
@@ -24,7 +24,6 @@ function setup({storage = new Map(), remote = null} = {}) {
   vm.runInContext(read('news-pets.js'), context);
   vm.runInContext(`window.NewsPets.register('spider', {label: '蜘蛛', mount: () => ({})});
     window.NewsPets.register('naidragon', {label: '奶龙', mount: () => ({})});`, context);
-  vm.runInContext(read('news-pet-dial.js'), context);
   vm.runInContext(read('news-pet-prefs.js'), context);
   return {prefs: window.NewsPetPrefs, storage, listeners, emit: event => [...listeners].forEach(fn => fn(event))};
 }
@@ -122,25 +121,32 @@ test('an invalid patch writes nothing at all', () => {
 });
 
 test('unknown stored values fall back to the defaults', () => {
-  const {prefs} = setup({storage: new Map([['news-reader-pet-size', 'xl'], ['news-reader-pet-dock', 'tl'], ['news-reader-pet-news-fx', 'maybe'], ['news-reader-pet-dial', 'nope,still-nope']])});
+  const {prefs} = setup({storage: new Map([['news-reader-pet-size', 'xl'], ['news-reader-pet-dock', 'tl'], ['news-reader-pet-news-fx', 'maybe']])});
   assert.deepEqual(snap(prefs.read()), BASE);
 });
 
-test('the dial list is stored as normalised ids and read back in pool order', () => {
-  const {prefs, storage} = setup();
-  assert.equal(prefs.set({dial: ['quiet', 'next', 'workspace', 'nope']}), true);
-  assert.equal(storage.get('news-reader-pet-dial'), 'workspace,next,quiet');
-  assert.deepEqual(snap(prefs.read().dial), ['workspace', 'next', 'quiet']);
+
+test('the keys of the retired wheel settings are deleted on the first read and nothing is migrated', () => {
+  const storage = new Map([['news-reader-pet-dial', 'workspace,next,quiet'], ['news-reader-pet-dial-pin', 'true'], ['news-reader-pet-size', 'large']]);
+  const {prefs} = setup({storage});
+  assert.deepEqual(snap(prefs.read()), {...BASE, size: 'large'});
+  assert.equal(storage.has('news-reader-pet-dial'), false);
+  assert.equal(storage.has('news-reader-pet-dial-pin'), false);
+  assert.equal(storage.get('news-reader-pet-size'), 'large', 'the live keys stay');
+  assert.equal('dial' in prefs.read() || 'dialPin' in prefs.read(), false);
+  assert.equal(prefs.set({dial: ['quiet']}), false, 'the retired fields are no longer accepted');
 });
 
-test('the dial pin is a boolean stored under its own key, off by default, and invalid values write nothing', () => {
-  const {prefs, storage} = setup();
-  assert.equal(prefs.read().dialPin, false);
-  assert.equal(prefs.set({dialPin: true}), true);
-  assert.equal(storage.get('news-reader-pet-dial-pin'), 'true');
-  assert.equal(prefs.read().dialPin, true);
-  assert.equal(prefs.set({dialPin: 'yes'}), false);
-  assert.equal(storage.get('news-reader-pet-dial-pin'), 'true');
-  assert.equal(prefs.set({dialPin: false}), true);
-  assert.equal(prefs.read().dialPin, false);
+test('the legacy cleanup uses the remote-scoped storage, retries while storage refuses, and stops once done', () => {
+  const scoped = new Map([['news-reader-pet-dial', 'x'], ['news-reader-pet-dial-pin', 'true']]);
+  const remote = {getItem: key => scoped.get(key) ?? null, setItem: () => {}, removeItem: key => scoped.delete(key)};
+  setup({remote}).prefs.read();
+  assert.equal(scoped.size, 0, 'the keys are removed through the context storage, not the bare localStorage');
+  let calls = 0, refuse = true;
+  const flaky = {getItem: () => null, setItem: () => {}, removeItem: () => { calls++; if (refuse) throw new Error('read-only'); }};
+  const {prefs} = setup({remote: flaky});
+  prefs.read(); prefs.read();
+  assert.equal(calls, 2, 'a read-only store is tried again on the next read');
+  refuse = false; prefs.read(); prefs.read();
+  assert.equal(calls, 4, 'two keys removed once, then the cleanup stops');
 });

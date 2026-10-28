@@ -79,9 +79,9 @@ async function visibleIds(page){return page.locator('.title-row:visible').evalua
   await page.locator('#date-range').selectOption('all');
   check('history is available through an explicit date choice',(await visibleIds(page)).length===8&&(await visibleIds(page)).includes(ids.d));
   await page.locator('#date-range').selectOption('today');
-  await page.locator('#stream').selectOption('hn');
+  await page.locator('#stream [data-value=hn]').click();
   check('Hacker News uses submission day instead of an invented publication day',JSON.stringify(await visibleIds(page))===JSON.stringify([ids.i]));
-  await page.locator('#stream').selectOption('ai');
+  await page.locator('#stream [data-value=ai]').click();
   await page.locator(`.title-row[data-id="${ids.a}"]`).click();
   await page.locator('#article-body h3').waitFor();
   check('the reader retains the first paragraph exactly once',await page.locator('#article-body .body-block').evaluateAll((nodes,text)=>nodes.filter(node=>node.textContent===text).length,firstParagraph)===1&&!(await page.locator('#article-summary').isVisible()));

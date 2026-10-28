@@ -90,14 +90,14 @@ async function serve(context, api) {
     page.on('pageerror', error => errors.push(error.message));
     await page.goto(`${origin}/news`);
     await page.locator('#refresh').waitFor();
-    const fit = await page.evaluate(() => { const bar = document.querySelector('.filters'); return {scroll: bar.scrollWidth, client: bar.clientWidth, refresh: document.getElementById('refresh').getBoundingClientRect().width, label: document.getElementById('refresh').scrollWidth <= document.getElementById('refresh').clientWidth}; });
+    const fit = await page.evaluate(() => { const bar = document.querySelector('.toolbar'); return {scroll: bar.scrollWidth, client: bar.clientWidth, refresh: document.getElementById('refresh').getBoundingClientRect().width, label: document.getElementById('refresh').scrollWidth <= document.getElementById('refresh').clientWidth}; });
     check('the news toolbar does not overflow at 390px', fit.scroll <= fit.client);
     check('the collect button shows its whole label', fit.refresh >= 100 && fit.label);
     check('the breadcrumb link back to the overview can be hit well above its text', await page.evaluate(() => { const node = document.querySelector('.workspace-name'), link = node.getBoundingClientRect(); return link.height >= 44 || document.elementFromPoint(link.left + link.width / 2, link.top - 10) === node; }));
     for (const width of [320, 360]) {
       await page.setViewportSize({width, height: 800});
       const fit = await page.evaluate(() => {
-        const bar = document.querySelector('.filters'), collect = document.getElementById('refresh');
+        const bar = document.querySelector('.toolbar'), collect = document.getElementById('refresh');
         return bar.scrollWidth <= bar.clientWidth && collect.scrollWidth <= collect.clientWidth;
       });
       check(`the news toolbar and collect label also fit at ${width}px`, fit);
@@ -105,7 +105,7 @@ async function serve(context, api) {
     await page.setViewportSize({width: 320, height: 800});
     await page.evaluate(() => { document.documentElement.style.scrollbarGutter = 'stable'; });
     check('the narrow toolbar also fits with space reserved for a scrollbar', await page.evaluate(() => {
-      const bar = document.querySelector('.filters'), collect = document.getElementById('refresh');
+      const bar = document.querySelector('.toolbar'), collect = document.getElementById('refresh');
       return bar.scrollWidth <= bar.clientWidth && collect.scrollWidth <= collect.clientWidth;
     }));
     await context.close();

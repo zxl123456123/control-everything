@@ -23,23 +23,27 @@
   </header>
   <p id="theme-error" role="status" aria-live="polite" hidden></p>
   <div class="toolbar">
-    <nav aria-label="阅读筛选">
+    <nav class="view-tabs" aria-label="阅读筛选">
       <button data-view="inbox" aria-pressed="true">阅读 <span data-count="inbox">0</span></button>
       <button data-view="read" aria-pressed="false">已读 <span data-count="read">0</span></button>
       <button data-view="saved" aria-pressed="false">收藏 <span data-count="saved">0</span></button>
       <button data-view="archived" aria-pressed="false">归档 <span data-count="archived">0</span></button>
     </nav>
-    <div class="filters">
-      <button id="pet-visible" type="button" aria-pressed="false">显示宠物</button><button id="pet-dial" type="button" aria-haspopup="menu" title="打开宠物旁的快捷转盘" hidden>宠物转盘</button>
-      <label><span class="sr-only">频道</span><select id="stream"><option value="ai">AI 新闻</option><option value="hn">Hacker News</option></select></label>
-      <button id="refresh-feeds" type="button" aria-label="更新新闻" title="更新新闻" aria-busy="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M20 7v5h-5M20 12a8 8 0 1 1-2.3-5.7"/></svg></button><button id="refresh" type="button"><span aria-hidden="true">↻</span> 采集新信息</button>
+    <div id="stream" class="segmented" role="radiogroup" aria-label="新闻频道">
+      <button type="button" role="radio" aria-checked="true" data-value="ai" tabindex="0">AI 新闻</button>
+      <button type="button" role="radio" aria-checked="false" data-value="hn" tabindex="-1">Hacker News</button>
+    </div>
+    <div class="actions">
+      <button id="pet-dial" type="button" aria-haspopup="menu" aria-expanded="false" hidden>宠物转盘</button>
+      <button id="refresh-feeds" class="icon-button" type="button" aria-label="更新新闻" data-tip="更新新闻" aria-busy="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 7v5h-5M20 12a8 8 0 1 1-2.3-5.7"/></svg></button>
+      <button id="refresh" class="primary" type="button"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2c1.2 6 3.8 8.8 10 10-6.2 1.2-8.8 4-10 10-1.2-6-3.8-8.8-10-10C8.2 10.8 10.8 8 12 2Z"/></svg><span id="refresh-label">采集新闻</span></button>
     </div>
   </div>
   <p id="storage-warning" role="alert" hidden>当前浏览器无法保存阅读记录；重新打开后可能丢失。</p>
   <section id="animation-stage" data-reading-view="list" aria-label="新闻阅读室">
     <canvas id="spider-canvas" aria-hidden="true"></canvas>
     <aside id="directory" aria-label="新闻标题目录">
-      <div class="directory-head"><span id="directory-title">今日新闻</span><span id="list-total">0 条</span><label class="date-filter"><span class="sr-only">新闻日期</span><select id="date-range"><option value="today">今天</option><option value="all">全部日期</option></select></label><button id="directory-summary" type="button" aria-pressed="false" aria-label="显示目录预览" hidden>预览</button><button id="close-directory" type="button" aria-label="收起标题目录">×</button></div>
+      <div class="directory-head"><span id="directory-title">今日新闻</span><span id="list-total">0 条</span><label class="date-filter"><span class="sr-only">时间范围</span><select id="date-range"><option value="today">今天</option><option value="all">全部日期</option></select></label><button id="directory-summary" type="button" aria-pressed="false" aria-label="显示目录预览" hidden>预览</button><button id="close-directory" type="button" aria-label="收起标题目录">×</button></div>
       <label class="search-wrap"><span class="sr-only">搜索新闻</span><input id="search" type="search" placeholder="搜索标题、来源或内容"></label>
       <div id="title-list" tabindex="-1" aria-label="选择新闻"></div>
       <div id="list-empty" hidden><p id="list-empty-message">暂无新闻</p><button id="clear-search" type="button">清除搜索</button><button id="show-history" type="button">查看历史</button></div>
@@ -80,26 +84,40 @@
   <div id="toast" role="status" hidden><span id="toast-text"></span><button id="undo" type="button" hidden>撤销</button><button id="dismiss" type="button" aria-label="关闭提示">×</button></div>
 </main>
 <dialog id="research-panel" aria-labelledby="research-title" aria-describedby="research-description">
-  <header class="research-head"><h2 id="research-title">采集新闻</h2><p id="research-description" class="sr-only">显示当前采集状态。关闭窗口后仍会继续采集。</p><button id="research-close" type="button" aria-label="关闭采集窗口">×</button></header>
+  <header class="research-head">
+    <span class="research-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c1.2 6 3.8 8.8 10 10-6.2 1.2-8.8 4-10 10-1.2-6-3.8-8.8-10-10C8.2 10.8 10.8 8 12 2Z"/></svg></span>
+    <div class="research-titles"><h2 id="research-title">采集新闻</h2><p id="research-description">按关键词检索公开来源并整理成可读新闻；关闭窗口后仍会继续采集。</p></div>
+    <button id="research-close" class="icon-button" type="button" aria-label="关闭采集窗口"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+  </header>
   <div class="research-body">
   <form id="research-form">
-    <label class="sr-only" for="research-query">采集关键词</label><div class="research-query-row"><input id="research-query" name="query" type="search" maxlength="240" placeholder="关键词或 X 帖子链接" value="AI coding workflow coding agents tips" required autofocus><button id="research-start" type="submit">开始采集</button></div>
-    <details id="research-settings" class="collection-settings"><summary>采集设置</summary>
+    <label class="field-label" for="research-query">关键词或 X 帖子链接</label>
+    <div class="research-query-row"><input id="research-query" name="query" type="text" enterkeyhint="search" autocomplete="off" maxlength="240" placeholder="关键词或 X 帖子链接" value="AI coding workflow coding agents tips" required autofocus><button id="research-start" class="primary" type="submit">开始采集</button></div>
+    <details id="research-settings" class="collection-settings"><summary>关注主题</summary>
       <div class="research-topics" role="group" aria-label="关注主题"><button type="button" data-topic="coding" aria-pressed="true">AI Coding</button><button type="button" data-topic="agents" aria-pressed="false">Agent</button><button type="button" data-topic="claude" aria-pressed="false">Claude Code</button><button type="button" data-topic="models" aria-pressed="false">GPT / Gemini</button><button type="button" data-topic="tibo" aria-pressed="false">Tibo</button></div>
       <label class="capture-option" hidden><input id="capture-frames" type="checkbox">保存步骤截图</label>
     </details>
   </form>
-  <section id="research-feedback" hidden>
-  <div id="research-meter" class="collection-orb" role="progressbar" aria-label="当前采集阶段进度" aria-valuemin="0" aria-valuemax="100">
-    <span class="orb-halo" aria-hidden="true"></span><span class="orb-swirl" aria-hidden="true"></span><span class="orb-swirl orb-swirl-echo" aria-hidden="true"></span>
-    <svg class="orb-track" viewBox="0 0 220 220" aria-hidden="true"><defs><linearGradient id="collection-ring-color"><stop stop-color="#ffb66b"/><stop offset="1" stop-color="#fb724b"/></linearGradient></defs><circle cx="110" cy="110" r="84" class="orb-rail"/><circle id="research-meter-fill" cx="110" cy="110" r="84" pathLength="100"/></svg>
-    <div class="orb-value" aria-hidden="true"><svg id="research-symbol" viewBox="0 0 48 48" fill="currentColor"><path d="M24 4c2.5 12 7.5 17 20 20-12.5 3-17.5 8-20 20C21 32 16 27 4 24 16 21 21 16 24 4Z"/></svg><strong id="research-value"></strong><span id="research-value-label"></span></div>
-  </div>
-  <h3 id="research-state" role="status">准备开始</h3>
-  <p id="research-reason" role="status" hidden></p>
+  <section id="research-feedback" hidden aria-label="采集进度">
+    <div class="research-status">
+      <div id="research-meter" class="research-ring" role="progressbar" aria-label="当前采集阶段进度" aria-valuemin="0" aria-valuemax="100">
+        <svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="44" class="ring-rail"/><circle id="research-meter-fill" cx="50" cy="50" r="44" pathLength="100" class="ring-fill"/></svg>
+        <div class="ring-value" aria-hidden="true"><svg id="research-symbol" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c1.2 6 3.8 8.8 10 10-6.2 1.2-8.8 4-10 10-1.2-6-3.8-8.8-10-10C8.2 10.8 10.8 8 12 2Z"/></svg><strong id="research-value"></strong><span id="research-value-label"></span></div>
+      </div>
+      <div class="research-state-text"><h3 id="research-state" role="status">准备开始</h3><p id="research-meter-label"></p><p id="research-timing"></p></div>
+    </div>
+    <ol class="stage-steps" aria-label="采集阶段">
+      <li data-stage="search"><span class="stage-dot" aria-hidden="true"></span><span>检索</span><span class="sr-only"></span></li>
+      <li data-stage="visit"><span class="stage-dot" aria-hidden="true"></span><span>读取</span><span class="sr-only"></span></li>
+      <li data-stage="extract"><span class="stage-dot" aria-hidden="true"></span><span>整理</span><span class="sr-only"></span></li>
+      <li data-stage="merge"><span class="stage-dot" aria-hidden="true"></span><span>保存</span><span class="sr-only"></span></li>
+    </ol>
+    <dl class="research-metrics"><div><dt>篇内容</dt><dd id="research-article-count">0</dd></div><div><dt>张图片</dt><dd id="research-image-count">0</dd></div><div><dt>个来源</dt><dd id="research-source-count">0</dd></div></dl>
+    <ul id="research-source-list" class="source-list" aria-label="访问来源"><li id="research-source-empty" class="source-empty">来源会随采集出现</li></ul>
+    <p id="research-outcome" role="status"></p>
+    <p id="research-reason" role="status" hidden></p>
   </section>
   <div id="research-archive" hidden inert>
-  <span id="research-timing"></span><p id="research-meter-label"></p><p id="research-outcome"></p>
   <details id="research-details" class="collection-details" hidden><summary>查看采集详情 <span id="research-count">0 条记录</span></summary>
   <p id="research-activity" role="status">开始后显示真实阶段；来源总量确认后展示处理数量。</p>
   <nav class="research-steps" aria-label="采集步骤回看"><button type="button" data-step="search" disabled><span>1</span> 检索</button><button type="button" data-step="visit" disabled><span>2</span> 读取</button><button type="button" data-step="extract" disabled><span>3</span> 提取</button><button type="button" data-step="merge" disabled><span>4</span> 保存</button></nav>
@@ -112,15 +130,14 @@
       <div class="research-replay"><button id="frame-previous" type="button" aria-label="上一张采集截图" disabled>←</button><span id="frame-position">0 / 0</span><button id="frame-next" type="button" aria-label="下一张采集截图" disabled>→</button><details class="frame-details"><summary>画面详情</summary><p id="research-frame-caption">等待实际页面截图</p><p id="research-url">尚未访问页面</p></details></div>
     </section>
     <aside class="research-results" aria-label="采集结果">
-      <p class="research-metrics"><strong id="research-article-count">0</strong> 篇内容 · <strong id="research-image-count">0</strong> 张图片</p>
-      <h3>访问来源 <span id="research-source-count">0</span></h3><div id="research-sources"></div><p id="research-sources-empty">来源会随采集出现</p>
+      <h3>访问来源</h3><div id="research-sources"></div><p id="research-sources-empty">来源会随采集出现</p>
     </aside>
   </div>
   <details class="research-log"><summary>完整采集记录 <span id="research-log-count">0</span></summary><ol id="research-events"></ol><p id="research-events-empty">还没有采集记录。</p></details>
   </details>
   </div>
   </div>
-  <footer class="research-footer"><button id="research-again" type="button" hidden>再次采集</button><button id="research-return" type="button">继续阅读</button></footer>
+  <footer class="research-footer"><button id="research-again" type="button" hidden>再次采集</button><button id="research-return" type="button">取消</button></footer>
 </dialog>
 </body>
 </html>

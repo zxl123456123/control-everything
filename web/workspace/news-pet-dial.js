@@ -1,67 +1,30 @@
 /*
- * The pet's action dial, as data: which shortcuts exist, which ones a page may show, and how many are enabled.
- * Hosts (the news reader, the Studio mascot) own what each action does; this module only owns the pool, the
- * defaults and the validation, so the Studio settings checklist and every dial agree without a shared UI.
- *   scope 'any'    works on every page that hosts the pet
- *   scope 'news'   needs the news reader (article list, search, refresh)
- *   scope 'studio' needs the Studio shell around the reader
- * The dial shows between MIN and MAX actions: fewer is not worth a ring, more cannot be hit comfortably.
+ * The pet wheel's six fixed slots, as data. An action owns its place on the clock face for good: it never moves when
+ * another one is unavailable, so the hand learns "search is at four o'clock" and never has to look again. A page that
+ * cannot run an action greys its slot out and says why; it does not reflow the ring. (Same rule as Blender's pie menus,
+ * https://developer.blender.org/docs/features/interface/human_interface_guidelines/layouts/ .)
+ *   group 'page'  the right half, 12 to 4 o'clock: where you can go
+ *   group 'pet'   the left half, 6 to 10 o'clock: what the pet itself does
+ * Hosts (the news reader, the Studio mascot) own what each action does; see NewsPetDirector.createActions.
  */
 (function (global) {
   'use strict';
-  const MIN = 3, MAX = 6;
-  const POOL = Object.freeze([
-    {id: 'workspace', label: '打开工作台', scope: 'any', icon: 'M4 4h7v7H4z M13 4h7v7h-7z M4 13h7v7H4z M13 13h7v7h-7z'},
-    {id: 'next', label: '下一条', scope: 'news', icon: 'M5 12h14 M13 6l6 6-6 6'},
-    {id: 'previous', label: '上一条', scope: 'news', icon: 'M19 12H5 M11 6l-6 6 6 6'},
-    {id: 'search', label: '搜索新闻', scope: 'news', icon: 'M10.5 3a7.5 7.5 0 1 0 0 15a7.5 7.5 0 1 0 0-15z M16 16l5 5'},
-    {id: 'collect', label: '采集新闻', scope: 'news', icon: 'M20 11a8 8 0 1 0-2.3 5.7 M20 4v7h-7'},
-    {id: 'save', label: '收藏本条', scope: 'news', icon: 'M7 4h10v16l-5-4-5 4z'},
-    {id: 'archive', label: '读完归档', scope: 'news', icon: 'M4 6h16v4H4z M6 10v9h12v-9 M10 14h4'},
-    {id: 'news', label: '去看新闻', scope: 'studio', icon: 'M5 5h11v14H5z M16 9h3v8a2 2 0 0 1-2 2 M8 9h5 M8 13h5'},
-    {id: 'quiet', label: '安静模式', scope: 'any', icon: 'M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z'},
-    {id: 'pet-settings', label: '宠物设置', scope: 'any', icon: 'M4 7h10 M18 7h2 M4 17h2 M10 17h10 M16 5v4 M8 15v4'},
-    {id: 'hide-pet', label: '隐藏宠物', scope: 'any', icon: 'M3 3l18 18 M10.6 6.2A9.5 9.5 0 0 1 12 6c5 0 8.5 4.5 9.5 6a14 14 0 0 1-2.4 2.9 M6.6 7.7A14 14 0 0 0 2.5 12C3.5 13.5 7 18 12 18c1.2 0 2.3-.3 3.3-.7'},
+  /** Clockwise from 12 o'clock, in degrees. */
+  const SLOTS = Object.freeze([
+    {id: 'workspace', angle: 0, group: 'page', label: '打开工作台', icon: 'M4 4h7v7H4z M13 4h7v7h-7z M4 13h7v7H4z M13 13h7v7h-7z'},
+    {id: 'news', angle: 60, group: 'page', label: '去看新闻', icon: 'M5 5h11v14H5z M16 9h3v8a2 2 0 0 1-2 2 M8 9h5 M8 13h5'},
+    {id: 'search', angle: 120, group: 'page', label: '搜索新闻', icon: 'M10.5 3a7.5 7.5 0 1 0 0 15a7.5 7.5 0 1 0 0-15z M16 16l5 5'},
+    {id: 'quiet', angle: 180, group: 'pet', label: '安静模式', icon: 'M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z'},
+    {id: 'pet-settings', angle: 240, group: 'pet', label: '宠物设置', icon: 'M4 7h10 M18 7h2 M4 17h2 M10 17h10 M16 5v4 M8 15v4'},
+    {id: 'hide-pet', angle: 300, group: 'pet', label: '隐藏宠物', icon: 'M3 3l18 18 M10.6 6.2A9.5 9.5 0 0 1 12 6c5 0 8.5 4.5 9.5 6a14 14 0 0 1-2.4 2.9 M6.6 7.7A14 14 0 0 0 2.5 12C3.5 13.5 7 18 12 18c1.2 0 2.3-.3 3.3-.7'},
   ].map(Object.freeze));
-  const DEFAULTS = Object.freeze(['workspace', 'next', 'search', 'collect', 'quiet', 'pet-settings']);
-  const STUDIO_FALLBACK = Object.freeze(['workspace', 'news', 'quiet', 'pet-settings']);
-  const byId = new Map(POOL.map(action => [action.id, action]));
-  const surfaces = {news: new Set(['any', 'news']), studio: new Set(['any', 'studio'])};
+  const byId = new Map(SLOTS.map(slot => [slot.id, slot]));
 
-  /** Valid ids in pool order, without duplicates and within MAX. Too few valid ids resolve to the defaults. */
-  function normalize(ids) {
-    const wanted = new Set(Array.isArray(ids) ? ids : []);
-    const list = POOL.filter(action => wanted.has(action.id)).map(action => action.id).slice(0, MAX);
-    return list.length >= MIN ? list : [...DEFAULTS];
-  }
+  /** Reasons a greyed slot gives; the host picks one, the wheel prints it in the label and aria-label. */
+  const REASONS = Object.freeze({here: '当前页', newsOnly: '仅新闻页', unavailable: '暂不可用'});
 
-  /** Parses the stored comma list; null (never set) and garbage both give the defaults. */
-  const parse = text => normalize(typeof text === 'string' ? text.split(',') : null);
-  const serialize = ids => normalize(ids).join(',');
+  /** The slot for an id, or undefined. */
+  const slot = id => byId.get(id);
 
-  /**
-   * Turns one action on or off. Refuses to go below MIN or above MAX.
-   * @returns {{ids: string[], ok: boolean, reason?: 'min'|'max'|'unknown'}}
-   */
-  function toggle(ids, id) {
-    const current = normalize(ids);
-    if (!byId.has(id)) return {ids: current, ok: false, reason: 'unknown'};
-    if (current.includes(id)) return current.length <= MIN ? {ids: current, ok: false, reason: 'min'} : {ids: current.filter(item => item !== id), ok: true};
-    if (current.length >= MAX) return {ids: current, ok: false, reason: 'max'};
-    return {ids: normalize([...current, id]), ok: true};
-  }
-
-  /**
-   * The action definitions one surface can run; tops the list up to MIN from that surface's fallback when the choice does not fit it.
-   * `skip` names actions the host cannot run right now (for example "open the workbench" while already on it).
-   */
-  function forSurface(ids, surface, skip = []) {
-    const allowed = surfaces[surface] || surfaces.news;
-    const fits = id => allowed.has(byId.get(id)?.scope) && !skip.includes(id);
-    let list = normalize(ids).filter(fits);
-    for (const id of surface === 'studio' ? STUDIO_FALLBACK : DEFAULTS) if (list.length < MIN && fits(id) && !list.includes(id)) list.push(id);
-    return list.map(id => byId.get(id));
-  }
-
-  global.NewsPetDial = Object.freeze({MIN, MAX, POOL, DEFAULTS, normalize, parse, serialize, toggle, forSurface});
+  global.NewsPetDial = Object.freeze({SLOTS, REASONS, slot});
 })(window);

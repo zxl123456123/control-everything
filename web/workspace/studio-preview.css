@@ -60,7 +60,7 @@
 #ce-studio .ce-setting-text{min-width:0}
 #ce-studio .ce-setting-text h3{margin:0;font-size:15px;font-weight:500;line-height:24px}
 #ce-studio .ce-setting-text p{margin:2px 0 0;font-size:14px;line-height:22px;color:var(--ce-sub)}
-/* Pet settings: spring press feedback, switch, picker cards, sliding segmented control, dial checklist. Tokens come from #ce-studio, so light and dark follow the shell. */
+/* Pet settings: spring press feedback, switch, picker cards, sliding segmented control. Tokens come from #ce-studio, so light and dark follow the shell. */
 #ce-studio .ce-pet-settings{--spring:cubic-bezier(.34,1.56,.64,1);--glide:cubic-bezier(.2,.8,.2,1)}
 #ce-studio .ce-pet-section+.ce-pet-section,#ce-studio .ce-pet-section+.ce-pet-status{margin-top:24px}
 #ce-studio .ce-pet-title{margin:0 0 10px;font-size:14px;font-weight:500;line-height:24px;color:var(--ce-sub)}
@@ -74,7 +74,7 @@
 #ce-studio .ce-switch[aria-checked="true"] .ce-switch-thumb{transform:translateX(20px)}
 #ce-studio .ce-switch[aria-checked="true"]:active .ce-switch-thumb{transform:translateX(14px)}
 #ce-studio .ce-switch:hover:not([aria-checked="true"]){background:var(--ce-input-border)}
-#ce-studio .ce-pet-settings :is(.ce-switch,.ce-chip,.ce-link-button):focus-visible,#ce-studio .ce-pet-card:has(input:focus-visible),#ce-studio .ce-seg-option:has(input:focus-visible){outline:2px solid var(--ce-ring);outline-offset:3px}
+#ce-studio .ce-pet-settings .ce-switch:focus-visible,#ce-studio .ce-pet-card:has(input:focus-visible),#ce-studio .ce-seg-option:has(input:focus-visible){outline:2px solid var(--ce-ring);outline-offset:3px}
 #ce-studio .ce-pet-picker{padding:4px 20px 20px}
 #ce-studio .ce-pet-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
 #ce-studio .ce-pet-card{position:relative;display:flex;flex-direction:column;align-items:center;gap:10px;padding:14px 10px 14px;border:1.5px solid var(--ce-line);border-radius:18px;background:var(--ce-panel);cursor:pointer;text-align:center;-webkit-tap-highlight-color:transparent}
@@ -97,25 +97,10 @@
 #ce-studio .ce-seg-option{position:relative;z-index:1;display:grid;place-items:center;min-width:56px;min-height:34px;padding:0 12px;border-radius:9px;color:var(--ce-sub);font-size:14px;cursor:pointer}
 #ce-studio .ce-seg-option:hover{color:var(--ce-text)}
 #ce-studio .ce-seg-option:has(input:checked){color:var(--ce-text);font-weight:500}
-#ce-studio .ce-dial-card{display:grid;gap:14px;padding:16px 20px 20px}
-#ce-studio .ce-dial-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
-#ce-studio .ce-dial-tools{display:flex;align-items:center;gap:10px;flex:none;font-size:14px;color:var(--ce-sub);font-variant-numeric:tabular-nums}
-#ce-studio .ce-link-button{min-height:30px;padding:0 12px;border:0;border-radius:999px;background:var(--ce-soft);color:var(--ce-text);font:inherit;font-size:13px;cursor:pointer}
-#ce-studio .ce-link-button:hover{background:var(--ce-hover)}
-#ce-studio .ce-link-button[hidden]{display:none}
-#ce-studio .ce-dial-groups{display:grid;gap:10px}
-#ce-studio .ce-dial-group{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
-#ce-studio .ce-dial-scope{flex:none;width:64px;font-size:13px;color:var(--ce-sub)}
-#ce-studio .ce-chip{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 14px 0 11px;border:1px solid var(--ce-input-border);border-radius:999px;background:var(--ce-panel);color:var(--ce-text);font:inherit;font-size:14px;cursor:pointer}
-#ce-studio .ce-chip:hover{background:var(--ce-hover)}
-#ce-studio .ce-chip-icon{flex:none;color:var(--ce-sub);transition:color .2s}
-#ce-studio .ce-chip[aria-pressed="true"]{border-color:var(--ce-primary);background:var(--ce-primary);color:var(--ce-on-primary)}
-#ce-studio .ce-chip[aria-pressed="true"] .ce-chip-icon{color:inherit}
-#ce-studio .ce-dial-card[data-full="true"] .ce-chip[aria-pressed="false"]{opacity:.5}
 #ce-studio .ce-pet-status:not(:empty){margin:10px 0 0;font-size:14px;line-height:22px;color:var(--ce-amber)}
 #ce-studio .ce-pet-status[data-tone="error"]:not(:empty){color:var(--ce-red)}
 @media(prefers-reduced-motion:reduce){#ce-studio .ce-pet-settings *,#ce-studio .ce-pet-settings *::before{transition:none!important;animation:none!important}#ce-studio .ce-pet-settings .ce-press:active{transform:none}}
-@media(max-width:760px){#ce-studio .ce-settings-page .ce-settings-group>.ce-setting-row{flex-wrap:wrap}#ce-studio .ce-setting-text{flex:1 1 200px}#ce-studio .ce-switch,#ce-studio .ce-seg{align-self:flex-start}#ce-studio .ce-dial-scope{width:100%}}
+@media(max-width:760px){#ce-studio .ce-settings-page .ce-settings-group>.ce-setting-row{flex-wrap:wrap}#ce-studio .ce-setting-text{flex:1 1 200px}#ce-studio .ce-switch,#ce-studio .ce-seg{align-self:flex-start}}
 /* pet settings v3: short rows, quiet hierarchy, live ring preview */
 #ce-studio .ce-pet-settings.ce-settings-page .ce-settings-group>.ce-pet-row{min-height:60px;padding:10px 20px}
 #ce-studio .ce-pet-settings .ce-settings-group{border:1px solid var(--ce-line)}
@@ -124,17 +109,8 @@
 #ce-studio .ce-pet-settings .ce-pet-card{gap:8px;padding:10px 10px 12px}
 #ce-studio .ce-pet-settings .ce-pet-art{aspect-ratio:1.5;max-height:96px}
 #ce-studio .ce-pet-settings .ce-pet-portrait{width:64px;height:64px}
-#ce-studio .ce-pet-settings .ce-dial-card{gap:16px;padding:16px 20px 20px}
-#ce-studio .ce-pet-settings .ce-dial-hint,#ce-studio .ce-pet-settings .ce-pet-dial-hint{font-size:13px;line-height:20px}
-#ce-studio .ce-dial-picker{display:grid;grid-template-columns:148px minmax(0,1fr);gap:24px;align-items:center}
-#ce-studio .ce-dial-preview{position:relative;width:148px;height:148px;border-radius:50%;background:var(--ce-soft);border:1px solid var(--ce-line)}
-#ce-studio .ce-dial-preview::after{content:"";position:absolute;left:50%;top:50%;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;background:var(--ce-faint)}
-#ce-studio .ce-dial-dot{position:absolute;left:50%;top:50%;width:32px;height:32px;margin:-16px 0 0 -16px;display:grid;place-items:center;border-radius:50%;background:var(--ce-panel);color:var(--ce-text);box-shadow:0 1px 3px #0002,0 3px 8px var(--ce-shadow-deep);opacity:0;transform:translate3d(0,0,0) scale(.3);transition:transform .5s var(--spring) calc(var(--i,0) * 30ms),opacity .2s}
-#ce-studio .ce-dial-dot[data-on="true"]{opacity:1;transform:translate3d(var(--x),var(--y),0) scale(1)}
-#ce-studio .ce-pet-settings .ce-chip{min-height:40px}
-@media(max-width:760px){#ce-studio .ce-dial-picker{grid-template-columns:1fr;justify-items:start}#ce-studio .ce-dial-preview{justify-self:center}}
 @media(max-width:760px){#ce-studio .ce-pet-settings .ce-pet-row{flex-wrap:nowrap}#ce-studio .ce-pet-settings .ce-pet-row .ce-setting-text{flex:1 1 auto}#ce-studio .ce-pet-settings .ce-pet-row :is(.ce-switch,.ce-seg){align-self:center}}
-@media(max-width:620px){#ce-studio .ce-pet-settings .ce-pet-picker{padding:4px 12px 14px}#ce-studio .ce-pet-settings .ce-pet-cards{gap:8px}#ce-studio .ce-pet-settings .ce-pet-card{padding:8px 6px 10px;border-radius:14px}#ce-studio .ce-pet-settings .ce-pet-art{aspect-ratio:1.1}#ce-studio .ce-pet-settings .ce-pet-portrait{width:52px;height:52px}#ce-studio .ce-pet-settings .ce-pet-tick{top:6px;right:6px;width:20px;height:20px}#ce-studio .ce-pet-settings .ce-seg-option{min-width:48px;padding:0 8px}#ce-studio .ce-pet-settings .ce-settings-group>.ce-pet-row{padding-left:16px;padding-right:16px}#ce-studio .ce-pet-settings .ce-dial-card{padding:14px 16px 18px}#ce-studio .ce-pet-settings .ce-dial-head{flex-wrap:wrap}}
+@media(max-width:620px){#ce-studio .ce-pet-settings .ce-pet-picker{padding:4px 12px 14px}#ce-studio .ce-pet-settings .ce-pet-cards{gap:8px}#ce-studio .ce-pet-settings .ce-pet-card{padding:8px 6px 10px;border-radius:14px}#ce-studio .ce-pet-settings .ce-pet-art{aspect-ratio:1.1}#ce-studio .ce-pet-settings .ce-pet-portrait{width:52px;height:52px}#ce-studio .ce-pet-settings .ce-pet-tick{top:6px;right:6px;width:20px;height:20px}#ce-studio .ce-pet-settings .ce-seg-option{min-width:48px;padding:0 8px}#ce-studio .ce-pet-settings .ce-settings-group>.ce-pet-row{padding-left:16px;padding-right:16px}}
 #ce-studio .ce-setting-row .ce-button{flex:none;font-size:15px}
 #ce-studio .ce-creator-address{padding:0;background:var(--ce-panel)}
 #ce-studio .ce-creator-address>summary{display:flex;align-items:center;justify-content:space-between;gap:20px;min-height:76px;padding:16px 20px;font-size:15px;line-height:24px;font-weight:500;cursor:pointer;list-style:none}
@@ -952,7 +928,6 @@ body:has(#ce-studio){margin:0;background:var(--ce-bg,#ffffff)}
 @media (prefers-reduced-motion:reduce){#ce-studio .ce-mascot-key,#ce-studio .ce-mascot-note{transition:none}#ce-studio .ce-mascot canvas{animation:none}}
 
 /* A pinned pet rail hugs the screen edge; on narrow windows the page leaves that gutter free so it never covers a control. */
-@media(max-width:1180px){#ce-studio .ce-content{transition:padding .25s ease}html[data-pw-rail=right] #ce-studio .ce-content,:host([data-pw-rail=right]) #ce-studio .ce-content{padding-right:84px}html[data-pw-rail=left] #ce-studio .ce-content,:host([data-pw-rail=left]) #ce-studio .ce-content{padding-left:84px}}
 
 /* UI polish: shared loading, error and unavailable states. */
 #ce-studio .ce-state-panel{display:grid;justify-items:center;gap:10px;max-width:520px;margin:48px auto;padding:32px 24px;border:1px dashed var(--ce-line);border-radius:12px;text-align:center}
