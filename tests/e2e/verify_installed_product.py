@@ -116,8 +116,13 @@ class Acceptance:
                     'http_block_reason_not_proven')
 
     def launcher(self, install_root, version_id):
-        expected = ('@echo off\r\n"%~dp0versions\\' + version_id
-                    + '\\runtime\\python.exe" -I -B -X utf8 -m control_everything.gateway %*\r\n').encode('ascii')
+        document, actual_id = payload_document(install_root / 'versions' / version_id)
+        require(actual_id == version_id, 'active_product_identity')
+        prefix = '%~dp0versions\\' + version_id
+        entry = ('control_everything.http.desktop --product-root "' + prefix + '"'
+                 if desktop_product(document) else 'control_everything.gateway')
+        expected = ('@echo off\r\n"' + prefix + '\\runtime\\python.exe" -I -B -X utf8 -m '
+                    + entry + ' %*\r\n').encode('ascii')
         require((install_root / 'session-panel.cmd').read_bytes() == expected, 'active_launcher_target')
 
     def probe(self, version, profile, label, *, while_http=None):
@@ -146,6 +151,46 @@ class Acceptance:
         return json.loads(ready.read_text(encoding='utf-8'))
 
 
+def desktop_product(document):
+    return any(row['path'] == 'desktop-runtime.json' for row in document['files'])
+
+
+def build_probe_server(payload, profile, document, news_source):
+    if desktop_product(document):
+        from control_everything.http.desktop import build_desktop
+        desktop = build_desktop(payload, profile, port=0)
+        return desktop.server, desktop
+    from control_everything.http.gateway import build_profile_server
+    return build_profile_server(str(profile), port=0, news_source=news_source), None
+
+
+def verify_desktop_resources(server, opener, web):
+    require(server.workbench_runtime.ready, 'desktop_runtime_not_ready')
+    assets = server.workbench_assets
+    checks = [('/studio', 'web-index.html')]
+    checks.extend(('/workbench/' + name, name) for name in assets.files if name != 'web-index.html')
+    rows = []
+    for route, name in checks + [('/desktop', None), ('/desktop.js', None)]:
+        if name is None:
+            relative = 'workspace/desktop.html' if route == '/desktop' else 'workspace/desktop.js'
+            body = web.joinpath(relative).read_bytes()
+            mime = 'text/html; charset=utf-8' if route == '/desktop' else 'text/javascript; charset=utf-8'
+        else:
+            body, mime = assets.read(name)
+            if route == '/studio':
+                body = body.replace(b'="./assets/', b'="/workbench/assets/')
+        with opener.open(server.local_origin + route, timeout=10) as response:
+            require(response.read() == body, 'desktop_resource_bytes:' + route)
+            require(response.headers['Content-Type'] == mime, 'desktop_resource_mime:' + route)
+            require(response.headers['X-Content-Type-Options'] == 'nosniff'
+                    and response.headers['Cache-Control'] == 'no-store', 'desktop_resource_headers:' + route)
+            if route == '/studio':
+                require(server.workbench_runtime.websocket_origin in response.headers['Content-Security-Policy'],
+                        'desktop_runtime_csp')
+        rows.append({'url': route, 'sha256': hashlib.sha256(body).hexdigest(), 'mime': mime})
+    return rows
+
+
 def probe(args):
     # Only the explicitly supplied product interpreter can import these packages.
     import importlib.metadata
@@ -155,7 +200,7 @@ def probe(args):
     import threading
     from urllib.error import HTTPError
     from urllib.request import build_opener, ProxyHandler, HTTPRedirectHandler
-    from control_everything.http.gateway import build_profile_server, make_server
+    from control_everything.http.gateway import make_server
     from control_everything.installation.manifest import verify_payload
     from control_everything.paths import observer_install_dir, source_root, web_root
     from control_everything.workspace.news_source import Collector, NewsSource
@@ -181,10 +226,12 @@ def probe(args):
             and batch.process is None and batch.job is None and not frames, 'owned_job_cleanup')
     # No public feed is fetched in this HTTP/resource contract.
     collector = Collector(launch=lambda slot: collector.finish(slot, [], 'worker_failed', True))
-    server = build_profile_server(str(profile), port=0, news_source=NewsSource(collector))
+    server, desktop = build_probe_server(payload, profile, result, NewsSource(collector))
     legacy, thread, legacy_thread = None, None, None
     try:
         server.start_observer()
+        if desktop is not None:
+            desktop.start()
         thread = threading.Thread(target=server.serve_forever)
         thread.start()
         opener = build_opener(ProxyHandler({}))
@@ -213,6 +260,7 @@ def probe(args):
                         and response.headers['Cache-Control'] == 'no-store'
                         and response.headers['Content-Security-Policy'], 'resource_headers:' + route)
                 assets.append({'url': route, 'sha256': hashlib.sha256(body).hexdigest(), 'mime': mime})
+        desktop_assets = verify_desktop_resources(server, opener, web_root()) if desktop is not None else []
         require(server.capabilities['execution'] is False, 'paused_execution_enabled')
         store = server.profile.store
         projects = store.list_projects()
@@ -233,9 +281,11 @@ def probe(args):
             time.sleep(.1)
         require(server.observer.cached()['status'] == 'available', 'native_not_available')
         document(args.ready, {'version': result['version'], 'closure': result['closure'], 'assets': assets,
+                             'entry': 'desktop' if desktop is not None else 'legacy gateway',
+                             'desktop_assets': desktop_assets,
                              'executable': sys.executable, 'package': control_everything.__file__,
                              'ssl': ssl.OPENSSL_VERSION, 'sqlite': sqlite3.sqlite_version,
-                             'native': 'available', 'news': 'offline fixture; no collection claim',
+                             'native': 'available', 'news': 'not fetched; static/resource probe only',
                              'news_job': {'pid': batch.pid, 'assigned_before_resume': True, 'cleanup': True,
                                           'scope': 'cancelled while suspended; no network or successful collection claim'},
                              'manual_percent': percentages,
@@ -253,7 +303,10 @@ def probe(args):
         if thread is not None:
             server.shutdown()
             thread.join(5)
-        server.server_close()
+        if desktop is not None:
+            desktop.close()
+        else:
+            server.server_close()
     return 0
 
 
@@ -298,14 +351,15 @@ def main(argv=None):
               'scope': 'current Windows x64 machine; controlled PATH; synthetic profiles only',
               'installer_sha256': sha(installer), 'source': first['source'], 'commands': acceptance.rows,
               'errors': [], 'not_covered': ['clean Windows 10 and 11 matrix', 'real SSH/Agent/desktop focus',
-                                           'live public news success', 'normal-running news worker collection']}
+                                           'live public news success', 'normal-running news worker collection',
+                                           'interactive browser behavior', 'executing the cmd launcher wrapper']}
     profiles = [evidence / 'profile-a', evidence / 'profile-b']
     active = None
     try:
         acceptance.install(installer, install_root, 'install')
         acceptance.launcher(install_root, first_id)
         active = install_root / 'versions' / first_id
-        for module in ('gateway', 'profile'):
+        for module in (('http.desktop' if desktop_product(first) else 'gateway'), 'profile'):
             acceptance.run([active / 'runtime/python.exe', '-I', '-B', '-X', 'utf8', '-m', 'control_everything.' + module, '--help'])
         acceptance.run([active / 'runtime/python.exe', '-I', '-B', '-X', 'utf8', '-m', 'control_everything.native_processes', '--help'], expected=1)
         acceptance.run([active / 'runtime/python.exe', '-I', '-B', '-X', 'utf8', '-m', 'control_everything.mcp_stdio'], stdin=b'')
