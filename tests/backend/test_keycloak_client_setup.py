@@ -22,7 +22,8 @@ SERVICE_ENV = {**{key: value for key, value in ENV.items() if "ADMIN" not in key
 class FakeKeycloak:
     """Just enough of the admin API; `calls` records every request for write-scope assertions."""
 
-    def __init__(self, realm=None, clients=None, scopes=("profile", "email"), password=PASSWORD):
+    def __init__(self, realm=None, clients=None, scopes=("profile", "email"), password=PASSWORD,
+                 omit_disabled_authorization=False):
         self.realm = {"realm": REALM, "revokeRefreshToken": True, "refreshTokenMaxReuse": 0,
                       "registrationAllowed": True, **(realm or {})}
         self.clients = {c["id"]: deepcopy(c) for c in (clients or [])}
@@ -33,6 +34,7 @@ class FakeKeycloak:
         self.password = password
         self.calls = []
         self.token_requests = []
+        self.omit_disabled_authorization = omit_disabled_authorization
 
     def writes(self):
         return [(m, p) for m, p, _ in self.calls if m != "GET" and "/protocol/openid-connect/token" not in p]
@@ -63,7 +65,12 @@ class FakeKeycloak:
             return self.ok(self.scopes)
         if rest == "/clients" and method == "GET":
             wanted = query.get("clientId", [None])[0]
-            return self.ok([c for c in self.clients.values() if wanted in (None, c["clientId"])])
+            clients = [deepcopy(c) for c in self.clients.values() if wanted in (None, c["clientId"])]
+            if self.omit_disabled_authorization:
+                for client in clients:
+                    if client.get("authorizationServicesEnabled") is False:
+                        client.pop("authorizationServicesEnabled")
+            return self.ok(clients)
         if rest == "/clients" and method == "POST":
             identifier = f"uuid-{len(self.clients) + 1}"
             self.clients[identifier] = {**deepcopy(payload), "id": identifier, "secret": None}
@@ -111,6 +118,16 @@ def run(fake, *extra, env=None):
 
 
 class PayloadTests(unittest.TestCase):
+    def test_only_omitted_disabled_authorization_is_equivalent_to_false(self):
+        desired = {"authorizationServicesEnabled": False, "implicitFlowEnabled": False}
+        self.assertEqual(setup.changed_fields({}, desired), ["implicitFlowEnabled"])
+        for value in (True, None):
+            with self.subTest(value=value):
+                existing = {**desired, "authorizationServicesEnabled": value}
+                self.assertEqual(setup.changed_fields(existing, desired), ["authorizationServicesEnabled"])
+        self.assertEqual(setup.changed_fields({}, {"authorizationServicesEnabled": True}),
+                         ["authorizationServicesEnabled"])
+
     def test_client_is_public_pkce_without_direct_grants_or_service_account(self):
         client = setup.build_client("workbench-mobile", SCHEME)
         self.assertTrue(client["publicClient"])
@@ -162,6 +179,15 @@ class PayloadTests(unittest.TestCase):
 
 
 class ScriptTests(unittest.TestCase):
+    def test_server_omitting_disabled_authorization_keeps_second_run_a_noop(self):
+        fake = FakeKeycloak(omit_disabled_authorization=True)
+        self.assertEqual(run(fake)[0], 0)
+        first_writes = len(fake.writes())
+        code, result = run(fake, "--dry-run")
+        self.assertEqual((code, result["steps"]), (0, []))
+        self.assertEqual(run(fake)[1]["steps"], [])
+        self.assertEqual(len(fake.writes()), first_writes)
+
     def test_fresh_realm_gets_only_the_client_mapper_and_email_scope_then_second_run_is_a_noop(self):
         fake = FakeKeycloak()
         realm_before = deepcopy(fake.realm)

@@ -113,7 +113,9 @@ def merge_client(existing, desired):
 
 def changed_fields(existing, merged):
     """Names of the changed fields only; values (redirect URIs, secrets) are not reported."""
-    names = [key for key in merged if key != "attributes" and merged[key] != existing.get(key)]
+    # Keycloak omits this optional field when the client has no authorization resource server.
+    names = [key for key in merged if key != "attributes" and merged[key] != existing.get(key)
+             and not (key == "authorizationServicesEnabled" and key not in existing and merged[key] is False)]
     before = existing.get("attributes") or {}
     names += ["attributes." + key for key, value in (merged.get("attributes") or {}).items()
               if before.get(key) != value]

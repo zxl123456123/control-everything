@@ -40,7 +40,7 @@ python tools/scripts/keycloak_add_mobile_client.py --dry-run
 - 幂等：再次运行没有差异就不写入任何内容。`--dry-run` 带管理员凭据时只发起读请求；未设置管理员凭据时完全不联网，只打印目标客户端与映射器。
 - 刷新令牌轮换是 realm 级设置（Realm settings → Tokens → Revoke Refresh Token，Max Reuse 为 0），脚本不会改 realm，只在输出的 `warnings` 中提示未开启，须由管理员自行确认。同样会提示 realm 中缺少 `workbench-hub` 客户端。
 - 管理员密码或服务账号秘密走 token 请求，因此 URL 只接受 `https`（本机回环地址除外）。输出与错误信息不含密码、客户端秘密、令牌或服务器响应体；失败仅报告请求与 HTTP 状态。
-- 该脚本尚未对任何真实 Keycloak 运行；单元测试使用模拟的 Admin API。首次对生产 realm 使用前，先 `--dry-run` 核对步骤，并备份 realm。
+- 单元测试使用模拟的 Admin API；生产验收仍须先备份并运行 `--dry-run`，核对只涉及预期客户端，再执行写入。写入后再次试运行应没有待执行步骤，另外验证真实授权码登录、刷新及退出。
 
 发布新版桌面包时，须同步登记资源：普通资源取同版 `gateway.WEB_ASSETS`、`workbench.STUDIO_RESOURCES`、`news_reader.ASSETS` 中的非 HTML 项；原生资源取完整包 `workbench-build/web-assets.json` 的非 HTML `files`，路径加 `/workbench/` 前缀。只合并仍受支持版本的精确路径，保留旧版条目，不加入 HTML、API 或通配路径。更新私有配置并重启 hub 后，从远程浏览器实测项目与终端。漏登记会使初始脚本返回 `403 context_required`，出现白屏或资源加载失败；仅重新构建桌面包不能替代这一步。
 
