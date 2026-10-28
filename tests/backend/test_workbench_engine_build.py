@@ -228,6 +228,60 @@ class WorkbenchBuildTests(unittest.TestCase):
         self.assertEqual(receipt['tools']['pnpm']['sha256'], BUILD.sha256(pnpm))
         self.assertEqual(len(steps.call_args.args[0]), 9)
 
+    def test_bad_materials_stop_before_install_or_output_creation(self):
+        node, pnpm = self.root / 'node.exe', self.root / 'pnpm.exe'
+        node.write_bytes(b'node')
+        pnpm.write_bytes(b'pnpm')
+        run = self.root / 'work/workbench-engine-build/bad-materials'
+        materials = SimpleNamespace(read_inputs=lambda directory: (_ for _ in ()).throw(ValueError('bad proof')))
+        with patch.object(BUILD, 'material_api', return_value=materials), \
+                patch.object(BUILD, 'check_source', return_value={}), \
+                patch.object(BUILD, 'checked') as command, patch.object(BUILD, 'run_steps') as steps:
+            with self.assertRaisesRegex(BUILD.BuildError, 'distribution_materials_invalid:bad proof'):
+                BUILD.build(node, pnpm, self.root / 'work/ce-native', run, self.root,
+                            materials=self.root / 'reviewed')
+        command.assert_not_called()
+        steps.assert_not_called()
+        self.assertFalse(run.exists())
+
+    def test_material_binding_precedes_but_cannot_replace_distribution_validation(self):
+        run = self.root / 'work/workbench-engine-build/materials'
+        run.mkdir(parents=True)
+        node = self.unit / 'out/runtimes/node.exe'
+        node.parent.mkdir(parents=True)
+        node.write_bytes(b'node')
+        BUILD.write_json(run / 'build-provenance.json', {'tools': {
+            'node': {'path': str(node), 'sha256': BUILD.sha256(node)}, 'pnpm': {'path': str(self.root / 'pnpm.exe')}}})
+        data = {'web': [], 'mobile': {'assets': []}, 'runtime': [], 'newsRuntime': {'files': []},
+                'node': {'path': 'out/runtimes/node.exe', 'executableSha256': BUILD.sha256(node)},
+                'dependencies': [], 'artifactVersion': 'fixture'}
+        calls = []
+        def prepare(unit, rows, directory, materials):
+            self.assertTrue((directory / 'output-manifest.json').is_file())
+            self.assertTrue((directory / 'dependency-manifest.json').is_file())
+            calls.append((unit, rows, materials))
+            return {'input_hashes': {'external-components.json': 'a' * 64}}
+        with patch.object(BUILD, 'material_api', return_value=SimpleNamespace(prepare=prepare)), \
+                patch.object(BUILD, 'run_steps'), patch.object(BUILD, 'output_rows', return_value=[]), \
+                patch.object(BUILD.subprocess, 'run', return_value=SimpleNamespace(returncode=0, stdout=json.dumps(data), stderr='')):
+            with self.assertRaisesRegex(BUILD.BuildError, 'distribution_notices_incomplete:distribution_record_missing'):
+                BUILD.check_output(run, self.root, materials=self.root / 'reviewed')
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(calls[0][1][0]['sha256'], BUILD.sha256(node))
+        result = BUILD.read_json(run / 'build-provenance.json')
+        self.assertEqual(result['distribution'], 'not_verified')
+        self.assertIn('materials', result)
+        result['distribution'] = 'closure_verified'
+        BUILD.write_json(run / 'build-provenance.json', result)
+        def reject_materials(*args):
+            raise ValueError('changed proof')
+        with patch.object(BUILD, 'material_api', return_value=SimpleNamespace(prepare=reject_materials)), \
+                patch.object(BUILD, 'run_steps'), patch.object(BUILD, 'output_rows', return_value=[]), \
+                patch.object(BUILD.subprocess, 'run', return_value=SimpleNamespace(returncode=0, stdout=json.dumps(data), stderr='')):
+            with self.assertRaisesRegex(BUILD.BuildError, 'distribution_materials_invalid:changed proof'):
+                BUILD.check_output(run, self.root, materials=self.root / 'reviewed')
+        self.assertEqual(BUILD.read_json(run / 'build-provenance.json')['distribution'], 'not_verified')
+
     @unittest.skipUnless(os.name == 'nt', 'Windows junction test')
     def test_build_rejects_dependency_root_junctions_before_install(self):
         other = self.root / 'other-checkout' / 'node_modules'
