@@ -23,7 +23,7 @@ from urllib.parse import parse_qs, urlsplit
 from control_everything.sessions.source import HOST, PORT, canonical_uuid
 from control_everything.sessions.codex_index import list_threads as list_codex_threads
 from control_everything.sessions.observer_client import ObserverClient
-from control_everything.http import observation_routes, onboarding_routes, sandbox_routes, workbench, workbench_remote, remote_context
+from control_everything.http import code_host_routes, observation_routes, onboarding_routes, sandbox_routes, workbench, workbench_remote, remote_context
 from control_everything.workspace.progress import MANUAL, REGISTRY, TODOS, add_todo, board, set_progress, toggle_todo, load_todos
 from control_everything.integrations.launchers import LauncherCatalog, catalog, start
 from control_everything.integrations.desk import headlines, pulse
@@ -1020,6 +1020,8 @@ class PanelHandler(BaseHTTPRequestHandler):
         route = path.path
         if route in onboarding_routes.GET_ROUTES:
             onboarding_routes.handle_get(self, path)
+        elif route in code_host_routes.GET_ROUTES:
+            code_host_routes.handle_get(self, path)
         elif route == "/api/bootstrap":
             if path.query:
                 raise ValueError("invalid_query")

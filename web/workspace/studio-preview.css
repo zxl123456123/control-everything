@@ -999,3 +999,52 @@ body:has(#ce-studio){margin:0;background:var(--ce-bg,#ffffff)}
 /* Section tabs keep their look; an invisible margin grows the hit area to a comfortable size. */
 #ce-studio .ce-tabs a{position:relative}
 #ce-studio .ce-tabs a::before{content:"";position:absolute;inset:-4px -10px}
+
+/* Optional code-host connection (studio-code-host.js): a one-line strip on GitHub project pages and a settings card.
+   Spacing and tone follow .ce-setup-notice; the press/spring feel follows the pet settings. No blur, text stays 13px or larger. */
+#ce-studio .ce-code-host-slot{width:100%;max-width:1200px;margin:0 auto;padding:16px 24px 0;min-width:0}
+#ce-studio .ce-code-host-slot[hidden]{display:none}
+#ce-studio .ce-content:has(>.ce-code-host-slot:not([hidden])) #studio-content{padding-top:16px}
+#ce-studio .ce-code-host{--spring:cubic-bezier(.34,1.56,.64,1);--glide:cubic-bezier(.2,.8,.2,1);display:flex;align-items:center;gap:12px;padding:8px 8px 8px 14px;border:1px solid var(--ce-line);border-radius:10px;background:var(--ce-soft);font-size:14px;line-height:22px;animation:ce-code-host-in .45s var(--spring)}
+#ce-studio .ce-code-host-dot{flex:none;width:8px;height:8px;border-radius:50%;background:var(--ce-ring)}
+#ce-studio .ce-code-host[data-state="connected"] .ce-code-host-dot{background:var(--ce-green)}
+#ce-studio .ce-code-host:is([data-state="signed-out"],[data-state="missing"]) .ce-code-host-dot{background:var(--ce-amber)}
+#ce-studio .ce-code-host-text{flex:1 1 auto;display:flex;align-items:baseline;flex-wrap:wrap;gap:2px 10px;min-width:0}
+#ce-studio .ce-code-host-text strong{font-weight:500}
+#ce-studio .ce-code-host-state{color:var(--ce-text)}
+#ce-studio .ce-code-host-note{color:var(--ce-sub);font-size:13px;line-height:20px;text-wrap:pretty}
+#ce-studio .ce-code-host-actions{flex:none;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+#ce-studio .ce-code-host-actions .ce-button{min-height:32px;transition:transform .55s var(--spring,cubic-bezier(.34,1.56,.64,1)),background-color .2s}
+#ce-studio .ce-code-host-actions .ce-button:active{transform:scale(.95);transition-duration:.08s,.2s}
+#ce-studio .ce-code-host-close{width:32px;height:32px;font-size:20px;line-height:1;color:var(--ce-sub)}
+#ce-studio .ce-code-host-live{font-size:13px;line-height:20px;color:var(--ce-sub)}
+#ce-studio .ce-code-host-live:empty{display:none}
+#ce-studio .ce-code-host-settings{margin-top:24px}
+#ce-studio .ce-code-host-label{margin:0 0 8px 4px;font-size:13px;font-weight:600;letter-spacing:.04em;line-height:24px;color:var(--ce-sub)}
+#ce-studio .ce-code-host-card{border:1px solid var(--ce-line)}
+#ce-studio .ce-code-host-card h3{margin:0;font-size:15px;font-weight:500;line-height:24px}
+#ce-studio .ce-code-host-card .ce-code-host-head{align-items:flex-start}
+#ce-studio .ce-code-host-badge{flex:none;display:inline-flex;align-items:center;gap:7px;min-height:28px;padding:1px 12px 1px 10px;border-radius:999px;background:var(--ce-soft);color:var(--ce-sub);font-size:13px;line-height:20px;white-space:nowrap}
+#ce-studio .ce-code-host-badge::before{content:"";flex:none;width:8px;height:8px;border-radius:50%;background:var(--ce-ring)}
+#ce-studio .ce-code-host-badge[data-tone="success"]{background:var(--ce-green-bg);color:var(--ce-green)}
+#ce-studio .ce-code-host-badge[data-tone="success"]::before{background:var(--ce-green)}
+#ce-studio .ce-code-host-badge[data-tone="warning"]{background:var(--ce-amber-bg);color:var(--ce-amber)}
+#ce-studio .ce-code-host-badge[data-tone="warning"]::before{background:var(--ce-amber)}
+#ce-studio .ce-settings-page .ce-settings-group>.ce-code-host-body{display:flex;flex-direction:column;align-items:flex-start;gap:12px;padding:14px 20px 16px;min-height:0}
+#ce-studio .ce-code-host-hint{margin:0;font-size:14px;line-height:22px;color:var(--ce-sub)}
+#ce-studio .ce-code-host-body .ce-code-host-actions{flex-wrap:wrap}
+#ce-studio .ce-code-host-separation{margin:12px 4px 0;font-size:13px;line-height:20px;color:var(--ce-sub)}
+@keyframes ce-code-host-in{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+@media(max-width:900px){#ce-studio .ce-code-host-slot{padding:14px 16px 0}}
+@media(max-width:760px){
+ #ce-studio .ce-code-host{display:grid;grid-template-columns:8px minmax(0,1fr) auto;align-items:start;column-gap:12px;row-gap:8px;padding:10px 8px 10px 14px}
+ #ce-studio .ce-code-host-dot{margin-top:7px}
+ #ce-studio .ce-code-host-close{margin-top:-2px}
+ #ce-studio .ce-code-host-dot,#ce-studio .ce-code-host-text,#ce-studio .ce-code-host-close{grid-row:1}
+ #ce-studio .ce-code-host-actions{grid-column:2/-1;grid-row:2}
+ #ce-studio .ce-code-host-actions:empty{display:none}
+ #ce-studio .ce-settings-page .ce-code-host-head{flex-wrap:wrap}
+}
+@media(pointer:coarse){#ce-studio .ce-code-host-close{width:44px;height:44px}#ce-studio .ce-code-host-actions .ce-button{min-height:44px}}
+@media(prefers-reduced-motion:reduce){#ce-studio .ce-code-host{animation:none}#ce-studio .ce-code-host-actions .ce-button{transition:none}#ce-studio .ce-code-host-actions .ce-button:active{transform:none}}
+#ce-studio .ce-account .ce-account-scope{margin:0 0 16px}

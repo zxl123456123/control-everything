@@ -101,3 +101,4 @@
 @media (prefers-reduced-motion:reduce){.ce-account *,.ce-account-brand button{transition:none!important;animation:none!important}.ce-account :is(button,a[href]),.ce-account-brand button{transform:none!important}}
 .ce-mobile-entry .ce-mobile-guide>summary:focus-visible{outline:2px solid var(--ce-ring,#94a3b8);outline-offset:3px}
 @media (prefers-reduced-motion:reduce){.ce-mobile-entry .ce-mobile-guide>summary::before{transition:none}}
+.ce-account .ce-account-scope{margin:0 0 16px;font-size:14px;line-height:22px;color:var(--account-muted)}
