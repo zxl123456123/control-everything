@@ -14,7 +14,7 @@ let holdArticle = false, articleReady, releaseArticle;
 const items = [1, 2].map(n => ({ id: String(n).repeat(24), title: `隔离示例 ${n}：在工作台内阅读新闻`,
   source_name: '合成来源', source_id: 'fixture', url: `https://example.com/${n}`, summary: '用于验证导航、正文位置和局部刷新的合成文章。',
   body_blocks: Array.from({length:30}, (_, i) => ({type:'p', text:`第 ${i + 1} 段。` + '切换页面后应保留当前阅读位置，更新数据不应重新加载工作台。'.repeat(5)})),
-  published_at: '2026-10-26T00:00:00Z', images: [] }));
+  published_at: new Date().toISOString(), images: [] }));
 const snapshot = () => ({reader_id:'navigation-fixture', sample:{captured_at:'2026-10-26T00:00:00Z', sources:[], streams:{ai:{items},hn:{items:[]}}}, covers:{items:[]}});
 const project = {id:'fixture',name:'隔离测试项目',root:'C:/example/project',archived:false};
 function policy(file, name) {
@@ -25,7 +25,7 @@ function policy(file, name) {
 }
 const readerPolicy = policy('src/control_everything/http/news_reader.py', 'CSP');
 const studioPolicy = policy('src/control_everything/http/workbench.py', 'STUDIO_CSP');
-const allowed = new Set(['studio-preview.css','studio-preview.js','workspace.css','news-reader.css','news-reader.js','news-spider.js','ui-theme.js','ui-dialog.js','studio-shell.js','project-progress-model.js']);
+const allowed = new Set(['studio-preview.css','studio-preview.js','workspace.css','news-reader.css','news-reader.js','news-spider.js','news-sections.css','news-sections.js','news-section-editor.js','news-search.js','news-pets.js','news-pet-dial.js','news-pet-wheel.js','news-pet-prefs.js','news-pet-director.js','news-pet-status.js','ui-theme.js','ui-dialog.js','studio-shell.js','project-progress-model.js']);
 const server = createServer((req,res) => {
   const url = new URL(req.url, 'http://' + req.headers.host);
   const reply = (body,type='application/json',csp) => {res.writeHead(200,{'Content-Type':type,...(csp ? {'Content-Security-Policy':csp} : {})});res.end(typeof body === 'string' || Buffer.isBuffer(body) ? body : JSON.stringify(body));};

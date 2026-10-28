@@ -20,7 +20,7 @@
     if (destroyed || window.CERemoteContext?.active === false) throw new Error('新闻页面已失效，请重新打开。');
     if (!canPoll()) throw new Error('新闻已暂停，请返回新闻后重试。');
     const generation = activityGeneration;
-    const aliases = {'/sample':'reader', '/article':'article', '/research':'research', '/research/latest':'research/latest', '/translate':'translate', '/reader/refresh':'reader/refresh'};
+    const aliases = {'/sample':'reader', '/article':'article', '/research':'research', '/research/latest':'research/latest', '/translate':'translate', '/reader/refresh':'reader/refresh', '/catalog':'catalog', '/sections':'sections', '/source-test':'source-test'};
     const requested = new URL(url, location.origin);
     const target = aliases[requested.pathname] ? '/api/workspace/news/' + aliases[requested.pathname] + requested.search : url;
     const headers = new Headers(options.headers); headers.set('X-Session-Client', 'panel'); headers.delete('X-Preview-Request');
@@ -35,18 +35,18 @@
   const articleAttempts = new Map();
   const articles = new Map(), nodes = new Map(), documents = new Map(), loading = new Map();
   const tasks = new Map(), translations = new Map(), failedImages = new Set();
-  let records = {}, currentId = null, selected = 'inbox', stream = 'ai', language = 'original';
+  let records = {}, currentId = null, selected = 'inbox', stream = 'ai', language = 'original', sourceFilter = null, sectionRestored = false;
   // Which pet is shown, and whether pets are on, lives in NewsPetPrefs so the Studio settings and this page stay in step.
   const director = window.NewsPetDirector, prefs = window.NewsPetPrefs, initialPrefs = prefs.read();
   let petPrefs = initialPrefs, petName = initialPrefs.pet, petEnabled = initialPrefs.enabled, petFallback = null;
   let petStatus = {agentsRunning:false, quotaLeftPercent:null}, realStatus = {...petStatus}, statusOverride = {}, statusFeed = null;
   // `paused` is the manual pause button; quiet mode (a stored preference) holds the pet still in the same way, see still().
-  let engine = null, researchEngine = null, unsubscribePrefs = null, paused = false, collecting = false, undo = null, arrivalQueue = [];
+  let engine = null, researchEngine = null, unsubscribePrefs = null, paused = false, collecting = false, undo = null, refreshingFeeds = false, arrivalQueue = [];
   let visibleIds = [], translationRun = 0, translationAbort = null, renderedKey = '', destroyed = false;
   let mediaView = 'article', imageIndex = 0, mediaKey = '';
   let readingView = 'list', listScroll = 0;
   let researchJob = null, researchTimer = null, researchTopic = 'coding', researchBusy = false, researchFrameSeq = null;
-  let feedReading = false, researchReading = false, suspended = false, feedAttempt = 0, lastFeedKey = '', feedFailed = false, feedSettled = false, arrivalBatch = 0;
+  let feedQueued = false, feedReading = false, researchReading = false, suspended = false, feedAttempt = 0, lastFeedKey = '', feedFailed = false, feedSettled = false, arrivalBatch = 0;
   let historyReading = false, historyRestored = false;
   const still = () => paused || petPrefs.quiet;
   const stateText = () => still() ? (petPrefs.quiet ? '安静模式' : '动画已暂停') : collecting ? '正在采集信息' : '等待阅读';
@@ -58,7 +58,7 @@
   const changeText = (node, text) => { if (node.textContent !== text) node.textContent = text; };
   const make = (tag, className, text) => { const node = document.createElement(tag); if (className) node.className = className; if (text !== undefined) node.textContent = text; return node; };
   function safeUrl(value) { try { const url = new URL(value); return url.protocol === 'https:' && !url.username && !url.password ? url.href : null; } catch { return null; } }
-  function validItem(item) { return item && /^[a-f0-9]{24}$/.test(item.id) && typeof item.title === 'string' && typeof item.source_name === 'string' && typeof item.source_id === 'string' && safeUrl(item.url) && ['ai', 'hn'].includes(item.stream) && (item.summary === null || typeof item.summary === 'string'); }
+  function validItem(item) { return item && /^[a-f0-9]{24}$/.test(item.id) && typeof item.title === 'string' && typeof item.source_name === 'string' && typeof item.source_id === 'string' && safeUrl(item.url) && /^[a-z][a-z0-9]{1,15}$/.test(item.stream) && (item.summary === null || typeof item.summary === 'string'); }
   function state(id) { return records[id] && typeof records[id] === 'object' ? records[id] : (records[id] = {read_at:null, archived_at:null, saved:false}); }
   function itemSignature(item) { return JSON.stringify([item.title, item.summary, item.url, item.body_blocks, item.images, item.feed_content, item.feed_content_truncated]); }
   function displayTitle(item) {
@@ -103,7 +103,7 @@
   }
   function dateText(value) { const date = new Date(value); if (!value || !Number.isFinite(date.getTime())) return '日期未知'; const year = new Intl.DateTimeFormat('en', {year:'numeric', timeZone:'Asia/Shanghai'}); return new Intl.DateTimeFormat('zh-CN', {year:year.format(date) === year.format(new Date()) ? undefined : 'numeric', month:'short', day:'numeric', timeZone:'Asia/Shanghai'}).format(date); }
   function dayKey(value) { const date = new Date(value); return value && Number.isFinite(date.getTime()) ? new Intl.DateTimeFormat('en-CA', {timeZone:'Asia/Shanghai', year:'numeric', month:'2-digit', day:'2-digit'}).format(date) : ''; }
-  function publication(item) { return item.stream === 'hn' ? item.submitted_at : item.published_at || item.updated_at || (/^\d{4}-\d{2}-\d{2}$/.test(item.published_raw || '') ? item.published_raw : null); }
+  function publication(item) { return item.submitted_at || item.published_at || item.updated_at || (/^\d{4}-\d{2}-\d{2}$/.test(item.published_raw || '') ? item.published_raw : null); }
   function inDateRange(item) { return $('date-range').value === 'all' || dayKey(publication(item)) === dayKey(Date.now()); }
   function unavailable(item) { return item.completeness === 'feed_summary' || state(item.id).unavailable_signature === itemSignature(item); }
   function firstParagraph(item) { return bodyBlocks(item).find(block => block.type === 'p' && block.text.trim())?.text || ''; }
@@ -112,7 +112,13 @@
     dayTimer = setTimeout(() => { render(); scheduleDayChange(); }, Date.parse(dayKey(Date.now()) + 'T00:00:00+08:00') + 86400000 - Date.now() + 50);
   }
   function matches(item, view = selected) { const row = state(item.id); return view === 'read' ? !!row.read_at : view === 'saved' ? !!row.saved : view === 'archived' ? !!row.archived_at : !row.archived_at; }
-  function notice(text, canUndo = false) { $('toast-text').textContent = text; $('toast').hidden = false; $('undo').hidden = !canUndo; }
+  let noticeTimer = 0;
+  /** Shows the bottom toast. Plain notices fade away after 5 s so they never keep covering the reading actions; an undo toast stays until dismissed. */
+  function notice(text, canUndo = false) {
+    clearTimeout(noticeTimer);
+    $('toast-text').textContent = text; $('toast').hidden = false; $('undo').hidden = !canUndo;
+    if (!canUndo) noticeTimer = setTimeout(() => { $('toast').hidden = true; }, 5000);
+  }
   let narrowLayout = null, desktopDirectoryOpen = false;
   function setDirectory(open) { if (readingView === 'article' && !matchMedia('(max-width:720px)').matches) desktopDirectoryOpen = open; $('animation-stage').dataset.directory = open ? 'open' : 'closed'; $('open-directory').setAttribute('aria-expanded', String(open)); $('open-directory').setAttribute('aria-label', open ? '收起新闻目录' : '展开新闻目录'); $('open-directory').title = open ? '收起新闻目录' : '展开新闻目录'; $('directory-backdrop').hidden = !open || !matchMedia('(max-width:720px)').matches; $('directory').inert = readingView === 'article' && matchMedia('(max-width:720px)').matches && !open; }
   function setReadingView(view) {
@@ -268,11 +274,66 @@
     content.append(title, make('span', 'title-row-summary')); meta.append(make('span', 'row-dot'), make('span', 'row-source'), make('span', 'row-type'), make('span', 'row-date'), make('span', 'row-state'));
     row.append(content, thumbnail, meta); row.addEventListener('click', () => selectArticle(item.id, true)); return row;
   }
+  const prefStore = () => window.CERemoteContext ? window.CERemoteContext.storage('localStorage') : (window.localStorage ?? localStorage);
+  const prefKey = name => `news-${name}-v1:${storeKey ? storeKey.slice(storeKey.indexOf(':') + 1) : 'default'}`;
+  function readPref(name, fallback) { try { const value = prefStore().getItem(prefKey(name)); return value === null ? fallback : JSON.parse(value); } catch { return fallback; } }
+  function writePref(name, value) { try { prefStore().setItem(prefKey(name), JSON.stringify(value)); } catch { /* preferences are optional */ } }
+  /** Text the search field matches against. */
+  const searchText = item => [displayTitle(item), item.title, item.source_name, firstParagraph(item)].join(' ').toLocaleLowerCase();
+  /** What the floating search panel shows: result count plus per-source counts for the current section, date range and tab. */
+  function searchState() {
+    const text = $('search').value.trim(), query = text.toLocaleLowerCase(), counts = new Map();
+    for (const item of articles.values()) if (item.stream === stream && inDateRange(item) && !unavailable(item) && matches(item) && (!query || searchText(item).includes(query))) counts.set(item.source_name, (counts.get(item.source_name) || 0) + 1);
+    return {query:text, count:visibleIds.length, range:$('date-range').value === 'all' ? 'all' : 'today', source:sourceFilter, sources:[...counts].map(([name, count]) => ({name, count})).sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, 'zh-CN'))};
+  }
+  /** Why the list is empty, specific to the selected section when there is something the reader can do about it. */
+  function emptyMessage(query, items) {
+    if (query || sourceFilter) return '没有匹配的新闻';
+    if (!sections.list().length) return '还没有专栏，点右上角的 + 新建一个。';
+    if (selected === 'inbox' && !items.length && sections.isCustom(stream)) {
+      if (!sections.hasSources(stream)) return '这个专栏还没有来源，点右侧的编辑按钮添加。';
+      const problems = sections.problems(stream);
+      if (feedReading || refreshingFeeds) return '正在读取这个专栏的来源…';
+      if (problems.length) return `来源暂时读取失败：${problems[0].name}${problems[0].message ? '，' + problems[0].message : ''}${problems[0].hint ? '。' + problems[0].hint : ''}`;
+    }
+    return {read:'暂无已读新闻', saved:'暂无收藏新闻', archived:'暂无归档新闻'}[selected] || ($('date-range').value === 'all' ? '暂无可读新闻' : '今天还没有可读新闻');
+  }
+  /** The bulk bar over the list: archive everything already read, or move the archive back. Archiving is a list-level tidy-up, not a reading action. */
+  function renderListTools(items) {
+    const archived = selected === 'archived', rows = items.filter(item => archived ? state(item.id).archived_at : state(item.id).read_at && !state(item.id).archived_at);
+    const show = (selected === 'inbox' || selected === 'read' || archived) && rows.length > 0;
+    $('list-tools').hidden = !show; if (!show) return;
+    $('list-tools-text').textContent = archived ? `${rows.length} 条已归档` : `${rows.length} 条已读未归档`;
+    $('bulk-archive').textContent = archived ? '全部移回阅读' : '归档已读';
+  }
+  function bulkArchive() {
+    const archived = selected === 'archived', now = new Date().toISOString(), touched = [];
+    for (const item of articles.values()) {
+      if (item.stream !== stream || !inDateRange(item) || unavailable(item)) continue;
+      const row = state(item.id);
+      if (archived ? row.archived_at : row.read_at && !row.archived_at) { touched.push({id:item.id, archived_at:row.archived_at || null}); row.archived_at = archived ? null : now; }
+    }
+    if (!touched.length) return;
+    undo = touched; save(); render(); cancelInvisible();
+    if (!archived) reactor.react('archived');
+    notice(archived ? `已把 ${touched.length} 条移回阅读。` : `已归档 ${touched.length} 条已读新闻。`, true);
+  }
+  function copyLink() {
+    const url = articles.has(currentId) && safeUrl(articles.get(currentId).url); if (!url) return;
+    const done = () => notice('已复制原文链接。');
+    const fallback = () => {
+      const field = document.createElement('textarea'); field.value = url; field.setAttribute('readonly', ''); field.style.cssText = 'position:fixed;opacity:0;pointer-events:none';
+      document.body.append(field); field.select(); let ok = false; try { ok = document.execCommand('copy'); } catch { /* blocked */ } field.remove();
+      if (ok) done(); else notice('无法自动复制，请用「打开原文」后复制地址。');
+    };
+    if (navigator.clipboard?.writeText) navigator.clipboard.writeText(url).then(done, fallback); else fallback();
+  }
   function render() {
     if (!canPoll()) return;
     const previousIndex = Math.max(0, visibleIds.indexOf(currentId));
     const query = $('search').value.trim().toLocaleLowerCase();
     const items = [...articles.values()].filter(item => item.stream === stream && inDateRange(item) && !unavailable(item));
+    if (sourceFilter && !items.some(item => item.source_name === sourceFilter)) sourceFilter = null;
     $('directory-title').textContent = readingView === 'article' ? '标题目录' : $('date-range').value === 'all' ? '全部新闻' : '今日新闻';
     for (const view of ['inbox', 'read', 'saved', 'archived']) {
       document.querySelector(`[data-count="${view}"]`).textContent = items.filter(item => matches(item, view)).length;
@@ -284,7 +345,7 @@
       let node = nodes.get(item.id);
       if (!node) { node = createRow(item); nodes.set(item.id, node); }
       const row = state(item.id), moving = tasks.has(item.id);
-      const eligible = item.stream === stream && inDateRange(item) && !unavailable(item) && (matches(item) || moving && selected === 'inbox') && (!query || [displayTitle(item), item.title, item.source_name, firstParagraph(item)].join(' ').toLocaleLowerCase().includes(query));
+      const eligible = item.stream === stream && inDateRange(item) && !unavailable(item) && (matches(item) || moving && selected === 'inbox') && (!sourceFilter || item.source_name === sourceFilter) && (!query || searchText(item).includes(query));
       node.hidden = !eligible; if (eligible) visibleIds.push(item.id);
       node.dataset.pending = String(moving);
       changeText(node.querySelector('.title-row-title'), displayTitle(item));
@@ -311,8 +372,10 @@
     }
     for (const [id, node] of nodes) node.setAttribute('aria-current', String(id === currentId));
     $('list-total').textContent = `${visibleIds.length} 条`; $('list-empty').hidden = visibleIds.length > 0;
-    $('list-empty-message').textContent = query ? '没有匹配的新闻' : ({read:'暂无已读新闻', saved:'暂无收藏新闻', archived:'暂无归档新闻'}[selected] || ($('date-range').value === 'all' ? '暂无可读新闻' : '今天还没有可读新闻'));
-    $('clear-search').hidden = !query;
+    $('list-empty-message').textContent = emptyMessage(query, items);
+    renderListTools(items);
+    search.refresh();
+    $('clear-search').hidden = !query && !sourceFilter;
     observeNewsMood(query);
     $('show-history').hidden = $('date-range').value === 'all';
     renderArticle();
@@ -351,11 +414,18 @@
     });
   }
   function translationKey(item) { return item.id + ':' + JSON.stringify([displayTitle(item), item.summary, bodyBlocks(item).map(block => [block.type, block.text])]); }
+  /** 打开原文 is a real link, so middle-click and “copy address” work; it is inert while no article is open. */
+  function setOriginalLink(item) {
+    const link = $('open-original'), url = item && safeUrl(item.url);
+    if (url) { link.href = url; link.removeAttribute('aria-disabled'); link.removeAttribute('tabindex'); }
+    else { link.removeAttribute('href'); link.setAttribute('aria-disabled', 'true'); link.tabIndex = -1; }
+  }
   function renderArticle() {
     if (!canPoll()) return;    const item = articles.get(currentId), index = visibleIds.indexOf(currentId);
     $('article-position').textContent = item ? `${index + 1} / ${visibleIds.length}` : '0 / 0';
     $('previous').disabled = index <= 0; $('next').disabled = index < 0 || index >= visibleIds.length - 1;
-    for (const id of ['mark-read', 'save-article', 'archive-article']) $(id).disabled = !item;
+    for (const id of ['mark-read', 'save-article', 'copy-link']) $(id).disabled = !item || id === 'copy-link' && !safeUrl(item.url);
+    setOriginalLink(item);
     $('article-content').hidden = !item; $('reader-empty').hidden = !!item;
     if (!item) {
       mediaView = 'article';
@@ -383,7 +453,7 @@
       for (const reference of references) {
         const link = make('a', '', reference.label || (reference.kind === 'x_post' ? '文中引用的 X 帖子' : reference.kind === 'paper' ? '相关论文' : '相关来源'));
         link.href = safeUrl(reference.url); link.target = '_blank'; link.rel = 'noopener noreferrer';
-        link.addEventListener('click', event => { const local = [...articles.values()].find(article => article.url === reference.url); if (local) { event.preventDefault(); if (!matches(local)) selected = state(local.id).archived_at ? 'archived' : 'inbox'; stream = local.stream; $('stream').value = stream; $('search').value = ''; if (!inDateRange(local)) $('date-range').value = 'all'; selectArticle(local.id, true); } });
+        link.addEventListener('click', event => { const local = [...articles.values()].find(article => article.url === reference.url); if (local) { event.preventDefault(); if (!matches(local)) selected = state(local.id).archived_at ? 'archived' : 'inbox'; stream = local.stream; sourceFilter = null; sections.select(stream, {silent:true}); $('search').value = ''; if (!inDateRange(local)) $('date-range').value = 'all'; selectArticle(local.id, true); } });
         details.append(link);
       }
       $('article-provenance').replaceChildren(details); $('article-provenance').dataset.key = provenanceKey; $('source-details').open = false;
@@ -419,8 +489,7 @@
     $('mark-read').textContent = row.read_at ? '标为未读' : '标为已读';
     $('mark-read').setAttribute('aria-pressed', String(!!row.read_at));
     $('save-article').textContent = row.saved ? '已收藏' : '收藏'; $('save-article').setAttribute('aria-pressed', String(!!row.saved));
-    $('archive-article').textContent = row.archived_at ? '移回' : '归档'; $('archive-article').setAttribute('aria-label', row.archived_at ? '移回阅读' : '已读并归档'); $('archive-article').disabled = tasks.has(item.id);
-    $('reader-state').textContent = tasks.has(item.id) ? '正在归档…' : row.archived_at ? '已归档' : row.read_at ? '已读' : '未读';
+    $('reader-state').textContent = row.archived_at ? '已归档' : row.read_at ? '已读' : '未读';
     if (!entry && readingView === 'article') loadArticle(item);
     if (language !== 'original') ensureTranslation(item);
     else $('translation-status').hidden = true;
@@ -540,28 +609,20 @@
     try { if (engine.capture({id, element:$('arrival-title'), label:displayTitle(item)})) { tasks.set(id, {kind:'arrival', node:$('arrival-title'), articleId:item.id}); $('spider-state').textContent = '新信息正在入站'; return; } } catch {}
     $('arrival-title').hidden = true; $('reader-state').hidden = false;
   }
-  function archiveCurrent() {
-    const item = articles.get(currentId); if (!item) return; const row = state(item.id);
-    if (row.archived_at) { cancelTask(item.id); row.archived_at = null; save(); render(); notice('已移回阅读。'); return; }
-    undo = {id:item.id, read_at:row.read_at, archived_at:row.archived_at}; row.read_at ||= new Date().toISOString(); row.archived_at = new Date().toISOString();
-    let target = $('article-title');
-    if (!visibleElement(target)) target = nodes.get(item.id)?.querySelector('.title-row-title');
-    if (petEnabled && engine && !still() && petPrefs.newsFx && visibleElement(target)) {
-      try { if (engine.capture({id:item.id, element:target, label:displayTitle(item)})) tasks.set(item.id, {kind:'archive', node:target, articleId:item.id}); } catch {}
-    }
-    if (!tasks.has(item.id)) reactor.react('archived'); // the capture is itself the pet's answer when it runs
-    save(); render(); notice('已读并归档。', true);
-  }
   function applySnapshot(value, animate = false, append = false) {
     if (destroyed || window.CERemoteContext?.active === false) return;
     if (!value?.sample?.streams || !Array.isArray(value.sample.sources)) throw new Error('本次采集未返回可用内容。');
     if (!storeKey || value.reader_id) restoreStorage(value.reader_id);
+    if (!sectionRestored) { sectionRestored = true; const saved = readPref('section', null); if (typeof saved === 'string') stream = saved; }
+    if (sections.update(value, stream)) { stream = sections.current(); sourceFilter = null; }
+    refreshingFeeds = Boolean(value.refreshing);
+    const sectionIds = new Set(sections.list().map(row => row.id));
     const covers = new Map((value.covers?.items || []).map(item => [item.id, item]));
     const incoming = new Map(), oldIds = new Set(articles.keys());
     for (const [name, envelope] of Object.entries(value.sample.streams)) for (const raw of envelope.items || []) { const item = {...raw, stream:name, images:Array.isArray(raw.images) ? raw.images : [], body_blocks:Array.isArray(raw.body_blocks) ? raw.body_blocks : [], cover_url:covers.get(raw.id)?.url || raw.cover_url || null}; if (validItem(item)) incoming.set(item.id, item); }
     const failedSources = new Set(value.sample.sources.filter(source => source.reason).map(source => source.source_id || source.id));
     const retained = [];
-    for (const [id, item] of articles) if (!incoming.has(id)) { const row = state(id); if (append || failedSources.has(item.source_id) || row.read_at || row.archived_at || row.saved || tasks.has(id)) retained.push([id, {...item, cached:true}]); else { cancelTask(id); nodes.get(id)?.remove(); nodes.delete(id); documents.delete(id); delete records[id]; } }
+    for (const [id, item] of articles) if (!incoming.has(id)) { const row = state(id); if (!sectionIds.has(item.stream)) { cancelTask(id); nodes.get(id)?.remove(); nodes.delete(id); documents.delete(id); } else if (append || failedSources.has(item.source_id) || row.read_at || row.archived_at || row.saved || tasks.has(id)) retained.push([id, {...item, cached:true}]); else { cancelTask(id); nodes.get(id)?.remove(); nodes.delete(id); documents.delete(id); delete records[id]; } }
     articles.clear();
     for (const [id, item] of incoming) articles.set(id, item);
     for (const [id, item] of retained) articles.set(id, item);
@@ -580,8 +641,19 @@
   $('search').addEventListener('input', () => { render(); cancelInvisible(); });
   $('date-range').addEventListener('change', () => { render(); cancelInvisible(); });
   $('show-history').addEventListener('click', () => { $('date-range').value = 'all'; render(); });
-  bindSegmented($('stream'), value => { for (const [id, task] of tasks) if (task.kind === 'archive') cancelTask(id); stream = value; render(); });
-  $('clear-search').addEventListener('click', () => { $('search').value = ''; render(); $('search').focus(); });
+  const sections = window.NewsSections.mount({
+    tabs:$('stream'), add:$('section-add'), edit:$('section-edit'), request:readerFetch, announce:text => notice(text),
+    onSelect(id) { for (const [taskId, task] of tasks) if (task.kind === 'archive') cancelTask(taskId); stream = id; sourceFilter = null; writePref('section', id); render(); cancelInvisible(); },
+    onSaved() { lastFeedKey = ''; refreshingFeeds = true; if (feedReading) feedQueued = true; else readFeeds(false); },
+  });
+  const search = window.NewsSearch.mount({
+    input:$('search'), wrap:document.querySelector('.search-wrap'), state:searchState,
+    setRange(value) { $('date-range').value = value; render(); cancelInvisible(); },
+    setSource(name) { sourceFilter = name; render(); cancelInvisible(); },
+    clear() { $('search').value = ''; render(); cancelInvisible(); },
+    store:{read:() => { const list = readPref('search-recent', []); return Array.isArray(list) ? list.filter(item => typeof item === 'string').slice(0, 6) : []; }, write:list => writePref('search-recent', list)},
+  });
+  $('clear-search').addEventListener('click', () => { $('search').value = ''; sourceFilter = null; render(); $('search').focus(); });
   $('directory-summary').addEventListener('click', event => { const show = event.currentTarget.getAttribute('aria-pressed') !== 'true'; event.currentTarget.setAttribute('aria-pressed', String(show)); event.currentTarget.setAttribute('aria-label', show ? '隐藏目录摘要' : '显示目录摘要'); $('directory').dataset.summaries = String(show); });
   $('back-to-list').addEventListener('click', () => setReadingView('list'));
   $('previous').addEventListener('click', () => { const index = visibleIds.indexOf(currentId); if (index > 0) selectArticle(visibleIds[index - 1]); });
@@ -591,8 +663,10 @@
   $('directory-backdrop').addEventListener('click', () => { setDirectory(false); $('open-directory').focus(); cancelInvisible(); });
   $('mark-read').addEventListener('click', () => { if (!currentId) return; const row = state(currentId); row.read_at = row.read_at ? null : new Date().toISOString(); save(); render(); });
   $('save-article').addEventListener('click', () => { if (!currentId) return; const row = state(currentId); row.saved = !row.saved; save(); render(); if (row.saved) reactor.react('saved'); });
-  $('archive-article').addEventListener('click', archiveCurrent);
-  $('undo').addEventListener('click', () => { if (!undo) return; const {id, read_at, archived_at} = undo; cancelTask(id); Object.assign(state(id), {read_at, archived_at}); undo = null; save(); currentId = id; render(); notice('已撤销归档。'); });
+  $('bulk-archive').addEventListener('click', bulkArchive);
+  $('copy-link').addEventListener('click', copyLink);
+  $('open-original').addEventListener('click', event => { if ($('open-original').getAttribute('aria-disabled') === 'true') event.preventDefault(); });
+  $('undo').addEventListener('click', () => { if (!undo) return; for (const {id, archived_at} of undo) { cancelTask(id); state(id).archived_at = archived_at; } const count = undo.length; undo = null; save(); render(); cancelInvisible(); notice(`已撤销，恢复 ${count} 条。`); });
   $('dismiss').addEventListener('click', () => { $('toast').hidden = true; });
   document.querySelectorAll('[data-language]').forEach(control => control.addEventListener('click', () => { language = control.dataset.language; stopTranslation(); document.querySelectorAll('[data-language]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.language === language))); renderedKey = ''; renderArticle(); }));
   function syncMotion() {
@@ -614,22 +688,6 @@
    * @param {HTMLElement} root element with role="radiogroup" holding [role="radio"] buttons
    * @param {(value:string) => void} onChange called with the new data-value after a user change
    */
-  function bindSegmented(root, onChange) {
-    const items = [...root.querySelectorAll('[role="radio"]')];
-    const choose = (item, focus) => {
-      const changed = item.getAttribute('aria-checked') !== 'true';
-      for (const other of items) { const on = other === item; other.setAttribute('aria-checked', String(on)); other.tabIndex = on ? 0 : -1; }
-      if (focus) item.focus();
-      if (changed) onChange(item.dataset.value);
-    };
-    root.addEventListener('click', event => { const item = event.target.closest('[role="radio"]'); if (item && root.contains(item)) choose(item, false); });
-    root.addEventListener('keydown', event => {
-      const at = items.indexOf(document.activeElement); if (at < 0 || event.altKey || event.ctrlKey || event.metaKey) return;
-      const step = {ArrowRight:1, ArrowDown:1, ArrowLeft:-1, ArrowUp:-1}[event.key];
-      const next = event.key === 'Home' ? 0 : event.key === 'End' ? items.length - 1 : step ? (at + step + items.length) % items.length : -1;
-      if (next < 0) return; event.preventDefault(); choose(items[next], true);
-    });
-  }
   function setCollecting(active) {
     collecting = active; researchBusy = active; engine?.setCollecting?.(active);
     researchEngine?.setCollecting(active);
@@ -926,13 +984,13 @@
       if (!response.ok) throw new Error('新闻暂未更新，保留本机阅读记录。');
       const value = await response.json(); if (!canPoll()) return;
       const key = JSON.stringify([value.reader_id, value.sample?.captured_at,
-        value.sample?.sources?.map(source => [source.id, source.source_id, source.reason]),
+        value.sections, value.refreshing, value.sample?.sources?.map(source => [source.id, source.source_id, source.reason]),
         Object.entries(value.sample?.streams || {}).map(([name, envelope]) => [name, envelope.items]), value.covers?.items]);
       if (key !== lastFeedKey || feedFailed) { applySnapshot(value, refresh, true); lastFeedKey = key; }
       feedFailed = false;
       if (canPoll() && value.refreshing && attempt < 35) feedTimer = setTimeout(() => readFeeds(false, attempt + 1), 1500);
     } catch (error) { if (!destroyed) { feedFailed = true; $('snapshot-note').textContent = error.message; if (refresh) reactor.react('refresh-failed'); } }
-    finally { feedReading = false; feedSettled = true; if (!destroyed) { observeNewsMood($('search').value.trim()); $('refresh-feeds').disabled = false; $('refresh-feeds').setAttribute('aria-busy', 'false'); } }
+    finally { feedReading = false; feedSettled = true; if (feedQueued) { feedQueued = false; setTimeout(() => readFeeds(false), 0); } if (!destroyed) { observeNewsMood($('search').value.trim()); $('refresh-feeds').disabled = false; $('refresh-feeds').setAttribute('aria-busy', 'false'); } }
   }
   $('refresh-feeds').addEventListener('click', () => { reactor.react('refreshing'); readFeeds(true); });
   async function start() {
@@ -941,7 +999,7 @@
     paused = matchMedia('(prefers-reduced-motion: reduce)').matches;
     unsubscribePrefs = prefs.subscribe(applyPrefs);
     syncPets(); syncPetStatusFeed();
-    window.NewsReader = {setActive(value) { if (destroyed || active === value) return; active = value; if (!active) stopTranslation(); if (!active && $('research-panel').open) $('research-panel').close(); syncActivity(); }, dispose:destroy, get researchEngine() { return researchEngine; }, switchPet, setPetEnabled:enabled => prefs.setEnabled(enabled), setPetStatus, setRealPetStatus, clearPetStatusOverride, statusFeed:() => statusFeed?.inspect() || null, refreshStatus:() => statusFeed?.refresh(), pet:() => petName, inspect:() => ({items:articles.size, visible:visibleIds.length, currentId, selected, stream, language, readingView, mediaView, imageIndex, researchJob, researchEvents:researchEvents.size, active, pending:[...tasks.keys()], reading:JSON.parse(JSON.stringify(records)), collecting, pet:petName, petEnabled, engine:engine?.inspect(), researchEngine:researchEngine?.inspect(), destroyed}), get engine() { return engine; }, applySnapshot};
+    window.NewsReader = {setActive(value) { if (destroyed || active === value) return; active = value; if (!active) stopTranslation(); if (!active && $('research-panel').open) $('research-panel').close(); syncActivity(); }, dispose:destroy, get researchEngine() { return researchEngine; }, switchPet, setPetEnabled:enabled => prefs.setEnabled(enabled), setPetStatus, setRealPetStatus, clearPetStatusOverride, statusFeed:() => statusFeed?.inspect() || null, refreshStatus:() => statusFeed?.refresh(), pet:() => petName, inspect:() => ({items:articles.size, visible:visibleIds.length, currentId, selected, stream, sourceFilter, sections:sections.list().map(row => row.id), language, readingView, mediaView, imageIndex, researchJob, researchEvents:researchEvents.size, active, pending:[...tasks.keys()], reading:JSON.parse(JSON.stringify(records)), collecting, pet:petName, petEnabled, engine:engine?.inspect(), researchEngine:researchEngine?.inspect(), destroyed}), get engine() { return engine; }, applySnapshot};
     await readFeeds();
     restoreResearch();
   }
