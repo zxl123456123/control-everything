@@ -399,7 +399,9 @@ class BuilderTests(PayloadFixture):
 
     def test_lock_is_fixed_target_input_and_not_a_host_freeze(self):
         values = BUILD.locked_requirements(ROOT / 'tools/packaging/windows-cp313.lock')
-        self.assertEqual(len(values), 48)
+        self.assertEqual(len(values), 52)
+        self.assertEqual({name: values[name]['version'] for name in ('ctranslate2', 'sentencepiece', 'numpy', 'pyyaml')},
+                         {'ctranslate2': '4.8.3', 'sentencepiece': '0.2.2', 'numpy': '2.5.4', 'pyyaml': '6.0.3'})
         self.assertEqual(values['trafilatura']['version'], '2.3.1')
         self.assertEqual(values['mcp']['version'], '1.30.0')
         self.assertEqual(values['defusedxml']['version'], '0.7.1')
@@ -603,6 +605,70 @@ class ReleaseBuildTests(unittest.TestCase):
 
 
 class NoticesTests(unittest.TestCase):
+    def test_license_directories_are_not_text_but_empty_license_files_still_fail(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            dependency = wheel(root)
+            with zipfile.ZipFile(dependency, 'a') as archive:
+                archive.writestr('example_dep-1.0.dist-info/licenses/', b'')
+                archive.writestr('example_dep-1.0.dist-info/licenses/LICENSE-extra', b'Extra license text.')
+            runtime, inno, packages = root / 'python', root / 'inno', root / 'cargo.json'
+            runtime.write_text('Python fixture license.')
+            inno.write_text('Inno fixture license.')
+            packages.write_text(json.dumps([{'name': 'session-panel-observer', 'version': 'fixture', 'license': 'MIT'}]))
+            rows = NOTICES.collect_notices(root, [dependency], runtime, packages, inno)
+            self.assertTrue(any(row['file'].endswith('/LICENSE-extra') for row in rows))
+            self.assertFalse(any(row['file'].endswith('/licenses/') for row in rows))
+            with zipfile.ZipFile(dependency, 'a') as archive:
+                archive.writestr('example_dep-1.0.dist-info/licenses/LICENSE-empty', b'')
+            with self.assertRaisesRegex(NOTICES.NoticeError, 'empty_license_text:example-dep'):
+                NOTICES.collect_notices(root, [dependency], runtime, packages, inno)
+
+    def test_supplement_requires_exact_wheel_and_license_bytes(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            dependency = wheel(root)
+            assets = root / 'wheel-notices'
+            assets.mkdir()
+            raw = b'Original upstream license text.'
+            (assets / 'extra.txt').write_bytes(raw)
+            row = {'component': 'Example native dependency', 'version': '2', 'source': 'https://example.com/LICENSE',
+                   'license': 'MIT', 'file': 'extra.txt', 'sha256': hashlib.sha256(raw).hexdigest()}
+            manifest = root / 'wheel-notices.json'
+            value = {'schema': 1, 'wheels': [{'name': 'example-dep', 'version': '1.0', 'filename': dependency.name,
+                     'sha256': MANIFEST.sha256(dependency), 'notices': [row]}]}
+            manifest.write_text(json.dumps(value))
+            with patch.object(NOTICES, 'SUPPLEMENT_MANIFEST', manifest):
+                supplied = NOTICES.wheel_supplements(dependency, 'example-dep', '1.0')
+                self.assertEqual(supplied[0][1], raw)
+                self.assertEqual(NOTICES.wheel_supplements(dependency, 'unregistered-package', '1.0'), [])
+                with self.assertRaisesRegex(NOTICES.NoticeError, 'unreviewed_wheel_notice'):
+                    NOTICES.wheel_supplements(dependency, 'example-dep', '1.1')
+                (assets / 'extra.txt').write_bytes(b'Changed text.')
+                with self.assertRaisesRegex(NOTICES.NoticeError, 'supplement_license_hash_mismatch'):
+                    NOTICES.wheel_supplements(dependency, 'example-dep', '1.0')
+                (assets / 'extra.txt').write_bytes(raw)
+                row['file'] = '../extra.txt'
+                manifest.write_text(json.dumps(value))
+                with self.assertRaisesRegex(NOTICES.NoticeError, 'invalid_supplement_license_path'):
+                    NOTICES.wheel_supplements(dependency, 'example-dep', '1.0')
+                row['file'] = 'extra.txt'
+                manifest.write_text(json.dumps(value))
+                with zipfile.ZipFile(dependency, 'a') as archive:
+                    archive.writestr('unreviewed.txt', b'Changed wheel contents.')
+                with self.assertRaisesRegex(NOTICES.NoticeError, 'wheel_notice_hash_mismatch'):
+                    NOTICES.wheel_supplements(dependency, 'example-dep', '1.0')
+
+    def test_registered_supplement_files_match_reviewed_hashes(self):
+        manifest = json.loads(NOTICES.SUPPLEMENT_MANIFEST.read_text(encoding='utf-8'))
+        self.assertEqual(manifest['schema'], 1)
+        for package in manifest['wheels']:
+            self.assertTrue(package['notices'])
+            for row in package['notices']:
+                raw = NOTICES.regular_bytes(NOTICES.SUPPLEMENT_MANIFEST.parent / 'wheel-notices' / row['file'])
+                self.assertEqual(hashlib.sha256(raw).hexdigest(), row['sha256'])
+                self.assertTrue(raw.strip())
+
     def test_actual_wheel_cpython_inno_and_registry_license_texts_are_collected(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary).resolve()

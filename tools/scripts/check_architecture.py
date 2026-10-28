@@ -59,6 +59,49 @@ def ownership_error(value):
         return None if value == 'tests/__init__.py' or section in {
             'backend', 'frontend', 'e2e', 'fixtures'} else 'unknown_test_type'
     if top == 'tools':
+        if value.startswith('tools/packaging/wheel-notices/'):
+            return None if value in {
+                'tools/packaging/wheel-notices/sentencepiece-LICENSE.txt',
+                'tools/packaging/wheel-notices/abseil-LICENSE.txt',
+                'tools/packaging/wheel-notices/darts-clone-LICENSE.txt',
+                'tools/packaging/wheel-notices/esaxx-LICENSE.txt',
+                'tools/packaging/wheel-notices/protobuf-lite-LICENSE.txt',
+                'tools/packaging/wheel-notices/pybind11-LICENSE.txt',
+                'tools/packaging/wheel-notices/Unicode-LICENSE-v3.txt',
+                'tools/packaging/wheel-notices/avx-mathfun-LICENSE.txt',
+                'tools/packaging/wheel-notices/cccl-cub-LICENSE.txt',
+                'tools/packaging/wheel-notices/cccl-libcudacxx-LICENSE.txt',
+                'tools/packaging/wheel-notices/cccl-LICENSE.txt',
+                'tools/packaging/wheel-notices/cccl-thrust-LICENSE.txt',
+                'tools/packaging/wheel-notices/cpu_features-LICENSE.txt',
+                'tools/packaging/wheel-notices/ctranslate2-LICENSE.txt',
+                'tools/packaging/wheel-notices/cutlass-LICENSE.txt',
+                'tools/packaging/wheel-notices/fmt-LICENSE.txt',
+                'tools/packaging/wheel-notices/intel-compiler-credist.txt',
+                'tools/packaging/wheel-notices/intel-compiler-EULA.txt',
+                'tools/packaging/wheel-notices/intel-mkl-LICENSE.txt',
+                'tools/packaging/wheel-notices/intel-mkl-third-party-programs-benchmarks.txt',
+                'tools/packaging/wheel-notices/intel-mkl-third-party-programs-IntelMPI.txt',
+                'tools/packaging/wheel-notices/intel-mkl-third-party-programs-level-zero.txt',
+                'tools/packaging/wheel-notices/intel-mkl-third-party-programs-oneMath.txt',
+                'tools/packaging/wheel-notices/intel-mkl-third-party-programs-oneTBB.txt',
+                'tools/packaging/wheel-notices/intel-mkl-third-party-programs-openmp.txt',
+                'tools/packaging/wheel-notices/intel-mkl-third-party-programs-safestring.txt',
+                'tools/packaging/wheel-notices/intel-mkl-third-party-programs.txt',
+                'tools/packaging/wheel-notices/intel-openmp-EULA.txt',
+                'tools/packaging/wheel-notices/intel-openmp-THIRD-PARTY-PROGRAMS.txt',
+                'tools/packaging/wheel-notices/intel-tbb-LICENSE.txt',
+                'tools/packaging/wheel-notices/intel-tbb-THIRD-PARTY-PROGRAMS.txt',
+                'tools/packaging/wheel-notices/intel-tcm-LICENSE.txt',
+                'tools/packaging/wheel-notices/intel-tcm-THIRD-PARTY-PROGRAMS.txt',
+                'tools/packaging/wheel-notices/nvidia-cuda-LICENSE.txt',
+                'tools/packaging/wheel-notices/nvidia-cudnn-LICENSE.txt',
+                'tools/packaging/wheel-notices/oneDNN-ittnotify-LICENSE.txt',
+                'tools/packaging/wheel-notices/oneDNN-LICENSE.txt',
+                'tools/packaging/wheel-notices/oneDNN-THIRD-PARTY-PROGRAMS.txt',
+                'tools/packaging/wheel-notices/simd-utils-LICENSE.txt',
+                'tools/packaging/wheel-notices/spdlog-LICENSE.txt',
+            } else 'unregistered_wheel_notice'
         if section == 'scripts':
             return None if len(parts) == 3 and path.suffix in {'.py', '.cjs', '.ps1'} else 'scripts_are_development_entries'
         return None if section in {'typescript', 'remote-reader', 'architecture', 'packaging'} else 'unknown_development_tool'

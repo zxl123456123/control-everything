@@ -7,6 +7,8 @@ from pathlib import Path
 import stat
 import zipfile
 
+SUPPLEMENT_MANIFEST = Path(__file__).with_name('wheel-notices.json')
+
 
 class NoticeError(ValueError):
     pass
@@ -29,11 +31,40 @@ def regular_bytes(path):
     return raw
 
 
+def wheel_supplements(wheel, name, version):
+    manifest = json.loads(regular_bytes(SUPPLEMENT_MANIFEST))
+    if manifest.get('schema') != 1 or type(manifest.get('wheels')) is not list:
+        raise NoticeError('invalid_wheel_notice_manifest')
+    rows = [row for row in manifest['wheels'] if row['name'].lower().replace('_', '-') == name.lower().replace('_', '-')]
+    if not rows:
+        return []
+    matches = [row for row in rows if row['filename'] == wheel.name and row['version'] == version]
+    if len(matches) != 1:
+        raise NoticeError('unreviewed_wheel_notice:' + name)
+    selected = matches[0]
+    with wheel.open('rb') as stream:
+        if hashlib.file_digest(stream, 'sha256').hexdigest() != selected['sha256']:
+            raise NoticeError('wheel_notice_hash_mismatch:' + name)
+    if not selected['notices']:
+        raise NoticeError('empty_wheel_notice_supplement:' + name)
+    result = []
+    for row in selected['notices']:
+        filename = row['file']
+        if Path(filename).name != filename or Path(filename).suffix != '.txt':
+            raise NoticeError('invalid_supplement_license_path')
+        raw = regular_bytes(SUPPLEMENT_MANIFEST.parent / 'wheel-notices' / filename)
+        if hashlib.sha256(raw).hexdigest() != row['sha256']:
+            raise NoticeError('supplement_license_hash_mismatch:' + row['component'])
+        result.append((row, raw, selected['sha256']))
+    return result
+
+
 def collect_notices(output, wheels, runtime_license, cargo_packages, inno_license):
     """Write text plus a path-free inventory; never invent a project license."""
     output = Path(output)
     project_license = regular_bytes(Path(__file__).resolve().parents[2] / 'LICENSE')
     entries, sections = [], ['THIRD-PARTY NOTICES\n\nControl Everything project license: MIT (see LICENSE).\n'
+                            'Third-party components retain the licenses and restrictions reproduced below.\n'
                             'This technical prerelease installer and observer are unsigned.\n'
                             'Upstream signatures do not sign this combined product.\n']
 
@@ -61,9 +92,11 @@ def collect_notices(output, wheels, runtime_license, cargo_packages, inno_licens
             name, version = metadata['Name'], metadata['Version']
             if name.lower().replace('_', '-') == 'control-everything':
                 continue
+            supplements = wheel_supplements(wheel, name, version)
             info = metadata_names[0].rsplit('/', 1)[0]
             declared = metadata.get_all('License-File', [])
-            candidates = {value for value in names if value.startswith(info + '/') and license_name(value)}
+            candidates = {value for value in names if not value.endswith('/')
+                          and value.startswith(info + '/') and license_name(value)}
             for value in declared:
                 matches = [path for path in (info + '/' + value, info + '/licenses/' + value) if path in names]
                 if not matches:
@@ -72,12 +105,20 @@ def collect_notices(output, wheels, runtime_license, cargo_packages, inno_licens
             if not candidates:
                 # Older wheels can carry license material outside dist-info.
                 candidates = {value for value in names if not value.endswith('/') and license_name(value)}
-            if not candidates:
+            if not candidates and not supplements:
                 raise NoticeError('wheel_license_missing:' + name)
             expression = metadata['License-Expression'] or metadata['License'] or 'See included license'
             for value in sorted(candidates):
                 add(name, version, f'https://pypi.org/project/{name}/{version}/', expression,
                     value, archive.read(value))
+            for row, raw, wheel_hash in supplements:
+                add(row['component'], row['version'], row['source'], row['license'],
+                    'wheel-notices/' + row['file'], raw)
+                entries[-1].update(wheel=wheel.name, wheel_sha256=wheel_hash)
+                for key in ('source_sha256', 'source_archive_sha256', 'source_package',
+                            'source_package_sha256', 'source_member', 'transform', 'review_note'):
+                    if key in row:
+                        entries[-1][key] = row[key]
     packages = json.loads(Path(cargo_packages).read_text(encoding='utf-8'))
     if type(packages) is not list or not packages:
         raise NoticeError('cargo_packages_required')

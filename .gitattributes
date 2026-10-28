@@ -1,4 +1,6 @@
 # Preserve the fixed compiler's delivered bytes on Windows checkouts.
+# Vendor notices retain their reviewed bytes and upstream whitespace.
+tools/packaging/wheel-notices/*.txt -text -whitespace
 web/workspace/observation.js text eol=lf
 web/workspace/news.js text eol=lf
 # Keep manifest-pinned adapted text byte-stable on Windows checkouts.

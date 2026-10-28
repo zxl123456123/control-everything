@@ -50,6 +50,10 @@ $panel = Join-Path $env:LOCALAPPDATA 'Programs/SessionPanel/session-panel.cmd'
 
 `tools/packaging/downloads.json` 是 CPython 和 Inno Setup 下载 URL、SHA256、发布者的唯一配置。下载后核 SHA256；对 CPython 解包后的 `python.exe`、Inno 下载器及所选编译器核 Authenticode 状态和发布者，保留证据，不能把组合产品说成已签名。准备 Inno 工具目录中的 `ISCC.exe` 和 `license.txt`；准备工具不等于安装本产品。
 
+Python wheel 的许可由 `notices.py` 收集实际原文。少数已审查但未携许可的官方 wheel 由 `wheel-notices.json` 精确绑定文件名、版本、官方 SHA256 和逐份原文 SHA256；原文保存在 `wheel-notices/` 并逐文件登记归属及内容检查。补充表不接受改过的 wheel，不会跳过缺失、空白或哈希变化的许可；升级这些依赖必须重新核上游构建组件与许可。SentencePiece 0.2.2 的声明还覆盖嵌入的 Abseil、protobuf-lite、darts、esaxx、pybind11 和 Unicode 数据；上游未锁定 pybind11 patch，清单明确保留该限制，使用已核字节相同的 3.0.0～3.0.4 共同原文。
+
+本地翻译的 CTranslate2 4.8.3 使用未修改的官方 wheel。补充声明保留其实际构建配方中的开源库以及 CUDA、cuDNN、Intel OpenMP/oneMKL 完整条款和嵌套声明；cuDNN/OpenMP DLL 已与对应官方发行材料逐字节对照。Intel 再分发清单来自具有有效 Intel 签名的 oneAPI 2025.3.0.372 安装器中的 `credist.txt`，明确列出该 OpenMP DLL；清单引言的旧 EULA 年份与同包 EULA 原文均保留，不自行改写。UTF-8 转码、RTF 纯文本呈现及完整源许可注释的提取均登记来源与转换前后哈希。模型另按其实际 CC-BY-4.0 条款保留署名，不能用这两份 wheel 的许可覆盖模型。
+
 ### 2. 一份本机输入清单
 
 将 `inputs.json` 放在 ignored `work/windows-release/inputs/`，九项路径均使用自己的绝对路径。下例是结构说明，替换全部占位后才能执行；真实清单不提交：

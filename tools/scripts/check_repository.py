@@ -75,6 +75,49 @@ def relative_path(value):
 
 def forbidden(value, *, reviewed_resource=False):
     path = relative_path(value)
+    if value.startswith('tools/packaging/wheel-notices/') and value not in {
+            'tools/packaging/wheel-notices/sentencepiece-LICENSE.txt',
+            'tools/packaging/wheel-notices/abseil-LICENSE.txt',
+            'tools/packaging/wheel-notices/darts-clone-LICENSE.txt',
+            'tools/packaging/wheel-notices/esaxx-LICENSE.txt',
+            'tools/packaging/wheel-notices/protobuf-lite-LICENSE.txt',
+            'tools/packaging/wheel-notices/pybind11-LICENSE.txt',
+            'tools/packaging/wheel-notices/Unicode-LICENSE-v3.txt',
+            'tools/packaging/wheel-notices/avx-mathfun-LICENSE.txt',
+            'tools/packaging/wheel-notices/cccl-cub-LICENSE.txt',
+            'tools/packaging/wheel-notices/cccl-libcudacxx-LICENSE.txt',
+            'tools/packaging/wheel-notices/cccl-LICENSE.txt',
+            'tools/packaging/wheel-notices/cccl-thrust-LICENSE.txt',
+            'tools/packaging/wheel-notices/cpu_features-LICENSE.txt',
+            'tools/packaging/wheel-notices/ctranslate2-LICENSE.txt',
+            'tools/packaging/wheel-notices/cutlass-LICENSE.txt',
+            'tools/packaging/wheel-notices/fmt-LICENSE.txt',
+            'tools/packaging/wheel-notices/intel-compiler-credist.txt',
+            'tools/packaging/wheel-notices/intel-compiler-EULA.txt',
+            'tools/packaging/wheel-notices/intel-mkl-LICENSE.txt',
+            'tools/packaging/wheel-notices/intel-mkl-third-party-programs-benchmarks.txt',
+            'tools/packaging/wheel-notices/intel-mkl-third-party-programs-IntelMPI.txt',
+            'tools/packaging/wheel-notices/intel-mkl-third-party-programs-level-zero.txt',
+            'tools/packaging/wheel-notices/intel-mkl-third-party-programs-oneMath.txt',
+            'tools/packaging/wheel-notices/intel-mkl-third-party-programs-oneTBB.txt',
+            'tools/packaging/wheel-notices/intel-mkl-third-party-programs-openmp.txt',
+            'tools/packaging/wheel-notices/intel-mkl-third-party-programs-safestring.txt',
+            'tools/packaging/wheel-notices/intel-mkl-third-party-programs.txt',
+            'tools/packaging/wheel-notices/intel-openmp-EULA.txt',
+            'tools/packaging/wheel-notices/intel-openmp-THIRD-PARTY-PROGRAMS.txt',
+            'tools/packaging/wheel-notices/intel-tbb-LICENSE.txt',
+            'tools/packaging/wheel-notices/intel-tbb-THIRD-PARTY-PROGRAMS.txt',
+            'tools/packaging/wheel-notices/intel-tcm-LICENSE.txt',
+            'tools/packaging/wheel-notices/intel-tcm-THIRD-PARTY-PROGRAMS.txt',
+            'tools/packaging/wheel-notices/nvidia-cuda-LICENSE.txt',
+            'tools/packaging/wheel-notices/nvidia-cudnn-LICENSE.txt',
+            'tools/packaging/wheel-notices/oneDNN-ittnotify-LICENSE.txt',
+            'tools/packaging/wheel-notices/oneDNN-LICENSE.txt',
+            'tools/packaging/wheel-notices/oneDNN-THIRD-PARTY-PROGRAMS.txt',
+            'tools/packaging/wheel-notices/simd-utils-LICENSE.txt',
+            'tools/packaging/wheel-notices/spdlog-LICENSE.txt',
+            }:
+        return 'unregistered-wheel-notice'
     parts = tuple(part.lower() for part in path.parts)
     name = parts[-1]
     if "docs" in parts and value not in PUBLIC_DOCS:
