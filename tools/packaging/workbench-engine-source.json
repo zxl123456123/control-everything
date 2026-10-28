@@ -45710,6 +45710,15 @@
       "reason": "preserved_internal_source_layout"
     },
     {
+      "path": "mobile/src/transport/mobile-endpoint-supervisor-test-fakes.ts",
+      "source_path": "mobile/src/transport/mobile-endpoint-supervisor-test-fakes.ts",
+      "git_blob": "85e320618ce2c13d192ea91c59bee0e2620f8a04",
+      "sha256": "de2770424c588afd4620c12094320dcc599a3019e9ba7fbaf33c97be94921a4f",
+      "bytes": 8622,
+      "kind": "source",
+      "reason": "preserved_internal_source_layout"
+    },
+    {
       "path": "mobile/src/transport/mobile-endpoint-supervisor.test.ts",
       "source_path": "mobile/src/transport/mobile-endpoint-supervisor.test.ts",
       "git_blob": "367a7867a341a02ec7892b8b90ae69e4147d25a5",
@@ -296846,6 +296855,15 @@
       "reason": "preserved_internal_source_layout"
     },
     {
+      "path": "src/shared/mobile-e2ee-legacy-fixtures.ts",
+      "source_path": "src/shared/mobile-e2ee-legacy-fixtures.ts",
+      "git_blob": "0b8b58e0149852796f32bd34735fb1edcfb8399e",
+      "sha256": "360ee9cdaf451a6d60ff1b44e3a895720fe8bd2ed8e34c5dd17c71223136ccd5",
+      "bytes": 903,
+      "kind": "source",
+      "reason": "preserved_internal_source_layout"
+    },
+    {
       "path": "src/shared/mobile-e2ee-v2-contract.test.ts",
       "source_path": "src/shared/mobile-e2ee-v2-contract.test.ts",
       "git_blob": "64d461ca56b61f38d3a9dec6f65d2a3313b12b69",
@@ -296860,6 +296878,15 @@
       "git_blob": "907e22d3f4d3ac7b1863c31f2c641645249f3124",
       "sha256": "038fb782cd7eb86de5b7e5709467fbc7d8a1b731d748a45bbbabeef9d700f534",
       "bytes": 8891,
+      "kind": "source",
+      "reason": "preserved_internal_source_layout"
+    },
+    {
+      "path": "src/shared/mobile-e2ee-v2-fixtures.ts",
+      "source_path": "src/shared/mobile-e2ee-v2-fixtures.ts",
+      "git_blob": "f1806223ef8130b15d2d91f0552e9054c4d5360b",
+      "sha256": "fee99528f1cab8457ecfa7f983137c19d9e6e365180aad1dbd5b073814364ce5",
+      "bytes": 1563,
       "kind": "source",
       "reason": "preserved_internal_source_layout"
     },
@@ -297058,6 +297085,15 @@
       "git_blob": "431990a79bff2b0525d5083f317ee34e9bf159b2",
       "sha256": "935a0d36c0c2bb23c9af6ab1aa4302023328e0f746ea1f03d83c9186aa2368cf",
       "bytes": 1094,
+      "kind": "source",
+      "reason": "preserved_internal_source_layout"
+    },
+    {
+      "path": "src/shared/mobile-relay-pairing-fixtures.ts",
+      "source_path": "src/shared/mobile-relay-pairing-fixtures.ts",
+      "git_blob": "2c1762fc6f03a4c835f8e37c0846bb6d084787fb",
+      "sha256": "8bc0304cd786c336a572e9f77287a237582a5b0d9dfc85a5cc6f68929d96c6f8",
+      "bytes": 4399,
       "kind": "source",
       "reason": "preserved_internal_source_layout"
     },
@@ -302314,6 +302350,15 @@
       "git_blob": "ca2213953bd724623fd6ce8cb9cadf04cbfd4093",
       "sha256": "9cb0b3a6a813495769a878b5be2cf2efe0e5ef741b734c4c036ab22f6b695af1",
       "bytes": 7331,
+      "kind": "source",
+      "reason": "preserved_internal_source_layout"
+    },
+    {
+      "path": "src/shared/project-section-parity.test-fixture.ts",
+      "source_path": "src/shared/project-section-parity.test-fixture.ts",
+      "git_blob": "07dd52ab2d08836146aea5e977ae0e3cc8b8a1c6",
+      "sha256": "2001224fdbce605a7f6eedd2f840b1d50bd73f9893ec12675bf02c198f4c3dd6",
+      "bytes": 7478,
       "kind": "source",
       "reason": "preserved_internal_source_layout"
     },
@@ -327042,6 +327087,12 @@
       "reason": "Restore RPC pairing fixture using a documentation-only endpoint instead of a fixed LAN example."
     },
     {
+      "path": "mobile/src/transport/mobile-endpoint-supervisor-test-fakes.ts",
+      "upstream_sha256": "de2770424c588afd4620c12094320dcc599a3019e9ba7fbaf33c97be94921a4f",
+      "current_sha256": "c7f4e3c33e7d315ec02c114cc2d17694eaa0236d1fb0d49149c87b9c172cbb45",
+      "reason": "Restore the fixed upstream synthetic fixture with reserved documentation endpoints and generic example paths."
+    },
+    {
       "path": "src/main/ai-vault/cached-session-list.ts",
       "upstream_sha256": "3f329e8e36da391331a8c57c73021563a5ed707d082bd4358cf9ce5af1966396",
       "current_sha256": "22fff77cb96459d274cb44754984d0912114b90569d95bdab05f76ce5d37a999",
@@ -327852,6 +327903,12 @@
       "reason": "Project-progress: expose the optional read-only status-hook capability without changing source settings or writable launch-settings schema."
     },
     {
+      "path": "src/shared/mobile-relay-pairing-fixtures.ts",
+      "upstream_sha256": "8bc0304cd786c336a572e9f77287a237582a5b0d9dfc85a5cc6f68929d96c6f8",
+      "current_sha256": "e440204215b47fc683fd884bdabe8279c72af0df3d550247821412143afc3d3e",
+      "reason": "Restore the fixed upstream synthetic fixture with reserved documentation endpoints and generic example paths."
+    },
+    {
       "path": "src/shared/orcad-artifacts.ts",
       "upstream_sha256": "066f1ac0ef99b5c358b1ac51901bdd92be6a1dcdebedd87f462f1938fde0cdf9",
       "current_sha256": "0ff643d58d79a0a97515b059013e8bd2b58d335e687af09cde079b4b3f87eb4f",
@@ -327874,6 +327931,12 @@
       "upstream_sha256": "38384600cbc3e59f486828979d345b90bf054ceb7d7c638e2f2a591620f7557b",
       "current_sha256": "223c2ff2940880d6735dfb08d84d818c6257bd1491921e0076563897a56a4ca4",
       "reason": "Keep sidebar visibility browser-local and use narrow-screen defaults without overriding explicit preferences"
+    },
+    {
+      "path": "src/shared/project-section-parity.test-fixture.ts",
+      "upstream_sha256": "2001224fdbce605a7f6eedd2f840b1d50bd73f9893ec12675bf02c198f4c3dd6",
+      "current_sha256": "113dc27f5fcc93db020c31be8f2d6fd7bf0677ce4a4687629f07f6846d7d1d81",
+      "reason": "Restore the fixed upstream synthetic fixture with reserved documentation endpoints and generic example paths."
     },
     {
       "path": "vite.web.config.ts",
@@ -329777,6 +329840,27 @@
       "line": 33,
       "sha256": "a76fc48940994fcee02fdd67a9500ad6d5e52b49d07ce214b09a79170d0b1f66",
       "reason": "已核上下文为通配绑定、环回/私网/CGNAT范围、平台DNS/组播或网络解析判定，不是私人服务器配置；不能为扫描破坏网络语义。"
+    },
+    {
+      "rule": "gitleaks:generic-api-key",
+      "path": "src/shared/mobile-e2ee-legacy-fixtures.ts",
+      "line": 6,
+      "sha256": "360ee9cdaf451a6d60ff1b44e3a895720fe8bd2ed8e34c5dd17c71223136ccd5",
+      "reason": "Normative encryption test vector from repeated-byte synthetic secrets in the same fixture; verified by the mobile E2EE vector tests."
+    },
+    {
+      "rule": "gitleaks:generic-api-key",
+      "path": "src/shared/mobile-e2ee-v2-fixtures.ts",
+      "line": 44,
+      "sha256": "fee99528f1cab8457ecfa7f983137c19d9e6e365180aad1dbd5b073814364ce5",
+      "reason": "Normative encryption test vector from repeated-byte synthetic secrets in the same fixture; verified by the mobile E2EE vector tests."
+    },
+    {
+      "rule": "gitleaks:generic-api-key",
+      "path": "src/shared/mobile-e2ee-v2-fixtures.ts",
+      "line": 45,
+      "sha256": "fee99528f1cab8457ecfa7f983137c19d9e6e365180aad1dbd5b073814364ce5",
+      "reason": "Normative encryption test vector from repeated-byte synthetic secrets in the same fixture; verified by the mobile E2EE vector tests."
     },
     {
       "path": "src/shared/native-chat-href-routing.ts",
