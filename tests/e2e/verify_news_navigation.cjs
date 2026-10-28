@@ -10,11 +10,12 @@ const assets = path.join(root, 'web/workspace');
 const output = path.join(root, 'work/news-inline-navigation');
 fs.mkdirSync(output, { recursive: true });
 const counts = { documents: 0, feeds: 0, refreshes: 0 };
-let holdArticle = false, articleReady, releaseArticle;
+let holdArticle = false, lateArticle = false, articleReady, releaseArticle;
+let articleRequests = 0;
 const items = [1, 2].map(n => ({ id: String(n).repeat(24), title: `隔离示例 ${n}：在工作台内阅读新闻`,
   source_name: '合成来源', source_id: 'fixture', url: `https://example.com/${n}`, summary: '用于验证导航、正文位置和局部刷新的合成文章。',
   body_blocks: Array.from({length:30}, (_, i) => ({type:'p', text:`第 ${i + 1} 段。` + '切换页面后应保留当前阅读位置，更新数据不应重新加载工作台。'.repeat(5)})),
-  published_at: '2026-10-26T00:00:00Z', images: [] }));
+  published_at: new Date().toISOString(), images: [] }));
 const snapshot = () => ({reader_id:'navigation-fixture', sample:{captured_at:'2026-10-26T00:00:00Z', sources:[], streams:{ai:{items},hn:{items:[]}}}, covers:{items:[]}});
 const project = {id:'fixture',name:'隔离测试项目',root:'C:/example/project',archived:false};
 function policy(file, name) {
@@ -25,7 +26,7 @@ function policy(file, name) {
 }
 const readerPolicy = policy('src/control_everything/http/news_reader.py', 'CSP');
 const studioPolicy = policy('src/control_everything/http/workbench.py', 'STUDIO_CSP');
-const allowed = new Set(['studio-preview.css','studio-preview.js','workspace.css','news-reader.css','news-reader.js','news-spider.js','ui-theme.js','ui-dialog.js','studio-shell.js','project-progress-model.js']);
+const allowed = new Set(['studio-preview.css','studio-preview.js','workspace.css','news-reader.css','news-reader.js','news-spider.js','news-sections.css','news-sections.js','news-section-editor.js','news-search.js','news-pets.js','news-pet-dial.js','news-pet-wheel.js','news-pet-prefs.js','news-pet-director.js','news-pet-status.js','ui-theme.js','ui-dialog.js','studio-shell.js','project-progress-model.js']);
 const server = createServer((req,res) => {
   const url = new URL(req.url, 'http://' + req.headers.host);
   const reply = (body,type='application/json',csp) => {res.writeHead(200,{'Content-Type':type,...(csp ? {'Content-Security-Policy':csp} : {})});res.end(typeof body === 'string' || Buffer.isBuffer(body) ? body : JSON.stringify(body));};
@@ -37,7 +38,7 @@ const server = createServer((req,res) => {
   if (url.pathname === '/api/workspace/news/reader') { counts.feeds++; return reply(snapshot()); }
   if (url.pathname === '/api/workspace/news/reader/refresh') { counts.refreshes++; return setTimeout(()=>reply(snapshot()),250); }
   if (url.pathname === '/api/workspace/news/research/latest') return reply({job:null});
-  if (url.pathname === '/api/workspace/news/article') { const item=items.find(item=>item.id===url.searchParams.get('id')); if (holdArticle) { releaseArticle=()=>reply({id:item.id,content_kind:'full_text',blocks:item.body_blocks,images:[{url:'https://localhost/late-news-image.svg',alt:'合成延迟图片'}],reason:null}); articleReady(); return; } return reply({id:item.id,content_kind:'full_text',blocks:item.body_blocks,images:[],reason:null}); }
+  if (url.pathname === '/api/workspace/news/article') { articleRequests++; const item=items.find(item=>item.id===url.searchParams.get('id')); const document={id:item.id,content_kind:'full_text',blocks:item.body_blocks,images:lateArticle ? [{url:'https://localhost/late-news-image.svg',alt:'合成延迟图片'}] : [],reason:null}; if (holdArticle) { releaseArticle=()=>reply(document); articleReady(); return; } return reply(document); }
   const filename = url.pathname.slice(1);
   if (allowed.has(filename)) return reply(fs.readFileSync(path.join(assets,filename)),filename.endsWith('.css') ? 'text/css' : 'text/javascript');
   if (url.pathname.endsWith('.js')) return reply('', 'text/javascript');
@@ -71,6 +72,7 @@ async function main() {
     const before=await frame.evaluate(()=>({id:NewsReader.inspect().currentId,scroll:document.getElementById('article-scroll').scrollTop}));
     check('article can scroll',before.scroll>0);
     await page.getByRole('button',{name:'收起导航',exact:true}).click();
+    await page.waitForFunction(()=>document.querySelector('#studio-rail').getBoundingClientRect().width<=70);
     await page.screenshot({path:path.join(output,'latest-collapsed.png')});
     check('navigation collapses',await page.locator('#studio-rail').evaluate(el=>el.getBoundingClientRect().width<=70));
     await page.getByRole('button',{name:'展开导航',exact:true}).click();
@@ -109,7 +111,8 @@ async function main() {
     latePage.on('pageerror',error=>errors.push(error.message));
     let imageRequests=0;
     await latePage.route('https://localhost/late-news-image.svg',route=>{imageRequests++;return route.fulfill({contentType:'image/svg+xml',body:'<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"/>'});});
-    holdArticle=true; const articlePending=new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(new Error('article request did not start')),5000);articleReady=()=>{clearTimeout(timer);resolve();};});
+    const requestsBeforeLate=articleRequests;
+    holdArticle=true; lateArticle=true; const articlePending=new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(new Error('article request did not start')),5000);articleReady=()=>{clearTimeout(timer);resolve();};});
     await latePage.setViewportSize({width:1440,height:1000}); await latePage.goto(origin+'/studio#news');
     const delayed=latePage.frameLocator('iframe[title="新闻阅读器"]');
     await delayed.locator('#title-list .title-row').first().click(); await articlePending;
@@ -117,13 +120,13 @@ async function main() {
     await latePage.locator('#studio-rail a[href="#home"]').click();
     await delayedFrame.waitForFunction(()=>!NewsReader.inspect().active);
     const response=latePage.waitForResponse(response=>response.url().includes('/article?id='));
-    releaseArticle(); await response; await delayedFrame.waitForTimeout(150);
+    holdArticle=false; releaseArticle(); await response; await delayedFrame.waitForTimeout(150);
     check('late article cannot start an image request while hidden',imageRequests===0);
     await latePage.locator('#studio-rail a[href="#news"]').click();
     await delayedFrame.waitForFunction(()=>document.querySelector('img[src="https://localhost/late-news-image.svg"]')?.naturalWidth>0);
-    check('cached late article renders its image only after return',imageRequests>0);
+    check('late article renders its image only after return',imageRequests>0 && articleRequests>=requestsBeforeLate+2);
     await latePage.close();
-    holdArticle=false;
+    lateArticle=false;
     await page.goto(origin+'/news');
     await page.locator('#title-list .title-row').first().waitFor();
     await page.locator('#title-list .title-row').first().click();

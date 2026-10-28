@@ -3,23 +3,26 @@ const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypt
 const {capturePublicPost,canonicalPost}=require('./news-public-embed.js');
 const config=JSON.parse(fs.readFileSync(process.argv[2],'utf8')),root=path.dirname(process.argv[2]);
 const {chromium}=require(config.playwright_core||'playwright');
-const hosts=new Set(['x.com','twitter.com','publish.x.com','www.tmaker.io','tmaker.io','steipete.me','simonwillison.net','www.anthropic.com','anthropic.com','claude.dev','openai.com','developers.openai.com','blog.google','deepmind.google','developers.googleblog.com','huggingface.co','github.com','arxiv.org','code.claude.com','www.qbitai.com','sspai.com']);
+const hosts=new Set(['x.com','twitter.com','publish.x.com','www.tmaker.io','tmaker.io','steipete.me','simonwillison.net','www.anthropic.com','anthropic.com','claude.dev','openai.com','developers.openai.com','blog.google','deepmind.google','developers.googleblog.com','huggingface.co','github.com','arxiv.org','code.claude.com','www.qbitai.com','sspai.com','aiera.com.cn','www.infoq.cn','www.microsoft.com']);
 const items=[],events=[];let browser,page,sequence=0,frameNumber=0;
+// Source policy: every feed must answer from mainland China and overseas (see docs/guides/news-sources.md).
+// Hosts that are blocked or unreliable behind the GFW (blog.google, deepmind.google, openai.com, x.com, huggingface.co,
+// raw.githubusercontent.com) are not used as automatic sources. Page presets are only a last resort when no feed answers.
 const presets={
  coding:['https://www.tmaker.io/blog/how-to-make-the-most-of-ai','https://steipete.me/posts/just-talk-to-it'],
  agents:['https://www.tmaker.io/blog/how-to-make-the-most-of-ai','https://www.anthropic.com/engineering/building-effective-agents'],
- claude:['https://claude.dev/blog/solving-code-review-at-anthropic/','https://github.com/anthropics/claude-code/blob/main/CHANGELOG.md'],
- models:['https://blog.google/innovation-and-ai/models-and-research/gemini-models/introducing-gemini-4-argon/','https://openai.com/index/introducing-the-rosalind-academic-plan'],
- tibo:['https://x.com/tibo_maker/status/2110302154833510709','https://x.com/thsottiaux/status/2112712984644784534','https://www.tmaker.io/blog/how-to-make-the-most-of-ai']
+ claude:['https://claude.dev/blog/solving-code-review-at-anthropic/'],
+ models:[],
+ tibo:['https://www.tmaker.io/blog/how-to-make-the-most-of-ai']
 };
 const feeds={
- coding:['https://steipete.me/rss.xml','https://raw.githubusercontent.com/anthropics/claude-code/main/feed.xml'],
- agents:['https://steipete.me/rss.xml','https://raw.githubusercontent.com/anthropics/claude-code/main/feed.xml'],
- claude:['https://raw.githubusercontent.com/anthropics/claude-code/main/feed.xml'],
- models:['https://deepmind.google/blog/rss.xml','https://openai.com/news/rss.xml'],tibo:[]
+ coding:['https://steipete.me/rss.xml','https://simonwillison.net/tags/ai-assisted-programming.atom'],
+ agents:['https://steipete.me/rss.xml','https://simonwillison.net/tags/llms.atom'],
+ claude:['https://simonwillison.net/tags/claude.atom'],
+ models:['https://www.microsoft.com/en-us/research/feed/','https://simonwillison.net/tags/llms.atom'],tibo:[]
 };
-const domesticFeeds=['https://www.qbitai.com/feed','https://sspai.com/feed'];
-const sourceNames={'qbitai.com':'量子位','sspai.com':'少数派'};
+const domesticFeeds=['https://www.qbitai.com/feed','https://aiera.com.cn/feed/','https://www.infoq.cn/feed','https://sspai.com/feed'];
+const sourceNames={'qbitai.com':'量子位','sspai.com':'少数派','aiera.com.cn':'新智元','infoq.cn':'InfoQ 中文','microsoft.com':'Microsoft Research','simonwillison.net':'Simon Willison'};
 const batchSize=20,knownUrls=new Set(config.known_urls||[]);
 function emit(stage,message,extra={}){const row={seq:++sequence,time:new Date().toISOString(),stage,message,...extra};events.push(row);process.stdout.write(JSON.stringify(row)+'\n');}
 function checkpoint(){const file=path.join(root,'result.json'),temporary=file+'.tmp';fs.writeFileSync(temporary,JSON.stringify({items,events},null,2));fs.renameSync(temporary,file);}
@@ -268,7 +271,7 @@ async function capturePosts(urls){
   return;
  }
  emit('search','从作者与官方订阅源匹配内容',{keywords:config.query});
- const domestic=['coding','agents','models'].includes(config.topic);
+ const domestic=['coding','agents','claude','models'].includes(config.topic);
  let discovered=await discoverFeeds(domestic?domesticFeeds:feeds[config.topic]||[]);
  if(domestic&&!discovered.candidates.length){
   emit('search','国内订阅暂无匹配内容，继续检查官方与作者来源');

@@ -57,7 +57,7 @@ async function makePage(rows=items,time='2026-10-27T04:00:00Z',articleFor=null){
       return route.fulfill({json:articleFor?await articleFor(id,row):value});
     }
     const file=url.pathname==='/'?'news-reader.html':url.pathname.slice(1);
-    if(['news-reader.html','news-reader.js','news-reader.css','news-spider.js','news-pets.js','news-pet-dial.js','news-pet-wheel.js','news-pet-prefs.js','news-pet-director.js','news-pet-status.js','news-naidragon.js','news-tabbycat.js','ui-theme.js'].includes(file))return route.fulfill({path:path.join(root,file),headers:{'Content-Security-Policy':csp}});
+    if(['news-reader.html','news-reader.js','news-reader.css','news-spider.js','news-sections.css','news-sections.js','news-section-editor.js','news-search.js','news-pets.js','news-pet-dial.js','news-pet-wheel.js','news-pet-prefs.js','news-pet-director.js','news-pet-status.js','news-naidragon.js','news-tabbycat.js','ui-theme.js'].includes(file))return route.fulfill({path:path.join(root,file),headers:{'Content-Security-Policy':csp}});
     return route.abort();
   });
   await page.goto(origin+'/');
@@ -90,7 +90,7 @@ async function visibleIds(page){return page.locator('.title-row:visible').evalua
   check('article title and body have visibly different hierarchy',await page.evaluate(()=>{const title=getComputedStyle(document.getElementById('article-title')),body=getComputedStyle(document.getElementById('article-body'));return title.color!==body.color&&parseFloat(title.fontSize)>parseFloat(body.fontSize);}));
   check('source-looking HTML is rendered as text and never executed',await page.locator('#article-body img').count()===0&&await page.evaluate(()=>window.fixturePoison===undefined));
   check('unnecessary reading warnings and transport footer stay hidden',!(await page.locator('.room-footer').isVisible())&&!(await page.locator('#retry-article').isVisible())&&!(await page.locator('#content-status').isVisible()));
-  check('footer actions have readable labels',await page.locator('#mark-read').innerText()==='标为已读'&&(await page.locator('#save-article').innerText()).includes('收藏')&&(await page.locator('#archive-article').innerText()).includes('归档'));
+  check('footer actions have readable labels',await page.locator('#mark-read').innerText()==='标为已读'&&(await page.locator('#save-article').innerText()).includes('收藏')&&(await page.locator('#open-original').innerText()).includes('打开原文')&&(await page.locator('#copy-link').innerText()).includes('复制链接')&&await page.locator('#archive-article').count()===0);
   await page.locator('#article-source').click();await page.getByRole('link',{name:'相关历史报道',exact:true}).click();
   check('an explicit historical reference opens the requested article',await page.locator('#article-title').innerText()==='昨天的文章'&&await page.locator('#date-range').inputValue()==='all');
   await page.locator('#back-to-list').click();await page.locator('#date-range').selectOption('today');await page.locator(`.title-row[data-id="${ids.a}"]`).click();

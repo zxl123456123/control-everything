@@ -25,6 +25,7 @@ include web/workspace/task-center.js
 include web/workspace/project-space.js web/workspace/execution.js web/workspace/observation.js
 include web/workspace/news.js web/workspace/quota.js
 include web/workspace/news-reader.html web/workspace/news-reader.css web/workspace/news-reader.js
+include web/workspace/news-sections.css web/workspace/news-sections.js web/workspace/news-section-editor.js web/workspace/news-search.js
 include web/workspace/news-spider.js web/workspace/news-browser.js web/workspace/news-public-embed.js
 include web/workspace/news-pets.js web/workspace/news-pet-dial.js web/workspace/news-pet-wheel.js web/workspace/news-pet-prefs.js web/workspace/news-pet-director.js web/workspace/news-pet-status.js web/workspace/news-naidragon.js web/workspace/news-tabbycat.js
 include web/workspace/mobile-device-entry.js
