@@ -1,8 +1,13 @@
 import { createElement } from 'react'
 import { act, create, type ReactTestRenderer } from 'react-test-renderer'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import type { AccountSnapshot } from '../../platform-account/controller'
+import type { HubClient, HubDevice } from '../hub/hub-client'
 
-const probe = vi.hoisted(() => ({ haptic: vi.fn() }))
+const probe = vi.hoisted(() => ({
+  haptic: vi.fn(),
+  snapshot: { status: 'signed-in' } as AccountSnapshot
+}))
 vi.mock('react-native', async () =>
   (await import('../test-support/native-mocks')).reactNativeMock()
 )
@@ -30,19 +35,24 @@ vi.mock('expo-camera', () => ({
 vi.mock('expo-clipboard', () => ({ getStringAsync: vi.fn() }))
 vi.mock('expo-constants', () => ({ default: { expoConfig: {} } }))
 vi.mock('../../platform-account/controller', () => ({
-  usePlatformAccount: () => ({ status: 'signed-in' }),
+  usePlatformAccount: () => probe.snapshot,
   platformAccountController: {}
 }))
 vi.mock('./use-pair-flow', () => ({ usePairFlow: vi.fn() }))
 vi.mock('expo-linking', () => ({ openURL: vi.fn() }))
 
-import { ComputersView } from './ComputersScreen'
-import { InviteView } from './InviteScreen'
+import { ComputersScreen, ComputersView } from './ComputersScreen'
+import { InviteScreen, InviteView } from './InviteScreen'
+import { DeviceDetailSheet } from './DeviceDetailSheet'
+import { HubClientProvider } from '../hub/hub-context'
 import { PairView } from './PairScreen'
 import { createMockHubClient } from '../hub/mock-hub-client'
 import { initialInviteState, inviteReducer } from '../invite/invite-code'
 
 let renderer: ReactTestRenderer
+beforeEach(() => {
+  probe.snapshot = { status: 'signed-in' }
+})
 afterEach(() => {
   act(() => renderer?.unmount())
   probe.haptic.mockClear()
@@ -67,6 +77,89 @@ function press(label: string) {
   act(() => node.props.onPress())
 }
 const noop = () => undefined
+
+describe('account-scoped screens', () => {
+  const account = (subject: string): AccountSnapshot => ({
+    status: 'signed-in',
+    issuer: 'https://identity.example.test/realm',
+    account: {
+      issuer: 'https://identity.example.test/realm',
+      subject,
+      expiresAt: 1234,
+      persistence: 'refresh'
+    }
+  })
+  const withHub = (client: HubClient, screen: typeof ComputersScreen | typeof InviteScreen) =>
+    createElement(HubClientProvider, { client, children: createElement(screen) })
+
+  it('clears the previous device list and selected details while the new account loads', async () => {
+    const client = createMockHubClient({ latencyMs: 0 })
+    const devices = await client.listDevices()
+    let finish!: (devices: HubDevice[]) => void
+    client.listDevices = vi
+      .fn()
+      .mockResolvedValueOnce(devices)
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            finish = resolve
+          })
+      )
+    probe.snapshot = account('account-A')
+    await act(async () => {
+      renderer = create(withHub(client, ComputersScreen))
+    })
+    act(() => renderer.root.findByType(ComputersView).props.onSelect(devices[0]))
+    expect(renderer.root.findByType(DeviceDetailSheet).props.device).toEqual(devices[0])
+    probe.snapshot = account('account-B')
+    await act(async () => renderer.update(withHub(client, ComputersScreen)))
+    expect(renderer.root.findByType(ComputersView).props.state.phase).toBe('loading')
+    expect(renderer.root.findByType(DeviceDetailSheet).props.device).toBeNull()
+    expect(texts()).not.toContain(devices[0]!.name)
+    await act(async () => finish([]))
+    expect(renderer.root.findByType(ComputersView).props.state.devices).toEqual([])
+    expect(client.listDevices).toHaveBeenCalledTimes(2)
+  })
+
+  it('ignores the previous account device reply after the new account has loaded', async () => {
+    const client = createMockHubClient({ latencyMs: 0 })
+    const devices = await client.listDevices()
+    let finish!: (devices: HubDevice[]) => void
+    client.listDevices = vi
+      .fn()
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            finish = resolve
+          })
+      )
+      .mockResolvedValueOnce([])
+    probe.snapshot = account('account-A')
+    await act(async () => {
+      renderer = create(withHub(client, ComputersScreen))
+    })
+    probe.snapshot = account('account-B')
+    await act(async () => renderer.update(withHub(client, ComputersScreen)))
+    await act(async () => finish(devices))
+    expect(renderer.root.findByType(ComputersView).props.state.devices).toEqual([])
+  })
+
+  it('does not carry invite input or an activation success into the next account', async () => {
+    const client = createMockHubClient({ latencyMs: 0 })
+    probe.snapshot = account('account-A')
+    mount(withHub(client, InviteScreen))
+    act(() =>
+      renderer.root
+        .findByType(InviteView)
+        .props.dispatch({ type: 'edit', text: 'DEMO-' + 'a'.repeat(20) })
+    )
+    await act(async () => renderer.root.findByType(InviteView).props.onSubmit())
+    expect(renderer.root.findByType(InviteView).props.state.status).toBe('success')
+    probe.snapshot = account('account-B')
+    await act(async () => renderer.update(withHub(client, InviteScreen)))
+    expect(renderer.root.findByType(InviteView).props.state).toEqual(initialInviteState)
+  })
+})
 
 describe('ComputersView', () => {
   const base = {

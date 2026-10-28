@@ -3,7 +3,11 @@ import { View } from 'react-native'
 import { useRouter } from 'expo-router'
 import * as Clipboard from 'expo-clipboard'
 import { ClipboardPaste, X } from 'lucide-react-native'
-import { platformAccountController, usePlatformAccount } from '../../platform-account/controller'
+import {
+  platformAccountController,
+  usePlatformAccount,
+  type AccountSnapshot
+} from '../../platform-account/controller'
 import { Banner } from '../components/Banner'
 import { Button } from '../components/Button'
 import { CeText } from '../components/CeText'
@@ -124,9 +128,22 @@ export function InviteView({
 }
 
 export function InviteScreen() {
+  const snapshot = usePlatformAccount()
+  return (
+    <AccountInvite
+      key={JSON.stringify([
+        snapshot.account?.issuer ?? snapshot.issuer,
+        snapshot.account?.subject,
+        snapshot.status
+      ])}
+      snapshot={snapshot}
+    />
+  )
+}
+
+function AccountInvite({ snapshot }: { snapshot: AccountSnapshot }) {
   const router = useRouter()
   const client = useHubClient()
-  const snapshot = usePlatformAccount()
   const [state, dispatch] = useReducer(inviteReducer, initialInviteState)
 
   async function paste() {

@@ -378,6 +378,7 @@ export function createPlatformAccountController(deps: Dependencies) {
     logout,
     checkExpiry,
     getAccessToken,
+    getSessionGeneration: () => generation,
     refreshAccessToken,
     configure(value: PlatformAccountConfiguration) {
       const prior =

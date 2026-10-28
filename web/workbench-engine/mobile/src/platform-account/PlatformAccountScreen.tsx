@@ -15,7 +15,7 @@ import { LogoutSheet } from '../ce-ui/screens/LogoutSheet'
 import { useCeTheme } from '../ce-ui/theme/theme'
 import { ceSpace } from '../ce-ui/theme/tokens'
 import { usePortalOpener } from '../ce-ui/use-portal'
-import { platformAccountController, usePlatformAccount } from './controller'
+import { platformAccountController, usePlatformAccount, type AccountSnapshot } from './controller'
 
 const signedInStatuses = ['signed-in', 'expired', 'logging-out', 'logout-error']
 
@@ -24,14 +24,37 @@ const signedInStatuses = ['signed-in', 'expired', 'logging-out', 'logout-error']
  * view. The controller, OIDC flow and browser-portal rules are unchanged: this is a new skin.
  */
 export function PlatformAccountScreen() {
+  const state = usePlatformAccount()
+  const [cleanupRequested, setCleanupRequested] = useState(false)
+  return (
+    <AccountScreen
+      key={JSON.stringify([
+        state.account?.issuer ?? state.issuer,
+        state.account?.subject,
+        state.status
+      ])}
+      state={state}
+      cleanupRequested={cleanupRequested}
+      onCleanupRequested={() => setCleanupRequested(true)}
+    />
+  )
+}
+
+function AccountScreen({
+  state,
+  cleanupRequested,
+  onCleanupRequested
+}: {
+  state: AccountSnapshot
+  cleanupRequested: boolean
+  onCleanupRequested: () => void
+}) {
   const router = useRouter()
   const { c } = useCeTheme()
-  const state = usePlatformAccount()
   const hub = useHubClient()
   const busy = ['restoring', 'authorizing', 'logging-out'].includes(state.status)
   const portal = usePortalOpener(busy)
   const [logoutOpen, setLogoutOpen] = useState(false)
-  const [cleanupRequested, setCleanupRequested] = useState(false)
   const [me, setMe] = useState<HubMe | null>(null)
 
   const signedIn = signedInStatuses.includes(state.status)
@@ -52,7 +75,7 @@ export function PlatformAccountScreen() {
   }, [hub, state.status])
 
   function confirmLogout() {
-    setCleanupRequested(true)
+    onCleanupRequested()
     setLogoutOpen(false)
     void platformAccountController.logout()
   }

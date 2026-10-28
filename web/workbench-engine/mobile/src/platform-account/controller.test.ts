@@ -476,6 +476,24 @@ describe('logout also asks the identity service to revoke the refresh credential
 })
 
 describe('hub requests borrow the account session without showing a restoring screen', () => {
+  it('keeps the session generation for token rotation but invalidates it across account operations', async () => {
+    const h = harness()
+    const initial = h.controller.getSessionGeneration()
+    await h.controller.login()
+    const signedIn = h.controller.getSessionGeneration()
+    expect(signedIn).toBeGreaterThan(initial)
+    await h.controller.refreshAccessToken()
+    expect(h.controller.getSessionGeneration()).toBe(signedIn)
+    await h.controller.logout()
+    expect(h.controller.getSessionGeneration()).toBeGreaterThan(signedIn)
+    const signedOut = h.controller.getSessionGeneration()
+    await h.controller.restore()
+    expect(h.controller.getSessionGeneration()).toBeGreaterThan(signedOut)
+    const restored = h.controller.getSessionGeneration()
+    h.controller.configure({ status: 'ready', config: { ...config, clientId: 'other' } })
+    expect(h.controller.getSessionGeneration()).toBeGreaterThan(restored)
+  })
+
   async function signedIn() {
     const h = harness()
     h.seed(record)

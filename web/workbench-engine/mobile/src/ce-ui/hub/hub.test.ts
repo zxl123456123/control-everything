@@ -99,7 +99,11 @@ describe('resolveHubClient', () => {
   describe('with a configured remote hub and account', () => {
     const live = {
       origin: 'https://hub.example.test',
-      tokens: { getAccessToken: () => 'synthetic', refreshAccessToken: async () => null },
+      tokens: {
+        getSessionGeneration: () => 1,
+        getAccessToken: () => 'synthetic',
+        refreshAccessToken: async () => null
+      },
       fetch: vi.fn()
     }
     it('uses the live hub in release and in development builds', () => {

@@ -2,7 +2,11 @@ import { useMemo, useState } from 'react'
 import { View } from 'react-native'
 import { useRouter } from 'expo-router'
 import { Globe, MonitorOff, Plus, WifiOff } from 'lucide-react-native'
-import { platformAccountController, usePlatformAccount } from '../../platform-account/controller'
+import {
+  platformAccountController,
+  usePlatformAccount,
+  type AccountSnapshot
+} from '../../platform-account/controller'
 import { Button } from '../components/Button'
 import { ComputerCard, ComputerCardSkeleton } from '../components/ComputerCard'
 import { CeText } from '../components/CeText'
@@ -127,9 +131,22 @@ export function ComputersView({
 }
 
 export function ComputersScreen() {
+  const snapshot = usePlatformAccount()
+  return (
+    <AccountComputers
+      key={JSON.stringify([
+        snapshot.account?.issuer ?? snapshot.issuer,
+        snapshot.account?.subject,
+        snapshot.status
+      ])}
+      snapshot={snapshot}
+    />
+  )
+}
+
+function AccountComputers({ snapshot }: { snapshot: AccountSnapshot }) {
   const router = useRouter()
   const client = useHubClient()
-  const snapshot = usePlatformAccount()
   const portal = usePortalOpener()
   const { state, refresh, reload, replaceDevice } = useDevices(client)
   const [selectedId, setSelectedId] = useState<string | null>(null)

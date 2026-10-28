@@ -12,6 +12,7 @@ const state = vi.hoisted(() => ({
   push: vi.fn(),
   haptic: vi.fn(),
   openURL: vi.fn(),
+  hub: { kind: 'live', getMe: vi.fn() },
   expoConfig: { extra: { platformAccount: { remoteOrigin: 'https://workbench.example.test' } } }
 }))
 vi.mock('expo-constants', () => ({
@@ -26,6 +27,7 @@ vi.mock('./controller', () => ({
   usePlatformAccount: () => state.snapshot,
   platformAccountController: state
 }))
+vi.mock('../ce-ui/hub/hub-context', () => ({ useHubClient: () => state.hub }))
 vi.mock('expo-router', () => ({
   useRouter: () => ({ back: state.back, replace: state.replace, push: state.push }),
   Stack: { Screen: () => null }
@@ -62,6 +64,7 @@ beforeEach(() => {
     extra: { platformAccount: { remoteOrigin: 'https://workbench.example.test' } }
   }
   state.openURL.mockResolvedValue(undefined)
+  state.hub.getMe.mockRejectedValue(new Error('synthetic unavailable hub'))
 })
 afterEach(() => {
   act(() => renderer?.unmount())
@@ -90,6 +93,38 @@ function confirmLogoutVia(label: string) {
   act(() => button('退出').props.onPress())
 }
 describe('native platform account presentation', () => {
+  it('clears the previous account email and membership before the next account reply', async () => {
+    const account = (subject: string): AccountSnapshot => ({
+      status: 'signed-in',
+      issuer: 'https://identity.example.test/realm',
+      account: {
+        issuer: 'https://identity.example.test/realm',
+        subject,
+        expiresAt: 1234,
+        persistence: 'refresh'
+      }
+    })
+    state.snapshot = account('account-A')
+    state.hub.getMe.mockResolvedValueOnce({
+      subject: 'account-A',
+      name: 'A',
+      email: 'A@example.test',
+      membership: 'active',
+      admin: false
+    })
+    await act(async () => {
+      renderer = create(createElement(PlatformAccountScreen))
+    })
+    expect(JSON.stringify(renderer.toJSON())).toContain('A@example.test')
+    state.snapshot = { status: 'signed-out' }
+    await act(async () => renderer.update(createElement(PlatformAccountScreen)))
+    state.snapshot = account('account-B')
+    state.hub.getMe.mockImplementationOnce(() => new Promise(() => {}))
+    await act(async () => renderer.update(createElement(PlatformAccountScreen)))
+    expect(JSON.stringify(renderer.toJSON())).not.toContain('A@example.test')
+    expect(renderer.root.findAllByProps({ testID: 'ce-member-status' })).toHaveLength(0)
+  })
+
   it.each(['unconfigured', 'invalid-config'] as const)(
     'hides native sign-in while preserving the browser workspace for %s',
     (status) => {
@@ -136,6 +171,8 @@ describe('native platform account presentation', () => {
     state.snapshot = { status: 'unconfigured', message: '此安装包未配置原生身份。' }
     expect(render()).not.toContain('此安装包未配置原生身份。')
     confirmLogoutVia('清除此 App 记录')
+    state.snapshot = { status: 'logging-out' }
+    act(() => renderer.update(createElement(PlatformAccountScreen)))
     state.snapshot = {
       status: 'unconfigured',
       message: '已退出此 App。浏览器会话与已配对电脑的权限保持独立。'

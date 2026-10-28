@@ -8,6 +8,8 @@ import type { HubMembership } from '../status/device-status'
 
 /** The part of the account controller the hub client needs. Tokens never pass through UI state. */
 export type HubTokenSource = {
+  /** Changes on sign-in, sign-out or reconfiguration, but not a silent token refresh. */
+  getSessionGeneration(): number
   /** A token that is valid now (with a small safety margin), or null. Must not hit the network. */
   getAccessToken(): string | null
   /** Refreshes the session; concurrent callers share one refresh. Null means "no usable session". */
@@ -189,17 +191,25 @@ export function createLiveHubClient(options: LiveHubClientOptions): HubClient {
   }
 
   async function call(method: 'GET' | 'POST', path: string, payload?: unknown): Promise<unknown> {
+    const generation = options.tokens.getSessionGeneration()
+    const requireSession = () => {
+      if (options.tokens.getSessionGeneration() !== generation) throw new HubError('unauthorized')
+    }
     const sent = options.tokens.getAccessToken() ?? (await options.tokens.refreshAccessToken())
+    requireSession()
     if (!sent) throw new HubError('unauthorized')
     let reply = await send(sent, method, path, payload)
+    requireSession()
     if (reply.status === 401) {
       // Refresh once. If another request already rotated the token, use that one instead of
       // refreshing again; a second 401 means the account really is signed out.
       const current = options.tokens.getAccessToken()
       const fresh =
         current && current !== sent ? current : await options.tokens.refreshAccessToken()
+      requireSession()
       if (!fresh) throw new HubError('unauthorized')
       reply = await send(fresh, method, path, payload)
+      requireSession()
     }
     if (reply.status >= 200 && reply.status < 300) return reply.body
     const code = isRecord(reply.body) ? text(reply.body.error) : null

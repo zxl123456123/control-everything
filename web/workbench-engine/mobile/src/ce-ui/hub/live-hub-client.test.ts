@@ -52,6 +52,7 @@ function harness(
   })
   let current = tokens.current === undefined ? 'access-1' : tokens.current
   const source: HubTokenSource = {
+    getSessionGeneration: tokens.getSessionGeneration ?? (() => 1),
     getAccessToken: tokens.getAccessToken ?? (() => current),
     refreshAccessToken:
       tokens.refreshAccessToken ??
@@ -128,6 +129,50 @@ describe('live hub client requests', () => {
 })
 
 describe('live hub client token refresh', () => {
+  it.each([200, 401])(
+    'rejects a late %s reply after an account switch without replaying the POST',
+    async (status) => {
+      let generation = 1
+      const h = harness([], {
+        getSessionGeneration: () => generation,
+        getAccessToken: () => `account-${generation}`
+      })
+      let finish!: (response: LiveFetchResponse) => void
+      h.fetchMock.mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            finish = resolve
+          })
+      )
+      const request = h.client.activateInvite('synthetic-invite-for-account-A')
+      const rejected = expect(request).rejects.toMatchObject({ kind: 'unauthorized' })
+      generation = 2
+      finish({ status, text: async () => JSON.stringify(me()) })
+      await rejected
+      expect(h.fetchMock).toHaveBeenCalledTimes(1)
+      expect(h.source.refreshAccessToken).not.toHaveBeenCalled()
+    }
+  )
+
+  it.each([false, true])(
+    'does not use a refresh result from a changed session (after 401: %s)',
+    async (after401) => {
+      let generation = 1
+      const h = harness(after401 ? [{ status: 401 }] : [], {
+        current: after401 ? 'account-A' : null,
+        getSessionGeneration: () => generation,
+        refreshAccessToken: async () => {
+          generation = 2
+          return 'account-B'
+        }
+      })
+      await expect(h.client.activateInvite('synthetic-invite-for-account-A')).rejects.toMatchObject(
+        { kind: 'unauthorized' }
+      )
+      expect(h.fetchMock).toHaveBeenCalledTimes(after401 ? 1 : 0)
+    }
+  )
+
   it('refreshes once on 401 and retries the request exactly once', async () => {
     const h = harness([
       { status: 401, body: { error: 'invalid_token' } },
@@ -313,7 +358,11 @@ describe('live hub client timeouts', () => {
     const fetchMock = vi.fn(() => new Promise<LiveFetchResponse>(() => undefined))
     const client = createLiveHubClient({
       origin: ORIGIN,
-      tokens: { getAccessToken: () => 't', refreshAccessToken: async () => null },
+      tokens: {
+        getSessionGeneration: () => 1,
+        getAccessToken: () => 't',
+        refreshAccessToken: async () => null
+      },
       fetch: fetchMock,
       timeoutMs: 1_000
     })
@@ -348,7 +397,11 @@ describe('hub origin validation', () => {
     expect(() =>
       createLiveHubClient({
         origin: 'http://hub.example.test',
-        tokens: { getAccessToken: () => 't', refreshAccessToken: async () => null },
+        tokens: {
+          getSessionGeneration: () => 1,
+          getAccessToken: () => 't',
+          refreshAccessToken: async () => null
+        },
         fetch: vi.fn()
       })
     ).toThrow('invalid hub origin')
