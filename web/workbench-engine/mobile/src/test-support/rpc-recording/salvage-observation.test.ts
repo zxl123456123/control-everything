@@ -1,6 +1,6 @@
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { bindSalvageObserver } from './salvage-observation'
+import { bindSalvageObserver, observeSalvagedReads } from './salvage-observation'
 import { operationModuleLoader } from './operation-module-loader'
 
 const root = resolve(import.meta.dirname, '../../../..')
@@ -11,6 +11,41 @@ const root = resolve(import.meta.dirname, '../../../..')
  * and every golden would still compare clean, the same reason `unhandled-recording.test.ts` exists.
  */
 describe('salvaged reads', () => {
+  it.each([
+    '/repo/mobile/src/transport/rpc-operation-reply.ts',
+    String.raw`C:\example\repo\mobile\src\transport\rpc-operation-reply.ts`
+  ])('records salvage from the reporting module at %s', (file) => {
+    const operation = { name: 'test-read', method: 'test.read' }
+    const response = { ok: true }
+    const outcome = { variant: 'test', salvage: { droppedPaths: ['branch'], droppedCount: 1 } }
+    const module = {
+      classifyRpcReply: (actualOperation: unknown, actualResponse: unknown) => {
+        expect(actualOperation).toBe(operation)
+        expect(actualResponse).toBe(response)
+        return outcome
+      }
+    }
+    const observed: { name: string; value: unknown }[] = []
+    bindSalvageObserver((name, value) => observed.push({ name, value }))
+    try {
+      observeSalvagedReads(file, module)
+      expect(module.classifyRpcReply(operation, response)).toBe(outcome)
+      expect(observed).toEqual([
+        {
+          name: 'reply-salvage',
+          value: {
+            operation: operation.name,
+            method: operation.method,
+            variant: outcome.variant,
+            ...outcome.salvage
+          }
+        }
+      ])
+    } finally {
+      bindSalvageObserver(() => {})
+    }
+  })
+
   it('records what a real reply schema dropped, and nothing when it dropped nothing', () => {
     const modules = operationModuleLoader(root)
     const { classifyRpcReply } = modules.load<{

@@ -327219,16 +327219,58 @@
       "reason": "Add self-hosted native account access and isolate platform credentials and outbound services."
     },
     {
+      "path": "mobile/src/tasks/agent-launch-mobile-replay.test.ts",
+      "upstream_sha256": "38460f50a5994cce433bc2d84e7976de02213cf2942aef0b4aac79979ef7a6a2",
+      "current_sha256": "d235b5b8df5e00b0a68e2f905acc56b526734ece99cd8f1cf1266ae8d4e17b17",
+      "reason": "Keep the original mobile tests executable on Windows by closing their SQLite stores and normalizing filesystem paths at import and suffix-matching boundaries."
+    },
+    {
+      "path": "mobile/src/tasks/mobile-agent-launch-architecture.test.ts",
+      "upstream_sha256": "0362f07b01307048b24cdc14b2305ec3b76991c2d1753f3d5b735b70c31783ee",
+      "current_sha256": "f0d95a72f4f5190457a1f0aa8f51fc2acc860f9ccf01cc23e78e23296b7a2cf5",
+      "reason": "Keep the original mobile tests executable on Windows by closing their SQLite stores and normalizing filesystem paths at import and suffix-matching boundaries."
+    },
+    {
       "path": "mobile/src/test-support/expo-crypto-node.ts",
       "upstream_sha256": "dc72792e1331e9055b8df81d0571acaf66e5dd813c3ff6e7fa638d4a73564aa6",
       "current_sha256": "85675ba8e5412410972f3321c5d5a4a5ebd8c07c17e637d3dbf576d5281591c8",
       "reason": "Add self-hosted native account access and isolate platform credentials and outbound services."
     },
     {
+      "path": "mobile/src/test-support/rpc-recording/operation-module-loader.test.ts",
+      "upstream_sha256": "8d4947491554f9da36d8417f819d13796c2494ab06de1e1bc61808b0c1143c32",
+      "current_sha256": "e55dfeec287f75ba2cf13cfa8fd411263f4a4f68778eb442e2b2290768eb1eef",
+      "reason": "Keep the original mobile tests executable on Windows by closing their SQLite stores and normalizing filesystem paths at import and suffix-matching boundaries."
+    },
+    {
+      "path": "mobile/src/test-support/rpc-recording/operation-module-loader.ts",
+      "upstream_sha256": "b8527035e1819ad1d8239d82fc67abcb603c3e618b42513900fbce13fd96eced",
+      "current_sha256": "a484c67723233b658ec6d38c06d0052062287316eb326f59f1bbf787a8cbceef",
+      "reason": "Keep the original mobile tests executable on Windows by closing their SQLite stores and normalizing filesystem paths at import and suffix-matching boundaries."
+    },
+    {
       "path": "mobile/src/test-support/rpc-recording/relay-pairing-fixtures.ts",
       "upstream_sha256": "6183db9bd480a2bbd16525ef10e08bb341ac8a6ee06b8109e3d286f83bc3b563",
       "current_sha256": "8e3bb9dfe9820be8a02212ec19d65fedbc1a8057dfcbd2a7e56678a6533972d1",
       "reason": "Restore RPC pairing fixture using a documentation-only endpoint instead of a fixed LAN example."
+    },
+    {
+      "path": "mobile/src/test-support/rpc-recording/salvage-observation.test.ts",
+      "upstream_sha256": "ce4abaf58738afc03908a73cfb374538aaff86c6718cbc48f39e00045160392d",
+      "current_sha256": "64fdd96c16196982ea6ea127960af8a596e6f5a6b28e4f32017d14665da2b271",
+      "reason": "Keep the original mobile tests executable on Windows by closing their SQLite stores and normalizing filesystem paths at import and suffix-matching boundaries."
+    },
+    {
+      "path": "mobile/src/test-support/rpc-recording/salvage-observation.ts",
+      "upstream_sha256": "be96e8e5f9c722e966b7db4b733c68e9d73305613d680ca2b62356f1112b677e",
+      "current_sha256": "84c9e505fcdb472dd5c9a5a3ee3e2ce9821bebc013c4b7954ef2952206898831",
+      "reason": "Keep the original mobile tests executable on Windows by closing their SQLite stores and normalizing filesystem paths at import and suffix-matching boundaries."
+    },
+    {
+      "path": "mobile/src/test-support/webview-document-bundle-digest.ts",
+      "upstream_sha256": "1c3fa95550e62b9013a8a46ce1d39f5f57f1ce09e9679c39ef3e1df3e55fde36",
+      "current_sha256": "e292de36d33806fedd2f4864997f9b51291eea6aec84612328c6c51afe54e68a",
+      "reason": "Keep the original mobile tests executable on Windows by closing their SQLite stores and normalizing filesystem paths at import and suffix-matching boundaries."
     },
     {
       "path": "mobile/src/transport/mobile-endpoint-supervisor-test-fakes.ts",
