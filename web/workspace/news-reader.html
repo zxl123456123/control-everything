@@ -6,6 +6,7 @@
   <title>新闻 · 阅读室</title>
   <script src="/ui-theme.js" data-ce-theme-key="ce.news.theme"></script>
   <link rel="stylesheet" href="/news-reader.css">
+  <link rel="stylesheet" href="/news-sections.css">
   <script src="/news-spider.js" defer></script>
   <script src="/news-pets.js" defer></script>
   <script src="/news-pet-dial.js" defer></script>
@@ -13,6 +14,9 @@
   <script src="/news-pet-prefs.js" defer></script>
   <script src="/news-pet-director.js" defer></script>
   <script src="/news-pet-status.js" defer></script>
+  <script src="/news-section-editor.js" defer></script>
+  <script src="/news-sections.js" defer></script>
+  <script src="/news-search.js" defer></script>
   <script src="/news-reader.js" defer></script>
 </head>
 <body>
@@ -29,9 +33,10 @@
       <button data-view="saved" aria-pressed="false">收藏 <span data-count="saved">0</span></button>
       <button data-view="archived" aria-pressed="false">归档 <span data-count="archived">0</span></button>
     </nav>
-    <div id="stream" class="segmented" role="radiogroup" aria-label="新闻频道">
-      <button type="button" role="radio" aria-checked="true" data-value="ai" tabindex="0">AI 新闻</button>
-      <button type="button" role="radio" aria-checked="false" data-value="hn" tabindex="-1">Hacker News</button>
+    <div class="section-bar">
+      <div id="stream" class="section-tabs" role="tablist" aria-label="新闻专栏" aria-orientation="horizontal"></div>
+      <button id="section-edit" class="icon-button section-edit" type="button" aria-haspopup="dialog" aria-expanded="false" aria-label="编辑当前专栏" data-tip="编辑当前专栏" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16v4Z"/><path d="m13.5 6.5 4 4"/></svg></button>
+      <button id="section-add" class="icon-button section-add" type="button" aria-haspopup="dialog" aria-expanded="false" aria-label="新建专栏" data-tip="新建专栏"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
     </div>
     <div class="actions">
       <button id="pet-dial" type="button" aria-haspopup="menu" aria-expanded="false" hidden>宠物转盘</button>
@@ -44,7 +49,8 @@
     <canvas id="spider-canvas" aria-hidden="true"></canvas>
     <aside id="directory" aria-label="新闻标题目录">
       <div class="directory-head"><span id="directory-title">今日新闻</span><span id="list-total">0 条</span><label class="date-filter"><span class="sr-only">时间范围</span><select id="date-range"><option value="today">今天</option><option value="all">全部日期</option></select></label><button id="directory-summary" type="button" aria-pressed="false" aria-label="显示目录预览" hidden>预览</button><button id="close-directory" type="button" aria-label="收起标题目录">×</button></div>
-      <label class="search-wrap"><span class="sr-only">搜索新闻</span><input id="search" type="search" placeholder="搜索标题、来源或内容"></label>
+      <div class="search-wrap"><label class="sr-only" for="search">搜索新闻</label><input id="search" type="search" placeholder="搜索标题、来源或内容" enterkeyhint="search"></div>
+      <div id="list-tools" class="list-tools" hidden><span id="list-tools-text"></span><button id="bulk-archive" type="button"></button></div>
       <div id="title-list" tabindex="-1" aria-label="选择新闻"></div>
       <div id="list-empty" hidden><p id="list-empty-message">暂无新闻</p><button id="clear-search" type="button">清除搜索</button><button id="show-history" type="button">查看历史</button></div>
       <div class="spider-home"><div id="web-depot" aria-label="内容仓库"></div><div class="spider-status"><p class="depot-name">内容仓库</p><p id="spider-state" role="status">等待阅读</p><button id="pause" type="button">暂停动画</button><label class="pet-switch"><span>宠物</span><select class="pet-select" id="pet-select" aria-label="选择动画宠物"><option value="spider">蜘蛛</option><option value="naidragon">奶龙</option><option value="tabbycat">狸花猫</option></select></label></div></div>
@@ -75,7 +81,7 @@
       </div>
       <footer class="reader-footer">
         <div class="arrival-area sr-only"><span id="arrival-title" hidden></span><span id="reader-state">选择一条新闻开始阅读</span></div>
-        <div class="article-actions" role="group" aria-label="文章操作"><button id="mark-read" type="button" aria-pressed="false" disabled>标为已读</button><button id="save-article" type="button" aria-pressed="false" disabled>收藏</button><button id="archive-article" type="button" class="archive-button" aria-label="已读并归档" disabled>归档</button></div>
+        <div class="article-actions" role="group" aria-label="文章操作"><button id="mark-read" type="button" aria-pressed="false" disabled>标为已读</button><button id="save-article" type="button" aria-pressed="false" disabled>收藏</button><a id="open-original" class="action-link" href="#" target="_blank" rel="noopener noreferrer" aria-disabled="true" tabindex="-1">打开原文</a><button id="copy-link" type="button" disabled>复制链接</button></div>
       </footer>
     </section>
     <button id="directory-backdrop" type="button" aria-label="收起标题目录" hidden></button>

@@ -2,6 +2,59 @@
 
 仓库协作约定见 [AGENTS.md](../AGENTS.md)。本指南约束共同交付结果，不要求成员使用同一助手、模型或个人技能。
 
+## 开发与出包从这里开始
+
+本文是开发工作流总入口；每次构建 EXE 按 [Windows 构建流水线](../docs/guides/windows.md#构建与技术预发布)逐步执行。模块细节继续放在下文，任务过程以本机任务 README 为入口，详细记录与产物按文件管理指南存放，不再另建平行的 workflow、release 或打包说明。
+
+| 要做的事 | 唯一维护位置 |
+| --- | --- |
+| 日常开发、验证、预览和交接 | 本文 |
+| 新版本 EXE 的输入、构建、安装验收和发布 | [Windows 指南](../docs/guides/windows.md#构建与技术预发布) |
+| 当前需求、负责人、状态与本轮证据 | 本机 `docs/current/<feature>/README.md` |
+| 临时文件、保留与归档规则 | [开发文件与产物管理](../docs/guides/development-files.md) |
+| 实际执行逻辑与远端检查 | `tools/packaging/`、`tools/scripts/`、`.github/workflows/` |
+
+### 一次开发迭代
+
+1. **核对现场。** 读任务 README、实际实现与相关官方文档，运行 `git status --short --branch`，核对是否存在合并、变基、拣选状态；确认当前分支与上游差异。遇到他人改动先协调文件归属，需要隔离时从明确基线建立独立分支/worktree，不能靠还原制造干净工作树。
+2. **登记一个目标。** 在本机任务 README 写目标、验收、负责人、拟改文件、当前状态、阻塞与证据。重构与功能分开，旁支问题只记录；先确认文件归属再新增代码。
+3. **准备所需环境并实现。** 新检出按下文环境章节准备；已有环境核验版本后复用。后端、普通前端、内置工作台与 Rust 分别使用所属入口，不必每次小改动都重建整个 EXE。
+4. **运行相称验证。** 按下表选测试，阅读完整输出和退出码。记录失败、警告、跳过与未验证项；改动后重跑受影响检查，不能引用上轮或子任务的成功代替本轮证据。
+5. **预览与验收。** 界面改动先进入 develop 并提供真实页面预览，使用隔离 profile、允许的测试目录和实际 API。项目主导者确认后才合入、推送 main；单测、静态 HTML 和编译成功都不能替代此确认。
+6. **提交与推送。** 检查最终 diff，只显式暂存本次文件，再读 staged diff 和 Git 操作状态。每轮一个 Conventional Commit，说明为什么改。推送前运行 `git log --oneline origin/main..HEAD` 并核对实际上游的完整待推送区间，确认所有提交都在授权范围内；不强推或改写历史。
+7. **交接或结项。** 任务 README 更新实际命令、退出码、提交、预览/产物位置和下一步。暂停与待验收留在 current；确认结束后按文件管理指南保留原文、hash 与路径映射再归档。需要交付新 EXE 时进入 Windows 构建流水线。
+
+### 按改动选择验证
+
+| 改动范围 | 验证入口 |
+| --- | --- |
+| 仅文档 | 相对链接、命令与实际入口核对，`git diff --check`，归属检查 |
+| Python 业务 | `python -m unittest -v tests.backend.<相关模块>`；跨模块改动检查 Import Linter |
+| 普通 JS / CSS / 页面 | 相关 `tests/frontend/*.cjs`；交互变化补实际浏览器预览/验收 |
+| 观察 / 资讯 TypeScript | 下文对应 typecheck/build/check；源码变更提交生成 JS，检查现有交付物时先 check |
+| 内置项目工作台 | 来源清单、相关 engine 测试及 [构建合同](#内置项目工作台源码与构建)；集成行为用 [真实预览](#studio-与内置项目工作台开发预览) |
+| Rust 观察后台 | [固定工具链](#windows-原生观察开发)的 fmt、test、clippy、build；发包使用 release 产物 |
+| 安装器 / 分发 | Windows 指南中的构建合同、产品闭包与安装验收；源码测试不能替代新 EXE |
+
+新增文件或改变模块依赖时，运行：
+
+```powershell
+python tools/scripts/check_architecture.py layout
+if ($LASTEXITCODE -ne 0) { throw 'Layout check failed' }
+lint-imports --config tools/architecture/importlinter.ini --no-cache --no-logo
+if ($LASTEXITCODE -ne 0) { throw 'Import contracts failed' }
+```
+
+Import Linter 的固定依赖在 `tools/architecture/requirements.txt`。内容/秘密检查按 [既有入口](#内容和秘密检查)执行；各检查职责不同，不能互相替代。命令在本检出根目录执行，使用已核验的 Python/Node；不要用管道末端命令的退出码代替被测命令。
+
+### 本地开发与远端流水线的边界
+
+当前快速开发不强制 PR、独立审查或等待远端 CI。`ci.yml` 仅有 `workflow_dispatch`，push/PR 不会自动触发；需要远端证据时手动运行并核对该次 SHA。`release.yml` 也为手动入口，其远端发布门禁与当前缺口见 Windows 指南。不要把“已推送”写成“CI 已通过”或“安装包已发布”。
+
+组织方式参考 [uv 的贡献指南](https://docs.astral.sh/uv/reference/contributing/)：在一个开发入口里串起准备、测试与发布，并从项目元数据取版本。保留本项目的 develop 预览确认、Python/Rust/内置工作台构建器和本地验证节奏；不照搬其包管理器、自动版本更新或强制发布 PR。
+
+## 开发材料归属
+
 公开指南放 `docs/guides/`，架构与契约放 `docs/architecture/`，接入示例放 `docs/examples/`，`docs` 根只保留 [README.md 索引](../docs/README.md)；开发脚本放 `tools/scripts/`。活跃任务记录放 ignored `docs/current/<feature>/`，以 README.md 记录目标、验收、负责人、文件归属、状态、阻塞及证据链接；历史记录放 ignored `docs/archive/<feature>/`。日志、截图、隔离数据与构建产物放 ignored `work/<feature>/`，旧材料放 `work/archive/<feature>/`；`current`、`archive` 根只放任务目录，`work` 根另保留 README.md 索引。本机记录不提交，整理时保留原文、失败证据和旧路径到新位置的清单。下文命令均从仓库根目录执行。
 
 一次性脚本、临时 clone、缓存、构建输出、预览 profile 和需留证的 TEMP/TMP 必须在本检出 `work/<feature>/` 下，不能为了缩短路径在盘根创建 `ce-*` 副本，也不能改用户或系统临时目录。正式构建沿用已有 `work/ce-native`、`work/workbench-engine-build/<run>/`；普通自动清理的单测可使用系统 Temp。需要临时环境时只给该子进程传任务内的环境变量；用完清理可重建内容，报告与失败日志按任务留存。历史脚本的旧绝对路径保留为证据，恢复前须重新核对，不能直接重跑。`python tools/scripts/check_architecture.py layout` 同时检查本机文档和 work 根散件；显式 `--files` 只检查给定发布候选。
@@ -52,7 +105,7 @@ python tools/packaging/workbench_engine.py build --node C:/example/node24/node.e
 python tools/packaging/workbench_engine.py check-output --run-dir C:/example/checkout/work/workbench-engine-build/local
 ```
 
-替换为自己的绝对工具/检出路径。每次使用新的证据目录，Windows native scratch 路径应短；失败保留日志。构建固定执行 packages、移动资源生成、mobile web、原生依赖、Web和Windows运行时。来源SHA、宿主SHA和实际产物hash分别记录；`out/`、`.build/`、依赖缓存与证据不提交。完整桌面安装器、Android签名/推送身份和自建服务另行适配，不能用本机编译成功替代。
+替换为自己的绝对工具/检出路径。每次使用新的证据目录，Windows native scratch 路径应短；失败保留日志。构建固定执行 packages、移动资源生成、mobile web、原生依赖、Web和Windows运行时。来源SHA、宿主SHA和实际产物hash分别记录；`out/`、`.build/`、依赖缓存与证据不提交。当前外部许可材料需要人工准备，build 的编译后检查可能因此失败；材料合同和恢复步骤见 [Windows 构建流水线](../docs/guides/windows.md#构建与技术预发布)。完整桌面安装器沿同一流水线组装和验收，Android签名/推送身份与自建服务仍需分别验收，不能用本机编译成功替代。
 
 字体、供应商图标、完整界面静态导入资源及Windows launcher编译图标仅按清单精确字节和完整notice放行；未知媒体、上游执行规则、私人fixture和任意嵌套docs仍拒绝。文本仍经隐私与Gitleaks扫描，changes模式按被检查commit自己的清单核验。对应用来源/构建规则的修改运行：
 
@@ -176,6 +229,8 @@ python -m venv .venv
 基础测试使用合成配置、临时文件和 mock，不需要作者服务器或个人工具。首次完整测试涉及固定 Gitleaks 检查时，先按下文安装已核验工具；不能把缺工具跳过称为完整检查通过。本机 requirements 固定 MCP 1.30.0，远端新 reader 环境另用 tools/remote-reader/requirements.txt，不能把两套环境混为一次升级。
 
 ### Python 分发构建
+
+本节说明分发模块的职责与 Python 包合同；每次新 EXE 的完整操作顺序只维护在 [Windows 构建流水线](../docs/guides/windows.md#构建与技术预发布)。
 
 发行闭包的依赖归属与许可校验归 `tools/packaging/workbench_distribution.py`；Windows payload 组装归 `tools/packaging/desktop_payload.py`，稳定启动与维护入口归 `installation/maintenance.py`。engine 的 `config/scripts/distribution-record.mjs` 收集实际构建输入、外部文件与输出关系，由现有 runtime、mobile、SDK、Vite 构建脚本调用；新增脚本也须通过来源清单的精确成员校验，不扩大 HTTP 文件服务根。`tests/backend/test_workbench_distribution.py`、`test_desktop_payload.py` 覆盖 Python 合同；`tests/frontend/test_distribution_record.cjs` 与 `test_distribution_cross_tool.cjs` 验证 JavaScript producer 及跨工具输入。`tests/e2e/remote_device_acceptance.py` 是显式目标的现场验收入口，其合成测试归 `tests/backend/test_remote_device_acceptance.py`；源码单测不能替代公网与物理设备验收。
 

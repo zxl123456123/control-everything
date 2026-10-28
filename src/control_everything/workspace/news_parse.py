@@ -174,11 +174,13 @@ def _tree(data):
     return root
 
 
-def _url(value, base):
+def _url(value, base, upgrade=False):
     if not value or any(ord(char) < 33 for char in value) or '\\' in value:
         return None
     try:
         resolved = urljoin(base or '', value)
+        if upgrade and resolved.startswith('http://'):
+            resolved = 'https://' + resolved[len('http://'):]
         return resolved if safe_news_url(resolved) and len(resolved.encode('utf-8')) <= 2048 else None
     except (ValueError, UnicodeError):
         return None
@@ -211,7 +213,7 @@ def _result(rows, scanned, filtered, duplicates, format_name, now, cap=20):
             'duplicate_count': duplicates, 'returned_count': min(len(rows), cap), 'truncated': len(rows) > cap}
 
 
-def parse_feed_result(data, source_id, source_name, fetched_at, *, feed_url=None, now=None):
+def parse_feed_result(data, source_id, source_name, fetched_at, *, feed_url=None, now=None, upgrade_http=False):
     root = _tree(data)
     atom = root.tag == ATOM + 'feed'
     base = _base(feed_url, root)
@@ -240,7 +242,7 @@ def parse_feed_result(data, source_id, source_name, fetched_at, *, feed_url=None
             links.sort(key=lambda link: link.get('type') != 'text/html')
         url = None
         for link in links:
-            url = _url(link.get('href', '') if atom else _text(link), _base(entry_base, link))
+            url = _url(link.get('href', '') if atom else _text(link), _base(entry_base, link), upgrade_http)
             if url:
                 break
         if not title or not url:
