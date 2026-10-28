@@ -10,6 +10,27 @@
 4. `workbench-identity.hub.service.example` 安装为独立服务。hub 只监听 `127.0.0.1:18869`；oauth2-proxy 样例的身份头与 access token 仅允许在受信服务器链路流转。Caddy 必须先清除公网伪造头，再注入内部 proof，不能公开 `/internal/authorize`。
 5. `static_paths` 必须由实际版本资源清单生成；空列表不豁免任何资产。业务 document 缺 hub session 时由边缘返回账号页；只有 `/remote/api/session` 会发送 session cookie。业务 API 缺 context 时拒绝。
 
+## 在已有 realm 中补充手机端客户端
+
+手机 App 使用公共客户端 `workbench-mobile`（授权码 + PKCE S256，无客户端秘密）。realm 已有真实用户时不要导入整份 realm JSON；用 `tools/scripts/keycloak_add_mobile_client.py` 通过 Keycloak Admin REST API 只补这一个客户端：
+
+```bash
+export KEYCLOAK_URL=https://identity.example.test   # 含 /auth 前缀的旧版部署须写进 URL
+export KEYCLOAK_REALM=<目标 realm>
+export KEYCLOAK_ADMIN_USER=<管理员>                  # 默认在 master realm 登录，可用 KEYCLOAK_ADMIN_REALM 改
+export KEYCLOAK_ADMIN_PASSWORD=<管理员密码>           # 只从环境读取，不接受命令行参数
+export CE_MOBILE_SCHEME=<App 的自定义 URL scheme，例如 com.example.workbench>
+python tools/scripts/keycloak_add_mobile_client.py --dry-run   # 只读：对比服务器并列出将执行的步骤
+python tools/scripts/keycloak_add_mobile_client.py             # 实际写入
+```
+
+- 只写三类对象：`workbench-mobile` 客户端本身、该客户端上的 `hub-audience` 映射器（audience 为 `workbench-hub`，只进 access token），以及该客户端的默认 `email` client scope（使 access token 与 userinfo 带邮箱）。realm 设置、用户、其它客户端一律不改；realm 只读取。
+- 客户端：公共客户端，仅标准流程；关闭隐式流程、直接密码授权和 service account；PKCE 固定 S256；重定向与退出后重定向都只有 `<scheme>:/oauth/callback`。已有同名客户端时只覆盖这些受管字段（`redirectUris` 按声明式精确替换，会清除多余的地址），其它字段和属性保持原样。已有同名机密客户端默认拒绝改为公共，须显式加 `--allow-convert-confidential`。
+- 幂等：再次运行没有差异就不写入任何内容。`--dry-run` 带管理员凭据时只发起读请求；未设置管理员凭据时完全不联网，只打印目标客户端与映射器。
+- 刷新令牌轮换是 realm 级设置（Realm settings → Tokens → Revoke Refresh Token，Max Reuse 为 0），脚本不会改 realm，只在输出的 `warnings` 中提示未开启，须由管理员自行确认。同样会提示 realm 中缺少 `workbench-hub` 客户端。
+- 管理员密码走 token 请求，因此 URL 只接受 `https`（本机回环地址除外）。输出与错误信息不含密码、令牌或服务器响应体中的敏感字段。
+- 该脚本尚未对任何真实 Keycloak 运行；单元测试使用模拟的 Admin API。首次对生产 realm 使用前，先 `--dry-run` 核对步骤，并备份 realm。
+
 发布新版桌面包时，须同步登记资源：普通资源取同版 `gateway.WEB_ASSETS`、`workbench.STUDIO_RESOURCES`、`news_reader.ASSETS` 中的非 HTML 项；原生资源取完整包 `workbench-build/web-assets.json` 的非 HTML `files`，路径加 `/workbench/` 前缀。只合并仍受支持版本的精确路径，保留旧版条目，不加入 HTML、API 或通配路径。更新私有配置并重启 hub 后，从远程浏览器实测项目与终端。漏登记会使初始脚本返回 `403 context_required`，出现白屏或资源加载失败；仅重新构建桌面包不能替代这一步。
 
 ## 管理员与注册成员
