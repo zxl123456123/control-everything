@@ -108,8 +108,8 @@ class RemoteHubHTTPTests(unittest.TestCase):
         self.assertEqual(self.request("POST", path, "{}", post_headers)[0], 405)
         self.assertEqual(self.request("POST", "/remote/api/invitations", "{}", post_headers)[0], 403)
         self.hub.user_directory = None
-        self.assertEqual(self.request("GET", path, headers=headers)[:2],
-                         (503, {"error": "member_directory_not_configured"}))
+        status, body = self.request("GET", path, headers=headers)[:2]
+        self.assertEqual((status, body["source"], body["total"]), (200, "hub_members", 2))
 
     def test_malformed_idp_unicode_is_a_directory_error_not_a_dropped_connection(self):
         self.hub.admin_subjects = frozenset([(A.issuer, A.sub)])

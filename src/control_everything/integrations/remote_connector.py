@@ -19,6 +19,7 @@ from urllib.parse import urlencode, urlsplit
 from urllib.request import Request, build_opener, HTTPRedirectHandler
 import uuid
 
+from control_everything.integrations.oidc_discovery import DiscoveryError, OidcDiscovery
 from control_everything.integrations.remote_access import RemoteAccess, public_origin
 from control_everything.integrations.remote_tunnel import RemoteTunnel, TunnelConfig
 from control_everything.integrations.workbench_runtime import safe_path
@@ -46,9 +47,10 @@ class ConnectorConfig:
         public_origin(self.hub_origin)
         parsed = urlsplit(self.issuer)
         public_origin("https://" + parsed.netloc)
+        # Any HTTPS issuer path is accepted; endpoints come from OIDC discovery, not provider-specific paths.
         if (parsed.scheme != "https" or parsed.query or parsed.fragment or
-                not re.fullmatch(r"/(?:identity/)?realms/[A-Za-z0-9_.-]+", parsed.path) or
-                parsed.path.rsplit("/", 1)[-1] in (".", "..")):
+                not re.fullmatch(r"(?:/[A-Za-z0-9_.~-]+)*", parsed.path) or
+                any(part in (".", "..") for part in parsed.path.split("/"))):
             raise ValueError("remote_issuer_invalid")
         if self.client_id != "workbench-desktop":
             raise ValueError("remote_client_invalid")
@@ -67,12 +69,17 @@ class RemotePeer:
     def __init__(self, config):
         self.config = config
         self.opener = build_opener(NoRedirect())
+        self.discovery = OidcDiscovery(config.issuer)
 
     def request(self, method, path, body=None, token=None, *, oauth=False):
         if oauth:
-            if path not in {"/auth/device", "/token"}:
+            name = {"/auth/device": "device_authorization_endpoint", "/token": "token_endpoint"}.get(path)
+            if name is None:
                 raise ConnectorError("remote_endpoint_invalid")
-            url = self.config.issuer + "/protocol/openid-connect" + path
+            try:
+                url = self.discovery.endpoint(name)
+            except DiscoveryError:
+                raise ConnectorError("remote_network_unavailable") from None  # retried like any unreachable identity service
         else:
             parsed = urlsplit(path)
             if (not path.startswith("/remote/desktop/") or parsed.fragment

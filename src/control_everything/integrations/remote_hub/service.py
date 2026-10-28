@@ -10,7 +10,7 @@ from urllib.parse import parse_qs, urlsplit
 
 from .identity import HubError, public_key_fingerprint
 from .sessions import BrowserSessions
-from .store import RECOVERABLE, public_device
+from .store import ONLINE_WINDOW, RECOVERABLE, public_device
 
 
 class RemoteHubService:
@@ -55,49 +55,76 @@ class RemoteHubService:
         with self.store.transaction() as db:
             self.store.require_member(db, identity)
 
-    def desktop_identity(self, identity):
+    def is_admin(self, identity):
+        """Configured administrator pair, or any identity linked to the same internal account as one."""
+        if (identity.issuer, identity.sub) in self.admin_subjects:
+            return True
         with self.store.transaction() as db:
-            member = db.execute("SELECT status FROM members WHERE issuer=? AND sub=?", (identity.issuer, identity.sub)).fetchone()
+            return self._admin_check(db, identity.issuer, identity.sub)
+
+    def _admin_check(self, db, issuer, sub):
+        if (issuer, sub) in self.admin_subjects:
+            return True
+        account = self.store.lookup_account(db, issuer, sub)
+        return account is not None and account in self.store.admin_accounts(db, self.admin_subjects)
+
+    def desktop_identity(self, identity):
+        membership = self.store.member_status(identity)
         return {"account": {"issuer": identity.issuer, "sub": identity.sub, "name": identity.name or identity.sub},
-                "member_active": bool(member and member[0] == "active"),
-                "membership": member[0] if member else "inactive",
-                "admin": (identity.issuer, identity.sub) in self.admin_subjects}
+                "member_active": membership == "active",
+                "membership": membership,
+                "admin": self.is_admin(identity)}
 
     def session(self, identity, cookie):
         csrf, set_cookie = self.sessions.open(identity, cookie)
-        with self.store.transaction() as db:
-            member = db.execute("SELECT status FROM members WHERE issuer=? AND sub=?", (identity.issuer, identity.sub)).fetchone()
+        membership = self.store.member_status(identity)
         device = self.store.own_device(identity)
-        return {"account": {"sub": identity.sub, "name": identity.name or identity.sub}, "membership": member[0] if member else "inactive",
-                "admin": (identity.issuer, identity.sub) in self.admin_subjects,
+        return {"account": {"sub": identity.sub, "name": identity.name or identity.sub}, "membership": membership,
+                "admin": self.is_admin(identity),
                 "device": public_device(device) if device else None, "csrf": csrf, "session_changed": bool(set_cookie)}, set_cookie
 
     def create_invitation(self, identity):
-        if (identity.issuer, identity.sub) not in self.admin_subjects:
+        if not self.is_admin(identity):
             raise HubError("admin_required", 403)
         self.limit((identity.issuer, identity.sub, "invitation"), 10)
         return {"invitation": self.store.create_invitation(), "expires_in": 86400}
 
     def admin_members(self, identity, limit=25, offset=0):
-        if (identity.issuer, identity.sub) not in self.admin_subjects:
+        if not self.is_admin(identity):
             raise HubError("admin_required", 403)
         if type(limit) is not int or not 1 <= limit <= 100 or type(offset) is not int or not 0 <= offset <= 2147483647:
             raise HubError("invalid_pagination", 400)
-        if self.user_directory is None:
-            raise HubError("member_directory_not_configured", 503)
-        accounts, total = self.user_directory.page(limit, offset)
-        items = []
+        directory = self.user_directory
+        # The identity-provider read stays outside the database transaction.
+        listed = directory.page(limit, offset) if directory is not None else None
+        issuer = directory.issuer if directory is not None else identity.issuer
         with self.store.transaction() as db:
+            # Without a directory, list only the members this hub already knows (activated or
+            # disabled); registered-but-unactivated accounts are invisible.
+            accounts, total = listed if listed is not None else self._hub_members(db, issuer, limit, offset)
+            items = []
             for account in accounts:
-                owner = (self.user_directory.issuer, account["sub"])
-                member = db.execute("SELECT status FROM members WHERE issuer=? AND sub=?", owner).fetchone()
-                device = db.execute("SELECT device_id,name,state,last_heartbeat FROM devices WHERE issuer=? AND sub=? AND state!='revoked'", owner).fetchone()
+                owner = (issuer, account["sub"])
+                owner_account = self.store.lookup_account(db, *owner)
+                member = db.execute("SELECT status FROM members WHERE account_id=?", (owner_account,)).fetchone()
+                device = db.execute("SELECT device_id,name,state,last_heartbeat FROM devices WHERE account_id=? AND state!='revoked'", (owner_account,)).fetchone()
                 current = {key: device[key] for key in ("device_id", "name", "state")} if device else None
                 if current and current["state"] == "online" and (device["last_heartbeat"] is None or self.store.clock() - device["last_heartbeat"] > 45):
                     current["state"] = "offline"
                 items.append({"account": account, "membership": member[0] if member else "inactive",
-                              "admin": owner in self.admin_subjects, "device": current})
-        return {"items": items, "total": total, "limit": limit, "offset": offset}
+                              "admin": self._admin_check(db, *owner), "device": current})
+        result = {"items": items, "total": total, "limit": limit, "offset": offset}
+        if self.user_directory is None:
+            result["source"] = "hub_members"
+        return result
+
+    @staticmethod
+    def _hub_members(db, issuer, limit, offset):
+        total = db.execute("SELECT COUNT(*) FROM members m JOIN identities i ON i.account_id=m.account_id WHERE i.issuer=?",
+                           (issuer,)).fetchone()[0]
+        rows = db.execute("SELECT i.sub FROM members m JOIN identities i ON i.account_id=m.account_id "
+                          "WHERE i.issuer=? ORDER BY m.rowid,i.sub LIMIT ? OFFSET ?", (issuer, limit, offset)).fetchall()
+        return [{"sub": row[0], "name": row[0], "registered_at": None, "enabled": None} for row in rows], total
 
     def activate(self, identity, invite):
         self.limit((identity.issuer, identity.sub, "activate"), 10)
@@ -105,6 +132,43 @@ class RemoteHubService:
             raise HubError("invalid_invitation", 400)
         self.store.activate(identity, invite)
         return {"membership": "active"}
+
+    # ---- Bearer-authenticated mobile surface (identity kind "mobile"; no cookies, no CSRF) ----
+
+    def _effective_state(self, device):
+        # A stale heartbeat never reads as online, matching the browser authorization path.
+        if device["state"] == "online" and (device["last_heartbeat"] is None
+                                            or self.store.clock() - device["last_heartbeat"] > ONLINE_WINDOW):
+            return "offline"
+        return device["state"]
+
+    def mobile_me(self, identity):
+        self.limit((identity.issuer, identity.sub, "mobile-read"), 60)
+        return {"account": {"sub": identity.sub, "name": identity.name or identity.sub,
+                            "display_name": identity.display_name or None, "email": identity.email or None},
+                "membership": self.store.member_status(identity),
+                "admin": self.is_admin(identity)}
+
+    def mobile_devices(self, identity):
+        self.limit((identity.issuer, identity.sub, "mobile-read"), 60)
+        items = [{"device_id": device["device_id"], "name": device["name"], "state": self._effective_state(device),
+                  "last_seen": device["last_heartbeat"], "created_at": device["created_at"],
+                  "os_name": device["os_name"], "os_version": device["os_version"],
+                  "app_version": device["app_version"], "cleanup_failed": bool(device["cleanup_error"])}
+                 for device in self.store.devices_of(identity)]
+        return {"items": items}
+
+    def mobile_activate(self, identity, invite):
+        self.activate(identity, invite)
+        return self.mobile_me(identity)
+
+    def mobile_revoke(self, identity, device_id):
+        self.limit((identity.issuer, identity.sub, "mobile-revoke"), 10)
+        return self.revoke(identity, device_id)
+
+    def mobile_logout(self, identity):
+        self.limit((identity.issuer, identity.sub, "mobile-logout"), 10)
+        return {"logged_out": True, "sessions_invalidated": self.store.mark_logout(identity)}
 
     def _installation(self, installation_id, public_key):
         if not isinstance(installation_id, str) or not re.fullmatch(r"[A-Za-z0-9_-]{16,128}", installation_id):
@@ -192,8 +256,7 @@ class RemoteHubService:
     def config(self, token):
         device = self.store.authenticate_control(token)
         with self.store.transaction() as db:
-            from .identity import Identity
-            self.store.require_member(db, Identity(device["issuer"], device["sub"], "", 0))
+            self.store.require_account_member(db, device["account_id"])
         return {"device_id": device["device_id"], "generation": device["generation"],
                 "credential_revision": device["credential_revision"], "public_origin": self.public_origin,
                 "ssh": {"host": self.ssh_host, "port": self.ssh_port,
@@ -201,11 +264,23 @@ class RemoteHubService:
                 "remote_http_port": device["http_port"], "remote_ws_port": device["ws_port"],
                 "proxy_token": device["proxy_secret"]}
 
-    def heartbeat(self, token, installation_id, runtime_ready):
+    @staticmethod
+    def _device_info(**values):
+        info = {}
+        for key, value in values.items():
+            if value is None:
+                continue
+            if not isinstance(value, str) or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9 ._+()-]{0,63}", value):
+                raise HubError("invalid_device_info", 400)
+            info[key] = value
+        return info
+
+    def heartbeat(self, token, installation_id, runtime_ready, os_name=None, os_version=None, app_version=None):
         device = self.store.authenticate_control(token)
         self.config(token)
         if installation_id != device["installation_id"] or type(runtime_ready) is not bool:
             raise HubError("installation_mismatch", 403)
+        info = self._device_info(os_name=os_name, os_version=os_version, app_version=app_version)
         # A caller's readiness claim alone is never evidence of two live channels.
         online = False
         if runtime_ready and self.channel_probe:
@@ -213,13 +288,12 @@ class RemoteHubService:
                 online = self.channel_probe(device) is True
             except Exception:
                 online = False
-        self.store.update_online(device, token, online)
+        self.store.update_online(device, token, online, info)
         return {"state": "online" if online else "offline"}
 
     def revoke(self, identity, device_id):
         device = self.store.device(device_id)
-        if ((device["issuer"], device["sub"]) != (identity.issuer, identity.sub)
-                and (identity.issuer, identity.sub) not in self.admin_subjects):
+        if device["account_id"] != self.store.account_id(identity) and not self.is_admin(identity):
             raise HubError("device_not_found", 404)
         return self._revoke(device)
 

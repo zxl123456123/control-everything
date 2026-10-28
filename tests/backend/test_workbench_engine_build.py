@@ -64,25 +64,31 @@ class WorkbenchBuildTests(unittest.TestCase):
         self.assertEqual(first['upstreamCommit'], BUILD.UPSTREAM)
         self.assertEqual(first['fileCount'], 7)
 
-    def test_native_chat_resources_keep_pinned_bytes_with_autocrlf_checkout(self):
+    def test_pinned_source_and_resources_keep_bytes_with_autocrlf_checkout(self):
+        (self.root / '.gitattributes').write_bytes((ROOT / '.gitattributes').read_bytes())
         attributes = (ROOT / BUILD.UNIT / '.gitattributes').read_bytes()
         (self.unit / '.gitattributes').write_bytes(attributes)
         names = ('resources/native-chat-visuals/.claude-plugin/plugin.json',
-                 'resources/native-chat-visuals/skills/orca-chat-visuals/SKILL.md')
+                 'resources/native-chat-visuals/skills/orca-chat-visuals/SKILL.md',
+                 'mobile/app.config.js', 'mobile/package.json', 'mobile/pnpm-lock.yaml',
+                 'src/renderer/src/assets/main.css', 'src/renderer/src/i18n/locales/zh.json')
         raw = '{"fixture": "合成 UTF-8"}\n'.encode('utf-8')
-        for name in names:
+        expected = dict.fromkeys(names, raw)
+        expected.update({'mobile/patches/fixture.patch': b'patch\r\n',
+                         'mobile/src/fixture.png': b'\x89PNG\r\n\x1a\n\x00fixture'})
+        for name, content in expected.items():
             target = self.unit / name
             target.parent.mkdir(parents=True, exist_ok=True)
-            target.write_bytes(raw)
-        subprocess.run(['git', '-c', 'core.autocrlf=true', 'add', '--', BUILD.UNIT],
+            target.write_bytes(content)
+        subprocess.run(['git', '-c', 'core.autocrlf=true', 'add', '--', '.gitattributes', BUILD.UNIT],
                        cwd=self.root, env=self.env, check=True, capture_output=True)
         checkout = self.root / 'checkout'
         subprocess.run(['git', '-c', 'core.autocrlf=true', 'checkout-index',
                         '--prefix=' + checkout.as_posix() + '/', '--all'],
                        cwd=self.root, env=self.env, check=True, capture_output=True)
-        for name in names:
+        for name, content in expected.items():
             with self.subTest(resource=name):
-                self.assertEqual((checkout / BUILD.UNIT / name).read_bytes(), raw)
+                self.assertEqual((checkout / BUILD.UNIT / name).read_bytes(), content)
         self.assertEqual((checkout / BUILD.UNIT / '.gitattributes').read_bytes(), attributes)
 
     def test_resource_bytes_missing_icon_and_unknown_files_are_rejected(self):

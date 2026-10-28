@@ -27,6 +27,11 @@ https://workbench.example.test {
         handle /remote/desktop/* {
             reverse_proxy 127.0.0.1:18869
         }
+        # Mobile uses its own Bearer, verified by the hub's introspection. It must bypass oauth2-proxy
+        # forward_auth, carry no route proof, and never receive CORS headers.
+        handle /remote/mobile/* {
+            reverse_proxy 127.0.0.1:18869
+        }
         @account path /remote /remote/ /remote/remote-account.js /remote/remote-account.css /remote/account-device.js /remote/ui-theme.js
         handle @account {
             root * /srv/control-everything/remote-ui

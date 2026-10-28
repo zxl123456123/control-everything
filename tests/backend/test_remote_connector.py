@@ -11,9 +11,10 @@ import unittest
 from unittest.mock import Mock
 
 from control_everything.integrations.remote_connector import (
-    ConnectorConfig, ConnectorError, ConnectorStore, DPAPI, RemoteConnector, DeviceKeys,
+    ConnectorConfig, RemotePeer, ConnectorError, ConnectorStore, DPAPI, RemoteConnector, DeviceKeys,
 )
 
+from control_everything.integrations.oidc_discovery import OidcDiscovery
 TOKEN = "A" * 43
 CONFIG = {"device_id": "device-1", "generation": 1, "credential_revision": 1,
           "public_origin": "https://workbench.example.test", "proxy_token": TOKEN,
@@ -97,20 +98,19 @@ class ConnectorConfigTests(unittest.TestCase):
         values.update(overrides)
         return ConnectorConfig(**values)
 
-    def test_root_and_deployed_identity_context_issuers_are_preserved(self):
-        for path in ('/realms/team', '/identity/realms/control-everything'):
+    def test_any_https_issuer_path_is_preserved(self):
+        for path in ('', '/realms/team', '/identity/realms/control-everything', '/auth/realms/team', '/application/o/workbench',
+                     '/oauth2/default', '/tenant.v2/oidc~x'):
             issuer = 'https://identity.example.test' + path
             with self.subTest(path=path):
                 self.assertEqual(self.config(issuer).issuer, issuer)
 
-    def test_issuer_rejects_other_prefix_encoding_traversal_and_url_components(self):
-        paths = ('/auth/realms/team', '/identity-other/realms/team', '/prefix/identity/realms/team',
-                 '/identity//realms/team', '/identity/realms/', '/identity/realms/team/',
-                 '/identity/realms/team/extra', '/identity/../realms/team',
-                 '/identity/realms/.', '/identity/realms/..', '/realms/.', '/realms/..',
+    def test_issuer_rejects_trailing_slash_encoding_traversal_and_url_components(self):
+        paths = ('/identity//realms/team', '/identity/realms/', '/identity/realms/team/',
+                 '/identity/../realms/team', '/identity/realms/.', '/identity/realms/..', '/realms/.', '/realms/..',
                  '/%69dentity/realms/team', '/identity/realms/%2e%2e',
                  '/identity/realms/team%2Fextra', '/identity/realms/team?x=1',
-                 '/identity/realms/team#fragment')
+                 '/identity/realms/team#fragment', '/', '/realms/te am', '/realms/te\\am')
         for path in paths:
             with self.subTest(path=path), self.assertRaises(ValueError):
                 self.config('https://identity.example.test' + path)
@@ -130,6 +130,50 @@ class ConnectorConfigTests(unittest.TestCase):
                                 ({'keygen_executable': self.tool.parent / 'missing.exe'}, 'remote_tool_missing')):
             with self.subTest(fields=tuple(overrides)), self.assertRaisesRegex(ValueError, code):
                 self.config(issuer, **overrides)
+
+
+class DiscoveredEndpointTests(unittest.TestCase):
+    """The device flow talks to the endpoints the issuer advertises, never to hardcoded provider paths."""
+
+    def peer(self, document):
+        issuer = 'https://identity.example.test/application/o/workbench'
+        peer = RemotePeer(SimpleNamespace(issuer=issuer, hub_origin='https://workbench.example.test'))
+        peer.discovery = OidcDiscovery(issuer, fetch=lambda url: dict(document, issuer=issuer))
+        seen = []
+
+        class Response:
+            def __enter__(self): return self
+            def __exit__(self, *args): return False
+            def read(self, limit): return b'{"ok": true}'
+
+        class Opener:
+            def open(self, request, timeout):
+                seen.append((request.full_url, request.data))
+                return Response()
+        peer.opener = Opener()
+        return peer, seen
+
+    def test_device_and_token_requests_use_advertised_endpoints(self):
+        peer, seen = self.peer({'device_authorization_endpoint': 'https://identity.example.test/application/o/device/',
+                                'token_endpoint': 'https://identity.example.test/application/o/token/'})
+        peer.request('POST', '/auth/device', {'client_id': 'workbench-desktop'}, oauth=True)
+        peer.request('POST', '/token', {'client_id': 'workbench-desktop'}, oauth=True)
+        self.assertEqual([url for url, _ in seen], ['https://identity.example.test/application/o/device/',
+                                                    'https://identity.example.test/application/o/token/'])
+
+    def test_missing_foreign_or_unsafe_endpoints_fail_as_an_unreachable_identity_service(self):
+        for document in ({}, {'token_endpoint': 'https://other.example.test/token'}, {'token_endpoint': 'http://identity.example.test/token'}):
+            peer, seen = self.peer(document)
+            with self.subTest(document=document), self.assertRaises(ConnectorError) as caught:
+                peer.request('POST', '/token', {'client_id': 'workbench-desktop'}, oauth=True)
+            self.assertEqual(caught.exception.code, 'remote_network_unavailable')
+            self.assertEqual(seen, [])
+
+    def test_only_the_two_device_flow_paths_are_reachable(self):
+        peer, seen = self.peer({})
+        with self.assertRaises(ConnectorError):
+            peer.request('POST', '/revoke', {}, oauth=True)
+        self.assertEqual(seen, [])
 
 
 class ConnectorTests(unittest.TestCase):
