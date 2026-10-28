@@ -56,7 +56,7 @@ oauth2-proxy 样例使用通用的 `provider = "oidc"`，端点由 issuer 的发
    - `POST /remote/mobile/devices/<device_id>/revoke` `{}` → `{"device_id", "state", "cleanup_error"}`，行为与网页撤销一致：非管理员撤销他人设备返回 404（管理员可撤销任意设备）。
    - `POST /remote/mobile/logout` `{}` → `{"logged_out": true, "sessions_invalidated": n}`：使该成员所有浏览器会话失效并记录退出时间。它不会撤销 Keycloak 的 refresh token，App 仍须自行调用 Keycloak 的撤销/退出端点。
    - 限速沿用 hub 内存限速：读取 60 次/分钟，撤销和退出各 10 次/分钟，激活 10 次/分钟。
-5. 数据库在首次启动时由 schema 版本 1 自动升级到 2（仅新增可空列：设备 `created_at`、`os_name`、`os_version`、`app_version`，成员 `last_logout_at`）。升级前请先备份 `hub.db`；旧版 hub 无法打开已升级的库。`os_name`、`os_version`、`app_version` 由桌面连接器心跳的可选同名字段填充，现有连接器尚未发送，未填时为 `null`。
+5. 数据库在首次启动时自动升级，保持表名与 API 不变：schema 1 → 2 仅新增可空列（设备 `created_at`、`os_name`、`os_version`、`app_version`，成员 `last_logout_at`）；2 → 3 见下文“内部 account_id 与身份源更换”。旧版 hub 无法打开已升级的库。`os_name`、`os_version`、`app_version` 由桌面连接器心跳的可选同名字段填充，现有连接器尚未发送，未填时为 `null`。
 6. 管理员禁用成员（`set_member(..., "disabled")`）时，该成员所有浏览器会话同时失效。
 
 这些样例同样未经真实服务器验收；`/remote/mobile/*` 的路由与令牌校验须在实际 Keycloak 与 Caddy 上联调。
@@ -80,3 +80,33 @@ oauth2-proxy 样例使用通用的 `provider = "oidc"`，端点由 issuer 的发
 hub 只从目录中的两个端口调用 `/__ce_remote_health`，每次独立 nonce，校验 proof、公开 Host/Origin、设备/代次/本平台安装身份、channel 与 ready。单请求绝对截止 2 秒、JSON 上限 4096 字节，不跟随重定向。公网 Caddy 必须在认证和 fallback 前拒绝该路径及子路径。
 
 这些样例须在 HTTP 健康路由、Caddy 信任链和浏览器 context 全部接入后才能部署。必须另外记录真实双账号、双隧道、禁用失效时间、撤 A 保 B、5 秒存量断连和安装包证据；源码单测不能替代这些验收。
+
+## 内部 account_id 与身份源更换（schema 3）
+
+hub 以内部随机 `account_id`（32 位小写十六进制，不对外返回）识别成员；表 `identities(issuer, sub, account_id)` 记录“身份源账号 → 内部账号”。成员、设备、注册挑战、浏览器会话与邀请的使用者都以 `account_id` 为键，因此更换身份源（例如把 Keycloak 换成别的 OIDC）只需新增一条 `identities` 记录，不再需要改写这些表。令牌校验、`(issuer, sub)` 查找与全部 HTTP 响应保持不变；管理员配置仍写 `(issuer, sub)`，与管理员账号关联的任何身份也视为管理员。
+
+**升级与备份。** 首次用新版启动时，若检测到 schema 1 或 2：
+
+1. 先用 SQLite 在线备份接口把整个库复制到同目录 `control.sqlite3.pre-account-id`（权限 600；即 `<库文件路径>.pre-account-id`）。升级期间不要手工改动该文件；它只在升级前生成，升级成功后不会再被覆盖。
+2. 在单个 `BEGIN IMMEDIATE` 事务内：为每个出现过的 `(issuer, sub)` 生成 `account_id`，重建 members/devices/enrollments/browser_sessions，把邀请的 `consumed_by` 由 `[issuer, sub]` JSON 改为 `account_id`，并校验每张表的行数。任何一步出错都会整体回滚，库保持升级前的样子，下次启动可以直接重试。
+3. 升级是幂等的：已是 schema 3 的库重复启动不会再改动数据，也不会重写备份。
+
+**回滚。** 停止 hub，用旧版代码部署，并把 `control.sqlite3.pre-account-id` 复制回 `control.sqlite3`（先另存当前文件）。回滚会丢失备份之后产生的成员、设备与会话变化。已确认服务正常运行一段时间后可删除备份。
+
+**一次性副作用。** 隔离存储范围（`X-CE-Storage-Scope`）改由 `account_id` 派生，升级后每位成员的范围值会变化一次，浏览器端按范围保存的本地数据需要重新生成；账号、设备、绑定关系与登录会话不受影响。
+
+**更换身份源流程。**
+
+1. 在新身份源建立用户并让其登录一次（此时没有成员资格，只会被拒绝）；记下新的 `issuer` 与 `sub`。
+2. 在 hub 主机上执行（与 `bootstrap-admin` 相同的 `--config`）：
+
+   ```
+   python tools/scripts/remote_hub_admin.py list-identities --config <hub.json>
+   python tools/scripts/remote_hub_admin.py link-identity --config <hub.json> \
+       --from-issuer <旧 issuer> --from-sub <旧 sub> --issuer <新 issuer> --sub <新 sub>
+   ```
+
+   也可用 `--account-id <list-identities 输出的 id>` 代替 `--from-*`。命令幂等；如果新身份已经属于另一个有成员资格或设备的账号，会拒绝合并（`identity_already_linked`）；只因先登录而产生的空账号会被并入并使其会话失效。
+3. 新身份即继承原成员状态、设备、管理员权限。确认后再停用旧身份源；旧身份在被停用前仍然有效。
+
+`list-identities` 会输出身份源的 `sub`，属个人信息，仅在 hub 主机本地使用，不要贴到工单或日志里。

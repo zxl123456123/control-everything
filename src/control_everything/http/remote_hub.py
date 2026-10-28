@@ -4,6 +4,7 @@ from http.cookies import SimpleCookie
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 import re
+import sys
 from urllib.parse import parse_qs, urlsplit
 
 from control_everything.integrations.remote_hub.identity import HubError
@@ -205,15 +206,52 @@ def build_server(address, service):
     return server
 
 
+def identity_admin(service, args, out=None):
+    """Local administrator actions on the identities table; prints one JSON document."""
+    out = out or sys.stdout
+    store = service.store
+    if args.action == "list-identities":
+        with store.transaction() as db:
+            rows = [dict(row) for row in db.execute(
+                "SELECT i.account_id,i.issuer,i.sub,COALESCE(m.status,'inactive') AS membership "
+                "FROM identities i LEFT JOIN members m ON m.account_id=i.account_id ORDER BY i.created_at,i.issuer,i.sub")]
+        print(json.dumps({"identities": rows}, ensure_ascii=False, indent=2), file=out)
+        return 0
+    account = args.account_id
+    if bool(account) == bool(args.from_sub):
+        raise SystemExit("link-identity needs exactly one of --account-id or --from-sub (with --from-issuer)")
+    if args.from_sub:
+        from control_everything.integrations.remote_hub.identity import Identity
+        account = store.account_id(Identity(args.from_issuer or service.identities.issuer, args.from_sub, "", 0))
+        if account is None:
+            raise SystemExit("no account is linked to the --from identity")
+    if not args.sub:
+        raise SystemExit("link-identity needs --sub")
+    try:
+        result = store.link_identity(account, args.issuer or service.identities.issuer, args.sub)
+    except HubError as error:
+        raise SystemExit("link-identity refused: " + error.code) from None
+    print(json.dumps(result, ensure_ascii=False, indent=2), file=out)
+    return 0
+
+
 def main(argv=None):
     import argparse
     from control_everything.integrations.remote_hub.admin import build_service
     from control_everything.integrations.remote_hub.identity import Identity
     parser = argparse.ArgumentParser(description="Dedicated account-owned remote admission hub")
     parser.add_argument("--config", required=True)
-    parser.add_argument("action", choices=("serve", "bootstrap-admin", "reconcile"))
+    parser.add_argument("action", choices=("serve", "bootstrap-admin", "reconcile", "link-identity", "list-identities"))
+    # link-identity: attach an identity of a new/replacement identity provider to an existing account.
+    parser.add_argument("--account-id", help="32-hex internal account id (see list-identities)")
+    parser.add_argument("--from-issuer", help="alternative to --account-id: issuer of an already linked identity")
+    parser.add_argument("--from-sub", help="alternative to --account-id: subject of an already linked identity")
+    parser.add_argument("--issuer", help="issuer of the identity to link (defaults to the configured issuer)")
+    parser.add_argument("--sub", help="subject of the identity to link")
     args = parser.parse_args(argv)
     service = build_service(args.config)
+    if args.action in ("link-identity", "list-identities"):
+        return identity_admin(service, args)
     if args.action == "bootstrap-admin":
         for issuer, sub in service.admin_subjects:
             service.store.set_member(Identity(issuer, sub, "", 0))
