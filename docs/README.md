@@ -8,11 +8,11 @@ Control Everything 是在本机运行的开发工作台，用于管理项目和�
 | [工作台最小契约](architecture/workbench-contract.md) | 页面概念、字段含义与来源、读写规则及[下一阶段执行桥 MVP](architecture/workbench-contract.md#12-下一阶段执行桥最小-mvp) |
 | [架构说明](architecture/architecture.md) | 组件职责、目录归属、数据流与扩展边界 |
 | [可选接入](guides/integrations.md) | 远端会话、终端、启动器与只读 MCP |
-| [Windows 安装与维护](guides/windows.md) | 安装器构建、停止、升级、回退与卸载 |
+| [Windows 安装与维护](guides/windows.md) | 安装、升级、回退、卸载；[每次新 EXE 的构建与发布流水线](guides/windows.md#构建与技术预发布) |
 | [开发文件与产物管理](guides/development-files.md) | current 任务、归档、临时输出、资源保留及 AI 执行约束 |
 | [宠物嵌入指南](guides/EMBEDDING.md) | 独立页面挂载、参数与生命周期 |
 | [宠物集成指南](guides/PETS_INTEGRATION.md) | 工作台宠物接入与验证 |
-| [参与开发](../.github/CONTRIBUTING.md) | 开发环境、测试、构建及贡献约定 |
+| [参与开发](../.github/CONTRIBUTING.md#开发与出包从这里开始) | 开发工作流总入口：任务、环境、验证、预览、提交与交接 |
 
 接入配置示例在 [examples/integrations](examples/integrations)，旧格式导入示例在 [examples/legacy](examples/legacy)。示例使用占位配置；真实配置与数据由使用者保存在本机。
 
