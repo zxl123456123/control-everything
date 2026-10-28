@@ -9,6 +9,7 @@ function mountStudio(root, { onProjects = () => {}, runtimeHost = () => null } =
     status.textContent = '工作台资源尚未就绪，请通过本地服务的 /studio 页面打开。'; return;
   }
   const client = window.StudioData.create();
+  const codeHostStrip = window.StudioCodeHost?.mountStrip($('studio-code-host'), { api: client.api, unified: root.dataset.unified === 'true' });
   let mascot = null;
   const icons = {
     grid: '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
@@ -410,6 +411,7 @@ function mountStudio(root, { onProjects = () => {}, runtimeHost = () => null } =
       taskCenter?.setActive(false); legacyBoard?.setActive(false); board.setActive?.(false);
       $('studio-tasks').hidden = true; if ($('studio-legacy-board')) $('studio-legacy-board').hidden = true;
       $('studio-agent-board').hidden = true;
+      codeHostStrip?.show(null);
       if (state.workspace && !content.innerHTML.trim()) {
         renderChrome({ view: 'home', id: '', tab: 'workspace' });
         root.dataset.projectSurface = 'false'; setHtml(content, home());
@@ -417,6 +419,7 @@ function mountStudio(root, { onProjects = () => {}, runtimeHost = () => null } =
       return;
     }
     renderChrome(current);
+    codeHostStrip?.show(current.view === 'project' && chosen && !chosen.archived ? chosen.id : null);
     root.dataset.projectSurface = current.view === 'project' ? 'true' : 'false';
     const consumers = renderConsumers(current, chosen), showBoard = consumers.progress;
     renderMonitor(current, chosen);
@@ -426,7 +429,12 @@ function mountStudio(root, { onProjects = () => {}, runtimeHost = () => null } =
       return;
     }
     if (current.view === 'settings' && current.tab === 'appearance') {
-      if (!disposePets) { renderedHtml.delete(content); disposePets = window.StudioPetSettings.mount(content); }
+      if (!disposePets) {
+        renderedHtml.delete(content);
+        const disposePage = window.StudioPetSettings.mount(content);
+        const disposeCodeHost = window.StudioCodeHost?.mountSettings(content, { api: client.api, unified: root.dataset.unified === 'true' });
+        disposePets = () => { disposeCodeHost?.(); disposePage(); };
+      }
       return;
     }
     if (!state.workspace) {
@@ -748,7 +756,7 @@ function mountStudio(root, { onProjects = () => {}, runtimeHost = () => null } =
   document.addEventListener('visibilitychange', visibilityChanged);
   render(); void refresh();
   if (window.StudioMascot && window.NewsPetPrefs && window.NewsPetDirector) mascot = window.StudioMascot.mount(root, { route, navigate: hash => { location.hash = hash; } });
-  const dispose = () => { disposed = true; for (const controller of pendingArchives) controller.abort(); pendingArchives.clear(); mascot?.dispose(); newsReader?.dispose(); newsTheme?.disconnect(); newsHost?.remove(); progressReturn = null; navigationGeneration++; unsubscribeAppearance?.(); unmountTheme?.(); standaloneTheme?.dispose(); closeProjectMenu(); closeNavigation(); restoreNavigation(); drawer.remove(); window.removeEventListener('resize', resizeNavigation); window.removeEventListener('scroll', closeProjectMenu, true); document.removeEventListener('pointerdown', dismissProjectMenu); request++; clearTimeout(refreshTimer); document.removeEventListener('visibilitychange', visibilityChanged); disposeMobile?.(); disposePets?.(); window.removeEventListener('hashchange', requestedNavigation); window.removeEventListener('platform-before-navigate', beforeNavigate); window.removeEventListener('platform-navigation-accepted', changed); window.removeEventListener('platform-add-project', requestProject); window.removeEventListener('platform-native-project-adopted', nativeProjectAdopted); window.removeEventListener('platform-native-project-action', nativeProjectAction); nativeProjectWrites.clear(); projectDialogTarget?.querySelectorAll('dialog').forEach(dialog => dialog.close()); projectDialogHost?.remove(); monitor?.destroy(); taskCenter?.dispose(); legacyBoard?.dispose(); board.dispose?.(); };
+  const dispose = () => { disposed = true; for (const controller of pendingArchives) controller.abort(); pendingArchives.clear(); mascot?.dispose(); newsReader?.dispose(); newsTheme?.disconnect(); newsHost?.remove(); progressReturn = null; navigationGeneration++; unsubscribeAppearance?.(); unmountTheme?.(); standaloneTheme?.dispose(); closeProjectMenu(); closeNavigation(); restoreNavigation(); drawer.remove(); window.removeEventListener('resize', resizeNavigation); window.removeEventListener('scroll', closeProjectMenu, true); document.removeEventListener('pointerdown', dismissProjectMenu); request++; clearTimeout(refreshTimer); document.removeEventListener('visibilitychange', visibilityChanged); disposeMobile?.(); disposePets?.(); codeHostStrip?.dispose(); window.removeEventListener('hashchange', requestedNavigation); window.removeEventListener('platform-before-navigate', beforeNavigate); window.removeEventListener('platform-navigation-accepted', changed); window.removeEventListener('platform-add-project', requestProject); window.removeEventListener('platform-native-project-adopted', nativeProjectAdopted); window.removeEventListener('platform-native-project-action', nativeProjectAction); nativeProjectWrites.clear(); projectDialogTarget?.querySelectorAll('dialog').forEach(dialog => dialog.close()); projectDialogHost?.remove(); monitor?.destroy(); taskCenter?.dispose(); legacyBoard?.dispose(); board.dispose?.(); };
   const unsubscribeContext = window.CERemoteContext?.onInactive(dispose);
   return () => { unsubscribeContext?.(); dispose(); };
 }

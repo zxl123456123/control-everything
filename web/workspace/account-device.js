@@ -23,6 +23,7 @@
     const listeners = [];
     container.innerHTML = `<section class="ce-account">
       <header class="ce-account-heading"><h1 tabindex="-1">账号与设备</h1><button class="ce-account-refresh" type="button" data-action="refresh" aria-label="刷新" title="刷新"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 7v5h-5M20 12a8 8 0 1 1-2.3-5.7"/></svg></button></header>
+      <p class="ce-account-scope">这里的账号登录用于成员、设备与邀请。GitHub 的 PR、Issue 属于“代码托管连接”，在 Studio 的“设置”里单独设置；两者互不相通。</p>
       <p class="ce-account-notice" data-node="status" role="status" aria-live="polite">正在读取连接状态…</p>
       <div class="ce-account-grid">
         <section class="ce-account-card ce-account-setting"><div class="ce-account-card-title"><span class="ce-account-media">${icon('account')}</span><h2>账号</h2><span class="ce-account-badge" data-node="membership">读取中</span></div><div class="ce-account-body">
