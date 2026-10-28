@@ -51,7 +51,7 @@ def validate_base_url(value):
     loopback = (parsed.hostname or "") in _LOOPBACK
     if (not parsed.hostname or parsed.username or parsed.password or parsed.query or parsed.fragment
             or parsed.scheme not in ("https", "http") or (parsed.scheme == "http" and not loopback)):
-        # The admin password travels in the token request, so plain http is loopback-only.
+        # Admin credentials travel in the token request, so plain http is loopback-only.
         raise SetupError("invalid_keycloak_url")
     return value.rstrip("/")
 
@@ -151,10 +151,12 @@ class KeycloakAdmin:
         self.send = send
         self.token = None
 
-    def authenticate(self, admin_realm, username, password):
+    def authenticate(self, admin_realm, username=None, password=None, *, client_id=None, client_secret=None):
         url = f"{self.base}/realms/{urllib.parse.quote(validate_name(admin_realm, 'invalid_admin_realm'), safe='')}/protocol/openid-connect/token"
-        form = urllib.parse.urlencode({"grant_type": "password", "client_id": ADMIN_CLIENT_ID,
-                                       "username": username, "password": password}).encode()
+        credentials = ({"grant_type": "client_credentials", "client_id": client_id, "client_secret": client_secret}
+                       if client_id else {"grant_type": "password", "client_id": ADMIN_CLIENT_ID,
+                                          "username": username, "password": password})
+        form = urllib.parse.urlencode(credentials).encode()
         status, _, body = self.send("POST", url, {"Content-Type": "application/x-www-form-urlencoded",
                                                   "Accept": "application/json"}, form)
         try:
@@ -175,13 +177,8 @@ class KeycloakAdmin:
             body = json.dumps(payload).encode()
         status, response_headers, raw = self.send(method, url, headers, body)
         if status not in expected:
-            detail = ""
-            try:
-                message = json.loads(raw).get("errorMessage")
-                detail = ": " + message[:200] if isinstance(message, str) else ""
-            except (ValueError, AttributeError):
-                pass
-            raise SetupError(f"{method} {path.split('?')[0]} -> HTTP {status}{detail}")
+            # Server error bodies may echo credentials or tokens; report only request metadata.
+            raise SetupError(f"{method} {path.split('?')[0]} -> HTTP {status}")
         parsed = None
         if raw:
             try:
@@ -306,7 +303,8 @@ def apply(admin, client_id, steps, desired_client, desired_mapper, state):
 def parse_args(argv, environ):
     parser = argparse.ArgumentParser(
         description="Add or update the workbench-mobile public PKCE client in an existing Keycloak realm. "
-                    "The admin password is read only from KEYCLOAK_ADMIN_PASSWORD.")
+                    "Admin credentials are read only from KEYCLOAK_ADMIN_USER/PASSWORD or "
+                    "KEYCLOAK_ADMIN_CLIENT_ID/SECRET environment variables.")
     parser.add_argument("--url", default=environ.get("KEYCLOAK_URL"), help="Keycloak base URL (env KEYCLOAK_URL)")
     parser.add_argument("--realm", default=environ.get("KEYCLOAK_REALM"), help="target realm (env KEYCLOAK_REALM)")
     parser.add_argument("--admin-realm", default=environ.get("KEYCLOAK_ADMIN_REALM", "master"))
@@ -329,16 +327,24 @@ def run(argv, environ=None, send=default_send, out=None):
     desired_mapper = build_audience_mapper(options.audience)
     username = environ.get("KEYCLOAK_ADMIN_USER")
     password = environ.get("KEYCLOAK_ADMIN_PASSWORD")
+    admin_client_id = environ.get("KEYCLOAK_ADMIN_CLIENT_ID")
+    admin_client_secret = environ.get("KEYCLOAK_ADMIN_CLIENT_SECRET")
+    if (username or password) and (admin_client_id or admin_client_secret):
+        raise SetupError("mixed_admin_credentials")
+    if bool(username) != bool(password) or bool(admin_client_id) != bool(admin_client_secret):
+        raise SetupError("incomplete_admin_credentials")
+    has_credentials = bool(username or admin_client_id)
     result = {"dry_run": options.dry_run, "client_id": options.client_id, "realm": options.realm}
-    if options.dry_run and not (username and password):
+    if options.dry_run and not has_credentials:
         # No credentials: show the desired objects only; the server state was not compared.
         result.update({"compared_with_server": False, "client": desired_client, "mapper": desired_mapper})
         out.write(json.dumps(result, indent=2) + "\n")
         return 0
-    if not options.url or not options.realm or not username or not password:
+    if not options.url or not options.realm or not has_credentials:
         raise SetupError("missing_url_realm_or_admin_credentials")
     admin = KeycloakAdmin(options.url, options.realm, send)
-    admin.authenticate(options.admin_realm, username, password)
+    admin.authenticate(options.admin_realm, username, password,
+                       client_id=admin_client_id, client_secret=admin_client_secret)
     state = collect_state(admin, options.client_id, options.audience)
     result["warnings"] = warnings_for(state, options.allow_convert_confidential)
     steps = plan(state, desired_client, desired_mapper)

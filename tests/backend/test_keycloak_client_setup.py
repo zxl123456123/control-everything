@@ -11,9 +11,12 @@ from control_everything.integrations.remote_hub import keycloak_client_setup as 
 REALM = "team"
 SCHEME = "com.example.workbench"
 PASSWORD = "synthetic-admin-password"
+CLIENT_SECRET = "synthetic-service-secret+with&encoding"
 ENV = {"KEYCLOAK_URL": "https://identity.example.test", "KEYCLOAK_REALM": REALM,
        "KEYCLOAK_ADMIN_USER": "synthetic-admin", "KEYCLOAK_ADMIN_PASSWORD": PASSWORD,
        "CE_MOBILE_SCHEME": SCHEME}
+SERVICE_ENV = {**{key: value for key, value in ENV.items() if "ADMIN" not in key},
+               "KEYCLOAK_ADMIN_CLIENT_ID": "synthetic-service-admin", "KEYCLOAK_ADMIN_CLIENT_SECRET": CLIENT_SECRET}
 
 
 class FakeKeycloak:
@@ -29,6 +32,7 @@ class FakeKeycloak:
         self.scopes = [{"id": f"scope-{name}", "name": name, "protocol": "openid-connect"} for name in scopes]
         self.password = password
         self.calls = []
+        self.token_requests = []
 
     def writes(self):
         return [(m, p) for m, p, _ in self.calls if m != "GET" and "/protocol/openid-connect/token" not in p]
@@ -38,7 +42,14 @@ class FakeKeycloak:
         payload = json.loads(body) if body and headers.get("Content-Type") == "application/json" else None
         self.calls.append((method, path, payload))
         if path.endswith("/protocol/openid-connect/token"):
-            ok = f"password={self.password}".encode() in body
+            form = urllib.parse.parse_qs(body.decode())
+            self.token_requests.append((method, path, headers, form))
+            if form.get("grant_type") == ["client_credentials"]:
+                ok = form == {"grant_type": ["client_credentials"], "client_id": [SERVICE_ENV["KEYCLOAK_ADMIN_CLIENT_ID"]],
+                              "client_secret": [CLIENT_SECRET]}
+            else:
+                ok = form == {"grant_type": ["password"], "client_id": ["admin-cli"],
+                              "username": [ENV["KEYCLOAK_ADMIN_USER"]], "password": [self.password]}
             return (200, {}, b'{"access_token":"synthetic-token"}') if ok else (401, {}, b'{"error":"echo-secret"}')
         assert headers["Authorization"] == "Bearer synthetic-token"
         prefix = f"/admin/realms/{REALM}"
@@ -265,6 +276,85 @@ class ScriptTests(unittest.TestCase):
             setup.run([], ENV, failing, io.StringIO())
         self.assertIn("POST /clients -> HTTP 403", str(raised.exception))
         self.assertNotIn(PASSWORD, str(raised.exception))
+
+
+class ServiceAdminTests(unittest.TestCase):
+    def test_service_dry_run_uses_client_credentials_in_master_and_only_reads(self):
+        fake = FakeKeycloak()
+        out = io.StringIO()
+        self.assertEqual(setup.run(["--dry-run"], SERVICE_ENV, fake.send, out), 0)
+        result = json.loads(out.getvalue())
+        self.assertTrue(result["compared_with_server"])
+        self.assertEqual(fake.writes(), [])
+        self.assertEqual(fake.clients, {})
+        method, path, headers, form = fake.token_requests[0]
+        self.assertEqual((method, path), ("POST", "/realms/master/protocol/openid-connect/token"))
+        self.assertEqual(headers["Content-Type"], "application/x-www-form-urlencoded")
+        self.assertEqual(form, {"grant_type": ["client_credentials"],
+                                "client_id": [SERVICE_ENV["KEYCLOAK_ADMIN_CLIENT_ID"]],
+                                "client_secret": [CLIENT_SECRET]})
+        for private in (CLIENT_SECRET, "synthetic-token", SERVICE_ENV["KEYCLOAK_ADMIN_CLIENT_ID"]):
+            self.assertNotIn(private, out.getvalue())
+
+    def test_service_apply_is_idempotent_and_honors_admin_realm(self):
+        fake = FakeKeycloak()
+        env = {**SERVICE_ENV, "KEYCLOAK_ADMIN_REALM": "admin-team"}
+        out = io.StringIO()
+        self.assertEqual(setup.run([], env, fake.send, out), 0)
+        self.assertTrue(fake.writes())
+        self.assertEqual(fake.token_requests[0][1], "/realms/admin-team/protocol/openid-connect/token")
+        write_count = len(fake.writes())
+        out = io.StringIO()
+        self.assertEqual(setup.run([], env, fake.send, out), 0)
+        self.assertEqual(json.loads(out.getvalue())["steps"], [])
+        self.assertEqual(len(fake.writes()), write_count)
+
+    def test_partial_or_mixed_credentials_fail_before_network_even_for_dry_run(self):
+        base = {key: value for key, value in ENV.items() if "ADMIN" not in key}
+        user = {"KEYCLOAK_ADMIN_USER": "synthetic-admin", "KEYCLOAK_ADMIN_PASSWORD": PASSWORD}
+        service = {"KEYCLOAK_ADMIN_CLIENT_ID": "synthetic-service-admin", "KEYCLOAK_ADMIN_CLIENT_SECRET": CLIENT_SECRET}
+        partial = [{key: value} for key, value in {**user, **service}.items()]
+        partial += [{**user, "KEYCLOAK_ADMIN_PASSWORD": ""}, {**service, "KEYCLOAK_ADMIN_CLIENT_SECRET": ""}]
+        mixed = [{**user, **service}, {**user, "KEYCLOAK_ADMIN_CLIENT_ID": "synthetic-service-admin"},
+                 {**service, "KEYCLOAK_ADMIN_USER": "synthetic-admin"},
+                 {"KEYCLOAK_ADMIN_PASSWORD": PASSWORD, "KEYCLOAK_ADMIN_CLIENT_SECRET": CLIENT_SECRET}]
+        for credentials in partial + mixed:
+            for argv in ([], ["--dry-run"]):
+                with self.subTest(keys=sorted(credentials), dry_run=bool(argv)):
+                    fake = FakeKeycloak()
+                    out = io.StringIO()
+                    with self.assertRaises(setup.SetupError) as raised:
+                        setup.run(argv, {**base, **credentials}, fake.send, out)
+                    self.assertEqual(str(raised.exception), "mixed_admin_credentials" if credentials in mixed else "incomplete_admin_credentials")
+                    self.assertEqual(fake.calls, [])
+                    self.assertEqual(out.getvalue(), "")
+
+    def test_service_authentication_failure_does_not_echo_response_or_secret(self):
+        calls = []
+        def failing(method, url, headers, body):
+            calls.append((method, url))
+            return 401, {}, json.dumps({"error": "invalid_client", "error_description": CLIENT_SECRET,
+                                       "access_token": "synthetic-sensitive-token"}).encode()
+        out = io.StringIO()
+        with self.assertRaises(setup.SetupError) as raised:
+            setup.run(["--dry-run"], SERVICE_ENV, failing, out)
+        self.assertEqual(str(raised.exception), "admin_authentication_failed_http_401")
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(out.getvalue(), "")
+
+    def test_admin_api_failure_does_not_echo_service_secret_or_token(self):
+        fake = FakeKeycloak()
+        def failing(method, url, headers, body):
+            if "/admin/realms/" in url:
+                return 403, {}, json.dumps({"errorMessage": CLIENT_SECRET + " synthetic-token"}).encode()
+            return fake.send(method, url, headers, body)
+        out = io.StringIO()
+        with self.assertRaises(setup.SetupError) as raised:
+            setup.run(["--dry-run"], SERVICE_ENV, failing, out)
+        self.assertEqual(str(raised.exception), "GET  -> HTTP 403")
+        self.assertNotIn(CLIENT_SECRET, str(raised.exception))
+        self.assertNotIn("synthetic-token", str(raised.exception))
+        self.assertEqual(out.getvalue(), "")
 
 
 if __name__ == "__main__":
