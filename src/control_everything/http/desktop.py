@@ -143,7 +143,8 @@ def build_desktop(product_root, data_dir=None, port=8766):
     try:
         server.news_runtime = _news_runtime(root, config['engine_root'], document['files'])
         runtime = WorkbenchRuntime(RuntimeConfig(path('engine_root'), path('build_run'),
-                                                 server.profile.data_dir / 'workbench', path('git'), ()))
+                                                 server.profile.data_dir / 'workbench', path('git'), (),
+                                                 inherit_host_environment=True))
         server.workbench_assets = WorkbenchAssets(path('engine_root') / 'out/web', path('build_run') / 'web-assets.json')
         connector = None
         if config['issuer'] or config['hub_origin']:

@@ -23,6 +23,7 @@ describe('isolated platform startup seams', () => {
   beforeEach(() => {
     vi.stubEnv('CE_WORKBENCH_ISOLATED', '1')
     vi.stubEnv('CE_WORKBENCH_ORIGIN', 'http://127.0.0.1:14401')
+    vi.stubEnv('CE_WORKBENCH_HOST_ENVIRONMENT', '')
     mocks.browser.mockReturnValue({ ready: Promise.resolve(), stop: vi.fn(async () => {}) })
   })
   afterEach(() => { vi.unstubAllEnvs(); vi.clearAllMocks() })
@@ -69,6 +70,26 @@ describe('isolated platform startup seams', () => {
     for (const shell of ['powershell.exe', 'pwsh.exe']) {
       expect(resolveWindowsShellLaunchArgs(shell, cwd, cwd).shellArgs).toContain('-NoProfile')
     }
+    expect(() => resolveWindowsShellLaunchArgs('wsl.exe', cwd, cwd)).toThrow('platform_wsl_not_configured')
+  })
+  it('allows cmd AutoRun when the installed desktop inherits the host environment', () => {
+    vi.stubEnv('CE_WORKBENCH_HOST_ENVIRONMENT', '1')
+    const cwd = 'C:/example/fixture'
+    const args = resolveWindowsShellLaunchArgs('cmd.exe', cwd, cwd).shellArgs
+    expect(args).not.toContain('/D')
+    expect(args[0]).toBe('/K')
+  })
+  it.each(['powershell.exe', 'pwsh.exe'])('allows %s profiles with the host environment', shell => {
+    vi.stubEnv('CE_WORKBENCH_HOST_ENVIRONMENT', '1')
+    const cwd = 'C:/example/fixture'
+    const args = resolveWindowsShellLaunchArgs(shell, cwd, cwd).shellArgs
+    expect(args).not.toContain('-NoProfile')
+    expect(args).toContain('-NoExit')
+    expect(args).toContain('-EncodedCommand')
+  })
+  it('still refuses unconfigured WSL when inheriting the host environment', () => {
+    vi.stubEnv('CE_WORKBENCH_HOST_ENVIRONMENT', '1')
+    const cwd = 'C:/example/fixture'
     expect(() => resolveWindowsShellLaunchArgs('wsl.exe', cwd, cwd)).toThrow('platform_wsl_not_configured')
   })
 })

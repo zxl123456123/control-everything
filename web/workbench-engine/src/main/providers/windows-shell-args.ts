@@ -183,6 +183,7 @@ export function resolveWindowsShellLaunchArgs(
   const shellBasename = pathWin32.basename(shellPath).toLowerCase()
   const nativeCwd = normalizeWindowsTerminalCwd(cwd)
   const isolated = isPlatformRuntime()
+  const isolatedStartup = isolated && process.env.CE_WORKBENCH_HOST_ENVIRONMENT !== '1'
 
   if (shellBasename === 'cmd.exe') {
     const shellArgStartupCommand = getCmdShellArgStartupCommand(startupCommand)
@@ -192,7 +193,7 @@ export function resolveWindowsShellLaunchArgs(
       ...(shellArgStartupCommand ? [shellArgStartupCommand] : [])
     ]
     return {
-      shellArgs: [...(isolated ? ['/D'] : []), '/K', startupCommands.join(' & ')],
+      shellArgs: [...(isolatedStartup ? ['/D'] : []), '/K', startupCommands.join(' & ')],
       ...(shellArgStartupCommand ? { startupCommandDeliveredInShellArgs: true } : {}),
       effectiveCwd: nativeCwd,
       validationCwd: nativeCwd
@@ -205,7 +206,7 @@ export function resolveWindowsShellLaunchArgs(
     // PowerShell needs a prompt/readline bootstrap after profiles finish.
     // Why base64 and not -Command: see powershell-osc133-bootstrap.ts (MDE review).
     return {
-      shellArgs: ['-NoLogo', ...(isolated ? ['-NoProfile'] : []), '-NoExit', '-EncodedCommand', powerShellCommand.encodedCommand],
+      shellArgs: ['-NoLogo', ...(isolatedStartup ? ['-NoProfile'] : []), '-NoExit', '-EncodedCommand', powerShellCommand.encodedCommand],
       ...(powerShellCommand.startupCommandDeliveredInShellArgs
         ? { startupCommandDeliveredInShellArgs: true }
         : {}),
@@ -216,7 +217,7 @@ export function resolveWindowsShellLaunchArgs(
 
   if (isWindowsGitBashShellPath(shellPath)) {
     return {
-      shellArgs: isolated ? ['--noprofile', '--norc', '-i'] : ['-c', getGitBashLaunchCommand()],
+      shellArgs: isolatedStartup ? ['--noprofile', '--norc', '-i'] : ['-c', getGitBashLaunchCommand()],
       effectiveCwd: nativeCwd,
       validationCwd: nativeCwd
     }

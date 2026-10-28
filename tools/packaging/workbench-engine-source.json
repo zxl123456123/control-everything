@@ -327311,8 +327311,8 @@
     {
       "path": "src/main/providers/windows-shell-args.ts",
       "upstream_sha256": "d5716e7ff67b485b53bc62784a384a97492ff35fc24b65d79844fe63b73ca0b8",
-      "current_sha256": "c6c29f876564d43478936a810823e729df45c7629fc46bf99909c766d40b2fb7",
-      "reason": "M1a-R: no-profile shells before any synthetic terminal starts"
+      "current_sha256": "dc278d188a9fdc1e28c4c1e0180c3e083dbbc079ee7fdc794568ef4fcf6d04e5",
+      "reason": "Installed desktop terminals load host shell profiles; synthetic previews keep no-profile startup and platform WSL restrictions."
     },
     {
       "path": "src/main/runtime/agent-state-rules/agent-state-rules-live-update.ts",
