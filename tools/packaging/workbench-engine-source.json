@@ -44450,6 +44450,15 @@
       "reason": "preserved_internal_source_layout"
     },
     {
+      "path": "mobile/src/test-support/rpc-recording/relay-pairing-fixtures.ts",
+      "source_path": "mobile/src/test-support/rpc-recording/relay-pairing-fixtures.ts",
+      "git_blob": "8514275af1f49b6926dd67563f63a4798fc9e7c1",
+      "sha256": "6183db9bd480a2bbd16525ef10e08bb341ac8a6ee06b8109e3d286f83bc3b563",
+      "bytes": 3751,
+      "kind": "source",
+      "reason": "preserved_internal_source_layout"
+    },
+    {
       "path": "mobile/src/test-support/rpc-recording/reply-matrix-normal-result.ts",
       "source_path": "mobile/src/test-support/rpc-recording/reply-matrix-normal-result.ts",
       "git_blob": "61ce0e26bb162ae5bdab7ce6e1bc82897788467f",
@@ -327019,6 +327028,12 @@
       "upstream_sha256": "dc72792e1331e9055b8df81d0571acaf66e5dd813c3ff6e7fa638d4a73564aa6",
       "current_sha256": "85675ba8e5412410972f3321c5d5a4a5ebd8c07c17e637d3dbf576d5281591c8",
       "reason": "Add self-hosted native account access and isolate platform credentials and outbound services."
+    },
+    {
+      "path": "mobile/src/test-support/rpc-recording/relay-pairing-fixtures.ts",
+      "upstream_sha256": "6183db9bd480a2bbd16525ef10e08bb341ac8a6ee06b8109e3d286f83bc3b563",
+      "current_sha256": "8e3bb9dfe9820be8a02212ec19d65fedbc1a8057dfcbd2a7e56678a6533972d1",
+      "reason": "Restore RPC pairing fixture using a documentation-only endpoint instead of a fixed LAN example."
     },
     {
       "path": "src/main/ai-vault/cached-session-list.ts",
