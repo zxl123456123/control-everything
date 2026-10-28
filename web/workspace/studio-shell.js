@@ -17,6 +17,7 @@
     delivery: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6m-12 7 3 3 5-6"/>',
     archive: '<rect x="3" y="3" width="18" height="4" rx="1"/><path d="M5 7v14h14V7m-10 5h6"/>',
     dot: '<circle cx="12" cy="12" r="4" fill="currentColor" stroke="none"/>',
+    back: '<path d="m15 6-6 6 6 6"/>',
     more: '<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>',
   };
   const icon = name => `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icons[name]}</svg>`;
@@ -68,7 +69,9 @@
     const name = escape(project.name), management = ['items', 'board'].includes(tab);
     const title = tab === 'items' ? '全部事项' : tab === 'board' ? '事项看板' : '项目进展';
     const scopes = [['current', '当前项目'], ['all', '全部事项'], ['attention', '待处理'], ['active', '活动项目'], ['archived', '归档项目'], ['orphan', '未登记项目'], ['global', '全局事项']];
-    return `<div class="ce-heading ce-progress-heading"><div><h1 tabindex="-1">${management ? name + ' · ' : ''}${title}</h1></div>${management ? `<a class="ce-button ce-plain" href="${escape(returnHash)}">返回项目进展</a>` : ''}</div>${tab === 'items' ? `<label class="ce-management-scope">查看范围<select id="studio-items-scope">${scopes.map(([value, label]) => `<option value="${value}"${scope === value ? ' selected' : ''}>${label}</option>`).join('')}</select></label>` : ''}`;
+    const back = management ? `<a class="ce-button ce-plain ce-back" href="${escape(returnHash)}" aria-label="返回项目进展">${icon('back')}<span>进展</span></a>` : '';
+    const scopeControl = tab === 'items' ? `<label class="ce-management-scope"><span class="sr-only">查看范围</span><select id="studio-items-scope">${scopes.map(([value, label]) => `<option value="${value}"${scope === value ? ' selected' : ''}>${label}</option>`).join('')}</select></label>` : '';
+    return `<div class="ce-heading ce-progress-heading"><div><h1 tabindex="-1">${management ? name + ' · ' : ''}${tab === 'items' ? '事项' : title}</h1></div>${management ? `<div class="ce-heading-actions">${scopeControl}${back}</div>` : ''}</div>`;
   }
   window.StudioShell = { renderStatePanel, loadingPlaceholder, retryButton, renderNavigation, renderOverview, renderSettingsLanding, renderProgressHeading, projectCard };
 })();

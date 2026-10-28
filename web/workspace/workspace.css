@@ -829,3 +829,5 @@ html[data-theme="dark"] body.ce-workspace-management,body.ce-workspace-managemen
 :is(body,#ce-studio) dialog.ce-ui-confirm[role='alertdialog'] button:focus-visible{outline:2px solid var(--ce-ring,var(--ring,#626262));outline-offset:3px}
 @media(pointer:coarse){:is(body,#ce-studio) dialog.ce-ui-confirm[role='alertdialog'] button{min-width:44px;min-height:44px}}
 @media(forced-colors:active){:is(body,#ce-studio) dialog.ce-ui-confirm[role='alertdialog']{border-color:CanvasText}:is(body,#ce-studio) dialog.ce-ui-confirm[role='alertdialog'] button{border:1px solid ButtonText}:is(body,#ce-studio) dialog.ce-ui-confirm[role='alertdialog'] button:focus-visible{outline-color:Highlight}}
+
+.sr-only { position:absolute; width:1px; height:1px; margin:-1px; padding:0; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
