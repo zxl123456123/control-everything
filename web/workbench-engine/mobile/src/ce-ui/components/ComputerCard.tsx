@@ -5,7 +5,8 @@ import { PressableScale } from '../motion/PressableScale'
 import type { HubDevice, HubOs } from '../hub/hub-client'
 import { formatLastSeen, presentDeviceState } from '../status/device-status'
 import { useCeTheme } from '../theme/theme'
-import { ceRadii, ceSpace } from '../theme/tokens'
+import { ceRadii, ceSpace, withAlpha } from '../theme/tokens'
+import { GlassLayer, glassBox } from './Glass'
 import { copy } from '../copy'
 import { CeText } from './CeText'
 import { StatusPill } from './StatusPill'
@@ -27,7 +28,7 @@ export function ComputerCard({
   now: number
   onPress: () => void
 }) {
-  const { c } = useCeTheme()
+  const { c, scheme } = useCeTheme()
   const status = presentDeviceState(device.state)
   const Icon = osIcon[device.os]
   const dim = status.tone === 'danger' && device.state === 'revoked'
@@ -41,25 +42,25 @@ export function ComputerCard({
         minHeight: 96,
         padding: ceSpace.lg,
         gap: ceSpace.md,
-        borderRadius: ceRadii.card,
-        backgroundColor: c.surface,
-        borderWidth: 1,
-        borderColor: c.line,
+        ...glassBox(c, scheme, ceRadii.card),
         opacity: dim ? 0.7 : 1
       }}
     >
+      <GlassLayer radius={ceRadii.card} />
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: ceSpace.md }}>
         <View
           style={{
             width: 44,
             height: 44,
             borderRadius: ceRadii.button,
-            backgroundColor: c.soft,
+            backgroundColor: withAlpha(c.accent, scheme === 'dark' ? 0.2 : 0.1),
+            borderWidth: 1,
+            borderColor: withAlpha(c.accent, 0.28),
             alignItems: 'center',
             justifyContent: 'center'
           }}
         >
-          <Icon size={22} color={c.text} />
+          <Icon size={22} color={c.accentText} />
         </View>
         <View style={{ flex: 1 }}>
           <CeText variant="headline" numberOfLines={1}>
@@ -90,7 +91,7 @@ export function ComputerCard({
 }
 
 export function ComputerCardSkeleton({ children }: { children: ReactNode }) {
-  const { c } = useCeTheme()
+  const { c, scheme } = useCeTheme()
   return (
     <View
       accessible={false}
@@ -98,12 +99,10 @@ export function ComputerCardSkeleton({ children }: { children: ReactNode }) {
         minHeight: 96,
         padding: ceSpace.lg,
         gap: ceSpace.md,
-        borderRadius: ceRadii.card,
-        backgroundColor: c.surface,
-        borderWidth: 1,
-        borderColor: c.line
+        ...glassBox(c, scheme, ceRadii.card)
       }}
     >
+      <GlassLayer radius={ceRadii.card} />
       {children}
     </View>
   )

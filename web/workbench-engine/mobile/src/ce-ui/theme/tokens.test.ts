@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest'
-import { cePalettes, ceHit, ceRadii, ceSpace, ceType, withAlpha, type CeScheme } from './tokens'
+import {
+  cePalettes,
+  ceHit,
+  ceRadii,
+  ceSpace,
+  ceType,
+  splitRgba,
+  withAlpha,
+  type CeScheme
+} from './tokens'
 
 function channel(value: number): number {
   const v = value / 255
@@ -25,8 +34,8 @@ const schemes: CeScheme[] = ['dark', 'light']
 
 describe('type scale', () => {
   it('matches the agreed scale and never drops below 13', () => {
-    expect(ceType.display).toMatchObject({ fontSize: 32, lineHeight: 38 })
-    expect(ceType.title).toMatchObject({ fontSize: 24, lineHeight: 30 })
+    expect(ceType.display).toMatchObject({ fontSize: 34, lineHeight: 40, fontWeight: '600' })
+    expect(ceType.title).toMatchObject({ fontSize: 24, lineHeight: 30, fontWeight: '600' })
     expect(ceType.headline).toMatchObject({ fontSize: 18, lineHeight: 26 })
     expect(ceType.body).toMatchObject({ fontSize: 16, lineHeight: 24 })
     expect(ceType.callout).toMatchObject({ fontSize: 15, lineHeight: 22 })
@@ -43,7 +52,7 @@ describe('spacing, radii and touch targets', () => {
     for (const value of Object.values(ceSpace)) expect(value % 4).toBe(0)
   })
   it('keeps the agreed radii and hit sizes', () => {
-    expect(ceRadii).toMatchObject({ button: 14, card: 20, sheet: 28 })
+    expect(ceRadii).toMatchObject({ button: 12, card: 16, sheet: 20 })
     expect(ceHit.min).toBeGreaterThanOrEqual(44)
     expect(ceHit.primaryButton).toBe(52)
   })
@@ -71,20 +80,77 @@ describe.each(schemes)('%s palette', (scheme) => {
   })
 })
 
-describe('palette parity with the browser portal', () => {
-  it('uses the portal slate values', () => {
+describe('palette parity with the browser portal and the Keycloak theme', () => {
+  it('uses the shared Calm Glass values (Studio neutral greys, ink accent, one quiet blue)', () => {
     expect(cePalettes.dark).toMatchObject({
-      bg: '#020617',
-      surface: '#0f172a',
-      soft: '#1e293b',
-      text: '#f8fafc',
-      muted: '#94a3b8',
-      line: '#263247'
+      bg: '#1f1f1f',
+      text: '#f4f4f4',
+      muted: '#b4b4b4',
+      accent: '#f4f4f4',
+      accentText: '#a6c8f1',
+      inputEdge: '#929292'
     })
     expect(cePalettes.light).toMatchObject({
-      soft: '#f1f5f9',
-      text: '#0f172a',
-      line: '#e2e8f0'
+      bg: '#f6f6f6',
+      text: '#202020',
+      muted: '#5c5c5c',
+      accent: '#202020',
+      accentText: '#285e9b',
+      inputEdge: '#858585'
+    })
+  })
+  it('has no gradient, glow or animated blob fields left', () => {
+    for (const scheme of schemes) {
+      for (const gone of ['accentB', 'glow', 'glassHi', 'aurora']) {
+        expect(gone in cePalettes[scheme]).toBe(false)
+      }
+    }
+  })
+})
+
+describe.each(schemes)('%s glass surfaces', (scheme) => {
+  const p = cePalettes[scheme]
+  /** Independent worst case: glass over the canvas under the tint at its strongest. */
+  const worst = (): string => {
+    const tinted = over(p.tint, p.bg)
+    return over(p.glass, tinted)
+  }
+  it('has a lightly translucent fill in the 0.55-0.75 range', () => {
+    const alpha = Number(p.glass.match(/[\d.]+/g)![3])
+    expect(alpha).toBeGreaterThanOrEqual(0.55)
+    expect(alpha).toBeLessThanOrEqual(0.75)
+  })
+  it('keeps the declared glassWorst at least as bad as the computed worst case', () => {
+    expect(contrast(p.text, p.glassWorst)).toBeLessThanOrEqual(contrast(p.text, worst()) + 0.01)
+  })
+  it('keeps text AA on glass over the tinted canvas (worst case)', () => {
+    for (const surface of [p.glassWorst, worst()]) {
+      expect(contrast(p.text, surface)).toBeGreaterThanOrEqual(7)
+      expect(contrast(p.muted, surface)).toBeGreaterThanOrEqual(4.5)
+      expect(contrast(p.accentText, surface)).toBeGreaterThanOrEqual(4.5)
+    }
+  })
+  it('keeps button labels AA on the flat ink fill', () => {
+    expect(contrast(p.onAccent, p.accent)).toBeGreaterThanOrEqual(7)
+  })
+  it('keeps the text-input border at 3:1 or better (WCAG 1.4.11) on surface and canvas', () => {
+    expect(contrast(p.inputEdge, p.surface)).toBeGreaterThanOrEqual(3)
+    expect(contrast(p.inputEdge, p.bg)).toBeGreaterThanOrEqual(3)
+  })
+  it('keeps every status tone readable on the worst-case glass', () => {
+    for (const toneColors of Object.values(p.tones)) {
+      for (const surface of [p.glassWorst, worst()]) {
+        expect(contrast(toneColors.fg, over(toneColors.bg, surface))).toBeGreaterThanOrEqual(4.5)
+      }
+    }
+  })
+})
+
+describe('splitRgba', () => {
+  it('separates colour and opacity for SVG stops', () => {
+    expect(splitRgba('rgba(79, 102, 255, 0.68)')).toEqual({
+      color: 'rgb(79, 102, 255)',
+      opacity: 0.68
     })
   })
 })

@@ -9,7 +9,7 @@ export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger'
 
 /**
  * Variant + size + state, the shape the Bluesky and react-native-reusables buttons settle on.
- * `primary` is the single main action of a screen and is 52 high; the rest are 44.
+ * `primary` is the single main action of a screen and is 52 high, flat ink with no gradient or glow; the rest are 44.
  */
 export function Button({
   label,
@@ -36,10 +36,11 @@ export function Button({
 }) {
   const { c } = useCeTheme()
   const inactive = disabled || loading
+  const filled = variant === 'primary' || variant === 'danger'
   const palette = {
-    primary: { bg: c.accent, fg: c.onAccent, border: c.accent },
-    danger: { bg: c.danger, fg: c.onDanger, border: c.danger },
-    secondary: { bg: c.soft, fg: c.text, border: c.line },
+    primary: { bg: c.accent, fg: c.onAccent, border: 'transparent' },
+    danger: { bg: c.danger, fg: c.onDanger, border: 'transparent' },
+    secondary: { bg: c.field, fg: c.text, border: c.fieldEdge },
     ghost: { bg: 'transparent', fg: c.accentText, border: 'transparent' }
   }[variant]
   return (
@@ -59,7 +60,7 @@ export function Button({
           borderRadius: ceRadii.button,
           paddingHorizontal: ceSpace.xl,
           backgroundColor: palette.bg,
-          borderWidth: 1,
+          borderWidth: filled ? 0 : 1,
           borderColor: palette.border,
           opacity: disabled && !loading ? 0.45 : 1,
           flexDirection: 'row',

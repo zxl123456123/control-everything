@@ -4,7 +4,7 @@ import { PulseDot } from '../motion/PulseDot'
 import { useMotionEnabled } from '../motion/use-motion'
 import type { StatusPresentation } from '../status/device-status'
 import { useCeTheme } from '../theme/theme'
-import { ceRadii, ceSpace } from '../theme/tokens'
+import { ceRadii, ceSpace, withAlpha } from '../theme/tokens'
 import { CeText } from './CeText'
 import { StatusIcon } from './StatusIcon'
 
@@ -40,7 +40,9 @@ export function StatusPill({
         paddingHorizontal: ceSpace.md,
         paddingVertical: ceSpace.xs,
         borderRadius: ceRadii.pill,
-        backgroundColor: tone.bg
+        backgroundColor: tone.bg,
+        borderWidth: 1,
+        borderColor: withAlpha(tone.dot, 0.35)
       }}
     >
       <PulseDot color={tone.dot} speed={presentation.pulse} size={8} />

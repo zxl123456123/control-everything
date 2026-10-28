@@ -100,3 +100,19 @@ export function hapticsMock(fn: () => void) {
     triggerEdgeBump: fn
   }
 }
+
+/** react-native-svg: every export is a host component named after it (Svg, Rect, Defs, ...). */
+export function svgMock() {
+  return new Proxy(
+    {},
+    {
+      has: () => true,
+      get: (_t, name) =>
+        name === '__esModule' || name === 'then'
+          ? undefined
+          : name === 'default'
+            ? 'Svg'
+            : String(name)
+    }
+  )
+}

@@ -1,8 +1,10 @@
+import type { ReactNode } from 'react'
 import { View } from 'react-native'
 import Animated, { FadeInDown } from 'react-native-reanimated'
 import { KeyRound, MonitorSmartphone, TriangleAlert } from 'lucide-react-native'
 import type { AccountStatus } from '../../platform-account/controller'
 import { Banner } from '../components/Banner'
+import { GlassSurface } from '../components/Glass'
 import { Button } from '../components/Button'
 import { CeText } from '../components/CeText'
 import { Expandable, Note } from '../components/Expandable'
@@ -47,22 +49,13 @@ export function LoginView({
         entering={motion ? FadeInDown.duration(300) : undefined}
         style={{ alignItems: 'center', gap: ceSpace.lg, paddingVertical: ceSpace.xl }}
       >
-        <View
-          style={{
-            width: 96,
-            height: 96,
-            borderRadius: 28,
-            backgroundColor: unusable ? c.soft : c.accent,
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}
-        >
+        <BrandMark muted={unusable}>
           {unusable ? (
-            <TriangleAlert size={44} color={c.muted} strokeWidth={1.8} />
+            <TriangleAlert size={36} color={c.muted} strokeWidth={1.8} />
           ) : (
-            <MonitorSmartphone size={44} color={c.onAccent} strokeWidth={1.8} />
+            <MonitorSmartphone size={36} color={c.onAccent} strokeWidth={1.8} />
           )}
-        </View>
+        </BrandMark>
         <View style={{ gap: ceSpace.xs, alignItems: 'center' }}>
           <CeText variant="title" style={{ textAlign: 'center' }}>
             {status === 'unconfigured'
@@ -118,6 +111,35 @@ export function LoginView({
           </Expandable>
         </View>
       )}
+    </View>
+  )
+}
+
+/** 80pt app mark: a flat ink tile (the workbench's command mark), or a quiet card tile when sign-in is unusable. */
+function BrandMark({ muted, children }: { muted: boolean; children: ReactNode }) {
+  const { c } = useCeTheme()
+  if (muted) {
+    return (
+      <GlassSurface
+        radius={22}
+        style={{ width: 80, height: 80, alignItems: 'center', justifyContent: 'center' }}
+      >
+        {children}
+      </GlassSurface>
+    )
+  }
+  return (
+    <View
+      style={{
+        width: 80,
+        height: 80,
+        borderRadius: 22,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: c.accent
+      }}
+    >
+      {children}
     </View>
   )
 }

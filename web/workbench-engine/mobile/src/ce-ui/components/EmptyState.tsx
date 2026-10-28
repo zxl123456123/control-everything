@@ -39,6 +39,8 @@ export function EmptyState({
           height: 88,
           borderRadius: 88,
           backgroundColor: c.soft,
+          borderWidth: 1,
+          borderColor: c.line,
           alignItems: 'center',
           justifyContent: 'center',
           marginBottom: ceSpace.sm

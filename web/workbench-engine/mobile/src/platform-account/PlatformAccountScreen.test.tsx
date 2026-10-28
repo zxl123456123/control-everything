@@ -45,6 +45,9 @@ vi.mock('react-native-safe-area-context', async () =>
 vi.mock('lucide-react-native', async () =>
   (await import('../ce-ui/test-support/native-mocks')).lucideMock()
 )
+vi.mock('react-native-svg', async () =>
+  (await import('../ce-ui/test-support/native-mocks')).svgMock()
+)
 vi.mock('../platform/haptics', async () =>
   (await import('../ce-ui/test-support/native-mocks')).hapticsMock(state.haptic)
 )
