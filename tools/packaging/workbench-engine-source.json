@@ -327201,6 +327201,12 @@
       "reason": "Add self-hosted native account access and isolate platform credentials and outbound services."
     },
     {
+      "path": "mobile/src/hermes-array-sorting-compat.test.ts",
+      "upstream_sha256": "553ee979d4c634e799f4ca3be9c57f5fdb8ee5d85666c6479a6af31e0520de39",
+      "current_sha256": "a64bb25c8f43f4ac4c74fe0a954b1160b4ff197098af6737e1e8b5083c76e019",
+      "reason": "Skip already-excluded test files before reading their contents, preserving the complete production source guard while reducing filesystem work."
+    },
+    {
       "path": "mobile/src/home/MobileHomeScreen.tsx",
       "upstream_sha256": "e829d38edd458c51f1745cfbcedbc9dd865b02fd354a3f4fc259d41f49687aba",
       "current_sha256": "c50d8f37bcf0e290f6597285e235e8d6aa08f1fa9600627e73c46cfc20186889",
