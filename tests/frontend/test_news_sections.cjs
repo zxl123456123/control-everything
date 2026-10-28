@@ -40,3 +40,24 @@ test('feed URLs are normalised to https and other schemes are left for the serve
   assert.equal(NewsSectionEditor.normaliseUrl('ftp://example.com/rss'), 'ftp://example.com/rss');
   assert.equal(NewsSectionEditor.normaliseUrl('   '), '');
 });
+
+test('destroy releases section observers and prevents detached controls reopening the editor', () => {
+  let observed, disconnected = 0, opened = 0, disposed = 0;
+  class ResizeObserver {
+    observe(target) { observed = target; }
+    disconnect() { disconnected++; }
+  }
+  const window = {ResizeObserver, NewsSectionEditor: {mount: () => ({open() {opened++;}, destroy() {disposed++;}})}};
+  vm.runInNewContext(fs.readFileSync(path.join(root, 'web/workspace/news-sections.js'), 'utf8'),
+    {window, document: {}, ResizeObserver, AbortController});
+  const tabs = new EventTarget(), add = new EventTarget(), edit = new EventTarget();
+  const handle = window.NewsSections.mount({tabs, add, edit});
+  assert.equal(observed, tabs);
+  add.dispatchEvent(new Event('click'));
+  assert.equal(opened, 1);
+  handle.destroy();
+  assert.equal(disconnected, 1);
+  assert.equal(disposed, 1);
+  add.dispatchEvent(new Event('click'));
+  assert.equal(opened, 1);
+});

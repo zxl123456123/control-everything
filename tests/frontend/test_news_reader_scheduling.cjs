@@ -50,6 +50,7 @@ function fixture(remote = false, withTheme = true) {
     tree.append(node);
   }
   const document = {hidden:false,documentElement:new Element('html'),getElementById:id => ids.get(id),createElement:tag => new Element(tag),createDocumentFragment:() => new Element('fragment'),querySelector:selector => tree.querySelector(selector),querySelectorAll:selector => tree.querySelectorAll(selector),addEventListener:(key,callback) => {documentEvents[key]=callback;},removeEventListener:(key,callback) => {if (documentEvents[key]===callback) delete documentEvents[key];}};
+  const wrapper=tree.querySelector('.news-reader-root'); wrapper.ownerDocument=document; wrapper.querySelector=selector=>tree.querySelector(selector); wrapper.querySelectorAll=selector=>tree.querySelectorAll(selector);
   ids.get('directory').append(tree.querySelector('.spider-home'));
   const state = {value:sample(),feed:null,research:null};
   const response = value => ({ok:true,status:200,json:async () => value});
@@ -149,7 +150,7 @@ test('remote retirement destroys the existing reader, cancels polling and ignore
 
 test('news theme uses its exact key and actual roots, suspends for BFCache and disposes on context retirement',async()=>{
   const f=fixture(true);await flush();assert.deepEqual(f.themeReads,['ce.news.theme']);
-  assert.equal(f.themeMounts[0].roots[0],f.document.documentElement);assert.equal(f.themeMounts[0].roots[1],f.node('news-room'));assert.equal(f.themeMounts[0].roots[2],f.node('research-panel'));assert.equal(f.themeMounts[0].toggles[0],f.node('theme'));assert.equal(f.themeMounts[0].status,f.node('theme-error'));
+  assert.equal(f.themeMounts[0].roots[0],f.document.querySelector('.news-reader-root'));assert.equal(f.themeMounts[0].roots[1],f.node('news-room'));assert.equal(f.themeMounts[0].roots[2],f.node('research-panel'));assert.equal(f.themeMounts[0].toggles[0],f.node('theme'));assert.equal(f.themeMounts[0].status,f.node('theme-error'));
   f.windowEvents.pagehide({persisted:true});assert.equal(f.themeDisposals.length,1);f.windowEvents.pageshow({persisted:true});await flush();assert.equal(f.themeReads.length,2);
   f.windowEvents.storage({key:'ce.remote.session-change',newValue:'fixture-retired'});assert.equal(f.themeDisposals.length,2);assert.equal(f.timers.size,0);
 });
@@ -205,7 +206,8 @@ test('full news cascade gives list cards intrinsic rows without changing the com
     const w=new Window();
     try {
       w.document.body.innerHTML=`<main id="news-room"><section id="animation-stage" data-reading-view="${view}"><aside id="directory"><div id="title-list"><button class="title-row"><span class="title-row-content"><span class="title-row-title">Long article title</span><span class="title-row-summary">Article summary</span></span><img class="title-row-thumbnail"><span class="title-row-meta">Source</span></button></div></aside></section></main>`;
-      const style=w.document.createElement('style');style.textContent=fs.readFileSync(path.join(root,'web/workspace/news-reader.css'),'utf8');w.document.head.append(style);
+      // happy-dom does not evaluate @scope; scope boundaries are covered by the surface contract and browser preview.
+      const style=w.document.createElement('style');style.textContent=fs.readFileSync(path.join(root,'web/workspace/news-reader.css'),'utf8').replace('@scope (.news-reader-root) {','').replace(/}\nbody:has\(>.news-reader-root\)[\s\S]*$/,'');w.document.head.append(style);
       const list=w.document.getElementById('title-list'),card=list.querySelector('.title-row');
       return {rows:w.getComputedStyle(list).gridAutoRows,minHeight:w.getComputedStyle(card).minHeight,alignSelf:w.getComputedStyle(card).alignSelf};
     } finally {w.happyDOM.abort();w.close();}

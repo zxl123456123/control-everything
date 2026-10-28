@@ -1355,7 +1355,7 @@ class PanelServer(ThreadingHTTPServer):
 
 def make_server(service, address=(HOST, PORT), *, workspace=None, execution=None, profile=None,
                 launchers=None, capabilities=None, startup_integrations=None, source=None, observer=None,
-                workbench_runtime=None, workbench_assets=None, remote_access=None):
+                workbench_runtime=None, workbench_assets=None, remote_access=None, news_runtime=None):
     # The address injection exists for temporary fixture tests. Production is fixed.
     if address[0] != HOST:
         raise ValueError("loopback_only")
@@ -1388,15 +1388,25 @@ def make_server(service, address=(HOST, PORT), *, workspace=None, execution=None
     server.news_source = workspace.news_source if workspace is not None else NewsSource()
     server.news_reader = None
     server.news_reader_root = (profile.data_dir if profile is not None else default_profile_dir()) / 'news-reader'
+    server.news_runtime = news_runtime
     server._news_reader_lock = threading.Lock()
     server._news_reader_closed = False
     server._news_lease = server.news_source.acquire()
     if workbench_runtime is not None:
         server.attach_workbench_runtime(workbench_runtime)
+    if profile is not None:
+        try:
+            server.news_reader = news_reader.NewsReader(server.news_reader_root, server.news_source, runtime=news_runtime)
+            server.news_reader.runtime.start()
+        except (OSError, ValueError, RuntimeError):
+            # Base management remains available when profile news cannot initialize.
+            if server.news_reader is not None:
+                server.news_reader.close()
+            server.news_reader = None
     return server
 
 
-def build_profile_server(data_dir=None, port=8766, *, quota_source=None, news_source=None):
+def build_profile_server(data_dir=None, port=8766, *, quota_source=None, news_source=None, news_runtime=None):
     profile = Profile.open(data_dir)
     workspace = WorkspaceService(profile=profile, quota_source=quota_source, news_source=news_source)
     observer = ObserverClient(profile.data_dir, scope_supplier=workspace.observation_scope,
@@ -1432,7 +1442,8 @@ def build_profile_server(data_dir=None, port=8766, *, quota_source=None, news_so
                     "terminal": enabled["terminal"], "workbench": enabled["workbench"],
                     "personal_launchers": enabled["launchers"], "execution": execution is not None}
     return make_server(service, (HOST, port), workspace=workspace, profile=profile, execution=execution,
-                       launchers=launchers, capabilities=capabilities, startup_integrations=integrations, observer=observer)
+                       launchers=launchers, capabilities=capabilities, startup_integrations=integrations, observer=observer,
+                       news_runtime=news_runtime)
 
 
 def serve(data_dir=None, port=8766):

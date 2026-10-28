@@ -27,6 +27,7 @@ function mountStudio(root, { onProjects = () => {}, runtimeHost = () => null } =
   const escape = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
   let state = { workspace: null, agents: [], items: [] }, request = 0, query = '', projectFilter = 'active', initialized = false, disposed = false;
   let projectSort = 'updated', refreshMessage = '', loadFailure = '', viewMode = 'cards';
+  let studioVisible = true;
   let railCollapsed = false, newsHost = null, newsReader = null, newsTheme = null;
   let overviewReturn = null;
   let pendingTask = null, taskCenter = null, legacyBoard = null, taskTarget = '', itemsScope = 'current', legacyScope = null, progressReturn = null;
@@ -369,31 +370,14 @@ function mountStudio(root, { onProjects = () => {}, runtimeHost = () => null } =
     monitor.setActive(true);
   }
   function showNews(active) {
+    active = active && studioVisible;
     if (newsHost) { newsHost.hidden = !active; newsHost.inert = !active; }
-    newsReader?.setActive(active);
+    newsReader?.setVisible(active);
     if (!active || newsHost) return;
     newsHost = document.createElement('section'); newsHost.className = 'ce-news-surface';
     newsHost.setAttribute('aria-label', '新闻阅读室'); content.parentElement.append(newsHost);
-    const frame = document.createElement('iframe'); frame.title = '新闻阅读器';
-    const feedback = document.createElement('p'); feedback.setAttribute('role', 'status');
-    feedback.textContent = '正在打开新闻…'; newsHost.append(feedback, frame);
-    const syncTheme = () => {
-      try { if (frame.contentDocument?.documentElement) { const target = frame.contentDocument.documentElement; target.dataset.theme = root.dataset.theme || 'light'; target.style.setProperty('--ce-font-family', getComputedStyle(root).fontFamily); } } catch { /* A sign-in redirect is outside this reader's scope. */ }
-    };
-    frame.addEventListener('load', () => {
-      if (disposed) return;
-      try { newsReader = frame.contentWindow?.NewsReader; } catch { newsReader = null; }
-      if (newsReader?.setActive) { feedback.hidden = true; syncTheme(); newsReader.setActive(route().view === 'news'); }
-      else {
-        feedback.textContent = '新闻暂不可用。'; feedback.setAttribute('role', 'alert');
-        const retry = document.createElement('button'); retry.type = 'button'; retry.textContent = '重试';
-        retry.addEventListener('click', () => { feedback.textContent = '正在打开新闻…'; frame.src = '/news?embedded=1'; });
-        feedback.append(retry);
-      }
-    });
-    newsTheme = new MutationObserver(syncTheme);
-    newsTheme.observe(root, { attributes: true, attributeFilter: ['data-theme'] });
-    frame.src = '/news?embedded=1';
+    newsReader = window.NewsSurface.mount(newsHost, {themeHost:root});
+    newsReader.setVisible(active);
   }
   function render() {
     if (disposed || window.CERemoteContext?.active === false) return;
@@ -748,9 +732,11 @@ function mountStudio(root, { onProjects = () => {}, runtimeHost = () => null } =
   document.addEventListener('visibilitychange', visibilityChanged);
   render(); void refresh();
   if (window.StudioMascot && window.NewsPetPrefs && window.NewsPetDirector) mascot = window.StudioMascot.mount(root, { route, navigate: hash => { location.hash = hash; } });
-  const dispose = () => { disposed = true; for (const controller of pendingArchives) controller.abort(); pendingArchives.clear(); mascot?.dispose(); newsReader?.dispose(); newsTheme?.disconnect(); newsHost?.remove(); progressReturn = null; navigationGeneration++; unsubscribeAppearance?.(); unmountTheme?.(); standaloneTheme?.dispose(); closeProjectMenu(); closeNavigation(); restoreNavigation(); drawer.remove(); window.removeEventListener('resize', resizeNavigation); window.removeEventListener('scroll', closeProjectMenu, true); document.removeEventListener('pointerdown', dismissProjectMenu); request++; clearTimeout(refreshTimer); document.removeEventListener('visibilitychange', visibilityChanged); disposeMobile?.(); disposePets?.(); window.removeEventListener('hashchange', requestedNavigation); window.removeEventListener('platform-before-navigate', beforeNavigate); window.removeEventListener('platform-navigation-accepted', changed); window.removeEventListener('platform-add-project', requestProject); window.removeEventListener('platform-native-project-adopted', nativeProjectAdopted); window.removeEventListener('platform-native-project-action', nativeProjectAction); nativeProjectWrites.clear(); projectDialogTarget?.querySelectorAll('dialog').forEach(dialog => dialog.close()); projectDialogHost?.remove(); monitor?.destroy(); taskCenter?.dispose(); legacyBoard?.dispose(); board.dispose?.(); };
+  const dispose = () => { disposed = true; for (const controller of pendingArchives) controller.abort(); pendingArchives.clear(); mascot?.dispose(); newsReader?.destroy(); newsTheme?.disconnect(); newsHost?.remove(); progressReturn = null; navigationGeneration++; unsubscribeAppearance?.(); unmountTheme?.(); standaloneTheme?.dispose(); closeProjectMenu(); closeNavigation(); restoreNavigation(); drawer.remove(); window.removeEventListener('resize', resizeNavigation); window.removeEventListener('scroll', closeProjectMenu, true); document.removeEventListener('pointerdown', dismissProjectMenu); request++; clearTimeout(refreshTimer); document.removeEventListener('visibilitychange', visibilityChanged); disposeMobile?.(); disposePets?.(); window.removeEventListener('hashchange', requestedNavigation); window.removeEventListener('platform-before-navigate', beforeNavigate); window.removeEventListener('platform-navigation-accepted', changed); window.removeEventListener('platform-add-project', requestProject); window.removeEventListener('platform-native-project-adopted', nativeProjectAdopted); window.removeEventListener('platform-native-project-action', nativeProjectAction); nativeProjectWrites.clear(); projectDialogTarget?.querySelectorAll('dialog').forEach(dialog => dialog.close()); projectDialogHost?.remove(); monitor?.destroy(); taskCenter?.dispose(); legacyBoard?.dispose(); board.dispose?.(); };
   const unsubscribeContext = window.CERemoteContext?.onInactive(dispose);
-  return () => { unsubscribeContext?.(); dispose(); };
+  const handle = () => { unsubscribeContext?.(); dispose(); };
+  handle.setVisible = value => { studioVisible=!!value; newsReader?.setVisible(studioVisible && route().view === 'news'); };
+  return handle;
 }
 window.StudioPreview = { mount: mountStudio, projectEntryTab };
 const standaloneStudio = document.getElementById('ce-studio');

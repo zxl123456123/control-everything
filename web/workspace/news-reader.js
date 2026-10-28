@@ -1,15 +1,20 @@
 'use strict';
 (function () {
-  const $ = id => document.getElementById(id);
-  const embedded = window.parent !== window && new URLSearchParams(location.search).get('embedded') === '1';
-  let active = !embedded, activityGeneration = 0;
-  let theme, unmountTheme, researchComposing = false, initialTheme = window.CEUITheme?.pageTheme;
+  const mounted = new WeakMap();
+  function mount(root, {embedded = false, onReturn} = {}) {
+  if (mounted.has(root)) return mounted.get(root);
+  const document = root.ownerDocument || globalThis.document;
+  const lifecycle = new AbortController();
+  const listen = (target, type, callback, options = {}) => target.addEventListener(type, callback, {...options, signal:lifecycle.signal});
+  const $ = id => root.querySelector('#' + id);
+  let active = true, activityGeneration = 0;
+  let theme, unmountTheme, researchComposing = false, initialTheme = embedded ? null : window.CEUITheme?.pageTheme;
   function mountTheme() {
     if (embedded) { initialTheme?.dispose(); initialTheme = null; return; }
     theme = initialTheme || window.CEUITheme?.earlyRead('ce.news.theme'); initialTheme = null;
     if (theme) {
       $('theme').disabled = false;
-      unmountTheme = theme.mount({roots: [document.documentElement, $('news-room'), $('research-panel')], toggles: [$('theme')], status: $('theme-error'),
+      unmountTheme = theme.mount({roots: [root, $('news-room'), $('research-panel')], toggles: [$('theme')], status: $('theme-error'),
         aliases: {'--bg':'--ce-bg','--paper':'--ce-panel','--ink':'--ce-text','--muted':'--ce-sub','--line':'--ce-line','--soft':'--ce-soft','--chosen':'--ce-primary','--on':'--ce-on-primary','--accent':'--ce-sub'}});
     } else { $('theme').disabled = true; $('theme-error').hidden = false; $('theme-error').textContent = '主题资源未加载，请刷新后重试。'; }
   }
@@ -53,6 +58,40 @@
   let wheel = null; // the shortcut wheel (NewsPetWheel); while it is open the pet stays quiet so no bubble covers it
   const reactor = director.createReactor({engine:() => engine, enabled:() => petEnabled && Boolean(engine) && !still() && petPrefs.newsFx && canPoll() && !wheel?.isOpen()});
   const canPoll = () => active && !destroyed && !suspended && !document.hidden && window.CERemoteContext?.active !== false;
+  let settings = null, settingsTimer = null, settingsReading = false, statusKey = '';
+  const settingsUI = window.NewsSettings?.mount(root, {request:readerFetch, onSettings:acceptSettings});
+  function acceptSettings(value) {
+    settings = value.settings;
+    $('schedule-status').textContent = window.NewsSettings.runtimeText(value.runtime, settings);
+    if (value.reader_id && !storeKey) restoreStorage(value.reader_id);
+    if (canPoll()) { renderFilters(); render(); }
+  }
+  function renderFilters() {
+    if (!settings) return;
+    for (const [id, key, values] of [['source-filter','source_id', settings.sources.map(source => [source.id,source.name])], ['group-filter','group', [...new Set(settings.sources.map(source=>source.group).filter(Boolean))].map(group=>[group,group])]]) {
+      const select = $(id); select.replaceChildren();
+      for (const [value,title] of [['', id === 'source-filter' ? '全部来源' : '全部分组'], ...values]) { const option=make('option','',title); option.value=value; select.append(option); }
+      select.value=settings.view[key] || '';
+    }
+  }
+  async function readSettings() {
+    if (!settingsUI || !canPoll() || settingsReading) return;
+    settingsReading = true; clearTimeout(settingsTimer);
+    try {
+      const response=await readerFetch('/api/workspace/news/settings', {cache:'no-store'});
+      const value=await response.json(); if(!response.ok) throw new Error(value.message || '来源设置暂不可用，请重试。');
+      if(destroyed) return;
+      const key=JSON.stringify([value.settings.revision,value.runtime?.run_id,value.runtime?.state,value.runtime?.result]);
+      settingsUI.setSnapshot(value);
+      if(statusKey && statusKey!==key) { if(feedReading) feedQueued=true; else void readFeeds(); } statusKey=key;
+    } catch(error) { if(!destroyed) $('schedule-status').textContent=error.message; }
+    finally { settingsReading=false; if(canPoll()) settingsTimer=setTimeout(readSettings,15000); }
+  }
+  listen($('source-settings'), 'click', () => { if(settings) settingsUI?.open(); else void readSettings().then(()=>{if(canPoll())settingsUI?.open();}); });
+  for (const [id,key] of [['source-filter','source_id'],['group-filter','group']]) listen($(id), 'change', async()=>{
+    if(!settings) return;
+    try { const response=await readerFetch('/api/workspace/news/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({expected_revision:settings.revision,sources:settings.sources,view:{...settings.view,[key]:$(id).value||null},schedule:settings.schedule})}); const value=await response.json(); if(!response.ok) throw new Error('筛选保存失败，请重试。'); if(!destroyed) settingsUI.setSnapshot(value); } catch(error) {notice(error.message);renderFilters();}
+  });
   const researchEvents = new Map(), researchData = new Map();
   const topicQueries = {coding:'AI coding workflow coding agents tips', agents:'AI agents context engineering tools workflows', claude:'Claude Code coding tips workflows', models:'GPT Gemini coding models releases', tibo:'Tibo AI coding agents'};
   const changeText = (node, text) => { if (node.textContent !== text) node.textContent = text; };
@@ -111,7 +150,7 @@
     clearTimeout(dayTimer); if (!canPoll()) return;
     dayTimer = setTimeout(() => { render(); scheduleDayChange(); }, Date.parse(dayKey(Date.now()) + 'T00:00:00+08:00') + 86400000 - Date.now() + 50);
   }
-  function matches(item, view = selected) { const row = state(item.id); return view === 'read' ? !!row.read_at : view === 'saved' ? !!row.saved : view === 'archived' ? !!row.archived_at : !row.archived_at; }
+  function matches(item, view = selected) { if (settings && !window.NewsSettings.matches(item, settings, view) && view === 'inbox') return false; const row = state(item.id); return view === 'read' ? !!row.read_at : view === 'saved' ? !!row.saved : view === 'archived' ? !!row.archived_at : !row.archived_at; }
   let noticeTimer = 0;
   /** Shows the bottom toast. Plain notices fade away after 5 s so they never keep covering the reading actions; an undo toast stays until dismissed. */
   function notice(text, canUndo = false) {
@@ -159,9 +198,9 @@
     api.setOptions({scale:0.7, dial:false}); api.setCollecting(collecting); api.setStatus?.(petStatus); return api;
   }
   function syncPetControls() {
-    document.documentElement.dataset.pet = petName;
+    root.dataset.pet = petName;
     const allowed = new Set(window.NewsPets.list().map(pet => pet.name));
-    for (const select of document.querySelectorAll('.pet-select')) {
+    for (const select of root.querySelectorAll('.pet-select')) {
       for (const option of [...select.options]) if (!allowed.has(option.value)) option.remove();
       select.value = petFallback || petName;
       const group = select.closest('.pet-switch'); if (group) group.hidden = allowed.size < 2;
@@ -181,7 +220,7 @@
   function syncPets() {
     if (destroyed || window.CERemoteContext?.active === false) return;
     // Reveal the stage first: a pet measures its surroundings when it mounts.
-    for (const node of [$('spider-canvas'), document.querySelector('.spider-home'), $('research-spider-canvas'), document.querySelector('.research-spider-home')]) node.hidden = !petEnabled;
+    for (const node of [$('spider-canvas'), root.querySelector('.spider-home'), $('research-spider-canvas'), root.querySelector('.research-spider-home')]) node.hidden = !petEnabled;
     if (petEnabled) {
       if (!engine) { engine = mountMainPet(); if (still()) engine.pause(); }
       if ($('research-panel').open && $('research-details').open && !researchEngine) { researchEngine = mountResearchPet(); if (still()) researchEngine.pause(); }
@@ -200,7 +239,7 @@
     if (next.quiet !== before.quiet) { syncMotion(); $('spider-state').textContent = stateText(); if (!next.quiet) runArrival(); }
     if (switched && engine) { if (!still() && !$('research-panel').open) engine.pointAt($('article-title'), '阅读'); render(); runArrival(); }
   }
-  window.addEventListener('news-pet-fallback', event => {
+  listen(window, 'news-pet-fallback', event => {
     if (destroyed || event.detail.pet !== petName) return;
     petFallback = event.detail.fallback; syncPetControls();
     notice(`${window.NewsPets.list().find(pet => pet.name === petName)?.label || '宠物'}暂时无法加载，已先用${window.NewsPets.list().find(pet => pet.name === petFallback)?.label || '默认宠物'}。`);
@@ -236,7 +275,7 @@
     here:'news', go:goStudio, search:openSearch, prefs, notify:notice,
     afterHide:() => $('refresh').focus(),
   });
-  document.querySelectorAll('.pet-select').forEach(select => select.addEventListener('change', () => switchPet(select.value)));
+  root.querySelectorAll('.pet-select').forEach(select => listen(select, 'change', () => switchPet(select.value)));
   // Where the pet rests, as a viewport rectangle: the reader's dock when it has one, else the depot slot.
   function wheelAnchor() {
     const dock = petDock(), stage = $('animation-stage');
@@ -248,7 +287,7 @@
     onOpen:() => { $('pet-dial').setAttribute('aria-expanded', 'true'); },
     onClose:() => { $('pet-dial').setAttribute('aria-expanded', 'false'); },
   });
-  $('pet-dial').addEventListener('click', event => { if (petEnabled) wheel.toggle(event.detail === 0); }); // detail 0: keyboard activation, so focus moves into the wheel
+  listen($('pet-dial'), 'click', event => { if (petEnabled) wheel.toggle(event.detail === 0); }); // detail 0: keyboard activation, so focus moves into the wheel
   function cancelTask(id) { tasks.delete(id); engine?.cancel(id); if (id.startsWith('arrival:')) { $('arrival-title').hidden = true; $('reader-state').hidden = false; } }
   function settleTask(event) {
     if (destroyed || window.CERemoteContext?.active === false) return;    const id = typeof event === 'string' ? event : event.id, task = tasks.get(id);
@@ -270,9 +309,9 @@
     const row = make('button', 'title-row'); row.type = 'button'; row.dataset.id = item.id;
     const title = make('span', 'title-row-title'), meta = make('span', 'title-row-meta'), content = make('span', 'title-row-content'), thumbnail = make('img', 'title-row-thumbnail');
     thumbnail.alt = ''; thumbnail.loading = 'lazy'; thumbnail.referrerPolicy = 'no-referrer';
-    thumbnail.addEventListener('error', () => { failedImages.add(thumbnail.src); thumbnail.hidden = true; });
+    listen(thumbnail, 'error', () => { failedImages.add(thumbnail.src); thumbnail.hidden = true; });
     content.append(title, make('span', 'title-row-summary')); meta.append(make('span', 'row-dot'), make('span', 'row-source'), make('span', 'row-type'), make('span', 'row-date'), make('span', 'row-state'));
-    row.append(content, thumbnail, meta); row.addEventListener('click', () => selectArticle(item.id, true)); return row;
+    row.append(content, thumbnail, meta); listen(row, 'click', () => selectArticle(item.id, true)); return row;
   }
   const prefStore = () => window.CERemoteContext ? window.CERemoteContext.storage('localStorage') : (window.localStorage ?? localStorage);
   const prefKey = name => `news-${name}-v1:${storeKey ? storeKey.slice(storeKey.indexOf(':') + 1) : 'default'}`;
@@ -336,8 +375,8 @@
     if (sourceFilter && !items.some(item => item.source_name === sourceFilter)) sourceFilter = null;
     $('directory-title').textContent = readingView === 'article' ? '标题目录' : $('date-range').value === 'all' ? '全部新闻' : '今日新闻';
     for (const view of ['inbox', 'read', 'saved', 'archived']) {
-      document.querySelector(`[data-count="${view}"]`).textContent = items.filter(item => matches(item, view)).length;
-      document.querySelector(`[data-view="${view}"]`).setAttribute('aria-pressed', String(selected === view));
+      root.querySelector(`[data-count="${view}"]`).textContent = items.filter(item => matches(item, view)).length;
+      root.querySelector(`[data-view="${view}"]`).setAttribute('aria-pressed', String(selected === view));
     }
     visibleIds = [];
     let cursor = $('title-list').firstElementChild;
@@ -453,7 +492,7 @@
       for (const reference of references) {
         const link = make('a', '', reference.label || (reference.kind === 'x_post' ? '文中引用的 X 帖子' : reference.kind === 'paper' ? '相关论文' : '相关来源'));
         link.href = safeUrl(reference.url); link.target = '_blank'; link.rel = 'noopener noreferrer';
-        link.addEventListener('click', event => { const local = [...articles.values()].find(article => article.url === reference.url); if (local) { event.preventDefault(); if (!matches(local)) selected = state(local.id).archived_at ? 'archived' : 'inbox'; stream = local.stream; sourceFilter = null; sections.select(stream, {silent:true}); $('search').value = ''; if (!inDateRange(local)) $('date-range').value = 'all'; selectArticle(local.id, true); } });
+        listen(link, 'click', event => { const local = [...articles.values()].find(article => article.url === reference.url); if (local) { event.preventDefault(); if (!matches(local)) selected = state(local.id).archived_at ? 'archived' : 'inbox'; stream = local.stream; sourceFilter = null; sections.select(stream, {silent:true}); $('search').value = ''; if (!inDateRange(local)) $('date-range').value = 'all'; selectArticle(local.id, true); } });
         details.append(link);
       }
       $('article-provenance').replaceChildren(details); $('article-provenance').dataset.key = provenanceKey; $('source-details').open = false;
@@ -500,8 +539,8 @@
     const failed = failedImages.has(image.url);
     figure.hidden = failed && !gallery; missing.hidden = !failed; picture.hidden = failed;
     pending.hidden = failed || !gallery;
-    picture.addEventListener('load', () => { pending.hidden = true; });
-    picture.addEventListener('error', () => { failedImages.add(image.url); picture.hidden = true; pending.hidden = true; missing.hidden = false; figure.hidden = !gallery; });
+    listen(picture, 'load', () => { pending.hidden = true; });
+    listen(picture, 'error', () => { failedImages.add(image.url); picture.hidden = true; pending.hidden = true; missing.hidden = false; figure.hidden = !gallery; });
     if (!failed) picture.src = image.url;
     figure.append(picture, pending, missing);
     if (image.caption || image.alt) {
@@ -516,7 +555,7 @@
     $('article-content').dataset.mediaView = mediaView;
     $('article-scroll').dataset.mediaView = mediaView;
     $('media-toolbar').hidden = !images.length; $('media-total').textContent = `${images.length} 张图片`;
-    document.querySelectorAll('button[data-media-view]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.mediaView === mediaView)));
+    root.querySelectorAll('button[data-media-view]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.mediaView === mediaView)));
     $('article-cover').hidden = !images.length || mediaView === 'gallery'; $('article-gallery').hidden = !images.length || mediaView !== 'gallery';
     const key = JSON.stringify([item.id, images, mediaView, imageIndex]); if (key === mediaKey) return;
     mediaKey = key;
@@ -566,7 +605,7 @@
       if (currentId === item.id) { stopTranslation(); renderedKey = ''; render(); }
     }
   }
-  $('retry-article').addEventListener('click', () => {
+  listen($('retry-article'), 'click', () => {
     const item = articles.get(currentId); if (!item) return;
     $('retry-article').disabled = true; $('content-status').textContent = '正在重新读取正文…';
     void loadArticle(item, true);
@@ -620,7 +659,7 @@
     const covers = new Map((value.covers?.items || []).map(item => [item.id, item]));
     const incoming = new Map(), oldIds = new Set(articles.keys());
     for (const [name, envelope] of Object.entries(value.sample.streams)) for (const raw of envelope.items || []) { const item = {...raw, stream:name, images:Array.isArray(raw.images) ? raw.images : [], body_blocks:Array.isArray(raw.body_blocks) ? raw.body_blocks : [], cover_url:covers.get(raw.id)?.url || raw.cover_url || null}; if (validItem(item)) incoming.set(item.id, item); }
-    const failedSources = new Set(value.sample.sources.filter(source => source.reason).map(source => source.source_id || source.id));
+    const failedSources = new Set(value.sample.sources.filter(source => source.enabled !== false && settings?.sources.find(row => row.id === (source.source_id || source.id))?.enabled !== false && source.reason !== 'disabled' && source.reason).map(source => source.source_id || source.id));
     const retained = [];
     for (const [id, item] of articles) if (!incoming.has(id)) { const row = state(id); if (!sectionIds.has(item.stream)) { cancelTask(id); nodes.get(id)?.remove(); nodes.delete(id); documents.delete(id); } else if (append || failedSources.has(item.source_id) || row.read_at || row.archived_at || row.saved || tasks.has(id)) retained.push([id, {...item, cached:true}]); else { cancelTask(id); nodes.get(id)?.remove(); nodes.delete(id); documents.delete(id); delete records[id]; } }
     articles.clear();
@@ -637,38 +676,38 @@
     }
     save(); render(); cancelInvisible(); if (animate) runArrival();
   }
-  document.querySelectorAll('[data-view]').forEach(control => control.addEventListener('click', () => { for (const [id, task] of tasks) if (task.kind === 'archive') cancelTask(id); selected = control.dataset.view; render(); }));
-  $('search').addEventListener('input', () => { render(); cancelInvisible(); });
-  $('date-range').addEventListener('change', () => { render(); cancelInvisible(); });
-  $('show-history').addEventListener('click', () => { $('date-range').value = 'all'; render(); });
+  root.querySelectorAll('[data-view]').forEach(control => listen(control, 'click', () => { for (const [id, task] of tasks) if (task.kind === 'archive') cancelTask(id); selected = control.dataset.view; render(); }));
+  listen($('search'), 'input', () => { render(); cancelInvisible(); });
+  listen($('date-range'), 'change', () => { render(); cancelInvisible(); });
+  listen($('show-history'), 'click', () => { $('date-range').value = 'all'; render(); });
   const sections = window.NewsSections.mount({
-    tabs:$('stream'), add:$('section-add'), edit:$('section-edit'), request:readerFetch, announce:text => notice(text),
+    host:root, tabs:$('stream'), add:$('section-add'), edit:$('section-edit'), request:readerFetch, announce:text => notice(text),
     onSelect(id) { for (const [taskId, task] of tasks) if (task.kind === 'archive') cancelTask(taskId); stream = id; sourceFilter = null; writePref('section', id); render(); cancelInvisible(); },
     onSaved() { lastFeedKey = ''; refreshingFeeds = true; if (feedReading) feedQueued = true; else readFeeds(false); },
   });
   const search = window.NewsSearch.mount({
-    input:$('search'), wrap:document.querySelector('.search-wrap'), state:searchState,
+    input:$('search'), wrap:root.querySelector('.search-wrap'), state:searchState,
     setRange(value) { $('date-range').value = value; render(); cancelInvisible(); },
     setSource(name) { sourceFilter = name; render(); cancelInvisible(); },
     clear() { $('search').value = ''; render(); cancelInvisible(); },
     store:{read:() => { const list = readPref('search-recent', []); return Array.isArray(list) ? list.filter(item => typeof item === 'string').slice(0, 6) : []; }, write:list => writePref('search-recent', list)},
   });
-  $('clear-search').addEventListener('click', () => { $('search').value = ''; sourceFilter = null; render(); $('search').focus(); });
-  $('directory-summary').addEventListener('click', event => { const show = event.currentTarget.getAttribute('aria-pressed') !== 'true'; event.currentTarget.setAttribute('aria-pressed', String(show)); event.currentTarget.setAttribute('aria-label', show ? '隐藏目录摘要' : '显示目录摘要'); $('directory').dataset.summaries = String(show); });
-  $('back-to-list').addEventListener('click', () => setReadingView('list'));
-  $('previous').addEventListener('click', () => { const index = visibleIds.indexOf(currentId); if (index > 0) selectArticle(visibleIds[index - 1]); });
-  $('next').addEventListener('click', () => { const index = visibleIds.indexOf(currentId); if (index < visibleIds.length - 1) selectArticle(visibleIds[index + 1]); });
-  $('open-directory').addEventListener('click', () => { const open = $('animation-stage').dataset.directory !== 'open'; setDirectory(open); if (open) $('search').focus(); });
-  $('close-directory').addEventListener('click', () => { setDirectory(false); $('open-directory').focus(); cancelInvisible(); });
-  $('directory-backdrop').addEventListener('click', () => { setDirectory(false); $('open-directory').focus(); cancelInvisible(); });
-  $('mark-read').addEventListener('click', () => { if (!currentId) return; const row = state(currentId); row.read_at = row.read_at ? null : new Date().toISOString(); save(); render(); });
-  $('save-article').addEventListener('click', () => { if (!currentId) return; const row = state(currentId); row.saved = !row.saved; save(); render(); if (row.saved) reactor.react('saved'); });
-  $('bulk-archive').addEventListener('click', bulkArchive);
-  $('copy-link').addEventListener('click', copyLink);
-  $('open-original').addEventListener('click', event => { if ($('open-original').getAttribute('aria-disabled') === 'true') event.preventDefault(); });
-  $('undo').addEventListener('click', () => { if (!undo) return; for (const {id, archived_at} of undo) { cancelTask(id); state(id).archived_at = archived_at; } const count = undo.length; undo = null; save(); render(); cancelInvisible(); notice(`已撤销，恢复 ${count} 条。`); });
-  $('dismiss').addEventListener('click', () => { $('toast').hidden = true; });
-  document.querySelectorAll('[data-language]').forEach(control => control.addEventListener('click', () => { language = control.dataset.language; stopTranslation(); document.querySelectorAll('[data-language]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.language === language))); renderedKey = ''; renderArticle(); }));
+  listen($('clear-search'), 'click', () => { $('search').value = ''; sourceFilter = null; render(); $('search').focus(); });
+  listen($('directory-summary'), 'click', event => { const show = event.currentTarget.getAttribute('aria-pressed') !== 'true'; event.currentTarget.setAttribute('aria-pressed', String(show)); event.currentTarget.setAttribute('aria-label', show ? '隐藏目录摘要' : '显示目录摘要'); $('directory').dataset.summaries = String(show); });
+  listen($('back-to-list'), 'click', () => setReadingView('list'));
+  listen($('previous'), 'click', () => { const index = visibleIds.indexOf(currentId); if (index > 0) selectArticle(visibleIds[index - 1]); });
+  listen($('next'), 'click', () => { const index = visibleIds.indexOf(currentId); if (index < visibleIds.length - 1) selectArticle(visibleIds[index + 1]); });
+  listen($('open-directory'), 'click', () => { const open = $('animation-stage').dataset.directory !== 'open'; setDirectory(open); if (open) $('search').focus(); });
+  listen($('close-directory'), 'click', () => { setDirectory(false); $('open-directory').focus(); cancelInvisible(); });
+  listen($('directory-backdrop'), 'click', () => { setDirectory(false); $('open-directory').focus(); cancelInvisible(); });
+  listen($('mark-read'), 'click', () => { if (!currentId) return; const row = state(currentId); row.read_at = row.read_at ? null : new Date().toISOString(); save(); render(); });
+  listen($('save-article'), 'click', () => { if (!currentId) return; const row = state(currentId); row.saved = !row.saved; save(); render(); if (row.saved) reactor.react('saved'); });
+  listen($('bulk-archive'), 'click', bulkArchive);
+  listen($('copy-link'), 'click', copyLink);
+  listen($('open-original'), 'click', event => { if ($('open-original').getAttribute('aria-disabled') === 'true') event.preventDefault(); });
+  listen($('undo'), 'click', () => { if (!undo) return; for (const {id, archived_at} of undo) { cancelTask(id); state(id).archived_at = archived_at; } const count = undo.length; undo = null; save(); render(); cancelInvisible(); notice(`已撤销，恢复 ${count} 条。`); });
+  listen($('dismiss'), 'click', () => { $('toast').hidden = true; });
+  root.querySelectorAll('[data-language]').forEach(control => listen(control, 'click', () => { language = control.dataset.language; stopTranslation(); root.querySelectorAll('[data-language]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.language === language))); renderedKey = ''; renderArticle(); }));
   function syncMotion() {
     if (destroyed || window.CERemoteContext?.active === false) return;    const show = petEnabled && !still() && canPoll();
     $('research-panel').dataset.motion = researchBusy && canPoll() && $('research-panel').open ? 'running' : 'paused';
@@ -677,11 +716,11 @@
     $('pause').textContent = $('research-pause').textContent = paused ? '继续动画' : '暂停动画';
     syncPetStatusFeed();
   }
-  $('pause').addEventListener('click', () => { paused = !paused; syncMotion(); $('spider-state').textContent = stateText(); if (!paused) runArrival(); });
-  $('research-pause').addEventListener('click', () => $('pause').click());
-  document.querySelectorAll('button[data-media-view]').forEach(button => button.addEventListener('click', () => { mediaView = button.dataset.mediaView; $('article-scroll').scrollTop = 0; renderMedia(articles.get(currentId)); }));
-  $('image-previous').addEventListener('click', () => { imageIndex--; renderMedia(articles.get(currentId)); });
-  $('image-next').addEventListener('click', () => { imageIndex++; renderMedia(articles.get(currentId)); });
+  listen($('pause'), 'click', () => { paused = !paused; syncMotion(); $('spider-state').textContent = stateText(); if (!paused) runArrival(); });
+  listen($('research-pause'), 'click', () => $('pause').click());
+  root.querySelectorAll('button[data-media-view]').forEach(button => listen(button, 'click', () => { mediaView = button.dataset.mediaView; $('article-scroll').scrollTop = 0; renderMedia(articles.get(currentId)); }));
+  listen($('image-previous'), 'click', () => { imageIndex--; renderMedia(articles.get(currentId)); });
+  listen($('image-next'), 'click', () => { imageIndex++; renderMedia(articles.get(currentId)); });
   /**
    * Roving-tabindex radio group (WAI-ARIA radio pattern, the same model as Radix ToggleGroup type="single"):
    * one tab stop, arrows/Home/End move and select, and exactly one option is always checked.
@@ -694,7 +733,7 @@
     $('refresh-label').textContent = active ? '查看采集进度' : '采集新闻'; $('refresh').dataset.running = String(active);
     $('research-panel').dataset.running = String(active);
     $('research-start').disabled = active; $('research-start').textContent = active ? '采集中…' : '开始采集';
-    $('research-query').disabled = active; document.querySelectorAll('[data-topic]').forEach(button => { button.disabled = active; });
+    $('research-query').disabled = active; root.querySelectorAll('[data-topic]').forEach(button => { button.disabled = active; });
     $('capture-frames').disabled = active;
     if (!tasks.size) $('spider-state').textContent = still() ? stateText() : active ? '正在采集信息' : '等待阅读';
     syncMotion();
@@ -722,13 +761,13 @@
     const frames = [...researchData.values()].filter(item => frameUrl(item.screenshot)), index = frames.findIndex(item => item.seq === event.seq);
     $('frame-position').textContent = `${index + 1} / ${frames.length}`;
     $('frame-previous').disabled = index <= 0; $('frame-next').disabled = index >= frames.length - 1;
-    document.querySelectorAll('[data-step]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.step === eventStep(event))));
-    document.querySelectorAll('.research-source').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.host === eventHost(event, true))));
+    root.querySelectorAll('[data-step]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.step === eventStep(event))));
+    root.querySelectorAll('.research-source').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.host === eventHost(event, true))));
     pointResearch(event);
   }
   function pointResearch(event) {
     if (!researchEngine || still() || !$('research-panel').open) return;
-    const source = [...document.querySelectorAll('.research-source')].find(button => button.dataset.host === eventHost(event, true));
+    const source = [...root.querySelectorAll('.research-source')].find(button => button.dataset.host === eventHost(event, true));
     researchEngine.pointAt(source?.querySelector('.source-name') || $('research-host'), event.stage || '浏览');
   }
   function eventHost(event, source = false) {
@@ -778,10 +817,10 @@
       button.type = 'button'; button.dataset.host = host; button.dataset.state = blocked ? 'blocked' : entry.extracted ? 'ready' : 'visited';
       button.append(make('span', 'source-symbol', blocked ? '!' : entry.extracted ? '✓' : '↗'), make('span', 'source-name', host), make('span', 'source-state', blocked ? '已跳过' : entry.extracted ? '已提取' : '已浏览'));
       button.disabled = !entry.frame; button.setAttribute('aria-label', `${host}，${blocked ? '来源暂不可读，已跳过' : entry.extracted ? '已提取' : '已浏览'}${entry.frame ? '，回看页面' : '，暂无截图'}`);
-      if (entry.frame) button.addEventListener('click', () => showResearchFrame(entry.frame)); fragment.append(button);
+      if (entry.frame) listen(button, 'click', () => showResearchFrame(entry.frame)); fragment.append(button);
     }
     $('research-sources').replaceChildren(fragment);
-    document.querySelectorAll('[data-step]').forEach(button => { const group = events.filter(event => eventStep(event) === button.dataset.step); button.disabled = !group.length; button.dataset.done = String(group.length > 0); });
+    root.querySelectorAll('[data-step]').forEach(button => { const group = events.filter(event => eventStep(event) === button.dataset.step); button.disabled = !group.length; button.dataset.done = String(group.length > 0); });
   }
   function appendResearchEvents(events) {
     let latestFrame = null, changed = false;
@@ -794,7 +833,7 @@
       button.type = 'button'; button.append(make('span', 'research-event-stage', stageNames[event.stage] || String(event.stage || '采集')), make('span', 'research-event-message', event.message));
       if (safeUrl(event.url) || safeUrl(event.requested_url)) button.append(make('span', 'research-event-url', safeUrl(event.url) || safeUrl(event.requested_url)));
       if (Number.isFinite(time.getTime())) button.append(make('time', '', new Intl.DateTimeFormat('zh-CN', {hour:'2-digit', minute:'2-digit', second:'2-digit', timeZone:'Asia/Shanghai'}).format(time)));
-      if (frameUrl(event.screenshot)) { button.addEventListener('click', () => showResearchFrame(event)); latestFrame = event; button.setAttribute('aria-label', `${event.message}，查看实际页面截图`); }
+      if (frameUrl(event.screenshot)) { listen(button, 'click', () => showResearchFrame(event)); latestFrame = event; button.setAttribute('aria-label', `${event.message}，查看实际页面截图`); }
       else { button.disabled = true; }
       row.append(button); $('research-events').append(row); researchEvents.set(event.seq, row);
       if (!event.screenshot && safeUrl(event.url) && researchFrameSeq === null) $('research-url').textContent = event.url;
@@ -830,13 +869,13 @@
     if (running && !known) meter.removeAttribute('aria-valuenow'); else meter.setAttribute('aria-valuenow', value.state === 'complete' || value.state === 'partial' ? '100' : String(percent));
     $('research-meter-fill').style.strokeDashoffset = String(100 - (value.state === 'complete' || value.state === 'partial' ? 100 : percent));
     const order = ['search','visit','extract','merge'], now = order.indexOf(phase);
-    document.querySelectorAll('.stage-steps li').forEach((item, index) => {
+    root.querySelectorAll('.stage-steps li').forEach((item, index) => {
       const done = value.state === 'complete' || value.state === 'partial' || index < now, here = index === now && value.state !== 'complete' && value.state !== 'partial';
       const state = done ? 'done' : here ? (running ? 'current' : 'error') : 'pending';
       item.dataset.state = state; if (state === 'current') item.setAttribute('aria-current', 'step'); else item.removeAttribute('aria-current');
       item.lastChild.textContent = {done:'，已完成', current:'，进行中', error:'，未完成', pending:'，等待中'}[state];
     });
-    document.querySelectorAll('[data-step]').forEach(button => {
+    root.querySelectorAll('[data-step]').forEach(button => {
       const current = button.dataset.step === phase;
       if (running && current) button.setAttribute('aria-current', 'step'); else button.removeAttribute('aria-current');
       button.dataset.current = String(current && running);
@@ -873,7 +912,7 @@
       if (typeof job.query === 'string') $('research-query').value = job.query;
       if (topicQueries[job.topic]) researchTopic = job.topic;
       $('capture-frames').checked = job.capture_frames === true;
-      document.querySelectorAll('[data-topic]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.topic === researchTopic)));
+      root.querySelectorAll('[data-topic]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.topic === researchTopic)));
       acceptResearch(job, true);
     } catch { /* Reading remains available when history cannot be loaded. */ }
     finally { historyReading = false; }
@@ -885,7 +924,7 @@
     catch { if (canPoll() && researchBusy) { $('research-state').textContent = '连接暂时中断，正在重试'; researchTimer = setTimeout(pollResearch, 3000); } }
     finally { researchReading = false; }
   }
-  $('refresh').addEventListener('click', () => {
+  listen($('refresh'), 'click', () => {
     if (destroyed || window.CERemoteContext?.active === false) return;
     if (!$('research-panel').open) {
       try { $('research-panel').showModal(); }
@@ -897,13 +936,13 @@
     if (event && $('research-details').open) showResearchFrame(event);
     if (researchBusy) $('research-close').focus();
   });
-  for (const id of ['research-close','research-return']) $(id).addEventListener('click', () => $('research-panel').close());
-  $('research-again').addEventListener('click', () => {
+  for (const id of ['research-close','research-return']) listen($(id), 'click', () => $('research-panel').close());
+  listen($('research-again'), 'click', () => {
     $('research-form').hidden = false; $('research-feedback').hidden = true; $('research-again').hidden = true; $('research-return').textContent = '取消';
     changeText($('research-reason'), ''); $('research-reason').hidden = true;
     $('research-panel').removeAttribute('data-state'); $('research-query').focus();
   });
-  $('research-details').addEventListener('toggle', () => {
+  listen($('research-details'), 'toggle', () => {
     syncPets();
     if ($('research-details').open && $('research-panel').open) {
       const events = [...researchData.values()];
@@ -911,28 +950,28 @@
       if (event) showResearchFrame(event);
     }
   });
-  $('research-panel').addEventListener('compositionstart', () => { researchComposing = true; });
-  $('research-panel').addEventListener('compositionend', () => { researchComposing = false; });
-  $('research-panel').addEventListener('cancel', event => { event.preventDefault(); if (!researchComposing && !event.isComposing) $('research-panel').close(); });
-  $('research-panel').addEventListener('keydown', event => { if (event.key === 'Escape') { event.stopPropagation?.(); if (researchComposing || event.isComposing || event.keyCode === 229) event.preventDefault(); } });
-  $('research-panel').addEventListener('close', () => { researchEngine?.pointAt(null); syncMotion(); if (!destroyed && window.CERemoteContext?.active !== false) $('refresh').focus(); });
-  $('research-frame').addEventListener('error', () => { $('research-frame').hidden = true; $('research-frame-empty').hidden = false; $('research-frame-empty').textContent = '这张实际截图暂时无法载入，可继续查看采集记录。'; });
-  for (const [id, direction] of [['frame-previous', -1], ['frame-next', 1]]) $(id).addEventListener('click', () => { const frames = [...researchData.values()].filter(event => frameUrl(event.screenshot)), index = frames.findIndex(event => event.seq === researchFrameSeq); if (frames[index + direction]) showResearchFrame(frames[index + direction]); });
-  document.querySelectorAll('[data-step]').forEach(button => button.addEventListener('click', () => {
-    document.querySelectorAll('[data-step]').forEach(control => control.setAttribute('aria-pressed', String(control === button)));
+  listen($('research-panel'), 'compositionstart', () => { researchComposing = true; });
+  listen($('research-panel'), 'compositionend', () => { researchComposing = false; });
+  listen($('research-panel'), 'cancel', event => { event.preventDefault(); if (!researchComposing && !event.isComposing) $('research-panel').close(); });
+  listen($('research-panel'), 'keydown', event => { if (event.key === 'Escape') { event.stopPropagation?.(); if (researchComposing || event.isComposing || event.keyCode === 229) event.preventDefault(); } });
+  listen($('research-panel'), 'close', () => { researchEngine?.pointAt(null); syncMotion(); if (!destroyed && window.CERemoteContext?.active !== false) $('refresh').focus(); });
+  listen($('research-frame'), 'error', () => { $('research-frame').hidden = true; $('research-frame-empty').hidden = false; $('research-frame-empty').textContent = '这张实际截图暂时无法载入，可继续查看采集记录。'; });
+  for (const [id, direction] of [['frame-previous', -1], ['frame-next', 1]]) listen($(id), 'click', () => { const frames = [...researchData.values()].filter(event => frameUrl(event.screenshot)), index = frames.findIndex(event => event.seq === researchFrameSeq); if (frames[index + direction]) showResearchFrame(frames[index + direction]); });
+  root.querySelectorAll('[data-step]').forEach(button => listen(button, 'click', () => {
+    root.querySelectorAll('[data-step]').forEach(control => control.setAttribute('aria-pressed', String(control === button)));
     const events = [...researchData.values()].filter(event => eventStep(event) === button.dataset.step), event = events.findLast(event => frameUrl(event.screenshot));
     if (event) showResearchFrame(event);
-    else if (events.length) { document.querySelector('.research-log').open = true; researchEvents.get(events.at(-1).seq)?.scrollIntoView({block:'nearest'}); }
+    else if (events.length) { root.querySelector('.research-log').open = true; researchEvents.get(events.at(-1).seq)?.scrollIntoView({block:'nearest'}); }
   }));
-  document.querySelectorAll('[data-topic]').forEach(button => button.addEventListener('click', () => { researchTopic = button.dataset.topic; $('research-query').value = topicQueries[researchTopic]; document.querySelectorAll('[data-topic]').forEach(control => control.setAttribute('aria-pressed', String(control === button))); }));
-  $('research-form').addEventListener('submit', async event => {
+  root.querySelectorAll('[data-topic]').forEach(button => listen(button, 'click', () => { researchTopic = button.dataset.topic; $('research-query').value = topicQueries[researchTopic]; root.querySelectorAll('[data-topic]').forEach(control => control.setAttribute('aria-pressed', String(control === button))); }));
+  listen($('research-form'), 'submit', async event => {
     event.preventDefault(); if (destroyed || window.CERemoteContext?.active === false || researchBusy) return; const query = $('research-query').value.trim(); if (!query) { $('research-query').focus(); return; }
     $('toast').hidden = true;
     clearTimeout(researchTimer); frameRequest++; researchJob = null; researchFrameSeq = null; researchEvents.clear(); researchData.clear(); $('research-events').replaceChildren(); $('research-events-empty').hidden = false; researchOverview([]);
     $('research-browser').hidden = true; renderResearchProgress({state:'running'});
     researchEngine?.pointAt(null);
     $('research-timing').textContent = ''; $('research-frame-mode').textContent = '采集中 · 步骤截图'; $('research-activity').textContent = '正在启动浏览器…';
-    $('frame-position').textContent = '0 / 0'; $('frame-previous').disabled = true; $('frame-next').disabled = true; $('research-host').textContent = '等待页面'; document.querySelector('.research-log').open = false;
+    $('frame-position').textContent = '0 / 0'; $('frame-previous').disabled = true; $('frame-next').disabled = true; $('research-host').textContent = '等待页面'; root.querySelector('.research-log').open = false;
     $('research-frame').hidden = true; $('research-frame').removeAttribute('src'); $('research-frame-empty').hidden = false; $('research-frame-empty').textContent = '等待实际访问页面的截图…';
     $('research-url').textContent = '准备检索'; $('research-frame-caption').textContent = '只显示本次采集实际获得的页面画面。'; $('research-outcome').textContent = '关闭工作台后，采集仍会继续。'; $('research-state').textContent = '正在开始'; $('research-count').textContent = '0 条记录'; $('research-log-count').textContent = '0'; setCollecting(true);
     try {
@@ -943,45 +982,46 @@
       acceptResearch(value);
     } catch (error) { setCollecting(false); renderResearchProgress({state:'failed',error:error.message}); $('research-state').textContent = '未能开始'; $('research-frame-mode').textContent = '未开始'; $('research-activity').textContent = error.message; $('research-outcome').textContent = error.message; }
   });
-  document.addEventListener('keydown', event => {
+  listen(root, 'keydown', event => {
     if (!canPoll() || event.isComposing || event.keyCode === 229) return;
-    if ($('research-panel').open || readingView !== 'article') return;
+    if ($('research-panel').open || root.querySelector('dialog[open]') || readingView !== 'article') return;
     if (/INPUT|TEXTAREA|SELECT/.test(event.target.tagName) || event.target.isContentEditable || event.ctrlKey || event.metaKey || event.altKey) return;
     if (event.key === 'Escape' && $('animation-stage').dataset.directory === 'open') { setDirectory(false); $('open-directory').focus(); }
     if (event.key === 'ArrowLeft') { const button = mediaView === 'gallery' ? $('image-previous') : $('previous'); if (!button.disabled) { event.preventDefault(); button.click(); } }
     if (event.key === 'ArrowRight') { const button = mediaView === 'gallery' ? $('image-next') : $('next'); if (!button.disabled) { event.preventDefault(); button.click(); } }
   });
   function syncHomeLayout() {
-    const home = document.querySelector('.spider-home');
+    const home = root.querySelector('.spider-home');
     const mobile = readingView === 'article' && matchMedia('(max-width:720px)').matches;
     if (narrowLayout !== null && narrowLayout !== mobile && readingView === 'article') setDirectory(mobile ? false : desktopDirectoryOpen);
     narrowLayout = mobile;
-    if (mobile) { if (home.parentElement !== $('reader')) $('reader').insertBefore(home, document.querySelector('.reader-footer')); }
+    if (mobile) { if (home.parentElement !== $('reader')) $('reader').insertBefore(home, root.querySelector('.reader-footer')); }
     else { if (home.parentElement !== $('directory')) $('directory').append(home); }
     $('directory').inert = mobile && $('animation-stage').dataset.directory !== 'open';
   }
   let scrollFrame = 0;
-  $('article-scroll').addEventListener('scroll', () => { // read-only and frame-throttled: it never changes scrolling
+  listen($('article-scroll'), 'scroll', () => { // read-only and frame-throttled: it never changes scrolling
     if (scrollFrame || !currentId) return;
     scrollFrame = requestAnimationFrame(() => { scrollFrame = 0; const box = $('article-scroll'); reactor.observeScroll({top:box.scrollTop, height:box.scrollHeight, client:box.clientHeight, key:currentId}); });
   }, {passive:true});
-  $('article-scroll').addEventListener('scroll', cancelInvisible, {passive:true}); $('title-list').addEventListener('scroll', cancelInvisible, {passive:true}); window.addEventListener('resize', () => { syncHomeLayout(); cancelInvisible(); });
+  listen($('article-scroll'), 'scroll', cancelInvisible, {passive:true}); listen($('title-list'), 'scroll', cancelInvisible, {passive:true}); listen(window, 'resize', () => { syncHomeLayout(); cancelInvisible(); });
   function syncActivity() {
     if (destroyed) return;
     syncMotion();
-    if (!canPoll()) { activityGeneration++; clearTimeout(researchTimer); clearTimeout(feedTimer); clearTimeout(articleRetry); clearTimeout(dayTimer); reactor.cancelPending(); return; }
+    if (!canPoll()) { activityGeneration++; sections.editor?.close(false); search.close(); clearTimeout(researchTimer); clearTimeout(feedTimer); clearTimeout(articleRetry); clearTimeout(dayTimer); clearTimeout(settingsTimer); settingsUI?.close(); reactor.cancelPending(); return; }
     scheduleDayChange();
+    renderFilters(); void readSettings();
     if (documents.get(currentId)?.reason === 'reader_busy') documents.delete(currentId);
     if (pendingOpen && articles.has(pendingOpen.id)) { if (documents.get(pendingOpen.id)?.reason === 'reader_busy') documents.delete(pendingOpen.id); void loadArticle(articles.get(pendingOpen.id)); }
     render();
     void readFeeds(false, feedAttempt).then(() => restoreResearch());
     if (researchBusy) void pollResearch();
   }
-  document.addEventListener('visibilitychange', syncActivity);
-  const destroy = () => { destroyed = true; if (pendingOpen) nodes.get(pendingOpen.id)?.removeAttribute('aria-busy'); pendingOpen = null; reactor.cancelPending(); $('research-panel').dataset.motion = 'paused'; wheel?.destroy(); unsubscribePrefs?.(); unmountAppearance(); if ($('research-panel').open) $('research-panel').close(); clearTimeout(researchTimer); clearTimeout(feedTimer); clearTimeout(articleRetry); clearTimeout(dayTimer); if (frameObjectUrl) URL.revokeObjectURL(frameObjectUrl); stopTranslation(); statusFeed?.stop(); statusFeed = null; engine?.destroy(); researchEngine?.destroy(); };
+  listen(document, 'visibilitychange', syncActivity);
+  const destroy = () => { if (destroyed) return; destroyed = true; lifecycle.abort(); mounted.delete(root); settingsUI?.destroy(); clearTimeout(settingsTimer); sections.destroy?.(); search.destroy?.(); if (pendingOpen) nodes.get(pendingOpen.id)?.removeAttribute('aria-busy'); pendingOpen = null; reactor.cancelPending(); $('research-panel').dataset.motion = 'paused'; wheel?.destroy(); unsubscribePrefs?.(); unmountAppearance(); if ($('research-panel').open) $('research-panel').close(); clearTimeout(researchTimer); clearTimeout(feedTimer); clearTimeout(articleRetry); clearTimeout(dayTimer); if (frameObjectUrl) URL.revokeObjectURL(frameObjectUrl); stopTranslation(); statusFeed?.stop(); statusFeed = null; engine?.destroy(); researchEngine?.destroy(); };
   window.CERemoteContext?.onInactive(destroy);
-  window.addEventListener('pagehide', event => { if (event.persisted) { suspended = true; unmountAppearance(); syncActivity(); } else destroy(); });
-  window.addEventListener('pageshow', event => { if (event.persisted && !destroyed) { suspended = false; mountTheme(); syncActivity(); } });
+  listen(window, 'pagehide', event => { if (event.persisted) { suspended = true; unmountAppearance(); syncActivity(); } else destroy(); });
+  listen(window, 'pageshow', event => { if (event.persisted && !destroyed) { suspended = false; mountTheme(); syncActivity(); } });
   async function readFeeds(refresh = false, attempt = 0) {
     if (!canPoll() || feedReading) return;
     feedReading = true; feedAttempt = attempt; $('refresh-feeds').setAttribute('aria-busy', 'true');
@@ -990,26 +1030,44 @@
       const response = await readerFetch(refresh ? '/reader/refresh' : '/sample', refresh ? {method:'POST', headers:{'Content-Type':'application/json'}, body:'{}'} : {cache:'no-store'});
       if (!response.ok) throw new Error('新闻暂未更新，保留本机阅读记录。');
       const value = await response.json(); if (!canPoll()) return;
-      const key = JSON.stringify([value.reader_id, value.sample?.captured_at,
+      if (settingsUI && settings) settingsUI.setRuntime(value.runtime);
+      const key = JSON.stringify([value.reader_id, value.settings_revision, value.runtime, value.sample?.captured_at,
         value.sections, value.refreshing, value.sample?.sources?.map(source => [source.id, source.source_id, source.reason]),
         Object.entries(value.sample?.streams || {}).map(([name, envelope]) => [name, envelope.items]), value.covers?.items]);
       if (key !== lastFeedKey || feedFailed) { applySnapshot(value, refresh, true); lastFeedKey = key; }
       feedFailed = false;
       if (canPoll() && value.refreshing && attempt < 35) feedTimer = setTimeout(() => readFeeds(false, attempt + 1), 1500);
+      return value;
     } catch (error) { if (!destroyed) { feedFailed = true; $('snapshot-note').textContent = error.message; if (refresh) reactor.react('refresh-failed'); } }
     finally { feedReading = false; feedSettled = true; if (feedQueued) { feedQueued = false; setTimeout(() => readFeeds(false), 0); } if (!destroyed) { observeNewsMood($('search').value.trim()); $('refresh-feeds').disabled = false; $('refresh-feeds').setAttribute('aria-busy', 'false'); } }
   }
-  $('refresh-feeds').addEventListener('click', () => { reactor.react('refreshing'); readFeeds(true); });
+  listen($('refresh-feeds'), 'click', () => { reactor.react('refreshing'); readFeeds(true); });
   async function start() {
+    const initialGeneration = activityGeneration, initialVisible = canPoll();
     syncHomeLayout(); render();
     scheduleDayChange();
     paused = matchMedia('(prefers-reduced-motion: reduce)').matches;
     unsubscribePrefs = prefs.subscribe(applyPrefs);
     syncPets(); syncPetStatusFeed();
-    window.NewsReader = {setActive(value) { if (destroyed || active === value) return; active = value; if (!active) stopTranslation(); if (!active && $('research-panel').open) $('research-panel').close(); syncActivity(); }, dispose:destroy, get researchEngine() { return researchEngine; }, switchPet, setPetEnabled:enabled => prefs.setEnabled(enabled), setPetStatus, setRealPetStatus, clearPetStatusOverride, statusFeed:() => statusFeed?.inspect() || null, refreshStatus:() => statusFeed?.refresh(), pet:() => petName, inspect:() => ({items:articles.size, visible:visibleIds.length, currentId, selected, stream, sourceFilter, sections:sections.list().map(row => row.id), language, readingView, mediaView, imageIndex, researchJob, researchEvents:researchEvents.size, active, pending:[...tasks.keys()], reading:JSON.parse(JSON.stringify(records)), collecting, pet:petName, petEnabled, engine:engine?.inspect(), researchEngine:researchEngine?.inspect(), destroyed}), get engine() { return engine; }, applySnapshot};
-    await readFeeds();
+    const handle = {setActive(value) { if (destroyed || active === value) return; active = value; if (!active) stopTranslation(); if (!active && $('research-panel').open) $('research-panel').close(); syncActivity(); }, dispose:destroy, get researchEngine() { return researchEngine; }, switchPet, setPetEnabled:enabled => prefs.setEnabled(enabled), setPetStatus, setRealPetStatus, clearPetStatusOverride, statusFeed:() => statusFeed?.inspect() || null, refreshStatus:() => statusFeed?.refresh(), pet:() => petName, inspect:() => ({items:articles.size, visible:visibleIds.length, currentId, selected, stream, sourceFilter, sections:sections.list().map(row => row.id), language, readingView, mediaView, imageIndex, researchJob, researchEvents:researchEvents.size, active, pending:[...tasks.keys()], reading:JSON.parse(JSON.stringify(records)), collecting, pet:petName, petEnabled, engine:engine?.inspect(), researchEngine:researchEngine?.inspect(), destroyed}), get engine() { return engine; }, applySnapshot};
+    handle.setVisible = handle.setActive; handle.destroy = destroy;
+    mounted.set(root, handle);
+    if (!embedded) window.NewsReader = handle;
+    const [initial] = await Promise.all([readFeeds(), readSettings()]);
+    const preset = initial?.sample?.streams?.[stream], runtime = initial?.runtime;
+    // Initialize a new visible preset explicitly; polling and later visibility changes remain read-only.
+    if (initialVisible && canPoll() && initialGeneration === activityGeneration && settings?.sources.some(source => source.enabled)
+        && !sections.isCustom(stream) && preset?.reason === 'not_loaded' && !preset.sampled_at
+        && preset.items?.length === 0 && preset.sources?.length === 0 && !initial.refreshing
+        && runtime?.owner === 'owned' && runtime.state !== 'running' && runtime.state !== 'blocked'
+        && !runtime.pending_due && !runtime.run_id && !runtime.last_attempt_at && !runtime.result) await readFeeds(true);
     restoreResearch();
   }
-  if (embedded) { document.documentElement.dataset.embedded = 'true'; document.querySelector('.top').hidden = true; }
+  if (embedded) { root.dataset.embedded = 'true'; root.querySelector('.top').hidden = true; }
   start();
+  return mounted.get(root);
+  }
+  window.NewsReaderUI = {mount};
+  const standalone = document.querySelector('.news-reader-root');
+  if (standalone) mount(standalone);
 })();

@@ -258,7 +258,7 @@ def extract_images(html, source_url):
     return images
 
 
-def load_article(item, cache_root, *, retry=False):
+def load_article(item, cache_root, *, retry=False, commit_cache):
     """Accept a server-selected feed item, never a user-submitted URL parameter."""
     if not isinstance(item, dict) or not re.fullmatch('[a-f0-9]{24}', str(item.get('id', ''))):
         raise ValueError('invalid_item')
@@ -267,7 +267,6 @@ def load_article(item, cache_root, *, retry=False):
     if item['id'] != expected or not isinstance(item.get('title'), str):
         raise ValueError('invalid_item')
     cache_root = Path(cache_root)
-    cache_root.mkdir(parents=True, exist_ok=True)
     cache = cache_root / (item['id'] + '.json')
     summary = item.get('summary')
     summary_blocks = [{'type': 'p', 'text': summary}] if isinstance(summary, str) and summary else []
@@ -284,7 +283,8 @@ def load_article(item, cache_root, *, retry=False):
                     try:
                         current['images'] = extract_images(html_cache.read_bytes(), saved.get('resolved_url', source_url))
                         current['images_version'] = IMAGE_EXTRACTION_VERSION
-                        cache.write_text(json.dumps(current, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+                        if not commit_cache(item['id'], (json.dumps(current, ensure_ascii=False) + '\n').encode('utf-8'), None):
+                            return {**current, 'reason': 'reader_closed'}
                     except (OSError, ValueError):
                         pass
                 return current
@@ -305,6 +305,7 @@ def load_article(item, cache_root, *, retry=False):
     host = HOSTS.get(item.get('source_id'))
     if item.get('source_id') == 'hn':
         host = urlsplit(source_url).hostname
+    html_candidate = None
     try:
         if host is None:
             raise ValueError('unsupported_source')
@@ -319,7 +320,7 @@ def load_article(item, cache_root, *, retry=False):
         result['content_kind'] = 'full_text'
         result['resolved_url'] = resolved_url
         result['html_sha256'] = hashlib.sha256(html).hexdigest()
-        (cache_root / (item['id'] + '.html')).write_bytes(html)
+        html_candidate = html
     except TimeoutError:
         result['reason'] = 'timeout'
     except (OSError, http.client.HTTPException):
@@ -331,5 +332,6 @@ def load_article(item, cache_root, *, retry=False):
         result['reason'] = str(error) if str(error) in known or re.fullmatch(r'http_\d{3}', str(error)) else 'extraction_failed'
     result['fetched_at'] = _now()
     result['feed_fetched_at'] = item.get('fetched_at')
-    cache.write_text(json.dumps(result, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+    if not commit_cache(item['id'], (json.dumps(result, ensure_ascii=False, indent=2) + '\n').encode('utf-8'), html_candidate):
+        return {**result, 'blocks': summary_blocks, 'images': [], 'content_kind': 'summary', 'reason': 'reader_closed'}
     return result

@@ -41,9 +41,11 @@
    * @param {(path:string, init?:object) => Promise<Response>} options.request reader fetch (adds CSRF and session headers)
    * @param {(text:string) => void} options.announce polite status message (toast)
    */
-  function mount({tabs, add, edit, onSelect, onSaved, request, announce}) {
+  function mount({host, tabs, add, edit, onSelect, onSaved, request, announce}) {
+    const lifecycle = new AbortController();
+    const listen = (target, type, callback, options = {}) => target.addEventListener(type, callback, {...options, signal:lifecycle.signal});
     let sections = [], removed = [], current = null, statuses = new Map(), key = '';
-    const editor = window.NewsSectionEditor?.mount({
+    const editor = window.NewsSectionEditor?.mount({host,
       anchor: () => tabs.closest('.section-bar') || tabs,
       request,
       announce,
@@ -131,12 +133,13 @@
       return current !== preferred;
     }
 
-    tabs.addEventListener('click', event => { const tab = event.target.closest('[role="tab"]'); if (tab && tabs.contains(tab)) select(tab.dataset.value); });
-    tabs.addEventListener('dblclick', event => { const tab = event.target.closest('[role="tab"]'); if (tab) { select(tab.dataset.value); editor?.open('edit', tab.dataset.value, tab); } });
-    tabs.addEventListener('contextmenu', event => { const tab = event.target.closest('[role="tab"]'); if (tab) { event.preventDefault(); select(tab.dataset.value); editor?.open('edit', tab.dataset.value, tab); } });
-    tabs.addEventListener('scroll', measure, {passive: true});
-    if (window.ResizeObserver) new ResizeObserver(measure).observe(tabs); else window.addEventListener('resize', measure);
-    tabs.addEventListener('keydown', async event => {
+    listen(tabs, 'click', event => { const tab = event.target.closest('[role="tab"]'); if (tab && tabs.contains(tab)) select(tab.dataset.value); });
+    listen(tabs, 'dblclick', event => { const tab = event.target.closest('[role="tab"]'); if (tab) { select(tab.dataset.value); editor?.open('edit', tab.dataset.value, tab); } });
+    listen(tabs, 'contextmenu', event => { const tab = event.target.closest('[role="tab"]'); if (tab) { event.preventDefault(); select(tab.dataset.value); editor?.open('edit', tab.dataset.value, tab); } });
+    listen(tabs, 'scroll', measure, {passive: true});
+    const resize = window.ResizeObserver ? new ResizeObserver(measure) : null;
+    if (resize) resize.observe(tabs); else listen(window, 'resize', measure);
+    listen(tabs, 'keydown', async event => {
       const tab = event.target.closest('[role="tab"]'); if (!tab || event.ctrlKey || event.metaKey) return;
       const at = sections.findIndex(section => section.id === tab.dataset.value);
       if (event.key === 'F2' || (event.key === 'ContextMenu') || (event.key === 'F10' && event.shiftKey)) { event.preventDefault(); select(tab.dataset.value); editor?.open('edit', tab.dataset.value, tab); return; }
@@ -154,10 +157,10 @@
       if (target < 0) return;
       event.preventDefault(); select(sections[target].id, {focus: true});
     });
-    add.addEventListener('click', () => editor?.open('new', null, add));
-    edit.addEventListener('click', () => current && editor?.open('edit', current, edit));
+    listen(add, 'click', () => editor?.open('new', null, add));
+    listen(edit, 'click', () => current && editor?.open('edit', current, edit));
 
-    return {update, select, current: () => current, list: () => sections.slice(), editor, hasSources: id => Boolean(sections.find(section => section.id === id)?.sources?.length), isCustom: id => { const section = sections.find(row => row.id === id); return Boolean(section && !section.preset); }, saveList: save, problems: id => (sections.find(section => section.id === id)?.sources || []).map(source => statuses.get(source.url)).filter(row => row?.reason).map(row => ({name: row.name, message: row.message, hint: row.hint}))};
+    return {destroy(){lifecycle.abort();resize?.disconnect();editor?.destroy();},update, select, current: () => current, list: () => sections.slice(), editor, hasSources: id => Boolean(sections.find(section => section.id === id)?.sources?.length), isCustom: id => { const section = sections.find(row => row.id === id); return Boolean(section && !section.preset); }, saveList: save, problems: id => (sections.find(section => section.id === id)?.sources || []).map(source => statuses.get(source.url)).filter(row => row?.reason).map(row => ({name: row.name, message: row.message, hint: row.hint}))};
   }
 
   /** Chinese messages for the codes news_sections.SectionError can return. */

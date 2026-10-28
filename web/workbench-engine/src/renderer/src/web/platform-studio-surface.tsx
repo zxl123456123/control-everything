@@ -7,9 +7,10 @@ export type PlatformProjectsListener = (
   projects: PlatformProject[],
   metadata?: { archived: PlatformProject[] }
 ) => void
+type StudioHandle = (() => void) & {setVisible?: (visible: boolean) => void}
 type StudioWindow = Window & {
   StudioPreview?: {
-    mount(root: HTMLElement, options: { onProjects: PlatformProjectsListener; runtimeHost: () => string | null }): () => void
+    mount(root: HTMLElement, options: { onProjects: PlatformProjectsListener; runtimeHost: () => string | null }): StudioHandle
   }
 }
 const scripts = [
@@ -37,6 +38,7 @@ const scripts = [
   '/studio-shell.js',
   '/studio-pet-settings.js',
   '/studio-mascot.js',
+  '/news-surface.js',
   '/studio-preview.js'
 ]
 let modules: Promise<void> | null = null
@@ -79,6 +81,10 @@ export default function PlatformStudioSurface({
   runtimeHost?: string | null
 }): React.JSX.Element {
   const host = useRef<HTMLDivElement>(null)
+  const studioHandle = useRef<StudioHandle | undefined>(undefined)
+  const visibility = useRef(!hidden)
+  visibility.current = !hidden
+  useEffect(() => {studioHandle.current?.setVisible?.(!hidden)}, [hidden])
   const currentRuntimeHost = useRef(runtimeHost)
   currentRuntimeHost.current = runtimeHost
   const [error, setError] = useState('')
@@ -142,7 +148,10 @@ export default function PlatformStudioSurface({
       const unmount = (window as StudioWindow).StudioPreview!.mount(root, {
         onProjects, runtimeHost: () => currentRuntimeHost.current
       })
+      studioHandle.current = unmount
+      unmount.setVisible?.(visibility.current)
       dispose = () => {
+        studioHandle.current = undefined
         unmount()
         unsubscribeAppearance()
         shadow.removeEventListener('keydown', stopKeyboardBubble)
