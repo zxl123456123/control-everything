@@ -56,12 +56,12 @@ oauth2-proxy 样例使用通用的 `provider = "oidc"`，端点由 issuer 的发
 
 - **端点发现**：hub 与桌面连接器只配置固定 issuer，其余地址（introspection、`jwks_uri`、`device_authorization_endpoint`、`token_endpoint`）从 `<issuer>/.well-known/openid-configuration` 读取并缓存 1 小时。文档中的 `issuer` 必须与配置完全一致；端点必须是 https、不含凭据或片段，并且默认与 issuer 同源（`jwks_uri` 除外）；不跟随重定向。发现失败时 hub 返回 503，连接器按“身份服务不可达”重试，不会退回猜测的路径。issuer 可以是任意不带结尾斜杠的 https 路径（不再限定 Keycloak 的 `/realms/<name>`）。
 - **令牌校验** `token_verification`（私有 JSON 可选字段）：
-  - `introspection`：逐个令牌调用 introspection（需要 `introspection_client_id`/`introspection_client_secret`，二者必须同时提供）。配置了凭据且未指定时的默认值。可立即发现吊销。
+  - `introspection`：逐个令牌调用 introspection（需要 `introspection_client_id`/`introspection_client_secret`，二者必须同时提供）。配置了凭据且未指定时的默认值。未命中缓存时可发现吊销；已缓存的校验结果最长仍可使用 30 秒。
   - `jwt`：用 JWKS 本地验签，校验 `iss`、`aud` 含 `workbench-hub`、`azp`（或 RFC 9068 的 `client_id`）属于该端点允许的客户端、`exp`/`nbf` 与签名算法白名单（RS/PS/ES/EdDSA，拒绝 `none` 与对称算法；算法必须与 JWK 声明一致）。没有 introspection 凭据时的默认值。**取舍**：令牌被吊销后，最长到令牌 `exp` 之前本地校验仍会通过。
   - `strict`：先本地验签，再调用 introspection 确认仍然有效且 `sub` 一致；二者都通过才放行。需要 introspection 凭据。
   - 校验结果沿用 30 秒（或到令牌过期）缓存，JWKS 遇到未知 `kid` 最多每 30 秒刷新一次。JWT 验签依赖 `pyjwt[crypto]`（已由 `mcp` 依赖间接安装；缺失时 hub 启动即报 `jwt_support_unavailable`）。
 - **其他 OIDC 提供方**：只要提供标准发现文档与 JWKS，并能签发带 `azp`/`aud` 的访问令牌即可；客户端 ID 与 audience 名称仍为 `workbench-web/desktop/mobile` 与 `workbench-hub`。目前只在 Keycloak 的配置形态上验证过设计，未对其他提供方做过真实联调。
-- **成员主键**不变：hub 仍以 `(issuer, sub)` 为键，更换提供方会产生新的成员；账号标识迁移另行处理。
+- **成员身份**：schema 3 以内部 `account_id` 为键，`(issuer, sub)` 经 `identities` 关联到内部账号；更换提供方须按下文流程显式关联身份。
 
 ## 手机端账号与 `/remote/mobile/*`
 
@@ -104,7 +104,7 @@ hub 只从目录中的两个端口调用 `/__ce_remote_health`，每次独立 no
 
 ## 内部 account_id 与身份源更换（schema 3）
 
-hub 以内部随机 `account_id`（32 位小写十六进制，不对外返回）识别成员；表 `identities(issuer, sub, account_id)` 记录“身份源账号 → 内部账号”。成员、设备、注册挑战、浏览器会话与邀请的使用者都以 `account_id` 为键，因此更换身份源（例如把 Keycloak 换成别的 OIDC）只需新增一条 `identities` 记录，不再需要改写这些表。令牌校验、`(issuer, sub)` 查找与全部 HTTP 响应保持不变；管理员配置仍写 `(issuer, sub)`，与管理员账号关联的任何身份也视为管理员。
+hub 以内部随机 `account_id`（32 位小写十六进制，不对外返回）识别成员；表 `identities(issuer, sub, account_id)` 记录“身份源账号 → 内部账号”。成员、设备、注册挑战、浏览器会话与邀请的使用者都以 `account_id` 为键，因此更换身份源（例如把 Keycloak 换成别的 OIDC）只需新增一条 `identities` 记录，不再需要改写这些表。令牌校验、`(issuer, sub)` 查找与全部 HTTP 响应保持不变。私有配置中的 `admin_subjects` 是当前配置 `issuer` 下的精确 `sub` 列表；同一内部账号关联的身份继承该账号的管理员权限。
 
 **升级与备份。** 首次用新版启动时，若检测到 schema 1 或 2：
 
@@ -128,6 +128,6 @@ hub 以内部随机 `account_id`（32 位小写十六进制，不对外返回）
    ```
 
    也可用 `--account-id <list-identities 输出的 id>` 代替 `--from-*`。命令幂等；如果新身份已经属于另一个有成员资格或设备的账号，会拒绝合并（`identity_already_linked`）；只因先登录而产生的空账号会被并入并使其会话失效。
-3. 新身份即继承原成员状态、设备、管理员权限。确认后再停用旧身份源；旧身份在被停用前仍然有效。
+3. 新身份继承原成员状态和设备。切换 hub 的 `issuer` 时，同时将 `admin_subjects` 更新为新身份源核验过的管理员 `sub`；不能保留旧来源的裸 `sub` 并假定管理员权限自动继承。用新身份实测成员、设备与管理员操作后，再停用旧身份源。
 
 `list-identities` 会输出身份源的 `sub`，属个人信息，仅在 hub 主机本地使用，不要贴到工单或日志里。
