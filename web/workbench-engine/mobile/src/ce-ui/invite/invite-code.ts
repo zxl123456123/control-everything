@@ -16,6 +16,7 @@ export type InviteErrorKind =
   | 'unauthorized'
   | 'network'
   | 'unavailable'
+  | 'disabled'
   | 'clipboard-empty'
 
 export type InviteState = {

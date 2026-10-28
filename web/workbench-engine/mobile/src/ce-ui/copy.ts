@@ -140,7 +140,9 @@ export const hubErrorCopy: Record<HubErrorKind, { title: string; body: string }>
   'rate-limited': { title: '尝试太频繁', body: '请稍后再试。' },
   unauthorized: { title: '登录已失效', body: '请重新登录后再试。' },
   network: { title: '网络不可用', body: '请检查网络后重试。' },
-  unavailable: { title: '此版本暂未接入', body: '这项功能还在开发中。' }
+  unavailable: { title: '此版本暂未接入', body: '这项功能还在开发中。' },
+  'member-disabled': { title: '此账号已被停用', body: '请联系管理员恢复访问。' },
+  'not-found': { title: '找不到这台电脑', body: '它可能已被移除，请下拉刷新列表。' }
 }
 
 export function hubErrorToInviteError(kind: HubErrorKind): InviteErrorKind {
@@ -157,6 +159,8 @@ export function hubErrorToInviteError(kind: HubErrorKind): InviteErrorKind {
       return 'unauthorized'
     case 'unavailable':
       return 'unavailable'
+    case 'member-disabled':
+      return 'disabled'
     default:
       return 'network'
   }
@@ -170,6 +174,7 @@ export const inviteErrorCopy: Record<InviteErrorKind, { title: string; body: str
   unauthorized: hubErrorCopy.unauthorized,
   network: hubErrorCopy.network,
   unavailable: hubErrorCopy.unavailable,
+  disabled: hubErrorCopy['member-disabled'],
   'clipboard-empty': { title: '剪贴板是空的', body: '先复制邀请码，再点“粘贴”。' }
 }
 

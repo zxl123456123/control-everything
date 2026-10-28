@@ -67,6 +67,8 @@ export function createPlatformAccountController(deps: Dependencies) {
   // without an extra secure-store read. Cleared as soon as logout consumes it.
   let knownRecovery: AccountRecovery | null = null
   let logoutFailed = false
+  // Set once the identity service rejected the refresh credential, so a hub request cannot retry it.
+  let credentialRejected = false
   let expiryTimer: ReturnType<typeof setTimeout> | undefined
   const listeners = new Set<() => void>()
   const now = deps.now ?? Date.now
@@ -91,6 +93,7 @@ export function createPlatformAccountController(deps: Dependencies) {
     abortController = new AbortController()
     session = null
     candidate = null
+    credentialRejected = false
     clearTimeout(expiryTimer)
     return {
       generation,
@@ -133,6 +136,7 @@ export function createPlatformAccountController(deps: Dependencies) {
         return
       }
       session = value.session
+      credentialRejected = false
       const { accessToken: _token, ...account } = value.session
       publish({
         status: 'signed-in',
@@ -161,6 +165,7 @@ export function createPlatformAccountController(deps: Dependencies) {
   function errorState(op: Operation, error: unknown, restoring: boolean) {
     if (!owns(op)) return
     const kind = error instanceof AccountError ? error.kind : 'network'
+    if (kind === 'expired') credentialRejected = true
     publish({
       status:
         kind === 'cancelled'
@@ -235,6 +240,71 @@ export function createPlatformAccountController(deps: Dependencies) {
       errorState(op, error, true)
     }
   }
+  // Access tokens are handed out only to the hub client, never published in the snapshot.
+  const TOKEN_SKEW_MS = 5_000
+  function getAccessToken(): string | null {
+    return session && session.expiresAt - TOKEN_SKEW_MS > now() ? session.accessToken : null
+  }
+  let refreshing: Promise<string | null> | null = null
+  /**
+   * Refreshes the access token for an in-flight hub request without showing the "restoring" screen.
+   * Concurrent callers share one refresh. A rejected or missing refresh credential marks the session
+   * expired (the re-login banner); a transient failure keeps the signed-in state and returns null.
+   */
+  function refreshAccessToken(): Promise<string | null> {
+    refreshing ??= doRefreshAccessToken().finally(() => {
+      refreshing = null
+    })
+    return refreshing
+  }
+  async function doRefreshAccessToken(): Promise<string | null> {
+    if (
+      configuration.status !== 'ready' ||
+      logoutFailed ||
+      credentialRejected ||
+      // Only a live or lapsed session may refresh; every other state owns its own recovery flow.
+      !['signed-in', 'expired'].includes(snapshot.status)
+    )
+      return null
+    const config = configuration.config
+    const op: Operation = {
+      generation,
+      binding: accountConfigBinding(config),
+      signal: abortController.signal
+    }
+    const expire = () => {
+      if (!owns(op)) return
+      session = null
+      credentialRejected = true
+      clearTimeout(expiryTimer)
+      publish({ status: 'expired', message: errors.expired })
+    }
+    let record = knownRecovery
+    if (!record) {
+      try {
+        record = await enqueue(() => deps.store.read())
+      } catch {
+        return null
+      }
+      if (!owns(op)) return null
+      if (record) knownRecovery = record
+    }
+    if (!record) {
+      // A session-only login has no refresh credential, so an expired token needs a fresh login.
+      expire()
+      return null
+    }
+    try {
+      const value = await deps.oidc.restore(config, record, op.signal, now)
+      if (!owns(op)) return null
+      await commit(op, value, true)
+      return owns(op) ? getAccessToken() : null
+    } catch (error) {
+      if (error instanceof AccountError && (error.kind === 'expired' || error.kind === 'identity'))
+        expire()
+      return null
+    }
+  }
   async function revokeRemotely(
     config: PlatformAccountConfig,
     record: AccountRecovery,
@@ -276,6 +346,8 @@ export function createPlatformAccountController(deps: Dependencies) {
     restore,
     logout,
     checkExpiry,
+    getAccessToken,
+    refreshAccessToken,
     configure(value: PlatformAccountConfiguration) {
       const prior =
         configuration.status === 'ready'
