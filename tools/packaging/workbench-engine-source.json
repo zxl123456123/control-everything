@@ -326952,6 +326952,12 @@
       "reason": "Retain isolated native account access and add the configured browser registration and computer portal."
     },
     {
+      "path": "mobile/app.json",
+      "upstream_sha256": "81fb07ccad575ca2581ab2fdc31eecfb4e749b01df2d2f63fe72b67d532b43c6",
+      "current_sha256": "3e09363918a51d37b9acf6128afeb81e084d234be64dab3fcadeb87687d5aa53",
+      "reason": "Use platform native branding and keep Firebase optional until an owned Android configuration is supplied."
+    },
+    {
       "path": "mobile/app/_layout.tsx",
       "upstream_sha256": "338d89b78b34c628b2b610ece65a47f5c4a7493c35dd9207be93558a6f178b2c",
       "current_sha256": "76021b5f16698d633d1e1b67ab1d98c158a95c1dd692ec5178e0e7ef4597400f",
@@ -328495,7 +328501,7 @@
       "path": "mobile/app.json",
       "rule": "fixed-external-ipv4",
       "line": 27,
-      "sha256": "81fb07ccad575ca2581ab2fdc31eecfb4e749b01df2d2f63fe72b67d532b43c6",
+      "sha256": "3e09363918a51d37b9acf6128afeb81e084d234be64dab3fcadeb87687d5aa53",
       "reason": "已核上下文为通配绑定、环回/私网/CGNAT范围、平台DNS/组播或网络解析判定，不是私人服务器配置；不能为扫描破坏网络语义。"
     },
     {
