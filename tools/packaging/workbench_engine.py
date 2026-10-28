@@ -371,6 +371,14 @@ def check_output(run_dir, root=ROOT):
 
 
 def build(node, pnpm, scratch_root, run_dir, root=ROOT, store_dir=None):
+    for relative in ('node_modules', 'mobile/node_modules'):
+        path = root / UNIT / relative
+        try:
+            info = path.lstat()
+        except FileNotFoundError:
+            continue
+        if stat.S_ISLNK(info.st_mode) or getattr(info, 'st_file_attributes', 0) & 0x400:
+            raise BuildError('linked_dependency_root: ' + relative)
     source = check_source(root)
     if not Path(node).is_absolute() or not Path(pnpm).is_absolute():
         raise BuildError('explicit_tools_required')

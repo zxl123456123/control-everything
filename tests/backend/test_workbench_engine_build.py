@@ -55,6 +55,15 @@ class WorkbenchBuildTests(unittest.TestCase):
     def save(self):
         BUILD.write_json(self.root / BUILD.SOURCE_MANIFEST, self.manifest)
 
+    def directory_link(self, link, target):
+        if os.name == 'nt':
+            env = {**os.environ, 'TEST_LINK_PATH': str(link), 'TEST_LINK_TARGET': str(target)}
+            subprocess.run(['powershell.exe', '-NoProfile', '-NonInteractive', '-Command',
+                            'New-Item -ItemType Junction -Path $env:TEST_LINK_PATH -Target $env:TEST_LINK_TARGET | Out-Null'],
+                           env=env, check=True, capture_output=True)
+        else:
+            link.symlink_to(target, target_is_directory=True)
+
     def test_source_hash_uses_actual_bytes_but_git_blob_respects_attributes(self):
         first = BUILD.check_source(self.root)
         text = self.unit / 'LICENSE'
@@ -218,6 +227,63 @@ class WorkbenchBuildTests(unittest.TestCase):
         self.assertTrue(receipt['dirty'])
         self.assertEqual(receipt['tools']['pnpm']['sha256'], BUILD.sha256(pnpm))
         self.assertEqual(len(steps.call_args.args[0]), 9)
+
+    @unittest.skipUnless(os.name == 'nt', 'Windows junction test')
+    def test_build_rejects_dependency_root_junctions_before_install(self):
+        other = self.root / 'other-checkout' / 'node_modules'
+        other.mkdir(parents=True)
+        sentinel = other / 'sentinel.txt'
+        sentinel.write_text('unchanged', encoding='utf-8')
+        node, pnpm = self.root / 'node.exe', self.root / 'pnpm.exe'
+        node.write_bytes(b'node')
+        pnpm.write_bytes(b'pnpm')
+        for relative in ('node_modules', 'mobile/node_modules'):
+            with self.subTest(relative=relative):
+                link = self.unit / relative
+                self.directory_link(link, other)
+                try:
+                    with patch.object(BUILD, 'run_steps') as steps, \
+                            patch.object(BUILD, 'check_source', return_value={'upstreamCommit': BUILD.UPSTREAM, 'sourceTreeSha256': 'b' * 64}), \
+                            patch.object(BUILD, 'checked', side_effect=['v24.19.0', '12.14.0', 'a' * 40, '']), \
+                            patch.object(BUILD, 'check_output', return_value={}):
+                        with self.assertRaisesRegex(BUILD.BuildError, 'linked_dependency_root'):
+                            BUILD.build(node, pnpm, self.root / 'work/ce-native',
+                                        self.root / 'work/workbench-engine-build/one', self.root)
+                    steps.assert_not_called()
+                    self.assertEqual(sentinel.read_text(encoding='utf-8'), 'unchanged')
+                    self.assertFalse((self.root / 'work/workbench-engine-build/one').exists())
+                finally:
+                    link.rmdir()
+
+    def test_build_accepts_package_links_inside_dependency_roots(self):
+        modules = self.unit / 'node_modules'
+        target = modules / '.pnpm' / 'package'
+        target.mkdir(parents=True)
+        link = modules / 'package'
+        self.directory_link(link, target)
+        node, pnpm = self.root / 'node.exe', self.root / 'pnpm.exe'
+        node.write_bytes(b'node')
+        pnpm.write_bytes(b'pnpm')
+        with patch.object(BUILD, 'checked', side_effect=['v24.19.0', '12.14.0', 'a' * 40, '']), \
+                patch.object(BUILD, 'check_source', return_value={'upstreamCommit': BUILD.UPSTREAM, 'sourceTreeSha256': 'b' * 64}), \
+                patch.object(BUILD, 'run_steps') as steps, \
+                patch.object(BUILD, 'check_output', return_value={}):
+            BUILD.build(node, pnpm, self.root / 'work/ce-native',
+                        self.root / 'work/workbench-engine-build/one', self.root)
+        steps.assert_called_once()
+
+    def test_build_rejects_dangling_dependency_root_link(self):
+        link = self.unit / 'node_modules'
+        target = self.root / 'missing'
+        target.mkdir()
+        self.directory_link(link, target)
+        target.rmdir()
+        with patch.object(BUILD, 'run_steps') as steps, \
+                patch.object(BUILD, 'check_source', return_value={}):
+            with self.assertRaisesRegex(BUILD.BuildError, 'linked_dependency_root'):
+                BUILD.build(self.root / 'node.exe', self.root / 'pnpm.exe', self.root / 'work/ce-native',
+                            self.root / 'work/workbench-engine-build/one', self.root)
+        steps.assert_not_called()
 
 
 if __name__ == '__main__':

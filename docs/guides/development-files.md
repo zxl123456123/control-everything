@@ -37,6 +37,20 @@
 
 README 的顶部保持当前结论；历史过程放有日期的段落或独立报告。不要在同一个当前状态里同时写“待推送”和“已推送”。事实、失败和原命令不静默改写。
 
+## 工作树的开始、依赖和结束
+
+一个工作树对应一个仍在进行的目标。旧目标结束后，先交付、保全证据并关闭工作树；新目标从确认过的基线新建分支和工作树，不直接在旧任务目录接着堆积。恢复同一暂停任务可以复用原树，但须先读入口状态及 Git 改动。主开发目录不是可按任务删除的临时工作树。
+
+- 开始前记录工作树路径、基线提交、分支、负责人和结束条件。创建尚未完成的目录不能当成有效 checkout；不要把创建期间的临时 Git 状态误判为他人删除文件。
+- 每个 checkout 独立安装自己的 `node_modules`、虚拟环境和生成文件。禁止将整个依赖根 junction/symlink 到另一工作树，或通过 `NODE_PATH` 借用另一任务的安装。pnpm 在本 checkout 依赖目录内生成的包链接和本工作区 package 链接可以保留。
+- 节省空间使用包管理器的内容寻址缓存，不借用其他任务的可变目录。固定版本工具可放稳定工具目录；缓存不得放在即将删除的任务目录作为长期唯一来源。pnpm 按本树锁文件运行 `install --frozen-lockfile --ignore-scripts`，root/mobile 分别安装，禁止通过修改锁文件掩盖安装错误。需要固定本地虚拟仓库时用 `--config.enableGlobalVirtualStore=false --virtual-store-dir=node_modules/.pnpm`，共享 store 与 checkout 生命周期分开。
+- `workbench_engine.py build` 在安装前拒绝 root/mobile 的依赖根链接，包括断链；不递归禁止 pnpm 的正常包链接。手动安装前也须检查依赖根，不能让包管理器沿 junction 修改别人的目录。该检查不提供进程级隔离，操作期间不得并发替换依赖路径。
+- 结束时核对未提交内容、未推送提交、运行进程、外部路径引用，以及仍被使用的 profile/构建输入。提交已被基线包含不代表 ignored 材料可丢弃；提交不在基线历史中也不能直接认定功能未集成，需核对合并/等价补丁。
+- 先把必要的文档、失败证据和交付材料归入本项目 archive，保存哈希与旧新路径映射，再关闭工作树。Codex 受管工作树优先使用应用可恢复归档；其他干净 Git 工作树使用 `git worktree remove <精确路径>`。不要用递归删目录代替 Git 注销，不使用 force 跳过未提交内容，也不顺手删分支。
+- 应用因主 checkout、共享归属或运行状态拒绝归档时，记录原因并保留，不伪装清理成功。暂停、待验收和他人仍在使用的树保留其状态及负责人；不能为了减少数量强行结项。`git worktree prune` 仅清理已不存在目录的登记，不是删除活跃工作树的命令。
+
+参考 [Git worktree](https://git-scm.com/docs/git-worktree)、[Codex 工作树](https://learn.chatgpt.com/docs/environments/git-worktrees)、[pnpm 安装](https://pnpm.io/cli/install)与[依赖链接结构](https://pnpm.io/symlinked-node-modules-structure)。采用原生创建/归档及包缓存机制，不另建按年龄自动删除的管理框架。
+
 ## 一次性脚本从受管入口运行
 
 新写或重新启用的实验、验证、临时 clone、预览准备脚本放 `work/<feature>/`，经仓库根的入口启动：
