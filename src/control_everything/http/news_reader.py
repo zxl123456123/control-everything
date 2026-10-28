@@ -1,9 +1,12 @@
 """Authenticated news-reader routes; browser and extraction work stays in workspace."""
 import re
+import threading
 from urllib.parse import parse_qs
 
 from control_everything.paths import web_root
+from control_everything.workspace import news_catalog, news_feeds
 from control_everything.workspace.news_reader import NewsReader
+from control_everything.workspace.news_sections import SectionError
 
 PREFIX = '/api/workspace/news/'
 ASSETS = {'/news': ('news-reader.html', 'text/html; charset=utf-8'),
@@ -21,6 +24,25 @@ ASSETS = {'/news': ('news-reader.html', 'text/html; charset=utf-8'),
 CSP = ("default-src 'self'; img-src 'self' https: blob:; style-src 'self' 'unsafe-inline'; "
        "script-src 'self'; connect-src 'self'; object-src 'none'; frame-src 'none'; "
        "frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
+
+
+_PROBES = threading.BoundedSemaphore(2)
+
+
+def _source_test(url):
+    """Fetch-test one feed URL for the add-source dialog; at most two tests run at once."""
+    if not _PROBES.acquire(blocking=False):
+        return 429, {'error': 'busy'}
+    if url[:7].lower() == 'http://':
+        url = 'https://' + url[7:]  # sections only store https feeds; try the secure address first
+    try:
+        result = news_feeds.probe(url)
+    finally:
+        _PROBES.release()
+    host = news_catalog.host_of(url) or ''
+    if any(host == bad or host.endswith('.' + bad) for bad in news_catalog.UNREACHABLE_HOSTS):
+        result['china_warning'] = '该站点在中国大陆通常无法直接访问，部分网络下会读取失败。'
+    return 200, result
 
 
 def _reader(server):
@@ -55,13 +77,16 @@ def handle_get(handler, path):
                           csp=CSP.replace("frame-ancestors 'none'", "frame-ancestors 'self'") if embedded else CSP)
         return True
     route = path.path.removeprefix(PREFIX)
-    if not path.path.startswith(PREFIX) or route not in {'reader', 'article', 'research', 'research/latest', 'research-frame'}:
+    if not path.path.startswith(PREFIX) or route not in {'reader', 'article', 'research', 'research/latest', 'research-frame', 'catalog'}:
         return False
     try:
         reader = _reader(handler.server)
         if route == 'reader':
             _params(path.query, ())
             handler.reply(200, reader.sample())
+        elif route == 'catalog':
+            _params(path.query, ())
+            handler.reply(200, {'categories': news_catalog.categories(), 'sources': list(news_catalog.CATALOG)})
         elif route == 'article':
             params = _params(path.query, ('id', 'retry') if 'retry' in parse_qs(path.query) else ('id',))
             identity = params['id']
@@ -95,18 +120,27 @@ def handle_get(handler, path):
 
 def handle_post(handler, path):
     route = path.path.removeprefix(PREFIX)
-    if not path.path.startswith(PREFIX) or route not in {'reader/refresh', 'research', 'translate'}:
+    if not path.path.startswith(PREFIX) or route not in {'reader/refresh', 'research', 'translate', 'sections', 'source-test'}:
         return False
     if path.query:
         handler.reject(400, 'invalid_query')
         return True
-    body = handler.read_json_body(max_bytes=150000 if route == 'translate' else 2048, strict=True)
+    body = handler.read_json_body(max_bytes={'translate': 150000, 'sections': 60000}.get(route, 2048), strict=True)
     try:
         reader = _reader(handler.server)
         if route == 'reader/refresh':
             if body != {}:
                 raise ValueError('invalid_body')
             handler.reply(200, reader.sample(refresh=True))
+        elif route == 'sections':
+            if not isinstance(body, dict) or set(body) not in ({'sections'}, {'restore'}) or body.get('restore', True) is not True:
+                raise ValueError('invalid_body')
+            handler.reply(200, reader.restore_sections() if 'restore' in body else reader.save_sections(body['sections']))
+        elif route == 'source-test':
+            if not isinstance(body, dict) or set(body) != {'url'} or not isinstance(body['url'], str) or len(body['url']) > 500:
+                raise ValueError('invalid_body')
+            status, result = _source_test(body['url'].strip())
+            handler.reply(status, result)
         elif route == 'research':
             if (not isinstance(body, dict) or set(body) not in ({'query', 'topic'}, {'query', 'topic', 'capture_frames'})
                     or type(body.get('capture_frames', False)) is not bool):
@@ -123,6 +157,8 @@ def handle_post(handler, path):
             handler.reply(200, {'translations': translate_texts(body['texts']), 'provider': 'local'})
     except ConnectionError:
         pass
+    except SectionError as error:
+        handler.reply(400, {'error': error.code})
     except ValueError:
         handler.reject(400, 'invalid_request')
     except RuntimeError:
