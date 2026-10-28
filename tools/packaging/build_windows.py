@@ -300,7 +300,8 @@ def validate_target_metadata(probe, identities):
     rows = {canonicalize_name(value['name']): value for value in probe['distributions']}
     if len(rows) != len(probe['distributions']) or {name: row['version'] for name, row in rows.items()} != expected:
         raise BuildError('installed_distribution_mismatch')
-    extras, pending, reached = {'control-everything': set()}, ['control-everything'], set()
+    # The complete Windows desktop includes the declared offline news translator.
+    extras, pending, reached = {'control-everything': {'news'}}, ['control-everything'], set()
     while pending:
         name = pending.pop()
         reached.add(name)

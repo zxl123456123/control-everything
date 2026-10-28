@@ -188,6 +188,22 @@ class ManifestTests(PayloadFixture):
 
 
 class BuilderTests(PayloadFixture):
+    def test_windows_news_extra_reaches_translation_dependencies_but_not_other_extras(self):
+        probe = {'environment': {'python_version': '3.13', 'sys_platform': 'win32'}, 'distributions': [
+            {'name': 'control-everything', 'version': '1.0', 'requires': [
+                'ctranslate2==4.8.3; extra == "news"', 'sentencepiece==0.2.2; extra == "news"',
+                'unrelated==1.0; extra == "other"']},
+            {'name': 'ctranslate2', 'version': '4.8.3', 'requires': ['numpy>=2']},
+            {'name': 'sentencepiece', 'version': '0.2.2', 'requires': []},
+            {'name': 'numpy', 'version': '2.5.4', 'requires': []},
+        ]}
+        identities = [{'name': row['name'], 'version': row['version']} for row in probe['distributions']]
+        BUILD.validate_target_metadata(probe, identities)
+        probe['distributions'].append({'name': 'unrelated', 'version': '1.0', 'requires': []})
+        identities.append({'name': 'unrelated', 'version': '1.0'})
+        with self.assertRaisesRegex(BUILD.BuildError, 'target_dependency_extra_distribution'):
+            BUILD.validate_target_metadata(probe, identities)
+
     def test_offline_install_commands_remove_only_generated_host_path_outputs(self):
         runtime = self.root / 'runtime'
         runtime.mkdir()
