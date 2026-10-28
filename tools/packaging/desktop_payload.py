@@ -1,5 +1,6 @@
 """Stage verified desktop runtime and PortableGit without consulting the developer PATH."""
 
+import argparse
 import hashlib
 import json
 from pathlib import Path
@@ -93,6 +94,67 @@ def source_archive(destination, receipt_root, components, api):
                             'Keep both downloads equally accessible; retain this index and all license notices.'}
 
 
+def validate_git_receipt(portable_git, receipt, receipt_root, api, check_notices):
+    if receipt.get('archive_sha256') != GIT_SHA256 or receipt.get('version') != '2.56.0.windows.3':
+        raise ValueError('portable_git_origin')
+    git_rows = receipt['files']
+    verify_files(portable_git, git_rows, api, exact=True)
+    if not GIT_REQUIRED.issubset({row['path'] for row in git_rows}):
+        raise ValueError('portable_git_runtime_missing')
+    # Each component needs actual notice and corresponding source fulfillment evidence.
+    components = receipt.get('components', [])
+    if not components:
+        raise ValueError('portable_git_license_closure_missing')
+    coverage = set()
+    for component in components:
+        check_notices(component.get('notices', []))
+        if not component.get('name') or not component.get('version') or not component.get('source'):
+            raise ValueError('portable_git_component_identity')
+        for row in component.get('source_materials', []):
+            material = api.no_links(receipt_root / str(api.relative_path(row['path'])))
+            if api.sha256(material) != row['sha256']:
+                raise ValueError('portable_git_source_hash')
+        fulfillment = component.get('fulfillment', {})
+        if fulfillment.get('method') == 'notice-only':
+            if component.get('license') not in {'MIT', 'BSD-2-Clause', 'BSD-3-Clause', 'ISC', 'Zlib', 'Apache-2.0', '0BSD'}:
+                raise ValueError('portable_git_fulfillment_expression')
+        elif fulfillment.get('method') == 'corresponding-source':
+            if not component.get('source_materials'):
+                raise ValueError('portable_git_source_materials_missing')
+        elif fulfillment.get('method') == 'written-offer':
+            offer = fulfillment.get('offer', {})
+            relative = str(api.relative_path(offer.get('path')))
+            if relative not in {row['path'] for row in git_rows} or api.sha256(portable_git / relative) != offer.get('sha256'):
+                raise ValueError('portable_git_source_offer_missing')
+        else:
+            raise ValueError('portable_git_fulfillment_missing')
+        coverage.update(component.get('output_paths', []))
+    if coverage != {row['path'] for row in git_rows}:
+        raise ValueError('portable_git_component_coverage')
+    return git_rows, components
+
+
+def prepare_git(archive, portable_git, reviewed_receipt, output, api, check_notices):
+    paths = tuple(map(Path, (archive, portable_git, reviewed_receipt, output)))
+    if any(not path.is_absolute() for path in paths):
+        raise ValueError('absolute_desktop_inputs_required')
+    archive, portable_git, reviewed_receipt, output = (api.no_links(path).resolve() for path in paths)
+    if output.parent != reviewed_receipt.parent or output.is_relative_to(portable_git):
+        raise ValueError('portable_git_receipt_location')
+    if output.exists():
+        raise ValueError('portable_git_receipt_exists')
+    receipt = api.strict_json(reviewed_receipt.read_text(encoding='utf-8'))
+    if type(receipt) is not dict:
+        raise ValueError('portable_git_reviewed_receipt_required')
+    # The reviewed hashes are the baseline; never bless current bytes by replacing them.
+    validate_git_receipt(portable_git, receipt, reviewed_receipt.parent, api, check_notices)
+    if api.sha256(archive) != GIT_SHA256:
+        raise ValueError('portable_git_archive_hash')
+    with output.open('xb') as stream:
+        stream.write(api.canonical_json(receipt) + b'\n')
+    return receipt
+
+
 def stage(output, engine_root, build_run, portable_git, git_receipt, endpoints, api, helpers, source_bundle=None):
     output, engine_root, build_run, portable_git = map(Path, (output, engine_root, build_run, portable_git))
     for path in (engine_root, build_run, portable_git, Path(git_receipt), Path(endpoints)):
@@ -118,43 +180,8 @@ def stage(output, engine_root, build_run, portable_git, git_receipt, endpoints, 
     verify_files(engine_root, rows, api)
     # Re-evaluate actual graph/notices instead of trusting a stale success string.
     distribution = helpers('workbench_distribution').collect(engine_root, rows, build_run)
-    receipt = read(git_receipt)
-    if receipt.get('archive_sha256') != GIT_SHA256 or receipt.get('version') != '2.56.0.windows.3':
-        raise ValueError('portable_git_origin')
-    git_rows = receipt['files']
-    verify_files(portable_git, git_rows, api, exact=True)
-    if not GIT_REQUIRED.issubset({row['path'] for row in git_rows}):
-        raise ValueError('portable_git_runtime_missing')
-    # Each component needs actual notice and corresponding source fulfillment evidence.
-    components = receipt.get('components', [])
-    if not components:
-        raise ValueError('portable_git_license_closure_missing')
-    coverage = set()
-    for component in components:
-        helpers('workbench_distribution').check_notices(component.get('notices', []))
-        if not component.get('name') or not component.get('version') or not component.get('source'):
-            raise ValueError('portable_git_component_identity')
-        for row in component.get('source_materials', []):
-            material = api.no_links(Path(git_receipt).parent / str(api.relative_path(row['path'])))
-            if api.sha256(material) != row['sha256']:
-                raise ValueError('portable_git_source_hash')
-        fulfillment = component.get('fulfillment', {})
-        if fulfillment.get('method') == 'notice-only':
-            if component.get('license') not in {'MIT', 'BSD-2-Clause', 'BSD-3-Clause', 'ISC', 'Zlib', 'Apache-2.0', '0BSD'}:
-                raise ValueError('portable_git_fulfillment_expression')
-        elif fulfillment.get('method') == 'corresponding-source':
-            if not component.get('source_materials'):
-                raise ValueError('portable_git_source_materials_missing')
-        elif fulfillment.get('method') == 'written-offer':
-            offer = fulfillment.get('offer', {})
-            relative = str(api.relative_path(offer.get('path')))
-            if relative not in {row['path'] for row in git_rows} or api.sha256(portable_git / relative) != offer.get('sha256'):
-                raise ValueError('portable_git_source_offer_missing')
-        else:
-            raise ValueError('portable_git_fulfillment_missing')
-        coverage.update(component.get('output_paths', []))
-    if coverage != {row['path'] for row in git_rows}:
-        raise ValueError('portable_git_component_coverage')
+    git_rows, components = validate_git_receipt(portable_git, read(git_receipt), Path(git_receipt).parent,
+                                                api, helpers('workbench_distribution').check_notices)
     for row in rows:
         target = output / 'workbench-engine' / row['path']
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -194,3 +221,25 @@ def stage(output, engine_root, build_run, portable_git, git_receipt, endpoints, 
     with (output / 'THIRD-PARTY-NOTICES.txt').open('a', encoding='utf-8') as stream:
         stream.write(''.join(text))
     return {'engine_source': source, 'portable_git_archive_sha256': GIT_SHA256, 'source_bundle': availability}
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__)
+    commands = parser.add_subparsers(dest='command', required=True)
+    prepare = commands.add_parser('prepare-git', help='Revalidate PortableGit against a reviewed receipt')
+    for name in ('archive', 'portable-git', 'reviewed-receipt', 'output'):
+        prepare.add_argument('--' + name, type=Path, required=True)
+    args = parser.parse_args(argv)
+    from control_everything.installation import manifest
+    from workbench_distribution import check_notices
+    try:
+        result = prepare_git(args.archive, args.portable_git, args.reviewed_receipt, args.output, manifest, check_notices)
+    except (OSError, ValueError, KeyError, TypeError) as error:
+        print(json.dumps({'status': 'failed', 'reason': str(error)}))
+        return 1
+    print(json.dumps({'status': 'prepared', 'files': len(result['files']), 'components': len(result['components'])}))
+    return 0
+
+
+if __name__ == '__main__':
+    raise SystemExit(main())
