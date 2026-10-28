@@ -65,7 +65,10 @@ export function PlatformRuntimeNavigation({
       return matches.length === 1 ? matches[0] : null
     }
     if (activeView === 'settings') {
-      if (!target || target.pane !== 'repo') window.location.hash = '#settings/' + (target?.pane ?? 'appearance')
+      if (!target || target.pane !== 'repo') {
+        const pane = target?.pane ?? 'appearance'
+        window.location.hash = '#settings/' + (pane === 'appearance' ? 'workbench-appearance' : pane)
+      }
       else {
         const repo = repos.find(repo => repo.id === target.repoId &&
           getRepoExecutionHostId(repo) === (target.hostId ?? runtimeHost) && getRepoExecutionHostId(repo) === runtimeHost)
@@ -157,7 +160,7 @@ export default function PlatformNavigation({
       if (!settingsScope) return
       const next = readPlatformRoute({ hash: (event as CustomEvent<{ to: string }>).detail.to, search: '' })
       const staysNative = (next.view === 'project' && next.tab === 'settings') ||
-        (next.view === 'settings' && !['account', 'sources'].includes(next.tab))
+        (next.view === 'settings' && !['appearance', 'account', 'sources'].includes(next.tab))
       if (!staysNative && useAppStore.getState().activeView === 'settings')
         useAppStore.getState().closeSettingsPage()
     }
@@ -183,7 +186,8 @@ export default function PlatformNavigation({
       shownSurface.current.surface !== surface || useAppStore.getState().activeView !== 'settings') return
     const target = settingsTarget
     if (!target || target.pane !== 'repo') {
-      window.location.hash = '#settings/' + (target?.pane ?? 'appearance')
+      const pane = target?.pane ?? 'appearance'
+      window.location.hash = '#settings/' + (pane === 'appearance' ? 'workbench-appearance' : pane)
       return
     }
     const repo = repos.find(row => row.id === target.repoId &&

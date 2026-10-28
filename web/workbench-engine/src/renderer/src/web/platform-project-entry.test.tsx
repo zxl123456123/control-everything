@@ -326,7 +326,7 @@ it('cannot reveal a renamed editor after its trusted context is retired', async 
   } finally { subscribe.mockRestore(); assertActive.mockRestore() }
 })
 
-it.each(['#workbench', '#project-setup', '#settings/appearance', '#settings/development'])(
+it.each(['#workbench', '#project-setup', '#settings/workbench-appearance', '#settings/development'])(
   'opens %s with an independent runtime and no invented project', async hash => {
     window.history.replaceState(null, '', hash)
     const view = render(<PlatformProjectEntry />); publish([])
@@ -335,11 +335,29 @@ it.each(['#workbench', '#project-setup', '#settings/appearance', '#settings/deve
     expect(fixture.load).not.toHaveBeenCalled()
     expect(fixture.bridgeMounts).not.toHaveBeenCalled()
     await waitFor(() => expect(view.container.querySelector('.platform-project-content')?.hasAttribute('hidden')).toBe(false))
-    if (hash.includes('settings')) expect(screen.getByTestId('project-context').dataset.settingsScope).toContain('global')
+    if (hash.includes('settings')) {
+      const scope = JSON.parse(screen.getByTestId('project-context').dataset.settingsScope!)
+      expect(scope.kind).toBe('global')
+      if (hash.endsWith('workbench-appearance')) expect(scope.entry).toBe('appearance')
+    }
     else {
       expect(screen.getByRole('navigation', { name: '项目工作台导航' })).toBeTruthy()
       expect(screen.queryByRole('link', { name: '进展' })).toBeNull()
     }
+  }
+)
+
+it.each(['appearance', 'account', 'sources'])(
+  'keeps Studio %s outside native settings and runtime startup', async tab => {
+    window.history.replaceState(null, '', '#settings/' + tab)
+    render(<PlatformProjectEntry />); publish([])
+    await act(async () => {})
+    expect(screen.getByTestId('studio-surface').hidden).toBe(false)
+    expect(screen.getByTestId('studio-surface').dataset.pending).toBe('false')
+    expect(fixture.runtimeLoad).not.toHaveBeenCalled()
+    expect(fixture.load).not.toHaveBeenCalled()
+    expect(fixture.bridgeMounts).not.toHaveBeenCalled()
+    expect(screen.queryByTestId('project-context')).toBeNull()
   }
 )
 

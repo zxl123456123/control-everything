@@ -3,14 +3,16 @@
 本规则适用于人和自动化助手；工具、模型和本机工作流由各参与者自行选择。环境、验证与发布步骤见 [CONTRIBUTING.md](.github/CONTRIBUTING.md)。
 
 - 开工先读实际实现、相关项目文档和 `git status`；设计前查适用的官方做法。一个变更只解决一个目标；旁支问题记录后另行处理。
-- 在本机 `docs/current/<feature>/` 任务记录写清目标、验收、负责人、拟改文件、状态与阻塞，以 README.md 为当前状态入口；需要并行隔离时再使用独立分支/worktree，worktree 不会自动复制未提交改动。`current` 根目录只放任务文件夹，结束的记录归入 `docs/archive/<feature>/`。
+- 开发继续以本机 `docs/current/<feature>/README.md` 为当前任务入口，写清目标、验收、负责人、拟改文件、状态、阻塞与证据。顶部当前状态使用“进行中、暂停、待验收、已结束”，历史记录单独标日期；确认结束后按[开发文件管理](docs/guides/development-files.md)归档，保留原文、hash 与旧新路径映射。暂停、BLOCKED 和待用户预览不因目录整理自动结束。需要并行隔离时使用独立分支/worktree，未提交改动不会自动复制。
 - 共用工作树时先声明文件负责人；多人修改同一文件必须先协调。不得覆盖、还原或清理他人的未提交工作。冲突先保留双方内容和验证证据，再协调合并。
 - 收尾检查最终 diff。验收记录必须包含本轮实际命令、退出码和观察到的失败；缺证据写“未验证”。改动后重新验证；独立审查不能替代测试。
 - 当前快速开发阶段不强制 PR、独立审查或远端 CI；执行与改动相称的本地验证。界面改动先在 develop 分支实现并提供真实页面预览，项目主导者确认后再合入、推送 main。显式列出暂存文件并检查 staged diff；推送前核对上游和全部待推送提交。未经授权不得改写历史、强推或删除分支。
 - 不提交实际个人配置、数据库、日志、凭据或媒体制作资料。经项目主导者选定的宣传成片可作为 GitHub 视频附件供 README 播放，图片、视频及其制作脚本、素材、分镜、配置不加入源码提交。例子使用通用占位、临时目录或保留测试地址。发现泄露只报告类别和相对位置，不公开复制原值。
 - 项目说明用中文，代码注释用英文。提交信息遵循 Conventional Commits，不加入 AI 署名。
 - 公开指南放 `docs/guides/`，架构与契约放 `docs/architecture/`，示例放 `docs/examples/`，贡献指南放 `.github/CONTRIBUTING.md`；`docs` 根只保留 README.md 索引。新增公开文档须更新忽略规则与归属检查清单。活跃任务记录放 ignored `docs/current/<feature>/`，历史记录放 ignored `docs/archive/<feature>/`；日志、截图、隔离数据与构建产物放 ignored `work/<feature>/`，旧材料归 `work/archive/<feature>/`。`work` 根只保留 README.md 索引与目录。整理必须保留原文、失败证据和搬迁清单，恢复时从任务 README 和清单定位；历史脚本中的旧绝对路径不能直接重跑。仓库规则不代表远端保护已经启用，启用须有实际检查与配置证据。
-- 一次性脚本、临时源码副本/clone、下载缓存、构建输出、预览 profile 和需留证的临时数据全部归本检出 `work/<feature>/`；正式构建的既有 `work/ce-native` 与 `work/workbench-engine-build/<run>/` 合同继续沿用。禁止自行在盘根或仓库外新建 `ce-*` 等临时目录。路径过长先缩短任务内层级，仍失败须记录实际报错再处理；不得为此改系统 TEMP/TMP 或创建外部路径别名。普通自动清理的单元测试可使用标准系统临时目录；需留证的工具仅对子进程设置任务内 TEMP/TMP，并在退出后清理可重建产物。运行历史脚本前先核对路径归属，验收时运行 layout 检查本机散件。
+- 一次性脚本、临时副本、缓存、构建输出与预览 profile 归 `work/<feature>/`。新写或重新启用的临时 driver 必须通过 `python tools/scripts/run_task.py <feature> --output <产物> -- <命令>` 启动，真实输出从 `CE_TASK_WORK_DIR` 派生并与声明一致；禁止独立盘根常量、未声明的输出覆盖和裸运行旧脚本。入口校验声明与子进程临时环境，不是 OS 沙箱，执行者仍须核对实际写入。正式工具的 `work/ce-native`、`work/workbench-engine-build/<run>/` 合同及普通自动清理单测保持；禁止修改系统 TEMP/TMP 或创建外部路径别名。
+- 结项按任务清理明确可重建的临时内容，保留最终验收、实际失败及仍被引用的构建输入。不能按年龄批量删除源码副本、依赖、产品或 profile；先核对清单、解析后的目标、链接、进程与恢复来源。ignored 材料不是备份，私人证据只导出到使用者指定的受控位置，不自行上传。
+- 提交前同时核对 staged diff 与 MERGE_HEAD、变基/拣选状态；独立任务不得消费原有未完成合并。只暂存本人文件，不还原其他人的工作。推送前核对上游及全部待推送提交，历史改写仍须明确授权。
 - 生产 Python 只放入 `src/control_everything` 所属功能包，前端唯一源码在 `web`；不要建立根影子包。构建工具归 `tools/packaging`，资源按显式白名单入包。测试按 backend/frontend/e2e/fixtures 类型放置；具体归属见 [CONTRIBUTING.md](.github/CONTRIBUTING.md)。内部引用真实实现，Python CLI 使用 control_everything 包名，保持公开资源 URL 和已有数据位置。
 - 新增文件先检查归属；依赖遵守 `tools/architecture/importlinter.ini`，运行 `python tools/scripts/check_architecture.py layout` 和官方 Import Linter。不得经旧 CLI、兼容转发或动态导入绕过方向约束；新增构建单元须同时更新规则与贡献指南。
 - HTTP 入口保留权限、请求处理及装配，页面主脚本保留状态及装配；新业务处理和完整展示放入所属模块。跨项目/事项的管理写入保持现有同库事务，Rust 不写业务库。

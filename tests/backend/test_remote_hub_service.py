@@ -215,7 +215,8 @@ class RemoteHubServiceTests(unittest.TestCase):
     def test_unactivated_identity_is_display_only_and_name_is_not_owner(self):
         identity = Identity(A.issuer, "new-account", A.azp, 10000, name="Friendly name")
         displayed = self.hub.desktop_identity(identity)
-        self.assertEqual(displayed, {"account": {"issuer": A.issuer, "sub": "new-account", "name": "Friendly name"}, "member_active": False})
+        self.assertEqual(displayed, {"account": {"issuer": A.issuer, "sub": "new-account", "name": "Friendly name"},
+                                     "member_active": False, "membership": "inactive", "admin": False})
         self.error("membership_required", self.hub.begin_enrollment, identity, INSTALL, KEY, "Computer")
         self.assertEqual(self.hub.desktop_identity(A)["account"]["name"], A.sub)
         self.assertEqual(self.hub.desktop_identity(A)["member_active"], True)

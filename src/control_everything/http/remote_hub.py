@@ -37,7 +37,7 @@ def dispatch(service, method, uri, headers, body):
     """Return (status, JSON body, response headers); no business transitions live here."""
     parsed = urlsplit(uri)
     path = parsed.path
-    if parsed.fragment or (parsed.query and path != "/remote/api/admin/members"):
+    if parsed.fragment or (parsed.query and path not in ("/remote/api/admin/members", "/remote/desktop/admin/members")):
         raise HubError("invalid_request_uri", 400)
     cookie = SimpleCookie()
     try:
@@ -60,8 +60,16 @@ def dispatch(service, method, uri, headers, body):
         identity = service.identities.authenticate(token, "desktop")
         if path == "/remote/desktop/identity" and method == "GET":
             return 200, service.desktop_identity(identity), {}
+        if path == "/remote/desktop/admin/members" and method == "GET":
+            _fields(body, ())
+            return 200, service.admin_members(identity, **_pagination(parsed.query)), {}
         if method != "POST":
             raise HubError("method_not_allowed", 405)
+        if path == "/remote/desktop/invitations":
+            _fields(body, ())
+            return 200, service.create_invitation(identity), {}
+        if path == "/remote/desktop/activate":
+            return 200, service.activate(identity, **_fields(body, ("invite",))), {}
         if path == "/remote/desktop/enrollment":
             return 200, service.begin_enrollment(identity, **_fields(body, ("installation_id", "public_key", "name"))), {}
         if path == "/remote/desktop/enrollment/status":

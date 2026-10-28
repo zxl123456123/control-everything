@@ -56,6 +56,7 @@ class ArchitectureTests(TestCase):
                      'docs/README.md', 'docs/architecture/architecture.md',
                      'docs/architecture/workbench-contract.md', 'docs/guides/usage.md',
                      'docs/guides/windows.md', 'docs/guides/integrations.md',
+                     'docs/guides/development-files.md',
                      'docs/guides/EMBEDDING.md', 'docs/guides/PETS_INTEGRATION.md', 'LICENSE',
                      'docs/examples/legacy/progress-manual.example.json', 'tests/e2e/verify_architecture.py',
                      'docs/examples/integrations/codex.toml.example', 'tools/scripts/check_architecture.py',
@@ -108,6 +109,27 @@ class ArchitectureTests(TestCase):
             (root / 'docs/unknown').mkdir(parents=True)
             self.assertEqual(policy.local_layout_errors(root), [{
                 'path': 'docs/unknown', 'reason': 'unknown_documentation_directory'}])
+
+    def test_active_task_requires_an_entry_and_completed_scope_moves_to_archive(self):
+        with TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            task = root / 'docs/current/task'
+            task.mkdir(parents=True)
+            self.assertEqual(policy.local_layout_errors(root), [{
+                'path': 'docs/current/task', 'reason': 'active_task_requires_readme'}])
+            readme = task / 'README.md'
+            for state in ('进行中', '暂停', '待验收'):
+                readme.write_text('# Task\n\n- 当前状态：' + state + '。\n', encoding='utf-8')
+                self.assertEqual(policy.local_layout_errors(root), [])
+            readme.write_text('# Task\n\n- 当前状态：进行中。\n\n## 历史\n- 当前状态：已结束。\n', encoding='utf-8')
+            self.assertEqual(policy.local_layout_errors(root), [])
+            readme.write_text('# Task\n\n- 当前状态：已结束。\n', encoding='utf-8')
+            self.assertEqual(policy.local_layout_errors(root), [{
+                'path': 'docs/current/task', 'reason': 'closed_task_requires_archive'}])
+            archive = root / 'docs/archive'
+            archive.mkdir()
+            task.rename(archive / 'task')
+            self.assertEqual(policy.local_layout_errors(root), [])
 
     def test_explicit_publication_candidates_do_not_scan_local_artifacts(self):
         with TemporaryDirectory() as temporary:

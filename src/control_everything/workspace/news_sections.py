@@ -135,8 +135,9 @@ class SectionStore:
             self.sections, self.removed = default_sections(), []
 
     def save(self, payload):
-        self.sections, self.removed = normalise(payload, self.sections)
-        self._write('sections.json', {'version': 1, 'sections': self.sections})
+        sections, removed = normalise(payload, self.sections)
+        self._write('sections.json', {'version': 1, 'sections': sections})
+        self.sections, self.removed = sections, removed
         return self.view()
 
     def restore_presets(self):
@@ -158,6 +159,7 @@ class SectionFeeds:
         cache = read('section-cache.json', {})
         self.cache = cache if isinstance(cache, dict) else {}
         self.pending = set()
+        self.closed = False
 
     def _state(self, entry):
         stale = RETRY_AFTER if entry and entry.get('error') else STALE_AFTER
@@ -166,6 +168,8 @@ class SectionFeeds:
     def request(self, sources, *, force=False):
         """Schedule fetches for stale sources; returns True when anything is in flight."""
         with self.lock:
+            if self.closed:
+                return False
             for source in sources:
                 if source['url'] not in self.pending and (force or self._state(self.cache.get(source['url']))):
                     self.pending.add(source['url'])
@@ -189,8 +193,10 @@ class SectionFeeds:
             entry['items'] = (self.cache.get(source['url']) or {}).get('items', [])
             entry['ok_at'] = (self.cache.get(source['url']) or {}).get('ok_at')
         with self.lock:
-            self.cache[source['url']] = entry
             self.pending.discard(source['url'])
+            if self.closed:
+                return
+            self.cache[source['url']] = entry
             try:
                 self._write('section-cache.json', self.cache)
             except OSError:
@@ -217,4 +223,7 @@ class SectionFeeds:
                 'sampled_at': max(stamps) if stamps else datetime.now(timezone.utc).isoformat()}
 
     def close(self):
+        with self.lock:
+            self.closed = True
+            self.pending.clear()
         self.executor.shutdown(wait=False, cancel_futures=True)

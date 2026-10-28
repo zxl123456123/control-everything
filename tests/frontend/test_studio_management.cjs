@@ -448,39 +448,30 @@ test('full stylesheet cascade keeps project tags readable and refresh controls a
   assert.equal(f.node('#pp-refresh').textContent,''); assert.ok(f.node('#pp-refresh').querySelector('svg'));
 });
 
-test('source settings rows retain aligned padding through the complete desktop and narrow cascade', async t => {
+test('removed advanced settings do not return through a saved deep link', async t => {
   const f = await fixture(t, { hash: '#settings/sources' });
   for (const name of ['workspace.css', 'project-progress.css', 'project-monitor.css', 'studio-preview.css']) {
     const style = f.w.document.createElement('style'); style.textContent = fs.readFileSync(path.join(root, 'web/workspace', name), 'utf8'); f.w.document.head.append(style);
   }
   for (const width of [1280, 390]) {
     f.w.happyDOM.setViewport({ width, height: 844 });
-    for (const row of f.host.querySelectorAll('.ce-settings-group>.ce-setting-row')) {
-      const style = f.w.getComputedStyle(row);
-      assert.equal(style.padding, '16px 20px', `padding at ${width}`);
-      assert.equal(style.flexDirection, 'row', `direction at ${width}`);
-      assert.equal(style.alignItems, 'center'); assert.equal(style.minHeight, '76px');
-      assert.equal(style.borderBottomWidth, '0px');
-    }
+    assert.equal(f.host.querySelector('.ce-settings-group'), null);
+    assert.equal(f.host.querySelector('#studio-settings-nav'), null);
+    assert.doesNotMatch(f.host.textContent, /高级接入|事项 API 接入|项目与会话导入/);
     assert.equal(f.host.querySelector('.ce-creator-address'), null);
   }
 });
 
 
-for (const unified of [false, true]) test(`external access uses the current Studio dialog host and disposes on navigation (unified=${unified})`, async t => {
+for (const unified of [false, true]) test(`account and settings remain separate without retired access controls (unified=${unified})`, async t => {
   const f = await fixture(t, { hash: '#settings/sources', unified });
-  const trigger = f.node('[data-action="external-access"]'); trigger.focus();
-  assert.equal(f.w.document.querySelector('.ce-access'), null);
-  const before = f.reads.length; trigger.click(); await tick();
-  const owner = unified ? f.w.document.querySelector('.platform-project-dialog-host').shadowRoot : f.host;
-  const dialog = owner.querySelector('.ce-access'); assert.ok(dialog); assert.equal(dialog.open, true);
-  assert.match(dialog.textContent, /暂无接入/);
-  assert.equal(f.reads.slice(before).filter(url => url === '/api/workspace/agents').length, 1);
-  trigger.click(); await tick(); assert.equal(owner.querySelectorAll('.ce-access').length, 1);
-  dialog.querySelector('[aria-label="关闭"]').click(); await tick(); assert.equal(owner.querySelector('.ce-access'), null);
-  assert.equal(f.w.document.activeElement, trigger);
-  trigger.click(); await tick(); await f.route('#home');
-  assert.equal(owner.querySelector('.ce-access'), null);
+  assert.equal(f.host.querySelector('[data-action="external-access"]'), null);
+  await f.route('#settings/account');
+  assert.equal(f.host.querySelector('#studio-settings-nav'), null);
+  assert.doesNotMatch(f.node('#studio-content').textContent, /外观|高级接入/);
+  await f.route('#settings/appearance');
+  assert.equal(f.host.querySelector('#studio-settings-nav'), null);
+  assert.equal(f.host.querySelector('.ce-account'), null);
 });
 
 test('viewing another project keeps the current development identity and performs no writes', async t => {

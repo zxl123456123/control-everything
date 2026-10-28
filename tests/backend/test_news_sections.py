@@ -98,6 +98,13 @@ class Store(unittest.TestCase):
         (self.root / 'sections.json').write_text('{"sections": [{"name": 1}]}')
         self.assertEqual([s['id'] for s in self.reader().sections.sections], ['ai', 'hn'])
 
+    def test_failed_write_does_not_publish_new_sections(self):
+        store = SectionStore(lambda name, default: default, Mock(side_effect=OSError('disk error')))
+        before = store.view()
+        with self.assertRaises(OSError):
+            store.save([{'id': 'ai', 'name': 'changed'}])
+        self.assertEqual(store.view(), before)
+
     def test_delete_then_restore_presets_keeps_custom_sections(self):
         reader = self.reader()
         custom = reader.save_sections([{'name': '开发', 'sources': [{'url': FEED}]}])['sections']
@@ -217,6 +224,40 @@ class Feeds(unittest.TestCase):
         self.assertEqual(envelope['sections']['sections'][0]['id'], section)
         self.assertIn(section, envelope['sample']['streams'])
         json.dumps(envelope)
+
+    def test_close_blocks_late_cache_writes_and_new_requests(self):
+        started, release, done = threading.Event(), threading.Event(), threading.Event()
+        writes = Mock()
+
+        def fetch(*args):
+            started.set()
+            if not release.wait(5):
+                raise RuntimeError('test fetch timed out')
+            return {'result': {'items': []}, 'fetched_at': 'now'}
+
+        feeds = SectionFeeds(lambda name, default: default, writes, fetcher=fetch)
+        source = {'url': FEED, 'id': 'sspai', 'name': '少数派'}
+        original_fetch = feeds._fetch
+
+        def observed_fetch(source):
+            try:
+                original_fetch(source)
+            finally:
+                done.set()
+
+        feeds._fetch = observed_fetch
+        try:
+            self.assertTrue(feeds.request([source]))
+            self.assertTrue(started.wait(5))
+            feeds.close()
+            self.assertFalse(feeds.request([source], force=True))
+            release.set()
+            self.assertTrue(done.wait(5))
+            writes.assert_not_called()
+            self.assertNotIn(FEED, feeds.cache)
+        finally:
+            release.set()
+            feeds.close()
 
 
 class Routes(unittest.TestCase):

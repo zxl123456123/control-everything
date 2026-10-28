@@ -3,6 +3,7 @@ import gzip
 import io
 import socket
 import unittest
+from unittest.mock import patch
 from email.message import Message
 from urllib.error import HTTPError, URLError
 
@@ -170,6 +171,43 @@ class AddressPolicy(unittest.TestCase):
         def fail(*a, **k):
             raise socket.gaierror('nope')
         self.assertEqual(self.check('https://example.com/feed', resolver=fail), 'dns_failure')
+
+    def test_no_proxy_does_not_skip_address_validation(self):
+        with patch('urllib.request.getproxies', return_value={'https': 'http://proxy.example:8080'}), patch.object(nf, 'proxy_bypass', return_value=True):
+            self.assertFalse(nf._uses_proxy('https://internal.example/feed'))
+
+    def test_connection_rechecks_dns_and_pins_the_checked_address(self):
+        with patch.object(nf.socket, 'getaddrinfo', return_value=public()), patch.object(nf.socket, 'create_connection') as connect:
+            nf._public_connection(('example.com', 443), 3)
+            connect.assert_called_once_with(('93.184.216.34', 443), 3, None)
+        private = [(socket.AF_INET, socket.SOCK_STREAM, 6, '', ('127.0.0.1', 443))]
+        with patch.object(nf.socket, 'getaddrinfo', return_value=private), patch.object(nf.socket, 'create_connection') as connect:
+            with self.assertRaises(nf.FeedError):
+                nf._public_connection(('example.com', 443), 3)
+            connect.assert_not_called()
+
+    def test_public_connection_tries_remaining_validated_addresses(self):
+        addresses = [(socket.AF_INET6, socket.SOCK_STREAM, 6, '', ('2606:4700::1111', 443, 0, 0)), *public()]
+        with patch.object(nf.socket, 'getaddrinfo', return_value=addresses), patch.object(nf.socket, 'create_connection', side_effect=[OSError('unreachable'), 'connected']) as connect:
+            self.assertEqual(nf._public_connection(('example.com', 443), 3), 'connected')
+            self.assertEqual([call.args[0] for call in connect.call_args_list], [('2606:4700::1111', 443), ('93.184.216.34', 443)])
+
+    def test_handlers_pin_direct_connections_but_allow_configured_proxy_transport(self):
+        for scheme, handler_type in [('http', nf._PublicHTTPHandler), ('https', nf._PublicHTTPSHandler)]:
+            for proxied in (False, True):
+                with self.subTest(scheme=scheme, proxied=proxied):
+                    request = nf.Request(scheme + '://example.com/feed')
+                    if proxied:
+                        request.set_proxy('127.0.0.1:8080', 'http')
+                    handler = handler_type()
+                    captured = []
+                    def inspect(factory, req, **kwargs):
+                        connection = factory(req.host, timeout=3, **kwargs)
+                        captured.append(connection._create_connection)
+                        connection.close()
+                    with patch.object(handler, 'do_open', side_effect=inspect):
+                        getattr(handler, scheme + '_open')(request)
+                    self.assertEqual(captured[0] is nf._public_connection, not proxied)
 
     def test_proxied_requests_leave_resolution_to_the_proxy(self):
         def explode(*a, **k):

@@ -74,7 +74,9 @@ class RemotePeer:
                 raise ConnectorError("remote_endpoint_invalid")
             url = self.config.issuer + "/protocol/openid-connect" + path
         else:
-            if not path.startswith("/remote/desktop/") or "?" in path or "#" in path:
+            parsed = urlsplit(path)
+            if (not path.startswith("/remote/desktop/") or parsed.fragment
+                    or parsed.query and parsed.path != "/remote/desktop/admin/members"):
                 raise ConnectorError("remote_endpoint_invalid")
             url = self.config.hub_origin + path
         headers = {"Accept": "application/json"}

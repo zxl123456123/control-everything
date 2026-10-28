@@ -9,6 +9,7 @@ Control Everything 是在本机运行的开发工作台，用于管理项目和�
 | [架构说明](architecture/architecture.md) | 组件职责、目录归属、数据流与扩展边界 |
 | [可选接入](guides/integrations.md) | 远端会话、终端、启动器与只读 MCP |
 | [Windows 安装与维护](guides/windows.md) | 安装器构建、停止、升级、回退与卸载 |
+| [开发文件与产物管理](guides/development-files.md) | current 任务、归档、临时输出、资源保留及 AI 执行约束 |
 | [宠物嵌入指南](guides/EMBEDDING.md) | 独立页面挂载、参数与生命周期 |
 | [宠物集成指南](guides/PETS_INTEGRATION.md) | 工作台宠物接入与验证 |
 | [参与开发](../.github/CONTRIBUTING.md) | 开发环境、测试、构建及贡献约定 |

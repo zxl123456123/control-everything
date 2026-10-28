@@ -5,6 +5,7 @@ to a custom section are plain public documents, so they are read in-process here
 cap and https-only article rule, plus address checks so a feed URL cannot point at the local network.
 """
 import gzip
+import http.client
 from datetime import datetime, timezone
 import ipaddress
 import os
@@ -15,7 +16,7 @@ import zlib
 from html import unescape
 from urllib.error import HTTPError, URLError
 from urllib.parse import urljoin, urlsplit
-from urllib.request import HTTPRedirectHandler, ProxyHandler, Request, build_opener
+from urllib.request import HTTPRedirectHandler, HTTPHandler, HTTPSHandler, ProxyHandler, Request, build_opener, proxy_bypass
 
 from control_everything.workspace.news_parse import ATOM, MAX_FEED_BYTES, _tree, parse_feed_result, safe_news_url
 
@@ -65,17 +66,52 @@ class _NoRedirect(HTTPRedirectHandler):
         return None
 
 
+def _public_connection(address, timeout=socket._GLOBAL_DEFAULT_TIMEOUT, source_address=None):
+    host, port = address
+    rows = socket.getaddrinfo(host, port, type=socket.SOCK_STREAM)
+    if not rows or any(not ipaddress.ip_address(row[4][0].split('%')[0]).is_global for row in rows):
+        raise FeedError('blocked_address')
+    # Connect to the checked numeric address, never resolve the hostname a second time.
+    for index, row in enumerate(rows):
+        try:
+            return socket.create_connection((row[4][0], port), timeout, source_address)
+        except OSError:
+            if index == len(rows) - 1:
+                raise
+
+
+class _PublicHTTPHandler(HTTPHandler):
+    def http_open(self, request):
+        def connection(*args, **kwargs):
+            conn = http.client.HTTPConnection(*args, **kwargs)
+            if not request.has_proxy() and not request._tunnel_host:
+                conn._create_connection = _public_connection
+            return conn
+        return self.do_open(connection, request)
+
+
+class _PublicHTTPSHandler(HTTPSHandler):
+    def https_open(self, request):
+        def connection(*args, **kwargs):
+            conn = http.client.HTTPSConnection(*args, **kwargs)
+            if not request.has_proxy() and not request._tunnel_host:
+                conn._create_connection = _public_connection
+            return conn
+        return self.do_open(connection, request, context=self._context)
+
+
 def default_opener():
     """System proxies (environment or Windows settings) are honoured, because many users reach foreign sites that way."""
     if os.environ.get('CONTROL_EVERYTHING_NEWS_NO_PROXY') == '1':
-        return build_opener(ProxyHandler({}), _NoRedirect())
-    return build_opener(ProxyHandler(), _NoRedirect())
+        return build_opener(ProxyHandler({}), _NoRedirect(), _PublicHTTPHandler(), _PublicHTTPSHandler())
+    return build_opener(ProxyHandler(), _NoRedirect(), _PublicHTTPHandler(), _PublicHTTPSHandler())
 
 
 def _uses_proxy(url):
     from urllib.request import getproxies
     scheme = urlsplit(url).scheme
-    return scheme in getproxies() and os.environ.get('CONTROL_EVERYTHING_NEWS_NO_PROXY') != '1'
+    return (scheme in getproxies() and not proxy_bypass(urlsplit(url).netloc)
+            and os.environ.get('CONTROL_EVERYTHING_NEWS_NO_PROXY') != '1')
 
 
 def check_url(value, *, resolver=socket.getaddrinfo, proxied=False):
@@ -108,6 +144,7 @@ def check_url(value, *, resolver=socket.getaddrinfo, proxied=False):
     if '.' not in lowered:
         raise FeedError('bad_url')
     if proxied:
+        # The administrator-configured proxy is a trusted egress boundary and owns destination DNS policy.
         return value
     try:
         addresses = {row[4][0] for row in resolver(lowered, port or (443 if parts.scheme == 'https' else 80), type=socket.SOCK_STREAM)}
@@ -115,9 +152,6 @@ def check_url(value, *, resolver=socket.getaddrinfo, proxied=False):
         raise FeedError('dns_failure') from None
     except OSError:
         raise FeedError('dns_failure') from None
-    if os.environ.get('CONTROL_EVERYTHING_NEWS_ALLOW_PRIVATE') == '1':
-        # Development sandboxes resolve every name to a fake non-global address behind a transparent proxy.
-        return value
     if not addresses or any(not ipaddress.ip_address(address.split('%')[0]).is_global for address in addresses):
         raise FeedError('blocked_address')
     return value

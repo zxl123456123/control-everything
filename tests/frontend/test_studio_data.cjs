@@ -264,15 +264,15 @@ test('retired creator addresses are neither consumed nor changed in local and re
   }
 });
 
-test('advanced deep links retain their compatibility actions without a creator address form', async () => {
+test('retired advanced deep links cannot restore management controls', async () => {
   for (const remote of [false, true]) {
     const f = studioFixture({ remote, savedCreatorUrl: 'https://creator.example.test/' }); await f.flush();
     for (const route of ['tools', 'settings/sources']) {
       await f.route(route);
       assert.doesNotMatch(f.nodes.get('studio-content').innerHTML, /游戏创作|data-creator|studio-creator|ce-creator-address|creator\.example\.test/);
-      assert.match(f.nodes.get('studio-content').innerHTML, /href="\/workspace-admin#settings"/);
+      assert.doesNotMatch(f.nodes.get('studio-content').innerHTML, /workspace-admin|external-access|高级接入/);
     }
-    assert.equal((f.nodes.get('studio-content').innerHTML.match(/data-action="external-access"/g) || []).length, 1);
+    assert.equal((f.nodes.get('studio-content').innerHTML.match(/data-action="external-access"/g) || []).length, 0);
     assert.equal(f.nodes.get('ce-studio').listeners.submit, undefined);
     assert.ok(!f.storageReads.includes('ce-studio-creator-url'));
     assert.deepEqual(f.writes, []); assert.deepEqual(f.removed, []);
@@ -905,16 +905,14 @@ test('the project workspace explains a missing engine and an unknown project off
   assert.match(f.nodes.get('studio-topbar').innerHTML, /未找到项目/);
 });
 
-test('settings pages share one section switcher that is hidden elsewhere', async () => {
+test('settings and account have no cross-page section switcher', async () => {
   const f = studioFixture({ initialUrl: 'http://127.0.0.1:8772/studio#settings/sources' }); await f.flush();
   const nav = f.nodes.get('studio-settings-nav');
-  assert.equal(nav.hidden, false);
-  assert.deepEqual([...nav.innerHTML.matchAll(/href="(#settings\/[a-z]+)"/g)].map(match => match[1]), ['#settings/appearance', '#settings/account', '#settings/sources']);
-  assert.match(nav.innerHTML, /<a href="#settings\/sources" aria-current="page">高级接入<\/a>/);
+  assert.equal(nav.innerHTML, '');
   await f.route('home');
-  assert.equal(nav.hidden, true);
+  assert.equal(nav.innerHTML, '');
   await f.route('settings/account');
-  assert.match(nav.innerHTML, /<a href="#settings\/account" aria-current="page">账号与设备<\/a>/);
+  assert.equal(nav.innerHTML, '');
 });
 test('the page opens with a skip link that moves focus into the main region', () => {
   const html = fs.readFileSync(path.resolve(__dirname, '../../web/workspace/studio-preview.html'), 'utf8');

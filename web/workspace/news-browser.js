@@ -290,4 +290,7 @@ async function capturePosts(urls){
   emit('visit','来源正文检查进展',{progress:{phase:'visit',completed:++completed,total:candidates.length}});
  }
  emit('merge',items.length?`本次取得 ${items.length} 篇可读内容，准备合入阅读器`:'本次未取得可读正文，保留已有内容',{counts:{articles:items.length,images:items.reduce((n,i)=>n+i.images.length,0)}});
-})().catch(error=>{emit('error','采集遇到错误，已有阅读记录保留',{detail:error.name});process.exitCode=1;}).finally(async()=>{checkpoint();if(browser)await browser.close();});
+})().catch(error=>{
+ const message=/Executable doesn't exist|distribution .* is not found/.test(error.message||'')?'采集浏览器未安装或不可用，请安装或修复 Microsoft Edge 后再试。':error.name==='TimeoutError'?'采集请求超时，请检查网络连接后再试。':'采集遇到错误，已有阅读记录保留';
+ emit('error',message,{detail:error.name});process.exitCode=1;
+}).finally(async()=>{checkpoint();if(browser)await browser.close();});
