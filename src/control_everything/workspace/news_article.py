@@ -13,7 +13,7 @@ import threading
 import time
 from urllib.parse import urljoin, urlsplit
 
-HOSTS = {'google_ai': 'blog.google', 'openai': 'openai.com', 'huggingface': 'huggingface.co'}
+HOSTS = {'qbitai': 'www.qbitai.com', 'aiera': 'aiera.com.cn', 'infoq_cn': 'www.infoq.cn', 'msr': 'www.microsoft.com'}
 MAX_BYTES = 3 * 1024 * 1024
 TIMEOUT = 12
 FAILURE_RETRY_SECONDS = 60

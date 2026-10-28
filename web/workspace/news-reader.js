@@ -695,7 +695,7 @@
     $('research-source-empty').hidden = sources.size > 0;
     for (const [host, entry] of sources) {
       const blocked = ['blocked','error'].includes(entry.event.stage), kind = blocked ? 'blocked' : entry.extracted ? 'ready' : researchBusy && host === latest ? 'active' : 'visited';
-      const text = {blocked:'受阻', ready:'已提取', active:'读取中', visited:'已浏览'}[kind];
+      const text = {blocked:'已跳过', ready:'已提取', active:'读取中', visited:'已浏览'}[kind];
       let row = rows.get(host);
       if (!row) { row = make('li', 'source-row'); row.dataset.host = host; row.append(make('span', 'source-icon'), make('span', 'source-host', host), make('span', 'source-status')); list.append(row); }
       if (row.dataset.state !== kind) { row.dataset.state = kind; row.firstChild.replaceChildren(stateIcon(kind)); }
@@ -718,8 +718,8 @@
     for (const [host, entry] of sources) {
       const button = make('button', 'research-source'), blocked = ['blocked','error'].includes(entry.event.stage);
       button.type = 'button'; button.dataset.host = host; button.dataset.state = blocked ? 'blocked' : entry.extracted ? 'ready' : 'visited';
-      button.append(make('span', 'source-symbol', blocked ? '!' : entry.extracted ? '✓' : '↗'), make('span', 'source-name', host), make('span', 'source-state', blocked ? '受阻' : entry.extracted ? '已提取' : '已浏览'));
-      button.disabled = !entry.frame; button.setAttribute('aria-label', `${host}，${blocked ? '访问受阻' : entry.extracted ? '已提取' : '已浏览'}${entry.frame ? '，回看页面' : '，暂无截图'}`);
+      button.append(make('span', 'source-symbol', blocked ? '!' : entry.extracted ? '✓' : '↗'), make('span', 'source-name', host), make('span', 'source-state', blocked ? '已跳过' : entry.extracted ? '已提取' : '已浏览'));
+      button.disabled = !entry.frame; button.setAttribute('aria-label', `${host}，${blocked ? '来源暂不可读，已跳过' : entry.extracted ? '已提取' : '已浏览'}${entry.frame ? '，回看页面' : '，暂无截图'}`);
       if (entry.frame) button.addEventListener('click', () => showResearchFrame(entry.frame)); fragment.append(button);
     }
     $('research-sources').replaceChildren(fragment);
@@ -727,7 +727,7 @@
   }
   function appendResearchEvents(events) {
     let latestFrame = null, changed = false;
-    const stageNames = {search:'检索',visit:'浏览',open:'浏览',extract:'提取',normalize:'整理',capture:'页面画面',complete:'已收集',error:'未完成',blocked:'受阻',merge:'合入',source:'来源',query:'关键词',start:'开始'};
+    const stageNames = {search:'检索',visit:'浏览',open:'浏览',extract:'提取',normalize:'整理',capture:'页面画面',complete:'已收集',error:'未完成',blocked:'已跳过',merge:'合入',source:'来源',query:'关键词',start:'开始'};
     for (const event of Array.isArray(events) ? events : []) {
       if (!Number.isInteger(event.seq) || researchEvents.has(event.seq) || typeof event.message !== 'string') continue;
       researchData.set(event.seq, event);
