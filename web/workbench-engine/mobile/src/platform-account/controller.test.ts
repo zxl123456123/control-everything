@@ -69,7 +69,7 @@ function deferred<T>() {
   })
   return { promise, resolve, reject }
 }
-function harness() {
+function harness(hubLogout?: (token: string, signal: AbortSignal) => Promise<boolean>) {
   let stored: AccountRecovery | null = null
   const store = {
     read: vi.fn(async () => stored),
@@ -88,7 +88,8 @@ function harness() {
   const controller = createPlatformAccountController({
     configuration: { status: 'ready', config },
     store,
-    oidc
+    oidc,
+    hubLogout
   })
   return {
     controller,
@@ -562,5 +563,73 @@ describe('hub requests borrow the account session without showing a restoring sc
     expect(h.controller.getAccessToken()).toBeNull()
     expect(h.controller.getSnapshot().status).toBe('signed-out')
     expect(h.stored()).toBeNull()
+  })
+})
+
+describe('logout also signs out of the remote hub', () => {
+  async function signedIn(hubLogout?: (token: string, signal: AbortSignal) => Promise<boolean>) {
+    const h = harness(hubLogout)
+    h.seed(record)
+    await h.controller.restore()
+    expect(h.controller.getSnapshot().status).toBe('signed-in')
+    return h
+  }
+  it('asks the hub with the live access token before the identity service revokes', async () => {
+    const order: string[] = []
+    const hub = vi.fn(async (_token: string, _signal: AbortSignal) => {
+      order.push('hub')
+      return true
+    })
+    const h = await signedIn(hub)
+    h.oidc.revoke.mockImplementation(async () => {
+      order.push('revoke')
+      return 'revoked'
+    })
+    await h.controller.logout()
+    expect(hub).toHaveBeenCalledWith('synthetic-access', expect.any(AbortSignal))
+    expect(order).toEqual(['hub', 'revoke'])
+    expect(h.stored()).toBeNull()
+    expect(h.controller.getSnapshot()).toMatchObject({
+      status: 'signed-out',
+      message: expect.stringContaining('已通知远程 hub')
+    })
+    expect(h.controller.getSnapshot().account).toBeUndefined()
+  })
+  it.each([
+    ['rejects', () => Promise.reject(new Error('synthetic'))],
+    ['is not acknowledged', () => Promise.resolve(false)]
+  ])('still clears locally and says so when the hub call %s', async (_name, result) => {
+    const h = await signedIn(vi.fn(result))
+    h.oidc.revoke.mockResolvedValue('revoked')
+    await h.controller.logout()
+    expect(h.stored()).toBeNull()
+    expect(h.oidc.revoke).toHaveBeenCalledTimes(1)
+    expect(h.controller.getSnapshot()).toMatchObject({
+      status: 'signed-out',
+      message: expect.stringContaining('未能通知远程 hub')
+    })
+  })
+  it('does not call the hub when there is no valid session or no hub is configured', async () => {
+    const hub = vi.fn(async () => true)
+    const noSession = harness(hub)
+    await noSession.controller.logout()
+    expect(hub).not.toHaveBeenCalled()
+    const noHub = await signedIn()
+    await noHub.controller.logout()
+    expect(noHub.controller.getSnapshot().message).not.toContain('hub')
+    const expired = await signedIn(hub)
+    vi.setSystemTime(Date.now() + 120_000)
+    await expired.controller.logout()
+    expect(hub).not.toHaveBeenCalled()
+    expect(expired.stored()).toBeNull()
+    expect(expired.controller.getSnapshot().message).not.toContain('hub')
+  })
+  it('does not call the hub when the local delete failed, so a retry still can', async () => {
+    const hub = vi.fn(async () => true)
+    const h = await signedIn(hub)
+    h.store.remove.mockRejectedValueOnce(new Error('synthetic delete failure'))
+    await h.controller.logout()
+    expect(hub).not.toHaveBeenCalled()
+    expect(h.controller.getSnapshot().status).toBe('logout-error')
   })
 })

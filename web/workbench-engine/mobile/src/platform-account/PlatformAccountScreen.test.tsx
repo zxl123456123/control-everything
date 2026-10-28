@@ -160,6 +160,25 @@ describe('native platform account presentation', () => {
     confirmLogoutVia('退出此 App')
     expect(state.logout).toHaveBeenCalledTimes(1)
   })
+  it('shows the email from the identity service when the hub has not answered', () => {
+    state.snapshot = {
+      status: 'signed-in',
+      account: {
+        issuer: 'i',
+        subject: 's',
+        email: 'user@example.test',
+        expiresAt: 1,
+        persistence: 'refresh'
+      }
+    }
+    expect(render()).toContain('user@example.test')
+    state.snapshot = {
+      status: 'signed-in',
+      account: { issuer: 'i', subject: 's', expiresAt: 1, persistence: 'refresh' }
+    }
+    act(() => renderer.update(createElement(PlatformAccountScreen)))
+    expect(renderer.root.findAllByProps({ testID: 'ce-account-email' })).toHaveLength(0)
+  })
   it('keeps the long explanation collapsed until asked', () => {
     state.snapshot = {
       status: 'signed-in',
