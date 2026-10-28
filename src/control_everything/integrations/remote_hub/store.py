@@ -12,6 +12,9 @@ import time
 from .identity import HubError
 
 RECOVERABLE = ("pending", "provisioned", "online", "offline")
+SCHEMA_VERSION = 2
+# Heartbeat freshness window shared with the browser authorization path.
+ONLINE_WINDOW = 45
 
 
 def token_hash(value):
@@ -60,10 +63,23 @@ class RemoteHubStore:
                 CREATE TABLE IF NOT EXISTS contexts(context_id TEXT PRIMARY KEY, session_hash TEXT NOT NULL,
                     device_id TEXT NOT NULL, generation INTEGER NOT NULL, scope TEXT NOT NULL);
             """)
-            if db.execute("SELECT version FROM schema_version").fetchall()[0][0] != 1:
-                raise ValueError("unsupported_hub_schema")
+            self._migrate(db)
         if os.name != "nt":
             os.chmod(path, 0o600)
+
+    @staticmethod
+    def _migrate(db):
+        """Forward-only, additive migrations; an unknown (newer) version is refused, never downgraded."""
+        version = db.execute("SELECT version FROM schema_version").fetchall()[0][0]
+        if version not in (1, SCHEMA_VERSION):
+            raise ValueError("unsupported_hub_schema")
+        if version == 1:
+            # v2: nullable mobile-facing metadata. Existing rows stay valid with NULLs.
+            for table, column in (("devices", "created_at REAL"), ("devices", "os_name TEXT"),
+                                  ("devices", "os_version TEXT"), ("devices", "app_version TEXT"),
+                                  ("members", "last_logout_at REAL")):
+                db.execute(f"ALTER TABLE {table} ADD COLUMN {column}")
+            db.execute("UPDATE schema_version SET version=?", (SCHEMA_VERSION,))
 
     @contextmanager
     def transaction(self):
@@ -91,8 +107,37 @@ class RemoteHubStore:
         if status not in ("active", "disabled"):
             raise ValueError("invalid_member_status")
         with self.transaction() as db:
-            db.execute("INSERT INTO members VALUES(?,?,?) ON CONFLICT(issuer,sub) DO UPDATE SET status=excluded.status",
+            db.execute("INSERT INTO members(issuer,sub,status) VALUES(?,?,?) ON CONFLICT(issuer,sub) DO UPDATE SET status=excluded.status",
                        (identity.issuer, identity.sub, status))
+            if status == "disabled":
+                self.invalidate_sessions(identity.issuer, identity.sub, db=db)
+
+    def invalidate_sessions(self, issuer, sub, db=None):
+        """Invalidate every live browser session of one member in one statement; returns the count."""
+        if db is None:
+            with self.transaction() as own:
+                return self.invalidate_sessions(issuer, sub, db=own)
+        return db.execute("UPDATE browser_sessions SET invalidated=1 WHERE issuer=? AND sub=? AND invalidated=0",
+                          (issuer, sub)).rowcount
+
+    def mark_logout(self, identity):
+        """Invalidate the member's browser sessions and stamp the logout; never creates a member row."""
+        with self.transaction() as db:
+            db.execute("UPDATE members SET last_logout_at=? WHERE issuer=? AND sub=?",
+                       (self.clock(), identity.issuer, identity.sub))
+            return self.invalidate_sessions(identity.issuer, identity.sub, db=db)
+
+    def member_status(self, identity):
+        with self.transaction() as db:
+            row = db.execute("SELECT status FROM members WHERE issuer=? AND sub=?",
+                             (identity.issuer, identity.sub)).fetchone()
+        return row[0] if row else "inactive"
+
+    def devices_of(self, identity, limit=20):
+        with self.transaction() as db:
+            return [dict(row) for row in db.execute(
+                "SELECT * FROM devices WHERE issuer=? AND sub=? ORDER BY generation DESC LIMIT ?",
+                (identity.issuer, identity.sub, limit))]
 
     def create_invitation(self):
         token = secrets.token_urlsafe(32)
@@ -102,11 +147,16 @@ class RemoteHubStore:
 
     def activate(self, identity, invite):
         with self.transaction() as db:
+            # A disabled member stays disabled; raising here rolls back, so the invite is not consumed.
+            current = db.execute("SELECT status FROM members WHERE issuer=? AND sub=?",
+                                 (identity.issuer, identity.sub)).fetchone()
+            if current is not None and current[0] == "disabled":
+                raise HubError("member_disabled", 403)
             updated = db.execute("UPDATE invites SET consumed_by=? WHERE token_hash=? AND consumed_by IS NULL AND expires>?",
                                  (json.dumps([identity.issuer, identity.sub]), token_hash(invite), self.clock()))
             if updated.rowcount != 1:
                 raise HubError("invalid_invitation", 400)
-            db.execute("INSERT INTO members VALUES(?,?,'active') ON CONFLICT(issuer,sub) DO UPDATE SET status='active'",
+            db.execute("INSERT INTO members(issuer,sub,status) VALUES(?,?,'active') ON CONFLICT(issuer,sub) DO UPDATE SET status='active'",
                        (identity.issuer, identity.sub))
 
     def own_device(self, identity, device_id=None):
@@ -181,9 +231,9 @@ class RemoteHubStore:
             device_id = secrets.token_hex(12)
             generation = 1 + db.execute("SELECT COALESCE(MAX(generation),0) FROM devices WHERE issuer=? AND sub=?",
                                         (identity.issuer, identity.sub)).fetchone()[0]
-            db.execute("INSERT INTO devices(device_id,issuer,sub,installation_id,key_fingerprint,public_key,name,generation,state,http_port,ws_port,proxy_secret) VALUES(?,?,?,?,?,?,?,?,'pending',?,?,?)",
+            db.execute("INSERT INTO devices(device_id,issuer,sub,installation_id,key_fingerprint,public_key,name,generation,state,http_port,ws_port,proxy_secret,created_at) VALUES(?,?,?,?,?,?,?,?,'pending',?,?,?,?)",
                        (device_id, identity.issuer, identity.sub, challenge["installation_id"], challenge["key_fingerprint"],
-                        challenge["public_key"], challenge["name"], generation, *ports, secrets.token_urlsafe(32)))
+                        challenge["public_key"], challenge["name"], generation, *ports, secrets.token_urlsafe(32), self.clock()))
             db.execute("UPDATE enrollments SET consumed=1,device_id=?,generation=? WHERE challenge_id=?",
                        (device_id, generation, challenge_id))
             return dict(db.execute("SELECT * FROM devices WHERE device_id=?", (device_id,)).fetchone())
@@ -240,10 +290,12 @@ class RemoteHubStore:
                 raise HubError("invalid_control_token", 401)
             return dict(row)
 
-    def update_online(self, device, token, online):
+    def update_online(self, device, token, online, info=None):
+        info = info or {}
         with self.transaction() as db:
-            changed = db.execute("UPDATE devices SET state=?,last_heartbeat=? WHERE device_id=? AND control_token_hash=? AND generation=? AND http_port=? AND ws_port=? AND state IN ('provisioned','online','offline') AND EXISTS(SELECT 1 FROM members WHERE members.issuer=devices.issuer AND members.sub=devices.sub AND members.status='active')",
-                                 ("online" if online else "offline", self.clock(), device["device_id"], token_hash(token),
+            changed = db.execute("UPDATE devices SET state=?,last_heartbeat=?,os_name=COALESCE(?,os_name),os_version=COALESCE(?,os_version),app_version=COALESCE(?,app_version) WHERE device_id=? AND control_token_hash=? AND generation=? AND http_port=? AND ws_port=? AND state IN ('provisioned','online','offline') AND EXISTS(SELECT 1 FROM members WHERE members.issuer=devices.issuer AND members.sub=devices.sub AND members.status='active')",
+                                 ("online" if online else "offline", self.clock(), info.get("os_name"), info.get("os_version"),
+                                  info.get("app_version"), device["device_id"], token_hash(token),
                                   device["generation"], device["http_port"], device["ws_port"]))
             if changed.rowcount != 1:
                 raise HubError("invalid_control_token", 401)

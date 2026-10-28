@@ -92,12 +92,67 @@ class IdentityTests(unittest.TestCase):
             validator.authenticate("synthetic-access-token", "desktop")
         self.assertEqual(validator._cache, {})
 
+    def test_mobile_kind_requires_the_mobile_client_and_hub_audience(self):
+        mobile = self.data(azp="workbench-mobile")
+        identity = self.introspector(mobile).authenticate("synthetic-access-token", "mobile")
+        self.assertEqual((identity.sub, identity.azp), ("account-a", "workbench-mobile"))
+        for azp in ("workbench-desktop", "workbench-web", "other"):
+            with self.subTest(azp=azp), self.assertRaises(HubError) as caught:
+                self.introspector(self.data(azp=azp)).authenticate("synthetic-access-token", "mobile")
+            self.assertEqual(caught.exception.status, 403)
+        with self.assertRaises(HubError) as caught:
+            self.introspector(dict(mobile, aud=["account"])).authenticate("synthetic-access-token", "mobile")
+        self.assertEqual(caught.exception.status, 403)
+        # Existing kinds keep rejecting the mobile client.
+        for kind in ("browser", "desktop"):
+            with self.subTest(kind=kind), self.assertRaises(HubError):
+                self.introspector(mobile).authenticate("synthetic-access-token", kind)
+        with self.assertRaises(HubError):
+            self.introspector(mobile).authenticate("synthetic-access-token", "unknown")
+
+    def test_mobile_cache_is_not_shared_across_kinds(self):
+        validator = self.introspector(self.data(azp="workbench-mobile"))
+        validator.authenticate("synthetic-access-token", "mobile")
+        with self.assertRaises(HubError):
+            validator.authenticate("synthetic-access-token", "desktop")
+
+    def test_display_claims_are_optional_and_sanitized(self):
+        plain = self.introspector(self.data(azp="workbench-mobile")).authenticate("synthetic-access-token", "mobile")
+        self.assertEqual((plain.display_name, plain.email), ("", ""))
+        data = self.data(azp="workbench-mobile", email="a@example.test"); data["name"] = "Ada Lovelace"
+        rich = self.introspector(data).authenticate("synthetic-access-token", "mobile")
+        self.assertEqual((rich.display_name, rich.email), ("Ada Lovelace", "a@example.test"))
+        data["name"], data["email"] = "bad\nname", "x" * 300
+        bad = self.introspector(data).authenticate("synthetic-access-token", "mobile")
+        self.assertEqual((bad.display_name, bad.email), ("", ""))
+
+    def test_slow_introspection_does_not_hold_the_cache_lock(self):
+        entered, release = threading.Event(), threading.Event()
+        data = self.data()
+        def transport(token):
+            if token == "synthetic-slow-token-xx":
+                entered.set()
+                self.assertTrue(release.wait(5))
+            return data
+        validator = self.introspector(data)
+        validator.transport = transport
+        with ThreadPoolExecutor(1) as pool:
+            slow = pool.submit(validator.authenticate, "synthetic-slow-token-xx", "desktop")
+            self.assertTrue(entered.wait(2))
+            self.assertTrue(validator._lock.acquire(timeout=1), "lock must be free during network introspection")
+            validator._lock.release()
+            # An unrelated token completes while the slow request is still in flight.
+            self.assertEqual(validator.authenticate("synthetic-access-token", "desktop").sub, "account-a")
+            self.assertFalse(slow.done())
+            release.set()
+            self.assertEqual(slow.result(timeout=2).sub, "account-a")
+
     def introspector(self, data, now=None):
         return TokenIntrospector("https://id.example.test/realms/test", "hub", "synthetic-secret",
                                  clock=lambda: (now or [1000])[0], transport=lambda token: data)
 
     def data(self, **changes):
-        return dict(active=True, sub="account-a", aud=["workbench-hub"], azp="workbench-desktop", exp=2000, **changes)
+        return dict(dict(active=True, sub="account-a", aud=["workbench-hub"], azp="workbench-desktop", exp=2000), **changes)
 
     def test_active_sub_audience_client_and_exp_are_required(self):
         for key, value in (("active", False), ("sub", ""), ("aud", ["wrong"]),
