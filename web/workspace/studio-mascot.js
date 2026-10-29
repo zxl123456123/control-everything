@@ -2,16 +2,14 @@
  *
  * It is a floating overlay (pointer-events: none; the pet itself is hit-tested by the engine), so it never takes focus
  * or blocks a click. Where it lives is a policy, not a habit:
- *   shown   home, inbox, tools, settings (not the account page)
- *   hidden  news (the reader owns its own pet), project / workbench (focused editor and terminal surfaces),
- *           the mobile pairing page, and viewports narrower than MIN_WIDTH
- * Quiet mode, reduced motion and a hidden tab all stop animation and status polling. The spider is a news-only
- * creature and is never mounted here. Preferences come from NewsPetPrefs; the wheel's six fixed slots from NewsPetDial and their handlers from NewsPetDirector
+ *   shown   all Studio and project routes
+ *   hidden  news (the reader owns its own pet)
+ * Quiet mode, reduced motion and a hidden tab stop animation and status polling.
+ * Preferences come from NewsPetPrefs; the wheel's six fixed slots from NewsPetDial and their handlers from NewsPetDirector
  * and the wheel itself from NewsPetWheel. */
 (function (global) {
   'use strict';
 
-  const SHOWN_VIEWS = new Set(['home', 'inbox', 'tools', 'settings']);
   const MIN_WIDTH = 560;
   const HINT_KEY = 'news-reader-pet-hint';
   const HINT_DELAY = 1800;
@@ -25,10 +23,7 @@
    * @returns {{show: boolean, reason: string}}
    */
   function policy(route, env = {}) {
-    if (env.compact) return {show: false, reason: 'compact-viewport'};
     if (route.view === 'news') return {show: false, reason: 'news-owns-pet'};
-    if (route.view === 'settings' && route.tab === 'account') return {show: false, reason: 'pairing-page'};
-    if (!SHOWN_VIEWS.has(route.view)) return {show: false, reason: 'focused-surface'};
     return {show: true, reason: 'workbench'};
   }
 
@@ -50,6 +45,7 @@
    */
   function create(deps) {
     const {host, prefs, director, pets, feed, env} = deps, doc = host.ownerDocument;
+    const themeHost = deps.themeHost || host, railHost = deps.railHost || host;
     const setTimer = deps.setTimer || setTimeout, clearTimer = deps.clearTimer || clearTimeout;
     let current = prefs.read(), engine = null, wheel = null, parts = null, statusFeed = null, hintTimer = null, failedPet = '', disposed = false, lastActions = '', status = {};
 
@@ -63,7 +59,7 @@
 
     const isFullPet = name => Boolean(pets.list().find(pet => pet.name === name)?.status);
     const still = () => current.quiet || env.reduced();
-    const wanted = () => !disposed && current.enabled && failedPet !== current.pet && isFullPet(current.pet)
+    const wanted = () => !disposed && current.enabled && failedPet !== current.pet && pets.list().some(pet => pet.name === current.pet)
       && policy(deps.route(), {compact: env.compact()}).show;
 
     function buildParts() {
@@ -84,12 +80,12 @@
     const signature = () => actions().map(item => `${item.id}:${item.enabled}:${item.checked}`).join();
 
     function options() {
-      return {...director.petOptions(current, true), dock: current.dock === 'bl' ? 'bl' : 'br', theme: host.dataset.theme === 'dark' ? 'dark' : 'light'};
+      return {...director.petOptions(current, isFullPet(current.pet)), dock: current.dock === 'bl' ? 'bl' : 'br', theme: themeHost.dataset.theme === 'dark' ? 'dark' : 'light'};
     }
 
     function place() {
       if (!parts) return;
-      const rail = host.querySelector('.ce-rail'), rect = rail && rail.getBoundingClientRect();
+      const rail = railHost.querySelector('.ce-rail'), rect = rail && rail.getBoundingClientRect();
       // A bottom-left pet must sit beside the rail, never on top of its settings entry.
       parts.root.style.left = rect && rect.width > 0 && current.dock === 'bl' ? `${Math.round(rect.right)}px` : '0px';
     }
@@ -131,7 +127,7 @@
     function syncMotion() {
       if (!engine) return;
       if (still()) engine.pause?.(); else engine.resume?.();
-      const poll = !still() && Boolean(feed);
+      const poll = !still() && Boolean(feed) && isFullPet(current.pet);
       if (poll && !statusFeed) {
         statusFeed = feed.start({apply: patch => { status = {...status, ...patch}; engine?.setStatus?.(status); }, fetchJson: deps.fetchJson});
       } else if (!poll && statusFeed) { statusFeed.stop(); statusFeed = null; }
@@ -140,7 +136,7 @@
     function scheduleHint(tries = 3) {
       clearTimer(hintTimer); hintTimer = null;
       let seen = true; try { seen = Boolean(deps.storage?.getItem(HINT_KEY)); } catch { seen = true; }
-      if (seen || still()) return;
+      if (seen || still() || !isFullPet(current.pet)) return;
       hintTimer = setTimer(() => {
         hintTimer = null;
         if (!engine || still()) return;
@@ -177,12 +173,14 @@
     const unsubscribePrefs = prefs.subscribe(onPrefs);
     const unsubscribeEnv = env.onChange(sync);
     doc.defaultView.addEventListener('news-pet-fallback', onFallback);
+    const syncTheme = () => { if (host !== themeHost && host.dataset.theme !== themeHost.dataset.theme) host.dataset.theme = themeHost.dataset.theme; engine?.setOptions?.(options()); };
+    syncTheme();
     const themeObserver = typeof global.MutationObserver === 'function'
-      ? new global.MutationObserver(() => engine?.setOptions?.(options())) : null;
-    themeObserver?.observe(host, {attributes: true, attributeFilter: ['data-theme']});
-    const railObserver = typeof global.ResizeObserver === 'function' && host.querySelector('.ce-rail')
+      ? new global.MutationObserver(syncTheme) : null;
+    themeObserver?.observe(themeHost, {attributes: true, attributeFilter: ['data-theme']});
+    const railObserver = typeof global.ResizeObserver === 'function' && railHost.querySelector('.ce-rail')
       ? new global.ResizeObserver(place) : null;
-    railObserver?.observe(host.querySelector('.ce-rail'));
+    railObserver?.observe(railHost.querySelector('.ce-rail'));
     sync();
 
     return {
@@ -199,13 +197,13 @@
   }
 
   /** Wires the controller to the real page. */
-  function mount(host, {route, navigate}) {
+  function mount(host, {route, navigate, themeHost, railHost}) {
     const query = text => (global.matchMedia ? global.matchMedia(text) : {matches: false, addEventListener() {}, removeEventListener() {}});
     const narrow = query(`(max-width: ${MIN_WIDTH - 1}px)`), reduced = query('(prefers-reduced-motion: reduce)');
     let storage = null; try { storage = global.localStorage; } catch { storage = null; }
     const fetcher = global.CERemoteContext ? global.CERemoteContext.fetch : global.fetch.bind(global);
     return create({
-      host, route, navigate, storage, prefs: global.NewsPetPrefs, director: global.NewsPetDirector, wheel: global.NewsPetWheel, pets: global.NewsPets,
+      host, themeHost, railHost, route, navigate, storage, prefs: global.NewsPetPrefs, director: global.NewsPetDirector, wheel: global.NewsPetWheel, pets: global.NewsPets,
       feed: global.PetStatusFeed,
       fetchJson: async (url, signal) => {
         const response = await fetcher(url, {headers: {'X-Session-Client': 'panel'}, credentials: 'same-origin', cache: 'no-store', signal});

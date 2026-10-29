@@ -84,14 +84,14 @@ function setup({prefs = {}, route = {view: 'home', tab: ''}, compact = false, re
 const state = (wheel, id) => { const item = wheel.config.actions().find(entry => entry.id === id); return {enabled: item.enabled, reason: item.reason, checked: item.checked}; };
 const ids = wheel => JSON.parse(JSON.stringify(wheel.config.actions().map(item => item.id)));
 
-test('policy shows the mascot on workbench pages and hides it on focused or self-owned surfaces', () => {
+test('policy shows the mascot on all routes except the reader, which owns its own pet', () => {
   const {policy} = setup().window.StudioMascot;
   for (const view of ['home', 'inbox', 'tools']) assert.equal(policy({view}).show, true, view);
   assert.equal(policy({view: 'settings', tab: 'appearance'}).show, true);
-  assert.equal(policy({view: 'settings', tab: 'account'}).reason, 'pairing-page');
+  assert.equal(policy({view: 'settings', tab: 'account'}).show, true);
   assert.equal(policy({view: 'news'}).reason, 'news-owns-pet');
-  for (const view of ['project', 'workbench', 'mobile']) assert.equal(policy({view}).reason, 'focused-surface', view);
-  assert.equal(policy({view: 'home'}, {compact: true}).reason, 'compact-viewport');
+  for (const view of ['project', 'workbench', 'mobile']) assert.equal(policy({view}).show, true, view);
+  assert.equal(policy({view: 'home'}, {compact: true}).show, true);
 });
 
 test('mounts the stored 3D pet on a workbench page and follows the route', () => {
@@ -101,18 +101,19 @@ test('mounts the stored 3D pet on a workbench page and follows the route', () =>
   assert.equal(t.engine().options.actions, undefined, 'and the engine is not handed any actions');
   assert.equal(t.engine().options.options.dock, 'br');
   t.go({view: 'project', id: 'a', tab: 'workspace'});
-  assert.equal(t.live().length, 0);
-  assert.equal(t.parts().length, 0, 'the overlay leaves no DOM behind');
+  assert.equal(t.live().length, 1, 'the same pet stays mounted in the project workspace');
   t.go({view: 'news'});
   assert.equal(t.live().length, 0);
   t.go({view: 'inbox'});
   assert.equal(t.live().length, 1);
 });
 
-test('the spider, a disabled pet and a compact viewport never mount an engine', () => {
-  assert.equal(setup().engines.length, 0, 'default pet is the spider');
+test('the spider and compact viewport mount, while a disabled pet does not', () => {
+  const spider = setup();
+  assert.equal(spider.engine().name, 'spider');
+  assert.equal(spider.feed().starts, 0, 'the spider does not use the 3D pet status feed');
   assert.equal(setup({prefs: {'news-reader-pet': 'naidragon', 'news-reader-pet-enabled': 'false'}}).engines.length, 0);
-  assert.equal(setup({prefs: {'news-reader-pet': 'naidragon'}, compact: true}).engines.length, 0);
+  assert.equal(setup({prefs: {'news-reader-pet': 'naidragon'}, compact: true}).engines.length, 1);
 });
 
 test('size and dock preferences reach the engine; a bottom-left pet sits beside the rail', () => {
@@ -126,12 +127,13 @@ test('size and dock preferences reach the engine; a bottom-left pet sits beside 
   assert.equal(t.host.querySelector('.ce-mascot').style.left, '0px');
 });
 
-test('switching the pet remounts, switching to the spider or off removes the overlay', () => {
+test('switching pets remounts and switching off removes the overlay', () => {
   const t = setup({prefs: {'news-reader-pet': 'naidragon'}});
   t.set({pet: 'tabbycat'});
   assert.deepEqual(t.engines.map(item => [item.name, item.destroyed]), [['naidragon', true], ['tabbycat', false]]);
   t.set({pet: 'spider'});
-  assert.equal(t.live().length, 0);
+  assert.equal(t.engine().name, 'spider');
+  assert.equal(t.live().length, 1);
   t.set({pet: 'naidragon'});
   assert.equal(t.live().length, 1);
   t.set({enabled: false});
@@ -261,11 +263,11 @@ test('a failing mount or the lazy fallback event removes the pet quietly and doe
   assert.equal(t.live().length, 1, 'picking another pet clears the failure');
 });
 
-test('viewport changes through the environment listener hide and restore the pet', () => {
+test('viewport changes keep the pet visible and reduced motion pauses it', () => {
   const t = setup({prefs: {'news-reader-pet': 'naidragon'}});
   assert.equal(t.live().length, 1);
   t.flags.compact = true; t.fireEnv();
-  assert.equal(t.live().length, 0);
+  assert.equal(t.live().length, 1);
   t.flags.compact = false; t.fireEnv();
   assert.equal(t.live().length, 1);
   t.flags.reduced = true; t.fireEnv();

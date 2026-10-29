@@ -144,6 +144,20 @@ test('registry: naidragon is registered; the script is NOT requested until the p
   assert.ok(Object.isFrozen(t.context.window.NewsPets));
 });
 
+test('the spider can load outside the news reader and queued lifecycle calls are applied', async () => {
+  const t = setup({loadSource: false});
+  const api = t.context.NewsPets.mount('spider', mountOpts(t));
+  assert.equal(t.scripts.length, 1);
+  assert.equal(t.scripts[0].src, '/news-spider.js');
+  let resumed = false;
+  t.context.window.NewsSpider = {mount: () => ({resume() { resumed = true; }, inspect: () => ({pet: 'spider'}), destroy() {}})};
+  api.resume(); t.scripts[0].onload();
+  await new Promise(r => setImmediate(r));
+  assert.equal(resumed, true);
+  assert.equal(api.inspect().pet, 'spider');
+  api.destroy();
+});
+
 test('lazy mount: synchronous proxy, one same-origin script, queued calls replayed on the real pet', async () => {
   const t = setup({loadSource: false});
   const api = t.context.NewsPets.mount('naidragon', mountOpts(t));

@@ -64,15 +64,14 @@ test('renders the switches on their defaults and one card per registered pet', (
   assert.deepEqual(cards().map(input => input.checked), [true, false, false]);
 });
 
-test('a form that only lives on the news page says so in one visible line', () => {
+test('every pet is available outside the news page', () => {
   const {container, cards} = setup();
   const note = container.find(node => node.id === 'studio-pet-news-only');
-  assert.equal(note.hidden, false);
-  assert.equal(note.textContent, '蜘蛛只在新闻页出现；想在工作台里看到，请选奶龙或狸花猫。');
+  assert.equal(note.hidden, true);
   cards()[1].choose();
   assert.equal(note.hidden, true);
   cards()[0].choose();
-  assert.equal(note.hidden, false);
+  assert.equal(note.hidden, true);
 });
 
 test('the switches and the cards write the shared preference', () => {
@@ -111,10 +110,10 @@ test('follows changes made elsewhere, such as the wheel hiding the pet', () => {
   assert.equal(checked(toggle), 'false');
 });
 
-test('the page keeps its visible helper text to the one news-page note; the rest is a tooltip', () => {
+test('the page keeps its helper text in tooltips', () => {
   const {container, cards} = setup();
   const visible = () => container.all(node => node.tag === 'p').filter(node => node.textContent && !node.hidden);
-  assert.deepEqual(visible().map(node => node.className), ['ce-pet-note']);
+  assert.deepEqual(visible().map(node => node.className), []);
   cards()[1].choose();
   assert.deepEqual(visible().map(node => node.className), [], 'the note goes away on a pet that shows everywhere');
   const rows = container.all(node => /ce-pet-row/.test(node.className));

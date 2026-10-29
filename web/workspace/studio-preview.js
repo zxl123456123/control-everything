@@ -731,8 +731,21 @@ function mountStudio(root, { onProjects = () => {}, runtimeHost = () => null } =
   };
   document.addEventListener('visibilitychange', visibilityChanged);
   render(); void refresh();
-  if (window.StudioMascot && window.NewsPetPrefs && window.NewsPetDirector) mascot = window.StudioMascot.mount(root, { route, navigate: hash => { location.hash = hash; } });
-  const dispose = () => { disposed = true; for (const controller of pendingArchives) controller.abort(); pendingArchives.clear(); mascot?.dispose(); newsReader?.destroy(); newsTheme?.disconnect(); newsHost?.remove(); progressReturn = null; navigationGeneration++; unsubscribeAppearance?.(); unmountTheme?.(); standaloneTheme?.dispose(); closeProjectMenu(); closeNavigation(); restoreNavigation(); drawer.remove(); window.removeEventListener('resize', resizeNavigation); window.removeEventListener('scroll', closeProjectMenu, true); document.removeEventListener('pointerdown', dismissProjectMenu); request++; clearTimeout(refreshTimer); document.removeEventListener('visibilitychange', visibilityChanged); disposeMobile?.(); disposePets?.(); window.removeEventListener('hashchange', requestedNavigation); window.removeEventListener('platform-before-navigate', beforeNavigate); window.removeEventListener('platform-navigation-accepted', changed); window.removeEventListener('platform-add-project', requestProject); window.removeEventListener('platform-native-project-adopted', nativeProjectAdopted); window.removeEventListener('platform-native-project-action', nativeProjectAction); nativeProjectWrites.clear(); projectDialogTarget?.querySelectorAll('dialog').forEach(dialog => dialog.close()); projectDialogHost?.remove(); monitor?.destroy(); taskCenter?.dispose(); legacyBoard?.dispose(); board.dispose?.(); };
+  let mascotHost = null;
+  if (window.StudioMascot && window.NewsPetPrefs && window.NewsPetDirector) {
+    const options = {route, navigate: hash => { location.hash = hash; }};
+    if (root.dataset.unified === 'true') {
+      // The Studio surface is hidden while the native workbench is visible. Keep the
+      // mascot in its own styled surface outside that hidden subtree.
+      mascotHost = document.createElement('div'); mascotHost.className = 'ce-global-mascot-host';
+      const shadow = mascotHost.attachShadow({mode: 'open'}), style = document.createElement('link');
+      const surface = document.createElement('div'); surface.id = 'ce-studio'; surface.className = 'ce-global-mascot-surface';
+      style.rel = 'stylesheet'; style.href = '/studio-preview.css';
+      style.onload = () => { if (!disposed) mascot = window.StudioMascot.mount(surface, {...options, themeHost: root, railHost: root}); };
+      shadow.append(style, surface); document.body.append(mascotHost);
+    } else mascot = window.StudioMascot.mount(root, options);
+  }
+  const dispose = () => { disposed = true; for (const controller of pendingArchives) controller.abort(); pendingArchives.clear(); mascot?.dispose(); mascotHost?.remove(); newsReader?.destroy(); newsTheme?.disconnect(); newsHost?.remove(); progressReturn = null; navigationGeneration++; unsubscribeAppearance?.(); unmountTheme?.(); standaloneTheme?.dispose(); closeProjectMenu(); closeNavigation(); restoreNavigation(); drawer.remove(); window.removeEventListener('resize', resizeNavigation); window.removeEventListener('scroll', closeProjectMenu, true); document.removeEventListener('pointerdown', dismissProjectMenu); request++; clearTimeout(refreshTimer); document.removeEventListener('visibilitychange', visibilityChanged); disposeMobile?.(); disposePets?.(); window.removeEventListener('hashchange', requestedNavigation); window.removeEventListener('platform-before-navigate', beforeNavigate); window.removeEventListener('platform-navigation-accepted', changed); window.removeEventListener('platform-add-project', requestProject); window.removeEventListener('platform-native-project-adopted', nativeProjectAdopted); window.removeEventListener('platform-native-project-action', nativeProjectAction); nativeProjectWrites.clear(); projectDialogTarget?.querySelectorAll('dialog').forEach(dialog => dialog.close()); projectDialogHost?.remove(); monitor?.destroy(); taskCenter?.dispose(); legacyBoard?.dispose(); board.dispose?.(); };
   const unsubscribeContext = window.CERemoteContext?.onInactive(dispose);
   const handle = () => { unsubscribeContext?.(); dispose(); };
   handle.setVisible = value => { studioVisible=!!value; newsReader?.setVisible(studioVisible && route().view === 'news'); };

@@ -190,9 +190,8 @@
         const forms = pets.list();
         if (cardInputs.size !== forms.length || forms.some(form => !cardInputs.has(form.name))) buildCards(forms);
         for (const [name, input] of cardInputs) input.checked = name === next.pet;
-        const everywhere = forms.filter(form => form.status).map(form => form.label), picked = forms.find(form => form.name === next.pet);
-        newsOnlyNote.hidden = !picked || picked.status || !everywhere.length;
-        newsOnlyNote.textContent = everywhere.length ? `${picked ? picked.label : ''}只在新闻页出现；想在工作台里看到，请选${everywhere.join('或')}。` : '';
+        newsOnlyNote.hidden = true;
+        newsOnlyNote.textContent = '';
         mark(enabled, next.enabled); mark(quiet, next.quiet); mark(newsFx, next.newsFx);
         selectOption(size, next.size); selectOption(dock, next.dock);
       }
