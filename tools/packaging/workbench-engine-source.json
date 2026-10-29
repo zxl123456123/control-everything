@@ -327099,6 +327099,7 @@
     "src/renderer/src/components/sidebar/WorkspaceOverview.tsx",
     "src/renderer/src/store/slices/tabs/tabs-git-graph.test.ts",
     "src/renderer/src/store/slices/tabs/tabs-git-graph.ts",
+    "src/renderer/src/web/preload-api/web-app-api.identity.test.ts",
     "src/renderer/src/web/preload-api/web-git-api-history.test.ts",
     "src/shared/workspace-layout/workspace-layout-git-graph-tab.test.ts",
     "src/shared/workspace-layout/workspace-layout-git-graph-tab.ts"
@@ -328007,8 +328008,8 @@
     {
       "path": "src/renderer/src/web/preload-api/web-app-api.ts",
       "upstream_sha256": "45d9733aefd46b788b4ec300eb07ddabb649541876c6f6753446b7c952310f57",
-      "current_sha256": "c290d0d8e353d89f90eddc0f77df60bc57a945e422674b42f420d41e431330b5",
-      "reason": "M1a-W: product identity and same-origin asset base"
+      "current_sha256": "1cd1cab5fe2b52bdc6d0349d644505e2c9833f51d3f5e7f99e6b5a16df271c68",
+      "reason": "M1a-W: product identity and same-origin asset base DEV-VIEWS: apply platform identity and exact integrated UI copy; omit upstream promotion without changing standalone branding, protocols or legal provenance."
     },
     {
       "path": "src/renderer/src/web/preload-api/web-keybindings-api.ts",
@@ -328765,6 +328766,18 @@
       "upstream_sha256": "e75c0a169c3a394d402917c40496d1e0a83d2108e7d967a570fe807869e63033",
       "current_sha256": "ef1c20fa39c11b4c713e0e16a85782760d920eb7f577b1c2b08c44afaf3c88eb",
       "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
+      "path": "src/renderer/src/components/settings/GeneralPane.section-lifetime.test.tsx",
+      "upstream_sha256": "082bd6d5bdafb5014742d691f646958d55e5f82d702009c911789e6ec63750f2",
+      "current_sha256": "b63e42b30b4904591155c5871a0117857cf5fcf42fd7220a60ce3229ba62a1ae",
+      "reason": "DEV-VIEWS: apply platform identity and exact integrated UI copy; omit upstream promotion without changing standalone branding, protocols or legal provenance."
+    },
+    {
+      "path": "src/renderer/src/components/settings/GeneralPane.tsx",
+      "upstream_sha256": "00fdf10f2960cbab0b9a6e9ed91ad9f331196eef2ff7be4f2d3a7523a15bd2e0",
+      "current_sha256": "41243be0a25f4e104fcba37677021222c96fe35f9068a308068bb21e5aebf765",
+      "reason": "DEV-VIEWS: apply platform identity and exact integrated UI copy; omit upstream promotion without changing standalone branding, protocols or legal provenance."
     },
     {
       "path": "src/renderer/src/components/sidebar/WorkspaceKanbanDrawer.search.test.tsx",

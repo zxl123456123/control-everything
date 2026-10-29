@@ -57,6 +57,35 @@ describe('platform UI copy through the existing translation entry', () => {
     }
   )
 
+  it.each(['/studio', '/workbench/web-index.html'])(
+    'uses the same daily UI names on the real platform route %s',
+    async (pathname) => {
+      window.location.pathname = pathname
+      await setRendererUiLanguage('zh')
+      expect(
+        translate(
+          'auto.components.sidebar.WorktreeVisibilityDialog.83a5ba8dd1',
+          'Non-Orca worktrees'
+        )
+      ).toBe('外部工作树')
+      expect(
+        translate('auto.components.settings.GeneralEditorSettingsSection.d21136d9ef', 'Orca editor')
+      ).toBe('配置编辑器保存文件修改的方式。')
+      expect(
+        translate('auto.components.settings.TerminalAppearanceSection.d455f2ef4f', 'Orca cursor')
+      ).toBe('终端窗格的默认光标外观。')
+      expect(
+        translate(
+          'auto.components.settings.CursorAccountsSection.signedInFrom',
+          'Orca reads {{source}}',
+          {
+            source: 'Orca user keychain'
+          }
+        )
+      ).toBe('已登录。读取保存在 Orca user keychain 中的会话。')
+    }
+  )
+
   it.each(['en', 'zh'] as const)(
     'uses the platform server title in the real settings navigation in %s',
     async (language) => {

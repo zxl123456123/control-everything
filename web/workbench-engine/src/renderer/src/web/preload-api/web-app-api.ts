@@ -16,7 +16,9 @@ export function createWebAppApi(): Partial<PreloadApi> {
         Promise.reject(new Error('Administrator restart requires the Windows desktop app.')),
       getIdentity: () =>
         Promise.resolve({
-          name: window.location.pathname.startsWith('/workbench/') ? 'Control Everything' : 'Orca',
+          name: ['/studio', '/workbench/web-index.html'].includes(window.location.pathname)
+            ? 'Control Everything'
+            : 'Orca',
           isDev: false,
           devLabel: null,
           devBranch: null,

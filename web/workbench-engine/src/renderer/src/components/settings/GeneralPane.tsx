@@ -285,7 +285,8 @@ export function GeneralPane({
   return (
     <div className="space-y-6">
       <SettingsSectionStack sections={visibleSections} spacing="section" />
-      {matchesSettingsSearch(searchQuery, getGeneralSupportSearchEntries()) ? (
+      {!['/studio', '/workbench/web-index.html'].includes(window.location.pathname) &&
+      matchesSettingsSearch(searchQuery, getGeneralSupportSearchEntries()) ? (
         <GeneralSupportSection
           hasPrecedingSections={visibleSections.some((section) => section !== null)}
         />

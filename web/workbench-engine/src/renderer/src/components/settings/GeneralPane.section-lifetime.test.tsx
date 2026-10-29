@@ -8,6 +8,7 @@ const fake = vi.hoisted(() => ({
   getVersion: vi.fn(async () => '1.4.100'),
   refresh: vi.fn(async () => {}),
   action: vi.fn(),
+  supportMount: vi.fn(),
   updates: new Map([
     ['synthetic-host', { environmentId: 'synthetic-host', phase: 'current', name: 'Synthetic' }]
   ])
@@ -37,7 +38,10 @@ vi.mock('@/components/settings/GeneralWorkspaceSettingsSection', () => ({
 }))
 vi.mock('@/components/settings/CliSection', () => ({ CliSection: () => null }))
 vi.mock('@/components/settings/GeneralSupportSection', () => ({
-  GeneralSupportSection: () => null
+  GeneralSupportSection: () => {
+    fake.supportMount()
+    return <div>Support Orca</div>
+  }
 }))
 vi.mock('@/components/settings/ReleaseChannelSection', () => ({
   ReleaseChannelSection: () => <div>Release picker open</div>
@@ -48,6 +52,7 @@ vi.mock('@/components/settings/DefaultWindowsProjectRuntimeSetting', () => ({
 beforeEach(() => {
   vi.clearAllMocks()
   fake.query = ''
+  window.history.replaceState({}, '', '/web-index.html')
   fake.updates = new Map([
     ['synthetic-host', { environmentId: 'synthetic-host', phase: 'current', name: 'Synthetic' }]
   ])
@@ -56,7 +61,31 @@ beforeEach(() => {
 afterEach(() => {
   cleanup()
   Reflect.deleteProperty(window, 'api')
+  window.history.replaceState({}, '', '/')
 })
+
+it.each(['/studio', '/workbench/web-index.html', '/web-index.html'])(
+  'mounts upstream support only in standalone mode: %s',
+  async (pathname) => {
+    window.history.replaceState({}, '', pathname)
+    fake.query = 'star'
+    render(
+      <GeneralPane
+        settings={getDefaultSettings('/synthetic')}
+        updateSettings={vi.fn()}
+        fontSuggestions={[]}
+      />
+    )
+    await act(async () => {})
+    if (pathname === '/web-index.html') {
+      expect(fake.supportMount).toHaveBeenCalledOnce()
+      expect(screen.getByText('Support Orca')).toBeTruthy()
+    } else {
+      expect(fake.supportMount).not.toHaveBeenCalled()
+      expect(screen.queryByText('Support Orca')).toBeNull()
+    }
+  }
+)
 it.each([false, true])(
   'retains update sections with Windows runtime support %s',
   async (wslSupportedPlatform) => {
