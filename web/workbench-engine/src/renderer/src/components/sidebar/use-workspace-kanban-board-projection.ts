@@ -10,6 +10,7 @@ import {
   composeWorktreeHostIdentity,
   getWorktreeHostIdentity
 } from '../../../../shared/worktree/host-qualified-identity'
+import type { Repo } from '../../../../shared/repo-types'
 import type { Worktree } from '../../../../shared/worktree/types'
 import type { ExecutionHostId } from '../../../../shared/execution-host'
 import type { WorktreeDragGroup } from './worktree-manual-order'
@@ -21,6 +22,7 @@ export function useWorkspaceKanbanBoardProjection(args: {
   allWorktrees: readonly Worktree[]
   open: boolean
   repoMap: ReturnType<typeof useRepoMap>
+  repoMapByHostIdentity: ReadonlyMap<string, Repo>
   sortBy: ReturnType<typeof useAppStore.getState>['sortBy']
   workspaceStatuses: ReturnType<typeof useAppStore.getState>['workspaceStatuses']
 }) {
@@ -67,7 +69,8 @@ export function useWorkspaceKanbanBoardProjection(args: {
   const search = useWorkspaceKanbanSearch({
     open: args.open,
     worktrees: boardWorktrees,
-    repoMap: args.repoMap
+    repoMap: args.repoMap,
+    repoMapByHostIdentity: args.repoMapByHostIdentity
   })
   const laneViews = useMemo(
     () =>

@@ -64,6 +64,9 @@
 .platform-project-all-tasks {white-space:nowrap;color:var(--muted-foreground);font-size:12px;text-decoration:none}
 
 :root[data-platform-view=studio] .platform-runtime-status[data-pending=true]:not([hidden]) {display:block;padding:16px 20px;text-align:left;font-size:13px}
+.platform-runtime-status[data-recovering=true]:not([hidden]) {display:flex;flex-wrap:wrap;align-items:center;gap:6px 16px;padding:8px 18px;text-align:left;font-size:13px;background:var(--accent);pointer-events:auto;position:relative;z-index:80}
+.platform-runtime-status[data-recovering=true] .platform-runtime-recovery {margin-top:0;gap:12px}
+.platform-project-content[aria-busy=true] {opacity:.75}
 .platform-runtime-recovery {display:flex;gap:16px;align-items:center;margin-top:12px}
 .platform-runtime-recovery button,.platform-runtime-recovery a {padding:8px 14px;border:1px solid var(--border);border-radius:7px;color:var(--foreground)}
 
