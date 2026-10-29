@@ -141,13 +141,15 @@ lint-imports --config tools/architecture/importlinter.ini --no-cache --no-logo
 原生交付与反馈 API 继续保留当前 delivery ID、版本和发送回执等原有合同，旧人工验收仍要求结论、理由和确认；本次只移除进展展示页的写操作。保存、输入已接受、观察到继续执行与完成仍是不同事实，历史回执按实际状态显示，送达未知不能自动重发。项目外工作台样式和开发区保持原职责；本模块继承宿主主题，真实 Shadow DOM、黑白主题与窄屏交互须另行验证。
 
 
-先初始化独立测试 profile，注册合成 Git 项目，完成源码单元构建与运行隔离验证后，用开发入口启动。`--workspace-root` 只填写本次允许测试的目录，可重复传入；各路径必须使用本机实际绝对路径：
+开发预览默认沿用启动进程的本机工具路径、用户目录、Git 与 Agent 配置，应用项目库和运行时状态仍写入显式指定的独立 profile；不复制账号凭据。可登记本机真实项目进行开发，也可使用合成 Git 项目复现问题。完成源码单元构建后，用开发入口启动。`--workspace-root` 只填写本次允许使用的项目目录，可重复传入；各路径必须使用本机实际绝对路径：
 
 ```powershell
 python tools/scripts/preview_workbench.py --data-dir C:/example/checkout/work/preview/profile --build-run C:/example/checkout/work/workbench-engine-build/local --git C:/example/git/git.exe --workspace-root C:/example/checkout/work/preview/repo --port 8769
 ```
 
-入口先绑定平台端口，再显式准备自有运行时，获得确切 WebSocket 地址后才提供页面。打开 `http://127.0.0.1:8769/studio`；GET 页面不会隐式启动进程，浏览器不持有owner凭据。退出时只回收本次管理的进程，失败保留证据。此入口用于合成数据开发验收，未代表个人项目、模型付费调用、Android或自建账号现场已通过。
+需要空白工具环境做隔离测试时，在命令末尾加 `--isolated-environment`；此时 PATH、HOME 和 Agent 配置目录改用预览专用值。通常的本机开发不加这个参数。继承环境只决定工具与配置从哪里读取，不代表 Agent 已登录、启动成功或完成模型调用；验收须分别记录。
+
+入口先绑定平台端口，再显式准备自有运行时，获得确切 WebSocket 地址后才提供页面。打开 `http://127.0.0.1:8769/studio`；端口不决定环境继承，配置由服务启动方式决定，浏览器不持有owner凭据。退出时只回收本次管理的进程，失败保留证据。页面可打开不代表个人项目、模型付费调用、Android或自建账号现场已通过。
 
 `preview_studio.py` 仅供静态资源检查，不提供业务 API，页面会明确显示数据加载失败，不能将其作为融合验收。定向验证：
 
