@@ -58,12 +58,13 @@ let orcadSecretStore: OrcadSecretStore | null = null
 /** Loads the sealing key kept in `keyDir`; resolves whether sealing works. */
 export async function prepareOrcadSecretStore(
   keyDir: string,
-  userDataPath: string
+  userDataPath: string,
+  requireExistingKey = false
 ): Promise<boolean> {
   if (!orcadSecretStore) {
     throw new Error('orcad_secret_store_not_installed — call installOrcadHostAdapters() first')
   }
-  return orcadSecretStore.prepare({ keyDir, userDataPath })
+  return orcadSecretStore.prepare({ keyDir, userDataPath, requireExistingKey })
 }
 
 /**

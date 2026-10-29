@@ -134,7 +134,7 @@ def _news_runtime(root, engine_relative, files):
     return {'node': str(root / node), 'playwright_core': str(root / core)}
 
 
-def build_desktop(product_root, data_dir=None, port=8766):
+def build_desktop(product_root, data_dir=None, port=8766, *, credential_root=None):
     root = manifest.no_links(product_root).resolve()
     document = manifest.verify_payload(root)
     names = {entry['path'] for entry in document['files']}
@@ -152,7 +152,7 @@ def build_desktop(product_root, data_dir=None, port=8766):
     try:
         runtime = WorkbenchRuntime(RuntimeConfig(path('engine_root'), path('build_run'),
                                                  server.profile.data_dir / 'workbench', path('git'), (),
-                                                 inherit_host_environment=True))
+                                                 inherit_host_environment=True, credential_root=credential_root))
         server.workbench_assets = WorkbenchAssets(path('engine_root') / 'out/web', path('build_run') / 'web-assets.json')
         connector = None
         setup = InitialServerConfig(server.profile.data_dir / 'remote', path('ssh'), path('keygen'))
@@ -178,6 +178,7 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--product-root', type=Path, required=True)
     parser.add_argument('--data-dir', type=Path)
+    parser.add_argument('--credential-root', type=Path)
     parser.add_argument('--sandbox-lock-root', type=Path)
     parser.add_argument('--installed-data-dir', help=argparse.SUPPRESS)
     parser.add_argument('--port', type=int, default=8766)
@@ -193,7 +194,8 @@ def main(argv=None):
     if args.sandbox_lock_root is not None:
         from control_everything.platform.windows_acl import configure_desktop_lock_root
         configure_desktop_lock_root(args.sandbox_lock_root)
-    desktop = build_desktop(args.product_root, args.data_dir, args.port)
+    options = {'credential_root': args.credential_root} if args.credential_root is not None else {}
+    desktop = build_desktop(args.product_root, args.data_dir, args.port, **options)
     try:
         desktop.start()
         print(f'本机电脑绑定：{desktop.server.local_origin}/desktop', flush=True)

@@ -14,6 +14,7 @@ import { join } from 'node:path'
 import process from 'node:process'
 import { getAppEnvironment } from '../../shared/app-environment'
 import { isPlatformRuntime, readPlatformRuntimePolicy } from '../platform-runtime-policy'
+import { hasExplicitPlatformCredentialRoot } from '../credentials/credential-root'
 import { ALL_RPC_METHODS } from '../runtime/rpc/methods'
 import { platformOwnerMethods } from './platform-owner-methods'
 import { PLATFORM_TASK_PROGRESS_METHODS } from './platform-task-progress-methods'
@@ -93,7 +94,10 @@ async function prepareOrcadSecretStoreAndMigrate(userDataPath: string): Promise<
   const { migratePlaintextCredentials, orcadCredentialRoot } =
     await import('./orcad-plaintext-credential-migration')
   // Why the credential root, not userData: a disposable ORCA_USER_DATA would take the key with it.
-  if (await prepareOrcadSecretStore(orcadCredentialRoot(), userDataPath)) {
+  const required = hasExplicitPlatformCredentialRoot()
+  const ready = await prepareOrcadSecretStore(orcadCredentialRoot(), userDataPath, required)
+  if (required && !ready) throw new Error('platform_credential_key_unavailable')
+  if (ready) {
     migratePlaintextCredentials(getSecretStore())
   }
   reportSecretProtectionGap({ dataFile: join(userDataPath, 'orca-data.json') })

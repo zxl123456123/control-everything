@@ -71,8 +71,19 @@ class DesktopAssemblyTests(unittest.TestCase):
                  patch('control_everything.http.desktop._news_runtime', return_value={}), \
                  patch('control_everything.http.desktop.WorkbenchAssets'), \
                  patch('control_everything.http.desktop.WorkbenchRuntime') as runtime:
-                build_desktop(root)
+                build_desktop(root, credential_root=root / 'profile' / 'workbench' / 'state' / 'credentials')
             self.assertTrue(runtime.call_args.args[0].inherit_host_environment)
+            self.assertEqual(runtime.call_args.args[0].credential_root,
+                             root / 'profile' / 'workbench' / 'state' / 'credentials')
+
+    def test_explicit_credential_directory_reaches_desktop_assembly(self):
+        from control_everything.http import desktop as module
+        with TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            selected = root / 'state' / 'credentials'
+            with patch.object(module, 'build_desktop') as build, patch.object(module.webbrowser, 'open'):
+                module.main(['--product-root', str(root), '--credential-root', str(selected)])
+            self.assertEqual(build.call_args.kwargs, {'credential_root': selected})
 
     def test_news_runtime_uses_only_manifest_registered_node_and_exact_core(self):
         with TemporaryDirectory() as temporary:
