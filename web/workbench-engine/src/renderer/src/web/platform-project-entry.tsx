@@ -4,6 +4,8 @@ import { lazyWithRetry as lazy } from '@/lib/lazy-with-retry'
 import { saveStoredWebRuntimeEnvironment } from './web-runtime-environment'
 import { initWebDeviceKeySupport } from './web-device-key-support'
 import './platform-project-entry.css'
+import './platform-workbench.css'
+import { PlatformWorkspaceHeader } from './PlatformWorkspaceHeader'
 import {
   createPlatformEnvironment,
   loadPlatformProjectBootstrap,
@@ -34,6 +36,7 @@ function WorkspaceMounted({ onReady }: { onReady: () => void }): null {
 }
 
 export default function PlatformProjectEntry(): React.JSX.Element {
+  const workspaceContentRef = useRef<HTMLDivElement>(null)
   const [data, setData] = useState<PlatformProjectBootstrap | null>(null)
   const [runtimeData, setRuntimeData] = useState<PlatformRuntimeBootstrap | null>(null)
   const [runtimeError, setRuntimeError] = useState('')
@@ -363,6 +366,23 @@ export default function PlatformProjectEntry(): React.JSX.Element {
       previous.forEach((inert, element) => { element.inert = inert })
     }
   }, [pauseWorkspacePortals])
+  useLayoutEffect(() => {
+    const content = workspaceContentRef.current!
+    const updateBounds = () => {
+      // Portaled panels follow live chrome, including notices and the canvas inset.
+      const canvas = content.querySelector<HTMLElement>('[data-workbench-canvas]')
+      const tabs = canvas?.querySelector<HTMLElement>('[data-workbench-tabs]')?.getBoundingClientRect()
+      const top = tabs?.height ? tabs.bottom : (canvas || content).getBoundingClientRect().top + (canvas?.clientTop || 0) + 36
+      document.documentElement.style.setProperty('--platform-workspace-panel-top', `${top}px`)
+    }
+    const observer = new ResizeObserver(updateBounds)
+    observer.observe(content)
+    updateBounds()
+    return () => {
+      observer.disconnect()
+      document.documentElement.style.removeProperty('--platform-workspace-panel-top')
+    }
+  }, [showWorkspace, showSettings, showWorkbench])
   useEffect(() => {
     if (!contextActive || (!showWorkspace && !showWorkbench)) return
     let active = true
@@ -526,19 +546,15 @@ export default function PlatformProjectEntry(): React.JSX.Element {
   }, [connected, chosen?.name, archived?.name])
   return (
     <div className="platform-project-entry bg-background">
-      {projectId && (
-        <nav className="platform-project-tabs" aria-label="项目工作区导航">
-          <a href="#home" className="platform-project-back">
-            项目总览
-          </a>
-        </nav>
+      {(projectId || workbench || globalSettings) && (
+        <PlatformWorkspaceHeader projectName={projectId ? (chosen?.name || archived?.name || '项目') : undefined}
+          settings={projectSettings || globalSettings} />
       )}
       {navigationNotice && (
         <p role="status" className="platform-navigation-notice">
           {navigationNotice}
         </p>
       )}
-      {workbench && <nav className="platform-project-tabs" aria-label="项目工作台导航"><a href="#home" className="platform-project-back">项目总览</a></nav>}
       <PlatformStudioSurface
         hidden={displayWorkspace || showSettings || showWorkbench}
         pending={Boolean(nativeSettings || workbench || (developing && !showWorkspace && !archived))}
@@ -594,7 +610,7 @@ export default function PlatformProjectEntry(): React.JSX.Element {
       {runtimeData && (workbench || globalSettings) && <Suspense fallback={null}><PlatformRuntimeNavigation data={runtimeData} projects={projects}
         active={workbench || globalSettings} workbench={workbench} entryRevision={acceptedRevision}
         settingsScope={globalSettings ? scope : undefined} onReady={onRuntimeReady} /></Suspense>}
-      <div className="platform-project-content" hidden={!displayWorkspace && !showSettings && !showWorkbench}
+      <div ref={workspaceContentRef} className="platform-project-content" hidden={!displayWorkspace && !showSettings && !showWorkbench}
         inert={!showWorkspace && !showSettings && !showWorkbench} aria-busy={retainWorkspace && !showWorkspace}>
         <PlatformProjectContext.Provider
           value={connected && (readyData === data || retainWorkspace) && !unlinkedWorkspace ? data : null}

@@ -3,10 +3,11 @@
 import { act, type JSX, type ReactNode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { FEATURE_TIPS, type FeatureTip } from '../../../../shared/feature-tips'
 import { NativeChatUpgradeTipDialog } from './NativeChatUpgradeTipDialog'
 import { NativeChatUpgradeFeatureTipVisual } from './NativeChatUpgradeFeatureTipVisual'
+import { i18n, setRendererUiLanguage } from '@/i18n/i18n'
 
 vi.mock('@/components/ui/dialog', () => ({
   Dialog: ({ children }: { children: ReactNode }) => <div>{children}</div>,
@@ -61,6 +62,26 @@ function renderDialog(chatModeOn: boolean): string {
 }
 
 describe('NativeChatUpgradeTipDialog', () => {
+  beforeEach(async () => {
+    window.history.replaceState(null, '', '/')
+    await i18n.changeLanguage('en')
+  })
+  afterEach(() => window.history.replaceState(null, '', '/'))
+
+  it('keeps the platform compact without conflating enable and acknowledge actions', async () => {
+    window.history.replaceState(null, '', '/studio')
+    await setRendererUiLanguage('zh')
+    const disabledHtml = renderDialog(false)
+    expect(disabledHtml).toContain('使用聊天与终端视图')
+    expect(disabledHtml).toContain('sm:max-w-[440px]')
+    expect(disabledHtml).not.toContain('data-highlighted=')
+    expect(textOf(disabledHtml)).toContain('暂不开启')
+    expect(textOf(disabledHtml)).toContain('立即开启')
+    expect(textOf(disabledHtml)).not.toContain('知道了')
+    const enabledHtml = renderDialog(true)
+    expect(textOf(enabledHtml)).toContain('知道了')
+    expect(textOf(enabledHtml)).not.toContain('立即开启')
+  })
   it('shows the approved copy with one Got It button and the Experimental settings link', () => {
     const text = textOf(renderDialog(true))
     expect(text).toContain('New')

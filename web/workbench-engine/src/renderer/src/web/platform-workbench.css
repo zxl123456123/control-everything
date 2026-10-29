@@ -1,0 +1,365 @@
+/* Platform presentation only; terminal sizing, drag geometry and saved layouts stay native. */
+:root:has(.platform-workspace-header) {
+  --platform-header-height: 52px;
+}
+
+:root:has(.platform-project-entry) {
+  --ce-workbench-chrome: #f3f4f6;
+  --ce-workbench-panel: #ffffff;
+  --ce-workbench-line: #e1e4e8;
+  --ce-workbench-selected: #e8ebef;
+  --ce-workbench-ink: #20252c;
+  --ce-workbench-muted: #646c77;
+  background: var(--ce-workbench-chrome);
+}
+
+:root.dark:has(.platform-project-entry) {
+  --ce-workbench-chrome: #15171b;
+  --ce-workbench-panel: #1c1f24;
+  --ce-workbench-line: #30353d;
+  --ce-workbench-selected: #2e343d;
+  --ce-workbench-ink: #eceef2;
+  --ce-workbench-muted: #a0a8b4;
+}
+
+.platform-project-entry {
+  background: var(--ce-workbench-chrome);
+}
+
+.platform-workspace-header {
+  display: flex;
+  align-items: center;
+  flex: 0 0 var(--platform-header-height);
+  min-width: 0;
+  gap: 24px;
+  padding: 0 20px;
+  border-bottom: 1px solid var(--ce-workbench-line);
+  background: var(--ce-workbench-panel);
+  color: var(--ce-workbench-ink);
+}
+
+.platform-workspace-brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-shrink: 0;
+  font-size: 14px;
+  font-weight: 650;
+  letter-spacing: -0.025em;
+}
+.platform-workspace-monogram {
+  display: grid;
+  place-items: center;
+  width: 29px;
+  height: 29px;
+  border-radius: 8px;
+  background: var(--ce-workbench-ink);
+  color: var(--ce-workbench-panel);
+  font-size: 12px;
+  font-weight: 750;
+}
+.platform-workspace-header .platform-project-tabs {
+  flex: 1 1 0;
+  gap: 10px;
+  padding: 0;
+  min-height: 0;
+  border: 0;
+  background: transparent;
+}
+.platform-workspace-header .platform-project-back {
+  gap: 6px;
+  min-height: 32px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ce-workbench-muted);
+}
+.platform-workspace-separator {
+  flex-shrink: 0;
+  color: var(--ce-workbench-muted);
+  opacity: 0.55;
+}
+.platform-workspace-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+  font-weight: 600;
+}
+.platform-workspace-caption {
+  flex-shrink: 0;
+  font-size: 11px;
+  color: var(--ce-workbench-muted);
+}
+
+.platform-project-entry .platform-runtime-status {
+  padding: 4px 20px;
+  min-height: 0;
+  color: var(--ce-workbench-muted);
+  background: var(--ce-workbench-chrome);
+}
+.platform-project-entry .platform-runtime-status > [role='status']:empty {
+  display: none;
+}
+.platform-project-entry .platform-runtime-status:not(:has(details)):has(> [role='status']:empty) {
+  padding-block: 0;
+}
+.platform-project-entry .platform-workspace-context summary {
+  font-size: 11px;
+  line-height: 18px;
+}
+.platform-project-entry .platform-workspace-context > div {
+  background: var(--ce-workbench-panel);
+  border-color: var(--ce-workbench-line);
+  border-radius: 10px;
+  padding: 12px 16px;
+}
+
+.platform-project-entry .platform-project-content {
+  animation: none;
+  --background: var(--ce-workbench-panel);
+  --sidebar: var(--ce-workbench-chrome);
+  --worktree-sidebar: var(--ce-workbench-chrome);
+  --worktree-sidebar-accent: var(--ce-workbench-selected);
+  --worktree-sidebar-border: var(--ce-workbench-line);
+  --worktree-sidebar-foreground: var(--ce-workbench-ink);
+  --worktree-sidebar-accent-foreground: var(--ce-workbench-ink);
+  --border: var(--ce-workbench-line);
+}
+
+.platform-project-entry [data-workbench-shell] {
+  background: var(--ce-workbench-chrome);
+}
+.platform-project-entry [data-workbench-canvas] {
+  margin: 8px 8px 8px 0;
+  border: 1px solid var(--ce-workbench-line);
+  border-radius: 12px;
+  background: var(--ce-workbench-panel);
+  box-shadow: 0 2px 5px #00000005;
+}
+.platform-project-entry :is(.titlebar, .titlebar-left) {
+  background: var(--ce-workbench-chrome);
+  border-color: transparent;
+}
+.platform-project-entry .titlebar-app-name-main {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ce-workbench-muted);
+  letter-spacing: 0.04em;
+}
+.platform-project-entry [data-workbench-sidebar] {
+  color: var(--ce-workbench-ink);
+}
+.platform-project-entry [data-contextual-tour-target='sidebar-navigation'] {
+  gap: 3px;
+  padding: 4px 12px 10px;
+}
+.platform-project-entry [data-contextual-tour-target='sidebar-navigation'] > button,
+.platform-project-entry
+  [data-contextual-tour-target='sidebar-navigation']
+  > [data-slot='context-menu-trigger']
+  > button {
+  min-height: 34px;
+  border-radius: 7px;
+  font-size: 13px;
+  letter-spacing: 0;
+}
+.platform-project-entry [data-contextual-tour-target='sidebar-navigation'] > button:first-child {
+  margin-bottom: 5px;
+  background: var(--ce-workbench-panel);
+  border: 1px solid var(--ce-workbench-line);
+  color: var(--ce-workbench-muted);
+}
+.platform-project-entry [data-workbench-sidebar-heading] {
+  margin: 0 12px 6px;
+  padding: 10px 0 0;
+  height: 40px;
+  border-top: 1px solid var(--ce-workbench-line);
+}
+.platform-project-entry [data-sidebar-section-title] {
+  padding-left: 0;
+  color: var(--ce-workbench-muted);
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+}
+.platform-project-entry [data-worktree-card-surface] {
+  border-radius: 8px;
+  transition-duration: 140ms;
+}
+.platform-project-entry [data-worktree-card-surface]:not([data-worktree-card-active]):hover {
+  background: var(--ce-workbench-selected);
+}
+.platform-project-entry [data-worktree-card-surface][data-worktree-card-active='primary'] {
+  background: var(--ce-workbench-panel);
+  border-color: var(--ce-workbench-line);
+  box-shadow:
+    inset 3px 0 0 var(--ce-workbench-ink),
+    0 1px 3px #00000005;
+}
+.platform-project-entry [data-worktree-card-surface][data-worktree-card-active='secondary'],
+.platform-project-entry [data-worktree-card-surface][data-worktree-card-selected='true'] {
+  background: var(--ce-workbench-selected);
+  border-color: var(--ce-workbench-line);
+}
+.platform-project-entry [data-workbench-tabs] {
+  background: var(--ce-workbench-chrome);
+}
+.platform-project-entry .terminal-tab-strip {
+  border-right-color: transparent;
+}
+.platform-project-entry .terminal-tab-strip [data-tab-id] {
+  font-size: 12px;
+}
+.platform-project-entry .terminal-tab-strip [data-tab-id][data-active='true'] {
+  background: var(--ce-workbench-panel);
+  box-shadow: inset 0 -2px 0 var(--ce-workbench-ink);
+}
+
+.platform-project-entry [data-workbench-landing] {
+  overflow-y: auto;
+}
+.platform-project-entry [data-workbench-landing] > div:first-child {
+  max-width: 560px;
+}
+.platform-project-entry [data-workbench-landing] .workbench-start-content {
+  align-items: flex-start;
+  gap: 18px;
+  padding: 32px 16px;
+}
+.platform-project-entry [data-workbench-landing] .workbench-start-mark {
+  width: 42px;
+  height: 42px;
+  border: 0;
+  border-radius: 11px;
+  box-shadow: none;
+}
+.platform-project-entry [data-workbench-landing] .workbench-start-mark > span {
+  font-size: 16px;
+}
+.platform-project-entry [data-workbench-landing] h1 {
+  font-size: 28px;
+  line-height: 1.3;
+  font-weight: 650;
+  letter-spacing: -0.035em;
+}
+.platform-project-entry [data-workbench-landing] p {
+  text-align: left;
+  line-height: 1.7;
+}
+.platform-project-entry [data-workbench-landing] .workbench-start-actions {
+  justify-content: flex-start;
+}
+.platform-project-entry [data-workbench-landing] .workbench-start-actions button {
+  min-height: 38px;
+  padding: 8px 14px;
+  border-radius: 7px;
+}
+.platform-project-entry [data-workbench-landing] .workbench-start-actions button:first-child {
+  color: var(--ce-workbench-panel);
+  background: var(--ce-workbench-ink);
+  border-color: var(--ce-workbench-ink);
+}
+.platform-project-entry [data-workbench-landing] .workbench-start-shortcuts {
+  max-width: none;
+  margin-top: 12px;
+  padding-top: 20px;
+  border-top: 1px solid var(--ce-workbench-line);
+}
+.platform-project-entry [data-workbench-landing] .workbench-start-shortcuts > div {
+  padding-block: 3px;
+}
+.platform-project-entry [data-workbench-landing] .workbench-start-shortcuts > div > span {
+  font-size: 12px;
+}
+
+/* Portaled overview keeps the native sidebar offset and measured virtual rows. */
+:root:has(.platform-project-entry) [data-workspace-board-sheet] {
+  border-radius: 12px 0 0 12px;
+  border: 1px solid var(--ce-workbench-line);
+  background: var(--ce-workbench-chrome);
+  box-shadow: -8px 4px 30px #00000012;
+}
+:root:has(.platform-project-entry) [data-workspace-overview-card] {
+  background: var(--ce-workbench-panel);
+  border-color: var(--ce-workbench-line);
+  padding: 12px;
+  border-radius: 10px;
+}
+:root:has(.platform-project-entry) [data-workspace-overview-card]:hover {
+  border-color: var(--muted-foreground);
+}
+:root:has(.platform-project-entry) [data-workspace-overview-card] [data-worktree-card-surface] {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+:root:has(.platform-project-entry)
+  [data-workspace-overview-card]:has([data-worktree-card-active='primary']) {
+  box-shadow: inset 3px 0 0 var(--ce-workbench-ink);
+}
+
+@media (max-width: 900px) {
+  .platform-workspace-header {
+    gap: 14px;
+    padding-inline: 12px;
+  }
+  .platform-workspace-caption {
+    display: none;
+  }
+  .platform-project-entry [data-workbench-canvas] {
+    margin: 4px 4px 4px 0;
+    border-radius: 8px;
+  }
+}
+
+@media (max-width: 600px) {
+  .platform-workspace-header {
+    gap: 10px;
+    padding-inline: 10px;
+  }
+  .platform-workspace-brand > span:last-child {
+    display: none;
+  }
+  .platform-workspace-header .platform-project-tabs {
+    gap: 5px;
+  }
+  .platform-workspace-header .platform-project-back {
+    padding-inline: 4px;
+  }
+  .platform-workspace-title {
+    font-size: 13px;
+  }
+  .platform-project-entry [data-workbench-landing] .workbench-start-content {
+    padding: 20px 0;
+  }
+  .platform-project-entry [data-workbench-landing] h1 {
+    font-size: 23px;
+  }
+}
+
+@media (pointer: coarse) {
+  .platform-workspace-header .platform-project-back {
+    min-height: 44px;
+  }
+  .platform-project-entry [data-contextual-tour-target='sidebar-navigation'] > button {
+    min-height: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .platform-project-entry [data-worktree-card-surface] {
+    transition: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .platform-project-entry [data-worktree-card-active='primary'] {
+    outline: 2px solid Highlight;
+    outline-offset: -2px;
+  }
+  .platform-workspace-monogram {
+    border: 1px solid ButtonText;
+  }
+}

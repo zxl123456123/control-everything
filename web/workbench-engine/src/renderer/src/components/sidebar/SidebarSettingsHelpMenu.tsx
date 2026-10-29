@@ -23,6 +23,9 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
 import { useMountedRef } from '@/hooks/useMountedRef'
@@ -139,11 +142,33 @@ function PlatformSettingsHelpMenu(): React.JSX.Element {
           <DropdownMenuSeparator />
           <div className="px-2 py-1.5 text-xs text-muted-foreground" role="note">
             掌控一切 · 项目工作区
-            <br />
-            开源组件：Orca · MIT License
-            <br />
-            Copyright © 2026 Lovecast Inc.
           </div>
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger>
+              <ScrollText className="size-3.5" />
+              第三方许可
+            </DropdownMenuSubTrigger>
+            <DropdownMenuSubContent className="w-64">
+              <div
+                className="px-2 py-1.5 text-xs leading-relaxed text-muted-foreground"
+                role="note"
+              >
+                开源组件：Orca · MIT License
+                <br />
+                Copyright © 2026 Lovecast Inc.
+              </div>
+              <DropdownMenuItem
+                onSelect={() =>
+                  openExternalUrl(
+                    `${GITHUB_URL}/blob/32370a5e05a22935adb79f6cbf83a3228fe879ac/LICENSE`
+                  )
+                }
+              >
+                <ExternalLink className="size-3.5" />
+                查看源码与完整许可
+              </DropdownMenuItem>
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
         </DropdownMenuContent>
       </DropdownMenu>
     </div>

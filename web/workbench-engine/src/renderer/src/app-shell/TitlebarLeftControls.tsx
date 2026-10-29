@@ -72,10 +72,10 @@ export function TitlebarLeftControls({ layout }: { layout: AppChromeLayout }): R
             <ContextMenuTrigger asChild>
               <div
                 className="titlebar-app-name"
-                aria-label={platformMode ? '掌控一切' : translate('auto.App.5096cbbc86', 'Orca')}
+                aria-label={platformMode ? '工作区导航' : translate('auto.App.5096cbbc86', 'Orca')}
               >
                 <span className="titlebar-app-name-main">
-                  {platformMode ? '掌控一切' : translate('auto.App.5096cbbc86', 'Orca')}
+                  {platformMode ? '工作区' : translate('auto.App.5096cbbc86', 'Orca')}
                 </span>
               </div>
             </ContextMenuTrigger>

@@ -3,9 +3,10 @@
 import { act, type ReactNode, type RefObject } from 'react'
 import { createRoot } from 'react-dom/client'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { FEATURE_TIPS, type FeatureTip } from '../../../../shared/feature-tips'
 import { VoiceDictationTipDialog } from './VoiceDictationTipDialog'
+import { i18n, setRendererUiLanguage } from '@/i18n/i18n'
 
 const shortcutMock = vi.hoisted(() => vi.fn(() => ({ keys: ['⌘', 'E'], doubleTap: false })))
 const dialogContentPropsMock = vi.hoisted(() => vi.fn())
@@ -67,10 +68,24 @@ function renderDialog(): string {
 }
 
 describe('VoiceDictationTipDialog', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
+    window.history.replaceState(null, '', '/')
+    await i18n.changeLanguage('en')
     shortcutMock.mockReturnValue({ keys: ['⌘', 'E'], doubleTap: false })
     dialogContentPropsMock.mockClear()
     featureTipActionsPropsMock.mockClear()
+  })
+  afterEach(() => window.history.replaceState(null, '', '/'))
+
+  it('uses the compact platform frame while keeping voice setup as the action', async () => {
+    window.history.replaceState(null, '', '/studio')
+    await setRendererUiLanguage('zh')
+    const html = renderDialog()
+    expect(html).toContain('在当前面板中语音输入')
+    expect(html).not.toContain('voice-visual')
+    expect(dialogContentPropsMock.mock.lastCall?.[0]['data-feature-tip-layout']).toBe('compact')
+    expect(featureTipActionsPropsMock.mock.lastCall?.[0].label).toBe('设置语音输入')
+    expect(featureTipActionsPropsMock.mock.lastCall?.[0].currentTip.action).toBe('enable-voice')
   })
 
   it('uses the established feature-tip layout and durable copy', () => {
