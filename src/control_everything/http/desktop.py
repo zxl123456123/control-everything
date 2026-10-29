@@ -11,14 +11,15 @@ from urllib.parse import urlsplit
 from control_everything.http.gateway import build_profile_server
 from control_everything.http.workbench import WorkbenchAssets
 from control_everything.installation import manifest
-from control_everything.integrations.remote_connector import ConnectorConfig, ConnectorStore, RemoteConnector, ConnectorError
+from control_everything.integrations.remote_connector import ConnectorConfig, ConnectorStore, RemoteConnector, ConnectorError, InitialServerConfig
 from control_everything.integrations.remote_account import RemoteAccount
 from control_everything.integrations.workbench_runtime import RuntimeConfig, WorkbenchRuntime, WorkbenchUnavailable, safe_path
 
 
 class Desktop:
-    def __init__(self, server, runtime, connector=None, account=None):
+    def __init__(self, server, runtime, connector=None, account=None, server_setup=None):
         self.server, self.runtime, self.connector = server, runtime, connector
+        self.server_setup = server_setup
         self._stop = threading.Event()
         self._worker = None
         self.restart_required = False
@@ -146,11 +147,17 @@ def build_desktop(product_root, data_dir=None, port=8766):
                                                  inherit_host_environment=True))
         server.workbench_assets = WorkbenchAssets(path('engine_root') / 'out/web', path('build_run') / 'web-assets.json')
         connector = None
-        if config['issuer'] or config['hub_origin']:
-            connector = RemoteConnector(ConnectorConfig(config['issuer'], config['hub_origin'], path('ssh'), path('keygen')),
-                                        ConnectorStore(server.profile.data_dir / 'remote'), on_revoked=runtime.revoke_remote_devices)
+        setup = InitialServerConfig(server.profile.data_dir / 'remote', path('ssh'), path('keygen'))
+        embedded = {'issuer': config['issuer'], 'hub_origin': config['hub_origin']}
+        selected = setup.load(embedded if embedded['issuer'] or embedded['hub_origin'] else None) or embedded
+        if selected['issuer'] or selected['hub_origin']:
+            remote_root = server.profile.data_dir / 'remote'
+            if selected.get('storage') == 'isolated':
+                remote_root = remote_root / 'self-hosted'
+            connector = RemoteConnector(ConnectorConfig(selected['issuer'], selected['hub_origin'], path('ssh'), path('keygen')),
+                                        ConnectorStore(remote_root), on_revoked=runtime.revoke_remote_devices)
         account = RemoteAccount(connector.peer, connector.store) if connector else None
-        return Desktop(server, runtime, connector, account)
+        return Desktop(server, runtime, connector, account, setup if not connector else None)
     except Exception:
         server.server_close()
         raise

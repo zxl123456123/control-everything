@@ -34,6 +34,27 @@ test('raw independent 401 never parses JSON and exposes only login',async()=>{
   for(const name of ['activation','invitations','revoke-area','open'])assert.equal(f.get(name).hidden,true);
   assert.match(f.get('status').textContent,/请登录/);assert.equal(f.navigations.length,0);f.dispose();
 });
+test('unconfigured local account can save service addresses with CSRF and asks for restart',async()=>{
+  const f=fixture((path,options)=>response(path==='/api/bootstrap'?{csrf_token:'local'}:path==='/api/desktop/account/configure'?{saved:true,restart_required:true}:{configured:false,state:'unbound'}),{mode:'local'});
+  await settle(); assert.equal(f.get('service-config').hidden,false);
+  f.get('service-issuer').value='https://identity.example.test/realms/team'; f.get('service-hub').value='https://hub.example.test';
+  f.get('service-config').emit('submit'); await settle();
+  const writes=f.calls.filter(call=>call.options.method==='POST'); assert.equal(writes.length,1);
+  assert.equal(writes[0].path,'/api/desktop/account/configure'); assert.equal(writes[0].options.headers['X-Session-CSRF'],'local');
+  assert.deepEqual(JSON.parse(writes[0].options.body),{issuer:'https://identity.example.test/realms/team',hub_origin:'https://hub.example.test'});
+  assert.equal(f.get('service-config').hidden,true); assert.match(f.get('status').textContent,/重新打开软件/); assert.match(f.get('device-help').textContent,/已保存.*重新打开软件/);
+  f.click('refresh'); await settle(); assert.match(f.get('status').textContent,/重新打开软件/); assert.match(f.get('device-help').textContent,/已保存.*重新打开软件/); f.dispose();
+});
+test('remote and configured accounts do not expose or submit service configuration',async()=>{
+  for(const mode of ['remote','local']){const f=fixture(path=>response(path==='/api/bootstrap'?{csrf_token:'local'}:mode==='remote'?session():{configured:true,state:'unbound'}),{mode});await settle();
+    assert.equal(f.get('service-config').hidden,true); f.get('service-issuer').value='https://identity.example.test'; f.get('service-hub').value='https://hub.example.test'; f.get('service-config').emit('submit'); await settle();
+    assert.equal(f.calls.filter(call=>call.options.method==='POST').length,0); f.dispose();}
+});
+test('failed service configuration gives an actionable message and allows retry',async()=>{
+  const f=fixture((path)=>response(path==='/api/bootstrap'?{csrf_token:'local'}:path==='/api/desktop/account/configure'?{error:'remote_configuration_locked'}:{configured:false,state:'unbound'},path==='/api/desktop/account/configure'?409:200),{mode:'local'}); await settle();
+  f.get('service-issuer').value='https://identity.example.test'; f.get('service-hub').value='https://hub.example.test'; f.get('service-config').emit('submit'); await settle();
+  assert.match(f.get('service-config-status').textContent,/保存失败/);assert.equal(f.button('configure').disabled,false);assert.equal(f.get('service-config').hidden,false);f.dispose();
+});
 test('independent new session adopts its account and successful logout retires page state',async()=>{
   const f=fixture(path=>response(path.endsWith('/session')?session({session_changed:true,admin:true}):{logout_url:'/oauth2/sign_out'}));await settle();
   assert.equal(f.get('account').textContent,'测试成员');assert.equal(f.get('invitations').hidden,false);assert.equal(f.notices.length,1);
@@ -83,7 +104,7 @@ test('local rows show identity only when supplied and keep stable states out of 
     assert.equal(f.get('status').textContent,''); assert.equal(f.get('device-help').textContent,'');
     assert.equal(f.get('device-state').textContent,({unbound:'尚未绑定',authorizing:'授权中',revoked:'连接已撤销',online:'在线',offline:'离线',connecting:'连接中',enrolling:'绑定中'})[state]); f.dispose();
   }
-  const f=fixture(path=>response(path==='/api/bootstrap'?{csrf_token:'local'}:{state:'unbound',configured:false}),{mode:'local'});await settle();assert.equal(f.get('membership').textContent,'账号服务未配置');assert.equal(f.get('local-actions').hidden,true);assert.equal(f.button('authorize').disabled,true);assert.equal(f.button('authorize').hidden,true);assert.match(f.get('device-help').textContent,/没有启用账号服务.*不影响本机项目/);f.dispose();
+  const f=fixture(path=>response(path==='/api/bootstrap'?{csrf_token:'local'}:{state:'unbound',configured:false}),{mode:'local'});await settle();assert.equal(f.get('membership').textContent,'账号服务未配置');assert.equal(f.get('local-actions').hidden,true);assert.equal(f.button('authorize').disabled,true);assert.equal(f.button('authorize').hidden,true);assert.match(f.get('device-help').textContent,/先填写账号和设备服务地址/);f.dispose();
 });
 test('local polling is serial, visibility-aware and disposal clears timers/listeners/late responses',async()=>{
   let release,reads=0;const f=fixture(path=>path==='/api/bootstrap'?response({csrf_token:'local'}):++reads===1?response({state:'online',configured:true}):new Promise(resolve=>release=resolve),{mode:'local'});await settle();assert.equal(f.get('device-state').textContent,'在线');assert.equal(f.timers.size,1);f.window.document.hidden=true;await f.tick();assert.equal(reads,1);f.window.document.hidden=false;await f.tick();await f.tick();assert.equal(reads,2);const signal=f.calls.at(-1).options.signal;f.dispose();assert.equal(signal.aborted,true);assert.equal(f.timers.size,0);assert.equal(f.button('authorize').listenerCount,0);release(response({state:'offline',account:{sub:'late'}}));await settle();assert.notEqual(f.get('account').textContent,'late');

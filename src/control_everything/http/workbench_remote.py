@@ -10,7 +10,7 @@ from control_everything.integrations.remote_connector import ConnectorError
 PATHS = {"/api/desktop/remote/status", "/api/desktop/remote/authorize",
          "/api/desktop/remote/confirm", "/api/desktop/remote/revoke"}
 ACCOUNT_PATHS = {"/api/desktop/account/" + name for name in
-                 ("status", "authorize", "logout", "members", "invitations", "activate")}
+                 ("status", "authorize", "logout", "members", "invitations", "activate", "configure")}
 
 
 def handle_account(handler, path, *, write=False):
@@ -26,9 +26,16 @@ def handle_account(handler, path, *, write=False):
         if query and (write or name != "members"):
             raise ValueError("invalid_request")
         body = handler.read_json_body(max_bytes=1024, strict=True) if write else {}
-        if not isinstance(body, dict) or set(body) != ({"invite"} if name == "activate" else set()):
+        expected = {"invite"} if name == "activate" else {"issuer", "hub_origin"} if name == "configure" else set()
+        if not isinstance(body, dict) or set(body) != expected:
             raise ValueError("invalid_request")
-        if account is None:
+        if name == "configure" and write:
+            setup = getattr(getattr(handler.server, "desktop", None), "server_setup", None)
+            if account is not None or setup is None:
+                raise ConnectorError("remote_configuration_locked", 409)
+            setup.configure(body['issuer'], body['hub_origin'])
+            value = {"saved": True, "restart_required": True}
+        elif account is None:
             if name != "status" or write:
                 raise ConnectorError("remote_not_configured", 409)
             value = {"configured": False, "state": "signed_out", "account": None, "admin": False}

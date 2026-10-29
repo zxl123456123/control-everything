@@ -158,3 +158,32 @@ class LocalAccountBoundaryTests(unittest.TestCase):
             handle_account(handler, "/api/desktop/account/members")
             handler.reject.assert_called_once_with(400, "invalid_request")
             handler.server.desktop_account.members.assert_not_called()
+
+    def test_initial_configuration_requires_local_controls_and_an_unconfigured_account(self):
+        from control_everything.http.workbench_remote import handle_account
+        path = '/api/desktop/account/configure'
+        body = {'issuer': 'https://identity.example.test/realm', 'hub_origin': 'https://hub.example.test'}
+        for headers in ({'Host': 'attacker.test'}, {'Origin': 'https://attacker.test'},
+                        {'X-Session-CSRF': 'wrong'}, {'X-Session-Client': 'stdio'},
+                        {'X-CE-Proxy-Token': 'proxy'}):
+            handler = self.handler(**headers)
+            handler.path = path
+            handler.server.desktop_account = None
+            handler.server.desktop = SimpleNamespace(server_setup=Mock())
+            handler.read_json_body.return_value = body
+            handle_account(handler, path, write=True)
+            handler.reject.assert_called_once_with(403, 'local_control_required')
+            handler.server.desktop.server_setup.configure.assert_not_called()
+        handler = self.handler()
+        handler.path = path
+        handler.server.desktop_account = None
+        handler.server.desktop = SimpleNamespace(server_setup=Mock())
+        handler.read_json_body.return_value = body
+        handle_account(handler, path, write=True)
+        handler.server.desktop.server_setup.configure.assert_called_once_with(body['issuer'], body['hub_origin'])
+        handler.reply.assert_called_once_with(200, {'saved': True, 'restart_required': True})
+        handler.server.desktop_account = Mock()
+        handler.server.desktop.server_setup.configure.reset_mock()
+        handle_account(handler, path, write=True)
+        handler.reject.assert_called_once_with(409, 'remote_configuration_locked')
+        handler.server.desktop.server_setup.configure.assert_not_called()
