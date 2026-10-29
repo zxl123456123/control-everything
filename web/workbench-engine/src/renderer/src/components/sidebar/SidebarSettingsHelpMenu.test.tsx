@@ -95,6 +95,13 @@ vi.mock('@/components/ui/dropdown-menu', () => ({
     </button>
   ),
   DropdownMenuSeparator: () => <hr />,
+  DropdownMenuSub: ({ children }: { children: ReactNode }) => (
+    <div data-testid="submenu">{children}</div>
+  ),
+  DropdownMenuSubTrigger: ({ children }: { children: ReactNode }) => <button>{children}</button>,
+  DropdownMenuSubContent: ({ children }: { children: ReactNode }) => (
+    <div data-testid="submenu-content">{children}</div>
+  ),
   DropdownMenuTrigger: ({ children }: { children: ReactNode }) => <>{children}</>
 }))
 
@@ -202,6 +209,9 @@ describe('SidebarSettingsHelpMenu', () => {
     const container = await renderMenu()
     expect(container.textContent).toContain('掌控一切 · 项目工作区')
     expect(container.textContent).toContain('Orca · MIT License')
+    const licenses = container.querySelector('[data-testid="submenu"]')
+    expect(licenses?.textContent).toContain('第三方许可')
+    expect(licenses?.textContent).toContain('Copyright © 2026 Lovecast Inc.')
     for (const label of [
       'Send Feedback',
       'Onboarding',
@@ -219,6 +229,10 @@ describe('SidebarSettingsHelpMenu', () => {
     expect(mocks.openSettingsPage).toHaveBeenCalledTimes(1)
     expect(mocks.shellOpenUrl).not.toHaveBeenCalled()
     expect(mocks.updaterCheck).not.toHaveBeenCalled()
+    await act(async () => findMenuItem(container, '查看源码与完整许可').click())
+    expect(mocks.shellOpenUrl).toHaveBeenCalledWith(
+      'https://github.com/stablyai/orca/blob/32370a5e05a22935adb79f6cbf83a3228fe879ac/LICENSE'
+    )
   })
 
   it('renders the settings button with correct aria-label', () => {

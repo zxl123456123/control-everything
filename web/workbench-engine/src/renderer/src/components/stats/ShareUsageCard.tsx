@@ -96,6 +96,9 @@ export const ShareUsageCard = forwardRef<HTMLDivElement, ShareUsageCardProps>(
 )
 
 function CardHeader(props: { providerLabel: string; range: string }): React.JSX.Element {
+  const platformMode =
+    typeof window !== 'undefined' &&
+    ['/studio', '/workbench/web-index.html'].includes(window.location.pathname)
   return (
     <div
       style={{
@@ -108,7 +111,28 @@ function CardHeader(props: { providerLabel: string; range: string }): React.JSX.
     >
       <div style={{ display: 'table-cell', verticalAlign: 'middle' }}>
         <div style={{ display: 'inline-block', verticalAlign: 'middle' }}>
-          <OrcaLogo />
+          {platformMode ? (
+            <span
+              aria-hidden="true"
+              style={{
+                display: 'inline-flex',
+                width: 30,
+                height: 30,
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: 8,
+                background: '#fafafa',
+                color: '#171717',
+                fontSize: 12,
+                fontWeight: 700,
+                verticalAlign: 'middle'
+              }}
+            >
+              CE
+            </span>
+          ) : (
+            <OrcaLogo />
+          )}
         </div>
         <div style={{ display: 'inline-block', verticalAlign: 'middle', marginLeft: 10 }}>
           <div style={{ fontSize: 14, fontWeight: 600, color: '#fafafa', lineHeight: 1.2 }}>

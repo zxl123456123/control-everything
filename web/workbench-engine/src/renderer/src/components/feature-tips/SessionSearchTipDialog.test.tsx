@@ -1,11 +1,12 @@
 import type { ReactNode } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { unavailableSessionSearchStatus } from '../../../../shared/ai-vault-search-client'
 import type { AiVaultSearchStatus } from '../../../../shared/ai-vault-search-types'
 import { FEATURE_TIPS, type FeatureTip } from '../../../../shared/feature-tips'
 import { SessionSearchTipDialog } from './SessionSearchTipDialog'
 import type { SessionSearchTipStage } from './use-session-search-tip-setup'
+import { i18n, setRendererUiLanguage } from '@/i18n/i18n'
 
 vi.mock('./SessionSearchFeatureTipVisual', () => ({
   SessionSearchFeatureTipVisual: () => <div data-testid="session-search-visual" />
@@ -44,6 +45,22 @@ function render(stage: SessionSearchTipStage, status: AiVaultSearchStatus | null
 }
 
 describe('SessionSearchTipDialog', () => {
+  beforeEach(async () => {
+    await i18n.changeLanguage('en')
+  })
+  afterEach(() => vi.unstubAllGlobals())
+
+  it('offers session search without mounting the platform demonstration', async () => {
+    vi.stubGlobal('window', { location: { pathname: '/workbench/web-index.html' } })
+    await setRendererUiLanguage('zh')
+    const html = render('offer', null)
+    expect(html).toContain('查找智能体历史会话')
+    expect(html).toContain('开启会话搜索')
+    expect(html).not.toContain('session-search-visual')
+    expect(
+      render('indexing', { ...unavailableSessionSearchStatus(), enabled: true })
+    ).not.toContain('Orca')
+  })
   it('offers to turn search on and links to its settings', () => {
     const html = render('offer', null)
     expect(html).toContain('Search every agent session')

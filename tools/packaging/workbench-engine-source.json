@@ -327102,7 +327102,8 @@
     "src/renderer/src/web/preload-api/web-app-api.identity.test.ts",
     "src/renderer/src/web/preload-api/web-git-api-history.test.ts",
     "src/shared/workspace-layout/workspace-layout-git-graph-tab.test.ts",
-    "src/shared/workspace-layout/workspace-layout-git-graph-tab.ts"
+    "src/shared/workspace-layout/workspace-layout-git-graph-tab.ts",
+    "src/renderer/src/components/stats/ShareUsageCard.branding.test.tsx"
   ],
   "adapted_files": [
     {
@@ -327768,14 +327769,14 @@
     {
       "path": "src/renderer/src/components/sidebar/SidebarSettingsHelpMenu.test.tsx",
       "upstream_sha256": "febba0fe5688703c6760e276450831c1a6bf5e0afa85a04ac1f94f61936ebc91",
-      "current_sha256": "b879cdfd6303b336a41777ebbc0af581035228e1adbbb8fde90577cd21894d5d",
-      "reason": "M1a-W: platform settings retained and official service entrances absent"
+      "current_sha256": "f51dbc6d4dba5ce1cfee5615422c16820b12999d45a5d7fd2fbfbfeb6966ab8a",
+      "reason": "M1a-W: platform settings retained and official service entrances absent；平台工作台统一视觉与品牌展示。"
     },
     {
       "path": "src/renderer/src/components/sidebar/SidebarSettingsHelpMenu.tsx",
       "upstream_sha256": "8f35317e72bfc9f11179dd74dc2af60e29f055ee1da99f84607f103e0823c215",
-      "current_sha256": "06d1a38026d7c3857faced7b75da68a8ec7fd1e04a4d852a65ed4eec33afeb1d",
-      "reason": "M1a-W: platform help without official service entrances; preserve license attribution; M1a navigation: preserve a single project workspace while integrating platform business views"
+      "current_sha256": "d71aa184f2c2cd61d20ee18e7f8e694f69095b3db6908c1f838ceabc5b25a868",
+      "reason": "M1a-W: platform help without official service entrances; preserve license attribution; M1a navigation: preserve a single project workspace while integrating platform business views；平台工作台统一视觉与品牌展示。"
     },
     {
       "path": "src/renderer/src/components/sidebar/SidebarToolbar.tsx",
@@ -328308,20 +328309,20 @@
     {
       "path": "src/renderer/src/components/feature-tips/CmdJPaletteTipDialog.test.tsx",
       "upstream_sha256": "295879f0983a4e58c4016b6efb12abd55daa8299e9fead1ae05e65580b6efc0d",
-      "current_sha256": "64c8bc78620671d3edef8b42b59440dd75045b95dfacd772dec1d0613d98a85e",
-      "reason": "UI r1 S8: fixed window appearance and bounded recovery/help presentation; CmdJPaletteTipDialog.test.tsx."
+      "current_sha256": "a3fbc154a8f6b1c89e8617e8449dd21066ec8186215c758e4e45d03136a15152",
+      "reason": "UI r1 S8: fixed window appearance and bounded recovery/help presentation; CmdJPaletteTipDialog.test.tsx.；平台工作台统一视觉与品牌展示。"
     },
     {
       "path": "src/renderer/src/components/feature-tips/FeatureTipDialogFrame.tsx",
       "upstream_sha256": "7acc87808c01560b22628fcfd1e5bc4d28f61e7c38c9eaefff616d968c0c9d76",
-      "current_sha256": "09b423c73ea60df4c7c31a7ceb49eab2efded929342eb8d59fa8a83d398d143b",
-      "reason": "UI r1 S8: fixed window appearance and bounded recovery/help presentation; FeatureTipDialogFrame.tsx."
+      "current_sha256": "a7ff9ec1406c08e5e1d55ee2eebc2fdfd6b5a10c1902d80779cc09f41be09f1b",
+      "reason": "UI r1 S8: fixed window appearance and bounded recovery/help presentation; FeatureTipDialogFrame.tsx.；平台工作台统一视觉与品牌展示。"
     },
     {
       "path": "src/renderer/src/components/feature-tips/NativeChatUpgradeTipDialog.test.tsx",
       "upstream_sha256": "24982448e2185f592b1b63774fc7c297b34fc29a72b7d3313e341b51403dad7f",
-      "current_sha256": "8a6851509e5ffcd0f8af6a77ebe9505fd1a2e4734951ab029e0839e0a73d6875",
-      "reason": "UI r1 S8: fixed window appearance and bounded recovery/help presentation; NativeChatUpgradeTipDialog.test.tsx."
+      "current_sha256": "64af1061b98d4fde59a1729df580b3e20145005785094de928f2ebba041fa0e0",
+      "reason": "UI r1 S8: fixed window appearance and bounded recovery/help presentation; NativeChatUpgradeTipDialog.test.tsx.；平台工作台统一视觉与品牌展示。"
     },
     {
       "path": "src/renderer/src/components/feature-tips/NativeChatUpgradeTipDialog.tsx",
@@ -328332,8 +328333,8 @@
     {
       "path": "src/renderer/src/components/feature-tips/VoiceDictationTipDialog.test.tsx",
       "upstream_sha256": "67359eb84aa8094e4409beb513a216191796282e3b8078c81bcbedbe1c208631",
-      "current_sha256": "2a534b97b4b2b5d1c9cf619bfe54e043ec384c5ef3a6cbb8ccfd94b912424a41",
-      "reason": "UI r1 S8: fixed window appearance and bounded recovery/help presentation; VoiceDictationTipDialog.test.tsx."
+      "current_sha256": "54c238f97bddb3209740f4a64add599ca6d359530196038bc97afb4bf464e55d",
+      "reason": "UI r1 S8: fixed window appearance and bounded recovery/help presentation; VoiceDictationTipDialog.test.tsx.；平台工作台统一视觉与品牌展示。"
     },
     {
       "path": "src/renderer/src/components/mobile/MobilePageContent.tsx",
@@ -329048,6 +329049,48 @@
       "upstream_sha256": "5d889e2683bb191754dad6801cd6a0c75b69a8c4595430e17feb4a3b1013cdf6",
       "current_sha256": "65f5b99971c2eb9c9cc5d97b0e157eda19fa958e1b627d249895a24e03a2d325",
       "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
+      "path": "src/renderer/src/components/feature-tips/CmdJPaletteTipDialog.tsx",
+      "upstream_sha256": "baca91852a0d58589bdb232dd8314bd5022bccd32dc3252c87a5347df28e0295",
+      "current_sha256": "f3c0c83952a35f8b97241234d2e9e819341e0eb6f2f497ba49c42c8a6aa28357",
+      "reason": "平台工作台统一视觉与品牌展示；保留原生功能与独立模式。"
+    },
+    {
+      "path": "src/renderer/src/components/feature-tips/SessionSearchTipDialog.test.tsx",
+      "upstream_sha256": "fa5c2bf5414eac19193247c1a42ffb3c154cff3107de5963b12f538b1529cd6d",
+      "current_sha256": "36346de4fa5aa47daf2120708c027d03d3aae6698009111b1a578fcfbd1ffb19",
+      "reason": "平台工作台统一视觉与品牌展示；保留原生功能与独立模式。"
+    },
+    {
+      "path": "src/renderer/src/components/feature-tips/SessionSearchTipDialog.tsx",
+      "upstream_sha256": "30521b866340408a43f3893e352363339d5bfe3b0b7e8f97c8ae7d21c973e856",
+      "current_sha256": "16f244f5926c166bdcb291c4db9550b88b06e33c8a586914106a602850209af2",
+      "reason": "平台工作台统一视觉与品牌展示；保留原生功能与独立模式。"
+    },
+    {
+      "path": "src/renderer/src/components/feature-tips/VoiceDictationTipDialog.tsx",
+      "upstream_sha256": "b8313ca01b207cca7b9975e0db968c7abfa25f5b9def61a517fe6bf3229fe0c7",
+      "current_sha256": "7e83415f38d61720dd58f0854e2c59b3567aa551312132636e61966f7b893c77",
+      "reason": "平台工作台统一视觉与品牌展示；保留原生功能与独立模式。"
+    },
+    {
+      "path": "src/renderer/src/components/settings/orca-logo-settings-icon.tsx",
+      "upstream_sha256": "e31ea88c9a4380c28c9fd1a904ae0179b61e50c62217592f045bd18d6bc41ee8",
+      "current_sha256": "f3fd9ef139681f058c78c8b44fdf5375957b2cac50c1b63d7ad87832002973cb",
+      "reason": "平台工作台统一视觉与品牌展示；保留原生功能与独立模式。"
+    },
+    {
+      "path": "src/renderer/src/components/stats/ShareUsageButton.tsx",
+      "upstream_sha256": "bb1d88ec983a4b09adc11ae4645283501a8621231ae4945dec4b5ef14aa70da5",
+      "current_sha256": "e3414608e4e12f0748607b0fac2fe3d9f5da3a84838e9ca7ecc4a2b7d104b0c5",
+      "reason": "平台工作台统一视觉与品牌展示；保留原生功能与独立模式。"
+    },
+    {
+      "path": "src/renderer/src/components/stats/ShareUsageCard.tsx",
+      "upstream_sha256": "aee6cb887a4d7fed4f77d7970e982fcd8d2cb67b3127055ca6d3feb2cdf58fb6",
+      "current_sha256": "7b663654638cc90e090bb3b133493080726ec75aa37a0c2cffabc466a729aa65",
+      "reason": "平台工作台统一视觉与品牌展示；保留原生功能与独立模式。"
     }
   ],
   "reviewed_findings": [
