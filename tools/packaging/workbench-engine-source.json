@@ -327102,7 +327102,8 @@
     "src/renderer/src/web/preload-api/web-app-api.identity.test.ts",
     "src/renderer/src/web/preload-api/web-git-api-history.test.ts",
     "src/shared/workspace-layout/workspace-layout-git-graph-tab.test.ts",
-    "src/shared/workspace-layout/workspace-layout-git-graph-tab.ts"
+    "src/shared/workspace-layout/workspace-layout-git-graph-tab.ts",
+    "src/renderer/src/components/sidebar/use-workspace-kanban-search.test.tsx"
   ],
   "adapted_files": [
     {
@@ -328782,8 +328783,8 @@
     {
       "path": "src/renderer/src/components/sidebar/WorkspaceKanbanDrawer.search.test.tsx",
       "upstream_sha256": "d2a3287338f0c76a0b4f8d6c7fd377fd01305e57c77c745bd7c12ff535169815",
-      "current_sha256": "64d024c128b02c073bfdf6088c170423cc09766e93321ac5ecf7bb6558d7d240",
-      "reason": "DEV-VIEWS: reuse native workspace cards and filtering in a responsive virtualized overview alongside the existing status board."
+      "current_sha256": "3b7188e386c3d7d8ce8c4012870197d294b5048c202e88727fed7c3d1eb65236",
+      "reason": "DEV-VIEWS: reuse native workspace cards and filtering in a responsive virtualized overview alongside the existing status board. DEV-VIEWS-SEARCH: reuse host-qualified palette indices and map results back to native board identities; retain memoized search and host isolation."
     },
     {
       "path": "src/renderer/src/components/sidebar/WorkspaceKanbanDrawer.task-status-sync.test.tsx",
@@ -328794,8 +328795,8 @@
     {
       "path": "src/renderer/src/components/sidebar/WorkspaceKanbanDrawer.tsx",
       "upstream_sha256": "920027f611d436d1d954fbc963d76840fc3af246609818cd650d44cb2309c797",
-      "current_sha256": "1365e5024384a287626a4c44229e6da5694a4361d0653f62defd3a798deea541",
-      "reason": "DEV-VIEWS: reuse native workspace cards and filtering in a responsive virtualized overview alongside the existing status board."
+      "current_sha256": "640a3cd2d369a273a3dd2b95f811ee2731102197e335b788f5b2e52b02583b23",
+      "reason": "DEV-VIEWS: reuse native workspace cards and filtering in a responsive virtualized overview alongside the existing status board. DEV-VIEWS-SEARCH: reuse host-qualified palette indices and map results back to native board identities; retain memoized search and host isolation."
     },
     {
       "path": "src/renderer/src/components/sidebar/WorkspaceKanbanDrawerHeader.test.tsx",
@@ -329048,6 +329049,30 @@
       "upstream_sha256": "5d889e2683bb191754dad6801cd6a0c75b69a8c4595430e17feb4a3b1013cdf6",
       "current_sha256": "65f5b99971c2eb9c9cc5d97b0e157eda19fa958e1b627d249895a24e03a2d325",
       "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
+      "path": "src/renderer/src/components/sidebar/use-workspace-kanban-board-projection.ts",
+      "upstream_sha256": "26f2dde54d2d6de307b09d694ab6ec968350f04256d54d2fc0c9004019b5884c",
+      "current_sha256": "b8a5ad6efafbf114606f62b3120d7151e4c5a05ff09f96f95ed4ee2187c6bfee",
+      "reason": "DEV-VIEWS-SEARCH: reuse host-qualified palette indices and map results back to native board identities; retain memoized search and host isolation."
+    },
+    {
+      "path": "src/renderer/src/components/sidebar/use-workspace-kanban-search.ts",
+      "upstream_sha256": "49465719e199f407a9c193b5e5a3d84321bccd26166a2c5dca169f1cd599080f",
+      "current_sha256": "1361cc5179883f70b968b6cc8fe776f8d9f1444fe680c27b3ce5be7409e967ae",
+      "reason": "DEV-VIEWS-SEARCH: reuse host-qualified palette indices and map results back to native board identities; retain memoized search and host isolation."
+    },
+    {
+      "path": "src/renderer/src/components/sidebar/workspace-kanban-search.test.ts",
+      "upstream_sha256": "58c6c3088f12b0f40955f99d29adecfbd4b91ad2c258982792d0f978b4c88dec",
+      "current_sha256": "fd2f285b70fba88c11f78e7ef5c6fd021f06481bde8633b83e953bb85f386f1f",
+      "reason": "DEV-VIEWS-SEARCH: reuse host-qualified palette indices and map results back to native board identities; retain memoized search and host isolation."
+    },
+    {
+      "path": "src/renderer/src/components/sidebar/workspace-kanban-search.ts",
+      "upstream_sha256": "c5b6904115d797fb7fa45d7cbcbca60c07cc587b51d4075219bddf0b734136e0",
+      "current_sha256": "d56bb31a0620cbfb5e31e2498f0092146c1a95e7cf9e23aaae36b1f3e5a4cffc",
+      "reason": "DEV-VIEWS-SEARCH: reuse host-qualified palette indices and map results back to native board identities; retain memoized search and host isolation."
     }
   ],
   "reviewed_findings": [
