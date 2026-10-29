@@ -27,6 +27,7 @@ import {
 } from './workspace-layout-group-commands'
 import { renameEditorFiles } from './workspace-layout-editor-rekey'
 import { openSimulatorTab } from './workspace-layout-simulator-tab'
+import { openGitGraphTab } from './workspace-layout-git-graph-tab'
 import { updateLegacyPersistence } from './workspace-layout-legacy-persistence'
 import type { WorkspaceLayoutModel } from './workspace-layout-model'
 import {
@@ -57,7 +58,8 @@ const CREATES_WORKSPACE = new Set<LayoutCommand['type']>([
   'openEditorTab',
   'openBrowserTab',
   'openAgentSessionTab',
-  'openSimulatorTab'
+  'openSimulatorTab',
+  'openGitGraphTab'
 ])
 
 /** A `renameTabs` as the `renameTab` each of its titles is. */
@@ -140,6 +142,8 @@ function applyCommand(
       return openInNewGroup(model, command, (next) => openEditorTab(next, command, context))
     case 'openSimulatorTab':
       return openInNewGroup(model, command, (next) => openSimulatorTab(next, command, context))
+    case 'openGitGraphTab':
+      return openInNewGroup(model, command, (next) => openGitGraphTab(next, command, context))
     case 'promotePreviewTab':
       return promotePreviewTab(model, command)
     case 'moveTabToWorkspace':

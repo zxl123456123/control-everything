@@ -33,6 +33,8 @@ function GitHistoryRefBadge({ itemRef }: { itemRef: GitHistoryItemRef }): React.
 
 type GitHistoryRowProps = React.HTMLAttributes<HTMLElement> & {
   viewModel: GitHistoryItemViewModel
+  graphLaneCount?: number
+  layout?: 'sidebar' | 'pane'
   expanded?: boolean
   preserveRefIds?: readonly string[]
   onOpenCommit?: (item: GitHistoryItem) => void
@@ -43,6 +45,8 @@ export const GitHistoryRow = React.forwardRef<HTMLElement, GitHistoryRowProps>(
   function GitHistoryRow(
     {
       viewModel,
+      graphLaneCount,
+      layout = 'sidebar',
       expanded = false,
       preserveRefIds,
       onOpenCommit,
@@ -63,12 +67,18 @@ export const GitHistoryRow = React.forwardRef<HTMLElement, GitHistoryRowProps>(
     const isInteractive = canExpand || canOpenCommit
     // A local branch and its own remote-tracking ref at the same commit are
     // redundant, so collapse the pair to one pill.
-    const refs = dedupeRemoteTrackingRefs(item.references ?? [], { preserveRefIds })
+    const refs =
+      layout === 'pane'
+        ? (item.references ?? [])
+        : dedupeRemoteTrackingRefs(item.references ?? [], { preserveRefIds })
     const visibleRefs = refs.slice(0, 2)
     const hiddenRefs = refs.slice(2)
     const rowTooltip = item.message || item.subject
     const rowClassName = cn(
-      'grid min-h-[26px] w-full min-w-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-1.5 px-3 py-0.5 text-left text-xs transition-colors',
+      'grid w-full min-w-0 items-center gap-x-1.5 px-3 text-left text-xs transition-colors',
+      layout === 'pane'
+        ? 'min-h-6 grid-cols-[auto_minmax(0,1fr)_auto_6rem_4rem]'
+        : 'min-h-[26px] grid-cols-[auto_minmax(0,1fr)_auto] py-0.5',
       isInteractive && 'cursor-pointer hover:bg-accent/40 focus-visible:bg-accent/40',
       !isInteractive && 'cursor-default',
       isBoundaryNode && 'text-muted-foreground',
@@ -76,7 +86,7 @@ export const GitHistoryRow = React.forwardRef<HTMLElement, GitHistoryRowProps>(
     )
     const rowContent = (
       <>
-        <GitHistoryGraphSvg viewModel={viewModel} />
+        <GitHistoryGraphSvg viewModel={viewModel} laneCount={graphLaneCount} />
         <div className="flex min-w-0 items-center gap-1 overflow-hidden">
           {canExpand && (
             <ChevronDown
@@ -101,7 +111,7 @@ export const GitHistoryRow = React.forwardRef<HTMLElement, GitHistoryRowProps>(
             </TooltipContent>
           </Tooltip>
         </div>
-        {refs.length > 0 && (
+        {(refs.length > 0 || layout === 'pane') && (
           <div className="flex shrink-0 items-center gap-1 overflow-hidden">
             {visibleRefs.map((ref) => (
               <GitHistoryRefBadge key={ref.id} itemRef={ref} />
@@ -119,6 +129,14 @@ export const GitHistoryRow = React.forwardRef<HTMLElement, GitHistoryRowProps>(
               </Tooltip>
             )}
           </div>
+        )}
+        {layout === 'pane' && (
+          <>
+            <span className="truncate text-right text-muted-foreground" title={item.author}>
+              {item.author}
+            </span>
+            <span className="font-mono text-right text-muted-foreground">{item.displayId}</span>
+          </>
         )}
       </>
     )

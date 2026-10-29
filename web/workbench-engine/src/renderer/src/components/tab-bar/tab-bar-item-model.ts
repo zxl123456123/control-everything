@@ -43,6 +43,13 @@ export type TabBarItem =
       data: Tab
     }
   | {
+      type: 'git-graph'
+      id: string
+      unifiedTabId: string
+      isPinned: boolean
+      data: Tab
+    }
+  | {
       type: 'agent-session'
       id: string
       unifiedTabId: string
@@ -76,6 +83,7 @@ export function getTabDragLabel(item: TabBarItem, generatedTitlesEnabled: boolea
   if (item.type === 'browser') {
     return getBrowserTabLabel(item.data)
   }
+  if (item.type === 'git-graph') return item.data.label || 'Git Graph'
   if (item.type === 'simulator' || item.type === 'agent-session') {
     return item.data.label || 'Mobile Emulator'
   }
@@ -127,6 +135,7 @@ export function buildOrderedTabItems({
   editorFileIds,
   browserTabIds,
   simulatorTabIds,
+  gitGraphTabIds = [],
   agentSessionTabIds,
   terminalMap,
   editorMap,
@@ -139,6 +148,7 @@ export function buildOrderedTabItems({
   editorFileIds: string[]
   browserTabIds: string[]
   simulatorTabIds: string[]
+  gitGraphTabIds?: string[]
   agentSessionTabIds: string[]
   terminalMap: Map<string, TerminalTab & { unifiedTabId?: string }>
   editorMap: Map<string, OpenFile & { tabId?: string }>
@@ -152,7 +162,8 @@ export function buildOrderedTabItems({
     editorFileIds,
     browserTabIds,
     simulatorTabIds,
-    agentSessionTabIds
+    agentSessionTabIds,
+    gitGraphTabIds
   )
   const items: TabBarItem[] = []
   for (const id of ids) {
@@ -193,9 +204,9 @@ export function buildOrderedTabItems({
       continue
     }
     const simulatorTab = unifiedTabByVisibleId.get(id)
-    if (simulatorTab?.contentType === 'simulator') {
+    if (simulatorTab?.contentType === 'simulator' || simulatorTab?.contentType === 'git-graph') {
       items.push({
-        type: 'simulator',
+        type: simulatorTab.contentType,
         id,
         unifiedTabId: simulatorTab.id,
         isPinned: simulatorTab.isPinned === true,
@@ -238,6 +249,7 @@ export function findActiveVisibleTabId(
     activeFileId?: string | null
     activeBrowserTabId?: string | null
     activeSimulatorTabId?: string | null
+    activeGitGraphTabId?: string | null
     activeTabType?: WorkspaceVisibleTabType
   }
 ): string | null {
@@ -250,6 +262,9 @@ export function findActiveVisibleTabId(
     }
     if (item.type === 'browser') {
       return active.activeTabType === 'browser' && item.id === active.activeBrowserTabId
+    }
+    if (item.type === 'git-graph') {
+      return active.activeTabType === 'git-graph' && item.id === active.activeGitGraphTabId
     }
     if (item.type === 'simulator') {
       return active.activeTabType === 'simulator' && item.id === active.activeSimulatorTabId

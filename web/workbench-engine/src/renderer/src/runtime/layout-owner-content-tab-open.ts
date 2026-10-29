@@ -8,7 +8,7 @@ import { expectTabFacts, type PendingTabFacts } from './layout-owner-pending-tab
 
 type ContentTabOpenCommand = Extract<
   WindowLayoutCommand,
-  { type: 'openBrowserTab' | 'openAgentSessionTab' | 'openSimulatorTab' }
+  { type: 'openBrowserTab' | 'openAgentSessionTab' | 'openSimulatorTab' | 'openGitGraphTab' }
 >
 
 export type ContentTabOpen = {

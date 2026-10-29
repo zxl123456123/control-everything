@@ -182,6 +182,7 @@ type NewGroupOpen = CommandOf<
   | 'openBrowserTab'
   | 'openAgentSessionTab'
   | 'openSimulatorTab'
+  | 'openGitGraphTab'
 >
 
 /**

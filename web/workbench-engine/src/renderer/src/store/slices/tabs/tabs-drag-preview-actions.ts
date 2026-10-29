@@ -62,16 +62,16 @@ function previewActiveSurfacePatch(
       activeTabTypeByWorktree: nextActiveTabTypeByWorktree('browser')
     }
   }
-  if (unifiedTab.contentType === 'simulator') {
+  if (unifiedTab.contentType === 'simulator' || unifiedTab.contentType === 'git-graph') {
     if (
-      state.activeTabType === 'simulator' &&
-      state.activeTabTypeByWorktree[worktreeId] === 'simulator'
+      state.activeTabType === unifiedTab.contentType &&
+      state.activeTabTypeByWorktree[worktreeId] === unifiedTab.contentType
     ) {
       return {}
     }
     return {
-      activeTabType: 'simulator',
-      activeTabTypeByWorktree: nextActiveTabTypeByWorktree('simulator')
+      activeTabType: unifiedTab.contentType,
+      activeTabTypeByWorktree: nextActiveTabTypeByWorktree(unifiedTab.contentType)
     }
   }
   if (

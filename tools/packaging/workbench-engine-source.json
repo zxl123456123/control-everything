@@ -327091,7 +327091,15 @@
     "src/renderer/src/web/platform-project-actions.test.ts",
     "src/renderer/src/web/platform-project-actions.ts",
     "src/main/ipc/filesystem-git-history-routing.test.ts",
-    "src/renderer/src/web/preload-api/web-git-api-history.test.ts"
+    "src/renderer/src/components/git-graph/GitGraphPane.test.tsx",
+    "src/renderer/src/components/git-graph/GitGraphPane.tsx",
+    "src/renderer/src/components/git-graph/useGitGraphHistory.test.tsx",
+    "src/renderer/src/components/git-graph/useGitGraphHistory.ts",
+    "src/renderer/src/store/slices/tabs/tabs-git-graph.test.ts",
+    "src/renderer/src/store/slices/tabs/tabs-git-graph.ts",
+    "src/renderer/src/web/preload-api/web-git-api-history.test.ts",
+    "src/shared/workspace-layout/workspace-layout-git-graph-tab.test.ts",
+    "src/shared/workspace-layout/workspace-layout-git-graph-tab.ts"
   ],
   "adapted_files": [
     {
@@ -328621,8 +328629,8 @@
     {
       "path": "src/renderer/src/i18n/locales/zh.json",
       "upstream_sha256": "a7ceebd563b9c0405b9b72489d6d3386dae6fe24a7abe68d1d2185df3b1231e7",
-      "current_sha256": "b095b10819c30eb57d92079c8b5e7495cd54f4f56935ab83b97f1e049611faea",
-      "reason": "UI r1 S8: fixed window appearance and bounded recovery/help presentation; zh.json."
+      "current_sha256": "e739dda326b8a410ca9d4ab625d316e4e96828574f54272aee2810d87d836389",
+      "reason": "UI r1 S8: fixed window appearance and bounded recovery/help presentation; zh.json. DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
     },
     {
       "path": "src/renderer/src/lib/app-font-family.ts",
@@ -328715,6 +328723,12 @@
       "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
     },
     {
+      "path": "src/main/runtime/mobile-session-terminal-persistence-retirement.ts",
+      "upstream_sha256": "6f5ba7205d2651320b34428f079a34f10dae8bbb5ecd355112485b73d88ec7a2",
+      "current_sha256": "6a8db390884d5a7c1dc9280d0960842a33b6cc70a1858fef74ca524b8adfa2d6",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
       "path": "src/main/runtime/rpc/methods/git.test.ts",
       "upstream_sha256": "08061a031157cc252f66b56c7a6c1df767689cacc182852c7dcb42404bae91de",
       "current_sha256": "a3126fda08d4acd66e338f9b538b47a1db04c8a54f4d25a766bce48a1532a822",
@@ -328724,6 +328738,186 @@
       "path": "src/main/runtime/rpc/methods/git.ts",
       "upstream_sha256": "691f6bd1b4b666cc22b4dfff2bd0a807bb66b2d15d8e9b09bd0a043519b040e2",
       "current_sha256": "c8ee27473ff782627cb71c17139555bb41529450758d12254b967e68f368902e",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
+      "path": "src/renderer/src/components/right-sidebar/source-control/panel/panel-content.tsx",
+      "upstream_sha256": "765ed0aa6636eb4807b6e9a2fe5bafdd3b99f5c1dd103118f7c5a79ae3dc9d37",
+      "current_sha256": "7b9071cee40452f259e894609c2722fb528fb631fa2471f6702df636d5db7aea",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
+      "path": "src/renderer/src/components/right-sidebar/source-control/sync/git-history-graph-svg.tsx",
+      "upstream_sha256": "cbd89fd6981e7c562a2edccdd418d6740c959304b402bf18ee0813d5430c3433",
+      "current_sha256": "b787cf4ea5022acef0580fff0db14374eb3a476d4b8ce3dfd0e72d0ccc27ea1a",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
+      "path": "src/renderer/src/components/right-sidebar/source-control/sync/git-history-panel.tsx",
+      "upstream_sha256": "225b7841dee8e68728b907def0445690997d7f4641c477ae75874470c1c992b5",
+      "current_sha256": "eb4e0feb17abb9ae54d622a6128e6bb18f5d921669e5ecba40096b43a43cad36",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
+      "path": "src/renderer/src/components/right-sidebar/source-control/sync/git-history-row.tsx",
+      "upstream_sha256": "e75c0a169c3a394d402917c40496d1e0a83d2108e7d967a570fe807869e63033",
+      "current_sha256": "ef1c20fa39c11b4c713e0e16a85782760d920eb7f577b1c2b08c44afaf3c88eb",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
+      "path": "src/renderer/src/components/tab-bar/EditorFileTab.tsx",
+      "upstream_sha256": "60b09a21efdd837a8a61f83eab168aad766764e26133310df0c711f04886b60b",
+      "current_sha256": "23aac4a1554988d1855f7a63552917bd63222ab2682d7931b05ad486d770f9ef",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
+      "path": "src/renderer/src/components/tab-bar/TabBarItemRow.tsx",
+      "upstream_sha256": "df8d2fa0d2d25ab6e469bdaf22aa9c94d1b92158440e65e249a1e320ff555d43",
+      "current_sha256": "beade9925574b8091730a03d36d7f90c9bf7c9df756726cec110d6304cd99b7f",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
+      "path": "src/renderer/src/components/tab-bar/group-tab-order.ts",
+      "upstream_sha256": "ca2815ecf8392fe9047bed1f93393cd4f2853e44d3398bcfd192543cfdff13c7",
+      "current_sha256": "e97d4f661b7255b5a1b51e9153b253cbb965b4642a30f815aa2573714f53af3c",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
+      "path": "src/renderer/src/components/tab-bar/reconcile-order.ts",
+      "upstream_sha256": "222a532227822bba3cdcdbad8c54f735902eb842f8c71c2c4538a22eaa3fe6af",
+      "current_sha256": "e05facd53baa6a77b880280f2277992db4a60a8dae1fcefc48dbc02538048a25",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
+      "path": "src/renderer/src/components/tab-bar/tab-bar-item-model.ts",
+      "upstream_sha256": "88027d3ed0671060509041c153783ab5c3ee99c55ca00863778d8498d71ec58b",
+      "current_sha256": "759dd366d87a79c4cbf55136877bd23b978154abe920a2b8899a7e0411529dbf",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
+      "path": "src/renderer/src/components/tab-bar/tab-bar-item-surface.tsx",
+      "upstream_sha256": "9e32fd961c60004b91d9a4321a44cd9a6e47ced86b5ef1b0962f6222d07a94bd",
+      "current_sha256": "c9bdd5b0ae2ec03ca31f364e1354c4b26d4b4af9c5ee9deca10e72a686fbb9a5",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
+      "path": "src/renderer/src/components/tab-bar/tab-bar-props.ts",
+      "upstream_sha256": "9f9e5e680f35770e72b17ac984adc69a4f95b992a8f11116146d936c64ad001b",
+      "current_sha256": "b89e8750def83f114372ff0bc0a9274abc0635122ee5fc0b10a074f1e849834b",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
+      "path": "src/renderer/src/components/tab-bar/use-tab-bar-item-projection.ts",
+      "upstream_sha256": "be76f1b6ef82255a3d27a7588559edf3411f454790597a27ef98e261eac02d21",
+      "current_sha256": "d91d416663dd915f574d31fdcb169a904c03ed7642112da9eead0e9daa9adbcd",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
+      "path": "src/renderer/src/components/tab-group/TabGroupPanel.tsx",
+      "upstream_sha256": "aae50835b2910b6db8b950f5af07492a9424a8275fdc7a919a9146301fb1918e",
+      "current_sha256": "4b906e19d91922012c8c20c38f534f6240cdd927c8429cab16ad6c4f53d7cba0",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
+      "path": "src/renderer/src/components/tab-group/tab-drag-data.ts",
+      "upstream_sha256": "8cc0c998a46a9a9e4ecbaf573abbd8ac3fb48d09906babad23436932cdcc9a3c",
+      "current_sha256": "7137b717d920ff707422cbb8f911b7ee4d51baa3346da01e01c332e21bd21a6c",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
+      "path": "src/renderer/src/components/tab-group/useTabGroupActivationCommands.ts",
+      "upstream_sha256": "e100efbab221075a2fbdf786753ea6bab20e2fa5090da4cf5ccf324752df781d",
+      "current_sha256": "150754a7981e8c3c3e402467c4b504100ce95158cad5b3fcb0a489e1c2b9774c",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
+      "path": "src/renderer/src/components/tab-group/workspace-tab-close-commands.ts",
+      "upstream_sha256": "05bc89d0a6851b8e08f1268012920f8d1cc8011da3cb75f204ad800c29751dbb",
+      "current_sha256": "571145f74313b638db22c2ab7ffa5040860e6df9971e6423483af337c5c09c3a",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
+      "path": "src/renderer/src/hooks/ipc-tab-switch.ts",
+      "upstream_sha256": "ff15ccd7407f8e91c213ff889ce7bf91145703ae9563f792c827ffe12c71a406",
+      "current_sha256": "8b70805a668d42d2a53a820a2e1a8d79908aef2b10a48d9d4d555ce27fcf8a34",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
+      "path": "src/renderer/src/i18n/locales/en.json",
+      "upstream_sha256": "80d9d9800a00b8441914d0f223af22c4bbc66318ab27141506c9b33edfe35209",
+      "current_sha256": "aa852f95deee573af83a9508df03dd6cdd3fec100367ae7db87ca3d8c5b9f30d",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
+      "path": "src/renderer/src/lib/tab-number-shortcuts.ts",
+      "upstream_sha256": "6405b03c3f3087c9234821851f5dde28feff8cd9058a06bee66be709e894870f",
+      "current_sha256": "377c34d4b4f2bb3fa3df2b6bfdc81567e3a1611677bc880046e9d45084d0e043",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
+      "path": "src/renderer/src/runtime/layout-apply-send.ts",
+      "upstream_sha256": "795a251ea4b89fbd6fcdcea6ffacbd0f63e7c067cabaf1c1b68753fefa90cead",
+      "current_sha256": "3152cb4c4665fab581e8e7fda635a12b85e91fc06439ba8875e953e29708b64e",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
+      "path": "src/renderer/src/runtime/layout-owner-content-tab-open.ts",
+      "upstream_sha256": "20f8b93a9c76568030472fab419c9bac9d4d67d74b1cd04ea578fe67a909ccef",
+      "current_sha256": "203a58546ba64e86f62e8c43d67a4184ea8693e48bf9af07a4fab682c5db177d",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
+      "path": "src/renderer/src/runtime/server-layout-frame-ids.ts",
+      "upstream_sha256": "36571593ef4d76eaba44d8bdbf7e93d4276e3beae5357f764e7af75d02e05227",
+      "current_sha256": "a9356ddf0a73e524ecd74410b8dd2636bb22969d5303fc68e4ae63fb5a3f9fd2",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
+      "path": "src/renderer/src/store/floating-workspace-panel-selector.ts",
+      "upstream_sha256": "3eab15e13fb45f4f7010d393100a96ef1e420e6846a03ab85cccb1c675494bab",
+      "current_sha256": "d90b1af1c12f080ff28eeef54db58721833b5c2d6d9632e5a7483b78779187b0",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
+      "path": "src/renderer/src/store/slices/editor/tabs/editor-tab-content-type.ts",
+      "upstream_sha256": "4deb3096d5df0a76f36f374a8e35e43b859a73491fa580d7b9fc091bbd5b7fb9",
+      "current_sha256": "980390f449f1567d70dd3c3c6e79bd896edadb06db31f0aec47760385284d903",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
+      "path": "src/renderer/src/store/slices/tabs/content-tab-close-through-layout-owner.ts",
+      "upstream_sha256": "ea52ff8f28be52115b8cc1b7d3c79849f4278ecec17cbf85d71d87bf25630410",
+      "current_sha256": "4565f9724ede53df28c15a8dedb244e486e27ae8fd032a7e4e4afb8c9eac179b",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
+      "path": "src/renderer/src/store/slices/tabs/create-tabs-slice.ts",
+      "upstream_sha256": "ebc27ff5d6dfc1653af763a3549cc61f624b390af36b104c2b0f1bc319c14449",
+      "current_sha256": "92ce8fc47f70c4ce766aa7d0b0b0e10c72b6fa0af9381568dd5d42cdeca26241",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
+      "path": "src/renderer/src/store/slices/tabs/tab-selection-contract.test.ts",
+      "upstream_sha256": "69fcd19bdc8d019919333c9fd90d39079fd67350a0fbf8802369eb53de36b883",
+      "current_sha256": "c9966f49ce36b32e99a4a54ca101ff5c759a782ea5147f23fa4004a0de71d683",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
+      "path": "src/renderer/src/store/slices/tabs/tabs-drag-preview-actions.ts",
+      "upstream_sha256": "a6c6944826c4349a652c1549f15b9d88321ea7a2d2a14d90323e77b229d18a94",
+      "current_sha256": "d27378f6e70c51e055240570bab1e4b3e54a2350469c047a236b296b38d0a565",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
+      "path": "src/renderer/src/store/slices/tabs/tabs-reconciliation.ts",
+      "upstream_sha256": "5beaa036b1065693aac37064e74b2bec97df3751c9f8dd04ed85a49baa1c6ca5",
+      "current_sha256": "ed76368cf422c5c11a655b19c0299817e51e6358701dd529ad8331552920ade6",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
+      "path": "src/renderer/src/store/slices/tabs/tabs-slice-contract.ts",
+      "upstream_sha256": "4683ece078f6e083b11b31b114c9b62a04d75c290f6b4e623598de1f51747699",
+      "current_sha256": "23a86fc3eb2c8c521d213cd6902d8eadd7546ee5ead4f6d45dd6709fa23b76b9",
       "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
     },
     {
@@ -328760,6 +328954,48 @@
       "path": "src/shared/rpc-contract/git-params.ts",
       "upstream_sha256": "e2ac672f33c6cf919a4b5fdb6d66d51644789a1d67cd8e6e715421a69756d80e",
       "current_sha256": "35f2db1df22fba67855960f193fa70eae7a95b996641a19b65a5ad375f3aa78d",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
+      "path": "src/shared/rpc-contract/workspace-layout-params.ts",
+      "upstream_sha256": "8ef978f59007ff3d6b802044df5bff598bb3ff495da55d9223b30a4fc6a7d5d1",
+      "current_sha256": "edbdb068ff0ef6e3e69814f334dc3ad252063d0c9e964826dbedb4d9327b5669",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
+      "path": "src/shared/tab-types.ts",
+      "upstream_sha256": "95fa6bc4eac1e39445994167e5d5625cfc241c7bead98facc11ff3cf34426752",
+      "current_sha256": "cf54b4e121af22b524ea3fa2aa2a61d8ea6a4356691eadd7414552f1b2a2146d",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
+      "path": "src/shared/workspace-layout/old-client/old-client-session-tabs-projection.ts",
+      "upstream_sha256": "ca6a7416da9c2ad286293292ce4fc951aa58a41e64f748ab142924636443553d",
+      "current_sha256": "59353d0643227f1aab3b5d7d0f6d725828551e4de9441fd7e94cfdcf12fc0cd7",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
+      "path": "src/shared/workspace-layout/workspace-layout-command-types.ts",
+      "upstream_sha256": "09a528718d846ae3e0405edbbb1d57e9fd6f3a652dd7e89bbd1a414c55345ec4",
+      "current_sha256": "f495a1bca00a1feb40b279bf773d446f909d0ba88ff4ee5b440fa5ba2b65b383",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
+      "path": "src/shared/workspace-layout/workspace-layout-commands.ts",
+      "upstream_sha256": "f1df7f0c525ddf25ede83e27c70fa515e9cd537cb727dfdd0461a3b7dbf6cb8e",
+      "current_sha256": "b42b00dfee2807e41061d30426fb6ec3e02f74bad1532096074b1b60921e6332",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
+      "path": "src/shared/workspace-layout/workspace-layout-group-commands.ts",
+      "upstream_sha256": "e612ce7f56fa5278ba0eeae64208c1c174afebb4144b4d06f9073ff9c6114ca1",
+      "current_sha256": "45d6d5fc6b301d835ba4184eb6b6f4e66312c0a8e8a84948f46f5a6fcebed999",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
+      "path": "src/shared/workspace-session-tab-type-schema.ts",
+      "upstream_sha256": "5d889e2683bb191754dad6801cd6a0c75b69a8c4595430e17feb4a3b1013cdf6",
+      "current_sha256": "65f5b99971c2eb9c9cc5d97b0e157eda19fa958e1b627d249895a24e03a2d325",
       "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
     }
   ],
@@ -330167,29 +330403,29 @@
     {
       "path": "src/renderer/src/i18n/locales/en.json",
       "rule": "absolute-windows-path",
-      "line": 12195,
-      "sha256": "80d9d9800a00b8441914d0f223af22c4bbc66318ab27141506c9b33edfe35209",
+      "line": 12221,
+      "sha256": "aa852f95deee573af83a9508df03dd6cdd3fec100367ae7db87ca3d8c5b9f30d",
       "reason": "上游公开代码注释、CLI/界面示例中的路径语法，用来解释drive/root/UNC/转义等规则；非读取的个人配置，限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/en.json",
       "rule": "personal-home-path",
-      "line": 12195,
-      "sha256": "80d9d9800a00b8441914d0f223af22c4bbc66318ab27141506c9b33edfe35209",
+      "line": 12221,
+      "sha256": "aa852f95deee573af83a9508df03dd6cdd3fec100367ae7db87ca3d8c5b9f30d",
       "reason": "公开的路径模板、跨平台解析说明或通用示例；未读取本机账号/目录，保留语义并限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/en.json",
       "rule": "absolute-windows-path",
-      "line": 12209,
-      "sha256": "80d9d9800a00b8441914d0f223af22c4bbc66318ab27141506c9b33edfe35209",
+      "line": 12207,
+      "sha256": "aa852f95deee573af83a9508df03dd6cdd3fec100367ae7db87ca3d8c5b9f30d",
       "reason": "上游公开代码注释、CLI/界面示例中的路径语法，用来解释drive/root/UNC/转义等规则；非读取的个人配置，限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/en.json",
       "rule": "personal-home-path",
-      "line": 12209,
-      "sha256": "80d9d9800a00b8441914d0f223af22c4bbc66318ab27141506c9b33edfe35209",
+      "line": 12207,
+      "sha256": "aa852f95deee573af83a9508df03dd6cdd3fec100367ae7db87ca3d8c5b9f30d",
       "reason": "公开的路径模板、跨平台解析说明或通用示例；未读取本机账号/目录，保留语义并限定具体行及文件hash。"
     },
     {
@@ -330335,29 +330571,29 @@
     {
       "path": "src/renderer/src/i18n/locales/zh.json",
       "rule": "absolute-windows-path",
-      "line": 11903,
-      "sha256": "b095b10819c30eb57d92079c8b5e7495cd54f4f56935ab83b97f1e049611faea",
+      "line": 11929,
+      "sha256": "e739dda326b8a410ca9d4ab625d316e4e96828574f54272aee2810d87d836389",
       "reason": "上游公开代码注释、CLI/界面示例中的路径语法，用来解释drive/root/UNC/转义等规则；非读取的个人配置，限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/zh.json",
       "rule": "personal-home-path",
-      "line": 11903,
-      "sha256": "b095b10819c30eb57d92079c8b5e7495cd54f4f56935ab83b97f1e049611faea",
+      "line": 11929,
+      "sha256": "e739dda326b8a410ca9d4ab625d316e4e96828574f54272aee2810d87d836389",
       "reason": "公开的路径模板、跨平台解析说明或通用示例；未读取本机账号/目录，保留语义并限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/zh.json",
       "rule": "absolute-windows-path",
-      "line": 11917,
-      "sha256": "b095b10819c30eb57d92079c8b5e7495cd54f4f56935ab83b97f1e049611faea",
+      "line": 11915,
+      "sha256": "e739dda326b8a410ca9d4ab625d316e4e96828574f54272aee2810d87d836389",
       "reason": "上游公开代码注释、CLI/界面示例中的路径语法，用来解释drive/root/UNC/转义等规则；非读取的个人配置，限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/zh.json",
       "rule": "personal-home-path",
-      "line": 11917,
-      "sha256": "b095b10819c30eb57d92079c8b5e7495cd54f4f56935ab83b97f1e049611faea",
+      "line": 11915,
+      "sha256": "e739dda326b8a410ca9d4ab625d316e4e96828574f54272aee2810d87d836389",
       "reason": "公开的路径模板、跨平台解析说明或通用示例；未读取本机账号/目录，保留语义并限定具体行及文件hash。"
     },
     {
@@ -330674,6 +330910,44 @@
       "line": 11,
       "sha256": "47a67ca67160f5eb60bc5a9b400ecc04639ff0f36af852bdf61a17c569951936",
       "reason": "上游公开代码注释、CLI/界面示例中的路径语法，用来解释drive/root/UNC/转义等规则；非读取的个人配置，限定具体行及文件hash。"
+    }
+  ],
+  "feature_adoptions": [
+    {
+      "feature": "repository-git-graph",
+      "repository": "https://github.com/stablyai/orca",
+      "pull_request": 6746,
+      "commit": "7ebd5727916d95181089effb393d5338a1a73bf5",
+      "status_at_review": "open-unmerged",
+      "license_paths": [
+        "LICENSE"
+      ],
+      "source_paths": [
+        "src/shared/git-history.ts",
+        "src/shared/git-history-types.ts",
+        "src/renderer/src/components/git-graph/GitGraphPane.tsx",
+        "src/renderer/src/components/git-graph/useGitGraphHistory.ts",
+        "src/renderer/src/components/right-sidebar/GitHistoryRow.tsx",
+        "src/renderer/src/components/right-sidebar/GitHistoryPanel.tsx",
+        "src/renderer/src/components/tab-group/TabGroupPanel.tsx",
+        "src/renderer/src/store/slices/tabs.ts"
+      ],
+      "adaptation": "Reuse the bounded all-ref graph, central pane and native row/diff model. Adapt current host routing, lazy visibility, tab lifecycle and layout ownership; retain default sidebar HEAD scope. New tests verify actual local behavior."
+    },
+    {
+      "feature": "git-graph-lane-width",
+      "repository": "https://github.com/stablyai/orca",
+      "pull_request": 29737,
+      "commit": "73f32c83933514405185ab6b72823353191443f9",
+      "status_at_review": "open-unmerged",
+      "license_paths": [
+        "LICENSE"
+      ],
+      "source_paths": [
+        "src/renderer/src/components/right-sidebar/source-control/sync/git-history-graph-svg.tsx",
+        "src/renderer/src/components/right-sidebar/source-control/sync/git-history-row.tsx"
+      ],
+      "adaptation": "Use one graph lane width for the central pane, including the commit circle. Do not adopt deep skip-based pagination or change the sidebar history scope."
     }
   ]
 }

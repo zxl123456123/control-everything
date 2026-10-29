@@ -105,6 +105,7 @@ describe('tab selection and hydration ownership', () => {
     ['check-details', 'editor'],
     ['browser', 'browser'],
     ['simulator', 'simulator'],
+    ['git-graph', 'git-graph'],
     ['agent-session', 'agent-session']
   ] as const)(
     'projects %s selection while retaining other remembered surfaces',

@@ -127,6 +127,15 @@ export type WindowLayoutCommand =
       split?: NewGroupSplit
     }
   | {
+      type: 'openGitGraphTab'
+      tabId: string
+      groupId: string
+      afterTabId?: string
+      index?: number
+      createdAt?: number
+      split?: NewGroupSplit
+    }
+  | {
       type: 'moveTabToWorkspace'
       toWorkspace: string
       tabs: { tabId: string; newTabId: string; newEntityId: string; view?: LayoutEditorView }[]
@@ -200,6 +209,7 @@ function drawnTabHolds(worktreeId: string, command: WindowLayoutCommand): DrawnT
     case 'setBrowserTabProfile':
     case 'openAgentSessionTab':
     case 'openSimulatorTab':
+    case 'openGitGraphTab':
     case 'openEditorTab':
     case 'promotePreviewTab':
     case 'moveTabToWorkspace':

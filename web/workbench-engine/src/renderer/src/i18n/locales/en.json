@@ -1,4 +1,16 @@
 {
+  "git-graph": {
+    "title": "Git Graph",
+    "refresh": "Refresh graph",
+    "scope": "Local branches, remote branches, tags and this workspace HEAD. Detached commits in other workspaces are not included unless referenced.",
+    "truncated": "Showing the first {{count}} commits. Older history is not loaded.",
+    "loading": "Loading graph…",
+    "empty": "No commits yet",
+    "unsupported": "Update the execution host to display the repository graph.",
+    "failed": "Failed to load git graph",
+    "retry": "Retry",
+    "open": "Open Git Graph"
+  },
   "csv": {
     "detectingDelimiter": "Detecting delimiter…",
     "indexProgress": "Indexing CSV… {{percent}}%",

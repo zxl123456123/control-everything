@@ -19,6 +19,7 @@ export type TabBarItemSurfaceProps = Pick<
   | 'activeFileId'
   | 'activeBrowserTabId'
   | 'activeSimulatorTabId'
+  | 'activeGitGraphTabId'
   | 'activeTabType'
   | 'expandedPaneByTabId'
   | 'onCloseSplitPane'
@@ -59,6 +60,7 @@ export function renderTabBarItems({
     activeFileId,
     activeBrowserTabId,
     activeSimulatorTabId,
+    activeGitGraphTabId,
     activeTabType,
     expandedPaneByTabId
   } = props
@@ -88,6 +90,9 @@ export function renderTabBarItems({
     }
     if (item.type === 'browser') {
       return activeTabType === 'browser' && activeBrowserTabId === item.id
+    }
+    if (item.type === 'git-graph') {
+      return activeTabType === 'git-graph' && item.id === activeGitGraphTabId
     }
     if (item.type === 'simulator') {
       return activeTabType === 'simulator' && item.id === activeSimulatorTabId
