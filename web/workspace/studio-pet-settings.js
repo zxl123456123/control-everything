@@ -150,12 +150,12 @@
       const dock = makeSegmented('studio-pet-dock', '宠物位置', DOCK_OPTIONS);
 
       page.append(
-        section('宠物', row('显示宠物', '个人工作台的小伙伴，点它打开快捷转盘；蜘蛛只在新闻页', enabled), pickerRow),
+        section('宠物', row('显示宠物', '在工作台各页面显示你选择的宠物', enabled), pickerRow),
         section('行为',
           row('安静模式', '宠物原地休息，没有动作和提示', quiet),
           row('新闻页互动', '新文章、读完、采集失败时给一点小反应', newsFx),
           row('大小', '宠物在页面里的大小', size.node),
-          row('位置', '左下会停在侧栏右边；窄屏的工作台页面里不显示', dock.node)),
+          row('位置', '左下会停在侧栏右边', dock.node)),
         status);
       container.replaceChildren(page);
 

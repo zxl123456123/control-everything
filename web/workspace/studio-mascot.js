@@ -13,6 +13,8 @@
   const MIN_WIDTH = 560;
   const HINT_KEY = 'news-reader-pet-hint';
   const HINT_DELAY = 1800;
+  const DOCK_MARGIN = 64;
+  const SPIDER_SIDE_MARGIN = 128;
   const SLOT = {width: 96, height: 64};
   const HINT_TEXT = '点我，打开快捷转盘';
 
@@ -66,7 +68,7 @@
       const root = doc.createElement('div'), canvas = doc.createElement('canvas'), depot = doc.createElement('div'), key = doc.createElement('button');
       root.className = 'ce-mascot'; root.dataset.pet = current.pet;
       canvas.setAttribute('aria-hidden', 'true'); depot.className = 'ce-mascot-depot'; depot.setAttribute('aria-hidden', 'true');
-      key.type = 'button'; key.className = 'ce-mascot-key'; key.textContent = '宠物转盘'; key.setAttribute('aria-haspopup', 'menu');
+      key.type = 'button'; key.className = 'ce-mascot-key'; key.dataset.pet = current.pet; key.textContent = '宠物转盘'; key.setAttribute('aria-haspopup', 'menu');
       key.title = '打开宠物旁的快捷转盘';
       // detail 0 is keyboard activation: focus then moves into the wheel
       key.addEventListener('click', event => wheel?.toggle(event.detail === 0));
@@ -80,14 +82,19 @@
     const signature = () => actions().map(item => `${item.id}:${item.enabled}:${item.checked}`).join();
 
     function options() {
-      return {...director.petOptions(current, isFullPet(current.pet)), dock: current.dock === 'bl' ? 'bl' : 'br', theme: themeHost.dataset.theme === 'dark' ? 'dark' : 'light'};
+      return {...director.petOptions(current, isFullPet(current.pet)), dock: current.dock === 'bl' ? 'bl' : 'br', margin: DOCK_MARGIN, theme: themeHost.dataset.theme === 'dark' ? 'dark' : 'light'};
     }
 
     function place() {
       if (!parts) return;
       const rail = railHost.querySelector('.ce-rail'), rect = rail && rail.getBoundingClientRect();
       // A bottom-left pet must sit beside the rail, never on top of its settings entry.
-      parts.root.style.left = rect && rect.width > 0 && current.dock === 'bl' ? `${Math.round(rect.right)}px` : '0px';
+      const left = current.dock === 'bl', railEdge = left && rect && rect.width > 0 ? Math.round(rect.right) : 0;
+      parts.root.style.left = `${railEdge}px`;
+      parts.depot.dataset.dock = left ? 'bl' : 'br';
+      parts.key.dataset.dock = left ? 'bl' : 'br';
+      const sideMargin = current.pet === 'spider' ? SPIDER_SIDE_MARGIN : DOCK_MARGIN;
+      parts.key.style.left = left ? `calc(${railEdge}px + max(${sideMargin}px, env(safe-area-inset-left)))` : '';
     }
 
     /**
@@ -98,7 +105,8 @@
       const point = parts?.depot.getBoundingClientRect();
       if (!point) return null;
       const width = SLOT.width, height = SLOT.height;
-      return current.dock === 'bl' ? {left: parts.root.getBoundingClientRect().left + 24, top: point.top - height, width, height} : {left: point.left - width, top: point.top - height, width, height};
+      const left = current.pet === 'spider' ? point.left - width / 2 : current.dock === 'bl' ? point.left : point.left - width;
+      return {left, top: point.top - height, width, height};
     }
 
     function mount() {

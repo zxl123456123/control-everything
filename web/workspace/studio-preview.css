@@ -958,8 +958,14 @@ body:has(#ce-studio){margin:0;background:var(--ce-bg,#ffffff)}
 #ce-studio .ce-setup-notice .ce-button{min-height:32px}
 #ce-studio .ce-pet-note{margin:12px 2px 0;font-size:13px;line-height:20px;color:var(--ce-sub)}
 #ce-studio .ce-pet-note[hidden]{display:none}
-#ce-studio .ce-mascot-depot{right:max(24px,env(safe-area-inset-right));bottom:max(24px,env(safe-area-inset-bottom))}
-#ce-studio .ce-mascot-key{right:max(24px,env(safe-area-inset-right));bottom:max(24px,env(safe-area-inset-bottom))}
+#ce-studio .ce-mascot-depot{right:max(64px,env(safe-area-inset-right));bottom:max(64px,env(safe-area-inset-bottom))}
+#ce-studio .ce-mascot-key{right:max(64px,env(safe-area-inset-right));bottom:max(64px,env(safe-area-inset-bottom))}
+#ce-studio .ce-mascot-depot[data-dock=bl]{left:max(64px,env(safe-area-inset-left));right:auto}
+#ce-studio .ce-mascot-key[data-dock=bl]{right:auto}
+#ce-studio .ce-mascot[data-pet=spider] .ce-mascot-depot{right:max(128px,env(safe-area-inset-right));bottom:max(128px,env(safe-area-inset-bottom))}
+#ce-studio .ce-mascot[data-pet=spider] .ce-mascot-depot[data-dock=bl]{left:max(128px,env(safe-area-inset-left));right:auto}
+#ce-studio .ce-mascot-key[data-pet=spider]{bottom:max(128px,env(safe-area-inset-bottom))}
+#ce-studio .ce-mascot-key[data-pet=spider]:not([data-dock=bl]){right:max(128px,env(safe-area-inset-right))}
 @media(max-width:809px){#ce-studio .ce-settings-tabs{width:calc(100% - 32px)}}
 @media(max-width:520px){
  #ce-studio .ce-summary-metrics{gap:6px}

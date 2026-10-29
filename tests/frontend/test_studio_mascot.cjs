@@ -120,11 +120,49 @@ test('size and dock preferences reach the engine; a bottom-left pet sits beside 
   const t = setup({prefs: {'news-reader-pet': 'naidragon', 'news-reader-pet-size': 'large', 'news-reader-pet-dock': 'bl'}});
   assert.equal(t.engine().options.options.scale, 1.25);
   assert.equal(t.engine().options.options.dock, 'bl');
+  assert.equal(t.engine().options.options.margin, 64, 'the resting pet clears the bottom status bar');
   assert.equal(t.host.querySelector('.ce-mascot').style.left, '240px');
+  const depot = t.host.querySelector('.ce-mascot-depot'), key = t.host.querySelector('.ce-mascot-key');
+  assert.equal(depot.dataset.dock, 'bl');
+  assert.equal(key.dataset.dock, 'bl');
+  assert.match(key.style.left, /^calc\(240px \+ max\(64px,/);
+  depot.getBoundingClientRect = () => ({left: 304, top: 656});
+  assert.equal(t.liveWheel().config.anchor().left, 304, 'the wheel follows the left depot beside the rail');
   t.set({size: 'small', dock: 'auto'});
   assert.equal(t.engine().options.scale, 0.8);
   assert.equal(t.engine().options.dock, 'br');
+  assert.equal(t.engine().options.margin, 64);
   assert.equal(t.host.querySelector('.ce-mascot').style.left, '0px');
+  assert.equal(depot.dataset.dock, 'br');
+  assert.equal(key.style.left, '');
+  depot.getBoundingClientRect = () => ({left: 936, top: 656});
+  assert.equal(t.liveWheel().config.anchor().left, 840, 'the wheel follows the right depot');
+});
+
+test('the spider uses a wider left and right dock with its wheel anchored to the depot', () => {
+  const t = setup({prefs: {'news-reader-pet-dock': 'bl'}});
+  assert.equal(t.engine().name, 'spider');
+  const depot = t.host.querySelector('.ce-mascot-depot'), key = t.host.querySelector('.ce-mascot-key');
+  assert.equal(depot.dataset.dock, 'bl');
+  assert.equal(key.dataset.dock, 'bl');
+  assert.equal(key.dataset.pet, 'spider');
+  assert.match(key.style.left, /^calc\(240px \+ max\(128px,/);
+  depot.getBoundingClientRect = () => ({left: 368, top: 592});
+  assert.equal(t.liveWheel().config.anchor().left, 320, 'the spider is centred in the wheel anchor');
+  assert.equal(t.liveWheel().config.anchor().top, 528, 'the wheel follows the raised spider');
+  t.set({dock: 'br'});
+  assert.equal(depot.dataset.dock, 'br');
+  assert.equal(key.style.left, '');
+  depot.getBoundingClientRect = () => ({left: 872, top: 592});
+  assert.equal(t.liveWheel().config.anchor().left, 824, 'the right dock also anchors at the spider centre');
+  assert.equal(t.liveWheel().config.anchor().top, 528);
+});
+
+test('the spider depot and keyboard trigger clear the bottom edge independently of 3D pets', () => {
+  const css = read('studio-preview.css');
+  assert.match(css, /\.ce-mascot-depot\{right:max\(64px,[^}]*bottom:max\(64px,/);
+  assert.match(css, /\.ce-mascot\[data-pet=spider\] \.ce-mascot-depot\{[^}]*bottom:max\(128px,/);
+  assert.match(css, /\.ce-mascot-key\[data-pet=spider\]\{bottom:max\(128px,/);
 });
 
 test('switching pets remounts and switching off removes the overlay', () => {
