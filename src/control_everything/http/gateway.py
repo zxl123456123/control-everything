@@ -1262,6 +1262,9 @@ class PanelHandler(BaseHTTPRequestHandler):
 
 
 class PanelServer(ThreadingHTTPServer):
+    # Studio loads many assets concurrently through the remote proxy.
+    request_queue_size = 128
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.agent_presence = {}
