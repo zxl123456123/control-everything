@@ -2,6 +2,7 @@
 
 import secrets
 import re
+from contextlib import nullcontext
 from urllib.parse import parse_qs, urlsplit
 
 from control_everything.integrations.remote_access import PROXY_HEADER
@@ -16,6 +17,15 @@ ACCOUNT_PATHS = {"/api/desktop/account/" + name for name in
 def handle_account(handler, path, *, write=False):
     if path not in ACCOUNT_PATHS:
         return False
+    desktop = getattr(handler.server, 'desktop', None)
+    lock = getattr(desktop, 'configuration_lock', None) if write else None
+    with lock if lock is not None else nullcontext():
+        return _handle_account(handler, path, write=write)
+
+
+def _handle_account(handler, path, *, write=False):
+    if path not in ACCOUNT_PATHS:
+        return False
     if (not local_control_allowed(handler, write=write)
             or handler.headers.get_all("X-Session-Client", []) != ["panel"]):
         handler.reject(403, "local_control_required")
@@ -23,6 +33,9 @@ def handle_account(handler, path, *, write=False):
     account = getattr(handler.server, "desktop_account", None)
     name, query = path.rsplit("/", 1)[-1], urlsplit(handler.path).query
     try:
+        desktop = getattr(handler.server, 'desktop', None)
+        if write and getattr(desktop, 'configuration_changed', False):
+            raise ConnectorError('remote_restart_required', 409)
         if query and (write or name != "members"):
             raise ValueError("invalid_request")
         body = handler.read_json_body(max_bytes=1024, strict=True) if write else {}
@@ -31,9 +44,12 @@ def handle_account(handler, path, *, write=False):
             raise ValueError("invalid_request")
         if name == "configure" and write:
             setup = getattr(getattr(handler.server, "desktop", None), "server_setup", None)
-            if account is not None or setup is None:
+            connector = getattr(handler.server, "remote_connector", None)
+            if (setup is None or (account is not None and account.status().get('state') != 'signed_out')
+                    or (connector is not None and connector.status().get('state') != 'unbound')):
                 raise ConnectorError("remote_configuration_locked", 409)
             setup.configure(body['issuer'], body['hub_origin'])
+            desktop.configuration_changed = True
             value = {"saved": True, "restart_required": True}
         elif account is None:
             if name != "status" or write:
@@ -41,6 +57,7 @@ def handle_account(handler, path, *, write=False):
             value = {"configured": False, "state": "signed_out", "account": None, "admin": False}
         elif not write and name == "status":
             value = account.status()
+            value['service_configurable'] = getattr(getattr(handler.server, 'desktop', None), 'server_setup', None) is not None
         elif not write and name == "members":
             values = parse_qs(query, keep_blank_values=True, strict_parsing=True, max_num_fields=2)
             if (set(values) - {"limit", "offset"} or any(len(parts) != 1 or
@@ -100,12 +117,24 @@ def handle_get(handler, path):
 
 
 def handle_post(handler, path):
+    if path not in PATHS and path not in ACCOUNT_PATHS:
+        return False
+    desktop = getattr(handler.server, 'desktop', None)
+    lock = getattr(desktop, 'configuration_lock', None)
+    with lock if lock is not None else nullcontext():
+        return _handle_post(handler, path)
+
+
+def _handle_post(handler, path):
     if handle_account(handler, path, write=True):
         return True
     if path not in PATHS:
         return False
     if not local_control_allowed(handler, write=True):
         handler.reject(403, "local_control_required")
+        return True
+    if getattr(getattr(handler.server, 'desktop', None), 'configuration_changed', False):
+        handler.reject(409, 'remote_restart_required')
         return True
     connector = getattr(handler.server, "remote_connector", None)
     if connector is None:

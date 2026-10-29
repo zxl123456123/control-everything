@@ -42,10 +42,21 @@ class DesktopAssemblyTests(unittest.TestCase):
                  patch('control_everything.http.desktop.RemoteAccount'):
                 setup.return_value.load.return_value = saved
                 desktop = build_desktop(root)
+                connector_store.assert_called_once_with(root / 'profile' / 'remote' / 'self-hosted')
+                connector_store.reset_mock()
+                setup.return_value.load.reset_mock()
+                setup.return_value.load.return_value = {**saved, 'storage': 'generation-' + 'a' * 32}
+                build_desktop(root)
+                connector_store.assert_called_once_with(root / 'profile' / 'remote' / ('generation-' + 'a' * 32))
+                connector_store.reset_mock()
+                setup.return_value.load.reset_mock()
+                setup.return_value.load.return_value = {**saved, 'storage': 'legacy'}
+                legacy = build_desktop(root)
+                connector_store.assert_called_once_with(root / 'profile' / 'remote')
             setup.return_value.load.assert_called_once_with(None)
             self.assertEqual(connector_config.call_args.args[:2], (saved['issuer'], saved['hub_origin']))
-            connector_store.assert_called_once_with(root / 'profile' / 'remote' / 'self-hosted')
-            self.assertIsNone(desktop.server_setup)
+            self.assertIs(desktop.server_setup, setup.return_value)
+            self.assertIsNone(legacy.server_setup)
 
     def test_installed_desktop_uses_host_environment(self):
         with TemporaryDirectory() as temporary:
@@ -191,6 +202,13 @@ class DesktopAssemblyTests(unittest.TestCase):
         desktop.connector.connect.assert_not_called()
         desktop.tick()
         desktop.runtime.close.assert_not_called()
+
+    def test_configuration_change_blocks_background_connection_until_restart(self):
+        desktop, _ = self.setup_desktop()
+        desktop.configuration_changed = True
+        desktop.tick()
+        desktop.connector.connect.assert_not_called()
+        desktop.runtime.start.assert_not_called()
 
     def test_roots_follow_registered_main_directories_only_without_runtime_restart(self):
         desktop, root = self.setup_desktop()

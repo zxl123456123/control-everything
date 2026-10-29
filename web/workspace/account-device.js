@@ -15,7 +15,7 @@
     const context = remote && scope.CERemoteContext?.context ? scope.CERemoteContext : null;
     let disposed = false, generation = 0, csrf = '', account = null, device = null;
     let admin = false, busy = false, reading = false, timer, configured = false, revokeTarget = null, composing = false;
-    let localIdentity = '', localAccountConfigured = false, localAccountAuthorizing = false, configurationSaved = false;
+    let localIdentity = '', localAccountConfigured = false, localAccountAuthorizing = false, localMayConfigure = false, configurationSaved = false;
     let membersOffset = 0, membersTotal = 0, membersEpoch = 0, membersReading = false, adminViewEpoch = 0;
     const membersLimit = 25;
     const pending = new Set();
@@ -27,7 +27,7 @@
       <div class="ce-account-grid">
         <section class="ce-account-card ce-account-setting"><div class="ce-account-card-title"><span class="ce-account-media">${icon('account')}</span><h2>账号</h2><span class="ce-account-badge" data-node="membership">读取中</span></div><div class="ce-account-body">
           <p class="ce-account-identity" data-node="account"></p>
-          <form data-node="service-config" hidden><p>首次使用请填写服务管理员提供的地址。保存后需重新打开软件。</p><label>账号服务地址<input data-node="service-issuer" name="issuer" type="url" required autocomplete="off" placeholder="https://example.test/realms/example"></label><label>设备服务地址<input data-node="service-hub" name="hub_origin" type="url" required autocomplete="off" placeholder="https://example.test"></label><button class="ce-account-primary" type="submit" data-action="configure">保存服务配置</button><p data-node="service-config-status" role="status" aria-live="polite"></p></form>
+          <form data-node="service-config" hidden><p>填写或更正服务管理员提供的地址。保存后需重新打开软件；已有绑定不能更改。</p><label>账号服务地址<input data-node="service-issuer" name="issuer" type="url" required autocomplete="off" placeholder="https://example.test/realms/example"></label><label>设备服务地址<input data-node="service-hub" name="hub_origin" type="url" required autocomplete="off" placeholder="https://example.test"></label><button class="ce-account-primary" type="submit" data-action="configure">保存服务配置</button><p data-node="service-config-status" role="status" aria-live="polite"></p></form>
           <p data-node="login" hidden><a class="ce-account-primary" href="/oauth2/start?rd=%2Fremote">登录 / 注册账号</a></p>
           <div data-node="local-account" hidden><button class="ce-account-primary" type="button" data-action="account-authorize">登录 / 注册账号</button><div data-node="account-grant" hidden><p>登录授权码</p><output class="ce-account-code" data-node="account-code"></output><p><a data-node="account-verification" target="_blank" rel="noopener noreferrer">打开登录授权页面 ↗</a></p></div><p data-node="account-error" role="status"></p></div>
           <form data-node="activation" hidden><label>小组邀请码<input name="invite" required autocomplete="off" placeholder="输入收到的邀请码"></label><button class="ce-account-primary" type="submit">激活小组接入</button></form>
@@ -191,7 +191,7 @@
     function renderLocal(value) {
       configured = value.configured !== false; device = value;
       onPortal?.(configured && typeof value.portal_url === 'string' ? value.portal_url : '');
-      $('local-actions').hidden = !configured;
+      $('local-actions').hidden = !configured || configurationSaved;
       $('status').textContent = configurationSaved ? '服务配置已保存，请先结束正在运行的工作，再重新打开软件。' : value.runtime_restart_required ? '绑定配置已保存，重新打开软件后启用远程连接；正在运行的工作请先正常结束。' : '';
       $('local-help').textContent = value.state === 'awaiting_local_confirmation' ? '请核对账号 ' + (value.account?.name || value.account?.sub || '') + ' 后确认绑定。' : '';
       $('device-state').textContent = remoteStates[value.state] || ({unbound:'尚未绑定',authorizing:'授权中',awaiting_local_confirmation:'等待确认'}[value.state] || '未连接');
@@ -214,13 +214,14 @@
       const changed = identity !== localIdentity;
       if (changed) { adminViewEpoch++; clearMembers(); clearInvitation(); }
       localIdentity = identity; localAccountConfigured = value.configured === true;
-      $('service-config').hidden = remote || localAccountConfigured || configurationSaved;
+      localMayConfigure = !remote && (!localAccountConfigured || (value.service_configurable === true && value.state === 'signed_out' && device?.state === 'unbound'));
+      $('service-config').hidden = !localMayConfigure || configurationSaved;
       localAccountAuthorizing = value.state === 'authorizing';
       account = value.account || null; admin = value.admin === true && Boolean(account);
       $('account').textContent = account?.name || account?.sub || '';
       $('membership').textContent = !localAccountConfigured ? '账号服务未配置' : account ? (value.membership === 'active' ? '已激活' : '待激活') : value.state === 'authorizing' ? '等待登录授权' : '未登录';
       $('membership').dataset.tone = account && value.membership === 'active' ? 'success' : 'neutral';
-      $('local-account').hidden = !localAccountConfigured;
+      $('local-account').hidden = !localAccountConfigured || configurationSaved;
       action('account-authorize').hidden = Boolean(account);
       action('account-authorize').disabled = !localAccountConfigured || value.state === 'authorizing';
       action('logout').hidden = !account;
@@ -285,7 +286,7 @@
     on($('activation'), 'submit', event => { event.preventDefault(); void mutate('activate', {invite: new FormData(event.currentTarget).get('invite')}); });
     on($('service-config'), 'submit', async event => {
       event.preventDefault();
-      if (remote || disposed || busy || reading || !csrf || localAccountConfigured || configurationSaved) return;
+      if (remote || disposed || busy || reading || !csrf || !localMayConfigure || configurationSaved) return;
       const issuer = $('service-issuer').value.trim(), hub_origin = $('service-hub').value.trim();
       if (!issuer || !hub_origin) { $('service-config-status').textContent = '请填写两个服务地址。'; return; }
       busy = true; action('configure').disabled = true;
@@ -294,6 +295,7 @@
         if (!result || disposed) return;
         if (result.saved !== true || result.restart_required !== true) throw new Error('保存未确认，请重试。');
         configurationSaved = true; $('service-config').hidden = true;
+        $('local-account').hidden = true; $('local-actions').hidden = true;
         $('service-issuer').value = ''; $('service-hub').value = '';
         $('status').textContent = '服务配置已保存，请先结束正在运行的工作，再重新打开软件。';
         $('device-help').textContent = '服务配置已保存，重新打开软件后连接电脑。';

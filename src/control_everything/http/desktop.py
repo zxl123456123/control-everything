@@ -20,6 +20,8 @@ class Desktop:
     def __init__(self, server, runtime, connector=None, account=None, server_setup=None):
         self.server, self.runtime, self.connector = server, runtime, connector
         self.server_setup = server_setup
+        self.configuration_lock = threading.RLock()
+        self.configuration_changed = False
         self._stop = threading.Event()
         self._worker = None
         self.restart_required = False
@@ -77,6 +79,12 @@ class Desktop:
             self._worker.start()
 
     def tick(self):
+        with self.configuration_lock:
+            if self.configuration_changed:
+                return
+            self._tick()
+
+    def _tick(self):
         if not self.connector or self.restart_required:
             return
         try:
@@ -154,10 +162,13 @@ def build_desktop(product_root, data_dir=None, port=8766):
             remote_root = server.profile.data_dir / 'remote'
             if selected.get('storage') == 'isolated':
                 remote_root = remote_root / 'self-hosted'
+            elif selected.get('storage', '').startswith('generation-'):
+                remote_root = remote_root / selected['storage']
             connector = RemoteConnector(ConnectorConfig(selected['issuer'], selected['hub_origin'], path('ssh'), path('keygen')),
                                         ConnectorStore(remote_root), on_revoked=runtime.revoke_remote_devices)
         account = RemoteAccount(connector.peer, connector.store) if connector else None
-        return Desktop(server, runtime, connector, account, setup if not connector else None)
+        editable = not embedded['issuer'] and not embedded['hub_origin'] and selected.get('storage') != 'legacy'
+        return Desktop(server, runtime, connector, account, setup if editable else None)
     except Exception:
         server.server_close()
         raise

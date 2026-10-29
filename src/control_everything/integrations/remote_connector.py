@@ -239,6 +239,7 @@ class InitialServerConfig:
     """Write one server identity only before any remote credentials exist."""
     def __init__(self, root, ssh, keygen, *, store_factory=ConnectorStore):
         self.root, self.ssh, self.keygen, self.store_factory = safe_path(root), ssh, keygen, store_factory
+        self.expected_storage = None
 
     def load(self, embedded=None):
         if not embedded and not safe_path(self.root / 'server-config.bin').exists():
@@ -248,7 +249,8 @@ class InitialServerConfig:
             value = store.read('server-config.bin', protected=True)
             if value is not None:
                 if (not isinstance(value, dict) or set(value) != {'issuer', 'hub_origin', 'storage'}
-                        or value['storage'] not in {'legacy', 'isolated'}):
+                        or not isinstance(value['storage'], str) or
+                        not re.fullmatch(r'legacy|isolated|generation-[0-9a-f]{32}', value['storage'])):
                     raise ConnectorError('remote_state_invalid')
                 ConnectorConfig(value['issuer'], value['hub_origin'], self.ssh, self.keygen)
                 if embedded and (value['storage'] != 'legacy' or
@@ -260,15 +262,31 @@ class InitialServerConfig:
                 store.write('server-config.bin', value, protected=True)
             else:
                 raise ConnectorError('remote_state_invalid')
+        self.expected_storage = value['storage']
         return value
 
     def configure(self, issuer, hub_origin):
         ConnectorConfig(issuer, hub_origin, self.ssh, self.keygen)
         store = self.store_factory(self.root)
         with store.locked():
-            if any(item.name != 'connector.lock' for item in store.root.iterdir()):
+            current = store.read('server-config.bin', protected=True)
+            if (current.get('storage') if current else None) != self.expected_storage:
                 raise ConnectorError('remote_configuration_locked', 409)
-            store.write('server-config.bin', {'issuer': issuer, 'hub_origin': hub_origin, 'storage': 'isolated'}, protected=True)
+            if current is None:
+                if any(item.name != 'connector.lock' for item in store.root.iterdir()):
+                    raise ConnectorError('remote_configuration_locked', 409)
+            else:
+                storage = current.get('storage')
+                if not isinstance(storage, str) or not re.fullmatch(r'isolated|generation-[0-9a-f]{32}', storage):
+                    raise ConnectorError('remote_configuration_locked', 409)
+                previous = store.root / ('self-hosted' if storage == 'isolated' else storage)
+                if previous.exists():
+                    previous_store = self.store_factory(previous)
+                    with previous_store.locked():
+                        if any((previous / name).exists() for name in ('credentials.bin', 'account-oauth.json', 'pending.json', 'revocation.json', 'revocation_requested.json')):
+                            raise ConnectorError('remote_configuration_locked', 409)
+            store.write('server-config.bin', {'issuer': issuer, 'hub_origin': hub_origin,
+                        'storage': 'generation-' + uuid.uuid4().hex}, protected=True)
 
 
 class DeviceKeys:

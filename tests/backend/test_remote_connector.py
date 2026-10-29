@@ -105,10 +105,40 @@ class ConnectorConfigTests(unittest.TestCase):
         setup = InitialServerConfig(root, self.tool, self.tool, store_factory=factory)
         self.assertIsNone(setup.load())
         setup.configure('https://identity.example.test/realms/team', 'https://workbench.example.test')
-        self.assertEqual(setup.load(), {'issuer': 'https://identity.example.test/realms/team', 'hub_origin': 'https://workbench.example.test', 'storage': 'isolated'})
+        first = setup.load()
+        stale = InitialServerConfig(root, self.tool, self.tool, store_factory=factory)
+        stale.load()
+        self.assertEqual(first['issuer'], 'https://identity.example.test/realms/team')
+        self.assertEqual(first['hub_origin'], 'https://workbench.example.test')
+        self.assertRegex(first['storage'], r'^generation-[0-9a-f]{32}$')
         self.assertTrue((root / 'server-config.bin').read_bytes().startswith(b'PROTECTED:'))
+        old_store = factory(root / first['storage'])
+        setup.configure('https://other.example.test/realm', 'https://other.example.test')
+        second = setup.load()
+        self.assertNotEqual(first['storage'], second['storage'])
         with self.assertRaises(ConnectorError):
-            setup.configure('https://other.example.test/realm', 'https://other.example.test')
+            stale.configure('https://stale.example.test/realm', 'https://stale.example.test')
+        old_store.write('credentials.bin', {'control_token': 'late-old-token'}, protected=True)
+        self.assertIsNone(factory(root / second['storage']).read('credentials.bin', protected=True))
+        self.assertEqual(old_store.read('credentials.bin', protected=True)['control_token'], 'late-old-token')
+        factory(root / second['storage']).write('pending.json', {'operation': 'bind'})
+        with self.assertRaises(ConnectorError):
+            setup.configure('https://third.example.test/realm', 'https://third.example.test')
+        self.assertEqual(setup.load(), second)
+
+    def test_reconfiguration_rejects_saved_credentials_and_recovery(self):
+        for name in ('credentials.bin', 'account-oauth.json', 'pending.json', 'revocation.json', 'revocation_requested.json'):
+            root = Path(self.temp.name) / ('reconfigure-' + name.replace('.', '-'))
+            factory = lambda p: ConnectorStore(p, protector=Protector(), secure_directory=lambda _: None,
+                                                api=SimpleNamespace(owner=lambda _: object(), close=lambda _: None))
+            setup = InitialServerConfig(root, self.tool, self.tool, store_factory=factory)
+            setup.configure('https://identity.example.test/realm', 'https://workbench.example.test')
+            first = setup.load()
+            state = factory(root / first['storage'])
+            state.write(name, {'fixture': True}, protected=name.endswith('.bin') or name == 'account-oauth.json')
+            with self.subTest(name=name), self.assertRaises(ConnectorError):
+                setup.configure('https://other.example.test/realm', 'https://other.example.test')
+            self.assertEqual(setup.load(), first)
 
     def test_initial_server_config_rejects_existing_state_and_invalid_urls(self):
         for name in ('credentials.bin', 'account-oauth.json', 'pending.json', 'revocation.json', 'installation.json'):

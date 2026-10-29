@@ -50,6 +50,12 @@ test('remote and configured accounts do not expose or submit service configurati
     assert.equal(f.get('service-config').hidden,true); f.get('service-issuer').value='https://identity.example.test'; f.get('service-hub').value='https://hub.example.test'; f.get('service-config').emit('submit'); await settle();
     assert.equal(f.calls.filter(call=>call.options.method==='POST').length,0); f.dispose();}
 });
+test('an unbound signed-out account can correct a service address',async()=>{
+  const f=fixture(path=>response(path==='/api/bootstrap'?{csrf_token:'local'}:path==='/api/desktop/remote/status'?{configured:true,state:'unbound'}:{saved:true,restart_required:true}),{mode:'local',accountSession:()=>({configured:true,state:'signed_out',service_configurable:true})});
+  await settle(); assert.equal(f.get('service-config').hidden,false);
+  f.get('service-issuer').value='https://identity.example.test/realm';f.get('service-hub').value='https://hub.example.test';f.get('service-config').emit('submit');await settle();
+  assert.equal(f.calls.filter(call=>call.path==='/api/desktop/account/configure').length,1);assert.match(f.get('status').textContent,/重新打开软件/);assert.equal(f.get('local-account').hidden,true);assert.equal(f.get('local-actions').hidden,true);f.dispose();
+});
 test('failed service configuration gives an actionable message and allows retry',async()=>{
   const f=fixture((path)=>response(path==='/api/bootstrap'?{csrf_token:'local'}:path==='/api/desktop/account/configure'?{error:'remote_configuration_locked'}:{configured:false,state:'unbound'},path==='/api/desktop/account/configure'?409:200),{mode:'local'}); await settle();
   f.get('service-issuer').value='https://identity.example.test'; f.get('service-hub').value='https://hub.example.test'; f.get('service-config').emit('submit'); await settle();
