@@ -178,8 +178,12 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--product-root', type=Path, required=True)
     parser.add_argument('--data-dir', type=Path)
+    parser.add_argument('--sandbox-lock-root', type=Path)
     parser.add_argument('--port', type=int, default=8766)
     args = parser.parse_args(argv)
+    if args.sandbox_lock_root is not None:
+        from control_everything.platform.windows_acl import configure_desktop_lock_root
+        configure_desktop_lock_root(args.sandbox_lock_root)
     desktop = build_desktop(args.product_root, args.data_dir, args.port)
     try:
         desktop.start()
