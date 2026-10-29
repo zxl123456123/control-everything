@@ -70,7 +70,7 @@ export default function WorkspaceKanbanSheet({
         showCloseButton={false}
         className="workspace-kanban-sheet-content bg-worktree-sidebar p-0 sm:max-w-none"
         overlayStyle={{
-          top: WORKSPACE_TOP_CHROME_HEIGHT,
+          top: `var(--platform-workspace-panel-top, ${WORKSPACE_TOP_CHROME_HEIGHT}px)`,
           bottom: drawerBottom,
           left: drawerLeftCss,
           pointerEvents: 'none'
@@ -79,7 +79,7 @@ export default function WorkspaceKanbanSheet({
           {
             ...leftSidebarStyle,
             left: drawerLeftCss,
-            top: WORKSPACE_TOP_CHROME_HEIGHT,
+            top: `var(--platform-workspace-panel-top, ${WORKSPACE_TOP_CHROME_HEIGHT}px)`,
             bottom: drawerBottom,
             height: 'auto',
             width: `min(calc(100vw - ${drawerLeftCss}), 1294px)`

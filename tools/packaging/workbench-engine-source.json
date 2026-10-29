@@ -327103,7 +327103,9 @@
     "src/renderer/src/web/preload-api/web-git-api-history.test.ts",
     "src/shared/workspace-layout/workspace-layout-git-graph-tab.test.ts",
     "src/shared/workspace-layout/workspace-layout-git-graph-tab.ts",
-    "src/renderer/src/components/stats/ShareUsageCard.branding.test.tsx"
+    "src/renderer/src/components/stats/ShareUsageCard.branding.test.tsx",
+    "src/renderer/src/web/PlatformWorkspaceHeader.tsx",
+    "src/renderer/src/web/platform-workbench.css"
   ],
   "adapted_files": [
     {
@@ -327415,14 +327417,14 @@
     {
       "path": "src/renderer/src/app-shell/TitlebarLeftControls.tsx",
       "upstream_sha256": "274b5e3bd1414e927003fb42de2a292fe261df9776fa6d6c9b0feb155fb5d201",
-      "current_sha256": "6ee67c150491a3e23e1a10970d88b571bf2c1f38121007d8bdbe9ed26f32f6fc",
-      "reason": "M1a-W: product app-name and accessibility label in paired Web; M1a navigation: preserve a single project workspace while integrating platform business views"
+      "current_sha256": "3a34b5606ab97698b9245630bad3c6d2fb27af3ea6ec3cf062bc8f00ab3cbbab",
+      "reason": "M1a-W: product app-name and accessibility label in paired Web; M1a navigation: preserve a single project workspace while integrating platform business views；平台工作台统一视觉与品牌展示。"
     },
     {
       "path": "src/renderer/src/components/Landing.tsx",
       "upstream_sha256": "95a03113ca62680422a3e49bc68b659debe3620faba37bd7448ac0369e7d8390",
-      "current_sha256": "adc47e63dcde2ded0bac8de9b1fb25c856d75814596012259170be9134e6ad82",
-      "reason": "M1a-W: product landing identity without official GitHub support entrance; M1a navigation: preserve a single project workspace while integrating platform business views; installed empty entry: filter platform project scope and require a verified project for workspace creation"
+      "current_sha256": "830bbe189705a046de0b7d860f53d6583fd1dcb61d4ba2208bc193f4265a11f2",
+      "reason": "M1a-W: product landing identity without official GitHub support entrance; M1a navigation: preserve a single project workspace while integrating platform business views; installed empty entry: filter platform project scope and require a verified project for workspace creation；平台工作台统一视觉与品牌展示。"
     },
     {
       "path": "src/renderer/src/components/NewWorkspaceComposerCard.start-from.test.tsx",
@@ -329051,6 +329053,12 @@
       "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
     },
     {
+      "path": "src/renderer/src/app-shell/AppWorkspaceShell.tsx",
+      "upstream_sha256": "bb676aa34fee5de4985aab6a363b0dd84a320e5f0d66da0a823a161c57e179a9",
+      "current_sha256": "6b48c79636413d1b94f3f2a230de4d03bd9468b4fd984c9c8f2c22dc178a954c",
+      "reason": "平台工作台统一视觉与品牌展示；保留原生功能与独立模式。"
+    },
+    {
       "path": "src/renderer/src/components/feature-tips/CmdJPaletteTipDialog.tsx",
       "upstream_sha256": "baca91852a0d58589bdb232dd8314bd5022bccd32dc3252c87a5347df28e0295",
       "current_sha256": "f3c0c83952a35f8b97241234d2e9e819341e0eb6f2f497ba49c42c8a6aa28357",
@@ -329081,6 +329089,24 @@
       "reason": "平台工作台统一视觉与品牌展示；保留原生功能与独立模式。"
     },
     {
+      "path": "src/renderer/src/components/sidebar/SidebarHeader.tsx",
+      "upstream_sha256": "b0b4580680d12d693c4b6846ace47ea31450c1c604de227ee756718bce3f5061",
+      "current_sha256": "0c3033924f991ba152daaf6c38fca9785ab77b3cad71966031243c4a1d0a86cd",
+      "reason": "平台工作台统一视觉与品牌展示；保留原生功能与独立模式。"
+    },
+    {
+      "path": "src/renderer/src/components/sidebar/WorkspaceKanbanSheet.tsx",
+      "upstream_sha256": "102a6e6613404fb9f6437bb50d6a19eb844e9dd638de39cfdf9b52bfc7ceb019",
+      "current_sha256": "12ef7fb9c6a5993db202a7dc094d40a418756271b8534a06ac458c1991f6b054",
+      "reason": "平台工作台统一视觉与品牌展示；保留原生功能与独立模式。"
+    },
+    {
+      "path": "src/renderer/src/components/sidebar/index.tsx",
+      "upstream_sha256": "fe5dec3fcb24795e09810785eba44f07bfc6cded85aec2bab2031f8062f10fe6",
+      "current_sha256": "3afc4033cb0f925ff99c53ac04eb5e22e24f273bc8ee5679656ff95cdf0b8492",
+      "reason": "平台工作台统一视觉与品牌展示；保留原生功能与独立模式。"
+    },
+    {
       "path": "src/renderer/src/components/stats/ShareUsageButton.tsx",
       "upstream_sha256": "bb1d88ec983a4b09adc11ae4645283501a8621231ae4945dec4b5ef14aa70da5",
       "current_sha256": "e3414608e4e12f0748607b0fac2fe3d9f5da3a84838e9ca7ecc4a2b7d104b0c5",
@@ -329090,6 +329116,12 @@
       "path": "src/renderer/src/components/stats/ShareUsageCard.tsx",
       "upstream_sha256": "aee6cb887a4d7fed4f77d7970e982fcd8d2cb67b3127055ca6d3feb2cdf58fb6",
       "current_sha256": "7b663654638cc90e090bb3b133493080726ec75aa37a0c2cffabc466a729aa65",
+      "reason": "平台工作台统一视觉与品牌展示；保留原生功能与独立模式。"
+    },
+    {
+      "path": "src/renderer/src/components/tab-bar/tab-bar-surface.tsx",
+      "upstream_sha256": "0f111c29d701ecd64d810b8d876a65ceeb090e9b97d251f7d9db5ad6305c1981",
+      "current_sha256": "b84584c8a70c4355c24b3839a0f72c832eda58c3c3fde9539a0d9f0f5de398ca",
       "reason": "平台工作台统一视觉与品牌展示；保留原生功能与独立模式。"
     }
   ],
