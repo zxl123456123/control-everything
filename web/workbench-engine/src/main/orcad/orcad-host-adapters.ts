@@ -6,7 +6,7 @@ import { ORCAD_CLI_PACKAGE_FILENAME } from '../../shared/orcad-artifacts'
 import { setAppEnvironment, type AppEnvironment } from '../../shared/app-environment'
 import { setSecretStore } from '../../shared/secret-store'
 import { resolveOrcadInstallRoot, resolveOrcadPath } from './orcad-app-paths'
-import { getOrcadCliLauncherPath } from './orcad-cli-launcher'
+import { getOrcadAccountCommand, getOrcadCliLauncherPath } from './orcad-cli-launcher'
 import { createOrcadSecretStore, type OrcadSecretStore } from './orcad-secret-store'
 import { setSpeechServiceFactories } from '../speech/speech-runtime-service'
 import { orcadSpeechServiceFactories } from './orcad-speech-services'
@@ -46,6 +46,7 @@ function createNodeAppEnvironment(): AppEnvironment {
     // instead (see parcel-watcher-entry-path.ts).
     isPackaged: () => true,
     getCliLauncherPath: getOrcadCliLauncherPath,
+    getCliAccountCommand: getOrcadAccountCommand,
     onWillQuit: (handler) => quitHandlers.push(handler),
     exit: (code = 0) => process.exit(code),
     // Why []: there are no Chromium processes on this host to measure.

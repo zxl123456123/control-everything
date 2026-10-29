@@ -327108,7 +327108,9 @@
     "src/renderer/src/web/PlatformWorkspaceHeader.tsx",
     "src/renderer/src/web/platform-workbench.css",
     "src/renderer/src/web/PlatformWorkspaceToolbar.tsx",
-    "src/renderer/src/web/PlatformWorkspaceToolbar.test.tsx"
+    "src/renderer/src/web/PlatformWorkspaceToolbar.test.tsx",
+    "src/main/runtime/runtime-account-controller.test.ts",
+    "src/cli/help.platform.test.ts"
   ],
   "adapted_files": [
     {
@@ -329204,6 +329206,42 @@
       "upstream_sha256": "50a968880bfe588c956f16ec49bd054ae8382425da400301f442416019691d9a",
       "current_sha256": "faaca7a2470d56277ad4dd1bf7fe4e61d0a1bb2656f7d097ec7fd67f664c2cec",
       "reason": "平台工作台统一视觉与品牌展示；保留原生功能与独立模式。"
+    },
+    {
+      "path": "src/main/orcad/orcad-cli-launcher.ts",
+      "upstream_sha256": "c5e239828d68bd1cf5dd3e978f7d6cfda3ee4517253b17de18e82dcd448cb1e1",
+      "current_sha256": "e5fa2c6ea415810fe56180f1001ada9a1152be1651b50ff861e16b508d3c5edc",
+      "reason": "平台命令入口和帮助统一品牌，精简账号说明与工作台展示，保留兼容协议及原生功能。"
+    },
+    {
+      "path": "src/main/orcad/orcad-cli-launcher.test.ts",
+      "upstream_sha256": "7fde4ce5ed19ea0f5a3d462170763cf50906572f296336328d306d2cff96f258",
+      "current_sha256": "3bca7fa6869b32a577c7b1916c3623b88509a35ce11117bc70afcceaf4bb9deb",
+      "reason": "平台命令入口和帮助统一品牌，精简账号说明与工作台展示，保留兼容协议及原生功能。"
+    },
+    {
+      "path": "src/main/orcad/orcad-host-adapters.ts",
+      "upstream_sha256": "835ae5ce81cf7fc30453a73c3f18385daf0ce63613dc5576387fc2131dc91962",
+      "current_sha256": "17cb61679570c888cfdcf4bd5ab87e565258621b2535313faf4e49b521f14877",
+      "reason": "平台命令入口和帮助统一品牌，精简账号说明与工作台展示，保留兼容协议及原生功能。"
+    },
+    {
+      "path": "src/main/runtime/runtime-account-controller.ts",
+      "upstream_sha256": "3484f136fb97a876d263c8c54c2a37ac904db1f9a1477f067f2919592b6bdf93",
+      "current_sha256": "143ead6af6f675b359a683d86e079818545635112ec4784b035f768af2fdac2e",
+      "reason": "平台命令入口和帮助统一品牌，精简账号说明与工作台展示，保留兼容协议及原生功能。"
+    },
+    {
+      "path": "src/shared/app-environment.ts",
+      "upstream_sha256": "acf06925774916ecdaacda9630e0016348ff952066c9b31bfb91f79a44bf5c86",
+      "current_sha256": "563034c4f0f47e7ad6fa2c4edd339a19aee78ccd1cdd8cd262b324064279623e",
+      "reason": "平台命令入口和帮助统一品牌，精简账号说明与工作台展示，保留兼容协议及原生功能。"
+    },
+    {
+      "path": "src/cli/help.ts",
+      "upstream_sha256": "2240c133948e5bca9a2281a74fcbbf624b51206108c88e08d27aad8a9af38cce",
+      "current_sha256": "c2a4847c62deb04e22c5237d743534117987ab3a986a8582584537f26b4ce4a7",
+      "reason": "平台命令入口和帮助统一品牌，精简账号说明与工作台展示，保留兼容协议及原生功能。"
     }
   ],
   "reviewed_findings": [

@@ -26,6 +26,8 @@ export type AppEnvironment = {
   isPackaged(): boolean
   /** A headless host's profile-scoped CLI, when it has no Electron resources directory. */
   getCliLauncherPath?(): string | null
+  /** Product command advertised only after this host prepared the real launcher. */
+  getCliAccountCommand?(): 'ce-workbench' | undefined
   /** Shutdown hook: electron `will-quit`, or SIGTERM/SIGINT on a Node host. */
   onWillQuit(handler: () => void): void
   exit(code?: number): void
