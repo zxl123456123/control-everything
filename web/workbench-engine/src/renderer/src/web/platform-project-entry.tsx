@@ -160,7 +160,6 @@ export default function PlatformProjectEntry(): React.JSX.Element {
   const projectId = route.view === 'project' ? route.id : ''
   const previousProjectId = useRef(projectId)
   const pendingProjectReveal = useRef(false)
-  const currentData = data?.project.id === projectId ? data : null
   const developing = route.view === 'project' && ['workspace', 'activity'].includes(route.tab)
   const needsProjectRuntime = developing || projectSettings
   const workbench = route.view === 'workbench'
@@ -290,7 +289,7 @@ export default function PlatformProjectEntry(): React.JSX.Element {
           const trigger = settingsTrigger.current
           requestAnimationFrame(() => {
             if (trigger?.isConnected) trigger.focus({ preventScroll: true })
-            else document.querySelector<HTMLElement>('.platform-project-name, .platform-studio-host')?.focus({ preventScroll: true })
+            else document.querySelector<HTMLElement>('.platform-project-back, .platform-studio-host')?.focus({ preventScroll: true })
           })
         }
         if (
@@ -494,18 +493,6 @@ export default function PlatformProjectEntry(): React.JSX.Element {
           <a href="#home" className="platform-project-back">
             项目总览
           </a>
-          <span
-            className="platform-project-name"
-            aria-label="当前项目"
-            title={chosen?.directory || archived?.directory}
-          >
-            {developing && unlinkedWorkspace
-              ? '未关联的开发目录'
-              : chosen?.name || archived?.name || currentData?.project.name || '项目工作区'}
-          </span>
-          <div className="platform-project-tablist">
-            <a href={projectRoute(projectId)} aria-current={developing ? 'page' : undefined}>开发</a>
-          </div>
         </nav>
       )}
       {navigationNotice && (
@@ -513,7 +500,7 @@ export default function PlatformProjectEntry(): React.JSX.Element {
           {navigationNotice}
         </p>
       )}
-      {workbench && <nav className="platform-project-tabs" aria-label="项目工作台导航"><a href="#home" className="platform-project-back">项目总览</a><span className="platform-project-name">项目工作台</span></nav>}
+      {workbench && <nav className="platform-project-tabs" aria-label="项目工作台导航"><a href="#home" className="platform-project-back">项目总览</a></nav>}
       <PlatformStudioSurface
         hidden={showWorkspace || showSettings || showWorkbench}
         pending={Boolean(nativeSettings || workbench || (developing && !showWorkspace && !archived))}
