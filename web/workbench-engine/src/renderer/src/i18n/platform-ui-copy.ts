@@ -1,5 +1,9 @@
 // Only confirmed product UI copy belongs here; protocol names and user content stay unchanged.
 const en = {
+  toolFiles: 'Files',
+  toolSessions: 'Sessions',
+  toolChanges: 'Changes',
+  toolChecks: 'Checks',
   setupCommand: 'Add a setup command to run when a new worktree is created.',
   detectedSetupCommand: 'Save the detected command to run whenever a worktree is created.',
   savedSetupCommand: 'Runs when a new worktree is created.',
@@ -66,6 +70,10 @@ const en = {
 }
 
 const zh: Record<keyof typeof en, string> = {
+  toolFiles: '文件',
+  toolSessions: '会话',
+  toolChanges: '更改',
+  toolChecks: '检查',
   setupCommand: '添加新建工作树时运行的设置命令。',
   detectedSetupCommand: '保存检测到的命令，在每次创建工作树时运行。',
   savedSetupCommand: '在创建新工作树时运行。',
@@ -127,6 +135,10 @@ const zh: Record<keyof typeof en, string> = {
 export const PLATFORM_UI_COPY = { en, zh }
 export const PLATFORM_UI_NAMESPACE = 'platform'
 export const PLATFORM_UI_COPY_KEYS: Partial<Record<string, keyof typeof en>> = {
+  'auto.components.right.sidebar.index.8bc2bbc3a0': 'toolFiles',
+  'auto.components.right.sidebar.index.aiVaultSessionHistory': 'toolSessions',
+  'auto.components.right.sidebar.index.0314901467': 'toolChanges',
+  'auto.components.right.sidebar.index.83a10e3c44': 'toolChecks',
   'auto.components.sidebar.SetupScriptPromptCardViews.0a98169776': 'setupCommand',
   'auto.components.sidebar.SetupScriptPromptCardViews.aef6c0a213': 'detectedSetupCommand',
   'auto.components.sidebar.SetupScriptPromptCard.a49196d538': 'savedSetupCommand',

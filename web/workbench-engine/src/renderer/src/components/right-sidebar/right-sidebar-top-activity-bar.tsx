@@ -21,6 +21,7 @@ export function RightSidebarTopActivityBar({
   onSelectTab,
   checksStatus,
   closeButton,
+  showLabels = false,
   activityBarPosition,
   onChangeActivityBarPosition
 }: {
@@ -31,19 +32,23 @@ export function RightSidebarTopActivityBar({
   onSelectTab: (tab: ActiveRightSidebarTab) => void
   checksStatus: CheckStatus | null
   closeButton: React.ReactNode
+  showLabels?: boolean
   activityBarPosition: ActivityBarPosition
   onChangeActivityBarPosition: (pos: ActivityBarPosition) => void
 }): React.JSX.Element {
   return (
     /* ── Top activity bar: horizontal icon row ── */
     <ContextMenu>
-      <div className="flex h-[36px] min-h-[36px] items-center border-b border-border right-sidebar-header-inset right-sidebar-header-drag overflow-hidden">
+      <div
+        className="flex h-[36px] min-h-[36px] items-center border-b border-border right-sidebar-header-inset right-sidebar-header-drag overflow-hidden"
+        data-workbench-tools-tabs={showLabels ? '' : undefined}
+      >
         {!hasDesktopWindowChrome && (
           <TooltipProvider delayDuration={400}>
             <ContextMenuTrigger asChild>
               <div
                 ref={topActivityStripRef}
-                className={RIGHT_SIDEBAR_TOP_ACTIVITY_STRIP_CLASS_NAME}
+                className={cn(RIGHT_SIDEBAR_TOP_ACTIVITY_STRIP_CLASS_NAME, showLabels && 'pl-0')}
               >
                 <div className={cn('flex min-w-0 shrink', RIGHT_SIDEBAR_HEADER_NO_DRAG_CLASS_NAME)}>
                   {/* Why: the top strip shares a narrow titlebar with the close
@@ -58,6 +63,7 @@ export function RightSidebarTopActivityBar({
                         active={effectiveTab === item.id}
                         onClick={() => onSelectTab(item.id)}
                         layout="top"
+                        showLabel={showLabels}
                         statusIndicator={item.id === 'checks' ? checksStatus : null}
                       />
                     ))}
@@ -101,7 +107,7 @@ export function RightSidebarTopActivityBar({
           <ContextMenuTrigger asChild>
             <div
               ref={topActivityStripRef}
-              className={RIGHT_SIDEBAR_WINDOWS_TOP_ACTIVITY_STRIP_CLASS_NAME}
+              className={cn(RIGHT_SIDEBAR_WINDOWS_TOP_ACTIVITY_STRIP_CLASS_NAME, showLabels && 'px-0')}
             >
               {/* Why: custom desktop chrome has fixed native-style controls
                   in the titlebar area; keep sidebar navigation in the
@@ -115,6 +121,7 @@ export function RightSidebarTopActivityBar({
                     active={effectiveTab === item.id}
                     onClick={() => onSelectTab(item.id)}
                     layout="top"
+                    showLabel={showLabels}
                     statusIndicator={item.id === 'checks' ? checksStatus : null}
                   />
                 ))}

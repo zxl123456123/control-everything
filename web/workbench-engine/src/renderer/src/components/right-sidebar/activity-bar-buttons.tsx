@@ -13,6 +13,7 @@ import {
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
 import { translate } from '@/i18n/i18n'
+import { LABELLED_ACTIVITY_BUTTON_WIDTH } from './activity-bar-overflow'
 
 export type ActivityBarItem = {
   id: ActiveRightSidebarTab
@@ -126,12 +127,14 @@ export function ActivityBarButton({
   active,
   onClick,
   layout,
+  showLabel = false,
   statusIndicator
 }: {
   item: ActivityBarItem
   active: boolean
   onClick: () => void
   layout: 'top' | 'side'
+  showLabel?: boolean
   statusIndicator?: CheckStatus | null
 }): React.JSX.Element {
   const Icon = item.icon
@@ -151,8 +154,13 @@ export function ActivityBarButton({
           )}
           onClick={onClick}
           aria-label={activityItemAriaLabel(item, effectiveStatus)}
+          aria-current={showLabel && active ? 'page' : undefined}
+          data-workbench-tool={showLabel ? item.id : undefined}
+          data-active={showLabel ? String(active) : undefined}
+          style={showLabel ? { width: LABELLED_ACTIVITY_BUTTON_WIDTH } : undefined}
         >
-          <Icon size={isTop ? 16 : 18} />
+          <Icon size={isTop ? 16 : 18} className={showLabel ? 'shrink-0' : undefined} />
+          {showLabel && <span className="ml-1.5 min-w-0 truncate text-xs">{item.title}</span>}
 
           {effectiveStatus && effectiveStatus !== 'neutral' && (
             <div

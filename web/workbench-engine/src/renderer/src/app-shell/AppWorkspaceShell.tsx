@@ -11,6 +11,7 @@ import { TitlebarLeftControls } from './TitlebarLeftControls'
 import { RightSidebarToggle, TitlebarMainStrip } from './TitlebarMainStrip'
 import type { AppChromeLayout } from './use-app-chrome-layout'
 import type { FloatingWorkspacePanelState } from './use-floating-workspace-panel'
+import { PlatformWorkspaceToolbar } from '../web/PlatformWorkspaceToolbar'
 
 const Landing = lazy(() => import('../components/Landing'))
 const WorktreeCreationPanel = lazy(
@@ -93,6 +94,7 @@ export function AppWorkspaceShell(props: {
   floatingWorkspace: FloatingWorkspacePanelState
 }): React.JSX.Element {
   const { layout, floatingWorkspace } = props
+  const platformMode = ['/studio', '/workbench/web-index.html'].includes(window.location.pathname)
   const titlebarLeftControls = <TitlebarLeftControls layout={layout} />
   const titlebarMainStrip = <TitlebarMainStrip layout={layout} />
   // Why: keep virtualized scroll memory above the sidebar's workspace/landing remount so the left list doesn't restart at scrollTop 0.
@@ -127,6 +129,7 @@ export function AppWorkspaceShell(props: {
               layout.leftTitlebarChromeLayout.shouldMount ? (
                 /* Why: when the sidebar is collapsed, take this titlebar-height header out of flex layout so the terminal/editor reclaim the left edge. */
                 <div
+                  data-workbench-navigation-column={layout.sidebarOpen ? 'open' : 'closed'}
                   className={`flex min-h-0 flex-col shrink-0${layout.sidebarOpen ? '' : ' relative w-0 overflow-visible'}`}
                 >
                   <div
@@ -155,6 +158,7 @@ export function AppWorkspaceShell(props: {
               )
             ) : null}
             <div className="flex flex-col flex-1 min-w-0 min-h-0 overflow-hidden" data-workbench-canvas="">
+              {platformMode && layout.workspaceChromeActive ? <PlatformWorkspaceToolbar /> : null}
               {/* Why: automations/artifacts own their page headers; the stacked titlebar would be an empty 36px stripe. */}
               {layout.stackedSidebarOpen &&
               layout.activeView !== 'automations' &&

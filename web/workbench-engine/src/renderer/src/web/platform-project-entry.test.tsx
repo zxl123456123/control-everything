@@ -1207,6 +1207,27 @@ it('retains the same project read-only during reconnect and resumes without remo
   menu.remove()
 })
 
+it('measures a lazily mounted canvas and its later workspace toolbar', async () => {
+  const view = render(<PlatformProjectEntry />)
+  publish([project])
+  const app = await screen.findByTestId('project-context')
+  const content = app.closest('.platform-project-content')!
+  const canvas = document.createElement('div')
+  canvas.setAttribute('data-workbench-canvas', '')
+  canvas.getBoundingClientRect = () => ({ left: 344, top: 90 } as DOMRect)
+  content.append(canvas)
+  await waitFor(() => expect(document.documentElement.style.getPropertyValue('--platform-workspace-panel-left')).toBe('344px'))
+  const toolbar = document.createElement('div')
+  toolbar.className = 'platform-workspace-toolbar'
+  toolbar.getBoundingClientRect = () => ({ bottom: 152 } as DOMRect)
+  canvas.append(toolbar)
+  await waitFor(() => expect(document.documentElement.style.getPropertyValue('--platform-workspace-panel-top')).toBe('188px'))
+  toolbar.remove()
+  await waitFor(() => expect(document.documentElement.style.getPropertyValue('--platform-workspace-panel-top')).toBe('126px'))
+  view.unmount()
+  expect(document.documentElement.style.getPropertyValue('--platform-workspace-panel-left')).toBe('')
+})
+
 it('does not retain a revoked connection or reveal another project with stale readiness', async () => {
   render(<PlatformProjectEntry />)
   const second = { id: 'p-two', name: 'Two', directory: 'C:/example/two' }
