@@ -327110,7 +327110,8 @@
     "src/main/credentials/credential-root.ts",
     "src/main/credentials/credential-root.test.ts",
     "src/renderer/src/web/PlatformWorkspaceToolbar.tsx",
-    "src/renderer/src/web/PlatformWorkspaceToolbar.test.tsx"
+    "src/renderer/src/web/PlatformWorkspaceToolbar.test.tsx",
+    "src/renderer/src/app-shell/AppWorkspaceShell.mobile.test.tsx"
   ],
   "adapted_files": [
     {
@@ -329084,7 +329085,7 @@
     {
       "path": "src/renderer/src/app-shell/AppWorkspaceShell.tsx",
       "upstream_sha256": "bb676aa34fee5de4985aab6a363b0dd84a320e5f0d66da0a823a161c57e179a9",
-      "current_sha256": "aaa90760ed5be96fc058661a33ed92910d5b50ed9aa0541cf95721394114fb1f",
+      "current_sha256": "45ed808b6625286c972ed70c0491b67fd5ef4b3496c498a170f5734548357c5e",
       "reason": "平台工作台统一视觉与品牌展示；保留原生功能与独立模式。"
     },
     {

@@ -449,6 +449,36 @@
   }
 }
 
+.platform-mobile-panel-dismiss { display: none; }
+
+/* Phone panels overlay the workspace instead of consuming its columns. */
+@media (max-width: 700px) {
+  .platform-project-entry [data-workbench-shell] { position: relative; padding: 0; }
+  .platform-project-entry [data-workbench-canvas] { margin: 0; border: 0; border-radius: 0; }
+  .platform-project-entry [data-workbench-navigation-column='open'],
+  .platform-project-entry [data-workbench-tools-open='true'] {
+    position: absolute;
+    inset-block: 0;
+    z-index: 31;
+    max-width: calc(100% - 44px);
+    border-radius: 0;
+    box-shadow: 0 0 20px #0003;
+  }
+  .platform-project-entry [data-workbench-navigation-column='open'] { left: 0; }
+  .platform-project-entry [data-workbench-navigation-column='open'] [data-workbench-sidebar] {
+    max-width: calc(100vw - 44px);
+  }
+  .platform-project-entry [data-workbench-tools-open='true'] { right: 0; z-index: 32; }
+  .platform-mobile-panel-dismiss {
+    display: block;
+    position: absolute;
+    inset: 0;
+    z-index: 30;
+    background: #0005;
+    border: 0;
+  }
+}
+
 @media (max-width: 600px) {
   .platform-workspace-header {
     gap: 10px;
