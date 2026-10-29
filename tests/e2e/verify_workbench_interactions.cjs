@@ -118,32 +118,13 @@ async function runCase(width, height, theme) {
     await page.evaluate(() => document.fonts.ready);
     await check(row, 'existing Geist font is loaded', await page.evaluate(() => Array.from(document.fonts).some(font => font.family === 'Geist' && font.status === 'loaded')));
 
-    row.stage = 'normal project menu and management navigation';
-    const project = fixture.projects[1], taskHash = `#project/${encodeURIComponent(project.id)}/tasks`;
+    row.stage = 'retired progress surfaces remain absent';
+    const project = fixture.projects[1];
+    await check(row, 'Studio does not mount retired progress or task panels', await studio.locator('#studio-tasks, #studio-legacy-board, #studio-agent-board, #studio-monitor').count() === 0);
     await studio.locator(`[data-project-menu="${project.id}"]`).click();
-    await page.getByRole('menuitem', { name: '项目进展', exact: true }).click();
-    await hashIs(page, taskHash);
-    const trigger = studio.locator('[data-action="management-menu"]');
-    await trigger.waitFor();
-    await check(row, 'project progress has normal management trigger', await trigger.isVisible());
-    await trigger.click();
-    await page.getByRole('menuitem', { name: '全部事项', exact: true }).click();
-    await hashIs(page, `#project/${encodeURIComponent(project.id)}/items`);
-    await studio.locator('#studio-items-scope').waitFor({ state: 'attached' });
-    await check(row, 'items enter the explicit current-project scope', await studio.locator('#studio-items-scope').inputValue() === 'current');
-    await studio.getByRole('link', { name: '返回项目进展', exact: true }).click();
-    await hashIs(page, taskHash);
-    await page.goBack();
-    await hashIs(page, `#project/${encodeURIComponent(project.id)}/items`);
-    await page.goForward();
-    await hashIs(page, taskHash);
-    await check(row, 'browser back and forward preserve the normal management route', true);
-    await trigger.click();
-    await page.getByRole('menuitem', { name: '事项看板', exact: true }).click();
-    await hashIs(page, `#project/${encodeURIComponent(project.id)}/board`);
-    await studio.getByRole('link', { name: '返回项目进展', exact: true }).waitFor();
-    await check(row, 'normal menu opens the original board adapter', true);
-    await check(row, 'management-only navigation never bootstraps a runtime project', row.bootstrap_requests === 0);
+    await check(row, 'project menu offers no progress or task management entry', await page.getByRole('menuitem', { name: /项目进展|全部事项|事项看板/ }).count() === 0);
+    await page.keyboard.press('Escape');
+    await check(row, 'project cards enter the native workspace', await studio.locator(`[data-project-card="${project.id}"] .ce-project-title-link`).getAttribute('href') === `#project/${encodeURIComponent(project.id)}/workspace`);
     await page.screenshot({ path: path.join(output, `${width}-${theme}.png`), fullPage: true });
     row.stage = 'completed';
   } catch (error) {

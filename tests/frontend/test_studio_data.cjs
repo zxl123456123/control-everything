@@ -33,23 +33,10 @@ test('a failed write rejects with conflict and never manufactures a saved item',
   await assert.rejects(f.client.post('/api/workspace/items/update', { id: 'x', expected_revision: 1, changes: { title: 'draft' } }),
     error => error.status === 409 && error.reason === 'item_changed');
 });
-test('snapshot reads every revision-consistent page before reporting task counts', async () => {
-  const f = fixture(url => ({ body: url === '/api/workspace' ? { projects: { status: 'available', items: [] } }
-    : url === '/api/workspace/agents' ? { items: [] }
-      : { items: [{ id: url.includes('offset=1') ? 'second' : 'first' }], total: 2, list_revision: 7 } }));
-  const result = await f.client.snapshot();
-  assert.deepEqual(Array.from(result.items, row => row.id), ['first', 'second']);
-  assert.ok(f.calls.some(call => call.url.includes('offset=1') && call.url.includes('list_revision=7')));
-});
-test('an incomplete or changing catalog is an error, not an empty success', async () => {
-  const f = fixture(url => ({ body: url === '/api/workspace' ? { projects: { status: 'available', items: [] } }
-    : url === '/api/workspace/agents' ? { items: [] } : { items: [], total: 10, list_revision: 7 } }));
-  await assert.rejects(f.client.snapshot(), error => error.reason === 'list_changed');
-});
-test('product page loads real management modules and has no iframe pairing control', () => {
+test('product page omits retired management modules and has no iframe pairing control', () => {
   const html = fs.readFileSync(path.resolve(__dirname, '../../web/workspace/studio-preview.html'), 'utf8');
   assert.ok(html.indexOf('/studio-data.js') < html.indexOf('/studio-preview.js'));
-  for (const script of ['/task-center.js', '/agents.js', '/project-space.js', '/monitor-art.js', '/monitor-scene.js', '/monitor-model.js', '/project-monitor.js']) assert.ok(html.includes(script));
+  for (const script of ['/task-center.js', '/agents.js', '/project-space.js', '/monitor-art.js', '/monitor-scene.js', '/monitor-model.js', '/project-monitor.js', '/project-progress.js']) assert.ok(!html.includes(script));
   assert.doesNotMatch(html, /iframe|orca-surface|orca-client-url/);
 });
 
@@ -113,7 +100,7 @@ function studioFixture({ remote = false, savedCreatorUrl = null, monitorAvailabl
     setItem: (...args) => writes.push(args), removeItem: key => removed.push(key) };
   const window = { history: { replaceState(_state, _title, hash) { location.hash = hash; } }, CEUITheme: { earlyRead: () => ({ theme: 'light', mount: () => () => {}, requestTheme(next) { this.theme = next; return {ok: true}; }, dispose() {} }) }, localStorage, addEventListener(name, callback) { callbacks[name] = callback; },
     removeEventListener(name) { delete callbacks[name]; }, dispatchEvent(event) { callbacks[event.type]?.(event); },
-    StudioData: { create: () => client }, ProjectProgress: {}, ProjectProgressModel: {},
+    StudioData: { create: () => client },
     StudioMobileEntry: { mount: (container, options) => { mobileMounts.push(options); container.innerHTML = '手机与设备说明'; return () => mobileDisposals.push(options); } },
     WorkspaceTaskCenter: { create: () => { editorMounts++; return { update() { updates++; }, setContext() {} }; } },
     WorkspaceAgentBoard: { create: options => { editorMounts++; return { load: () => options.onRefresh(), update: value => boardSnapshots.push(value), unavailable() {}, setProject: (...args) => boardProjects.push(args), open() {} }; } } };
@@ -126,7 +113,7 @@ function studioFixture({ remote = false, savedCreatorUrl = null, monitorAvailabl
   window.WorkspaceOnboarding = { create(options) { onboardingOptions = options; return { open: async () => options.dialog.showModal() }; } };
   const document = { scrollingElement: scrollHost, activeElement: active, hidden: false, getElementById: () => null, createElement: element, body,
     addEventListener: (name, callback) => { callbacks['document:' + name] = callback; }, removeEventListener: name => { delete callbacks['document:' + name]; } };
-  vm.runInNewContext(fs.readFileSync(path.resolve(__dirname, '../../web/workspace/project-progress-model.js'), 'utf8') + '\n' + fs.readFileSync(path.resolve(__dirname, '../../web/workspace/studio-shell.js'), 'utf8') + '\n' + fs.readFileSync(path.resolve(__dirname, '../../web/workspace/studio-preview.js'), 'utf8'), {
+  vm.runInNewContext(fs.readFileSync(path.resolve(__dirname, '../../web/workspace/studio-shell.js'), 'utf8') + '\n' + fs.readFileSync(path.resolve(__dirname, '../../web/workspace/studio-preview.js'), 'utf8'), {
     URL: class FixtureURL extends URL { constructor(value, base) { super(value, base || location.href); } }, URLSearchParams, window, document, location, localStorage, console,
     DOMParser: class { parseFromString() { return { getElementById: () => dialog }; } },
     CustomEvent: class { constructor(type, options) { this.type = type; this.detail = options?.detail; this.defaultPrevented = false; } preventDefault() { this.defaultPrevented = true; } },
@@ -177,7 +164,7 @@ test('mobile navigation survives initial API failure and refresh without remount
 test('mobile return context follows project, legacy, and history routes without stale reuse', async () => {
   for (const initialUrl of ['http://example.test/studio#project/p/review', 'http://example.test/studio?project_id=p', 'http://example.test/studio#workbench']) {
     const f = studioFixture({ initialUrl, unified: true }); await f.flush();
-    const expected = initialUrl.endsWith('#workbench') ? '#workbench' : initialUrl.includes('#') ? '#project/p/review' : '#project/p/workspace';
+    const expected = initialUrl.endsWith('#workbench') ? '#workbench' : initialUrl.includes('#') ? '#project/p/workspace' : '#project/p/workspace';
     for (const account of ['settings/account', 'mobile', 'settings/mobile']) {
       const before = f.mobileDisposals.length;
       await f.route(account); assert.equal(f.mobileMounts.at(-1).returnHash, expected);
@@ -219,13 +206,13 @@ test('mobile resource is loaded before Studio in both assembly paths', () => {
     assert.ok(text.indexOf('/mobile-device-entry.js') < text.indexOf('/studio-preview.js'));
   }
 });
-test('Studio preserves mounted editors on refresh and renders only server projects', async () => {
+test('Studio refresh renders only server projects without mounting retired editors', async () => {
   const f = studioFixture(); await f.flush();
   assert.match(f.nodes.get('studio-content').innerHTML, /&lt;Real project&gt;/);
   assert.match(f.nodes.get('studio-content').innerHTML, /project_id=server-project/);
   assert.doesNotMatch(f.nodes.get('studio-content').innerHTML, /Tank Frontline|local-session|iframe/);
   f.fail(); f.click('refresh'); await f.flush();
-  assert.equal(f.editorMounts(), 1); assert.equal(f.updates(), 0);
+  assert.equal(f.editorMounts(), 0); assert.equal(f.updates(), 0);
   assert.match(f.nodes.get('studio-status').textContent, /offline.*上次读取/);
   assert.match(f.nodes.get('studio-content').innerHTML, /&lt;Real project&gt;/);
 });
@@ -241,9 +228,9 @@ test('routine desktop, mobile topbar and drawer navigation omit the source-only 
     assert.equal((html.match(/href="#settings\/account"/g) || []).length, 1);
   }
   f.nodes.get('ce-studio').listeners.click({ target: { closest: () => null } });
-  assert.equal(f.location.hash, '#home'); assert.equal(f.editorMounts(), 1);
+  assert.equal(f.location.hash, '#home'); assert.equal(f.editorMounts(), 0);
   f.click('theme'); assert.equal(f.nodes.get('ce-studio').dataset.theme, 'dark');
-  assert.equal(f.editorMounts(), 1);
+  assert.equal(f.editorMounts(), 0);
 });
 
 test('retired creator addresses are neither consumed nor changed in local and remote Studio', async () => {
@@ -280,59 +267,6 @@ test('retired advanced deep links cannot restore management controls', async () 
   }
 });
 
-test('project monitor reuses an instance, deactivates hidden views and destroys stale project bindings', async () => {
-  const f = studioFixture(); await f.flush(); await f.route('project/server-project/monitor');
-  assert.equal(f.nodes.get('studio-monitor').hidden, false); assert.equal(f.nodes.get('studio-agent-board').hidden, true);
-  assert.equal(f.mounts.length, 1); assert.equal(f.mounts[0].fetchJson, f.client.api);
-  assert.equal(f.mounts[0].projectId, 'server-project');
-  await f.route('project/server-project/monitor'); assert.equal(f.mounts.length, 1);
-  await f.route('home'); assert.deepEqual(f.monitorCalls.at(-1), ['server-project', 'active', false]);
-  await f.route('project/server-project/monitor'); assert.equal(f.mounts.length, 1);
-  f.mounts[0].onTask('task'); assert.equal(f.location.hash, '#project/server-project/tasks');
-  f.snapshot.workspace.projects.items.push({ id: 'second', name: 'Second' });
-  await f.route('project/second/monitor');
-  assert.ok(f.monitorCalls.some(row => row[0] === 'server-project' && row[1] === 'destroy'));
-  assert.equal(f.mounts.length, 2); assert.equal(f.mounts[1].projectId, 'second');
-  f.snapshot.workspace.projects.items = []; f.click('refresh'); await f.flush();
-  assert.deepEqual(f.monitorCalls.at(-1), ['second', 'destroy']); assert.equal(f.nodes.get('studio-monitor').hidden, true);
-  assert.equal(f.editorMounts(), 1);
-});
-
-test('unified navigation deactivates the retained monitor before native workspace handover', async () => {
-  const f = studioFixture({ unified: true }); await f.flush();
-  await f.route('project/server-project/monitor');
-  assert.deepEqual(f.monitorCalls.at(-1), ['server-project', 'active', true]);
-  await f.route('project/server-project/workspace');
-  assert.deepEqual(f.monitorCalls.at(-1), ['server-project', 'active', false]);
-});
-
-test('missing monitoring module is an honest unavailable state', async () => {
-  const f = studioFixture({ monitorAvailable: false }); await f.flush(); await f.route('project/server-project/monitor');
-  assert.match(f.nodes.get('studio-monitor-content').textContent, /监控资源尚未就绪/);
-  assert.equal(f.mounts.length, 0); assert.equal(f.nodes.get('studio-agent-board').hidden, true);
-});
-
-test('outer navigation shows projects only and legacy task routes retain their business modules', async () => {
-  const f = studioFixture(); await f.flush();
-  assert.match(f.nodes.get('studio-rail').innerHTML, /href="#home"[^>]*aria-label="项目总览"/);
-  assert.doesNotMatch(f.nodes.get('studio-rail').innerHTML, /事项收件箱|全部事项|待处理/);
-  assert.doesNotMatch(f.nodes.get('studio-content').innerHTML, /事项收件箱|需要你确认|ce-home-lower/);
-  await f.route('attention');
-  assert.match(f.nodes.get('studio-content').innerHTML, /<h1>事项<\/h1>/);
-  assert.equal(f.nodes.get('studio-agent-board').hidden, false);
-  await f.route('project/server-project/tasks');
-  assert.match(f.nodes.get('studio-content').innerHTML, /<h1[^>]*>项目进展<\/h1>/);
-  await f.route('project/server-project/workspace');
-  assert.equal(f.nodes.get('studio-agent-board').hidden, true);
-  await f.route('project/server-project/review');
-  assert.match(f.nodes.get('studio-content').innerHTML, /aria-current="page">待验收/);
-  await f.route('inbox/manage');
-  assert.match(f.nodes.get('studio-content').innerHTML, /<h1>事项<\/h1>/);
-  assert.equal(f.nodes.get('studio-tasks').hidden, true);
-  assert.equal(f.nodes.get('studio-agent-board').hidden, false);
-  assert.equal(f.editorMounts(), 1);
-});
-
 test('unified project opens as a view action and retains the overview until the native surface takes over', async () => {
   const f = studioFixture({ unified: true }); await f.flush();
   assert.match(f.nodes.get('studio-content').innerHTML, /<a[^>]+class="ce-project-title-link"[^>]+href="#project\/server-project\/workspace"[^>]+data-open-project="server-project"/);
@@ -343,12 +277,12 @@ test('unified project opens as a view action and retains the overview until the 
   assert.equal(f.openProject('server-project'), true);
   assert.equal(f.location.pathname, '/studio');
   assert.equal(f.location.hash, '#project/server-project/workspace');
-  assert.equal(f.editorMounts(), 1);
+  assert.equal(f.editorMounts(), 0);
   f.location.search = '?project_id=server-project';
   await f.route('');
   assert.equal(f.nodes.get('ce-studio').dataset.projectSurface, 'false');
   assert.equal(f.nodes.get('studio-content').innerHTML, overview);
-  assert.equal(f.nodes.get('studio-agent-board').hidden, true);
+  assert.equal(f.boardProjects.length, 0);
 });
 
 test('project title always enters workspace even when review is pending', () => {
@@ -359,33 +293,9 @@ test('project title always enters workspace even when review is pending', () => 
   assert.equal(context.window.StudioPreview.projectEntryTab([]), 'workspace');
 });
 
-test('overview renders one workspace title and exact review shortcut from real items', async () => {
-  const f = studioFixture({ unified: true }); await f.flush();
-  f.snapshot.items.push(
-    { id: 'doing', project_id: 'server-project', state: 'doing', title: 'Older work', updated_at: '2026-10-20T10:00:00Z' },
-    { id: 'review-1', project_id: 'server-project', state: 'review', title: 'Review one', updated_at: '2026-10-21T10:00:00Z' },
-    { id: 'review-2', project_id: 'server-project', state: 'review', title: '<Latest & result>', updated_at: '2026-10-23T10:00:00+00:00' },
-    { id: 'blocked', project_id: 'server-project', state: 'blocked', title: 'Blocked', updated_at: '2026-10-22T10:00:00Z' },
-    { id: 'done', project_id: 'server-project', state: 'done', title: 'Done' });
-  await f.route('home');
-  const html = f.nodes.get('studio-content').innerHTML;
-  assert.equal((html.match(/data-project-card="server-project"/g) || []).length, 1);
-  assert.match(html, /ce-project-title-link" href="#project\/server-project\/workspace"/);
-  assert.match(html, /ce-review-shortcut" href="#project\/server-project\/review"[^>]*>待验收 2/);
-  assert.doesNotMatch(html, /ce-development-shortcut/);
-  assert.doesNotMatch(html, /<progress/);
-  assert.match(html, /<span>3 待处理<\/span>/);
-  assert.match(html, /<span>1 进行中<\/span>/);
-  assert.match(html, /<span>0 有交付<\/span>/);
-  assert.match(html, /&lt;Real project&gt;/);
-  assert.equal(html.includes(f.snapshot.workspace.projects.items[0].directories[0].path), false);
-  assert.doesNotMatch(html, /Older work/);
-  assert.match(html, /1 个项目/);
-});
-
 test('overview filters default to normal and explicit all and archive remain in memory', async () => {
   const f = studioFixture({ unified: true }); await f.flush();
-  f.snapshot.workspace.projects.items.push({ id: 'alpha', name: 'Alpha' }, { id: 'zeta', name: 'Zeta' }, { id: 'old', name: 'Archived', archived: true });
+  f.snapshot.workspace.projects.items.push({ id: 'alpha', name: 'Alpha', updated_at: '2026-10-21T10:00:00Z' }, { id: 'zeta', name: 'Zeta', updated_at: '2026-10-23T10:00:00Z' }, { id: 'old', name: 'Archived', archived: true });
   f.snapshot.items.push({ id: 'a', project_id: 'alpha', state: 'doing', updated_at: '2026-10-21T10:00:00Z' },
     { id: 'z', project_id: 'zeta', state: 'review', updated_at: '2026-10-23T10:00:00Z' });
   await f.route('home');
@@ -442,27 +352,6 @@ test('retired native manage events cannot redirect an unregistered directory or 
   assert.equal(f.posts.length, 0);
 });
 
-test('mixed states retain stable project navigation and explicit shortcut routes', async () => {
-  const f = studioFixture({ unified: true }); await f.flush();
-  f.snapshot.items = [
-    { id: 'r', project_id: 'server-project', title: 'Review work', state: 'review', updated_at: '2026-10-23' },
-    { id: 'd', project_id: 'server-project', title: 'Doing work', state: 'doing', updated_at: '2026-10-24' },
-    { id: 'b', project_id: 'server-project', title: 'Blocked work', state: 'blocked' }
-  ];
-  await f.route('home');
-  const html = f.nodes.get('studio-content').innerHTML;
-  for (const [className, tab] of [['ce-project-title-link', 'workspace'], ['ce-review-shortcut', 'review']]) {
-    assert.match(html, new RegExp('class="[^"\\n]*' + className + '" href="#project/server-project/' + tab + '"'));
-    assert.equal(f.openProject('server-project', '#project/server-project/' + tab), true);
-    assert.equal(f.location.hash, '#project/server-project/' + tab);
-  }
-  assert.doesNotMatch(f.nodes.get('studio-rail').innerHTML, /href="#project\//);
-  assert.equal(f.openProject('server-project', '#project/server-project/tasks', { ctrlKey: true }), false);
-  const standalone = studioFixture(); await standalone.flush();
-  assert.equal(standalone.openProject('server-project', '/workbench/web-index.html?project_id=server-project'), false);
-  assert.equal(standalone.location.hash, '#home');
-});
-
 test('retired outer project management hooks cannot open a form or save project fields', async () => {
   const f = studioFixture({ unified: true }); await f.flush();
   f.manage('server-project');
@@ -476,7 +365,7 @@ test('archived task views show a recovery state without exposing active task act
   const f = studioFixture({ unified: true }); await f.flush();
   f.snapshot.workspace.projects.items[0].archived = true;
   await f.route('project/server-project/review');
-  assert.equal(f.nodes.get('studio-agent-board').hidden, true);
+  assert.equal(f.boardProjects.length, 0);
   assert.match(f.nodes.get('studio-content').innerHTML, /已归档/);
   assert.match(f.nodes.get('studio-content').innerHTML, /href="#home"/);
   assert.equal(f.location.hash, '#project/server-project/review');
@@ -491,23 +380,12 @@ test('project snapshots send archived identity separately from active native can
   assert.deepEqual(JSON.parse(JSON.stringify(published.metadata)), { archived: [{ id: 'archived-project', name: 'Archived project', directory: 'C:/example/archived' }] });
 });
 
-test('warm business filters share the published snapshot without another data read', async () => {
-  const f = studioFixture({ unified: true }); await f.flush();
-  assert.equal(f.snapshotReads.length, 1); assert.equal(f.boardSnapshots.length, 0, 'Hidden progress only caches the latest Studio snapshot');
-  for (const tab of ['tasks', 'review', 'attention', 'workspace', 'activity', 'tasks']) await f.route('project/server-project/' + tab);
-  assert.equal(f.snapshotReads.length, 1);
-  assert.equal(f.boardSnapshots.length, 1); assert.equal(f.boardSnapshots[0], f.snapshot);
-  assert.equal(f.nodes.get('studio-agent-board').hidden, false);
-  assert.doesNotMatch(f.nodes.get('studio-status').textContent, /正在更新/);
-  f.dispose(); assert.equal(f.timers.size, 0);
-});
-
 test('quiet refresh pauses in development and hidden documents, then rechecks stale data on return', async () => {
   const f = studioFixture({ unified: true }); await f.flush();
   await f.route('project/server-project/workspace');
-  assert.equal(f.nodes.get('studio-agent-board').hidden, true); assert.equal(f.timers.size, 0);
+  assert.equal(f.boardProjects.length, 0); assert.equal(f.timers.size, 0);
   await f.advance(16000); assert.equal(f.snapshotReads.length, 1);
-  await f.route('project/server-project/tasks'); assert.equal(f.snapshotReads.length, 2);
+  await f.route('home'); assert.equal(f.snapshotReads.length, 2);
   await f.hidden(true); assert.equal(f.timers.size, 0);
   await f.advance(16000); assert.equal(f.snapshotReads.length, 2);
   await f.hidden(false); assert.equal(f.snapshotReads.length, 3);
@@ -525,7 +403,7 @@ test('concurrent refreshes share an in-flight read and retain a write-triggered 
   pending.shift()(f.snapshot); await f.flush(); assert.equal(reads, 2);
   pending.shift()(f.snapshot); await f.flush(); assert.equal(reads, 2);
   assert.equal(f.boardSnapshots.length, 0, 'Home refresh does not render a hidden consumer');
-  await f.route('project/server-project/tasks'); assert.equal(f.boardSnapshots.length, 1); f.dispose();
+  await f.route('project/server-project/tasks'); assert.equal(f.boardSnapshots.length, 0); f.dispose();
 });
 
 test('unchanged refresh preserves normalized DOM and mobile return invalidates the content owner', async () => {
@@ -542,82 +420,6 @@ test('unchanged refresh preserves normalized DOM and mobile return invalidates t
   assert.equal(f.mobileMounts.length,1); assert.equal(f.mobileDisposals.length,1);
 });
 
-test('latest real timestamp still sorts cards while undated items never manufacture recency', async () => {
-  const f = studioFixture({ unified: true }); await f.flush();
-  f.snapshot.workspace.projects.items.push({id:'other',name:'Other'});
-  f.snapshot.items = [{ project_id: 'server-project', title: 'Undated', state: 'todo' }, { project_id: 'server-project', title: 'Dated', state: 'done', updated_at: '2026-10-23' }];
-  f.snapshot.items.push({project_id:'other',state:'todo',updated_at:'2026-10-22'});
-  const ids = () => [...f.nodes.get('studio-content').innerHTML.matchAll(/data-project-card="([^"]+)"/g)].map(match=>match[1]);
-  for (const timestamp of ['2026-10-23T10:00:00Z', '2026-10-23T18:00:00+08:00']) {
-    f.snapshot.items[1].updated_at = timestamp; await f.route('home');
-    assert.deepEqual(ids(), ['server-project','other']);
-  }
-  f.snapshot.items.splice(1,1); await f.route('home'); assert.deepEqual(ids(), ['other','server-project']);
-  assert.doesNotMatch(f.nodes.get('studio-content').innerHTML, /<time/);
-});
-
-
-test('project task heading, filters and counts stay scoped through navigation and refresh', async () => {
-  const f = studioFixture(); await f.flush();
-  f.nodes.get('ce-studio').dataset.isolatedPreview = 'true';
-  f.snapshot.items = [{ id: 'a', project_id: 'server-project' }, { id: 'b', project_id: 'other' }, { id: 'c', project_id: 'server-project' }];
-  await f.route('project/server-project/tasks');
-  assert.match(f.nodes.get('studio-content').innerHTML, /项目进展/);
-  assert.match(f.nodes.get('studio-content').innerHTML, /全部项目/);
-  assert.equal(f.nodes.get('studio-status').textContent, ''); assert.equal(f.nodes.get('studio-status').hidden, true);
-  f.click('refresh'); await f.flush();
-  assert.equal(f.nodes.get('studio-status').textContent, ''); assert.equal(f.nodes.get('studio-status').hidden, true);
-  await f.route('project/other/review');
-  assert.equal(f.nodes.get('studio-status').textContent, ''); assert.equal(f.nodes.get('studio-status').hidden, true);
-  await f.route('inbox');
-  assert.equal(f.nodes.get('studio-status').textContent, ''); assert.equal(f.nodes.get('studio-status').hidden, true);
-  assert.doesNotMatch(f.nodes.get('studio-content').innerHTML, /全部项目/);
-  f.dispose();
-});
-
-
-test('project count retains failed refresh evidence after changing task routes', async () => {
-  const f = studioFixture(); await f.flush();
-  f.snapshot.items = [{ project_id: 'server-project' }, { project_id: 'other' }];
-  f.fail(); f.click('refresh'); await f.flush(); await f.route('project/server-project/tasks');
-  assert.match(f.nodes.get('studio-status').textContent, /offline.*上次读取/);
-  await f.route('project/other/review');
-  assert.match(f.nodes.get('studio-status').textContent, /offline.*上次读取/);
-  f.dispose();
-});
-
-
-test('unified legacy inbox stays readable without a top-level task entry and exact filters remain explicit', async () => {
-  const f = studioFixture({ unified: true }); await f.flush();
-  await f.route('inbox');
-  assert.doesNotMatch(f.nodes.get('studio-rail').innerHTML, /href="#inbox"/);
-  assert.doesNotMatch(f.nodes.get('studio-topbar').innerHTML, /href="#inbox"/);
-  assert.doesNotMatch(f.nodes.get('studio-topbar').innerHTML, /<span> \/ 事项<\/span>/);
-  assert.doesNotMatch(f.nodes.get('studio-topbar').innerHTML, /data-action="refresh"/);
-  assert.doesNotMatch(f.nodes.get('studio-content').innerHTML, /aria-label="事项筛选"|ce-tabs/);
-  const reads = f.snapshotReads.length;
-  await f.route('inbox/review');
-  assert.doesNotMatch(f.nodes.get('studio-content').innerHTML, /当前仅显示|ce-scope-note/);
-  assert.deepEqual(f.boardProjects.at(-1), ['', 'review']);
-  await f.route('project/server-project/attention');
-  assert.doesNotMatch(f.nodes.get('studio-content').innerHTML, /当前仅显示|ce-scope-note/);
-  assert.deepEqual(f.boardProjects.at(-1), ['server-project', 'attention']);
-  assert.equal(f.snapshotReads.length, reads);
-  f.dispose();
-});
-
-
-test('unified task pages omit the old duplicate progress link while monitor keeps its return action', async () => {
-  const f = studioFixture({ unified: true }); await f.flush();
-  for (const tab of ['tasks', 'review']) {
-    await f.route('project/server-project/' + tab);
-    assert.doesNotMatch(f.nodes.get('studio-content').innerHTML, />业务进度<\/a>/);
-  }
-  await f.route('project/server-project/monitor');
-  assert.match(f.nodes.get('studio-content').innerHTML, /href="#project\/server-project\/tasks">返回进展/);
-  f.dispose();
-});
-
 test('retiring Studio uses its existing dispose and rejects late snapshots without rescheduling',async()=>{
   const f=studioFixture({remote:true});await f.flush();
   const previous=f.nodes.get('studio-content').innerHTML;
@@ -629,21 +431,6 @@ test('retiring Studio uses its existing dispose and rejects late snapshots witho
   assert.equal(f.boardSnapshots.length,updates);assert.equal(f.nodes.get('studio-content').innerHTML,previous);
   f.click('refresh');await f.flush();assert.equal(f.timers.size,0);
 });
-
-test('minimal project tasks remove scope notes, session links, management actions and preview status', async () => {
-  const f = studioFixture({ unified: true }); await f.flush();
-  f.nodes.get('ce-studio').dataset.isolatedPreview = 'true';
-  await f.route('project/server-project/tasks');
-  assert.match(f.nodes.get('studio-content').innerHTML, /<h1[^>]*>项目进展<\/h1>/);
-  assert.doesNotMatch(f.nodes.get('studio-content').innerHTML, /查看进展|ce-scope-note|事项管理/);
-  assert.doesNotMatch(f.nodes.get('studio-content').innerHTML, />会话<\/a>/);
-  assert.equal(f.nodes.get('studio-status').textContent, ''); assert.equal(f.nodes.get('studio-status').hidden, true);
-  f.fail(); f.click('refresh'); await f.flush();
-  assert.match(f.nodes.get('studio-status').textContent, /offline.*上次读取/);
-  assert.equal(f.nodes.get('studio-status').hidden, false);
-  f.dispose();
-});
-
 
 test('navigation drawer shares destinations, locks the real scroll host and restores on every dismissal', async () => {
   for (const unified of [false, true]) {
@@ -883,14 +670,14 @@ test('a failed first read shows one error panel with a retry that recovers, and 
   const content = () => f.nodes.get('studio-content').innerHTML;
   assert.match(content(), /ce-skeleton/);
   await f.flush();
-  assert.match(content(), /role="alert"[^>]*>.*无法读取项目与事项/s);
+  assert.match(content(), /role="alert"[^>]*>.*无法读取项目/s);
   assert.match(content(), /data-action="refresh"[^>]*>重试</);
   assert.doesNotMatch(content(), /草稿保留|ce-skeleton/);
   assert.equal(f.nodes.get('studio-status').hidden, true, 'the banner must not repeat the panel');
   f.recover(); f.click('refresh');
   assert.match(content(), /ce-skeleton/, 'retrying shows loading again');
   await f.flush();
-  assert.doesNotMatch(content(), /无法读取项目与事项|ce-skeleton/);
+  assert.doesNotMatch(content(), /无法读取项目|ce-skeleton/);
 });
 
 test('the project workspace explains a missing engine and an unknown project offers a way back', async () => {
@@ -898,7 +685,7 @@ test('the project workspace explains a missing engine and an unknown project off
   await f.flush();
   const html = f.nodes.get('studio-content').innerHTML;
   assert.match(html, /项目运行组件未连接/);
-  assert.match(html, /href="#project\/server-project\/tasks">查看项目进展/);
+  assert.doesNotMatch(html, /查看项目进展|\/tasks/);
   assert.match(html, /href="#home">返回项目总览/);
   await f.route('project/missing/workspace');
   assert.match(f.nodes.get('studio-content').innerHTML, /未找到这个项目.*href="#home"/s);
@@ -919,4 +706,16 @@ test('the page opens with a skip link that moves focus into the main region', ()
   assert.match(html, /<section id="ce-studio"[^>]*>\s*<button type="button" class="ce-skip" data-action="skip-to-content">/);
   assert.match(html, /<main class="ce-content"[^>]*tabindex="-1"/);
   assert.match(fs.readFileSync(path.resolve(__dirname, '../../web/workspace/studio-preview.js'), 'utf8'), /skip-to-content'\) root\.querySelector\('main\.ce-content'\)\?\.focus\(\)/);
+});
+
+test('Studio snapshot reads only project catalog and rejects unavailable catalogs', async () => {
+  const f = fixture(url => {
+    assert.equal(url, '/api/workspace');
+    return {body:{projects:{status:'available',items:[]}}};
+  });
+  const snapshot = await f.client.snapshot();
+  assert.deepEqual(Object.keys(snapshot), ['workspace']);
+  assert.equal(f.calls.length, 1);
+  const failed = fixture(() => ({body:{projects:{status:'unavailable',items:[]}}}));
+  await assert.rejects(failed.client.snapshot(), error => error.reason === 'workspace_unavailable');
 });

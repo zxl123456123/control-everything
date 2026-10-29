@@ -238,8 +238,7 @@ export default function PlatformProjectEntry(): React.JSX.Element {
         unlinked.current &&
         next.view === 'project' &&
         next.id === previous.id &&
-        next.tab !== 'workspace' &&
-        next.tab !== 'tasks'
+        next.tab !== 'workspace'
       ) {
         window.history.replaceState(null, '', acceptedHash.current)
         setNavigationNotice('当前开发目录未关联登记项目，请从左侧项目栏选择已登记项目。')
@@ -353,7 +352,7 @@ export default function PlatformProjectEntry(): React.JSX.Element {
         (event.type === 'platform-adopt-task-session' && (typeof request.sessionId !== 'string' || !request.sessionId)) ||
         (request.resume !== undefined && typeof request.resume !== 'boolean') ||
         current.view !== 'project' ||
-        (current.id !== request.projectId && current.tab !== 'tasks') ||
+        current.id !== request.projectId ||
         !latestProjects.current.some((project) => project.id === request.projectId)
       )
         return
@@ -505,26 +504,7 @@ export default function PlatformProjectEntry(): React.JSX.Element {
               : chosen?.name || archived?.name || currentData?.project.name || '项目工作区'}
           </span>
           <div className="platform-project-tablist">
-            {(
-              [
-                ['workspace', '开发'],
-                ['tasks', '进展']
-              ] as const
-            ).map(([tab, label]) => (
-              <a
-                key={tab}
-                href={projectRoute(projectId, tab)}
-                aria-current={
-                  route.tab === tab ||
-                  (tab === 'workspace' && route.tab === 'activity') ||
-                  (tab === 'tasks' && ['review', 'attention', 'monitor', 'items', 'board'].includes(route.tab))
-                    ? 'page'
-                    : undefined
-                }
-              >
-                {label}
-              </a>
-            ))}
+            <a href={projectRoute(projectId)} aria-current={developing ? 'page' : undefined}>开发</a>
           </div>
         </nav>
       )}

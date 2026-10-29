@@ -20,7 +20,6 @@ include web/workspace/remote-account.html
 include web/workspace/remote-account.js
 include web/workspace/remote-account.css
 include web/workspace/agents.js
-include web/workspace/project-progress.js web/workspace/project-progress-model.js web/workspace/project-progress.css
 include web/workspace/task-center.js
 include web/workspace/project-space.js web/workspace/execution.js web/workspace/observation.js
 include web/workspace/news.js web/workspace/quota.js

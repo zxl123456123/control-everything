@@ -36,17 +36,6 @@ it('downloads dependencies in order once and keeps load-error recovery available
   // Every download is scheduled before the first script finishes, without changing execution order.
   expect(scripts.map((script) => new URL(script.src).pathname)).toEqual([
     '/ui-dialog.js',
-    '/onboarding.js',
-    '/execution.js',
-    '/task-center.js',
-    '/monitor-art.js',
-    '/monitor-scene.js',
-    '/monitor-model.js',
-    '/project-monitor.js',
-    '/project-space.js',
-    '/project-progress-model.js',
-    '/project-progress.js',
-    '/agents.js',
     '/studio-data.js',
     '/remote/account-device.js',
     '/mobile-device-entry.js',
@@ -73,7 +62,7 @@ it('downloads dependencies in order once and keeps load-error recovery available
   view.rerender(<PlatformStudioSurface hidden={false} onProjects={onProjects} />)
   expect(view.container.querySelector('section')?.hasAttribute('inert')).toBe(false)
   expect(view.container.querySelector<HTMLElement>('.platform-studio-host')?.hidden).toBe(false)
-  expect(scripts).toHaveLength(26)
+  expect(scripts).toHaveLength(15)
   view.rerender(<PlatformStudioSurface hidden={false} pending onProjects={onProjects} />)
   await act(async () => {
     scripts[0].dispatchEvent(new Event('error'))

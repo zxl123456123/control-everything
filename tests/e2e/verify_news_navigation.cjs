@@ -26,7 +26,7 @@ function policy(file, name) {
 }
 const readerPolicy = policy('src/control_everything/http/news_reader.py', 'CSP');
 const studioPolicy = policy('src/control_everything/http/workbench.py', 'STUDIO_CSP');
-const allowed = new Set(['studio-preview.css','studio-preview.js','workspace.css','news-reader.css','news-reader.js','news-spider.js','news-sections.css','news-sections.js','news-section-editor.js','news-search.js','news-pets.js','news-pet-dial.js','news-pet-wheel.js','news-pet-prefs.js','news-pet-director.js','news-pet-status.js','ui-theme.js','ui-dialog.js','studio-shell.js','project-progress-model.js']);
+const allowed = new Set(['studio-preview.css','studio-preview.js','workspace.css','news-reader.css','news-reader.js','news-spider.js','news-sections.css','news-sections.js','news-section-editor.js','news-search.js','news-pets.js','news-pet-dial.js','news-pet-wheel.js','news-pet-prefs.js','news-pet-director.js','news-pet-status.js','ui-theme.js','ui-dialog.js','studio-shell.js']);
 const server = createServer((req,res) => {
   const url = new URL(req.url, 'http://' + req.headers.host);
   const reply = (body,type='application/json',csp) => {res.writeHead(200,{'Content-Type':type,...(csp ? {'Content-Security-Policy':csp} : {})});res.end(typeof body === 'string' || Buffer.isBuffer(body) ? body : JSON.stringify(body));};

@@ -1,9 +1,9 @@
 export type PlatformRoute =
-  | { view: 'news' | 'home' | 'tools' | 'inbox' | 'mobile' | 'workbench' | 'settings'; id: ''; tab: string }
+  | { view: 'news' | 'home' | 'tools' | 'mobile' | 'workbench' | 'settings'; id: ''; tab: string }
   | {
       view: 'project'
       id: string
-      tab: 'workspace' | 'tasks' | 'review' | 'attention' | 'activity' | 'monitor' | 'settings' | 'items' | 'board'
+      tab: 'workspace' | 'activity' | 'settings'
     }
 
 export function readPlatformRoute(location: Pick<Location, 'hash' | 'search'>): PlatformRoute {
@@ -16,26 +16,14 @@ export function readPlatformRoute(location: Pick<Location, 'hash' | 'search'>): 
   }
   if (!view && location.search) id = new URLSearchParams(location.search).get('project_id') || ''
   if ((view === 'project' || !view) && /^[a-z0-9][a-z0-9-]{0,63}$/.test(id)) {
-    const page = tab === 'manage' ? 'tasks' : tab
     return {
       view: 'project',
       id,
-      tab: ['tasks', 'review', 'attention', 'activity', 'monitor', 'settings', 'items', 'board'].includes(page)
-        ? (page as Extract<PlatformRoute, { view: 'project' }>['tab'])
+      tab: ['activity', 'settings'].includes(tab)
+        ? (tab as Extract<PlatformRoute, { view: 'project' }>['tab'])
         : 'workspace'
     }
   }
-  if (view === 'tasks' || view === 'attention' || view === 'inbox')
-    return {
-      view: 'inbox',
-      id: '',
-      tab:
-        view === 'attention' || encoded === 'attention'
-          ? 'attention'
-          : encoded === 'review'
-            ? 'review'
-            : 'all'
-    }
   if (view === 'news') return { view: 'news', id: '', tab: '' }
   if (view === 'mobile' || view === 'settings' && id === 'mobile')
     return { view: 'settings', id: '', tab: 'account' }

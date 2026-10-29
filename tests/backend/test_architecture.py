@@ -45,8 +45,7 @@ class ArchitectureTests(TestCase):
             self.assertTrue(set(names).issubset(sys.stdlib_module_names))
 
     def test_known_owners_allow_legitimate_cross_feature_changes(self):
-        for path in ['web/workspace/project-progress.js', 'web/workspace/project-progress-model.js',
-                     'web/workspace/project-progress.css',
+        for path in ['web/workspace/studio-preview.js', 'web/workspace/studio-shell.js',
                      'src/control_everything/workspace/validation.py', 'src/control_everything/profiles/profile_import.py',
                      'src/control_everything/platform/windows_jobs.py', 'src/control_everything/input_validation.py',
                      'src/control_everything/platform/windows_installation.py', 'src/control_everything/installation/registry.py',

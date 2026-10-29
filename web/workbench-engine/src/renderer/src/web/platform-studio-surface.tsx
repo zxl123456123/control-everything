@@ -15,17 +15,6 @@ type StudioWindow = Window & {
 }
 const scripts = [
   '/ui-dialog.js',
-  '/onboarding.js',
-  '/execution.js',
-  '/task-center.js',
-  '/monitor-art.js',
-  '/monitor-scene.js',
-  '/monitor-model.js',
-  '/project-monitor.js',
-  '/project-space.js',
-  '/project-progress-model.js',
-  '/project-progress.js',
-  '/agents.js',
   '/studio-data.js',
   '/remote/account-device.js',
   '/mobile-device-entry.js',
@@ -120,9 +109,7 @@ export default function PlatformStudioSurface({
       shadow.addEventListener('keyup', stopKeyboardBubble)
       const styles = [
         '/workspace.css',
-        '/project-monitor.css',
         '/studio-preview.css',
-        '/project-progress.css',
         '/remote/remote-account.css'
       ].map(
         (href) =>
@@ -173,7 +160,7 @@ export default function PlatformStudioSurface({
       className="platform-studio-surface"
       hidden={hidden}
       inert={pending && ready}
-      aria-label="项目与进展"
+      aria-label="项目管理"
     >
       {!ready && (
         <div className="platform-surface-feedback" role={error ? 'alert' : 'status'}>

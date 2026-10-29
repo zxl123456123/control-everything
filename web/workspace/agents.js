@@ -570,8 +570,6 @@ window.WorkspaceAgentBoard = (() => {
     return groups;
   }
   function create({ root, fetchJson, postJson, onRegister = () => {}, onAddProject = () => {}, onProject = null, onRefresh = null, sandboxButton = null, itemsHref = null, unified = false, now = () => Date.now() }) {
-    if (unified && window.ProjectProgress) return window.ProjectProgress.create({ root, fetchJson, postJson, onRefresh, itemsHref, onProject,
-      legacyCreate: options => create({ ...options, onRegister, onAddProject, sandboxButton, itemsHref, unified: false, now }) });
     let items = [], projects = [], agents = [], request = 0, detailsRequest = 0, selectedProject = '', complete = false, writing = false, selected = null;
     let loaded = false, detailDirty = false, editDirty = false, briefDirty = false, sessionDirty = false, messageDirty = false, registryAvailable = false, disposed = false, itemFilter = 'all';
     let groupsKey = '', loadFailed = false, active = true;
