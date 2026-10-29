@@ -1,0 +1,27 @@
+[Unit]
+Description=Account-owned workbench admission hub
+After=network-online.target ce-device-provisioner.socket ce-public-ip-alias.service
+Requires=ce-device-provisioner.socket
+Wants=ce-public-ip-alias.service
+
+[Service]
+User=ce-remote-hub
+Group=ce-remote-hub
+UMask=0077
+StateDirectory=ce-remote-hub
+StateDirectoryMode=0700
+Environment=PYTHONPATH=/opt/ce-remote/src
+ExecStart=@PYTHON@ /opt/ce-remote/tools/scripts/remote_hub_admin.py --config /etc/ce-remote-hub/config.json serve
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ReadWritePaths=/var/lib/ce-remote-hub
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+# 与 n8n 等同机服务隔离：hub 是 stdlib Python，几十 MB；超限只杀 hub，不波及别的服务。
+MemoryMax=192M
+
+[Install]
+WantedBy=multi-user.target

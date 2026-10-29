@@ -1,0 +1,17 @@
+[Unit]
+Description=Loopback alias for this server's public IPv4 (NAT hairpin workaround)
+Documentation=file:///opt/ce-remote/deploy/README.zh.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+# 轻量云服务器的公网 IP 经 NAT 映射，本机直接访问自己的公网 IP 可能不通；
+# hub 与 oauth2-proxy 需要访问 https://<公网 IP>，所以在 lo 上加一个 /32 别名。
+# 已存在时 (EEXIST) 视为成功；卸载时只删除这一个地址。
+ExecStart=/bin/sh -c '/sbin/ip addr show dev lo | grep -q "inet @CE_PUBLIC_IP@/32" || /sbin/ip addr add @CE_PUBLIC_IP@/32 dev lo'
+ExecStop=/bin/sh -c '/sbin/ip addr del @CE_PUBLIC_IP@/32 dev lo || true'
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,100 @@
+# 可替换的 IdP 单元：Keycloak + 专用 Postgres。只通过 127.0.0.1:18080 暴露给 Caddy，
+# 不向公网发布任何端口。换 IdP 时整份删除/替换本文件，核心 docker-compose.yml 不变。
+# 内存预算（总计约 930 MiB 上限，实际稳态更低）：Keycloak 768m + Postgres 160m，见 README.zh.md。
+services:
+  postgres:
+    image: ${CE_REGISTRY_DOCKERHUB:-}postgres:17-alpine
+    container_name: ce-remote-idp-db
+    restart: unless-stopped
+    mem_limit: ${PG_MEM_LIMIT:-160m}
+    memswap_limit: ${PG_MEM_LIMIT:-160m}
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: ${KC_DB_PASSWORD:?set KC_DB_PASSWORD}
+    command:
+      - postgres
+      - -c
+      - shared_buffers=${PG_SHARED_BUFFERS:-24MB}
+      - -c
+      - max_connections=30
+      - -c
+      - work_mem=2MB
+      - -c
+      - maintenance_work_mem=16MB
+      - -c
+      - effective_cache_size=64MB
+      - -c
+      - wal_buffers=1MB
+      - -c
+      - max_wal_size=128MB
+    volumes:
+      - ce_idp_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U keycloak -d keycloak"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [idp]
+    logging: &log
+      driver: json-file
+      options: {max-size: "5m", max-file: "3"}
+
+  keycloak:
+    build:
+      context: ./keycloak
+      args:
+        KC_BASE: ${CE_REGISTRY_QUAY:-quay.io/}keycloak/keycloak:${KC_IMAGE_TAG:-26.8.1}
+    image: ce-remote/keycloak-optimized:${KC_IMAGE_TAG:-26.8.1}
+    container_name: ce-remote-idp
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    # 不用 start-dev；预构建镜像 + --optimized，避免每次启动重新构建占用内存。
+    command: ["start", "--optimized", "--import-realm"]
+    mem_limit: ${KC_MEM_LIMIT:-768m}
+    memswap_limit: ${KC_MEM_LIMIT:-768m}
+    ports:
+      - "127.0.0.1:18080:8080"
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: ${KC_DB_PASSWORD:?set KC_DB_PASSWORD}
+      KC_DB_POOL_INITIAL_SIZE: "2"
+      KC_DB_POOL_MIN_SIZE: "2"
+      KC_DB_POOL_MAX_SIZE: "10"
+      KC_HTTP_POOL_MAX_THREADS: "50"
+      # 对外身份就是公网 https://<IP>；TLS 由 Caddy 终止。
+      KC_HOSTNAME: ${CE_PUBLIC_ORIGIN:?set CE_PUBLIC_ORIGIN}
+      KC_HTTP_ENABLED: "true"
+      KC_PROXY_HEADERS: xforwarded
+      KC_HEALTH_ENABLED: "true"
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KC_BOOTSTRAP_ADMIN_USERNAME:-kcadmin}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_BOOTSTRAP_ADMIN_PASSWORD:?set KC_BOOTSTRAP_ADMIN_PASSWORD}
+      JAVA_OPTS_KC_HEAP: ${KC_JAVA_HEAP:--Xms128m -Xmx288m}
+      JAVA_OPTS_APPEND: ${KC_JAVA_OPTS:--XX:-UseG1GC -XX:+UseSerialGC -XX:MaxMetaspaceSize=192m -XX:MaxDirectMemorySize=48m -XX:ReservedCodeCacheSize=48m -Xss512k}
+      # realm 导入模板里的占位值（realm 已存在时导入会被跳过）。
+      CE_PUBLIC_ORIGIN: ${CE_PUBLIC_ORIGIN}
+      CE_MOBILE_SCHEME: ${CE_MOBILE_SCHEME:?set CE_MOBILE_SCHEME}
+      WORKBENCH_WEB_CLIENT_SECRET: ${OAUTH2_PROXY_CLIENT_SECRET:?set OAUTH2_PROXY_CLIENT_SECRET}
+      WORKBENCH_HUB_CLIENT_SECRET: ${CE_HUB_INTROSPECTION_CLIENT_SECRET:?set CE_HUB_INTROSPECTION_CLIENT_SECRET}
+      WORKBENCH_DIRECTORY_CLIENT_SECRET: ${CE_DIRECTORY_CLIENT_SECRET:?set CE_DIRECTORY_CLIENT_SECRET}
+    volumes:
+      - ./realm/workbench-realm.json:/opt/keycloak/data/import/workbench-realm.json:ro
+    healthcheck:
+      # 官方镜像没有 curl；用 bash 的 /dev/tcp 访问管理端口 9000（不对外发布）。
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/9000 && printf 'GET /health/ready HTTP/1.0\\r\\n\\r\\n' >&3 && head -n1 <&3 | grep -q '200'"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 60s
+    networks: [idp]
+    logging: *log
+
+networks:
+  idp:
+
+volumes:
+  ce_idp_pgdata:
