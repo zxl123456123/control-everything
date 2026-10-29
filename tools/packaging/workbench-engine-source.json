@@ -327107,6 +327107,8 @@
     "src/renderer/src/components/stats/ShareUsageCard.branding.test.tsx",
     "src/renderer/src/web/PlatformWorkspaceHeader.tsx",
     "src/renderer/src/web/platform-workbench.css",
+    "src/main/credentials/credential-root.ts",
+    "src/main/credentials/credential-root.test.ts",
     "src/renderer/src/web/PlatformWorkspaceToolbar.tsx",
     "src/renderer/src/web/PlatformWorkspaceToolbar.test.tsx",
     "src/main/runtime/runtime-account-controller.test.ts",
@@ -327327,8 +327329,8 @@
     {
       "path": "src/main/orcad/orcad-entry.ts",
       "upstream_sha256": "972748b4e46cd0cc3f08c61b82f6a7dc7a1553d2706f93323537865aac496193",
-      "current_sha256": "ae656dd40d7cc88c907bc93e7f9a196a48f72bd6bca2e8be471807bcc78e1d8f",
-      "reason": "M1a-R: complete RPC catalog plus owner methods; disable unconfigured automatic services; project-progress: register bounded native progress operations; use the same explicit platform status-listener setting at server startup and subsequent updates"
+      "current_sha256": "00314c441a9f44129cbe7323957eda40878f5d30082648cd6ba610e6da977781",
+      "reason": "Support explicit profile-contained credential storage while preserving existing keys and host tool configuration."
     },
     {
       "path": "src/main/orcad/orcad-lifecycle.ts",
@@ -329161,6 +329163,66 @@
       "reason": "DEV-VIEWS-GRAPH-ROWS: use the existing per-row lane bounds in narrow panes without scaling or cropping graph geometry; retain aligned columns in wider panes."
     },
     {
+      "path": "src/main/bitbucket/credential-store.ts",
+      "upstream_sha256": "35d6c0a725eb98cf673fa46d316df7010b989257adcb0666a6337362a8aab632",
+      "current_sha256": "86eaf3191511b7485bab0b3f0017a9150b9f1ea4bd5b91543d102424d8c03089",
+      "reason": "Support explicit profile-contained credential storage while preserving existing keys and host tool configuration."
+    },
+    {
+      "path": "src/main/credentials/encrypted-api-key-file-store.ts",
+      "upstream_sha256": "e89d42718c78ff000c330ac20442e3249663696b6504f4f963b62515b62aec53",
+      "current_sha256": "5737a9ceb0bbfa9c4aa26a436c50aaddbcfb3e61d59cab56000f7b1c48ddcde8",
+      "reason": "Support explicit profile-contained credential storage while preserving existing keys and host tool configuration."
+    },
+    {
+      "path": "src/main/jira/site-credential-store.ts",
+      "upstream_sha256": "3cef8e5cc6ec3d32270a2b3233729663619614a61f54e7a645c1c8b5a348c7de",
+      "current_sha256": "fb257e0dc972a7eca07b122e889dda87ac24493cc72cce10641a9bdda0977878",
+      "reason": "Support explicit profile-contained credential storage while preserving existing keys and host tool configuration."
+    },
+    {
+      "path": "src/main/linear/linear-credential-paths.ts",
+      "upstream_sha256": "aeb269ad089584ea8435b5f9c756cb911942942b30c25d9a063a9aa296351bd6",
+      "current_sha256": "4ac47597e2076beab3784cd72efd3b0d80f1925b020aaf52bc8cd259d7010685",
+      "reason": "Support explicit profile-contained credential storage while preserving existing keys and host tool configuration."
+    },
+    {
+      "path": "src/main/minimax/minimax-cookie-store.ts",
+      "upstream_sha256": "f99c2f958d0199fdd93e500a5c5a229c29bda70fd971c702da9e61cb9bbc35b1",
+      "current_sha256": "fe33ed847ff6b81a89296ff94929a85dad80ef1be1b863ffa46dbbba521fbdeb",
+      "reason": "Support explicit profile-contained credential storage while preserving existing keys and host tool configuration."
+    },
+    {
+      "path": "src/main/orcad/orcad-plaintext-credential-migration.ts",
+      "upstream_sha256": "f077438f85b520dc5e5ab2b921d8ab6dce470f1bc2555a4a8d68eb22444cb383",
+      "current_sha256": "aa8941c44ee3db68c58b728ebe10bf5b3dd3f9b8a49e220f5ee74025c8bca95d",
+      "reason": "Support explicit profile-contained credential storage while preserving existing keys and host tool configuration."
+    },
+    {
+      "path": "src/main/orcad/orcad-secret-key-resolution.ts",
+      "upstream_sha256": "62de60606b5ae932dfc2d67a7d4bdcd1d1da216d859dad5d246dd299b09d3e31",
+      "current_sha256": "3666db2868f36841a3befce7bc92a23aede2690b0598b767c514f8da5270b08b",
+      "reason": "Support explicit profile-contained credential storage while preserving existing keys and host tool configuration."
+    },
+    {
+      "path": "src/main/orcad/orcad-secret-store.test.ts",
+      "upstream_sha256": "f09694512e0ff912ab59b0582e17a3d1af9f83fb74db4eac7291e3b6b40fdf22",
+      "current_sha256": "dd8bb47293c0c5aae11867c858798a0b2eb1b0ff6c42db893753473689a48b54",
+      "reason": "Support explicit profile-contained credential storage while preserving existing keys and host tool configuration."
+    },
+    {
+      "path": "src/main/speech/openai-api-key-store.ts",
+      "upstream_sha256": "f211ee8e430258a07ac7eb44fdfb956243867d789849f34a8c4fbfa1da1d89d3",
+      "current_sha256": "594a7c4ee41eeb05544854f1106557af52742ed7702c7e8ffc590951972fc303",
+      "reason": "Support explicit profile-contained credential storage while preserving existing keys and host tool configuration."
+    },
+    {
+      "path": "src/main/zcode/zcode-plan-api-key-store.ts",
+      "upstream_sha256": "30b9e4436150cdc248bf8d32ff56ce616ebb420bccbcbeaeed537ad627554601",
+      "current_sha256": "b3722c351fc5afb2de909e9f80e96e9ce7d774ed716c0a9cea287010dacaef58",
+      "reason": "Support explicit profile-contained credential storage while preserving existing keys and host tool configuration."
+    },
+    {
       "path": "src/renderer/src/components/right-sidebar/activity-bar-buttons.test.tsx",
       "upstream_sha256": "75c3767fd708846735464a0e9e44411913f8dd3421dd2fb764b35329da412bb2",
       "current_sha256": "6fae44127e3fa1e9af07d3ea6f0d53f3c0c0bb77e66c80c5006e4b905a6c2d70",
@@ -329221,12 +329283,6 @@
       "reason": "平台命令入口和帮助统一品牌，精简账号说明与工作台展示，保留兼容协议及原生功能。"
     },
     {
-      "path": "src/main/orcad/orcad-host-adapters.ts",
-      "upstream_sha256": "835ae5ce81cf7fc30453a73c3f18385daf0ce63613dc5576387fc2131dc91962",
-      "current_sha256": "17cb61679570c888cfdcf4bd5ab87e565258621b2535313faf4e49b521f14877",
-      "reason": "平台命令入口和帮助统一品牌，精简账号说明与工作台展示，保留兼容协议及原生功能。"
-    },
-    {
       "path": "src/main/runtime/runtime-account-controller.ts",
       "upstream_sha256": "3484f136fb97a876d263c8c54c2a37ac904db1f9a1477f067f2919592b6bdf93",
       "current_sha256": "143ead6af6f675b359a683d86e079818545635112ec4784b035f768af2fdac2e",
@@ -329261,6 +329317,12 @@
       "upstream_sha256": "b2daa6e45c539c0ee07098b3cd4f49df7f17758719d5fd53ef0ac4186fd0a839",
       "current_sha256": "8f7005b2d3f4c400a8622de35572ccfaa4780c4f284b137bcc345d2cd7badf54",
       "reason": "平台命令入口和帮助统一品牌，精简账号说明与工作台展示，保留兼容协议及原生功能。"
+    },
+    {
+      "path": "src/main/orcad/orcad-host-adapters.ts",
+      "upstream_sha256": "835ae5ce81cf7fc30453a73c3f18385daf0ce63613dc5576387fc2131dc91962",
+      "current_sha256": "94cf8601058a4f8b9c3c3c29089491becaaa7d82c50330e3489d5ab01e8d8335",
+      "reason": "Support explicit profile-contained credential storage while preserving existing keys and host tool configuration.; 平台命令入口和帮助统一品牌，精简账号说明与工作台展示，保留兼容协议及原生功能。"
     }
   ],
   "reviewed_findings": [

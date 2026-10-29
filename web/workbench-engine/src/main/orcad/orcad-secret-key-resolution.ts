@@ -42,6 +42,8 @@ export type OrcadSecretStorePrepareOptions = {
   keyDir: string
   /** A temporary profile keeps the legacy behavior and leaves `keyDir` untouched. */
   userDataPath?: string
+  /** Migrated profiles must never replace an absent key with a new one. */
+  requireExistingKey?: boolean
   platform?: NodeJS.Platform
   env?: NodeJS.ProcessEnv
   /** Reads a key an older build kept in the OS keyring; only for migrating its record. */
@@ -53,6 +55,7 @@ export type OrcadSecretStorePrepareOptions = {
 type Context = {
   machineId: string | null
   statePath: string
+  requireExistingKey: boolean
   legacyKeyring: () => OrcadLegacyKeyringReader | null
   log: (message: string) => void
   unavailable: (reason: string) => StoreState
@@ -90,6 +93,9 @@ async function migrateKeyringRecord(
   const master = 'key' in found ? decodeMasterKey(found.key) : null
   const matches =
     master !== null && orcadSealingKeyCheck(deriveOrcadSealingKey(master, '')) === stored.check
+  if (!matches && context.requireExistingKey) {
+    return context.unavailable('the existing keyring key is unavailable')
+  }
   const record: StoredKeyState =
     master && matches
       ? {
@@ -165,6 +171,7 @@ export async function resolveState(
   const platform = options.platform ?? process.platform
   const env = options.env ?? process.env
   if (env[ORCAD_PLAINTEXT_SECRETS_ENV] === 'plaintext') {
+    if (options.requireExistingKey) return { kind: 'unavailable', message: 'platform_credential_key_required' }
     return { kind: 'plaintext', reason: describeOrcadPlaintextOptOut() }
   }
   // Why: a disposable run (tests, smoke launchers) must not create keys in, or re-seal, the
@@ -173,6 +180,7 @@ export async function resolveState(
     options.userDataPath &&
     (options.isTemporaryKeyDir ?? isTemporaryKeyDir)(options.userDataPath)
   ) {
+    if (options.requireExistingKey) return { kind: 'unavailable', message: 'platform_credential_key_required' }
     return { kind: 'plaintext', reason: describeOrcadDisposableProfile() }
   }
   const machineId = (options.machineIdentity ?? profileStateAccessMachineIdentity)()
@@ -180,6 +188,7 @@ export async function resolveState(
   const context: Context = {
     machineId,
     statePath,
+    requireExistingKey: options.requireExistingKey === true,
     legacyKeyring: () =>
       options.legacyKeyring === undefined
         ? resolveOrcadLegacyKeyringReader(platform, env)
@@ -203,6 +212,7 @@ export async function resolveState(
     if (existing.kind === 'unreadable') {
       return context.unavailable(existing.reason)
     }
+    if (options.requireExistingKey) return context.unavailable('the existing credential key is required')
     const record = newFileRecord(machineId)
     // Why fail closed: sealing with a key that did not reach disk loses every credential on restart.
     const published = publishRecordExclusively(statePath, record)

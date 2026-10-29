@@ -1,7 +1,7 @@
 import { getSecretStore } from '../../shared/secret-store'
 import { existsSync, readFileSync, rmSync } from 'node:fs'
-import { homedir } from 'node:os'
 import { join } from 'node:path'
+import { credentialRoot } from './credential-root'
 import {
   hardenExistingSecureFile,
   isUnreadableError,
@@ -40,7 +40,7 @@ export function createEncryptedApiKeyFileStore({
   }
 
   function getOrcaDir(): string {
-    return join(homedir(), '.orca')
+    return credentialRoot()
   }
 
   function getApiKeyPath(): string {
