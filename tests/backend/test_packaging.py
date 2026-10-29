@@ -147,7 +147,7 @@ class PackagingTests(TestCase):
     def test_metadata_has_one_runtime_dependency_and_version_source(self):
         metadata = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
         self.assertEqual(metadata["project"]["name"], "control-everything")
-        self.assertEqual(metadata["project"]["version"], "0.1.0a3")
+        self.assertEqual(metadata["project"]["version"], "0.1.0a4")
         setuptools = metadata["tool"]["setuptools"]
         self.assertEqual(setuptools["dynamic"]["dependencies"], {"file": ["requirements.txt"]})
         self.assertEqual(setuptools["package-dir"], {"": "src"})
