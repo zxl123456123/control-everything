@@ -328756,8 +328756,8 @@
     {
       "path": "src/renderer/src/components/right-sidebar/source-control/sync/git-history-graph-svg.tsx",
       "upstream_sha256": "cbd89fd6981e7c562a2edccdd418d6740c959304b402bf18ee0813d5430c3433",
-      "current_sha256": "b787cf4ea5022acef0580fff0db14374eb3a476d4b8ce3dfd0e72d0ccc27ea1a",
-      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+      "current_sha256": "db300f39a1b6639c7038c2b308a9241150de8df4192460ca9c2891800d6399f9",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained. DEV-VIEWS-GRAPH-ROWS: use the existing per-row lane bounds in narrow panes without scaling or cropping graph geometry; retain aligned columns in wider panes."
     },
     {
       "path": "src/renderer/src/components/right-sidebar/source-control/sync/git-history-panel.tsx",
@@ -328768,8 +328768,8 @@
     {
       "path": "src/renderer/src/components/right-sidebar/source-control/sync/git-history-row.tsx",
       "upstream_sha256": "e75c0a169c3a394d402917c40496d1e0a83d2108e7d967a570fe807869e63033",
-      "current_sha256": "4524b374ab0f4061eb1e15300d8efa0e9cfee97cd060d36af27bb4c9c1d66166",
-      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained. DEV-VIEWS-GRAPH: use pane container width to preserve commit titles and expose secondary metadata in the existing tooltip; retain bounded virtual rows and sidebar layout."
+      "current_sha256": "58e5e8189967ebb077bf22a3240f944521090211bb1c426666e853d03340f3ff",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained. DEV-VIEWS-GRAPH: use pane container width to preserve commit titles and expose secondary metadata in the existing tooltip; retain bounded virtual rows and sidebar layout. DEV-VIEWS-GRAPH-ROWS: use the existing per-row lane bounds in narrow panes without scaling or cropping graph geometry; retain aligned columns in wider panes."
     },
     {
       "path": "src/renderer/src/components/settings/GeneralPane.section-lifetime.test.tsx",
@@ -329148,6 +329148,12 @@
       "upstream_sha256": "0f111c29d701ecd64d810b8d876a65ceeb090e9b97d251f7d9db5ad6305c1981",
       "current_sha256": "b84584c8a70c4355c24b3839a0f72c832eda58c3c3fde9539a0d9f0f5de398ca",
       "reason": "平台工作台统一视觉与品牌展示；保留原生功能与独立模式。"
+    },
+    {
+      "path": "src/renderer/src/components/right-sidebar/source-control/sync/git-history-graph-svg.test.tsx",
+      "upstream_sha256": "e091e72381db4bea20241a52ed435f007466190d6473c8d37d28f853869591ab",
+      "current_sha256": "8330f721ec60c3e3705c1fe7830bb46173ffe8dbd2455039cc0c82b05796fd56",
+      "reason": "DEV-VIEWS-GRAPH-ROWS: use the existing per-row lane bounds in narrow panes without scaling or cropping graph geometry; retain aligned columns in wider panes."
     }
   ],
   "reviewed_findings": [

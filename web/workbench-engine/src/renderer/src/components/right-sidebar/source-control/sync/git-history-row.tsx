@@ -96,7 +96,15 @@ export const GitHistoryRow = React.forwardRef<HTMLElement, GitHistoryRowProps>(
     )
     const rowContent = (
       <>
-        <GitHistoryGraphSvg viewModel={viewModel} laneCount={graphLaneCount} />
+        <GitHistoryGraphSvg
+          viewModel={viewModel}
+          laneCount={graphLaneCount}
+          className={
+            layout === 'pane'
+              ? 'w-[var(--git-graph-row-width)] @lg/git-graph:w-[var(--git-graph-width)]'
+              : undefined
+          }
+        />
         <div className="flex min-w-0 items-center gap-1 overflow-hidden">
           {canExpand && (
             <ChevronDown
