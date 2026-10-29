@@ -1,12 +1,116 @@
-import { describe, expect, it } from 'vitest'
+// @vitest-environment happy-dom
+import React, { act } from 'react'
+import { createRoot } from 'react-dom/client'
+import { describe, expect, it, vi } from 'vitest'
+import * as usageCollapse from './status-bar-usage-collapse'
 import {
   STATUS_BAR_DENSITY_LEVELS,
   pickStatusBarDensityLevel,
-  recordStatusBarDensityWidth
+  recordStatusBarDensityWidth,
+  useStatusBarDensity
 } from './status-bar-density'
 
 const TIGHTEST = STATUS_BAR_DENSITY_LEVELS.length - 1
 const w = (natural: number, fit = natural) => ({ natural, fit })
+
+describe('useStatusBarDensity', () => {
+  it.each([false, true])(
+    'settles and expands when folding changes the measurement (content change: %s)',
+    (changeContent) => {
+      let onResize: ResizeObserverCallback = () => undefined
+      const observer = vi.stubGlobal(
+        'ResizeObserver',
+        class {
+          constructor(callback: ResizeObserverCallback) {
+            onResize = callback
+          }
+          observe() {}
+          unobserve() {}
+          disconnect() {}
+        }
+      )
+      let contentChanged = false
+      const measure = vi.spyOn(usageCollapse, 'measureUsageRow').mockImplementation((usage) => {
+        const collapsed = usage?.dataset.collapsed === 'true'
+        if (collapsed && changeContent) contentChanged = true
+        const natural = contentChanged ? 200 : 120
+        return {
+          naturalWidth: natural + (collapsed ? 10 : 0),
+          pinnedWidth: 90,
+          renderedWidth: collapsed ? 90 : 120,
+          chips: [
+            {
+              provider: 'fixture',
+              width: contentChanged ? 120 : 40,
+              urgent: false,
+              percentage: false,
+              collapsed
+            }
+          ],
+          moreChipWidth: 10,
+          chipGap: 0,
+          unitLabelWidth: 0
+        }
+      })
+      const container = document.createElement('div')
+      document.body.appendChild(container)
+      const root = createRoot(container)
+      let barWidth = 100
+      function Fixture() {
+        const { density, barRef, usageRef, segmentsRef, collapsedUsageProviders } =
+          useStatusBarDensity()
+        const setBar = (node: HTMLElement | null) => {
+          if (node)
+            Object.defineProperty(node, 'clientWidth', { value: barWidth, configurable: true })
+          barRef(node)
+        }
+        return React.createElement(
+          'div',
+          { ref: setBar, style: { padding: '0px', columnGap: '0px' } },
+          React.createElement('div', {
+            ref: usageRef,
+            'data-collapsed': collapsedUsageProviders.length > 0
+          }),
+          React.createElement('div', {
+            ref: segmentsRef,
+            'data-density': STATUS_BAR_DENSITY_LEVELS.indexOf(density)
+          })
+        )
+      }
+      try {
+        act(() => root.render(React.createElement(Fixture)))
+        expect(container.querySelector('[data-density]')?.getAttribute('data-density')).toBe('3')
+        expect(container.querySelector('[data-collapsed]')?.getAttribute('data-collapsed')).toBe(
+          'true'
+        )
+        barWidth = 150
+        Object.defineProperty(container.firstElementChild, 'clientWidth', {
+          value: barWidth,
+          configurable: true
+        })
+        act(() => onResize([], {} as ResizeObserver))
+        if (changeContent) {
+          expect(container.querySelector('[data-density]')?.getAttribute('data-density')).toBe('3')
+          barWidth = 250
+          Object.defineProperty(container.firstElementChild, 'clientWidth', {
+            value: barWidth,
+            configurable: true
+          })
+          act(() => onResize([], {} as ResizeObserver))
+        }
+        expect(container.querySelector('[data-density]')?.getAttribute('data-density')).toBe('0')
+        expect(container.querySelector('[data-collapsed]')?.getAttribute('data-collapsed')).toBe(
+          'false'
+        )
+      } finally {
+        act(() => root.unmount())
+        container.remove()
+        measure.mockRestore()
+        observer.unstubAllGlobals()
+      }
+    }
+  )
+})
 
 describe('STATUS_BAR_DENSITY_LEVELS', () => {
   it('collapses usage into "+N" before right-side segments lose their labels', () => {

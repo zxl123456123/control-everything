@@ -327093,6 +327093,18 @@
   ],
   "adapted_files": [
     {
+      "path": "src/renderer/src/components/status-bar/status-bar-density.ts",
+      "upstream_sha256": "cce79fca4e0ff34344285c7546b3bdd5ac89c25d85b296dd4249073ab0aba795",
+      "current_sha256": "96b10190b3fb286cfba604e55e593c57261534b3ff93f8fb65e92d0b59f1bae6",
+      "reason": "Keep density probes stable when folding usage changes the measured layout."
+    },
+    {
+      "path": "src/renderer/src/components/status-bar/status-bar-density.test.ts",
+      "upstream_sha256": "1be16edb4fbd8ea7c11af4f1c12857b30ded0f402494e5e47879577d22e63085",
+      "current_sha256": "99c0716c526f7f3e614793bd804b711689dbd16e4549e6c95d6b4aa723237332",
+      "reason": "Regress density probe loops and recovery after resizing and content changes."
+    },
+    {
       "path": ".gitattributes",
       "upstream_sha256": "65896d38cc866d394db2d10d25f9d76a33dc1e78091b071d26913155237efa2a",
       "current_sha256": "d77564c95e4a6a0795b4d962a793abdfd8483d42204beed24f4d6efe19cbb50f",

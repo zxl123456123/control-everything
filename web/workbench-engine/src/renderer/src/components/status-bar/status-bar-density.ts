@@ -99,6 +99,7 @@ export function useStatusBarDensity(): {
   const overflowingRef = useRef(false)
   const collapsedUsageRef = useRef(NO_COLLAPSED_USAGE)
   const levelWidthsRef = useRef<(StatusBarLevelWidth | undefined)[]>([])
+  const measuredCollapseRef = useRef<({ collapsed: string; content: string } | undefined)[]>([])
   const barElementRef = useRef<HTMLElement | null>(null)
   const usageElementRef = useRef<HTMLElement | null>(null)
   const segmentsElementRef = useRef<HTMLElement | null>(null)
@@ -116,11 +117,28 @@ export function useStatusBarDensity(): {
     const fixedWidth = (Number.parseFloat(style.columnGap) || 0) + measureWidth(segmentsElementRef)
     const required = usage.naturalWidth + fixedWidth
     const collapses = STATUS_BAR_DENSITY_LEVELS[committedLevelRef.current].collapseUsage
-    levelWidthsRef.current = recordStatusBarDensityWidth(
-      levelWidthsRef.current,
-      committedLevelRef.current,
-      { natural: required, fit: collapses ? usage.pinnedWidth + fixedWidth : required }
-    )
+    const level = committedLevelRef.current
+    const collapsed = collapsedUsageRef.current.join()
+    const content = JSON.stringify({
+      chips: usage.chips.map(({ provider, width, urgent, percentage }) => ({
+        provider,
+        width,
+        urgent,
+        percentage
+      })),
+      fixedWidth,
+      moreChipWidth: usage.moreChipWidth,
+      unitLabelWidth: usage.unitLabelWidth
+    })
+    const previous = measuredCollapseRef.current[level]
+    const width = { natural: required, fit: collapses ? usage.pinnedWidth + fixedWidth : required }
+    if (previous && previous.collapsed !== collapsed && previous.content === content) {
+      // Folded chips change layout but do not invalidate measurements of other levels.
+      levelWidthsRef.current[level] = width
+    } else {
+      levelWidthsRef.current = recordStatusBarDensityWidth(levelWidthsRef.current, level, width)
+    }
+    measuredCollapseRef.current[level] = { collapsed, content }
     const nextLevel = pickStatusBarDensityLevel(levelWidthsRef.current, available)
     if (nextLevel !== committedLevelRef.current) {
       setLevel(nextLevel)
