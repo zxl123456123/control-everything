@@ -245,6 +245,23 @@ describe('git RPC methods', () => {
     expect(response).toMatchObject({ ok: true, result: history })
   })
 
+  it('forwards repository graph scope through the validated runtime contract', async () => {
+    const runtime = {
+      getRuntimeId: () => 'test-runtime',
+      getRuntimeGitHistory: vi.fn().mockResolvedValue({ items: [], allRefs: true })
+    } as unknown as OrcaRuntimeService
+    const dispatcher = new RpcDispatcher({ runtime, methods: GIT_METHODS })
+    const response = await dispatcher.dispatch(
+      makeRequest('git.history', { worktree: 'id:wt-1', allRefs: true, limit: 200 })
+    )
+    expect(runtime.getRuntimeGitHistory).toHaveBeenCalledWith('id:wt-1', {
+      limit: 200,
+      baseRef: undefined,
+      allRefs: true
+    })
+    expect(response).toMatchObject({ ok: true, result: { allRefs: true } })
+  })
+
   it('routes common mutations to the runtime', async () => {
     const runtime = {
       getRuntimeId: () => 'test-runtime',

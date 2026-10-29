@@ -93,6 +93,35 @@ function createHistoryExecutor(limitRecords = 2): {
 }
 
 describe('git history parsing', () => {
+  it('loads a bounded repository graph without branch comparison subprocesses', async () => {
+    const { executor, calls } = createHistoryExecutor(201)
+    const result = await loadGitHistoryFromExecutor(executor, '/repo', {
+      allRefs: true,
+      limit: 1000,
+      baseRef: 'origin/main'
+    })
+    expect(result.items).toHaveLength(200)
+    expect(result).toMatchObject({
+      allRefs: true,
+      hasMore: true,
+      hasIncomingChanges: false,
+      hasOutgoingChanges: false
+    })
+    expect(result.remoteRef).toBeUndefined()
+    expect(calls.map((args) => args[0])).toEqual(['rev-parse', 'symbolic-ref', 'log'])
+    expect(calls[2]).toEqual(
+      expect.arrayContaining([
+        '--branches',
+        '--remotes',
+        '--tags',
+        HEAD_OID,
+        '-n201',
+        '--no-show-signature',
+        '--no-color'
+      ])
+    )
+  })
+
   it('parses VS Code-compatible git log records with decorations and multiline messages', () => {
     const stdout = logRecord({
       hash: HEAD_OID,

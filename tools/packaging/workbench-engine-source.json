@@ -327089,7 +327089,9 @@
     "src/renderer/src/web/preload-api/platform-native-repo-adoption.ts",
     "src/renderer/src/web/preload-api/platform-native-repo-adoption.test.ts",
     "src/renderer/src/web/platform-project-actions.test.ts",
-    "src/renderer/src/web/platform-project-actions.ts"
+    "src/renderer/src/web/platform-project-actions.ts",
+    "src/main/ipc/filesystem-git-history-routing.test.ts",
+    "src/renderer/src/web/preload-api/web-git-api-history.test.ts"
   ],
   "adapted_files": [
     {
@@ -328705,6 +328707,60 @@
       "upstream_sha256": "2be0690829cb1b6bb58042039732aa02485fb8dea9879d46fec4602d6530c002",
       "current_sha256": "67278d8a147763babb02403bbaa9be6938efe1a00a6f3c1762ab31b21fe75144",
       "reason": "N1: restore native project controls and upstream presentation while preserving platform identity, project registration, draft protection and the single global account surface."
+    },
+    {
+      "path": "src/main/ipc/filesystem/filesystem-git-status-handlers.ts",
+      "upstream_sha256": "0e811242c844a649983cc1f67f4c32c67711859eea4ac10d5a112666f80f5e52",
+      "current_sha256": "fae86d5596eb839b364a92c3c0a1b7cdbfc69c04bece86597148d019f2ab3819",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
+      "path": "src/main/runtime/rpc/methods/git.test.ts",
+      "upstream_sha256": "08061a031157cc252f66b56c7a6c1df767689cacc182852c7dcb42404bae91de",
+      "current_sha256": "a3126fda08d4acd66e338f9b538b47a1db04c8a54f4d25a766bce48a1532a822",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
+      "path": "src/main/runtime/rpc/methods/git.ts",
+      "upstream_sha256": "691f6bd1b4b666cc22b4dfff2bd0a807bb66b2d15d8e9b09bd0a043519b040e2",
+      "current_sha256": "c8ee27473ff782627cb71c17139555bb41529450758d12254b967e68f368902e",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
+      "path": "src/renderer/src/web/preload-api/web-git-api.ts",
+      "upstream_sha256": "0f761e9f8c81690d7b5a804fe1faad596e7e3e966a6191bc4bd19fcf1e503131",
+      "current_sha256": "5adcf004d298e91e7a2fba0444fd333ed90bd12de7466cce27e27154e7d16173",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
+      "path": "src/shared/git-history-real-repository.test.ts",
+      "upstream_sha256": "63540b6771e2bca9d7ac744cbd1a88a7464e596c885195df892174d69b608022",
+      "current_sha256": "ce1abeb2b134614a5fa1dda9b3bc5d6fccabc39748ac3acfd347150960730b8f",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
+      "path": "src/shared/git-history-types.ts",
+      "upstream_sha256": "37057b1e9f08a72065a4aa869041c9d2d23a4fce9bf335b5337dc43d610f7836",
+      "current_sha256": "bbea6af6c405bc797e926af83133ef9dd4d9409d5d2726674b864145052b39b6",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
+      "path": "src/shared/git-history.test.ts",
+      "upstream_sha256": "58adbc3838e16a82b8b2ec59a6fa63fe30eab12c7238cc5783ebeadc292105cf",
+      "current_sha256": "c30edfda872bd0243f27663e45c99de68e07fa4bfc34c085c4f65f13c448b7c7",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
+      "path": "src/shared/git-history.ts",
+      "upstream_sha256": "0b4738c41eb68ff728ed863419b8bbe9b5171fcb1b925b8180d6c6c0dc71a5fd",
+      "current_sha256": "d32339a2e7ab2e0e16b3c5e4cbee56ddcf0502bd742036e3359b17863cbd6ca6",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
+      "path": "src/shared/rpc-contract/git-params.ts",
+      "upstream_sha256": "e2ac672f33c6cf919a4b5fdb6d66d51644789a1d67cd8e6e715421a69756d80e",
+      "current_sha256": "35f2db1df22fba67855960f193fa70eae7a95b996641a19b65a5ad375f3aa78d",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
     }
   ],
   "reviewed_findings": [
