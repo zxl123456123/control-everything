@@ -110,6 +110,7 @@ function WorkspaceKanbanStatusLane({
     <section
       data-workspace-status-drop-target=""
       data-workspace-status={status.id}
+      data-workspace-lane-drag-active={isDragTarget || undefined}
       // Why: sidebar→board drops read lane membership straight out of the DOM,
       // where a search query would otherwise leave them only the rendered cards.
       // Unfiltered lanes stay off this channel — the rendered scan already is the

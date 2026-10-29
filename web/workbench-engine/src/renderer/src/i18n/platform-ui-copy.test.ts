@@ -210,4 +210,44 @@ describe('platform UI copy through the existing translation entry', () => {
     expect(translate('menu.file', 'File')).not.toBe('File')
     expect(translate(setupKey, setupFallback)).toBe('添加新建工作树时运行的设置命令。')
   })
+
+  it.each(['en', 'zh'] as const)(
+    'keeps account scope and CLI constraints in concise %s copy',
+    async (language) => {
+      await setRendererUiLanguage(language)
+      expect(
+        translate('auto.components.settings.Settings.ad6c529693', 'AI Provider Accounts')
+      ).toBe(language === 'zh' ? 'AI 账号' : 'AI accounts')
+      expect(
+        translate('accounts.remoteScopeAccountsAddHere', '', { value0: 'Orca user host' })
+      ).toContain('Orca user host')
+      const help = translate('accounts.managedData.description', '')
+      expect(help).toContain('SSH')
+      expect(help).toContain('WSL')
+      expect(help).not.toContain('Orca')
+      for (const key of [
+        'auto.components.settings.AccountsPane.d676c41fc6',
+        'auto.components.web.preloadApi.cursorAccounts.hostOnly',
+        'auto.components.settings.ZcodePlanAccountsSection.detailsUnavailable',
+        'auto.components.settings.ZcodePlanAccountsSection.hostOnly',
+        'settings.terminal.windows.administratorScope',
+        'settings.terminal.windows.launchAdministrator'
+      ]) {
+        expect(translate(key, 'Orca fallback')).not.toContain('Orca')
+      }
+      expect(translate('auto.components.settings.usageCredentialHost.cookieNeedsDesktop', '', {
+        host: 'Orca user host'
+      })).toContain('Orca user host')
+      expect(
+        translate('auto.components.settings.AccountsPane.opencodeGo.apiKey.description', '')
+      ).toContain('OPENCODE_API_KEY')
+      expect(translate('auto.components.sidebar.WorkspaceKanbanPinDropTarget.c30151c5ee', '')).toBe(
+        language === 'zh' ? '拖入固定，状态不变' : 'Drop to pin · Keep status'
+      )
+      window.location.pathname = '/web-index.html'
+      expect(translate('accounts.managedData.setup', 'Setup instructions')).toBe(
+        'Setup instructions'
+      )
+    }
+  )
 })

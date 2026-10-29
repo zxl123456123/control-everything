@@ -246,6 +246,7 @@ describe('AppearancePane', () => {
 
   afterEach(() => {
     delete (window as unknown as { api?: unknown }).api
+    delete (window as unknown as { __ORCA_WEB_CLIENT__?: boolean }).__ORCA_WEB_CLIENT__
   })
 
   it('keeps chat appearance controls out of the Appearance pane', async () => {
@@ -502,6 +503,16 @@ describe('AppearancePane', () => {
         appIconImage &&
         interfaceRow.compareDocumentPosition(appIconImage) & Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy()
+  })
+
+  it('keeps native app icon selection out of a browser while retaining appearance controls', async () => {
+    ;(window as unknown as { __ORCA_WEB_CLIENT__: boolean }).__ORCA_WEB_CLIENT__ = true
+    mocks.state.settingsSearchQuery = ''
+    const container = await renderAppearancePane(getDefaultSettings('/tmp'))
+    expect(container.querySelector('img[alt="Selected app icon"]')).toBeNull()
+    expect(appearanceSectionToggle(container, 'interface')).toBeDefined()
+    expect(appearanceSectionToggle(container, 'terminal')).toBeDefined()
+    expect(appearanceSectionToggle(container, 'window')).toBeDefined()
   })
 
   it('reveals an advanced sidebar control when its search matches, even though it is hidden by default', async () => {

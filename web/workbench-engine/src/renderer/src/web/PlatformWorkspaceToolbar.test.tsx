@@ -37,6 +37,13 @@ it('never presents a stale workspace title when the selected record is unavailab
   expect(screen.queryByText('feature/navigation')).toBeNull()
 })
 
+it('shows a branch-named workspace once while keeping other branch names visible', () => {
+  state.getKnownWorktreeById.mockReturnValue({ displayName: 'develop', branch: 'refs/heads/develop' })
+  render(<PlatformWorkspaceToolbar />)
+  expect(screen.getAllByText('develop')).toHaveLength(1)
+  expect(screen.getByRole('heading', { name: 'develop' })).toBeTruthy()
+})
+
 it.each([true, false])('routes the overview action to the existing board when the sidebar is %s', (open) => {
   state.sidebarOpen = open
   const listener = vi.fn()

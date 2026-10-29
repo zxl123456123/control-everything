@@ -10,12 +10,18 @@ import { nodeFileContentsEqual } from '../../shared/node-file-content-equality'
 import { buildUnixCliLauncher } from '../cli/cli-dev-launcher'
 import { writeFileAtomically } from '../codex-accounts/fs-utils'
 import { resolveOrcadInstallRoot, resolveUserDataPath } from './orcad-app-paths'
+import { isPlatformRuntime } from '../platform-runtime-policy'
 
 // Read by native/windows-cli-launcher: its presence beside orca.exe selects the server mode.
 export const ORCAD_WINDOWS_CLI_LAUNCHER_CONFIG_FILENAME = 'orca-launcher.cfg'
 const RETIRED_LAUNCHER_SUFFIX = '.retired'
 
 let launcherPath: string | null = null
+let accountCommand: 'ce-workbench' | undefined
+
+export function getOrcadAccountCommand(): 'ce-workbench' | undefined {
+  return accountCommand
+}
 
 export function getOrcadCliLauncherPath(): string | null {
   return launcherPath
@@ -23,16 +29,38 @@ export function getOrcadCliLauncherPath(): string | null {
 
 export async function prepareOrcadCliLauncher(): Promise<void> {
   launcherPath = null
+  accountCommand = undefined
   const installRoot = resolveOrcadInstallRoot()
-  const entry = join(installRoot, ...ORCAD_CLI_ENTRY_FILENAME.split('/'))
+  let entry = join(installRoot, ...ORCAD_CLI_ENTRY_FILENAME.split('/'))
   // Older server slots and source-only runs may not include the CLI yet.
   if (!existsSync(entry)) {
     return
   }
   const userDataPath = resolveUserDataPath()
   const binDir = join(userDataPath, 'cli', 'bin')
+  if (isPlatformRuntime()) {
+    await mkdir(binDir, { recursive: true })
+    const wrapper = join(binDir, 'platform-entry.cjs')
+    // Only this module load gets the presentation marker; provider children do not inherit it.
+    writeFileAtomically(
+      wrapper,
+      `process.env.CE_WORKBENCH_CLI = '1';\nconst cli = require(${JSON.stringify(entry)});\ndelete process.env.CE_WORKBENCH_CLI;\nvoid cli.main();\n`,
+      { mode: 0o700 }
+    )
+    entry = wrapper
+  }
   if (process.platform === 'win32') {
     launcherPath = await prepareWindowsLauncher(installRoot, entry, userDataPath, binDir)
+    if (launcherPath && isPlatformRuntime()) {
+      const alias = await prepareWindowsLauncher(
+        installRoot,
+        entry,
+        userDataPath,
+        binDir,
+        'ce-workbench.exe'
+      )
+      if (alias) accountCommand = 'ce-workbench'
+    }
     return
   }
   const path = join(binDir, 'orca')
@@ -44,6 +72,12 @@ export async function prepareOrcadCliLauncher(): Promise<void> {
   }
   await chmod(path, 0o700)
   launcherPath = path
+  if (isPlatformRuntime()) {
+    const alias = join(binDir, 'ce-workbench')
+    writeFileAtomically(alias, script, { mode: 0o700 })
+    await chmod(alias, 0o700)
+    accountCommand = 'ce-workbench'
+  }
 }
 
 export function buildWindowsCliLauncherConfig(
@@ -59,15 +93,16 @@ async function prepareWindowsLauncher(
   installRoot: string,
   entry: string,
   userDataPath: string,
-  binDir: string
+  binDir: string,
+  filename = 'orca.exe'
 ): Promise<string | null> {
   const source = join(installRoot, ...ORCAD_WINDOWS_CLI_LAUNCHER_FILENAME.split('/'))
   if (!existsSync(source)) {
     return null
   }
-  const path = join(binDir, 'orca.exe')
+  const path = join(binDir, filename)
   await mkdir(binDir, { recursive: true })
-  await removeRetiredLaunchers(binDir)
+  await removeRetiredLaunchers(binDir, filename)
   const binary = await readFile(source)
   if (!(await nodeFileContentsEqual(path, binary).catch(() => false))) {
     try {
@@ -86,11 +121,11 @@ async function prepareWindowsLauncher(
   return path
 }
 
-async function removeRetiredLaunchers(binDir: string): Promise<void> {
+async function removeRetiredLaunchers(binDir: string, filename: string): Promise<void> {
   const names = await readdir(binDir).catch(() => [])
   await Promise.all(
     names
-      .filter((name) => name.startsWith('orca.exe.') && name.endsWith(RETIRED_LAUNCHER_SUFFIX))
+      .filter((name) => name.startsWith(`${filename}.`) && name.endsWith(RETIRED_LAUNCHER_SUFFIX))
       // One still running stays until a later start.
       .map((name) => rm(join(binDir, name), { force: true }).catch(() => {}))
   )

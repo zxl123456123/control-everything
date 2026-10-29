@@ -5,8 +5,43 @@ import { formatCommandScopedFlagHelp } from './command-scoped-flag-help'
 import { FLAG_HELP_TEXT } from './flag-help-text'
 import { ROOT_HELP_TEXT_PRIMARY } from './root-help-text-primary'
 import { ROOT_HELP_TEXT_SECONDARY } from './root-help-text-secondary'
+import { COMMAND_SPECS } from './specs'
 
 const ROOT_HELP_TEXT = [ROOT_HELP_TEXT_PRIMARY, ROOT_HELP_TEXT_SECONDARY].join('\n')
+const PLATFORM_CLI = process.env.CE_WORKBENCH_CLI === '1'
+const CLI_NAME = PLATFORM_CLI ? 'ce-workbench' : 'orca'
+const COMMAND_ROOTS = new Set([
+  'help',
+  '<command>',
+  ...COMMAND_SPECS.flatMap((spec) => [spec.path[0], ...(spec.aliases ?? []).map((path) => path[0])])
+])
+
+// Applies only to our static help catalog, never runtime results, errors or user arguments.
+function staticHelpText(text: string): string {
+  if (!PLATFORM_CLI) return text
+  return text
+    .split('\n')
+    .map((line) => {
+      if (/copyright|licen[cs]e/i.test(line)) return line
+      if (line === 'orca') return CLI_NAME
+      return line
+        .split(
+          /([`"'](?:[A-Za-z]:[\\/]|\.{1,2}[\\/]|~[\\/]|\/)[^`"'\r\n]+[`"']|(?:https?|orca):\/\/[^\s`"'<>]+|(?:[A-Za-z]:[\\/]|\.{1,2}[\\/]|~[\\/]|\/)[^\s`"'<>]+)/g
+        )
+        .map((part, index) =>
+          index % 2
+            ? part
+            : part
+                .replace(
+                  /(?<![\w./:\\-])orca(?=[ \t]+([a-z][a-z-]*|<command>))/g,
+                  (name, command: string) => (COMMAND_ROOTS.has(command) ? CLI_NAME : name)
+                )
+                .replace(/(?<![\w./:\\])Orca(?![\w./:\\])/g, 'Control Everything')
+        )
+        .join('')
+    })
+    .join('\n')
+}
 
 export function printHelp(specs: CommandSpec[], commandPath: string[] = []): void {
   const exactSpec = findCommandSpec(specs, commandPath)
@@ -22,15 +57,21 @@ export function printHelp(specs: CommandSpec[], commandPath: string[] = []): voi
 
   if (commandPath.length > 0) {
     const { nextSteps } = unknownCommandData(specs, commandPath)
-    const recovery = nextSteps.map((step) => `Next step: ${step}`).join('\n')
+    const recovery = nextSteps.map((step) => `Next step: ${staticHelpText(step)}`).join('\n')
     console.log(`Unknown command: ${commandPath.join(' ')}${recovery ? `\n${recovery}` : ''}\n`)
   }
 
-  console.log(ROOT_HELP_TEXT)
+  console.log(staticHelpText(ROOT_HELP_TEXT))
 }
 
 export function formatCommandHelp(spec: CommandSpec): string {
-  const lines = [`orca ${spec.path.join(' ')}`, '', `Usage: ${spec.usage}`, '', spec.summary]
+  const lines = [
+    `${CLI_NAME} ${spec.path.join(' ')}`,
+    '',
+    `Usage: ${staticHelpText(spec.usage)}`,
+    '',
+    staticHelpText(spec.summary)
+  ]
   const displayedFlags =
     spec.argumentMode === 'passthrough'
       ? []
@@ -41,21 +82,21 @@ export function formatCommandHelp(spec: CommandSpec): string {
   if (displayedFlags.length > 0) {
     lines.push('', 'Options:')
     for (const flag of displayedFlags) {
-      lines.push(`  ${formatCommandFlagHelp(flag, spec.path)}`)
+      lines.push(`  ${staticHelpText(formatCommandFlagHelp(flag, spec.path))}`)
     }
   }
 
   if (spec.notes && spec.notes.length > 0) {
     lines.push('', 'Notes:')
     for (const note of spec.notes) {
-      lines.push(`  ${note}`)
+      lines.push(`  ${staticHelpText(note)}`)
     }
   }
 
   if (spec.examples && spec.examples.length > 0) {
     lines.push('', 'Examples:')
     for (const example of spec.examples) {
-      lines.push(`  $ ${example}`)
+      lines.push(`  $ ${staticHelpText(example)}`)
     }
   }
 
@@ -64,7 +105,13 @@ export function formatCommandHelp(spec: CommandSpec): string {
 
 export function formatGroupHelp(specs: CommandSpec[], groupPath: string[]): string {
   const group = groupPath.join(' ')
-  const lines = [`orca ${group}`, '', `Usage: orca ${group} <command> [options]`, '', 'Commands:']
+  const lines = [
+    `${CLI_NAME} ${group}`,
+    '',
+    `Usage: ${CLI_NAME} ${group} <command> [options]`,
+    '',
+    'Commands:'
+  ]
   for (const spec of specs) {
     if (
       spec.hidden === true ||
@@ -73,9 +120,11 @@ export function formatGroupHelp(specs: CommandSpec[], groupPath: string[]): stri
     ) {
       continue
     }
-    lines.push(`  ${spec.path.slice(groupPath.length).join(' ').padEnd(18)} ${spec.summary}`)
+    lines.push(
+      `  ${spec.path.slice(groupPath.length).join(' ').padEnd(18)} ${staticHelpText(spec.summary)}`
+    )
   }
-  lines.push('', `Run \`orca ${group} <command> --help\` for command-specific usage.`)
+  lines.push('', `Run \`${CLI_NAME} ${group} <command> --help\` for command-specific usage.`)
   return lines.join('\n')
 }
 

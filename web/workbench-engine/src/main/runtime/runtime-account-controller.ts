@@ -1,6 +1,6 @@
 import type { ClaudeAccountService } from '../claude-accounts/service'
 import { retireAtRestCommandContext } from '../native-chat/agent-session-wire/at-rest-command-context'
-import { hasAppEnvironment } from '../../shared/app-environment'
+import { getAppEnvironment, hasAppEnvironment } from '../../shared/app-environment'
 import { getManagedDataAccountService } from '../managed-data-accounts/service'
 import type {
   ClaudeAccountSignIn,
@@ -38,6 +38,7 @@ export type RuntimeAccountServices = {
 }
 
 export type AccountsSnapshot = {
+  accountCommand?: 'ce-workbench'
   opencode?: ManagedDataAccountsState
   devin?: ManagedDataAccountsState
   claude: ClaudeRateLimitAccountsState
@@ -152,12 +153,17 @@ export class RuntimeAccountController {
     }
   }
 
-  dataAccountsSnapshot(): Pick<AccountsSnapshot, 'opencode' | 'devin'> {
+  dataAccountsSnapshot(): Pick<AccountsSnapshot, 'opencode' | 'devin' | 'accountCommand'> {
     if (!hasAppEnvironment()) {
       return {}
     }
     const service = getManagedDataAccountService()
-    return { opencode: service.list('opencode'), devin: service.list('devin') }
+    const accountCommand = getAppEnvironment().getCliAccountCommand?.()
+    return {
+      opencode: service.list('opencode'),
+      devin: service.list('devin'),
+      ...(accountCommand ? { accountCommand } : {})
+    }
   }
 
   addDataFromHome(

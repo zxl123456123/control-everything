@@ -327111,7 +327111,10 @@
     "src/main/credentials/credential-root.test.ts",
     "src/renderer/src/web/PlatformWorkspaceToolbar.tsx",
     "src/renderer/src/web/PlatformWorkspaceToolbar.test.tsx",
-    "src/renderer/src/app-shell/AppWorkspaceShell.mobile.test.tsx"
+    "src/renderer/src/app-shell/AppWorkspaceShell.mobile.test.tsx",
+    "src/main/runtime/runtime-account-controller.test.ts",
+    "src/cli/help.platform.test.ts",
+    "src/renderer/src/components/settings/ManagedDataAccountsSection.test.tsx"
   ],
   "adapted_files": [
     {
@@ -328407,8 +328410,8 @@
     {
       "path": "src/renderer/src/components/settings/AppearancePane.test.tsx",
       "upstream_sha256": "c42a1f6b2dd497dc10dc7a73b27bcd5a9c78d7813fcb9bbea2b8cbb316e60866",
-      "current_sha256": "456376e1194bff0b5347f982584c810103f920682d36f903eec17d242a0de422",
-      "reason": "UI r1 S1: fixed management theme, typography and scoped primitives; AppearancePane.test.tsx."
+      "current_sha256": "3922cd87a758551aa9e3dfac9475abe74b5a6eae097abfb862d1fadc02dcdb8a",
+      "reason": "UI r1 S1: fixed management theme, typography and scoped primitives; AppearancePane.test.tsx.；平台命令入口和帮助统一品牌，精简账号说明与工作台展示，保留兼容协议及原生功能。"
     },
     {
       "path": "src/renderer/src/components/settings/LeftSidebarAppearanceSetting.tsx",
@@ -328473,8 +328476,8 @@
     {
       "path": "src/renderer/src/components/settings/SettingsSection.tsx",
       "upstream_sha256": "7b34b08d41aa86fb8b077d3aa61e539fbbfc363ebeed1cb8f9a7788b182bfdd8",
-      "current_sha256": "301a703ed7f012047357af274d0fd2d0e94a6b17f10316a7c40918d49f9937bc",
-      "reason": "N1: restore native project controls and upstream presentation while preserving platform identity, project registration, draft protection and the single global account surface."
+      "current_sha256": "83579f55d848045dc2f987dcbb5409edf67e844c0060455feb26b9d65524db24",
+      "reason": "N1: restore native project controls and upstream presentation while preserving platform identity, project registration, draft protection and the single global account surface.；平台命令入口和帮助统一品牌，精简账号说明与工作台展示，保留兼容协议及原生功能。"
     },
     {
       "path": "src/renderer/src/components/settings/SettingsSidebar.tsx",
@@ -329191,12 +329194,6 @@
       "reason": "Support explicit profile-contained credential storage while preserving existing keys and host tool configuration."
     },
     {
-      "path": "src/main/orcad/orcad-host-adapters.ts",
-      "upstream_sha256": "835ae5ce81cf7fc30453a73c3f18385daf0ce63613dc5576387fc2131dc91962",
-      "current_sha256": "e33e37c5e10e927a298bf8627b9e4e79d7ae577b32eea6c3558e01d69bdc555b",
-      "reason": "Support explicit profile-contained credential storage while preserving existing keys and host tool configuration."
-    },
-    {
       "path": "src/main/orcad/orcad-plaintext-credential-migration.ts",
       "upstream_sha256": "f077438f85b520dc5e5ab2b921d8ab6dce470f1bc2555a4a8d68eb22444cb383",
       "current_sha256": "aa8941c44ee3db68c58b728ebe10bf5b3dd3f9b8a49e220f5ee74025c8bca95d",
@@ -329273,6 +329270,60 @@
       "upstream_sha256": "50a968880bfe588c956f16ec49bd054ae8382425da400301f442416019691d9a",
       "current_sha256": "faaca7a2470d56277ad4dd1bf7fe4e61d0a1bb2656f7d097ec7fd67f664c2cec",
       "reason": "平台工作台统一视觉与品牌展示；保留原生功能与独立模式。"
+    },
+    {
+      "path": "src/main/orcad/orcad-cli-launcher.ts",
+      "upstream_sha256": "c5e239828d68bd1cf5dd3e978f7d6cfda3ee4517253b17de18e82dcd448cb1e1",
+      "current_sha256": "e5fa2c6ea415810fe56180f1001ada9a1152be1651b50ff861e16b508d3c5edc",
+      "reason": "平台命令入口和帮助统一品牌，精简账号说明与工作台展示，保留兼容协议及原生功能。"
+    },
+    {
+      "path": "src/main/orcad/orcad-cli-launcher.test.ts",
+      "upstream_sha256": "7fde4ce5ed19ea0f5a3d462170763cf50906572f296336328d306d2cff96f258",
+      "current_sha256": "3bca7fa6869b32a577c7b1916c3623b88509a35ce11117bc70afcceaf4bb9deb",
+      "reason": "平台命令入口和帮助统一品牌，精简账号说明与工作台展示，保留兼容协议及原生功能。"
+    },
+    {
+      "path": "src/main/runtime/runtime-account-controller.ts",
+      "upstream_sha256": "3484f136fb97a876d263c8c54c2a37ac904db1f9a1477f067f2919592b6bdf93",
+      "current_sha256": "143ead6af6f675b359a683d86e079818545635112ec4784b035f768af2fdac2e",
+      "reason": "平台命令入口和帮助统一品牌，精简账号说明与工作台展示，保留兼容协议及原生功能。"
+    },
+    {
+      "path": "src/shared/app-environment.ts",
+      "upstream_sha256": "acf06925774916ecdaacda9630e0016348ff952066c9b31bfb91f79a44bf5c86",
+      "current_sha256": "563034c4f0f47e7ad6fa2c4edd339a19aee78ccd1cdd8cd262b324064279623e",
+      "reason": "平台命令入口和帮助统一品牌，精简账号说明与工作台展示，保留兼容协议及原生功能。"
+    },
+    {
+      "path": "src/cli/help.ts",
+      "upstream_sha256": "2240c133948e5bca9a2281a74fcbbf624b51206108c88e08d27aad8a9af38cce",
+      "current_sha256": "c2a4847c62deb04e22c5237d743534117987ab3a986a8582584537f26b4ce4a7",
+      "reason": "平台命令入口和帮助统一品牌，精简账号说明与工作台展示，保留兼容协议及原生功能。"
+    },
+    {
+      "path": "src/renderer/src/components/settings/ManagedDataAccountsSection.tsx",
+      "upstream_sha256": "4aae5cd762a31618a032c60f61c7abe0229cfe3b9ba6a30f1f5bec3fd0dde67b",
+      "current_sha256": "ec6f559dc796fe655aea395d2ce58921e9b6a20a20f52d4e58d929984e27f001",
+      "reason": "平台命令入口和帮助统一品牌，精简账号说明与工作台展示，保留兼容协议及原生功能。"
+    },
+    {
+      "path": "src/renderer/src/components/settings/AppearancePane.tsx",
+      "upstream_sha256": "a61f03ba66de0175b261211e13ef94852bdaae8234b159805b1d7bee08ac8a7a",
+      "current_sha256": "011314ff04e6455247f4ad39cc0924467ac5667374ace5ddb92d9793f2c9e6ac",
+      "reason": "平台命令入口和帮助统一品牌，精简账号说明与工作台展示，保留兼容协议及原生功能。"
+    },
+    {
+      "path": "src/renderer/src/components/sidebar/WorkspaceKanbanStatusLane.tsx",
+      "upstream_sha256": "b2daa6e45c539c0ee07098b3cd4f49df7f17758719d5fd53ef0ac4186fd0a839",
+      "current_sha256": "8f7005b2d3f4c400a8622de35572ccfaa4780c4f284b137bcc345d2cd7badf54",
+      "reason": "平台命令入口和帮助统一品牌，精简账号说明与工作台展示，保留兼容协议及原生功能。"
+    },
+    {
+      "path": "src/main/orcad/orcad-host-adapters.ts",
+      "upstream_sha256": "835ae5ce81cf7fc30453a73c3f18385daf0ce63613dc5576387fc2131dc91962",
+      "current_sha256": "94cf8601058a4f8b9c3c3c29089491becaaa7d82c50330e3489d5ab01e8d8335",
+      "reason": "Support explicit profile-contained credential storage while preserving existing keys and host tool configuration.; 平台命令入口和帮助统一品牌，精简账号说明与工作台展示，保留兼容协议及原生功能。"
     }
   ],
   "reviewed_findings": [

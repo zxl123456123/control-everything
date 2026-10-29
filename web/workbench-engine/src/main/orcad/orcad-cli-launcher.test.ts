@@ -9,6 +9,7 @@ import {
 } from '../../shared/orcad-artifacts'
 import {
   ORCAD_WINDOWS_CLI_LAUNCHER_CONFIG_FILENAME,
+  getOrcadAccountCommand,
   getOrcadCliLauncherPath,
   prepareOrcadCliLauncher
 } from './orcad-cli-launcher'
@@ -23,12 +24,14 @@ let directory = ''
 const platformDescriptor = Object.getOwnPropertyDescriptor(process, 'platform')!
 
 beforeEach(async () => {
+  vi.stubEnv('CE_WORKBENCH_ISOLATED', '')
   directory = await mkdtemp(join(tmpdir(), 'orca-node-cli-'))
   roots.install = join(directory, "server ' slot")
   roots.profile = join(directory, "profile ' data")
 })
 
 afterEach(async () => {
+  vi.unstubAllEnvs()
   Object.defineProperty(process, 'platform', platformDescriptor)
   await rm(directory, { recursive: true, force: true })
 })
@@ -121,6 +124,40 @@ describe('orcad profile CLI launcher', () => {
     roots.install = join(directory, 'old server')
     await prepareOrcadCliLauncher()
     expect(getOrcadCliLauncherPath()).toBeNull()
+    expect(getOrcadAccountCommand()).toBeUndefined()
+  })
+
+  it('writes a platform POSIX alias with the same pinned runtime and profile', async () => {
+    Object.defineProperty(process, 'platform', { configurable: true, value: 'linux' })
+    vi.stubEnv('CE_WORKBENCH_ISOLATED', '1')
+    vi.stubEnv('CE_WORKBENCH_ORIGIN', 'http://127.0.0.1:8878')
+    await writeCli()
+    await prepareOrcadCliLauncher()
+    expect(getOrcadCliLauncherPath()).toBe(join(roots.profile, 'cli', 'bin', 'orca'))
+    expect(getOrcadAccountCommand()).toBe('ce-workbench')
+    expect(await readFile(join(roots.profile, 'cli', 'bin', 'ce-workbench'), 'utf8')).toBe(
+      await readFile(getOrcadCliLauncherPath()!, 'utf8')
+    )
+  })
+
+  it('loads platform help context without changing arguments or leaking it to provider children', async () => {
+    Object.defineProperty(process, 'platform', { configurable: true, value: 'linux' })
+    vi.stubEnv('CE_WORKBENCH_ISOLATED', '1')
+    vi.stubEnv('CE_WORKBENCH_ORIGIN', 'http://127.0.0.1:8878')
+    await writeCli()
+    await writeFile(
+      join(roots.install, ...ORCAD_CLI_ENTRY_FILENAME.split('/')),
+      'const brand = process.env.CE_WORKBENCH_CLI; exports.main = () => console.log(JSON.stringify({ brand, childBrand: process.env.CE_WORKBENCH_CLI, args: process.argv.slice(2) }))'
+    )
+    await prepareOrcadCliLauncher()
+    const args = ['account', 'add', '--label', 'Orca user label', '--help']
+    const result = await runProcess({
+      program: process.execPath,
+      args: [join(roots.profile, 'cli', 'bin', 'platform-entry.cjs'), ...args],
+      timeoutMs: 5000
+    })
+    expect(result.code).toBe(0)
+    expect(JSON.parse(result.stdout)).toEqual({ brand: '1', args })
   })
 
   describe('on a Windows host', () => {
@@ -157,6 +194,31 @@ describe('orcad profile CLI launcher', () => {
       expect((await readdir(binDir())).sort()).toEqual(
         [ORCAD_WINDOWS_CLI_LAUNCHER_CONFIG_FILENAME, 'orca.exe'].sort()
       )
+      expect(getOrcadAccountCommand()).toBeUndefined()
+    })
+
+    it('adds the platform command without replacing the internal launcher or profile', async () => {
+      vi.stubEnv('CE_WORKBENCH_ISOLATED', '1')
+      vi.stubEnv('CE_WORKBENCH_ORIGIN', 'http://127.0.0.1:8878')
+      await writeCli()
+      await writeLauncher('native launcher v1')
+      await prepareOrcadCliLauncher()
+      expect(getOrcadCliLauncherPath()).toBe(join(binDir(), 'orca.exe'))
+      expect(getOrcadAccountCommand()).toBe('ce-workbench')
+      expect(await readFile(join(binDir(), 'ce-workbench.exe'), 'utf8')).toBe('native launcher v1')
+      roots.install = join(directory, 'updated server')
+      await writeCli()
+      await writeLauncher('native launcher v2')
+      await prepareOrcadCliLauncher()
+      expect(await readFile(join(binDir(), 'ce-workbench.exe'), 'utf8')).toBe('native launcher v2')
+      const wrapper = join(binDir(), 'platform-entry.cjs')
+      expect(await readConfig()).toContain(`cli=${wrapper}`)
+      expect(await readFile(wrapper, 'utf8')).toContain(
+        JSON.stringify(join(roots.install, 'out', 'cli', 'index.js'))
+      )
+      roots.install = join(directory, 'old server')
+      await prepareOrcadCliLauncher()
+      expect(getOrcadAccountCommand()).toBeUndefined()
     })
 
     it('refreshes the launcher and its target when the host switches server slots', async () => {

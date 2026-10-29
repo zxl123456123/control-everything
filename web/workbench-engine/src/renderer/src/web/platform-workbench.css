@@ -4,20 +4,24 @@
 }
 
 :root:has(.platform-project-entry) {
-  --ce-workbench-chrome: #f3f4f6;
+  --ce-workbench-chrome: #f7f8fa;
   --ce-workbench-panel: #ffffff;
-  --ce-workbench-line: #e1e4e8;
-  --ce-workbench-selected: #e8ebef;
+  --ce-workbench-line: #e3e7ec;
+  --ce-workbench-hover: #f0f3f7;
+  --ce-workbench-selected: #e9eef5;
+  --ce-workbench-ring: #66788f;
   --ce-workbench-ink: #20252c;
   --ce-workbench-muted: #646c77;
   background: var(--ce-workbench-chrome);
 }
 
 :root.dark:has(.platform-project-entry) {
-  --ce-workbench-chrome: #15171b;
-  --ce-workbench-panel: #1c1f24;
-  --ce-workbench-line: #30353d;
-  --ce-workbench-selected: #2e343d;
+  --ce-workbench-chrome: #181b20;
+  --ce-workbench-panel: #20242b;
+  --ce-workbench-line: #343a44;
+  --ce-workbench-hover: #292f38;
+  --ce-workbench-selected: #333e4c;
+  --ce-workbench-ring: #a0b2c9;
   --ce-workbench-ink: #eceef2;
   --ce-workbench-muted: #a0a8b4;
 }
@@ -118,7 +122,31 @@
 
 .platform-project-entry .platform-project-content {
   animation: none;
+}
+
+/* Native content and its portals share the platform palette, not the Studio pages.
+   Security surfaces keep their own host-owned tokens; terminal themes stay independent. */
+.platform-project-entry .platform-project-content,
+:root:has(.platform-project-entry) .ce-management-surface:not(.plugin-security-chrome),
+:root:has(.platform-project-entry) [data-workspace-board-sheet],
+:root[data-platform-view='workspace']:has(.platform-project-entry) :is(
+  [data-slot='dialog-content'], [data-slot='popover-content'],
+  [data-slot='dropdown-menu-content'], [data-slot='dropdown-menu-sub-content'],
+  [data-slot='select-content'], [data-slot='context-menu-content'],
+  [data-slot='context-menu-sub-content']
+):not(.plugin-security-chrome) {
   --background: var(--ce-workbench-panel);
+  --foreground: var(--ce-workbench-ink);
+  --card: var(--ce-workbench-panel);
+  --card-foreground: var(--ce-workbench-ink);
+  --popover: var(--ce-workbench-panel);
+  --popover-foreground: var(--ce-workbench-ink);
+  --muted: var(--ce-workbench-chrome);
+  --muted-foreground: var(--ce-workbench-muted);
+  --secondary: var(--ce-workbench-hover);
+  --secondary-foreground: var(--ce-workbench-ink);
+  --accent: var(--ce-workbench-hover);
+  --accent-foreground: var(--ce-workbench-ink);
   --sidebar: var(--ce-workbench-chrome);
   --worktree-sidebar: var(--ce-workbench-chrome);
   --worktree-sidebar-accent: var(--ce-workbench-selected);
@@ -126,6 +154,11 @@
   --worktree-sidebar-foreground: var(--ce-workbench-ink);
   --worktree-sidebar-accent-foreground: var(--ce-workbench-ink);
   --border: var(--ce-workbench-line);
+  --input: var(--ce-workbench-line);
+  --ring: var(--ce-workbench-ring);
+  background-color: var(--ce-workbench-panel);
+  color: var(--ce-workbench-ink);
+  border-color: var(--ce-workbench-line);
 }
 
 .platform-project-entry [data-workbench-shell] {
@@ -174,13 +207,6 @@
   align-items: baseline;
   gap: 7px;
   min-width: 0;
-}
-.platform-workspace-heading > span {
-  display: block;
-  color: var(--ce-workbench-muted);
-  white-space: nowrap;
-  font-size: 11px;
-  line-height: 20px;
 }
 .platform-workspace-heading h1 {
   overflow: hidden;
@@ -282,7 +308,7 @@
   transition-duration: 140ms;
 }
 .platform-project-entry [data-worktree-card-surface]:not([data-worktree-card-active]):hover {
-  background: var(--ce-workbench-selected);
+  background: var(--ce-workbench-hover);
 }
 .platform-project-entry [data-worktree-card-surface][data-worktree-card-active='primary'] {
   background: var(--ce-workbench-selected);
@@ -425,6 +451,36 @@
   box-shadow: inset 3px 0 0 var(--ce-workbench-ink);
 }
 
+/* Status icons and the thin top edge retain custom colors; the lane stays neutral. */
+:root:has(.platform-project-entry)
+  [data-workspace-status-drop-target]:not([data-workspace-lane-drag-active='true']):not([data-workspace-board-external-drag-target='true']) {
+  background: var(--ce-workbench-panel);
+}
+
+.platform-project-entry .settings-content-body:not(.h-full) {
+  padding-top: 24px;
+  padding-bottom: 32px;
+}
+.platform-project-entry [data-settings-header] {
+  margin-bottom: 0;
+  padding-bottom: 12px;
+}
+.platform-project-entry [data-settings-header] h2 {
+  font-size: 20px;
+}
+.platform-project-entry [data-settings-header] p {
+  font-size: 12px;
+  line-height: 20px;
+}
+.platform-project-entry [data-settings-body='default'] {
+  margin-top: 16px;
+  padding: 12px 16px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
 @media (max-width: 900px) {
   .platform-workspace-header {
     gap: 14px;
@@ -444,7 +500,7 @@
     padding-inline: 10px;
     gap: 8px;
   }
-  .platform-workspace-branch, .platform-workspace-heading > span {
+  .platform-workspace-branch {
     display: none;
   }
 }
