@@ -328792,8 +328792,8 @@
     {
       "path": "src/renderer/src/components/sidebar/WorkspaceKanbanDrawer.task-status-sync.test.tsx",
       "upstream_sha256": "d4f893ab89a5210a571e4e54cf7e216bf97b1ca5cd630416e632a7ab0a7f02a0",
-      "current_sha256": "56d0d59d7b5c652e0d9b72416541ab52e7ab0af041e27704db78fb4d639e42bf",
-      "reason": "DEV-VIEWS: reuse native workspace cards and filtering in a responsive virtualized overview alongside the existing status board."
+      "current_sha256": "65af4f95724eade4b69d25cf17372b48f740e24fc9d6abe7de5f0fcdcd9370fa",
+      "reason": "DEV-VIEWS: reuse native workspace cards and filtering in a responsive virtualized overview alongside the existing status board. DEV-VIEWS-INTEGRATION: keep overlay placement assertions aligned with measured platform chrome and the native 36px fallback."
     },
     {
       "path": "src/renderer/src/components/sidebar/WorkspaceKanbanDrawer.tsx",
