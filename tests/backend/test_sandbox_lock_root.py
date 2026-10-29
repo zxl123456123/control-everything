@@ -92,6 +92,20 @@ class DesktopSandboxLockRootTests(unittest.TestCase):
             desktop.main(['--product-root', str(self.root)])
         configure.assert_not_called()
 
+    def test_installed_data_directory_and_shared_lock_root_work_together(self):
+        from control_everything.installation.desktop_settings import encode_data_directory
+        install = self.root / 'installation'
+        product = install / 'versions' / 'current'
+        product.mkdir(parents=True)
+        data = self.root / 'application-data'
+        token = encode_data_directory(install, str(data))
+        with patch('control_everything.platform.windows_acl.configure_desktop_lock_root') as configure, \
+             patch.object(desktop, 'build_desktop') as build, patch.object(desktop.webbrowser, 'open'):
+            desktop.main(['--product-root', str(product), '--installed-data-dir', token,
+                          '--sandbox-lock-root', str(self.lock_root)])
+        configure.assert_called_once_with(self.lock_root)
+        self.assertEqual(build.call_args.args[:2], (product, data))
+
     def test_desktop_rejects_invalid_root_before_building(self):
         with patch.object(desktop, 'build_desktop') as build:
             with self.assertRaises((ValueError, OSError)):

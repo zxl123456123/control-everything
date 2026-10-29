@@ -88,7 +88,10 @@ function GitGraphPane({ worktreeId }: { worktreeId: string }): React.JSX.Element
   const result = state.result
   const loading = state.status === 'loading'
   return (
-    <div className="flex h-full min-h-0 w-full flex-col bg-background" data-testid="git-graph-pane">
+    <div
+      className="@container/git-graph flex h-full min-h-0 min-w-0 w-full flex-col bg-background"
+      data-testid="git-graph-pane"
+    >
       <div className="flex h-9 shrink-0 items-center gap-2 border-b border-border px-3">
         <Network className="size-4 text-muted-foreground" aria-hidden="true" />
         <span className="text-sm font-semibold">{translate('git-graph.title', 'Git Graph')}</span>

@@ -179,8 +179,17 @@ def main(argv=None):
     parser.add_argument('--product-root', type=Path, required=True)
     parser.add_argument('--data-dir', type=Path)
     parser.add_argument('--sandbox-lock-root', type=Path)
+    parser.add_argument('--installed-data-dir', help=argparse.SUPPRESS)
     parser.add_argument('--port', type=int, default=8766)
     args = parser.parse_args(argv)
+    if args.installed_data_dir is not None and args.installed_data_dir != '_':
+        from control_everything.installation.desktop_settings import decode_data_directory
+        product = manifest.no_links(args.product_root).resolve()
+        if product.parent.name != 'versions':
+            raise ValueError('installed_data_directory_requires_installation')
+        selected = decode_data_directory(product.parent.parent, args.installed_data_dir)
+        if args.data_dir is None:
+            args.data_dir = selected
     if args.sandbox_lock_root is not None:
         from control_everything.platform.windows_acl import configure_desktop_lock_root
         configure_desktop_lock_root(args.sandbox_lock_root)

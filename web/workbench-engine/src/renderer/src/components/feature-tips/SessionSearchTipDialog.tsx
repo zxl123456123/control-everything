@@ -22,7 +22,11 @@ function stageCopy(
 ): { title: string; description: string; cta: string } {
   switch (stage) {
     case 'offer':
-      return { title: tip.title, description: tip.description, cta: tip.ctaLabel }
+      return {
+        title: translate('platform.tip.sessionSearch.title', tip.title),
+        description: translate('platform.tip.sessionSearch.description', tip.description),
+        cta: translate('platform.tip.sessionSearch.action', tip.ctaLabel)
+      }
     case 'indexing':
       return {
         title: translate('featureTips.sessionSearch.indexingTitle', 'Indexing your agent sessions'),
@@ -113,7 +117,7 @@ export function SessionSearchTipDialog({
     >
       <DialogHeader className="gap-4 text-left">
         <div>
-          <FeatureTipEyebrow label={tip.eyebrow} />
+          <FeatureTipEyebrow label={translate('platform.tip.sessionSearch.eyebrow', tip.eyebrow)} />
           <DialogTitle className="text-2xl font-semibold leading-tight tracking-tight md:text-[1.75rem]">
             {copy.title}
           </DialogTitle>

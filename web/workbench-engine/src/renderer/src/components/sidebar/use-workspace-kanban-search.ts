@@ -1,5 +1,6 @@
 import { useCallback, useDeferredValue, useMemo, useState } from 'react'
 import { isWorktreePaletteQueryTooLarge } from '@/lib/worktree-palette-query-bounds'
+import { buildPaletteWorktreeIndex } from '@/lib/palette-repo-resolution'
 import type { Repo } from '../../../../shared/repo-types'
 import type { Worktree } from '../../../../shared/worktree/types'
 import {
@@ -23,6 +24,7 @@ export function useWorkspaceKanbanSearch(args: {
   open: boolean
   worktrees: Worktree[]
   repoMap: Map<string, Repo>
+  repoMapByHostIdentity: ReadonlyMap<string, Repo>
 }): {
   query: string
   setQuery: (query: string) => void
@@ -50,6 +52,7 @@ export function useWorkspaceKanbanSearch(args: {
   // the board costs. Deferring only the filter keeps the caret responsive and
   // lets React interrupt the board re-render.
   const deferredQuery = useDeferredValue(query)
+  const worktreeIndex = useMemo(() => buildPaletteWorktreeIndex(args.worktrees), [args.worktrees])
 
   // Why split from the match memo: the index only depends on the worktrees and repos, so a
   // keystroke reruns the search over an already-built index instead of rebuilding every
@@ -58,9 +61,10 @@ export function useWorkspaceKanbanSearch(args: {
     () =>
       buildWorkspaceBoardPaletteDocuments({
         worktrees: args.worktrees,
-        repoMap: args.repoMap
+        repoMap: args.repoMap,
+        repoMapByHostIdentity: args.repoMapByHostIdentity
       }),
-    [args.repoMap, args.worktrees]
+    [args.repoMap, args.repoMapByHostIdentity, args.worktrees]
   )
 
   const matched = useMemo(
@@ -69,9 +73,11 @@ export function useWorkspaceKanbanSearch(args: {
         worktrees: args.worktrees,
         query: deferredQuery,
         repoMap: args.repoMap,
+        repoMapByHostIdentity: args.repoMapByHostIdentity,
+        worktreeIndex,
         documents
       }),
-    [args.repoMap, args.worktrees, deferredQuery, documents]
+    [args.repoMap, args.repoMapByHostIdentity, args.worktrees, deferredQuery, documents, worktreeIndex]
   )
 
   const matchingWorktreeIds =

@@ -165,7 +165,7 @@ class InstallationFixture(PayloadFixture):
         uninstaller = self.install / 'unins000.exe'
         uninstaller.write_bytes(b'Inno fixture')
         (self.install / 'unins000.dat').write_bytes(b'Inno locked data fixture')
-        (self.install / 'session-panel.cmd').write_bytes(b'old launcher\r\n')
+        (self.install / 'session-panel.cmd').write_bytes(MAINTENANCE.launcher_bytes(self.context.version_id, desktop=False))
         REGISTRY.write_record(self.install / '.install/root.json', {'schema': 1, 'install_id': str(uuid.uuid4()),
             'owner': '0102', 'directory': self.api.directory_identity(self.install),
             'uninstaller': self.api.file_identity(uninstaller)})
