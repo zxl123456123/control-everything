@@ -327095,6 +327095,8 @@
     "src/renderer/src/components/git-graph/GitGraphPane.tsx",
     "src/renderer/src/components/git-graph/useGitGraphHistory.test.tsx",
     "src/renderer/src/components/git-graph/useGitGraphHistory.ts",
+    "src/renderer/src/components/sidebar/WorkspaceOverview.test.tsx",
+    "src/renderer/src/components/sidebar/WorkspaceOverview.tsx",
     "src/renderer/src/store/slices/tabs/tabs-git-graph.test.ts",
     "src/renderer/src/store/slices/tabs/tabs-git-graph.ts",
     "src/renderer/src/web/preload-api/web-git-api-history.test.ts",
@@ -328763,6 +328765,42 @@
       "upstream_sha256": "e75c0a169c3a394d402917c40496d1e0a83d2108e7d967a570fe807869e63033",
       "current_sha256": "ef1c20fa39c11b4c713e0e16a85782760d920eb7f577b1c2b08c44afaf3c88eb",
       "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
+      "path": "src/renderer/src/components/sidebar/WorkspaceKanbanDrawer.search.test.tsx",
+      "upstream_sha256": "d2a3287338f0c76a0b4f8d6c7fd377fd01305e57c77c745bd7c12ff535169815",
+      "current_sha256": "64d024c128b02c073bfdf6088c170423cc09766e93321ac5ecf7bb6558d7d240",
+      "reason": "DEV-VIEWS: reuse native workspace cards and filtering in a responsive virtualized overview alongside the existing status board."
+    },
+    {
+      "path": "src/renderer/src/components/sidebar/WorkspaceKanbanDrawer.task-status-sync.test.tsx",
+      "upstream_sha256": "d4f893ab89a5210a571e4e54cf7e216bf97b1ca5cd630416e632a7ab0a7f02a0",
+      "current_sha256": "56d0d59d7b5c652e0d9b72416541ab52e7ab0af041e27704db78fb4d639e42bf",
+      "reason": "DEV-VIEWS: reuse native workspace cards and filtering in a responsive virtualized overview alongside the existing status board."
+    },
+    {
+      "path": "src/renderer/src/components/sidebar/WorkspaceKanbanDrawer.tsx",
+      "upstream_sha256": "920027f611d436d1d954fbc963d76840fc3af246609818cd650d44cb2309c797",
+      "current_sha256": "1365e5024384a287626a4c44229e6da5694a4361d0653f62defd3a798deea541",
+      "reason": "DEV-VIEWS: reuse native workspace cards and filtering in a responsive virtualized overview alongside the existing status board."
+    },
+    {
+      "path": "src/renderer/src/components/sidebar/WorkspaceKanbanDrawerHeader.test.tsx",
+      "upstream_sha256": "6fa9493dfb4c670ced4a747a6aafccbb2cc46646a970f9852a256954ac963622",
+      "current_sha256": "5b4081c4de0d0a632a1b9b42d7820e4dcc16da673f0bbe3afb0b021c0236de8b",
+      "reason": "DEV-VIEWS: reuse native workspace cards and filtering in a responsive virtualized overview alongside the existing status board."
+    },
+    {
+      "path": "src/renderer/src/components/sidebar/WorkspaceKanbanDrawerHeader.tsx",
+      "upstream_sha256": "9fa2db6deae2ef5284ba19917c0b81f6ee6a7ffd9184d9dcb6eaa21cba5980bb",
+      "current_sha256": "9cf90c4304688efd8d28e139e607073cff7354506d5036ca57d054c927d28bd4",
+      "reason": "DEV-VIEWS: reuse native workspace cards and filtering in a responsive virtualized overview alongside the existing status board."
+    },
+    {
+      "path": "src/renderer/src/components/sidebar/WorkspaceKanbanDrawerView.tsx",
+      "upstream_sha256": "7a84d294b0d02ee48dec38b509900fe9d722b3cf57b0e5011010d765e0c10b67",
+      "current_sha256": "8d6249a330231e13cf6550fb31517d4b3d40b2b33c5635cd95c9d118bf7b0c95",
+      "reason": "DEV-VIEWS: reuse native workspace cards and filtering in a responsive virtualized overview alongside the existing status board."
     },
     {
       "path": "src/renderer/src/components/tab-bar/EditorFileTab.tsx",

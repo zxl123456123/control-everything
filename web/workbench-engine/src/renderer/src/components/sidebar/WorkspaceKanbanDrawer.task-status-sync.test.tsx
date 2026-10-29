@@ -82,7 +82,9 @@ vi.mock('@/components/ui/sheet', () => ({
 }))
 
 vi.mock('./WorkspaceKanbanDrawerHeader', () => ({
-  default: () => <div data-testid="workspace-board-header" />
+  default: ({ onViewModeChange }: { onViewModeChange: (mode: 'status') => void }) => (
+    <button data-testid="workspace-board-header" onClick={() => onViewModeChange('status')} />
+  )
 }))
 
 vi.mock('./WorkspaceKanbanLaneGrid', () => ({
@@ -257,6 +259,9 @@ function renderDrawer(item: Worktree, enabled = true, statusBarVisible = true): 
         onMenuOpenChange={vi.fn()}
       />
     )
+  })
+  act(() => {
+    container.querySelector<HTMLButtonElement>('[data-testid="workspace-board-header"]')?.click()
   })
 }
 

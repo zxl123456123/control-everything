@@ -11,6 +11,7 @@ type InspectableProps = {
   children?: React.ReactNode
   className?: string
   'aria-label'?: string
+  'aria-pressed'?: boolean
   onClick?: () => void
 }
 
@@ -55,6 +56,8 @@ function renderHeader(
   overrides: Partial<Parameters<typeof WorkspaceKanbanDrawerHeader>[0]> = {}
 ): React.ReactElement {
   return WorkspaceKanbanDrawerHeader({
+    viewMode: 'status',
+    onViewModeChange: vi.fn(),
     selectedCount: 0,
     query: '',
     isFiltering: false,
@@ -79,6 +82,19 @@ function renderHeader(
 }
 
 describe('WorkspaceKanbanDrawerHeader', () => {
+  it('switches the same surface without exposing status settings in overview mode', () => {
+    const onViewModeChange = vi.fn()
+    const header = renderHeader(vi.fn(), { viewMode: 'workspaces', onViewModeChange })
+    expect(findByType(header, WorkspaceKanbanSettingsMenu)).toBeNull()
+    expect(findByType(header, SidebarFilter)).not.toBeNull()
+    const overview = findElement(header, (props) => props.children === '工作区')
+    const status = findElement(header, (props) => props.children === '状态看板')
+    expect(overview?.props['aria-pressed']).toBe(true)
+    expect(status?.props['aria-pressed']).toBe(false)
+    status?.props.onClick?.()
+    expect(onViewModeChange).toHaveBeenCalledWith('status')
+  })
+
   it('routes the close button through the explicit drawer close callback', () => {
     const onClose = vi.fn()
     const closeButton = findElement(

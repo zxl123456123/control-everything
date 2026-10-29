@@ -14,6 +14,8 @@ import WorkspaceKanbanDrawer from './WorkspaceKanbanDrawer'
 import type { WorkspaceKanbanLaneView } from './workspace-kanban-search'
 
 type HeaderCapture = {
+  viewMode: 'workspaces' | 'status'
+  onViewModeChange: (mode: 'workspaces' | 'status') => void
   selectedCount: number
   query: string
   isFiltering: boolean
@@ -200,19 +202,22 @@ let container: HTMLDivElement
 let root: Root
 let updateWorktreesMeta: ReturnType<typeof vi.fn<UpdateWorktreesMeta>>
 
-function renderDrawer(open = true): void {
+function renderDrawer(open = true, statusMode = true, dragPreview = false): void {
   act(() => {
     root.render(
       <WorkspaceKanbanDrawer
         open={open}
         statusBarVisible={true}
-        dragPreview={false}
+        dragPreview={dragPreview}
         preserveOpenForMenu={false}
         onOpenChange={vi.fn()}
         onMenuOpenChange={vi.fn()}
       />
     )
   })
+  if (open && statusMode) {
+    act(() => headerState.current?.onViewModeChange('status'))
+  }
 }
 
 function typeQuery(query: string): void {
@@ -264,6 +269,30 @@ afterEach(() => {
 })
 
 describe('WorkspaceKanbanDrawer search', () => {
+  it('defaults to the overview and preserves the query while switching views', () => {
+    renderDrawer(true, false)
+    expect(headerState.current?.viewMode).toBe('workspaces')
+    expect(gridState.current).toBeNull()
+    typeQuery('gamma')
+    act(() => headerState.current?.onViewModeChange('status'))
+    expect(laneIds('todo')).toEqual([gamma.id])
+    act(() => headerState.current?.onViewModeChange('workspaces'))
+    expect(headerState.current).toMatchObject({
+      viewMode: 'workspaces',
+      query: 'gamma',
+      matchCount: 1
+    })
+    expect(syncWorkspaceBoardTaskStatusesMock).not.toHaveBeenCalled()
+  })
+
+  it('keeps status drop targets when a sidebar drag preview becomes an open board', () => {
+    renderDrawer(true, false, true)
+    expect(headerState.current?.viewMode).toBe('status')
+    renderDrawer(true, false, false)
+    expect(headerState.current?.viewMode).toBe('status')
+    expect(laneIds('todo')).toHaveLength(4)
+  })
+
   it('filters every lane in place and reports lane totals', () => {
     renderDrawer()
     expect(laneIds('todo')).toHaveLength(4)

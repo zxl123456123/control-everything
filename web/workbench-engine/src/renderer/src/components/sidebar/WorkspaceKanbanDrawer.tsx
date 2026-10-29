@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useAppStore } from '@/store'
 import { useAllWorktrees, useRepoMap } from '@/store/selectors'
 import { useWorkspaceStatusDocumentDrop } from './use-workspace-status-drop'
@@ -53,6 +53,12 @@ function WorkspaceKanbanDrawerContent({
   onOpenChange,
   onMenuOpenChange
 }: WorkspaceKanbanDrawerProps): React.JSX.Element {
+  const [viewMode, setViewMode] = useState<'workspaces' | 'status'>('workspaces')
+  // Why: sidebar drag previews must retain their existing status drop targets.
+  const showingStatus = dragPreview || viewMode === 'status'
+  useEffect(() => {
+    if (dragPreview) setViewMode('status')
+  }, [dragPreview])
   const allWorktrees = useAllWorktrees()
   const folderWorkspaces = useAppStore((s) => selectFolderWorkspaces(s))
   const repoMap = useRepoMap()
@@ -108,7 +114,7 @@ function WorkspaceKanbanDrawerContent({
     selectForContextMenu
   } = useWorkspaceKanbanSelection(open, boardWorktrees, renderedBoardWorktrees)
   const { handleAreaSelectionPointerDown } = useWorkspaceKanbanAreaSelection({
-    open,
+    open: open && showingStatus,
     boardRef,
     overlayRef: areaSelectionOverlayRef,
     selectedWorktreeIds,
@@ -179,7 +185,7 @@ function WorkspaceKanbanDrawerContent({
     setPinDragOver
   } = useWorkspaceKanbanNativeDrag(dropWorktreesAtEndOfStatus)
   const { isPointerDragActiveRef, onCardPointerDownCapture } = useWorkspaceKanbanCardPointerDrag({
-    open,
+    open: open && showingStatus,
     boardRef,
     selectedWorktreeIds,
     selectedWorktrees: renderedSelectedWorktrees,
@@ -216,7 +222,7 @@ function WorkspaceKanbanDrawerContent({
     moveWorktreeToStatus,
     pinWorktree,
     handleDragFinish,
-    open,
+    open && showingStatus,
     {
       onMoveWorktreesToStatus: dropWorktreesAtEndOfStatus,
       onPinWorktrees: pinWorktrees
@@ -230,7 +236,12 @@ function WorkspaceKanbanDrawerContent({
     selectedCount: selectedWorktreeIds.size
   })
 
-  useWorkspaceKanbanShiftWheelScroll(boardRef, laneScrollerRef, open, isPointerDragActiveRef)
+  useWorkspaceKanbanShiftWheelScroll(
+    boardRef,
+    laneScrollerRef,
+    open && showingStatus,
+    isPointerDragActiveRef
+  )
   useWorkspaceKanbanOutsideDismiss({ open, boardRef, preserveOpenForMenu, onOpenChange })
   useContextualTour('workspace-board', open && !dragPreview, 'workspace_board_visible')
 
@@ -251,8 +262,23 @@ function WorkspaceKanbanDrawerContent({
       sidebarOpen={sidebarOpen}
       sidebarWidth={sidebarWidth}
       statusBarVisible={statusBarVisible}
+      overviewProps={
+        showingStatus
+          ? undefined
+          : {
+              items: renderedBoardWorktrees,
+              repoMap,
+              activeWorktreeIdentity,
+              onActivate: handleWorktreeActivate
+            }
+      }
       headerProps={{
-        selectedCount: renderedSelectedWorktrees.length,
+        viewMode: showingStatus ? 'status' : 'workspaces',
+        onViewModeChange: (mode) => {
+          clearSelection()
+          setViewMode(mode)
+        },
+        selectedCount: showingStatus ? renderedSelectedWorktrees.length : 0,
         query,
         isFiltering: hasQuery,
         isTooLarge: isQueryTooLarge,
