@@ -62,7 +62,8 @@ class Peer:
             if self.tokens:
                 value = self.tokens.pop(0)
                 if isinstance(value, Exception): raise value
-            return {"access_token": "fixture-oauth", "refresh_token": "discard-this"}
+                return value
+            return {"access_token": "fixture-oauth", "refresh_token": "discard-this", "expires_in": 3600}
         if path.endswith('/identity'):
             if self.identity_error: raise self.identity_error
             return deepcopy(self.identity)
@@ -266,6 +267,41 @@ class ConnectorTests(unittest.TestCase):
         self.connector._stop = ClockStop(self.clock)
 
     def authorize(self): self.connector._authorize()
+
+    def test_confirmation_renews_expired_device_access_and_keeps_tokens_private(self):
+        self.peer.tokens = [{'access_token': 'old-access', 'refresh_token': 'first-refresh', 'expires_in': 60}]
+        self.authorize()
+        self.clock[0] += 90
+        self.peer.tokens = [{'access_token': 'new-access', 'refresh_token': 'rotated-refresh', 'expires_in': 60}]
+        self.connector.confirm()
+        refreshes = [call for call in self.peer.calls if call[1] == '/token' and call[2]['grant_type'] == 'refresh_token']
+        self.assertEqual(len(refreshes), 1)
+        self.assertEqual(refreshes[0][2]['refresh_token'], 'first-refresh')
+        enrollments = [call for call in self.peer.calls if call[1].endswith('/enrollment') or call[1].endswith('/complete')]
+        self.assertTrue(all(call[3] == 'new-access' for call in enrollments))
+        self.assertIsNone(self.connector._oauth_refresh)
+        self.assertIsNone(self.connector._oauth_deadline)
+        self.assertNotIn('refresh', json.dumps(self.connector.status()))
+
+    def test_expired_confirmation_rejects_changed_account_before_enrollment(self):
+        self.authorize()
+        self.clock[0] += 4000
+        self.peer.identity['account']['sub'] = 'different-subject'
+        with self.assertRaisesRegex(ConnectorError, 'remote_identity_changed'):
+            self.connector.confirm()
+        self.assertFalse(any(call[1].endswith('/enrollment') for call in self.peer.calls))
+        self.connector.keys.sign.assert_not_called()
+        self.assertIsNone(self.store.read('pending.json'))
+
+    def test_failed_refresh_does_not_enroll_or_keep_refresh_credentials(self):
+        self.authorize()
+        self.clock[0] += 4000
+        self.peer.tokens = [ConnectorError('invalid_grant', 400)]
+        with self.assertRaisesRegex(ConnectorError, 'invalid_grant'):
+            self.connector.confirm()
+        self.assertFalse(any(call[1].endswith('/enrollment') for call in self.peer.calls))
+        self.connector.keys.sign.assert_not_called()
+        self.assertIsNone(self.connector._oauth_refresh)
 
     def test_status_exposes_configured_portal_without_authorization_or_credentials(self):
         status = self.connector.status()
