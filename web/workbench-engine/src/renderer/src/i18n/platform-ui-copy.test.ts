@@ -8,6 +8,44 @@ import { getWebRuntimeEnvironmentsSearchEntry } from '../components/settings/run
 
 const setupKey = 'auto.components.sidebar.SetupScriptPromptCardViews.0a98169776'
 const setupFallback = 'Add a setup command to run when Orca creates new worktrees.'
+const dailySurfaceCopy = [
+  [
+    'settings.appearance.statusBar.sshToggleDescription',
+    'Show configured SSH and remote Orca hosts when any are available.',
+    'Show configured SSH and remote runtime hosts when any are available.',
+    '有可用主机时，显示已配置的 SSH 主机和远程运行主机。'
+  ],
+  [
+    'auto.components.settings.TerminalThemeSections.d56af60e6f',
+    'Choose the theme used when Orca is in light mode.',
+    'Choose the terminal theme used in light mode.',
+    '选择浅色模式下使用的终端主题。'
+  ],
+  [
+    'auto.components.settings.TerminalPane.69724e8f0c',
+    'Choose what Orca opens for new local terminal panes.',
+    'Choose the shell opened for new local terminal panes.',
+    '选择新建本机终端窗格时使用的 Shell。'
+  ],
+  [
+    'auto.components.settings.TerminalPane.59573d0b33',
+    'Enter a shell name on PATH or an executable path. Orca starts it as a login shell.',
+    'Enter a shell name on PATH or an executable path. The app starts it as a login shell.',
+    '输入 PATH 中的 Shell 名称或可执行文件路径。本应用将以登录 Shell 启动它。'
+  ],
+  [
+    'auto.components.sidebar.AddRepoCreateStep.b100311784',
+    'Name it and Orca will create a real project with sensible defaults.',
+    'Name your project to create it with sensible defaults.',
+    '为项目命名，使用合理的默认设置创建项目。'
+  ],
+  [
+    'auto.App.03a14f6b5b',
+    'Retry the page or navigate to another Orca surface.',
+    'Retry the page or navigate to another workspace view.',
+    '重试此页面，或切换到其他工作区页面。'
+  ]
+] as const
 const prompt = () =>
   commandTemplateStateLabel({
     hasOverride: false,
@@ -54,6 +92,23 @@ describe('platform UI copy through the existing translation entry', () => {
       window.location.pathname = pathname
       expect(translate(setupKey, setupFallback)).toBe(setupFallback)
       expect(prompt()).toBe('Orca default prompt')
+      for (const [key, fallback] of dailySurfaceCopy) {
+        expect(translate(key, fallback)).toBe(fallback)
+      }
+    }
+  )
+
+  it.each(['en', 'zh'] as const)(
+    'preserves settings and recovery meaning on both platform routes in %s',
+    async (language) => {
+      await setRendererUiLanguage(language)
+      for (const pathname of ['/studio', '/workbench/web-index.html']) {
+        window.location.pathname = pathname
+        for (const [key, fallback, en, zh] of dailySurfaceCopy) {
+          expect(translate(key, fallback)).toBe(language === 'zh' ? zh : en)
+          expect(i18n.t(key, { ns: 'translation', defaultValue: fallback })).toContain('Orca')
+        }
+      }
     }
   )
 
@@ -119,7 +174,8 @@ describe('platform UI copy through the existing translation entry', () => {
     }
   )
 
-  it('preserves user interpolation, compatibility names, attribution and unknown keys', () => {
+  it.each(['en', 'zh'] as const)('preserves user copy and technical names in %s', async (language) => {
+    await setRendererUiLanguage(language)
     expect(
       translate(
         'platform.test.userCopy',
