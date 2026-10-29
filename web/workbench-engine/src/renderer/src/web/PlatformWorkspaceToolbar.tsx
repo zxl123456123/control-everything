@@ -7,6 +7,8 @@ export function PlatformWorkspaceToolbar(): React.JSX.Element {
   const workspace = useAppStore((state) => state.activeWorktreeId
     ? state.getKnownWorktreeById(state.activeWorktreeId, state.activeWorkspaceExecutionHostId ?? undefined)
     : null)
+  const name = workspace?.displayName || '工作区'
+  const branch = workspace?.branch?.replace(/^refs\/heads\//, '')
   const showOverview = () => {
     if (!useAppStore.getState().sidebarOpen) useAppStore.getState().toggleSidebar()
     window.dispatchEvent(new Event(TOGGLE_WORKSPACE_BOARD_EVENT))
@@ -15,12 +17,11 @@ export function PlatformWorkspaceToolbar(): React.JSX.Element {
   return (
     <div className="platform-workspace-toolbar">
       <div className="platform-workspace-heading">
-        <span>当前工作区</span>
-        <h1 title={workspace?.displayName || '工作区'}>{workspace?.displayName || '工作区'}</h1>
+        <h1 title={name}>{name}</h1>
       </div>
-      {workspace?.branch && (
-        <span className="platform-workspace-branch" title={workspace.branch}>
-          <GitBranch size={13} aria-hidden="true" />{workspace.branch.replace(/^refs\/heads\//, '')}
+      {branch && branch !== name && (
+        <span className="platform-workspace-branch" title={branch}>
+          <GitBranch size={13} aria-hidden="true" />{branch}
         </span>
       )}
       <div className="platform-workspace-actions">

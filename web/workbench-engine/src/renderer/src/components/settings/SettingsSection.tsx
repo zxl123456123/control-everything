@@ -72,7 +72,7 @@ export function SettingsSection({
 
   return (
     <section id={id} data-settings-section={id} className={cn('scroll-mt-8 space-y-6', className)}>
-      <div className="flex flex-wrap items-start justify-between gap-4 border-b border-border/60 pb-5">
+      <div data-settings-header="" className="flex flex-wrap items-start justify-between gap-4 border-b border-border/60 pb-5">
         <div className="min-w-0 space-y-2">
           <h2
             className="flex flex-wrap items-center gap-2 text-2xl font-semibold leading-tight text-foreground"
@@ -94,6 +94,7 @@ export function SettingsSection({
           rounded corners and tight inner padding — so each row group reads as
           contained inside the section, not as a continuation of the sidebar. */}
       <div
+        data-settings-body={bodyClassName ? 'custom' : 'default'}
         className={cn(
           'rounded-xl border border-border/50 bg-card/50 px-7 py-6 shadow-xs',
           bodyClassName
