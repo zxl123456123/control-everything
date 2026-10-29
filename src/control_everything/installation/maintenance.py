@@ -240,7 +240,7 @@ def project_assets(root, versions, *, pending=None):
     return sorted(set(paths))
 
 
-def preflight(install_root, operation, report_path, *, api, invocation=None, payload=None):
+def preflight(install_root, operation, report_path, *, api, invocation=None, payload=None, desktop_data_dir=None):
     root = registry.checked_path(str(install_root))
     new_report_path(report_path, root)
     stopped, receipt = [], {'schema': 1, 'operation': operation, 'status': 'blocked', 'stopped': []}
@@ -248,6 +248,11 @@ def preflight(install_root, operation, report_path, *, api, invocation=None, pay
     try:
         if operation not in OPERATIONS:
             raise Blocked(24, 'operation')
+        if desktop_data_dir is not None:
+            if operation != 'install':
+                raise Blocked(24, 'data_directory_migration_required')
+            from .desktop_settings import encode_data_directory
+            encode_data_directory(root, str(desktop_data_dir))
         receipt.update(install_root=str(root), nonce=invocation['nonce'] if invocation else uuid.uuid4().hex,
                        parent=api.directory_identity(root.parent), root=None, install_id=str(uuid.uuid4()),
                        launcher_sha256=None, expected_closure=None, version_id='', closure='')
@@ -263,6 +268,8 @@ def preflight(install_root, operation, report_path, *, api, invocation=None, pay
                 if operation != 'install' or not receipt['expected_closure']:
                     raise Blocked(24, 'empty_install_target')
             else:
+                if desktop_data_dir is not None:
+                    raise Blocked(24, 'data_directory_migration_required')
                 owner, versions, profiles, http = registry.load_records(root, api)
                 receipt.update(root=owner['directory'], install_id=owner['install_id'])
                 launcher = root / 'session-panel.cmd'
@@ -333,7 +340,7 @@ def final_commit_check(context, root, participants, api, *, existing):
         raise Blocked(23, 'assets_in_use') from error
 
 
-def commit_install(context, install_root, *, invocation=None, receipt=None, api=None):
+def commit_install(context, install_root, *, invocation=None, receipt=None, api=None, desktop_data_dir=None):
     api = registry.default_api() if api is None else api
     root = registry.checked_path(str(install_root))
     if (type(receipt) is not dict or receipt.get('status') != 'ready' or type(receipt.get('exit')) is not int
@@ -353,6 +360,14 @@ def commit_install(context, install_root, *, invocation=None, receipt=None, api=
     operation = receipt['operation']
     if receipt['root'] is None and operation != 'install':
         raise Blocked(24, 'receipt_initial_operation')
+    data_token = None
+    if desktop_data_dir is not None:
+        if operation != 'install' or receipt['root'] is not None:
+            raise Blocked(24, 'data_directory_migration_required')
+        if 'desktop-runtime.json' not in {row['path'] for row in context.document['files']}:
+            raise Blocked(24, 'desktop_data_directory_unsupported')
+        from .desktop_settings import encode_data_directory
+        data_token = encode_data_directory(root, str(desktop_data_dir))
     with ExitStack() as stack:
         participants = lock_scope(root, operation, invocation, api, stack)
         if (receipt['install_root'] != str(root) or receipt['parent'] != api.directory_identity(root.parent)
@@ -367,12 +382,16 @@ def commit_install(context, install_root, *, invocation=None, receipt=None, api=
             if (owner['directory'] != receipt['root'] or owner['install_id'] != receipt['install_id']
                     or not launcher.is_file() or manifest.sha256(launcher) != receipt['launcher_sha256']):
                 raise Blocked(24, 'installation_changed')
+            _owner, versions, _profiles, _http = registry.load_records(root, api, pending=context)
+            data_token = launcher_data_token(launcher.read_bytes(), root, versions)
         else:
             if launcher.exists() or (root / '.install').exists():
                 raise Blocked(24, 'initial_target_changed')
             owner = {'schema': 1, 'install_id': receipt['install_id'], 'owner': api.current_identity()['sid'],
                      'directory': api.directory_identity(root), 'uninstaller': api.registered_uninstaller(root)}
         current = registry.version_record(context, api)
+        if data_token is not None and 'runtime/Lib/site-packages/control_everything/installation/desktop_settings.py' not in {row['path'] for row in context.document['files']}:
+            raise Blocked(24, 'desktop_data_directory_unsupported')
         version_path = root / '.install/versions' / (context.version_id + '.json')
         if version_path.exists() and registry.read_record(version_path) != current:
             raise Blocked(24, 'version_registration_changed')
@@ -403,7 +422,11 @@ def commit_install(context, install_root, *, invocation=None, receipt=None, api=
             if not backup.exists():
                 with backup.open('xb') as stream:
                     stream.write(raw)
-        raw = launcher_bytes(context.version_id, desktop='desktop-runtime.json' in {row['path'] for row in context.document['files']})
+        paths = {row['path'] for row in context.document['files']}
+        desktop = 'desktop-runtime.json' in paths
+        supports_data = 'runtime/Lib/site-packages/control_everything/installation/desktop_settings.py' in paths
+        raw = launcher_bytes(context.version_id, desktop=desktop,
+                             data_token=data_token if data_token is not None else ('_' if desktop and supports_data else None))
         temporary = root / ('.session-panel-' + uuid.uuid4().hex + '.tmp')
         try:
             with temporary.open('xb') as stream:
@@ -427,6 +450,7 @@ def main(argv=None):
     parser.add_argument('--invocation-file', type=Path)
     parser.add_argument('--receipt-file', type=Path)
     parser.add_argument('--payload', type=Path)
+    parser.add_argument('--desktop-data-dir', type=Path)
     args = parser.parse_args(argv)
     try:
         new_report_path(args.report, registry.checked_path(str(args.install_root)))
@@ -435,7 +459,8 @@ def main(argv=None):
         if args.command == 'prepare':
             result = prepare_invocation(args.install_root, args.operation, api=api)
         elif args.command == 'preflight':
-            return preflight(args.install_root, args.operation, args.report, api=api, invocation=invocation, payload=args.payload)
+            return preflight(args.install_root, args.operation, args.report, api=api, invocation=invocation,
+                             payload=args.payload, desktop_data_dir=args.desktop_data_dir)
         else:
             if args.payload is None:
                 raise Blocked(24, 'payload_required')
@@ -446,7 +471,8 @@ def main(argv=None):
                 receipt = registry.read_record(args.receipt_file)
                 if receipt.get('operation') != args.operation:
                     raise Blocked(24, 'receipt_operation')
-                result = commit_install(context, args.install_root, api=api, invocation=invocation, receipt=receipt)
+                result = commit_install(context, args.install_root, api=api, invocation=invocation, receipt=receipt,
+                                        desktop_data_dir=args.desktop_data_dir)
             else:
                 with ExitStack() as stack:
                     lock_scope(args.install_root, args.operation, invocation, api, stack)
@@ -462,10 +488,34 @@ def main(argv=None):
         return code
 
 
-def launcher_bytes(version_id, *, desktop):
+def launcher_bytes(version_id, *, desktop, data_token=None):
     prefix = '%~dp0versions\\' + version_id
     entry = ('control_everything.http.desktop --product-root "' + prefix + '"') if desktop else 'control_everything.gateway'
+    if data_token is not None:
+        if not desktop or not re.fullmatch('[A-Za-z0-9_-]{1,4096}', data_token):
+            raise Blocked(24, 'desktop_data_directory_invalid')
+        entry += ' --installed-data-dir ' + data_token
     return ('@echo off\r\n"' + prefix + '\\runtime\\python.exe" -I -B -X utf8 -m ' + entry + ' %*\r\n').encode('ascii')
+
+
+def launcher_data_token(raw, root, versions):
+    match = re.search(rb' --installed-data-dir ([A-Za-z0-9_-]{1,4096}) %\*\r\n\Z', raw)
+    token = match.group(1).decode('ascii') if match else None
+    for key, record in versions.items():
+        document = registry.ProductContext.load(record['directory']['path']).document
+        paths = {row['path'] for row in document['files']}
+        desktop = 'desktop-runtime.json' in paths
+        supports_data = 'runtime/Lib/site-packages/control_everything/installation/desktop_settings.py' in paths
+        if desktop and supports_data and token is None:
+            continue
+        if token is not None and not desktop:
+            continue
+        if raw == launcher_bytes(key, desktop=desktop, data_token=token):
+            if token is not None and token != '_':
+                from .desktop_settings import decode_data_directory
+                decode_data_directory(root, token)
+            return None if token == '_' else token
+    raise Blocked(24, 'launcher_unrecognized')
 
 if __name__ == '__main__':
     raise SystemExit(main())
