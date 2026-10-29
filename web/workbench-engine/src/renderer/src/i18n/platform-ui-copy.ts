@@ -1,5 +1,9 @@
 // Only confirmed product UI copy belongs here; protocol names and user content stay unchanged.
 const en = {
+  toolFiles: 'Files',
+  toolSessions: 'Sessions',
+  toolChanges: 'Changes',
+  toolChecks: 'Checks',
   setupCommand: 'Add a setup command to run when a new worktree is created.',
   detectedSetupCommand: 'Save the detected command to run whenever a worktree is created.',
   savedSetupCommand: 'Runs when a new worktree is created.',
@@ -20,6 +24,13 @@ const en = {
   editorSaveDefault:
     'How long the editor waits after your last edit before saving automatically. First launch defaults to',
   terminalCursor: 'Default cursor appearance for terminal panes.',
+  remoteHostsStatusDescription: 'Show configured SSH and remote runtime hosts when any are available.',
+  terminalLightThemeDescription: 'Choose the terminal theme used in light mode.',
+  terminalShellDescription: 'Choose the shell opened for new local terminal panes.',
+  terminalCustomShellHelp:
+    'Enter a shell name on PATH or an executable path. The app starts it as a login shell.',
+  createProjectDescription: 'Name your project to create it with sensible defaults.',
+  pageRenderErrorDescription: 'Retry the page or navigate to another workspace view.',
   remoteServerDescription:
     'Add a remote runtime server, share this computer, or choose where new projects open.',
   browserServerDescription: 'Connect this browser to a saved runtime server.',
@@ -66,6 +77,10 @@ const en = {
 }
 
 const zh: Record<keyof typeof en, string> = {
+  toolFiles: '文件',
+  toolSessions: '会话',
+  toolChanges: '更改',
+  toolChecks: '检查',
   setupCommand: '添加新建工作树时运行的设置命令。',
   detectedSetupCommand: '保存检测到的命令，在每次创建工作树时运行。',
   savedSetupCommand: '在创建新工作树时运行。',
@@ -84,6 +99,12 @@ const zh: Record<keyof typeof en, string> = {
   editorSaveDelay: '最后一次编辑后，自动保存前等待的时间。',
   editorSaveDefault: '最后一次编辑后，自动保存前等待的时间。首次启动默认值为',
   terminalCursor: '终端窗格的默认光标外观。',
+  remoteHostsStatusDescription: '有可用主机时，显示已配置的 SSH 主机和远程运行主机。',
+  terminalLightThemeDescription: '选择浅色模式下使用的终端主题。',
+  terminalShellDescription: '选择新建本机终端窗格时使用的 Shell。',
+  terminalCustomShellHelp: '输入 PATH 中的 Shell 名称或可执行文件路径。本应用将以登录 Shell 启动它。',
+  createProjectDescription: '为项目命名，使用合理的默认设置创建项目。',
+  pageRenderErrorDescription: '重试此页面，或切换到其他工作区页面。',
   remoteServerDescription: '添加远程运行服务器、共享此电脑，或选择新项目的打开位置。',
   browserServerDescription: '将此浏览器连接到已保存的运行服务器。',
   sshRuntimes: 'SSH 主机上的运行组件',
@@ -127,6 +148,10 @@ const zh: Record<keyof typeof en, string> = {
 export const PLATFORM_UI_COPY = { en, zh }
 export const PLATFORM_UI_NAMESPACE = 'platform'
 export const PLATFORM_UI_COPY_KEYS: Partial<Record<string, keyof typeof en>> = {
+  'auto.components.right.sidebar.index.8bc2bbc3a0': 'toolFiles',
+  'auto.components.right.sidebar.index.aiVaultSessionHistory': 'toolSessions',
+  'auto.components.right.sidebar.index.0314901467': 'toolChanges',
+  'auto.components.right.sidebar.index.83a10e3c44': 'toolChecks',
   'auto.components.sidebar.SetupScriptPromptCardViews.0a98169776': 'setupCommand',
   'auto.components.sidebar.SetupScriptPromptCardViews.aef6c0a213': 'detectedSetupCommand',
   'auto.components.sidebar.SetupScriptPromptCard.a49196d538': 'savedSetupCommand',
@@ -151,6 +176,12 @@ export const PLATFORM_UI_COPY_KEYS: Partial<Record<string, keyof typeof en>> = {
   'auto.components.settings.GeneralEditorSettingsSection.8112cd6dcf': 'editorSaveDefault',
   'auto.components.settings.TerminalAppearanceSection.d455f2ef4f': 'terminalCursor',
   'auto.components.settings.terminal.search.275a9d6395': 'terminalCursor',
+  'settings.appearance.statusBar.sshToggleDescription': 'remoteHostsStatusDescription',
+  'auto.components.settings.TerminalThemeSections.d56af60e6f': 'terminalLightThemeDescription',
+  'auto.components.settings.TerminalPane.69724e8f0c': 'terminalShellDescription',
+  'auto.components.settings.TerminalPane.59573d0b33': 'terminalCustomShellHelp',
+  'auto.components.sidebar.AddRepoCreateStep.b100311784': 'createProjectDescription',
+  'auto.App.03a14f6b5b': 'pageRenderErrorDescription',
   'auto.components.settings.runtime.environments.search.addShareDefault': 'remoteServerDescription',
   'auto.components.settings.runtime.environments.search.baec27aa8f': 'browserServerDescription',
   'auto.components.settings.managedServers.search.title': 'sshRuntimes',

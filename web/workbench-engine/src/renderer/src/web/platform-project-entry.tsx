@@ -368,19 +368,38 @@ export default function PlatformProjectEntry(): React.JSX.Element {
   }, [pauseWorkspacePortals])
   useLayoutEffect(() => {
     const content = workspaceContentRef.current!
+    let measuredCanvas: HTMLElement | null = null
     const updateBounds = () => {
       // Portaled panels follow live chrome, including notices and the canvas inset.
       const canvas = content.querySelector<HTMLElement>('[data-workbench-canvas]')
       const tabs = canvas?.querySelector<HTMLElement>('[data-workbench-tabs]')?.getBoundingClientRect()
-      const top = tabs?.height ? tabs.bottom : (canvas || content).getBoundingClientRect().top + (canvas?.clientTop || 0) + 36
+      const toolbar = canvas?.querySelector<HTMLElement>('.platform-workspace-toolbar')?.getBoundingClientRect()
+      const top = tabs?.height ? tabs.bottom : (toolbar?.bottom ?? (canvas || content).getBoundingClientRect().top + (canvas?.clientTop || 0)) + 36
       document.documentElement.style.setProperty('--platform-workspace-panel-top', `${top}px`)
+      if (canvas) document.documentElement.style.setProperty('--platform-workspace-panel-left', `${canvas.getBoundingClientRect().left}px`)
     }
     const observer = new ResizeObserver(updateBounds)
+    const attachCanvas = () => {
+      const canvas = content.querySelector<HTMLElement>('[data-workbench-canvas]')
+      if (measuredCanvas !== canvas) {
+        if (measuredCanvas) observer.unobserve(measuredCanvas)
+        measuredCanvas = canvas
+        if (canvas) observer.observe(canvas)
+      }
+      updateBounds()
+    }
+    // The lazy app can mount after this effect. Once present, ignore mutations inside editor/terminal content.
+    const mounts = new MutationObserver((records) => {
+      if (!measuredCanvas?.isConnected || records.some((record) => record.target === measuredCanvas)) attachCanvas()
+    })
+    mounts.observe(content, { childList: true, subtree: true })
     observer.observe(content)
-    updateBounds()
+    attachCanvas()
     return () => {
+      mounts.disconnect()
       observer.disconnect()
       document.documentElement.style.removeProperty('--platform-workspace-panel-top')
+      document.documentElement.style.removeProperty('--platform-workspace-panel-left')
     }
   }, [showWorkspace, showSettings, showWorkbench])
   useEffect(() => {

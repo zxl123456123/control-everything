@@ -327108,7 +327108,9 @@
     "src/renderer/src/web/PlatformWorkspaceHeader.tsx",
     "src/renderer/src/web/platform-workbench.css",
     "src/main/credentials/credential-root.ts",
-    "src/main/credentials/credential-root.test.ts"
+    "src/main/credentials/credential-root.test.ts",
+    "src/renderer/src/web/PlatformWorkspaceToolbar.tsx",
+    "src/renderer/src/web/PlatformWorkspaceToolbar.test.tsx"
   ],
   "adapted_files": [
     {
@@ -327420,7 +327422,7 @@
     {
       "path": "src/renderer/src/app-shell/TitlebarLeftControls.tsx",
       "upstream_sha256": "274b5e3bd1414e927003fb42de2a292fe261df9776fa6d6c9b0feb155fb5d201",
-      "current_sha256": "3a34b5606ab97698b9245630bad3c6d2fb27af3ea6ec3cf062bc8f00ab3cbbab",
+      "current_sha256": "268775afc68027a824932c08a7829da169b88310e47b71115141d16557802a6d",
       "reason": "M1a-W: product app-name and accessibility label in paired Web; M1a navigation: preserve a single project workspace while integrating platform business views；平台工作台统一视觉与品牌展示。"
     },
     {
@@ -329082,7 +329084,7 @@
     {
       "path": "src/renderer/src/app-shell/AppWorkspaceShell.tsx",
       "upstream_sha256": "bb676aa34fee5de4985aab6a363b0dd84a320e5f0d66da0a823a161c57e179a9",
-      "current_sha256": "6b48c79636413d1b94f3f2a230de4d03bd9468b4fd984c9c8f2c22dc178a954c",
+      "current_sha256": "aaa90760ed5be96fc058661a33ed92910d5b50ed9aa0541cf95721394114fb1f",
       "reason": "平台工作台统一视觉与品牌展示；保留原生功能与独立模式。"
     },
     {
@@ -329124,7 +329126,7 @@
     {
       "path": "src/renderer/src/components/sidebar/WorkspaceKanbanSheet.tsx",
       "upstream_sha256": "102a6e6613404fb9f6437bb50d6a19eb844e9dd638de39cfdf9b52bfc7ceb019",
-      "current_sha256": "12ef7fb9c6a5993db202a7dc094d40a418756271b8534a06ac458c1991f6b054",
+      "current_sha256": "afe59c28d8767a99338e3192d593688371509d52c96d054f6f376e0f4ecf007e",
       "reason": "平台工作台统一视觉与品牌展示；保留原生功能与独立模式。"
     },
     {
@@ -329222,6 +329224,54 @@
       "upstream_sha256": "30b9e4436150cdc248bf8d32ff56ce616ebb420bccbcbeaeed537ad627554601",
       "current_sha256": "b3722c351fc5afb2de909e9f80e96e9ce7d774ed716c0a9cea287010dacaef58",
       "reason": "Support explicit profile-contained credential storage while preserving existing keys and host tool configuration."
+    },
+    {
+      "path": "src/renderer/src/components/right-sidebar/activity-bar-buttons.test.tsx",
+      "upstream_sha256": "75c3767fd708846735464a0e9e44411913f8dd3421dd2fb764b35329da412bb2",
+      "current_sha256": "6fae44127e3fa1e9af07d3ea6f0d53f3c0c0bb77e66c80c5006e4b905a6c2d70",
+      "reason": "平台工作台统一视觉与品牌展示；保留原生功能与独立模式。"
+    },
+    {
+      "path": "src/renderer/src/components/right-sidebar/activity-bar-buttons.tsx",
+      "upstream_sha256": "f74a579b519cec4ac22435530c150ea03f13c1f65c87d1ef299d2cc16b574551",
+      "current_sha256": "540bc7277d5d57b582fb3538bf8cb695b159399de380f5a5ad27fdc45a910c35",
+      "reason": "平台工作台统一视觉与品牌展示；保留原生功能与独立模式。"
+    },
+    {
+      "path": "src/renderer/src/components/right-sidebar/activity-bar-overflow.test.ts",
+      "upstream_sha256": "6e428f8f501e389cca72cbb955ede7e0de2b2bf18381c4e2d18acd0e1c96e140",
+      "current_sha256": "ea1815717732431378650387b96359006138c9bd2b1f730390e882b93c29906b",
+      "reason": "平台工作台统一视觉与品牌展示；保留原生功能与独立模式。"
+    },
+    {
+      "path": "src/renderer/src/components/right-sidebar/activity-bar-overflow.ts",
+      "upstream_sha256": "d307463a1a941b38937db801a5a79da0c7614a3fcb684ea5e2d7355dcd5c597b",
+      "current_sha256": "01053fa756d30bf02b13e241c5861ff181cc6135f2a88b39e33d5da1dca890da",
+      "reason": "平台工作台统一视觉与品牌展示；保留原生功能与独立模式。"
+    },
+    {
+      "path": "src/renderer/src/components/right-sidebar/index.tsx",
+      "upstream_sha256": "7523f5a241c9ad935bbb33d660b71fa901b53443b6aada1fd0827a3a935894e6",
+      "current_sha256": "dc82fec890c64d693ab4566218d37eab2fcb1f14edd388a7adadd5dc08cc6e31",
+      "reason": "平台工作台统一视觉与品牌展示；保留原生功能与独立模式。"
+    },
+    {
+      "path": "src/renderer/src/components/right-sidebar/right-sidebar-titlebar-drag-regions.render.test.tsx",
+      "upstream_sha256": "f677579e9e640dccfad3ce2340862401c79e46bd19627f43f59973bbabc89e13",
+      "current_sha256": "275584ab48d7199e50a600a028d75579e208092b3c2d1b58a6444e09909cbba6",
+      "reason": "平台工作台统一视觉与品牌展示；保留原生功能与独立模式。"
+    },
+    {
+      "path": "src/renderer/src/components/right-sidebar/right-sidebar-top-activity-bar.tsx",
+      "upstream_sha256": "f8dc2dc70dd59d9b9ce534d50b1891b0d25c51b6dfbbc57e2ea9297ff693ec53",
+      "current_sha256": "61c0132091b0a1c77b7317a1569465d2f704904a4072f8a9a77623c53c78e653",
+      "reason": "平台工作台统一视觉与品牌展示；保留原生功能与独立模式。"
+    },
+    {
+      "path": "src/renderer/src/components/right-sidebar/use-right-sidebar-activity-items.ts",
+      "upstream_sha256": "50a968880bfe588c956f16ec49bd054ae8382425da400301f442416019691d9a",
+      "current_sha256": "faaca7a2470d56277ad4dd1bf7fe4e61d0a1bb2656f7d097ec7fd67f664c2cec",
+      "reason": "平台工作台统一视觉与品牌展示；保留原生功能与独立模式。"
     }
   ],
   "reviewed_findings": [

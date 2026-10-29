@@ -29,9 +29,10 @@ export default function WorkspaceKanbanSheet({
   statusBarVisible
 }: WorkspaceKanbanSheetProps): React.JSX.Element {
   const drawerLeft = sidebarOpen ? sidebarWidth : 0
-  const drawerLeftCss = sidebarOpen
+  const sidebarLeftCss = sidebarOpen
     ? `var(--workspace-sidebar-live-width, ${sidebarWidth}px)`
     : '0px'
+  const drawerLeftCss = `var(--platform-workspace-panel-left, ${sidebarLeftCss})`
   const drawerBottom = `${statusBarVisible ? STATUS_BAR_RESERVE_HEIGHT : 0}px`
   const keepOpenForOutsideEvent = (event: {
     preventDefault: () => void

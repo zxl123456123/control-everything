@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils'
 import { useSidebarResize } from '@/hooks/useSidebarResize'
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip'
 import { ContextMenu, ContextMenuTrigger } from '@/components/ui/context-menu'
-import { getTopActivityBarLayout } from './activity-bar-overflow'
+import { getTopActivityBarLayout, LABELLED_ACTIVITY_BUTTON_WIDTH } from './activity-bar-overflow'
 import { ActivityBarButton } from './activity-bar-buttons'
 import { getActiveChecksStatus } from './active-checks-status'
 import { useShortcutLabel } from '@/hooks/useShortcutLabel'
@@ -31,6 +31,7 @@ import { useWindowWidth } from './use-window-width'
 const ACTIVITY_BAR_SIDE_WIDTH = 40
 
 function RightSidebarInner(): React.JSX.Element {
+  const platformMode = ['/studio', '/workbench/web-index.html'].includes(window.location.pathname)
   const hasDesktopWindowChrome = shouldRenderDesktopWindowChrome({
     platform: getRendererAppPlatform(),
     isWebClient: isPairedWebClientWindow()
@@ -96,8 +97,14 @@ function RightSidebarInner(): React.JSX.Element {
   ) : null
 
   const topActivityLayout = useMemo(
-    () => getTopActivityBarLayout(visibleItems, topActivityStripWidth, effectiveTab),
-    [visibleItems, topActivityStripWidth, effectiveTab]
+    () =>
+      getTopActivityBarLayout(
+        visibleItems,
+        topActivityStripWidth,
+        effectiveTab,
+        platformMode ? LABELLED_ACTIVITY_BUTTON_WIDTH : undefined
+      ),
+    [visibleItems, topActivityStripWidth, effectiveTab, platformMode]
   )
 
   const sideActivityBarIcons = visibleItems.map((item) => (
@@ -139,6 +146,8 @@ function RightSidebarInner(): React.JSX.Element {
   return (
     <div
       ref={containerRef}
+      data-workbench-tools={platformMode ? '' : undefined}
+      data-workbench-tools-open={platformMode ? String(rightSidebarOpen) : undefined}
       className={cn(
         'relative flex-shrink-0 flex flex-row',
         // Why: overflow-visible is needed when open so the resize handle
@@ -153,9 +162,12 @@ function RightSidebarInner(): React.JSX.Element {
       <div
         className="flex flex-col flex-1 min-w-0 bg-sidebar overflow-hidden"
         style={{
-          borderLeft: rightSidebarOpen ? '1px solid var(--sidebar-border)' : 'none'
+          borderLeft: rightSidebarOpen && !platformMode ? '1px solid var(--sidebar-border)' : 'none'
         }}
       >
+        {platformMode && rightSidebarOpen && (
+          <span className="sr-only" data-workbench-tools-heading="">项目工具</span>
+        )}
         {activityBarPosition === 'top' ? (
           <RightSidebarTopActivityBar
             hasDesktopWindowChrome={hasDesktopWindowChrome}
@@ -165,6 +177,7 @@ function RightSidebarInner(): React.JSX.Element {
             onSelectTab={selectActivityTab}
             checksStatus={checksStatus}
             closeButton={closeButton}
+            showLabels={platformMode}
             activityBarPosition={activityBarPosition}
             onChangeActivityBarPosition={setActivityBarPosition}
           />

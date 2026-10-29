@@ -12,6 +12,7 @@ import {
 } from './right-sidebar-titlebar-drag-regions'
 import type { ActiveRightSidebarTab } from '@/store/slices/editor'
 import { resetRendererAppPlatformCacheForTests } from '@/lib/renderer-app-platform'
+import { setRendererUiLanguage } from '@/i18n/i18n'
 
 const mockAppState = vi.hoisted(() => ({
   rightSidebarOpen: true,
@@ -213,6 +214,7 @@ function setRendererPlatform(platform: NodeJS.Platform): void {
 
 describe('rendered right sidebar titlebar drag regions', () => {
   beforeEach(() => {
+    window.history.replaceState(null, '', '/')
     ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
     ;(globalThis as { __ORCA_WEB_CLIENT__?: boolean }).__ORCA_WEB_CLIENT__ = false
     setRendererPlatform('darwin')
@@ -252,6 +254,60 @@ describe('rendered right sidebar titlebar drag regions', () => {
     expectNoDrag(buttonOpeningTag(markup, 'Checks'))
     expect(buttonOpeningTag(markup, 'Toggle right sidebar')).toContain('sidebar-toggle')
     expect(markup).toContain(RIGHT_SIDEBAR_HEADER_NO_DRAG_CLASS_NAME)
+    expect(markup).not.toContain('data-workbench-tools-heading')
+    expect(markup).not.toContain('data-workbench-tool=')
+  })
+
+  it.each(['/studio', '/workbench/web-index.html'])('labels platform tools on %s with one collapse control', (path) => {
+    window.history.replaceState(null, '', path)
+    const container = document.createElement('div')
+    container.innerHTML = renderToStaticMarkup(<RightSidebar />)
+
+    expect(container.querySelector('[data-workbench-tools-heading]')?.textContent).toContain('项目工具')
+    expect(container.querySelector('[data-workbench-tool="explorer"]')?.textContent).toBe('Files')
+    expect(container.querySelector('[data-workbench-tool="source-control"]')?.textContent).toBe('Changes')
+    expect(container.querySelectorAll('button[aria-label^="Toggle right sidebar"]')).toHaveLength(1)
+    expect(container.querySelector('[data-workbench-tool="explorer"]')?.getAttribute('aria-current')).toBe('page')
+    expect(container.querySelector('[data-file-explorer]')).not.toBeNull()
+  })
+
+  it('updates visible tool names when the workspace language finishes loading', async () => {
+    window.history.replaceState(null, '', '/studio')
+    const container = document.createElement('div')
+    document.body.append(container)
+    const root = createRoot(container)
+    try {
+      await act(async () => { root.render(<RightSidebar />) })
+      expect(container.querySelector('[data-workbench-tool="explorer"]')?.textContent).toBe('Files')
+      await act(async () => { await setRendererUiLanguage('zh') })
+      expect(container.querySelector('[data-workbench-tool="explorer"]')?.textContent).toBe('文件')
+      expect(container.querySelector('[data-workbench-tool="source-control"]')?.textContent).toBe('更改')
+    } finally {
+      await act(async () => { root.unmount() })
+      container.remove()
+      await setRendererUiLanguage('en')
+    }
+  })
+
+  it('preserves the side activity bar preference in platform mode', () => {
+    window.history.replaceState(null, '', '/studio')
+    mockAppState.activityBarPosition = 'side'
+    const markup = renderToStaticMarkup(<RightSidebar />)
+
+    expect(markup).toContain('side-activity-bar-windows-inset')
+    expect(markup).toContain('项目工具')
+    expect(markup).not.toContain('data-workbench-tools-tabs')
+    expect(markup).not.toContain('data-workbench-tool=')
+  })
+
+  it('does not leave a project tools heading visible when the platform sidebar is collapsed', () => {
+    window.history.replaceState(null, '', '/studio')
+    mockAppState.rightSidebarOpen = false
+    const markup = renderToStaticMarkup(<RightSidebar />)
+
+    expect(markup).toContain('data-workbench-tools-open="false"')
+    expect(markup).not.toContain('data-workbench-tools-heading')
+    expect(markup).not.toContain('data-file-explorer')
   })
 
   it('uses the custom desktop chrome top strip on Linux desktop', () => {
