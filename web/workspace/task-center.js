@@ -30,6 +30,31 @@
       select.value = selected; select.ceCollectionChoice?.refresh();
     };
     const label = (text, control) => { const value = node('label', 'field', text); value.append(control); return value; };
+    // Filters keep an accessible name but show no caption; the selected value already says what they filter.
+    const quiet = (text, control, className = 'field filter-pill') => {
+      const value = node('label', className), caption = node('span', 'sr-only', text); value.append(caption, control); return value;
+    };
+    // Static trusted SVG paths only; never interpolate item data here.
+    const glyphs = {
+      plus: '<path d="M12 5v14M5 12h14"/>', edit: '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
+      open: '<path d="M5 12h14m-6-6 6 6-6 6"/>', refresh: '<path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/>',
+      inbox: '<path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5.1 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.5-6.9A2 2 0 0 0 16.7 4H7.3a2 2 0 0 0-1.8 1.1Z"/>',
+      filter: '<path d="M3 5h18l-7 8v6l-4 2v-8Z"/>', tool: '<rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 8V4M9 14h.01M15 14h.01"/>',
+      link: '<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3A4 4 0 0 0 11 18.7l1-1"/>',
+      alert: '<path d="m12 3 10 18H2L12 3Z"/><path d="M12 9v4m0 4h.01"/>', sliders: '<path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/>'
+    };
+    const glyph = name => { const value = node('span', 'ti'); value.setAttribute('aria-hidden', 'true');
+      value.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" focusable="false">${glyphs[name]}</svg>`; return value; };
+    const withGlyph = (name, text, className = 'button', callback) => {
+      const value = node('button', className), caption = node('span', 'btn-label', text); value.type = 'button';
+      if (callback) value.addEventListener('click', callback);
+      value.append(glyph(name), caption); return value;
+    };
+    // Icon-only buttons keep their words for screen readers and text-based tests.
+    const iconButton = (name, text, callback, className = 'icon-button') => {
+      const value = node('button', className), caption = node('span', 'sr-only', text); value.type = 'button'; value.title = text;
+      value.addEventListener('click', callback); value.append(glyph(name), caption); return value;
+    };
     const feedback = (target, text, failed = false) => { target.textContent = text; target.classList.toggle('error', failed); };
     let projects = [], sessions = [], page = null, request = 0, reading = false, writing = false;
     let original = null, editingId = null, initialTitle = '', initialFields = {};
@@ -37,13 +62,19 @@
     const pickedSessions = new Map();
     let desktopStatus = null;
     const heading = node('div', 'section-heading'), title = node('h2', '', '全部事项');
-    heading.append(title, button('详细新建', () => open(null), 'button secondary'));
+    const detailButton = withGlyph('sliders', '详细填写', 'button ghost detail-button', () => open(null));
+    heading.append(title);
     const hint = node('p', 'section-note', ''); hint.hidden = true;
     const quick = named('form', 'item-quick-form', 'item-quick'), quickFields = node('fieldset');
     const quickTitle = named('textarea', 'item-quick-title'); quickTitle.rows = 2; quickTitle.maxLength = 4000; quickTitle.required = true;
-    quickTitle.placeholder = '输入事项名称';
-    const quickSave = node('button', 'button primary', '新建事项'); quickSave.type = 'submit';
-    quickFields.append(label('新建事项', quickTitle), quickSave, button('取消草稿', () => { quickTitle.value = ''; quickProject = null; hint.hidden = true; feedback(quickFeedback, ''); syncBusy(); }, 'text-button')); quick.append(quickFields);
+    quickTitle.placeholder = '下一步做什么？'; quickTitle.rows = 1;
+    const quickSave = withGlyph('plus', '添加', 'button primary'); quickSave.type = 'submit';
+    const quickActions = node('div', 'item-quick-actions');
+    const cancelDraft = button('清除', () => { quickTitle.value = ''; quickProject = null; hint.hidden = true; feedback(quickFeedback, ''); syncBusy(); }, 'text-button'); cancelDraft.hidden = true;
+    quickActions.append(cancelDraft, detailButton, quickSave);
+    quickTitle.addEventListener('input', () => { cancelDraft.hidden = !quickTitle.value; });
+    quickTitle.addEventListener('keydown', event => { if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') { event.preventDefault?.(); quick.requestSubmit?.(); } });
+    quickFields.append(quiet('新建事项', quickTitle, 'field item-quick-field'), quickActions); quick.append(quickFields);
     const quickFeedback = named('p', 'item-quick-feedback', 'feedback'); quickFeedback.setAttribute('role', 'status');
     const toolbar = node('div', 'task-toolbar item-toolbar');
     const scope = named('select', 'item-scope'), project = named('select', 'item-project-filter');
@@ -52,10 +83,10 @@
     options(provider, [['', '全部工具'], ...Object.entries(providers)]);
     options(state, [['', '全部状态'], ...Object.entries(states)]);
     const scopeField = label('范围', scope), projectField = label('项目', project);
-    toolbar.append(scopeField, projectField, label('工具', provider), label('状态', state));
     const status = named('p', 'items-status', 'section-note'); status.setAttribute('role', 'status');
+    const refreshButton = iconButton('refresh', '重新读取列表', () => refresh(0), 'icon-button refresh-button');
+    toolbar.append(scopeField, projectField, quiet('状态', state), quiet('工具', provider), status, refreshButton);
     const list = named('div', 'items-list', 'task-list'), pager = named('div', 'items-pager', 'pager');
-    const refreshButton = button('重新读取列表', () => refresh(0));
     const dialog = named('dialog', 'item-editor', 'item-editor'); dialog.setAttribute('aria-labelledby', 'item-editor-title');
     const form = named('form', 'item-form'), formTitle = named('h2', 'item-editor-title');
     const editorFields = node('fieldset'), editorTitle = named('textarea', 'item-title'); editorTitle.rows = 6; editorTitle.required = true;
@@ -71,7 +102,7 @@
     editorFields.append(label('事项名称', editorTitle), grid, actions);
     const details = node('details', 'item-details'); details.append(node('summary', '', '来源与限制'), identity, meter);
     form.append(formTitle, details, editorFields, editorFeedback); dialog.append(form);
-    root.replaceChildren(heading, hint, quick, quickFeedback, toolbar, status, list, pager, refreshButton, dialog);
+    root.replaceChildren(heading, hint, quick, quickFeedback, toolbar, list, pager, dialog);
     const choices = [[project,'项目'],[controls.project_id,'所属项目'],[controls.session_key,'关联 Codex 会话']].map(([select,label]) => window.WorkspaceAgents?.attachCollectionChoice(select,label));
     root.hidden = false;
 
@@ -83,34 +114,59 @@
     function syncBusy() {
       if (disposed) return;
       quickFields.disabled = editorFields.disabled = writing || !canWrite();
-      heading.lastElementChild.disabled = writing || !canWrite();
+      detailButton.disabled = writing || !canWrite(); cancelDraft.hidden = !quickTitle.value;
+      for (const control of [state, provider]) control.classList.toggle('is-filtering', Boolean(control.value));
       quickSave.disabled = writing || !canWrite();
       refreshButton.disabled = reading;
       for (const control of [scope, project, provider, state]) control.disabled = reading;
       for (const control of list.querySelectorAll('button')) control.disabled = writing || !canWrite();
       for (const control of pager.querySelectorAll('button')) control.disabled = reading || control.dataset.unavailable === 'true';
     }
+    function emptyState() {
+      const filtered = Boolean(project.value && !contextProject || provider.value || state.value), attention = scope.value === 'attention';
+      const box = node('div', 'empty-state item-empty'), art = node('span', 'empty-art'); art.setAttribute('aria-hidden', 'true');
+      art.append(glyph(filtered ? 'filter' : 'inbox'));
+      const heading = node('h3', '', filtered ? '没有符合的事项' : attention ? '没有待处理的事项' : '还没有事项');
+      box.append(art, heading);
+      if (!filtered && !attention) box.append(node('p', '', '写下第一个下一步，之后都在这里。'));
+      if (filtered) box.append(withGlyph('refresh', '清除筛选', 'button', () => { provider.value = ''; state.value = ''; if (!contextProject) project.value = ''; project.ceCollectionChoice?.refresh(); refresh(0); }));
+      else if (!attention && canWrite()) box.append(withGlyph('plus', '写一条', 'button primary', () => quickTitle.focus()));
+      return box;
+    }
     function render() {
       list.replaceChildren(); pager.replaceChildren();
-      if (!page) { list.append(node('p', 'empty-state', '列表尚未读取，请重新读取。')); syncBusy(); return; }
-      feedback(status, `${page.total} 条事项${scope.value === 'attention' ? ' · 阻塞与待验收' : ''}`);
-      if (!page.items.length) list.append(node('p', 'empty-state', '当前范围没有事项。'));
+      if (!page) { list.append(node('p', 'empty-state', '列表尚未读取，请重新读取。')); pager.hidden = true; syncBusy(); return; }
+      feedback(status, scope.value === 'attention' ? `阻塞与待验收 · ${page.total} 条` : `${page.total} 条`);
+      if (!page.items.length) list.append(emptyState());
+      let order = 0;
       for (const item of page.items) {
-        const row = node('article', 'task-row item-row'); row.dataset.itemId = item.id;
+        const row = node('article', 'task-row item-row'); row.dataset.itemId = item.id; row.style?.setProperty?.('--i', String(Math.min(order++, 8)));
         const copy = node('div', 'task-copy'), meta = node('div', 'task-meta');
         copy.append(node('strong', 'item-title-copy', item.title));
-        meta.append(node('span', `task-state state-${item.state}`, `${states[item.state] || '未知'} · 手工`),
-          node('span', '', item.project_excluded ? `${item.project_name || item.project_id}（已移出）` : projectName(item.project_id)), node('span', '', providers[item.provider_id] || item.provider_id || '未分配工具'));
-        if (item.session_key) meta.append(node('span', '', { verified: '会话关联已核验', not_in_current_sample: '关联暂不在当前样本', project_mismatch: '关联与项目不匹配' }[item.session_link_state] || '关联状态未知'));
-        const rowActions = node('div', 'task-actions'); rowActions.append(button('编辑详情', () => open(item)));
-        if (onProject && projects.some(project => project.id === item.project_id)) rowActions.append(button('打开项目', () => onProject(item.project_id)));
+        const stateLabel = node('span', `task-state state-${item.state}`, states[item.state] || '未知'); stateLabel.title = '状态由人工设置';
+        meta.append(stateLabel);
+        const where = item.project_excluded ? `${item.project_name || item.project_id}（已移出）` : projectName(item.project_id);
+        if (item.project_id !== contextProject || item.project_excluded) meta.append(node('span', 'meta-project', where));
+        const tool = node('span', `meta-tool${item.provider_id ? '' : ' is-empty'}`); tool.append(glyph('tool'), node('span', '', providers[item.provider_id] || item.provider_id || '未分配'));
+        meta.append(tool);
+        if (item.session_key) {
+          const verified = item.session_link_state === 'verified';
+          const link = node('span', `meta-link${verified ? '' : ' is-warning'}`);
+          link.title = { verified: '会话关联已核验', not_in_current_sample: '关联暂不在当前样本', project_mismatch: '关联与项目不匹配' }[item.session_link_state] || '关联状态未知';
+          link.append(glyph(verified ? 'link' : 'alert'), node(verified ? 'span' : 'span', verified ? 'sr-only' : '', link.title)); meta.append(link);
+        }
+        const rowActions = node('div', 'task-actions'); rowActions.append(iconButton('edit', '编辑详情', () => open(item)));
+        if (onProject && projects.some(project => project.id === item.project_id)) rowActions.append(iconButton('open', '打开项目', () => onProject(item.project_id)));
         copy.append(meta); row.append(node('span', `task-indicator ${item.state}`), copy, rowActions);
         list.append(row);
       }
-      const previous = button('上一页', () => refresh(Math.max(0, page.offset - page.limit)));
-      const next = button('下一页', () => refresh(page.offset + page.limit));
-      previous.dataset.unavailable = String(page.offset === 0); next.dataset.unavailable = String(page.offset + page.limit >= page.total);
-      pager.append(previous, node('span', '', `${page.total ? page.offset + 1 : 0}–${Math.min(page.offset + page.limit, page.total)} / ${page.total} 条`), next);
+      const paged = page.total > page.limit || page.offset > 0; pager.hidden = !paged;
+      if (paged) {
+        const previous = button('上一页', () => refresh(Math.max(0, page.offset - page.limit)));
+        const next = button('下一页', () => refresh(page.offset + page.limit));
+        previous.dataset.unavailable = String(page.offset === 0); next.dataset.unavailable = String(page.offset + page.limit >= page.total);
+        pager.append(previous, node('span', '', `${page.total ? page.offset + 1 : 0}–${Math.min(page.offset + page.limit, page.total)} / ${page.total} 条`), next);
+      }
       syncBusy();
     }
     async function refresh(offset = page?.offset || 0, changed = false) {
@@ -129,7 +185,7 @@
         if (disposed || !active || current !== request) return;
         reading = false;
         if (error.status === 409 && error.reason === 'list_changed' && offset > 0) return refresh(0, true);
-        render(); feedback(status, `事项读取失败：${error.message}。${page ? '暂保留当前范围的上次记录。' : ''}编辑草稿已保留，可重新读取。`, true);
+        render(); feedback(status, `读取失败：${error.message}。${page ? '仍显示上次记录，' : ''}草稿已保留。`, true);
       } finally { if (current === request) { reading = false; syncBusy(); } }
     }
     function sessionOptions(selected = controls.session_key.value) {
@@ -280,7 +336,7 @@
       if (key === contextKey) return;
       contextKey = key; contextProject = projectId;
       quick.hidden = nextScope === 'attention' && !quickTitle.value;
-      heading.lastElementChild.hidden = nextScope === 'attention';
+      detailButton.hidden = nextScope === 'attention';
       scopeField.hidden = Boolean(projectId) || nextScope !== 'all'; projectField.hidden = Boolean(projectId) || nextScope === 'global';
       title.textContent = nextScope === 'attention' ? '待处理' : nextScope === 'global' ? '全局事项' : '全部事项';
       if (quickTitle.value) {
@@ -292,7 +348,7 @@
         const pending = node('option', '', projectName(projectId)); pending.value = projectId; project.append(pending);
       }
       project.value = projectId; project.ceCollectionChoice?.refresh(); provider.value = ''; state.value = nextState;
-      quickTitle.placeholder = projectId ? '写下这个项目的下一步' : '写下一个具体的下一步';
+      quickTitle.placeholder = '下一步做什么？';
       request++; page = null; render();
       return refresh(0);
     }

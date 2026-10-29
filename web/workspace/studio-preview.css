@@ -981,3 +981,116 @@ body:has(#ce-studio){margin:0;background:var(--ce-bg,#ffffff)}
 /* Section tabs keep their look; an invisible margin grows the hit area to a comfortable size. */
 #ce-studio .ce-tabs a{position:relative}
 #ce-studio .ce-tabs a::before{content:"";position:absolute;inset:-4px -10px}
+
+#ce-studio{--chev:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");}
+/* Items page: one composer, one calm filter row, clear rows. Tokens come from #ce-studio, so light and dark follow the shell. */
+#ce-studio .sr-only{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+#ce-studio #studio-tasks{--spring:cubic-bezier(.34,1.56,.64,1);--glide:cubic-bezier(.2,.8,.2,1)}
+#ce-studio #studio-tasks.ce-main{width:100%;max-width:none;margin:0}
+#ce-studio #studio-tasks [hidden]{display:none!important}
+#ce-studio #studio-tasks>.section-heading{display:none}
+#ce-studio #studio-tasks .ti{display:inline-grid;place-items:center;flex:none;line-height:0}
+#ce-studio #studio-tasks .ti svg{width:20px;height:20px}
+#ce-studio #studio-tasks :is(.button,.text-button,.icon-button,.filter-pill select){transition:transform .5s var(--spring),background-color .2s,border-color .2s,color .2s,box-shadow .25s}
+#ce-studio #studio-tasks :is(.button,.icon-button):not(:disabled):active{transform:scale(.95)}
+
+/* Heading row: title left; range pill and back link right. */
+#ce-studio .ce-progress-heading{align-items:center;margin-bottom:20px}
+#ce-studio .ce-progress-heading .ce-heading-actions{gap:8px;flex-wrap:nowrap}
+#ce-studio .ce-management-scope{display:inline-flex;margin:0;font-size:15px}
+#ce-studio .ce-management-scope select{appearance:none;min-height:40px;padding:0 36px 0 16px;border:1px solid var(--ce-line);border-radius:999px;background:color-mix(in srgb,var(--ce-panel) 85%,transparent) var(--chev) right 12px center/16px no-repeat;color:var(--ce-text);font:inherit;font-size:15px;font-weight:500;cursor:pointer;transition:border-color .2s,transform .5s cubic-bezier(.34,1.56,.64,1)}
+#ce-studio .ce-management-scope select:hover{border-color:var(--ce-ring)}
+#ce-studio .ce-management-scope select:active{transform:scale(.97)}
+#ce-studio .ce-progress-heading .ce-back{gap:4px;min-height:40px;padding:0 14px 0 8px;border-radius:999px;font-size:15px;color:var(--ce-sub);text-decoration:none}
+#ce-studio .ce-progress-heading .ce-back:hover{color:var(--ce-text)}
+#ce-studio .ce-progress-heading .ce-back svg{width:20px;height:20px}
+
+/* Composer: a single translucent card. */
+#ce-studio #studio-tasks .item-quick{margin:0 0 20px}
+#ce-studio #studio-tasks .item-quick fieldset{display:grid;gap:0;margin:0;padding:0;min-width:0;border:1px solid var(--ce-line);border-radius:20px;background:color-mix(in srgb,var(--ce-panel) 80%,transparent);box-shadow:0 1px 2px var(--ce-shadow),0 8px 24px -12px var(--ce-shadow-deep);transition:border-color .2s,box-shadow .3s,transform .5s var(--spring)}
+#ce-studio #studio-tasks .item-quick fieldset:focus-within{border-color:color-mix(in srgb,var(--ce-blue) 55%,var(--ce-line));box-shadow:0 0 0 4px color-mix(in srgb,var(--ce-blue) 14%,transparent),0 8px 24px -12px var(--ce-shadow-deep);transform:translateY(-1px)}
+#ce-studio #studio-tasks .item-quick-field{display:block;margin:0}
+#ce-studio #studio-tasks .item-quick.item-quick textarea{display:block;width:100%;min-height:60px;max-height:200px;field-sizing:content;resize:none;border:0;border-radius:20px 20px 0 0;background:transparent;box-shadow:none;outline:0;padding:18px 20px 6px;font-size:17px;line-height:26px;color:var(--ce-text)}
+#ce-studio #studio-tasks .item-quick.item-quick textarea::placeholder{color:var(--ce-sub);opacity:.85}
+#ce-studio #studio-tasks .item-quick-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;padding:6px 12px 12px}
+#ce-studio #studio-tasks .item-quick-actions .detail-button{margin-right:auto}
+#ce-studio #studio-tasks .item-quick-actions .text-button{min-height:40px;padding:0 12px;border-radius:12px;color:var(--ce-sub);font-size:15px}
+#ce-studio #studio-tasks .item-quick-actions .text-button:hover{color:var(--ce-text);background:var(--ce-soft)}
+#ce-studio #studio-tasks .button{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 18px;border:1px solid var(--ce-input-border);border-radius:14px;background:var(--ce-panel);color:var(--ce-text);font-size:15px;font-weight:600;box-shadow:none}
+#ce-studio #studio-tasks .button:hover:not(:disabled){background:var(--ce-soft)}
+#ce-studio #studio-tasks .button.primary{border-color:var(--ce-primary);background:var(--ce-primary);color:var(--ce-on-primary)}
+#ce-studio #studio-tasks .button.primary:hover:not(:disabled){background:var(--ce-primary);opacity:.9}
+#ce-studio #studio-tasks .button.ghost{border-color:transparent;background:transparent;color:var(--ce-sub);font-weight:500}
+#ce-studio #studio-tasks .button.ghost:hover:not(:disabled){background:var(--ce-soft);color:var(--ce-text)}
+#ce-studio #studio-tasks .button:disabled{opacity:.45}
+#ce-studio #studio-tasks .item-quick-feedback{margin:-8px 0 12px;font-size:15px}
+
+/* One filter row: state, tool, count, refresh. */
+#ce-studio #studio-tasks .item-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:10px;max-width:none;margin:0 0 14px;padding:0;border:0;background:transparent}
+#ce-studio #studio-tasks .filter-pill{position:relative;flex:0 0 auto;display:inline-flex;margin:0}
+#ce-studio #studio-tasks .filter-pill.filter-pill select{appearance:none;width:auto;max-width:none;min-height:40px;padding:0 36px 0 16px;border:1px solid var(--ce-line);border-radius:999px;background:color-mix(in srgb,var(--ce-panel) 85%,transparent) var(--chev) right 12px center/16px no-repeat;color:var(--ce-text);font-size:15px;font-weight:500;line-height:24px;cursor:pointer}
+#ce-studio #studio-tasks .filter-pill.filter-pill select:hover{border-color:var(--ce-ring)}
+#ce-studio #studio-tasks .filter-pill.filter-pill select.is-filtering{border-color:color-mix(in srgb,var(--ce-blue) 50%,transparent);background-color:var(--ce-blue-bg);color:var(--ce-blue)}
+#ce-studio #studio-tasks p.items-status{margin:0 0 0 auto;color:var(--ce-sub);font-size:15px;line-height:24px}
+#ce-studio #studio-tasks p.items-status.error{flex:1 0 100%;order:9;margin:4px 0 0;color:var(--ce-red)}
+#ce-studio #studio-tasks .icon-button{display:inline-grid;place-items:center;width:40px;height:40px;min-height:40px;padding:0;border:0;border-radius:12px;background:transparent;color:var(--ce-sub);cursor:pointer}
+#ce-studio #studio-tasks .icon-button:hover:not(:disabled){background:var(--ce-soft);color:var(--ce-text)}
+#ce-studio #studio-tasks .icon-button:disabled{opacity:.4}
+#ce-studio #studio-tasks .refresh-button:disabled svg{animation:ce-refresh-spin 1s linear infinite}
+
+/* Rows: big title, dot+label state, tool with icon. */
+#ce-studio #studio-tasks .task-list{display:grid;gap:10px}
+#ce-studio #studio-tasks .task-list .item-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px;margin:0;padding:18px 16px 18px 22px;border:1px solid var(--ce-line);border-radius:18px;background:color-mix(in srgb,var(--ce-panel) 85%,transparent);box-shadow:0 1px 2px var(--ce-shadow);transition:transform .5s var(--spring),border-color .2s,box-shadow .3s;animation:ti-rise .55s var(--spring) both;animation-delay:calc(var(--i,0) * 45ms)}
+#ce-studio #studio-tasks .task-list .item-row:hover{border-color:var(--ce-ring);box-shadow:0 8px 24px -14px var(--ce-shadow-deep);transform:translateY(-1px)}
+#ce-studio #studio-tasks .item-row .item-title-copy{font-size:17px;line-height:26px;font-weight:600}
+#ce-studio #studio-tasks .item-row .task-meta{display:flex;align-items:center;flex-wrap:wrap;gap:6px 16px;margin-top:8px;color:var(--ce-sub);font-size:14px;line-height:22px}
+#ce-studio #studio-tasks .task-state{display:inline-flex;align-items:center;gap:7px;padding:2px 12px 2px 10px;border:0;border-radius:999px;background:var(--ce-soft);color:var(--ce-sub);font-size:14px;font-weight:500;line-height:22px}
+#ce-studio #studio-tasks .task-state::before{content:"";width:8px;height:8px;border-radius:50%;background:currentColor}
+#ce-studio #studio-tasks .task-meta .state-doing{background:var(--ce-blue-bg);color:var(--ce-blue)}
+#ce-studio #studio-tasks .task-meta .state-blocked{background:var(--ce-red-bg);color:var(--ce-red)}
+#ce-studio #studio-tasks .task-meta .state-review{background:var(--ce-amber-bg);color:var(--ce-amber)}
+#ce-studio #studio-tasks .task-meta .state-done{background:var(--ce-green-bg);color:var(--ce-green)}
+#ce-studio #studio-tasks .task-state.state-todo::before{background:var(--ce-ring)}
+#ce-studio #studio-tasks .meta-tool,#ce-studio #studio-tasks .meta-link{display:inline-flex;align-items:center;gap:6px}
+#ce-studio #studio-tasks .meta-tool .ti svg,#ce-studio #studio-tasks .meta-link .ti svg{width:16px;height:16px}
+#ce-studio #studio-tasks .meta-tool.is-empty{opacity:.7}
+#ce-studio #studio-tasks .meta-link.is-warning{color:var(--ce-amber)}
+#ce-studio #studio-tasks .item-row .task-actions{display:flex;flex-direction:row;align-items:center;gap:2px}
+#ce-studio #studio-tasks .items-pager,#ce-studio #studio-tasks .pager{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:16px;font-size:15px;color:var(--ce-sub)}
+#ce-studio #studio-tasks .pager button{min-height:40px;padding:0 14px;border:0;border-radius:12px;background:transparent;color:var(--ce-text);font-size:15px;cursor:pointer}
+#ce-studio #studio-tasks .pager button:hover:not(:disabled){background:var(--ce-soft)}
+#ce-studio #studio-tasks .pager button:disabled{opacity:.4}
+
+/* Empty state: icon, one line, one action. */
+#ce-studio #studio-tasks .empty-state{display:flex;flex-direction:column;align-items:center;gap:8px;padding:56px 20px 40px;border:0;color:var(--ce-sub);text-align:center}
+#ce-studio #studio-tasks .item-empty .empty-art{display:grid;place-items:center;width:80px;height:80px;margin-bottom:8px;border:1px solid color-mix(in srgb,var(--ce-blue) 22%,transparent);border-radius:50%;background:radial-gradient(circle at 30% 25%,color-mix(in srgb,var(--ce-blue) 26%,transparent),color-mix(in srgb,var(--ce-blue) 7%,transparent));color:var(--ce-blue);animation:ti-pop .7s var(--spring) both}
+#ce-studio #studio-tasks .item-empty .empty-art .ti svg{width:34px;height:34px}
+#ce-studio #studio-tasks .item-empty h3{margin:0;font-size:22px;line-height:30px;font-weight:650;color:var(--ce-text);animation:ti-rise .6s var(--spring) .08s both}
+#ce-studio #studio-tasks .item-empty p{margin:0;font-size:16px;line-height:24px;color:var(--ce-sub);animation:ti-rise .6s var(--spring) .14s both}
+#ce-studio #studio-tasks .item-empty .button{margin-top:12px;animation:ti-rise .6s var(--spring) .2s both}
+@keyframes ti-rise{from{opacity:0;transform:translateY(10px) scale(.985)}to{opacity:1;transform:none}}
+@keyframes ti-pop{from{opacity:0;transform:scale(.55)}to{opacity:1;transform:none}}
+
+@media(pointer:coarse){#ce-studio #studio-tasks :is(.button,.icon-button,.pager button,.text-button){min-height:44px;min-width:44px}#ce-studio #studio-tasks .filter-pill.filter-pill select,#ce-studio .ce-management-scope select{min-height:44px}}
+@media(width < 768px){
+ #ce-studio .ce-progress-heading{flex-wrap:nowrap;gap:8px}
+ #ce-studio .ce-progress-heading>div:first-child{flex:1 1 auto;min-width:0}
+ #ce-studio .ce-progress-heading h1{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ #ce-studio .ce-progress-heading .ce-heading-actions{flex:none}
+ #ce-studio #studio-tasks .filter-pill.filter-pill{flex:1 1 0;min-width:0}
+ #ce-studio #studio-tasks .filter-pill.filter-pill select{width:100%;padding:0 30px 0 14px}
+ #ce-studio #studio-tasks p.items-status{margin:0}
+ #ce-studio #studio-tasks .refresh-button{margin-left:auto}
+ #ce-studio .ce-progress-heading .ce-back span{display:none}
+ #ce-studio .ce-progress-heading .ce-back{padding:0 8px;min-width:40px}
+ #ce-studio #studio-tasks .task-list .item-row{grid-template-columns:minmax(0,1fr) auto;padding:16px 8px 16px 18px}
+ #ce-studio #studio-tasks .item-row .task-actions{flex-direction:column;gap:0}
+ #ce-studio #studio-tasks .item-quick-actions .detail-button .btn-label{display:none}
+ #ce-studio #studio-tasks .item-quick-actions .detail-button{min-width:44px;padding:0 10px}
+ #ce-studio #studio-tasks .item-quick.item-quick textarea{padding:16px 16px 4px}
+}
+@media(prefers-reduced-motion:reduce){
+ #ce-studio #studio-tasks *,#ce-studio .ce-management-scope select{animation:none!important;transition:none!important}
+ #ce-studio #studio-tasks :is(.button,.icon-button):active,#ce-studio #studio-tasks .item-quick fieldset:focus-within,#ce-studio #studio-tasks .task-list .item-row:hover{transform:none}
+}
+@media(forced-colors:active){#ce-studio #studio-tasks .item-quick fieldset:focus-within{outline:2px solid Highlight}}

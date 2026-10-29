@@ -482,3 +482,23 @@ test('viewing another project keeps the current development identity and perform
   assert.deepEqual([...f.node('#pp-detail').querySelectorAll('button')].map(node=>node.textContent),['‹ 返回','']);
   assert.equal(f.posts.length,0); assert.equal(f.reads.some(url=>/worktree|runtime|workbench/.test(url)),false);
 });
+
+test('items heading keeps the range select and a named back link together on one row', async t => {
+  const f = await fixture(t); await f.route('#project/p-a/items');
+  const actions = f.node('.ce-progress-heading .ce-heading-actions');
+  assert.ok(actions.contains(f.node('#studio-items-scope')), 'range select sits with the heading actions');
+  const back = actions.querySelector('a.ce-back');
+  assert.equal(back.getAttribute('aria-label'), '返回项目进展'); assert.match(back.getAttribute('href'), /^#project\/p-a/);
+  assert.match(f.node('h1').textContent, /事项$/);
+  assert.equal(f.node('#studio-items-scope').closest('label').querySelector('.sr-only').textContent, '查看范围');
+  assert.equal(f.node('#studio-items-scope').options.length, 7);
+});
+
+test('items stylesheet block keeps type at 14px or larger and honors reduced motion', () => {
+  const css = fs.readFileSync(path.join(root, 'web/workspace/studio-preview.css'), 'utf8');
+  const block = css.slice(css.indexOf('/* Items page: one composer'));
+  assert.ok(block.length > 1000);
+  for (const [, size] of block.matchAll(/font-size:(\d+(?:\.\d+)?)px/g)) assert.ok(Number(size) >= 14, `font-size ${size}px`);
+  assert.match(block, /@media\(prefers-reduced-motion:reduce\)\{[^@]*animation:none!important;transition:none!important/);
+  assert.match(block, /cubic-bezier\(\.34,1\.56,\.64,1\)/);
+});

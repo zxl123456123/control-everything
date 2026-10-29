@@ -248,3 +248,35 @@ test('unavailable Codex source still blocks a new nonempty session association a
   await f.get('item-form').fire('submit');
   assert.equal(f.writes.length, 0); assert.match(f.get('item-feedback').textContent, /Codex 来源当前不能建立新关联/);
 });
+test('items UI: one short composer with clear action, hidden-until-needed clear, and a detail entry', async () => {
+  const f = fixture(page([]));
+  assert.equal(f.get('item-quick-title').placeholder, '下一步做什么？');
+  assert.ok(f.button('清除').hidden, 'clear stays hidden for an empty draft');
+  assert.ok(f.button('详细填写'), 'detail entry remains reachable'); assert.ok(f.button('添加'));
+  f.get('item-quick-title').value = '写点东西'; await f.get('item-quick-title').fire('input');
+  assert.equal(f.button('清除').hidden, false);
+  f.button('清除').listeners.click?.forEach(callback => callback({ preventDefault() {} }));
+  assert.equal(f.get('item-quick-title').value, ''); assert.ok(f.button('清除').hidden);
+  assert.equal((f.host.textContent.match(/新建事项/g) ?? []).length, 1, 'the label is not repeated');
+});
+test('items UI: empty states are one sentence with one action', async () => {
+  const f = fixture(page([]));
+  const list = f.get('items-list').textContent;
+  assert.match(list, /还没有事项/); assert.match(list, /写下第一个下一步/);
+  assert.ok(f.button('写一条'));
+  f.get('item-state-filter').value = 'done'; const pending = f.get('item-state-filter').fire('change'); await tick();
+  f.reads.at(-1).resolve(page([])); await pending; await tick();
+  assert.match(f.get('items-list').textContent, /没有符合的事项/);
+  const clear = f.button('清除筛选'); assert.ok(clear);
+  const before = f.reads.length; clear.listeners.click.forEach(callback => callback({ preventDefault() {} })); await tick();
+  assert.equal(f.get('item-state-filter').value, ''); assert.ok(f.reads.length > before, 'clearing the filter re-reads the list');
+});
+test('items UI: rows show state as a label, keep icon actions named, and hide the pager for a single page', () => {
+  const f = fixture(page([item({ title: '大标题', state: 'blocked', provider_id: 'codex', project_id: 'p1' })]), { projects: [{ id: 'p1', name: '站点', archived: false }] });
+  const text = f.get('items-list').textContent;
+  assert.match(text, /大标题/); assert.match(text, /阻塞/);
+  assert.match(text, /编辑详情/);
+  assert.equal(f.get('items-pager').hidden, true);
+  const multi = fixture(page([item()], { total: 120 }));
+  assert.equal(multi.get('items-pager').hidden, false); assert.match(multi.get('items-pager').textContent, /下一页/);
+});
