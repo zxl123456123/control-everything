@@ -8,6 +8,7 @@ import type { PlatformProject } from './platform-studio-surface'
 import PlatformProjectEntry from './platform-project-entry'
 import { PlatformSettingsContext, type SettingsTargetReady } from './platform-settings-navigation'
 import type { SettingsPresentationScope } from '../lib/settings-navigation-types'
+import type { PlatformConnectionState } from './platform-project-navigation-view'
 import * as pageContext from './remote-context'
 
 const fixture = vi.hoisted(() => ({
@@ -21,7 +22,9 @@ const fixture = vi.hoisted(() => ({
   nativeProjects: [] as PlatformProject[],
   navigationData: [] as PlatformProjectBootstrap[],
   navigationReady: true,
-  markReady: null as ((data: PlatformProjectBootstrap) => void) | null,
+  markReady: null as ((data: PlatformProjectBootstrap | null) => void) | null,
+  connectionState: 'ready' as PlatformConnectionState,
+  reportConnection: null as ((data: PlatformProjectBootstrap, state: PlatformConnectionState) => void) | null,
   mounts: vi.fn(),
   bridgeMounts: vi.fn(),
   bridgeUnmounts: vi.fn(),
@@ -54,11 +57,13 @@ vi.mock('./platform-project-navigation-view', () => ({
   default: ({
     data,
     onReady,
+    onConnectionState,
     projects,
     selectionOnly, settingsScope, onSettingsScope
   }: {
     data: PlatformProjectBootstrap
-    onReady: (data: PlatformProjectBootstrap) => void
+    onReady: (data: PlatformProjectBootstrap | null) => void
+    onConnectionState: (data: PlatformProjectBootstrap, state: PlatformConnectionState) => void
     projects: PlatformProject[]
     selectionOnly?: boolean
     settingsScope?: SettingsPresentationScope
@@ -68,6 +73,8 @@ vi.mock('./platform-project-navigation-view', () => ({
     fixture.nativeProjects = projects
     fixture.navigationData.push(data)
     fixture.markReady = onReady
+    fixture.reportConnection = onConnectionState
+    useEffect(() => { onConnectionState(data, fixture.connectionState) }, [data, onConnectionState])
     useEffect(() => {
       if (fixture.navigationReady) onReady(data)
     }, [data, onReady])
@@ -177,6 +184,8 @@ beforeEach(() => {
   fixture.navigationData = []
   fixture.navigationReady = true
   fixture.markReady = null
+  fixture.connectionState = 'ready'
+  fixture.reportConnection = null
   fixture.load.mockResolvedValue(bootstrap())
   window.history.replaceState(null, '', '/studio#project/p-one/workspace')
 })
@@ -1159,4 +1168,57 @@ it('does not bootstrap an unregistered cross-project task request', async () => 
   expect(fixture.load).toHaveBeenCalledTimes(1)
   expect(window.location.hash).toBe('#project/p-one/tasks')
   expect(fixture.agentRequests).not.toHaveBeenCalled()
+})
+
+it('retains the same project read-only during reconnect and resumes without remounting', async () => {
+  render(<PlatformProjectEntry />)
+  publish([project])
+  await waitFor(() => expect(screen.getByTestId('project-context').textContent).toBe('One'))
+  const app = screen.getByTestId('project-context')
+  const content = app.closest('.platform-project-content')!
+  const current = fixture.navigationData.at(-1)!
+  const menu = document.createElement('div')
+  menu.setAttribute('role', 'menu')
+  document.body.append(menu)
+  act(() => {
+    fixture.reportConnection!(current, 'reconnecting')
+    fixture.markReady!(null)
+  })
+  expect(content.hasAttribute('hidden')).toBe(false)
+  expect(content.hasAttribute('inert')).toBe(true)
+  expect(content.getAttribute('aria-busy')).toBe('true')
+  expect(app.textContent).toBe('One')
+  expect(document.documentElement.dataset.platformView).toBe('studio')
+  expect(screen.getByTestId('studio-surface').hidden).toBe(true)
+  expect(fixture.load).toHaveBeenCalledTimes(1)
+  expect(fixture.agentRequests).not.toHaveBeenCalled()
+  expect(menu.inert).toBe(true)
+  act(() => {
+    fixture.reportConnection!(current, 'ready')
+    fixture.markReady!(current)
+  })
+  expect(content.hasAttribute('inert')).toBe(false)
+  expect(screen.getByTestId('project-context')).toBe(app)
+  expect(fixture.bridgeUnmounts).not.toHaveBeenCalled()
+  expect(menu.inert).toBe(false)
+  menu.remove()
+})
+
+it('does not retain a revoked connection or reveal another project with stale readiness', async () => {
+  render(<PlatformProjectEntry />)
+  const second = { id: 'p-two', name: 'Two', directory: 'C:/example/two' }
+  publish([project, second])
+  await waitFor(() => expect(screen.getByTestId('project-context').textContent).toBe('One'))
+  const content = screen.getByTestId('project-context').closest('.platform-project-content')!
+  const previous = fixture.navigationData.at(-1)!
+  act(() => { fixture.reportConnection!(previous, 'blocked'); fixture.markReady!(null) })
+  expect(content.hasAttribute('hidden')).toBe(true)
+  fixture.navigationReady = false
+  fixture.connectionState = 'reconnecting'
+  fixture.load.mockResolvedValueOnce({ ...bootstrap('Two'), project: { id: 'p-two', name: 'Two' } })
+  await act(async () => { window.location.hash = '#project/p-two/workspace' })
+  await waitFor(() => expect(fixture.navigationData.at(-1)?.project.id).toBe('p-two'))
+  act(() => fixture.reportConnection!(previous, 'reconnecting'))
+  expect(content.hasAttribute('hidden')).toBe(true)
+  expect(content.hasAttribute('inert')).toBe(true)
 })

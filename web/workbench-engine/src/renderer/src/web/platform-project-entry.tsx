@@ -19,6 +19,7 @@ import { readPlatformRoute, projectRoute } from './platform-route'
 import { PlatformProjectContext, PlatformProjectScopeContext } from './platform-project-context'
 import { PlatformSettingsContext, type SettingsTargetReady } from './platform-settings-navigation'
 import { isSettingsNavigationTarget, type SettingsPresentationScope } from '../lib/settings-navigation-types'
+import type { PlatformConnectionState } from './platform-project-navigation-view'
 
 const App = lazy(() => import('./platform-workspace-app'))
 const PlatformNavigation = lazy(() => import('./platform-project-navigation-view'))
@@ -49,6 +50,15 @@ export default function PlatformProjectEntry(): React.JSX.Element {
   const latestProjects = useRef<PlatformProject[]>([])
   const [projectsReady, setProjectsReady] = useState(false)
   const [readyData, setReadyData] = useState<PlatformProjectBootstrap | null>(null)
+  const [revealedData, setRevealedData] = useState<PlatformProjectBootstrap | null>(null)
+  const [connection, setConnection] = useState<{ data: PlatformProjectBootstrap; state: PlatformConnectionState } | null>(null)
+  const onWorkspaceReady = useCallback((value: PlatformProjectBootstrap | null) => {
+    setReadyData(value)
+    if (value) setRevealedData(value)
+  }, [])
+  const onConnectionState = useCallback((value: PlatformProjectBootstrap, state: PlatformConnectionState) => {
+    setConnection(previous => previous?.data === value && previous.state === state ? previous : { data: value, state })
+  }, [])
   const [appMounted, setAppMounted] = useState(false)
   const onAppMounted = useCallback(() => setAppMounted(true), [])
   const [bridgeReadyData, setBridgeReadyData] = useState<PlatformProjectBootstrap | null>(null)
@@ -130,6 +140,7 @@ export default function PlatformProjectEntry(): React.JSX.Element {
             current.target === saved.data.target ? renamed : current
         setData(updateName)
         setReadyData(updateName)
+        setRevealedData(updateName)
         setBridgeReadyData(updateName)
       }
     }
@@ -174,6 +185,12 @@ export default function PlatformProjectEntry(): React.JSX.Element {
     !error
   )
   const showWorkspace = developing && connected && appMounted && readyData === data
+  // Preserve only this already-revealed project during a transient loss of contact.
+  const retainWorkspace = developing && connected && appMounted && revealedData === data &&
+    connection?.data === data && connection.state === 'reconnecting'
+  const displayWorkspace = showWorkspace || retainWorkspace
+  const pauseWorkspacePortals = connected && appMounted && connection?.data === data &&
+    connection.state !== 'ready'
   const scope = useMemo<SettingsPresentationScope>(() => {
     if (projectSettings && chosen && data?.project.id === projectId) {
       if (exactSettings?.request === settingsRequestKey) return exactSettings.scope
@@ -216,7 +233,7 @@ export default function PlatformProjectEntry(): React.JSX.Element {
     settingsReady?.request === settingsRequestKey && (globalSettings || connected)
   const showWorkbench = workbench && contextActive && appMounted && Boolean(runtimeData) && runtimeReadyRevision === acceptedRevision
   const preparationError = needsProjectRuntime ? error : runtimeError
-  const preparingWorkspace = needsRuntime && !showWorkspace && !showSettings && !showWorkbench && !preparationError && !archived
+  const preparingWorkspace = needsRuntime && !displayWorkspace && !showSettings && !showWorkbench && !preparationError && !archived
   useEffect(() => {
     const changed = () => {
       const from = acceptedHash.current || '#home'
@@ -325,6 +342,27 @@ export default function PlatformProjectEntry(): React.JSX.Element {
       delete document.documentElement.dataset.platformView
     }
   }, [showWorkspace, showWorkbench])
+  useLayoutEffect(() => {
+    if (!pauseWorkspacePortals) return
+    // Native menus render under body, outside the retained content's inert subtree.
+    const previous = new Map<HTMLElement, boolean>()
+    const pause = () => {
+      document.querySelectorAll<HTMLElement>(
+        '[data-radix-popper-content-wrapper], [role="dialog"], [role="alertdialog"], [role="menu"], [role="listbox"]'
+      ).forEach(element => {
+        if (element.closest('.platform-project-content, .ce-management-surface, [data-platform-project-dialog]') || previous.has(element)) return
+        previous.set(element, element.inert)
+        element.inert = true
+      })
+    }
+    pause()
+    const observer = new MutationObserver(pause)
+    observer.observe(document.body, { childList: true, subtree: true })
+    return () => {
+      observer.disconnect()
+      previous.forEach((inert, element) => { element.inert = inert })
+    }
+  }, [pauseWorkspacePortals])
   useEffect(() => {
     if (!contextActive || (!showWorkspace && !showWorkbench)) return
     let active = true
@@ -502,7 +540,7 @@ export default function PlatformProjectEntry(): React.JSX.Element {
       )}
       {workbench && <nav className="platform-project-tabs" aria-label="项目工作台导航"><a href="#home" className="platform-project-back">项目总览</a></nav>}
       <PlatformStudioSurface
-        hidden={showWorkspace || showSettings || showWorkbench}
+        hidden={displayWorkspace || showSettings || showWorkbench}
         pending={Boolean(nativeSettings || workbench || (developing && !showWorkspace && !archived))}
         onProjects={onProjects}
         runtimeHost={projectActionHost}
@@ -547,7 +585,8 @@ export default function PlatformProjectEntry(): React.JSX.Element {
               route.view === 'project' && route.tab === 'activity' ? 'activity' : 'workspace'
             }
             onSelection={onWorkspaceSelection}
-            onReady={setReadyData}
+            onReady={onWorkspaceReady}
+            onConnectionState={onConnectionState}
           />
           {!workbench && <PlatformAgentBridge data={data} onReady={setBridgeReadyData} />}
         </Suspense>
@@ -555,9 +594,10 @@ export default function PlatformProjectEntry(): React.JSX.Element {
       {runtimeData && (workbench || globalSettings) && <Suspense fallback={null}><PlatformRuntimeNavigation data={runtimeData} projects={projects}
         active={workbench || globalSettings} workbench={workbench} entryRevision={acceptedRevision}
         settingsScope={globalSettings ? scope : undefined} onReady={onRuntimeReady} /></Suspense>}
-      <div className="platform-project-content" hidden={!showWorkspace && !showSettings && !showWorkbench} inert={!showWorkspace && !showSettings && !showWorkbench}>
+      <div className="platform-project-content" hidden={!displayWorkspace && !showSettings && !showWorkbench}
+        inert={!showWorkspace && !showSettings && !showWorkbench} aria-busy={retainWorkspace && !showWorkspace}>
         <PlatformProjectContext.Provider
-          value={connected && readyData === data && !unlinkedWorkspace ? data : null}
+          value={connected && (readyData === data || retainWorkspace) && !unlinkedWorkspace ? data : null}
         >
           <PlatformProjectScopeContext.Provider value={projectScope}>
           <PlatformSettingsContext.Provider value={presentation}>
