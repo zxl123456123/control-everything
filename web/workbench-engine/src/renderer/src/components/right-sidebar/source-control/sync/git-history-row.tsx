@@ -73,11 +73,21 @@ export const GitHistoryRow = React.forwardRef<HTMLElement, GitHistoryRowProps>(
         : dedupeRemoteTrackingRefs(item.references ?? [], { preserveRefIds })
     const visibleRefs = refs.slice(0, 2)
     const hiddenRefs = refs.slice(2)
-    const rowTooltip = item.message || item.subject
+    const rowTooltip =
+      layout === 'pane'
+        ? [
+            item.message || item.subject,
+            [item.author, item.displayId].filter(Boolean).join(' · '),
+            refs.map((ref) => ref.name).join(', ')
+          ]
+            .filter(Boolean)
+            .join('\n\n')
+        : item.message || item.subject
     const rowClassName = cn(
       'grid w-full min-w-0 items-center gap-x-1.5 px-3 text-left text-xs transition-colors',
       layout === 'pane'
-        ? 'min-h-6 grid-cols-[auto_minmax(0,1fr)_auto_6rem_4rem]'
+        ? // The pane can be narrow even in a wide window with both sidebars open.
+          'min-h-6 grid-cols-[auto_minmax(0,1fr)] @lg/git-graph:grid-cols-[auto_minmax(0,1fr)_minmax(0,12rem)] @3xl/git-graph:grid-cols-[auto_minmax(0,1fr)_minmax(0,16rem)_6rem_4rem]'
         : 'min-h-[26px] grid-cols-[auto_minmax(0,1fr)_auto] py-0.5',
       isInteractive && 'cursor-pointer hover:bg-accent/40 focus-visible:bg-accent/40',
       !isInteractive && 'cursor-default',
@@ -112,7 +122,12 @@ export const GitHistoryRow = React.forwardRef<HTMLElement, GitHistoryRowProps>(
           </Tooltip>
         </div>
         {(refs.length > 0 || layout === 'pane') && (
-          <div className="flex shrink-0 items-center gap-1 overflow-hidden">
+          <div
+            className={cn(
+              'shrink-0 items-center gap-1 overflow-hidden',
+              layout === 'pane' ? 'hidden min-w-0 @lg/git-graph:flex' : 'flex'
+            )}
+          >
             {visibleRefs.map((ref) => (
               <GitHistoryRefBadge key={ref.id} itemRef={ref} />
             ))}
@@ -132,10 +147,15 @@ export const GitHistoryRow = React.forwardRef<HTMLElement, GitHistoryRowProps>(
         )}
         {layout === 'pane' && (
           <>
-            <span className="truncate text-right text-muted-foreground" title={item.author}>
+            <span
+              className="hidden truncate text-right text-muted-foreground @3xl/git-graph:block"
+              title={item.author}
+            >
               {item.author}
             </span>
-            <span className="font-mono text-right text-muted-foreground">{item.displayId}</span>
+            <span className="hidden font-mono text-right text-muted-foreground @3xl/git-graph:block">
+              {item.displayId}
+            </span>
           </>
         )}
       </>
@@ -169,6 +189,7 @@ export const GitHistoryRow = React.forwardRef<HTMLElement, GitHistoryRowProps>(
         type="button"
         className={rowClassName}
         aria-expanded={canExpand ? expanded : undefined}
+        aria-description={layout === 'pane' ? rowTooltip : undefined}
         aria-label={
           canExpand
             ? expanded

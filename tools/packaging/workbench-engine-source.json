@@ -328765,8 +328765,8 @@
     {
       "path": "src/renderer/src/components/right-sidebar/source-control/sync/git-history-row.tsx",
       "upstream_sha256": "e75c0a169c3a394d402917c40496d1e0a83d2108e7d967a570fe807869e63033",
-      "current_sha256": "ef1c20fa39c11b4c713e0e16a85782760d920eb7f577b1c2b08c44afaf3c88eb",
-      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+      "current_sha256": "4524b374ab0f4061eb1e15300d8efa0e9cfee97cd060d36af27bb4c9c1d66166",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained. DEV-VIEWS-GRAPH: use pane container width to preserve commit titles and expose secondary metadata in the existing tooltip; retain bounded virtual rows and sidebar layout."
     },
     {
       "path": "src/renderer/src/components/settings/GeneralPane.section-lifetime.test.tsx",
