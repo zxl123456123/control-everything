@@ -17,9 +17,9 @@ export const ORCAD_WINDOWS_CLI_LAUNCHER_CONFIG_FILENAME = 'orca-launcher.cfg'
 const RETIRED_LAUNCHER_SUFFIX = '.retired'
 
 let launcherPath: string | null = null
-let accountCommand: 'ce-workbench' | undefined
+let accountCommand: 'zkyq' | undefined
 
-export function getOrcadAccountCommand(): 'ce-workbench' | undefined {
+export function getOrcadAccountCommand(): 'zkyq' | undefined {
   return accountCommand
 }
 
@@ -57,9 +57,10 @@ export async function prepareOrcadCliLauncher(): Promise<void> {
         entry,
         userDataPath,
         binDir,
-        'ce-workbench.exe'
+        'zkyq.exe'
       )
-      if (alias) accountCommand = 'ce-workbench'
+      await prepareWindowsLauncher(installRoot, entry, userDataPath, binDir, 'ce-workbench.exe')
+      if (alias) accountCommand = 'zkyq'
     }
     return
   }
@@ -73,10 +74,12 @@ export async function prepareOrcadCliLauncher(): Promise<void> {
   await chmod(path, 0o700)
   launcherPath = path
   if (isPlatformRuntime()) {
-    const alias = join(binDir, 'ce-workbench')
-    writeFileAtomically(alias, script, { mode: 0o700 })
-    await chmod(alias, 0o700)
-    accountCommand = 'ce-workbench'
+    for (const name of ['zkyq', 'ce-workbench']) {
+      const alias = join(binDir, name)
+      writeFileAtomically(alias, script, { mode: 0o700 })
+      await chmod(alias, 0o700)
+    }
+    accountCommand = 'zkyq'
   }
 }
 

@@ -38,7 +38,7 @@ export type RuntimeAccountServices = {
 }
 
 export type AccountsSnapshot = {
-  accountCommand?: 'ce-workbench'
+  accountCommand?: 'zkyq' | 'ce-workbench'
   opencode?: ManagedDataAccountsState
   devin?: ManagedDataAccountsState
   claude: ClaudeRateLimitAccountsState

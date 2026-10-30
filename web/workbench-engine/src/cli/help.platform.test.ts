@@ -16,7 +16,7 @@ async function help(platform: boolean) {
 
 it.each([false, true])('brands only the selected CLI entry: platform=%s', async (platform) => {
   const { formatCommandHelp, formatGroupHelp, printHelp } = await help(platform)
-  const name = platform ? 'ce-workbench' : 'orca'
+  const name = platform ? 'zkyq' : 'orca'
   const product = platform ? 'Control Everything' : 'Orca'
   const account = COMMAND_SPECS.find((spec) => spec.path.join(' ') === 'account add')!
   const text = formatCommandHelp(account)
@@ -63,5 +63,5 @@ it('leaves an unknown user command untouched while branding the fallback help', 
   expect(output.mock.calls[0][0]).toContain(
     'Unknown command: Orca user supplied command orca account'
   )
-  expect(output.mock.calls[1][0]).toContain('Usage: ce-workbench <command>')
+  expect(output.mock.calls[1][0]).toContain('Usage: zkyq <command>')
 })

@@ -20,7 +20,7 @@ import {
 type Snapshot = {
   opencode?: ManagedDataAccountsState
   devin?: ManagedDataAccountsState
-  accountCommand?: 'ce-workbench'
+  accountCommand?: 'zkyq' | 'ce-workbench'
 }
 
 export function ManagedDataAccountsSection({
@@ -51,7 +51,11 @@ export function ManagedDataAccountsSection({
       .then((snapshot) => {
         if (!controller.signal.aborted) {
           setState(snapshot[provider] ?? null)
-          setCommandName(snapshot.accountCommand === 'ce-workbench' ? 'ce-workbench' : 'orca')
+          setCommandName(
+            snapshot.accountCommand === 'zkyq' || snapshot.accountCommand === 'ce-workbench'
+              ? snapshot.accountCommand
+              : 'orca'
+          )
         }
       })
       .catch((cause: unknown) => {
@@ -68,7 +72,11 @@ export function ManagedDataAccountsSection({
     try {
       const snapshot = await callRuntimeRpc<Snapshot>(target, 'accounts.listData')
       setState(snapshot[provider] ?? null)
-      setCommandName(snapshot.accountCommand === 'ce-workbench' ? 'ce-workbench' : 'orca')
+      setCommandName(
+        snapshot.accountCommand === 'zkyq' || snapshot.accountCommand === 'ce-workbench'
+          ? snapshot.accountCommand
+          : 'orca'
+      )
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause))
     } finally {

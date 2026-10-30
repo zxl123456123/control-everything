@@ -1,7 +1,7 @@
 import { beforeEach, expect, it, vi } from 'vitest'
 import { RuntimeAccountController } from './runtime-account-controller'
 
-const host = vi.hoisted(() => ({ command: undefined as 'ce-workbench' | undefined, present: true }))
+const host = vi.hoisted(() => ({ command: undefined as 'zkyq' | 'ce-workbench' | undefined, present: true }))
 vi.mock('../../shared/app-environment', () => ({
   hasAppEnvironment: () => host.present,
   getAppEnvironment: () => ({ getCliAccountCommand: () => host.command })
@@ -17,14 +17,14 @@ beforeEach(() => {
   host.present = true
 })
 
-it('advertises the host command only after the host reports a prepared launcher', () => {
+it.each(['zkyq', 'ce-workbench'] as const)('advertises only the host-prepared command: %s', (command) => {
   const controller = new RuntimeAccountController()
   expect(controller.dataAccountsSnapshot()).not.toHaveProperty('accountCommand')
-  host.command = 'ce-workbench'
+  host.command = command
   expect(controller.dataAccountsSnapshot()).toEqual({
     opencode: { accounts: [], activeAccountId: null },
     devin: { accounts: [], activeAccountId: null },
-    accountCommand: 'ce-workbench'
+    accountCommand: command
   })
   host.present = false
   expect(controller.dataAccountsSnapshot()).toEqual({})

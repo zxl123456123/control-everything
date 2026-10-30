@@ -22,7 +22,7 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-it.each(['ce-workbench', undefined])(
+it.each(['zkyq', 'ce-workbench', undefined])(
   'copies the command proven by the selected host: %s',
   async (command) => {
     mocks.call.mockImplementation(async (_target, method) =>
@@ -48,9 +48,9 @@ it.each(['ce-workbench', undefined])(
 )
 
 it('drops the former host command when switching to a legacy host', async () => {
-  mocks.call.mockResolvedValueOnce({ devin: roster, accountCommand: 'ce-workbench' })
+  mocks.call.mockResolvedValueOnce({ devin: roster, accountCommand: 'zkyq' })
   const view = render(<ManagedDataAccountsSection provider="devin" target={target} />)
-  await screen.findByText('ce-workbench account add --agent devin')
+  await screen.findByText('zkyq account add --agent devin')
   mocks.call.mockResolvedValueOnce({ devin: roster })
   view.rerender(
     <ManagedDataAccountsSection
@@ -59,5 +59,5 @@ it('drops the former host command when switching to a legacy host', async () => 
     />
   )
   await screen.findByText('orca account add --agent devin')
-  expect(screen.queryByText('ce-workbench account add --agent devin')).toBeNull()
+  expect(screen.queryByText('zkyq account add --agent devin')).toBeNull()
 })

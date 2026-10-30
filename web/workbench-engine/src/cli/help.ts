@@ -9,7 +9,7 @@ import { COMMAND_SPECS } from './specs'
 
 const ROOT_HELP_TEXT = [ROOT_HELP_TEXT_PRIMARY, ROOT_HELP_TEXT_SECONDARY].join('\n')
 const PLATFORM_CLI = process.env.CE_WORKBENCH_CLI === '1'
-const CLI_NAME = PLATFORM_CLI ? 'ce-workbench' : 'orca'
+const CLI_NAME = PLATFORM_CLI ? 'zkyq' : 'orca'
 const COMMAND_ROOTS = new Set([
   'help',
   '<command>',
