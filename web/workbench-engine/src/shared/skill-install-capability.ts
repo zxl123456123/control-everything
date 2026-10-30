@@ -16,6 +16,7 @@ export const SKILL_INSTALL_UPDATE_REQUIRED_MESSAGE =
  *  and an old host answers method-not-found, which surfaces as an unexplained
  *  failure instead of a disabled action with a reason. */
 export const SKILL_DELETE_CAPABILITY = 'skills.delete.v1' as const
+export const SKILL_NAME_MIGRATION_CAPABILITY = 'skills.migrate-names.native.v1' as const
 
 export const SKILL_DELETE_UPDATE_REQUIRED_MESSAGE =
   'Update Orca on the selected machine to delete skills.'
@@ -29,5 +30,6 @@ export const SKILL_RUNTIME_CAPABILITIES = [
   SKILL_UPLOAD_CAPABILITY,
   SKILL_MANAGEMENT_CAPABILITY,
   SKILL_INSTALL_PROVIDERS_CAPABILITY,
-  SKILL_DELETE_CAPABILITY
+  SKILL_DELETE_CAPABILITY,
+  SKILL_NAME_MIGRATION_CAPABILITY
 ] as const

@@ -327131,7 +327131,8 @@
     "src/main/skills/skill-name-migration.ts",
     "src/main/skills/skill-update-retirement.test.ts",
     "src/shared/bundled-skill-renames.ts",
-    "src/cli/handlers/skill-name-migration.test.ts"
+    "src/cli/handlers/skill-name-migration.test.ts",
+    "src/main/runtime/rpc/methods/skill-name-migration.test.ts"
   ],
   "adapted_files": [
     {
@@ -332389,6 +332390,30 @@
       "upstream_sha256": "2003d5ac224079460fe4251485b5967625cb7c09f5853f065603a4a298966d85",
       "current_sha256": "d14236859c8db065e2e2f496b70764342187e8c6ca8380c1cf072cda03569d43",
       "reason": "；新增安装后独立退役入口及目标约束验证，补齐当前CLI占位指南检查"
+    },
+    {
+      "path": "src/main/runtime/rpc/methods/skills.ts",
+      "upstream_sha256": "630614c5c14af7d3f0ead4d314a2b6b8bcaf22f7a438360acef36d44604fc711",
+      "current_sha256": "23ed9d45e32f2a9dc01967ab498d10e1243b371682f9afdb4ef5e22dffe7ab86",
+      "reason": "提供受权限保护的技能旧名称保全迁移入口及合同"
+    },
+    {
+      "path": "src/shared/rpc-contract/rpc-params-catalog.generated.ts",
+      "upstream_sha256": "165420b63f49dc20d9d1387e1a341f92a51dcbfc5cfa3cdd3a6126eed0632c28",
+      "current_sha256": "cdef722eda6bb090285465ec45e6f419b9886a086d5951fa626e8d7f5a4ffff5",
+      "reason": "提供受权限保护的技能旧名称保全迁移入口及合同"
+    },
+    {
+      "path": "src/shared/rpc-contract/skills-params.ts",
+      "upstream_sha256": "517964284b0a4b2e385cb1da734db006f0b7105bf5f65b690d40cf5e52f18cda",
+      "current_sha256": "b9be18879c9ca9fa188fde752f7d040ef1ca42a71b6041fd74804405dae4fd8f",
+      "reason": "提供受权限保护的技能旧名称保全迁移入口及合同"
+    },
+    {
+      "path": "src/shared/skill-install-capability.ts",
+      "upstream_sha256": "67ddf509359df5dfde1b494393b6c9a3f83ee5aa7d9c669323c74fdfbce2239d",
+      "current_sha256": "943193b4560a48ea559276597ea9e8fe710e8127e9ad216f616c3600163436f0",
+      "reason": "提供受权限保护的技能旧名称保全迁移入口及合同"
     }
   ],
   "reviewed_findings": [

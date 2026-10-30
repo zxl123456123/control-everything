@@ -519,7 +519,8 @@ import { SidebarSessionBeginParams } from './sidebar-session-params'
 import {
   SkillsCancelInstallParams,
   SkillsDiscoverParams,
-  SkillsGetInstallProgressParams
+  SkillsGetInstallProgressParams,
+  SkillsMigrateNamesParams
 } from './skills-params'
 import {
   DictationChunk,
@@ -1321,6 +1322,7 @@ export const RPC_PARAMS_BY_METHOD = {
   'skills.install': SkillInstallRequestSchema,
   'skills.installBundle': SkillBundleInstallRequestSchema,
   'skills.listManagedInstalls': null,
+  'skills.migrateNames': SkillsMigrateNamesParams,
   'skills.previewDelete': SkillDeleteRequestSchema,
   'skills.previewInstall': SkillInstallPreviewRequestSchema,
   'skills.removeInstall': SkillRemoveRequestSchema,
