@@ -134,13 +134,15 @@ describe('orcad profile CLI launcher', () => {
     await writeCli()
     await mkdir(join(roots.profile, 'cli', 'bin'), { recursive: true })
     await writeFile(join(roots.profile, 'cli', 'bin', 'ce-workbench'), 'old generated command')
+    await writeFile(join(roots.profile, 'cli', 'bin', 'orca'), 'old internal command')
     await prepareOrcadCliLauncher()
-    expect(getOrcadCliLauncherPath()).toBe(join(roots.profile, 'cli', 'bin', 'orca'))
+    expect(getOrcadCliLauncherPath()).toBe(join(roots.profile, 'cli', 'bin', 'zkyq'))
     expect(getOrcadAccountCommand()).toBe('zkyq')
     expect(await readFile(join(roots.profile, 'cli', 'bin', 'zkyq'), 'utf8')).toBe(
       await readFile(getOrcadCliLauncherPath()!, 'utf8')
     )
     await expect(readFile(join(roots.profile, 'cli', 'bin', 'ce-workbench'))).rejects.toMatchObject({ code: 'ENOENT' })
+    await expect(readFile(join(roots.profile, 'cli', 'bin', 'orca'))).rejects.toMatchObject({ code: 'ENOENT' })
   })
 
   it('loads platform help context without changing arguments or leaking it to provider children', async () => {
@@ -200,18 +202,20 @@ describe('orcad profile CLI launcher', () => {
       expect(getOrcadAccountCommand()).toBeUndefined()
     })
 
-    it('adds the platform command without replacing the internal launcher or profile', async () => {
+    it('migrates generated platform commands to zkyq while preserving the profile', async () => {
       vi.stubEnv('CE_WORKBENCH_ISOLATED', '1')
       vi.stubEnv('CE_WORKBENCH_ORIGIN', 'http://127.0.0.1:8878')
       await writeCli()
       await writeLauncher('native launcher v1')
       await mkdir(binDir(), { recursive: true })
       await writeFile(join(binDir(), 'ce-workbench.exe'), 'native launcher v0')
+      await writeFile(join(binDir(), 'orca.exe'), 'native launcher v0')
       await prepareOrcadCliLauncher()
-      expect(getOrcadCliLauncherPath()).toBe(join(binDir(), 'orca.exe'))
+      expect(getOrcadCliLauncherPath()).toBe(join(binDir(), 'zkyq.exe'))
       expect(getOrcadAccountCommand()).toBe('zkyq')
       expect(await readFile(join(binDir(), 'zkyq.exe'), 'utf8')).toBe('native launcher v1')
       await expect(readFile(join(binDir(), 'ce-workbench.exe'))).rejects.toMatchObject({ code: 'ENOENT' })
+      await expect(readFile(join(binDir(), 'orca.exe'))).rejects.toMatchObject({ code: 'ENOENT' })
       roots.install = join(directory, 'updated server')
       await writeCli()
       await writeLauncher('native launcher v2')

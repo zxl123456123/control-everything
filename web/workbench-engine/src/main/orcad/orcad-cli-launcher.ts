@@ -50,23 +50,17 @@ export async function prepareOrcadCliLauncher(): Promise<void> {
     entry = wrapper
   }
   if (process.platform === 'win32') {
-    launcherPath = await prepareWindowsLauncher(installRoot, entry, userDataPath, binDir)
+    launcherPath = await prepareWindowsLauncher(
+      installRoot, entry, userDataPath, binDir, isPlatformRuntime() ? 'zkyq.exe' : 'orca.exe'
+    )
     if (launcherPath && isPlatformRuntime()) {
-      const alias = await prepareWindowsLauncher(
-        installRoot,
-        entry,
-        userDataPath,
-        binDir,
-        'zkyq.exe'
-      )
-      if (alias) {
-        await retirePlatformCommand(binDir, 'ce-workbench.exe')
-        accountCommand = 'zkyq'
-      }
+      await retirePlatformCommand(binDir, 'ce-workbench.exe')
+      await retirePlatformCommand(binDir, 'orca.exe')
+      accountCommand = 'zkyq'
     }
     return
   }
-  const path = join(binDir, 'orca')
+  const path = join(binDir, isPlatformRuntime() ? 'zkyq' : 'orca')
   const script = buildUnixCliLauncher(process.execPath, entry, userDataPath, 'node')
   await mkdir(binDir, { recursive: true })
   const current = await readFile(path, 'utf8').catch(() => null)
@@ -76,10 +70,8 @@ export async function prepareOrcadCliLauncher(): Promise<void> {
   await chmod(path, 0o700)
   launcherPath = path
   if (isPlatformRuntime()) {
-    const alias = join(binDir, 'zkyq')
-    writeFileAtomically(alias, script, { mode: 0o700 })
-    await chmod(alias, 0o700)
     await retirePlatformCommand(binDir, 'ce-workbench')
+    await retirePlatformCommand(binDir, 'orca')
     accountCommand = 'zkyq'
   }
 }

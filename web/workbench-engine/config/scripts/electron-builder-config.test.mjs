@@ -253,12 +253,12 @@ describe('electron-builder config', () => {
           to: 'computer-use-windows/runtime.ps1'
         }),
         expect.objectContaining({
-          from: 'native/windows-cli-launcher/.build/orca.exe',
-          to: 'bin/orca.exe'
+          from: 'native/windows-cli-launcher/.build/zkyq.exe',
+          to: 'bin/zkyq.exe'
         }),
         expect.objectContaining({
-          from: 'native/windows-cli-launcher/.build/orca-administrator-restart.exe',
-          to: 'bin/orca-administrator-restart.exe'
+          from: 'native/windows-cli-launcher/.build/zkyq-administrator-restart.exe',
+          to: 'bin/zkyq-administrator-restart.exe'
         })
       ])
     )

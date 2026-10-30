@@ -16,7 +16,7 @@ function fixture() {
   roots.push(root)
   const resourcesPath = join(root, 'resources with spaces')
   mkdirSync(join(resourcesPath, 'bin'), { recursive: true })
-  writeFileSync(join(resourcesPath, 'bin', 'orca.exe'), 'fixture')
+  writeFileSync(join(resourcesPath, 'bin', 'zkyq.exe'), 'fixture')
   return { isPackaged: true, resourcesPath, userDataPath: join(root, 'user data') }
 }
 
@@ -39,7 +39,7 @@ describe('managed WSL CLI provisioning', () => {
 
   it('provides nothing when the packaged CLI runtime is missing', () => {
     const host = fixture()
-    rmSync(join(host.resourcesPath, 'bin', 'orca.exe'))
+    rmSync(join(host.resourcesPath, 'bin', 'zkyq.exe'))
     expect(getManagedWslCliDir(host)).toBeNull()
   })
 

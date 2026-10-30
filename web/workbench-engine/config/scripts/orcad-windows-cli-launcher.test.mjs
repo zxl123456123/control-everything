@@ -38,13 +38,13 @@ it('stages the prepared launcher for the requested machine at the slot command p
   const { root, output } = fixture()
   const source = prepare(root, 'arm64', 0xaa64)
   stageOrcadWindowsCliLauncher(root, output, 'win32-arm64', { platform: 'linux' })
-  expect(readFileSync(join(output, 'bin', 'orca.exe'))).toEqual(readFileSync(source))
+  expect(readFileSync(join(output, 'bin', 'zkyq.exe'))).toEqual(readFileSync(source))
 })
 
 it('rejects a launcher built for the wrong machine', () => {
   const { root, output } = fixture()
   prepare(root, 'x64', 0xaa64)
-  expect(() => stageOrcadWindowsCliLauncher(root, output, 'win32-x64')).toThrow('machine 0xaa64')
+  expect(() => stageOrcadWindowsCliLauncher(root, output, 'win32-x64', { platform: 'linux' })).toThrow('machine 0xaa64')
 })
 
 it('refuses a missing launcher off Windows and compiles it on Windows', () => {
@@ -58,7 +58,16 @@ it('refuses a missing launcher off Windows and compiles it on Windows', () => {
   })
   stageOrcadWindowsCliLauncher(root, output, 'win32-x64', { platform: 'win32' }, compile)
   expect(compile).toHaveBeenCalledWith(root, 'x64', orcadWindowsCliLauncherSource(root, 'x64'))
-  expect(readFileSync(join(output, 'bin', 'orca.exe'))).toEqual(peImage(0x8664))
+  expect(readFileSync(join(output, 'bin', 'zkyq.exe'))).toEqual(peImage(0x8664))
+})
+
+it('checks the build fingerprint even when a Windows cached launcher exists', () => {
+  const { root, output } = fixture()
+  prepare(root, 'x64', 0xaa64)
+  const compile = vi.fn((_root, _arch, path) => writeFileSync(path, peImage(0x8664)))
+  stageOrcadWindowsCliLauncher(root, output, 'win32-x64', { platform: 'win32' }, compile)
+  expect(compile).toHaveBeenCalledTimes(1)
+  expect(readFileSync(join(output, 'bin', 'zkyq.exe'))).toEqual(peImage(0x8664))
 })
 
 it('ignores POSIX targets', () => {

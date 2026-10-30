@@ -26,7 +26,7 @@ function getPackagedCliPath(appDir) {
     return join(appDir, 'Contents', 'Resources', 'bin', 'orca')
   }
   if (process.platform === 'win32') {
-    return join(appDir, 'resources', 'bin', 'orca.exe')
+    return join(appDir, 'resources', 'bin', 'zkyq.exe')
   }
   return join(appDir, 'resources', 'bin', 'orca-ide')
 }

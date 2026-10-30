@@ -328140,8 +328140,8 @@
     {
       "path": "src/shared/orcad-artifacts.ts",
       "upstream_sha256": "066f1ac0ef99b5c358b1ac51901bdd92be6a1dcdebedd87f462f1938fde0cdf9",
-      "current_sha256": "0ff643d58d79a0a97515b059013e8bd2b58d335e687af09cde079b4b3f87eb4f",
-      "reason": "M1a-R: owner helper in runtime artifact/hash contract"
+      "current_sha256": "4e8f705ed1d08e812dc044b2d7ac0a2c2ab4a1e6142cfb8bddf9398fd9578af3",
+      "reason": "M1a-R: owner helper in runtime artifact/hash contract；Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands."
     },
     {
       "path": "src/shared/orchestration-rpc-contract.ts",
@@ -329274,14 +329274,14 @@
     {
       "path": "src/main/orcad/orcad-cli-launcher.ts",
       "upstream_sha256": "c5e239828d68bd1cf5dd3e978f7d6cfda3ee4517253b17de18e82dcd448cb1e1",
-      "current_sha256": "8360f68c435a7d53d45c49ce4bbd0a77efad9622eb441593c59a58db2edf0f3c",
-      "reason": "平台命令入口和帮助统一品牌，精简账号说明与工作台展示，保留兼容协议及原生功能。；Use the short zkyq platform command while retaining the ce-workbench compatibility entry and legacy host metadata.；Retire the temporary ce-workbench command and offer only host-verified zkyq instructions."
+      "current_sha256": "915a33a808f27715cd4d926a5aed88a3e08fbb8e54beb567efb77bd3c184e426",
+      "reason": "平台命令入口和帮助统一品牌，精简账号说明与工作台展示，保留兼容协议及原生功能。；Use the short zkyq platform command while retaining the ce-workbench compatibility entry and legacy host metadata.；Retire the temporary ce-workbench command and offer only host-verified zkyq instructions.；Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands."
     },
     {
       "path": "src/main/orcad/orcad-cli-launcher.test.ts",
       "upstream_sha256": "7fde4ce5ed19ea0f5a3d462170763cf50906572f296336328d306d2cff96f258",
-      "current_sha256": "387458feca206f9b316776829ea903a2041f2decff5a2d1cca74321c3de123fd",
-      "reason": "平台命令入口和帮助统一品牌，精简账号说明与工作台展示，保留兼容协议及原生功能。；Use the short zkyq platform command while retaining the ce-workbench compatibility entry and legacy host metadata.；Retire the temporary ce-workbench command and offer only host-verified zkyq instructions."
+      "current_sha256": "87207bf376babdf8f4b417b5da0bd57a00cf915289e237085e823636d889c2fd",
+      "reason": "平台命令入口和帮助统一品牌，精简账号说明与工作台展示，保留兼容协议及原生功能。；Use the short zkyq platform command while retaining the ce-workbench compatibility entry and legacy host metadata.；Retire the temporary ce-workbench command and offer only host-verified zkyq instructions.；Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands."
     },
     {
       "path": "src/main/runtime/runtime-account-controller.ts",
@@ -329324,6 +329324,126 @@
       "upstream_sha256": "835ae5ce81cf7fc30453a73c3f18385daf0ce63613dc5576387fc2131dc91962",
       "current_sha256": "94cf8601058a4f8b9c3c3c29089491becaaa7d82c50330e3489d5ab01e8d8335",
       "reason": "Support explicit profile-contained credential storage while preserving existing keys and host tool configuration.; 平台命令入口和帮助统一品牌，精简账号说明与工作台展示，保留兼容协议及原生功能。"
+    },
+    {
+      "path": "config/electron-builder.config.cjs",
+      "upstream_sha256": "145988a8484048fbdf0f7f9361eac6ceb406af6a0be306f42f4fccae99bacd29",
+      "current_sha256": "fb9b5771f93b867c796edff1c8095b842f8cee41bf0ff5ddf49b8ee3554af768",
+      "reason": "Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands."
+    },
+    {
+      "path": "config/scripts/build-windows-cli-launcher.mjs",
+      "upstream_sha256": "62b2bb2c8e5b62e0b30710505dc8b2c1110037fb347a453f2d7e1492a1c6a608",
+      "current_sha256": "c4b1118e32c42cdc26ace25baea5bfcf99e3900bc4e8fbc3fd8aa2394a5ff940",
+      "reason": "Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands."
+    },
+    {
+      "path": "config/scripts/electron-builder-config.test.mjs",
+      "upstream_sha256": "e614ac6673bca68ec2d5df34e0b59b707c4351c6a6d1662ea0aed4f589a14437",
+      "current_sha256": "96cd222041bd5eaeae4bf16148a7c4f1e95a3524497a75267b3b8ed6b5709b37",
+      "reason": "Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands."
+    },
+    {
+      "path": "config/scripts/orcad-windows-cli-launcher.mjs",
+      "upstream_sha256": "5764e009270d9ddb37c0e7b60a8325dd73b6acfc370dd9f0665a9246fb11b8fa",
+      "current_sha256": "e5ca2ef0b11cf4222d7031f78ba54a24620bd07c46a9325d48453b5bc7923532",
+      "reason": "Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands."
+    },
+    {
+      "path": "config/scripts/orcad-windows-cli-launcher.test.mjs",
+      "upstream_sha256": "25f827184d4775436178068f7b84bca54726b09f013b6ba2bf86bada0b5d5c27",
+      "current_sha256": "6d546fae75fe9d2e3a7f42ad1483c009b17b0871b802775b46be587303b42e8e",
+      "reason": "Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands."
+    },
+    {
+      "path": "config/scripts/smoke-packaged-cli.mjs",
+      "upstream_sha256": "4035b5e0fb25698217f24f7616c5ac06d57eb7dbed7f1a6e6768bf51a98f8bf8",
+      "current_sha256": "f6ed4fde2eb81c17db71b3d19923e5044216b5ad4bc99e0d08850765954d749b",
+      "reason": "Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands."
+    },
+    {
+      "path": "native/windows-cli-launcher/Cargo.lock",
+      "upstream_sha256": "7eb238ec2f72a9643e5acc01ba64bce922d12d62975596edf163d94599e55a25",
+      "current_sha256": "877e957617ae92447b131e1db2448b803917cb4e4c4d72f5e3b0a9d70c45dd3f",
+      "reason": "Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands."
+    },
+    {
+      "path": "native/windows-cli-launcher/Cargo.toml",
+      "upstream_sha256": "eb632f2cd39c45188bd593e97f700935bb078091168a812c6afad1a18deb1e77",
+      "current_sha256": "a5a664ba6b986b1ff5438edb0f8d917aecb7028a3656a19cffda5a590ae85b09",
+      "reason": "Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands."
+    },
+    {
+      "path": "native/windows-cli-launcher/app.manifest",
+      "upstream_sha256": "aca550a4bb862f993769db0dde9c5b6f21d3b1d042e47fbfa80067f326b68a40",
+      "current_sha256": "2947a61a715f26d90a3f2bfa9d5503ba991a66e9c051f3a86ae0457a717cbc7b",
+      "reason": "Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands."
+    },
+    {
+      "path": "native/windows-cli-launcher/build.rs",
+      "upstream_sha256": "47c3064c071a6b9bed66ce4f8f5d1a1d5147291effc1fbdb4255c76cda6aef3f",
+      "current_sha256": "9d80bd9570845e26795242f403b3a6438527d32a268d715f1668d59e8be466bb",
+      "reason": "Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands."
+    },
+    {
+      "path": "native/windows-cli-launcher/src/administrator_restart.rs",
+      "upstream_sha256": "45f80de34a7c98571b744b8fa2bb1ee171e5f4046221cd5c7cd52e89e0a8c5a9",
+      "current_sha256": "898827e8d23887039c321e9e9c61955527cca91712ab67287225df2e9b0ef410",
+      "reason": "Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands."
+    },
+    {
+      "path": "native/windows-cli-launcher/src/main.rs",
+      "upstream_sha256": "317d4e1c19a1d1d6be2fa93f832d2e43ab0d6ae8e7043bba019c52b46b2340f2",
+      "current_sha256": "726c9b74d4fccb71bbdcb73a8353c4b19c66168724e360108aafad2ca6d93584",
+      "reason": "Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands."
+    },
+    {
+      "path": "resources/win32/bin/orca.cmd",
+      "upstream_sha256": "95548897a2edf3bc0b2419db2e7f57db3432b1d56df13768d1e9efe34b7a28d1",
+      "current_sha256": "01b6322c8993cfed3c9ef63cfc1c1747ecbed2854d79a084f2269179c75c1795",
+      "reason": "Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands."
+    },
+    {
+      "path": "src/main/cli/bundled-cli-launcher-path.ts",
+      "upstream_sha256": "d18971de3491d0f678c99ab3fca72dd71c5b3e635bf258b7c8d1ba4584e358c4",
+      "current_sha256": "15db5ac2c15cae7f07abe920f0513eeb678db10f463ec4df8d360d27304778c2",
+      "reason": "Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands."
+    },
+    {
+      "path": "src/main/cli/wsl-managed-cli.test.ts",
+      "upstream_sha256": "07c6d4a06f5edc39ae2e05f73ae8d86f755ee244503b3a0e34c7bf26755f952b",
+      "current_sha256": "adfc2bb2e956df968e0d52e9c1de4ac7e894500b14cecc12b927b013b4a1c321",
+      "reason": "Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands."
+    },
+    {
+      "path": "src/main/runtime/claude-agent-teams-shim-env.ts",
+      "upstream_sha256": "c30f7844760531c06ef71746ef581eb92abae723a6a00a896904c1cee1483e39",
+      "current_sha256": "55008bea632b103bfae377a6c54d8869777a65601db01ee84947087a274cfcec",
+      "reason": "Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands."
+    },
+    {
+      "path": "src/main/windows/windows-administrator-restart.ts",
+      "upstream_sha256": "49132dc1d98ed216c93933cc6f6629a6fac77b7c40d3abf162fb5b7341f3455f",
+      "current_sha256": "12a1fddfb57060d53015226e5266fe36cb5e95a66aa29e4ba2701cc25407b7d9",
+      "reason": "Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands."
+    },
+    {
+      "path": "src/main/windows/windows-administrator-restart.win32.test.ts",
+      "upstream_sha256": "1be45027ea518d26c2b413ca8e9734b03975adfc1ce15ec1a4a7e2c4aef37518",
+      "current_sha256": "bb60a5ce62d8bc4708ba89ed0de83dde063d58f94d46605e3187e352cf842acb",
+      "reason": "Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands."
+    },
+    {
+      "path": "src/main/windows/windows-administrator-status.test.ts",
+      "upstream_sha256": "8f8bb342add1b62412b03de9eca1ca289254046ceefacf736a77159a8b4bb0c1",
+      "current_sha256": "61f9c13133ada785b22099909ca766af8b2caf254df223e90f09f1a5cd9d72d8",
+      "reason": "Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands."
+    },
+    {
+      "path": "src/main/windows/windows-administrator-status.ts",
+      "upstream_sha256": "bd9008ca13efff5bb7defb82d6e2fcb6a7f8ca3c9074c92a78d213e5973d3d40",
+      "current_sha256": "34e089202c8a51f017895abeb073bf8dcaf7106c22976f9d49f011aaa6623b1e",
+      "reason": "Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands."
     }
   ],
   "reviewed_findings": [
@@ -329835,7 +329955,7 @@
       "path": "native/windows-cli-launcher/app.manifest",
       "rule": "fixed-external-ipv4",
       "line": 3,
-      "sha256": "aca550a4bb862f993769db0dde9c5b6f21d3b1d042e47fbfa80067f326b68a40",
+      "sha256": "2947a61a715f26d90a3f2bfa9d5503ba991a66e9c051f3a86ae0457a717cbc7b",
       "reason": "四段数字在此处表示程序集/浏览器/构建工具版本，不是服务器地址；修改会改变版本或兼容性语义。"
     },
     {

@@ -585,12 +585,12 @@ module.exports = {
         to: 'bin/orca.cmd'
       },
       {
-        from: 'native/windows-cli-launcher/.build/orca.exe',
-        to: 'bin/orca.exe'
+        from: 'native/windows-cli-launcher/.build/zkyq.exe',
+        to: 'bin/zkyq.exe'
       },
       {
-        from: 'native/windows-cli-launcher/.build/orca-administrator-restart.exe',
-        to: 'bin/orca-administrator-restart.exe'
+        from: 'native/windows-cli-launcher/.build/zkyq-administrator-restart.exe',
+        to: 'bin/zkyq-administrator-restart.exe'
       },
       // Why resources/bin: SignPath signs every unsigned PE under win-unpacked, and the hook
       // installer copies this signed file into ~/.orca/agent-hooks (#20913).

@@ -15,7 +15,7 @@ export const ORCAD_WINDOWS_PROCESS_TREE_FILENAME = 'windows-process-tree.node'
 /** native/windows-security: secure-file ACLs without spawning icacls. */
 export const ORCAD_WINDOWS_SECURITY_FILENAME = 'windows-security.node'
 /** native/windows-cli-launcher: cmd.exe and .ps1 shims cannot carry every argv intact. */
-export const ORCAD_WINDOWS_CLI_LAUNCHER_FILENAME = 'bin/orca.exe'
+export const ORCAD_WINDOWS_CLI_LAUNCHER_FILENAME = 'bin/zkyq.exe'
 
 export function orcadBunRuntimeFilename(target: string): string {
   return isWindowsTarget(target) ? ORCAD_WINDOWS_BUN_RUNTIME_FILENAME : ORCAD_BUN_RUNTIME_FILENAME

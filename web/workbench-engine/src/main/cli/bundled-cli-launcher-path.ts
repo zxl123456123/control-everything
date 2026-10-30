@@ -17,7 +17,7 @@ export function getBundledLauncherPath(
     return join(resourcesPath, 'bin', LINUX_CLI_COMMAND_NAME)
   }
   if (platform === 'win32') {
-    return join(resourcesPath, 'bin', 'orca.exe')
+    return join(resourcesPath, 'bin', 'zkyq.exe')
   }
   return null
 }
