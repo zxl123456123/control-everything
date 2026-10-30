@@ -14,10 +14,10 @@ async function help(platform: boolean) {
   return import('./help')
 }
 
-it.each([false, true])('brands only the selected CLI entry: platform=%s', async (platform) => {
+it.each([false, true])('uses the same command identity regardless of the retired marker: platform=%s', async (platform) => {
   const { formatCommandHelp, formatGroupHelp, printHelp } = await help(platform)
-  const name = platform ? 'zkyq' : 'orca'
-  const product = platform ? 'Control Everything' : 'Orca'
+  const name = 'zkyq'
+  const product = 'Control Everything'
   const account = COMMAND_SPECS.find((spec) => spec.path.join(' ') === 'account add')!
   const text = formatCommandHelp(account)
   expect(text).toContain(`Usage: ${name} account add`)

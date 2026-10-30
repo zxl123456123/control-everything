@@ -10,7 +10,6 @@ import { nodeFileContentsEqual } from '../../shared/node-file-content-equality'
 import { buildUnixCliLauncher } from '../cli/cli-dev-launcher'
 import { writeFileAtomically } from '../codex-accounts/fs-utils'
 import { resolveOrcadInstallRoot, resolveUserDataPath } from './orcad-app-paths'
-import { isPlatformRuntime } from '../platform-runtime-policy'
 
 // Read by native/windows-cli-launcher: its presence beside the exe selects the server mode.
 export const ORCAD_WINDOWS_CLI_LAUNCHER_CONFIG_FILENAME = 'zkyq-launcher.cfg'
@@ -31,53 +30,39 @@ export async function prepareOrcadCliLauncher(): Promise<void> {
   launcherPath = null
   accountCommand = undefined
   const installRoot = resolveOrcadInstallRoot()
-  let entry = join(installRoot, ...ORCAD_CLI_ENTRY_FILENAME.split('/'))
+  const entry = join(installRoot, ...ORCAD_CLI_ENTRY_FILENAME.split('/'))
   // Older server slots and source-only runs may not include the CLI yet.
   if (!existsSync(entry)) {
     return
   }
   const userDataPath = resolveUserDataPath()
   const binDir = join(userDataPath, 'cli', 'bin')
-  if (isPlatformRuntime()) {
-    await mkdir(binDir, { recursive: true })
-    const wrapper = join(binDir, 'platform-entry.cjs')
-    // Only this module load gets the presentation marker; provider children do not inherit it.
-    writeFileAtomically(
-      wrapper,
-      `process.env.CE_WORKBENCH_CLI = '1';\nconst cli = require(${JSON.stringify(entry)});\ndelete process.env.CE_WORKBENCH_CLI;\nvoid cli.main();\n`,
-      { mode: 0o700 }
-    )
-    entry = wrapper
-  }
   if (process.platform === 'win32') {
-    launcherPath = await prepareWindowsLauncher(
-      installRoot, entry, userDataPath, binDir, isPlatformRuntime() ? 'zkyq.exe' : 'orca.exe'
-    )
-    if (launcherPath && isPlatformRuntime()) {
-      await retirePlatformCommand(binDir, 'ce-workbench.exe')
-      await retirePlatformCommand(binDir, 'orca.exe')
-      accountCommand = 'zkyq'
+    launcherPath = await prepareWindowsLauncher(installRoot, entry, userDataPath, binDir)
+    if (!launcherPath) {
+      return
     }
-    return
+    await retireGeneratedCommand(binDir, 'ce-workbench.exe')
+    await retireGeneratedCommand(binDir, 'orca.exe')
+  } else {
+    const path = join(binDir, 'zkyq')
+    const script = buildUnixCliLauncher(process.execPath, entry, userDataPath, 'node')
+    await mkdir(binDir, { recursive: true })
+    const current = await readFile(path, 'utf8').catch(() => null)
+    if (current !== script) {
+      writeFileAtomically(path, script, { mode: 0o700 })
+    }
+    await chmod(path, 0o700)
+    launcherPath = path
+    await retireGeneratedCommand(binDir, 'ce-workbench')
+    await retireGeneratedCommand(binDir, 'orca')
   }
-  const path = join(binDir, isPlatformRuntime() ? 'zkyq' : 'orca')
-  const script = buildUnixCliLauncher(process.execPath, entry, userDataPath, 'node')
-  await mkdir(binDir, { recursive: true })
-  const current = await readFile(path, 'utf8').catch(() => null)
-  if (current !== script) {
-    writeFileAtomically(path, script, { mode: 0o700 })
-  }
-  await chmod(path, 0o700)
-  launcherPath = path
-  if (isPlatformRuntime()) {
-    await retirePlatformCommand(binDir, 'ce-workbench')
-    await retirePlatformCommand(binDir, 'orca')
-    accountCommand = 'zkyq'
-  }
+  await rm(join(binDir, 'platform-entry.cjs'), { force: true })
+  accountCommand = 'zkyq'
 }
 
 /** Retire only the generated command in this host's private CLI directory. */
-async function retirePlatformCommand(binDir: string, filename: string): Promise<void> {
+async function retireGeneratedCommand(binDir: string, filename: string): Promise<void> {
   const path = join(binDir, filename)
   if (existsSync(path)) {
     // Windows can rename an executable still mapped by a running process.
@@ -99,13 +84,13 @@ async function prepareWindowsLauncher(
   installRoot: string,
   entry: string,
   userDataPath: string,
-  binDir: string,
-  filename = 'orca.exe'
+  binDir: string
 ): Promise<string | null> {
   const source = join(installRoot, ...ORCAD_WINDOWS_CLI_LAUNCHER_FILENAME.split('/'))
   if (!existsSync(source)) {
     return null
   }
+  const filename = 'zkyq.exe'
   const path = join(binDir, filename)
   await mkdir(binDir, { recursive: true })
   await removeRetiredLaunchers(binDir, filename)

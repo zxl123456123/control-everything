@@ -329275,14 +329275,14 @@
     {
       "path": "src/main/orcad/orcad-cli-launcher.ts",
       "upstream_sha256": "c5e239828d68bd1cf5dd3e978f7d6cfda3ee4517253b17de18e82dcd448cb1e1",
-      "current_sha256": "8595e97a384c296fce5220473f48604e376c40b1cd8dbd8ace96eb7b12b13161",
-      "reason": "平台命令入口和帮助统一品牌，精简账号说明与工作台展示，保留兼容协议及原生功能。；Use the short zkyq platform command while retaining the ce-workbench compatibility entry and legacy host metadata.；Retire the temporary ce-workbench command and offer only host-verified zkyq instructions.；Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands.；启动器读写统一为zkyq配置，成功安装后移除旧生成配置，失败保留重试且不读取旧名回退"
+      "current_sha256": "f7210a4ce81a61db4366c5e66066393e56553c649013d97e2b255bdf04177200",
+      "reason": "平台命令入口和帮助统一品牌，精简账号说明与工作台展示，保留兼容协议及原生功能。；Use the short zkyq platform command while retaining the ce-workbench compatibility entry and legacy host metadata.；Retire the temporary ce-workbench command and offer only host-verified zkyq instructions.；Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands.；启动器读写统一为zkyq配置，成功安装后移除旧生成配置，失败保留重试且不读取旧名回退；所有后台宿主统一zkyq命令与帮助纠错提示，取消平台专用品牌包装并迁移旧生成入口，保留参数和profile行为"
     },
     {
       "path": "src/main/orcad/orcad-cli-launcher.test.ts",
       "upstream_sha256": "7fde4ce5ed19ea0f5a3d462170763cf50906572f296336328d306d2cff96f258",
-      "current_sha256": "8b54fa37c980d175adf941cea168f247d99d8858395be0d5c2c06a1a71c3cda0",
-      "reason": "平台命令入口和帮助统一品牌，精简账号说明与工作台展示，保留兼容协议及原生功能。；Use the short zkyq platform command while retaining the ce-workbench compatibility entry and legacy host metadata.；Retire the temporary ce-workbench command and offer only host-verified zkyq instructions.；Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands.；启动器读写统一为zkyq配置，成功安装后移除旧生成配置，失败保留重试且不读取旧名回退"
+      "current_sha256": "1f70a0b12e51399e44f570abea79eaa7362f35004c56babdc82a3c4e1f9e6e93",
+      "reason": "平台命令入口和帮助统一品牌，精简账号说明与工作台展示，保留兼容协议及原生功能。；Use the short zkyq platform command while retaining the ce-workbench compatibility entry and legacy host metadata.；Retire the temporary ce-workbench command and offer only host-verified zkyq instructions.；Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands.；启动器读写统一为zkyq配置，成功安装后移除旧生成配置，失败保留重试且不读取旧名回退；所有后台宿主统一zkyq命令与帮助纠错提示，取消平台专用品牌包装并迁移旧生成入口，保留参数和profile行为"
     },
     {
       "path": "src/main/runtime/runtime-account-controller.ts",
@@ -329299,8 +329299,8 @@
     {
       "path": "src/cli/help.ts",
       "upstream_sha256": "2240c133948e5bca9a2281a74fcbbf624b51206108c88e08d27aad8a9af38cce",
-      "current_sha256": "73d736eca3bfc351b17453ee5b1bc058fa27500673c908ff9815791b9d5f063f",
-      "reason": "平台命令入口和帮助统一品牌，精简账号说明与工作台展示，保留兼容协议及原生功能。；Use the short zkyq platform command while retaining the ce-workbench compatibility entry and legacy host metadata."
+      "current_sha256": "76567e7524aea9be9a33fed5db6de4bf29411b63fa1afb4cbb7bf1626fea489a",
+      "reason": "平台命令入口和帮助统一品牌，精简账号说明与工作台展示，保留兼容协议及原生功能。；Use the short zkyq platform command while retaining the ce-workbench compatibility entry and legacy host metadata.；所有后台宿主统一zkyq命令与帮助纠错提示，取消平台专用品牌包装并迁移旧生成入口，保留参数和profile行为"
     },
     {
       "path": "src/renderer/src/components/settings/ManagedDataAccountsSection.tsx",
@@ -329745,6 +329745,30 @@
       "upstream_sha256": "01ac0d04fa694fffab8335c276249cda5f1c27460a1b93c8bd949ff98af045a8",
       "current_sha256": "abfc39900ce5da789d2d4d6e630e83ef691962c9a85f1d81f670ceb6916699a0",
       "reason": "统一凭据保护、启动校验、实例占用和账号归属的产品文字，保留原因恢复方法及用户输入，不改安全或存储行为"
+    },
+    {
+      "path": "src/cli/command-suggestion.test.ts",
+      "upstream_sha256": "a40f720569441f73739f1c55108d8ecc7bf90e22520a2c5b96e0b9055503f4ec",
+      "current_sha256": "2dca979278f82463fe98997485a5bc60f239b169dad8c12591bc8b34b40a1f6f",
+      "reason": "所有后台宿主统一zkyq命令与帮助纠错提示，取消平台专用品牌包装并迁移旧生成入口，保留参数和profile行为"
+    },
+    {
+      "path": "src/cli/command-suggestion.ts",
+      "upstream_sha256": "c972576a556697d725448504fdafaf387ecf9284cc68e91d5368a85d254ce8ad",
+      "current_sha256": "aabc457baae8df3887b4c763bb15737d6fbde0b2cf406d3f3c24abf1764e0dcc",
+      "reason": "所有后台宿主统一zkyq命令与帮助纠错提示，取消平台专用品牌包装并迁移旧生成入口，保留参数和profile行为"
+    },
+    {
+      "path": "src/cli/index.test.ts",
+      "upstream_sha256": "2317a75488c3b3a7bc0e495b9b786ca181b8dd8afe939d3bddb07b33dc743708",
+      "current_sha256": "fcbfd0b7b54c4a4bf7f9f5b819ca155fc8643f2bdb94204c91e9b7a312d712cd",
+      "reason": "所有后台宿主统一zkyq命令与帮助纠错提示，取消平台专用品牌包装并迁移旧生成入口，保留参数和profile行为"
+    },
+    {
+      "path": "src/cli/specs/account.test.ts",
+      "upstream_sha256": "f43848bbff3bccfadf29879f652885ae61a714d65bdf603d1fc4f93b15bce33b",
+      "current_sha256": "22423fb952e5a1e3536d91f8e115fadd423d54429c292436b652d4b7d4797e73",
+      "reason": "所有后台宿主统一zkyq命令与帮助纠错提示，取消平台专用品牌包装并迁移旧生成入口，保留参数和profile行为"
     }
   ],
   "reviewed_findings": [

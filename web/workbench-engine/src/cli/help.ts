@@ -8,8 +8,7 @@ import { ROOT_HELP_TEXT_SECONDARY } from './root-help-text-secondary'
 import { COMMAND_SPECS } from './specs'
 
 const ROOT_HELP_TEXT = [ROOT_HELP_TEXT_PRIMARY, ROOT_HELP_TEXT_SECONDARY].join('\n')
-const PLATFORM_CLI = process.env.CE_WORKBENCH_CLI === '1'
-const CLI_NAME = PLATFORM_CLI ? 'zkyq' : 'orca'
+const CLI_NAME = 'zkyq'
 const COMMAND_ROOTS = new Set([
   'help',
   '<command>',
@@ -18,7 +17,6 @@ const COMMAND_ROOTS = new Set([
 
 // Applies only to our static help catalog, never runtime results, errors or user arguments.
 function staticHelpText(text: string): string {
-  if (!PLATFORM_CLI) return text
   return text
     .split('\n')
     .map((line) => {

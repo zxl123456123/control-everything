@@ -306,7 +306,7 @@ describe('unknown command surfaces a suggestion', () => {
     expect(process.exitCode).toBe(1)
     const stderr = errorSpy.mock.calls.map((call) => String(call[0])).join('\n')
     expect(stderr).toContain('Unknown command: worktree remov')
-    expect(stderr).toContain('orca worktree')
+    expect(stderr).toContain('zkyq worktree')
   })
 
   it.each([
@@ -328,7 +328,7 @@ describe('unknown command surfaces a suggestion', () => {
       const output = logSpy.mock.calls.flat().join('\n')
       expect(output).toContain('invalid_argument')
       expect(output).toContain('"runtimeId": null')
-      expect(output).not.toContain(`orca ${forbidden}`)
+      expect(output).not.toContain(`zkyq ${forbidden}`)
       expect(output).not.toContain(`"${forbidden}"`)
       expect(runtimeClientConstructorMock).not.toHaveBeenCalled()
       expect(callMock).not.toHaveBeenCalled()
@@ -337,7 +337,7 @@ describe('unknown command surfaces a suggestion', () => {
     }
 
     await main(input.split(' '), '/tmp/repo')
-    expect(errorSpy.mock.calls.flat().join('\n')).not.toContain(`orca ${forbidden}`)
+    expect(errorSpy.mock.calls.flat().join('\n')).not.toContain(`zkyq ${forbidden}`)
     expect(runtimeClientConstructorMock).not.toHaveBeenCalled()
     expect(callMock).not.toHaveBeenCalled()
   })
@@ -421,7 +421,7 @@ describe('unknown help command surfaces a suggestion', () => {
     await main(argv, '/tmp/repo')
 
     expect(process.exitCode).toBe(1)
-    expect(logSpy.mock.calls.flat().join('\n')).toContain('Did you mean: orca worktree')
+    expect(logSpy.mock.calls.flat().join('\n')).toContain('Did you mean: zkyq worktree')
     logSpy.mockRestore()
     process.exitCode = 0
   })
@@ -444,7 +444,7 @@ describe('nested command group help', () => {
 
         expect(process.exitCode).toBe(0)
         const output = logSpy.mock.calls.flat().join('\n')
-        expect(output).toContain(`orca ${path.join(' ')}`)
+        expect(output).toContain(`zkyq ${path.join(' ')}`)
         for (const command of commands) {
           expect(output).toContain(command)
         }
@@ -465,7 +465,7 @@ describe('orca help', () => {
 
     await main(['--help'], '/tmp/repo')
 
-    expect(logSpy.mock.calls[0][0]).toContain('Usage: orca <command>')
+    expect(logSpy.mock.calls[0][0]).toContain('Usage: zkyq <command>')
     expect(callMock).not.toHaveBeenCalled()
     logSpy.mockRestore()
   })
@@ -483,7 +483,7 @@ describe('orca help', () => {
     await main(['linear', '--help'], '/tmp/repo')
 
     const groupHelp = String(logSpy.mock.calls[0][0])
-    expect(groupHelp).toContain('orca linear')
+    expect(groupHelp).toContain('zkyq linear')
     expect(groupHelp).toContain('issue')
     expect(groupHelp).not.toContain('--comments')
 
@@ -491,7 +491,7 @@ describe('orca help', () => {
     await main(['linear', 'issue', '--help'], '/tmp/repo')
 
     const issueHelp = String(logSpy.mock.calls[0][0])
-    expect(issueHelp).toContain('orca linear issue')
+    expect(issueHelp).toContain('zkyq linear issue')
     expect(issueHelp).toContain('--comments')
     expect(callMock).not.toHaveBeenCalled()
     logSpy.mockRestore()
