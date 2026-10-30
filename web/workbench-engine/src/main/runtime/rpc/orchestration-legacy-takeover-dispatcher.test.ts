@@ -593,7 +593,7 @@ describe('injected dispatch from a legacy-adopted coordinator', () => {
         : null
     )
     vi.spyOn(harness.runtime, 'isTerminalRunningAgent').mockResolvedValue(true)
-    vi.spyOn(harness.runtime, 'getTerminalOrchestrationCliCommand').mockReturnValue('orca')
+    vi.spyOn(harness.runtime, 'getTerminalOrchestrationCliCommand').mockReturnValue('zkyq')
     const sendPrompt = vi
       .spyOn(harness.runtime, 'sendTerminalAgentPrompt')
       .mockResolvedValue({ handle: COORDINATOR_ALIAS_HANDLE, accepted: true, bytesWritten: 1 })

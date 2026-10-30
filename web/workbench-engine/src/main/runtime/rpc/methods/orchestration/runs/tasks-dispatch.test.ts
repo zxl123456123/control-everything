@@ -356,7 +356,7 @@ describe('orchestration RPC methods', () => {
     it('uses the target pane CLI command for the returned preamble', async () => {
       setup()
       const task = db.createTask({ spec: 'work' })
-      vi.spyOn(runtime, 'getTerminalOrchestrationCliCommand').mockReturnValue('orca-ide')
+      vi.spyOn(runtime, 'getTerminalOrchestrationCliCommand').mockReturnValue('zkyq')
 
       const result = (await call('orchestration.dispatch', {
         task: task.id,
@@ -365,7 +365,7 @@ describe('orchestration RPC methods', () => {
       })) as { preamble: string }
 
       expect(runtime.getTerminalOrchestrationCliCommand).toHaveBeenCalledWith('term_wsl')
-      expect(result.preamble).toContain('orca-ide orchestration send')
+      expect(result.preamble).toContain('zkyq orchestration send')
       expect(result.preamble).not.toMatch(/(^|\s)orca orchestration/m)
     })
 

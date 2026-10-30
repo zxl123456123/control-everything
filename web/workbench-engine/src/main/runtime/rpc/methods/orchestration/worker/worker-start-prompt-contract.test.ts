@@ -131,7 +131,7 @@ async function createPromptContractHarness(
       state: 'not_configured'
     }
   } as never)
-  vi.spyOn(runtime, 'getTerminalOrchestrationCliCommand').mockReturnValue('orca')
+  vi.spyOn(runtime, 'getTerminalOrchestrationCliCommand').mockReturnValue('zkyq')
 
   return {
     runtime,

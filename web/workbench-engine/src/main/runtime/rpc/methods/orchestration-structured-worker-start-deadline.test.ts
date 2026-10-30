@@ -66,7 +66,7 @@ it('leaves the preamble only what the setup gate did not use of the caller’s t
     showManagedTerminalWorkspace: async () => ({ id: 'wt_1' }),
     getNestedWorkerMaxDepth: () => 3,
     getRuntimeId: () => 'epoch-1',
-    getTerminalOrchestrationCliCommand: () => 'orca',
+    getTerminalOrchestrationCliCommand: () => 'zkyq',
     getStructuredAgentSessionCreateSupport: async () => ({ supported: true }),
     getOrchestrationDispatchAuthority: () => ({ paneKey: 'pane', processIncarnation: 'inc' }),
     getTerminalProcessIncarnation: () => 'inc',

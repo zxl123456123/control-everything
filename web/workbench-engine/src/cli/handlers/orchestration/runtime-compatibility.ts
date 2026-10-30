@@ -1,6 +1,6 @@
 import { RuntimeClientError } from '../../runtime-client'
 
-export function resolveCompatibilityCliCommand(): 'zkyq' | 'orca' | 'orca-ide' | 'zkyq-dev' {
+export function resolveCompatibilityCliCommand(): 'zkyq' | 'zkyq-dev' {
   const configured = process.env.ORCA_CLI_COMMAND
   if (configured && /(?:^|[/\\])zkyq(?:\.exe|\.cmd)?$/i.test(configured)) {
     return 'zkyq'
@@ -8,23 +8,20 @@ export function resolveCompatibilityCliCommand(): 'zkyq' | 'orca' | 'orca-ide' |
   if (configured && /(?:^|[/\\])zkyq-dev(?:\.cmd)?$/i.test(configured)) {
     return 'zkyq-dev'
   }
-  if (configured === 'orca' || configured === 'orca-ide' || configured === 'zkyq-dev') {
-    return configured
-  }
   return 'zkyq'
 }
 
-export function resolvePackagedWindowsCompatibilityCommand(): 'zkyq' | 'orca' | 'orca-ide' | undefined {
+export function resolvePackagedWindowsCompatibilityCommand(): 'zkyq' | undefined {
   if (process.env.ORCA_WINDOWS_PACKAGED_CLI_LAUNCHER !== '1') {
     return undefined
   }
   const command = process.env.ORCA_CLI_COMMAND
-  if (command === 'zkyq' || command === 'orca' || command === 'orca-ide') {
+  if (command === 'zkyq') {
     return command
   }
   throw new RuntimeClientError(
     'invalid_argument',
-    'The packaged Orca launcher did not provide a valid resume command. No question was created.'
+    'The packaged Control Everything launcher did not provide a valid resume command. No question was created.'
   )
 }
 

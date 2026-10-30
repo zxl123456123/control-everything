@@ -27,7 +27,13 @@ describe('packaged Windows legacy ask protocol', () => {
     restoreEnv('ORCA_TERMINAL_HANDLE', originalTerminalHandle)
   })
 
-  it.each(['orca', 'orca-ide'] as const)(
+  it.each(['orca', 'orca-ide', 'ce-workbench'])('rejects the retired %s launcher before creating a question', async (command) => {
+    process.env.ORCA_CLI_COMMAND = command
+    await expect(invokeAsk(new Map([['question', 'Proceed?']]))).rejects.toThrow('valid resume command')
+    expect(callMock).not.toHaveBeenCalled()
+  })
+
+  it.each(['zkyq'] as const)(
     'commits with the %s launcher and exits 75 before resume',
     async (command) => {
       process.env.ORCA_CLI_COMMAND = command
@@ -65,7 +71,7 @@ describe('packaged Windows legacy ask protocol', () => {
   )
 
   it('resumes the committed question without another exit-75 handoff', async () => {
-    process.env.ORCA_CLI_COMMAND = 'orca'
+    process.env.ORCA_CLI_COMMAND = 'zkyq'
     callMock.mockResolvedValue({
       result: {
         answer: 'yes',
@@ -83,7 +89,7 @@ describe('packaged Windows legacy ask protocol', () => {
       expect.objectContaining({
         question: undefined,
         resume: 'msg_question',
-        compatibilityWindowsCommand: 'orca'
+        compatibilityWindowsCommand: 'zkyq'
       }),
       expect.any(Object)
     )

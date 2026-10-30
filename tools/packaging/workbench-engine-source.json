@@ -329788,8 +329788,8 @@
     {
       "path": "src/cli/handlers/orchestration/runtime-compatibility.ts",
       "upstream_sha256": "a102ef1800a19043e2f39efcc12d44d67b8c038ec010fca91e8fa541ec3b19b7",
-      "current_sha256": "3bae2ad86c103ddf8d641be35c434c0950d1bdefc5282809d2b080adae8a1474",
-      "reason": "统一已安装zkyq宿主的Agent派发、收信及恢复命令与状态摘要身份，保留历史记录识别和用户内容；开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+      "current_sha256": "1f7547d85ee198a2ad9a616e421e8352bec943c640af0b4a01307b9066825d57",
+      "reason": "统一已安装zkyq宿主的Agent派发、收信及恢复命令与状态摘要身份，保留历史记录识别和用户内容；开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；编排命令合同收敛为zkyq/zkyq-dev，恢复与接管提示使用新命令，保留历史会话数据和授权约束"
     },
     {
       "path": "src/cli/runtime/orchestration-recovery-command.test.ts",
@@ -329818,20 +329818,20 @@
     {
       "path": "src/main/runtime/orchestration/cli-command.ts",
       "upstream_sha256": "c122a5b40631eb3efe7c3ba4765676a8c3f903e93fc0164a0f8ab125d1a93364",
-      "current_sha256": "3885139d0ebe398b692ffc937d11f2369dbf3697f7efdafab831f9c03e905628",
-      "reason": "统一已安装zkyq宿主的Agent派发、收信及恢复命令与状态摘要身份，保留历史记录识别和用户内容；WSL命令迁移为zkyq，成功写入后退役受管理旧入口，保留用户文件和桥接参数，失效旧命令修复缓存并对齐派发环境；开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；当前本地与SSH运行组件统一zkyq调用，移除过时relay命令分支并同步Agent启动、收信、回复与诊断默认入口"
+      "current_sha256": "d8e0c301a569d12a490f1b4c9d1121d049faf75262911ff18f9100cd1dd0e369",
+      "reason": "统一已安装zkyq宿主的Agent派发、收信及恢复命令与状态摘要身份，保留历史记录识别和用户内容；WSL命令迁移为zkyq，成功写入后退役受管理旧入口，保留用户文件和桥接参数，失效旧命令修复缓存并对齐派发环境；开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；当前本地与SSH运行组件统一zkyq调用，移除过时relay命令分支并同步Agent启动、收信、回复与诊断默认入口；编排命令合同收敛为zkyq/zkyq-dev，恢复与接管提示使用新命令，保留历史会话数据和授权约束"
     },
     {
       "path": "src/main/runtime/orchestration/coordinator-runtime-contract.ts",
       "upstream_sha256": "ce0d6822c889bbd52903b1e8ad9e7c899abe2f63a483ac3983f82df1aaf4fff4",
-      "current_sha256": "dfafa67ef1226779a3ac47870522572a946176f6a8f7f38fe29e6dc583c023be",
-      "reason": "统一已安装zkyq宿主的Agent派发、收信及恢复命令与状态摘要身份，保留历史记录识别和用户内容；开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+      "current_sha256": "f61c7b7d540bec43afc02f0574197677f05408284b3d90ecfe257c234ce557d1",
+      "reason": "统一已安装zkyq宿主的Agent派发、收信及恢复命令与状态摘要身份，保留历史记录识别和用户内容；开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；编排命令合同收敛为zkyq/zkyq-dev，恢复与接管提示使用新命令，保留历史会话数据和授权约束"
     },
     {
       "path": "src/main/runtime/orchestration/preamble.test.ts",
       "upstream_sha256": "b3a4c81fbd58b9c5b8aa4eeef95f809bb9321bb97ce96d03f7bcc30fd2db9e37",
-      "current_sha256": "7b98edf002602d609c6c99f851d488e962d7784051642542df2f1e74dc3d005c",
-      "reason": "统一已安装zkyq宿主的Agent派发、收信及恢复命令与状态摘要身份，保留历史记录识别和用户内容；开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；当前本地与SSH运行组件统一zkyq调用，移除过时relay命令分支并同步Agent启动、收信、回复与诊断默认入口"
+      "current_sha256": "b447291272b228553cb4a139b4cb481dd6141c84c0a224e9bebfdd4668940987",
+      "reason": "统一已安装zkyq宿主的Agent派发、收信及恢复命令与状态摘要身份，保留历史记录识别和用户内容；开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；当前本地与SSH运行组件统一zkyq调用，移除过时relay命令分支并同步Agent启动、收信、回复与诊断默认入口；编排命令合同收敛为zkyq/zkyq-dev，恢复与接管提示使用新命令，保留历史会话数据和授权约束"
     },
     {
       "path": "src/main/runtime/orchestration/preamble.ts",
@@ -329842,8 +329842,8 @@
     {
       "path": "src/main/runtime/rpc/orchestration-legacy-operation.ts",
       "upstream_sha256": "100fe98d90f44bdda1833187b050a29d0712a322fbe40b96510b4051cbff0706",
-      "current_sha256": "a3ce50aae4646dcb81ddb056e5e6f8fe12475683de8d58ed69b0a553a6fbcb20",
-      "reason": "统一已安装zkyq宿主的Agent派发、收信及恢复命令与状态摘要身份，保留历史记录识别和用户内容；开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+      "current_sha256": "977bf95103a0e119fa49d999e6204f9dd48315ca249dcf8ade67979fb745b64c",
+      "reason": "统一已安装zkyq宿主的Agent派发、收信及恢复命令与状态摘要身份，保留历史记录识别和用户内容；开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；编排命令合同收敛为zkyq/zkyq-dev，恢复与接管提示使用新命令，保留历史会话数据和授权约束"
     },
     {
       "path": "src/shared/agent-status-types.test.ts",
@@ -329860,8 +329860,8 @@
     {
       "path": "src/shared/rpc-contract/orchestration-params.ts",
       "upstream_sha256": "68bb9c9790c343c3d4e36509b49585e3e7a71d213f253e73ebd8698699d0081c",
-      "current_sha256": "9f25adde25ac983d2feccf4f1ca58e15a1aefc8abe547b69c1654c9c1c239987",
-      "reason": "统一已安装zkyq宿主的Agent派发、收信及恢复命令与状态摘要身份，保留历史记录识别和用户内容；开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+      "current_sha256": "0a972da6f4e41c66664c4c9319aed546e76d4997991cb9bb1ab570260cfaf69c",
+      "reason": "统一已安装zkyq宿主的Agent派发、收信及恢复命令与状态摘要身份，保留历史记录识别和用户内容；开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；编排命令合同收敛为zkyq/zkyq-dev，恢复与接管提示使用新命令，保留历史会话数据和授权约束"
     },
     {
       "path": "src/main/cli/cli-install-location.ts",
@@ -330496,14 +330496,14 @@
     {
       "path": "src/main/runtime/orchestration/formatter.test.ts",
       "upstream_sha256": "255ddc14275a6c851f55c27f3a95ee47f554b9f5f9161e809581e7d8aa6f8c4c",
-      "current_sha256": "0c90c8b87f328db941a1f88326eeedcda2bb4959fa15402e97ffee5153d9e026",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；当前本地与SSH运行组件统一zkyq调用，移除过时relay命令分支并同步Agent启动、收信、回复与诊断默认入口"
+      "current_sha256": "3ca5f2ed94cfd2a8c35a292d04c3746eaa76cb3402cc622cf3b5eac4ac4d1443",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；当前本地与SSH运行组件统一zkyq调用，移除过时relay命令分支并同步Agent启动、收信、回复与诊断默认入口；编排命令合同收敛为zkyq/zkyq-dev，恢复与接管提示使用新命令，保留历史会话数据和授权约束"
     },
     {
       "path": "src/main/runtime/orchestration/structured-mailbox-pointer-delivery.test.ts",
       "upstream_sha256": "9854cbe78acd8d2b9805de6530c4bda4e2dd647c345cbfa5ccda67e3b8a0d362",
-      "current_sha256": "cc6f17e95eee207830fd628f5e92dcb047a90b4ac608739e80418ec6511c407f",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+      "current_sha256": "9bf9e8abc691422e563e6a753715467228d88382e9c0de116f031746f082ce10",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；编排命令合同收敛为zkyq/zkyq-dev，恢复与接管提示使用新命令，保留历史会话数据和授权约束"
     },
     {
       "path": "src/main/runtime/rpc/methods/orchestration-structured-worker-session.test.ts",
@@ -330514,8 +330514,8 @@
     {
       "path": "src/main/runtime/rpc/methods/orchestration/runs/tasks-dispatch.test.ts",
       "upstream_sha256": "a3032b07970ab4e6834fb372913554b729b373d2ca40e5375fe86e9368c3a377",
-      "current_sha256": "3c608b24461817e82ab13cc2ae6615c7ba02b99ce402f3452589ba4161069885",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+      "current_sha256": "62bb89cd2a96278b51cbe4c4663fab4c95627d20092a7e779a84bc5c98d97bdf",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；编排命令合同收敛为zkyq/zkyq-dev，恢复与接管提示使用新命令，保留历史会话数据和授权约束"
     },
     {
       "path": "src/main/runtime/structured-session-login-shell-test-harness.ts",
@@ -330570,6 +330570,234 @@
       "upstream_sha256": "eab334d48058f046f9e65655d212a52e4581e0ac1614ea51a4d1b0f62ebbf6b5",
       "current_sha256": "5c5a48850dcfb609e753614b14189f6644f97412d8f03ad93391edb4cc7d8436",
       "reason": "当前本地与SSH运行组件统一zkyq调用，移除过时relay命令分支并同步Agent启动、收信、回复与诊断默认入口"
+    },
+    {
+      "path": "src/cli/handlers/orchestration-windows-ask-cli.test.ts",
+      "upstream_sha256": "242dc570843aa4d8286c9356b9c81af2250fa2843734389af8af1d653e8060aa",
+      "current_sha256": "fa72d50de3b1fafcf82b9b10f40d8ce0b52da70a46e3796b8eb8c5065ddad505",
+      "reason": "编排命令合同收敛为zkyq/zkyq-dev，恢复与接管提示使用新命令，保留历史会话数据和授权约束"
+    },
+    {
+      "path": "src/main/orcad/orcad-cli-orchestration.integration.test.ts",
+      "upstream_sha256": "3dfd28b71c23fdde66df0affa58effa4b9fc3db76621e941fbce2044e9a0d31e",
+      "current_sha256": "39edd356002d6147891d558842a19397c774973de71b90174e183c36a487b86f",
+      "reason": "编排命令合同收敛为zkyq/zkyq-dev，恢复与接管提示使用新命令，保留历史会话数据和授权约束"
+    },
+    {
+      "path": "src/main/runtime/orchestration/coordinator.test.ts",
+      "upstream_sha256": "28c596a364a04f4f408fed3534f459c90ad56ca0ca632d92428bfa65b7e015f1",
+      "current_sha256": "88e0dcc7f226bf00f8108ac8e029ef189752ad377f525c3a6fcba77b02364c0f",
+      "reason": "编排命令合同收敛为zkyq/zkyq-dev，恢复与接管提示使用新命令，保留历史会话数据和授权约束"
+    },
+    {
+      "path": "src/main/runtime/orchestration/db/runs/run-binding.ts",
+      "upstream_sha256": "a9cab205b140a1176c10351ad3b8d8d061ff91878d13366b100eccd4d487a1e1",
+      "current_sha256": "d7f1a576028e4daebdf0e0f83492ff1f4c866e5e96acc083ec4cecbaa7ac294c",
+      "reason": "编排命令合同收敛为zkyq/zkyq-dev，恢复与接管提示使用新命令，保留历史会话数据和授权约束"
+    },
+    {
+      "path": "src/main/runtime/orchestration/mailbox-pointer-stage.test.ts",
+      "upstream_sha256": "c27e75ff034d7ddc43e9e1fe12b17bc085455672eae56e7d86dcd9b5ed930f57",
+      "current_sha256": "e8c63763f2a886a4f3424d927dc01300703d2696fe0c0819e2f6a0eb8ec5f715",
+      "reason": "编排命令合同收敛为zkyq/zkyq-dev，恢复与接管提示使用新命令，保留历史会话数据和授权约束"
+    },
+    {
+      "path": "src/main/runtime/orchestration/orchestration-adopted-run-binding.test.ts",
+      "upstream_sha256": "5ef403faddae7983567f1e617529364196ed337ab1fca50cf917901801c3ff30",
+      "current_sha256": "bf6a6a5e5875f94585f4c255245a3b383d12cf7032b5e02d50cfbc9c9cdb125f",
+      "reason": "编排命令合同收敛为zkyq/zkyq-dev，恢复与接管提示使用新命令，保留历史会话数据和授权约束"
+    },
+    {
+      "path": "src/main/runtime/rpc/methods/orchestration-structured-worker-start-deadline.test.ts",
+      "upstream_sha256": "12ee9c91db02dece038624df58275deb8be86b2d9273d25a3a0d482448299034",
+      "current_sha256": "d74ee9272d3f82ad898b5274687be256c9031e92df619705e886a3325cd28241",
+      "reason": "编排命令合同收敛为zkyq/zkyq-dev，恢复与接管提示使用新命令，保留历史会话数据和授权约束"
+    },
+    {
+      "path": "src/main/runtime/rpc/methods/orchestration-structured-worker-start-failure.test.ts",
+      "upstream_sha256": "f4ed1ea94aa8ef6b56316eb07123ebfec747ddb3f93e21abcc1e6f1fbde9b3e4",
+      "current_sha256": "6c148553c5a4d4a5f907e1613b60814ad94545efaeba3e05e90da9a91656921d",
+      "reason": "编排命令合同收敛为zkyq/zkyq-dev，恢复与接管提示使用新命令，保留历史会话数据和授权约束"
+    },
+    {
+      "path": "src/main/runtime/rpc/methods/orchestration-worker-mode-opacity.test.ts",
+      "upstream_sha256": "628b0e6ce4a9c2bd0a3570f19e14953ff3d73690ed72254b0d17e255aa1d73bd",
+      "current_sha256": "a08e3d9ddcbff1deb0862c35a56d5236eeccc04449f1a3dc25cd29074e6a99fa",
+      "reason": "编排命令合同收敛为zkyq/zkyq-dev，恢复与接管提示使用新命令，保留历史会话数据和授权约束"
+    },
+    {
+      "path": "src/main/runtime/rpc/methods/orchestration-worker-release-incarnation-fallback.test.ts",
+      "upstream_sha256": "5597308723dc9024ebf019de542d0d6150e064b48ab6b2cf9880d889cad06813",
+      "current_sha256": "1e4ad374e36aca9581b710f0b0753f9f3383097d6de585147bbeb1622da91b1e",
+      "reason": "编排命令合同收敛为zkyq/zkyq-dev，恢复与接管提示使用新命令，保留历史会话数据和授权约束"
+    },
+    {
+      "path": "src/main/runtime/rpc/methods/orchestration-worker-start-mode-selection.test.ts",
+      "upstream_sha256": "c14b3e1211b47c904375f35cc9727ec00aaaa3226c92265dcc7667fbf6152224",
+      "current_sha256": "5268ac34a0ac2a19e9ccc91c522cbc236d83ad753f13e8c6716f22ff05687c17",
+      "reason": "编排命令合同收敛为zkyq/zkyq-dev，恢复与接管提示使用新命令，保留历史会话数据和授权约束"
+    },
+    {
+      "path": "src/main/runtime/rpc/methods/orchestration/federation/federated-worker-release.ts",
+      "upstream_sha256": "d3299cd6691b63e627c6394f0de5c66b8c909d8de6b4de24edaea1ee9385e2fc",
+      "current_sha256": "bd56583258223473213245409411862aab227adb48ea770e44df366f73a02c80",
+      "reason": "编排命令合同收敛为zkyq/zkyq-dev，恢复与接管提示使用新命令，保留历史会话数据和授权约束"
+    },
+    {
+      "path": "src/main/runtime/rpc/methods/orchestration/federation/federated-worker-start-receipts.ts",
+      "upstream_sha256": "bc084e64c600d0e26362c994f983ba9c1154391d7313d4ffffb062e1d9c98aed",
+      "current_sha256": "16366e855f3f6f5cf332ab325e7aa6ca23a03ad32585b8ccd23989c5d2433d61",
+      "reason": "编排命令合同收敛为zkyq/zkyq-dev，恢复与接管提示使用新命令，保留历史会话数据和授权约束"
+    },
+    {
+      "path": "src/main/runtime/rpc/methods/orchestration/federation/federation-agent-launch.test.ts",
+      "upstream_sha256": "f0a66ffce3b147c59fbacf36e3ff79108345c6746a179ef41c699d378ba47a8a",
+      "current_sha256": "12e0fb9b33e3e87bf4bf1b985402b79c6069bad304fd832f6316a10e5259fdab",
+      "reason": "编排命令合同收敛为zkyq/zkyq-dev，恢复与接管提示使用新命令，保留历史会话数据和授权约束"
+    },
+    {
+      "path": "src/main/runtime/rpc/methods/orchestration/federation/federation-lifecycle-settlement.test.ts",
+      "upstream_sha256": "5114daaf3ec36f23f2769c63b3c597934e0f8d605f424c42c246515a8e226073",
+      "current_sha256": "7c0c3a71780823824a58d3b36b445b909058fbd2d289580b5bf50c01c4eb25b7",
+      "reason": "编排命令合同收敛为zkyq/zkyq-dev，恢复与接管提示使用新命令，保留历史会话数据和授权约束"
+    },
+    {
+      "path": "src/main/runtime/rpc/methods/orchestration/federation/federation-output.test.ts",
+      "upstream_sha256": "6e377658ce89e4f9093ed09e2d4ad1a950ef5817509a2924deb5f24fe22ffe42",
+      "current_sha256": "23364febdf8e3f7cacf8454178d42cc1b848ba11c13435c367eed03c74b99463",
+      "reason": "编排命令合同收敛为zkyq/zkyq-dev，恢复与接管提示使用新命令，保留历史会话数据和授权约束"
+    },
+    {
+      "path": "src/main/runtime/rpc/methods/orchestration/federation/federation-runtime.test-support.ts",
+      "upstream_sha256": "667449288cfd52ed4736c3d4f78ca360bcb459f97a5c778528a3cd32a3b33742",
+      "current_sha256": "e03b625aeedc78601b219bed1ac440ee0ffea5038ba629af7761d857f6546fc3",
+      "reason": "编排命令合同收敛为zkyq/zkyq-dev，恢复与接管提示使用新命令，保留历史会话数据和授权约束"
+    },
+    {
+      "path": "src/main/runtime/rpc/methods/orchestration/worker/composed-workers.test.ts",
+      "upstream_sha256": "4368683da13204fc616c042b520505f6a2a6d6472342c25728312eab8e227aff",
+      "current_sha256": "5715542ca52f39150e59732cf610e835aee91e660e9a8a16f05a1b56aa45a1ae",
+      "reason": "编排命令合同收敛为zkyq/zkyq-dev，恢复与接管提示使用新命令，保留历史会话数据和授权约束"
+    },
+    {
+      "path": "src/main/runtime/rpc/methods/orchestration/worker/manual-dispatch-observation.test.ts",
+      "upstream_sha256": "310961b75c679fe57341c18d4a02eff63471e72081e5815c82b66b12df98d66e",
+      "current_sha256": "0d721efcf658cbc3cbb0c9341f0008c6f2ab98306a60ebb01628af1d09587d0a",
+      "reason": "编排命令合同收敛为zkyq/zkyq-dev，恢复与接管提示使用新命令，保留历史会话数据和授权约束"
+    },
+    {
+      "path": "src/main/runtime/rpc/methods/orchestration/worker/worker-release-completion.ts",
+      "upstream_sha256": "a86a10b12fdee65010d983ade6311f8dd01064ccaea48fc87936f4182c810a6a",
+      "current_sha256": "940bffa26deff3d81adf97bd669cbd65de4da4d7b7036c9621b3bdb174e57604",
+      "reason": "编排命令合同收敛为zkyq/zkyq-dev，恢复与接管提示使用新命令，保留历史会话数据和授权约束"
+    },
+    {
+      "path": "src/main/runtime/rpc/methods/orchestration/worker/worker-release-recovery.test.ts",
+      "upstream_sha256": "fa3ceb372844868be269b7f5d52d9310f27877b27be3d2003f8eff1ecb0a103a",
+      "current_sha256": "a237f1e779ea83d115834b425840d071f6760e1d5a0d2136cdad7d54cf6cc673",
+      "reason": "编排命令合同收敛为zkyq/zkyq-dev，恢复与接管提示使用新命令，保留历史会话数据和授权约束"
+    },
+    {
+      "path": "src/main/runtime/rpc/methods/orchestration/worker/worker-release.test-support.ts",
+      "upstream_sha256": "e05da6f6e0b77e79d6582225a4a76daeb46e7ba6fe95d8b45fc56595bb91e8ae",
+      "current_sha256": "28a3d8e3c02e4b3cbe8bdd16228eb8df2b23cb0d24934a878940c407016b61ef",
+      "reason": "编排命令合同收敛为zkyq/zkyq-dev，恢复与接管提示使用新命令，保留历史会话数据和授权约束"
+    },
+    {
+      "path": "src/main/runtime/rpc/methods/orchestration/worker/worker-start-prompt-contract.test.ts",
+      "upstream_sha256": "084345e8789463930251fa7e1120787ceb1da2108f30cb04c5f5b55ba3196d1d",
+      "current_sha256": "1cfbed9d58c1c0b230985aa4d75cdca1af45705869415bf474e952f3acd99cc1",
+      "reason": "编排命令合同收敛为zkyq/zkyq-dev，恢复与接管提示使用新命令，保留历史会话数据和授权约束"
+    },
+    {
+      "path": "src/main/runtime/rpc/methods/orchestration/worker/worker-start-readiness-settlement.test.ts",
+      "upstream_sha256": "81651bb5dff9bdc5a176d479ebe2daa3a0d1a4a286cb36daffbceb34dd0cac9d",
+      "current_sha256": "146f2111d0734c8bcc881575245dd1c714a9d9025f4f9c43d0cbe37959280e95",
+      "reason": "编排命令合同收敛为zkyq/zkyq-dev，恢复与接管提示使用新命令，保留历史会话数据和授权约束"
+    },
+    {
+      "path": "src/main/runtime/rpc/methods/orchestration/worker/worker-start-readiness-settlement.ts",
+      "upstream_sha256": "2779f440bd1b5f431c9724f4ae67db816bf486c4a921960e9c819b67cbf234bf",
+      "current_sha256": "9c9d88c4accd5e2ef0e22eba482658d21a21486b28eabe8234ad52215f7d0211",
+      "reason": "编排命令合同收敛为zkyq/zkyq-dev，恢复与接管提示使用新命令，保留历史会话数据和授权约束"
+    },
+    {
+      "path": "src/main/runtime/rpc/methods/orchestration/worker/worker-start-receipt.ts",
+      "upstream_sha256": "985c21fcbe9f8b5c1630ccf949713b0d8c151ffff44bbf81eaa6ea6bb7218abb",
+      "current_sha256": "96826218535856fd290744466c68a980d1041b28a152c1b34fd5a7ee9e59ae8e",
+      "reason": "编排命令合同收敛为zkyq/zkyq-dev，恢复与接管提示使用新命令，保留历史会话数据和授权约束"
+    },
+    {
+      "path": "src/main/runtime/rpc/methods/orchestration/worker/workers-new-worktree.test.ts",
+      "upstream_sha256": "85234fec1908599e2471161282850321f831aee078c2db52237aeceacf918ae2",
+      "current_sha256": "59e5e4bff25453cee1eb753d29716603e02c72ebd1cdab7eed644bdaca20dbd2",
+      "reason": "编排命令合同收敛为zkyq/zkyq-dev，恢复与接管提示使用新命令，保留历史会话数据和授权约束"
+    },
+    {
+      "path": "src/main/runtime/rpc/orchestration-11745-regression-verification.test.ts",
+      "upstream_sha256": "19174a59be5aa7afe82aa8f2a5015dfe8ecf3ccc4b685b87bb58f718134437e6",
+      "current_sha256": "6d0376eca53983ee95f1b1b94a2ae993119bec4e99471a4823ffb59763cd8a64",
+      "reason": "编排命令合同收敛为zkyq/zkyq-dev，恢复与接管提示使用新命令，保留历史会话数据和授权约束"
+    },
+    {
+      "path": "src/main/runtime/rpc/orchestration-legacy-compatibility-dispatcher.test.ts",
+      "upstream_sha256": "fd5d509d586551d9941caffbe8d0751a1d3bf8548217d21ac7d7a63819a0819d",
+      "current_sha256": "b158e446d7ba994d3eb9ea691727a64334d56966ff77f2c01cde5f00138ef2ec",
+      "reason": "编排命令合同收敛为zkyq/zkyq-dev，恢复与接管提示使用新命令，保留历史会话数据和授权约束"
+    },
+    {
+      "path": "src/main/runtime/rpc/orchestration-legacy-fence-jurisdiction.test.ts",
+      "upstream_sha256": "0ebdbee4cf8c55d71b03bffb8c8a2379d0897d198a6fbe188e85f5ad53e7b576",
+      "current_sha256": "19a7346b01b7ab1dce057e07596b6cdda463920163c76da67508481497f2dbaf",
+      "reason": "编排命令合同收敛为zkyq/zkyq-dev，恢复与接管提示使用新命令，保留历史会话数据和授权约束"
+    },
+    {
+      "path": "src/main/runtime/rpc/orchestration-legacy-mail.ts",
+      "upstream_sha256": "563f18fb2d263e96afcd8122602f90cd32f6946c1a824ff666a852be64869419",
+      "current_sha256": "d5157f8dae87f35a90e80abe39b4517ac985a8f4a1764bdee6383e0b326d0527",
+      "reason": "编排命令合同收敛为zkyq/zkyq-dev，恢复与接管提示使用新命令，保留历史会话数据和授权约束"
+    },
+    {
+      "path": "src/main/runtime/rpc/orchestration-legacy-question.ts",
+      "upstream_sha256": "df475d07c498e80adfdb4f47a2bdc1142a7a8524852b8c9b077fee070084389e",
+      "current_sha256": "43bd891aa01b15d47a4c42cbb379604da9e8599f41b55251abdc625fbcc17864",
+      "reason": "编排命令合同收敛为zkyq/zkyq-dev，恢复与接管提示使用新命令，保留历史会话数据和授权约束"
+    },
+    {
+      "path": "src/main/runtime/rpc/orchestration-legacy-run-routing.test.ts",
+      "upstream_sha256": "1d2d5ab41f169decc2bcd96ec0a4b6ec62c9d13d93e4abbc787b16a33f787262",
+      "current_sha256": "b80d196f95f51562c4a42a828732b1b310ebc770764d4ab31401e5448e89fd21",
+      "reason": "编排命令合同收敛为zkyq/zkyq-dev，恢复与接管提示使用新命令，保留历史会话数据和授权约束"
+    },
+    {
+      "path": "src/main/runtime/rpc/orchestration-legacy-takeover-dispatcher.test.ts",
+      "upstream_sha256": "2227cafabf49973c07d19b45ad4d605325148b7c69e3ff07c3b5a89745a9c28a",
+      "current_sha256": "382d56ec7e2ecbca32686656220d9c58d57b639cc0ade8052950f25780971bb9",
+      "reason": "编排命令合同收敛为zkyq/zkyq-dev，恢复与接管提示使用新命令，保留历史会话数据和授权约束"
+    },
+    {
+      "path": "src/main/runtime/rpc/orchestration-mutation-executor.ts",
+      "upstream_sha256": "58ad572ff0f59725f847477f007f5fa675559d2a24ebea0b4e042a33715e9f4f",
+      "current_sha256": "dcc939385b7aeaea4181f2dc5689a2d68f6f809881de8801529804c569dfcc7d",
+      "reason": "编排命令合同收敛为zkyq/zkyq-dev，恢复与接管提示使用新命令，保留历史会话数据和授权约束"
+    },
+    {
+      "path": "src/main/runtime/rpc/orchestration-mutation-ledger.test.ts",
+      "upstream_sha256": "6200d2728694a749a6701a563f278d33ce1d139f106d34dc6bac01d505c0c3d4",
+      "current_sha256": "552c86ca15b970d28549c1611006f7b5cad4b102316003d9ce6bca65f0063c44",
+      "reason": "编排命令合同收敛为zkyq/zkyq-dev，恢复与接管提示使用新命令，保留历史会话数据和授权约束"
+    },
+    {
+      "path": "src/main/runtime/structured-worker-terminal-refusal.test.ts",
+      "upstream_sha256": "6e53e7acab952e42655e4f3fe5b0ec77ae2895dc10de1172d31c784017f46b3e",
+      "current_sha256": "324c86f455128cf01883c78e5ab717070f8d683c391829e3776533b8d3d18aef",
+      "reason": "编排命令合同收敛为zkyq/zkyq-dev，恢复与接管提示使用新命令，保留历史会话数据和授权约束"
+    },
+    {
+      "path": "src/main/runtime/structured-worker-terminal-refusal.ts",
+      "upstream_sha256": "e8e734e6122f84737d9cf6a278e98265576f098db7f2f5409771145f01c9dd0d",
+      "current_sha256": "dc48e44c8b4d7a9be17490854427cd10dec778b02a318512d75d875b7cff7636",
+      "reason": "编排命令合同收敛为zkyq/zkyq-dev，恢复与接管提示使用新命令，保留历史会话数据和授权约束"
     }
   ],
   "reviewed_findings": [

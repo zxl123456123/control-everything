@@ -1,7 +1,7 @@
 import type { ProjectExecutionRuntimeResolution } from '../../../shared/project-execution-runtime'
 import { getAppEnvironment, hasAppEnvironment } from '../../../shared/app-environment'
 
-export type OrchestrationCliCommand = 'zkyq' | 'orca' | 'zkyq-dev' | 'orca-ide'
+export type OrchestrationCliCommand = 'zkyq' | 'zkyq-dev'
 
 /** Dev builds run the CLI as `zkyq-dev`; a packaged app, or a process with no app, must not advertise it. */
 export function runtimeOrchestrationCliCommand(): OrchestrationCliCommand | undefined {

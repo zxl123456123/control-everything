@@ -179,8 +179,8 @@ describe('formatMessagePointer', () => {
   })
 
   it('uses the terminal-resolved CLI command', () => {
-    expect(formatMessagePointer(1, 'run:run_wsl', 'orca-ide')).toContain(
-      '`orca-ide orchestration check --run run_wsl`'
+    expect(formatMessagePointer(1, 'run:run_wsl', 'zkyq')).toContain(
+      '`zkyq orchestration check --run run_wsl`'
     )
     expect(formatMessagePointer(1, 'run:run_dev', 'zkyq-dev')).toContain(
       '`zkyq-dev orchestration check --run run_dev`'

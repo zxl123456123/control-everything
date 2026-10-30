@@ -43,7 +43,7 @@ const skip = skipForMissingInputs('artifact', hasCli ? [] : ['the packaged serve
 function serverCliLauncher(userData: string): string {
   if (process.platform === 'win32') {
     const binDir = join(userData, 'cli', 'bin')
-    const launcher = join(binDir, 'orca.exe')
+    const launcher = join(binDir, 'zkyq.exe')
     mkdirSync(binDir, { recursive: true })
     copyFileSync(windowsLauncher, launcher)
     writeFileSync(
@@ -52,7 +52,7 @@ function serverCliLauncher(userData: string): string {
     )
     return launcher
   }
-  const launcher = join(userData, 'orca')
+  const launcher = join(userData, 'zkyq')
   writeFileSync(launcher, buildUnixCliLauncher(runtime!, cliEntry, userData, 'node'), {
     mode: 0o700
   })
@@ -159,6 +159,7 @@ it.skipIf(skip)(
         { params: { resume: 'msg_1' } }
       ])
       for (const request of requests.filter((request) => request.method === 'orchestration.ask')) {
+        expect(request.params).toMatchObject({ compatibilityCliCommand: 'zkyq' })
         expect(request.params).not.toHaveProperty('compatibilityWindowsCommand')
       }
       const version = await runProcess({

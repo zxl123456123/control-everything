@@ -134,7 +134,7 @@ describe('buildDispatchPreamble', () => {
   })
 
   it('uses zkyq-dev CLI when devMode is true', () => {
-    const result = buildDispatchPreamble(baseParams({ devMode: true, cliCommand: 'orca-ide' }))
+    const result = buildDispatchPreamble(baseParams({ devMode: true, cliCommand: 'zkyq-dev' }))
     expect(result).toContain('zkyq-dev orchestration send')
     expect(result).toContain('zkyq-dev orchestration check')
     expect(result).toContain('zkyq-dev orchestration ask')
@@ -144,12 +144,12 @@ describe('buildDispatchPreamble', () => {
     }
   })
 
-  it('uses the exact orca-ide command for packaged WSL workers', () => {
-    const result = buildDispatchPreamble(baseParams({ cliCommand: 'orca-ide' }))
+  it('uses an explicit development command without inferring the host mode', () => {
+    const result = buildDispatchPreamble(baseParams({ cliCommand: 'zkyq-dev' }))
 
-    expect(result).toContain('orca-ide orchestration send')
-    expect(result).toContain('orca-ide orchestration check')
-    expect(result).toContain('orca-ide orchestration ask')
+    expect(result).toContain('zkyq-dev orchestration send')
+    expect(result).toContain('zkyq-dev orchestration check')
+    expect(result).toContain('zkyq-dev orchestration ask')
     expect(result).not.toMatch(/(^|\s)orca orchestration/m)
   })
 

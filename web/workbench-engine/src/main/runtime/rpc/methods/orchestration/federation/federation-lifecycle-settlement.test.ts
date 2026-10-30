@@ -118,7 +118,7 @@ describe('orchestration federation lifecycle settlement', () => {
     vi.spyOn(workerRuntime, 'getTerminalProcessIncarnation').mockReturnValue(
       'windows_runtime:pty:1'
     )
-    vi.spyOn(workerRuntime, 'getTerminalOrchestrationCliCommand').mockReturnValue('orca')
+    vi.spyOn(workerRuntime, 'getTerminalOrchestrationCliCommand').mockReturnValue('zkyq')
     vi.spyOn(workerRuntime, 'sendTerminalAgentPrompt').mockResolvedValue({
       handle: 'term_windows_worker',
       accepted: true,
