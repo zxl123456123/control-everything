@@ -331048,8 +331048,8 @@
     {
       "path": "src/cli/handlers/serve-service.test.ts",
       "upstream_sha256": "085a3d1f7c68e4bb58f14fcc77ee56b1e6d5196e22f1503b783b26980b5d0475",
-      "current_sha256": "c46cdfefec6cb67903088529bb6251ea9e137aa5f64b23cffd8ff30db1bcf598",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+      "current_sha256": "51e6cf0955d4098a6c1a1d0cca497545615a7e653891dc731d71b49ae256430b",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；服务安装按当前zkyq入口查找，统一服务生成和操作指导，保留profile和服务管理约束"
     },
     {
       "path": "src/cli/index-automation-run-output.test.ts",
@@ -331144,8 +331144,8 @@
     {
       "path": "src/cli/runtime/serve-service-unit.ts",
       "upstream_sha256": "73b42c7cefc4928f356bd5b476fbd4c7b1e8be7de3f02ddb3ac9eb0cb3c2597b",
-      "current_sha256": "0e37ab6496b1e24e26705bf682bd46766a45b0e30c4f4872d29b61b217b3ce0e",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+      "current_sha256": "b189551f8c244aeeff9dee48e040092264c49b965911f3c010655219b3fb923e",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；服务安装按当前zkyq入口查找，统一服务生成和操作指导，保留profile和服务管理约束"
     },
     {
       "path": "src/cli/runtime/status.test.ts",
@@ -331752,6 +331752,42 @@
       "upstream_sha256": "294902f0ce688c70dbe2b14966198a61300dea63426f3dc0c850d6355e938c57",
       "current_sha256": "d642b858912f144e8de132f7a690e1de529d1c8a36abd20f74f92ee3adb7e6a0",
       "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/cli/handlers/serve-service-format.ts",
+      "upstream_sha256": "4ac48624e6e7c3bccd9f525f0337a206b5c79fdd84bf0392e081349347f0915c",
+      "current_sha256": "db2848964c77286e9054ee95dda414d03f3876c2620aebf9227ae49abdb9deaa",
+      "reason": "服务安装按当前zkyq入口查找，统一服务生成和操作指导，保留profile和服务管理约束"
+    },
+    {
+      "path": "src/cli/handlers/serve-service.ts",
+      "upstream_sha256": "9c3355e0245546063057a6f4f2e0c26f398448e67e627e4043cd2374762ae4e7",
+      "current_sha256": "fa4b420e805f6eadf96ec5ef41fc40cee2e0332dec7b06bf259b702917e0dad9",
+      "reason": "服务安装按当前zkyq入口查找，统一服务生成和操作指导，保留profile和服务管理约束"
+    },
+    {
+      "path": "src/cli/runtime/orca-app-executable.ts",
+      "upstream_sha256": "0171687f0c8f266258260684a9cd79b9f92cb6b638b597e9805f6f8f0186909e",
+      "current_sha256": "ecfda44cbe0a23c06e6beea14e24a28c832dc84fb51f26bcdd3fef2bff9a1c3d",
+      "reason": "服务安装按当前zkyq入口查找，统一服务生成和操作指导，保留profile和服务管理约束"
+    },
+    {
+      "path": "src/cli/runtime/serve-app-launcher.ts",
+      "upstream_sha256": "b6493f619c79771ba863421a09a44b0a8fdd58ba11103b88ef06c367c169c566",
+      "current_sha256": "c32ab99ab27b5c1690b6d530e120928ef4f15e772a44171ec3af975412d1998c",
+      "reason": "服务安装按当前zkyq入口查找，统一服务生成和操作指导，保留profile和服务管理约束"
+    },
+    {
+      "path": "src/cli/runtime/serve-supervisor-brake.ts",
+      "upstream_sha256": "765c31115e61063874fdcce992da15eec8bb1208b38da77a53f86b94491e5ab9",
+      "current_sha256": "481a7659fc54a4ca6993eb2e6dbe8567554bd865234f028b99f68d5714c3f537",
+      "reason": "服务安装按当前zkyq入口查找，统一服务生成和操作指导，保留profile和服务管理约束"
+    },
+    {
+      "path": "src/cli/specs/serve.ts",
+      "upstream_sha256": "6431a280314ee8cb4ad4b092e81ed2fa093579708e5ff7422a484bad36996f5e",
+      "current_sha256": "337758bd6c757758d3691fc3e99b99ea347f4f0cbeacbfa24df5124b9695c96a",
+      "reason": "服务安装按当前zkyq入口查找，统一服务生成和操作指导，保留profile和服务管理约束"
     }
   ],
   "reviewed_findings": [
@@ -332319,14 +332355,14 @@
       "path": "src/cli/specs/serve.ts",
       "rule": "fixed-external-ipv4",
       "line": 40,
-      "sha256": "6431a280314ee8cb4ad4b092e81ed2fa093579708e5ff7422a484bad36996f5e",
+      "sha256": "337758bd6c757758d3691fc3e99b99ea347f4f0cbeacbfa24df5124b9695c96a",
       "reason": "公开界面占位或CLI用法示例，非采集的个人配置；限定本行字节，实际运行地址仍由用户配置。"
     },
     {
       "path": "src/cli/specs/serve.ts",
       "rule": "fixed-external-ipv4",
       "line": 41,
-      "sha256": "6431a280314ee8cb4ad4b092e81ed2fa093579708e5ff7422a484bad36996f5e",
+      "sha256": "337758bd6c757758d3691fc3e99b99ea347f4f0cbeacbfa24df5124b9695c96a",
       "reason": "公开界面占位或CLI用法示例，非采集的个人配置；限定本行字节，实际运行地址仍由用户配置。"
     },
     {

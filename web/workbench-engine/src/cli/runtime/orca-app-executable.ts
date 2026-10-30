@@ -31,7 +31,7 @@ export function resolveForegroundOrcaExecutable(): string {
   if (process.env.ELECTRON_RUN_AS_NODE === '1') {
     return process.execPath
   }
-  throw new RuntimeClientError('runtime_serve_failed', serverOnlyServeMessage(process.platform))
+  throw new RuntimeClientError('runtime_serve_failed', serverOnlyServeMessage())
 }
 
 export function stripElectronRunAsNode(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {

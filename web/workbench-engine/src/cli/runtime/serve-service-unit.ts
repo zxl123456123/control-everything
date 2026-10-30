@@ -1,4 +1,4 @@
-/** Pure rendering of the per-user service units `orca serve service install` writes. */
+/** Pure rendering of the per-user service units `zkyq serve service install` writes. */
 import { createHash } from 'node:crypto'
 import { join } from 'node:path'
 import { SERVE_LAUNCHD_LABEL_PREFIX } from '../../shared/serve-bundle-coordination'
@@ -17,7 +17,7 @@ export type ServeServiceSpec = {
 export type ServeServiceInput = {
   platform: NodeJS.Platform
   homeDir: string
-  /** Absolute path of the stable `orca` launcher, never a version-specific executable. */
+  /** Absolute path of the stable `zkyq` launcher, never a version-specific executable. */
   command: string
   userDataPath: string
   /** The profile's userData when no override is set; that profile gets the plain name. */
@@ -150,7 +150,7 @@ function renderSystemdUnit(argv: string[], env: Record<string, string>): string 
   // Why KillMode=process: stopping the service stops the supervisor, which stops its server; the
   // terminal daemon is designed to outlive the server, as it outlives the desktop app.
   return `[Unit]
-Description=Orca server (orca serve --supervise)
+Description=Control Everything server (zkyq serve --supervise)
 StartLimitIntervalSec=900
 StartLimitBurst=5
 

@@ -1,7 +1,7 @@
 import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { delimiter, join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import {
   installServeService,
@@ -11,8 +11,9 @@ import {
 } from './serve-service'
 import { resolveServiceCommand } from '../runtime/serve-app-launcher'
 import { serveSupervisorBrakePath } from '../runtime/serve-supervisor-brake'
+import { formatServeServiceInstall, formatServeServiceStatus } from './serve-service-format'
 
-describe('orca serve service', () => {
+describe('zkyq serve service', () => {
   let home: string
   let bin: string
   let calls: string[]
@@ -22,10 +23,10 @@ describe('orca serve service', () => {
     home = await mkdtemp(join(tmpdir(), 'orca-serve-service-'))
     bin = join(home, 'bin')
     await mkdir(bin)
-    await writeFile(join(bin, 'orca'), '#!/bin/sh\n')
-    await chmod(join(bin, 'orca'), 0o755)
-    await writeFile(join(bin, 'orca-ide'), '#!/bin/sh\n')
-    await chmod(join(bin, 'orca-ide'), 0o755)
+    for (const name of ['zkyq', 'orca', 'orca-ide']) {
+      await writeFile(join(bin, name), '#!/bin/sh\n')
+      await chmod(join(bin, name), 0o755)
+    }
     calls = []
     answers = new Map()
   })
@@ -37,7 +38,7 @@ describe('orca serve service', () => {
   const deps = (platform: NodeJS.Platform): ServeServiceDeps => ({
     platform,
     env: {
-      PATH: `/nonexistent:${bin}`,
+      PATH: `/nonexistent${delimiter}${bin}`,
       ZKYQ_USER_DATA_PATH: join(home, 'profile'),
       ELECTRON_RUN_AS_NODE: '1'
     },
@@ -55,7 +56,7 @@ describe('orca serve service', () => {
     await writeFile(serveSupervisorBrakePath(join(home, 'profile')), '{}')
     const result = await installServeService({ command: null, dryRun: false }, deps('darwin'))
     const unitPath = String(result.unitPath)
-    expect(await readFile(unitPath, 'utf8')).toContain(`<string>${join(bin, 'orca')}</string>`)
+    expect(await readFile(unitPath, 'utf8')).toContain(`<string>${join(bin, 'zkyq')}</string>`)
     expect(calls).toEqual([
       expect.stringMatching(/^launchctl bootout gui\/501\/com\.stablyai\.orca\.serve\./),
       `launchctl bootstrap gui/501 ${unitPath}`
@@ -68,6 +69,10 @@ describe('orca serve service', () => {
     answers.set('loginctl show-user 501 --property=Linger --value', { code: 0, out: 'no\n' })
     const result = await installServeService({ command: null, dryRun: false }, d)
     expect(result.linger).toBe('no')
+    expect(await readFile(String(result.unitPath), 'utf8')).toContain(
+      'Description=Control Everything server (zkyq serve --supervise)'
+    )
+    expect(formatServeServiceInstall(result)).toContain('`zkyq serve`')
     expect(calls.slice(0, 3)).toEqual([
       'systemctl --user daemon-reload',
       expect.stringMatching(/^systemctl --user enable orca-serve-[0-9a-f]{8}\.service$/),
@@ -121,15 +126,15 @@ describe('orca serve service', () => {
   it('never picks a version-scoped launcher from the profile or a mounted AppImage', async () => {
     const scoped = join(home, 'profile', 'cli', 'bin')
     await mkdir(scoped, { recursive: true })
-    await writeFile(join(scoped, 'orca'), '#!/bin/sh\n')
-    await chmod(join(scoped, 'orca'), 0o755)
+    await writeFile(join(scoped, 'zkyq'), '#!/bin/sh\n')
+    await chmod(join(scoped, 'zkyq'), 0o755)
     expect(
       resolveServiceCommand(null, {
         platform: 'darwin',
-        env: { PATH: `${scoped}:${bin}`, ZKYQ_USER_DATA_PATH: join(home, 'profile') }
+        env: { PATH: `${scoped}${delimiter}${bin}`, ZKYQ_USER_DATA_PATH: join(home, 'profile') }
       })
-    ).toBe(join(bin, 'orca'))
-    // Linux takes only orca-ide, never a bare `orca` (often the screen reader).
+    ).toBe(join(bin, 'zkyq'))
+    // Retired commands, including a screen reader named orca, are never selected.
     const onlyOrca = join(home, 'only-orca')
     await mkdir(onlyOrca)
     await writeFile(join(onlyOrca, 'orca'), '#!/bin/sh\n')
@@ -140,6 +145,27 @@ describe('orca serve service', () => {
         env: { PATH: onlyOrca, ZKYQ_USER_DATA_PATH: join(home, 'profile') }
       })
     ).toThrow(/PATH/)
+    await writeFile(join(onlyOrca, 'orca-ide'), '#!/bin/sh\n')
+    await chmod(join(onlyOrca, 'orca-ide'), 0o755)
+    for (const platform of ['linux', 'darwin'] as const) {
+      expect(() =>
+        resolveServiceCommand(null, {
+          platform,
+          env: { PATH: onlyOrca, ZKYQ_USER_DATA_PATH: join(home, 'profile') }
+        })
+      ).toThrow(/`zkyq` command on PATH/)
+    }
+  })
+
+  it('keeps an explicitly selected stable custom launcher', async () => {
+    const custom = join(bin, 'custom launcher')
+    await writeFile(custom, '#!/bin/sh\n')
+    await chmod(custom, 0o755)
+    expect(resolveServiceCommand(custom, deps('linux'))).toBe(custom)
+    const status = await readServeServiceStatus(deps('darwin'))
+    expect(formatServeServiceStatus({ ...status, installed: false, verdict: 'exited' })).toContain(
+      '`zkyq serve service install`'
+    )
   })
 
   it('refuses Windows and a relative --command', async () => {
@@ -151,8 +177,8 @@ describe('orca serve service', () => {
       resolveServiceCommand(null, { platform: 'darwin', env: { PATH: '/nonexistent' } })
     ).toThrow(/PATH/)
   })
-  it('names the command to run when only a server-only orca exists here', async () => {
-    // The `orca` an SSH-launched Orca server puts on a remote host runs on plain Node.
+  it('names the command to run when only a server-scoped launcher exists here', async () => {
+    // An SSH-managed launcher runs on plain Node and belongs to that server.
     const serverCli = (platform: NodeJS.Platform, path: string): ServeServiceDeps => {
       const base = deps(platform)
       const { ELECTRON_RUN_AS_NODE: _electron, ...env } = base.env
@@ -160,37 +186,37 @@ describe('orca serve service', () => {
     }
     const scoped = join(home, 'profile', 'cli', 'bin')
     await mkdir(scoped, { recursive: true })
-    await writeFile(join(scoped, 'orca'), '#!/bin/sh\n')
-    await chmod(join(scoped, 'orca'), 0o755)
+    await writeFile(join(scoped, 'zkyq'), '#!/bin/sh\n')
+    await chmod(join(scoped, 'zkyq'), 0o755)
     await expect(
       installServeService({ command: null, dryRun: false }, serverCli('linux', scoped))
-    ).rejects.toThrow(/install the Orca app.*`orca-ide serve service install`/i)
+    ).rejects.toThrow(/install the Control Everything app.*`zkyq serve service install`/i)
     await expect(
       installServeService({ command: null, dryRun: true }, serverCli('darwin', scoped))
-    ).rejects.toThrow(/`orca serve service install`/)
+    ).rejects.toThrow(/`zkyq serve service install`/)
     expect(calls).toEqual([])
     // An installed app's launcher on PATH (or named by --command) still works from that terminal.
     await expect(
-      installServeService({ command: null, dryRun: true }, serverCli('linux', `${scoped}:${bin}`))
+      installServeService(
+        { command: null, dryRun: true },
+        serverCli('linux', `${scoped}${delimiter}${bin}`)
+      )
     ).resolves.toMatchObject({ dryRun: true })
     await expect(
-      installServeService(
-        { command: join(bin, 'orca-ide'), dryRun: true },
-        serverCli('linux', scoped)
-      )
+      installServeService({ command: join(bin, 'zkyq'), dryRun: true }, serverCli('linux', scoped))
     ).resolves.toMatchObject({ dryRun: true })
   })
 
-  it('refuses a --command tied to one Orca version', async () => {
+  it('refuses a --command tied to one app version', async () => {
     const scoped = join(home, 'profile', 'cli', 'bin')
     await mkdir(scoped, { recursive: true })
-    await writeFile(join(scoped, 'orca'), '#!/bin/sh\n')
-    await chmod(join(scoped, 'orca'), 0o755)
+    await writeFile(join(scoped, 'zkyq'), '#!/bin/sh\n')
+    await chmod(join(scoped, 'zkyq'), 0o755)
     expect(() =>
-      resolveServiceCommand(join(scoped, 'orca'), {
+      resolveServiceCommand(join(scoped, 'zkyq'), {
         platform: 'darwin',
         env: { ZKYQ_USER_DATA_PATH: join(home, 'profile') }
       })
-    ).toThrow(/one Orca version/)
+    ).toThrow(/one app version/)
   })
 })
