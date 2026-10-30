@@ -1,5 +1,15 @@
-import { accessSync, constants as fsConstants, existsSync, statSync } from 'node:fs'
-import { isAbsolute, join, normalize } from 'node:path'
+import {
+  accessSync,
+  closeSync,
+  constants as fsConstants,
+  existsSync,
+  fstatSync,
+  openSync,
+  readSync,
+  realpathSync,
+  statSync
+} from 'node:fs'
+import { isAbsolute, join, normalize, relative, resolve } from 'node:path'
 import type {
   EphemeralVmRecipeDoctorCheck,
   EphemeralVmRecipeDoctorResult
@@ -81,7 +91,114 @@ export function doctorEphemeralVmRecipe(args: {
     })
   }
 
+  for (const [phase, command] of [
+    ['create', recipe.create],
+    ['suspend', recipe.suspend],
+    ['resume', recipe.resume],
+    ['destroy', recipe.destroy]
+  ] as const) {
+    if (command) checks.push(...inspectLegacyRecipeEnvironment(args.repoPath, phase, command))
+  }
+  checks.push({
+    id: 'recipe.environment_inspection_scope',
+    status: 'warn',
+    message: 'Only explicit commands and identifiable entry scripts are inspected.',
+    remediation: 'Also review indirectly called scripts and dynamically constructed variable names.'
+  })
+
   return buildDoctorResult(args.recipeId, args.repoPath, checks)
+}
+
+const LEGACY_RECIPE_VARIABLE =
+  /(?<![A-Za-z0-9_])ORCA_(?:VM_MODE|VM_INSTANCE_ID|RECIPE_ID|PROJECT_ID|WORKSPACE_ID|WORKSPACE_NAME|REPO_PATH|REPO_URL|REPO_BRANCH|REPO_REF_HEAD|REPO_REF|RECIPE_RESULT_SCHEMA_VERSION|VERSION)(?![A-Za-z0-9_])/gi
+const MAX_RECIPE_SCRIPT_BYTES = 256 * 1024
+
+function inspectLegacyRecipeEnvironment(
+  repoPath: string,
+  phase: string,
+  command: string
+): EphemeralVmRecipeDoctorCheck[] {
+  const names = new Set(
+    (command.match(LEGACY_RECIPE_VARIABLE) ?? []).map((name) => name.toUpperCase())
+  )
+  let inspected = false
+  const token = /^(?:"([^"]+)"|'([^']+)'|([^\s]+))(?:\s+|$)/
+  let rest = command.trim()
+  const first = token.exec(rest)
+  let script = first?.[1] ?? first?.[2] ?? first?.[3]
+  rest = first ? rest.slice(first[0].length) : ''
+  if (
+    script &&
+    /^(?:bash|sh|zsh|node|python(?:3(?:\.\d+)?)?|pwsh|powershell)(?:\.exe)?$/i.test(script)
+  ) {
+    if (/^-file\s+/i.test(rest)) rest = rest.replace(/^-file\s+/i, '')
+    const second = token.exec(rest)
+    script = second?.[1] ?? second?.[2] ?? second?.[3]
+    rest = second ? rest.slice(second[0].length) : ''
+  }
+  if (
+    script &&
+    /^\.[/\\]/.test(script) &&
+    /\.(?:sh|bash|zsh|ps1|cmd|bat|js|cjs|mjs|ts|py)$/i.test(script) &&
+    !/[;&|<>`$()]/.test(script) &&
+    !/[;&|<>`]/.test(rest)
+  ) {
+    try {
+      const root = realpathSync(repoPath)
+      const path = realpathSync(resolve(root, script))
+      const inside = relative(root, path)
+      if (
+        !inside ||
+        inside === '..' ||
+        inside.startsWith(`..${process.platform === 'win32' ? '\\' : '/'}`) ||
+        isAbsolute(inside)
+      ) {
+        throw new Error('outside repo')
+      }
+      const fd = openSync(path, fsConstants.O_RDONLY | (fsConstants.O_NONBLOCK ?? 0))
+      try {
+        const stat = fstatSync(fd)
+        if (!stat.isFile() || stat.size > MAX_RECIPE_SCRIPT_BYTES)
+          throw new Error('not a bounded file')
+        const buffer = Buffer.alloc(MAX_RECIPE_SCRIPT_BYTES + 1)
+        let length = 0
+        while (length < buffer.length) {
+          const read = readSync(fd, buffer, length, buffer.length - length, null)
+          if (!read) break
+          length += read
+        }
+        if (length > MAX_RECIPE_SCRIPT_BYTES || buffer.subarray(0, length).includes(0))
+          throw new Error('not text')
+        const content = new TextDecoder('utf-8', { fatal: true }).decode(buffer.subarray(0, length))
+        for (const name of content.match(LEGACY_RECIPE_VARIABLE) ?? [])
+          names.add(name.toUpperCase())
+        inspected = true
+      } finally {
+        closeSync(fd)
+      }
+    } catch {
+      // A diagnostic must not execute or rewrite an uninspectable recipe.
+    }
+  }
+  const checks: EphemeralVmRecipeDoctorCheck[] = []
+  if (names.size) {
+    const mappings = [...names].sort().map((name) => `${name} → ${name.replace(/^ORCA_/, 'ZKYQ_')}`)
+    checks.push({
+      id: `recipe.${phase}.legacy_environment`,
+      status: 'warn',
+      message: `Possible legacy recipe variables: ${mappings.join(', ')}.`,
+      remediation: 'Review and migrate the references; also inspect scripts called indirectly.'
+    })
+  }
+  if (!inspected) {
+    checks.push({
+      id: `recipe.${phase}.environment_uninspected`,
+      status: 'warn',
+      message: 'Could not inspect this recipe script for legacy environment variables.',
+      remediation: 'Review its commands and any scripts they call; no files were changed.'
+    })
+  }
+  return checks
 }
 
 export function firstRecipeCommandToken(command: string): string | null {

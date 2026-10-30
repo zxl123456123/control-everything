@@ -333186,8 +333186,8 @@
     {
       "path": "src/shared/ephemeral-vm-recipe-doctor.ts",
       "upstream_sha256": "51befcc6d70d12ed663a36ef674d4c8646881e71ce1373151c4bb3cdfaea8dc2",
-      "current_sha256": "5241486c83b82c211af1dc855b761e70675c12728a287b5c7b45595e0851e6dc",
-      "reason": "项目配置统一新文件名，保留旧文件迁移与信任行为；新环境配方与实例使用掌控一切身份"
+      "current_sha256": "ef2848aad30fd8cf40db02741da5db52c19dea35701d7831ea5b4670712567d0",
+      "reason": "项目配置统一新文件名，保留旧文件迁移与信任行为；新环境配方与实例使用掌控一切身份；只读诊断配方旧环境变量和检查范围"
     },
     {
       "path": "src/cli/handlers/repo.ts",
@@ -333464,6 +333464,12 @@
       "upstream_sha256": "cd259228b6561a7fc326dccf6c93e220c00199eda7d862948cb5c44a67e77ed1",
       "current_sha256": "652289931173ffae519a324c79c406d204ac46f66ce0da06afc2875f55325d6c",
       "reason": "新环境配方与实例使用掌控一切身份"
+    },
+    {
+      "path": "src/shared/ephemeral-vm-recipe-doctor.test.ts",
+      "upstream_sha256": "caf6b0920e7f27e55746cb9113f71e450752982852c737a18b6f9670b1b0577c",
+      "current_sha256": "bd39a7ce17929bee1f7fd056376b90a09c14b1dd23c95f20aab79a66ee79fe74",
+      "reason": "只读诊断配方旧环境变量和检查范围"
     }
   ],
   "reviewed_findings": [
