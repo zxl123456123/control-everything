@@ -41,6 +41,9 @@ try {
   const cliPath = getPackagedCliPath(copiedAppDir)
   const env = { ...process.env, NODE_PATH: '' }
   delete env.ORCA_CLI_CWD
+  delete env.ORCA_CLI_WSL_DISTRO
+  delete env.ZKYQ_CLI_CWD
+  delete env.ZKYQ_CLI_WSL_DISTRO
   const run = (args) =>
     execFileAsync(cliPath, args, {
       env,

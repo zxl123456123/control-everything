@@ -181,6 +181,9 @@ function runCli(outDir, args, timeoutMs = CLI_COMMAND_TIMEOUT_MS) {
   const entry = resolve(outDir, 'cli', 'index.js')
   const env = { ...process.env, NODE_PATH: '' }
   delete env.ORCA_CLI_CWD
+  delete env.ORCA_CLI_WSL_DISTRO
+  delete env.ZKYQ_CLI_CWD
+  delete env.ZKYQ_CLI_WSL_DISTRO
   const result = spawnSync(process.execPath, [entry, ...args], {
     cwd: dirname(outDir),
     encoding: 'utf8',

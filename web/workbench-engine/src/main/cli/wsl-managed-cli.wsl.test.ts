@@ -95,7 +95,7 @@ it.skipIf(!enabled)(
       const result = await shell('zkyq-dev "two words" "literal $" | cat')
       expect(result.code, result.stderr).toBe(0)
       expect(result.stderr).toContain('bridge stderr')
-      expect(result.stdout).toContain('"argv":["two words","literal $"]')
+      expect(result.stdout).toContain('"argv":["--zkyq-wsl-bridge-v2","two words","literal $"]')
       expect(result.stdout).toContain(JSON.stringify(userDataPath))
       expect(result.stdout).toContain('"handle":"term_managed_fixture"')
       expect((await shell('zkyq-dev --exit')).code).toBe(23)
@@ -134,7 +134,7 @@ it.skipIf(!enabled)(
       )
       expect(result.code, result.stderr).toBe(0)
       const output = await wsl(['cat', `${guestRoot}/zsh-out`])
-      expect(output.stdout).toContain('"argv":["two words"]')
+      expect(output.stdout).toContain('"argv":["--zkyq-wsl-bridge-v2","two words"]')
       expect(output.stdout).toContain(JSON.stringify(userDataPath))
       expect(output.stdout).toMatch(/path=\/mnt\/.*wsl-managed-cli\/[0-9a-f]{20}:\/usr\/bin:\/bin/)
     }),

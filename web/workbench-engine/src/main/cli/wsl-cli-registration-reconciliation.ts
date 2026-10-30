@@ -169,7 +169,9 @@ export async function reconcileManagedWslCliRegistrations(
               distro,
               inspected: true,
               managed: true,
-              ...(currentTarget ? { reconciled: { target: currentTarget, appVersion } } : {})
+              reconciled: currentTarget && repair.status.state === 'installed'
+                ? { target: currentTarget, appVersion }
+                : null
             }
           : { distro, inspected: true, managed: false, reconciled: null }
     try {

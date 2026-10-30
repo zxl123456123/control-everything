@@ -19,7 +19,7 @@ export const REPO_HANDLERS: Record<string, CommandHandler> = {
       process.env.ZKYQ_ENVIRONMENT ||
       process.env.ZKYQ_PAIRING_CODE ||
       process.env.ZKYQ_REMOTE_PAIRING ||
-      process.env.ORCA_CLI_CWD
+      process.env.ZKYQ_CLI_CWD
     ) {
       throw new RuntimeClientError(
         'invalid_argument',

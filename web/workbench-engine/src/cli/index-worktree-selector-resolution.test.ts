@@ -99,11 +99,11 @@ describe('orca cli worktree awareness', () => {
     expect(logSpy).toHaveBeenCalledTimes(1)
   })
 
-  it('resolves the invocation cwd from ORCA_CLI_CWD when no cwd is passed', async () => {
+  it('resolves the invocation cwd from ZKYQ_CLI_CWD when no cwd is passed', async () => {
     // Why: the SSH relay bridge runs the CLI on the Orca host with the remote
-    // shell's cwd carried in ORCA_CLI_CWD (#7716); cwd-based selectors must
+    // shell's cwd carried in ZKYQ_CLI_CWD (#7716); cwd-based selectors must
     // resolve against it, not the host process cwd.
-    process.env.ORCA_CLI_CWD = '/tmp/repo/feature/src'
+    process.env.ZKYQ_CLI_CWD = '/tmp/repo/feature/src'
     try {
       queueFixtures(
         callMock,
@@ -121,15 +121,36 @@ describe('orca cli worktree awareness', () => {
       )
       vi.spyOn(console, 'log').mockImplementation(() => {})
 
-      await main(['worktree', 'current', '--json'])
+      await main(['--zkyq-wsl-bridge-v2', 'worktree', 'current', '--json'])
 
       expect(callMock).toHaveBeenNthCalledWith(2, 'worktree.show', {
         worktree: 'id:repo::/tmp/repo/feature'
       })
     } finally {
-      delete process.env.ORCA_CLI_CWD
+      delete process.env.ZKYQ_CLI_CWD
     }
   })
+
+  it.each(['ORCA_CLI_CWD', 'ORCA_CLI_WSL_DISTRO'])(
+    'refuses the retired bridge variable %s before dispatch',
+    async (name) => {
+      const previousExitCode = process.exitCode
+      const log = vi.spyOn(console, 'log').mockImplementation(() => {})
+      vi.stubEnv(name, 'private-fixture-value')
+      try {
+        await main(['worktree', 'current', '--json'])
+        const result = JSON.parse(String(log.mock.calls[0][0]))
+        expect(result.error.code).toBe('invalid_environment')
+        expect(result.error.message).toContain('bridge is out of date')
+        expect(result.error.message).not.toContain('private-fixture-value')
+        expect(callMock).not.toHaveBeenCalled()
+        expect(process.exitCode).toBe(1)
+      } finally {
+        vi.unstubAllEnvs()
+        process.exitCode = previousExitCode
+      }
+    }
+  )
 
   it.skipIf(process.platform === 'win32')(
     'prepares and starts Claude Agent Teams in the current Orca terminal',

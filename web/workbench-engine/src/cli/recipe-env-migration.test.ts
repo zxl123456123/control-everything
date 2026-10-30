@@ -309,7 +309,7 @@ describe('recipe environment migration', () => {
       'does not accept a value'
     )
     context.flags.delete('dry-run')
-    vi.stubEnv('ORCA_CLI_CWD', '/remote/project')
+    vi.stubEnv('ZKYQ_CLI_CWD', '/remote/project')
     await expect(VM_HANDLERS['vm recipe migrate-env'](context)).rejects.toThrow('runs locally')
     expect(readFileSync(path, 'utf8')).toBe('echo "$ORCA_VM_MODE"\n')
   })

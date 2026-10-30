@@ -217,7 +217,7 @@ function createSkillMutationHandler(verb: SkillMutationVerb): CommandHandler {
     // Why: this runs before target resolution because the answer belongs to the
     // other machine — agents detected here would be the wrong host's, and a host
     // that detects none would hide the forwarding problem behind that error.
-    if (process.env.ORCA_CLI_CWD) {
+    if (process.env.ZKYQ_CLI_CWD) {
       throw new RuntimeClientError(
         'invalid_environment',
         `zkyq skills ${verb} writes to the machine that runs it, but this shell forwards ` +
@@ -272,7 +272,7 @@ export const SKILL_HANDLERS: Record<string, CommandHandler> = {
         'Select current skill names with --skill or --all.'
       )
     }
-    if (process.env.ORCA_CLI_CWD || client.isRemote) {
+    if (process.env.ZKYQ_CLI_CWD || client.isRemote) {
       throw new RuntimeClientError(
         'invalid_environment',
         'Run zkyq skills migrate on the machine where the skills were installed; this shell forwards to another host.'

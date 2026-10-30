@@ -19,7 +19,7 @@ afterEach(() => {
   mocks.retire.mockClear()
 })
 async function migrate(entries: [string, string | boolean][]) {
-  vi.stubEnv('ORCA_CLI_CWD', '')
+  vi.stubEnv('ZKYQ_CLI_CWD', '')
   return SKILL_HANDLERS['skills migrate']({
     flags: new Map(entries),
     json: true,
@@ -38,7 +38,7 @@ describe('standalone skill retirement command', () => {
     expect(help).not.toContain('--pairing-code')
   })
   it('refuses a remote runtime selection before touching local files', async () => {
-    vi.stubEnv('ORCA_CLI_CWD', '')
+    vi.stubEnv('ZKYQ_CLI_CWD', '')
     await expect(
       SKILL_HANDLERS['skills migrate']({
         flags: new Map([['all', true]]),
@@ -49,7 +49,7 @@ describe('standalone skill retirement command', () => {
     expect(mocks.retire).not.toHaveBeenCalled()
   })
   it('reaches retirement through the real CLI dispatch table', async () => {
-    vi.stubEnv('ORCA_CLI_CWD', '')
+    vi.stubEnv('ZKYQ_CLI_CWD', '')
     const output = vi.spyOn(process.stdout, 'write').mockImplementation(() => true)
     await main(['skills', 'migrate', '--all', '--json'], '/fixture')
     expect(mocks.retire).toHaveBeenCalledWith({ names: ['zkyq-cli'], global: true })
@@ -74,7 +74,7 @@ describe('standalone skill retirement command', () => {
   })
 
   it('never performs migration through a forwarded WSL host', async () => {
-    vi.stubEnv('ORCA_CLI_CWD', '/forwarded/workspace')
+    vi.stubEnv('ZKYQ_CLI_CWD', '/forwarded/workspace')
     await expect(
       SKILL_HANDLERS['skills migrate']({
         flags: new Map([['all', true]]),

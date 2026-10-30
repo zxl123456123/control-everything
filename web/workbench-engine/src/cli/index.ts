@@ -21,7 +21,7 @@ import type { RuntimeClient } from './runtime-client'
 import { COMMAND_SPECS } from './specs'
 import { resolveOrchestrationCliExecutable } from './runtime/orchestration-recovery-command'
 import { refuseConflictingSessionCallerFlags } from './session-caller-flags'
-import { refuseRetiredRemoteSelection } from './remote-selection-env'
+import { refuseRetiredRemoteSelection, refuseRetiredWslBridge } from './remote-selection-env'
 
 export { COMMAND_SPECS } from './specs'
 export { buildCurrentWorktreeSelector, normalizeWorktreeSelector } from './selectors'
@@ -57,10 +57,10 @@ async function loadRuntimeClientClass(): Promise<typeof RuntimeClient> {
 
 // Why: the SSH relay bridge executes this CLI on the Orca host while the
 // caller's shell cwd lives on the remote machine (which cannot be chdir'd
-// into). ORCA_CLI_CWD carries that remote cwd so cwd-based selectors like
+// into). ZKYQ_CLI_CWD carries that remote cwd so cwd-based selectors like
 // `--worktree active` resolve against the caller's directory.
 function resolveInvocationCwd(): string {
-  const override = process.env.ORCA_CLI_CWD
+  const override = process.env.ZKYQ_CLI_CWD
   return typeof override === 'string' && override.length > 0 ? override : process.cwd()
 }
 
@@ -68,6 +68,14 @@ export async function main(
   argv = process.argv.slice(2),
   cwd = resolveInvocationCwd()
 ): Promise<void> {
+  if (argv[0] === '--zkyq-wsl-bridge-v2') argv = argv.slice(1)
+  try {
+    refuseRetiredWslBridge()
+  } catch (error) {
+    reportCliError(error, argv.includes('--json'))
+    process.exitCode = 1
+    return
+  }
   // Why: version audits use the bundled launcher; Electron intercepts direct binary version flags.
   if (argv.length === 1 && (argv[0] === '--version' || argv[0] === '-v')) {
     const version = readOrcaCliVersion()

@@ -146,16 +146,18 @@ try {
   if ($args.Count -gt $ForwardArgStart) {
     $ForwardArgs = @($args[$ForwardArgStart..($args.Count - 1)])
   }
+  $ForwardArgs = @('--zkyq-wsl-bridge-v2') + $ForwardArgs
+  Remove-Item Env:ORCA_CLI_CWD, Env:ORCA_CLI_WSL_DISTRO -ErrorAction SilentlyContinue
   if ([string]::IsNullOrEmpty($WslCwd)) {
-    Remove-Item Env:ORCA_CLI_CWD -ErrorAction SilentlyContinue
+    Remove-Item Env:ZKYQ_CLI_CWD -ErrorAction SilentlyContinue
   } else {
-    $env:ORCA_CLI_CWD = $WslCwd
+    $env:ZKYQ_CLI_CWD = $WslCwd
   }
   # Do not let an inherited Windows environment choose the caller's account location.
   if ([string]::IsNullOrEmpty($WslDistro)) {
-    Remove-Item Env:ORCA_CLI_WSL_DISTRO -ErrorAction SilentlyContinue
+    Remove-Item Env:ZKYQ_CLI_WSL_DISTRO -ErrorAction SilentlyContinue
   } else {
-    $env:ORCA_CLI_WSL_DISTRO = $WslDistro
+    $env:ZKYQ_CLI_WSL_DISTRO = $WslDistro
   }
   $LauncherDirectory = Split-Path -Parent $OrcaLauncher
   Push-Location -LiteralPath $LauncherDirectory

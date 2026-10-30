@@ -327153,7 +327153,8 @@
     "src/cli/recipe-env-powershell.ts",
     "src/main/ephemeral-vm/runtime-service-env-contract.test.ts",
     "src/main/ephemeral-vm/migrate-runtime-environment.test.ts",
-    "src/main/ephemeral-vm/migrate-runtime-environment.ts"
+    "src/main/ephemeral-vm/migrate-runtime-environment.ts",
+    "src/cli/handlers/account-wsl-location.test.ts"
   ],
   "adapted_files": [
     {
@@ -329397,8 +329398,8 @@
     {
       "path": "config/scripts/smoke-packaged-cli.mjs",
       "upstream_sha256": "4035b5e0fb25698217f24f7616c5ac06d57eb7dbed7f1a6e6768bf51a98f8bf8",
-      "current_sha256": "623fe218a76903646f749414d512aa677143aab6ae493c3f4c6c0a340a6c4b18",
-      "reason": "Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands.；原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者；macOS打包CLI物理改名zkyq，同步安装/回收/卸载与本地派发，保留用户命令及文件竞态保护"
+      "current_sha256": "5f0774fca63c4d5d7b6847c1e7e67456c78572a687ce9ec09c9be2f3a66b5ef7",
+      "reason": "Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands.；原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者；macOS打包CLI物理改名zkyq，同步安装/回收/卸载与本地派发，保留用户命令及文件竞态保护；迁移 WSL 桥接调用目录和发行版身份并保护远程写入"
     },
     {
       "path": "native/windows-cli-launcher/Cargo.lock",
@@ -329451,8 +329452,8 @@
     {
       "path": "src/main/cli/wsl-managed-cli.test.ts",
       "upstream_sha256": "07c6d4a06f5edc39ae2e05f73ae8d86f755ee244503b3a0e34c7bf26755f952b",
-      "current_sha256": "5c969a24a4614b51c139c5693f0565072c6258632539275fc63b90dea89fb5d0",
-      "reason": "Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands.；WSL命令迁移为zkyq，成功写入后退役受管理旧入口，保留用户文件和桥接参数，失效旧命令修复缓存并对齐派发环境；开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；应用启动配置对统一ZKYQ身份，调用方和生成脚本同步，旧值拒绝默认回退并保持旧脚本归属识别；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
+      "current_sha256": "c17ce7d0f88822ae34e2fd44129c03368bbc6f9455b5edf7ea103bc21dc985ca",
+      "reason": "Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands.；WSL命令迁移为zkyq，成功写入后退役受管理旧入口，保留用户文件和桥接参数，失效旧命令修复缓存并对齐派发环境；开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；应用启动配置对统一ZKYQ身份，调用方和生成脚本同步，旧值拒绝默认回退并保持旧脚本归属识别；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；迁移 WSL 桥接调用目录和发行版身份并保护远程写入"
     },
     {
       "path": "src/main/runtime/claude-agent-teams-shim-env.ts",
@@ -329979,14 +329980,14 @@
     {
       "path": "src/main/cli/wsl-cli-registration-registry.ts",
       "upstream_sha256": "911a7c64661bf77f2b88acea6b4cbdfe43c4f9d3fb316d5186be3121a4812b98",
-      "current_sha256": "e0aa119281825b1f00e5b6149fe66f9ab3514ed82fec005d41ccb4f8b5613b71",
-      "reason": "WSL命令迁移为zkyq，成功写入后退役受管理旧入口，保留用户文件和桥接参数，失效旧命令修复缓存并对齐派发环境"
+      "current_sha256": "d88d37a0ffa33af6b06cf40e8056645e0496cead85526628eaffadca3331fe02",
+      "reason": "WSL命令迁移为zkyq，成功写入后退役受管理旧入口，保留用户文件和桥接参数，失效旧命令修复缓存并对齐派发环境；迁移 WSL 桥接调用目录和发行版身份并保护远程写入"
     },
     {
       "path": "src/main/cli/wsl-cli-scripts.ts",
       "upstream_sha256": "546a8bc007584027f73a6f1fef985d014fdf6727a9a86a321814eb230b7bf9d8",
-      "current_sha256": "f60d3d26bb9b25723ee6aacf48c1573ab6ae67c9252a9be65ae4729fdbcf32f7",
-      "reason": "WSL命令迁移为zkyq，成功写入后退役受管理旧入口，保留用户文件和桥接参数，失效旧命令修复缓存并对齐派发环境；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；应用启动配置对统一ZKYQ身份，调用方和生成脚本同步，旧值拒绝默认回退并保持旧脚本归属识别；Node参数暂存合同改为ZKYQ，启动器及重启恢复同步，历史脚本归属识别保留；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
+      "current_sha256": "01f853ec92c4111cc1b2e1732b151bde295f355c9f4e71a0a408940c0bb4c15d",
+      "reason": "WSL命令迁移为zkyq，成功写入后退役受管理旧入口，保留用户文件和桥接参数，失效旧命令修复缓存并对齐派发环境；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；应用启动配置对统一ZKYQ身份，调用方和生成脚本同步，旧值拒绝默认回退并保持旧脚本归属识别；Node参数暂存合同改为ZKYQ，启动器及重启恢复同步，历史脚本归属识别保留；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；迁移 WSL 桥接调用目录和发行版身份并保护远程写入"
     },
     {
       "path": "src/main/cli/wsl-cli-status.ts",
@@ -330465,8 +330466,8 @@
     {
       "path": "src/main/cli/wsl-managed-cli.wsl.test.ts",
       "upstream_sha256": "e8062b1ce604ead331c644a026cb9f144608f275b73dd4dd71423190a793cb9f",
-      "current_sha256": "24511f362254493e8f95a1b6c57b5f491e6cd1d25b8224f6ef7519abba9dd7b2",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
+      "current_sha256": "a13eb42e735cc0c75c4f53317e8151869898879d6ec1e3bdc1d9791baa900dfc",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；迁移 WSL 桥接调用目录和发行版身份并保护远程写入"
     },
     {
       "path": "src/main/codex/codex-structured-child-environment.test.ts",
@@ -331923,8 +331924,8 @@
     {
       "path": "src/cli/handlers/skills.ts",
       "upstream_sha256": "48c8fedc4f8d87bf02d039304a1ab6c80396f99a3040692e42ef56f072e6a9ec",
-      "current_sha256": "9ef6dbb5382f5103904433f5610b1e541a3bf1e1f34e815e98ebde5c05f96df5",
-      "reason": "技能安装更新使用本平台提交和子目录，保留上游来源记录与历史安装识别，同步实际构建和说明；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物；新增安装后独立退役入口及目标约束验证，补齐当前CLI占位指南检查"
+      "current_sha256": "5c0d41b2127c2d03a1ace01212dd8e0180323d6cbff3d87c4dac989fb19bae26",
+      "reason": "技能安装更新使用本平台提交和子目录，保留上游来源记录与历史安装识别，同步实际构建和说明；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物；新增安装后独立退役入口及目标约束验证，补齐当前CLI占位指南检查；迁移 WSL 桥接调用目录和发行版身份并保护远程写入"
     },
     {
       "path": "src/cli/specs/skills.ts",
@@ -332181,8 +332182,8 @@
     {
       "path": "config/scripts/verify-skills-cli-runtime.cjs",
       "upstream_sha256": "5134a98248db2b51713f59dd021645f338496ea70d1ebfe3b040c16f26ad73f6",
-      "current_sha256": "a4897f03001ce02b05ce7cb6018aeec5bfc456e078701e3424427e444ed2f1c2",
-      "reason": "六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
+      "current_sha256": "4b84d96a08511478527cb238f260ae8e3a32c3ebfd5d89a011c365499f391a05",
+      "reason": "六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物；迁移 WSL 桥接调用目录和发行版身份并保护远程写入"
     },
     {
       "path": "src/cli/handlers/bundled-skill-guide-table.ts",
@@ -333057,8 +333058,8 @@
     {
       "path": "src/cli/handlers/vm.ts",
       "upstream_sha256": "ebdd54fb9a792a68d491597b36129d059130c6862d57fc78c2eb33d42db69470",
-      "current_sha256": "f385d92786df6c5dc4f212c21e2c8f4d92047ea13c9308a25badc88c52987e00",
-      "reason": "项目配置统一新文件名，保留旧文件迁移与信任行为；显式迁移已跟踪项目配置，保留 Git 索引和用户修改；支持安全迁移未跟踪和被忽略的项目配置；提供受限配方环境变量显式迁移入口；迁移远程主机选择环境变量并防止错误路由；迁移已有 VM 资源环境契约并保护离线快照"
+      "current_sha256": "2b69b73d653e134b3846e6b3638781997f5d0fa4afb51058c3cb1b907d858b32",
+      "reason": "项目配置统一新文件名，保留旧文件迁移与信任行为；显式迁移已跟踪项目配置，保留 Git 索引和用户修改；支持安全迁移未跟踪和被忽略的项目配置；提供受限配方环境变量显式迁移入口；迁移远程主机选择环境变量并防止错误路由；迁移已有 VM 资源环境契约并保护离线快照；迁移 WSL 桥接调用目录和发行版身份并保护远程写入"
     },
     {
       "path": "src/cli/index-vm-recipe-doctor.test.ts",
@@ -333201,14 +333202,14 @@
     {
       "path": "src/cli/handlers/repo.ts",
       "upstream_sha256": "0f6a9b49127388ea47016b881ae6f5dc88bd3b8912023289256b20d9f9b116d7",
-      "current_sha256": "d7463f50e18a5a87971c13fc7bdd386a079c6cad43f5ed73569ff1418739d0fd",
-      "reason": "显式迁移已跟踪项目配置，保留 Git 索引和用户修改；支持安全迁移未跟踪和被忽略的项目配置；迁移远程主机选择环境变量并防止错误路由"
+      "current_sha256": "5bd45b9bef866e24257fcdaac3547a215dd8afb53b0f3f1f6a4a3a54cb21d70d",
+      "reason": "显式迁移已跟踪项目配置，保留 Git 索引和用户修改；支持安全迁移未跟踪和被忽略的项目配置；迁移远程主机选择环境变量并防止错误路由；迁移 WSL 桥接调用目录和发行版身份并保护远程写入"
     },
     {
       "path": "src/cli/index.ts",
       "upstream_sha256": "2123978773bc5f124727d9ff4c8fdc91f4d05802d9bc89947dee3066a646f509",
-      "current_sha256": "264efa179bee2363f6ce525590ffbd108ac5b1f99a555e6d978a1eaa387e47b7",
-      "reason": "显式迁移已跟踪项目配置，保留 Git 索引和用户修改；迁移远程主机选择环境变量并防止错误路由"
+      "current_sha256": "7155a04b5f629d74d4e279daf14906dcdfdf70d20a83186c5dd6aed27ecc3a20",
+      "reason": "显式迁移已跟踪项目配置，保留 Git 索引和用户修改；迁移远程主机选择环境变量并防止错误路由；迁移 WSL 桥接调用目录和发行版身份并保护远程写入"
     },
     {
       "path": "src/cli/specs/repo.ts",
@@ -333593,6 +333594,48 @@
       "upstream_sha256": "bc7e6cb3346d9edeb6a37b686a9e002e78049af47972aac79b57d29e0018fb8c",
       "current_sha256": "60d4cbe12e3af66b925d7505dcfbb4b824e31a7cd6aa2ae17111c633d23af0e5",
       "reason": "统一主机选择与环境列表错误提示和恢复命令"
+    },
+    {
+      "path": "src/cli/handlers/account-wsl-location.ts",
+      "upstream_sha256": "c09e59ade27bcd88928ed3a9bdd7d6bc8d5472179d0d8af34bb24bfef4769d26",
+      "current_sha256": "fa1d6fa30b34363a7ec147eb996a94c21290aa7a456245ffe15c7e4a642997ce",
+      "reason": "迁移 WSL 桥接调用目录和发行版身份并保护远程写入"
+    },
+    {
+      "path": "src/cli/handlers/file.ts",
+      "upstream_sha256": "21cc10aca378a44bc749fff170139a0ddfbdb83bd362701bd115b35be19920c7",
+      "current_sha256": "2d91f95a38da0545278554aff2893efb5e8d48322353932ba4a4716e09635801",
+      "reason": "迁移 WSL 桥接调用目录和发行版身份并保护远程写入"
+    },
+    {
+      "path": "src/cli/handlers/skill-sharing.test.ts",
+      "upstream_sha256": "7fb2a54a7cafd0c126cbd1752c89c106e40a51138987bd735ce09d230a588cce",
+      "current_sha256": "b0a58bcc07a3b30dd6257776cdf12130e4da55dc24183aa56b4af3262a5b16ca",
+      "reason": "迁移 WSL 桥接调用目录和发行版身份并保护远程写入"
+    },
+    {
+      "path": "src/cli/handlers/skill-sharing.ts",
+      "upstream_sha256": "bf5845add572551a6f280cef5225e865991df4c45c19494c49ea524f1092ec44",
+      "current_sha256": "fbd2f976548ce96f6a60f7afb292bccfbd7a837652b6351e7fe1b163044d7ccf",
+      "reason": "迁移 WSL 桥接调用目录和发行版身份并保护远程写入"
+    },
+    {
+      "path": "src/cli/index-worktree-selector-resolution.test.ts",
+      "upstream_sha256": "52a29d2edd51b49feccffd205701de6f5e38323109338f97420b887762ad853a",
+      "current_sha256": "8570b6de68306e85db00ca713ab9df781fed92a10d872c199770940abdf89b5f",
+      "reason": "迁移 WSL 桥接调用目录和发行版身份并保护远程写入"
+    },
+    {
+      "path": "src/cli/selectors.ts",
+      "upstream_sha256": "2b87db8da5106cdacfcaa1090487bf25de1fffe0d96ae5303a38716e38e8f671",
+      "current_sha256": "641710b56de667c3533e09696c8de00c4ea0263527375352efe7bb6e52aa4307",
+      "reason": "迁移 WSL 桥接调用目录和发行版身份并保护远程写入"
+    },
+    {
+      "path": "src/main/cli/wsl-cli-registration-reconciliation.ts",
+      "upstream_sha256": "bafb8892efc2f5459cec936568e0d179e89eca7c63819ba0a5695f3645a13054",
+      "current_sha256": "9391d4c2bbe999b65a50911a96e7982e8044e4c859f22b21359f3ea1368d9b26",
+      "reason": "迁移 WSL 桥接调用目录和发行版身份并保护远程写入"
     }
   ],
   "reviewed_findings": [

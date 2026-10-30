@@ -50,7 +50,7 @@ export async function resolveCallerDistroPathSelector(
   client: RuntimeClient
 ): Promise<string> {
   // Why not WSL_DISTRO_NAME: it is also set for a Linux-native CLI whose runtime stores
-  // POSIX paths, so it would name a distro for a caller that has none. ORCA_CLI_CWD, which
+  // POSIX paths, so it would name a distro for a caller that has none. ZKYQ_CLI_CWD, which
   // the WSL launcher always sets and which arrives here as the invocation cwd, proves it.
   const callerDistro = parseWslUncPath(cwd)?.distro
   const linuxPath = selector.startsWith('path:') ? selector.slice(5) : ''

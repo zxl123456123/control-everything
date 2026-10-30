@@ -119,7 +119,7 @@ describe('project config migration', () => {
     } as HandlerContext
     await expect(REPO_HANDLERS['repo migrate-config'](context)).rejects.toThrow('runs locally')
     context.flags.delete('environment')
-    vi.stubEnv('ORCA_CLI_CWD', '/remote/project')
+    vi.stubEnv('ZKYQ_CLI_CWD', '/remote/project')
     await expect(REPO_HANDLERS['repo migrate-config'](context)).rejects.toThrow('runs locally')
     expect(readFileSync(join(repo, 'orca.yaml'), 'utf8')).toBe('initial\n')
   })
