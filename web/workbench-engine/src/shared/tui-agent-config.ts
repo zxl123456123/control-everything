@@ -43,6 +43,7 @@ const TUI_AGENT_CONFIG_SOURCE: Record<TuiAgent, TuiAgentConfigSource> = {
     detectUnsupportedRuntimes: ['win32', 'wsl'],
     launchCmd: 'orca claude-teams',
     launchCmdByPlatform: {
+      darwin: `${getOrcaCliCommandNameForPlatform('darwin')} claude-teams`,
       linux: `${getOrcaCliCommandNameForPlatform('linux')} claude-teams`,
       win32: `${getOrcaCliCommandNameForPlatform('win32')} claude-teams`
     },
@@ -374,7 +375,7 @@ export function getTuiAgentLaunchCommand(
   opts?: { isRemote?: boolean }
 ): string {
   // SSH relay names are migrated with their deployed scripts, independently of local packaged launchers.
-  if (opts?.isRemote && platform === 'linux') {
+  if (opts?.isRemote && platform !== 'win32') {
     return config.launchCmd
   }
   // Windows SSH relays still deploy the legacy shim; local launches use the current native command.

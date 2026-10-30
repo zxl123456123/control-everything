@@ -49364,7 +49364,7 @@
       "reason": "required_renderer_static_import:src/renderer/src/components/pet/pet-models.ts"
     },
     {
-      "path": "resources/darwin/bin/orca",
+      "path": "resources/darwin/bin/zkyq",
       "source_path": "resources/darwin/bin/orca",
       "git_blob": "4d01b9928cadef1c962553e1a5be8f3f63d18c50",
       "sha256": "55776ac787472b997218bb3801b231eca756d5650b95f764eeadf912831fa1d5",
@@ -327138,8 +327138,8 @@
     {
       "path": ".gitattributes",
       "upstream_sha256": "65896d38cc866d394db2d10d25f9d76a33dc1e78091b071d26913155237efa2a",
-      "current_sha256": "b45f8ac46320871a35a7b48b206beed0995b6ec69f3e4bda4e20a43f7abc045e",
-      "reason": "M1a-R8: pin LF for exactly two manifest-hashed native chat text resources on Windows checkout; original resource hashes unchanged；原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者"
+      "current_sha256": "aac06197e041d277bb31df27036ba770bf1bd85d19a584ff8109ec3daf56ecec",
+      "reason": "M1a-R8: pin LF for exactly two manifest-hashed native chat text resources on Windows checkout; original resource hashes unchanged；原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者；macOS打包CLI物理改名zkyq，同步安装/回收/卸载与本地派发，保留用户命令及文件竞态保护"
     },
     {
       "path": "config/scripts/build-mobile-web-app-bundle.mjs",
@@ -329334,8 +329334,8 @@
     {
       "path": "config/electron-builder.config.cjs",
       "upstream_sha256": "145988a8484048fbdf0f7f9361eac6ceb406af6a0be306f42f4fccae99bacd29",
-      "current_sha256": "ea9acdaa96448ed89930cf82db4a4eae48a5425f56903d8758ebbc4509c72b2b",
-      "reason": "Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands.；统一Windows桌面命令安装状态、宿主能力、批处理分发和原生恢复命令为zkyq，保留PATH及消息参数行为；Windows命令源码路径同步物理改名；原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者"
+      "current_sha256": "9a4094e4685a6b89f0ff353b94c1c8f4eedc515e69b1524b566add764415a695",
+      "reason": "Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands.；统一Windows桌面命令安装状态、宿主能力、批处理分发和原生恢复命令为zkyq，保留PATH及消息参数行为；Windows命令源码路径同步物理改名；原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者；macOS打包CLI物理改名zkyq，同步安装/回收/卸载与本地派发，保留用户命令及文件竞态保护"
     },
     {
       "path": "config/scripts/build-windows-cli-launcher.mjs",
@@ -329364,8 +329364,8 @@
     {
       "path": "config/scripts/smoke-packaged-cli.mjs",
       "upstream_sha256": "4035b5e0fb25698217f24f7616c5ac06d57eb7dbed7f1a6e6768bf51a98f8bf8",
-      "current_sha256": "c3f133626bee0b8ae3843c723b573e31a86d19fe0614cc7d0714b1eb0ad56dea",
-      "reason": "Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands.；原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者"
+      "current_sha256": "623fe218a76903646f749414d512aa677143aab6ae493c3f4c6c0a340a6c4b18",
+      "reason": "Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands.；原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者；macOS打包CLI物理改名zkyq，同步安装/回收/卸载与本地派发，保留用户命令及文件竞态保护"
     },
     {
       "path": "native/windows-cli-launcher/Cargo.lock",
@@ -329412,8 +329412,8 @@
     {
       "path": "src/main/cli/bundled-cli-launcher-path.ts",
       "upstream_sha256": "d18971de3491d0f678c99ab3fca72dd71c5b3e635bf258b7c8d1ba4584e358c4",
-      "current_sha256": "6bc9c97796a6e3654c51e35dc8102057b595093bff4203d969c84c7ac4c54980",
-      "reason": "Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands.；原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者"
+      "current_sha256": "347b9c052e03fedf4fcb94feed01ef0ff174fa8e1e5ec713306a34c9af644521",
+      "reason": "Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands.；原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者；macOS打包CLI物理改名zkyq，同步安装/回收/卸载与本地派发，保留用户命令及文件竞态保护"
     },
     {
       "path": "src/main/cli/wsl-managed-cli.test.ts",
@@ -329424,8 +329424,8 @@
     {
       "path": "src/main/runtime/claude-agent-teams-shim-env.ts",
       "upstream_sha256": "c30f7844760531c06ef71746ef581eb92abae723a6a00a896904c1cee1483e39",
-      "current_sha256": "d7a0175fd3ae996e754cfc4faa33b1862cf2ab76674f34bb6f9969a7e165638e",
-      "reason": "Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands.；原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者"
+      "current_sha256": "e430c3c5e487f7abc6946c249c908f799e548e76f78ad10b3b3f81c46e5daae7",
+      "reason": "Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands.；原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者；macOS打包CLI物理改名zkyq，同步安装/回收/卸载与本地派发，保留用户命令及文件竞态保护"
     },
     {
       "path": "src/main/windows/windows-administrator-restart.ts",
@@ -329862,14 +329862,14 @@
     {
       "path": "src/main/cli/cli-install-location.ts",
       "upstream_sha256": "de854ee8887149342a08590da9e4ebc503d62e634433eb8ea9fcefaf5039d618",
-      "current_sha256": "4079f9d3c22b500fbab0cf6d4e337e40fc4bd0317307fad25edaded0acb51ff8",
-      "reason": "统一Windows桌面命令安装状态、宿主能力、批处理分发和原生恢复命令为zkyq，保留PATH及消息参数行为；原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者"
+      "current_sha256": "d28cecff4d278379eafb7ca7496e2f5a325e3e638c85bf1edbd70795d406d185",
+      "reason": "统一Windows桌面命令安装状态、宿主能力、批处理分发和原生恢复命令为zkyq，保留PATH及消息参数行为；原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者；macOS打包CLI物理改名zkyq，同步安装/回收/卸载与本地派发，保留用户命令及文件竞态保护"
     },
     {
       "path": "src/main/cli/cli-installer.ts",
       "upstream_sha256": "65d452ae1ff988f417f5a610f3d7c4c44d73fac4c6fa13317729a4abe829f663",
-      "current_sha256": "d7ebcdaf927fe602745198a3b54bb256c15f385e49d377bf41d81de96c291fba",
-      "reason": "统一Windows桌面命令安装状态、宿主能力、批处理分发和原生恢复命令为zkyq，保留PATH及消息参数行为；清理共用CLI安装检查、冲突和竞态回收提示中的上游产品称呼，保留路径、权限及所有权行为"
+      "current_sha256": "5972849c0ebf8a755f6c4690c3e1f268f0c1e33ab826ade11406cd7ebe7b6a27",
+      "reason": "统一Windows桌面命令安装状态、宿主能力、批处理分发和原生恢复命令为zkyq，保留PATH及消息参数行为；清理共用CLI安装检查、冲突和竞态回收提示中的上游产品称呼，保留路径、权限及所有权行为；macOS打包CLI物理改名zkyq，同步安装/回收/卸载与本地派发，保留用户命令及文件竞态保护"
     },
     {
       "path": "src/main/cli/cli-path-registration.ts",
@@ -329880,8 +329880,8 @@
     {
       "path": "src/main/host/electron-app-environment.ts",
       "upstream_sha256": "723b4b344bc5c4649b9ca3bb5d85db945023891f5b9bc65ce5fbeeb717bbb34f",
-      "current_sha256": "768d64072dec1e901786f670d08cfb36e1aa655fb8b9ad5763e2d046c22c7f43",
-      "reason": "统一Windows桌面命令安装状态、宿主能力、批处理分发和原生恢复命令为zkyq，保留PATH及消息参数行为；原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者"
+      "current_sha256": "b4cc774d3ddcd1ad6f326c8ea3ccb8a284382d66ad1fd7287394622702924bcd",
+      "reason": "统一Windows桌面命令安装状态、宿主能力、批处理分发和原生恢复命令为zkyq，保留PATH及消息参数行为；原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者；macOS打包CLI物理改名zkyq，同步安装/回收/卸载与本地派发，保留用户命令及文件竞态保护"
     },
     {
       "path": "src/main/cli/cli-command-filesystem-transaction.ts",
@@ -329898,20 +329898,20 @@
     {
       "path": "src/main/cli/cli-command-installation-races.test.ts",
       "upstream_sha256": "c0c7077831e11db4d5b782763b9a488ba3f0df243daf477d285a60340e6ab000",
-      "current_sha256": "31d0925b7f0f7ea35dd00a4b85f3cfef7795c4edc80a10f78cfa80e1f20692d5",
-      "reason": "清理共用CLI安装检查、冲突和竞态回收提示中的上游产品称呼，保留路径、权限及所有权行为；原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者"
+      "current_sha256": "86c931fd6a38e1983b3070189ab774ccbac0a845ba98952793fc99fd6affb7d5",
+      "reason": "清理共用CLI安装检查、冲突和竞态回收提示中的上游产品称呼，保留路径、权限及所有权行为；原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者；macOS打包CLI物理改名zkyq，同步安装/回收/卸载与本地派发，保留用户命令及文件竞态保护"
     },
     {
       "path": "src/main/cli/cli-command-installation.ts",
       "upstream_sha256": "3602280056d866f343cc1a18ef413afbbd954e562f0e0eee2ce597d7b793192b",
-      "current_sha256": "51fb177a19027f7f8669b54d80eba08b1c5990abd191ff8f2a0376968ec4dd7e",
-      "reason": "清理共用CLI安装检查、冲突和竞态回收提示中的上游产品称呼，保留路径、权限及所有权行为；原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者"
+      "current_sha256": "cd6a56072b8da327d4cc8fd7fd492d4267393acc5675ee6636459ce47b25ed7b",
+      "reason": "清理共用CLI安装检查、冲突和竞态回收提示中的上游产品称呼，保留路径、权限及所有权行为；原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者；macOS打包CLI物理改名zkyq，同步安装/回收/卸载与本地派发，保留用户命令及文件竞态保护"
     },
     {
       "path": "src/main/cli/cli-command-privileged-transaction.test.ts",
       "upstream_sha256": "e70e59ffff6ec2574e9a26eb37d870e5a3e5bb6ebae77649b5bd05d536a2fe8e",
-      "current_sha256": "ea981247d03241c5edbeae3d1276d45312e8b7b74664c48ef7c5355537271cdb",
-      "reason": "清理共用CLI安装检查、冲突和竞态回收提示中的上游产品称呼，保留路径、权限及所有权行为"
+      "current_sha256": "d9511838f456c181c2454a5635eb823b538c182524b19bc7aed9caa9ab4bb144",
+      "reason": "清理共用CLI安装检查、冲突和竞态回收提示中的上游产品称呼，保留路径、权限及所有权行为；macOS打包CLI物理改名zkyq，同步安装/回收/卸载与本地派发，保留用户命令及文件竞态保护"
     },
     {
       "path": "src/main/cli/cli-installer-appimage-ownership.test.ts",
@@ -329922,14 +329922,14 @@
     {
       "path": "src/main/cli/cli-installer-command-conflicts.test.ts",
       "upstream_sha256": "52e606decbaf39c11b0d85b5152a5e6ca89a064ccfce05b218ea8d6591401a03",
-      "current_sha256": "32076f590c43d6dcac03d97d7035c279092e574764635f6b9c5db48207204499",
-      "reason": "清理共用CLI安装检查、冲突和竞态回收提示中的上游产品称呼，保留路径、权限及所有权行为"
+      "current_sha256": "e2d5eddff47458e6288cf0f8be8340201f8f655e68c86848c6e9931c673e16dd",
+      "reason": "清理共用CLI安装检查、冲突和竞态回收提示中的上游产品称呼，保留路径、权限及所有权行为；macOS打包CLI物理改名zkyq，同步安装/回收/卸载与本地派发，保留用户命令及文件竞态保护"
     },
     {
       "path": "src/main/cli/cli-installer-macos-command-path.test.ts",
       "upstream_sha256": "37f13a59879b7510f46e7942ec0b0eb547da4651ab17937a87380ddcec70f00d",
-      "current_sha256": "ab6ce3646a4169a99ec0e10e16b7e065ec4a702cf425d59cb085f51d667fddce",
-      "reason": "清理共用CLI安装检查、冲突和竞态回收提示中的上游产品称呼，保留路径、权限及所有权行为"
+      "current_sha256": "8f9f1b36da40adc1b6df52417b9c993e8ffdfdf13a50bbc0d465039fe4902eac",
+      "reason": "清理共用CLI安装检查、冲突和竞态回收提示中的上游产品称呼，保留路径、权限及所有权行为；macOS打包CLI物理改名zkyq，同步安装/回收/卸载与本地派发，保留用户命令及文件竞态保护"
     },
     {
       "path": "src/main/cli/wsl-cli-installer.ts",
@@ -330054,8 +330054,8 @@
     {
       "path": "src/main/cli/cli-install-constants.ts",
       "upstream_sha256": "e402eafabb92a8ddecc9972bcb75da6db0bdd84b86bacfb408285c4cb640ed65",
-      "current_sha256": "b8fce012d31c0f580adb6a40f440cb4be59bb5961525c99b49f99121ec1b08e1",
-      "reason": "原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者"
+      "current_sha256": "5ce0ca064ca27de0ad1fb52b144b4ebd11b6a350f0c6d3e2bca59d7594d83f02",
+      "reason": "原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者；macOS打包CLI物理改名zkyq，同步安装/回收/卸载与本地派发，保留用户命令及文件竞态保护"
     },
     {
       "path": "src/main/cli/cli-installer-appimage-removal.test.ts",
@@ -330102,8 +330102,8 @@
     {
       "path": "src/main/cli/packaged-cli-assets.test.ts",
       "upstream_sha256": "c190f039dcf52070bd851b1e6475b9f4a54bc924b16d946880a711635bc28879",
-      "current_sha256": "cf42e7485549c7eb5085b328daa6e74ccbff3d67b8abf25b95810a3271468a26",
-      "reason": "原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者"
+      "current_sha256": "3137f5b5ed06639abfe5a0e86cd0da61deb079cb72d1ce72d25ebb55edb9c523",
+      "reason": "原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者；macOS打包CLI物理改名zkyq，同步安装/回收/卸载与本地派发，保留用户命令及文件竞态保护"
     },
     {
       "path": "src/main/runtime/claude-agent-teams-shim-env.test.ts",
@@ -330114,8 +330114,8 @@
     {
       "path": "src/main/runtime/orca-runtime-agent-session-operation.test.ts",
       "upstream_sha256": "bd4c5440366a8c184c0894ed6ddf23c674dd2388585cb57bf5361a62ab2202a5",
-      "current_sha256": "6a8454614c03c50f8a8019700e82251a9ce94e43436121f75ea24cb02d70c949",
-      "reason": "原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者"
+      "current_sha256": "52f4c9464fc4ac3fbd3e41007289b3c8cb06e3b6d192eba4f695bfbda2ce698f",
+      "reason": "原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者；macOS打包CLI物理改名zkyq，同步安装/回收/卸载与本地派发，保留用户命令及文件竞态保护"
     },
     {
       "path": "src/main/startup/serve-cli-registration.ts",
@@ -330132,20 +330132,20 @@
     {
       "path": "src/shared/orca-cli-command-name.ts",
       "upstream_sha256": "c90b037ec7a6143770a40dd907bf9d053fb2cede21128b60b78a78671c0780c0",
-      "current_sha256": "02bf3d218722ec84af67136990e7d8ddcd65f5610aae0f354c01cd70de600470",
-      "reason": "原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者"
+      "current_sha256": "876003128418c6d78e5f6d0c2ce009af57705d08daaac68ac8e216cc47739d51",
+      "reason": "原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者；macOS打包CLI物理改名zkyq，同步安装/回收/卸载与本地派发，保留用户命令及文件竞态保护"
     },
     {
       "path": "src/shared/tui-agent-config.ts",
       "upstream_sha256": "349812fd6a96c972dd3475c0acf6f711e3acfe02acbdf7768fb299fa76f19dcb",
-      "current_sha256": "eefd59dca4cbb178b2641d727b449f60e21ef0dfaf1f42fb9961eea0e28d6868",
-      "reason": "原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者"
+      "current_sha256": "7e20f60a9c090c134263f341a8eb2ce6e452ecd51b21d26302dbe7e33d042e08",
+      "reason": "原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者；macOS打包CLI物理改名zkyq，同步安装/回收/卸载与本地派发，保留用户命令及文件竞态保护"
     },
     {
       "path": "src/shared/tui-agent-startup.spec.ts",
       "upstream_sha256": "038ef2c217ae5c90ea580eaa11fa4e2981948e67bbd3026099d28a8a4bd16451",
-      "current_sha256": "77f711148f2a44f8dc7313e4c7d146b9f61a57dc75c0f691579e68e58f89e93a",
-      "reason": "原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者"
+      "current_sha256": "29e9c267f9274c6e0ac8b455e66eab45e776b53829b9b105dc860e55b43eccd8",
+      "reason": "原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者；macOS打包CLI物理改名zkyq，同步安装/回收/卸载与本地派发，保留用户命令及文件竞态保护"
     },
     {
       "path": "resources/linux/bin/zkyq",
@@ -330212,6 +330212,18 @@
       "upstream_sha256": "bcb48d72fded5e4ad080cb7d3791b66594810241bf1585c44310edddaeaf2e8f",
       "current_sha256": "113129484ecb61b466e156f0fa992e3344c8c9bd8872a563620760a74a174db5",
       "reason": "浏览器路径配置统一ZKYQ_BROWSER_EXECUTABLE，清理状态与远程浏览器权限文案，保留路径和权限范围"
+    },
+    {
+      "path": "resources/darwin/bin/zkyq",
+      "upstream_sha256": "55776ac787472b997218bb3801b231eca756d5650b95f764eeadf912831fa1d5",
+      "current_sha256": "a4bd15e3cb23511e2f42a3e22d74851a19099bcee9337dd69721edaffa076c6e",
+      "reason": "macOS打包CLI物理改名zkyq，同步安装/回收/卸载与本地派发，保留用户命令及文件竞态保护"
+    },
+    {
+      "path": "src/main/cli/cli-installer-test-fixtures.ts",
+      "upstream_sha256": "3287ca41937cd66c26868dc236fb54edb33d343ef78495ace7fb662204ddf18b",
+      "current_sha256": "840c9e8008191e5b42d1b1ec053e23964dbbbca3e3b6606bf2abc1829a12dfbe",
+      "reason": "macOS打包CLI物理改名zkyq，同步安装/回收/卸载与本地派发，保留用户命令及文件竞态保护"
     }
   ],
   "reviewed_findings": [

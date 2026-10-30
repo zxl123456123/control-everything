@@ -23,7 +23,7 @@ function readAppDirArg(argv) {
 
 function getPackagedCliPath(appDir) {
   if (process.platform === 'darwin' || appDir.endsWith('.app')) {
-    return join(appDir, 'Contents', 'Resources', 'bin', 'orca')
+    return join(appDir, 'Contents', 'Resources', 'bin', 'zkyq')
   }
   if (process.platform === 'win32') {
     return join(appDir, 'resources', 'bin', 'zkyq.exe')

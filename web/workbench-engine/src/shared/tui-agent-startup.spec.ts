@@ -283,7 +283,7 @@ describe('tui agent startup plans', () => {
     expect(plan?.launchCommand).toBe('zkyq claude-teams')
   })
 
-  it('uses the plain orca shim for Claude Agent Teams on Linux SSH remotes', () => {
+  it.each(['linux', 'darwin'] as const)('uses the deployed relay for Claude Agent Teams on %s SSH remotes', (platform) => {
     // Why: the SSH relay deploys the CLI shim as `orca` (not the local-only
     // `orca-ide` GNOME-screen-reader workaround), so a remote launch must not
     // emit `orca-ide claude-teams` — that name is not on the remote PATH and
@@ -292,7 +292,7 @@ describe('tui agent startup plans', () => {
       agent: 'claude-agent-teams',
       prompt: '',
       cmdOverrides: {},
-      platform: 'linux',
+      platform,
       isRemote: true,
       allowEmptyPromptLaunch: true
     })

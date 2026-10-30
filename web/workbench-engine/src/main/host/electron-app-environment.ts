@@ -25,7 +25,7 @@ export class ElectronAppEnvironment implements AppEnvironment {
   }
 
   getCliAccountCommand(): 'zkyq' | undefined {
-    if (!app.isPackaged || !['win32', 'linux'].includes(process.platform)) return undefined
+    if (!app.isPackaged || !['win32', 'linux', 'darwin'].includes(process.platform)) return undefined
     const launcher = getBundledLauncherPath(process.platform, process.resourcesPath)
     return launcher && existsSync(launcher) ? 'zkyq' : undefined
   }

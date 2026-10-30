@@ -5,5 +5,5 @@ export function getOrcaCliCommandNameForPlatform(platform: NodeJS.Platform): str
   if (platform === 'win32') {
     return 'zkyq.exe'
   }
-  return 'orca'
+  return 'zkyq'
 }

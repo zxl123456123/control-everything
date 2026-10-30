@@ -20,7 +20,8 @@ it.each([
   ['win32', true, true, 'zkyq'],
   ['win32', true, false, undefined],
   ['win32', false, true, undefined],
-  ['darwin', true, true, undefined],
+  ['darwin', true, true, 'zkyq'],
+  ['darwin', true, false, undefined],
   ['linux', true, true, 'zkyq'],
   ['linux', true, false, undefined]
 ] as const)('advertises only the available packaged command (%s, %s, %s)', (platform, packaged, available, expected) => {
@@ -30,7 +31,7 @@ it.each([
   vi.mocked(existsSync).mockReturnValue(available)
   const environment = new ElectronAppEnvironment()
   expect(environment.getCliAccountCommand()).toBe(expected)
-  if (platform !== 'darwin' && packaged) {
+  if (packaged) {
     expect(existsSync).toHaveBeenCalledWith(join('test-resources', 'bin', platform === 'win32' ? 'zkyq.exe' : 'zkyq'))
   } else {
     expect(existsSync).not.toHaveBeenCalled()

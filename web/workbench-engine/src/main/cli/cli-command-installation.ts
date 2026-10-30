@@ -1,5 +1,5 @@
 import { link, readlink, rmdir, symlink, unlink, writeFile } from 'node:fs/promises'
-import { basename, dirname, join, resolve } from 'node:path'
+import { basename, dirname, isAbsolute, join, resolve } from 'node:path'
 import type { CliInstallStatus } from '../../shared/cli-install-types'
 import {
   ensureAppImageExtractedRoot,
@@ -94,7 +94,11 @@ export class CliCommandInstallation extends CliCommandInspection {
     await this.discardQuarantinedCommand(quarantine)
   }
 
-  protected async removeLegacyLinuxCommandIfManaged(launcherPath: string | null): Promise<void> {
+  protected async removeLegacyCommandsIfManaged(launcherPath: string | null): Promise<void> {
+    if (this.platform === 'darwin' && this.isPackaged && !this.commandPathOverride && launcherPath) {
+      await this.removeLegacyMacCommandIfManaged(launcherPath)
+      return
+    }
     if (this.platform !== 'linux' || this.commandPathOverride || !launcherPath) {
       return
     }
@@ -116,6 +120,43 @@ export class CliCommandInstallation extends CliCommandInspection {
           `[cli] Could not remove the legacy command at ${commandPath}:`,
           error instanceof Error ? error.message : String(error)
         )
+      }
+    }
+  }
+
+  private async removeLegacyMacCommandIfManaged(launcherPath: string): Promise<void> {
+    const legacyLauncher = join(dirname(launcherPath), 'orca')
+    const defaultLegacyCommand = join(dirname(this.macCommandPath), 'orca')
+    const candidates = new Set([
+      defaultLegacyCommand,
+      join(this.homePath, '.local', 'bin', 'orca'),
+      ...this.getPathCommandCandidates(defaultLegacyCommand)
+    ])
+    for (const commandPath of candidates) {
+      if (!isAbsolute(commandPath)) continue
+      try {
+        const inspected = await this.inspectStableSymlink(commandPath, legacyLauncher)
+        // Only reclaim a bundled legacy symlink, never a user-authored command file.
+        if (!inspected.snapshot?.isSymbolicLink || !inspected.rawSymlinkTarget) continue
+        const target = resolve(dirname(commandPath), inspected.rawSymlinkTarget)
+        if (
+          target !== resolve(legacyLauncher) &&
+          !/(?:^|[/\\])Orca\.app[/\\]Contents[/\\]Resources[/\\]bin[/\\]orca$/.test(target)
+        ) {
+          continue
+        }
+        const quarantine = await this.quarantineUnlessPrivileged(commandPath)
+        if (!quarantine) {
+          await this.runPrivilegedSymlinkTransaction('remove', commandPath, legacyLauncher, inspected)
+          continue
+        }
+        if (!(await capturedExpectedEntry(quarantine, inspected))) {
+          await this.restoreQuarantinedCommand(quarantine, commandPath)
+          continue
+        }
+        await this.discardQuarantinedCommand(quarantine)
+      } catch (error) {
+        console.warn(`[cli] Could not remove the legacy command at ${commandPath}:`, error)
       }
     }
   }

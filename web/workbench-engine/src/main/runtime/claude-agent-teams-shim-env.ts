@@ -92,7 +92,7 @@ function bundledLauncherPath(): string | null {
     return null
   }
   if (process.platform === 'darwin') {
-    return join(process.resourcesPath, 'bin', 'orca')
+    return join(process.resourcesPath, 'bin', 'zkyq')
   }
   if (process.platform === 'linux') {
     return join(process.resourcesPath, 'bin', 'zkyq')

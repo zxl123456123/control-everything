@@ -30,7 +30,7 @@ const builderConfig = require('../../../config/electron-builder.config.cjs') as 
   asarUnpack?: string[]
 }
 const linuxLauncherAsset = new URL('../../../resources/linux/bin/zkyq', import.meta.url)
-const darwinLauncherAsset = new URL('../../../resources/darwin/bin/orca', import.meta.url)
+const darwinLauncherAsset = new URL('../../../resources/darwin/bin/zkyq', import.meta.url)
 const unixLauncherFixtures = [
   {
     name: 'Linux',
@@ -44,7 +44,7 @@ const unixLauncherFixtures = [
     name: 'macOS',
     asset: darwinLauncherAsset,
     appDir: ['Orca.app'],
-    launcher: ['Contents', 'Resources', 'bin', 'orca'],
+    launcher: ['Contents', 'Resources', 'bin', 'zkyq'],
     executable: ['Contents', 'MacOS', 'Orca'],
     cli: ['Contents', 'Resources', 'app.asar.unpacked', 'out', 'cli', 'index.js']
   }
