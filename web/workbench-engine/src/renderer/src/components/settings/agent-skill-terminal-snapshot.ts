@@ -6,6 +6,8 @@ export type SkillTerminalSnapshot = {
   worktreeId: string
   prepareCommandForShell: (command: string, effectiveShell: string | undefined) => string
   shellOverride: string | undefined
+  runtime: LocalAgentRuntime | undefined
+  migrationSkillName?: string
 }
 
 export function createTerminalSnapshot(
@@ -20,6 +22,7 @@ export function createTerminalSnapshot(
     worktreeId,
     prepareCommandForShell: (command, effectiveShell) =>
       buildSkillSetupTerminalCommand(command, effectiveShell, pinnedRuntime),
-    shellOverride
+    shellOverride,
+    runtime: pinnedRuntime
   }
 }

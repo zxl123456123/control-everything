@@ -332242,8 +332242,8 @@
     {
       "path": "src/renderer/src/components/settings/AgentSkillSetupPanel.test.tsx",
       "upstream_sha256": "21f945f05b0734eea220c2ebad8ad59d063bc0e8cc3a6aceaa6e4b402ff3ebf3",
-      "current_sha256": "d1bfabacc20f3a2be028bd5404ca3f156d562bb8632ac7dce68ed39f438eade8",
-      "reason": "六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物；固定安装终端事件归属以保证异步执行上下文一致"
+      "current_sha256": "852293cbfb8e63b4d9a57d30949e51c46115c08392ee5c9969b7f7ef6e21503e",
+      "reason": "六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物；固定安装终端事件归属以保证异步执行上下文一致；本机 CLI 技能安装后按终端实际归属执行名称迁移"
     },
     {
       "path": "src/renderer/src/components/settings/BrowserUseSkillStep.test.tsx",
@@ -332254,8 +332254,8 @@
     {
       "path": "src/renderer/src/components/settings/CliSection.tsx",
       "upstream_sha256": "90e8f4dcd9aa381f723c0dc74b2b827b62ec7f88e71a3ef59fa1ba8ef3c1fd64",
-      "current_sha256": "f03cac680f18f6ac4b1d324f5fc0edf2ca4b336440d1db71c2982d0edfe9624f",
-      "reason": "六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物；移除 CLI 技能区域重复的旧品牌说明及对应翻译"
+      "current_sha256": "8749ca0f2fd81e76ff2d0ff08ba564486b7faea7edaace66e978712113bea0e2",
+      "reason": "六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物；移除 CLI 技能区域重复的旧品牌说明及对应翻译；本机 CLI 技能安装后按终端实际归属执行名称迁移"
     },
     {
       "path": "src/renderer/src/components/settings/EphemeralVmsPane.tsx",
@@ -332422,14 +332422,14 @@
     {
       "path": "src/renderer/src/components/settings/AgentSkillSetupPanel.tsx",
       "upstream_sha256": "3bcf4e28ffc55d5183a55f62a2517cca9a17557487be4f358c141a6f513b69b6",
-      "current_sha256": "283e0126af438408e6a326f9906b70fd288fa32a7da59288a889d2c6e86d3264",
-      "reason": "；固定安装终端事件归属以保证异步执行上下文一致"
+      "current_sha256": "d2ba57e1eddfa0b800bd220c7c4b41b472142af599bdaf61e3af14bcbe63863e",
+      "reason": "；固定安装终端事件归属以保证异步执行上下文一致；本机 CLI 技能安装后按终端实际归属执行名称迁移"
     },
     {
       "path": "src/renderer/src/components/settings/agent-skill-terminal-snapshot.ts",
       "upstream_sha256": "2a318036ddd62f755b448190da2876123c01b43949b8254d8141babdc9ed3cb1",
-      "current_sha256": "b094d6b850de39c9a8decf9d192a63e66a85134e6faae52af89f9ab16bda1e39",
-      "reason": "；固定安装终端事件归属以保证异步执行上下文一致"
+      "current_sha256": "842f7360461289ae73831b64d0a64a8bf6eb90eacfc0522eaf0fc23ea366b0c9",
+      "reason": "；固定安装终端事件归属以保证异步执行上下文一致；本机 CLI 技能安装后按终端实际归属执行名称迁移"
     },
     {
       "path": "src/renderer/src/components/settings/accounts-pane-claude-section.tsx",
@@ -332880,6 +332880,36 @@
       "upstream_sha256": "77f4c06db279587e6db60940ae0b966571a9bbd483fb0d5ed48b1c41f21f9da5",
       "current_sha256": "e7d46daffe3b153969b2e5054a017e8506cc4bedd546a5bb58442a93f52a9f93",
       "reason": "迁移配置索引及备份并保护回退快照"
+    },
+    {
+      "path": "src/renderer/src/components/onboarding/OnboardingInlineCommandTerminal.command-finished.test.tsx",
+      "upstream_sha256": "669caf485da23139b8ce4205603f9f677a6472e1bfadf6a72cfd98567a7a3173",
+      "current_sha256": "aa17c8d7699aa84a27d4d75060611abc777f3156eab948e3dcfd109e17d29f7d",
+      "reason": "本机 CLI 技能安装后按终端实际归属执行名称迁移"
+    },
+    {
+      "path": "src/renderer/src/components/onboarding/OnboardingInlineCommandTerminal.tsx",
+      "upstream_sha256": "306a43b2c40eda838f8f8277e63489e9a2d76cb73e5d4a9896e36c251e3aa792",
+      "current_sha256": "b7db062f66e9ea560ccdf7c6096bf85117b67c3045cd24af3a7f5ca51bdc0aa3",
+      "reason": "本机 CLI 技能安装后按终端实际归属执行名称迁移"
+    },
+    {
+      "path": "src/renderer/src/components/settings/agent-skill-setup-panel-props.ts",
+      "upstream_sha256": "15d0752aeaa24fe205208d09e7db3545eb046f162f26f145783ede5ae5dc1a98",
+      "current_sha256": "e89ecbed6d540342894ee941a630a8b17da1a48e20626367c61cfe2002b483d8",
+      "reason": "本机 CLI 技能安装后按终端实际归属执行名称迁移"
+    },
+    {
+      "path": "src/renderer/src/components/terminal-pane/pty-connection/pane-agent-identity.ts",
+      "upstream_sha256": "f65cb61b28225209e8a3d25a8b20f6041e90a5d8077a99f5c534107abc2dfa6b",
+      "current_sha256": "8e0680c3ac3c0f8c72f29df8a0baabdb906cb2f921132c84a92dba0c96998d1e",
+      "reason": "本机 CLI 技能安装后按终端实际归属执行名称迁移"
+    },
+    {
+      "path": "src/renderer/src/hooks/terminal-command-finished-event.ts",
+      "upstream_sha256": "02d5c934bc4103c99a3d4cc3dc325f177a545be38b14aa2a27b21bf13b89f5b5",
+      "current_sha256": "b4bdb7316f3e7e22b2111cd916ed239d1ff85a0fab85ba06045c09260aa841de",
+      "reason": "本机 CLI 技能安装后按终端实际归属执行名称迁移"
     }
   ],
   "reviewed_findings": [

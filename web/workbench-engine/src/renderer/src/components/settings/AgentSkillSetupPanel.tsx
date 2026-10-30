@@ -17,6 +17,10 @@ import {
 import { isOrcaCliAvailableOnPath } from '@/lib/agent-skill-cli-prerequisite'
 import { cn } from '@/lib/utils'
 import { translate } from '@/i18n/i18n'
+import { callRuntimeRpc } from '@/runtime/runtime-rpc-client'
+import { isRemoteExecutionHostPtyId } from '../../../../shared/remote-execution-host-pty-id'
+import { isWslShellName } from '../../../../shared/local-windows-terminal-runtime'
+import type { TerminalCommandFinishedEventDetail } from '@/hooks/terminal-command-finished-event'
 
 export function AgentSkillSetupPanel({
   title,
@@ -51,7 +55,8 @@ export function AgentSkillSetupPanel({
   openingHint,
   footer,
   onRecheck,
-  freshnessSkillName
+  freshnessSkillName,
+  migrationSkillName
 }: AgentSkillSetupPanelProps): React.JSX.Element {
   const resolvedInstallLabel =
     installLabel ??
@@ -66,6 +71,8 @@ export function AgentSkillSetupPanel({
   const [setupAttemptRunning, setSetupAttemptRunning] = useState(false)
   const [setupCommandFailedCode, setSetupCommandFailedCode] = useState<number | null>(null)
   const setupAttemptRunningRef = useRef(false)
+  const migrationRunningRef = useRef(false)
+  const setupSubmittedRef = useRef(false)
   const [preInstallNoticeVisible, setPreInstallNoticeVisible] = useState(
     Boolean(preInstallNotice && !installed)
   )
@@ -83,12 +90,10 @@ export function AgentSkillSetupPanel({
     if (terminalOpening || setupAttemptRunning) {
       return
     }
-    const nextSnapshot = createTerminalSnapshot(
-      activeCommand,
-      shellOverride,
-      runtime,
-      terminalWorktreeId
-    )
+    const nextSnapshot = {
+      ...createTerminalSnapshot(activeCommand, shellOverride, runtime, terminalWorktreeId),
+      migrationSkillName
+    }
     setTerminalOpening(true)
     if (setupCommandFailedCode !== null) {
       setTerminalOpen(false)
@@ -109,6 +114,7 @@ export function AgentSkillSetupPanel({
             setTerminalAttempt((attempt) => attempt + 1)
             setTerminalOpen(true)
             setupAttemptRunningRef.current = true
+            setupSubmittedRef.current = false
             setSetupAttemptRunning(true)
           }
         }
@@ -118,19 +124,54 @@ export function AgentSkillSetupPanel({
 
   // Why: PTY exit is the shell's status; OSC 133;D reports the install command.
   const handleSetupCommandFinished = useCallback(
-    (bestEffortExitCode: number | null): void => {
+    (
+      bestEffortExitCode: number | null,
+      owner?: TerminalCommandFinishedEventDetail['owner']
+    ): void => {
       // Nested shells can emit duplicate completion markers in one PTY chunk.
       if (!setupAttemptRunningRef.current) {
         return
       }
+      // A shell can report a previous command's status while its first prompt loads.
+      if (terminalSnapshot?.migrationSkillName && !setupSubmittedRef.current) return
       setupAttemptRunningRef.current = false
-      setSetupAttemptRunning(false)
       if (bestEffortExitCode !== null) {
         setSetupCommandFailedCode(bestEffortExitCode === 0 ? null : bestEffortExitCode)
       }
-      recheckSurfacesAfterAgentSkillTerminal(onRecheck, freshnessSkillName)
+      const name = terminalSnapshot?.migrationSkillName
+      const ptyId = owner?.ptyId
+      const migrate =
+        bestEffortExitCode === 0 &&
+        name &&
+        terminalSnapshot?.runtime?.runtime === 'host' &&
+        owner?.runtimeEnvironmentId === null &&
+        typeof ptyId === 'string' &&
+        ptyId.length > 0 &&
+        !ptyId.startsWith('ssh:') &&
+        !isRemoteExecutionHostPtyId(ptyId) &&
+        !isWslShellName(owner.shellOverride)
+      void (async () => {
+        try {
+          if (migrate) {
+            migrationRunningRef.current = true
+            await callRuntimeRpc({ kind: 'local' }, 'skills.migrateNames', {
+              names: [name],
+              target: { runtime: 'host' }
+            })
+          }
+        } catch (error) {
+          toast.error(
+            translate('auto.components.settings.AgentSkillSetupPanel.setupFailed', 'Setup failed'),
+            { description: error instanceof Error ? error.message : String(error) }
+          )
+        } finally {
+          migrationRunningRef.current = false
+          if (mountedRef.current) setSetupAttemptRunning(false)
+          recheckSurfacesAfterAgentSkillTerminal(onRecheck, freshnessSkillName)
+        }
+      })()
     },
-    [freshnessSkillName, onRecheck]
+    [freshnessSkillName, mountedRef, onRecheck, terminalSnapshot]
   )
 
   const handleTerminalExit = useCallback((): void => {
@@ -138,7 +179,7 @@ export function AgentSkillSetupPanel({
     if (mountedRef.current) {
       setupAttemptRunningRef.current = false
       setTerminalOpen(false)
-      setSetupAttemptRunning(false)
+      if (!migrationRunningRef.current) setSetupAttemptRunning(false)
     }
     void (shouldRecheck && recheckSurfacesAfterAgentSkillTerminal(onRecheck, freshnessSkillName))
   }, [freshnessSkillName, mountedRef, onRecheck])
@@ -213,7 +254,7 @@ export function AgentSkillSetupPanel({
           variant={installVariant}
           size="sm"
           onClick={openSetupTerminal}
-          disabled={terminalOpen || installDisabled || terminalOpening}
+          disabled={terminalOpen || installDisabled || terminalOpening || setupAttemptRunning}
         >
           {terminalOpening ? (
             <Loader2 className="size-3.5 animate-spin" />
@@ -410,6 +451,15 @@ export function AgentSkillSetupPanel({
             autoScrollIntoView={false}
             onTerminalExit={handleTerminalExit}
             onCommandFinished={handleSetupCommandFinished}
+            onInteracted={(method, event) => {
+              if (
+                method === 'keyboard' &&
+                event?.key === 'Enter' &&
+                !event.nativeEvent.isComposing
+              ) {
+                setupSubmittedRef.current = true
+              }
+            }}
           />
         </div>
       ) : null}

@@ -195,4 +195,46 @@ describe('OnboardingInlineCommandTerminal command-finished forwarding', () => {
     })
     expect(onCommandFinished).toHaveBeenLastCalledWith(null)
   })
+
+  it('forwards ownership only from the actual setup tab', async () => {
+    const onCommandFinished = vi.fn()
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+    await act(async () => {
+      root?.render(
+        <OnboardingInlineCommandTerminal
+          command="test"
+          title="Setup"
+          ariaLabel="Setup"
+          onCommandFinished={onCommandFinished}
+        />
+      )
+    })
+    await act(async () => {})
+    const owner = {
+      tabId: 'other-tab',
+      ptyId: 'local-pty',
+      runtimeEnvironmentId: null,
+      shellOverride: undefined
+    }
+    const worktreeId = 'ephemeral-setup-terminal:onboarding-inline-terminal'
+    await act(async () => {
+      window.dispatchEvent(
+        new CustomEvent<TerminalCommandFinishedEventDetail>(ORCA_TERMINAL_COMMAND_FINISHED_EVENT, {
+          detail: { worktreeId, exitCode: 0, owner }
+        })
+      )
+    })
+    expect(onCommandFinished).not.toHaveBeenCalled()
+    owner.tabId = 'tab-1'
+    await act(async () => {
+      window.dispatchEvent(
+        new CustomEvent<TerminalCommandFinishedEventDetail>(ORCA_TERMINAL_COMMAND_FINISHED_EVENT, {
+          detail: { worktreeId, exitCode: 0, owner }
+        })
+      )
+    })
+    expect(onCommandFinished).toHaveBeenCalledWith(0, owner)
+  })
 })

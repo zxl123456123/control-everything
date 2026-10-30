@@ -1,11 +1,12 @@
 // @vitest-environment happy-dom
 
-import { act, useState, type ComponentProps } from 'react'
+import { act, useState, type ComponentProps, type KeyboardEvent } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AgentSkillSetupPanel } from './AgentSkillSetupPanel'
 import { TooltipProvider } from '../ui/tooltip'
+import type { TerminalCommandFinishedEventDetail } from '@/hooks/terminal-command-finished-event'
 
 const INSTALL_COMMAND =
   'npx skills add https://github.com/zxl123456123/control-everything --skill zkyq-cli --global'
@@ -20,13 +21,18 @@ const mocks = vi.hoisted(() => ({
     shellOverride?: string
     prepareCommandForShell?: (command: string, shellOverride?: string) => string
     onTerminalExit?: () => void
-    onCommandFinished?: (bestEffortExitCode: number | null) => void
+    onInteracted?: (method: 'keyboard' | 'pointer', event?: KeyboardEvent<HTMLElement>) => void
+    onCommandFinished?: (
+      bestEffortExitCode: number | null,
+      owner?: TerminalCommandFinishedEventDetail['owner']
+    ) => void
   }[],
   toastError: vi.fn(),
   toastSuccess: vi.fn(),
   skillsChanged: vi.fn(),
   skillsRefreshed: vi.fn(),
   freshnessRefresh: vi.fn(),
+  runtimeCall: vi.fn(),
   terminalInstanceCount: 0
 }))
 
@@ -36,6 +42,8 @@ vi.mock('sonner', () => ({
     success: mocks.toastSuccess
   }
 }))
+
+vi.mock('@/runtime/runtime-rpc-client', () => ({ callRuntimeRpc: mocks.runtimeCall }))
 
 vi.mock('@/hooks/useInstalledAgentSkills', () => ({
   notifyInstalledAgentSkillsChanged: mocks.skillsChanged,
@@ -54,7 +62,11 @@ vi.mock('../onboarding/OnboardingInlineCommandTerminal', () => ({
     shellOverride?: string
     prepareCommandForShell?: (command: string, shellOverride?: string) => string
     onTerminalExit?: () => void
-    onCommandFinished?: (bestEffortExitCode: number | null) => void
+    onInteracted?: (method: 'keyboard' | 'pointer', event?: KeyboardEvent<HTMLElement>) => void
+    onCommandFinished?: (
+      bestEffortExitCode: number | null,
+      owner?: TerminalCommandFinishedEventDetail['owner']
+    ) => void
   }) => {
     const [instance] = useState(() => {
       mocks.terminalInstanceCount += 1
@@ -158,6 +170,11 @@ async function clickButton(label: string): Promise<void> {
   await act(async () => {})
 }
 
+function submitSetup(): void {
+  const event = { key: 'Enter', nativeEvent: { isComposing: false } } as KeyboardEvent<HTMLElement>
+  mocks.terminalProps.at(-1)?.onInteracted?.('keyboard', event)
+}
+
 describe('AgentSkillSetupPanel', () => {
   beforeEach(() => {
     mocks.clipboardWrite.mockReset()
@@ -168,6 +185,8 @@ describe('AgentSkillSetupPanel', () => {
     mocks.skillsChanged.mockReset()
     mocks.skillsRefreshed.mockReset()
     mocks.freshnessRefresh.mockReset()
+    mocks.runtimeCall.mockReset()
+    mocks.runtimeCall.mockResolvedValue({ archived: [] })
     mocks.freshnessRefresh.mockResolvedValue(undefined)
     mocks.terminalInstanceCount = 0
     Object.defineProperty(window, 'api', {
@@ -456,6 +475,142 @@ describe('AgentSkillSetupPanel', () => {
     })
     await clickButton('Retry')
     expect(mocks.terminalProps.at(-1)?.worktreeId).toBe('setup-second')
+  })
+
+  it('migrates the captured CLI skill on the proven local terminal before rechecking', async () => {
+    const recheck = vi.fn()
+    let finish: (() => void) | undefined
+    mocks.runtimeCall.mockReturnValue(
+      new Promise<void>((resolve) => {
+        finish = resolve
+      })
+    )
+    await renderInteractivePanel({
+      terminalRuntime: { runtime: 'host', label: 'Host' },
+      migrationSkillName: 'zkyq-cli',
+      onRecheck: recheck
+    })
+    await clickButton('Install')
+    await rerenderInteractivePanel({
+      terminalRuntime: { runtime: 'wsl', label: 'WSL' },
+      migrationSkillName: 'zkyq-linear',
+      onRecheck: recheck
+    })
+    await act(async () => {
+      mocks.terminalProps.at(-1)?.onCommandFinished?.(0, {
+        tabId: 'tab-1',
+        ptyId: 'local-pty',
+        runtimeEnvironmentId: null,
+        shellOverride: 'powershell.exe'
+      })
+    })
+    expect(mocks.runtimeCall).not.toHaveBeenCalled()
+    expect(recheck).not.toHaveBeenCalled()
+    submitSetup()
+    await act(async () => {
+      mocks.terminalProps.at(-1)?.onCommandFinished?.(0, {
+        tabId: 'tab-1',
+        ptyId: 'local-pty',
+        runtimeEnvironmentId: null,
+        shellOverride: 'powershell.exe'
+      })
+    })
+    expect(mocks.runtimeCall).toHaveBeenCalledWith({ kind: 'local' }, 'skills.migrateNames', {
+      names: ['zkyq-cli'],
+      target: { runtime: 'host' }
+    })
+    expect(recheck).not.toHaveBeenCalled()
+    await act(async () => {
+      mocks.terminalProps.at(-1)?.onTerminalExit?.()
+    })
+    expect(findButton('Install').disabled).toBe(true)
+    await act(async () => {
+      finish?.()
+    })
+    expect(findButton('Install').disabled).toBe(false)
+    expect(recheck).toHaveBeenCalledOnce()
+  })
+
+  it.each([
+    {
+      exit: 1,
+      runtime: 'host',
+      owner: { tabId: 't', ptyId: 'local', runtimeEnvironmentId: null, shellOverride: undefined }
+    },
+    {
+      exit: null,
+      runtime: 'host',
+      owner: { tabId: 't', ptyId: 'local', runtimeEnvironmentId: null, shellOverride: undefined }
+    },
+    {
+      exit: 0,
+      runtime: 'wsl',
+      owner: { tabId: 't', ptyId: 'local', runtimeEnvironmentId: null, shellOverride: undefined }
+    },
+    {
+      exit: 0,
+      runtime: 'host',
+      owner: {
+        tabId: 't',
+        ptyId: 'local',
+        runtimeEnvironmentId: 'remote',
+        shellOverride: undefined
+      }
+    },
+    {
+      exit: 0,
+      runtime: 'host',
+      owner: {
+        tabId: 't',
+        ptyId: 'ssh:unknown',
+        runtimeEnvironmentId: null,
+        shellOverride: undefined
+      }
+    },
+    {
+      exit: 0,
+      runtime: 'host',
+      owner: { tabId: 't', ptyId: 'local', runtimeEnvironmentId: null, shellOverride: 'wsl.exe' }
+    },
+    { exit: 0, runtime: 'host', owner: undefined }
+  ] as const)(
+    'does not migrate without local success and ownership: %j',
+    async ({ exit, runtime, owner }) => {
+      await renderInteractivePanel({
+        terminalRuntime: { runtime, label: runtime },
+        migrationSkillName: 'zkyq-cli'
+      })
+      await clickButton('Install')
+      submitSetup()
+      await act(async () => {
+        mocks.terminalProps.at(-1)?.onCommandFinished?.(exit, owner)
+      })
+      expect(mocks.runtimeCall).not.toHaveBeenCalled()
+    }
+  )
+
+  it('reports migration failure and still refreshes the skill state', async () => {
+    const recheck = vi.fn()
+    mocks.runtimeCall.mockRejectedValue(new Error('replacement mismatch'))
+    await renderInteractivePanel({
+      terminalRuntime: { runtime: 'host', label: 'Host' },
+      migrationSkillName: 'zkyq-cli',
+      onRecheck: recheck
+    })
+    await clickButton('Install')
+    submitSetup()
+    await act(async () => {
+      mocks.terminalProps.at(-1)?.onCommandFinished?.(0, {
+        tabId: 'tab-1',
+        ptyId: 'local-pty',
+        runtimeEnvironmentId: null,
+        shellOverride: undefined
+      })
+    })
+    expect(mocks.toastError).toHaveBeenCalledWith('Setup failed', {
+      description: 'replacement mismatch'
+    })
+    expect(recheck).toHaveBeenCalledOnce()
   })
 
   it('keeps an open terminal on the WSL runtime captured when it opened', async () => {

@@ -327,6 +327,7 @@ export function CliSection({
               error={cliSkillError}
               onRecheck={refreshCliSkill}
               freshnessSkillName={cliSkillFreshnessName}
+              migrationSkillName={WORKBENCH_CLI_SKILL_NAME}
             />
           </div>
         ) : null}
