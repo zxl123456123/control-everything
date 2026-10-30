@@ -10,11 +10,10 @@ import {
   getDailySegments,
   getDailyTotal,
   getLegendItems,
-  OrcaLogo,
   RANGE_LABELS
 } from './share-card-utils'
 import type { ClaudeShareData, CodexShareData } from './share-card-utils'
-import { translate } from '@/i18n/i18n'
+import { translate, translatePlatform } from '@/i18n/i18n'
 
 export type ShareUsageCardProps = (ClaudeShareData | CodexShareData) & {
   range: string
@@ -96,9 +95,6 @@ export const ShareUsageCard = forwardRef<HTMLDivElement, ShareUsageCardProps>(
 )
 
 function CardHeader(props: { providerLabel: string; range: string }): React.JSX.Element {
-  const platformMode =
-    typeof window !== 'undefined' &&
-    ['/studio', '/workbench/web-index.html'].includes(window.location.pathname)
   return (
     <div
       style={{
@@ -111,32 +107,28 @@ function CardHeader(props: { providerLabel: string; range: string }): React.JSX.
     >
       <div style={{ display: 'table-cell', verticalAlign: 'middle' }}>
         <div style={{ display: 'inline-block', verticalAlign: 'middle' }}>
-          {platformMode ? (
-            <span
-              aria-hidden="true"
-              style={{
-                display: 'inline-flex',
-                width: 30,
-                height: 30,
-                alignItems: 'center',
-                justifyContent: 'center',
-                borderRadius: 8,
-                background: '#fafafa',
-                color: '#171717',
-                fontSize: 12,
-                fontWeight: 700,
-                verticalAlign: 'middle'
-              }}
-            >
-              CE
-            </span>
-          ) : (
-            <OrcaLogo />
-          )}
+          <span
+            aria-hidden="true"
+            style={{
+              display: 'inline-flex',
+              width: 30,
+              height: 30,
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: 8,
+              background: '#fafafa',
+              color: '#171717',
+              fontSize: 12,
+              fontWeight: 700,
+              verticalAlign: 'middle'
+            }}
+          >
+            CE
+          </span>
         </div>
         <div style={{ display: 'inline-block', verticalAlign: 'middle', marginLeft: 10 }}>
           <div style={{ fontSize: 14, fontWeight: 600, color: '#fafafa', lineHeight: 1.2 }}>
-            {translate('auto.components.stats.ShareUsageCard.0eb31e79ee', 'Orca IDE')}
+            {translatePlatform('usageShareProduct')}
           </div>
           <div style={{ fontSize: 10, color: '#555', letterSpacing: 0.3 }}>
             {props.providerLabel}{' '}

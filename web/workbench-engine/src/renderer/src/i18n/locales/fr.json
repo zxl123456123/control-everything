@@ -4540,7 +4540,6 @@
           "2d9eb39264": "Total de tokens",
           "beb6f24f37": "Coût estimé",
           "da62578d9d": "Utilisation",
-          "0eb31e79ee": "IDE Orca",
           "960324e9b8": "événements",
           "6adac63cfe": "tours"
         },
@@ -4585,7 +4584,6 @@
         "share": {
           "card": {
             "utils": {
-              "19f4b4dc75": "github.com/stablyai/orca",
               "d864fc5f98": "sortie",
               "5d66fdd7c2": "entrée",
               "7080aeaebb": "Raisonnement",

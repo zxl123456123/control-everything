@@ -4471,7 +4471,6 @@
           "2d9eb39264": "token总数",
           "beb6f24f37": "预计成本",
           "da62578d9d": "用法",
-          "0eb31e79ee": "Orca IDE",
           "960324e9b8": "事件",
           "6adac63cfe": "轮次"
         },
@@ -4516,7 +4515,6 @@
         "share": {
           "card": {
             "utils": {
-              "19f4b4dc75": "github.com/stablyai/orca",
               "d864fc5f98": "输出",
               "5d66fdd7c2": "输入",
               "7080aeaebb": "推理",

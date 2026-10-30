@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ShareUsageCard, type ShareUsageCardProps } from './ShareUsageCard'
 import { ShareUsageButton } from './ShareUsageButton'
 import { i18n, setRendererUiLanguage } from '@/i18n/i18n'
+import { toPng } from 'html-to-image'
 
 vi.mock('html-to-image', () => ({ toPng: vi.fn() }))
 vi.mock('../ui/dialog', () => {
@@ -54,11 +55,14 @@ const usage: ShareUsageCardProps = {
 describe('usage sharing product identity', () => {
   let root: Root | undefined
   const openUrl = vi.fn()
+  const writeClipboardImage = vi.fn()
 
   beforeEach(async () => {
     globalThis.IS_REACT_ACT_ENVIRONMENT = true
     openUrl.mockReset()
-    Object.assign(window, { api: { shell: { openUrl } } })
+    writeClipboardImage.mockReset()
+    vi.mocked(toPng).mockReset()
+    Object.assign(window, { api: { shell: { openUrl }, ui: { writeClipboardImage } } })
     await i18n.changeLanguage('en')
   })
 
@@ -69,7 +73,7 @@ describe('usage sharing product identity', () => {
     window.history.replaceState(null, '', '/')
   })
 
-  it.each(['/studio', '/workbench/web-index.html'])(
+  it.each(['/studio', '/workbench/web-index.html', '/web-index.html'])(
     'brands the rendered card on %s',
     async (path) => {
       window.history.replaceState(null, '', path)
@@ -84,16 +88,7 @@ describe('usage sharing product identity', () => {
     }
   )
 
-  it('preserves the standalone card identity', () => {
-    window.history.replaceState(null, '', '/web-index.html')
-    const html = renderToStaticMarkup(<ShareUsageCard {...usage} />)
-    expect(html).toContain('Orca IDE')
-    expect(html).toContain('318.60232')
-    expect(html).toContain('github.com/stablyai/orca')
-    expect(html).not.toContain('>CE</span>')
-  })
-
-  it.each(['/studio', '/web-index.html'])(
+  it.each(['/studio', '/workbench/web-index.html', '/web-index.html'])(
     'uses the matching outgoing share identity on %s',
     async (path) => {
       window.history.replaceState(null, '', path)
@@ -111,14 +106,27 @@ describe('usage sharing product identity', () => {
       expect(url.origin + url.pathname).toBe('https://x.com/intent/post')
       const text = url.searchParams.get('text')
       expect(text).toContain('1.2k tokens · $0.12 est. cost')
-      if (path === '/studio') {
-        expect(text).toContain('Control Everything')
-        expect(text).toContain('github.com/zxl123456123/control-everything')
-        expect(text).not.toMatch(/orca_build|stablyai/)
-      } else {
-        expect(text).toContain('via @orca_build')
-        expect(text).toContain('github.com/stablyai/orca')
-      }
+      expect(text).toContain('Control Everything')
+      expect(text).toContain('github.com/zxl123456123/control-everything')
+      expect(text).not.toMatch(/orca_build|stablyai/)
     }
   )
+
+  it('still captures the branded card to the clipboard', async () => {
+    window.history.replaceState(null, '', '/web-index.html')
+    vi.mocked(toPng).mockResolvedValue('data:image/png;base64,fixture')
+    const container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+    await act(async () => root?.render(<ShareUsageButton {...usage} />))
+    const copy = Array.from(container.querySelectorAll('button')).find((button) =>
+      button.textContent?.includes('Copy image')
+    )
+    expect(copy).toBeDefined()
+    await act(async () => copy?.click())
+    expect(toPng).toHaveBeenCalledOnce()
+    const card = vi.mocked(toPng).mock.calls[0][0] as HTMLElement
+    expect(card.textContent).toContain('Control Everything')
+    expect(writeClipboardImage).toHaveBeenCalledWith('data:image/png;base64,fixture')
+  })
 })

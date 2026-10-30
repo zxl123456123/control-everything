@@ -14723,14 +14723,12 @@
           "2d9eb39264": "Total de tokens",
           "beb6f24f37": "Custo est.",
           "da62578d9d": "Uso",
-          "0eb31e79ee": "Orca IDE",
           "960324e9b8": "eventos",
           "6adac63cfe": "turnos"
         },
         "share": {
           "card": {
             "utils": {
-              "19f4b4dc75": "github.com/stablyai/orca",
               "d864fc5f98": "saída",
               "5d66fdd7c2": "entrada",
               "7080aeaebb": "Raciocínio",

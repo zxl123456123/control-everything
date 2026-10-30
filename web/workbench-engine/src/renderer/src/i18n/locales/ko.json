@@ -4432,7 +4432,6 @@
           "2d9eb39264": "총 토큰",
           "beb6f24f37": "예상 비용",
           "da62578d9d": "사용량",
-          "0eb31e79ee": "Orca IDE",
           "960324e9b8": "이벤트",
           "6adac63cfe": "턴"
         },
@@ -4477,7 +4476,6 @@
         "share": {
           "card": {
             "utils": {
-              "19f4b4dc75": "github.com/stablyai/orca",
               "d864fc5f98": "출력",
               "5d66fdd7c2": "입력",
               "7080aeaebb": "추론",

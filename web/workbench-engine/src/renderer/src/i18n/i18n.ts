@@ -118,6 +118,15 @@ export function translate(key: string, fallback: string, options?: TOptions): st
   return isPseudoLocalizationLocale(i18n.language) ? pseudoLocalizeString(value) : value
 }
 
+export function translatePlatform(key: keyof typeof PLATFORM_UI_COPY.en, options?: TOptions): string {
+  const value = i18n.t(key, {
+    ...options,
+    ns: PLATFORM_UI_NAMESPACE,
+    defaultValue: PLATFORM_UI_COPY.en[key]
+  })
+  return isPseudoLocalizationLocale(i18n.language) ? pseudoLocalizeString(value) : value
+}
+
 export async function loadRendererUiLanguage(language: UiLanguage): Promise<string> {
   const resolved = resolveUiLocale(language)
   const resourceLanguage = resolveRendererResourceLanguage(resolved)
