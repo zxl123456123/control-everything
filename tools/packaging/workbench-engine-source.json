@@ -329238,14 +329238,14 @@
     {
       "path": "src/renderer/src/components/right-sidebar/activity-bar-overflow.test.ts",
       "upstream_sha256": "6e428f8f501e389cca72cbb955ede7e0de2b2bf18381c4e2d18acd0e1c96e140",
-      "current_sha256": "ea1815717732431378650387b96359006138c9bd2b1f730390e882b93c29906b",
-      "reason": "平台工作台统一视觉与品牌展示；保留原生功能与独立模式。"
+      "current_sha256": "9ffa255515585cbdc4775fa17672d1fffd0dacc2371958c5e0b1cd9a4c31d0b5",
+      "reason": "平台工作台统一视觉与品牌展示；保留原生功能与独立模式。；平台工作区放大文字并统一连续暖色面板"
     },
     {
       "path": "src/renderer/src/components/right-sidebar/activity-bar-overflow.ts",
       "upstream_sha256": "d307463a1a941b38937db801a5a79da0c7614a3fcb684ea5e2d7355dcd5c597b",
-      "current_sha256": "01053fa756d30bf02b13e241c5861ff181cc6135f2a88b39e33d5da1dca890da",
-      "reason": "平台工作台统一视觉与品牌展示；保留原生功能与独立模式。"
+      "current_sha256": "fd1bc4a955f487c63b849951838cad2e0576084ca035b0d46c89a9a5692467d7",
+      "reason": "平台工作台统一视觉与品牌展示；保留原生功能与独立模式。；平台工作区放大文字并统一连续暖色面板"
     },
     {
       "path": "src/renderer/src/components/right-sidebar/index.tsx",
@@ -329324,6 +329324,18 @@
       "upstream_sha256": "835ae5ce81cf7fc30453a73c3f18385daf0ce63613dc5576387fc2131dc91962",
       "current_sha256": "94cf8601058a4f8b9c3c3c29089491becaaa7d82c50330e3489d5ab01e8d8335",
       "reason": "Support explicit profile-contained credential storage while preserving existing keys and host tool configuration.; 平台命令入口和帮助统一品牌，精简账号说明与工作台展示，保留兼容协议及原生功能。"
+    },
+    {
+      "path": "src/renderer/src/components/sidebar/worktree-card-meta-row.tsx",
+      "upstream_sha256": "fb5f1ac69592d8d28bf9637fc5784c88d6a6cd2870d7ffe4ab7c1ec78ddb5181",
+      "current_sha256": "b97dad2486302815e464a58f3c2e761b16d6a9e25d4fdb806abe44869b1d12db",
+      "reason": "平台工作区放大文字并统一连续暖色面板"
+    },
+    {
+      "path": "src/renderer/src/components/status-bar/StatusBarSurface.tsx",
+      "upstream_sha256": "8f3ff3d1a0224babac32d5308cf546d245e85c09262d601e93e321d29624af37",
+      "current_sha256": "8f06bc08fbd80f25db574289257b22d3a6b5200e516f2e7e012d07ee53ef219e",
+      "reason": "平台工作区放大文字并统一连续暖色面板"
     }
   ],
   "reviewed_findings": [

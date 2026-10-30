@@ -42,7 +42,7 @@ describe('getTopActivityBarLayout', () => {
 
   it('shows all labelled tools when they fit and keeps one visible in a narrow strip', () => {
     expect(
-      getTopActivityBarLayout(items, 304, 'checks', LABELLED_ACTIVITY_BUTTON_WIDTH).overflowItems
+      getTopActivityBarLayout(items, 384, 'checks', LABELLED_ACTIVITY_BUTTON_WIDTH).overflowItems
     ).toEqual([])
     const narrow = getTopActivityBarLayout(items, 170, 'checks', LABELLED_ACTIVITY_BUTTON_WIDTH)
     expect(narrow.visibleItems.map((item) => item.id)).toEqual(['checks'])
