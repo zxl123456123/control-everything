@@ -333610,14 +333610,14 @@
     {
       "path": "src/cli/handlers/skill-sharing.test.ts",
       "upstream_sha256": "7fb2a54a7cafd0c126cbd1752c89c106e40a51138987bd735ce09d230a588cce",
-      "current_sha256": "b0a58bcc07a3b30dd6257776cdf12130e4da55dc24183aa56b4af3262a5b16ca",
-      "reason": "迁移 WSL 桥接调用目录和发行版身份并保护远程写入"
+      "current_sha256": "72eb996e62bbe282028bc0d87ac2a79cd3fe969a5de2f37449fd8b78c7d5c42d",
+      "reason": "迁移 WSL 桥接身份并统一技能分享命令提示"
     },
     {
       "path": "src/cli/handlers/skill-sharing.ts",
       "upstream_sha256": "bf5845add572551a6f280cef5225e865991df4c45c19494c49ea524f1092ec44",
-      "current_sha256": "fbd2f976548ce96f6a60f7afb292bccfbd7a837652b6351e7fe1b163044d7ccf",
-      "reason": "迁移 WSL 桥接调用目录和发行版身份并保护远程写入"
+      "current_sha256": "f528dc28ca9ca2b9713dcd1031ff62daa557e0978542d4a1600eea8bf4b49d88",
+      "reason": "迁移 WSL 桥接身份并统一技能分享命令提示"
     },
     {
       "path": "src/cli/index-worktree-selector-resolution.test.ts",

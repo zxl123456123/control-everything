@@ -230,8 +230,53 @@ describe('skill sharing CLI handlers', () => {
           { isRemote }
         )
       )
-    ).rejects.toMatchObject({ code: 'invalid_environment' })
+    ).rejects.toMatchObject({
+      code: 'invalid_environment',
+      message:
+        'zkyq skills share must run on the machine whose installed skills you want to use. Run the command from a Control Everything terminal on that machine.'
+    })
+    await expect(
+      SKILL_SHARING_HANDLERS['skills installed']!(context(call, new Map(), { isRemote }))
+    ).rejects.toMatchObject({
+      code: 'invalid_environment',
+      message:
+        'zkyq skills installed must run on the machine whose installed skills you want to use. Run the command from a Control Everything terminal on that machine.'
+    })
     expect(call).not.toHaveBeenCalled()
+  })
+
+  it('points to the current command when no skill is selected', async () => {
+    const call = vi.fn()
+
+    await expect(SKILL_SHARING_HANDLERS['skills share']!(context(call))).rejects.toMatchObject({
+      code: 'invalid_argument',
+      message:
+        'Select at least one installed skill with --skill. Run `zkyq skills installed` to list them.'
+    })
+    expect(call).not.toHaveBeenCalled()
+  })
+
+  it('requests sign-in when the sharing service requires reconnection', async () => {
+    const call = vi
+      .fn()
+      .mockResolvedValueOnce({ result: { settings: {} } })
+      .mockResolvedValueOnce({ result: { status: 'reconnect-required' } })
+
+    await expect(
+      SKILL_SHARING_HANDLERS['skills share']!(
+        context(
+          call,
+          new Map([
+            ['skill', 'alpha'],
+            ['bundle-name', 'alpha']
+          ])
+        )
+      )
+    ).rejects.toMatchObject({
+      code: 'authentication_required',
+      message: 'Sign in to Control Everything and try again.'
+    })
+    expect(call).toHaveBeenCalledTimes(2)
   })
 
   it('gives an actionable upgrade error for an older runtime', async () => {
@@ -262,6 +307,10 @@ describe('skill sharing CLI handlers', () => {
           ])
         )
       )
-    ).rejects.toMatchObject({ code: 'update_required' })
+    ).rejects.toMatchObject({
+      code: 'update_required',
+      message:
+        'The connected Control Everything runtime does not support agent skill sharing yet. Update Control Everything on that machine and try again.'
+    })
   })
 })
