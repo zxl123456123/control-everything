@@ -11,7 +11,7 @@ type StatusProbe = (metadata: RuntimeMetadata) => Promise<RuntimeRpcResponse<Run
 
 /**
  * The stamp to enforce for a CLI dialing `userDataPath`. Explicitly choosing another profile (e.g.
- * `orca-dev` from a packaged Orca's terminal) is the user's target, not a fallback, so it is not fenced.
+ * `zkyq-dev` from a packaged workbench's terminal) is the user's target, not a fallback, so it is not fenced.
  */
 export function resolveFencedRuntimeSource(
   stamp: RuntimeSourceStamp | null,

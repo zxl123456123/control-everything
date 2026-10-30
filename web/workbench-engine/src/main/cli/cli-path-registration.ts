@@ -1,9 +1,40 @@
 import type { CliInstallStatus } from '../../shared/cli-install-types'
 import { CliCommandInstallation } from './cli-command-installation'
-import { isWindowsUserPathPermissionError } from './cli-install-errors'
+import { isMissingError, isWindowsUserPathPermissionError } from './cli-install-errors'
 import { samePathEntry, splitPathEntries } from './cli-install-path-format'
+import { readdir, rmdir } from 'node:fs/promises'
+import { dirname, join } from 'node:path'
+import { buildWindowsForwarder } from './cli-dev-launcher'
+import { retireGeneratedCommand } from './retire-generated-command.cjs'
 
 export class CliPathRegistration extends CliCommandInstallation {
+  protected override async removeLegacyCommandsIfManaged(
+    launcherPath: string | null
+  ): Promise<void> {
+    await super.removeLegacyCommandsIfManaged(launcherPath)
+    if (this.platform !== 'win32' || this.isPackaged || this.commandPathOverride || !launcherPath)
+      return
+    const oldDirectory = join(this.localAppDataPath, 'Programs', 'Orca Dev', 'bin')
+    const oldLauncher = join(this.userDataPath, 'cli', 'bin', 'orca-dev.cmd')
+    retireGeneratedCommand(join(oldDirectory, 'orca-dev.cmd'), buildWindowsForwarder(oldLauncher))
+    let entries: string[]
+    try {
+      entries = await readdir(oldDirectory)
+    } catch (error) {
+      if (!isMissingError(error)) throw error
+      entries = []
+    }
+    if (entries.length !== 0) return
+    await this.removeWindowsPathEntry(oldDirectory)
+    try {
+      await rmdir(oldDirectory)
+      await rmdir(dirname(oldDirectory))
+    } catch (error) {
+      if (!isMissingError(error) && (error as NodeJS.ErrnoException).code !== 'ENOTEMPTY')
+        throw error
+    }
+  }
+
   protected async probePathConfiguration(
     pathDirectory: string
   ): Promise<{ configured: boolean | null; detail: string | null }> {

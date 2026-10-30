@@ -1,11 +1,14 @@
 import { RuntimeClientError } from '../../runtime-client'
 
-export function resolveCompatibilityCliCommand(): 'zkyq' | 'orca' | 'orca-ide' | 'orca-dev' {
+export function resolveCompatibilityCliCommand(): 'zkyq' | 'orca' | 'orca-ide' | 'zkyq-dev' {
   const configured = process.env.ORCA_CLI_COMMAND
   if (configured && /(?:^|[/\\])zkyq(?:\.exe|\.cmd)?$/i.test(configured)) {
     return 'zkyq'
   }
-  if (configured === 'orca' || configured === 'orca-ide' || configured === 'orca-dev') {
+  if (configured && /(?:^|[/\\])zkyq-dev(?:\.cmd)?$/i.test(configured)) {
+    return 'zkyq-dev'
+  }
+  if (configured === 'orca' || configured === 'orca-ide' || configured === 'zkyq-dev') {
     return configured
   }
   return 'zkyq'

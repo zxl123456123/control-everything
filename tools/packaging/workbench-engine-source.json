@@ -9746,7 +9746,7 @@
       "reason": "preserved_internal_source_layout"
     },
     {
-      "path": "config/scripts/orca-dev-bin.test.mjs",
+      "path": "config/scripts/zkyq-dev-bin.test.mjs",
       "source_path": "config/scripts/orca-dev-bin.test.mjs",
       "git_blob": "1c500ae2a0c2d213abc7f437bd3cfad88ed89b78",
       "sha256": "72e310e8352642bbebc79d7af2d5f1dfc27ef22aeecdee908647554bc6fe8d98",
@@ -9755,7 +9755,7 @@
       "reason": "preserved_internal_source_layout"
     },
     {
-      "path": "config/scripts/orca-dev.mjs",
+      "path": "config/scripts/zkyq-dev.mjs",
       "source_path": "config/scripts/orca-dev.mjs",
       "git_blob": "bb4dca441fa75a87a8b0f9f69f91ea3569b689e3",
       "sha256": "7c283b0e22e4f47cc968dc97c371fce168462dbe3b773421755476a3a1236342",
@@ -326508,7 +326508,7 @@
     },
     {
       "path": "resources/skills/current-manifest.json",
-      "sha256": "5782ddb9aa2f3d22b49c18980ac0e0b679b19b9af2a9c5eb50dae648e55072e2",
+      "sha256": "8197a4686fbffb4c7434360060fde0cb3e77cc3de67c95cba05ff51ffd85aa28",
       "license_paths": [
         "LICENSE"
       ],
@@ -327120,7 +327120,10 @@
     "src/main/runtime/orchestration/cli-command.test.ts",
     "src/main/cli/cli-installer-windows-identity.test.ts",
     "src/main/host/electron-app-environment.test.ts",
-    "src/main/cli/wsl-command-migration.test.ts"
+    "src/main/cli/wsl-command-migration.test.ts",
+    "src/main/cli/retire-generated-command.cjs",
+    "src/main/cli/retire-generated-command.d.cts",
+    "src/main/cli/retire-generated-command.test.ts"
   ],
   "adapted_files": [
     {
@@ -329418,14 +329421,14 @@
     {
       "path": "src/main/cli/wsl-managed-cli.test.ts",
       "upstream_sha256": "07c6d4a06f5edc39ae2e05f73ae8d86f755ee244503b3a0e34c7bf26755f952b",
-      "current_sha256": "511ff06789ca8237dcac81c2324b80818d4beb970af9ce635f3491334de215a9",
-      "reason": "Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands.；WSL命令迁移为zkyq，成功写入后退役受管理旧入口，保留用户文件和桥接参数，失效旧命令修复缓存并对齐派发环境"
+      "current_sha256": "03058b1ecb0c841c35dde565ee2e9504bf1a05e0a56f35dd4a0bbc798cefea7b",
+      "reason": "Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands.；WSL命令迁移为zkyq，成功写入后退役受管理旧入口，保留用户文件和桥接参数，失效旧命令修复缓存并对齐派发环境；开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
     },
     {
       "path": "src/main/runtime/claude-agent-teams-shim-env.ts",
       "upstream_sha256": "c30f7844760531c06ef71746ef581eb92abae723a6a00a896904c1cee1483e39",
-      "current_sha256": "e430c3c5e487f7abc6946c249c908f799e548e76f78ad10b3b3f81c46e5daae7",
-      "reason": "Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands.；原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者；macOS打包CLI物理改名zkyq，同步安装/回收/卸载与本地派发，保留用户命令及文件竞态保护"
+      "current_sha256": "a96732e7a139998978ce11e75a1d62f3c33ab35c1a5b8e2d1da8805f489c2cb9",
+      "reason": "Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands.；原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者；macOS打包CLI物理改名zkyq，同步安装/回收/卸载与本地派发，保留用户命令及文件竞态保护；开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
     },
     {
       "path": "src/main/windows/windows-administrator-restart.ts",
@@ -329778,26 +329781,26 @@
     {
       "path": "src/cli/handlers/orchestration.test.ts",
       "upstream_sha256": "1ebd292e7c4c6c63cab1819c8b3e8c39d5274aabcc9d6487a547cec641474241",
-      "current_sha256": "19aea2ce7b32c437a63b7684ea8f591c5a274142f39998b35c635f95815849b4",
-      "reason": "统一已安装zkyq宿主的Agent派发、收信及恢复命令与状态摘要身份，保留历史记录识别和用户内容"
+      "current_sha256": "3aba5a6bacba3547c2576231a8f6731578c40e8a94c5f671b64c3a30edba5201",
+      "reason": "统一已安装zkyq宿主的Agent派发、收信及恢复命令与状态摘要身份，保留历史记录识别和用户内容；开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
     },
     {
       "path": "src/cli/handlers/orchestration/runtime-compatibility.ts",
       "upstream_sha256": "a102ef1800a19043e2f39efcc12d44d67b8c038ec010fca91e8fa541ec3b19b7",
-      "current_sha256": "441bceda5b43095c99d9418767e3613b1e1c2de441fbe752faf9d9dea0bc53e1",
-      "reason": "统一已安装zkyq宿主的Agent派发、收信及恢复命令与状态摘要身份，保留历史记录识别和用户内容"
+      "current_sha256": "3bae2ad86c103ddf8d641be35c434c0950d1bdefc5282809d2b080adae8a1474",
+      "reason": "统一已安装zkyq宿主的Agent派发、收信及恢复命令与状态摘要身份，保留历史记录识别和用户内容；开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
     },
     {
       "path": "src/cli/runtime/orchestration-recovery-command.test.ts",
       "upstream_sha256": "359edcb11e836fb884fe651bd3d4b8f93bd68d2d500ef7fcd0dc776aceec6c45",
-      "current_sha256": "c2f817aa6802e2d5cbed74f37cb726aac2293f86bde241dc4d1ca24e7fc91117",
-      "reason": "统一已安装zkyq宿主的Agent派发、收信及恢复命令与状态摘要身份，保留历史记录识别和用户内容"
+      "current_sha256": "cafb077406f2634d51e55b9b4b3180937eeb41afa4946456726a5a6029bc3dbf",
+      "reason": "统一已安装zkyq宿主的Agent派发、收信及恢复命令与状态摘要身份，保留历史记录识别和用户内容；开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
     },
     {
       "path": "src/cli/runtime/orchestration-recovery-command.ts",
       "upstream_sha256": "ea13a8eb3a74889f7ca0d0d174e7f5645ad3c9716688846e5abaf503fd977c03",
-      "current_sha256": "24884f7086d53b33ec177fc18270ee77703c623c949e6daa0bf39ec2edfc7f66",
-      "reason": "统一已安装zkyq宿主的Agent派发、收信及恢复命令与状态摘要身份，保留历史记录识别和用户内容"
+      "current_sha256": "fd82486379dddc5d7bce23b8704725a9f028f87c467ded467f54d76d55d112fd",
+      "reason": "统一已安装zkyq宿主的Agent派发、收信及恢复命令与状态摘要身份，保留历史记录识别和用户内容；开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
     },
     {
       "path": "src/main/runtime/orchestration/__snapshots__/preamble.test.ts.snap",
@@ -329808,38 +329811,38 @@
     {
       "path": "src/main/runtime/orchestration/agent-facing-parity.test.ts",
       "upstream_sha256": "2abfb8959a1e84f667b81d2144dbd2c2e4df2ee80b9bfd916bcfbb0996795223",
-      "current_sha256": "8188d44dcfd1c5c1d1b294ad91cbf2a3792ed45b61aa7010b6486c3ae58ab950",
-      "reason": "统一已安装zkyq宿主的Agent派发、收信及恢复命令与状态摘要身份，保留历史记录识别和用户内容"
+      "current_sha256": "beffd6c4692739c737393eedafe1479ae46993e99207f2a542d05c4c5d3f9634",
+      "reason": "统一已安装zkyq宿主的Agent派发、收信及恢复命令与状态摘要身份，保留历史记录识别和用户内容；开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
     },
     {
       "path": "src/main/runtime/orchestration/cli-command.ts",
       "upstream_sha256": "c122a5b40631eb3efe7c3ba4765676a8c3f903e93fc0164a0f8ab125d1a93364",
-      "current_sha256": "06d455c3292d2108995ddfbcbd8a4677685f8afe4a1ba8eb76e760061358db8a",
-      "reason": "统一已安装zkyq宿主的Agent派发、收信及恢复命令与状态摘要身份，保留历史记录识别和用户内容；WSL命令迁移为zkyq，成功写入后退役受管理旧入口，保留用户文件和桥接参数，失效旧命令修复缓存并对齐派发环境"
+      "current_sha256": "da8be5fcc302b620f9f549bb0d0134b167f0b69c043162cc101ab2a1519eba38",
+      "reason": "统一已安装zkyq宿主的Agent派发、收信及恢复命令与状态摘要身份，保留历史记录识别和用户内容；WSL命令迁移为zkyq，成功写入后退役受管理旧入口，保留用户文件和桥接参数，失效旧命令修复缓存并对齐派发环境；开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
     },
     {
       "path": "src/main/runtime/orchestration/coordinator-runtime-contract.ts",
       "upstream_sha256": "ce0d6822c889bbd52903b1e8ad9e7c899abe2f63a483ac3983f82df1aaf4fff4",
-      "current_sha256": "79224d5c2289a256b904780e58df50d57135874799ce008cfba29aca7cab470c",
-      "reason": "统一已安装zkyq宿主的Agent派发、收信及恢复命令与状态摘要身份，保留历史记录识别和用户内容"
+      "current_sha256": "dfafa67ef1226779a3ac47870522572a946176f6a8f7f38fe29e6dc583c023be",
+      "reason": "统一已安装zkyq宿主的Agent派发、收信及恢复命令与状态摘要身份，保留历史记录识别和用户内容；开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
     },
     {
       "path": "src/main/runtime/orchestration/preamble.test.ts",
       "upstream_sha256": "b3a4c81fbd58b9c5b8aa4eeef95f809bb9321bb97ce96d03f7bcc30fd2db9e37",
-      "current_sha256": "e6b20b83ffe90571ec237e75e19364478f93cec6fbac0e41ef151849b2273068",
-      "reason": "统一已安装zkyq宿主的Agent派发、收信及恢复命令与状态摘要身份，保留历史记录识别和用户内容"
+      "current_sha256": "d48fa3d392b4be315fc1eadca17691718776d293e5c7564eec64afeb3bb96808",
+      "reason": "统一已安装zkyq宿主的Agent派发、收信及恢复命令与状态摘要身份，保留历史记录识别和用户内容；开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
     },
     {
       "path": "src/main/runtime/orchestration/preamble.ts",
       "upstream_sha256": "20e4b049c72fbf003b1f00b2ec9131c53fef3e97b347ec57228f59414619518c",
-      "current_sha256": "c0acd06262f37e0b1980a5f40a1d0aa6ec46641d79b506079d015de7fc391ae5",
-      "reason": "统一已安装zkyq宿主的Agent派发、收信及恢复命令与状态摘要身份，保留历史记录识别和用户内容"
+      "current_sha256": "cbb4e3a712ffd00c36ed4e4a81fc3179d9d25c33b4329d5b84b4b821ca342134",
+      "reason": "统一已安装zkyq宿主的Agent派发、收信及恢复命令与状态摘要身份，保留历史记录识别和用户内容；开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
     },
     {
       "path": "src/main/runtime/rpc/orchestration-legacy-operation.ts",
       "upstream_sha256": "100fe98d90f44bdda1833187b050a29d0712a322fbe40b96510b4051cbff0706",
-      "current_sha256": "fafbb622968290559d3e4d4e6bf2484c0df9add25f79d507dd8a11a1a095b2cd",
-      "reason": "统一已安装zkyq宿主的Agent派发、收信及恢复命令与状态摘要身份，保留历史记录识别和用户内容"
+      "current_sha256": "a3ce50aae4646dcb81ddb056e5e6f8fe12475683de8d58ed69b0a553a6fbcb20",
+      "reason": "统一已安装zkyq宿主的Agent派发、收信及恢复命令与状态摘要身份，保留历史记录识别和用户内容；开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
     },
     {
       "path": "src/shared/agent-status-types.test.ts",
@@ -329856,26 +329859,26 @@
     {
       "path": "src/shared/rpc-contract/orchestration-params.ts",
       "upstream_sha256": "68bb9c9790c343c3d4e36509b49585e3e7a71d213f253e73ebd8698699d0081c",
-      "current_sha256": "64c73726a70d34c570adb15e6cfd9031b5fd911ae717c36ae50f6e20e096b0f8",
-      "reason": "统一已安装zkyq宿主的Agent派发、收信及恢复命令与状态摘要身份，保留历史记录识别和用户内容"
+      "current_sha256": "9f25adde25ac983d2feccf4f1ca58e15a1aefc8abe547b69c1654c9c1c239987",
+      "reason": "统一已安装zkyq宿主的Agent派发、收信及恢复命令与状态摘要身份，保留历史记录识别和用户内容；开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
     },
     {
       "path": "src/main/cli/cli-install-location.ts",
       "upstream_sha256": "de854ee8887149342a08590da9e4ebc503d62e634433eb8ea9fcefaf5039d618",
-      "current_sha256": "d28cecff4d278379eafb7ca7496e2f5a325e3e638c85bf1edbd70795d406d185",
-      "reason": "统一Windows桌面命令安装状态、宿主能力、批处理分发和原生恢复命令为zkyq，保留PATH及消息参数行为；原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者；macOS打包CLI物理改名zkyq，同步安装/回收/卸载与本地派发，保留用户命令及文件竞态保护"
+      "current_sha256": "ba6f51f0096c5c5a293400b1eb7e3972be453eb6490cedcf6740740d6a706447",
+      "reason": "统一Windows桌面命令安装状态、宿主能力、批处理分发和原生恢复命令为zkyq，保留PATH及消息参数行为；原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者；macOS打包CLI物理改名zkyq，同步安装/回收/卸载与本地派发，保留用户命令及文件竞态保护；开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
     },
     {
       "path": "src/main/cli/cli-installer.ts",
       "upstream_sha256": "65d452ae1ff988f417f5a610f3d7c4c44d73fac4c6fa13317729a4abe829f663",
-      "current_sha256": "5972849c0ebf8a755f6c4690c3e1f268f0c1e33ab826ade11406cd7ebe7b6a27",
-      "reason": "统一Windows桌面命令安装状态、宿主能力、批处理分发和原生恢复命令为zkyq，保留PATH及消息参数行为；清理共用CLI安装检查、冲突和竞态回收提示中的上游产品称呼，保留路径、权限及所有权行为；macOS打包CLI物理改名zkyq，同步安装/回收/卸载与本地派发，保留用户命令及文件竞态保护"
+      "current_sha256": "ab5eb579b0ad1b67a40c5d97a010d52899ac661510e972064344b8e8ed8b716f",
+      "reason": "统一Windows桌面命令安装状态、宿主能力、批处理分发和原生恢复命令为zkyq，保留PATH及消息参数行为；清理共用CLI安装检查、冲突和竞态回收提示中的上游产品称呼，保留路径、权限及所有权行为；macOS打包CLI物理改名zkyq，同步安装/回收/卸载与本地派发，保留用户命令及文件竞态保护；开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
     },
     {
       "path": "src/main/cli/cli-path-registration.ts",
       "upstream_sha256": "ce1be2ceca8644764f96fd9a7485827c16a3e508d0b04c74bf3baad5316ac935",
-      "current_sha256": "2bda70def1f27a17f0ac6cc0fa291c98fee6baa4cdc3a77854610a187a3be545",
-      "reason": "统一Windows桌面命令安装状态、宿主能力、批处理分发和原生恢复命令为zkyq，保留PATH及消息参数行为"
+      "current_sha256": "fbdeb466add81478cc1149c1e2efd82a69958a4e0c6d18f6571a818dcb51c052",
+      "reason": "统一Windows桌面命令安装状态、宿主能力、批处理分发和原生恢复命令为zkyq，保留PATH及消息参数行为；开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
     },
     {
       "path": "src/main/host/electron-app-environment.ts",
@@ -329904,8 +329907,8 @@
     {
       "path": "src/main/cli/cli-command-installation.ts",
       "upstream_sha256": "3602280056d866f343cc1a18ef413afbbd954e562f0e0eee2ce597d7b793192b",
-      "current_sha256": "cd6a56072b8da327d4cc8fd7fd492d4267393acc5675ee6636459ce47b25ed7b",
-      "reason": "清理共用CLI安装检查、冲突和竞态回收提示中的上游产品称呼，保留路径、权限及所有权行为；原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者；macOS打包CLI物理改名zkyq，同步安装/回收/卸载与本地派发，保留用户命令及文件竞态保护"
+      "current_sha256": "9f9ca03df90f3e75208258165ce7161891cd50fa3b640c4ccc0ece47bf126591",
+      "reason": "清理共用CLI安装检查、冲突和竞态回收提示中的上游产品称呼，保留路径、权限及所有权行为；原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者；macOS打包CLI物理改名zkyq，同步安装/回收/卸载与本地派发，保留用户命令及文件竞态保护；开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
     },
     {
       "path": "src/main/cli/cli-command-privileged-transaction.test.ts",
@@ -329922,8 +329925,8 @@
     {
       "path": "src/main/cli/cli-installer-command-conflicts.test.ts",
       "upstream_sha256": "52e606decbaf39c11b0d85b5152a5e6ca89a064ccfce05b218ea8d6591401a03",
-      "current_sha256": "e2d5eddff47458e6288cf0f8be8340201f8f655e68c86848c6e9931c673e16dd",
-      "reason": "清理共用CLI安装检查、冲突和竞态回收提示中的上游产品称呼，保留路径、权限及所有权行为；macOS打包CLI物理改名zkyq，同步安装/回收/卸载与本地派发，保留用户命令及文件竞态保护"
+      "current_sha256": "e51869c4bca1f5769b60d150265846e648eea19bbcd8498bd8d75ec5d0206256",
+      "reason": "清理共用CLI安装检查、冲突和竞态回收提示中的上游产品称呼，保留路径、权限及所有权行为；macOS打包CLI物理改名zkyq，同步安装/回收/卸载与本地派发，保留用户命令及文件竞态保护；开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
     },
     {
       "path": "src/main/cli/cli-installer-macos-command-path.test.ts",
@@ -329970,8 +329973,8 @@
     {
       "path": "src/main/ipc/pty/host-env/assembly.ts",
       "upstream_sha256": "cea26bedafe323d652f0b6f2acba821a564220742d4f122a8bb9f18e858e1a09",
-      "current_sha256": "e1df359cf862d599ea219546a6fd675f0ea61411401bdaf73372e1d3954c0792",
-      "reason": "WSL命令迁移为zkyq，成功写入后退役受管理旧入口，保留用户文件和桥接参数，失效旧命令修复缓存并对齐派发环境；原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者"
+      "current_sha256": "c989b8f9ca8fc1c7e937c50469e5c10dc82b4d33fd240f0ccbfa3cdd284baaca",
+      "reason": "WSL命令迁移为zkyq，成功写入后退役受管理旧入口，保留用户文件和桥接参数，失效旧命令修复缓存并对齐派发环境；原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者；开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
     },
     {
       "path": "src/main/ipc/pty/host-env/codex-hook-reconcile-spawn.test.ts",
@@ -330054,8 +330057,8 @@
     {
       "path": "src/main/cli/cli-install-constants.ts",
       "upstream_sha256": "e402eafabb92a8ddecc9972bcb75da6db0bdd84b86bacfb408285c4cb640ed65",
-      "current_sha256": "5ce0ca064ca27de0ad1fb52b144b4ebd11b6a350f0c6d3e2bca59d7594d83f02",
-      "reason": "原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者；macOS打包CLI物理改名zkyq，同步安装/回收/卸载与本地派发，保留用户命令及文件竞态保护"
+      "current_sha256": "b8ce283ec05a28532e782d6236808d97f0a68fddc9dd238b81c31660690886d7",
+      "reason": "原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者；macOS打包CLI物理改名zkyq，同步安装/回收/卸载与本地派发，保留用户命令及文件竞态保护；开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
     },
     {
       "path": "src/main/cli/cli-installer-appimage-removal.test.ts",
@@ -330066,8 +330069,8 @@
     {
       "path": "src/main/cli/cli-installer.test.ts",
       "upstream_sha256": "74eb393c4461d1a5dd635cdb510f98fce9b0bde1b3e3ed26933428e8a5374aa4",
-      "current_sha256": "5a4d9ecf867fd3ba60f0d12992a2dbf47956fd626735d46a1f5df056aab9fca8",
-      "reason": "原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者"
+      "current_sha256": "a9916a60799908b7ef6eb806a0e69d123a2c96f7f378cf12815927f5acacb5fc",
+      "reason": "原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者；开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
     },
     {
       "path": "src/main/cli/linux-bare-orca-dispatcher.test.ts",
@@ -330108,8 +330111,8 @@
     {
       "path": "src/main/runtime/claude-agent-teams-shim-env.test.ts",
       "upstream_sha256": "c663cf35bb02b056e22e6ed8f47061bde95f8c1612b0a234e27aef3cd02171c2",
-      "current_sha256": "db55e69513bd3236b852f4665a14c08a999107ab95977e427a347ab4100be2a9",
-      "reason": "原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者"
+      "current_sha256": "b398fa15cbd3c16ab72be16f3a29f12507c621374e11d22729f8c3e8f8231965",
+      "reason": "原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者；开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
     },
     {
       "path": "src/main/runtime/orca-runtime-agent-session-operation.test.ts",
@@ -330138,8 +330141,8 @@
     {
       "path": "src/shared/tui-agent-config.ts",
       "upstream_sha256": "349812fd6a96c972dd3475c0acf6f711e3acfe02acbdf7768fb299fa76f19dcb",
-      "current_sha256": "7e20f60a9c090c134263f341a8eb2ce6e452ecd51b21d26302dbe7e33d042e08",
-      "reason": "原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者；macOS打包CLI物理改名zkyq，同步安装/回收/卸载与本地派发，保留用户命令及文件竞态保护"
+      "current_sha256": "0f04fca0bd3fe20bbf37efaa8b15adbd3357211e2170a5a64521ba8245606801",
+      "reason": "原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者；macOS打包CLI物理改名zkyq，同步安装/回收/卸载与本地派发，保留用户命令及文件竞态保护；开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
     },
     {
       "path": "src/shared/tui-agent-startup.spec.ts",
@@ -330224,6 +330227,324 @@
       "upstream_sha256": "3287ca41937cd66c26868dc236fb54edb33d343ef78495ace7fb662204ddf18b",
       "current_sha256": "840c9e8008191e5b42d1b1ec053e23964dbbbca3e3b6606bf2abc1829a12dfbe",
       "reason": "macOS打包CLI物理改名zkyq，同步安装/回收/卸载与本地派发，保留用户命令及文件竞态保护"
+    },
+    {
+      "path": "config/scripts/ci-shard-timings.json",
+      "upstream_sha256": "419a0689488658c3226130db58d1ebf7252688913a6da38d9dd792ded390dd8f",
+      "current_sha256": "861584993b5a201e3b2c88b93eea90f34f5fc8091259139a171f66ff3f8ec29f",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+    },
+    {
+      "path": "config/scripts/dev-cli-terminal-wrapper.mjs",
+      "upstream_sha256": "1fe803af00e1cc8bcdacbc468192cc3c7c372205022c158c0a3020a30abe3d72",
+      "current_sha256": "b1cb7b75785c51aa5271263295fd1818e76066e1d9e751a2b0a3a578bd52a827",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+    },
+    {
+      "path": "config/scripts/dev-cli-terminal-wrapper.test.mjs",
+      "upstream_sha256": "7120a00319c1223edcb8a423bf59afd627f18542285819e3e66e14713fb5b871",
+      "current_sha256": "855c1f5dc2f3623fbc05559a4db42d3adc1dbd0338189719904d78fc897ae7b9",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+    },
+    {
+      "path": "config/scripts/dev-storage-reclaim.mjs",
+      "upstream_sha256": "adda7659108b15ec74e452bc1aa9480155df2851ffe550238e220e95ed72a44b",
+      "current_sha256": "31d5432250067c56e996dc3fb17d8869b538bebce3f9f63cd8d0a57c8792a396",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+    },
+    {
+      "path": "config/scripts/install-dev-cli.mjs",
+      "upstream_sha256": "ec289b04b2894ef4d0c402f53dbe53bf9fe93a182ba8b1ecce757dc4c4e8384a",
+      "current_sha256": "15d27d3c769409c4a94eef64a3a85893ff783ecd1d972827b2cc3a3e75b32cb9",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+    },
+    {
+      "path": "config/scripts/live-remote-freeze-rpc.mjs",
+      "upstream_sha256": "7caae4f4c3130536c5da85727cd9adbe123dfe05522467a39efe92a980b1d99a",
+      "current_sha256": "28f062514a2bbe016529a5604727f0e00c2c75adb9722ffaa171f29e69af0c16",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+    },
+    {
+      "path": "config/scripts/orcad-terminal-smoke-change-scope.mjs",
+      "upstream_sha256": "ed06f3a6c31f3494a36a9fd37075efb16158a66e581c31af12831169913de7bc",
+      "current_sha256": "24543071281600b5e051f9b6d4fcf4d16a2ce73d3e7f46193ef57667b1808510",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+    },
+    {
+      "path": "config/scripts/run-electron-vite-dev.mjs",
+      "upstream_sha256": "02b2f864cdc4b4c1c2ac410f8ad901b4d2d191e5a1fd0a2d9ae466c3f65fdac9",
+      "current_sha256": "5bea343a3a2030b994a36de339df056c2ba889b30d99840a24668cf54dd66f2f",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+    },
+    {
+      "path": "config/scripts/verify-cli-bin.mjs",
+      "upstream_sha256": "45f164c7f797b7c5d162ab222b4dd14216a880585dda4f8bba3233f1f9dbce99",
+      "current_sha256": "f05eb8f36cc2b0ad5575e0569fb3c6ca3f39035f5596c5539ab396aa041d5340",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+    },
+    {
+      "path": "config/scripts/verify-cli-bin.test.mjs",
+      "upstream_sha256": "6b74c3b360b2c5d8779a0cc78447d9622d37946f8b947e701d8929cf259e76e2",
+      "current_sha256": "4e200ddb0a5cafaf1e2de5b5982b62d5fdab270fa2f7f2b3a020015505db2e32",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+    },
+    {
+      "path": "config/scripts/zkyq-dev-bin.test.mjs",
+      "upstream_sha256": "72e310e8352642bbebc79d7af2d5f1dfc27ef22aeecdee908647554bc6fe8d98",
+      "current_sha256": "86493182bf2f7e149a4320097f8e6dd88a24636f859006b91f8fbf30103f8c44",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+    },
+    {
+      "path": "config/scripts/zkyq-dev.mjs",
+      "upstream_sha256": "7c283b0e22e4f47cc968dc97c371fce168462dbe3b773421755476a3a1236342",
+      "current_sha256": "56042cd66c2c1d5610b1750b415b69086eb56ef6535d577c3750b80700f42384",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+    },
+    {
+      "path": "package.json",
+      "upstream_sha256": "2b1b5babba41edbbf3bd9a8a686825564a13cacb0ccd54dd7b76e8af84dc2c52",
+      "current_sha256": "3a0f8fa1c2dcd5a848638cbc178a31eede0a5fcde1a96d6cec2507f572b51210",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+    },
+    {
+      "path": "resources/skills/current-manifest.json",
+      "upstream_sha256": "5782ddb9aa2f3d22b49c18980ac0e0b679b19b9af2a9c5eb50dae648e55072e2",
+      "current_sha256": "8197a4686fbffb4c7434360060fde0cb3e77cc3de67c95cba05ff51ffd85aa28",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+    },
+    {
+      "path": "skill-guides/orca-cli.md",
+      "upstream_sha256": "169c498b04db381213d00cfbb7c2fcdd44b0dcdb52f04ca05170086504603ca5",
+      "current_sha256": "6b4cc263639352c71bec414b568e24d5d794df1f137727faf3497bc107743157",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+    },
+    {
+      "path": "skill-guides/orca-per-workspace-env.md",
+      "upstream_sha256": "dda610fc95c59c723108338425990d192af1d3d6c6dea30230d1f07b37b56742",
+      "current_sha256": "a2194e04c4899f7cc200d45f822a47df89d9dd9dc9c06374916107695b83717d",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+    },
+    {
+      "path": "skill-guides/orca-per-workspace-env/references/provider-vercel.md",
+      "upstream_sha256": "7f26dcd14cb4877afb52a19592409d3c7a3647da9739adcfbb9e0bf4737faf61",
+      "current_sha256": "2a6ec09bf2b52e702c501e3dde0c4947c6e0dcc658d5ae16c9237467e95a56be",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+    },
+    {
+      "path": "skill-stubs/_shared/cli-resolution.md",
+      "upstream_sha256": "51a70100ce198bff1e9a74408275cbb04d0ee655357811a6fbea6747d03cfb72",
+      "current_sha256": "0e51d84419434b61b31aa50535f4d1f238dba107aa9021b8317df738f09e8b2e",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+    },
+    {
+      "path": "skills/computer-use/SKILL.md",
+      "upstream_sha256": "2839933fd35216845461466403e6061488005f6df57126d0cd0f769ea45753f3",
+      "current_sha256": "484a2ad0225ab209a28b8088dcd664f6704e6fae820b9debc8733bb85a6b77f6",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+    },
+    {
+      "path": "skills/jira-tickets/SKILL.md",
+      "upstream_sha256": "5534da4000f4f4c87f7dbb263345a213068c0099a1440186adea865e17d90dfe",
+      "current_sha256": "8b8e8c798e3d6ee730fdc108932f5a0b30a5cf2aa13ad34b6a54a47da8fc9eb9",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+    },
+    {
+      "path": "skills/linear-tickets/SKILL.md",
+      "upstream_sha256": "e181f86073da65c492361469d504fe15e7ae61bc99990bc41bea47aa13455619",
+      "current_sha256": "205667361f4e1fea0a4f18e09e2e3024c31dae3cfb3e3bba1a32a1adee7ca803",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+    },
+    {
+      "path": "skills/orca-cli/SKILL.md",
+      "upstream_sha256": "aa76f86505010096e8ea9edda1705a78aae7af45e54485f3fe0460664c1d9e4a",
+      "current_sha256": "283b226ce23349a48500388e428c23edb6539c1e70b3dce1fcab2ce60d19221e",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+    },
+    {
+      "path": "skills/orca-emulator-android/SKILL.md",
+      "upstream_sha256": "3ade4e6f8f2717ca899fd841e61f116963a406e9527015b803854c16d012e278",
+      "current_sha256": "f49ad44ae584a14fc1e837021be3c459dccf87d3509a0bc158829522c94fc251",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+    },
+    {
+      "path": "skills/orca-emulator/SKILL.md",
+      "upstream_sha256": "3da7191179e46cb0e1a6a936f1eb54254f6e98ec38849e1c95f0e11073076b48",
+      "current_sha256": "261ff80ca1cfee40209f2c3a72f3870dad653972bdb6f60f937f50157a92aac7",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+    },
+    {
+      "path": "skills/orca-jira/SKILL.md",
+      "upstream_sha256": "ca83c4662fbc2306efb9043674998b0ca5abacc78ec2e5f85e5db80288e6777a",
+      "current_sha256": "8bf1769c709e2b483dfc3b71b4d4ab8188ac39d71161904027b8fbe0f997d034",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+    },
+    {
+      "path": "skills/orca-linear/SKILL.md",
+      "upstream_sha256": "8da23ef96470906315cace8ff84f8056255ee37d1b2d5db84d8b7b3270a0ba0f",
+      "current_sha256": "0231eb8f8a9e0e07f6b0581323f16f8f515ea9cc435778357f3e8552d3f2969b",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+    },
+    {
+      "path": "skills/orca-per-workspace-env/SKILL.md",
+      "upstream_sha256": "c005d126a13d2913351472f07690f1c1a660d4f286e2a5f21864aee294f436ce",
+      "current_sha256": "a95b7117ddf088f6d23d0efff275a4d77b23beafacbd6e51edffc552917760e6",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+    },
+    {
+      "path": "skills/orchestration/SKILL.md",
+      "upstream_sha256": "cd1b364bf35781bad06bf75ab1766afa8d6cec69cb2060529691d89871a2098a",
+      "current_sha256": "31f7fe9b94de7de42805663ad7d0f6d46beeeac249c4b02dc222f9b4af143911",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+    },
+    {
+      "path": "src/cli/bundled-skill-guides.ts",
+      "upstream_sha256": "d939b2344aec6921d99a7994596db6e7e5b45c36f489e3c8e55fe40160b5b7d6",
+      "current_sha256": "df952f41a56fd4e4c5d078e6e08f1617c0309f5448a8a5af05302acf0c7b3465",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+    },
+    {
+      "path": "src/cli/handlers/orchestration-worker-cli.test.ts",
+      "upstream_sha256": "e333252d2d76586f3c48f9330fc3b43eaf4b9e3fbe9181d5a85b55f14f59a830",
+      "current_sha256": "62498fd8dddbd51d09c37a02ee1f000ec66391a2cf7541080c3ac906095939b0",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+    },
+    {
+      "path": "src/cli/runtime/runtime-source-fence.test.ts",
+      "upstream_sha256": "90098e20457bfd07c1b4b9e9d48959b53d5cdafea532d68e1b29c0979a8bd4b1",
+      "current_sha256": "6edbd7d143f23326c3ed26cff50358ba4d77ee9ac0e110a7d830b8b3f5f4adba",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+    },
+    {
+      "path": "src/cli/runtime/runtime-source-fence.ts",
+      "upstream_sha256": "22e8c3c368473695b7625302e5e7dd81e5c2bd4971a9ab4b9965b98cb8127fd4",
+      "current_sha256": "333589e8ffa2c579b5f76304e45b6431d3754ae2c926b91ed3d613bc18bbcc5d",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+    },
+    {
+      "path": "src/cli/specs/bundled-guide-flags.test.ts",
+      "upstream_sha256": "2ad4ac38ce48c92751bededb004be72e5d64e3f9ba92994c7277c9b65898e1fc",
+      "current_sha256": "d2ce0ce95f48fc521e9d1fb1b7dbe8cf2d19bcb75b7208c73c75b50625bcb0f5",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+    },
+    {
+      "path": "src/main/cli/cli-dev-launcher.ts",
+      "upstream_sha256": "b6a4cd0bc63dede1de0ad2929b4372004e878e8b9284a0ce6407a55d4f12b298",
+      "current_sha256": "fcdc0fcec7a88544bbb4d9f03f114645b060d97298267e2ddd4d99edff0f11cd",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+    },
+    {
+      "path": "src/main/cli/wsl-managed-cli.wsl.test.ts",
+      "upstream_sha256": "e8062b1ce604ead331c644a026cb9f144608f275b73dd4dd71423190a793cb9f",
+      "current_sha256": "cdbd62add77ec3fb73f70b858cd7cd38158033637e3ea21bc3c586abba39fbd2",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+    },
+    {
+      "path": "src/main/codex/codex-structured-child-environment.test.ts",
+      "upstream_sha256": "ab0d0e81f8da8cc9fcd65f628d2c08580eff504e944a9f5d9642a794d0e024cf",
+      "current_sha256": "bb5932e6da3b72d3c1cdf3af3193b6b703c1c727c4f0d870aab4d7adb2e5dfcd",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+    },
+    {
+      "path": "src/main/codex/codex-structured-session-adapter.test.ts",
+      "upstream_sha256": "d622eef99dded1a5b302dab81d41c2bef02990f56ba2de5b91e8487a2cbf05a1",
+      "current_sha256": "d46c44ecc63852dc01be67a4b9da27da48d030adc3f524b4baafcb43004026c7",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+    },
+    {
+      "path": "src/main/daemon/shell-ready-bash-wrapper.test.ts",
+      "upstream_sha256": "6ba4e3092a31d69c8ab5ff1ca723c0441bbcfa70042fa56e0b004066aa4d9a6f",
+      "current_sha256": "e86c32f00f83fb1789953b78f8e7f86f2e5c0d2c602549d2601d7db19510dcb9",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+    },
+    {
+      "path": "src/main/ipc/tui-agent-detection-commands.test.ts",
+      "upstream_sha256": "8cee03108ef26303c65cbcddb1acd803ac7521a3ba5ffca7e6a874d8792b2df9",
+      "current_sha256": "fe2ad4a6ab00f3fbbfb49b6ab3a8acccb950774fee1d59abe8479eb21230df68",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+    },
+    {
+      "path": "src/main/pty/codex-preflight-profile-path-rewrite.test.ts",
+      "upstream_sha256": "4c0ca2e530effa684820a53586beb4c86b7f380c0dab1fac874d3a8f00f815f9",
+      "current_sha256": "036d0a565068e7ba7461949061634d8271ebed5784259415abf05913f4240316",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+    },
+    {
+      "path": "src/main/runtime/orca-runtime-tests/mobile-creation-and-orchestration-part-02.spec.ts",
+      "upstream_sha256": "756d65ff6203c6558d4194b7ff930d8d833240c5d987b22f6dccd95d44465d3c",
+      "current_sha256": "d00e05d9deefa33d2a60a8b1ce97adda0163544c2bfc6559c715c72417f28c3c",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+    },
+    {
+      "path": "src/main/runtime/orca-runtime-tests/mobile-creation-and-orchestration-part-03.spec.ts",
+      "upstream_sha256": "52005157636be7b33e45c9d9d2822c2179f6a51ebd4edf93adfec8f075967bbe",
+      "current_sha256": "f8c1011f4cdc8723ce4ad24a2faa3b9a906851ff922e74170276b658292ef44d",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+    },
+    {
+      "path": "src/main/runtime/orchestration-mailbox-pointer-cli-command.spec.ts",
+      "upstream_sha256": "90780b69fd873721921825b8bf8f77828c678664eb527ebeccfbfe42dbbc464a",
+      "current_sha256": "acf3947df72aef885e2338556d2f79644db0ed9e85e4bb83d0d3b9670d3d9860",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+    },
+    {
+      "path": "src/main/runtime/orchestration/coordinator-task-dispatch.ts",
+      "upstream_sha256": "80e8b3c7d51bf68ae9d6bcf7f216d26f9d5856df573e4dc696a23b712026c9dc",
+      "current_sha256": "a473fd5ee13eb6f656a569ba0f8c0cc829af49be929fd4289f3837ceb81f136c",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+    },
+    {
+      "path": "src/main/runtime/orchestration/formatter.test.ts",
+      "upstream_sha256": "255ddc14275a6c851f55c27f3a95ee47f554b9f5f9161e809581e7d8aa6f8c4c",
+      "current_sha256": "9899218b96de409cae752e6439541c7331bd0e6e521c70994c76bcc2ebc8bf64",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+    },
+    {
+      "path": "src/main/runtime/orchestration/structured-mailbox-pointer-delivery.test.ts",
+      "upstream_sha256": "9854cbe78acd8d2b9805de6530c4bda4e2dd647c345cbfa5ccda67e3b8a0d362",
+      "current_sha256": "cc6f17e95eee207830fd628f5e92dcb047a90b4ac608739e80418ec6511c407f",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+    },
+    {
+      "path": "src/main/runtime/rpc/methods/orchestration-structured-worker-session.test.ts",
+      "upstream_sha256": "ab2e00af261af866df230098b4ab82a6e1c12068c193f1856491d2a4551846ed",
+      "current_sha256": "1248cd05a67d56776e13a4bb30b7589f7e259642a8b63cd7e076566f5d97aee7",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+    },
+    {
+      "path": "src/main/runtime/rpc/methods/orchestration/runs/tasks-dispatch.test.ts",
+      "upstream_sha256": "a3032b07970ab4e6834fb372913554b729b373d2ca40e5375fe86e9368c3a377",
+      "current_sha256": "3c608b24461817e82ab13cc2ae6615c7ba02b99ce402f3452589ba4161069885",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+    },
+    {
+      "path": "src/main/runtime/structured-session-login-shell-test-harness.ts",
+      "upstream_sha256": "ff2a5c699523b76c6df59f04408a6367130e93608d44e201c29ff8f712e74364",
+      "current_sha256": "9291a8de471fda6146e016c91b62a09b6298e3609eb93e9324bd49f93eb77266",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+    },
+    {
+      "path": "src/main/shell-startup-feature-channel.test.ts",
+      "upstream_sha256": "6c8d7a6f84895b6a36330e2b4c5a205220ebced59f9023e7145d339b48de0183",
+      "current_sha256": "c694fd2d733f9dc2a7488af7ea7605a7f732b97482d6fbac8321618fb464dcc1",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+    },
+    {
+      "path": "src/main/startup/run-electron-vite-dev.test.ts",
+      "upstream_sha256": "1b1eb41c07b47d9ebb91d6ef3081acfd5241fa0be44472d4b488df068dc0e7bf",
+      "current_sha256": "5a4f721aeef271519ffe11da66271657fb5b511f0b5b1577c4cd5fb8f1b9e160",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+    },
+    {
+      "path": "src/main/wsl-managed-cli-path-restore.test.ts",
+      "upstream_sha256": "1321140c46b24bfabf1eceb1951736caa20be58af31ef220ee31a9064796bdaf",
+      "current_sha256": "eda6df1006f6759778527f4e60366fb2a6360d76305e262952aab7814f074ed4",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+    },
+    {
+      "path": "src/main/zsh-deferred-startup-line-init.live-shell.test.ts",
+      "upstream_sha256": "fd452d4b9bfd4aa55a6248671e4b21518156906f6d16fca75a5886be955c748b",
+      "current_sha256": "9be29f9fe456d02fc0e8ed3d019836a47de50e7995480ea0dad099a48ed347f8",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
     }
   ],
   "reviewed_findings": [
@@ -330742,21 +331063,21 @@
       "path": "skill-guides/orca-cli.md",
       "rule": "personal-home-path",
       "line": 71,
-      "sha256": "169c498b04db381213d00cfbb7c2fcdd44b0dcdb52f04ca05170086504603ca5",
+      "sha256": "6b4cc263639352c71bec414b568e24d5d794df1f137727faf3497bc107743157",
       "reason": "公开的路径模板、跨平台解析说明或通用示例；未读取本机账号/目录，保留语义并限定具体行及文件hash。"
     },
     {
       "path": "src/cli/bundled-skill-guides.ts",
       "rule": "personal-home-path",
       "line": 27,
-      "sha256": "d939b2344aec6921d99a7994596db6e7e5b45c36f489e3c8e55fe40160b5b7d6",
+      "sha256": "df952f41a56fd4e4c5d078e6e08f1617c0309f5448a8a5af05302acf0c7b3465",
       "reason": "公开的路径模板、跨平台解析说明或通用示例；未读取本机账号/目录，保留语义并限定具体行及文件hash。"
     },
     {
       "path": "src/cli/bundled-skill-guides.ts",
       "rule": "personal-home-path",
       "line": 30,
-      "sha256": "d939b2344aec6921d99a7994596db6e7e5b45c36f489e3c8e55fe40160b5b7d6",
+      "sha256": "df952f41a56fd4e4c5d078e6e08f1617c0309f5448a8a5af05302acf0c7b3465",
       "reason": "公开的路径模板、跨平台解析说明或通用示例；未读取本机账号/目录，保留语义并限定具体行及文件hash。"
     },
     {

@@ -201,7 +201,7 @@ describe('orchestration worker-start CLI contract', () => {
   })
 
   it.each([
-    ['JSON', 'orca-dev', true],
+    ['JSON', 'zkyq-dev', true],
     ['plain', 'orca-ide', false]
   ] as const)(
     'renders %s recovery commands through the resolved %s executable',
@@ -236,12 +236,16 @@ describe('orchestration worker-start CLI contract', () => {
         (result: RecoveryWorkerStartResult) => string
       ]
       expect(response.result.nextCommands).toEqual([
-        `${executable} orchestration worker-show --dispatch ctx_unknown --json`,
-        `${executable} orchestration worker-abandon --dispatch ctx_unknown --json`
+        process.platform === 'win32'
+          ? `"${executable}" "orchestration" "worker-show" "--dispatch" "ctx_unknown" "--json"`
+          : `${executable} orchestration worker-show --dispatch ctx_unknown --json`,
+        process.platform === 'win32'
+          ? `"${executable}" "orchestration" "worker-abandon" "--dispatch" "ctx_unknown" "--json"`
+          : `${executable} orchestration worker-abandon --dispatch ctx_unknown --json`
       ])
       if (!json) {
         expect(formatter(response.result)).toContain(
-          `Next command: ${executable} orchestration worker-show --dispatch ctx_unknown --json`
+          `Next command: ${response.result.nextCommands[0]}`
         )
       }
     }

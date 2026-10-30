@@ -169,7 +169,7 @@ describe('RuntimeClient runtime-source fence', () => {
     expect(runtime.expectations).toEqual([undefined])
   })
 
-  it('lets an explicit switch to another profile through, e.g. orca-dev from a packaged terminal', async () => {
+  it('lets an explicit switch to another profile through, e.g. zkyq-dev from a packaged terminal', async () => {
     const runtime = await startRuntime({ runtimeId: 'runtime-dev', installationId: SOURCE_B })
     launchedBy(SOURCE_A, 'runtime-a', join(tmpdir(), 'orca-packaged-profile'))
     const client = new RuntimeClient(runtime.userDataPath, 2_000, null, null, 'orca')

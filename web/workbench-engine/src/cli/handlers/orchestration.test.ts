@@ -598,7 +598,7 @@ describe('orchestration timeout flag validation', () => {
 
   it('prints the pending message ID and exact capability-bound resume command on timeout', async () => {
     process.env.ORCA_TERMINAL_HANDLE = 'term_worker'
-    process.env.ORCA_CLI_COMMAND = 'orca-dev'
+    process.env.ORCA_CLI_COMMAND = 'zkyq-dev'
     callMock.mockResolvedValue({
       result: {
         answer: null,
@@ -621,8 +621,9 @@ describe('orchestration timeout flag validation', () => {
     expect(errorSpy).toHaveBeenCalledWith(
       'ask timeout after 30000ms; question is still pending (messageId: msg_question). ' +
         'Resume waiting; do not ask again:\n' +
-        'orca-dev orchestration ask --from term_worker --dispatch-capability dcap_secret ' +
-        '--resume msg_question --timeout-ms 30000'
+        (process.platform === 'win32'
+          ? '"zkyq-dev" "orchestration" "ask" "--from" "term_worker" "--dispatch-capability" "dcap_secret" "--resume" "msg_question" "--timeout-ms" "30000"'
+          : 'zkyq-dev orchestration ask --from term_worker --dispatch-capability dcap_secret --resume msg_question --timeout-ms 30000')
     )
     expect(process.exitCode).toBe(1)
   })

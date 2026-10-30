@@ -3,15 +3,15 @@ import { isWslUncPath } from '../../../shared/wsl-paths'
 import { splitWorktreeIdForFilesystem } from '../../../shared/worktree/id'
 import { getAppEnvironment, hasAppEnvironment } from '../../../shared/app-environment'
 
-export type OrchestrationCliCommand = 'zkyq' | 'orca' | 'orca-dev' | 'orca-ide'
+export type OrchestrationCliCommand = 'zkyq' | 'orca' | 'zkyq-dev' | 'orca-ide'
 
-/** Dev builds run the CLI as `orca-dev`; a packaged app, or a process with no app, must not advertise it. */
+/** Dev builds run the CLI as `zkyq-dev`; a packaged app, or a process with no app, must not advertise it. */
 export function runtimeOrchestrationCliCommand(): OrchestrationCliCommand | undefined {
   const app = hasAppEnvironment() ? getAppEnvironment() : null
   if (app?.getCliAccountCommand?.() === 'zkyq') {
     return 'zkyq'
   }
-  return app && !app.isPackaged() ? 'orca-dev' : undefined
+  return app && !app.isPackaged() ? 'zkyq-dev' : undefined
 }
 
 /** What a local, non-WSL terminal is told to run; a structured session is always one. */

@@ -6,9 +6,9 @@ import {
 
 describe('orchestration recovery command identity', () => {
   it.each([
-    ['configured dev', { ORCA_CLI_COMMAND: 'orca-dev' }, 'darwin', 'orca-dev'],
+    ['configured dev', { ORCA_CLI_COMMAND: 'zkyq-dev' }, 'darwin', 'zkyq-dev'],
     ['configured WSL', { ORCA_CLI_COMMAND: 'orca-ide' }, 'linux', 'orca-ide'],
-    ['dev checkout', { ORCA_DEV_REPO_ROOT: '/repo' }, 'darwin', 'orca-dev'],
+    ['dev checkout', { ORCA_DEV_REPO_ROOT: '/repo' }, 'darwin', 'zkyq-dev'],
     ['packaged Linux', {}, 'linux', 'zkyq'],
     ['local macOS', {}, 'darwin', 'zkyq'],
     ['local Windows', {}, 'win32', 'zkyq']
@@ -49,7 +49,7 @@ describe('orchestration recovery command identity', () => {
       buildOrchestrationRecoveryCommand(
         'orchestration.workerStart',
         { task: 'task_1' },
-        'orca-dev',
+        'zkyq-dev',
         [
           'orchestration',
           'worker-start',
@@ -61,7 +61,7 @@ describe('orchestration recovery command identity', () => {
         ]
       )
     ).toEqual([
-      'orca-dev',
+      'zkyq-dev',
       'orchestration',
       'worker-start',
       '--task',

@@ -78,7 +78,7 @@ export function resolveClaudeAgentTeamsShimBin(
     return bundled
   }
   return (
-    findExecutableOnPath(process.platform === 'win32' ? 'orca-dev.cmd' : 'orca-dev', pathValue) ??
+    findExecutableOnPath(process.platform === 'win32' ? 'zkyq-dev.cmd' : 'zkyq-dev', pathValue) ??
     findExecutableOnPath(getOrcaCliCommandNameForPlatform(process.platform), pathValue)
   )
 }

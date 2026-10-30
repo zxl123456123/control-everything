@@ -15,7 +15,7 @@ import {
 const DEV_CLI_BIN_FIRST = /^[^:;]*[\\/]cli[\\/]bin[:;]/
 const DEV_CLI_BIN_DIR = /^[^:;]*[\\/]cli[\\/]bin$/
 // The dev launcher by absolute path: a login shell's profile cannot reorder it behind a global.
-const DEV_CLI_LAUNCHER = /^[^:;]*[\\/]cli[\\/]bin[\\/]orca-dev$/
+const DEV_CLI_LAUNCHER = /^[^:;]*[\\/]cli[\\/]bin[\\/]zkyq-dev$/
 
 /** The sealed env a Codex launch of `sessionId` spawns with, over a shell env of `env`. */
 async function codexChildEnv(

@@ -4,6 +4,7 @@ import { dirname, isAbsolute, join } from 'node:path'
 import { DEV_COMMAND_NAME, DEV_LAUNCHER_DIR } from './cli-install-constants'
 import { escapeWindowsBatchValue, isAbsoluteForPlatform } from './cli-install-path-format'
 import { quotePosixShellDoubleQuotedApostrophe } from '../../shared/shell-argument-quoting'
+import { retireGeneratedCommand } from './retire-generated-command.cjs'
 
 export async function ensureDevLauncher(args: {
   platform: NodeJS.Platform
@@ -28,20 +29,38 @@ export async function ensureDevLauncher(args: {
   await mkdir(dirname(launcherPath), { recursive: true })
 
   // Why: dev builds lack the packaged resources/bin launcher, so generate one in userData to validate the flow.
-  const content =
+  const legacyContent =
     args.platform === 'win32'
       ? buildWindowsDevLauncher(args.execPath, args.cliEntryPath, args.userDataPath)
       : buildUnixCliLauncher(args.execPath, args.cliEntryPath, args.userDataPath)
+  const content =
+    args.commandName !== DEV_COMMAND_NAME
+      ? legacyContent
+      : args.platform === 'win32'
+        ? legacyContent.replace('setlocal\n', 'setlocal\nset "ORCA_CLI_COMMAND=zkyq-dev"\n')
+        : legacyContent.replace(
+            'set -euo pipefail\n',
+            'set -euo pipefail\nexport ORCA_CLI_COMMAND=zkyq-dev\n'
+          )
   await writeFile(launcherPath, content, {
     encoding: 'utf8',
     mode: args.platform === 'win32' ? undefined : 0o755
   })
-  if (args.commandName === DEV_COMMAND_NAME && args.platform !== 'win32') {
-    // Why: dev PTYs prepend this dir to PATH, so keep a local `orca` alias without claiming the global command.
-    await writeFile(join(dirname(launcherPath), 'orca'), content, {
-      encoding: 'utf8',
-      mode: 0o755
-    })
+  if (args.commandName === DEV_COMMAND_NAME) {
+    // Managed terminals use the short command without claiming the global production command.
+    await writeFile(
+      join(dirname(launcherPath), args.platform === 'win32' ? 'zkyq.cmd' : 'zkyq'),
+      content,
+      {
+        encoding: 'utf8',
+        mode: args.platform === 'win32' ? undefined : 0o755
+      }
+    )
+    for (const name of args.platform === 'win32'
+      ? ['orca-dev.cmd', 'orca.cmd']
+      : ['orca-dev', 'orca']) {
+      retireGeneratedCommand(join(dirname(launcherPath), name), legacyContent)
+    }
   }
   return launcherPath
 }

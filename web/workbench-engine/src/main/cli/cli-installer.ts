@@ -137,7 +137,6 @@ export class CliInstaller extends CliPathRegistration {
     // eslint-disable-next-line unicorn/prefer-ternary -- Why: the install path performs async side effects and is easier to audit as an explicit branch than as an awaited ternary.
     if (status.installMethod === 'symlink') {
       await this.installSymlink(status)
-      await this.removeLegacyCommandsIfManaged(status.launcherPath)
     } else if (this.isWindowsPackagedBundledCommand(status.commandPath, status.launcherPath)) {
       // Why: packaged Windows already ships resources/bin/zkyq.exe; registration only owns the PATH entry.
     } else {
@@ -150,6 +149,7 @@ export class CliInstaller extends CliPathRegistration {
       // Why: Windows shells find commands via user PATH, so the installer owns that entry, not the desktop installer.
       await this.ensureWindowsPathEntry(dirname(status.commandPath))
     }
+    await this.removeLegacyCommandsIfManaged(status.launcherPath)
     if (extractedRoot) {
       await pruneAppImageExtractedRoots(
         extractedRoot.rootPath,
@@ -201,6 +201,7 @@ export class CliInstaller extends CliPathRegistration {
     } else {
       await unlink(status.commandPath)
       await this.removeWindowsPathEntry(dirname(status.commandPath))
+      await this.removeLegacyCommandsIfManaged(status.launcherPath)
     }
 
     await this.removeLinuxAppImagePayloads()

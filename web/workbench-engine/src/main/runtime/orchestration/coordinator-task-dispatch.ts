@@ -112,7 +112,7 @@ export async function dispatchTaskToWorker(params: {
     maxDepth: params.nestedWorkerMaxDepth
   })
 
-  // Why: dispatched agents use orca-dev in dev mode to reach the dev runtime's socket, not production (Section 6.4).
+  // Why: dispatched agents use zkyq-dev in dev mode to reach the dev runtime's socket, not production (Section 6.4).
   const preamble = buildDispatchPreamble({
     taskId: task.id,
     dispatchId: dispatch.id,

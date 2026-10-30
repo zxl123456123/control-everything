@@ -5,11 +5,11 @@ import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 const projectDir = path.resolve(import.meta.dirname, '../..')
-const wrapperPath = path.join(projectDir, 'config', 'scripts', 'orca-dev.mjs')
+const wrapperPath = path.join(projectDir, 'config', 'scripts', 'zkyq-dev.mjs')
 
-describe('orca-dev package bin', () => {
+describe('zkyq-dev package bin', () => {
   it('runs the dev CLI through Node without requiring Bash', () => {
-    const root = mkdtempSync(path.join(tmpdir(), 'orca-dev-bin-'))
+    const root = mkdtempSync(path.join(tmpdir(), 'zkyq-dev-bin-'))
     const cliEntry = path.join(root, 'cli-entry.cjs')
     const outputPath = path.join(root, 'output.json')
     writeFileSync(
@@ -20,6 +20,7 @@ describe('orca-dev package bin', () => {
         '  argv: process.argv.slice(2),',
         '  userDataPath: process.env.ORCA_USER_DATA_PATH,',
         '  devCliInvocation: process.env.ORCA_DEV_CLI_INVOCATION,',
+        '  command: process.env.ORCA_CLI_COMMAND,',
         '  appExecutable: process.env.ORCA_APP_EXECUTABLE',
         '}));'
       ].join('\n'),
@@ -33,6 +34,7 @@ describe('orca-dev package bin', () => {
       env: {
         ...process.env,
         ORCA_DEV_CLI_ENTRY_PATH: cliEntry,
+        ORCA_CLI_COMMAND: 'orca-dev',
         ORCA_DEV_USER_DATA_PATH: path.join(root, 'user-data'),
         ORCA_APP_EXECUTABLE: path.join(root, 'Electron')
       },
@@ -43,6 +45,7 @@ describe('orca-dev package bin', () => {
       argv: ['--help'],
       userDataPath: path.join(root, 'user-data'),
       devCliInvocation: '1',
+      command: 'zkyq-dev',
       appExecutable: path.join(root, 'Electron')
     })
   })

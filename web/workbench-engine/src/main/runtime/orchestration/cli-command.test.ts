@@ -14,7 +14,7 @@ describe('installed workbench command in agent instructions', () => {
   it('selects zkyq for WSL while preserving an explicit dev command', () => {
     const worker = { connectionId: null, isWsl: true, worktreeId: 'repo::/repo' }
     expect(resolveTerminalOrchestrationCliCommand(worker)).toBe('zkyq')
-    expect(resolveTerminalOrchestrationCliCommand({ ...worker, runtimeCliCommand: 'orca-dev' })).toBe('orca-dev')
+    expect(resolveTerminalOrchestrationCliCommand({ ...worker, runtimeCliCommand: 'zkyq-dev' })).toBe('zkyq-dev')
   })
   it('keeps historical stored briefs readable while emitting current status wording', () => {
     const stored = 'Please carry out this task from my Orca coordinator by following the brief I pasted below.\n' +

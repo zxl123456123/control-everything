@@ -7,7 +7,7 @@ export function resolveOrchestrationCliExecutable(
     return configured
   }
   if (env.ORCA_DEV_REPO_ROOT) {
-    return 'orca-dev'
+    return 'zkyq-dev'
   }
   return 'zkyq'
 }

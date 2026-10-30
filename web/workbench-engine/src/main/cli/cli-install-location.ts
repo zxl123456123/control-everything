@@ -214,13 +214,19 @@ export abstract class CliInstallLocation {
     if (!this.isPackaged) {
       // Why: dev uses a separate command; tests/diagnostics still reach production paths via commandPathOverride.
       if (this.platform === 'darwin') {
-        return `/usr/local/bin/${DEV_COMMAND_NAME}`
+        return join(dirname(this.macCommandPath), DEV_COMMAND_NAME)
       }
       if (this.platform === 'linux') {
         return join(this.homePath, '.local', 'bin', DEV_COMMAND_NAME)
       }
       if (this.platform === 'win32') {
-        return join(this.localAppDataPath, 'Programs', 'Orca Dev', 'bin', `${DEV_COMMAND_NAME}.cmd`)
+        return join(
+          this.localAppDataPath,
+          'Programs',
+          'Control Everything Dev',
+          'bin',
+          `${DEV_COMMAND_NAME}.cmd`
+        )
       }
     }
 

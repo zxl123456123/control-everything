@@ -95,7 +95,39 @@ export class CliCommandInstallation extends CliCommandInspection {
   }
 
   protected async removeLegacyCommandsIfManaged(launcherPath: string | null): Promise<void> {
-    if (this.platform === 'darwin' && this.isPackaged && !this.commandPathOverride && launcherPath) {
+    if (
+      !this.isPackaged &&
+      !this.commandPathOverride &&
+      launcherPath &&
+      this.platform !== 'win32'
+    ) {
+      const currentCommand = this.resolveCommandPath()
+      if (!currentCommand) return
+      const commandPath = join(dirname(currentCommand), 'orca-dev')
+      const legacyLauncher = join(dirname(launcherPath), 'orca-dev')
+      const inspected = await this.inspectStableSymlink(commandPath, legacyLauncher)
+      if (
+        !inspected.snapshot?.isSymbolicLink ||
+        !inspected.rawSymlinkTarget ||
+        resolve(dirname(commandPath), inspected.rawSymlinkTarget) !== resolve(legacyLauncher)
+      )
+        return
+      const quarantine = await this.quarantineUnlessPrivileged(commandPath)
+      if (!quarantine) {
+        await this.runPrivilegedSymlinkTransaction('remove', commandPath, legacyLauncher, inspected)
+      } else if (await capturedExpectedEntry(quarantine, inspected)) {
+        await this.discardQuarantinedCommand(quarantine)
+      } else {
+        await this.restoreQuarantinedCommand(quarantine, commandPath)
+      }
+      return
+    }
+    if (
+      this.platform === 'darwin' &&
+      this.isPackaged &&
+      !this.commandPathOverride &&
+      launcherPath
+    ) {
       await this.removeLegacyMacCommandIfManaged(launcherPath)
       return
     }
@@ -147,7 +179,12 @@ export class CliCommandInstallation extends CliCommandInspection {
         }
         const quarantine = await this.quarantineUnlessPrivileged(commandPath)
         if (!quarantine) {
-          await this.runPrivilegedSymlinkTransaction('remove', commandPath, legacyLauncher, inspected)
+          await this.runPrivilegedSymlinkTransaction(
+            'remove',
+            commandPath,
+            legacyLauncher,
+            inspected
+          )
           continue
         }
         if (!(await capturedExpectedEntry(quarantine, inspected))) {

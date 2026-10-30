@@ -326,8 +326,8 @@ orca serve \
   --recipe-json
 ```
 
-In an environment built from source, run it as `pnpm exec orca-dev serve …` from the repo root;
-`orca-dev` is the in-repo entrypoint. Plain `orca serve …` is the same command when the built CLI is
+In an environment built from source, run it as `pnpm exec zkyq-dev serve …` from the repo root;
+`zkyq-dev` is the in-repo entrypoint. Plain `orca serve …` is the same command when the built CLI is
 on that machine's PATH, and the flags and output are identical either way. There is no `--host` flag,
 and `--project-root` must be an absolute directory on the remote.
 

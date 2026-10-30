@@ -101,7 +101,7 @@ describe('structured worker session', () => {
         getAppEnvironment().getPath('userData'),
         'cli',
         'bin',
-        process.platform === 'win32' ? 'orca-dev.cmd' : 'orca-dev'
+        process.platform === 'win32' ? 'zkyq-dev.cmd' : 'zkyq-dev'
       )
     )
     expect(envAtSpawn?.ORCA_PANE_KEY).toBeUndefined()
