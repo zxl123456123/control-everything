@@ -26,7 +26,7 @@ vi.mock('../ssh/config/ssh-config-parser', () => ({
 async function fixture() {
   const root = mkdtempSync(join(tmpdir(), 'orca-worker-profile-transfer-'))
   writeFileSync(
-    join(root, 'orca-profile-index.json'),
+    join(root, 'zkyq-profile-index.json'),
     JSON.stringify({
       schemaVersion: ORCA_PROFILE_INDEX_SCHEMA_VERSION,
       activeProfileId: 'source',

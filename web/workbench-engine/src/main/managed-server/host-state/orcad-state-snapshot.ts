@@ -267,6 +267,10 @@ export function restoreOrcadStateSnapshotCommand(
       'tar -C "$stage" -xf "$archive" 2>/dev/null || { rm -rf "$stage"; echo FAILED; exit 0; };',
       'members=$(snapshot_members "$root" "$stage"); ok=; for m in $members; do [ -e "$stage/$m" ] && ok=1; done;',
       '[ -n "$ok" ] || { rm -rf "$stage"; echo FAILED; exit 0; };',
+      // Old snapshots did not capture index backups. Do not discard an unrepresented backup.
+      'if { [ -e "$root/orca-profile-index.json.bak" ] || [ -L "$root/orca-profile-index.json.bak" ] || [ -e "$root/zkyq-profile-index.json.bak" ] || [ -L "$root/zkyq-profile-index.json.bak" ]; } &&',
+      '{ [ ! -e "$stage/orca-profile-index.json.bak" ] && [ ! -e "$stage/zkyq-profile-index.json.bak" ]; }; then',
+      'rm -rf "$stage"; echo FAILED; exit 0; fi;',
       removeMembersCommand('$members'),
       '[ -n "$ok" ] && for m in $members; do',
       '[ ! -e "$stage/$m" ] || mv "$stage/$m" "$root/$m" || { ok=; break; }; done;',

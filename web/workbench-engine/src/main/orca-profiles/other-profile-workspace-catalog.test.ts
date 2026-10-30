@@ -33,7 +33,7 @@ function userDataWithProfiles(
   roots.push(root)
   mkdirSync(join(root, 'profiles'), { recursive: true })
   writeFileSync(
-    join(root, 'orca-profile-index.json'),
+    join(root, 'zkyq-profile-index.json'),
     JSON.stringify({
       activeProfileId,
       profiles: profiles.map(({ id }) => ({
@@ -68,6 +68,9 @@ describe('getOtherProfileWorktreeIdsForHistoryGc', () => {
       { id: 'other', state: { worktreeMeta: { 'repo::/other': {} } } }
     ])
     const directory = join(root, 'profiles', 'other')
+    const currentIndex = join(root, 'zkyq-profile-index.json')
+    writeFileSync(join(root, 'orca-profile-index.json'), readFileSync(currentIndex))
+    rmSync(currentIndex)
     const current = join(directory, 'zkyq-data.json')
     const previous = join(directory, 'orca-data.json')
     const original = readFileSync(current)

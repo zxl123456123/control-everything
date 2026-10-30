@@ -332710,14 +332710,14 @@
     {
       "path": "src/main/managed-server/host-state/orcad-state-snapshot-members.ts",
       "upstream_sha256": "3f9f58323078c08b07d53239713a0cb1b645c3d241269f6cc4777ad58c50e1b6",
-      "current_sha256": "ac25a1a8e919a9f37026fb78a1c669109a2ae1d224f196f7de463d5fe63391b8",
-      "reason": "迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据"
+      "current_sha256": "1ae63ae745bdbc599170c33dd6e964a08a36dde62dbea3921e5153c8d645ae15",
+      "reason": "迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据；迁移配置索引及备份并保护回退快照"
     },
     {
       "path": "src/main/managed-server/host-state/orcad-state-snapshot-shell.test.ts",
       "upstream_sha256": "156b0536bba72c191eff82364a416dea8a021eee25044083f3431e83c92c540a",
-      "current_sha256": "c879e69ed9d3fc516cb1928f36f5f677cf0c34343acdd58d0827e1022f5ba000",
-      "reason": "迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据"
+      "current_sha256": "721063c9fc7ca86c0c9c72a8ebfe33515be128453880f39f5ee29066a4328aa1",
+      "reason": "迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据；迁移配置索引及备份并保护回退快照"
     },
     {
       "path": "src/main/managed-server/host-state/orcad-state-snapshot-space.ts",
@@ -332728,32 +332728,32 @@
     {
       "path": "src/main/managed-server/host-state/orcad-state-snapshot.ts",
       "upstream_sha256": "3a7b62390d112b7c0a69ddcd56a5057f0b116ad4dabcf822b156a83be544c78c",
-      "current_sha256": "a659ba153306f6b5bde250c6e707a5b76bf61e97aa89c693cc46771a41c1744d",
-      "reason": "迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据"
+      "current_sha256": "8e16bddae0aebee993c1ae7a6ef07049013f3b64a17f7315dc0268ad54b735ce",
+      "reason": "迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据；迁移配置索引及备份并保护回退快照"
     },
     {
       "path": "src/main/managed-server/host-state/orcad-windows-host-state-ops.test.ts",
       "upstream_sha256": "a2526c53a2e9b7e462e0421a24d9d9b10ddf296214c1bc6296d6b844277270a8",
-      "current_sha256": "2d0fdb17d70b006b825ece484fe3104db66afd0d0de2ddbf3a758f8f75b70bc1",
-      "reason": "迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据"
+      "current_sha256": "b59b2b34dc7f1f7ad52279c8fcc442e1737b042a1bccf95f2273934f7c20cc0f",
+      "reason": "迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据；迁移配置索引及备份并保护回退快照"
     },
     {
       "path": "src/main/managed-server/host-state/orcad-windows-host-state-ops.ts",
       "upstream_sha256": "f79efbaee53e62d4fe1215e0fa75834b396dd1907c0442e9fbb104c2cbf32437",
-      "current_sha256": "effef1dc6a3b89dc78960c7d4dded6e1fef8d3191991c0bbf496404dfe69bb64",
-      "reason": "迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据"
+      "current_sha256": "f3a43a7e3ebd828dcf2653f483e0849fca3d80a06a3f76c81045eb01ac476583",
+      "reason": "迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据；迁移配置索引及备份并保护回退快照"
     },
     {
       "path": "src/main/orca-profiles/profile-index-store.test.ts",
       "upstream_sha256": "d0d9f541e6f780f453ae735ec758e5d3ada72019c823a7d4d2f1e6626e8a3591",
-      "current_sha256": "8a97988f9506c06b1873debce081bce1969842faa4db1addfe47d14ac746df98",
-      "reason": "迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据"
+      "current_sha256": "9b78df5ef2c27a2bee654c095375918d3f8aa8db942a8e15cf7aad5ae118be4b",
+      "reason": "迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据；迁移配置索引及备份并保护回退快照"
     },
     {
       "path": "src/main/orca-profiles/profile-storage-paths.ts",
       "upstream_sha256": "be910d62f3ef85c3e5fa14a3963732e502506cfce282b19eed4709b1bcd2296c",
-      "current_sha256": "b21eb2aa507a6bf977bb84effc957633101f0aadc722ed2eae0ad435898eb5d8",
-      "reason": "迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据"
+      "current_sha256": "712f12a5aaae943fe772bc5c995228f26ab7e2bf322a5e8ff92c0abd1eac2b09",
+      "reason": "迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据；迁移配置索引及备份并保护回退快照"
     },
     {
       "path": "src/main/orca-profiles/profile-telemetry-consent-seed.ts",
@@ -332782,8 +332782,8 @@
     {
       "path": "src/main/persistence/profile-state/profile-state-active-location.ts",
       "upstream_sha256": "064d6823f527233c6b6f7a773a381fa1ff40c435c1896fd6eca74584021a2261",
-      "current_sha256": "977f2772500fcbc0fa163f408931407c54741ee4dae2ca9abd0e88d7ce3735d3",
-      "reason": "迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据"
+      "current_sha256": "503f418b141a44ed46a7da79d1f0a1effff8e10115a5c18faddfe07fe5bed9c1",
+      "reason": "迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据；迁移配置索引及备份并保护回退快照"
     },
     {
       "path": "src/main/persistence/profile-state/profile-state-authority-bootstrap.test.ts",
@@ -332824,8 +332824,8 @@
     {
       "path": "src/main/persistence/profile-state/profile-state-recovery-command.ts",
       "upstream_sha256": "fb98a322e21059511d97caa6b2ba5c0d39267995ea43d694974cbbf5854c7f14",
-      "current_sha256": "9507b6236d8620a0eb0624894a95326b084cff2d46fc561a9b5191a60557d134",
-      "reason": "迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据"
+      "current_sha256": "252d0ea20ca1ac6adaf3d36bf5057703b639b958a4397f98226e91864699e36a",
+      "reason": "迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据；迁移配置索引及备份并保护回退快照"
     },
     {
       "path": "src/main/persistence/profile-state/profile-state-recovery-crash-boundaries.test.ts",
@@ -332842,26 +332842,44 @@
     {
       "path": "src/main/startup/http1-compatibility-profile-state.ts",
       "upstream_sha256": "d6429c34d3254fa71174d9a913f4d0250d504a1eb75f0b46500bd74f32518477",
-      "current_sha256": "ef8b781cf15f9987e4a0c9c50acaef235ec831850351c6ca591c106c5cfc6913",
-      "reason": "迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据"
+      "current_sha256": "c40f56a70ac376d67b7b08e64a2a98640e099075d03f8ca3e387d15c0b9c46d3",
+      "reason": "迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据；迁移配置索引及备份并保护回退快照"
     },
     {
       "path": "src/shared/profile-state-storage-paths.ts",
       "upstream_sha256": "0bfddb2b206051c346f7ed84de055b754dbc4d2d6c7fac1f1b7b9b361eb7f897",
-      "current_sha256": "fef13ad72f1dadfef20e0717a3f162aeb7099d5a685252a88f785da25c0c6ac9",
-      "reason": "迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据"
+      "current_sha256": "9c61af36c4996d034a936dab3621e6c6a0d53050847dc1cf39b6e2b6cd418a50",
+      "reason": "迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据；迁移配置索引及备份并保护回退快照"
     },
     {
       "path": "src/main/orca-profiles/other-profile-workspace-catalog.test.ts",
       "upstream_sha256": "9a19f074415c712f2bf4ed24687f604aae607fec530709473c2d193ecd310cfd",
-      "current_sha256": "584cf636d6c6bdc20cd6674d56bcabdab856d485a658a25b36e2ae140869f133",
-      "reason": "配置数据改名后验证跨配置历史保护和项目转移，并覆盖旧数据启动迁移"
+      "current_sha256": "48d5c995cdf15da5cd9e8b12a1f1003c8cd1060606d759803950ac4a9b7bb5b9",
+      "reason": "配置数据改名后验证跨配置历史保护和项目转移，并覆盖旧数据启动迁移；迁移配置索引及备份并保护回退快照"
     },
     {
       "path": "src/main/orca-profiles/profile-project-transfer-migration.test.ts",
       "upstream_sha256": "a8f5438405b0119559216d24b8fce6c38e536f0701e3645cbd3dc0b1e817f64e",
-      "current_sha256": "64b3f21f84c1826ef718c294b362411d74c0e9a00903d9f1ec832dcf4aa66343",
-      "reason": "配置数据改名后验证跨配置历史保护和项目转移，并覆盖旧数据启动迁移"
+      "current_sha256": "8e809d4669d023afa621b9688ee7d44f8b2ff263b38bbcbc9b7ef823a48f15db",
+      "reason": "配置数据改名后验证跨配置历史保护和项目转移，并覆盖旧数据启动迁移；迁移配置索引及备份并保护回退快照"
+    },
+    {
+      "path": "src/main/orca-profiles/profile-active-transfer-worker.test.ts",
+      "upstream_sha256": "a81ee23f29113548cbb70c3c459e983c1882193fc17490138ffcab20b5ed9736",
+      "current_sha256": "7e569c1a175a63a8e4bd29d4e00940b40c6dbf82e3f2b38262acb9c4f1662b65",
+      "reason": "迁移配置索引及备份并保护回退快照"
+    },
+    {
+      "path": "src/main/orca-profiles/profile-active-transfer.test.ts",
+      "upstream_sha256": "6607f69a8a5a9fb89e34b6de3f5342f4fb93bdb57baf789eac6347708f821776",
+      "current_sha256": "78704e98da1bb58ca6731bdd23ebfc8ec3569839d9503ccee504c04d45f2b6b4",
+      "reason": "迁移配置索引及备份并保护回退快照"
+    },
+    {
+      "path": "src/main/orca-profiles/profile-project-domain-transfer.test.ts",
+      "upstream_sha256": "77f4c06db279587e6db60940ae0b966571a9bbd483fb0d5ed48b1c41f21f9da5",
+      "current_sha256": "e7d46daffe3b153969b2e5054a017e8506cc4bedd546a5bb58442a93f52a9f93",
+      "reason": "迁移配置索引及备份并保护回退快照"
     }
   ],
   "reviewed_findings": [

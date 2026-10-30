@@ -141,6 +141,45 @@ describe.skipIf(process.platform === 'win32')('snapshot commands on a real shell
     expect(readFileSync(unrelated, 'utf8')).toBe('unmanaged')
   })
 
+  it.each(['orca', 'zkyq'])('restores the %s profile index and its backup', async (name) => {
+    const index = join(root, `${name}-profile-index.json`)
+    writeFileSync(index, 'primary')
+    writeFileSync(`${index}.bak`, 'backup')
+    expect(
+      parseOrcadSnapshotCapture(
+        await sh(captureOrcadStateSnapshotCommand(posix, root, snapshot, remoteBase))
+      )
+    ).toBe('captured')
+    writeFileSync(index, 'changed')
+    writeFileSync(`${index}.bak`, 'changed backup')
+    expect(
+      parseOrcadSnapshotRestore(
+        await sh(restoreOrcadStateSnapshotCommand(posix, root, snapshot, remoteBase))
+      )
+    ).toBe('restored')
+    expect(readFileSync(index, 'utf8')).toBe('primary')
+    expect(readFileSync(`${index}.bak`, 'utf8')).toBe('backup')
+  })
+
+  it('does not discard an index backup omitted by an older snapshot', async () => {
+    const index = join(root, 'orca-profile-index.json')
+    writeFileSync(index, 'before')
+    expect(
+      parseOrcadSnapshotCapture(
+        await sh(captureOrcadStateSnapshotCommand(posix, root, snapshot, remoteBase))
+      )
+    ).toBe('captured')
+    writeFileSync(index, 'current')
+    writeFileSync(`${index}.bak`, 'unrepresented backup')
+    expect(
+      parseOrcadSnapshotRestore(
+        await sh(restoreOrcadStateSnapshotCommand(posix, root, snapshot, remoteBase))
+      )
+    ).toBe('failed')
+    expect(readFileSync(index, 'utf8')).toBe('current')
+    expect(readFileSync(`${index}.bak`, 'utf8')).toBe('unrepresented backup')
+  })
+
   it('captures on a BusyBox before 1.30, whose timeout only takes `-t SECS`', async () => {
     const bin = join(base, 'bin')
     mkdirSync(bin)

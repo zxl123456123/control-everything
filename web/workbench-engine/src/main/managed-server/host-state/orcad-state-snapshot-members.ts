@@ -6,6 +6,9 @@
  */
 export const ORCAD_SNAPSHOT_MEMBERS = [
   'orca-profile-index.json',
+  'orca-profile-index.json.bak',
+  'zkyq-profile-index.json',
+  'zkyq-profile-index.json.bak',
   // Pre-profiles layout; still read as a migration source.
   'orca-data.json',
   'zkyq-data.json',

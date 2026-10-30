@@ -4,14 +4,22 @@ import { profileStateJsonExportPaths } from '../persistence/profile-state/legacy
 import { hasProfileStateAuthorityMarker } from '../persistence/profile-state/profile-state-authority-marker'
 import { profileStateDatabaseBackups } from '../persistence/profile-state/profile-state-backup-path'
 import { hasProfileStateDatabaseFiles } from '../persistence/profile-state/profile-state-storage-classification'
-import { profileStateDataFileForRead } from '../persistence/profile-state/profile-state-data-name-migration'
+import {
+  profileIndexPathForRead,
+  profileStateDataFileForRead
+} from '../persistence/profile-state/profile-state-data-name-migration'
 
 // Keep the pre-ready graph small; this stable ID mirrors DEFAULT_LOCAL_ORCA_PROFILE_ID.
 const DEFAULT_LOCAL_PROFILE_ID = 'local-default'
 
 /** `null` means malformed index; `undefined` means a pre-profile legacy install. */
 export function readActiveProfileId(userDataPath: string): string | null | undefined {
-  const indexPath = join(userDataPath, 'orca-profile-index.json')
+  let indexPath: string
+  try {
+    indexPath = profileIndexPathForRead(userDataPath)
+  } catch {
+    return null
+  }
   const candidates = [indexPath, `${indexPath}.bak`].filter(existsSync)
   if (candidates.length === 0) {
     return undefined

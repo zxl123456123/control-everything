@@ -3,7 +3,9 @@ import { dirname, join } from 'node:path'
 import { bestEffortFsyncDirectorySync, fsyncFileSync } from '../../../shared/secure-file'
 import {
   PREVIOUS_PROFILE_STATE_DATA_FILE_NAME,
-  PROFILE_STATE_DATA_FILE_NAME
+  PROFILE_STATE_DATA_FILE_NAME,
+  PREVIOUS_PROFILE_INDEX_FILE_NAME,
+  PROFILE_INDEX_FILE_NAME
 } from '../../../shared/profile-state-storage-paths'
 import {
   acquireProfileStateMaintenance,
@@ -44,6 +46,9 @@ function executeMoves(
       linkSync(source, target)
       bestEffortFsyncDirectorySync(directory)
     }
+  }
+  for (const { source, target, directory } of moves) {
+    maintenance.assertActive()
     validateMove(source, target)
     unlinkSync(source)
     bestEffortFsyncDirectorySync(directory)
@@ -52,9 +57,11 @@ function executeMoves(
 
 /** An explicit downgrade hands JSON to an older build; the next upgraded startup migrates it back. */
 export function handOffProfileJsonToPreviousBuild(
+  userDataPath: string,
   profile: { profileId: string; dataFile: string; databasePath: string },
   maintenance: ProfileStateMaintenance
 ): string {
+  const root = assertProfileStateMaintenanceRoot(maintenance, userDataPath)
   assertProfileStateMaintenance(maintenance, profile)
   const directory = dirname(profile.dataFile)
   const previous = join(directory, OLD_DATA_NAME)
@@ -69,8 +76,28 @@ export function handOffProfileJsonToPreviousBuild(
       target: join(directory, OLD_DATA_NAME + name.slice(DATA_NAME.length)),
       directory
     }))
-  executeMoves(moves, maintenance)
+  executeMoves(
+    [...moves, ...indexMoves(root, PROFILE_INDEX_FILE_NAME, PREVIOUS_PROFILE_INDEX_FILE_NAME)],
+    maintenance
+  )
   return previous
+}
+
+/** Resolve the index for pre-startup reads without accepting a split migration. */
+export function profileIndexPathForRead(userDataPath: string): string {
+  const oldPath = join(userDataPath, PREVIOUS_PROFILE_INDEX_FILE_NAME)
+  const currentPath = join(userDataPath, PROFILE_INDEX_FILE_NAME)
+  const old = maybeStat(oldPath) || maybeStat(`${oldPath}.bak`)
+  const current = maybeStat(currentPath) || maybeStat(`${currentPath}.bak`)
+  if (old && current) throw new Error('Profile index name migration is incomplete or conflicting')
+  return old ? oldPath : currentPath
+}
+
+function indexMoves(root: string, from: string, to: string) {
+  return ['', '.bak'].flatMap((suffix) => {
+    const source = join(root, from + suffix)
+    return maybeStat(source) ? [{ source, target: join(root, to + suffix), directory: root }] : []
+  })
 }
 
 /** Migrate before a runtime reads state, retaining its shared admission after the final check. */
@@ -117,6 +144,7 @@ export function profileStateDataFileForRead(directory: string): string {
 }
 
 function findMoves(root: string): { source: string; target: string; directory: string }[] {
+  validateIndexTransition(root)
   const directories = [root]
   const profiles = join(root, 'profiles')
   const profilesInfo = maybeStat(profiles)
@@ -131,15 +159,31 @@ function findMoves(root: string): { source: string; target: string; directory: s
     }
   }
 
-  return directories.flatMap((directory) =>
-    readdirSync(directory)
-      .filter(isManagedOldName)
-      .map((name) => ({
-        source: join(directory, name),
-        target: join(directory, DATA_NAME + name.slice(OLD_DATA_NAME.length)),
-        directory
-      }))
+  return [
+    ...indexMoves(root, PREVIOUS_PROFILE_INDEX_FILE_NAME, PROFILE_INDEX_FILE_NAME),
+    ...directories.flatMap((directory) =>
+      readdirSync(directory)
+        .filter(isManagedOldName)
+        .map((name) => ({
+          source: join(directory, name),
+          target: join(directory, DATA_NAME + name.slice(OLD_DATA_NAME.length)),
+          directory
+        }))
+    )
+  ]
+}
+
+function validateIndexTransition(root: string): void {
+  const pairs = ['', '.bak'].map((suffix) => ({
+    old: maybeStat(join(root, PREVIOUS_PROFILE_INDEX_FILE_NAME + suffix)),
+    current: maybeStat(join(root, PROFILE_INDEX_FILE_NAME + suffix))
+  }))
+  if (!pairs.some((pair) => pair.old) || !pairs.some((pair) => pair.current)) return
+  const linked = pairs.some(
+    ({ old, current }) =>
+      old && current && old.ino && old.ino === current.ino && old.dev === current.dev
   )
+  if (!linked) throw new Error('Profile index name migration is incomplete or conflicting')
 }
 
 function isManagedOldName(name: string): boolean {

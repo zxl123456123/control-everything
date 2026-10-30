@@ -93,7 +93,7 @@ function transfer(mode: 'copy' | 'move' = 'move') {
 beforeEach(() => {
   directory = mkdtempSync(join(tmpdir(), 'orca-profile-transfer-migration-'))
   writeFileSync(
-    join(directory, 'orca-profile-index.json'),
+    join(directory, 'zkyq-profile-index.json'),
     JSON.stringify({
       schemaVersion: ORCA_PROFILE_INDEX_SCHEMA_VERSION,
       activeProfileId: 'source',
@@ -119,6 +119,9 @@ describe('profile transfer migration', () => {
   it('copies between profiles after startup migrates their old data names', () => {
     const source = writeState('source', false, [repo])
     const target = writeState('target', false)
+    const currentIndex = join(directory, 'zkyq-profile-index.json')
+    writeFileSync(join(directory, 'orca-profile-index.json'), readFileSync(currentIndex))
+    rmSync(currentIndex)
     for (const id of ['source', 'target']) {
       const current = paths(id).dataFile
       writeFileSync(join(directory, 'profiles', id, 'orca-data.json'), readFileSync(current))

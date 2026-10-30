@@ -119,7 +119,7 @@ describe('profile index store', () => {
         }
       ]
     }
-    writeFileSync(join(testState.dir, 'orca-profile-index.json'), JSON.stringify(index), 'utf-8')
+    writeFileSync(join(testState.dir, 'zkyq-profile-index.json'), JSON.stringify(index), 'utf-8')
 
     const { ensureActiveOrcaProfile } = await loadProfileIndexStore()
     const activeProfile = ensureActiveOrcaProfile()

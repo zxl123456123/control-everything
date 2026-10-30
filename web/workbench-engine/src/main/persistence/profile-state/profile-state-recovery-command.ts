@@ -127,6 +127,7 @@ export function rollbackProfileState(
   const restoredPath =
     selector.kind === 'latest-json' || selector.kind === 'json'
       ? handOffProfileJsonToPreviousBuild(
+          userDataPath,
           {
             profileId: result.profileId,
             dataFile: result.dataFile,

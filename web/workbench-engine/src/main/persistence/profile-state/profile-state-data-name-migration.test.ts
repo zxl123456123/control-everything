@@ -10,6 +10,7 @@ import {
   acquireProfileStateAdmissionWithDataMigration,
   handOffProfileJsonToPreviousBuild,
   migrateProfileStateDataNames,
+  profileIndexPathForRead,
   profileStateDataFileForRead
 } from './profile-state-data-name-migration'
 
@@ -35,10 +36,13 @@ describe('profile state data filename migration', () => {
     const dataFile = join(profile, 'zkyq-data.json')
     fs.writeFileSync(dataFile, 'restored')
     fs.writeFileSync(`${dataFile}.bak.0`, 'backup')
+    fs.writeFileSync(join(directory, 'zkyq-profile-index.json'), 'index')
+    fs.writeFileSync(join(directory, 'zkyq-profile-index.json.bak'), 'index backup')
     const maintenance = acquireProfileStateMaintenance(directory)
     let previous: string
     try {
       previous = handOffProfileJsonToPreviousBuild(
+        directory,
         { profileId: 'p1', dataFile, databasePath: join(profile, 'profile-state.db') },
         maintenance
       )
@@ -46,6 +50,10 @@ describe('profile state data filename migration', () => {
       expect(fs.readFileSync(previous, 'utf8')).toBe('restored')
       expect(fs.readFileSync(`${previous}.bak.0`, 'utf8')).toBe('backup')
       expect(fs.existsSync(dataFile)).toBe(false)
+      expect(fs.readFileSync(join(directory, 'orca-profile-index.json'), 'utf8')).toBe('index')
+      expect(fs.readFileSync(join(directory, 'orca-profile-index.json.bak'), 'utf8')).toBe(
+        'index backup'
+      )
     } finally {
       maintenance.release()
     }
@@ -53,6 +61,10 @@ describe('profile state data filename migration', () => {
     expect(fs.readFileSync(dataFile, 'utf8')).toBe('restored')
     expect(fs.readFileSync(`${dataFile}.bak.0`, 'utf8')).toBe('backup')
     expect(fs.existsSync(previous)).toBe(false)
+    expect(fs.readFileSync(join(directory, 'zkyq-profile-index.json'), 'utf8')).toBe('index')
+    expect(fs.readFileSync(join(directory, 'zkyq-profile-index.json.bak'), 'utf8')).toBe(
+      'index backup'
+    )
   })
 
   it('does not overwrite an existing previous-build file during handoff', () => {
@@ -67,12 +79,74 @@ describe('profile state data filename migration', () => {
     try {
       expect(() =>
         handOffProfileJsonToPreviousBuild(
+          directory,
           { profileId: 'p1', dataFile, databasePath: join(profile, 'profile-state.db') },
           maintenance
         )
       ).toThrow()
       expect(fs.readFileSync(dataFile, 'utf8')).toBe('restored')
       expect(fs.readFileSync(previous, 'utf8')).toBe('existing')
+    } finally {
+      maintenance.release()
+    }
+  })
+  it('migrates an index backup even when the primary is absent', () => {
+    const directory = root()
+    fs.writeFileSync(join(directory, 'orca-profile-index.json.bak'), 'backup')
+    expect(profileIndexPathForRead(directory)).toBe(join(directory, 'orca-profile-index.json'))
+    acquireProfileStateAdmissionWithDataMigration(directory).release()
+    expect(profileIndexPathForRead(directory)).toBe(join(directory, 'zkyq-profile-index.json'))
+    expect(fs.readFileSync(join(directory, 'zkyq-profile-index.json.bak'), 'utf8')).toBe('backup')
+    expect(fs.existsSync(join(directory, 'orca-profile-index.json.bak'))).toBe(false)
+  })
+
+  it('refuses conflicting index families without changing profile data', () => {
+    const directory = root()
+    fs.writeFileSync(join(directory, 'orca-profile-index.json'), 'old')
+    fs.writeFileSync(join(directory, 'zkyq-profile-index.json'), 'new')
+    fs.writeFileSync(join(directory, 'orca-data.json'), 'data')
+    expect(() => profileIndexPathForRead(directory)).toThrow('incomplete or conflicting')
+    expect(() => acquireProfileStateAdmissionWithDataMigration(directory)).toThrow(
+      'incomplete or conflicting'
+    )
+    expect(fs.readFileSync(join(directory, 'orca-data.json'), 'utf8')).toBe('data')
+    expect(fs.readFileSync(join(directory, 'orca-profile-index.json'), 'utf8')).toBe('old')
+    expect(fs.readFileSync(join(directory, 'zkyq-profile-index.json'), 'utf8')).toBe('new')
+  })
+
+  it('refuses an old primary and an unrelated new backup', () => {
+    const directory = root()
+    const old = join(directory, 'orca-profile-index.json')
+    const backup = join(directory, 'zkyq-profile-index.json.bak')
+    fs.writeFileSync(old, 'old')
+    fs.writeFileSync(backup, 'other backup')
+    expect(() => acquireProfileStateAdmissionWithDataMigration(directory)).toThrow(
+      'incomplete or conflicting'
+    )
+    expect(fs.readFileSync(old, 'utf8')).toBe('old')
+    expect(fs.readFileSync(backup, 'utf8')).toBe('other backup')
+  })
+  it('resumes an interrupted index move after publishing the full family', () => {
+    const directory = root()
+    const old = join(directory, 'orca-profile-index.json')
+    const current = join(directory, 'zkyq-profile-index.json')
+    fs.writeFileSync(old, 'index')
+    fs.writeFileSync(`${old}.bak`, 'backup')
+    const maintenance = acquireProfileStateMaintenance(directory)
+    try {
+      const unlink = fs.unlinkSync
+      let calls = 0
+      const spy = vi.spyOn(fs, 'unlinkSync').mockImplementation((path) => {
+        if (++calls === 2) throw new Error('interrupted')
+        unlink(path)
+      })
+      expect(() => migrateProfileStateDataNames(directory, maintenance)).toThrow('interrupted')
+      spy.mockRestore()
+      expect(() => profileIndexPathForRead(directory)).toThrow('incomplete or conflicting')
+      expect(migrateProfileStateDataNames(directory, maintenance)).toBe(1)
+      expect(fs.readFileSync(current, 'utf8')).toBe('index')
+      expect(fs.readFileSync(`${current}.bak`, 'utf8')).toBe('backup')
+      expect(fs.existsSync(`${old}.bak`)).toBe(false)
     } finally {
       maintenance.release()
     }

@@ -237,6 +237,12 @@ Object.assign(ops, {
         await removeTreeAsync(stage)
         return ('FAILED')
       }
+      const backups = ['orca-profile-index.json.bak', 'zkyq-profile-index.json.bak']
+      if (backups.some((name) => lstatOrNull(path.join(root, name))) &&
+          !backups.some((name) => lstatOrNull(path.join(stage, name)))) {
+        await removeTreeAsync(stage)
+        return ('FAILED')
+      }
     } catch {
       try { await removeTreeAsync(stage) } catch {}
       return ('FAILED')

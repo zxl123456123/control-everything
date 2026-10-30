@@ -48,6 +48,26 @@ async function op(name: OrcadWindowsHostOp, ...args: string[]): Promise<string> 
 }
 
 describe('Windows snapshot ops', () => {
+  it('does not discard an index backup omitted by an older snapshot', async () => {
+    expect(await op('snapshot-capture', root, snapshot)).toBe('CAPTURED')
+    const index = join(root, 'orca-profile-index.json')
+    writeFileSync(index, 'current')
+    writeFileSync(`${index}.bak`, 'unrepresented backup')
+    expect(await op('snapshot-restore', root, snapshot)).toBe('FAILED')
+    expect(readFileSync(index, 'utf8')).toBe('current')
+    expect(readFileSync(`${index}.bak`, 'utf8')).toBe('unrepresented backup')
+  })
+  it.each(['orca', 'zkyq'])('restores the %s profile index and its backup', async (name) => {
+    const index = join(root, `${name}-profile-index.json`)
+    writeFileSync(index, 'primary')
+    writeFileSync(`${index}.bak`, 'backup')
+    expect(await op('snapshot-capture', root, snapshot)).toBe('CAPTURED')
+    writeFileSync(index, 'changed')
+    writeFileSync(`${index}.bak`, 'changed backup')
+    expect(await op('snapshot-restore', root, snapshot)).toBe('RESTORED')
+    expect(readFileSync(index, 'utf8')).toBe('primary')
+    expect(readFileSync(`${index}.bak`, 'utf8')).toBe('backup')
+  })
   it('captures and restores old and new root exports without touching unrecognized names', async () => {
     const oldExport = join(root, 'orca-data.json.sqlite-export.17.json')
     const newExport = join(root, 'zkyq-data.json.sqlite-export.42.json')
