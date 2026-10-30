@@ -71,7 +71,7 @@ export function buildDispatchPreamble(params: PreambleParams): string {
   // Why: in dev mode, agents must use zkyq-dev to connect to the dev runtime's
   // socket. Without this, agents inside the dev Electron app would call the
   // production CLI and talk to the wrong Orca instance (Section 6.4).
-  const cli = params.cliCommand === 'zkyq' ? 'zkyq' : params.devMode ? 'zkyq-dev' : (params.cliCommand ?? 'orca')
+  const cli = params.cliCommand === 'zkyq' ? 'zkyq' : params.devMode ? 'zkyq-dev' : (params.cliCommand ?? 'zkyq')
   const chat = isSessionHandle(params.workerHandle)
   const surface = chat ? 'chat' : 'terminal'
   const postDoneInstructions = buildPostWorkerDoneInstructions({

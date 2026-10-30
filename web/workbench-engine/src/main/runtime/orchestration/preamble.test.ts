@@ -56,7 +56,7 @@ describe('buildDispatchPreamble', () => {
     const result = buildDispatchPreamble(baseParams())
     const commandLines = result
       .split('\n')
-      .filter((line) => line.trimStart().startsWith('orca orchestration'))
+      .filter((line) => line.trimStart().startsWith('zkyq orchestration'))
 
     expect(commandLines).toHaveLength(5)
     expect(result).not.toContain('\\\n')

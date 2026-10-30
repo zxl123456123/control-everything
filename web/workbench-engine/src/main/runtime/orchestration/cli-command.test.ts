@@ -11,6 +11,16 @@ vi.mock('../../../shared/app-environment', () => ({
 }))
 
 describe('installed workbench command in agent instructions', () => {
+  it.each([null, false, true])('uses zkyq on current SSH hosts regardless of local WSL=%s', (isWsl) => {
+    expect(resolveTerminalOrchestrationCliCommand({
+      connectionId: 'ssh-target', isWsl, worktreeId: 'repo::/repo', runtimeCliCommand: 'zkyq-dev'
+    })).toBe('zkyq')
+  })
+  it.each([null, false, true])('uses zkyq as the packaged fallback for WSL=%s', (isWsl) => {
+    expect(resolveTerminalOrchestrationCliCommand({
+      connectionId: null, isWsl, worktreeId: 'repo::/repo'
+    })).toBe('zkyq')
+  })
   it('selects zkyq for WSL while preserving an explicit dev command', () => {
     const worker = { connectionId: null, isWsl: true, worktreeId: 'repo::/repo' }
     expect(resolveTerminalOrchestrationCliCommand(worker)).toBe('zkyq')

@@ -1,6 +1,4 @@
 import type { ProjectExecutionRuntimeResolution } from '../../../shared/project-execution-runtime'
-import { isWslUncPath } from '../../../shared/wsl-paths'
-import { splitWorktreeIdForFilesystem } from '../../../shared/worktree/id'
 import { getAppEnvironment, hasAppEnvironment } from '../../../shared/app-environment'
 
 export type OrchestrationCliCommand = 'zkyq' | 'orca' | 'zkyq-dev' | 'orca-ide'
@@ -16,7 +14,7 @@ export function runtimeOrchestrationCliCommand(): OrchestrationCliCommand | unde
 
 /** What a local, non-WSL terminal is told to run; a structured session is always one. */
 export function localOrchestrationCliCommand(): OrchestrationCliCommand {
-  return runtimeOrchestrationCliCommand() ?? 'orca'
+  return runtimeOrchestrationCliCommand() ?? 'zkyq'
 }
 
 export function resolveTerminalOrchestrationCliCommand(args: {
@@ -27,18 +25,10 @@ export function resolveTerminalOrchestrationCliCommand(args: {
   runtimeCliCommand?: OrchestrationCliCommand
 }): OrchestrationCliCommand {
   if (args.connectionId) {
-    return 'orca'
+    return 'zkyq'
   }
   if (args.runtimeCliCommand) {
     return args.runtimeCliCommand
   }
-  if (args.isWsl !== null && args.isWsl !== undefined) {
-    return args.isWsl ? 'zkyq' : 'orca'
-  }
-  if (args.projectRuntime?.status === 'resolved' && args.projectRuntime.runtime.kind === 'wsl') {
-    return 'zkyq'
-  }
-
-  const worktreePath = splitWorktreeIdForFilesystem(args.worktreeId)?.worktreePath
-  return worktreePath && isWslUncPath(worktreePath) ? 'zkyq' : 'orca'
+  return 'zkyq'
 }

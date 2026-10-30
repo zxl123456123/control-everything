@@ -79,7 +79,7 @@ function runtime(prompts: string[]): OrcaRuntimeService {
     {
       orchestrationSenderNames: { nameOf: () => null },
       getNestedWorkerMaxDepth: () => 2,
-      getTerminalOrchestrationCliCommand: () => 'orca',
+      getTerminalOrchestrationCliCommand: () => 'zkyq',
       sendTerminalAgentPrompt: async (handle, text) => {
         prompts.push(text)
         return { handle, accepted: true, bytesWritten: text.length }
@@ -183,7 +183,7 @@ describe('a chat agent and a terminal agent see the same text but for how each i
         worktreeId: 'repo::/tmp/wt',
         runtimeCliCommand: runtimeOrchestrationCliCommand()
       })
-      expect(terminalCli).toBe(packaged ? 'orca' : 'zkyq-dev')
+      expect(terminalCli).toBe(packaged ? 'zkyq' : 'zkyq-dev')
 
       for (const mailbox of ['run:run_parity', CHAT_ADDRESS]) {
         expect(await renderChatPointer(mailbox)).toBe(

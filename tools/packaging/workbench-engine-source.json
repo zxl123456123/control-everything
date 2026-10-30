@@ -327123,7 +327123,8 @@
     "src/main/cli/wsl-command-migration.test.ts",
     "src/main/cli/retire-generated-command.cjs",
     "src/main/cli/retire-generated-command.d.cts",
-    "src/main/cli/retire-generated-command.test.ts"
+    "src/main/cli/retire-generated-command.test.ts",
+    "config/scripts/live-remote-freeze-rpc.test.mjs"
   ],
   "adapted_files": [
     {
@@ -329805,20 +329806,20 @@
     {
       "path": "src/main/runtime/orchestration/__snapshots__/preamble.test.ts.snap",
       "upstream_sha256": "1f4a570f927a4b463ad57b1e0491cf40b5c0157c1d93f1a5bc9e4b792ee00bf8",
-      "current_sha256": "811a7efa82cdf2a07e3541e4eeb4de40cf064caf8ecb2d06f052b11842528468",
-      "reason": "统一已安装zkyq宿主的Agent派发、收信及恢复命令与状态摘要身份，保留历史记录识别和用户内容"
+      "current_sha256": "4ec40717d36afce4363dc458dfed2fdbc544e503d8bacff5873782e914ed6af8",
+      "reason": "统一已安装zkyq宿主的Agent派发、收信及恢复命令与状态摘要身份，保留历史记录识别和用户内容；当前本地与SSH运行组件统一zkyq调用，移除过时relay命令分支并同步Agent启动、收信、回复与诊断默认入口"
     },
     {
       "path": "src/main/runtime/orchestration/agent-facing-parity.test.ts",
       "upstream_sha256": "2abfb8959a1e84f667b81d2144dbd2c2e4df2ee80b9bfd916bcfbb0996795223",
-      "current_sha256": "beffd6c4692739c737393eedafe1479ae46993e99207f2a542d05c4c5d3f9634",
-      "reason": "统一已安装zkyq宿主的Agent派发、收信及恢复命令与状态摘要身份，保留历史记录识别和用户内容；开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+      "current_sha256": "3126db32a18779b65bfa3f9c8d4b6574a5e5c6729383956f76b3f6b56f674499",
+      "reason": "统一已安装zkyq宿主的Agent派发、收信及恢复命令与状态摘要身份，保留历史记录识别和用户内容；开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；当前本地与SSH运行组件统一zkyq调用，移除过时relay命令分支并同步Agent启动、收信、回复与诊断默认入口"
     },
     {
       "path": "src/main/runtime/orchestration/cli-command.ts",
       "upstream_sha256": "c122a5b40631eb3efe7c3ba4765676a8c3f903e93fc0164a0f8ab125d1a93364",
-      "current_sha256": "da8be5fcc302b620f9f549bb0d0134b167f0b69c043162cc101ab2a1519eba38",
-      "reason": "统一已安装zkyq宿主的Agent派发、收信及恢复命令与状态摘要身份，保留历史记录识别和用户内容；WSL命令迁移为zkyq，成功写入后退役受管理旧入口，保留用户文件和桥接参数，失效旧命令修复缓存并对齐派发环境；开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+      "current_sha256": "3885139d0ebe398b692ffc937d11f2369dbf3697f7efdafab831f9c03e905628",
+      "reason": "统一已安装zkyq宿主的Agent派发、收信及恢复命令与状态摘要身份，保留历史记录识别和用户内容；WSL命令迁移为zkyq，成功写入后退役受管理旧入口，保留用户文件和桥接参数，失效旧命令修复缓存并对齐派发环境；开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；当前本地与SSH运行组件统一zkyq调用，移除过时relay命令分支并同步Agent启动、收信、回复与诊断默认入口"
     },
     {
       "path": "src/main/runtime/orchestration/coordinator-runtime-contract.ts",
@@ -329829,14 +329830,14 @@
     {
       "path": "src/main/runtime/orchestration/preamble.test.ts",
       "upstream_sha256": "b3a4c81fbd58b9c5b8aa4eeef95f809bb9321bb97ce96d03f7bcc30fd2db9e37",
-      "current_sha256": "d48fa3d392b4be315fc1eadca17691718776d293e5c7564eec64afeb3bb96808",
-      "reason": "统一已安装zkyq宿主的Agent派发、收信及恢复命令与状态摘要身份，保留历史记录识别和用户内容；开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+      "current_sha256": "7b98edf002602d609c6c99f851d488e962d7784051642542df2f1e74dc3d005c",
+      "reason": "统一已安装zkyq宿主的Agent派发、收信及恢复命令与状态摘要身份，保留历史记录识别和用户内容；开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；当前本地与SSH运行组件统一zkyq调用，移除过时relay命令分支并同步Agent启动、收信、回复与诊断默认入口"
     },
     {
       "path": "src/main/runtime/orchestration/preamble.ts",
       "upstream_sha256": "20e4b049c72fbf003b1f00b2ec9131c53fef3e97b347ec57228f59414619518c",
-      "current_sha256": "cbb4e3a712ffd00c36ed4e4a81fc3179d9d25c33b4329d5b84b4b821ca342134",
-      "reason": "统一已安装zkyq宿主的Agent派发、收信及恢复命令与状态摘要身份，保留历史记录识别和用户内容；开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+      "current_sha256": "c98cc3a8ced8b009cd10d0160f5c2447f2f5b1b1a8222c75e51b0c8862a2f975",
+      "reason": "统一已安装zkyq宿主的Agent派发、收信及恢复命令与状态摘要身份，保留历史记录识别和用户内容；开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；当前本地与SSH运行组件统一zkyq调用，移除过时relay命令分支并同步Agent启动、收信、回复与诊断默认入口"
     },
     {
       "path": "src/main/runtime/rpc/orchestration-legacy-operation.ts",
@@ -330129,8 +330130,8 @@
     {
       "path": "src/renderer/src/lib/launch-agent-in-new-tab-host-resolution.test.ts",
       "upstream_sha256": "40d0cf3fbc2d7b2760d7d379cf5efce7c5cc5405daa0cae6a2a8b667291c7fa7",
-      "current_sha256": "6143c6975c6b4dbd026156a036c243619660af3707e6646d111d233b554e5e91",
-      "reason": "原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者"
+      "current_sha256": "310dd6c60c545f3be1d9365c75cda2ac842000a94767278eeccbb455173cc741",
+      "reason": "原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者；当前本地与SSH运行组件统一zkyq调用，移除过时relay命令分支并同步Agent启动、收信、回复与诊断默认入口"
     },
     {
       "path": "src/shared/orca-cli-command-name.ts",
@@ -330141,14 +330142,14 @@
     {
       "path": "src/shared/tui-agent-config.ts",
       "upstream_sha256": "349812fd6a96c972dd3475c0acf6f711e3acfe02acbdf7768fb299fa76f19dcb",
-      "current_sha256": "0f04fca0bd3fe20bbf37efaa8b15adbd3357211e2170a5a64521ba8245606801",
-      "reason": "原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者；macOS打包CLI物理改名zkyq，同步安装/回收/卸载与本地派发，保留用户命令及文件竞态保护；开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+      "current_sha256": "be0bfce8c99da6632df9cfaa574cccda401e2c46fcf08697f6de4e0fcd6ce294",
+      "reason": "原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者；macOS打包CLI物理改名zkyq，同步安装/回收/卸载与本地派发，保留用户命令及文件竞态保护；开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；当前本地与SSH运行组件统一zkyq调用，移除过时relay命令分支并同步Agent启动、收信、回复与诊断默认入口"
     },
     {
       "path": "src/shared/tui-agent-startup.spec.ts",
       "upstream_sha256": "038ef2c217ae5c90ea580eaa11fa4e2981948e67bbd3026099d28a8a4bd16451",
-      "current_sha256": "29e9c267f9274c6e0ac8b455e66eab45e776b53829b9b105dc860e55b43eccd8",
-      "reason": "原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者；macOS打包CLI物理改名zkyq，同步安装/回收/卸载与本地派发，保留用户命令及文件竞态保护"
+      "current_sha256": "c3fa600cdb492918b72d36b8dfbd9e2c937222acb8f8edba28c4f2c5be6df5d5",
+      "reason": "原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者；macOS打包CLI物理改名zkyq，同步安装/回收/卸载与本地派发，保留用户命令及文件竞态保护；当前本地与SSH运行组件统一zkyq调用，移除过时relay命令分支并同步Agent启动、收信、回复与诊断默认入口"
     },
     {
       "path": "resources/linux/bin/zkyq",
@@ -330261,8 +330262,8 @@
     {
       "path": "config/scripts/live-remote-freeze-rpc.mjs",
       "upstream_sha256": "7caae4f4c3130536c5da85727cd9adbe123dfe05522467a39efe92a980b1d99a",
-      "current_sha256": "28f062514a2bbe016529a5604727f0e00c2c75adb9722ffaa171f29e69af0c16",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+      "current_sha256": "26a8fdb38b5f0a84b186bc1df05c55b4bbe21479234d97c78576ac898d90c500",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；当前本地与SSH运行组件统一zkyq调用，移除过时relay命令分支并同步Agent启动、收信、回复与诊断默认入口"
     },
     {
       "path": "config/scripts/orcad-terminal-smoke-change-scope.mjs",
@@ -330459,8 +330460,8 @@
     {
       "path": "src/main/ipc/tui-agent-detection-commands.test.ts",
       "upstream_sha256": "8cee03108ef26303c65cbcddb1acd803ac7521a3ba5ffca7e6a874d8792b2df9",
-      "current_sha256": "fe2ad4a6ab00f3fbbfb49b6ab3a8acccb950774fee1d59abe8479eb21230df68",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+      "current_sha256": "d59df954dea277eb72c4549dd933e8b216e04e05a80df118e901c1f35d52c8be",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；当前本地与SSH运行组件统一zkyq调用，移除过时relay命令分支并同步Agent启动、收信、回复与诊断默认入口"
     },
     {
       "path": "src/main/pty/codex-preflight-profile-path-rewrite.test.ts",
@@ -330483,8 +330484,8 @@
     {
       "path": "src/main/runtime/orchestration-mailbox-pointer-cli-command.spec.ts",
       "upstream_sha256": "90780b69fd873721921825b8bf8f77828c678664eb527ebeccfbfe42dbbc464a",
-      "current_sha256": "acf3947df72aef885e2338556d2f79644db0ed9e85e4bb83d0d3b9670d3d9860",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+      "current_sha256": "f5bc6c0ce4c107597c865e05c0e6fa52c21ad13d720220f9ee24f08501b5ec6f",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；当前本地与SSH运行组件统一zkyq调用，移除过时relay命令分支并同步Agent启动、收信、回复与诊断默认入口"
     },
     {
       "path": "src/main/runtime/orchestration/coordinator-task-dispatch.ts",
@@ -330495,8 +330496,8 @@
     {
       "path": "src/main/runtime/orchestration/formatter.test.ts",
       "upstream_sha256": "255ddc14275a6c851f55c27f3a95ee47f554b9f5f9161e809581e7d8aa6f8c4c",
-      "current_sha256": "9899218b96de409cae752e6439541c7331bd0e6e521c70994c76bcc2ebc8bf64",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+      "current_sha256": "0c90c8b87f328db941a1f88326eeedcda2bb4959fa15402e97ffee5153d9e026",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；当前本地与SSH运行组件统一zkyq调用，移除过时relay命令分支并同步Agent启动、收信、回复与诊断默认入口"
     },
     {
       "path": "src/main/runtime/orchestration/structured-mailbox-pointer-delivery.test.ts",
@@ -330545,6 +330546,30 @@
       "upstream_sha256": "fd452d4b9bfd4aa55a6248671e4b21518156906f6d16fca75a5886be955c748b",
       "current_sha256": "9be29f9fe456d02fc0e8ed3d019836a47de50e7995480ea0dad099a48ed347f8",
       "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+    },
+    {
+      "path": "src/main/runtime/orca-runtime-tests/terminal-creation-and-readiness-part-02.spec.ts",
+      "upstream_sha256": "8532257d39901940d7b9078cff51d6b9a4acea261de407f5fab5a2e2a24f3f31",
+      "current_sha256": "a3eea63d36dbc895fefc9e464098d789d1df811d85b3ac4bcfbb42d767da674f",
+      "reason": "当前本地与SSH运行组件统一zkyq调用，移除过时relay命令分支并同步Agent启动、收信、回复与诊断默认入口"
+    },
+    {
+      "path": "src/main/runtime/orchestration/formatter.ts",
+      "upstream_sha256": "5ae3b5eeb5d1fe14e7d612ce0c8af379379d026014a9a2b379473de388481c55",
+      "current_sha256": "e3ae699935792314ab7f86b0d841f5670d2ed999638e8acabc4755ff4fd8f11c",
+      "reason": "当前本地与SSH运行组件统一zkyq调用，移除过时relay命令分支并同步Agent启动、收信、回复与诊断默认入口"
+    },
+    {
+      "path": "src/shared/agent-launch-remote.ts",
+      "upstream_sha256": "4407cb4aa54674082a5fa60c62bd848efd0bcc89ab316487b2ae1801484cffc0",
+      "current_sha256": "ac99da8360694d88e19cdeeb02f6d6504784ec1d239a45c01daa4ad4b17cdcc3",
+      "reason": "当前本地与SSH运行组件统一zkyq调用，移除过时relay命令分支并同步Agent启动、收信、回复与诊断默认入口"
+    },
+    {
+      "path": "src/shared/tui-agent-config.test.ts",
+      "upstream_sha256": "eab334d48058f046f9e65655d212a52e4581e0ac1614ea51a4d1b0f62ebbf6b5",
+      "current_sha256": "5c5a48850dcfb609e753614b14189f6644f97412d8f03ad93391edb4cc7d8436",
+      "reason": "当前本地与SSH运行组件统一zkyq调用，移除过时relay命令分支并同步Agent启动、收信、回复与诊断默认入口"
     }
   ],
   "reviewed_findings": [

@@ -19,7 +19,7 @@ export function resolveOrcaCliCommand({ env = process.env, platform = process.pl
   if (env.ORCA_DEV_REPO_ROOT) {
     return 'zkyq-dev'
   }
-  return platform === 'linux' ? 'orca-ide' : 'orca'
+  return platform === 'win32' ? 'zkyq.exe' : 'zkyq'
 }
 
 export function resolveOrcaCliInvocation({
@@ -46,6 +46,7 @@ export function resolveOrcaCliInvocation({
         ORCA_USER_DATA_PATH:
           env.ORCA_USER_DATA_PATH ?? env.ORCA_DEV_USER_DATA_PATH ?? defaultUserDataPath,
         ORCA_DEV_CLI_INVOCATION: '1',
+        ORCA_CLI_COMMAND: 'zkyq-dev',
         ORCA_APP_EXECUTABLE:
           env.ORCA_APP_EXECUTABLE ??
           path.win32.join(

@@ -283,11 +283,7 @@ describe('tui agent startup plans', () => {
     expect(plan?.launchCommand).toBe('zkyq claude-teams')
   })
 
-  it.each(['linux', 'darwin'] as const)('uses the deployed relay for Claude Agent Teams on %s SSH remotes', (platform) => {
-    // Why: the SSH relay deploys the CLI shim as `orca` (not the local-only
-    // `orca-ide` GNOME-screen-reader workaround), so a remote launch must not
-    // emit `orca-ide claude-teams` — that name is not on the remote PATH and
-    // `claude-teams` is rejected by the relay's CLI switch (issue #6500).
+  it.each(['linux', 'darwin'] as const)('uses the managed runtime command for Claude Agent Teams on %s SSH remotes', (platform) => {
     const plan = buildAgentStartupPlan({
       agent: 'claude-agent-teams',
       prompt: '',
@@ -297,11 +293,10 @@ describe('tui agent startup plans', () => {
       allowEmptyPromptLaunch: true
     })
 
-    expect(plan?.launchCommand).toBe('orca claude-teams')
+    expect(plan?.launchCommand).toBe('zkyq claude-teams')
   })
 
-  it('keeps the Windows orca.cmd shim for Claude Agent Teams on SSH remotes', () => {
-    // The remote relay name is independent of the packaged Windows native launcher.
+  it('uses the native Windows command for Claude Agent Teams on SSH remotes', () => {
     const plan = buildAgentStartupPlan({
       agent: 'claude-agent-teams',
       prompt: '',
@@ -311,7 +306,7 @@ describe('tui agent startup plans', () => {
       allowEmptyPromptLaunch: true
     })
 
-    expect(plan?.launchCommand).toBe('orca.cmd claude-teams')
+    expect(plan?.launchCommand).toBe('zkyq.exe claude-teams')
   })
 
   it('uses zkyq for local Linux Claude Agent Teams', () => {

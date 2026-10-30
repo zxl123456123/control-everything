@@ -20,7 +20,7 @@ describe('orchestration mailbox pointer CLI command', () => {
 
   it.each([
     ['dev WSL', { isWsl: true }, 'zkyq-dev'],
-    ['SSH', { connectionId: 'ssh-target', isWsl: true }, 'orca']
+    ['SSH', { connectionId: 'ssh-target', isWsl: true }, 'zkyq']
   ])('renders the %s CLI command in a mailbox pointer', async (_name, options, command) => {
     vi.useFakeTimers()
     const db = createDatabase('orca-mailbox-cli-command-')
