@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { assertEphemeralVmRuntimeCheckoutModeCanPersist } from '../../shared/ephemeral-vm-runtime-feature-store'
+import { assertEphemeralVmRuntimeFeaturesCanPersist } from '../../shared/ephemeral-vm-runtime-feature-store'
 import { getEphemeralVmRecipeResultConnection } from '../../shared/ephemeral-vm-recipes'
 import {
   listEphemeralVmRuntimes,
@@ -21,7 +21,7 @@ export type EphemeralVmCompatibilityPersistence = {
 export function prepareEphemeralVmCompatibilityPersistence(
   args: ProvisionEphemeralVmRuntimeArgs
 ): EphemeralVmCompatibilityPersistence | null {
-  if (!args.recipe.checkoutMode) {
+  if (!args.recipe.checkoutMode && !args.recipe.environmentContract) {
     return null
   }
   listEphemeralVmRuntimes(args.userDataPath)
@@ -29,11 +29,12 @@ export function prepareEphemeralVmCompatibilityPersistence(
     instanceId: `zkyq-${randomUUID()}`,
     createdAt: args.now ?? Date.now()
   }
-  assertEphemeralVmRuntimeCheckoutModeCanPersist(args.userDataPath, {
+  assertEphemeralVmRuntimeFeaturesCanPersist(args.userDataPath, {
     id: compatibility.instanceId,
     recipeId: args.recipe.id,
     createdAt: compatibility.createdAt,
-    checkoutMode: args.recipe.checkoutMode
+    checkoutMode: args.recipe.checkoutMode,
+    environmentContract: args.recipe.environmentContract
   })
   return compatibility
 }

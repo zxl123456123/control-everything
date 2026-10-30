@@ -32,6 +32,7 @@ export async function runRecipeCommand(args: {
   context: EphemeralVmRecipeContext
   mode: 'create' | 'suspend' | 'resume' | 'destroy'
   resultSchemaVersion: 1 | 2
+  environmentContract?: 'zkyq'
   stdin?: string
   env?: NodeJS.ProcessEnv
   maxCaptureBytes?: number
@@ -49,7 +50,13 @@ export async function runRecipeCommand(args: {
       child = spawnCommand(args.command, {
         cwd: args.repoPath,
         detached: process.platform !== 'win32',
-        env: buildRecipeEnv(args.env, args.mode, args.context, args.resultSchemaVersion),
+        env: buildRecipeEnv(
+          args.env,
+          args.mode,
+          args.context,
+          args.resultSchemaVersion,
+          args.environmentContract
+        ),
         shell: true,
         windowsHide: true
       }) as ChildProcessWithoutNullStreams
@@ -232,11 +239,39 @@ function buildRecipeEnv(
   env: NodeJS.ProcessEnv | undefined,
   mode: 'create' | 'suspend' | 'resume' | 'destroy',
   context: EphemeralVmRecipeContext,
-  resultSchemaVersion: 1 | 2
+  resultSchemaVersion: 1 | 2,
+  environmentContract?: 'zkyq'
 ): NodeJS.ProcessEnv {
+  const inherited = { ...process.env, ...env }
+  if (environmentContract === 'zkyq') {
+    const retired = new Set([
+      'ORCA_VM_MODE',
+      'ORCA_VM_INSTANCE_ID',
+      'ORCA_RECIPE_ID',
+      'ORCA_PROJECT_ID',
+      'ORCA_WORKSPACE_ID',
+      'ORCA_WORKSPACE_NAME',
+      'ORCA_REPO_PATH',
+      'ORCA_REPO_URL',
+      'ORCA_REPO_BRANCH',
+      'ORCA_REPO_REF',
+      'ORCA_REPO_REF_HEAD',
+      'ORCA_RECIPE_RESULT_SCHEMA_VERSION',
+      'ORCA_VERSION'
+    ])
+    for (const name of Object.keys(inherited)) {
+      const normalized = process.platform === 'win32' ? name.toUpperCase() : name
+      if (
+        retired.has(normalized) ||
+        (process.platform === 'win32' &&
+          normalized.startsWith('ZKYQ_') &&
+          retired.has(`ORCA_${normalized.slice(5)}`))
+      )
+        delete inherited[name]
+    }
+  }
   return {
-    ...process.env,
-    ...env,
+    ...inherited,
     ZKYQ_VM_MODE: mode,
     ZKYQ_VM_INSTANCE_ID: context.instanceId ?? '',
     ZKYQ_RECIPE_ID: context.recipeId,
@@ -251,18 +286,22 @@ function buildRecipeEnv(
     ZKYQ_RECIPE_RESULT_SCHEMA_VERSION: String(resultSchemaVersion),
     ZKYQ_VERSION: context.orcaVersion ?? '',
     // Existing user-owned recipe scripts still need these until they are migrated.
-    ORCA_VM_MODE: mode,
-    ORCA_VM_INSTANCE_ID: context.instanceId ?? '',
-    ORCA_RECIPE_ID: context.recipeId,
-    ORCA_PROJECT_ID: context.projectId ?? '',
-    ORCA_WORKSPACE_ID: context.workspaceId ?? '',
-    ORCA_WORKSPACE_NAME: context.workspaceName ?? '',
-    ORCA_REPO_PATH: context.repoPath,
-    ORCA_REPO_URL: context.repoUrl ?? '',
-    ORCA_REPO_BRANCH: context.branch ?? '',
-    ORCA_REPO_REF: context.ref ?? '',
-    ORCA_REPO_REF_HEAD: context.expectedRefHead ?? '',
-    ORCA_RECIPE_RESULT_SCHEMA_VERSION: String(resultSchemaVersion),
-    ORCA_VERSION: context.orcaVersion ?? ''
+    ...(environmentContract === 'zkyq'
+      ? {}
+      : {
+          ORCA_VM_MODE: mode,
+          ORCA_VM_INSTANCE_ID: context.instanceId ?? '',
+          ORCA_RECIPE_ID: context.recipeId,
+          ORCA_PROJECT_ID: context.projectId ?? '',
+          ORCA_WORKSPACE_ID: context.workspaceId ?? '',
+          ORCA_WORKSPACE_NAME: context.workspaceName ?? '',
+          ORCA_REPO_PATH: context.repoPath,
+          ORCA_REPO_URL: context.repoUrl ?? '',
+          ORCA_REPO_BRANCH: context.branch ?? '',
+          ORCA_REPO_REF: context.ref ?? '',
+          ORCA_REPO_REF_HEAD: context.expectedRefHead ?? '',
+          ORCA_RECIPE_RESULT_SCHEMA_VERSION: String(resultSchemaVersion),
+          ORCA_VERSION: context.orcaVersion ?? ''
+        })
   }
 }

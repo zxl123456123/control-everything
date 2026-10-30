@@ -26,7 +26,22 @@ const EphemeralVmRuntimeFeatureEntrySchema = z
   })
   .strict()
 
-export type EphemeralVmRuntimeFeatureEntry = z.infer<typeof EphemeralVmRuntimeFeatureEntrySchema>
+export type EphemeralVmRuntimeFeatureEntry = z.infer<
+  typeof EphemeralVmRuntimeFeatureEntrySchema
+> & {
+  recipeEnvironmentContract?: 'zkyq'
+}
+
+// Kept separate so older builds preserve this unknown record without losing checkout metadata.
+const RecipeEnvironmentContractSchema = z
+  .object({
+    kind: z.literal('recipe-environment-contract'),
+    id: z.string().min(1),
+    recipeId: z.string().min(1),
+    createdAt: z.number().finite(),
+    contract: z.literal('zkyq')
+  })
+  .strict()
 
 const EphemeralVmRuntimeFeatureStoreSchema = z
   .object({
@@ -51,13 +66,14 @@ export function getEphemeralVmRuntimeFeatureStorePath(userDataPath: string): str
   return join(userDataPath, EPHEMERAL_VM_RUNTIME_FEATURES_FILE)
 }
 
-export function assertEphemeralVmRuntimeCheckoutModeCanPersist(
+export function assertEphemeralVmRuntimeFeaturesCanPersist(
   userDataPath: string,
   args: {
     id: string
     recipeId: string
     createdAt: number
-    checkoutMode: NonNullable<NonNullable<EphemeralVmRuntimeRecord['recipe']>['checkoutMode']>
+    checkoutMode?: NonNullable<NonNullable<EphemeralVmRuntimeRecord['recipe']>['checkoutMode']>
+    environmentContract?: 'zkyq'
   }
 ): void {
   const snapshot = readEphemeralVmRuntimeFeatureStore(userDataPath)
@@ -68,7 +84,8 @@ export function assertEphemeralVmRuntimeCheckoutModeCanPersist(
     id: args.id,
     recipeId: args.recipeId,
     createdAt: args.createdAt,
-    recipeCheckoutMode: args.checkoutMode,
+    ...(args.checkoutMode ? { recipeCheckoutMode: args.checkoutMode } : {}),
+    ...(args.environmentContract ? { recipeEnvironmentContract: args.environmentContract } : {}),
     ...(args.checkoutMode === 'provisioned-root' ? { resultCheckoutMode: 'provisioned-root' } : {})
   }
   try {
@@ -150,9 +167,10 @@ export function featureEntryFromRuntime(
   runtime: EphemeralVmRuntimeRecord
 ): EphemeralVmRuntimeFeatureEntry | null {
   const recipeCheckoutMode = runtime.recipe?.checkoutMode
+  const recipeEnvironmentContract = runtime.recipe?.environmentContract
   const resultCheckoutMode =
     runtime.recipeResult.schemaVersion === 2 ? runtime.recipeResult.checkoutMode : undefined
-  if (!recipeCheckoutMode && !resultCheckoutMode) {
+  if (!recipeCheckoutMode && !resultCheckoutMode && !recipeEnvironmentContract) {
     return null
   }
   return {
@@ -160,6 +178,7 @@ export function featureEntryFromRuntime(
     recipeId: runtime.recipeId,
     createdAt: runtime.createdAt,
     ...(recipeCheckoutMode ? { recipeCheckoutMode } : {}),
+    ...(recipeEnvironmentContract ? { recipeEnvironmentContract } : {}),
     ...(resultCheckoutMode ? { resultCheckoutMode } : {})
   }
 }
@@ -189,8 +208,16 @@ function restoreRuntimeFeatures(
   }
   return EphemeralVmRuntimeRecordSchema.parse({
     ...runtime,
-    ...(runtime.recipe && feature.recipeCheckoutMode
-      ? { recipe: { ...runtime.recipe, checkoutMode: feature.recipeCheckoutMode } }
+    ...(runtime.recipe && (feature.recipeCheckoutMode || feature.recipeEnvironmentContract)
+      ? {
+          recipe: {
+            ...runtime.recipe,
+            ...(feature.recipeCheckoutMode ? { checkoutMode: feature.recipeCheckoutMode } : {}),
+            ...(feature.recipeEnvironmentContract
+              ? { environmentContract: feature.recipeEnvironmentContract }
+              : {})
+          }
+        }
       : {}),
     ...(feature.resultCheckoutMode
       ? {
@@ -223,7 +250,18 @@ function parseFeatureRecords(records: unknown[]): EphemeralVmRuntimeFeatureStore
   const features: EphemeralVmRuntimeFeatureEntry[] = []
   const retainedRecords: unknown[] = []
   const identities = new Map<string, string>()
+  const contracts = new Map<string, z.infer<typeof RecipeEnvironmentContractSchema>>()
   for (const record of records) {
+    const contract = RecipeEnvironmentContractSchema.safeParse(record)
+    if (contract.success) {
+      const identity = featureIdentity(contract.data)
+      const existing = contracts.get(identity)
+      if (existing && JSON.stringify(existing) !== JSON.stringify(contract.data)) {
+        return { writable: false, features: [], retainedRecords: [] }
+      }
+      contracts.set(identity, contract.data)
+      continue
+    }
     const parsed = EphemeralVmRuntimeFeatureEntrySchema.safeParse(record)
     if (!parsed.success) {
       retainedRecords.push(record)
@@ -240,7 +278,34 @@ function parseFeatureRecords(records: unknown[]): EphemeralVmRuntimeFeatureStore
       features.push(parsed.data)
     }
   }
-  return { writable: true, features: sortRuntimeFeatures(features), retainedRecords }
+  const featuresByIdentity = new Map(features.map((feature) => [featureIdentity(feature), feature]))
+  for (const [identity, contract] of contracts) {
+    const existing = featuresByIdentity.get(identity)
+    if (existing) {
+      existing.recipeEnvironmentContract = contract.contract
+    } else {
+      features.push({
+        id: contract.id,
+        recipeId: contract.recipeId,
+        createdAt: contract.createdAt,
+        recipeEnvironmentContract: contract.contract
+      })
+    }
+  }
+  return {
+    writable: true,
+    features: sortRuntimeFeatures(features).map((feature) => ({
+      id: feature.id,
+      recipeId: feature.recipeId,
+      createdAt: feature.createdAt,
+      ...(feature.recipeCheckoutMode ? { recipeCheckoutMode: feature.recipeCheckoutMode } : {}),
+      ...(feature.recipeEnvironmentContract
+        ? { recipeEnvironmentContract: feature.recipeEnvironmentContract }
+        : {}),
+      ...(feature.resultCheckoutMode ? { resultCheckoutMode: feature.resultCheckoutMode } : {})
+    })),
+    retainedRecords
+  }
 }
 
 export function sortRuntimeFeatures<T extends { id: string; recipeId: string; createdAt: number }>(
@@ -258,6 +323,24 @@ function runtimeFeatureStoreValue(
 ): { version: 1; records: unknown[] } {
   return {
     version: 1,
-    records: [...sortRuntimeFeatures(features), ...snapshot.retainedRecords]
+    records: [
+      ...sortRuntimeFeatures(features).flatMap(({ recipeEnvironmentContract, ...base }) => [
+        ...(base.recipeCheckoutMode || base.resultCheckoutMode || !recipeEnvironmentContract
+          ? [base]
+          : []),
+        ...(recipeEnvironmentContract
+          ? [
+              {
+                kind: 'recipe-environment-contract',
+                id: base.id,
+                recipeId: base.recipeId,
+                createdAt: base.createdAt,
+                contract: recipeEnvironmentContract
+              }
+            ]
+          : [])
+      ]),
+      ...snapshot.retainedRecords
+    ]
   }
 }

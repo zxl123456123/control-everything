@@ -281,6 +281,7 @@ exists. Review and rename the old tracked file with the project team; if both fi
 environmentRecipes:
   - id: cloud-sandbox
     name: Cloud Sandbox
+    environmentContract: zkyq
     create: ./scripts/zkyq-vm/cloud-sandbox-create.sh
     suspend: ./scripts/zkyq-vm/cloud-sandbox-suspend.sh
     resume: ./scripts/zkyq-vm/cloud-sandbox-resume.sh
@@ -288,6 +289,8 @@ environmentRecipes:
 ```
 
 `create` is required, runs locally from the repo root, and prints exactly one JSON object on stdout.
+Set `environmentContract: zkyq` only after all lifecycle scripts and their indirect calls use the
+`ZKYQ_` recipe variables. This contract removes legacy variables from their environment.
 `suspend` and `resume` are optional and read the lifecycle payload on stdin; `resume` must print
 fresh recipe JSON because the pairing may have changed. `destroy` may be omitted only with
 `destroy: none`. The legacy keys `command` and `cleanup` still map to `create` and `destroy`.

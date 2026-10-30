@@ -10,6 +10,7 @@ const tmpRoots: string[] = []
 
 afterEach(() => {
   vi.useRealTimers()
+  vi.unstubAllEnvs()
   for (const root of tmpRoots.splice(0)) {
     rmSync(root, { recursive: true, force: true })
   }
@@ -26,6 +27,49 @@ function nodeCommand(scriptPath: string): string {
 }
 
 describe('runRecipeCommand', () => {
+  it.each(['create', 'suspend', 'resume', 'destroy'] as const)(
+    'removes inherited retired recipe variables for the zkyq %s contract',
+    async (mode) => {
+      const repoPath = makeRepo()
+      const scriptPath = join(repoPath, 'environment.js')
+      const names = [
+        'VM_MODE',
+        'VM_INSTANCE_ID',
+        'RECIPE_ID',
+        'PROJECT_ID',
+        'WORKSPACE_ID',
+        'WORKSPACE_NAME',
+        'REPO_PATH',
+        'REPO_URL',
+        'REPO_BRANCH',
+        'REPO_REF',
+        'REPO_REF_HEAD',
+        'RECIPE_RESULT_SCHEMA_VERSION',
+        'VERSION'
+      ]
+      const inherited = Object.fromEntries(names.map((name) => [`ORCA_${name}`, 'stale']))
+      if (process.platform === 'win32') {
+        inherited.orca_vm_mode = 'stale-lowercase'
+        inherited.zkyq_vm_mode = 'stale-lowercase'
+      }
+      vi.stubEnv('ORCA_REPO_URL', 'inherited-stale')
+      writeFileSync(
+        scriptPath,
+        `const names = ${JSON.stringify(names)}; console.log(JSON.stringify({ old: names.filter(n => process.env['ORCA_' + n] !== undefined), mode: process.env.ZKYQ_VM_MODE, id: process.env.ZKYQ_VM_INSTANCE_ID }))`
+      )
+      const result = await runRecipeCommand({
+        command: nodeCommand(scriptPath),
+        repoPath,
+        mode,
+        resultSchemaVersion: 1,
+        environmentContract: 'zkyq',
+        env: inherited,
+        context: { recipeId: 'fixture', repoPath, instanceId: 'fixture-id' }
+      })
+      expect(result.exitCode).toBe(0)
+      expect(JSON.parse(result.stdout)).toEqual({ old: [], mode, id: 'fixture-id' })
+    }
+  )
   it.each([
     { mode: 'create' as const, resultSchemaVersion: 1 as const },
     { mode: 'suspend' as const, resultSchemaVersion: 1 as const },

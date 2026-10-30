@@ -327150,7 +327150,8 @@
     "src/cli/remote-selection-env.ts",
     "src/main/runtime/claude-agent-teams-remote-env.test.ts",
     "src/main/runtime/structured-session-remote-env.test.ts",
-    "src/cli/recipe-env-powershell.ts"
+    "src/cli/recipe-env-powershell.ts",
+    "src/main/ephemeral-vm/runtime-service-env-contract.test.ts"
   ],
   "adapted_files": [
     {
@@ -330348,8 +330349,8 @@
     {
       "path": "skill-guides/zkyq-per-workspace-env.md",
       "upstream_sha256": "dda610fc95c59c723108338425990d192af1d3d6c6dea30230d1f07b37b56742",
-      "current_sha256": "7237609225abedf241a65b561e3c96f921de6760e75a41b05afff12f7d341e53",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物；项目配置统一新文件名，保留旧文件迁移与信任行为；新环境配方与实例使用掌控一切身份"
+      "current_sha256": "a71eab8e86a4bc8f95bd7cd4ce47940a12c3583b756a9db6e9aca15ec340a11d",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物；项目配置统一新文件名，保留旧文件迁移与信任行为；新环境配方与实例使用掌控一切身份；新配方契约移除旧环境变量并保留既有资源生命周期"
     },
     {
       "path": "skill-guides/zkyq-per-workspace-env/references/provider-vercel.md",
@@ -330426,8 +330427,8 @@
     {
       "path": "src/cli/bundled-skill-guides.ts",
       "upstream_sha256": "d939b2344aec6921d99a7994596db6e7e5b45c36f489e3c8e55fe40160b5b7d6",
-      "current_sha256": "a1c62e598febc17b04698f172e5831da4e6b9736493bb93aced5b6b92f301124",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物；项目配置统一新文件名，保留旧文件迁移与信任行为；新环境配方与实例使用掌控一切身份"
+      "current_sha256": "ff54b4a52cbd92941fd625f4d7061ae91828a1dde657c3207cfae0dd58a4160d",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物；项目配置统一新文件名，保留旧文件迁移与信任行为；新环境配方与实例使用掌控一切身份；新配方契约移除旧环境变量并保留既有资源生命周期"
     },
     {
       "path": "src/cli/handlers/orchestration-worker-cli.test.ts",
@@ -333444,8 +333445,8 @@
     {
       "path": "src/main/ephemeral-vm/runtime-provisioning-persistence.ts",
       "upstream_sha256": "cc01bfc5582bb29a4cac2c03ea6bb8cc4cbb4367b2a2b72a1874b160578ac94f",
-      "current_sha256": "47bc2b2ced414e35ac9bb3d13c09156659a89d33b508e2d2aecdd40fc0988643",
-      "reason": "新环境配方与实例使用掌控一切身份"
+      "current_sha256": "74e533f86e66b20e3127f05fc2000471f69d2cc19231578ec763ddb236b34e7e",
+      "reason": "新环境配方与实例使用掌控一切身份；新配方契约移除旧环境变量并保留既有资源生命周期"
     },
     {
       "path": "src/main/ephemeral-vm/runtime-service.test.ts",
@@ -333456,20 +333457,20 @@
     {
       "path": "src/shared/ephemeral-vm-recipe-process.test.ts",
       "upstream_sha256": "70da59d6f1ff028b3a5b0d23141c3f38077932e178328f83c9fb1bf243db4282",
-      "current_sha256": "b0f257a44ece9ef661835c6a51a32fc0d33f7b0c94f5cbd040c56122e620c273",
-      "reason": "新环境配方与实例使用掌控一切身份"
+      "current_sha256": "2210bdaba4bab40c059482e5fb85a21455cad657797c4fd3950208ef37e66cc8",
+      "reason": "新环境配方与实例使用掌控一切身份；新配方契约移除旧环境变量并保留既有资源生命周期"
     },
     {
       "path": "src/shared/ephemeral-vm-recipe-process.ts",
       "upstream_sha256": "ed1cd1e0970ffef6ee3fe4a2b974a017953cbc10d02dbe394190a89b4bc3008a",
-      "current_sha256": "9fb3f8180cc441a805ae46259983b97eed5d1d899f21956309e4930f346cfaa3",
-      "reason": "新环境配方与实例使用掌控一切身份"
+      "current_sha256": "2779dfc2cb0691e0c9d71e7ced5e921ac1322b88af2705c9264e78bc288858e4",
+      "reason": "新环境配方与实例使用掌控一切身份；新配方契约移除旧环境变量并保留既有资源生命周期"
     },
     {
       "path": "src/shared/ephemeral-vm-recipe-runner.ts",
       "upstream_sha256": "cd259228b6561a7fc326dccf6c93e220c00199eda7d862948cb5c44a67e77ed1",
-      "current_sha256": "652289931173ffae519a324c79c406d204ac46f66ce0da06afc2875f55325d6c",
-      "reason": "新环境配方与实例使用掌控一切身份"
+      "current_sha256": "16e15669b13dc1d99bfe10eb770f4c8fc8403bab7d8fcda39d3ed2bce464628b",
+      "reason": "新环境配方与实例使用掌控一切身份；新配方契约移除旧环境变量并保留既有资源生命周期"
     },
     {
       "path": "src/shared/ephemeral-vm-recipe-doctor.test.ts",
@@ -333500,6 +333501,60 @@
       "upstream_sha256": "5841675ca4a97f419d1e5473feec6d298425fd5c5d9ed1130352cc2f956ac3de",
       "current_sha256": "134dd0eb7084577d4de3197cb19aa11a33f640e17761bd9aa8aca006405253da",
       "reason": "迁移远程主机选择环境变量并防止错误路由"
+    },
+    {
+      "path": "src/main/ephemeral-vm/failed-start-cleanup.ts",
+      "upstream_sha256": "899e6d4d854f154424f54446b863196197e83ba39acd5384813e400f9c7ea195",
+      "current_sha256": "1c69dbbac154ff97b5656832b7f25910f603ead62b10f0ab3aa52fa26837f60a",
+      "reason": "新配方契约移除旧环境变量并保留既有资源生命周期"
+    },
+    {
+      "path": "src/shared/ephemeral-vm-runtime-feature-store.ts",
+      "upstream_sha256": "ed0ffe2980e08ce0ad17af6c17a902a53f167431b229c365e5d978c700fac220",
+      "current_sha256": "ebc52adf1bd772541c18b3c9b2b0ae996081638b684774bf2e26be459270517f",
+      "reason": "新配方契约移除旧环境变量并保留既有资源生命周期"
+    },
+    {
+      "path": "src/shared/ephemeral-vm-runtime-rollback-projection.ts",
+      "upstream_sha256": "295bb8449a89228e7f9ebc09c167849daaafacf66355a7f8a7da59779f222f62",
+      "current_sha256": "d45f39e350e5355095adeda065b08d7e1fb52d2360a722efcad5cd920404ec91",
+      "reason": "新配方契约移除旧环境变量并保留既有资源生命周期"
+    },
+    {
+      "path": "src/shared/ephemeral-vm-runtime-store-rollback.test.ts",
+      "upstream_sha256": "0552f6f98d010d53495c98ff86ccb685d24e2579a9acad0406b0b095429a324b",
+      "current_sha256": "189455f5e11b07de538f9f13731149302989aa370d285f6d5a39b2c58a17196a",
+      "reason": "新配方契约移除旧环境变量并保留既有资源生命周期"
+    },
+    {
+      "path": "src/shared/ephemeral-vm-runtimes.ts",
+      "upstream_sha256": "7014268c692182f578017a5fe79c53bf5fa7f08f65b5c9587a503feba10c1fe9",
+      "current_sha256": "1dd7b89d50da6ccc9b996b46af83d10a342400049daaf677ae91a8525a4df06f",
+      "reason": "新配方契约移除旧环境变量并保留既有资源生命周期"
+    },
+    {
+      "path": "src/shared/orca-yaml-hook-types.ts",
+      "upstream_sha256": "ba972643fe2686e9d896e7867aae149385e9e88d927f3cb7ed66590c6e180d10",
+      "current_sha256": "8a78df501beaf203b20b5759130b0e57d7a795dcea24762dfd5f613b85ac96d9",
+      "reason": "新配方契约移除旧环境变量并保留既有资源生命周期"
+    },
+    {
+      "path": "src/shared/orca-yaml.ts",
+      "upstream_sha256": "d8f828486177fbc19a17687848d2e5682f16f05197d698f92befb4fe282bb179",
+      "current_sha256": "f652c58ebc86d47a7293ad0932f8fd151f0e14b439c3970a715cdf185e0da9a2",
+      "reason": "新配方契约移除旧环境变量并保留既有资源生命周期"
+    },
+    {
+      "path": "src/shared/plugins/plugin-vm-recipe-artifact.test.ts",
+      "upstream_sha256": "6a5d17370433252cda9f163e2b2759a10f365a1d596f5e253020b31eaf5d0055",
+      "current_sha256": "40efb7f496029d9b11d7b7cd12a0df85b06c0de961426f799760298ec075b51c",
+      "reason": "新配方契约移除旧环境变量并保留既有资源生命周期"
+    },
+    {
+      "path": "src/shared/plugins/plugin-vm-recipe-artifact.ts",
+      "upstream_sha256": "3cc5e8c3cd3bd1cf8de9543caec0aefaf3485727ef7f050c09a90436bb8c46f9",
+      "current_sha256": "fe86911aac49eb6cae2d11d6c7e87d0ff5c25570c3b94d1b5b7847b7a5974374",
+      "reason": "新配方契约移除旧环境变量并保留既有资源生命周期"
     }
   ],
   "reviewed_findings": [
@@ -334025,14 +334080,14 @@
       "path": "src/cli/bundled-skill-guides.ts",
       "rule": "personal-home-path",
       "line": 54,
-      "sha256": "a1c62e598febc17b04698f172e5831da4e6b9736493bb93aced5b6b92f301124",
+      "sha256": "ff54b4a52cbd92941fd625f4d7061ae91828a1dde657c3207cfae0dd58a4160d",
       "reason": "公开的路径模板、跨平台解析说明或通用示例；未读取本机账号/目录，保留语义并限定具体行及文件hash。"
     },
     {
       "path": "src/cli/bundled-skill-guides.ts",
       "rule": "personal-home-path",
       "line": 57,
-      "sha256": "a1c62e598febc17b04698f172e5831da4e6b9736493bb93aced5b6b92f301124",
+      "sha256": "ff54b4a52cbd92941fd625f4d7061ae91828a1dde657c3207cfae0dd58a4160d",
       "reason": "公开的路径模板、跨平台解析说明或通用示例；未读取本机账号/目录，保留语义并限定具体行及文件hash。"
     },
     {

@@ -135,6 +135,39 @@ describe('ephemeral VM runtime store rollback projection', () => {
     expect(existsSync(getEphemeralVmRuntimeFeatureStorePath(userDataPath))).toBe(false)
   })
 
+  it('preserves the new contract separately from rollback-compatible checkout metadata', () => {
+    const userDataPath = makeUserDataPath()
+    const base = provisionedRootRecord()
+    const runtime = { ...base, recipe: { ...base.recipe!, environmentContract: 'zkyq' as const } }
+    upsertEphemeralVmRuntime(userDataPath, runtime)
+    const stored = JSON.parse(readFileSync(getEphemeralVmRuntimeStorePath(userDataPath), 'utf8'))
+    expect(RollbackEphemeralVmRuntimeStoreSchema.safeParse(stored).success).toBe(true)
+    expect(stored.runtimes[0].recipe).not.toHaveProperty('environmentContract')
+    const sidecar = JSON.parse(
+      readFileSync(getEphemeralVmRuntimeFeatureStorePath(userDataPath), 'utf8')
+    )
+    expect(sidecar.records).toContainEqual(
+      expect.objectContaining({ recipeCheckoutMode: 'provisioned-root' })
+    )
+    expect(sidecar.records).toContainEqual(
+      expect.objectContaining({ kind: 'recipe-environment-contract', contract: 'zkyq' })
+    )
+    expect(listEphemeralVmRuntimes(userDataPath)).toEqual([runtime])
+    const featurePath = getEphemeralVmRuntimeFeatureStorePath(userDataPath)
+    utimesSync(
+      featurePath,
+      new Date('2020-01-01T00:00:00.000Z'),
+      new Date('2020-01-01T00:00:00.000Z')
+    )
+    const before = statSync(featurePath).mtimeMs
+    updateEphemeralVmRuntimeStatus(userDataPath, runtime.id, { status: 'suspended' })
+    expect(statSync(featurePath).mtimeMs).toBe(before)
+    expect(listEphemeralVmRuntimes(userDataPath)[0].recipe).toMatchObject({
+      environmentContract: 'zkyq',
+      checkoutMode: 'provisioned-root'
+    })
+  })
+
   it('projects an explicit ordinary checkout mode without changing its current meaning', () => {
     const userDataPath = makeUserDataPath()
     const runtime = runtimeRecord({
@@ -239,11 +272,23 @@ describe('ephemeral VM runtime store rollback projection', () => {
     const futureRecord = { kind: 'future-runtime-feature', payload: { version: 3 } }
     writeFileSync(
       featurePath,
-      JSON.stringify({ ...featureStore, records: [...featureStore.records, futureRecord] })
+      JSON.stringify({
+        ...featureStore,
+        records: [...featureStore.records, futureRecord]
+      })
     )
 
     expect(listEphemeralVmRuntimes(userDataPath)).toHaveLength(2)
     updateEphemeralVmRuntimeStatus(userDataPath, 'ordinary-runtime', { status: 'suspended' })
+    upsertEphemeralVmRuntime(
+      userDataPath,
+      runtimeRecord({
+        id: 'additional-runtime',
+        recipeId: 'additional-recipe',
+        createdAt: 5_000,
+        recipe: { ...runtimeRecord().recipe!, checkoutMode: 'orca-worktree' }
+      })
+    )
     expect(JSON.parse(readFileSync(featurePath, 'utf8')).records).toContainEqual(futureRecord)
   })
 
