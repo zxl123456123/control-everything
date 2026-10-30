@@ -327139,7 +327139,9 @@
     "src/main/persistence/profile-state/profile-state-data-name-migration.test.ts",
     "src/main/runtime/runtime-project-yaml.test.ts",
     "src/renderer/src/components/settings/RepositoryHooksYamlStatus.test.tsx",
-    "src/shared/project-yaml-path.ts"
+    "src/shared/project-yaml-path.ts",
+    "src/cli/project-config-migration.test.ts",
+    "src/cli/project-config-migration.ts"
   ],
   "adapted_files": [
     {
@@ -332389,8 +332391,8 @@
     {
       "path": "src/cli/handler-group-manifest.ts",
       "upstream_sha256": "c5c95522b3610d3212f964e31f803f4001eeba573359c8768ca4e16a79ea031a",
-      "current_sha256": "d444014cc0ae0c433e4909d2fede87b6ef2b69b4a0b44ee400ed4cc803a5f6b0",
-      "reason": "；新增安装后独立退役入口及目标约束验证，补齐当前CLI占位指南检查"
+      "current_sha256": "0f25488778ae2014d1ff26681679c0b59acb32ce9c52450994a7f224e0446887",
+      "reason": "；新增安装后独立退役入口及目标约束验证，补齐当前CLI占位指南检查；显式迁移已跟踪项目配置，保留 Git 索引和用户修改"
     },
     {
       "path": "src/cli/root-help-text-primary.ts",
@@ -333043,8 +333045,8 @@
     {
       "path": "src/cli/handlers/vm.ts",
       "upstream_sha256": "ebdd54fb9a792a68d491597b36129d059130c6862d57fc78c2eb33d42db69470",
-      "current_sha256": "26aa4e3aaee9372ddc0c30c5547dcdb68915121e8a3201e2212f6425ff1d5a43",
-      "reason": "项目配置统一新文件名，保留旧文件迁移与信任行为"
+      "current_sha256": "a6bd4994dbd919f2ebdeac39d2561083ad86e120a1a01710eeacc40479d0368b",
+      "reason": "项目配置统一新文件名，保留旧文件迁移与信任行为；显式迁移已跟踪项目配置，保留 Git 索引和用户修改"
     },
     {
       "path": "src/cli/index-vm-recipe-doctor.test.ts",
@@ -333183,6 +333185,24 @@
       "upstream_sha256": "51befcc6d70d12ed663a36ef674d4c8646881e71ce1373151c4bb3cdfaea8dc2",
       "current_sha256": "1044c451229f3335dbe43af524a42b949ed476215a8c7de439c78d7da9edc198",
       "reason": "项目配置统一新文件名，保留旧文件迁移与信任行为"
+    },
+    {
+      "path": "src/cli/handlers/repo.ts",
+      "upstream_sha256": "0f6a9b49127388ea47016b881ae6f5dc88bd3b8912023289256b20d9f9b116d7",
+      "current_sha256": "f6e35e3430a62cd03aca618bcb50fcc48eb7917c2fa724dd4bbdb7540a39e44e",
+      "reason": "显式迁移已跟踪项目配置，保留 Git 索引和用户修改"
+    },
+    {
+      "path": "src/cli/index.ts",
+      "upstream_sha256": "2123978773bc5f124727d9ff4c8fdc91f4d05802d9bc89947dee3066a646f509",
+      "current_sha256": "8e600f737088c47aed4e7079f70461d7828771da1efb7948d216de41d075c089",
+      "reason": "显式迁移已跟踪项目配置，保留 Git 索引和用户修改"
+    },
+    {
+      "path": "src/cli/specs/repo.ts",
+      "upstream_sha256": "3cf7b619f6fa3735c9b37518fe4195e9f4961c44ef1679b8be52e5928ed34298",
+      "current_sha256": "2b83022e25fe2511bb14168cabb9024f58f08f9cf1367f20084c27b5693b2e12",
+      "reason": "显式迁移已跟踪项目配置，保留 Git 索引和用户修改"
     }
   ],
   "reviewed_findings": [

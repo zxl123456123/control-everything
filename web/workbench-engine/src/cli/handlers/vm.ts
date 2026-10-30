@@ -95,7 +95,8 @@ function doctorRecipe(repoPath: string, recipeId: string): DoctorResult {
           id: 'project_config.selection',
           status: 'warn',
           message: `Using legacy ${LEGACY_PROJECT_YAML_NAME}.`,
-          remediation: `Review and rename the project file to ${PROJECT_YAML_NAME}.`
+          remediation:
+            'For a tracked file, review and run `zkyq repo migrate-config --path <absolute-project-root>`.'
         }
       : null
   return {

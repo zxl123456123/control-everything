@@ -39,6 +39,7 @@ function shouldIgnoreRemoteSelection(commandPath: string[]): boolean {
     commandPath[0] === 'serve' ||
     (commandPath[0] === 'agent' && commandPath[1] !== 'launch') ||
     commandPath[0] === 'vm' ||
+    commandPath.join(' ') === 'repo migrate-config' ||
     commandPath[0] === 'agent-context' ||
     commandPath[0] === 'profile'
   )

@@ -3,6 +3,18 @@ import { GLOBAL_FLAGS } from '../args'
 
 export const REPO_COMMAND_SPECS: CommandSpec[] = [
   {
+    path: ['repo', 'migrate-config'],
+    destructive: true,
+    summary: 'Rename the tracked project configuration to zkyq.yaml',
+    usage: 'zkyq repo migrate-config --path <absolute-project-root> [--dry-run] [--json]',
+    allowedFlags: ['help', 'json', 'path', 'dry-run'],
+    notes: [
+      'Runs locally on the named Git worktree. Git updates the index; review and commit the resulting change.',
+      'Requires a tracked regular orca.yaml and refuses an existing zkyq.yaml. Use --dry-run to check first.',
+      'Run when no other process is editing the worktree or its Git index.'
+    ]
+  },
+  {
     path: ['repo', 'list'],
     summary: 'List repos registered in Orca',
     usage: 'orca repo list [--json]',
