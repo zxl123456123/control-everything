@@ -327158,6 +327158,18 @@
   ],
   "adapted_files": [
     {
+      "path": "src/main/runtime/rpc/terminal-agent-prompt-send.test.ts",
+      "upstream_sha256": "6b959f3cea7cdd80b8f3bee16043dc4969a62fd8f45637d4a8aad973e69964f5",
+      "current_sha256": "2696bc3252c18431025bad45b7909fa01c54414ef979a86d69e700563b636664",
+      "reason": "验证终端发送新身份和历史回执安全重试"
+    },
+    {
+      "path": "src/main/runtime/rpc/terminal-prompt-delivery-receipt.test.ts",
+      "upstream_sha256": "92863f07acb857e7bd91838ef7d398b73fed976f99721cacee39180f4706ca83",
+      "current_sha256": "0fe84f8794f4c9ac7bfd9db695a1f846272d98f37b08ba4548f6c007b9790ff5",
+      "reason": "验证终端发送新身份和历史回执安全重试"
+    },
+    {
       "path": "src/main/runtime/rpc/orchestration-mutation-executor.test.ts",
       "upstream_sha256": "098b49afb54f62f38c6e500fd0717b1e413ac2697204eac74fcd3c3629842ea2",
       "current_sha256": "53c101eae3620721d315f246f356466c4876ad2fe84eb98b6073f37d35ede7d7",
