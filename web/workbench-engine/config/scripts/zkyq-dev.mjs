@@ -22,16 +22,16 @@ process.env.ORCA_DEV_CLI_INVOCATION = '1'
 process.env.ORCA_CLI_COMMAND = 'zkyq-dev'
 
 const electronExecutable = getElectronExecutable()
-if (!process.env.ORCA_APP_EXECUTABLE && isRunnableFile(electronExecutable)) {
-  process.env.ORCA_APP_EXECUTABLE = electronExecutable
-  process.env.ORCA_APP_EXECUTABLE_NEEDS_APP_ROOT = '1'
+if (!process.env.ZKYQ_APP_EXECUTABLE && isRunnableFile(electronExecutable)) {
+  process.env.ZKYQ_APP_EXECUTABLE = electronExecutable
+  process.env.ZKYQ_APP_EXECUTABLE_NEEDS_APP_ROOT = '1'
 }
 
 // Why: headless `zkyq-dev serve` skips the Electron dev runner that normally installs terminal CLI shims.
 prepareDevCliTerminalWrappers({
   repoRoot,
   userDataPath: process.env.ZKYQ_USER_DATA_PATH,
-  electronExecutable: process.env.ORCA_APP_EXECUTABLE ?? electronExecutable
+  electronExecutable: process.env.ZKYQ_APP_EXECUTABLE ?? electronExecutable
 })
 
 const result = spawnSync(process.execPath, [cliEntry, ...process.argv.slice(2)], {

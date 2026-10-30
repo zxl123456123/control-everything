@@ -61,7 +61,9 @@ export async function ensureDevLauncher(args: {
       : ['orca-dev', 'orca']) {
       retireGeneratedCommand(
         join(dirname(launcherPath), name),
-        legacyContent.replaceAll('ZKYQ_USER_DATA_PATH', 'ORCA_USER_DATA_PATH')
+        legacyContent
+          .replaceAll('ZKYQ_USER_DATA_PATH', 'ORCA_USER_DATA_PATH')
+          .replaceAll('ZKYQ_APP_EXECUTABLE', 'ORCA_APP_EXECUTABLE')
       )
     }
   }
@@ -87,9 +89,9 @@ set -euo pipefail
 ELECTRON=${quotePosixShellDoubleQuotedApostrophe(execPathValue)}
 CLI=${quotePosixShellDoubleQuotedApostrophe(cliEntryPath)}
 export ZKYQ_USER_DATA_PATH=${quotePosixShellDoubleQuotedApostrophe(userDataPath)}
-if [ -z "\${ORCA_APP_EXECUTABLE:-}" ]; then
-  export ORCA_APP_EXECUTABLE="$ELECTRON"
-  export ORCA_APP_EXECUTABLE_NEEDS_APP_ROOT=1
+if [ -z "\${ZKYQ_APP_EXECUTABLE:-}" ]; then
+  export ZKYQ_APP_EXECUTABLE="$ELECTRON"
+  export ZKYQ_APP_EXECUTABLE_NEEDS_APP_ROOT=1
 fi
 export ORCA_NODE_OPTIONS="\${NODE_OPTIONS-}"
 export ORCA_NODE_REPL_EXTERNAL_MODULE="\${NODE_REPL_EXTERNAL_MODULE-}"
@@ -109,9 +111,9 @@ setlocal
 set "ELECTRON=${escapeWindowsBatchValue(execPathValue)}"
 set "CLI=${escapeWindowsBatchValue(cliEntryPath)}"
 set "ZKYQ_USER_DATA_PATH=${escapeWindowsBatchValue(userDataPath)}"
-if not defined ORCA_APP_EXECUTABLE (
-  set "ORCA_APP_EXECUTABLE=%ELECTRON%"
-  set "ORCA_APP_EXECUTABLE_NEEDS_APP_ROOT=1"
+if not defined ZKYQ_APP_EXECUTABLE (
+  set "ZKYQ_APP_EXECUTABLE=%ELECTRON%"
+  set "ZKYQ_APP_EXECUTABLE_NEEDS_APP_ROOT=1"
 )
 set "ORCA_NODE_OPTIONS=%NODE_OPTIONS%"
 set "ORCA_NODE_REPL_EXTERNAL_MODULE=%NODE_REPL_EXTERNAL_MODULE%"

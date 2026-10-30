@@ -1,10 +1,11 @@
 import { dirname, join, resolve } from 'node:path'
 import { SERVE_USER_DATA_PATH_ENV } from '../../shared/serve-user-data-path'
 import { getPlatformUserDataPath } from './metadata'
+import { assertCurrentAppLaunchEnvironment } from './app-launch-environment'
 
 /** An unpackaged checkout build, which takes its profile from ORCA_DEV_USER_DATA_PATH, not --user-data-dir. */
 function launchesDevApp(env: NodeJS.ProcessEnv): boolean {
-  return env.ORCA_APP_EXECUTABLE_NEEDS_APP_ROOT === '1'
+  return env.ZKYQ_APP_EXECUTABLE_NEEDS_APP_ROOT === '1'
 }
 
 /**
@@ -12,6 +13,7 @@ function launchesDevApp(env: NodeJS.ProcessEnv): boolean {
  * Absolute, because the child runs from the app root, not the caller's cwd.
  */
 export function resolveLaunchUserDataPath(env: NodeJS.ProcessEnv = process.env): string {
+  assertCurrentAppLaunchEnvironment(env)
   if (env.ZKYQ_USER_DATA_PATH) {
     return resolve(env.ZKYQ_USER_DATA_PATH)
   }
@@ -35,7 +37,10 @@ export function pinLaunchUserDataPath(
   env: NodeJS.ProcessEnv,
   userDataPath: string
 ): { args: string[]; env: NodeJS.ProcessEnv } {
+  assertCurrentAppLaunchEnvironment(env)
   const pinnedEnv: NodeJS.ProcessEnv = { ...env, ZKYQ_USER_DATA_PATH: userDataPath }
+  delete pinnedEnv.ORCA_APP_EXECUTABLE
+  delete pinnedEnv.ORCA_APP_EXECUTABLE_NEEDS_APP_ROOT
   delete pinnedEnv.ORCA_USER_DATA_PATH
   if (launchesDevApp(env)) {
     pinnedEnv.ORCA_DEV_USER_DATA_PATH = userDataPath

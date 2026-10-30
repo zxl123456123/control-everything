@@ -47,8 +47,8 @@ export function resolveOrcaCliInvocation({
           env.ZKYQ_USER_DATA_PATH ?? env.ORCA_DEV_USER_DATA_PATH ?? defaultUserDataPath,
         ORCA_DEV_CLI_INVOCATION: '1',
         ORCA_CLI_COMMAND: 'zkyq-dev',
-        ORCA_APP_EXECUTABLE:
-          env.ORCA_APP_EXECUTABLE ??
+        ZKYQ_APP_EXECUTABLE:
+          env.ZKYQ_APP_EXECUTABLE ??
           path.win32.join(
             env.ORCA_DEV_REPO_ROOT,
             'node_modules',
@@ -56,7 +56,7 @@ export function resolveOrcaCliInvocation({
             'dist',
             'electron.exe'
           ),
-        ORCA_APP_EXECUTABLE_NEEDS_APP_ROOT: '1'
+        ZKYQ_APP_EXECUTABLE_NEEDS_APP_ROOT: '1'
       }
     }
   }

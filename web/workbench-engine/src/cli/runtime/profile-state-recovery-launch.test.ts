@@ -49,12 +49,12 @@ afterEach(() => vi.unstubAllEnvs())
 describe('profile-state recovery launch', () => {
   it('preserves direct participation only for plain Node without an explicit Electron executable', () => {
     vi.stubEnv('ELECTRON_RUN_AS_NODE', undefined)
-    vi.stubEnv('ORCA_APP_EXECUTABLE', undefined)
+    vi.stubEnv('ZKYQ_APP_EXECUTABLE', undefined)
     expect(canLaunchProfileStateRecovery()).toBe(false)
     vi.stubEnv('ELECTRON_RUN_AS_NODE', '1')
     expect(canLaunchProfileStateRecovery()).toBe(true)
     vi.stubEnv('ELECTRON_RUN_AS_NODE', undefined)
-    vi.stubEnv('ORCA_APP_EXECUTABLE', '/explicit/Orca')
+    vi.stubEnv('ZKYQ_APP_EXECUTABLE', '/explicit/Orca')
     expect(canLaunchProfileStateRecovery()).toBe(true)
   })
 

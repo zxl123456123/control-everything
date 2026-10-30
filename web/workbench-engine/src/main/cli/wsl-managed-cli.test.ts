@@ -72,7 +72,7 @@ describe('managed WSL CLI provisioning', () => {
     expect(bridge.startsWith('\uFEFF')).toBe(true)
     expect(bridge).toContain(host.userDataPath)
     expect(bridge).toContain(cliEntryPath)
-    expect(bridge).toContain('$env:ORCA_APP_EXECUTABLE_NEEDS_APP_ROOT')
+    expect(bridge).toContain('$env:ZKYQ_APP_EXECUTABLE_NEEDS_APP_ROOT')
     expect(bridge).toContain('Remove-Item Env:NODE_OPTIONS')
   })
 })

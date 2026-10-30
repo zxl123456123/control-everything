@@ -42,7 +42,7 @@ const ENV_KEYS = [
   'ELECTRON_RUN_AS_NODE',
   'ORCA_SERVE_RUNTIME',
   'ZKYQ_USER_DATA_PATH',
-  'ORCA_APP_EXECUTABLE'
+  'ZKYQ_APP_EXECUTABLE'
 ] as const
 
 function overrideProperty(key: 'platform' | 'execPath', value: string): () => void {
@@ -90,7 +90,7 @@ describe('serveOrcaApp restarts from a replaced app before any server starts', (
     process.env.ELECTRON_RUN_AS_NODE = '1'
     process.env.ORCA_SERVE_RUNTIME = 'electron'
     process.env.ZKYQ_USER_DATA_PATH = join(root, 'profile')
-    delete process.env.ORCA_APP_EXECUTABLE
+    delete process.env.ZKYQ_APP_EXECUTABLE
     delete process.env.XPC_SERVICE_NAME
     await mkdir(join(root, 'profile'), { recursive: true })
     handoffPath = getServeUpdateHandoffPath(join(root, 'profile'))
@@ -173,7 +173,7 @@ describe('serveOrcaApp restarts from a replaced app before any server starts', (
   })
 
   it('does not restart when serving an executable other than its own', async () => {
-    process.env.ORCA_APP_EXECUTABLE = join(app, 'Contents', 'MacOS', 'Orca')
+    process.env.ZKYQ_APP_EXECUTABLE = join(app, 'Contents', 'MacOS', 'Orca')
     restore.push(overrideProperty('execPath', join(root, 'node')))
     const { code, replacement } = await exitForUpdate()
     await vi.waitFor(() => expect(spawnMock).toHaveBeenCalledTimes(2))

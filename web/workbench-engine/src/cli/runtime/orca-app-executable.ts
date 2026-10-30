@@ -4,11 +4,13 @@ import { needsElectronNoSandbox } from './electron-sandbox-switch'
 import { serverOnlyServeMessage } from './serve-app-launcher'
 import { SERVE_SUPERVISOR_APP_ROOT_ENV } from './serve-supervisor-relocation'
 import { RuntimeClientError } from './types'
+import { assertCurrentAppLaunchEnvironment } from './app-launch-environment'
 
-/** Which Orca app `orca` runs, from where, and with what environment. */
+/** Which application zkyq runs, from where, and with what environment. */
 
 export function getExecutableAppArgs(executable: string): string[] {
-  const args = process.env.ORCA_APP_EXECUTABLE_NEEDS_APP_ROOT === '1' ? [resolveAppRoot()] : []
+  assertCurrentAppLaunchEnvironment(process.env)
+  const args = process.env.ZKYQ_APP_EXECUTABLE_NEEDS_APP_ROOT === '1' ? [resolveAppRoot()] : []
   if (needsElectronNoSandbox(executable)) {
     args.push('--no-sandbox')
   }
@@ -24,7 +26,8 @@ export function resolveAppRoot(): string {
 }
 
 export function resolveForegroundOrcaExecutable(): string {
-  const overrideExecutable = process.env.ORCA_APP_EXECUTABLE
+  assertCurrentAppLaunchEnvironment(process.env)
+  const overrideExecutable = process.env.ZKYQ_APP_EXECUTABLE
   if (typeof overrideExecutable === 'string' && overrideExecutable.trim().length > 0) {
     return overrideExecutable
   }
@@ -37,6 +40,8 @@ export function resolveForegroundOrcaExecutable(): string {
 export function stripElectronRunAsNode(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
   const next = { ...env }
   delete next.ELECTRON_RUN_AS_NODE
+  delete next.ORCA_APP_EXECUTABLE
+  delete next.ORCA_APP_EXECUTABLE_NEEDS_APP_ROOT
   // Why: the request is applied as a switch; the server's terminals must not inherit it.
   delete next[ELECTRON_NO_SANDBOX_REQUEST_ENV]
   // Why: only the relocated supervisor itself may resolve its app root this way.

@@ -29,8 +29,8 @@ electron_executable="$REPO_ROOT/node_modules/.bin/electron"
 case "$(uname -s)" in
   MINGW*|MSYS*) electron_executable="$REPO_ROOT/node_modules/electron/dist/electron.exe" ;;
 esac
-if [ -z "${ORCA_APP_EXECUTABLE:-}" ] && [ -x "$electron_executable" ]; then
-  export ORCA_APP_EXECUTABLE="$electron_executable"
-  export ORCA_APP_EXECUTABLE_NEEDS_APP_ROOT=1
+if [ -z "${ZKYQ_APP_EXECUTABLE:-}" ] && [ -x "$electron_executable" ]; then
+  export ZKYQ_APP_EXECUTABLE="$electron_executable"
+  export ZKYQ_APP_EXECUTABLE_NEEDS_APP_ROOT=1
 fi
 exec node "$CLI_ENTRY" "$@"

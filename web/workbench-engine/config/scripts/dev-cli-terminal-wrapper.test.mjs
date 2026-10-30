@@ -28,7 +28,9 @@ describe('dev CLI terminal wrappers', () => {
       for (const directory of [binDir, userDataBinDir]) {
         writeFileSync(
           path.join(directory, 'orca-dev' + extension),
-          old.replaceAll('ZKYQ_USER_DATA_PATH', 'ORCA_USER_DATA_PATH')
+          old
+            .replaceAll('ZKYQ_USER_DATA_PATH', 'ORCA_USER_DATA_PATH')
+            .replaceAll('ZKYQ_APP_EXECUTABLE', 'ORCA_APP_EXECUTABLE')
         )
         writeFileSync(path.join(directory, 'orca' + extension), 'user command')
       }
@@ -76,7 +78,7 @@ describe('dev CLI terminal wrappers', () => {
     const wrapper = readFileSync(path.join(userDataPath, 'cli', 'bin', 'zkyq-dev.cmd'), 'utf8')
     expect(wrapper).toContain(`set "ZKYQ_USER_DATA_PATH=${userDataPath.replaceAll('%', '%%')}"`)
     expect(wrapper).toContain(
-      `set "ORCA_APP_EXECUTABLE=${electronExecutable.replaceAll('%', '%%')}"`
+      `set "ZKYQ_APP_EXECUTABLE=${electronExecutable.replaceAll('%', '%%')}"`
     )
     expect(wrapper).toContain(
       `node "${path.join(root, 'out', 'cli', 'index.js').replaceAll('%', '%%')}" %*`

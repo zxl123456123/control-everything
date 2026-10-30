@@ -2,6 +2,7 @@ import { accessSync, constants } from 'node:fs'
 import { delimiter, dirname, isAbsolute, join, relative } from 'node:path'
 import { RuntimeClientError } from './types'
 import { resolveLaunchUserDataPath } from './launch-user-data-path'
+import { assertCurrentAppLaunchEnvironment } from './app-launch-environment'
 
 /**
  * Only a CLI run by an installed desktop app's executable can start a server. The `zkyq` that an
@@ -9,7 +10,8 @@ import { resolveLaunchUserDataPath } from './launch-user-data-path'
  * profile, and is rewritten with each server version.
  */
 export function canStartOrcaServer(env: NodeJS.ProcessEnv): boolean {
-  const override = env.ORCA_APP_EXECUTABLE
+  assertCurrentAppLaunchEnvironment(env)
+  const override = env.ZKYQ_APP_EXECUTABLE
   return (
     (typeof override === 'string' && override.trim().length > 0) || env.ELECTRON_RUN_AS_NODE === '1'
   )
@@ -19,7 +21,7 @@ const NOT_AN_APP_CLI =
   "This `zkyq` command isn't running from an installed Control Everything app. An SSH-managed command belongs to that connection's server and can't start another server."
 
 export function serverOnlyServeMessage(): string {
-  return `${NOT_AN_APP_CLI} Install the Control Everything app on this machine and run \`zkyq serve\` from a plain login shell, or set ORCA_APP_EXECUTABLE to the app executable.`
+  return `${NOT_AN_APP_CLI} Install the Control Everything app on this machine and run \`zkyq serve\` from a plain login shell, or set ZKYQ_APP_EXECUTABLE to the app executable.`
 }
 
 function serverOnlyServiceInstallMessage(): string {

@@ -3,10 +3,51 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { getDefaultUserDataPath, getPlatformUserDataPath } from './metadata'
 import { getMacOpenArgs } from './launch'
 import { pinLaunchUserDataPath, resolveLaunchUserDataPath } from './launch-user-data-path'
+import {
+  getExecutableAppArgs,
+  resolveForegroundOrcaExecutable,
+  stripElectronRunAsNode
+} from './orca-app-executable'
+import { canStartOrcaServer } from './serve-app-launcher'
 
 afterEach(() => vi.unstubAllEnvs())
 
 describe('resolveLaunchUserDataPath', () => {
+  it.each(['ORCA_APP_EXECUTABLE', 'ORCA_APP_EXECUTABLE_NEEDS_APP_ROOT'])(
+    'rejects retired %s before selecting a default app or profile',
+    (key) => {
+      const retired = { [key]: key.endsWith('ROOT') ? '1' : 'old executable' }
+      expect(() => resolveLaunchUserDataPath(retired)).toThrow('ZKYQ_APP_EXECUTABLE')
+      expect(() => canStartOrcaServer(retired)).toThrow('ZKYQ_APP_EXECUTABLE')
+      vi.stubEnv('ZKYQ_APP_EXECUTABLE', undefined)
+      vi.stubEnv('ZKYQ_APP_EXECUTABLE_NEEDS_APP_ROOT', undefined)
+      vi.stubEnv(key, retired[key])
+      expect(resolveForegroundOrcaExecutable).toThrow('ZKYQ_APP_EXECUTABLE')
+      expect(() => getExecutableAppArgs('unused')).toThrow('ZKYQ_APP_EXECUTABLE')
+    }
+  )
+
+  it('keeps the chosen executable and app root while dropping retired child settings', () => {
+    const executable = join('selected Orca directory', 'custom.exe')
+    const appRoot = resolve('selected app root')
+    vi.stubEnv('ZKYQ_APP_EXECUTABLE', executable)
+    vi.stubEnv('ZKYQ_APP_EXECUTABLE_NEEDS_APP_ROOT', '1')
+    vi.stubEnv('ORCA_SERVE_SUPERVISOR_APP_ROOT', appRoot)
+    vi.stubEnv('ORCA_APP_EXECUTABLE', 'stale executable')
+    vi.stubEnv('ORCA_APP_EXECUTABLE_NEEDS_APP_ROOT', '1')
+    expect(resolveForegroundOrcaExecutable()).toBe(executable)
+    expect(getExecutableAppArgs(executable)).toContain(appRoot)
+    expect(canStartOrcaServer(process.env)).toBe(true)
+    const pinned = pinLaunchUserDataPath([], process.env, 'selected profile').env
+    const child = stripElectronRunAsNode(process.env)
+    for (const env of [pinned, child]) {
+      expect(env.ZKYQ_APP_EXECUTABLE).toBe(executable)
+      expect(env).not.toHaveProperty('ORCA_APP_EXECUTABLE')
+      expect(env).not.toHaveProperty('ORCA_APP_EXECUTABLE_NEEDS_APP_ROOT')
+    }
+    expect(process.env.ORCA_APP_EXECUTABLE).toBe('stale executable')
+  })
+
   it('rejects a retired profile override instead of connecting to the default instance', () => {
     const env = { ORCA_USER_DATA_PATH: 'existing profile' }
     expect(() => resolveLaunchUserDataPath(env)).toThrow(
@@ -30,13 +71,13 @@ describe('resolveLaunchUserDataPath', () => {
       resolveLaunchUserDataPath({
         ZKYQ_USER_DATA_PATH: 'rel/profile',
         ORCA_DEV_USER_DATA_PATH: '/dev',
-        ORCA_APP_EXECUTABLE_NEEDS_APP_ROOT: '1'
+        ZKYQ_APP_EXECUTABLE_NEEDS_APP_ROOT: '1'
       })
     ).toBe(resolve('rel/profile'))
   })
 
   it("falls back to the dev app's own profile for a dev executable", () => {
-    expect(resolveLaunchUserDataPath({ ORCA_APP_EXECUTABLE_NEEDS_APP_ROOT: '1' })).toBe(
+    expect(resolveLaunchUserDataPath({ ZKYQ_APP_EXECUTABLE_NEEDS_APP_ROOT: '1' })).toBe(
       resolve(join(getPlatformUserDataPath(), '..', 'orca-dev'))
     )
   })
@@ -61,7 +102,7 @@ describe('pinLaunchUserDataPath', () => {
       env: { ZKYQ_USER_DATA_PATH: '/p' }
     })
     expect(
-      pinLaunchUserDataPath([], { ORCA_APP_EXECUTABLE_NEEDS_APP_ROOT: '1' }, '/p').env
+      pinLaunchUserDataPath([], { ZKYQ_APP_EXECUTABLE_NEEDS_APP_ROOT: '1' }, '/p').env
     ).toMatchObject({ ORCA_DEV_USER_DATA_PATH: '/p' })
   })
 })

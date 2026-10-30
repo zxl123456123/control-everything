@@ -50,8 +50,8 @@ export function cliServeProfile(parent: string): { userDataDir: string; env: Nod
     env: {
       ...isolation.env,
       // How `orca serve` from a dev checkout finds its app (config/scripts/orca-dev.mjs).
-      ORCA_APP_EXECUTABLE: resolveElectronExecutable(process.cwd()),
-      ORCA_APP_EXECUTABLE_NEEDS_APP_ROOT: '1',
+      ZKYQ_APP_EXECUTABLE: resolveElectronExecutable(process.cwd()),
+      ZKYQ_APP_EXECUTABLE_NEEDS_APP_ROOT: '1',
       ZKYQ_USER_DATA_PATH: userDataDir
     }
   }

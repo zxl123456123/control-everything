@@ -28,7 +28,7 @@ function rollbackProfileBackup(userDataDir: string, backupId: string, executable
     launchEnv: { ZKYQ_USER_DATA_PATH: userDataDir, ORCA_BACKGROUND_LAUNCH: '1' },
     extraEnv: {
       ...(executable
-        ? { ORCA_APP_EXECUTABLE: executable, ORCA_APP_EXECUTABLE_NEEDS_APP_ROOT: '1' }
+        ? { ZKYQ_APP_EXECUTABLE: executable, ZKYQ_APP_EXECUTABLE_NEEDS_APP_ROOT: '1' }
         : {}),
       // Raw development Electron needs the same sandbox opt-out as Playwright.
       ...(process.platform === 'linux' ? { ELECTRON_DISABLE_SANDBOX: '1' } : {})

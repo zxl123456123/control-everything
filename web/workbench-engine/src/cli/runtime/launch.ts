@@ -66,7 +66,7 @@ export function launchOrcaApp(): void {
 
   // Why: `openOrca` waits on this profile's metadata, so the app must start on it too.
   const userDataPath = resolveLaunchUserDataPath()
-  const overrideExecutable = process.env.ORCA_APP_EXECUTABLE
+  const overrideExecutable = process.env.ZKYQ_APP_EXECUTABLE
   if (typeof overrideExecutable === 'string' && overrideExecutable.trim().length > 0) {
     const pinned = pinLaunchUserDataPath(
       getExecutableAppArgs(overrideExecutable),

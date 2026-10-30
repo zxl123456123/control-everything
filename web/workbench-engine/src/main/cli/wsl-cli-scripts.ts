@@ -192,7 +192,7 @@ exit $exitCode
 function buildDevCliEnv(cliEntryPath: string): string[] {
   return [
     "$env:ELECTRON_RUN_AS_NODE = '1'",
-    "if (-not $env:ORCA_APP_EXECUTABLE) { $env:ORCA_APP_EXECUTABLE = $OrcaLauncher; $env:ORCA_APP_EXECUTABLE_NEEDS_APP_ROOT = '1' }",
+    "if (-not $env:ZKYQ_APP_EXECUTABLE) { $env:ZKYQ_APP_EXECUTABLE = $OrcaLauncher; $env:ZKYQ_APP_EXECUTABLE_NEEDS_APP_ROOT = '1' }",
     '$env:ORCA_NODE_OPTIONS = $env:NODE_OPTIONS',
     '$env:ORCA_NODE_REPL_EXTERNAL_MODULE = $env:NODE_REPL_EXTERNAL_MODULE',
     'Remove-Item Env:NODE_OPTIONS, Env:NODE_REPL_EXTERNAL_MODULE -ErrorAction SilentlyContinue',

@@ -21,7 +21,7 @@ describe('zkyq-dev package bin', () => {
         '  userDataPath: process.env.ZKYQ_USER_DATA_PATH,',
         '  devCliInvocation: process.env.ORCA_DEV_CLI_INVOCATION,',
         '  command: process.env.ORCA_CLI_COMMAND,',
-        '  appExecutable: process.env.ORCA_APP_EXECUTABLE',
+        '  appExecutable: process.env.ZKYQ_APP_EXECUTABLE',
         '}));'
       ].join('\n'),
       'utf8'
@@ -36,7 +36,7 @@ describe('zkyq-dev package bin', () => {
         ORCA_DEV_CLI_ENTRY_PATH: cliEntry,
         ORCA_CLI_COMMAND: 'orca-dev',
         ORCA_DEV_USER_DATA_PATH: path.join(root, 'user-data'),
-        ORCA_APP_EXECUTABLE: path.join(root, 'Electron')
+        ZKYQ_APP_EXECUTABLE: path.join(root, 'Electron')
       },
       stdio: 'ignore'
     })

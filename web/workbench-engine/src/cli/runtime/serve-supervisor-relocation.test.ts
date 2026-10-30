@@ -96,7 +96,7 @@ describe('relocateServeSupervisor', () => {
   it('stays in place outside a packaged app', async () => {
     for (const d of [
       deps({ env: {} }),
-      deps({ env: { ELECTRON_RUN_AS_NODE: '1', ORCA_APP_EXECUTABLE: '/dev/Orca' } }),
+      deps({ env: { ELECTRON_RUN_AS_NODE: '1', ZKYQ_APP_EXECUTABLE: '/dev/Orca' } }),
       deps({ appRoot: join(root, 'checkout') })
     ]) {
       await expect(relocateServeSupervisor(d)).resolves.toBe('in-place')
