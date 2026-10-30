@@ -7318,7 +7318,7 @@
           "5dae812f50": "Actualiser",
           "52e640f3a0": "Actualiser l'état de la CLI",
           "38edbb5721": "Commande shell",
-          "c5c0f2641d": "Orca CLI",
+          "c5c0f2641d": "zkyq CLI",
           "d77352f2df": "Échec de la suppression de `{{value0}}` de PATH.",
           "af5540930c": "`{{value0}}` supprimé de PATH.",
           "a2b13efa94": "Échec de l'enregistrement de `{{value0}}` dans PATH.",
@@ -7342,9 +7342,8 @@
           "6f894ef9c2": "Afficher dans le Finder",
           "cbe55e4d48": "Afficher dans l'Explorateur",
           "9fd4023db0": "Afficher dans le Gestionnaire de fichiers",
-          "installFailureUnknownReason": "Orca n'a pas pu terminer l'enregistrement de l'interface CLI et n'a signalé aucune raison.",
-          "installFailureConflictRemedy": "Supprimez {{value0}} s'il n'est plus nécessaire, puis réenregistrez la CLI.",
-          "outsideOrcaDescription": "Les terminaux Orca disposent déjà de `orca`. Activez cette option pour utiliser `orca` depuis d'autres terminaux en dehors d'Orca."
+          "installFailureUnknownReason": "L’enregistrement de la CLI a échoué sans indication de la raison.",
+          "installFailureConflictRemedy": "Supprimez {{value0}} s'il n'est plus nécessaire, puis réenregistrez la CLI."
         },
         "CliSkillRuntimeSetup": {
           "04325573f8": "WSL",

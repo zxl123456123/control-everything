@@ -7197,7 +7197,7 @@
           "5dae812f50": "새로고침",
           "52e640f3a0": "CLI 상태 새로 고침",
           "38edbb5721": "셸 명령",
-          "c5c0f2641d": "Orca CLI",
+          "c5c0f2641d": "zkyq CLI",
           "d77352f2df": "PATH에서 `{{value0}}`을(를) 제거하지 못했습니다.",
           "af5540930c": "PATH에서 `{{value0}}`을 제거했습니다.",
           "a2b13efa94": "PATH에 `{{value0}}`을(를) 등록하지 못했습니다.",
@@ -7219,9 +7219,8 @@
           "6f894ef9c2": "Finder에서 보기",
           "cbe55e4d48": "탐색기에서 보기",
           "9fd4023db0": "파일 관리자에서 보기",
-          "installFailureUnknownReason": "Orca가 CLI 등록을 완료하지 못했고 이유를 보고하지 않았습니다.",
-          "installFailureConflictRemedy": "{{value0}}이(가) 더 이상 필요하지 않다면 제거한 뒤 다시 등록하세요.",
-          "outsideOrcaDescription": "Orca 터미널에서는 이미 `orca`를 쓸 수 있습니다. Orca 밖의 다른 터미널에서 `orca`를 쓰려면 켜세요."
+          "installFailureUnknownReason": "CLI 등록에 실패했으며 이유가 보고되지 않았습니다.",
+          "installFailureConflictRemedy": "{{value0}}이(가) 더 이상 필요하지 않다면 제거한 뒤 다시 등록하세요."
         },
         "CliSkillRuntimeSetup": {
           "04325573f8": "WSL",

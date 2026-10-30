@@ -7207,7 +7207,7 @@
           "5dae812f50": "Actualizar",
           "52e640f3a0": "Actualizar estado de la CLI",
           "38edbb5721": "Comando de shell",
-          "c5c0f2641d": "Orca CLI",
+          "c5c0f2641d": "zkyq CLI",
           "d77352f2df": "No se pudo eliminar `{{value0}}` de PATH.",
           "af5540930c": "Se eliminó `{{value0}}` de PATH.",
           "a2b13efa94": "No se pudo registrar `{{value0}}` en PATH.",
@@ -7229,9 +7229,8 @@
           "6f894ef9c2": "Mostrar en Finder",
           "cbe55e4d48": "Mostrar en el Explorador",
           "9fd4023db0": "Mostrar en el administrador de archivos",
-          "installFailureUnknownReason": "Orca no pudo completar el registro de CLI y no reportó ninguna razón.",
-          "installFailureConflictRemedy": "Elimina {{value0}} y regístrate nuevamente si ya no es necesario.",
-          "outsideOrcaDescription": "Las terminales de Orca ya incluyen `orca`. Actívalo para usar `orca` desde otras terminales fuera de Orca."
+          "installFailureUnknownReason": "El registro de la CLI falló sin indicar el motivo.",
+          "installFailureConflictRemedy": "Elimina {{value0}} y regístrate nuevamente si ya no es necesario."
         },
         "CliSkillRuntimeSetup": {
           "04325573f8": "WSL",

@@ -7236,7 +7236,7 @@
           "5dae812f50": "刷新",
           "52e640f3a0": "刷新 CLI 状态",
           "38edbb5721": "Shell 命令",
-          "c5c0f2641d": "Orca CLI",
+          "c5c0f2641d": "zkyq CLI",
           "d77352f2df": "无法从 PATH 中删除 `{{value0}}`。",
           "af5540930c": "从路径中删除了“{{value0}}”。",
           "a2b13efa94": "无法在 PATH 中注册 `{{value0}}`。",
@@ -7258,9 +7258,8 @@
           "6f894ef9c2": "在 Finder 中显示",
           "cbe55e4d48": "在资源管理器中显示",
           "9fd4023db0": "在文件管理器中显示",
-          "installFailureUnknownReason": "Orca 无法完成 CLI 注册，且未报告任何原因。",
-          "installFailureConflictRemedy": "删除 {{value0}} 并在不再需要时重新注册。",
-          "outsideOrcaDescription": "Orca 终端已内置 `orca`。开启后可在 Orca 以外的其他终端中使用 `orca`。"
+          "installFailureUnknownReason": "CLI 注册失败，未报告原因。",
+          "installFailureConflictRemedy": "删除 {{value0}} 并在不再需要时重新注册。"
         },
         "CliSkillRuntimeSetup": {
           "04325573f8": "WSL",

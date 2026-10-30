@@ -5319,7 +5319,7 @@
           "5dae812f50": "Atualizar",
           "52e640f3a0": "Atualizar status da CLI",
           "38edbb5721": "Comando de shell",
-          "c5c0f2641d": "CLI do Orca",
+          "c5c0f2641d": "zkyq CLI",
           "d77352f2df": "Falha ao remover `{{value0}}` do PATH.",
           "af5540930c": "`{{value0}}` removido do PATH.",
           "a2b13efa94": "Falha ao registrar `{{value0}}` no PATH.",
@@ -5340,12 +5340,11 @@
           "d363e5929b": "Verificando registro da CLI…",
           "cliSkillTerminalTitle": "Configuração da skill de CLI",
           "cliSkillTerminalAria": "Terminal de instalação da skill de CLI",
-          "installFailureUnknownReason": "O Orca não conseguiu concluir o registro da CLI e não relatou o motivo.",
+          "installFailureUnknownReason": "O registro da CLI falhou sem informar o motivo.",
           "installFailureConflictRemedy": "Remova {{value0}} e registre novamente se ele não for mais necessário.",
           "6f894ef9c2": "Mostrar no Finder",
           "cbe55e4d48": "Mostrar no Explorer",
-          "9fd4023db0": "Mostrar no Gerenciador de Arquivos",
-          "outsideOrcaDescription": "Os terminais do Orca já têm `orca`. Ative isto para usar `orca` em outros terminais fora do Orca."
+          "9fd4023db0": "Mostrar no Gerenciador de Arquivos"
         },
         "GitPane": {
           "895d3f70b8": "gh",

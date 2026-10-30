@@ -7197,7 +7197,7 @@
           "5dae812f50": "更新",
           "52e640f3a0": "CLI ステータスを更新する",
           "38edbb5721": "シェルコマンド",
-          "c5c0f2641d": "Orca CLI",
+          "c5c0f2641d": "zkyq CLI",
           "d77352f2df": "PATH から {{value0}} を削除できませんでした。",
           "af5540930c": "PATH から {{value0}} を削除しました。",
           "a2b13efa94": "`{{value0}}`をPATHに登録できませんでした。",
@@ -7219,9 +7219,8 @@
           "6f894ef9c2": "Finderで表示",
           "cbe55e4d48": "エクスプローラーで表示",
           "9fd4023db0": "ファイルマネージャーで表示",
-          "installFailureUnknownReason": "Orca は CLI 登録を完了できず、理由を報告しませんでした。",
-          "installFailureConflictRemedy": "{{value0}} を削除して、不要になった場合は再度登録してください。",
-          "outsideOrcaDescription": "Orca のターミナルでは `orca` がすでに使えます。Orca 以外のターミナルから `orca` を使うにはオンにしてください。"
+          "installFailureUnknownReason": "CLI の登録に失敗しました。理由は報告されていません。",
+          "installFailureConflictRemedy": "{{value0}} を削除して、不要になった場合は再度登録してください。"
         },
         "CliSkillRuntimeSetup": {
           "04325573f8": "WSL",
