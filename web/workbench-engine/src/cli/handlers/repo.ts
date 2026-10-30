@@ -33,7 +33,9 @@ export const REPO_HANDLERS: Record<string, CommandHandler> = {
         ? JSON.stringify(result, null, 2)
         : result.dryRun
           ? 'Ready to rename the project configuration.'
-          : 'Project configuration renamed and staged by Git.'
+          : result.tracked
+            ? 'Project configuration renamed and staged by Git.'
+            : 'Project configuration renamed; the Git index was not changed.'
     )
   },
   'repo list': async ({ client, json }) => {

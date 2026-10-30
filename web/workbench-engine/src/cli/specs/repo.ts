@@ -5,12 +5,13 @@ export const REPO_COMMAND_SPECS: CommandSpec[] = [
   {
     path: ['repo', 'migrate-config'],
     destructive: true,
-    summary: 'Rename the tracked project configuration to zkyq.yaml',
+    summary: 'Rename the project configuration to zkyq.yaml',
     usage: 'zkyq repo migrate-config --path <absolute-project-root> [--dry-run] [--json]',
     allowedFlags: ['help', 'json', 'path', 'dry-run'],
     notes: [
-      'Runs locally on the named Git worktree. Git updates the index; review and commit the resulting change.',
-      'Requires a tracked regular orca.yaml and refuses an existing zkyq.yaml. Use --dry-run to check first.',
+      'Runs locally on the named Git worktree. Tracked files are staged; untracked files remain untracked.',
+      'Requires a regular orca.yaml and refuses an existing zkyq.yaml. Use --dry-run to check first.',
+      'If the old file is ignored, update ignore rules for the new name before migrating.',
       'Run when no other process is editing the worktree or its Git index.'
     ]
   },

@@ -1,14 +1,14 @@
-import { lstatSync, realpathSync } from 'node:fs'
+import { linkSync, lstatSync, realpathSync, unlinkSync } from 'node:fs'
 import { isAbsolute, join } from 'node:path'
 import { runProcessSync } from '@orca/process-host'
 import { LEGACY_PROJECT_YAML_NAME, PROJECT_YAML_NAME } from '../shared/project-yaml-path'
 import { RuntimeClientError } from './runtime/types'
 
-/** Explicitly move a tracked project configuration using Git's index-aware move. */
+/** Explicitly move a project configuration without overwriting an existing destination. */
 export function migrateProjectConfig(
   path: string,
   dryRun: boolean
-): { path: string; dryRun: boolean } {
+): { path: string; dryRun: boolean; tracked: boolean } {
   if (!isAbsolute(path)) {
     throw new RuntimeClientError('invalid_argument', 'Pass an absolute project root with --path.')
   }
@@ -56,6 +56,40 @@ export function migrateProjectConfig(
       `${PROJECT_YAML_NAME} already exists in the Git index or the index could not be checked.`
     )
   }
+  const indexedSource = run(['ls-files', '-z', '--', LEGACY_PROJECT_YAML_NAME])
+  if (indexedSource.code !== 0) {
+    throw new RuntimeClientError('invalid_argument', 'The Git index could not be checked.')
+  }
+  const tracked = indexedSource.stdout.length > 0
+  if (!tracked) {
+    const sourceIgnored = run(['check-ignore', '--no-index', '-q', '--', LEGACY_PROJECT_YAML_NAME])
+    const targetIgnored = run(['check-ignore', '--no-index', '-q', '--', PROJECT_YAML_NAME])
+    if (
+      (sourceIgnored.code !== 0 && sourceIgnored.code !== 1) ||
+      (targetIgnored.code !== 0 && targetIgnored.code !== 1)
+    ) {
+      throw new RuntimeClientError('invalid_argument', 'Git ignore rules could not be checked.')
+    }
+    if (sourceIgnored.code === 0 && targetIgnored.code !== 0) {
+      throw new RuntimeClientError(
+        'invalid_argument',
+        `${LEGACY_PROJECT_YAML_NAME} is ignored but ${PROJECT_YAML_NAME} is not. Update Git ignore rules first.`
+      )
+    }
+    if (!dryRun) {
+      // A hard link fails if the destination appears concurrently and preserves file metadata.
+      linkSync(source, target)
+      try {
+        unlinkSync(source)
+      } catch (error) {
+        throw new RuntimeClientError(
+          'invalid_argument',
+          `Both configuration names remain because the old file could not be removed: ${String(error)}`
+        )
+      }
+    }
+    return { path: root, dryRun, tracked }
+  }
   const result = run([
     'mv',
     ...(dryRun ? ['--dry-run'] : []),
@@ -69,5 +103,5 @@ export function migrateProjectConfig(
       `Git could not move the tracked configuration: ${result.stderr.trim() || 'check the project status.'}`
     )
   }
-  return { path: root, dryRun }
+  return { path: root, dryRun, tracked }
 }

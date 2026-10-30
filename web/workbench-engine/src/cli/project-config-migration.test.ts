@@ -50,16 +50,39 @@ describe('project config migration', () => {
     expect(readFileSync(join(repo, 'zkyq.yaml'), 'utf8')).toBe('new\n')
   })
 
-  it('refuses a non-root path and an untracked file', () => {
+  it('refuses a non-root path', () => {
     const repo = fixture()
     const nested = join(repo, 'nested')
     mkdirSync(nested)
     writeFileSync(join(nested, 'orca.yaml'), 'nested\n')
     expect(() => migrateProjectConfig(nested, false)).toThrow('Git worktree root')
     expect(readFileSync(join(nested, 'orca.yaml'), 'utf8')).toBe('nested\n')
+  })
+
+  it('migrates an untracked file without staging it', () => {
+    const repo = fixture()
     git(repo, 'rm', '--cached', 'orca.yaml')
-    expect(() => migrateProjectConfig(repo, false)).toThrow('Git could not move')
+    const before = git(repo, 'diff', '--cached')
+    expect(migrateProjectConfig(repo, true)).toMatchObject({ dryRun: true, tracked: false })
     expect(readFileSync(join(repo, 'orca.yaml'), 'utf8')).toBe('initial\n')
+    expect(migrateProjectConfig(repo, false)).toMatchObject({ dryRun: false, tracked: false })
+    expect(readFileSync(join(repo, 'zkyq.yaml'), 'utf8')).toBe('initial\n')
+    expect(() => readFileSync(join(repo, 'orca.yaml'))).toThrow()
+    expect(git(repo, 'diff', '--cached')).toBe(before)
+    expect(git(repo, 'ls-files', '--', 'zkyq.yaml')).toBe('')
+  })
+
+  it('refuses to expose an ignored configuration until the new name is ignored too', () => {
+    const repo = fixture()
+    git(repo, 'rm', '--cached', 'orca.yaml')
+    writeFileSync(join(repo, '.gitignore'), 'orca.yaml\n')
+    expect(() => migrateProjectConfig(repo, true)).toThrow('Update Git ignore rules first')
+    expect(() => migrateProjectConfig(repo, false)).toThrow('Update Git ignore rules first')
+    expect(readFileSync(join(repo, 'orca.yaml'), 'utf8')).toBe('initial\n')
+    writeFileSync(join(repo, '.gitignore'), 'orca.yaml\nzkyq.yaml\n')
+    expect(migrateProjectConfig(repo, false).tracked).toBe(false)
+    expect(readFileSync(join(repo, 'zkyq.yaml'), 'utf8')).toBe('initial\n')
+    expect(git(repo, 'check-ignore', 'zkyq.yaml')).toBe('zkyq.yaml\n')
   })
 
   it('does not overwrite a destination tracked in the index but missing on disk', () => {
