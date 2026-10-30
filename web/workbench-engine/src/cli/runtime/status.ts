@@ -2,6 +2,7 @@ import type { CliStatusResult, RuntimeStatus } from '../../shared/runtime-types'
 import { runtimeHostConnectionState } from '../../shared/runtime-host-connection-state'
 import { findTransport } from '../../shared/runtime-bootstrap'
 import { tryReadMetadata } from './metadata'
+import { resolveRuntimeMetadata } from './metadata-selection'
 import { sendRequest } from './transport'
 import {
   projectRemoteAppStatus,
@@ -15,7 +16,17 @@ export { projectRemoteAppStatus, resolveDesktopWindowStatus }
 export async function getCliStatus(
   userDataPath: string
 ): Promise<RuntimeRpcSuccess<CliStatusResult>> {
-  const metadata = tryReadMetadata(userDataPath)
+  let metadata = tryReadMetadata(userDataPath)
+  if (metadata) {
+    try {
+      const selection = resolveRuntimeMetadata(userDataPath)
+      metadata = selection instanceof Promise ? await selection : selection
+    } catch (error) {
+      if (error instanceof RuntimeClientError && error.code === 'runtime_metadata_changed')
+        throw error
+      // Preserve the existing status behavior for an unreadable record.
+    }
+  }
   const transport = metadata ? findTransport(metadata, 'unix', 'named-pipe') : null
   if (!transport || !metadata?.authToken) {
     return buildCliStatusResponse({

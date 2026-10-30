@@ -10,7 +10,8 @@ import {
 } from '../../shared/orchestration-rpc-contract'
 import type { PairedRuntimeConnection } from '../../shared/paired-runtime-connection'
 import { launchOrcaApp } from './launch'
-import { getDefaultUserDataPath, readMetadata } from './metadata'
+import { getDefaultUserDataPath } from './metadata'
+import { resolveRuntimeMetadata } from './metadata-selection'
 import { getCliStatus, projectRemoteAppStatus } from './status'
 import { sendRequest } from './transport'
 import { RuntimeClientError, RuntimeRpcFailureError, type RuntimeRpcSuccess } from './types'
@@ -164,7 +165,7 @@ export class RuntimeClient {
       }
       return response
     }
-    const metadata = readMetadata(this.userDataPath)
+    const metadata = await resolveRuntimeMetadata(this.userDataPath)
     // Why outside recover(): a refusal here happens before anything is sent, so there is nothing to retry.
     const expectedRuntimeSource = await this.runtimeSourceFence.check(metadata, method)
     let response

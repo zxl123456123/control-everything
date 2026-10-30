@@ -327142,7 +327142,9 @@
     "src/shared/project-yaml-path.ts",
     "src/cli/project-config-migration.test.ts",
     "src/cli/project-config-migration.ts",
-    "src/cli/runtime/metadata-migration.test.ts"
+    "src/cli/runtime/metadata-migration.test.ts",
+    "src/cli/runtime/metadata-selection.test.ts",
+    "src/cli/runtime/metadata-selection.ts"
   ],
   "adapted_files": [
     {
@@ -333262,8 +333264,8 @@
     {
       "path": "src/cli/runtime/client.ts",
       "upstream_sha256": "c36891f1f51cb15108b03a38012545f4c95f9f86d308f25532298ca40165edf2",
-      "current_sha256": "850cde0042f37c047fe4e52b62705b05051e0603c5be0af579db1a69370e2e56",
-      "reason": "统一命令行连接与恢复提示的产品名称及可执行命令"
+      "current_sha256": "978993f1290eacacc9573be9f48a532e925835ebb97056e43c683fe7e9f947e2",
+      "reason": "统一命令行连接与恢复提示的产品名称及可执行命令；在新旧发现记录并存时安全识别当前运行时"
     },
     {
       "path": "src/cli/runtime/runtime-access-denied.test.ts",
@@ -333414,6 +333416,12 @@
       "upstream_sha256": "58ae67cf7f7e28b143c827da50dadca8833759e1f2c7b802665c3128df453b6b",
       "current_sha256": "05cd3f159b165a6448488fb6d385b388e9c59330bad2e6828ed84cd21eb369d3",
       "reason": "迁移运行时发现文件并保护新旧进程所有权"
+    },
+    {
+      "path": "src/cli/runtime/status.ts",
+      "upstream_sha256": "3eb121c5cd4d90029aefce479c9b50eeb8b133fe5834a0c10ef5cb03f92e6fea",
+      "current_sha256": "844fee2de03213404d06688fd7a63b1708be92c1eadf3d339260e9a798adfb69",
+      "reason": "在新旧发现记录并存时安全识别当前运行时"
     }
   ],
   "reviewed_findings": [

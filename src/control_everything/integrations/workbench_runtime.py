@@ -291,6 +291,13 @@ class WorkbenchRuntime:
         except FileNotFoundError:
             metadata = read_json(state / "orca-runtime.json", 65536)
         instance = read_json(state / "orcad.lock", 32768)
+        if metadata.get("pid") != self._pid and instance.get("pid") == self._pid:
+            try:
+                legacy = read_json(state / "orca-runtime.json", 65536)
+                if legacy.get("pid") == self._pid:
+                    metadata = legacy
+            except FileNotFoundError:
+                pass
         if (metadata.get("pid") != self._pid or instance.get("pid") != self._pid
                 or instance.get("startedAtMs") != self._created or not instance.get("nonce")
                 or not isinstance(metadata.get("authToken"), str) or not metadata["authToken"]

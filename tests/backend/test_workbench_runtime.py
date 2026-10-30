@@ -157,6 +157,23 @@ class WorkbenchRuntimeTests(unittest.TestCase):
             self.manager._read_identity()
         self.assertTrue(legacy.is_file())
 
+    def test_runtime_identity_selects_held_legacy_process_over_stale_current_record(self):
+        self.start()
+        state = self.data / 'state'
+        current = state / 'zkyq-runtime.json'
+        legacy = state / 'orca-runtime.json'
+        legacy.write_bytes(current.read_bytes())
+        stale = json.loads(current.read_text())
+        stale['pid'] = self.manager._pid + 1000
+        current.write_text(json.dumps(stale))
+        metadata, _, _, _ = self.manager._read_identity()
+        self.assertEqual(metadata['pid'], self.manager._pid)
+        legacy_data = json.loads(legacy.read_text())
+        legacy_data['pid'] += 1
+        legacy.write_text(json.dumps(legacy_data))
+        with self.assertRaises(WorkbenchUnavailable):
+            self.manager._read_identity()
+
     def test_seed_uses_new_name_without_shadowing_previous_data_or_backups(self):
         self.manager._prepare('http://127.0.0.1:12345')
         state = self.data / 'state'
