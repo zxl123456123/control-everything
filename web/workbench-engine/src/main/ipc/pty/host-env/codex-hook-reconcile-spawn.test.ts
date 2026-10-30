@@ -22,10 +22,14 @@ vi.mock('../../../agent-hooks/wsl-hook-relay-manager', () => ({
 vi.mock('../../../pi/titlebar-extension-service', () => ({
   piTitlebarExtensionService: { buildPtyEnv: () => ({}), buildFreshOmpEnv: () => ({}) }
 }))
-vi.mock('../../../cli/orca-cli-child-path', () => ({ prependOrcaCliDirToChildPath: () => {} }))
+vi.mock('../../../cli/orca-cli-child-path', () => ({
+  prependOrcaCliDirToChildPath: (env: Record<string, string>) => {
+    env.ORCA_CLI_COMMAND = join(fixture.userData, 'zkyq.exe')
+  }
+}))
 vi.mock('../../../cli/wsl-managed-cli', () => ({
-  getManagedWslCliDir: () => undefined,
-  getWslCliCommandName: () => 'orca-ide'
+  getManagedWslCliDir: () => join(fixture.userData, 'wsl-cli'),
+  getWslCliCommandName: () => 'zkyq'
 }))
 vi.mock('../../../codex/codex-hook-reconcile', () => ({
   scheduleCodexHookReconcile: fixture.scheduleCodexHookReconcile
@@ -69,5 +73,11 @@ describe("a pane spawn rechecks Orca's entry in ~/.codex", () => {
     buildPtyHostEnv('wsl-pane', {}, { ...options, isWsl: true, wslDistro: 'Ubuntu' })
 
     expect(fixture.scheduleCodexHookReconcile).not.toHaveBeenCalled()
+  })
+
+  it('keeps the WSL command after the headless host prepends its native launcher', () => {
+    const env = buildPtyHostEnv('wsl-pane', {}, { ...options, isWsl: true, wslDistro: 'Ubuntu' })
+    expect(env.ORCA_CLI_COMMAND).toBe('zkyq')
+    expect(env.ORCA_WSL_CLI_DIR).toBe(join(fixture.userData, 'wsl-cli'))
   })
 })

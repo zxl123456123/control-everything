@@ -280,8 +280,6 @@ export function buildPtyHostEnv(
   if (opts.isWsl) {
     wslInteropHealthMonitor.noteActivity(opts.wslDistro ?? null)
     baseEnv.ORCA_USER_DATA_PATH = opts.userDataPath
-    // Why: managed WSL registration uses `orca-ide`; exposing that literal scopes agent guidance to WSL without a bare-orca shim.
-    baseEnv.ORCA_CLI_COMMAND = getWslCliCommandName(opts.isPackaged)
     const managedCliDir = getManagedWslCliDir(opts)
     if (managedCliDir) {
       baseEnv.ORCA_WSL_CLI_DIR = managedCliDir
@@ -297,6 +295,10 @@ export function buildPtyHostEnv(
     userDataPath: opts.userDataPath,
     resourcesPath: opts.resourcesPath
   })
+  if (opts.isWsl) {
+    // The host helper can set a Windows launcher path; the guest needs its managed shell command.
+    baseEnv.ORCA_CLI_COMMAND = getWslCliCommandName(opts.isPackaged)
+  }
 
   if (
     opts.routeBrowserOpensToClient === true &&

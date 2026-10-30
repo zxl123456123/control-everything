@@ -33,12 +33,12 @@ export function resolveTerminalOrchestrationCliCommand(args: {
     return args.runtimeCliCommand
   }
   if (args.isWsl !== null && args.isWsl !== undefined) {
-    return args.isWsl ? 'orca-ide' : 'orca'
+    return args.isWsl ? 'zkyq' : 'orca'
   }
   if (args.projectRuntime?.status === 'resolved' && args.projectRuntime.runtime.kind === 'wsl') {
-    return 'orca-ide'
+    return 'zkyq'
   }
 
   const worktreePath = splitWorktreeIdForFilesystem(args.worktreeId)?.worktreePath
-  return worktreePath && isWslUncPath(worktreePath) ? 'orca-ide' : 'orca'
+  return worktreePath && isWslUncPath(worktreePath) ? 'zkyq' : 'orca'
 }

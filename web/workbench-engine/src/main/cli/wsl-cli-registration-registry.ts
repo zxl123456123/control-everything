@@ -3,6 +3,7 @@ import { join } from 'node:path'
 import { writeFileAtomically } from '../codex-accounts/fs-utils'
 import { getKeyedSerializedQueueTail, runKeyedSerializedOperation } from './keyed-promise-queue'
 import { normalizeWslDistroKey } from './wsl-cli-registration-operation'
+import { WSL_CLI_COMMAND_NAME } from './wsl-cli-scripts'
 
 const REGISTRY_FILE_NAME = 'wsl-cli-registrations.json'
 const REGISTRY_SCHEMA_VERSION = 2
@@ -14,6 +15,7 @@ const MAX_INSPECTION_ENTRIES = 64
 type WslCliRegistrationReconciliation = {
   target: string
   appVersion: string
+  commandName?: string
 }
 
 type WslCliRegistrationRegistryState = {
@@ -206,6 +208,7 @@ export async function getWslCliRegistrationCandidates(
       const reconciliation = state.reconciliations[key]
       return !(
         reconciliation &&
+        reconciliation.commandName === WSL_CLI_COMMAND_NAME &&
         timing.currentTarget &&
         reconciliation.target === timing.currentTarget &&
         reconciliation.appVersion === (timing.appVersion ?? '')
@@ -247,7 +250,7 @@ export function recordWslCliRegistrationObservations(
           const { [key]: _removed, ...rest } = reconciliations
           reconciliations = rest
         } else {
-          reconciliations = { ...reconciliations, [key]: observation.reconciled }
+          reconciliations = { ...reconciliations, [key]: { ...observation.reconciled, commandName: WSL_CLI_COMMAND_NAME } }
         }
       }
     }

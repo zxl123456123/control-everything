@@ -1,4 +1,4 @@
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
@@ -21,10 +21,20 @@ function fixture() {
 }
 
 describe('managed WSL CLI provisioning', () => {
+  it('uses a headless host launcher without requiring Electron resources', () => {
+    const host = fixture()
+    const native = join(host.resourcesPath, 'bin', 'zkyq.exe')
+    installFakeAppEnvironment({ getCliLauncherPath: () => native })
+    const directory = getManagedWslCliDir({ isPackaged: true, userDataPath: host.userDataPath }) ?? ''
+    expect(readFileSync(join(directory, 'zkyq'), 'utf8')).toContain(native)
+    expect(readFileSync(join(directory, 'orca-wsl-bridge.ps1'), 'utf8')).toContain("$env:ORCA_CLI_COMMAND = 'zkyq'")
+  })
   it('reuses a complete tree, repairs missing files, and isolates app identities and updates', () => {
     const host = fixture()
     const directory = getManagedWslCliDir(host) ?? ''
-    const launcher = join(directory, 'orca-ide')
+    const launcher = join(directory, 'zkyq')
+    expect(existsSync(join(directory, 'orca-ide'))).toBe(false)
+    expect(existsSync(join(directory, 'orca'))).toBe(false)
     const modified = statSync(launcher).mtimeMs
     expect(getManagedWslCliDir(host)).toBe(directory)
     expect(statSync(launcher).mtimeMs).toBe(modified)

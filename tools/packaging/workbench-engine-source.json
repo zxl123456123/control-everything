@@ -327119,7 +327119,8 @@
     "src/cli/handlers/orchestration/runtime-compatibility.test.ts",
     "src/main/runtime/orchestration/cli-command.test.ts",
     "src/main/cli/cli-installer-windows-identity.test.ts",
-    "src/main/host/electron-app-environment.test.ts"
+    "src/main/host/electron-app-environment.test.ts",
+    "src/main/cli/wsl-command-migration.test.ts"
   ],
   "adapted_files": [
     {
@@ -329417,8 +329418,8 @@
     {
       "path": "src/main/cli/wsl-managed-cli.test.ts",
       "upstream_sha256": "07c6d4a06f5edc39ae2e05f73ae8d86f755ee244503b3a0e34c7bf26755f952b",
-      "current_sha256": "adfc2bb2e956df968e0d52e9c1de4ac7e894500b14cecc12b927b013b4a1c321",
-      "reason": "Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands."
+      "current_sha256": "511ff06789ca8237dcac81c2324b80818d4beb970af9ce635f3491334de215a9",
+      "reason": "Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands.；WSL命令迁移为zkyq，成功写入后退役受管理旧入口，保留用户文件和桥接参数，失效旧命令修复缓存并对齐派发环境"
     },
     {
       "path": "src/main/runtime/claude-agent-teams-shim-env.ts",
@@ -329813,8 +329814,8 @@
     {
       "path": "src/main/runtime/orchestration/cli-command.ts",
       "upstream_sha256": "c122a5b40631eb3efe7c3ba4765676a8c3f903e93fc0164a0f8ab125d1a93364",
-      "current_sha256": "3d79af687ea0d80889c20b33ad72c7259b6c19aa03c906d94dd4cec12f6910f6",
-      "reason": "统一已安装zkyq宿主的Agent派发、收信及恢复命令与状态摘要身份，保留历史记录识别和用户内容"
+      "current_sha256": "06d455c3292d2108995ddfbcbd8a4677685f8afe4a1ba8eb76e760061358db8a",
+      "reason": "统一已安装zkyq宿主的Agent派发、收信及恢复命令与状态摘要身份，保留历史记录识别和用户内容；WSL命令迁移为zkyq，成功写入后退役受管理旧入口，保留用户文件和桥接参数，失效旧命令修复缓存并对齐派发环境"
     },
     {
       "path": "src/main/runtime/orchestration/coordinator-runtime-contract.ts",
@@ -329929,6 +329930,54 @@
       "upstream_sha256": "37f13a59879b7510f46e7942ec0b0eb547da4651ab17937a87380ddcec70f00d",
       "current_sha256": "ab6ce3646a4169a99ec0e10e16b7e065ec4a702cf425d59cb085f51d667fddce",
       "reason": "清理共用CLI安装检查、冲突和竞态回收提示中的上游产品称呼，保留路径、权限及所有权行为"
+    },
+    {
+      "path": "src/main/cli/wsl-cli-installer.ts",
+      "upstream_sha256": "16f6792e75ff9376953d665cb7dde8222db6fdb8581b5201ed9a0690fcdb2650",
+      "current_sha256": "da91448bfc53433faa54e4d5e62edeb493dfbdebc50386781f79aaa8066ac905",
+      "reason": "WSL命令迁移为zkyq，成功写入后退役受管理旧入口，保留用户文件和桥接参数，失效旧命令修复缓存并对齐派发环境"
+    },
+    {
+      "path": "src/main/cli/wsl-cli-registration-command.ts",
+      "upstream_sha256": "1ea4eb35f25838beba24228fec54fcef0c2dbee062f6660e0a4a78fa421ce9f8",
+      "current_sha256": "3e1b12a1ea4e103d3ecc15541634cc84f825a4c2631cb38d172b294982722058",
+      "reason": "WSL命令迁移为zkyq，成功写入后退役受管理旧入口，保留用户文件和桥接参数，失效旧命令修复缓存并对齐派发环境"
+    },
+    {
+      "path": "src/main/cli/wsl-cli-registration-registry.ts",
+      "upstream_sha256": "911a7c64661bf77f2b88acea6b4cbdfe43c4f9d3fb316d5186be3121a4812b98",
+      "current_sha256": "e0aa119281825b1f00e5b6149fe66f9ab3514ed82fec005d41ccb4f8b5613b71",
+      "reason": "WSL命令迁移为zkyq，成功写入后退役受管理旧入口，保留用户文件和桥接参数，失效旧命令修复缓存并对齐派发环境"
+    },
+    {
+      "path": "src/main/cli/wsl-cli-scripts.ts",
+      "upstream_sha256": "546a8bc007584027f73a6f1fef985d014fdf6727a9a86a321814eb230b7bf9d8",
+      "current_sha256": "3b65d40c1794c92c4f71511d0e97c9625a408f8e468f3f50979f01f9eb61f938",
+      "reason": "WSL命令迁移为zkyq，成功写入后退役受管理旧入口，保留用户文件和桥接参数，失效旧命令修复缓存并对齐派发环境"
+    },
+    {
+      "path": "src/main/cli/wsl-cli-status.ts",
+      "upstream_sha256": "5cd777d147f56ec9d0519009aadecffeb50dcc4756bfc3dd97c8d8c3f12a3667",
+      "current_sha256": "34224b95292ea7800c1b20d81553408b571862aaa5cfcdb81f6227d8ca4b4d92",
+      "reason": "WSL命令迁移为zkyq，成功写入后退役受管理旧入口，保留用户文件和桥接参数，失效旧命令修复缓存并对齐派发环境"
+    },
+    {
+      "path": "src/main/cli/wsl-managed-cli.ts",
+      "upstream_sha256": "4ed451060f4f71dc850cf94135865f94e93eaf9cfa2e79d4fd68f1e3071683b2",
+      "current_sha256": "1987f61020b891e910e5e8a4c7eb5601e67b5af24727841f1fa230c5d747aef5",
+      "reason": "WSL命令迁移为zkyq，成功写入后退役受管理旧入口，保留用户文件和桥接参数，失效旧命令修复缓存并对齐派发环境"
+    },
+    {
+      "path": "src/main/ipc/pty/host-env/assembly.ts",
+      "upstream_sha256": "cea26bedafe323d652f0b6f2acba821a564220742d4f122a8bb9f18e858e1a09",
+      "current_sha256": "05e2b6618085dd2a52cd1dd65a1ab8f5409d52937273c28c26f973270dc4936c",
+      "reason": "WSL命令迁移为zkyq，成功写入后退役受管理旧入口，保留用户文件和桥接参数，失效旧命令修复缓存并对齐派发环境"
+    },
+    {
+      "path": "src/main/ipc/pty/host-env/codex-hook-reconcile-spawn.test.ts",
+      "upstream_sha256": "ebb07b366970dffc05f35a2a674ea00ab89c23f63df42c441e02d4053f05bc06",
+      "current_sha256": "ed053a9e7af5c728ff40f54b7d2a12e23518314f7864ee98adf769b5da4e1043",
+      "reason": "WSL命令迁移为zkyq，成功写入后退役受管理旧入口，保留用户文件和桥接参数，失效旧命令修复缓存并对齐派发环境"
     }
   ],
   "reviewed_findings": [

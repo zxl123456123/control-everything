@@ -11,6 +11,11 @@ vi.mock('../../../shared/app-environment', () => ({
 }))
 
 describe('installed workbench command in agent instructions', () => {
+  it('selects zkyq for WSL while preserving an explicit dev command', () => {
+    const worker = { connectionId: null, isWsl: true, worktreeId: 'repo::/repo' }
+    expect(resolveTerminalOrchestrationCliCommand(worker)).toBe('zkyq')
+    expect(resolveTerminalOrchestrationCliCommand({ ...worker, runtimeCliCommand: 'orca-dev' })).toBe('orca-dev')
+  })
   it('keeps historical stored briefs readable while emitting current status wording', () => {
     const stored = 'Please carry out this task from my Orca coordinator by following the brief I pasted below.\n' +
       '<pasted_content>\nYou are working inside Orca, a multi-agent IDE.\nYour task ID is: task_old\n=== TASK ===\nPreserve Orca user text\n</pasted_content>'
