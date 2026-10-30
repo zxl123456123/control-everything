@@ -3,6 +3,19 @@ import { GLOBAL_FLAGS } from '../args'
 
 export const SKILL_COMMAND_SPECS: CommandSpec[] = [
   {
+    path: ['skills', 'migrate'],
+    summary: 'Preserve and retire renamed skill copies after installation',
+    usage: 'zkyq skills migrate [--skill <current-name>]... [--all] [--local] [--json]',
+    allowedFlags: [...GLOBAL_FLAGS, 'skill', 'all', 'local'],
+    notes: [
+      'Run on the machine where the replacement skills were installed. Forwarded host invocations are refused.',
+      'Verifies replacement bytes and installation provenance before moving old copies outside skill discovery roots.',
+      'Preserves edited old contents and reports archive locations. Does not download or overwrite replacement skills.',
+      'Uses global installations by default; --local selects the current project.'
+    ],
+    examples: ['zkyq skills migrate --skill zkyq-cli --json']
+  },
+  {
     path: ['skills', 'installed'],
     summary: 'List installed skill selectors',
     usage: 'zkyq skills installed [--json]',

@@ -11,7 +11,7 @@ type GuideInvocation = {
 }
 
 // Why: guides use the public CLI, development CLI, remote relay, or command placeholder.
-const CLI_INVOCATION = /(?:^|[\s`(])(?:zkyq|zkyq-dev|orca|orca-ide|ORCA)\s+([^\n`]*)/g
+const CLI_INVOCATION = /(?:^|[\s`(])(?:zkyq|zkyq-dev|CLI)\s+([^\n`]*)/g
 
 // Longest path first so `orchestration worker-start` never resolves as `orchestration worker`.
 const SPECS_BY_DEPTH: CommandSpec[] = [...COMMAND_SPECS].sort(
@@ -54,6 +54,12 @@ function collectGuideInvocations(): GuideInvocation[] {
 
 describe('bundled skill guides', () => {
   const invocations = collectGuideInvocations()
+
+  it('checks examples from every bundled guide, including CLI placeholders', () => {
+    expect([...new Set(invocations.map((entry) => entry.guide))].sort()).toEqual(
+      BUNDLED_SKILL_GUIDES.map((guide) => guide.name).sort()
+    )
+  })
 
   // Why: the guides ship inside the binary, so an example the parser rejects is a shipped defect.
   it('only documents flags the CLI parser accepts', () => {

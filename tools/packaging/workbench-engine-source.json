@@ -327130,7 +327130,8 @@
     "src/main/skills/skill-name-migration.test.ts",
     "src/main/skills/skill-name-migration.ts",
     "src/main/skills/skill-update-retirement.test.ts",
-    "src/shared/bundled-skill-renames.ts"
+    "src/shared/bundled-skill-renames.ts",
+    "src/cli/handlers/skill-name-migration.test.ts"
   ],
   "adapted_files": [
     {
@@ -330430,8 +330431,8 @@
     {
       "path": "src/cli/specs/bundled-guide-flags.test.ts",
       "upstream_sha256": "2ad4ac38ce48c92751bededb004be72e5d64e3f9ba92994c7277c9b65898e1fc",
-      "current_sha256": "d2ce0ce95f48fc521e9d1fb1b7dbe8cf2d19bcb75b7208c73c75b50625bcb0f5",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+      "current_sha256": "69d9283981da1dd3169c6d008dc772722fe933fbdecbff0b2a9044c62767025d",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；新增安装后独立退役入口及目标约束验证，补齐当前CLI占位指南检查"
     },
     {
       "path": "src/main/cli/cli-dev-launcher.ts",
@@ -331900,14 +331901,14 @@
     {
       "path": "src/cli/handlers/skills.ts",
       "upstream_sha256": "48c8fedc4f8d87bf02d039304a1ab6c80396f99a3040692e42ef56f072e6a9ec",
-      "current_sha256": "f56d4e9287e52aebdcdf26e0dfd07ed465c8410f23a71cc8e26b21d401f36cbc",
-      "reason": "技能安装更新使用本平台提交和子目录，保留上游来源记录与历史安装识别，同步实际构建和说明；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
+      "current_sha256": "9ef6dbb5382f5103904433f5610b1e541a3bf1e1f34e815e98ebde5c05f96df5",
+      "reason": "技能安装更新使用本平台提交和子目录，保留上游来源记录与历史安装识别，同步实际构建和说明；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物；新增安装后独立退役入口及目标约束验证，补齐当前CLI占位指南检查"
     },
     {
       "path": "src/cli/specs/skills.ts",
       "upstream_sha256": "3110c8236700e23b103f89d2493b51294d97c1832d5dcbfa3731c568877971b9",
-      "current_sha256": "8f3d8301a1efc6fcf08f5c24a87d69d4a5157d14723564e5368ea1871a0e32fd",
-      "reason": "技能安装更新使用本平台提交和子目录，保留上游来源记录与历史安装识别，同步实际构建和说明；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
+      "current_sha256": "4e3f9587c3225caa47614cfdb7b2f597cb3cddf403fc88a18e500f4142565264",
+      "reason": "技能安装更新使用本平台提交和子目录，保留上游来源记录与历史安装识别，同步实际构建和说明；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物；新增安装后独立退役入口及目标约束验证，补齐当前CLI占位指南检查"
     },
     {
       "path": "src/main/skills/skill-freshness-inventory.test.ts",
@@ -332376,6 +332377,18 @@
       "upstream_sha256": "1caf4127bf50852bb9fd46eae86e7e2b1c324f3a4e6990897bccbc125ab27664",
       "current_sha256": "973c810820553b230ac628cb3609480b4785a3f33f3dc15d6bb5189086682f17",
       "reason": "六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
+    },
+    {
+      "path": "src/cli/handler-group-manifest.ts",
+      "upstream_sha256": "c5c95522b3610d3212f964e31f803f4001eeba573359c8768ca4e16a79ea031a",
+      "current_sha256": "d444014cc0ae0c433e4909d2fede87b6ef2b69b4a0b44ee400ed4cc803a5f6b0",
+      "reason": "；新增安装后独立退役入口及目标约束验证，补齐当前CLI占位指南检查"
+    },
+    {
+      "path": "src/cli/root-help-text-primary.ts",
+      "upstream_sha256": "2003d5ac224079460fe4251485b5967625cb7c09f5853f065603a4a298966d85",
+      "current_sha256": "d14236859c8db065e2e2f496b70764342187e8c6ca8380c1cf072cda03569d43",
+      "reason": "；新增安装后独立退役入口及目标约束验证，补齐当前CLI占位指南检查"
     }
   ],
   "reviewed_findings": [

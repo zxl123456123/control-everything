@@ -269,7 +269,7 @@ export const HANDLER_GROUPS: readonly HandlerGroup[] = [
   },
   {
     name: 'skills',
-    keys: ['skills list', 'skills get', 'skills install', 'skills update'],
+    keys: ['skills list', 'skills get', 'skills install', 'skills update', 'skills migrate'],
     load: async () => (await import('./handlers/skills.js')).SKILL_HANDLERS
   },
   {

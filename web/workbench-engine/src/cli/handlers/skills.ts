@@ -264,6 +264,32 @@ function createSkillMutationHandler(verb: SkillMutationVerb): CommandHandler {
 }
 
 export const SKILL_HANDLERS: Record<string, CommandHandler> = {
+  'skills migrate': async ({ flags, json, client }) => {
+    const names = resolveSelectedSkillNames(flags, await loadCanonicalGuides())
+    if (names.length === 0) {
+      throw new RuntimeClientError(
+        'invalid_argument',
+        'Select current skill names with --skill or --all.'
+      )
+    }
+    if (process.env.ORCA_CLI_CWD || client.isRemote) {
+      throw new RuntimeClientError(
+        'invalid_environment',
+        'Run zkyq skills migrate on the machine where the skills were installed; this shell forwards to another host.'
+      )
+    }
+    const archived = await retireRenamedBundledSkills({
+      names,
+      global: flags.get('local') !== true
+    })
+    writeStdoutLine(
+      json
+        ? JSON.stringify({ skills: names, archived }, null, 2)
+        : archived.length
+          ? archived.map((path) => `Preserved retired skill: ${path}`).join('\n')
+          : 'No legacy skill copies needed retirement.'
+    )
+  },
   'skills list': async ({ json }) => {
     // Why: generated registry order is not a user-facing contract, while stable
     // canonical sorting keeps agent-visible output reproducible across builds.
