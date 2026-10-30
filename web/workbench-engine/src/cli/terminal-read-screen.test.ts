@@ -129,6 +129,9 @@ describe('orca terminal read --screen', () => {
     expect([...logSpy.mock.calls, ...errSpy.mock.calls].flat().join('\n')).toContain(
       'does not support --screen reads'
     )
+    expect([...logSpy.mock.calls, ...errSpy.mock.calls].flat().join('\n')).toContain(
+      'Control Everything'
+    )
     expect(process.exitCode).toBe(1)
 
     process.exitCode = priorExitCode

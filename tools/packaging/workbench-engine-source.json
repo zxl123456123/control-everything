@@ -327158,6 +327158,36 @@
   ],
   "adapted_files": [
     {
+      "path": "src/cli/handlers/terminal-close.ts",
+      "upstream_sha256": "4c5323898a798d09e238c45183febd13c35f9fe690be25e22f0a8710cc0e0d57",
+      "current_sha256": "79bf68f8a073eb9df8a90956641ba7cef26875127077c97f2fd63e9a15ff0041",
+      "reason": "统一终端操作错误的产品身份并保留安全提示"
+    },
+    {
+      "path": "src/cli/handlers/terminal-send.ts",
+      "upstream_sha256": "9b45f7343bc0396ce3be65b4b91821db84be66e4cbca7947e11e2489b5fbd373",
+      "current_sha256": "00b9ff2bfde00e9e145cd105b4b1901aa006cecc923b5f61af6d551d88a48a2e",
+      "reason": "统一终端操作错误的产品身份并保留安全提示"
+    },
+    {
+      "path": "src/cli/handlers/terminal.ts",
+      "upstream_sha256": "cd658707b8ddaa28d3a89dbb76e86cf8bed15b88d75be63f46eff358f5068b4e",
+      "current_sha256": "5c3fd74f4689f79c74540c86b82670df2d5d41bf2426689d0f344eae4a80dc05",
+      "reason": "统一终端操作错误的产品身份并保留安全提示"
+    },
+    {
+      "path": "src/cli/retry-request-flag.test.ts",
+      "upstream_sha256": "408bd66c100156b5dc97633cad968b69e1f0e0ab1e33a5157aac79dd3c0d5c8d",
+      "current_sha256": "87f8952fbb4cbeeaf6bb1d031a1b985f9aaf1280137ec86343b827afcf6a507b",
+      "reason": "统一终端操作错误的产品身份并保留安全提示"
+    },
+    {
+      "path": "src/cli/terminal-read-screen.test.ts",
+      "upstream_sha256": "f8de895b38c8b7745e3639cef47a45a9a84e0f537a3de33e25a02b493c186146",
+      "current_sha256": "867c09ee7e31e134b851a39943c92ac8e42214f22224e0fcea125d1a7224bbdd",
+      "reason": "统一终端操作错误的产品身份并保留安全提示"
+    },
+    {
       "path": "src/renderer/src/components/status-bar/status-bar-density.ts",
       "upstream_sha256": "cce79fca4e0ff34344285c7546b3bdd5ac89c25d85b296dd4249073ab0aba795",
       "current_sha256": "96b10190b3fb286cfba604e55e593c57261534b3ff93f8fb65e92d0b59f1bae6",

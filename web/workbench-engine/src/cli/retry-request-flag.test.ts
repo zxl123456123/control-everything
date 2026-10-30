@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { parseArgs } from './args'
 import { COMMAND_SPECS } from './specs'
 import { TERMINAL_PROMPT_DELIVERY_RUNTIME_CAPABILITY } from '../shared/protocol-version'
-import type { RuntimeClient } from './runtime-client'
+import { RuntimeClientError, type RuntimeClient } from './runtime-client'
 import { TERMINAL_HANDLERS } from './handlers/terminal'
 import { ORCHESTRATION_HANDLERS } from './handlers/orchestration'
 import { readRetryRequestFlag } from './retry-request-flag'
@@ -144,5 +144,127 @@ describe('--retry-request and --wait-submit value damage', () => {
       expect(error).toMatchObject({ code: 'invalid_argument' })
     }
     expect(call).not.toHaveBeenCalled()
+  })
+})
+
+describe('terminal compatibility guidance', () => {
+  it.each([
+    [
+      'unreachable',
+      false,
+      [],
+      new Map<string, string | boolean>(),
+      'runtime_unavailable',
+      'no input was sent'
+    ],
+    [
+      'unsupported retry',
+      true,
+      [],
+      new Map<string, string | boolean>([
+        ['retry-request', '11111111-1111-4111-8111-111111111111']
+      ]),
+      'incompatible_runtime',
+      'an earlier prompt may have been delivered'
+    ],
+    [
+      'unsupported wait',
+      true,
+      [],
+      new Map<string, string | boolean>([['wait-submit', '5']]),
+      'incompatible_runtime',
+      'No input was sent'
+    ]
+  ])(
+    'preserves the %s send safeguard',
+    async (_name, reachable, capabilities, extra, code, detail) => {
+      const call = vi.fn()
+      const client = {
+        call,
+        getCliStatus: vi
+          .fn()
+          .mockResolvedValue({ result: { runtime: { reachable, capabilities } } })
+      } as unknown as RuntimeClient
+      const flags = new Map<string, string | boolean>([
+        ['terminal', 'term-1'],
+        ['text', 'hello'],
+        ['enter', true],
+        ...extra
+      ])
+      const error = await TERMINAL_HANDLERS['terminal send']({
+        flags,
+        client,
+        cwd: '/repo',
+        json: true
+      }).catch((caught: unknown) => caught)
+      expect(error).toMatchObject({ code })
+      expect((error as Error).message).toContain('Control Everything')
+      expect((error as Error).message).toContain(detail)
+      expect((error as Error).message).not.toContain('Orca')
+      expect(call).not.toHaveBeenCalled()
+    }
+  )
+
+  it.each([false, true])('refuses shell selection when host reachable is %s', async (reachable) => {
+    const call = vi.fn()
+    const client = {
+      call,
+      getCliStatus: vi
+        .fn()
+        .mockResolvedValue({ result: { runtime: { reachable, capabilities: [] } } })
+    } as unknown as RuntimeClient
+    const error = await TERMINAL_HANDLERS['terminal create']({
+      flags: new Map([['shell', 'cmd']]),
+      client,
+      cwd: '/repo',
+      json: true
+    }).catch((caught: unknown) => caught)
+    expect(error).toMatchObject({
+      code: reachable ? 'incompatible_runtime' : 'runtime_unavailable'
+    })
+    expect((error as Error).message).toContain('Control Everything')
+    expect((error as Error).message).toMatch(/no terminal was created/i)
+    expect(call).not.toHaveBeenCalled()
+  })
+
+  it('reports an accepted prompt with no durable receipt without sending again', async () => {
+    const { client, call } = promptClient()
+    call.mockResolvedValueOnce({
+      result: { send: { handle: 'term-1', accepted: true, bytesWritten: 5 } }
+    })
+    const error = await TERMINAL_HANDLERS['terminal send']({
+      flags: new Map<string, string | boolean>([
+        ['terminal', 'term-1'],
+        ['text', 'hello'],
+        ['enter', true]
+      ]),
+      client,
+      cwd: '/repo',
+      json: true
+    }).catch((caught: unknown) => caught)
+    expect(error).toMatchObject({ code: 'incompatible_runtime' })
+    expect((error as Error).message).toContain('Control Everything')
+    expect((error as Error).message).toContain('without returning a durable prompt receipt')
+    expect(call).toHaveBeenCalledOnce()
+  })
+
+  it('explains when the host cannot close all terminals', async () => {
+    const call = vi
+      .fn()
+      .mockRejectedValue(new RuntimeClientError('method_not_found', 'unknown method'))
+    const client = { call } as unknown as RuntimeClient
+    const error = await TERMINAL_HANDLERS['terminal close']({
+      flags: new Map<string, string | boolean>([
+        ['all', true],
+        ['worktree', 'id:worktree-1']
+      ]),
+      client,
+      cwd: '/repo',
+      json: true
+    }).catch((caught: unknown) => caught)
+    expect(error).toMatchObject({ code: 'incompatible_runtime' })
+    expect((error as Error).message).toContain('Control Everything')
+    expect((error as Error).message).not.toContain('Orca')
+    expect(call).toHaveBeenCalledOnce()
   })
 })
