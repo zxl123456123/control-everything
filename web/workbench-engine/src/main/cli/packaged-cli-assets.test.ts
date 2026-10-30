@@ -326,9 +326,9 @@ node -e 'console.log(JSON.stringify({
   argv: process.argv.slice(1),
   runAsNode: process.env.ELECTRON_RUN_AS_NODE,
   nodeOptions: process.env.NODE_OPTIONS ?? null,
-  orcaNodeOptions: process.env.ORCA_NODE_OPTIONS ?? null,
+  orcaNodeOptions: process.env.ZKYQ_NODE_OPTIONS ?? null,
   nodeReplExternalModule: process.env.NODE_REPL_EXTERNAL_MODULE ?? null,
-  orcaNodeReplExternalModule: process.env.ORCA_NODE_REPL_EXTERNAL_MODULE ?? null
+  orcaNodeReplExternalModule: process.env.ZKYQ_NODE_REPL_EXTERNAL_MODULE ?? null
 }))' -- "$@"
 `,
           { encoding: 'utf8', mode: 0o755 }

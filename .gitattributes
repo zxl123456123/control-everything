@@ -4,6 +4,9 @@ tools/packaging/wheel-notices/*.txt -text -whitespace
 web/workspace/observation.js text eol=lf
 web/workspace/news.js text eol=lf
 # Keep manifest-pinned adapted text byte-stable on Windows checkouts.
+/.gitattributes text eol=lf
+tools/packaging/workbench-engine-source.json text eol=lf
+web/workbench-engine/native/windows-cli-launcher/src/main.rs text eol=lf
 web/workbench-engine/mobile/app.config.js text eol=lf
 web/workbench-engine/mobile/package.json text eol=lf
 web/workbench-engine/mobile/pnpm-lock.yaml text eol=lf

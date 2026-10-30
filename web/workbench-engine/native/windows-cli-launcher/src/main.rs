@@ -75,10 +75,10 @@ fn main() {
     // an explicit map collapses a block carrying both PATH and Path into one
     // entry, which is what killed the CLI in #12046. Leaving the map untouched
     // makes the child inherit our block verbatim.
-    move_environment_variable("NODE_OPTIONS", "ORCA_NODE_OPTIONS");
+    move_environment_variable("NODE_OPTIONS", "ZKYQ_NODE_OPTIONS");
     move_environment_variable(
         "NODE_REPL_EXTERNAL_MODULE",
-        "ORCA_NODE_REPL_EXTERNAL_MODULE",
+        "ZKYQ_NODE_REPL_EXTERNAL_MODULE",
     );
     env::set_var("ELECTRON_RUN_AS_NODE", "1");
     env::set_var("ORCA_WINDOWS_PACKAGED_CLI_LAUNCHER", "1");

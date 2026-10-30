@@ -329406,8 +329406,8 @@
     {
       "path": "native/windows-cli-launcher/src/main.rs",
       "upstream_sha256": "317d4e1c19a1d1d6be2fa93f832d2e43ab0d6ae8e7043bba019c52b46b2340f2",
-      "current_sha256": "bbb8f8fee06635cb7ed21cc3d93942c4ccb60f780f7f987947bace9dc634ef77",
-      "reason": "Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands.；启动器读写统一为zkyq配置，成功安装后移除旧生成配置，失败保留重试且不读取旧名回退；统一Windows桌面命令安装状态、宿主能力、批处理分发和原生恢复命令为zkyq，保留PATH及消息参数行为；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+      "current_sha256": "ebb9af33db8e9825423ef34284a95d6c8c2651e33dfb5e86f2afc40962d7644c",
+      "reason": "Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands.；启动器读写统一为zkyq配置，成功安装后移除旧生成配置，失败保留重试且不读取旧名回退；统一Windows桌面命令安装状态、宿主能力、批处理分发和原生恢复命令为zkyq，保留PATH及消息参数行为；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；Node参数暂存合同改为ZKYQ，启动器及重启恢复同步，历史脚本归属识别保留"
     },
     {
       "path": "resources/win32/bin/zkyq.cmd",
@@ -329958,8 +329958,8 @@
     {
       "path": "src/main/cli/wsl-cli-scripts.ts",
       "upstream_sha256": "546a8bc007584027f73a6f1fef985d014fdf6727a9a86a321814eb230b7bf9d8",
-      "current_sha256": "a5f59b44f6bbc13f481914e16b1e58d8eb2e748c34e29ed39bdc41f05afe63c1",
-      "reason": "WSL命令迁移为zkyq，成功写入后退役受管理旧入口，保留用户文件和桥接参数，失效旧命令修复缓存并对齐派发环境；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；应用启动配置对统一ZKYQ身份，调用方和生成脚本同步，旧值拒绝默认回退并保持旧脚本归属识别"
+      "current_sha256": "3faedb4727a3bc28d5390362eabc7ea137705b1a1b1c48f98d797886931ae2d7",
+      "reason": "WSL命令迁移为zkyq，成功写入后退役受管理旧入口，保留用户文件和桥接参数，失效旧命令修复缓存并对齐派发环境；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；应用启动配置对统一ZKYQ身份，调用方和生成脚本同步，旧值拒绝默认回退并保持旧脚本归属识别；Node参数暂存合同改为ZKYQ，启动器及重启恢复同步，历史脚本归属识别保留"
     },
     {
       "path": "src/main/cli/wsl-cli-status.ts",
@@ -330108,8 +330108,8 @@
     {
       "path": "src/main/cli/packaged-cli-assets.test.ts",
       "upstream_sha256": "c190f039dcf52070bd851b1e6475b9f4a54bc924b16d946880a711635bc28879",
-      "current_sha256": "0d5b63674567c0a1f629fe30284f39d8d42696e29656ec38cc4f5aaeb3950cc6",
-      "reason": "原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者；macOS打包CLI物理改名zkyq，同步安装/回收/卸载与本地派发，保留用户命令及文件竞态保护；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+      "current_sha256": "380f5e72036331989b979d8ac2b75e48a4d52014dc6219c812398f8991421f5c",
+      "reason": "原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者；macOS打包CLI物理改名zkyq，同步安装/回收/卸载与本地派发，保留用户命令及文件竞态保护；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；Node参数暂存合同改为ZKYQ，启动器及重启恢复同步，历史脚本归属识别保留"
     },
     {
       "path": "src/main/runtime/claude-agent-teams-shim-env.test.ts",
@@ -330156,8 +330156,8 @@
     {
       "path": "resources/linux/bin/zkyq",
       "upstream_sha256": "3700b10e53d38269b2ab7cd41c46d07da1412b94629e6e57c92e69da9ce16aca",
-      "current_sha256": "edf0d67a0a2748f28c2d275e0153ed3c99d409c86453695766596c52a9cb788d",
-      "reason": "原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者"
+      "current_sha256": "1653a6460e5396fb5f5a3b0c6d8dad70014d40bb998ab981faacc95ff61634e9",
+      "reason": "原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者；Node参数暂存合同改为ZKYQ，启动器及重启恢复同步，历史脚本归属识别保留"
     },
     {
       "path": "src/main/ipc/desktop-browser-bridge-wiring.test.ts",
@@ -330222,8 +330222,8 @@
     {
       "path": "resources/darwin/bin/zkyq",
       "upstream_sha256": "55776ac787472b997218bb3801b231eca756d5650b95f764eeadf912831fa1d5",
-      "current_sha256": "a4bd15e3cb23511e2f42a3e22d74851a19099bcee9337dd69721edaffa076c6e",
-      "reason": "macOS打包CLI物理改名zkyq，同步安装/回收/卸载与本地派发，保留用户命令及文件竞态保护"
+      "current_sha256": "5b7caf3d49b17537effb6a62e94eefbd406b4c69fe43db08e4d14c7050f479b6",
+      "reason": "macOS打包CLI物理改名zkyq，同步安装/回收/卸载与本地派发，保留用户命令及文件竞态保护；Node参数暂存合同改为ZKYQ，启动器及重启恢复同步，历史脚本归属识别保留"
     },
     {
       "path": "src/main/cli/cli-installer-test-fixtures.ts",
@@ -330432,8 +330432,8 @@
     {
       "path": "src/main/cli/cli-dev-launcher.ts",
       "upstream_sha256": "b6a4cd0bc63dede1de0ad2929b4372004e878e8b9284a0ce6407a55d4f12b298",
-      "current_sha256": "695637f73d11ae2d3cfeeb2c303370395939b8af24a2bcf9e84a0a09bb30f9dc",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；应用启动配置对统一ZKYQ身份，调用方和生成脚本同步，旧值拒绝默认回退并保持旧脚本归属识别"
+      "current_sha256": "1168723e420bb555dd2852477dbec8e4bfb6ef753d499640f4ceeb2867a1af4e",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；应用启动配置对统一ZKYQ身份，调用方和生成脚本同步，旧值拒绝默认回退并保持旧脚本归属识别；Node参数暂存合同改为ZKYQ，启动器及重启恢复同步，历史脚本归属识别保留"
     },
     {
       "path": "src/main/cli/wsl-managed-cli.wsl.test.ts",
@@ -331140,8 +331140,8 @@
     {
       "path": "src/cli/runtime/serve-appimage-update.test.ts",
       "upstream_sha256": "09c6748bd546b2895c5c08943fcf3b5b42249369e3a35d00ee5757be69d11773",
-      "current_sha256": "1aee85161b53197209282158b22267f92761a710849724acf16a972b023fa822",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+      "current_sha256": "fb9a2887f91097d73ee384f9b838e8a7bdcd19377a781b6b2d4c916e00be1035",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；Node参数暂存合同改为ZKYQ，启动器及重启恢复同步，历史脚本归属识别保留"
     },
     {
       "path": "src/cli/runtime/serve-service-unit.ts",
@@ -331626,8 +331626,8 @@
     {
       "path": "src/main/startup/cli-launch-redirect.ts",
       "upstream_sha256": "1c6ee72e4684aaf08b1d346d758f9b0e7933c20e7ecb56613fb051cd264539d0",
-      "current_sha256": "2a9295a67c8dbbc9be8a5857baa4c87f851ccc9f06b745fb80598939c4f335eb",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+      "current_sha256": "89d2198d415a3de5772620f5f0586d47f33984ae3e1164153072403ae7437e1d",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；Node参数暂存合同改为ZKYQ，启动器及重启恢复同步，历史脚本归属识别保留"
     },
     {
       "path": "src/main/startup/configure-process.ts",
@@ -331826,6 +331826,24 @@
       "upstream_sha256": "81dcf2b9439bf021324e2d3ba8d5e61dbc3919722310d31e8242f9f6d583cdfd",
       "current_sha256": "4fdf29fa729bdee94f452f99e99807726a3cba0ce8ffd945914c6c0900a272f0",
       "reason": "应用启动配置对统一ZKYQ身份，调用方和生成脚本同步，旧值拒绝默认回退并保持旧脚本归属识别"
+    },
+    {
+      "path": "src/cli/runtime/serve-appimage-update.ts",
+      "upstream_sha256": "01377e9fd53a1ba2794088e91a255dbbd181a5acb2caf51dc0354405fc608f10",
+      "current_sha256": "800dece62e02aa2c264e55d7ae6768cdcb73ae5c2ac37c7d18cf571decbd065a",
+      "reason": "Node参数暂存合同改为ZKYQ，启动器及重启恢复同步，历史脚本归属识别保留"
+    },
+    {
+      "path": "src/cli/runtime/serve-pid1-init-reaper.test.ts",
+      "upstream_sha256": "83f5ea88f7f1db184e97cb774e00649f56ad775ef41c6b5c02dc6b28d1b0a2c0",
+      "current_sha256": "43d139f183126baa809a86db3aa7cc094cd58e5ed8cb373cfba21c37d783b719",
+      "reason": "Node参数暂存合同改为ZKYQ，启动器及重启恢复同步，历史脚本归属识别保留"
+    },
+    {
+      "path": "src/cli/runtime/serve-pid1-init-reaper.ts",
+      "upstream_sha256": "0b5190d1ed4de64f81cd9c47234274e6247cd79eacbe331f21ec7e73ceecb087",
+      "current_sha256": "ee653652dbcc5a8b3ac367c182bcedd48b44409107645327feb20f351ff5d4eb",
+      "reason": "Node参数暂存合同改为ZKYQ，启动器及重启恢复同步，历史脚本归属识别保留"
     }
   ],
   "reviewed_findings": [

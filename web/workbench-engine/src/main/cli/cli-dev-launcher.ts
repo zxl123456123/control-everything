@@ -64,6 +64,7 @@ export async function ensureDevLauncher(args: {
         legacyContent
           .replaceAll('ZKYQ_USER_DATA_PATH', 'ORCA_USER_DATA_PATH')
           .replaceAll('ZKYQ_APP_EXECUTABLE', 'ORCA_APP_EXECUTABLE')
+          .replaceAll('ZKYQ_NODE_', 'ORCA_NODE_')
       )
     }
   }
@@ -93,8 +94,8 @@ if [ -z "\${ZKYQ_APP_EXECUTABLE:-}" ]; then
   export ZKYQ_APP_EXECUTABLE="$ELECTRON"
   export ZKYQ_APP_EXECUTABLE_NEEDS_APP_ROOT=1
 fi
-export ORCA_NODE_OPTIONS="\${NODE_OPTIONS-}"
-export ORCA_NODE_REPL_EXTERNAL_MODULE="\${NODE_REPL_EXTERNAL_MODULE-}"
+export ZKYQ_NODE_OPTIONS="\${NODE_OPTIONS-}"
+export ZKYQ_NODE_REPL_EXTERNAL_MODULE="\${NODE_REPL_EXTERNAL_MODULE-}"
 unset NODE_OPTIONS
 unset NODE_REPL_EXTERNAL_MODULE
 ELECTRON_RUN_AS_NODE=1 exec "$ELECTRON" "$CLI" "$@"
@@ -115,8 +116,8 @@ if not defined ZKYQ_APP_EXECUTABLE (
   set "ZKYQ_APP_EXECUTABLE=%ELECTRON%"
   set "ZKYQ_APP_EXECUTABLE_NEEDS_APP_ROOT=1"
 )
-set "ORCA_NODE_OPTIONS=%NODE_OPTIONS%"
-set "ORCA_NODE_REPL_EXTERNAL_MODULE=%NODE_REPL_EXTERNAL_MODULE%"
+set "ZKYQ_NODE_OPTIONS=%NODE_OPTIONS%"
+set "ZKYQ_NODE_REPL_EXTERNAL_MODULE=%NODE_REPL_EXTERNAL_MODULE%"
 set NODE_OPTIONS=
 set NODE_REPL_EXTERNAL_MODULE=
 set ELECTRON_RUN_AS_NODE=1
@@ -135,7 +136,7 @@ set "ORCA_LAUNCHER=${escapeWindowsBatchValue(launcherPath)}"
 export function extractManagedUnixLauncherTarget(content: string): string | null {
   if (
     !content.includes('ELECTRON_RUN_AS_NODE=1') ||
-    !content.includes('ORCA_NODE_OPTIONS') ||
+    (!content.includes('ZKYQ_NODE_OPTIONS') && !content.includes('ORCA_NODE_OPTIONS')) ||
     !content.includes('NODE_REPL_EXTERNAL_MODULE')
   ) {
     return null
