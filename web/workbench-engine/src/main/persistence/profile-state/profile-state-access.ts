@@ -20,6 +20,26 @@ export type ProfileStateMaintenance = ProfileStateRuntimeAdmission & {
 
 const maintenanceRoots = new WeakMap<ProfileStateMaintenance, string>()
 
+/** Bind a root-wide migration to the genuine, live maintenance owner for that root. */
+export function assertProfileStateMaintenanceRoot(
+  maintenance: ProfileStateMaintenance,
+  userDataPath: string
+): string {
+  const root = maintenanceRoots.get(maintenance)
+  if (root === undefined) {
+    throw new ProfileStateAccessError(
+      'Profile state migration requires an acquired maintenance owner'
+    )
+  }
+  maintenance.assertActive()
+  if (!samePath(realpathSync(userDataPath), root)) {
+    throw new ProfileStateAccessError(
+      'Profile state migration root does not belong to the maintenance owner'
+    )
+  }
+  return root
+}
+
 /** Bind destructive operations to a genuine, live maintenance owner for these exact profile paths. */
 export function assertProfileStateMaintenance(
   maintenance: ProfileStateMaintenance,
