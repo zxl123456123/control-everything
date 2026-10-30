@@ -327124,7 +327124,8 @@
     "src/main/cli/retire-generated-command.cjs",
     "src/main/cli/retire-generated-command.d.cts",
     "src/main/cli/retire-generated-command.test.ts",
-    "config/scripts/live-remote-freeze-rpc.test.mjs"
+    "config/scripts/live-remote-freeze-rpc.test.mjs",
+    "src/cli/runtime/serve-service-retirement.ts"
   ],
   "adapted_files": [
     {
@@ -331048,8 +331049,8 @@
     {
       "path": "src/cli/handlers/serve-service.test.ts",
       "upstream_sha256": "085a3d1f7c68e4bb58f14fcc77ee56b1e6d5196e22f1503b783b26980b5d0475",
-      "current_sha256": "51e6cf0955d4098a6c1a1d0cca497545615a7e653891dc731d71b49ae256430b",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；服务安装按当前zkyq入口查找，统一服务生成和操作指导，保留profile和服务管理约束"
+      "current_sha256": "a597fd64cae44cee8a0316f6fbf7bbb7e4170f68b2cf404c0713a03472ac3f81",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；服务安装按当前zkyq入口查找，统一服务生成和操作指导，保留profile和服务管理约束；服务注册统一zkyq身份，核归属后停用并归档旧配置，保留迁移参数和macOS更新停启协调"
     },
     {
       "path": "src/cli/index-automation-run-output.test.ts",
@@ -331144,8 +331145,8 @@
     {
       "path": "src/cli/runtime/serve-service-unit.ts",
       "upstream_sha256": "73b42c7cefc4928f356bd5b476fbd4c7b1e8be7de3f02ddb3ac9eb0cb3c2597b",
-      "current_sha256": "b189551f8c244aeeff9dee48e040092264c49b965911f3c010655219b3fb923e",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；服务安装按当前zkyq入口查找，统一服务生成和操作指导，保留profile和服务管理约束"
+      "current_sha256": "3e652e96fce73a0a4492d4cdfe7e1b622705b786989c4d3d4e8c83f2204bec7c",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；服务安装按当前zkyq入口查找，统一服务生成和操作指导，保留profile和服务管理约束；服务注册统一zkyq身份，核归属后停用并归档旧配置，保留迁移参数和macOS更新停启协调"
     },
     {
       "path": "src/cli/runtime/status.test.ts",
@@ -331756,14 +331757,14 @@
     {
       "path": "src/cli/handlers/serve-service-format.ts",
       "upstream_sha256": "4ac48624e6e7c3bccd9f525f0337a206b5c79fdd84bf0392e081349347f0915c",
-      "current_sha256": "db2848964c77286e9054ee95dda414d03f3876c2620aebf9227ae49abdb9deaa",
-      "reason": "服务安装按当前zkyq入口查找，统一服务生成和操作指导，保留profile和服务管理约束"
+      "current_sha256": "03a4e966ce1add2cc731c3c3437f2ff881571f90f25e46432df76646af384d66",
+      "reason": "服务安装按当前zkyq入口查找，统一服务生成和操作指导，保留profile和服务管理约束；服务注册统一zkyq身份，核归属后停用并归档旧配置，保留迁移参数和macOS更新停启协调"
     },
     {
       "path": "src/cli/handlers/serve-service.ts",
       "upstream_sha256": "9c3355e0245546063057a6f4f2e0c26f398448e67e627e4043cd2374762ae4e7",
-      "current_sha256": "fa4b420e805f6eadf96ec5ef41fc40cee2e0332dec7b06bf259b702917e0dad9",
-      "reason": "服务安装按当前zkyq入口查找，统一服务生成和操作指导，保留profile和服务管理约束"
+      "current_sha256": "9b140f6896277994e2652aa99f32faf8495ad3db6dc13f3bd6a84acae68d6db5",
+      "reason": "服务安装按当前zkyq入口查找，统一服务生成和操作指导，保留profile和服务管理约束；服务注册统一zkyq身份，核归属后停用并归档旧配置，保留迁移参数和macOS更新停启协调"
     },
     {
       "path": "src/cli/runtime/orca-app-executable.ts",
@@ -331786,8 +331787,26 @@
     {
       "path": "src/cli/specs/serve.ts",
       "upstream_sha256": "6431a280314ee8cb4ad4b092e81ed2fa093579708e5ff7422a484bad36996f5e",
-      "current_sha256": "337758bd6c757758d3691fc3e99b99ea347f4f0cbeacbfa24df5124b9695c96a",
-      "reason": "服务安装按当前zkyq入口查找，统一服务生成和操作指导，保留profile和服务管理约束"
+      "current_sha256": "1f2f09359a192c54fa6fa4dbfbe01bebd43a1e29b531d016196a13264d8ea721",
+      "reason": "服务安装按当前zkyq入口查找，统一服务生成和操作指导，保留profile和服务管理约束；服务注册统一zkyq身份，核归属后停用并归档旧配置，保留迁移参数和macOS更新停启协调"
+    },
+    {
+      "path": "src/cli/runtime/serve-bundle-park.test.ts",
+      "upstream_sha256": "ab74523efb085653a0c9af545705fe30ea883089a6409b66f652e1fab5b7b995",
+      "current_sha256": "2e1720c24e4eaeae693cb6a1dfab59ebac062f9b43f9332a5a20c21f6920f567",
+      "reason": "服务注册统一zkyq身份，核归属后停用并归档旧配置，保留迁移参数和macOS更新停启协调"
+    },
+    {
+      "path": "src/main/updater/serve-supervisor-install-park.test.ts",
+      "upstream_sha256": "3afee06a65c36e709adf5da00f865397bac9fab5cfa556d66c88ba08ec10b2a1",
+      "current_sha256": "896ab9ad52c82f205a3cdee6dae139e813f5194dcfd5e2187df9ab4ab6ea47ab",
+      "reason": "服务注册统一zkyq身份，核归属后停用并归档旧配置，保留迁移参数和macOS更新停启协调"
+    },
+    {
+      "path": "src/shared/serve-bundle-coordination.ts",
+      "upstream_sha256": "f28f8a999b6f54b9bbc428dc6ba67dfdc9ed1595870560a6ab7da29834ceedd8",
+      "current_sha256": "845199605835783a73573747232d4d8f1d9cace6abe3d44775fad704fbfc8cf0",
+      "reason": "服务注册统一zkyq身份，核归属后停用并归档旧配置，保留迁移参数和macOS更新停启协调"
     }
   ],
   "reviewed_findings": [
@@ -332355,14 +332374,14 @@
       "path": "src/cli/specs/serve.ts",
       "rule": "fixed-external-ipv4",
       "line": 40,
-      "sha256": "337758bd6c757758d3691fc3e99b99ea347f4f0cbeacbfa24df5124b9695c96a",
+      "sha256": "1f2f09359a192c54fa6fa4dbfbe01bebd43a1e29b531d016196a13264d8ea721",
       "reason": "公开界面占位或CLI用法示例，非采集的个人配置；限定本行字节，实际运行地址仍由用户配置。"
     },
     {
       "path": "src/cli/specs/serve.ts",
       "rule": "fixed-external-ipv4",
       "line": 41,
-      "sha256": "337758bd6c757758d3691fc3e99b99ea347f4f0cbeacbfa24df5124b9695c96a",
+      "sha256": "1f2f09359a192c54fa6fa4dbfbe01bebd43a1e29b531d016196a13264d8ea721",
       "reason": "公开界面占位或CLI用法示例，非采集的个人配置；限定本行字节，实际运行地址仍由用户配置。"
     },
     {

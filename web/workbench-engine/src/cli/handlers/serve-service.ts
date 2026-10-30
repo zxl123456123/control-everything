@@ -18,6 +18,7 @@ import {
   type ServeServiceSpec
 } from '../runtime/serve-service-unit'
 import { resolveServiceCommand } from '../runtime/serve-app-launcher'
+import { findRetiredServeService, retireServeService } from '../runtime/serve-service-retirement'
 
 type Run = (program: string, args: string[]) => Promise<{ code: number | null; out: string }>
 
@@ -104,13 +105,23 @@ export async function installServeService(
   deps: ServeServiceDeps = defaultDeps()
 ): Promise<Record<string, unknown>> {
   requireManager(deps.platform)
-  const spec = serviceSpec(deps, {
+  const command = resolveServiceCommand(options.command, deps)
+  let spec = serviceSpec(deps, {
     ...options,
-    command: resolveServiceCommand(options.command, deps)
+    command
   })
-  if (options.dryRun) {
-    return { installed: false, dryRun: true, ...spec }
+  const retired = findRetiredServeService(spec)
+  if (retired) {
+    spec = serviceSpec(deps, {
+      command,
+      port: options.port ?? retired.port,
+      pairingAddress: options.pairingAddress ?? retired.pairingAddress
+    })
   }
+  if (options.dryRun) {
+    return { installed: false, dryRun: true, ...spec, retiring: retired?.name ?? null }
+  }
+  const retiredUnit = await retireServeService(retired, spec, deps)
   mkdirSync(dirname(spec.unitPath), { recursive: true })
   writeFileSync(spec.unitPath, spec.content, { mode: 0o644 })
   if (spec.logPath) {
@@ -126,6 +137,7 @@ export async function installServeService(
       manager: spec.manager,
       name: spec.name,
       unitPath: spec.unitPath,
+      retiredUnit,
       logPath: spec.logPath
     }
   }
@@ -137,6 +149,7 @@ export async function installServeService(
     manager: spec.manager,
     name: spec.name,
     unitPath: spec.unitPath,
+    retiredUnit,
     linger: await lingerState(deps)
   }
 }
@@ -151,18 +164,22 @@ export type ServeServiceStatus = {
   pid: number | null
   detail: string
   gaveUp: string | null
+  migrationRequired: boolean
 }
 
 export async function readServeServiceStatus(
   deps: ServeServiceDeps = defaultDeps()
 ): Promise<ServeServiceStatus> {
   requireManager(deps.platform)
-  const spec = serviceSpec(deps, { command: 'zkyq' })
+  const current = serviceSpec(deps, { command: 'zkyq' })
+  const retired = findRetiredServeService(current)
+  const spec = !existsSync(current.unitPath) && retired ? retired : current
   const base = {
     installed: existsSync(spec.unitPath),
     manager: spec.manager,
     name: spec.name,
     unitPath: spec.unitPath,
+    migrationRequired: retired !== null,
     gaveUp: readServeSupervisorBrake(resolveLaunchUserDataPath(deps.env))?.gaveUp?.reason ?? null
   }
   if (spec.manager === 'launchd') {
@@ -217,6 +234,7 @@ export async function uninstallServeService(
 ): Promise<Record<string, unknown>> {
   requireManager(deps.platform)
   const spec = serviceSpec(deps, { command: 'zkyq' })
+  const retiredUnit = await retireServeService(findRetiredServeService(spec), spec, deps)
   await (spec.manager === 'launchd'
     ? deps.run('launchctl', ['bootout', `gui/${deps.uid}/${spec.name}`])
     : deps.run('systemctl', ['--user', 'disable', '--now', spec.name]))
@@ -225,7 +243,13 @@ export async function uninstallServeService(
   if (spec.manager === 'systemd') {
     await deps.run('systemctl', ['--user', 'daemon-reload'])
   }
-  return { removed: existed, manager: spec.manager, name: spec.name, unitPath: spec.unitPath }
+  return {
+    removed: existed || retiredUnit !== null,
+    manager: spec.manager,
+    name: spec.name,
+    unitPath: spec.unitPath,
+    retiredUnit
+  }
 }
 
 /** Local, runtime-free output: the same envelope shape `--json` callers get elsewhere. */

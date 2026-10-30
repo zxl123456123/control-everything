@@ -3,7 +3,7 @@ import type { ServeServiceStatus } from './serve-service'
 
 export function formatServeServiceInstall(result: Record<string, unknown>): string {
   if (result.dryRun) {
-    return `Would write ${String(result.unitPath)}:\n\n${String(result.content)}`
+    return `${result.retiring ? `Would retire ${String(result.retiring)}.\n` : ''}Would write ${String(result.unitPath)}:\n\n${String(result.content)}`
   }
   const lines = [
     `Installed ${String(result.name)} (${String(result.manager)}) at ${String(result.unitPath)}.`
@@ -11,6 +11,7 @@ export function formatServeServiceInstall(result: Record<string, unknown>): stri
   if (result.logPath) {
     lines.push(`Log: ${String(result.logPath)}`)
   }
+  if (result.retiredUnit) lines.push(`Previous configuration: ${String(result.retiredUnit)}`)
   if (result.linger === 'no') {
     lines.push(
       'Note: lingering is off for this user, so the service stops when you log out. Run `loginctl enable-linger` to keep it running.'
@@ -30,6 +31,11 @@ export function formatServeServiceStatus(status: ServeServiceStatus): string {
     `${status.name} (${status.manager}): ${status.verdict}${status.pid ? `, pid ${status.pid}` : ''} — ${status.detail}`,
     `Unit: ${status.unitPath}${status.installed ? '' : ' (missing)'}`
   ]
+  if (status.migrationRequired) {
+    lines.push(
+      'A previous service registration remains. Run `zkyq serve service install` to migrate it.'
+    )
+  }
   if (status.gaveUp) {
     lines.push(`Gave up: ${status.gaveUp} ${SERVE_GAVE_UP_ADVICE}`)
   }

@@ -64,6 +64,7 @@ export const SERVE_COMMAND_SPECS: CommandSpec[] = [
       'The service never prints a pairing link to its log. Pair clients from the desktop app, or with `zkyq serve` in a terminal while the service is stopped.',
       'On Linux the service stops at logout unless lingering is on (`loginctl enable-linger`); install reports it.',
       "Reinstalling replaces the unit and clears a previous give-up. --command defaults to the installed Control Everything app's `zkyq` command on PATH and must not be a launcher tied to one app version. --dry-run prints the unit without installing it.",
+      'A previous service registration is stopped and migrated to the new name. Its original configuration is preserved outside the service directory; omitted port and pairing-address settings are retained during migration.',
       "Needs the Control Everything app installed on this machine. The `zkyq` command in a Control Everything terminal on an SSH host belongs to that connection's server and cannot install a service.",
       'Not available on Windows yet.'
     ],

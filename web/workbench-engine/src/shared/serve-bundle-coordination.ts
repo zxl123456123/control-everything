@@ -1,15 +1,16 @@
 /**
- * The record a desktop install and `orca serve --supervise` share to park a supervised server
+ * The record a desktop install and `zkyq serve --supervise` share to park a supervised server
  * while macOS replaces the app bundle both run from. Lives outside the bundle, keyed by its path.
  */
 import { createHash } from 'node:crypto'
 import { join } from 'node:path'
 
-/** launchd label prefix `orca serve service install` writes; only those supervisors register. */
-export const SERVE_LAUNCHD_LABEL_PREFIX = 'com.stablyai.orca.serve'
+/** launchd label prefix `zkyq serve service install` writes; only those supervisors register. */
+export const SERVE_LAUNCHD_LABEL_PREFIX = 'com.controleverything.serve'
+export const RETIRED_SERVE_LAUNCHD_LABEL_PREFIX = 'com.stablyai.orca.serve'
 export const SERVE_COORDINATION_PROTOCOL = 1
-/** orcad restarts its own browser helper; under the serve prefix so older installers park it too. */
-export const ORCAD_BROWSER_PARK_LABEL = `${SERVE_LAUNCHD_LABEL_PREFIX}.orcad-browser`
+/** The browser helper shares the current service namespace and restarts its own child. */
+export const ORCAD_BROWSER_PARK_LABEL = `${SERVE_LAUNCHD_LABEL_PREFIX}.browser`
 /** A registration this stale belongs to a supervisor that is gone or wedged. */
 export const SERVE_SUPERVISOR_HEARTBEAT_STALE_MS = 15_000
 export const SERVE_SUPERVISOR_HEARTBEAT_MS = 3_000
@@ -82,7 +83,13 @@ export function parseServeSupervisorRegistration(
     !('heartbeatAt' in value) ||
     typeof value.heartbeatAt !== 'number' ||
     !('label' in value) ||
-    !isServeSupervisorLabel(typeof value.label === 'string' ? value.label : undefined)
+    // Existing instances must still be parked during the update that retires their service.
+    !(
+      isServeSupervisorLabel(typeof value.label === 'string' ? value.label : undefined) ||
+      (typeof value.label === 'string' &&
+        (value.label === RETIRED_SERVE_LAUNCHD_LABEL_PREFIX ||
+          value.label.startsWith(`${RETIRED_SERVE_LAUNCHD_LABEL_PREFIX}.`)))
+    )
   ) {
     return null
   }

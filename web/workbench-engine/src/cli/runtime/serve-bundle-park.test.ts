@@ -8,6 +8,7 @@ import {
   bundleCoordinationDir,
   formatBundleIdentity,
   parkRecordPath,
+  parseServeSupervisorRegistration,
   supervisorsDir,
   type ServeParkRecord
 } from '../../shared/serve-bundle-coordination'
@@ -15,7 +16,7 @@ import { openServeBundlePark } from '../../shared/serve-bundle-park'
 import { superviseServeService } from './serve-supervised-service'
 import { createSupervisedParkWatch } from './serve-supervised-park-watch'
 
-const LABEL = 'com.stablyai.orca.serve.default'
+const LABEL = 'com.controleverything.serve.default'
 
 describe('openServeBundlePark', () => {
   let root: string
@@ -67,8 +68,30 @@ describe('openServeBundlePark', () => {
   it('takes part only under an installed launchd label on macOS', () => {
     expect(open({})).toBeNull()
     expect(open({ XPC_SERVICE_NAME: 'application.com.other' })).toBeNull()
+    expect(open({ XPC_SERVICE_NAME: 'com.stablyai.orca.serve.default' })).toBeNull()
     expect(open({ XPC_SERVICE_NAME: LABEL }, 'linux')).toBeNull()
     expect(open()).not.toBeNull()
+  })
+
+  it('reads an existing old registration so an upgrade can still park its child', () => {
+    expect(
+      parseServeSupervisorRegistration({
+        protocol: 1,
+        pid: process.pid,
+        childPid: 77,
+        heartbeatAt: Date.now(),
+        label: 'com.stablyai.orca.serve.default'
+      })
+    ).toMatchObject({ childPid: 77 })
+    expect(
+      parseServeSupervisorRegistration({
+        protocol: 1,
+        pid: process.pid,
+        childPid: 77,
+        heartbeatAt: Date.now(),
+        label: 'com.stablyai.orca.serve-other'
+      })
+    ).toBeNull()
   })
 
   it('registers with its child pid and removes the registration on close', async () => {

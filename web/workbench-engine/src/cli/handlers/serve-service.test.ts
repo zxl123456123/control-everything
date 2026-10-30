@@ -1,7 +1,7 @@
 import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { delimiter, join } from 'node:path'
+import { delimiter, dirname, join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import {
   installServeService,
@@ -20,7 +20,7 @@ describe('zkyq serve service', () => {
   let answers: Map<string, { code: number | null; out: string }>
 
   beforeEach(async () => {
-    home = await mkdtemp(join(tmpdir(), 'orca-serve-service-'))
+    home = await mkdtemp(join(tmpdir(), 'zkyq-serve-service-'))
     bin = join(home, 'bin')
     await mkdir(bin)
     for (const name of ['zkyq', 'orca', 'orca-ide']) {
@@ -51,6 +51,141 @@ describe('zkyq serve service', () => {
     }
   })
 
+  async function previousService(platform: 'linux' | 'darwin', dataKey = 'ORCA_USER_DATA_PATH') {
+    const d = deps(platform)
+    const current = await installServeService(
+      {
+        command: null,
+        dryRun: true,
+        port: '6779',
+        pairingAddress: 'wss://server.example.test/a%20b?x=1&y=2'
+      },
+      d
+    )
+    const name = String(current.name)
+      .replace('com.controleverything.serve', 'com.stablyai.orca.serve')
+      .replace('zkyq-serve', 'orca-serve')
+    const path = join(
+      dirname(String(current.unitPath)),
+      name + (platform === 'darwin' ? '.plist' : '')
+    )
+    const content = String(current.content)
+      .replaceAll(String(current.name), name)
+      .replaceAll('ZKYQ_USER_DATA_PATH', dataKey)
+    await mkdir(dirname(path), { recursive: true })
+    await writeFile(path, content)
+    return { d, current, name, path, content }
+  }
+
+  it.each(['linux', 'darwin'] as const)(
+    'retires the previous %s service before starting its replacement',
+    async (platform) => {
+      const old = await previousService(platform)
+      const preview = await installServeService({ command: null, dryRun: true }, old.d)
+      expect(preview.retiring).toBe(old.name)
+      expect(calls).toEqual([])
+      expect(await readFile(old.path, 'utf8')).toBe(old.content)
+      expect(existsSync(String(old.current.unitPath))).toBe(false)
+      const result = await installServeService({ command: null, dryRun: false }, old.d)
+      expect(calls[0]).toBe(
+        platform === 'darwin'
+          ? `launchctl bootout gui/501/${old.name}`
+          : `systemctl --user disable --now ${old.name}`
+      )
+      expect(existsSync(old.path)).toBe(false)
+      expect(String(result.retiredUnit)).toMatch(/\.retired$/)
+      expect(dirname(String(result.retiredUnit))).not.toBe(dirname(String(result.unitPath)))
+      expect(await readFile(String(result.retiredUnit), 'utf8')).toBe(old.content)
+      expect(await readFile(String(result.unitPath), 'utf8')).toBe(old.current.content)
+      calls = []
+      await expect(
+        installServeService({ command: null, dryRun: false }, old.d)
+      ).resolves.toMatchObject({ retiredUnit: null })
+      expect(calls.some((call) => call.includes(old.name))).toBe(false)
+    }
+  )
+
+  it.each(['linux', 'darwin'] as const)(
+    'preserves the previous %s unit when stopping fails',
+    async (platform) => {
+      const old = await previousService(platform)
+      answers.set(
+        platform === 'darwin'
+          ? `launchctl bootout gui/501/${old.name}`
+          : `systemctl --user disable --now ${old.name}`,
+        { code: 5, out: 'denied' }
+      )
+      await expect(installServeService({ command: null, dryRun: false }, old.d)).rejects.toThrow(
+        'denied'
+      )
+      expect(await readFile(old.path, 'utf8')).toBe(old.content)
+      expect(existsSync(String(old.current.unitPath))).toBe(false)
+      expect(calls).toHaveLength(1)
+    }
+  )
+
+  it('refuses an unrecognized unit before contacting a manager', async () => {
+    const old = await previousService('linux')
+    await writeFile(old.path, '[Service]\nExecStart=custom-command\n')
+    await expect(installServeService({ command: null, dryRun: false }, old.d)).rejects.toThrow(
+      'Cannot verify the previous service'
+    )
+    expect(calls).toEqual([])
+    expect(await readFile(old.path, 'utf8')).toContain('custom-command')
+  })
+
+  it('rejects a different profile even when its path has the selected profile as a prefix', async () => {
+    const old = await previousService('linux')
+    const foreign = old.content.replaceAll('profile', 'profile-other')
+    await writeFile(old.path, foreign)
+    await expect(installServeService({ command: null, dryRun: false }, old.d)).rejects.toThrow(
+      'Cannot verify'
+    )
+    expect(calls).toEqual([])
+    expect(await readFile(old.path, 'utf8')).toBe(foreign)
+  })
+
+  it('honors an explicit port while retaining the previous pairing address', async () => {
+    const old = await previousService('linux')
+    const preview = await installServeService({ command: null, dryRun: true, port: '6780' }, old.d)
+    expect(preview.content).toBe(String(old.current.content).replace('--port 6779', '--port 6780'))
+    expect(calls).toEqual([])
+  })
+
+  it('preserves an edit made while the previous service stops', async () => {
+    const old = await previousService('linux')
+    old.d.run = async () => {
+      await writeFile(old.path, 'changed by user')
+      return { code: 0, out: '' }
+    }
+    await expect(installServeService({ command: null, dryRun: false }, old.d)).rejects.toThrow(
+      'Cannot verify the previous service'
+    )
+    expect(await readFile(old.path, 'utf8')).toBe('changed by user')
+    expect(existsSync(String(old.current.unitPath))).toBe(false)
+  })
+
+  it('reports and uninstalls a remaining previous registration without creating the replacement', async () => {
+    const old = await previousService('linux', 'ZKYQ_USER_DATA_PATH')
+    answers.set(`systemctl --user show ${old.name} --property=ActiveState,SubState,MainPID`, {
+      code: 0,
+      out: 'ActiveState=active\nSubState=running\nMainPID=123\n'
+    })
+    const status = await readServeServiceStatus(old.d)
+    expect(status).toMatchObject({
+      name: old.name,
+      migrationRequired: true,
+      verdict: 'live',
+      pid: 123
+    })
+    expect(formatServeServiceStatus(status)).toContain('to migrate it')
+    const removed = await uninstallServeService(old.d)
+    expect(removed.removed).toBe(true)
+    expect(await readFile(String(removed.retiredUnit), 'utf8')).toBe(old.content)
+    expect(existsSync(old.path)).toBe(false)
+    expect(existsSync(String(old.current.unitPath))).toBe(false)
+  })
+
   it('installs and loads a LaunchAgent, clearing an old give-up', async () => {
     await mkdir(join(home, 'profile'))
     await writeFile(serveSupervisorBrakePath(join(home, 'profile')), '{}')
@@ -58,7 +193,7 @@ describe('zkyq serve service', () => {
     const unitPath = String(result.unitPath)
     expect(await readFile(unitPath, 'utf8')).toContain(`<string>${join(bin, 'zkyq')}</string>`)
     expect(calls).toEqual([
-      expect.stringMatching(/^launchctl bootout gui\/501\/com\.stablyai\.orca\.serve\./),
+      expect.stringMatching(/^launchctl bootout gui\/501\/com\.controleverything\.serve\./),
       `launchctl bootstrap gui/501 ${unitPath}`
     ])
     expect(existsSync(serveSupervisorBrakePath(join(home, 'profile')))).toBe(false)
@@ -75,8 +210,8 @@ describe('zkyq serve service', () => {
     expect(formatServeServiceInstall(result)).toContain('`zkyq serve`')
     expect(calls.slice(0, 3)).toEqual([
       'systemctl --user daemon-reload',
-      expect.stringMatching(/^systemctl --user enable orca-serve-[0-9a-f]{8}\.service$/),
-      expect.stringMatching(/^systemctl --user restart orca-serve-/)
+      expect.stringMatching(/^systemctl --user enable zkyq-serve-[0-9a-f]{8}\.service$/),
+      expect.stringMatching(/^systemctl --user restart zkyq-serve-/)
     ])
   })
 
@@ -120,7 +255,7 @@ describe('zkyq serve service', () => {
     calls = []
     await expect(uninstallServeService(d)).resolves.toMatchObject({ removed: true })
     expect(existsSync(String(result.unitPath))).toBe(false)
-    expect(calls[0]).toMatch(/^systemctl --user disable --now orca-serve-/)
+    expect(calls[0]).toMatch(/^systemctl --user disable --now zkyq-serve-/)
   })
 
   it('never picks a version-scoped launcher from the profile or a mounted AppImage', async () => {

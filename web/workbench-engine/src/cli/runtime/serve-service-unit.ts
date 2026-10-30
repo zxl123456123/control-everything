@@ -61,7 +61,7 @@ export function renderServeService(input: ServeServiceInput): ServeServiceSpec {
   const argv = [input.command, ...serveServiceArgs(input)]
   if (manager === 'launchd') {
     const name = suffix ? `${SERVE_LAUNCHD_LABEL_PREFIX}.${suffix}` : SERVE_LAUNCHD_LABEL_PREFIX
-    const logPath = join(input.homeDir, 'Library', 'Logs', 'Orca', `${name}.log`)
+    const logPath = join(input.homeDir, 'Library', 'Logs', 'zkyq', `${name}.log`)
     return {
       manager,
       name,
@@ -70,7 +70,7 @@ export function renderServeService(input: ServeServiceInput): ServeServiceSpec {
       content: renderLaunchAgent(name, argv, env, logPath)
     }
   }
-  const name = suffix ? `orca-serve-${suffix}.service` : 'orca-serve.service'
+  const name = suffix ? `zkyq-serve-${suffix}.service` : 'zkyq-serve.service'
   return {
     manager,
     name,
