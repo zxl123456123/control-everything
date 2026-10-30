@@ -329274,14 +329274,14 @@
     {
       "path": "src/main/orcad/orcad-cli-launcher.ts",
       "upstream_sha256": "c5e239828d68bd1cf5dd3e978f7d6cfda3ee4517253b17de18e82dcd448cb1e1",
-      "current_sha256": "915a33a808f27715cd4d926a5aed88a3e08fbb8e54beb567efb77bd3c184e426",
-      "reason": "平台命令入口和帮助统一品牌，精简账号说明与工作台展示，保留兼容协议及原生功能。；Use the short zkyq platform command while retaining the ce-workbench compatibility entry and legacy host metadata.；Retire the temporary ce-workbench command and offer only host-verified zkyq instructions.；Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands."
+      "current_sha256": "8595e97a384c296fce5220473f48604e376c40b1cd8dbd8ace96eb7b12b13161",
+      "reason": "平台命令入口和帮助统一品牌，精简账号说明与工作台展示，保留兼容协议及原生功能。；Use the short zkyq platform command while retaining the ce-workbench compatibility entry and legacy host metadata.；Retire the temporary ce-workbench command and offer only host-verified zkyq instructions.；Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands.；启动器读写统一为zkyq配置，成功安装后移除旧生成配置，失败保留重试且不读取旧名回退"
     },
     {
       "path": "src/main/orcad/orcad-cli-launcher.test.ts",
       "upstream_sha256": "7fde4ce5ed19ea0f5a3d462170763cf50906572f296336328d306d2cff96f258",
-      "current_sha256": "87207bf376babdf8f4b417b5da0bd57a00cf915289e237085e823636d889c2fd",
-      "reason": "平台命令入口和帮助统一品牌，精简账号说明与工作台展示，保留兼容协议及原生功能。；Use the short zkyq platform command while retaining the ce-workbench compatibility entry and legacy host metadata.；Retire the temporary ce-workbench command and offer only host-verified zkyq instructions.；Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands."
+      "current_sha256": "8b54fa37c980d175adf941cea168f247d99d8858395be0d5c2c06a1a71c3cda0",
+      "reason": "平台命令入口和帮助统一品牌，精简账号说明与工作台展示，保留兼容协议及原生功能。；Use the short zkyq platform command while retaining the ce-workbench compatibility entry and legacy host metadata.；Retire the temporary ce-workbench command and offer only host-verified zkyq instructions.；Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands.；启动器读写统一为zkyq配置，成功安装后移除旧生成配置，失败保留重试且不读取旧名回退"
     },
     {
       "path": "src/main/runtime/runtime-account-controller.ts",
@@ -329394,8 +329394,8 @@
     {
       "path": "native/windows-cli-launcher/src/main.rs",
       "upstream_sha256": "317d4e1c19a1d1d6be2fa93f832d2e43ab0d6ae8e7043bba019c52b46b2340f2",
-      "current_sha256": "726c9b74d4fccb71bbdcb73a8353c4b19c66168724e360108aafad2ca6d93584",
-      "reason": "Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands."
+      "current_sha256": "648eccd4177acbea9b63634b39623467caa79a70c5adf3c695b3286c7bd1bf61",
+      "reason": "Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands.；启动器读写统一为zkyq配置，成功安装后移除旧生成配置，失败保留重试且不读取旧名回退"
     },
     {
       "path": "resources/win32/bin/orca.cmd",

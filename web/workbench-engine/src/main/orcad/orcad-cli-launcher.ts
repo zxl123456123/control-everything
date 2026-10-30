@@ -12,8 +12,8 @@ import { writeFileAtomically } from '../codex-accounts/fs-utils'
 import { resolveOrcadInstallRoot, resolveUserDataPath } from './orcad-app-paths'
 import { isPlatformRuntime } from '../platform-runtime-policy'
 
-// Read by native/windows-cli-launcher: its presence beside orca.exe selects the server mode.
-export const ORCAD_WINDOWS_CLI_LAUNCHER_CONFIG_FILENAME = 'orca-launcher.cfg'
+// Read by native/windows-cli-launcher: its presence beside the exe selects the server mode.
+export const ORCAD_WINDOWS_CLI_LAUNCHER_CONFIG_FILENAME = 'zkyq-launcher.cfg'
 const RETIRED_LAUNCHER_SUFFIX = '.retired'
 
 let launcherPath: string | null = null
@@ -109,21 +109,24 @@ async function prepareWindowsLauncher(
   const path = join(binDir, filename)
   await mkdir(binDir, { recursive: true })
   await removeRetiredLaunchers(binDir, filename)
-  const binary = await readFile(source)
-  if (!(await nodeFileContentsEqual(path, binary).catch(() => false))) {
-    try {
-      writeFileAtomically(path, binary)
-    } catch {
-      // A running `orca` keeps its image mapped; Windows still lets it be renamed away.
-      await rename(path, `${path}.${randomUUID()}${RETIRED_LAUNCHER_SUFFIX}`)
-      writeFileAtomically(path, binary)
-    }
-  }
+  // Publish configuration before the new binary can be invoked.
   const configPath = join(binDir, ORCAD_WINDOWS_CLI_LAUNCHER_CONFIG_FILENAME)
   const config = buildWindowsCliLauncherConfig(process.execPath, entry, userDataPath)
   if ((await readFile(configPath, 'utf8').catch(() => null)) !== config) {
     writeFileAtomically(configPath, config)
   }
+  const binary = await readFile(source)
+  if (!(await nodeFileContentsEqual(path, binary).catch(() => false))) {
+    try {
+      writeFileAtomically(path, binary)
+    } catch {
+      // A running launcher keeps its image mapped; Windows still lets it be renamed away.
+      await rename(path, `${path}.${randomUUID()}${RETIRED_LAUNCHER_SUFFIX}`)
+      writeFileAtomically(path, binary)
+    }
+  }
+  // This generated file contains only runtime paths; retire it after successful installation.
+  await rm(join(binDir, 'orca-launcher.cfg'), { force: true })
   return path
 }
 

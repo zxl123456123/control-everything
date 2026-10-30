@@ -11,14 +11,14 @@
 //! was flagged as exactly that across several vendors (#23383).
 //!
 //! On a Windows server host, orcad copies this binary into its profile and
-//! writes `orca-launcher.cfg` beside it; that file selects the server mode.
+//! writes `zkyq-launcher.cfg` beside it; that file selects the server mode.
 
 use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::{exit, Command};
 
-const SERVER_CONFIG_FILENAME: &str = "orca-launcher.cfg";
+const SERVER_CONFIG_FILENAME: &str = "zkyq-launcher.cfg";
 
 #[cfg(windows)]
 mod administrator_status;
