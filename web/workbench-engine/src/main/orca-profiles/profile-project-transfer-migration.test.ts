@@ -16,6 +16,7 @@ import type { Repo } from '../../shared/repo-types'
 import * as profileStateDocuments from '../persistence/profile-state/profile-state-documents'
 import { openProfileStateDatabase } from '../persistence/profile-state/profile-state-database'
 import { ProfileStateSqliteAuthority } from '../persistence/profile-state/profile-state-sqlite-authority'
+import { acquireProfileStateAdmissionWithDataMigration } from '../persistence/profile-state/profile-state-data-name-migration'
 import {
   createProfileStateDatabaseBackupId,
   profileStateDatabaseBackupPath
@@ -45,7 +46,7 @@ let directory: string
 
 function paths(profileId: string): { dataFile: string; databaseFile: string } {
   return {
-    dataFile: join(directory, 'profiles', profileId, 'orca-data.json'),
+    dataFile: join(directory, 'profiles', profileId, 'zkyq-data.json'),
     databaseFile: join(directory, 'profiles', profileId, 'profile-state.db')
   }
 }
@@ -115,6 +116,28 @@ afterEach(() => {
 })
 
 describe('profile transfer migration', () => {
+  it('copies between profiles after startup migrates their old data names', () => {
+    const source = writeState('source', false, [repo])
+    const target = writeState('target', false)
+    for (const id of ['source', 'target']) {
+      const current = paths(id).dataFile
+      writeFileSync(join(directory, 'profiles', id, 'orca-data.json'), readFileSync(current))
+      rmSync(current)
+    }
+    const admission = acquireProfileStateAdmissionWithDataMigration(directory)
+    try {
+      expect(transfer('copy')).toMatchObject({ status: 'transferred', mode: 'copy' })
+      expect(readProfileStateWithRevision('target', directory).state.repos).toHaveLength(1)
+      expect(readFileSync(paths('source').dataFile, 'utf8')).toBe(source)
+      expect(readFileSync(paths('target').dataFile, 'utf8')).toBe(target)
+      for (const id of ['source', 'target']) {
+        expect(existsSync(join(directory, 'profiles', id, 'orca-data.json'))).toBe(false)
+      }
+    } finally {
+      admission.release()
+    }
+  })
+
   it.each(['copy', 'move'] as const)(
     '%s adopts an unopened JSON target without loading Store',
     (mode) => {
@@ -306,7 +329,7 @@ describe('profile transfer migration', () => {
     expect(readProfileStateWithRevision('source', directory).state.repos).toHaveLength(1)
     expect(readFileSync(paths('target').dataFile, 'utf8')).toBe(targetJson)
     expect(existsSync(paths('target').databaseFile)).toBe(false)
-    expect(readdirSync(join(paths('target').dataFile, '..'))).toEqual(['orca-data.json'])
+    expect(readdirSync(join(paths('target').dataFile, '..'))).toEqual(['zkyq-data.json'])
   })
 
   it('rejects a JSON edit during migration before publishing SQLite', () => {

@@ -11,6 +11,7 @@ import { folderWorkspaceKey } from '../../shared/workspace-scope'
 import { importProfileStateJson } from '../persistence/profile-state/profile-state-documents'
 import { openProfileStateDatabase } from '../persistence/profile-state/profile-state-database'
 import { getOrcaProfileStateDatabaseFile } from './profile-storage-paths'
+import { acquireProfileStateAdmissionWithDataMigration } from '../persistence/profile-state/profile-state-data-name-migration'
 import {
   getOtherProfileWorktreeIdsForHistoryGc,
   readOtherProfileWorkspaceCatalog
@@ -49,10 +50,10 @@ function userDataWithProfiles(
   for (const profile of profiles) {
     mkdirSync(join(root, 'profiles', profile.id), { recursive: true })
     if (profile.raw !== undefined) {
-      writeFileSync(join(root, 'profiles', profile.id, 'orca-data.json'), profile.raw)
+      writeFileSync(join(root, 'profiles', profile.id, 'zkyq-data.json'), profile.raw)
     } else if (profile.state !== undefined) {
       writeFileSync(
-        join(root, 'profiles', profile.id, 'orca-data.json'),
+        join(root, 'profiles', profile.id, 'zkyq-data.json'),
         JSON.stringify(profile.state)
       )
     }
@@ -61,6 +62,30 @@ function userDataWithProfiles(
 }
 
 describe('getOtherProfileWorktreeIdsForHistoryGc', () => {
+  it('preserves inactive profile history after startup migrates old data names', () => {
+    const root = userDataWithProfiles('active', [
+      { id: 'active', state: {} },
+      { id: 'other', state: { worktreeMeta: { 'repo::/other': {} } } }
+    ])
+    const directory = join(root, 'profiles', 'other')
+    const current = join(directory, 'zkyq-data.json')
+    const previous = join(directory, 'orca-data.json')
+    const original = readFileSync(current)
+    writeFileSync(previous, original)
+    rmSync(current)
+    const admission = acquireProfileStateAdmissionWithDataMigration(root)
+    try {
+      expect(getOtherProfileWorktreeIdsForHistoryGc(root)).toEqual({
+        ids: new Set(['repo::/other']),
+        unreadableProfiles: 0
+      })
+      expect(readFileSync(current)).toEqual(original)
+      expect(existsSync(previous)).toBe(false)
+    } finally {
+      admission.release()
+    }
+  })
+
   it('collects worktrees and folder workspaces from the inactive profiles', () => {
     const root = userDataWithProfiles('active', [
       { id: 'active', state: { worktreeMeta: { 'repo::/active': {} }, folderWorkspaces: [] } },
@@ -161,7 +186,7 @@ describe('getOtherProfileWorktreeIdsForHistoryGc', () => {
         { id: 'active', state: {} },
         { id: 'other', ...(hasJson ? { state } : {}) }
       ])
-      const dataFile = join(root, 'profiles', 'other', 'orca-data.json')
+      const dataFile = join(root, 'profiles', 'other', 'zkyq-data.json')
       const exportPath = `${dataFile}.sqlite-export.1.json`
       const exportJson = JSON.stringify({ worktreeMeta: { 'repo::/export': {} } })
       writeFileSync(exportPath, exportJson)
@@ -193,7 +218,7 @@ describe('getOtherProfileWorktreeIdsForHistoryGc', () => {
     } finally {
       database.db.close()
     }
-    const dataFile = join(root, 'profiles', 'other', 'orca-data.json')
+    const dataFile = join(root, 'profiles', 'other', 'zkyq-data.json')
     writeFileSync(
       `${dataFile}.sqlite-export.1.json`,
       JSON.stringify({ worktreeMeta: { 'repo::/stale-export': {} } })

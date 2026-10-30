@@ -332850,6 +332850,18 @@
       "upstream_sha256": "0bfddb2b206051c346f7ed84de055b754dbc4d2d6c7fac1f1b7b9b361eb7f897",
       "current_sha256": "fef13ad72f1dadfef20e0717a3f162aeb7099d5a685252a88f785da25c0c6ac9",
       "reason": "迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据"
+    },
+    {
+      "path": "src/main/orca-profiles/other-profile-workspace-catalog.test.ts",
+      "upstream_sha256": "9a19f074415c712f2bf4ed24687f604aae607fec530709473c2d193ecd310cfd",
+      "current_sha256": "584cf636d6c6bdc20cd6674d56bcabdab856d485a658a25b36e2ae140869f133",
+      "reason": "配置数据改名后验证跨配置历史保护和项目转移，并覆盖旧数据启动迁移"
+    },
+    {
+      "path": "src/main/orca-profiles/profile-project-transfer-migration.test.ts",
+      "upstream_sha256": "a8f5438405b0119559216d24b8fce6c38e536f0701e3645cbd3dc0b1e817f64e",
+      "current_sha256": "64b3f21f84c1826ef718c294b362411d74c0e9a00903d9f1ec832dcf4aa66343",
+      "reason": "配置数据改名后验证跨配置历史保护和项目转移，并覆盖旧数据启动迁移"
     }
   ],
   "reviewed_findings": [
