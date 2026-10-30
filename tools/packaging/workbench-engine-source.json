@@ -327115,7 +327115,9 @@
     "src/main/runtime/runtime-account-controller.test.ts",
     "src/cli/help.platform.test.ts",
     "src/renderer/src/components/settings/ManagedDataAccountsSection.test.tsx",
-    "src/shared/ephemeral-vm-recipe-diagnostics.test.ts"
+    "src/shared/ephemeral-vm-recipe-diagnostics.test.ts",
+    "src/cli/handlers/orchestration/runtime-compatibility.test.ts",
+    "src/main/runtime/orchestration/cli-command.test.ts"
   ],
   "adapted_files": [
     {
@@ -329769,6 +329771,90 @@
       "upstream_sha256": "f43848bbff3bccfadf29879f652885ae61a714d65bdf603d1fc4f93b15bce33b",
       "current_sha256": "22423fb952e5a1e3536d91f8e115fadd423d54429c292436b652d4b7d4797e73",
       "reason": "所有后台宿主统一zkyq命令与帮助纠错提示，取消平台专用品牌包装并迁移旧生成入口，保留参数和profile行为"
+    },
+    {
+      "path": "src/cli/handlers/orchestration.test.ts",
+      "upstream_sha256": "1ebd292e7c4c6c63cab1819c8b3e8c39d5274aabcc9d6487a547cec641474241",
+      "current_sha256": "19aea2ce7b32c437a63b7684ea8f591c5a274142f39998b35c635f95815849b4",
+      "reason": "统一已安装zkyq宿主的Agent派发、收信及恢复命令与状态摘要身份，保留历史记录识别和用户内容"
+    },
+    {
+      "path": "src/cli/handlers/orchestration/runtime-compatibility.ts",
+      "upstream_sha256": "a102ef1800a19043e2f39efcc12d44d67b8c038ec010fca91e8fa541ec3b19b7",
+      "current_sha256": "441bceda5b43095c99d9418767e3613b1e1c2de441fbe752faf9d9dea0bc53e1",
+      "reason": "统一已安装zkyq宿主的Agent派发、收信及恢复命令与状态摘要身份，保留历史记录识别和用户内容"
+    },
+    {
+      "path": "src/cli/runtime/orchestration-recovery-command.test.ts",
+      "upstream_sha256": "359edcb11e836fb884fe651bd3d4b8f93bd68d2d500ef7fcd0dc776aceec6c45",
+      "current_sha256": "c2f817aa6802e2d5cbed74f37cb726aac2293f86bde241dc4d1ca24e7fc91117",
+      "reason": "统一已安装zkyq宿主的Agent派发、收信及恢复命令与状态摘要身份，保留历史记录识别和用户内容"
+    },
+    {
+      "path": "src/cli/runtime/orchestration-recovery-command.ts",
+      "upstream_sha256": "ea13a8eb3a74889f7ca0d0d174e7f5645ad3c9716688846e5abaf503fd977c03",
+      "current_sha256": "24884f7086d53b33ec177fc18270ee77703c623c949e6daa0bf39ec2edfc7f66",
+      "reason": "统一已安装zkyq宿主的Agent派发、收信及恢复命令与状态摘要身份，保留历史记录识别和用户内容"
+    },
+    {
+      "path": "src/main/runtime/orchestration/__snapshots__/preamble.test.ts.snap",
+      "upstream_sha256": "1f4a570f927a4b463ad57b1e0491cf40b5c0157c1d93f1a5bc9e4b792ee00bf8",
+      "current_sha256": "811a7efa82cdf2a07e3541e4eeb4de40cf064caf8ecb2d06f052b11842528468",
+      "reason": "统一已安装zkyq宿主的Agent派发、收信及恢复命令与状态摘要身份，保留历史记录识别和用户内容"
+    },
+    {
+      "path": "src/main/runtime/orchestration/agent-facing-parity.test.ts",
+      "upstream_sha256": "2abfb8959a1e84f667b81d2144dbd2c2e4df2ee80b9bfd916bcfbb0996795223",
+      "current_sha256": "8188d44dcfd1c5c1d1b294ad91cbf2a3792ed45b61aa7010b6486c3ae58ab950",
+      "reason": "统一已安装zkyq宿主的Agent派发、收信及恢复命令与状态摘要身份，保留历史记录识别和用户内容"
+    },
+    {
+      "path": "src/main/runtime/orchestration/cli-command.ts",
+      "upstream_sha256": "c122a5b40631eb3efe7c3ba4765676a8c3f903e93fc0164a0f8ab125d1a93364",
+      "current_sha256": "3d79af687ea0d80889c20b33ad72c7259b6c19aa03c906d94dd4cec12f6910f6",
+      "reason": "统一已安装zkyq宿主的Agent派发、收信及恢复命令与状态摘要身份，保留历史记录识别和用户内容"
+    },
+    {
+      "path": "src/main/runtime/orchestration/coordinator-runtime-contract.ts",
+      "upstream_sha256": "ce0d6822c889bbd52903b1e8ad9e7c899abe2f63a483ac3983f82df1aaf4fff4",
+      "current_sha256": "79224d5c2289a256b904780e58df50d57135874799ce008cfba29aca7cab470c",
+      "reason": "统一已安装zkyq宿主的Agent派发、收信及恢复命令与状态摘要身份，保留历史记录识别和用户内容"
+    },
+    {
+      "path": "src/main/runtime/orchestration/preamble.test.ts",
+      "upstream_sha256": "b3a4c81fbd58b9c5b8aa4eeef95f809bb9321bb97ce96d03f7bcc30fd2db9e37",
+      "current_sha256": "e6b20b83ffe90571ec237e75e19364478f93cec6fbac0e41ef151849b2273068",
+      "reason": "统一已安装zkyq宿主的Agent派发、收信及恢复命令与状态摘要身份，保留历史记录识别和用户内容"
+    },
+    {
+      "path": "src/main/runtime/orchestration/preamble.ts",
+      "upstream_sha256": "20e4b049c72fbf003b1f00b2ec9131c53fef3e97b347ec57228f59414619518c",
+      "current_sha256": "c0acd06262f37e0b1980a5f40a1d0aa6ec46641d79b506079d015de7fc391ae5",
+      "reason": "统一已安装zkyq宿主的Agent派发、收信及恢复命令与状态摘要身份，保留历史记录识别和用户内容"
+    },
+    {
+      "path": "src/main/runtime/rpc/orchestration-legacy-operation.ts",
+      "upstream_sha256": "100fe98d90f44bdda1833187b050a29d0712a322fbe40b96510b4051cbff0706",
+      "current_sha256": "fafbb622968290559d3e4d4e6bf2484c0df9add25f79d507dd8a11a1a095b2cd",
+      "reason": "统一已安装zkyq宿主的Agent派发、收信及恢复命令与状态摘要身份，保留历史记录识别和用户内容"
+    },
+    {
+      "path": "src/shared/agent-status-types.test.ts",
+      "upstream_sha256": "504326590386279abd251899b6d40abfde66a49be2046344df4098ae21172321",
+      "current_sha256": "c0e68f43fb6ebfa49edae05b315d71a9ae2b27896bc7037c9457de01d4a8f6d6",
+      "reason": "统一已安装zkyq宿主的Agent派发、收信及恢复命令与状态摘要身份，保留历史记录识别和用户内容"
+    },
+    {
+      "path": "src/shared/orca-dispatch-status-prompt.ts",
+      "upstream_sha256": "43bb7f3e89603a76add787a5fe99ee682cfa9d76e6b2b2b720bede914dfa9a97",
+      "current_sha256": "45a05880956ebb866258ca95108d4cf46cb430e5e49b4af50bcb9646ee7f1abb",
+      "reason": "统一已安装zkyq宿主的Agent派发、收信及恢复命令与状态摘要身份，保留历史记录识别和用户内容"
+    },
+    {
+      "path": "src/shared/rpc-contract/orchestration-params.ts",
+      "upstream_sha256": "68bb9c9790c343c3d4e36509b49585e3e7a71d213f253e73ebd8698699d0081c",
+      "current_sha256": "64c73726a70d34c570adb15e6cfd9031b5fd911ae717c36ae50f6e20e096b0f8",
+      "reason": "统一已安装zkyq宿主的Agent派发、收信及恢复命令与状态摘要身份，保留历史记录识别和用户内容"
     }
   ],
   "reviewed_findings": [
