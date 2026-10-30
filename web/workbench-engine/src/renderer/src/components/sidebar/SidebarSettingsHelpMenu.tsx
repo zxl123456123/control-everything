@@ -153,19 +153,19 @@ function PlatformSettingsHelpMenu(): React.JSX.Element {
                 className="px-2 py-1.5 text-xs leading-relaxed text-muted-foreground"
                 role="note"
               >
-                开源组件：Orca · MIT License
+                MIT License
                 <br />
                 Copyright © 2026 Lovecast Inc.
               </div>
               <DropdownMenuItem
                 onSelect={() =>
                   openExternalUrl(
-                    `${GITHUB_URL}/blob/32370a5e05a22935adb79f6cbf83a3228fe879ac/LICENSE`
+                    'https://github.com/zxl123456123/control-everything/blob/e6411bd87f6770688351ccf3096cba05402fbdb5/web/workbench-engine/LICENSE'
                   )
                 }
               >
                 <ExternalLink className="size-3.5" />
-                查看源码与完整许可
+                查看完整许可
               </DropdownMenuItem>
             </DropdownMenuSubContent>
           </DropdownMenuSub>

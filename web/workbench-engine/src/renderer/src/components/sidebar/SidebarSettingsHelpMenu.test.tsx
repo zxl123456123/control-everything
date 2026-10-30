@@ -208,7 +208,8 @@ describe('SidebarSettingsHelpMenu', () => {
     window.history.replaceState(null, '', '/workbench/web-index.html?project_id=sample')
     const container = await renderMenu()
     expect(container.textContent).toContain('掌控一切 · 项目工作区')
-    expect(container.textContent).toContain('Orca · MIT License')
+    expect(container.textContent).toContain('MIT License')
+    expect(container.textContent).not.toContain('Orca')
     const licenses = container.querySelector('[data-testid="submenu"]')
     expect(licenses?.textContent).toContain('第三方许可')
     expect(licenses?.textContent).toContain('Copyright © 2026 Lovecast Inc.')
@@ -229,9 +230,9 @@ describe('SidebarSettingsHelpMenu', () => {
     expect(mocks.openSettingsPage).toHaveBeenCalledTimes(1)
     expect(mocks.shellOpenUrl).not.toHaveBeenCalled()
     expect(mocks.updaterCheck).not.toHaveBeenCalled()
-    await act(async () => findMenuItem(container, '查看源码与完整许可').click())
+    await act(async () => findMenuItem(container, '查看完整许可').click())
     expect(mocks.shellOpenUrl).toHaveBeenCalledWith(
-      'https://github.com/stablyai/orca/blob/32370a5e05a22935adb79f6cbf83a3228fe879ac/LICENSE'
+      'https://github.com/zxl123456123/control-everything/blob/e6411bd87f6770688351ccf3096cba05402fbdb5/web/workbench-engine/LICENSE'
     )
   })
 

@@ -327810,14 +327810,14 @@
     {
       "path": "src/renderer/src/components/sidebar/SidebarSettingsHelpMenu.test.tsx",
       "upstream_sha256": "febba0fe5688703c6760e276450831c1a6bf5e0afa85a04ac1f94f61936ebc91",
-      "current_sha256": "f51dbc6d4dba5ce1cfee5615422c16820b12999d45a5d7fd2fbfbfeb6966ab8a",
-      "reason": "M1a-W: platform settings retained and official service entrances absent；平台工作台统一视觉与品牌展示。"
+      "current_sha256": "f4cc65976c7648e0abb7c828034aea7f12ba3e9c2f68dd83d328b104a6a1a00a",
+      "reason": "M1a-W: platform settings retained and official service entrances absent；平台工作台统一视觉与品牌展示。；平台许可入口移除上游品牌与源码跳转"
     },
     {
       "path": "src/renderer/src/components/sidebar/SidebarSettingsHelpMenu.tsx",
       "upstream_sha256": "8f35317e72bfc9f11179dd74dc2af60e29f055ee1da99f84607f103e0823c215",
-      "current_sha256": "d71aa184f2c2cd61d20ee18e7f8e694f69095b3db6908c1f838ceabc5b25a868",
-      "reason": "M1a-W: platform help without official service entrances; preserve license attribution; M1a navigation: preserve a single project workspace while integrating platform business views；平台工作台统一视觉与品牌展示。"
+      "current_sha256": "cf4a9c2258f1e3ba465430460a1533ae7a44f0a6212e49fd1fd0c1275feb5939",
+      "reason": "M1a-W: platform help without official service entrances; preserve license attribution; M1a navigation: preserve a single project workspace while integrating platform business views；平台工作台统一视觉与品牌展示。；平台许可入口移除上游品牌与源码跳转"
     },
     {
       "path": "src/renderer/src/components/sidebar/SidebarToolbar.tsx",
