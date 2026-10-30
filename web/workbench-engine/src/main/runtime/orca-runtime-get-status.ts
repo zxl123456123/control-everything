@@ -156,7 +156,7 @@ export abstract class OrcaRuntimeWithGetStatus extends OrcaRuntimeWithGetRuntime
       capabilities.push(MOBILE_WEB_BUNDLE_CAPABILITY)
     }
     // Why the cause and not one fixed sentence: the operator can only act on the reason
-    // that actually applies, and a host that says "set ORCA_BROWSER_EXECUTABLE" to someone
+    // that actually applies, and a host that says "set ZKYQ_BROWSER_EXECUTABLE" to someone
     // who already set it sends them to fix a thing that is not broken.
     const cause = canBrowse || hasHeadlessCommands ? null : runtimeBrowserUnavailableCause()
     const degradations: RuntimeDegradation[] = cause

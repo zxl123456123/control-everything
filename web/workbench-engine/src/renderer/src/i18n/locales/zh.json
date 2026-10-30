@@ -8848,8 +8848,8 @@
           "editDescription": "更新此机器的连接详情。更改将在下次连接时生效。",
           "addDescription": "添加一台可通过 SSH 登录的持久机器。",
           "editingPrefix": "正在编辑",
-          "allowRemoteCliControl": "允许此主机的 orca CLI 控制 Orca",
-          "allowRemoteCliControlHelp": "新主机默认开启。允许在此主机上运行的 orca 命令打开并操作此桌面上的 Orca 浏览器标签页，但仅限此主机的工作区，且仅在主机连接期间；并允许此主机上由旧版 Orca 启动的终端为其自身受监督的工作运行编排命令（check、inbox、send、ask、reply）。它们无法读取你的文件、剪贴板或 Cookie。关闭时，它们只能访问此主机自身的 Orca 服务器。",
+          "allowRemoteCliControl": "远程控制浏览器",
+          "allowRemoteCliControlHelp": "新主机默认开启。仅在此主机已连接的工作区中控制浏览器，并支持已有受监督终端的编排命令。不能读取文件、剪贴板或 Cookie；关闭后仅访问主机自己的服务。",
           "addHost": "添加主机"
         },
         "TasksPane": {

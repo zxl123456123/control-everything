@@ -97,6 +97,9 @@ describe('which managed hosts may attach the desktop browser bridge', () => {
 // #31421: with the switch on, an unrouted host was told only to turn that switch on.
 describe('the error a host gets while no desktop is attached', () => {
   it('names the routing setting as the desktop UI labels it', () => {
+    expect(DESKTOP_BROWSER_BRIDGE_SETTING_LABEL).toBe(
+      en.auto.components.settings.SshTargetForm.allowRemoteCliControl
+    )
     const copy = en.settings.browser.sshWorkspaceRouting
     expect(DESKTOP_BROWSER_BRIDGE_ROUTING_SETTING_LABEL).toBe(
       `Settings › ${en.auto.components.settings.Settings.c46215ea03} › ${copy.rowTitle}`

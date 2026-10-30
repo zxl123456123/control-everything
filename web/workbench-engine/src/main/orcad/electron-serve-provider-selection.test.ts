@@ -20,6 +20,8 @@ vi.mock('@orca/process-host', async (importOriginal) => ({
 vi.mock('./orcad-browser-install-park', () => ({ openOrcadBrowserInstallPark: () => null }))
 
 import { resolveOrcadBrowserProvider, type OrcadBrowserProvider } from './orcad-browser-provider'
+import { runtimeBrowserUnavailableCause } from '../runtime/runtime-browser-commands-factory'
+import { browserUnavailableMessage } from '../../shared/runtime-session-contracts'
 
 const FAKE_SIDECAR = join(import.meta.dirname, '__fixtures__', 'fake-orcad-electron-sidecar.cjs')
 const INSTALLED_EXECUTABLE = join('/Applications', 'Orca.app', 'Contents', 'MacOS', 'Orca')
@@ -100,10 +102,40 @@ afterEach(async () => {
 })
 
 describe('resolveOrcadBrowserProvider Electron preference', () => {
-  it('uses the installed Electron app even when a Chromium executable is configured', async () => {
+  it('reports the configured path verbatim using the current environment name', async () => {
+    const missingPath = join(harnessRoot, 'Orca user directory', 'missing chromium')
+    provider = await resolveOrcadBrowserProvider({
+      userDataPath: join(harnessRoot, 'state'),
+      environment: { ZKYQ_BROWSER_EXECUTABLE: missingPath },
+      resolveInstalledElectronExecutable: async () => null,
+      resolveAgentBrowserBinary: () => '/agent-browser'
+    })
+    expect(provider).toBeNull()
+    const cause = runtimeBrowserUnavailableCause()
+    expect(cause).toEqual({ reason: 'executable_not_found', detail: missingPath })
+    expect(browserUnavailableMessage(cause.reason, cause.detail)).toBe(
+      `ZKYQ_BROWSER_EXECUTABLE points at a path that does not exist. (${missingPath})`
+    )
+    expect(runProcessMock).not.toHaveBeenCalled()
+  })
+
+  it('does not retain the retired browser environment variable as an alias', async () => {
     provider = await resolveOrcadBrowserProvider({
       userDataPath: join(harnessRoot, 'state'),
       environment: { ORCA_BROWSER_EXECUTABLE: chromiumExecutable },
+      resolveInstalledElectronExecutable: async () => null,
+      resolveAgentBrowserBinary: () => '/agent-browser'
+    })
+    expect(provider).toBeNull()
+    expect(runtimeBrowserUnavailableCause()).toEqual({ reason: 'unconfigured' })
+    expect(browserUnavailableMessage('unconfigured')).toContain('set ZKYQ_BROWSER_EXECUTABLE')
+    expect(runProcessMock).not.toHaveBeenCalled()
+  })
+
+  it('uses the installed Electron app even when a Chromium executable is configured', async () => {
+    provider = await resolveOrcadBrowserProvider({
+      userDataPath: join(harnessRoot, 'state'),
+      environment: { ZKYQ_BROWSER_EXECUTABLE: chromiumExecutable },
       resolveInstalledElectronExecutable: async () => INSTALLED_EXECUTABLE,
       resolveAgentBrowserBinary: () => '/agent-browser'
     })
@@ -120,7 +152,7 @@ describe('resolveOrcadBrowserProvider Electron preference', () => {
 
     provider = await resolveOrcadBrowserProvider({
       userDataPath: join(harnessRoot, 'state'),
-      environment: { ORCA_BROWSER_EXECUTABLE: chromiumExecutable },
+      environment: { ZKYQ_BROWSER_EXECUTABLE: chromiumExecutable },
       resolveInstalledElectronExecutable: async () => INSTALLED_EXECUTABLE,
       resolveAgentBrowserBinary: () => '/agent-browser'
     })
