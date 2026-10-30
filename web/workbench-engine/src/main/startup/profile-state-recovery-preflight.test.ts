@@ -193,7 +193,7 @@ describe('Electron recovery preflight', () => {
     expect(response()).toMatchObject({
       ok: false,
       code: 'runtime_error',
-      message: expect.stringContaining('Stop Orca')
+      message: expect.stringContaining('Stop Control Everything')
     })
     expect(readFileSync(item.databaseFile, 'utf8')).toBe('broken database')
     expect(JSON.parse(readFileSync(item.dataFile, 'utf8'))).toEqual({ old: true })
@@ -335,8 +335,13 @@ describe('Electron recovery preflight', () => {
       await vi.waitFor(() => expect(mocks.exit).toHaveBeenCalledWith(1))
       expect(mocks.relaunch).not.toHaveBeenCalled()
       expect(mocks.showMessageBox).toHaveBeenCalledWith(
-        expect.objectContaining({ detail: expect.stringContaining('Stop Orca') })
+        expect.objectContaining({
+          title: 'Control Everything could not finish recovering this profile',
+          message: 'Control Everything could not apply the selected profile state.',
+          detail: expect.stringContaining('Reopen Control Everything to choose again.')
+        })
       )
+      expect(mocks.showMessageBox.mock.calls[0][0].detail).toContain('Stop Control Everything')
       expect(readFileSync(item.databaseFile, 'utf8')).toBe('broken database')
     })
 

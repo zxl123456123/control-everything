@@ -331646,14 +331646,14 @@
     {
       "path": "src/main/startup/profile-state-recovery-preflight.test.ts",
       "upstream_sha256": "0ad019dc337f4a725aa9df32e77a24c150980b6d22f5c970caf1ad5df04139b6",
-      "current_sha256": "eab5b9c1268846e06dac8a85d1cd20e4dc5044af8a20901e671e6729180dd480",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+      "current_sha256": "17ab3e763a4f2a6cacf57e3747503e5185af69f702447776998ac43ae2a6c226",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；恢复失败对话框及占用提示统一平台名称，保留恢复和锁行为"
     },
     {
       "path": "src/main/startup/profile-state-recovery-preflight.ts",
       "upstream_sha256": "4fd1df1e98dcdc44a554b763156f6f10fc8928070550dbaafa94095b412864ff",
-      "current_sha256": "249bb36602ac18f72b6bc90c8be0f7d66e04a513826cb92e861c336f9ce05034",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+      "current_sha256": "035f275319e519d1e307edd099922ca570b601064c1fd267bff95a2b4400c891",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；恢复失败对话框及占用提示统一平台名称，保留恢复和锁行为"
     },
     {
       "path": "src/main/usage/usage-scan-worker-event-loop.test.ts",
