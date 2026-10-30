@@ -327158,6 +327158,12 @@
   ],
   "adapted_files": [
     {
+      "path": "src/main/runtime/rpc/orchestration-mutation-executor.test.ts",
+      "upstream_sha256": "098b49afb54f62f38c6e500fd0717b1e413ac2697204eac74fcd3c3629842ea2",
+      "current_sha256": "53c101eae3620721d315f246f356466c4876ad2fe84eb98b6073f37d35ede7d7",
+      "reason": "迁移终端发送身份并识别历史请求回执"
+    },
+    {
       "path": "src/cli/handlers/terminal-close.ts",
       "upstream_sha256": "4c5323898a798d09e238c45183febd13c35f9fe690be25e22f0a8710cc0e0d57",
       "current_sha256": "79bf68f8a073eb9df8a90956641ba7cef26875127077c97f2fd63e9a15ff0041",
@@ -327166,8 +327172,8 @@
     {
       "path": "src/cli/handlers/terminal-send.ts",
       "upstream_sha256": "9b45f7343bc0396ce3be65b4b91821db84be66e4cbca7947e11e2489b5fbd373",
-      "current_sha256": "00b9ff2bfde00e9e145cd105b4b1901aa006cecc923b5f61af6d551d88a48a2e",
-      "reason": "统一终端操作错误的产品身份并保留安全提示"
+      "current_sha256": "d28970168c2833af0fefcbefc194144560658226754f673630e5d08121f15b59",
+      "reason": "统一终端操作错误的产品身份并保留安全提示；迁移终端发送身份并识别历史请求回执"
     },
     {
       "path": "src/cli/handlers/terminal.ts",
@@ -327178,8 +327184,8 @@
     {
       "path": "src/cli/retry-request-flag.test.ts",
       "upstream_sha256": "408bd66c100156b5dc97633cad968b69e1f0e0ab1e33a5157aac79dd3c0d5c8d",
-      "current_sha256": "87f8952fbb4cbeeaf6bb1d031a1b985f9aaf1280137ec86343b827afcf6a507b",
-      "reason": "统一终端操作错误的产品身份并保留安全提示"
+      "current_sha256": "a1caa7c4a2f5c6f22cfb5a1aa2dd3ad9b8a7be452a7cbaa99bc894676bcb1463",
+      "reason": "统一终端操作错误的产品身份并保留安全提示；迁移终端发送身份并识别历史请求回执"
     },
     {
       "path": "src/cli/terminal-read-screen.test.ts",
@@ -330838,8 +330844,8 @@
     {
       "path": "src/main/runtime/rpc/orchestration-mutation-executor.ts",
       "upstream_sha256": "58ad572ff0f59725f847477f007f5fa675559d2a24ebea0b4e042a33715e9f4f",
-      "current_sha256": "dcc939385b7aeaea4181f2dc5689a2d68f6f809881de8801529804c569dfcc7d",
-      "reason": "编排命令合同收敛为zkyq/zkyq-dev，恢复与接管提示使用新命令，保留历史会话数据和授权约束"
+      "current_sha256": "f2df58f3288be5401be2f07d6b5881ecc82cccd750fb1de4a8392e26d9e27277",
+      "reason": "编排命令合同收敛为zkyq/zkyq-dev，恢复与接管提示使用新命令，保留历史会话数据和授权约束；迁移终端发送身份并识别历史请求回执"
     },
     {
       "path": "src/main/runtime/rpc/orchestration-mutation-ledger.test.ts",

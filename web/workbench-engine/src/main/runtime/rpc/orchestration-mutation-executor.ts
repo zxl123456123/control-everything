@@ -65,10 +65,23 @@ export class OrchestrationMutationExecutor {
     const existingPromptReceipt = isPromptMutation
       ? db.getMutationReceipt(callerFingerprint, requestId)
       : undefined
+    // Historical receipts store only a hash, so they cannot be renamed without the original input.
+    // Recompute the old identity only for an existing receipt and compare all other input unchanged.
+    const stablePrompt = stableParams as { client?: { id?: string; type?: string } }
+    const legacyBasePayloadHash =
+      existingPromptReceipt &&
+      stablePrompt?.client?.id === 'zkyq-cli' &&
+      stablePrompt.client.type === 'desktop'
+        ? hashCanonical({
+            method: request.method,
+            params: { ...stablePrompt, client: { ...stablePrompt.client, id: 'orca-cli' } }
+          })
+        : null
     if (
       existingPromptReceipt &&
       (existingPromptReceipt.method !== request.method ||
-        readPromptBasePayloadHash(existingPromptReceipt.payload_hash) !== basePayloadHash)
+        (readPromptBasePayloadHash(existingPromptReceipt.payload_hash) !== basePayloadHash &&
+          readPromptBasePayloadHash(existingPromptReceipt.payload_hash) !== legacyBasePayloadHash))
     ) {
       throw new OrchestrationError(
         'request_mismatch',

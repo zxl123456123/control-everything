@@ -148,6 +148,26 @@ describe('--retry-request and --wait-submit value damage', () => {
 })
 
 describe('terminal compatibility guidance', () => {
+  it('sends the current client identity', async () => {
+    const { client, call } = promptClient()
+    vi.spyOn(console, 'log').mockImplementation(() => {})
+    await TERMINAL_HANDLERS['terminal send']({
+      flags: new Map<string, string | boolean>([
+        ['terminal', 'term-1'],
+        ['text', 'hello'],
+        ['enter', true]
+      ]),
+      client,
+      cwd: '/repo',
+      json: true
+    })
+    expect(call).toHaveBeenCalledWith(
+      'terminal.send',
+      expect.objectContaining({ client: { id: 'zkyq-cli', type: 'desktop' } }),
+      expect.any(Object)
+    )
+  })
+
   it.each([
     [
       'unreachable',
