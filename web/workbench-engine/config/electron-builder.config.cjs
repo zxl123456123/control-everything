@@ -334,7 +334,7 @@ module.exports = {
     // Why: the Windows CLI shim ships via extraResources to resources/bin/zkyq.cmd
     // (beside the native resources/bin/zkyq.exe). Packing the source tree into
     // app.asar too lets asarUnpack:['resources/**'] extract a second copy at
-    // app.asar.unpacked/resources/win32/bin/orca.cmd with no adjacent zkyq.exe,
+    // app.asar.unpacked/resources/win32/bin/zkyq.cmd with no adjacent zkyq.exe,
     // which fails to launch the CLI (#7351).
     '!resources/win32{,/**/*}'
   ],
@@ -581,7 +581,7 @@ module.exports = {
       ...windowsRuntimeResources,
       winSpeechNativeResource,
       {
-        from: 'resources/win32/bin/orca.cmd',
+        from: 'resources/win32/bin/zkyq.cmd',
         to: 'bin/zkyq.cmd'
       },
       {

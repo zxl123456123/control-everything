@@ -49643,7 +49643,7 @@
       "reason": "direct_runtime_resource_tree"
     },
     {
-      "path": "resources/win32/bin/orca.cmd",
+      "path": "resources/win32/bin/zkyq.cmd",
       "source_path": "resources/win32/bin/orca.cmd",
       "git_blob": "3da08e250db9b91fa08fe50aecb65549aa209d63",
       "sha256": "95548897a2edf3bc0b2419db2e7f57db3432b1d56df13768d1e9efe34b7a28d1",
@@ -329333,8 +329333,8 @@
     {
       "path": "config/electron-builder.config.cjs",
       "upstream_sha256": "145988a8484048fbdf0f7f9361eac6ceb406af6a0be306f42f4fccae99bacd29",
-      "current_sha256": "e12e6181fb26f8ce2614d819646f2d293b9cd20dd52dcd902ecfca8b9db2625d",
-      "reason": "Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands.；统一Windows桌面命令安装状态、宿主能力、批处理分发和原生恢复命令为zkyq，保留PATH及消息参数行为"
+      "current_sha256": "ba5cafcf42612bfbe057cc0b70644af6fdcb5447da28c7220af212a286dfafc1",
+      "reason": "Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands.；统一Windows桌面命令安装状态、宿主能力、批处理分发和原生恢复命令为zkyq，保留PATH及消息参数行为；Windows命令源码路径同步物理改名"
     },
     {
       "path": "config/scripts/build-windows-cli-launcher.mjs",
@@ -329345,8 +329345,8 @@
     {
       "path": "config/scripts/electron-builder-config.test.mjs",
       "upstream_sha256": "e614ac6673bca68ec2d5df34e0b59b707c4351c6a6d1662ea0aed4f589a14437",
-      "current_sha256": "404dc8e66defcc2cddbb61b7fe0555c39e9f5865ff82b6a89eb66e672291ffaf",
-      "reason": "Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands.；统一Windows桌面命令安装状态、宿主能力、批处理分发和原生恢复命令为zkyq，保留PATH及消息参数行为"
+      "current_sha256": "7da899ae5674e84123da5ba1bbecf22d114834f5cbb96685f1f8828d45161e6f",
+      "reason": "Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands.；统一Windows桌面命令安装状态、宿主能力、批处理分发和原生恢复命令为zkyq，保留PATH及消息参数行为；Windows命令源码路径同步物理改名"
     },
     {
       "path": "config/scripts/orcad-windows-cli-launcher.mjs",
@@ -329403,10 +329403,10 @@
       "reason": "Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands.；启动器读写统一为zkyq配置，成功安装后移除旧生成配置，失败保留重试且不读取旧名回退；统一Windows桌面命令安装状态、宿主能力、批处理分发和原生恢复命令为zkyq，保留PATH及消息参数行为"
     },
     {
-      "path": "resources/win32/bin/orca.cmd",
+      "path": "resources/win32/bin/zkyq.cmd",
       "upstream_sha256": "95548897a2edf3bc0b2419db2e7f57db3432b1d56df13768d1e9efe34b7a28d1",
       "current_sha256": "40dd47a01be649a8b5d24659365e396d9e000699cc31ea4b38a4a201313a6683",
-      "reason": "Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands.；统一Windows桌面命令安装状态、宿主能力、批处理分发和原生恢复命令为zkyq，保留PATH及消息参数行为"
+      "reason": "Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands.；统一Windows桌面命令安装状态、宿主能力、批处理分发和原生恢复命令为zkyq，保留PATH及消息参数行为；物理源码改名zkyq.cmd，原始source_path与hash保持"
     },
     {
       "path": "src/main/cli/bundled-cli-launcher-path.ts",
