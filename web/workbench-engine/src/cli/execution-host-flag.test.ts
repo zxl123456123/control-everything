@@ -28,6 +28,7 @@ import {
 } from './execution-host-flag'
 import { parseExecutionHostId } from '../shared/execution-host'
 import type { RuntimeClient } from './runtime-client'
+import { formatCliError, reportCliError } from './cli-error'
 
 const listSshTargetsMock = vi.fn(async () => [] as { id: string; label: string }[])
 const NO_SELECTION = {
@@ -60,6 +61,27 @@ describe('parseHostFlag', () => {
     expect(() => parseHostFlag(flags({ host: value }))).toThrow(`Invalid --host value: ${value}`)
   })
 
+  it('keeps the user value intact while directing invalid hosts to the current command', () => {
+    try {
+      parseHostFlag(flags({ host: 'ssh:Orca|fixture' }))
+      throw new Error('Expected an invalid host')
+    } catch (error) {
+      const human = formatCliError(error)
+      expect(human).toContain('ssh:Orca|fixture')
+      expect(human).toContain('zkyq host list')
+      const output = vi.spyOn(console, 'log').mockImplementation(() => {})
+      try {
+        reportCliError(error, true)
+        const response = JSON.parse(String(output.mock.calls[0][0]))
+        expect(response.error.code).toBe('invalid_argument')
+        expect(response.error.message).toContain('ssh:Orca|fixture')
+        expect(response.error.message).toContain('zkyq host list')
+      } finally {
+        output.mockRestore()
+      }
+    }
+  })
+
   it('parses the three supported host kinds', () => {
     expect(parseHostFlag(flags({ host: 'local' }))?.kind).toBe('local')
     expect(parseHostFlag(flags({ host: 'ssh:box-1' }))?.kind).toBe('ssh')
@@ -70,7 +92,7 @@ describe('parseHostFlag', () => {
     })
   })
 
-  // Why: `orca host list` prints the alias, so the alias is what gets typed. Rejecting it sent
+  // Why: `zkyq host list` prints the alias, so the alias is what gets typed. Rejecting it sent
   // people hunting for a machine-generated id the listing showed in a different column.
   it('carries an unprefixed host name through as an alias', () => {
     expect(parseHostFlag(flags({ host: 'trader-local' }))).toEqual({
@@ -108,7 +130,7 @@ describe('resolveHostFlagEnvironmentId', () => {
 
     await expect(
       resolveHostFlagEnvironmentId(flags({ host: 'runtime:env-missing' }), NO_SELECTION)
-    ).rejects.toThrow('no paired Orca server is named or has id env-missing')
+    ).rejects.toThrow('no paired Control Everything server is named or has id env-missing')
   })
 
   // Why: the name is what a person or agent actually knows; requiring the raw uuid made the
@@ -153,7 +175,7 @@ describe('resolveHostFlagEnvironmentId', () => {
         pairingCode: null,
         environmentSelector: { value: 'other', label: '--environment' }
       })
-    ).rejects.toThrow('name different Orca servers')
+    ).rejects.toThrow('name different Control Everything servers')
   })
 
   it('names the ambient variable when ZKYQ_ENVIRONMENT is the conflicting selector', async () => {
@@ -167,7 +189,7 @@ describe('resolveHostFlagEnvironmentId', () => {
         pairingCode: null,
         environmentSelector: { value: 'staging', label: 'ZKYQ_ENVIRONMENT' }
       })
-    ).rejects.toThrow('ZKYQ_ENVIRONMENT staging name different Orca servers')
+    ).rejects.toThrow('ZKYQ_ENVIRONMENT staging name different Control Everything servers')
   })
 
   it('hands an agent the known environment ids to retry with', async () => {
@@ -179,6 +201,26 @@ describe('resolveHostFlagEnvironmentId', () => {
       code: 'invalid_argument',
       data: { knownEnvironments: [{ id: 'env-1', name: 'gpu' }] }
     })
+  })
+
+  it('uses the current command in structured recovery without changing server names', async () => {
+    listEnvironmentsMock.mockReturnValue([environment('env-1', 'Orca Team')])
+    try {
+      await resolveHostFlagEnvironmentId(flags({ host: 'runtime:missing' }), NO_SELECTION)
+      throw new Error('Expected an unknown host')
+    } catch (error) {
+      const output = vi.spyOn(console, 'log').mockImplementation(() => {})
+      try {
+        reportCliError(error, true)
+        const response = JSON.parse(String(output.mock.calls[0][0]))
+        expect(response.error.data.knownEnvironments).toEqual([{ id: 'env-1', name: 'Orca Team' }])
+        expect(response.error.data.nextSteps).toContain(
+          'Run `zkyq environment list` to see paired Control Everything servers.'
+        )
+      } finally {
+        output.mockRestore()
+      }
+    }
   })
 
   it('accepts ZKYQ_ENVIRONMENT naming the runtime host in another case', async () => {
@@ -213,7 +255,7 @@ describe('resolveHostFlagEnvironmentId', () => {
   })
 })
 
-// Why: the reported failure. `orca host list` shows `trader-local`, so `--host trader-local` is
+// Why: the reported failure. `zkyq host list` shows `trader-local`, so `--host trader-local` is
 // what gets typed, and only the machine-generated `ssh:ssh-1783599077486-fyasux` was accepted.
 describe('unprefixed --host aliases', () => {
   function clientWithTargets(targets: { id: string; label: string }[]): RuntimeClient {
@@ -311,7 +353,7 @@ describe('unprefixed --host aliases', () => {
 
     await expect(
       resolveHostFlagEnvironmentId(flags({ host: 'awin' }), NO_SELECTION)
-    ).rejects.toThrow('Ambiguous Orca server in --host awin')
+    ).rejects.toThrow('Ambiguous Control Everything server in --host awin')
   })
 
   it('refuses to route an alias to a paired server when SSH targets cannot be read', async () => {
@@ -329,7 +371,7 @@ describe('unprefixed --host aliases', () => {
     })
   })
 
-  // Why: `orca host list` prints `this machine` as the local row's name, with a space.
+  // Why: `zkyq host list` prints `this machine` as the local row's name, with a space.
   it('resolves the local row name to --host local', async () => {
     listEnvironmentsMock.mockReturnValue([environment('env-1', 'gpu')])
     await expect(
@@ -483,7 +525,7 @@ describe('resolveEnvironmentSelectorForStore', () => {
   })
 
   // Why: the store matches names exactly, so a loosely matched name has to leave here as the id;
-  // an exact one stays as typed, which `orca status` shows as the target.
+  // an exact one stays as typed, which `zkyq status` shows as the target.
   it('hands back the id for a name typed in another case or quoted', async () => {
     listEnvironmentsMock.mockReturnValue([environment('env-1', 'Build')])
 
@@ -516,7 +558,7 @@ describe('resolveEnvironmentSelectorForStore', () => {
     listSshTargetsMock.mockResolvedValue([])
 
     await expect(resolveEnvironmentSelectorForStore('nowhere', listSshTargetsMock)).rejects.toThrow(
-      'no paired Orca server is named or has id nowhere'
+      'no paired Control Everything server is named or has id nowhere'
     )
   })
 })

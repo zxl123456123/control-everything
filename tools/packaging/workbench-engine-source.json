@@ -329523,8 +329523,8 @@
     {
       "path": "src/cli/execution-host-flag.test.ts",
       "upstream_sha256": "c35745714bd499c0bb616067ea4fa85f0433ae3a3b88e5e0822eec92296db239",
-      "current_sha256": "992ebed40be66c5e34319f831628ab176e1d245afbfe361fd138361c2e33f930",
-      "reason": "配对链接生成解析和手机注册统一zkyq协议，迁移已保存VM配对链接并保留凭据及用户数据，更新脱敏和提示；迁移远程主机选择环境变量并防止错误路由"
+      "current_sha256": "18e3ca9d00f740669c0d5459d850dd05f00acd7670f2362b77ac97c0199e41fe",
+      "reason": "配对链接生成解析和手机注册统一zkyq协议，迁移已保存VM配对链接并保留凭据及用户数据，更新脱敏和提示；迁移远程主机选择环境变量并防止错误路由；统一主机选择与环境列表错误提示和恢复命令"
     },
     {
       "path": "src/cli/flag-help-text.ts",
@@ -329547,8 +329547,8 @@
     {
       "path": "src/cli/index-local-command-routing-flags.test.ts",
       "upstream_sha256": "a5cfb889251b5fdd33f93c73eaa95e0415be814718b26a366417e6eababca89a",
-      "current_sha256": "2d97a68f88c35f9aeb866d58c5108570adb6228db12db87763402bc54f42760a",
-      "reason": "配对链接生成解析和手机注册统一zkyq协议，迁移已保存VM配对链接并保留凭据及用户数据，更新脱敏和提示；迁移远程主机选择环境变量并防止错误路由"
+      "current_sha256": "d40179ea51b198197c2495fbde4fcb8991bf465c52c10cfba32e28090cac5682",
+      "reason": "配对链接生成解析和手机注册统一zkyq协议，迁移已保存VM配对链接并保留凭据及用户数据，更新脱敏和提示；迁移远程主机选择环境变量并防止错误路由；统一主机选择与环境列表错误提示和恢复命令"
     },
     {
       "path": "src/cli/root-help-text-secondary.ts",
@@ -333483,8 +333483,8 @@
     {
       "path": "src/cli/execution-host-flag.ts",
       "upstream_sha256": "1c18a66da26df2f2f0b817fb3f3badc4a527358f316513e61146e4dbec232c26",
-      "current_sha256": "d8d0431937c232034d77cab98865bf88bee6fdb8e4bfb8a110f505375ce44f37",
-      "reason": "迁移远程主机选择环境变量并防止错误路由"
+      "current_sha256": "40ff8d19404b7074c747fd742ce9249af7d06b965713e873193ff54ed24698e5",
+      "reason": "迁移远程主机选择环境变量并防止错误路由；统一主机选择与环境列表错误提示和恢复命令"
     },
     {
       "path": "src/cli/index-serve-restore.test.ts",
@@ -333575,6 +333575,24 @@
       "upstream_sha256": "9644cadc117bfb67b8f604e4889ed664920a31001c6d0d1e9197b9a0413eda52",
       "current_sha256": "59da28dd86cc58974b228b4e1ce99a4f575575710b8f55c80c310106dc1769a6",
       "reason": "统一智能体状态钩子与文件夹信任设置的产品身份"
+    },
+    {
+      "path": "src/cli/handlers/environment.ts",
+      "upstream_sha256": "39be426e5bf9215b54e7f053763bd748cc6bcaa65999d04f8a01cd8755c21465",
+      "current_sha256": "5a18473696be98a8d1921387b31f9db321e36e08d342e6fe93a7f66d978b5090",
+      "reason": "统一主机选择与环境列表错误提示和恢复命令"
+    },
+    {
+      "path": "src/cli/host-selector-alternatives.test.ts",
+      "upstream_sha256": "bd778d2b8cc046ac54d2ee02fd238e2d47eeea6b08001e146e630e173dd90f78",
+      "current_sha256": "e67e363dd837237873995f43d339e0ae0095dd5d51ae0caa702461e27ca9e46c",
+      "reason": "统一主机选择与环境列表错误提示和恢复命令"
+    },
+    {
+      "path": "src/cli/host-selector-alternatives.ts",
+      "upstream_sha256": "bc7e6cb3346d9edeb6a37b686a9e002e78049af47972aac79b57d29e0018fb8c",
+      "current_sha256": "60d4cbe12e3af66b925d7505dcfbb4b824e31a7cd6aa2ae17111c633d23af0e5",
+      "reason": "统一主机选择与环境列表错误提示和恢复命令"
     }
   ],
   "reviewed_findings": [
