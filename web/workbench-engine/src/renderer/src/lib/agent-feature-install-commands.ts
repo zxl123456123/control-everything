@@ -2,8 +2,8 @@ import {
   buildAgentFeatureSkillInstallCommand as buildPinnedSkillInstallCommand,
   COMPUTER_USE_SKILL_NAME,
   EPHEMERAL_VMS_SKILL_NAME,
-  ORCA_CLI_SKILL_NAME,
-  ORCA_LINEAR_SKILL_NAME,
+  WORKBENCH_CLI_SKILL_NAME,
+  WORKBENCH_LINEAR_SKILL_NAME,
   ORCHESTRATION_SKILL_NAME
 } from '../../../shared/agent-feature-install-commands'
 
@@ -12,8 +12,8 @@ export {
   EPHEMERAL_VMS_SKILL_NAME,
   LINEAR_AGENT_SKILL_NAMES,
   LINEAR_TICKETS_SKILL_NAME,
-  ORCA_CLI_SKILL_NAME,
-  ORCA_LINEAR_SKILL_NAME,
+  WORKBENCH_CLI_SKILL_NAME,
+  WORKBENCH_LINEAR_SKILL_NAME,
   ORCHESTRATION_SKILL_NAME
 } from '../../../shared/agent-feature-install-commands'
 
@@ -22,8 +22,8 @@ export function buildAgentFeatureSkillInstallCommand(skillNames: readonly string
   return buildPinnedSkillInstallCommand(skillNames, { sourceCommit: ORCA_BUILD_COMMIT })
 }
 
-export const ORCA_CLI_SKILL_INSTALL_COMMAND = buildAgentFeatureSkillInstallCommand([
-  ORCA_CLI_SKILL_NAME
+export const WORKBENCH_CLI_SKILL_INSTALL_COMMAND = buildAgentFeatureSkillInstallCommand([
+  WORKBENCH_CLI_SKILL_NAME
 ])
 
 export const COMPUTER_USE_SKILL_INSTALL_COMMAND = buildAgentFeatureSkillInstallCommand([
@@ -38,11 +38,9 @@ export const EPHEMERAL_VMS_SKILL_INSTALL_COMMAND = buildAgentFeatureSkillInstall
   EPHEMERAL_VMS_SKILL_NAME
 ])
 
-export const ORCA_CLI_ORCHESTRATION_SKILL_INSTALL_COMMAND = buildAgentFeatureSkillInstallCommand([
-  ORCA_CLI_SKILL_NAME,
-  ORCHESTRATION_SKILL_NAME
-])
+export const WORKBENCH_CLI_ORCHESTRATION_SKILL_INSTALL_COMMAND =
+  buildAgentFeatureSkillInstallCommand([WORKBENCH_CLI_SKILL_NAME, ORCHESTRATION_SKILL_NAME])
 
-export const ORCA_LINEAR_SKILL_INSTALL_COMMAND = buildAgentFeatureSkillInstallCommand([
-  ORCA_LINEAR_SKILL_NAME
+export const WORKBENCH_LINEAR_SKILL_INSTALL_COMMAND = buildAgentFeatureSkillInstallCommand([
+  WORKBENCH_LINEAR_SKILL_NAME
 ])

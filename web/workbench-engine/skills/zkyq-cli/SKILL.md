@@ -1,16 +1,16 @@
 ---
-name: orca-emulator-android
+name: zkyq-cli
 description: >-
-  Android device and emulator control from inside Control Everything over adb, with the live
-  device view in Control Everything's emulator pane. Use when driving an adb-connected emulator
-  or phone on Windows, Linux, or macOS: booting AVDs, taps, swipes, typing,
-  hardware buttons, rotation, app install and launch, runtime permissions, the
-  accessibility tree, and logcat. For an iOS simulator use the iOS emulator
-  skill; build the APK with Gradle first.
-license: Apache-2.0
+  Operate Control Everything-managed worktrees, folder contexts, terminals, repos, automations, artifacts,
+  skill sharing, worktree comments, and Control Everything's embedded browser through the `zkyq` CLI. Use
+  when the user says "$zkyq-cli", "Control Everything worktree", "child worktree", "spawn codex/claude in a
+  worktree", "read/wait/send Control Everything terminal", "handoff" / "handover" / "give this to another
+  agent", "Control Everything browser", "zkyq artifacts", or "share skills". Prefer it over raw git
+  worktree, ad hoc PTYs, or Computer Use when Control Everything state is involved. Use Computer Use only
+  when a visible window needs GUI control that a CLI, filesystem, or API cannot do.
 ---
 
-# Control Everything Emulator (Android)
+# Control Everything CLI
 
 This discovery stub loads the version-matched guide from the Control Everything executable used for this session.
 
@@ -33,7 +33,7 @@ to another executable, which could silently target a different Control Everythin
 ## Load the version-matched guide before running Control Everything commands
 
 ```text
-CLI skills get orca-emulator-android
+CLI skills get zkyq-cli
 ```
 
 Prefer `--json`. Use the selected executable's `--help` for commands or flags the guide does

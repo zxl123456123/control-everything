@@ -10095,7 +10095,7 @@
               "cee44fb442": "automation",
               "a57c2172dc": "agent-browser",
               "6ea88e5206": "npx",
-              "f5b8fdddf5": "orca-cli",
+              "f5b8fdddf5": "zkyq-cli",
               "e5a784bc54": "install",
               "9d97446873": "agent",
               "a2d489263e": "skill",
@@ -11962,7 +11962,7 @@
                 "tickets": "tickets",
                 "issues": "issues",
                 "skill": "skill",
-                "orcaLinear": "orca-linear"
+                "orcaLinear": "zkyq-linear"
               }
             }
           }
@@ -12062,7 +12062,7 @@
         },
         "LinearAgentSkillPane": {
           "title": "Linear",
-          "description": "How Linear works in Orca: browse issues, start linked workspaces, and let agents update tickets with /orca-linear.",
+          "description": "How Linear works in Orca: browse issues, start linked workspaces, and let agents update tickets with /zkyq-linear.",
           "skillTitle": "Linear skill",
           "howToUse": "Example prompts",
           "howToUseDescription": "Click a card to copy a prompt. Use these in a Linear-linked worktree after the skill is installed.",
@@ -12409,7 +12409,7 @@
           "manageKeys": "Manage keys",
           "addAccess": "Add access",
           "setupSkillTitle": "2. Install the agent skill",
-          "setupSkillBody": "Gives coding agents /orca-linear for reading, updates, triage, and attaching pull or merge requests.",
+          "setupSkillBody": "Gives coding agents /zkyq-linear for reading, updates, triage, and attaching pull or merge requests.",
           "setupVisibleTitle": "3. Show Linear in Tasks",
           "setupVisibleBody": "Keeps Linear in the Tasks source picker and sidebar shortcuts.",
           "openTaskSources": "Task Sources",
@@ -12421,8 +12421,8 @@
           "notesIntro": "Quick reminders once Linear is connected and the skill is installed.",
           "noteLinkedTitle": "Start from a Linear issue",
           "noteLinkedBody": "Ticket actions work best in a worktree created from Tasks so the issue stays linked as context.",
-          "noteSlashTitle": "Mention /orca-linear",
-          "noteSlashBody": "In chat, use /orca-linear (or ask in plain language) so the agent loads the skill for that turn.",
+          "noteSlashTitle": "Mention /zkyq-linear",
+          "noteSlashBody": "In chat, use /zkyq-linear (or ask in plain language) so the agent loads the skill for that turn.",
           "noteKeysTitle": "Keys follow the runtime",
           "noteKeysBody": "API keys and workspaces are stored for the active runtime.",
           "noteVisibilityTitle": "Hiding ≠ disconnect",
@@ -12438,7 +12438,7 @@
           "connectedHint": "Workspaces and keys are stored for the active runtime. You can add more access any time.",
           "recheck": "Re-check connection",
           "skillTitle": "Install Linear agent skill",
-          "skillDescription": "Gives agents /orca-linear to read tickets, post updates, move states, and attach pull or merge requests.",
+          "skillDescription": "Gives agents /zkyq-linear to read tickets, post updates, move states, and attach pull or merge requests.",
           "skillBlocked": "Connect Linear first, then install the skill for agents.",
           "skillPanelTitle": "Linear skill",
           "terminalTitle": "Linear skill setup",

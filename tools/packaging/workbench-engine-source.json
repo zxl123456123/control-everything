@@ -49679,7 +49679,7 @@
       "reason": "preserved_internal_source_layout"
     },
     {
-      "path": "skill-guides/orca-cli.md",
+      "path": "skill-guides/zkyq-cli.md",
       "source_path": "skill-guides/orca-cli.md",
       "git_blob": "61cee07b4b159251a80c4c746e349fed753d73c9",
       "sha256": "169c498b04db381213d00cfbb7c2fcdd44b0dcdb52f04ca05170086504603ca5",
@@ -49688,7 +49688,7 @@
       "reason": "preserved_internal_source_layout"
     },
     {
-      "path": "skill-guides/orca-cli/references/automations.md",
+      "path": "skill-guides/zkyq-cli/references/automations.md",
       "source_path": "skill-guides/orca-cli/references/automations.md",
       "git_blob": "4a318d2e3756b84f52478f50a381dd563cbe2d8b",
       "sha256": "9e4ff221b4cb0ef6351ae4187143cedc20c8d651928c86a81ab13f052f85b770",
@@ -49697,7 +49697,7 @@
       "reason": "preserved_internal_source_layout"
     },
     {
-      "path": "skill-guides/orca-cli/references/browser.md",
+      "path": "skill-guides/zkyq-cli/references/browser.md",
       "source_path": "skill-guides/orca-cli/references/browser.md",
       "git_blob": "ea5db962ed670a4b6af32733da801e555102378f",
       "sha256": "009a31a16b1c08b754f03d9372a4409b48b3cdf7a36851ef413616c2bddaa95e",
@@ -49706,7 +49706,7 @@
       "reason": "preserved_internal_source_layout"
     },
     {
-      "path": "skill-guides/orca-cli/references/publishing.md",
+      "path": "skill-guides/zkyq-cli/references/publishing.md",
       "source_path": "skill-guides/orca-cli/references/publishing.md",
       "git_blob": "315e160924dbf525ee7c3587bb562e568e2ab9cb",
       "sha256": "6807b7d147ac0233b3731b6726c0c87479a8ffc74bb0a7aa754a08573882b976",
@@ -49715,7 +49715,7 @@
       "reason": "preserved_internal_source_layout"
     },
     {
-      "path": "skill-guides/orca-emulator-android.md",
+      "path": "skill-guides/zkyq-emulator-android.md",
       "source_path": "skill-guides/orca-emulator-android.md",
       "git_blob": "597e5b4a0c811f3710a6f01c8e5d68baaa105b1f",
       "sha256": "103d1a10c1b0f7a3b0af0f867b49aa1caacecbbcebd32683f790a6da543fee4f",
@@ -49724,7 +49724,7 @@
       "reason": "preserved_internal_source_layout"
     },
     {
-      "path": "skill-guides/orca-emulator.md",
+      "path": "skill-guides/zkyq-emulator.md",
       "source_path": "skill-guides/orca-emulator.md",
       "git_blob": "c4d01583fb2e99bc3ece99893fa07d57ac512060",
       "sha256": "ee61f0e4d4425e5c65f3e6d9d397dd37baa4829baf5bbb26f49f9958f6c0e3f7",
@@ -49733,7 +49733,7 @@
       "reason": "preserved_internal_source_layout"
     },
     {
-      "path": "skill-guides/orca-jira.md",
+      "path": "skill-guides/zkyq-jira.md",
       "source_path": "skill-guides/orca-jira.md",
       "git_blob": "661a49ae9e1c1239e2c19d7008f88e994d1a4c65",
       "sha256": "f8cd39601ce29b3c593eac6df170f5d09174a2a9d9888c0847d58dfad658d012",
@@ -49742,7 +49742,7 @@
       "reason": "preserved_internal_source_layout"
     },
     {
-      "path": "skill-guides/orca-linear.md",
+      "path": "skill-guides/zkyq-linear.md",
       "source_path": "skill-guides/orca-linear.md",
       "git_blob": "21cfb91af98c120d0c5dfddbdecc3daaedc73a10",
       "sha256": "d46de80dc4150f3697d172d13903fbda21ee1c863906f8511d47190db1b1ebe7",
@@ -49751,7 +49751,7 @@
       "reason": "preserved_internal_source_layout"
     },
     {
-      "path": "skill-guides/orca-per-workspace-env.md",
+      "path": "skill-guides/zkyq-per-workspace-env.md",
       "source_path": "skill-guides/orca-per-workspace-env.md",
       "git_blob": "76c94d8a5664dfdca79c967cd3d8487a25476719",
       "sha256": "dda610fc95c59c723108338425990d192af1d3d6c6dea30230d1f07b37b56742",
@@ -49760,7 +49760,7 @@
       "reason": "preserved_internal_source_layout"
     },
     {
-      "path": "skill-guides/orca-per-workspace-env/references/docker-ssh.md",
+      "path": "skill-guides/zkyq-per-workspace-env/references/docker-ssh.md",
       "source_path": "skill-guides/orca-per-workspace-env/references/docker-ssh.md",
       "git_blob": "5b48d82dfbcf5bc3f6961f6d5636930a74f140ec",
       "sha256": "0a7403198af7fa0c2102bea7a7e3af9a522f644a757fb128055b19b39b4608b3",
@@ -49769,7 +49769,7 @@
       "reason": "preserved_internal_source_layout"
     },
     {
-      "path": "skill-guides/orca-per-workspace-env/references/failure-modes.md",
+      "path": "skill-guides/zkyq-per-workspace-env/references/failure-modes.md",
       "source_path": "skill-guides/orca-per-workspace-env/references/failure-modes.md",
       "git_blob": "187a041dcda13b2123268323836dbbb24d185558",
       "sha256": "086f11e9c610b5fb13cc2b8abc80b7482d5ae45ffeacf8e6a8c7c0331a1aac28",
@@ -49778,7 +49778,7 @@
       "reason": "preserved_internal_source_layout"
     },
     {
-      "path": "skill-guides/orca-per-workspace-env/references/provider-vercel.md",
+      "path": "skill-guides/zkyq-per-workspace-env/references/provider-vercel.md",
       "source_path": "skill-guides/orca-per-workspace-env/references/provider-vercel.md",
       "git_blob": "06377695e3a1848c4857eba1640c53f541be848b",
       "sha256": "7f26dcd14cb4877afb52a19592409d3c7a3647da9739adcfbb9e0bf4737faf61",
@@ -49787,7 +49787,7 @@
       "reason": "preserved_internal_source_layout"
     },
     {
-      "path": "skill-guides/orca-per-workspace-env/references/ssh-host.md",
+      "path": "skill-guides/zkyq-per-workspace-env/references/ssh-host.md",
       "source_path": "skill-guides/orca-per-workspace-env/references/ssh-host.md",
       "git_blob": "214496322b756b4bb3bf019297d78d436444e24a",
       "sha256": "03340c3f0267fa47389d303f8de01c9f4e3ae3025f7c63382a06e62680880e1f",
@@ -49796,7 +49796,7 @@
       "reason": "preserved_internal_source_layout"
     },
     {
-      "path": "skill-guides/orca-per-workspace-env/references/windows-scripts.md",
+      "path": "skill-guides/zkyq-per-workspace-env/references/windows-scripts.md",
       "source_path": "skill-guides/orca-per-workspace-env/references/windows-scripts.md",
       "git_blob": "0d1c960719c0a5a05c199090bbf18a20f1beae1e",
       "sha256": "548bdca26af67c23a51070da633db12be41cb8da1ecdf0484f8d4f94fb290382",
@@ -49913,7 +49913,7 @@
       "reason": "preserved_internal_source_layout"
     },
     {
-      "path": "skill-stubs/orca-cli.md",
+      "path": "skill-stubs/zkyq-cli.md",
       "source_path": "skill-stubs/orca-cli.md",
       "git_blob": "98f457a5d9f74f6b72ba212d0a2d8db9ff40e06b",
       "sha256": "fc96113faf1dc77a558d5fabf06825f538e6d30253671be2d7b157b81f609834",
@@ -49922,7 +49922,7 @@
       "reason": "preserved_internal_source_layout"
     },
     {
-      "path": "skill-stubs/orca-emulator-android.md",
+      "path": "skill-stubs/zkyq-emulator-android.md",
       "source_path": "skill-stubs/orca-emulator-android.md",
       "git_blob": "3ec8a66439abd24b68d043bfe4bab1ea713ea0af",
       "sha256": "f3f2ad9792183221ffaccf967674bfcada877b6e1a7294991cb639169879379b",
@@ -49931,7 +49931,7 @@
       "reason": "preserved_internal_source_layout"
     },
     {
-      "path": "skill-stubs/orca-emulator.md",
+      "path": "skill-stubs/zkyq-emulator.md",
       "source_path": "skill-stubs/orca-emulator.md",
       "git_blob": "83de7aad8405da7a1c432c24f655b33af99c4ee8",
       "sha256": "19916b67fd5274f6cbf7d3e189c190539d159391a872845bfe85bffbe0f2fa1a",
@@ -49940,7 +49940,7 @@
       "reason": "preserved_internal_source_layout"
     },
     {
-      "path": "skill-stubs/orca-jira.md",
+      "path": "skill-stubs/zkyq-jira.md",
       "source_path": "skill-stubs/orca-jira.md",
       "git_blob": "1d778c54c9b85acaeca696214734345cd1b6f6e3",
       "sha256": "5823c494798c8bc01b1fc79256f10af7a7d0ffcc8dba0b414941c11af636ae3c",
@@ -49949,7 +49949,7 @@
       "reason": "preserved_internal_source_layout"
     },
     {
-      "path": "skill-stubs/orca-linear.md",
+      "path": "skill-stubs/zkyq-linear.md",
       "source_path": "skill-stubs/orca-linear.md",
       "git_blob": "34b0dcff6f899568db2e1cc374ee61320060be55",
       "sha256": "26c8eeab690c99ddf87ad6f8db15b274a0c7fbe6b7275a057d32af5b9d16f980",
@@ -49958,7 +49958,7 @@
       "reason": "preserved_internal_source_layout"
     },
     {
-      "path": "skill-stubs/orca-per-workspace-env.md",
+      "path": "skill-stubs/zkyq-per-workspace-env.md",
       "source_path": "skill-stubs/orca-per-workspace-env.md",
       "git_blob": "f1b04bc8126ae861fa5c42c69823c9dcd07e5b3f",
       "sha256": "88809c59ec362af16b669ff6e8c7fa84439c49576c30f88e15666e815c4256ea",
@@ -50003,7 +50003,7 @@
       "reason": "preserved_internal_source_layout"
     },
     {
-      "path": "skills/orca-cli/SKILL.md",
+      "path": "skills/zkyq-cli/SKILL.md",
       "source_path": "skills/orca-cli/SKILL.md",
       "git_blob": "fbea1b6566c611649b9bc2e1e7f9f2ce717d234d",
       "sha256": "aa76f86505010096e8ea9edda1705a78aae7af45e54485f3fe0460664c1d9e4a",
@@ -50012,7 +50012,7 @@
       "reason": "preserved_internal_source_layout"
     },
     {
-      "path": "skills/orca-emulator-android/SKILL.md",
+      "path": "skills/zkyq-emulator-android/SKILL.md",
       "source_path": "skills/orca-emulator-android/SKILL.md",
       "git_blob": "3754741f4ad350ed5ee52a3f38555eed16fa6391",
       "sha256": "3ade4e6f8f2717ca899fd841e61f116963a406e9527015b803854c16d012e278",
@@ -50021,7 +50021,7 @@
       "reason": "preserved_internal_source_layout"
     },
     {
-      "path": "skills/orca-emulator/SKILL.md",
+      "path": "skills/zkyq-emulator/SKILL.md",
       "source_path": "skills/orca-emulator/SKILL.md",
       "git_blob": "317182bfbae8779bba854b1693fcbb29c2e6f648",
       "sha256": "3da7191179e46cb0e1a6a936f1eb54254f6e98ec38849e1c95f0e11073076b48",
@@ -50030,7 +50030,7 @@
       "reason": "preserved_internal_source_layout"
     },
     {
-      "path": "skills/orca-jira/SKILL.md",
+      "path": "skills/zkyq-jira/SKILL.md",
       "source_path": "skills/orca-jira/SKILL.md",
       "git_blob": "32d419852bd4a28f01406fd4d8eda91920de8d85",
       "sha256": "ca83c4662fbc2306efb9043674998b0ca5abacc78ec2e5f85e5db80288e6777a",
@@ -50039,7 +50039,7 @@
       "reason": "preserved_internal_source_layout"
     },
     {
-      "path": "skills/orca-linear/SKILL.md",
+      "path": "skills/zkyq-linear/SKILL.md",
       "source_path": "skills/orca-linear/SKILL.md",
       "git_blob": "f70f55ca41e031cc27819e011f03cf0dd92bea86",
       "sha256": "8da23ef96470906315cace8ff84f8056255ee37d1b2d5db84d8b7b3270a0ba0f",
@@ -50048,7 +50048,7 @@
       "reason": "preserved_internal_source_layout"
     },
     {
-      "path": "skills/orca-per-workspace-env/SKILL.md",
+      "path": "skills/zkyq-per-workspace-env/SKILL.md",
       "source_path": "skills/orca-per-workspace-env/SKILL.md",
       "git_blob": "ff37d02776742f7ea34e8df5a440af6826b9ad74",
       "sha256": "c005d126a13d2913351472f07690f1c1a660d4f286e2a5f21864aee294f436ce",
@@ -326508,7 +326508,7 @@
     },
     {
       "path": "resources/skills/current-manifest.json",
-      "sha256": "efac1cf18b5a1e7936b11d5b3e3a7519d897e07892630bfd0b76ce57d93c662c",
+      "sha256": "b8d3f1376babbfded6ab00201f73f6d9dd9e95d0ad4b7e2d4ff4c8c10bd51f28",
       "license_paths": [
         "LICENSE"
       ],
@@ -327126,7 +327126,11 @@
     "src/main/cli/retire-generated-command.test.ts",
     "config/scripts/live-remote-freeze-rpc.test.mjs",
     "src/cli/runtime/serve-service-retirement.ts",
-    "src/cli/runtime/app-launch-environment.ts"
+    "src/cli/runtime/app-launch-environment.ts",
+    "src/main/skills/skill-name-migration.test.ts",
+    "src/main/skills/skill-name-migration.ts",
+    "src/main/skills/skill-update-retirement.test.ts",
+    "src/shared/bundled-skill-renames.ts"
   ],
   "adapted_files": [
     {
@@ -327144,8 +327148,8 @@
     {
       "path": ".gitattributes",
       "upstream_sha256": "65896d38cc866d394db2d10d25f9d76a33dc1e78091b071d26913155237efa2a",
-      "current_sha256": "5cef7edf6cdccb332e49d46d00df110b642d337725a56455968e01061615611a",
-      "reason": "M1a-R8: pin LF for exactly two manifest-hashed native chat text resources on Windows checkout; original resource hashes unchanged；原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者；macOS打包CLI物理改名zkyq，同步安装/回收/卸载与本地派发，保留用户命令及文件竞态保护；技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
+      "current_sha256": "2983a190ce184f2e129956eaa44d35a8c46a196fd4da9f33a7f200f4e08673f9",
+      "reason": "M1a-R8: pin LF for exactly two manifest-hashed native chat text resources on Windows checkout; original resource hashes unchanged；原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者；macOS打包CLI物理改名zkyq，同步安装/回收/卸载与本地派发，保留用户命令及文件竞态保护；技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
     },
     {
       "path": "config/scripts/build-mobile-web-app-bundle.mjs",
@@ -327540,8 +327544,8 @@
     {
       "path": "src/renderer/src/components/feature-wall/BrowserUseSkillSetupCard.tsx",
       "upstream_sha256": "c9c0c66d7a51077891192469537084dae8b1cc7319cb97d322c498d08aa2115e",
-      "current_sha256": "6385e0ebacc910145165431f100f9f10714cf6f7c901b40d0db933eb0ff84eff",
-      "reason": "P4: isolate immutable remote browser context and scoped storage; preserve local behavior. P4: immutable remote context and explicit scoped storage; local behavior retained."
+      "current_sha256": "f574ef048ed170818bd02f52f246ca6e6b6721575bdb0306f405efe3c8a10ddd",
+      "reason": "P4: isolate immutable remote browser context and scoped storage; preserve local behavior. P4: immutable remote context and explicit scoped storage; local behavior retained.；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
     },
     {
       "path": "src/renderer/src/components/feature-wall/feature-wall-completion-persistence.ts",
@@ -327672,8 +327676,8 @@
     {
       "path": "src/renderer/src/components/onboarding/onboarding-feature-setup.ts",
       "upstream_sha256": "cd3befd67c4f2294f08ef998e4b87cfa41dcfa86ee854387124497bc4f645cd0",
-      "current_sha256": "463c69e24a39a2ed3c3c94897ef5784284b904d5a8af9a69c8c1e28cd7b351fd",
-      "reason": "P4: isolate immutable remote browser context and scoped storage; preserve local behavior. P4: immutable remote context and explicit scoped storage; local behavior retained."
+      "current_sha256": "82fc675d36dc8393acf32aed171dd1e0feed1577b826e42655e7b557fcd73e8b",
+      "reason": "P4: isolate immutable remote browser context and scoped storage; preserve local behavior. P4: immutable remote context and explicit scoped storage; local behavior retained.；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
     },
     {
       "path": "src/renderer/src/components/pet/PetOverlay.tsx",
@@ -327708,8 +327712,8 @@
     {
       "path": "src/renderer/src/components/settings/BrowserUsePane.tsx",
       "upstream_sha256": "40d5e3197b431c432d3d1416c924ba64d550f3fa141ab6c27c055f626d87b62f",
-      "current_sha256": "5e84ad0769b1dd05c7b0ec66a845053c616ce84e4f5f561e8486992d26087d0d",
-      "reason": "P4: isolate immutable remote browser context and scoped storage; preserve local behavior. P4: immutable remote context and explicit scoped storage; local behavior retained."
+      "current_sha256": "fe3b66fafc916a6915d320f3ecf86e50634537b0e722f36dfb1bce9662936d95",
+      "reason": "P4: isolate immutable remote browser context and scoped storage; preserve local behavior. P4: immutable remote context and explicit scoped storage; local behavior retained.；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
     },
     {
       "path": "src/renderer/src/components/settings/HostAgentLaunchSettings.test.tsx",
@@ -327756,8 +327760,8 @@
     {
       "path": "src/renderer/src/components/sidebar/LinearAgentSkillSetupPrompt.tsx",
       "upstream_sha256": "411b91400e565e5979d3aa35310c7f0f3346028a946e82d938f9128d0398aca2",
-      "current_sha256": "d7cbf37b3ac68b364560646c69fa805f98617643bedc0f30f26568f48092aa06",
-      "reason": "P4: isolate immutable remote browser context and scoped storage; preserve local behavior. P4: immutable remote context and explicit scoped storage; local behavior retained."
+      "current_sha256": "d3d837207a79b198224b14219b4b759d5daa8076ee71f12fd12499fd01974501",
+      "reason": "P4: isolate immutable remote browser context and scoped storage; preserve local behavior. P4: immutable remote context and explicit scoped storage; local behavior retained.；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
     },
     {
       "path": "src/renderer/src/components/sidebar/SeveredTerminalDaemonBanner.tsx",
@@ -328656,8 +328660,8 @@
     {
       "path": "src/renderer/src/i18n/locales/zh.json",
       "upstream_sha256": "a7ceebd563b9c0405b9b72489d6d3386dae6fe24a7abe68d1d2185df3b1231e7",
-      "current_sha256": "9750993fa0b42527d93c6f8b84b98cdacb80385a17f6eab2cd6955ed3a6d2a21",
-      "reason": "UI r1 S8: fixed window appearance and bounded recovery/help presentation; zh.json. DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained.；配对链接生成解析和手机注册统一zkyq协议，迁移已保存VM配对链接并保留凭据及用户数据，更新脱敏和提示；浏览器路径配置统一ZKYQ_BROWSER_EXECUTABLE，清理状态与远程浏览器权限文案，保留路径和权限范围"
+      "current_sha256": "bcd279901acb3767dbb89bcc302adc31d7e26e42f7a7fe8bc5b28662f0daf0c5",
+      "reason": "UI r1 S8: fixed window appearance and bounded recovery/help presentation; zh.json. DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained.；配对链接生成解析和手机注册统一zkyq协议，迁移已保存VM配对链接并保留凭据及用户数据，更新脱敏和提示；浏览器路径配置统一ZKYQ_BROWSER_EXECUTABLE，清理状态与远程浏览器权限文案，保留路径和权限范围；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
     },
     {
       "path": "src/renderer/src/lib/app-font-family.ts",
@@ -328920,8 +328924,8 @@
     {
       "path": "src/renderer/src/i18n/locales/en.json",
       "upstream_sha256": "80d9d9800a00b8441914d0f223af22c4bbc66318ab27141506c9b33edfe35209",
-      "current_sha256": "1fdadb4910af0376a8cf3f940e94ebd3e9760311e0aba6f523eaf4b1647a6f6c",
-      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained.；配对链接生成解析和手机注册统一zkyq协议，迁移已保存VM配对链接并保留凭据及用户数据，更新脱敏和提示；浏览器路径配置统一ZKYQ_BROWSER_EXECUTABLE，清理状态与远程浏览器权限文案，保留路径和权限范围"
+      "current_sha256": "51a10cc250b43087e0f8c6455fee9c3a74b31fca8ff97b4764ef50a71672df1b",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained.；配对链接生成解析和手机注册统一zkyq协议，迁移已保存VM配对链接并保留凭据及用户数据，更新脱敏和提示；浏览器路径配置统一ZKYQ_BROWSER_EXECUTABLE，清理状态与远程浏览器权限文案，保留路径和权限范围；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
     },
     {
       "path": "src/renderer/src/lib/tab-number-shortcuts.ts",
@@ -329598,32 +329602,32 @@
     {
       "path": "src/renderer/src/i18n/locales/es.json",
       "upstream_sha256": "23bf50fa0feac6e876c21c41adcb92badd4912f21ad21d3b0ad107db20b2e281",
-      "current_sha256": "25716feb0bb62cc4e80943479147e99c5e84be6d0a9caae666d66816c499ea02",
-      "reason": "配对链接生成解析和手机注册统一zkyq协议，迁移已保存VM配对链接并保留凭据及用户数据，更新脱敏和提示；浏览器路径配置统一ZKYQ_BROWSER_EXECUTABLE，清理状态与远程浏览器权限文案，保留路径和权限范围"
+      "current_sha256": "0fe8daa619d1560e4b0d7c363f5f739f45e36b7e14de9cf4d7238b90e17c2059",
+      "reason": "配对链接生成解析和手机注册统一zkyq协议，迁移已保存VM配对链接并保留凭据及用户数据，更新脱敏和提示；浏览器路径配置统一ZKYQ_BROWSER_EXECUTABLE，清理状态与远程浏览器权限文案，保留路径和权限范围；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
     },
     {
       "path": "src/renderer/src/i18n/locales/fr.json",
       "upstream_sha256": "2513e02bc2a98cc2e307df970af346bc93919e388cb22fcc27c85a2df9455796",
-      "current_sha256": "14eb956f30a402a98ca6a97a03046031863c7165408ecb9198ccc99e3de1eb5c",
-      "reason": "配对链接生成解析和手机注册统一zkyq协议，迁移已保存VM配对链接并保留凭据及用户数据，更新脱敏和提示；浏览器路径配置统一ZKYQ_BROWSER_EXECUTABLE，清理状态与远程浏览器权限文案，保留路径和权限范围"
+      "current_sha256": "150ecfc22a8a675ed5a583ed4f4f65d94f8db0a4f35fb98c0999290fbfc0377d",
+      "reason": "配对链接生成解析和手机注册统一zkyq协议，迁移已保存VM配对链接并保留凭据及用户数据，更新脱敏和提示；浏览器路径配置统一ZKYQ_BROWSER_EXECUTABLE，清理状态与远程浏览器权限文案，保留路径和权限范围；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
     },
     {
       "path": "src/renderer/src/i18n/locales/ja.json",
       "upstream_sha256": "17cacca69bdcbbc321e6dab8a6b0e950f3d2d7ccb03f5f259e7fac5e3e3fbc9b",
-      "current_sha256": "ab5b556596b445a53cc6d5d4d6f630ce68f01719274170073d0cd390ad83387e",
-      "reason": "配对链接生成解析和手机注册统一zkyq协议，迁移已保存VM配对链接并保留凭据及用户数据，更新脱敏和提示；浏览器路径配置统一ZKYQ_BROWSER_EXECUTABLE，清理状态与远程浏览器权限文案，保留路径和权限范围"
+      "current_sha256": "a46900565554681602e98af2d1dacadee87505f3a45a1b4958778c9a5dd31319",
+      "reason": "配对链接生成解析和手机注册统一zkyq协议，迁移已保存VM配对链接并保留凭据及用户数据，更新脱敏和提示；浏览器路径配置统一ZKYQ_BROWSER_EXECUTABLE，清理状态与远程浏览器权限文案，保留路径和权限范围；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
     },
     {
       "path": "src/renderer/src/i18n/locales/ko.json",
       "upstream_sha256": "efd93a9740a88438cc5c17d3db077172e1de23d7d370628ac952520c29d5d20d",
-      "current_sha256": "7a3c6886186109b971a0363cc55ed09ff15624de6c7c81748ad7b130de8d70a2",
-      "reason": "配对链接生成解析和手机注册统一zkyq协议，迁移已保存VM配对链接并保留凭据及用户数据，更新脱敏和提示；浏览器路径配置统一ZKYQ_BROWSER_EXECUTABLE，清理状态与远程浏览器权限文案，保留路径和权限范围"
+      "current_sha256": "6914c87de4db2d71dadf30abab24c48abaef5ef39ccf65574aeb9b2907cbcdd4",
+      "reason": "配对链接生成解析和手机注册统一zkyq协议，迁移已保存VM配对链接并保留凭据及用户数据，更新脱敏和提示；浏览器路径配置统一ZKYQ_BROWSER_EXECUTABLE，清理状态与远程浏览器权限文案，保留路径和权限范围；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
     },
     {
       "path": "src/renderer/src/i18n/locales/pt.json",
       "upstream_sha256": "d28d34edd8a908bbcf85131235bff6fda0b1133558e21d2ad5ad87703864a1a0",
-      "current_sha256": "05e6f38258a0f3e08ba4de814c9d3cbe39f20de55b66e88cd7d21d6ddde97117",
-      "reason": "配对链接生成解析和手机注册统一zkyq协议，迁移已保存VM配对链接并保留凭据及用户数据，更新脱敏和提示；浏览器路径配置统一ZKYQ_BROWSER_EXECUTABLE，清理状态与远程浏览器权限文案，保留路径和权限范围"
+      "current_sha256": "847dd5e6322908c1f2fa857ea1389402e9d9c6079ddfc4c52c363b81b74d30ff",
+      "reason": "配对链接生成解析和手机注册统一zkyq协议，迁移已保存VM配对链接并保留凭据及用户数据，更新脱敏和提示；浏览器路径配置统一ZKYQ_BROWSER_EXECUTABLE，清理状态与远程浏览器权限文案，保留路径和权限范围；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
     },
     {
       "path": "src/renderer/src/lib/ephemeral-vm-workspace-target.integration.test.ts",
@@ -330312,26 +330316,26 @@
     {
       "path": "resources/skills/current-manifest.json",
       "upstream_sha256": "5782ddb9aa2f3d22b49c18980ac0e0b679b19b9af2a9c5eb50dae648e55072e2",
-      "current_sha256": "efac1cf18b5a1e7936b11d5b3e3a7519d897e07892630bfd0b76ce57d93c662c",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
+      "current_sha256": "b8d3f1376babbfded6ab00201f73f6d9dd9e95d0ad4b7e2d4ff4c8c10bd51f28",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
     },
     {
-      "path": "skill-guides/orca-cli.md",
+      "path": "skill-guides/zkyq-cli.md",
       "upstream_sha256": "169c498b04db381213d00cfbb7c2fcdd44b0dcdb52f04ca05170086504603ca5",
-      "current_sha256": "d981f5319ae1f4188d160268c652199a5be317800ea3e0c0651360e83627f3f9",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
+      "current_sha256": "26013a6cae0135240ad333c643c916721312d36e7f6198ae758bb6fdec4365b4",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
     },
     {
-      "path": "skill-guides/orca-per-workspace-env.md",
+      "path": "skill-guides/zkyq-per-workspace-env.md",
       "upstream_sha256": "dda610fc95c59c723108338425990d192af1d3d6c6dea30230d1f07b37b56742",
-      "current_sha256": "434322fd396b01399a63e8c34309950e4b4224fab490a850cf6a8d72b40f381c",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
+      "current_sha256": "8b313f85a5c968b89ed411dc7da9208cb256b99da99399a0e1c87a304fd2f26b",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
     },
     {
-      "path": "skill-guides/orca-per-workspace-env/references/provider-vercel.md",
+      "path": "skill-guides/zkyq-per-workspace-env/references/provider-vercel.md",
       "upstream_sha256": "7f26dcd14cb4877afb52a19592409d3c7a3647da9739adcfbb9e0bf4737faf61",
       "current_sha256": "235ba0af0d524315ae1831bda6d53a6cec36ac17742f29f6a6cbb58ea7e42751",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
     },
     {
       "path": "skill-stubs/_shared/cli-resolution.md",
@@ -330342,68 +330346,68 @@
     {
       "path": "skills/computer-use/SKILL.md",
       "upstream_sha256": "2839933fd35216845461466403e6061488005f6df57126d0cd0f769ea45753f3",
-      "current_sha256": "a65d688b9c5a10bc99ded35dbcad1d8326107b19cd9d1f6935f8a3c7bdaa26e4",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
+      "current_sha256": "c20cec62c34387553a8c867d1e65c869f0b389e799d7b14865801caadd7980bb",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
     },
     {
       "path": "skills/jira-tickets/SKILL.md",
       "upstream_sha256": "5534da4000f4f4c87f7dbb263345a213068c0099a1440186adea865e17d90dfe",
-      "current_sha256": "b0dc4f9813a1b8d021279d6732c5762a3d148f7dd44c1422af2a497826aa9d7f",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
+      "current_sha256": "1d5ace2e5d0771a798dfbda566065007b248d98e9f706f86d2361f3819ed37b5",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
     },
     {
       "path": "skills/linear-tickets/SKILL.md",
       "upstream_sha256": "e181f86073da65c492361469d504fe15e7ae61bc99990bc41bea47aa13455619",
-      "current_sha256": "343e7688e3aa303b69b437d21c424ed78f4fdaeaa67bfe1c673314e8f465343f",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
+      "current_sha256": "95a7d6fbce6e0ed13a27c311b3baf04e41cdaff1bf8881f8f940cfa281a71f27",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
     },
     {
-      "path": "skills/orca-cli/SKILL.md",
+      "path": "skills/zkyq-cli/SKILL.md",
       "upstream_sha256": "aa76f86505010096e8ea9edda1705a78aae7af45e54485f3fe0460664c1d9e4a",
-      "current_sha256": "1eeff2385fe45adbc356cacb20f71d4cac9b995c96768809ec206af992fbd6ef",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
+      "current_sha256": "2a014b85eefea1b46a1e4eeefc04ed7504170d7517bde895b57ea2952b99981b",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
     },
     {
-      "path": "skills/orca-emulator-android/SKILL.md",
+      "path": "skills/zkyq-emulator-android/SKILL.md",
       "upstream_sha256": "3ade4e6f8f2717ca899fd841e61f116963a406e9527015b803854c16d012e278",
-      "current_sha256": "e5ad9cc607d7ef580da0313898ed062da692480883d5bffc3bd6f027ebe73030",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
+      "current_sha256": "4ff4a299a8e243de58b0ec953a24cb98b328cae5784d3b9dd1785ee906e52207",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
     },
     {
-      "path": "skills/orca-emulator/SKILL.md",
+      "path": "skills/zkyq-emulator/SKILL.md",
       "upstream_sha256": "3da7191179e46cb0e1a6a936f1eb54254f6e98ec38849e1c95f0e11073076b48",
-      "current_sha256": "831f7f6d8cafec8bbb67c7911de5a9d284ee4ea18900d4f041bbcfca9cdd320a",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
+      "current_sha256": "e885b14641bf954398d4c9e9b9aa16ed684f9239853ebf6b7883af345271dd42",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
     },
     {
-      "path": "skills/orca-jira/SKILL.md",
+      "path": "skills/zkyq-jira/SKILL.md",
       "upstream_sha256": "ca83c4662fbc2306efb9043674998b0ca5abacc78ec2e5f85e5db80288e6777a",
-      "current_sha256": "4cb4d0029f1cb633f3087ef9cfe8c33599faeb8459923fa22a3ee7fc3e725363",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
+      "current_sha256": "dd0f486a74b2767103e66e85c9c9ef33a1b428be27d691117a2b5e45aaf88164",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
     },
     {
-      "path": "skills/orca-linear/SKILL.md",
+      "path": "skills/zkyq-linear/SKILL.md",
       "upstream_sha256": "8da23ef96470906315cace8ff84f8056255ee37d1b2d5db84d8b7b3270a0ba0f",
-      "current_sha256": "6cbf2f570aa4c1db06a13e1939cb496a5f52ef35cf4e5129e0d1079f155209af",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
+      "current_sha256": "7444c1e4fe23619ef4a8250c2ab0e5b6b8ef171b6db6ed3ca4796a69ef628551",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
     },
     {
-      "path": "skills/orca-per-workspace-env/SKILL.md",
+      "path": "skills/zkyq-per-workspace-env/SKILL.md",
       "upstream_sha256": "c005d126a13d2913351472f07690f1c1a660d4f286e2a5f21864aee294f436ce",
-      "current_sha256": "dafb7a889c57d65d54dddd49f2cb4ede685f4b9ec6ba0f6203972af06cfff037",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
+      "current_sha256": "0e15a3cd7d8c60852e6076b244d16b25a2309e348278acd8a39c446e6ad15ead",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
     },
     {
       "path": "skills/orchestration/SKILL.md",
       "upstream_sha256": "cd1b364bf35781bad06bf75ab1766afa8d6cec69cb2060529691d89871a2098a",
-      "current_sha256": "71eb2ac96d682803173d589d272ffb27868f49864b333a135bb1091c1f954604",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
+      "current_sha256": "3204d2c80928873d901b60682e9c46e8ec41a67e1921c345c8e8e76e7183d3c1",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
     },
     {
       "path": "src/cli/bundled-skill-guides.ts",
       "upstream_sha256": "d939b2344aec6921d99a7994596db6e7e5b45c36f489e3c8e55fe40160b5b7d6",
-      "current_sha256": "fd3eb3ef9adc05d85e6d74ffda731f3ba698025e60534c949de94e48cf468050",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
+      "current_sha256": "6100398dc5e5ca94dcd6616dfb32bee9b88a3ee003ba7e191924a0c29615f448",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
     },
     {
       "path": "src/cli/handlers/orchestration-worker-cli.test.ts",
@@ -331872,20 +331876,20 @@
     {
       "path": "config/scripts/run-node-server-tests.mjs",
       "upstream_sha256": "33d982633fd40fce037f01ea5b35779d679a4a0c7833fb377216d50e7847c72b",
-      "current_sha256": "f4a435b1ba76b9deff480d90fe9c506c3319efbab939dabe1893425e9e860e01",
-      "reason": "技能安装更新使用本平台提交和子目录，保留上游来源记录与历史安装识别，同步实际构建和说明"
+      "current_sha256": "2ddfd400ba5732dafb36c75d9ed4c51bf1744e11ae8cc6e46c29171ad9a60852",
+      "reason": "技能安装更新使用本平台提交和子目录，保留上游来源记录与历史安装识别，同步实际构建和说明；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
     },
     {
       "path": "config/scripts/verify-skill-update-roundtrip.mjs",
       "upstream_sha256": "89663c325af73f0152404a3a2d9adda278752a41bab72c26f7294516fe7f8a27",
-      "current_sha256": "dc92b19febbb3d6962f544eb3ebec9ad4a2fc9f1886531929ccfb8dfcebbbff6",
-      "reason": "技能安装更新使用本平台提交和子目录，保留上游来源记录与历史安装识别，同步实际构建和说明"
+      "current_sha256": "e270ac4586038364dd95162fc41589a461ce2c8fccc7a04846594704b99e554c",
+      "reason": "技能安装更新使用本平台提交和子目录，保留上游来源记录与历史安装识别，同步实际构建和说明；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
     },
     {
       "path": "config/scripts/verify-skill-update-roundtrip.test.mjs",
       "upstream_sha256": "bf44640d116594008f8d05c77b17cb1bf631c153aea982bd615be840687f6dbe",
-      "current_sha256": "98ebaa6eec5c187dec23e7c86af319c0d820873dc91a6c9839ce5cede5b228be",
-      "reason": "技能安装更新使用本平台提交和子目录，保留上游来源记录与历史安装识别，同步实际构建和说明"
+      "current_sha256": "465b7a279f37511d2ae4b64c1684761defd28ccbcd9f25043bfa73f4c0239a86",
+      "reason": "技能安装更新使用本平台提交和子目录，保留上游来源记录与历史安装识别，同步实际构建和说明；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
     },
     {
       "path": "electron.vite.config.ts",
@@ -331896,32 +331900,32 @@
     {
       "path": "src/cli/handlers/skills.ts",
       "upstream_sha256": "48c8fedc4f8d87bf02d039304a1ab6c80396f99a3040692e42ef56f072e6a9ec",
-      "current_sha256": "dcf851da0e9a334e5ac6a94e3d93b0c608d1419d7b18eb87a7361c3a8ae75e78",
-      "reason": "技能安装更新使用本平台提交和子目录，保留上游来源记录与历史安装识别，同步实际构建和说明"
+      "current_sha256": "f56d4e9287e52aebdcdf26e0dfd07ed465c8410f23a71cc8e26b21d401f36cbc",
+      "reason": "技能安装更新使用本平台提交和子目录，保留上游来源记录与历史安装识别，同步实际构建和说明；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
     },
     {
       "path": "src/cli/specs/skills.ts",
       "upstream_sha256": "3110c8236700e23b103f89d2493b51294d97c1832d5dcbfa3731c568877971b9",
-      "current_sha256": "3ab673b42d0446178070988491ad40b3f9b42f21a838383d0fd784e24dc14ff6",
-      "reason": "技能安装更新使用本平台提交和子目录，保留上游来源记录与历史安装识别，同步实际构建和说明"
+      "current_sha256": "8f3d8301a1efc6fcf08f5c24a87d69d4a5157d14723564e5368ea1871a0e32fd",
+      "reason": "技能安装更新使用本平台提交和子目录，保留上游来源记录与历史安装识别，同步实际构建和说明；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
     },
     {
       "path": "src/main/skills/skill-freshness-inventory.test.ts",
       "upstream_sha256": "7de71c7c77baf5bca56c87f4a5698e50d9fa9a5e68243816ab5a2b820d383cf9",
-      "current_sha256": "c30b4eac7951180b97ddca3fc807e51c2873721151fc8853099946a41c30ce8b",
-      "reason": "技能安装更新使用本平台提交和子目录，保留上游来源记录与历史安装识别，同步实际构建和说明"
+      "current_sha256": "4074eb0645835bd58450520b1fc439c621614b1f10dddcc0bb8051e6bf62f3a1",
+      "reason": "技能安装更新使用本平台提交和子目录，保留上游来源记录与历史安装识别，同步实际构建和说明；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
     },
     {
       "path": "src/renderer/src/components/onboarding/onboarding-feature-setup.test.ts",
       "upstream_sha256": "b3c14f117de1542b5a919e8105bd2701ac102fd2e78abe3d442caf0742cdd657",
-      "current_sha256": "af534d40457521f67d64da802e9638838c610116b2c2435eb84996ef67482cab",
-      "reason": "技能安装更新使用本平台提交和子目录，保留上游来源记录与历史安装识别，同步实际构建和说明"
+      "current_sha256": "8891793563910579259773dacd217ecaf30cef6ac632031a518efe07970f26dc",
+      "reason": "技能安装更新使用本平台提交和子目录，保留上游来源记录与历史安装识别，同步实际构建和说明；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
     },
     {
       "path": "src/renderer/src/components/sidebar/LinearAgentSkillSetupPrompt.test.tsx",
       "upstream_sha256": "e22d442e3eac0e8e1e3e3d39cfa02da94672cea8c4e0f7485eb6ea0f56b64080",
-      "current_sha256": "1326fac195ca5d4115c5eed3f633609bcaa269e19fb3bf3607afae8e428fe32d",
-      "reason": "技能安装更新使用本平台提交和子目录，保留上游来源记录与历史安装识别，同步实际构建和说明"
+      "current_sha256": "2fe112bc00dd436f05992316203a06d0d162a382becf8a657dc532b8710e4856",
+      "reason": "技能安装更新使用本平台提交和子目录，保留上游来源记录与历史安装识别，同步实际构建和说明；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
     },
     {
       "path": "src/renderer/src/components/skills/SkillFreshnessNudge.tsx",
@@ -331944,14 +331948,14 @@
     {
       "path": "src/shared/agent-feature-install-commands.test.ts",
       "upstream_sha256": "f75adfdf4ea2eca5a8ef340b1993e136f9c077e3a6ad87b983482c9f44cc7570",
-      "current_sha256": "f6c4701807ef21b6fb968ff9a78185726a729e060f6d97db1435141b419ea56b",
-      "reason": "技能安装更新使用本平台提交和子目录，保留上游来源记录与历史安装识别，同步实际构建和说明"
+      "current_sha256": "3158f8977fd1493471e972ad8380c7a8f025a80aeb14dcf238b007e069d60b6a",
+      "reason": "技能安装更新使用本平台提交和子目录，保留上游来源记录与历史安装识别，同步实际构建和说明；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
     },
     {
       "path": "src/shared/agent-feature-install-commands.ts",
       "upstream_sha256": "258f488b9005084330701107ab476e9c79f5a5b7fa7fa8e597a1767f412f4362",
-      "current_sha256": "25c4fcbc48e5ef79edb62c7eb9c750c181e37c6ffcb7c6a9c3c031002071b93e",
-      "reason": "技能安装更新使用本平台提交和子目录，保留上游来源记录与历史安装识别，同步实际构建和说明"
+      "current_sha256": "b90645a760a3615aa49fb4cd29659a01cf400c96ab618c1b0eb83e1b1f6121bb",
+      "reason": "技能安装更新使用本平台提交和子目录，保留上游来源记录与历史安装识别，同步实际构建和说明；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
     },
     {
       "path": "src/shared/skill-freshness.ts",
@@ -331962,80 +331966,80 @@
     {
       "path": "skill-guides/computer-use.md",
       "upstream_sha256": "104850a43dfb86fc6f200e9e01f48a75e62fab78554e08666996c6ba286f8589",
-      "current_sha256": "68e96fa1b6c71dc5262f3861a33dbe18beda8e59434aac0fbce390dd2d32b2d4",
-      "reason": "技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
+      "current_sha256": "1f807845fe4ba5817819e74fe1444a880115f5e1737a77e17a83ce06d2169ba3",
+      "reason": "技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
     },
     {
       "path": "skill-guides/jira-tickets.md",
       "upstream_sha256": "bc9078d722cd72b6fe4b1fbf3f8ca46c209485c19417ae3cc590aee30f37ed1c",
-      "current_sha256": "4fc2b73e7512ea3b8ccc8c9f08f718411a381198c6d28d756af6bddb73f32562",
-      "reason": "技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
+      "current_sha256": "dcd67b0172e36666a2970f28c7a83b122d8666e8772901e108f80d860c4faaa6",
+      "reason": "技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
     },
     {
       "path": "skill-guides/linear-tickets.md",
       "upstream_sha256": "0ac66eb97207b93b1bdec259c7042ee2b07550d4d8c5093e0128cf83c65ae3e2",
-      "current_sha256": "3b81b43920203eb9d84bdd38e7727d7decec0d5fd73ad0509fa38cc21053a07b",
-      "reason": "技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
+      "current_sha256": "1de480d1f30718e843c9fe78af868b19733be8670cb9b2d2e3682664463511b5",
+      "reason": "技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
     },
     {
-      "path": "skill-guides/orca-cli/references/automations.md",
+      "path": "skill-guides/zkyq-cli/references/automations.md",
       "upstream_sha256": "9e4ff221b4cb0ef6351ae4187143cedc20c8d651928c86a81ab13f052f85b770",
       "current_sha256": "4f154bdcdc378f07841b32b8fa86cce3343c8f3201442732416c2d19f2e80465",
-      "reason": "技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
+      "reason": "技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
     },
     {
-      "path": "skill-guides/orca-cli/references/browser.md",
+      "path": "skill-guides/zkyq-cli/references/browser.md",
       "upstream_sha256": "009a31a16b1c08b754f03d9372a4409b48b3cdf7a36851ef413616c2bddaa95e",
       "current_sha256": "d893391d3eae71c2d2d62fd7038a883daea507652bdbe5a7c42778672442903a",
-      "reason": "技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
+      "reason": "技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
     },
     {
-      "path": "skill-guides/orca-cli/references/publishing.md",
+      "path": "skill-guides/zkyq-cli/references/publishing.md",
       "upstream_sha256": "6807b7d147ac0233b3731b6726c0c87479a8ffc74bb0a7aa754a08573882b976",
       "current_sha256": "d8a74e3cdf4b85a50de767b55bba054b7476459503afc326f856e98543c6fdd9",
-      "reason": "技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
+      "reason": "技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
     },
     {
-      "path": "skill-guides/orca-emulator-android.md",
+      "path": "skill-guides/zkyq-emulator-android.md",
       "upstream_sha256": "103d1a10c1b0f7a3b0af0f867b49aa1caacecbbcebd32683f790a6da543fee4f",
-      "current_sha256": "2daf4afbb8ffa45f04afbd83df473bf499b7b128448dfeec2be5da1520286802",
-      "reason": "技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
+      "current_sha256": "fc8c38df1c7b7f4edae697c207d9a057529a86e2f200936368894788bffa641e",
+      "reason": "技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
     },
     {
-      "path": "skill-guides/orca-emulator.md",
+      "path": "skill-guides/zkyq-emulator.md",
       "upstream_sha256": "ee61f0e4d4425e5c65f3e6d9d397dd37baa4829baf5bbb26f49f9958f6c0e3f7",
-      "current_sha256": "ea9de91866aa8267a1cf915c93e79ce7c4f1fbaa80a2f5e5e33b446028043f13",
-      "reason": "技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
+      "current_sha256": "982953aafeb4f937196dadbfa72ad67904a8ac7bc40887c2c25f67c554ac2925",
+      "reason": "技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
     },
     {
-      "path": "skill-guides/orca-jira.md",
+      "path": "skill-guides/zkyq-jira.md",
       "upstream_sha256": "f8cd39601ce29b3c593eac6df170f5d09174a2a9d9888c0847d58dfad658d012",
-      "current_sha256": "002d61fce27666d815c667a332ad23c1a82ecd4aa272670ff31fa6dceb3c65a5",
-      "reason": "技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
+      "current_sha256": "5fa92f72c1e5ed44b4a69dc94fc21cfad5bc0f806628a35e79f7b8cbdad976d9",
+      "reason": "技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
     },
     {
-      "path": "skill-guides/orca-linear.md",
+      "path": "skill-guides/zkyq-linear.md",
       "upstream_sha256": "d46de80dc4150f3697d172d13903fbda21ee1c863906f8511d47190db1b1ebe7",
-      "current_sha256": "c981167c11f9185a17ef20ce23dfeeecce6dbb8a09434bc8660d74b8664b303d",
-      "reason": "技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
+      "current_sha256": "0cd9eb6d7e60ad5fe38e06064a2eccc8be9faa9e90120816d1526da4c9fb332a",
+      "reason": "技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
     },
     {
-      "path": "skill-guides/orca-per-workspace-env/references/ssh-host.md",
+      "path": "skill-guides/zkyq-per-workspace-env/references/ssh-host.md",
       "upstream_sha256": "03340c3f0267fa47389d303f8de01c9f4e3ae3025f7c63382a06e62680880e1f",
       "current_sha256": "1f89333d2fd362e8546adf26c55923eb46c884bbfc5ffc8a349fdb711e6bdc11",
-      "reason": "技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
+      "reason": "技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
     },
     {
-      "path": "skill-guides/orca-per-workspace-env/references/windows-scripts.md",
+      "path": "skill-guides/zkyq-per-workspace-env/references/windows-scripts.md",
       "upstream_sha256": "548bdca26af67c23a51070da633db12be41cb8da1ecdf0484f8d4f94fb290382",
       "current_sha256": "8a62f59ba09e8aadf4eb3badc76990985211da14ea2b9efc52a264663c8e943d",
-      "reason": "技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
+      "reason": "技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
     },
     {
       "path": "skill-guides/orchestration.md",
       "upstream_sha256": "f0009a1bbe18ff6a8efd6a64c75a8fb047ebb6f01788fcf9b9ecede6378d9f89",
-      "current_sha256": "09d9de22d8763e94bfc4c8d050b78a13d4f332baf206c54e650bf2a793d8163b",
-      "reason": "技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
+      "current_sha256": "df87882c0c8bb29f3dfedf0671cada82ab02b957556e664869ef9d5ffed65199",
+      "reason": "技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
     },
     {
       "path": "skill-guides/orchestration/references/coordinator-loop.md",
@@ -332088,56 +332092,290 @@
     {
       "path": "skill-stubs/jira-tickets.md",
       "upstream_sha256": "1e6e890005638b1978c6cc0a53c1462c4627a2cf0bf9154d2c8a713f940df3e3",
-      "current_sha256": "89895cc477129eafd228b6b1c28de3501a70e8ac1bd316ebbfb4ee2e5cd501d3",
-      "reason": "技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
+      "current_sha256": "143dcf45a9ae89bfcefb9d5121756790a7fe78c6f908e9c6aedf57a3caebdec8",
+      "reason": "技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
     },
     {
       "path": "skill-stubs/linear-tickets.md",
       "upstream_sha256": "92758b3b62c36b484a767211d35874319d2895e18fbd5c25c93a235615cb441e",
-      "current_sha256": "e5d4a1cf78fd3ca63bdd56c04ca1e87c653a0a007d7a895b12f3c68af543e656",
-      "reason": "技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
+      "current_sha256": "c04b5be9a4bb1cff5b2359f2a4db627878fe2b61bbbcbf8c08f2c2a3f140cd58",
+      "reason": "技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
     },
     {
-      "path": "skill-stubs/orca-cli.md",
+      "path": "skill-stubs/zkyq-cli.md",
       "upstream_sha256": "fc96113faf1dc77a558d5fabf06825f538e6d30253671be2d7b157b81f609834",
-      "current_sha256": "fea0012b916c08fa18ea0f3a022cc2fa610fcac3227961c5b080cf272a8f6afe",
-      "reason": "技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
+      "current_sha256": "e264de30f473aeae5d0892043231ab62959d18c18248c178c198d3227b2fa3b5",
+      "reason": "技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
     },
     {
-      "path": "skill-stubs/orca-emulator-android.md",
+      "path": "skill-stubs/zkyq-emulator-android.md",
       "upstream_sha256": "f3f2ad9792183221ffaccf967674bfcada877b6e1a7294991cb639169879379b",
-      "current_sha256": "50ae9fddab9039f4440c2f3c7bae0675e7041c25bda978cc679c7e6367af8e3e",
-      "reason": "技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
+      "current_sha256": "86563adacf5be38f240109687e2ade74e9a1f597a03458f892eda60286484906",
+      "reason": "技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
     },
     {
-      "path": "skill-stubs/orca-emulator.md",
+      "path": "skill-stubs/zkyq-emulator.md",
       "upstream_sha256": "19916b67fd5274f6cbf7d3e189c190539d159391a872845bfe85bffbe0f2fa1a",
-      "current_sha256": "39b6f2545389852cbd190764c45474abf9f00118d7f3a938d2b867a790d36e8c",
-      "reason": "技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
+      "current_sha256": "1e907b802e3dea0d9ac9c52442a6d04fa0b4fe553741d8215981ceec1cb2fbd3",
+      "reason": "技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
     },
     {
-      "path": "skill-stubs/orca-jira.md",
+      "path": "skill-stubs/zkyq-jira.md",
       "upstream_sha256": "5823c494798c8bc01b1fc79256f10af7a7d0ffcc8dba0b414941c11af636ae3c",
-      "current_sha256": "66dd6b5cb0013a16fffa8b603754714258a1e15bee79fae7e5c9fd2365ec68ea",
-      "reason": "技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
+      "current_sha256": "26fdf39f4fcdb6839bf78336c91c0b6fe2c1323757832b1428c48747c7daaa13",
+      "reason": "技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
     },
     {
-      "path": "skill-stubs/orca-linear.md",
+      "path": "skill-stubs/zkyq-linear.md",
       "upstream_sha256": "26c8eeab690c99ddf87ad6f8db15b274a0c7fbe6b7275a057d32af5b9d16f980",
-      "current_sha256": "bb576d3dcd6eeaf86c53c8d72c3053288f55b2f5f05c1aaa5d0cd8daa39a7b2d",
-      "reason": "技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
+      "current_sha256": "89cb5f92d4fddd2a52815ae8ec1196b0a5df5be94844cda1269c3af31bf4e107",
+      "reason": "技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
     },
     {
-      "path": "skill-stubs/orca-per-workspace-env.md",
+      "path": "skill-stubs/zkyq-per-workspace-env.md",
       "upstream_sha256": "88809c59ec362af16b669ff6e8c7fa84439c49576c30f88e15666e815c4256ea",
-      "current_sha256": "9dc5988f9ea8291646bf2a2216a7231949de391b00b4361eb8f3bb022d9bad7d",
-      "reason": "技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
+      "current_sha256": "f6571984e1f7722bf5eeb29729211f4c4facb8be23176256450a50e6b8bf8cb8",
+      "reason": "技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
     },
     {
       "path": "skill-stubs/orchestration.md",
       "upstream_sha256": "c5321118e4a241cdce09d1c7ce65a6147a079d1110edaef5a8b32e7beb02eaa0",
-      "current_sha256": "93add5bb2887611cb9e900d4960f00f1b9241a8e6bd9bd4e8714239ae6b6546c",
-      "reason": "技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
+      "current_sha256": "688a65b6119f536f6d9e8ddfc3e064d8ceefe88855ad2d8f2066b52d18ba3532",
+      "reason": "技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
+    },
+    {
+      "path": "config/scripts/generate-bundled-skill-guides.mjs",
+      "upstream_sha256": "279c80f8a409e85ecf220cd4b1aca46636fa146227feddd4454b70f243e71e94",
+      "current_sha256": "92ee793522c2b00ad90623ebd092e98851de85c0aa3383556f7b1e910a60fe27",
+      "reason": "六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
+    },
+    {
+      "path": "config/scripts/skill-recipe-shell.test.mjs",
+      "upstream_sha256": "9a7d759173b897fc0000f09b2ed046a5fe91c57f1aab2cd06eb14d68ba2a4e59",
+      "current_sha256": "e4396ec838d73b4c020fe420bc0566cc80697c7f6437c690ee3ff628a255901e",
+      "reason": "六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
+    },
+    {
+      "path": "config/scripts/verify-skills-cli-runtime.cjs",
+      "upstream_sha256": "5134a98248db2b51713f59dd021645f338496ea70d1ebfe3b040c16f26ad73f6",
+      "current_sha256": "a4897f03001ce02b05ce7cb6018aeec5bfc456e078701e3424427e444ed2f1c2",
+      "reason": "六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
+    },
+    {
+      "path": "src/cli/handlers/bundled-skill-guide-table.ts",
+      "upstream_sha256": "db828ef81f33f46ca376609ee083024d9a118e34ac69f024756d5680031ada73",
+      "current_sha256": "4b9752797f54a4d1947053333a7a06a34fef259404a79c1cff1c62972c41468a",
+      "reason": "六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
+    },
+    {
+      "path": "src/main/ipc/skills.ts",
+      "upstream_sha256": "2545ba74ff2e31ff70b1f542037fcbc30b57c8f30f7dde04558caaa77ece2792",
+      "current_sha256": "2a87cc69e4c78bbda43cab8e1757e7d996170289e90067d0509ae8ce37db8867",
+      "reason": "六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
+    },
+    {
+      "path": "src/main/skills/skill-freshness-inventory.ts",
+      "upstream_sha256": "da0ff6d5c7172f18cde8d28f031a0547db96e1aeb59c8b80ad06164afb712ee6",
+      "current_sha256": "7df9e7a076e96783ad8595bd2e607766b468b539c89152d74c87c3448e9cf810",
+      "reason": "六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
+    },
+    {
+      "path": "src/main/skills/skill-lock-sources.test.ts",
+      "upstream_sha256": "c3bde237aab70d859462f5f676e53cc10d44de1d68101e2bb3540c9e19d42838",
+      "current_sha256": "c76145b0bae7d86d84d908182b1a1cdb89ef3c56d97477b2225bbdcafb127754",
+      "reason": "六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
+    },
+    {
+      "path": "src/main/skills/skill-lock-sources.ts",
+      "upstream_sha256": "e38cc9839443594f50ef96e7b73cb1ce696118983cd998002496ed39700657dc",
+      "current_sha256": "f56cde19f0a233913217b43ca8cd7d86ed4bb5a9524cd452fa70398722a1e5b2",
+      "reason": "六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
+    },
+    {
+      "path": "src/main/skills/skill-plugin-cache-scan.test.ts",
+      "upstream_sha256": "d3f6c00c64bba4d46a8fc3ecb9f0c233f4a4bfd9bb89f231dfaffd8cc3aa38f4",
+      "current_sha256": "cf981d74a1c9912db6cad42abc012757093d4eccab05408048b8246f9912796a",
+      "reason": "六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
+    },
+    {
+      "path": "src/main/skills/skill-update-run.ts",
+      "upstream_sha256": "48d04fb576b4be03c5a65d8661c7a4d4f9cd8aaa965d5c832d09f40f9a70606c",
+      "current_sha256": "a07884aa50dde147a9dfb6bafedbdcdb1a8e79a0604416d85701e9fdd98a7764",
+      "reason": "六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
+    },
+    {
+      "path": "src/renderer/src/components/emulator-pane/MobileEmulatorAgentSetupGuideSteps.tsx",
+      "upstream_sha256": "b7e66c2b4871ad9372b52538122a7eb2ba3825025e3db7dc03eae29bd18a6c22",
+      "current_sha256": "6cd899072c43240583fabdf9f2f91bb4fb87e72e7118a7d576ff3e434ed66764",
+      "reason": "六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
+    },
+    {
+      "path": "src/renderer/src/components/emulator-pane/use-mobile-emulator-agent-setup-state.ts",
+      "upstream_sha256": "d08dbc06db078e5d3c4bfe5c3011d924e9e21431015216117765a0e6bd2156c8",
+      "current_sha256": "90499eb1fc427a803b020c26e85bde016a4acb48ee17399373b872465a4408d2",
+      "reason": "六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
+    },
+    {
+      "path": "src/renderer/src/components/feature-tips/CliSkillSetupTerminal.tsx",
+      "upstream_sha256": "df04639d542db89317dec3fccc241df0b2a4092fec1f07671585dcc4b7b5e2ae",
+      "current_sha256": "c58bf84493896c7862bccd0199486e3282cc98c8c239692d692f925b16b8827b",
+      "reason": "六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
+    },
+    {
+      "path": "src/renderer/src/components/feature-wall/FeatureWallTourSurface.tsx",
+      "upstream_sha256": "0fb3ad1f5dc77ccb8afd17c497853e8f4a4b5a0d233643f91d626d301814f813",
+      "current_sha256": "c07ea1aaf914c1fc2881ddaf937f0c0e226283aa5b0f2c80c656165fe2aa99d5",
+      "reason": "六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
+    },
+    {
+      "path": "src/renderer/src/components/feature-wall/agent-capability-setup-status.ts",
+      "upstream_sha256": "b1efd0b11a372a38c5ca15a2dbdf2ed808bbfa121b394902910aa21172910803",
+      "current_sha256": "7508f5578546f3389ba2aad421ac3ac45c1c73c07375b6cfab9ee873f8d4082c",
+      "reason": "六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
+    },
+    {
+      "path": "src/renderer/src/components/settings/AgentSkillSetupPanel.test.tsx",
+      "upstream_sha256": "21f945f05b0734eea220c2ebad8ad59d063bc0e8cc3a6aceaa6e4b402ff3ebf3",
+      "current_sha256": "343528484aa07af424f77211c7ee272467141482767400915e4169e6ea20fcb5",
+      "reason": "六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
+    },
+    {
+      "path": "src/renderer/src/components/settings/BrowserUseSkillStep.test.tsx",
+      "upstream_sha256": "8ad14c83c83f6daf9af3cdcec0ddfe9690377ca7b27b3e1065daa916720fb32a",
+      "current_sha256": "7174a7bbc303c863c8a806036dfae523fc35127f44ffdcaa984f02e6e3036e36",
+      "reason": "六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
+    },
+    {
+      "path": "src/renderer/src/components/settings/CliSection.tsx",
+      "upstream_sha256": "90e8f4dcd9aa381f723c0dc74b2b827b62ec7f88e71a3ef59fa1ba8ef3c1fd64",
+      "current_sha256": "2ce5c0eea79573e30173a3f2e173bd79865b9f800aba2e0aac8ff5934a6dd0b3",
+      "reason": "六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
+    },
+    {
+      "path": "src/renderer/src/components/settings/EphemeralVmsPane.tsx",
+      "upstream_sha256": "74a2088fe3c916b40dce60ba149e1bafc26a81c979e91b8881a58a282e9105af",
+      "current_sha256": "a435a5389f36c25636be375b5bbef0246884af3b7a00185e4b9160a8018b83bc",
+      "reason": "六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
+    },
+    {
+      "path": "src/renderer/src/components/settings/LinearAgentSkillGuide.tsx",
+      "upstream_sha256": "7b5421a89e1c9154deb557e6bcedbe54ec7e2f60d4a3634d30a7f75db0ddc170",
+      "current_sha256": "189e5cc675140757654d63ff33fbae90e5638aaf5aa35d23efd2461708182cac",
+      "reason": "六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
+    },
+    {
+      "path": "src/renderer/src/components/settings/LinearAgentSkillPane.test.tsx",
+      "upstream_sha256": "a35a9d790ad62e13f27c6b15a08022941dcee02702957b22244ec9fe140c8697",
+      "current_sha256": "3ccd6a67270b9419dc4fef912cd07df68cbc0f153ed0d357a783745c45dc26e1",
+      "reason": "六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
+    },
+    {
+      "path": "src/renderer/src/components/settings/LinearAgentSkillPane.tsx",
+      "upstream_sha256": "5e594cdeafd4e097fd2a5727fb84f7c365e31a00bcb996dbddf3f92a393cdbca",
+      "current_sha256": "c04388b67c5ebc5f2c54436b227a8ebb0a250b9ddf022c081ad3316830b6d828",
+      "reason": "六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
+    },
+    {
+      "path": "src/renderer/src/components/settings/MobileEmulatorAgentControlRow.test.tsx",
+      "upstream_sha256": "bd00b6d65cec3fae6883c73da3dbd939af648aaecf853c1ab480d941bfe6f004",
+      "current_sha256": "f949d7caa6868a9116727b319e83a91e8b18f878d5b12e1d272a03a1e67da185",
+      "reason": "六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
+    },
+    {
+      "path": "src/renderer/src/components/settings/MobileEmulatorAgentControlRow.tsx",
+      "upstream_sha256": "ef0179fa0f2e7a2c02e68a16dbbb82110ad0f23155ebde04361301fd2194b73f",
+      "current_sha256": "146e755a5fe023d6e2843477fcf86c358d9b70747fc8239068404937c30582e4",
+      "reason": "六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
+    },
+    {
+      "path": "src/renderer/src/components/settings/TaskSourceLinearSetup.test.tsx",
+      "upstream_sha256": "7b386072311e5fb7e362ecdf94bde64b775ea64f3f7f88bbca4c38ae5af99f23",
+      "current_sha256": "5f727c8b58a6f911e8964e3cd7e7216832a56db777f36a3c98b86106601e64ed",
+      "reason": "六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
+    },
+    {
+      "path": "src/renderer/src/components/settings/TaskSourceLinearSetup.tsx",
+      "upstream_sha256": "ebf753e61b7e5d9370a49aac11e9dad74c748c190c62a33e74fc8107c6aa08dc",
+      "current_sha256": "3ab47ef0b6db26ed24a8eb4037d0818c7b997eb47183fc0a24f6e30297dfee8a",
+      "reason": "六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
+    },
+    {
+      "path": "src/renderer/src/components/settings/browser-use-search.ts",
+      "upstream_sha256": "4f2647c13b05e0617583885e2a80c1157472c9646d42fb493472007c91d41807",
+      "current_sha256": "1345eb558b12170544951c33945756c79b0bf7f5e2696e5c3396a11edbbac888",
+      "reason": "六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
+    },
+    {
+      "path": "src/renderer/src/components/settings/linear-agent-skill-guide-content.ts",
+      "upstream_sha256": "a2f1aed535d30da511886ff5468beefee34ea8f6b91987f2f2e9a701eecbe157",
+      "current_sha256": "c86d6b1dfe3f1e545671e87f32e1ac4b1a3f3d6938e1fa5e4ea43762e7c5ff29",
+      "reason": "六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
+    },
+    {
+      "path": "src/renderer/src/components/settings/linear-agent-skill-install-cta.tsx",
+      "upstream_sha256": "4a0c873ebe8af18dc520994659850126f411c38a901baa6b86b11d13fd257d03",
+      "current_sha256": "0d83d3ad58d187b963fdc60fdab7be1f015a766e26b1a0e6844731b3d5ce3ce7",
+      "reason": "六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
+    },
+    {
+      "path": "src/renderer/src/components/settings/linear-agent-skill-search.ts",
+      "upstream_sha256": "052343241a4064cbb4af34e388f73983e480c51384082183b2a715b846ce36fe",
+      "current_sha256": "9d6e5f9bff801813e779b59914cdf7a8aeca21b22471d4deb584b618e873820f",
+      "reason": "六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
+    },
+    {
+      "path": "src/renderer/src/components/settings/use-linear-agent-skill-setup.ts",
+      "upstream_sha256": "a43496afc0d012a5c4b08cf884f184aba733bfc57973d715998805d2cf02259e",
+      "current_sha256": "997254699f9aff46d9d43b8d787d1c05e2b8962744557d9da5a4d4459958a363",
+      "reason": "六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
+    },
+    {
+      "path": "src/renderer/src/components/settings/use-local-cli-skill-freshness-name.ts",
+      "upstream_sha256": "8e2bf92f2914ec891d98a7fa800e7d0ccdbf73340a6e6ab65a43b1df98f65d7d",
+      "current_sha256": "efd98cf6c5da951247c4de64b7c32b1a65574ebfd7b77be5b6eda725bf52f8ce",
+      "reason": "六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
+    },
+    {
+      "path": "src/renderer/src/components/setup-guide/use-setup-guide-progress.ts",
+      "upstream_sha256": "949c5a5567ea39e334451653f0fd2d8785f785fcd340d7fdfd1f833179bbec99",
+      "current_sha256": "146ab3a1f216d9c9c602912ac1ef0543925cf92734e9970ac57aac47df7442d6",
+      "reason": "六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
+    },
+    {
+      "path": "src/renderer/src/hooks/useSkillFreshness.test.tsx",
+      "upstream_sha256": "fee76facb0658091ed0d8aba44f8564b09567b6fe74b93d519c4bd2f14310a99",
+      "current_sha256": "a213b1147b19d70976686e3b0bbf23a8db8f65776f9d036b68c4fb2d33e50238",
+      "reason": "六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
+    },
+    {
+      "path": "src/renderer/src/lib/agent-feature-install-commands.ts",
+      "upstream_sha256": "30ce157c2ab75e08ce89e0ad1b89e0af9a67dff4a285c3ff952e4d0612679af0",
+      "current_sha256": "93afff968ba3a9fecc32398425180e9cd0e3c8dc3065a5499d3483ba34cd4f79",
+      "reason": "六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
+    },
+    {
+      "path": "src/renderer/src/lib/agent-skill-nav-install-status.test.ts",
+      "upstream_sha256": "c04ac1afdc630f6a4cd51fda914bf6ab619b8fd66dcd5f3a1a0dbfabb96134e4",
+      "current_sha256": "79ba350f2bc7802c72be1126b746fe44b16da9377bc07ec79531d3fe1e1ea2d1",
+      "reason": "六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
+    },
+    {
+      "path": "src/renderer/src/lib/linear-agent-skill-update-command.ts",
+      "upstream_sha256": "b5a1600655a6e6b7c13a07a5329f486cc06137f7d9495cdf0313ca8cc4413466",
+      "current_sha256": "c412aca9375e6bcbc99e7a2fa7cb55eb901e502696c2ea40d4d7049a50e98675",
+      "reason": "六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
+    },
+    {
+      "path": "src/renderer/src/lib/linear-usage-examples.ts",
+      "upstream_sha256": "eebd0f5b4b758b0e40de6ec22e30d6865eaaffa3a3880b5cd6c2b0cc3b52935e",
+      "current_sha256": "05d24342b1628ac689ab653ff1a012a2f53bc7f519ea4a67b0408ee241559741",
+      "reason": "六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
+    },
+    {
+      "path": "src/shared/skill-metadata.test.ts",
+      "upstream_sha256": "1caf4127bf50852bb9fd46eae86e7e2b1c324f3a4e6990897bccbc125ab27664",
+      "current_sha256": "973c810820553b230ac628cb3609480b4785a3f33f3dc15d6bb5189086682f17",
+      "reason": "六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
     }
   ],
   "reviewed_findings": [
@@ -332653,24 +332891,24 @@
       "reason": "四段数字在此处表示程序集/浏览器/构建工具版本，不是服务器地址；修改会改变版本或兼容性语义。"
     },
     {
-      "path": "skill-guides/orca-cli.md",
+      "path": "skill-guides/zkyq-cli.md",
       "rule": "personal-home-path",
       "line": 71,
-      "sha256": "d981f5319ae1f4188d160268c652199a5be317800ea3e0c0651360e83627f3f9",
+      "sha256": "26013a6cae0135240ad333c643c916721312d36e7f6198ae758bb6fdec4365b4",
       "reason": "公开的路径模板、跨平台解析说明或通用示例；未读取本机账号/目录，保留语义并限定具体行及文件hash。"
     },
     {
       "path": "src/cli/bundled-skill-guides.ts",
       "rule": "personal-home-path",
-      "line": 27,
-      "sha256": "fd3eb3ef9adc05d85e6d74ffda731f3ba698025e60534c949de94e48cf468050",
+      "line": 54,
+      "sha256": "6100398dc5e5ca94dcd6616dfb32bee9b88a3ee003ba7e191924a0c29615f448",
       "reason": "公开的路径模板、跨平台解析说明或通用示例；未读取本机账号/目录，保留语义并限定具体行及文件hash。"
     },
     {
       "path": "src/cli/bundled-skill-guides.ts",
       "rule": "personal-home-path",
-      "line": 30,
-      "sha256": "fd3eb3ef9adc05d85e6d74ffda731f3ba698025e60534c949de94e48cf468050",
+      "line": 57,
+      "sha256": "6100398dc5e5ca94dcd6616dfb32bee9b88a3ee003ba7e191924a0c29615f448",
       "reason": "公开的路径模板、跨平台解析说明或通用示例；未读取本机账号/目录，保留语义并限定具体行及文件hash。"
     },
     {
@@ -333545,196 +333783,196 @@
       "path": "src/renderer/src/i18n/locales/en.json",
       "rule": "absolute-windows-path",
       "line": 12221,
-      "sha256": "1fdadb4910af0376a8cf3f940e94ebd3e9760311e0aba6f523eaf4b1647a6f6c",
+      "sha256": "51a10cc250b43087e0f8c6455fee9c3a74b31fca8ff97b4764ef50a71672df1b",
       "reason": "上游公开代码注释、CLI/界面示例中的路径语法，用来解释drive/root/UNC/转义等规则；非读取的个人配置，限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/en.json",
       "rule": "personal-home-path",
       "line": 12221,
-      "sha256": "1fdadb4910af0376a8cf3f940e94ebd3e9760311e0aba6f523eaf4b1647a6f6c",
+      "sha256": "51a10cc250b43087e0f8c6455fee9c3a74b31fca8ff97b4764ef50a71672df1b",
       "reason": "公开的路径模板、跨平台解析说明或通用示例；未读取本机账号/目录，保留语义并限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/en.json",
       "rule": "absolute-windows-path",
       "line": 12207,
-      "sha256": "1fdadb4910af0376a8cf3f940e94ebd3e9760311e0aba6f523eaf4b1647a6f6c",
+      "sha256": "51a10cc250b43087e0f8c6455fee9c3a74b31fca8ff97b4764ef50a71672df1b",
       "reason": "上游公开代码注释、CLI/界面示例中的路径语法，用来解释drive/root/UNC/转义等规则；非读取的个人配置，限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/en.json",
       "rule": "personal-home-path",
       "line": 12207,
-      "sha256": "1fdadb4910af0376a8cf3f940e94ebd3e9760311e0aba6f523eaf4b1647a6f6c",
+      "sha256": "51a10cc250b43087e0f8c6455fee9c3a74b31fca8ff97b4764ef50a71672df1b",
       "reason": "公开的路径模板、跨平台解析说明或通用示例；未读取本机账号/目录，保留语义并限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/es.json",
       "rule": "absolute-windows-path",
       "line": 11871,
-      "sha256": "25716feb0bb62cc4e80943479147e99c5e84be6d0a9caae666d66816c499ea02",
+      "sha256": "0fe8daa619d1560e4b0d7c363f5f739f45e36b7e14de9cf4d7238b90e17c2059",
       "reason": "上游公开代码注释、CLI/界面示例中的路径语法，用来解释drive/root/UNC/转义等规则；非读取的个人配置，限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/es.json",
       "rule": "personal-home-path",
       "line": 11871,
-      "sha256": "25716feb0bb62cc4e80943479147e99c5e84be6d0a9caae666d66816c499ea02",
+      "sha256": "0fe8daa619d1560e4b0d7c363f5f739f45e36b7e14de9cf4d7238b90e17c2059",
       "reason": "公开的路径模板、跨平台解析说明或通用示例；未读取本机账号/目录，保留语义并限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/es.json",
       "rule": "absolute-windows-path",
       "line": 11885,
-      "sha256": "25716feb0bb62cc4e80943479147e99c5e84be6d0a9caae666d66816c499ea02",
+      "sha256": "0fe8daa619d1560e4b0d7c363f5f739f45e36b7e14de9cf4d7238b90e17c2059",
       "reason": "上游公开代码注释、CLI/界面示例中的路径语法，用来解释drive/root/UNC/转义等规则；非读取的个人配置，限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/es.json",
       "rule": "personal-home-path",
       "line": 11885,
-      "sha256": "25716feb0bb62cc4e80943479147e99c5e84be6d0a9caae666d66816c499ea02",
+      "sha256": "0fe8daa619d1560e4b0d7c363f5f739f45e36b7e14de9cf4d7238b90e17c2059",
       "reason": "公开的路径模板、跨平台解析说明或通用示例；未读取本机账号/目录，保留语义并限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/fr.json",
       "rule": "absolute-windows-path",
       "line": 11975,
-      "sha256": "14eb956f30a402a98ca6a97a03046031863c7165408ecb9198ccc99e3de1eb5c",
+      "sha256": "150ecfc22a8a675ed5a583ed4f4f65d94f8db0a4f35fb98c0999290fbfc0377d",
       "reason": "上游公开代码注释、CLI/界面示例中的路径语法，用来解释drive/root/UNC/转义等规则；非读取的个人配置，限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/fr.json",
       "rule": "personal-home-path",
       "line": 11975,
-      "sha256": "14eb956f30a402a98ca6a97a03046031863c7165408ecb9198ccc99e3de1eb5c",
+      "sha256": "150ecfc22a8a675ed5a583ed4f4f65d94f8db0a4f35fb98c0999290fbfc0377d",
       "reason": "公开的路径模板、跨平台解析说明或通用示例；未读取本机账号/目录，保留语义并限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/fr.json",
       "rule": "absolute-windows-path",
       "line": 11989,
-      "sha256": "14eb956f30a402a98ca6a97a03046031863c7165408ecb9198ccc99e3de1eb5c",
+      "sha256": "150ecfc22a8a675ed5a583ed4f4f65d94f8db0a4f35fb98c0999290fbfc0377d",
       "reason": "上游公开代码注释、CLI/界面示例中的路径语法，用来解释drive/root/UNC/转义等规则；非读取的个人配置，限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/fr.json",
       "rule": "personal-home-path",
       "line": 11989,
-      "sha256": "14eb956f30a402a98ca6a97a03046031863c7165408ecb9198ccc99e3de1eb5c",
+      "sha256": "150ecfc22a8a675ed5a583ed4f4f65d94f8db0a4f35fb98c0999290fbfc0377d",
       "reason": "公开的路径模板、跨平台解析说明或通用示例；未读取本机账号/目录，保留语义并限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/ja.json",
       "rule": "absolute-windows-path",
       "line": 11876,
-      "sha256": "ab5b556596b445a53cc6d5d4d6f630ce68f01719274170073d0cd390ad83387e",
+      "sha256": "a46900565554681602e98af2d1dacadee87505f3a45a1b4958778c9a5dd31319",
       "reason": "上游公开代码注释、CLI/界面示例中的路径语法，用来解释drive/root/UNC/转义等规则；非读取的个人配置，限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/ja.json",
       "rule": "personal-home-path",
       "line": 11876,
-      "sha256": "ab5b556596b445a53cc6d5d4d6f630ce68f01719274170073d0cd390ad83387e",
+      "sha256": "a46900565554681602e98af2d1dacadee87505f3a45a1b4958778c9a5dd31319",
       "reason": "公开的路径模板、跨平台解析说明或通用示例；未读取本机账号/目录，保留语义并限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/ja.json",
       "rule": "absolute-windows-path",
       "line": 11890,
-      "sha256": "ab5b556596b445a53cc6d5d4d6f630ce68f01719274170073d0cd390ad83387e",
+      "sha256": "a46900565554681602e98af2d1dacadee87505f3a45a1b4958778c9a5dd31319",
       "reason": "上游公开代码注释、CLI/界面示例中的路径语法，用来解释drive/root/UNC/转义等规则；非读取的个人配置，限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/ja.json",
       "rule": "personal-home-path",
       "line": 11890,
-      "sha256": "ab5b556596b445a53cc6d5d4d6f630ce68f01719274170073d0cd390ad83387e",
+      "sha256": "a46900565554681602e98af2d1dacadee87505f3a45a1b4958778c9a5dd31319",
       "reason": "公开的路径模板、跨平台解析说明或通用示例；未读取本机账号/目录，保留语义并限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/ko.json",
       "rule": "absolute-windows-path",
       "line": 11876,
-      "sha256": "7a3c6886186109b971a0363cc55ed09ff15624de6c7c81748ad7b130de8d70a2",
+      "sha256": "6914c87de4db2d71dadf30abab24c48abaef5ef39ccf65574aeb9b2907cbcdd4",
       "reason": "上游公开代码注释、CLI/界面示例中的路径语法，用来解释drive/root/UNC/转义等规则；非读取的个人配置，限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/ko.json",
       "rule": "personal-home-path",
       "line": 11876,
-      "sha256": "7a3c6886186109b971a0363cc55ed09ff15624de6c7c81748ad7b130de8d70a2",
+      "sha256": "6914c87de4db2d71dadf30abab24c48abaef5ef39ccf65574aeb9b2907cbcdd4",
       "reason": "公开的路径模板、跨平台解析说明或通用示例；未读取本机账号/目录，保留语义并限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/ko.json",
       "rule": "absolute-windows-path",
       "line": 11890,
-      "sha256": "7a3c6886186109b971a0363cc55ed09ff15624de6c7c81748ad7b130de8d70a2",
+      "sha256": "6914c87de4db2d71dadf30abab24c48abaef5ef39ccf65574aeb9b2907cbcdd4",
       "reason": "上游公开代码注释、CLI/界面示例中的路径语法，用来解释drive/root/UNC/转义等规则；非读取的个人配置，限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/ko.json",
       "rule": "personal-home-path",
       "line": 11890,
-      "sha256": "7a3c6886186109b971a0363cc55ed09ff15624de6c7c81748ad7b130de8d70a2",
+      "sha256": "6914c87de4db2d71dadf30abab24c48abaef5ef39ccf65574aeb9b2907cbcdd4",
       "reason": "公开的路径模板、跨平台解析说明或通用示例；未读取本机账号/目录，保留语义并限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/pt.json",
       "rule": "absolute-windows-path",
       "line": 6724,
-      "sha256": "05e6f38258a0f3e08ba4de814c9d3cbe39f20de55b66e88cd7d21d6ddde97117",
+      "sha256": "847dd5e6322908c1f2fa857ea1389402e9d9c6079ddfc4c52c363b81b74d30ff",
       "reason": "上游公开代码注释、CLI/界面示例中的路径语法，用来解释drive/root/UNC/转义等规则；非读取的个人配置，限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/pt.json",
       "rule": "personal-home-path",
       "line": 6724,
-      "sha256": "05e6f38258a0f3e08ba4de814c9d3cbe39f20de55b66e88cd7d21d6ddde97117",
+      "sha256": "847dd5e6322908c1f2fa857ea1389402e9d9c6079ddfc4c52c363b81b74d30ff",
       "reason": "公开的路径模板、跨平台解析说明或通用示例；未读取本机账号/目录，保留语义并限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/pt.json",
       "rule": "absolute-windows-path",
       "line": 7906,
-      "sha256": "05e6f38258a0f3e08ba4de814c9d3cbe39f20de55b66e88cd7d21d6ddde97117",
+      "sha256": "847dd5e6322908c1f2fa857ea1389402e9d9c6079ddfc4c52c363b81b74d30ff",
       "reason": "上游公开代码注释、CLI/界面示例中的路径语法，用来解释drive/root/UNC/转义等规则；非读取的个人配置，限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/pt.json",
       "rule": "personal-home-path",
       "line": 7906,
-      "sha256": "05e6f38258a0f3e08ba4de814c9d3cbe39f20de55b66e88cd7d21d6ddde97117",
+      "sha256": "847dd5e6322908c1f2fa857ea1389402e9d9c6079ddfc4c52c363b81b74d30ff",
       "reason": "公开的路径模板、跨平台解析说明或通用示例；未读取本机账号/目录，保留语义并限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/zh.json",
       "rule": "absolute-windows-path",
       "line": 11929,
-      "sha256": "9750993fa0b42527d93c6f8b84b98cdacb80385a17f6eab2cd6955ed3a6d2a21",
+      "sha256": "bcd279901acb3767dbb89bcc302adc31d7e26e42f7a7fe8bc5b28662f0daf0c5",
       "reason": "上游公开代码注释、CLI/界面示例中的路径语法，用来解释drive/root/UNC/转义等规则；非读取的个人配置，限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/zh.json",
       "rule": "personal-home-path",
       "line": 11929,
-      "sha256": "9750993fa0b42527d93c6f8b84b98cdacb80385a17f6eab2cd6955ed3a6d2a21",
+      "sha256": "bcd279901acb3767dbb89bcc302adc31d7e26e42f7a7fe8bc5b28662f0daf0c5",
       "reason": "公开的路径模板、跨平台解析说明或通用示例；未读取本机账号/目录，保留语义并限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/zh.json",
       "rule": "absolute-windows-path",
       "line": 11915,
-      "sha256": "9750993fa0b42527d93c6f8b84b98cdacb80385a17f6eab2cd6955ed3a6d2a21",
+      "sha256": "bcd279901acb3767dbb89bcc302adc31d7e26e42f7a7fe8bc5b28662f0daf0c5",
       "reason": "上游公开代码注释、CLI/界面示例中的路径语法，用来解释drive/root/UNC/转义等规则；非读取的个人配置，限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/zh.json",
       "rule": "personal-home-path",
       "line": 11915,
-      "sha256": "9750993fa0b42527d93c6f8b84b98cdacb80385a17f6eab2cd6955ed3a6d2a21",
+      "sha256": "bcd279901acb3767dbb89bcc302adc31d7e26e42f7a7fe8bc5b28662f0daf0c5",
       "reason": "公开的路径模板、跨平台解析说明或通用示例；未读取本机账号/目录，保留语义并限定具体行及文件hash。"
     },
     {

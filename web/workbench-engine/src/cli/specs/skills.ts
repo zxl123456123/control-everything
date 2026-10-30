@@ -58,7 +58,7 @@ export const SKILL_COMMAND_SPECS: CommandSpec[] = [
       'Use --json for a deterministic object containing canonical topic metadata and content.'
     ],
     examples: [
-      'zkyq skills get orca-cli',
+      'zkyq skills get zkyq-cli',
       'zkyq skills get orchestration --full',
       'zkyq skills get orchestration --references',
       'zkyq skills get orchestration --reference recovery-and-cleanup'
@@ -93,9 +93,9 @@ export const SKILL_COMMAND_SPECS: CommandSpec[] = [
     ],
     examples: [
       'zkyq skills install',
-      'zkyq skills install --skill orca-cli --skill orchestration',
-      'zkyq skills install --skill orca-cli --local',
-      'zkyq skills install --skill orca-cli --agent claude-code,codex',
+      'zkyq skills install --skill zkyq-cli --skill orchestration',
+      'zkyq skills install --skill zkyq-cli --local',
+      'zkyq skills install --skill zkyq-cli --agent claude-code,codex',
       'zkyq skills install --all --dry-run'
     ]
   },
@@ -122,8 +122,8 @@ export const SKILL_COMMAND_SPECS: CommandSpec[] = [
     ],
     examples: [
       'zkyq skills update',
-      'zkyq skills update --skill orca-cli --skill orchestration',
-      'zkyq skills update --skill orca-cli --local',
+      'zkyq skills update --skill zkyq-cli --skill orchestration',
+      'zkyq skills update --skill zkyq-cli --local',
       'zkyq skills update --all --dry-run'
     ]
   }

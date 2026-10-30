@@ -1,8 +1,8 @@
 import { browserStorage } from '../../web/remote-context'
 import { useEffect, useState } from 'react'
 import {
-  ORCA_CLI_SKILL_INSTALL_COMMAND,
-  ORCA_CLI_SKILL_NAME
+  WORKBENCH_CLI_SKILL_INSTALL_COMMAND,
+  WORKBENCH_CLI_SKILL_NAME
 } from '@/lib/agent-feature-install-commands'
 import { BROWSER_USE_ENABLED_STORAGE_KEY } from '@/lib/browser-use-setup-state'
 import {
@@ -40,8 +40,11 @@ export function BrowserUseSetup({
 
   const activeSkillRuntime = useActiveProjectSkillRuntime()
   const browserUseInstallCommand = !activeSkillRuntime.installDisabledReason
-    ? buildSkillCommandForRuntime(ORCA_CLI_SKILL_INSTALL_COMMAND, activeSkillRuntime.agentRuntime)
-    : ORCA_CLI_SKILL_INSTALL_COMMAND
+    ? buildSkillCommandForRuntime(
+        WORKBENCH_CLI_SKILL_INSTALL_COMMAND,
+        activeSkillRuntime.agentRuntime
+      )
+    : WORKBENCH_CLI_SKILL_INSTALL_COMMAND
 
   const [browserUseEnabled, setBrowserUseEnabled] = useState<boolean>(() => {
     return browserStorage('localStorage').getItem(BROWSER_USE_ENABLED_STORAGE_KEY) === '1'
@@ -70,7 +73,7 @@ export function BrowserUseSetup({
     loading: skillLoading,
     error: skillError,
     refresh: refreshSkill
-  } = useInstalledAgentSkill(ORCA_CLI_SKILL_NAME, {
+  } = useInstalledAgentSkill(WORKBENCH_CLI_SKILL_NAME, {
     enabled: browserUseEnabled,
     discoveryTarget: activeSkillRuntime.discoveryTarget,
     sourceKinds: GLOBAL_AGENT_SKILL_SOURCE_KINDS

@@ -1,4 +1,4 @@
-# Control Everything Emulator (Android)
+# Control Everything Jira
 
 This discovery stub loads the version-matched guide from the Control Everything executable used for this session.
 
@@ -7,7 +7,7 @@ This discovery stub loads the version-matched guide from the Control Everything 
 ## Load the version-matched guide before running Control Everything commands
 
 ```text
-CLI skills get orca-emulator-android
+CLI skills get zkyq-jira
 ```
 
 <!-- shared: no-guessing -->

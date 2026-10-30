@@ -3,7 +3,7 @@ name: orchestration
 description: >-
   Coordinate supervised Control Everything workers: threaded messages, blocking ask/reply,
   task dispatch, worker_done/escalation waits, task DAGs, decision gates,
-  coordinator loops, and decomposing work across agents. Use `orca-cli` for full
+  coordinator loops, and decomposing work across agents. Use `zkyq-cli` for full
   ownership handoffs — "hand off", "handoff", "handover", "give this to another
   agent", "another worktree" — unless asked to supervise, monitor, or coordinate
   a DAG, and for terminal control, lightweight terminal prompts, shell commands,
@@ -36,11 +36,11 @@ absence included, is a checkpoint.
 | ---------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- | ------------------------------------------------------------------------------ |
 | The user explicitly asks to supervise, monitor, wait for results, track completion, coordinate a DAG, use a decision gate, or manage ask/reply | Coordinator             | Use the supervised loop below                                                  |
 | The current prompt contains a live injected preamble with Task and Dispatch IDs                                                                | Dispatched worker       | Follow the preamble and the worker obligations below                           |
-| The user asks to hand off ownership or start another agent/worktree without supervision                                                        | Handoff owner           | Use `orca-cli`; create no Run, Task, or Dispatch and do not monitor completion |
+| The user asks to hand off ownership or start another agent/worktree without supervision                                                        | Handoff owner           | Use `zkyq-cli`; create no Run, Task, or Dispatch and do not monitor completion |
 | A message carries a legacy authority label                                                                                                     | Compatibility operator  | Load the legacy contract reference before any lifecycle mutation               |
-| No live preamble and no explicit supervision                                                                                                   | Ordinary terminal agent | Do not emit lifecycle messages; use `orca-cli` for terminal/worktree work      |
+| No live preamble and no explicit supervision                                                                                                   | Ordinary terminal agent | Do not emit lifecycle messages; use `zkyq-cli` for terminal/worktree work      |
 
-Model or effort selection does not make a handoff supervised: `orca-cli`'s
+Model or effort selection does not make a handoff supervised: `zkyq-cli`'s
 `worktree create --agent` and `agent launch` take `--model` and `--effort`, and
 open a chat or a terminal per the user's Chat UI setting, as `worker-start` does.
 Never substitute an external subagent tool when Control Everything orchestration provenance was

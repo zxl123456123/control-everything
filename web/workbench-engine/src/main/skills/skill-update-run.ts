@@ -41,6 +41,8 @@ export type SkillUpdateRunnerDeps = {
   resolveCommand?: (commandName: string) => string
   /** Returns the subset of `names` that did not land, re-read from disk. */
   rescanOutdatedNames?: (names: string[]) => Promise<string[]>
+  /** Preserve renamed old copies after install, before judging the final inventory. */
+  retireRenamedSkills?: (names: string[]) => Promise<string[]>
   killTree?: (pid: number, killRoot: () => void) => Promise<void>
   /** Injected so the Windows cmd.exe rail is reachable off Windows. */
   buildSpawnArgs?: typeof getSpawnArgsForWindows
@@ -76,6 +78,7 @@ export class SkillUpdateRunner {
   // keeps the first verdict of a live run while its re-scan is still in flight.
   private runToken = 0
   private settling = false
+  private retiring = false
   private killing = false
   private readonly deps: Required<Pick<SkillUpdateRunnerDeps, 'now'>> & SkillUpdateRunnerDeps
 
@@ -206,7 +209,7 @@ export class SkillUpdateRunner {
     }
     this.settling = true
     this.child = null
-    const output = this.run.output
+    let output = this.run.output
     const finishedAt = this.deps.now()
     const rescan = this.deps.rescanOutdatedNames
 
@@ -236,18 +239,34 @@ export class SkillUpdateRunner {
       })
     }
 
-    if (!rescan) {
-      finish(null)
-      return
-    }
-    void rescan(names).then(
-      (failedNames) => finish(failedNames),
-      () => finish(null)
-    )
+    void (async () => {
+      if (!spawnError && this.deps.retireRenamedSkills) {
+        this.retiring = true
+        try {
+          const archived = await this.deps.retireRenamedSkills(names)
+          output += archived.map((path) => `\nPreserved retired skill: ${path}\n`).join('')
+        } catch (error) {
+          spawnError = error instanceof Error ? error.message : String(error)
+          finish(names)
+          return
+        } finally {
+          this.retiring = false
+        }
+      }
+      if (!rescan) {
+        finish(null)
+        return
+      }
+      await rescan(names).then(
+        (failedNames) => finish(failedNames),
+        () => finish(null)
+      )
+    })()
   }
 
   cancel(): void {
-    if (this.killing) {
+    // A short archive transaction must settle before another install can start.
+    if (this.killing || this.retiring) {
       return
     }
     // Retire the child's handlers now so its exit settles nothing.

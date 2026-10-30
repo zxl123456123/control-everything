@@ -7,7 +7,7 @@ This discovery stub loads the version-matched guide from the Control Everything 
 ## Load the version-matched guide before running Control Everything commands
 
 ```text
-CLI skills get orca-linear
+CLI skills get zkyq-linear
 ```
 
 <!-- shared: no-guessing -->

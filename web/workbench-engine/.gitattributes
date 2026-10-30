@@ -126,3 +126,5 @@
 /src/renderer/src/i18n/locales/ja.json text eol=lf
 /src/renderer/src/i18n/locales/ko.json text eol=lf
 /src/renderer/src/i18n/locales/pt.json text eol=lf
+
+/config/scripts/verify-skills-cli-runtime.cjs text eol=lf

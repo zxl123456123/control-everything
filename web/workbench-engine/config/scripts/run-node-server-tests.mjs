@@ -90,7 +90,7 @@ if (artifact) {
       'skills',
       'install',
       '--skill',
-      'orca-cli',
+      'zkyq-cli',
       '--agent',
       'universal',
       '--dry-run'

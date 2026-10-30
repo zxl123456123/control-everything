@@ -14,6 +14,7 @@ import type {
 import { inventorySkillFreshness } from '../skills/skill-freshness-inventory'
 import { SkillUpdateRunner } from '../skills/skill-update-run'
 import { skillUpdateFailedNames } from '../skills/skill-update-outcome'
+import { retireRenamedBundledSkills } from '../skills/skill-name-migration'
 import {
   clearSkillDiscoveryCaches,
   discoverSkillsOnTarget,
@@ -38,6 +39,7 @@ export function registerSkillsHandlers(store: Store, runtime?: OrcaRuntimeServic
 
   const runner = new SkillUpdateRunner({
     sourceCommit: ORCA_BUILD_COMMIT,
+    retireRenamedSkills: (names) => retireRenamedBundledSkills({ names }),
     // Why: per-skill outcomes come from re-hashing what is actually on disk, not
     // from scraping stdout.
     rescanOutdatedNames: async (names) => {

@@ -1,4 +1,4 @@
-# Control Everything Jira
+# Per-Workspace Environments
 
 This discovery stub loads the version-matched guide from the Control Everything executable used for this session.
 
@@ -7,7 +7,7 @@ This discovery stub loads the version-matched guide from the Control Everything 
 ## Load the version-matched guide before running Control Everything commands
 
 ```text
-CLI skills get orca-jira
+CLI skills get zkyq-per-workspace-env
 ```
 
 <!-- shared: no-guessing -->

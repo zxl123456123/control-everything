@@ -6,8 +6,8 @@ const COMMIT = 'a'.repeat(40)
 
 describe('skill update round trip', () => {
   it('runs exactly the shared builder’s unattended add, pinned skills CLI included', () => {
-    expect(roundTripAddArgs('zxl123456123/control-everything', COMMIT, 'orca-cli')).toEqual(
-      buildAgentFeatureSkillInstallArgs(['orca-cli'], {
+    expect(roundTripAddArgs('zxl123456123/control-everything', COMMIT, 'zkyq-cli')).toEqual(
+      buildAgentFeatureSkillInstallArgs(['zkyq-cli'], {
         sourceCommit: COMMIT,
         yes: true,
         agents: ['claude-code', 'universal']

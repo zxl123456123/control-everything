@@ -8,7 +8,7 @@ description: >-
 
 # Jira tickets
 
-Resolve the Control Everything executable using this skill's discovery stub, then load `CLI skills get orca-jira` for current command and site-selection details. `CLI` below is a placeholder for that executable.
+Resolve the Control Everything executable using this skill's discovery stub, then load `CLI skills get zkyq-jira` for current command and site-selection details. `CLI` below is a placeholder for that executable.
 
 Read the current issue with `CLI jira issue <key-or-browse-url> --json` before planning a Jira-linked task. Use `CLI jira comment list <key> --json` when comments provide required context. Keep the selected site ID with the issue: identical keys can exist on several sites.
 

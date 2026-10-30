@@ -1,17 +1,21 @@
 ---
-name: orca-per-workspace-env
+name: zkyq-emulator
 description: >-
-  Set up, review, debug, or validate a Control Everything per-workspace environment recipe: the
-  on-demand, disposable runtime (cloud sandbox, VM, SSH host, or local container)
-  Control Everything creates fresh for each workspace. Use to stand up a new recipe end to end,
-  fix an `environmentRecipes` entry in `orca.yaml`, scaffold provider lifecycle
-  scripts, or resolve an `zkyq vm recipe doctor` failure. Use `orca-cli` for
-  ordinary worktree and workspace creation with no recipe involved.
+  iOS Simulator control from inside Control Everything, with the live device view in Control Everything's
+  emulator pane. Use when driving a booted Apple Simulator on macOS: taps,
+  gestures, typing, hardware buttons, rotation, and the accessibility tree, or
+  when an iOS change needs simulator evidence. For an Android device or emulator
+  use the Android emulator skill; build and install the app with xcodebuild or
+  simctl first.
+license: Apache-2.0
 ---
 
-# Per-Workspace Environments
+# Control Everything Emulator
 
 This discovery stub loads the version-matched guide from the Control Everything executable used for this session.
+
+Prefer Control Everything over raw `serve-sim` or direct `simctl` for simulator control inside Control Everything; it
+handles device scoping, helper lifecycle, and worktree context.
 
 ## Resolve the CLI for this session
 
@@ -32,7 +36,7 @@ to another executable, which could silently target a different Control Everythin
 ## Load the version-matched guide before running Control Everything commands
 
 ```text
-CLI skills get orca-per-workspace-env
+CLI skills get zkyq-emulator
 ```
 
 Prefer `--json`. Use the selected executable's `--help` for commands or flags the guide does

@@ -7,7 +7,7 @@ type SkillLockSourcesArgs = {
   stateHome?: string | null
 }
 
-function globalSkillLockPath(args: SkillLockSourcesArgs): string {
+export function globalSkillLockPath(args: SkillLockSourcesArgs): string {
   const stateHome =
     args.stateHome === undefined
       ? args.homeDir === undefined

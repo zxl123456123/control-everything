@@ -3687,7 +3687,7 @@
               "cee44fb442": "automação",
               "a57c2172dc": "agente-navegador",
               "6ea88e5206": "npx",
-              "f5b8fdddf5": "orca-cli",
+              "f5b8fdddf5": "zkyq-cli",
               "e5a784bc54": "instalar",
               "9d97446873": "agente",
               "a2d489263e": "skill",
@@ -6141,7 +6141,7 @@
           "manageKeys": "Gerenciar chaves",
           "addAccess": "Adicionar acesso",
           "setupSkillTitle": "2. Instalar a skill de agente",
-          "setupSkillBody": "Dá aos agentes de código o /orca-linear para leitura, atualizações, triagem e anexação de pull ou merge requests.",
+          "setupSkillBody": "Dá aos agentes de código o /zkyq-linear para leitura, atualizações, triagem e anexação de pull ou merge requests.",
           "setupVisibleTitle": "3. Mostrar o Linear em Tarefas",
           "setupVisibleBody": "Mantém o Linear no seletor de origens de Tarefas e nos atalhos da barra lateral.",
           "openTaskSources": "Origens de Tarefas",
@@ -6153,8 +6153,8 @@
           "notesIntro": "Lembretes rápidos depois que o Linear estiver conectado e a skill instalada.",
           "noteLinkedTitle": "Comece a partir de uma issue do Linear",
           "noteLinkedBody": "As ações de ticket funcionam melhor em uma worktree criada a partir de Tarefas, para que a issue permaneça vinculada como contexto.",
-          "noteSlashTitle": "Mencione /orca-linear",
-          "noteSlashBody": "No chat, use /orca-linear (ou peça em linguagem natural) para que o agente carregue a skill naquele turno.",
+          "noteSlashTitle": "Mencione /zkyq-linear",
+          "noteSlashBody": "No chat, use /zkyq-linear (ou peça em linguagem natural) para que o agente carregue a skill naquele turno.",
           "noteKeysTitle": "As chaves seguem o runtime",
           "noteKeysBody": "As chaves de API e os espaços de trabalho são armazenados para o runtime ativo.",
           "noteVisibilityTitle": "Ocultar ≠ desconectar",
@@ -7008,7 +7008,7 @@
                 "tickets": "tickets",
                 "issues": "issues",
                 "skill": "skill",
-                "orcaLinear": "orca-linear"
+                "orcaLinear": "zkyq-linear"
               }
             }
           }
@@ -7379,7 +7379,7 @@
           "connectedHint": "Espaços de trabalho e chaves são armazenados para o runtime ativo. Você pode adicionar mais acesso quando quiser.",
           "recheck": "Verificar conexão novamente",
           "skillTitle": "Instalar skill de agente do Linear",
-          "skillDescription": "Dá aos agentes o /orca-linear para ler tickets, publicar atualizações, mover estados e anexar pull ou merge requests.",
+          "skillDescription": "Dá aos agentes o /zkyq-linear para ler tickets, publicar atualizações, mover estados e anexar pull ou merge requests.",
           "skillBlocked": "Conecte o Linear primeiro e depois instale a skill para os agentes.",
           "skillPanelTitle": "Skill do Linear",
           "terminalTitle": "Configuração da skill do Linear",
@@ -7751,7 +7751,7 @@
         },
         "LinearAgentSkillPane": {
           "title": "Linear",
-          "description": "Como o Linear funciona no Orca: navegue por issues, inicie espaços de trabalho vinculados e permita que agentes atualizem tickets com /orca-linear.",
+          "description": "Como o Linear funciona no Orca: navegue por issues, inicie espaços de trabalho vinculados e permita que agentes atualizem tickets com /zkyq-linear.",
           "skillTitle": "Skill do Linear",
           "howToUse": "Exemplos de prompts",
           "howToUseDescription": "Clique em um cartão para copiar um prompt. Use-os em uma worktree vinculada ao Linear depois que a skill for instalada.",

@@ -9,7 +9,7 @@ import { describe, expect, it } from 'vitest'
 const run = promisify(execFile)
 const referenceRoot = resolve(
   import.meta.dirname,
-  '../../skill-guides/orca-per-workspace-env/references'
+  '../../skill-guides/zkyq-per-workspace-env/references'
 )
 const vercel = await readFile(resolve(referenceRoot, 'provider-vercel.md'), 'utf8')
 const ssh = await readFile(resolve(referenceRoot, 'ssh-host.md'), 'utf8')

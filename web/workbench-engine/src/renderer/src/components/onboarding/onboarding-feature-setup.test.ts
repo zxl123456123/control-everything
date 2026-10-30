@@ -6,8 +6,8 @@ import type {
 import {
   buildAgentFeatureSkillInstallCommand,
   COMPUTER_USE_SKILL_NAME,
-  ORCA_CLI_SKILL_NAME,
-  ORCA_LINEAR_SKILL_NAME,
+  WORKBENCH_CLI_SKILL_NAME,
+  WORKBENCH_LINEAR_SKILL_NAME,
   ORCHESTRATION_SKILL_NAME
 } from '@/lib/agent-feature-install-commands'
 import { BROWSER_USE_ENABLED_STORAGE_KEY } from '@/lib/browser-use-setup-state'
@@ -29,10 +29,10 @@ import { getOnboardingFeatureSetupAgentRuntime } from './onboarding-feature-setu
 import { SKILLS_CLI_VERSION } from '../../../../shared/agent-feature-install-commands'
 
 const ALL_SKILL_INSTALL_COMMAND = buildAgentFeatureSkillInstallCommand([
-  ORCA_CLI_SKILL_NAME,
+  WORKBENCH_CLI_SKILL_NAME,
   COMPUTER_USE_SKILL_NAME,
   ORCHESTRATION_SKILL_NAME,
-  ORCA_LINEAR_SKILL_NAME
+  WORKBENCH_LINEAR_SKILL_NAME
 ])
 const ORCHESTRATION_ONLY_SKILL_INSTALL_COMMAND = buildAgentFeatureSkillInstallCommand([
   ORCHESTRATION_SKILL_NAME
@@ -111,7 +111,7 @@ describe('onboarding feature setup runner', () => {
 
     expect(text).toBe(ALL_SKILL_INSTALL_COMMAND)
     expect(text).toBe(
-      `npx skills@${SKILLS_CLI_VERSION} add https://github.com/zxl123456123/control-everything/tree/${ORCA_BUILD_COMMIT}/web/workbench-engine/skills --skill orca-cli --skill computer-use --skill orchestration --skill orca-linear --global`
+      `npx skills@${SKILLS_CLI_VERSION} add https://github.com/zxl123456123/control-everything/tree/${ORCA_BUILD_COMMIT}/web/workbench-engine/skills --skill zkyq-cli --skill computer-use --skill orchestration --skill zkyq-linear --global`
     )
   })
 

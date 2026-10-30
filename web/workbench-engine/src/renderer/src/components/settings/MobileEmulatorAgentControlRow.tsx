@@ -1,7 +1,7 @@
 import { Import } from 'lucide-react'
 import {
-  ORCA_CLI_SKILL_INSTALL_COMMAND,
-  ORCA_CLI_SKILL_NAME
+  WORKBENCH_CLI_SKILL_INSTALL_COMMAND,
+  WORKBENCH_CLI_SKILL_NAME
 } from '@/lib/agent-feature-install-commands'
 import { useActiveProjectSkillRuntime } from '@/hooks/useActiveProjectSkillRuntime'
 import { useMobileEmulatorAgentSetupState } from '../emulator-pane/use-mobile-emulator-agent-setup-state'
@@ -22,7 +22,7 @@ export function MobileEmulatorAgentControlRow(): React.JSX.Element {
   const activeSkillRuntime = useActiveProjectSkillRuntime()
   // Why: skill detection here scans the local host only, so keep building host
   // commands; routing them to a WSL runtime would install where we never look.
-  const cliSkillInstallCommand = buildSkillCommandForRuntime(ORCA_CLI_SKILL_INSTALL_COMMAND)
+  const cliSkillInstallCommand = buildSkillCommandForRuntime(WORKBENCH_CLI_SKILL_INSTALL_COMMAND)
 
   return (
     <div className="rounded-2xl border border-border/60 bg-card/30 p-4">
@@ -65,7 +65,7 @@ export function MobileEmulatorAgentControlRow(): React.JSX.Element {
             error={setup.cliSkillError}
             onRecheck={setup.refreshCliSkill}
             freshnessSkillName={
-              activeSkillRuntime.canUseLocalSkillFreshness ? ORCA_CLI_SKILL_NAME : undefined
+              activeSkillRuntime.canUseLocalSkillFreshness ? WORKBENCH_CLI_SKILL_NAME : undefined
             }
           />
         </div>

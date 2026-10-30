@@ -16,27 +16,26 @@ const CANONICAL_GUIDE_NAMES = [
   'computer-use',
   'jira-tickets',
   'linear-tickets',
-  'orca-cli',
-  'orca-emulator',
-  'orca-emulator-android',
-  'orca-jira',
-  'orca-linear',
-  'orca-per-workspace-env',
+  'zkyq-cli',
+  'zkyq-emulator',
+  'zkyq-emulator-android',
+  'zkyq-jira',
+  'zkyq-linear',
+  'zkyq-per-workspace-env',
   'orchestration'
 ]
 
-// Why: old discovery stubs can outlive a rename indefinitely, so aliases are
-// a compatibility ledger: add entries for renames, but never remove them.
+// Renamed product skills are migrated on disk instead of becoming permanent aliases.
 const GUIDE_ALIASES = {
   'computer-use': [],
   'jira-tickets': [],
   'linear-tickets': [],
-  'orca-cli': [],
-  'orca-emulator': [],
-  'orca-emulator-android': [],
-  'orca-jira': [],
-  'orca-linear': [],
-  'orca-per-workspace-env': [],
+  'zkyq-cli': [],
+  'zkyq-emulator': [],
+  'zkyq-emulator-android': [],
+  'zkyq-jira': [],
+  'zkyq-linear': [],
+  'zkyq-per-workspace-env': [],
   orchestration: []
 }
 
@@ -49,12 +48,12 @@ const STUB_TOPICS = [
   'computer-use',
   'jira-tickets',
   'linear-tickets',
-  'orca-cli',
-  'orca-emulator',
-  'orca-emulator-android',
-  'orca-jira',
-  'orca-linear',
-  'orca-per-workspace-env',
+  'zkyq-cli',
+  'zkyq-emulator',
+  'zkyq-emulator-android',
+  'zkyq-jira',
+  'zkyq-linear',
+  'zkyq-per-workspace-env',
   'orchestration'
 ]
 

@@ -49,11 +49,11 @@ describe('skills.sh lock sources', () => {
     await mkdir(join(stateHome, 'skills'), { recursive: true })
     await writeFile(
       join(stateHome, 'skills', '.skill-lock.json'),
-      JSON.stringify({ version: 3, skills: { 'orca-cli': { source: 'stablyai/orca' } } })
+      JSON.stringify({ version: 3, skills: { 'zkyq-cli': { source: 'stablyai/orca' } } })
     )
 
     await expect(readSkillLockSources({ homeDir: root, stateHome })).resolves.toEqual(
-      new Map([['orca-cli', 'stablyai/orca']])
+      new Map([['zkyq-cli', 'stablyai/orca']])
     )
   })
 

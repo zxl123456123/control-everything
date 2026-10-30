@@ -21,6 +21,7 @@ import {
   SKILLS_CLI_ENV_OVERRIDES
 } from '../../shared/agent-feature-install-commands'
 import { readOrcaCliBuildCommit } from '../cli-version'
+import { retireRenamedBundledSkills } from '../../main/skills/skill-name-migration'
 
 function resolveSelectedSkillNames(
   flags: Map<string, string | boolean>,
@@ -255,6 +256,10 @@ function createSkillMutationHandler(verb: SkillMutationVerb): CommandHandler {
     // stderr — stdout is npx's own output, not this command's JSON channel.
     process.stderr.write(`Running: ${command}\n`)
     process.exitCode = await runNpxSkills(npxArgs)
+    if (process.exitCode === 0) {
+      const archived = await retireRenamedBundledSkills({ names: skillNames, global })
+      for (const path of archived) process.stderr.write(`Preserved retired skill: ${path}\n`)
+    }
   }
 }
 

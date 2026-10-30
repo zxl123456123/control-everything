@@ -1,5 +1,5 @@
 ---
-name: orca-emulator-android
+name: zkyq-emulator-android
 description: >-
   Android device and emulator control from inside Control Everything over adb, with the live
   device view in Control Everything's emulator pane. Use when driving an adb-connected emulator
@@ -114,5 +114,5 @@ CLI emulator logcat --lines 100 --json
 CLI emulator kill --json
 ```
 
-See also: `orca-emulator` for iOS simulators, `orca-cli` for terminals, worktrees, and the
+See also: `zkyq-emulator` for iOS simulators, `zkyq-cli` for terminals, worktrees, and the
 built-in browser, and `computer-use` for desktop UI outside the emulator.

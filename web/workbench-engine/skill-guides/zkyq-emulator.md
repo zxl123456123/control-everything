@@ -1,5 +1,5 @@
 ---
-name: orca-emulator
+name: zkyq-emulator
 description: >-
   iOS Simulator control from inside Control Everything, with the live device view in Control Everything's
   emulator pane. Use when driving a booted Apple Simulator on macOS: taps,
@@ -100,5 +100,5 @@ CLI emulator exec --command "ca-debug blended on" --json
 CLI emulator kill --device "iPhone 16 Pro" --json
 ```
 
-See also: `orca-emulator-android` for Android devices, `orca-cli` for terminals, worktrees,
+See also: `zkyq-emulator-android` for Android devices, `zkyq-cli` for terminals, worktrees,
 and the built-in browser, and `computer-use` for desktop UI outside the simulator.

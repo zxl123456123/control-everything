@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import { ORCA_CLI_SKILL_NAME } from '@/lib/agent-feature-install-commands'
+import { WORKBENCH_CLI_SKILL_NAME } from '@/lib/agent-feature-install-commands'
 import {
   GLOBAL_AGENT_SKILL_SOURCE_KINDS,
   useInstalledAgentSkill
@@ -26,7 +26,7 @@ export function useMobileEmulatorAgentSetupState(enabled = true): {
     loading: cliSkillLoading,
     error: cliSkillError,
     refresh: refreshCliSkill
-  } = useInstalledAgentSkill(ORCA_CLI_SKILL_NAME, {
+  } = useInstalledAgentSkill(WORKBENCH_CLI_SKILL_NAME, {
     enabled,
     sourceKinds: GLOBAL_AGENT_SKILL_SOURCE_KINDS
   })

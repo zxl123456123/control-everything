@@ -41,8 +41,8 @@ export function requireTopic(
       `Missing skill topic. Available topics: ${availableTopics}`
     )
   }
-  // Why: installed stubs may retain an old topic forever, so aliases and canonical
-  // names share one lookup table instead of being treated as transient CLI aliases.
+  // Canonical names and explicitly supported aliases share one lookup table.
+  // Historical product names are migrated on disk, not added as aliases.
   const guideByTopic = new Map<string, BundledSkillGuide>(
     guides.flatMap((guide) => [guide.name, ...guide.aliases].map((name) => [name, guide]))
   )

@@ -1,5 +1,5 @@
 ---
-name: orca-jira
+name: zkyq-jira
 description: >-
   Jira issue work through Control Everything's CLI. Use when working from a linked Jira
   issue, finishing work with a PR/MR link and a completion comment, moving an
@@ -14,7 +14,7 @@ Use `CLI jira` when Jira is the source of task context or issue updates.
 
 `CLI` is a placeholder for the executable you resolved in the stub; substitute it before running.
 
-`orca-jira` is a skill name, not a CLI namespace. Always run `CLI jira ...` commands.
+`zkyq-jira` is a skill name, not a CLI namespace. Always run `CLI jira ...` commands.
 
 Prefer `--json` for agent-driven calls. Use plain chat updates when no Jira-linked task exists or when the user did not ask to touch Jira.
 

@@ -9738,7 +9738,7 @@
               "cee44fb442": "オートメーション",
               "a57c2172dc": "Agent ブラウザ",
               "6ea88e5206": "npx",
-              "f5b8fdddf5": "orca-cli",
+              "f5b8fdddf5": "zkyq-cli",
               "e5a784bc54": "インストール",
               "9d97446873": "Agent",
               "a2d489263e": "スキル",
@@ -11644,7 +11644,7 @@
                 "tickets": "チケット",
                 "issues": "Issue",
                 "skill": "スキル",
-                "orcaLinear": "orca-linear"
+                "orcaLinear": "zkyq-linear"
               }
             }
           }
@@ -11744,7 +11744,7 @@
         },
         "LinearAgentSkillPane": {
           "title": "Linear",
-          "description": "Orca で Linear の Issue を参照し、リンク済みワークスペースを開始して、/orca-linear で Agent から更新できます。",
+          "description": "Orca で Linear の Issue を参照し、リンク済みワークスペースを開始して、/zkyq-linear で Agent から更新できます。",
           "skillTitle": "Linear スキル",
           "howToUse": "プロンプト例",
           "howToUseDescription": "カードをクリックするとプロンプトをコピーできます。スキルのインストール後、Linear にリンクしたワークツリーで使用してください。",
@@ -12078,7 +12078,7 @@
           "manageKeys": "キーを管理",
           "addAccess": "アクセスを追加",
           "setupSkillTitle": "2. Agent スキルをインストール",
-          "setupSkillBody": "Agent が /orca-linear で課題の参照、更新、トリアージ、プル／MR の添付を行えるようにします。",
+          "setupSkillBody": "Agent が /zkyq-linear で課題の参照、更新、トリアージ、プル／MR の添付を行えるようにします。",
           "setupVisibleTitle": "3. タスクに Linear を表示",
           "setupVisibleBody": "Linear をタスクのソース選択とサイドバーのショートカットに表示します。",
           "openTaskSources": "タスクソース",
@@ -12090,8 +12090,8 @@
           "notesIntro": "Linear の接続とスキルのインストール後に役立つポイントです。",
           "noteLinkedTitle": "Linear の Issue から開始",
           "noteLinkedBody": "チケット操作は、タスクから作成したワークツリーで最も効果的です。Issue がコンテキストとしてリンクされたままになります。",
-          "noteSlashTitle": "/orca-linear を指定",
-          "noteSlashBody": "チャットで /orca-linear を使うか自然言語で依頼すると、そのターンで Agent がスキルを読み込みます。",
+          "noteSlashTitle": "/zkyq-linear を指定",
+          "noteSlashBody": "チャットで /zkyq-linear を使うか自然言語で依頼すると、そのターンで Agent がスキルを読み込みます。",
           "noteKeysTitle": "キーは実行環境ごとに保存",
           "noteKeysBody": "API キーとワークスペースはアクティブな実行環境に保存されます。",
           "noteVisibilityTitle": "非表示にしても接続は維持",
@@ -12107,7 +12107,7 @@
           "connectedHint": "ワークスペースとキーはアクティブな実行環境に保存されます。アクセスはいつでも追加できます。",
           "recheck": "接続を再確認",
           "skillTitle": "Linear Agent スキルをインストール",
-          "skillDescription": "Agent が /orca-linear で課題の参照、更新の投稿、状態変更、プル／MR の添付を行えるようにします。",
+          "skillDescription": "Agent が /zkyq-linear で課題の参照、更新の投稿、状態変更、プル／MR の添付を行えるようにします。",
           "skillBlocked": "先に Linear に接続してから、Agent 用スキルをインストールしてください。",
           "skillPanelTitle": "Linear スキル",
           "terminalTitle": "Linear スキルのセットアップ",

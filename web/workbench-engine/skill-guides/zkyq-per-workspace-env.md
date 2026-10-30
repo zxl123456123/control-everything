@@ -1,11 +1,11 @@
 ---
-name: orca-per-workspace-env
+name: zkyq-per-workspace-env
 description: >-
   Set up, review, debug, or validate a Control Everything per-workspace environment recipe: the
   on-demand, disposable runtime (cloud sandbox, VM, SSH host, or local container)
   Control Everything creates fresh for each workspace. Use to stand up a new recipe end to end,
   fix an `environmentRecipes` entry in `orca.yaml`, scaffold provider lifecycle
-  scripts, or resolve an `zkyq vm recipe doctor` failure. Use `orca-cli` for
+  scripts, or resolve an `zkyq vm recipe doctor` failure. Use `zkyq-cli` for
   ordinary worktree and workspace creation with no recipe involved.
 ---
 
@@ -361,9 +361,9 @@ the self-test tears nothing down and you must clean up by hand.
 ## Conditional references
 
 This guide covers the interview, the phase order, and the doctor loop on its own. At a gate below,
-run `CLI skills get orca-per-workspace-env --reference references/<file>.md` and read only that
+run `CLI skills get zkyq-per-workspace-env --reference references/<file>.md` and read only that
 document; `--references` lists the names. Read the reference at the gate, not before. If the CLI
-rejects `--reference`, run `CLI skills get orca-per-workspace-env --full` once instead: it returns
+rejects `--reference`, run `CLI skills get zkyq-per-workspace-env --full` once instead: it returns
 this guide plus every reference from the same CLI build, so read only the named one. If `--full` is
 rejected too, keep these rules, use the command's `--help`, and do not guess flags.
 

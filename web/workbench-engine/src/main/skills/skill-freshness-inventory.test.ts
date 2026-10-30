@@ -30,8 +30,8 @@ function bundleEntry(markdown: string): SkillCurrentBundleEntry {
     identitySha256: observed.identitySha256
   }
   return {
-    name: 'orca-cli',
-    sourcePath: 'skills/orca-cli',
+    name: 'zkyq-cli',
+    sourcePath: 'skills/zkyq-cli',
     packageDigest: skillPackageDigest([file]),
     files: [file]
   }
@@ -46,7 +46,7 @@ async function writeSkillLock(
     join(homeDir, '.agents', '.skill-lock.json'),
     `${JSON.stringify({
       version: 3,
-      skills: entry ? { 'orca-cli': { skillPath: 'skills/orca-cli/SKILL.md', ...entry } } : {}
+      skills: entry ? { 'zkyq-cli': { skillPath: 'skills/zkyq-cli/SKILL.md', ...entry } } : {}
     })}\n`
   )
 }
@@ -58,12 +58,12 @@ async function fixture() {
   const resourceRoot = join(root, 'resources')
   await mkdir(join(resourceRoot, 'skills'), { recursive: true })
 
-  const oldMarkdown = '---\nname: orca-cli\ndescription: Old official guide.\n---\n\n# Old\n'
+  const oldMarkdown = '---\nname: zkyq-cli\ndescription: Old official guide.\n---\n\n# Old\n'
   const currentMarkdown =
-    '---\nname: orca-cli\ndescription: Current official guide.\n---\n\n# Current\n'
+    '---\nname: zkyq-cli\ndescription: Current official guide.\n---\n\n# Current\n'
   // Why: what an install between releases left; no list of shipped versions knows it.
   const unreleasedMarkdown =
-    '---\nname: orca-cli\ndescription: Main between releases.\n---\n\n# Unreleased\n'
+    '---\nname: zkyq-cli\ndescription: Main between releases.\n---\n\n# Unreleased\n'
   await Promise.all([
     writeSkillLock(homeDir, { source: 'stablyai/orca', skillFolderHash: 'b'.repeat(40) }),
     writeFile(
@@ -73,7 +73,7 @@ async function fixture() {
   ])
 
   const writeSkill = async (rootPath: string, markdown: string): Promise<string> => {
-    const directory = join(rootPath, 'orca-cli')
+    const directory = join(rootPath, 'zkyq-cli')
     await mkdir(directory, { recursive: true })
     await writeFile(join(directory, 'SKILL.md'), markdown)
     return directory
@@ -117,6 +117,45 @@ afterEach(async () => {
 const linkType = process.platform === 'win32' ? 'junction' : 'dir'
 
 describe('read-only skill freshness inventory', () => {
+  it('offers the new name when only its historical canonical folder exists', async () => {
+    const test = await fixture()
+    const legacy = join(test.homeDir, '.agents/skills/orca-cli')
+    await mkdir(legacy, { recursive: true })
+    await writeFile(join(legacy, 'SKILL.md'), 'legacy edited guide')
+    await writeFile(
+      join(test.homeDir, '.agents/.skill-lock.json'),
+      JSON.stringify({
+        version: 3,
+        skills: { 'orca-cli': { source: 'stablyai/orca' } }
+      })
+    )
+    const inventory = await test.scan()
+    expect(inventory.eligibleUpdateNames).toEqual(['zkyq-cli'])
+    expect(inventory.installations).toEqual([
+      expect.objectContaining({
+        name: 'zkyq-cli',
+        unresolvedPath: legacy,
+        status: 'outdated',
+        lockSource: 'stablyai/orca'
+      })
+    ])
+  })
+
+  it('keeps an interrupted lock-only retirement actionable', async () => {
+    const test = await fixture()
+    await test.writeSkill(join(test.homeDir, '.agents/skills'), test.currentMarkdown)
+    await writeFile(
+      join(test.homeDir, '.agents/.skill-lock.json'),
+      JSON.stringify({
+        version: 3,
+        skills: {
+          'orca-cli': { source: 'stablyai/orca' },
+          'zkyq-cli': { source: 'zxl123456123/control-everything' }
+        }
+      })
+    )
+    expect((await test.scan()).eligibleUpdateNames).toEqual(['zkyq-cli'])
+  })
   it.each(['zxl123456123/control-everything', 'stablyai/orca'])(
     'offers an older managed copy from %s for update',
     async (source) => {
@@ -128,8 +167,8 @@ describe('read-only skill freshness inventory', () => {
 
       expect(inventory.installations.map((entry) => entry.status)).toEqual(['outdated'])
       expect(inventory.installations[0]?.lockSource).toBe(source)
-      expect(inventory.eligibleUpdateNames).toEqual(['orca-cli'])
-      expect(getSkillFreshnessDisplayStatus(inventory, 'orca-cli')).toBe('update-available')
+      expect(inventory.eligibleUpdateNames).toEqual(['zkyq-cli'])
+      expect(getSkillFreshnessDisplayStatus(inventory, 'zkyq-cli')).toBe('update-available')
     }
   )
 
@@ -155,7 +194,7 @@ describe('read-only skill freshness inventory', () => {
 
       expect(inventory.installations.map((entry) => entry.status)).toEqual(['current'])
       expect(inventory.eligibleUpdateNames).toEqual([])
-      expect(getSkillFreshnessDisplayStatus(inventory, 'orca-cli')).toBe('up-to-date')
+      expect(getSkillFreshnessDisplayStatus(inventory, 'zkyq-cli')).toBe('up-to-date')
     }
   })
 
@@ -171,8 +210,8 @@ describe('read-only skill freshness inventory', () => {
         topology: 'canonical-copy',
         status: 'outdated'
       })
-      expect(inventory.eligibleUpdateNames).toEqual(['orca-cli'])
-      expect(getSkillFreshnessDisplayStatus(inventory, 'orca-cli')).toBe('update-available')
+      expect(inventory.eligibleUpdateNames).toEqual(['zkyq-cli'])
+      expect(getSkillFreshnessDisplayStatus(inventory, 'zkyq-cli')).toBe('update-available')
     })
 
     it('when the skills CLI recorded a sha256 lock hash', async () => {
@@ -186,7 +225,7 @@ describe('read-only skill freshness inventory', () => {
       const inventory = await test.scan()
 
       expect(inventory.installations[0]?.status).toBe('outdated')
-      expect(inventory.eligibleUpdateNames).toEqual(['orca-cli'])
+      expect(inventory.eligibleUpdateNames).toEqual(['zkyq-cli'])
     })
 
     it('with CRLF line endings', async () => {
@@ -199,7 +238,7 @@ describe('read-only skill freshness inventory', () => {
       const inventory = await test.scan()
 
       expect(inventory.installations[0]?.status).toBe('outdated')
-      expect(inventory.eligibleUpdateNames).toEqual(['orca-cli'])
+      expect(inventory.eligibleUpdateNames).toEqual(['zkyq-cli'])
     })
 
     it('behind a .cac skills junction to .agents skills', async () => {
@@ -219,7 +258,7 @@ describe('read-only skill freshness inventory', () => {
         status: 'outdated',
         providers: ['agent-skills', 'claude']
       })
-      expect(inventory.eligibleUpdateNames).toEqual(['orca-cli'])
+      expect(inventory.eligibleUpdateNames).toEqual(['zkyq-cli'])
     })
   })
 
@@ -237,9 +276,9 @@ describe('read-only skill freshness inventory', () => {
       const inventory = await test.scan()
 
       // Why: eligibility is about safety; preselection reads the ownership each row carries.
-      expect(inventory.eligibleUpdateNames).toEqual(['orca-cli'])
+      expect(inventory.eligibleUpdateNames).toEqual(['zkyq-cli'])
       expect(inventory.installations[0]?.lockSource).toBe(lockSource)
-      expect(getSkillFreshnessDisplayStatus(inventory, 'orca-cli')).toBe('installed')
+      expect(getSkillFreshnessDisplayStatus(inventory, 'zkyq-cli')).toBe('installed')
     }
   )
 
@@ -249,7 +288,7 @@ describe('read-only skill freshness inventory', () => {
     const dotfiles = await test.writeSkill(join(test.root, 'dotfiles'), test.oldMarkdown)
     const claudeRoot = join(test.homeDir, '.claude', 'skills')
     await mkdir(claudeRoot, { recursive: true })
-    await symlink(dotfiles, join(claudeRoot, 'orca-cli'), linkType)
+    await symlink(dotfiles, join(claudeRoot, 'zkyq-cli'), linkType)
 
     const inventory = await test.scan()
 
@@ -258,7 +297,7 @@ describe('read-only skill freshness inventory', () => {
     )
     // Why: `skills add` rm-then-copies through the link and deletes the dotfiles copy (#22897).
     expect(inventory.eligibleUpdateNames).toEqual([])
-    expect(getSkillFreshnessDisplayStatus(inventory, 'orca-cli')).toBe('needs-attention')
+    expect(getSkillFreshnessDisplayStatus(inventory, 'zkyq-cli')).toBe('needs-attention')
   })
 
   it('reads current beside OS and agent CLI sidecars the bundle does not list', async () => {
@@ -287,7 +326,7 @@ describe('read-only skill freshness inventory', () => {
     const inventory = await test.scan()
 
     expect(inventory.installations[0]?.status).toBe('outdated')
-    expect(inventory.eligibleUpdateNames).toEqual(['orca-cli'])
+    expect(inventory.eligibleUpdateNames).toEqual(['zkyq-cli'])
   })
 
   it('deduplicates a provider alias to the canonical copy', async () => {
@@ -298,14 +337,14 @@ describe('read-only skill freshness inventory', () => {
     )
     const claudeRoot = join(test.homeDir, '.claude', 'skills')
     await mkdir(claudeRoot, { recursive: true })
-    await symlink(canonical, join(claudeRoot, 'orca-cli'), linkType)
+    await symlink(canonical, join(claudeRoot, 'zkyq-cli'), linkType)
 
     const inventory = await test.scan()
 
     expect(inventory.installations).toHaveLength(1)
     expect(inventory.installations[0]?.providers).toEqual(['agent-skills', 'claude'])
     expect(inventory.installations[0]?.topology).toBe('canonical-copy')
-    expect(inventory.eligibleUpdateNames).toEqual(['orca-cli'])
+    expect(inventory.eligibleUpdateNames).toEqual(['zkyq-cli'])
   })
 
   it('deduplicates aliases within an unsupported topology while still updating the canonical copy', async () => {
@@ -317,7 +356,7 @@ describe('read-only skill freshness inventory', () => {
         const repoPath = join(test.root, `repo-${id}`)
         const root = join(repoPath, '.agents', 'skills')
         await mkdir(root, { recursive: true })
-        await symlink(shared, join(root, 'orca-cli'), linkType)
+        await symlink(shared, join(root, 'zkyq-cli'), linkType)
         // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the scan reads only id and path.
         return { id, path: repoPath } as Repo
       })
@@ -328,13 +367,13 @@ describe('read-only skill freshness inventory', () => {
     expect(inventory.installations.filter((entry) => entry.topology === 'repo-scope')).toHaveLength(
       1
     )
-    expect(inventory.eligibleUpdateNames).toEqual(['orca-cli'])
+    expect(inventory.eligibleUpdateNames).toEqual(['zkyq-cli'])
   })
 
   it('keeps an unreadable home placement visible and the name skipped', async () => {
     const test = await fixture()
     await test.writeSkill(join(test.homeDir, '.agents', 'skills'), test.oldMarkdown)
-    const inaccessiblePath = join(test.homeDir, '.codex', 'skills', 'orca-cli')
+    const inaccessiblePath = join(test.homeDir, '.codex', 'skills', 'zkyq-cli')
 
     const inventory = await inventorySkillFreshness({
       homeDir: test.homeDir,
@@ -361,7 +400,7 @@ describe('read-only skill freshness inventory', () => {
     const test = await fixture()
     await test.writeSkill(join(test.homeDir, '.agents', 'skills'), test.oldMarkdown)
     const repoPath = join(test.root, 'repo')
-    const inaccessiblePath = join(repoPath, '.agents', 'skills', 'orca-cli')
+    const inaccessiblePath = join(repoPath, '.agents', 'skills', 'zkyq-cli')
 
     const inventory = await inventorySkillFreshness({
       homeDir: test.homeDir,
@@ -386,7 +425,7 @@ describe('read-only skill freshness inventory', () => {
         })
       ])
     )
-    expect(inventory.eligibleUpdateNames).toEqual(['orca-cli'])
+    expect(inventory.eligibleUpdateNames).toEqual(['zkyq-cli'])
   })
 
   it.each([
@@ -413,7 +452,7 @@ describe('read-only skill freshness inventory', () => {
       const inventory = await test.scan({ repos })
 
       expect(inventory.installations.some((entry) => entry.topology === topology)).toBe(true)
-      expect(inventory.eligibleUpdateNames).toEqual(['orca-cli'])
+      expect(inventory.eligibleUpdateNames).toEqual(['zkyq-cli'])
     }
   )
 
@@ -428,10 +467,10 @@ describe('read-only skill freshness inventory', () => {
       'plugins',
       'cache',
       'openai-bundled',
-      'orca-cli'
+      'zkyq-cli'
     )
     await mkdir(pluginRoot, { recursive: true })
-    await writeFile(join(pluginRoot, 'SKILL.md'), '---\nname: orca-cli\n---\n\nAnother tool.\n')
+    await writeFile(join(pluginRoot, 'SKILL.md'), '---\nname: zkyq-cli\n---\n\nAnother tool.\n')
 
     const inventory = await test.scan()
 
@@ -441,13 +480,13 @@ describe('read-only skill freshness inventory', () => {
       ])
     )
     expect(inventory.eligibleUpdateNames).toEqual([])
-    expect(getSkillFreshnessDisplayStatus(inventory, 'orca-cli')).toBe('up-to-date')
+    expect(getSkillFreshnessDisplayStatus(inventory, 'zkyq-cli')).toBe('up-to-date')
   })
 
   it('does not classify an empty plugin-cache directory as a skill', async () => {
     const test = await fixture()
     await test.writeSkill(join(test.homeDir, '.agents', 'skills'), test.currentMarkdown)
-    const emptyRoot = join(test.homeDir, '.codex', 'plugins', 'cache', 'vendor', 'orca-cli')
+    const emptyRoot = join(test.homeDir, '.codex', 'plugins', 'cache', 'vendor', 'zkyq-cli')
     await mkdir(emptyRoot, { recursive: true })
 
     const inventory = await test.scan()
@@ -471,7 +510,7 @@ describe('read-only skill freshness inventory', () => {
         expect.objectContaining({ errorCategory: 'repository-scan-limit', status: 'inaccessible' })
       ])
     )
-    expect(inventory.eligibleUpdateNames).toEqual(['orca-cli'])
+    expect(inventory.eligibleUpdateNames).toEqual(['zkyq-cli'])
   })
 
   it('scans a real-shaped plugin cache completely and leaves eligibility unchanged', async () => {
@@ -483,7 +522,7 @@ describe('read-only skill freshness inventory', () => {
       'plugins',
       'cache',
       'openai-bundled',
-      'orca-cli',
+      'zkyq-cli',
       '1.0.0'
     )
     await mkdir(join(packageRoot, '.codex-plugin'), { recursive: true })
@@ -501,7 +540,7 @@ describe('read-only skill freshness inventory', () => {
         expect.objectContaining({ topology: 'plugin-cache', unresolvedPath: pluginSkill })
       ])
     )
-    expect(inventory.eligibleUpdateNames).toEqual(['orca-cli'])
+    expect(inventory.eligibleUpdateNames).toEqual(['zkyq-cli'])
   })
 
   it('reports incomplete plugin coverage without inventing per-skill installations', async () => {
@@ -516,7 +555,7 @@ describe('read-only skill freshness inventory', () => {
 
     expect(inventory.installations).toHaveLength(1)
     expect(inventory.installations[0]).toMatchObject({
-      name: 'orca-cli',
+      name: 'zkyq-cli',
       status: 'current',
       topology: 'canonical-copy'
     })
@@ -555,7 +594,7 @@ describe('read-only skill freshness inventory', () => {
         })
       ])
       expect(inventory.installations).toEqual([
-        expect.objectContaining({ name: 'orca-cli', status: 'current', topology: 'canonical-copy' })
+        expect.objectContaining({ name: 'zkyq-cli', status: 'current', topology: 'canonical-copy' })
       ])
     },
     90_000
