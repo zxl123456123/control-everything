@@ -94,7 +94,7 @@ function saveEnvironmentFromPairingCode(
   if (samePersisted && !samePaired) {
     throw new RuntimeEnvironmentStoreError(
       'invalid_argument',
-      `This server is already paired as "${samePersisted.name}", whose saved settings this version of Orca cannot read.`
+      `This server is already paired as "${samePersisted.name}", whose saved settings this version of Control Everything cannot read.`
     )
   }
   if (samePaired) {
@@ -146,7 +146,7 @@ function parseRemotePairingCode(userDataPath: string, pairingCode: string): Pair
   if (isProfileRuntimePublicKey(userDataPath, offer.publicKeyB64)) {
     throw new RuntimeEnvironmentStoreError(
       'invalid_argument',
-      'This pairing code is for this Orca itself. Generate the code on the other computer instead.'
+      'This pairing code points to this computer. Generate the code on the other computer instead.'
     )
   }
   return offer

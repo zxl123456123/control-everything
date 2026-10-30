@@ -17,7 +17,7 @@ try {
     const entry = realpathSync(process.argv[1] ?? __filename)
     const server = join(dirname(entry), ORCAD_SERVER_ENTRY_FILENAME)
     if (createHash('sha256').update(readFileSync(server)).digest('hex') !== ORCAD_SERVER_SHA256) {
-      throw new Error('The Orca server does not match its launcher')
+      throw new Error('The workbench server does not match its launcher')
     }
     loadServer = () => {
       enableManagedOrcadCompileCache(dirname(entry))
@@ -25,7 +25,7 @@ try {
     }
   }
 } catch (error) {
-  console.error('orcad: failed to launch:', error)
+  console.error('workbench: failed to launch:', error)
   process.exit(ORCAD_EXIT_CONFIGURATION)
 }
 

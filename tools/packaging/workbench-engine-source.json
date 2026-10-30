@@ -329677,14 +329677,74 @@
     {
       "path": "src/shared/runtime-environment-store.ts",
       "upstream_sha256": "e48236f9398c14cf3a232c6704a96d2adf6d2067059541f84bf08bd7b173baac",
-      "current_sha256": "c224b58129b51ae38d4a3f235298ae25e5e8f4832219ff3c6a2234aaf0fe88b1",
-      "reason": "配对链接生成解析和手机注册统一zkyq协议，迁移已保存VM配对链接并保留凭据及用户数据，更新脱敏和提示"
+      "current_sha256": "b0e94f35b48c3a2cad2fc570e5d67c64d050241d88b6520a4b406bcd78073952",
+      "reason": "配对链接生成解析和手机注册统一zkyq协议，迁移已保存VM配对链接并保留凭据及用户数据，更新脱敏和提示；统一凭据保护、启动校验、实例占用和账号归属的产品文字，保留原因恢复方法及用户输入，不改安全或存储行为"
     },
     {
       "path": "tests/tools/relay-bench/relay-phone-connect-bench.mjs",
       "upstream_sha256": "d928c85112d4003e9bc5d844de7fcfec151c94e63c549ebe80fb43a6ae69a708",
       "current_sha256": "030689ed57b15bc3e2cb3d0e2e0f56dd62372f91e8a4d62de15cb3ce3cd78f20",
       "reason": "配对链接生成解析和手机注册统一zkyq协议，迁移已保存VM配对链接并保留凭据及用户数据，更新脱敏和提示"
+    },
+    {
+      "path": "src/main/orcad/launcher.ts",
+      "upstream_sha256": "2afe69875fddaf0ebad6d78a0f1d6fa070c368a38956b22150083fb59ba57fd7",
+      "current_sha256": "c0fcf7e770a9ddae35201484370db25683e24b7f1907d87647b028467f8f1abf",
+      "reason": "统一凭据保护、启动校验、实例占用和账号归属的产品文字，保留原因恢复方法及用户输入，不改安全或存储行为"
+    },
+    {
+      "path": "src/main/orcad/orcad-bundled-runtime.ts",
+      "upstream_sha256": "c41c1a1b1a7c5a4cf5fde64dcbed67f26a6d2401f1a0d21fedded1465cfe500d",
+      "current_sha256": "cbebd5575176c54e10d807beda320d7a5a7ba247a3d0c68360b719fdfdc04940",
+      "reason": "统一凭据保护、启动校验、实例占用和账号归属的产品文字，保留原因恢复方法及用户输入，不改安全或存储行为"
+    },
+    {
+      "path": "src/main/orcad/orcad-profile-preflight.ts",
+      "upstream_sha256": "d30febfd5dbb2066d89df5dbd963aa46574884250188c5c4e48978eb0be1c03f",
+      "current_sha256": "b966b8aab665c001b0afeff38157f7a132ac1f345c30358cb08c079c82ef2eb7",
+      "reason": "统一凭据保护、启动校验、实例占用和账号归属的产品文字，保留原因恢复方法及用户输入，不改安全或存储行为"
+    },
+    {
+      "path": "src/main/orcad/orcad-secret-protection-gap.ts",
+      "upstream_sha256": "0e1f7bd1169df09cf599e5a256b935b157475ee0fb38d1a6b5c4f20d96673c1a",
+      "current_sha256": "c22078ce69e04d1be219596d38d82ac4bc9fffe7938d353dc87bf63ffd0b033f",
+      "reason": "统一凭据保护、启动校验、实例占用和账号归属的产品文字，保留原因恢复方法及用户输入，不改安全或存储行为"
+    },
+    {
+      "path": "src/main/orcad/orcad-secret-store.ts",
+      "upstream_sha256": "e48841a322b58fa9b592c66d8f55c0c60bf564b44e9e42b90ec57cae02b42b18",
+      "current_sha256": "1e1d25a8c972ecfdf0cc6e00c8dca3c492484cc7951f890d79dc267c0c9f6ef4",
+      "reason": "统一凭据保护、启动校验、实例占用和账号归属的产品文字，保留原因恢复方法及用户输入，不改安全或存储行为"
+    },
+    {
+      "path": "src/main/orcad/orcad-instance-lock.ts",
+      "upstream_sha256": "1f376abb35d8fd882d5aa44d036be171d54fdc24e85ef7fe31e7549a718c9c61",
+      "current_sha256": "49d75b99d5c24a259bb337cc6ca6aa4d9dd0f945000947d175eef6f321939f23",
+      "reason": "统一凭据保护、启动校验、实例占用和账号归属的产品文字，保留原因恢复方法及用户输入，不改安全或存储行为"
+    },
+    {
+      "path": "src/shared/host-account-launch-env.ts",
+      "upstream_sha256": "cbe458e11473b2581b3e7e9ee15372f32efa1b7a2b83cd8689bb04edfb0a939a",
+      "current_sha256": "7294106c5ba6144da0ced700ba5d254a03ae19905ef1cd2e5880dff96efa1b48",
+      "reason": "统一凭据保护、启动校验、实例占用和账号归属的产品文字，保留原因恢复方法及用户输入，不改安全或存储行为"
+    },
+    {
+      "path": "src/main/orcad/orcad-bundled-runtime.test.ts",
+      "upstream_sha256": "7af6520c01a9154902e6d969030d8894301c32c8880a8bae40caa8788161e93a",
+      "current_sha256": "100523915500aac3a1117becaa63183beb6540a5f373895975f6666c61418280",
+      "reason": "统一凭据保护、启动校验、实例占用和账号归属的产品文字，保留原因恢复方法及用户输入，不改安全或存储行为"
+    },
+    {
+      "path": "src/main/orcad/orcad-instance-lock.test.ts",
+      "upstream_sha256": "9810fab6f35ea669aaf943ac358603b2d40f4da6d6f1c49c0a3cb3b0c56595dc",
+      "current_sha256": "f48dcefb0b18dfe8550cca3f5ef1ffba187cf5aa96cf30e8c3c6e75fe75d9d06",
+      "reason": "统一凭据保护、启动校验、实例占用和账号归属的产品文字，保留原因恢复方法及用户输入，不改安全或存储行为"
+    },
+    {
+      "path": "src/shared/runtime-environment-store.test.ts",
+      "upstream_sha256": "01ac0d04fa694fffab8335c276249cda5f1c27460a1b93c8bd949ff98af045a8",
+      "current_sha256": "abfc39900ce5da789d2d4d6e630e83ef691962c9a85f1d81f670ceb6916699a0",
+      "reason": "统一凭据保护、启动校验、实例占用和账号归属的产品文字，保留原因恢复方法及用户输入，不改安全或存储行为"
     }
   ],
   "reviewed_findings": [
