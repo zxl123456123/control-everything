@@ -11,6 +11,7 @@ import { SKILL_HANDLERS } from './skills'
 import { validateCommandAndFlags } from '../args'
 import { SKILL_COMMAND_SPECS } from '../specs/skills'
 import { main } from '../index'
+import { formatCommandHelp } from '../help'
 
 afterEach(() => {
   vi.restoreAllMocks()
@@ -27,6 +28,15 @@ async function migrate(entries: [string, string | boolean][]) {
 }
 
 describe('standalone skill retirement command', () => {
+  it('advertises only the supported local migration options', () => {
+    const spec = SKILL_COMMAND_SPECS.find((entry) => entry.path.join(' ') === 'skills migrate')!
+    const help = formatCommandHelp(spec)
+    expect(help).toContain('--local')
+    expect(help).toContain('--skill')
+    expect(help).toContain('--json')
+    expect(help).not.toContain('--environment')
+    expect(help).not.toContain('--pairing-code')
+  })
   it('refuses a remote runtime selection before touching local files', async () => {
     vi.stubEnv('ORCA_CLI_CWD', '')
     await expect(
