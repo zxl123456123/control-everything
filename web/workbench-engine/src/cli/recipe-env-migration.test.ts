@@ -14,6 +14,12 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { migrateRecipeEnvironment } from './recipe-env-migration'
 import { VM_HANDLERS } from './handlers/vm'
 import type { HandlerContext } from './dispatch'
+import {
+  runEphemeralVmRecipeCleanup,
+  runEphemeralVmRecipeResume,
+  runEphemeralVmRecipeStart,
+  runEphemeralVmRecipeSuspend
+} from '../shared/ephemeral-vm-recipe-runner'
 
 vi.mock('node:fs', async (importOriginal) => {
   const actual = await importOriginal<typeof import('node:fs')>()
@@ -111,8 +117,96 @@ describe('recipe environment migration', () => {
     ]) {
       expect(() => migrateRecipeEnvironment(path, false)).toThrow()
     }
-    expect(() => migrateRecipeEnvironment('relative.sh', false)).toThrow('absolute shell script')
+    expect(() => migrateRecipeEnvironment('relative.sh', false)).toThrow(
+      'absolute shell or PowerShell script'
+    )
   })
+
+  it.runIf(process.platform === 'win32')(
+    'migrates parsed PowerShell reads without changing other bytes',
+    () => {
+      const original = '\ufeff# 中文\r\nWrite-Output "$env:ORCA_VM_MODE ${env:ORCA_REPO_URL}"\r\n'
+      const path = fixture(original, '.ps1')
+      const before = statSync(path)
+      const preview = migrateRecipeEnvironment(path, true)
+      expect(preview.replacements).toEqual([
+        { oldName: 'ORCA_VM_MODE', newName: 'ZKYQ_VM_MODE', line: 2 },
+        { oldName: 'ORCA_REPO_URL', newName: 'ZKYQ_REPO_URL', line: 2 }
+      ])
+      expect(readFileSync(path, 'utf8')).toBe(original)
+      migrateRecipeEnvironment(path, false)
+      expect(readFileSync(path, 'utf8')).toBe(original.replaceAll('ORCA_', 'ZKYQ_'))
+      expect(statSync(path).ino).toBe(before.ino)
+      expect(statSync(path).mode).toBe(before.mode)
+    }
+  )
+
+  it
+    .runIf(process.platform === 'win32')
+    .each([
+      '$env:ORCA_VM_MODE = "other"',
+      '$env:ORCA_VM_MODE++',
+      '[ref]$env:ORCA_VM_MODE',
+      'Write-Output "ORCA_VM_MODE"',
+      '# ORCA_VM_MODE\nWrite-Output "ok"',
+      'Write-Output $env:orca_vm_mode',
+      'Write-Output "$env:ORCA_VM_MODE'
+    ])('refuses ambiguous or writing PowerShell references', (original) => {
+    const path = fixture(original, '.ps1')
+    expect(() => migrateRecipeEnvironment(path, false)).toThrow('review')
+    expect(readFileSync(path, 'utf8')).toBe(original)
+  })
+
+  it.runIf(process.platform === 'win32')(
+    'preserves four synthetic lifecycle operations after migration',
+    async () => {
+      const script = [
+        '$mode = $env:ORCA_VM_MODE',
+        '$instance = $env:ORCA_VM_INSTANCE_ID',
+        '$repo = $env:ORCA_REPO_URL',
+        "if ($mode -eq 'create' -or $mode -eq 'resume') {",
+        "  @{ schemaVersion = 1; connection = @{ type = 'ssh'; target = @{ label = 'fixture'; host = '127.0.0.1'; port = 22; username = 'fixture' }; projectRoot = '/fixture' }; userData = @{ instance = $instance; repo = $repo } } | ConvertTo-Json -Depth 5 -Compress",
+        '} else {',
+        '  Write-Output "$mode|$instance|$repo"',
+        '}'
+      ].join('\r\n')
+      const path = fixture(script, '.ps1')
+      const repoPath = join(path, '..')
+      const command = `powershell.exe -NoProfile -NonInteractive -File "${path}"`
+      const recipe = {
+        id: 'fixture',
+        name: 'fixture',
+        create: command,
+        suspend: command,
+        resume: command,
+        destroy: command
+      }
+      const execute = async () => {
+        const start = await runEphemeralVmRecipeStart({
+          recipe,
+          repoPath,
+          context: { instanceId: 'fixture-vm', repoUrl: 'https://example.test/repo' }
+        })
+        if (!start.ok) throw new Error(start.error)
+        const args = { recipe, repoPath, context: start.context, recipeResult: start.result }
+        const suspend = await runEphemeralVmRecipeSuspend(args)
+        const resume = await runEphemeralVmRecipeResume(args)
+        const destroy = await runEphemeralVmRecipeCleanup(args)
+        expect(suspend.ok && resume.ok && destroy.ok).toBe(true)
+        return {
+          start: start.result,
+          suspend: suspend.stdout,
+          resume: resume.ok && !resume.skipped ? resume.result : null,
+          destroy: destroy.stdout
+        }
+      }
+      const before = await execute()
+      expect(migrateRecipeEnvironment(path, true).replacements).toHaveLength(3)
+      migrateRecipeEnvironment(path, false)
+      expect(await execute()).toEqual(before)
+    },
+    30_000
+  )
 
   it('refuses to mutate other hard-linked paths', () => {
     const original = 'echo "$ORCA_VM_MODE"\n'

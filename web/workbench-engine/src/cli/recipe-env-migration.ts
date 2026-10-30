@@ -1,6 +1,7 @@
 import { closeSync, fstatSync, lstatSync, openSync, readSync, writeSync } from 'node:fs'
 import { extname, isAbsolute } from 'node:path'
 import { RuntimeClientError } from './runtime/types'
+import { powerShellEnvironmentReads } from './recipe-env-powershell'
 
 const LEGACY_RECIPE_VARIABLE =
   /(?<![A-Za-z0-9_])ORCA_(?:VM_MODE|VM_INSTANCE_ID|RECIPE_ID|PROJECT_ID|WORKSPACE_ID|WORKSPACE_NAME|REPO_PATH|REPO_URL|REPO_BRANCH|REPO_REF_HEAD|REPO_REF|RECIPE_RESULT_SCHEMA_VERSION|VERSION)(?![A-Za-z0-9_])/g
@@ -17,10 +18,12 @@ export function migrateRecipeEnvironment(
   dryRun: boolean
   replacements: Omit<Replacement, 'offset'>[]
 } {
-  if (!isAbsolute(path) || !['.sh', '.bash', '.zsh'].includes(extname(path).toLowerCase())) {
+  const extension = extname(path).toLowerCase()
+  const powerShell = extension === '.ps1'
+  if (!isAbsolute(path) || !['.sh', '.bash', '.zsh', '.ps1'].includes(extension)) {
     throw new RuntimeClientError(
       'invalid_argument',
-      'Pass an absolute shell script path with --path.'
+      'Pass an absolute shell or PowerShell script path with --path.'
     )
   }
   const info = lstatSync(path)
@@ -62,20 +65,25 @@ export function migrateRecipeEnvironment(
     } catch {
       throw new RuntimeClientError('invalid_argument', 'The script must be bounded UTF-8 text.')
     }
-    const names = [...content.matchAll(LEGACY_RECIPE_VARIABLE)]
+    const names = [
+      ...content.matchAll(
+        powerShell ? new RegExp(LEGACY_RECIPE_VARIABLE.source, 'gi') : LEGACY_RECIPE_VARIABLE
+      )
+    ]
     if (names.length > 1024) {
       throw new RuntimeClientError(
         'invalid_argument',
         'The script has too many references; review it manually.'
       )
     }
-    if (names.length && /['\\`]|<<|\$\(/.test(content)) {
+    if (!powerShell && names.length && /['\\`]|<<|\$\(/.test(content)) {
       throw new RuntimeClientError(
         'invalid_argument',
         'The script has ambiguous shell syntax; review it manually.'
       )
     }
     if (
+      !powerShell &&
       names.length &&
       content.split(/\r?\n/).some((line) => {
         const code = line.trimStart().startsWith('#') ? '' : line
@@ -88,6 +96,7 @@ export function migrateRecipeEnvironment(
       )
     }
     const replacements: Replacement[] = []
+    const powerShellReads = powerShell && names.length ? powerShellEnvironmentReads(content) : []
     let previousIndex = 0
     let previousOffset = 0
     let lineNumber = 1
@@ -97,7 +106,24 @@ export function migrateRecipeEnvironment(
       const lineEnd = content.indexOf('\n', index)
       const line = content.slice(lineStart, lineEnd < 0 ? undefined : lineEnd)
       const before = content.slice(Math.max(lineStart, index - 2), index)
-      if (line.includes('#') || !(before.endsWith('$') || before.endsWith('${'))) {
+      const validPowerShellRead = powerShellReads.some((item) => {
+        if (item.writes) return false
+        const end = index + match[0].length
+        return (
+          (item.start === index - 5 &&
+            item.end === end &&
+            content.slice(item.start, index).toLowerCase() === '$env:') ||
+          (item.start === index - 6 &&
+            item.end === end + 1 &&
+            content.slice(item.start, index).toLowerCase() === '${env:' &&
+            content[end] === '}')
+        )
+      })
+      if (
+        powerShell
+          ? !validPowerShellRead || !match[0].startsWith('ORCA_')
+          : line.includes('#') || !(before.endsWith('$') || before.endsWith('${'))
+      ) {
         throw new RuntimeClientError(
           'invalid_argument',
           'The script contains an ambiguous legacy name; review it manually.'

@@ -327149,7 +327149,8 @@
     "src/cli/recipe-env-migration.ts",
     "src/cli/remote-selection-env.ts",
     "src/main/runtime/claude-agent-teams-remote-env.test.ts",
-    "src/main/runtime/structured-session-remote-env.test.ts"
+    "src/main/runtime/structured-session-remote-env.test.ts",
+    "src/cli/recipe-env-powershell.ts"
   ],
   "adapted_files": [
     {
@@ -333071,8 +333072,8 @@
     {
       "path": "src/cli/specs/vm.ts",
       "upstream_sha256": "c5564973b50e7c34a28af735d854b8fc822767fe02523b98bc6dc0897eb9b51e",
-      "current_sha256": "a68934344a8e3a64b9fca47440f5ff6fb396a9c81b031e047d3e89d911a9a57e",
-      "reason": "项目配置统一新文件名，保留旧文件迁移与信任行为；提供受限配方环境变量显式迁移入口"
+      "current_sha256": "4f5a1235e8ad2ec89f03aa6141bc872c3a1bad31a5a0b778abed89dc2f7f8eb9",
+      "reason": "项目配置统一新文件名，保留旧文件迁移与信任行为；提供受限配方环境变量显式迁移入口；支持安全迁移 PowerShell 配方环境读取"
     },
     {
       "path": "src/main/hooks-effective-hook-resolution.test.ts",
