@@ -1,8 +1,8 @@
 ---
 name: orca-emulator-android
 description: >-
-  Android device and emulator control from inside Orca over adb, with the live
-  device view in Orca's emulator pane. Use when driving an adb-connected emulator
+  Android device and emulator control from inside Control Everything over adb, with the live
+  device view in Control Everything's emulator pane. Use when driving an adb-connected emulator
   or phone on Windows, Linux, or macOS: booting AVDs, taps, swipes, typing,
   hardware buttons, rotation, app install and launch, runtime permissions, the
   accessibility tree, and logcat. For an iOS simulator use the iOS emulator
@@ -10,9 +10,9 @@ description: >-
 license: Apache-2.0
 ---
 
-# Orca Emulator (Android)
+# Control Everything Emulator (Android)
 
-This discovery stub loads the version-matched guide from the Orca executable used for this session.
+This discovery stub loads the version-matched guide from the Control Everything executable used for this session.
 
 ## Resolve the CLI for this session
 
@@ -23,22 +23,22 @@ Choose the executable once and reuse it for every later command:
 - Otherwise, in a dev checkout whose session exposes `ORCA_DEV_REPO_ROOT`, use `zkyq-dev`.
 - Otherwise, use `zkyq`.
 
-Below, `ORCA` is a placeholder for the executable you resolved. Substitute it before
-running anything; do not create a shell variable or run `ORCA` literally. This works the
+Below, `CLI` is a placeholder for the executable you resolved. Substitute it before
+running anything; do not create a shell variable or run `CLI` literally. This works the
 same way in POSIX shells, PowerShell, and cmd.exe.
 
 If the selected executable cannot run, report its exact error and stop. Do not fall through
-to another executable, which could silently target a different Orca build.
+to another executable, which could silently target a different Control Everything build.
 
-## Load the version-matched guide before running Orca commands
+## Load the version-matched guide before running Control Everything commands
 
 ```text
-ORCA skills get orca-emulator-android
+CLI skills get orca-emulator-android
 ```
 
 Prefer `--json`. Use the selected executable's `--help` for commands or flags the guide does
-not cover. If a command reports that Orca is not running, start it with `ORCA open --json`
+not cover. If a command reports that Control Everything is not running, start it with `CLI open --json`
 and retry. If it fails with `runtime_access_denied`, your sandbox blocked the connection:
-re-run it with escalated permissions, and do not run `ORCA open` or restart Orca. If
-`skills get` is unknown, explain that updating Orca restores the guide; use `--help` for
+re-run it with escalated permissions, and do not run `CLI open` or restart Control Everything. If
+`skills get` is unknown, explain that updating Control Everything restores the guide; use `--help` for
 read-only discovery and do not guess unsupported commands.

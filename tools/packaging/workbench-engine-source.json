@@ -326508,7 +326508,7 @@
     },
     {
       "path": "resources/skills/current-manifest.json",
-      "sha256": "be007d0323e03c50271a83554b4eebf2fa7d34c6f87ecbfb0b5fa6a10e733278",
+      "sha256": "efac1cf18b5a1e7936b11d5b3e3a7519d897e07892630bfd0b76ce57d93c662c",
       "license_paths": [
         "LICENSE"
       ],
@@ -327144,8 +327144,8 @@
     {
       "path": ".gitattributes",
       "upstream_sha256": "65896d38cc866d394db2d10d25f9d76a33dc1e78091b071d26913155237efa2a",
-      "current_sha256": "aac06197e041d277bb31df27036ba770bf1bd85d19a584ff8109ec3daf56ecec",
-      "reason": "M1a-R8: pin LF for exactly two manifest-hashed native chat text resources on Windows checkout; original resource hashes unchanged；原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者；macOS打包CLI物理改名zkyq，同步安装/回收/卸载与本地派发，保留用户命令及文件竞态保护"
+      "current_sha256": "5cef7edf6cdccb332e49d46d00df110b642d337725a56455968e01061615611a",
+      "reason": "M1a-R8: pin LF for exactly two manifest-hashed native chat text resources on Windows checkout; original resource hashes unchanged；原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者；macOS打包CLI物理改名zkyq，同步安装/回收/卸载与本地派发，保留用户命令及文件竞态保护；技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
     },
     {
       "path": "config/scripts/build-mobile-web-app-bundle.mjs",
@@ -330312,98 +330312,98 @@
     {
       "path": "resources/skills/current-manifest.json",
       "upstream_sha256": "5782ddb9aa2f3d22b49c18980ac0e0b679b19b9af2a9c5eb50dae648e55072e2",
-      "current_sha256": "be007d0323e03c50271a83554b4eebf2fa7d34c6f87ecbfb0b5fa6a10e733278",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
+      "current_sha256": "efac1cf18b5a1e7936b11d5b3e3a7519d897e07892630bfd0b76ce57d93c662c",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
     },
     {
       "path": "skill-guides/orca-cli.md",
       "upstream_sha256": "169c498b04db381213d00cfbb7c2fcdd44b0dcdb52f04ca05170086504603ca5",
-      "current_sha256": "6b4cc263639352c71bec414b568e24d5d794df1f137727faf3497bc107743157",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+      "current_sha256": "d981f5319ae1f4188d160268c652199a5be317800ea3e0c0651360e83627f3f9",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
     },
     {
       "path": "skill-guides/orca-per-workspace-env.md",
       "upstream_sha256": "dda610fc95c59c723108338425990d192af1d3d6c6dea30230d1f07b37b56742",
-      "current_sha256": "0d3492c070094b1f85f1cf4131bbe2062e244085ba52d755f0bb16f4ab359e6b",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+      "current_sha256": "434322fd396b01399a63e8c34309950e4b4224fab490a850cf6a8d72b40f381c",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
     },
     {
       "path": "skill-guides/orca-per-workspace-env/references/provider-vercel.md",
       "upstream_sha256": "7f26dcd14cb4877afb52a19592409d3c7a3647da9739adcfbb9e0bf4737faf61",
-      "current_sha256": "2a6ec09bf2b52e702c501e3dde0c4947c6e0dcc658d5ae16c9237467e95a56be",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+      "current_sha256": "235ba0af0d524315ae1831bda6d53a6cec36ac17742f29f6a6cbb58ea7e42751",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
     },
     {
       "path": "skill-stubs/_shared/cli-resolution.md",
       "upstream_sha256": "51a70100ce198bff1e9a74408275cbb04d0ee655357811a6fbea6747d03cfb72",
-      "current_sha256": "82c56bd22c2d1477f10c19aa8dfd596d6b6d7b2b62e64e0c4f0c6d645ddeb6dd",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
+      "current_sha256": "8d9297246eb49c450d42467cb260dbbc59ccf16d68eba459dc03fd79c443b438",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
     },
     {
       "path": "skills/computer-use/SKILL.md",
       "upstream_sha256": "2839933fd35216845461466403e6061488005f6df57126d0cd0f769ea45753f3",
-      "current_sha256": "b6b42e4fba72680479bd4c065525c38443de8a5c2c8d352d12478b06d9c29734",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
+      "current_sha256": "a65d688b9c5a10bc99ded35dbcad1d8326107b19cd9d1f6935f8a3c7bdaa26e4",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
     },
     {
       "path": "skills/jira-tickets/SKILL.md",
       "upstream_sha256": "5534da4000f4f4c87f7dbb263345a213068c0099a1440186adea865e17d90dfe",
-      "current_sha256": "1256f3142a19a054f7fca18e45624f617d3e0d21910fd5d4da3cffe9b2c919aa",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
+      "current_sha256": "b0dc4f9813a1b8d021279d6732c5762a3d148f7dd44c1422af2a497826aa9d7f",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
     },
     {
       "path": "skills/linear-tickets/SKILL.md",
       "upstream_sha256": "e181f86073da65c492361469d504fe15e7ae61bc99990bc41bea47aa13455619",
-      "current_sha256": "f177ba8cc6b18a043dae813984986763bb10a91440f78ead34dfca247f2a37f7",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
+      "current_sha256": "343e7688e3aa303b69b437d21c424ed78f4fdaeaa67bfe1c673314e8f465343f",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
     },
     {
       "path": "skills/orca-cli/SKILL.md",
       "upstream_sha256": "aa76f86505010096e8ea9edda1705a78aae7af45e54485f3fe0460664c1d9e4a",
-      "current_sha256": "3d2c09fee96581972bec76e526c3308649cce9bef928d5d07512fb685d0b4a7c",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
+      "current_sha256": "1eeff2385fe45adbc356cacb20f71d4cac9b995c96768809ec206af992fbd6ef",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
     },
     {
       "path": "skills/orca-emulator-android/SKILL.md",
       "upstream_sha256": "3ade4e6f8f2717ca899fd841e61f116963a406e9527015b803854c16d012e278",
-      "current_sha256": "46b0e1a974e34f483e987d33bf9c7c509c85061a3ae2c57de93d40f5e12cdbc3",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
+      "current_sha256": "e5ad9cc607d7ef580da0313898ed062da692480883d5bffc3bd6f027ebe73030",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
     },
     {
       "path": "skills/orca-emulator/SKILL.md",
       "upstream_sha256": "3da7191179e46cb0e1a6a936f1eb54254f6e98ec38849e1c95f0e11073076b48",
-      "current_sha256": "1d89a371c9e73a575e2b229b0a304080c5c5ebf9be528c0fa209ff44f452a818",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
+      "current_sha256": "831f7f6d8cafec8bbb67c7911de5a9d284ee4ea18900d4f041bbcfca9cdd320a",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
     },
     {
       "path": "skills/orca-jira/SKILL.md",
       "upstream_sha256": "ca83c4662fbc2306efb9043674998b0ca5abacc78ec2e5f85e5db80288e6777a",
-      "current_sha256": "69a465467668142752a18faf38893f8092b2c7599e6beda9723da13333b2f969",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
+      "current_sha256": "4cb4d0029f1cb633f3087ef9cfe8c33599faeb8459923fa22a3ee7fc3e725363",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
     },
     {
       "path": "skills/orca-linear/SKILL.md",
       "upstream_sha256": "8da23ef96470906315cace8ff84f8056255ee37d1b2d5db84d8b7b3270a0ba0f",
-      "current_sha256": "b271e3dac740328cf887b5d71e1b826ffdebaa6809c4b2ffaa8d8b471ea83ca8",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
+      "current_sha256": "6cbf2f570aa4c1db06a13e1939cb496a5f52ef35cf4e5129e0d1079f155209af",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
     },
     {
       "path": "skills/orca-per-workspace-env/SKILL.md",
       "upstream_sha256": "c005d126a13d2913351472f07690f1c1a660d4f286e2a5f21864aee294f436ce",
-      "current_sha256": "0f36035490e64428a7d2f837b7e379d86bfb640b575d20dc651799bdd47185d8",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
+      "current_sha256": "dafb7a889c57d65d54dddd49f2cb4ede685f4b9ec6ba0f6203972af06cfff037",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
     },
     {
       "path": "skills/orchestration/SKILL.md",
       "upstream_sha256": "cd1b364bf35781bad06bf75ab1766afa8d6cec69cb2060529691d89871a2098a",
-      "current_sha256": "35ea2d9b4f3848ea195c002c30b6c095f6d6000f7ec82c9809bf0274e73131f2",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
+      "current_sha256": "71eb2ac96d682803173d589d272ffb27868f49864b333a135bb1091c1f954604",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
     },
     {
       "path": "src/cli/bundled-skill-guides.ts",
       "upstream_sha256": "d939b2344aec6921d99a7994596db6e7e5b45c36f489e3c8e55fe40160b5b7d6",
-      "current_sha256": "b62dba7a34e7423842f3f33bee31000d141ee9eae191425750dfd76018dd4151",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+      "current_sha256": "fd3eb3ef9adc05d85e6d74ffda731f3ba698025e60534c949de94e48cf468050",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
     },
     {
       "path": "src/cli/handlers/orchestration-worker-cli.test.ts",
@@ -331958,6 +331958,186 @@
       "upstream_sha256": "dec8cf6ea5d7e1d9f1e2181a5b0a7644fc4cb40afe2cc3508329fd4261e24dcf",
       "current_sha256": "021eac3c42c2cddd03377fffc7e2f37b172428518be274d2048d137231b7ce1e",
       "reason": "技能安装更新使用本平台提交和子目录，保留上游来源记录与历史安装识别，同步实际构建和说明"
+    },
+    {
+      "path": "skill-guides/computer-use.md",
+      "upstream_sha256": "104850a43dfb86fc6f200e9e01f48a75e62fab78554e08666996c6ba286f8589",
+      "current_sha256": "68e96fa1b6c71dc5262f3861a33dbe18beda8e59434aac0fbce390dd2d32b2d4",
+      "reason": "技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
+    },
+    {
+      "path": "skill-guides/jira-tickets.md",
+      "upstream_sha256": "bc9078d722cd72b6fe4b1fbf3f8ca46c209485c19417ae3cc590aee30f37ed1c",
+      "current_sha256": "4fc2b73e7512ea3b8ccc8c9f08f718411a381198c6d28d756af6bddb73f32562",
+      "reason": "技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
+    },
+    {
+      "path": "skill-guides/linear-tickets.md",
+      "upstream_sha256": "0ac66eb97207b93b1bdec259c7042ee2b07550d4d8c5093e0128cf83c65ae3e2",
+      "current_sha256": "3b81b43920203eb9d84bdd38e7727d7decec0d5fd73ad0509fa38cc21053a07b",
+      "reason": "技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
+    },
+    {
+      "path": "skill-guides/orca-cli/references/automations.md",
+      "upstream_sha256": "9e4ff221b4cb0ef6351ae4187143cedc20c8d651928c86a81ab13f052f85b770",
+      "current_sha256": "4f154bdcdc378f07841b32b8fa86cce3343c8f3201442732416c2d19f2e80465",
+      "reason": "技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
+    },
+    {
+      "path": "skill-guides/orca-cli/references/browser.md",
+      "upstream_sha256": "009a31a16b1c08b754f03d9372a4409b48b3cdf7a36851ef413616c2bddaa95e",
+      "current_sha256": "d893391d3eae71c2d2d62fd7038a883daea507652bdbe5a7c42778672442903a",
+      "reason": "技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
+    },
+    {
+      "path": "skill-guides/orca-cli/references/publishing.md",
+      "upstream_sha256": "6807b7d147ac0233b3731b6726c0c87479a8ffc74bb0a7aa754a08573882b976",
+      "current_sha256": "d8a74e3cdf4b85a50de767b55bba054b7476459503afc326f856e98543c6fdd9",
+      "reason": "技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
+    },
+    {
+      "path": "skill-guides/orca-emulator-android.md",
+      "upstream_sha256": "103d1a10c1b0f7a3b0af0f867b49aa1caacecbbcebd32683f790a6da543fee4f",
+      "current_sha256": "2daf4afbb8ffa45f04afbd83df473bf499b7b128448dfeec2be5da1520286802",
+      "reason": "技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
+    },
+    {
+      "path": "skill-guides/orca-emulator.md",
+      "upstream_sha256": "ee61f0e4d4425e5c65f3e6d9d397dd37baa4829baf5bbb26f49f9958f6c0e3f7",
+      "current_sha256": "ea9de91866aa8267a1cf915c93e79ce7c4f1fbaa80a2f5e5e33b446028043f13",
+      "reason": "技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
+    },
+    {
+      "path": "skill-guides/orca-jira.md",
+      "upstream_sha256": "f8cd39601ce29b3c593eac6df170f5d09174a2a9d9888c0847d58dfad658d012",
+      "current_sha256": "002d61fce27666d815c667a332ad23c1a82ecd4aa272670ff31fa6dceb3c65a5",
+      "reason": "技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
+    },
+    {
+      "path": "skill-guides/orca-linear.md",
+      "upstream_sha256": "d46de80dc4150f3697d172d13903fbda21ee1c863906f8511d47190db1b1ebe7",
+      "current_sha256": "c981167c11f9185a17ef20ce23dfeeecce6dbb8a09434bc8660d74b8664b303d",
+      "reason": "技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
+    },
+    {
+      "path": "skill-guides/orca-per-workspace-env/references/ssh-host.md",
+      "upstream_sha256": "03340c3f0267fa47389d303f8de01c9f4e3ae3025f7c63382a06e62680880e1f",
+      "current_sha256": "1f89333d2fd362e8546adf26c55923eb46c884bbfc5ffc8a349fdb711e6bdc11",
+      "reason": "技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
+    },
+    {
+      "path": "skill-guides/orca-per-workspace-env/references/windows-scripts.md",
+      "upstream_sha256": "548bdca26af67c23a51070da633db12be41cb8da1ecdf0484f8d4f94fb290382",
+      "current_sha256": "8a62f59ba09e8aadf4eb3badc76990985211da14ea2b9efc52a264663c8e943d",
+      "reason": "技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
+    },
+    {
+      "path": "skill-guides/orchestration.md",
+      "upstream_sha256": "f0009a1bbe18ff6a8efd6a64c75a8fb047ebb6f01788fcf9b9ecede6378d9f89",
+      "current_sha256": "09d9de22d8763e94bfc4c8d050b78a13d4f332baf206c54e650bf2a793d8163b",
+      "reason": "技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
+    },
+    {
+      "path": "skill-guides/orchestration/references/coordinator-loop.md",
+      "upstream_sha256": "4eb2229faf6179b4a4578840a0f461ce36923c2094f46ec48db7879f27259742",
+      "current_sha256": "6895e6c9c7174e9592c9ce95c6e82ede24b54fe20c1e975cd8599d2c37e5c4c9",
+      "reason": "技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
+    },
+    {
+      "path": "skill-guides/orchestration/references/legacy-contract-migration.md",
+      "upstream_sha256": "a4a961937b601bc116ae8d658d13e95f61beed70026521fe4323654f8322ca42",
+      "current_sha256": "7efee4a057264852d4327b40feaac3223bc1a15309ba7047e33ceb9bafed5dae",
+      "reason": "技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
+    },
+    {
+      "path": "skill-guides/orchestration/references/low-level-topology.md",
+      "upstream_sha256": "a4b2aec2291f7856b48b188b803fc101ebd560a76bcf4c3d10706e0847c8f297",
+      "current_sha256": "c12ce26218d70d898b0a6a659420d3c151a52b92a8beea1fe7bd5c9f2d8d5091",
+      "reason": "技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
+    },
+    {
+      "path": "skill-guides/orchestration/references/messaging-and-gates.md",
+      "upstream_sha256": "c201fe5da4ce4300e3c5f4d8784c69ff57cfb9c3bccaa1c487be914c1fdf872c",
+      "current_sha256": "89d192159efeffe994c87313130fc1ff3f2d293a54f61c8af1ed47e38f37acba",
+      "reason": "技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
+    },
+    {
+      "path": "skill-guides/orchestration/references/placement-and-remote.md",
+      "upstream_sha256": "52ff2c6cb1c93782a949cdb9457054266e68198441dc4e869d2d2048adf93e40",
+      "current_sha256": "946366012d7699b24c83c7d0a402b1c2bdc14fc3166676f65249cb9e5e3e15fd",
+      "reason": "技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
+    },
+    {
+      "path": "skill-guides/orchestration/references/recovery-and-cleanup.md",
+      "upstream_sha256": "9b99dbf4d71863667090af7fe3e5781df1e2af10825e040a15ee2e51f3a32596",
+      "current_sha256": "f74655fe07936b2ce583796bcaa8d46be574dadb8db243a27295b39a1cecfbb6",
+      "reason": "技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
+    },
+    {
+      "path": "skill-guides/orchestration/references/worker-contract.md",
+      "upstream_sha256": "8cad6c7540fa5fa6dbf264077492855710eff71c06b7f63c84854c7e943baa91",
+      "current_sha256": "e9265eca0191209d55cb1e0190cbc52e48901fb830f79c13e13b2c0971187890",
+      "reason": "技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
+    },
+    {
+      "path": "skill-stubs/computer-use.md",
+      "upstream_sha256": "c01de6602a55f38328e1704b3ecf5c72eee9c5e6a047f37f2adbf5f075ce96bb",
+      "current_sha256": "84d75be84259749cb3ea471cf171b21821516eefd2dc7cfd8f34494e2b46f13f",
+      "reason": "技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
+    },
+    {
+      "path": "skill-stubs/jira-tickets.md",
+      "upstream_sha256": "1e6e890005638b1978c6cc0a53c1462c4627a2cf0bf9154d2c8a713f940df3e3",
+      "current_sha256": "89895cc477129eafd228b6b1c28de3501a70e8ac1bd316ebbfb4ee2e5cd501d3",
+      "reason": "技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
+    },
+    {
+      "path": "skill-stubs/linear-tickets.md",
+      "upstream_sha256": "92758b3b62c36b484a767211d35874319d2895e18fbd5c25c93a235615cb441e",
+      "current_sha256": "e5d4a1cf78fd3ca63bdd56c04ca1e87c653a0a007d7a895b12f3c68af543e656",
+      "reason": "技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
+    },
+    {
+      "path": "skill-stubs/orca-cli.md",
+      "upstream_sha256": "fc96113faf1dc77a558d5fabf06825f538e6d30253671be2d7b157b81f609834",
+      "current_sha256": "fea0012b916c08fa18ea0f3a022cc2fa610fcac3227961c5b080cf272a8f6afe",
+      "reason": "技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
+    },
+    {
+      "path": "skill-stubs/orca-emulator-android.md",
+      "upstream_sha256": "f3f2ad9792183221ffaccf967674bfcada877b6e1a7294991cb639169879379b",
+      "current_sha256": "50ae9fddab9039f4440c2f3c7bae0675e7041c25bda978cc679c7e6367af8e3e",
+      "reason": "技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
+    },
+    {
+      "path": "skill-stubs/orca-emulator.md",
+      "upstream_sha256": "19916b67fd5274f6cbf7d3e189c190539d159391a872845bfe85bffbe0f2fa1a",
+      "current_sha256": "39b6f2545389852cbd190764c45474abf9f00118d7f3a938d2b867a790d36e8c",
+      "reason": "技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
+    },
+    {
+      "path": "skill-stubs/orca-jira.md",
+      "upstream_sha256": "5823c494798c8bc01b1fc79256f10af7a7d0ffcc8dba0b414941c11af636ae3c",
+      "current_sha256": "66dd6b5cb0013a16fffa8b603754714258a1e15bee79fae7e5c9fd2365ec68ea",
+      "reason": "技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
+    },
+    {
+      "path": "skill-stubs/orca-linear.md",
+      "upstream_sha256": "26c8eeab690c99ddf87ad6f8db15b274a0c7fbe6b7275a057d32af5b9d16f980",
+      "current_sha256": "bb576d3dcd6eeaf86c53c8d72c3053288f55b2f5f05c1aaa5d0cd8daa39a7b2d",
+      "reason": "技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
+    },
+    {
+      "path": "skill-stubs/orca-per-workspace-env.md",
+      "upstream_sha256": "88809c59ec362af16b669ff6e8c7fa84439c49576c30f88e15666e815c4256ea",
+      "current_sha256": "9dc5988f9ea8291646bf2a2216a7231949de391b00b4361eb8f3bb022d9bad7d",
+      "reason": "技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
+    },
+    {
+      "path": "skill-stubs/orchestration.md",
+      "upstream_sha256": "c5321118e4a241cdce09d1c7ce65a6147a079d1110edaef5a8b32e7beb02eaa0",
+      "current_sha256": "93add5bb2887611cb9e900d4960f00f1b9241a8e6bd9bd4e8714239ae6b6546c",
+      "reason": "技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物"
     }
   ],
   "reviewed_findings": [
@@ -332476,21 +332656,21 @@
       "path": "skill-guides/orca-cli.md",
       "rule": "personal-home-path",
       "line": 71,
-      "sha256": "6b4cc263639352c71bec414b568e24d5d794df1f137727faf3497bc107743157",
+      "sha256": "d981f5319ae1f4188d160268c652199a5be317800ea3e0c0651360e83627f3f9",
       "reason": "公开的路径模板、跨平台解析说明或通用示例；未读取本机账号/目录，保留语义并限定具体行及文件hash。"
     },
     {
       "path": "src/cli/bundled-skill-guides.ts",
       "rule": "personal-home-path",
       "line": 27,
-      "sha256": "b62dba7a34e7423842f3f33bee31000d141ee9eae191425750dfd76018dd4151",
+      "sha256": "fd3eb3ef9adc05d85e6d74ffda731f3ba698025e60534c949de94e48cf468050",
       "reason": "公开的路径模板、跨平台解析说明或通用示例；未读取本机账号/目录，保留语义并限定具体行及文件hash。"
     },
     {
       "path": "src/cli/bundled-skill-guides.ts",
       "rule": "personal-home-path",
       "line": 30,
-      "sha256": "b62dba7a34e7423842f3f33bee31000d141ee9eae191425750dfd76018dd4151",
+      "sha256": "fd3eb3ef9adc05d85e6d74ffda731f3ba698025e60534c949de94e48cf468050",
       "reason": "公开的路径模板、跨平台解析说明或通用示例；未读取本机账号/目录，保留语义并限定具体行及文件hash。"
     },
     {

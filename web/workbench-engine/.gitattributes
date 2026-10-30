@@ -8,7 +8,7 @@
 # so any suite importing the script dies at load with a SyntaxError. Pin the whole
 # directory rather than the scripts that happen to have a test today.
 /config/scripts/**/*.mjs text eol=lf
-/skill-guides/*.md text eol=lf
+/skill-guides/**/*.md text eol=lf
 /skill-stubs/*.md text eol=lf
 /skill-stubs/_shared/*.md text eol=lf
 /skills/*/SKILL.md text eol=lf

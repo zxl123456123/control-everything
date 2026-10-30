@@ -5,7 +5,7 @@ provider. It fills section 7's skeletons with a real surface, `vercel sandbox
 create|exec|snapshot|remove`. Adapt the names and verify every flag against
 `vercel sandbox --help` for the user's CLI version.
 
-This is the Orca-server connection mode: the recipe emits a pairing URL. If the user chose SSH in
+This is the Control Everything-server connection mode: the recipe emits a pairing URL. If the user chose SSH in
 the interview, use `references/ssh-host.md` instead.
 
 ## Snapshot cleanup
@@ -141,7 +141,7 @@ vercel sandbox exec "$name" ${vercel_args[@]+"${vercel_args[@]}"} --timeout 20m 
       node config/scripts/run-electron-vite-build.mjs --config config/electron-vite.vm-serve.config.ts && \
       printf "%s" "$c" > .orca-built; }' >&2
 
-# 3. (remote) start orca serve in the background, writing recipe JSON to a file; poll until it parses
+# 3. (remote) start zkyq serve in the background, writing recipe JSON to a file; poll until it parses
 recipe_json="$(vercel sandbox exec "$name" ${vercel_args[@]+"${vercel_args[@]}"} --timeout 60s \
   --env "ORCA_PORT=$port" --env "ORCA_PROJECT_ROOT=$project_root" --env "ORCA_PAIRING_ADDRESS=$pairing_ws" \
   -- bash -lc 'set -euo pipefail; cd "$ORCA_PROJECT_ROOT"; rm -f /tmp/orca-recipe.json /tmp/orca-serve.log; \
