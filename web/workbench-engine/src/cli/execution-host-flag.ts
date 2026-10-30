@@ -30,7 +30,7 @@ export type HostFlagRoutingSelection = {
   // may only route to a paired server once no SSH target is known to share it.
   verifySshTargets: () => Promise<SshTargetSummary[]>
   pairingCode: string | null
-  // Why: an ambient ORCA_ENVIRONMENT counts as a selection too, so carry the label to
+  // Why: an ambient ZKYQ_ENVIRONMENT counts as a selection too, so carry the label to
   // name the real source in the conflict message.
   environmentSelector: { value: string; label: string } | null
 }

@@ -22,6 +22,13 @@ export class ClaudeAgentTeamsService {
     /** Absolute path only; null leaves the var unset so the shim refuses to guess a cwd-relative CLI. */
     shimBin: string | null
   }): AgentTeamsLaunchEnv {
+    for (const name of ['ORCA_ENVIRONMENT', 'ORCA_PAIRING_CODE', 'ORCA_REMOTE_PAIRING']) {
+      if (args.baseEnv[name]) {
+        throw new Error(
+          `Remote selection variable ${name} was renamed. Set ${name.replace('ORCA_', 'ZKYQ_')} and unset the old name.`
+        )
+      }
+    }
     const teamId = `team-${randomUUID()}`
     const token = randomBytes(32).toString('base64url')
     const leaderPane = '%1'
@@ -46,11 +53,14 @@ export class ClaudeAgentTeamsService {
     if (args.shimBin) {
       env.ORCA_AGENT_TEAMS_SHIM_BIN = args.shimBin
     }
-    if (args.baseEnv.ORCA_PAIRING_CODE) {
-      env.ORCA_PAIRING_CODE = args.baseEnv.ORCA_PAIRING_CODE
+    if (args.baseEnv.ZKYQ_PAIRING_CODE) {
+      env.ZKYQ_PAIRING_CODE = args.baseEnv.ZKYQ_PAIRING_CODE
     }
-    if (args.baseEnv.ORCA_ENVIRONMENT) {
-      env.ORCA_ENVIRONMENT = args.baseEnv.ORCA_ENVIRONMENT
+    if (args.baseEnv.ZKYQ_ENVIRONMENT) {
+      env.ZKYQ_ENVIRONMENT = args.baseEnv.ZKYQ_ENVIRONMENT
+    }
+    if (args.baseEnv.ZKYQ_REMOTE_PAIRING) {
+      env.ZKYQ_REMOTE_PAIRING = args.baseEnv.ZKYQ_REMOTE_PAIRING
     }
 
     const leader: TeamPane = { fakePaneId: leaderPane, handle: args.leaderHandle, index: 0 }

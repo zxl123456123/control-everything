@@ -5,18 +5,20 @@ import { getOptionalPositiveIntegerFlag, getRequiredStringFlag } from '../flags'
 import { resolveRepoPathArgument } from '../repo-path-arguments'
 import { RuntimeClientError } from '../runtime/types'
 import { migrateProjectConfig } from '../project-config-migration'
+import { refuseRetiredRemoteSelection } from '../remote-selection-env'
 
 export const REPO_HANDLERS: Record<string, CommandHandler> = {
   'repo migrate-config': async ({ flags, json }) => {
+    refuseRetiredRemoteSelection()
     if (flags.has('dry-run') && flags.get('dry-run') !== true) {
       throw new RuntimeClientError('invalid_argument', '--dry-run does not accept a value.')
     }
     if (
       flags.has('environment') ||
       flags.has('pairing-code') ||
-      process.env.ORCA_ENVIRONMENT ||
-      process.env.ORCA_PAIRING_CODE ||
-      process.env.ORCA_REMOTE_PAIRING ||
+      process.env.ZKYQ_ENVIRONMENT ||
+      process.env.ZKYQ_PAIRING_CODE ||
+      process.env.ZKYQ_REMOTE_PAIRING ||
       process.env.ORCA_CLI_CWD
     ) {
       throw new RuntimeClientError(

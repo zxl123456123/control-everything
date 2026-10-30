@@ -21,6 +21,7 @@ import type { RuntimeClient } from './runtime-client'
 import { COMMAND_SPECS } from './specs'
 import { resolveOrchestrationCliExecutable } from './runtime/orchestration-recovery-command'
 import { refuseConflictingSessionCallerFlags } from './session-caller-flags'
+import { refuseRetiredRemoteSelection } from './remote-selection-env'
 
 export { COMMAND_SPECS } from './specs'
 export { buildCurrentWorktreeSelector, normalizeWorktreeSelector } from './selectors'
@@ -115,11 +116,12 @@ export async function main(
     validateCommandAndFlags(COMMAND_SPECS, parsed)
     const commandSpec = findCommandSpec(COMMAND_SPECS, parsed.commandPath)
     refuseConflictingSessionCallerFlags(commandSpec, parsed.flags)
-    const RuntimeClientClass = await loadRuntimeClientClass()
     const ignoreRemoteSelection = shouldIgnoreRemoteSelection(parsed.commandPath)
+    if (!ignoreRemoteSelection) refuseRetiredRemoteSelection()
+    const RuntimeClientClass = await loadRuntimeClientClass()
     const pairingCode = ignoreRemoteSelection ? null : parsed.flags.get('pairing-code')
     const environmentSelector = ignoreRemoteSelection ? null : parsed.flags.get('environment')
-    // Why: only the explicit flag is asserted eagerly. An ambient ORCA_ENVIRONMENT is background
+    // Why: only the explicit flag is asserted eagerly. An ambient ZKYQ_ENVIRONMENT is background
     // config, and failing local-only commands because of a stale one would be a regression; the
     // explicit flag means the caller named that machine, so a bad name should fail immediately
     // with the cross-kind hint rather than a bare store error at first use.
@@ -131,7 +133,7 @@ export async function main(
         : null
     // Why: --host runtime:<id> names a paired server, not a filter over this
     // runtime's rows, so it has to pick the connection before the client exists.
-    // An ambient ORCA_ENVIRONMENT is checked for disagreement too — silently
+    // An ambient ZKYQ_ENVIRONMENT is checked for disagreement too — silently
     // retargeting a mutation to another server is the bug this flag already had.
     // An ambient pairing code cannot be resolved to an id to compare, so the
     // explicit flag simply wins there.
@@ -151,8 +153,8 @@ export async function main(
           environmentSelector:
             typeof environmentSelector === 'string'
               ? { value: environmentSelector, label: '--environment' }
-              : process.env.ORCA_ENVIRONMENT
-                ? { value: process.env.ORCA_ENVIRONMENT, label: 'ORCA_ENVIRONMENT' }
+              : process.env.ZKYQ_ENVIRONMENT
+                ? { value: process.env.ZKYQ_ENVIRONMENT, label: 'ZKYQ_ENVIRONMENT' }
                 : null
         })
     // Why: --host runtime:<name> is canonicalized to the environment's id so downstream host-id
@@ -163,7 +165,7 @@ export async function main(
     }
     // Why: pass `null` (not `undefined`) when remote selection is suppressed
     // so the RuntimeClient default parameter does not re-activate the
-    // ORCA_PAIRING_CODE / ORCA_ENVIRONMENT env-var fallback for commands
+    // ZKYQ_PAIRING_CODE / ZKYQ_ENVIRONMENT env-var fallback for commands
     // that must run locally (environment / serve).
     const suppressed = ignoreRemoteSelection ? null : undefined
     // An explicit --host runtime:<id> outranks an ambient pairing code or environment.
@@ -201,7 +203,11 @@ export async function main(
         parsed.flags.has('environment') ||
         parsed.flags.has('pairing-code') ||
         (typeof hostFlag === 'string' && hostFlag.startsWith('runtime:')) ||
-        Boolean(process.env.ORCA_ENVIRONMENT?.trim() || process.env.ORCA_PAIRING_CODE?.trim())
+        Boolean(
+          process.env.ZKYQ_ENVIRONMENT?.trim() ||
+          process.env.ZKYQ_PAIRING_CODE?.trim() ||
+          process.env.ZKYQ_REMOTE_PAIRING?.trim()
+        )
     })
     process.exitCode = 1
   }

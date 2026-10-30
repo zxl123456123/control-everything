@@ -91,7 +91,7 @@ it.skipIf(skip)(
         userData,
         'cli',
         'bin',
-        process.platform === 'win32' ? 'orca.exe' : 'orca'
+        process.platform === 'win32' ? 'zkyq.exe' : 'zkyq'
       )
       expect(existsSync(launcher)).toBe(true)
       installFakeAppEnvironment({
@@ -103,7 +103,10 @@ it.skipIf(skip)(
         PATH: env.PATH ?? '',
         ORCA_ENVIRONMENT: 'stale-shell-selection',
         ORCA_PAIRING_CODE: 'stale-pairing',
-        ORCA_REMOTE_PAIRING: 'stale-remote-pairing'
+        ORCA_REMOTE_PAIRING: 'stale-remote-pairing',
+        ZKYQ_ENVIRONMENT: 'stale-shell-selection',
+        ZKYQ_PAIRING_CODE: 'stale-pairing',
+        ZKYQ_REMOTE_PAIRING: 'stale-remote-pairing'
       })
       const result = await runProcess({
         program: childEnv.ZKYQ_CLI_COMMAND!,
@@ -140,7 +143,7 @@ it.skipIf(skip)(
       const person = await runProcess({
         program: launcher,
         args: ['status', '--json'],
-        env: { ...env, ORCA_ENVIRONMENT: 'stale-shell-selection' },
+        env: { ...env, ZKYQ_ENVIRONMENT: 'stale-shell-selection' },
         cwd: home,
         timeoutMs: 15_000
       })

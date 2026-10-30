@@ -71,6 +71,9 @@ describe('the Codex child environment', () => {
         ? { ORCA_CLI_BIN_DIR: expect.stringMatching(DEV_CLI_BIN_DIR) }
         : {}),
       ZKYQ_USER_DATA_PATH: expect.any(String),
+      ZKYQ_ENVIRONMENT: '',
+      ZKYQ_PAIRING_CODE: '',
+      ZKYQ_REMOTE_PAIRING: '',
       ORCA_ENVIRONMENT: '',
       ORCA_PAIRING_CODE: '',
       ORCA_REMOTE_PAIRING: '',
@@ -91,6 +94,9 @@ describe('the Codex child environment', () => {
         ? { ORCA_CLI_BIN_DIR: expect.stringMatching(DEV_CLI_BIN_DIR) }
         : {}),
       ZKYQ_USER_DATA_PATH: expect.any(String),
+      ZKYQ_ENVIRONMENT: '',
+      ZKYQ_PAIRING_CODE: '',
+      ZKYQ_REMOTE_PAIRING: '',
       ORCA_ENVIRONMENT: '',
       ORCA_PAIRING_CODE: '',
       ORCA_REMOTE_PAIRING: '',
@@ -134,6 +140,9 @@ const ENV_REPORTING_APP_SERVER = String.raw`
           sessionId: process.env.ORCA_AGENT_SESSION_ID ?? null,
           cliCommand: process.env.ZKYQ_CLI_COMMAND ?? null,
           selectors: [
+            process.env.ZKYQ_ENVIRONMENT,
+            process.env.ZKYQ_PAIRING_CODE,
+            process.env.ZKYQ_REMOTE_PAIRING,
             process.env.ORCA_ENVIRONMENT,
             process.env.ORCA_PAIRING_CODE,
             process.env.ORCA_REMOTE_PAIRING
@@ -159,6 +168,9 @@ describe('the spawned Codex child', () => {
     vi.stubEnv('ORCA_ENVIRONMENT', 'stale-shell-selection')
     vi.stubEnv('ORCA_PAIRING_CODE', 'stale-pairing')
     vi.stubEnv('ORCA_REMOTE_PAIRING', 'stale-remote-pairing')
+    vi.stubEnv('ZKYQ_ENVIRONMENT', 'stale-shell-selection')
+    vi.stubEnv('ZKYQ_PAIRING_CODE', 'stale-pairing')
+    vi.stubEnv('ZKYQ_REMOTE_PAIRING', 'stale-remote-pairing')
     const sessionId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d'
     const env = sealed(sessionId)
     const connection = await openCodexAppServerConnection({
@@ -170,7 +182,7 @@ describe('the spawned Codex child', () => {
       await expect(connection.request('test/env')).resolves.toEqual({
         sessionId,
         cliCommand: expect.stringMatching(DEV_CLI_LAUNCHER),
-        selectors: ['', '', ''],
+        selectors: ['', '', '', '', '', ''],
         cliBinDir: process.platform === 'win32' ? null : expect.stringMatching(DEV_CLI_BIN_DIR),
         path: expect.stringMatching(DEV_CLI_BIN_FIRST)
       })

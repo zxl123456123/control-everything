@@ -158,11 +158,19 @@ export function runBuiltOrcaCli(
   const {
     ORCA_ENVIRONMENT: _environment,
     ORCA_PAIRING_CODE: _pairingCode,
+    ORCA_REMOTE_PAIRING: _remotePairing,
+    ZKYQ_ENVIRONMENT: _newEnvironment,
+    ZKYQ_PAIRING_CODE: _newPairingCode,
+    ZKYQ_REMOTE_PAIRING: _newRemotePairing,
     ZKYQ_USER_DATA_PATH: _userDataPath,
     ...cleanEnv
   } = process.env
   void _environment
   void _pairingCode
+  void _remotePairing
+  void _newEnvironment
+  void _newPairingCode
+  void _newRemotePairing
   void _userDataPath
   const output = execFileSync(
     process.execPath,

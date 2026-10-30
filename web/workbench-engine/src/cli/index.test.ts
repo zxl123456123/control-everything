@@ -252,8 +252,8 @@ describe('command aliases dispatch to the canonical handler', () => {
   })
 
   it('keeps `agent-context` local when remote environment variables are set', async () => {
-    vi.stubEnv('ORCA_PAIRING_CODE', 'pairing-code')
-    vi.stubEnv('ORCA_ENVIRONMENT', 'stale-environment')
+    vi.stubEnv('ZKYQ_PAIRING_CODE', 'pairing-code')
+    vi.stubEnv('ZKYQ_ENVIRONMENT', 'stale-environment')
     try {
       await main(['agent-context', '--json'], '/tmp/repo')
 
@@ -273,8 +273,8 @@ describe('artifact runtime routing', () => {
   })
 
   it('uses the desktop runtime despite remote-selection environment fallbacks', async () => {
-    vi.stubEnv('ORCA_ENVIRONMENT', 'remote-environment')
-    vi.stubEnv('ORCA_PAIRING_CODE', 'remote-pairing-code')
+    vi.stubEnv('ZKYQ_ENVIRONMENT', 'remote-environment')
+    vi.stubEnv('ZKYQ_PAIRING_CODE', 'remote-pairing-code')
     vi.spyOn(console, 'log').mockImplementation(() => undefined)
     callMock.mockResolvedValue(okFixture('artifact-list', { status: 'ok', value: [] }))
     runtimeClientConstructorMock.mockClear()
@@ -284,6 +284,41 @@ describe('artifact runtime routing', () => {
     expect(process.exitCode).not.toBe(1)
     expect(runtimeClientConstructorMock).toHaveBeenCalledWith(null, null)
     expect(callMock).toHaveBeenCalledWith('artifacts.list', {})
+  })
+})
+
+describe('retired remote selection', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs()
+    vi.restoreAllMocks()
+    process.exitCode = 0
+  })
+
+  it.each([
+    ['ORCA_ENVIRONMENT', 'ZKYQ_ENVIRONMENT'],
+    ['ORCA_PAIRING_CODE', 'ZKYQ_PAIRING_CODE'],
+    ['ORCA_REMOTE_PAIRING', 'ZKYQ_REMOTE_PAIRING']
+  ])('refuses %s before dispatch, including with an explicit host', async (oldName, newName) => {
+    vi.stubEnv(oldName, 'private-value')
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {})
+    runtimeClientConstructorMock.mockClear()
+    callMock.mockReset()
+    await main(['worktree', 'list', '--environment', 'other-server', '--json'], '/tmp/repo')
+    expect(process.exitCode).toBe(1)
+    expect(runtimeClientConstructorMock).not.toHaveBeenCalled()
+    expect(callMock).not.toHaveBeenCalled()
+    const output = log.mock.calls.flat().join('\n')
+    expect(output).toContain(`${oldName} → ${newName}`)
+    expect(output).not.toContain('private-value')
+  })
+
+  it('keeps explicitly local commands available with retired selectors', async () => {
+    vi.stubEnv('ORCA_ENVIRONMENT', 'old-server')
+    vi.spyOn(console, 'log').mockImplementation(() => {})
+    callMock.mockReset()
+    await main(['agent-context', '--json'], '/tmp/repo')
+    expect(process.exitCode).not.toBe(1)
+    expect(callMock).not.toHaveBeenCalled()
   })
 })
 

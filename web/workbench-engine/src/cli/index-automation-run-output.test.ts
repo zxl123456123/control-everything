@@ -92,9 +92,9 @@ describe('automation run command output', () => {
   })
 
   beforeEach(() => {
-    vi.stubEnv('ORCA_ENVIRONMENT', undefined)
-    vi.stubEnv('ORCA_PAIRING_CODE', undefined)
-    vi.stubEnv('ORCA_REMOTE_PAIRING', undefined)
+    vi.stubEnv('ZKYQ_ENVIRONMENT', undefined)
+    vi.stubEnv('ZKYQ_PAIRING_CODE', undefined)
+    vi.stubEnv('ZKYQ_REMOTE_PAIRING', undefined)
   })
 
   afterEach(() => {
@@ -302,7 +302,7 @@ describe('automation run command output', () => {
       const log = vi.spyOn(console, 'log').mockImplementation(() => {})
       pairRuntimeEnvironment(listEnvironmentsMock, 'env-build', 'Build server')
       const flags = selection === 'explicit' ? ['--environment', 'Build server'] : []
-      process.env.ORCA_ENVIRONMENT = selection === 'explicit' ? 'wrong-host' : 'Build server'
+      process.env.ZKYQ_ENVIRONMENT = selection === 'explicit' ? 'wrong-host' : 'Build server'
       queueRun(run())
       await main(['automations', 'run', AUTOMATION_ID, ...flags], '/tmp/repo')
       const quotedEnvironment = process.platform === 'win32' ? '"Build server"' : "'Build server'"
@@ -350,7 +350,7 @@ describe('automation run command output', () => {
     )
   })
 
-  it.each(['explicit', 'ORCA_PAIRING_CODE', 'ORCA_REMOTE_PAIRING'] as const)(
+  it.each(['explicit', 'ZKYQ_PAIRING_CODE', 'ZKYQ_REMOTE_PAIRING'] as const)(
     'requires the same target without exposing %s pairing credentials',
     async (selection) => {
       const log = vi.spyOn(console, 'log').mockImplementation(() => {})
@@ -413,12 +413,12 @@ describe('automation run command output', () => {
     const log = vi.spyOn(console, 'log').mockImplementation(() => {})
     await main(['automations', 'run', '--help'], '/tmp/repo')
     expect(String(log.mock.calls[0]?.[0])).toContain(
-      'Use the full automation UUID from orca automations list; shortened prefixes are not accepted.'
+      'Use the full automation UUID from zkyq automations list; shortened prefixes are not accepted.'
     )
     expect(String(log.mock.calls[0]?.[0])).toContain(
       'A queued or dispatching run has been accepted'
     )
-    expect(String(log.mock.calls[0]?.[0])).toContain(`orca automations run ${AUTOMATION_ID}`)
+    expect(String(log.mock.calls[0]?.[0])).toContain(`zkyq automations run ${AUTOMATION_ID}`)
     expect(callMock).not.toHaveBeenCalled()
   })
 })

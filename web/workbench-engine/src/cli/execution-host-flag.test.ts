@@ -156,7 +156,7 @@ describe('resolveHostFlagEnvironmentId', () => {
     ).rejects.toThrow('name different Orca servers')
   })
 
-  it('names the ambient variable when ORCA_ENVIRONMENT is the conflicting selector', async () => {
+  it('names the ambient variable when ZKYQ_ENVIRONMENT is the conflicting selector', async () => {
     listEnvironmentsMock.mockReturnValue([environment('env-1')])
     resolveEnvironmentMock.mockReturnValue(environment('env-2'))
 
@@ -165,9 +165,9 @@ describe('resolveHostFlagEnvironmentId', () => {
         listSshTargets: listSshTargetsMock,
         verifySshTargets: listSshTargetsMock,
         pairingCode: null,
-        environmentSelector: { value: 'staging', label: 'ORCA_ENVIRONMENT' }
+        environmentSelector: { value: 'staging', label: 'ZKYQ_ENVIRONMENT' }
       })
-    ).rejects.toThrow('ORCA_ENVIRONMENT staging name different Orca servers')
+    ).rejects.toThrow('ZKYQ_ENVIRONMENT staging name different Orca servers')
   })
 
   it('hands an agent the known environment ids to retry with', async () => {
@@ -181,7 +181,7 @@ describe('resolveHostFlagEnvironmentId', () => {
     })
   })
 
-  it('accepts ORCA_ENVIRONMENT naming the runtime host in another case', async () => {
+  it('accepts ZKYQ_ENVIRONMENT naming the runtime host in another case', async () => {
     listEnvironmentsMock.mockReturnValue([environment('env-1', 'Build')])
     resolveEnvironmentMock.mockImplementation(() => {
       throw new Error('Unknown environment: build')
@@ -192,7 +192,7 @@ describe('resolveHostFlagEnvironmentId', () => {
         listSshTargets: listSshTargetsMock,
         verifySshTargets: listSshTargetsMock,
         pairingCode: null,
-        environmentSelector: { value: 'build', label: 'ORCA_ENVIRONMENT' }
+        environmentSelector: { value: 'build', label: 'ZKYQ_ENVIRONMENT' }
       })
     ).resolves.toBe('env-1')
     resolveEnvironmentMock.mockReset()

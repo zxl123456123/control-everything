@@ -38,10 +38,10 @@ export async function createRuntimeClientModuleMock(mocks: RuntimeClientModuleMo
       mocks.runtimeClientConstructorMock(remotePairingCode, environmentSelector)
       const effectivePairingCode =
         remotePairingCode === undefined
-          ? (process.env.ORCA_PAIRING_CODE ?? process.env.ORCA_REMOTE_PAIRING)
+          ? (process.env.ZKYQ_PAIRING_CODE ?? process.env.ZKYQ_REMOTE_PAIRING)
           : remotePairingCode
       const effectiveEnvironment =
-        environmentSelector === undefined ? process.env.ORCA_ENVIRONMENT : environmentSelector
+        environmentSelector === undefined ? process.env.ZKYQ_ENVIRONMENT : environmentSelector
       if (effectivePairingCode && effectiveEnvironment) {
         throw new RuntimeClientError(
           'invalid_argument',
@@ -113,9 +113,9 @@ export function useWorktreeAwarenessEnvironment(mocks: WorktreeAwarenessMocks): 
   const originalTerminalHandle = process.env.ORCA_TERMINAL_HANDLE
   const originalUserDataPath = process.env.ZKYQ_USER_DATA_PATH
   const originalDevCliInvocation = process.env.ZKYQ_DEV_CLI_INVOCATION
-  const originalPairingCode = process.env.ORCA_PAIRING_CODE
-  const originalRemotePairing = process.env.ORCA_REMOTE_PAIRING
-  const originalEnvironment = process.env.ORCA_ENVIRONMENT
+  const originalPairingCode = process.env.ZKYQ_PAIRING_CODE
+  const originalRemotePairing = process.env.ZKYQ_REMOTE_PAIRING
+  const originalEnvironment = process.env.ZKYQ_ENVIRONMENT
   const originalWorkspaceId = process.env.ORCA_WORKSPACE_ID
   const originalWorktreeId = process.env.ORCA_WORKTREE_ID
 
@@ -174,19 +174,19 @@ export function useWorktreeAwarenessEnvironment(mocks: WorktreeAwarenessMocks): 
       process.env.ZKYQ_DEV_CLI_INVOCATION = originalDevCliInvocation
     }
     if (originalPairingCode === undefined) {
-      delete process.env.ORCA_PAIRING_CODE
+      delete process.env.ZKYQ_PAIRING_CODE
     } else {
-      process.env.ORCA_PAIRING_CODE = originalPairingCode
+      process.env.ZKYQ_PAIRING_CODE = originalPairingCode
     }
     if (originalRemotePairing === undefined) {
-      delete process.env.ORCA_REMOTE_PAIRING
+      delete process.env.ZKYQ_REMOTE_PAIRING
     } else {
-      process.env.ORCA_REMOTE_PAIRING = originalRemotePairing
+      process.env.ZKYQ_REMOTE_PAIRING = originalRemotePairing
     }
     if (originalEnvironment === undefined) {
-      delete process.env.ORCA_ENVIRONMENT
+      delete process.env.ZKYQ_ENVIRONMENT
     } else {
-      process.env.ORCA_ENVIRONMENT = originalEnvironment
+      process.env.ZKYQ_ENVIRONMENT = originalEnvironment
     }
     if (originalWorkspaceId === undefined) {
       delete process.env.ORCA_WORKSPACE_ID

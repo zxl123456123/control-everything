@@ -24,6 +24,7 @@ import {
 import { markEnvironmentUsed } from './environments'
 import { createRuntimeSourceFence, type RuntimeSourceFence } from './runtime-source-fence'
 import { resolveRemoteConnection } from './runtime-remote-pairing'
+import { refuseRetiredRemoteSelection } from '../remote-selection-env'
 import {
   ORCHESTRATION_CONTRACT_RUNTIME_CAPABILITY,
   ORCHESTRATION_CONTRACT_VERSION
@@ -66,11 +67,14 @@ export class RuntimeClient {
   constructor(
     userDataPath = getDefaultUserDataPath(),
     requestTimeoutMs = 60_000,
-    remotePairingCode = process.env.ORCA_PAIRING_CODE ?? process.env.ORCA_REMOTE_PAIRING ?? null,
-    environmentSelector = process.env.ORCA_ENVIRONMENT ?? null,
+    remotePairingCode = process.env.ZKYQ_PAIRING_CODE ?? process.env.ZKYQ_REMOTE_PAIRING ?? null,
+    environmentSelector = process.env.ZKYQ_ENVIRONMENT ?? null,
     cliExecutable = resolveOrchestrationCliExecutable(),
     originalArgs?: readonly string[]
   ) {
+    if (arguments[2] === undefined || arguments[3] === undefined) {
+      refuseRetiredRemoteSelection()
+    }
     this.userDataPath = userDataPath
     this.requestTimeoutMs = requestTimeoutMs
     this.environmentSelector = environmentSelector
