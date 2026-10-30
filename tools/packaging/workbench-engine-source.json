@@ -327144,7 +327144,9 @@
     "src/cli/project-config-migration.ts",
     "src/cli/runtime/metadata-migration.test.ts",
     "src/cli/runtime/metadata-selection.test.ts",
-    "src/cli/runtime/metadata-selection.ts"
+    "src/cli/runtime/metadata-selection.ts",
+    "src/cli/recipe-env-migration.test.ts",
+    "src/cli/recipe-env-migration.ts"
   ],
   "adapted_files": [
     {
@@ -332394,8 +332396,8 @@
     {
       "path": "src/cli/handler-group-manifest.ts",
       "upstream_sha256": "c5c95522b3610d3212f964e31f803f4001eeba573359c8768ca4e16a79ea031a",
-      "current_sha256": "0f25488778ae2014d1ff26681679c0b59acb32ce9c52450994a7f224e0446887",
-      "reason": "；新增安装后独立退役入口及目标约束验证，补齐当前CLI占位指南检查；显式迁移已跟踪项目配置，保留 Git 索引和用户修改"
+      "current_sha256": "8ea284c4104fe07b00d84fcc6a1eafb10177ecf64af78dea7544996fcaabb049",
+      "reason": "；新增安装后独立退役入口及目标约束验证，补齐当前CLI占位指南检查；显式迁移已跟踪项目配置，保留 Git 索引和用户修改；提供受限配方环境变量显式迁移入口"
     },
     {
       "path": "src/cli/root-help-text-primary.ts",
@@ -333048,8 +333050,8 @@
     {
       "path": "src/cli/handlers/vm.ts",
       "upstream_sha256": "ebdd54fb9a792a68d491597b36129d059130c6862d57fc78c2eb33d42db69470",
-      "current_sha256": "98a1b35314b7d900983925864f26ead31b20a10fc6ed6c0955173da73baa9fb4",
-      "reason": "项目配置统一新文件名，保留旧文件迁移与信任行为；显式迁移已跟踪项目配置，保留 Git 索引和用户修改；支持安全迁移未跟踪和被忽略的项目配置"
+      "current_sha256": "973d36b570fbd23c8876a9b8e82c3426ba22bfa26ec61e4760d8296854b7eac4",
+      "reason": "项目配置统一新文件名，保留旧文件迁移与信任行为；显式迁移已跟踪项目配置，保留 Git 索引和用户修改；支持安全迁移未跟踪和被忽略的项目配置；提供受限配方环境变量显式迁移入口"
     },
     {
       "path": "src/cli/index-vm-recipe-doctor.test.ts",
@@ -333066,8 +333068,8 @@
     {
       "path": "src/cli/specs/vm.ts",
       "upstream_sha256": "c5564973b50e7c34a28af735d854b8fc822767fe02523b98bc6dc0897eb9b51e",
-      "current_sha256": "9b284314bb390fc70312ece0cfbb5c5ba75e35d41833badb09fe315db2998308",
-      "reason": "项目配置统一新文件名，保留旧文件迁移与信任行为"
+      "current_sha256": "a68934344a8e3a64b9fca47440f5ff6fb396a9c81b031e047d3e89d911a9a57e",
+      "reason": "项目配置统一新文件名，保留旧文件迁移与信任行为；提供受限配方环境变量显式迁移入口"
     },
     {
       "path": "src/main/hooks-effective-hook-resolution.test.ts",
@@ -333186,8 +333188,8 @@
     {
       "path": "src/shared/ephemeral-vm-recipe-doctor.ts",
       "upstream_sha256": "51befcc6d70d12ed663a36ef674d4c8646881e71ce1373151c4bb3cdfaea8dc2",
-      "current_sha256": "ef2848aad30fd8cf40db02741da5db52c19dea35701d7831ea5b4670712567d0",
-      "reason": "项目配置统一新文件名，保留旧文件迁移与信任行为；新环境配方与实例使用掌控一切身份；只读诊断配方旧环境变量和检查范围"
+      "current_sha256": "0f44a543b253db8436e763709d93cbbb3a3dcfbca3c92a75c6b54e0e414631ed",
+      "reason": "项目配置统一新文件名，保留旧文件迁移与信任行为；新环境配方与实例使用掌控一切身份；只读诊断配方旧环境变量和检查范围；提供受限配方环境变量显式迁移入口"
     },
     {
       "path": "src/cli/handlers/repo.ts",

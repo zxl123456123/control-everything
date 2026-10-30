@@ -26,8 +26,42 @@ import {
   runEphemeralVmRecipeStart
 } from '../../shared/ephemeral-vm-recipe-runner'
 import type { OrcaVmRecipe } from '../../shared/orca-yaml-hook-types'
+import { migrateRecipeEnvironment } from '../recipe-env-migration'
 
 export const VM_HANDLERS: Record<string, CommandHandler> = {
+  'vm recipe migrate-env': async ({ flags, json }) => {
+    if (flags.has('dry-run') && flags.get('dry-run') !== true) {
+      throw new RuntimeClientError('invalid_argument', '--dry-run does not accept a value.')
+    }
+    if (
+      flags.has('environment') ||
+      flags.has('pairing-code') ||
+      process.env.ORCA_ENVIRONMENT ||
+      process.env.ORCA_PAIRING_CODE ||
+      process.env.ORCA_REMOTE_PAIRING ||
+      process.env.ORCA_CLI_CWD
+    ) {
+      throw new RuntimeClientError(
+        'invalid_argument',
+        'This command runs locally on the script host.'
+      )
+    }
+    const path = getStringFlag(flags, 'path')
+    if (!path)
+      throw new RuntimeClientError('invalid_argument', 'Pass an absolute script path with --path.')
+    const result = migrateRecipeEnvironment(path, flags.get('dry-run') === true)
+    if (json) {
+      console.log(JSON.stringify(result, null, 2))
+    } else {
+      console.log(
+        result.dryRun ? 'Proposed recipe variable replacements:' : 'Recipe variable replacements:'
+      )
+      for (const item of result.replacements) {
+        console.log(`  line ${item.line}: ${item.oldName} → ${item.newName}`)
+      }
+      if (!result.replacements.length) console.log('  No supported legacy variables found.')
+    }
+  },
   'vm recipe doctor': async ({ flags, cwd, json }) => {
     const recipeId = getStringFlag(flags, 'recipe-id')
     if (!recipeId) {

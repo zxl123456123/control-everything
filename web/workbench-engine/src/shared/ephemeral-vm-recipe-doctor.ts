@@ -187,7 +187,8 @@ function inspectLegacyRecipeEnvironment(
       id: `recipe.${phase}.legacy_environment`,
       status: 'warn',
       message: `Possible legacy recipe variables: ${mappings.join(', ')}.`,
-      remediation: 'Review and migrate the references; also inspect scripts called indirectly.'
+      remediation:
+        'For a simple local shell script, run `zkyq vm recipe migrate-env --path <absolute-script-path> --dry-run`; review indirect calls separately.'
     })
   }
   if (!inspected) {

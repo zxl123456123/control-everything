@@ -3,6 +3,19 @@ import { GLOBAL_FLAGS } from '../args'
 
 export const VM_COMMAND_SPECS: CommandSpec[] = [
   {
+    path: ['vm', 'recipe', 'migrate-env'],
+    destructive: true,
+    summary: 'Migrate unambiguous legacy environment reads in one local shell script',
+    usage: 'zkyq vm recipe migrate-env --path <absolute-script-path> [--dry-run] [--json]',
+    allowedFlags: ['help', 'json', 'path', 'dry-run'],
+    notes: [
+      'Run --dry-run first and review the indicated lines. The command never prints script contents.',
+      'Supports simple .sh, .bash and .zsh scripts; ambiguous syntax must be migrated manually.',
+      'Review indirectly called scripts and dynamically constructed variable names separately.',
+      'Run when no other process is editing the script. A failed write may require manual inspection.'
+    ]
+  },
+  {
     path: ['vm', 'recipe', 'doctor'],
     summary: 'Validate a per-workspace environment recipe without provisioning by default',
     usage:
