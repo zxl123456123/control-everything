@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Why: invoked via ~/.local/bin/orca-ide symlink (from CliInstaller); resolve it
+# Why: invoked via ~/.local/bin/zkyq symlink (from CliInstaller); resolve it
 # so APP_DIR points at the real install, not the symlink's parent.
 SOURCE="${BASH_SOURCE[0]}"
 while [ -h "$SOURCE" ]; do
@@ -24,7 +24,7 @@ for candidate in orca-ide orca Orca; do
 done
 
 if [ -z "$ELECTRON" ]; then
-	echo "Unable to locate the Orca executable next to $RESOURCES_DIR" >&2
+	echo "Unable to locate the desktop runtime next to $RESOURCES_DIR" >&2
 	exit 1
 fi
 
@@ -39,4 +39,5 @@ unset NODE_OPTIONS
 unset NODE_REPL_EXTERNAL_MODULE
 
 # CLI commands run in Electron's Node mode and must never initialize Chromium.
+export ORCA_CLI_COMMAND=zkyq
 ELECTRON_RUN_AS_NODE=1 exec "$ELECTRON" "$CLI" "$@"

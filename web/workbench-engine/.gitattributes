@@ -1,5 +1,8 @@
 # Keep this adapted metadata file byte-stable on Windows checkout.
 /.gitattributes text eol=lf
+/resources/linux/bin/zkyq text eol=lf
+/resources/linux/packaging/after-install.sh text eol=lf
+/resources/linux/packaging/after-remove.sh text eol=lf
 # A shebang plus CRLF makes vite's SSR transform emit a literal `#!` mid-module,
 # so any suite importing the script dies at load with a SyntaxError. Pin the whole
 # directory rather than the scripts that happen to have a test today.

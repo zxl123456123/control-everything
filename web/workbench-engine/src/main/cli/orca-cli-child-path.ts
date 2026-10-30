@@ -77,9 +77,14 @@ export function prependOrcaCliDirToChildPath(
       env.ORCA_CLI_BIN_DIR = shimDir
       const inheritedEntries = readInheritedPath(env, platform)
         .split(pathDelimiter)
-        .filter((entry) => entry.length > 0 && entry !== shimDir)
+        .filter(
+          (entry) =>
+            entry.length > 0 &&
+            entry !== shimDir &&
+            entry !== join(opts.userDataPath, 'linux-orca-cli-shim')
+        )
       env.PATH = [shimDir, ...inheritedEntries].join(pathDelimiter)
-      return join(shimDir, 'orca')
+      return join(shimDir, 'zkyq')
     }
   } else if (opts.resourcesPath && (platform === 'darwin' || platform === 'win32')) {
     // Why: global CLI registration is optional, but agents in Orca-managed PTYs must always reach this app's bundled CLI.

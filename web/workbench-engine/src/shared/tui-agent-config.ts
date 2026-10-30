@@ -35,8 +35,8 @@ const TUI_AGENT_CONFIG_SOURCE: Record<TuiAgent, TuiAgentConfigSource> = {
   },
   'claude-agent-teams': {
     // Why: an Orca-provided launch mode, not a separate binary; detection follows the Orca CLI.
-    detectCmd: 'orca',
-    detectCmdAliases: ['orca-dev', 'orca-ide'],
+    detectCmd: 'zkyq',
+    detectCmdAliases: ['orca-dev', 'orca'],
     // Why: require Claude too so fresh installs (Orca shim always present) don't report Agent Teams without an agent CLI.
     detectRequiredCommands: ['claude'],
     // Why: Windows/WSL use Claude's in-process Agent Teams fallback, not this Orca native-pane/tmux-shim wrapper.
@@ -373,9 +373,13 @@ export function getTuiAgentLaunchCommand(
   platform: NodeJS.Platform,
   opts?: { isRemote?: boolean }
 ): string {
-  // Why: local-only orca-ide rename (avoids GNOME Orca clash) must not leak to Linux remotes, whose relay shim is always `orca`.
+  // SSH relay names are migrated with their deployed scripts, independently of local packaged launchers.
   if (opts?.isRemote && platform === 'linux') {
     return config.launchCmd
+  }
+  // Windows SSH relays still deploy the legacy shim; local launches use the current native command.
+  if (opts?.isRemote && platform === 'win32' && config.launchCmd === 'orca claude-teams') {
+    return 'orca.cmd claude-teams'
   }
   return config.launchCmdByPlatform?.[platform] ?? config.launchCmd
 }

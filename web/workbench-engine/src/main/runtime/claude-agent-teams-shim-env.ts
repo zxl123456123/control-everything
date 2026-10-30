@@ -95,7 +95,7 @@ function bundledLauncherPath(): string | null {
     return join(process.resourcesPath, 'bin', 'orca')
   }
   if (process.platform === 'linux') {
-    return join(process.resourcesPath, 'bin', 'orca-ide')
+    return join(process.resourcesPath, 'bin', 'zkyq')
   }
   if (process.platform === 'win32') {
     return join(process.resourcesPath, 'bin', 'zkyq.exe')

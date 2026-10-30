@@ -24,7 +24,7 @@ import { getBundledLauncherPath } from './bundled-cli-launcher-path'
 import { buildBareOrcaCliScript } from './linux-bare-orca-dispatcher'
 import { quotePosixShellDoubleQuotedApostrophe } from '../../shared/shell-argument-quoting'
 
-const SHIM_DIR_NAME = 'linux-orca-cli-shim'
+const SHIM_DIR_NAME = 'linux-zkyq-cli-shim'
 
 export type LinuxTerminalOrcaCliShimOptions = {
   userDataPath: string
@@ -36,13 +36,8 @@ export type LinuxTerminalOrcaCliShimOptions = {
   appImageCacheRootPath?: string
 }
 
-// Why: on Linux the CLI installs as `orca-ide` so it never shadows the GNOME
-// Orca screen reader at /usr/bin/orca — but agent-facing surfaces (skills,
-// dispatch preambles, CLI hints) all invoke bare `orca`, so on stock Ubuntu an
-// agent inside an Orca terminal would launch the screen reader instead
-// (stablyai/orca#7904). Prepending this userData-scoped shim dir to managed-PTY
-// PATH makes bare `orca` resolve to the Orca CLI inside Orca terminals only,
-// leaving the user's own shells (and their screen reader) untouched.
+// Scope the current command to this app's managed terminals, including the
+// lifetime-fenced launcher used by an unregistered AppImage.
 export function ensureLinuxTerminalOrcaCliShimDir(
   options: LinuxTerminalOrcaCliShimOptions
 ): string | null {
@@ -189,7 +184,7 @@ launcher=${quotedLauncherPath}
 expected_runtime_identity=${expectedRuntimeIdentity}
 expected_launcher_identity=${expectedLauncherIdentity}
 fail() {
-  printf 'Orca CLI is unavailable; reopen Orca or register the CLI again.\\n' >&2
+  printf 'The workbench command is unavailable; reopen the app or register the CLI again.\\n' >&2
   exit 1
 }
 proc_stat_path="/proc/$runtime_pid/stat"
@@ -215,7 +210,7 @@ function ensureShimForLauncher(userDataPath: string, launcherPath: string): stri
 
 function ensureShimForScript(userDataPath: string, script: string): string | null {
   const shimDir = join(userDataPath, SHIM_DIR_NAME)
-  const shimPath = join(shimDir, 'orca')
+  const shimPath = join(shimDir, 'zkyq')
   try {
     if (readShim(shimPath) !== script) {
       mkdirSync(shimDir, { recursive: true })

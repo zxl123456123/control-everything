@@ -19,11 +19,11 @@ import { getBundledLauncherPath } from './bundled-cli-launcher-path'
 import { quotePosixShellDoubleQuotedApostrophe } from '../../shared/shell-argument-quoting'
 
 // Why: marks a dispatcher this function wrote so repeat serve starts overwrite
-// our own file idempotently but never clobber a user's own ~/.local/bin/orca.
-const DISPATCHER_MARKER = '# orca-serve-bare-orca-dispatcher'
+// our own file idempotently but never clobber a user's own command.
+const DISPATCHER_MARKER = '# zkyq-cli-dispatcher'
 
 export type LinuxBareOrcaDispatcherOptions = {
-  /** Packaged app resources root; the bundled `orca-ide` launcher lives under it. */
+  /** Packaged app resources root containing the bundled CLI launcher. */
   resourcesPath: string
   /** Test seam — defaults to the real home directory. */
   homePath?: string
@@ -45,21 +45,16 @@ export type LinuxBareOrcaDispatcherState =
 export type LinuxBareOrcaDispatcherResult = {
   state: LinuxBareOrcaDispatcherState
   dispatcherPath: string
-  /** The bundled `orca-ide` launcher the dispatcher execs. */
+  /** The bundled launcher the dispatcher execs. */
   target: string | null
 }
 
-// Why: on Linux the CLI installs as `orca-ide`, not bare `orca`, to avoid
-// shadowing GNOME Orca's /usr/bin/orca. But the Claude Team launcher typed into
-// the initial managed terminal invokes the literal `orca claude-teams`, so a
-// headless serve box needs a bare-`orca` dispatcher on the managed-terminal PATH
-// (~/.local/bin, which patchPackagedProcessPath puts ahead of /usr/bin). It is a
-// plain file, not a managed symlink, so CliInstaller.removeLegacyLinuxCommandIfManaged
-// never reclaims it.
+// Headless startup can publish a dispatcher when no CLI symlink was registered.
+// The public command matches the bundled launcher and Agent instructions.
 export async function installLinuxBareOrcaDispatcher(
   options: LinuxBareOrcaDispatcherOptions
 ): Promise<LinuxBareOrcaDispatcherResult> {
-  const dispatcherPath = join(options.homePath ?? homedir(), '.local', 'bin', 'orca')
+  const dispatcherPath = join(options.homePath ?? homedir(), '.local', 'bin', 'zkyq')
   if (existsSync(dispatcherPath) && !(await isOwnedDispatcher(dispatcherPath))) {
     return { state: 'skipped-foreign', dispatcherPath, target: null }
   }
@@ -78,9 +73,16 @@ export async function installLinuxBareOrcaDispatcher(
     : { state: 'skipped-foreign', dispatcherPath, target: null }
 }
 
-/** Bare-`orca` script that execs the one Linux CLI launcher. */
+/** Script that execs the selected Linux CLI launcher. */
 export function buildBareOrcaCliScript(launcherPath: string): string {
   return `#!/usr/bin/env bash\nexec ${quotePosixShellDoubleQuotedApostrophe(launcherPath)} "$@"\n`
+}
+
+/** Recognize the exact generated current or historical dispatcher, never an arbitrary shell script. */
+export function extractManagedLinuxDispatcherTarget(content: string): string | null {
+  const match =
+    /^#!\/usr\/bin\/env bash\n# (?:zkyq-cli-dispatcher|orca-serve-bare-orca-dispatcher)\nexec '((?:[^']|'"'"')*)' "\$@"\n$/.exec(content)
+  return match ? match[1].replaceAll(`'"'"'`, "'") : null
 }
 
 /**

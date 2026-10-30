@@ -34,6 +34,7 @@ import { AGENT_HOOK_RUNTIME_ENV_KEYS } from './spawn-env-keys'
 import { applyManagedDataAccountEnvironment } from '../../../managed-data-accounts/launch-environment'
 import { applyOpenCodeStatusPluginEnv, captureOpenCodeSourceConfig } from './opencode-config'
 import { applyCodexRemoteViewerClipboardEnv } from './codex-terminal-clipboard'
+import { getOrcaCliCommandNameForPlatform } from '../../../../shared/orca-cli-command-name'
 
 /**
  * Mutates `baseEnv` in place with all host-local PTY env vars and returns it.
@@ -305,7 +306,9 @@ export function buildPtyHostEnv(
     baseEnv.BROWSER === undefined &&
     process.env.BROWSER === undefined
   ) {
-    const cliCommand = opts.isWsl ? getWslCliCommandName(opts.isPackaged) : 'orca'
+    const cliCommand = opts.isWsl
+      ? getWslCliCommandName(opts.isPackaged)
+      : getOrcaCliCommandNameForPlatform(process.platform)
     baseEnv.BROWSER = `${cliCommand} open-url --url %s`
   }
   // Why the browser-relay flag: both mean a headless runtime whose viewer is another machine.

@@ -146,7 +146,7 @@ describe('launchAgentInNewTab execution host resolution', () => {
 
     await launchOnLinux()
 
-    expect(queuedCommand()).toBe("orca-ide claude-teams '--dangerously-skip-permissions'")
+    expect(queuedCommand()).toBe("zkyq claude-teams '--dangerously-skip-permissions'")
   })
 
   it('keeps a worktree on one SSH host remote while a rival row names another', async () => {
@@ -180,6 +180,6 @@ describe('launchAgentInNewTab execution host resolution', () => {
 
     await launchOnLinux()
 
-    expect(queuedCommand()).toBe("orca-ide claude-teams '--dangerously-skip-permissions'")
+    expect(queuedCommand()).toBe("zkyq claude-teams '--dangerously-skip-permissions'")
   })
 })

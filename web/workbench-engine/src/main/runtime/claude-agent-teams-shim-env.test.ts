@@ -99,7 +99,7 @@ describe('claude agent teams shim env', () => {
   it('refuses to resolve a CLI through relative PATH entries or a bare override', async () => {
     const root = await mkdtemp(join(tmpdir(), 'orca-agent-teams-cli-'))
     roots.push(root)
-    for (const name of ['orca', 'orca-ide', 'orca.cmd']) {
+    for (const name of ['zkyq', 'zkyq.exe', 'orca', 'orca-ide', 'orca.cmd']) {
       const path = join(root, name)
       await writeFile(path, '#!/usr/bin/env sh\n', 'utf8')
       if (process.platform !== 'win32') {
@@ -123,7 +123,7 @@ describe('claude agent teams shim env', () => {
     async () => {
       const root = await mkdtemp(join(tmpdir(), 'orca-agent-teams-cli-'))
       roots.push(root)
-      const cliPath = join(root, 'orca.cmd')
+      const cliPath = join(root, 'zkyq.exe')
       await writeFile(cliPath, '@echo off\r\n', 'utf8')
 
       expect(resolveClaudeAgentTeamsShimBin({ Path: root })).toBe(cliPath)

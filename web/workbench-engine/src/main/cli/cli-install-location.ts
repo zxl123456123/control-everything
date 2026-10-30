@@ -69,7 +69,7 @@ export abstract class CliInstallLocation {
     if (this.platform === 'win32') {
       return 'zkyq'
     }
-    // Why: packaged Linux uses `orca-ide` to avoid shadowing GNOME Orca's /usr/bin/orca.
+    // Linux keeps the product command separate from the system screen reader.
     return this.platform === 'linux' ? LINUX_CLI_COMMAND_NAME : 'orca'
   }
 
@@ -230,7 +230,7 @@ export abstract class CliInstallLocation {
 
     if (this.platform === 'linux') {
       // Why: Linux lacks a privileged global command flow; ~/.local/bin is the least-surprising user-scoped dir.
-      // Why `orca-ide`: GNOME Orca ships /usr/bin/orca, so avoid shadowing that screen reader.
+      // The product command must not shadow the system screen reader.
       return join(this.homePath, '.local', 'bin', LINUX_CLI_COMMAND_NAME)
     }
 
