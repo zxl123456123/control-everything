@@ -331798,8 +331798,8 @@
     {
       "path": "src/cli/specs/serve.ts",
       "upstream_sha256": "6431a280314ee8cb4ad4b092e81ed2fa093579708e5ff7422a484bad36996f5e",
-      "current_sha256": "1f2f09359a192c54fa6fa4dbfbe01bebd43a1e29b531d016196a13264d8ea721",
-      "reason": "服务安装按当前zkyq入口查找，统一服务生成和操作指导，保留profile和服务管理约束；服务注册统一zkyq身份，核归属后停用并归档旧配置，保留迁移参数和macOS更新停启协调"
+      "current_sha256": "9e209a846dabd0555823b5c50be05e281a07fd2e5baf1eeb774ba00a553fb259",
+      "reason": "服务安装按当前zkyq入口查找，统一服务生成和操作指导，保留profile和服务管理约束；服务注册统一zkyq身份，核归属后停用并归档旧配置，保留迁移参数和macOS更新停启协调；终端资源环境变量改名及启动迁移"
     },
     {
       "path": "src/cli/runtime/serve-bundle-park.test.ts",
@@ -332476,14 +332476,14 @@
     {
       "path": "src/main/daemon/daemon-foreground-confirmation-protocol.test.ts",
       "upstream_sha256": "6a7537df9c680841ddb7a3c6f8220dbee228e1b701101e4c046c03d9c75dcee4",
-      "current_sha256": "331716051a0c5b008a3a5013cd81c1f14d984e8094c8c82763a2001d5bdea61a",
-      "reason": "迁移终端历史交接变量并以新版 daemon 隔离旧 shell 合同；迁移应用版本环境变量并隔离驻留旧版 daemon"
+      "current_sha256": "d0d252afcca91e326abc7866829d2432daa78fc8b2a77c9a64d63cfa78c78c71",
+      "reason": "迁移终端历史交接变量并以新版 daemon 隔离旧 shell 合同；迁移应用版本环境变量并隔离驻留旧版 daemon；终端资源环境变量改名及启动迁移"
     },
     {
       "path": "src/main/daemon/daemon-protocol-version.ts",
       "upstream_sha256": "88ebc0c1b28e532deca3026e4e11ecce06faeacd2948506b2f6e1cb901454f82",
-      "current_sha256": "ca4de1512d5b99e55aa88aebc9ec4f018c0c4fe45a4d88a4979092c47c06190a",
-      "reason": "迁移终端历史交接变量并以新版 daemon 隔离旧 shell 合同；迁移应用版本环境变量并隔离驻留旧版 daemon"
+      "current_sha256": "55bf14c00c1a8a9d48f6597571e964b04a244d9a3c0f3c1356c5dffaf94d20fa",
+      "reason": "迁移终端历史交接变量并以新版 daemon 隔离旧 shell 合同；迁移应用版本环境变量并隔离驻留旧版 daemon；终端资源环境变量改名及启动迁移"
     },
     {
       "path": "src/main/providers/local-pty-finalize-environment.ts",
@@ -333000,6 +333000,42 @@
       "upstream_sha256": "8c9c12864ff2a7256b888afaabf9053e6fdb57e92703ebdd458b51bf2ce8a1c3",
       "current_sha256": "856044acdc2391fdac10662a6f0b86742078aa285bae8f66698133c90012b319",
       "reason": "模拟器命令、错误和提示统一 zkyq"
+    },
+    {
+      "path": "config/docker/daemon-scope-lifetime/README.md",
+      "upstream_sha256": "3ed667c0202e4ddf175869c26f438e684c073bb207b456af1cc6b7ffd096c4a1",
+      "current_sha256": "21bd05caf5bd8c1d6516c7d9cd05853ff20124fe48e9292b6774a5f58a572f50",
+      "reason": "终端资源环境变量改名及启动迁移"
+    },
+    {
+      "path": "config/docker/daemon-scope-lifetime/terminal-scope-cases.cjs",
+      "upstream_sha256": "a5d4101e7b01fc550d1122a1b4b7999849219c1a7e19b93cb0ebfc941a4c7081",
+      "current_sha256": "75df75767d9efbb6b14315037db0b27bed3900f75664916458be2301438c8990",
+      "reason": "终端资源环境变量改名及启动迁移"
+    },
+    {
+      "path": "src/main/daemon/terminal-memory-limits.ts",
+      "upstream_sha256": "97cab58784a3f37726c094cb399089f800ddcdd760edeb2f31d4f456f4bf2417",
+      "current_sha256": "fc714d49a2170bc45035effb3acf18fecaf828fdc5cb4bd6ac5c18a626de6eb1",
+      "reason": "终端资源环境变量改名及启动迁移"
+    },
+    {
+      "path": "src/main/daemon/terminal-scopes-runtime.ts",
+      "upstream_sha256": "3f10c966e89e87cd5ebef98076de7975b59c946eeb9bd71b24a96d972bf6eef3",
+      "current_sha256": "0565dba37c7589f0b59aeafb1f629591d1ea5c3aa1f1283b9e0b22c43cae7282",
+      "reason": "终端资源环境变量改名及启动迁移"
+    },
+    {
+      "path": "src/main/daemon/terminal-scopes.test.ts",
+      "upstream_sha256": "3aba3b13286e8486febb5d866f0fb112de7fa8737ee73c6d6121eb1294e5ef7a",
+      "current_sha256": "a61260f7f629cb40415bd426c7d030a9052b001b01a283203f93ce11e917c6c6",
+      "reason": "终端资源环境变量改名及启动迁移"
+    },
+    {
+      "path": "src/main/daemon/terminal-scopes.ts",
+      "upstream_sha256": "86fb64ac9c278f4c03b993e482f98ac9380950d0e9ff19c6c1bc25ab081885b7",
+      "current_sha256": "6a4c58d866b9a5fe5757a10e6ef8509c451c58856d9e99319e0aeac7257295c1",
+      "reason": "终端资源环境变量改名及启动迁移"
     }
   ],
   "reviewed_findings": [
@@ -333567,14 +333603,14 @@
       "path": "src/cli/specs/serve.ts",
       "rule": "fixed-external-ipv4",
       "line": 40,
-      "sha256": "1f2f09359a192c54fa6fa4dbfbe01bebd43a1e29b531d016196a13264d8ea721",
+      "sha256": "9e209a846dabd0555823b5c50be05e281a07fd2e5baf1eeb774ba00a553fb259",
       "reason": "公开界面占位或CLI用法示例，非采集的个人配置；限定本行字节，实际运行地址仍由用户配置。"
     },
     {
       "path": "src/cli/specs/serve.ts",
       "rule": "fixed-external-ipv4",
       "line": 41,
-      "sha256": "1f2f09359a192c54fa6fa4dbfbe01bebd43a1e29b531d016196a13264d8ea721",
+      "sha256": "9e209a846dabd0555823b5c50be05e281a07fd2e5baf1eeb774ba00a553fb259",
       "reason": "公开界面占位或CLI用法示例，非采集的个人配置；限定本行字节，实际运行地址仍由用户配置。"
     },
     {

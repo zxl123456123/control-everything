@@ -9,7 +9,7 @@
  * serving while a terminal is at its limit. The slice is bound to the daemon's scope, so systemd
  * stops it with that scope for any reason, including ones that kill the death watch.
  *
- * `ORCA_TERMINAL_PROCESS_CEILING` sets TasksMax on each terminal's scope (Linux) or job
+ * `ZKYQ_TERMINAL_PROCESS_CEILING` sets TasksMax on each terminal's scope (Linux) or job
  * (Windows); it stays off by default. Opt-in memory limits: see terminal-memory-limits.ts.
  */
 import { accessSync, constants, existsSync } from 'node:fs'
@@ -19,6 +19,8 @@ import { userManagerEnv } from './daemon-cgroup-scope'
 import {
   enforcedTerminalMemoryLimits,
   requestedTerminalMemoryLimits,
+  TERMINAL_MEMORY_MAX_ENV,
+  TERMINAL_MEMORY_SWAP_MAX_ENV,
   TERMINAL_MEMORY_LIMIT_FILES,
   terminalMemoryLimitsReport,
   type TerminalMemoryLimitsReport
@@ -30,7 +32,33 @@ import type {
 
 export type { PtyProcessCeilingState } from '../../shared/pty-process-ceiling-state'
 
-export const PTY_PROCESS_CEILING_ENV = 'ORCA_TERMINAL_PROCESS_CEILING'
+export const PTY_PROCESS_CEILING_ENV = 'ZKYQ_TERMINAL_PROCESS_CEILING'
+
+/** Copy legacy settings for this launch; the parent environment is never changed. */
+export function migrateTerminalResourceEnvironment(env: NodeJS.ProcessEnv): {
+  env: NodeJS.ProcessEnv
+  migrated: string[]
+  superseded: string[]
+} {
+  const result = { env: { ...env }, migrated: [] as string[], superseded: [] as string[] }
+  for (const [oldName, newName] of [
+    ['ORCA_TERMINAL_PROCESS_CEILING', PTY_PROCESS_CEILING_ENV],
+    ['ORCA_TERMINAL_MEMORY_MAX', TERMINAL_MEMORY_MAX_ENV],
+    ['ORCA_TERMINAL_MEMORY_SWAP_MAX', TERMINAL_MEMORY_SWAP_MAX_ENV]
+  ]) {
+    // On Windows process.env is case-insensitive, but its plain-object copy is not.
+    if (env[newName] !== undefined) result.env[newName] = env[newName]
+    if (env[oldName] === undefined) continue
+    if (env[newName] === undefined) {
+      result.env[newName] = env[oldName]
+      result.migrated.push(newName)
+    } else {
+      result.superseded.push(newName)
+    }
+    delete result.env[oldName]
+  }
+  return result
+}
 /** Below this a shell, its prompt hooks and one build step already collide. */
 const MIN_CEILING = 64
 const CGROUP_ROOT = '/sys/fs/cgroup'
