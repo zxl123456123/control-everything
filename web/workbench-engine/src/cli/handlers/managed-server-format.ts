@@ -12,7 +12,7 @@ export function formatManagedServerStatus(status: OrcadManagedRuntimeStatus): st
   ]
   if (status.recovery) {
     lines.push(
-      `Interrupted ${status.recovery.operation} of ${status.recovery.version} (${status.recovery.phase}); run \`orca environment recover\`.`
+      `Interrupted ${status.recovery.operation} of ${status.recovery.version} (${status.recovery.phase}); run \`zkyq environment recover --environment <selector>\`.`
     )
   }
   if (status.migration) {

@@ -28,7 +28,7 @@ export async function reportAfterClosedConnection(
     if (status.recovery) {
       throw new RuntimeClientError(
         'managed_server_interrupted',
-        `The ${status.recovery.operation} of ${status.recovery.version} was interrupted. Run \`orca environment recover\`.`,
+        `The ${status.recovery.operation} of ${status.recovery.version} was interrupted. Run \`zkyq environment recover --environment <selector>\`.`,
         status
       )
     }
@@ -45,6 +45,6 @@ export async function reportAfterClosedConnection(
   }
   throw new RuntimeClientError(
     'managed_server_in_progress',
-    'The connection closed while the server restarted, and it has not answered since. Check `orca environment status`.'
+    'The connection closed while the server restarted, and it has not answered since. Check `zkyq environment status --environment <selector>`.'
   )
 }

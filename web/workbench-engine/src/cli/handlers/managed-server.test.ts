@@ -225,7 +225,7 @@ describe('managed server CLI verbs', () => {
     })
     await expect(run('environment update', call, [])).rejects.toMatchObject({
       code: 'managed_server_in_progress',
-      message: expect.stringContaining('orca environment status')
+      message: expect.stringContaining('zkyq environment status --environment <selector>')
     })
   })
 
@@ -276,7 +276,10 @@ describe('managed server CLI verbs', () => {
     try {
       const done = run('environment update', call, []).catch((error: unknown) => error)
       await vi.advanceTimersByTimeAsync(2_000)
-      expect(await done).toMatchObject({ code: 'managed_server_interrupted' })
+      expect(await done).toMatchObject({
+        code: 'managed_server_interrupted',
+        message: expect.stringContaining('zkyq environment recover --environment <selector>')
+      })
     } finally {
       vi.useRealTimers()
     }

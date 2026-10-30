@@ -331137,8 +331137,8 @@
     {
       "path": "src/cli/runtime/metadata.ts",
       "upstream_sha256": "dbe7caf05552dc961b228647c4ede7e9bd9f62ae75729d71eb335c5cdafd62c0",
-      "current_sha256": "e9ec4b04e989cae1fe25cfbf3211fa18207e38affa2a4315e5b8738ec9ff6b9c",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+      "current_sha256": "c04af332c4687376ef59e6263fc9f3e2cd1ab77b968f86eeded61810837e5212",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；统一命令行连接与恢复提示的产品名称及可执行命令"
     },
     {
       "path": "src/cli/runtime/profile-state-recovery-launch.test.ts",
@@ -333203,6 +333203,90 @@
       "upstream_sha256": "3cf7b619f6fa3735c9b37518fe4195e9f4961c44ef1679b8be52e5928ed34298",
       "current_sha256": "395a228d856ccbb1cd2f84530fa736cb2871f20a3c23ac7d58e9ec136aa56a0c",
       "reason": "显式迁移已跟踪项目配置，保留 Git 索引和用户修改；支持安全迁移未跟踪和被忽略的项目配置"
+    },
+    {
+      "path": "src/cli/cli-error.ts",
+      "upstream_sha256": "7ff36ab0532425b96a9004a48ed5c26f5244ea3d4a657ccac12a868120ed986e",
+      "current_sha256": "e9cf6264945dd9410c7c59b9271803bb37ae05aadd278358c5c236985d561c70",
+      "reason": "统一命令行连接与恢复提示的产品名称及可执行命令"
+    },
+    {
+      "path": "src/cli/format-recovery.test.ts",
+      "upstream_sha256": "800b8bb2392210266b38bbf992c68cb27b8c780eef4487ee952a1c389a9e71ac",
+      "current_sha256": "4784eb012a4fd861b27464e4d091c6c17a7820fd571ee859e7aeabbc28b44853",
+      "reason": "统一命令行连接与恢复提示的产品名称及可执行命令"
+    },
+    {
+      "path": "src/cli/handlers/managed-server-format.ts",
+      "upstream_sha256": "82667f9b0079ad7339cdc024a840c394c2f3d0d27814dad228cf937d30fd38d0",
+      "current_sha256": "7a492f107128e10a80d85b0789c292e649ca6f76a6e96217b79a1fdfd4f86727",
+      "reason": "统一命令行连接与恢复提示的产品名称及可执行命令"
+    },
+    {
+      "path": "src/cli/handlers/managed-server-reconnect.ts",
+      "upstream_sha256": "ca0ba0b3fc654e90f61a4aa7b64bfc30258be15b6442d3539d565fadccd2c43c",
+      "current_sha256": "174edf4b5bfd359c1077a90fd0531ee2dcab14652d7ce610be74aeb836ceabfb",
+      "reason": "统一命令行连接与恢复提示的产品名称及可执行命令"
+    },
+    {
+      "path": "src/cli/handlers/managed-server.test.ts",
+      "upstream_sha256": "1dfd5b24d3b22aebc21e990edb408a4c7780e223bade4268ff192b3cd54e9fca",
+      "current_sha256": "fdec465649d41375ef47920955ade3a8431711e1514a5bc8f400b04b3b40a2be",
+      "reason": "统一命令行连接与恢复提示的产品名称及可执行命令"
+    },
+    {
+      "path": "src/cli/handlers/managed-server.ts",
+      "upstream_sha256": "e7a43d22032224e86719844a4dd858554573fc6247c0e1b14a8be3836485db62",
+      "current_sha256": "dceebb993c23bd23f4169d880c5e00a8f56503c02857a510ad27ac6dd51e5286",
+      "reason": "统一命令行连接与恢复提示的产品名称及可执行命令"
+    },
+    {
+      "path": "src/cli/handlers/terminal-daemon.test.ts",
+      "upstream_sha256": "777f5509389b90c616ed47f63c179654354411d97c5b195bede59479baa935e4",
+      "current_sha256": "94d2a0b185df3bee8e177cd3fae40747a6c227d4fd19457b62285c42b9ffe09a",
+      "reason": "统一命令行连接与恢复提示的产品名称及可执行命令"
+    },
+    {
+      "path": "src/cli/handlers/terminal-daemon.ts",
+      "upstream_sha256": "b97b1b3afac7467ae2033d3433a9bde63a0d65c1b5db56d5b5804f96dcb49052",
+      "current_sha256": "8ec8eddba0fd4de94f4d8465a9de92041580c4d927aac605d2b7fbee03c84069",
+      "reason": "统一命令行连接与恢复提示的产品名称及可执行命令"
+    },
+    {
+      "path": "src/cli/runtime-client.test.ts",
+      "upstream_sha256": "d9752b2e99784f0a299cac4b88e8b7c234e0666a1899bc4a3145a34d514c9b41",
+      "current_sha256": "61ae4aa7015a9df9541a89b2eee5847f82d558d526e8a7c49d32b5a44cbda5dc",
+      "reason": "统一命令行连接与恢复提示的产品名称及可执行命令"
+    },
+    {
+      "path": "src/cli/runtime/client.ts",
+      "upstream_sha256": "c36891f1f51cb15108b03a38012545f4c95f9f86d308f25532298ca40165edf2",
+      "current_sha256": "850cde0042f37c047fe4e52b62705b05051e0603c5be0af579db1a69370e2e56",
+      "reason": "统一命令行连接与恢复提示的产品名称及可执行命令"
+    },
+    {
+      "path": "src/cli/runtime/runtime-access-denied.test.ts",
+      "upstream_sha256": "9f930c634ff2268100f5095143a5547d99e30bd9e610f421085dfae0ca37f876",
+      "current_sha256": "1f2d0257c9dae3ddef76c81ab2d7126a786285172369ce0ffc3e87faf9309ab0",
+      "reason": "统一命令行连接与恢复提示的产品名称及可执行命令"
+    },
+    {
+      "path": "src/cli/runtime/runtime-access-denied.ts",
+      "upstream_sha256": "4d4adee0405dffdcd698b1cafa3e8f47271695a8ea8c819d2215d6e6539d36d8",
+      "current_sha256": "9164df9ff1a364afd5f82b8afe848a02966abcd0b0c984fa8706d71eb8614bc1",
+      "reason": "统一命令行连接与恢复提示的产品名称及可执行命令"
+    },
+    {
+      "path": "src/cli/runtime/transport.test.ts",
+      "upstream_sha256": "8c02e5f805b9bc7f517a034898a1c3800b07ea43105313ce436b013b917d0d96",
+      "current_sha256": "2bd68ed59b0bb6ce4c3262184afac312adcd60ee58eb76a4a94c38de7a277f4c",
+      "reason": "统一命令行连接与恢复提示的产品名称及可执行命令"
+    },
+    {
+      "path": "src/cli/runtime/transport.ts",
+      "upstream_sha256": "84d99aa4b5a7d2a4db833a6802bc522a3006bea0fad988cf215340459408a321",
+      "current_sha256": "6c3088920efbdcc0bf4693647db88087904ac79c1acad29f827c189f6f670739",
+      "reason": "统一命令行连接与恢复提示的产品名称及可执行命令"
     }
   ],
   "reviewed_findings": [
