@@ -327340,8 +327340,8 @@
     {
       "path": "src/main/orcad/orcad-entry.ts",
       "upstream_sha256": "972748b4e46cd0cc3f08c61b82f6a7dc7a1553d2706f93323537865aac496193",
-      "current_sha256": "00314c441a9f44129cbe7323957eda40878f5d30082648cd6ba610e6da977781",
-      "reason": "Support explicit profile-contained credential storage while preserving existing keys and host tool configuration."
+      "current_sha256": "76787db5806539d222d9da7d0b9f3372413fc54b5413d32b6f08f91586823311",
+      "reason": "Support explicit profile-contained credential storage while preserving existing keys and host tool configuration.；运行宿主数据根配置统一ZKYQ_USER_DATA，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
     },
     {
       "path": "src/main/orcad/orcad-lifecycle.ts",
@@ -329206,8 +329206,8 @@
     {
       "path": "src/main/orcad/orcad-plaintext-credential-migration.ts",
       "upstream_sha256": "f077438f85b520dc5e5ab2b921d8ab6dce470f1bc2555a4a8d68eb22444cb383",
-      "current_sha256": "aa8941c44ee3db68c58b728ebe10bf5b3dd3f9b8a49e220f5ee74025c8bca95d",
-      "reason": "Support explicit profile-contained credential storage while preserving existing keys and host tool configuration."
+      "current_sha256": "b0915c0c18bbbe14eb9e9fe08e3fff295a13d83f8dfb6a4ecce541c9207923d3",
+      "reason": "Support explicit profile-contained credential storage while preserving existing keys and host tool configuration.；运行宿主数据根配置统一ZKYQ_USER_DATA，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
     },
     {
       "path": "src/main/orcad/orcad-secret-key-resolution.ts",
@@ -329728,8 +329728,8 @@
     {
       "path": "src/main/orcad/orcad-instance-lock.ts",
       "upstream_sha256": "1f376abb35d8fd882d5aa44d036be171d54fdc24e85ef7fe31e7549a718c9c61",
-      "current_sha256": "49d75b99d5c24a259bb337cc6ca6aa4d9dd0f945000947d175eef6f321939f23",
-      "reason": "统一凭据保护、启动校验、实例占用和账号归属的产品文字，保留原因恢复方法及用户输入，不改安全或存储行为"
+      "current_sha256": "f2057484945448200e9b5a360f8c09af8c1dac59830108ac877f18d959d2081e",
+      "reason": "统一凭据保护、启动校验、实例占用和账号归属的产品文字，保留原因恢复方法及用户输入，不改安全或存储行为；运行宿主数据根配置统一ZKYQ_USER_DATA，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
     },
     {
       "path": "src/shared/host-account-launch-env.ts",
@@ -330798,6 +330798,138 @@
       "upstream_sha256": "e8e734e6122f84737d9cf6a278e98265576f098db7f2f5409771145f01c9dd0d",
       "current_sha256": "dc48e44c8b4d7a9be17490854427cd10dec778b02a318512d75d875b7cff7636",
       "reason": "编排命令合同收敛为zkyq/zkyq-dev，恢复与接管提示使用新命令，保留历史会话数据和授权约束"
+    },
+    {
+      "path": "config/scripts/runtime-serve-terminal-smoke.mjs",
+      "upstream_sha256": "537cc883e6ff20f2080d3466357a0bc41284768d8e1e89f1ef4fce284611bbf3",
+      "current_sha256": "d3796949103819f20af0e0c75886e653303f676922f1a63107d2bee2c26cdb8a",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "mobile/scripts/repro-worktree-startup-stream.ts",
+      "upstream_sha256": "ae8e07d6378883cde0184855da2562f99c0f7396a1b06a8d3394febb308e6ad3",
+      "current_sha256": "7378e82690544dfa229f1c334ef9a0d4e341ffcf0bdce00892d8c77cb7ee6b0e",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/cli/runtime/serve-orcad-launch.ts",
+      "upstream_sha256": "6b36a01224688d68d26952a3080849e2743dad3cdcbefa6fbc60a829f48e1b7c",
+      "current_sha256": "187716fa11073b6639cb2b75e2cfbbd3f18d5c1e851e3032180eadbd2d37ad10",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/managed-server/install/orcad-remote-launch-windows.ts",
+      "upstream_sha256": "28a790728288ceb6c6274dcb331252618452b985bd7ddb381dece4eec5289ec0",
+      "current_sha256": "97a0409e228874bd893621d4a57cceca58871698373d8c9f5687d5d0087b13e2",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/managed-server/install/orcad-remote-launch.ts",
+      "upstream_sha256": "3833488a00655fda351351461d403483cd63fa52926c23b7f4eff6e2e6b3fee5",
+      "current_sha256": "62d0d301d594f935216a4384a0fe2de31415015095acce7f5a639fefe352dcc6",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/managed-server/install/orcad-remote-runtime-control.test.ts",
+      "upstream_sha256": "727e75ed997ffb9bad0c3d00792ae9931cedab43207bc5b8dc4674d8b8d9a987",
+      "current_sha256": "e9a677495cd4aced9efc16374050f1912da12f3dc2d097657e88bd694ae0723a",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/orcad/electron-serve-browser-environment.ts",
+      "upstream_sha256": "2abbb33b4653476af475c16b8dda6a3c75bf9f1fc434c9b32c97ab0076be8d56",
+      "current_sha256": "a92a1ccb26a4a30bcc147ca67d90f4f5be36e5f14668d051ae96cca446b2719f",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/orcad/electron-serve-browser-process.test.ts",
+      "upstream_sha256": "012ca93eccbb156cad0d20ac6347c9ffbafc000e45efec2907d67eb9991eab01",
+      "current_sha256": "eeae8e25c47f27cc2c8cb54f09beef28b2db76fc1c9f0177d4c1677f3db079d8",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/orcad/orcad-app-paths.test.ts",
+      "upstream_sha256": "fc852cb06ef1d0712ba126a1e8480a6a0eca8735c864680b9ec4708890dd9e0e",
+      "current_sha256": "ff81c832f27b1ad6ca30775aff8923bf94ccb08b81b3dbcd20693578545d024e",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/orcad/orcad-app-paths.ts",
+      "upstream_sha256": "07a85a96f3c9ae956ab5d5392ab5c7fc64649d77fff1009b60fdc61c63adbdb2",
+      "current_sha256": "68f788ef8e86f124c2368bba588d689a8b8c884084f8999f5dcac190fb03a660",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/orcad/orcad-cli-launcher.integration.test.ts",
+      "upstream_sha256": "dd04b42b7badc6d74bc9858a73e4fa36d56e54cf634bc2b856d4ca7be3ba687b",
+      "current_sha256": "73d909267b9f3245c2cf90790560abd3fa69cf354059758a5e787661dfed3cf5",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/orcad/orcad-command-arguments.ts",
+      "upstream_sha256": "ffa462d92226f1c9d4e13c6ec1c9916dcc46c7c5375c315eb6903df33183033a",
+      "current_sha256": "dbecaa8f3573062f5c85c8aab011a1077e21156a77bf83f95ecf6c514f1de561",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/orcad/orcad-data-root-privacy.ts",
+      "upstream_sha256": "fc0b6354a514c20e2b6ebd5a0168adfc4fca0046505340189048a778b3da14b6",
+      "current_sha256": "72de9cc6ba417110fc09478d8eea3d8da39a95e32a1fd85052fe2729661b83c7",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/orcad/orcad-help.integration.test.ts",
+      "upstream_sha256": "025e1f2c7a8c942bc8981ae5afbc9fa52fb4dbffc09b4d5e6edb6ebf8f552764",
+      "current_sha256": "b2022036849c6c3790ad5f7a7e76a34e7d073cf925e8ad3c4dc9d81a0ecea533",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/orcad/orcad-packaged-structured-chat.integration.test.ts",
+      "upstream_sha256": "1b51e407e430c215c6fdc7cd6b52847da0b2a982bae3d214b7fc1df90b5a49c0",
+      "current_sha256": "f990fda0fd5666903f11d394a1110c6bbf8e94c844311b08c3592e5930b07727",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/orcad/orcad-serve-parity.integration.test.ts",
+      "upstream_sha256": "da72835e8a54d05fb79082f7be9011fbd45b452fe940b5764c3fb309177327ff",
+      "current_sha256": "9885b554aff224640393623c50565591f14d0f9dcb8493f30b0e56b60412ef87",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/orcad/orcad-stop-request-shutdown.integration.test.ts",
+      "upstream_sha256": "7874b10026c80b9abb24425547ea32dd52ad40fd1f026bf3f6f6e1f68fc054fe",
+      "current_sha256": "a8faf023ca5c26fb5d8658ca7d20749552671025f2ea4cf604d3640738561bf9",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/ssh/orcad-update-plan.ts",
+      "upstream_sha256": "822ce98d34b842ae7bb18da992d0eed46b6ca58140e0a365ca64c07f82cf58aa",
+      "current_sha256": "b97d3e8bb6db9bb46bc65801ea47c66f0cbd70bc9673efeff0e36949a5753ab1",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "tests/e2e/helpers/headless-layout-oracle-hosts.ts",
+      "upstream_sha256": "d4329fec95a6af254b03306e98f06fa1cb1c3a5ed579023c8b039269b09f159a",
+      "current_sha256": "0a47323cd1ce49407375a00035426e97cb0ad926f95cf8481ab3010cc8529a5c",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "tests/e2e/orcad-serve-mode-switch.spec.ts",
+      "upstream_sha256": "c7dd781fa43e22112fee0f999b46e16cf04b34fe6d6e3c355f4502d91b4ff93a",
+      "current_sha256": "3535a0d66367c839831eab11a549b8614ce1b71c128ccf36a5504c640106da8f",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "tests/e2e/orcad-serve-open-url-on-desktop.spec.ts",
+      "upstream_sha256": "ab9c6f5bb14c7e241aa66b665ec17982c7be449977328ff4f7c5f01d5262d805",
+      "current_sha256": "4cd5c4cfb2bf2194e15fb60a421cde559b6723743b45c2e3e4042fce8a9807c2",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "tests/e2e/paired-host-usage-credentials.spec.ts",
+      "upstream_sha256": "0e2baf89ea011bac7cd572681bd320243505cbbad653f40d8cbc2b84012f3351",
+      "current_sha256": "92b55464767380b0c4b6847ad849b8b88c5e3b1b84808dea258f85349a486de9",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
     }
   ],
   "reviewed_findings": [

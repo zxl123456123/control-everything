@@ -27,12 +27,26 @@ afterEach(() => {
 })
 
 describe('resolveUserDataPath', () => {
-  it('prefers ORCA_USER_DATA, then XDG_DATA_HOME, then ~/.orca', () => {
-    vi.stubEnv('ORCA_USER_DATA', join(sep, 'srv', 'orca-state'))
+  it('refuses a retired override instead of silently switching profiles', () => {
+    vi.stubEnv('ZKYQ_USER_DATA', '')
+    vi.stubEnv('ORCA_USER_DATA', join(sep, 'existing', 'Orca profile'))
+    vi.stubEnv('XDG_DATA_HOME', join(sep, 'different-profile'))
+    expect(resolveUserDataPath).toThrow('Set ZKYQ_USER_DATA to the same data directory')
+  })
+
+  it('uses the current override unchanged even when the parent has a stale override', () => {
+    const selected = join(sep, 'existing', 'Orca profile')
+    vi.stubEnv('ZKYQ_USER_DATA', selected)
+    vi.stubEnv('ORCA_USER_DATA', join(sep, 'stale-profile'))
+    expect(resolveUserDataPath()).toBe(selected)
+  })
+
+  it('prefers ZKYQ_USER_DATA, then XDG_DATA_HOME, then ~/.orca', () => {
+    vi.stubEnv('ZKYQ_USER_DATA', join(sep, 'srv', 'orca-state'))
     vi.stubEnv('XDG_DATA_HOME', join(sep, 'xdg'))
     expect(resolveUserDataPath()).toBe(join(sep, 'srv', 'orca-state'))
 
-    vi.stubEnv('ORCA_USER_DATA', '')
+    vi.stubEnv('ZKYQ_USER_DATA', '')
     expect(resolveUserDataPath()).toBe(join(sep, 'xdg', 'Orca'))
 
     vi.stubEnv('XDG_DATA_HOME', '')
@@ -42,7 +56,7 @@ describe('resolveUserDataPath', () => {
 
 describe('resolveOrcadPath', () => {
   it('answers every path name without ever falling back to the data directory', () => {
-    vi.stubEnv('ORCA_USER_DATA', join(sep, 'srv', 'orca-state'))
+    vi.stubEnv('ZKYQ_USER_DATA', join(sep, 'srv', 'orca-state'))
     const answers = new Map(ALL_PATH_NAMES.map((name) => [name, resolveOrcadPath(name)]))
 
     for (const [name, answer] of answers) {
@@ -62,7 +76,7 @@ describe('resolveOrcadPath', () => {
   })
 
   it("keeps 'logs' inside the data root so the whole deployment is one directory", () => {
-    vi.stubEnv('ORCA_USER_DATA', join(sep, 'srv', 'orca-state'))
+    vi.stubEnv('ZKYQ_USER_DATA', join(sep, 'srv', 'orca-state'))
     expect(resolveOrcadPath('logs')).toBe(join(sep, 'srv', 'orca-state', 'logs'))
   })
 

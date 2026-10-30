@@ -46,7 +46,7 @@ it.skipIf(skip)(
       TMPDIR: root,
       CODEX_HOME: join(home, 'codex'),
       CLAUDE_CONFIG_DIR: join(home, 'claude'),
-      ORCA_USER_DATA: userData,
+      ZKYQ_USER_DATA: userData,
       ORCA_BACKGROUND_LAUNCH: '1',
       ORCA_DISABLE_MACOS_LOGIN_SHELL: '1'
     }

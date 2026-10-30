@@ -3,6 +3,7 @@ export function electronServeEnvironment(userDataPath: string): NodeJS.ProcessEn
   const environment = { ...process.env }
   for (const key of [
     'ORCA_E2E_USER_DATA_DIR',
+    'ZKYQ_USER_DATA',
     'ORCA_USER_DATA',
     'ORCA_USER_DATA_PATH',
     'AGENT_BROWSER_ARGS',

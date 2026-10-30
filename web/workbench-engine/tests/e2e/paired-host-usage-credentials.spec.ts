@@ -198,7 +198,7 @@ test('a paired desktop saves a MiniMax key on its headless orcad host', async ({
       '127.0.0.1',
       '--json'
     ],
-    env: { ...profile.env, ORCA_USER_DATA: profile.userDataDir },
+    env: { ...profile.env, ZKYQ_USER_DATA: profile.userDataDir },
     timeoutMs: 120_000,
     parseReady: (stdout) => {
       const newline = stdout.indexOf('\n')

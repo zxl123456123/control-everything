@@ -92,7 +92,7 @@ async function startOrcadServe(
     label: 'orcad serve',
     program: orcadRuntime!,
     args: [path.join(slotDir, 'orcad.js'), '--bind', '127.0.0.1', '--port', '0', '--json'],
-    env: { ...host.env, ORCA_USER_DATA: host.userDataDir },
+    env: { ...host.env, ZKYQ_USER_DATA: host.userDataDir },
     timeoutMs: 120_000,
     parseReady: (stdout) => {
       const newline = stdout.indexOf('\n')
@@ -219,7 +219,7 @@ test('each serve host refuses a profile the other holds', async () => {
     const refused = await runProcess({
       program: orcadRuntime!,
       args: [path.join(slotDir, 'orcad.js'), '--bind', '127.0.0.1', '--port', '0', '--json'],
-      env: { ...host.env, ORCA_USER_DATA: host.userDataDir },
+      env: { ...host.env, ZKYQ_USER_DATA: host.userDataDir },
       timeoutMs: 60_000
     })
     expect(refused.code).toBe(ORCAD_EXIT_CONFIGURATION)

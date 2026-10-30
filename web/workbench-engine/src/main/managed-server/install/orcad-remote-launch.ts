@@ -120,7 +120,7 @@ export function orcadLaunchCommand(
   const recordSession = detach === 'nohup' && recordsOrcadLaunchSshSession(host)
   const launchEnv = [
     `ORCA_VERSION=${quotePosixShell(spec.fullVersion)}`,
-    `ORCA_USER_DATA=${quotePosixShell(spec.userDataDir)}`,
+    `ZKYQ_USER_DATA=${quotePosixShell(spec.userDataDir)}`,
     ...orcadManagedLaunchEnv(spec).map(([name, value]) => `${name}=${quotePosixShell(value)}`)
   ]
   return [

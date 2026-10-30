@@ -98,7 +98,7 @@ function launch(slotDir: string, runtime: string, userData: string, home: string
       LANG: 'en_US.UTF-8',
       ORCA_BACKGROUND_LAUNCH: '1',
       ORCA_DISABLE_MACOS_LOGIN_SHELL: '1',
-      ORCA_USER_DATA: userData
+      ZKYQ_USER_DATA: userData
     },
     timeoutMs: null
   })

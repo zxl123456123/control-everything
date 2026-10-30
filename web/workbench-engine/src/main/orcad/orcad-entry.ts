@@ -93,7 +93,7 @@ async function prepareOrcadSecretStoreAndMigrate(userDataPath: string): Promise<
   const { reportSecretProtectionGap } = await import('../host/secret-protection-report')
   const { migratePlaintextCredentials, orcadCredentialRoot } =
     await import('./orcad-plaintext-credential-migration')
-  // Why the credential root, not userData: a disposable ORCA_USER_DATA would take the key with it.
+  // Why the credential root, not userData: a disposable ZKYQ_USER_DATA would take the key with it.
   const required = hasExplicitPlatformCredentialRoot()
   const ready = await prepareOrcadSecretStore(orcadCredentialRoot(), userDataPath, required)
   if (required && !ready) throw new Error('platform_credential_key_unavailable')

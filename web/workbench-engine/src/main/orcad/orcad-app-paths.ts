@@ -19,11 +19,14 @@ function env(name: string): string | null {
   return value ? value : null
 }
 
-/** XDG-ish data root. `$ORCA_USER_DATA` wins so a smoke test can isolate state. */
+/** XDG-ish data root. `$ZKYQ_USER_DATA` wins so a smoke test can isolate state. */
 export function resolveUserDataPath(): string {
-  const explicit = env('ORCA_USER_DATA')
+  const explicit = env('ZKYQ_USER_DATA')
   if (explicit) {
     return explicit
+  }
+  if (env('ORCA_USER_DATA')) {
+    throw new Error('ORCA_USER_DATA was retired. Set ZKYQ_USER_DATA to the same data directory.')
   }
   const xdg = env('XDG_DATA_HOME')
   return xdg ? join(xdg, 'Orca') : join(homedir(), '.orca')

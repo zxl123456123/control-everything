@@ -7,7 +7,7 @@ import { isPlatformRuntime } from '../platform-runtime-policy'
 export function credentialRoot(): string {
   const selected = process.env.CE_WORKBENCH_CREDENTIAL_ROOT
   if (selected === undefined || !isPlatformRuntime()) return join(homedir(), '.orca')
-  const userData = process.env.ORCA_USER_DATA
+  const userData = process.env.ZKYQ_USER_DATA
   if (!selected || !userData || !isAbsolute(selected) || !isAbsolute(userData)) {
     throw new Error('platform_credential_root_invalid')
   }

@@ -77,6 +77,8 @@ export function serveWithOrcad(
   /** The app's speech recognizer; the slot does not carry one either. */
   speechRecognizerDir?: string
 ): Promise<number> {
+  const runtimeEnv = { ...baseEnv }
+  delete runtimeEnv.ORCA_USER_DATA
   const spec: ProcessSpec = {
     program: selection.runtime,
     args: [selection.entry, ...orcadServeArgs(args, webClientRoot)],
@@ -84,9 +86,9 @@ export function serveWithOrcad(
     cwd: dirname(selection.entry),
     stdio: args.recipeJson === true ? ['ignore', 'pipe', 'inherit'] : 'inherit',
     env: {
-      ...baseEnv,
+      ...runtimeEnv,
       // The desktop's profile: its instance lock makes the two refuse each other.
-      ORCA_USER_DATA: userDataPath,
+      ZKYQ_USER_DATA: userDataPath,
       ORCA_VERSION: selection.version,
       // Always set: a value inherited from an Orca terminal would name another install's copy.
       [SPEECH_RECOGNIZER_DIR_ENV]: speechRecognizerDir ?? ''

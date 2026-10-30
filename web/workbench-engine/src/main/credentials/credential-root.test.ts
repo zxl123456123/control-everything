@@ -25,7 +25,7 @@ describe('platform credential root', () => {
     mkdirSync(credentials, { recursive: true })
     vi.stubEnv('CE_WORKBENCH_ISOLATED', '1')
     vi.stubEnv('CE_WORKBENCH_ORIGIN', 'http://127.0.0.1:12345')
-    vi.stubEnv('ORCA_USER_DATA', profile)
+    vi.stubEnv('ZKYQ_USER_DATA', profile)
     vi.stubEnv('CE_WORKBENCH_CREDENTIAL_ROOT', credentials)
     expect(credentialRoot()).toBe(realpathSync(credentials))
     expect(hasExplicitPlatformCredentialRoot()).toBe(true)

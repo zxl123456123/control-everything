@@ -44,7 +44,7 @@ function encFilesIn(dir: string): string[] {
   }
 }
 
-/** Where every integration store keeps its files, whatever ORCA_USER_DATA says. */
+/** Where every integration store keeps its files, whatever ZKYQ_USER_DATA says. */
 export function orcadCredentialRoot(): string {
   return credentialRoot()
 }

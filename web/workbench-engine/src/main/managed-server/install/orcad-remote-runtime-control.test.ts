@@ -1,4 +1,6 @@
 import type * as ExecCommandModule from '../../ssh/remote-exec/remote-exec-command'
+import { tmpdir } from 'node:os'
+import { win32 } from 'node:path'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('../../ssh/remote-exec/remote-exec-command', async (importOriginal) => ({
@@ -12,6 +14,8 @@ import { execCommand } from '../../ssh/remote-exec/remote-exec-command'
 import { launchOrcadAndAwaitReadiness } from './orcad-remote-runtime-control'
 import { getRemoteHostPlatform } from '../../ssh/ssh-remote-platform'
 import type { OrcadLaunchSpec } from './orcad-remote-launch'
+import { orcadLaunchCommand } from './orcad-remote-launch'
+import { windowsOrcadLaunchCommand } from './orcad-remote-launch-windows'
 import { createSshOperationAbortError } from '../../ssh/connection/ssh-exec-options'
 
 const host = getRemoteHostPlatform('linux-arm64')
@@ -26,6 +30,18 @@ const spec: OrcadLaunchSpec = {
 }
 const READY = `${JSON.stringify({ type: 'orca_server_ready', runtimeId: 'r1' })}\n`
 const mockExec = vi.mocked(execCommand)
+
+it('carries the selected data directory through both remote launch dialects', () => {
+  const windows = getRemoteHostPlatform('win32-x64')
+  const windowsSpec = { ...spec, remoteInstallDir: win32.join(tmpdir(), 'runtime-slot'), userDataDir: win32.join(tmpdir(), 'existing Orca profile') }
+  for (const command of [
+    orcadLaunchCommand(host, spec),
+    windowsOrcadLaunchCommand(windows, windowsSpec, win32.join(tmpdir(), 'runtime/node.exe'))
+  ]) {
+    expect(command).toContain('ZKYQ_USER_DATA=')
+    expect(command).not.toContain('ORCA_USER_DATA=')
+  }
+})
 
 function launch(signal?: AbortSignal) {
   return launchOrcadAndAwaitReadiness(

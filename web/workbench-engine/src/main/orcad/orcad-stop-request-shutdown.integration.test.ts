@@ -48,7 +48,7 @@ function hostEnv(userData: string): NodeJS.ProcessEnv {
     ORCA_BACKGROUND_LAUNCH: '1',
     ORCA_DISABLE_MACOS_LOGIN_SHELL: '1',
     ORCA_VERSION: '0.0.0-stop-request-test',
-    ORCA_USER_DATA: userData
+    ZKYQ_USER_DATA: userData
   }
 }
 

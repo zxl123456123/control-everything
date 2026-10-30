@@ -6,7 +6,7 @@ import { existsSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { WEB_CLIENT_INDEX_FILENAME } from '../../shared/bundled-web-client-root'
 
-export const ORCAD_USAGE = `orcad — the Orca runtime served without Electron.
+export const ORCAD_USAGE = `orcad — the Control Everything runtime served without Electron.
 
 Usage: orcad [options]
 
@@ -28,7 +28,7 @@ Options:
   --help, -h               Print this text and exit without starting the server.
 
 Environment:
-  ORCA_USER_DATA           Data directory for this instance's profile and state.
+  ZKYQ_USER_DATA           Data directory for this instance's profile and state.
 `
 
 type OrcadCommandArguments = OrcadOptions & { help?: boolean }
