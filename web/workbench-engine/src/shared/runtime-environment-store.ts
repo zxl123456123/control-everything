@@ -139,7 +139,7 @@ function parseRemotePairingCode(userDataPath: string, pairingCode: string): Pair
   if (!offer) {
     throw new RuntimeEnvironmentStoreError(
       'invalid_argument',
-      'Invalid pairing code. Expected an orca://pair?... URL or bare pairing payload.'
+      'Invalid pairing code. Expected an zkyq://pair?... URL or bare pairing payload.'
     )
   }
   // Why the key, not the address: a loopback or LAN address proves nothing either way.

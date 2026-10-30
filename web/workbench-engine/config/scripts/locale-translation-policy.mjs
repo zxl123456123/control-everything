@@ -267,7 +267,7 @@ export function shouldPreserveEnglishValue(enValue, key = '') {
   if (!enValue?.trim()) {
     return true
   }
-  if (/^https?:\/\//.test(enValue) || enValue.startsWith('orca://')) {
+  if (/^https?:\/\//.test(enValue) || enValue.startsWith('zkyq://') || enValue.startsWith('orca://')) {
     return true
   }
   if (isEnglishOnlyKey(key)) {

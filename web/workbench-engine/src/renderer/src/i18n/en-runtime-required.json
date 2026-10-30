@@ -1512,7 +1512,7 @@
           "advertiseThisAppHelp": "Create access links for browsers, mobile clients, or another Orca client to connect back to this running app.",
           "aeb26635d2": "Remove {{value0}}",
           "b2fda48c39": "Removing the active server disconnects this browser from that host. Existing host sessions are left alone.",
-          "c3d772c514": "orca://pair?code=...",
+          "c3d772c514": "zkyq://pair?code=...",
           "cloudVmWorkflow": "Cloud VM",
           "cloudVmWorkflowHelp": "Manage recipe-created cloud machines",
           "connectToRemoteServers": "Connect to remote servers",

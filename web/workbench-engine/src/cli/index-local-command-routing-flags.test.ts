@@ -301,9 +301,9 @@ describe('runtime-selector flags on locally pinned CLI commands', () => {
     pairRuntimeEnvironment(listEnvironmentsMock, 'env-m4air', 'm4air')
     const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
 
-    await main(['host', 'list', '--pairing-code', 'orca://pair?code=x', '--json'], '/tmp/repo')
+    await main(['host', 'list', '--pairing-code', 'zkyq://pair?code=x', '--json'], '/tmp/repo')
     await main(
-      ['environment', 'list', '--pairing-code', 'orca://pair?code=x', '--json'],
+      ['environment', 'list', '--pairing-code', 'zkyq://pair?code=x', '--json'],
       '/tmp/repo'
     )
 

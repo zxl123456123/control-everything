@@ -23,7 +23,7 @@ it.each([false, true])('brands only the selected CLI entry: platform=%s', async 
   expect(text).toContain(`Usage: ${name} account add`)
   expect(text).toContain(`this ${product} host`)
   expect(text).toContain(`$ ${name} account add --agent codex`)
-  expect(text).toContain('orca://pair?...')
+  expect(text).toContain('zkyq://pair?...')
   expect(formatGroupHelp(COMMAND_SPECS, ['account'])).toContain(`${name} account <command>`)
   const output = vi.spyOn(console, 'log').mockImplementation(() => {})
   printHelp(COMMAND_SPECS)

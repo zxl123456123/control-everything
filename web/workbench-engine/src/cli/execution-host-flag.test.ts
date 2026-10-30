@@ -136,7 +136,7 @@ describe('resolveHostFlagEnvironmentId', () => {
       resolveHostFlagEnvironmentId(flags({ host: 'runtime:env-1' }), {
         listSshTargets: listSshTargetsMock,
         verifySshTargets: listSshTargetsMock,
-        pairingCode: 'orca://pair?x',
+        pairingCode: 'zkyq://pair?x',
         environmentSelector: null
       })
     ).rejects.toThrow('not both')

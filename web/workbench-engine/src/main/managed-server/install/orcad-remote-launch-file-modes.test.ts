@@ -23,7 +23,7 @@ import { getRemoteHostPlatform } from '../../ssh/ssh-remote-platform'
 // still come out owner-only, and so must the slot and `~/.orca-remote` that hold it.
 
 const posix = getRemoteHostPlatform('linux-x64')
-const READY_LINE = '{"type":"orca_server_ready","pairing":{"url":"orca://pair#token"}}'
+const READY_LINE = '{"type":"orca_server_ready","pairing":{"url":"zkyq://pair#token"}}'
 
 let home: string
 let baseDir: string

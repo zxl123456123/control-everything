@@ -4,6 +4,8 @@ import { JsonStringifyByteLimitError } from './node-bounded-json-stringify'
 import { readNodeFileSyncWithinLimit } from './node-bounded-file-reader'
 import { writeSecureJsonFileWithinLimit } from './bounded-secure-json-file'
 import { hardenExistingSecureFile } from './secure-file'
+import { parsePairingCode } from './pairing'
+import { getEphemeralVmRecipeResultConnection } from './ephemeral-vm-recipes'
 import {
   featureEntryFromRuntime,
   featureIdentity,
@@ -222,14 +224,19 @@ function readEphemeralVmRuntimeStore(userDataPath: string): LoadedEphemeralVmRun
       )
     )
     const parsed = EphemeralVmRuntimeStoreSchema.parse(persisted)
+    const migrated = parsed.runtimes.map(migrateStoredPairingUrl)
+    const pairingsChanged = migrated.some((runtime, index) => runtime !== parsed.runtimes[index])
     const features = readEphemeralVmRuntimeFeatureStore(userDataPath)
     const store: EphemeralVmRuntimeStore = {
       version: 1,
-      runtimes: restoreRuntimeFeatureList(parsed.runtimes, features.features).sort(
+      runtimes: restoreRuntimeFeatureList(migrated, features.features).sort(
         compareRuntimeRecords
       )
     }
-    if (features.writable && !RollbackEphemeralVmRuntimeStoreSchema.safeParse(persisted).success) {
+    if (
+      features.writable &&
+      (pairingsChanged || !RollbackEphemeralVmRuntimeStoreSchema.safeParse(persisted).success)
+    ) {
       try {
         writeEphemeralVmRuntimeStore(userDataPath, store, features)
       } catch {
@@ -242,6 +249,26 @@ function readEphemeralVmRuntimeStore(userDataPath: string): LoadedEphemeralVmRun
       'runtime_error',
       `Could not read Orca ephemeral VM runtimes at ${path}; the file is invalid.`
     )
+  }
+}
+
+/** Convert only a stored, valid pairing URL; never rewrite provider/user data. */
+function migrateStoredPairingUrl(runtime: EphemeralVmRuntimeRecord): EphemeralVmRuntimeRecord {
+  const result = runtime.recipeResult
+  const connection = getEphemeralVmRecipeResultConnection(result)
+  if (connection.type !== 'orca-server' || !/^\s*orca:/i.test(connection.pairingCode)) {
+    return runtime
+  }
+  const pairingCode = connection.pairingCode.replace(/^(\s*)orca:/i, '$1zkyq:')
+  if (!parsePairingCode(pairingCode)) {
+    return runtime
+  }
+  return {
+    ...runtime,
+    recipeResult:
+      'connection' in result
+        ? { ...result, connection: { ...connection, pairingCode } }
+        : { ...result, pairingCode }
   }
 }
 
