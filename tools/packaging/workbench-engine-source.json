@@ -329342,8 +329342,8 @@
     {
       "path": "src/main/orcad/orcad-host-adapters.ts",
       "upstream_sha256": "835ae5ce81cf7fc30453a73c3f18385daf0ce63613dc5576387fc2131dc91962",
-      "current_sha256": "94cf8601058a4f8b9c3c3c29089491becaaa7d82c50330e3489d5ab01e8d8335",
-      "reason": "Support explicit profile-contained credential storage while preserving existing keys and host tool configuration.; 平台命令入口和帮助统一品牌，精简账号说明与工作台展示，保留兼容协议及原生功能。"
+      "current_sha256": "9a12db2613549394dc7628c551112374269f12ebfddbdc7297ea7777b1a069d1",
+      "reason": "Support explicit profile-contained credential storage while preserving existing keys and host tool configuration.; 平台命令入口和帮助统一品牌，精简账号说明与工作台展示，保留兼容协议及原生功能。；迁移应用版本环境变量并隔离驻留旧版 daemon"
     },
     {
       "path": "config/electron-builder.config.cjs",
@@ -331466,8 +331466,8 @@
     {
       "path": "src/main/daemon/pty-subprocess/spawn-environment.ts",
       "upstream_sha256": "a2132d872276824fe527d1a97077c5dfeee9fc18e2ddc0815e77010e115cbdb7",
-      "current_sha256": "7464d3f1a80c2de5925e0a06d203189eea99e82ca5ed0674cefc4dc4a9b074c8",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；本地与远端终端进程标识统一为 zkyq；迁移终端历史交接变量并以新版 daemon 隔离旧 shell 合同"
+      "current_sha256": "c367336e74d93971cab74f69fe0c6d6cc1e6765e4e6ab0cd5a512e7534672ae8",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；本地与远端终端进程标识统一为 zkyq；迁移终端历史交接变量并以新版 daemon 隔离旧 shell 合同；迁移应用版本环境变量并隔离驻留旧版 daemon"
     },
     {
       "path": "src/main/daemon/pty-subprocess/spawn-preflight-health-probe.test.ts",
@@ -331478,8 +331478,8 @@
     {
       "path": "src/main/daemon/pty-subprocess/spawn-preflight.ts",
       "upstream_sha256": "18a29782f3699e7ab4aa4b94bc1a577f40a6212acf2511bb0bb5deadf5a1cd46",
-      "current_sha256": "86ac736c146c224b33fab23da31c0eeee5366b2b2659a6d2139c171109b221ea",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+      "current_sha256": "f2294592168ae35a0a64988c5841d2eedb575a0b3afd9724a199787c2a6f5b9b",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；迁移应用版本环境变量并隔离驻留旧版 daemon"
     },
     {
       "path": "src/main/daemon/shell-ready.ts",
@@ -332468,20 +332468,20 @@
     {
       "path": "src/main/providers/local-pty-spawn-environment.ts",
       "upstream_sha256": "bf76ed09538492ebf83fd3b94d936837414bced629aa2a78d446f10e6cba7313",
-      "current_sha256": "8e480d208026760f722ff47f4f463e9c12f9120077064a9390a5e49ee0d983e2",
-      "reason": "本地与远端终端进程标识统一为 zkyq"
+      "current_sha256": "c42eba19e83e970da5984a44155e60bc81f862cdbaf857d6f03be0a7167e15f3",
+      "reason": "本地与远端终端进程标识统一为 zkyq；迁移应用版本环境变量并隔离驻留旧版 daemon"
     },
     {
       "path": "src/main/daemon/daemon-foreground-confirmation-protocol.test.ts",
       "upstream_sha256": "6a7537df9c680841ddb7a3c6f8220dbee228e1b701101e4c046c03d9c75dcee4",
-      "current_sha256": "627000c8388a2b4609e6d5af184c472ddc0033048b67eaef0c067516a702e36b",
-      "reason": "迁移终端历史交接变量并以新版 daemon 隔离旧 shell 合同"
+      "current_sha256": "331716051a0c5b008a3a5013cd81c1f14d984e8094c8c82763a2001d5bdea61a",
+      "reason": "迁移终端历史交接变量并以新版 daemon 隔离旧 shell 合同；迁移应用版本环境变量并隔离驻留旧版 daemon"
     },
     {
       "path": "src/main/daemon/daemon-protocol-version.ts",
       "upstream_sha256": "88ebc0c1b28e532deca3026e4e11ecce06faeacd2948506b2f6e1cb901454f82",
-      "current_sha256": "2c6f4eb406703d2d40ffd7e7b5468500e82e3af24e9da5e409b9ede9ef3ad2eb",
-      "reason": "迁移终端历史交接变量并以新版 daemon 隔离旧 shell 合同"
+      "current_sha256": "ca4de1512d5b99e55aa88aebc9ec4f018c0c4fe45a4d88a4979092c47c06190a",
+      "reason": "迁移终端历史交接变量并以新版 daemon 隔离旧 shell 合同；迁移应用版本环境变量并隔离驻留旧版 daemon"
     },
     {
       "path": "src/main/providers/local-pty-finalize-environment.ts",
@@ -332512,6 +332512,48 @@
       "upstream_sha256": "bc371e6aa6c75989c78fa603680a3814e421e9a847fce8864e027dbc296211be",
       "current_sha256": "fabddf16e9759b17484f797c2c8839e8a8af75487b3b8e6724130f3a9868f2da",
       "reason": "迁移终端历史交接变量并以新版 daemon 隔离旧 shell 合同"
+    },
+    {
+      "path": "src/main/daemon/node-pty-error-hints.test.ts",
+      "upstream_sha256": "83c54c92b3ab389703ad8112b3cc5f0887a873cae900a0d536bad3f4fbdf48be",
+      "current_sha256": "db684b48c1868cd69cc7bfcb93d9341c10d0b90b9dab00a116aabbd08851756e",
+      "reason": "迁移应用版本环境变量并隔离驻留旧版 daemon"
+    },
+    {
+      "path": "src/main/daemon/node-pty-error-hints.ts",
+      "upstream_sha256": "38d967c51783dbf090f573a467796d29b5c3057e0fa1833e102b578e8c07bd79",
+      "current_sha256": "f30367ef304078c4698b968e9a8332b67c1a224f4d9355ff7746d56c613aeb7f",
+      "reason": "迁移应用版本环境变量并隔离驻留旧版 daemon"
+    },
+    {
+      "path": "src/main/orcad/orcad-app-version-stamp.test.ts",
+      "upstream_sha256": "98abdffea4e8d10aba1381798e7778b7611d8e41ce1bd039fddec6f4c6bb0886",
+      "current_sha256": "6bc5aaa2121d18c7ea0904576ac07d1d50a42cd9b2dfbd7a23b3d087f0fe9125",
+      "reason": "迁移应用版本环境变量并隔离驻留旧版 daemon"
+    },
+    {
+      "path": "src/main/providers/working-directory-validation.ts",
+      "upstream_sha256": "15ff6aa3128a7f7797886728637313d98f45ef5f839201e7e81524673f07bb4a",
+      "current_sha256": "4b43db2b1f79592b7dece0c4aaca870645df8dfa23453dd4dd7604d8c34ec3bf",
+      "reason": "迁移应用版本环境变量并隔离驻留旧版 daemon"
+    },
+    {
+      "path": "src/main/runtime/remote-server-updater.test.ts",
+      "upstream_sha256": "4f52a642b307b26a13b9c0a50d5c09d403c7146d02667ec0a9aece2477a915c0",
+      "current_sha256": "f4cc1e0dc83e2d247f8f219c8571f0af640280c24e27b77521c907f38f43e97d",
+      "reason": "迁移应用版本环境变量并隔离驻留旧版 daemon"
+    },
+    {
+      "path": "src/main/runtime/remote-server-updater.ts",
+      "upstream_sha256": "cd1ea56f0e405c630b851a9b4ba6297d9ff02cafd926719051672e11a66af418",
+      "current_sha256": "91915d2ddc063fc52dfd131a09b293cce83190c90246655a919c08aef2c11ad4",
+      "reason": "迁移应用版本环境变量并隔离驻留旧版 daemon"
+    },
+    {
+      "path": "src/main/startup/main-process-preflight.ts",
+      "upstream_sha256": "4b11f94815b622a6a86533e97d9579c197d3b6ff28d358f72688fd0808cb5de3",
+      "current_sha256": "69763fe4e5c7c688a7563212f42783edab7da83f8620383512cb1fe3714773b0",
+      "reason": "迁移应用版本环境变量并隔离驻留旧版 daemon"
     }
   ],
   "reviewed_findings": [
@@ -333205,7 +333247,7 @@
       "path": "src/main/daemon/pty-subprocess/spawn-preflight.ts",
       "rule": "absolute-windows-path",
       "line": 57,
-      "sha256": "86ac736c146c224b33fab23da31c0eeee5366b2b2659a6d2139c171109b221ea",
+      "sha256": "f2294592168ae35a0a64988c5841d2eedb575a0b3afd9724a199787c2a6f5b9b",
       "reason": "上游公开代码注释、CLI/界面示例中的路径语法，用来解释drive/root/UNC/转义等规则；非读取的个人配置，限定具体行及文件hash。"
     },
     {

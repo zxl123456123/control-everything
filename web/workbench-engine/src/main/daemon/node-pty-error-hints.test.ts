@@ -14,8 +14,15 @@ describe('node-pty diagnostic error hints', () => {
 
     expect(parseNodePtyDiagnostic(message)).toEqual({ step: 'posix_spawn', errno: 2 })
     expect(addNodePtyRecoveryHint(message)).toBe(
-      `Daemon's node-pty install is gone (worktree deleted?). Restart Orca. ${message}`
+      `Daemon's node-pty install is gone (worktree deleted?). Restart Control Everything. ${message}`
     )
+  })
+
+  it('does not duplicate a recovery hint from the current or a previous daemon', () => {
+    for (const product of ['Control Everything', 'Orca']) {
+      const message = `Daemon's node-pty install is gone (worktree deleted?). Restart ${product}. node-pty: posix_spawn failed: ENOENT (errno 2, No such file or directory)`
+      expect(addNodePtyRecoveryHint(message)).toBe(message)
+    }
   })
 
   it('hints when the daemon exhausts file descriptors opening the slave pty', () => {

@@ -179,7 +179,7 @@ export function createDaemonPtyEnvironment(opts: PtySubprocessOptions): Record<s
     TERM: 'xterm-256color',
     COLORTERM: 'truecolor',
     TERM_PROGRAM: 'zkyq',
-    TERM_PROGRAM_VERSION: process.env.ORCA_APP_VERSION ?? '0.0.0-dev',
+    TERM_PROGRAM_VERSION: process.env.ZKYQ_APP_VERSION ?? '0.0.0-dev',
     FORCE_HYPERLINK: '1',
     [ORCA_IMAGE_PROTOCOL_ENV]: ORCA_IMAGE_PROTOCOL_VALUE
   } satisfies Record<string, string>

@@ -14,6 +14,10 @@ const NODE_PTY_DIAGNOSTIC_RE = /^node-pty: ([A-Za-z0-9_]+) failed: .*?\(errno (\
 const NODE_PTY_DIAGNOSTIC_ANYWHERE_RE =
   /node-pty: ([A-Za-z0-9_]+) failed: .*?\(errno (\d+)(?:, [^)]*)?\)/
 const GENERIC_PTY_ALLOCATION_RE = /\b(?:openpty|forkpty)\(3\) failed\b/i
+const LEGACY_MISSING_DAEMON_HINT =
+  "Daemon's node-pty install is gone (worktree deleted?). Restart Orca."
+const MISSING_DAEMON_HINT =
+  "Daemon's node-pty install is gone (worktree deleted?). Restart Control Everything."
 
 const PTY_ALLOCATION_STEPS = new Set([
   'posix_openpt',
@@ -47,7 +51,7 @@ export function parseNodePtyDiagnostic(message: string): NodePtyDiagnostic | nul
 
 export function getNodePtyRecoveryHint(diagnostic: NodePtyDiagnostic): string | null {
   if (diagnostic.step === 'posix_spawn' && diagnostic.errno === 2) {
-    return "Daemon's node-pty install is gone (worktree deleted?). Restart Orca."
+    return MISSING_DAEMON_HINT
   }
   if (
     PTY_ALLOCATION_STEPS.has(diagnostic.step) &&
@@ -78,6 +82,7 @@ export function addNodePtyRecoveryHint(message: string): string {
   if (
     !hint ||
     message.startsWith(hint) ||
+    (hint === MISSING_DAEMON_HINT && message.startsWith(LEGACY_MISSING_DAEMON_HINT)) ||
     (hint === PTY_ALLOCATION_HINT && hasPtyAllocationHint(message)) ||
     (hint === TERMINAL_PROCESS_LIMIT_HINT && message.startsWith(LEGACY_TERMINAL_PROCESS_LIMIT_HINT))
   ) {

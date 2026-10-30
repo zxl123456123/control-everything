@@ -181,7 +181,8 @@ function initializeMainProcessPreflight(options: MainProcessPreflightOptions): b
   // Why (issue #9441): without this, one rejected background promise during startup restore kills main silently (exit 1, no crash report).
   installUnhandledRejectionLogging()
   // Why: expose the app version via process.env so main and the forked daemon can set TERM_PROGRAM_VERSION without importing electron.
-  process.env.ORCA_APP_VERSION = app.getVersion()
+  delete process.env.ORCA_APP_VERSION
+  process.env.ZKYQ_APP_VERSION = app.getVersion()
   configureRemoteServerUpdater({
     getSnapshot: getRemoteServerUpdaterSnapshot,
     check: checkForRemoteServerUpdate,

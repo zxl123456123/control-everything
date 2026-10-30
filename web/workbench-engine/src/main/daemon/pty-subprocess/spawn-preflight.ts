@@ -20,11 +20,11 @@ async function loadNodePty(): Promise<typeof pty> {
 }
 
 function daemonEnvironmentDiagSuffix(): string {
-  const orca = process.env.ORCA_APP_VERSION?.trim() || '0.0.0-dev'
+  const version = process.env.ZKYQ_APP_VERSION?.trim() || '0.0.0-dev'
   const systemVersion =
     (process as NodeJS.Process & { getSystemVersion?: () => string }).getSystemVersion?.() ||
     release()
-  return ` (orca: ${orca}, arch: ${process.arch}, platform: ${process.platform} ${systemVersion})`
+  return ` (zkyq: ${version}, arch: ${process.arch}, platform: ${process.platform} ${systemVersion})`
 }
 
 function formatMissingDaemonPathError(kind: 'helper' | 'cwd', path: string): DaemonProtocolError {
@@ -32,7 +32,7 @@ function formatMissingDaemonPathError(kind: 'helper' | 'cwd', path: string): Dae
   const step = kind === 'helper' ? 'posix_spawn' : 'daemon_cwd'
   const missingTarget = kind === 'helper' ? 'node-pty install' : 'working directory'
   return new DaemonProtocolError(
-    `Daemon's ${missingTarget} is gone (worktree deleted?). Restart Orca. node-pty: ${step} failed: ENOENT (errno 2, No such file or directory) - ${detailName}='${path}'${daemonEnvironmentDiagSuffix()}`
+    `Daemon's ${missingTarget} is gone (worktree deleted?). Restart Control Everything. node-pty: ${step} failed: ENOENT (errno 2, No such file or directory) - ${detailName}='${path}'${daemonEnvironmentDiagSuffix()}`
   )
 }
 

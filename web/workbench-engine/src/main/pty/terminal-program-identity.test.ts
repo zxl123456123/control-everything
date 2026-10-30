@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { spawnSync } from 'node:child_process'
 import { createDaemonPtyEnvironment } from '../daemon/pty-subprocess/spawn-environment'
 import { buildInheritedLocalPtyEnvironment } from '../providers/local-pty-spawn-environment'
+import { formatLocalPtyEnvironmentDiag } from '../providers/working-directory-validation'
 
 afterEach(() => vi.unstubAllEnvs())
 
@@ -10,7 +11,7 @@ describe('terminal program identity', () => {
     ['local', () => buildInheritedLocalPtyEnvironment(undefined)],
     ['daemon', () => createDaemonPtyEnvironment({ sessionId: 's', cols: 80, rows: 24 })]
   ])('identifies %s terminals consistently without losing capabilities', (_label, build) => {
-    vi.stubEnv('ORCA_APP_VERSION', '1.2.3')
+    vi.stubEnv('ZKYQ_APP_VERSION', '1.2.3')
     const env = build()
     expect(env).toMatchObject({
       TERM_PROGRAM: 'zkyq',
@@ -43,5 +44,10 @@ describe('terminal program identity', () => {
         envToDelete: ['TERM_PROGRAM']
       }).TERM_PROGRAM
     ).toBeUndefined()
+  })
+
+  it('uses the current product version in terminal diagnostics', () => {
+    vi.stubEnv('ZKYQ_APP_VERSION', '2.3.4')
+    expect(formatLocalPtyEnvironmentDiag()).toContain('zkyq: 2.3.4')
   })
 })
