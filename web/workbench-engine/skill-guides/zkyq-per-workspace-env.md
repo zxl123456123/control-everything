@@ -291,6 +291,10 @@ environmentRecipes:
 `create` is required, runs locally from the repo root, and prints exactly one JSON object on stdout.
 Set `environmentContract: zkyq` only after all lifecycle scripts and their indirect calls use the
 `ZKYQ_` recipe variables. This contract removes legacy variables from their environment.
+Existing runtimes keep their original recipe snapshot. After reviewing and migrating all of its
+scripts, use `zkyq vm runtime list` to find its IDs, stop the workbench and run
+`zkyq vm runtime migrate-env --runtime-id <id> --recipe-id <id> --yes`
+on its host to switch that snapshot. Do not run it while a lifecycle operation is in progress.
 `suspend` and `resume` are optional and read the lifecycle payload on stdin; `resume` must print
 fresh recipe JSON because the pairing may have changed. `destroy` may be omitted only with
 `destroy: none`. The legacy keys `command` and `cleanup` still map to `create` and `destroy`.

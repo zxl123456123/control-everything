@@ -260,7 +260,12 @@ export const HANDLER_GROUPS: readonly HandlerGroup[] = [
   },
   {
     name: 'vm',
-    keys: ['vm recipe doctor', 'vm recipe migrate-env'],
+    keys: [
+      'vm recipe doctor',
+      'vm recipe migrate-env',
+      'vm runtime list',
+      'vm runtime migrate-env'
+    ],
     load: async () => (await import('./handlers/vm.js')).VM_HANDLERS
   },
   {

@@ -1,7 +1,7 @@
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import type { CommandHandler } from '../dispatch'
-import { RuntimeClientError } from '../runtime-client'
+import { getDefaultUserDataPath, RuntimeClientError } from '../runtime-client'
 import { parseOrcaYaml } from '../../shared/orca-yaml'
 import {
   findProjectYaml,
@@ -30,6 +30,123 @@ import { migrateRecipeEnvironment } from '../recipe-env-migration'
 import { refuseRetiredRemoteSelection } from '../remote-selection-env'
 
 export const VM_HANDLERS: Record<string, CommandHandler> = {
+  'vm runtime list': async ({ json }) => {
+    refuseRetiredRemoteSelection()
+    if (
+      process.env.ZKYQ_ENVIRONMENT ||
+      process.env.ZKYQ_PAIRING_CODE ||
+      process.env.ZKYQ_REMOTE_PAIRING ||
+      process.env.ORCA_CLI_CWD
+    ) {
+      throw new RuntimeClientError(
+        'invalid_argument',
+        'Clear remote selection and run this command on the resource host.'
+      )
+    }
+    const { listEphemeralVmRuntimes } = await import('../../shared/ephemeral-vm-runtime-store.js')
+    const runtimes = listEphemeralVmRuntimes(getDefaultUserDataPath(), {
+      writeMigrations: false
+    }).map((runtime) => ({
+      runtimeId: runtime.id,
+      recipeId: runtime.recipeId,
+      status: runtime.status,
+      environmentContract: runtime.recipe
+        ? (runtime.recipe.environmentContract ?? 'legacy')
+        : 'unknown'
+    }))
+    console.log(
+      json
+        ? JSON.stringify(runtimes, null, 2)
+        : runtimes.length
+          ? runtimes
+              .map(
+                (runtime) =>
+                  `${runtime.runtimeId}  ${runtime.recipeId}  ${runtime.status}  ${runtime.environmentContract}`
+              )
+              .join('\n')
+          : 'No saved VM runtimes.'
+    )
+  },
+  'vm runtime migrate-env': async ({ flags, json }) => {
+    refuseRetiredRemoteSelection()
+    if (flags.get('yes') !== true) {
+      throw new RuntimeClientError(
+        'invalid_argument',
+        'Review all lifecycle scripts and pass --yes after migrating them to ZKYQ_ variables.'
+      )
+    }
+    if (
+      process.env.ZKYQ_ENVIRONMENT ||
+      process.env.ZKYQ_PAIRING_CODE ||
+      process.env.ZKYQ_REMOTE_PAIRING ||
+      process.env.ORCA_CLI_CWD
+    ) {
+      throw new RuntimeClientError(
+        'invalid_argument',
+        'Clear remote selection and run this command on the resource host.'
+      )
+    }
+    const runtimeId = getStringFlag(flags, 'runtime-id')
+    const recipeId = getStringFlag(flags, 'recipe-id')
+    if (!runtimeId || !recipeId)
+      throw new RuntimeClientError('invalid_argument', 'Pass --runtime-id and --recipe-id.')
+    const userDataPath = getDefaultUserDataPath()
+    if (!existsSync(userDataPath)) {
+      throw new RuntimeClientError(
+        'runtime_error',
+        'The selected workbench profile does not exist.'
+      )
+    }
+    const [
+      { acquireOrcadInstanceLock },
+      { acquireProfileStateMaintenance },
+      { migrateRuntimeEnvironment },
+      { assertProfileOffline }
+    ] = await Promise.all([
+      import('../../main/orcad/orcad-instance-lock.js'),
+      import('../../main/persistence/profile-state/profile-state-access.js'),
+      import('../../main/ephemeral-vm/migrate-runtime-environment.js'),
+      import('../runtime/serve-electron-preflight.js')
+    ])
+    let instance
+    try {
+      instance = acquireOrcadInstanceLock(userDataPath, {
+        role: 'orcad',
+        preserveRootPermissions: true
+      })
+    } catch {
+      throw new RuntimeClientError(
+        'runtime_error',
+        'Could not acquire exclusive profile access. Stop the workbench and verify access before retrying.'
+      )
+    }
+    try {
+      let maintenance
+      try {
+        maintenance = acquireProfileStateMaintenance(userDataPath)
+      } catch {
+        throw new RuntimeClientError(
+          'runtime_error',
+          'Could not acquire profile maintenance access. Stop the workbench and other maintenance operations before retrying.'
+        )
+      }
+      try {
+        await assertProfileOffline(userDataPath)
+        const result = migrateRuntimeEnvironment({ userDataPath, runtimeId, recipeId, maintenance })
+        console.log(
+          json
+            ? JSON.stringify(result, null, 2)
+            : result.changed
+              ? 'Saved VM recipe migrated.'
+              : 'Saved VM recipe already uses the current environment contract.'
+        )
+      } finally {
+        maintenance.release()
+      }
+    } finally {
+      instance.release()
+    }
+  },
   'vm recipe migrate-env': async ({ flags, json }) => {
     refuseRetiredRemoteSelection()
     if (flags.has('dry-run') && flags.get('dry-run') !== true) {

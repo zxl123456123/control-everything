@@ -3,6 +3,23 @@ import { GLOBAL_FLAGS } from '../args'
 
 export const VM_COMMAND_SPECS: CommandSpec[] = [
   {
+    path: ['vm', 'runtime', 'list'],
+    summary: 'List saved local VM runtime identities and environment contracts',
+    usage: 'zkyq vm runtime list [--json]',
+    allowedFlags: ['help', 'json']
+  },
+  {
+    path: ['vm', 'runtime', 'migrate-env'],
+    destructive: true,
+    summary: 'Switch a reviewed saved VM recipe to the current environment contract',
+    usage: 'zkyq vm runtime migrate-env --runtime-id <id> --recipe-id <id> --yes [--json]',
+    allowedFlags: ['help', 'json', 'runtime-id', 'recipe-id', 'yes'],
+    notes: [
+      'Stop the local workbench before migration; the saved recipe commands and resource data are preserved.',
+      '--yes asserts that every lifecycle script and indirect call has been migrated to ZKYQ_ variables.'
+    ]
+  },
+  {
     path: ['vm', 'recipe', 'migrate-env'],
     destructive: true,
     summary: 'Migrate unambiguous legacy environment reads in one local script',

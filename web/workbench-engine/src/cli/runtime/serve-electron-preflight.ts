@@ -39,6 +39,31 @@ const DEFAULT_DEPS: PreflightDeps = {
   probeListener: probeRuntimeListener
 }
 
+/** Refuse maintenance unless every published owner record is proved offline. */
+export async function assertProfileOffline(
+  userDataPath: string,
+  deps: PreflightDeps = DEFAULT_DEPS
+): Promise<void> {
+  try {
+    for (const metadata of [
+      deps.readLegacyMetadata?.(userDataPath),
+      deps.readMetadata(userDataPath)
+    ]) {
+      if (
+        metadata &&
+        (await decideServeProfileVerdict(userDataPath, metadata, deps)).verdict !== 'absent'
+      ) {
+        throw new Error('profile is occupied')
+      }
+    }
+  } catch {
+    throw new RuntimeClientError(
+      'runtime_error',
+      'Cannot verify that the profile is offline. Stop the workbench and verify the profile before retrying.'
+    )
+  }
+}
+
 /**
  * Why before the exec: macOS aborts a second Electron main inside `_RegisterApplication`, before
  * any Orca JavaScript can apply the one-Orca-per-profile rule, so the CLI must decide first.

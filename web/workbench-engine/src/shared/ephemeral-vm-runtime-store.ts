@@ -49,8 +49,11 @@ export function getEphemeralVmRuntimeStorePath(userDataPath: string): string {
   return join(userDataPath, EPHEMERAL_VM_RUNTIMES_FILE)
 }
 
-export function listEphemeralVmRuntimes(userDataPath: string): EphemeralVmRuntimeRecord[] {
-  return readEphemeralVmRuntimeStore(userDataPath).store.runtimes
+export function listEphemeralVmRuntimes(
+  userDataPath: string,
+  options: { writeMigrations?: boolean } = {}
+): EphemeralVmRuntimeRecord[] {
+  return readEphemeralVmRuntimeStore(userDataPath, options).store.runtimes
 }
 
 export function upsertEphemeralVmRuntime(
@@ -208,7 +211,10 @@ type LoadedEphemeralVmRuntimeStore = {
   features: EphemeralVmRuntimeFeatureStoreSnapshot
 }
 
-function readEphemeralVmRuntimeStore(userDataPath: string): LoadedEphemeralVmRuntimeStore {
+function readEphemeralVmRuntimeStore(
+  userDataPath: string,
+  options: { writeMigrations?: boolean } = {}
+): LoadedEphemeralVmRuntimeStore {
   const path = getEphemeralVmRuntimeStorePath(userDataPath)
   if (!existsSync(path)) {
     return {
@@ -229,11 +235,10 @@ function readEphemeralVmRuntimeStore(userDataPath: string): LoadedEphemeralVmRun
     const features = readEphemeralVmRuntimeFeatureStore(userDataPath)
     const store: EphemeralVmRuntimeStore = {
       version: 1,
-      runtimes: restoreRuntimeFeatureList(migrated, features.features).sort(
-        compareRuntimeRecords
-      )
+      runtimes: restoreRuntimeFeatureList(migrated, features.features).sort(compareRuntimeRecords)
     }
     if (
+      options.writeMigrations !== false &&
       features.writable &&
       (pairingsChanged || !RollbackEphemeralVmRuntimeStoreSchema.safeParse(persisted).success)
     ) {

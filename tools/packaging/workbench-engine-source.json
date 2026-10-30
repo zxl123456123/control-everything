@@ -327151,7 +327151,9 @@
     "src/main/runtime/claude-agent-teams-remote-env.test.ts",
     "src/main/runtime/structured-session-remote-env.test.ts",
     "src/cli/recipe-env-powershell.ts",
-    "src/main/ephemeral-vm/runtime-service-env-contract.test.ts"
+    "src/main/ephemeral-vm/runtime-service-env-contract.test.ts",
+    "src/main/ephemeral-vm/migrate-runtime-environment.test.ts",
+    "src/main/ephemeral-vm/migrate-runtime-environment.ts"
   ],
   "adapted_files": [
     {
@@ -329701,8 +329703,8 @@
     {
       "path": "src/shared/ephemeral-vm-runtime-store.ts",
       "upstream_sha256": "06cffa74f33c58e79819a27792850536ee9a4f980d9224e59aba896ccc58d7d8",
-      "current_sha256": "b81b740f69711070674d026303fd3c55ddf6b118ab3bb84e91e2d563e8949e2e",
-      "reason": "配对链接生成解析和手机注册统一zkyq协议，迁移已保存VM配对链接并保留凭据及用户数据，更新脱敏和提示"
+      "current_sha256": "34a14b16e8244c064a6c4edbef02e68dd3f0e697a6a9e0dfcdee73e81d22acbb",
+      "reason": "配对链接生成解析和手机注册统一zkyq协议，迁移已保存VM配对链接并保留凭据及用户数据，更新脱敏和提示；迁移已有 VM 资源环境契约并保护离线快照"
     },
     {
       "path": "src/shared/pairing.ts",
@@ -329755,8 +329757,8 @@
     {
       "path": "src/main/orcad/orcad-instance-lock.ts",
       "upstream_sha256": "1f376abb35d8fd882d5aa44d036be171d54fdc24e85ef7fe31e7549a718c9c61",
-      "current_sha256": "f2057484945448200e9b5a360f8c09af8c1dac59830108ac877f18d959d2081e",
-      "reason": "统一凭据保护、启动校验、实例占用和账号归属的产品文字，保留原因恢复方法及用户输入，不改安全或存储行为；运行宿主数据根配置统一ZKYQ_USER_DATA，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+      "current_sha256": "a580774e87acf8674922e4c7f13fd0e2fd0f08ecc49ffe25756d4165b5fd6934",
+      "reason": "统一凭据保护、启动校验、实例占用和账号归属的产品文字，保留原因恢复方法及用户输入，不改安全或存储行为；运行宿主数据根配置统一ZKYQ_USER_DATA，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；迁移已有 VM 资源环境契约并保护离线快照"
     },
     {
       "path": "src/shared/host-account-launch-env.ts",
@@ -330349,8 +330351,8 @@
     {
       "path": "skill-guides/zkyq-per-workspace-env.md",
       "upstream_sha256": "dda610fc95c59c723108338425990d192af1d3d6c6dea30230d1f07b37b56742",
-      "current_sha256": "a71eab8e86a4bc8f95bd7cd4ce47940a12c3583b756a9db6e9aca15ec340a11d",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物；项目配置统一新文件名，保留旧文件迁移与信任行为；新环境配方与实例使用掌控一切身份；新配方契约移除旧环境变量并保留既有资源生命周期"
+      "current_sha256": "2b987984243c0e687a683c667de58d8576a01823b032fd0eba976156425a30ea",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物；项目配置统一新文件名，保留旧文件迁移与信任行为；新环境配方与实例使用掌控一切身份；新配方契约移除旧环境变量并保留既有资源生命周期；迁移已有 VM 资源环境契约并保护离线快照"
     },
     {
       "path": "skill-guides/zkyq-per-workspace-env/references/provider-vercel.md",
@@ -330427,8 +330429,8 @@
     {
       "path": "src/cli/bundled-skill-guides.ts",
       "upstream_sha256": "d939b2344aec6921d99a7994596db6e7e5b45c36f489e3c8e55fe40160b5b7d6",
-      "current_sha256": "ff54b4a52cbd92941fd625f4d7061ae91828a1dde657c3207cfae0dd58a4160d",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物；项目配置统一新文件名，保留旧文件迁移与信任行为；新环境配方与实例使用掌控一切身份；新配方契约移除旧环境变量并保留既有资源生命周期"
+      "current_sha256": "7b984361e5aca8455199170da2826a29cb219566da672bebe46db07f2a691d2b",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物；项目配置统一新文件名，保留旧文件迁移与信任行为；新环境配方与实例使用掌控一切身份；新配方契约移除旧环境变量并保留既有资源生命周期；迁移已有 VM 资源环境契约并保护离线快照"
     },
     {
       "path": "src/cli/handlers/orchestration-worker-cli.test.ts",
@@ -332401,8 +332403,8 @@
     {
       "path": "src/cli/handler-group-manifest.ts",
       "upstream_sha256": "c5c95522b3610d3212f964e31f803f4001eeba573359c8768ca4e16a79ea031a",
-      "current_sha256": "8ea284c4104fe07b00d84fcc6a1eafb10177ecf64af78dea7544996fcaabb049",
-      "reason": "；新增安装后独立退役入口及目标约束验证，补齐当前CLI占位指南检查；显式迁移已跟踪项目配置，保留 Git 索引和用户修改；提供受限配方环境变量显式迁移入口"
+      "current_sha256": "3403329b65fff98eb390f0e23fc1052afebc640812b19291fb329223eb66b32e",
+      "reason": "；新增安装后独立退役入口及目标约束验证，补齐当前CLI占位指南检查；显式迁移已跟踪项目配置，保留 Git 索引和用户修改；提供受限配方环境变量显式迁移入口；迁移已有 VM 资源环境契约并保护离线快照"
     },
     {
       "path": "src/cli/root-help-text-primary.ts",
@@ -333055,8 +333057,8 @@
     {
       "path": "src/cli/handlers/vm.ts",
       "upstream_sha256": "ebdd54fb9a792a68d491597b36129d059130c6862d57fc78c2eb33d42db69470",
-      "current_sha256": "6aa454189200173eb2389d3bde812285d73c897bce8f6816e8ff1f6c847e1207",
-      "reason": "项目配置统一新文件名，保留旧文件迁移与信任行为；显式迁移已跟踪项目配置，保留 Git 索引和用户修改；支持安全迁移未跟踪和被忽略的项目配置；提供受限配方环境变量显式迁移入口；迁移远程主机选择环境变量并防止错误路由"
+      "current_sha256": "f385d92786df6c5dc4f212c21e2c8f4d92047ea13c9308a25badc88c52987e00",
+      "reason": "项目配置统一新文件名，保留旧文件迁移与信任行为；显式迁移已跟踪项目配置，保留 Git 索引和用户修改；支持安全迁移未跟踪和被忽略的项目配置；提供受限配方环境变量显式迁移入口；迁移远程主机选择环境变量并防止错误路由；迁移已有 VM 资源环境契约并保护离线快照"
     },
     {
       "path": "src/cli/index-vm-recipe-doctor.test.ts",
@@ -333073,8 +333075,8 @@
     {
       "path": "src/cli/specs/vm.ts",
       "upstream_sha256": "c5564973b50e7c34a28af735d854b8fc822767fe02523b98bc6dc0897eb9b51e",
-      "current_sha256": "4f5a1235e8ad2ec89f03aa6141bc872c3a1bad31a5a0b778abed89dc2f7f8eb9",
-      "reason": "项目配置统一新文件名，保留旧文件迁移与信任行为；提供受限配方环境变量显式迁移入口；支持安全迁移 PowerShell 配方环境读取"
+      "current_sha256": "9d20d33be73aa45e5a51c0691176aad18e1a1d2e7b5b3adcae2f4e3b0b183591",
+      "reason": "项目配置统一新文件名，保留旧文件迁移与信任行为；提供受限配方环境变量显式迁移入口；支持安全迁移 PowerShell 配方环境读取；迁移已有 VM 资源环境契约并保护离线快照"
     },
     {
       "path": "src/main/hooks-effective-hook-resolution.test.ts",
@@ -333307,8 +333309,8 @@
     {
       "path": "src/cli/runtime/serve-electron-preflight.ts",
       "upstream_sha256": "a5107906e6aac43ff5173d5758f6e3f210d5da26c71e491b01fd93a08049af9e",
-      "current_sha256": "cb2b1555f19938778af32b8a400e8a3a136eadcaafd13c4c3e5c960d4587e824",
-      "reason": "统一服务启动预检与异常退出的命令行恢复提示；迁移运行时发现文件并保护新旧进程所有权"
+      "current_sha256": "9b3c497c3bb96be0e7f8ae09d4901ef067011414598a6b448f0e68d802a5aa51",
+      "reason": "统一服务启动预检与异常退出的命令行恢复提示；迁移运行时发现文件并保护新旧进程所有权；迁移已有 VM 资源环境契约并保护离线快照"
     },
     {
       "path": "src/cli/runtime/serve-signal-exit-diagnostic.test.ts",
@@ -334080,14 +334082,14 @@
       "path": "src/cli/bundled-skill-guides.ts",
       "rule": "personal-home-path",
       "line": 54,
-      "sha256": "ff54b4a52cbd92941fd625f4d7061ae91828a1dde657c3207cfae0dd58a4160d",
+      "sha256": "7b984361e5aca8455199170da2826a29cb219566da672bebe46db07f2a691d2b",
       "reason": "公开的路径模板、跨平台解析说明或通用示例；未读取本机账号/目录，保留语义并限定具体行及文件hash。"
     },
     {
       "path": "src/cli/bundled-skill-guides.ts",
       "rule": "personal-home-path",
       "line": 57,
-      "sha256": "ff54b4a52cbd92941fd625f4d7061ae91828a1dde657c3207cfae0dd58a4160d",
+      "sha256": "7b984361e5aca8455199170da2826a29cb219566da672bebe46db07f2a691d2b",
       "reason": "公开的路径模板、跨平台解析说明或通用示例；未读取本机账号/目录，保留语义并限定具体行及文件hash。"
     },
     {
