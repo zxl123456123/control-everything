@@ -329320,8 +329320,8 @@
     {
       "path": "src/cli/help.ts",
       "upstream_sha256": "2240c133948e5bca9a2281a74fcbbf624b51206108c88e08d27aad8a9af38cce",
-      "current_sha256": "76567e7524aea9be9a33fed5db6de4bf29411b63fa1afb4cbb7bf1626fea489a",
-      "reason": "平台命令入口和帮助统一品牌，精简账号说明与工作台展示，保留兼容协议及原生功能。；Use the short zkyq platform command while retaining the ce-workbench compatibility entry and legacy host metadata.；所有后台宿主统一zkyq命令与帮助纠错提示，取消平台专用品牌包装并迁移旧生成入口，保留参数和profile行为"
+      "current_sha256": "a4d9148de6e94ba5d8cfeb13c1f998e6e21cabf1b3be29eec169ae98ab33e93f",
+      "reason": "平台命令入口和帮助统一品牌，精简账号说明与工作台展示，保留兼容协议及原生功能。；Use the short zkyq platform command while retaining the ce-workbench compatibility entry and legacy host metadata.；所有后台宿主统一zkyq命令与帮助纠错提示，取消平台专用品牌包装并迁移旧生成入口，保留参数和profile行为；CLI 机器可读命令发现同步当前身份"
     },
     {
       "path": "src/renderer/src/components/settings/ManagedDataAccountsSection.tsx",
@@ -332928,6 +332928,24 @@
       "upstream_sha256": "0d4ad469f8db1b916b6cde85281a3c88258fd8c6e4c01085987b8b80282d5f64",
       "current_sha256": "c5e9bdf02a9a34bb9ced95455e10d293861ad36381be658f2bee67957d34cfb7",
       "reason": "Linear 全局技能安装入口接入安全名称迁移"
+    },
+    {
+      "path": "src/cli/agent-context.test.ts",
+      "upstream_sha256": "c9ec31a3ea97ea6ffd2b8fbeedb9728c66bda58edc43de8f198f2d1e40ce7a8a",
+      "current_sha256": "423825598e46a655291547967d56babfc6ae96dccc5d4261cff9553abbc74cfe",
+      "reason": "CLI 机器可读命令发现同步当前身份"
+    },
+    {
+      "path": "src/cli/agent-context.ts",
+      "upstream_sha256": "4aac24752862697d161a81e9b5bccf3e6cbb8b5242621c7d73f5eb0230462f26",
+      "current_sha256": "dac94b0c57daf1adeb2ce7e24df3db44cfd968562afc54d4be1315ff22526779",
+      "reason": "CLI 机器可读命令发现同步当前身份"
+    },
+    {
+      "path": "src/cli/args.test.ts",
+      "upstream_sha256": "89e048061901223f03498118acb0e4f78a8ee1e86dd9821ea8d8e86c190c7496",
+      "current_sha256": "16555ed4627364763e8a6c95542b3fff0861bc2c0c7a0124ec32ffae505ecafa",
+      "reason": "CLI 机器可读命令发现同步当前身份"
     }
   ],
   "reviewed_findings": [

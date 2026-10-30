@@ -15,8 +15,8 @@ const COMMAND_ROOTS = new Set([
   ...COMMAND_SPECS.flatMap((spec) => [spec.path[0], ...(spec.aliases ?? []).map((path) => path[0])])
 ])
 
-// Applies only to our static help catalog, never runtime results, errors or user arguments.
-function staticHelpText(text: string): string {
+// Applies only to our static command catalog, never runtime results, errors or user arguments.
+export function staticHelpText(text: string): string {
   return text
     .split('\n')
     .map((line) => {

@@ -78,6 +78,27 @@ describe('buildAgentContext', () => {
     expect(agentContext?.aliases).toEqual([])
     expect(agentContext?.examples).toEqual([])
   })
+
+  it('uses the current identity for static discovery text while preserving paths and attribution', () => {
+    const schema = buildAgentContext([
+      {
+        path: ['emulator', 'list'],
+        summary: 'List Orca emulators',
+        usage: 'orca emulator list [--json]',
+        examples: ['orca emulator list --json', 'cat /tmp/orca-data.json'],
+        notes: ['See https://example.com/orca and orca://pair', 'Copyright Orca'],
+        allowedFlags: ['json']
+      }
+    ])
+    expect(schema.commands[0]).toMatchObject({
+      command: 'emulator list',
+      path: ['emulator', 'list'],
+      summary: 'List Control Everything emulators',
+      usage: 'zkyq emulator list [--json]',
+      examples: ['zkyq emulator list --json', 'cat /tmp/orca-data.json'],
+      notes: ['See https://example.com/orca and orca://pair', 'Copyright Orca']
+    })
+  })
 })
 
 describe('agent-context over the live registry', () => {
@@ -91,6 +112,20 @@ describe('agent-context over the live registry', () => {
   it('human summary count matches the command count', () => {
     const schema = buildAgentContext(COMMAND_SPECS)
     expect(formatAgentContextSummary(schema)).toContain(`${schema.commandCount} commands`)
+    expect(formatAgentContextSummary(schema)).toContain('zkyq agent-context --json')
+  })
+
+  it('exposes current executable names throughout the real command usages and examples', () => {
+    const schema = buildAgentContext(COMMAND_SPECS)
+    for (const command of schema.commands) {
+      expect(command.usage, command.command).not.toMatch(/(^|\s)orca\s+[a-z]/)
+      for (const example of command.examples) {
+        expect(example, command.command).not.toMatch(/(^|\s)orca\s+[a-z]/)
+      }
+    }
+    expect(schema.commands.find((command) => command.command === 'emulator list')?.usage).toBe(
+      'zkyq emulator list [--worktree <selector>] [--json]'
+    )
   })
 
   it('does not advertise browser page targeting for local discovery', () => {

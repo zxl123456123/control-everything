@@ -1,5 +1,6 @@
 import type { CommandSpec } from './args'
 import { effectiveAllowedFlags } from './args'
+import { staticHelpText } from './help'
 
 // Why: serialize the live spec table so agent discovery cannot drift from the
 // command surface it describes.
@@ -36,16 +37,16 @@ export function buildAgentContext(specs: CommandSpec[]): AgentContextSchema {
       path: spec.path,
       aliases: spec.aliases ?? [],
       argumentMode: spec.argumentMode ?? 'parsed',
-      summary: spec.summary,
-      usage: spec.usage,
+      summary: staticHelpText(spec.summary),
+      usage: staticHelpText(spec.usage),
       // Why: the effective accepted set (globals + conditional --page), not just
       // allowedFlags — otherwise agents treat --json/--help as unsupported.
       flags: effectiveAllowedFlags(spec),
       positionalArgs: spec.positionalArgs ?? [],
       ...(spec.variadicPositional ? { variadicPositional: true } : {}),
       ...(spec.repeatableFlags ? { repeatableFlags: spec.repeatableFlags } : {}),
-      examples: spec.examples ?? [],
-      notes: spec.notes ?? []
+      examples: (spec.examples ?? []).map(staticHelpText),
+      notes: (spec.notes ?? []).map(staticHelpText)
     }))
     // Why: deterministic ordering so the JSON diffs cleanly across runs.
     .sort((a, b) => a.command.localeCompare(b.command))
@@ -61,6 +62,6 @@ export function formatAgentContextSummary(schema: AgentContextSchema): string {
   // point the reader at --json rather than dumping every command.
   return [
     `${schema.commandCount} commands (schema v${schema.schemaVersion}).`,
-    'Run `orca agent-context --json` for the full machine-readable command schema.'
+    'Run `zkyq agent-context --json` for the full machine-readable command schema.'
   ].join('\n')
 }
