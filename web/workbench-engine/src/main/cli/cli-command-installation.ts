@@ -36,7 +36,7 @@ export class CliCommandInstallation extends CliCommandInspection {
     const inspected = await this.inspectStableSymlink(commandPath, launcherPath)
     if (inspected.status.state === 'conflict') {
       throw new Error(
-        `Refusing to replace non-Orca command at ${commandPath}. Remove it and register again if it is no longer needed.`
+        `Refusing to replace an unmanaged command at ${commandPath}. Remove it and register again if it is no longer needed.`
       )
     }
     if (inspected.status.state === 'installed') {
@@ -48,7 +48,7 @@ export class CliCommandInstallation extends CliCommandInspection {
       await this.runPrivilegedSymlinkTransaction('install', commandPath, launcherPath, inspected)
       const installed = await this.inspectStableSymlink(commandPath, launcherPath)
       if (installed.status.state !== 'installed') {
-        throw new Error(`Could not register the Orca command at ${commandPath}.`)
+        throw new Error(`Could not register the workbench command at ${commandPath}.`)
       }
       return
     }
@@ -56,7 +56,7 @@ export class CliCommandInstallation extends CliCommandInspection {
     if (!(await capturedExpectedEntry(quarantine, inspected))) {
       await this.restoreQuarantinedCommand(quarantine, commandPath)
       throw new Error(
-        `Refusing to replace non-Orca command at ${commandPath}. Remove it and register again if it is no longer needed.`
+        `Refusing to replace an unmanaged command at ${commandPath}. Remove it and register again if it is no longer needed.`
       )
     }
 
@@ -72,14 +72,14 @@ export class CliCommandInstallation extends CliCommandInspection {
   protected async removeSymlink(commandPath: string): Promise<void> {
     const launcherPath = await this.resolveLauncherPath()
     if (!launcherPath) {
-      throw new Error('The Orca CLI launcher is no longer available.')
+      throw new Error('The workbench CLI launcher is no longer available.')
     }
     const inspected = await this.inspectStableSymlink(commandPath, launcherPath)
     if (inspected.status.state === 'not_installed') {
       return
     }
     if (inspected.status.state === 'conflict') {
-      throw new Error(`Refusing to remove non-Orca command at ${commandPath}.`)
+      throw new Error(`Refusing to remove an unmanaged command at ${commandPath}.`)
     }
 
     const quarantine = await this.quarantineUnlessPrivileged(commandPath)
@@ -89,7 +89,7 @@ export class CliCommandInstallation extends CliCommandInspection {
     }
     if (!(await capturedExpectedEntry(quarantine, inspected))) {
       await this.restoreQuarantinedCommand(quarantine, commandPath)
-      throw new Error(`Refusing to remove non-Orca command at ${commandPath}.`)
+      throw new Error(`Refusing to remove an unmanaged command at ${commandPath}.`)
     }
     await this.discardQuarantinedCommand(quarantine)
   }
@@ -169,7 +169,7 @@ export class CliCommandInstallation extends CliCommandInspection {
     const extractedRoot = await ensureAppImageExtractedRoot(extractionOptions)
     if (!extractedRoot) {
       throw new Error(
-        `Could not extract the Orca AppImage at ${this.appImagePath}. Check that it is executable and that ${this.appImageCacheRootPath} has free space.`
+        `Could not extract the workbench AppImage at ${this.appImagePath}. Check that it is executable and that ${this.appImageCacheRootPath} has free space.`
       )
     }
     return extractedRoot

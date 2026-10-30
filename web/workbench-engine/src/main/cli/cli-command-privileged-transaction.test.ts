@@ -248,7 +248,7 @@ describe.skipIf(process.platform !== 'darwin' || process.getuid?.() === 0)(
       })
 
       await chmod(fixture.protectedDirectory, 0o500)
-      await expect(installer.install()).rejects.toThrow(/Refusing to replace non-Orca command/)
+      await expect(installer.install()).rejects.toThrow(/Refusing to replace an unmanaged command/)
       await expect(readlink(fixture.commandPath)).resolves.toBe(foreignTarget)
       expect(
         (await readdir(fixture.protectedDirectory)).some((name) => name.startsWith('.orca-cli-'))

@@ -329867,8 +329867,8 @@
     {
       "path": "src/main/cli/cli-installer.ts",
       "upstream_sha256": "65d452ae1ff988f417f5a610f3d7c4c44d73fac4c6fa13317729a4abe829f663",
-      "current_sha256": "afa1270d823b72321518cc13379e07eb43e9437214442743ebcaa84450c743d2",
-      "reason": "统一Windows桌面命令安装状态、宿主能力、批处理分发和原生恢复命令为zkyq，保留PATH及消息参数行为"
+      "current_sha256": "d7ebcdaf927fe602745198a3b54bb256c15f385e49d377bf41d81de96c291fba",
+      "reason": "统一Windows桌面命令安装状态、宿主能力、批处理分发和原生恢复命令为zkyq，保留PATH及消息参数行为；清理共用CLI安装检查、冲突和竞态回收提示中的上游产品称呼，保留路径、权限及所有权行为"
     },
     {
       "path": "src/main/cli/cli-path-registration.ts",
@@ -329881,6 +329881,54 @@
       "upstream_sha256": "723b4b344bc5c4649b9ca3bb5d85db945023891f5b9bc65ce5fbeeb717bbb34f",
       "current_sha256": "c01b7cce03d416e44143afa7f12478ec004dd272af7449adceb7e473d2beeac2",
       "reason": "统一Windows桌面命令安装状态、宿主能力、批处理分发和原生恢复命令为zkyq，保留PATH及消息参数行为"
+    },
+    {
+      "path": "src/main/cli/cli-command-filesystem-transaction.ts",
+      "upstream_sha256": "21d5aa157dbada27d2ba3fdaa427d0227b6ef3ac087997652bc10ef9e843a1c7",
+      "current_sha256": "3e96ee68d4c3c2c94cd581d7a73ba349d09fbcad3f7415ae5a944bdfea69969f",
+      "reason": "清理共用CLI安装检查、冲突和竞态回收提示中的上游产品称呼，保留路径、权限及所有权行为"
+    },
+    {
+      "path": "src/main/cli/cli-command-inspection.ts",
+      "upstream_sha256": "4380512564ee43ea92b326477be6bf3ae4ede7daacc7fc4938686cee2bda5dcf",
+      "current_sha256": "6e42d6522b9f9e2279451d1369b24eafe7705d042e0aa7843f985e5ef509d0e4",
+      "reason": "清理共用CLI安装检查、冲突和竞态回收提示中的上游产品称呼，保留路径、权限及所有权行为"
+    },
+    {
+      "path": "src/main/cli/cli-command-installation-races.test.ts",
+      "upstream_sha256": "c0c7077831e11db4d5b782763b9a488ba3f0df243daf477d285a60340e6ab000",
+      "current_sha256": "d3ed6781b04d5f9e4a85149c846c13ff4a1ccf565e090e2697675c5505579e0b",
+      "reason": "清理共用CLI安装检查、冲突和竞态回收提示中的上游产品称呼，保留路径、权限及所有权行为"
+    },
+    {
+      "path": "src/main/cli/cli-command-installation.ts",
+      "upstream_sha256": "3602280056d866f343cc1a18ef413afbbd954e562f0e0eee2ce597d7b793192b",
+      "current_sha256": "5dadef02b94ebf183f3348e02f6f5299d84685e70bc0d00b740576a05ad51e8d",
+      "reason": "清理共用CLI安装检查、冲突和竞态回收提示中的上游产品称呼，保留路径、权限及所有权行为"
+    },
+    {
+      "path": "src/main/cli/cli-command-privileged-transaction.test.ts",
+      "upstream_sha256": "e70e59ffff6ec2574e9a26eb37d870e5a3e5bb6ebae77649b5bd05d536a2fe8e",
+      "current_sha256": "ea981247d03241c5edbeae3d1276d45312e8b7b74664c48ef7c5355537271cdb",
+      "reason": "清理共用CLI安装检查、冲突和竞态回收提示中的上游产品称呼，保留路径、权限及所有权行为"
+    },
+    {
+      "path": "src/main/cli/cli-installer-appimage-ownership.test.ts",
+      "upstream_sha256": "9fd9600d0911ea839f806167687653abdc4ab366d1eaa8df3a29c05c23423f4d",
+      "current_sha256": "cbfc8c8cf05534797a548b351cbeb385bc29faa194772e2d94db24cf1f137998",
+      "reason": "清理共用CLI安装检查、冲突和竞态回收提示中的上游产品称呼，保留路径、权限及所有权行为"
+    },
+    {
+      "path": "src/main/cli/cli-installer-command-conflicts.test.ts",
+      "upstream_sha256": "52e606decbaf39c11b0d85b5152a5e6ca89a064ccfce05b218ea8d6591401a03",
+      "current_sha256": "32076f590c43d6dcac03d97d7035c279092e574764635f6b9c5db48207204499",
+      "reason": "清理共用CLI安装检查、冲突和竞态回收提示中的上游产品称呼，保留路径、权限及所有权行为"
+    },
+    {
+      "path": "src/main/cli/cli-installer-macos-command-path.test.ts",
+      "upstream_sha256": "37f13a59879b7510f46e7942ec0b0eb547da4651ab17937a87380ddcec70f00d",
+      "current_sha256": "ab6ce3646a4169a99ec0e10e16b7e065ec4a702cf425d59cb085f51d667fddce",
+      "reason": "清理共用CLI安装检查、冲突和竞态回收提示中的上游产品称呼，保留路径、权限及所有权行为"
     }
   ],
   "reviewed_findings": [
