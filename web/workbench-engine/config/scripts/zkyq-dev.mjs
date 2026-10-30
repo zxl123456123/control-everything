@@ -18,8 +18,8 @@ if (!existsSync(cliEntry)) {
 
 process.env.ZKYQ_USER_DATA_PATH = process.env.ORCA_DEV_USER_DATA_PATH ?? getDefaultDevUserDataPath()
 // Why: custom dev profiles do not necessarily contain "orca-dev" in their path; carry explicit provenance into the CLI.
-process.env.ORCA_DEV_CLI_INVOCATION = '1'
-process.env.ORCA_CLI_COMMAND = 'zkyq-dev'
+process.env.ZKYQ_DEV_CLI_INVOCATION = '1'
+process.env.ZKYQ_CLI_COMMAND = 'zkyq-dev'
 
 const electronExecutable = getElectronExecutable()
 if (!process.env.ZKYQ_APP_EXECUTABLE && isRunnableFile(electronExecutable)) {

@@ -241,7 +241,7 @@ describe('orca cli worktree awareness', () => {
   it('passes dev mode from an explicit dev CLI marker with a custom profile path', async () => {
     process.env.ORCA_TERMINAL_HANDLE = 'term_sender'
     process.env.ZKYQ_USER_DATA_PATH = '/tmp/federation-acceptance-profile'
-    process.env.ORCA_DEV_CLI_INVOCATION = '1'
+    process.env.ZKYQ_DEV_CLI_INVOCATION = '1'
     callMock.mockResolvedValueOnce({
       id: 'req_dispatch',
       ok: true,

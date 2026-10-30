@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AgentJournalSubmission } from '../../../../shared/agent-session-journal-types'
 import type { AgentMessageSource } from '../../../../shared/agent-session-message-source'
 import { getAppEnvironment } from '../../../../shared/app-environment'
+import { sealStructuredSessionChild } from '../../structured-session-child-env'
 import { DISPATCH_REJECTED_WRITE_FAILED } from '../../../../shared/structured-agent-session-dispatch-rejection'
 
 const hostRef: { current: unknown } = { current: null }
@@ -45,6 +46,25 @@ function installHost(location = { executionHostId: 'local', wslDistro: null as s
 }
 
 describe('structured worker session', () => {
+  it('retires inherited command hints before selecting this session launcher', () => {
+    const child = sealStructuredSessionChild({
+      sessionId: 'session-not-a-worker',
+      spawnToken: 'test-spawn-token',
+      inheritedEnvToDelete: [],
+      env: {
+        ORCA_CLI_COMMAND: '/another/install/old-cli',
+        ORCA_DEV_CLI_INVOCATION: '1',
+        ZKYQ_CLI_COMMAND: '/another/install/custom-cli',
+        KEEP_USER_VALUE: 'existing user value'
+      }
+    })
+    expect(child.env.ZKYQ_CLI_COMMAND).toMatch(/[\\/]zkyq-dev(?:\.cmd)?$/)
+    expect(child.commandEnv.ZKYQ_CLI_COMMAND).toBe(child.env.ZKYQ_CLI_COMMAND)
+    expect(child.env).not.toHaveProperty('ORCA_CLI_COMMAND')
+    expect(child.env).not.toHaveProperty('ORCA_DEV_CLI_INVOCATION')
+    expect(child.env.KEEP_USER_VALUE).toBe('existing user value')
+  })
+
   beforeEach(() => {
     structuredWorkerIdentities.clear()
     createSpy.mockReset()
@@ -96,7 +116,7 @@ describe('structured worker session', () => {
     })
     expect(envAtSpawn?.ORCA_TERMINAL_HANDLE).toBe(created.identity.handle)
     // This app's own launcher by absolute path, so a login shell's profile cannot swap in a global.
-    expect(envAtSpawn?.ORCA_CLI_COMMAND).toBe(
+    expect(envAtSpawn?.ZKYQ_CLI_COMMAND).toBe(
       join(
         getAppEnvironment().getPath('userData'),
         'cli',

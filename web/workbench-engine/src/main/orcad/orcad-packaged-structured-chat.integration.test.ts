@@ -349,7 +349,7 @@ describe.skipIf(skip || process.platform === 'win32')('packaged plain-Node struc
       expect(report.userMessages[0]?.message.content).toEqual([
         { type: 'text', text: 'Hello packaged server' }
       ])
-      // Follow-up #26464: assert ORCA_CLI_COMMAND executes the packaged host CLI.
+      // Follow-up #26464: assert ZKYQ_CLI_COMMAND executes the packaged host CLI.
     } finally {
       subscription?.close()
       await killChildAndWait(server.child)

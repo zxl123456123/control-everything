@@ -37,10 +37,10 @@ export async function ensureDevLauncher(args: {
     args.commandName !== DEV_COMMAND_NAME
       ? legacyContent
       : args.platform === 'win32'
-        ? legacyContent.replace('setlocal\n', 'setlocal\nset "ORCA_CLI_COMMAND=zkyq-dev"\n')
+        ? legacyContent.replace('setlocal\n', 'setlocal\nset "ZKYQ_CLI_COMMAND=zkyq-dev"\n')
         : legacyContent.replace(
             'set -euo pipefail\n',
-            'set -euo pipefail\nexport ORCA_CLI_COMMAND=zkyq-dev\n'
+            'set -euo pipefail\nexport ZKYQ_CLI_COMMAND=zkyq-dev\n'
           )
   await writeFile(launcherPath, content, {
     encoding: 'utf8',

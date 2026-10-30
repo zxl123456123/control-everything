@@ -112,7 +112,7 @@ export function pairRuntimeEnvironment(listEnvironmentsMock: Mock, id: string, n
 export function useWorktreeAwarenessEnvironment(mocks: WorktreeAwarenessMocks): void {
   const originalTerminalHandle = process.env.ORCA_TERMINAL_HANDLE
   const originalUserDataPath = process.env.ZKYQ_USER_DATA_PATH
-  const originalDevCliInvocation = process.env.ORCA_DEV_CLI_INVOCATION
+  const originalDevCliInvocation = process.env.ZKYQ_DEV_CLI_INVOCATION
   const originalPairingCode = process.env.ORCA_PAIRING_CODE
   const originalRemotePairing = process.env.ORCA_REMOTE_PAIRING
   const originalEnvironment = process.env.ORCA_ENVIRONMENT
@@ -123,7 +123,7 @@ export function useWorktreeAwarenessEnvironment(mocks: WorktreeAwarenessMocks): 
     mocks.callMock.mockReset()
     delete process.env.ORCA_TERMINAL_HANDLE
     delete process.env.ZKYQ_USER_DATA_PATH
-    delete process.env.ORCA_DEV_CLI_INVOCATION
+    delete process.env.ZKYQ_DEV_CLI_INVOCATION
     delete process.env.ORCA_WORKSPACE_ID
     delete process.env.ORCA_WORKTREE_ID
     // Isolate the pane key so claude-teams tests that set it don't leak a
@@ -169,9 +169,9 @@ export function useWorktreeAwarenessEnvironment(mocks: WorktreeAwarenessMocks): 
       process.env.ZKYQ_USER_DATA_PATH = originalUserDataPath
     }
     if (originalDevCliInvocation === undefined) {
-      delete process.env.ORCA_DEV_CLI_INVOCATION
+      delete process.env.ZKYQ_DEV_CLI_INVOCATION
     } else {
-      process.env.ORCA_DEV_CLI_INVOCATION = originalDevCliInvocation
+      process.env.ZKYQ_DEV_CLI_INVOCATION = originalDevCliInvocation
     }
     if (originalPairingCode === undefined) {
       delete process.env.ORCA_PAIRING_CODE

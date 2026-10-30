@@ -84,7 +84,7 @@ export function addOrcaWslInteropEnv(env: Record<string, string>): void {
     // Why /p: the guest reads the content-addressed wrapper tree through /mnt/c,
     // and it cannot derive the hash segment from ZKYQ_USER_DATA_PATH alone.
     'ORCA_SHELL_READY_ROOT/p',
-    'ORCA_CLI_COMMAND/u',
+    'ZKYQ_CLI_COMMAND/u',
     // Why /p: the managed CLI launcher lives in the host's userData tree.
     'ORCA_WSL_CLI_DIR/p',
     'ORCA_CODEX_LAUNCH_PREFLIGHT/p',

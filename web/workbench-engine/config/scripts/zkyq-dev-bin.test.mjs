@@ -19,8 +19,8 @@ describe('zkyq-dev package bin', () => {
         `fs.writeFileSync(${JSON.stringify(outputPath)}, JSON.stringify({`,
         '  argv: process.argv.slice(2),',
         '  userDataPath: process.env.ZKYQ_USER_DATA_PATH,',
-        '  devCliInvocation: process.env.ORCA_DEV_CLI_INVOCATION,',
-        '  command: process.env.ORCA_CLI_COMMAND,',
+        '  devCliInvocation: process.env.ZKYQ_DEV_CLI_INVOCATION,',
+        '  command: process.env.ZKYQ_CLI_COMMAND,',
         '  appExecutable: process.env.ZKYQ_APP_EXECUTABLE',
         '}));'
       ].join('\n'),
@@ -34,7 +34,7 @@ describe('zkyq-dev package bin', () => {
       env: {
         ...process.env,
         ORCA_DEV_CLI_ENTRY_PATH: cliEntry,
-        ORCA_CLI_COMMAND: 'orca-dev',
+        ZKYQ_CLI_COMMAND: 'orca-dev',
         ORCA_DEV_USER_DATA_PATH: path.join(root, 'user-data'),
         ZKYQ_APP_EXECUTABLE: path.join(root, 'Electron')
       },

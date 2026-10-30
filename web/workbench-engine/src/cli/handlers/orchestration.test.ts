@@ -9,7 +9,7 @@ const originalPaneKey = process.env.ORCA_PANE_KEY
 // Why: a structured-session marker inherited from the runner diverts these cases to the
 // structured refusal, so which branch they exercise would depend on who ran them.
 const originalStructuredSession = process.env.ORCA_STRUCTURED_SESSION
-const originalCliCommand = process.env.ORCA_CLI_COMMAND
+const originalCliCommand = process.env.ZKYQ_CLI_COMMAND
 const originalExitCode = process.exitCode
 function lifecycleGroupRecipientError(type: 'worker_done' | 'heartbeat'): string {
   return `${type} messages belong to one exact Dispatch and cannot target a group address.`
@@ -41,9 +41,9 @@ afterEach(() => {
     process.env.ORCA_STRUCTURED_SESSION = originalStructuredSession
   }
   if (originalCliCommand === undefined) {
-    delete process.env.ORCA_CLI_COMMAND
+    delete process.env.ZKYQ_CLI_COMMAND
   } else {
-    process.env.ORCA_CLI_COMMAND = originalCliCommand
+    process.env.ZKYQ_CLI_COMMAND = originalCliCommand
   }
   process.exitCode = originalExitCode
   vi.restoreAllMocks()
@@ -598,7 +598,7 @@ describe('orchestration timeout flag validation', () => {
 
   it('prints the pending message ID and exact capability-bound resume command on timeout', async () => {
     process.env.ORCA_TERMINAL_HANDLE = 'term_worker'
-    process.env.ORCA_CLI_COMMAND = 'zkyq-dev'
+    process.env.ZKYQ_CLI_COMMAND = 'zkyq-dev'
     callMock.mockResolvedValue({
       result: {
         answer: null,

@@ -7,6 +7,7 @@ web/workspace/news.js text eol=lf
 /.gitattributes text eol=lf
 tools/packaging/workbench-engine-source.json text eol=lf
 web/workbench-engine/native/windows-cli-launcher/src/main.rs text eol=lf
+web/workbench-engine/tests/tools/freeze-repro/README.md text eol=lf
 web/workbench-engine/mobile/app.config.js text eol=lf
 web/workbench-engine/mobile/package.json text eol=lf
 web/workbench-engine/mobile/pnpm-lock.yaml text eol=lf

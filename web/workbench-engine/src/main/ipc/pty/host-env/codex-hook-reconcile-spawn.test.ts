@@ -24,7 +24,7 @@ vi.mock('../../../pi/titlebar-extension-service', () => ({
 }))
 vi.mock('../../../cli/orca-cli-child-path', () => ({
   prependOrcaCliDirToChildPath: (env: Record<string, string>) => {
-    env.ORCA_CLI_COMMAND = join(fixture.userData, 'zkyq.exe')
+    env.ZKYQ_CLI_COMMAND = join(fixture.userData, 'zkyq.exe')
   }
 }))
 vi.mock('../../../cli/wsl-managed-cli', () => ({
@@ -77,7 +77,7 @@ describe("a pane spawn rechecks Orca's entry in ~/.codex", () => {
 
   it('keeps the WSL command after the headless host prepends its native launcher', () => {
     const env = buildPtyHostEnv('wsl-pane', {}, { ...options, isWsl: true, wslDistro: 'Ubuntu' })
-    expect(env.ORCA_CLI_COMMAND).toBe('zkyq')
+    expect(env.ZKYQ_CLI_COMMAND).toBe('zkyq')
     expect(env.ORCA_WSL_CLI_DIR).toBe(join(fixture.userData, 'wsl-cli'))
   })
 })

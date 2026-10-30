@@ -290,7 +290,7 @@ export function buildPtyHostEnv(
     if (!opts.isPackaged) {
       baseEnv.ZKYQ_USER_DATA_PATH ??= opts.userDataPath
     }
-    delete baseEnv.ORCA_CLI_COMMAND
+    delete baseEnv.ZKYQ_CLI_COMMAND
   }
   prependOrcaCliDirToChildPath(baseEnv, {
     isPackaged: opts.isPackaged,
@@ -299,7 +299,7 @@ export function buildPtyHostEnv(
   })
   if (opts.isWsl) {
     // The host helper can set a Windows launcher path; the guest needs its managed shell command.
-    baseEnv.ORCA_CLI_COMMAND = getWslCliCommandName(opts.isPackaged)
+    baseEnv.ZKYQ_CLI_COMMAND = getWslCliCommandName(opts.isPackaged)
   }
 
   if (

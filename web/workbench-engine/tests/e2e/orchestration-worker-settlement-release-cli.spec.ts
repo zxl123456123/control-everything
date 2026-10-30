@@ -114,7 +114,7 @@ function readCliLedger(): CliLedgerEntry[] {
 
 function invokeCompiledCli(userDataDir: string, args: string[]) {
   return spawnSync(process.execPath, [cliEntry, ...args], {
-    env: { ...process.env, ZKYQ_USER_DATA_PATH: userDataDir, ORCA_DEV_CLI_INVOCATION: '1' },
+    env: { ...process.env, ZKYQ_USER_DATA_PATH: userDataDir, ZKYQ_DEV_CLI_INVOCATION: '1' },
     encoding: 'utf8'
   })
 }

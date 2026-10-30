@@ -40,6 +40,8 @@ export function prependOrcaCliDirToChildPath(
   opts: OrcaCliChildPathOptions
 ): string | null {
   const platform = opts.platform ?? process.platform
+  delete env.ORCA_CLI_COMMAND
+  delete env.ORCA_DEV_CLI_INVOCATION
   delete env.ORCA_CLI_BIN_DIR
   // Why: matches node:path's `delimiter` for the running platform, but stays correct when a test
   // drives a foreign platform through the seam.
@@ -55,7 +57,7 @@ export function prependOrcaCliDirToChildPath(
       env.ORCA_CLI_BIN_DIR = binDir
     }
     env.ZKYQ_USER_DATA_PATH = opts.userDataPath
-    env.ORCA_CLI_COMMAND = hostLauncher
+    env.ZKYQ_CLI_COMMAND = hostLauncher
     return hostLauncher
   }
   // Why: dev mode needs the launcher PATH override so `orca` resolves to the dev build instead of the production binary at /usr/local/bin/orca.

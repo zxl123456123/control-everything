@@ -331,7 +331,7 @@ function inheritedEnvironment(): Record<string, string> {
     ORCA_AGENT_SESSION_SPAWN_TOKEN: 'parent-spawn-token',
     [NATIVE_CHAT_SCRATCH_DIR_ENV]: '/parent/scratch',
     [LEGACY_NATIVE_CHAT_VISUALS_DIR_ENV]: '/parent/visuals',
-    ORCA_CLI_COMMAND: '/parent/orca',
+    ZKYQ_CLI_COMMAND: '/parent/orca',
     ORCA_CLI_BIN_DIR: '/parent/bin',
     ZKYQ_USER_DATA_PATH: '/parent/user-data',
     ORCA_OPENCODE_CONFIG_DIR: '/parent/opencode-overlay',

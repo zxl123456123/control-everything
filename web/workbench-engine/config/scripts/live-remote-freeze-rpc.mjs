@@ -13,8 +13,11 @@ export function appendOrcaRpcOutput(output, chunk, bytes, limit = MAX_ORCA_RPC_O
 }
 
 export function resolveOrcaCliCommand({ env = process.env, platform = process.platform } = {}) {
+  if (env.ZKYQ_CLI_COMMAND?.trim()) {
+    return env.ZKYQ_CLI_COMMAND.trim()
+  }
   if (env.ORCA_CLI_COMMAND?.trim()) {
-    return env.ORCA_CLI_COMMAND.trim()
+    throw new Error('Set ZKYQ_CLI_COMMAND to the selected executable instead of ORCA_CLI_COMMAND.')
   }
   if (env.ORCA_DEV_REPO_ROOT) {
     return 'zkyq-dev'
@@ -45,8 +48,8 @@ export function resolveOrcaCliInvocation({
         ...env,
         ZKYQ_USER_DATA_PATH:
           env.ZKYQ_USER_DATA_PATH ?? env.ORCA_DEV_USER_DATA_PATH ?? defaultUserDataPath,
-        ORCA_DEV_CLI_INVOCATION: '1',
-        ORCA_CLI_COMMAND: 'zkyq-dev',
+        ZKYQ_DEV_CLI_INVOCATION: '1',
+        ZKYQ_CLI_COMMAND: 'zkyq-dev',
         ZKYQ_APP_EXECUTABLE:
           env.ZKYQ_APP_EXECUTABLE ??
           path.win32.join(

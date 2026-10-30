@@ -1,10 +1,18 @@
+import { RuntimeClientError } from './types'
+
 export function resolveOrchestrationCliExecutable(
   env: NodeJS.ProcessEnv = process.env,
   _platform: NodeJS.Platform = process.platform
 ): string {
-  const configured = env.ORCA_CLI_COMMAND?.trim()
+  const configured = env.ZKYQ_CLI_COMMAND?.trim()
   if (configured) {
     return configured
+  }
+  if (env.ORCA_CLI_COMMAND?.trim()) {
+    throw new RuntimeClientError(
+      'invalid_argument',
+      'The command override was renamed. Set ZKYQ_CLI_COMMAND to the selected executable instead of ORCA_CLI_COMMAND.'
+    )
   }
   if (env.ORCA_DEV_REPO_ROOT) {
     return 'zkyq-dev'

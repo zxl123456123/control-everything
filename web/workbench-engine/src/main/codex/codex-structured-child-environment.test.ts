@@ -66,7 +66,7 @@ describe('the Codex child environment', () => {
       [ORCA_AGENT_SESSION_SPAWN_TOKEN_ENV]: 'spawn-token',
       ORCA_AGENT_SESSION_ID: 'session-not-a-worker',
       ORCA_STRUCTURED_SESSION: '1',
-      ORCA_CLI_COMMAND: expect.stringMatching(DEV_CLI_LAUNCHER),
+      ZKYQ_CLI_COMMAND: expect.stringMatching(DEV_CLI_LAUNCHER),
       ...(process.platform !== 'win32'
         ? { ORCA_CLI_BIN_DIR: expect.stringMatching(DEV_CLI_BIN_DIR) }
         : {}),
@@ -86,7 +86,7 @@ describe('the Codex child environment', () => {
       // Not a worker, so no handle: the id alone names this chat as a caller.
       ORCA_AGENT_SESSION_ID: sessionId,
       ORCA_STRUCTURED_SESSION: '1',
-      ORCA_CLI_COMMAND: expect.stringMatching(DEV_CLI_LAUNCHER),
+      ZKYQ_CLI_COMMAND: expect.stringMatching(DEV_CLI_LAUNCHER),
       ...(process.platform !== 'win32'
         ? { ORCA_CLI_BIN_DIR: expect.stringMatching(DEV_CLI_BIN_DIR) }
         : {}),
@@ -111,7 +111,7 @@ describe('the Codex child environment', () => {
       const env = sealed(sessionId)
       expect(env.ORCA_TERMINAL_HANDLE).toBe(handle)
       expect(env.ORCA_AGENT_SESSION_ID).toBe(sessionId)
-      expect(env.ORCA_CLI_COMMAND).toMatch(DEV_CLI_LAUNCHER)
+      expect(env.ZKYQ_CLI_COMMAND).toMatch(DEV_CLI_LAUNCHER)
       // A pane key here would leak into hook-emitted agent statuses, which assume a PTY leaf.
       expect(env.ORCA_PANE_KEY).toBeUndefined()
     } finally {
@@ -132,7 +132,7 @@ const ENV_REPORTING_APP_SERVER = String.raw`
         id: message.id,
         result: {
           sessionId: process.env.ORCA_AGENT_SESSION_ID ?? null,
-          cliCommand: process.env.ORCA_CLI_COMMAND ?? null,
+          cliCommand: process.env.ZKYQ_CLI_COMMAND ?? null,
           selectors: [
             process.env.ORCA_ENVIRONMENT,
             process.env.ORCA_PAIRING_CODE,

@@ -64,7 +64,7 @@ async function withManagedCli(
     expect(directory).not.toBeNull()
     Object.assign(env, {
       ORCA_WSL_CLI_DIR: directory ?? '',
-      ORCA_CLI_COMMAND: 'zkyq-dev',
+      ZKYQ_CLI_COMMAND: 'zkyq-dev',
       ORCA_TERMINAL_HANDLE: 'term_managed_fixture'
     })
     addOrcaWslInteropEnv(env)

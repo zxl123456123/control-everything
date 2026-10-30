@@ -29,7 +29,7 @@ state; never substitute a non-Orca subagent tool.
 
 Choose the executable once and reuse it for every later command:
 
-- If the `ORCA_CLI_COMMAND` environment variable is set, use its value. The workbench exports this
+- If the `ZKYQ_CLI_COMMAND` environment variable is set, use its value. The workbench exports this
   for managed WSL sessions.
 - Otherwise, in a dev checkout whose session exposes `ORCA_DEV_REPO_ROOT`, use `zkyq-dev`.
 - Otherwise, use `zkyq`.

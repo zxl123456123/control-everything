@@ -326508,7 +326508,7 @@
     },
     {
       "path": "resources/skills/current-manifest.json",
-      "sha256": "8197a4686fbffb4c7434360060fde0cb3e77cc3de67c95cba05ff51ffd85aa28",
+      "sha256": "be007d0323e03c50271a83554b4eebf2fa7d34c6f87ecbfb0b5fa6a10e733278",
       "license_paths": [
         "LICENSE"
       ],
@@ -329406,8 +329406,8 @@
     {
       "path": "native/windows-cli-launcher/src/main.rs",
       "upstream_sha256": "317d4e1c19a1d1d6be2fa93f832d2e43ab0d6ae8e7043bba019c52b46b2340f2",
-      "current_sha256": "ebb9af33db8e9825423ef34284a95d6c8c2651e33dfb5e86f2afc40962d7644c",
-      "reason": "Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands.；启动器读写统一为zkyq配置，成功安装后移除旧生成配置，失败保留重试且不读取旧名回退；统一Windows桌面命令安装状态、宿主能力、批处理分发和原生恢复命令为zkyq，保留PATH及消息参数行为；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；Node参数暂存合同改为ZKYQ，启动器及重启恢复同步，历史脚本归属识别保留"
+      "current_sha256": "be736328091219891f77ee6140b9e5c3521ec64e6e6372888f840eaea576dc79",
+      "reason": "Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands.；启动器读写统一为zkyq配置，成功安装后移除旧生成配置，失败保留重试且不读取旧名回退；统一Windows桌面命令安装状态、宿主能力、批处理分发和原生恢复命令为zkyq，保留PATH及消息参数行为；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；Node参数暂存合同改为ZKYQ，启动器及重启恢复同步，历史脚本归属识别保留；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
     },
     {
       "path": "resources/win32/bin/zkyq.cmd",
@@ -329424,8 +329424,8 @@
     {
       "path": "src/main/cli/wsl-managed-cli.test.ts",
       "upstream_sha256": "07c6d4a06f5edc39ae2e05f73ae8d86f755ee244503b3a0e34c7bf26755f952b",
-      "current_sha256": "2ad08288bce96b1ab31a5ab7bcb4727172c13bb20db0dabdf2cd86eefe165d7b",
-      "reason": "Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands.；WSL命令迁移为zkyq，成功写入后退役受管理旧入口，保留用户文件和桥接参数，失效旧命令修复缓存并对齐派发环境；开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；应用启动配置对统一ZKYQ身份，调用方和生成脚本同步，旧值拒绝默认回退并保持旧脚本归属识别"
+      "current_sha256": "5c969a24a4614b51c139c5693f0565072c6258632539275fc63b90dea89fb5d0",
+      "reason": "Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands.；WSL命令迁移为zkyq，成功写入后退役受管理旧入口，保留用户文件和桥接参数，失效旧命令修复缓存并对齐派发环境；开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；应用启动配置对统一ZKYQ身份，调用方和生成脚本同步，旧值拒绝默认回退并保持旧脚本归属识别；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
     },
     {
       "path": "src/main/runtime/claude-agent-teams-shim-env.ts",
@@ -329784,26 +329784,26 @@
     {
       "path": "src/cli/handlers/orchestration.test.ts",
       "upstream_sha256": "1ebd292e7c4c6c63cab1819c8b3e8c39d5274aabcc9d6487a547cec641474241",
-      "current_sha256": "3aba5a6bacba3547c2576231a8f6731578c40e8a94c5f671b64c3a30edba5201",
-      "reason": "统一已安装zkyq宿主的Agent派发、收信及恢复命令与状态摘要身份，保留历史记录识别和用户内容；开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+      "current_sha256": "688816e673149c31e66c253e77eb06e93e18aa527e0037f7b535b4d10bd11d6c",
+      "reason": "统一已安装zkyq宿主的Agent派发、收信及恢复命令与状态摘要身份，保留历史记录识别和用户内容；开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
     },
     {
       "path": "src/cli/handlers/orchestration/runtime-compatibility.ts",
       "upstream_sha256": "a102ef1800a19043e2f39efcc12d44d67b8c038ec010fca91e8fa541ec3b19b7",
-      "current_sha256": "c00482058464412f039cc78e8384e9f60e486b65d4f70d2c9b3c2f8fc185b622",
-      "reason": "统一已安装zkyq宿主的Agent派发、收信及恢复命令与状态摘要身份，保留历史记录识别和用户内容；开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；编排命令合同收敛为zkyq/zkyq-dev，恢复与接管提示使用新命令，保留历史会话数据和授权约束；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+      "current_sha256": "57d60212954e99240bb0501466a82807193a91b57c97a5553a712fa3db63a77e",
+      "reason": "统一已安装zkyq宿主的Agent派发、收信及恢复命令与状态摘要身份，保留历史记录识别和用户内容；开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；编排命令合同收敛为zkyq/zkyq-dev，恢复与接管提示使用新命令，保留历史会话数据和授权约束；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
     },
     {
       "path": "src/cli/runtime/orchestration-recovery-command.test.ts",
       "upstream_sha256": "359edcb11e836fb884fe651bd3d4b8f93bd68d2d500ef7fcd0dc776aceec6c45",
-      "current_sha256": "cafb077406f2634d51e55b9b4b3180937eeb41afa4946456726a5a6029bc3dbf",
-      "reason": "统一已安装zkyq宿主的Agent派发、收信及恢复命令与状态摘要身份，保留历史记录识别和用户内容；开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+      "current_sha256": "32e23447e222f65cee37851e76ed3812c31efbc4e4062d53a6914918fe560f32",
+      "reason": "统一已安装zkyq宿主的Agent派发、收信及恢复命令与状态摘要身份，保留历史记录识别和用户内容；开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
     },
     {
       "path": "src/cli/runtime/orchestration-recovery-command.ts",
       "upstream_sha256": "ea13a8eb3a74889f7ca0d0d174e7f5645ad3c9716688846e5abaf503fd977c03",
-      "current_sha256": "fd82486379dddc5d7bce23b8704725a9f028f87c467ded467f54d76d55d112fd",
-      "reason": "统一已安装zkyq宿主的Agent派发、收信及恢复命令与状态摘要身份，保留历史记录识别和用户内容；开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+      "current_sha256": "97de35e7fd6b82b754f07cab4029669472f4fdde8285024a0c1ffd8e39935450",
+      "reason": "统一已安装zkyq宿主的Agent派发、收信及恢复命令与状态摘要身份，保留历史记录识别和用户内容；开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
     },
     {
       "path": "src/main/runtime/orchestration/__snapshots__/preamble.test.ts.snap",
@@ -329958,8 +329958,8 @@
     {
       "path": "src/main/cli/wsl-cli-scripts.ts",
       "upstream_sha256": "546a8bc007584027f73a6f1fef985d014fdf6727a9a86a321814eb230b7bf9d8",
-      "current_sha256": "3faedb4727a3bc28d5390362eabc7ea137705b1a1b1c48f98d797886931ae2d7",
-      "reason": "WSL命令迁移为zkyq，成功写入后退役受管理旧入口，保留用户文件和桥接参数，失效旧命令修复缓存并对齐派发环境；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；应用启动配置对统一ZKYQ身份，调用方和生成脚本同步，旧值拒绝默认回退并保持旧脚本归属识别；Node参数暂存合同改为ZKYQ，启动器及重启恢复同步，历史脚本归属识别保留"
+      "current_sha256": "f60d3d26bb9b25723ee6aacf48c1573ab6ae67c9252a9be65ae4729fdbcf32f7",
+      "reason": "WSL命令迁移为zkyq，成功写入后退役受管理旧入口，保留用户文件和桥接参数，失效旧命令修复缓存并对齐派发环境；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；应用启动配置对统一ZKYQ身份，调用方和生成脚本同步，旧值拒绝默认回退并保持旧脚本归属识别；Node参数暂存合同改为ZKYQ，启动器及重启恢复同步，历史脚本归属识别保留；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
     },
     {
       "path": "src/main/cli/wsl-cli-status.ts",
@@ -329976,14 +329976,14 @@
     {
       "path": "src/main/ipc/pty/host-env/assembly.ts",
       "upstream_sha256": "cea26bedafe323d652f0b6f2acba821a564220742d4f122a8bb9f18e858e1a09",
-      "current_sha256": "92f7d3e6b80384229a405d415842b2b6d57c8a91a7a9d51e3e7eb698601c8fa6",
-      "reason": "WSL命令迁移为zkyq，成功写入后退役受管理旧入口，保留用户文件和桥接参数，失效旧命令修复缓存并对齐派发环境；原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者；开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+      "current_sha256": "1aefc00a4bcd956238900a7abdc896443fc19af2c903c6b7de24923a017fc096",
+      "reason": "WSL命令迁移为zkyq，成功写入后退役受管理旧入口，保留用户文件和桥接参数，失效旧命令修复缓存并对齐派发环境；原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者；开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
     },
     {
       "path": "src/main/ipc/pty/host-env/codex-hook-reconcile-spawn.test.ts",
       "upstream_sha256": "ebb07b366970dffc05f35a2a674ea00ab89c23f63df42c441e02d4053f05bc06",
-      "current_sha256": "ed053a9e7af5c728ff40f54b7d2a12e23518314f7864ee98adf769b5da4e1043",
-      "reason": "WSL命令迁移为zkyq，成功写入后退役受管理旧入口，保留用户文件和桥接参数，失效旧命令修复缓存并对齐派发环境"
+      "current_sha256": "73a8fd4ecedcac359118f0d5dc3e7afb63e8c86e4cbf95564f408775aea4681b",
+      "reason": "WSL命令迁移为zkyq，成功写入后退役受管理旧入口，保留用户文件和桥接参数，失效旧命令修复缓存并对齐派发环境；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
     },
     {
       "path": "config/docker/cli-launch-contract/run-cli-case.sh",
@@ -330102,8 +330102,8 @@
     {
       "path": "src/main/cli/orca-cli-child-path.ts",
       "upstream_sha256": "7a353e3f60ddbe15b2c8b0bdbed58d70c7a21ab5184e374a5dbb6267c5e42dc6",
-      "current_sha256": "56a25fd54053f45229ff0af4b9e4ec68516f364d2aeee91759301683a3f15c73",
-      "reason": "原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+      "current_sha256": "3b538bf69de31be446397c23283ee8e894627fd79025dae443ddfefafc92d296",
+      "reason": "原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
     },
     {
       "path": "src/main/cli/packaged-cli-assets.test.ts",
@@ -330156,8 +330156,8 @@
     {
       "path": "resources/linux/bin/zkyq",
       "upstream_sha256": "3700b10e53d38269b2ab7cd41c46d07da1412b94629e6e57c92e69da9ce16aca",
-      "current_sha256": "1653a6460e5396fb5f5a3b0c6d8dad70014d40bb998ab981faacc95ff61634e9",
-      "reason": "原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者；Node参数暂存合同改为ZKYQ，启动器及重启恢复同步，历史脚本归属识别保留"
+      "current_sha256": "3998de6c3db9882f38cbe476a237f8b7ce9802a34930522b23fa6abda92c4a13",
+      "reason": "原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者；Node参数暂存合同改为ZKYQ，启动器及重启恢复同步，历史脚本归属识别保留；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
     },
     {
       "path": "src/main/ipc/desktop-browser-bridge-wiring.test.ts",
@@ -330222,8 +330222,8 @@
     {
       "path": "resources/darwin/bin/zkyq",
       "upstream_sha256": "55776ac787472b997218bb3801b231eca756d5650b95f764eeadf912831fa1d5",
-      "current_sha256": "5b7caf3d49b17537effb6a62e94eefbd406b4c69fe43db08e4d14c7050f479b6",
-      "reason": "macOS打包CLI物理改名zkyq，同步安装/回收/卸载与本地派发，保留用户命令及文件竞态保护；Node参数暂存合同改为ZKYQ，启动器及重启恢复同步，历史脚本归属识别保留"
+      "current_sha256": "474e97171ed54900dcab9c9d27ae59132c9a289573deacae75342a849d997b1a",
+      "reason": "macOS打包CLI物理改名zkyq，同步安装/回收/卸载与本地派发，保留用户命令及文件竞态保护；Node参数暂存合同改为ZKYQ，启动器及重启恢复同步，历史脚本归属识别保留；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
     },
     {
       "path": "src/main/cli/cli-installer-test-fixtures.ts",
@@ -330240,14 +330240,14 @@
     {
       "path": "config/scripts/dev-cli-terminal-wrapper.mjs",
       "upstream_sha256": "1fe803af00e1cc8bcdacbc468192cc3c7c372205022c158c0a3020a30abe3d72",
-      "current_sha256": "8f96bca53e1c8224e3fa3a6f8fb636d6783ab4bfa294b6520c5cdf678c729ae9",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；应用启动配置对统一ZKYQ身份，调用方和生成脚本同步，旧值拒绝默认回退并保持旧脚本归属识别"
+      "current_sha256": "9c42fe0dd256fab5b6bbcff09da0be7c4f50a4086f0ff3037908ff545c8069c9",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；应用启动配置对统一ZKYQ身份，调用方和生成脚本同步，旧值拒绝默认回退并保持旧脚本归属识别；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
     },
     {
       "path": "config/scripts/dev-cli-terminal-wrapper.test.mjs",
       "upstream_sha256": "7120a00319c1223edcb8a423bf59afd627f18542285819e3e66e14713fb5b871",
-      "current_sha256": "00b47bfef11ecaa0f8bf6bbb8880e62082786a7b1e56747dab89ffa903af249c",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；应用启动配置对统一ZKYQ身份，调用方和生成脚本同步，旧值拒绝默认回退并保持旧脚本归属识别"
+      "current_sha256": "acff9085777643fbafd29d0ea7cac45ece8f3ec1f555a6d9d658122fb5c295c0",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；应用启动配置对统一ZKYQ身份，调用方和生成脚本同步，旧值拒绝默认回退并保持旧脚本归属识别；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
     },
     {
       "path": "config/scripts/dev-storage-reclaim.mjs",
@@ -330264,8 +330264,8 @@
     {
       "path": "config/scripts/live-remote-freeze-rpc.mjs",
       "upstream_sha256": "7caae4f4c3130536c5da85727cd9adbe123dfe05522467a39efe92a980b1d99a",
-      "current_sha256": "00e7e1eeb624148a07f4c617f21f944305b755359797c519c2a99ad43fab4b7d",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；当前本地与SSH运行组件统一zkyq调用，移除过时relay命令分支并同步Agent启动、收信、回复与诊断默认入口；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；应用启动配置对统一ZKYQ身份，调用方和生成脚本同步，旧值拒绝默认回退并保持旧脚本归属识别"
+      "current_sha256": "0c6fa0df7ebb3694a85aa23109252697de7fb1fd022b87431d2439a896bd7a1f",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；当前本地与SSH运行组件统一zkyq调用，移除过时relay命令分支并同步Agent启动、收信、回复与诊断默认入口；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；应用启动配置对统一ZKYQ身份，调用方和生成脚本同步，旧值拒绝默认回退并保持旧脚本归属识别；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
     },
     {
       "path": "config/scripts/orcad-terminal-smoke-change-scope.mjs",
@@ -330294,14 +330294,14 @@
     {
       "path": "config/scripts/zkyq-dev-bin.test.mjs",
       "upstream_sha256": "72e310e8352642bbebc79d7af2d5f1dfc27ef22aeecdee908647554bc6fe8d98",
-      "current_sha256": "44fdc165667d34db7678293387786ecf2c097eaaa22e6f1f28c94485066e48c5",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；应用启动配置对统一ZKYQ身份，调用方和生成脚本同步，旧值拒绝默认回退并保持旧脚本归属识别"
+      "current_sha256": "9b80f90e6ef6f62fdaa1f7917faf7fb24887ee8001f63c34f38e072d2158cea7",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；应用启动配置对统一ZKYQ身份，调用方和生成脚本同步，旧值拒绝默认回退并保持旧脚本归属识别；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
     },
     {
       "path": "config/scripts/zkyq-dev.mjs",
       "upstream_sha256": "7c283b0e22e4f47cc968dc97c371fce168462dbe3b773421755476a3a1236342",
-      "current_sha256": "4b76bf9c86838d2bc7eb841bc1c65b873212deceea0b1c9df296b9b9f729453e",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；应用启动配置对统一ZKYQ身份，调用方和生成脚本同步，旧值拒绝默认回退并保持旧脚本归属识别"
+      "current_sha256": "1f50b3d9a9732270fba9f4d48cdb0fe61e4106161ce9532b05fd041529419f0e",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；应用启动配置对统一ZKYQ身份，调用方和生成脚本同步，旧值拒绝默认回退并保持旧脚本归属识别；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
     },
     {
       "path": "package.json",
@@ -330312,8 +330312,8 @@
     {
       "path": "resources/skills/current-manifest.json",
       "upstream_sha256": "5782ddb9aa2f3d22b49c18980ac0e0b679b19b9af2a9c5eb50dae648e55072e2",
-      "current_sha256": "8197a4686fbffb4c7434360060fde0cb3e77cc3de67c95cba05ff51ffd85aa28",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+      "current_sha256": "be007d0323e03c50271a83554b4eebf2fa7d34c6f87ecbfb0b5fa6a10e733278",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
     },
     {
       "path": "skill-guides/orca-cli.md",
@@ -330336,68 +330336,68 @@
     {
       "path": "skill-stubs/_shared/cli-resolution.md",
       "upstream_sha256": "51a70100ce198bff1e9a74408275cbb04d0ee655357811a6fbea6747d03cfb72",
-      "current_sha256": "0e51d84419434b61b31aa50535f4d1f238dba107aa9021b8317df738f09e8b2e",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+      "current_sha256": "82c56bd22c2d1477f10c19aa8dfd596d6b6d7b2b62e64e0c4f0c6d645ddeb6dd",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
     },
     {
       "path": "skills/computer-use/SKILL.md",
       "upstream_sha256": "2839933fd35216845461466403e6061488005f6df57126d0cd0f769ea45753f3",
-      "current_sha256": "484a2ad0225ab209a28b8088dcd664f6704e6fae820b9debc8733bb85a6b77f6",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+      "current_sha256": "b6b42e4fba72680479bd4c065525c38443de8a5c2c8d352d12478b06d9c29734",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
     },
     {
       "path": "skills/jira-tickets/SKILL.md",
       "upstream_sha256": "5534da4000f4f4c87f7dbb263345a213068c0099a1440186adea865e17d90dfe",
-      "current_sha256": "8b8e8c798e3d6ee730fdc108932f5a0b30a5cf2aa13ad34b6a54a47da8fc9eb9",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+      "current_sha256": "1256f3142a19a054f7fca18e45624f617d3e0d21910fd5d4da3cffe9b2c919aa",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
     },
     {
       "path": "skills/linear-tickets/SKILL.md",
       "upstream_sha256": "e181f86073da65c492361469d504fe15e7ae61bc99990bc41bea47aa13455619",
-      "current_sha256": "205667361f4e1fea0a4f18e09e2e3024c31dae3cfb3e3bba1a32a1adee7ca803",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+      "current_sha256": "f177ba8cc6b18a043dae813984986763bb10a91440f78ead34dfca247f2a37f7",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
     },
     {
       "path": "skills/orca-cli/SKILL.md",
       "upstream_sha256": "aa76f86505010096e8ea9edda1705a78aae7af45e54485f3fe0460664c1d9e4a",
-      "current_sha256": "283b226ce23349a48500388e428c23edb6539c1e70b3dce1fcab2ce60d19221e",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+      "current_sha256": "3d2c09fee96581972bec76e526c3308649cce9bef928d5d07512fb685d0b4a7c",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
     },
     {
       "path": "skills/orca-emulator-android/SKILL.md",
       "upstream_sha256": "3ade4e6f8f2717ca899fd841e61f116963a406e9527015b803854c16d012e278",
-      "current_sha256": "f49ad44ae584a14fc1e837021be3c459dccf87d3509a0bc158829522c94fc251",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+      "current_sha256": "46b0e1a974e34f483e987d33bf9c7c509c85061a3ae2c57de93d40f5e12cdbc3",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
     },
     {
       "path": "skills/orca-emulator/SKILL.md",
       "upstream_sha256": "3da7191179e46cb0e1a6a936f1eb54254f6e98ec38849e1c95f0e11073076b48",
-      "current_sha256": "261ff80ca1cfee40209f2c3a72f3870dad653972bdb6f60f937f50157a92aac7",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+      "current_sha256": "1d89a371c9e73a575e2b229b0a304080c5c5ebf9be528c0fa209ff44f452a818",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
     },
     {
       "path": "skills/orca-jira/SKILL.md",
       "upstream_sha256": "ca83c4662fbc2306efb9043674998b0ca5abacc78ec2e5f85e5db80288e6777a",
-      "current_sha256": "8bf1769c709e2b483dfc3b71b4d4ab8188ac39d71161904027b8fbe0f997d034",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+      "current_sha256": "69a465467668142752a18faf38893f8092b2c7599e6beda9723da13333b2f969",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
     },
     {
       "path": "skills/orca-linear/SKILL.md",
       "upstream_sha256": "8da23ef96470906315cace8ff84f8056255ee37d1b2d5db84d8b7b3270a0ba0f",
-      "current_sha256": "0231eb8f8a9e0e07f6b0581323f16f8f515ea9cc435778357f3e8552d3f2969b",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+      "current_sha256": "b271e3dac740328cf887b5d71e1b826ffdebaa6809c4b2ffaa8d8b471ea83ca8",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
     },
     {
       "path": "skills/orca-per-workspace-env/SKILL.md",
       "upstream_sha256": "c005d126a13d2913351472f07690f1c1a660d4f286e2a5f21864aee294f436ce",
-      "current_sha256": "a95b7117ddf088f6d23d0efff275a4d77b23beafacbd6e51edffc552917760e6",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+      "current_sha256": "0f36035490e64428a7d2f837b7e379d86bfb640b575d20dc651799bdd47185d8",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
     },
     {
       "path": "skills/orchestration/SKILL.md",
       "upstream_sha256": "cd1b364bf35781bad06bf75ab1766afa8d6cec69cb2060529691d89871a2098a",
-      "current_sha256": "31f7fe9b94de7de42805663ad7d0f6d46beeeac249c4b02dc222f9b4af143911",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+      "current_sha256": "35ea2d9b4f3848ea195c002c30b6c095f6d6000f7ec82c9809bf0274e73131f2",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
     },
     {
       "path": "src/cli/bundled-skill-guides.ts",
@@ -330408,8 +330408,8 @@
     {
       "path": "src/cli/handlers/orchestration-worker-cli.test.ts",
       "upstream_sha256": "e333252d2d76586f3c48f9330fc3b43eaf4b9e3fbe9181d5a85b55f14f59a830",
-      "current_sha256": "62498fd8dddbd51d09c37a02ee1f000ec66391a2cf7541080c3ac906095939b0",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+      "current_sha256": "be7d70856c483aab54b485508e9821367482fcaa24f8f83bf15f5d8a29e632ed",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
     },
     {
       "path": "src/cli/runtime/runtime-source-fence.test.ts",
@@ -330432,26 +330432,26 @@
     {
       "path": "src/main/cli/cli-dev-launcher.ts",
       "upstream_sha256": "b6a4cd0bc63dede1de0ad2929b4372004e878e8b9284a0ce6407a55d4f12b298",
-      "current_sha256": "1168723e420bb555dd2852477dbec8e4bfb6ef753d499640f4ceeb2867a1af4e",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；应用启动配置对统一ZKYQ身份，调用方和生成脚本同步，旧值拒绝默认回退并保持旧脚本归属识别；Node参数暂存合同改为ZKYQ，启动器及重启恢复同步，历史脚本归属识别保留"
+      "current_sha256": "f4aecb4cfa13b5369a6ffc4a8e671fe60b631d4b997d4b6ed44fd825f61163a6",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；应用启动配置对统一ZKYQ身份，调用方和生成脚本同步，旧值拒绝默认回退并保持旧脚本归属识别；Node参数暂存合同改为ZKYQ，启动器及重启恢复同步，历史脚本归属识别保留；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
     },
     {
       "path": "src/main/cli/wsl-managed-cli.wsl.test.ts",
       "upstream_sha256": "e8062b1ce604ead331c644a026cb9f144608f275b73dd4dd71423190a793cb9f",
-      "current_sha256": "cb776b31e2bc829ef0ad2c1577881e867f6e43f8d706a71a68c2724fa595237d",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+      "current_sha256": "24511f362254493e8f95a1b6c57b5f491e6cd1d25b8224f6ef7519abba9dd7b2",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
     },
     {
       "path": "src/main/codex/codex-structured-child-environment.test.ts",
       "upstream_sha256": "ab0d0e81f8da8cc9fcd65f628d2c08580eff504e944a9f5d9642a794d0e024cf",
-      "current_sha256": "2abc14e877f55207ffe774b7f8bcad3f8fdfbbd844dda6e709bb76cc1e25641c",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+      "current_sha256": "9a232ff4952bcba5b97add265da66d619b679b772353262b6b481e20378bf88d",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
     },
     {
       "path": "src/main/codex/codex-structured-session-adapter.test.ts",
       "upstream_sha256": "d622eef99dded1a5b302dab81d41c2bef02990f56ba2de5b91e8487a2cbf05a1",
-      "current_sha256": "43aa4eb28264ae54beb705b53390c5c45ccb677884e422e830a920f3f0351c4c",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+      "current_sha256": "1345a11d868dc00d4c6f8b206e323dd86b309533fd8a9371150b2bbb0f2932bf",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
     },
     {
       "path": "src/main/daemon/shell-ready-bash-wrapper.test.ts",
@@ -330510,8 +330510,8 @@
     {
       "path": "src/main/runtime/rpc/methods/orchestration-structured-worker-session.test.ts",
       "upstream_sha256": "ab2e00af261af866df230098b4ab82a6e1c12068c193f1856491d2a4551846ed",
-      "current_sha256": "1248cd05a67d56776e13a4bb30b7589f7e259642a8b63cd7e076566f5d97aee7",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+      "current_sha256": "24c863f2e86f5baa7393b40bf9e49f113772f48f20e074dc08090e261d287c18",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
     },
     {
       "path": "src/main/runtime/rpc/methods/orchestration/runs/tasks-dispatch.test.ts",
@@ -330540,8 +330540,8 @@
     {
       "path": "src/main/wsl-managed-cli-path-restore.test.ts",
       "upstream_sha256": "1321140c46b24bfabf1eceb1951736caa20be58af31ef220ee31a9064796bdaf",
-      "current_sha256": "eda6df1006f6759778527f4e60366fb2a6360d76305e262952aab7814f074ed4",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+      "current_sha256": "e39693a37e71f3aaefa3b8a121d61955299c63243172eee4083f1a0c3a348fee",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
     },
     {
       "path": "src/main/zsh-deferred-startup-line-init.live-shell.test.ts",
@@ -330576,14 +330576,14 @@
     {
       "path": "src/cli/handlers/orchestration-windows-ask-cli.test.ts",
       "upstream_sha256": "242dc570843aa4d8286c9356b9c81af2250fa2843734389af8af1d653e8060aa",
-      "current_sha256": "fa72d50de3b1fafcf82b9b10f40d8ce0b52da70a46e3796b8eb8c5065ddad505",
-      "reason": "编排命令合同收敛为zkyq/zkyq-dev，恢复与接管提示使用新命令，保留历史会话数据和授权约束"
+      "current_sha256": "166cb077561409f9459c8ca8600b926a4ee5343cdccbfe8c0929dc2b0d8faf33",
+      "reason": "编排命令合同收敛为zkyq/zkyq-dev，恢复与接管提示使用新命令，保留历史会话数据和授权约束；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
     },
     {
       "path": "src/main/orcad/orcad-cli-orchestration.integration.test.ts",
       "upstream_sha256": "3dfd28b71c23fdde66df0affa58effa4b9fc3db76621e941fbce2044e9a0d31e",
-      "current_sha256": "162dbb612552b4be8009e7e6c1b619a0549784cd7b963461e64858fbd2dbee4e",
-      "reason": "编排命令合同收敛为zkyq/zkyq-dev，恢复与接管提示使用新命令，保留历史会话数据和授权约束；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+      "current_sha256": "14b1f3e48f31caee476d0ab50f56ee34bdf87da44b673740dc289d07fc534e1b",
+      "reason": "编排命令合同收敛为zkyq/zkyq-dev，恢复与接管提示使用新命令，保留历史会话数据和授权约束；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
     },
     {
       "path": "src/main/runtime/orchestration/coordinator.test.ts",
@@ -330864,8 +330864,8 @@
     {
       "path": "src/main/orcad/orcad-cli-launcher.integration.test.ts",
       "upstream_sha256": "dd04b42b7badc6d74bc9858a73e4fa36d56e54cf634bc2b856d4ca7be3ba687b",
-      "current_sha256": "73d909267b9f3245c2cf90790560abd3fa69cf354059758a5e787661dfed3cf5",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+      "current_sha256": "c0ab7db20a8a201a048503a5390d69d536759d512f0c349b905c542202e7a0af",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
     },
     {
       "path": "src/main/orcad/orcad-command-arguments.ts",
@@ -330888,8 +330888,8 @@
     {
       "path": "src/main/orcad/orcad-packaged-structured-chat.integration.test.ts",
       "upstream_sha256": "1b51e407e430c215c6fdc7cd6b52847da0b2a982bae3d214b7fc1df90b5a49c0",
-      "current_sha256": "bbcd40f3ca0ea3b5a6d2ab66a4f12a0cb272028b13e3dae4829929d8b08fef1a",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+      "current_sha256": "d5d5c2a7d3654766d1600e055393eb71307bcb1c38964d97584f7968d60de9a1",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
     },
     {
       "path": "src/main/orcad/orcad-serve-parity.integration.test.ts",
@@ -330972,8 +330972,8 @@
     {
       "path": "config/scripts/run-codex-real-account-validation.mjs",
       "upstream_sha256": "154f33b87605eed177d95cd229541ac8df59f279f96bafffe3bf96adc91b0d73",
-      "current_sha256": "55af825dd779a585bbc64d5c04a47fa5d27ed58b379284e822fb2af61b6ac7bd",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+      "current_sha256": "cb613313351f031425161af9abc66e8be153308e27b40d94e75a0bca63f45773",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
     },
     {
       "path": "config/scripts/verify-packaged-daemon-entry.cjs",
@@ -331062,20 +331062,20 @@
     {
       "path": "src/cli/index-orchestration.test.ts",
       "upstream_sha256": "214753e541c6043a9f973b84a2e981b26387e94b5cab8aef5adf1e977e0a6e2e",
-      "current_sha256": "cc64586c7fb760c707d3e22595f63c945cbfab73687301ab306daace74c4339a",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+      "current_sha256": "89f7db696ff1aed38d6a08910485c8a303df550f81072c7f2cbb7754a6e63d01",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
     },
     {
       "path": "src/cli/index-test-harness.ts",
       "upstream_sha256": "b3e1cdb1b1c0bd6d6ff5e605592217b2e951bbca81fe1e315712b1e65bb2cca9",
-      "current_sha256": "8fefbc823222bdb3a45553006e6494d4048b5d0492b9a9073553c768bdaadd4c",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+      "current_sha256": "dc6ddcc8f522a04572d52cd107e0a8326effb2e9e063834070590e766da735fc",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
     },
     {
       "path": "src/cli/orchestration-session-caller-cli.test.ts",
       "upstream_sha256": "ac2e812ad5ebf8848effaae106f8248be2af915f4234148541ed403848f3ab15",
-      "current_sha256": "29855282887469713362cfe4bfbcda0633cd4adbec0577612d0f6b3995cbfa7e",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+      "current_sha256": "ed9a2409df6c4f0cd52711681bb73cde7efaf3b1ef09b6d81bc40b796286b08f",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
     },
     {
       "path": "src/cli/runtime/client-execution-host.test.ts",
@@ -331176,8 +331176,8 @@
     {
       "path": "src/main/__fixtures__/shell-wrapper-snapshots/local-bash-rcfile.txt",
       "upstream_sha256": "ef0c94984bb7044009c0062813ddf265226cf5e2536679c732792097fca96e19",
-      "current_sha256": "48dd59e82696ccd5a8de33709ea6222b9aac57418f6fff6629b80811fd99063e",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+      "current_sha256": "7d4ca11105a76add366ecc936fe7e4fc5487e55ddc75c26a9f3e7e2354de0eaa",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
     },
     {
       "path": "src/main/__fixtures__/shell-wrapper-snapshots/local-fish-init.txt",
@@ -331188,8 +331188,8 @@
     {
       "path": "src/main/__fixtures__/shell-wrapper-snapshots/local-zsh-zshenv.txt",
       "upstream_sha256": "4260323c66756939e67fe3e36288398f09a4be9c7b918a64e210caa117dc784b",
-      "current_sha256": "ca3843cf0a2a2505c264f588e58a81c57b6e31bf29f14edb8a6d6c88b3ab8805",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+      "current_sha256": "e4a53d02d6c4a836e001a9588e55358097b618fb5736da2d7301ea1654f1dc76",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
     },
     {
       "path": "src/main/agent-hooks/managed-hook-script-refresh.test.ts",
@@ -331572,8 +331572,8 @@
     {
       "path": "src/main/pty/wsl-orca-env.ts",
       "upstream_sha256": "79f15d7b17d41f207a8f68127df82b7b538dea45e6d45578fd519e5ac93e691d",
-      "current_sha256": "d85217a0450ae47ba0e2618192d5b028390e55c66d889c2191c35f683ddfd262",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+      "current_sha256": "22941502dd2861e86818a09a5ce53ffcadf91c753f3a638ce40d8241bfd96b6b",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
     },
     {
       "path": "src/main/rate-limits/hidden-rate-limit-pty-cwd.ts",
@@ -331584,8 +331584,8 @@
     {
       "path": "src/main/runtime/__snapshots__/structured-agent-launch-parity.test.ts.snap",
       "upstream_sha256": "7b7b400f3f1f72be176e948c57214d22b1f61b54fdef0914b0df2cd919215b7e",
-      "current_sha256": "15c43413ef323bf4930f15b99cba45868941270d2e3f980660a27c786e571732",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+      "current_sha256": "f8fb2886671f0b8ac6f8411596bd7cbbafdc67bdcc2bbb9dd647f6a9eb2afd26",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
     },
     {
       "path": "src/main/runtime/orchestration-cli-subprocess.test.ts",
@@ -331602,14 +331602,14 @@
     {
       "path": "src/main/runtime/structured-agent-launch-parity.test.ts",
       "upstream_sha256": "842230c594bf65a7e6abfc9c13d47b7bd172559de1a373acf4e9285092c95360",
-      "current_sha256": "9d15643dbef9f7e8f4c3a0943ff1813151edf016c78a20aafa1cc86518673b29",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+      "current_sha256": "17d73a6be5c3c1348243b061ada6b79045a94aad3bb7828923fe7e9d9d71015d",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
     },
     {
       "path": "src/main/runtime/structured-session-child-env.ts",
       "upstream_sha256": "c6430d04f35adccb249dd1e6b1eaf824ee0e85efa92287e141348f59dc246627",
-      "current_sha256": "f08093b58156b06381eaecc64f6998fb87854ae3e8a5f99be03d90c29e2b2283",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+      "current_sha256": "7b7784799b8ab46b06a0964ba9752f9bf31b7e4a22c5730155ce4bcb6785e3b5",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
     },
     {
       "path": "src/main/runtime/unreadable-secret-store-preservation.win32.test.ts",
@@ -331710,8 +331710,8 @@
     {
       "path": "tests/e2e/helpers/compiled-orca-cli.ts",
       "upstream_sha256": "20f5d0fb3012fd4eb1749c57d67cbfd7a1150e96e1a3a1a88fa93538bbdcabbc",
-      "current_sha256": "258cb23d150cbc6ef8670823c86925bf7506a8807c047436eeee892694388f3d",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+      "current_sha256": "6ca50e337b8f0e5eb1237886b84c2b672342bbb53b7c0bf06e6cc3103657270e",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
     },
     {
       "path": "tests/e2e/helpers/completed-worker-retirement-fixture.ts",
@@ -331734,8 +331734,8 @@
     {
       "path": "tests/e2e/orchestration-worker-settlement-release-cli.spec.ts",
       "upstream_sha256": "d02de4a210502d7fbba4a48648f159d1545e97994fdb12606680d2b8cbcd2058",
-      "current_sha256": "32079894ba1050fe01862144f3f05dd9301c5257acb79312f76c606de9080c14",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+      "current_sha256": "299a0a87e4740e484430d5be34a1e29320eba1cfab962d5109d6bc84da593c41",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
     },
     {
       "path": "tests/e2e/profile-state-automatic-backup-recovery.spec.ts",
@@ -331844,6 +331844,30 @@
       "upstream_sha256": "0b5190d1ed4de64f81cd9c47234274e6247cd79eacbe331f21ec7e73ceecb087",
       "current_sha256": "ee653652dbcc5a8b3ac367c182bcedd48b44409107645327feb20f351ff5d4eb",
       "reason": "Node参数暂存合同改为ZKYQ，启动器及重启恢复同步，历史脚本归属识别保留"
+    },
+    {
+      "path": "src/main/runtime/structured-session-cli-login-shell.live-shell.test.ts",
+      "upstream_sha256": "45dd321af914e7de66d66e8c99bc5d106f71c5ff20fcc35cc8f4f17072d17ade",
+      "current_sha256": "8245a00e6721bfae6bce37f6acdfb8a43b2d2dc27f73007f8f2050317b268f74",
+      "reason": "命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
+    },
+    {
+      "path": "src/main/runtime/structured-session-cli-login-shell.test.ts",
+      "upstream_sha256": "da6bdb990d58e4a0a0e8b1d240b205eeb103e191b4b5292af3d33de81a2476af",
+      "current_sha256": "2af91d90c08a7b9f78800c6aeb85bad9881feb9b4252102bfb9b01165ee0ee2e",
+      "reason": "命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
+    },
+    {
+      "path": "src/main/wsl-managed-cli-path-restore.ts",
+      "upstream_sha256": "c3b4765ed1ad45abb032a9b54ca09c83362118c774d14493f8e50ac7f2bf54eb",
+      "current_sha256": "73d75cc86e34a4b72c3ed4979691d37002a6bed8a6b9ee5878bde274acc62ef4",
+      "reason": "命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
+    },
+    {
+      "path": "tests/tools/freeze-repro/README.md",
+      "upstream_sha256": "ef1387a7da798ed11aea358031bf23912aa54c35ad99aa93e5b3270cc49fb66d",
+      "current_sha256": "4c2cdce4f306cb1d3e06117560a857348470bb3976289683788e75d06877b1d6",
+      "reason": "命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
     }
   ],
   "reviewed_findings": [

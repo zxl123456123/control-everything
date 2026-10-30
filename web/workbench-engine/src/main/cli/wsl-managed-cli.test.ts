@@ -27,7 +27,7 @@ describe('managed WSL CLI provisioning', () => {
     installFakeAppEnvironment({ getCliLauncherPath: () => native })
     const directory = getManagedWslCliDir({ isPackaged: true, userDataPath: host.userDataPath }) ?? ''
     expect(readFileSync(join(directory, 'zkyq'), 'utf8')).toContain(native)
-    expect(readFileSync(join(directory, 'orca-wsl-bridge.ps1'), 'utf8')).toContain("$env:ORCA_CLI_COMMAND = 'zkyq'")
+    expect(readFileSync(join(directory, 'orca-wsl-bridge.ps1'), 'utf8')).toContain("$env:ZKYQ_CLI_COMMAND = 'zkyq'")
   })
   it('reuses a complete tree, repairs missing files, and isolates app identities and updates', () => {
     const host = fixture()

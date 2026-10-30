@@ -82,15 +82,8 @@ fn main() {
     );
     env::set_var("ELECTRON_RUN_AS_NODE", "1");
     env::set_var("ORCA_WINDOWS_PACKAGED_CLI_LAUNCHER", "1");
-    let requested_command = env::var("ORCA_CLI_COMMAND").unwrap_or_default();
-    env::set_var(
-        "ORCA_CLI_COMMAND",
-        if requested_command == "orca-ide" {
-            "orca-ide"
-        } else {
-            "zkyq"
-        },
-    );
+    env::remove_var("ORCA_CLI_COMMAND");
+    env::set_var("ZKYQ_CLI_COMMAND", "zkyq");
 
     run_cli(&electron_path, &cli_path)
 }

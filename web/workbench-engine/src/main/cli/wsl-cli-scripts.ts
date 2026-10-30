@@ -77,7 +77,7 @@ export function buildWslBridgeScript(app?: {
   cliEntryPath?: string
 }): string {
   const setAppEnv = [
-    `$env:ORCA_CLI_COMMAND = '${app?.cliEntryPath ? DEV_COMMAND_NAME : WSL_CLI_COMMAND_NAME}'`,
+    `$env:ZKYQ_CLI_COMMAND = '${app?.cliEntryPath ? DEV_COMMAND_NAME : WSL_CLI_COMMAND_NAME}'`,
     ...(app
       ? [
           `$env:ZKYQ_USER_DATA_PATH = ${quotePowerShellLiteral(app.userDataPath)}`,

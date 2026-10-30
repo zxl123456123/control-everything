@@ -21,7 +21,7 @@
  * so it never claims GNOME Orca's /usr/bin/orca (stablyai/orca#7904), and on packaged macOS/Windows
  * the bundled launcher is reachable only from the app's own resources dir.
  *
- * `ORCA_CLI_COMMAND` names that same launcher by absolute path, because a provider can run each
+ * `ZKYQ_CLI_COMMAND` names that same launcher by absolute path, because a provider can run each
  * command in a login shell (Codex runs `zsh -lc`) whose profile rebuilds PATH and puts a global
  * install ahead of this app's. A bare `orca` that reaches another install still acts as this
  * session: any current CLI sends the injected id and dials the instance `ZKYQ_USER_DATA_PATH` pins
@@ -145,6 +145,7 @@ const REMOTE_RUNTIME_SELECTOR_ENV_KEYS = [
  */
 function applyThisAppCli(env: Record<string, string>): Record<string, string> {
   delete env.ORCA_CLI_COMMAND
+  delete env.ZKYQ_CLI_COMMAND
   if (!hasAppEnvironment()) {
     return {}
   }
@@ -162,11 +163,11 @@ function applyThisAppCli(env: Record<string, string>): Record<string, string> {
     resourcesPath: process.resourcesPath ?? null
   })
   if (launcher) {
-    set.ORCA_CLI_COMMAND = launcher
-    env.ORCA_CLI_COMMAND = launcher
+    set.ZKYQ_CLI_COMMAND = launcher
+    env.ZKYQ_CLI_COMMAND = launcher
   } else {
     console.warn(
-      "[structured-session] This app's CLI launcher did not resolve; the session's child has no ORCA_CLI_COMMAND."
+      "[structured-session] This app's CLI launcher did not resolve; the session's child has no ZKYQ_CLI_COMMAND."
     )
   }
   return set

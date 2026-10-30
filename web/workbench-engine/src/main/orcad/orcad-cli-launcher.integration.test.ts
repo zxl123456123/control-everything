@@ -106,7 +106,7 @@ it.skipIf(skip)(
         ORCA_REMOTE_PAIRING: 'stale-remote-pairing'
       })
       const result = await runProcess({
-        program: childEnv.ORCA_CLI_COMMAND!,
+        program: childEnv.ZKYQ_CLI_COMMAND!,
         args: ['status', '--json'],
         env: { ...env, ...childEnv },
         cwd: home,
@@ -121,7 +121,7 @@ it.skipIf(skip)(
         }
       })
       const skill = await runProcess({
-        program: childEnv.ORCA_CLI_COMMAND!,
+        program: childEnv.ZKYQ_CLI_COMMAND!,
         args: ['skills', 'get', 'orchestration'],
         env: { ...env, ...childEnv },
         timeoutMs: 15_000
@@ -129,7 +129,7 @@ it.skipIf(skip)(
       expect(skill.code, skill.stderr).toBe(0)
       expect(skill.stdout).toContain('Worker obligations')
       const version = await runProcess({
-        program: childEnv.ORCA_CLI_COMMAND!,
+        program: childEnv.ZKYQ_CLI_COMMAND!,
         args: ['--version'],
         env: { ...env, ...childEnv },
         timeoutMs: 15_000

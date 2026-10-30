@@ -1,7 +1,7 @@
 import { RuntimeClientError } from '../../runtime-client'
 
 export function resolveCompatibilityCliCommand(): 'zkyq' | 'zkyq-dev' {
-  const configured = process.env.ORCA_CLI_COMMAND
+  const configured = process.env.ZKYQ_CLI_COMMAND
   if (configured && /(?:^|[/\\])zkyq(?:\.exe|\.cmd)?$/i.test(configured)) {
     return 'zkyq'
   }
@@ -15,7 +15,7 @@ export function resolvePackagedWindowsCompatibilityCommand(): 'zkyq' | undefined
   if (process.env.ORCA_WINDOWS_PACKAGED_CLI_LAUNCHER !== '1') {
     return undefined
   }
-  const command = process.env.ORCA_CLI_COMMAND
+  const command = process.env.ZKYQ_CLI_COMMAND
   if (command === 'zkyq') {
     return command
   }
@@ -39,7 +39,7 @@ export async function flushOrchestrationStdout(): Promise<void> {
 
 export function isDevCliInvocation(): boolean {
   return (
-    process.env.ORCA_DEV_CLI_INVOCATION === '1' ||
+    process.env.ZKYQ_DEV_CLI_INVOCATION === '1' ||
     (process.env.ZKYQ_USER_DATA_PATH?.includes('orca-dev') ?? false)
   )
 }

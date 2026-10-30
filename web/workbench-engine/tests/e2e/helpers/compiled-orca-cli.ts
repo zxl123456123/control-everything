@@ -29,7 +29,7 @@ export async function runCompiledOrcaCli(
     env: {
       ...process.env,
       ZKYQ_USER_DATA_PATH: userDataDir,
-      ORCA_DEV_CLI_INVOCATION: '1'
+      ZKYQ_DEV_CLI_INVOCATION: '1'
     },
     timeoutMs,
     maxOutputBytes: 4 * 1024 * 1024

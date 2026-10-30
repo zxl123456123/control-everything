@@ -20,10 +20,10 @@ export function prepareDevCliTerminalWrappers({
   mkdirSync(userDataBinDir, { recursive: true })
 
   if (platform === 'win32') {
-    const legacyContent = `@echo off\r\nset "ZKYQ_USER_DATA_PATH=${escapeWindowsBatchValue(userDataPath)}"\r\nset "ORCA_DEV_CLI_INVOCATION=1"\r\nset "ZKYQ_APP_EXECUTABLE=${escapeWindowsBatchValue(electronExecutable)}"\r\nset "ZKYQ_APP_EXECUTABLE_NEEDS_APP_ROOT=1"\r\nnode "${escapeWindowsBatchValue(cliPath)}" %*\r\n`
+    const legacyContent = `@echo off\r\nset "ZKYQ_USER_DATA_PATH=${escapeWindowsBatchValue(userDataPath)}"\r\nset "ZKYQ_DEV_CLI_INVOCATION=1"\r\nset "ZKYQ_APP_EXECUTABLE=${escapeWindowsBatchValue(electronExecutable)}"\r\nset "ZKYQ_APP_EXECUTABLE_NEEDS_APP_ROOT=1"\r\nnode "${escapeWindowsBatchValue(cliPath)}" %*\r\n`
     const wrapperContent = legacyContent.replace(
-      'set "ORCA_DEV_CLI_INVOCATION=1"',
-      'set "ORCA_DEV_CLI_INVOCATION=1"\r\nset "ORCA_CLI_COMMAND=zkyq-dev"'
+      'set "ZKYQ_DEV_CLI_INVOCATION=1"',
+      'set "ZKYQ_DEV_CLI_INVOCATION=1"\r\nset "ZKYQ_CLI_COMMAND=zkyq-dev"'
     )
     for (const targetDir of [binDir, userDataBinDir]) {
       for (const commandName of ['zkyq-dev.cmd', 'zkyq.cmd']) {
@@ -35,14 +35,15 @@ export function prepareDevCliTerminalWrappers({
           legacyContent
             .replaceAll('ZKYQ_USER_DATA_PATH', 'ORCA_USER_DATA_PATH')
             .replaceAll('ZKYQ_APP_EXECUTABLE', 'ORCA_APP_EXECUTABLE')
+            .replaceAll('ZKYQ_DEV_CLI_INVOCATION', 'ORCA_DEV_CLI_INVOCATION')
         )
       }
     }
   } else {
-    const legacyContent = `#!/usr/bin/env bash\nexport ZKYQ_USER_DATA_PATH=${JSON.stringify(userDataPath)}\nexport ORCA_DEV_CLI_INVOCATION=1\nexport ZKYQ_APP_EXECUTABLE=${JSON.stringify(electronExecutable)}\nexport ZKYQ_APP_EXECUTABLE_NEEDS_APP_ROOT=1\nexec node ${JSON.stringify(cliPath)} "$@"\n`
+    const legacyContent = `#!/usr/bin/env bash\nexport ZKYQ_USER_DATA_PATH=${JSON.stringify(userDataPath)}\nexport ZKYQ_DEV_CLI_INVOCATION=1\nexport ZKYQ_APP_EXECUTABLE=${JSON.stringify(electronExecutable)}\nexport ZKYQ_APP_EXECUTABLE_NEEDS_APP_ROOT=1\nexec node ${JSON.stringify(cliPath)} "$@"\n`
     const wrapperContent = legacyContent.replace(
-      'export ORCA_DEV_CLI_INVOCATION=1',
-      'export ORCA_DEV_CLI_INVOCATION=1\nexport ORCA_CLI_COMMAND=zkyq-dev'
+      'export ZKYQ_DEV_CLI_INVOCATION=1',
+      'export ZKYQ_DEV_CLI_INVOCATION=1\nexport ZKYQ_CLI_COMMAND=zkyq-dev'
     )
     for (const targetDir of [binDir, userDataBinDir]) {
       for (const commandName of ['zkyq-dev', 'zkyq']) {
@@ -56,6 +57,7 @@ export function prepareDevCliTerminalWrappers({
           legacyContent
             .replaceAll('ZKYQ_USER_DATA_PATH', 'ORCA_USER_DATA_PATH')
             .replaceAll('ZKYQ_APP_EXECUTABLE', 'ORCA_APP_EXECUTABLE')
+            .replaceAll('ZKYQ_DEV_CLI_INVOCATION', 'ORCA_DEV_CLI_INVOCATION')
         )
       }
     }

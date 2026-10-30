@@ -21,8 +21,8 @@ describe('dev CLI terminal wrappers', () => {
       const current = readFileSync(path.join(binDir, 'zkyq-dev' + extension), 'utf8')
       const old = current.replace(
         platform === 'win32'
-          ? 'set "ORCA_CLI_COMMAND=zkyq-dev"\r\n'
-          : 'export ORCA_CLI_COMMAND=zkyq-dev\n',
+          ? 'set "ZKYQ_CLI_COMMAND=zkyq-dev"\r\n'
+          : 'export ZKYQ_CLI_COMMAND=zkyq-dev\n',
         ''
       )
       for (const directory of [binDir, userDataBinDir]) {
@@ -31,6 +31,7 @@ describe('dev CLI terminal wrappers', () => {
           old
             .replaceAll('ZKYQ_USER_DATA_PATH', 'ORCA_USER_DATA_PATH')
             .replaceAll('ZKYQ_APP_EXECUTABLE', 'ORCA_APP_EXECUTABLE')
+            .replaceAll('ZKYQ_DEV_CLI_INVOCATION', 'ORCA_DEV_CLI_INVOCATION')
         )
         writeFileSync(path.join(directory, 'orca' + extension), 'user command')
       }
@@ -39,7 +40,7 @@ describe('dev CLI terminal wrappers', () => {
         expect(existsSync(path.join(directory, 'orca-dev' + extension))).toBe(false)
         expect(readFileSync(path.join(directory, 'orca' + extension), 'utf8')).toBe('user command')
         expect(readFileSync(path.join(directory, 'zkyq' + extension), 'utf8')).toContain(
-          'ORCA_CLI_COMMAND=zkyq-dev'
+          'ZKYQ_CLI_COMMAND=zkyq-dev'
         )
       }
     }
@@ -57,7 +58,7 @@ describe('dev CLI terminal wrappers', () => {
 
     const wrapper = readFileSync(path.join(userDataPath, 'cli', 'bin', 'zkyq-dev.cmd'), 'utf8')
     expect(wrapper).toContain(`set "ZKYQ_USER_DATA_PATH=${userDataPath}"`)
-    expect(wrapper).toContain('set "ORCA_DEV_CLI_INVOCATION=1"')
+    expect(wrapper).toContain('set "ZKYQ_DEV_CLI_INVOCATION=1"')
     expect(wrapper).toContain(`node "${path.join(root, 'out', 'cli', 'index.js')}" %*`)
     expect(readFileSync(path.join(userDataPath, 'cli', 'bin', 'zkyq.cmd'), 'utf8')).toBe(wrapper)
     expect(readFileSync(path.join(root, 'out', 'bin', 'zkyq-dev.cmd'), 'utf8')).toBe(wrapper)
@@ -99,7 +100,7 @@ describe('dev CLI terminal wrappers', () => {
 
     const wrapper = readFileSync(path.join(userDataPath, 'cli', 'bin', 'zkyq-dev'), 'utf8')
     expect(wrapper).toContain(`export ZKYQ_USER_DATA_PATH=${JSON.stringify(userDataPath)}`)
-    expect(wrapper).toContain('export ORCA_DEV_CLI_INVOCATION=1')
+    expect(wrapper).toContain('export ZKYQ_DEV_CLI_INVOCATION=1')
     expect(wrapper).toContain(
       `exec node ${JSON.stringify(path.join(root, 'out', 'cli', 'index.js'))}`
     )

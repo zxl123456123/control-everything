@@ -360,10 +360,10 @@ function validationCliCommand() {
   if (process.env.ORCA_VALIDATION_CLI) {
     return process.env.ORCA_VALIDATION_CLI
   }
-  if (process.env.ORCA_CLI_COMMAND) {
-    return process.env.ORCA_CLI_COMMAND
+  if (process.env.ZKYQ_CLI_COMMAND) {
+    return process.env.ZKYQ_CLI_COMMAND
   }
-  return process.platform === 'linux' ? 'orca-ide' : 'orca'
+  return 'zkyq'
 }
 
 async function probeTerminalEnvironment(terminalHandle, launchEnv) {

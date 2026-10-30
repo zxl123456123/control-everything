@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const callMock = vi.fn()
-const originalCliCommand = process.env.ORCA_CLI_COMMAND
+const originalCliCommand = process.env.ZKYQ_CLI_COMMAND
 const originalPackagedLauncher = process.env.ORCA_WINDOWS_PACKAGED_CLI_LAUNCHER
 const originalTerminalHandle = process.env.ORCA_TERMINAL_HANDLE
 const originalExitCode = process.exitCode
@@ -22,13 +22,13 @@ describe('packaged Windows legacy ask protocol', () => {
   afterEach(() => {
     vi.restoreAllMocks()
     process.exitCode = originalExitCode
-    restoreEnv('ORCA_CLI_COMMAND', originalCliCommand)
+    restoreEnv('ZKYQ_CLI_COMMAND', originalCliCommand)
     restoreEnv('ORCA_WINDOWS_PACKAGED_CLI_LAUNCHER', originalPackagedLauncher)
     restoreEnv('ORCA_TERMINAL_HANDLE', originalTerminalHandle)
   })
 
   it.each(['orca', 'orca-ide', 'ce-workbench'])('rejects the retired %s launcher before creating a question', async (command) => {
-    process.env.ORCA_CLI_COMMAND = command
+    process.env.ZKYQ_CLI_COMMAND = command
     await expect(invokeAsk(new Map([['question', 'Proceed?']]))).rejects.toThrow('valid resume command')
     expect(callMock).not.toHaveBeenCalled()
   })
@@ -36,7 +36,7 @@ describe('packaged Windows legacy ask protocol', () => {
   it.each(['zkyq'] as const)(
     'commits with the %s launcher and exits 75 before resume',
     async (command) => {
-      process.env.ORCA_CLI_COMMAND = command
+      process.env.ZKYQ_CLI_COMMAND = command
       callMock.mockResolvedValue({
         result: {
           answer: null,
@@ -71,7 +71,7 @@ describe('packaged Windows legacy ask protocol', () => {
   )
 
   it('resumes the committed question without another exit-75 handoff', async () => {
-    process.env.ORCA_CLI_COMMAND = 'zkyq'
+    process.env.ZKYQ_CLI_COMMAND = 'zkyq'
     callMock.mockResolvedValue({
       result: {
         answer: 'yes',
