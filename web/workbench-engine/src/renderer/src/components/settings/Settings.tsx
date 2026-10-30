@@ -7,11 +7,12 @@ import { useSettingsRepoScrollEffects } from './use-settings-repo-scroll-effects
 import { buildSettingsViewModel, useSettingsNavigationActions } from './settings-view-model'
 import { renderSettingsLoading, renderSettingsPage } from './settings-page-renderer'
 import type { LoadedSettingsStoreModel, SettingsRenderContext } from './settings-render-context'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useAppStore } from '@/store'
 import { SettingsDraftContext, resolvePlatformSettingsTarget } from '@/web/platform-settings-navigation'
 import { ManagementSurfaceProvider, ManagementSurfaceVisibleProvider } from '../ui/management-surface'
 import { ConfirmationDialogContext } from '../confirmation-dialog-context'
+import { isSettingsSectionInScope } from '@/lib/settings-navigation-types'
 
 function Settings(): React.JSX.Element {
   const model = useSettingsStoreModel()
@@ -50,8 +51,21 @@ function Settings(): React.JSX.Element {
     useAppStore.getState().openSettingsTarget(resolved.target)
   }, [targetKey, model.settings, resolved, presentation, model.settingsNavigationTarget,
     model.repos, model.settingsProjectList, navigation.navSections])
-  const ready = presentation?.visible !== false && resolved && model.settings && !model.settingsNavigationTarget &&
+  const initialReady = presentation?.visible !== false && resolved && model.settings && !model.settingsNavigationTarget &&
     model.activeSectionId === resolved.ready.sectionId ? resolved.ready : null
+  const [enteredTarget, setEnteredTarget] = useState('')
+  useEffect(() => {
+    if (presentation?.visible === false || !resolved) setEnteredTarget('')
+    else if (initialReady) setEnteredTarget(targetKey)
+    else setEnteredTarget((current) => current === targetKey ? current : '')
+  }, [presentation?.visible, resolved, initialReady, targetKey])
+  const ready = initialReady ?? (
+    presentation?.visible !== false && presentation?.scope.kind === 'global' && resolved &&
+    enteredTarget === targetKey && model.settings && !model.settingsNavigationTarget &&
+    isSettingsSectionInScope(model.activeSectionId, presentation.scope) &&
+    navigation.navSections.some((section) => section.id === model.activeSectionId)
+      ? resolved.ready : null
+  )
   const readyKey = JSON.stringify(ready)
   useEffect(() => {
     presentation?.onReady?.(ready)

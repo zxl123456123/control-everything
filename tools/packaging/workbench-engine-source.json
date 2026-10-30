@@ -328503,8 +328503,8 @@
     {
       "path": "src/renderer/src/components/settings/Settings.tsx",
       "upstream_sha256": "b814c3658c9641e587940484503f11d8ca2a6d42fdae7c86c9fa122c23bac8d7",
-      "current_sha256": "0376eaaf937d6e57a33404d437f5f717d6e8e70fe48e33914d79e58a062b6c67",
-      "reason": "N1: restore native project controls and upstream presentation while preserving platform identity, project registration, draft protection and the single global account surface."
+      "current_sha256": "412113ee670fde87e6b4ee33dc261704cd0886cea2a39e179a90d12100d9d8aa",
+      "reason": "N1: restore native project controls and upstream presentation while preserving platform identity, project registration, draft protection and the single global account surface.；修复全局设置页面已确认后切换栏目仍可正常显示"
     },
     {
       "path": "src/renderer/src/components/settings/SettingsFormControls.segmented-control.test.tsx",

@@ -89,6 +89,27 @@ it('keeps a missing exact host/setup pending and never renders the prior project
   expect(ready).toHaveBeenLastCalledWith(null)
 })
 
+it('keeps a confirmed global settings page ready while switching within its scope', () => {
+  const ready = vi.fn()
+  const globalScope = { kind: 'global' as const, contextKey: 'trusted', entry: 'development' as const, environmentId: 'host-a' }
+  const presentation = { scope: globalScope, visible: true, onReady: ready }
+  fixture.navigation.navSections = [{ id: 'agents' }, { id: 'stats' }, { id: 'appearance' }]
+  fixture.model.activeSectionId = 'agents'
+  const view = render(page(presentation))
+  expect(ready).toHaveBeenLastCalledWith({ contextKey: 'trusted', repoId: null, sectionId: 'agents' })
+  fixture.model.activeSectionId = 'stats'
+  view.rerender(page(presentation))
+  expect(ready).toHaveBeenLastCalledWith({ contextKey: 'trusted', repoId: null, sectionId: 'agents' })
+  fixture.model.activeSectionId = 'appearance'
+  view.rerender(page(presentation))
+  expect(ready).toHaveBeenLastCalledWith(null)
+  fixture.model.activeSectionId = 'stats'
+  view.rerender(page({ ...presentation, scope: { ...globalScope, environmentId: 'host-b' } }))
+  expect(ready).toHaveBeenLastCalledWith(null)
+  view.rerender(page(presentation))
+  expect(ready).toHaveBeenLastCalledWith(null)
+})
+
 it('retains the focused draft through native name echo and Studio label confirmation without replaying its target', () => {
   fixture.model.activeSectionId = 'repo-repo-b'
   const ready = vi.fn()
