@@ -22,7 +22,7 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-it.each(['zkyq', 'ce-workbench', undefined])(
+it.each(['zkyq'])(
   'copies the command proven by the selected host: %s',
   async (command) => {
     mocks.call.mockImplementation(async (_target, method) =>
@@ -58,6 +58,16 @@ it('drops the former host command when switching to a legacy host', async () => 
       target={{ kind: 'environment', environmentId: 'legacy-host' }}
     />
   )
-  await screen.findByText('orca account add --agent devin')
+  await screen.findByText('Update or restart the execution host to add accounts.')
   expect(screen.queryByText('zkyq account add --agent devin')).toBeNull()
+  expect(screen.queryByText('Copy add account command')).toBeNull()
+})
+
+it.each(['ce-workbench', undefined])('does not offer a retired or unverified command: %s', async (command) => {
+  mocks.call.mockResolvedValue({ opencode: roster, accountCommand: command })
+  render(<ManagedDataAccountsSection provider="opencode" target={target} />)
+  await screen.findByText('Saved account')
+  expect(screen.queryByText('Copy add account command')).toBeNull()
+  expect(screen.getByText('Refresh accounts')).toBeTruthy()
+  expect(screen.getByText('Select')).toBeTruthy()
 })

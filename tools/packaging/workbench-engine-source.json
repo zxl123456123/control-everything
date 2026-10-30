@@ -329274,26 +329274,26 @@
     {
       "path": "src/main/orcad/orcad-cli-launcher.ts",
       "upstream_sha256": "c5e239828d68bd1cf5dd3e978f7d6cfda3ee4517253b17de18e82dcd448cb1e1",
-      "current_sha256": "78e85c895cf1301181e23e64d0c482a56922764b905bd5c3383c75a29b52a039",
-      "reason": "平台命令入口和帮助统一品牌，精简账号说明与工作台展示，保留兼容协议及原生功能。；Use the short zkyq platform command while retaining the ce-workbench compatibility entry and legacy host metadata."
+      "current_sha256": "8360f68c435a7d53d45c49ce4bbd0a77efad9622eb441593c59a58db2edf0f3c",
+      "reason": "平台命令入口和帮助统一品牌，精简账号说明与工作台展示，保留兼容协议及原生功能。；Use the short zkyq platform command while retaining the ce-workbench compatibility entry and legacy host metadata.；Retire the temporary ce-workbench command and offer only host-verified zkyq instructions."
     },
     {
       "path": "src/main/orcad/orcad-cli-launcher.test.ts",
       "upstream_sha256": "7fde4ce5ed19ea0f5a3d462170763cf50906572f296336328d306d2cff96f258",
-      "current_sha256": "8c4d9d07549259f879b525652ee12355b88ec26412a2f02f402ddb5f4bb44e40",
-      "reason": "平台命令入口和帮助统一品牌，精简账号说明与工作台展示，保留兼容协议及原生功能。；Use the short zkyq platform command while retaining the ce-workbench compatibility entry and legacy host metadata."
+      "current_sha256": "387458feca206f9b316776829ea903a2041f2decff5a2d1cca74321c3de123fd",
+      "reason": "平台命令入口和帮助统一品牌，精简账号说明与工作台展示，保留兼容协议及原生功能。；Use the short zkyq platform command while retaining the ce-workbench compatibility entry and legacy host metadata.；Retire the temporary ce-workbench command and offer only host-verified zkyq instructions."
     },
     {
       "path": "src/main/runtime/runtime-account-controller.ts",
       "upstream_sha256": "3484f136fb97a876d263c8c54c2a37ac904db1f9a1477f067f2919592b6bdf93",
-      "current_sha256": "544f21a98c7cbee108cb7e5866d142eadcb5852c233096191130f1571ffcee77",
-      "reason": "平台命令入口和帮助统一品牌，精简账号说明与工作台展示，保留兼容协议及原生功能。；Use the short zkyq platform command while retaining the ce-workbench compatibility entry and legacy host metadata."
+      "current_sha256": "48b65c7f258836eca0039808be2294f459a62bbeb80a52c9b154f6bb742b728f",
+      "reason": "平台命令入口和帮助统一品牌，精简账号说明与工作台展示，保留兼容协议及原生功能。；Use the short zkyq platform command while retaining the ce-workbench compatibility entry and legacy host metadata.；Retire the temporary ce-workbench command and offer only host-verified zkyq instructions."
     },
     {
       "path": "src/shared/app-environment.ts",
       "upstream_sha256": "acf06925774916ecdaacda9630e0016348ff952066c9b31bfb91f79a44bf5c86",
-      "current_sha256": "367e14d5a1575edf2c2ac82a06c315a7660fb8a1ddcf5ef579a987d30b90ee39",
-      "reason": "平台命令入口和帮助统一品牌，精简账号说明与工作台展示，保留兼容协议及原生功能。；Use the short zkyq platform command while retaining the ce-workbench compatibility entry and legacy host metadata."
+      "current_sha256": "ee73225ae8a552cdc4c6001a38523461b97d663f647411b4bde078e909ee8437",
+      "reason": "平台命令入口和帮助统一品牌，精简账号说明与工作台展示，保留兼容协议及原生功能。；Use the short zkyq platform command while retaining the ce-workbench compatibility entry and legacy host metadata.；Retire the temporary ce-workbench command and offer only host-verified zkyq instructions."
     },
     {
       "path": "src/cli/help.ts",
@@ -329304,8 +329304,8 @@
     {
       "path": "src/renderer/src/components/settings/ManagedDataAccountsSection.tsx",
       "upstream_sha256": "4aae5cd762a31618a032c60f61c7abe0229cfe3b9ba6a30f1f5bec3fd0dde67b",
-      "current_sha256": "8169e7b3415ed7f4fed2280facc89a15d85b2d15fac020871134870d72c44a58",
-      "reason": "平台命令入口和帮助统一品牌，精简账号说明与工作台展示，保留兼容协议及原生功能。；Use the short zkyq platform command while retaining the ce-workbench compatibility entry and legacy host metadata."
+      "current_sha256": "58b9435e0e38aaf50175f0326388574126a3a4649dbeb01036b903ebd69657b6",
+      "reason": "平台命令入口和帮助统一品牌，精简账号说明与工作台展示，保留兼容协议及原生功能。；Use the short zkyq platform command while retaining the ce-workbench compatibility entry and legacy host metadata.；Retire the temporary ce-workbench command and offer only host-verified zkyq instructions."
     },
     {
       "path": "src/renderer/src/components/settings/AppearancePane.tsx",

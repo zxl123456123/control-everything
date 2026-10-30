@@ -59,8 +59,10 @@ export async function prepareOrcadCliLauncher(): Promise<void> {
         binDir,
         'zkyq.exe'
       )
-      await prepareWindowsLauncher(installRoot, entry, userDataPath, binDir, 'ce-workbench.exe')
-      if (alias) accountCommand = 'zkyq'
+      if (alias) {
+        await retirePlatformCommand(binDir, 'ce-workbench.exe')
+        accountCommand = 'zkyq'
+      }
     }
     return
   }
@@ -74,13 +76,22 @@ export async function prepareOrcadCliLauncher(): Promise<void> {
   await chmod(path, 0o700)
   launcherPath = path
   if (isPlatformRuntime()) {
-    for (const name of ['zkyq', 'ce-workbench']) {
-      const alias = join(binDir, name)
-      writeFileAtomically(alias, script, { mode: 0o700 })
-      await chmod(alias, 0o700)
-    }
+    const alias = join(binDir, 'zkyq')
+    writeFileAtomically(alias, script, { mode: 0o700 })
+    await chmod(alias, 0o700)
+    await retirePlatformCommand(binDir, 'ce-workbench')
     accountCommand = 'zkyq'
   }
+}
+
+/** Retire only the generated command in this host's private CLI directory. */
+async function retirePlatformCommand(binDir: string, filename: string): Promise<void> {
+  const path = join(binDir, filename)
+  if (existsSync(path)) {
+    // Windows can rename an executable still mapped by a running process.
+    await rename(path, `${path}.${randomUUID()}${RETIRED_LAUNCHER_SUFFIX}`)
+  }
+  await removeRetiredLaunchers(binDir, filename)
 }
 
 export function buildWindowsCliLauncherConfig(
