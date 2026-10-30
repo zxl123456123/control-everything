@@ -66,7 +66,7 @@ export function prepareProfileStateStore(
   const authority = bootstrap.authority
   if (authority === undefined) {
     throw new ProfileStateStoreFactoryError(
-      'Writable profiles require SQLite database and backup support. Use Orca or its pinned Node runtime.'
+      'Writable profiles require SQLite database and backup support. Use Control Everything or its pinned Node runtime.'
     )
   }
 

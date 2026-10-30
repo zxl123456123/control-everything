@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { parseArgs, validateCommandAndFlags } from '../args'
 import { PROFILE_STATE_COMMAND_SPECS } from './profile-state'
+import { formatCommandHelp } from '../help'
 
 describe('profile state rollback discovery', () => {
   it.each(['exports', 'rollback'])('accepts an explicit profile for %s', (command) => {
@@ -31,9 +32,10 @@ describe('profile state rollback discovery', () => {
     const spec = PROFILE_STATE_COMMAND_SPECS.find((item) => item.path.at(-1) === 'rollback')
     expect(spec?.usage).toContain('--current-json')
     expect(spec?.notes?.join('\n')).toContain('without merging; both copies are archived')
-    expect(spec?.examples).toContain('orca profile state rollback --current-json')
+    expect(spec?.examples).toContain('zkyq profile state rollback --current-json')
     expect(spec?.usage).toContain('--latest-json')
     expect(spec?.notes?.join('\n')).toContain('exports the latest SQLite state')
-    expect(spec?.examples).toContain('orca profile state rollback --latest-json')
+    expect(spec?.examples).toContain('zkyq profile state rollback --latest-json')
+    expect(formatCommandHelp(spec!)).not.toContain('orca profile state')
   })
 })

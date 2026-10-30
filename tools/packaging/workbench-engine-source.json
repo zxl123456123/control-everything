@@ -332554,6 +332554,132 @@
       "upstream_sha256": "4b11f94815b622a6a86533e97d9579c197d3b6ff28d358f72688fd0808cb5de3",
       "current_sha256": "69763fe4e5c7c688a7563212f42783edab7da83f8620383512cb1fe3714773b0",
       "reason": "迁移应用版本环境变量并隔离驻留旧版 daemon"
+    },
+    {
+      "path": "src/cli/handlers/profile-state.test.ts",
+      "upstream_sha256": "8cdb996571078bfbd43a5e5d2ab31dd3df2fc442753cb47e0cb16866c0981d6e",
+      "current_sha256": "9821fb780e0aa6cdde878732de68eaf8b97c27a51bb7a0fa2a3c7e8a54d8981d",
+      "reason": "配置状态恢复提示及复制命令统一 zkyq，保留数据与回滚语义"
+    },
+    {
+      "path": "src/cli/handlers/profile-state.ts",
+      "upstream_sha256": "fb42dc4e60312b6d8af85af302be4c59def1a92fc388579796598034c30617de",
+      "current_sha256": "818223109c4afab202e44a24d4b93d1e9e8ddd1b980d0cbc8c845b32581ea509",
+      "reason": "配置状态恢复提示及复制命令统一 zkyq，保留数据与回滚语义"
+    },
+    {
+      "path": "src/cli/specs/profile-state.test.ts",
+      "upstream_sha256": "690cbc4526f7150e2136374ad23d5186dcc93484f3b83b0b6edc720af7aeb095",
+      "current_sha256": "d4837e7e6e4775614228890d8894578dbdf8859387c75118fc879c6d37e4f92e",
+      "reason": "配置状态恢复提示及复制命令统一 zkyq，保留数据与回滚语义"
+    },
+    {
+      "path": "src/cli/specs/profile-state.ts",
+      "upstream_sha256": "4a878152e0d6863ba3434ecbf7afb65ce3dbbf4d1844b681615354482bb35393",
+      "current_sha256": "17c2e1e68c89fd103d37058de2a64b2a0f89929cb0da1f75b084ebdf1ed8a930",
+      "reason": "配置状态恢复提示及复制命令统一 zkyq，保留数据与回滚语义"
+    },
+    {
+      "path": "src/main/index.ts",
+      "upstream_sha256": "4f88cf4560eac4fe5c9825dfe88433a0efbf57da2c2d3d7f2bffe994c081d4b2",
+      "current_sha256": "0cb6d238357dee3db02b4817b7d47767cd53f6067a66b6af6b5fdac0097879ca",
+      "reason": "配置状态恢复提示及复制命令统一 zkyq，保留数据与回滚语义"
+    },
+    {
+      "path": "src/main/persistence/profile-state/profile-state-access-owner.ts",
+      "upstream_sha256": "0309d18d61389fdbcf601154b6d2d4f56660673f4f6a1368b553c1d6ad6c3bb9",
+      "current_sha256": "4615f7c066fdfdf07ba6431ed164d39016ba465bcc682e51b253d5329780b063",
+      "reason": "配置状态恢复提示及复制命令统一 zkyq，保留数据与回滚语义"
+    },
+    {
+      "path": "src/main/persistence/profile-state/profile-state-bootstrap-publication-race.test.ts",
+      "upstream_sha256": "48d23ac6579f9fd1f5a9c3f4b8d8df3eff55431013b81e9ddfa7b7472ce3309c",
+      "current_sha256": "10af25f3f90e256d18a440febabbc1162b65bfef1d9131d64404b9cbd77e2010",
+      "reason": "配置状态恢复提示及复制命令统一 zkyq，保留数据与回滚语义"
+    },
+    {
+      "path": "src/main/persistence/profile-state/profile-state-database-publication.ts",
+      "upstream_sha256": "21643467e35e01d06233b6e461a16065690f629b1ed423d0d8f59c64362dc4e6",
+      "current_sha256": "ae2063f12a6ba12e6b03075b40e403a18f82bf901e608a8ade733f7b5ade4116",
+      "reason": "配置状态恢复提示及复制命令统一 zkyq，保留数据与回滚语义"
+    },
+    {
+      "path": "src/main/persistence/profile-state/profile-state-database.ts",
+      "upstream_sha256": "a138966e73e45273849955309dcb679873b58612803cb0b4bfaaba5a72b92816",
+      "current_sha256": "ddb84cb5c44147a551c3dc3aebabea4a378c4c9ab8afcc1bf97d7217fb88fb93",
+      "reason": "配置状态恢复提示及复制命令统一 zkyq，保留数据与回滚语义"
+    },
+    {
+      "path": "src/main/persistence/profile-state/profile-state-offline-settings.ts",
+      "upstream_sha256": "68da18134db90efb89848c7b554212f5bc78626e05f4b5c523c8117d7fba3bd9",
+      "current_sha256": "9b4a9eb1203168327ab10ee756f59f0e8175bd7a15230d19db394c7f30f32536",
+      "reason": "配置状态恢复提示及复制命令统一 zkyq，保留数据与回滚语义"
+    },
+    {
+      "path": "src/main/persistence/profile-state/profile-state-recovery-required.ts",
+      "upstream_sha256": "914be33dae5000fe35b13ed649cdd238118cde756d862bd22e870d6efdbe91c5",
+      "current_sha256": "109e0797d89e3e65bf010198e41551aca87bf9ab7597450f9303440b6cee8051",
+      "reason": "配置状态恢复提示及复制命令统一 zkyq，保留数据与回滚语义"
+    },
+    {
+      "path": "src/main/persistence/profile-state/profile-state-section-repair.test.ts",
+      "upstream_sha256": "bc48164f5a7f23f6d7087d7ca7b4a689f3d3daedd1b6540ce90413ec78a08326",
+      "current_sha256": "1621747d81af994332c895f0ce43e058a889d2795deff0f7254709b36f256856",
+      "reason": "配置状态恢复提示及复制命令统一 zkyq，保留数据与回滚语义"
+    },
+    {
+      "path": "src/main/persistence/profile-state/profile-state-section-repair.ts",
+      "upstream_sha256": "627d336d0d864fd8cdcf9b8ce471a91de9f63ea3abcd4223e1dc9a0512d1e577",
+      "current_sha256": "0865d25585c22f3cf8151f604c4619221cd26e4358dd8f13e0a6c94d02250c4d",
+      "reason": "配置状态恢复提示及复制命令统一 zkyq，保留数据与回滚语义"
+    },
+    {
+      "path": "src/main/persistence/profile-state/profile-state-startup-authority.ts",
+      "upstream_sha256": "2c5c5a2fe70a3e995fc3df8ba2d35ca8ad75f2a06df11ba4a558ae50da4bb4bb",
+      "current_sha256": "bfd8a7216580a822e9bf6ec55a898b6efc174d0221bf2213741f02f2a6e462c0",
+      "reason": "配置状态恢复提示及复制命令统一 zkyq，保留数据与回滚语义"
+    },
+    {
+      "path": "src/main/persistence/profile-state/profile-state-startup-failure.test.ts",
+      "upstream_sha256": "c04647e2498c80cbb3a9067bcce835e671107325b6c8cb82d1b899343c69330f",
+      "current_sha256": "aa253e01f180e2c80f81c16bca299457d918c891ddbd3bd19da0fbf98548ff7f",
+      "reason": "配置状态恢复提示及复制命令统一 zkyq，保留数据与回滚语义"
+    },
+    {
+      "path": "src/main/persistence/profile-state/profile-state-startup-failure.ts",
+      "upstream_sha256": "3e2aff01212f6a0b9193298a48d5d61a0aae38449a805e76ef9b7deadab501bb",
+      "current_sha256": "e840c3fb6a535910498161e2a7296ac339cf24581e827a2b04a3f0a97fd590b8",
+      "reason": "配置状态恢复提示及复制命令统一 zkyq，保留数据与回滚语义"
+    },
+    {
+      "path": "src/main/persistence/profile-state/profile-state-startup-recovery-dialog.test.ts",
+      "upstream_sha256": "fd7a64cd61631a88e5afd7f5f405353e1f695f30836d4b9646e3a9078efe0277",
+      "current_sha256": "d406df243d00c6405b04c5c34451b6b53883bf3cbcee8a9056ed10a70f172cca",
+      "reason": "配置状态恢复提示及复制命令统一 zkyq，保留数据与回滚语义"
+    },
+    {
+      "path": "src/main/persistence/profile-state/profile-state-startup-recovery-dialog.ts",
+      "upstream_sha256": "95a86c0bc7f308fc1a8665d7b95d26f9873a8fcb43e8ea69fcfecb0367b47d8f",
+      "current_sha256": "1642b63ad824b4ed11f8c93a5e7ea253c7a74e40221e75fbf6c207171c3bb101",
+      "reason": "配置状态恢复提示及复制命令统一 zkyq，保留数据与回滚语义"
+    },
+    {
+      "path": "src/main/persistence/profile-state/profile-state-store-factory.ts",
+      "upstream_sha256": "8c5315f2bf88f83e3d841b3af98b57d9e0e261e80135465162fd6c598fc96032",
+      "current_sha256": "5b5cbdb5b2dbf7fc7dcf35bed8c97e064011c7f5ee1c548763617562da9ef120",
+      "reason": "配置状态恢复提示及复制命令统一 zkyq，保留数据与回滚语义"
+    },
+    {
+      "path": "src/shared/profile-state-build-compatibility.test.ts",
+      "upstream_sha256": "c9e6adf74f772f3ff9ba67576a7abf8920be1f1a9e6b5036f6763bc85153f194",
+      "current_sha256": "e4285fdf88ea4c0c8a51d00d8a9f06e868fe994e9a4cd21e32f4726ff2303c2a",
+      "reason": "配置状态恢复提示及复制命令统一 zkyq，保留数据与回滚语义"
+    },
+    {
+      "path": "src/shared/profile-state-build-compatibility.ts",
+      "upstream_sha256": "a5e86f46689aaac043f3b1b9101435bddb4a5fbdc23544e221a1bc98ccd1a094",
+      "current_sha256": "fdf7a00a035ba2ae48d8a6b69ccad72230943460e6ca1ed62253e461282f4662",
+      "reason": "配置状态恢复提示及复制命令统一 zkyq，保留数据与回滚语义"
     }
   ],
   "reviewed_findings": [

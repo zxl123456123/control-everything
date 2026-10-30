@@ -12,7 +12,7 @@ describe('profile state startup recovery dialog', () => {
 
     await presentProfileStateStartupRecoveryDialog({
       message: 'SQLite state is unreadable.\nSQLite path: /tmp/profile-state.db',
-      recoveryCommand: 'orca profile state exports',
+      recoveryCommand: 'zkyq profile state exports',
       showMessageBox,
       copyToClipboard
     })
@@ -22,12 +22,12 @@ describe('profile state startup recovery dialog', () => {
       buttons: ['Copy recovery command', 'Quit'],
       defaultId: 1,
       cancelId: 1,
-      title: 'Orca profile state cannot be opened',
-      message: 'Orca cannot safely open this profile.',
+      title: 'Control Everything profile state cannot be opened',
+      message: 'Control Everything cannot safely open this profile.',
       detail:
-        'SQLite state is unreadable.\nSQLite path: /tmp/profile-state.db\n\nCopy the recovery command, then run it after Orca closes.'
+        'SQLite state is unreadable.\nSQLite path: /tmp/profile-state.db\n\nCopy the recovery command, then run it after Control Everything closes.'
     })
-    expect(copyToClipboard).toHaveBeenCalledWith('orca profile state exports')
+    expect(copyToClipboard).toHaveBeenCalledWith('zkyq profile state exports')
   })
 
   it('leaves the clipboard untouched when the user quits', async () => {
@@ -36,7 +36,7 @@ describe('profile state startup recovery dialog', () => {
 
     await presentProfileStateStartupRecoveryDialog({
       message: 'ambiguous profile state',
-      recoveryCommand: 'orca profile state exports',
+      recoveryCommand: 'zkyq profile state exports',
       showMessageBox,
       copyToClipboard
     })
@@ -60,7 +60,7 @@ describe('profile state startup recovery dialog', () => {
         defaultId: 0,
         cancelId: 0,
         detail:
-          'both profile authorities are present\n\nQuit Orca and resolve the profile-state authority before retrying.'
+          'both profile authorities are present\n\nQuit Control Everything and resolve the profile-state authority before retrying.'
       })
     )
     expect(copyToClipboard).not.toHaveBeenCalled()
@@ -129,9 +129,9 @@ describe('profile state startup recovery dialog', () => {
           '',
           'Everything else stays as it is now.',
           '',
-          'Projects added after that backup will be removed from Orca, along with their workspace details. Files on disk are not touched.',
+          'Projects added after that backup will be removed from Control Everything, along with their workspace details. Files on disk are not touched.',
           '',
-          'Orca keeps a copy of the damaged file in its data folder, then restarts.'
+          'Control Everything keeps a copy of the damaged file in its data folder, then restarts.'
         ].join('\n')
       })
     }

@@ -70,33 +70,33 @@ export function formatProfileStateStartupFailure(error: unknown): string | undef
     if (damagedSections !== undefined && typeof error.profileId === 'string') {
       return [
         `Part of this profile's saved state is damaged: ${profileStateSectionLabels(damagedSections).join(', ')}. Everything else is intact.`,
-        `Stop Orca, then run \`orca profile state rollback --repair --profile-id ${error.profileId}\` to replace only the damaged parts from backups and keep everything else. Orca keeps a copy of the damaged file.`,
+        `Stop Control Everything, then run \`zkyq profile state rollback --repair --profile-id ${error.profileId}\` to replace only the damaged parts from backups and keep everything else. Control Everything keeps a copy of the damaged file.`,
         `SQLite path: ${error.databaseFile}`,
-        'To restore a whole backup instead, run `orca profile state exports`, then `orca profile state rollback --backup <id>`.'
+        'To restore a whole backup instead, run `zkyq profile state exports`, then `zkyq profile state rollback --backup <id>`.'
       ].join('\n')
     }
     return [
-      'Orca cannot safely open the active profile because its SQLite state is unreadable.',
+      'Control Everything cannot safely open the active profile because its SQLite state is unreadable.',
       `Legacy JSON path: ${error.dataFile}`,
       `SQLite path: ${error.databaseFile}`,
       'Retained SQLite backups:',
       retainedBackups,
       'Retained JSON exports:',
       retainedExports,
-      'Stop Orca, then run `orca profile state exports` and choose a known-good recovery artifact.',
-      'Restore SQLite with `orca profile state rollback --backup <id>`, or restore a JSON export with',
-      '`orca profile state rollback --revision <revision>`.'
+      'Stop Control Everything, then run `zkyq profile state exports` and choose a known-good recovery artifact.',
+      'Restore SQLite with `zkyq profile state rollback --backup <id>`, or restore a JSON export with',
+      '`zkyq profile state rollback --revision <revision>`.'
     ].join('\n')
   }
 
   if (isProfileStateAuthorityFailure(error)) {
     return [
-      `Orca cannot safely choose a profile-state authority: ${error.message}`,
+      `Control Everything cannot safely choose a profile-state authority: ${error.message}`,
       'An older build may have changed the JSON file. Both copies are preserved; neither is selected automatically.',
-      'Stop Orca and copy the profile directory before choosing which state to keep.',
-      'To keep the current JSON, including edits from an older build, run `orca profile state rollback --current-json`. This archives both copies and does not merge their contents.',
-      'Run `orca profile state exports` to inspect retained recovery points.',
-      'Use `orca profile state rollback --backup <id>` or `orca profile state rollback --revision <revision>` only after selecting the state you want to restore.'
+      'Stop Control Everything and copy the profile directory before choosing which state to keep.',
+      'To keep the current JSON, including edits from an older build, run `zkyq profile state rollback --current-json`. This archives both copies and does not merge their contents.',
+      'Run `zkyq profile state exports` to inspect retained recovery points.',
+      'Use `zkyq profile state rollback --backup <id>` or `zkyq profile state rollback --revision <revision>` only after selecting the state you want to restore.'
     ].join('\n')
   }
 
@@ -109,13 +109,13 @@ export function formatProfileStateStartupFailure(error: unknown): string | undef
     return error.message
   }
   if (failureClass === 'newer-schema') {
-    return 'This profile was saved by a newer version of Orca. Open it with that version or a newer release. Your profile has not been changed.'
+    return 'This profile was saved by a newer version of Control Everything. Open it with that version or a newer release. Your profile has not been changed.'
   }
   if (failureClass === 'revision-conflict') {
-    return 'The active profile changed while Orca was starting. Close other Orca processes using this profile, then restart Orca.'
+    return 'The active profile changed while Control Everything was starting. Close other Control Everything processes using this profile, then restart Control Everything.'
   }
   if (failureClass === 'writer-unavailable') {
-    return 'Orca could not start profile persistence. Restart Orca; if the problem continues, repair or reinstall this build.'
+    return 'Control Everything could not start profile persistence. Restart Control Everything; if the problem continues, repair or reinstall this build.'
   }
 
   return undefined

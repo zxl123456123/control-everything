@@ -21,15 +21,15 @@ export async function presentProfileStateStartupRecoveryDialog(
 ): Promise<void> {
   const buttons = deps.recoveryCommand ? ['Copy recovery command', 'Quit'] : ['Quit']
   const detail = deps.recoveryCommand
-    ? `${deps.message}\n\nCopy the recovery command, then run it after Orca closes.`
-    : `${deps.message}\n\nQuit Orca and resolve the profile-state authority before retrying.`
+    ? `${deps.message}\n\nCopy the recovery command, then run it after Control Everything closes.`
+    : `${deps.message}\n\nQuit Control Everything and resolve the profile-state authority before retrying.`
   const { response } = await deps.showMessageBox({
     type: 'error',
     buttons,
     defaultId: buttons.length - 1,
     cancelId: buttons.length - 1,
-    title: 'Orca profile state cannot be opened',
-    message: 'Orca cannot safely open this profile.',
+    title: 'Control Everything profile state cannot be opened',
+    message: 'Control Everything cannot safely open this profile.',
     detail
   })
   if (response === 0 && deps.recoveryCommand) {
@@ -92,13 +92,13 @@ export async function chooseProfileStateCopy(
     title: 'Choose profile state',
     message: 'This profile has two saved copies that don’t match.',
     detail: [
-      'This usually happens after opening the profile in an older version of Orca.',
+      'This usually happens after opening the profile in an older version of Control Everything.',
       '',
-      `SQLite: what this version of Orca saved. Changes made in the older version are discarded.${savedAt(deps.sqliteSavedAt)}`,
+      `SQLite: what this version of Control Everything saved. Changes made in the older version are discarded.${savedAt(deps.sqliteSavedAt)}`,
       '',
       `JSON: includes changes made in the older version. Changes this version saved since then are discarded.${savedAt(deps.jsonSavedAt)}`,
       '',
-      'Orca archives both copies before switching, then restarts.'
+      'Control Everything archives both copies before switching, then restarts.'
     ].join('\n')
   })
   return response === 0 ? 'current-sqlite' : response === 1 ? 'current-json' : undefined
@@ -127,11 +127,11 @@ export async function chooseProfileStateRepair(
       ? []
       : projectSections.some(({ backupCreatedAtMs }) => backupCreatedAtMs === undefined)
         ? [
-            'Orca will forget your projects and their workspace details. Files on disk are not touched.',
+            'Control Everything will forget your projects and their workspace details. Files on disk are not touched.',
             ''
           ]
         : [
-            'Projects added after that backup will be removed from Orca, along with their workspace details. Files on disk are not touched.',
+            'Projects added after that backup will be removed from Control Everything, along with their workspace details. Files on disk are not touched.',
             ''
           ]
   const { response } = await deps.showMessageBox({
@@ -148,7 +148,7 @@ export async function chooseProfileStateRepair(
       'Everything else stays as it is now.',
       '',
       ...projectNote,
-      'Orca keeps a copy of the damaged file in its data folder, then restarts.'
+      'Control Everything keeps a copy of the damaged file in its data folder, then restarts.'
     ].join('\n')
   })
   return response === 0
