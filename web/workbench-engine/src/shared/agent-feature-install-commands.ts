@@ -1,6 +1,7 @@
 import { isUsableSkillsCliAgentKey } from './skills-cli-agent-keys'
 
-export const ORCA_SKILLS_REPOSITORY_URL = 'https://github.com/stablyai/orca'
+export const WORKBENCH_SKILLS_REPOSITORY = 'zxl123456123/control-everything'
+const WORKBENCH_SKILLS_REPOSITORY_URL = `https://github.com/${WORKBENCH_SKILLS_REPOSITORY}`
 
 // Why: one skills CLI for every install rail. 1.5.x cannot fetch a commit, and a bare
 // `npx skills` can reuse a stale cached copy or another binary (#18687).
@@ -58,7 +59,7 @@ export function buildAgentFeatureSkillInstallArgs(
     // Why: pinned to the build's own commit so the installed bytes are the ones its bundled
     // manifest judges freshness against, on every channel (hourly builds have no tag in
     // this repo). `add` always re-copies, so the same command is install and update.
-    `${ORCA_SKILLS_REPOSITORY_URL}/tree/${options.sourceCommit}`,
+    `${WORKBENCH_SKILLS_REPOSITORY_URL}/tree/${options.sourceCommit}/web/workbench-engine/skills`,
     ...skillArgs,
     ...(global ? ['--global'] : []),
     // Why: an explicit --agent stops `skills add` calling its own detection, whose

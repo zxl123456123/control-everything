@@ -27,7 +27,7 @@ export function roundTripAddArgs(source, ref, skillName, cliVersion = PINNED_SKI
   return [
     `skills@${cliVersion}`,
     'add',
-    `https://github.com/${source}/tree/${ref}`,
+    `https://github.com/${source}/tree/${ref}/web/workbench-engine/skills`,
     '--skill',
     skillName,
     '--global',

@@ -18,7 +18,7 @@ import { currentTarget } from './server-build-target.mjs'
 import { UNIT_INCLUDE } from './ci-unit-files.mjs'
 import { runProcessSync } from '@orca/process-host'
 import { describeProcessFailure } from './process-failure-message.mjs'
-import { resolveBuildSourceCommit } from './build-source-commit.mjs'
+import { resolveWorkbenchBuildCommit } from './build-source-commit.mjs'
 import {
   CROSS_RUNTIME_TEST_PATHS,
   nodeServerTestPaths,
@@ -82,7 +82,7 @@ if (artifact) {
   )
   process.stdout.write(`${JSON.stringify({ target, ...response })}\n`)
 
-  const source = `https://github.com/stablyai/orca/tree/${resolveBuildSourceCommit()}`
+  const source = `https://github.com/zxl123456123/control-everything/tree/${resolveWorkbenchBuildCommit()}/web/workbench-engine/skills`
   const cli = runProcessSync({
     program: runtimePath,
     args: [

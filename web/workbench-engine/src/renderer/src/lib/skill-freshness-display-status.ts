@@ -1,5 +1,5 @@
 import {
-  isOrcaSkillLockSource,
+  isWorkbenchSkillLockSource,
   isSkillCopyNeedingAttention,
   isSkillScanIssueNeedingAttention,
   skillPlacementParticipatesInGlobalFreshness,
@@ -21,7 +21,7 @@ export function getSkillFreshnessDisplayStatus(
     // but never advertised; "up to date" would be false, so report presence only.
     return inventory.installations.some(
       (installation) =>
-        installation.name === skillName && isOrcaSkillLockSource(installation.lockSource)
+        installation.name === skillName && isWorkbenchSkillLockSource(installation.lockSource)
     )
       ? 'update-available'
       : 'installed'

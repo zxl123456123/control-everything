@@ -4,7 +4,7 @@ import { execFileSync } from 'node:child_process'
 import { chmodSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { resolveBuildSourceCommit } from './build-source-commit.mjs'
+import { resolveWorkbenchBuildCommit } from './build-source-commit.mjs'
 
 // Electron packaging restamps the channel-specific version after compilation; `commit`
 // is what the tsc-compiled CLI pins official skill installs to.
@@ -100,7 +100,7 @@ function main() {
   const result = verifyPackageCliBin({
     fixExecutable: args.has('--fix-executable'),
     fixPackageJson: args.has('--fix-package-json'),
-    sourceCommit: args.has('--fix-package-json') ? resolveBuildSourceCommit() : undefined,
+    sourceCommit: args.has('--fix-package-json') ? resolveWorkbenchBuildCommit() : undefined,
     runHelp: args.has('--run-help')
   })
   console.log(

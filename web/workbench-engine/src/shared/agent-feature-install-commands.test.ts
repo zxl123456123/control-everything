@@ -6,7 +6,7 @@ import {
 } from './agent-feature-install-commands'
 
 const sourceCommit = '0123456789abcdef0123456789abcdef01234567'
-const source = `https://github.com/stablyai/orca/tree/${sourceCommit}`
+const source = `https://github.com/zxl123456123/control-everything/tree/${sourceCommit}/web/workbench-engine/skills`
 
 describe('agent feature skill commands', () => {
   it('pins the skills CLI and the source to the build commit', () => {

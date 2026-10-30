@@ -1,5 +1,5 @@
 import {
-  isOrcaSkillLockSource,
+  isWorkbenchSkillLockSource,
   isSkillCopyNeedingAttention,
   skillPlacementParticipatesInGlobalFreshness,
   type SkillFreshnessInstallation
@@ -116,7 +116,7 @@ export function groupSkillFreshness(
     groups.push({
       name,
       status: eligible.has(name) ? 'update-available' : 'cannot-update',
-      orcaOwned: isOrcaSkillLockSource(lockSource),
+      orcaOwned: isWorkbenchSkillLockSource(lockSource),
       lockSource,
       locations
     })

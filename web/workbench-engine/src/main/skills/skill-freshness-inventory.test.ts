@@ -3,7 +3,11 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Repo } from '../../shared/repo-types'
-import type { SkillBundleFileIdentity, SkillCurrentBundleEntry } from '../../shared/skill-freshness'
+import {
+  isWorkbenchSkillLockSource,
+  type SkillBundleFileIdentity,
+  type SkillCurrentBundleEntry
+} from '../../shared/skill-freshness'
 import {
   inventorySkillFreshness,
   MAXIMUM_REPOSITORY_SKILL_ROOTS
@@ -113,16 +117,30 @@ afterEach(async () => {
 const linkType = process.platform === 'win32' ? 'junction' : 'dir'
 
 describe('read-only skill freshness inventory', () => {
-  it('reads an older official copy as outdated and offers it', async () => {
-    const test = await fixture()
-    await test.writeSkill(join(test.homeDir, '.agents', 'skills'), test.oldMarkdown)
+  it.each(['zxl123456123/control-everything', 'stablyai/orca'])(
+    'offers an older managed copy from %s for update',
+    async (source) => {
+      const test = await fixture()
+      await writeSkillLock(test.homeDir, { source })
+      await test.writeSkill(join(test.homeDir, '.agents', 'skills'), test.oldMarkdown)
 
-    const inventory = await test.scan()
+      const inventory = await test.scan()
 
-    expect(inventory.installations.map((entry) => entry.status)).toEqual(['outdated'])
-    expect(inventory.installations[0]?.lockSource).toBe('stablyai/orca')
-    expect(inventory.eligibleUpdateNames).toEqual(['orca-cli'])
-    expect(getSkillFreshnessDisplayStatus(inventory, 'orca-cli')).toBe('update-available')
+      expect(inventory.installations.map((entry) => entry.status)).toEqual(['outdated'])
+      expect(inventory.installations[0]?.lockSource).toBe(source)
+      expect(inventory.eligibleUpdateNames).toEqual(['orca-cli'])
+      expect(getSkillFreshnessDisplayStatus(inventory, 'orca-cli')).toBe('update-available')
+    }
+  )
+
+  it('recognizes normalized managed sources without claiming other repositories', () => {
+    expect(
+      isWorkbenchSkillLockSource('https://github.com/ZXL123456123/control-everything.git/')
+    ).toBe(true)
+    expect(isWorkbenchSkillLockSource('https://github.com/stablyai/orca.git')).toBe(true)
+    expect(isWorkbenchSkillLockSource('someone/control-everything')).toBe(false)
+    expect(isWorkbenchSkillLockSource('zxl123456123/control-everything-unrelated')).toBe(false)
+    expect(isWorkbenchSkillLockSource(null)).toBe(false)
   })
 
   it('reads the shipped bytes as current, with CRLF or without', async () => {

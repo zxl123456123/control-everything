@@ -327156,14 +327156,14 @@
     {
       "path": "config/scripts/build-orcad.mjs",
       "upstream_sha256": "07295bbbd5159a3cbcb42e204d8b2599d0ba3cb4301350b815c24bde9615c05c",
-      "reason": "N1: export the exact pinned browser core through existing distribution ownership for desktop news collection.",
-      "current_sha256": "a6460008c5df705e3f5d8dbea9abebaa8e01c743154a015b92f35a451890c9ae"
+      "current_sha256": "0c014b80acb0ec363af65760ec92d09c17f86984e342765ff307d32c32e58a54",
+      "reason": "N1: export the exact pinned browser core through existing distribution ownership for desktop news collection.；技能安装更新使用本平台提交和子目录，保留上游来源记录与历史安装识别，同步实际构建和说明"
     },
     {
       "path": "config/scripts/build-source-commit.mjs",
       "upstream_sha256": "69c23f045fa86fc9a2e3072252766d62368641e438dc7db1ac215baf6f49c3c4",
-      "current_sha256": "850b1759a2f4709374214d2de8ce051866c6444e9431b7121ee4ff665b1dc145",
-      "reason": "S2: read fixed upstream provenance without host Git fallback"
+      "current_sha256": "c05a7ef74664baaf363cefb246da3b7ff805d111590d46ceadf41d445e3a86b9",
+      "reason": "S2: read fixed upstream provenance without host Git fallback；技能安装更新使用本平台提交和子目录，保留上游来源记录与历史安装识别，同步实际构建和说明"
     },
     {
       "path": "config/scripts/build-windows-process-tree-addon.mjs",
@@ -328182,8 +328182,8 @@
     {
       "path": "vite.web.config.ts",
       "upstream_sha256": "ee91ccdb61743a54d9bc8fe4a05e1660026659539357fb3a5602900e530ea10c",
-      "current_sha256": "861dfbaa0b465a36610e00e524807f30e72a70b4eb86769701ff05af1dc26b1c",
-      "reason": "S2: disable marketing wall and emit Vite manifest; S6: resolve the exact @xterm/addon-ligatures import to its published browser-safe UMD main instead of the Node-dependent ESM entry; preserve all other aliases"
+      "current_sha256": "055fc9a3cfdbc43782d8b9347bd37b1299cf9e1860fddbaad55c761ee05ee666",
+      "reason": "S2: disable marketing wall and emit Vite manifest; S6: resolve the exact @xterm/addon-ligatures import to its published browser-safe UMD main instead of the Node-dependent ESM entry; preserve all other aliases；技能安装更新使用本平台提交和子目录，保留上游来源记录与历史安装识别，同步实际构建和说明"
     },
     {
       "path": "src/renderer/src/app-shell/use-document-appearance.ts",
@@ -330282,8 +330282,8 @@
     {
       "path": "config/scripts/verify-cli-bin.mjs",
       "upstream_sha256": "45f164c7f797b7c5d162ab222b4dd14216a880585dda4f8bba3233f1f9dbce99",
-      "current_sha256": "f05eb8f36cc2b0ad5575e0569fb3c6ca3f39035f5596c5539ab396aa041d5340",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+      "current_sha256": "b594df77fbc7f212c6d1da9aef3ce98822f1cb9ba7404d93cf05e39dca7e79a7",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；技能安装更新使用本平台提交和子目录，保留上游来源记录与历史安装识别，同步实际构建和说明"
     },
     {
       "path": "config/scripts/verify-cli-bin.test.mjs",
@@ -331868,6 +331868,96 @@
       "upstream_sha256": "ef1387a7da798ed11aea358031bf23912aa54c35ad99aa93e5b3270cc49fb66d",
       "current_sha256": "4c2cdce4f306cb1d3e06117560a857348470bb3976289683788e75d06877b1d6",
       "reason": "命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
+    },
+    {
+      "path": "config/scripts/run-node-server-tests.mjs",
+      "upstream_sha256": "33d982633fd40fce037f01ea5b35779d679a4a0c7833fb377216d50e7847c72b",
+      "current_sha256": "f4a435b1ba76b9deff480d90fe9c506c3319efbab939dabe1893425e9e860e01",
+      "reason": "技能安装更新使用本平台提交和子目录，保留上游来源记录与历史安装识别，同步实际构建和说明"
+    },
+    {
+      "path": "config/scripts/verify-skill-update-roundtrip.mjs",
+      "upstream_sha256": "89663c325af73f0152404a3a2d9adda278752a41bab72c26f7294516fe7f8a27",
+      "current_sha256": "dc92b19febbb3d6962f544eb3ebec9ad4a2fc9f1886531929ccfb8dfcebbbff6",
+      "reason": "技能安装更新使用本平台提交和子目录，保留上游来源记录与历史安装识别，同步实际构建和说明"
+    },
+    {
+      "path": "config/scripts/verify-skill-update-roundtrip.test.mjs",
+      "upstream_sha256": "bf44640d116594008f8d05c77b17cb1bf631c153aea982bd615be840687f6dbe",
+      "current_sha256": "98ebaa6eec5c187dec23e7c86af319c0d820873dc91a6c9839ce5cede5b228be",
+      "reason": "技能安装更新使用本平台提交和子目录，保留上游来源记录与历史安装识别，同步实际构建和说明"
+    },
+    {
+      "path": "electron.vite.config.ts",
+      "upstream_sha256": "4235aa63012635748792cb1f6c9f065343bce25681bffb4005129ac3a7b66450",
+      "current_sha256": "0f39f47c4d96ff243c0c20d71f78bbdabe0b0240879af686103af3745c9e0816",
+      "reason": "技能安装更新使用本平台提交和子目录，保留上游来源记录与历史安装识别，同步实际构建和说明"
+    },
+    {
+      "path": "src/cli/handlers/skills.ts",
+      "upstream_sha256": "48c8fedc4f8d87bf02d039304a1ab6c80396f99a3040692e42ef56f072e6a9ec",
+      "current_sha256": "dcf851da0e9a334e5ac6a94e3d93b0c608d1419d7b18eb87a7361c3a8ae75e78",
+      "reason": "技能安装更新使用本平台提交和子目录，保留上游来源记录与历史安装识别，同步实际构建和说明"
+    },
+    {
+      "path": "src/cli/specs/skills.ts",
+      "upstream_sha256": "3110c8236700e23b103f89d2493b51294d97c1832d5dcbfa3731c568877971b9",
+      "current_sha256": "3ab673b42d0446178070988491ad40b3f9b42f21a838383d0fd784e24dc14ff6",
+      "reason": "技能安装更新使用本平台提交和子目录，保留上游来源记录与历史安装识别，同步实际构建和说明"
+    },
+    {
+      "path": "src/main/skills/skill-freshness-inventory.test.ts",
+      "upstream_sha256": "7de71c7c77baf5bca56c87f4a5698e50d9fa9a5e68243816ab5a2b820d383cf9",
+      "current_sha256": "c30b4eac7951180b97ddca3fc807e51c2873721151fc8853099946a41c30ce8b",
+      "reason": "技能安装更新使用本平台提交和子目录，保留上游来源记录与历史安装识别，同步实际构建和说明"
+    },
+    {
+      "path": "src/renderer/src/components/onboarding/onboarding-feature-setup.test.ts",
+      "upstream_sha256": "b3c14f117de1542b5a919e8105bd2701ac102fd2e78abe3d442caf0742cdd657",
+      "current_sha256": "af534d40457521f67d64da802e9638838c610116b2c2435eb84996ef67482cab",
+      "reason": "技能安装更新使用本平台提交和子目录，保留上游来源记录与历史安装识别，同步实际构建和说明"
+    },
+    {
+      "path": "src/renderer/src/components/sidebar/LinearAgentSkillSetupPrompt.test.tsx",
+      "upstream_sha256": "e22d442e3eac0e8e1e3e3d39cfa02da94672cea8c4e0f7485eb6ea0f56b64080",
+      "current_sha256": "1326fac195ca5d4115c5eed3f633609bcaa269e19fb3bf3607afae8e428fe32d",
+      "reason": "技能安装更新使用本平台提交和子目录，保留上游来源记录与历史安装识别，同步实际构建和说明"
+    },
+    {
+      "path": "src/renderer/src/components/skills/SkillFreshnessNudge.tsx",
+      "upstream_sha256": "54a2b1becbf5fe95224d9c554eb15fbd7fe4dd7dd7ae7adc9373e575879bc586",
+      "current_sha256": "d481a4112200049a42581dd21f0f666f53e7713262f0aeb76dd51a3bfdd488e5",
+      "reason": "技能安装更新使用本平台提交和子目录，保留上游来源记录与历史安装识别，同步实际构建和说明"
+    },
+    {
+      "path": "src/renderer/src/components/skills/skill-freshness-grouping.ts",
+      "upstream_sha256": "bda3e1a10545611606182615a8607f3405f5571904878e5c06e51a2c5912a78b",
+      "current_sha256": "3e85b50687eafd4999d8fc71ac165d71e732fd77a7e8dac7a6955cc8b7e86dec",
+      "reason": "技能安装更新使用本平台提交和子目录，保留上游来源记录与历史安装识别，同步实际构建和说明"
+    },
+    {
+      "path": "src/renderer/src/lib/skill-freshness-display-status.ts",
+      "upstream_sha256": "4050df170106626de5bcc50128a71a93472f5cfd530fae4ba51e482816d00d51",
+      "current_sha256": "98854054ed15de2bcceb39eaa177bfc67cab5246252a4d2d633ac18d1929ff6b",
+      "reason": "技能安装更新使用本平台提交和子目录，保留上游来源记录与历史安装识别，同步实际构建和说明"
+    },
+    {
+      "path": "src/shared/agent-feature-install-commands.test.ts",
+      "upstream_sha256": "f75adfdf4ea2eca5a8ef340b1993e136f9c077e3a6ad87b983482c9f44cc7570",
+      "current_sha256": "f6c4701807ef21b6fb968ff9a78185726a729e060f6d97db1435141b419ea56b",
+      "reason": "技能安装更新使用本平台提交和子目录，保留上游来源记录与历史安装识别，同步实际构建和说明"
+    },
+    {
+      "path": "src/shared/agent-feature-install-commands.ts",
+      "upstream_sha256": "258f488b9005084330701107ab476e9c79f5a5b7fa7fa8e597a1767f412f4362",
+      "current_sha256": "25c4fcbc48e5ef79edb62c7eb9c750c181e37c6ffcb7c6a9c3c031002071b93e",
+      "reason": "技能安装更新使用本平台提交和子目录，保留上游来源记录与历史安装识别，同步实际构建和说明"
+    },
+    {
+      "path": "src/shared/skill-freshness.ts",
+      "upstream_sha256": "dec8cf6ea5d7e1d9f1e2181a5b0a7644fc4cb40afe2cc3508329fd4261e24dcf",
+      "current_sha256": "021eac3c42c2cddd03377fffc7e2f37b172428518be274d2048d137231b7ce1e",
+      "reason": "技能安装更新使用本平台提交和子目录，保留上游来源记录与历史安装识别，同步实际构建和说明"
     }
   ],
   "reviewed_findings": [
