@@ -84,7 +84,7 @@ export function renderClaudeAccountsSection(model: AccountsPaneSectionModel): Re
         <p className="text-xs text-muted-foreground">
           {translate(
             'auto.components.settings.AccountsPane.72b36ea174',
-            'Optional. Orca can use your normal Claude login; add accounts only if you want quick switching without moving chat sessions.'
+            'Optional. Control Everything can use your normal Claude login; add accounts only if you want quick switching without moving chat sessions.'
           )}
         </p>
       </div>
@@ -249,7 +249,7 @@ export function renderClaudeAccountsSection(model: AccountsPaneSectionModel): Re
                   )
                 : translate(
                     'auto.components.settings.AccountsPane.3fe7862418',
-                    "No managed Claude accounts for {{value0}}. Orca will use that environment's system default Claude login until you add one here.",
+                    "No managed Claude accounts for {{value0}}. Control Everything will use that environment's system default Claude login until you add one here.",
                     { value0: accountRuntimeSentenceLabel }
                   )}
             </div>
