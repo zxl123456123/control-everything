@@ -1,8 +1,8 @@
-//! Launches the Orca CLI by running the packaged Electron binary as Node.
+//! Launches the workbench CLI by running the packaged Electron binary as Node.
 //!
 //! Why a native binary rather than the `.cmd` alone: `cmd.exe` reparses `%*` and
 //! executes or truncates embedded newlines, so orchestration message bodies
-//! cannot survive it (#8374). `orca.cmd` refuses those subcommands and defers
+//! cannot survive it (#8374). `zkyq.cmd` refuses those subcommands and defers
 //! here.
 //!
 //! Why not a managed assembly: a small freshly-compiled MSIL image in a
@@ -88,7 +88,7 @@ fn main() {
         if requested_command == "orca-ide" {
             "orca-ide"
         } else {
-            "orca"
+            "zkyq"
         },
     );
 

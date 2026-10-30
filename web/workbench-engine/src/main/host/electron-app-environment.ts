@@ -1,5 +1,7 @@
 import { app } from 'electron'
+import { existsSync } from 'node:fs'
 import type { AppEnvironment, AppPathName, AppProcessMetric } from '../../shared/app-environment'
+import { getBundledLauncherPath } from '../cli/bundled-cli-launcher-path'
 
 /**
  * Electron-backed AppEnvironment for the desktop app: a pass-through to
@@ -20,6 +22,12 @@ export class ElectronAppEnvironment implements AppEnvironment {
 
   isPackaged(): boolean {
     return app.isPackaged
+  }
+
+  getCliAccountCommand(): 'zkyq' | undefined {
+    if (!app.isPackaged || process.platform !== 'win32') return undefined
+    const launcher = getBundledLauncherPath('win32', process.resourcesPath)
+    return launcher && existsSync(launcher) ? 'zkyq' : undefined
   }
 
   onWillQuit(handler: () => void): void {

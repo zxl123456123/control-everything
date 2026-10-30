@@ -55,7 +55,7 @@ export class CliInstaller extends CliPathRegistration {
         : this.isLinuxAppImage() && this.appImagePath
           ? `The AppImage file at ${this.appImagePath} is missing. Move it back or re-run CLI registration from the current AppImage location.`
           : this.isPackaged
-            ? 'The bundled CLI launcher is missing from this Orca build.'
+            ? 'The bundled CLI launcher is missing from this Control Everything build.'
             : 'Development mode uses a generated launcher for validation only.'
       return {
         platform: this.platform,
@@ -139,7 +139,7 @@ export class CliInstaller extends CliPathRegistration {
       await this.installSymlink(status)
       await this.removeLegacyLinuxCommandIfManaged(status.launcherPath)
     } else if (this.isWindowsPackagedBundledCommand(status.commandPath, status.launcherPath)) {
-      // Why: packaged Windows already ships resources/bin/orca.exe; registration only owns the PATH entry.
+      // Why: packaged Windows already ships resources/bin/zkyq.exe; registration only owns the PATH entry.
     } else {
       // Why: the Windows wrapper dir is user-writable (%LOCALAPPDATA%), so mkdir here can't hit EACCES.
       await mkdir(dirname(status.commandPath), { recursive: true })

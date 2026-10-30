@@ -66,6 +66,9 @@ export abstract class CliInstallLocation {
       // Why: development builds must not claim the production shell command.
       return DEV_COMMAND_NAME
     }
+    if (this.platform === 'win32') {
+      return 'zkyq'
+    }
     // Why: packaged Linux uses `orca-ide` to avoid shadowing GNOME Orca's /usr/bin/orca.
     return this.platform === 'linux' ? LINUX_CLI_COMMAND_NAME : 'orca'
   }

@@ -323,10 +323,10 @@ describe('electron-builder config', () => {
   })
 
   // Why: the Windows CLI shim is delivered only via extraResources to
-  // resources/bin/orca.cmd (beside the native resources/bin/orca.exe). If the
+  // resources/bin/zkyq.cmd (beside the native resources/bin/zkyq.exe). If the
   // source tree is also packed into app.asar it gets extracted by
   // asarUnpack:['resources/**'] to app.asar.unpacked/resources/win32/bin/orca.cmd,
-  // a duplicate with no adjacent orca.exe that fails to launch (#7351).
+  // a duplicate with no adjacent zkyq.exe that fails to launch (#7351).
   it('keeps the Windows CLI shim source tree out of app.asar', () => {
     expect(electronBuilderConfig.files).toEqual(
       expect.arrayContaining(['!resources/win32{,/**/*}'])
@@ -336,10 +336,11 @@ describe('electron-builder config', () => {
       expect.arrayContaining([
         expect.objectContaining({
           from: 'resources/win32/bin/orca.cmd',
-          to: 'bin/orca.cmd'
+          to: 'bin/zkyq.cmd'
         })
       ])
     )
+    expect(electronBuilderConfig.win.extraResources.map((resource) => resource.to)).not.toContain('bin/orca.cmd')
   })
 
   // Why: on macOS 26 UNUserNotificationCenter aborts for executables launched

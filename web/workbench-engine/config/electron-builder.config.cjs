@@ -331,10 +331,10 @@ module.exports = {
     // extraResources entry below; keeping them in app.asar would ship every
     // native variant (and duplicate the selected one).
     '!node_modules/sherpa-onnx*{,/**/*}',
-    // Why: the Windows CLI shim ships via extraResources to resources/bin/orca.cmd
-    // (beside the native resources/bin/orca.exe). Packing the source tree into
+    // Why: the Windows CLI shim ships via extraResources to resources/bin/zkyq.cmd
+    // (beside the native resources/bin/zkyq.exe). Packing the source tree into
     // app.asar too lets asarUnpack:['resources/**'] extract a second copy at
-    // app.asar.unpacked/resources/win32/bin/orca.cmd with no adjacent orca.exe,
+    // app.asar.unpacked/resources/win32/bin/orca.cmd with no adjacent zkyq.exe,
     // which fails to launch the CLI (#7351).
     '!resources/win32{,/**/*}'
   ],
@@ -582,7 +582,7 @@ module.exports = {
       winSpeechNativeResource,
       {
         from: 'resources/win32/bin/orca.cmd',
-        to: 'bin/orca.cmd'
+        to: 'bin/zkyq.cmd'
       },
       {
         from: 'native/windows-cli-launcher/.build/zkyq.exe',

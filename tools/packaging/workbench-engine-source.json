@@ -327117,7 +327117,9 @@
     "src/renderer/src/components/settings/ManagedDataAccountsSection.test.tsx",
     "src/shared/ephemeral-vm-recipe-diagnostics.test.ts",
     "src/cli/handlers/orchestration/runtime-compatibility.test.ts",
-    "src/main/runtime/orchestration/cli-command.test.ts"
+    "src/main/runtime/orchestration/cli-command.test.ts",
+    "src/main/cli/cli-installer-windows-identity.test.ts",
+    "src/main/host/electron-app-environment.test.ts"
   ],
   "adapted_files": [
     {
@@ -329331,8 +329333,8 @@
     {
       "path": "config/electron-builder.config.cjs",
       "upstream_sha256": "145988a8484048fbdf0f7f9361eac6ceb406af6a0be306f42f4fccae99bacd29",
-      "current_sha256": "fb9b5771f93b867c796edff1c8095b842f8cee41bf0ff5ddf49b8ee3554af768",
-      "reason": "Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands."
+      "current_sha256": "e12e6181fb26f8ce2614d819646f2d293b9cd20dd52dcd902ecfca8b9db2625d",
+      "reason": "Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands.；统一Windows桌面命令安装状态、宿主能力、批处理分发和原生恢复命令为zkyq，保留PATH及消息参数行为"
     },
     {
       "path": "config/scripts/build-windows-cli-launcher.mjs",
@@ -329343,8 +329345,8 @@
     {
       "path": "config/scripts/electron-builder-config.test.mjs",
       "upstream_sha256": "e614ac6673bca68ec2d5df34e0b59b707c4351c6a6d1662ea0aed4f589a14437",
-      "current_sha256": "96cd222041bd5eaeae4bf16148a7c4f1e95a3524497a75267b3b8ed6b5709b37",
-      "reason": "Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands."
+      "current_sha256": "404dc8e66defcc2cddbb61b7fe0555c39e9f5865ff82b6a89eb66e672291ffaf",
+      "reason": "Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands.；统一Windows桌面命令安装状态、宿主能力、批处理分发和原生恢复命令为zkyq，保留PATH及消息参数行为"
     },
     {
       "path": "config/scripts/orcad-windows-cli-launcher.mjs",
@@ -329397,14 +329399,14 @@
     {
       "path": "native/windows-cli-launcher/src/main.rs",
       "upstream_sha256": "317d4e1c19a1d1d6be2fa93f832d2e43ab0d6ae8e7043bba019c52b46b2340f2",
-      "current_sha256": "648eccd4177acbea9b63634b39623467caa79a70c5adf3c695b3286c7bd1bf61",
-      "reason": "Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands.；启动器读写统一为zkyq配置，成功安装后移除旧生成配置，失败保留重试且不读取旧名回退"
+      "current_sha256": "2f691af5bb2989703b3e1ac0129ae47cf66aa045e39f97b6b5663e431e49567e",
+      "reason": "Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands.；启动器读写统一为zkyq配置，成功安装后移除旧生成配置，失败保留重试且不读取旧名回退；统一Windows桌面命令安装状态、宿主能力、批处理分发和原生恢复命令为zkyq，保留PATH及消息参数行为"
     },
     {
       "path": "resources/win32/bin/orca.cmd",
       "upstream_sha256": "95548897a2edf3bc0b2419db2e7f57db3432b1d56df13768d1e9efe34b7a28d1",
-      "current_sha256": "01b6322c8993cfed3c9ef63cfc1c1747ecbed2854d79a084f2269179c75c1795",
-      "reason": "Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands."
+      "current_sha256": "40dd47a01be649a8b5d24659365e396d9e000699cc31ea4b38a4a201313a6683",
+      "reason": "Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands.；统一Windows桌面命令安装状态、宿主能力、批处理分发和原生恢复命令为zkyq，保留PATH及消息参数行为"
     },
     {
       "path": "src/main/cli/bundled-cli-launcher-path.ts",
@@ -329855,6 +329857,30 @@
       "upstream_sha256": "68bb9c9790c343c3d4e36509b49585e3e7a71d213f253e73ebd8698699d0081c",
       "current_sha256": "64c73726a70d34c570adb15e6cfd9031b5fd911ae717c36ae50f6e20e096b0f8",
       "reason": "统一已安装zkyq宿主的Agent派发、收信及恢复命令与状态摘要身份，保留历史记录识别和用户内容"
+    },
+    {
+      "path": "src/main/cli/cli-install-location.ts",
+      "upstream_sha256": "de854ee8887149342a08590da9e4ebc503d62e634433eb8ea9fcefaf5039d618",
+      "current_sha256": "a821f11462a3fa176b0bd885d90a4f3c7db453c82ea993d33c228461aaf22f8f",
+      "reason": "统一Windows桌面命令安装状态、宿主能力、批处理分发和原生恢复命令为zkyq，保留PATH及消息参数行为"
+    },
+    {
+      "path": "src/main/cli/cli-installer.ts",
+      "upstream_sha256": "65d452ae1ff988f417f5a610f3d7c4c44d73fac4c6fa13317729a4abe829f663",
+      "current_sha256": "afa1270d823b72321518cc13379e07eb43e9437214442743ebcaa84450c743d2",
+      "reason": "统一Windows桌面命令安装状态、宿主能力、批处理分发和原生恢复命令为zkyq，保留PATH及消息参数行为"
+    },
+    {
+      "path": "src/main/cli/cli-path-registration.ts",
+      "upstream_sha256": "ce1be2ceca8644764f96fd9a7485827c16a3e508d0b04c74bf3baad5316ac935",
+      "current_sha256": "2bda70def1f27a17f0ac6cc0fa291c98fee6baa4cdc3a77854610a187a3be545",
+      "reason": "统一Windows桌面命令安装状态、宿主能力、批处理分发和原生恢复命令为zkyq，保留PATH及消息参数行为"
+    },
+    {
+      "path": "src/main/host/electron-app-environment.ts",
+      "upstream_sha256": "723b4b344bc5c4649b9ca3bb5d85db945023891f5b9bc65ce5fbeeb717bbb34f",
+      "current_sha256": "c01b7cce03d416e44143afa7f12478ec004dd272af7449adceb7e473d2beeac2",
+      "reason": "统一Windows桌面命令安装状态、宿主能力、批处理分发和原生恢复命令为zkyq，保留PATH及消息参数行为"
     }
   ],
   "reviewed_findings": [
