@@ -286,7 +286,11 @@ class WorkbenchRuntime:
 
     def _read_identity(self):
         state = self.config.data_root / "state"
-        metadata, instance = read_json(state / "orca-runtime.json", 65536), read_json(state / "orcad.lock", 32768)
+        try:
+            metadata = read_json(state / "zkyq-runtime.json", 65536)
+        except FileNotFoundError:
+            metadata = read_json(state / "orca-runtime.json", 65536)
+        instance = read_json(state / "orcad.lock", 32768)
         if (metadata.get("pid") != self._pid or instance.get("pid") != self._pid
                 or instance.get("startedAtMs") != self._created or not instance.get("nonce")
                 or not isinstance(metadata.get("authToken"), str) or not metadata["authToken"]

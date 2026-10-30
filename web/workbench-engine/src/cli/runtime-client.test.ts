@@ -44,7 +44,7 @@ function writeMetadata(
   pid = 123
 ): void {
   writeFileSync(
-    join(userDataPath, 'orca-runtime.json'),
+    join(userDataPath, 'zkyq-runtime.json'),
     JSON.stringify({
       runtimeId: 'runtime-1',
       pid,

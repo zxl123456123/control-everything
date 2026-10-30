@@ -1,7 +1,10 @@
 import { lstat, readFile } from 'node:fs/promises'
 import { setTimeout as delay } from 'node:timers/promises'
 import { runProcess } from '@orca/process-host'
-import { getRuntimeMetadataPath } from '../../shared/runtime-bootstrap'
+import {
+  getLegacyRuntimeMetadataPath,
+  getRuntimeMetadataPath
+} from '../../shared/runtime-bootstrap'
 import type { UpdateInstallBlocker } from '../../shared/update-status-types'
 import { getMacUpdateRunningInstances } from '../macos-update-running-instances'
 
@@ -66,8 +69,15 @@ async function isOwnedSidecar(profile: string, pid: number, uid: number): Promis
     if (info.uid !== uid || !info.isDirectory()) {
       return false
     }
-    const metadataPath = getRuntimeMetadataPath(profile)
-    const metadataInfo = await lstat(metadataPath)
+    let metadataPath = getRuntimeMetadataPath(profile)
+    let metadataInfo
+    try {
+      metadataInfo = await lstat(metadataPath)
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+      metadataPath = getLegacyRuntimeMetadataPath(profile)
+      metadataInfo = await lstat(metadataPath)
+    }
     if (!metadataInfo.isFile() || metadataInfo.uid !== uid || metadataInfo.size > 64 * 1024) {
       return false
     }

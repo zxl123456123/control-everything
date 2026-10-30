@@ -16,6 +16,7 @@ import {
   clearRuntimeMetadata,
   clearRuntimeMetadataIfOwned,
   readRuntimeMetadata,
+  readSidecarRuntimeMetadata,
   writeRuntimeMetadata
 } from './runtime-metadata'
 
@@ -74,7 +75,17 @@ describe('runtime metadata', () => {
     clearRuntimeMetadata(userDataPath)
 
     expect(readRuntimeMetadata(userDataPath)).toBeNull()
-    expect(getRuntimeMetadataPath(userDataPath)).toContain('orca-runtime.json')
+    expect(getRuntimeMetadataPath(userDataPath)).toContain('zkyq-runtime.json')
+  })
+
+  it('discovers an older sidecar only when the current file is absent', () => {
+    const userDataPath = mkdtempSync(join(tmpdir(), 'zkyq-sidecar-metadata-'))
+    tempDirs.push(userDataPath)
+    const legacy = join(userDataPath, 'orca-runtime.json')
+    writeFileSync(legacy, JSON.stringify({ runtimeId: 'old', pid: 42 }))
+    expect(readSidecarRuntimeMetadata(userDataPath)?.runtimeId).toBe('old')
+    writeFileSync(getRuntimeMetadataPath(userDataPath), '{invalid')
+    expect(() => readSidecarRuntimeMetadata(userDataPath)).toThrow()
   })
 
   describe('clearRuntimeMetadataIfOwned', () => {

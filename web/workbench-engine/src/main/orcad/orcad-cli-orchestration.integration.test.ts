@@ -27,7 +27,7 @@ import {
 import { resolveBundledOrcadRuntime } from './orcad-bundled-runtime'
 import { skipForMissingInputs } from './orcad-node-slot-fixture'
 
-const slotDir = resolve('out/orcad')
+const slotDir = resolve(process.env.ZKYQ_TEST_ORCAD_SLOT ?? 'out/orcad')
 const cliEntry = join(slotDir, ...ORCAD_CLI_ENTRY_FILENAME.split('/'))
 const windowsLauncher = join(slotDir, ...ORCAD_WINDOWS_CLI_LAUNCHER_FILENAME.split('/'))
 const runtime = existsSync(join(slotDir, ORCAD_NODE_RUNTIME_MARKER_FILENAME))
@@ -111,7 +111,7 @@ it.skipIf(skip)(
       await new Promise<void>((ready) => server.listen(endpoint, ready))
       const launcher = serverCliLauncher(root)
       writeFileSync(
-        join(root, 'orca-runtime.json'),
+        join(root, 'zkyq-runtime.json'),
         JSON.stringify({
           runtimeId: 'runtime-owner',
           pid: process.pid,

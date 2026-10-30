@@ -199,7 +199,7 @@ describe('ElectronServeBrowserProcess start-up', () => {
     const userDataPath = (spawnSpec().args ?? [])
       .find((arg) => arg.startsWith('--user-data-dir='))!
       .slice('--user-data-dir='.length)
-    const metadata = JSON.parse(await readFile(join(userDataPath, 'orca-runtime.json'), 'utf8'))
+    const metadata = JSON.parse(await readFile(join(userDataPath, 'zkyq-runtime.json'), 'utf8'))
     await processHandle.stop()
     expect(existsSync(userDataPath)).toBe(false)
     expect(() => process.kill(metadata.pid, 0)).toThrow()
@@ -210,7 +210,12 @@ describe('ElectronServeBrowserProcess start-up', () => {
       vi.stubEnv(key, `leaked-${key}`)
     }
     vi.stubEnv('ORCA_HARNESS_UNRELATED', 'preserved')
-    for (const key of ['ORCA_E2E_USER_DATA_DIR', 'ZKYQ_USER_DATA', 'ORCA_USER_DATA', 'ZKYQ_USER_DATA_PATH']) {
+    for (const key of [
+      'ORCA_E2E_USER_DATA_DIR',
+      'ZKYQ_USER_DATA',
+      'ORCA_USER_DATA',
+      'ZKYQ_USER_DATA_PATH'
+    ]) {
       vi.stubEnv(key, harnessRoot)
     }
     const isolatedHome = join(harnessRoot, 'home')
@@ -289,7 +294,7 @@ describe('ElectronServeBrowserProcess start-up', () => {
       .find((arg) => arg.startsWith('--user-data-dir='))!
       .slice('--user-data-dir='.length)
     const metadata = JSON.parse(
-      await readFile(join(userDataPath, 'orca-runtime.json'), 'utf8')
+      await readFile(join(userDataPath, 'zkyq-runtime.json'), 'utf8')
     ) as { pid: number }
 
     await processHandle.stop()
@@ -305,7 +310,7 @@ describe('ElectronServeBrowserProcess start-up', () => {
       .find((arg) => arg.startsWith('--user-data-dir='))!
       .slice('--user-data-dir='.length)
     const metadata = JSON.parse(
-      await readFile(join(userDataPath, 'orca-runtime.json'), 'utf8')
+      await readFile(join(userDataPath, 'zkyq-runtime.json'), 'utf8')
     ) as { pid: number }
     lockedRemovalPaths.add(userDataPath)
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)

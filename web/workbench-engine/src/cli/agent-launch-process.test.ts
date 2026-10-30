@@ -59,7 +59,7 @@ it('real CLI processes carry surface choices and refuse invalid or unsupported p
   try {
     await new Promise<void>((ready) => server.listen(endpoint, ready))
     writeFileSync(
-      join(root, 'orca-runtime.json'),
+      join(root, 'zkyq-runtime.json'),
       JSON.stringify({
         runtimeId: 'fixture-host',
         pid: process.pid,

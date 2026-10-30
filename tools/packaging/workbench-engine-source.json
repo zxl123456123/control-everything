@@ -327141,7 +327141,8 @@
     "src/renderer/src/components/settings/RepositoryHooksYamlStatus.test.tsx",
     "src/shared/project-yaml-path.ts",
     "src/cli/project-config-migration.test.ts",
-    "src/cli/project-config-migration.ts"
+    "src/cli/project-config-migration.ts",
+    "src/cli/runtime/metadata-migration.test.ts"
   ],
   "adapted_files": [
     {
@@ -330009,8 +330010,8 @@
     {
       "path": "config/docker/headless-serve-shutdown/run-signal-case.sh",
       "upstream_sha256": "e48a081f2134521c8c847c7c844f06335b156a0c1b01e117381c25d64817a298",
-      "current_sha256": "4177629532c7391f59eb9c463ebb333fef9d1e5038cb4920d359bc0ffb88b82f",
-      "reason": "原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+      "current_sha256": "b02fe15f39c38a600934bcdc5547485f75d1d8f462925f3083f07c8b5502430b",
+      "reason": "原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；迁移运行时发现文件并保护新旧进程所有权"
     },
     {
       "path": "config/scripts/electron-builder-runtime-resources.test.mjs",
@@ -330429,8 +330430,8 @@
     {
       "path": "src/cli/runtime/runtime-source-fence.test.ts",
       "upstream_sha256": "90098e20457bfd07c1b4b9e9d48959b53d5cdafea532d68e1b29c0979a8bd4b1",
-      "current_sha256": "6edbd7d143f23326c3ed26cff50358ba4d77ee9ac0e110a7d830b8b3f5f4adba",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+      "current_sha256": "26ed378009dca93bec2bd6e5dded83dc9c0aa2b5a177a5827304446ecaa3590f",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；迁移运行时发现文件并保护新旧进程所有权"
     },
     {
       "path": "src/cli/runtime/runtime-source-fence.ts",
@@ -330597,8 +330598,8 @@
     {
       "path": "src/main/orcad/orcad-cli-orchestration.integration.test.ts",
       "upstream_sha256": "3dfd28b71c23fdde66df0affa58effa4b9fc3db76621e941fbce2044e9a0d31e",
-      "current_sha256": "14b1f3e48f31caee476d0ab50f56ee34bdf87da44b673740dc289d07fc534e1b",
-      "reason": "编排命令合同收敛为zkyq/zkyq-dev，恢复与接管提示使用新命令，保留历史会话数据和授权约束；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
+      "current_sha256": "b9e74dfdb71cfaefac9dfa45d0232ad1a261429b78760bebba9c54cf0230923e",
+      "reason": "编排命令合同收敛为zkyq/zkyq-dev，恢复与接管提示使用新命令，保留历史会话数据和授权约束；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；迁移运行时发现文件并保护新旧进程所有权"
     },
     {
       "path": "src/main/runtime/orchestration/coordinator.test.ts",
@@ -330861,8 +330862,8 @@
     {
       "path": "src/main/orcad/electron-serve-browser-process.test.ts",
       "upstream_sha256": "012ca93eccbb156cad0d20ac6347c9ffbafc000e45efec2907d67eb9991eab01",
-      "current_sha256": "3fe19f20a6df512cfa51f385161dfa8e2808d45ccec8fe3adecadf44f959eb90",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+      "current_sha256": "ca253125cdf9d02dcfbd2fc1e148f795d7a7e4a4c4424ff8472f7d86d09650f9",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；迁移运行时发现文件并保护新旧进程所有权"
     },
     {
       "path": "src/main/orcad/orcad-app-paths.test.ts",
@@ -331035,8 +331036,8 @@
     {
       "path": "src/cli/agent-launch-process.test.ts",
       "upstream_sha256": "c508ac82014c308b351e76fabcd148e07f4ae26b3770b3c1c346eb8c962bdf76",
-      "current_sha256": "210ba59d72ef59fe8a512f3ff404ca793c5477df21c748ccd8b3df3deefa85e4",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+      "current_sha256": "8e6fbda6034ca94d0f11ecbf29b7731315ddf0afd032a9a888d97d442457cb33",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；迁移运行时发现文件并保护新旧进程所有权"
     },
     {
       "path": "src/cli/handlers/agent-hooks-prepare-codex-isolated-home.test.ts",
@@ -331137,8 +331138,8 @@
     {
       "path": "src/cli/runtime/metadata.ts",
       "upstream_sha256": "dbe7caf05552dc961b228647c4ede7e9bd9f62ae75729d71eb335c5cdafd62c0",
-      "current_sha256": "c04af332c4687376ef59e6263fc9f3e2cd1ab77b968f86eeded61810837e5212",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；统一命令行连接与恢复提示的产品名称及可执行命令"
+      "current_sha256": "ddc64c3b62f727e5eece921b50beabeb68944e1181f486b0e0d70b08b4f4b9f4",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；统一命令行连接与恢复提示的产品名称及可执行命令；迁移运行时发现文件并保护新旧进程所有权"
     },
     {
       "path": "src/cli/runtime/profile-state-recovery-launch.test.ts",
@@ -332739,14 +332740,14 @@
     {
       "path": "src/main/managed-server/host-state/orcad-windows-host-state-ops.test.ts",
       "upstream_sha256": "a2526c53a2e9b7e462e0421a24d9d9b10ddf296214c1bc6296d6b844277270a8",
-      "current_sha256": "b59b2b34dc7f1f7ad52279c8fcc442e1737b042a1bccf95f2273934f7c20cc0f",
-      "reason": "迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据；迁移配置索引及备份并保护回退快照"
+      "current_sha256": "01290e16752a6e97fcd091da858b7bceee0e8079af403eff5fe5a071a5d54ca3",
+      "reason": "迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据；迁移配置索引及备份并保护回退快照；迁移运行时发现文件并保护新旧进程所有权"
     },
     {
       "path": "src/main/managed-server/host-state/orcad-windows-host-state-ops.ts",
       "upstream_sha256": "f79efbaee53e62d4fe1215e0fa75834b396dd1907c0442e9fbb104c2cbf32437",
-      "current_sha256": "f3a43a7e3ebd828dcf2653f483e0849fca3d80a06a3f76c81045eb01ac476583",
-      "reason": "迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据；迁移配置索引及备份并保护回退快照"
+      "current_sha256": "e5422255dd903662286808b18b622af18981d774ca93a25c4b88855782fd0590",
+      "reason": "迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据；迁移配置索引及备份并保护回退快照；迁移运行时发现文件并保护新旧进程所有权"
     },
     {
       "path": "src/main/orca-profiles/profile-index-store.test.ts",
@@ -333255,8 +333256,8 @@
     {
       "path": "src/cli/runtime-client.test.ts",
       "upstream_sha256": "d9752b2e99784f0a299cac4b88e8b7c234e0666a1899bc4a3145a34d514c9b41",
-      "current_sha256": "61ae4aa7015a9df9541a89b2eee5847f82d558d526e8a7c49d32b5a44cbda5dc",
-      "reason": "统一命令行连接与恢复提示的产品名称及可执行命令"
+      "current_sha256": "839b9a2f4d800388b24ceb11897748fb35639f60f24bc406fdb063ef49129836",
+      "reason": "统一命令行连接与恢复提示的产品名称及可执行命令；迁移运行时发现文件并保护新旧进程所有权"
     },
     {
       "path": "src/cli/runtime/client.ts",
@@ -333291,14 +333292,14 @@
     {
       "path": "src/cli/runtime/serve-electron-preflight.test.ts",
       "upstream_sha256": "676f7cb9366afa40bb652f729a8a724684b68b66ecb3fc701a2c1aebf2814546",
-      "current_sha256": "ba4a57e2ae992adde3a29f73dbe4a5a44529e1fb7e4376332453c0c0d356d54c",
-      "reason": "统一服务启动预检与异常退出的命令行恢复提示"
+      "current_sha256": "c9d72f442026663dbd3f43192063f49033de7d6175b60099a079ea25f77f6780",
+      "reason": "统一服务启动预检与异常退出的命令行恢复提示；迁移运行时发现文件并保护新旧进程所有权"
     },
     {
       "path": "src/cli/runtime/serve-electron-preflight.ts",
       "upstream_sha256": "a5107906e6aac43ff5173d5758f6e3f210d5da26c71e491b01fd93a08049af9e",
-      "current_sha256": "bf2a713c9f4a23e6daceca2c3b1b6e4fdbc4eafd2124be06e37dad3c26841304",
-      "reason": "统一服务启动预检与异常退出的命令行恢复提示"
+      "current_sha256": "cb2b1555f19938778af32b8a400e8a3a136eadcaafd13c4c3e5c960d4587e824",
+      "reason": "统一服务启动预检与异常退出的命令行恢复提示；迁移运行时发现文件并保护新旧进程所有权"
     },
     {
       "path": "src/cli/runtime/serve-signal-exit-diagnostic.test.ts",
@@ -333311,6 +333312,108 @@
       "upstream_sha256": "c9d24150a9d2a01994e9f13513ea3601f190425aa63bc79e3058a31c6329e806",
       "current_sha256": "f6665a02c40a464b11c6060925f9d55fd101b38db69a16d9fd4f619bb6b7b381",
       "reason": "统一服务启动预检与异常退出的命令行恢复提示"
+    },
+    {
+      "path": "src/cli/handlers/orchestration/mutation-request.test.ts",
+      "upstream_sha256": "cb8429bd9eee1b442e991dfc3a7ffd0ae9d7572a8822d70d92c3eb963aa32f76",
+      "current_sha256": "50bfc9f8c586a54b31f5f43c4b57cb4238b4eb6667f9c8533a5b1a9465d50d50",
+      "reason": "迁移运行时发现文件并保护新旧进程所有权"
+    },
+    {
+      "path": "src/cli/runtime/client-recovery.test.ts",
+      "upstream_sha256": "1ba7eb7f929583306fac80920c132939c12c5410d0c44c80256ab16153f33262",
+      "current_sha256": "4ab2f39b1a022d928f8873088855990070d15539170a0aa7004ae7bb23936712",
+      "reason": "迁移运行时发现文件并保护新旧进程所有权"
+    },
+    {
+      "path": "src/main/managed-server/activation/orcad-activation-host-test-harness.ts",
+      "upstream_sha256": "19a7bf0c8c159c9f4da536d1e398ed69ad4fadf3a36b2e4cc7e989f2614dd5ae",
+      "current_sha256": "50b5a5eedeb57804e1ec0792f7fa1c4cba7972df23d2dfe0d2e71728031d0d77",
+      "reason": "迁移运行时发现文件并保护新旧进程所有权"
+    },
+    {
+      "path": "src/main/orcad/__fixtures__/fake-orcad-electron-sidecar.cjs",
+      "upstream_sha256": "abca16732cab95954f0fcba8b210684281617adcee095ce881fe39fa1b48f1f1",
+      "current_sha256": "a7eea9b52e382472ef803fc293ac2b8ad8c257420fa7686a455a9d96888f2b85",
+      "reason": "迁移运行时发现文件并保护新旧进程所有权"
+    },
+    {
+      "path": "src/main/orcad/electron-serve-browser-process.ts",
+      "upstream_sha256": "452fd6391997bd521107a5e1d2cd03037ef3febb14d76b7d370bcc5be27d6a02",
+      "current_sha256": "445a2ff8e43ff014175df609ff6273a149aed4f9fe6bc304a9392656f04c9ed3",
+      "reason": "迁移运行时发现文件并保护新旧进程所有权"
+    },
+    {
+      "path": "src/main/runtime/runtime-metadata-ownership-watch.test.ts",
+      "upstream_sha256": "c4d9a0ce7dc2021205c8cd764e00023d6283f462ef9cd7bf2474dc99a80b24ea",
+      "current_sha256": "d971762f78c8678d7d8902615054ed449b3906257110bc45c9ed87d9b316ad1f",
+      "reason": "迁移运行时发现文件并保护新旧进程所有权"
+    },
+    {
+      "path": "src/main/runtime/runtime-metadata-ownership-watch.ts",
+      "upstream_sha256": "108ee9d7106a80ecb38038a0eab68fcd22f6f76d0b56559ca1eff56a91a2b8ee",
+      "current_sha256": "eb840f538dc545fb682f4f2bd15d34e466abca8953b51cb6bf3106ce28577a06",
+      "reason": "迁移运行时发现文件并保护新旧进程所有权"
+    },
+    {
+      "path": "src/main/runtime/runtime-metadata.test.ts",
+      "upstream_sha256": "5296f1abe097ef943788c2c58702470496c9ee7f43d8e571c015937d8412438e",
+      "current_sha256": "0d24a3e05338e533c6f87d2ee0b5058e2b1906530123b70c663518df7c6f925b",
+      "reason": "迁移运行时发现文件并保护新旧进程所有权"
+    },
+    {
+      "path": "src/main/runtime/runtime-metadata.ts",
+      "upstream_sha256": "98a9f7647688b6bc291a7607ab3f75857397a9eead08561da7801a9d7520428f",
+      "current_sha256": "a18e9b9c847f6805c8ac4517bdcc786ae9e6646abfec378d6e34d1ad290e5e9e",
+      "reason": "迁移运行时发现文件并保护新旧进程所有权"
+    },
+    {
+      "path": "src/main/runtime/runtime-rpc-metadata-lifecycle.test.ts",
+      "upstream_sha256": "b0bc19f206110727a5a627bf173f88d427d3a80c207d3761b56ac6bed2766730",
+      "current_sha256": "fdaa35b6cff6440943775123caed745904c4e63e85ad8ca21c61334759ddb4d8",
+      "reason": "迁移运行时发现文件并保护新旧进程所有权"
+    },
+    {
+      "path": "src/main/runtime/runtime-rpc/runtime-rpc-lifecycle.ts",
+      "upstream_sha256": "36495486652bc81fa60fb0cbcc8348880915a75025c44ec2dc089adf7d9d7b9d",
+      "current_sha256": "b71f10201d7e7f939df009349e10ac5766c65640b44e5275b5dfe8ca1b260fcd",
+      "reason": "迁移运行时发现文件并保护新旧进程所有权"
+    },
+    {
+      "path": "src/main/ssh/orcad-initial-activation-admission.ts",
+      "upstream_sha256": "f2ea0ff16e17e42f978ddf540226db0a5107bb430d7870b3451944686f36365c",
+      "current_sha256": "5ab8597f837b8729ec7028ff98c961d41d77867598126391cb2f9f4ee2a6f4c7",
+      "reason": "迁移运行时发现文件并保护新旧进程所有权"
+    },
+    {
+      "path": "src/main/startup/single-instance-lock.ts",
+      "upstream_sha256": "6b22d249c3a61c369f0b16cbff52d253afeee204dcbf6966fc6bad2038fef7dc",
+      "current_sha256": "560cca91f7da563520cd6d9b229490f7b7bf0113d672f23da4f163509ddbd704",
+      "reason": "迁移运行时发现文件并保护新旧进程所有权"
+    },
+    {
+      "path": "src/main/startup/windows-user-data-acl.test.ts",
+      "upstream_sha256": "c4e684f5f10e03b562fbb6374d3f04dce7a7cd234131b99d67dfdb663a4d7377",
+      "current_sha256": "4820cf2e34a3fb3bebeb321d010c50bb5e9090a1d951991edcbc5a38b229fa6e",
+      "reason": "迁移运行时发现文件并保护新旧进程所有权"
+    },
+    {
+      "path": "src/main/updater/mac-browser-sidecar-recovery.ts",
+      "upstream_sha256": "497734009c36efd20864736965c24375f5d78e1067533eccba5c9b2c6bbe161e",
+      "current_sha256": "3ee41f98901fcd59fbac8b8239a35af8a26611b150b3608920120eb9f84d4a76",
+      "reason": "迁移运行时发现文件并保护新旧进程所有权"
+    },
+    {
+      "path": "src/shared/runtime-bootstrap.ts",
+      "upstream_sha256": "e497671bda8f7246b2beab710116b560d50ff85527f53dd5625ee0dddcf6ec3a",
+      "current_sha256": "81792050cd9f8d73f632419c48d0e183a010ff00683cca623b8de0c9aaa7920f",
+      "reason": "迁移运行时发现文件并保护新旧进程所有权"
+    },
+    {
+      "path": "tests/e2e/helpers/computer-cli-driver.ts",
+      "upstream_sha256": "58ae67cf7f7e28b143c827da50dadca8833759e1f2c7b802665c3128df453b6b",
+      "current_sha256": "05cd3f159b165a6448488fb6d385b388e9c59330bad2e6828ed84cd21eb369d3",
+      "reason": "迁移运行时发现文件并保护新旧进程所有权"
     }
   ],
   "reviewed_findings": [

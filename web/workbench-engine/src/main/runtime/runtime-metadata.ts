@@ -1,6 +1,10 @@
 import { existsSync, readFileSync, rmSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
-import { getRuntimeMetadataPath, type RuntimeMetadata } from '../../shared/runtime-bootstrap'
+import {
+  getLegacyRuntimeMetadataPath,
+  getRuntimeMetadataPath,
+  type RuntimeMetadata
+} from '../../shared/runtime-bootstrap'
 import { writeSecureJsonFile } from '../../shared/secure-file'
 
 export function writeRuntimeMetadata(userDataPath: string, metadata: RuntimeMetadata): void {
@@ -14,6 +18,25 @@ export function readRuntimeMetadata(userDataPath: string): RuntimeMetadata | nul
     return null
   }
   return JSON.parse(readFileSync(metadataPath, 'utf-8')) as RuntimeMetadata
+}
+
+/** Discover an older independently updated browser sidecar during the transition. */
+export function readSidecarRuntimeMetadata(userDataPath: string): RuntimeMetadata | null {
+  try {
+    return JSON.parse(
+      readFileSync(getRuntimeMetadataPath(userDataPath), 'utf-8')
+    ) as RuntimeMetadata
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+  }
+  try {
+    return JSON.parse(
+      readFileSync(getLegacyRuntimeMetadataPath(userDataPath), 'utf-8')
+    ) as RuntimeMetadata
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null
+    throw error
+  }
 }
 
 /** Off-thread twin of {@link readRuntimeMetadata} for pollers; a missing file is not an error. */

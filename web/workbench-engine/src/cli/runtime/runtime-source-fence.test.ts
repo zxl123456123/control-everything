@@ -85,7 +85,7 @@ async function startRuntime(args: {
   servers.add(server)
   await new Promise<void>((resolve) => server.listen(endpoint, resolve))
   writeFileSync(
-    join(userDataPath, 'orca-runtime.json'),
+    join(userDataPath, 'zkyq-runtime.json'),
     JSON.stringify({
       runtimeId: args.runtimeId,
       pid: 1,

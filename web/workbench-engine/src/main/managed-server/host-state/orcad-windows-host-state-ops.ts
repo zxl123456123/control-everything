@@ -8,7 +8,10 @@
  * built under a partial name and renamed into place, so a half-written snapshot is never
  * `PRESENT`. Symlinks and junctions anywhere in captured state fail closed, as on POSIX.
  */
-import { PRIMARY_RUNTIME_METADATA_FILE } from '../../../shared/runtime-bootstrap'
+import {
+  LEGACY_RUNTIME_METADATA_FILE,
+  PRIMARY_RUNTIME_METADATA_FILE
+} from '../../../shared/runtime-bootstrap'
 import { ORCAD_LOCK_FILE_NAME } from '../../orcad/orcad-instance-lock'
 import { ORCAD_WINDOWS_PROCESS_TREE_FILENAME } from '../../../shared/orcad-artifacts'
 import { ORCAD_INSTALL_MODEL } from '../install/remote-install-model'
@@ -295,7 +298,7 @@ Object.assign(ops, {
 
   // A live, unreadable or unexpected owner record defers the first activation.
   'owner-admission'(userDataDir) {
-    const owners = ${text([ORCAD_LOCK_FILE_NAME, PRIMARY_RUNTIME_METADATA_FILE])}
+    const owners = ${text([ORCAD_LOCK_FILE_NAME, PRIMARY_RUNTIME_METADATA_FILE, LEGACY_RUNTIME_METADATA_FILE])}
     for (const name of owners) {
       const file = path.join(userDataDir, name)
       let pid

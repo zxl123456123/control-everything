@@ -144,6 +144,10 @@ describe('Windows snapshot ops', () => {
 })
 
 describe('Windows owner admission', () => {
+  it.each(['zkyq-runtime.json', 'orca-runtime.json'])('recognizes a live %s', async (name) => {
+    writeFileSync(join(root, name), JSON.stringify({ pid: process.pid }))
+    expect(await op('owner-admission', root)).toBe(`LIVE ${name} ${process.pid}`)
+  })
   it('is CLEAR with no owners, LIVE for a running owner, and silent for a dead one', async () => {
     expect(await op('owner-admission', root)).toBe('CLEAR')
     writeFileSync(join(root, 'orcad.lock'), JSON.stringify({ pid: process.pid }))

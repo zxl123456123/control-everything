@@ -27,7 +27,7 @@ afterEach(async () => {
 
 function writeRuntimeConnection(userDataPath: string, endpoint: string, runtimeId: string): void {
   writeFileSync(
-    join(userDataPath, 'orca-runtime.json'),
+    join(userDataPath, 'zkyq-runtime.json'),
     JSON.stringify({
       runtimeId,
       pid: 1,

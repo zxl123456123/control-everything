@@ -6,7 +6,10 @@
  * unexpected record defers rather than starting a second owner beside it.
  */
 import { ORCAD_LOCK_FILE_NAME } from '../orcad/orcad-instance-lock'
-import { PRIMARY_RUNTIME_METADATA_FILE } from '../../shared/runtime-bootstrap'
+import {
+  LEGACY_RUNTIME_METADATA_FILE,
+  PRIMARY_RUNTIME_METADATA_FILE
+} from '../../shared/runtime-bootstrap'
 import { quotePosixShell } from '../../shared/shell-argument-quoting'
 import { selectOrcadSlotRuntimeCommand } from '../managed-server/install/orcad-remote-runtime'
 import { isWindowsRemoteHost, joinRemotePath, type RemoteHostPlatform } from './ssh-remote-platform'
@@ -29,7 +32,11 @@ export function initialOrcadActivationAdmissionCommand(
     // Windows has no O_NOFOLLOW; the host script refuses links by lstat instead.
     return orcadWindowsSlotOpCommand(host, remoteInstallDir, 'owner-admission', [userDataDir])
   }
-  const owners = [ORCAD_LOCK_FILE_NAME, PRIMARY_RUNTIME_METADATA_FILE].map((name) => ({
+  const owners = [
+    ORCAD_LOCK_FILE_NAME,
+    PRIMARY_RUNTIME_METADATA_FILE,
+    LEGACY_RUNTIME_METADATA_FILE
+  ].map((name) => ({
     name,
     path: joinRemotePath(host, userDataDir, name)
   }))

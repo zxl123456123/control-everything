@@ -83,7 +83,7 @@ if [[ -z "$ready_line" ]]; then
   exit 1
 fi
 
-if [[ ! -f "$ZKYQ_USER_DATA_PATH/orca-runtime.json" || -e "$XDG_CONFIG_HOME/orca/orca-runtime.json" ]]; then
+if [[ ! -f "$ZKYQ_USER_DATA_PATH/zkyq-runtime.json" || -e "$XDG_CONFIG_HOME/orca/zkyq-runtime.json" ]]; then
   ls -la "$ZKYQ_USER_DATA_PATH" "$XDG_CONFIG_HOME" >&2 || true
   echo "FAIL: serve ignored ZKYQ_USER_DATA_PATH; its runtime metadata is not in $ZKYQ_USER_DATA_PATH" >&2
   exit 1

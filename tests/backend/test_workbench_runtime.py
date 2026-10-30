@@ -43,7 +43,7 @@ class FakeAPI:
         if '--no-pairing' in argv:
             state = self.data / 'state'
             state.mkdir(parents=True, exist_ok=True)
-            (state / 'orca-runtime.json').write_text(json.dumps({'runtimeId': f'runtime-{pid}', 'pid': pid,
+            (state / 'zkyq-runtime.json').write_text(json.dumps({'runtimeId': f'runtime-{pid}', 'pid': pid,
                 'authToken': 'fixture-owner-secret', 'startedAt': 1250,
                 'transports': [{'kind': 'named-pipe', 'endpoint': r'\\.\pipe\fixture'},
                                {'kind': 'websocket', 'endpoint': 'ws://127.0.0.1:23456'}]}))
@@ -143,6 +143,19 @@ class WorkbenchRuntimeTests(unittest.TestCase):
 
     def start(self):
         self.manager.start('http://127.0.0.1:12345', timeout=.1)
+
+    def test_runtime_identity_reads_legacy_only_when_current_metadata_is_absent(self):
+        self.start()
+        state = self.data / 'state'
+        current = state / 'zkyq-runtime.json'
+        legacy = state / 'orca-runtime.json'
+        current.replace(legacy)
+        metadata, _, _, _ = self.manager._read_identity()
+        self.assertEqual(metadata['pid'], self.manager._pid)
+        current.write_text('{invalid', encoding='utf-8')
+        with self.assertRaises(json.JSONDecodeError):
+            self.manager._read_identity()
+        self.assertTrue(legacy.is_file())
 
     def test_seed_uses_new_name_without_shadowing_previous_data_or_backups(self):
         self.manager._prepare('http://127.0.0.1:12345')

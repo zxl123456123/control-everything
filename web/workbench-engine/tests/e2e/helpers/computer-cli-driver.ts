@@ -6,7 +6,7 @@ import { promisify } from 'node:util'
 import { createElectronHomeIsolation } from './electron-home-isolation'
 
 const execFileAsync = promisify(execFile)
-const RUNTIME_METADATA_FILE = 'orca-runtime.json'
+const RUNTIME_METADATA_FILE = 'zkyq-runtime.json'
 let orcaDevUserDataPath: string | null = null
 let orcaServeProcess: ChildProcess | null = null
 let orcaServeStdout = ''

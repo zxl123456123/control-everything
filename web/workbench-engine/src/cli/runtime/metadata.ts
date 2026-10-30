@@ -3,15 +3,25 @@ import { join } from 'node:path'
 import { readFileSync } from 'node:fs'
 import {
   findTransport,
+  getLegacyRuntimeMetadataPath,
   getRuntimeMetadataPath,
   type RuntimeMetadata
 } from '../../shared/runtime-bootstrap'
 import { RuntimeClientError } from './types'
 
 export function readMetadata(userDataPath: string): RuntimeMetadata {
-  const metadataPath = getRuntimeMetadataPath(userDataPath)
+  let metadataPath = getRuntimeMetadataPath(userDataPath)
   try {
-    const metadata = JSON.parse(readFileSync(metadataPath, 'utf8')) as RuntimeMetadata | null
+    let raw: string
+    try {
+      raw = readFileSync(metadataPath, 'utf8')
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+      const legacyPath = getLegacyRuntimeMetadataPath(userDataPath)
+      raw = readFileSync(legacyPath, 'utf8')
+      metadataPath = legacyPath
+    }
+    const metadata = JSON.parse(raw) as RuntimeMetadata | null
     if (!metadata || !findTransport(metadata, 'unix', 'named-pipe') || !metadata.authToken) {
       throw new RuntimeClientError(
         'runtime_unavailable',
@@ -31,12 +41,48 @@ export function readMetadata(userDataPath: string): RuntimeMetadata {
 }
 
 export function tryReadMetadata(userDataPath: string): RuntimeMetadata | null {
-  const metadataPath = getRuntimeMetadataPath(userDataPath)
   try {
-    return JSON.parse(readFileSync(metadataPath, 'utf8')) as RuntimeMetadata | null
+    let raw: string
+    try {
+      raw = readFileSync(getRuntimeMetadataPath(userDataPath), 'utf8')
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+      raw = readFileSync(getLegacyRuntimeMetadataPath(userDataPath), 'utf8')
+    }
+    return JSON.parse(raw) as RuntimeMetadata | null
   } catch {
     return null
   }
+}
+
+/** An owner record must be readable before a second runtime may start. */
+function readOwnerMetadata(path: string): RuntimeMetadata | null {
+  let raw: string
+  try {
+    raw = readFileSync(path, 'utf8')
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null
+    throw error
+  }
+  const metadata = JSON.parse(raw) as RuntimeMetadata | null
+  if (
+    !metadata ||
+    !Number.isSafeInteger(metadata.pid) ||
+    metadata.pid <= 0 ||
+    !findTransport(metadata, 'unix', 'named-pipe') ||
+    !metadata.authToken
+  ) {
+    throw new Error('runtime_metadata_invalid')
+  }
+  return metadata
+}
+
+export function readPrimaryMetadataForPreflight(userDataPath: string): RuntimeMetadata | null {
+  return readOwnerMetadata(getRuntimeMetadataPath(userDataPath))
+}
+
+export function readLegacyMetadataForPreflight(userDataPath: string): RuntimeMetadata | null {
+  return readOwnerMetadata(getLegacyRuntimeMetadataPath(userDataPath))
 }
 
 export function getDefaultUserDataPath(

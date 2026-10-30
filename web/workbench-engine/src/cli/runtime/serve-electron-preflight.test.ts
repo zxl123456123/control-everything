@@ -126,6 +126,36 @@ describe('preflightElectronServe', () => {
     ).resolves.toBeNull()
   })
 
+  it('checks a legacy listener even when a current record exists', async () => {
+    const legacy = { ...METADATA, runtimeId: 'legacy' }
+    const checks = {
+      ...deps({ metadata: METADATA }),
+      readLegacyMetadata: () => legacy,
+      probeListener: vi.fn(async (candidate: RuntimeMetadata) =>
+        candidate.runtimeId === 'legacy' ? ('accepting' as const) : ('not-listening' as const)
+      )
+    }
+    await expect(
+      preflightElectronServe({}, userData, { platform: 'linux', deps: checks })
+    ).resolves.toBe(3)
+    expect(checks.probeListener).toHaveBeenCalledWith(legacy)
+  })
+
+  it('refuses to start when the legacy owner record cannot be read', async () => {
+    const checks = {
+      ...deps({ metadata: null }),
+      readLegacyMetadata: () => {
+        throw new Error('unreadable')
+      }
+    }
+    await expect(
+      preflightElectronServe({ json: true }, userData, { platform: 'linux', deps: checks })
+    ).resolves.toBe(3)
+    expect(JSON.parse(String(stdout.mock.calls[0]?.[0]))).toMatchObject({
+      error: { code: 'runtime_serve_already_running', data: { verdict: 'unverifiable' } }
+    })
+  })
+
   describe('remembered macOS startup abort', () => {
     const fingerprint = () => 'Background|ssh=1|sandbox=0'
 

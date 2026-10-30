@@ -9,7 +9,7 @@ import {
   SERVE_ABORT_PARK_EXIT_CODE,
   writeServeAbortPark
 } from '../../shared/serve-abort-park'
-import { tryReadMetadata } from './metadata'
+import { readLegacyMetadataForPreflight, readPrimaryMetadataForPreflight } from './metadata'
 import { probeRuntimeListener, type RuntimeListenerProbe } from './runtime-listener-probe'
 import { getCliStatus } from './status'
 import { RuntimeClientError } from './types'
@@ -27,12 +27,14 @@ type ServeProfileStatus = {
 
 type PreflightDeps = {
   readMetadata: (userDataPath: string) => RuntimeMetadata | null
+  readLegacyMetadata?: (userDataPath: string) => RuntimeMetadata | null
   readStatus: (userDataPath: string) => Promise<ServeProfileStatus>
   probeListener: (metadata: RuntimeMetadata) => Promise<RuntimeListenerProbe>
 }
 
 const DEFAULT_DEPS: PreflightDeps = {
-  readMetadata: tryReadMetadata,
+  readMetadata: readPrimaryMetadataForPreflight,
+  readLegacyMetadata: readLegacyMetadataForPreflight,
   readStatus: getCliStatus,
   probeListener: probeRuntimeListener
 }
@@ -82,7 +84,7 @@ export function serveProfileRefusalMessage(
   if (verdict.reason === 'access-denied') {
     return `${lead}: it refused this CLI's credentials, so it cannot be shown to be stopped; not starting a second process. Stop it, or run this command as the user that started it.`
   }
-  return `${lead}: its socket neither accepted nor refused a connection, so this profile cannot be shown to be free; not starting a second process. Stop that process, or delete orca-runtime.json from this profile if nothing owns it.`
+  return `${lead}: its socket neither accepted nor refused a connection, so this profile cannot be shown to be free; not starting a second process. Stop that process and verify the profile before retrying.`
 }
 
 function refusalEnvelope(code: string, message: string, data: unknown): RuntimeRpcFailure {
@@ -161,24 +163,42 @@ export function refuseIfProfileServed(
   userDataPath: string,
   deps: PreflightDeps = DEFAULT_DEPS
 ): null | Promise<number | null> {
-  const metadata = deps.readMetadata(userDataPath)
-  if (!metadata) {
-    return null
-  }
-  return decideServeProfileVerdict(userDataPath, metadata, deps).then((verdict) => {
-    if (verdict.verdict === 'absent') {
-      return null
-    }
-    const message = serveProfileRefusalMessage(verdict)
+  let legacy: RuntimeMetadata | null
+  let metadata: RuntimeMetadata | null
+  try {
+    legacy = deps.readLegacyMetadata?.(userDataPath) ?? null
+    metadata = deps.readMetadata(userDataPath)
+  } catch {
     writeRefusal(
       args,
-      refusalEnvelope('runtime_serve_already_running', message, {
-        verdict: verdict.verdict,
-        pid: verdict.pid
-      })
+      refusalEnvelope(
+        'runtime_serve_already_running',
+        '[serve] A runtime owner record cannot be verified; not starting a second process. Check the profile before retrying.',
+        { verdict: 'unverifiable', pid: null }
+      )
     )
-    return SINGLE_INSTANCE_ALREADY_RUNNING_EXIT_CODE
-  })
+    return Promise.resolve(SINGLE_INSTANCE_ALREADY_RUNNING_EXIT_CODE)
+  }
+  if (!metadata && !legacy) {
+    return null
+  }
+  return (async () => {
+    for (const candidate of [legacy, metadata]) {
+      if (!candidate) continue
+      const verdict = await decideServeProfileVerdict(userDataPath, candidate, deps)
+      if (verdict.verdict === 'absent') continue
+      const message = serveProfileRefusalMessage(verdict)
+      writeRefusal(
+        args,
+        refusalEnvelope('runtime_serve_already_running', message, {
+          verdict: verdict.verdict,
+          pid: verdict.pid
+        })
+      )
+      return SINGLE_INSTANCE_ALREADY_RUNNING_EXIT_CODE
+    }
+    return null
+  })()
 }
 
 /** Remembers a macOS startup abort so a later, separate `orca serve` here refuses before exec. */

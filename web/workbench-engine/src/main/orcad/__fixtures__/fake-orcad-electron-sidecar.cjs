@@ -3,7 +3,7 @@
  * provider can be driven over a real socket by a real child process.
  *
  * Contract with the provider under test: read `--user-data-dir=` from argv,
- * listen on a local transport, then publish `orca-runtime.json` there.
+ * listen on a local transport, then publish `zkyq-runtime.json` there.
  *
  * Test-only channels (injected by the spawn wrapper, never by production code):
  *   ORCA_FAKE_SIDECAR_LOG      JSONL of every request received.
@@ -149,7 +149,7 @@ const server = createServer((socket) => {
 })
 
 server.listen(endpoint, () => {
-  const metadataPath = join(userDataDir, 'orca-runtime.json')
+  const metadataPath = join(userDataDir, 'zkyq-runtime.json')
   // Publish atomically: the provider polls with existsSync + readFileSync and would
   // otherwise parse a half-written file.
   writeFileSync(
