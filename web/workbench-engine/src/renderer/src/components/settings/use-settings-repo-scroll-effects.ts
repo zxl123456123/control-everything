@@ -1,8 +1,7 @@
 import { useEffect } from 'react'
-import type { OrcaHooks } from '../../../../shared/orca-yaml-hook-types'
 import { isFolderRepo } from '../../../../shared/repo-kind'
 import { getRepoExecutionHostId } from '../../../../shared/execution-host'
-import { checkRuntimeHooks } from '@/runtime/runtime-hooks-client'
+import { checkRuntimeHooks, type HookCheckResult } from '@/runtime/runtime-hooks-client'
 import { getRepoHostIdentity } from '../../store/slices/repo-host-identity'
 import type { SettingsStoreModel } from './use-settings-store-model'
 import type { SettingsInteractionController } from './use-settings-interaction-controller'
@@ -49,7 +48,7 @@ export function useSettingsRepoScrollEffects(
     setRepoHooksMap((previous) => {
       const next = Object.fromEntries(
         Object.entries(previous).filter(([identity]) => repoHostIdentitySet.has(identity))
-      ) as Record<string, { hasHooks: boolean; hooks: OrcaHooks | null; mayNeedUpdate: boolean }>
+      ) as Record<string, HookCheckResult>
       return Object.keys(next).length === Object.keys(previous).length ? previous : next
     })
   }, [repos, setRepoHooksMap])

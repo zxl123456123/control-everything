@@ -9,6 +9,7 @@ export type HooksApi = {
     hasHooks: boolean
     hooks: OrcaHooks | null
     mayNeedUpdate: boolean
+    projectConfig?: { name: 'zkyq.yaml' | 'orca.yaml' | null; conflict: boolean }
   }>
   inspectSetupScriptImports: (args: {
     repoId: string

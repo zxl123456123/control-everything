@@ -1,8 +1,14 @@
-import { existsSync, readFileSync } from 'node:fs'
+import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import type { CommandHandler } from '../dispatch'
 import { RuntimeClientError } from '../runtime-client'
 import { parseOrcaYaml } from '../../shared/orca-yaml'
+import {
+  findProjectYaml,
+  inspectProjectYaml,
+  LEGACY_PROJECT_YAML_NAME,
+  PROJECT_YAML_NAME
+} from '../../shared/project-yaml-path'
 import {
   getEphemeralVmRecipeResultProjectRoot,
   type EphemeralVmRecipeDoctorCheck,
@@ -44,8 +50,8 @@ export const VM_HANDLERS: Record<string, CommandHandler> = {
 }
 
 function doctorRecipe(repoPath: string, recipeId: string): DoctorResult {
-  const yamlPath = join(repoPath, 'orca.yaml')
-  if (!existsSync(yamlPath)) {
+  const selection = inspectProjectYaml(repoPath)
+  if (!selection.name) {
     return {
       recipeId,
       repoPath,
@@ -54,19 +60,22 @@ function doctorRecipe(repoPath: string, recipeId: string): DoctorResult {
         {
           id: 'orca_yaml.exists',
           status: 'fail',
-          message: `No orca.yaml found at ${yamlPath}`,
-          remediation: 'Add environmentRecipes to the repo orca.yaml.'
+          message: `No project configuration found at ${join(repoPath, PROJECT_YAML_NAME)}.`,
+          remediation: `Add environmentRecipes to ${PROJECT_YAML_NAME}.`
         }
       ]
     }
   }
 
+  const yamlPath = join(repoPath, selection.name)
   const hooks = parseOrcaYaml(readTextFile(yamlPath))
   const parseCheck: EphemeralVmRecipeDoctorCheck = {
     id: 'orca_yaml.parse',
     status: hooks ? 'pass' : 'fail',
-    message: hooks ? 'orca.yaml parsed successfully.' : 'orca.yaml has no supported Orca config.',
-    ...(hooks ? {} : { remediation: 'Add an environmentRecipes entry to orca.yaml.' })
+    message: hooks
+      ? `${selection.name} parsed successfully.`
+      : 'Project configuration has no supported settings.',
+    ...(hooks ? {} : { remediation: `Add an environmentRecipes entry to ${yamlPath}.` })
   }
   const result = doctorEphemeralVmRecipe({
     repoPath,
@@ -74,10 +83,25 @@ function doctorRecipe(repoPath: string, recipeId: string): DoctorResult {
     recipes: hooks?.environmentRecipes ?? [],
     localExecutionSupported: true
   })
+  const selectionCheck: EphemeralVmRecipeDoctorCheck | null = selection.conflict
+    ? {
+        id: 'project_config.selection',
+        status: 'warn',
+        message: `${PROJECT_YAML_NAME} takes precedence; ${LEGACY_PROJECT_YAML_NAME} was not read.`,
+        remediation: 'Review both project files and migrate any needed settings.'
+      }
+    : selection.name === LEGACY_PROJECT_YAML_NAME
+      ? {
+          id: 'project_config.selection',
+          status: 'warn',
+          message: `Using legacy ${LEGACY_PROJECT_YAML_NAME}.`,
+          remediation: `Review and rename the project file to ${PROJECT_YAML_NAME}.`
+        }
+      : null
   return {
     ...result,
     ok: parseCheck.status !== 'fail' && result.ok,
-    checks: [parseCheck, ...result.checks]
+    checks: [parseCheck, ...(selectionCheck ? [selectionCheck] : []), ...result.checks]
   }
 }
 
@@ -261,7 +285,9 @@ function buildProvisionFailureRemediation(stderr: string, stdout: string): strin
 }
 
 function loadRecipe(repoPath: string, recipeId: string): OrcaVmRecipe | null {
-  const hooks = parseOrcaYaml(readTextFile(join(repoPath, 'orca.yaml')))
+  const yamlPath = findProjectYaml(repoPath)
+  if (!yamlPath) return null
+  const hooks = parseOrcaYaml(readTextFile(yamlPath))
   return hooks?.environmentRecipes?.find((entry) => entry.id === recipeId) ?? null
 }
 

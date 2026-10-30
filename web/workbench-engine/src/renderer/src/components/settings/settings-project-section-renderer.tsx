@@ -58,6 +58,7 @@ export function renderProjectSettingsSections(context: SettingsRenderContext): R
             hasHooksFile={repoHooksState?.hasHooks ?? false}
             hooksInspectionReady={Boolean(repoHooksState)}
             mayNeedUpdate={repoHooksState?.mayNeedUpdate ?? false}
+            projectConfig={repoHooksState?.projectConfig}
             updateRepo={model.updateRepo}
             removeProject={() => void model.removeProjectAllHosts(settingsProject.setups)}
             project={project}

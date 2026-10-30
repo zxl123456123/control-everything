@@ -57,6 +57,37 @@ describe('orca cli worktree awareness', () => {
     spawnMock
   })
 
+  it('uses the new project file for recipe doctor when both names exist', async () => {
+    const repoPath = mkdtempSync(path.join(tmpdir(), 'zkyq-vm-doctor-'))
+    try {
+      const script = path.join(repoPath, 'start.sh')
+      writeFileSync(script, '#!/bin/sh\n')
+      chmodSync(script, 0o755)
+      writeFileSync(path.join(repoPath, 'orca.yaml'), 'environmentRecipes: []\n')
+      writeFileSync(
+        path.join(repoPath, 'zkyq.yaml'),
+        'environmentRecipes:\n  - id: current\n    name: Current\n    create: ./start.sh\n    destroy: none\n'
+      )
+      const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+      await main(['vm', 'recipe', 'doctor', 'current', '--repo-path', repoPath, '--json'])
+      const result = JSON.parse(String(logSpy.mock.calls[0][0])) as {
+        ok: boolean
+        checks: { id: string; status: string; message: string }[]
+      }
+      expect(result.ok).toBe(true)
+      expect(result.checks).toContainEqual(
+        expect.objectContaining({
+          id: 'project_config.selection',
+          status: 'warn',
+          message: expect.stringContaining('zkyq.yaml')
+        })
+      )
+      expect(callMock).not.toHaveBeenCalled()
+    } finally {
+      rmSync(repoPath, { recursive: true, force: true })
+    }
+  })
+
   it('runs vm recipe doctor locally without contacting the app runtime', async () => {
     const repoPath = mkdtempSync(path.join(tmpdir(), 'orca-vm-doctor-'))
     try {
@@ -92,6 +123,7 @@ describe('orca cli worktree awareness', () => {
       expect(output.checks).toEqual(
         expect.arrayContaining([
           expect.objectContaining({ id: 'orca_yaml.parse', status: 'pass' }),
+          expect.objectContaining({ id: 'project_config.selection', status: 'warn' }),
           expect.objectContaining({ id: 'recipe.exists', status: 'pass' }),
           expect.objectContaining({ id: 'recipe.create', status: 'pass' }),
           expect.objectContaining({ id: 'recipe.destroy', status: 'pass' })

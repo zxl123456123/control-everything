@@ -4,7 +4,7 @@ description: >-
   Set up, review, debug, or validate a Control Everything per-workspace environment recipe: the
   on-demand, disposable runtime (cloud sandbox, VM, SSH host, or local container)
   Control Everything creates fresh for each workspace. Use to stand up a new recipe end to end,
-  fix an `environmentRecipes` entry in `orca.yaml`, scaffold provider lifecycle
+  fix an `environmentRecipes` entry in `zkyq.yaml`, scaffold provider lifecycle
   scripts, or resolve an `zkyq vm recipe doctor` failure. Use `zkyq-cli` for
   ordinary worktree and workspace creation with no recipe involved.
 ---

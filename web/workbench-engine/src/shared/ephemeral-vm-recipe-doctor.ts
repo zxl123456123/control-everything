@@ -27,7 +27,7 @@ export function doctorEphemeralVmRecipe(args: {
       id: 'repo.path',
       status: 'fail',
       message: `Repo path does not exist or is not a directory: ${args.repoPath}`,
-      remediation: 'Pass the local repo that contains orca.yaml.'
+      remediation: 'Pass the local repo that contains the project configuration.'
     })
     return buildDoctorResult(args.recipeId, args.repoPath, checks)
   }

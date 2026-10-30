@@ -148,16 +148,16 @@
     {
       "name": "zkyq-per-workspace-env",
       "sourcePath": "skills/zkyq-per-workspace-env",
-      "packageDigest": "ebfebde49df2e4d306daeff75fac70d85c4c02a482e786c7dd109777a0fbdb5a",
+      "packageDigest": "aa8e1d489d04b0c349f332fb22f12de67311e7d6a937f183cb1a2179a15821a7",
       "files": [
         {
           "path": "SKILL.md",
           "size": 2127,
           "executable": false,
           "classification": "text",
-          "exactSha256": "0e15a3cd7d8c60852e6076b244d16b25a2309e348278acd8a39c446e6ad15ead",
-          "textNormalizedSha256": "0e15a3cd7d8c60852e6076b244d16b25a2309e348278acd8a39c446e6ad15ead",
-          "identitySha256": "0e15a3cd7d8c60852e6076b244d16b25a2309e348278acd8a39c446e6ad15ead"
+          "exactSha256": "fa9e038dbc21283a604fd2ca2d7eb7966de5bf1dbf11de060e6a41f34a222821",
+          "textNormalizedSha256": "fa9e038dbc21283a604fd2ca2d7eb7966de5bf1dbf11de060e6a41f34a222821",
+          "identitySha256": "fa9e038dbc21283a604fd2ca2d7eb7966de5bf1dbf11de060e6a41f34a222821"
         }
       ]
     }

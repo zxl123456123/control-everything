@@ -1,7 +1,7 @@
 import { usePlatformProjectRepos } from '@/web/platform-project-context'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { PlatformSettingsContext, settingsScopeRepos } from '@/web/platform-settings-navigation'
-import type { OrcaHooks } from '../../../../shared/orca-yaml-hook-types'
+import type { HookCheckResult } from '@/runtime/runtime-hooks-client'
 import type { ProjectHostSetup } from '../../../../shared/project-types'
 import { DEFAULT_APP_FONT_FAMILY } from '../../../../shared/constants'
 import { parseExecutionHostId } from '../../../../shared/execution-host'
@@ -126,7 +126,7 @@ export function useSettingsStoreModel() {
   )
 
   const [repoHooksMap, setRepoHooksMap] = useState<
-    Record<string, { hasHooks: boolean; hooks: OrcaHooks | null; mayNeedUpdate: boolean }>
+    Record<string, HookCheckResult>
   >({})
   const systemPrefersDark = useSystemPrefersDark()
   const isWindows = isWindowsUserAgent()

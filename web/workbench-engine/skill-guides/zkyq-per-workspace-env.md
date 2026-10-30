@@ -4,7 +4,7 @@ description: >-
   Set up, review, debug, or validate a Control Everything per-workspace environment recipe: the
   on-demand, disposable runtime (cloud sandbox, VM, SSH host, or local container)
   Control Everything creates fresh for each workspace. Use to stand up a new recipe end to end,
-  fix an `environmentRecipes` entry in `orca.yaml`, scaffold provider lifecycle
+  fix an `environmentRecipes` entry in `zkyq.yaml`, scaffold provider lifecycle
   scripts, or resolve an `zkyq vm recipe doctor` failure. Use `zkyq-cli` for
   ordinary worktree and workspace creation with no recipe involved.
 ---
@@ -17,7 +17,7 @@ the remote machine's own binary.
 
 ## Autonomy envelope
 
-Without asking again you may read the repo and its `orca.yaml`, detect provider CLIs and their
+Without asking again you may read the repo and its `zkyq.yaml`, detect provider CLIs and their
 login state, scaffold and edit files under `scripts/orca-vm/`, and run `CLI vm recipe doctor`
 without `--provision`. Get an explicit OK before each paid step: the base snapshot, the auth
 snapshot, and `--provision`. One OK covers the whole `--provision` fix-and-rerun loop. Stop for
@@ -71,10 +71,10 @@ snapshot (step 5), and `create` boots from the authenticated snapshot they produ
    executable. The per-provider worked examples are in the conditional references below.
 5. **[CHECKPOINT] Build the base snapshot** (section 3). Paid and slow.
 6. **[CHECKPOINT] Authenticate the agent** (section 4). Interactive; the user follows a URL and code.
-7. **Wire the recipe** so `orca.yaml` points create, suspend, resume, and destroy at the scripts.
+7. **Wire the recipe** so `zkyq.yaml` points create, suspend, resume, and destroy at the scripts.
    Tell the user up front: the composer reads `environmentRecipes` from the primary checkout, so
    a recipe that lives only on a branch never appears as a "Run on" option. The doctor works on
-   any branch; the picker needs `orca.yaml` on the primary branch.
+   any branch; the picker needs `zkyq.yaml` on the primary branch.
 8. **Dry-run the doctor** — free and static.
 9. **[CHECKPOINT] Live self-test** — run the `--provision` loop until it passes.
 10. **[CHECKPOINT] Optional workspace test** — only if asked: create a workspace via the picker,
@@ -221,7 +221,7 @@ set -euo pipefail
 # print only the state JSON to stdout
 ```
 
-You run this by hand, not via `orca.yaml`, after exporting the first-run inputs state does not have
+You run this by hand, not via `zkyq.yaml`, after exporting the first-run inputs state does not have
 yet: provider scope and project, the repo URL and ref, and a git token. Later runs read them back.
 
 ### 7b. Auth (`<provider>-base-auth.sh`)
@@ -264,7 +264,7 @@ resource_id="$(node -e 'const d=JSON.parse(process.argv[1]); process.stdout.writ
 [ -n "$resource_id" ] || { echo "No resource id in lifecycle payload" >&2; exit 1; }
 # suspend: provider suspend "$resource_id"
 # resume:  provider resume "$resource_id"; then RE-EMIT fresh recipe JSON (pairing may change)
-# destroy: provider remove "$resource_id"   (or set destroy: none in orca.yaml)
+# destroy: provider remove "$resource_id"   (or set destroy: none in zkyq.yaml)
 ```
 
 ### 7e. State file
@@ -273,7 +273,9 @@ Scaffold it with scope, project, and repo filled in and the snapshot ids empty.
 
 ## 8. Recipe result contract
 
-Define recipes in `orca.yaml`:
+Define recipes in `zkyq.yaml`. Existing `orca.yaml` files are still read when no `zkyq.yaml`
+exists. Review and rename the old tracked file with the project team; if both files exist,
+`zkyq.yaml` takes precedence and the old file is not merged or modified.
 
 ```yaml
 environmentRecipes:

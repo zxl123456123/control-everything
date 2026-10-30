@@ -53,6 +53,7 @@ type RepositoryPaneProps = {
   hasHooksFile: boolean
   hooksInspectionReady: boolean
   mayNeedUpdate: boolean
+  projectConfig?: { name: 'zkyq.yaml' | 'orca.yaml' | null; conflict: boolean }
   updateRepo: (
     repoId: string,
     updates: RepositoryPaneRepoUpdate,
@@ -81,6 +82,7 @@ export function RepositoryPane({
   hasHooksFile,
   hooksInspectionReady,
   mayNeedUpdate,
+  projectConfig,
   updateRepo,
   removeProject,
   project = null,
@@ -221,6 +223,7 @@ export function RepositoryPane({
         hasHooksFile={hasHooksFile}
         hooksInspectionReady={hooksInspectionReady}
         mayNeedUpdate={mayNeedUpdate}
+        projectConfig={projectConfig}
         copiedTemplate={copiedTemplate}
         forceVisible={forceFullPaneForRepoMatch}
         onCopyTemplate={() => void handleCopyTemplate()}

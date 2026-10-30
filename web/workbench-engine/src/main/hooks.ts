@@ -1,6 +1,6 @@
-import { readFileSync, existsSync } from 'node:fs'
-import { join } from 'node:path'
+import { readFileSync } from 'node:fs'
 import { parseOrcaYaml } from '../shared/orca-yaml'
+import { findProjectYaml } from '../shared/project-yaml-path'
 import { resolveHookCommandSourcePolicy } from '../shared/hook-command-source-policy'
 import { getEffectiveHooksFromConfig } from './effective-hook-config'
 import { getHookRuntimeTarget, getHookWslContext } from './hook-runtime-target'
@@ -114,11 +114,11 @@ function getHookShell(): string | undefined {
 export { parseOrcaYaml }
 
 /**
- * Load hooks from orca.yaml in the given repo root.
+ * Load hooks from the project configuration in the given repo root.
  */
 export function loadHooks(repoPath: string): OrcaHooks | null {
-  const yamlPath = join(repoPath, 'orca.yaml')
-  if (!existsSync(yamlPath)) {
+  const yamlPath = findProjectYaml(repoPath)
+  if (!yamlPath) {
     return null
   }
 
@@ -131,10 +131,10 @@ export function loadHooks(repoPath: string): OrcaHooks | null {
 }
 
 /**
- * Check whether an orca.yaml exists for a repo.
+ * Check whether a project configuration exists for a repo.
  */
 export function hasHooksFile(repoPath: string): boolean {
-  return existsSync(join(repoPath, 'orca.yaml'))
+  return findProjectYaml(repoPath) !== null
 }
 
 // Why: detect unrecognised keys so the UI can suggest an update instead of showing a "could not be parsed" error.
@@ -150,7 +150,9 @@ const RECOGNIZED_ORCA_YAML_KEYS = new Set([
 /** True when `orca.yaml` has a top-level key this version of Orca does not handle. */
 export function hasUnrecognizedOrcaYamlKeys(repoPath: string): boolean {
   try {
-    const content = readFileSync(join(repoPath, 'orca.yaml'), 'utf-8')
+    const yamlPath = findProjectYaml(repoPath)
+    if (!yamlPath) return false
+    const content = readFileSync(yamlPath, 'utf-8')
     for (const line of iterateLfScriptLines(content)) {
       // Why: match bare `key:` at end-of-line too, since a mapping with a block value on the next line is valid YAML.
       const m = line.match(/^([A-Za-z][A-Za-z0-9_-]*):(\s|$)/)

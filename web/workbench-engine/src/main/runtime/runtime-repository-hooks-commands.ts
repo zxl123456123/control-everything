@@ -11,6 +11,7 @@ import { isENOENT } from '../ipc/filesystem-path-containment'
 import { isFolderRepo } from '../../shared/repo-kind'
 import { inspectSetupScriptImportCandidates } from '../../shared/setup-script-imports'
 import { joinWorktreeRelativePath } from './runtime-relative-paths'
+import { findProjectYamlName, inspectProjectYaml } from '../../shared/project-yaml-path'
 
 type RuntimeRepositoryHooksCommandsDeps = {
   resolveRepo: (selector: string) => Promise<Repo>
@@ -38,7 +39,7 @@ export class RuntimeRepositoryHooksCommands {
       hasHooksFile: hasFile,
       hooks,
       setupRunPolicy: getEffectiveSetupRunPolicy(repo),
-      source: hasFile ? ('orca.yaml' as const) : hooks ? ('legacy' as const) : null,
+      source: hasFile ? findProjectYamlName(repo.path) : hooks ? ('legacy' as const) : null,
       setupTrust: setupTrust(repo, getDefaultTabCommandTrustContent(sharedHooks))
     }
   }
@@ -58,7 +59,8 @@ export class RuntimeRepositoryHooksCommands {
       status: 'ok' as const,
       hasHooks: has,
       hooks,
-      mayNeedUpdate: has && !hooks && hasUnrecognizedOrcaYamlKeys(repo.path)
+      mayNeedUpdate: has && !hooks && hasUnrecognizedOrcaYamlKeys(repo.path),
+      ...(has ? { projectConfig: inspectProjectYaml(repo.path) } : {})
     }
   }
 

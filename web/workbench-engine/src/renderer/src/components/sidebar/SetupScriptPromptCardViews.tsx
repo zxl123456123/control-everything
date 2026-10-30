@@ -159,7 +159,10 @@ export function SetupScriptPromptBody({
           'This repo ignores shared'
         )}{' '}
         <code>
-          {translate('auto.components.sidebar.SetupScriptPromptCardViews.8f6be51aa1', 'orca.yaml')}
+          {translate(
+            'auto.components.sidebar.SetupScriptPromptCardViews.8f6be51aa1',
+            'project configuration'
+          )}
         </code>{' '}
         {translate(
           'auto.components.sidebar.SetupScriptPromptCardViews.660cdc17f8',

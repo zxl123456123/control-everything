@@ -34,7 +34,7 @@ function getYamlStateCopy(yamlState: string): { heading: string; description: st
       return {
         heading: translate(
           'auto.components.settings.RepositoryHooksSection.56f9a4a1d0',
-          'Using `orca.yaml`'
+          'Using `project configuration`'
         ),
         description: translate(
           'auto.components.settings.RepositoryHooksSection.ca424ff135',
@@ -45,33 +45,33 @@ function getYamlStateCopy(yamlState: string): { heading: string; description: st
       return {
         heading: translate(
           'auto.components.settings.RepositoryHooksSection.623e0c9f31',
-          '`orca.yaml` could not be parsed'
+          '`project configuration` could not be parsed'
         ),
         description: translate(
           'auto.components.settings.RepositoryHooksSection.aba825233f',
-          'The file contains configuration keys that this version of Orca does not recognize. You may need to update Orca, or check the file for typos.'
+          'The file contains configuration keys that this version does not recognize. You may need to update Control Everything, or check the file for typos.'
         )
       }
     case 'invalid':
       return {
         heading: translate(
           'auto.components.settings.RepositoryHooksSection.623e0c9f31',
-          '`orca.yaml` could not be parsed'
+          '`project configuration` could not be parsed'
         ),
         description: translate(
           'auto.components.settings.RepositoryHooksSection.0cc712b823',
-          'The core configuration file exists in the repo root, but Orca could not parse the supported hook definitions yet.'
+          'The core configuration file exists in the repo root, but Control Everything could not parse the supported hook definitions yet.'
         )
       }
     default:
       return {
         heading: translate(
           'auto.components.settings.RepositoryHooksSection.5a67e4793d',
-          'No `orca.yaml` detected'
+          'No `project configuration` detected'
         ),
         description: translate(
           'auto.components.settings.RepositoryHooksSection.b20c5df6ca',
-          'Add an `orca.yaml` file to enable shared setup, archive, or issue-automation defaults for this repo. Example template:'
+          'Add a `zkyq.yaml` file to enable shared setup, archive, or issue-automation defaults for this repo. Example template:'
         )
       }
   }
@@ -106,7 +106,10 @@ function ExampleTemplateCard({
       <p className="text-[10px] tracking-[0.18em] text-muted-foreground">
         {translate('auto.components.settings.RepositoryHooksSection.175daba180', 'Example')}{' '}
         <code className="rounded bg-muted px-1 py-0.5">
-          {translate('auto.components.settings.RepositoryHooksSection.39da2ae12f', 'orca.yaml')}
+          {translate(
+            'auto.components.settings.RepositoryHooksSection.39da2ae12f',
+            'project configuration'
+          )}
         </code>{' '}
         {translate('auto.components.settings.RepositoryHooksSection.95a0411b3e', 'template')}
       </p>
@@ -133,11 +136,13 @@ function ExampleTemplateCard({
 export function RepositoryHooksYamlStatus({
   yamlState,
   yamlHooks,
+  projectConfig,
   copiedTemplate,
   onCopyTemplate
 }: {
   yamlState: string
   yamlHooks: OrcaHooks | null
+  projectConfig?: { name: 'zkyq.yaml' | 'orca.yaml' | null; conflict: boolean }
   copiedTemplate: boolean
   onCopyTemplate: () => void
 }): React.JSX.Element {
@@ -150,6 +155,21 @@ export function RepositoryHooksYamlStatus({
           {copy.heading}
         </p>
         <p className="text-xs text-muted-foreground">{copy.description}</p>
+        {projectConfig?.conflict ? (
+          <p className="text-xs text-amber-700 dark:text-amber-300">
+            {translate(
+              'auto.components.settings.RepositoryHooksSection.projectConfigConflict',
+              'Both zkyq.yaml and orca.yaml exist. zkyq.yaml takes precedence; review the old configuration.'
+            )}
+          </p>
+        ) : projectConfig?.name === 'orca.yaml' ? (
+          <p className="text-xs text-amber-700 dark:text-amber-300">
+            {translate(
+              'auto.components.settings.RepositoryHooksSection.projectConfigLegacy',
+              'Using orca.yaml. Review and rename it to zkyq.yaml.'
+            )}
+          </p>
+        ) : null}
       </div>
       {yamlState === 'loaded' ? (
         <pre className="overflow-x-auto whitespace-pre-wrap break-words rounded-lg border border-border/50 bg-muted/30 p-3 font-mono text-[11.5px] leading-5 text-foreground">
@@ -163,7 +183,7 @@ export function RepositoryHooksYamlStatus({
               <p>
                 {translate(
                   'auto.components.settings.RepositoryHooksSection.af49e2a19e',
-                  'The file is present, but Orca could not find valid `scripts` or `issueCommand` definitions.'
+                  'The file is present, but Control Everything could not find valid `scripts` or `issueCommand` definitions.'
                 )}
               </p>
               <ol className="space-y-1.5 pl-4 text-[11.5px]">
