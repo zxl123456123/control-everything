@@ -127,6 +127,54 @@ class RepositoryChecksTests(unittest.TestCase):
         self.save("tools/packaging/workbench-engine-source.json", json.dumps(document))
         return prefix, document
 
+    def test_workbench_rename_uses_each_tree_source_inventory(self):
+        prefix, document = self.workbench_fixture()
+        base = self.commit()
+        self.git("mv", prefix + "src/main.tsx", prefix + "src/workbench.tsx")
+        document["files"][0].update(path="src/workbench.tsx", source_path="src/main.tsx")
+        self.save("tools/packaging/workbench-engine-source.json", json.dumps(document))
+        code, report = self.check("changes", "--base", base, "--head", self.commit())
+        self.assertEqual(code, 0, report)
+        self.assertIn(prefix + "src/workbench.tsx", [row["path"] for row in report["included"]])
+        self.scanner.assert_called_once()
+
+    def test_workbench_rename_requires_destination_registration(self):
+        prefix, _ = self.workbench_fixture()
+        base = self.commit()
+        self.git("mv", prefix + "src/main.tsx", prefix + "src/workbench.tsx")
+        code, report = self.check("changes", "--base", base, "--head", self.commit())
+        self.assertEqual(code, 1)
+        self.assertIn({"path": prefix + "src/workbench.tsx", "reason": "unregistered-workbench-source"}, report["blocked"])
+
+    def test_workbench_rename_cannot_retroactively_register_its_source(self):
+        prefix, document = self.workbench_fixture()
+        source = document["files"].pop(0)
+        self.save("tools/packaging/workbench-engine-source.json", json.dumps(document))
+        base = self.commit()
+        self.git("mv", prefix + "src/main.tsx", prefix + "src/workbench.tsx")
+        document["files"].append(dict(source, path="src/workbench.tsx", source_path="src/main.tsx"))
+        self.save("tools/packaging/workbench-engine-source.json", json.dumps(document))
+        code, report = self.check("changes", "--base", base, "--head", self.commit())
+        self.assertEqual(code, 1)
+        self.assertIn({"path": prefix + "src/main.tsx", "reason": "unregistered-workbench-source"}, report["blocked"])
+
+    def test_workbench_rename_still_scans_new_private_content(self):
+        prefix, document = self.workbench_fixture()
+        self.save(prefix + "src/main.tsx", "// synthetic source\n" * 20)
+        base = self.commit()
+        self.git("mv", prefix + "src/main.tsx", prefix + "src/workbench.tsx")
+        self.save(prefix + "src/workbench.tsx", "// synthetic source\n" * 20 + self.personal_path() + "\n")
+        document["files"][0].update(path="src/workbench.tsx", source_path="src/main.tsx")
+        self.save("tools/packaging/workbench-engine-source.json", json.dumps(document))
+        head = self.commit()
+        self.assertIn("R", self.git("diff", "--name-status", "--find-renames", base, head))
+        code, report = self.check("changes", "--base", base, "--head", head)
+        self.assertEqual(code, 1)
+        self.assertEqual(report["blocked"], [])
+        self.assertTrue(any(row["path"] == prefix + "src/workbench.tsx" for row in report["findings"]))
+        self.assertNotIn(self.personal_path(), json.dumps(report))
+        self.scanner.assert_called_once()
+
     def test_exact_workbench_resource_is_scanned_with_its_notice(self):
         prefix, _ = self.workbench_fixture()
         files = [prefix + name for name in ["src/main.tsx", "LICENSE", "src/icon.png"]]
