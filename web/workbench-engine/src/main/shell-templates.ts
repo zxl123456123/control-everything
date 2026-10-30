@@ -24,12 +24,12 @@ export const ZSH_WRAPPER_DIR_MARKER_CONTENT = `# Orca-generated zsh startup wrap
 export const ZSH_FEATURE_CHANNEL_BLOCK = `builtin typeset -ga _orca_shell_features
 _orca_shell_features=(\${(s:,:)\${${SHELL_STARTUP_FEATURE_ENV}:-}})
 builtin unset ${SHELL_STARTUP_FEATURE_ENV}
-# Why ORCA_HISTFILE is consumed HERE and not in the deferred hook: a user config
+# Why ZKYQ_HISTFILE is consumed HERE and not in the deferred hook: a user config
 # that replaces precmd_functions wholesale drops the hook, and an exported value
 # nothing will ever consume is then inherited by every child of this pane,
 # including a nested Orca (#11146). Captured non-exported, it cannot escape.
-builtin typeset -g _orca_histfile="\${ORCA_HISTFILE:-}"
-builtin unset ORCA_HISTFILE
+builtin typeset -g _orca_histfile="\${ZKYQ_HISTFILE:-}"
+builtin unset ZKYQ_HISTFILE
 __orca_has_feature() { (( \${_orca_shell_features[(Ie)$1]} )) }`
 
 /** The bash rcfile equivalent of ZSH_FEATURE_CHANNEL_BLOCK. */

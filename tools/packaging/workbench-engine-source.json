@@ -327133,7 +327133,8 @@
     "src/shared/bundled-skill-renames.ts",
     "src/cli/handlers/skill-name-migration.test.ts",
     "src/main/runtime/rpc/methods/skill-name-migration.test.ts",
-    "src/main/pty/terminal-program-identity.test.ts"
+    "src/main/pty/terminal-program-identity.test.ts",
+    "src/main/terminal-history-identity.test.ts"
   ],
   "adapted_files": [
     {
@@ -330535,8 +330536,8 @@
     {
       "path": "src/main/shell-startup-feature-channel.test.ts",
       "upstream_sha256": "6c8d7a6f84895b6a36330e2b4c5a205220ebced59f9023e7145d339b48de0183",
-      "current_sha256": "c694fd2d733f9dc2a7488af7ea7605a7f732b97482d6fbac8321618fb464dcc1",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+      "current_sha256": "027715f1e9597b74d9026f2eb8ee47f12ae4ae8e5db42130d741bd6cd92d95a9",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；迁移终端历史交接变量并以新版 daemon 隔离旧 shell 合同"
     },
     {
       "path": "src/main/startup/run-electron-vite-dev.test.ts",
@@ -330553,8 +330554,8 @@
     {
       "path": "src/main/zsh-deferred-startup-line-init.live-shell.test.ts",
       "upstream_sha256": "fd452d4b9bfd4aa55a6248671e4b21518156906f6d16fca75a5886be955c748b",
-      "current_sha256": "9be29f9fe456d02fc0e8ed3d019836a47de50e7995480ea0dad099a48ed347f8",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+      "current_sha256": "537b35acf59fd8ca35c82b45f92282ba51154b3da9937c9944cb38053684a576",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；迁移终端历史交接变量并以新版 daemon 隔离旧 shell 合同"
     },
     {
       "path": "src/main/runtime/orca-runtime-tests/terminal-creation-and-readiness-part-02.spec.ts",
@@ -331177,8 +331178,8 @@
     {
       "path": "src/main/__fixtures__/shell-wrapper-snapshots/daemon-zsh-zshenv.txt",
       "upstream_sha256": "98990c9b03e8275db0b70c914cef885f93008e026adbe591125ca6f7162759ca",
-      "current_sha256": "2064cac45429b5df9f94aa18e4b2e709cb1f02a2e21b4f9e77203f7259f0c9e4",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+      "current_sha256": "0f3795308eeab01037ae29c19b5eb73743d3209a0e36712d4881ccece3a15163",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；迁移终端历史交接变量并以新版 daemon 隔离旧 shell 合同"
     },
     {
       "path": "src/main/__fixtures__/shell-wrapper-snapshots/local-bash-rcfile.txt",
@@ -331195,8 +331196,8 @@
     {
       "path": "src/main/__fixtures__/shell-wrapper-snapshots/local-zsh-zshenv.txt",
       "upstream_sha256": "4260323c66756939e67fe3e36288398f09a4be9c7b918a64e210caa117dc784b",
-      "current_sha256": "e4a53d02d6c4a836e001a9588e55358097b618fb5736da2d7301ea1654f1dc76",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
+      "current_sha256": "9f53ef1de65822e90389b7a854af78298ee987b203648f1f485c1e3fa51a9ce0",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；迁移终端历史交接变量并以新版 daemon 隔离旧 shell 合同"
     },
     {
       "path": "src/main/agent-hooks/managed-hook-script-refresh.test.ts",
@@ -331465,8 +331466,8 @@
     {
       "path": "src/main/daemon/pty-subprocess/spawn-environment.ts",
       "upstream_sha256": "a2132d872276824fe527d1a97077c5dfeee9fc18e2ddc0815e77010e115cbdb7",
-      "current_sha256": "87814d50e1d430ef4e1dbb1e29ab44143669f327f5078b27f4395dd7e0f1326a",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；本地与远端终端进程标识统一为 zkyq"
+      "current_sha256": "7464d3f1a80c2de5925e0a06d203189eea99e82ca5ed0674cefc4dc4a9b074c8",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；本地与远端终端进程标识统一为 zkyq；迁移终端历史交接变量并以新版 daemon 隔离旧 shell 合同"
     },
     {
       "path": "src/main/daemon/pty-subprocess/spawn-preflight-health-probe.test.ts",
@@ -331669,8 +331670,8 @@
     {
       "path": "src/main/zsh-startup-hook-user-config-equivalence.live-shell.test.ts",
       "upstream_sha256": "1786881d8dcd5fd5b38aa11240dd2c1550397cf7eabb9ba8f5c537fb4e2303cd",
-      "current_sha256": "97222a474d4ed59f4e4a6042d9c9560c15251b245549e123c71a0f38c274169d",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+      "current_sha256": "196037e71f666aac232732bdc911b3809c71f45b10a9204381fc975300ff74e9",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；迁移终端历史交接变量并以新版 daemon 隔离旧 shell 合同"
     },
     {
       "path": "src/shared/codex-shell-function.ts",
@@ -332469,6 +332470,48 @@
       "upstream_sha256": "bf76ed09538492ebf83fd3b94d936837414bced629aa2a78d446f10e6cba7313",
       "current_sha256": "8e480d208026760f722ff47f4f463e9c12f9120077064a9390a5e49ee0d983e2",
       "reason": "本地与远端终端进程标识统一为 zkyq"
+    },
+    {
+      "path": "src/main/daemon/daemon-foreground-confirmation-protocol.test.ts",
+      "upstream_sha256": "6a7537df9c680841ddb7a3c6f8220dbee228e1b701101e4c046c03d9c75dcee4",
+      "current_sha256": "627000c8388a2b4609e6d5af184c472ddc0033048b67eaef0c067516a702e36b",
+      "reason": "迁移终端历史交接变量并以新版 daemon 隔离旧 shell 合同"
+    },
+    {
+      "path": "src/main/daemon/daemon-protocol-version.ts",
+      "upstream_sha256": "88ebc0c1b28e532deca3026e4e11ecce06faeacd2948506b2f6e1cb901454f82",
+      "current_sha256": "2c6f4eb406703d2d40ffd7e7b5468500e82e3af24e9da5e409b9ede9ef3ad2eb",
+      "reason": "迁移终端历史交接变量并以新版 daemon 隔离旧 shell 合同"
+    },
+    {
+      "path": "src/main/providers/local-pty-finalize-environment.ts",
+      "upstream_sha256": "d64992ecdecf1a05c5012b3b7e1e2b630df53d084978286304798bb134d0eaa7",
+      "current_sha256": "272d14a3359bae4852e01bfeec89915377fefcd9cb8687278980b7f159e41e37",
+      "reason": "迁移终端历史交接变量并以新版 daemon 隔离旧 shell 合同"
+    },
+    {
+      "path": "src/main/shell-startup-features.ts",
+      "upstream_sha256": "0d8e2ff5bd3e4a5f167592ed98537e11ef704defe48e21015dc870f332bb6162",
+      "current_sha256": "eb0a0010537e17ee1f6668080ba3287fb5996d458302004ba0ee77771f668583",
+      "reason": "迁移终端历史交接变量并以新版 daemon 隔离旧 shell 合同"
+    },
+    {
+      "path": "src/main/shell-templates.ts",
+      "upstream_sha256": "0fa1769452acf669ca182940c62238e22b2b271b4b440709f61df4a2a932ed14",
+      "current_sha256": "2e3d7b30d8ce03c145693ae46c5d4844df400502cbd768c81ea2f870c56481e2",
+      "reason": "迁移终端历史交接变量并以新版 daemon 隔离旧 shell 合同"
+    },
+    {
+      "path": "src/main/terminal-history.ts",
+      "upstream_sha256": "29dbc13adfcb3370af5bf830844074c039b5fb0b9bcad760fac9a72c8c666795",
+      "current_sha256": "f41bd0ae41eeded53b238e44bc0ccc5eb6cddbf5f9556405f3ef14b8ccee045a",
+      "reason": "迁移终端历史交接变量并以新版 daemon 隔离旧 shell 合同"
+    },
+    {
+      "path": "src/main/zsh-scoped-histfile.live-shell.test.ts",
+      "upstream_sha256": "bc371e6aa6c75989c78fa603680a3814e421e9a847fce8864e027dbc296211be",
+      "current_sha256": "fabddf16e9759b17484f797c2c8839e8a8af75487b3b8e6724130f3a9868f2da",
+      "reason": "迁移终端历史交接变量并以新版 daemon 隔离旧 shell 合同"
     }
   ],
   "reviewed_findings": [

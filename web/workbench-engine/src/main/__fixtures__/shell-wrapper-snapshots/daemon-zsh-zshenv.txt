@@ -23,12 +23,12 @@ builtin unfunction __orca_usable_zdotdir
 builtin typeset -ga _orca_shell_features
 _orca_shell_features=(${(s:,:)${ORCA_SHELL_FEATURES:-}})
 builtin unset ORCA_SHELL_FEATURES
-# Why ORCA_HISTFILE is consumed HERE and not in the deferred hook: a user config
+# Why ZKYQ_HISTFILE is consumed HERE and not in the deferred hook: a user config
 # that replaces precmd_functions wholesale drops the hook, and an exported value
 # nothing will ever consume is then inherited by every child of this pane,
 # including a nested Orca (#11146). Captured non-exported, it cannot escape.
-builtin typeset -g _orca_histfile="${ORCA_HISTFILE:-}"
-builtin unset ORCA_HISTFILE
+builtin typeset -g _orca_histfile="${ZKYQ_HISTFILE:-}"
+builtin unset ZKYQ_HISTFILE
 __orca_has_feature() { (( ${_orca_shell_features[(Ie)$1]} )) }
 __orca_has_feature identity && printf "\033]777;orca-shell-start:%s\007" "$$"
 __orca_osc133_precmd() {

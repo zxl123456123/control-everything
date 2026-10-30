@@ -65,7 +65,7 @@ function launchPane(
 ) {
   const env: Record<string, string> = {
     HOME: home,
-    ...(scopedHistfile ? { HISTFILE: scopedHistfile, ORCA_HISTFILE: scopedHistfile } : {})
+    ...(scopedHistfile ? { HISTFILE: scopedHistfile, ZKYQ_HISTFILE: scopedHistfile } : {})
   }
   const features = selectShellStartupFeatures({
     shellPath: ZSH_PATH,
@@ -169,18 +169,18 @@ describe.skipIf(process.platform === 'win32')(
     )
 
     itWithZsh(
-      'consumes ORCA_HISTFILE so nothing the shell spawns can inherit it',
+      'consumes ZKYQ_HISTFILE so nothing the shell spawns can inherit it',
       withHome(USER_FILES, async (home) => {
         const scoped = join(home, 'orca-history', 'zsh_history')
         const { env } = launchPane(home, scoped)
 
         const { values } = await runZshPty({
           env,
-          report: ['ORCA_HISTFILE', 'ORCA_SHELL_FEATURES', 'HISTFILE']
+          report: ['ZKYQ_HISTFILE', 'ORCA_SHELL_FEATURES', 'HISTFILE']
         })
 
         // Root-cause fix for #11146: the variables no longer exist after use.
-        expect(values.ORCA_HISTFILE).toBe('UNSET')
+        expect(values.ZKYQ_HISTFILE).toBe('UNSET')
         expect(values.ORCA_SHELL_FEATURES).toBe('UNSET')
         expect(values.HISTFILE).toBe(scoped)
       })
@@ -322,10 +322,10 @@ describe.skipIf(process.platform === 'win32')(
         const scoped = join(home, 'orca-history', 'zsh_history')
         const { env } = launchPane(home, scoped)
 
-        const { values } = await runZshPty({ env, report: ['HISTFILE', 'ORCA_HISTFILE'] })
+        const { values } = await runZshPty({ env, report: ['HISTFILE', 'ZKYQ_HISTFILE'] })
 
         expect(values.HISTFILE).toBe(scoped)
-        expect(values.ORCA_HISTFILE).toBe('UNSET')
+        expect(values.ZKYQ_HISTFILE).toBe('UNSET')
       } finally {
         rmSync(home, { recursive: true, force: true })
       }
@@ -337,13 +337,13 @@ describe.skipIf(process.platform === 'win32')(
         const scoped = join(home, 'orca-history', 'zsh_history')
         const { env, launch } = launchPane(home, scoped)
 
-        const report = ['HISTFILE', 'ORCA_HISTFILE', 'ZDOTDIR']
+        const report = ['HISTFILE', 'ZKYQ_HISTFILE', 'ZDOTDIR']
         const { values } = await runZshPty({ env, report })
         expect(values.HISTFILE).toBe(scoped)
         expect(values.HISTFILE).not.toContain(launch.env.ZDOTDIR)
-        // ORCA_HISTFILE was consumed in .zshenv precisely so a dropped hook
+        // ZKYQ_HISTFILE was consumed in .zshenv precisely so a dropped hook
         // leaks nothing to the pane's children.
-        expect(values.ORCA_HISTFILE).toBe('UNSET')
+        expect(values.ZKYQ_HISTFILE).toBe('UNSET')
         expect(values.ZDOTDIR).toBe(home)
       })
     )

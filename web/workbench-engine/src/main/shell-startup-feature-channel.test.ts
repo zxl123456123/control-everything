@@ -60,7 +60,7 @@ describe('shell startup feature selection', () => {
     expect(
       selectShellStartupFeatures({
         shellPath: '/bin/zsh',
-        env: { ORCA_SHELL_FEATURES: '', ORCA_HISTFILE: '/tmp/wt/zsh_history' },
+        env: { ORCA_SHELL_FEATURES: '', ZKYQ_HISTFILE: '/tmp/wt/zsh_history' },
         ...PLAIN_PANE
       })
     ).toEqual(['history'])
@@ -71,7 +71,7 @@ describe('shell startup feature selection', () => {
     expect(
       selectShellStartupFeatures({
         shellPath: '/bin/zsh',
-        env: { ORCA_HISTFILE: '/tmp/wt/zsh_history' },
+        env: { ZKYQ_HISTFILE: '/tmp/wt/zsh_history' },
         ...PLAIN_PANE
       })
     ).not.toContain('markers')
@@ -93,7 +93,7 @@ describe('shell startup feature selection', () => {
     expect(
       selectShellStartupFeatures({
         shellPath: '/bin/bash',
-        env: { ORCA_HISTFILE: '/tmp/wt/bash_history' },
+        env: { ZKYQ_HISTFILE: '/tmp/wt/bash_history' },
         ...PLAIN_PANE
       })
     ).toEqual([])
@@ -282,7 +282,7 @@ describePosix('epilogue under hostile user shell options', () => {
       // first, and `overlay` is the first token the selector ever emits.
       const spawnEnv: Record<string, string> = {
         HOME: home,
-        ORCA_HISTFILE: scoped,
+        ZKYQ_HISTFILE: scoped,
         ORCA_OPENCODE_CONFIG_DIR: opencodeDir
       }
       const features = selectShellStartupFeatures({
@@ -357,7 +357,7 @@ describePosix('history-only pane in a real zsh', () => {
     const spawnEnv: Record<string, string> = {
       HOME: home,
       HISTFILE: scoped,
-      ORCA_HISTFILE: scoped
+      ZKYQ_HISTFILE: scoped
     }
     const features = selectShellStartupFeatures({
       shellPath: ZSH_PATH,

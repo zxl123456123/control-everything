@@ -197,9 +197,10 @@ export function createDaemonPtyEnvironment(opts: PtySubprocessOptions): Record<s
   if (opts.env?.HISTFILE === undefined) {
     dropInheritedOrcaHistFile(env)
   }
-  if (opts.env?.ORCA_HISTFILE === undefined) {
-    delete env.ORCA_HISTFILE
+  if (opts.env?.ZKYQ_HISTFILE === undefined) {
+    delete env.ZKYQ_HISTFILE
   }
+  delete env.ORCA_HISTFILE
   removeInheritedDevAgentHookEndpoint(env, opts.env)
   delete env.ELECTRON_RUN_AS_NODE
   removeAppImageRuntimeEnv(env)

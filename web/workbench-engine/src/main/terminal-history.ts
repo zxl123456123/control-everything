@@ -233,12 +233,14 @@ export function injectHistoryEnv(
   cwd: string,
   options: { wslDistro?: string | null } = {}
 ): HistoryInjectionResult {
-  // Why unconditionally first: ORCA_HISTFILE is Orca-owned, and an Orca PTY
+  // Why unconditionally first: ZKYQ_HISTFILE is Orca-owned, and an Orca PTY
   // launched from inside another Orca PTY inherits the parent's. Left in place,
   // the zsh wrapper would re-export a PREVIOUS worktree's history path into this
   // shell — the cross-worktree leak this feature exists to prevent — and it would
   // also override a caller-supplied HISTFILE on the early return below.
   // Credit: caught by @innocarpe in #11146.
+  delete spawnEnv.ZKYQ_HISTFILE
+  // Drop a stale value inherited from a terminal started by an older release.
   delete spawnEnv.ORCA_HISTFILE
   // Why here too: fish EXPORTS `fish_history`, so the same nesting hands this
   // process the LAUNCHING worktree's session name — and the check-before-set
@@ -306,7 +308,7 @@ export function injectHistoryEnv(
   // (`HISTFILE=${ZDOTDIR:-$HOME}/.zsh_history`) and runs before Orca's wrapper
   // .zshrc, so by then the injected value is gone from HISTFILE itself. The
   // wrapper restores it from here once the user's own config has loaded (#11044).
-  spawnEnv.ORCA_HISTFILE = spawnEnv.HISTFILE
+  spawnEnv.ZKYQ_HISTFILE = spawnEnv.HISTFILE
 
   result.histFile = spawnEnv.HISTFILE
   result.historyDir = spawnEnv.HISTFILE.replace(/[/\\][^/\\]+$/, '')
@@ -362,11 +364,11 @@ export function updateHistoryEnvForFallback(
   if (!newFilename) {
     // Fallback to an unknown shell — drop the override so it uses its own default.
     delete spawnEnv.HISTFILE
-    delete spawnEnv.ORCA_HISTFILE
+    delete spawnEnv.ZKYQ_HISTFILE
     return
   }
   spawnEnv.HISTFILE = `${injected.historyDir}/${newFilename}`
-  spawnEnv.ORCA_HISTFILE = spawnEnv.HISTFILE
+  spawnEnv.ZKYQ_HISTFILE = spawnEnv.HISTFILE
 }
 
 /** Log the history injection result for diagnostics. */

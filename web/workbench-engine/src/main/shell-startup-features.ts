@@ -69,7 +69,7 @@ export function selectShellStartupFeatures(input: ShellStartupFeatureInput): She
   // place while the system zshrc runs, so the clobbered value it derives lands
   // inside Orca's wrapper dir and has to be repaired the same way.
   const history =
-    shellName(input.shellPath) === 'zsh' && (Boolean(input.env.ORCA_HISTFILE) || wrappedBefore)
+    shellName(input.shellPath) === 'zsh' && (Boolean(input.env.ZKYQ_HISTFILE) || wrappedBefore)
 
   const features: ShellStartupFeature[] = []
   if (overlay) {
