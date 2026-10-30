@@ -83,7 +83,12 @@ export function AgentSkillSetupPanel({
     if (terminalOpening || setupAttemptRunning) {
       return
     }
-    const nextSnapshot = createTerminalSnapshot(activeCommand, shellOverride, runtime)
+    const nextSnapshot = createTerminalSnapshot(
+      activeCommand,
+      shellOverride,
+      runtime,
+      terminalWorktreeId
+    )
     setTerminalOpening(true)
     if (setupCommandFailedCode !== null) {
       setTerminalOpen(false)
@@ -389,7 +394,7 @@ export function AgentSkillSetupPanel({
           </div>
           <OnboardingInlineCommandTerminal
             key={terminalAttempt}
-            worktreeId={terminalWorktreeId}
+            worktreeId={terminalSnapshot.worktreeId}
             command={openTerminalCommand}
             prepareCommandForShell={terminalSnapshot.prepareCommandForShell}
             title={terminalTitle}

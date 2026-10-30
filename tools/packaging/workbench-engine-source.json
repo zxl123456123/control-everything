@@ -332238,8 +332238,8 @@
     {
       "path": "src/renderer/src/components/settings/AgentSkillSetupPanel.test.tsx",
       "upstream_sha256": "21f945f05b0734eea220c2ebad8ad59d063bc0e8cc3a6aceaa6e4b402ff3ebf3",
-      "current_sha256": "343528484aa07af424f77211c7ee272467141482767400915e4169e6ea20fcb5",
-      "reason": "六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
+      "current_sha256": "d1bfabacc20f3a2be028bd5404ca3f156d562bb8632ac7dce68ed39f438eade8",
+      "reason": "六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物；固定安装终端事件归属以保证异步执行上下文一致"
     },
     {
       "path": "src/renderer/src/components/settings/BrowserUseSkillStep.test.tsx",
@@ -332414,6 +332414,18 @@
       "upstream_sha256": "67ddf509359df5dfde1b494393b6c9a3f83ee5aa7d9c669323c74fdfbce2239d",
       "current_sha256": "943193b4560a48ea559276597ea9e8fe710e8127e9ad216f616c3600163436f0",
       "reason": "提供受权限保护的技能旧名称保全迁移入口及合同"
+    },
+    {
+      "path": "src/renderer/src/components/settings/AgentSkillSetupPanel.tsx",
+      "upstream_sha256": "3bcf4e28ffc55d5183a55f62a2517cca9a17557487be4f358c141a6f513b69b6",
+      "current_sha256": "283e0126af438408e6a326f9906b70fd288fa32a7da59288a889d2c6e86d3264",
+      "reason": "；固定安装终端事件归属以保证异步执行上下文一致"
+    },
+    {
+      "path": "src/renderer/src/components/settings/agent-skill-terminal-snapshot.ts",
+      "upstream_sha256": "2a318036ddd62f755b448190da2876123c01b43949b8254d8141babdc9ed3cb1",
+      "current_sha256": "b094d6b850de39c9a8decf9d192a63e66a85134e6faae52af89f9ab16bda1e39",
+      "reason": "；固定安装终端事件归属以保证异步执行上下文一致"
     }
   ],
   "reviewed_findings": [

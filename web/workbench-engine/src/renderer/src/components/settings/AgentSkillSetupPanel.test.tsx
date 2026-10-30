@@ -16,6 +16,7 @@ const mocks = vi.hoisted(() => ({
   terminalProps: [] as {
     command: string
     description: string
+    worktreeId: string
     shellOverride?: string
     prepareCommandForShell?: (command: string, shellOverride?: string) => string
     onTerminalExit?: () => void
@@ -49,6 +50,7 @@ vi.mock('../onboarding/OnboardingInlineCommandTerminal', () => ({
   OnboardingInlineCommandTerminal: (props: {
     command: string
     description: string
+    worktreeId: string
     shellOverride?: string
     prepareCommandForShell?: (command: string, shellOverride?: string) => string
     onTerminalExit?: () => void
@@ -441,6 +443,19 @@ describe('AgentSkillSetupPanel', () => {
     expect(container?.textContent).toContain(INSTALL_COMMAND)
     expect(container?.textContent).not.toContain(UPDATE_COMMAND)
     expect(mocks.terminalProps.at(-1)).toMatchObject({ command: INSTALL_COMMAND })
+  })
+
+  it('keeps the worktree captured when opening and uses the new one on retry', async () => {
+    await renderInteractivePanel({ terminalWorktreeId: 'setup-first' })
+    await clickButton('Install')
+    await rerenderInteractivePanel({ terminalWorktreeId: 'setup-second' })
+    expect(mocks.terminalProps.at(-1)?.worktreeId).toBe('setup-first')
+
+    await act(async () => {
+      mocks.terminalProps.at(-1)?.onCommandFinished?.(1)
+    })
+    await clickButton('Retry')
+    expect(mocks.terminalProps.at(-1)?.worktreeId).toBe('setup-second')
   })
 
   it('keeps an open terminal on the WSL runtime captured when it opened', async () => {
