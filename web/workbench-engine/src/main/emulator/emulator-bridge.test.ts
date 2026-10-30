@@ -94,6 +94,14 @@ describe('EmulatorBridge helper ownership', () => {
     netFetchMock.mockReset()
   })
 
+  it('points to the current command when no emulator is active', async () => {
+    const bridge = new EmulatorBridge()
+    await expect(bridge.tap(0.5, 0.5, { worktreeId: 'wt-1' })).rejects.toMatchObject({
+      code: 'emulator_no_active',
+      message: expect.stringContaining('zkyq emulator attach')
+    })
+  })
+
   it('stops the previous Orca-managed helper when a worktree switches devices', async () => {
     const bridge = new EmulatorBridge()
     bridge.registerActiveEmulator('wt-1', session('device-old'), { managed: true })

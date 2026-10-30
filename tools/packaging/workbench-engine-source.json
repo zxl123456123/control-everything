@@ -328666,8 +328666,8 @@
     {
       "path": "src/renderer/src/i18n/locales/zh.json",
       "upstream_sha256": "a7ceebd563b9c0405b9b72489d6d3386dae6fe24a7abe68d1d2185df3b1231e7",
-      "current_sha256": "cbb71b494b5580e51732a50058453f48f602205bde4f084159222bb5231b1a4d",
-      "reason": "UI r1 S8: fixed window appearance and bounded recovery/help presentation; zh.json. DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained.；配对链接生成解析和手机注册统一zkyq协议，迁移已保存VM配对链接并保留凭据及用户数据，更新脱敏和提示；浏览器路径配置统一ZKYQ_BROWSER_EXECUTABLE，清理状态与远程浏览器权限文案，保留路径和权限范围；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物；移除 CLI 技能区域重复的旧品牌说明及对应翻译；账号设置的当前产品名称及语言目录统一；CLI 注册状态和错误提示统一当前命令名称"
+      "current_sha256": "e1cfea3f6bad9326a2e38e59d568c7abfcd443293bf686459fffbbaf7cc7804c",
+      "reason": "UI r1 S8: fixed window appearance and bounded recovery/help presentation; zh.json. DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained.；配对链接生成解析和手机注册统一zkyq协议，迁移已保存VM配对链接并保留凭据及用户数据，更新脱敏和提示；浏览器路径配置统一ZKYQ_BROWSER_EXECUTABLE，清理状态与远程浏览器权限文案，保留路径和权限范围；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物；移除 CLI 技能区域重复的旧品牌说明及对应翻译；账号设置的当前产品名称及语言目录统一；CLI 注册状态和错误提示统一当前命令名称；模拟器命令、错误和提示统一 zkyq"
     },
     {
       "path": "src/renderer/src/lib/app-font-family.ts",
@@ -328930,8 +328930,8 @@
     {
       "path": "src/renderer/src/i18n/locales/en.json",
       "upstream_sha256": "80d9d9800a00b8441914d0f223af22c4bbc66318ab27141506c9b33edfe35209",
-      "current_sha256": "6db818e0de0b79831f63ce078541292e96331d044fde8ed06ab6226efc9387ca",
-      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained.；配对链接生成解析和手机注册统一zkyq协议，迁移已保存VM配对链接并保留凭据及用户数据，更新脱敏和提示；浏览器路径配置统一ZKYQ_BROWSER_EXECUTABLE，清理状态与远程浏览器权限文案，保留路径和权限范围；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物；移除 CLI 技能区域重复的旧品牌说明及对应翻译；账号设置的当前产品名称及语言目录统一；CLI 注册状态和错误提示统一当前命令名称"
+      "current_sha256": "6a6da88b73889bfe8fc274a0c6bb336798153c27f4010ac79c60741d010d05e4",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained.；配对链接生成解析和手机注册统一zkyq协议，迁移已保存VM配对链接并保留凭据及用户数据，更新脱敏和提示；浏览器路径配置统一ZKYQ_BROWSER_EXECUTABLE，清理状态与远程浏览器权限文案，保留路径和权限范围；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物；移除 CLI 技能区域重复的旧品牌说明及对应翻译；账号设置的当前产品名称及语言目录统一；CLI 注册状态和错误提示统一当前命令名称；模拟器命令、错误和提示统一 zkyq"
     },
     {
       "path": "src/renderer/src/lib/tab-number-shortcuts.ts",
@@ -329608,32 +329608,32 @@
     {
       "path": "src/renderer/src/i18n/locales/es.json",
       "upstream_sha256": "23bf50fa0feac6e876c21c41adcb92badd4912f21ad21d3b0ad107db20b2e281",
-      "current_sha256": "2cc8beecd9ca7a579ac211759d75ed3fc14a86f04de9ca49d8d9cf6f1066f5e8",
-      "reason": "配对链接生成解析和手机注册统一zkyq协议，迁移已保存VM配对链接并保留凭据及用户数据，更新脱敏和提示；浏览器路径配置统一ZKYQ_BROWSER_EXECUTABLE，清理状态与远程浏览器权限文案，保留路径和权限范围；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物；移除 CLI 技能区域重复的旧品牌说明及对应翻译；账号设置的当前产品名称及语言目录统一；CLI 注册状态和错误提示统一当前命令名称"
+      "current_sha256": "34fb34ca65a30b2c50bb463b0f25a052a917449b5aa5974646b1befa9a97d546",
+      "reason": "配对链接生成解析和手机注册统一zkyq协议，迁移已保存VM配对链接并保留凭据及用户数据，更新脱敏和提示；浏览器路径配置统一ZKYQ_BROWSER_EXECUTABLE，清理状态与远程浏览器权限文案，保留路径和权限范围；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物；移除 CLI 技能区域重复的旧品牌说明及对应翻译；账号设置的当前产品名称及语言目录统一；CLI 注册状态和错误提示统一当前命令名称；模拟器命令、错误和提示统一 zkyq"
     },
     {
       "path": "src/renderer/src/i18n/locales/fr.json",
       "upstream_sha256": "2513e02bc2a98cc2e307df970af346bc93919e388cb22fcc27c85a2df9455796",
-      "current_sha256": "fc9cfe89a3ecc27e4166c2937a0e2f71b7e5fdeea633aa612317444c3b707fc8",
-      "reason": "配对链接生成解析和手机注册统一zkyq协议，迁移已保存VM配对链接并保留凭据及用户数据，更新脱敏和提示；浏览器路径配置统一ZKYQ_BROWSER_EXECUTABLE，清理状态与远程浏览器权限文案，保留路径和权限范围；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物；移除 CLI 技能区域重复的旧品牌说明及对应翻译；账号设置的当前产品名称及语言目录统一；CLI 注册状态和错误提示统一当前命令名称"
+      "current_sha256": "6b2f0e327e6122723e9657a6958751b18f30456f32feec316bbdbf3a3843fe78",
+      "reason": "配对链接生成解析和手机注册统一zkyq协议，迁移已保存VM配对链接并保留凭据及用户数据，更新脱敏和提示；浏览器路径配置统一ZKYQ_BROWSER_EXECUTABLE，清理状态与远程浏览器权限文案，保留路径和权限范围；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物；移除 CLI 技能区域重复的旧品牌说明及对应翻译；账号设置的当前产品名称及语言目录统一；CLI 注册状态和错误提示统一当前命令名称；模拟器命令、错误和提示统一 zkyq"
     },
     {
       "path": "src/renderer/src/i18n/locales/ja.json",
       "upstream_sha256": "17cacca69bdcbbc321e6dab8a6b0e950f3d2d7ccb03f5f259e7fac5e3e3fbc9b",
-      "current_sha256": "14474995138d7303957819fa4972830e1f104c1020b9c888f2357d306400ca68",
-      "reason": "配对链接生成解析和手机注册统一zkyq协议，迁移已保存VM配对链接并保留凭据及用户数据，更新脱敏和提示；浏览器路径配置统一ZKYQ_BROWSER_EXECUTABLE，清理状态与远程浏览器权限文案，保留路径和权限范围；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物；移除 CLI 技能区域重复的旧品牌说明及对应翻译；账号设置的当前产品名称及语言目录统一；CLI 注册状态和错误提示统一当前命令名称"
+      "current_sha256": "cf65ba91651f3fecdf9ba6ebacb4af4d6031357bdf640b9bdd056969c1717909",
+      "reason": "配对链接生成解析和手机注册统一zkyq协议，迁移已保存VM配对链接并保留凭据及用户数据，更新脱敏和提示；浏览器路径配置统一ZKYQ_BROWSER_EXECUTABLE，清理状态与远程浏览器权限文案，保留路径和权限范围；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物；移除 CLI 技能区域重复的旧品牌说明及对应翻译；账号设置的当前产品名称及语言目录统一；CLI 注册状态和错误提示统一当前命令名称；模拟器命令、错误和提示统一 zkyq"
     },
     {
       "path": "src/renderer/src/i18n/locales/ko.json",
       "upstream_sha256": "efd93a9740a88438cc5c17d3db077172e1de23d7d370628ac952520c29d5d20d",
-      "current_sha256": "3f66ce8681c2a3e6c5a5178fa1cb8cac1d4e48f03b2bfc5027d35164cc1b2cfc",
-      "reason": "配对链接生成解析和手机注册统一zkyq协议，迁移已保存VM配对链接并保留凭据及用户数据，更新脱敏和提示；浏览器路径配置统一ZKYQ_BROWSER_EXECUTABLE，清理状态与远程浏览器权限文案，保留路径和权限范围；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物；移除 CLI 技能区域重复的旧品牌说明及对应翻译；账号设置的当前产品名称及语言目录统一；CLI 注册状态和错误提示统一当前命令名称"
+      "current_sha256": "68ba6f26459653578afd908a2484b2c5f5f21abc687b7b56d74c09602f7289a7",
+      "reason": "配对链接生成解析和手机注册统一zkyq协议，迁移已保存VM配对链接并保留凭据及用户数据，更新脱敏和提示；浏览器路径配置统一ZKYQ_BROWSER_EXECUTABLE，清理状态与远程浏览器权限文案，保留路径和权限范围；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物；移除 CLI 技能区域重复的旧品牌说明及对应翻译；账号设置的当前产品名称及语言目录统一；CLI 注册状态和错误提示统一当前命令名称；模拟器命令、错误和提示统一 zkyq"
     },
     {
       "path": "src/renderer/src/i18n/locales/pt.json",
       "upstream_sha256": "d28d34edd8a908bbcf85131235bff6fda0b1133558e21d2ad5ad87703864a1a0",
-      "current_sha256": "caee6edf9c208a642b44f8b332513467af0822ba4f41df3e1b8b2cc293ccbd06",
-      "reason": "配对链接生成解析和手机注册统一zkyq协议，迁移已保存VM配对链接并保留凭据及用户数据，更新脱敏和提示；浏览器路径配置统一ZKYQ_BROWSER_EXECUTABLE，清理状态与远程浏览器权限文案，保留路径和权限范围；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物；移除 CLI 技能区域重复的旧品牌说明及对应翻译；账号设置的当前产品名称及语言目录统一；CLI 注册状态和错误提示统一当前命令名称"
+      "current_sha256": "8803b4691b7a6515b477e6f67a3cd701f61031566e10188c882d12fc860c9f0a",
+      "reason": "配对链接生成解析和手机注册统一zkyq协议，迁移已保存VM配对链接并保留凭据及用户数据，更新脱敏和提示；浏览器路径配置统一ZKYQ_BROWSER_EXECUTABLE，清理状态与远程浏览器权限文案，保留路径和权限范围；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物；移除 CLI 技能区域重复的旧品牌说明及对应翻译；账号设置的当前产品名称及语言目录统一；CLI 注册状态和错误提示统一当前命令名称；模拟器命令、错误和提示统一 zkyq"
     },
     {
       "path": "src/renderer/src/lib/ephemeral-vm-workspace-target.integration.test.ts",
@@ -332212,14 +332212,14 @@
     {
       "path": "src/renderer/src/components/emulator-pane/MobileEmulatorAgentSetupGuideSteps.tsx",
       "upstream_sha256": "b7e66c2b4871ad9372b52538122a7eb2ba3825025e3db7dc03eae29bd18a6c22",
-      "current_sha256": "6cd899072c43240583fabdf9f2f91bb4fb87e72e7118a7d576ff3e434ed66764",
-      "reason": "六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
+      "current_sha256": "860f6227a1080ca97f1718d1dc3cbf99cac4a201dab530861c83f61ba631b39d",
+      "reason": "六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物；模拟器命令、错误和提示统一 zkyq"
     },
     {
       "path": "src/renderer/src/components/emulator-pane/use-mobile-emulator-agent-setup-state.ts",
       "upstream_sha256": "d08dbc06db078e5d3c4bfe5c3011d924e9e21431015216117765a0e6bd2156c8",
-      "current_sha256": "90499eb1fc427a803b020c26e85bde016a4acb48ee17399373b872465a4408d2",
-      "reason": "六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
+      "current_sha256": "554dc6dd1d1a62dee1ba1a32114813dfb9a708605d8c069e0a659069e77af974",
+      "reason": "六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物；模拟器命令、错误和提示统一 zkyq"
     },
     {
       "path": "src/renderer/src/components/feature-tips/CliSkillSetupTerminal.tsx",
@@ -332284,14 +332284,14 @@
     {
       "path": "src/renderer/src/components/settings/MobileEmulatorAgentControlRow.test.tsx",
       "upstream_sha256": "bd00b6d65cec3fae6883c73da3dbd939af648aaecf853c1ab480d941bfe6f004",
-      "current_sha256": "f949d7caa6868a9116727b319e83a91e8b18f878d5b12e1d272a03a1e67da185",
-      "reason": "六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
+      "current_sha256": "9d4f66064fcae3f92cbb29247b48ce39675db97daec7cefb51d7e4d19f438765",
+      "reason": "六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物；模拟器命令、错误和提示统一 zkyq"
     },
     {
       "path": "src/renderer/src/components/settings/MobileEmulatorAgentControlRow.tsx",
       "upstream_sha256": "ef0179fa0f2e7a2c02e68a16dbbb82110ad0f23155ebde04361301fd2194b73f",
-      "current_sha256": "146e755a5fe023d6e2843477fcf86c358d9b70747fc8239068404937c30582e4",
-      "reason": "六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
+      "current_sha256": "a876f88b72c105bab9c44bf556f0159b61317037acc8ced1528adaa6b715cae3",
+      "reason": "六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物；模拟器命令、错误和提示统一 zkyq"
     },
     {
       "path": "src/renderer/src/components/settings/TaskSourceLinearSetup.test.tsx",
@@ -332392,8 +332392,8 @@
     {
       "path": "src/cli/root-help-text-primary.ts",
       "upstream_sha256": "2003d5ac224079460fe4251485b5967625cb7c09f5853f065603a4a298966d85",
-      "current_sha256": "d14236859c8db065e2e2f496b70764342187e8c6ca8380c1cf072cda03569d43",
-      "reason": "；新增安装后独立退役入口及目标约束验证，补齐当前CLI占位指南检查"
+      "current_sha256": "d34fc0a7e6455bfb8d7d080c9aa0a868884831eefc72a117b087235dd50561bc",
+      "reason": "；新增安装后独立退役入口及目标约束验证，补齐当前CLI占位指南检查；模拟器命令、错误和提示统一 zkyq"
     },
     {
       "path": "src/main/runtime/rpc/methods/skills.ts",
@@ -332946,6 +332946,60 @@
       "upstream_sha256": "89e048061901223f03498118acb0e4f78a8ee1e86dd9821ea8d8e86c190c7496",
       "current_sha256": "16555ed4627364763e8a6c95542b3fff0861bc2c0c7a0124ec32ffae505ecafa",
       "reason": "CLI 机器可读命令发现同步当前身份"
+    },
+    {
+      "path": "src/cli/specs/emulator.ts",
+      "upstream_sha256": "976bc5175ddedac2e348353ac1f7d3ae299c88bf29b2bc670d169fe912668848",
+      "current_sha256": "8a705dba67cee7a0fb98c4c1351b877a1439559b137653ddb50672c27314675f",
+      "reason": "模拟器命令、错误和提示统一 zkyq"
+    },
+    {
+      "path": "src/main/emulator/emulator-bridge.test.ts",
+      "upstream_sha256": "352cfdb40bcb1483360ea40cbde9c67cb1fbe83f5c508b7c5d5fecfff8efb6c3",
+      "current_sha256": "245734d2b16ca9cb1b3c7f2efad89c3b8b5e7eca25842e74243910c8d2e0117d",
+      "reason": "模拟器命令、错误和提示统一 zkyq"
+    },
+    {
+      "path": "src/main/emulator/emulator-bridge.ts",
+      "upstream_sha256": "8ddb22e722cff111b995c910844faa35ef3a3bf048833a57476081a014b3d50c",
+      "current_sha256": "cd44fa6e0c0b8a77739ce8f30636bc8c1441dd83708c20c9c3210f8f7b0fe2ef",
+      "reason": "模拟器命令、错误和提示统一 zkyq"
+    },
+    {
+      "path": "src/main/emulator/serve-sim-execution.test.ts",
+      "upstream_sha256": "6b726744d023d29a8d6506e9e95817767dbb50f2e21da801c4a18a9cc7009f8f",
+      "current_sha256": "a15b0f9aab793f7c246159212d12c06c96399be1444753ef101073df4ea035cd",
+      "reason": "模拟器命令、错误和提示统一 zkyq"
+    },
+    {
+      "path": "src/main/emulator/serve-sim-execution.ts",
+      "upstream_sha256": "d49701e0c582383f7108776a528d2ea608fe6b2aed8f9d04f7dbc4c1f55d2e78",
+      "current_sha256": "57d3f932389d290058fb2648686cb05b06e9af5ec284daddd362cb586b0d78c8",
+      "reason": "模拟器命令、错误和提示统一 zkyq"
+    },
+    {
+      "path": "src/renderer/src/components/emulator-pane/MobileEmulatorAgentSetupGuide.tsx",
+      "upstream_sha256": "f06ad2305d0f0ee9a48f5d099cdb87971e116157a4c13b1f39e706dff728183b",
+      "current_sha256": "bdb841f1d884bbb22ee820e20673a061a57ebcdfb0ee0ba93a9fd6c0578ce562",
+      "reason": "模拟器命令、错误和提示统一 zkyq"
+    },
+    {
+      "path": "src/renderer/src/components/settings/MobileEmulatorExamples.tsx",
+      "upstream_sha256": "4587907306e0c1d65783902970b67e612cdf1a8e64d26cafd7c46bbd8d9b58a2",
+      "current_sha256": "6ff673be00543bb263079e58eb0db8bcae247eb61561b96e321ff9ddb16e8212",
+      "reason": "模拟器命令、错误和提示统一 zkyq"
+    },
+    {
+      "path": "src/renderer/src/components/settings/mobile-emulator-search.ts",
+      "upstream_sha256": "2bb2d4cf7ae013a9dce0401c164746d54f75c1874586eec55f286828c8a0e10b",
+      "current_sha256": "327ba81888c2b765c5f0cb5887b563baf7d46f01268ae18ae177cd78f0a0df51",
+      "reason": "模拟器命令、错误和提示统一 zkyq"
+    },
+    {
+      "path": "src/renderer/src/lib/terminal-worktree-route.test.ts",
+      "upstream_sha256": "8c9c12864ff2a7256b888afaabf9053e6fdb57e92703ebdd458b51bf2ce8a1c3",
+      "current_sha256": "856044acdc2391fdac10662a6f0b86742078aa285bae8f66698133c90012b319",
+      "reason": "模拟器命令、错误和提示统一 zkyq"
     }
   ],
   "reviewed_findings": [
@@ -334353,196 +334407,196 @@
       "path": "src/renderer/src/i18n/locales/en.json",
       "rule": "absolute-windows-path",
       "line": 12218,
-      "sha256": "6db818e0de0b79831f63ce078541292e96331d044fde8ed06ab6226efc9387ca",
+      "sha256": "6a6da88b73889bfe8fc274a0c6bb336798153c27f4010ac79c60741d010d05e4",
       "reason": "上游公开代码注释、CLI/界面示例中的路径语法，用来解释drive/root/UNC/转义等规则；非读取的个人配置，限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/en.json",
       "rule": "personal-home-path",
       "line": 12218,
-      "sha256": "6db818e0de0b79831f63ce078541292e96331d044fde8ed06ab6226efc9387ca",
+      "sha256": "6a6da88b73889bfe8fc274a0c6bb336798153c27f4010ac79c60741d010d05e4",
       "reason": "公开的路径模板、跨平台解析说明或通用示例；未读取本机账号/目录，保留语义并限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/en.json",
       "rule": "absolute-windows-path",
       "line": 12204,
-      "sha256": "6db818e0de0b79831f63ce078541292e96331d044fde8ed06ab6226efc9387ca",
+      "sha256": "6a6da88b73889bfe8fc274a0c6bb336798153c27f4010ac79c60741d010d05e4",
       "reason": "上游公开代码注释、CLI/界面示例中的路径语法，用来解释drive/root/UNC/转义等规则；非读取的个人配置，限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/en.json",
       "rule": "personal-home-path",
       "line": 12204,
-      "sha256": "6db818e0de0b79831f63ce078541292e96331d044fde8ed06ab6226efc9387ca",
+      "sha256": "6a6da88b73889bfe8fc274a0c6bb336798153c27f4010ac79c60741d010d05e4",
       "reason": "公开的路径模板、跨平台解析说明或通用示例；未读取本机账号/目录，保留语义并限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/es.json",
       "rule": "absolute-windows-path",
       "line": 11868,
-      "sha256": "2cc8beecd9ca7a579ac211759d75ed3fc14a86f04de9ca49d8d9cf6f1066f5e8",
+      "sha256": "34fb34ca65a30b2c50bb463b0f25a052a917449b5aa5974646b1befa9a97d546",
       "reason": "上游公开代码注释、CLI/界面示例中的路径语法，用来解释drive/root/UNC/转义等规则；非读取的个人配置，限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/es.json",
       "rule": "personal-home-path",
       "line": 11868,
-      "sha256": "2cc8beecd9ca7a579ac211759d75ed3fc14a86f04de9ca49d8d9cf6f1066f5e8",
+      "sha256": "34fb34ca65a30b2c50bb463b0f25a052a917449b5aa5974646b1befa9a97d546",
       "reason": "公开的路径模板、跨平台解析说明或通用示例；未读取本机账号/目录，保留语义并限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/es.json",
       "rule": "absolute-windows-path",
       "line": 11882,
-      "sha256": "2cc8beecd9ca7a579ac211759d75ed3fc14a86f04de9ca49d8d9cf6f1066f5e8",
+      "sha256": "34fb34ca65a30b2c50bb463b0f25a052a917449b5aa5974646b1befa9a97d546",
       "reason": "上游公开代码注释、CLI/界面示例中的路径语法，用来解释drive/root/UNC/转义等规则；非读取的个人配置，限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/es.json",
       "rule": "personal-home-path",
       "line": 11882,
-      "sha256": "2cc8beecd9ca7a579ac211759d75ed3fc14a86f04de9ca49d8d9cf6f1066f5e8",
+      "sha256": "34fb34ca65a30b2c50bb463b0f25a052a917449b5aa5974646b1befa9a97d546",
       "reason": "公开的路径模板、跨平台解析说明或通用示例；未读取本机账号/目录，保留语义并限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/fr.json",
       "rule": "absolute-windows-path",
       "line": 11972,
-      "sha256": "fc9cfe89a3ecc27e4166c2937a0e2f71b7e5fdeea633aa612317444c3b707fc8",
+      "sha256": "6b2f0e327e6122723e9657a6958751b18f30456f32feec316bbdbf3a3843fe78",
       "reason": "上游公开代码注释、CLI/界面示例中的路径语法，用来解释drive/root/UNC/转义等规则；非读取的个人配置，限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/fr.json",
       "rule": "personal-home-path",
       "line": 11972,
-      "sha256": "fc9cfe89a3ecc27e4166c2937a0e2f71b7e5fdeea633aa612317444c3b707fc8",
+      "sha256": "6b2f0e327e6122723e9657a6958751b18f30456f32feec316bbdbf3a3843fe78",
       "reason": "公开的路径模板、跨平台解析说明或通用示例；未读取本机账号/目录，保留语义并限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/fr.json",
       "rule": "absolute-windows-path",
       "line": 11986,
-      "sha256": "fc9cfe89a3ecc27e4166c2937a0e2f71b7e5fdeea633aa612317444c3b707fc8",
+      "sha256": "6b2f0e327e6122723e9657a6958751b18f30456f32feec316bbdbf3a3843fe78",
       "reason": "上游公开代码注释、CLI/界面示例中的路径语法，用来解释drive/root/UNC/转义等规则；非读取的个人配置，限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/fr.json",
       "rule": "personal-home-path",
       "line": 11986,
-      "sha256": "fc9cfe89a3ecc27e4166c2937a0e2f71b7e5fdeea633aa612317444c3b707fc8",
+      "sha256": "6b2f0e327e6122723e9657a6958751b18f30456f32feec316bbdbf3a3843fe78",
       "reason": "公开的路径模板、跨平台解析说明或通用示例；未读取本机账号/目录，保留语义并限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/ja.json",
       "rule": "absolute-windows-path",
       "line": 11873,
-      "sha256": "14474995138d7303957819fa4972830e1f104c1020b9c888f2357d306400ca68",
+      "sha256": "cf65ba91651f3fecdf9ba6ebacb4af4d6031357bdf640b9bdd056969c1717909",
       "reason": "上游公开代码注释、CLI/界面示例中的路径语法，用来解释drive/root/UNC/转义等规则；非读取的个人配置，限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/ja.json",
       "rule": "personal-home-path",
       "line": 11873,
-      "sha256": "14474995138d7303957819fa4972830e1f104c1020b9c888f2357d306400ca68",
+      "sha256": "cf65ba91651f3fecdf9ba6ebacb4af4d6031357bdf640b9bdd056969c1717909",
       "reason": "公开的路径模板、跨平台解析说明或通用示例；未读取本机账号/目录，保留语义并限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/ja.json",
       "rule": "absolute-windows-path",
       "line": 11887,
-      "sha256": "14474995138d7303957819fa4972830e1f104c1020b9c888f2357d306400ca68",
+      "sha256": "cf65ba91651f3fecdf9ba6ebacb4af4d6031357bdf640b9bdd056969c1717909",
       "reason": "上游公开代码注释、CLI/界面示例中的路径语法，用来解释drive/root/UNC/转义等规则；非读取的个人配置，限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/ja.json",
       "rule": "personal-home-path",
       "line": 11887,
-      "sha256": "14474995138d7303957819fa4972830e1f104c1020b9c888f2357d306400ca68",
+      "sha256": "cf65ba91651f3fecdf9ba6ebacb4af4d6031357bdf640b9bdd056969c1717909",
       "reason": "公开的路径模板、跨平台解析说明或通用示例；未读取本机账号/目录，保留语义并限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/ko.json",
       "rule": "absolute-windows-path",
       "line": 11873,
-      "sha256": "3f66ce8681c2a3e6c5a5178fa1cb8cac1d4e48f03b2bfc5027d35164cc1b2cfc",
+      "sha256": "68ba6f26459653578afd908a2484b2c5f5f21abc687b7b56d74c09602f7289a7",
       "reason": "上游公开代码注释、CLI/界面示例中的路径语法，用来解释drive/root/UNC/转义等规则；非读取的个人配置，限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/ko.json",
       "rule": "personal-home-path",
       "line": 11873,
-      "sha256": "3f66ce8681c2a3e6c5a5178fa1cb8cac1d4e48f03b2bfc5027d35164cc1b2cfc",
+      "sha256": "68ba6f26459653578afd908a2484b2c5f5f21abc687b7b56d74c09602f7289a7",
       "reason": "公开的路径模板、跨平台解析说明或通用示例；未读取本机账号/目录，保留语义并限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/ko.json",
       "rule": "absolute-windows-path",
       "line": 11887,
-      "sha256": "3f66ce8681c2a3e6c5a5178fa1cb8cac1d4e48f03b2bfc5027d35164cc1b2cfc",
+      "sha256": "68ba6f26459653578afd908a2484b2c5f5f21abc687b7b56d74c09602f7289a7",
       "reason": "上游公开代码注释、CLI/界面示例中的路径语法，用来解释drive/root/UNC/转义等规则；非读取的个人配置，限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/ko.json",
       "rule": "personal-home-path",
       "line": 11887,
-      "sha256": "3f66ce8681c2a3e6c5a5178fa1cb8cac1d4e48f03b2bfc5027d35164cc1b2cfc",
+      "sha256": "68ba6f26459653578afd908a2484b2c5f5f21abc687b7b56d74c09602f7289a7",
       "reason": "公开的路径模板、跨平台解析说明或通用示例；未读取本机账号/目录，保留语义并限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/pt.json",
       "rule": "absolute-windows-path",
       "line": 6721,
-      "sha256": "caee6edf9c208a642b44f8b332513467af0822ba4f41df3e1b8b2cc293ccbd06",
+      "sha256": "8803b4691b7a6515b477e6f67a3cd701f61031566e10188c882d12fc860c9f0a",
       "reason": "上游公开代码注释、CLI/界面示例中的路径语法，用来解释drive/root/UNC/转义等规则；非读取的个人配置，限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/pt.json",
       "rule": "personal-home-path",
       "line": 6721,
-      "sha256": "caee6edf9c208a642b44f8b332513467af0822ba4f41df3e1b8b2cc293ccbd06",
+      "sha256": "8803b4691b7a6515b477e6f67a3cd701f61031566e10188c882d12fc860c9f0a",
       "reason": "公开的路径模板、跨平台解析说明或通用示例；未读取本机账号/目录，保留语义并限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/pt.json",
       "rule": "absolute-windows-path",
       "line": 7903,
-      "sha256": "caee6edf9c208a642b44f8b332513467af0822ba4f41df3e1b8b2cc293ccbd06",
+      "sha256": "8803b4691b7a6515b477e6f67a3cd701f61031566e10188c882d12fc860c9f0a",
       "reason": "上游公开代码注释、CLI/界面示例中的路径语法，用来解释drive/root/UNC/转义等规则；非读取的个人配置，限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/pt.json",
       "rule": "personal-home-path",
       "line": 7903,
-      "sha256": "caee6edf9c208a642b44f8b332513467af0822ba4f41df3e1b8b2cc293ccbd06",
+      "sha256": "8803b4691b7a6515b477e6f67a3cd701f61031566e10188c882d12fc860c9f0a",
       "reason": "公开的路径模板、跨平台解析说明或通用示例；未读取本机账号/目录，保留语义并限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/zh.json",
       "rule": "absolute-windows-path",
       "line": 11926,
-      "sha256": "cbb71b494b5580e51732a50058453f48f602205bde4f084159222bb5231b1a4d",
+      "sha256": "e1cfea3f6bad9326a2e38e59d568c7abfcd443293bf686459fffbbaf7cc7804c",
       "reason": "上游公开代码注释、CLI/界面示例中的路径语法，用来解释drive/root/UNC/转义等规则；非读取的个人配置，限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/zh.json",
       "rule": "personal-home-path",
       "line": 11926,
-      "sha256": "cbb71b494b5580e51732a50058453f48f602205bde4f084159222bb5231b1a4d",
+      "sha256": "e1cfea3f6bad9326a2e38e59d568c7abfcd443293bf686459fffbbaf7cc7804c",
       "reason": "公开的路径模板、跨平台解析说明或通用示例；未读取本机账号/目录，保留语义并限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/zh.json",
       "rule": "absolute-windows-path",
       "line": 11912,
-      "sha256": "cbb71b494b5580e51732a50058453f48f602205bde4f084159222bb5231b1a4d",
+      "sha256": "e1cfea3f6bad9326a2e38e59d568c7abfcd443293bf686459fffbbaf7cc7804c",
       "reason": "上游公开代码注释、CLI/界面示例中的路径语法，用来解释drive/root/UNC/转义等规则；非读取的个人配置，限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/zh.json",
       "rule": "personal-home-path",
       "line": 11912,
-      "sha256": "cbb71b494b5580e51732a50058453f48f602205bde4f084159222bb5231b1a4d",
+      "sha256": "e1cfea3f6bad9326a2e38e59d568c7abfcd443293bf686459fffbbaf7cc7804c",
       "reason": "公开的路径模板、跨平台解析说明或通用示例；未读取本机账号/目录，保留语义并限定具体行及文件hash。"
     },
     {

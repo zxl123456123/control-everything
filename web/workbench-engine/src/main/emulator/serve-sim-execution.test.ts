@@ -21,7 +21,7 @@ vi.mock('electron', () => ({
 }))
 vi.mock('./serve-sim-runtime-materializer', () => materializerMocks)
 
-import { resolveServeSimExecutable } from './serve-sim-execution'
+import { execServeSimCommand, resolveServeSimExecutable } from './serve-sim-execution'
 
 const originalPlatform = Object.getOwnPropertyDescriptor(process, 'platform')
 const originalResourcesPath = Object.getOwnPropertyDescriptor(process, 'resourcesPath')
@@ -120,6 +120,24 @@ describe('resolveServeSimExecutable', () => {
       command: process.execPath,
       baseArgs: [appEntry],
       usesElectronAsNode: true
+    })
+  })
+})
+
+describe('execServeSimCommand', () => {
+  it('offers valid CLI commands when the simulator helper is not running', async () => {
+    await expect(
+      execServeSimCommand(
+        {
+          command: process.execPath,
+          baseArgs: ['-e', 'console.error("no serve-sim server"); process.exit(1)'],
+          usesElectronAsNode: false
+        },
+        []
+      )
+    ).rejects.toMatchObject({
+      code: 'emulator_no_active',
+      message: expect.stringContaining('zkyq emulator list or zkyq emulator attach')
     })
   })
 })

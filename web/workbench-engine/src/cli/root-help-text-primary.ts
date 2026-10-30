@@ -158,7 +158,7 @@ export const ROOT_HELP_TEXT_PRIMARY = [
   '  linear                    Read and write Linear issues for agents',
   '',
   'Mobile Emulator (iOS Simulator):',
-  '  emulator list             List available/running emulators (Orca-managed + raw serve-sim)',
+  '  emulator list             List available/running emulators (Control Everything-managed + raw serve-sim)',
   '  emulator attach <device>  Attach/start helper and make active for the worktree',
   '  emulator tap <x> <y>      Tap at normalized 0..1 coords (preferred for single taps)',
   '  emulator type <text>      Type text (US ASCII only)',

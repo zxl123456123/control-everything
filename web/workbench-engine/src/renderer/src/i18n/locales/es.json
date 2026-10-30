@@ -7804,9 +7804,9 @@
           "1861982430": "No se pudo cargar el estado de CLI.",
           "8af7a8bc38": "Los comandos apuntan al emulador activo del worktree actual. Las coordenadas están normalizadas de 0 a 1.",
           "c7f3fe0a6e": "Comandos comunes del emulador",
-          "d94ca6a623": "Permite a los agentes usar comandos de la CLI de Orca, incluido el control del emulador móvil.",
-          "67e19ee03c": "Skill Orca CLI",
-          "ff4b7e65d6": "Permite que los agentes de codificación controlen el emulador móvil activo con comandos de la CLI de Orca.",
+          "d94ca6a623": "Permite a los agentes usar comandos de la CLI de zkyq, incluido el control del emulador móvil.",
+          "67e19ee03c": "Skill zkyq CLI",
+          "ff4b7e65d6": "Permite que los agentes de codificación controlen el emulador móvil activo con comandos de la CLI de zkyq.",
           "2a674aa810": "Control del emulador móvil para agentes",
           "cdeaed9e37": "Registré Orca CLI en PATH."
         },
@@ -7815,7 +7815,7 @@
           "c12b253997": "Copiar prompt de ejemplo",
           "d151e25078": "\"",
           "b525ff2b12": "\"",
-          "4daa95f25a": "Pega cualquiera de estos en Claude Code, Codex u otro agente en un proyecto donde esté instalado el skill Orca CLI.",
+          "4daa95f25a": "Pega cualquiera de estos en Claude Code, Codex u otro agente en un proyecto donde esté instalado el skill zkyq CLI.",
           "0820b3f84f": "Pruébalo: prompts de ejemplo",
           "1f608e7d60": "No se pudo copiar el prompt.",
           "2b077b5544": "Prompt copiado."
@@ -10281,13 +10281,13 @@
         "mobile": {
           "emulator": {
             "search": {
-              "2348045036": "Elija qué dispositivo emulador abre Orca de forma predeterminada.",
+              "2348045036": "Elija qué dispositivo emulador abre Control Everything de forma predeterminada.",
               "2bb2e09225": "skill móvil",
               "bbe4267416": "tipo de emulador",
               "64494f03c3": "adjuntar emulador",
               "6f728f1456": "tap del emulador",
               "f8b871d655": "CLI de agente",
-              "2e0b45b2ba": "Usa comandos de Orca CLI para listar, adjuntar, tocar y escribir en un emulador móvil.",
+              "2e0b45b2ba": "Usa comandos de zkyq CLI para listar, adjuntar, tocar y escribir en un emulador móvil.",
               "ea3eac39bb": "Control por CLI de Agent",
               "8ef0f08d36": "runtime",
               "27397fe8e9": "herramientas de línea de comandos de Xcode",
@@ -10305,8 +10305,8 @@
               "b8ddd13195": "emulador de agente",
               "1ad6fb6230": "dispositivo predeterminado",
               "ac0a985873": "skill del emulador",
-              "9353854ff3": "emulador de Orca",
-              "d4b7833894": "Orca CLI",
+              "9353854ff3": "zkyq emulator",
+              "d4b7833894": "zkyq cli",
               "84e5706975": "serve-sim",
               "7c5a8a2bee": "Xcode",
               "bec7231663": "iPad",
@@ -10315,7 +10315,7 @@
               "2d67f708ce": "simulador",
               "c5eca29310": "simulador de iOS",
               "25159de808": "emulador móvil",
-              "9595354cff": "Configura la compatibilidad con el emulador móvil para Orca y agentes de codificación.",
+              "9595354cff": "Configura la compatibilidad con el emulador móvil para Control Everything y agentes de codificación.",
               "cdd3c31918": "Emulador móvil"
             }
           },
@@ -15591,7 +15591,7 @@
                     "state": {
                       "35dea1ae12": "El control de agentes está listo.",
                       "c94ff11e91": "No se pudo volver a verificar el estado de la configuración.",
-                      "skillNotInstalled": "La skill de Orca CLI aún no está instalada."
+                      "skillNotInstalled": "La skill de zkyq CLI aún no está instalada."
                     }
                   }
                 },
@@ -15614,13 +15614,13 @@
             "6d950431d2": "Ocultar",
             "ebceac65a4": "Configurar",
             "3f003507f4": "Abrir configuración completa en Ajustes",
-            "installSkillPrompt": "Instala la skill de Orca CLI cuando quieras que los agentes controlen este simulador."
+            "installSkillPrompt": "Instala la skill de zkyq CLI cuando quieras que los agentes controlen este simulador."
           },
           "MobileEmulatorAgentSetupGuideSteps": {
-            "21f5687c07": "Skill del CLI de Orca",
-            "64fb057667": "Enseña a los agentes los comandos orca del emulador para este worktree.",
-            "5c59ea96ca": "Configuración de la skill de Orca CLI para Mobile Emulator",
-            "bff5341ac3": "Terminal de instalación de la skill de Orca CLI para Mobile Emulator"
+            "21f5687c07": "Skill del CLI de zkyq",
+            "64fb057667": "Enseña a los agentes los comandos zkyq del emulador para este worktree.",
+            "5c59ea96ca": "Configuración de la skill de zkyq CLI para Mobile Emulator",
+            "bff5341ac3": "Terminal de instalación de la skill de zkyq CLI para Mobile Emulator"
           },
           "MobileEmulatorTabIntroCallout": {
             "1924982130": "Descartar",

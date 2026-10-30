@@ -8178,9 +8178,9 @@
           "1861982430": "Failed to load CLI status.",
           "8af7a8bc38": "Commands target the active emulator for the current worktree. Coordinates are normalized from 0..1.",
           "c7f3fe0a6e": "Common emulator commands",
-          "d94ca6a623": "Enables agents to use Orca CLI commands, including mobile emulator control.",
-          "67e19ee03c": "Orca CLI skill",
-          "ff4b7e65d6": "Let coding agents control the active mobile emulator with Orca CLI commands.",
+          "d94ca6a623": "Enables agents to use zkyq CLI commands, including mobile emulator control.",
+          "67e19ee03c": "zkyq CLI skill",
+          "ff4b7e65d6": "Let coding agents control the active mobile emulator with zkyq CLI commands.",
           "2a674aa810": "Agent Mobile Emulator Control",
           "cdeaed9e37": "Registered the Orca CLI in PATH."
         },
@@ -8189,7 +8189,7 @@
           "c12b253997": "Copy example prompt",
           "d151e25078": "\"",
           "b525ff2b12": "\"",
-          "4daa95f25a": "Paste any of these into Claude Code, Codex, or another agent in a project where the Orca CLI skill is installed.",
+          "4daa95f25a": "Paste any of these into Claude Code, Codex, or another agent in a project where the zkyq CLI skill is installed.",
           "0820b3f84f": "Try it — example prompts",
           "1f608e7d60": "Failed to copy prompt.",
           "2b077b5544": "Copied prompt."
@@ -10668,13 +10668,13 @@
         "mobile": {
           "emulator": {
             "search": {
-              "2348045036": "Choose which emulator device Orca opens by default.",
+              "2348045036": "Choose which emulator device Control Everything opens by default.",
               "2bb2e09225": "mobile skill",
               "bbe4267416": "emulator type",
               "64494f03c3": "emulator attach",
               "6f728f1456": "emulator tap",
               "f8b871d655": "agent cli",
-              "2e0b45b2ba": "Use Orca CLI commands to list, attach, tap, and type into a mobile emulator.",
+              "2e0b45b2ba": "Use zkyq CLI commands to list, attach, tap, and type into a mobile emulator.",
               "ea3eac39bb": "Agent CLI Control",
               "8ef0f08d36": "runtime",
               "27397fe8e9": "xcode command line tools",
@@ -10692,8 +10692,8 @@
               "b8ddd13195": "agent emulator",
               "1ad6fb6230": "default device",
               "ac0a985873": "emulator skill",
-              "9353854ff3": "orca emulator",
-              "d4b7833894": "orca cli",
+              "9353854ff3": "zkyq emulator",
+              "d4b7833894": "zkyq cli",
               "84e5706975": "serve-sim",
               "7c5a8a2bee": "xcode",
               "bec7231663": "ipad",
@@ -10702,7 +10702,7 @@
               "2d67f708ce": "simulator",
               "c5eca29310": "ios simulator",
               "25159de808": "mobile emulator",
-              "9595354cff": "Configure mobile emulator support for Orca and coding agents.",
+              "9595354cff": "Configure mobile emulator support for Control Everything and coding agents.",
               "cdd3c31918": "Mobile Emulator"
             }
           },
@@ -15939,7 +15939,7 @@
                   "setup": {
                     "state": {
                       "35dea1ae12": "Agent control is ready.",
-                      "skillNotInstalled": "The Orca CLI skill is not installed yet.",
+                      "skillNotInstalled": "The zkyq CLI skill is not installed yet.",
                       "c94ff11e91": "Could not re-check setup status."
                     }
                   }
@@ -15962,14 +15962,14 @@
             "3756cbeca7": "Not now",
             "6d950431d2": "Hide",
             "ebceac65a4": "Set up",
-            "installSkillPrompt": "Install the Orca CLI skill when you want agents to drive this simulator.",
+            "installSkillPrompt": "Install the zkyq CLI skill when you want agents to drive this simulator.",
             "3f003507f4": "Open full setup in Settings"
           },
           "MobileEmulatorAgentSetupGuideSteps": {
-            "21f5687c07": "Orca CLI skill",
-            "64fb057667": "Teaches agents the orca emulator commands for this worktree.",
-            "5c59ea96ca": "Mobile emulator Orca CLI skill setup",
-            "bff5341ac3": "Mobile emulator Orca CLI skill install terminal"
+            "21f5687c07": "zkyq CLI skill",
+            "64fb057667": "Teaches agents the zkyq emulator commands for this worktree.",
+            "5c59ea96ca": "Mobile emulator zkyq CLI skill setup",
+            "bff5341ac3": "Mobile emulator zkyq CLI skill install terminal"
           },
           "MobileEmulatorTabIntroCallout": {
             "1924982130": "Dismiss",

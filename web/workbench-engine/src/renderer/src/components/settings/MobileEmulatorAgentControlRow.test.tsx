@@ -65,4 +65,22 @@ describe('MobileEmulatorAgentControlRow freshness authority', () => {
     expect(mocks.panelProps.preInstallNotice).toBeUndefined()
     expect(mocks.panelProps.installDisabled).toBeUndefined()
   })
+
+  it('shows executable emulator commands using the current CLI name', () => {
+    const markup = renderToStaticMarkup(<MobileEmulatorAgentControlRow />)
+    expect(markup).toContain('zkyq emulator list --json')
+    expect(markup).toContain('zkyq emulator attach')
+    expect(markup).toContain('zkyq emulator tap 0.5 0.7 --json')
+    expect(markup).toContain('zkyq emulator type')
+    expect(markup).not.toMatch(/orca emulator/i)
+  })
+
+  it('uses the current CLI name in the prompts offered for copying', async () => {
+    const { MobileEmulatorExamples } = await vi.importActual<
+      typeof import('./MobileEmulatorExamples')
+    >('./MobileEmulatorExamples')
+    const markup = renderToStaticMarkup(<MobileEmulatorExamples />)
+    expect(markup).toContain('Using zkyq CLI')
+    expect(markup).not.toContain('Orca CLI')
+  })
 })

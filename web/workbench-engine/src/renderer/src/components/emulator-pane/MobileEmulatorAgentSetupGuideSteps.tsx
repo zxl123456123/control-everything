@@ -20,14 +20,14 @@ export function MobileEmulatorAgentSetupGuideSteps({
   // Why: skill detection here scans the local host only, so keep building host
   // commands; routing them to a WSL runtime would install where we never look.
   const skillInstallCommand = buildSkillCommandForRuntime(WORKBENCH_CLI_SKILL_INSTALL_COMMAND)
-  const terminalWorktreeId = `mobile-emulator-${worktreeId}-orca-cli-skill-terminal`
+  const terminalWorktreeId = `mobile-emulator-${worktreeId}-zkyq-cli-skill-terminal`
 
   return (
     <div className="py-2.5">
       <p className="text-sm font-medium">
         {translate(
           'auto.components.emulator.pane.MobileEmulatorAgentSetupGuideSteps.21f5687c07',
-          'Orca CLI skill'
+          'zkyq CLI skill'
         )}
       </p>
       <AgentSkillSetupPanel
@@ -36,20 +36,20 @@ export function MobileEmulatorAgentSetupGuideSteps({
         className="min-w-0"
         title={translate(
           'auto.components.emulator.pane.MobileEmulatorAgentSetupGuideSteps.21f5687c07',
-          'Orca CLI skill'
+          'zkyq CLI skill'
         )}
         description={translate(
           'auto.components.emulator.pane.MobileEmulatorAgentSetupGuideSteps.64fb057667',
-          'Teaches agents the orca emulator commands for this worktree.'
+          'Teaches agents the zkyq emulator commands for this worktree.'
         )}
         command={skillInstallCommand}
         terminalTitle={translate(
           'auto.components.emulator.pane.MobileEmulatorAgentSetupGuideSteps.5c59ea96ca',
-          'Mobile emulator Orca CLI skill setup'
+          'Mobile emulator zkyq CLI skill setup'
         )}
         terminalAriaLabel={translate(
           'auto.components.emulator.pane.MobileEmulatorAgentSetupGuideSteps.bff5341ac3',
-          'Mobile emulator Orca CLI skill install terminal'
+          'Mobile emulator zkyq CLI skill install terminal'
         )}
         terminalWorktreeId={terminalWorktreeId}
         terminalShellOverride={activeSkillRuntime.terminalShellOverride}
