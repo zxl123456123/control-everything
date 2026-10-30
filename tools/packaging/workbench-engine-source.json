@@ -327132,7 +327132,8 @@
     "src/main/skills/skill-update-retirement.test.ts",
     "src/shared/bundled-skill-renames.ts",
     "src/cli/handlers/skill-name-migration.test.ts",
-    "src/main/runtime/rpc/methods/skill-name-migration.test.ts"
+    "src/main/runtime/rpc/methods/skill-name-migration.test.ts",
+    "src/main/pty/terminal-program-identity.test.ts"
   ],
   "adapted_files": [
     {
@@ -331464,8 +331465,8 @@
     {
       "path": "src/main/daemon/pty-subprocess/spawn-environment.ts",
       "upstream_sha256": "a2132d872276824fe527d1a97077c5dfeee9fc18e2ddc0815e77010e115cbdb7",
-      "current_sha256": "27a1e72f3fcb5ea91c989eed3214f0347c9605facb8d3bcf23e62d2fa0ff9754",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+      "current_sha256": "87814d50e1d430ef4e1dbb1e29ab44143669f327f5078b27f4395dd7e0f1326a",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；本地与远端终端进程标识统一为 zkyq"
     },
     {
       "path": "src/main/daemon/pty-subprocess/spawn-preflight-health-probe.test.ts",
@@ -332462,6 +332463,12 @@
       "upstream_sha256": "8221a8e544fe8d7727555841106526ddaf7952621f38fd1cc3b71b77f0aa42dc",
       "current_sha256": "e53020571e3569b12864b363f67af5a4fd9191f70283b81a5f4f20f006b806ae",
       "reason": "账号设置的当前产品名称及语言目录统一"
+    },
+    {
+      "path": "src/main/providers/local-pty-spawn-environment.ts",
+      "upstream_sha256": "bf76ed09538492ebf83fd3b94d936837414bced629aa2a78d446f10e6cba7313",
+      "current_sha256": "8e480d208026760f722ff47f4f463e9c12f9120077064a9390a5e49ee0d983e2",
+      "reason": "本地与远端终端进程标识统一为 zkyq"
     }
   ],
   "reviewed_findings": [
