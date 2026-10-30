@@ -73,11 +73,11 @@ export function serveProfileRefusalMessage(
   verdict: Exclude<ServeProfileVerdict, { verdict: 'absent' }>
 ): string {
   const who = verdict.pid === null ? 'another process' : `pid ${verdict.pid}`
-  const lead = `[serve] Orca is already running for this userData profile as ${who}`
+  const lead = `[serve] Control Everything is already running for this userData profile as ${who}`
   if (verdict.verdict === 'live') {
     return verdict.evidence === 'rpc'
-      ? `${lead}; not starting a second process. Run \`orca status\` to inspect it, or stop it before serving again.`
-      : `${lead}: its socket accepts connections but it is not answering \`orca status\` yet; not starting a second process. Wait for it to finish starting, or stop it before serving again.`
+      ? `${lead}; not starting a second process. Run \`zkyq status\` to inspect it, or stop it before serving again.`
+      : `${lead}: its socket accepts connections but it is not answering \`zkyq status\` yet; not starting a second process. Wait for it to finish starting, or stop it before serving again.`
   }
   if (verdict.reason === 'access-denied') {
     return `${lead}: it refused this CLI's credentials, so it cannot be shown to be stopped; not starting a second process. Stop it, or run this command as the user that started it.`
@@ -146,7 +146,7 @@ export function preflightElectronServe(
       const fingerprint = options.fingerprint ?? serveEnvironmentFingerprint
       if (park && isServeAbortParkActive(park, fingerprint(), options.now ?? Date.now())) {
         const minutes = Math.max(1, Math.round(((options.now ?? Date.now()) - park.at) / 60_000))
-        const message = `[serve] Not starting: \`orca serve\` aborted at macOS startup in this environment ${minutes} min ago, and retrying here cannot help. ${park.diagnostic} Run it with --force to try anyway.`
+        const message = `[serve] Not starting: \`zkyq serve\` aborted at macOS startup in this environment ${minutes} min ago, and retrying here cannot help. ${park.diagnostic} Run it with --force to try anyway.`
         writeRefusal(args, refusalEnvelope('runtime_serve_parked', message, { at: park.at }))
         return SERVE_ABORT_PARK_EXIT_CODE
       }

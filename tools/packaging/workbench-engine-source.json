@@ -333287,6 +333287,30 @@
       "upstream_sha256": "84d99aa4b5a7d2a4db833a6802bc522a3006bea0fad988cf215340459408a321",
       "current_sha256": "6c3088920efbdcc0bf4693647db88087904ac79c1acad29f827c189f6f670739",
       "reason": "统一命令行连接与恢复提示的产品名称及可执行命令"
+    },
+    {
+      "path": "src/cli/runtime/serve-electron-preflight.test.ts",
+      "upstream_sha256": "676f7cb9366afa40bb652f729a8a724684b68b66ecb3fc701a2c1aebf2814546",
+      "current_sha256": "ba4a57e2ae992adde3a29f73dbe4a5a44529e1fb7e4376332453c0c0d356d54c",
+      "reason": "统一服务启动预检与异常退出的命令行恢复提示"
+    },
+    {
+      "path": "src/cli/runtime/serve-electron-preflight.ts",
+      "upstream_sha256": "a5107906e6aac43ff5173d5758f6e3f210d5da26c71e491b01fd93a08049af9e",
+      "current_sha256": "bf2a713c9f4a23e6daceca2c3b1b6e4fdbc4eafd2124be06e37dad3c26841304",
+      "reason": "统一服务启动预检与异常退出的命令行恢复提示"
+    },
+    {
+      "path": "src/cli/runtime/serve-signal-exit-diagnostic.test.ts",
+      "upstream_sha256": "84738e7cfa84b1382b45c460de563517f22a19f3c46c22c2797fc812a8e3501f",
+      "current_sha256": "283c43c1fe7c31242cbaf10ec03a89cb389da8df170a01a87755ae6b8c4e1d9d",
+      "reason": "统一服务启动预检与异常退出的命令行恢复提示"
+    },
+    {
+      "path": "src/cli/runtime/serve-signal-exit-diagnostic.ts",
+      "upstream_sha256": "c9d24150a9d2a01994e9f13513ea3601f190425aa63bc79e3058a31c6329e806",
+      "current_sha256": "f6665a02c40a464b11c6060925f9d55fd101b38db69a16d9fd4f619bb6b7b381",
+      "reason": "统一服务启动预检与异常退出的命令行恢复提示"
     }
   ],
   "reviewed_findings": [

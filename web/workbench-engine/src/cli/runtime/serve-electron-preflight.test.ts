@@ -75,8 +75,9 @@ describe('preflightElectronServe', () => {
       preflightElectronServe({}, userData, { platform: 'linux', deps: deps({ reachable: true }) })
     ).resolves.toBe(3)
     expect(String(stderr.mock.calls[0]?.[0])).toContain(
-      'Orca is already running for this userData profile as pid 4242; not starting a second process.'
+      'Control Everything is already running for this userData profile as pid 4242; not starting a second process.'
     )
+    expect(String(stderr.mock.calls[0]?.[0])).toContain('zkyq status')
   })
 
   it('prints the refusal as a JSON envelope for --json callers', async () => {
@@ -102,6 +103,7 @@ describe('preflightElectronServe', () => {
       preflightElectronServe({}, userData, { platform: 'linux', deps: deps({ probe: 'unproven' }) })
     ).resolves.toBe(3)
     expect(String(stderr.mock.calls[1]?.[0])).toContain('cannot be shown to be free')
+    expect(String(stderr.mock.calls[0]?.[0])).toContain('zkyq status')
   })
 
   it('treats a denied status check as unverifiable, not as stopped', async () => {
@@ -140,6 +142,7 @@ describe('preflightElectronServe', () => {
       })
       expect(result).toBe(78)
       expect(String(stderr.mock.calls[0]?.[0])).toContain('--force')
+      expect(String(stderr.mock.calls[0]?.[0])).toContain('`zkyq serve`')
     })
 
     it('lets a different environment, an expired park, or --force through', () => {
