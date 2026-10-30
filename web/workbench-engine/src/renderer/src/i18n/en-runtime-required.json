@@ -1724,7 +1724,7 @@
         },
         "agent-status-hooks-copy": {
           "7707c15abb": "Agent status hooks",
-          "a68a642835": "Shows working, waiting, and done states in Orca. Turn off to remove Orca-managed hooks and stop reinstalling them."
+          "a68a642835": "Shows working, waiting, and done states in Control Everything. Turn off to remove hooks managed by Control Everything and stop reinstalling them."
         },
         "agents": {
           "search": {

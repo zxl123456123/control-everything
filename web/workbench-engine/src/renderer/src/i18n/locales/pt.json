@@ -8231,7 +8231,7 @@
         },
         "agent-status-hooks-copy": {
           "7707c15abb": "Hooks de status do agente",
-          "a68a642835": "Mostra os estados trabalhando, esperando e concluído no Orca. Desative para remover os hooks gerenciados pelo Orca e parar de reinstalá-los."
+          "a68a642835": "Mostra os estados trabalhando, esperando e concluído no Control Everything. Desative para remover os hooks gerenciados pelo Control Everything e parar de reinstalá-los."
         },
         "agent-generated-tab-title-copy": {
           "19ad21615a": "Gerar títulos de aba automaticamente",
@@ -8339,8 +8339,8 @@
           }
         },
         "agent-workspace-trust-copy": {
-          "title": "Confiar na pasta quando o Orca iniciar um agente",
-          "description": "Os agentes iniciados pelo Orca pulam a pergunta “Você confia nesta pasta?”, para que os hooks e configurações de agentes do projeto sejam executados imediatamente. Sem isso, cada agente pergunta na primeira vez que é executado em uma pasta. Os agentes executados sem sua supervisão, como workers de orquestração, automações e agentes iniciados pelo celular, esperarão nessa pergunta até você respondê-la no terminal deles. As pastas já confiáveis continuam confiáveis."
+          "title": "Confiar na pasta quando o Control Everything iniciar um agente",
+          "description": "Os agentes iniciados pelo Control Everything pulam a pergunta “Você confia nesta pasta?”, para que os hooks e configurações de agentes do projeto sejam executados imediatamente. Sem isso, cada agente pergunta na primeira vez que é executado em uma pasta. Os agentes executados sem sua supervisão, como workers de orquestração, automações e agentes iniciados pelo celular, esperarão nessa pergunta até você respondê-la no terminal deles. As pastas já confiáveis continuam confiáveis."
         },
         "MachineNameField": {
           "label": "Nome da máquina",
