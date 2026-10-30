@@ -327766,8 +327766,8 @@
     {
       "path": "src/renderer/src/components/sidebar/LinearAgentSkillSetupPrompt.tsx",
       "upstream_sha256": "411b91400e565e5979d3aa35310c7f0f3346028a946e82d938f9128d0398aca2",
-      "current_sha256": "d3d837207a79b198224b14219b4b759d5daa8076ee71f12fd12499fd01974501",
-      "reason": "P4: isolate immutable remote browser context and scoped storage; preserve local behavior. P4: immutable remote context and explicit scoped storage; local behavior retained.；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
+      "current_sha256": "3bb64bf52850a5a813e5674c2e5916c9ca3b4fe896b2cfd7249e21c640b9738b",
+      "reason": "P4: isolate immutable remote browser context and scoped storage; preserve local behavior. P4: immutable remote context and explicit scoped storage; local behavior retained.；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物；Linear 全局技能安装入口接入安全名称迁移"
     },
     {
       "path": "src/renderer/src/components/sidebar/SeveredTerminalDaemonBanner.tsx",
@@ -331930,8 +331930,8 @@
     {
       "path": "src/renderer/src/components/sidebar/LinearAgentSkillSetupPrompt.test.tsx",
       "upstream_sha256": "e22d442e3eac0e8e1e3e3d39cfa02da94672cea8c4e0f7485eb6ea0f56b64080",
-      "current_sha256": "2fe112bc00dd436f05992316203a06d0d162a382becf8a657dc532b8710e4856",
-      "reason": "技能安装更新使用本平台提交和子目录，保留上游来源记录与历史安装识别，同步实际构建和说明；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
+      "current_sha256": "7272a684554f4ecf77c49f38fba150c3f49c2fb02672acf8fa174e631bd71a5e",
+      "reason": "技能安装更新使用本平台提交和子目录，保留上游来源记录与历史安装识别，同步实际构建和说明；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物；Linear 全局技能安装入口接入安全名称迁移"
     },
     {
       "path": "src/renderer/src/components/skills/SkillFreshnessNudge.tsx",
@@ -332272,14 +332272,14 @@
     {
       "path": "src/renderer/src/components/settings/LinearAgentSkillPane.test.tsx",
       "upstream_sha256": "a35a9d790ad62e13f27c6b15a08022941dcee02702957b22244ec9fe140c8697",
-      "current_sha256": "3ccd6a67270b9419dc4fef912cd07df68cbc0f153ed0d357a783745c45dc26e1",
-      "reason": "六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
+      "current_sha256": "ef238151e091b902d76289467873991fe4224d48e1b938566ddfdc342c743546",
+      "reason": "六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物；Linear 全局技能安装入口接入安全名称迁移"
     },
     {
       "path": "src/renderer/src/components/settings/LinearAgentSkillPane.tsx",
       "upstream_sha256": "5e594cdeafd4e097fd2a5727fb84f7c365e31a00bcb996dbddf3f92a393cdbca",
-      "current_sha256": "c04388b67c5ebc5f2c54436b227a8ebb0a250b9ddf022c081ad3316830b6d828",
-      "reason": "六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
+      "current_sha256": "eeb64d195c8766683012ce3aaf74e96ffba01619d7d44a0ec864e778b6377a75",
+      "reason": "六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物；Linear 全局技能安装入口接入安全名称迁移"
     },
     {
       "path": "src/renderer/src/components/settings/MobileEmulatorAgentControlRow.test.tsx",
@@ -332296,14 +332296,14 @@
     {
       "path": "src/renderer/src/components/settings/TaskSourceLinearSetup.test.tsx",
       "upstream_sha256": "7b386072311e5fb7e362ecdf94bde64b775ea64f3f7f88bbca4c38ae5af99f23",
-      "current_sha256": "5f727c8b58a6f911e8964e3cd7e7216832a56db777f36a3c98b86106601e64ed",
-      "reason": "六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
+      "current_sha256": "fc6f6cfea43c66b248639d8eafefd12e7959b453e80562799e3a3f5712e471ca",
+      "reason": "六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物；Linear 全局技能安装入口接入安全名称迁移"
     },
     {
       "path": "src/renderer/src/components/settings/TaskSourceLinearSetup.tsx",
       "upstream_sha256": "ebf753e61b7e5d9370a49aac11e9dad74c748c190c62a33e74fc8107c6aa08dc",
-      "current_sha256": "3ab47ef0b6db26ed24a8eb4037d0818c7b997eb47183fc0a24f6e30297dfee8a",
-      "reason": "六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
+      "current_sha256": "1b0d92a5fe37efa5dcdd51376929bbc3bdf4615f2a504b975eb445bc2fbd34d6",
+      "reason": "六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物；Linear 全局技能安装入口接入安全名称迁移"
     },
     {
       "path": "src/renderer/src/components/settings/browser-use-search.ts",
@@ -332332,8 +332332,8 @@
     {
       "path": "src/renderer/src/components/settings/use-linear-agent-skill-setup.ts",
       "upstream_sha256": "a43496afc0d012a5c4b08cf884f184aba733bfc57973d715998805d2cf02259e",
-      "current_sha256": "997254699f9aff46d9d43b8d787d1c05e2b8962744557d9da5a4d4459958a363",
-      "reason": "六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
+      "current_sha256": "5f913f04e21a2184f719aed73fb99ed7d9ccdba271b93ddd21de41ffed248946",
+      "reason": "六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物；Linear 全局技能安装入口接入安全名称迁移"
     },
     {
       "path": "src/renderer/src/components/settings/use-local-cli-skill-freshness-name.ts",
@@ -332922,6 +332922,12 @@
       "upstream_sha256": "f887a4100d5ff3f4e38b2bdc74abc771d8b40019765ab9ebf43e7b06a8996d87",
       "current_sha256": "2b5f0aa349d22a1b6760cb220a655a21e109ec6bd4bd2a4ce744c84cff03a592",
       "reason": "CLI 注册状态和错误提示统一当前命令名称"
+    },
+    {
+      "path": "src/renderer/src/components/sidebar/LinearAgentSkillSetupDialog.tsx",
+      "upstream_sha256": "0d4ad469f8db1b916b6cde85281a3c88258fd8c6e4c01085987b8b80282d5f64",
+      "current_sha256": "c5e9bdf02a9a34bb9ced95455e10d293861ad36381be658f2bee67957d34cfb7",
+      "reason": "Linear 全局技能安装入口接入安全名称迁移"
     }
   ],
   "reviewed_findings": [

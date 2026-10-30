@@ -90,6 +90,7 @@ export function LinearAgentSkillPane(): React.JSX.Element {
       installDisabled={skillSetup.installDisabled}
       onRecheck={skillSetup.refreshSkill}
       freshnessSkillName={skillSetup.freshnessSkillName}
+      migrationSkillName={skillSetup.migrationSkillName}
     />
   )
 

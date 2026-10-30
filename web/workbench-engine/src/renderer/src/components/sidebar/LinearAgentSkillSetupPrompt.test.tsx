@@ -354,6 +354,7 @@ describe('LinearAgentSkillSetupPrompt', () => {
     expect(mocks.panelProps.at(-1)).toEqual(
       expect.objectContaining({
         installedCommand: `npx skills@${SKILLS_CLI_VERSION} add https://github.com/zxl123456123/control-everything/tree/${ORCA_BUILD_COMMIT}/web/workbench-engine/skills --skill zkyq-linear --global`,
+        migrationSkillName: 'zkyq-linear',
         terminalShellOverride: 'powershell.exe',
         terminalRuntime: expect.objectContaining({ runtime: 'wsl', wslDistro: 'Fedora' })
       })

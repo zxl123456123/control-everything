@@ -127,6 +127,9 @@ describe('TaskSourceLinearSetup', () => {
     expect(markup).toContain('data-testid="skill-panel"')
     expect(markup).toContain('Not installed')
     expect(markup).not.toContain('Connect Linear first')
+    expect(mocks.panelProps.at(-1)).toEqual(
+      expect.objectContaining({ migrationSkillName: 'zkyq-linear' })
+    )
   })
 
   it('routes connected credential management to Integrations', () => {

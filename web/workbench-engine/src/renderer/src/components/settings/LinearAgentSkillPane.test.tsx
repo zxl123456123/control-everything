@@ -241,7 +241,8 @@ describe('LinearAgentSkillPane', () => {
       expect.objectContaining({
         command: WORKBENCH_LINEAR_SKILL_INSTALL_COMMAND,
         installedCommand: UPDATE_COMMAND,
-        freshnessSkillName: WORKBENCH_LINEAR_SKILL_NAME
+        freshnessSkillName: WORKBENCH_LINEAR_SKILL_NAME,
+        migrationSkillName: WORKBENCH_LINEAR_SKILL_NAME
       })
     )
   })
@@ -258,5 +259,14 @@ describe('LinearAgentSkillPane', () => {
     await renderPane()
 
     expect(mocks.panelProps.at(-1)?.freshnessSkillName).toBe('linear-tickets')
+    expect(mocks.panelProps.at(-1)?.migrationSkillName).toBeUndefined()
+  })
+
+  it('requests migration for the new install even if the prior update target differs', async () => {
+    mocks.skillInstalled = false
+    mocks.updateSkillName = 'linear-tickets'
+    await renderPane()
+
+    expect(mocks.panelProps.at(-1)?.migrationSkillName).toBe(WORKBENCH_LINEAR_SKILL_NAME)
   })
 })

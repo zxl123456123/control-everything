@@ -144,6 +144,7 @@ export function TaskSourceLinearSetup({
               installDisabled={skillSetup.installDisabled}
               onRecheck={skillSetup.refreshSkill}
               freshnessSkillName={skillSetup.freshnessSkillName}
+              migrationSkillName={skillSetup.migrationSkillName}
             />
           )}
         </TaskSourceStepRow>
