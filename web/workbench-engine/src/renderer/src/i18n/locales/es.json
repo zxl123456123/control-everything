@@ -7197,11 +7197,9 @@
         "CliSection": {
           "8671e406f0": "Cancelar",
           "a4aafe46e3": "Ruta de destino:",
-          "e8012c03a1": "Permite a los agents usar comandos de workspace, terminal y progreso de Orca.",
           "cliSkillTerminalTitle": "Configuración del skill CLI",
           "cliSkillTerminalAria": "Terminal de instalación del skill CLI",
           "6053cf736c": "Skill CLI",
-          "36a6f919ba": "Da a los agents workflows de workspace, terminal y progreso integrados con Orca.",
           "04873eea3e": "Agent skills",
           "7f2747f7dd": "no está visible en PATH para este shell.",
           "b0c310ab46": "Destino del launcher existente:",

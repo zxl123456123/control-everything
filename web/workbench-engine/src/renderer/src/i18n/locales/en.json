@@ -7529,9 +7529,7 @@
         "CliSection": {
           "8671e406f0": "Cancel",
           "a4aafe46e3": "Target path:",
-          "e8012c03a1": "Enables agents to use Orca workspace, terminal, and progress commands.",
           "6053cf736c": "CLI skill",
-          "36a6f919ba": "Give agents Orca-aware workspace, terminal, and progress workflows.",
           "04873eea3e": "Agent skills",
           "7f2747f7dd": "is not currently visible on PATH for this shell.",
           "b0c310ab46": "Existing launcher target:",

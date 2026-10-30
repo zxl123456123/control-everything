@@ -5311,9 +5311,7 @@
         "CliSection": {
           "8671e406f0": "Cancelar",
           "a4aafe46e3": "Caminho de destino:",
-          "e8012c03a1": "Permite que agentes usem comandos de espaço de trabalho, terminal e progresso do Orca.",
           "6053cf736c": "Skill de CLI",
-          "36a6f919ba": "Dê aos agentes fluxos de trabalho de espaço de trabalho, terminal e progresso com consciência do Orca.",
           "04873eea3e": "Skills de agente",
           "7f2747f7dd": "não está visível no PATH deste shell atualmente.",
           "b0c310ab46": "Destino do launcher existente:",

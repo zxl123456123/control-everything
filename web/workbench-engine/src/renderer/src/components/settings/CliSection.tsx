@@ -309,22 +309,13 @@ export function CliSection({
               <Label>
                 {translate('auto.components.settings.CliSection.04873eea3e', 'Agent skills')}
               </Label>
-              <p className="text-xs text-muted-foreground">
-                {translate(
-                  'auto.components.settings.CliSection.36a6f919ba',
-                  'Give agents Orca-aware workspace, terminal, and progress workflows.'
-                )}
-              </p>
             </div>
 
             <AgentSkillSetupPanel
               className="mt-3"
               variant="inline"
               title={translate('auto.components.settings.CliSection.6053cf736c', 'CLI skill')}
-              description={translate(
-                'auto.components.settings.CliSection.e8012c03a1',
-                'Enables agents to use Orca workspace, terminal, and progress commands.'
-              )}
+              description={null}
               command={cliSkillInstallCommand}
               terminalTitle="CLI skill setup"
               terminalAriaLabel="CLI skill install terminal"

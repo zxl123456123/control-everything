@@ -7310,9 +7310,7 @@
         "CliSection": {
           "8671e406f0": "Annuler",
           "a4aafe46e3": "Chemin cible :",
-          "e8012c03a1": "Permet aux agents d'utiliser les commandes espace de travail, terminal et progression d'Orca.",
           "6053cf736c": "Skill CLI",
-          "36a6f919ba": "Donne aux agents des workflows espace de travail, terminal et progression propres à Orca.",
           "04873eea3e": "Skills des agents",
           "7f2747f7dd": "n'est pas actuellement visible dans PATH pour ce shell.",
           "b0c310ab46": "Cible du lanceur existante :",

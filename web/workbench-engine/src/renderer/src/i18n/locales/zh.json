@@ -7226,11 +7226,9 @@
         "CliSection": {
           "8671e406f0": "取消",
           "a4aafe46e3": "目标路径：",
-          "e8012c03a1": "使智能体能够使用 Orca 工作区、终端和进度命令。",
           "cliSkillTerminalTitle": "CLI 技能设置",
           "cliSkillTerminalAria": "CLI 技能安装终端",
           "6053cf736c": "CLI技能",
-          "36a6f919ba": "为智能体提供 Orca 感知的工作区、终端和进度工作流程。",
           "04873eea3e": "智能体技能",
           "7f2747f7dd": "当前在此 shell 的 PATH 上不可见。",
           "b0c310ab46": "现有启动器目标：",
