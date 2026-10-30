@@ -119,18 +119,18 @@ provisioning, but still emit the `connection.type:"ssh"` block above instead of 
 ## Provisioned root
 
 For an explicitly requested one-VM-per-workspace checkout, the create script reads
-`ORCA_RECIPE_RESULT_SCHEMA_VERSION`, `ORCA_REPO_URL`, `ORCA_REPO_REF`, `ORCA_REPO_REF_HEAD`, and
-`ORCA_REPO_BRANCH`. Use `ORCA_REPO_REF` to fetch the selected source, but create `ORCA_REPO_BRANCH`
-at the exact `ORCA_REPO_REF_HEAD` commit, because resolving the symbolic ref again can race with an
-upstream update. `ORCA_REPO_URL` and `ORCA_REPO_REF` are a matched fetch pair, and the URL is the
+`ZKYQ_RECIPE_RESULT_SCHEMA_VERSION`, `ZKYQ_REPO_URL`, `ZKYQ_REPO_REF`, `ZKYQ_REPO_REF_HEAD`, and
+`ZKYQ_REPO_BRANCH`. Use `ZKYQ_REPO_REF` to fetch the selected source, but create `ZKYQ_REPO_BRANCH`
+at the exact `ZKYQ_REPO_REF_HEAD` commit, because resolving the symbolic ref again can race with an
+upstream update. `ZKYQ_REPO_URL` and `ZKYQ_REPO_REF` are a matched fetch pair, and the URL is the
 remote Control Everything resolved the base ref against, which is not necessarily named `origin` on the desktop.
 Fetch from the URL the pair supplies:
 
 ```bash
-[ -n "${ORCA_REPO_REF_HEAD:-}" ] || { echo "missing pinned source commit" >&2; exit 1; }
-git fetch "$ORCA_REPO_URL" "$ORCA_REPO_REF"
-git cat-file -e "${ORCA_REPO_REF_HEAD}^{commit}"
-git checkout -B "$ORCA_REPO_BRANCH" "$ORCA_REPO_REF_HEAD"
+[ -n "${ZKYQ_REPO_REF_HEAD:-}" ] || { echo "missing pinned source commit" >&2; exit 1; }
+git fetch "$ZKYQ_REPO_URL" "$ZKYQ_REPO_REF"
+git cat-file -e "${ZKYQ_REPO_REF_HEAD}^{commit}"
+git checkout -B "$ZKYQ_REPO_BRANCH" "$ZKYQ_REPO_REF_HEAD"
 ```
 
 Return that primary checkout at `projectRoot` and emit schema version 2:

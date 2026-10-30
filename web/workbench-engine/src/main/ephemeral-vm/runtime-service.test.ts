@@ -1,7 +1,7 @@
 import { existsSync, mkdtempSync, readFileSync, rmSync, truncateSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { encodePairingOffer, PAIRING_OFFER_VERSION } from '../../shared/pairing'
 import {
   getEphemeralVmRuntimeStorePath,
@@ -48,19 +48,6 @@ function nodeCommand(scriptPath: string): string {
 }
 
 describe('ephemeral VM runtime service', () => {
-  const originalPlatform = Object.getOwnPropertyDescriptor(process, 'platform')
-
-  beforeEach(() => {
-    // Why: secure-file has dedicated ACL coverage; these tests focus on lifecycle semantics.
-    Object.defineProperty(process, 'platform', { configurable: true, value: 'linux' })
-  })
-
-  afterEach(() => {
-    if (originalPlatform) {
-      Object.defineProperty(process, 'platform', originalPlatform)
-    }
-  })
-
   it('persists a successful recipe-created runtime and cleans it up', async () => {
     const userDataPath = makeDir('orca-ephemeral-vm-service-user-data-')
     const repoPath = makeDir('orca-ephemeral-vm-service-repo-')
@@ -115,6 +102,7 @@ describe('ephemeral VM runtime service', () => {
     if (!provisioned.ok) {
       throw new Error(provisioned.start.error)
     }
+    expect(provisioned.runtime.id).toMatch(/^zkyq-/)
     expect(provisioned.runtime).toMatchObject({
       id: provisioned.start.context.instanceId,
       recipeId: 'cloud-sandbox',
@@ -158,6 +146,50 @@ describe('ephemeral VM runtime service', () => {
       runtime: { status: 'cleaned' }
     })
     expect(readFileSync(join(repoPath, 'cleanup-count.txt'), 'utf8')).toBe('x')
+  })
+
+  it('cleans an existing resource using its original identifier', async () => {
+    const userDataPath = makeDir('vm-service-user-data-')
+    const repoPath = makeDir('vm-service-repo-')
+    const cleanupPath = join(repoPath, 'cleanup.js')
+    const resultPath = join(repoPath, 'cleanup-result.json')
+    writeFileSync(
+      cleanupPath,
+      `let input = ''; process.stdin.on('data', chunk => input += chunk); process.stdin.on('end', () => require('fs').writeFileSync(${JSON.stringify(resultPath)}, JSON.stringify({payload: JSON.parse(input), oldId: process.env.ORCA_VM_INSTANCE_ID, newId: process.env.ZKYQ_VM_INSTANCE_ID})))`
+    )
+    const recipe: OrcaVmRecipe = {
+      id: 'cloud-sandbox',
+      name: 'Cloud Sandbox',
+      create: 'unused',
+      destroy: nodeCommand(cleanupPath)
+    }
+    const id = 'orca-existing-resource'
+    upsertEphemeralVmRuntime(userDataPath, {
+      id,
+      recipeId: recipe.id,
+      recipe,
+      status: 'running',
+      cleanupStatus: 'not_started',
+      createdAt: 1_000,
+      updatedAt: 1_000,
+      recipeResult: {
+        schemaVersion: 1,
+        connection: {
+          type: 'ssh',
+          projectRoot: '/workspace/repo',
+          target: { label: 'VM', host: 'host', port: 22, username: 'worker' }
+        },
+        userData: { resourceId: id }
+      }
+    })
+    await expect(
+      cleanupEphemeralVmRuntime({ userDataPath, repoPath, recipe, runtimeId: id })
+    ).resolves.toMatchObject({ ok: true, runtime: { id, status: 'cleaned' } })
+    expect(JSON.parse(readFileSync(resultPath, 'utf8'))).toMatchObject({
+      payload: { instanceId: id, recipeResult: { userData: { resourceId: id } } },
+      oldId: id,
+      newId: id
+    })
   })
 
   it('stops a hung destroy and starts a fresh retry', async () => {
@@ -461,8 +493,10 @@ describe('ephemeral VM runtime service', () => {
     })
 
     expect(provisioned.ok).toBe(false)
+    expect(provisioned.start.context.instanceId).toMatch(/^zkyq-/)
     expect(listEphemeralVmRuntimes(userDataPath)).toEqual([
       expect.objectContaining({
+        id: provisioned.start.context.instanceId,
         recipe,
         repoId: 'repo-1',
         workspaceName: 'Fix Login Race',

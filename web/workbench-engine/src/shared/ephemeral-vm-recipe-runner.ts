@@ -309,7 +309,7 @@ function buildRecipeContext(
 ): EphemeralVmRecipeContext {
   return {
     ...context,
-    instanceId: context.instanceId ?? `orca-${randomUUID()}`,
+    instanceId: context.instanceId ?? `zkyq-${randomUUID()}`,
     recipeId: recipe.id,
     repoPath
   }

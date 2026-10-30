@@ -81,7 +81,7 @@ exit 0`)
         const output = JSON.parse(result.stdout)
         expect(output.userData).toMatchObject({
           provider: 'vercel-sandbox',
-          resourceId: 'orca-fixture-123',
+          resourceId: 'zkyq-fixture-123',
           snapshotId: 'snap_fixture'
         })
         expect(result.calls.map((args) => args.slice(0, 2))).toEqual([
@@ -112,13 +112,13 @@ exit 0`)
         ['sandbox', 'create'],
         ['sandbox', 'remove']
       ])
-      expect(result.calls[1]).toEqual(['sandbox', 'remove', 'orca-fixture-123'])
+      expect(result.calls[1]).toEqual(['sandbox', 'remove', 'zkyq-fixture-123'])
       expect(result.stderr).not.toContain('unbound variable')
     })
 
     it('disables Git prompts when the Vercel token is absent', async () => {
       const prefix = vercel.match(
-        /-- bash -lc 'set -euo pipefail; cd "\$ORCA_PROJECT_ROOT"; \\\n([\s\S]*?)    git fetch/u
+        /-- bash -lc 'set -euo pipefail; cd "\$ZKYQ_PROJECT_ROOT"; \\\n([\s\S]*?)    git fetch/u
       )?.[1]
       expect(prefix).toBeDefined()
       const result = await runShell(
@@ -189,8 +189,8 @@ ${script}`,
         VERCEL_PROJECT: '',
         VERCEL_CREATE_EXIT: '',
         GH_TOKEN: 'fixture-token',
-        ORCA_RECIPE_ID: 'fixture',
-        ORCA_VM_INSTANCE_ID: '123',
+        ZKYQ_RECIPE_ID: 'fixture',
+        ZKYQ_VM_INSTANCE_ID: '123',
         ...overrides
       }
     )

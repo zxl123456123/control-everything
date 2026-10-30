@@ -123,7 +123,7 @@ function checkCommandPath(
       id,
       status: 'warn',
       message: `Command is not a repo-relative path: ${executable}`,
-      remediation: 'Use a repo-relative script such as ./scripts/orca-vm/start.sh.'
+      remediation: 'Use a repo-relative script such as ./scripts/zkyq-vm/start.sh.'
     }
   }
   const scriptPath = join(repoPath, normalize(executable))

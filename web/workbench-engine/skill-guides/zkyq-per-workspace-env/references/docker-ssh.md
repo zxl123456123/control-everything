@@ -22,15 +22,18 @@ authenticated image per-workspace `create` boots from. The emitted result is the
   finished.
 - Do not bind-mount or copy the host's full agent home into the image. Let each container keep
   writable agent state; only the committed auth image carries reusable authenticated state.
-- When committing from an interactive shell, force the runtime entrypoint back to `sshd`:
-  `docker commit --change='ENTRYPOINT ["/usr/local/bin/orca-docker-ssh-entrypoint"]' …`.
+- When committing from an interactive shell, force the runtime entrypoint back to the image's
+  actual `sshd` entrypoint, for example:
+  `docker commit --change='ENTRYPOINT ["/usr/local/bin/zkyq-docker-ssh-entrypoint"]' …`.
+- For an existing image, use its actual entrypoint path and SSH-key environment variable; do not
+  rename either without updating the image itself.
 - `destroy` reads `recipeResult.userData.resourceId` and runs `docker rm -f "$resource_id"`.
 
 ## Validation before wiring or live use
 
 ```bash
 docker image inspect "$auth_image" --format '{{json .Config.Entrypoint}}'
-docker run -d --name "$name" -p 127.0.0.1::22 -e "ORCA_SSH_PUBLIC_KEY=$pubkey" "$auth_image"
+docker run -d --name "$name" -p 127.0.0.1::22 -e "ZKYQ_SSH_PUBLIC_KEY=$pubkey" "$auth_image"
 docker ps -a --filter "name=$name"
 docker logs "$name"
 ssh -i "$key" -p "$port" -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes user@127.0.0.1 'codex --version'

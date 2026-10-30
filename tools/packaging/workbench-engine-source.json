@@ -330342,14 +330342,14 @@
     {
       "path": "skill-guides/zkyq-per-workspace-env.md",
       "upstream_sha256": "dda610fc95c59c723108338425990d192af1d3d6c6dea30230d1f07b37b56742",
-      "current_sha256": "6103c8c7c112b34aed143689b7f45d3a63f10139bf184e034036ad40d5a68d73",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物；项目配置统一新文件名，保留旧文件迁移与信任行为"
+      "current_sha256": "7237609225abedf241a65b561e3c96f921de6760e75a41b05afff12f7d341e53",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物；项目配置统一新文件名，保留旧文件迁移与信任行为；新环境配方与实例使用掌控一切身份"
     },
     {
       "path": "skill-guides/zkyq-per-workspace-env/references/provider-vercel.md",
       "upstream_sha256": "7f26dcd14cb4877afb52a19592409d3c7a3647da9739adcfbb9e0bf4737faf61",
-      "current_sha256": "235ba0af0d524315ae1831bda6d53a6cec36ac17742f29f6a6cbb58ea7e42751",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
+      "current_sha256": "5bfff94b7079c9496d099ff98d46262af94aaad235dbf9997bab68f23eccdd44",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物；新环境配方与实例使用掌控一切身份"
     },
     {
       "path": "skill-stubs/_shared/cli-resolution.md",
@@ -330420,8 +330420,8 @@
     {
       "path": "src/cli/bundled-skill-guides.ts",
       "upstream_sha256": "d939b2344aec6921d99a7994596db6e7e5b45c36f489e3c8e55fe40160b5b7d6",
-      "current_sha256": "029e0a14b66438034872f08ee8c5778528859de1321143079b2e6ad393f762b1",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物；项目配置统一新文件名，保留旧文件迁移与信任行为"
+      "current_sha256": "a1c62e598febc17b04698f172e5831da4e6b9736493bb93aced5b6b92f301124",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物；项目配置统一新文件名，保留旧文件迁移与信任行为；新环境配方与实例使用掌控一切身份"
     },
     {
       "path": "src/cli/handlers/orchestration-worker-cli.test.ts",
@@ -332040,14 +332040,14 @@
     {
       "path": "skill-guides/zkyq-per-workspace-env/references/ssh-host.md",
       "upstream_sha256": "03340c3f0267fa47389d303f8de01c9f4e3ae3025f7c63382a06e62680880e1f",
-      "current_sha256": "1f89333d2fd362e8546adf26c55923eb46c884bbfc5ffc8a349fdb711e6bdc11",
-      "reason": "技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
+      "current_sha256": "b60079ff475932ad8f5ce87652253c32d03eddcc3450df9488b8353fe6643e1c",
+      "reason": "技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物；新环境配方与实例使用掌控一切身份"
     },
     {
       "path": "skill-guides/zkyq-per-workspace-env/references/windows-scripts.md",
       "upstream_sha256": "548bdca26af67c23a51070da633db12be41cb8da1ecdf0484f8d4f94fb290382",
-      "current_sha256": "26453c8e44c87b8327db42fae39f3ba128cfc732b37d372f7a6f73bafe825483",
-      "reason": "技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物；项目配置统一新文件名，保留旧文件迁移与信任行为"
+      "current_sha256": "bdc11094ecc7acc64782753cc2c359e3e3b24a908f3291e848be6f69bf9da70a",
+      "reason": "技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物；项目配置统一新文件名，保留旧文件迁移与信任行为；新环境配方与实例使用掌控一切身份"
     },
     {
       "path": "skill-guides/orchestration.md",
@@ -332166,8 +332166,8 @@
     {
       "path": "config/scripts/skill-recipe-shell.test.mjs",
       "upstream_sha256": "9a7d759173b897fc0000f09b2ed046a5fe91c57f1aab2cd06eb14d68ba2a4e59",
-      "current_sha256": "e4396ec838d73b4c020fe420bc0566cc80697c7f6437c690ee3ff628a255901e",
-      "reason": "六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
+      "current_sha256": "1401b103a566de04f6c01706af1e62d8757680aefed87cad8dc505876286d2fe",
+      "reason": "六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物；新环境配方与实例使用掌控一切身份"
     },
     {
       "path": "config/scripts/verify-skills-cli-runtime.cjs",
@@ -333186,8 +333186,8 @@
     {
       "path": "src/shared/ephemeral-vm-recipe-doctor.ts",
       "upstream_sha256": "51befcc6d70d12ed663a36ef674d4c8646881e71ce1373151c4bb3cdfaea8dc2",
-      "current_sha256": "1044c451229f3335dbe43af524a42b949ed476215a8c7de439c78d7da9edc198",
-      "reason": "项目配置统一新文件名，保留旧文件迁移与信任行为"
+      "current_sha256": "5241486c83b82c211af1dc855b761e70675c12728a287b5c7b45595e0851e6dc",
+      "reason": "项目配置统一新文件名，保留旧文件迁移与信任行为；新环境配方与实例使用掌控一切身份"
     },
     {
       "path": "src/cli/handlers/repo.ts",
@@ -333422,6 +333422,48 @@
       "upstream_sha256": "3eb121c5cd4d90029aefce479c9b50eeb8b133fe5834a0c10ef5cb03f92e6fea",
       "current_sha256": "844fee2de03213404d06688fd7a63b1708be92c1eadf3d339260e9a798adfb69",
       "reason": "在新旧发现记录并存时安全识别当前运行时"
+    },
+    {
+      "path": "skill-guides/zkyq-per-workspace-env/references/docker-ssh.md",
+      "upstream_sha256": "0a7403198af7fa0c2102bea7a7e3af9a522f644a757fb128055b19b39b4608b3",
+      "current_sha256": "905f22783859cfe154ddbc1be2d9c9100015b443e0854fcb0f5250e3d4f44105",
+      "reason": "新环境配方与实例使用掌控一切身份"
+    },
+    {
+      "path": "src/main/ephemeral-vm/recipe-runner.test.ts",
+      "upstream_sha256": "d6448556f74614ad3142ddcd4ba83cab3e9c429f600f97ef53fe2a29404c6acc",
+      "current_sha256": "372ab0ad39bc72da8553ad8dae97c27d59eb5366430ddf05b2895ffd1dc4be87",
+      "reason": "新环境配方与实例使用掌控一切身份"
+    },
+    {
+      "path": "src/main/ephemeral-vm/runtime-provisioning-persistence.ts",
+      "upstream_sha256": "cc01bfc5582bb29a4cac2c03ea6bb8cc4cbb4367b2a2b72a1874b160578ac94f",
+      "current_sha256": "47bc2b2ced414e35ac9bb3d13c09156659a89d33b508e2d2aecdd40fc0988643",
+      "reason": "新环境配方与实例使用掌控一切身份"
+    },
+    {
+      "path": "src/main/ephemeral-vm/runtime-service.test.ts",
+      "upstream_sha256": "f00463bbbdaff7373d44cdf7a9b16f042e09656b0871e338dd7aa7839572466a",
+      "current_sha256": "c5293214fc8e10792b9efe3bcdc3caac2c74f54d173552fdb344bfa4de4e25e1",
+      "reason": "新环境配方与实例使用掌控一切身份"
+    },
+    {
+      "path": "src/shared/ephemeral-vm-recipe-process.test.ts",
+      "upstream_sha256": "70da59d6f1ff028b3a5b0d23141c3f38077932e178328f83c9fb1bf243db4282",
+      "current_sha256": "b0f257a44ece9ef661835c6a51a32fc0d33f7b0c94f5cbd040c56122e620c273",
+      "reason": "新环境配方与实例使用掌控一切身份"
+    },
+    {
+      "path": "src/shared/ephemeral-vm-recipe-process.ts",
+      "upstream_sha256": "ed1cd1e0970ffef6ee3fe4a2b974a017953cbc10d02dbe394190a89b4bc3008a",
+      "current_sha256": "9fb3f8180cc441a805ae46259983b97eed5d1d899f21956309e4930f346cfaa3",
+      "reason": "新环境配方与实例使用掌控一切身份"
+    },
+    {
+      "path": "src/shared/ephemeral-vm-recipe-runner.ts",
+      "upstream_sha256": "cd259228b6561a7fc326dccf6c93e220c00199eda7d862948cb5c44a67e77ed1",
+      "current_sha256": "652289931173ffae519a324c79c406d204ac46f66ce0da06afc2875f55325d6c",
+      "reason": "新环境配方与实例使用掌控一切身份"
     }
   ],
   "reviewed_findings": [
@@ -333947,14 +333989,14 @@
       "path": "src/cli/bundled-skill-guides.ts",
       "rule": "personal-home-path",
       "line": 54,
-      "sha256": "029e0a14b66438034872f08ee8c5778528859de1321143079b2e6ad393f762b1",
+      "sha256": "a1c62e598febc17b04698f172e5831da4e6b9736493bb93aced5b6b92f301124",
       "reason": "公开的路径模板、跨平台解析说明或通用示例；未读取本机账号/目录，保留语义并限定具体行及文件hash。"
     },
     {
       "path": "src/cli/bundled-skill-guides.ts",
       "rule": "personal-home-path",
       "line": 57,
-      "sha256": "029e0a14b66438034872f08ee8c5778528859de1321143079b2e6ad393f762b1",
+      "sha256": "a1c62e598febc17b04698f172e5831da4e6b9736493bb93aced5b6b92f301124",
       "reason": "公开的路径模板、跨平台解析说明或通用示例；未读取本机账号/目录，保留语义并限定具体行及文件hash。"
     },
     {

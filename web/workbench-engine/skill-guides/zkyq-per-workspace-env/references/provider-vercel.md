@@ -69,9 +69,9 @@ because a provider CLI may not propagate remote exit codes:
 
 ```bash
 verdict="$(vercel sandbox exec "$auth" ${vercel_args[@]+"${vercel_args[@]}"} --timeout 30s \
-  -- bash -lc 'if codex login status >/dev/null 2>&1; then echo ORCA_AGENT_LOGGED_IN; else echo ORCA_AGENT_LOGGED_OUT; fi')"
+  -- bash -lc 'if codex login status >/dev/null 2>&1; then echo ZKYQ_AGENT_LOGGED_IN; else echo ZKYQ_AGENT_LOGGED_OUT; fi')"
 case "$verdict" in
-  *ORCA_AGENT_LOGGED_IN*) ;;
+  *ZKYQ_AGENT_LOGGED_IN*) ;;
   *) echo "agent not logged in; not snapshotting" >&2; exit 1 ;;
 esac
 ```
@@ -104,12 +104,12 @@ set -euo pipefail
 vercel_args=(); [ -n "$scope" ] && vercel_args+=(--scope "$scope"); [ -n "$project" ] && vercel_args+=(--project "$project")
 [ -n "$snapshot_id" ] || { echo "snapshotId missing — build the base and auth snapshots first" >&2; exit 1; }
 gh_token="${GH_TOKEN:-${GITHUB_TOKEN:-$(command -v gh >/dev/null 2>&1 && gh auth token 2>/dev/null || true)}}"
-recipe_id="${ORCA_RECIPE_ID:-vercel-sandbox}"
+recipe_id="${ZKYQ_RECIPE_ID:-vercel-sandbox}"
 recipe_id="${recipe_id//./-}"  # Vercel names forbid dots.
-instance_id="${ORCA_VM_INSTANCE_ID:-$(date +%s)}"
+instance_id="${ZKYQ_VM_INSTANCE_ID:-$(date +%s)}"
 max_recipe_id_length=$((128 - ${#instance_id} - 6))  # Preserve the unique instance suffix.
-[ "$max_recipe_id_length" -gt 0 ] || { echo "ORCA_VM_INSTANCE_ID is too long for a Vercel sandbox name" >&2; exit 1; }
-name="orca-${recipe_id:0:max_recipe_id_length}-${instance_id}"
+[ "$max_recipe_id_length" -gt 0 ] || { echo "ZKYQ_VM_INSTANCE_ID is too long for a Vercel sandbox name" >&2; exit 1; }
+name="zkyq-${recipe_id:0:max_recipe_id_length}-${instance_id}"
 
 # Arm cleanup BEFORE create so a failing create can't leak a half-built paid sandbox.
 cleanup_on_error() { [ "$?" -ne 0 ] && vercel sandbox remove "$name" ${vercel_args[@]+"${vercel_args[@]}"} >/dev/null 2>&1 || true; }
@@ -125,32 +125,32 @@ pairing_ws="${public_url/https:\/\//wss://}"
 
 # 2. (remote) ensure the repo is at the right commit; rebuild only if the commit changed (cache marker)
 vercel sandbox exec "$name" ${vercel_args[@]+"${vercel_args[@]}"} --timeout 20m \
-  --env "GH_TOKEN=$gh_token" --env "ORCA_PROJECT_ROOT=$project_root" \
-  --env "ORCA_REPO_URL=$repo_url" --env "ORCA_REPO_REF=$repo_ref" \
-  -- bash -lc 'set -euo pipefail; cd "$ORCA_PROJECT_ROOT"; \
+  --env "GH_TOKEN=$gh_token" --env "ZKYQ_PROJECT_ROOT=$project_root" \
+  --env "ZKYQ_REPO_URL=$repo_url" --env "ZKYQ_REPO_REF=$repo_ref" \
+  -- bash -lc 'set -euo pipefail; cd "$ZKYQ_PROJECT_ROOT"; \
     export GIT_TERMINAL_PROMPT=0; \
     # Escaping is load-bearing here: re-test the fetch after any edit to the nested quoting.
     if [ -n "${GH_TOKEN:-}" ]; then \
       printf "%s\n" "#!/usr/bin/env bash" "case \"\$1\" in *Username*) echo x-access-token;; *Password*) echo \"\$GH_TOKEN\";; esac" > /tmp/askpass.sh; \
       chmod 700 /tmp/askpass.sh; export GIT_ASKPASS=/tmp/askpass.sh; fi; \
-    git fetch origin "$ORCA_REPO_REF"; \
-    git checkout -B "$ORCA_REPO_REF" FETCH_HEAD; \
+    git fetch origin "$ZKYQ_REPO_REF"; \
+    git checkout -B "$ZKYQ_REPO_REF" FETCH_HEAD; \
     rm -f /tmp/askpass.sh; \
-    c="$(git rev-parse HEAD)"; [ -f .orca-built ] && [ "$(cat .orca-built)" = "$c" ] || { \
+    c="$(git rev-parse HEAD)"; [ -f .zkyq-built ] && [ "$(cat .zkyq-built)" = "$c" ] || { \
       pnpm install --prefer-offline && pnpm run build:cli && \
       node config/scripts/run-electron-vite-build.mjs --config config/electron-vite.vm-serve.config.ts && \
-      printf "%s" "$c" > .orca-built; }' >&2
+      printf "%s" "$c" > .zkyq-built; }' >&2
 
 # 3. (remote) start zkyq serve in the background, writing recipe JSON to a file; poll until it parses
 recipe_json="$(vercel sandbox exec "$name" ${vercel_args[@]+"${vercel_args[@]}"} --timeout 60s \
-  --env "ORCA_PORT=$port" --env "ORCA_PROJECT_ROOT=$project_root" --env "ORCA_PAIRING_ADDRESS=$pairing_ws" \
-  -- bash -lc 'set -euo pipefail; cd "$ORCA_PROJECT_ROOT"; rm -f /tmp/orca-recipe.json /tmp/orca-serve.log; \
-    nohup pnpm exec zkyq-dev serve --port "$ORCA_PORT" --project-root "$ORCA_PROJECT_ROOT" \
-      --pairing-address "$ORCA_PAIRING_ADDRESS" --recipe-json >/tmp/orca-recipe.json 2>/tmp/orca-serve.log </dev/null & \
+  --env "ZKYQ_PORT=$port" --env "ZKYQ_PROJECT_ROOT=$project_root" --env "ZKYQ_PAIRING_ADDRESS=$pairing_ws" \
+  -- bash -lc 'set -euo pipefail; cd "$ZKYQ_PROJECT_ROOT"; rm -f /tmp/zkyq-recipe.json /tmp/zkyq-serve.log; \
+    nohup pnpm exec zkyq-dev serve --port "$ZKYQ_PORT" --project-root "$ZKYQ_PROJECT_ROOT" \
+      --pairing-address "$ZKYQ_PAIRING_ADDRESS" --recipe-json >/tmp/zkyq-recipe.json 2>/tmp/zkyq-serve.log </dev/null & \
     pid=$!; for _ in $(seq 1 80); do \
-      node -e "JSON.parse(require(\"node:fs\").readFileSync(\"/tmp/orca-recipe.json\",\"utf8\"))" >/dev/null 2>&1 && { cat /tmp/orca-recipe.json; exit 0; }; \
-      kill -0 "$pid" 2>/dev/null || { cat /tmp/orca-serve.log >&2; exit 1; }; sleep 0.25; \
-    done; cat /tmp/orca-serve.log >&2; echo "serve recipe JSON timed out" >&2; exit 1')"
+      node -e "JSON.parse(require(\"node:fs\").readFileSync(\"/tmp/zkyq-recipe.json\",\"utf8\"))" >/dev/null 2>&1 && { cat /tmp/zkyq-recipe.json; exit 0; }; \
+      kill -0 "$pid" 2>/dev/null || { cat /tmp/zkyq-serve.log >&2; exit 1; }; sleep 0.25; \
+    done; cat /tmp/zkyq-serve.log >&2; echo "serve recipe JSON timed out" >&2; exit 1')"
 
 # 4. print serve's JSON enriched with userData (single object on stdout)
 node -e 'const p=JSON.parse(process.argv[1]); console.log(JSON.stringify({...p, schemaVersion:1,

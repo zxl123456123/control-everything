@@ -18,7 +18,7 @@ the remote machine's own binary.
 ## Autonomy envelope
 
 Without asking again you may read the repo and its `zkyq.yaml`, detect provider CLIs and their
-login state, scaffold and edit files under `scripts/orca-vm/`, and run `CLI vm recipe doctor`
+login state, scaffold and edit files under `scripts/zkyq-vm/`, and run `CLI vm recipe doctor`
 without `--provision`. Get an explicit OK before each paid step: the base snapshot, the auth
 snapshot, and `--provision`. One OK covers the whole `--provision` fix-and-rerun loop. Stop for
 the interactive agent login, which you cannot drive; the user runs it and tells you when it is
@@ -47,7 +47,7 @@ Drive these with the user. The order is fixed: the auth snapshot (step 6) boots 
 snapshot (step 5), and `create` boots from the authenticated snapshot they produce. A
 **[CHECKPOINT]** label marks a step the autonomy envelope stops for.
 
-1. **Inspect the repo** for an existing `environmentRecipes` entry, `scripts/orca-vm/`, a state
+1. **Inspect the repo** for an existing `environmentRecipes` entry, recipe scripts, a state
    file, or setup notes. If a working recipe already exists, go straight to the doctor loop below
    instead of rebuilding.
 2. **Interview the user up front.** Gather these choices and confirm them back before scaffolding
@@ -174,14 +174,14 @@ shares one pairing identity.
 
 ## 6. State file
 
-A repo-local JSON file such as `scripts/orca-vm/<provider>-state.json` threads non-secret values
+A repo-local JSON file such as `scripts/zkyq-vm/<provider>-state.json` threads non-secret values
 between phases. Each script resolves a value as env var, then state, then a built-in fallback, and
 merges its outputs back. The base snapshot writes `snapshotId`; the auth snapshot overwrites it with
 the authenticated image; per-workspace `create` boots from `snapshotId`.
 
 ```json
 {
-  "baseName": "orca-base",
+  "baseName": "zkyq-base",
   "snapshotId": "snap_authenticated_image_id",
   "authSourceSnapshotId": "snap_base_image_id",
   "scope": "<provider-scope>",
@@ -195,7 +195,7 @@ the authenticated image; per-workspace `create` boots from `snapshotId`.
 
 ## 7. Script shapes
 
-Scaffold under `scripts/orca-vm/`. These are shapes; fill in the provider's real commands. **Every
+Scaffold under `scripts/zkyq-vm/`. These are shapes; fill in the provider's real commands. **Every
 script reserves stdout for its final JSON object and sends progress and errors to stderr.** A stray
 `echo` on stdout corrupts the result. Give each script a `json_value <key>` and `env_value <NAME>`
 reader (env, then state, then fallback).
@@ -246,7 +246,7 @@ set -euo pipefail
 set -euo pipefail
 # read authenticated snapshotId/scope/project/port/repo*/project_root (env→state→fallback)
 # fail clearly if snapshotId is missing (point back to the snapshot phases)
-# name = orca-${ORCA_RECIPE_ID}-${ORCA_VM_INSTANCE_ID} (sanitized, length-capped)
+# name = zkyq-${ZKYQ_RECIPE_ID}-${ZKYQ_VM_INSTANCE_ID} (sanitized, length-capped)
 # 1. boot from snapshotId with a published port; capture the public URL → pairing address
 #    (an externally reachable wss:// URL); trap: remove the environment on error
 # 2. remote exec: ensure repo at desired commit; rebuild only if commit changed (cache marker)
@@ -281,10 +281,10 @@ exists. Review and rename the old tracked file with the project team; if both fi
 environmentRecipes:
   - id: cloud-sandbox
     name: Cloud Sandbox
-    create: ./scripts/orca-vm/cloud-sandbox-create.sh
-    suspend: ./scripts/orca-vm/cloud-sandbox-suspend.sh
-    resume: ./scripts/orca-vm/cloud-sandbox-resume.sh
-    destroy: ./scripts/orca-vm/cloud-sandbox-destroy.sh
+    create: ./scripts/zkyq-vm/cloud-sandbox-create.sh
+    suspend: ./scripts/zkyq-vm/cloud-sandbox-suspend.sh
+    resume: ./scripts/zkyq-vm/cloud-sandbox-resume.sh
+    destroy: ./scripts/zkyq-vm/cloud-sandbox-destroy.sh
 ```
 
 `create` is required, runs locally from the repo root, and prints exactly one JSON object on stdout.
@@ -297,7 +297,7 @@ The base result, which is what Control Everything-server mode prints:
 ```json
 {
   "schemaVersion": 1,
-  "pairingCode": "orca-pairing-code-or-url",
+  "pairingCode": "pairing-code-or-url",
   "projectRoot": "/absolute/path/to/repo/on/remote",
   "userData": { "provider": "example", "resourceId": "provider-resource-id" }
 }
@@ -311,7 +311,7 @@ Three named deltas change that shape:
 - **SSH mode** replaces `pairingCode` and `projectRoot` with a `connection` block whose `type` is
   `"ssh"`, and does not run `zkyq serve`. The exact target shape is in `references/ssh-host.md`.
 - **Provisioned root** applies only to direct SSH and only when the user explicitly asked for it. Add
-  `checkoutMode: provisioned-root` to the recipe, require `ORCA_RECIPE_RESULT_SCHEMA_VERSION=2`, and
+  `checkoutMode: provisioned-root` to the recipe, require `ZKYQ_RECIPE_RESULT_SCHEMA_VERSION=2`, and
   emit `"schemaVersion": 2` with `"checkoutMode": "provisioned-root"`. Fail if the requested schema
   is not `2` rather than falling back to the ordinary shape. Details are in `references/ssh-host.md`.
 

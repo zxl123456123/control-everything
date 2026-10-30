@@ -2,7 +2,7 @@
 
 Load this when the user's desktop is Windows and you are scaffolding the local-side scripts. A bare
 `.sh` will not execute there. Either require WSL or Git Bash and point `zkyq.yaml` at a launcher such
-as `bash ./scripts/orca-vm/<name>.sh` through a `.cmd` file, or scaffold PowerShell equivalents.
+as `bash ./scripts/zkyq-vm/<name>.sh` through a `.cmd` file, or scaffold PowerShell equivalents.
 
 The remote-side commands you run inside the Linux environment stay bash regardless of the desktop OS.
 
