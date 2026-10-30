@@ -2,7 +2,7 @@
 import { quotePosixShell } from '../../../shared/shell-argument-quoting'
 import { isWindowsRemoteHost, type RemoteHostPlatform } from '../../ssh/ssh-remote-platform'
 import { orcadWindowsHostOpCommand } from '../install/orcad-remote-windows-node'
-import { ORCAD_SNAPSHOT_MEMBERS } from './orcad-state-snapshot-members'
+import { posixSnapshotMembersFunction } from './orcad-state-snapshot-members'
 
 /**
  * Has the shared store been written since `activatedAt`?
@@ -19,13 +19,13 @@ export function newestStateMtimeCommand(
   if (isWindowsRemoteHost(host)) {
     return orcadWindowsHostOpCommand(host, baseDir, 'state-newest-mtime', [userDataDir])
   }
-  const root = quotePosixShell(userDataDir)
-  const paths = ORCAD_SNAPSHOT_MEMBERS.map((member) => `${root}/${quotePosixShell(member)}`).join(
-    ' '
-  )
   return [
-    `newest=$(find ${paths} -type f -exec stat -c %Y {} + 2>/dev/null ||`,
-    `find ${paths} -type f -exec stat -f %m {} + 2>/dev/null);`,
+    `root=${quotePosixShell(userDataDir)};`,
+    posixSnapshotMembersFunction(),
+    'set --; for m in $(snapshot_members "$root"); do [ -e "$root/$m" ] && set -- "$@" "$root/$m"; done;',
+    '[ $# -gt 0 ] || { echo UNKNOWN; exit 0; };',
+    'newest=$(find "$@" -type f -exec stat -c %Y {} + 2>/dev/null ||',
+    'find "$@" -type f -exec stat -f %m {} + 2>/dev/null);',
     'if [ -z "$newest" ]; then echo UNKNOWN; else',
     `echo "$newest" | sort -n | tail -1; fi`
   ].join(' ')

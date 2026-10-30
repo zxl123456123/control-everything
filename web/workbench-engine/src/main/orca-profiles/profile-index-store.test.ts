@@ -54,9 +54,9 @@ describe('profile index store', () => {
       defaultSource: { browserFamily: 'chrome', importedAt: 1 },
       profiles: []
     }
-    writeFileSync(join(testState.dir, 'orca-data.json'), JSON.stringify(legacyState), 'utf-8')
+    writeFileSync(join(testState.dir, 'zkyq-data.json'), JSON.stringify(legacyState), 'utf-8')
     writeFileSync(
-      join(testState.dir, 'orca-data.json.bak.0'),
+      join(testState.dir, 'zkyq-data.json.bak.0'),
       JSON.stringify(legacyBackup),
       'utf-8'
     )
@@ -72,7 +72,7 @@ describe('profile index store', () => {
     expect(activeProfile.profile.id).toBe(DEFAULT_LOCAL_ORCA_PROFILE_ID)
     expect(activeProfile.profile.name).toBe(DEFAULT_LOCAL_ORCA_PROFILE_NAME)
     expect(activeProfile.dataFile).toBe(
-      join(testState.dir, 'profiles', DEFAULT_LOCAL_ORCA_PROFILE_ID, 'orca-data.json')
+      join(testState.dir, 'profiles', DEFAULT_LOCAL_ORCA_PROFILE_ID, 'zkyq-data.json')
     )
     expect(activeProfile.stateDatabaseFile).toBe(
       join(testState.dir, 'profiles', DEFAULT_LOCAL_ORCA_PROFILE_ID, 'profile-state.db')
@@ -84,7 +84,7 @@ describe('profile index store', () => {
         join(testState.dir, 'profiles', DEFAULT_LOCAL_ORCA_PROFILE_ID, 'browser-session-meta.json')
       )
     ).toEqual(legacyBrowserSessionMeta)
-    expect(existsSync(join(testState.dir, 'orca-data.json'))).toBe(true)
+    expect(existsSync(join(testState.dir, 'zkyq-data.json'))).toBe(true)
 
     expect(readJson(getOrcaProfileIndexPath())).toMatchObject({
       schemaVersion: ORCA_PROFILE_INDEX_SCHEMA_VERSION,
@@ -98,9 +98,9 @@ describe('profile index store', () => {
     const profileDirectory = join(testState.dir, 'profiles', profileId)
     const profileData = { schemaVersion: 1, repos: [{ id: 'profile-repo' }] }
     mkdirSync(profileDirectory, { recursive: true })
-    writeFileSync(join(profileDirectory, 'orca-data.json'), JSON.stringify(profileData), 'utf-8')
+    writeFileSync(join(profileDirectory, 'zkyq-data.json'), JSON.stringify(profileData), 'utf-8')
     writeFileSync(
-      join(testState.dir, 'orca-data.json'),
+      join(testState.dir, 'zkyq-data.json'),
       JSON.stringify({ schemaVersion: 1, repos: [{ id: 'legacy-repo' }] }),
       'utf-8'
     )
@@ -125,14 +125,14 @@ describe('profile index store', () => {
     const activeProfile = ensureActiveOrcaProfile()
 
     expect(activeProfile.profile.id).toBe(profileId)
-    expect(activeProfile.dataFile).toBe(join(profileDirectory, 'orca-data.json'))
+    expect(activeProfile.dataFile).toBe(join(profileDirectory, 'zkyq-data.json'))
     expect(activeProfile.stateDatabaseFile).toBe(join(profileDirectory, 'profile-state.db'))
     expect(readJson(activeProfile.dataFile)).toEqual(profileData)
   })
 
   it('does not copy legacy JSON into a database-only default profile', async () => {
     writeFileSync(
-      join(testState.dir, 'orca-data.json'),
+      join(testState.dir, 'zkyq-data.json'),
       JSON.stringify({ settings: { theme: 'legacy' } }),
       'utf-8'
     )
@@ -149,11 +149,11 @@ describe('profile index store', () => {
 
     expect(activeProfile.stateDatabaseFile).toBe(join(profileDirectory, 'profile-state.db'))
     expect(existsSync(activeProfile.dataFile)).toBe(false)
-    expect(readFileSync(join(testState.dir, 'orca-data.json'), 'utf-8')).toContain('legacy')
+    expect(readFileSync(join(testState.dir, 'zkyq-data.json'), 'utf-8')).toContain('legacy')
   })
 
   it.each([
-    'orca-data.json.sqlite-export.1.json',
+    'zkyq-data.json.sqlite-export.1.json',
     'profile-state.db.backup.1789999999999-00000000-0000-4000-8000-000000000000.db',
     'profile-state.db-wal',
     'profile-state.db-shm',
@@ -161,7 +161,7 @@ describe('profile index store', () => {
     'profile-state.db.authority'
   ])('does not seed a stale mirror when %s exists without the database', async (artifact) => {
     writeFileSync(
-      join(testState.dir, 'orca-data.json'),
+      join(testState.dir, 'zkyq-data.json'),
       JSON.stringify({ settings: { theme: 'legacy' } }),
       'utf-8'
     )
@@ -177,12 +177,12 @@ describe('profile index store', () => {
     const activeProfile = ensureActiveOrcaProfile()
 
     expect(existsSync(activeProfile.dataFile)).toBe(false)
-    expect(readFileSync(join(testState.dir, 'orca-data.json'), 'utf-8')).toContain('legacy')
+    expect(readFileSync(join(testState.dir, 'zkyq-data.json'), 'utf-8')).toContain('legacy')
   })
 
   it('creates an empty local profile without copying legacy state into it', async () => {
     writeFileSync(
-      join(testState.dir, 'orca-data.json'),
+      join(testState.dir, 'zkyq-data.json'),
       JSON.stringify({ schemaVersion: 1, repos: [{ id: 'legacy-repo' }] }),
       'utf-8'
     )

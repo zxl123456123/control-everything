@@ -241,8 +241,11 @@ class WorkbenchRuntime:
             if not file.exists():
                 file.write_text("", encoding="utf-8")
         safe_path(data / "workspaces").mkdir(exist_ok=True)
-        state = safe_path(data / "state/orca-data.json")
-        if not state.exists():
+        state = safe_path(data / "state/zkyq-data.json")
+        previous = safe_path(data / "state/orca-data.json")
+        existing_family = any(item.name.startswith(("orca-data.json.", "zkyq-data.json."))
+                              for item in state.parent.iterdir())
+        if not state.exists() and not previous.exists() and not existing_family:
             state.write_text(json.dumps({"settings": {"workspaceDir": str(data / "workspaces"),
                              "agentStatusHooksEnabled": False, "nativeChatInheritShellEnvironment": False,
                              "agentStateRulesLiveUpdates": False, "localWindowsRuntimeDefault": {"kind": "windows-host"}}}), encoding="utf-8")

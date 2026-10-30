@@ -3,6 +3,7 @@ import { join } from 'node:path'
 import { DEFAULT_LOCAL_ORCA_PROFILE_ID } from '../../shared/orca-profiles'
 import { PROFILE_STATE_DATABASE_FILE_NAME } from '../../shared/profile-state-storage-paths'
 import { getActiveProfileStateLocation } from '../persistence/profile-state/profile-state-active-location'
+import { profileStateDataFileForRead } from '../persistence/profile-state/profile-state-data-name-migration'
 import { readProfileStateDomain } from '../persistence/profile-state/profile-state-domain-reader'
 import { classifyProfileStateStorage } from '../persistence/profile-state/profile-state-storage-classification'
 
@@ -14,7 +15,7 @@ import { classifyProfileStateStorage } from '../persistence/profile-state/profil
 export function serveProfileHasSshTargets(userDataPath: string): boolean {
   // A profile index predates any profile-state import, so no index means the legacy root files.
   const location = getActiveProfileStateLocation(userDataPath) ?? {
-    dataFile: join(userDataPath, 'orca-data.json'),
+    dataFile: profileStateDataFileForRead(userDataPath),
     databaseFile: join(userDataPath, PROFILE_STATE_DATABASE_FILE_NAME),
     profileId: DEFAULT_LOCAL_ORCA_PROFILE_ID
   }

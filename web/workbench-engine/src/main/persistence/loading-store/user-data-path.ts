@@ -4,6 +4,7 @@ import { dirname, join, resolve } from 'node:path'
 import type { PersistedState } from '../../../shared/persisted-state-types'
 import { hardenExistingSecureFile } from '../../../shared/secure-file'
 import { MOBILE_PAIRING_USERDATA_FILES } from '../../runtime/mobile-pairing-files'
+import { PROFILE_STATE_DATA_FILE_NAME } from '../../../shared/profile-state-storage-paths'
 
 // Why capture once (not a module const, not per-call): a const resolves before configureDevUserDataPath() redirects userData (dev/prod collide);
 // per-call resolves after app.setName('Orca') flips path case and loses data on case-sensitive FS. index.ts calls initDataPath() at the right moment.
@@ -13,7 +14,7 @@ let _userDataDir: string | null = null
 export function initDataPath(): void {
   const userDataDir = getAppEnvironment().getPath('userData')
   _userDataDir = userDataDir
-  _dataFile = join(userDataDir, 'orca-data.json')
+  _dataFile = join(userDataDir, PROFILE_STATE_DATA_FILE_NAME)
 }
 
 export function getDataFile(): string {
@@ -21,7 +22,7 @@ export function getDataFile(): string {
     // Safety fallback — should not be hit in normal startup.
     const userDataDir = getAppEnvironment().getPath('userData')
     _userDataDir = userDataDir
-    _dataFile = join(userDataDir, 'orca-data.json')
+    _dataFile = join(userDataDir, PROFILE_STATE_DATA_FILE_NAME)
   }
   return _dataFile
 }

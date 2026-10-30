@@ -144,6 +144,22 @@ class WorkbenchRuntimeTests(unittest.TestCase):
     def start(self):
         self.manager.start('http://127.0.0.1:12345', timeout=.1)
 
+    def test_seed_uses_new_name_without_shadowing_previous_data_or_backups(self):
+        self.manager._prepare('http://127.0.0.1:12345')
+        state = self.data / 'state'
+        current = state / 'zkyq-data.json'
+        previous = state / 'orca-data.json'
+        self.assertTrue(current.is_file())
+        self.assertFalse(previous.exists())
+        current.replace(previous)
+        self.manager._prepare('http://127.0.0.1:12345')
+        self.assertTrue(previous.is_file())
+        self.assertFalse(current.exists())
+        previous.replace(state / 'orca-data.json.bak.0')
+        self.manager._prepare('http://127.0.0.1:12345')
+        self.assertTrue((state / 'orca-data.json.bak.0').is_file())
+        self.assertFalse(current.exists())
+
     def test_remote_grants_are_journaled_before_exposure_and_retired_after_restart(self):
         from unittest.mock import Mock
         self.start()

@@ -1,4 +1,12 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+  writeFileSync
+} from 'node:fs'
 import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -89,7 +97,7 @@ function createProfile(): {
     JSON.stringify({ activeProfileId: profileId, profiles: [{ id: profileId }] }),
     'utf8'
   )
-  const dataFile = join(profileDirectory, 'orca-data.json')
+  const dataFile = join(profileDirectory, 'zkyq-data.json')
   const databaseFile = profileStateDatabaseFile(profileDirectory)
   const exportPath = profileStateJsonExportPath(dataFile, 1)
   writeFileSync(dataFile, JSON.stringify({ settings: { theme: 'old' } }), 'utf8')
@@ -152,7 +160,7 @@ describe('profile-state CLI recovery', () => {
     await main(['profile', 'state', 'rollback', '--revision', '1', '--json'], profile.userDataPath)
 
     expect(existsSync(profile.databaseFile)).toBe(false)
-    expect(readFileSync(profile.dataFile, 'utf8')).toBe(
+    expect(readFileSync(profile.dataFile.replace('zkyq-data.json', 'orca-data.json'), 'utf8')).toBe(
       JSON.stringify({ settings: { theme: 'recovered', electronHttp1CompatibilityMode: true } })
     )
     expect(
@@ -164,6 +172,29 @@ describe('profile-state CLI recovery', () => {
     const output = vi.mocked(console.log).mock.calls.at(-1)?.[0]
     expect(String(output)).toContain('quarantineDirectory')
     expect(getCliStatusMock).toHaveBeenCalledOnce()
+  })
+
+  it('lists and restores a previous-name export before the first upgraded startup', async () => {
+    const profile = createProfile()
+    const oldData = profile.dataFile.replace('zkyq-data.json', 'orca-data.json')
+    const oldExport = profile.exportPath.replace('zkyq-data.json', 'orca-data.json')
+    renameSync(profile.dataFile, oldData)
+    renameSync(profile.exportPath, oldExport)
+    getDefaultUserDataPathMock.mockReturnValue(profile.userDataPath)
+    await main(['profile', 'state', 'exports', '--json'], profile.userDataPath)
+    const listing = JSON.parse(String(vi.mocked(console.log).mock.calls.at(-1)?.[0]))
+    expect(listing).toMatchObject({
+      ok: true,
+      result: { dataFile: oldData, exportPaths: [oldExport] }
+    })
+    expect(existsSync(oldData)).toBe(true)
+    await main(['profile', 'state', 'rollback', '--revision', '1', '--json'], profile.userDataPath)
+    expect(process.exitCode).toBe(0)
+    expect(existsSync(oldData)).toBe(true)
+    expect(existsSync(oldExport)).toBe(false)
+    expect(JSON.parse(readFileSync(oldData, 'utf8'))).toMatchObject({
+      settings: { theme: 'recovered' }
+    })
   })
 
   it('adopts current JSON through CLI with an honest source description', async () => {
@@ -264,7 +295,9 @@ describe('profile-state CLI recovery', () => {
       )
 
       expect(process.exitCode).toBe(0)
-      expect(readFileSync(profile.dataFile)).toEqual(selectedBytes)
+      expect(readFileSync(profile.dataFile.replace('zkyq-data.json', 'orca-data.json'))).toEqual(
+        selectedBytes
+      )
       expect(existsSync(profile.exportPath)).toBe(false)
       expect(existsSync(laterExport)).toBe(false)
       const output: unknown = JSON.parse(String(vi.mocked(console.log).mock.calls.at(-1)?.[0]))
@@ -521,6 +554,8 @@ describe('profile-state CLI recovery', () => {
 
     expect(process.exitCode).toBe(1)
     expect(readFileSync(profile.databaseFile, 'utf8')).toBe('damaged sqlite primary')
-    expect(String(vi.mocked(console.log).mock.calls.at(-1)?.[0])).toContain('Stop Control Everything')
+    expect(String(vi.mocked(console.log).mock.calls.at(-1)?.[0])).toContain(
+      'Stop Control Everything'
+    )
   })
 })

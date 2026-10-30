@@ -9,7 +9,10 @@
  */
 import { quotePosixShell } from '../../../shared/shell-argument-quoting'
 import { isWindowsRemoteHost, type RemoteHostPlatform } from '../../ssh/ssh-remote-platform'
-import { ORCAD_SNAPSHOT_FAILURE, ORCAD_SNAPSHOT_MEMBERS } from './orcad-state-snapshot-members'
+import {
+  ORCAD_SNAPSHOT_FAILURE,
+  posixSnapshotMembersFunction
+} from './orcad-state-snapshot-members'
 import { dfAvailableKb, formatKb } from './remote-filesystem-space'
 
 const SPACE_MARKER = 'SNAPSHOT_SPACE'
@@ -52,7 +55,6 @@ export function orcadSnapshotSpaceCommand(
     return null
   }
   const root = quotePosixShell(userDataDir)
-  const members = ORCAD_SNAPSHOT_MEMBERS.map((member) => `${root}/${quotePosixShell(member)}`)
   const sum = `awk '{ total += $1 } END { print total + 0 }'`
   return [
     // Both scans together stay inside the transport's 30 s exec timeout; 124+ is timeout's kill.
@@ -61,7 +63,11 @@ export function orcadSnapshotSpaceCommand(
     `elif timeout -t 1 true 2>/dev/null; then deadline="timeout -t ${SPACE_SCAN_DEADLINE_SECONDS}"; fi;`,
     `set --; for old in ${quotePosixShell(snapshotsRoot)}/${CAPTURE_PREFIX}*; do [ -d "$old" ] || continue;`,
     `case "\${old##*/}" in (${prunePatterns(keep)}) ;; (*) set -- "$@" "$old";; esac; done;`,
-    `need=$($deadline du -sk ${members.join(' ')} 2>/dev/null); need_status=$?;`,
+    `root=${root};`,
+    posixSnapshotMembersFunction(),
+    'need=$(set --; for m in $(snapshot_members "$root"); do',
+    '[ -e "$root/$m" ] || [ -L "$root/$m" ] || continue; set -- "$@" "$root/$m"; done;',
+    'if [ $# -gt 0 ]; then $deadline du -sk "$@" 2>/dev/null; fi); need_status=$?;',
     'reclaim=; reclaim_status=0; if [ $# -gt 0 ]; then reclaim=$($deadline du -sk "$@" 2>/dev/null); reclaim_status=$?; fi;',
     `if [ "$need_status" -ge 124 ] || [ "$reclaim_status" -ge 124 ]; then echo "${SPACE_MARKER} UNMEASURED"; else`,
     `echo "${SPACE_MARKER} $(printf '%s\\n' "$need" | ${sum}) $(printf '%s\\n' "$reclaim" | ${sum})`,

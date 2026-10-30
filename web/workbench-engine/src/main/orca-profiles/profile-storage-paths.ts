@@ -1,12 +1,13 @@
 import { getAppEnvironment } from '../../shared/app-environment'
 import {
   getOrcaProfileDataFile as getSharedOrcaProfileDataFile,
-  getOrcaProfileStateDatabaseFile as getSharedOrcaProfileStateDatabaseFile
+  getOrcaProfileStateDatabaseFile as getSharedOrcaProfileStateDatabaseFile,
+  PROFILE_STATE_DATA_FILE_NAME
 } from '../../shared/profile-state-storage-paths'
 import { hasProfileStateDatabaseFiles } from '../persistence/profile-state/profile-state-storage-classification'
 import { join } from 'node:path'
 
-const LEGACY_DATA_FILE_NAME = 'orca-data.json'
+const LEGACY_DATA_FILE_NAME = PROFILE_STATE_DATA_FILE_NAME
 const LEGACY_BROWSER_SESSION_META_FILE_NAME = 'browser-session-meta.json'
 const PROFILE_INDEX_FILE_NAME = 'orca-profile-index.json'
 const PROFILE_BROWSER_SESSION_META_FILE_NAME = 'browser-session-meta.json'

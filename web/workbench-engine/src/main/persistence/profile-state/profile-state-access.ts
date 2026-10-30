@@ -1,5 +1,6 @@
 import { lstatSync, readdirSync, realpathSync } from 'node:fs'
 import { basename, dirname, join } from 'node:path'
+import { PROFILE_STATE_DATA_FILE_NAME } from '../../../shared/profile-state-storage-paths'
 import {
   ProfileStateAccessError,
   hasCode,
@@ -54,7 +55,7 @@ export function assertProfileStateMaintenance(
   maintenance.assertActive()
   const expectedDirectory = join(root, 'profiles', profile.profileId)
   for (const [path, expectedName] of [
-    [profile.dataFile, 'orca-data.json'],
+    [profile.dataFile, PROFILE_STATE_DATA_FILE_NAME],
     [profile.databasePath, 'profile-state.db']
   ] as const) {
     if (

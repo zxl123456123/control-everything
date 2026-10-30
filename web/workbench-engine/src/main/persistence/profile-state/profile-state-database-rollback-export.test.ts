@@ -45,7 +45,7 @@ it('can publish an explicit JSON export at a reused revision after SQLite rollba
   const directory = join(root, 'profiles', 'rollback-export')
   mkdirSync(directory, { recursive: true })
   const databasePath = join(directory, 'profile-state.db')
-  const dataFile = join(directory, 'orca-data.json')
+  const dataFile = join(directory, 'zkyq-data.json')
   const profileId = 'rollback-export'
   const stores: Store[] = []
   try {
@@ -106,7 +106,7 @@ it('leaves an explicit rollback path when stale JSON conflicts with SQLite', asy
   const root = mkdtempSync(join(tmpdir(), 'orca-store-profile-state-compat-failure-'))
   const directory = join(root, 'profiles', 'profile-authority-test')
   mkdirSync(directory, { recursive: true })
-  const dataFile = join(directory, 'orca-data.json')
+  const dataFile = join(directory, 'zkyq-data.json')
   const databasePath = join(directory, 'profile-state.db')
   writeFileSync(dataFile, JSON.stringify({ settings: { theme: 'light' } }), 'utf8')
 

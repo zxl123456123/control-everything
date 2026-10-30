@@ -6,7 +6,12 @@ import {
   acquireProfileStateMaintenance,
   acquireProfileStateRuntimeAdmission
 } from './profile-state-access'
-import { migrateProfileStateDataNames } from './profile-state-data-name-migration'
+import {
+  acquireProfileStateAdmissionWithDataMigration,
+  handOffProfileJsonToPreviousBuild,
+  migrateProfileStateDataNames,
+  profileStateDataFileForRead
+} from './profile-state-data-name-migration'
 
 vi.mock('node:fs', async (original) => ({ ...(await original<typeof fs>()) }))
 
@@ -23,6 +28,94 @@ afterEach(() => {
 })
 
 describe('profile state data filename migration', () => {
+  it('hands a restored JSON to an old build and migrates it back on upgraded startup', () => {
+    const directory = root()
+    const profile = join(directory, 'profiles', 'p1')
+    fs.mkdirSync(profile, { recursive: true })
+    const dataFile = join(profile, 'zkyq-data.json')
+    fs.writeFileSync(dataFile, 'restored')
+    fs.writeFileSync(`${dataFile}.bak.0`, 'backup')
+    const maintenance = acquireProfileStateMaintenance(directory)
+    let previous: string
+    try {
+      previous = handOffProfileJsonToPreviousBuild(
+        { profileId: 'p1', dataFile, databasePath: join(profile, 'profile-state.db') },
+        maintenance
+      )
+      expect(previous).toBe(join(profile, 'orca-data.json'))
+      expect(fs.readFileSync(previous, 'utf8')).toBe('restored')
+      expect(fs.readFileSync(`${previous}.bak.0`, 'utf8')).toBe('backup')
+      expect(fs.existsSync(dataFile)).toBe(false)
+    } finally {
+      maintenance.release()
+    }
+    acquireProfileStateAdmissionWithDataMigration(directory).release()
+    expect(fs.readFileSync(dataFile, 'utf8')).toBe('restored')
+    expect(fs.readFileSync(`${dataFile}.bak.0`, 'utf8')).toBe('backup')
+    expect(fs.existsSync(previous)).toBe(false)
+  })
+
+  it('does not overwrite an existing previous-build file during handoff', () => {
+    const directory = root()
+    const profile = join(directory, 'profiles', 'p1')
+    fs.mkdirSync(profile, { recursive: true })
+    const dataFile = join(profile, 'zkyq-data.json')
+    const previous = join(profile, 'orca-data.json')
+    fs.writeFileSync(dataFile, 'restored')
+    fs.writeFileSync(previous, 'existing')
+    const maintenance = acquireProfileStateMaintenance(directory)
+    try {
+      expect(() =>
+        handOffProfileJsonToPreviousBuild(
+          { profileId: 'p1', dataFile, databasePath: join(profile, 'profile-state.db') },
+          maintenance
+        )
+      ).toThrow()
+      expect(fs.readFileSync(dataFile, 'utf8')).toBe('restored')
+      expect(fs.readFileSync(previous, 'utf8')).toBe('existing')
+    } finally {
+      maintenance.release()
+    }
+  })
+  it('migrates before admitting a runtime and retains the admission until release', () => {
+    const directory = root()
+    const profile = join(directory, 'profiles', 'p1')
+    fs.mkdirSync(profile, { recursive: true })
+    fs.writeFileSync(join(profile, 'orca-data.json'), 'profile')
+    fs.writeFileSync(join(profile, 'orca-data.json.sqlite-export.3.json'), 'recovery')
+    const admission = acquireProfileStateAdmissionWithDataMigration(directory)
+    try {
+      expect(fs.readFileSync(join(profile, 'zkyq-data.json'), 'utf8')).toBe('profile')
+      expect(fs.readFileSync(join(profile, 'zkyq-data.json.sqlite-export.3.json'), 'utf8')).toBe(
+        'recovery'
+      )
+      expect(fs.existsSync(join(profile, 'orca-data.json'))).toBe(false)
+      expect(() => acquireProfileStateMaintenance(directory)).toThrow()
+    } finally {
+      admission.release()
+    }
+  })
+
+  it('refuses migration when an existing runtime still owns the profile', () => {
+    const directory = root()
+    fs.writeFileSync(join(directory, 'orca-data.json'), 'state')
+    const running = acquireProfileStateRuntimeAdmission(directory)
+    try {
+      expect(() => acquireProfileStateAdmissionWithDataMigration(directory)).toThrow()
+      expect(fs.readFileSync(join(directory, 'orca-data.json'), 'utf8')).toBe('state')
+      expect(fs.existsSync(join(directory, 'zkyq-data.json'))).toBe(false)
+    } finally {
+      running.release()
+    }
+  })
+
+  it('reads the old family before migration and refuses partially migrated families', () => {
+    const directory = root()
+    fs.writeFileSync(join(directory, 'orca-data.json.sqlite-export.3.json'), 'recovery')
+    expect(profileStateDataFileForRead(directory)).toBe(join(directory, 'orca-data.json'))
+    fs.writeFileSync(join(directory, 'zkyq-data.json'), 'new')
+    expect(() => profileStateDataFileForRead(directory)).toThrow('incomplete or conflicting')
+  })
   it('moves the root and every profile JSON family without changing data or SQLite files', () => {
     const directory = root()
     const first = join(directory, 'profiles', 'local-default')

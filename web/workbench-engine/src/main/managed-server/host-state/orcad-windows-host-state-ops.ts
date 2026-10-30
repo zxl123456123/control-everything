@@ -40,6 +40,19 @@ const text = JSON.stringify
 /** Evaluated inside the host script, after `fs`, `path`, `answer` and `ops` exist. */
 export const ORCAD_WINDOWS_HOST_STATE_OPS = `
 const MEMBERS = ${text(ORCAD_SNAPSHOT_MEMBERS)}
+function snapshotMembers(...roots) {
+  const result = new Set(MEMBERS)
+  for (const root of roots) {
+    const stats = lstatOrNull(root)
+    if (!stats) continue
+    if (!stats.isDirectory()) throw new Error('state root is not a directory')
+    for (const name of fs.readdirSync(root)) {
+      const match = /^(?:orca|zkyq)-data[.]json[.]sqlite-export[.]([0-9]+)[.]json$/.exec(name)
+      if (match && Number.isSafeInteger(Number(match[1])) && Number(match[1]) > 0) result.add(name)
+    }
+  }
+  return [...result]
+}
 const STATE_DIR = ${text(ORCAD_WINDOWS_SNAPSHOT_STATE_DIRNAME)}
 const RESTORE_STAGE = ${text(ORCAD_STATE_RESTORE_STAGE_DIRNAME)}
 const MUTATION_LOCK = path.join(__dirname, ${text(ORCAD_STATE_MUTATION_LOCK_DIRNAME)})
@@ -184,7 +197,7 @@ Object.assign(ops, {
   'snapshot-capture': withStateMutationLock(async (root, snapshotDir) => {
     let present
     try {
-      present = MEMBERS.filter((member) => lstatOrNull(path.join(root, member)))
+      present = snapshotMembers(root).filter((member) => lstatOrNull(path.join(root, member)))
       if (present.some((member) => treeHasLink(path.join(root, member)))) return ('FAILED')
     } catch { return ('FAILED') }
     if (present.length === 0) return ('EMPTY')
@@ -220,7 +233,7 @@ Object.assign(ops, {
       fs.mkdirSync(root, { recursive: true })
       await removeTreeAsync(stage)
       await fs.promises.cp(state, stage, { recursive: true })
-      if (!MEMBERS.some((member) => lstatOrNull(path.join(stage, member)))) {
+      if (!snapshotMembers(stage).some((member) => lstatOrNull(path.join(stage, member)))) {
         await removeTreeAsync(stage)
         return ('FAILED')
       }
@@ -229,8 +242,9 @@ Object.assign(ops, {
       return ('FAILED')
     }
     try {
-      for (const member of MEMBERS) await removeTreeAsync(path.join(root, member))
-      for (const member of MEMBERS) {
+      const members = snapshotMembers(root, stage)
+      for (const member of members) await removeTreeAsync(path.join(root, member))
+      for (const member of members) {
         if (lstatOrNull(path.join(stage, member))) renameWithRetry(path.join(stage, member), path.join(root, member))
       }
       await removeTreeAsync(stage)
@@ -241,7 +255,7 @@ Object.assign(ops, {
   'snapshot-clear': withStateMutationLock(async (root) => {
     try {
       fs.mkdirSync(root, { recursive: true })
-      for (const member of MEMBERS) await removeTreeAsync(path.join(root, member))
+      for (const member of snapshotMembers(root)) await removeTreeAsync(path.join(root, member))
     } catch { return ('FAILED') }
     return 'RESTORED'
   }),
@@ -253,7 +267,7 @@ Object.assign(ops, {
       const stateStats = lstatOrNull(state)
       if (!rootStats || !rootStats.isDirectory() || !stateStats || !stateStats.isDirectory()) return answer('UNKNOWN')
       if (treeHasLink(state)) return answer('UNKNOWN')
-      for (const member of MEMBERS) {
+      for (const member of snapshotMembers(root, state)) {
         const live = path.join(root, member)
         if (lstatOrNull(live) && treeHasLink(live)) return answer('UNKNOWN')
         if (!treesEqual(live, path.join(state, member))) return answer('CHANGED')
@@ -265,7 +279,7 @@ Object.assign(ops, {
   'state-newest-mtime'(root) {
     let newest = null
     try {
-      for (const member of MEMBERS) {
+      for (const member of snapshotMembers(root)) {
         const value = newestMtime(path.join(root, member))
         if (value !== null && (newest === null || value > newest)) newest = value
       }

@@ -104,7 +104,7 @@ import { mainProcessState as state } from './main-process-state'
 import { initializeSyntheticTitleRuntime } from './synthetic-title-runtime'
 import { initializeBrowserProcessUserAgent } from '../browser/browser-process-user-agent'
 import { initializeBrowserIdentityModeStore } from '../browser/browser-identity-mode-store'
-import { acquireProfileStateRuntimeAdmission } from '../persistence/profile-state/profile-state-access'
+import { acquireProfileStateAdmissionWithDataMigration } from '../persistence/profile-state/profile-state-data-name-migration'
 import { getActiveProfileStateLocation } from '../persistence/profile-state/profile-state-active-location'
 import {
   acquireDesktopProfileLockOrExplain,
@@ -283,7 +283,9 @@ function initializeMainProcessPreflight(options: MainProcessPreflightOptions): b
   if (!skip && !bypass && !acquireDesktopProfileLockOrExplain(getCanonicalUserDataPath())) {
     return false
   }
-  state.profileStateAdmission = acquireProfileStateRuntimeAdmission(getCanonicalUserDataPath())
+  state.profileStateAdmission = acquireProfileStateAdmissionWithDataMigration(
+    getCanonicalUserDataPath()
+  )
   // Renderer and worker defaults must be fixed before any session exists.
   initializeBrowserProcessUserAgent(
     initializeBrowserIdentityModeStore(getCanonicalUserDataPath()).appliedMode

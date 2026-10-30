@@ -116,6 +116,31 @@ describe.skipIf(process.platform === 'win32')('snapshot commands on a real shell
     expect(existsSync(join(root, '.orcad-state-restore-stage'))).toBe(false)
   })
 
+  it('captures and restores both root export names while leaving unrelated files intact', async () => {
+    const oldExport = join(root, 'orca-data.json.sqlite-export.17.json')
+    const newExport = join(root, 'zkyq-data.json.sqlite-export.42.json')
+    const unrelated = join(root, 'zkyq-data.json.sqlite-export.notes.json')
+    writeFileSync(oldExport, 'old export')
+    writeFileSync(newExport, 'new export')
+    writeFileSync(unrelated, 'unmanaged')
+    expect(
+      parseOrcadSnapshotCapture(
+        await sh(captureOrcadStateSnapshotCommand(posix, root, snapshot, remoteBase))
+      )
+    ).toBe('captured')
+    writeFileSync(oldExport, 'changed')
+    writeFileSync(join(root, 'zkyq-data.json.sqlite-export.99.json'), 'added')
+    expect(
+      parseOrcadSnapshotRestore(
+        await sh(restoreOrcadStateSnapshotCommand(posix, root, snapshot, remoteBase))
+      )
+    ).toBe('restored')
+    expect(readFileSync(oldExport, 'utf8')).toBe('old export')
+    expect(readFileSync(newExport, 'utf8')).toBe('new export')
+    expect(existsSync(join(root, 'zkyq-data.json.sqlite-export.99.json'))).toBe(false)
+    expect(readFileSync(unrelated, 'utf8')).toBe('unmanaged')
+  })
+
   it('captures on a BusyBox before 1.30, whose timeout only takes `-t SECS`', async () => {
     const bin = join(base, 'bin')
     mkdirSync(bin)

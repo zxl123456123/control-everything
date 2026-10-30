@@ -18,6 +18,10 @@ import { ProfileStateSqliteAuthority } from './profile-state-sqlite-authority'
 import { durableWriteTempPath, writeFileDurableSync } from '../../durable-file-write'
 import { assertProfileStateMaintenance, type ProfileStateMaintenance } from './profile-state-access'
 import {
+  handOffProfileJsonToPreviousBuild,
+  migrateProfileStateDataNames
+} from './profile-state-data-name-migration'
+import {
   openProfileStateDatabaseReadOnly,
   openWritableProfileStateDatabase
 } from './profile-state-database'
@@ -61,6 +65,7 @@ export function rollbackProfileState(
   maintenance: ProfileStateMaintenance,
   profileId?: string
 ): ProfileStateRollbackResult {
+  migrateProfileStateDataNames(userDataPath, maintenance)
   let result = getProfileStateExports(userDataPath, profileId)
   if (profileHasPendingProjectMove(result.profileId, userDataPath)) {
     throw new ProfileStateRecoveryCommandError(
@@ -119,10 +124,21 @@ export function rollbackProfileState(
     beforeRestore: () => invalidateActiveProfileMarker(userDataPath, result.profileId)
   })
   syncHttp1CompatibilityMarkerAfterRollback(userDataPath, result.dataFile, result.profileId)
+  const restoredPath =
+    selector.kind === 'latest-json' || selector.kind === 'json'
+      ? handOffProfileJsonToPreviousBuild(
+          {
+            profileId: result.profileId,
+            dataFile: result.dataFile,
+            databasePath: result.databaseFile
+          },
+          maintenance
+        )
+      : result.dataFile
   return {
     ...result,
     storage: 'json',
-    restoredPath: result.dataFile,
+    restoredPath,
     revision,
     quarantineDirectory: recovered.quarantine.directory,
     removedDatabaseFiles: recovered.removedDatabaseFiles

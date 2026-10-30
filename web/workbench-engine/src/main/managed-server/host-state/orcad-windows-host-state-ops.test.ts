@@ -48,6 +48,23 @@ async function op(name: OrcadWindowsHostOp, ...args: string[]): Promise<string> 
 }
 
 describe('Windows snapshot ops', () => {
+  it('captures and restores old and new root exports without touching unrecognized names', async () => {
+    const oldExport = join(root, 'orca-data.json.sqlite-export.17.json')
+    const newExport = join(root, 'zkyq-data.json.sqlite-export.42.json')
+    const unrelated = join(root, 'zkyq-data.json.sqlite-export.notes.json')
+    writeFileSync(oldExport, 'old export')
+    writeFileSync(newExport, 'new export')
+    writeFileSync(unrelated, 'unmanaged')
+    expect(await op('snapshot-capture', root, snapshot)).toBe('CAPTURED')
+    writeFileSync(oldExport, 'changed')
+    writeFileSync(join(root, 'zkyq-data.json.sqlite-export.99.json'), 'added')
+    expect(await op('snapshot-compare', root, snapshot)).toBe('CHANGED')
+    expect(await op('snapshot-restore', root, snapshot)).toBe('RESTORED')
+    expect(readFileSync(oldExport, 'utf8')).toBe('old export')
+    expect(readFileSync(newExport, 'utf8')).toBe('new export')
+    expect(existsSync(join(root, 'zkyq-data.json.sqlite-export.99.json'))).toBe(false)
+    expect(readFileSync(unrelated, 'utf8')).toBe('unmanaged')
+  })
   it('captures, proves unchanged, then restores the members and never the daemon', async () => {
     expect(await op('snapshot-probe', snapshot)).toBe('ABSENT')
     expect(await op('snapshot-capture', root, snapshot)).toBe('CAPTURED')

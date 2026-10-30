@@ -11,10 +11,8 @@ import { resolveOrcadExitCode } from './orcad-exit-code'
 import { recordAgentSessionRuntimeEnd } from '../runtime/agent-session-runtime-end-record'
 import { ORCAD_SHUTDOWN_DEADLINE_MS } from './orcad-stop-deadlines'
 import { holdOrcadTerminalAdmissionUntilExit } from './orcad-stop-terminal-admission'
-import {
-  acquireProfileStateRuntimeAdmission,
-  type ProfileStateRuntimeAdmission
-} from '../persistence/profile-state/profile-state-access'
+import type { ProfileStateRuntimeAdmission } from '../persistence/profile-state/profile-state-access'
+import { acquireProfileStateAdmissionWithDataMigration } from '../persistence/profile-state/profile-state-data-name-migration'
 
 const bundledLauncherChannel = process.env[ORCAD_BUNDLED_LAUNCHER_ENV] === '1'
 delete process.env[ORCAD_BUNDLED_LAUNCHER_ENV]
@@ -143,7 +141,7 @@ export async function startOrcadWithHost<T extends object>(
   let browserProvider: ReturnType<typeof startOrcadBrowserProvider> | undefined
   return startOrcadWithLifecycle(
     async (registerCleanup) => {
-      admission = acquireProfileStateRuntimeAdmission(userDataPath)
+      admission = acquireProfileStateAdmissionWithDataMigration(userDataPath)
       // Why not awaited: a desktop sidecar's authorization UI must not hold RPC readiness hostage.
       browserProvider = startOrcadBrowserProvider({
         userDataPath,

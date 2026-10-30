@@ -1,11 +1,12 @@
 import { existsSync, readFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 import {
   getOrcaProfileDataFile,
   getOrcaProfileStateDatabaseFile
 } from '../../../shared/profile-state-storage-paths'
 import type { ProfileStateOfflineLocation } from './profile-state-offline-settings'
 import { ProfileStateRecoveryCommandError } from '../../../shared/profile-state-recovery-command'
+import { profileStateDataFileForRead } from './profile-state-data-name-migration'
 
 /** Resolve the active profile files for offline profile-state commands. */
 export function getActiveProfileStateLocation(
@@ -17,6 +18,7 @@ export function getActiveProfileStateLocation(
   if (candidates.length === 0) {
     return undefined
   }
+  let resolvedProfileId: string | undefined
   for (const candidate of candidates) {
     try {
       const parsed: unknown = JSON.parse(readFileSync(candidate, 'utf-8'))
@@ -29,14 +31,19 @@ export function getActiveProfileStateLocation(
         /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/.test(profileId) &&
         parsed.profiles.some((profile) => isRecord(profile) && profile.id === profileId)
       ) {
-        return {
-          dataFile: getOrcaProfileDataFile(profileId, userDataPath),
-          databaseFile: getOrcaProfileStateDatabaseFile(profileId, userDataPath),
-          profileId
-        }
+        resolvedProfileId = profileId
+        break
       }
     } catch {
       // Try the profile-index backup before failing closed.
+    }
+  }
+  if (resolvedProfileId !== undefined) {
+    const dataFile = getOrcaProfileDataFile(resolvedProfileId, userDataPath)
+    return {
+      dataFile: profileStateDataFileForRead(dirname(dataFile)),
+      databaseFile: getOrcaProfileStateDatabaseFile(resolvedProfileId, userDataPath),
+      profileId: resolvedProfileId
     }
   }
   throw new ProfileStateRecoveryCommandError(

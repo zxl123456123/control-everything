@@ -13,6 +13,7 @@
 import { join } from 'node:path'
 import process from 'node:process'
 import { getAppEnvironment } from '../../shared/app-environment'
+import { PROFILE_STATE_DATA_FILE_NAME } from '../../shared/profile-state-storage-paths'
 import { isPlatformRuntime, readPlatformRuntimePolicy } from '../platform-runtime-policy'
 import { hasExplicitPlatformCredentialRoot } from '../credentials/credential-root'
 import { ALL_RPC_METHODS } from '../runtime/rpc/methods'
@@ -101,7 +102,7 @@ async function prepareOrcadSecretStoreAndMigrate(userDataPath: string): Promise<
   if (ready) {
     migratePlaintextCredentials(getSecretStore())
   }
-  reportSecretProtectionGap({ dataFile: join(userDataPath, 'orca-data.json') })
+  reportSecretProtectionGap({ dataFile: join(userDataPath, PROFILE_STATE_DATA_FILE_NAME) })
 }
 
 async function startOrcadRuntime(

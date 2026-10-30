@@ -327352,14 +327352,14 @@
     {
       "path": "src/main/orcad/orcad-entry.ts",
       "upstream_sha256": "972748b4e46cd0cc3f08c61b82f6a7dc7a1553d2706f93323537865aac496193",
-      "current_sha256": "92172506252ed4dc0b567774226106646a441aa179de243dc63bd3d822d8137b",
-      "reason": "Support explicit profile-contained credential storage while preserving existing keys and host tool configuration.；运行宿主数据根配置统一ZKYQ_USER_DATA，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+      "current_sha256": "391d4c2cc6e1f736fbbf6ab43f496f937053852ad175713c633b3f2a0b297e68",
+      "reason": "Support explicit profile-contained credential storage while preserving existing keys and host tool configuration.；运行宿主数据根配置统一ZKYQ_USER_DATA，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据"
     },
     {
       "path": "src/main/orcad/orcad-lifecycle.ts",
       "upstream_sha256": "c7667711f712df699a9107834847e87b99a92a39254a8ee7a5bcc3f11f42a1b8",
-      "current_sha256": "a6fa77037d0e0ab33dc2413dbe8037d7c1b6a64a7eb77208179602d4ecf5e341",
-      "reason": "M1a-R: inject no official installed EXE discovery"
+      "current_sha256": "4bd0c1865275becd5c20f40de3180fcce5f61a61205679552228a3bcf43b8ced",
+      "reason": "M1a-R: inject no official installed EXE discovery；迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据"
     },
     {
       "path": "src/main/orcad/orcad-managed-agent-hooks.ts",
@@ -331648,8 +331648,8 @@
     {
       "path": "src/main/startup/profile-state-recovery-preflight.test.ts",
       "upstream_sha256": "0ad019dc337f4a725aa9df32e77a24c150980b6d22f5c970caf1ad5df04139b6",
-      "current_sha256": "17ab3e763a4f2a6cacf57e3747503e5185af69f702447776998ac43ae2a6c226",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；恢复失败对话框及占用提示统一平台名称，保留恢复和锁行为"
+      "current_sha256": "59161e307c8ae89f17261148716b517a504d8e055dfe88c1c3d2e91b83909ace",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；恢复失败对话框及占用提示统一平台名称，保留恢复和锁行为；迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据"
     },
     {
       "path": "src/main/startup/profile-state-recovery-preflight.ts",
@@ -332554,20 +332554,20 @@
     {
       "path": "src/main/startup/main-process-preflight.ts",
       "upstream_sha256": "4b11f94815b622a6a86533e97d9579c197d3b6ff28d358f72688fd0808cb5de3",
-      "current_sha256": "69763fe4e5c7c688a7563212f42783edab7da83f8620383512cb1fe3714773b0",
-      "reason": "迁移应用版本环境变量并隔离驻留旧版 daemon"
+      "current_sha256": "e6a8e09c45832247cde6858f0b7196e9d743f3773af30f49901af26965b7ca35",
+      "reason": "迁移应用版本环境变量并隔离驻留旧版 daemon；迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据"
     },
     {
       "path": "src/cli/handlers/profile-state.test.ts",
       "upstream_sha256": "8cdb996571078bfbd43a5e5d2ab31dd3df2fc442753cb47e0cb16866c0981d6e",
-      "current_sha256": "9821fb780e0aa6cdde878732de68eaf8b97c27a51bb7a0fa2a3c7e8a54d8981d",
-      "reason": "配置状态恢复提示及复制命令统一 zkyq，保留数据与回滚语义"
+      "current_sha256": "b2601ccf9856f61a592ef58ae0a5664549deec39224f397119d2c5bbf68cd75b",
+      "reason": "配置状态恢复提示及复制命令统一 zkyq，保留数据与回滚语义；迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据"
     },
     {
       "path": "src/cli/handlers/profile-state.ts",
       "upstream_sha256": "fb42dc4e60312b6d8af85af302be4c59def1a92fc388579796598034c30617de",
-      "current_sha256": "818223109c4afab202e44a24d4b93d1e9e8ddd1b980d0cbc8c845b32581ea509",
-      "reason": "配置状态恢复提示及复制命令统一 zkyq，保留数据与回滚语义"
+      "current_sha256": "e4338f23eec5ab256eb02677131c5297e286653eb9ade20707322b16a56e23b2",
+      "reason": "配置状态恢复提示及复制命令统一 zkyq，保留数据与回滚语义；迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据"
     },
     {
       "path": "src/cli/specs/profile-state.test.ts",
@@ -332578,8 +332578,8 @@
     {
       "path": "src/cli/specs/profile-state.ts",
       "upstream_sha256": "4a878152e0d6863ba3434ecbf7afb65ce3dbbf4d1844b681615354482bb35393",
-      "current_sha256": "17c2e1e68c89fd103d37058de2a64b2a0f89929cb0da1f75b084ebdf1ed8a930",
-      "reason": "配置状态恢复提示及复制命令统一 zkyq，保留数据与回滚语义"
+      "current_sha256": "1ed7be272ee22cc205a7f9074d1a9e48b94bd7624c532f90fc6cf229ecea0a75",
+      "reason": "配置状态恢复提示及复制命令统一 zkyq，保留数据与回滚语义；迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据"
     },
     {
       "path": "src/main/index.ts",
@@ -332626,8 +332626,8 @@
     {
       "path": "src/main/persistence/profile-state/profile-state-section-repair.test.ts",
       "upstream_sha256": "bc48164f5a7f23f6d7087d7ca7b4a689f3d3daedd1b6540ce90413ec78a08326",
-      "current_sha256": "1621747d81af994332c895f0ce43e058a889d2795deff0f7254709b36f256856",
-      "reason": "配置状态恢复提示及复制命令统一 zkyq，保留数据与回滚语义"
+      "current_sha256": "3fe56b4d1e22aaaa327783cd631b7889671617d34a8718ac2a0c3d7a18c5376e",
+      "reason": "配置状态恢复提示及复制命令统一 zkyq，保留数据与回滚语义；迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据"
     },
     {
       "path": "src/main/persistence/profile-state/profile-state-section-repair.ts",
@@ -332686,8 +332686,170 @@
     {
       "path": "src/main/persistence/profile-state/profile-state-access.ts",
       "upstream_sha256": "f45642235b4c06ec6829323a8ec6e6585735ae220272ad5919c23e3d50ede96e",
-      "current_sha256": "05a5ef394fb64dd6209bce262b4310400e5b060dc089f12a32ce7e2982e7c9ff",
-      "reason": "配置名称迁移须校验所属维护锁与数据根"
+      "current_sha256": "f24e40be78d57c624caedaa25152fda035203e5204ae54e9e45606ed8397d24a",
+      "reason": "配置名称迁移须校验所属维护锁与数据根；迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据"
+    },
+    {
+      "path": "src/cli/handlers/agent-hooks.ts",
+      "upstream_sha256": "c7127fe7b7b6cc7d9f5499471c18545fd6e2e0149ea62896b4b7696a9b11128c",
+      "current_sha256": "f6f6eb188e219e655f1a8bc0418aae0348c6ab6be3cb7f8316dd574e0596b22e",
+      "reason": "迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据"
+    },
+    {
+      "path": "src/cli/handlers/profile-state-recovery-admission.test.ts",
+      "upstream_sha256": "4cacf01920be971eb3db5f3d925822cd39cd1ab5967b9a342a5d9a66f204d728",
+      "current_sha256": "008c84822b1ca6f8160564dcfe4efafad3efea0695aafae0f1ae0168d38c859d",
+      "reason": "迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据"
+    },
+    {
+      "path": "src/main/managed-server/host-state/orcad-state-newest-mtime.ts",
+      "upstream_sha256": "1d644670f9be793400fec09d891fc7c1caff5411daa41f554ad43af35c24c3d8",
+      "current_sha256": "bd8c62f2cab7011bd393031ca960227db5008da29849c62058ca68bacf89b133",
+      "reason": "迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据"
+    },
+    {
+      "path": "src/main/managed-server/host-state/orcad-state-snapshot-members.ts",
+      "upstream_sha256": "3f9f58323078c08b07d53239713a0cb1b645c3d241269f6cc4777ad58c50e1b6",
+      "current_sha256": "ac25a1a8e919a9f37026fb78a1c669109a2ae1d224f196f7de463d5fe63391b8",
+      "reason": "迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据"
+    },
+    {
+      "path": "src/main/managed-server/host-state/orcad-state-snapshot-shell.test.ts",
+      "upstream_sha256": "156b0536bba72c191eff82364a416dea8a021eee25044083f3431e83c92c540a",
+      "current_sha256": "c879e69ed9d3fc516cb1928f36f5f677cf0c34343acdd58d0827e1022f5ba000",
+      "reason": "迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据"
+    },
+    {
+      "path": "src/main/managed-server/host-state/orcad-state-snapshot-space.ts",
+      "upstream_sha256": "403cda9d97da8ad37bc42f947c158a4cfa17954184a03ad02db91c91b6a7bba9",
+      "current_sha256": "038279930c5a1b62c2c870ba1ae34e94857cfe858c294f7705c34119f46259c1",
+      "reason": "迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据"
+    },
+    {
+      "path": "src/main/managed-server/host-state/orcad-state-snapshot.ts",
+      "upstream_sha256": "3a7b62390d112b7c0a69ddcd56a5057f0b116ad4dabcf822b156a83be544c78c",
+      "current_sha256": "a659ba153306f6b5bde250c6e707a5b76bf61e97aa89c693cc46771a41c1744d",
+      "reason": "迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据"
+    },
+    {
+      "path": "src/main/managed-server/host-state/orcad-windows-host-state-ops.test.ts",
+      "upstream_sha256": "a2526c53a2e9b7e462e0421a24d9d9b10ddf296214c1bc6296d6b844277270a8",
+      "current_sha256": "2d0fdb17d70b006b825ece484fe3104db66afd0d0de2ddbf3a758f8f75b70bc1",
+      "reason": "迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据"
+    },
+    {
+      "path": "src/main/managed-server/host-state/orcad-windows-host-state-ops.ts",
+      "upstream_sha256": "f79efbaee53e62d4fe1215e0fa75834b396dd1907c0442e9fbb104c2cbf32437",
+      "current_sha256": "effef1dc6a3b89dc78960c7d4dded6e1fef8d3191991c0bbf496404dfe69bb64",
+      "reason": "迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据"
+    },
+    {
+      "path": "src/main/orca-profiles/profile-index-store.test.ts",
+      "upstream_sha256": "d0d9f541e6f780f453ae735ec758e5d3ada72019c823a7d4d2f1e6626e8a3591",
+      "current_sha256": "8a97988f9506c06b1873debce081bce1969842faa4db1addfe47d14ac746df98",
+      "reason": "迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据"
+    },
+    {
+      "path": "src/main/orca-profiles/profile-storage-paths.ts",
+      "upstream_sha256": "be910d62f3ef85c3e5fa14a3963732e502506cfce282b19eed4709b1bcd2296c",
+      "current_sha256": "b21eb2aa507a6bf977bb84effc957633101f0aadc722ed2eae0ad435898eb5d8",
+      "reason": "迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据"
+    },
+    {
+      "path": "src/main/orca-profiles/profile-telemetry-consent-seed.ts",
+      "upstream_sha256": "e9303e561621d3faa3c0fe2e0d89a679d318c07fb486b15376e1a86dd5db925f",
+      "current_sha256": "4f3023766ab7a1862423be3199c7484388720de54d9e0b9b17ac0cc1990e01c7",
+      "reason": "迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据"
+    },
+    {
+      "path": "src/main/orcad/serve-profile-ssh-targets.ts",
+      "upstream_sha256": "f074d810fae792c56870fa09ff199e0700380fb4654f1d2e3408bf6aff8124e0",
+      "current_sha256": "d24188d4073a5035209dcc65f5a9c82750628919155dd98d7382ab1856b5ec77",
+      "reason": "迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据"
+    },
+    {
+      "path": "src/main/persistence/loading-store/user-data-path.ts",
+      "upstream_sha256": "885985e248ec6c79ee460204d3c778770b27dcfec1f96cbd9b7efcc74a4c99e8",
+      "current_sha256": "84b049733001b34d77ea6dacd7c7bbbda86940bf3f0894b4998ad948e1f12b59",
+      "reason": "迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据"
+    },
+    {
+      "path": "src/main/persistence/profile-state/profile-state-access.test.ts",
+      "upstream_sha256": "fc2c0fc9349a7d775e26730a770eb8629df140c947703f1a771cb96042e7aa8a",
+      "current_sha256": "76edc94f6ef1c93ba0f98acda6b5fa2c9cd3d1eabaf462fcdbbcadc15d572ce4",
+      "reason": "迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据"
+    },
+    {
+      "path": "src/main/persistence/profile-state/profile-state-active-location.ts",
+      "upstream_sha256": "064d6823f527233c6b6f7a773a381fa1ff40c435c1896fd6eca74584021a2261",
+      "current_sha256": "977f2772500fcbc0fa163f408931407c54741ee4dae2ca9abd0e88d7ce3735d3",
+      "reason": "迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据"
+    },
+    {
+      "path": "src/main/persistence/profile-state/profile-state-authority-bootstrap.test.ts",
+      "upstream_sha256": "2ab33bb0e96840c7b2e5e5852f6b6ca9b6105b81ff5fd17ef62e02421e00e642",
+      "current_sha256": "ace03a346f4a41b5601c1cce16c9e024d48b5f833b776db72429f6c3a3db0df5",
+      "reason": "迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据"
+    },
+    {
+      "path": "src/main/persistence/profile-state/profile-state-current-json-command.test.ts",
+      "upstream_sha256": "995a9d0e284b2746f1396e1d5c3ca0e05c79f810fd5400962ea10c7ed9f7fca1",
+      "current_sha256": "b83eab7bbf289cbe41920432b8e04eb01a7893f67ee0a251e7aa8fc7c2cbf7f3",
+      "reason": "迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据"
+    },
+    {
+      "path": "src/main/persistence/profile-state/profile-state-current-sqlite-command.test.ts",
+      "upstream_sha256": "c48acfcd9a61156dfbadfdc355bc021f83b4a07c17c6621cbaefcc68cb3902b0",
+      "current_sha256": "3d7db28d6c58ac2a937491fc6dc2f75be7fc88f4c0998d6a02e3c85d114c88ca",
+      "reason": "迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据"
+    },
+    {
+      "path": "src/main/persistence/profile-state/profile-state-database-recovery.test.ts",
+      "upstream_sha256": "ac520db7a63750e86949e037dbabb141f4379471d49b7b83e3544a29e9160196",
+      "current_sha256": "9436cd05f68a0b3c37914169f9dac813ed7e000e4d4fc2e423b3a7e0bad243e8",
+      "reason": "迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据"
+    },
+    {
+      "path": "src/main/persistence/profile-state/profile-state-database-rollback-export.test.ts",
+      "upstream_sha256": "f276444d3799c0f0b28e296992d9843bdf2332bc9d476b5408d9ef95f1ce6b8d",
+      "current_sha256": "aa57067205d3c9bb210f77f874952b3f4ba15f084a0253051c16f88dcedf3e9f",
+      "reason": "迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据"
+    },
+    {
+      "path": "src/main/persistence/profile-state/profile-state-large-recovery-crash.test.ts",
+      "upstream_sha256": "cded0323109826fb977b63edc2eb2bb814298e0553850ba355e4c4950f76e190",
+      "current_sha256": "936c67245adec6d3ba78ffba6a1cf1fa00bffbbeaf23bec22ee870847be33ec0",
+      "reason": "迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据"
+    },
+    {
+      "path": "src/main/persistence/profile-state/profile-state-recovery-command.ts",
+      "upstream_sha256": "fb98a322e21059511d97caa6b2ba5c0d39267995ea43d694974cbbf5854c7f14",
+      "current_sha256": "9507b6236d8620a0eb0624894a95326b084cff2d46fc561a9b5191a60557d134",
+      "reason": "迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据"
+    },
+    {
+      "path": "src/main/persistence/profile-state/profile-state-recovery-crash-boundaries.test.ts",
+      "upstream_sha256": "215ddb8a94c83f908bf9f53d9da0c5bee3a427e8df0fb956263654cc959d0452",
+      "current_sha256": "da1c31679e187434e81a9c69d6be13d12f779f3fb3f9b9820142ccbc28c5cbe6",
+      "reason": "迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据"
+    },
+    {
+      "path": "src/main/persistence/profile-state/profile-state-selected-profile-recovery.test.ts",
+      "upstream_sha256": "f2120ca047eaf8220bdd204a6f1ab060a47095cc307523b2913380de7460c80c",
+      "current_sha256": "a4ea5c5f879ef8b0cf0af8696f26f244e5580f9cc574fbe8d5a24329b32ebb5a",
+      "reason": "迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据"
+    },
+    {
+      "path": "src/main/startup/http1-compatibility-profile-state.ts",
+      "upstream_sha256": "d6429c34d3254fa71174d9a913f4d0250d504a1eb75f0b46500bd74f32518477",
+      "current_sha256": "ef8b781cf15f9987e4a0c9c50acaef235ec831850351c6ca591c106c5cfc6913",
+      "reason": "迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据"
+    },
+    {
+      "path": "src/shared/profile-state-storage-paths.ts",
+      "upstream_sha256": "0bfddb2b206051c346f7ed84de055b754dbc4d2d6c7fac1f1b7b9b361eb7f897",
+      "current_sha256": "fef13ad72f1dadfef20e0717a3f162aeb7099d5a685252a88f785da25c0c6ac9",
+      "reason": "迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据"
     }
   ],
   "reviewed_findings": [

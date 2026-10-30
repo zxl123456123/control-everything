@@ -33,7 +33,7 @@ import type { OrcadWindowsHostStateOp } from './orcad-windows-host-state-ops'
 import { pruneOrcadSnapshotsScript } from './orcad-state-snapshot-space'
 import {
   ORCAD_SNAPSHOT_FAILURE,
-  ORCAD_SNAPSHOT_MEMBERS,
+  posixSnapshotMembersFunction,
   ORCAD_STATE_MUTATION_BUSY,
   ORCAD_STATE_MUTATION_DEADLINE,
   ORCAD_STATE_MUTATION_FENCE_HEARTBEAT_SECONDS,
@@ -45,21 +45,6 @@ import {
   posixStateMutationGroupRecord,
   posixStateMutationPidRecord
 } from './orcad-state-mutation-owner-record'
-
-/**
- * The member names go into the commands' `for` lists unquoted, so they must be inert. They are
- * compile-time constants; this catches the edit that adds one with a space or a metacharacter.
- * Why one loop over the names rather than a test per member: every path is then sent once, which
- * keeps each op under the gateway exec limit (#30491).
- */
-function plainMemberWords(): string {
-  for (const member of ORCAD_SNAPSHOT_MEMBERS) {
-    if (!/^[A-Za-z0-9._-]+$/.test(member)) {
-      throw new Error(`Unsafe orcad snapshot member name: ${JSON.stringify(member)}`)
-    }
-  }
-  return ORCAD_SNAPSHOT_MEMBERS.join(' ')
-}
 
 /** The Windows host-script op, or null on POSIX; `baseDir` is `~/.orca-remote`. */
 function windowsStateCommand(
@@ -178,11 +163,12 @@ export function captureOrcadStateSnapshotCommand(
     baseDir,
     [
       `root=${quotePosixShell(userDataDir)}; dir=${quotePosixShell(snapshotDir)};`,
+      posixSnapshotMembersFunction(),
       `archive="$dir"/state.tar;`,
       `snapshot_fail() { printf '${ORCAD_SNAPSHOT_FAILURE} %s\\n' "$(printf %s "$1" | tr '\\n' ' ' | cut -c 1-400)"; echo FAILED; exit 0; };`,
       prune ? pruneOrcadSnapshotsScript(prune.snapshotsRoot, prune.keep) : '',
       // Why `$members` is re-split bare: a quoted name would reach tar as one literal word.
-      `members=; for m in ${plainMemberWords()}; do`,
+      'members=; for m in $(snapshot_members "$root"); do',
       'if [ -e "$root/$m" ] || [ -L "$root/$m" ]; then',
       'links=$(find "$root/$m" -type l -print 2>&1) && [ -z "$links" ] ||',
       'snapshot_fail "$m holds a symbolic link or an entry Orca cannot read: $links";',
@@ -265,11 +251,11 @@ export function restoreOrcadStateSnapshotCommand(
   if (windows) {
     return windows
   }
-  const members = plainMemberWords()
   return serializedStateMutationCommand(
     baseDir,
     [
       `root=${quotePosixShell(userDataDir)};`,
+      posixSnapshotMembersFunction(),
       `archive=${quotePosixShell(joinRemotePath(host, snapshotDir, 'state.tar'))};`,
       `stage="$root"/${ORCAD_STATE_RESTORE_STAGE_DIRNAME};`,
       'test -f "$archive" || { echo MISSING; exit 0; };',
@@ -279,10 +265,10 @@ export function restoreOrcadStateSnapshotCommand(
       'rm -rf "$stage"; mkdir -p "$stage" || { echo FAILED; exit 0; };',
       // Extraction proves every archived byte is readable before live state is removed.
       'tar -C "$stage" -xf "$archive" 2>/dev/null || { rm -rf "$stage"; echo FAILED; exit 0; };',
-      `ok=; for m in ${members}; do [ -e "$stage/$m" ] && ok=1; done;`,
+      'members=$(snapshot_members "$root" "$stage"); ok=; for m in $members; do [ -e "$stage/$m" ] && ok=1; done;',
       '[ -n "$ok" ] || { rm -rf "$stage"; echo FAILED; exit 0; };',
-      removeMembersCommand(members),
-      `[ -n "$ok" ] && for m in ${members}; do`,
+      removeMembersCommand('$members'),
+      '[ -n "$ok" ] && for m in $members; do',
       '[ ! -e "$stage/$m" ] || mv "$stage/$m" "$root/$m" || { ok=; break; }; done;',
       'if [ -n "$ok" ]; then rm -rf "$stage"; echo RESTORED; else echo FAILED; fi'
     ].join(' ')
@@ -303,7 +289,9 @@ export function clearOrcadStateSnapshotMembersCommand(
     baseDir,
     [
       `root=${quotePosixShell(userDataDir)}; test -d "$root" || mkdir -p "$root"; ok=1;`,
-      removeMembersCommand(plainMemberWords()),
+      posixSnapshotMembersFunction(),
+      'members=$(snapshot_members "$root");',
+      removeMembersCommand('$members'),
       'if [ -n "$ok" ]; then echo RESTORED; else echo FAILED; fi'
     ].join(' ')
   )
@@ -338,6 +326,7 @@ export function compareOrcadStateSnapshotCommand(
   const unknown = '{ echo UNKNOWN; exit 0; };'
   return [
     `root=${quotePosixShell(userDataDir)}; dir=${quotePosixShell(snapshotDir)};`,
+    posixSnapshotMembersFunction(),
     `archive="$dir"/state.tar;`,
     `test -d "$root" && test -r "$root" && test -x "$root" || ${unknown}`,
     `test -f "$archive" || ${unknown}`,
@@ -345,7 +334,7 @@ export function compareOrcadStateSnapshotCommand(
     `trap 'rm -rf "$comparison"' EXIT HUP INT TERM;`,
     `tar -C "$comparison" -xf "$archive" || ${unknown}`,
     `links=$(find "$comparison" -type l -print) && [ -z "$links" ] || ${unknown}`,
-    `verdict=UNCHANGED; for m in ${plainMemberWords()}; do`,
+    'verdict=UNCHANGED; for m in $(snapshot_members "$root" "$comparison"); do',
     'if [ -e "$root/$m" ] || [ -L "$root/$m" ]; then',
     `links=$(find "$root/$m" -type l -print) && [ -z "$links" ] || ${unknown}`,
     'diff -r "$root/$m" "$comparison/$m" >/dev/null 2>&1 || verdict=CHANGED;',

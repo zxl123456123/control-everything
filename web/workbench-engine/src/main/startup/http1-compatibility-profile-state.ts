@@ -4,6 +4,7 @@ import { profileStateJsonExportPaths } from '../persistence/profile-state/legacy
 import { hasProfileStateAuthorityMarker } from '../persistence/profile-state/profile-state-authority-marker'
 import { profileStateDatabaseBackups } from '../persistence/profile-state/profile-state-backup-path'
 import { hasProfileStateDatabaseFiles } from '../persistence/profile-state/profile-state-storage-classification'
+import { profileStateDataFileForRead } from '../persistence/profile-state/profile-state-data-name-migration'
 
 // Keep the pre-ready graph small; this stable ID mirrors DEFAULT_LOCAL_ORCA_PROFILE_ID.
 const DEFAULT_LOCAL_PROFILE_ID = 'local-default'
@@ -45,10 +46,17 @@ export function readPersistedHttp1CompatibilityMode(userDataPath: string): boole
     return false
   }
 
-  const profileDataFile =
-    activeProfileId === undefined
-      ? undefined
-      : join(userDataPath, 'profiles', activeProfileId, 'orca-data.json')
+  let profileDataFile: string | undefined
+  let dataFile: string
+  try {
+    profileDataFile =
+      activeProfileId === undefined
+        ? undefined
+        : profileStateDataFileForRead(join(userDataPath, 'profiles', activeProfileId))
+    dataFile = profileDataFile ?? profileStateDataFileForRead(userDataPath)
+  } catch {
+    return false
+  }
   const profileDatabaseFile =
     activeProfileId === undefined
       ? undefined
@@ -67,7 +75,6 @@ export function readPersistedHttp1CompatibilityMode(userDataPath: string): boole
     // install-level legacy file belongs to another profile and must not leak.
     return false
   }
-  const dataFile = profileDataFile ?? join(userDataPath, 'orca-data.json')
   // Lost SQLite authority must not revive stale JSON in the pre-ready path.
   try {
     if (
@@ -109,8 +116,8 @@ export function hasMissingProfileStateDatabaseWithRetainedAuthority(
   if (hasProfileStateDatabaseFiles(databaseFile)) {
     return false
   }
-  const dataFile = join(profileDirectory, 'orca-data.json')
   try {
+    const dataFile = profileStateDataFileForRead(profileDirectory)
     return (
       hasProfileStateAuthorityMarker(databaseFile) ||
       profileStateJsonExportPaths(dataFile).length > 0 ||

@@ -12,7 +12,10 @@ import {
   getProfileStateExports,
   rollbackProfileState
 } from '../../main/persistence/profile-state/profile-state-recovery-command'
-import { acquireProfileStateMaintenance } from '../../main/persistence/profile-state/profile-state-access'
+import {
+  acquireProfileStateMaintenance,
+  acquireProfileStateRuntimeAdmission
+} from '../../main/persistence/profile-state/profile-state-access'
 import {
   isProfileStateRecoveryCommandError,
   type ProfileStateExportsResult,
@@ -110,10 +113,16 @@ function parseRevision(flags: Map<string, string | boolean>): number {
 export const PROFILE_STATE_HANDLERS: Record<string, CommandHandler> = {
   'profile state exports': async ({ flags, json }) => {
     rejectProfileStateRemoteSelection(flags)
-    const result = translateRecoveryError(() =>
-      getProfileStateExports(getDefaultUserDataPath(), parseProfileId(flags))
-    )
-    printResult(localSuccess(result), json, formatExports)
+    const userDataPath = getDefaultUserDataPath()
+    const admission = acquireProfileStateRuntimeAdmission(userDataPath)
+    try {
+      const result = translateRecoveryError(() =>
+        getProfileStateExports(userDataPath, parseProfileId(flags))
+      )
+      printResult(localSuccess(result), json, formatExports)
+    } finally {
+      admission.release()
+    }
   },
   'profile state rollback': async ({ client, flags, json }) => {
     rejectProfileStateRemoteSelection(flags)
