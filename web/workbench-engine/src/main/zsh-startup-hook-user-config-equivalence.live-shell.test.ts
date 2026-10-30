@@ -310,16 +310,16 @@ describe.skipIf(process.platform === 'win32')('the fixes the old wrapper was bui
   let previousUserDataPath: string | undefined
 
   beforeAll(() => {
-    previousUserDataPath = process.env.ORCA_USER_DATA_PATH
+    previousUserDataPath = process.env.ZKYQ_USER_DATA_PATH
     userDataPath = mkdtempSync(join(tmpdir(), 'orca-hook-regression-'))
-    process.env.ORCA_USER_DATA_PATH = userDataPath
+    process.env.ZKYQ_USER_DATA_PATH = userDataPath
   })
 
   afterAll(() => {
     if (previousUserDataPath === undefined) {
-      delete process.env.ORCA_USER_DATA_PATH
+      delete process.env.ZKYQ_USER_DATA_PATH
     } else {
-      process.env.ORCA_USER_DATA_PATH = previousUserDataPath
+      process.env.ZKYQ_USER_DATA_PATH = previousUserDataPath
     }
     rmSync(userDataPath, { recursive: true, force: true })
   })

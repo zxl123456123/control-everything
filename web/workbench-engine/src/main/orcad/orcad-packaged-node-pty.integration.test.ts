@@ -81,7 +81,7 @@ describe.skipIf(skip)('packaged node-pty under the pinned Node', () => {
           ...process.env,
           ORCA_BACKGROUND_LAUNCH: '1',
           ORCA_DISABLE_MACOS_LOGIN_SHELL: '1',
-          ORCA_USER_DATA_PATH: directory
+          ZKYQ_USER_DATA_PATH: directory
         },
         timeoutMs: 15_000,
         terminationBarrier: true

@@ -173,7 +173,7 @@ describe('CodexStructuredSessionAdapter.acquire', () => {
           'shell_environment_policy.set.ORCA_CLI_COMMAND': expect.stringMatching(
             /^[^:;]*[\\/]cli[\\/]bin[\\/]zkyq-dev$/
           ),
-          'shell_environment_policy.set.ORCA_USER_DATA_PATH': expect.any(String),
+          'shell_environment_policy.set.ZKYQ_USER_DATA_PATH': expect.any(String),
           'shell_environment_policy.set.ORCA_ENVIRONMENT': '',
           'shell_environment_policy.set.ORCA_PAIRING_CODE': '',
           'shell_environment_policy.set.ORCA_REMOTE_PAIRING': ''

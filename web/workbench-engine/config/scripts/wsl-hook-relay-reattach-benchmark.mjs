@@ -294,7 +294,7 @@ async function main() {
   let staller = null
   try {
     userDataDir = mkdtempSync(join(tmpdir(), 'orca-wsl-relay-bench-'))
-    process.env.ORCA_USER_DATA_PATH = userDataDir
+    process.env.ZKYQ_USER_DATA_PATH = userDataDir
     const jiti = createJiti(import.meta.url, {
       alias: {
         electron: fileURLToPath(

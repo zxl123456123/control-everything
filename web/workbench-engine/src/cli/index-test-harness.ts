@@ -111,7 +111,7 @@ export function pairRuntimeEnvironment(listEnvironmentsMock: Mock, id: string, n
 /** Installs the env-var save/restore + mock-reset hooks shared by the CLI worktree-awareness suites. */
 export function useWorktreeAwarenessEnvironment(mocks: WorktreeAwarenessMocks): void {
   const originalTerminalHandle = process.env.ORCA_TERMINAL_HANDLE
-  const originalUserDataPath = process.env.ORCA_USER_DATA_PATH
+  const originalUserDataPath = process.env.ZKYQ_USER_DATA_PATH
   const originalDevCliInvocation = process.env.ORCA_DEV_CLI_INVOCATION
   const originalPairingCode = process.env.ORCA_PAIRING_CODE
   const originalRemotePairing = process.env.ORCA_REMOTE_PAIRING
@@ -122,7 +122,7 @@ export function useWorktreeAwarenessEnvironment(mocks: WorktreeAwarenessMocks): 
   beforeEach(() => {
     mocks.callMock.mockReset()
     delete process.env.ORCA_TERMINAL_HANDLE
-    delete process.env.ORCA_USER_DATA_PATH
+    delete process.env.ZKYQ_USER_DATA_PATH
     delete process.env.ORCA_DEV_CLI_INVOCATION
     delete process.env.ORCA_WORKSPACE_ID
     delete process.env.ORCA_WORKTREE_ID
@@ -164,9 +164,9 @@ export function useWorktreeAwarenessEnvironment(mocks: WorktreeAwarenessMocks): 
       process.env.ORCA_TERMINAL_HANDLE = originalTerminalHandle
     }
     if (originalUserDataPath === undefined) {
-      delete process.env.ORCA_USER_DATA_PATH
+      delete process.env.ZKYQ_USER_DATA_PATH
     } else {
-      process.env.ORCA_USER_DATA_PATH = originalUserDataPath
+      process.env.ZKYQ_USER_DATA_PATH = originalUserDataPath
     }
     if (originalDevCliInvocation === undefined) {
       delete process.env.ORCA_DEV_CLI_INVOCATION

@@ -339,7 +339,7 @@ describe.skipIf(skip || process.platform === 'win32')('packaged plain-Node struc
         HOME: home,
         ORCA_AGENT_SESSION_ID: sessionId,
         ORCA_STRUCTURED_SESSION: '1',
-        ORCA_USER_DATA_PATH: userData,
+        ZKYQ_USER_DATA_PATH: userData,
         ORCA_SDK_CONTRACT_SCENARIO_PATH: scenarioPath,
         ORCA_SDK_CONTRACT_REPORT_PATH: reportPath
       })

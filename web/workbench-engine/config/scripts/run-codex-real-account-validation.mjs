@@ -37,7 +37,7 @@ const RESTRICTED_ENV_KEYS = [
   'ORCA_CODEX_HOME',
   'ORCA_E2E_HOME_DIR',
   'ORCA_E2E_USER_DATA_DIR',
-  'ORCA_USER_DATA_PATH',
+  'ZKYQ_USER_DATA_PATH',
   'ZDOTDIR',
   'ORCA_ORIG_ZDOTDIR',
   'BASH_ENV',
@@ -80,7 +80,7 @@ export function createValidationEnv(inheritedEnv, layout) {
     NODE_ENV: 'development',
     ORCA_E2E_HOME_DIR: layout.homeDir,
     ORCA_E2E_USER_DATA_DIR: layout.userDataDir,
-    ORCA_USER_DATA_PATH: layout.userDataDir
+    ZKYQ_USER_DATA_PATH: layout.userDataDir
   }
 }
 

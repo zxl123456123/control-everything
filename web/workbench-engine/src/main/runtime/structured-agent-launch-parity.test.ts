@@ -333,7 +333,7 @@ function inheritedEnvironment(): Record<string, string> {
     [LEGACY_NATIVE_CHAT_VISUALS_DIR_ENV]: '/parent/visuals',
     ORCA_CLI_COMMAND: '/parent/orca',
     ORCA_CLI_BIN_DIR: '/parent/bin',
-    ORCA_USER_DATA_PATH: '/parent/user-data',
+    ZKYQ_USER_DATA_PATH: '/parent/user-data',
     ORCA_OPENCODE_CONFIG_DIR: '/parent/opencode-overlay',
     ORCA_DATA_ACCOUNT_PROVIDER: 'parent-account',
     CLAUDE_CONFIG_DIR: '/parent/claude',

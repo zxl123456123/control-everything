@@ -85,8 +85,8 @@ async function waitForPairingRuntime({ child, userData, pairingAddress, logSucce
     process: child,
     env: {
       ...process.env,
-      ORCA_USER_DATA_PATH: userData,
-      // Why: `orca-dev` derives its own profile and ignores ORCA_USER_DATA_PATH, so
+      ZKYQ_USER_DATA_PATH: userData,
+      // Why: `orca-dev` derives its own profile and ignores ZKYQ_USER_DATA_PATH, so
       // without this an ORCA_CLI=orca-dev run would address the dev profile instead
       // of this disposable runtime. Plain `orca` ignores it.
       ORCA_DEV_USER_DATA_PATH: userData

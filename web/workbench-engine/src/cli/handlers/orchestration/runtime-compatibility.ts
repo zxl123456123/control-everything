@@ -40,6 +40,6 @@ export async function flushOrchestrationStdout(): Promise<void> {
 export function isDevCliInvocation(): boolean {
   return (
     process.env.ORCA_DEV_CLI_INVOCATION === '1' ||
-    (process.env.ORCA_USER_DATA_PATH?.includes('orca-dev') ?? false)
+    (process.env.ZKYQ_USER_DATA_PATH?.includes('orca-dev') ?? false)
   )
 }

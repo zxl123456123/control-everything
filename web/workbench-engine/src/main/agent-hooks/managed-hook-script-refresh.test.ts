@@ -23,16 +23,16 @@ let isolatedUserDataDir = ''
 let previousUserDataPath: string | undefined
 
 beforeEach(() => {
-  previousUserDataPath = process.env.ORCA_USER_DATA_PATH
+  previousUserDataPath = process.env.ZKYQ_USER_DATA_PATH
   isolatedUserDataDir = mkdtempSync(join(tmpdir(), 'orca-hook-refresh-user-data-'))
-  process.env.ORCA_USER_DATA_PATH = isolatedUserDataDir
+  process.env.ZKYQ_USER_DATA_PATH = isolatedUserDataDir
 })
 
 afterEach(() => {
   if (previousUserDataPath === undefined) {
-    delete process.env.ORCA_USER_DATA_PATH
+    delete process.env.ZKYQ_USER_DATA_PATH
   } else {
-    process.env.ORCA_USER_DATA_PATH = previousUserDataPath
+    process.env.ZKYQ_USER_DATA_PATH = previousUserDataPath
   }
   rmSync(isolatedUserDataDir, { recursive: true, force: true })
 })

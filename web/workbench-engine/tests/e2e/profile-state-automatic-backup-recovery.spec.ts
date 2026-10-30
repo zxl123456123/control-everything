@@ -25,7 +25,7 @@ function readSnapshot(databasePath: string) {
 function rollbackProfileBackup(userDataDir: string, backupId: string, executable?: string) {
   const cliIsolation = createElectronHomeIsolation({
     inheritedEnv: process.env,
-    launchEnv: { ORCA_USER_DATA_PATH: userDataDir, ORCA_BACKGROUND_LAUNCH: '1' },
+    launchEnv: { ZKYQ_USER_DATA_PATH: userDataDir, ORCA_BACKGROUND_LAUNCH: '1' },
     extraEnv: {
       ...(executable
         ? { ORCA_APP_EXECUTABLE: executable, ORCA_APP_EXECUTABLE_NEEDS_APP_ROOT: '1' }

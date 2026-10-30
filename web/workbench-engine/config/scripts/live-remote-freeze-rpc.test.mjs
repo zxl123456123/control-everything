@@ -17,5 +17,5 @@ it('keeps Windows source invocation in the selected development profile', () => 
   })
   expect(invocation.command).toBe('node.exe')
   expect(invocation.prefixArgs).toEqual([win32.join(repo, 'out/cli/index.js')])
-  expect(invocation.env).toMatchObject({ ORCA_USER_DATA_PATH: profile, ORCA_CLI_COMMAND: 'zkyq-dev', ORCA_DEV_CLI_INVOCATION: '1' })
+  expect(invocation.env).toMatchObject({ ZKYQ_USER_DATA_PATH: profile, ORCA_CLI_COMMAND: 'zkyq-dev', ORCA_DEV_CLI_INVOCATION: '1' })
 })

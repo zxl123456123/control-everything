@@ -101,7 +101,7 @@ def workbench_environment(data_root, node, git, origin, ambient=None, *, remote_
            "CLAUDE_CONFIG_DIR": str(home / "claude"), "XDG_CONFIG_HOME": str(home / ".config"),
            "XDG_DATA_HOME": str(home / ".local/share"), "XDG_CACHE_HOME": str(home / ".cache"),
            "TEMP": str(data_root / "tmp"), "TMP": str(data_root / "tmp"), "TMPDIR": str(data_root / "tmp"),
-           "ZKYQ_USER_DATA": str(data_root / "state"), "ORCA_USER_DATA_PATH": str(data_root / "state"),
+           "ZKYQ_USER_DATA": str(data_root / "state"), "ZKYQ_USER_DATA_PATH": str(data_root / "state"),
            "ORCA_BACKGROUND_LAUNCH": "1", "ORCA_DISABLE_MACOS_LOGIN_SHELL": "1",
            "DO_NOT_TRACK": "1", "ORCA_TELEMETRY_DISABLED": "1", "CE_WORKBENCH_ISOLATED": "1",
            "CE_WORKBENCH_ORIGIN": loopback_origin(origin), "GIT_CONFIG_NOSYSTEM": "1",
@@ -110,7 +110,7 @@ def workbench_environment(data_root, node, git, origin, ambient=None, *, remote_
         # Desktop terminals use the user's tools and configuration in place. Only
         # product state and transport ownership belong to the managed runtime.
         owned = {key: env[key] for key in (
-            "ZKYQ_USER_DATA", "ORCA_USER_DATA_PATH", "ORCA_BACKGROUND_LAUNCH",
+            "ZKYQ_USER_DATA", "ZKYQ_USER_DATA_PATH", "ORCA_BACKGROUND_LAUNCH",
             "ORCA_DISABLE_MACOS_LOGIN_SHELL", "DO_NOT_TRACK", "ORCA_TELEMETRY_DISABLED",
             "CE_WORKBENCH_ISOLATED", "CE_WORKBENCH_ORIGIN")}
         fallback_path = env["PATH"]
@@ -118,7 +118,7 @@ def workbench_environment(data_root, node, git, origin, ambient=None, *, remote_
         env.update(owned)
         env["PATH"] = os.pathsep.join(filter(None, (ambient.get("PATH"), fallback_path)))
         env["CE_WORKBENCH_HOST_ENVIRONMENT"] = "1"
-        controlled = {"ORCA_USER_DATA", "CE_WORKBENCH_CREDENTIAL_ROOT", "CE_WORKBENCH_PUBLIC_ORIGIN", "CE_WORKBENCH_DEVICE_PROOF",
+        controlled = {"ORCA_USER_DATA", "ORCA_USER_DATA_PATH", "CE_WORKBENCH_CREDENTIAL_ROOT", "CE_WORKBENCH_PUBLIC_ORIGIN", "CE_WORKBENCH_DEVICE_PROOF",
                       "CE_REMOTE_DEVICE_ID", "CE_REMOTE_GENERATION", "CE_REMOTE_INSTALLATION_ID"}
         for key in tuple(env):
             if key.upper() in controlled:

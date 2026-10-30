@@ -171,8 +171,8 @@ describeWindows('Windows Codex shell preflight runtime', () => {
     const preflightMarker = join(root, 'git-bash-preflight-ran')
     const codexMarker = join(root, 'git-bash-codex-ran')
     const codexPathMarker = join(root, 'git-bash-codex-path')
-    const previousUserDataPath = process.env.ORCA_USER_DATA_PATH
-    process.env.ORCA_USER_DATA_PATH = join(root, 'user data')
+    const previousUserDataPath = process.env.ZKYQ_USER_DATA_PATH
+    process.env.ZKYQ_USER_DATA_PATH = join(root, 'user data')
 
     try {
       const resolved = resolveWindowsShellLaunchArgs(
@@ -207,9 +207,9 @@ describeWindows('Windows Codex shell preflight runtime', () => {
       })
     } finally {
       if (previousUserDataPath === undefined) {
-        delete process.env.ORCA_USER_DATA_PATH
+        delete process.env.ZKYQ_USER_DATA_PATH
       } else {
-        process.env.ORCA_USER_DATA_PATH = previousUserDataPath
+        process.env.ZKYQ_USER_DATA_PATH = previousUserDataPath
       }
     }
 

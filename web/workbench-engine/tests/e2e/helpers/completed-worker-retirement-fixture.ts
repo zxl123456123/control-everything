@@ -158,7 +158,7 @@ export function runBuiltOrcaCli(
   const {
     ORCA_ENVIRONMENT: _environment,
     ORCA_PAIRING_CODE: _pairingCode,
-    ORCA_USER_DATA_PATH: _userDataPath,
+    ZKYQ_USER_DATA_PATH: _userDataPath,
     ...cleanEnv
   } = process.env
   void _environment
@@ -169,7 +169,7 @@ export function runBuiltOrcaCli(
     [path.join(process.cwd(), 'out', 'cli', 'index.js'), ...args],
     {
       cwd: options.cwd,
-      env: { ...cleanEnv, ORCA_USER_DATA_PATH: options.userDataDir },
+      env: { ...cleanEnv, ZKYQ_USER_DATA_PATH: options.userDataDir },
       encoding: 'utf8',
       timeout: 30_000
     }

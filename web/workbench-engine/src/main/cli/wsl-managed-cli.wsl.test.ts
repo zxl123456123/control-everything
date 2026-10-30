@@ -13,7 +13,7 @@ import { buildLocalShellReadyWrapperFiles } from '../providers/local-pty-shell-r
 // Explicit opt-in: never require a developer's WSL installation for unit tests.
 const enabled = process.platform === 'win32' && process.env.ORCA_TEST_MANAGED_WSL === '1'
 const FIXTURE_CLI =
-  'if(process.argv.includes("--exit"))process.exit(23); console.error("bridge stderr"); console.log(JSON.stringify({argv:process.argv.slice(2),owner:process.env.ORCA_USER_DATA_PATH,handle:process.env.ORCA_TERMINAL_HANDLE}))'
+  'if(process.argv.includes("--exit"))process.exit(23); console.error("bridge stderr"); console.log(JSON.stringify({argv:process.argv.slice(2),owner:process.env.ZKYQ_USER_DATA_PATH,handle:process.env.ORCA_TERMINAL_HANDLE}))'
 
 async function withManagedCli(
   run: (fixture: {

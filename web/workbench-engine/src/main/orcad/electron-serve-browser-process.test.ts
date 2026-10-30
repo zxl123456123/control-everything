@@ -210,7 +210,7 @@ describe('ElectronServeBrowserProcess start-up', () => {
       vi.stubEnv(key, `leaked-${key}`)
     }
     vi.stubEnv('ORCA_HARNESS_UNRELATED', 'preserved')
-    for (const key of ['ORCA_E2E_USER_DATA_DIR', 'ZKYQ_USER_DATA', 'ORCA_USER_DATA', 'ORCA_USER_DATA_PATH']) {
+    for (const key of ['ORCA_E2E_USER_DATA_DIR', 'ZKYQ_USER_DATA', 'ORCA_USER_DATA', 'ZKYQ_USER_DATA_PATH']) {
       vi.stubEnv(key, harnessRoot)
     }
     const isolatedHome = join(harnessRoot, 'home')
@@ -242,7 +242,7 @@ describe('ElectronServeBrowserProcess start-up', () => {
       expect(spec.env).not.toHaveProperty(key)
     }
     expect(spec.env?.ORCA_HARNESS_UNRELATED).toBe('preserved')
-    for (const key of ['ZKYQ_USER_DATA', 'ORCA_USER_DATA', 'ORCA_USER_DATA_PATH']) {
+    for (const key of ['ZKYQ_USER_DATA', 'ORCA_USER_DATA', 'ZKYQ_USER_DATA_PATH']) {
       expect(spec.env).not.toHaveProperty(key)
     }
     expect(spec.env?.ORCA_E2E_USER_DATA_DIR).toBe(userDataArg?.slice('--user-data-dir='.length))

@@ -531,13 +531,13 @@ describe('the orchestration envelope', () => {
     // A login shell can put another install's `orca` first, and the packaged Windows launcher
     // rewrites ORCA_CLI_COMMAND in its own process. Neither matters: the id rides the envelope
     // and the pinned instance is the one dialed.
-    vi.stubEnv('ORCA_USER_DATA_PATH', '/data/session-orca')
+    vi.stubEnv('ZKYQ_USER_DATA_PATH', '/data/session-orca')
     try {
       const envelope = createOrchestrationCompatibilityEnvelope({
         ORCA_AGENT_SESSION_ID: SESSION,
         ORCA_CLI_COMMAND: 'orca',
         ORCA_WINDOWS_PACKAGED_CLI_LAUNCHER: '1',
-        ORCA_USER_DATA_PATH: '/data/session-orca'
+        ZKYQ_USER_DATA_PATH: '/data/session-orca'
       })
 
       expect(envelope.orchestrationCompatibilityEvidence).toEqual({ agentSessionId: SESSION })

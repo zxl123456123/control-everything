@@ -38,7 +38,7 @@ describe('orca serve service', () => {
     platform,
     env: {
       PATH: `/nonexistent:${bin}`,
-      ORCA_USER_DATA_PATH: join(home, 'profile'),
+      ZKYQ_USER_DATA_PATH: join(home, 'profile'),
       ELECTRON_RUN_AS_NODE: '1'
     },
     homeDir: home,
@@ -126,7 +126,7 @@ describe('orca serve service', () => {
     expect(
       resolveServiceCommand(null, {
         platform: 'darwin',
-        env: { PATH: `${scoped}:${bin}`, ORCA_USER_DATA_PATH: join(home, 'profile') }
+        env: { PATH: `${scoped}:${bin}`, ZKYQ_USER_DATA_PATH: join(home, 'profile') }
       })
     ).toBe(join(bin, 'orca'))
     // Linux takes only orca-ide, never a bare `orca` (often the screen reader).
@@ -137,7 +137,7 @@ describe('orca serve service', () => {
     expect(() =>
       resolveServiceCommand(null, {
         platform: 'linux',
-        env: { PATH: onlyOrca, ORCA_USER_DATA_PATH: join(home, 'profile') }
+        env: { PATH: onlyOrca, ZKYQ_USER_DATA_PATH: join(home, 'profile') }
       })
     ).toThrow(/PATH/)
   })
@@ -189,7 +189,7 @@ describe('orca serve service', () => {
     expect(() =>
       resolveServiceCommand(join(scoped, 'orca'), {
         platform: 'darwin',
-        env: { ORCA_USER_DATA_PATH: join(home, 'profile') }
+        env: { ZKYQ_USER_DATA_PATH: join(home, 'profile') }
       })
     ).toThrow(/one Orca version/)
   })

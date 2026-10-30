@@ -53,8 +53,8 @@ beforeEach(() => {
   delete process.env.ORCA_DISABLE_CODEX_TRUST_RPC
   tmpHome = mkdtempSync(join(tmpdir(), 'orca-codex-home-'))
   userDataDir = mkdtempSync(join(tmpdir(), 'orca-codex-user-data-'))
-  previousUserDataPath = process.env.ORCA_USER_DATA_PATH
-  process.env.ORCA_USER_DATA_PATH = userDataDir
+  previousUserDataPath = process.env.ZKYQ_USER_DATA_PATH
+  process.env.ZKYQ_USER_DATA_PATH = userDataDir
   homedirMock.mockReturnValue(tmpHome)
   resolveCodexCommandMock.mockReturnValue(process.execPath)
   getPathMock.mockImplementation((name: string) => {
@@ -79,9 +79,9 @@ afterEach(() => {
   rmSync(tmpHome, { recursive: true, force: true })
   rmSync(userDataDir, { recursive: true, force: true })
   if (previousUserDataPath === undefined) {
-    delete process.env.ORCA_USER_DATA_PATH
+    delete process.env.ZKYQ_USER_DATA_PATH
   } else {
-    process.env.ORCA_USER_DATA_PATH = previousUserDataPath
+    process.env.ZKYQ_USER_DATA_PATH = previousUserDataPath
   }
   vi.clearAllMocks()
 })

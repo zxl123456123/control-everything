@@ -24,14 +24,14 @@ vi.mock('node:os', async () => {
   return { ...actual, homedir: () => homes.current }
 })
 vi.mock('electron', () => ({
-  app: { getPath: () => process.env.ORCA_USER_DATA_PATH }
+  app: { getPath: () => process.env.ZKYQ_USER_DATA_PATH }
 }))
 vi.mock('../runtime-client', () => ({
   RuntimeClient: class {
     call = call
   },
   RuntimeClientError: Error,
-  getDefaultUserDataPath: () => process.env.ORCA_USER_DATA_PATH
+  getDefaultUserDataPath: () => process.env.ZKYQ_USER_DATA_PATH
 }))
 
 import { main } from '../index'
@@ -86,7 +86,7 @@ beforeEach(() => {
     writeFileSync(join(home, '.codex', 'config.toml'), 'model = "user-model"\n')
     writeFileSync(join(home, '.orca', 'agent-hooks', SCRIPT_NAME), '# another Orca wrote this\n')
   }
-  vi.stubEnv('ORCA_USER_DATA_PATH', appUserData)
+  vi.stubEnv('ZKYQ_USER_DATA_PATH', appUserData)
   vi.stubEnv('CODEX_HOME', managedHome)
   vi.stubEnv('ORCA_CODEX_HOME', managedHome)
   vi.stubEnv('WSL_DISTRO_NAME', '')

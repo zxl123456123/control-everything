@@ -48,7 +48,7 @@ function isExistingDirectory(path: string | undefined): path is string {
 }
 
 function repairDaemonCwd(): string | null {
-  const candidates = [process.env.ORCA_USER_DATA_PATH]
+  const candidates = [process.env.ZKYQ_USER_DATA_PATH]
   try {
     candidates.push(resolveSafePtyDefaultCwd())
   } catch {
@@ -175,8 +175,8 @@ export async function runPtySpawnHealthProbe(
       'Terminal daemon asynchronous I/O is stalled; restart the terminal daemon.'
     )
   }
-  const cwd = isExistingDirectory(process.env.ORCA_USER_DATA_PATH)
-    ? process.env.ORCA_USER_DATA_PATH
+  const cwd = isExistingDirectory(process.env.ZKYQ_USER_DATA_PATH)
+    ? process.env.ZKYQ_USER_DATA_PATH
     : resolveSafePtyDefaultCwd()
   const command =
     process.platform === 'win32'

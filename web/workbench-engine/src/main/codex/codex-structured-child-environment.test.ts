@@ -70,7 +70,7 @@ describe('the Codex child environment', () => {
       ...(process.platform !== 'win32'
         ? { ORCA_CLI_BIN_DIR: expect.stringMatching(DEV_CLI_BIN_DIR) }
         : {}),
-      ORCA_USER_DATA_PATH: expect.any(String),
+      ZKYQ_USER_DATA_PATH: expect.any(String),
       ORCA_ENVIRONMENT: '',
       ORCA_PAIRING_CODE: '',
       ORCA_REMOTE_PAIRING: '',
@@ -90,7 +90,7 @@ describe('the Codex child environment', () => {
       ...(process.platform !== 'win32'
         ? { ORCA_CLI_BIN_DIR: expect.stringMatching(DEV_CLI_BIN_DIR) }
         : {}),
-      ORCA_USER_DATA_PATH: expect.any(String),
+      ZKYQ_USER_DATA_PATH: expect.any(String),
       ORCA_ENVIRONMENT: '',
       ORCA_PAIRING_CODE: '',
       ORCA_REMOTE_PAIRING: '',

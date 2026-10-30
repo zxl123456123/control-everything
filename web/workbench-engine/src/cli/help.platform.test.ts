@@ -36,7 +36,7 @@ it('preserves technical syntax, file paths, attribution and external URLs', asyn
   const preserved = [
     'orca://pair?name=Orca',
     'https://example.invalid/Orca?name=Orca',
-    'orca.yaml .orca ORCA_USER_DATA_PATH',
+    'orca.yaml .orca ZKYQ_USER_DATA_PATH',
     String.raw`C:\example\Orca\orca.exe`,
     String.raw`"C:\example\My Orca project\orca.exe"`,
     '`/home/my Orca project/orca`',

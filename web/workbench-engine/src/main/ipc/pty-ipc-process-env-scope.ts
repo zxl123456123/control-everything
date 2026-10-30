@@ -17,7 +17,7 @@ export function createPtyIpcProcessEnvScope() {
   const savedOrcaClaudeAgentStatusSettings = process.env.ORCA_CLAUDE_AGENT_STATUS_SETTINGS
   const savedProcessPlatform = Object.getOwnPropertyDescriptor(process, 'platform')
   const savedDisableMacosLoginShell = process.env.ORCA_DISABLE_MACOS_LOGIN_SHELL
-  const savedOrcaUserDataPath = process.env.ORCA_USER_DATA_PATH
+  const savedOrcaUserDataPath = process.env.ZKYQ_USER_DATA_PATH
 
   function applyTestEnvDefaults() {
     // Why: most PTY spawn tests assert POSIX shell behavior; Windows cases opt into win32 explicitly below.
@@ -54,9 +54,9 @@ export function createPtyIpcProcessEnvScope() {
       delete process.env.ORCA_DISABLE_MACOS_LOGIN_SHELL
     }
     if (savedOrcaUserDataPath !== undefined) {
-      process.env.ORCA_USER_DATA_PATH = savedOrcaUserDataPath
+      process.env.ZKYQ_USER_DATA_PATH = savedOrcaUserDataPath
     } else {
-      delete process.env.ORCA_USER_DATA_PATH
+      delete process.env.ZKYQ_USER_DATA_PATH
     }
     if (savedOpenCodeConfigDir !== undefined) {
       process.env.OPENCODE_CONFIG_DIR = savedOpenCodeConfigDir

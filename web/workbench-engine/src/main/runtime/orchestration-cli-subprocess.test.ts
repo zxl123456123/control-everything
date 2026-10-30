@@ -1,6 +1,6 @@
 // Why: subprocess-level test for the CLI keepalive behavior described in
 // design doc §3.4. Spawns the real compiled CLI with no TTY, points it at a
-// real in-process runtime via ORCA_USER_DATA_PATH, and asserts:
+// real in-process runtime via ZKYQ_USER_DATA_PATH, and asserts:
 //   - the first keepalive line appears on stderr well under Claude Code's
 //     ~2 min Bash-tool silence budget (we verify with a shortened interval;
 //     production uses 15 s via the same code path)
@@ -44,7 +44,7 @@ async function runBuiltCli(
   const child = spawn(process.execPath, [CLI_PATH, ...args], {
     env: {
       ...process.env,
-      ORCA_USER_DATA_PATH: userDataPath,
+      ZKYQ_USER_DATA_PATH: userDataPath,
       ORCA_TERMINAL_HANDLE: 'term_cli',
       ...extraEnv
     },
@@ -112,7 +112,7 @@ describeIfBuilt('orca orchestration check --wait subprocess (§3.4)', () => {
         {
           env: {
             ...process.env,
-            ORCA_USER_DATA_PATH: userDataPath,
+            ZKYQ_USER_DATA_PATH: userDataPath,
             ORCA_TERMINAL_HANDLE: 'term_nobody',
             ORCA_KEEPALIVE_INTERVAL_MS: String(keepaliveMs)
           },

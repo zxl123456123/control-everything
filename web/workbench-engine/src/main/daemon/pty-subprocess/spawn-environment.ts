@@ -61,7 +61,7 @@ function deleteRequestedDaemonEnvKeys(
   env: Record<string, string>,
   keys: readonly string[] | undefined
 ): void {
-  const userDataPath = process.env.ORCA_USER_DATA_PATH
+  const userDataPath = process.env.ZKYQ_USER_DATA_PATH
   if (userDataPath) {
     for (const key of getLegacyOpenCodeEnvKeysToDelete(env, userDataPath, {})) {
       delete env[key]

@@ -80,7 +80,7 @@ export function buildWslBridgeScript(app?: {
     `$env:ORCA_CLI_COMMAND = '${app?.cliEntryPath ? DEV_COMMAND_NAME : WSL_CLI_COMMAND_NAME}'`,
     ...(app
       ? [
-          `$env:ORCA_USER_DATA_PATH = ${quotePowerShellLiteral(app.userDataPath)}`,
+          `$env:ZKYQ_USER_DATA_PATH = ${quotePowerShellLiteral(app.userDataPath)}`,
           // Why: WSLENV /p maps this guest-only dir back; an app the CLI starts must not inherit it.
           'Remove-Item Env:ORCA_WSL_CLI_DIR -ErrorAction SilentlyContinue',
           ...(app.cliEntryPath ? buildDevCliEnv(app.cliEntryPath) : [])

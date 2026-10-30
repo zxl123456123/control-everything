@@ -16,7 +16,7 @@ if (!existsSync(cliEntry)) {
   process.exit(1)
 }
 
-process.env.ORCA_USER_DATA_PATH = process.env.ORCA_DEV_USER_DATA_PATH ?? getDefaultDevUserDataPath()
+process.env.ZKYQ_USER_DATA_PATH = process.env.ORCA_DEV_USER_DATA_PATH ?? getDefaultDevUserDataPath()
 // Why: custom dev profiles do not necessarily contain "orca-dev" in their path; carry explicit provenance into the CLI.
 process.env.ORCA_DEV_CLI_INVOCATION = '1'
 process.env.ORCA_CLI_COMMAND = 'zkyq-dev'
@@ -30,7 +30,7 @@ if (!process.env.ORCA_APP_EXECUTABLE && isRunnableFile(electronExecutable)) {
 // Why: headless `zkyq-dev serve` skips the Electron dev runner that normally installs terminal CLI shims.
 prepareDevCliTerminalWrappers({
   repoRoot,
-  userDataPath: process.env.ORCA_USER_DATA_PATH,
+  userDataPath: process.env.ZKYQ_USER_DATA_PATH,
   electronExecutable: process.env.ORCA_APP_EXECUTABLE ?? electronExecutable
 })
 

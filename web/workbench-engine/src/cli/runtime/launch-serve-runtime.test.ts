@@ -64,7 +64,7 @@ describe('orca serve host selection', () => {
     vi.restoreAllMocks()
     delete process.env.ORCA_APP_EXECUTABLE
     delete process.env.ORCA_SERVE_RUNTIME
-    delete process.env.ORCA_USER_DATA_PATH
+    delete process.env.ZKYQ_USER_DATA_PATH
     delete process.env.ORCA_DEV_USER_DATA_PATH
     delete process.env.ORCA_APP_EXECUTABLE_NEEDS_APP_ROOT
   })
@@ -74,7 +74,7 @@ describe('orca serve host selection', () => {
     try {
       process.env.ORCA_APP_EXECUTABLE = join(root, 'orca')
       await writeFile(process.env.ORCA_APP_EXECUTABLE, '')
-      process.env.ORCA_USER_DATA_PATH = join(root, 'profile')
+      process.env.ZKYQ_USER_DATA_PATH = join(root, 'profile')
       const selection = { kind: 'orcad', runtime: '/node', entry: '/slot/orcad.js', version: '1' }
       resolveLocalServeRuntimeMock.mockResolvedValue(selection)
       serveWithOrcadMock.mockResolvedValue(0)
@@ -157,9 +157,9 @@ describe('orca serve host selection', () => {
       return { args, env: options.env }
     }
 
-    it('starts the Electron fallback on ORCA_USER_DATA_PATH, not the default profile', async () => {
+    it('starts the Electron fallback on ZKYQ_USER_DATA_PATH, not the default profile', async () => {
       const profile = resolve('/isolated/profile-r')
-      process.env.ORCA_USER_DATA_PATH = profile
+      process.env.ZKYQ_USER_DATA_PATH = profile
       resolveLocalServeRuntimeMock.mockResolvedValue({ kind: 'electron', reason: 'ssh targets' })
       electronChild()
 
@@ -170,14 +170,14 @@ describe('orca serve host selection', () => {
       const child = electronSpawn()
       expect(child.args).toContain(`--user-data-dir=${profile}`)
       expect(child.env).toMatchObject({
-        ORCA_USER_DATA_PATH: profile,
+        ZKYQ_USER_DATA_PATH: profile,
         ORCA_SERVE_USER_DATA_PATH: profile
       })
     })
 
     it('pins the opt-out Electron serve to the same profile', async () => {
       const profile = resolve('/isolated/profile-e')
-      process.env.ORCA_USER_DATA_PATH = profile
+      process.env.ZKYQ_USER_DATA_PATH = profile
       process.env.ORCA_SERVE_RUNTIME = 'electron'
       electronChild()
 
@@ -186,7 +186,7 @@ describe('orca serve host selection', () => {
     })
 
     it('hands orcad the absolute profile the selector read', async () => {
-      process.env.ORCA_USER_DATA_PATH = join('relative', 'profile')
+      process.env.ZKYQ_USER_DATA_PATH = join('relative', 'profile')
       const selection = { kind: 'orcad', runtime: '/node', entry: '/slot/orcad.js', version: '1' }
       resolveLocalServeRuntimeMock.mockResolvedValue(selection)
       serveWithOrcadMock.mockResolvedValue(0)
@@ -206,7 +206,7 @@ describe('orca serve host selection', () => {
 
     it('uses ORCA_DEV_USER_DATA_PATH for both the selector and a dev Electron child', async () => {
       const profile = resolve('/isolated/dev-profile')
-      delete process.env.ORCA_USER_DATA_PATH
+      delete process.env.ZKYQ_USER_DATA_PATH
       process.env.ORCA_DEV_USER_DATA_PATH = profile
       process.env.ORCA_APP_EXECUTABLE_NEEDS_APP_ROOT = '1'
       resolveLocalServeRuntimeMock.mockResolvedValue({ kind: 'electron', reason: 'dev' })

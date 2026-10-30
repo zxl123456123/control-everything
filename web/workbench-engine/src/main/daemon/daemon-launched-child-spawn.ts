@@ -102,7 +102,7 @@ export function spawnDaemonChildProcess(
     ...process.env,
     ELECTRON_RUN_AS_NODE: '1',
     // Why: the detached plain-Node daemon has no AppEnvironment, but shell rcfiles must live outside swept tmp.
-    ORCA_USER_DATA_PATH: userDataPath
+    ZKYQ_USER_DATA_PATH: userDataPath
   }
   // Why: this env becomes the daemon's, and so every PTY's (#21119).
   removeChromiumDisabledSessionBus(daemonEnv)

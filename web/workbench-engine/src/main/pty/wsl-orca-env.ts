@@ -80,9 +80,9 @@ export function addOrcaWslInteropEnv(env: Record<string, string>): void {
   // Why: wsl.exe only imports selected Windows env vars, so WSL needs the wrapper root, pane identity, and hook/OMP coordinates at start.
   const passthroughEntries = [
     'ORCA_TERMINAL_HANDLE/u',
-    'ORCA_USER_DATA_PATH/p',
+    'ZKYQ_USER_DATA_PATH/p',
     // Why /p: the guest reads the content-addressed wrapper tree through /mnt/c,
-    // and it cannot derive the hash segment from ORCA_USER_DATA_PATH alone.
+    // and it cannot derive the hash segment from ZKYQ_USER_DATA_PATH alone.
     'ORCA_SHELL_READY_ROOT/p',
     'ORCA_CLI_COMMAND/u',
     // Why /p: the managed CLI launcher lives in the host's userData tree.

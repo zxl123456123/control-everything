@@ -28,7 +28,7 @@ describe('serveOrcaApp --supervise', () => {
     await writeFile(executable, '')
     process.env.ORCA_APP_EXECUTABLE = executable
     process.env.ORCA_SERVE_RUNTIME = 'electron'
-    process.env.ORCA_USER_DATA_PATH = join(root, 'profile')
+    process.env.ZKYQ_USER_DATA_PATH = join(root, 'profile')
     vi.spyOn(process.stderr, 'write').mockImplementation(() => true)
   })
 
@@ -36,7 +36,7 @@ describe('serveOrcaApp --supervise', () => {
     vi.restoreAllMocks()
     delete process.env.ORCA_APP_EXECUTABLE
     delete process.env.ORCA_SERVE_RUNTIME
-    delete process.env.ORCA_USER_DATA_PATH
+    delete process.env.ZKYQ_USER_DATA_PATH
     await rm(root, { recursive: true, force: true })
   })
 

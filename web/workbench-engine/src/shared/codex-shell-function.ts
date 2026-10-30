@@ -21,7 +21,7 @@ export const CODEX_COMMAND_IDENTITY_ENV_KEYS = [
   'ORCA_PANE_KEY',
   'ORCA_WORKTREE_ID',
   'ORCA_WORKSPACE_ID',
-  'ORCA_USER_DATA_PATH'
+  'ZKYQ_USER_DATA_PATH'
 ] as const
 
 // Why values holding `'` are skipped: a TOML literal can't carry one, and Codex's fallback for the

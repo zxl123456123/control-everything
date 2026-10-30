@@ -5,6 +5,7 @@ export function electronServeEnvironment(userDataPath: string): NodeJS.ProcessEn
     'ORCA_E2E_USER_DATA_DIR',
     'ZKYQ_USER_DATA',
     'ORCA_USER_DATA',
+    'ZKYQ_USER_DATA_PATH',
     'ORCA_USER_DATA_PATH',
     'AGENT_BROWSER_ARGS',
     'AGENT_BROWSER_AUTO_CONNECT',

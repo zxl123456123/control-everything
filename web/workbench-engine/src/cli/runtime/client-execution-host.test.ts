@@ -32,7 +32,7 @@ function serverProfileWith(env: Partial<Record<(typeof SELECTORS)[number], strin
   const root = mkdtempSync(join(tmpdir(), 'cli-owner-'))
   roots.push(root)
   addEnvironmentFromPairingCode(root, { name: 'other-server', pairingCode })
-  vi.stubEnv('ORCA_USER_DATA_PATH', root)
+  vi.stubEnv('ZKYQ_USER_DATA_PATH', root)
   for (const key of SELECTORS) {
     vi.stubEnv(key, env[key])
   }

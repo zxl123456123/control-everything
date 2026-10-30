@@ -41,7 +41,7 @@ const ENV_KEYS = [
   'XPC_SERVICE_NAME',
   'ELECTRON_RUN_AS_NODE',
   'ORCA_SERVE_RUNTIME',
-  'ORCA_USER_DATA_PATH',
+  'ZKYQ_USER_DATA_PATH',
   'ORCA_APP_EXECUTABLE'
 ] as const
 
@@ -89,7 +89,7 @@ describe('serveOrcaApp restarts from a replaced app before any server starts', (
     }
     process.env.ELECTRON_RUN_AS_NODE = '1'
     process.env.ORCA_SERVE_RUNTIME = 'electron'
-    process.env.ORCA_USER_DATA_PATH = join(root, 'profile')
+    process.env.ZKYQ_USER_DATA_PATH = join(root, 'profile')
     delete process.env.ORCA_APP_EXECUTABLE
     delete process.env.XPC_SERVICE_NAME
     await mkdir(join(root, 'profile'), { recursive: true })

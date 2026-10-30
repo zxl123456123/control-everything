@@ -20,7 +20,7 @@ function makeExistingDirectory(): string {
 }
 
 const ENV_KEYS = [
-  'ORCA_USER_DATA_PATH',
+  'ZKYQ_USER_DATA_PATH',
   'USERPROFILE',
   'HOMEDRIVE',
   'HOMEPATH',
@@ -57,7 +57,7 @@ describe('resolveWslInteropSpawnCwd', () => {
   it('names the system root, never the profile or the user folder', () => {
     const systemRoot = makeExistingDirectory()
     process.env.SystemRoot = systemRoot
-    process.env.ORCA_USER_DATA_PATH = makeExistingDirectory()
+    process.env.ZKYQ_USER_DATA_PATH = makeExistingDirectory()
     process.env.USERPROFILE = makeExistingDirectory()
 
     expect(resolveWslInteropSpawnCwd()).toBe(systemRoot)
@@ -66,7 +66,7 @@ describe('resolveWslInteropSpawnCwd', () => {
   it('never falls back to the profile or user folder when no system directory resolves', () => {
     const profile = makeExistingDirectory()
     const userFolder = makeExistingDirectory()
-    process.env.ORCA_USER_DATA_PATH = profile
+    process.env.ZKYQ_USER_DATA_PATH = profile
     process.env.USERPROFILE = userFolder
 
     expect([profile, userFolder]).not.toContain(resolveWslInteropSpawnCwd())

@@ -147,7 +147,7 @@ function run(entry, argv, env) {
 // answer is deterministic "not running" rather than whatever the dev machine
 // happens to be doing.
 function buildCases(isolatedUserData) {
-  const isolated = { ORCA_USER_DATA_PATH: isolatedUserData }
+  const isolated = { ZKYQ_USER_DATA_PATH: isolatedUserData }
   const cases = [
     // Paths that must never load the runtime client at all.
     [[], {}],
@@ -184,7 +184,7 @@ function buildCases(isolatedUserData) {
     // NOTE: the only commands that both live in a suppressed group AND touch
     // ctx.client are `agent hooks on|off`, which rewrite the user's real agent
     // hook configuration in ~/.claude and friends — far outside
-    // ORCA_USER_DATA_PATH. They are deliberately NOT invoked here. The
+    // ZKYQ_USER_DATA_PATH. They are deliberately NOT invoked here. The
     // null-vs-undefined suppression they would exercise is covered
     // side-effect-free by the constructor-argument assertions in
     // src/cli/runtime-client-deferral.test.ts instead.
@@ -260,7 +260,7 @@ function buildCases(isolatedUserData) {
 //   1. FOREGROUND — `orca serve` runs Orca until Ctrl+C and `orca open` /
 //      `claude-teams` spawn processes that outlive the case. A blocking case
 //      does not fail the run, it stalls it, which is worse than a mismatch.
-//   2. MUTATING — writes outside ORCA_USER_DATA_PATH (`agent hooks off` parks
+//   2. MUTATING — writes outside ZKYQ_USER_DATA_PATH (`agent hooks off` parks
 //      the real ~/.claude hooks) or drives real browser/desktop input.
 //
 // Group tokens whose subcommands split read/write (`capture`, `intercept`,
@@ -376,7 +376,7 @@ const MUTATING_TOKENS = [
 
 const UNSAFE_TOKENS = new Map([
   ...FOREGROUND_TOKENS.map((token) => [token, 'runs in the foreground or spawns a process']),
-  ...MUTATING_TOKENS.map((token) => [token, 'can write outside ORCA_USER_DATA_PATH'])
+  ...MUTATING_TOKENS.map((token) => [token, 'can write outside ZKYQ_USER_DATA_PATH'])
 ])
 
 // Why: the deny list only catches verbs someone already thought of — `serve`

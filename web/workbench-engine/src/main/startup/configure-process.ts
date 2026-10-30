@@ -243,8 +243,9 @@ export function configureOrcaUserDataPathEnv(): void {
   if (serveProfileRefusal) {
     throw new Error(serveProfileRefusal)
   }
-  // Why: relaunches can inherit a stale ORCA_USER_DATA_PATH; canonicalize before CLI-shared modules build runtime-home paths.
-  process.env.ORCA_USER_DATA_PATH = userDataPath
+  // Why: relaunches can inherit a stale ZKYQ_USER_DATA_PATH; canonicalize before CLI-shared modules build runtime-home paths.
+  process.env.ZKYQ_USER_DATA_PATH = userDataPath
+  delete process.env.ORCA_USER_DATA_PATH
   // Why: an Orca started from another Orca's terminal must not fence its own CLI children to the parent.
   stampRuntimeSourceEnv(process.env, null)
 }

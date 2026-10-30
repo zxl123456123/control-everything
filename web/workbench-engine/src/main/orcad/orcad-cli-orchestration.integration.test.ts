@@ -135,7 +135,7 @@ it.skipIf(skip)(
         TMPDIR: root,
         CODEX_HOME: join(home, 'codex'),
         CLAUDE_CONFIG_DIR: join(home, 'claude'),
-        ORCA_USER_DATA_PATH: root,
+        ZKYQ_USER_DATA_PATH: root,
         ORCA_CLI_COMMAND: launcher,
         ORCA_BACKGROUND_LAUNCH: '1',
         ...(process.platform === 'win32' ? { ORCA_WINDOWS_PACKAGED_CLI_LAUNCHER: '1' } : {})

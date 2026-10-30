@@ -128,7 +128,7 @@ async function reconcile(
 ): Promise<'written' | 'unchanged'> {
   const hashes = options.hashes === undefined ? CODEX_HASHES : options.hashes
   if (options.userDataPath) {
-    vi.stubEnv('ORCA_USER_DATA_PATH', options.userDataPath)
+    vi.stubEnv('ZKYQ_USER_DATA_PATH', options.userDataPath)
   }
   // Why saved: the app's lookup holds the answer an earlier run wrote.
   memoizeCodexHookAnswer(
@@ -190,7 +190,7 @@ beforeEach(() => {
   mocks.beforeHooksJsonGuard = null
   mocks.hooksJsonWrites = 0
   vi.stubEnv('CODEX_HOME', '')
-  vi.stubEnv('ORCA_USER_DATA_PATH', userData)
+  vi.stubEnv('ZKYQ_USER_DATA_PATH', userData)
 })
 
 afterEach(() => {

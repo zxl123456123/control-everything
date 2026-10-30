@@ -70,7 +70,7 @@ it('real CLI processes carry surface choices and refuse invalid or unsupported p
     )
     const env = {
       ...Object.fromEntries(
-        'HOME USERPROFILE APPDATA LOCALAPPDATA XDG_CONFIG_HOME XDG_CACHE_HOME XDG_DATA_HOME XDG_STATE_HOME ORCA_E2E_HOME_DIR ORCA_E2E_USER_DATA_DIR ORCA_USER_DATA_PATH TEMP TMP TMPDIR'
+        'HOME USERPROFILE APPDATA LOCALAPPDATA XDG_CONFIG_HOME XDG_CACHE_HOME XDG_DATA_HOME XDG_STATE_HOME ORCA_E2E_HOME_DIR ORCA_E2E_USER_DATA_DIR ZKYQ_USER_DATA_PATH TEMP TMP TMPDIR'
           .split(' ')
           .map((key) => [key, root])
       ),

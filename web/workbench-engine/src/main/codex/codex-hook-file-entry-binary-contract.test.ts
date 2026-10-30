@@ -107,7 +107,7 @@ describe.runIf(binary)('codex hook file-entry binary contract', { timeout: 180_0
     vi.stubEnv('HOME', home)
     vi.stubEnv('USERPROFILE', home)
     vi.stubEnv('CODEX_HOME', join(root, 'never-used-codex-home'))
-    vi.stubEnv('ORCA_USER_DATA_PATH', join(home, 'user-data'))
+    vi.stubEnv('ZKYQ_USER_DATA_PATH', join(home, 'user-data'))
     // Why: the app's userData always exists; the memo is written there.
     mkdirSync(join(home, 'user-data'))
     const codexVersion = await probeCodexVersion(binary!)
@@ -296,7 +296,7 @@ describe.runIf(binary)('codex hook file-entry binary contract', { timeout: 180_0
       vi.stubEnv('HOME', home)
       vi.stubEnv('USERPROFILE', home)
       vi.stubEnv('CODEX_HOME', '')
-      vi.stubEnv('ORCA_USER_DATA_PATH', join(home, 'user-data'))
+      vi.stubEnv('ZKYQ_USER_DATA_PATH', join(home, 'user-data'))
       mkdirSync(join(home, 'user-data'))
       await reconcileRealHome()
     }

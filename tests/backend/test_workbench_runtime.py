@@ -307,12 +307,13 @@ class WorkbenchRuntimeTests(unittest.TestCase):
             'CE_WORKBENCH_DEVICE_PROOF': 'stale-proof', 'CE_REMOTE_DEVICE_ID': 'stale-device',
             'CE_WORKBENCH_CREDENTIAL_ROOT': str(host / 'stale-credentials'),
             'ORCA_USER_DATA': str(host / 'stale-profile'),
+            'ORCA_USER_DATA_PATH': str(host / 'stale-cli-profile'),
         }
         with patch.dict(os.environ, inherited):
             self.start()
         env = next(row for row in self.api.calls if row[0] == 'spawn')[3]
         for key, value in inherited.items():
-            if key.startswith('CE_') or key in {'PATH', 'ORCA_USER_DATA'}:
+            if key.startswith('CE_') or key in {'PATH', 'ORCA_USER_DATA', 'ORCA_USER_DATA_PATH'}:
                 continue
             self.assertEqual(env[key], value, key)
         self.assertEqual(env['PATH'].split(os.pathsep)[0], inherited['PATH'])
@@ -321,6 +322,8 @@ class WorkbenchRuntimeTests(unittest.TestCase):
         self.assertEqual(env['CE_WORKBENCH_ORIGIN'], 'http://127.0.0.1:12345')
         self.assertEqual(env['ZKYQ_USER_DATA'], str(self.data / 'state'))
         self.assertNotIn('ORCA_USER_DATA', env)
+        self.assertEqual(env['ZKYQ_USER_DATA_PATH'], str(self.data / 'state'))
+        self.assertNotIn('ORCA_USER_DATA_PATH', env)
         for key in ('CE_WORKBENCH_PUBLIC_ORIGIN', 'CE_WORKBENCH_DEVICE_PROOF', 'CE_REMOTE_DEVICE_ID',
                     'CE_WORKBENCH_CREDENTIAL_ROOT'):
             self.assertNotIn(key, env)

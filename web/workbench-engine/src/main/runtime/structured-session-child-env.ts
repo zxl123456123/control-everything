@@ -24,12 +24,12 @@
  * `ORCA_CLI_COMMAND` names that same launcher by absolute path, because a provider can run each
  * command in a login shell (Codex runs `zsh -lc`) whose profile rebuilds PATH and puts a global
  * install ahead of this app's. A bare `orca` that reaches another install still acts as this
- * session: any current CLI sends the injected id and dials the instance `ORCA_USER_DATA_PATH` pins
+ * session: any current CLI sends the injected id and dials the instance `ZKYQ_USER_DATA_PATH` pins
  * below, and a CLI that predates the id refuses on the marker. When no launcher resolves the key
  * is omitted rather than naming a bare `orca`: on Linux that is GNOME's screen reader, and an
  * inherited value names another app.
  *
- * `ORCA_USER_DATA_PATH` pins this instance beside the identity, so any current CLI — the session's
+ * `ZKYQ_USER_DATA_PATH` pins this instance beside the identity, so any current CLI — the session's
  * own or a global one — dials the Orca that minted the id instead of the production default. The
  * remote selectors a shell profile may export are set empty, which the CLI reads as unset: empty
  * rather than deleted, because the child is spawned over Orca's own env, which may carry them.
@@ -151,7 +151,7 @@ function applyThisAppCli(env: Record<string, string>): Record<string, string> {
   const app = getAppEnvironment()
   const userDataPath = app.getPath('userData')
   const isPackaged = app.isPackaged()
-  const set: Record<string, string> = { ORCA_USER_DATA_PATH: userDataPath }
+  const set: Record<string, string> = { ZKYQ_USER_DATA_PATH: userDataPath }
   for (const key of REMOTE_RUNTIME_SELECTOR_ENV_KEYS) {
     set[key] = ''
   }

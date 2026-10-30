@@ -327340,8 +327340,8 @@
     {
       "path": "src/main/orcad/orcad-entry.ts",
       "upstream_sha256": "972748b4e46cd0cc3f08c61b82f6a7dc7a1553d2706f93323537865aac496193",
-      "current_sha256": "76787db5806539d222d9da7d0b9f3372413fc54b5413d32b6f08f91586823311",
-      "reason": "Support explicit profile-contained credential storage while preserving existing keys and host tool configuration.；运行宿主数据根配置统一ZKYQ_USER_DATA，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+      "current_sha256": "92172506252ed4dc0b567774226106646a441aa179de243dc63bd3d822d8137b",
+      "reason": "Support explicit profile-contained credential storage while preserving existing keys and host tool configuration.；运行宿主数据根配置统一ZKYQ_USER_DATA，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
     },
     {
       "path": "src/main/orcad/orcad-lifecycle.ts",
@@ -329290,8 +329290,8 @@
     {
       "path": "src/main/orcad/orcad-cli-launcher.test.ts",
       "upstream_sha256": "7fde4ce5ed19ea0f5a3d462170763cf50906572f296336328d306d2cff96f258",
-      "current_sha256": "1f70a0b12e51399e44f570abea79eaa7362f35004c56babdc82a3c4e1f9e6e93",
-      "reason": "平台命令入口和帮助统一品牌，精简账号说明与工作台展示，保留兼容协议及原生功能。；Use the short zkyq platform command while retaining the ce-workbench compatibility entry and legacy host metadata.；Retire the temporary ce-workbench command and offer only host-verified zkyq instructions.；Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands.；启动器读写统一为zkyq配置，成功安装后移除旧生成配置，失败保留重试且不读取旧名回退；所有后台宿主统一zkyq命令与帮助纠错提示，取消平台专用品牌包装并迁移旧生成入口，保留参数和profile行为"
+      "current_sha256": "279d7b90e7158a74a8e85b32b3a8d078d59cf38d239044b9e4440d1715383b08",
+      "reason": "平台命令入口和帮助统一品牌，精简账号说明与工作台展示，保留兼容协议及原生功能。；Use the short zkyq platform command while retaining the ce-workbench compatibility entry and legacy host metadata.；Retire the temporary ce-workbench command and offer only host-verified zkyq instructions.；Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands.；启动器读写统一为zkyq配置，成功安装后移除旧生成配置，失败保留重试且不读取旧名回退；所有后台宿主统一zkyq命令与帮助纠错提示，取消平台专用品牌包装并迁移旧生成入口，保留参数和profile行为；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
     },
     {
       "path": "src/main/runtime/runtime-account-controller.ts",
@@ -329404,8 +329404,8 @@
     {
       "path": "native/windows-cli-launcher/src/main.rs",
       "upstream_sha256": "317d4e1c19a1d1d6be2fa93f832d2e43ab0d6ae8e7043bba019c52b46b2340f2",
-      "current_sha256": "2f691af5bb2989703b3e1ac0129ae47cf66aa045e39f97b6b5663e431e49567e",
-      "reason": "Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands.；启动器读写统一为zkyq配置，成功安装后移除旧生成配置，失败保留重试且不读取旧名回退；统一Windows桌面命令安装状态、宿主能力、批处理分发和原生恢复命令为zkyq，保留PATH及消息参数行为"
+      "current_sha256": "bbb8f8fee06635cb7ed21cc3d93942c4ccb60f780f7f987947bace9dc634ef77",
+      "reason": "Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands.；启动器读写统一为zkyq配置，成功安装后移除旧生成配置，失败保留重试且不读取旧名回退；统一Windows桌面命令安装状态、宿主能力、批处理分发和原生恢复命令为zkyq，保留PATH及消息参数行为；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
     },
     {
       "path": "resources/win32/bin/zkyq.cmd",
@@ -329458,8 +329458,8 @@
     {
       "path": "config/scripts/cli-runtime-client-deferral-equivalence.mjs",
       "upstream_sha256": "88ef2051818f76d69192071af15d358321012520d5504f067a483652e5b8fc06",
-      "current_sha256": "8480d3fd3a4d360b392e2cc792b401ced1e6bfe2efabaaf3aa6d3b59a01fcb29",
-      "reason": "配对链接生成解析和手机注册统一zkyq协议，迁移已保存VM配对链接并保留凭据及用户数据，更新脱敏和提示"
+      "current_sha256": "735d8dc299bb50823167edb33d7d8b9036a6c4221145f0079f4d1152b14d30a5",
+      "reason": "配对链接生成解析和手机注册统一zkyq协议，迁移已保存VM配对链接并保留凭据及用户数据，更新脱敏和提示；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
     },
     {
       "path": "config/scripts/locale-translation-policy.mjs",
@@ -329788,8 +329788,8 @@
     {
       "path": "src/cli/handlers/orchestration/runtime-compatibility.ts",
       "upstream_sha256": "a102ef1800a19043e2f39efcc12d44d67b8c038ec010fca91e8fa541ec3b19b7",
-      "current_sha256": "1f7547d85ee198a2ad9a616e421e8352bec943c640af0b4a01307b9066825d57",
-      "reason": "统一已安装zkyq宿主的Agent派发、收信及恢复命令与状态摘要身份，保留历史记录识别和用户内容；开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；编排命令合同收敛为zkyq/zkyq-dev，恢复与接管提示使用新命令，保留历史会话数据和授权约束"
+      "current_sha256": "c00482058464412f039cc78e8384e9f60e486b65d4f70d2c9b3c2f8fc185b622",
+      "reason": "统一已安装zkyq宿主的Agent派发、收信及恢复命令与状态摘要身份，保留历史记录识别和用户内容；开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；编排命令合同收敛为zkyq/zkyq-dev，恢复与接管提示使用新命令，保留历史会话数据和授权约束；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
     },
     {
       "path": "src/cli/runtime/orchestration-recovery-command.test.ts",
@@ -329956,8 +329956,8 @@
     {
       "path": "src/main/cli/wsl-cli-scripts.ts",
       "upstream_sha256": "546a8bc007584027f73a6f1fef985d014fdf6727a9a86a321814eb230b7bf9d8",
-      "current_sha256": "3b65d40c1794c92c4f71511d0e97c9625a408f8e468f3f50979f01f9eb61f938",
-      "reason": "WSL命令迁移为zkyq，成功写入后退役受管理旧入口，保留用户文件和桥接参数，失效旧命令修复缓存并对齐派发环境"
+      "current_sha256": "97eb21ceec069f3865645ddea5de614cd38178ec81a317ed1ade335b766d36df",
+      "reason": "WSL命令迁移为zkyq，成功写入后退役受管理旧入口，保留用户文件和桥接参数，失效旧命令修复缓存并对齐派发环境；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
     },
     {
       "path": "src/main/cli/wsl-cli-status.ts",
@@ -329974,8 +329974,8 @@
     {
       "path": "src/main/ipc/pty/host-env/assembly.ts",
       "upstream_sha256": "cea26bedafe323d652f0b6f2acba821a564220742d4f122a8bb9f18e858e1a09",
-      "current_sha256": "c989b8f9ca8fc1c7e937c50469e5c10dc82b4d33fd240f0ccbfa3cdd284baaca",
-      "reason": "WSL命令迁移为zkyq，成功写入后退役受管理旧入口，保留用户文件和桥接参数，失效旧命令修复缓存并对齐派发环境；原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者；开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+      "current_sha256": "92f7d3e6b80384229a405d415842b2b6d57c8a91a7a9d51e3e7eb698601c8fa6",
+      "reason": "WSL命令迁移为zkyq，成功写入后退役受管理旧入口，保留用户文件和桥接参数，失效旧命令修复缓存并对齐派发环境；原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者；开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
     },
     {
       "path": "src/main/ipc/pty/host-env/codex-hook-reconcile-spawn.test.ts",
@@ -329992,8 +329992,8 @@
     {
       "path": "config/docker/headless-serve-shutdown/run-signal-case.sh",
       "upstream_sha256": "e48a081f2134521c8c847c7c844f06335b156a0c1b01e117381c25d64817a298",
-      "current_sha256": "c914d9b1a10657428109249857c24a78d6277f29d393fcc942e28de8929d6a80",
-      "reason": "原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者"
+      "current_sha256": "4177629532c7391f59eb9c463ebb333fef9d1e5038cb4920d359bc0ffb88b82f",
+      "reason": "原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
     },
     {
       "path": "config/scripts/electron-builder-runtime-resources.test.mjs",
@@ -330070,8 +330070,8 @@
     {
       "path": "src/main/cli/cli-installer.test.ts",
       "upstream_sha256": "74eb393c4461d1a5dd635cdb510f98fce9b0bde1b3e3ed26933428e8a5374aa4",
-      "current_sha256": "a9916a60799908b7ef6eb806a0e69d123a2c96f7f378cf12815927f5acacb5fc",
-      "reason": "原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者；开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+      "current_sha256": "92bc081192becf44d30942d82353927637af420a7d108ba7e8032377f9c9ded8",
+      "reason": "原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者；开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
     },
     {
       "path": "src/main/cli/linux-bare-orca-dispatcher.test.ts",
@@ -330100,14 +330100,14 @@
     {
       "path": "src/main/cli/orca-cli-child-path.ts",
       "upstream_sha256": "7a353e3f60ddbe15b2c8b0bdbed58d70c7a21ab5184e374a5dbb6267c5e42dc6",
-      "current_sha256": "feed1997daa10a33dfd3043ab988de126be8b8f423ec18f441ffd02543a9da7d",
-      "reason": "原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者"
+      "current_sha256": "56a25fd54053f45229ff0af4b9e4ec68516f364d2aeee91759301683a3f15c73",
+      "reason": "原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
     },
     {
       "path": "src/main/cli/packaged-cli-assets.test.ts",
       "upstream_sha256": "c190f039dcf52070bd851b1e6475b9f4a54bc924b16d946880a711635bc28879",
-      "current_sha256": "3137f5b5ed06639abfe5a0e86cd0da61deb079cb72d1ce72d25ebb55edb9c523",
-      "reason": "原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者；macOS打包CLI物理改名zkyq，同步安装/回收/卸载与本地派发，保留用户命令及文件竞态保护"
+      "current_sha256": "0d5b63674567c0a1f629fe30284f39d8d42696e29656ec38cc4f5aaeb3950cc6",
+      "reason": "原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者；macOS打包CLI物理改名zkyq，同步安装/回收/卸载与本地派发，保留用户命令及文件竞态保护；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
     },
     {
       "path": "src/main/runtime/claude-agent-teams-shim-env.test.ts",
@@ -330238,14 +330238,14 @@
     {
       "path": "config/scripts/dev-cli-terminal-wrapper.mjs",
       "upstream_sha256": "1fe803af00e1cc8bcdacbc468192cc3c7c372205022c158c0a3020a30abe3d72",
-      "current_sha256": "b1cb7b75785c51aa5271263295fd1818e76066e1d9e751a2b0a3a578bd52a827",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+      "current_sha256": "daeea7c0d34c97d2e7226b93e766c5b3e4a67d7b02375052c65d84ac3da9c448",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
     },
     {
       "path": "config/scripts/dev-cli-terminal-wrapper.test.mjs",
       "upstream_sha256": "7120a00319c1223edcb8a423bf59afd627f18542285819e3e66e14713fb5b871",
-      "current_sha256": "855c1f5dc2f3623fbc05559a4db42d3adc1dbd0338189719904d78fc897ae7b9",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+      "current_sha256": "bfde053b8f707887fc13bac76a58701c744bc49cb682729a1dfa23292dab0a08",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
     },
     {
       "path": "config/scripts/dev-storage-reclaim.mjs",
@@ -330262,8 +330262,8 @@
     {
       "path": "config/scripts/live-remote-freeze-rpc.mjs",
       "upstream_sha256": "7caae4f4c3130536c5da85727cd9adbe123dfe05522467a39efe92a980b1d99a",
-      "current_sha256": "26a8fdb38b5f0a84b186bc1df05c55b4bbe21479234d97c78576ac898d90c500",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；当前本地与SSH运行组件统一zkyq调用，移除过时relay命令分支并同步Agent启动、收信、回复与诊断默认入口"
+      "current_sha256": "469caf249e7897280e9fcba981d775b4e536bbd9b650f230f8af393765be4d47",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；当前本地与SSH运行组件统一zkyq调用，移除过时relay命令分支并同步Agent启动、收信、回复与诊断默认入口；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
     },
     {
       "path": "config/scripts/orcad-terminal-smoke-change-scope.mjs",
@@ -330292,14 +330292,14 @@
     {
       "path": "config/scripts/zkyq-dev-bin.test.mjs",
       "upstream_sha256": "72e310e8352642bbebc79d7af2d5f1dfc27ef22aeecdee908647554bc6fe8d98",
-      "current_sha256": "86493182bf2f7e149a4320097f8e6dd88a24636f859006b91f8fbf30103f8c44",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+      "current_sha256": "3488f67cf592172784b403ef64529e252c0a207c51498a28abac2fadbb93753a",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
     },
     {
       "path": "config/scripts/zkyq-dev.mjs",
       "upstream_sha256": "7c283b0e22e4f47cc968dc97c371fce168462dbe3b773421755476a3a1236342",
-      "current_sha256": "56042cd66c2c1d5610b1750b415b69086eb56ef6535d577c3750b80700f42384",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+      "current_sha256": "e02f53097be546a7f266f5ed611109c320d85d2ffbe73530cc4f6155ce4bc950",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
     },
     {
       "path": "package.json",
@@ -330322,8 +330322,8 @@
     {
       "path": "skill-guides/orca-per-workspace-env.md",
       "upstream_sha256": "dda610fc95c59c723108338425990d192af1d3d6c6dea30230d1f07b37b56742",
-      "current_sha256": "a2194e04c4899f7cc200d45f822a47df89d9dd9dc9c06374916107695b83717d",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+      "current_sha256": "0d3492c070094b1f85f1cf4131bbe2062e244085ba52d755f0bb16f4ab359e6b",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
     },
     {
       "path": "skill-guides/orca-per-workspace-env/references/provider-vercel.md",
@@ -330400,8 +330400,8 @@
     {
       "path": "src/cli/bundled-skill-guides.ts",
       "upstream_sha256": "d939b2344aec6921d99a7994596db6e7e5b45c36f489e3c8e55fe40160b5b7d6",
-      "current_sha256": "df952f41a56fd4e4c5d078e6e08f1617c0309f5448a8a5af05302acf0c7b3465",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+      "current_sha256": "b62dba7a34e7423842f3f33bee31000d141ee9eae191425750dfd76018dd4151",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
     },
     {
       "path": "src/cli/handlers/orchestration-worker-cli.test.ts",
@@ -330430,32 +330430,32 @@
     {
       "path": "src/main/cli/cli-dev-launcher.ts",
       "upstream_sha256": "b6a4cd0bc63dede1de0ad2929b4372004e878e8b9284a0ce6407a55d4f12b298",
-      "current_sha256": "fcdc0fcec7a88544bbb4d9f03f114645b060d97298267e2ddd4d99edff0f11cd",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+      "current_sha256": "947a4195ed41206c89ebf1bb213de7922daf4d3ae7911b2c1de54e9a91da8716",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
     },
     {
       "path": "src/main/cli/wsl-managed-cli.wsl.test.ts",
       "upstream_sha256": "e8062b1ce604ead331c644a026cb9f144608f275b73dd4dd71423190a793cb9f",
-      "current_sha256": "cdbd62add77ec3fb73f70b858cd7cd38158033637e3ea21bc3c586abba39fbd2",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+      "current_sha256": "cb776b31e2bc829ef0ad2c1577881e867f6e43f8d706a71a68c2724fa595237d",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
     },
     {
       "path": "src/main/codex/codex-structured-child-environment.test.ts",
       "upstream_sha256": "ab0d0e81f8da8cc9fcd65f628d2c08580eff504e944a9f5d9642a794d0e024cf",
-      "current_sha256": "bb5932e6da3b72d3c1cdf3af3193b6b703c1c727c4f0d870aab4d7adb2e5dfcd",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+      "current_sha256": "2abc14e877f55207ffe774b7f8bcad3f8fdfbbd844dda6e709bb76cc1e25641c",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
     },
     {
       "path": "src/main/codex/codex-structured-session-adapter.test.ts",
       "upstream_sha256": "d622eef99dded1a5b302dab81d41c2bef02990f56ba2de5b91e8487a2cbf05a1",
-      "current_sha256": "d46c44ecc63852dc01be67a4b9da27da48d030adc3f524b4baafcb43004026c7",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+      "current_sha256": "43aa4eb28264ae54beb705b53390c5c45ccb677884e422e830a920f3f0351c4c",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
     },
     {
       "path": "src/main/daemon/shell-ready-bash-wrapper.test.ts",
       "upstream_sha256": "6ba4e3092a31d69c8ab5ff1ca723c0441bbcfa70042fa56e0b004066aa4d9a6f",
-      "current_sha256": "e86c32f00f83fb1789953b78f8e7f86f2e5c0d2c602549d2601d7db19510dcb9",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+      "current_sha256": "87f09ed4be919ccc860b9368592ed45eda1f169f3a3f6150c5809f8f81850c8e",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
     },
     {
       "path": "src/main/ipc/tui-agent-detection-commands.test.ts",
@@ -330490,8 +330490,8 @@
     {
       "path": "src/main/runtime/orchestration/coordinator-task-dispatch.ts",
       "upstream_sha256": "80e8b3c7d51bf68ae9d6bcf7f216d26f9d5856df573e4dc696a23b712026c9dc",
-      "current_sha256": "a473fd5ee13eb6f656a569ba0f8c0cc829af49be929fd4289f3837ceb81f136c",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+      "current_sha256": "51daff24fdcebc7878476be2dd7d804b24cab2023a2608fb1ccd5d26bea12d94",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
     },
     {
       "path": "src/main/runtime/orchestration/formatter.test.ts",
@@ -330532,8 +330532,8 @@
     {
       "path": "src/main/startup/run-electron-vite-dev.test.ts",
       "upstream_sha256": "1b1eb41c07b47d9ebb91d6ef3081acfd5241fa0be44472d4b488df068dc0e7bf",
-      "current_sha256": "5a4f721aeef271519ffe11da66271657fb5b511f0b5b1577c4cd5fb8f1b9e160",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+      "current_sha256": "1d83b5142ff347e6017324395cd0e1358910609b6c8c97a26148b0cdcb967b9d",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
     },
     {
       "path": "src/main/wsl-managed-cli-path-restore.test.ts",
@@ -330580,8 +330580,8 @@
     {
       "path": "src/main/orcad/orcad-cli-orchestration.integration.test.ts",
       "upstream_sha256": "3dfd28b71c23fdde66df0affa58effa4b9fc3db76621e941fbce2044e9a0d31e",
-      "current_sha256": "39edd356002d6147891d558842a19397c774973de71b90174e183c36a487b86f",
-      "reason": "编排命令合同收敛为zkyq/zkyq-dev，恢复与接管提示使用新命令，保留历史会话数据和授权约束"
+      "current_sha256": "162dbb612552b4be8009e7e6c1b619a0549784cd7b963461e64858fbd2dbee4e",
+      "reason": "编排命令合同收敛为zkyq/zkyq-dev，恢复与接管提示使用新命令，保留历史会话数据和授权约束；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
     },
     {
       "path": "src/main/runtime/orchestration/coordinator.test.ts",
@@ -330838,14 +330838,14 @@
     {
       "path": "src/main/orcad/electron-serve-browser-environment.ts",
       "upstream_sha256": "2abbb33b4653476af475c16b8dda6a3c75bf9f1fc434c9b32c97ab0076be8d56",
-      "current_sha256": "a92a1ccb26a4a30bcc147ca67d90f4f5be36e5f14668d051ae96cca446b2719f",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+      "current_sha256": "17159937af7cb9637e1844b95fd7f8f80f858fb9dfcf92703863a46c1d762e57",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
     },
     {
       "path": "src/main/orcad/electron-serve-browser-process.test.ts",
       "upstream_sha256": "012ca93eccbb156cad0d20ac6347c9ffbafc000e45efec2907d67eb9991eab01",
-      "current_sha256": "eeae8e25c47f27cc2c8cb54f09beef28b2db76fc1c9f0177d4c1677f3db079d8",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+      "current_sha256": "3fe19f20a6df512cfa51f385161dfa8e2808d45ccec8fe3adecadf44f959eb90",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
     },
     {
       "path": "src/main/orcad/orcad-app-paths.test.ts",
@@ -330886,8 +330886,8 @@
     {
       "path": "src/main/orcad/orcad-packaged-structured-chat.integration.test.ts",
       "upstream_sha256": "1b51e407e430c215c6fdc7cd6b52847da0b2a982bae3d214b7fc1df90b5a49c0",
-      "current_sha256": "f990fda0fd5666903f11d394a1110c6bbf8e94c844311b08c3592e5930b07727",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+      "current_sha256": "bbcd40f3ca0ea3b5a6d2ab66a4f12a0cb272028b13e3dae4829929d8b08fef1a",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
     },
     {
       "path": "src/main/orcad/orcad-serve-parity.integration.test.ts",
@@ -330930,6 +330930,828 @@
       "upstream_sha256": "0e2baf89ea011bac7cd572681bd320243505cbbad653f40d8cbc2b84012f3351",
       "current_sha256": "92b55464767380b0c4b6847ad849b8b88c5e3b1b84808dea258f85349a486de9",
       "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "config/scripts/cli-runtime-client-deferral-benchmark.mjs",
+      "upstream_sha256": "cba9dd108015bf96730a9cf65d265e5ffb85c22474b60496751625320cc00823",
+      "current_sha256": "c07ad429c86d787b71e27d03d29b4c4b9ff2cd91d4c54ebad816eb4baed7d488",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "config/scripts/computer-use-smoke.mjs",
+      "upstream_sha256": "e3ccd011183408da12371f8165526911385bdb19a70ab938064bb722d1563069",
+      "current_sha256": "e0f0623fdd8f8a244671e5a6d6ee44c602c3487f2aee73f461aa75db8f7cf418",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "config/scripts/daemon-boot-smoke.mjs",
+      "upstream_sha256": "c4f26b0de5bb604afb806c1483eb57ff44db025330a86f68965bd9c38ac6bee4",
+      "current_sha256": "a501c0dc0cf2ae1df2eb8439fc4a68a4151b52ec4759038c0c48e589b4cd2bf1",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "config/scripts/daemon-endpoint-handover-smoke.mjs",
+      "upstream_sha256": "73acd45caa94539c099d6629e6139fc93606229a710a3b4436d6a99ca25088b5",
+      "current_sha256": "4e4d36d60dd3882d2441c03cf8dbffa5ade421602970b5c9989551932dcdcdcb",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "config/scripts/orca-dev",
+      "upstream_sha256": "ef9e9f9b18b164501e8b3755dd6eace62cff26a71c5e7a553b4bf62761c86ade",
+      "current_sha256": "407c8b1a5b74d2a0d21c2daae6485cbf337eee1f4e43aa4f38bbc4be06a92817",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "config/scripts/remote-agent-session-authority-repro.mjs",
+      "upstream_sha256": "db049463ccf05ec5631c3c1dd322e5e2d2357de14e0facdf2fa0a27ca2d05d27",
+      "current_sha256": "db3cd2f1fd4527d1a7680868da34f459e11c2ea1ebd80bdff942b2fda7654116",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "config/scripts/run-codex-real-account-validation.mjs",
+      "upstream_sha256": "154f33b87605eed177d95cd229541ac8df59f279f96bafffe3bf96adc91b0d73",
+      "current_sha256": "55af825dd779a585bbc64d5c04a47fa5d27ed58b379284e822fb2af61b6ac7bd",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "config/scripts/verify-packaged-daemon-entry.cjs",
+      "upstream_sha256": "7d8859e14d2660636a8c865cefaa72a0695d4fee0cd394df82b3523e34d5b711",
+      "current_sha256": "2873333e9db980d072dad1872ce7f60e17e8d4b7f9f564ef5135673edb3f38ba",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "config/scripts/vitest-real-agent-home-write-guard.test.ts",
+      "upstream_sha256": "d9ccf2ac9532630792323afbddbc34e6bca05299a47530d3e97883e3a6b41b99",
+      "current_sha256": "6c128c07158e7a6bc4d6b09a44cecf87498356bc8036e24eb827efc350a71ac9",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "config/scripts/vitest-real-agent-home-write-guard.ts",
+      "upstream_sha256": "d3057f6e322945712b78798627d123bdcf383aa65e35ae0aadaa3fd32e1aa877",
+      "current_sha256": "9228309097cd65be95bc0f2a978d77cf6fd325ea1b9aad3817722927cc5488b2",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "config/scripts/windows-daemon-workspace-close-repro.mjs",
+      "upstream_sha256": "215bb61fd1a8be96fd65f746c3f26d47863cb82702e9aa63f8d9bb171802d133",
+      "current_sha256": "2c90127300504e1f47015328708677a027847cef187b9b7fec137c5396ecc2ab",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "config/scripts/wsl-hook-relay-reattach-benchmark-electron-stub.mjs",
+      "upstream_sha256": "dc5b908b35262adeb20620e2c5a172ec649a01259d50ddb158bc2af71954ac51",
+      "current_sha256": "c44fd6dc5801cf61b03a1594337277911ca774bf588df58a108bc96503ff2c1a",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "config/scripts/wsl-hook-relay-reattach-benchmark.mjs",
+      "upstream_sha256": "eca0a7d30761c659495022f1d1083dba4dd06e01f7bd3a93cb9a5308c225175a",
+      "current_sha256": "3966cfdd784866934c93ce7eaaf1ae15b5e151eec4269a03ce877cd28947aa73",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "mobile/scripts/start-emulator-pairing-runtime.mjs",
+      "upstream_sha256": "6b3440adc44efbe5703018838d2b8a7dc775ed18050dca377f218b24803ebe1d",
+      "current_sha256": "d271a0cb97a06ab7e0a2ce0aa889c2b0806ee91f289f8c9eba819f5e7c06b77d",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/cli/agent-launch-process.test.ts",
+      "upstream_sha256": "c508ac82014c308b351e76fabcd148e07f4ae26b3770b3c1c346eb8c962bdf76",
+      "current_sha256": "210ba59d72ef59fe8a512f3ff404ca793c5477df21c748ccd8b3df3deefa85e4",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/cli/handlers/agent-hooks-prepare-codex-isolated-home.test.ts",
+      "upstream_sha256": "4b9e1a4c1b81afdcc09e9bf2eb8a9237ebe9f526beaeb0ccbde60348f974bcd1",
+      "current_sha256": "c84e1a24ac7c76d2a7d1be7d3ac3320f0ae6fa7322a1cf614b7e5e6156783243",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/cli/handlers/automations.ts",
+      "upstream_sha256": "993bf5406000889571dff755e721ce7489a5678f26ac011c0ad001339b7e2f61",
+      "current_sha256": "f6c58433db5504b1784b0f2c189ef833f7edf2caacbaf3e793389b1b4c8802f6",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/cli/handlers/orchestration/terminal-identity-codex-filtered.test.ts",
+      "upstream_sha256": "f4301df084a7a29cedb68b4a30fb49992a233690482eadb31d954ee0dddd91e7",
+      "current_sha256": "6838954877770af8c0ddbb78f189adb0db3bb3460ecdd9a68bcb6b37977daac0",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/cli/handlers/orchestration/terminal-identity.ts",
+      "upstream_sha256": "17dbbe6811ece95b3645b6df2ec93697bca335e5b09d1f9d5ec9c7e552384306",
+      "current_sha256": "458cf0a74b6b67e208b91a127669d5e3baf9ea671e45004c711c5a636899e459",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/cli/handlers/serve-service.test.ts",
+      "upstream_sha256": "085a3d1f7c68e4bb58f14fcc77ee56b1e6d5196e22f1503b783b26980b5d0475",
+      "current_sha256": "c46cdfefec6cb67903088529bb6251ea9e137aa5f64b23cffd8ff30db1bcf598",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/cli/index-automation-run-output.test.ts",
+      "upstream_sha256": "ee26e41d06cd8723e9ef31149c5d4b9ce43ba62c3fec9469ae3caad503236216",
+      "current_sha256": "088f7215fe9e12dafd49806a138a0477582fd6e26b483f39abd9954321d972d3",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/cli/index-orchestration.test.ts",
+      "upstream_sha256": "214753e541c6043a9f973b84a2e981b26387e94b5cab8aef5adf1e977e0a6e2e",
+      "current_sha256": "cc64586c7fb760c707d3e22595f63c945cbfab73687301ab306daace74c4339a",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/cli/index-test-harness.ts",
+      "upstream_sha256": "b3e1cdb1b1c0bd6d6ff5e605592217b2e951bbca81fe1e315712b1e65bb2cca9",
+      "current_sha256": "8fefbc823222bdb3a45553006e6494d4048b5d0492b9a9073553c768bdaadd4c",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/cli/orchestration-session-caller-cli.test.ts",
+      "upstream_sha256": "ac2e812ad5ebf8848effaae106f8248be2af915f4234148541ed403848f3ab15",
+      "current_sha256": "29855282887469713362cfe4bfbcda0633cd4adbec0577612d0f6b3995cbfa7e",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/cli/runtime/client-execution-host.test.ts",
+      "upstream_sha256": "22271bb4118be426af7e28f3065c889c551b129e25b6ec8faee90d496d1130df",
+      "current_sha256": "61c7aeaf12dc5f5e2b85c6c21352e5c5e84152faa6bdaf04688c51b6d326c029",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/cli/runtime/launch-serve-preflight.test.ts",
+      "upstream_sha256": "03a8f4efad2dff73126fd5b5a61e6072ce601ced4b076286f0e48ca603057571",
+      "current_sha256": "81649531b764216b88d3497f1bebbf8cb58757660dec88e6182f9d15561c80e9",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/cli/runtime/launch-serve-replaced-app-restart.test.ts",
+      "upstream_sha256": "392db88322aff759429e755a7084677511dff27c8d59746ce17447603055b547",
+      "current_sha256": "e394c1cf5e8800f0775e575f5e53adbc96e4255d4a7c6ffc7cb5fa011770c925",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/cli/runtime/launch-serve-runtime.test.ts",
+      "upstream_sha256": "2527679ab17a7241b44f46bcae7c88992e301782b0d5ff2f346a4ff17ee2b0bf",
+      "current_sha256": "22dd5fd5dc11eec9d0d0f565084ffdb6c919bf303d8dd7b4a5aef629646ab7ec",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/cli/runtime/launch-serve-supervise.test.ts",
+      "upstream_sha256": "c590bf2c18f1b95548b0095cf61d8d216475485f758fa88a30ef8717fb660b0a",
+      "current_sha256": "bb677689e0382407f5d9ba591b65f7aac3ee29023c01e01d91db36719cc5a588",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/cli/runtime/launch-user-data-path.test.ts",
+      "upstream_sha256": "6c182c2a1b231eee54eb08096a90067cbaa352970edde58408743b84a0773c38",
+      "current_sha256": "140ac8e1829ce6fe00a670fbce11bbefe2de0b7b67b1beba91c6a6f6d84aceec",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/cli/runtime/launch-user-data-path.ts",
+      "upstream_sha256": "b17c1f5004fcbafca4462729e71bb4a1260bd70d503def6bb1a86e7d630ae7fb",
+      "current_sha256": "548c9c81ccb8334119eb6ea52a83b0ee3f478dc749557402422b0eb577e158b4",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/cli/runtime/metadata.ts",
+      "upstream_sha256": "dbe7caf05552dc961b228647c4ede7e9bd9f62ae75729d71eb335c5cdafd62c0",
+      "current_sha256": "e9ec4b04e989cae1fe25cfbf3211fa18207e38affa2a4315e5b8738ec9ff6b9c",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/cli/runtime/profile-state-recovery-launch.test.ts",
+      "upstream_sha256": "e9509e550cbebd7a5e69940023fe7c89b4b5aef1dbf2359c1ebce0e17dcbb47d",
+      "current_sha256": "ec6ac69567850703bd77e939d8fb693b67e28dbc0b7a1d7dabdbc6e8445de814",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/cli/runtime/profile-state-recovery-launch.ts",
+      "upstream_sha256": "1509590ce21b2a3358d9fc2241f91906f3c097b746a9b7e91ead02b489106269",
+      "current_sha256": "a259e6a03a997b33538b65cd39b75674f8912ca06f87248f9fd44c870e0a4a18",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/cli/runtime/serve-appimage-update.test.ts",
+      "upstream_sha256": "09c6748bd546b2895c5c08943fcf3b5b42249369e3a35d00ee5757be69d11773",
+      "current_sha256": "1aee85161b53197209282158b22267f92761a710849724acf16a972b023fa822",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/cli/runtime/serve-service-unit.ts",
+      "upstream_sha256": "73b42c7cefc4928f356bd5b476fbd4c7b1e8be7de3f02ddb3ac9eb0cb3c2597b",
+      "current_sha256": "0e37ab6496b1e24e26705bf682bd46766a45b0e30c4f4872d29b61b217b3ce0e",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/cli/runtime/status.test.ts",
+      "upstream_sha256": "0b9219834e58890e6d04578a714ebf4ffab813291d2471ca3a1021577d50668b",
+      "current_sha256": "0334f2fca810022dd77b1954d345ea3e02a87ae76d225adb8b767dc14128788e",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/__fixtures__/shell-wrapper-snapshots/daemon-bash-rcfile.txt",
+      "upstream_sha256": "ce2ca912b0ca44bf8be66f051c587182692ee665190c4576c999d16edcd76174",
+      "current_sha256": "f615a7be4a646a20f72504c6d00bef030fccaa3c12d82b624e3c44d84646cc99",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/__fixtures__/shell-wrapper-snapshots/daemon-fish-init.txt",
+      "upstream_sha256": "e5ea756e949228e7df7f988b4e1a4fc4bbc0cfde454286a193de7b01b5aeb232",
+      "current_sha256": "4b7029939befc47f171790d6a712b43430dea3a41e2461d85220c88eb88116b9",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/__fixtures__/shell-wrapper-snapshots/daemon-zsh-zshenv.txt",
+      "upstream_sha256": "98990c9b03e8275db0b70c914cef885f93008e026adbe591125ca6f7162759ca",
+      "current_sha256": "2064cac45429b5df9f94aa18e4b2e709cb1f02a2e21b4f9e77203f7259f0c9e4",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/__fixtures__/shell-wrapper-snapshots/local-bash-rcfile.txt",
+      "upstream_sha256": "ef0c94984bb7044009c0062813ddf265226cf5e2536679c732792097fca96e19",
+      "current_sha256": "48dd59e82696ccd5a8de33709ea6222b9aac57418f6fff6629b80811fd99063e",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/__fixtures__/shell-wrapper-snapshots/local-fish-init.txt",
+      "upstream_sha256": "e5ea756e949228e7df7f988b4e1a4fc4bbc0cfde454286a193de7b01b5aeb232",
+      "current_sha256": "4b7029939befc47f171790d6a712b43430dea3a41e2461d85220c88eb88116b9",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/__fixtures__/shell-wrapper-snapshots/local-zsh-zshenv.txt",
+      "upstream_sha256": "4260323c66756939e67fe3e36288398f09a4be9c7b918a64e210caa117dc784b",
+      "current_sha256": "ca3843cf0a2a2505c264f588e58a81c57b6e31bf29f14edb8a6d6c88b3ab8805",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/agent-hooks/managed-hook-script-refresh.test.ts",
+      "upstream_sha256": "368e41c10972fa346563d3379d1925b98412d5174b8c949114c9d7466bf40b19",
+      "current_sha256": "c56526cbb8e0824f7d4b704203f837233306175f382d9932fa39c881a302ca82",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/agent-hooks/windows-hook-post-interpreter.test.ts",
+      "upstream_sha256": "a3056f1449c068d7f48a8dc8b731912a62ef29c97d1154fbfaf628e944b7d322",
+      "current_sha256": "98fab37b43c44a0d1ad8d20b453c7a3a485c68e4cd104f770b4e20cf44b0480c",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/agent-trust-presets.test.ts",
+      "upstream_sha256": "e73442554c5f57f66daea288409b5e550b7ff2afee73a516dcbf8fe8cfe265d6",
+      "current_sha256": "cfaca0d3aa30e372e2cf6d71ff7f514c8969411019b71b375047d88a8089a1a7",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/ai-vault/structured-chat-cli-fork.test.ts",
+      "upstream_sha256": "ee188b2741a14149d7f91ace4646c274703b4c86de803bac3fb13d75b9ba3911",
+      "current_sha256": "6e68b954471308f8b34ac0c2e5b6b5efdabf4c3d5449cdb1c2ec2b0e00118dbb",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/codex-accounts/runtime-home-legacy-migration.test.ts",
+      "upstream_sha256": "ad5d95fa4127935ea096e774818b43b1b23535ca3db7527a03eafa311ee6ebb5",
+      "current_sha256": "1c8e079616c71e4e15c5280e0a7a4359d4942e9262bb9fe04cf33f88c9aab435",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/codex-accounts/runtime-home-mirrored-status-home.test.ts",
+      "upstream_sha256": "6f81e413473b4d7bb162d1978a2eaf54bcd6bb224154c67b96adb374484b5235",
+      "current_sha256": "27ab8f1db490cebb52131b274e7c887a41e6f6e5872d25f7b282a58d049c1097",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/codex-accounts/runtime-home-service-per-account-migration.test.ts",
+      "upstream_sha256": "02a6341eebea3fdf631179dfaf15f1172ed8cd077eb2f0a22c0c804b4ddd4d86",
+      "current_sha256": "5bad2f59d4bd2e58bc0988c75dfceda50fc63ab41f7205476c2111cf09b047a5",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/codex-accounts/runtime-home-service-test-harness.ts",
+      "upstream_sha256": "eaf2a237b6a126549741f5d0086349044327f02aec1b23580a7b32fd85e35328",
+      "current_sha256": "1f839e2add82fac1177a6c1cb0ecfc9a4544570119a54652042494a9dc0409ac",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/codex-accounts/service-test-harness.ts",
+      "upstream_sha256": "b68088e613dd33cf4de027477bec9181172609af2bf0ee351fe7e29e6d44753e",
+      "current_sha256": "1dd2f079db6f1e053527c2d2ce706b73a75d447248c0aaf3dc78782ea4ee0590",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/codex-usage/scanner-attribution-memo.test.ts",
+      "upstream_sha256": "7422f260a31cc972f618f350feb2ffcd75413397a8be75a3cc0e68b68c504dd4",
+      "current_sha256": "0cf817ff0a23f6b8ef34da04f8e172ce6e247107c54858d95f2f1a68454f130b",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/codex-usage/scanner-checkpoint-races.test.ts",
+      "upstream_sha256": "1c551da85252c57d6c450ddbdeee390122915cbdbe2ec458ddc0c4d1eafb2dad",
+      "current_sha256": "53e5d12c828fc9c561f98fd68df345c828ddf429b2b93073f21dcf1d703adb8e",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/codex-usage/scanner-incremental-append.test.ts",
+      "upstream_sha256": "1aa59d2f428a271703d7dbc40d026dc4811f2e40986dad41093c2a5f8432d93b",
+      "current_sha256": "613d54b3167940b1c446c8c8d19f1ff9b34712e34ff9cf0ec4f596d4ffd9fe08",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/codex-usage/scanner-paths.test.ts",
+      "upstream_sha256": "747a40fa5232d3e6b5b8f3087971dfb536e2c074bf2cab256029f62d637109a2",
+      "current_sha256": "7274922c0f5c97184fbb8b62b36d05fac23b2f04a57146f9233959662a862e65",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/codex/codex-account-home-hook.test.ts",
+      "upstream_sha256": "de629bb08ab7921d91bcc2a15217d418bde5b7d30a0dc2aaf2eef8a067d28b3e",
+      "current_sha256": "b060b7008aa02cf697115b05038706dc8bae71c5a7590dcbc7062aa0ecf8b520",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/codex/codex-ai-vault-session-resume.test.ts",
+      "upstream_sha256": "50459a038cea7eafac202f566d0e60754c1c0eeade66c2b4e75ba58bcff9bcc0",
+      "current_sha256": "b8f5e567343db440eae9185a09c27603b509cbe3aab032057d2b295357231444",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/codex/codex-home-paths.test.ts",
+      "upstream_sha256": "182b3a0923a07cc98604426ba9ee69c71395381e1ccfae5ee8ee56e0cb120c9f",
+      "current_sha256": "eaddefb8642a96365f63126e35a1f2b3fb8b8299d933921c9af4ae01a56335b1",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/codex/codex-home-paths.ts",
+      "upstream_sha256": "6ac9d12e0e4d337d641ba4465ac822e691ea06ed91959c2f5f0c4649f65d40ab",
+      "current_sha256": "27572f1a3652f87c3c089278f42238e96f2a759446b1a1ebd7633268e1e4c494",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/codex/codex-hook-file-entry-binary-contract.test.ts",
+      "upstream_sha256": "73c0cb59b6d41713b03e6ae6f8cea53f389dc5505892231ef927c0495c3abae3",
+      "current_sha256": "c66bc616e55f4515797c5dc93dd62166b536732ed16827e6bda474d214599a6b",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/codex/codex-hook-hash-lookup.test.ts",
+      "upstream_sha256": "2d5498ea83ed54306a354462d643441a610273210bd8f9b6bb53645783a8a834",
+      "current_sha256": "1da10e0660eedeb4f5d15266b272868b7d6b557b26d0fa19024746a56b916868",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/codex/codex-hook-real-home-status.test.ts",
+      "upstream_sha256": "36d699786c476c7aa9847913f5bc9a9015f96baea57e121ac201f6f9bc7f3383",
+      "current_sha256": "67c467543d4e7e12aacb9e51a9e5e07712d4cf4c07b527f144bb7394bae20f3a",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/codex/codex-hook-reconcile.test.ts",
+      "upstream_sha256": "1003cb44b8812e429703b3b673a4ed1d8b80ef158a94bb8133ae508c4292a0b1",
+      "current_sha256": "3e36ebdd353d7d9ad0e27261d9654728e7739562b3c87e158236b9544ad05ab1",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/codex/codex-hook-toggle-off-wins.test.ts",
+      "upstream_sha256": "cc5c48ee58aa1c7fb5cb27e8543988bd8039f64c7f038c0b2a9841bb76ef6dda",
+      "current_sha256": "40c1e31bb173fe322d105be2f48915f6eb74a7fe87d802512ef8adfc68d09cfc",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/codex/codex-hooks-read-denial-followup.test.ts",
+      "upstream_sha256": "75728213db6cc6137a6ac278843a75a5cce0b11844bc6be2d83aed3e01a57746",
+      "current_sha256": "d9141639ec53c344d632277f3e5de837bb5c851f0f29f4c1c3a9ebbbf02275ec",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/codex/codex-legacy-session-resume.test.ts",
+      "upstream_sha256": "1a64f7019fd3711212f61e6e412d0fd4e83c6e1bf983b3eb78f0483af8b8427f",
+      "current_sha256": "6ec9db8bdfbdd3e350a19aa4295d9035961efcf75661f50a15a82fb257b6708b",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/codex/codex-real-home-hook-entries.test.ts",
+      "upstream_sha256": "f6319cf9e123810f9eecb7c93792fe0b9050d1164d843b57aa3d536daa8ae4f2",
+      "current_sha256": "b99a888b76fb6736848687febdb0b324b7f4dd2ffc7c66a56c051963ab9d50c6",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/codex/codex-real-home-hook-key-spellings.test.ts",
+      "upstream_sha256": "6089877f9ab25a9347ec17c370b6d403e0257a94f2111d52ece0417bc22cb95d",
+      "current_sha256": "5b8cd5c48429c3e7cb4df9063425178155af9d1fc19351ca44bb1f309ae0db8d",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/codex/codex-real-home-hook-removal.test.ts",
+      "upstream_sha256": "86935b2dd614e3c1fff116c8bf3a7551550523004005304ea2637964c5eb1867",
+      "current_sha256": "27563ede4dd67b0d35f5a55a3376b8ce86664ee230334d2f7d86488ce4c8bfc7",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/codex/codex-session-backfill.test.ts",
+      "upstream_sha256": "2da08181bf361f431f558a33720b9808e4fe293c4c6e17aac0bc156576f804a9",
+      "current_sha256": "1bab3b40850dcfd4379d923fe306667179e083c7b4ec5e94bac759459136bb1a",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/codex/codex-session-bridge.test.ts",
+      "upstream_sha256": "2f58183020a1618dfc3e3fefbc00810dcf58b284b7892a1bdf2d8437610d82c9",
+      "current_sha256": "b7aebf30e81d67e4f6b47f3ee159373cee7592d55fa88a90adc42689c445cf72",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/codex/codex-stale-pane-accounts.test.ts",
+      "upstream_sha256": "6b5dd71fe2f669d5289744802ba45b5a7df81cc88281dfa6b5a54433d74f5e8a",
+      "current_sha256": "6709226c034f85496197394ae34233c197602e635cfe75e2431c0622cd3e3b47",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/codex/config-features-settings-promotion.test.ts",
+      "upstream_sha256": "b97d29886ee4b53ecab8483cbfb8d7b92b10b24cf62dd3485908c6ac9fc6e5c3",
+      "current_sha256": "a6d17251f3a29800a3c4ea06d951809ee00f1fcba1bb6054805ad3b42fdead8b",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/codex/config-plugin-registration-promotion.test.ts",
+      "upstream_sha256": "e96e8438d5f91338aee4f389fd726bade56ab304295482f8afabdc2106e8a769",
+      "current_sha256": "b838f9ea880d13e8b2d580a120b30504337030a384c7769003f7935fa8bac47c",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/codex/config-settings-baseline-upgrade.test.ts",
+      "upstream_sha256": "0183691cc098a29c2cc0542837755e2f6f5cebc5dba16aaed8cbfc137ce3588d",
+      "current_sha256": "92b63fe5cff45f0e20e45081809578edf7e6426ea8fcfe92374e78264872d04b",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/codex/config-settings-promotion.test.ts",
+      "upstream_sha256": "7e42eafefa2dfbfee49112f61ffb1e07491c762054338bcce7102a6a70e38b44",
+      "current_sha256": "bfb93dec9f8a92bf00102628b13288f48880a22fc1207e09ab914d75d9f98058",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/codex/hook-service-concurrent-launch-install.test.ts",
+      "upstream_sha256": "859272d3dc3398333f2fcc149e85c6dac01be4ae5b507d3c43d0e6df8cb8080d",
+      "current_sha256": "4b7b937ef5b3015bece20096bf8065fc83674c63c2f788416228c6e1584279c3",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/codex/hook-service-runtime-trust-repair.test.ts",
+      "upstream_sha256": "010123d3052fcf2c7ee67b0531db0dba048a3cf6730355645c11870b0842f362",
+      "current_sha256": "a5d80b3c5b5aa059ae53cd34ece4d653d3aeb724066f43b918773bebb84a0274",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/codex/hook-service-test-harness.ts",
+      "upstream_sha256": "76381ebb34aa46b0d90716852b9390ba17f7f8deeb6f5fc20949d1cbf5661e3e",
+      "current_sha256": "ff2c5b588724a8c68912ce62e89249de8c7e1b87ba74f5fc847dfad2f50b9d8f",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/codex/hook-service-trust-grant.test.ts",
+      "upstream_sha256": "b203048761884bc2cf6d630e182b4b6608b8b960be52a8a4f38298fdb67f35f1",
+      "current_sha256": "8f0bdb9c95a0e487af8e43829b96bb7394f5c559d39caf80aa96b943337e3f22",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/codex/hook-trust-promotion.test.ts",
+      "upstream_sha256": "59185109bdf6e3e87207139ffcad30828a2f29af8e642d759a992c466697e76b",
+      "current_sha256": "71e0a2085046b34dfa5d30639e9cd8ec0292e2d72986932fe7b2f4167d44088f",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/codex/sta-4737-unreadable-is-not-absent.test.ts",
+      "upstream_sha256": "e1ec84fc0351e0eae72af7a5573de97d4654cb0046788210f59756736b51e411",
+      "current_sha256": "8df02e7dc59af2525613e943286f186ec8fa266d23ea238eed46ab7dbc2292bb",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/codex/sta-4823-shared-state-survives-a-failed-read.test.ts",
+      "upstream_sha256": "4c31a545c2b07023fb6e32397d8b05aac4b998ce13cc625dd8bee69a90ea0ed5",
+      "current_sha256": "4445b3c1823a2bee05173ae4ba04c65193cfb43679f72968689a6d05abe93c4f",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/daemon/daemon-launched-child-spawn.ts",
+      "upstream_sha256": "8404e82ad83137328da9c5de2c206bdd6f9ecaf364957e4ac8835605969fd262",
+      "current_sha256": "98f35b81d9639aba02c5748beee7ebfb67648c3894658e51d5b4f4ac751c7878",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/daemon/macos-daemon-launchd.ts",
+      "upstream_sha256": "9ba69091cc8ddd9863deb553f1f405ef0de5e684c25287a077056a893b09f3b2",
+      "current_sha256": "c9bd5d695af44610dd0ba9b30c066ef1a2632e387abf7efd672a3addffcfcbf7",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/daemon/pty-subprocess-test-harness.ts",
+      "upstream_sha256": "06273ab97e275c5b548f342d030d44300e1ef99c9c4199fe4bb7e9011b8b903b",
+      "current_sha256": "ea58963f331c93cc46ffddd04df1fd413f12070f19f435ce93d7a5c9af296fae",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/daemon/pty-subprocess/spawn-environment.ts",
+      "upstream_sha256": "a2132d872276824fe527d1a97077c5dfeee9fc18e2ddc0815e77010e115cbdb7",
+      "current_sha256": "27a1e72f3fcb5ea91c989eed3214f0347c9605facb8d3bcf23e62d2fa0ff9754",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/daemon/pty-subprocess/spawn-preflight-health-probe.test.ts",
+      "upstream_sha256": "ce9d05ce896403bd793c2d72271130c5a6de8fb119cc4b018fb4ad547e5d77f0",
+      "current_sha256": "83b1c9b25192ade6da5188e21456e4db40666e32f8e56ecb1d2d4aa885ae675c",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/daemon/pty-subprocess/spawn-preflight.ts",
+      "upstream_sha256": "18a29782f3699e7ab4aa4b94bc1a577f40a6212acf2511bb0bb5deadf5a1cd46",
+      "current_sha256": "86ac736c146c224b33fab23da31c0eeee5366b2b2659a6d2139c171109b221ea",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/daemon/shell-ready.ts",
+      "upstream_sha256": "9dad2efeb7d07dee8b5958b008b16c1b285fcd120379fc85426466e6ceb78cab",
+      "current_sha256": "b20520f2c34871714d01e78173b951e8af91a3a9bf0c4414e2ce9b0041880142",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/ipc/pty-ipc-process-env-scope.ts",
+      "upstream_sha256": "30b5be7243b9a3ca2d99f36ebdd62eb9cc142fbcea0a7b9730523ea8ed9dea51",
+      "current_sha256": "4cc797d660522a410d0997657b47eccaf9cfc47162a08f29bb742565ae9d63ff",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/ipc/pty-ipc-suite-environment.ts",
+      "upstream_sha256": "e02bc0ae199320f5b22e3def571ee0a2a4a97d2500d750c062edd8f02f8e8687",
+      "current_sha256": "65480a59294aba44c567ff9733c261ed6592d8e282b07228adeda7700d5c2901",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/ipc/pty/opencode-legacy-spawn-deletions.test.ts",
+      "upstream_sha256": "7283e3cd65d6f27a773e77b4d03c3f831098c32390c39f056166d8a494a3e262",
+      "current_sha256": "471c60d3ebc2bcde6e7638b3475999bfe6e2365d34575c46eab36d1040aa232b",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/native-chat/session-file-resolver.test.ts",
+      "upstream_sha256": "9f192eeaee72c397bb5eafe31e4054227f4b6b78b222a7fa3210b251ceb6604b",
+      "current_sha256": "5d948564fd1e32cbebc4dfe4d817f718cda32e10ad51c5169976a34439945bb9",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/native-chat/structured-agent-session-source-admission.test.ts",
+      "upstream_sha256": "fe8661025d7e73866a8bfefef123395ffef5fbed7b292fe89fced56eeec382be",
+      "current_sha256": "f3faa0867edea1bb577bed9d418aa73484f8417c13467f198f7bc76f214b5897",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/orcad/orcad-account-services.test.ts",
+      "upstream_sha256": "66d868049ccfc0ea5313db1b00cfaf64fd4f6fd07b20e2aaf4bf4b9d107c0a8b",
+      "current_sha256": "853a1a0618354eaa57560fbe11ed7334103dbd004268c0962e75bc92edf51945",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/orcad/orcad-duplicate-pty-repair-startup.test.ts",
+      "upstream_sha256": "4054fef36c0a34c3d9f71ea64fbb164d372eb60ddd2f42b34d83d585f14c014c",
+      "current_sha256": "a49c464b082b1e2ba3b6cc8f17c7784647175c34b1bbab3fee1d1e9edf6f813c",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/orcad/orcad-packaged-node-pty.integration.test.ts",
+      "upstream_sha256": "876e81f63ffee013d238a451bbee9f47c4313b58e953a02d3dbb2e9d797212ce",
+      "current_sha256": "49937bd0da6566b95324cd399e4837410d29442d0490862af328c84a58d0c7e5",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/orcad/orcad-push-startup.test.ts",
+      "upstream_sha256": "cc88d852531769c24b0e2f968cb7b37606c9dd68ddcbfcadd02306a44a9d9f6c",
+      "current_sha256": "88dd2a1465f28c670ed69469ce975009cd425113bf2a23297117a70f332d15fd",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/providers/local-pty-shell-ready-test-harness.ts",
+      "upstream_sha256": "c6a8d0fcb616ac6e524ac6d018cc0ce7ef6e1dac85930cb7f36e76a781abb9d6",
+      "current_sha256": "faed482c70a2b74e1d7e7f8e842ff0cb897226e4d4704167d45422171dee7203",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/providers/local-pty-shell-ready-wrapper-generation.test.ts",
+      "upstream_sha256": "095560af91cfe5f5f587186793634f20ea6646acb0b6d7ba1e959c6beda3915e",
+      "current_sha256": "da19e6646b4dc0cb34dfaccd6a4bc3eac4fc480c9a225c2b0aaad6064d6a7168",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/providers/local-pty-shell-ready-wrapper-root.ts",
+      "upstream_sha256": "2c71ebe3c33434153c22dcd15efd16d3165d7a06335248eaae6b3be6ad1b5686",
+      "current_sha256": "0718484507dda0fa4870303434abe5afe644291e42985921f45660638ce4f9d2",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/providers/windows-shell-preflight-runtime.windows.test.ts",
+      "upstream_sha256": "2da14b3a319076d98436e1411ee4e1df76b7d8708c737cedaeb25b1b6e23e6ab",
+      "current_sha256": "c312a3163339210cb6366a1e5018c9eda0b008c1cca72747479bcd144dd3dbdf",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/pty/codex-launch-shell-wrapping.test.ts",
+      "upstream_sha256": "d233cc50c1cccbcf1e661bd067fd11625323062e1f8ed0bf69c69a8560e674df",
+      "current_sha256": "b638e399ad310d6f3ed3cd7b9ecdbb205ade57d4c3c169a2282fad43737ce6d0",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/pty/codex-shell-no-daemon.test.ts",
+      "upstream_sha256": "98bc5b65aee40fe81a1f5dfceb7441a747e93a393d1aa62fad107b499bba90ac",
+      "current_sha256": "7fda5f1a842b6c4c31d73fe8aecf1e49ab2541156014d7e567a16a6ebccdd49d",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/pty/wsl-orca-env.ts",
+      "upstream_sha256": "79f15d7b17d41f207a8f68127df82b7b538dea45e6d45578fd519e5ac93e691d",
+      "current_sha256": "d85217a0450ae47ba0e2618192d5b028390e55c66d889c2191c35f683ddfd262",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/rate-limits/hidden-rate-limit-pty-cwd.ts",
+      "upstream_sha256": "a91077ffe1b5d1ae7c95f0b22c43feb2e3f01cfa169bac909347c1a54d51bdda",
+      "current_sha256": "34d768033cde95912afbd48fb3f4235e632f549f0437477acf08d9a975df749c",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/runtime/__snapshots__/structured-agent-launch-parity.test.ts.snap",
+      "upstream_sha256": "7b7b400f3f1f72be176e948c57214d22b1f61b54fdef0914b0df2cd919215b7e",
+      "current_sha256": "15c43413ef323bf4930f15b99cba45868941270d2e3f980660a27c786e571732",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/runtime/orchestration-cli-subprocess.test.ts",
+      "upstream_sha256": "076cb0538a731d1895a0f05642bfa8be625302ad461549a2fe3d5a0141ce65e0",
+      "current_sha256": "4f148ad8e9c7237f83976ca4f13bdba7693a9f36467e116495bbaf46849e5339",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/runtime/rpc/methods/structured-agent-session-adoption-replay.test.ts",
+      "upstream_sha256": "982c87ad6817c111c1736d2b819a4b6b6b6d20c120d638747879c8ce78e1ea45",
+      "current_sha256": "be34d8a9f5ac3115e9d08949a0565e3c50a7d70519bd586e81f899cf2758fc78",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/runtime/structured-agent-launch-parity.test.ts",
+      "upstream_sha256": "842230c594bf65a7e6abfc9c13d47b7bd172559de1a373acf4e9285092c95360",
+      "current_sha256": "9d15643dbef9f7e8f4c3a0943ff1813151edf016c78a20aafa1cc86518673b29",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/runtime/structured-session-child-env.ts",
+      "upstream_sha256": "c6430d04f35adccb249dd1e6b1eaf824ee0e85efa92287e141348f59dc246627",
+      "current_sha256": "f08093b58156b06381eaecc64f6998fb87854ae3e8a5f99be03d90c29e2b2283",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/runtime/unreadable-secret-store-preservation.win32.test.ts",
+      "upstream_sha256": "d01ff47fd87588e58869f32313ac278a35ddba588b6eddf4c97c812a367ff789",
+      "current_sha256": "70884f73a0950c48e100fc50936717b7409c20a5bd803c8676f5de1f23097246",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/shell-wrapper-generated-file-snapshot.test.ts",
+      "upstream_sha256": "08214ee83a0fa223d8881eaf2c14391758032b220c6765105f893b1bc8fc7627",
+      "current_sha256": "4f16ff489d999e4c2a810a10897fdea2784fdf7acef3fbe9a79dbd94e3e29f16",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/startup/cli-launch-redirect.ts",
+      "upstream_sha256": "1c6ee72e4684aaf08b1d346d758f9b0e7933c20e7ecb56613fb051cd264539d0",
+      "current_sha256": "2a9295a67c8dbbc9be8a5857baa4c87f851ccc9f06b745fb80598939c4f335eb",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/startup/configure-process.ts",
+      "upstream_sha256": "798997b882c6455e222907f33a4a92033adcc24023cee122958192e7544679e5",
+      "current_sha256": "87cb0ba0a591b0743a8a0eb71207991a3fe3f1a5ecd58857452a78f091a0ea79",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/startup/profile-state-recovery-preflight.test.ts",
+      "upstream_sha256": "0ad019dc337f4a725aa9df32e77a24c150980b6d22f5c970caf1ad5df04139b6",
+      "current_sha256": "eab5b9c1268846e06dac8a85d1cd20e4dc5044af8a20901e671e6729180dd480",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/startup/profile-state-recovery-preflight.ts",
+      "upstream_sha256": "4fd1df1e98dcdc44a554b763156f6f10fc8928070550dbaafa94095b412864ff",
+      "current_sha256": "249bb36602ac18f72b6bc90c8be0f7d66e04a513826cb92e861c336f9ce05034",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/usage/usage-scan-worker-event-loop.test.ts",
+      "upstream_sha256": "feec56ab33cde0a32230fb146a5c2d93f2c1e5e1f4d6ef3be24679a6839d67c5",
+      "current_sha256": "a6ba14e339126f43cc1a865e0bc73e0b0276eb8576cde609b3da1fa929e0d12e",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/wsl-interop-spawn-directory.test.ts",
+      "upstream_sha256": "cde9feb913201d3526d130474f38588502c0e5afbe6911c84939bbf441f25c36",
+      "current_sha256": "89afb945dbe3024c02bee6f8754f8aad67e99d936ff12f00aa9c347ba1b860f8",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/main/zsh-startup-hook-user-config-equivalence.live-shell.test.ts",
+      "upstream_sha256": "1786881d8dcd5fd5b38aa11240dd2c1550397cf7eabb9ba8f5c537fb4e2303cd",
+      "current_sha256": "97222a474d4ed59f4e4a6042d9c9560c15251b245549e123c71a0f38c274169d",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/shared/codex-shell-function.ts",
+      "upstream_sha256": "7f380cfe78f978b702c72f5814dee5e3a7eacb2c6b22990e245365b0f0ea1e57",
+      "current_sha256": "2d3edfad529d310ceec4084f13b09fe893d44353428de347bccdec75f1584c57",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/shared/wsl-login-shell-command.test.ts",
+      "upstream_sha256": "f57ffdae1c98b35216e05b7314a54593cc612436821f4c7ba862c5b85a689ce0",
+      "current_sha256": "2e677601506b937995827132f645a3a3d5aa257a4b0b9e35490410c972dc1294",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "src/shared/wsl-login-shell-command.ts",
+      "upstream_sha256": "d2943797bacb00216ca156622b48eba935e30334731b0ed48bf5699c41699251",
+      "current_sha256": "033b91230c288eb5d056bec65142a6d3e3f0c5ba3377a8490add6ac07ac144e4",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "tests/e2e/cli-file-open-position.spec.ts",
+      "upstream_sha256": "a0ad5a345cf694b55206de4842bff9c92ed24d96759eac3463825143edac8cb5",
+      "current_sha256": "ab1b541f767c8135a24f68ad42e00d648ff3d0cc2405eee41d4f497ce72fc56b",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "tests/e2e/cli-floating-file-open-position.spec.ts",
+      "upstream_sha256": "2bd734329484fd9ded7f5dac1b50394b64ca83ef79c815d7ca8c2503c5d8d0e3",
+      "current_sha256": "a54a1fbe9a169c265d16fb5298fb988faa026a431d2c6ac69ba41eea29b2b19f",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "tests/e2e/daemon-generation-legacy-close-safety.spec.ts",
+      "upstream_sha256": "93f260fcec5123d9d9a1c6c45b6d5f804e1cae58fc491b1fc185204713c37749",
+      "current_sha256": "08b64086be2913df09d800b06be95b53f281590fccf9b77f8895961a85bf2d14",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "tests/e2e/daemon-generation-reconnect-safety.spec.ts",
+      "upstream_sha256": "0c10b0e038b0a0592cffcda8fdd73ba74b55a89a9026640d99ca13ac61000e9e",
+      "current_sha256": "2b0eaccd8554c9ab094a645257fbb1545882b1fe875b65d6a24602b3bc40df83",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "tests/e2e/helpers/compiled-orca-cli.ts",
+      "upstream_sha256": "20f5d0fb3012fd4eb1749c57d67cbfd7a1150e96e1a3a1a88fa93538bbdcabbc",
+      "current_sha256": "258cb23d150cbc6ef8670823c86925bf7506a8807c047436eeee892694388f3d",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "tests/e2e/helpers/completed-worker-retirement-fixture.ts",
+      "upstream_sha256": "c9d110eb41667a89fe4202f5fcfbd3b68bc78697e6e1ee3ec6966b53a2af6228",
+      "current_sha256": "9f793e00250ce08e51630defcf1d73b11fcb1d619aa168b2356871360b874d49",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "tests/e2e/helpers/daemon-generation-safety-fixtures.ts",
+      "upstream_sha256": "cb4929d3d05cb506c043780495cb3d755ec4b5f079ff98ae11ee1c869b1b9fc6",
+      "current_sha256": "251f021001c7615a173e1057f390120f286584f18f47118582dd2ed913f86eed",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "tests/e2e/helpers/orca-serve-cli-host.ts",
+      "upstream_sha256": "9a15441dad7333203a42a7852d2a4367181edc9c4533eb932786ec46e19573a8",
+      "current_sha256": "b375f5a5acfcfe1aaea04fb9e7c5aaa1b28394fafedb4354e01e581b727aa9c0",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "tests/e2e/orchestration-worker-settlement-release-cli.spec.ts",
+      "upstream_sha256": "d02de4a210502d7fbba4a48648f159d1545e97994fdb12606680d2b8cbcd2058",
+      "current_sha256": "32079894ba1050fe01862144f3f05dd9301c5257acb79312f76c606de9080c14",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "tests/e2e/profile-state-automatic-backup-recovery.spec.ts",
+      "upstream_sha256": "fb3ade68ca09153d1d4f39f3658eceb07f0957ed9ac2c2aa80c373ba29dbf792",
+      "current_sha256": "544e1e6be9dd68e1a24949428acf36f0de0888ed25b7fff2d75beebe541df5ee",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "tests/tools/daemon-relocation-spike/daemon-launch.mjs",
+      "upstream_sha256": "17b8141cac28d44d33681daa47e4cc3a06d9b962a3f67337c6114c0d8f8c57b2",
+      "current_sha256": "fb0e922e871fdcbc3437c4eddc56379b86b41a732f625d1974ff22910bc463c1",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+    },
+    {
+      "path": "tests/tools/win-update-e2e/serve-switch.mjs",
+      "upstream_sha256": "294902f0ce688c70dbe2b14966198a61300dea63426f3dc0c850d6355e938c57",
+      "current_sha256": "d642b858912f144e8de132f7a690e1de529d1c8a36abd20f74f92ee3adb7e6a0",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
     }
   ],
   "reviewed_findings": [
@@ -331455,14 +332277,14 @@
       "path": "src/cli/bundled-skill-guides.ts",
       "rule": "personal-home-path",
       "line": 27,
-      "sha256": "df952f41a56fd4e4c5d078e6e08f1617c0309f5448a8a5af05302acf0c7b3465",
+      "sha256": "b62dba7a34e7423842f3f33bee31000d141ee9eae191425750dfd76018dd4151",
       "reason": "公开的路径模板、跨平台解析说明或通用示例；未读取本机账号/目录，保留语义并限定具体行及文件hash。"
     },
     {
       "path": "src/cli/bundled-skill-guides.ts",
       "rule": "personal-home-path",
       "line": 30,
-      "sha256": "df952f41a56fd4e4c5d078e6e08f1617c0309f5448a8a5af05302acf0c7b3465",
+      "sha256": "b62dba7a34e7423842f3f33bee31000d141ee9eae191425750dfd76018dd4151",
       "reason": "公开的路径模板、跨平台解析说明或通用示例；未读取本机账号/目录，保留语义并限定具体行及文件hash。"
     },
     {
@@ -331623,7 +332445,7 @@
       "path": "src/main/daemon/pty-subprocess/spawn-preflight.ts",
       "rule": "absolute-windows-path",
       "line": 57,
-      "sha256": "18a29782f3699e7ab4aa4b94bc1a577f40a6212acf2511bb0bb5deadf5a1cd46",
+      "sha256": "86ac736c146c224b33fab23da31c0eeee5366b2b2659a6d2139c171109b221ea",
       "reason": "上游公开代码注释、CLI/界面示例中的路径语法，用来解释drive/root/UNC/转义等规则；非读取的个人配置，限定具体行及文件hash。"
     },
     {
@@ -332078,7 +332900,7 @@
       "path": "src/main/startup/configure-process.ts",
       "rule": "personal-home-path",
       "line": 155,
-      "sha256": "798997b882c6455e222907f33a4a92033adcc24023cee122958192e7544679e5",
+      "sha256": "87cb0ba0a591b0743a8a0eb71207991a3fe3f1a5ecd58857452a78f091a0ea79",
       "reason": "Linuxbrew的约定公共安装目录，非个人home配置。"
     },
     {
@@ -332792,7 +333614,7 @@
       "path": "src/shared/wsl-login-shell-command.ts",
       "rule": "personal-home-path",
       "line": 10,
-      "sha256": "d2943797bacb00216ca156622b48eba935e30334731b0ed48bf5699c41699251",
+      "sha256": "033b91230c288eb5d056bec65142a6d3e3f0c5ba3377a8490add6ac07ac144e4",
       "reason": "公开的路径模板、跨平台解析说明或通用示例；未读取本机账号/目录，保留语义并限定具体行及文件hash。"
     },
     {

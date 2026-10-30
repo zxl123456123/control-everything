@@ -124,7 +124,7 @@ describe('packaged CLI assets', () => {
           ORCA_BACKGROUND_LAUNCH: '1',
           NODE_PATH: '',
           NODE_OPTIONS: '',
-          ORCA_USER_DATA_PATH: join(root, 'user-data'),
+          ZKYQ_USER_DATA_PATH: join(root, 'user-data'),
           HOME: join(root, 'home')
         },
         timeoutMs: 10_000

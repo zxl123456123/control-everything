@@ -54,7 +54,7 @@ export function prependOrcaCliDirToChildPath(
     if (platform !== 'win32') {
       env.ORCA_CLI_BIN_DIR = binDir
     }
-    env.ORCA_USER_DATA_PATH = opts.userDataPath
+    env.ZKYQ_USER_DATA_PATH = opts.userDataPath
     env.ORCA_CLI_COMMAND = hostLauncher
     return hostLauncher
   }

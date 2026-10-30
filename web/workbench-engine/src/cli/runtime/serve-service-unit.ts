@@ -57,7 +57,7 @@ export function renderServeService(input: ServeServiceInput): ServeServiceSpec {
   }
   const suffix = profileSuffix(input)
   // Why always pin: the manager's environment may resolve a different default profile.
-  const env: Record<string, string> = { PATH: input.path, ORCA_USER_DATA_PATH: input.userDataPath }
+  const env: Record<string, string> = { PATH: input.path, ZKYQ_USER_DATA_PATH: input.userDataPath }
   const argv = [input.command, ...serveServiceArgs(input)]
   if (manager === 'launchd') {
     const name = suffix ? `${SERVE_LAUNCHD_LABEL_PREFIX}.${suffix}` : SERVE_LAUNCHD_LABEL_PREFIX

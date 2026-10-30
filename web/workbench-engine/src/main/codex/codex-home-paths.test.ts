@@ -67,9 +67,27 @@ vi.mock('node:os', async () => {
 })
 
 import {
+  getOrcaUserDataPath,
   syncCodexGlobalInstructionsIntoManagedHome,
   syncSystemCodexResourcesIntoManagedHome
 } from './codex-home-paths'
+
+it('refuses a retired profile override before resolving a managed home', () => {
+  const saved = process.env.ZKYQ_USER_DATA_PATH
+  const retired = process.env.ORCA_USER_DATA_PATH
+  try {
+    delete process.env.ZKYQ_USER_DATA_PATH
+    process.env.ORCA_USER_DATA_PATH = 'retired profile'
+    expect(() => getOrcaUserDataPath()).toThrow(
+      'Set ZKYQ_USER_DATA_PATH to the same data directory'
+    )
+  } finally {
+    if (saved === undefined) delete process.env.ZKYQ_USER_DATA_PATH
+    else process.env.ZKYQ_USER_DATA_PATH = saved
+    if (retired === undefined) delete process.env.ORCA_USER_DATA_PATH
+    else process.env.ORCA_USER_DATA_PATH = retired
+  }
+})
 
 let fakeHomeDir: string
 let userDataDir: string
@@ -112,8 +130,8 @@ beforeEach(() => {
   fsMockState.trackedReadPath = null
   fakeHomeDir = mkdtempSync(join(tmpdir(), 'orca-codex-resource-home-'))
   userDataDir = mkdtempSync(join(tmpdir(), 'orca-codex-resource-user-data-'))
-  previousUserDataPath = process.env.ORCA_USER_DATA_PATH
-  process.env.ORCA_USER_DATA_PATH = userDataDir
+  previousUserDataPath = process.env.ZKYQ_USER_DATA_PATH
+  process.env.ZKYQ_USER_DATA_PATH = userDataDir
   homedirMock.mockReturnValue(fakeHomeDir)
   getPathMock.mockImplementation((name: string) => {
     if (name === 'userData') {
@@ -128,21 +146,21 @@ afterEach(() => {
   rmSync(fakeHomeDir, { recursive: true, force: true })
   rmSync(userDataDir, { recursive: true, force: true })
   if (previousUserDataPath === undefined) {
-    delete process.env.ORCA_USER_DATA_PATH
+    delete process.env.ZKYQ_USER_DATA_PATH
   } else {
-    process.env.ORCA_USER_DATA_PATH = previousUserDataPath
+    process.env.ZKYQ_USER_DATA_PATH = previousUserDataPath
   }
   vi.clearAllMocks()
 })
 
 describe('syncSystemCodexResourcesIntoManagedHome', () => {
-  it('uses ORCA_USER_DATA_PATH when Electron cannot be required', async () => {
+  it('uses ZKYQ_USER_DATA_PATH when Electron cannot be required', async () => {
     vi.resetModules()
     vi.doMock('electron', () => {
       throw new Error('electron unavailable in packaged CLI')
     })
-    const previousUserDataPath = process.env.ORCA_USER_DATA_PATH
-    process.env.ORCA_USER_DATA_PATH = userDataDir
+    const previousUserDataPath = process.env.ZKYQ_USER_DATA_PATH
+    process.env.ZKYQ_USER_DATA_PATH = userDataDir
     try {
       const { getOrcaManagedCodexHomePath: getCliSafeManagedPath } =
         await import('./codex-home-paths')
@@ -150,9 +168,9 @@ describe('syncSystemCodexResourcesIntoManagedHome', () => {
       expect(getCliSafeManagedPath()).toBe(join(userDataDir, 'codex-runtime-home', 'home'))
     } finally {
       if (previousUserDataPath === undefined) {
-        delete process.env.ORCA_USER_DATA_PATH
+        delete process.env.ZKYQ_USER_DATA_PATH
       } else {
-        process.env.ORCA_USER_DATA_PATH = previousUserDataPath
+        process.env.ZKYQ_USER_DATA_PATH = previousUserDataPath
       }
       mockElectronAppPaths()
       vi.resetModules()

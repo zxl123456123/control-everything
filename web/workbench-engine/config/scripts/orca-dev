@@ -24,7 +24,7 @@ case "$(uname -s)" in
   *)            default_data="${XDG_CONFIG_HOME:-$HOME/.config}/orca-dev" ;;
 esac
 
-export ORCA_USER_DATA_PATH="${ORCA_DEV_USER_DATA_PATH:-$default_data}"
+export ZKYQ_USER_DATA_PATH="${ORCA_DEV_USER_DATA_PATH:-$default_data}"
 electron_executable="$REPO_ROOT/node_modules/.bin/electron"
 case "$(uname -s)" in
   MINGW*|MSYS*) electron_executable="$REPO_ROOT/node_modules/electron/dist/electron.exe" ;;

@@ -60,7 +60,7 @@ describe('profile-state recovery launch', () => {
 
   it('uses a foreground-safe serve request and binds the canonical recovery root', async () => {
     vi.stubEnv('ELECTRON_RUN_AS_NODE', '1')
-    vi.stubEnv('ORCA_USER_DATA_PATH', '/stale/root')
+    vi.stubEnv('ZKYQ_USER_DATA_PATH', '/stale/root')
     expect(await launchProfileStateRecovery(request)).toEqual(result)
     expect(mocks.run).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -73,7 +73,7 @@ describe('profile-state recovery launch', () => {
         ],
         env: expect.objectContaining({
           ORCA_BACKGROUND_LAUNCH: '1',
-          ORCA_USER_DATA_PATH: realpathSync('.')
+          ZKYQ_USER_DATA_PATH: realpathSync('.')
         }),
         timeoutMs: null
       })

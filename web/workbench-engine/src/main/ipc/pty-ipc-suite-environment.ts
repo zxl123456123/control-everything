@@ -209,8 +209,8 @@ export function createPtyIpcSuiteEnvironment(): PtyIpcSuiteEnvironment {
       }
     })
     getPathMock.mockReturnValue('/tmp/orca-user-data')
-    // Why: wrapper roots resolve from ORCA_USER_DATA_PATH; mirror the mocked userData so ZDOTDIR/wrapper assertions match.
-    process.env.ORCA_USER_DATA_PATH = '/tmp/orca-user-data'
+    // Why: wrapper roots resolve from ZKYQ_USER_DATA_PATH; mirror the mocked userData so ZDOTDIR/wrapper assertions match.
+    process.env.ZKYQ_USER_DATA_PATH = '/tmp/orca-user-data'
     existsSyncMock.mockReturnValue(true)
     // size: the shell wrapper writer verifies each generated file is non-empty.
     statSyncMock.mockReturnValue({ isDirectory: () => true, mode: 0o755, size: 1 })

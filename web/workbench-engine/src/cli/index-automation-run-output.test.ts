@@ -378,7 +378,7 @@ describe('automation run command output', () => {
     'requires the same custom profile with environment selection %s',
     async (withEnvironment) => {
       const log = vi.spyOn(console, 'log').mockImplementation(() => {})
-      process.env.ORCA_USER_DATA_PATH = '/tmp/nondefault profile'
+      process.env.ZKYQ_USER_DATA_PATH = '/tmp/nondefault profile'
       const flags = withEnvironment ? ['--environment', 'build'] : []
       pairRuntimeEnvironment(listEnvironmentsMock, 'env-build', 'build')
       queueRun(run())

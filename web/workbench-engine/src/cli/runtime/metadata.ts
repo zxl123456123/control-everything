@@ -47,8 +47,14 @@ export function getDefaultUserDataPath(
   // runtime metadata to a separate userData directory (e.g. `orca-dev`) to avoid
   // clobbering the production app's metadata. The CLI needs to find the same
   // metadata file, so this env var lets the CLI target a specific instance.
+  if (process.env.ZKYQ_USER_DATA_PATH) {
+    return process.env.ZKYQ_USER_DATA_PATH
+  }
   if (process.env.ORCA_USER_DATA_PATH) {
-    return process.env.ORCA_USER_DATA_PATH
+    throw new RuntimeClientError(
+      'runtime_unavailable',
+      'ORCA_USER_DATA_PATH was retired. Set ZKYQ_USER_DATA_PATH to the same data directory.'
+    )
   }
   return getPlatformUserDataPath(platform, homeDir)
 }

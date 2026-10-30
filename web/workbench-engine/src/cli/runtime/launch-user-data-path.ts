@@ -12,8 +12,13 @@ function launchesDevApp(env: NodeJS.ProcessEnv): boolean {
  * Absolute, because the child runs from the app root, not the caller's cwd.
  */
 export function resolveLaunchUserDataPath(env: NodeJS.ProcessEnv = process.env): string {
+  if (env.ZKYQ_USER_DATA_PATH) {
+    return resolve(env.ZKYQ_USER_DATA_PATH)
+  }
   if (env.ORCA_USER_DATA_PATH) {
-    return resolve(env.ORCA_USER_DATA_PATH)
+    throw new Error(
+      'ORCA_USER_DATA_PATH was retired. Set ZKYQ_USER_DATA_PATH to the same data directory.'
+    )
   }
   if (launchesDevApp(env)) {
     // Mirrors the dev app's own default (`<appData>/orca-dev`).
@@ -30,7 +35,8 @@ export function pinLaunchUserDataPath(
   env: NodeJS.ProcessEnv,
   userDataPath: string
 ): { args: string[]; env: NodeJS.ProcessEnv } {
-  const pinnedEnv: NodeJS.ProcessEnv = { ...env, ORCA_USER_DATA_PATH: userDataPath }
+  const pinnedEnv: NodeJS.ProcessEnv = { ...env, ZKYQ_USER_DATA_PATH: userDataPath }
+  delete pinnedEnv.ORCA_USER_DATA_PATH
   if (launchesDevApp(env)) {
     pinnedEnv.ORCA_DEV_USER_DATA_PATH = userDataPath
   }

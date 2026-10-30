@@ -296,11 +296,11 @@ describe('codex wrapper --no-daemon rule', () => {
   describe('caller identity for commands Codex runs', () => {
     const identity = {
       ORCA_TERMINAL_HANDLE: 'term_abc',
-      ORCA_USER_DATA_PATH: '/Users/a b/Library/Application Support/orca $HOME \\x "q"'
+      ZKYQ_USER_DATA_PATH: '/Users/a b/Library/Application Support/orca $HOME \\x "q"'
     }
     const identityOverrides = [
       "shell_environment_policy.set.ORCA_TERMINAL_HANDLE='term_abc'",
-      `shell_environment_policy.set.ORCA_USER_DATA_PATH='${identity.ORCA_USER_DATA_PATH}'`
+      `shell_environment_policy.set.ZKYQ_USER_DATA_PATH='${identity.ZKYQ_USER_DATA_PATH}'`
     ]
     // Why unordered: the overrides set distinct keys, so only which ones arrive matters.
     const splitOverrides = (line: string): { overrides: string[]; rest: string[] } => {
@@ -357,7 +357,7 @@ describe('codex wrapper --no-daemon rule', () => {
         const sandbox = makeSandbox(HELP_WITHOUT_FLAG)
         const result = run(shell, codexCall(shell, ['x']), sandbox, {
           ORCA_TERMINAL_HANDLE: 'term_abc',
-          ORCA_USER_DATA_PATH: "/Users/o'brien/orca'"
+          ZKYQ_USER_DATA_PATH: "/Users/o'brien/orca'"
         })
 
         expect(lines(result.stdout).map(splitOverrides)).toEqual([

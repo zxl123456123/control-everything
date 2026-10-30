@@ -72,7 +72,7 @@ test('CLI positions floating files without changing the main workspace or reclai
         '--json',
         ...flags
       ],
-      env: { ...process.env, ORCA_USER_DATA_PATH: userDataDir },
+      env: { ...process.env, ZKYQ_USER_DATA_PATH: userDataDir },
       timeoutMs: 30_000
     })
     expect(result.code, `${result.stderr}\n${result.stdout}`).toBe(0)

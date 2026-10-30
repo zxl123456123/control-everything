@@ -43,8 +43,8 @@ export function resolveOrcaCliInvocation({
       prefixArgs: [path.win32.join(env.ORCA_DEV_REPO_ROOT, 'out', 'cli', 'index.js')],
       env: {
         ...env,
-        ORCA_USER_DATA_PATH:
-          env.ORCA_USER_DATA_PATH ?? env.ORCA_DEV_USER_DATA_PATH ?? defaultUserDataPath,
+        ZKYQ_USER_DATA_PATH:
+          env.ZKYQ_USER_DATA_PATH ?? env.ORCA_DEV_USER_DATA_PATH ?? defaultUserDataPath,
         ORCA_DEV_CLI_INVOCATION: '1',
         ORCA_CLI_COMMAND: 'zkyq-dev',
         ORCA_APP_EXECUTABLE:

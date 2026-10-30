@@ -18,7 +18,7 @@ describe('zkyq-dev package bin', () => {
         'const fs = require("node:fs");',
         `fs.writeFileSync(${JSON.stringify(outputPath)}, JSON.stringify({`,
         '  argv: process.argv.slice(2),',
-        '  userDataPath: process.env.ORCA_USER_DATA_PATH,',
+        '  userDataPath: process.env.ZKYQ_USER_DATA_PATH,',
         '  devCliInvocation: process.env.ORCA_DEV_CLI_INVOCATION,',
         '  command: process.env.ORCA_CLI_COMMAND,',
         '  appExecutable: process.env.ORCA_APP_EXECUTABLE',

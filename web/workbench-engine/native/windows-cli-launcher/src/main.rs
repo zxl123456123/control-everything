@@ -115,7 +115,8 @@ fn run_server_cli(config_path: &Path) -> ! {
             ));
         }
     }
-    env::set_var("ORCA_USER_DATA_PATH", user_data_path);
+    env::set_var("ZKYQ_USER_DATA_PATH", user_data_path);
+    env::remove_var("ORCA_USER_DATA_PATH");
     for name in [
         "NODE_OPTIONS",
         "NODE_REPL_EXTERNAL_MODULE",

@@ -28,6 +28,7 @@ describe('no_active_sender_terminal inside a Codex command', () => {
     expect(err.code).toBe('no_active_sender_terminal')
     expect(err.message).toContain('shell_environment_policy')
     expect(err.message).toContain('inherit = "all" with include_only')
+    expect(err.message).toContain('"ZKYQ_USER_DATA_PATH"')
   })
 
   it('keeps the generic advice outside Codex', () => {

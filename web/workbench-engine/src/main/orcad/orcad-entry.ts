@@ -70,7 +70,8 @@ export async function startOrcad(options: OrcadOptions = {}): Promise<OrcadHandl
   stampRuntimeSourceEnv(process.env, null)
   const userDataPath = resolveUserDataPath()
   // Why, as on the desktop: an inherited value would aim the CLI-shared Codex home paths elsewhere.
-  process.env.ORCA_USER_DATA_PATH = userDataPath
+  process.env.ZKYQ_USER_DATA_PATH = userDataPath
+  delete process.env.ORCA_USER_DATA_PATH
   const { readiness, instance, stop } = await startOrcadWithHost(
     userDataPath,
     (registerCleanup) => startOrcadRuntime(options, registerCleanup),

@@ -26,6 +26,7 @@ const AGENT_HOME_ENTRIES = [
 const AGENT_HOME_FILE_PREFIXES = ['.claude.json']
 // Why: an Orca terminal exports these pointing at the live app and agent state; guarded, then unset.
 const INHERITED_STATE_ENV = [
+  'ZKYQ_USER_DATA_PATH',
   'ORCA_USER_DATA_PATH',
   'CODEX_HOME',
   'ORCA_CODEX_HOME',
