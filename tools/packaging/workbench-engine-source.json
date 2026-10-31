@@ -326328,6 +326328,42 @@
       "bytes": 5892,
       "kind": "source",
       "reason": "preserved_internal_source_layout"
+    },
+    {
+      "path": "src/main/runtime/__fixtures__/claude-ready-task-wakeup.txt",
+      "source_path": "src/main/runtime/__fixtures__/claude-ready-task-wakeup.txt",
+      "git_blob": "2cb8cfa37bbee795b4fb8d7b172e50c9640db37c",
+      "sha256": "4473377bb757f1a03edc727a2368a61e4b19c924f1461843be73c6c88ce60e59",
+      "bytes": 2320,
+      "kind": "test",
+      "reason": "preserved_internal_source_layout"
+    },
+    {
+      "path": "src/shared/__fixtures__/claude-cancel-shell-hooks.jsonl",
+      "source_path": "src/shared/__fixtures__/claude-cancel-shell-hooks.jsonl",
+      "git_blob": "df4b6a43ce88dd85b5058f2c0f0f18fd42571d5c",
+      "sha256": "0c4ac1073ec1c7ebae91e9d9d5309c3611635b60f7d4283dd6b0abe3ae7215a2",
+      "bytes": 19785,
+      "kind": "test",
+      "reason": "preserved_internal_source_layout"
+    },
+    {
+      "path": "src/shared/__fixtures__/claude-cancel-subagent-hooks.jsonl",
+      "source_path": "src/shared/__fixtures__/claude-cancel-subagent-hooks.jsonl",
+      "git_blob": "436e494739ffd09ca981ec8b11dafa51ae815af0",
+      "sha256": "f9d160063528f99d6f73e02a2869c119e5c021dd677889b05c380066085816b5",
+      "bytes": 12498,
+      "kind": "test",
+      "reason": "preserved_internal_source_layout"
+    },
+    {
+      "path": "src/shared/__fixtures__/claude-permission-approve-deny-hooks.jsonl",
+      "source_path": "src/shared/__fixtures__/claude-permission-approve-deny-hooks.jsonl",
+      "git_blob": "2f399c92864c3f554f89af78091da8864580fca9",
+      "sha256": "cb2b9114aeb4b3bf446ea4cd8cb25285dbb45a779ed6a883f49a4af789954fee",
+      "bytes": 4662,
+      "kind": "test",
+      "reason": "preserved_internal_source_layout"
     }
   ],
   "resources": [
@@ -335477,6 +335513,24 @@
       "upstream_sha256": "e843e99d7d751289304c3b0a35930e256f4239f830c65f56498d6affbe3478b8",
       "current_sha256": "5d2661e0c94a4c1c9f7027819f28dee657bfb0ab08a358e0c994488ecc2e9144",
       "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+    },
+    {
+      "path": "src/shared/__fixtures__/claude-cancel-shell-hooks.jsonl",
+      "upstream_sha256": "0c4ac1073ec1c7ebae91e9d9d5309c3611635b60f7d4283dd6b0abe3ae7215a2",
+      "current_sha256": "803f579ff8db7ee1fc97d721f2ca12d303f3d11bcf76ef47f727ab72b7989f6a",
+      "reason": "恢复固定上游Hook回放夹具；将采集机用户home前缀替换为临时占位路径，保留事件、时间、会话与相对路径结构，不导入个人配置"
+    },
+    {
+      "path": "src/shared/__fixtures__/claude-cancel-subagent-hooks.jsonl",
+      "upstream_sha256": "f9d160063528f99d6f73e02a2869c119e5c021dd677889b05c380066085816b5",
+      "current_sha256": "e2915e188084bccdaadaa18d7570c118a57c0bc9a897fcab088e3cb78c7909be",
+      "reason": "恢复固定上游Hook回放夹具；将采集机用户home前缀替换为临时占位路径，保留事件、时间、会话与相对路径结构，不导入个人配置"
+    },
+    {
+      "path": "src/shared/__fixtures__/claude-permission-approve-deny-hooks.jsonl",
+      "upstream_sha256": "cb2b9114aeb4b3bf446ea4cd8cb25285dbb45a779ed6a883f49a4af789954fee",
+      "current_sha256": "f265186f33478e1e2c33ada53f406900a5f30730bab30f36ed075f71fa9fcfa7",
+      "reason": "恢复固定上游Hook回放夹具；将采集机用户home前缀替换为临时占位路径，保留事件、时间、会话与相对路径结构，不导入个人配置"
     }
   ],
   "reviewed_findings": [
