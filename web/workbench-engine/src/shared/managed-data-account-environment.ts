@@ -7,7 +7,39 @@ const originalEnvironment = z.object({
   OPENCODE_DB: z.string().nullable(),
   inlineAuthReference: z.uuid().optional()
 })
-const ORIGINAL_ENV = 'ORCA_DATA_ACCOUNT_ORIGINAL_ENV'
+const ORIGINAL_ENV = 'ZKYQ_DATA_ACCOUNT_ORIGINAL_ENV'
+
+/** Normalize private launch markers before selection checks or environment merges. */
+export function migrateManagedDataAccountEnvironmentIdentity(
+  environment: Record<string, string | undefined>,
+  envToDelete?: string[]
+): void {
+  const currentName = (key: string) => key.replace(/^ORCA_DATA_ACCOUNT_/, 'ZKYQ_DATA_ACCOUNT_')
+  const retired = Object.keys(environment).filter((key) => key.startsWith('ORCA_DATA_ACCOUNT_'))
+  for (const key of retired) {
+    const current = currentName(key)
+    if (
+      environment[key] !== undefined &&
+      environment[current] !== undefined &&
+      environment[key] !== environment[current]
+    ) {
+      throw new Error(
+        `Conflicting managed account environment variables: ${key} and ${current}. Keep one value under ${current}, then restart Control Everything.`
+      )
+    }
+  }
+  for (const key of retired) {
+    const current = currentName(key)
+    if (environment[current] === undefined) environment[current] = environment[key]
+    delete environment[key]
+  }
+  if (environment.WSLENV !== undefined) {
+    environment.WSLENV = environment.WSLENV.split(':').map(currentName).join(':')
+  }
+  if (envToDelete) {
+    envToDelete.splice(0, envToDelete.length, ...new Set(envToDelete.map(currentName)))
+  }
+}
 export const MANAGED_DATA_ACCOUNT_BASELINE_ENV_KEYS = [
   'XDG_DATA_HOME',
   'XDG_STATE_HOME',
@@ -19,6 +51,7 @@ export function captureManagedDataAccountOriginalEnvironment(
   environment: Record<string, string>,
   inlineAuthReference?: string
 ): void {
+  migrateManagedDataAccountEnvironmentIdentity(environment)
   environment[ORIGINAL_ENV] = JSON.stringify({
     ...Object.fromEntries(
       MANAGED_DATA_ACCOUNT_BASELINE_ENV_KEYS.map((key) => [key, environment[key] ?? null])
@@ -33,8 +66,9 @@ export function restoreManagedDataAccountEnvironment(
   restoreOriginal = true,
   resolveInlineAuth?: (reference: string) => string | undefined
 ): void {
-  const provider = environment.ORCA_DATA_ACCOUNT_PROVIDER
-  const dataHome = environment.ORCA_DATA_ACCOUNT_DATA_HOME
+  migrateManagedDataAccountEnvironmentIdentity(environment)
+  const provider = environment.ZKYQ_DATA_ACCOUNT_PROVIDER
+  const dataHome = environment.ZKYQ_DATA_ACCOUNT_DATA_HOME
   if (!dataHome || (provider !== undefined && provider !== 'opencode' && provider !== 'devin')) {
     return
   }
@@ -50,8 +84,8 @@ export function restoreManagedDataAccountEnvironment(
   const ownsOpenCode =
     provider === 'opencode' &&
     environment.XDG_DATA_HOME === dataHome &&
-    environment.ORCA_DATA_ACCOUNT_STATE_HOME !== undefined &&
-    environment.XDG_STATE_HOME === environment.ORCA_DATA_ACCOUNT_STATE_HOME
+    environment.ZKYQ_DATA_ACCOUNT_STATE_HOME !== undefined &&
+    environment.XDG_STATE_HOME === environment.ZKYQ_DATA_ACCOUNT_STATE_HOME
   const inlineAuth =
     ownsOpenCode && environment.OPENCODE_AUTH_CONTENT === '' && original?.inlineAuthReference
       ? resolveInlineAuth?.(original.inlineAuthReference)
@@ -71,13 +105,13 @@ export function restoreManagedDataAccountEnvironment(
     }
   }
   restore('XDG_DATA_HOME', dataHome)
-  restore('XDG_STATE_HOME', environment.ORCA_DATA_ACCOUNT_STATE_HOME)
+  restore('XDG_STATE_HOME', environment.ZKYQ_DATA_ACCOUNT_STATE_HOME)
   if (ownsOpenCode) {
     restore('OPENCODE_AUTH_CONTENT', '')
     restore('OPENCODE_DB', 'opencode.db')
   }
-  delete environment.ORCA_DATA_ACCOUNT_DATA_HOME
-  delete environment.ORCA_DATA_ACCOUNT_STATE_HOME
-  delete environment.ORCA_DATA_ACCOUNT_PROVIDER
+  delete environment.ZKYQ_DATA_ACCOUNT_DATA_HOME
+  delete environment.ZKYQ_DATA_ACCOUNT_STATE_HOME
+  delete environment.ZKYQ_DATA_ACCOUNT_PROVIDER
   delete environment[ORIGINAL_ENV]
 }

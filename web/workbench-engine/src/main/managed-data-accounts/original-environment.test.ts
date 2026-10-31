@@ -31,13 +31,29 @@ function managedContext(
   return {
     ...env,
     ...profile,
-    ORCA_DATA_ACCOUNT_DATA_HOME: profile.XDG_DATA_HOME,
-    ORCA_DATA_ACCOUNT_STATE_HOME: profile.XDG_STATE_HOME,
-    ORCA_DATA_ACCOUNT_PROVIDER: 'opencode'
+    ZKYQ_DATA_ACCOUNT_DATA_HOME: profile.XDG_DATA_HOME,
+    ZKYQ_DATA_ACCOUNT_STATE_HOME: profile.XDG_STATE_HOME,
+    ZKYQ_DATA_ACCOUNT_PROVIDER: 'opencode'
   }
 }
 
 describe('host-private managed account originals', () => {
+  it('resolves a copied legacy marker through the same private selection guard', () => {
+    const service = new ManagedDataAccountService('private-original-root')
+    const captured = managedContext(service, 'private-baseline')
+    const legacy = Object.fromEntries(
+      Object.entries(captured).map(([key, value]) => [
+        key.replace(/^ZKYQ_DATA_ACCOUNT_/, 'ORCA_DATA_ACCOUNT_'),
+        value
+      ])
+    )
+    expect(Object.values(legacy).some((value) => value.includes('private-baseline'))).toBe(false)
+    service.restoreOriginalEnvironment(legacy)
+    expect(hash(legacy.OPENCODE_AUTH_CONTENT)).toBe(hash('private-baseline'))
+    expect(legacy.XDG_DATA_HOME).toBe(join(tmpdir(), 'system-original', 'data'))
+    expect(Object.keys(legacy).some((key) => /^(ORCA|ZKYQ)_DATA_ACCOUNT_/.test(key))).toBe(false)
+  })
+
   it('restores multiple copied baselines without exposing either in a marker', () => {
     const service = new ManagedDataAccountService('private-original-root')
     const first = managedContext(service, 'first-inline-baseline')
@@ -53,16 +69,16 @@ describe('host-private managed account originals', () => {
       expect(copy.XDG_DATA_HOME).toBe(join(tmpdir(), 'system-original', 'data'))
       expect(copy.XDG_STATE_HOME).toBeUndefined()
       expect(copy.OPENCODE_DB).toBe('system.db')
-      expect(copy.ORCA_DATA_ACCOUNT_ORIGINAL_ENV).toBeUndefined()
+      expect(copy.ZKYQ_DATA_ACCOUNT_ORIGINAL_ENV).toBeUndefined()
     }
   })
 
   it.each([
     { XDG_DATA_HOME: join(tmpdir(), 'independent-data') },
     { XDG_STATE_HOME: join(tmpdir(), 'independent-state') },
-    { ORCA_DATA_ACCOUNT_DATA_HOME: join(tmpdir(), 'foreign-data') },
-    { ORCA_DATA_ACCOUNT_STATE_HOME: join(tmpdir(), 'foreign-state') },
-    { ORCA_DATA_ACCOUNT_PROVIDER: 'devin' },
+    { ZKYQ_DATA_ACCOUNT_DATA_HOME: join(tmpdir(), 'foreign-data') },
+    { ZKYQ_DATA_ACCOUNT_STATE_HOME: join(tmpdir(), 'foreign-state') },
+    { ZKYQ_DATA_ACCOUNT_PROVIDER: 'devin' },
     { OPENCODE_DB: 'independent.db' },
     { OPENCODE_AUTH_CONTENT: 'independent-inline' }
   ])('requires the recorded selection, beyond a caller-supplied reference: %o', (override) => {
@@ -71,7 +87,7 @@ describe('host-private managed account originals', () => {
     service.restoreOriginalEnvironment(env)
     expect(Object.values(env).some((value) => value.includes('private-baseline'))).toBe(false)
     for (const [key, value] of Object.entries(override)) {
-      if (!key.startsWith('ORCA_DATA_ACCOUNT_')) {
+      if (!key.startsWith('ZKYQ_DATA_ACCOUNT_')) {
         expect(env[key]).toBe(value)
       }
     }
@@ -85,7 +101,7 @@ describe('host-private managed account originals', () => {
       XDG_DATA_HOME: join(tmpdir(), 'different-profile', 'data'),
       XDG_STATE_HOME: join(tmpdir(), 'different-profile', 'state')
     })
-    foreign.ORCA_DATA_ACCOUNT_ORIGINAL_ENV = captured.ORCA_DATA_ACCOUNT_ORIGINAL_ENV
+    foreign.ZKYQ_DATA_ACCOUNT_ORIGINAL_ENV = captured.ZKYQ_DATA_ACCOUNT_ORIGINAL_ENV
     service.restoreOriginalEnvironment(foreign)
     expect(foreign.OPENCODE_AUTH_CONTENT).toBeUndefined()
   })
@@ -137,8 +153,8 @@ describe('host-private managed account originals', () => {
     const service = new ManagedDataAccountService('private-original-root')
     const first = managedContext(service, 'baseline-0')
     for (let i = 0; i < 100; i++) {
-      expect(managedContext(service, 'baseline-0').ORCA_DATA_ACCOUNT_ORIGINAL_ENV).toBe(
-        first.ORCA_DATA_ACCOUNT_ORIGINAL_ENV
+      expect(managedContext(service, 'baseline-0').ZKYQ_DATA_ACCOUNT_ORIGINAL_ENV).toBe(
+        first.ZKYQ_DATA_ACCOUNT_ORIGINAL_ENV
       )
     }
     for (let i = 1; i < 64; i++) {
@@ -183,13 +199,13 @@ describe('original marker compatibility', () => {
         new ManagedDataAccountService('private-original-root'),
         'private-baseline'
       )
-      env.ORCA_DATA_ACCOUNT_ORIGINAL_ENV = marker
+      env.ZKYQ_DATA_ACCOUNT_ORIGINAL_ENV = marker
       env.XDG_STATE_HOME = join(tmpdir(), 'independent-state')
       restoreManagedDataAccountEnvironment(env)
       expect(env.XDG_DATA_HOME).toBeUndefined()
       expect(env.XDG_STATE_HOME).toBe(join(tmpdir(), 'independent-state'))
       expect(env.OPENCODE_DB).toBe('opencode.db')
-      expect(env.ORCA_DATA_ACCOUNT_ORIGINAL_ENV).toBeUndefined()
+      expect(env.ZKYQ_DATA_ACCOUNT_ORIGINAL_ENV).toBeUndefined()
     }
   )
 
@@ -198,7 +214,7 @@ describe('original marker compatibility', () => {
       new ManagedDataAccountService('private-original-root'),
       'private-baseline'
     )
-    env.ORCA_DATA_ACCOUNT_ORIGINAL_ENV = JSON.stringify({
+    env.ZKYQ_DATA_ACCOUNT_ORIGINAL_ENV = JSON.stringify({
       XDG_DATA_HOME: join(tmpdir(), 'legacy-system-data'),
       XDG_STATE_HOME: null,
       OPENCODE_AUTH_CONTENT: 'legacy-inline',
@@ -211,21 +227,21 @@ describe('original marker compatibility', () => {
     expect(env.OPENCODE_DB).toBe('legacy.db')
     expect(relay.XDG_DATA_HOME).toBeUndefined()
     expect(relay.OPENCODE_AUTH_CONTENT).toBeUndefined()
-    expect(relay.ORCA_DATA_ACCOUNT_ORIGINAL_ENV).toBeUndefined()
+    expect(relay.ZKYQ_DATA_ACCOUNT_ORIGINAL_ENV).toBeUndefined()
   })
 
   it('preserves unknown old-client metadata and explicit System values without owned markers', () => {
     const service = new ManagedDataAccountService('private-original-root')
     const env = managedContext(service, 'private-baseline')
-    env.ORCA_DATA_ACCOUNT_PROVIDER = 'future-provider'
-    env.ORCA_DATA_ACCOUNT_FUTURE_METADATA = 'opaque-metadata'
+    env.ZKYQ_DATA_ACCOUNT_PROVIDER = 'future-provider'
+    env.ZKYQ_DATA_ACCOUNT_FUTURE_METADATA = 'opaque-metadata'
     const before = hash(JSON.stringify(env))
     service.restoreOriginalEnvironment(env)
     expect(hash(JSON.stringify(env)) === before).toBe(true)
-    delete env.ORCA_DATA_ACCOUNT_DATA_HOME
+    delete env.ZKYQ_DATA_ACCOUNT_DATA_HOME
     env.OPENCODE_AUTH_CONTENT = 'explicit-system-inline'
     service.restoreOriginalEnvironment(env)
     expect(hash(env.OPENCODE_AUTH_CONTENT) === hash('explicit-system-inline')).toBe(true)
-    expect(env.ORCA_DATA_ACCOUNT_FUTURE_METADATA).toBe('opaque-metadata')
+    expect(env.ZKYQ_DATA_ACCOUNT_FUTURE_METADATA).toBe('opaque-metadata')
   })
 })

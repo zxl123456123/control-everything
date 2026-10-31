@@ -7,6 +7,7 @@ import {
   type ManagedDataAccountService
 } from '../managed-data-accounts/service'
 import type { AcpAccountBinding } from '../acp/acp-account-binding'
+import { migrateManagedDataAccountEnvironmentIdentity } from '../../shared/managed-data-account-environment'
 
 type AccountReader = Pick<
   ManagedDataAccountService,
@@ -18,11 +19,12 @@ function restoredEnvironment(
   managedAccounts: Pick<AccountReader, 'restoreOriginalEnvironment'>
 ): Record<string, string | undefined> {
   const copy = { ...environment }
+  migrateManagedDataAccountEnvironmentIdentity(copy)
   managedAccounts.restoreOriginalEnvironment(copy)
-  delete copy.ORCA_DATA_ACCOUNT_PROVIDER
-  delete copy.ORCA_DATA_ACCOUNT_DATA_HOME
-  delete copy.ORCA_DATA_ACCOUNT_STATE_HOME
-  delete copy.ORCA_DATA_ACCOUNT_ORIGINAL_ENV
+  delete copy.ZKYQ_DATA_ACCOUNT_PROVIDER
+  delete copy.ZKYQ_DATA_ACCOUNT_DATA_HOME
+  delete copy.ZKYQ_DATA_ACCOUNT_STATE_HOME
+  delete copy.ZKYQ_DATA_ACCOUNT_ORIGINAL_ENV
   return copy
 }
 

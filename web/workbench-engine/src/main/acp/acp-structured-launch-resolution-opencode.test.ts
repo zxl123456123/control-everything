@@ -188,15 +188,41 @@ describe('OpenCode ACP launch resolution', () => {
     expect(child.ZKYQ_OPENCODE_CONFIG_DIR).toBeUndefined()
   })
 
+  it.each(['ORCA_DATA_ACCOUNT_', 'ZKYQ_DATA_ACCOUNT_'])(
+    'strips inherited %s markers from the actual ACP child without changing its pinned account',
+    (prefix) => {
+      const inherited = {
+        [prefix + 'PROVIDER']: 'opencode',
+        [prefix + 'FUTURE_METADATA']: 'opaque-context'
+      }
+      const env = {
+        XDG_DATA_HOME: 'selected-data',
+        XDG_STATE_HOME: 'selected-state',
+        OPENCODE_DB: 'opencode.db',
+        OPENCODE_AUTH_CONTENT: ''
+      }
+      const removed = scrubOpenCodeAcpEnvironment(env, inherited, null)
+      const child = createProviderSpawnSpec(
+        { command: 'fixture', args: [], env, envToDelete: removed },
+        inherited,
+        'darwin'
+      ).env
+      expect(child.XDG_DATA_HOME).toBe('selected-data')
+      expect(child.XDG_STATE_HOME).toBe('selected-state')
+      expect(Object.keys(child).some((key) => /^(ORCA|ZKYQ)_DATA_ACCOUNT_/.test(key))).toBe(false)
+      expect(removed).toContain(prefix + 'FUTURE_METADATA')
+    }
+  )
+
   it("drops Orca's retired shared plugin directory an old shell still exports", () => {
     const env: Record<string, string> = {
       OPENCODE_CONFIG_DIR: '/orca-data/opencode-hooks/shared',
-      ORCA_DATA_ACCOUNT_PROVIDER: 'opencode'
+      ZKYQ_DATA_ACCOUNT_PROVIDER: 'opencode'
     }
     const removed = scrubOpenCodeAcpEnvironment(env, {}, '/orca-data')
     expect(env.OPENCODE_CONFIG_DIR).toBeUndefined()
     expect(removed).toEqual(
-      expect.arrayContaining(['OPENCODE_CONFIG_DIR', 'ORCA_DATA_ACCOUNT_PROVIDER'])
+      expect.arrayContaining(['OPENCODE_CONFIG_DIR', 'ZKYQ_DATA_ACCOUNT_PROVIDER'])
     )
   })
 

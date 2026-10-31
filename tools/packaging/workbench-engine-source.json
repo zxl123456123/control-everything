@@ -327270,7 +327270,8 @@
     "src/main/native-chat/agent-session-journal/journal-v3-export.test.ts",
     "src/main/native-chat/agent-session-journal/journal-v3-export.ts",
     "src/main/native-chat/agent-session-journal/journal-v3-key.ts",
-    "src/main/agent-hooks/wsl-hook-relay-retirement.test.ts"
+    "src/main/agent-hooks/wsl-hook-relay-retirement.test.ts",
+    "src/shared/managed-data-account-environment-identity.test.ts"
   ],
   "adapted_files": [
     {
@@ -331776,8 +331777,8 @@
     {
       "path": "src/main/daemon/pty-subprocess/spawn-environment.ts",
       "upstream_sha256": "a2132d872276824fe527d1a97077c5dfeee9fc18e2ddc0815e77010e115cbdb7",
-      "current_sha256": "dbcadc2f4b9fdfcf658cb86cdc0fca89c2b77e49ba4aa2ae92b888d8c03a9ca2",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；本地与远端终端进程标识统一为 zkyq；迁移终端历史交接变量并以新版 daemon 隔离旧 shell 合同；迁移应用版本环境变量并隔离驻留旧版 daemon；OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+      "current_sha256": "80cadd9f0281bea0459a002cb9fb561c8d0c5ec945071e8e13f3b9f4e0cba540",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；本地与远端终端进程标识统一为 zkyq；迁移终端历史交接变量并以新版 daemon 隔离旧 shell 合同；迁移应用版本环境变量并隔离驻留旧版 daemon；OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义；账户私有环境单向迁移ZKYQ，保留XDG/OpenCode原契约、原始环境与私有凭据引用、未知元数据及明确删除，统一shell/PTY/ACP新输出"
     },
     {
       "path": "src/main/daemon/pty-subprocess/spawn-preflight-health-probe.test.ts",
@@ -331920,8 +331921,8 @@
     {
       "path": "src/main/runtime/structured-agent-launch-parity.test.ts",
       "upstream_sha256": "842230c594bf65a7e6abfc9c13d47b7bd172559de1a373acf4e9285092c95360",
-      "current_sha256": "d03908aa04984ea75782710b7a938b8fe027539157a23e1c458fe1a0dca9e7c3",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+      "current_sha256": "420f62fa284baee339079f3471fe5a9238a9c91ac53d444c1665bba2765db582",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义；账户私有环境单向迁移ZKYQ，保留XDG/OpenCode原契约、原始环境与私有凭据引用、未知元数据及明确删除，统一shell/PTY/ACP新输出"
     },
     {
       "path": "src/main/runtime/structured-session-child-env.ts",
@@ -332802,8 +332803,8 @@
     {
       "path": "src/main/shell-startup-features.ts",
       "upstream_sha256": "0d8e2ff5bd3e4a5f167592ed98537e11ef704defe48e21015dc870f332bb6162",
-      "current_sha256": "19266c9013b0fd3c931df473c416fbcd4a5a3ba60b7212bda76b6b59f9c52d62",
-      "reason": "迁移终端历史交接变量并以新版 daemon 隔离旧 shell 合同；OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属；Pi/OMP/Prime私有运行环境统一为ZKYQ，启动、扩展、草稿、进程所有者和WSL传递使用一致名称；旧环境仅在既有单向迁移入口读取并移除，保留第三方公开配置、路径、草稿和父子隔离行为"
+      "current_sha256": "a0c8215a1eefc3931c2ecc28bedd16708da31dfaf2c31db600ca9950c8608f8e",
+      "reason": "迁移终端历史交接变量并以新版 daemon 隔离旧 shell 合同；OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属；Pi/OMP/Prime私有运行环境统一为ZKYQ，启动、扩展、草稿、进程所有者和WSL传递使用一致名称；旧环境仅在既有单向迁移入口读取并移除，保留第三方公开配置、路径、草稿和父子隔离行为；账户私有环境单向迁移ZKYQ，保留XDG/OpenCode原契约、原始环境与私有凭据引用、未知元数据及明确删除，统一shell/PTY/ACP新输出"
     },
     {
       "path": "src/main/shell-templates.ts",
@@ -334644,8 +334645,8 @@
     {
       "path": "src/main/acp/acp-structured-launch-resolution-opencode.test.ts",
       "upstream_sha256": "60d27f19c6056dbc77057524b62378cca19de820aa007a4f91b386ddafe3450c",
-      "current_sha256": "debb0863fad4cdbf4333cdc8a9bfc039788e3387a0af40ba12d29ae312604e87",
-      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属"
+      "current_sha256": "09fd65148e2c79ad00a2b40ba8620bfdf3f6bba6ff06ff85a231f81592b0b775",
+      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属；账户私有环境单向迁移ZKYQ，保留XDG/OpenCode原契约、原始环境与私有凭据引用、未知元数据及明确删除，统一shell/PTY/ACP新输出"
     },
     {
       "path": "src/main/daemon/daemon-bash-shell-ready-rcfile.ts",
@@ -334734,8 +334735,8 @@
     {
       "path": "src/main/opencode/opencode-acp-environment.ts",
       "upstream_sha256": "98749577ca67168c25b12a63bbd011b79d2c0625371e17f4ecc3ef23f5b368bc",
-      "current_sha256": "109fb82b12c790029cd2b0e086aac84e18a07d96a81161a744d87985388e383e",
-      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+      "current_sha256": "a8a7eab457f43879733fd586ea6b42c4becd85932ca29634423e96cb8c5384cd",
+      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义；账户私有环境单向迁移ZKYQ，保留XDG/OpenCode原契约、原始环境与私有凭据引用、未知元数据及明确删除，统一shell/PTY/ACP新输出"
     },
     {
       "path": "src/main/opencode/opencode-pty-launch.test.ts",
@@ -338192,6 +338193,66 @@
       "upstream_sha256": "f1599d071bfbbf0171cc558a993bb8e000692c348b666267f59a2780ac7e27bc",
       "current_sha256": "857aa7d2d169073377b4f70a9c49dbc0718fb7eb420e7639649f6b9fca5a2a63",
       "reason": "WSL旧端点实例入口仅凭确认停机退役，保留未知状态及存活读者的连接，沿现有停机观察和WSLENV传递证据"
+    },
+    {
+      "path": "src/main/ipc/pty/managed-data-account-spawn-environment.test.ts",
+      "upstream_sha256": "098fd5c900914ff1487e4754cdf50e373c4ab67c9e6d3400f5a4f12774fee79f",
+      "current_sha256": "356b961e4ac9518084e60f1730c21d543969f5b0992ad1b11d66e6dec1ce809e",
+      "reason": "账户私有环境单向迁移ZKYQ，保留XDG/OpenCode原契约、原始环境与私有凭据引用、未知元数据及明确删除，统一shell/PTY/ACP新输出"
+    },
+    {
+      "path": "src/main/managed-data-accounts/launch-environment.test.ts",
+      "upstream_sha256": "1ef611e62916b923ab167b9a320d8255f968e2274fc5c13bf63d3797d6bb4ee4",
+      "current_sha256": "d761b3703783aea4f78c2fc08671f5f45b4ad953f36980310e55e678efd6060c",
+      "reason": "账户私有环境单向迁移ZKYQ，保留XDG/OpenCode原契约、原始环境与私有凭据引用、未知元数据及明确删除，统一shell/PTY/ACP新输出"
+    },
+    {
+      "path": "src/main/managed-data-accounts/launch-environment.ts",
+      "upstream_sha256": "c23b2d4c1eb6afec1c4e3b885fda83989c0fb3c2984606d37bbd67256b63b998",
+      "current_sha256": "3614195af1e0b3394cf51312adda55505aba4ea0316c03f17e89b56f75fc4fa5",
+      "reason": "账户私有环境单向迁移ZKYQ，保留XDG/OpenCode原契约、原始环境与私有凭据引用、未知元数据及明确删除，统一shell/PTY/ACP新输出"
+    },
+    {
+      "path": "src/main/managed-data-accounts/original-environment.test.ts",
+      "upstream_sha256": "6070f646ca9826c8edabcf3b8ed0c2f49ca776ec18f042b05a61735026b879fd",
+      "current_sha256": "5a02664dd1645ad5693cae479e004cf2bb6c633d3aaefbf88653df035d39244c",
+      "reason": "账户私有环境单向迁移ZKYQ，保留XDG/OpenCode原契约、原始环境与私有凭据引用、未知元数据及明确删除，统一shell/PTY/ACP新输出"
+    },
+    {
+      "path": "src/main/managed-data-accounts/service.ts",
+      "upstream_sha256": "0ac42c41de09adce76eba1ee025ae6950ed19bd3427b8ed966b4a8a5fcea12c6",
+      "current_sha256": "266dc48442fda4bbbd427fdff2b1e787b35ca425a123acb3c927ef0aa1f2ed10",
+      "reason": "账户私有环境单向迁移ZKYQ，保留XDG/OpenCode原契约、原始环境与私有凭据引用、未知元数据及明确删除，统一shell/PTY/ACP新输出"
+    },
+    {
+      "path": "src/main/opencode/opencode-structured-account-home.test.ts",
+      "upstream_sha256": "514ecfe17d1f889f54c24f9e703ec2a505f8c57b7c26aa11ecf6abfa4935a7cc",
+      "current_sha256": "6f2c5f22288951c15b81e1b8c7609ba1c56ac224b7fe336db2f524a6081a8f6a",
+      "reason": "账户私有环境单向迁移ZKYQ，保留XDG/OpenCode原契约、原始环境与私有凭据引用、未知元数据及明确删除，统一shell/PTY/ACP新输出"
+    },
+    {
+      "path": "src/main/opencode/opencode-structured-account-home.ts",
+      "upstream_sha256": "d3239c9ba8bf4f2100c911d514eac8a60056db029fffc130d23f09cc481fe187",
+      "current_sha256": "fa243edcc732c36842dad631337a110f75e2e28bdc16cb9bd543b214b4e770d7",
+      "reason": "账户私有环境单向迁移ZKYQ，保留XDG/OpenCode原契约、原始环境与私有凭据引用、未知元数据及明确删除，统一shell/PTY/ACP新输出"
+    },
+    {
+      "path": "src/main/rate-limits/opencode-go-managed-account-source.test.ts",
+      "upstream_sha256": "081154e1855cc67064e8f378bea21ed8847b2268358a1a9154a4c7c071067131",
+      "current_sha256": "3b485c426e6518cea5a1b0a03a87bc6672e90288c9894cb033742055e357c5a0",
+      "reason": "账户私有环境单向迁移ZKYQ，保留XDG/OpenCode原契约、原始环境与私有凭据引用、未知元数据及明确删除，统一shell/PTY/ACP新输出"
+    },
+    {
+      "path": "src/shared/managed-data-account-environment.ts",
+      "upstream_sha256": "5c5106b2c706f848b338dd451a9683cd750b89c5eb040a0c018b58b9c61d43b5",
+      "current_sha256": "86193d5e275c4bd85ae30e05f3760ea14614ce4efe33e45c90702ccf2b49e758",
+      "reason": "账户私有环境单向迁移ZKYQ，保留XDG/OpenCode原契约、原始环境与私有凭据引用、未知元数据及明确删除，统一shell/PTY/ACP新输出"
+    },
+    {
+      "path": "src/shared/managed-data-account-shell.ts",
+      "upstream_sha256": "360e8442af122e7edf12e6296d7bd92e8ccf2b5be3b38c7f594bc30052ba4f32",
+      "current_sha256": "b7f0c9feda42ef52c4a0e681f8b7f7904cfdd11a8ef55f4a6f2abc8a9dcc06b6",
+      "reason": "账户私有环境单向迁移ZKYQ，保留XDG/OpenCode原契约、原始环境与私有凭据引用、未知元数据及明确删除，统一shell/PTY/ACP新输出"
     }
   ],
   "reviewed_findings": [

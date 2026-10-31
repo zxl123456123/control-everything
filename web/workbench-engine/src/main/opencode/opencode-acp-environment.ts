@@ -4,7 +4,12 @@ import { isOpenCodeLegacySharedConfigDir } from './legacy-shared-config-dir'
 import { migrateAgentHookEnvironmentIdentity } from '../../shared/agent-hook-environment-identity'
 import { migrateOpenCodeEnvironmentIdentity } from '../../shared/opencode-environment-identity'
 
-const PLATFORM_ENV_PREFIXES = ['ZKYQ_OPENCODE_', 'ORCA_OPENCODE_', 'ORCA_DATA_ACCOUNT_']
+const PLATFORM_ENV_PREFIXES = [
+  'ZKYQ_OPENCODE_',
+  'ORCA_OPENCODE_',
+  'ZKYQ_DATA_ACCOUNT_',
+  'ORCA_DATA_ACCOUNT_'
+]
 const ACCOUNT_ENV_KEYS = ['XDG_DATA_HOME', 'XDG_STATE_HOME', 'OPENCODE_DB', 'OPENCODE_AUTH_CONTENT']
 
 /**
@@ -19,8 +24,8 @@ export function scrubOpenCodeAcpEnvironment(
   inherited: NodeJS.ProcessEnv,
   userDataPath: string | null = orcaUserDataPath()
 ): string[] {
-  const retiredInheritedKeys = Object.keys(inherited).filter((key) =>
-    key.startsWith('ORCA_OPENCODE_')
+  const retiredInheritedKeys = Object.keys(inherited).filter(
+    (key) => key.startsWith('ORCA_OPENCODE_') || key.startsWith('ORCA_DATA_ACCOUNT_')
   )
   inherited = { ...inherited }
   migrateAgentHookEnvironmentIdentity(inherited)

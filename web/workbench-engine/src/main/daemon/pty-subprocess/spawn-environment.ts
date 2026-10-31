@@ -1,5 +1,8 @@
 import { getLegacyOpenCodeEnvKeysToDelete } from '../../opencode/legacy-shared-config-dir'
-import { restoreManagedDataAccountEnvironment } from '../../../shared/managed-data-account-environment'
+import {
+  restoreManagedDataAccountEnvironment,
+  migrateManagedDataAccountEnvironmentIdentity
+} from '../../../shared/managed-data-account-environment'
 import { restoreOrStripOverlayEnv } from '../../../shared/agent-overlay-env'
 import { delimiter } from 'node:path'
 import { dropInheritedOrcaFishHistory } from '../../fish-history-session'
@@ -66,6 +69,7 @@ function deleteRequestedDaemonEnvKeys(
   const currentKeys = [...(keys ?? [])]
   migrateAgentHookEnvironmentIdentity(env, currentKeys)
   migrateOpenCodeEnvironmentIdentity(env, currentKeys)
+  migrateManagedDataAccountEnvironmentIdentity(env, currentKeys)
   keys = currentKeys
   const userDataPath = process.env.ZKYQ_USER_DATA_PATH
   if (userDataPath) {
@@ -197,6 +201,7 @@ export function createDaemonPtyEnvironment(opts: PtySubprocessOptions): Record<s
   opts = { ...opts, env: opts.env ? { ...opts.env } : undefined }
   if (opts.env) migrateAgentHookEnvironmentIdentity(opts.env)
   if (opts.env) migrateOpenCodeEnvironmentIdentity(opts.env)
+  if (opts.env) migrateManagedDataAccountEnvironmentIdentity(opts.env)
   restoreManagedDataAccountEnvironment(inheritedEnv)
   const env: Record<string, string> = {
     ...mergeGitConfigEnvProtocol(inheritedEnv, opts.env),
