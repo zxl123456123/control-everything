@@ -13,7 +13,11 @@ export function mobileOmpSessionCatalog(
     models: models ?? catalog.models,
     modelApply: {
       ...catalog.modelApply,
-      midSession: modelSwitchCommand === 'orca-model' ? catalog.modelApply.midSession : undefined
+      // Use the command implemented by the live extension, including a retained process.
+      midSession:
+        modelSwitchCommand === 'zkyq-model' || modelSwitchCommand === 'orca-model'
+          ? { kind: 'command', build: (value) => `/${modelSwitchCommand} ${String(value)}` }
+          : undefined
     }
   }
 }

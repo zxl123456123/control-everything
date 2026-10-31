@@ -106,7 +106,7 @@ export type AgentStatusEntry = {
   /** Provider model currently used by this session. */
   model?: string
   /** Command installed by the running OMP extension; absent on older hosts. */
-  modelSwitchCommand?: 'orca-model'
+  modelSwitchCommand?: 'zkyq-model' | 'orca-model'
   /** Composite key: `${tabId}:${leafId}` where leafId is a stable UUID layout leaf. */
   paneKey: string
   /** Runtime terminal handle for matching retained parent rows when the parent
@@ -183,7 +183,7 @@ export type AgentStatusPayload = {
   prompt?: string
   agentType?: AgentType
   model?: string
-  modelSwitchCommand?: 'orca-model'
+  modelSwitchCommand?: 'zkyq-model' | 'orca-model'
   toolName?: string
   toolInput?: string
   /** JSON string of the AskUserQuestion tool input, captured live. See the
@@ -356,8 +356,8 @@ function normalizeAgentStatusObject(parsed: unknown): ParsedAgentStatusPayload |
     // Why: normalize like the other single-line fields so embedded newlines (e.g. `agentType: "claude\nrogue"`) can't break single-line UI and equality checks.
     agentType: normalizeOptionalField(obj.agentType, AGENT_TYPE_MAX_LENGTH),
     model: normalizeOptionalField(obj.model, AGENT_MODEL_MAX_LENGTH),
-    ...(obj.modelSwitchCommand === 'orca-model'
-      ? { modelSwitchCommand: 'orca-model' as const }
+    ...(obj.modelSwitchCommand === 'zkyq-model' || obj.modelSwitchCommand === 'orca-model'
+      ? { modelSwitchCommand: obj.modelSwitchCommand }
       : {}),
     toolName: normalizeOptionalField(obj.toolName, AGENT_STATUS_TOOL_NAME_MAX_LENGTH),
     toolInput: normalizeOptionalField(obj.toolInput, AGENT_STATUS_TOOL_INPUT_MAX_LENGTH),

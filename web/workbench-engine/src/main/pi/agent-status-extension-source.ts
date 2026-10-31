@@ -115,7 +115,7 @@ export function getPiAgentStatusExtensionSource(kind: PiAgentKind = 'pi'): strin
     "    if (!model || typeof model !== 'object') return",
     "    const provider = 'provider' in model && typeof model.provider === 'string' ? model.provider : ''",
     "    const id = 'id' in model && typeof model.id === 'string' ? model.id : ''",
-    "    if (provider && id) modelMetadata = { model: provider + '/' + id, ...(ompModelSwitchSupported ? { model_switch_command: 'orca-model' } : {}) }",
+    "    if (provider && id) modelMetadata = { model: provider + '/' + id, ...(ompModelSwitchSupported ? { model_switch_command: 'zkyq-model' } : {}) }",
     '  } catch {',
     '    // Why: a throwing model getter must never break status delivery.',
     '  }',

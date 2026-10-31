@@ -335357,8 +335357,8 @@
     {
       "path": "src/main/pi/agent-status-extension-source.ts",
       "upstream_sha256": "c02210343e79f22a8c44376a7f89fefed1a9b2aab49826d169dc8fab9a364ec5",
-      "current_sha256": "bfc1324563d4f5a7c195e298246f836f04e38754fb5e5ea6057285787438865e",
-      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义；Pi/OMP/Prime扩展统一zkyq文件名和生成标记；本机与relay共用精确所有权检查、原子发布和旧入口原字节移出加载目录，保护用户文件并在发布失败时恢复；保留旧overlay数据排除合同"
+      "current_sha256": "0502ce85da0ae497e8ae4560c7f7f1dddbedd440a0d9f59ea8b70e41675ba907",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义；Pi/OMP/Prime扩展统一zkyq文件名和生成标记；本机与relay共用精确所有权检查、原子发布和旧入口原字节移出加载目录，保护用户文件并在发布失败时恢复；保留旧overlay数据排除合同；新OMP扩展只注册及发布zkyq-model，桌面和手机模型选择按会话实际能力调用；旧存活进程能力仅作输入保留，不新增旧命令别名，保持模型选择、错误处理与重载能力"
     },
     {
       "path": "src/main/pi/agent-status-wsl-curl-source.ts",
@@ -336811,6 +336811,90 @@
       "upstream_sha256": "66296ef77f4d2f45bf744e284c5e553faa18e26945cf8ad7b6310558be145181",
       "current_sha256": "0d77a125e05354baab70851a8de44643016728d2e7b059cbf7db4eb6575dc69c",
       "reason": "Pi/OMP/Prime扩展统一zkyq文件名和生成标记；本机与relay共用精确所有权检查、原子发布和旧入口原字节移出加载目录，保护用户文件并在发布失败时恢复；保留旧overlay数据排除合同；新OMP fallback仅发布zkyq路径；自动发现扩展照常迁走旧入口，已存在且被旧shell固定引用的输入原字节只读保留，防止改名破坏活跃终端"
+    },
+    {
+      "path": "mobile/src/session/mobile-omp-session-catalog.ts",
+      "upstream_sha256": "fe76cc655292f748cedf08595c1cc867c175d0a68091fc432f468869cf83b665",
+      "current_sha256": "f54e8daaf61b57fab3daaeb75504af327286c9166249f1e03dbb0ca8f4430fa9",
+      "reason": "新OMP扩展只注册及发布zkyq-model，桌面和手机模型选择按会话实际能力调用；旧存活进程能力仅作输入保留，不新增旧命令别名，保持模型选择、错误处理与重载能力"
+    },
+    {
+      "path": "mobile/src/session/use-mobile-native-chat-session-options.test.ts",
+      "upstream_sha256": "8d171f4b5ca543f7c5e490bbebc9b07135f9894560b33b1acfd6cd7a33ecf957",
+      "current_sha256": "04e206d302caab946891061e91cd54ca92a797811d660f2ef640cc697b9b55ba",
+      "reason": "新OMP扩展只注册及发布zkyq-model，桌面和手机模型选择按会话实际能力调用；旧存活进程能力仅作输入保留，不新增旧命令别名，保持模型选择、错误处理与重载能力"
+    },
+    {
+      "path": "mobile/src/session/use-mobile-omp-model-discovery.test.ts",
+      "upstream_sha256": "daa55fde881447f088fb1c875f9d34cba410cab4fb8028ce604446673f8e33e4",
+      "current_sha256": "cfcdc139dd94d5030510ac9cb7158d4d8ab27c4f87f4d51a866decb8c95197cb",
+      "reason": "新OMP扩展只注册及发布zkyq-model，桌面和手机模型选择按会话实际能力调用；旧存活进程能力仅作输入保留，不新增旧命令别名，保持模型选择、错误处理与重载能力"
+    },
+    {
+      "path": "src/main/pi/agent-status-extension-omp-model.test.ts",
+      "upstream_sha256": "899d9aadebf175ebf87661ee606c92a12cefed47e48c1d104aa0392b40b460e3",
+      "current_sha256": "70c1b9c398ae9e39fcaf20f9ae8705a3a8cc46bdb89d73b0ec0a498376cc7a5e",
+      "reason": "新OMP扩展只注册及发布zkyq-model，桌面和手机模型选择按会话实际能力调用；旧存活进程能力仅作输入保留，不新增旧命令别名，保持模型选择、错误处理与重载能力"
+    },
+    {
+      "path": "src/main/pi/omp-model-command-source.test.ts",
+      "upstream_sha256": "6c56067054113dadac5d0de36c16b1b7d34c1ffbaa3214ff731f52a3fe95f5a1",
+      "current_sha256": "df7bf4f10689b293deb45006e43122a13ceabec2cb19cf5146eb43bcfa11bed7",
+      "reason": "新OMP扩展只注册及发布zkyq-model，桌面和手机模型选择按会话实际能力调用；旧存活进程能力仅作输入保留，不新增旧命令别名，保持模型选择、错误处理与重载能力"
+    },
+    {
+      "path": "src/main/pi/omp-model-command-source.ts",
+      "upstream_sha256": "15d23f6dcb7a8fbd59a17d77ec09caa7a3371bdb01748db0dd294c45e55d1713",
+      "current_sha256": "8408fed9a24f2bff313d3077965d5249e668ef038d6797ea34f2191249f998cb",
+      "reason": "新OMP扩展只注册及发布zkyq-model，桌面和手机模型选择按会话实际能力调用；旧存活进程能力仅作输入保留，不新增旧命令别名，保持模型选择、错误处理与重载能力"
+    },
+    {
+      "path": "src/renderer/src/components/native-chat/native-chat-pty-session-options.ts",
+      "upstream_sha256": "46042329fe0130f4750c8c8434cd8275591c878868fba2db9b67340bfe77c6a3",
+      "current_sha256": "d1a144c4fe169112c26c9b67d34742ce3482b29dfea2ba88a99251f2929fd497",
+      "reason": "新OMP扩展只注册及发布zkyq-model，桌面和手机模型选择按会话实际能力调用；旧存活进程能力仅作输入保留，不新增旧命令别名，保持模型选择、错误处理与重载能力"
+    },
+    {
+      "path": "src/renderer/src/components/native-chat/omp-model-switch-capability.test.ts",
+      "upstream_sha256": "5be55cfc0c1c0f24a7da1784eadaeae416eed48a541d8494e3b78767cafd6a9d",
+      "current_sha256": "159f09d56a97452f69f6e4989c25e51d925b7ef3410f99c8c71d34302c162b1b",
+      "reason": "新OMP扩展只注册及发布zkyq-model，桌面和手机模型选择按会话实际能力调用；旧存活进程能力仅作输入保留，不新增旧命令别名，保持模型选择、错误处理与重载能力"
+    },
+    {
+      "path": "src/renderer/src/components/native-chat/use-native-chat-session-options.test.ts",
+      "upstream_sha256": "65e2182f4ea92f5578f3143fa9f18958138f17d6b22726fedb12942e3397b217",
+      "current_sha256": "672f92ebe7bc7667b887d1f0c8e50d81b7a4b2e30097204d0c4dabe92786f112",
+      "reason": "新OMP扩展只注册及发布zkyq-model，桌面和手机模型选择按会话实际能力调用；旧存活进程能力仅作输入保留，不新增旧命令别名，保持模型选择、错误处理与重载能力"
+    },
+    {
+      "path": "src/renderer/src/components/native-chat/use-native-chat-session-options.ts",
+      "upstream_sha256": "6af70d56a5d6a9f37210cddc6a186942e22fbcb500fd55765b5c5c10a76e0f06",
+      "current_sha256": "f2beb0e8430f1029c80bbf7b9856d6a37efcf0b3aff527e864826dbb7cf031c0",
+      "reason": "新OMP扩展只注册及发布zkyq-model，桌面和手机模型选择按会话实际能力调用；旧存活进程能力仅作输入保留，不新增旧命令别名，保持模型选择、错误处理与重载能力"
+    },
+    {
+      "path": "src/shared/agent-hook-listener/providers/pi-family-events.ts",
+      "upstream_sha256": "6b8266045431b484602601a920e0d8d61a7146ac17a61522a7d2c0c64f0ca06d",
+      "current_sha256": "662bf2c882e2a274759018f55c6dbb3860f635ffafd0ad04acf376a4a5753e6e",
+      "reason": "新OMP扩展只注册及发布zkyq-model，桌面和手机模型选择按会话实际能力调用；旧存活进程能力仅作输入保留，不新增旧命令别名，保持模型选择、错误处理与重载能力"
+    },
+    {
+      "path": "src/shared/agent-session-option-catalog-omp.test.ts",
+      "upstream_sha256": "a7f2e275df7ee2439db5a0e3263310232c1e54b983fb5e9f19e3ff6974884d05",
+      "current_sha256": "9ce6a63f11298dcec8b5d1dd08049faf72cd5b38483f212ac95c015c2c0200be",
+      "reason": "新OMP扩展只注册及发布zkyq-model，桌面和手机模型选择按会话实际能力调用；旧存活进程能力仅作输入保留，不新增旧命令别名，保持模型选择、错误处理与重载能力"
+    },
+    {
+      "path": "src/shared/agent-session-option-catalog-omp.ts",
+      "upstream_sha256": "212eee1ed6fedaac882ea0301b933da869e6e32495e21254e4e0a98ac578ad67",
+      "current_sha256": "d7bad317c91264cad3b5914cacffe9cbe1a455e6f9b596575151d66a553b6048",
+      "reason": "新OMP扩展只注册及发布zkyq-model，桌面和手机模型选择按会话实际能力调用；旧存活进程能力仅作输入保留，不新增旧命令别名，保持模型选择、错误处理与重载能力"
+    },
+    {
+      "path": "src/shared/agent-status-types.ts",
+      "upstream_sha256": "940f490d4e9e78217640f95d37f6efe357dee1bcec27533b97dad82fc688682c",
+      "current_sha256": "60a4412e9f4f3a95a96e8309d95e40695ad32ef030ab3c686727195b5d0b979d",
+      "reason": "新OMP扩展只注册及发布zkyq-model，桌面和手机模型选择按会话实际能力调用；旧存活进程能力仅作输入保留，不新增旧命令别名，保持模型选择、错误处理与重载能力"
     }
   ],
   "reviewed_findings": [
