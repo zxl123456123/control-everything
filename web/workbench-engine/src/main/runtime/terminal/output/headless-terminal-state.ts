@@ -17,15 +17,17 @@ export abstract class OrcaRuntimeWithCreatePtyHeadlessTerminalState extends Orca
   ): RuntimeHeadlessTerminal {
     let state: RuntimeHeadlessTerminal | null = null
     const pathFlavor = this.pathFlavorForPty(this.ptysById.get(ptyId))
+    const wslDistro = this.ptysById.get(ptyId)?.connectionId
+      ? undefined
+      : (this.wslDistroByPtyId.get(ptyId) ?? this.ptysById.get(ptyId)?.wslDistro ?? undefined)
     const emulator = new HeadlessEmulator({
       cols: dims.cols,
       rows: dims.rows,
       pathFlavor,
       remotePosixFileUriAuthority:
         !!this.ptysById.get(ptyId)?.connectionId && pathFlavor !== 'win32',
-      wslDistro: this.ptysById.get(ptyId)?.connectionId
-        ? undefined
-        : (this.wslDistroByPtyId.get(ptyId) ?? this.ptysById.get(ptyId)?.wslDistro ?? undefined),
+      wslDistro,
+      conpty: pathFlavor === 'win32' && !wslDistro,
       // Why: replies take the provider input path (same entry as pty:write —
       // daemon shell-ready gating and the SSH relay write apply unchanged),
       // NOT writePtyInput, so renderer interactive-output metering never
