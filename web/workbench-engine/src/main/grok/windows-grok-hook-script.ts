@@ -13,14 +13,14 @@ export const GROK_HOME_ENVELOPE_MAX_LENGTH = 4096
 
 const WINDOWS_GROK_HOOK_POST_COMMAND = buildWindowsAgentHookPostCommand('grok', [
   // Why: attach grokHome before payload@- without string-replacing the shared template.
-  '  --data-urlencode "grokHome=%ORCA_GROK_HOME%" ^'
+  '  --data-urlencode "grokHome=%ZKYQ_GROK_HOME%" ^'
 ])
 
 /**
  * Windows `grok-hook.cmd` body.
  *
  * Why (#9358 / #9941): cmd expands `%VAR:~n,m%` at parse time. When `GROK_HOME`
- * is unset (the default outside an Orca-managed terminal), length/trailing
+ * is unset (the default outside a platform-managed terminal), length/trailing
  * guards become a syntax error and every Grok hook event fails with exit 255.
  *
  * - Guard substring ops behind `if defined` + goto (not a parenthesized block).
@@ -38,18 +38,18 @@ export function buildWindowsGrokHookScript(): string {
     ...buildWindowsHookEnvironmentIdentityMigration(),
     ...buildWindowsHookEndpointRefresh(),
     ...buildWindowsHookEnvironmentGuardLines(),
-    'set "ORCA_GROK_HOME="',
-    'if not defined GROK_HOME goto :orca_grok_home_ready',
-    `if not "%GROK_HOME:~${GROK_HOME_ENVELOPE_MAX_LENGTH},1%"=="" goto :orca_grok_home_ready`,
+    'set "ZKYQ_GROK_HOME="',
+    'if not defined GROK_HOME goto :zkyq_grok_home_ready',
+    `if not "%GROK_HOME:~${GROK_HOME_ENVELOPE_MAX_LENGTH},1%"=="" goto :zkyq_grok_home_ready`,
     // Why (#14221): `setx GROK_HOME "C:\path\"` stores a literal trailing quote, which
     // unbalances the trailing-backslash `if` below (exit 255) and truncates the curl
     // argument. `"` is illegal in a Windows path, so strip it rather than preserve it.
-    'set "ORCA_GROK_HOME=%GROK_HOME:"=%"',
-    'if not defined ORCA_GROK_HOME goto :orca_grok_home_ready',
-    'if "%ORCA_GROK_HOME:~-1%"=="\\" set "ORCA_GROK_HOME=%ORCA_GROK_HOME%."',
+    'set "ZKYQ_GROK_HOME=%GROK_HOME:"=%"',
+    'if not defined ZKYQ_GROK_HOME goto :zkyq_grok_home_ready',
+    'if "%ZKYQ_GROK_HOME:~-1%"=="\\" set "ZKYQ_GROK_HOME=%ZKYQ_GROK_HOME%."',
     // Why: the trailing-backslash safety sentinel counts toward the relay envelope.
-    `if not "%ORCA_GROK_HOME:~${GROK_HOME_ENVELOPE_MAX_LENGTH},1%"=="" set "ORCA_GROK_HOME="`,
-    ':orca_grok_home_ready',
+    `if not "%ZKYQ_GROK_HOME:~${GROK_HOME_ENVELOPE_MAX_LENGTH},1%"=="" set "ZKYQ_GROK_HOME="`,
+    ':zkyq_grok_home_ready',
     WINDOWS_GROK_HOOK_POST_COMMAND,
     'exit /b 0',
     ...buildWindowsHookStdinDrainEpilogue(),

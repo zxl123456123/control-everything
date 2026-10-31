@@ -327257,7 +327257,9 @@
     "src/shared/agent-hook-environment-identity.ts",
     "src/main/agent-hooks/wsl-hook-fs-adapter.test.ts",
     "src/shared/pi-managed-extension-install.ts",
-    "src/shared/pi-managed-extension-install.test.ts"
+    "src/shared/pi-managed-extension-install.test.ts",
+    "src/main/grok/grok-hook-config-identity.test.ts",
+    "src/main/grok/grok-hook-config-identity.ts"
   ],
   "adapted_files": [
     {
@@ -335951,8 +335953,8 @@
     {
       "path": "src/main/grok/grok-hook-remote-install.ts",
       "upstream_sha256": "85f2d1ebf22954c7b29100c3722725d2b5e89158bf7f08ec909db5c02c32b395",
-      "current_sha256": "006bfc9829455c1f2f3f24bd72d02f2be29ed205b712e6b1f1e5277ddb10ca61",
-      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+      "current_sha256": "26657e93c48fd2589177bc93bc9f3dec3cd285760a1b4d6f91b40a9cea9b35c3",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义；Grok专属配置、备份、清理标记和Windows内部变量迁至zkyq；整组冲突预检、独占发布并保留用户Hook、原字节、空配置停用和本机symlink语义；远程迁移不覆盖既有文件或接管用户链接"
     },
     {
       "path": "src/main/grok/grok-hook-stdin-no-eof.test.ts",
@@ -335963,8 +335965,8 @@
     {
       "path": "src/main/grok/windows-grok-hook-script.ts",
       "upstream_sha256": "f20e61e32e4a56f32bbec4fd9d833588a4d8fc318f938953109fc2268bdbdc60",
-      "current_sha256": "9c3d613de9eac314d7c5e19cb4b837266bad843abe0c1818c20e973a64e00546",
-      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+      "current_sha256": "722fb4663ce63ba6cf1d48fb0c7253070aaecdd863e110133d81470a71077c8c",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义；Grok专属配置、备份、清理标记和Windows内部变量迁至zkyq；整组冲突预检、独占发布并保留用户Hook、原字节、空配置停用和本机symlink语义；远程迁移不覆盖既有文件或接管用户链接"
     },
     {
       "path": "src/main/ipc/pty-agent-launch-pane-attach.test.ts",
@@ -336665,8 +336667,8 @@
     {
       "path": "src/main/agent-hooks/installer-utils-remote.ts",
       "upstream_sha256": "17f065364e6735b0462da015ca4efc7a360fc76cca013068637df4b971b99380",
-      "current_sha256": "bf91007be40bd32b6cb92588382d1cf039e193d7f453cdf1516cacc891921738",
-      "reason": "Amp生成插件统一zkyq落盘名与平台标记；校验所有权后把旧入口原字节移出加载目录，发布失败恢复旧入口，本地与SFTP保持同一活跃插件；Hermes插件目录、清单与启用名单统一zkyq；已知旧插件原字节移出加载目录，保护用户文件和链接，失败恢复，保留YAML注释和其他插件；本地与SFTP适配器验证"
+      "current_sha256": "700f965c8ad29875e5ed399e08274a1ca31d4d3437cfbc1fd4fd9866b87017a7",
+      "reason": "Amp生成插件统一zkyq落盘名与平台标记；校验所有权后把旧入口原字节移出加载目录，发布失败恢复旧入口，本地与SFTP保持同一活跃插件；Hermes插件目录、清单与启用名单统一zkyq；已知旧插件原字节移出加载目录，保护用户文件和链接，失败恢复，保留YAML注释和其他插件；本地与SFTP适配器验证；Grok专属配置、备份、清理标记和Windows内部变量迁至zkyq；整组冲突预检、独占发布并保留用户Hook、原字节、空配置停用和本机symlink语义；远程迁移不覆盖既有文件或接管用户链接"
     },
     {
       "path": "src/main/amp/hook-service.ts",
@@ -337021,6 +337023,36 @@
       "upstream_sha256": "09daea66fd3a36cc04ed8a14555db1598cffb32a3519d32f746c913ccfbc833f",
       "current_sha256": "7f9b3430618479aa5b279e8ae8849ec2f3a01c1366ccb074ec5f539dab19c89e",
       "reason": "Pi/OMP运行状态、Symbol所有者表、shell辅助函数和提示统一为zkyq/Control Everything；迁移旧属性原对象并删除旧键，保留进行中队列、监听、标题计时器和主会话归属，旧draft仅作输入识别，不输出旧别名"
+    },
+    {
+      "path": "src/main/grok/grok-hook-config-cleanup.ts",
+      "upstream_sha256": "8d32fb300337e94a2e0e96a50dfc772f40289a56c746f4a586e8dd3c1f88e997",
+      "current_sha256": "7013e4bed4bdadc8fa1ee94ffb096050b8a25a46893bfc4a2f0201533b54996b",
+      "reason": "Grok专属配置、备份、清理标记和Windows内部变量迁至zkyq；整组冲突预检、独占发布并保留用户Hook、原字节、空配置停用和本机symlink语义；远程迁移不覆盖既有文件或接管用户链接"
+    },
+    {
+      "path": "src/main/grok/grok-hook-remnant-removal.test.ts",
+      "upstream_sha256": "31766767d68405690af9be6ac1bc2f10f858330b9a62e1f8d651a54bbc89c4dd",
+      "current_sha256": "3247d255ca234d6e792a4cb4e10bf726eee9eaad2974ab95d2fd35f65c3c5ac7",
+      "reason": "Grok专属配置、备份、清理标记和Windows内部变量迁至zkyq；整组冲突预检、独占发布并保留用户Hook、原字节、空配置停用和本机symlink语义；远程迁移不覆盖既有文件或接管用户链接"
+    },
+    {
+      "path": "src/main/grok/grok-hook-symlink-cleanup-marker.ts",
+      "upstream_sha256": "6e5dad36aa69836c5248b9322acf7c43de2f57afe103297796bd4276b4e25eca",
+      "current_sha256": "7fc90633eeda4d3bbbedba474db93cd81f63c99429a949527fc5f7db437a3222",
+      "reason": "Grok专属配置、备份、清理标记和Windows内部变量迁至zkyq；整组冲突预检、独占发布并保留用户Hook、原字节、空配置停用和本机symlink语义；远程迁移不覆盖既有文件或接管用户链接"
+    },
+    {
+      "path": "src/main/grok/hook-service.ts",
+      "upstream_sha256": "9965327b6e2fa2115e68fc6094d5ad0aad5177ac92a03387e1c747f950aec170",
+      "current_sha256": "5d734792452bfe227b03b62d365e4f8a3e2365b2e4329b9653df2ba1ce08a5fb",
+      "reason": "Grok专属配置、备份、清理标记和Windows内部变量迁至zkyq；整组冲突预检、独占发布并保留用户Hook、原字节、空配置停用和本机symlink语义；远程迁移不覆盖既有文件或接管用户链接"
+    },
+    {
+      "path": "tests/e2e/grok-hook-session-cleanup.spec.ts",
+      "upstream_sha256": "09c1d7309e3b8e110f6c5be6dcab6747c425adb409bbfeaf2e2f3ec2eab40e84",
+      "current_sha256": "532f896720b05508f1807f6d151ac523593baf5854875f52193b4e9f65b806fa",
+      "reason": "Grok专属配置、备份、清理标记和Windows内部变量迁至zkyq；整组冲突预检、独占发布并保留用户Hook、原字节、空配置停用和本机symlink语义；远程迁移不覆盖既有文件或接管用户链接"
     }
   ],
   "reviewed_findings": [
@@ -337770,7 +337802,7 @@
       "path": "src/main/grok/windows-grok-hook-script.ts",
       "rule": "absolute-windows-path",
       "line": 44,
-      "sha256": "9c3d613de9eac314d7c5e19cb4b837266bad843abe0c1818c20e973a64e00546",
+      "sha256": "722fb4663ce63ba6cf1d48fb0c7253070aaecdd863e110133d81470a71077c8c",
       "reason": "上游公开代码注释、CLI/界面示例中的路径语法，用来解释drive/root/UNC/转义等规则；非读取的个人配置，限定具体行及文件hash。"
     },
     {

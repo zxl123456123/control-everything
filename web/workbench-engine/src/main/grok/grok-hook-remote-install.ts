@@ -4,10 +4,14 @@ import type { AgentHookInstallStatus } from '../../shared/agent-hook-types'
 import { wrapPosixHookCommand } from '../agent-hooks/installer-utils'
 import {
   readHooksJsonRemote,
+  readTextFileRemote,
+  readManagedPluginFileRemote,
+  moveHookConfigIdentityRemote,
   writeHooksJsonRemote,
   writeManagedScriptRemote
 } from '../agent-hooks/installer-utils-remote'
 import { buildInstalledGrokConfig } from './grok-hook-config'
+import { GROK_CONFIG_FILE, grokConfigIdentityMoves } from './grok-hook-config-identity'
 import { GROK_HOME_ENVELOPE_MAX_LENGTH } from './windows-grok-hook-script'
 
 function status(configPath: string, detail: string | null = null): AgentHookInstallStatus {
@@ -46,9 +50,18 @@ export async function installRemoteGrokHook(
   script: string
 ): Promise<AgentHookInstallStatus> {
   const home = remoteHome.replace(/\/$/, '')
-  const configPath = `${remoteGrokHome(home, remoteGrokHomeDir)}/hooks/orca-status.json`
+  const configPath = `${remoteGrokHome(home, remoteGrokHomeDir)}/hooks/${GROK_CONFIG_FILE}`
   const scriptPath = `${home}/.zkyq/agent-hooks/grok-hook.sh`
   try {
+    const moves = []
+    for (const move of grokConfigIdentityMoves(configPath)) {
+      const raw = await readManagedPluginFileRemote(sftp, move.from)
+      if (raw === null) continue
+      if ((await readTextFileRemote(sftp, move.to)) !== null)
+        throw new Error('Remote Grok hook identity migration has conflicting files')
+      moves.push(move)
+    }
+    for (const { from, to } of moves) await moveHookConfigIdentityRemote(sftp, from, to)
     const config = await readHooksJsonRemote(sftp, configPath)
     if (!config) {
       return status(configPath, 'Could not parse remote Grok hook config')

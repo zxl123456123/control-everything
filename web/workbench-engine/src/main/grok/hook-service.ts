@@ -10,7 +10,12 @@ import {
   writeManagedScript
 } from '../agent-hooks/installer-utils'
 import { refreshManagedScriptIfPresent } from '../agent-hooks/managed-hook-script-refresh'
-import { isOrcaOwnedRemnant, removeManagedGrokHookEntries } from './grok-hook-config-cleanup'
+import { isManagedGrokRemnant, removeManagedGrokHookEntries } from './grok-hook-config-cleanup'
+import {
+  GROK_CONFIG_FILE,
+  hasPreviousGrokConfig,
+  migrateGrokConfigIdentity
+} from './grok-hook-config-identity'
 import { buildInstalledGrokConfig, GROK_EVENTS, GROK_TOOL_EVENT_MATCHER } from './grok-hook-config'
 import { installRemoteGrokHook } from './grok-hook-remote-install'
 import {
@@ -45,9 +50,9 @@ export function getGrokToolEventMatcherForTests(): string {
 function getConfigPath(): string {
   // Why: Grok loads trusted global hook files from $GROK_HOME/hooks/*.json
   // (or ~/.grok when unset). Honor GROK_HOME so install/status match the same
-  // home Grok and transcript lookup use; keep Orca entries in a dedicated file
+  // home Grok and transcript lookup use; keep platform entries in a dedicated file
   // so user-authored hook files stay untouched.
-  return join(resolveGrokHomeDir(), 'hooks', 'orca-status.json')
+  return join(resolveGrokHomeDir(), 'hooks', GROK_CONFIG_FILE)
 }
 
 /** Test seam: the command registered for `scriptPath` on the current platform. */
@@ -94,6 +99,17 @@ export class GrokHookService {
 
   getStatus(): AgentHookInstallStatus {
     const configPath = getConfigPath()
+    try {
+      if (hasPreviousGrokConfig(configPath)) {
+        return {
+          ...notInstalledStatus(configPath),
+          state: 'partial',
+          detail: 'Managed Grok hook identity needs migration'
+        }
+      }
+    } catch (error) {
+      return notInstalledStatus(configPath, error instanceof Error ? error.message : String(error))
+    }
     const scriptPath = getGrokManagedScriptPath()
     const config = readHooksJson(configPath)
     if (!config) {
@@ -141,6 +157,11 @@ export class GrokHookService {
 
   install(options?: { userInitiated?: boolean }): AgentHookInstallStatus {
     const configPath = getConfigPath()
+    try {
+      migrateGrokConfigIdentity(configPath)
+    } catch (error) {
+      return notInstalledStatus(configPath, error instanceof Error ? error.message : String(error))
+    }
     const scriptPath = getGrokManagedScriptPath()
     const snapshot = readHooksJsonWithRaw(configPath)
     const config = snapshot.config
@@ -159,7 +180,7 @@ export class GrokHookService {
     // setting back on is an equally explicit choice, and the later one. Without this the toggle
     // silently does nothing forever and the only way back is deleting a file in a hidden directory.
     // A symlinked empty config is also respected unless its content and file identity match the
-    // marker written by Orca's own prior cleanup.
+    // marker written by the platform's own prior cleanup.
     const configIsSymlink = isSymbolicLinkSync(configPath)
     const reinstallsOwnSymlinkCleanup =
       configIsSymlink &&
@@ -217,6 +238,7 @@ export class GrokHookService {
 
   remove(): AgentHookInstallStatus {
     const configPath = getConfigPath()
+    migrateGrokConfigIdentity(configPath)
     if (process.platform === 'win32') {
       unregisterGrokHookOwnerSync()
     }
@@ -239,7 +261,7 @@ export class GrokHookService {
     // Why the symlink check: unlinking would delete the user's link, not our file. A config they
     // symlinked into a dotfiles repo is theirs -- strip our entries and write through it instead.
     // writeHooksJson already resolves the link, so the file they version-control stays connected.
-    if (isOrcaOwnedRemnant(cleanup.config) && !isSymbolicLinkSync(configPath)) {
+    if (isManagedGrokRemnant(cleanup.config) && !isSymbolicLinkSync(configPath)) {
       rmSync(configPath, { force: true })
     } else {
       writeHooksJson(configPath, cleanup.config)
@@ -249,6 +271,7 @@ export class GrokHookService {
 
   async removeAsync(): Promise<AgentHookInstallStatus> {
     const configPath = getConfigPath()
+    migrateGrokConfigIdentity(configPath)
     const ownsWindowsHook = process.platform === 'win32'
     let peerOwnsWindowsHook = false
     const releaseOwner = async (): Promise<boolean> => {
@@ -282,7 +305,7 @@ export class GrokHookService {
       return notInstalledStatus(configPath)
     }
     const configIsSymlink = await isGrokHookConfigSymlink(configPath)
-    const unlinkable = isOrcaOwnedRemnant(cleanup.config) && !configIsSymlink
+    const unlinkable = isManagedGrokRemnant(cleanup.config) && !configIsSymlink
     const serialized = `${JSON.stringify(cleanup.config, null, 2)}\n`
     const updated = unlinkable
       ? await removeGrokHookConfigIfUnchanged(configPath, snapshot.raw, mutationOptions)

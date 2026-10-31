@@ -224,6 +224,15 @@ export async function moveManagedPluginRemote(
   await rename(sftp, from, to)
 }
 
+/** SFTP v3 rename refuses an existing destination; identity moves must not overwrite it. */
+export async function moveHookConfigIdentityRemote(
+  sftp: SFTPWrapper,
+  from: string,
+  to: string
+): Promise<void> {
+  await renamePlain(sftp, from, to)
+}
+
 // ─── Private SFTP primitives ────────────────────────────────────────
 
 function sftpOperation<T>(
