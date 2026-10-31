@@ -333125,8 +333125,8 @@
     {
       "path": "src/cli/specs/core.ts",
       "upstream_sha256": "ba4787cf4f75cd465ad575e9f42af3ced8f8e4234e75ef175a29d7a1db452205",
-      "current_sha256": "956d3a9e8b026f935060496b9970a503bc794982dba891af7811ddc6262f84f0",
-      "reason": "项目配置统一新文件名，保留旧文件迁移与信任行为"
+      "current_sha256": "4143f0adf65be5d71b9b62636de1b08a3633d38f8b088fefe391bae8cfe05cc1",
+      "reason": "项目配置统一新文件名，保留旧文件迁移与信任行为；帮助示例改用通用项目"
     },
     {
       "path": "src/cli/specs/vm.ts",
@@ -334237,7 +334237,7 @@
       "path": "src/cli/specs/core.ts",
       "rule": "absolute-windows-path",
       "line": 234,
-      "sha256": "956d3a9e8b026f935060496b9970a503bc794982dba891af7811ddc6262f84f0",
+      "sha256": "4143f0adf65be5d71b9b62636de1b08a3633d38f8b088fefe391bae8cfe05cc1",
       "reason": "上游公开代码注释、CLI/界面示例中的路径语法，用来解释drive/root/UNC/转义等规则；非读取的个人配置，限定具体行及文件hash。"
     },
     {

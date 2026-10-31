@@ -14,22 +14,25 @@ async function help(platform: boolean) {
   return import('./help')
 }
 
-it.each([false, true])('uses the same command identity regardless of the retired marker: platform=%s', async (platform) => {
-  const { formatCommandHelp, formatGroupHelp, printHelp } = await help(platform)
-  const name = 'zkyq'
-  const product = 'Control Everything'
-  const account = COMMAND_SPECS.find((spec) => spec.path.join(' ') === 'account add')!
-  const text = formatCommandHelp(account)
-  expect(text).toContain(`Usage: ${name} account add`)
-  expect(text).toContain(`this ${product} host`)
-  expect(text).toContain(`$ ${name} account add --agent codex`)
-  expect(text).toContain('zkyq://pair?...')
-  expect(formatGroupHelp(COMMAND_SPECS, ['account'])).toContain(`${name} account <command>`)
-  const output = vi.spyOn(console, 'log').mockImplementation(() => {})
-  printHelp(COMMAND_SPECS)
-  expect(output.mock.calls.flat().join('\n')).toContain(`Usage: ${name} <command>`)
-  expect(output.mock.calls.flat().join('\n')).toContain(`Launch ${product}`)
-})
+it.each([false, true])(
+  'uses the same command identity regardless of the retired marker: platform=%s',
+  async (platform) => {
+    const { formatCommandHelp, formatGroupHelp, printHelp } = await help(platform)
+    const name = 'zkyq'
+    const product = 'Control Everything'
+    const account = COMMAND_SPECS.find((spec) => spec.path.join(' ') === 'account add')!
+    const text = formatCommandHelp(account)
+    expect(text).toContain(`Usage: ${name} account add`)
+    expect(text).toContain(`this ${product} host`)
+    expect(text).toContain(`$ ${name} account add --agent codex`)
+    expect(text).toContain('zkyq://pair?...')
+    expect(formatGroupHelp(COMMAND_SPECS, ['account'])).toContain(`${name} account <command>`)
+    const output = vi.spyOn(console, 'log').mockImplementation(() => {})
+    printHelp(COMMAND_SPECS)
+    expect(output.mock.calls.flat().join('\n')).toContain(`Usage: ${name} <command>`)
+    expect(output.mock.calls.flat().join('\n')).toContain(`Launch ${product}`)
+  }
+)
 
 it('preserves technical syntax, file paths, attribution and external URLs', async () => {
   const { formatCommandHelp } = await help(true)
@@ -64,4 +67,12 @@ it('leaves an unknown user command untouched while branding the fallback help', 
     'Unknown command: Orca user supplied command orca account'
   )
   expect(output.mock.calls[1][0]).toContain('Usage: zkyq <command>')
+})
+
+it('uses a generic project in the worktree creation example', async () => {
+  const { formatCommandHelp } = await help(true)
+  const spec = COMMAND_SPECS.find((item) => item.path.join(' ') === 'worktree create')!
+  const text = formatCommandHelp(spec)
+  expect(text).toContain('--project github:example-org/example-repo')
+  expect(text).not.toContain('github:stablyai/orca')
 })
