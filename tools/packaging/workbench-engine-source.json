@@ -327254,7 +327254,8 @@
     "src/main/agent-hooks/server-endpoint-identity.test.ts",
     "src/main/agent-hooks/shared-hook-state-identity.test.ts",
     "src/shared/agent-hook-environment-identity.test.ts",
-    "src/shared/agent-hook-environment-identity.ts"
+    "src/shared/agent-hook-environment-identity.ts",
+    "src/main/agent-hooks/wsl-hook-fs-adapter.test.ts"
   ],
   "adapted_files": [
     {
@@ -336742,6 +336743,30 @@
       "upstream_sha256": "ffb3722111a7498a4ee41f98e115044cffda1086e0da9990d84950fb9e26d052",
       "current_sha256": "0be49011b375a51552540721f5cf27e3d41503fdfdbed04eb1b6d5e0c3bafcd1",
       "reason": "Hermes插件目录、清单与启用名单统一zkyq；已知旧插件原字节移出加载目录，保护用户文件和链接，失败恢复，保留YAML注释和其他插件；本地与SFTP适配器验证"
+    },
+    {
+      "path": "src/main/agent-hooks/wsl-hook-fs-adapter.ts",
+      "upstream_sha256": "c970d2df6576d37e0a3c02c86282eafd0d40947db46c309324f9a338d9a237b3",
+      "current_sha256": "fc7f07e2de1a62d823bab27ed1797fae6b5650c222bbe62e21c3659ee5129eb0",
+      "reason": "补齐WSL文件桥lstat，使插件身份迁移的所有权校验保持可用；保留home边界、错误映射和不跟随符号链接的语义"
+    },
+    {
+      "path": "src/shared/wsl-hook-relay-contract.ts",
+      "upstream_sha256": "7ed688269a490bd1b9d12b6edea60d9c531a0b4fb0e7b537bc163122d3154401",
+      "current_sha256": "2f7f29e6e10e801d0e93ff0156b8edf43eb7509d72e789bfd1508e440c1d649d",
+      "reason": "补齐WSL文件桥lstat，使插件身份迁移的所有权校验保持可用；保留home边界、错误映射和不跟随符号链接的语义"
+    },
+    {
+      "path": "src/wsl-guest/wsl-hook-fs-bridge.test.ts",
+      "upstream_sha256": "6d7b072e4a3907102a69dd8a24183d8d1f7c26e0ff82a95e159ec9ce72499293",
+      "current_sha256": "d2d6f742520912943d21029beb0daec3a9918a2079f4db56620a3883f07de78d",
+      "reason": "补齐WSL文件桥lstat，使插件身份迁移的所有权校验保持可用；保留home边界、错误映射和不跟随符号链接的语义"
+    },
+    {
+      "path": "src/wsl-guest/wsl-hook-fs-bridge.ts",
+      "upstream_sha256": "ac7e2c0b290782dd63a0f5c067434ef11683d555aa2a6c2d6facc57f6dc17a33",
+      "current_sha256": "f8bfdfab78a9526df6c6ddf891027bda3e693e5dc669d9e2e25eeacc5850d00d",
+      "reason": "补齐WSL文件桥lstat，使插件身份迁移的所有权校验保持可用；保留home边界、错误映射和不跟随符号链接的语义"
     }
   ],
   "reviewed_findings": [

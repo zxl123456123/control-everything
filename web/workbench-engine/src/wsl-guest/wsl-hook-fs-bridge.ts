@@ -9,6 +9,7 @@ import { posix } from 'node:path'
 import type { RelayDispatcher } from './dispatcher'
 import {
   WSL_HOOK_FS_METHODS,
+  type WslFsEntryStats,
   type WslFsFailure,
   type WslFsResult
 } from '../shared/wsl-hook-relay-contract'
@@ -95,6 +96,18 @@ export function registerWslHookFsHandlers(
       try {
         const stats = await fs.stat(scoped(params.path))
         return { ok: true, mode: stats.mode }
+      } catch (err) {
+        return failure(err)
+      }
+    }
+  )
+
+  dispatcher.onRequest(
+    WSL_HOOK_FS_METHODS.lstat,
+    async (params): Promise<WslFsResult<WslFsEntryStats>> => {
+      try {
+        const stats = await fs.lstat(scoped(params.path))
+        return { ok: true, mode: stats.mode, file: stats.isFile(), directory: stats.isDirectory() }
       } catch (err) {
         return failure(err)
       }

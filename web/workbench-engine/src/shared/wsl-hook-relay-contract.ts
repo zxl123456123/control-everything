@@ -37,12 +37,16 @@ export const WSL_HOOK_FS_METHODS = {
   readFile: 'wslfs.readFile',
   writeFile: 'wslfs.writeFile',
   stat: 'wslfs.stat',
+  lstat: 'wslfs.lstat',
   rename: 'wslfs.rename',
   unlink: 'wslfs.unlink',
   chmod: 'wslfs.chmod',
   readdir: 'wslfs.readdir',
   mkdir: 'wslfs.mkdir'
 } as const
+
+/** File-kind predicates cross JSON as values and become SFTP methods on the host. */
+export type WslFsEntryStats = { mode: number; file: boolean; directory: boolean }
 
 /** Result envelope for every fs-bridge method. Errors travel as data (not
  *  JSON-RPC faults) so the host adapter can map POSIX errno onto the ssh2
