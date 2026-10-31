@@ -327158,6 +327158,12 @@
   ],
   "adapted_files": [
     {
+      "path": "src/cli/runtime/terminal-prompt-mutation-recovery.ts",
+      "upstream_sha256": "e243d202440b2e0110a5e3a045ae6735493144d1e486738bb0846ae16c2a9f7a",
+      "current_sha256": "63e84e1eeb0a0a28630489210c669238f6606ddac22a159db067388c091ba8fc",
+      "reason": "统一终端恢复提示并处理历史回执不匹配"
+    },
+    {
       "path": "src/main/runtime/rpc/terminal-agent-prompt-send.test.ts",
       "upstream_sha256": "6b959f3cea7cdd80b8f3bee16043dc4969a62fd8f45637d4a8aad973e69964f5",
       "current_sha256": "2696bc3252c18431025bad45b7909fa01c54414ef979a86d69e700563b636664",
@@ -333382,8 +333388,8 @@
     {
       "path": "src/cli/runtime/client-recovery.test.ts",
       "upstream_sha256": "1ba7eb7f929583306fac80920c132939c12c5410d0c44c80256ab16153f33262",
-      "current_sha256": "4ab2f39b1a022d928f8873088855990070d15539170a0aa7004ae7bb23936712",
-      "reason": "迁移运行时发现文件并保护新旧进程所有权"
+      "current_sha256": "83e3ef86a7ee306742750ab3ac3ff6f794b41f36a4c45ee7f30dfa6b9472d756",
+      "reason": "迁移运行时发现文件并保护新旧进程所有权；统一终端恢复提示并处理历史回执不匹配"
     },
     {
       "path": "src/main/managed-server/activation/orcad-activation-host-test-harness.ts",

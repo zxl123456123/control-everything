@@ -1,4 +1,5 @@
 import { createServer, type Server } from 'node:net'
+import { randomUUID } from 'node:crypto'
 import { mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -25,13 +26,19 @@ afterEach(async () => {
   servers.clear()
 })
 
+function testEndpoint(userDataPath: string): string {
+  return process.platform === 'win32'
+    ? `\\\\.\\pipe\\zkyq-test-${randomUUID()}`
+    : join(userDataPath, 'runtime.sock')
+}
+
 function writeRuntimeConnection(userDataPath: string, endpoint: string, runtimeId: string): void {
   writeFileSync(
     join(userDataPath, 'zkyq-runtime.json'),
     JSON.stringify({
       runtimeId,
       pid: 1,
-      transports: [{ kind: 'unix', endpoint }],
+      transports: [{ kind: process.platform === 'win32' ? 'named-pipe' : 'unix', endpoint }],
       authToken: 'token',
       startedAt: 1
     })
@@ -73,7 +80,7 @@ describe('RuntimeClient orchestration recovery identity', () => {
 
   it('attaches the request and exact retry identity to a real RPC failure response', async () => {
     const userDataPath = mkdtempSync(join(tmpdir(), 'orca-runtime-recovery-'))
-    const endpoint = join(userDataPath, 'runtime.sock')
+    const endpoint = testEndpoint(userDataPath)
     const server = createServer((socket) => {
       let buffer = ''
       socket.setEncoding('utf8')
@@ -154,7 +161,7 @@ describe('RuntimeClient orchestration recovery identity', () => {
 
   it('keeps durable prompt retry when failure metadata proves the preflight runtime', async () => {
     const userDataPath = mkdtempSync(join(tmpdir(), 'orca-runtime-current-prompt-'))
-    const endpoint = join(userDataPath, 'runtime.sock')
+    const endpoint = testEndpoint(userDataPath)
     const server = createServer((socket) => {
       socket.once('data', (data) => {
         const request = JSON.parse(String(data).trim()) as { id: string }
@@ -199,9 +206,71 @@ describe('RuntimeClient orchestration recovery identity', () => {
     expect((error as Error).message).toContain('--retry-request prompt-current')
   })
 
+  it('preserves a prompt mismatch and gives safe recovery without retrying automatically', async () => {
+    const userDataPath = mkdtempSync(join(tmpdir(), 'terminal-mismatch-'))
+    const endpoint = testEndpoint(userDataPath)
+    let requests = 0
+    const server = createServer((socket) => {
+      socket.once('data', (data) => {
+        requests += 1
+        const request = JSON.parse(String(data).trim()) as { id: string }
+        socket.end(
+          `${JSON.stringify({
+            id: request.id,
+            ok: false,
+            error: {
+              code: 'request_mismatch',
+              message: 'Request was already used with different input.',
+              data: { detail: 'kept' }
+            },
+            _meta: { runtimeId: 'runtime-current' }
+          })}\n`
+        )
+      })
+    })
+    servers.add(server)
+    await new Promise<void>((resolve) => server.listen(endpoint, resolve))
+    writeRuntimeConnection(userDataPath, endpoint, 'runtime-current')
+    const client = new RuntimeClient(userDataPath, 500, null, null, 'zkyq')
+    const error = await client
+      .call(
+        'terminal.send',
+        {
+          terminal: 'term-current',
+          text: 'review',
+          enter: true,
+          agentPrompt: true,
+          client: { id: 'zkyq-cli', type: 'desktop' }
+        },
+        {
+          terminalPromptPreflight: { runtimeId: 'runtime-current' },
+          orchestrationRequestId: 'prompt-mismatch'
+        }
+      )
+      .catch((caught: unknown) => caught)
+
+    expect(error).toBeInstanceOf(RuntimeRpcFailureError)
+    expect(error).toMatchObject({
+      code: 'request_mismatch',
+      response: { _meta: { runtimeId: 'runtime-current' } },
+      data: { detail: 'kept', orchestrationRequestId: 'prompt-mismatch', retrySafe: false }
+    })
+    expect(requests).toBe(1)
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {})
+    const stderr = vi.spyOn(console, 'error').mockImplementation(() => {})
+    reportCliError(error, true)
+    reportCliError(error, false)
+    const json = JSON.parse(String(log.mock.calls[0][0]))
+    expect(json.error.data.nextSteps.join(' ')).toContain('update Control Everything')
+    expect(json.error.data.nextSteps.join(' ')).toContain('Do not use a new request ID')
+    expect(json.error.message).toContain('This or an earlier attempt may have delivered input')
+    expect(String(stderr.mock.calls[0][0])).toContain('Inspect the terminal')
+    expect(String(stderr.mock.calls[0][0])).not.toContain('Re-issue the exact command')
+  })
+
   it('keeps the prompt retry ID when the attested runtime times out in transport', async () => {
     const userDataPath = mkdtempSync(join(tmpdir(), 'orca-rt-timeout-'))
-    const endpoint = join(userDataPath, 'runtime.sock')
+    const endpoint = testEndpoint(userDataPath)
     let receivedRequest: Record<string, unknown> | undefined
     const server = createServer((socket) => {
       socket.once('data', (data) => {
@@ -245,7 +314,7 @@ describe('RuntimeClient orchestration recovery identity', () => {
 
   it('blocks retry when a downgraded runtime rejects after capability preflight', async () => {
     const userDataPath = mkdtempSync(join(tmpdir(), 'orca-runtime-downgraded-prompt-'))
-    const endpoint = join(userDataPath, 'runtime.sock')
+    const endpoint = testEndpoint(userDataPath)
     let receivedRequest: Record<string, unknown> | undefined
     const server = createServer((socket) => {
       socket.once('data', (data) => {
@@ -292,7 +361,7 @@ describe('RuntimeClient orchestration recovery identity', () => {
 
   it('blocks retry when a downgraded runtime loses the prompt reply', async () => {
     const userDataPath = mkdtempSync(join(tmpdir(), 'orca-runtime-lost-prompt-reply-'))
-    const endpoint = join(userDataPath, 'runtime.sock')
+    const endpoint = testEndpoint(userDataPath)
     let receivedRequest: Record<string, unknown> | undefined
     const server = createServer((socket) => {
       socket.once('data', (data) => {
@@ -329,12 +398,14 @@ describe('RuntimeClient orchestration recovery identity', () => {
     expect(error).toBeInstanceOf(RuntimeClientError)
     expect(error).not.toBeInstanceOf(RuntimeRpcFailureError)
     expectPromptRetryBlockedJson(error, 'prompt-downgraded-lost-reply')
-    expect(JSON.stringify((error as RuntimeClientError).data)).not.toContain('Update Orca')
+    expect(JSON.stringify((error as RuntimeClientError).data)).not.toContain(
+      'Update Control Everything'
+    )
   })
 
   it('reports an unknown legacy prompt outcome without advertising an unsafe retry', async () => {
     const userDataPath = mkdtempSync(join(tmpdir(), 'orca-runtime-legacy-prompt-'))
-    const endpoint = join(userDataPath, 'runtime.sock')
+    const endpoint = testEndpoint(userDataPath)
     let receivedRequest: Record<string, unknown> | undefined
     const server = createServer((socket) => {
       socket.once('data', (data) => {
@@ -371,7 +442,7 @@ describe('RuntimeClient orchestration recovery identity', () => {
         retrySafe: false,
         nextSteps: expect.arrayContaining([
           'Inspect the terminal output and agent state without sending input.',
-          'Update Orca on the execution host before future prompt sends that need durable retry.'
+          'Update Control Everything on the execution host before future prompt sends that need durable retry.'
         ])
       }
     })

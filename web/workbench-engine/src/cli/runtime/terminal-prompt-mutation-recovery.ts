@@ -12,6 +12,26 @@ export function attachDurableMutationRecovery(
   if (method !== 'terminal.send' || !requestId || !(error instanceof RuntimeClientError)) {
     return attachMutationRecovery(error, requestId, originalCommand)
   }
+  if (error instanceof RuntimeRpcFailureError && error.code === 'request_mismatch') {
+    const message = `${error.message} Terminal prompt request ID: ${requestId}. This or an earlier attempt may have delivered input. Inspect the terminal before taking further action.`
+    return new RuntimeRpcFailureError({
+      ...error.response,
+      error: {
+        ...error.response.error,
+        message,
+        data: {
+          ...(error.data && typeof error.data === 'object' ? error.data : {}),
+          orchestrationRequestId: requestId,
+          retrySafe: false,
+          nextSteps: [
+            INSPECT_STEP,
+            'Confirm the original request content and execution host. If the request predates the CLI update, update Control Everything on that host before retrying with the same ID.',
+            'Do not use a new request ID unless you independently prove no attempt delivered the prompt.'
+          ]
+        }
+      }
+    })
+  }
   const message = `${error.message} Terminal prompt request ID: ${requestId}. Re-issue the exact command with --retry-request ${requestId} --wait-submit <seconds>; do not retry it without that ID.`
   const data = {
     ...(error.data && typeof error.data === 'object' ? error.data : {}),
@@ -36,7 +56,7 @@ export function attachLegacyTerminalPromptRecovery(error: unknown): unknown {
     'The legacy host cannot prove whether the prompt was delivered',
     [
       INSPECT_STEP,
-      'Update Orca on the execution host before future prompt sends that need durable retry.'
+      'Update Control Everything on the execution host before future prompt sends that need durable retry.'
     ]
   )
 }
@@ -51,10 +71,10 @@ export function attachUnverifiedTerminalPromptRecovery(error: unknown): RuntimeC
         )
   return attachUnknownTerminalPromptRecovery(
     normalized,
-    'Orca cannot prove whether the prompt was delivered by the prompt-delivery-capable runtime from the preflight',
+    'Control Everything cannot prove whether the prompt was delivered by the prompt-delivery-capable runtime from the preflight',
     [
       INSPECT_STEP,
-      'A different Orca runtime answered than the one whose prompt-delivery support was verified; confirm which runtime serves this host before sending again.'
+      'A different Control Everything runtime answered than the one whose prompt-delivery support was verified; confirm which runtime serves this host before sending again.'
     ]
   )
 }
