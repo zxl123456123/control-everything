@@ -43,6 +43,38 @@ function run(repoPath: string, recipe: OrcaVmRecipe): ReturnType<typeof doctorEp
 }
 
 describe('doctorEphemeralVmRecipe', () => {
+  it('reports an unmarked legacy contract even when scripts contain no old variable names', () => {
+    const repo = makeRepo({ 'create.sh': { body: '#!/bin/sh\necho ready\n', mode: 0o755 } })
+    const result = run(repo, {
+      id: 'cloud',
+      name: 'Cloud',
+      create: './create.sh',
+      destroyDisabled: true
+    })
+    expect(result.ok).toBe(true)
+    expect(result.checks).toContainEqual(
+      expect.objectContaining({
+        id: 'recipe.environment_contract',
+        status: 'warn',
+        message: 'This recipe still receives legacy environment variables.',
+        remediation: expect.stringContaining('zkyq vm runtime migrate-env')
+      })
+    )
+    expect(checkById(result, 'recipe.create.legacy_environment')).toBeUndefined()
+  })
+
+  it('does not report legacy injection for a recipe using the current contract', () => {
+    const repo = makeRepo({ 'create.sh': { mode: 0o755 } })
+    const result = run(repo, {
+      id: 'cloud',
+      name: 'Cloud',
+      create: './create.sh',
+      destroyDisabled: true,
+      environmentContract: 'zkyq'
+    })
+    expect(checkById(result, 'recipe.environment_contract')).toBeUndefined()
+  })
+
   it('passes a fully wired recipe with executable scripts', () => {
     const repo = makeRepo({
       'create.sh': { mode: 0o755 },

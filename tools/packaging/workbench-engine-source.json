@@ -333118,8 +333118,8 @@
     {
       "path": "src/cli/index-vm-recipe-doctor.test.ts",
       "upstream_sha256": "27953354140959825537870f529667a1dcbb9975463a2f293264f3bfe191a90b",
-      "current_sha256": "28bd7c30dd44d5aa4f24f68dbc35572eef423a3eb7d7e6dbe170a4f1a0f8c37c",
-      "reason": "项目配置统一新文件名，保留旧文件迁移与信任行为"
+      "current_sha256": "b5d0eb0623e13726db9ba8230c098ed42577436226d638d93346c76ccc0fb770",
+      "reason": "项目配置统一新文件名，保留旧文件迁移与信任行为；诊断未迁移的配方环境契约"
     },
     {
       "path": "src/cli/specs/core.ts",
@@ -333250,8 +333250,8 @@
     {
       "path": "src/shared/ephemeral-vm-recipe-doctor.ts",
       "upstream_sha256": "51befcc6d70d12ed663a36ef674d4c8646881e71ce1373151c4bb3cdfaea8dc2",
-      "current_sha256": "0f44a543b253db8436e763709d93cbbb3a3dcfbca3c92a75c6b54e0e414631ed",
-      "reason": "项目配置统一新文件名，保留旧文件迁移与信任行为；新环境配方与实例使用掌控一切身份；只读诊断配方旧环境变量和检查范围；提供受限配方环境变量显式迁移入口"
+      "current_sha256": "108d511d4236ce539f4c6c468c0f35a9a08e8df7a7e40c7415a40ab70207bf45",
+      "reason": "项目配置统一新文件名，保留旧文件迁移与信任行为；新环境配方与实例使用掌控一切身份；只读诊断配方旧环境变量和检查范围；提供受限配方环境变量显式迁移入口；诊断未迁移的配方环境契约"
     },
     {
       "path": "src/cli/handlers/repo.ts",
@@ -333532,8 +333532,8 @@
     {
       "path": "src/shared/ephemeral-vm-recipe-doctor.test.ts",
       "upstream_sha256": "caf6b0920e7f27e55746cb9113f71e450752982852c737a18b6f9670b1b0577c",
-      "current_sha256": "bd39a7ce17929bee1f7fd056376b90a09c14b1dd23c95f20aab79a66ee79fe74",
-      "reason": "只读诊断配方旧环境变量和检查范围"
+      "current_sha256": "9206cceff5ad60b6ecd66fdeda25e500e15311424a770026b1d3c79c7c68f8d9",
+      "reason": "只读诊断配方旧环境变量和检查范围；诊断未迁移的配方环境契约"
     },
     {
       "path": "src/cli/execution-host-flag.ts",

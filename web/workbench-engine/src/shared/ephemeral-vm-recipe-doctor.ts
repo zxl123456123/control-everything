@@ -55,6 +55,16 @@ export function doctorEphemeralVmRecipe(args: {
     return buildDoctorResult(args.recipeId, args.repoPath, checks)
   }
 
+  if (recipe.environmentContract !== 'zkyq') {
+    checks.push({
+      id: 'recipe.environment_contract',
+      status: 'warn',
+      message: 'This recipe still receives legacy environment variables.',
+      remediation:
+        'Review and migrate every lifecycle script and indirect call, then set environmentContract: zkyq in the recipe. Review and migrate existing VM snapshots separately with `zkyq vm runtime migrate-env`.'
+    })
+  }
+
   checks.push(checkCommandPath(args.repoPath, recipe.create, 'recipe.create'))
   if (recipe.destroyDisabled) {
     checks.push({

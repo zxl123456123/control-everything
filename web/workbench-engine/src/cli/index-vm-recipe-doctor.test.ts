@@ -125,6 +125,11 @@ describe('orca cli worktree awareness', () => {
           expect.objectContaining({ id: 'orca_yaml.parse', status: 'pass' }),
           expect.objectContaining({ id: 'project_config.selection', status: 'warn' }),
           expect.objectContaining({ id: 'recipe.exists', status: 'pass' }),
+          expect.objectContaining({
+            id: 'recipe.environment_contract',
+            status: 'warn',
+            remediation: expect.stringContaining('zkyq vm runtime migrate-env')
+          }),
           expect.objectContaining({ id: 'recipe.create', status: 'pass' }),
           expect.objectContaining({ id: 'recipe.destroy', status: 'pass' })
         ])
