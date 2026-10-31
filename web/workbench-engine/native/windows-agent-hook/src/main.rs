@@ -17,6 +17,17 @@ use std::time::{Duration, Instant};
 const CONNECT_TIMEOUT: Duration = Duration::from_millis(500);
 const TOTAL_TIMEOUT: Duration = Duration::from_millis(1500);
 const ENDPOINT_FILE_BYTE_LIMIT: u64 = 64 * 1024;
+const HOOK_ENV_KEYS: &[&str] = &[
+    "ZKYQ_PANE_KEY",
+    "ZKYQ_TAB_ID",
+    "ZKYQ_WORKTREE_ID",
+    "ZKYQ_AGENT_LAUNCH_TOKEN",
+    "ZKYQ_AGENT_HOOK_ENDPOINT",
+    "ZKYQ_AGENT_HOOK_PORT",
+    "ZKYQ_AGENT_HOOK_TOKEN",
+    "ZKYQ_AGENT_HOOK_ENV",
+    "ZKYQ_AGENT_HOOK_VERSION",
+];
 
 /// What one agent's hooks report under, and which of its env vars veto reporting.
 struct Agent {
@@ -54,14 +65,27 @@ fn main() {
 }
 
 fn run(agent: &Agent) {
+    // Both aliases must agree before this hook can claim an existing pane.
+    if HOOK_ENV_KEYS.iter().any(|key| {
+        let retired = key.replacen("ZKYQ_", "ORCA_", 1);
+        matches!((env::var_os(key), env::var_os(retired)), (Some(a), Some(b)) if a != b)
+    }) {
+        return;
+    }
     // Why: refresh the listener coordinates for terminals that survived an Orca restart.
     let endpoint = read_endpoint_file();
+    if HOOK_ENV_KEYS.iter().any(|key| {
+        let retired = key.replacen("ZKYQ_", "ORCA_", 1);
+        matches!((raw_endpoint_value(&endpoint, key), raw_endpoint_value(&endpoint, &retired)), (Some(a), Some(b)) if a != b)
+    }) {
+        return;
+    }
     let coordinate = |key: &str| endpoint_value(&endpoint, key).unwrap_or_else(|| var(key));
-    let port = coordinate("ORCA_AGENT_HOOK_PORT");
-    let token = coordinate("ORCA_AGENT_HOOK_TOKEN");
+    let port = coordinate("ZKYQ_AGENT_HOOK_PORT");
+    let token = coordinate("ZKYQ_AGENT_HOOK_TOKEN");
     // Why (#11549): without Orca's env the hook ran outside an Orca pane, where the caller
     // may abandon stdin; exit before reading it.
-    if port.is_empty() || token.is_empty() || var("ORCA_PANE_KEY").is_empty() {
+    if port.is_empty() || token.is_empty() || var("ZKYQ_PANE_KEY").is_empty() {
         return;
     }
     let is_set = |name: &&str| !var(name).is_empty();
@@ -76,18 +100,22 @@ fn run(agent: &Agent) {
     let mut payload = Vec::new();
     let _ = stdin.read_to_end(&mut payload);
     let form = [
-        ("paneKey", var("ORCA_PANE_KEY")),
-        ("tabId", var("ORCA_TAB_ID")),
-        ("launchToken", var("ORCA_AGENT_LAUNCH_TOKEN")),
-        ("worktreeId", var("ORCA_WORKTREE_ID")),
-        ("env", coordinate("ORCA_AGENT_HOOK_ENV")),
-        ("version", coordinate("ORCA_AGENT_HOOK_VERSION")),
+        ("paneKey", var("ZKYQ_PANE_KEY")),
+        ("tabId", var("ZKYQ_TAB_ID")),
+        ("launchToken", var("ZKYQ_AGENT_LAUNCH_TOKEN")),
+        ("worktreeId", var("ZKYQ_WORKTREE_ID")),
+        ("env", coordinate("ZKYQ_AGENT_HOOK_ENV")),
+        ("version", coordinate("ZKYQ_AGENT_HOOK_VERSION")),
     ];
     post(agent.source, &port, &token, &form, &payload);
 }
 
 fn var(name: &str) -> String {
     env::var_os(name)
+        .or_else(|| {
+            name.strip_prefix("ZKYQ_")
+                .and_then(|suffix| env::var_os(format!("ORCA_{suffix}")))
+        })
         .map(|value| value.to_string_lossy().into_owned())
         .unwrap_or_default()
 }
@@ -95,7 +123,7 @@ fn var(name: &str) -> String {
 /// The file src/shared/agent-hook-listener/endpoint-publication.ts writes, or "" if unreadable.
 fn read_endpoint_file() -> String {
     let mut text = String::new();
-    let read = File::open(var("ORCA_AGENT_HOOK_ENDPOINT")).and_then(|file| {
+    let read = File::open(var("ZKYQ_AGENT_HOOK_ENDPOINT")).and_then(|file| {
         file.take(ENDPOINT_FILE_BYTE_LIMIT)
             .read_to_string(&mut text)
     });
@@ -107,6 +135,13 @@ fn read_endpoint_file() -> String {
 
 /// The last `set KEY=VALUE` for `key`, as `call` would leave it; `lines` strips the CRLF.
 fn endpoint_value(text: &str, key: &str) -> Option<String> {
+    raw_endpoint_value(text, key).or_else(|| {
+        key.strip_prefix("ZKYQ_")
+            .and_then(|suffix| raw_endpoint_value(text, &format!("ORCA_{suffix}")))
+    })
+}
+
+fn raw_endpoint_value(text: &str, key: &str) -> Option<String> {
     text.lines().rev().find_map(|line| {
         let assignment = line
             .get(..4)
@@ -131,10 +166,18 @@ fn post(source: &str, port: &str, token: &str, form: &[(&str, String)], payload:
         body.push(b'&');
     }
     append_form_field(&mut body, "payload", payload);
+    let namespace = if form
+        .iter()
+        .any(|(name, value)| *name == "version" && value == "1")
+    {
+        "Orca"
+    } else {
+        "Zkyq"
+    };
     let mut request = format!(
         "POST /hook/{source} HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\n\
          Content-Type: application/x-www-form-urlencoded\r\n\
-         X-Zkyq-Agent-Hook-Token: {token}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+         X-{namespace}-Agent-Hook-Token: {token}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
         body.len()
     )
     .into_bytes();

@@ -1,6 +1,7 @@
 import { OPENCODE_NATIVE_PROMPT_VERSIONS } from '../../shared/opencode-cli-version'
 import { cancelUnreadResponseBody } from '../lib/unread-response-body'
 import { parseAgentHookEndpointFile } from '../../shared/agent-hook-endpoint-file'
+import { migrateAgentHookEnvironmentIdentity } from '../../shared/agent-hook-environment-identity'
 import { migrateOpenCodeEnvironmentIdentity } from '../../shared/opencode-environment-identity'
 import {
   OPENCODE_STARTUP_PROMPT_SHA256_ENV,
@@ -12,6 +13,7 @@ import {
 
 export function getOpenCodeStartupPromptSource(): string {
   return String.raw`
+(${migrateAgentHookEnvironmentIdentity.toString()})(process.env);
 (${migrateOpenCodeEnvironmentIdentity.toString()})(process.env);
 const parseEndpoint = ${parseAgentHookEndpointFile.toString()};
 const cancelUnreadResponseBody = ${cancelUnreadResponseBody.toString()};
@@ -24,7 +26,7 @@ async function claimStartupPrompt(nonce, digest, endpoint, requestId) {
     const port = Number(coords.port);
     if (!Number.isInteger(port) || port < 1 || port > 65535) return false;
     response = await fetch("http://127.0.0.1:" + port + "${OPENCODE_STARTUP_PROMPT_CLAIM_PATH}", {
-      method: "POST", headers: { "content-type": "application/json", "x-zkyq-agent-hook-token": coords.token },
+      method: "POST", headers: { "content-type": "application/json", [coords.version === "1" ? "x-orca-agent-hook-token" : "x-zkyq-agent-hook-token"]: coords.token },
       body: JSON.stringify({ nonce, digest, requestId }), signal: AbortSignal.timeout(1000)
     });
     if (!response.ok) return response.status === 408 || response.status === 429 || response.status >= 500 ? "pending" : false;

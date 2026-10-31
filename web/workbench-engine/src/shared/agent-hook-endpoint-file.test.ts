@@ -12,10 +12,10 @@ describe('agent hook endpoint files', () => {
     expect(
       parseAgentHookEndpointFile(
         [
-          'ORCA_AGENT_HOOK_PORT=12345',
-          'ORCA_AGENT_HOOK_TOKEN=token-123',
-          'ORCA_AGENT_HOOK_ENV=production',
-          'ORCA_AGENT_HOOK_VERSION=1'
+          'ZKYQ_AGENT_HOOK_PORT=12345',
+          'ZKYQ_AGENT_HOOK_TOKEN=token-123',
+          'ZKYQ_AGENT_HOOK_ENV=production',
+          'ZKYQ_AGENT_HOOK_VERSION=1'
         ].join('\n')
       )
     ).toEqual({
@@ -30,10 +30,10 @@ describe('agent hook endpoint files', () => {
     expect(
       parseAgentHookEndpointFile(
         [
-          'set ORCA_AGENT_HOOK_PORT=54321',
-          'set ORCA_AGENT_HOOK_TOKEN=token-abc',
-          'set ORCA_AGENT_HOOK_ENV=development',
-          'set ORCA_AGENT_HOOK_VERSION=1'
+          'set ZKYQ_AGENT_HOOK_PORT=54321',
+          'set ZKYQ_AGENT_HOOK_TOKEN=token-abc',
+          'set ZKYQ_AGENT_HOOK_ENV=development',
+          'set ZKYQ_AGENT_HOOK_VERSION=1'
         ].join('\r\n')
       )
     ).toEqual({
@@ -48,17 +48,17 @@ describe('agent hook endpoint files', () => {
     expect(
       parseAgentHookEndpointFile(
         [
-          'ORCA_AGENT_HOOK_PORT=12345',
-          'ORCA_AGENT_HOOK_TOKEN=token=with=equals',
-          'ORCA_AGENT_HOOK_ENV=production',
-          'ORCA_AGENT_HOOK_VERSION=1'
+          'ZKYQ_AGENT_HOOK_PORT=12345',
+          'ZKYQ_AGENT_HOOK_TOKEN=token=with=equals',
+          'ZKYQ_AGENT_HOOK_ENV=production',
+          'ZKYQ_AGENT_HOOK_VERSION=1'
         ].join('\n')
       ).token
     ).toBe('token=with=equals')
   })
 
   it('throws when required endpoint fields are missing', () => {
-    expect(() => parseAgentHookEndpointFile('ORCA_AGENT_HOOK_PORT=12345')).toThrow(
+    expect(() => parseAgentHookEndpointFile('ZKYQ_AGENT_HOOK_PORT=12345')).toThrow(
       'Agent hook endpoint file is missing required fields'
     )
   })

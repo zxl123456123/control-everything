@@ -1,3 +1,7 @@
+import {
+  buildWindowsHookEndpointRefresh,
+  buildWindowsHookEnvironmentIdentityMigration
+} from '../agent-hooks/hook-environment-identity-prelude'
 import { buildWindowsAgentHookPostCommand } from '../agent-hooks/installer-utils'
 import {
   buildWindowsHookEnvironmentGuardLines,
@@ -31,7 +35,8 @@ export function buildWindowsGrokHookScript(): string {
     // value on the curl line is then eaten as a delayed reference — silently mangling
     // paneKey and dropping worktreeId. `!` is legal in a Windows path.
     'setlocal DisableDelayedExpansion',
-    'if defined ORCA_AGENT_HOOK_ENDPOINT if exist "%ORCA_AGENT_HOOK_ENDPOINT%" call "%ORCA_AGENT_HOOK_ENDPOINT%" 2>nul',
+    ...buildWindowsHookEnvironmentIdentityMigration(),
+    ...buildWindowsHookEndpointRefresh(),
     ...buildWindowsHookEnvironmentGuardLines(),
     'set "ORCA_GROK_HOME="',
     'if not defined GROK_HOME goto :orca_grok_home_ready',

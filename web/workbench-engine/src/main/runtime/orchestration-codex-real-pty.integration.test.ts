@@ -178,10 +178,10 @@ it.skipIf(!binary || process.platform === 'win32').each(trials)(
           CODEX_HOME: directory,
           TERM: 'xterm-256color',
           ORCA_BACKGROUND_LAUNCH: '1',
-          ORCA_PANE_KEY: PANE_KEY,
-          ORCA_TAB_ID: TAB_ID,
-          ORCA_WORKTREE_ID: WORKTREE_ID,
-          ORCA_AGENT_LAUNCH_TOKEN: LAUNCH_TOKEN
+          ZKYQ_PANE_KEY: PANE_KEY,
+          ZKYQ_TAB_ID: TAB_ID,
+          ZKYQ_WORKTREE_ID: WORKTREE_ID,
+          ZKYQ_AGENT_LAUNCH_TOKEN: LAUNCH_TOKEN
         }
       }
     )

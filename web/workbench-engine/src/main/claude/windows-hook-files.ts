@@ -98,6 +98,11 @@ export async function refreshWindowsClaudeHookFiles(
   entryPath: string,
   payload: string
 ): Promise<void> {
+  const retired = entryPath.replace(
+    /([\\/])\.zkyq([\\/])agent-hooks([\\/])([^\\/]+\.cmd)$/,
+    '$1.orca$2agent-hooks$3$4'
+  )
+  if (retired !== entryPath) await refreshWindowsClaudeHookFiles(retired, payload)
   // A surviving exe copy is Orca-owned too; a running one is moved aside, as in install().
   const bundledHook = resolveBundledWindowsNativeHookExecutable()
   if (bundledHook) {

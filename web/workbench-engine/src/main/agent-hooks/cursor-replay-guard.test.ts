@@ -45,10 +45,10 @@ async function runHook(script: string, hookEnv: NodeJS.ProcessEnv) {
         GROK_HOOK_EVENT: '',
         DEVIN_SESSION_ID: '',
         CLAUDE_JOB_DIR: '',
-        ORCA_AGENT_HOOK_ENDPOINT: '',
-        ORCA_AGENT_HOOK_PORT: String(address.port),
-        ORCA_AGENT_HOOK_TOKEN: 'test-token',
-        ORCA_PANE_KEY: 'tab:leaf',
+        ZKYQ_AGENT_HOOK_ENDPOINT: '',
+        ZKYQ_AGENT_HOOK_PORT: String(address.port),
+        ZKYQ_AGENT_HOOK_TOKEN: 'test-token',
+        ZKYQ_PANE_KEY: 'tab:leaf',
         ...hookEnv
       }
     })

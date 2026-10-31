@@ -1,4 +1,10 @@
 import {
+  buildPosixHookEndpointRefresh,
+  buildPosixHookEnvironmentIdentityMigration,
+  buildWindowsHookEndpointRefresh,
+  buildWindowsHookEnvironmentIdentityMigration
+} from '../agent-hooks/hook-environment-identity-prelude'
+import {
   buildPosixHookPayloadCapture,
   POSIX_HOOK_JSON_STDIN,
   buildPosixHookSpoolLines,
@@ -16,6 +22,7 @@ export function getManagedScript(
       // Why (#9358/#9941): inherited delayed expansion eats `!` out of the percent-expanded
       // curl args, mangling paneKey and dropping worktreeId. `!` is legal in a Windows path.
       'setlocal DisableDelayedExpansion',
+      ...buildWindowsHookEnvironmentIdentityMigration(),
       'if /I "%ORCA_ANTIGRAVITY_EVENT%"=="Stop" (',
       '  echo {"decision":""}',
       ') else if /I "%ORCA_ANTIGRAVITY_EVENT%"=="PreToolUse" (',
@@ -23,12 +30,12 @@ export function getManagedScript(
       ') else (',
       '  echo {}',
       ')',
-      'if defined ORCA_AGENT_HOOK_ENDPOINT if exist "%ORCA_AGENT_HOOK_ENDPOINT%" call "%ORCA_AGENT_HOOK_ENDPOINT%" 2>nul',
+      ...buildWindowsHookEndpointRefresh(),
       ...buildWindowsHookEnvironmentGuardLines(),
       // The runtime path is fixed at installation; hook payloads stay on stdin.
       'set "ELECTRON_RUN_AS_NODE=1"',
-      `if not defined ORCA_AGENT_HOOK_NODE set "ORCA_AGENT_HOOK_NODE=${windowsRuntimePath.replaceAll('%', '%%')}"`,
-      '"%ORCA_AGENT_HOOK_NODE%" "%~dp0antigravity-hook-post.cjs" >nul 2>nul',
+      `if not defined ZKYQ_AGENT_HOOK_NODE set "ZKYQ_AGENT_HOOK_NODE=${windowsRuntimePath.replaceAll('%', '%%')}"`,
+      '"%ZKYQ_AGENT_HOOK_NODE%" "%~dp0antigravity-hook-post.cjs" >nul 2>nul',
       'exit /b 0',
       ''
     ].join('\r\n')
@@ -36,6 +43,7 @@ export function getManagedScript(
 
   return [
     '#!/bin/sh',
+    ...buildPosixHookEnvironmentIdentityMigration(),
     'case "$ORCA_ANTIGRAVITY_EVENT" in',
     '  Stop)',
     '    printf \'{"decision":""}\\n\'',
@@ -53,10 +61,8 @@ export function getManagedScript(
     // status post, so the shared capture maps empty input to an object.
     ...buildPosixHookPayloadCapture('empty-object', POSIX_HOOK_JSON_STDIN),
     ...buildPosixHookSpoolLines('antigravity', 'ORCA_ANTIGRAVITY_EVENT'),
-    'if [ -n "$ORCA_AGENT_HOOK_ENDPOINT" ] && [ -r "$ORCA_AGENT_HOOK_ENDPOINT" ]; then',
-    '  . "$ORCA_AGENT_HOOK_ENDPOINT" 2>/dev/null || :',
-    'fi',
-    'if [ -z "$ORCA_AGENT_HOOK_PORT" ] || [ -z "$ORCA_AGENT_HOOK_TOKEN" ] || [ -z "$ORCA_PANE_KEY" ]; then',
+    ...buildPosixHookEndpointRefresh(),
+    'if [ -z "$ZKYQ_AGENT_HOOK_PORT" ] || [ -z "$ZKYQ_AGENT_HOOK_TOKEN" ] || [ -z "$ZKYQ_PANE_KEY" ]; then',
     '  spool_hook_event',
     '  exit 0',
     'fi',
@@ -64,16 +70,16 @@ export function getManagedScript(
     // Why: pipe payload to curl's stdin (`payload@-`) instead of an inline
     // `payload=$VALUE` arg, so tens-of-KB tool output stays off the curl
     // command line (EDR command-line false positives). Wire body is identical.
-    'printf \'%s\' "$payload" | curl -sS -X POST "http://127.0.0.1:${ORCA_AGENT_HOOK_PORT}/hook/antigravity" \\',
+    'printf \'%s\' "$payload" | curl -sS -X POST "http://127.0.0.1:${ZKYQ_AGENT_HOOK_PORT}/hook/antigravity" \\',
     '  --connect-timeout 0.5 --max-time 1.5 \\',
     '  -H "Content-Type: application/x-www-form-urlencoded" \\',
-    '  -H "X-Zkyq-Agent-Hook-Token: ${ORCA_AGENT_HOOK_TOKEN}" \\',
-    '  --data-urlencode "paneKey=${ORCA_PANE_KEY}" \\',
-    '  --data-urlencode "tabId=${ORCA_TAB_ID}" \\',
-    '  --data-urlencode "launchToken=${ORCA_AGENT_LAUNCH_TOKEN}" \\',
-    '  --data-urlencode "worktreeId=${ORCA_WORKTREE_ID}" \\',
-    '  --data-urlencode "env=${ORCA_AGENT_HOOK_ENV}" \\',
-    '  --data-urlencode "version=${ORCA_AGENT_HOOK_VERSION}" \\',
+    '  -H "X-${zkyq_hook_namespace}-Agent-Hook-Token: ${ZKYQ_AGENT_HOOK_TOKEN}" \\',
+    '  --data-urlencode "paneKey=${ZKYQ_PANE_KEY}" \\',
+    '  --data-urlencode "tabId=${ZKYQ_TAB_ID}" \\',
+    '  --data-urlencode "launchToken=${ZKYQ_AGENT_LAUNCH_TOKEN}" \\',
+    '  --data-urlencode "worktreeId=${ZKYQ_WORKTREE_ID}" \\',
+    '  --data-urlencode "env=${ZKYQ_AGENT_HOOK_ENV}" \\',
+    '  --data-urlencode "version=${ZKYQ_AGENT_HOOK_VERSION}" \\',
     '  --data-urlencode "hook_event_name=${ORCA_ANTIGRAVITY_EVENT}" \\',
     '  --data-urlencode "payload@-" >/dev/null 2>&1 || spool_hook_event',
     'exit 0',
@@ -88,6 +94,7 @@ export function getWindowsWrapperScript(eventName: string): string {
     // eats it out of the percent-expanded `%~dp0` — the wrapper then misses the core and
     // silently falls back on every event. Same reason the core disables it.
     'setlocal DisableDelayedExpansion',
+    ...buildWindowsHookEnvironmentIdentityMigration(),
     `set "ORCA_ANTIGRAVITY_EVENT=${eventName}"`,
     'set "ORCA_ANTIGRAVITY_CORE=%~dp0antigravity-hook.cmd"',
     'if exist "%ORCA_ANTIGRAVITY_CORE%" (',

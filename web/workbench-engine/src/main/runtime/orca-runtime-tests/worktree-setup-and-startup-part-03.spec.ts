@@ -97,7 +97,7 @@ describe('OrcaRuntimeService', () => {
         result.worktree.id,
         expect.objectContaining({
           ptyId: 'pty-bg-split-setup',
-          tabId: expect.not.stringMatching(`^${mainEnv.ORCA_TAB_ID}$`),
+          tabId: expect.not.stringMatching(`^${mainEnv.ZKYQ_TAB_ID}$`),
           activate: false,
           surfaceOwner: false,
           title: 'Setup'

@@ -18,7 +18,7 @@ const WORKER = 'term_relay_worker'
 const WORKER_PANE = 'tab_w:33333333-3333-4333-8333-333333333333'
 const COORDINATOR = 'term_local_coord'
 const PTY_ID = toAppSshPtyId(TARGET, 'pty-7')
-const ENV = { ORCA_TERMINAL_HANDLE: WORKER, ORCA_PANE_KEY: WORKER_PANE }
+const ENV = { ORCA_TERMINAL_HANDLE: WORKER, ZKYQ_PANE_KEY: WORKER_PANE }
 
 let dir: string
 let db: OrchestrationDb

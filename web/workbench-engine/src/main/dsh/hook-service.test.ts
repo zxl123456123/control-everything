@@ -55,9 +55,9 @@ afterEach(() => {
 })
 
 const configPath = (): string => join(home, '.dsh', 'cordis.patch.yml')
-const managedHooksPath = (): string => join(home, '.orca', 'agent-hooks', 'dsh-hooks.json')
+const managedHooksPath = (): string => join(home, '.zkyq', 'agent-hooks', 'dsh-hooks.json')
 const scriptPath = (): string =>
-  join(home, '.orca', 'agent-hooks', process.platform === 'win32' ? 'dsh-hook.cmd' : 'dsh-hook.sh')
+  join(home, '.zkyq', 'agent-hooks', process.platform === 'win32' ? 'dsh-hook.cmd' : 'dsh-hook.sh')
 
 function readManagedHooks(): { hooks: Record<string, unknown[]> } {
   const parsed: { hooks: Record<string, unknown[]> } = JSON.parse(
@@ -93,14 +93,14 @@ describe('DshHookService', () => {
   })
 
   it('restores the pane identity DSH scrubs before anything reads it', () => {
-    // DSH drops env names containing KEY/TOKEN, so the script has to recover ORCA_PANE_KEY
-    // and ORCA_AGENT_LAUNCH_TOKEN from their aliases before the guard or the spool run.
+    // DSH drops env names containing KEY/TOKEN, so the script has to recover ZKYQ_PANE_KEY
+    // and ZKYQ_AGENT_LAUNCH_TOKEN from their aliases before the guard or the spool run.
     new DshHookService().install()
     const script = readFileSync(scriptPath(), 'utf-8')
-    const restoreAt = script.indexOf('ORCA_AGENT_PANE')
-    const guardAt = script.indexOf('ORCA_AGENT_HOOK_PORT')
+    const restoreAt = script.indexOf('ZKYQ_AGENT_PANE')
+    const guardAt = script.indexOf('ZKYQ_AGENT_HOOK_PORT')
     expect(restoreAt).toBeGreaterThan(-1)
-    expect(script).toContain('ORCA_AGENT_LAUNCH')
+    expect(script).toContain('ZKYQ_AGENT_LAUNCH')
     expect(restoreAt).toBeLessThan(guardAt)
   })
 

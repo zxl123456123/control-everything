@@ -75,7 +75,7 @@ describe('execution-host OpenCode launch preparation', () => {
       isFreshLaunch: true,
       envToDelete,
       env: {
-        ORCA_AGENT_LAUNCH_TOKEN: 'admitted-launch',
+        ZKYQ_AGENT_LAUNCH_TOKEN: 'admitted-launch',
         ZKYQ_OPENCODE_STARTUP_PROMPT_SHA256: createHash('sha256').update('task').digest('hex'),
         ZKYQ_OPENCODE_STARTUP_PROMPT_BODY: 'task',
         ZKYQ_OPENCODE_STARTUP_PROMPT_SHELL: 'posix'
@@ -96,7 +96,7 @@ describe('execution-host OpenCode launch preparation', () => {
     async (version) => {
       probe.mockResolvedValue(getOpenCodeCliCapabilities(version))
       const env = {
-        ORCA_AGENT_LAUNCH_TOKEN: 'admitted-launch',
+        ZKYQ_AGENT_LAUNCH_TOKEN: 'admitted-launch',
         [OPENCODE_STARTUP_PROMPT_SHA256_ENV]: createHash('sha256').update('task').digest('hex'),
         [OPENCODE_STARTUP_PROMPT_BODY_ENV]: 'task',
         [OPENCODE_STARTUP_PROMPT_SHELL_ENV]: 'posix'
@@ -135,7 +135,7 @@ describe('execution-host OpenCode launch preparation', () => {
         envToDelete: selection === 'deleted' ? ['XDG_CONFIG_HOME'] : [],
         isFreshLaunch: true,
         env: {
-          ORCA_AGENT_LAUNCH_TOKEN: 'admitted-launch',
+          ZKYQ_AGENT_LAUNCH_TOKEN: 'admitted-launch',
           [OPENCODE_STARTUP_PROMPT_SHA256_ENV]: createHash('sha256').update('task').digest('hex'),
           [OPENCODE_STARTUP_PROMPT_BODY_ENV]: 'task',
           [OPENCODE_STARTUP_PROMPT_SHELL_ENV]: 'posix',
@@ -176,7 +176,7 @@ describe('execution-host OpenCode launch preparation', () => {
         envToDelete: [],
         isFreshLaunch: true,
         env: {
-          ...(failure === 'identity' ? {} : { ORCA_AGENT_LAUNCH_TOKEN: 'admitted-launch' }),
+          ...(failure === 'identity' ? {} : { ZKYQ_AGENT_LAUNCH_TOKEN: 'admitted-launch' }),
           [OPENCODE_STARTUP_PROMPT_SHA256_ENV]: createHash('sha256').update('task').digest('hex'),
           [OPENCODE_STARTUP_PROMPT_BODY_ENV]: 'task',
           [OPENCODE_STARTUP_PROMPT_SHELL_ENV]: 'posix'
@@ -202,7 +202,7 @@ describe('execution-host OpenCode launch preparation', () => {
       const env = await prepare({
         command: 'opencode --prompt task',
         env: {
-          ORCA_AGENT_LAUNCH_TOKEN: 'admitted-launch',
+          ZKYQ_AGENT_LAUNCH_TOKEN: 'admitted-launch',
           [OPENCODE_STARTUP_PROMPT_SHA256_ENV]: fingerprint,
           [OPENCODE_STARTUP_PROMPT_BODY_ENV]: 'task',
           [OPENCODE_STARTUP_PROMPT_SHELL_ENV]: 'posix'

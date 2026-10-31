@@ -188,14 +188,14 @@ describe('HermesHookService', () => {
           {
             env: {
               ...process.env,
-              ORCA_AGENT_HOOK_PORT: String(address.port),
-              ORCA_AGENT_HOOK_TOKEN: 'token-1',
-              ORCA_AGENT_HOOK_ENDPOINT: '',
-              ORCA_PANE_KEY: PANE_KEY,
-              ORCA_TAB_ID: 'tab-1',
-              ORCA_WORKTREE_ID: 'wt-1',
-              ORCA_AGENT_HOOK_ENV: 'production',
-              ORCA_AGENT_HOOK_VERSION: '1'
+              ZKYQ_AGENT_HOOK_PORT: String(address.port),
+              ZKYQ_AGENT_HOOK_TOKEN: 'token-1',
+              ZKYQ_AGENT_HOOK_ENDPOINT: '',
+              ZKYQ_PANE_KEY: PANE_KEY,
+              ZKYQ_TAB_ID: 'tab-1',
+              ZKYQ_WORKTREE_ID: 'wt-1',
+              ZKYQ_AGENT_HOOK_ENV: 'production',
+              ZKYQ_AGENT_HOOK_VERSION: '1'
             },
             encoding: 'utf-8'
           },

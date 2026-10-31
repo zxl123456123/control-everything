@@ -10,6 +10,7 @@ import { isTuiAgentEnabled } from '../../../../shared/tui-agent-selection'
 import { resolveOpenCodeConfigDirectory } from '../../../../shared/opencode-config-directory'
 import { readSessionShellStartupEnvVar } from '../../../pty/shell-startup-env'
 import type { BuildPtyHostEnvOptions } from './types'
+import { migrateAgentHookEnvironmentIdentity } from '../../../../shared/agent-hook-environment-identity'
 import { migrateOpenCodeEnvironmentIdentity } from '../../../../shared/opencode-environment-identity'
 
 type OpenCodeSourceConfig = {
@@ -22,7 +23,9 @@ export function captureOpenCodeSourceConfig(
   userDataPath: string
 ): OpenCodeSourceConfig {
   const currentInherited = { ...process.env }
+  migrateAgentHookEnvironmentIdentity(currentInherited)
   migrateOpenCodeEnvironmentIdentity(currentInherited)
+  migrateAgentHookEnvironmentIdentity(env)
   migrateOpenCodeEnvironmentIdentity(env)
   const isLegacyDirectory = (dir: string | undefined): boolean =>
     isOpenCodeLegacySharedConfigDir(dir, userDataPath)

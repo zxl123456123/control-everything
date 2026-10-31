@@ -93,9 +93,9 @@ describe('registerPtyHandlers', () => {
       leafId,
       worktreeId: 'wt-1',
       env: {
-        ORCA_PANE_KEY: `tab-1:${leafId}`,
-        ORCA_TAB_ID: 'tab-1',
-        ORCA_WORKTREE_ID: 'wt-1',
+        ZKYQ_PANE_KEY: `tab-1:${leafId}`,
+        ZKYQ_TAB_ID: 'tab-1',
+        ZKYQ_WORKTREE_ID: 'wt-1',
         CLAUDE_PROFILE: 'captured',
         PATH: `/tmp/stale-agent-teams${delimiter}/usr/bin`,
         TMUX: '/tmp/orca-claude-agent-teams/team-stale,0,1',
@@ -253,10 +253,10 @@ describe('registerPtyHandlers', () => {
       tabId,
       leafId,
       env: {
-        ORCA_PANE_KEY: paneKey,
-        ORCA_TAB_ID: tabId,
-        ORCA_WORKTREE_ID: worktreeId,
-        ORCA_AGENT_LAUNCH_TOKEN: testCase.envLaunchToken
+        ZKYQ_PANE_KEY: paneKey,
+        ZKYQ_TAB_ID: tabId,
+        ZKYQ_WORKTREE_ID: worktreeId,
+        ZKYQ_AGENT_LAUNCH_TOKEN: testCase.envLaunchToken
       },
       ...(testCase.launchToken ? { launchToken: testCase.launchToken } : {}),
       ...(testCase.hasLaunchConfig
@@ -348,9 +348,9 @@ describe('registerPtyHandlers', () => {
       leafId,
       worktreeId: 'wt-1',
       env: {
-        ORCA_PANE_KEY: `tab-1:${leafId}`,
-        ORCA_TAB_ID: 'tab-1',
-        ORCA_WORKTREE_ID: 'wt-1'
+        ZKYQ_PANE_KEY: `tab-1:${leafId}`,
+        ZKYQ_TAB_ID: 'tab-1',
+        ZKYQ_WORKTREE_ID: 'wt-1'
       },
       launchConfig: {
         agentCommand: 'claude',
@@ -448,7 +448,7 @@ describe('registerPtyHandlers', () => {
       command: 'claude --teammate-mode auto',
       tabId: 'tab-1',
       leafId,
-      env: { ORCA_PANE_KEY: `tab-1:${leafId}`, ORCA_TAB_ID: 'tab-1' },
+      env: { ZKYQ_PANE_KEY: `tab-1:${leafId}`, ZKYQ_TAB_ID: 'tab-1' },
       launchConfig: { agentCommand: 'claude --teammate-mode auto', agentArgs: '', agentEnv: {} },
       launchAgent: 'claude'
     }
@@ -517,7 +517,7 @@ describe('registerPtyHandlers', () => {
         tabId: 'tab-1',
         leafId,
         worktreeId: 'wt-1',
-        env: { ORCA_PANE_KEY: `tab-1:${leafId}`, ORCA_TAB_ID: 'tab-1' },
+        env: { ZKYQ_PANE_KEY: `tab-1:${leafId}`, ZKYQ_TAB_ID: 'tab-1' },
         launchConfig: { agentCommand: 'claude --teammate-mode auto', agentArgs: '', agentEnv: {} },
         launchAgent: 'claude'
       })

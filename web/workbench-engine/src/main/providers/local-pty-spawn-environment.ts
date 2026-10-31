@@ -1,4 +1,5 @@
 import { mergeGitConfigEnvProtocol } from '../../shared/git-credential-prompt-env'
+import { migrateAgentHookEnvironmentIdentity } from '../../shared/agent-hook-environment-identity'
 import { migrateOpenCodeEnvironmentIdentity } from '../../shared/opencode-environment-identity'
 import { restoreManagedDataAccountEnvironment } from '../../shared/managed-data-account-environment'
 import {
@@ -26,6 +27,9 @@ export function buildLocalPtySpawnEnvironment(args: {
 }): Record<string, string> | Promise<Record<string, string>> {
   const { id, spawn, getOptions, plan } = args
   const spawnEnv = buildInheritedLocalPtyEnvironment(spawn.env, spawn.envToDelete)
+  const explicitEnv = { ...spawn.env }
+  migrateAgentHookEnvironmentIdentity(explicitEnv)
+  migrateOpenCodeEnvironmentIdentity(explicitEnv)
 
   // Why: on Windows LANG doesn't set the console code page; PYTHONUTF8=1 forces Python UTF-8 stdio to avoid garbled CJK.
   if (process.platform === 'win32') {
@@ -40,7 +44,7 @@ export function buildLocalPtySpawnEnvironment(args: {
     return spawnEnv
   }
   return getOptions().buildSpawnEnv!(id, spawnEnv, {
-    explicitEnv: spawn.env ?? {},
+    explicitEnv,
     command: spawn.command,
     launchAgent: spawn.launchAgent,
     codexHomePathOverride: spawn.codexHomePathOverride,
@@ -57,9 +61,24 @@ export function buildInheritedLocalPtyEnvironment(
   envToDelete: readonly string[] = []
 ): Record<string, string> {
   const inheritedEnv = stripInheritedBuildModeEnv(process.env)
+  // A parent pane cannot supply identity for this newly created terminal.
+  for (const suffix of [
+    'PANE_KEY',
+    'TAB_ID',
+    'WORKTREE_ID',
+    'AGENT_LAUNCH_TOKEN',
+    'AGENT_PANE',
+    'AGENT_LAUNCH',
+    'HOOK_AGENT_PID'
+  ]) {
+    delete inheritedEnv[`ORCA_${suffix}`]
+    delete inheritedEnv[`ZKYQ_${suffix}`]
+  }
+  migrateAgentHookEnvironmentIdentity(inheritedEnv)
   migrateOpenCodeEnvironmentIdentity(inheritedEnv)
   explicitEnv = explicitEnv ? { ...explicitEnv } : undefined
   const currentDeletions = [...envToDelete]
+  migrateAgentHookEnvironmentIdentity(explicitEnv ?? {}, currentDeletions)
   migrateOpenCodeEnvironmentIdentity(explicitEnv ?? {}, currentDeletions)
   restoreManagedDataAccountEnvironment(inheritedEnv)
   const spawnEnv: Record<string, string> = {
@@ -97,6 +116,7 @@ export function enforceLocalPtySpawnEnvironmentOverrides(
   finalEnv: Record<string, string>
 ): void {
   const currentDeletions = [...(spawn.envToDelete ?? [])]
+  migrateAgentHookEnvironmentIdentity(finalEnv, currentDeletions)
   migrateOpenCodeEnvironmentIdentity(finalEnv, currentDeletions)
   stripPiProcessOwnerEnv(finalEnv)
   for (const key of currentDeletions) {

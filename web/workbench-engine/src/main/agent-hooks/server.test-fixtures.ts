@@ -53,13 +53,13 @@ export async function postHookEvent(
   path: string = '/hook/claude'
 ): Promise<Response> {
   const env = server.buildPtyEnv()
-  return fetch(`http://127.0.0.1:${env.ORCA_AGENT_HOOK_PORT}${path}`, {
+  return fetch(`http://127.0.0.1:${env.ZKYQ_AGENT_HOOK_PORT}${path}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       // Fake-time advances must not expire a pooled socket before the next hook.
       Connection: 'close',
-      'X-Zkyq-Agent-Hook-Token': env.ORCA_AGENT_HOOK_TOKEN
+      'X-Zkyq-Agent-Hook-Token': env.ZKYQ_AGENT_HOOK_TOKEN
     },
     body: JSON.stringify(body)
   })

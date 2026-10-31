@@ -5,7 +5,7 @@ const callMock = vi.fn()
 const WORKER_DONE_REQUEST = { orchestrationRequestId: expect.any(String) }
 const getTerminalHandleMock = vi.hoisted(() => vi.fn())
 const originalTerminalHandle = process.env.ORCA_TERMINAL_HANDLE
-const originalPaneKey = process.env.ORCA_PANE_KEY
+const originalPaneKey = process.env.ZKYQ_PANE_KEY
 // Why: a structured-session marker inherited from the runner diverts these cases to the
 // structured refusal, so which branch they exercise would depend on who ran them.
 const originalStructuredSession = process.env.ORCA_STRUCTURED_SESSION
@@ -31,9 +31,9 @@ afterEach(() => {
     process.env.ORCA_TERMINAL_HANDLE = originalTerminalHandle
   }
   if (originalPaneKey === undefined) {
-    delete process.env.ORCA_PANE_KEY
+    delete process.env.ZKYQ_PANE_KEY
   } else {
-    process.env.ORCA_PANE_KEY = originalPaneKey
+    process.env.ZKYQ_PANE_KEY = originalPaneKey
   }
   if (originalStructuredSession === undefined) {
     delete process.env.ORCA_STRUCTURED_SESSION
@@ -54,7 +54,7 @@ describe('orchestration send structured payload flags', () => {
     callMock.mockReset().mockResolvedValue({ result: { lifecycle: { action: 'completed' } } })
     getTerminalHandleMock.mockReset()
     delete process.env.ORCA_TERMINAL_HANDLE
-    delete process.env.ORCA_PANE_KEY
+    delete process.env.ZKYQ_PANE_KEY
     delete process.env.ORCA_STRUCTURED_SESSION
   })
 
@@ -263,7 +263,7 @@ describe('orchestration send structured payload flags', () => {
     'never probes or remints a %s sender even when a pane key is set',
     async (type) => {
       process.env.ORCA_TERMINAL_HANDLE = 'term_worker_env'
-      process.env.ORCA_PANE_KEY = 'tab_worker:leaf_worker'
+      process.env.ZKYQ_PANE_KEY = 'tab_worker:leaf_worker'
 
       await invokeSend(
         new Map<string, string | boolean>([
@@ -287,9 +287,9 @@ describe('orchestration send structured payload flags', () => {
     }
   )
 
-  it('passes ORCA_PANE_KEY as the sender pane identity', async () => {
+  it('passes ZKYQ_PANE_KEY as the sender pane identity', async () => {
     process.env.ORCA_TERMINAL_HANDLE = 'term_worker_env'
-    process.env.ORCA_PANE_KEY = 'tab_worker:leaf_worker'
+    process.env.ZKYQ_PANE_KEY = 'tab_worker:leaf_worker'
 
     await invokeSend(
       new Map<string, string | boolean>([
@@ -388,7 +388,7 @@ describe('orchestration timeout flag validation', () => {
   beforeEach(() => {
     callMock.mockReset()
     delete process.env.ORCA_TERMINAL_HANDLE
-    delete process.env.ORCA_PANE_KEY
+    delete process.env.ZKYQ_PANE_KEY
     delete process.env.ORCA_STRUCTURED_SESSION
     process.exitCode = undefined
   })

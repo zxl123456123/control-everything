@@ -31,9 +31,9 @@ it('delivers exact split UTF-8 JSON without EOF and bounds empty or partial inpu
   }
   const env = {
     ...process.env,
-    ORCA_AGENT_HOOK_PORT: String(address.port),
-    ORCA_AGENT_HOOK_TOKEN: 'disposable-proof-token',
-    ORCA_PANE_KEY: 'proof!pane',
+    ZKYQ_AGENT_HOOK_PORT: String(address.port),
+    ZKYQ_AGENT_HOOK_TOKEN: 'disposable-proof-token',
+    ZKYQ_PANE_KEY: 'proof!pane',
     ORCA_ANTIGRAVITY_EVENT: 'PreInvocation'
   }
   const payload = JSON.stringify({
@@ -47,7 +47,7 @@ it('delivers exact split UTF-8 JSON without EOF and bounds empty or partial inpu
         const child = spawnProcess({
           program: process.execPath,
           args: [script],
-          env: { ...env, ORCA_AGENT_HOOK_VERSION: version }
+          env: { ...env, ZKYQ_AGENT_HOOK_VERSION: version }
         })
         child.stdin.on('error', () => {})
         let stdout = ''
@@ -114,9 +114,9 @@ it('bounds oversized payloads, encoded bodies, absent endpoints and stalled HTTP
   }
   const env = {
     ...process.env,
-    ORCA_AGENT_HOOK_PORT: String(address.port),
-    ORCA_AGENT_HOOK_TOKEN: 'disposable-proof-token',
-    ORCA_PANE_KEY: 'proof-pane'
+    ZKYQ_AGENT_HOOK_PORT: String(address.port),
+    ZKYQ_AGENT_HOOK_TOKEN: 'disposable-proof-token',
+    ZKYQ_PANE_KEY: 'proof-pane'
   }
   try {
     for (const payloadCase of ['oversized', 'encoded-oversized', 'no-endpoint', 'hung-http']) {
@@ -124,7 +124,7 @@ it('bounds oversized payloads, encoded bodies, absent endpoints and stalled HTTP
       const child = spawnProcess({
         program: process.execPath,
         args: [script],
-        env: payloadCase === 'no-endpoint' ? { ...env, ORCA_AGENT_HOOK_PORT: '' } : env
+        env: payloadCase === 'no-endpoint' ? { ...env, ZKYQ_AGENT_HOOK_PORT: '' } : env
       })
       child.stdin.on('error', () => {})
       let output = ''

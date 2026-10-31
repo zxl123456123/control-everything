@@ -348,7 +348,7 @@ describe('createRemoteRuntimePtyTransport', () => {
     await transport.connect({
       url: '',
       command: "codex '--model' 'gpt-5' 'resume' 'session-1'",
-      env: { CODEX_PROFILE: 'captured', ORCA_AGENT_LAUNCH_TOKEN: 'fresh-token' },
+      env: { CODEX_PROFILE: 'captured', ZKYQ_AGENT_LAUNCH_TOKEN: 'fresh-token' },
       launchConfig: {
         agentArgs: '--model gpt-5',
         agentEnv: { CODEX_PROFILE: 'captured' },
@@ -463,7 +463,7 @@ describe('createRemoteRuntimePtyTransport', () => {
     await transport.connect({
       url: '',
       command: "codex '--model' 'gpt-5' 'resume' 'session-1'",
-      env: { CODEX_PROFILE: 'captured', ORCA_AGENT_LAUNCH_TOKEN: 'fresh-token' },
+      env: { CODEX_PROFILE: 'captured', ZKYQ_AGENT_LAUNCH_TOKEN: 'fresh-token' },
       launchConfig: {
         agentArgs: '--model gpt-5',
         agentEnv: { CODEX_PROFILE: 'captured' }
@@ -480,7 +480,7 @@ describe('createRemoteRuntimePtyTransport', () => {
         worktree: 'id:wt-1',
         clientMutationId: expect.any(String),
         command: "codex '--model' 'gpt-5' 'resume' 'session-1'",
-        env: { CODEX_PROFILE: 'captured', ORCA_AGENT_LAUNCH_TOKEN: 'fresh-token' },
+        env: { CODEX_PROFILE: 'captured', ZKYQ_AGENT_LAUNCH_TOKEN: 'fresh-token' },
         launchConfig: {
           agentArgs: '--model gpt-5',
           agentEnv: { CODEX_PROFILE: 'captured' }

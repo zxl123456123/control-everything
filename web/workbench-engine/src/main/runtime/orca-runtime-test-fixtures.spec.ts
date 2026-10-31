@@ -251,11 +251,11 @@ function bindSinglePtyRun(db: InMemoryOrchestrationMessages, terminalHandle: str
 }
 
 function expectStablePaneKeyEnv(env: Record<string, string>): string {
-  expect(env.ORCA_TAB_ID).toMatch(UUID_RE)
-  const leafId = env.ORCA_PANE_KEY?.slice(`${env.ORCA_TAB_ID}:`.length)
+  expect(env.ZKYQ_TAB_ID).toMatch(UUID_RE)
+  const leafId = env.ZKYQ_PANE_KEY?.slice(`${env.ZKYQ_TAB_ID}:`.length)
   expect(leafId).toMatch(UUID_RE)
-  expect(env.ORCA_PANE_KEY).toBe(`${env.ORCA_TAB_ID}:${leafId}`)
-  return env.ORCA_PANE_KEY
+  expect(env.ZKYQ_PANE_KEY).toBe(`${env.ZKYQ_TAB_ID}:${leafId}`)
+  return env.ZKYQ_PANE_KEY
 }
 
 function createRuntime(): RuntimeService {

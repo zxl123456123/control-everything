@@ -235,8 +235,8 @@ export function createPtyIpcSuiteEnvironment(): PtyIpcSuiteEnvironment {
       MIMOCODE_HOME: existingHome ? '/tmp/orca-mimocode-overlay' : '/tmp/orca-mimocode-shared'
     }))
     buildAgentHookEnvMock.mockReturnValue({
-      ORCA_AGENT_HOOK_PORT: '5678',
-      ORCA_AGENT_HOOK_TOKEN: 'agent-token'
+      ZKYQ_AGENT_HOOK_PORT: '5678',
+      ZKYQ_AGENT_HOOK_TOKEN: 'agent-token'
     })
     piBuildPtyEnvMock.mockImplementation(
       (

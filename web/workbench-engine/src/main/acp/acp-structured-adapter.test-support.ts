@@ -23,7 +23,7 @@ import { AcpStructuredSessionAdapter } from './acp-structured-session-adapter'
 import type { AcpStructuredSessionAdapterDeps } from './acp-structured-session-adapter-deps'
 
 export const GROK = acpLaunchSpecFor('grok')!
-const RIG_ENV = { PATH: '/usr/bin', ORCA_PANE_KEY: 'tab-1:pane-1', ORCA_AGENT_HOOK_PORT: '1234' }
+const RIG_ENV = { PATH: '/usr/bin', ZKYQ_PANE_KEY: 'tab-1:pane-1', ZKYQ_AGENT_HOOK_PORT: '1234' }
 export const PROVIDER_SESSION = 'acp-session-1'
 
 export const GROK_CONFIG_OPTIONS = [

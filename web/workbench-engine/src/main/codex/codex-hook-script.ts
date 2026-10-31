@@ -1,3 +1,9 @@
+import {
+  buildPosixHookEndpointRefresh,
+  buildPosixHookEnvironmentIdentityMigration,
+  buildWindowsHookEndpointRefresh,
+  buildWindowsHookEnvironmentIdentityMigration
+} from '../agent-hooks/hook-environment-identity-prelude'
 import { buildPosixAgentHookPostCommand } from '../agent-hooks/hook-post-command'
 import {
   buildPosixHookPayloadCapture,
@@ -12,8 +18,9 @@ export function getManagedScript(target: 'local' | 'posix' = 'local'): string {
     return [
       '@echo off',
       'setlocal',
+      ...buildWindowsHookEnvironmentIdentityMigration(),
       // Why: the endpoint file holds this install's live port/token; sourcing it lets a surviving PTY reach the current server (see claude/hook-service.ts).
-      'if defined ORCA_AGENT_HOOK_ENDPOINT if exist "%ORCA_AGENT_HOOK_ENDPOINT%" call "%ORCA_AGENT_HOOK_ENDPOINT%" 2>nul',
+      ...buildWindowsHookEndpointRefresh(),
       ...buildWindowsHookEnvironmentGuardLines(),
       buildWindowsAgentHookCurlPostCommand('codex'),
       'exit /b 0',
@@ -24,36 +31,12 @@ export function getManagedScript(target: 'local' | 'posix' = 'local'): string {
 
   return [
     '#!/bin/sh',
+    ...buildPosixHookEnvironmentIdentityMigration(),
     ...buildPosixHookPayloadCapture(),
     ...buildPosixHookSpoolLines('codex'),
     // Why: sourcing refreshes PORT/TOKEN/ENV/VERSION from the current Orca so a surviving PTY keeps reporting after a restart (see claude/hook-service.ts).
-    'load_hook_endpoint() {',
-    '  endpoint_path="$1"',
-    '  unset ORCA_AGENT_HOOK_TRANSPORT',
-    '  case "$endpoint_path" in',
-    '    *.cmd)',
-    // Why: Windows passes endpoint.cmd into WSL via WSLENV; parse only Orca's known assignments since cmd.exe `set` lines aren't shell syntax.
-    '      endpoint_cr=$(printf "\\r")',
-    '      while IFS= read -r endpoint_line || [ -n "$endpoint_line" ]; do',
-    '        endpoint_line=${endpoint_line%"$endpoint_cr"}',
-    '        case "$endpoint_line" in',
-    '          "set ORCA_AGENT_HOOK_PORT="*) ORCA_AGENT_HOOK_PORT=${endpoint_line#*=} ;;',
-    '          "set ORCA_AGENT_HOOK_TOKEN="*) ORCA_AGENT_HOOK_TOKEN=${endpoint_line#*=} ;;',
-    '          "set ORCA_AGENT_HOOK_ENV="*) ORCA_AGENT_HOOK_ENV=${endpoint_line#*=} ;;',
-    '          "set ORCA_AGENT_HOOK_VERSION="*) ORCA_AGENT_HOOK_VERSION=${endpoint_line#*=} ;;',
-    '          "set ORCA_AGENT_HOOK_TRANSPORT="*) ORCA_AGENT_HOOK_TRANSPORT=${endpoint_line#*=} ;;',
-    '        esac',
-    '      done < "$endpoint_path"',
-    '      ;;',
-    '    *)',
-    '      . "$endpoint_path" 2>/dev/null || :',
-    '      ;;',
-    '  esac',
-    '}',
-    'if [ -n "$ORCA_AGENT_HOOK_ENDPOINT" ] && [ -r "$ORCA_AGENT_HOOK_ENDPOINT" ]; then',
-    '  load_hook_endpoint "$ORCA_AGENT_HOOK_ENDPOINT"',
-    'fi',
-    'if [ -z "$ORCA_AGENT_HOOK_PORT" ] || [ -z "$ORCA_AGENT_HOOK_TOKEN" ] || [ -z "$ORCA_PANE_KEY" ]; then',
+    ...buildPosixHookEndpointRefresh(),
+    'if [ -z "$ZKYQ_AGENT_HOOK_PORT" ] || [ -z "$ZKYQ_AGENT_HOOK_TOKEN" ] || [ -z "$ZKYQ_PANE_KEY" ]; then',
     '  spool_hook_event',
     '  exit 0',
     'fi',

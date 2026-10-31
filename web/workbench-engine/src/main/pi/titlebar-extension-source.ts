@@ -100,7 +100,7 @@ export function getPiTitlebarExtensionSource(kind: PiAgentKind = 'pi'): string {
     '}',
     '',
     'export default function (pi) {',
-    '  if (!process.env.ORCA_PANE_KEY) return',
+    '  if (!process.env.ZKYQ_PANE_KEY) return',
     ...(kind === 'pi'
       ? [
           '  // Why: child agents inherit the pane env, and the spinner is harmlessly',

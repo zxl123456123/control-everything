@@ -155,7 +155,7 @@ describe('orca cli worktree awareness', () => {
   it.skipIf(process.platform === 'win32')(
     'prepares and starts Claude Agent Teams in the current Orca terminal',
     async () => {
-      process.env.ORCA_PANE_KEY = 'tab-1:11111111-1111-4111-8111-111111111111'
+      process.env.ZKYQ_PANE_KEY = 'tab-1:11111111-1111-4111-8111-111111111111'
       queueFixtures(
         callMock,
         okFixture('req_agent_teams_prepare', {
@@ -176,7 +176,7 @@ describe('orca cli worktree awareness', () => {
         paneKey: 'tab-1:11111111-1111-4111-8111-111111111111',
         prepareAuth: true,
         env: expect.objectContaining({
-          ORCA_PANE_KEY: 'tab-1:11111111-1111-4111-8111-111111111111'
+          ZKYQ_PANE_KEY: 'tab-1:11111111-1111-4111-8111-111111111111'
         })
       })
       expect(spawnMock).toHaveBeenCalledWith('claude', ['--teammate-mode', 'auto'], {
@@ -192,7 +192,7 @@ describe('orca cli worktree awareness', () => {
   it.skipIf(process.platform === 'win32')(
     'passes Claude Agent Teams arguments through to Claude Code',
     async () => {
-      process.env.ORCA_PANE_KEY = 'tab-1:11111111-1111-4111-8111-111111111111'
+      process.env.ZKYQ_PANE_KEY = 'tab-1:11111111-1111-4111-8111-111111111111'
       queueFixtures(
         callMock,
         okFixture('req_agent_teams_prepare', {
@@ -229,7 +229,7 @@ describe('orca cli worktree awareness', () => {
   it.skipIf(process.platform === 'win32')(
     'does not duplicate an explicit Claude teammate mode',
     async () => {
-      process.env.ORCA_PANE_KEY = 'tab-1:11111111-1111-4111-8111-111111111111'
+      process.env.ZKYQ_PANE_KEY = 'tab-1:11111111-1111-4111-8111-111111111111'
       queueFixtures(
         callMock,
         okFixture('req_agent_teams_prepare', {

@@ -65,7 +65,7 @@ test('a sleeping agent in a never-opened workspace resumes once, in its own pane
   // Each resume appends the pane it ran in, so a second resume anywhere is visible.
   writeFileSync(
     fakeAgent,
-    `#!/bin/sh\nprintf '%s\\n' "$ORCA_PANE_KEY" >> '${resumeLog}'\nexec sleep 3600\n`
+    `#!/bin/sh\nprintf '%s\\n' "$ZKYQ_PANE_KEY" >> '${resumeLog}'\nexec sleep 3600\n`
   )
   chmodSync(fakeAgent, 0o755)
   const resumedPaneKeys = (): string[] =>

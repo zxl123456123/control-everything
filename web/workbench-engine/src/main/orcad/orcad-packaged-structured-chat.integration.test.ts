@@ -344,7 +344,7 @@ describe.skipIf(skip || process.platform === 'win32')('packaged plain-Node struc
         ORCA_SDK_CONTRACT_REPORT_PATH: reportPath
       })
       expect(report.env.CLAUDE_CONFIG_DIR).toBe(join(home, 'claude-config'))
-      expect(report.env).not.toHaveProperty('ORCA_PANE_KEY')
+      expect(report.env).not.toHaveProperty('ZKYQ_PANE_KEY')
       expect(report.userMessages).toHaveLength(1)
       expect(report.userMessages[0]?.message.content).toEqual([
         { type: 'text', text: 'Hello packaged server' }

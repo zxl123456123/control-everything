@@ -142,7 +142,7 @@ export function buildPtyHostEnv(
       wslHookRelayManager.ensureForDistro(distro, opts.selectedCodexHomePath, wslLaunchKind)
       const guestEndpoint = wslHookRelayManager.getGuestEndpointFilePath(distro)
       if (guestEndpoint) {
-        baseEnv.ORCA_AGENT_HOOK_ENDPOINT = guestEndpoint
+        baseEnv.ZKYQ_AGENT_HOOK_ENDPOINT = guestEndpoint
       }
       // Why: OpenCode loads its status plugin from a guest config overlay, so point OPENCODE_CONFIG_DIR at the guest dir the relay materialized.
       const opencodeOverlayDir = openCodeAgent

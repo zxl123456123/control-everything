@@ -1,3 +1,9 @@
+import {
+  buildPosixHookEndpointRefresh,
+  buildPosixHookEnvironmentIdentityMigration,
+  buildWindowsHookEndpointRefresh,
+  buildWindowsHookEnvironmentIdentityMigration
+} from '../agent-hooks/hook-environment-identity-prelude'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import type { SFTPWrapper } from 'ssh2'
@@ -81,7 +87,8 @@ function getManagedScript(target: 'local' | 'posix' = 'local'): string {
     return [
       '@echo off',
       'setlocal',
-      'if defined ORCA_AGENT_HOOK_ENDPOINT if exist "%ORCA_AGENT_HOOK_ENDPOINT%" call "%ORCA_AGENT_HOOK_ENDPOINT%" 2>nul',
+      ...buildWindowsHookEnvironmentIdentityMigration(),
+      ...buildWindowsHookEndpointRefresh(),
       ...buildWindowsHookEnvironmentGuardLines(),
       buildWindowsAgentHookPostCommand('droid'),
       'exit /b 0',
@@ -92,12 +99,11 @@ function getManagedScript(target: 'local' | 'posix' = 'local'): string {
 
   return [
     '#!/bin/sh',
+    ...buildPosixHookEnvironmentIdentityMigration(),
     ...buildPosixHookPayloadCapture(),
     ...buildPosixHookSpoolLines('droid'),
-    'if [ -n "$ORCA_AGENT_HOOK_ENDPOINT" ] && [ -r "$ORCA_AGENT_HOOK_ENDPOINT" ]; then',
-    '  . "$ORCA_AGENT_HOOK_ENDPOINT" 2>/dev/null || :',
-    'fi',
-    'if [ -z "$ORCA_AGENT_HOOK_PORT" ] || [ -z "$ORCA_AGENT_HOOK_TOKEN" ] || [ -z "$ORCA_PANE_KEY" ]; then',
+    ...buildPosixHookEndpointRefresh(),
+    'if [ -z "$ZKYQ_AGENT_HOOK_PORT" ] || [ -z "$ZKYQ_AGENT_HOOK_TOKEN" ] || [ -z "$ZKYQ_PANE_KEY" ]; then',
     '  spool_hook_event',
     '  exit 0',
     'fi',
@@ -105,16 +111,16 @@ function getManagedScript(target: 'local' | 'posix' = 'local'): string {
     // Why: pipe payload to curl's stdin (`payload@-`) instead of an inline
     // `payload=$VALUE` arg, so tens-of-KB tool output stays off the curl
     // command line (EDR command-line false positives). Wire body is identical.
-    'printf \'%s\' "$payload" | curl -sS -X POST "http://127.0.0.1:${ORCA_AGENT_HOOK_PORT}/hook/droid" \\',
+    'printf \'%s\' "$payload" | curl -sS -X POST "http://127.0.0.1:${ZKYQ_AGENT_HOOK_PORT}/hook/droid" \\',
     '  --connect-timeout 0.5 --max-time 1.5 \\',
     '  -H "Content-Type: application/x-www-form-urlencoded" \\',
-    '  -H "X-Zkyq-Agent-Hook-Token: ${ORCA_AGENT_HOOK_TOKEN}" \\',
-    '  --data-urlencode "paneKey=${ORCA_PANE_KEY}" \\',
-    '  --data-urlencode "tabId=${ORCA_TAB_ID}" \\',
-    '  --data-urlencode "launchToken=${ORCA_AGENT_LAUNCH_TOKEN}" \\',
-    '  --data-urlencode "worktreeId=${ORCA_WORKTREE_ID}" \\',
-    '  --data-urlencode "env=${ORCA_AGENT_HOOK_ENV}" \\',
-    '  --data-urlencode "version=${ORCA_AGENT_HOOK_VERSION}" \\',
+    '  -H "X-${zkyq_hook_namespace}-Agent-Hook-Token: ${ZKYQ_AGENT_HOOK_TOKEN}" \\',
+    '  --data-urlencode "paneKey=${ZKYQ_PANE_KEY}" \\',
+    '  --data-urlencode "tabId=${ZKYQ_TAB_ID}" \\',
+    '  --data-urlencode "launchToken=${ZKYQ_AGENT_LAUNCH_TOKEN}" \\',
+    '  --data-urlencode "worktreeId=${ZKYQ_WORKTREE_ID}" \\',
+    '  --data-urlencode "env=${ZKYQ_AGENT_HOOK_ENV}" \\',
+    '  --data-urlencode "version=${ZKYQ_AGENT_HOOK_VERSION}" \\',
     '  --data-urlencode "payload@-" >/dev/null 2>&1 || spool_hook_event',
     'exit 0',
     ''
@@ -256,7 +262,7 @@ export class DroidHookService {
   async installRemote(sftp: SFTPWrapper, remoteHome: string): Promise<AgentHookInstallStatus> {
     const home = remoteHome.replace(/\/$/, '')
     const remoteConfigPath = `${home}/.factory/settings.json`
-    const remoteScriptPath = `${home}/.orca/agent-hooks/droid-hook.sh`
+    const remoteScriptPath = `${home}/.zkyq/agent-hooks/droid-hook.sh`
     try {
       const config = await readHooksJsonRemote(sftp, remoteConfigPath)
       if (!config) {

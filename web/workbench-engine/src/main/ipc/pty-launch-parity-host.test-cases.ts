@@ -172,13 +172,13 @@ export const HOST_LAUNCH_CASES: HostLaunchCase[] = [
 ]
 
 const HOST_ENV_KEYS = [
-  'ORCA_PANE_KEY',
-  'ORCA_TAB_ID',
-  'ORCA_WORKTREE_ID',
-  'ORCA_AGENT_LAUNCH_TOKEN',
+  'ZKYQ_PANE_KEY',
+  'ZKYQ_TAB_ID',
+  'ZKYQ_WORKTREE_ID',
+  'ZKYQ_AGENT_LAUNCH_TOKEN',
   'ORCA_TERMINAL_HANDLE'
 ]
-const FOLDER_ENV_KEYS = ['ORCA_WORKSPACE_ID', 'ORCA_PROJECT_GROUP_ID', 'ORCA_WORKSPACE_ROOT']
+const FOLDER_ENV_KEYS = ['ZKYQ_WORKSPACE_ID', 'ZKYQ_PROJECT_GROUP_ID', 'ZKYQ_WORKSPACE_ROOT']
 
 /** What main hands the provider for a host-lane case. */
 export function expectedHostProvider(c: HostLaunchCase): Record<string, unknown> {
@@ -193,10 +193,10 @@ export function expectedHostProvider(c: HostLaunchCase): Record<string, unknown>
     env: {},
     ...provider,
     ...(c.os === 'win32' ? { terminalWindowsWslDistro } : {}),
-    // Like the window lane, the host lane stamps ORCA_WORKSPACE_ID for every workspace kind.
+    // Like the window lane, the host lane stamps ZKYQ_WORKSPACE_ID for every workspace kind.
     orcaEnv:
       c.workspace.kind === 'folder'
         ? [...FOLDER_ENV_KEYS, ...HOST_ENV_KEYS]
-        : ['ORCA_WORKSPACE_ID', ...HOST_ENV_KEYS]
+        : ['ZKYQ_WORKSPACE_ID', ...HOST_ENV_KEYS]
   }
 }

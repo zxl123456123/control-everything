@@ -134,9 +134,9 @@ describe('registerPtyHandlers', () => {
       tabId,
       leafId,
       env: {
-        ORCA_PANE_KEY: paneKey,
-        ORCA_TAB_ID: tabId,
-        ORCA_WORKTREE_ID: worktreeId
+        ZKYQ_PANE_KEY: paneKey,
+        ZKYQ_TAB_ID: tabId,
+        ZKYQ_WORKTREE_ID: worktreeId
       }
     }
 
@@ -341,9 +341,9 @@ describe('registerPtyHandlers', () => {
         tabId,
         leafId,
         env: {
-          ORCA_PANE_KEY: paneKey,
-          ORCA_TAB_ID: tabId,
-          ORCA_WORKTREE_ID: worktreeId
+          ZKYQ_PANE_KEY: paneKey,
+          ZKYQ_TAB_ID: tabId,
+          ZKYQ_WORKTREE_ID: worktreeId
         }
       })
 
@@ -499,9 +499,9 @@ describe('registerPtyHandlers', () => {
         tabId,
         leafId,
         env: {
-          ORCA_PANE_KEY: paneKey,
-          ORCA_TAB_ID: tabId,
-          ORCA_WORKTREE_ID: worktreeId
+          ZKYQ_PANE_KEY: paneKey,
+          ZKYQ_TAB_ID: tabId,
+          ZKYQ_WORKTREE_ID: worktreeId
         }
       })
     ).rejects.toThrow('terminal_pane_owner_unverified')

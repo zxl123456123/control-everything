@@ -103,8 +103,8 @@ async function waitFor(description, probe, timeoutMs = 30_000) {
 }
 
 function parseEndpoint(contents) {
-  const port = Number(/ORCA_AGENT_HOOK_PORT=['"]?(\d+)/.exec(contents)?.[1])
-  const token = /ORCA_AGENT_HOOK_TOKEN=['"]?([^'"\r\n]+)/.exec(contents)?.[1]
+  const port = Number(/ZKYQ_AGENT_HOOK_PORT=['"]?(\d+)/.exec(contents)?.[1])
+  const token = /ZKYQ_AGENT_HOOK_TOKEN=['"]?([^'"\r\n]+)/.exec(contents)?.[1]
   return Number.isInteger(port) && port > 0 && token ? { port, token } : null
 }
 
@@ -169,10 +169,10 @@ async function startStallingGuestServer(distro) {
 
 async function writeEndpoint(distro, path, endpoint) {
   const contents = [
-    `ORCA_AGENT_HOOK_PORT=${endpoint.port}`,
-    `ORCA_AGENT_HOOK_TOKEN=${endpoint.token}`,
-    'ORCA_AGENT_HOOK_ENV=benchmark',
-    'ORCA_AGENT_HOOK_VERSION=1',
+    `ZKYQ_AGENT_HOOK_PORT=${endpoint.port}`,
+    `ZKYQ_AGENT_HOOK_TOKEN=${endpoint.token}`,
+    'ZKYQ_AGENT_HOOK_ENV=benchmark',
+    'ZKYQ_AGENT_HOOK_VERSION=1',
     ''
   ].join('\n')
   await run(
@@ -195,10 +195,10 @@ async function invokeHook(distro, scriptPath, endpointPath) {
     wslArgs(distro, [
       '/usr/bin/env',
       `PATH=${WSL_PATH}`,
-      `ORCA_AGENT_HOOK_ENDPOINT=${endpointPath}`,
-      `ORCA_PANE_KEY=${PANE_KEY}`,
-      'ORCA_TAB_ID=wsl-relay-bench',
-      'ORCA_WORKTREE_ID=wsl-relay-bench',
+      `ZKYQ_AGENT_HOOK_ENDPOINT=${endpointPath}`,
+      `ZKYQ_PANE_KEY=${PANE_KEY}`,
+      'ZKYQ_TAB_ID=wsl-relay-bench',
+      'ZKYQ_WORKTREE_ID=wsl-relay-bench',
       '/bin/sh',
       scriptPath
     ]),
@@ -342,7 +342,7 @@ async function main() {
     ).stdout.trim()
     const instanceKey = `bench-${process.pid}-${Date.now().toString(36)}`
     const benchmarkRoot = `${guestHome}/.orca-wsl/benchmarks/${instanceKey}`
-    const scriptPath = `${benchmarkRoot}/.orca/agent-hooks/codex-hook.sh`
+    const scriptPath = `${benchmarkRoot}/.zkyq/agent-hooks/codex-hook.sh`
     const endpointPath = `${guestHome}/.orca-wsl/agent-hooks/instance-${instanceKey}/endpoint.env`
     cleanupPaths = [benchmarkRoot, `${guestHome}/.orca-wsl/agent-hooks/instance-${instanceKey}`]
     if (cleanupPaths.some((cleanupPath) => !cleanupPath.startsWith(`${guestHome}/.orca-wsl/`))) {
@@ -400,10 +400,10 @@ async function main() {
         platform: () => 'win32',
         remoteHooksEnabled: () => true,
         hookCoordsEnv: () => ({
-          ORCA_AGENT_HOOK_PORT: String(preferredPort),
-          ORCA_AGENT_HOOK_TOKEN: token,
-          ORCA_AGENT_HOOK_ENV: 'benchmark',
-          ORCA_AGENT_HOOK_VERSION: '1'
+          ZKYQ_AGENT_HOOK_PORT: String(preferredPort),
+          ZKYQ_AGENT_HOOK_TOKEN: token,
+          ZKYQ_AGENT_HOOK_ENV: 'benchmark',
+          ZKYQ_AGENT_HOOK_VERSION: '1'
         }),
         instanceKey: () => instanceKey,
         resolveBundle: () => ({ jsPath: bundlePath, version: bundleVersion }),

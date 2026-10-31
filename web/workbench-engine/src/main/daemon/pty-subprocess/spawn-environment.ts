@@ -29,13 +29,14 @@ import { applyScrubSafeAgentEnvAliases } from '../../../shared/agent-hook-scrub-
 import type { TuiAgent } from '../../../shared/tui-agent'
 import type { PtySubprocessOptions } from '../pty-subprocess'
 import { ORCAD_MANAGED_ACTIVATION_ROOT_ENV } from '../../../shared/orcad-managed-launch-env'
+import { migrateAgentHookEnvironmentIdentity } from '../../../shared/agent-hook-environment-identity'
 import { migrateOpenCodeEnvironmentIdentity } from '../../../shared/opencode-environment-identity'
 
 const PANE_IDENTITY_ENV_KEYS = [
-  'ORCA_PANE_KEY',
-  'ORCA_TAB_ID',
-  'ORCA_WORKTREE_ID',
-  'ORCA_AGENT_LAUNCH_TOKEN',
+  'ZKYQ_PANE_KEY',
+  'ZKYQ_TAB_ID',
+  'ZKYQ_WORKTREE_ID',
+  'ZKYQ_AGENT_LAUNCH_TOKEN',
   // Not identity but equally per-spawn: an inherited copy names another launch's CLI.
   'ORCA_WSL_CLI_DIR',
   'JCODE_RUNTIME_DIR',
@@ -63,6 +64,7 @@ function deleteRequestedDaemonEnvKeys(
   keys: readonly string[] | undefined
 ): void {
   const currentKeys = [...(keys ?? [])]
+  migrateAgentHookEnvironmentIdentity(env, currentKeys)
   migrateOpenCodeEnvironmentIdentity(env, currentKeys)
   keys = currentKeys
   const userDataPath = process.env.ZKYQ_USER_DATA_PATH
@@ -168,17 +170,32 @@ function removeInheritedDevAgentHookEndpoint(
   env: Record<string, string>,
   explicitEnv: Record<string, string> | undefined
 ): void {
-  if (explicitEnv?.ORCA_AGENT_HOOK_ENV === 'development' && !explicitEnv.ORCA_AGENT_HOOK_ENDPOINT) {
+  if (explicitEnv?.ZKYQ_AGENT_HOOK_ENV === 'development' && !explicitEnv.ZKYQ_AGENT_HOOK_ENDPOINT) {
     // Why: strip only stale inherited endpoints; a fresh explicit one is needed by hooks that scrub token-like env vars before exec.
-    delete env.ORCA_AGENT_HOOK_ENDPOINT
+    delete env.ZKYQ_AGENT_HOOK_ENDPOINT
   }
 }
 
 /** A persistent daemon's inherited environment cannot supply ownership for a new pane. */
 export function createDaemonPtyEnvironment(opts: PtySubprocessOptions): Record<string, string> {
   const inheritedEnv = stripInheritedBuildModeEnv(process.env)
+  // A persistent daemon can inherit another pane's identity under either namespace.
+  for (const suffix of [
+    'PANE_KEY',
+    'TAB_ID',
+    'WORKTREE_ID',
+    'AGENT_LAUNCH_TOKEN',
+    'AGENT_PANE',
+    'AGENT_LAUNCH',
+    'HOOK_AGENT_PID'
+  ]) {
+    delete inheritedEnv[`ORCA_${suffix}`]
+    delete inheritedEnv[`ZKYQ_${suffix}`]
+  }
+  migrateAgentHookEnvironmentIdentity(inheritedEnv)
   migrateOpenCodeEnvironmentIdentity(inheritedEnv)
   opts = { ...opts, env: opts.env ? { ...opts.env } : undefined }
+  if (opts.env) migrateAgentHookEnvironmentIdentity(opts.env)
   if (opts.env) migrateOpenCodeEnvironmentIdentity(opts.env)
   restoreManagedDataAccountEnvironment(inheritedEnv)
   const env: Record<string, string> = {
@@ -247,11 +264,11 @@ export function finalizeDaemonPtyEnvironment(
   stripPiProcessOwnerEnv(env)
   // A live daemon pins this runtime across app updates; callers cannot name the host executable.
   for (const key of Object.keys(env)) {
-    if (key.toUpperCase() === 'ORCA_AGENT_HOOK_NODE') {
+    if (key.toUpperCase() === 'ZKYQ_AGENT_HOOK_NODE') {
       delete env[key]
     }
   }
   if (process.platform === 'win32') {
-    env.ORCA_AGENT_HOOK_NODE = process.execPath
+    env.ZKYQ_AGENT_HOOK_NODE = process.execPath
   }
 }

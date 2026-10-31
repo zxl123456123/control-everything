@@ -53,7 +53,7 @@ export function resolveLegacyRelayCliCaller(
   replay?: { fingerprint: string; requestId: string }
 ): LegacyRelayCliCaller {
   const handle = bounded(env.ORCA_TERMINAL_HANDLE)
-  const paneKey = bounded(env.ORCA_PANE_KEY)
+  const paneKey = bounded(env.ZKYQ_PANE_KEY)
   const pane = handle && paneKey && parsePaneKey(paneKey) ? livePane(paneKey) : null
   if (!handle || !paneKey || !pane) {
     throw new Error(LEGACY_RELAY_CLI_UNVERIFIED)

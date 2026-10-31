@@ -520,14 +520,14 @@ describe('AgentHookServer listener replay', () => {
     await server.start({ env: 'production' })
     try {
       const env = server.buildPtyEnv()
-      expect(env.ORCA_AGENT_HOOK_PORT).toBeTruthy()
-      expect(env.ORCA_AGENT_HOOK_TOKEN).toBeTruthy()
+      expect(env.ZKYQ_AGENT_HOOK_PORT).toBeTruthy()
+      expect(env.ZKYQ_AGENT_HOOK_TOKEN).toBeTruthy()
 
-      const response = await fetch(`http://127.0.0.1:${env.ORCA_AGENT_HOOK_PORT}/hook/claude`, {
+      const response = await fetch(`http://127.0.0.1:${env.ZKYQ_AGENT_HOOK_PORT}/hook/claude`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Zkyq-Agent-Hook-Token': env.ORCA_AGENT_HOOK_TOKEN
+          'X-Zkyq-Agent-Hook-Token': env.ZKYQ_AGENT_HOOK_TOKEN
         },
         body: JSON.stringify(
           buildBody({

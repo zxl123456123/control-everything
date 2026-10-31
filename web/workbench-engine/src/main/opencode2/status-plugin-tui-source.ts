@@ -37,7 +37,7 @@ function paneStatusMemory(ctx) {
 async function setupOpenCode2Tui(ctx) {
   const noop = async () => {};
   // Why: post() needs this pane's key, so a TUI outside an Orca pane has nothing to report.
-  if (!process.env.ORCA_PANE_KEY) return noop;
+  if (!process.env.ZKYQ_PANE_KEY) return noop;
   if (process.env.ZKYQ_OPENCODE_AGENT && process.env.ZKYQ_OPENCODE_AGENT !== ORCA_STATUS_AGENT) return noop;
   // Legacy attach contexts enter only through the checked API adapter.
   if (/^1\./.test(String(ctx.app?.version || "")) && !ctx.legacyOpenCodeTui) return noop;

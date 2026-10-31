@@ -296,14 +296,14 @@ export async function getEmulatorWorktreeSelector(
   if (client.isRemote) {
     return undefined
   }
-  const terminalWorktreeId = process.env.ORCA_WORKTREE_ID
+  const terminalWorktreeId = process.env.ZKYQ_WORKTREE_ID
   if (terminalWorktreeId?.trim()) {
     const scoped = await resolveCallerPaneWorktreeSelector(terminalWorktreeId, client)
     if (scoped) {
       return scoped
     }
   }
-  const folderWorkspaceId = process.env.ORCA_WORKSPACE_ID?.trim()
+  const folderWorkspaceId = process.env.ZKYQ_WORKSPACE_ID?.trim()
   if (folderWorkspaceId?.startsWith('folder:')) {
     return folderWorkspaceId
   }

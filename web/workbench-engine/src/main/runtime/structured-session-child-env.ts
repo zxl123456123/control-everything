@@ -36,7 +36,7 @@
  * Explicit `--environment` / `--pairing-code` flags still work, and a person's terminal keeps
  * its selectors. A login shell the agent starts can export them again, unless its agent sets them.
  *
- * Deliberately NOT `ORCA_PANE_KEY`. Claude structured sessions run hooks, and a pane key in their
+ * Deliberately NOT `ZKYQ_PANE_KEY`. Claude structured sessions run hooks, and a pane key in their
  * environment starts flowing into hook-emitted agent-status payloads and the hook-attestation,
  * agent-row and mobile-projection pipelines, every one of which assumes a pane key names a live
  * PTY leaf. It would also open `selectExactWorkerProviderSession`, which is fail-closed today
@@ -75,10 +75,10 @@ import { resolveStructuredWorkerIdentityForSession } from './structured-worker-a
  * report for this session too; the structured session is its one status producer.
  */
 export const STRUCTURED_CHILD_ENV_TO_DELETE: readonly string[] = [
-  'ORCA_PANE_KEY',
-  'ORCA_TAB_ID',
-  'ORCA_WORKTREE_ID',
-  'ORCA_AGENT_LAUNCH_TOKEN',
+  'ZKYQ_PANE_KEY',
+  'ZKYQ_TAB_ID',
+  'ZKYQ_WORKTREE_ID',
+  'ZKYQ_AGENT_LAUNCH_TOKEN',
   ORCA_SCRUB_SAFE_PANE_ENV,
   ORCA_SCRUB_SAFE_LAUNCH_ENV,
   ...AGENT_HOOK_RUNTIME_ENV_KEYS

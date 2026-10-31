@@ -238,9 +238,9 @@ describe.runIf(binary)('codex hook file-entry binary contract', { timeout: 180_0
               HOME: home,
               CODEX_HOME: accountHome(),
               ORCA_CONTRACT_MOCK_KEY: 'x',
-              ORCA_PANE_KEY: 'contract-pane',
-              ORCA_AGENT_HOOK_PORT: String(port(receiver)),
-              ORCA_AGENT_HOOK_TOKEN: 'contract-token'
+              ZKYQ_PANE_KEY: 'contract-pane',
+              ZKYQ_AGENT_HOOK_PORT: String(port(receiver)),
+              ZKYQ_AGENT_HOOK_TOKEN: 'contract-token'
             }
           }
         )
@@ -457,9 +457,9 @@ describe.runIf(binary)('codex hook file-entry binary contract', { timeout: 180_0
             ...codexHomeEnv,
             TERM: 'xterm-256color',
             ORCA_CONTRACT_MOCK_KEY: 'x',
-            ORCA_PANE_KEY: 'contract-pane',
-            ORCA_AGENT_HOOK_PORT: String(port(receiver)),
-            ORCA_AGENT_HOOK_TOKEN: 'contract-token'
+            ZKYQ_PANE_KEY: 'contract-pane',
+            ZKYQ_AGENT_HOOK_PORT: String(port(receiver)),
+            ZKYQ_AGENT_HOOK_TOKEN: 'contract-token'
           }
         }
       )

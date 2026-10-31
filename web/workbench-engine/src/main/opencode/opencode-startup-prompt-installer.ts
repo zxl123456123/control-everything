@@ -5,6 +5,7 @@ import { resolveOpenCodeConfigDirectory } from '../../shared/opencode-config-dir
 import { isOverlayOpenCodePluginCurrent } from '../../shared/opencode-installed-plugin'
 import { getOpenCodeStartupPromptSource } from './opencode-startup-prompt-source'
 import { resolveOpenCodeSourceConfigDir } from '../ipc/pty/host-env/pi-agent'
+import { migrateAgentHookEnvironmentIdentity } from '../../shared/agent-hook-environment-identity'
 import { migrateOpenCodeEnvironmentIdentity } from '../../shared/opencode-environment-identity'
 import {
   OPENCODE_STARTUP_PROMPT_NONCE_ENV,
@@ -31,7 +32,9 @@ export function installOpenCodeStartupPromptForLaunch(
   sourceEnvironment?: NodeJS.ProcessEnv
 ): boolean {
   const inherited = { ...(sourceEnvironment ?? process.env) }
+  migrateAgentHookEnvironmentIdentity(inherited)
   migrateOpenCodeEnvironmentIdentity(inherited)
+  migrateAgentHookEnvironmentIdentity(env)
   migrateOpenCodeEnvironmentIdentity(env)
   sourceEnvironment = sourceEnvironment ? inherited : { ...inherited, ...env }
   const nonce = env[OPENCODE_STARTUP_PROMPT_NONCE_ENV]

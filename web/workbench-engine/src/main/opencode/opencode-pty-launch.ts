@@ -4,6 +4,7 @@ import { randomUUID, createHash } from 'node:crypto'
 import { agentHookServer } from '../agent-hooks/server'
 import { tokenizeStartupCommand } from '../../shared/tui-agent-startup-shell'
 import { isOpenCodeRunCommand } from '../../shared/opencode-headless-command'
+import { migrateAgentHookEnvironmentIdentity } from '../../shared/agent-hook-environment-identity'
 import { migrateOpenCodeEnvironmentIdentity } from '../../shared/opencode-environment-identity'
 import {
   OPENCODE_STARTUP_PROMPT_SHA256_ENV,
@@ -37,9 +38,11 @@ export async function prepareOpenCodePtyLaunch(options: {
   wsl?: { distro?: string }
 }): Promise<{ env: Record<string, string> | undefined; command: string | undefined }> {
   const inherited = { ...process.env }
+  migrateAgentHookEnvironmentIdentity(inherited)
   migrateOpenCodeEnvironmentIdentity(inherited)
   let command = options.command
   const env = options.env ? { ...options.env } : undefined
+  migrateAgentHookEnvironmentIdentity(env ?? {}, options.envToDelete)
   migrateOpenCodeEnvironmentIdentity(env ?? {}, options.envToDelete)
   const requestedPrompt = env?.[OPENCODE_STARTUP_PROMPT_SHA256_ENV]
   const body = env?.[OPENCODE_STARTUP_PROMPT_BODY_ENV]
@@ -84,7 +87,7 @@ export async function prepareOpenCodePtyLaunch(options: {
   if (
     capabilities.promptMode === 'prefill' &&
     !options.wsl &&
-    launchEnv.ORCA_AGENT_LAUNCH_TOKEN &&
+    launchEnv.ZKYQ_AGENT_LAUNCH_TOKEN &&
     requestedPrompt &&
     body &&
     command &&

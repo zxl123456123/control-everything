@@ -50,8 +50,8 @@ describe('AmpHookService', () => {
     expect(source).toContain('enqueuePost("tool.call"')
     expect(source).not.toContain('await post("tool.call"')
     expect(source).not.toContain('postQueue = postQueue.then')
-    expect(source).toContain('process.env.ORCA_PANE_KEY')
-    expect(source).toContain('process.env.ORCA_AGENT_HOOK_ENDPOINT')
+    expect(source).toContain('process.env.ZKYQ_PANE_KEY')
+    expect(source).toContain('process.env.ZKYQ_AGENT_HOOK_ENDPOINT')
   })
 
   it('does not overwrite an existing user-authored Amp plugin file', () => {

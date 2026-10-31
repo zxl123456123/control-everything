@@ -1,3 +1,9 @@
+import {
+  buildPosixHookEndpointRefresh,
+  buildPosixHookEnvironmentIdentityMigration,
+  buildWindowsHookEndpointRefresh,
+  buildWindowsHookEnvironmentIdentityMigration
+} from '../agent-hooks/hook-environment-identity-prelude'
 import { buildHookProcessCapture } from '../agent-hooks/hook-process-capture'
 /** The managed Claude-compatible hook script, built for local, POSIX-remote and Windows targets.
  *  Split from hook-service.ts so the service owns install/status and this owns script text,
@@ -22,7 +28,7 @@ import {
 } from '../agent-hooks/hook-stdin-contract'
 
 // Why: a backgrounded session runs in a daemon worker that inherited the dispatching
-// pane's env, so ORCA_PANE_KEY names a pane this session does not run in (#9236).
+// pane's env, so ZKYQ_PANE_KEY names a pane this session does not run in (#9236).
 // Why exit, not the drain label: the drain parks in more.com and a worker is outside
 // an Orca pane — the abandoned-stdin hang #11549 guards against.
 export const WINDOWS_CLAUDE_BACKGROUND_JOB_GUARD = 'if not "%CLAUDE_JOB_DIR%"=="" exit /b 0'
@@ -41,10 +47,11 @@ export function getManagedScript(
     return [
       '@echo off',
       'setlocal',
+      ...buildWindowsHookEnvironmentIdentityMigration(),
       // Why: Claude-compatible permission hooks fail closed on empty stdout (#14818).
       'echo {}',
       // Why: refresh endpoint coordinates for PTYs surviving an Orca restart.
-      'if defined ORCA_AGENT_HOOK_ENDPOINT if exist "%ORCA_AGENT_HOOK_ENDPOINT%" call "%ORCA_AGENT_HOOK_ENDPOINT%" 2>nul',
+      ...buildWindowsHookEndpointRefresh(),
       // Why (#11549): the env guards must outrank the Devin skip — the Devin skip parks in more.com,
       // and outside an Orca pane the caller can abandon stdin, so more.com never returns.
       ...buildWindowsHookEnvironmentGuardLines(),
@@ -67,6 +74,7 @@ export function getManagedScript(
 
   return [
     '#!/bin/sh',
+    ...buildPosixHookEnvironmentIdentityMigration(),
     // Why: Claude-compatible permission hooks fail closed on empty stdout (#14818).
     'printf "{}\\n"',
     ...buildPosixHookPayloadCapture(),
@@ -82,18 +90,15 @@ export function getManagedScript(
         ]
       : []),
     // Why: a backgrounded session runs in a daemon worker that inherited the dispatching
-    // pane's env, so ORCA_PANE_KEY names a pane this session does not run in (#9236).
+    // pane's env, so ZKYQ_PANE_KEY names a pane this session does not run in (#9236).
     'if [ -n "$CLAUDE_JOB_DIR" ]; then',
     '  exit 0',
     'fi',
     ...(source === 'claude' ? buildHookProcessCapture() : []),
     // Why: refresh endpoint coordinates for PTYs surviving an Orca restart.
     // Why: suppress parse errors so they neither leak nor trip outer set -e.
-    'if [ -n "$ORCA_AGENT_HOOK_ENDPOINT" ] && [ -r "$ORCA_AGENT_HOOK_ENDPOINT" ]; then',
-    '  unset ORCA_AGENT_HOOK_TRANSPORT',
-    '  . "$ORCA_AGENT_HOOK_ENDPOINT" 2>/dev/null || :',
-    'fi',
-    'if [ -z "$ORCA_AGENT_HOOK_PORT" ] || [ -z "$ORCA_AGENT_HOOK_TOKEN" ] || [ -z "$ORCA_PANE_KEY" ]; then',
+    ...buildPosixHookEndpointRefresh(),
+    'if [ -z "$ZKYQ_AGENT_HOOK_PORT" ] || [ -z "$ZKYQ_AGENT_HOOK_TOKEN" ] || [ -z "$ZKYQ_PANE_KEY" ]; then',
     '  spool_hook_event',
     '  exit 0',
     'fi',

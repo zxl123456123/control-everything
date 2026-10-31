@@ -124,7 +124,7 @@ describe('the Codex child environment', () => {
       expect(env.ZKYQ_AGENT_SESSION_ID).toBe(sessionId)
       expect(env.ZKYQ_CLI_COMMAND).toMatch(DEV_CLI_LAUNCHER)
       // A pane key here would leak into hook-emitted agent statuses, which assume a PTY leaf.
-      expect(env.ORCA_PANE_KEY).toBeUndefined()
+      expect(env.ZKYQ_PANE_KEY).toBeUndefined()
     } finally {
       structuredWorkerIdentities.forget(handle)
     }

@@ -14,12 +14,12 @@ const ownerEnv = {
   ORCA_PI_TITLE_MARKER_OWNED: String(AGENT_STATUS_EXTENSION_SELF_PID - 1)
 }
 const terminalEnv = {
-  ORCA_PANE_KEY: 'new-tab:new-leaf',
-  ORCA_TAB_ID: 'new-tab',
-  ORCA_WORKTREE_ID: 'folder:workspace',
-  ORCA_AGENT_LAUNCH_TOKEN: 'new-launch',
-  ORCA_AGENT_HOOK_PORT: '4321',
-  ORCA_AGENT_HOOK_TOKEN: 'receiver-token',
+  ZKYQ_PANE_KEY: 'new-tab:new-leaf',
+  ZKYQ_TAB_ID: 'new-tab',
+  ZKYQ_WORKTREE_ID: 'folder:workspace',
+  ZKYQ_AGENT_LAUNCH_TOKEN: 'new-launch',
+  ZKYQ_AGENT_HOOK_PORT: '4321',
+  ZKYQ_AGENT_HOOK_TOKEN: 'receiver-token',
   ORCA_PI_SOURCE_AGENT_DIR: 'user-config',
   KEEP_ME: 'terminal-value'
 }

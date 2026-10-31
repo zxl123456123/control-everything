@@ -1,10 +1,11 @@
 import { getPiAgentStatusPostQueueSourceLines } from './agent-status-post-queue-source'
+import { migrateAgentHookEnvironmentIdentity } from '../../shared/agent-hook-environment-identity'
 // Why: pi has no settings.json hook surface — its extensibility is the
 // in-process TypeScript extension API (pi.on('agent_start'), 'tool_call',
 // etc.). To get pi panes into the unified agent-hooks pipeline alongside
 // Claude/Codex/Gemini/OpenCode/Cursor, we ship a bundled extension into
 // the selected Pi/OMP extension dir (PiTitlebarExtensionService) that POSTs to
-// /hook/<kind> using the same ORCA_AGENT_HOOK_* + ORCA_PANE_KEY env that every
+// /hook/<kind> using the same ORCA_AGENT_HOOK_* + ZKYQ_PANE_KEY env that every
 // PTY already receives from ipc/pty.ts.
 //
 // Each Pi process gets its own paneKey through env. Like the OpenCode plugin,
@@ -133,6 +134,8 @@ export function getPiAgentStatusExtensionSource(kind: PiAgentKind = 'pi'): strin
   // at PTY spawn, so on Orca restart we have to re-read it from disk).
   return [
     '// Why: no package-specific type import here. Pi and OMP expose the same',
+    `const migrateHookEnvironment = ${migrateAgentHookEnvironmentIdentity.toString()};`,
+    'migrateHookEnvironment(process.env);',
     '// extension API, but publish their types under different package names.',
     '// Why: warn-once so a recurring parse error on a malformed endpoint',
     '// file does not spam stderr inside the pi TUI on every event.',
@@ -155,7 +158,7 @@ export function getPiAgentStatusExtensionSource(kind: PiAgentKind = 'pi'): strin
     'let cachedEndpointValues: Record<string, string> | null = null',
     '',
     'function readEndpointFile(): Record<string, string> | null {',
-    '  const path = process.env.ORCA_AGENT_HOOK_ENDPOINT',
+    '  const path = process.env.ZKYQ_AGENT_HOOK_ENDPOINT',
     '  if (!path) return null',
     '  try {',
     "    const fs = require('fs')",
@@ -174,6 +177,7 @@ export function getPiAgentStatusExtensionSource(kind: PiAgentKind = 'pi'): strin
     '        const m = line.match(/^(?:set\\s+)?([A-Z0-9_]+)=(.*)$/)',
     "        if (m) out[m[1]] = m[2].replace(/\\r$/, '')",
     '      }',
+    '      migrateHookEnvironment(out)',
     '      cachedEndpointKey = cacheKey',
     '      cachedEndpointValues = out',
     '      return out',
@@ -195,10 +199,10 @@ export function getPiAgentStatusExtensionSource(kind: PiAgentKind = 'pi'): strin
     'function resolveHookCoords() {',
     '  const fileEnv = readEndpointFile() || {}',
     '  return {',
-    '    port: fileEnv.ORCA_AGENT_HOOK_PORT || process.env.ORCA_AGENT_HOOK_PORT,',
-    '    token: fileEnv.ORCA_AGENT_HOOK_TOKEN || process.env.ORCA_AGENT_HOOK_TOKEN,',
-    "    env: fileEnv.ORCA_AGENT_HOOK_ENV || process.env.ORCA_AGENT_HOOK_ENV || '',",
-    "    version: fileEnv.ORCA_AGENT_HOOK_VERSION || process.env.ORCA_AGENT_HOOK_VERSION || '',",
+    '    port: fileEnv.ZKYQ_AGENT_HOOK_PORT || process.env.ZKYQ_AGENT_HOOK_PORT,',
+    '    token: fileEnv.ZKYQ_AGENT_HOOK_TOKEN || process.env.ZKYQ_AGENT_HOOK_TOKEN,',
+    "    env: fileEnv.ZKYQ_AGENT_HOOK_ENV || process.env.ZKYQ_AGENT_HOOK_ENV || '',",
+    "    version: fileEnv.ZKYQ_AGENT_HOOK_VERSION || process.env.ZKYQ_AGENT_HOOK_VERSION || '',",
     '  }',
     '}',
     '',
@@ -243,14 +247,14 @@ export function getPiAgentStatusExtensionSource(kind: PiAgentKind = 'pi'): strin
     '  final: boolean',
     '): Promise<void> {',
     '  const coords = resolveHookCoords()',
-    '  const paneKey = process.env.ORCA_PANE_KEY',
+    '  const paneKey = process.env.ZKYQ_PANE_KEY',
     '  if (!coords.port || !coords.token || !paneKey) return',
     '  const url = `http://127.0.0.1:${coords.port}${resolveHookPath(ompRuntime)}`',
     '  const bodyWith = (subagents: Record<string, unknown>): string => JSON.stringify({',
     '    paneKey,',
-    "    launchToken: process.env.ORCA_AGENT_LAUNCH_TOKEN || '',",
-    "    tabId: process.env.ORCA_TAB_ID || '',",
-    "    worktreeId: process.env.ORCA_WORKTREE_ID || '',",
+    "    launchToken: process.env.ZKYQ_AGENT_LAUNCH_TOKEN || '',",
+    "    tabId: process.env.ZKYQ_TAB_ID || '',",
+    "    worktreeId: process.env.ZKYQ_WORKTREE_ID || '',",
     '    env: coords.env,',
     '    version: coords.version,',
     payloadLine,
@@ -272,7 +276,7 @@ export function getPiAgentStatusExtensionSource(kind: PiAgentKind = 'pi'): strin
     "        method: 'POST',",
     '        headers: {',
     "          'Content-Type': 'application/json',",
-    "          'X-Zkyq-Agent-Hook-Token': coords.token,",
+    "          [coords.version === '1' ? 'X-Orca-Agent-Hook-Token' : 'X-Zkyq-Agent-Hook-Token']: coords.token,",
     '        },',
     '        body,',
     '        ...(controller ? { signal: controller.signal } : {}),',

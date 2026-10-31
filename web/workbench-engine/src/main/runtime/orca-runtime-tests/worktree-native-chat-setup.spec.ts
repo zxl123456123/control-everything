@@ -138,10 +138,10 @@ describe('native-chat setup through renderer payload, RPC and execution host', (
     async (mode) => {
       const { spawn } = await createFromRendererPayload({ agent: 'codex', mode, startup: true })
       expect(spawn.mock.calls.map(([args]) => args.command)).toEqual(['codex', `bash ${RUNNER}`])
-      const startupTabId = spawnedPtyEnv(spawn.mock.calls[0][0]).ORCA_TAB_ID
+      const startupTabId = spawnedPtyEnv(spawn.mock.calls[0][0]).ZKYQ_TAB_ID
       expect(startupTabId).toEqual(expect.any(String))
       expect(startupTabId).not.toBe('')
-      expect(startupTabId).not.toBe(spawnedPtyEnv(spawn.mock.calls[1][0]).ORCA_TAB_ID)
+      expect(startupTabId).not.toBe(spawnedPtyEnv(spawn.mock.calls[1][0]).ZKYQ_TAB_ID)
     }
   )
 

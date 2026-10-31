@@ -14658,7 +14658,7 @@
         "If both Windows process-enumeration backends remain unavailable through the bounded ladder, routing fails closed to the legacy Esc+CR path; no live Droid artifact covers that degraded host configuration.",
         "Protocol v21 restarts older daemons because the minimal persisted launchAgent is a new contract; sessions preserved by pre-v21 daemons cannot supply warm-reattach launch ownership and fail closed until current process confirmation or restart.",
         "No live daemon, WSL, remote-runtime, paired-web, or restore/replay byte artifact has been collected; SSH is covered only by a macOS-client-to-Linux-host relay run.",
-        "A running PTY keeps its spawn-time ORCA_PANE_KEY after pane-to-tab detach. This change transfers launch/process routing evidence and retires the stale hook snapshot, but does not redesign future hook reattribution across tab IDs."
+        "A running PTY keeps its spawn-time ZKYQ_PANE_KEY after pane-to-tab detach. This change transfers launch/process routing evidence and retires the stale hook snapshot, but does not redesign future hook reattribution across tab IDs."
       ],
       "demotionRule": "Keep non-blocking or demote to protection none if the Windows byte test silently skips, flakes without an actionable artifact, routes bytes using tab/title/terminal-output heuristics, or adds any ordinary-key lookup, IPC, polling, scan, or lifecycle leak."
     },

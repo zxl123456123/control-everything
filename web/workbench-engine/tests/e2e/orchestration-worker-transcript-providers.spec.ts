@@ -122,19 +122,19 @@ async function sendProviderHook() {
   hookSent = true
   const config = JSON.parse(readFileSync(configPath, 'utf8'))
   const payload = ${providerHookPayload(agent)}
-  await fetch('http://127.0.0.1:' + process.env.ORCA_AGENT_HOOK_PORT + '${hookPath}', {
+  await fetch('http://127.0.0.1:' + process.env.ZKYQ_AGENT_HOOK_PORT + '${hookPath}', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'X-Zkyq-Agent-Hook-Token': process.env.ORCA_AGENT_HOOK_TOKEN
+      'X-Zkyq-Agent-Hook-Token': process.env.ZKYQ_AGENT_HOOK_TOKEN
     },
     body: JSON.stringify({
-      paneKey: process.env.ORCA_PANE_KEY,
-      tabId: process.env.ORCA_TAB_ID,
-      worktreeId: process.env.ORCA_WORKTREE_ID,
-      launchToken: process.env.ORCA_AGENT_LAUNCH_TOKEN,
-      env: process.env.ORCA_AGENT_HOOK_ENV,
-      version: process.env.ORCA_AGENT_HOOK_VERSION,
+      paneKey: process.env.ZKYQ_PANE_KEY,
+      tabId: process.env.ZKYQ_TAB_ID,
+      worktreeId: process.env.ZKYQ_WORKTREE_ID,
+      launchToken: process.env.ZKYQ_AGENT_LAUNCH_TOKEN,
+      env: process.env.ZKYQ_AGENT_HOOK_ENV,
+      version: process.env.ZKYQ_AGENT_HOOK_VERSION,
       payload
     })
   })

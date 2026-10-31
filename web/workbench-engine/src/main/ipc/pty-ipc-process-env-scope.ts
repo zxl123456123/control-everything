@@ -30,7 +30,7 @@ export function createPtyIpcProcessEnvScope() {
     delete process.env.OPENCODE_CONFIG_DIR
     delete process.env.ZKYQ_OPENCODE_SOURCE_CONFIG_DIR
     delete process.env.ZKYQ_OPENCODE_CONFIG_DIR
-    delete process.env.ORCA_AGENT_HOOK_ENDPOINT
+    delete process.env.ZKYQ_AGENT_HOOK_ENDPOINT
     delete process.env.ORCA_CLAUDE_AGENT_STATUS_SETTINGS
     delete process.env.PI_CODING_AGENT_DIR
     delete process.env.ORCA_PI_SOURCE_AGENT_DIR

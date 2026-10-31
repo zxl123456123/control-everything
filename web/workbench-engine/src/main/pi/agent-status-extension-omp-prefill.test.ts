@@ -45,7 +45,7 @@ describe('OMP prefill through the explicitly loaded status extension', () => {
   it('leaves the draft alone outside an Orca pane', async () => {
     const h = createAgentStatusExtensionHarness({
       kind: 'omp',
-      env: { ORCA_PANE_KEY: undefined, ORCA_OMP_PREFILL: 'Draft' }
+      env: { ZKYQ_PANE_KEY: undefined, ORCA_OMP_PREFILL: 'Draft' }
     })
     const setEditorText = vi.fn()
     await h.callHook('session_start', {}, { ui: { setEditorText } })

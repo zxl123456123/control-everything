@@ -15,7 +15,7 @@ const IDENTITY_ENV = [
   'ZKYQ_AGENT_SESSION_ID',
   'ORCA_AGENT_SESSION_ID',
   'ORCA_TERMINAL_HANDLE',
-  'ORCA_PANE_KEY'
+  'ZKYQ_PANE_KEY'
 ] as const
 
 type ReceivedRequest = RuntimeOrchestrationEnvelope & {
@@ -168,8 +168,8 @@ describe('status reports a session caller identity', () => {
   })
 
   it.each([
-    ['a terminal agent', { ORCA_TERMINAL_HANDLE: 'term_mine', ORCA_PANE_KEY: 'tab_1:leaf_1' }],
-    ['a pane key alone', { ORCA_PANE_KEY: 'tab_1:leaf_1' }],
+    ['a terminal agent', { ORCA_TERMINAL_HANDLE: 'term_mine', ZKYQ_PANE_KEY: 'tab_1:leaf_1' }],
+    ['a pane key alone', { ZKYQ_PANE_KEY: 'tab_1:leaf_1' }],
     ['a plain shell', {}]
   ])('prints exactly the readiness status for %s, without asking the host', async (_who, env) => {
     Object.assign(process.env, env)

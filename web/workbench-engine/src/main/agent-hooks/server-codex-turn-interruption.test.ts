@@ -39,11 +39,11 @@ describe('Codex recorded turn interruption', () => {
     await server.start({ env: 'production' })
     try {
       const env = server.buildPtyEnv()
-      const response = await fetch(`http://127.0.0.1:${env.ORCA_AGENT_HOOK_PORT}/hook/codex`, {
+      const response = await fetch(`http://127.0.0.1:${env.ZKYQ_AGENT_HOOK_PORT}/hook/codex`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Zkyq-Agent-Hook-Token': env.ORCA_AGENT_HOOK_TOKEN
+          'X-Zkyq-Agent-Hook-Token': env.ZKYQ_AGENT_HOOK_TOKEN
         },
         body: JSON.stringify({
           paneKey: PANE,
@@ -61,12 +61,12 @@ describe('Codex recorded turn interruption', () => {
       const beforeSide = server.getStatusSnapshot()[0]
       for (const hookEventName of ['SessionStart', 'UserPromptSubmit', 'Stop']) {
         const sideResponse = await fetch(
-          `http://127.0.0.1:${env.ORCA_AGENT_HOOK_PORT}/hook/codex`,
+          `http://127.0.0.1:${env.ZKYQ_AGENT_HOOK_PORT}/hook/codex`,
           {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'X-Zkyq-Agent-Hook-Token': env.ORCA_AGENT_HOOK_TOKEN
+              'X-Zkyq-Agent-Hook-Token': env.ZKYQ_AGENT_HOOK_TOKEN
             },
             body: JSON.stringify({
               paneKey: PANE,

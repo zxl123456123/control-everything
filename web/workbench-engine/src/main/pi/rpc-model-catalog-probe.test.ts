@@ -29,7 +29,7 @@ describe('Pi model catalog', () => {
       resolveEnvironment: async () => ({
         PATH: '/usr/bin',
         HOME: '/home/user',
-        ORCA_PANE_KEY: 'p'
+        ZKYQ_PANE_KEY: 'p'
       }),
       resolveCommand: () => '/opt/pi/bin/pi',
       probeVersion: async () => ({ version: '0.84.0' }),

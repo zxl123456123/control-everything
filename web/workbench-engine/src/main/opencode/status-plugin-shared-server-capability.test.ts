@@ -29,7 +29,7 @@ describe('generated shared-server capability without a test-only environment fla
   ])(
     'recognizes only an opted-in legacy serve context: %j',
     async ({ argv, major, capability, expected }) => {
-      vi.stubEnv('ORCA_PANE_KEY', 'tab-a:aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa')
+      vi.stubEnv('ZKYQ_PANE_KEY', 'tab-a:aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa')
       vi.stubEnv('ZKYQ_OPENCODE_PLUGIN_API', undefined)
       vi.spyOn(process, 'argv', 'get').mockReturnValue(argv)
       const posts: Record<string, unknown>[] = []

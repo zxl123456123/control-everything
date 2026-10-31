@@ -33,16 +33,16 @@ describe('OpenCode status plugin module contract', () => {
 
   // Why: the plugin resolves hook coords from the endpoint file first and only then from
   // env. Pin every input here so the run does not depend on the developer's Orca session
-  // (an inherited ORCA_AGENT_HOOK_ENDPOINT would otherwise redirect the post to a live app).
+  // (an inherited ZKYQ_AGENT_HOOK_ENDPOINT would otherwise redirect the post to a live app).
   const ENV_KEYS = [
     'ZKYQ_OPENCODE_PLUGIN_API',
     'ORCA_OPENCODE_PLUGIN_API',
     'ZKYQ_OPENCODE_AGENT',
     'ORCA_OPENCODE_AGENT',
-    'ORCA_PANE_KEY',
-    'ORCA_AGENT_HOOK_ENDPOINT',
-    'ORCA_AGENT_HOOK_PORT',
-    'ORCA_AGENT_HOOK_TOKEN'
+    'ZKYQ_PANE_KEY',
+    'ZKYQ_AGENT_HOOK_ENDPOINT',
+    'ZKYQ_AGENT_HOOK_PORT',
+    'ZKYQ_AGENT_HOOK_TOKEN'
   ] as const
 
   let tempDir: string
@@ -63,9 +63,9 @@ describe('OpenCode status plugin module contract', () => {
     delete process.env.ZKYQ_OPENCODE_AGENT
     delete process.env.ORCA_OPENCODE_PLUGIN_API
     delete process.env.ORCA_OPENCODE_AGENT
-    delete process.env.ORCA_AGENT_HOOK_ENDPOINT
-    process.env.ORCA_AGENT_HOOK_PORT = '59999'
-    process.env.ORCA_AGENT_HOOK_TOKEN = 'test-token'
+    delete process.env.ZKYQ_AGENT_HOOK_ENDPOINT
+    process.env.ZKYQ_AGENT_HOOK_PORT = '59999'
+    process.env.ZKYQ_AGENT_HOOK_TOKEN = 'test-token'
   })
 
   afterEach(() => {
@@ -142,7 +142,7 @@ describe('OpenCode status plugin module contract', () => {
   })
 
   it('reports a session lifecycle event through the hook endpoint when driven via the default export', async () => {
-    process.env.ORCA_PANE_KEY = 'tab-1:leaf-1'
+    process.env.ZKYQ_PANE_KEY = 'tab-1:leaf-1'
     const posts: { url: string; body: unknown }[] = []
     // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: The mocked fetch is assigned to the standard Fetch API shape.
     globalThis.fetch = vi.fn(async (input: unknown, init?: { body?: unknown }) => {
@@ -181,7 +181,7 @@ describe('OpenCode status plugin module contract', () => {
   })
 
   it('keeps OpenCode 2 busy across steps until the session becomes idle', async () => {
-    process.env.ORCA_PANE_KEY = 'tab-1:leaf-1'
+    process.env.ZKYQ_PANE_KEY = 'tab-1:leaf-1'
     const posts: { body: Record<string, unknown> }[] = []
     // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: The mocked fetch is assigned to the standard Fetch API shape.
     globalThis.fetch = vi.fn(async (_input: unknown, init?: { body?: unknown }) => {
@@ -228,7 +228,7 @@ describe('OpenCode status plugin module contract', () => {
   })
 
   it('maps OpenCode 2 permission.v2 events to the existing permission card contract', async () => {
-    process.env.ORCA_PANE_KEY = 'tab-1:leaf-1'
+    process.env.ZKYQ_PANE_KEY = 'tab-1:leaf-1'
     const posts: { body: Record<string, unknown> }[] = []
     // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: The mocked fetch is assigned to the standard Fetch API shape.
     globalThis.fetch = vi.fn(async (_input: unknown, init?: { body?: unknown }) => {
@@ -281,7 +281,7 @@ describe('OpenCode status plugin module contract', () => {
   })
 
   it('forwards admitted prompts and completed streamed text once', async () => {
-    process.env.ORCA_PANE_KEY = 'tab-1:leaf-1'
+    process.env.ZKYQ_PANE_KEY = 'tab-1:leaf-1'
     const posts: { body: Record<string, unknown> }[] = []
     // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: The mocked fetch is assigned to the standard Fetch API shape.
     globalThis.fetch = vi.fn(async (_input: unknown, init?: { body?: unknown }) => {
@@ -331,7 +331,7 @@ describe('OpenCode status plugin module contract', () => {
   })
 
   it('maps question.v2 blockers and replies through the waiting lifecycle', async () => {
-    process.env.ORCA_PANE_KEY = 'tab-1:leaf-1'
+    process.env.ZKYQ_PANE_KEY = 'tab-1:leaf-1'
     const posts: { body: Record<string, unknown> }[] = []
     // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: The mocked fetch is assigned to the standard Fetch API shape.
     globalThis.fetch = vi.fn(async (_input: unknown, init?: { body?: unknown }) => {

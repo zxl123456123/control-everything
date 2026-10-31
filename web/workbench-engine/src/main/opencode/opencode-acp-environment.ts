@@ -1,6 +1,7 @@
 import { restoreOrStripOverlayEnv } from '../../shared/agent-overlay-env'
 import { getAppEnvironment } from '../../shared/app-environment'
 import { isOpenCodeLegacySharedConfigDir } from './legacy-shared-config-dir'
+import { migrateAgentHookEnvironmentIdentity } from '../../shared/agent-hook-environment-identity'
 import { migrateOpenCodeEnvironmentIdentity } from '../../shared/opencode-environment-identity'
 
 const PLATFORM_ENV_PREFIXES = ['ZKYQ_OPENCODE_', 'ORCA_OPENCODE_', 'ORCA_DATA_ACCOUNT_']
@@ -22,7 +23,9 @@ export function scrubOpenCodeAcpEnvironment(
     key.startsWith('ORCA_OPENCODE_')
   )
   inherited = { ...inherited }
+  migrateAgentHookEnvironmentIdentity(inherited)
   migrateOpenCodeEnvironmentIdentity(inherited)
+  migrateAgentHookEnvironmentIdentity(env)
   migrateOpenCodeEnvironmentIdentity(env)
   const view: Record<string, string> = {}
   for (const [key, value] of Object.entries(inherited)) {

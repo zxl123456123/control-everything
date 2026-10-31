@@ -84,7 +84,7 @@ async function withPlatform<T>(platform: NodeJS.Platform, run: () => T | Promise
 const STALE_WINDOWS_HOOK = [
   '@echo off',
   'setlocal',
-  'if "%ORCA_AGENT_HOOK_PORT%"=="" goto :orca_agent_hook_drain_stdin',
+  'if "%ZKYQ_AGENT_HOOK_PORT%"=="" goto :orca_agent_hook_drain_stdin',
   ':orca_agent_hook_drain_stdin',
   '"%SystemRoot%\\System32\\more.com" >nul 2>nul',
   'exit /b 0',
@@ -127,15 +127,15 @@ describe('managed hook script refresh', () => {
     try {
       // Why: the bug population has a script (from a past install) but no reachable
       // CLI — and possibly no config dir Orca may create. Seed only the script.
-      const hooksDir = join(home, '.orca', 'agent-hooks')
+      const hooksDir = join(home, '.zkyq', 'agent-hooks')
       mkdirSync(hooksDir, { recursive: true })
       writeFileSync(join(hooksDir, 'claude-hook.cmd'), STALE_WINDOWS_HOOK)
 
       await withPlatform('win32', () => new ClaudeHookService().refreshManagedScripts())
 
       const refreshed = readFileSync(join(hooksDir, 'claude-hook.cmd'), 'utf8')
-      expect(refreshed).toContain('if "%ORCA_AGENT_HOOK_PORT%"=="" exit /b 0')
-      expect(refreshed).not.toContain('if "%ORCA_AGENT_HOOK_PORT%"=="" goto')
+      expect(refreshed).toContain('if "%ZKYQ_AGENT_HOOK_PORT%"=="" exit /b 0')
+      expect(refreshed).not.toContain('if "%ZKYQ_AGENT_HOOK_PORT%"=="" goto')
       // Why: refresh must not resurrect config for a CLI the user may have removed.
       expect(existsSync(join(home, '.claude'))).toBe(false)
       // Why: the statusline script was never installed here, so it must not appear.
@@ -162,7 +162,7 @@ describe('managed hook script refresh', () => {
           await install()
         }
       })
-      const hooksDir = join(home, '.orca', 'agent-hooks')
+      const hooksDir = join(home, '.zkyq', 'agent-hooks')
       const files = readdirSync(hooksDir)
       expect(files.length).toBeGreaterThan(0)
       const refresherAgents = MANAGED_AGENT_HOOK_SCRIPT_REFRESHERS.map(([agent]) => agent)
@@ -171,7 +171,7 @@ describe('managed hook script refresh', () => {
       for (const file of files) {
         expect(
           refresherAgents.some((agent) => file.startsWith(`${agent}-`)),
-          `${file} is written to ~/.orca/agent-hooks but no refresher owns it`
+          `${file} is written to ~/.zkyq/agent-hooks but no refresher owns it`
         ).toBe(true)
       }
       // Why: the reverse direction — a refresher naming an agent that writes nothing is a

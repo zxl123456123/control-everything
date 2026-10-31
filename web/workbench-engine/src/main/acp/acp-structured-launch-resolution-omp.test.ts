@@ -79,12 +79,12 @@ describe('OMP ACP launch resolution', () => {
         env: launch.env,
         envToDelete: [...STRUCTURED_CHILD_ENV_TO_DELETE, ...launch.envToDelete]
       },
-      { ORCA_PANE_KEY: 'tab-1:pane-1' },
+      { ZKYQ_PANE_KEY: 'tab-1:pane-1' },
       'darwin'
     ).env
     expect(child).toMatchObject(userEnv)
     // A pane's identity would let OMP's Orca status extension report for this chat too.
-    expect(child.ORCA_PANE_KEY).toBeUndefined()
+    expect(child.ZKYQ_PANE_KEY).toBeUndefined()
   })
 
   it('keeps a chat on the directory it pinned when the launch env names another', async () => {

@@ -47,17 +47,9 @@ export type AgentHookInstallStatus = {
   skipReason?: AgentHookInstallSkipReason
 }
 
-// Why: bumped whenever the managed script's request shape changes. The
-// receiver logs a warning when it sees a request from a different version so a
-// stale script installed by an older app build is diagnosable instead of
-// silently producing partial payloads. Still at v1 because the endpoint-file
-// rollout is additive — pre-endpoint-file scripts still post the same JSON
-// body shape, and no in-wild v1 script exists that a future v2 receiver would
-// need to distinguish from: Claude/Codex/Gemini installs run for everyone on
-// first launch but no v1 fleet ever shipped, and Cursor's managed script is
-// rewritten on every install() call so there is no durable on-disk v1 script
-// to inherit. Reserve the next bump for a real wire change.
-export const ORCA_HOOK_PROTOCOL_VERSION = '1' as const
+// v2 publishes ZKYQ endpoint keys and X-Zkyq headers. Frozen v1 clients keep
+// their existing endpoint until their session ends; both versions use the same payload.
+export const ZKYQ_HOOK_PROTOCOL_VERSION = '2' as const
 
 // Why: absence means the listener predates raw-JSON metadata headers, so managed scripts must keep using form posts.
-export const ORCA_HOOK_RAW_JSON_TRANSPORT = 'raw-json-v1' as const
+export const ZKYQ_HOOK_RAW_JSON_TRANSPORT = 'raw-json-v1' as const

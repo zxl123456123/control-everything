@@ -8,7 +8,7 @@
  * The #21097 accident was a chat that named a sibling's terminal and consumed that sibling's mail.
  *
  * The session env here is the hardest case, a chat that inherited a pane's `ORCA_TERMINAL_HANDLE`
- * and `ORCA_PANE_KEY` (an Orca launched from an Orca terminal), and the implicit-terminal guess has
+ * and `ZKYQ_PANE_KEY` (an Orca launched from an Orca terminal), and the implicit-terminal guess has
  * a sibling to find.
  */
 
@@ -35,7 +35,7 @@ const ROOT = '0b5e2d7c-9a41-4c3e-8f62-7d1a3e5b9c08'
 const IDENTITY_ENV = [
   'ORCA_AGENT_SESSION_ID',
   'ORCA_TERMINAL_HANDLE',
-  'ORCA_PANE_KEY',
+  'ZKYQ_PANE_KEY',
   'ORCA_STRUCTURED_SESSION',
   'ZKYQ_STRUCTURED_SESSION'
 ] as const
@@ -249,7 +249,7 @@ function asSessionWithInheritedPane(): void {
   setEnv({
     ORCA_AGENT_SESSION_ID: SESSION,
     ORCA_TERMINAL_HANDLE: 'term_inherited_pane',
-    ORCA_PANE_KEY: 'tab_inherited:11111111-1111-4111-8111-111111111111'
+    ZKYQ_PANE_KEY: 'tab_inherited:11111111-1111-4111-8111-111111111111'
   })
 }
 
@@ -429,7 +429,7 @@ describe('the identity a session presents', () => {
   )
 
   it('leaves a terminal agent exactly as it was: its own handle is the caller', async () => {
-    setEnv({ ORCA_TERMINAL_HANDLE: 'term_pty', ORCA_PANE_KEY: 'tab_pty:1:2' })
+    setEnv({ ORCA_TERMINAL_HANDLE: 'term_pty', ZKYQ_PANE_KEY: 'tab_pty:1:2' })
     callMock.mockImplementation(async (name: string) =>
       name === 'terminal.resolveIdentity' ? { result: { identity: { live: true } } } : RESULT
     )

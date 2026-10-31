@@ -124,7 +124,7 @@ describe('structured worker session', () => {
         process.platform === 'win32' ? 'zkyq-dev.cmd' : 'zkyq-dev'
       )
     )
-    expect(envAtSpawn?.ORCA_PANE_KEY).toBeUndefined()
+    expect(envAtSpawn?.ZKYQ_PANE_KEY).toBeUndefined()
     releaseStructuredWorkerSession('d_spawn')
   })
 

@@ -39,8 +39,8 @@ describe('managed hook outside an Orca terminal', () => {
   it('endpoint points at a path that does not exist: silent, exit 0', () => {
     const dir = mkdtempSync(join(tmpdir(), 'orca-outside-stale-'))
     const res = runHook(dir, {
-      ORCA_AGENT_HOOK_ENDPOINT: join(dir, 'gone', 'deeper', 'endpoint.env'),
-      ORCA_PANE_KEY: 'tab:0'
+      ZKYQ_AGENT_HOOK_ENDPOINT: join(dir, 'gone', 'deeper', 'endpoint.env'),
+      ZKYQ_PANE_KEY: 'tab:0'
     })
     expect(res.status).toBe(0)
     expect(res.stdout).toBe('')
@@ -52,8 +52,8 @@ describe('managed hook outside an Orca terminal', () => {
   it('readable endpoint without a pane key: silent, writes nothing', () => {
     const dir = mkdtempSync(join(tmpdir(), 'orca-outside-readable-'))
     const endpoint = join(dir, 'endpoint.env')
-    writeFileSync(endpoint, 'ORCA_AGENT_HOOK_PORT=9\nORCA_AGENT_HOOK_TOKEN=stale\n')
-    const res = runHook(dir, { ORCA_AGENT_HOOK_ENDPOINT: endpoint })
+    writeFileSync(endpoint, 'ZKYQ_AGENT_HOOK_PORT=9\nORCA_AGENT_HOOK_TOKEN=stale\n')
+    const res = runHook(dir, { ZKYQ_AGENT_HOOK_ENDPOINT: endpoint })
     expect(res.status).toBe(0)
     expect(res.stdout).toBe('')
     expect(res.stderr).toBe('')

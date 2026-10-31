@@ -107,7 +107,7 @@ describe('Windows managed hook post interpreter', () => {
       for (const entry of BATCH_SCRIPT_INSTALLERS) {
         expect((await entry.install()).state, `${entry.agent} install status`).toBe('installed')
       }
-      const hooksDir = join(home, '.orca', 'agent-hooks')
+      const hooksDir = join(home, '.zkyq', 'agent-hooks')
       return readdirSync(hooksDir)
         .filter((name) => name.endsWith('.cmd'))
         .map((name) => ({ name, body: readFileSync(join(hooksDir, name), 'utf8') }))
@@ -129,7 +129,7 @@ describe('Windows managed hook post interpreter', () => {
 
     // Why: `%~dp0` marks an event wrapper that only sets env and delegates to the core script.
     const isWrapper = (body: string): boolean => body.includes('%~dp0')
-    const posts = (body: string): boolean => body.includes('127.0.0.1:%ORCA_AGENT_HOOK_PORT%')
+    const posts = (body: string): boolean => body.includes('127.0.0.1:%ZKYQ_AGENT_HOOK_PORT%')
 
     // Why: name the script that stopped posting rather than failing on a bare count.
     expect(

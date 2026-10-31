@@ -10,12 +10,12 @@ import {
 } from '../../../../shared/structured-session-marker'
 
 export const AGENT_HOOK_RUNTIME_ENV_KEYS = [
-  'ORCA_AGENT_HOOK_PORT',
-  'ORCA_AGENT_HOOK_TOKEN',
-  'ORCA_AGENT_HOOK_ENV',
-  'ORCA_AGENT_HOOK_VERSION',
-  'ORCA_AGENT_HOOK_TRANSPORT',
-  'ORCA_AGENT_HOOK_ENDPOINT',
+  'ZKYQ_AGENT_HOOK_PORT',
+  'ZKYQ_AGENT_HOOK_TOKEN',
+  'ZKYQ_AGENT_HOOK_ENV',
+  'ZKYQ_AGENT_HOOK_VERSION',
+  'ZKYQ_AGENT_HOOK_TRANSPORT',
+  'ZKYQ_AGENT_HOOK_ENDPOINT',
   // Why: PR 2778 briefly exported this path; keep deleting stale inherited values so older PTYs can't leak the reverted path.
   'ORCA_CLAUDE_AGENT_STATUS_SETTINGS'
 ] as const

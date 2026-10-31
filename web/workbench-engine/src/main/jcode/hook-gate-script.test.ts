@@ -42,8 +42,8 @@ describe.runIf(process.platform !== 'win32')('jcode managed hook as jcode runs i
       // execFileSync would then raise ETIMEDOUT rather than complete.
       execFileSync('/bin/sh', [scriptPath], {
         input: JSON.stringify({ content: 'y'.repeat(512 * 1024) }),
-        // No ORCA_PANE_KEY: the script exits early, but only after taking stdin.
-        env: { ...process.env, JCODE_HOOK_EVENT: 'pre_tool', ORCA_PANE_KEY: '' },
+        // No ZKYQ_PANE_KEY: the script exits early, but only after taking stdin.
+        env: { ...process.env, JCODE_HOOK_EVENT: 'pre_tool', ZKYQ_PANE_KEY: '' },
         // Generous on purpose: the claim is "does not hang", not "is fast", and a
         // tight bound here is the same flake the dropped latency test had.
         timeout: 60_000,
@@ -87,7 +87,7 @@ describe('the Windows managed hook', () => {
 
   it('drains the gate stdin, but only after the Orca environment check', () => {
     const script = windowsScript()
-    const guardIndex = script.indexOf('if "%ORCA_PANE_KEY%"==""')
+    const guardIndex = script.indexOf('if "%ZKYQ_PANE_KEY%"==""')
     const drainIndex = script.indexOf('if "%JCODE_HOOK_EVENT%"=="pre_tool"')
     expect(guardIndex).toBeGreaterThan(-1)
     expect(drainIndex).toBeGreaterThan(guardIndex)
@@ -177,10 +177,10 @@ describe.runIf(process.platform === 'win32')('Windows jcode hook payload deliver
           env: {
             ...process.env,
             ORCA_BACKGROUND_LAUNCH: '1',
-            ORCA_AGENT_HOOK_ENDPOINT: '',
-            ORCA_AGENT_HOOK_PORT: String(address.port),
-            ORCA_AGENT_HOOK_TOKEN: 'jcode-delivery-token',
-            ORCA_PANE_KEY: 'jcode:leaf',
+            ZKYQ_AGENT_HOOK_ENDPOINT: '',
+            ZKYQ_AGENT_HOOK_PORT: String(address.port),
+            ZKYQ_AGENT_HOOK_TOKEN: 'jcode-delivery-token',
+            ZKYQ_PANE_KEY: 'jcode:leaf',
             JCODE_HOOK_EVENT: event,
             JCODE_HOOK_SESSION_ID: 'jcode-session',
             JCODE_HOOK_CWD: dirname(scriptPath),

@@ -49,7 +49,7 @@ function fixture() {
     env: {
       ZKYQ_OPENCODE_STARTUP_PROMPT_NONCE: 'nonce',
       ZKYQ_OPENCODE_STARTUP_PROMPT_SHA256: 'digest',
-      ORCA_AGENT_LAUNCH_TOKEN: 'launch'
+      ZKYQ_AGENT_LAUNCH_TOKEN: 'launch'
     },
     deps: { runtime },
     result,

@@ -44,7 +44,7 @@ describe('orca linear CLI handlers', () => {
     // Why: these tests can run inside an Orca-managed terminal, which exports
     // real worktree/terminal/pairing env hints; clear them so handler context
     // assertions stay deterministic.
-    delete process.env.ORCA_WORKTREE_ID
+    delete process.env.ZKYQ_WORKTREE_ID
     delete process.env.ORCA_TERMINAL_HANDLE
     delete process.env.ZKYQ_PAIRING_CODE
     delete process.env.ZKYQ_ENVIRONMENT
@@ -159,7 +159,7 @@ describe('orca linear CLI handlers', () => {
 
   it('passes verified current-context hints without resolving cwd for remote runtimes', async () => {
     process.env.ORCA_TERMINAL_HANDLE = 'term_123'
-    process.env.ORCA_WORKTREE_ID = 'repo::/srv/app'
+    process.env.ZKYQ_WORKTREE_ID = 'repo::/srv/app'
     process.env.ZKYQ_PAIRING_CODE = 'zkyq://pair?payload=bad'
     queueFixtures(callMock, okFixture('req_linear', issueResult()))
 

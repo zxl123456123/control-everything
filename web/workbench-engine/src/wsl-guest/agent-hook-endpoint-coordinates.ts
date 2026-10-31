@@ -5,8 +5,8 @@ import { basename, dirname, join } from 'node:path'
 import { homedir } from 'node:os'
 
 import {
-  ORCA_HOOK_PROTOCOL_VERSION,
-  ORCA_HOOK_RAW_JSON_TRANSPORT
+  ZKYQ_HOOK_PROTOCOL_VERSION,
+  ZKYQ_HOOK_RAW_JSON_TRANSPORT
 } from '../shared/agent-hook-types'
 
 // Why: relay's userData equivalent under $HOME so each user on a shared dev box gets their own 0o700 dir.
@@ -49,15 +49,15 @@ export function buildRelayHookPtyEnv(coordinates: {
     return {}
   }
   const env: Record<string, string> = {
-    ORCA_AGENT_HOOK_PORT: String(coordinates.port),
-    ORCA_AGENT_HOOK_TOKEN: coordinates.token,
-    ORCA_AGENT_HOOK_ENV: coordinates.env,
-    ORCA_AGENT_HOOK_VERSION: ORCA_HOOK_PROTOCOL_VERSION,
-    ORCA_AGENT_HOOK_OPENCODE_TUI: '1',
-    ORCA_AGENT_HOOK_TRANSPORT: ORCA_HOOK_RAW_JSON_TRANSPORT
+    ZKYQ_AGENT_HOOK_PORT: String(coordinates.port),
+    ZKYQ_AGENT_HOOK_TOKEN: coordinates.token,
+    ZKYQ_AGENT_HOOK_ENV: coordinates.env,
+    ZKYQ_AGENT_HOOK_VERSION: ZKYQ_HOOK_PROTOCOL_VERSION,
+    ZKYQ_AGENT_HOOK_OPENCODE_TUI: '1',
+    ZKYQ_AGENT_HOOK_TRANSPORT: ZKYQ_HOOK_RAW_JSON_TRANSPORT
   }
   if (coordinates.endpointFileWritten) {
-    env.ORCA_AGENT_HOOK_ENDPOINT = coordinates.endpointFilePath
+    env.ZKYQ_AGENT_HOOK_ENDPOINT = coordinates.endpointFilePath
   }
   return env
 }

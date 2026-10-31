@@ -1,4 +1,5 @@
 import { HOOK_REQUEST_MAX_BYTES } from '../../shared/agent-hook-listener/request-body'
+import { migrateAgentHookEnvironmentIdentity } from '../../shared/agent-hook-environment-identity'
 import {
   POSIX_HOOK_JSON_STDIN_FIRST_BYTE_TIMEOUT_SECONDS,
   POSIX_HOOK_JSON_STDIN_IDLE_TIMEOUT_SECONDS
@@ -8,9 +9,10 @@ import {
 export const WINDOWS_ANTIGRAVITY_JSON_POST_SCRIPT = String.raw`
 const http = require('node:http');
 const { StringDecoder } = require('node:string_decoder');
-const env = process.env;
-const port = Number(env.ORCA_AGENT_HOOK_PORT);
-if (!Number.isInteger(port) || port < 1 || port > 65535 || !env.ORCA_AGENT_HOOK_TOKEN || !env.ORCA_PANE_KEY) process.exit(0);
+const env = { ...process.env };
+try { (${migrateAgentHookEnvironmentIdentity.toString()})(env); } catch { process.exit(0); }
+const port = Number(env.ZKYQ_AGENT_HOOK_PORT);
+if (!Number.isInteger(port) || port < 1 || port > 65535 || !env.ZKYQ_AGENT_HOOK_TOKEN || !env.ZKYQ_PANE_KEY) process.exit(0);
 const decoder = new StringDecoder('utf8');
 let payload = '';
 let finished = false;
@@ -33,9 +35,9 @@ function finish() {
   payload += decoder.end();
   const form = new URLSearchParams();
   for (const [name, variable] of [
-    ['paneKey', 'ORCA_PANE_KEY'], ['tabId', 'ORCA_TAB_ID'],
-    ['launchToken', 'ORCA_AGENT_LAUNCH_TOKEN'], ['worktreeId', 'ORCA_WORKTREE_ID'],
-    ['env', 'ORCA_AGENT_HOOK_ENV'], ['version', 'ORCA_AGENT_HOOK_VERSION'],
+    ['paneKey', 'ZKYQ_PANE_KEY'], ['tabId', 'ZKYQ_TAB_ID'],
+    ['launchToken', 'ZKYQ_AGENT_LAUNCH_TOKEN'], ['worktreeId', 'ZKYQ_WORKTREE_ID'],
+    ['env', 'ZKYQ_AGENT_HOOK_ENV'], ['version', 'ZKYQ_AGENT_HOOK_VERSION'],
     ['hook_event_name', 'ORCA_ANTIGRAVITY_EVENT']
   ]) form.set(name, env[variable] || '');
   form.set('payload', payload.trim() ? payload : '{}');
@@ -48,7 +50,7 @@ function finish() {
     request = http.request({ hostname: '127.0.0.1', port, path: '/hook/antigravity', method: 'POST', headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
       'Content-Length': Buffer.byteLength(body),
-      'X-Zkyq-Agent-Hook-Token': env.ORCA_AGENT_HOOK_TOKEN
+      [env.ZKYQ_AGENT_HOOK_VERSION === '1' ? 'X-Orca-Agent-Hook-Token' : 'X-Zkyq-Agent-Hook-Token']: env.ZKYQ_AGENT_HOOK_TOKEN
     } }, response => { response.resume(); response.on('end', () => { clearTimeout(postTimer); exit(); }); });
     request.on('error', () => { clearTimeout(postTimer); exit(); });
     request.end(body);

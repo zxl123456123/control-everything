@@ -2,6 +2,7 @@ import type { ClaudeRuntimeAuthPreparation } from '../claude-accounts/runtime-au
 import { applyClaudeEnvPatch } from '../claude-accounts/environment'
 import { readShellStartupEnvVar } from '../pty/shell-startup-env'
 import { parseWslUncPath } from '../../shared/wsl-paths'
+import { migrateAgentHookEnvironmentIdentity } from '../../shared/agent-hook-environment-identity'
 import { migrateOpenCodeEnvironmentIdentity } from '../../shared/opencode-environment-identity'
 
 export type CommitMessageAgentEnvironmentResolvers = {
@@ -27,6 +28,7 @@ function cloneProcessEnv(): Record<string, string> {
       env[key] = value
     }
   }
+  migrateAgentHookEnvironmentIdentity(env)
   migrateOpenCodeEnvironmentIdentity(env)
   return env
 }
@@ -51,6 +53,7 @@ function readInheritedOrShellEnvVar(
   base: Record<string, string> | undefined
 ): string | undefined {
   const inherited = { ...process.env }
+  migrateAgentHookEnvironmentIdentity(inherited)
   migrateOpenCodeEnvironmentIdentity(inherited)
   // Why: the login-shell base is what chats use, so it beats Orca's own inherited value.
   return (
@@ -113,6 +116,7 @@ async function resolveHostBaseEnv(
     console.error('[commit-message] Failed to resolve the login-shell environment:', error)
     return undefined
   }
+  migrateAgentHookEnvironmentIdentity(base)
   migrateOpenCodeEnvironmentIdentity(base)
   return base
 }

@@ -20,7 +20,7 @@ const WORKER_PANE = 'tab_w:33333333-3333-4333-8333-333333333333'
 const COORDINATOR = 'term_local_coord'
 const COORDINATOR_PANE = 'tab_c:44444444-4444-4444-8444-444444444444'
 const PTY_ID = toAppSshPtyId(TARGET, 'pty-7')
-const ENV = { ORCA_TERMINAL_HANDLE: WORKER, ORCA_PANE_KEY: WORKER_PANE }
+const ENV = { ORCA_TERMINAL_HANDLE: WORKER, ZKYQ_PANE_KEY: WORKER_PANE }
 
 type Result = { stdout: string; stderr: string; exitCode: number }
 
@@ -171,7 +171,7 @@ describe('the relay-era orca CLI on the desktop runtime', () => {
     [
       'a handle the desktop records do not bind to the pane',
       () => {},
-      { ORCA_TERMINAL_HANDLE: COORDINATOR, ORCA_PANE_KEY: WORKER_PANE }
+      { ORCA_TERMINAL_HANDLE: COORDINATOR, ZKYQ_PANE_KEY: WORKER_PANE }
     ],
     [
       'a handle this runtime hosts in another pane',

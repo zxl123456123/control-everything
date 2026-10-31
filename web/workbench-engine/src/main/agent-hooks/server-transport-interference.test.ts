@@ -115,8 +115,8 @@ describe('AgentHookServer transport interference', () => {
     const env = server.buildPtyEnv()
     return {
       server,
-      port: Number(env.ORCA_AGENT_HOOK_PORT),
-      token: env.ORCA_AGENT_HOOK_TOKEN,
+      port: Number(env.ZKYQ_AGENT_HOOK_PORT),
+      token: env.ZKYQ_AGENT_HOOK_TOKEN,
       reports
     }
   }

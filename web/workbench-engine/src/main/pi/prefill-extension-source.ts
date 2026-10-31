@@ -26,7 +26,7 @@ export function getPiPrefillHandlerSourceLines(
   const register = wrapInStatusOwner && kind === 'omp' ? 'onStatus' : 'pi.on'
   return [
     `  ${register}('session_start', async (event, ctx) => {`,
-    '    if (!process.env.ORCA_PANE_KEY || ctx?.hasUI === false) return',
+    '    if (!process.env.ZKYQ_PANE_KEY || ctx?.hasUI === false) return',
     ...(kind === 'pi' ? ["    if (event.reason !== 'startup') return"] : []),
     `    const prefill = process.env.${envVar}`,
     "    if (!prefill || typeof ctx?.ui?.setEditorText !== 'function') return",

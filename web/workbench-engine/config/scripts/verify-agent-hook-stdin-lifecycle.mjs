@@ -124,7 +124,7 @@ function assertProtocolStdout(fileName, stdout) {
 }
 
 function readGeneratedScripts(home, minMtime) {
-  const hooksDir = join(home, '.orca', 'agent-hooks')
+  const hooksDir = join(home, '.zkyq', 'agent-hooks')
   return MANAGED_SCRIPTS.map(([fileName, source]) => {
     const path = join(hooksDir, fileName)
     const stats = statSync(path)
@@ -207,7 +207,7 @@ async function verifyNoOpWrites(scripts, home, payload) {
         withoutOrcaEnvironment({
           HOME: home,
           PATH: path,
-          ORCA_AGENT_HOOK_ENDPOINT: ''
+          ZKYQ_AGENT_HOOK_ENDPOINT: ''
         })
       )
       assertSuccessfulWrite(result, [script.fileName, ' no-op'].join(''))
@@ -241,10 +241,10 @@ async function verifyClaudeDevinSkip(scripts, home, payload) {
       withoutOrcaEnvironment({
         DEVIN_PROJECT_DIR: join(home, 'devin-project'),
         HOME: home,
-        ORCA_AGENT_HOOK_ENDPOINT: '',
-        ORCA_AGENT_HOOK_PORT: String(address.port),
-        ORCA_AGENT_HOOK_TOKEN: 'electron-verification-token',
-        ORCA_PANE_KEY: 'electron-verification-pane'
+        ZKYQ_AGENT_HOOK_ENDPOINT: '',
+        ZKYQ_AGENT_HOOK_PORT: String(address.port),
+        ZKYQ_AGENT_HOOK_TOKEN: 'electron-verification-token',
+        ZKYQ_PANE_KEY: 'electron-verification-pane'
       })
     )
     assertSuccessfulWrite(result, 'Claude Devin-import skip')
@@ -274,14 +274,14 @@ async function verifyForwarding(scripts, home, payload) {
         payload,
         withoutOrcaEnvironment({
           HOME: home,
-          ORCA_AGENT_HOOK_ENDPOINT: '',
-          ORCA_AGENT_HOOK_PORT: String(address.port),
-          ORCA_AGENT_HOOK_TOKEN: 'electron-verification-token',
-          ORCA_PANE_KEY: 'electron-verification-pane',
-          ORCA_TAB_ID: 'electron-verification-tab',
-          ORCA_WORKTREE_ID: 'electron-verification-worktree',
-          ORCA_AGENT_HOOK_ENV: 'test',
-          ORCA_AGENT_HOOK_VERSION: '1',
+          ZKYQ_AGENT_HOOK_ENDPOINT: '',
+          ZKYQ_AGENT_HOOK_PORT: String(address.port),
+          ZKYQ_AGENT_HOOK_TOKEN: 'electron-verification-token',
+          ZKYQ_PANE_KEY: 'electron-verification-pane',
+          ZKYQ_TAB_ID: 'electron-verification-tab',
+          ZKYQ_WORKTREE_ID: 'electron-verification-worktree',
+          ZKYQ_AGENT_HOOK_ENV: 'test',
+          ZKYQ_AGENT_HOOK_VERSION: '1',
           ORCA_ANTIGRAVITY_EVENT: 'PostInvocation',
           ORCA_COPILOT_HOOK_EVENT: 'PostToolUse'
         })
@@ -320,7 +320,7 @@ async function verifyInstalledLauncher(home, payload) {
   )
   if (
     !command ||
-    !command.includes('"${HOME-}/.orca/agent-hooks/claude-hook.sh"') ||
+    !command.includes('"${HOME-}/.zkyq/agent-hooks/claude-hook.sh"') ||
     !command.includes('] && [ -r ') ||
     !command.includes('else { command -p cat')
   ) {
@@ -335,8 +335,8 @@ async function verifyInstalledLauncher(home, payload) {
     )
     assertSuccessfulWrite(missingResult, 'installed missing-script launcher')
 
-    const failingPath = join(scratch, '.orca', 'agent-hooks', 'claude-hook.sh')
-    mkdirSync(join(scratch, '.orca', 'agent-hooks'), { recursive: true })
+    const failingPath = join(scratch, '.zkyq', 'agent-hooks', 'claude-hook.sh')
+    mkdirSync(join(scratch, '.zkyq', 'agent-hooks'), { recursive: true })
     writeFileSync(failingPath, '#!/bin/sh\ncat >/dev/null\nexit 7\n', 'utf8')
     chmodSync(failingPath, 0o755)
     const failingResult = await runShell(

@@ -22,6 +22,7 @@ import { COMMAND_SPECS } from './specs'
 import { resolveOrchestrationCliExecutable } from './runtime/orchestration-recovery-command'
 import { refuseConflictingSessionCallerFlags } from './session-caller-flags'
 import { refuseRetiredRemoteSelection, refuseRetiredWslBridge } from './remote-selection-env'
+import { migrateAgentHookEnvironmentIdentity } from '../shared/agent-hook-environment-identity'
 
 export { COMMAND_SPECS } from './specs'
 export { buildCurrentWorktreeSelector, normalizeWorktreeSelector } from './selectors'
@@ -70,6 +71,7 @@ export async function main(
 ): Promise<void> {
   if (argv[0] === '--zkyq-wsl-bridge-v2') argv = argv.slice(1)
   try {
+    migrateAgentHookEnvironmentIdentity(process.env)
     refuseRetiredWslBridge()
   } catch (error) {
     reportCliError(error, argv.includes('--json'))
@@ -80,7 +82,7 @@ export async function main(
   if (argv.length === 1 && (argv[0] === '--version' || argv[0] === '-v')) {
     const version = readOrcaCliVersion()
     if (!version) {
-      process.stderr.write('Could not determine the Orca version for this build.\n')
+      process.stderr.write('Could not determine the Control Everything version for this build.\n')
       process.exitCode = 1
       return
     }

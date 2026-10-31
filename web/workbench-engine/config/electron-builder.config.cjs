@@ -593,7 +593,7 @@ module.exports = {
         to: 'bin/zkyq-administrator-restart.exe'
       },
       // Why resources/bin: SignPath signs every unsigned PE under win-unpacked, and the hook
-      // installer copies this signed file into ~/.orca/agent-hooks (#20913).
+      // installer copies this signed file into ~/.zkyq/agent-hooks (#20913).
       {
         from: 'native/windows-agent-hook/.build/zkyq-agent-hook.exe',
         to: 'bin/zkyq-agent-hook.exe'

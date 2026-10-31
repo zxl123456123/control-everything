@@ -21,8 +21,8 @@ const COORDINATOR_PTY = toAppSshPtyId(TARGET, 'pty-8')
 const UNRELATED_PANE = 'tab_u:66666666-6666-4666-8666-666666666666'
 const coordinatorEnv = () => ({
   ORCA_TERMINAL_HANDLE: COORDINATOR,
-  ORCA_PANE_KEY: COORDINATOR_PANE,
-  ORCA_AGENT_LAUNCH_TOKEN: 'coordinator-token'
+  ZKYQ_PANE_KEY: COORDINATOR_PANE,
+  ZKYQ_AGENT_LAUNCH_TOKEN: 'coordinator-token'
 })
 const escalationArgv = (taskId: string, dispatchId: string) => [
   'orchestration',
@@ -47,8 +47,8 @@ const messageId = (sent: { body: Record<string, unknown> }): string => {
 }
 const WORKER_ENV = {
   ORCA_TERMINAL_HANDLE: WORKER,
-  ORCA_PANE_KEY: WORKER_PANE,
-  ORCA_AGENT_LAUNCH_TOKEN: 'worker-token'
+  ZKYQ_PANE_KEY: WORKER_PANE,
+  ZKYQ_AGENT_LAUNCH_TOKEN: 'worker-token'
 }
 
 let dir: string | undefined
@@ -143,7 +143,7 @@ describe('the relay-era orca CLI on migrated legacy orchestration records', () =
     const adoptedRunId = database.getLegacyAdoption()?.adopted_run_id ?? ''
     // The real coordinator pane, still unbound after migration, and an unrelated leased pane alike.
     for (const paneKey of [COORDINATOR_PANE, UNRELATED_PANE]) {
-      const env = { ...coordinatorEnv(), ORCA_PANE_KEY: paneKey }
+      const env = { ...coordinatorEnv(), ZKYQ_PANE_KEY: paneKey }
       await expect(run(runtime, ['orchestration', 'check', '--json'], env)).rejects.toThrow(
         LEGACY_RELAY_CLI_UNVERIFIED
       )
@@ -188,7 +188,7 @@ describe('the relay-era orca CLI on migrated legacy orchestration records', () =
     await expect(
       run(runtime, ['orchestration', 'check', '--json'], {
         ...coordinatorEnv(),
-        ORCA_PANE_KEY: UNRELATED_PANE
+        ZKYQ_PANE_KEY: UNRELATED_PANE
       })
     ).rejects.toThrow(LEGACY_RELAY_CLI_UNVERIFIED)
   })

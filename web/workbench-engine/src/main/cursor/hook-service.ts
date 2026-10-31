@@ -1,3 +1,9 @@
+import {
+  buildPosixHookEndpointRefresh,
+  buildPosixHookEnvironmentIdentityMigration,
+  buildWindowsHookEndpointRefresh,
+  buildWindowsHookEnvironmentIdentityMigration
+} from '../agent-hooks/hook-environment-identity-prelude'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import type { SFTPWrapper } from 'ssh2'
@@ -45,8 +51,9 @@ function getManagedScript(target: 'local' | 'posix' = 'local'): string {
     return [
       '@echo off',
       'setlocal',
+      ...buildWindowsHookEnvironmentIdentityMigration(),
       // Why: source current endpoint coordinates for PTYs surviving an Orca restart.
-      'if defined ORCA_AGENT_HOOK_ENDPOINT if exist "%ORCA_AGENT_HOOK_ENDPOINT%" call "%ORCA_AGENT_HOOK_ENDPOINT%" 2>nul',
+      ...buildWindowsHookEndpointRefresh(),
       ...buildWindowsHookEnvironmentGuardLines(),
       buildWindowsAgentHookPostCommand('cursor'),
       'exit /b 0',
@@ -57,28 +64,27 @@ function getManagedScript(target: 'local' | 'posix' = 'local'): string {
 
   return [
     '#!/bin/sh',
+    ...buildPosixHookEnvironmentIdentityMigration(),
     ...buildPosixHookPayloadCapture(),
     ...buildPosixHookSpoolLines('cursor'),
     // Why: refresh endpoint coordinates so surviving PTYs keep reporting.
-    'if [ -n "$ORCA_AGENT_HOOK_ENDPOINT" ] && [ -r "$ORCA_AGENT_HOOK_ENDPOINT" ]; then',
-    '  . "$ORCA_AGENT_HOOK_ENDPOINT" 2>/dev/null || :',
-    'fi',
-    'if [ -z "$ORCA_AGENT_HOOK_PORT" ] || [ -z "$ORCA_AGENT_HOOK_TOKEN" ] || [ -z "$ORCA_PANE_KEY" ]; then',
+    ...buildPosixHookEndpointRefresh(),
+    'if [ -z "$ZKYQ_AGENT_HOOK_PORT" ] || [ -z "$ZKYQ_AGENT_HOOK_TOKEN" ] || [ -z "$ZKYQ_PANE_KEY" ]; then',
     '  spool_hook_event',
     '  exit 0',
     'fi',
     // Why: post form fields because path-bearing worktree IDs are unsafe in hand-built JSON.
     // Why: pipe payload to curl stdin to keep large output off the command line.
-    'printf \'%s\' "$payload" | curl -sS -X POST "http://127.0.0.1:${ORCA_AGENT_HOOK_PORT}/hook/cursor" \\',
+    'printf \'%s\' "$payload" | curl -sS -X POST "http://127.0.0.1:${ZKYQ_AGENT_HOOK_PORT}/hook/cursor" \\',
     '  --connect-timeout 0.5 --max-time 1.5 \\',
     '  -H "Content-Type: application/x-www-form-urlencoded" \\',
-    '  -H "X-Zkyq-Agent-Hook-Token: ${ORCA_AGENT_HOOK_TOKEN}" \\',
-    '  --data-urlencode "paneKey=${ORCA_PANE_KEY}" \\',
-    '  --data-urlencode "tabId=${ORCA_TAB_ID}" \\',
-    '  --data-urlencode "launchToken=${ORCA_AGENT_LAUNCH_TOKEN}" \\',
-    '  --data-urlencode "worktreeId=${ORCA_WORKTREE_ID}" \\',
-    '  --data-urlencode "env=${ORCA_AGENT_HOOK_ENV}" \\',
-    '  --data-urlencode "version=${ORCA_AGENT_HOOK_VERSION}" \\',
+    '  -H "X-${zkyq_hook_namespace}-Agent-Hook-Token: ${ZKYQ_AGENT_HOOK_TOKEN}" \\',
+    '  --data-urlencode "paneKey=${ZKYQ_PANE_KEY}" \\',
+    '  --data-urlencode "tabId=${ZKYQ_TAB_ID}" \\',
+    '  --data-urlencode "launchToken=${ZKYQ_AGENT_LAUNCH_TOKEN}" \\',
+    '  --data-urlencode "worktreeId=${ZKYQ_WORKTREE_ID}" \\',
+    '  --data-urlencode "env=${ZKYQ_AGENT_HOOK_ENV}" \\',
+    '  --data-urlencode "version=${ZKYQ_AGENT_HOOK_VERSION}" \\',
     '  --data-urlencode "payload@-" >/dev/null 2>&1 || spool_hook_event',
     'exit 0',
     ''
@@ -203,7 +209,7 @@ export class CursorHookService {
   // Installs managed Cursor hooks on an SSH remote (POSIX-only); the managed script/JSON shape must match local install() or remote panes report a different status.
   async installRemote(sftp: SFTPWrapper, remoteHome: string): Promise<AgentHookInstallStatus> {
     const remoteConfigPath = `${remoteHome.replace(/\/$/, '')}/.cursor/hooks.json`
-    const remoteScriptPath = `${remoteHome.replace(/\/$/, '')}/.orca/agent-hooks/cursor-hook.sh`
+    const remoteScriptPath = `${remoteHome.replace(/\/$/, '')}/.zkyq/agent-hooks/cursor-hook.sh`
     try {
       const config = await readHooksJsonRemote(sftp, remoteConfigPath)
       if (!config) {

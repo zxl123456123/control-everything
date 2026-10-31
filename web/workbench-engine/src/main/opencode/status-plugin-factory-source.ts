@@ -2,6 +2,7 @@ import {
   getOpenCode2ModuleSource,
   getOpenCode2EventNormalizationSource
 } from '../opencode2/status-plugin-setup-source'
+import { migrateAgentHookEnvironmentIdentity } from '../../shared/agent-hook-environment-identity'
 import { migrateOpenCodeEnvironmentIdentity } from '../../shared/opencode-environment-identity'
 
 export function getStatusPluginFactorySource(options: {
@@ -15,6 +16,8 @@ export function getStatusPluginFactorySource(options: {
   // collision as an 'zkyq-opencode-status' plugin failure.
   const pluginID = expectedAgent === 'opencode2' ? 'zkyq-opencode2-status' : 'zkyq-opencode-status'
   return [
+    `const migrateHookEnvironment = ${migrateAgentHookEnvironmentIdentity.toString()};`,
+    'migrateHookEnvironment(process.env);',
     `(${migrateOpenCodeEnvironmentIdentity.toString()})(process.env);`,
     ...(options.emitNextEvents ? getOpenCode2EventNormalizationSource() : []),
     '// Why: accept the factory argument as an optional opaque parameter instead',

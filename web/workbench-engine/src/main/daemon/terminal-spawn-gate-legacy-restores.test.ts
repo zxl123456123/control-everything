@@ -68,7 +68,7 @@ describe('the host records the legacy restores it refuses', () => {
       cols: 80,
       rows: 24,
       cwd: dir,
-      env: { ORCA_AGENT_HOOK_TOKEN: 'secret' },
+      env: { ZKYQ_AGENT_HOOK_TOKEN: 'secret' },
       command: `claude --resume ${sessionId}`,
       launchAgent: 'claude',
       historySeedChunks: ['seed'],

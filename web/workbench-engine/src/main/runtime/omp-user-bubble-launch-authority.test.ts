@@ -49,7 +49,7 @@ async function launchOmpPane(): Promise<{
     launchConfig: { agentCommand: 'omp', agentArgs: '', agentEnv: {} },
     launchAgent: 'omp'
   })
-  return { runtime, retire, paneKey: spawnedPtyEnv(spawn.mock.calls[0]?.[0]).ORCA_PANE_KEY }
+  return { runtime, retire, paneKey: spawnedPtyEnv(spawn.mock.calls[0]?.[0]).ZKYQ_PANE_KEY }
 }
 
 describe('OMP user bubbles and launch authority (#10923)', () => {

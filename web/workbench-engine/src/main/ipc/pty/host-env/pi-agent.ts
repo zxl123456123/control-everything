@@ -5,6 +5,7 @@ import {
 } from '../../../../shared/pi-agent-kind'
 import { readSessionShellStartupEnvVar } from '../../../pty/shell-startup-env'
 import { getAgentLaunchExecutableName } from '../../../../shared/agent-command-line-intent'
+import { migrateAgentHookEnvironmentIdentity } from '../../../../shared/agent-hook-environment-identity'
 import { migrateOpenCodeEnvironmentIdentity } from '../../../../shared/opencode-environment-identity'
 import {
   AGENT_HOOK_RUNTIME_ENV_KEYS,
@@ -173,8 +174,10 @@ export function resolveOpenCodeSourceConfigDir(
   baseEnv: Record<string, string>,
   inheritedEnv: NodeJS.ProcessEnv = process.env
 ): string | undefined {
+  migrateAgentHookEnvironmentIdentity(baseEnv)
   migrateOpenCodeEnvironmentIdentity(baseEnv)
   inheritedEnv = { ...inheritedEnv }
+  migrateAgentHookEnvironmentIdentity(inheritedEnv)
   migrateOpenCodeEnvironmentIdentity(inheritedEnv)
   const configDir = baseEnv.OPENCODE_CONFIG_DIR ?? inheritedEnv.OPENCODE_CONFIG_DIR
   const orcaConfigDir = baseEnv.ZKYQ_OPENCODE_CONFIG_DIR ?? inheritedEnv.ZKYQ_OPENCODE_CONFIG_DIR

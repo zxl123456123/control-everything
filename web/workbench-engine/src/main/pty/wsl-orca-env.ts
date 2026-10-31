@@ -69,7 +69,7 @@ export function addOrcaWslInteropEnv(env: Record<string, string>): void {
   // Why: the endpoint is a Windows path (/p-translated so the guest reads it
   // via /mnt/c) until the WSL hook relay reports the guest home — then it is
   // already a guest-side POSIX path and must cross untranslated.
-  const endpointFlag = env.ORCA_AGENT_HOOK_ENDPOINT?.startsWith('/') ? 'u' : 'p'
+  const endpointFlag = env.ZKYQ_AGENT_HOOK_ENDPOINT?.startsWith('/') ? 'u' : 'p'
   // Why: ONLY a guest-side POSIX overlay may cross. /p would path-translate a
   // Windows value into /mnt/c and let in-guest OpenCode adopt it as its config
   // root — reachable via the relay spawn's process.env (wsl-hook-relay-launch)
@@ -89,12 +89,12 @@ export function addOrcaWslInteropEnv(env: Record<string, string>): void {
     'ORCA_WSL_CLI_DIR/p',
     'ORCA_CODEX_LAUNCH_PREFLIGHT/p',
     'ORCA_CODEX_ISOLATE/u',
-    'ORCA_PANE_KEY/u',
-    'ORCA_TAB_ID/u',
-    'ORCA_WORKTREE_ID/u',
-    // An id, never a path; agent wrappers and the guest CLI read it like ORCA_WORKTREE_ID.
-    'ORCA_WORKSPACE_ID/u',
-    'ORCA_AGENT_LAUNCH_TOKEN/u',
+    'ZKYQ_PANE_KEY/u',
+    'ZKYQ_TAB_ID/u',
+    'ZKYQ_WORKTREE_ID/u',
+    // An id, never a path; agent wrappers and the guest CLI read it like ZKYQ_WORKTREE_ID.
+    'ZKYQ_WORKSPACE_ID/u',
+    'ZKYQ_AGENT_LAUNCH_TOKEN/u',
     // The guest plugin uses this marker to select the OpenCode variant that
     // owns the pane when both native and WSL installations are present.
     'ZKYQ_OPENCODE_AGENT/u',
@@ -107,12 +107,12 @@ export function addOrcaWslInteropEnv(env: Record<string, string>): void {
     `${RUNTIME_SOURCE_INCARNATION_ENV}/u`,
     // Why /u: compared with the Windows CLI's own userData path, never read as a guest path.
     `${RUNTIME_SOURCE_PROFILE_PATH_ENV}/u`,
-    'ORCA_AGENT_HOOK_PORT/u',
-    'ORCA_AGENT_HOOK_TOKEN/u',
-    'ORCA_AGENT_HOOK_ENV/u',
-    'ORCA_AGENT_HOOK_VERSION/u',
-    'ORCA_AGENT_HOOK_TRANSPORT/u',
-    `ORCA_AGENT_HOOK_ENDPOINT/${endpointFlag}`,
+    'ZKYQ_AGENT_HOOK_PORT/u',
+    'ZKYQ_AGENT_HOOK_TOKEN/u',
+    'ZKYQ_AGENT_HOOK_ENV/u',
+    'ZKYQ_AGENT_HOOK_VERSION/u',
+    'ZKYQ_AGENT_HOOK_TRANSPORT/u',
+    `ZKYQ_AGENT_HOOK_ENDPOINT/${endpointFlag}`,
     ...opencodeOverlayEntries,
     'ORCA_WSL_HOOK_RELAY_VERSION/u',
     'ORCA_WSL_HOOK_INSTANCE/u',

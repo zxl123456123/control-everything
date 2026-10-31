@@ -99,7 +99,7 @@ describe('a structured worker running orchestration commands as itself', () => {
     async ({ argv, method }) => {
       // The defect this pins: the sender resolver validated the env handle with `terminal.show`, a
       // PTY verb that misses for a structured worker and answers `terminal_handle_stale`. The pane
-      // remint that would have recovered it needs `ORCA_PANE_KEY`, which a structured child
+      // remint that would have recovered it needs `ZKYQ_PANE_KEY`, which a structured child
       // deliberately does not carry, so the command died on `no_active_sender_terminal`.
       process.env.ORCA_TERMINAL_HANDLE = STRUCTURED_HANDLE
       answerCalls()

@@ -10,6 +10,10 @@ const OWNER_FILE_PATTERN = /^owner-([\da-f-]{36})\.json$/i
 type GrokHookOwner = { token: string; pid: number }
 
 function ownerDirectory(): string {
+  return join(homedir(), '.zkyq', 'agent-hooks', 'grok-owners')
+}
+
+function retiredOwnerDirectory(): string {
   return join(homedir(), '.orca', 'agent-hooks', 'grok-owners')
 }
 
@@ -40,23 +44,32 @@ export function unregisterGrokHookOwnerSync(): void {
 export async function releaseGrokHookOwnerAndCheckForPeers(): Promise<boolean> {
   const directory = ownerDirectory()
   await rm(ownerPath(directory), { force: true })
-  return await hasLivePeer(directory, ownerToken, probeProcess)
+  return (
+    (await hasLivePeer(directory, ownerToken, probeProcess)) ||
+    (await hasLivePeer(retiredOwnerDirectory(), ownerToken, probeProcess, false))
+  )
 }
 
 /** Fast second check after liveness pruning closes the registration race before cleanup commits. */
-export async function hasRegisteredGrokHookOwner(directory = ownerDirectory()): Promise<boolean> {
-  try {
-    return (await readdir(directory)).some((entry) => OWNER_FILE_PATTERN.test(entry))
-  } catch (error) {
-    // Why: unverifiable ownership must preserve the shared hook, never delete it.
-    return (error as NodeJS.ErrnoException).code !== 'ENOENT'
+export async function hasRegisteredGrokHookOwner(directory?: string): Promise<boolean> {
+  for (const candidate of directory ? [directory] : [ownerDirectory()]) {
+    try {
+      if ((await readdir(candidate)).some((entry) => OWNER_FILE_PATTERN.test(entry))) return true
+    } catch (error) {
+      // Unverifiable ownership must preserve the shared hook, never delete it.
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') return true
+    }
   }
+  return directory
+    ? false
+    : await hasLivePeer(retiredOwnerDirectory(), ownerToken, probeProcess, false)
 }
 
 export async function hasLivePeer(
   directory: string,
   currentToken: string,
-  probe: (pid: number) => Promise<boolean | undefined>
+  probe: (pid: number) => Promise<boolean | undefined>,
+  prune = true
 ): Promise<boolean> {
   let entries: string[]
   try {
@@ -89,12 +102,12 @@ export async function hasLivePeer(
       // Invalid Orca-owned records cannot prove a live peer and are pruned below.
     }
     if (!owner) {
-      await rm(path, { force: true })
+      if (prune) await rm(path, { force: true })
       continue
     }
     const live = await probe(owner.pid)
     if (live === false) {
-      await rm(path, { force: true })
+      if (prune) await rm(path, { force: true })
       continue
     }
     // true proves liveness; undefined means the platform could not prove death.

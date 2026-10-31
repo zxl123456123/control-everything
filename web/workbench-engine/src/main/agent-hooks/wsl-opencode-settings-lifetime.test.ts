@@ -132,7 +132,7 @@ describe.skipIf(process.platform === 'win32')('WSL public-manager settings lifet
     manager = new WslHookRelayManager({
       platform: () => 'win32',
       remoteHooksEnabled: () => true,
-      hookCoordsEnv: () => ({ ORCA_AGENT_HOOK_PORT: '43117', ORCA_AGENT_HOOK_TOKEN: 'fixture' }),
+      hookCoordsEnv: () => ({ ZKYQ_AGENT_HOOK_PORT: '43117', ZKYQ_AGENT_HOOK_TOKEN: 'fixture' }),
       instanceKey: () => 'independent',
       resolveBundle: () => ({ jsPath: join(root, 'relay.js'), version: 'fixture' }),
       readBundle: () => Buffer.from('// fixture'),

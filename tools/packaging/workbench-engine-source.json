@@ -327249,7 +327249,12 @@
     "src/main/agent-hooks/windows-native-hook-identity.test.ts",
     "src/main/agent-hooks/server-header-identity.test.ts",
     "src/shared/agent-hook-request-headers.test.ts",
-    "src/shared/agent-hook-request-headers.ts"
+    "src/shared/agent-hook-request-headers.ts",
+    "src/main/agent-hooks/hook-environment-identity-prelude.ts",
+    "src/main/agent-hooks/server-endpoint-identity.test.ts",
+    "src/main/agent-hooks/shared-hook-state-identity.test.ts",
+    "src/shared/agent-hook-environment-identity.test.ts",
+    "src/shared/agent-hook-environment-identity.ts"
   ],
   "adapted_files": [
     {
@@ -327273,20 +327278,20 @@
     {
       "path": "src/cli/runtime/status-caller.test.ts",
       "upstream_sha256": "c60a95cb98d010d5704fe5553c15d2f486a5fa1b507429fc7dc9524bbe0d0391",
-      "current_sha256": "a8ca69792bad4a8a21d95a2560b8bf5320c3792a34f8cb61b134f444ed3fa9f9",
-      "reason": "通过本地 IPC 验证新旧会话身份和冲突拒绝；状态命令会话字段统一命名；迁移会话地址命名及相关验证；迁移会话身份 RPC 字段并验证跨版本调用"
+      "current_sha256": "681e7ec26fbaf7318af815b74a1d04de8c969a699df8e20b87c609d7e80c7bb2",
+      "reason": "通过本地 IPC 验证新旧会话身份和冲突拒绝；状态命令会话字段统一命名；迁移会话地址命名及相关验证；迁移会话身份 RPC 字段并验证跨版本调用；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/claude/claude-stream-json-connection.test.ts",
       "upstream_sha256": "01bab0b84db8200a38e74709249736fabc7394b54bc272ce24c3f19a9b087b77",
-      "current_sha256": "64dc607be2eb3d738d421736571e807b963901faf4e0e63573441001afd41630",
-      "reason": "验证新会话身份在实际 Claude 子进程中传递并清除旧身份；迁移进程恢复令牌环境身份并保持旧进程恢复和会话清理"
+      "current_sha256": "89c53d65ea16c3c75da4504e9ec4726eedf39c4b5eb47f6760279b1401addb8d",
+      "reason": "验证新会话身份在实际 Claude 子进程中传递并清除旧身份；迁移进程恢复令牌环境身份并保持旧进程恢复和会话清理；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/ipc/pty/host-env/spawn-env-keys.ts",
       "upstream_sha256": "b6509e243c19546f1b5ed4845026ce6a54dbd15c2d6fbd5f1b097b9d3ee51f5a",
-      "current_sha256": "aa664b9977f6f5021ce4dc34f60e81ced8dc2b7cd19f67627405aeae692c51c3",
-      "reason": "新会话身份环境变量迁移并保护旧会话；迁移结构化会话标记，清理继承环境并保留已运行旧会话的安全识别；迁移进程恢复令牌环境身份并保持旧进程恢复和会话清理"
+      "current_sha256": "2b96e54cdf693643784fd31cc12dd0a1acc0c3ff33ca44ab7cda25e2dd7deaa9",
+      "reason": "新会话身份环境变量迁移并保护旧会话；迁移结构化会话标记，清理继承环境并保留已运行旧会话的安全识别；迁移进程恢复令牌环境身份并保持旧进程恢复和会话清理；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/runtime/orchestration/orchestration-party-cli-address.test.ts",
@@ -329637,8 +329642,8 @@
     {
       "path": "config/electron-builder.config.cjs",
       "upstream_sha256": "145988a8484048fbdf0f7f9361eac6ceb406af6a0be306f42f4fccae99bacd29",
-      "current_sha256": "cd569e8b05f7025b553257a16f3bef125dd7ac3e1633ea3cda240dbef2d1f3b1",
-      "reason": "Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands.；统一Windows桌面命令安装状态、宿主能力、批处理分发和原生恢复命令为zkyq，保留PATH及消息参数行为；Windows命令源码路径同步物理改名；原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者；macOS打包CLI物理改名zkyq，同步安装/回收/卸载与本地派发，保留用户命令及文件竞态保护；Windows原生Hook统一zkyq文件及Control Everything PE身份，更新构建/打包/安装并识别旧注册以清理，保留版权和执行权限"
+      "current_sha256": "742562461c3de1d3b7798a100ce1196ffda79da516f453f0e7a54a29653c2bbc",
+      "reason": "Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands.；统一Windows桌面命令安装状态、宿主能力、批处理分发和原生恢复命令为zkyq，保留PATH及消息参数行为；Windows命令源码路径同步物理改名；原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者；macOS打包CLI物理改名zkyq，同步安装/回收/卸载与本地派发，保留用户命令及文件竞态保护；Windows原生Hook统一zkyq文件及Control Everything PE身份，更新构建/打包/安装并识别旧注册以清理，保留版权和执行权限；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "config/scripts/build-windows-cli-launcher.mjs",
@@ -329805,8 +329810,8 @@
     {
       "path": "src/cli/handlers/linear.test.ts",
       "upstream_sha256": "ed5fb337ea125d2f2943f635a3e4ff1a7dd49ec53eedf845e8d0500f1d3f1bd8",
-      "current_sha256": "b8ce0ad63f66a488ae4c9a8771b0acacbe7be2284f484cdb13525284bea9d9fb",
-      "reason": "配对链接生成解析和手机注册统一zkyq协议，迁移已保存VM配对链接并保留凭据及用户数据，更新脱敏和提示；迁移远程主机选择环境变量并防止错误路由"
+      "current_sha256": "92209c10530c3d647bb791c5240b6ab8f6ddc39ae4297ba55a46458ec05a5c53",
+      "reason": "配对链接生成解析和手机注册统一zkyq协议，迁移已保存VM配对链接并保留凭据及用户数据，更新脱敏和提示；迁移远程主机选择环境变量并防止错误路由；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/cli/index-environment-commands.test.ts",
@@ -330081,8 +330086,8 @@
     {
       "path": "src/cli/handlers/orchestration.test.ts",
       "upstream_sha256": "1ebd292e7c4c6c63cab1819c8b3e8c39d5274aabcc9d6487a547cec641474241",
-      "current_sha256": "688816e673149c31e66c253e77eb06e93e18aa527e0037f7b535b4d10bd11d6c",
-      "reason": "统一已安装zkyq宿主的Agent派发、收信及恢复命令与状态摘要身份，保留历史记录识别和用户内容；开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
+      "current_sha256": "83a7b7b2f20ecfe6c9d11877de003e726384bc983766d31b7fea35a7e89f1ae6",
+      "reason": "统一已安装zkyq宿主的Agent派发、收信及恢复命令与状态摘要身份，保留历史记录识别和用户内容；开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/cli/handlers/orchestration/runtime-compatibility.ts",
@@ -330273,14 +330278,14 @@
     {
       "path": "src/main/ipc/pty/host-env/assembly.ts",
       "upstream_sha256": "cea26bedafe323d652f0b6f2acba821a564220742d4f122a8bb9f18e858e1a09",
-      "current_sha256": "6b65bbf5fa1a5ae9401ab2b76b2c8da8079aa47b6eafae2fcd93d720fda56d50",
-      "reason": "WSL命令迁移为zkyq，成功写入后退役受管理旧入口，保留用户文件和桥接参数，失效旧命令修复缓存并对齐派发环境；原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者；开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属"
+      "current_sha256": "166f5d6feb723106d81edcfd6f2b364a40dbb2566e4bb0c0511810e7b2e90844",
+      "reason": "WSL命令迁移为zkyq，成功写入后退役受管理旧入口，保留用户文件和桥接参数，失效旧命令修复缓存并对齐派发环境；原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者；开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/ipc/pty/host-env/codex-hook-reconcile-spawn.test.ts",
       "upstream_sha256": "ebb07b366970dffc05f35a2a674ea00ab89c23f63df42c441e02d4053f05bc06",
-      "current_sha256": "73a8fd4ecedcac359118f0d5dc3e7afb63e8c86e4cbf95564f408775aea4681b",
-      "reason": "WSL命令迁移为zkyq，成功写入后退役受管理旧入口，保留用户文件和桥接参数，失效旧命令修复缓存并对齐派发环境；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
+      "current_sha256": "9557a0814d6359166fc8116132a1ac4b4481f8849eca5aac7dd0d329e4c4f42b",
+      "reason": "WSL命令迁移为zkyq，成功写入后退役受管理旧入口，保留用户文件和桥接参数，失效旧命令修复缓存并对齐派发环境；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "config/docker/cli-launch-contract/run-cli-case.sh",
@@ -330741,8 +330746,8 @@
     {
       "path": "src/main/codex/codex-structured-child-environment.test.ts",
       "upstream_sha256": "ab0d0e81f8da8cc9fcd65f628d2c08580eff504e944a9f5d9642a794d0e024cf",
-      "current_sha256": "1ec95600f2fc453837466fd5a12cec050fc7a0526f77a04e22d96c99618db006",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；迁移远程主机选择环境变量并防止错误路由；新会话身份环境变量迁移；恢复会话集成测试所需夹具、使用通用路径并核对迁移后的命令身份；迁移结构化会话标记，清理继承环境并保留已运行旧会话的安全识别；迁移进程恢复令牌环境身份并保持旧进程恢复和会话清理"
+      "current_sha256": "47baab901460d88a34480dd70a76252377e28e7b643c9eaf830e6b67ee2fc768",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；迁移远程主机选择环境变量并防止错误路由；新会话身份环境变量迁移；恢复会话集成测试所需夹具、使用通用路径并核对迁移后的命令身份；迁移结构化会话标记，清理继承环境并保留已运行旧会话的安全识别；迁移进程恢复令牌环境身份并保持旧进程恢复和会话清理；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/codex/codex-structured-session-adapter.test.ts",
@@ -330807,8 +330812,8 @@
     {
       "path": "src/main/runtime/rpc/methods/orchestration-structured-worker-session.test.ts",
       "upstream_sha256": "ab2e00af261af866df230098b4ab82a6e1c12068c193f1856491d2a4551846ed",
-      "current_sha256": "24c863f2e86f5baa7393b40bf9e49f113772f48f20e074dc08090e261d287c18",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
+      "current_sha256": "ca6c3bf00f80eb1f934c19563761a303c0349207e6ec4bb5c6ff668f6a0bbc83",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/runtime/rpc/methods/orchestration/runs/tasks-dispatch.test.ts",
@@ -330849,8 +330854,8 @@
     {
       "path": "src/main/runtime/orca-runtime-tests/terminal-creation-and-readiness-part-02.spec.ts",
       "upstream_sha256": "8532257d39901940d7b9078cff51d6b9a4acea261de407f5fab5a2e2a24f3f31",
-      "current_sha256": "a3eea63d36dbc895fefc9e464098d789d1df811d85b3ac4bcfbb42d767da674f",
-      "reason": "当前本地与SSH运行组件统一zkyq调用，移除过时relay命令分支并同步Agent启动、收信、回复与诊断默认入口"
+      "current_sha256": "ae0fe7e2a169a9538cd137e410076435e15f4cb2a4bc0599840f9b86627f9c4d",
+      "reason": "当前本地与SSH运行组件统一zkyq调用，移除过时relay命令分支并同步Agent启动、收信、回复与诊断默认入口；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/runtime/orchestration/formatter.ts",
@@ -331185,8 +331190,8 @@
     {
       "path": "src/main/orcad/orcad-packaged-structured-chat.integration.test.ts",
       "upstream_sha256": "1b51e407e430c215c6fdc7cd6b52847da0b2a982bae3d214b7fc1df90b5a49c0",
-      "current_sha256": "ed061e09fbcaca9ce29636160e0fcca5b9f4d0fac6fd59cc534098075a711768",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；迁移结构化会话标记，清理继承环境并保留已运行旧会话的安全识别"
+      "current_sha256": "ea5fdd1e531b538e48f04c5fc2a8abf8092a461826a1fe7679c2921f16298c01",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；迁移结构化会话标记，清理继承环境并保留已运行旧会话的安全识别；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/orcad/orcad-serve-parity.integration.test.ts",
@@ -331305,8 +331310,8 @@
     {
       "path": "config/scripts/wsl-hook-relay-reattach-benchmark.mjs",
       "upstream_sha256": "eca0a7d30761c659495022f1d1083dba4dd06e01f7bd3a93cb9a5308c225175a",
-      "current_sha256": "3966cfdd784866934c93ce7eaaf1ae15b5e151eec4269a03ce877cd28947aa73",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+      "current_sha256": "8d3444e07d37cd7b1c6c48ce8470dfcbffbdfdafa49188499d72561cc4f2e1fe",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "mobile/scripts/start-emulator-pairing-runtime.mjs",
@@ -331323,8 +331328,8 @@
     {
       "path": "src/cli/handlers/agent-hooks-prepare-codex-isolated-home.test.ts",
       "upstream_sha256": "4b9e1a4c1b81afdcc09e9bf2eb8a9237ebe9f526beaeb0ccbde60348f974bcd1",
-      "current_sha256": "c84e1a24ac7c76d2a7d1be7d3ac3320f0ae6fa7322a1cf614b7e5e6156783243",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+      "current_sha256": "ab4f8cab0820f87280ddf25acd3925b10f4af5ad79138254141cbec69ba2c6d8",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/cli/handlers/automations.ts",
@@ -331341,8 +331346,8 @@
     {
       "path": "src/cli/handlers/orchestration/terminal-identity.ts",
       "upstream_sha256": "17dbbe6811ece95b3645b6df2ec93697bca335e5b09d1f9d5ec9c7e552384306",
-      "current_sha256": "458cf0a74b6b67e208b91a127669d5e3baf9ea671e45004c711c5a636899e459",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+      "current_sha256": "82a57579d8ca247b123e935179f6f1dd36d19ed39eaf0deba1cef4b9bb9bbbe0",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/cli/handlers/serve-service.test.ts",
@@ -331365,14 +331370,14 @@
     {
       "path": "src/cli/index-test-harness.ts",
       "upstream_sha256": "b3e1cdb1b1c0bd6d6ff5e605592217b2e951bbca81fe1e315712b1e65bb2cca9",
-      "current_sha256": "ec199181f238c971999d47fd8ec635111ed173f8d0bb4aa49e5e6ffbe0832f6b",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；迁移远程主机选择环境变量并防止错误路由"
+      "current_sha256": "8a6cac09e6a52a6c7a3a39fde4133973a3b1e241711b76727335d9df25843cb7",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；迁移远程主机选择环境变量并防止错误路由；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/cli/orchestration-session-caller-cli.test.ts",
       "upstream_sha256": "ac2e812ad5ebf8848effaae106f8248be2af915f4234148541ed403848f3ab15",
-      "current_sha256": "c3c32feae5136adca2e3e89ec0ed64106424eda08a577f7da7b6ae46a78d28f0",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；迁移会话地址命名及相关验证；迁移结构化会话标记，清理继承环境并保留已运行旧会话的安全识别"
+      "current_sha256": "078a20f71d61f670d51a4a1545edabbfa8c504acfb9a87a689fb42bbbdfcc901",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；迁移会话地址命名及相关验证；迁移结构化会话标记，清理继承环境并保留已运行旧会话的安全识别；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/cli/runtime/client-execution-host.test.ts",
@@ -331455,50 +331460,50 @@
     {
       "path": "src/main/__fixtures__/shell-wrapper-snapshots/daemon-bash-rcfile.txt",
       "upstream_sha256": "ce2ca912b0ca44bf8be66f051c587182692ee665190c4576c999d16edcd76174",
-      "current_sha256": "f615a7be4a646a20f72504c6d00bef030fccaa3c12d82b624e3c44d84646cc99",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+      "current_sha256": "f8c61ce6c504c9990d9e134ce8de7dc790c8da773d257c38f90bcd3264b98585",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/__fixtures__/shell-wrapper-snapshots/daemon-fish-init.txt",
       "upstream_sha256": "e5ea756e949228e7df7f988b4e1a4fc4bbc0cfde454286a193de7b01b5aeb232",
-      "current_sha256": "4b7029939befc47f171790d6a712b43430dea3a41e2461d85220c88eb88116b9",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+      "current_sha256": "52eb0e6195c8d0ee29326cdef5eef7a36b749895b099d991d9b021de4bddce22",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/__fixtures__/shell-wrapper-snapshots/daemon-zsh-zshenv.txt",
       "upstream_sha256": "98990c9b03e8275db0b70c914cef885f93008e026adbe591125ca6f7162759ca",
-      "current_sha256": "0f3795308eeab01037ae29c19b5eb73743d3209a0e36712d4881ccece3a15163",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；迁移终端历史交接变量并以新版 daemon 隔离旧 shell 合同"
+      "current_sha256": "32c077b1fb1f80fa27f83431ede770ec2cec6099219bec5a2201226d07590cec",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；迁移终端历史交接变量并以新版 daemon 隔离旧 shell 合同；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/__fixtures__/shell-wrapper-snapshots/local-bash-rcfile.txt",
       "upstream_sha256": "ef0c94984bb7044009c0062813ddf265226cf5e2536679c732792097fca96e19",
-      "current_sha256": "7d4ca11105a76add366ecc936fe7e4fc5487e55ddc75c26a9f3e7e2354de0eaa",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
+      "current_sha256": "67bf88fc0e7b63f4a0eed963103464d42bbc6a7a886e198491bf03a2a3fa96bb",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/__fixtures__/shell-wrapper-snapshots/local-fish-init.txt",
       "upstream_sha256": "e5ea756e949228e7df7f988b4e1a4fc4bbc0cfde454286a193de7b01b5aeb232",
-      "current_sha256": "4b7029939befc47f171790d6a712b43430dea3a41e2461d85220c88eb88116b9",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+      "current_sha256": "52eb0e6195c8d0ee29326cdef5eef7a36b749895b099d991d9b021de4bddce22",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/__fixtures__/shell-wrapper-snapshots/local-zsh-zshenv.txt",
       "upstream_sha256": "4260323c66756939e67fe3e36288398f09a4be9c7b918a64e210caa117dc784b",
-      "current_sha256": "9f53ef1de65822e90389b7a854af78298ee987b203648f1f485c1e3fa51a9ce0",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；迁移终端历史交接变量并以新版 daemon 隔离旧 shell 合同"
+      "current_sha256": "167157296a02dfeffbff27928b6defffd43169e7ec28e4e151fe26ce09444024",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；迁移终端历史交接变量并以新版 daemon 隔离旧 shell 合同；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/agent-hooks/managed-hook-script-refresh.test.ts",
       "upstream_sha256": "368e41c10972fa346563d3379d1925b98412d5174b8c949114c9d7466bf40b19",
-      "current_sha256": "c56526cbb8e0824f7d4b704203f837233306175f382d9932fa39c881a302ca82",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+      "current_sha256": "553ca65056d672f7510a5acf328d7ae2bd909e2994d9760fc5b92d616a4cb65d",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/agent-hooks/windows-hook-post-interpreter.test.ts",
       "upstream_sha256": "a3056f1449c068d7f48a8dc8b731912a62ef29c97d1154fbfaf628e944b7d322",
-      "current_sha256": "98fab37b43c44a0d1ad8d20b453c7a3a485c68e4cd104f770b4e20cf44b0480c",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+      "current_sha256": "099c5792e1c7d3203420920bc7fa5ed3765aaac81b899b6738d5c02c4195e44a",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/agent-trust-presets.test.ts",
@@ -331593,8 +331598,8 @@
     {
       "path": "src/main/codex/codex-hook-file-entry-binary-contract.test.ts",
       "upstream_sha256": "73c0cb59b6d41713b03e6ae6f8cea53f389dc5505892231ef927c0495c3abae3",
-      "current_sha256": "c66bc616e55f4515797c5dc93dd62166b536732ed16827e6bda474d214599a6b",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+      "current_sha256": "71f555a6ba6c9a8082d1114f21a5d5196180dcdc6436e492c41cc1de268a9bd9",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/codex/codex-hook-hash-lookup.test.ts",
@@ -331611,8 +331616,8 @@
     {
       "path": "src/main/codex/codex-hook-reconcile.test.ts",
       "upstream_sha256": "1003cb44b8812e429703b3b673a4ed1d8b80ef158a94bb8133ae508c4292a0b1",
-      "current_sha256": "3e36ebdd353d7d9ad0e27261d9654728e7739562b3c87e158236b9544ad05ab1",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+      "current_sha256": "9985070f809131f41eaf67f05c4fbadc4694fd838eee3778822ae149eb49c1a1",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/codex/codex-hook-toggle-off-wins.test.ts",
@@ -331635,8 +331640,8 @@
     {
       "path": "src/main/codex/codex-real-home-hook-entries.test.ts",
       "upstream_sha256": "f6319cf9e123810f9eecb7c93792fe0b9050d1164d843b57aa3d536daa8ae4f2",
-      "current_sha256": "b99a888b76fb6736848687febdb0b324b7f4dd2ffc7c66a56c051963ab9d50c6",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+      "current_sha256": "fdf2ba1ab9317b9579320ba205f5d527018a6fa50afd8065778ce9c091ca6458",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/codex/codex-real-home-hook-key-spellings.test.ts",
@@ -331755,8 +331760,8 @@
     {
       "path": "src/main/daemon/pty-subprocess/spawn-environment.ts",
       "upstream_sha256": "a2132d872276824fe527d1a97077c5dfeee9fc18e2ddc0815e77010e115cbdb7",
-      "current_sha256": "daa8865cbce2d457a5cfcd0452992c8be9af90c115dc6b73930e144ffe2ce1b6",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；本地与远端终端进程标识统一为 zkyq；迁移终端历史交接变量并以新版 daemon 隔离旧 shell 合同；迁移应用版本环境变量并隔离驻留旧版 daemon；OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属"
+      "current_sha256": "dbcadc2f4b9fdfcf658cb86cdc0fca89c2b77e49ba4aa2ae92b888d8c03a9ca2",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；本地与远端终端进程标识统一为 zkyq；迁移终端历史交接变量并以新版 daemon 隔离旧 shell 合同；迁移应用版本环境变量并隔离驻留旧版 daemon；OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/daemon/pty-subprocess/spawn-preflight-health-probe.test.ts",
@@ -331779,14 +331784,14 @@
     {
       "path": "src/main/ipc/pty-ipc-process-env-scope.ts",
       "upstream_sha256": "30b5be7243b9a3ca2d99f36ebdd62eb9cc142fbcea0a7b9730523ea8ed9dea51",
-      "current_sha256": "3e38017caddd447d67bfbde7218fe833246572bd93f16d0a2c79f933d8e81ae2",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属"
+      "current_sha256": "7036954f5a33117d826bfa2fad5d76d40fbe139c48a99de251101d17a8753548",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/ipc/pty-ipc-suite-environment.ts",
       "upstream_sha256": "e02bc0ae199320f5b22e3def571ee0a2a4a97d2500d750c062edd8f02f8e8687",
-      "current_sha256": "65480a59294aba44c567ff9733c261ed6592d8e282b07228adeda7700d5c2901",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+      "current_sha256": "8a7acf4cc4167e21d18c8222b90a25b169f723363641a097bed69c4bd0ba5193",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/ipc/pty/opencode-legacy-spawn-deletions.test.ts",
@@ -331869,8 +331874,8 @@
     {
       "path": "src/main/pty/wsl-orca-env.ts",
       "upstream_sha256": "79f15d7b17d41f207a8f68127df82b7b538dea45e6d45578fd519e5ac93e691d",
-      "current_sha256": "97820a17ad393dac82524dfd864de6953766a1b90c9ce8f17e700e0616e65904",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属"
+      "current_sha256": "fa58eaae3ace055b00901a68aceb68aacfa804b18c2c8d882e49f2d91071e121",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/rate-limits/hidden-rate-limit-pty-cwd.ts",
@@ -331881,8 +331886,8 @@
     {
       "path": "src/main/runtime/__snapshots__/structured-agent-launch-parity.test.ts.snap",
       "upstream_sha256": "7b7b400f3f1f72be176e948c57214d22b1f61b54fdef0914b0df2cd919215b7e",
-      "current_sha256": "f8fb2886671f0b8ac6f8411596bd7cbbafdc67bdcc2bbb9dd647f6a9eb2afd26",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
+      "current_sha256": "92c4d1bd69d336abc92780a4578f39f08e2e44112d0882e51b8db6fee14b625d",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/runtime/orchestration-cli-subprocess.test.ts",
@@ -331899,14 +331904,14 @@
     {
       "path": "src/main/runtime/structured-agent-launch-parity.test.ts",
       "upstream_sha256": "842230c594bf65a7e6abfc9c13d47b7bd172559de1a373acf4e9285092c95360",
-      "current_sha256": "e4ae5326afb389388d1ccc50b8bf0f829a8d1fb7dc8d309caaaaeda9763fd108",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属"
+      "current_sha256": "d03908aa04984ea75782710b7a938b8fe027539157a23e1c458fe1a0dca9e7c3",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/runtime/structured-session-child-env.ts",
       "upstream_sha256": "c6430d04f35adccb249dd1e6b1eaf824ee0e85efa92287e141348f59dc246627",
-      "current_sha256": "1578a814a148c354a41e31be57144fbd57e22232385cd81a13df8d09c5509332",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；迁移远程主机选择环境变量并防止错误路由；新会话身份环境变量迁移；迁移结构化会话标记，清理继承环境并保留已运行旧会话的安全识别；迁移进程恢复令牌环境身份并保持旧进程恢复和会话清理"
+      "current_sha256": "0ee7d487487e44ef422879638ec5faa8794071a3244639d1701f2aa4aa85c13e",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；迁移远程主机选择环境变量并防止错误路由；新会话身份环境变量迁移；迁移结构化会话标记，清理继承环境并保留已运行旧会话的安全识别；迁移进程恢复令牌环境身份并保持旧进程恢复和会话清理；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/runtime/unreadable-secret-store-preservation.win32.test.ts",
@@ -331965,8 +331970,8 @@
     {
       "path": "src/shared/codex-shell-function.ts",
       "upstream_sha256": "7f380cfe78f978b702c72f5814dee5e3a7eacb2c6b22990e245365b0f0ea1e57",
-      "current_sha256": "2d3edfad529d310ceec4084f13b09fe893d44353428de347bccdec75f1584c57",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+      "current_sha256": "2c4045c1a4025ca2d9929be35f7b380050240775121480204f09a444d6a3159d",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/shared/wsl-login-shell-command.test.ts",
@@ -332013,8 +332018,8 @@
     {
       "path": "tests/e2e/helpers/completed-worker-retirement-fixture.ts",
       "upstream_sha256": "c9d110eb41667a89fe4202f5fcfbd3b68bc78697e6e1ee3ec6966b53a2af6228",
-      "current_sha256": "ce084f07e34767678b15c5845a6164af266ad1976a7c5507a696c727dd09afd4",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；迁移远程主机选择环境变量并防止错误路由；Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+      "current_sha256": "95da61c57b15a7c0bf5ba8a35cf937db100683a34ecfdcad1d160cce2ee2c7e7",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；迁移远程主机选择环境变量并防止错误路由；Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "tests/e2e/helpers/daemon-generation-safety-fixtures.ts",
@@ -332757,20 +332762,20 @@
     {
       "path": "src/main/providers/local-pty-spawn-environment.ts",
       "upstream_sha256": "bf76ed09538492ebf83fd3b94d936837414bced629aa2a78d446f10e6cba7313",
-      "current_sha256": "6fedd6350c5eb6b6d0ec0c6cc22e09da945b8f99795e9e1b49a146dd55cdcb7c",
-      "reason": "本地与远端终端进程标识统一为 zkyq；迁移应用版本环境变量并隔离驻留旧版 daemon；OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属"
+      "current_sha256": "4a5dfdb5c54914be6b72b2b3b34b0e4c5de16e2ab23c583b142b3e48e79087f4",
+      "reason": "本地与远端终端进程标识统一为 zkyq；迁移应用版本环境变量并隔离驻留旧版 daemon；OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/daemon/daemon-foreground-confirmation-protocol.test.ts",
       "upstream_sha256": "6a7537df9c680841ddb7a3c6f8220dbee228e1b701101e4c046c03d9c75dcee4",
-      "current_sha256": "d0d252afcca91e326abc7866829d2432daa78fc8b2a77c9a64d63cfa78c78c71",
-      "reason": "迁移终端历史交接变量并以新版 daemon 隔离旧 shell 合同；迁移应用版本环境变量并隔离驻留旧版 daemon；终端资源环境变量改名及启动迁移"
+      "current_sha256": "187966ecb37023e77dcfd2545567c93007c4f8481589a7fa11f4d03f8296cf1b",
+      "reason": "迁移终端历史交接变量并以新版 daemon 隔离旧 shell 合同；迁移应用版本环境变量并隔离驻留旧版 daemon；终端资源环境变量改名及启动迁移；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/daemon/daemon-protocol-version.ts",
       "upstream_sha256": "88ebc0c1b28e532deca3026e4e11ecce06faeacd2948506b2f6e1cb901454f82",
-      "current_sha256": "55bf14c00c1a8a9d48f6597571e964b04a244d9a3c0f3c1356c5dffaf94d20fa",
-      "reason": "迁移终端历史交接变量并以新版 daemon 隔离旧 shell 合同；迁移应用版本环境变量并隔离驻留旧版 daemon；终端资源环境变量改名及启动迁移"
+      "current_sha256": "5cc8dd546825b4683cdcc0683618142851c7f0edce564106fdf48073e79c2919",
+      "reason": "迁移终端历史交接变量并以新版 daemon 隔离旧 shell 合同；迁移应用版本环境变量并隔离驻留旧版 daemon；终端资源环境变量改名及启动迁移；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/providers/local-pty-finalize-environment.ts",
@@ -333477,8 +333482,8 @@
     {
       "path": "src/cli/index.ts",
       "upstream_sha256": "2123978773bc5f124727d9ff4c8fdc91f4d05802d9bc89947dee3066a646f509",
-      "current_sha256": "7155a04b5f629d74d4e279daf14906dcdfdf70d20a83186c5dd6aed27ecc3a20",
-      "reason": "显式迁移已跟踪项目配置，保留 Git 索引和用户修改；迁移远程主机选择环境变量并防止错误路由；迁移 WSL 桥接调用目录和发行版身份并保护远程写入"
+      "current_sha256": "bc5ff8f4af907c04fc5df827eadce046ecd177cd0373591062ce1d998d4bd7e6",
+      "reason": "显式迁移已跟踪项目配置，保留 Git 索引和用户修改；迁移远程主机选择环境变量并防止错误路由；迁移 WSL 桥接调用目录和发行版身份并保护远程写入；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/cli/specs/repo.ts",
@@ -333537,8 +333542,8 @@
     {
       "path": "src/cli/runtime-client.test.ts",
       "upstream_sha256": "d9752b2e99784f0a299cac4b88e8b7c234e0666a1899bc4a3145a34d514c9b41",
-      "current_sha256": "839b9a2f4d800388b24ceb11897748fb35639f60f24bc406fdb063ef49129836",
-      "reason": "统一命令行连接与恢复提示的产品名称及可执行命令；迁移运行时发现文件并保护新旧进程所有权"
+      "current_sha256": "2b2cc8101f340c3b1b9b0e266d61b62d27c2b965d151c012fefd86c89fa48310",
+      "reason": "统一命令行连接与恢复提示的产品名称及可执行命令；迁移运行时发现文件并保护新旧进程所有权；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/cli/runtime/client.ts",
@@ -333891,14 +333896,14 @@
     {
       "path": "src/cli/index-worktree-selector-resolution.test.ts",
       "upstream_sha256": "52a29d2edd51b49feccffd205701de6f5e38323109338f97420b887762ad853a",
-      "current_sha256": "8570b6de68306e85db00ca713ab9df781fed92a10d872c199770940abdf89b5f",
-      "reason": "迁移 WSL 桥接调用目录和发行版身份并保护远程写入"
+      "current_sha256": "00b845a292ed4d4cb266a9b392c961f9dbbb2c4eb5f60952fe920159697e56e0",
+      "reason": "迁移 WSL 桥接调用目录和发行版身份并保护远程写入；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/cli/selectors.ts",
       "upstream_sha256": "2b87db8da5106cdacfcaa1090487bf25de1fffe0d96ae5303a38716e38e8f671",
-      "current_sha256": "641710b56de667c3533e09696c8de00c4ea0263527375352efe7bb6e52aa4307",
-      "reason": "迁移 WSL 桥接调用目录和发行版身份并保护远程写入"
+      "current_sha256": "56bea3d23bcc05569e8f5fecb3003d555186d63e799620fbecae6d799e26eddf",
+      "reason": "迁移 WSL 桥接调用目录和发行版身份并保护远程写入；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/cli/wsl-cli-registration-reconciliation.ts",
@@ -334653,50 +334658,50 @@
     {
       "path": "src/main/ipc/pty/host-env/opencode-config.ts",
       "upstream_sha256": "13a9b6f7db7b67b0b6282547cdfbcc00dc8f79354ddf88b14f5d942fe375c8b9",
-      "current_sha256": "0cded2a32c43bfad532f3648719eba5081d5aa070e5663b6198a4cf173c7a9d9",
-      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属"
+      "current_sha256": "c0875b88ab4a6734f6663dec51c33ab8b2fb5ad17d7ba13c28ca012325bd9c70",
+      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/ipc/pty/host-env/pi-agent.ts",
       "upstream_sha256": "c8b9adc0b17c83a16e8dd098971664b3347e508b4ea002fd7d584b108c72e47f",
-      "current_sha256": "966d29d4ad835df8011a704df006c873db55e8b2db59ba0b3635e1ba1ca40ff1",
-      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属"
+      "current_sha256": "d9b1924c8c105b8d00b4e6f748f7f5a7772688b6231f3f5aa920683f7af4ba25",
+      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/opencode/hook-plugin-dispose-host.test.ts",
       "upstream_sha256": "03464f31dd696e20d5fb970ca6de97d9a6b5782ef2a5b396244b526ff8107357",
-      "current_sha256": "8222d55a01bdfdcf1b1dc756d2515082ab63bb78150bc7a9ad5caeda20976652",
-      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属；OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场"
+      "current_sha256": "6fc5fc827b6d07de6655b74c3ace14f66797ccba6333f7e36a8acf8699b4de0b",
+      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属；OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/opencode/hook-plugin-legacy-tui-ownership.test.ts",
       "upstream_sha256": "1ae4e28d19b8d3d41301a75f27e4a00350a2f9e320ded49c5cb2910e3db9981d",
-      "current_sha256": "b7f00cad4facf2fdae7a07104fee76cb3322e73da1d71d891241ce206ef3ba6d",
-      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属；OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场"
+      "current_sha256": "264eeb730ad84ba612327312f8eeab98469190a227001900ea6a7d0b68c30482",
+      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属；OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/opencode/hook-plugin-module-contract.test.ts",
       "upstream_sha256": "83058a9caa66067f270541ee4b4f799aea80b356466e57b67129955640987cca",
-      "current_sha256": "7950d11f5423bd3910e3737fdaeedf7ffec1cc6384295d5e18e77b1f5150c1bb",
-      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属；OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场"
+      "current_sha256": "19a7717c06d75d5bb0c5fa1e0a82270dd271422d36ee8cf299627d400c447999",
+      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属；OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/opencode/hook-plugin-opencode2-session-lineage.test.ts",
       "upstream_sha256": "bcd5d6684cbfb3050c31db68e7d5c459786ee9459dcd2175cae3417a50c1f433",
-      "current_sha256": "38c381cef9d32726ed7d41a1cbd05d9de55a9a76ca4b9780be217d0e31ab6365",
-      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属"
+      "current_sha256": "d9997fb0dc5e384b807a6e332c99bdcfe00b42a2a779a06c55527d443bc7afc7",
+      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/opencode/hook-plugin-opencode2-setup.test.ts",
       "upstream_sha256": "05f08876e8e12ec86045d0ec5721da1802bdc3240447237c23b92613c4c5f549",
-      "current_sha256": "3ffccb72a55186765fad64a6a5b5729e8f22c94b8662539ffb13c24dbecf8495",
-      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属；OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场"
+      "current_sha256": "ccf9a06d953665b33c63ca7c491dab5bfa42d30d1c193230416a87612643d75f",
+      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属；OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/opencode/hook-plugin-opencode2-tui-ownership.test.ts",
       "upstream_sha256": "cde60cce47e6bcc45358319ca95f03ab16fe6ff7fe5ce0f363601300dca1d4ed",
-      "current_sha256": "5a98020038a9526376ae823bdd2af941fe5139f5e14e9c3d5a1c13dc0a462b53",
-      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属；OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场"
+      "current_sha256": "b7fd52c635b2a0273f97e1ea2cd294ed8146b90d414193c487e5ab4db2d4525a",
+      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属；OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/opencode/hook-service-invalid-tui-config.test.ts",
@@ -334713,20 +334718,20 @@
     {
       "path": "src/main/opencode/opencode-acp-environment.ts",
       "upstream_sha256": "98749577ca67168c25b12a63bbd011b79d2c0625371e17f4ecc3ef23f5b368bc",
-      "current_sha256": "ad5298dc44da02a08cf5d46785b5e97ded1add09ab145c8b37fbbb115a8e7adc",
-      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属"
+      "current_sha256": "109fb82b12c790029cd2b0e086aac84e18a07d96a81161a744d87985388e383e",
+      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/opencode/opencode-pty-launch.test.ts",
       "upstream_sha256": "22eedd4ef4c762b9e6159ad37e5dff97766638bb7ff1c806096c89061453db61",
-      "current_sha256": "c2b2aeccde4cd58dc753ca256999457e05b6177058eb3dcf79c5347f9e5ad77d",
-      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属"
+      "current_sha256": "0fce3673e8c38b553e7dc935de541d2d285ea3348424b5d8892b3adf043295c4",
+      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/opencode/opencode-pty-launch.ts",
       "upstream_sha256": "042d5f73fda752f35f9372d34075445473b644d4957df246342aff867784515f",
-      "current_sha256": "eca655170037a89f9315aff4b4a5b255980cd817a89953c89baee160cdd76f28",
-      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属"
+      "current_sha256": "5eb6c85d54ed1318569b88fe976ec03d4b9f1bf02110a77a30829ed0ec13f44d",
+      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/opencode/opencode-startup-prompt-installer.test.ts",
@@ -334737,20 +334742,20 @@
     {
       "path": "src/main/opencode/opencode-startup-prompt-installer.ts",
       "upstream_sha256": "9dbbe963556edf220c9c06b07a813b6fcf79a87ddfb7764956180063b3bae6d7",
-      "current_sha256": "1bfb4c433d159fc62d404cba8e7ce024ad90ada8bc9ecf2a9022e24913901b72",
-      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属"
+      "current_sha256": "dfb1302c222c0d0052fb7df7b8bccb0de50482b6b71ac205d30f651db0d188d8",
+      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/opencode/opencode-startup-prompt-owner.test.ts",
       "upstream_sha256": "246c7bca66c147a0e233c229e9cbc0187115ad9f33850f2349dedd5f22670ebe",
-      "current_sha256": "aa94faaae9cfe879f2299cc6f2d036b0e242a554468d67bca3eb71d0674ee18b",
-      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属"
+      "current_sha256": "faaaf810982c20655f8e1f45ff5159bbcba85d7ae7960e49379840d56506733c",
+      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/opencode/opencode-startup-prompt-source.ts",
       "upstream_sha256": "caf3c3224e5bee2dbc2298e1741d7d3fb428d68e28013f82f5c329b660a9d270",
-      "current_sha256": "29edcd2c4cbe2db56684d6d1f988c9f8fd760e8b4dcf4eb2eb9a2629b4f3bbc3",
-      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属；OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场；Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+      "current_sha256": "5e823d5a24f1ad378b2462860adfa2c9f44fb4182f154324c430a30afbec65d8",
+      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属；OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场；Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/opencode/overlay-dir-gc.test.ts",
@@ -334761,20 +334766,20 @@
     {
       "path": "src/main/opencode/status-plugin-factory-source.ts",
       "upstream_sha256": "7fdcd3d5d130a9d53d5f4bc7d1c5afe360c966000dafe49c5eb1399c32acc236",
-      "current_sha256": "676332595e92ab3d2ee7c71028927544e3cd30060c78553acb38d3108247c6c8",
-      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属；OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场"
+      "current_sha256": "f1bba915d0dec5217681500f977e9a1a1ce971d7af5aea9c0d4480ba5f0a7d52",
+      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属；OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/opencode/status-plugin-shared-server-capability.test.ts",
       "upstream_sha256": "5ed68e7d90f562419d39c3696315cca8da0e7f570b3723e32c1813d2a5f9efe9",
-      "current_sha256": "719c1264ac310299a154020b4c969e6c06d2276621116a0ea54868c1c8a9dc25",
-      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属"
+      "current_sha256": "89ff8589fe28c0d5b0e3443cbd469a8076b34e9ffaed13378f0efc3cd8cbac2b",
+      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/opencode2/status-plugin-tui-source.ts",
       "upstream_sha256": "fc4070ca3679c79e261d36413bbc9572d15bebeab01d4862022e3470b22bce66",
-      "current_sha256": "74f76bc8c9a7144a74acb5c8670425385bbecb6510be2483afb6cb13f1358873",
-      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属"
+      "current_sha256": "b54e12cf0af12abc3c49b2f048a84b2d1ffd230be7ab14e125cfb960cea718cb",
+      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/powershell-osc133-bootstrap.ts",
@@ -334791,8 +334796,8 @@
     {
       "path": "src/main/text-generation/commit-message-agent-environment.ts",
       "upstream_sha256": "96afb97ef87d103b887fdb7570a25a61c53065dcc8c3b0bd845a8f986989cc42",
-      "current_sha256": "d250285d4669a142c5eaac811d560f0daacda939ea8795d797d4e56ac4300f17",
-      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属"
+      "current_sha256": "5d8a3d8a8670c5f89db272329046e2faf36f0ca1c975e1b473577a357f95d10d",
+      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/zsh-startup-wrapper-builder.ts",
@@ -334815,8 +334820,8 @@
     {
       "path": "src/wsl-guest/plugin-overlay-env.ts",
       "upstream_sha256": "bcfe66c42a3e5ee5a37c210ae11450efaab648d5f615d0b8323642fd0c188fc6",
-      "current_sha256": "412414218f92bffbd3f01d0486d96a0e18a54b34c9b5ae4283b8dc61ed9dde45",
-      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属"
+      "current_sha256": "22f0100863dec85499174c3cf1fa8ef8fcff58f2f061c75bd1526c6a458e5718",
+      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/wsl-guest/wsl-install-plugins-handler.test.ts",
@@ -334839,38 +334844,38 @@
     {
       "path": "src/main/opencode/hook-plugin-background-child-completion.test.ts",
       "upstream_sha256": "ea45fdf3053c21c2654e1036effda2d63e1b1c30e43107cfef7d58fdcd4dbaa6",
-      "current_sha256": "effe959537dd3465a8a8b2df653c6ffed2e36d9d0084a3140c0216790285c444",
-      "reason": "OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场"
+      "current_sha256": "dc1257863c1efd3144dc1b16d5198f1f8083d33f8afdafee52764ed4967b49fa",
+      "reason": "OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/opencode/hook-plugin-child-attention.test.ts",
       "upstream_sha256": "94f7c748bc3f3984a9f525cb5fa4578ba0947c485acc3d530a3fac71667317db",
-      "current_sha256": "02c06cb3ed81e2bcfd03028b335843f09c87ed848461cc7509bc300aceb35417",
-      "reason": "OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场"
+      "current_sha256": "b89a4b25a82cd73733b9e2913ab1be7a71cf4e4ef0de6d48544365c3e9f20dec",
+      "reason": "OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/opencode/hook-plugin-fail-open-ownership.test.ts",
       "upstream_sha256": "dc13f9017e2d687cf5ad9f962d7ae862e06351fdeed1c7fa758849f7a5173434",
-      "current_sha256": "d53e2d1f7e59a0bb365180d63d36a18a6b4a0428199e2ce3cd91d5e28facc6a2",
-      "reason": "OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场"
+      "current_sha256": "8bd03f9fccfff41727c568ad91bc55fd855a5e419b5997febe60e975f7456b6a",
+      "reason": "OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/opencode/hook-plugin-lifecycle-delivery.test.ts",
       "upstream_sha256": "c5e6a1af6feb4e03ed99bb9e49995d7bbba48cab5ca2c6ef7be5a53aa3f0daef",
-      "current_sha256": "3844d1b81a6c11ee30a4dd1a3a366c24d04e0e04d28d78d887c3cc15160d8ed4",
-      "reason": "OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场；Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+      "current_sha256": "aca43db8b9b85a85c1035e2978c8f1efb4d91d558d19b1d939b50ffa351c2177",
+      "reason": "OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场；Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/opencode/hook-plugin-message-part-throttle.test.ts",
       "upstream_sha256": "272e851972f57f96f4ddf89e6381de636daa9ef79e95b4fa2ce1c21bd9b35cf2",
-      "current_sha256": "063ad95d3bed9c403b6c4ce0496e35d196b66c12c04780ccea6b88ed76888d65",
-      "reason": "OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场"
+      "current_sha256": "b3f7685e52f159e224fac42537693d53fa983566dbc83ec8ecc28ae644225cfe",
+      "reason": "OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/opencode/hook-plugin-run-process-session-start.test.ts",
       "upstream_sha256": "fee1fb5528e0475a3ace43a4e9c2568fd323bb256ae7e3feccd84e6c85600af1",
-      "current_sha256": "e5a27a65b14a2eb5abbbfcdeee2f12e652ce6c07c3764e57801b0dcee83024a2",
-      "reason": "OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场"
+      "current_sha256": "81e72dcd7f9c611def064f23b6e24b7a15598ccac7e7f77059fbf0062dcdf728",
+      "reason": "OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/opencode/hook-service-legacy-acl.test.ts",
@@ -335019,14 +335024,14 @@
     {
       "path": "native/windows-agent-hook/src/main.rs",
       "upstream_sha256": "9fbd844834a09a852490c57b3e10a08418dbc38da957d60d585246dc70195a08",
-      "current_sha256": "720cba6c5d7ac2970181dc2003c099b9b55af60f02dce28dde5016a76bc58687",
-      "reason": "Windows原生Hook统一zkyq文件及Control Everything PE身份，更新构建/打包/安装并识别旧注册以清理，保留版权和执行权限；Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+      "current_sha256": "c30ca6c91d680541fee1556bfb422e3f5df33a639f599ff160f57716670fabaf",
+      "reason": "Windows原生Hook统一zkyq文件及Control Everything PE身份，更新构建/打包/安装并识别旧注册以清理，保留版权和执行权限；Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/agent-hooks/installer-utils.ts",
       "upstream_sha256": "96686e86e3d60180f7adcbc2dbe3cef17b8916acd49a462768ec495fdc8c3645",
-      "current_sha256": "6c034e51187bd11e0ba795033a2a6212595938f0d58a9d392a5cf06b37684e61",
-      "reason": "Windows原生Hook统一zkyq文件及Control Everything PE身份，更新构建/打包/安装并识别旧注册以清理，保留版权和执行权限；Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+      "current_sha256": "48419e0c1990c897aa2304217c5d12f9496ad908bf322dd69547b4f870b81b9e",
+      "reason": "Windows原生Hook统一zkyq文件及Control Everything PE身份，更新构建/打包/安装并识别旧注册以清理，保留版权和执行权限；Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/agent-hooks/locked-executable-rename.test.ts",
@@ -335049,44 +335054,44 @@
     {
       "path": "src/main/claude/hook-settings.ts",
       "upstream_sha256": "beb1af03f878c99eb80382aa983ab27a54e3da8fd262679f4e3a11a1fe8ec128",
-      "current_sha256": "c9525ec58b2782c1a591d488678ca055485fcf2f2f877e4dcddd4f7ec9f8b09a",
-      "reason": "Windows原生Hook统一zkyq文件及Control Everything PE身份，更新构建/打包/安装并识别旧注册以清理，保留版权和执行权限"
+      "current_sha256": "2575bba305b53d695d9bed05c39174475f9dda7061e79aa4e0fe6ff54f8ba7bd",
+      "reason": "Windows原生Hook统一zkyq文件及Control Everything PE身份，更新构建/打包/安装并识别旧注册以清理，保留版权和执行权限；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "config/scripts/verify-agent-hook-stdin-lifecycle.mjs",
       "upstream_sha256": "d18acef13456e68dd94bb5263326c8aea23d39ec08141229213cc63abe422975",
-      "current_sha256": "8ca13abb42a855a0315205686f4ae6d10a340e4d9b018187e10187cd9a43aba9",
-      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+      "current_sha256": "7fd4e2fcc855b52dcf3522eacb0cd81803351bb9c5332161bcfc219d7f4bb7d3",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/agent-hooks/hook-post-command.ts",
       "upstream_sha256": "6fa42e63914f56642d4c086f6ec6ae824e7ab9b2d01d3cb7ff433674eba122c7",
-      "current_sha256": "f10cbbc0ae78e55c19d86d3becb7fbeb4ff0c1ad407ce5f178d8a59a43670870",
-      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+      "current_sha256": "a43addc5525cf2d8d0744845eb5e5a971f649ce4b5a7dd5dc86216c682895131",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/agent-hooks/manual-compact-hook-stream.test.ts",
       "upstream_sha256": "fa5a9ec917ba586dad340bffcc32e6c0ec745e67bf1ece75c34ed45ebe0a24b0",
-      "current_sha256": "ee1a64ac6c6855596df13f4e2c9726c829a7871f416e0bff2e4ae69786775e7a",
-      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+      "current_sha256": "8fb2ed4bf241c568981739c740ae52c12c6bb1b7ba2c5a6e18b0dcf891281357",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/agent-hooks/server-claude-child-permission-lifecycle.test.ts",
       "upstream_sha256": "a0496616378ff8a1436a88c4fd4073bb0fb442fdd50d13ecd23238afe0e54f09",
-      "current_sha256": "cb833440e0a2485dc88f6e41515a9bc56ae5178f19e9950396afdd52b800b562",
-      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+      "current_sha256": "ef4cbdaffb4696608843f64b4d003b3b43f5a3af83c0839b945beced5f4b7cf1",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/agent-hooks/server-claude-permission-tool-failure.test.ts",
       "upstream_sha256": "fb87df217d3a1ab754806dcc493851f25b3ecff399f8da9e60726fe7c478f37a",
-      "current_sha256": "ae36ffcabfd3883ec13d0cbbd4d89800ff99c6bab5eb6787e09289410ec2bae0",
-      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+      "current_sha256": "c63faf54aaede4a849b9d763a12a247556a579daa9d6e7c14cc23716d454279e",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/agent-hooks/server-claude-permission-visibility.test.ts",
       "upstream_sha256": "26d001db0b38906e319a9393ddde690561d289cde748eb5a5ad39582029785b7",
-      "current_sha256": "8a9da4b3d9d05c9f801c37e4f2db7493de6f2242c2046234817d4eb73bc066f0",
-      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+      "current_sha256": "66df04f3115b9323c269624848bc5ba10aa216a076a4b4de5a27a61a7f95c007",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/agent-hooks/server-claude-task-wakeup-lifecycle.test.ts",
@@ -335097,14 +335102,14 @@
     {
       "path": "src/main/agent-hooks/server-closed-tab-suppression.test.ts",
       "upstream_sha256": "2acca8ce7bceac034b2879e40538619f80edc28a4a72155aefdae46507653303",
-      "current_sha256": "2e35f8125e3f4369017892063fc63562b2b4a98f77765aca3b30c59816424e2c",
-      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+      "current_sha256": "288ff615171262e2ec1b518be49e243a96f95eef1c865ddb57234430e0058d28",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/agent-hooks/server-codex-interrupt-hook.test.ts",
       "upstream_sha256": "bb6433e15b5b502f058448e5176bd001c89f66723a72757c76f7ab96e7eea560",
-      "current_sha256": "c58bae72f6257629a167170c9ecb5cb59f9293519246be3a742698a56531068d",
-      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+      "current_sha256": "bb84e5a99ca077773f6b30a07e97168ddd12ddd239df1c745fa47af7d098b33a",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/agent-hooks/server-codex-review-turn-end.test.ts",
@@ -335115,56 +335120,56 @@
     {
       "path": "src/main/agent-hooks/server-codex-subagent-transcript.test.ts",
       "upstream_sha256": "2ce913557ac14ad8396abf7abf980cf7a8d56cbb4e7cb5b5332417e328628542",
-      "current_sha256": "2085a687566db628e2b5303e0841500f1ba5b6fc9f695eddd0027021073753c2",
-      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+      "current_sha256": "839bad3dfb46777802c32e3a032f00584da58f55375f597f554db653c8b5174c",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/agent-hooks/server-codex-turn-interruption.test.ts",
       "upstream_sha256": "03b23839894e4cc83d77dd30638498253ad13b449dc8c04b5dc0e9bf613d6e7f",
-      "current_sha256": "ae251cb61102fb4579a4df014d97f8264df9f69e450b1e30dd39d6f882b182e3",
-      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+      "current_sha256": "457620c006751436045306fc461898385bcad403148ebcee58e25a09e4aeb789",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/agent-hooks/server-copilot-normalization.test.ts",
       "upstream_sha256": "a11c78f94c3f3fc0f163fea9d5834ca32b7029d926b6a5b93287c4cb44ad01f8",
-      "current_sha256": "7599f3fc2c1562cafe4cc860dedfa5bcd4016af83558c00f8873ec39131d0050",
-      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+      "current_sha256": "a527d214756f4f16f5f966532d3cea80cb16c8e5bded72f62bddafe18530af5c",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/agent-hooks/server-grok-background-status.test.ts",
       "upstream_sha256": "bd7187fce526381956100cda622a539a6533b224dad47f8d9bd03737153b1c94",
-      "current_sha256": "c01736e86ef521418d1549849442122a00d20147bb3d701eaf4f29910562c532",
-      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+      "current_sha256": "ffebae0da2c9b324f15583f5288e58dfe69f965649fb2db37c3795f89d85424d",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/agent-hooks/server-grok-cancel.test.ts",
       "upstream_sha256": "389606d74aed785b6e208e67ff9ad397bcecceb85feb0f7e77d12a605e297d5d",
-      "current_sha256": "9baffbf7b76d2232b1ce2ce056fd9d9eb08707c178cf4f9e9c03ac9ce51e6d0b",
-      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+      "current_sha256": "93644eb85c949aa0a556a0e97465856f4ca6a400b7e6d64725928e07a5119f85",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/agent-hooks/server-grok-discovery.test.ts",
       "upstream_sha256": "efe58120b9103de8b3697b8cad7c620c567b986f4e9edab4c3bd296aa0829426",
-      "current_sha256": "11b305168c6420ddb19d4229f9d5f4c2c01966eebf30c68599076836958616ec",
-      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+      "current_sha256": "eca9b5f9ecb91bf459d651d24d762c978b24f68cc8f5de73160ed5d0734a5b69",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/agent-hooks/server-hook-http-ingest.test.ts",
       "upstream_sha256": "74151f6023b6fcf001ede532be1ce1fc114739adc68ad127d29cf2f733c53a54",
-      "current_sha256": "5ed75e35c62e22d6696c5e07b79b9dd9ea698c900e1e81451e0b23ceb792e1e8",
-      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+      "current_sha256": "1255a4159e721d5a8343067d98f144e031b2d9805ec42bd032ffb36ea5759efa",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/agent-hooks/server-interrupt-inference-guards.test.ts",
       "upstream_sha256": "72a4ee78602832ba4e6834bde3803abd51d5f1122a5947e55039bd2877f14e4b",
-      "current_sha256": "57706c32dd64bcb49669fbbd1a5064db9ef6b97050d27d5d542ec4f41ba8f910",
-      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+      "current_sha256": "e5224dd0c09f49928b0c2c4c8f715259d858ef9444b3eba9dbdec6dcc6dfa532",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/agent-hooks/server-muse-session-log-poll.test.ts",
       "upstream_sha256": "257add1b4c04835e895c548fef4304850f110bfcaebd581a76ebb9aee8a8c546",
-      "current_sha256": "a10819184032fa70a1692efc7a03063a21c6d260d837328bb9e832bc408d75b2",
-      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+      "current_sha256": "d6fdd5fe42f92cff32cfdcb8373a6952b644b00a3d0595801d1d4bad27c2167b",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/agent-hooks/server-nested-agent-roster.test.ts",
@@ -335175,20 +335180,20 @@
     {
       "path": "src/main/agent-hooks/server-opencode-lifecycle.test.ts",
       "upstream_sha256": "688920ca6c20900c19a4c907b9b5d2c5c81b6ef96ebfc2f3f82650c4500cd6cc",
-      "current_sha256": "4123905b3801ca06f3e206fbb984f71496c94ba45a99ead4f7e5eb1b427d5b7f",
-      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+      "current_sha256": "8338bb144900f7b45fa2ab0e3fe3f475000c00a7e437bd1c437da57e4c643246",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/agent-hooks/server-opencode-tui-identity.test.ts",
       "upstream_sha256": "835b9a4974f8c5e738e1a463d8fac65105a7e2ba51ba59578c899bf94eb4badb",
-      "current_sha256": "dc23bddd35a26f7104553ee5ce8eb05a0f5d60e5ff53939a2725bcade5d77618",
-      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+      "current_sha256": "5acf703141b29791481dcf03b39ec79940fdf5a59512910726a0300fd1c36c58",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/agent-hooks/server-prompt-sent-telemetry.test.ts",
       "upstream_sha256": "4fb98b9b61fb54bf7363df9f84abb55974ef8b774d7db7a2b4ee004c0af4a25a",
-      "current_sha256": "e5e5b1600093ba2553c259407f7a4193c4e92c3eafcc7c52f613be647b23b542",
-      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+      "current_sha256": "3ad8ff04835471abe989a2b224ed7f8de762b2ddc57170ce3febeebcd81676cb",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/agent-hooks/server-relayed-claude-cancel.test.ts",
@@ -335205,26 +335210,26 @@
     {
       "path": "src/main/agent-hooks/server-startup-prompt-control.test.ts",
       "upstream_sha256": "2c02eebc62ce6f8226ab3ab75bf30b0dfb68ed798b1d1115a856a5431b4c6fbc",
-      "current_sha256": "a15eea0883d9f02f1ab8ce8a068ff5629735ee2a09faf59950357a29f19a3286",
-      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+      "current_sha256": "56d1135eedceef2ffc175a3a44487dfaf7029717d76cec4a437e2f5c4c8457ad",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/agent-hooks/server-status-listener-fanout.test.ts",
       "upstream_sha256": "1a146ab3e3f4a83e0ac7dab657fc6444b080b7c272ba139dd4152666faa6e92c",
-      "current_sha256": "96bbbddbec1863d3aa252da09978d9b7a6fbb538f98607178bde6a2c24ae9f98",
-      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+      "current_sha256": "a87da4cbecefd7b56fcd78dcb8915cd65e464f4ac28554e040910396d1119a23",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/agent-hooks/server-transport-interference.test.ts",
       "upstream_sha256": "aabce7b0f189211444b4132a3e972b1c7d77683d6ffaffa6ced8de8afb8ec0b0",
-      "current_sha256": "9cdba2e663c9c298ca2b6e24865be27c61a5c0222904ab30fe971bbe208d26e4",
-      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+      "current_sha256": "36827724463e52e99d210092394c95653993613482f3ae08be2541dcdd4a21b7",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/agent-hooks/server.test-fixtures.ts",
       "upstream_sha256": "fedaa9cdbef305048ad1672c106128ed9380c85f4cc940619faa8040f08cf029",
-      "current_sha256": "b14afac151c760b0f4d3c1688d744172c679d590abb280cf81cbfab67376acfd",
-      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+      "current_sha256": "5b885d5c8875ffc209de7b09630544ec57e115ecded5950f5f07a5fb5ac15348",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/agent-hooks/server/server-lifecycle.ts",
@@ -335235,140 +335240,140 @@
     {
       "path": "src/main/agent-hooks/wsl-hook-relay-live.integration.test.ts",
       "upstream_sha256": "cd396146a7f56a608c523f2920e935b3372f8c33aead98b7343cd50370934c89",
-      "current_sha256": "2b9027ab764d5233c7fe09ba4142de396289f0b63369aebae01fdb79c0b17658",
-      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+      "current_sha256": "451d23ed4f60e7ea3ce806729b45d4650bf9fe8f6a3c6667cffe2a7d8e143f8b",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/amp/agent-status-plugin-source.ts",
       "upstream_sha256": "975bd2306d670652bfe5681a716782adc11dcf638ebe489a87a4ae740698e551",
-      "current_sha256": "422f6d18b60f083e0c58c8ae8276ce82bbe8053b49b39bf05569ace3b67f216d",
-      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+      "current_sha256": "c63e2ff172f6ce8f0baa17a7a76276acacece86e3292e2d01a0f736752cb4c64",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/antigravity/hook-script.ts",
       "upstream_sha256": "cda9c396a8607fe1ffaaf46a5dab1c506b10f78cc207899b6a20aad3549676e8",
-      "current_sha256": "f9aa444089c9c1a232602922d16792162e6cd1e74b2c366b12da622b8615f17f",
-      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+      "current_sha256": "b398c060c9c337b1cbe493e3e45167003d10393cfc39df0ddede2e42362b3fd1",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/antigravity/windows-hook-json-post.ts",
       "upstream_sha256": "4fda7b63e3120315d167b48cf9f6e458f0f7cc38485493d6cee5eb3696dd6af9",
-      "current_sha256": "884f082f2e9d813980b6b0b030f769122005c700478c021500cb39dad7d40fc9",
-      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+      "current_sha256": "5775fe863ce418737658199907c93c02361ae0fea3afa4992d4cd5a26e8a921d",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/claude/statusline-script.ts",
       "upstream_sha256": "2673c1118111eb10ca7e7a929e619dd537bac32f6a2d0ca16c95d7ae9a865900",
-      "current_sha256": "5a2834060ccc56ce006b48215e208693f15dafc248b5c63099e28210e9168cf7",
-      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+      "current_sha256": "650b1bb0934a1f555a2bdacb42bcf04df7a49ae3efe29d59fd5e6d7f11d58539",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/command-code/command-code-managed-script.ts",
       "upstream_sha256": "2ae236d913d916ecde4432b0ff388d29604ef63154da29a2e473e58fe895e166",
-      "current_sha256": "59bfadc4fd71bc29e8823cc88547697b36f5950188f536551b1b53c0a4e1ee3e",
-      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+      "current_sha256": "9d10b0343f8d69a13a69a055a9f476b43b215a0c4f95b218a15c9a8de38df5e8",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/command-code/hook-service.test.ts",
       "upstream_sha256": "11dc6f7cd44ebbe056b991c9268fdcda4a449f37ce7da803746efea275051edf",
-      "current_sha256": "39c8eaa18e034109d8fcad6044782bc1b4f9a049b7abd6d38c38b01693235990",
-      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+      "current_sha256": "5b2d211afab58144d6cfb9739e70578fd19b6a180cbd70fa177cae1d7c2f8e03",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/copilot/copilot-managed-script.ts",
       "upstream_sha256": "365e7f4dddb11ae2c05fb84d0d03efc99083882a35fa871fb20618835a9c1a4a",
-      "current_sha256": "d6797158966653235165a4d3a3dec92e3b4dc082efb94af2b119b99ed491e87e",
-      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+      "current_sha256": "624ac3d06db02a09d1fbe23f5f8936815d314e48ee37c3f846640eda97ec4428",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/cursor/hook-script.ts",
       "upstream_sha256": "5a61432ee6d7eeb25ee96dc2ad8bc29b00b3248abdd863e49db24988d212aa4e",
-      "current_sha256": "070869198caa10e64da697d28322e29959a5eeb5e23be715b8243828415ec15c",
-      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+      "current_sha256": "d4d4d13c9ec0db230bc7edec55ec683211217ebd7f846d3b014bceda9ef93103",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/cursor/hook-service.ts",
       "upstream_sha256": "122e97ef88689a51398b5733a91cffb007fa6f4ebfb84c88b1c67b4b5899fefa",
-      "current_sha256": "6bab539e6c4a3dc99b566e6c470700b557cb6d7bb0333896d761c9a8a2d0df4f",
-      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+      "current_sha256": "386b09e946a6eb81144c153b0bd7591bd4e710f9540d1d134b141b85626959f4",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/devin/hook-service.ts",
       "upstream_sha256": "c3fc391215758a4c966c292ab568b5b0ba2b5a79a32a9d1e4eed797aebcdfa89",
-      "current_sha256": "e051de7cc53942cbf0edf39e4a361b5951ab873a0b931ca3d3f474334619d479",
-      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+      "current_sha256": "67e1d2e79d8ddab1ea8d357a5658c91ffac92c438a0b557d5160d3b8e9822dd7",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/droid/hook-service.ts",
       "upstream_sha256": "381fe0d9a741a1d0628bf8de71ad5e87ad0961e0f4a0e1fb25b8973009444ec6",
-      "current_sha256": "2640d088e04b0f50286ea97479c830c4339a0a206f8625df589f693129dbb675",
-      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+      "current_sha256": "90336a60fde5d0c35c9da921db154c3016af743c49210cebba654317d70fd15e",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/gemini/hook-service.ts",
       "upstream_sha256": "b08fb72f8f5cb02f7ed93761cd4ec0968268480a62b4975ecab55b7a273d5609",
-      "current_sha256": "878efbe90a9f8bb5904f06136d7f0e08b9c0876eddd73f579715a57ac766e4ce",
-      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+      "current_sha256": "673987a986fa6087b46b6272038d551a2e9e3d15dd8e89fdb53896909c859c02",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/grok/grok-hook-script.ts",
       "upstream_sha256": "c51214881465ad7a7abc9c125267fe33a81593cb39d5367486fa7f221e7a34cd",
-      "current_sha256": "f0027d981e8fb07a93c759a09f8e7bb4e52ce9d41b06fa7744eb0eaab1a4979a",
-      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+      "current_sha256": "a0ea0fe95ea3ad30c56a9b79ac04f1ee515f376ecccc34169b787d2ddd2b977b",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/hermes/hermes-managed-plugin-source.ts",
       "upstream_sha256": "66184c382e24dd4234c1242421510bc938713bbc26a4a559c5d372c662a3da78",
-      "current_sha256": "07f10eced3d46959e7795092d850b8615d8019d9ebfc8f7ff8fac5e6482a93a7",
-      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+      "current_sha256": "9e835b536557b020072605e16ae35ba7afcc3ffb8b08e15353b3498a37a633af",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/hermes/hook-service.test.ts",
       "upstream_sha256": "9e7bcb9182a378f63db0d24403afa5812f6d8c34ad82fde8e567857118202b46",
-      "current_sha256": "9a8f3f08c13bd65fb0f3d2939e21cf1c762d34e40559ac6119d320bd30add393",
-      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+      "current_sha256": "711f38cd87c59340d73d85160670d0c92b13bb1125962e7f01e06ebbee519385",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/jcode/hook-gate-script.test.ts",
       "upstream_sha256": "6dad27be6753fe3b8a0b283f8c71929e0b66868e4b4170fb988bf78e900398ae",
-      "current_sha256": "73274102b26786a3914327ce62cca851a1d9c6839259fb6b0b40dd3f5e1c95c3",
-      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+      "current_sha256": "4675b958405a85c5cd895f0383ec61924cd63f1605a1a1b342d519eb802e3420",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/kimi/hook-service.ts",
       "upstream_sha256": "a56d305e3b67fa2d8ca406d56dc80c2bf6b66106ccda6c75e51f4b898434a293",
-      "current_sha256": "070eda2589daa1269ccc1d5e112526ca034e7d688fa629bd00e897c009ccdd57",
-      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+      "current_sha256": "fddc97cd68442b45d595bef0731f407ba31623248c5f6582c7b33357eee74499",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/opencode/status-plugin-post-source.ts",
       "upstream_sha256": "d25f9e37c3fa7f6a7d89257d4b27d43ed247c6cf75573217b618f76b3cd5967a",
-      "current_sha256": "22b205474bc2036e879f23d01dfdf01e464bd0038f43359826d1337b8799205b",
-      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+      "current_sha256": "ad8728c9f84cc4d73ec4dc1187ec86a04919aa2b247bcb4cff98ec3b53f405ab",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/pi/agent-status-extension-source.ts",
       "upstream_sha256": "c02210343e79f22a8c44376a7f89fefed1a9b2aab49826d169dc8fab9a364ec5",
-      "current_sha256": "d04aa3869e488eefb491ac104c529042a1490193e38416f53d52cab8085de319",
-      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+      "current_sha256": "00d8afb67e002f5ebe26450f3c7f176cd2e9d345a14f95c2add42e0c5dd0c7f1",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/pi/agent-status-wsl-curl-source.ts",
       "upstream_sha256": "edc994ca13a3a9eb505dcb8f1f98c20a260b388ff1c066d0e614cb818d89772d",
-      "current_sha256": "6d8f0856f6119bbd0ece4f4a9e0d1b3b2d9bc05488979560cf5249321f3e0bd2",
-      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+      "current_sha256": "31d5944c4cbb73146eb4ac24ff2215ea7fa7ecd42235d629d2ee1859219b86a8",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/main/runtime/opencode-finished-session-authority.test.ts",
       "upstream_sha256": "f3fc2c1f54777e298333ed55152720e597658da4a5bc0060bc931d2cd95584f1",
-      "current_sha256": "327802b4ed0f30259b2d1dfa5a5a866d597f1d8f1cd447dc934e2fef0ef30499",
-      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+      "current_sha256": "fba195c543290708d05b98f85760277f5c527df457b8c55cd1b46ab1c9eb9e62",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/shared/agent-hook-listener-transport.test.ts",
       "upstream_sha256": "1b06dab2f92a827058d4ca5c3dfcf21545bff83749d1d59c7d68b3e35c736aed",
-      "current_sha256": "a46546c2c97ff75d688076a928485e4877980db6e21aa958b1f93329b1ef99d1",
-      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+      "current_sha256": "d221c5ce487cb31d2e90e3547470fefc9c21f9fe11676fd175e2ac7ddae0b960",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/shared/agent-hook-listener/hook-envelope.ts",
@@ -335433,8 +335438,8 @@
     {
       "path": "src/wsl-guest/agent-hook-server.test.ts",
       "upstream_sha256": "419114a458cdd3412e8264bcbac4ff04bc24db824d0c435077f960e28a947c69",
-      "current_sha256": "ace96bdfa8c79b1af81ae57153de7e046f671162e413085a9c89cf73b666c0ed",
-      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+      "current_sha256": "f5626fbf324ed9e1284290a37daa2187599031071a893a1197ebf6358a3af931",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "src/wsl-guest/relay-agent-presence.test.ts",
@@ -335475,20 +335480,20 @@
     {
       "path": "tests/e2e/omp-completion-retry-status.spec.ts",
       "upstream_sha256": "4fbc4cfc8c3b72d15670e60f96c545d6d2e768c6a52f577dd640ed82e4169824",
-      "current_sha256": "2df55795e85dcd425801225dfe6dd949b8a06bc2f9779e943cd89d121251b29d",
-      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+      "current_sha256": "aac9622be75debb032d598ab04141c631de9b89f4854040cf572bff11d015697",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "tests/e2e/orchestration-legacy-worker-restart-recovery.spec.ts",
       "upstream_sha256": "fa116a83637749f06fef5252e158c265f420c9e85620038ab40742a1cffd230f",
-      "current_sha256": "621cfad50ca4bce95347385c220d59b9bb4995e49aa4466f15b52f2d2ee54358",
-      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+      "current_sha256": "f217d1639ff06ae6e8f83ce4336c1eb6329df0c29cf7f3eb3ef4fb8c6462dc95",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "tests/e2e/orchestration-worker-transcript-providers.spec.ts",
       "upstream_sha256": "46c0d6dbf61af7f0c9435d1c4f712d7a29453dff9e69a7f1d85a695a740b3931",
-      "current_sha256": "b7933d794b0da8958832510d433ae00da5e0e7188be23860e9f4f0d5730c08e8",
-      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+      "current_sha256": "b56262c93d7d7200c9e6c63328702c2a9e0d61f10155a732b03d60cf9145e7c1",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "tests/e2e/pi-ui-prompt-status.spec.ts",
@@ -335505,8 +335510,8 @@
     {
       "path": "tests/e2e/ssh-orcad-workspace-tools.spec.ts",
       "upstream_sha256": "5c48daa79c85198bbcf358b2cdec41471e6599cd08f7e8030fa6b6434ee9d0f5",
-      "current_sha256": "1e67276ec6078ad70e25d0fae2c8f323763e176083a0cc6d58b6cace3c4618f9",
-      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+      "current_sha256": "a762451e55a78039c09826bba39cbeac72d28c1853992927c95a9543fa945296",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     },
     {
       "path": "tests/e2e/status-bar-caffeinate.spec.ts",
@@ -335531,6 +335536,1128 @@
       "upstream_sha256": "cb2b9114aeb4b3bf446ea4cd8cb25285dbb45a779ed6a883f49a4af789954fee",
       "current_sha256": "f265186f33478e1e2c33ada53f406900a5f30730bab30f36ed075f71fa9fcfa7",
       "reason": "恢复固定上游Hook回放夹具；将采集机用户home前缀替换为临时占位路径，保留事件、时间、会话与相对路径结构，不导入个人配置"
+    },
+    {
+      "path": "config/reliability-gates.jsonc",
+      "upstream_sha256": "074150663a049679900797f02157a2003a4e2815c234dc525834f88844f2ffc5",
+      "current_sha256": "1d37dd6354ca11fcb0abe4ac92f6ab76834086a0bbcd85f7338c112ad7502456",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/cli/agent-workspace-selector.ts",
+      "upstream_sha256": "60f9b73a4d8ac1f3d9ac282f8028204a00bc0edc85198983356b1b6a8e4bac05",
+      "current_sha256": "cf078b854148ea74fa4218d8f126906b33c59a3237c034c55629204b0cdf9cdf",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/cli/caller-host-worktree-selection.ts",
+      "upstream_sha256": "1e4690b27eb551dff9f7ae4108a707d93bf190b19e710c4fcf2e4b11ebc434ca",
+      "current_sha256": "a6277fdcbd0cf406703281c97c1d8567e43a93d1a8aa9868fd5db57b341cba47",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/cli/handlers/core.test.ts",
+      "upstream_sha256": "43386ffaf11c2e51ff810664ce3cd1177e775ae0835b2c7cd70ebaa590c8dcf9",
+      "current_sha256": "a4d3c839c122e706fe6c71b55692b57fa90d7519c071e537959bcf3f5f1e62c1",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/cli/handlers/core.ts",
+      "upstream_sha256": "b3e6fb8f6a1b7f9b43d2237e197f677b74f5028184bddcee3b737cb7f70d6dbd",
+      "current_sha256": "fc5ba5fc5be2859f52d35c2de8ef283db78c158a1dd0857e0c40b664518f19cb",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/cli/handlers/orchestration-caller-identity-cli.test.ts",
+      "upstream_sha256": "d35773f41683ce67b6da906e7b9d1f4cf2062f99c361c35c666640b3a14f7379",
+      "current_sha256": "f0c5b42f75b308dd224109e9393f61877d47ba56dff08b8098f631c1d18fda1c",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/cli/handlers/orchestration-check-identity.test.ts",
+      "upstream_sha256": "813a9b33f73749f320a171816c482f8f87e811f0db18022f5cc16a876050007b",
+      "current_sha256": "87f5f0a1dbac7aac7fda2e7f2eafd548d959918696ee42fb0e676ca7cd77245a",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/cli/handlers/orchestration-gate-cli.test.ts",
+      "upstream_sha256": "910cd9466adf98e6877ae261174cb1787bdab93832250cd181d0d8e32bf27faa",
+      "current_sha256": "44f4eb03bc5716f3c3741a66ffd0df2d96c244dabcc7a70708dda8fd18e34017",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/cli/handlers/orchestration-migration.test.ts",
+      "upstream_sha256": "c6d2bcf3551ecb768f46eadee332e15f8c2aa3b6d2f51c0bb06a33372a65eb23",
+      "current_sha256": "ea752a670a0082d9b964b932fd57bf7ac98537519651aa334be0740eff10cb0e",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/cli/handlers/orchestration/message-check-handler.ts",
+      "upstream_sha256": "34bd1b02a753a0a249aebf3d5f39548bddea7e6afae102e42ee23a669abbff39",
+      "current_sha256": "d9a1e85c77bf320751bf0f8687dcac96208f87e589d84863e91cbbecaeaa87c4",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/cli/handlers/orchestration/message-send-handler.ts",
+      "upstream_sha256": "b8e8e7941f3fa99a9dd782de98be1a296904e0a57e5257a9f75869fdda3036d3",
+      "current_sha256": "89fdf2b6cdf2d00b2473e44d3ece2388b2e3bf09b78d9a5c65f09c2e8e594c07",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/cli/handlers/worktree-create-parent-selector.ts",
+      "upstream_sha256": "aca309c5a3bf1b8423ba5c31be2aacd19daded5dbf834729f108b6b344d9f3ec",
+      "current_sha256": "6d9790aa3fa901d72285e1cfe881c9c427f98df0f87c6f4ad9eb1458a3b96862",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/cli/index-agent-launch.test.ts",
+      "upstream_sha256": "322e7db82d46cda23d02e169d68f8c7d5eefa4122f457da0f4ab94722be1a80d",
+      "current_sha256": "4119b3b2334112133e21cadd92bfcdaa168d4ed15212223a3cc5f619b80eeec8",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/cli/index-worktree-create-parent.test.ts",
+      "upstream_sha256": "08ed55c850e1c2065ebb40d88cda30776041115f1f5dd1c7c6da96a15025d855",
+      "current_sha256": "8157e22fc1552072a8403f54e04aac32a7a5129558bcd40f7d8587c7efcfd314",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/cli/linear-request-builders.ts",
+      "upstream_sha256": "cfc77de04a7e46db5ec69035679acc08495ecae87e6a0bf47a2c8a9121857c7a",
+      "current_sha256": "ed2573469ca8e64419b7f5426a94fbf9d3e7b0992364c601083dcc445d52fa7f",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/cli/orchestration-structured-sender-identity.test.ts",
+      "upstream_sha256": "651eecf1e5154d99a9511f8487490d6a553807b4f16a406d7507c9c0d33eb378",
+      "current_sha256": "380754d9d23df83ab3edc4d8b911e071985adb0ea208263df903b741134b9373",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/acp/acp-structured-adapter.test-support.ts",
+      "upstream_sha256": "4ad17d9ccdf28d1ccae7203a651daa547fd3bf34cf980405b23e25a9039b4018",
+      "current_sha256": "d0f41f1ecd82eb23f9c77348f3faf6b05de78d1bd5267ea7945be7c5700eecae",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/acp/acp-structured-launch-resolution-omp.test.ts",
+      "upstream_sha256": "ab5a6721f1359393ed6e8d677ae4045f7317b25a3b4aa37c2d7bf27d4dabbde9",
+      "current_sha256": "e1fbfec360aed1565ba4f72dfc9fa61dc53d86e0b7e4265e73cf9382c06c2683",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/acp/acp-structured-launch-resolution.test.ts",
+      "upstream_sha256": "ffad3867433b628965882ac5849f845b7fff249494aad1ba06f6f859ba618b03",
+      "current_sha256": "5a928a3e944a838d9253eedd0eb047d55ff755ec2ca61157ead3122100bc43b5",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/agent-hooks/cursor-replay-guard.test.ts",
+      "upstream_sha256": "0eedb5219871402eb33b92d5ef4709b3e9009118fe3975b3b89ede2299dc1a0f",
+      "current_sha256": "9194e50ecf5a8a30508ab46db11990e4fe31fc56382d7ef3fbeea26d25c3b2fd",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/agent-hooks/grok-replay-guard.test.ts",
+      "upstream_sha256": "c2eb57af001f6887d80f8e250429d18e2a0d45726503798117ed965a2fa9cd41",
+      "current_sha256": "4811c05f36d35de88407c9f9fd52dce9f9d9d4b79bd087bd05644dccf7d63979",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/agent-hooks/hook-process-capture.test.ts",
+      "upstream_sha256": "6302a4b709e44c1bed213ce058ad45758b2537b5f7784631f67c6a4e592d6364",
+      "current_sha256": "c0efe8b89d4ab6b45b54a5bb6467299967a54f9f3fdf4ee68f6a886b6fd96ba8",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/agent-hooks/hook-process-capture.ts",
+      "upstream_sha256": "f73f7880d1b14f56364be3e5ce39c20920493025ae7a3a5a4a67db078ecc23bd",
+      "current_sha256": "994a0c24e5abbb207764721555dad7faa1b7c616ec1cf175fda37917dc74ca2f",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/agent-hooks/hook-script-outside-orca.test.ts",
+      "upstream_sha256": "0e531317f8bbf32b0e277627c51d14e51a20d9ab0a72c0c7b6f13fe5844f702f",
+      "current_sha256": "660bed5645fae9bc3dc5f713aa6ab863d39e86259eb98826500dea78129d7b84",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/agent-hooks/hook-stdin-contract.ts",
+      "upstream_sha256": "eb3690b5b527fa07e2e70c171ae8c68f8a30c4868f8af86d288e3600c1530155",
+      "current_sha256": "8e2f354ee2d9ef5b5eb1b4630a48a6d38650022609cfee75c04c121f8b6739ef",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/agent-hooks/managed-agent-hook-registry.ts",
+      "upstream_sha256": "d736a6afe908a1a62d80a8ae835ed8d865093c949077561f4a2ea910d4464bec",
+      "current_sha256": "a1ff1cc8047446e77789c4bbe31c801d20bc11705024197402567b9cb12f2693",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/agent-hooks/managed-hook-script-refresh-main-thread.test.ts",
+      "upstream_sha256": "b82f184db2938119a51af02e696ba366eb53cca93f5f8b263af135b7648bc13b",
+      "current_sha256": "055d8ed62323da0fc13f580a1ee27bff1f80c922da28b4b863f083b3a4b4f900",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/agent-hooks/managed-hook-script-refresh.ts",
+      "upstream_sha256": "72d64fb8768cb6f0496baa35516c6876c9397c347b13a8669fc8df2ab01d6b92",
+      "current_sha256": "6fd12a49ae2d93c5829278f8a289af2b12380d6c2dca45d14be5c1a6f929adb9",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/agent-hooks/posix-hook-command.ts",
+      "upstream_sha256": "5546e7437ec327f5b1e6d49f65384d2232dbbaba5192be8357fb3bdc07fbb90d",
+      "current_sha256": "09a2a0d7296e8a33934f258f01e73cd855a30d58a721a43d7febb70d30be2c4a",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/agent-hooks/runtime-home-hook-command.ts",
+      "upstream_sha256": "28027f3f91a0d344074446d8eb6f684b3e046f6e2b49a82a7e16b633c51078b6",
+      "current_sha256": "ab169ac3ef52cefaf0927b498879fb80aba95a2152a2727833fc76e52bf5d2dc",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/agent-hooks/server-endpoint-file-lifecycle.test.ts",
+      "upstream_sha256": "4bafde4e4d9ebbb8dabce41977d2628f82e9feda3149355cac7c5d49d6f6bb3d",
+      "current_sha256": "67bf44ece040c8744f3daea465dfef80b37a851d6dd7219c028f95741110cb7f",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/agent-hooks/server-start-failure-lifecycle.test.ts",
+      "upstream_sha256": "138b8ae3f56f36af60326c868fe1a5531c8beabf04dc0af3113cf6298f018161",
+      "current_sha256": "935cab255e30627312402f1170f21a1ca6a6b47b2c0b71a01ca8c8df3d8e334a",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/agent-hooks/server-startup-lifecycle.test.ts",
+      "upstream_sha256": "4e660362286eec3e2e78625e4336c8a5e3b308d455b970c2fc5b844291558ef0",
+      "current_sha256": "469496766cf7508a4c732cbd8b3405f17823f70ab217e476dc73d8b3196d1213",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/agent-hooks/server/server-runtime-env.ts",
+      "upstream_sha256": "9bc54a6a043d7fdf4d980315fcc2f978c85ee17206bdd38ac89a32c2941153a1",
+      "current_sha256": "21a607c306fa87d5c6b2d5617461942b37edba6ac7081164e327b66f0604a156",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/agent-hooks/server/server-status-retries.ts",
+      "upstream_sha256": "da4d4f88b918443cb5aa6b2218c17720dc0ac4b41243e7b55e5b3d2e1ad44f2c",
+      "current_sha256": "059cc8f6613fd822540d9e40dcf12786d5d3f9eb3e80f7f374cba936c18a7a0f",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/agent-hooks/spool.test.ts",
+      "upstream_sha256": "5b7a3f701228e8406da55456d5e76cc1fa6de03608101d6c5580ebd2e4abd89f",
+      "current_sha256": "7264db962285459429de144ce8ea3997d68c0f34fa9014fdcf3fa32eb3aacd60",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/agent-hooks/wsl-hook-relay-launch.ts",
+      "upstream_sha256": "41bbcb89c8899492d8d5e407241dfaa8d182f5c213825b98379ec816035aae6b",
+      "current_sha256": "c43e7712a72e4f7daee05659de5e1f8722144a729fe0045f125d24025a3773cd",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/agent-hooks/wsl-hook-relay-manager.ts",
+      "upstream_sha256": "8f78d3b61678a1c018ca5d07c58c312d2d96379b2f9084727cdac9407164a6fd",
+      "current_sha256": "90c58ff1eba44b25fc3201902f60c54a2123908553c01a0886c44867f156e0d3",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/agent-hooks/wsl-opencode-settings-lifetime.test.ts",
+      "upstream_sha256": "0eea41cc84e1fd0a8796d67a48d5e1255efbd3f5b7b5b79afd6aab46c1abf386",
+      "current_sha256": "ccc488562dcf78d07b57b991a87e0335f29ed51f59961b875b896bd499ddfb20",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/agent-launch/agent-launch-token.ts",
+      "upstream_sha256": "357c9e42777dc44b653848ab2a58de706fa7a8aaac867010a8663120fc99367a",
+      "current_sha256": "4c47f52fe35f37c4a0dafaed8765fe1de4137e1091f95778023825bdfc424e84",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/amp/hook-service.test.ts",
+      "upstream_sha256": "9a990b112b4bf67e1286170135328326712980725a19ccf80b6803d54917ab56",
+      "current_sha256": "fdfd42dc23468f2eebf6157985c3a91dd591ba3549afc821bc8212f4be18f240",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/antigravity/hook-service.ts",
+      "upstream_sha256": "9407863523ba5a62b46f699b9c7606901994e579a277b1f4d65113629611f0f5",
+      "current_sha256": "4b2a25804f1ed89bc20a746cd1c8535864d8246adfeba96945a998fa6fab7291",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/antigravity/posix-hook-invocation.test.ts",
+      "upstream_sha256": "0819ace7fcb1b79f96ee92b62b772badd39435930d3f43497cb3719437ab7938",
+      "current_sha256": "8a62e34438de2098346743e4a8a38ffd819a0a741dbfbf738cfcefe7de211441",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/antigravity/windows-hook-json-post.test.ts",
+      "upstream_sha256": "228a5847c53ab4cd98656b6e18a21f9b4e86fa3ec3b33f1574b38ca8001ad9e2",
+      "current_sha256": "6d41a39b9efa881126154d86915188d6e2483602f6fb691e0b9d5af541765be1",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/claude-accounts/claude-profile-provisioning.test.ts",
+      "upstream_sha256": "36cf454ffd421a6cd6ea55a17c4b1da0dc72e3935e39fea8860c713d88633df8",
+      "current_sha256": "5fd25d5edffad170be03a96a3fcb0b01e2dd2dd218e5eb8deb96d09afca87064",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/claude/hook-script.ts",
+      "upstream_sha256": "c48a892d2856018fc184fad47063e20711df3bf7903778fa1ef4d002168775e7",
+      "current_sha256": "364a20d580161d8732a8b1cfc9c0a484a524da1089a0ea75259916df0f3997db",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/claude/hook-service.ts",
+      "upstream_sha256": "8098558a08cec1ab140034642bbe75ee168b9153af7c5f9ab975197cfe7531c7",
+      "current_sha256": "5bdfd3e7dd5518b22403b27be7c7e53e4bfe42097e83be96842f3a6faabb7198",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/claude/windows-hook-files.ts",
+      "upstream_sha256": "52fc81e339dbb24400b3b3c2f6527831255c83c6bb4218e1e270daeafe7553af",
+      "current_sha256": "624937ab8bc62132b5daa69c04774d35dc43c23b26bf631d2c74f7c9765211ae",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/codebuddy/hook-service.test.ts",
+      "upstream_sha256": "1dfe19f84eabe0fd4e1a8cc5a427d2774e7adca1a7344724314b7cd3103c903e",
+      "current_sha256": "22525b98f6e5b80475f9e0ee4ad3684d2b6f7d9126630c3bb7e7269457d7bfff",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/codex/codex-hook-approval-first-write.test.ts",
+      "upstream_sha256": "41feba7404c91732841e8dd10b0546e111b1b98be7f63cefa3415de8e7abfd33",
+      "current_sha256": "4d86db803d9d2b948b074b4414dbb849e639993ded89b05e97b622261b478c1f",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/codex/codex-hook-command-form.ts",
+      "upstream_sha256": "20c4a25d4b5ae78ce188f0f0b3829b396ba04a9944722b3a4c66fdff71e1e68f",
+      "current_sha256": "8595cc8b9d09f2310e11c7740c52b5c6650212649701f539beaf1f0a217900f6",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/codex/codex-hook-remote-install.ts",
+      "upstream_sha256": "70672d54d487db8e1dfddfc0c6c8353d85313f299497099a88e89bee63c30c23",
+      "current_sha256": "1b504374777cf6335f66e6b4a35b4602113e60c85cc5543b404db09a3cbcf80c",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/codex/codex-hook-script.ts",
+      "upstream_sha256": "c4d7f4270d70cb38162ca0dbe87369fde6545e167e08a5bd4fbb5efd1f65f17b",
+      "current_sha256": "7f7487c0752cd9dec333d67a224704cf1de8c81f876014c6e7d05a8d01ae4112",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/codex/codex-hook-trust-cleanup.ts",
+      "upstream_sha256": "3cd1c91732e7fc25a34148f8fdbc0976007ca6108eb8249adbadd3ebdb7fe89b",
+      "current_sha256": "f439e2840f528fb7fcfec900846f749d379ab42a807f03e674c037ffa2328f67",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/codex/codex-wsl-hook-install-plan.ts",
+      "upstream_sha256": "042cae3a967b3458fbeb774548a104483a517e02525afbbf73d675fad56ad173",
+      "current_sha256": "45b0abefac3e89584fa354364a4cf392a9bd9a142c11f252003fe70cc2d746a9",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/codex/hook-service-legacy-cleanup.test.ts",
+      "upstream_sha256": "63127a2d0fd5ec95dc05443b0ba1b15d09720da4908bf1685685c869220e18ce",
+      "current_sha256": "b84781ae1c6dfa5fa8dccca6bb26c64a901d194b668c24f011b4ece8e986d70c",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/codex/windows-hook-upgrade.test.ts",
+      "upstream_sha256": "be26b28e12348c1ef621b63d13ffe846eb36697efdf1f019e146750ea30acee1",
+      "current_sha256": "27e270ed8886a6cf204b2b630b4ad59e09f0d1bf298a73372701df1a010294a6",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/command-code/hook-service.ts",
+      "upstream_sha256": "256ae8027cb702649577c4463f4f53dd8635477f11e377f68b09b5c0d11f56fe",
+      "current_sha256": "13d6035b84b50475e6c2469019bdc38d501c8559e58ed5a93ca95427eb155a4b",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/copilot/copilot-remote-hook-install.ts",
+      "upstream_sha256": "e8cb261506410211ecb77add5870d146be02ed084c2a15706c51a4312d7195d9",
+      "current_sha256": "ecebd448fda663a8a13b4d8746ac2718c9797f64b070e53babda503c95d0b510",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/cursor/hook-command.live-shell.test.ts",
+      "upstream_sha256": "9a58ac05e1a0eedc1fc8d4c132ebb1aa9b35eb715484dea129ba37bdf04a2d0c",
+      "current_sha256": "6bbfeebedc0787a723de78e5234a953ba1ef1f3a5cd7ec59f896349c77e7175e",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/cursor/hook-service.test.ts",
+      "upstream_sha256": "3897113da2e55319064c6cc78e80db1bc2a9c7430c3fe3986e545a3dab01911e",
+      "current_sha256": "ff8992d59a8d02163b9ca67599a540e4517f1c9afaf915673a216d8c0a38e5a9",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/daemon/terminal-spawn-gate-legacy-restores.test.ts",
+      "upstream_sha256": "c66be376febe2152696d98df52a66f40e954707c46f69267c7f06a0e59eebe2f",
+      "current_sha256": "1b79645f65be699d28b3c8bc2690c27345178e673d4fcc5d0dcce7dbe8123248",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/droid/hook-service.test.ts",
+      "upstream_sha256": "1656f842ba6caf66e93998c57762ea4e3984a80354b7da147cba7a0374485d2b",
+      "current_sha256": "b2cde94762e48b73a51ee4e87405f2805dc00b4659d8f6c3927e0fb7762eb42b",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/dsh/dsh-home-patch.ts",
+      "upstream_sha256": "c43df3a6253daa80eda5fea43bc53bc50bcae929605e28559bcff2fa65fef232",
+      "current_sha256": "968a879676a25150fcb32abdedd4efb5212b5461e63638892cd42c2785743abd",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/dsh/hook-service.test.ts",
+      "upstream_sha256": "fe330a28374c8f424cd7cf6bb18cb592be7395dcdcb60d0ebad031f4d34c3995",
+      "current_sha256": "b4fa2dbdee0fcdafe7f39d690a30dd2c23d157fbf23ccdac79594d0b25f6af34",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/dsh/hook-service.ts",
+      "upstream_sha256": "bf21ce9ea73be2e23753347fe733101cc4761665a8d12b3fda58d2ea30b9b84c",
+      "current_sha256": "dec347c081d87740e89104186708b4be55c739b50427f25886a3072b334229ff",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/dsh/hook-settings.ts",
+      "upstream_sha256": "d2f9315df0980214498edd92977ba3d90f1cccc65aa2cbeb6e14f7a6825f0fd5",
+      "current_sha256": "7c02680b1d3e31dd08f9ce896d7caf770d25013fc8952b61d9a664a325673fa6",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/grok/grok-hook-owners.ts",
+      "upstream_sha256": "e100157f79f50dd1cdc40a8ccb0d72a2db33370c0a89d5039ad37a7369266b45",
+      "current_sha256": "acfbc711b9ab87d0cdf7290a07a3cea1700f8c5525cc5f4ac1871974ce4d446d",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/grok/grok-hook-remote-install.ts",
+      "upstream_sha256": "85f2d1ebf22954c7b29100c3722725d2b5e89158bf7f08ec909db5c02c32b395",
+      "current_sha256": "006bfc9829455c1f2f3f24bd72d02f2be29ed205b712e6b1f1e5277ddb10ca61",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/grok/grok-hook-stdin-no-eof.test.ts",
+      "upstream_sha256": "91f86090e542ebe04d1c0f58e07e11c65658cb40c3da03ab3790b79d720c69ec",
+      "current_sha256": "f83fce6321939ea8d114c0f38fd6985b7a295e61aae8325743d23fd99bcb9058",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/grok/windows-grok-hook-script.ts",
+      "upstream_sha256": "f20e61e32e4a56f32bbec4fd9d833588a4d8fc318f938953109fc2268bdbdc60",
+      "current_sha256": "9c3d613de9eac314d7c5e19cb4b837266bad843abe0c1818c20e973a64e00546",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/ipc/pty-agent-launch-pane-attach.test.ts",
+      "upstream_sha256": "cb7f9abff85e7f778a47355c42b0cc81c2134ab266b1f4b647dbfbe21b0d1144",
+      "current_sha256": "5f683eb84323b518ac6914093e7035e0110aaab7e690916ae44cf9cded093397",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/ipc/pty-agent-pane-launch.test.ts",
+      "upstream_sha256": "0d8c605599ea5d99a8ab1fff424ccf3aaca223134b1aa5a51e7225127d8e75fa",
+      "current_sha256": "2539f2e359e8fc8f101a6ff4f0ba448e2375e89407754c6469ae1b9b3f5e2ac8",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/ipc/pty-daemon-spawn-session-identity.test.ts",
+      "upstream_sha256": "25175b5faab1d6509ec10d88a2d065bced75ca0f54652adc99186aa5268778c7",
+      "current_sha256": "6cd78eeacc54eacade94c252797fab3b864371d16aa6ae891ad43b20fc56aa7b",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/ipc/pty-dead-owner-respawn.test.ts",
+      "upstream_sha256": "bba3332026d41e0b3ee9c6611ca7009f0437b8b31a136712b7fe46773717fa5a",
+      "current_sha256": "0aa88bc27986d555b2c95682f4a403b2bb0687096722a0ca5674c22f8b6b8258",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/ipc/pty-launch-parity-host.test-cases.ts",
+      "upstream_sha256": "5cfd32385d44d3b748e061555fc25687f5d7829a79e730182814874c43714502",
+      "current_sha256": "57867c27da5de8540a612ece662a3178399fd3c54a4807165947a6abcff82cb5",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/ipc/pty-launch-race-test-fixture.ts",
+      "upstream_sha256": "92fd7a6c7f0d3f7e3711dc83c8868498089a68e1e9eb8b7517bbe61a0f5daa3c",
+      "current_sha256": "d966d84f5d576eb30e03c839b41f709253cb565dbeb8cc094119e8f873e4dc9e",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/ipc/pty-pane-claim-arbitration.test.ts",
+      "upstream_sha256": "e2af25f174ae4ab2b82dba80f2695d6aefdf6628b490a96d2187d63c9efb5257",
+      "current_sha256": "772ba9e47695b98014cedcfe98d1a2c117872922434d65ff87abf3824dbbdcb6",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/ipc/pty-pane-materialization-race.test.ts",
+      "upstream_sha256": "94e995f80619e2d3eaf78ef549df4a6bf5991a856e8b87bcd5a1fedb6517a433",
+      "current_sha256": "2da7faa0a85b9f17d095b7ac68856ca82736f6dad2cb6fcd7af4671b0b968037",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/ipc/pty-pane-owner-swap.test-fixture.ts",
+      "upstream_sha256": "b52f74bfd6aee661cbab0da82a1f64766b2f5feafe835851d225b1d080b1b674",
+      "current_sha256": "837433a7b3dc917cb09c8fa163d16e4ef275700621a20efc7023efd5796d9991",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/ipc/pty-pane-reservation-settlement.test.ts",
+      "upstream_sha256": "a8bd2c2a944b0a9724bcaaf9945f7013c232158e95e75d9d79aa122fd24cba56",
+      "current_sha256": "23f24c004c7d5bbd1fca4d9be945e53b8d330828ee8d6b8cbd6844387b14087d",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/ipc/pty-persisted-incarnation-repair.test.ts",
+      "upstream_sha256": "9ca7cf5357877034fa21e065c56dc1b25b49ab5e9cb32326cb13e5c861ef0b73",
+      "current_sha256": "5090241bbbaa8c96d6bc1050d93d0f041846309ee583314fb3373e8bc73d96b7",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/ipc/pty-restore-record-seeding.test.ts",
+      "upstream_sha256": "cb26e65d86a8785e5af3025e58c931400f5af930a475ba825762021fb8d6dd99",
+      "current_sha256": "0d93841ee3afa9d26d77917db0c594e5bce4742efa12d6b05d983e23a00a95ff",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/ipc/pty-spawn-placement-threading.test.ts",
+      "upstream_sha256": "0004d6e526cffcf7e3523af50ba1627649cd0bb4359e1c89afeff87d956f9323",
+      "current_sha256": "3f363b030bb7034ff6f8e5e7306b3d519631747ba83a4e0eda9d2dbdc78eda69",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/ipc/pty-spawn-runtime-handle-binding.test.ts",
+      "upstream_sha256": "efa02c2f728a13b30beeba0d306cbf24b0d814cf4ac51e83819691736d8a7af0",
+      "current_sha256": "02fc5af4718ae2c1b81d112b9ca5efffa5e9352286da3255a748c7aa25d67d8d",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/ipc/pty/ipc/spawn-agent-launch.ts",
+      "upstream_sha256": "72e885d2fe6c5b2b568b1c29981b5ece93bc5c15fb8b9516b9ef757f69c6e160",
+      "current_sha256": "de5ab32936542489ab242b188de96c1412b09ebc3a41dd4a5b3641e276a20304",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/ipc/pty/ipc/spawn-env.ts",
+      "upstream_sha256": "e83dc19a58612fd5325563a5a8c91daac9d5f5e4b4632d88d43fec37928c6485",
+      "current_sha256": "87b3bcd58f17f51eb1f2be337d49f6c4aa857a1ff374556134f34cf7a26e9dc8",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/ipc/pty/pane/launch-authority.ts",
+      "upstream_sha256": "d7ffbce1990aa0ba386d943153df3f06c87219aebac6c7f6f59f8193dc037e53",
+      "current_sha256": "b7eb001d247f9ad0dd5b262757fcb275be2ef6c87273d7069d972435762f47f5",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/ipc/pty/runtime/spawn-commit.ts",
+      "upstream_sha256": "8d2fca9c514f461c9d13c9c226aee8dd07339d2e4ddbdf0ef1e1238f483ae1d4",
+      "current_sha256": "444047c95659df9d636727b5f9843cdf88fc180103dca367a3761c2f32fc3bf9",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/ipc/pty/spawn-pane-env.ts",
+      "upstream_sha256": "e0e488c2734f39b6cdcd611db11755854a8d9c59c12bb37173193d3f09691b25",
+      "current_sha256": "ec208b5a5c455128be82ef74e71dd1798c85af78db5184373b76ff47cfa8831e",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/jcode/hook-service.ts",
+      "upstream_sha256": "059a89a8bb1a3b3da3b9dfe78280454fc0c7593b4e9c03ce692648347cfc3d15",
+      "current_sha256": "06abb0d062341f48501bda67b18ab99dd2e551e794d788cc38bc28ad662e35dd",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/jcode/hook-settings.ts",
+      "upstream_sha256": "82d9db15b7ba91e1f48dd67582d988b67b23e3f228dcb94ff6f75d65c4ec3546",
+      "current_sha256": "15fbde76fbbe1179bbea3eecc660e2c72069d5f4d77d01dcd3969bf7b8be9206",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/kiro/hook-service.test.ts",
+      "upstream_sha256": "b9ce1126c1696a53acbbe1ad1d593c03f8c234e7aaf1ac141ee82bc29f25ac89",
+      "current_sha256": "f57e6f781ac09e6d2de5425d1fc196c680ac2635502288a61b89e994aafb6b90",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/kiro/hook-service.ts",
+      "upstream_sha256": "ce9fe64278962ee173f690ceb6970b7b3f621a9010a11c7af39805d1328a4f80",
+      "current_sha256": "69d3b94889cdd9c5c54bd5386405f3ad2a777fb95f5270371b57ebe2631782d2",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/muse/hook-config-json.ts",
+      "upstream_sha256": "4915595a82cf3aef337396e10b9a8f81aafc1b979ed373594d55990d00e3c2b9",
+      "current_sha256": "aabfa2d83c69fc1cfcfc3f19f14dc8f1c6b91dcee17345ebfed6beb2d0f5fc05",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/muse/hook-service.test.ts",
+      "upstream_sha256": "38eb84b0580260f6efec73438f982bacbb9cd2efd7135b6daf18dfe698b30501",
+      "current_sha256": "79d7b121d850d3b219ef391031e73a63845bddee17bf04ededffae7fdd1e2948",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/muse/hook-service.ts",
+      "upstream_sha256": "d89247694b1b6bce5e3004833b0680e4deaf2022c129ace1bfc6193214922784",
+      "current_sha256": "9e34bc4529b5fbbcd33b6e2a05691630b9fcd0a4f6aee6061cf5ed7e86516eb2",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/muse/hook-settings.ts",
+      "upstream_sha256": "f76337e5cf6ab656aaa565c3d8a4e777e7860a2dbc754328a548f417a7de34d9",
+      "current_sha256": "287465747bab8107f550b18d1988e7d5a95aeab13501e43bc0d5d60a9383fce2",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/opencode/opencode-cli-version.test.ts",
+      "upstream_sha256": "b56c4b4a2905cda29906887fdb0fe66987f44e0b5ddf224a55449c784fc1c186",
+      "current_sha256": "8e62a85a3649d4850926d676da23603e457cf19392195b3568b20face5bc1192",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/opencode/opencode-cli-version.ts",
+      "upstream_sha256": "c9b14737050f949798a16de4b5281bd3dfaa2b223aef85db234a35b029e1829d",
+      "current_sha256": "aaa1da749e3b94881b4abe39a308abbe8c6fa35c946a6e5a593db23762aef4dd",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/opencode/opencode-startup-prompt-owner.ts",
+      "upstream_sha256": "702032a79ea57338ce11ff9237712238229b4af4837f81296cf69b6cd43fcb6a",
+      "current_sha256": "3b94f193007fbe8845d6580f5261c85977d4d6576cc407e514721d59088a9c79",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/opencode/opencode-startup-prompt-source.test.ts",
+      "upstream_sha256": "9541b570afd8e575c5cfcf4387ba4adff98d96e067661e30cd9b536201ac34f6",
+      "current_sha256": "0aea844549fa3605f7158e5aaaae3307a7c7ecb9818eced55fbeccd9fdc6e4d4",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/opencode/status-plugin-endpoint-source.ts",
+      "upstream_sha256": "8ab9acb91bb3775deadf67ea472b572012a0ef7917fdac7ff5967199797fee62",
+      "current_sha256": "3b2b331320f77c1be18d4f5ecc8f4e97a6c494899a112867cce925268e16d9bb",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/pi/agent-status-extension-omp-prefill.test.ts",
+      "upstream_sha256": "cd0113b77aeeeeb7170bc1dcc09891d5a1d3f6d74f975cc51e8480ce5d440a2f",
+      "current_sha256": "1b39c29b8dca9da7b63958f32bb238251bc78f9e32289a60e0aa54f101a5cb28",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/pi/agent-status-extension-test-harness.ts",
+      "upstream_sha256": "5713a6a49d8bfb954bc7e97104a98f243569385d525e54610f75c11d632a66e8",
+      "current_sha256": "7d0444b34936fa69cd96940319e8f8fa9472f4ea9d27a85fea7c57f3b73105eb",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/pi/agent-status-ui-prompt.test.ts",
+      "upstream_sha256": "eba82d281a5542f329907297177a0aa575dc7ad437543de28ef8e3c652061c9a",
+      "current_sha256": "5507d8e5fedc2b47e7faa2f69e824823ae555fd57442e11043556cda67a5ab0a",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/pi/omp-session-status-owner-source.ts",
+      "upstream_sha256": "c9323f092b65a81807c7455823dea5bc7a928cdf6abc5962903b5af9afebb91e",
+      "current_sha256": "e974eee3e97a25d2a5cbf90f1722f55fb6c245293749a7ca513572f66fbffec0",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/pi/prefill-extension-source.ts",
+      "upstream_sha256": "388fe31c6b9831187983c291c2c6adbb8bd13c6cc99a18a77bbe9a79787f7dd0",
+      "current_sha256": "8f349ca0e73259f0704e76bebfc7fa5481a8a4bad2f2edf3d841cf6f46287875",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/pi/rpc-model-catalog-probe.test.ts",
+      "upstream_sha256": "f4fceb9f54ec9b78fb1ea27db3cba8cf7be7cc6e907b1f9861524de22588f5b5",
+      "current_sha256": "cdbe1b297d488a130493510118448638de0e225e0788280bfb85346e73030638",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/pi/titlebar-extension-lifetime-source.ts",
+      "upstream_sha256": "f416e3d78ee5284121b0cbb288c5f6218f6693a952468101b9586f00d9503327",
+      "current_sha256": "e985ef21ee2d15b97b5f42af612d2208b5857fe1604a6740c2e3873a923c4d80",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/pi/titlebar-extension-source.test.ts",
+      "upstream_sha256": "68d8b962ccb1bbbf38cb110298c8ed064210f8bb76c3452564411a59e74f081a",
+      "current_sha256": "19f46b6b6670e7c6b37eddc1fd7a08a5f21c933c2f10797610018601fc259d06",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/pi/titlebar-extension-source.ts",
+      "upstream_sha256": "91d2b88498e93f3f4f6bd363541deea28d0ea244575065b4d695d61cdd858793",
+      "current_sha256": "9164f043a225fcac79bad3b83cd56bae5ef77eca6b7c2ef524e52ee5de709bce",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/providers/local-pty-launch-helpers.ts",
+      "upstream_sha256": "a3c8d5881fc67f70df97ce8ae7e430450a8f1ab33d2ab002b6cda6fbde92e78a",
+      "current_sha256": "cffba6f00935a42a8fd12b5db5151b62edf5f7321770e259af29b04c68423233",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/providers/local-pty-pi-owner-env.test.ts",
+      "upstream_sha256": "cf9177bd8b8654720228a473bef06d810250672f6869873250698237a6317531",
+      "current_sha256": "ae2d0c8c048e40c37acfaf736be384e40e39adce88c84b40c24c0483399161c0",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/pty/pi-process-owner-env.test.ts",
+      "upstream_sha256": "1078f7a5e97a024a3f36906cd36104ad364d46bbd0f52cedb9ca6bac1c6180af",
+      "current_sha256": "b66cc32a3610f343aee29a036f0d5966a023cf26bc7ca8b970ea03aed7ebcfc6",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/qoder/real-cli.test.ts",
+      "upstream_sha256": "454225a39ea6c3867643ad893efc2ef8a83332b1904ba54889d6d0409b847415",
+      "current_sha256": "250d1401bc2caaf59d6b8022c91d7f14cb2ecc78a5cde3bdd2a073005414ecfb",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/runtime/omp-user-bubble-launch-authority.test.ts",
+      "upstream_sha256": "12b11ef64e18fce65a82360e52191f535b0f0ad98e97fccc95b03b5322a55974",
+      "current_sha256": "d083a3d4d482454d23b1e01733cf15e7db0283ea9a9b03e323e104e8dc8cc26e",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/runtime/orca-runtime-core.ts",
+      "upstream_sha256": "8490f1fd54230fc4546c6ad2776f846bb42e369e4c236cbd434338d59be3ca86",
+      "current_sha256": "df792113833751bbef914ac0c0512938520d058fd79e9b0e563f475232a72054",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/runtime/orca-runtime-test-fixtures.spec.ts",
+      "upstream_sha256": "e9d9dfc85c60090619f2faee762b9cb095a58cb8a5ab6311c06114ef637cc2fe",
+      "current_sha256": "bb650f444126e6b164c1dced377225de2e4e6620c6129594f214f880ee4cb399",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/runtime/orca-runtime-tests/agent-status-and-waits.spec.ts",
+      "upstream_sha256": "3f30d5e7bb5db4c6e14f3d769320b3cae40539d3fd9f27ec6b3f7e77672a330e",
+      "current_sha256": "43f64b252c99436ce0a2625c10bed24cca6b63f0d14e98f963485d2200e27cb3",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/runtime/orca-runtime-tests/mobile-session-tabs-part-04.spec.ts",
+      "upstream_sha256": "2a613a8d39764778799c11075fb6e595b86733632274f5d715ba9331aedcef67",
+      "current_sha256": "7f9bf27a95819def88912a599ae98036b68541b7e8658a9fc7b1dfede50ec5f5",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/runtime/orca-runtime-tests/terminal-creation-and-readiness-part-04.spec.ts",
+      "upstream_sha256": "ac0dd768586747e5ed48d38a52a3404a85d075b959c69a621ba5d41063310baf",
+      "current_sha256": "ad248825a42a9aa3d5f5fc6cebc7e87510fc8cc34b4e46e5e96869997a2ca5db",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/runtime/orca-runtime-tests/terminal-creation-and-readiness-part-05.spec.ts",
+      "upstream_sha256": "6c648ba17feb8b3c8a1f9fa9ea611613594c49426733b035530a1878c527aab1",
+      "current_sha256": "05ac1a7c198e25dda054e75c487a80c9a8f3fbb561a7b2af84068eddd8d01ecd",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/runtime/orca-runtime-tests/terminal-creation-and-readiness.spec.ts",
+      "upstream_sha256": "4797de26e621ef90fec8f11375db3ff614a6343c2ab3ee3d6007e5ddddbe2c59",
+      "current_sha256": "ab703c9c63d0a571ac6d50abd3ee103d64eb6c93cff5ba8d7095392fe14b2c3e",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/runtime/orca-runtime-tests/terminal-workspace-id-env.spec.ts",
+      "upstream_sha256": "83ba06c5d03515217eebae9997795ba4268b7399276e3e985fce08c7310f79a5",
+      "current_sha256": "d0cd738bdc2f36f864d693fdf754c3dbad5cd4ada0764f390cad151c7e7c1a72",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/runtime/orca-runtime-tests/worktree-native-chat-setup.spec.ts",
+      "upstream_sha256": "81d5bbfb34900e2c3fdf753a072b34b4fda998c59dcf7e7e177ffda201966bb9",
+      "current_sha256": "44680b9f25ed7f27e5eabe086b3cd47030e4f0282b5c5d824a1110e2f4a83762",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/runtime/orca-runtime-tests/worktree-setup-and-startup-part-03.spec.ts",
+      "upstream_sha256": "97a4c4f4e300f3f4d0f76457ccfa66cb0cde5650137cbbb83a1d108e79ee5312",
+      "current_sha256": "b195504d16cd92ba1321fc4e0fc67eb2deef9b4017337a0e100bb6d7163fa692",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/runtime/orchestration-codex-real-pty.integration.test.ts",
+      "upstream_sha256": "eabb1d1a08ec1520b23150c73acb24acc3c804c5faaa4c731a01593155d76ee2",
+      "current_sha256": "ec20cf37449e5de45f70b557dc2d08a945c00a34852d3f67f900ff8f9d4f4c05",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/runtime/terminal/launch/terminal-workspace-scope.ts",
+      "upstream_sha256": "6c50921ec1558a81f74c7494efdef23b8be8e2baaa0511b45b3f1016cc0d4e7f",
+      "current_sha256": "2218c343ce6e3c4d28536d884233a4f9870fd180b92a19c260cc357a14cc8679",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/ssh/legacy-relay/legacy-relay-cli-call-limits.test.ts",
+      "upstream_sha256": "7efa8bd499ec5f4d8c7cea3f0b5e622ffcf6a09583fe950bf38619182abead9f",
+      "current_sha256": "ad851662eb884165eb787fdb5b9854c60cd731cd744926814f4a2560eda77e16",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/ssh/legacy-relay/legacy-relay-cli-caller.ts",
+      "upstream_sha256": "a40aa1015a4c90f06d2b98d63b7ed9c5fddbfb3fb6359cbe8a10adac693ca774",
+      "current_sha256": "8d55b64401ab71b5a1e311bc55d99bbb08b7a110235f58788f2ff65b28d4a8fc",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/ssh/legacy-relay/legacy-relay-cli-legacy-records.test.ts",
+      "upstream_sha256": "5e089937b88f1308d873cb1dc98a011ac4d170d3604ad54958148ece2b2cda90",
+      "current_sha256": "901c30832a3789c4902958fc755d5380f7ecc1f49c9210ef8aed86fece720c92",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/ssh/legacy-relay/legacy-relay-cli-server.test.ts",
+      "upstream_sha256": "68e1efe55e888da4bad53bc1718d675710dfeb55efa758fbe27de60d6785fbcd",
+      "current_sha256": "16ad404086d0148e540d64a702d51c4855ad0d49d1af61b239526ad15a7a3337",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/ssh/legacy-relay/legacy-relay-cli-server.ts",
+      "upstream_sha256": "0c125876876fc95fc22c2de21dcd311c5d0c19bf12be68b6348fed25cdd1cb44",
+      "current_sha256": "dd3774496490b55be6bab4c7e19358744415754ce3660d2de9da7d4b28ed89dd",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/startup/main-process-quit.ts",
+      "upstream_sha256": "9b713348ef6cef2aece66089c76e4078c71bd1dc49fe5509493929543ae2f484",
+      "current_sha256": "fec4bea45869a423c49916eaf08ae8ea3d79b581fed543574fd835e3dc78f550",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/zcode/hook-service.ts",
+      "upstream_sha256": "f748004cc2b8a562d03d44c2c6038638ce0d942a2a0c8795ab42777145d8039b",
+      "current_sha256": "c032ee91c7b343a41a08ea1a1787ff952e2d755c0961e680c088b655b79fd4b5",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/renderer/src/components/terminal-pane/detached-pane-restart-spawn-context.ts",
+      "upstream_sha256": "bf913536cac959df69e5a740927eef88691ac6272de116d500a7db6e2956d1a7",
+      "current_sha256": "848a21958b3bc4dd125bfd7793fa06ad934026ebd1759ec83822443d144324bf",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/renderer/src/components/terminal-pane/pty-connection-agent-session-resume.spec.ts",
+      "upstream_sha256": "77974f5c59373ac7f58348099b97746fcef65145e750eff1e5b8edbd027fc2fc",
+      "current_sha256": "dfd7b8e8cc149388110b4a3c1dbdabbf336cabf3eca6987e1875079cb27eb878",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/renderer/src/components/terminal-pane/pty-connection-cold-restore-resume-command.spec.ts",
+      "upstream_sha256": "2b1a9edad55e0c785e729055e111bc3308c80f4dae4b27c7d7cec37b0d296119",
+      "current_sha256": "aad3bc84f8bede2cf3c5862a90fdad8d4eb0c2765281bec68d3bf1808dfdd966",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/renderer/src/components/terminal-pane/pty-connection-remote-runtime-attach.spec.ts",
+      "upstream_sha256": "fb5e037640a2829b5283eaa4ea0b2409cb52bd11a5d6c11fdcf8c423eccf4dca",
+      "current_sha256": "54e2ef718019a59c0dc55d343c34c1eedff375bf642e463e2eb60ad9e0c88eb9",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/renderer/src/components/terminal-pane/pty-connection-sleeping-resume-banner.spec.ts",
+      "upstream_sha256": "8f870a8cf8d2de4dbbcd9843295be5dc76909c786f210abc17e95995568d804e",
+      "current_sha256": "e296de9aa7358f9fd0429b9999696111ba6d60cc76f90ac2f62db5f6001ebd90",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/renderer/src/components/terminal-pane/pty-connection/agent-idle-working-handlers.ts",
+      "upstream_sha256": "95b7715b090b71568a5a37b4c7a2478ddf0861087b2b9911d465790d62ecb906",
+      "current_sha256": "442674d285d216d6f7f9f094bfcbeb64fe8afb93921544c144cc6af1900d5fbe",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/renderer/src/components/terminal-pane/pty-connection/cold-restore-resume-startup.ts",
+      "upstream_sha256": "e27c71fa4e0d009fec733b33945a564f179413eb870a3937451f71e991fa1796",
+      "current_sha256": "cd919551dca6f77be3a257baca3a4554a8870f397d9fdc5dacf1e519eb192883",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/renderer/src/components/terminal-pane/pty-connection/deferred-cold-restore-and-snapshot.ts",
+      "upstream_sha256": "f7da58ce9d182807b9cdcd0dec86825b29c27475782533f61b95bfc3fbf807e2",
+      "current_sha256": "1a978c97ed0cb94774f187a244be58a1f933fd6f08f59c013cb6cdd4d65d664f",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/renderer/src/components/terminal-pane/remote-runtime-pty-transport-create-handoff.test.ts",
+      "upstream_sha256": "81cc8173521869b8e4ae648c9231fae831470250307c093689944429da478cc3",
+      "current_sha256": "e9d40eb1fc87b2596bd96bd10741141ca3ab4ad1fb63199bee9ac544b720d996",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/renderer/src/components/terminal-pane/remote-runtime-pty-transport-host-session-launch.test.ts",
+      "upstream_sha256": "ca555c2c58dabe7d7150d83a84c3a560fe493a4aeb0f63b904ee7b17de5dda97",
+      "current_sha256": "ec76dfe39bac2cc9eafd9a282cf60e46a7596679a251048cef44b01468d83338",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/renderer/src/components/terminal-pane/terminal-pane-menu-copy-actions.ts",
+      "upstream_sha256": "87653d6fc9425ed7bb20a39f5bf54b2f6fa050256ff980a1e3a9a58144388173",
+      "current_sha256": "3cdb3875084063532f643b7594fbaef560cce450810a5fda9e39399193110c6f",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/renderer/src/lib/adopt-agent-background-session-tab.ts",
+      "upstream_sha256": "7516f9eca74d2ae1d7b4903fb506a013ed492620dc636391b687eba73bbee6f9",
+      "current_sha256": "6674a517e934ba1b044a70fb0e4af1fb33b39441159f4541c78bdf0afb614a5e",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/renderer/src/lib/agent-background-session-test-state.ts",
+      "upstream_sha256": "1b68673e34a8baa73b41c2d2eda683cd67e75142469fbf9d9c7cef06f52694fe",
+      "current_sha256": "91ad119455f50abf11e6432fd3dd160d65936d5706d8170567570cc8d5b43a8a",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/renderer/src/lib/pane-manager/pane-manager-pane-creation.ts",
+      "upstream_sha256": "73342b5c0db17d08988162edb42f2e47a11a22eba3737d44d787f8876445ac25",
+      "current_sha256": "f0afc4444a5b734ce57b18987810e89c08bfc74f5a6fb84096c174187256d0ee",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/renderer/src/lib/pane-manager/pane-manager-types.ts",
+      "upstream_sha256": "3ecc691dc6724d14ac0d0ef57fba768d5aed96280c80f6eb28af9508337a1691",
+      "current_sha256": "8ad5c4cdbdf8a7ad13d7278971f33b03fd59569bf6ec090e17eff63aa955a778",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/renderer/src/lib/worktree-agent-activation-gate.test.ts",
+      "upstream_sha256": "d5c23b4b47d24454dc6389e66a466d1d2a1ef702591b9ef3117adc55608de6da",
+      "current_sha256": "aed18ee17010e6355674c5d7198183e6900792bc54ecd1e829fe237fc410e850",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/renderer/src/lib/worktree-agent-activation-gate.ts",
+      "upstream_sha256": "b9ef10d1b4adbf820772f3be2da964ca64573204b2fe394e1a31f13cdfd2a0d5",
+      "current_sha256": "329293b4bbcac5b13058709adb8ec3780370f6db5af27b35d7533c28d2b72f26",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/renderer/src/store/slices/agent-status-live-freshness-request.test.ts",
+      "upstream_sha256": "bcd12c08cad70046689b5dad6ee097e74fcb31fe5e313bd235c1fdd10a8efde4",
+      "current_sha256": "0df2404b3479d551801e9b5e71f570547fbe121231df529977de4e8631393b73",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/renderer/src/store/slices/store-create-tab-id-hint.test.ts",
+      "upstream_sha256": "2ab9d724c1fb0264736fc257da85f2aadcd86e15b9bd4b9a8632b3c4be5639b7",
+      "current_sha256": "464c4427cabc478372c938b7c7fe68e34a2a8b13437b7f8e9b4053e67932a9b4",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/shared/agent-hook-endpoint-file.test.ts",
+      "upstream_sha256": "2fb86aa5f2af21d53efab3f602b369d770cea0e5298d0c9b3458f730f5910a05",
+      "current_sha256": "ba9d4cac9b4b78707bfe5053e07c77faa26c3828c1371eff263f98b9897887f3",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/shared/agent-hook-endpoint-file.ts",
+      "upstream_sha256": "b783b43b4cb41df3b75a4d6bf340f51d4f200870752d6a70978d07964e3232e1",
+      "current_sha256": "11bd17c55451838f9226f78d68be565357d05d2e9c180fa8a5ee67570edfe7ab",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/shared/agent-hook-listener/endpoint-publication.ts",
+      "upstream_sha256": "09ea90eb19180036b80538a37c1fca5248e49ff290bdc440d31fa3ee22c45cc1",
+      "current_sha256": "8392d210862aa344d66200c3b8457ac9c35b031c75507b1237f09cd6974ff2a2",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/shared/agent-hook-listener/listener-limits.ts",
+      "upstream_sha256": "2f0d45d32993f50de41ec12776d3e07f1bd0c690b7d045da595ef20423b2b64d",
+      "current_sha256": "d42dda576ece4722f54ac99b7c40b6302958f74ca957db92bcf4f7a83308841f",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/shared/agent-hook-listener/opencode-session-registry.ts",
+      "upstream_sha256": "15d1da5023bc54aef3b92b6b01c9df7f4e81aea378cfdca6abfaf04ac6ff9cad",
+      "current_sha256": "11f47792b2d76e075337b0da33ec844e82ebc6165a008efc0edd266c8e700c41",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/shared/agent-hook-presence-transition.ts",
+      "upstream_sha256": "97ae8e285d7852a88921d8e94f42ddeb26c49d4d806003c3a42dd871ab480e99",
+      "current_sha256": "63c8cc11c01557361df193c0ecfc81bf0cdd96eacebd0de559c43e7e83e4190f",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/shared/agent-hook-scrub-safe-env.test.ts",
+      "upstream_sha256": "571f27bddc103a8394f1fba44f5cc31020b55fb1c31d05c45acc05bbdff7f073",
+      "current_sha256": "af39c66545a5428f4e6ac4af35d7997afa149f3e8cb6bb95b521c77ef907d8ec",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/shared/agent-hook-scrub-safe-env.ts",
+      "upstream_sha256": "4c796bdcc8ca50ad90c725b3c945e42071758a3542aec0a0a687d6cefb152af1",
+      "current_sha256": "3ef5d2316e6e5a6b43dc74c1c5c10ec8ec27e82ee1fd782793bab8ba10595d0e",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/shared/agent-hook-types.ts",
+      "upstream_sha256": "702e6aa067258c64a583c5b3299e3834de913ac2e6366b1ae8053c9e2ad47eae",
+      "current_sha256": "3758e017dc8b64156357021f040af326d1c1d472bbfefa5d9b303f221e04b277",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/shared/agent-status-identity.ts",
+      "upstream_sha256": "e7653779c25728ae54f3cb21d5343ae43b91415f9ba12656be9e0365debef3b0",
+      "current_sha256": "de945bcae7294dab8db98567039e8633512f14100d774a77afc9821a0afd4540",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/shared/jcode-runtime-dir.ts",
+      "upstream_sha256": "3d92388c70b1e9a6ffc8bb053310d249711faa93eb2ad7b6d2b8f2a8f64e031c",
+      "current_sha256": "dc79866283c8868db9d478df09fe118646877f5c8e7cd04915bfd8c6fbb3bb1f",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/shared/launch-parity-automation-cases.test-fixture.ts",
+      "upstream_sha256": "9162747f721d542d40e533ce6792e9a24e9641eff27d5c3d2dd12a9a92c9c9f5",
+      "current_sha256": "3f273b09c335e9619d2d1606853347c789d2c9b5f4a91697a74214d0ff66a50f",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/shared/launch-parity-window-request.test-fixture.ts",
+      "upstream_sha256": "231fc42fddc21ceb936594198bbbdf44ad2ca02dbd5f535c9bac9976407016a8",
+      "current_sha256": "2b272c4ed2686e347222105afb3f8f9b3d44acca12ef4fb4864a399d98006be8",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/shared/orchestration-compatibility-evidence.test.ts",
+      "upstream_sha256": "07d6393305fc25e5ba9e0fb0c0bf89f39ef730a423d822d758781b75652a90d8",
+      "current_sha256": "0c27107ca2d525ebeeb407347396952a2c92522473f908620131915bbd87539f",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/shared/orchestration-compatibility-evidence.ts",
+      "upstream_sha256": "8b3186fb6d0817c8326287929077edc4c0df2d2523a49dc2e3b6315598079b33",
+      "current_sha256": "ec1c06e9233f39a3b453adcf3951c4b553a52801544b1925d73e1c6e2f93f56f",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/wsl-guest/agent-hook-endpoint-coordinates.ts",
+      "upstream_sha256": "8038a16a4ab0821444a82e911d3f2c6dda8d71291628163e3781f60238e9e711",
+      "current_sha256": "4dac3ecb981f6259d0b2076c2062baa0d9cf40cbd87e9d503555c2946b5670c2",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/wsl-guest/agent-hook-result-retry-scheduler.ts",
+      "upstream_sha256": "0e740c7b9b00af525fdb1741e949f40a49f46cad3710d6d61829b73c5eef9f64",
+      "current_sha256": "0944df6216adf6d32b6c65ae223c5950d99220a786d019b7404a798404919d85",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/wsl-guest/agent-hook-server.ts",
+      "upstream_sha256": "14f058c53df54b55d565695e886fb47f54bd543844a56cc062600453d97f1c42",
+      "current_sha256": "e45de2db989a62de087d9d575153ab4f7a86e65aabd6ed63f53391e7dce5032c",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/wsl-guest/wsl-agent-hook-relay.ts",
+      "upstream_sha256": "afbf4fe2d3a62c068c1e33133ba730dff1ef384357fd0883ca6381bf8cd4f3a9",
+      "current_sha256": "39b5a3cd831a110cceb0ef1cc0963a3a620d64163446f2f93c7694ec1d3a25bd",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "tests/e2e/cli-agent-unopened-workspace-resume.spec.ts",
+      "upstream_sha256": "a3c297f7a4dc6ec4544b75b6d7387f8d5ff00e4bed4e6f9f4bb4e9836d0a85be",
+      "current_sha256": "a5a7e330e820c4350c08fea303d6b70e731d65794093a66aafcec3db4c2bb5a5",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "tests/e2e/omp-child-session-recovery.unit.test.ts",
+      "upstream_sha256": "a0867100710eb93547865bdfe47acd12b8dcf02dafbd52b463e2cfd5e81cdfa5",
+      "current_sha256": "c1c178bf9dfb8adfb182aad638dfa12bfc2bac9fc119a4aa58625e5d7ae6c88a",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "tests/e2e/relaunch-sleeping-agents-resume-on-view.spec.ts",
+      "upstream_sha256": "dac2b4901e6a51d8724555d8b70e459295ec8f86b891b494b4a332086b01cdc5",
+      "current_sha256": "48a27bf6acee88eaca44b6438edf6c0c9801064ef2bc425607bc703de8354e2b",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "tests/e2e/terminal-pane-split-identity.spec.ts",
+      "upstream_sha256": "17943fe68fffe7df95741b5ea380365d3066b2b724bd37b517fc0fb0af133bfe",
+      "current_sha256": "4915600eaf802205d7fc60db896a670d015454fe7cacdb9094f7bc8bff87cff2",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "tests/e2e/terminal-quick-command-pre-bind-recovery.spec.ts",
+      "upstream_sha256": "2310445b6c971510415b6c0a1d441fd45c3e4cd52db3815a8ec2e6a67cc2dc3d",
+      "current_sha256": "f59a9cd965027403b403207aacce1776edde827e453d9329a57dd62c8b71e87c",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "tests/e2e/unopened-workspace-agent-single-resume.spec.ts",
+      "upstream_sha256": "4e0e37d4d4cf2c30ce15f03f231721eb71888fb8081c620e749707994bcfa551",
+      "current_sha256": "04609044ccee389f86356f2ab130fd82099f8c98b6a9c183168fadf8c595a06b",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "tests/tools/omp-child-session-runtime-smoke.mjs",
+      "upstream_sha256": "059c1830efdbdf0a052b31e93efa3828aa3ae4a4869597f352555bb3e156fcdc",
+      "current_sha256": "1cddef0d092274d4a1dea526d54b7d77b5bb0acdc5a3b0d371d482108d4d3422",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "tests/tools/omp-completion-runtime-smoke.mjs",
+      "upstream_sha256": "d0bdc35bc3eb9006589fdae186715c3f30b6ae8ca87c221d9d948a359cf475fe",
+      "current_sha256": "acd96bafd9a994d011d0bf77514974865bb5dd221d54f3555126fc8bbf670cd0",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "tests/tools/omp-model-runtime-smoke.mjs",
+      "upstream_sha256": "f987af33e5354e448196fec2232b60279fc5404fe8b8338d18291561fe448bf7",
+      "current_sha256": "9f31aa316f329ff969d7d8959004333920fb1a27813c79f799d5d71dfd0262b7",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "tests/tools/omp-status-input-redaction-smoke.mjs",
+      "upstream_sha256": "ed5f4eeef87786a7fd4ca71cdb05c4098b13b0d1289b1c5691418ce29a32c2cf",
+      "current_sha256": "a692b99413a3d7e157ec87d618982f5e7fad1200527be27e81ddcada5535fcfc",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "tests/tools/omp-transcript-runtime-smoke.mjs",
+      "upstream_sha256": "acd9fb1feedf82fb1adfcff19bd829396a883843b0dda27e6f24ee67c518d436",
+      "current_sha256": "a43a94ff3489857b4a1f3fca203ea7ee3a95eaba8e0b4f97640f23c439c13377",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "tests/tools/pi-owner-runtime-smoke.mjs",
+      "upstream_sha256": "b1b352748e9ec638b8a3cf5f670b7df5a4ab21ef3cbcd8e1a4f94ab55fb6c69e",
+      "current_sha256": "c71a7af44c40f6a6162d28c591c934bf55c1af266d48de7b59d3d2d1157c482b",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "tests/tools/pi-ui-prompt-runtime-smoke.mjs",
+      "upstream_sha256": "436c256b1c7266b3b79d9f7e46a2e67f0aa96612233650d4deb4cef94c1b4cdf",
+      "current_sha256": "99bfd37d76dbb323d9fb08ea467db58bae45ec6cb46d70b1df13547711f67502",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
     }
   ],
   "reviewed_findings": [
@@ -336195,15 +337322,15 @@
     {
       "path": "src/main/claude/statusline-script.ts",
       "rule": "absolute-windows-path",
-      "line": 63,
-      "sha256": "5a2834060ccc56ce006b48215e208693f15dafc248b5c63099e28210e9168cf7",
+      "line": 70,
+      "sha256": "650b1bb0934a1f555a2bdacb42bcf04df7a49ae3efe29d59fd5e6d7f11d58539",
       "reason": "Windows已知系统目录/系统可执行程序的默认或环境回退，不是个人工程路径；保留系统解析功能。"
     },
     {
       "path": "src/main/codex/codex-hook-command-form.ts",
       "rule": "absolute-windows-path",
-      "line": 42,
-      "sha256": "20c4a25d4b5ae78ce188f0f0b3829b396ba04a9944722b3a4c66fdff71e1e68f",
+      "line": 46,
+      "sha256": "8595cc8b9d09f2310e11c7740c52b5c6650212649701f539beaf1f0a217900f6",
       "reason": "Windows已知系统目录/系统可执行程序的默认或环境回退，不是个人工程路径；保留系统解析功能。"
     },
     {
@@ -336279,8 +337406,8 @@
     {
       "path": "src/main/grok/windows-grok-hook-script.ts",
       "rule": "absolute-windows-path",
-      "line": 39,
-      "sha256": "f20e61e32e4a56f32bbec4fd9d833588a4d8fc318f938953109fc2268bdbdc60",
+      "line": 44,
+      "sha256": "9c3d613de9eac314d7c5e19cb4b837266bad843abe0c1818c20e973a64e00546",
       "reason": "上游公开代码注释、CLI/界面示例中的路径语法，用来解释drive/root/UNC/转义等规则；非读取的个人配置，限定具体行及文件hash。"
     },
     {
@@ -336329,7 +337456,7 @@
       "path": "src/main/jcode/hook-settings.ts",
       "rule": "absolute-windows-path",
       "line": 53,
-      "sha256": "82d9db15b7ba91e1f48dd67582d988b67b23e3f228dcb94ff6f75d65c4ec3546",
+      "sha256": "15fbde76fbbe1179bbea3eecc660e2c72069d5f4d77d01dcd3969bf7b8be9206",
       "reason": "上游公开代码注释、CLI/界面示例中的路径语法，用来解释drive/root/UNC/转义等规则；非读取的个人配置，限定具体行及文件hash。"
     },
     {

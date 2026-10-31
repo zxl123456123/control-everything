@@ -1,4 +1,5 @@
 import { resolveLoginShellEnvironment } from '../main/startup/login-shell-environment'
+import { migrateAgentHookEnvironmentIdentity } from '../shared/agent-hook-environment-identity'
 import { migrateOpenCodeEnvironmentIdentity } from '../shared/opencode-environment-identity'
 import { readSessionShellStartupEnvVar } from '../main/pty/shell-startup-env'
 import {
@@ -26,6 +27,7 @@ export function resolveOpenCodeSourceConfigDir(
   shell: string | undefined
 ): string | undefined {
   env = { ...env }
+  migrateAgentHookEnvironmentIdentity(env)
   migrateOpenCodeEnvironmentIdentity(env)
   return firstNonEmpty(
     env.ZKYQ_OPENCODE_SOURCE_CONFIG_DIR,

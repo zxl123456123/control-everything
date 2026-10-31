@@ -26,11 +26,11 @@ async function withClaudeHookServer(
   try {
     const env = server.buildPtyEnv()
     await run(async (payload) => {
-      const response = await fetch(`http://127.0.0.1:${env.ORCA_AGENT_HOOK_PORT}/hook/claude`, {
+      const response = await fetch(`http://127.0.0.1:${env.ZKYQ_AGENT_HOOK_PORT}/hook/claude`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Zkyq-Agent-Hook-Token': env.ORCA_AGENT_HOOK_TOKEN
+          'X-Zkyq-Agent-Hook-Token': env.ZKYQ_AGENT_HOOK_TOKEN
         },
         body: JSON.stringify(buildBody(payload))
       })

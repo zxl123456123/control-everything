@@ -31,3 +31,17 @@ web/workbench-engine/src/shared/__fixtures__/claude-cancel-subagent-hooks.jsonl 
 web/workbench-engine/src/shared/__fixtures__/claude-cancel-shell-hooks.jsonl text eol=lf
 web/workbench-engine/src/shared/__fixtures__/claude-permission-approve-deny-hooks.jsonl text eol=lf
 web/workbench-engine/src/main/runtime/__fixtures__/claude-ready-task-wakeup.txt text eol=lf
+web/workbench-engine/config/reliability-gates.jsonc text eol=lf
+web/workbench-engine/tests/tools/omp-child-session-runtime-smoke.mjs text eol=lf
+web/workbench-engine/tests/tools/omp-completion-runtime-smoke.mjs text eol=lf
+web/workbench-engine/tests/tools/omp-model-runtime-smoke.mjs text eol=lf
+web/workbench-engine/tests/tools/omp-status-input-redaction-smoke.mjs text eol=lf
+web/workbench-engine/tests/tools/omp-transcript-runtime-smoke.mjs text eol=lf
+web/workbench-engine/tests/tools/pi-owner-runtime-smoke.mjs text eol=lf
+web/workbench-engine/tests/tools/pi-ui-prompt-runtime-smoke.mjs text eol=lf
+web/workbench-engine/src/main/__fixtures__/shell-wrapper-snapshots/daemon-bash-rcfile.txt text eol=lf
+web/workbench-engine/src/main/__fixtures__/shell-wrapper-snapshots/daemon-fish-init.txt text eol=lf
+web/workbench-engine/src/main/__fixtures__/shell-wrapper-snapshots/daemon-zsh-zshenv.txt text eol=lf
+web/workbench-engine/src/main/__fixtures__/shell-wrapper-snapshots/local-bash-rcfile.txt text eol=lf
+web/workbench-engine/src/main/__fixtures__/shell-wrapper-snapshots/local-fish-init.txt text eol=lf
+web/workbench-engine/src/main/__fixtures__/shell-wrapper-snapshots/local-zsh-zshenv.txt text eol=lf
