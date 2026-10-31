@@ -3,6 +3,7 @@ import { STRUCTURED_AGENT_SESSION_RUNTIME_CAPABILITY } from '../../../../shared/
 import { STRUCTURED_AGENT_RUNTIME_REGISTRATIONS } from '../../structured-agent-runtime-registrations'
 import type { RpcContext } from '../core'
 import { STRUCTURED_AGENT_SESSION_AGENTS_METHODS } from './structured-agent-session-agents'
+import { decodeAgentSessionAgentsResult } from '../../../../shared/agent-session-registered-agents'
 
 const [method] = STRUCTURED_AGENT_SESSION_AGENTS_METHODS
 
@@ -25,6 +26,9 @@ describe('agentSession.agents', () => {
       STRUCTURED_AGENT_RUNTIME_REGISTRATIONS.map(({ definition }) => definition.agent)
     )
     expect(result.agents.map(({ agent }) => agent)).toContain('opencode')
+    expect(decodeAgentSessionAgentsResult(JSON.parse(JSON.stringify(result)))).toEqual(
+      result.agents
+    )
     expect(ensureStructuredAgentSessionHost).not.toHaveBeenCalled()
   })
 

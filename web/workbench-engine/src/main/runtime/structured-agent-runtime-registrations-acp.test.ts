@@ -5,8 +5,32 @@ import {
   type StructuredAgentAccountHomeServices
 } from './structured-agent-runtime-registrations'
 import { decideAgentLaunchMode } from '../agent-launch/agent-launch-mode'
+import { decodeAgentSessionAgentsResult } from '../../shared/agent-session-registered-agents'
 
 describe('ACP agents in the runtime registrations', () => {
+  it('publishes the current enforcement identity for every ACP agent without changing provider enforcement', () => {
+    const records = STRUCTURED_AGENT_RUNTIME_REGISTRATIONS.map(({ definition }) => ({
+      agent: definition.agent,
+      capabilities: definition.capabilities
+    }))
+    expect(
+      Object.fromEntries(
+        records.map(({ agent, capabilities }) => [agent, capabilities.approvalEnforcement])
+      )
+    ).toEqual({
+      pi: 'provider',
+      codex: 'provider',
+      claude: 'provider',
+      grok: 'zkyq',
+      opencode: 'zkyq',
+      opencode2: 'zkyq',
+      omp: 'zkyq',
+      antigravity: 'zkyq'
+    })
+    expect(decodeAgentSessionAgentsResult(JSON.parse(JSON.stringify({ agents: records })))).toEqual(
+      records
+    )
+  })
   it('registers Grok beside Claude and Codex with its declared capabilities', () => {
     expect(
       STRUCTURED_AGENT_RUNTIME_REGISTRATIONS.map(({ definition }) => definition.agent)
@@ -24,7 +48,7 @@ describe('ACP agents in the runtime registrations', () => {
         contextUsage: true,
         imagePrompts: false,
         steering: 'queue',
-        approvalEnforcement: 'orca'
+        approvalEnforcement: 'zkyq'
       }
     })
   })
@@ -35,7 +59,7 @@ describe('ACP agents in the runtime registrations', () => {
       agent: 'opencode',
       handleTransport: 'acp',
       accountLocatorKind: 'opencode',
-      capabilities: { imagePrompts: true, steering: 'queue', approvalEnforcement: 'orca' }
+      capabilities: { imagePrompts: true, steering: 'queue', approvalEnforcement: 'zkyq' }
     })
     expect(definition?.accountHomeVariable).toBeUndefined()
   })
@@ -53,7 +77,7 @@ describe('ACP agents in the runtime registrations', () => {
       agent: 'omp',
       handleTransport: 'acp',
       accountHomeVariable: 'PI_CODING_AGENT_DIR',
-      capabilities: { imagePrompts: false, steering: 'queue', approvalEnforcement: 'orca' }
+      capabilities: { imagePrompts: false, steering: 'queue', approvalEnforcement: 'zkyq' }
     })
     expect(registration?.launchCheck).toBeDefined()
   })

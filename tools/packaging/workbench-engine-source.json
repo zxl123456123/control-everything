@@ -337207,6 +337207,54 @@
       "upstream_sha256": "3ab462e495cc1a8509ea20fc7a8d982974d405feaf02017876de78ed30ba738c",
       "current_sha256": "4613cc71a6eb900648df3f6a6b3189681cae0ef8431edcebe74a2963adc5eebb",
       "reason": "当前WSL relay readiness/握手身份统一ZKYQ，浏览器版本隔离程序缓存改.zkyq-wsl；已发布旧SSH sentinel仅在既有legacy输入边界固定读取，保持13字节帧、JSON-RPC2.0、凭据检查、网络流控及存活会话能力"
+    },
+    {
+      "path": "src/main/acp/acp-structured-agent-definitions.ts",
+      "upstream_sha256": "11989b6252e0b9d29704614adee930cf1944a683b3d815d76078a17aa440f7fd",
+      "current_sha256": "574de7d3c0592046b7e3896d7f2e032ddcd64b7eb575b25561ece288301562bf",
+      "reason": "ACP权限归属声明统一zkyq，注册、公开RPC、客户端读取及renderer类型fixture同步；旧/未知输入沿既有最弱能力降级，保留provider语义、能力标志及实际权限处理，不改journal持久键"
+    },
+    {
+      "path": "src/main/runtime/rpc/methods/structured-agent-session-agents.test.ts",
+      "upstream_sha256": "ac14d17ebcdc26d6c9068fa6931e39266113b0adb7c81d290eec3c72d665dcba",
+      "current_sha256": "26ceedba76e863337564f3862531a5027c79b905ed961e75cbdb31f194b52439",
+      "reason": "ACP权限归属声明统一zkyq，注册、公开RPC、客户端读取及renderer类型fixture同步；旧/未知输入沿既有最弱能力降级，保留provider语义、能力标志及实际权限处理，不改journal持久键"
+    },
+    {
+      "path": "src/main/runtime/structured-agent-runtime-registrations-acp.test.ts",
+      "upstream_sha256": "b15fbdeeab214eee1a25578c5bf0c846b248f0abd780d67b696ab019192fe5b0",
+      "current_sha256": "07bc933c351a9e5d10ff2a20f57696279715527ca798f27e9ddde0f470c04426",
+      "reason": "ACP权限归属声明统一zkyq，注册、公开RPC、客户端读取及renderer类型fixture同步；旧/未知输入沿既有最弱能力降级，保留provider语义、能力标志及实际权限处理，不改journal持久键"
+    },
+    {
+      "path": "src/renderer/src/components/native-chat/structured-agent-registered-agent-surface.test.ts",
+      "upstream_sha256": "f7e5c671a3544d529dd0d6f9820859968f3d576f5412ed03d674461cdfd609ab",
+      "current_sha256": "7a5af4f942085e896b5620d91909d2a89e6519ce7ce3090d360d6be5c3141aa3",
+      "reason": "ACP权限归属声明统一zkyq，注册、公开RPC、客户端读取及renderer类型fixture同步；旧/未知输入沿既有最弱能力降级，保留provider语义、能力标志及实际权限处理，不改journal持久键"
+    },
+    {
+      "path": "src/renderer/src/components/native-chat/use-native-chat-structured-composer-transport.test.tsx",
+      "upstream_sha256": "82c3cad06a3ab9929b80ba4d112c5283bd38ec5797dcb20db34b6f4b4f41f867",
+      "current_sha256": "c6d2fc9642bf78e33f8479e377905fd2475622ea06d054ff322d0d216107d7aa",
+      "reason": "ACP权限归属声明统一zkyq，注册、公开RPC、客户端读取及renderer类型fixture同步；旧/未知输入沿既有最弱能力降级，保留provider语义、能力标志及实际权限处理，不改journal持久键"
+    },
+    {
+      "path": "src/shared/agent-session-capabilities.ts",
+      "upstream_sha256": "1d1f59193465bf20cb2535b3ccfa47a2134fd94ad3c8404688739b1c56b0ae8b",
+      "current_sha256": "cb0cba1fe7682df4840914c12ac6afc565b92e12cc94ec4b445f6d69eb502738",
+      "reason": "ACP权限归属声明统一zkyq，注册、公开RPC、客户端读取及renderer类型fixture同步；旧/未知输入沿既有最弱能力降级，保留provider语义、能力标志及实际权限处理，不改journal持久键"
+    },
+    {
+      "path": "src/shared/agent-session-registered-agents.test.ts",
+      "upstream_sha256": "d05ad988f0e92f543ca2fbe6341d73c765c399b10559994da9ff7dea7963bc56",
+      "current_sha256": "9f256564eb882499745899142ffe8b1fd77e8fa670cce2b2e811e6d5dd45bb8a",
+      "reason": "ACP权限归属声明统一zkyq，注册、公开RPC、客户端读取及renderer类型fixture同步；旧/未知输入沿既有最弱能力降级，保留provider语义、能力标志及实际权限处理，不改journal持久键"
+    },
+    {
+      "path": "src/shared/agent-session-registered-agents.ts",
+      "upstream_sha256": "2be74612d6c70fef9536e62c533e75a7150e19b1ca4c787bfe24286ac4201ba8",
+      "current_sha256": "ac2640d6147bebbe730dab4ffbd70311c7f567a42324034386f7b37269365088",
+      "reason": "ACP权限归属声明统一zkyq，注册、公开RPC、客户端读取及renderer类型fixture同步；旧/未知输入沿既有最弱能力降级，保留provider语义、能力标志及实际权限处理，不改journal持久键"
     }
   ],
   "reviewed_findings": [
