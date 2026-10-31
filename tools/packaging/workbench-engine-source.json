@@ -327265,7 +327265,11 @@
     "src/wsl-guest/wsl-hook-endpoint-identity.test.ts",
     "src/wsl-guest/wsl-hook-endpoint-identity.ts",
     "src/main/native-chat/agent-session-journal/journal-key-identity-migration.test.ts",
-    "src/main/native-chat/agent-session-journal/journal-row-key-identity.ts"
+    "src/main/native-chat/agent-session-journal/journal-row-key-identity.ts",
+    "src/main/native-chat/agent-session-journal/command-receipt-key-identity.ts",
+    "src/main/native-chat/agent-session-journal/journal-v3-export.test.ts",
+    "src/main/native-chat/agent-session-journal/journal-v3-export.ts",
+    "src/main/native-chat/agent-session-journal/journal-v3-key.ts"
   ],
   "adapted_files": [
     {
@@ -338169,6 +338173,18 @@
       "upstream_sha256": "c764e1e566f6e8087d560b6ebe4e9ec55405a85a6f3dc2514705f0e0f6632de0",
       "current_sha256": "1a4de132f299da78142f6a151cd07d1c1ba0f4f47998ebe02406fcf30e3e41c3",
       "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/native-chat/agent-session-journal/command-receipt-table.spec.ts",
+      "upstream_sha256": "10fcce74ae9a12087610320d6e11fa6b21437a899b1efc73b4d0d510c85ba694",
+      "current_sha256": "a8865e2a9787d48ae0562ad6b0171916c586e6e5b21181071172df80fd123869",
+      "reason": "持久prompt-answer回执地址单向迁移zkyq，保留请求指纹与历史原字节、拒绝重执行；真实v3导出/旧store继续写入/重新升级回归"
+    },
+    {
+      "path": "src/main/native-chat/agent-session-journal/command-receipt-table.ts",
+      "upstream_sha256": "455dba2ee7a8b2ae05fa6587aae2774b613e19509fcaf5c1a74afe697ba9a3c9",
+      "current_sha256": "f94706336e5c8afa32d176415dcfa663560a280a8f0e25f08c3e142bab31cdb9",
+      "reason": "持久prompt-answer回执地址单向迁移zkyq，保留请求指纹与历史原字节、拒绝重执行；真实v3导出/旧store继续写入/重新升级回归"
     }
   ],
   "reviewed_findings": [

@@ -57,6 +57,43 @@ export function registerCommandReceiptTableTests(): void {
   }
 
   describe('command receipt identity', () => {
+    it('migrates prompt result addresses on read and write without changing request fingerprints', () => {
+      const result = {
+        kind: 'prompt-answer' as const,
+        itemId: 'orca:approval',
+        revision: 2,
+        resolution: {
+          state: 'resolved' as const,
+          selectedOptionId: null,
+          resolvedBy: 'caller-1',
+          resolvedAt: 1000
+        }
+      }
+      const receipt = commandReceiptFixture({ method: 'agentSession.approval', result })
+      expect(insert(receipt)).toEqual({ inserted: true })
+      const saved = database.db
+        .prepare('SELECT result_json FROM agent_session_command_receipts WHERE operation_id = ?')
+        .get(receipt.operationId)
+      expect(JSON.parse(String(saved?.result_json)).itemId).toBe('zkyq:approval')
+      const raw = JSON.stringify(result)
+      database.db
+        .prepare('UPDATE agent_session_command_receipts SET result_json = ? WHERE operation_id = ?')
+        .run(raw, receipt.operationId)
+      expect(read(receipt)).toMatchObject({
+        verdict: 'readable',
+        receipt: {
+          fingerprint: receipt.fingerprint,
+          result: { itemId: 'zkyq:approval' }
+        }
+      })
+      expect(insert(receipt)).toMatchObject({ inserted: false, reason: 'duplicate' })
+      expect(
+        database.db
+          .prepare('SELECT result_json FROM agent_session_command_receipts WHERE operation_id = ?')
+          .get(receipt.operationId)?.result_json
+      ).toBe(raw)
+    })
+
     it('inserts a send once and replays the original receipt across callers with the same fingerprint', () => {
       const receipt = commandReceiptFixture()
       expect(read(receipt)).toEqual({ verdict: 'absent' })
