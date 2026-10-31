@@ -327176,7 +327176,9 @@
     "src/main/ephemeral-vm/migrate-runtime-environment.ts",
     "src/cli/handlers/account-wsl-location.test.ts",
     "src/main/runtime/orchestration/db/schema/migrate-v44.ts",
-    "src/main/runtime/rpc/orchestration-session-address-migration.test.ts"
+    "src/main/runtime/rpc/orchestration-session-address-migration.test.ts",
+    "src/main/source-control/source-control-environment.test.ts",
+    "src/main/source-control/source-control-environment.ts"
   ],
   "adapted_files": [
     {
@@ -334336,6 +334338,144 @@
       "upstream_sha256": "2bce3a35d0bedceee6d7ab16e926a735b743962498b2513b3ec3b951ccc41243",
       "current_sha256": "02f505aeaba9c661feb8c4376385c2e27632eb80408a52229f1e988b5877f4a1",
       "reason": "统一剩余 CLI 帮助源目录和原始目录校验，保持命令合同与帮助输出"
+    },
+    {
+      "path": "src/main/azure-devops/azure-devops-api-request.test.ts",
+      "upstream_sha256": "705324925f0b4679311e5bc6f9e55e058d3ab454fd60a3324798fb44b019360c",
+      "current_sha256": "c4df77b88ee84efab3b5a87aa91a74d905bf411d20e36afd6dff728903679240",
+      "reason": "迁移服务集成环境身份并保留令牌、目的地址与鉴权优先级"
+    },
+    {
+      "path": "src/main/azure-devops/azure-devops-api-request.ts",
+      "upstream_sha256": "0ea15c66fb983dc395b4a67289ee00ac9413c9deb3d2a5ca445845a4ecceece9",
+      "current_sha256": "0e80957b20347595fcc0658f5d17eddc2c2f57d7815d8ff9faaa64eab6896607",
+      "reason": "迁移服务集成环境身份并保留令牌、目的地址与鉴权优先级"
+    },
+    {
+      "path": "src/main/azure-devops/client.test.ts",
+      "upstream_sha256": "a85e90a45a510356159a5f82621fde41b6b0bd42aa593e549a5e8697e3ada270",
+      "current_sha256": "fa50e337c190cde9f4dac60fc4d8f35e8ff09a897b492b315f9711b3bb36de0b",
+      "reason": "迁移服务集成环境身份并保留令牌、目的地址与鉴权优先级"
+    },
+    {
+      "path": "src/main/azure-devops/pull-request-creation.test.ts",
+      "upstream_sha256": "896eaaa03b0f6b41b364c3b628196606e9ab0aa002a7870ba19d55d30a2c4745",
+      "current_sha256": "9f1cf4596c5a25fcefcfd568043da0db805de9621ac66e2223b463d998176e3a",
+      "reason": "迁移服务集成环境身份并保留令牌、目的地址与鉴权优先级"
+    },
+    {
+      "path": "src/main/azure-devops/pull-request-creation.ts",
+      "upstream_sha256": "ef7deb6673b8437cdd411eab303f31077aaa045af10d413534951491a4ac8afc",
+      "current_sha256": "030c079c57ac8d8d2c979c69218160efdbf94155fda9d3f4dda3ae8aa0365a7d",
+      "reason": "迁移服务集成环境身份并保留令牌、目的地址与鉴权优先级"
+    },
+    {
+      "path": "src/main/bitbucket/bitbucket-auth-config.ts",
+      "upstream_sha256": "9693f48a18d36508f846f42795ac1ba05b31ecc0695fe94bc3a2fd875f1a770a",
+      "current_sha256": "288e4f1ac3270388bf30e7223d75ae227f44b0756623b70dae88117b84e46b28",
+      "reason": "迁移服务集成环境身份并保留令牌、目的地址与鉴权优先级"
+    },
+    {
+      "path": "src/main/bitbucket/client.test.ts",
+      "upstream_sha256": "febd9e73cc0bcf93d8cb248f2af405251d5427cd3e89928dff753c65af94be57",
+      "current_sha256": "0cec9a9a9885738be10a564575202fc15677cd6c3205bc4dceacbcd4726a7496",
+      "reason": "迁移服务集成环境身份并保留令牌、目的地址与鉴权优先级"
+    },
+    {
+      "path": "src/main/bitbucket/credential-connection.test.ts",
+      "upstream_sha256": "c67495fa5e2734c74fc67ba68a8cead62dbbb7967a00b7395934f8af61198655",
+      "current_sha256": "5140a889b23a3fe1725a2429c033ffc57d3961a3f11a20db18f4c5b8699d0f2d",
+      "reason": "迁移服务集成环境身份并保留令牌、目的地址与鉴权优先级"
+    },
+    {
+      "path": "src/main/bitbucket/credential-connection.ts",
+      "upstream_sha256": "9084ae30d0d156ec9d34eb35852ab515f8f4a5b7bca30c4028e6eba2eb246371",
+      "current_sha256": "7dab64eb41ee06333a99a3986e0c6a9891b856df64aabbeb914c06786b143ffe",
+      "reason": "迁移服务集成环境身份并保留令牌、目的地址与鉴权优先级"
+    },
+    {
+      "path": "src/main/bitbucket/pull-request-creation.test.ts",
+      "upstream_sha256": "fcab482ac686b7798c4e70f614d575196d4c382f76809c280ee81dd272ae261a",
+      "current_sha256": "9f6c425641a46709923e730ad289ac6f4c934555e4438fabbfa589f03459bf47",
+      "reason": "迁移服务集成环境身份并保留令牌、目的地址与鉴权优先级"
+    },
+    {
+      "path": "src/main/bitbucket/pull-request-creation.ts",
+      "upstream_sha256": "6a8c7959a6f003cb5aba60e8c5b9b582719864148f3c32a980621febc4944c0d",
+      "current_sha256": "c4d4a5765f8ec27fcfc632152a9dbd75c995309cb544cdf42bbe5fdfce0ff098",
+      "reason": "迁移服务集成环境身份并保留令牌、目的地址与鉴权优先级"
+    },
+    {
+      "path": "src/main/bitbucket/resolve-auth.ts",
+      "upstream_sha256": "10d69d6b4b4eadc5e27d14a03ba185007aae0167b10c99d0a7e22bd30dd0c164",
+      "current_sha256": "7478763a26c6dd5b87d382ffbef24fe06f97de0030b2f1b8c02a031eff518cea",
+      "reason": "迁移服务集成环境身份并保留令牌、目的地址与鉴权优先级"
+    },
+    {
+      "path": "src/main/bitbucket/status-no-decrypt.test.ts",
+      "upstream_sha256": "63937e170d202c5091c8a2d8391347ce72ea313efa6635a1130f1c519d0a8755",
+      "current_sha256": "8a7d94045077d7e8c85813c4d7813b0b1dc51486f7c88abc641e9542fa76d518",
+      "reason": "迁移服务集成环境身份并保留令牌、目的地址与鉴权优先级"
+    },
+    {
+      "path": "src/main/gitea/client-scan-invalidation.test.ts",
+      "upstream_sha256": "4ce9441a568110d69d088ff712125524236fc722b878ee16e8355fc13dfd2e6c",
+      "current_sha256": "2a50bc0a17ad987c967235e15feb74f19436260938770436a3ec03a6aa779f2f",
+      "reason": "迁移服务集成环境身份并保留令牌、目的地址与鉴权优先级"
+    },
+    {
+      "path": "src/main/gitea/client.test.ts",
+      "upstream_sha256": "fa8c7e919b46290ed5826fee50efc8d2bfbe1f7726ce77f9bd65aa9901839a39",
+      "current_sha256": "3e764b03ead6938a975a022b8786558b269fb0702de7cd89ccfffb5f9d54d2a9",
+      "reason": "迁移服务集成环境身份并保留令牌、目的地址与鉴权优先级"
+    },
+    {
+      "path": "src/main/gitea/client.ts",
+      "upstream_sha256": "e0e32a5ad86796692cf76d659d91f99233bf1990e9c3984a12d4890dfc24daa6",
+      "current_sha256": "0eaca17a8442dabfec101920e8b9c43befa001ececf0a0d115b0bcb44e7ee1b7",
+      "reason": "迁移服务集成环境身份并保留令牌、目的地址与鉴权优先级"
+    },
+    {
+      "path": "src/main/gitea/pull-request-creation.test.ts",
+      "upstream_sha256": "7d9100101c8d6789868f3305e04b59a9f6da26f51e1a47359eae685b0c3a1aab",
+      "current_sha256": "677690af6be15a572c1720512d7ea2c8e3d92d9391f2daf7ce9088ec603d1fff",
+      "reason": "迁移服务集成环境身份并保留令牌、目的地址与鉴权优先级"
+    },
+    {
+      "path": "src/main/gitea/pull-request-creation.ts",
+      "upstream_sha256": "0ff34a2a849598df6ebdbaf8ccf6105b3862c6278a748a73f8f213ac4130f409",
+      "current_sha256": "1e88f34737d7b1c5b4290580f4992770ac268a8de1f5f4433eff517240fb8f91",
+      "reason": "迁移服务集成环境身份并保留令牌、目的地址与鉴权优先级"
+    },
+    {
+      "path": "src/main/source-control/forge-provider.test.ts",
+      "upstream_sha256": "0eb724a25825db17489499f0cdc952f290cbe08819450e5d9c7054203a0eca26",
+      "current_sha256": "4fb1785c75b748b00816d74c5e3ce41d1500852e98e7c11661109f649dddb7f0",
+      "reason": "迁移服务集成环境身份并保留令牌、目的地址与鉴权优先级"
+    },
+    {
+      "path": "src/main/source-control/hosted-review-azure-devops.integration.test.ts",
+      "upstream_sha256": "31d9df55d728a792d4dff05be7a3069de5a2f2571e5a749d8a1c3099e7fe68e2",
+      "current_sha256": "a3949f1d87d4f8a5869a3e2973f1fe2cdb4afe142d9eb0aa2fdf5897c64a131f",
+      "reason": "迁移服务集成环境身份并保留令牌、目的地址与鉴权优先级"
+    },
+    {
+      "path": "src/main/source-control/hosted-review-bitbucket.integration.test.ts",
+      "upstream_sha256": "a63df64fe0b9a3ee3883eebefacb81f49e0628f520722d6a1388e16db0e21094",
+      "current_sha256": "a2c26589602ca587912b0cca036896e06eece0f1be87f31cb57445c0837e5d6d",
+      "reason": "迁移服务集成环境身份并保留令牌、目的地址与鉴权优先级"
+    },
+    {
+      "path": "src/main/source-control/hosted-review-creation-provider.ts",
+      "upstream_sha256": "6dfdff63d51e99e5d26df3b19a0dc7e27bce428caca684a92fc8ef9d1d427b3e",
+      "current_sha256": "4291b040e79cf5415ceb299c29e59ced0ff41aad126fc5b57adceab96e3a4876",
+      "reason": "迁移服务集成环境身份并保留令牌、目的地址与鉴权优先级"
+    },
+    {
+      "path": "src/main/source-control/hosted-review-gitea.integration.test.ts",
+      "upstream_sha256": "23265688b5390327028f65de7922ebaa8ae020fa62fb47334204a719fa24c5b8",
+      "current_sha256": "15116b9ca56e82eae74ea20b0ea86c0dc68df675a558e45c2e2887c82138b06a",
+      "reason": "迁移服务集成环境身份并保留令牌、目的地址与鉴权优先级"
     }
   ],
   "reviewed_findings": [

@@ -39,8 +39,8 @@ function createReview() {
 
 describe('Gitea scan invalidation after creation', () => {
   beforeEach(() => {
-    vi.stubEnv('ORCA_GITEA_TOKEN', 'test-token')
-    vi.stubEnv('ORCA_GITEA_API_BASE_URL', '')
+    vi.stubEnv('ZKYQ_GITEA_TOKEN', 'test-token')
+    vi.stubEnv('ZKYQ_GITEA_API_BASE_URL', '')
     _resetGiteaRepoRefCache()
     _resetGiteaPullRequestScanCache()
   })

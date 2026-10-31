@@ -41,7 +41,7 @@ function createdPullRequestResponse(): Response {
 
 describe('Bitbucket pull request creation', () => {
   beforeEach(() => {
-    process.env = { ...OLD_ENV, ORCA_BITBUCKET_ACCESS_TOKEN: 'bb-token' }
+    process.env = { ...OLD_ENV, ZKYQ_BITBUCKET_ACCESS_TOKEN: 'bb-token' }
     gitExecFileAsyncMock.mockReset()
     gitExecFileAsyncMock.mockResolvedValue({
       stdout: 'https://bitbucket.org/team/repo.git\n',
@@ -83,7 +83,7 @@ describe('Bitbucket pull request creation', () => {
   })
 
   it('uses the stored credential when no environment variable is set', async () => {
-    delete process.env.ORCA_BITBUCKET_ACCESS_TOKEN
+    delete process.env.ZKYQ_BITBUCKET_ACCESS_TOKEN
     const fetchMock = vi.fn(async () => createdPullRequestResponse())
     globalThis.fetch = fetchMock as unknown as typeof fetch
 
@@ -110,7 +110,7 @@ describe('Bitbucket pull request creation', () => {
 
   it('reports authenticated only when a credential resolves', async () => {
     expect(isBitbucketReviewCreationAuthenticated()).toBe(true)
-    delete process.env.ORCA_BITBUCKET_ACCESS_TOKEN
+    delete process.env.ZKYQ_BITBUCKET_ACCESS_TOKEN
     expect(isBitbucketReviewCreationAuthenticated()).toBe(false)
   })
 

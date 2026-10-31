@@ -1,6 +1,7 @@
 import { Buffer } from 'node:buffer'
 import type { AzureDevOpsRepoRef } from './repository-ref'
 import { cancelUnreadResponseBody } from '../lib/unread-response-body'
+import { readSourceControlEnvironment as envValue } from '../source-control/source-control-environment'
 
 const REQUEST_TIMEOUT_MS = 5000
 const DEFAULT_API_VERSION = '7.1'
@@ -52,11 +53,6 @@ export type AzureDevOpsRequestOptions = {
   timeoutMs?: number
 }
 
-function envValue(name: string): string | null {
-  const value = process.env[name]?.trim() ?? ''
-  return value.length > 0 ? value : null
-}
-
 export function normalizeAzureDevOpsApiBaseUrl(value: string): string {
   return value
     .trim()
@@ -66,10 +62,10 @@ export function normalizeAzureDevOpsApiBaseUrl(value: string): string {
 
 export function getAzureDevOpsAuthConfig(): AzureDevOpsAuthConfig {
   return {
-    apiBaseUrl: envValue('ORCA_AZURE_DEVOPS_API_BASE_URL'),
-    pat: envValue('ORCA_AZURE_DEVOPS_TOKEN') ?? envValue('ORCA_AZURE_DEVOPS_PAT'),
-    accessToken: envValue('ORCA_AZURE_DEVOPS_ACCESS_TOKEN'),
-    username: envValue('ORCA_AZURE_DEVOPS_USERNAME')
+    apiBaseUrl: envValue('ZKYQ_AZURE_DEVOPS_API_BASE_URL'),
+    pat: envValue('ZKYQ_AZURE_DEVOPS_TOKEN') ?? envValue('ZKYQ_AZURE_DEVOPS_PAT'),
+    accessToken: envValue('ZKYQ_AZURE_DEVOPS_ACCESS_TOKEN'),
+    username: envValue('ZKYQ_AZURE_DEVOPS_USERNAME')
   }
 }
 
