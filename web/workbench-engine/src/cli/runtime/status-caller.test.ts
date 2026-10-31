@@ -1,4 +1,5 @@
-import { mkdtempSync, writeFileSync } from 'node:fs'
+import { randomUUID } from 'node:crypto'
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { createServer, type Server, type Socket } from 'node:net'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -10,7 +11,12 @@ import { RuntimeClient } from './client'
 
 const SESSION = '4a1f6c2e-8b3d-4e7a-9c15-0d2b6e8f1a37'
 const RUNTIME_ID = 'runtime-caller'
-const IDENTITY_ENV = ['ORCA_AGENT_SESSION_ID', 'ORCA_TERMINAL_HANDLE', 'ORCA_PANE_KEY'] as const
+const IDENTITY_ENV = [
+  'ZKYQ_AGENT_SESSION_ID',
+  'ORCA_AGENT_SESSION_ID',
+  'ORCA_TERMINAL_HANDLE',
+  'ORCA_PANE_KEY'
+] as const
 
 type ReceivedRequest = RuntimeOrchestrationEnvelope & {
   id: string
@@ -21,103 +27,107 @@ type ReceivedRequest = RuntimeOrchestrationEnvelope & {
 type HostReply = { result: unknown } | { error: { code: string; message: string } }
 
 /**
- * The real `orca status` handler and CLI client over a real Unix socket. The host's side of
+ * The real status handler and CLI client over a local IPC connection. The host's side of
  * `orchestration.callerShow` is covered against the real dispatcher in orchestration-caller-show.
  */
-describe.skipIf(process.platform === 'win32')(
-  "orca status reports a session caller's Orca session ID",
-  () => {
-    let server: Server
-    const sockets = new Set<Socket>()
-    const received: ReceivedRequest[] = []
-    const savedEnv = new Map<string, string | undefined>()
-    let userDataPath: string
-    let callerShowReply: HostReply
+describe('status reports a session caller identity', () => {
+  let server: Server
+  const sockets = new Set<Socket>()
+  const received: ReceivedRequest[] = []
+  const savedEnv = new Map<string, string | undefined>()
+  let userDataPath: string
+  let callerShowReply: HostReply
 
-    beforeEach(async () => {
-      for (const key of IDENTITY_ENV) {
-        savedEnv.set(key, process.env[key])
+  beforeEach(async () => {
+    for (const key of IDENTITY_ENV) {
+      savedEnv.set(key, process.env[key])
+      delete process.env[key]
+    }
+    received.length = 0
+    userDataPath = mkdtempSync(join(tmpdir(), 'orca-status-caller-'))
+    const endpoint =
+      process.platform === 'win32'
+        ? `\\\\.\\pipe\\zkyq-status-test-${randomUUID()}`
+        : join(userDataPath, 'runtime.sock')
+    server = createServer((socket) => {
+      sockets.add(socket)
+      socket.once('close', () => sockets.delete(socket))
+      socket.once('data', (data) => answer(socket, String(data).trim()))
+    })
+    await new Promise<void>((resolve) => server.listen(endpoint, resolve))
+    writeFileSync(
+      getRuntimeMetadataPath(userDataPath),
+      JSON.stringify({
+        runtimeId: RUNTIME_ID,
+        pid: process.pid,
+        transports: [{ kind: process.platform === 'win32' ? 'named-pipe' : 'unix', endpoint }],
+        authToken: 'token',
+        startedAt: Date.now()
+      })
+    )
+  })
+
+  afterEach(async () => {
+    for (const socket of sockets) {
+      socket.destroy()
+    }
+    await new Promise<void>((resolve) => server.close(() => resolve()))
+    vi.restoreAllMocks()
+    for (const [key, value] of savedEnv) {
+      if (value === undefined) {
         delete process.env[key]
+      } else {
+        process.env[key] = value
       }
-      received.length = 0
-      userDataPath = mkdtempSync(join(tmpdir(), 'orca-status-caller-'))
-      const endpoint = join(userDataPath, 'runtime.sock')
-      server = createServer((socket) => {
-        sockets.add(socket)
-        socket.once('close', () => sockets.delete(socket))
-        socket.once('data', (data) => answer(socket, String(data).trim()))
-      })
-      await new Promise<void>((resolve) => server.listen(endpoint, resolve))
-      writeFileSync(
-        getRuntimeMetadataPath(userDataPath),
-        JSON.stringify({
-          runtimeId: RUNTIME_ID,
-          pid: process.pid,
-          transport: { kind: 'unix', endpoint },
-          authToken: 'token',
-          startedAt: Date.now()
-        })
-      )
-    })
+    }
+    rmSync(userDataPath, { recursive: true, force: true })
+  })
 
-    afterEach(async () => {
-      for (const socket of sockets) {
-        socket.destroy()
-      }
-      await new Promise<void>((resolve) => server.close(() => resolve()))
-      vi.restoreAllMocks()
-      for (const [key, value] of savedEnv) {
-        if (value === undefined) {
-          delete process.env[key]
-        } else {
-          process.env[key] = value
-        }
-      }
-    })
-
-    function answer(socket: Socket, line: string): void {
-      const request: ReceivedRequest = JSON.parse(line)
-      received.push(request)
-      const reply: HostReply =
-        request.method === 'status.get'
-          ? {
-              result: {
-                runtimeId: RUNTIME_ID,
-                rendererGraphEpoch: 1,
-                graphStatus: 'ready',
-                authoritativeWindowId: null,
-                liveTabCount: 0
-              }
+  function answer(socket: Socket, line: string): void {
+    const request: ReceivedRequest = JSON.parse(line)
+    received.push(request)
+    const reply: HostReply =
+      request.method === 'status.get'
+        ? {
+            result: {
+              runtimeId: RUNTIME_ID,
+              rendererGraphEpoch: 1,
+              graphStatus: 'ready',
+              authoritativeWindowId: null,
+              liveTabCount: 0
             }
-          : callerShowReply
-      const ok = 'result' in reply
-      socket.write(
-        `${JSON.stringify({ id: request.id, ok, ...reply, _meta: { runtimeId: RUNTIME_ID } })}\n`
-      )
-    }
+          }
+        : callerShowReply
+    const ok = 'result' in reply
+    socket.write(
+      `${JSON.stringify({ id: request.id, ok, ...reply, _meta: { runtimeId: RUNTIME_ID } })}\n`
+    )
+  }
 
-    async function status(json: boolean): Promise<string> {
-      const log = vi.spyOn(console, 'log').mockImplementation(() => {})
-      await CORE_HANDLERS.status({
-        client: new RuntimeClient(userDataPath),
-        flags: new Map(),
-        cwd: userDataPath,
-        json
-      })
-      return String(log.mock.calls.at(-1)?.[0])
-    }
+  async function status(json: boolean): Promise<string> {
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {})
+    await CORE_HANDLERS.status({
+      client: new RuntimeClient(userDataPath),
+      flags: new Map(),
+      cwd: userDataPath,
+      json
+    })
+    return String(log.mock.calls.at(-1)?.[0])
+  }
 
-    async function statusCaller(): Promise<unknown> {
-      const printed: { result: Record<string, unknown> } = JSON.parse(await status(true))
-      return printed.result.caller
-    }
+  async function statusCaller(): Promise<unknown> {
+    const printed: { result: Record<string, unknown> } = JSON.parse(await status(true))
+    return printed.result.caller
+  }
 
-    function callerShowRequests(): ReceivedRequest[] {
-      return received.filter((request) => request.method === 'orchestration.callerShow')
-    }
+  function callerShowRequests(): ReceivedRequest[] {
+    return received.filter((request) => request.method === 'orchestration.callerShow')
+  }
 
-    it('asks the host as the session its environment names, and prints the Orca session ID it resolved', async () => {
-      process.env.ORCA_AGENT_SESSION_ID = SESSION
+  it.each(['ZKYQ_AGENT_SESSION_ID', 'ORCA_AGENT_SESSION_ID'] as const)(
+    'asks the host as the session named by %s',
+    async (name) => {
+      process.env[name] = SESSION
       process.env.ORCA_TERMINAL_HANDLE = 'term_tui'
       const caller = { orcaSessionId: `orca_session_id:${SESSION}`, live: true }
       callerShowReply = { result: { caller } }
@@ -131,45 +141,52 @@ describe.skipIf(process.platform === 'win32')(
         terminalHandle: 'term_tui'
       })
       expect(await status(false)).toContain(`\norcaSessionId: orca_session_id:${SESSION}`)
+    }
+  )
+
+  it('rejects conflicting new and legacy identities before making a request', async () => {
+    process.env.ZKYQ_AGENT_SESSION_ID = SESSION
+    process.env.ORCA_AGENT_SESSION_ID = 'different-session'
+    await expect(status(true)).rejects.toThrow('Conflicting agent session identities')
+    expect(received).toEqual([])
+  })
+
+  it.each([
+    ['a terminal agent', { ORCA_TERMINAL_HANDLE: 'term_mine', ORCA_PANE_KEY: 'tab_1:leaf_1' }],
+    ['a pane key alone', { ORCA_PANE_KEY: 'tab_1:leaf_1' }],
+    ['a plain shell', {}]
+  ])('prints exactly the readiness status for %s, without asking the host', async (_who, env) => {
+    Object.assign(process.env, env)
+
+    const printed: { result: Record<string, unknown> } = JSON.parse(await status(true))
+    const text = await status(false)
+
+    expect(printed.result).not.toHaveProperty('caller')
+    // The status text ends where main's does, with nothing about the caller.
+    expect(text.split('\n').at(-1)).toMatch(/^graphState: /)
+    expect(text).not.toMatch(/^(?:orcaSessionId|caller):/m)
+    expect(callerShowRequests()).toHaveLength(0)
+  })
+
+  it("reports the host's refusal of the session instead of an Orca session ID", async () => {
+    process.env.ORCA_AGENT_SESSION_ID = SESSION
+    callerShowReply = {
+      error: { code: 'session_caller_not_live', message: `Agent session ${SESSION} has ended.` }
+    }
+
+    expect(await statusCaller()).toEqual({
+      live: false,
+      refusal: { code: 'session_caller_not_live', message: `Agent session ${SESSION} has ended.` }
     })
+    expect(await status(false)).toContain(
+      '\norcaSessionId: none (refused: session_caller_not_live)'
+    )
+  })
 
-    it.each([
-      ['a terminal agent', { ORCA_TERMINAL_HANDLE: 'term_mine', ORCA_PANE_KEY: 'tab_1:leaf_1' }],
-      ['a pane key alone', { ORCA_PANE_KEY: 'tab_1:leaf_1' }],
-      ['a plain shell', {}]
-    ])('prints exactly the readiness status for %s, without asking the host', async (_who, env) => {
-      Object.assign(process.env, env)
+  it('leaves the caller out when the host predates the method', async () => {
+    process.env.ORCA_AGENT_SESSION_ID = SESSION
+    callerShowReply = { error: { code: 'method_not_found', message: 'Unknown method' } }
 
-      const printed: { result: Record<string, unknown> } = JSON.parse(await status(true))
-      const text = await status(false)
-
-      expect(printed.result).not.toHaveProperty('caller')
-      // The status text ends where main's does, with nothing about the caller.
-      expect(text.split('\n').at(-1)).toMatch(/^graphState: /)
-      expect(text).not.toMatch(/^(?:orcaSessionId|caller):/m)
-      expect(callerShowRequests()).toHaveLength(0)
-    })
-
-    it("reports the host's refusal of the session instead of an Orca session ID", async () => {
-      process.env.ORCA_AGENT_SESSION_ID = SESSION
-      callerShowReply = {
-        error: { code: 'session_caller_not_live', message: `Agent session ${SESSION} has ended.` }
-      }
-
-      expect(await statusCaller()).toEqual({
-        live: false,
-        refusal: { code: 'session_caller_not_live', message: `Agent session ${SESSION} has ended.` }
-      })
-      expect(await status(false)).toContain(
-        '\norcaSessionId: none (refused: session_caller_not_live)'
-      )
-    })
-
-    it('leaves the caller out when the host predates the method', async () => {
-      process.env.ORCA_AGENT_SESSION_ID = SESSION
-      callerShowReply = { error: { code: 'method_not_found', message: 'Unknown method' } }
-
-      expect(JSON.parse(await status(true)).result).not.toHaveProperty('caller')
-    })
-  }
-)
+    expect(JSON.parse(await status(true)).result).not.toHaveProperty('caller')
+  })
+})

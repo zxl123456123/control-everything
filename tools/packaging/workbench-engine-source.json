@@ -327160,6 +327160,12 @@
   ],
   "adapted_files": [
     {
+      "path": "src/cli/runtime/status-caller.test.ts",
+      "upstream_sha256": "c60a95cb98d010d5704fe5553c15d2f486a5fa1b507429fc7dc9524bbe0d0391",
+      "current_sha256": "ebc5bcde1e016e78ae98213cd3966499a4f1620bb5a81c7ab14fcd37b82458bf",
+      "reason": "通过本地 IPC 验证新旧会话身份和冲突拒绝"
+    },
+    {
       "path": "src/main/claude/claude-stream-json-connection.test.ts",
       "upstream_sha256": "01bab0b84db8200a38e74709249736fabc7394b54bc272ce24c3f19a9b087b77",
       "current_sha256": "e121b5ed05909a102a623f73950bf3dee8985f841f6bdecbd100118d8767fef3",
