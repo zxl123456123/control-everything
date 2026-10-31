@@ -1,4 +1,3 @@
-import { ORCA_AGENT_SESSION_SPAWN_TOKEN_ENV } from '../../shared/agent-session-caller-env'
 import { ORCA_AGENT_SESSION_CALLER_ENV_KEYS } from '../ipc/pty/host-env/spawn-env-keys'
 import {
   LEGACY_NATIVE_CHAT_VISUALS_DIR_ENV,
@@ -19,11 +18,7 @@ export type PiRpcLaunchOptions = {
   forkFile?: string
 }
 
-const CALLER_ENV_TO_DELETE = [
-  ...ORCA_AGENT_SESSION_CALLER_ENV_KEYS,
-  'ORCA_TERMINAL_HANDLE',
-  ORCA_AGENT_SESSION_SPAWN_TOKEN_ENV
-]
+const CALLER_ENV_TO_DELETE = [...ORCA_AGENT_SESSION_CALLER_ENV_KEYS, 'ORCA_TERMINAL_HANDLE']
 
 /** What a structured Pi session strips from its inheritance; the seal keeps a worker's handle.
  *  Pi gets no scratch folder, so an inherited one can only name another chat's. */

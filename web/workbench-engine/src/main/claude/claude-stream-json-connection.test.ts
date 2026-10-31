@@ -183,7 +183,7 @@ describe('Claude stream-json connection', () => {
         ZKYQ_AGENT_SESSION_ID: 'f7a1c0de-1111-4222-8333-444455556666',
         CLAUDE_CONFIG_DIR: '/accounts/managed/home',
         ANTHROPIC_AUTH_TOKEN: 'configured-token',
-        ORCA_AGENT_SESSION_SPAWN_TOKEN: 'spawn-9',
+        ZKYQ_AGENT_SESSION_SPAWN_TOKEN: 'spawn-9',
         CLAUDE_CODE_CHILD_SESSION: 'configured-child-session',
         CLAUDE_CODE_SESSION_ID: 'configured-session',
         CLAUDE_CODE_BRIDGE_SESSION_ID: 'configured-bridge-session'
@@ -198,7 +198,7 @@ describe('Claude stream-json connection', () => {
     // The managed home is pinned verbatim: the CLI keys credential lookup on the literal string.
     expect(env.CLAUDE_CONFIG_DIR).toBe('/accounts/managed/home')
     expect(env.ANTHROPIC_AUTH_TOKEN).toBe('configured-token')
-    expect(env.ORCA_AGENT_SESSION_SPAWN_TOKEN).toBe('spawn-9')
+    expect(env.ZKYQ_AGENT_SESSION_SPAWN_TOKEN).toBe('spawn-9')
     expect(env.ORCA_CONNECTION_MARKER).toBe('inherited')
     // The session's own id reaches the spawned child over the inherited one.
     expect(env.ZKYQ_AGENT_SESSION_ID).toBe('f7a1c0de-1111-4222-8333-444455556666')

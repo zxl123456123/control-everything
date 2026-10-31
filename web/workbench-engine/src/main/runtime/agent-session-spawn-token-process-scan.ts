@@ -1,5 +1,5 @@
 /**
- * Host scan for processes carrying an Orca agent-session spawn token.
+ * Host scan for processes carrying an agent-session spawn token.
  *
  * The token is the only PID-reuse-safe identity element a child is guaranteed to carry, and it
  * lives in the child's environment — which only Linux lets another process read (`/proc/<pid>/environ`).
@@ -9,7 +9,10 @@
  */
 
 import { readFile, readdir } from 'node:fs/promises'
-import { ORCA_AGENT_SESSION_SPAWN_TOKEN_ENV } from '../../shared/agent-session-caller-env'
+import {
+  LEGACY_AGENT_SESSION_SPAWN_TOKEN_ENV,
+  ZKYQ_AGENT_SESSION_SPAWN_TOKEN_ENV
+} from '../../shared/agent-session-caller-env'
 import { spawnTokenFromEnvironBlock } from './agent-session-spawn-token-readback'
 
 export type AgentSessionSpawnTokenScan = ReadonlyMap<string, readonly number[]>
@@ -17,7 +20,7 @@ export type AgentSessionSpawnTokenScan = ReadonlyMap<string, readonly number[]>
 /** Tokens observed on this host, or null when the platform cannot answer at all. */
 export async function scanAgentSessionSpawnTokenProcesses(
   platform: NodeJS.Platform = process.platform,
-  variable: string = ORCA_AGENT_SESSION_SPAWN_TOKEN_ENV
+  variable?: string
 ): Promise<AgentSessionSpawnTokenScan | null> {
   if (platform !== 'linux') {
     return null
@@ -34,17 +37,25 @@ export async function scanAgentSessionSpawnTokenProcesses(
     if (!Number.isSafeInteger(pid) || pid <= 0) {
       continue
     }
-    let token: string | null
+    let block: string
     try {
-      token = spawnTokenFromEnvironBlock(await readFile(`/proc/${pid}/environ`, 'utf-8'), variable)
+      block = await readFile(`/proc/${pid}/environ`, 'utf-8')
     } catch {
       // A process that exited mid-scan, or one this user may not read, is not evidence either way.
       continue
     }
-    if (token === null) {
-      continue
+    // Either token is evidence that a reservation may still have a live child. A conflict must
+    // not become an empty scan and release a reservation whose process is still running.
+    const variables =
+      variable === undefined
+        ? [ZKYQ_AGENT_SESSION_SPAWN_TOKEN_ENV, LEGACY_AGENT_SESSION_SPAWN_TOKEN_ENV]
+        : [variable]
+    const tokens = new Set(variables.map((name) => spawnTokenFromEnvironBlock(block, name)))
+    for (const token of tokens) {
+      if (token !== null) {
+        observed.set(token, [...(observed.get(token) ?? []), pid])
+      }
     }
-    observed.set(token, [...(observed.get(token) ?? []), pid])
   }
   return observed
 }

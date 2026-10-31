@@ -15,7 +15,9 @@ export const ZKYQ_AGENT_SESSION_ID_ENV = 'ZKYQ_AGENT_SESSION_ID'
 
 /** The spawn token a structured session's child echoes, so the owner probe can tell a live child
  *  of that reservation from a same-pid stranger. */
-export const ORCA_AGENT_SESSION_SPAWN_TOKEN_ENV = 'ORCA_AGENT_SESSION_SPAWN_TOKEN'
+export const ZKYQ_AGENT_SESSION_SPAWN_TOKEN_ENV = 'ZKYQ_AGENT_SESSION_SPAWN_TOKEN'
+/** Input-only key for children that were already running before the host was upgraded. */
+export const LEGACY_AGENT_SESSION_SPAWN_TOKEN_ENV = 'ORCA_AGENT_SESSION_SPAWN_TOKEN'
 
 export function readInjectedAgentSessionId(
   env: Readonly<Record<string, string | undefined>> = process.env

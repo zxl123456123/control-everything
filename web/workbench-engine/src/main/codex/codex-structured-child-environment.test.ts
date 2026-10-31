@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { openCodexAppServerConnection } from './codex-app-server-connection'
-import { ORCA_AGENT_SESSION_SPAWN_TOKEN_ENV } from '../../shared/agent-session-caller-env'
+import { ZKYQ_AGENT_SESSION_SPAWN_TOKEN_ENV } from '../../shared/agent-session-caller-env'
 import { sealStructuredSessionChild } from '../runtime/structured-session-child-env'
 import { createCodexStructuredLaunchResolver } from '../runtime/structured-agent-launch-composition.test-support'
 import { agentSessionRecordFixture } from '../native-chat/agent-session-record-test-fixture'
@@ -68,7 +68,7 @@ describe('the Codex child environment', () => {
     ).toEqual({
       EXAMPLE_GATEWAY_TOKEN: 'shell-exported',
       CODEX_HOME: '/pinned/home',
-      [ORCA_AGENT_SESSION_SPAWN_TOKEN_ENV]: 'spawn-token',
+      [ZKYQ_AGENT_SESSION_SPAWN_TOKEN_ENV]: 'spawn-token',
       ZKYQ_AGENT_SESSION_ID: 'session-not-a-worker',
       ZKYQ_STRUCTURED_SESSION: '1',
       ZKYQ_CLI_COMMAND: expect.stringMatching(DEV_CLI_LAUNCHER),
@@ -90,7 +90,7 @@ describe('the Codex child environment', () => {
   it('names every session by its id, and adds the handle only for a registered worker', () => {
     const sessionId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d'
     expect(sealed(sessionId)).toEqual({
-      [ORCA_AGENT_SESSION_SPAWN_TOKEN_ENV]: 'spawn-token',
+      [ZKYQ_AGENT_SESSION_SPAWN_TOKEN_ENV]: 'spawn-token',
       // Not a worker, so no handle: the id alone names this chat as a caller.
       ZKYQ_AGENT_SESSION_ID: sessionId,
       ZKYQ_STRUCTURED_SESSION: '1',

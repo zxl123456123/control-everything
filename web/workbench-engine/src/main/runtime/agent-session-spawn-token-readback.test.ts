@@ -12,20 +12,42 @@ const IDENTITY = {
 }
 
 describe('spawn token read-back', () => {
-  it('finds the token in a NUL-separated environ block', () => {
-    const block = [
-      'PATH=/usr/bin',
-      'ORCA_AGENT_SESSION_SPAWN_TOKEN=tok-123',
-      'HOME=/home/dev'
-    ].join('\0')
-    expect(spawnTokenFromEnvironBlock(block)).toBe('tok-123')
-  })
+  it.each(['ZKYQ_AGENT_SESSION_SPAWN_TOKEN', 'ORCA_AGENT_SESSION_SPAWN_TOKEN'])(
+    'finds %s in a NUL-separated environ block',
+    (variable) => {
+      const block = ['PATH=/usr/bin', `${variable}=tok-123`, 'HOME=/home/dev'].join('\0')
+      expect(spawnTokenFromEnvironBlock(block)).toBe('tok-123')
+    }
+  )
 
   it('answers null for an absent or empty token instead of guessing', () => {
     expect(spawnTokenFromEnvironBlock(['PATH=/usr/bin', 'HOME=/home/dev'].join('\0'))).toBeNull()
     expect(spawnTokenFromEnvironBlock('ORCA_AGENT_SESSION_SPAWN_TOKEN=')).toBeNull()
+    expect(spawnTokenFromEnvironBlock('ZKYQ_AGENT_SESSION_SPAWN_TOKEN=')).toBeNull()
     // A prefix collision is not a match.
     expect(spawnTokenFromEnvironBlock('ORCA_AGENT_SESSION_SPAWN_TOKEN_EXTRA=x')).toBeNull()
+    expect(spawnTokenFromEnvironBlock('ZKYQ_AGENT_SESSION_SPAWN_TOKEN_EXTRA=x')).toBeNull()
+  })
+
+  it('refuses contradictory tokens while allowing the scan to inspect each key', () => {
+    const block = 'ZKYQ_AGENT_SESSION_SPAWN_TOKEN=new\0ORCA_AGENT_SESSION_SPAWN_TOKEN=old\0'
+    expect(spawnTokenFromEnvironBlock(block)).toBeNull()
+    expect(spawnTokenFromEnvironBlock(block, 'ZKYQ_AGENT_SESSION_SPAWN_TOKEN')).toBe('new')
+    expect(spawnTokenFromEnvironBlock(block, 'ORCA_AGENT_SESSION_SPAWN_TOKEN')).toBe('old')
+    expect(spawnTokenFromEnvironBlock(block, 'CUSTOM_TOKEN')).toBeNull()
+  })
+
+  it('accepts matching tokens or a legacy token beside an empty current key', () => {
+    expect(
+      spawnTokenFromEnvironBlock(
+        'ZKYQ_AGENT_SESSION_SPAWN_TOKEN=same\0ORCA_AGENT_SESSION_SPAWN_TOKEN=same\0'
+      )
+    ).toBe('same')
+    expect(
+      spawnTokenFromEnvironBlock(
+        'ZKYQ_AGENT_SESSION_SPAWN_TOKEN=\0ORCA_AGENT_SESSION_SPAWN_TOKEN=old\0'
+      )
+    ).toBe('old')
   })
 
   it('answers null on platforms that hide process environments', async () => {

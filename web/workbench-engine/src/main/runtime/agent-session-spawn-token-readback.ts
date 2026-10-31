@@ -7,12 +7,18 @@
 
 import { readFile } from 'node:fs/promises'
 import type { AgentSessionProcessIdentity } from '../../shared/agent-session-record'
-import { ORCA_AGENT_SESSION_SPAWN_TOKEN_ENV } from '../../shared/agent-session-caller-env'
+import {
+  LEGACY_AGENT_SESSION_SPAWN_TOKEN_ENV,
+  ZKYQ_AGENT_SESSION_SPAWN_TOKEN_ENV
+} from '../../shared/agent-session-caller-env'
 
-export function spawnTokenFromEnvironBlock(
-  block: string,
-  variable: string = ORCA_AGENT_SESSION_SPAWN_TOKEN_ENV
-): string | null {
+export function spawnTokenFromEnvironBlock(block: string, variable?: string): string | null {
+  if (variable === undefined) {
+    const current = spawnTokenFromEnvironBlock(block, ZKYQ_AGENT_SESSION_SPAWN_TOKEN_ENV)
+    const legacy = spawnTokenFromEnvironBlock(block, LEGACY_AGENT_SESSION_SPAWN_TOKEN_ENV)
+    // Contradictory tokens cannot prove which reservation owns this process.
+    return current && legacy && current !== legacy ? null : (current ?? legacy)
+  }
   for (const entry of block.split('\0')) {
     if (entry.startsWith(`${variable}=`)) {
       const value = entry.slice(variable.length + 1)

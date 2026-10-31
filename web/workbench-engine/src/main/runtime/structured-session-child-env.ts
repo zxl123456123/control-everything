@@ -53,7 +53,8 @@
 import { getAppEnvironment, hasAppEnvironment } from '../../shared/app-environment'
 import {
   ORCA_AGENT_SESSION_ID_ENV,
-  ORCA_AGENT_SESSION_SPAWN_TOKEN_ENV,
+  LEGACY_AGENT_SESSION_SPAWN_TOKEN_ENV,
+  ZKYQ_AGENT_SESSION_SPAWN_TOKEN_ENV,
   ZKYQ_AGENT_SESSION_ID_ENV
 } from '../../shared/agent-session-caller-env'
 import {
@@ -110,16 +111,17 @@ export function sealStructuredSessionChild(input: {
   cliRuntimeCommand?: string
 }): SealedStructuredSessionChild {
   const identity = childIdentity(input.sessionId, input.env)
-  const named = new Set([...Object.keys(identity.commandEnv), ORCA_AGENT_SESSION_SPAWN_TOKEN_ENV])
+  const named = new Set([...Object.keys(identity.commandEnv), ZKYQ_AGENT_SESSION_SPAWN_TOKEN_ENV])
   const env = input.cliRuntimeCommand
     ? withCliRuntimeOnPath(input.cliRuntimeCommand, identity.env, { platform: process.platform })
     : identity.env
   return {
-    env: { ...env, [ORCA_AGENT_SESSION_SPAWN_TOKEN_ENV]: input.spawnToken },
+    env: { ...env, [ZKYQ_AGENT_SESSION_SPAWN_TOKEN_ENV]: input.spawnToken },
     envToDelete: [
       ...new Set([
         ...input.inheritedEnvToDelete,
         ORCA_AGENT_SESSION_ID_ENV,
+        LEGACY_AGENT_SESSION_SPAWN_TOKEN_ENV,
         ORCA_STRUCTURED_SESSION_ENV
       ])
     ].filter((key) => !named.has(key)),
@@ -139,6 +141,7 @@ function childIdentity(
   }
   const env = { ...childEnv, ...named }
   delete env[ORCA_AGENT_SESSION_ID_ENV]
+  delete env[LEGACY_AGENT_SESSION_SPAWN_TOKEN_ENV]
   delete env[ORCA_STRUCTURED_SESSION_ENV]
   return { env, commandEnv: { ...named, ...applyThisAppCli(env) } }
 }

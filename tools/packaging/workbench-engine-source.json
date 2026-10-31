@@ -327206,14 +327206,14 @@
     {
       "path": "src/main/claude/claude-stream-json-connection.test.ts",
       "upstream_sha256": "01bab0b84db8200a38e74709249736fabc7394b54bc272ce24c3f19a9b087b77",
-      "current_sha256": "e121b5ed05909a102a623f73950bf3dee8985f841f6bdecbd100118d8767fef3",
-      "reason": "验证新会话身份在实际 Claude 子进程中传递并清除旧身份"
+      "current_sha256": "64dc607be2eb3d738d421736571e807b963901faf4e0e63573441001afd41630",
+      "reason": "验证新会话身份在实际 Claude 子进程中传递并清除旧身份；迁移进程恢复令牌环境身份并保持旧进程恢复和会话清理"
     },
     {
       "path": "src/main/ipc/pty/host-env/spawn-env-keys.ts",
       "upstream_sha256": "b6509e243c19546f1b5ed4845026ce6a54dbd15c2d6fbd5f1b097b9d3ee51f5a",
-      "current_sha256": "c28ae0a11bda0557e75c6f11c864920632914385ead99b7933bd1947d03f46e3",
-      "reason": "新会话身份环境变量迁移并保护旧会话；迁移结构化会话标记，清理继承环境并保留已运行旧会话的安全识别"
+      "current_sha256": "aa664b9977f6f5021ce4dc34f60e81ced8dc2b7cd19f67627405aeae692c51c3",
+      "reason": "新会话身份环境变量迁移并保护旧会话；迁移结构化会话标记，清理继承环境并保留已运行旧会话的安全识别；迁移进程恢复令牌环境身份并保持旧进程恢复和会话清理"
     },
     {
       "path": "src/main/runtime/orchestration/orchestration-party-cli-address.test.ts",
@@ -327248,8 +327248,8 @@
     {
       "path": "src/shared/agent-session-caller-env.ts",
       "upstream_sha256": "5bd635cb3fbcf59fa5784580e501e4223401cd69601d986075d84007017d67cc",
-      "current_sha256": "5ec3ec51d3c5bb9c9620cad494750f00c73e5bfb4e3637403aaac64741ed1429",
-      "reason": "新会话身份环境变量迁移并保护旧会话；迁移会话地址命名及相关验证"
+      "current_sha256": "faafc8885d0950af0cfa6199190ed88db4f0ec1cf92dbb3c25c97381edb597d3",
+      "reason": "新会话身份环境变量迁移并保护旧会话；迁移会话地址命名及相关验证；迁移进程恢复令牌环境身份并保持旧进程恢复和会话清理"
     },
     {
       "path": "src/shared/orca-session-address.ts",
@@ -330668,8 +330668,8 @@
     {
       "path": "src/main/codex/codex-structured-child-environment.test.ts",
       "upstream_sha256": "ab0d0e81f8da8cc9fcd65f628d2c08580eff504e944a9f5d9642a794d0e024cf",
-      "current_sha256": "f494adec1085fd999abff3860c81346058e311bb6105aca69f2a148bcf7e46da",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；迁移远程主机选择环境变量并防止错误路由；新会话身份环境变量迁移；恢复会话集成测试所需夹具、使用通用路径并核对迁移后的命令身份；迁移结构化会话标记，清理继承环境并保留已运行旧会话的安全识别"
+      "current_sha256": "1ec95600f2fc453837466fd5a12cec050fc7a0526f77a04e22d96c99618db006",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；迁移远程主机选择环境变量并防止错误路由；新会话身份环境变量迁移；恢复会话集成测试所需夹具、使用通用路径并核对迁移后的命令身份；迁移结构化会话标记，清理继承环境并保留已运行旧会话的安全识别；迁移进程恢复令牌环境身份并保持旧进程恢复和会话清理"
     },
     {
       "path": "src/main/codex/codex-structured-session-adapter.test.ts",
@@ -331832,8 +331832,8 @@
     {
       "path": "src/main/runtime/structured-session-child-env.ts",
       "upstream_sha256": "c6430d04f35adccb249dd1e6b1eaf824ee0e85efa92287e141348f59dc246627",
-      "current_sha256": "7248c1aae169302b810def4a8edb04d02f9dc2612b6f603bd6fd27260d9511ab",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；迁移远程主机选择环境变量并防止错误路由；新会话身份环境变量迁移；迁移结构化会话标记，清理继承环境并保留已运行旧会话的安全识别"
+      "current_sha256": "1578a814a148c354a41e31be57144fbd57e22232385cd81a13df8d09c5509332",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；迁移远程主机选择环境变量并防止错误路由；新会话身份环境变量迁移；迁移结构化会话标记，清理继承环境并保留已运行旧会话的安全识别；迁移进程恢复令牌环境身份并保持旧进程恢复和会话清理"
     },
     {
       "path": "src/main/runtime/unreadable-secret-store-preservation.win32.test.ts",
@@ -334138,6 +334138,72 @@
       "upstream_sha256": "ee5721b69ac9ecd2aeec64f165dec4b97549a102fd87c0dde93345b03582a683",
       "current_sha256": "e80ecd4a306d811e6fd961acaba32012780d7d36260150e663089fafeca958c7",
       "reason": "迁移结构化会话标记，清理继承环境并保留已运行旧会话的安全识别"
+    },
+    {
+      "path": "src/main/claude/claude-structured-owner-identity.test.ts",
+      "upstream_sha256": "ad870823e37645178b80988161aadef2130ccc812590aa7cb2f9197be794ac68",
+      "current_sha256": "58cada82af6bbff63c41f44831189356a28af9053dfd306beee55d4aba741706",
+      "reason": "迁移进程恢复令牌环境身份并保持旧进程恢复和会话清理"
+    },
+    {
+      "path": "src/main/claude/claude-structured-session-adapter.test.ts",
+      "upstream_sha256": "482a1f36c4fda11723337a166e2118a906bb4e734e6e81771ce70cdb23a67ddd",
+      "current_sha256": "0015741f0783d59c5b8baf526cb1b5da51347dd013d4c1bb97bf82762d690594",
+      "reason": "迁移进程恢复令牌环境身份并保持旧进程恢复和会话清理"
+    },
+    {
+      "path": "src/main/claude/claude-structured-session-test-support.ts",
+      "upstream_sha256": "0e8c7fe9f3a67245e34d59a620e3fff4d3f90e3acedcc25a58c96436bad14ae1",
+      "current_sha256": "4ce6a2a8b7bd0453338295c46647f152fdcdbc9f35d29a5c9cdb9640c6681c60",
+      "reason": "迁移进程恢复令牌环境身份并保持旧进程恢复和会话清理"
+    },
+    {
+      "path": "src/main/codex/codex-app-server-teardown.integration.test.ts",
+      "upstream_sha256": "f68dbf4671856b402eb13991cdb50f344dbaf1c988a3c6b17f90f6ae4baaf63b",
+      "current_sha256": "fccdd1535a1e90a5632fa28445fb8cb573a51d865d49a7a13519e423bd2e0b0f",
+      "reason": "迁移进程恢复令牌环境身份并保持旧进程恢复和会话清理"
+    },
+    {
+      "path": "src/main/native-chat/agent-session-wire/structured-agent-session-recovery-exits.test.ts",
+      "upstream_sha256": "f98f61e3c0f67b0dfcfbb2252000c0059c323656dc0f06c8601fedb6ebaa9cea",
+      "current_sha256": "cea10dd0ece46d899f1c74180e00d2e022879e5eeea81dd9a948c2d1eba05a42",
+      "reason": "迁移进程恢复令牌环境身份并保持旧进程恢复和会话清理"
+    },
+    {
+      "path": "src/main/pi/rpc-launch.ts",
+      "upstream_sha256": "4c552547eda6bd0513a00397c95066898e5bc4ef53f6ceb9a279a329beba74c5",
+      "current_sha256": "c7fb1385597d45ce617052ba47105a88832e2bd21c7658aefd8a6533b3910fb1",
+      "reason": "迁移进程恢复令牌环境身份并保持旧进程恢复和会话清理"
+    },
+    {
+      "path": "src/main/runtime/agent-session-spawn-token-process-scan.test.ts",
+      "upstream_sha256": "02b86cfd0f1b5141303aeabf7a5cb0aeff59472a6021ef62e660ea1952e78574",
+      "current_sha256": "b67023363545009efdd48ed84c176fc15ffb956d1431b547614591a63b6bc6f6",
+      "reason": "迁移进程恢复令牌环境身份并保持旧进程恢复和会话清理"
+    },
+    {
+      "path": "src/main/runtime/agent-session-spawn-token-process-scan.ts",
+      "upstream_sha256": "8b4b95c9fbac5eaef17c86af5c386fa586cb8fff21f990c1ae9c6ddd2413c778",
+      "current_sha256": "7aa51c0a91a5c88c54c75075312aa23090690560f6e57905bda029320a1e68ed",
+      "reason": "迁移进程恢复令牌环境身份并保持旧进程恢复和会话清理"
+    },
+    {
+      "path": "src/main/runtime/agent-session-spawn-token-readback.test.ts",
+      "upstream_sha256": "67f95c36845240b5a23ff48162ab8c860416bd33b0a73af61dab67674623f4c0",
+      "current_sha256": "1aa1d9f6a736cbb3ea47d1c5a873ebb014472d932f1f23581240d70ada25b28f",
+      "reason": "迁移进程恢复令牌环境身份并保持旧进程恢复和会话清理"
+    },
+    {
+      "path": "src/main/runtime/agent-session-spawn-token-readback.ts",
+      "upstream_sha256": "a4d46245fe75debca143ac2b455db80a02b98e13e3197470af502ce560946475",
+      "current_sha256": "fcd7ee2f5dc129d0c57ad7dfb3155e2fdd426500f9e28f0162f6d9eadb549f3c",
+      "reason": "迁移进程恢复令牌环境身份并保持旧进程恢复和会话清理"
+    },
+    {
+      "path": "src/main/runtime/claude-structured-session-integration.test.ts",
+      "upstream_sha256": "551b5fd95f7560a06f1cce2f8ddc98c2f5b48e8cd1f8580d33100075841fcade",
+      "current_sha256": "1d1b80e7c740eb0a647fe391f6c5e119584d6ad9b5f48cfdc68a8c100f3e323c",
+      "reason": "迁移进程恢复令牌环境身份并保持旧进程恢复和会话清理"
     }
   ],
   "reviewed_findings": [
