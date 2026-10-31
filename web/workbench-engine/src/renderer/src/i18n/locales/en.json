@@ -19421,10 +19421,10 @@
         "estimated": "Estimated from the last response."
       },
       "contextMenu": {
-        "copyOrcaSessionId": "Copy Orca Session ID",
-        "orcaSessionIdCopied": "Orca session ID copied",
-        "orcaSessionIdCopyFailed": "Unable to copy Orca session ID",
-        "orcaSessionIdTooltip": "Orca's ID for this chat, separate from the agent CLI's own session ID. Agents use it to refer to each other through Orca."
+        "copyOrcaSessionId": "Copy Session ID",
+        "orcaSessionIdCopied": "Session ID copied",
+        "orcaSessionIdCopyFailed": "Unable to copy session ID",
+        "orcaSessionIdTooltip": "Identifies this chat to other agents; distinct from the agent CLI's session ID."
       },
       "dismissDeliveryNotice": "Dismiss",
       "addSelectionToChat": "Add to chat",

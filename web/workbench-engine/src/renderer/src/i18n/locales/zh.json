@@ -18362,10 +18362,10 @@
       },
       "reasoning": "推理",
       "contextMenu": {
-        "copyOrcaSessionId": "复制 Orca 会话 ID",
-        "orcaSessionIdCopied": "已复制 Orca 会话 ID",
-        "orcaSessionIdCopyFailed": "无法复制 Orca 会话 ID",
-        "orcaSessionIdTooltip": "Orca 为此聊天分配的 ID，独立于智能体 CLI 自身的会话 ID。智能体通过 Orca 用它来相互指代。"
+        "copyOrcaSessionId": "复制会话 ID",
+        "orcaSessionIdCopied": "已复制会话 ID",
+        "orcaSessionIdCopyFailed": "无法复制会话 ID",
+        "orcaSessionIdTooltip": "用于智能体之间识别此会话，与智能体 CLI 的会话 ID 不同。"
       },
       "failureWords": {
         "theAgent": "智能体",

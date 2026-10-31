@@ -18358,10 +18358,10 @@
       },
       "reasoning": "推論",
       "contextMenu": {
-        "copyOrcaSessionId": "Orca セッション ID をコピー",
-        "orcaSessionIdCopied": "Orca セッション ID をコピーしました",
-        "orcaSessionIdCopyFailed": "Orca セッション ID をコピーできませんでした",
-        "orcaSessionIdTooltip": "このチャットに対する Orca の ID です。Agent CLI 独自のセッション ID とは別のものです。Agent は Orca を通じて互いを指すときにこれを使います。"
+        "copyOrcaSessionId": "セッション ID をコピー",
+        "orcaSessionIdCopied": "セッション ID をコピーしました",
+        "orcaSessionIdCopyFailed": "セッション ID をコピーできませんでした",
+        "orcaSessionIdTooltip": "他のエージェントがこのチャットを識別する ID です。エージェント CLI のセッション ID とは異なります。"
       },
       "failureWords": {
         "theAgent": "Agent",

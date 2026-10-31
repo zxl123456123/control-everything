@@ -18427,10 +18427,10 @@
       },
       "reasoning": "Raisonnement",
       "contextMenu": {
-        "copyOrcaSessionId": "Copier l'ID de session Orca",
-        "orcaSessionIdCopied": "ID de session Orca copié",
-        "orcaSessionIdCopyFailed": "Impossible de copier l'ID de session Orca",
-        "orcaSessionIdTooltip": "L'ID qu'Orca attribue à ce chat, distinct de l'ID de session propre à la CLI de l'agent. Les agents l'utilisent pour se désigner entre eux via Orca."
+        "copyOrcaSessionId": "Copier l’ID de session",
+        "orcaSessionIdCopied": "ID de session copié",
+        "orcaSessionIdCopyFailed": "Impossible de copier l’ID de session",
+        "orcaSessionIdTooltip": "Identifie cette conversation pour les autres agents ; il diffère de l’ID de session de leur CLI."
       },
       "failureWords": {
         "theAgent": "L'agent",

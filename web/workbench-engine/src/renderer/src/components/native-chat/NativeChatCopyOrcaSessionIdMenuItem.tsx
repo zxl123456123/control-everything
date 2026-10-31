@@ -4,7 +4,7 @@ import { DropdownMenuItem } from '@/components/ui/dropdown-menu'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { translate } from '@/i18n/i18n'
 
-/** Copies the chat's Orca session ID from the host: `agent_session:<root>`, which `/clear` keeps. */
+/** Copies the chat's session ID from the host: `agent_session:<root>`, which `/clear` keeps. */
 export function NativeChatCopyOrcaSessionIdMenuItem({
   resolveOrcaSessionId
 }: {
@@ -14,20 +14,17 @@ export function NativeChatCopyOrcaSessionIdMenuItem({
     try {
       const orcaSessionId = await resolveOrcaSessionId()
       if (!orcaSessionId) {
-        throw new Error('no Orca session ID')
+        throw new Error('no session ID')
       }
       await window.api.ui.writeClipboardText(orcaSessionId)
       toast.success(
-        translate(
-          'components.native-chat.contextMenu.orcaSessionIdCopied',
-          'Orca session ID copied'
-        )
+        translate('components.native-chat.contextMenu.orcaSessionIdCopied', 'Session ID copied')
       )
     } catch {
       toast.error(
         translate(
           'components.native-chat.contextMenu.orcaSessionIdCopyFailed',
-          'Unable to copy Orca session ID'
+          'Unable to copy session ID'
         )
       )
     }
@@ -37,16 +34,13 @@ export function NativeChatCopyOrcaSessionIdMenuItem({
       <TooltipTrigger asChild>
         <DropdownMenuItem onSelect={() => void copyOrcaSessionId()}>
           <Copy />
-          {translate(
-            'components.native-chat.contextMenu.copyOrcaSessionId',
-            'Copy Orca Session ID'
-          )}
+          {translate('components.native-chat.contextMenu.copyOrcaSessionId', 'Copy Session ID')}
         </DropdownMenuItem>
       </TooltipTrigger>
       <TooltipContent side="right" sideOffset={8} className="max-w-[220px]">
         {translate(
           'components.native-chat.contextMenu.orcaSessionIdTooltip',
-          "Orca's ID for this chat, separate from the agent CLI's own session ID. Agents use it to refer to each other through Orca."
+          "Identifies this chat to other agents; distinct from the agent CLI's session ID."
         )}
       </TooltipContent>
     </Tooltip>

@@ -4,6 +4,7 @@
 import React, { createRef, type ReactNode } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { toast } from 'sonner'
 import type * as I18n from '@/i18n/i18n'
 import type { NativeChatComposerHandle } from './NativeChatComposer'
 import { useStructuredNativeChatPaneCommands } from './use-structured-native-chat-pane-commands'
@@ -92,11 +93,11 @@ describe('a structured chat tab', () => {
     })
   })
 
-  it("offers Copy Orca Session ID, asking the tab's host for this session's Orca session ID", async () => {
+  it("copies the session ID returned by the tab's host", async () => {
     renderToStaticMarkup(<StructuredChatTab />)
 
     const item = items.list.find(
-      (candidate) => childrenText(candidate.children) === 'Copy Orca Session ID'
+      (candidate) => childrenText(candidate.children) === 'Copy Session ID'
     )
     item?.onSelect?.()
 
@@ -107,5 +108,20 @@ describe('a structured chat tab', () => {
         responseFormat: 'workbench'
       })
     )
+    await vi.waitFor(() => {
+      expect(window.api.ui.writeClipboardText).toHaveBeenCalledWith(`agent_session:${SESSION}`)
+      expect(toast.success).toHaveBeenCalledWith('Session ID copied')
+    })
+  })
+
+  it('shows a failure when the clipboard write fails', async () => {
+    vi.mocked(window.api.ui.writeClipboardText).mockRejectedValueOnce(new Error('clipboard denied'))
+    renderToStaticMarkup(<StructuredChatTab />)
+    const item = items.list.find(
+      (candidate) => childrenText(candidate.children) === 'Copy Session ID'
+    )
+    expect(item).toBeDefined()
+    item?.onSelect?.()
+    await vi.waitFor(() => expect(toast.error).toHaveBeenCalledWith('Unable to copy session ID'))
   })
 })

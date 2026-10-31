@@ -19644,10 +19644,10 @@
         "estimated": "Estimado a partir da última resposta."
       },
       "contextMenu": {
-        "copyOrcaSessionId": "Copiar ID de sessão do Orca",
-        "orcaSessionIdCopied": "ID de sessão do Orca copiado",
-        "orcaSessionIdCopyFailed": "Não foi possível copiar o ID de sessão do Orca",
-        "orcaSessionIdTooltip": "ID deste chat no Orca, separado do ID de sessão da CLI do agente. Os agentes o usam para se referir uns aos outros pelo Orca."
+        "copyOrcaSessionId": "Copiar ID de sessão",
+        "orcaSessionIdCopied": "ID de sessão copiado",
+        "orcaSessionIdCopyFailed": "Não foi possível copiar o ID de sessão",
+        "orcaSessionIdTooltip": "Identifica esta conversa para outros agentes; é diferente do ID de sessão da CLI do agente."
       },
       "dismissDeliveryNotice": "Dispensar",
       "addSelectionToChat": "Adicionar ao chat",
