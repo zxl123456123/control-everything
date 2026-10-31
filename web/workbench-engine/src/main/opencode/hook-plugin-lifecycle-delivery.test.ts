@@ -90,12 +90,12 @@ describe('OpenCode plugin lifecycle delivery', () => {
   }
 
   async function loadHooksWithSession(session: SessionClientFixture): Promise<PluginHooks> {
-    const pluginPath = join(tempDir, 'orca-opencode-status.mjs')
+    const pluginPath = join(tempDir, 'zkyq-opencode-status.mjs')
     writeFileSync(pluginPath, _internals.getOpenCodePluginSource())
     const module = (await import(pathToFileURL(pluginPath).href)) as {
-      OrcaOpenCodeStatusPlugin: (ctx: unknown) => Promise<PluginHooks>
+      ZkyqOpenCodeStatusPlugin: (ctx: unknown) => Promise<PluginHooks>
     }
-    return module.OrcaOpenCodeStatusPlugin({ client: { session } })
+    return module.ZkyqOpenCodeStatusPlugin({ client: { session } })
   }
 
   async function loadHandler(

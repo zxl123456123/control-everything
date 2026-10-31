@@ -87,12 +87,12 @@ describe('OpenCode plugin background child completion', () => {
     list: SessionList = async () => ({ data: sessions })
   ): Promise<PluginHooks> {
     if (!pluginFactory) {
-      const pluginPath = join(tempDir, 'orca-opencode-status.mjs')
+      const pluginPath = join(tempDir, 'zkyq-opencode-status.mjs')
       writeFileSync(pluginPath, _internals.getOpenCodePluginSource())
       const module = (await import(pathToFileURL(pluginPath).href)) as {
-        OrcaOpenCodeStatusPlugin: PluginFactory
+        ZkyqOpenCodeStatusPlugin: PluginFactory
       }
-      pluginFactory = module.OrcaOpenCodeStatusPlugin
+      pluginFactory = module.ZkyqOpenCodeStatusPlugin
     }
     return pluginFactory({ client: { session: { list } } })
   }

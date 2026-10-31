@@ -34,7 +34,7 @@ import {
 import { writeLegacyOpenCodePluginWithAclRetry } from './legacy-plugin-acl-retry'
 import {
   OPENCODE_OVERLAY_DIR,
-  ORCA_OPENCODE_PLUGIN_FILE,
+  OPENCODE_STATUS_PLUGIN_FILE,
   sourceOverlayDirName,
   toSafeDirName
 } from './overlay-dir-names'
@@ -44,6 +44,10 @@ export { getOpenCode2PluginSource, getOpenCodeFamilyPluginSource, getOpenCodePlu
 
 import { writeCanonicalOpenCodePluginAtomically } from '../../shared/opencode-plugin-atomic-write'
 import { writeOpenCodePluginConfig } from './opencode-plugin-config-writer'
+import {
+  migrateOpenCodePluginIdentity,
+  retiredOpenCodePluginFileName
+} from '../../shared/opencode-plugin-identity'
 
 type OpenCodeHookVariant = {
   pluginFileName: string
@@ -74,13 +78,13 @@ export class OpenCodeHookService {
     const config: OpenCodeHookVariant =
       typeof variant === 'function'
         ? {
-            pluginFileName: ORCA_OPENCODE_PLUGIN_FILE,
+            pluginFileName: OPENCODE_STATUS_PLUGIN_FILE,
             legacyHooksDir: OPENCODE_LEGACY_HOOKS_DIR,
             overlayDir: OPENCODE_OVERLAY_DIR,
             pluginSource: variant
           }
         : (variant ?? {
-            pluginFileName: ORCA_OPENCODE_PLUGIN_FILE,
+            pluginFileName: OPENCODE_STATUS_PLUGIN_FILE,
             legacyHooksDir: OPENCODE_LEGACY_HOOKS_DIR,
             overlayDir: OPENCODE_OVERLAY_DIR,
             pluginSource: getOpenCodePluginSource,
@@ -174,6 +178,12 @@ export class OpenCodeHookService {
     const pluginPath = join(pluginsDir, this.pluginFileName)
     try {
       const source = this.pluginSource()
+      migrateOpenCodePluginIdentity(
+        this.getSharedConfigDir(),
+        this.pluginFileName,
+        source,
+        'canonical'
+      )
       const installed = readFileSync(pluginPath, 'utf8')
       // Why: a TUI or service still loading this dir needs the TUI copy too, or the service keeps reporting under its starter pane.
       writeLegacyOpenCodePluginWithAclRetry(
@@ -203,7 +213,11 @@ export class OpenCodeHookService {
       : []
     const configDir = resolveOpenCodeConfigDirectory()
     for (const dir of [configDir, ...overlays]) {
-      if (!existsSync(join(dir, 'plugins', this.pluginFileName))) {
+      const previousName = retiredOpenCodePluginFileName(this.pluginFileName)
+      if (
+        !existsSync(join(dir, 'plugins', this.pluginFileName)) &&
+        !(previousName && existsSync(join(dir, 'plugins', previousName)))
+      ) {
         continue
       }
       try {
@@ -325,7 +339,7 @@ export class OpenCodeHookService {
 
 export const openCodeHookService = new OpenCodeHookService()
 export const openCode2HookService = new OpenCodeHookService({
-  pluginFileName: 'orca-opencode2-status.js',
+  pluginFileName: 'zkyq-opencode2-status.js',
   legacyHooksDir: OPENCODE2_LEGACY_HOOKS_DIR,
   overlayDir: 'opencode2-config-overlays',
   pluginSource: getOpenCode2PluginSource,

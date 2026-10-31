@@ -24,7 +24,7 @@ describe.skipIf(process.platform === 'win32')('createInstallPluginsHandler (gues
     }
   }
 
-  it('writes orca-opencode-status.js into the overlay and returns that dir', () => {
+  it('writes zkyq-opencode-status.js into the overlay and returns that dir', () => {
     withHome((home) => {
       const install = createInstallPluginsHandler(new PluginOverlayManager({ homeDir: home }), {
         HOME: home,
@@ -37,7 +37,7 @@ describe.skipIf(process.platform === 'win32')('createInstallPluginsHandler (gues
       const dir = res.overlayDirs.opencode
       expect(typeof dir).toBe('string')
       // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: Runtime validation or the local test fixture establishes the asserted shape.
-      const pluginPath = join(dir as string, 'plugins', 'orca-opencode-status.js')
+      const pluginPath = join(dir as string, 'plugins', 'zkyq-opencode-status.js')
       expect(existsSync(pluginPath)).toBe(true)
       expect(readFileSync(pluginPath, 'utf8')).toBe(source)
     })
@@ -69,7 +69,7 @@ describe.skipIf(process.platform === 'win32')('createInstallPluginsHandler (gues
       expect(res.installed.opencode2).toBe(true)
       expect(typeof dir).toBe('string')
       // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: Runtime validation or the local test fixture establishes the asserted shape.
-      expect(readFileSync(join(dir as string, 'plugins', 'orca-opencode2-status.js'), 'utf8')).toBe(
+      expect(readFileSync(join(dir as string, 'plugins', 'zkyq-opencode2-status.js'), 'utf8')).toBe(
         source
       )
       expect(res.overlayDirs.opencode).toBeUndefined()
@@ -130,10 +130,10 @@ describe.skipIf(process.platform === 'win32')('createInstallPluginsHandler (gues
       const dir = install({ opencodePluginSource: source }).overlayDirs.opencode as string
       // Why: a rebuild that failed after the wipe leaves the dir but not the plugin;
       // an existsSync on the dir alone would call that a cache hit forever.
-      rmSync(join(dir, 'plugins', 'orca-opencode-status.js'))
+      rmSync(join(dir, 'plugins', 'zkyq-opencode-status.js'))
 
       expect(install({ opencodePluginSource: source }).overlayDirs.opencode).toBe(dir)
-      expect(existsSync(join(dir, 'plugins', 'orca-opencode-status.js'))).toBe(true)
+      expect(existsSync(join(dir, 'plugins', 'zkyq-opencode-status.js'))).toBe(true)
     })
   })
 
@@ -147,7 +147,7 @@ describe.skipIf(process.platform === 'win32')('createInstallPluginsHandler (gues
       // Why: a mid-session Orca upgrade ships new plugin source; future spawns must see it.
       // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: Runtime validation or the local test fixture establishes the asserted shape.
       const dir = install({ opencodePluginSource: '// v2\n' }).overlayDirs.opencode as string
-      expect(readFileSync(join(dir, 'plugins', 'orca-opencode-status.js'), 'utf8')).toBe('// v2\n')
+      expect(readFileSync(join(dir, 'plugins', 'zkyq-opencode-status.js'), 'utf8')).toBe('// v2\n')
     })
   })
 
@@ -163,7 +163,7 @@ describe.skipIf(process.platform === 'win32')('createInstallPluginsHandler (gues
       rmSync(dir, { recursive: true, force: true })
 
       expect(install({ opencodePluginSource: source }).overlayDirs.opencode).toBe(dir)
-      expect(existsSync(join(dir, 'plugins', 'orca-opencode-status.js'))).toBe(true)
+      expect(existsSync(join(dir, 'plugins', 'zkyq-opencode-status.js'))).toBe(true)
     })
   })
 
@@ -183,7 +183,7 @@ describe.skipIf(process.platform === 'win32')('createInstallPluginsHandler (gues
       const dir = install({ opencodePluginSource: '// v1\n' }).overlayDirs.opencode as string
 
       expect(readFileSync(join(dir, 'opencode.json'), 'utf8')).toBe('{"model":"user-set"}')
-      expect(existsSync(join(dir, 'plugins', 'orca-opencode-status.js'))).toBe(true)
+      expect(existsSync(join(dir, 'plugins', 'zkyq-opencode-status.js'))).toBe(true)
     })
   })
 
@@ -202,7 +202,7 @@ describe.skipIf(process.platform === 'win32')('createInstallPluginsHandler (gues
       const dir = install({ opencodePluginSource: '// v1\n' }).overlayDirs.opencode as string
 
       expect(existsSync(join(dir, 'opencode.json'))).toBe(true)
-      expect(existsSync(join(dir, 'plugins', 'orca-opencode-status.js'))).toBe(true)
+      expect(existsSync(join(dir, 'plugins', 'zkyq-opencode-status.js'))).toBe(true)
     })
   })
 

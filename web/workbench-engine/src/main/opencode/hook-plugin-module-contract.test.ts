@@ -28,7 +28,7 @@ describe('OpenCode status plugin module contract', () => {
       server?: (ctx: unknown) => Promise<PluginHooks>
       setup?: (ctx: unknown) => Promise<() => Promise<void>>
     }
-    OrcaOpenCodeStatusPlugin?: (ctx: unknown) => Promise<PluginHooks>
+    ZkyqOpenCodeStatusPlugin?: (ctx: unknown) => Promise<PluginHooks>
   }
 
   // Why: the plugin resolves hook coords from the endpoint file first and only then from
@@ -86,7 +86,7 @@ describe('OpenCode status plugin module contract', () => {
     // Why: a unique basename per load defeats the ESM module cache between cases.
     const pluginPath = join(
       tempDir,
-      `orca-opencode-status-${Math.random().toString(36).slice(2)}.mjs`
+      `zkyq-opencode-status-${Math.random().toString(36).slice(2)}.mjs`
     )
     writeFileSync(pluginPath, source)
     // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: Runtime validation or the local test fixture establishes the asserted shape.
@@ -97,13 +97,13 @@ describe('OpenCode status plugin module contract', () => {
     process.env.ZKYQ_OPENCODE_PLUGIN_API = 'v1'
     const module = await loadPluginModule()
     expect(module.default).toBeTypeOf('function')
-    expect(module.default).toBe(module.OrcaOpenCodeStatusPlugin)
+    expect(module.default).toBe(module.ZkyqOpenCodeStatusPlugin)
   })
 
   it('migrates an already running v1 host before selecting the generated module contract', async () => {
     process.env.ORCA_OPENCODE_PLUGIN_API = 'v1'
     const module = await loadPluginModule()
-    expect(module.default).toBe(module.OrcaOpenCodeStatusPlugin)
+    expect(module.default).toBe(module.ZkyqOpenCodeStatusPlugin)
     expect(process.env.ZKYQ_OPENCODE_PLUGIN_API).toBe('v1')
     expect(process.env.ORCA_OPENCODE_PLUGIN_API).toBeUndefined()
   })
@@ -111,7 +111,7 @@ describe('OpenCode status plugin module contract', () => {
   it('retains agent ownership when loading from a retired environment', async () => {
     process.env.ORCA_OPENCODE_AGENT = 'opencode2'
     const module = await loadPluginModule()
-    expect(await module.OrcaOpenCodeStatusPlugin?.({})).toEqual({})
+    expect(await module.ZkyqOpenCodeStatusPlugin?.({})).toEqual({})
     expect(process.env.ZKYQ_OPENCODE_AGENT).toBe('opencode2')
     expect(process.env.ORCA_OPENCODE_AGENT).toBeUndefined()
   })
@@ -121,21 +121,21 @@ describe('OpenCode status plugin module contract', () => {
 
     expect(module.default).toBeTypeOf('object')
     expect(typeof module.default?.id).toBe('string')
-    expect(module.default?.id).toBe('orca-opencode-status')
+    expect(module.default?.id).toBe('zkyq-opencode-status')
     expect(module.default?.server).toBeTypeOf('function')
   })
 
   it('keeps the named factory export so the factory-based loader still resolves', async () => {
     const module = await loadPluginModule()
 
-    expect(module.OrcaOpenCodeStatusPlugin).toBeTypeOf('function')
+    expect(module.ZkyqOpenCodeStatusPlugin).toBeTypeOf('function')
   })
 
   it('returns an event handler from the default export server(), like the named factory', async () => {
     const module = await loadPluginModule()
 
     const fromDefault = await module.default?.server?.({})
-    const fromNamed = await module.OrcaOpenCodeStatusPlugin?.({})
+    const fromNamed = await module.ZkyqOpenCodeStatusPlugin?.({})
 
     expect(fromDefault?.event).toBeTypeOf('function')
     expect(fromNamed?.event).toBeTypeOf('function')

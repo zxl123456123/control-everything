@@ -74,10 +74,10 @@ describe('OpenCode plugin MessagePart throttling', () => {
   })
 
   async function loadPluginEventHandler(): Promise<PluginEventHandler> {
-    const pluginPath = join(tempDir, 'orca-opencode-status.mjs')
+    const pluginPath = join(tempDir, 'zkyq-opencode-status.mjs')
     writeFileSync(pluginPath, _internals.getOpenCodePluginSource())
     const module = (await import(pathToFileURL(pluginPath).href)) as {
-      OrcaOpenCodeStatusPlugin: (ctx: unknown) => Promise<{ event: PluginEventHandler }>
+      ZkyqOpenCodeStatusPlugin: (ctx: unknown) => Promise<{ event: PluginEventHandler }>
     }
     const client = {
       session: {
@@ -85,7 +85,7 @@ describe('OpenCode plugin MessagePart throttling', () => {
         list: async () => ({ data: [{ id: 'session-1' }] })
       }
     }
-    const hooks = await module.OrcaOpenCodeStatusPlugin({ client })
+    const hooks = await module.ZkyqOpenCodeStatusPlugin({ client })
     return hooks.event
   }
 

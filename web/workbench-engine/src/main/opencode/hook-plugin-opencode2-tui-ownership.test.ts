@@ -179,7 +179,7 @@ describe('OpenCode 2 TUI reporter: each pane reports its own sessions', () => {
 
   async function loadPlugin(dir = tempDir): Promise<PluginModule> {
     // Why: a unique basename per load defeats the ESM module cache, like a separate process.
-    const pluginPath = join(dir, `orca-opencode-status-${Math.random().toString(36).slice(2)}.mjs`)
+    const pluginPath = join(dir, `zkyq-opencode-status-${Math.random().toString(36).slice(2)}.mjs`)
     writeFileSync(pluginPath, _internals.getOpenCodePluginSource())
     // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the generated module's default export is exercised below and fails the test if absent.
     const plugin = (await import(pathToFileURL(pluginPath).href)) as PluginModule
@@ -837,8 +837,8 @@ describe('OpenCode 2 TUI reporter: each pane reports its own sessions', () => {
       }
     }
     const installTuiCopy = (): void => {
-      mkdirSync(join(tempDir, 'orca-opencode-status-tui'))
-      writeFileSync(join(tempDir, 'orca-opencode-status-tui', 'tui.js'), '')
+      mkdirSync(join(tempDir, 'zkyq-opencode-status-tui'))
+      writeFileSync(join(tempDir, 'zkyq-opencode-status-tui', 'tui.js'), '')
     }
 
     it('reports nothing from a serve process when the TUI copy is installed beside it', async () => {

@@ -122,7 +122,7 @@ describe('OpenCode 1 TUI API pane reporting', () => {
     const plugin: unknown = await import(pathToFileURL(path).href)
     expect(plugin).toMatchObject({
       default: { server: expect.any(Function), setup: expect.any(Function) },
-      OrcaOpenCodeStatusPlugin: expect.any(Function)
+      ZkyqOpenCodeStatusPlugin: expect.any(Function)
     })
     if (typeof plugin !== 'object' || !plugin || !('default' in plugin)) {
       throw new Error('No server plugin')
@@ -178,7 +178,7 @@ describe('OpenCode 1 TUI API pane reporting', () => {
 
   it('reproduces the release loader rejection of a combined server and TUI entry', () => {
     expect(() =>
-      readV1Plugin({ default: { server() {}, tui() {} } }, 'orca-opencode-status-tui/tui.js', 'tui')
+      readV1Plugin({ default: { server() {}, tui() {} } }, 'zkyq-opencode-status-tui/tui.js', 'tui')
     ).toThrow('must default export either server() or tui(), not both')
   })
 

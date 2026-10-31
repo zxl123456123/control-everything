@@ -109,7 +109,7 @@ describe.each(['opencode', 'opencode2'] as const)('%s plugin disposal by host', 
   })
 
   async function loadPluginModule(): Promise<PluginModule> {
-    const pluginPath = join(tempDir, `orca-${agent}-status.mjs`)
+    const pluginPath = join(tempDir, `zkyq-${agent}-status.mjs`)
     writeFileSync(
       pluginPath,
       agent === 'opencode2'

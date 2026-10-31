@@ -115,7 +115,7 @@ describe('WSL settings over the existing plugin RPC into real fixture overlays',
     if (!dir) {
       throw new Error('missing original overlay')
     }
-    const path = join(dir, 'plugins', 'orca-opencode-status.js')
+    const path = join(dir, 'plugins', 'zkyq-opencode-status.js')
     writeFileSync(path, '// installed sentinel')
     settings.disabledTuiAgents = ['opencode']
     await maybeRerunWslRelayGuestInstall(deps, state)

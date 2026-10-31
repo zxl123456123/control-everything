@@ -4,6 +4,10 @@ import { resolveOpenCodeConfigDirectory } from '../shared/opencode-config-direct
 import { isInstalledOpenCodePluginCurrent } from '../shared/opencode-installed-plugin'
 import { writeCanonicalOpenCodePluginAtomically } from '../shared/opencode-plugin-atomic-write'
 import { writeOpenCodeTuiPlugin } from '../shared/opencode-tui-plugin-install'
+import {
+  migrateOpenCodePluginIdentity,
+  retiredOpenCodePluginFileName
+} from '../shared/opencode-plugin-identity'
 
 const RELAY_HOOKS_DIR = '.orca-relay'
 
@@ -19,12 +23,17 @@ export function installOpenCodePluginInCanonicalConfig(
   try {
     const configDir = resolveOpenCodeConfigDirectory(environment, homeDir)
     const pluginFileName =
-      agent === 'opencode2' ? 'orca-opencode2-status.js' : 'orca-opencode-status.js'
+      agent === 'opencode2' ? 'zkyq-opencode2-status.js' : 'zkyq-opencode-status.js'
     const pluginPath = join(configDir, 'plugins', pluginFileName)
-    if (onlyIfInstalled && !existsSync(pluginPath)) {
+    if (
+      onlyIfInstalled &&
+      !existsSync(pluginPath) &&
+      !existsSync(join(configDir, 'plugins', retiredOpenCodePluginFileName(pluginFileName)!))
+    ) {
       return false
     }
     mkdirSync(join(configDir, 'plugins'), { recursive: true })
+    migrateOpenCodePluginIdentity(configDir, pluginFileName, source, 'canonical')
     writeOpenCodeTuiPlugin(join(configDir, 'plugins'), pluginFileName, source)
     if (!isInstalledOpenCodePluginCurrent(pluginPath, source)) {
       writeCanonicalOpenCodePluginAtomically(pluginPath, source)

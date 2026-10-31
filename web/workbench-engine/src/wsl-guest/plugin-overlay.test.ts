@@ -16,6 +16,7 @@ import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
 import { PluginOverlayManager } from './plugin-overlay'
 import { resolvePiSourceAgentDir } from './plugin-overlay-env'
+import { installOpenCodePluginInCanonicalConfig } from './opencode-canonical-config'
 
 describe('PluginOverlayManager', () => {
   let homeDir: string
@@ -37,11 +38,27 @@ describe('PluginOverlayManager', () => {
     expect(manager.materializePi('tab-1:0')).toBeNull()
   })
 
+  it.each(['opencode', 'opencode2'] as const)(
+    'upgrades a retired canonical %s filename during refresh-only installs',
+    (agent) => {
+      const env = { XDG_CONFIG_HOME: join(homeDir, 'xdg') }
+      const plugins = join(homeDir, 'xdg', 'opencode', 'plugins')
+      const old = `orca-${agent}-status.js`
+      const current = `zkyq-${agent}-status.js`
+      const source = `export default { id: "zkyq-${agent}-status" };`
+      mkdirSync(plugins, { recursive: true })
+      writeFileSync(join(plugins, old), source.replaceAll('zkyq-', 'orca-'))
+      expect(installOpenCodePluginInCanonicalConfig(source, agent, env, homeDir, true)).toBe(true)
+      expect(existsSync(join(plugins, old))).toBe(false)
+      expect(readFileSync(join(plugins, current), 'utf8')).toBe(source)
+    }
+  )
+
   it('materializes OpenCode plugin into <overlay>/plugins/<file>', () => {
     manager.setSources({ opencodePluginSource: 'export const X = 1' })
     const dir = manager.materializeOpenCode('tab-1:0')
     expect(dir).not.toBeNull()
-    const expected = join(dir!, 'plugins', 'orca-opencode-status.js')
+    const expected = join(dir!, 'plugins', 'zkyq-opencode-status.js')
     expect(existsSync(expected)).toBe(true)
     expect(readFileSync(expected, 'utf8')).toBe('export const X = 1')
   })
@@ -51,10 +68,10 @@ describe('PluginOverlayManager', () => {
     expect(manager.hasOpenCodeSource('opencode2')).toBe(true)
     const dir = manager.materializeOpenCode('tab-2:0', undefined, 'opencode2')
     expect(dir).not.toBeNull()
-    expect(readFileSync(join(dir!, 'plugins', 'orca-opencode2-status.js'), 'utf8')).toBe(
+    expect(readFileSync(join(dir!, 'plugins', 'zkyq-opencode2-status.js'), 'utf8')).toBe(
       'export const V2 = 1'
     )
-    expect(existsSync(join(dir!, 'plugins', 'orca-opencode-status.js'))).toBe(false)
+    expect(existsSync(join(dir!, 'plugins', 'zkyq-opencode-status.js'))).toBe(false)
   })
 
   it('installs OpenCode plugins in the canonical XDG config roots', () => {
@@ -70,23 +87,23 @@ describe('PluginOverlayManager', () => {
       manager.installOpenCodePlugin('opencode2', { XDG_CONFIG_HOME: join(homeDir, 'xdg') })
     ).toBe(true)
     expect(
-      readFileSync(join(homeDir, 'xdg', 'opencode', 'plugins', 'orca-opencode-status.js'), 'utf8')
+      readFileSync(join(homeDir, 'xdg', 'opencode', 'plugins', 'zkyq-opencode-status.js'), 'utf8')
     ).toBe('v1 plugin')
     expect(
-      readFileSync(join(homeDir, 'xdg', 'opencode', 'plugins', 'orca-opencode2-status.js'), 'utf8')
+      readFileSync(join(homeDir, 'xdg', 'opencode', 'plugins', 'zkyq-opencode2-status.js'), 'utf8')
     ).toBe('v2 plugin')
     const tuiEntry = join(
       homeDir,
       'xdg',
       'opencode',
       'plugins',
-      'orca-opencode2-status-tui',
+      'zkyq-opencode2-status-tui',
       'tui.js'
     )
     expect(readFileSync(tuiEntry, 'utf8')).toBe('v2 plugin')
     expect(
       readFileSync(
-        join(homeDir, 'xdg', 'opencode', 'plugins', 'orca-opencode-status-tui', 'tui.js'),
+        join(homeDir, 'xdg', 'opencode', 'plugins', 'zkyq-opencode-status-tui', 'tui.js'),
         'utf8'
       )
     ).toBe('v1 plugin')
@@ -102,7 +119,7 @@ describe('PluginOverlayManager', () => {
   // Why: OpenCode 2 reloads a plugin whose file mtime changed, even with unchanged bytes.
   it('leaves a current canonical plugin untouched and replaces a stale one', () => {
     const env = { XDG_CONFIG_HOME: join(homeDir, 'xdg') }
-    const pluginPath = join(homeDir, 'xdg', 'opencode', 'plugins', 'orca-opencode2-status.js')
+    const pluginPath = join(homeDir, 'xdg', 'opencode', 'plugins', 'zkyq-opencode2-status.js')
     manager.setSources({ opencode2PluginSource: 'v2 plugin' })
     manager.installOpenCodePlugin('opencode2', env)
     const past = new Date('2020-01-01T00:00:00Z')
@@ -122,8 +139,8 @@ describe('PluginOverlayManager', () => {
     () => {
       const env = { XDG_CONFIG_HOME: join(homeDir, 'xdg') }
       const pluginsDir = join(homeDir, 'xdg', 'opencode', 'plugins')
-      const pluginPath = join(pluginsDir, 'orca-opencode2-status.js')
-      const targetPath = join(homeDir, 'dotfiles-orca-opencode2-status.js')
+      const pluginPath = join(pluginsDir, 'zkyq-opencode2-status.js')
+      const targetPath = join(homeDir, 'dotfiles-zkyq-opencode2-status.js')
       mkdirSync(pluginsDir, { recursive: true })
       writeFileSync(targetPath, 'v2 plugin')
       symlinkSync(targetPath, pluginPath)
@@ -148,12 +165,12 @@ describe('PluginOverlayManager', () => {
     manager.setSources({ opencode2PluginSource: 'v2 plugin' })
     const pluginsDir = join(homeDir, 'xdg', 'opencode', 'plugins')
     // A directory in the server file's place makes that write fail.
-    mkdirSync(join(pluginsDir, 'orca-opencode2-status.js'), { recursive: true })
+    mkdirSync(join(pluginsDir, 'zkyq-opencode2-status.js'), { recursive: true })
 
     expect(
       manager.installOpenCodePlugin('opencode2', { XDG_CONFIG_HOME: join(homeDir, 'xdg') })
     ).toBe(false)
-    expect(readFileSync(join(pluginsDir, 'orca-opencode2-status-tui', 'tui.js'), 'utf8')).toBe(
+    expect(readFileSync(join(pluginsDir, 'zkyq-opencode2-status-tui', 'tui.js'), 'utf8')).toBe(
       'v2 plugin'
     )
   })
@@ -163,7 +180,7 @@ describe('PluginOverlayManager', () => {
     mkdirSync(join(userConfigDir, 'plugins'), { recursive: true })
     writeFileSync(join(userConfigDir, 'opencode.json'), '{"provider":"custom"}')
     writeFileSync(join(userConfigDir, 'plugins', 'user-plugin.js'), 'user plugin')
-    writeFileSync(join(userConfigDir, 'plugins', 'orca-opencode-status.js'), 'user same-name')
+    writeFileSync(join(userConfigDir, 'plugins', 'zkyq-opencode-status.js'), 'user same-name')
 
     manager.setSources({ opencodePluginSource: 'orca plugin' })
     const dir = manager.materializeOpenCode('tab-opencode:0', userConfigDir)
@@ -171,10 +188,10 @@ describe('PluginOverlayManager', () => {
     expect(dir).not.toBeNull()
     expect(readFileSync(join(dir!, 'opencode.json'), 'utf8')).toBe('{"provider":"custom"}')
     expect(readFileSync(join(dir!, 'plugins', 'user-plugin.js'), 'utf8')).toBe('user plugin')
-    expect(readFileSync(join(dir!, 'plugins', 'orca-opencode-status.js'), 'utf8')).toBe(
+    expect(readFileSync(join(dir!, 'plugins', 'zkyq-opencode-status.js'), 'utf8')).toBe(
       'orca plugin'
     )
-    expect(readFileSync(join(userConfigDir, 'plugins', 'orca-opencode-status.js'), 'utf8')).toBe(
+    expect(readFileSync(join(userConfigDir, 'plugins', 'zkyq-opencode-status.js'), 'utf8')).toBe(
       'user same-name'
     )
   })
@@ -183,8 +200,8 @@ describe('PluginOverlayManager', () => {
   // launches installed. Mirroring the other major's file into this overlay would
   // hand the agent a plugin whose variant gate registers nothing.
   it.each([
-    { agent: 'opencode', stale: 'orca-opencode2-status.js', own: 'orca-opencode-status.js' },
-    { agent: 'opencode2', stale: 'orca-opencode-status.js', own: 'orca-opencode2-status.js' }
+    { agent: 'opencode', stale: 'zkyq-opencode2-status.js', own: 'zkyq-opencode-status.js' },
+    { agent: 'opencode2', stale: 'zkyq-opencode-status.js', own: 'zkyq-opencode2-status.js' }
   ] as const)(
     "keeps the other major's stale plugin out of the $agent overlay",
     ({ agent, stale, own }) => {
@@ -523,7 +540,7 @@ describe('PluginOverlayManager', () => {
     manager.setSources({ opencodePluginSource: 'second' })
     const dirB = manager.materializeOpenCode('tab-stable:0')!
     expect(dirA).toBe(dirB)
-    expect(readFileSync(join(dirA, 'plugins', 'orca-opencode-status.js'), 'utf8')).toBe('second')
+    expect(readFileSync(join(dirA, 'plugins', 'zkyq-opencode-status.js'), 'utf8')).toBe('second')
   })
 
   it('hashes unsafe pane ids into portable overlay directory names', () => {
@@ -533,7 +550,7 @@ describe('PluginOverlayManager', () => {
     expect(dir).not.toBeNull()
     expect(basename(dir!)).toMatch(/^[a-f0-9]{32}$/)
     expect(dir).not.toContain('tab/with')
-    expect(existsSync(join(dir!, 'plugins', 'orca-opencode-status.js'))).toBe(true)
+    expect(existsSync(join(dir!, 'plugins', 'zkyq-opencode-status.js'))).toBe(true)
   })
 })
 

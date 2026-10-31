@@ -4,6 +4,10 @@ import {
   OPENCODE_STARTUP_PROMPT_PLUGIN_DIRECTORY
 } from '../shared/opencode-startup-prompt-install'
 import { resolveOpenCodeConfigDirectory } from '../shared/opencode-config-directory'
+import {
+  migrateOpenCodePluginIdentity,
+  retiredOpenCodePluginFileName
+} from '../shared/opencode-plugin-identity'
 import { materializeOmpFreshConfig } from '../shared/omp-fresh-config'
 // Why: relay-side equivalent of Orca's local agent integration installers.
 // OpenCode still needs a config overlay, while Pi/OMP now get Orca-managed
@@ -47,10 +51,10 @@ const PI_OVERLAY_SUBDIR_BY_KIND: Record<LegacyOverlayAgentKind, string> = {
   pi: 'pi-overlays',
   omp: 'omp-overlays'
 }
-const OPENCODE_PLUGIN_FILE = 'orca-opencode-status.js'
-const OPENCODE2_PLUGIN_FILE = 'orca-opencode2-status.js'
+const OPENCODE_PLUGIN_FILE = 'zkyq-opencode-status.js'
+const OPENCODE2_PLUGIN_FILE = 'zkyq-opencode2-status.js'
 // Orca's own entries (either major, file and TUI copy) are never mirrored from user config.
-const ORCA_OPENCODE_PLUGIN_ENTRIES = new Set([
+const OPENCODE_PLUGIN_ENTRIES = new Set([
   OPENCODE_STARTUP_PROMPT_PLUGIN_DIRECTORY,
   ...[OPENCODE_PLUGIN_FILE, OPENCODE2_PLUGIN_FILE].flatMap((f) => [f, openCodeTuiPluginDirName(f)])
 ])
@@ -185,6 +189,7 @@ export class PluginOverlayManager {
   private writeOpenCodePlugin(overlayDir: string, pluginFileName: string, source: string): void {
     const pluginsDir = join(overlayDir, 'plugins')
     mkdirSync(pluginsDir, { recursive: true })
+    migrateOpenCodePluginIdentity(overlayDir, pluginFileName, source, 'overlay')
     const pluginPath = join(pluginsDir, pluginFileName)
     writeOpenCodeTuiPlugin(pluginsDir, pluginFileName, source, 'overlay')
     writeOverlayOpenCodePluginAtomically(pluginPath, source)
@@ -218,7 +223,13 @@ export class PluginOverlayManager {
         // Why: OPENCODE_CONFIG_DIR is a single config root. Mirror the user's
         // remote root into the overlay before adding Orca's plugin so status
         // reporting does not hide their auth, models, keybinds, or plugins.
-        mirrorOpenCodeConfig(existingConfigDir, dir, ORCA_OPENCODE_PLUGIN_ENTRIES)
+        const excluded = new Set(OPENCODE_PLUGIN_ENTRIES)
+        const other = retiredOpenCodePluginFileName(
+          agent === 'opencode2' ? OPENCODE_PLUGIN_FILE : OPENCODE2_PLUGIN_FILE
+        )!
+        excluded.add(other)
+        excluded.add(openCodeTuiPluginDirName(other))
+        mirrorOpenCodeConfig(existingConfigDir, dir, excluded)
       }
       if (source) {
         this.writeOpenCodePlugin(dir, pluginFileName, source)

@@ -40,7 +40,7 @@ describe.each(['opencode', 'opencode2'] as const)('%s plugin on OpenCode 2', (ag
       server?: (ctx: unknown) => Promise<PluginHooks>
       setup?: (ctx: unknown) => Promise<() => Promise<void>>
     }
-    OrcaOpenCodeStatusPlugin?: (ctx: unknown) => Promise<PluginHooks>
+    ZkyqOpenCodeStatusPlugin?: (ctx: unknown) => Promise<PluginHooks>
   }
 
   // Why: the plugin resolves hook coords from the endpoint file first and only then from
@@ -91,7 +91,7 @@ describe.each(['opencode', 'opencode2'] as const)('%s plugin on OpenCode 2', (ag
     // Why: a unique basename per load defeats the ESM module cache between cases.
     const pluginPath = join(
       tempDir,
-      `orca-opencode-status-${Math.random().toString(36).slice(2)}.mjs`
+      `zkyq-opencode-status-${Math.random().toString(36).slice(2)}.mjs`
     )
     writeFileSync(pluginPath, source)
     // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: Runtime validation or the local test fixture establishes the asserted shape.
@@ -164,7 +164,7 @@ describe.each(['opencode', 'opencode2'] as const)('%s plugin on OpenCode 2', (ag
     // Why: both plugin files share one config dir, so distinct ids keep the
     // loader from reporting a duplicate-id collision as a plugin failure.
     expect(module.default?.id).toBe(
-      agent === 'opencode2' ? 'orca-opencode2-status' : 'orca-opencode-status'
+      agent === 'opencode2' ? 'zkyq-opencode2-status' : 'zkyq-opencode-status'
     )
   })
 

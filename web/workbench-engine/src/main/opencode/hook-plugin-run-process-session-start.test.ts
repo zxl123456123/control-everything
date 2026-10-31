@@ -17,7 +17,7 @@ import { _internals } from './hook-service'
 type PluginHooks = {
   event: (input: { event: { type: string; properties?: unknown } }) => Promise<void>
 }
-type PluginModule = { OrcaOpenCodeStatusPlugin?: (ctx: unknown) => Promise<PluginHooks> }
+type PluginModule = { ZkyqOpenCodeStatusPlugin?: (ctx: unknown) => Promise<PluginHooks> }
 
 const ENV_KEYS = ['ORCA_PANE_KEY', 'ORCA_AGENT_HOOK_PORT', 'ORCA_AGENT_HOOK_TOKEN'] as const
 
@@ -70,7 +70,7 @@ describe('OpenCode plugin session start inside a `run` process', () => {
     writeFileSync(pluginPath, _internals.getOpenCodePluginSource())
     // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the generated plugin module exports this factory; the test calls it once.
     const module = (await import(pathToFileURL(pluginPath).href)) as PluginModule
-    const hooks = await module.OrcaOpenCodeStatusPlugin?.({})
+    const hooks = await module.ZkyqOpenCodeStatusPlugin?.({})
     await hooks?.event({
       event: { type: 'session.created', properties: { info: { id: 'root' } } }
     })

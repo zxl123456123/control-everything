@@ -327207,7 +327207,9 @@
     "src/main/source-control/source-control-environment.test.ts",
     "src/main/source-control/source-control-environment.ts",
     "src/shared/opencode-environment-identity.test.ts",
-    "src/shared/opencode-environment-identity.ts"
+    "src/shared/opencode-environment-identity.ts",
+    "src/shared/opencode-plugin-identity.test.ts",
+    "src/shared/opencode-plugin-identity.ts"
   ],
   "adapted_files": [
     {
@@ -334623,20 +334625,20 @@
     {
       "path": "src/main/opencode/hook-plugin-dispose-host.test.ts",
       "upstream_sha256": "03464f31dd696e20d5fb970ca6de97d9a6b5782ef2a5b396244b526ff8107357",
-      "current_sha256": "8491655e4e19f87f1bcd3cd340f62d81e0c8eb080c0e6d3d4e5903fa2db933d5",
-      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属"
+      "current_sha256": "8222d55a01bdfdcf1b1dc756d2515082ab63bb78150bc7a9ad5caeda20976652",
+      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属；OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场"
     },
     {
       "path": "src/main/opencode/hook-plugin-legacy-tui-ownership.test.ts",
       "upstream_sha256": "1ae4e28d19b8d3d41301a75f27e4a00350a2f9e320ded49c5cb2910e3db9981d",
-      "current_sha256": "d73c63e9ca613980adfbe6f270430ed06e3603a2b6d23a482a3619463492df40",
-      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属"
+      "current_sha256": "b7f00cad4facf2fdae7a07104fee76cb3322e73da1d71d891241ce206ef3ba6d",
+      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属；OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场"
     },
     {
       "path": "src/main/opencode/hook-plugin-module-contract.test.ts",
       "upstream_sha256": "83058a9caa66067f270541ee4b4f799aea80b356466e57b67129955640987cca",
-      "current_sha256": "f9c716a598b50e94bbd11605046a1de70702b193d3b93e256d53fd52dfa4cf66",
-      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属"
+      "current_sha256": "7950d11f5423bd3910e3737fdaeedf7ffec1cc6384295d5e18e77b1f5150c1bb",
+      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属；OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场"
     },
     {
       "path": "src/main/opencode/hook-plugin-opencode2-session-lineage.test.ts",
@@ -334647,20 +334649,20 @@
     {
       "path": "src/main/opencode/hook-plugin-opencode2-setup.test.ts",
       "upstream_sha256": "05f08876e8e12ec86045d0ec5721da1802bdc3240447237c23b92613c4c5f549",
-      "current_sha256": "065823fbd3fe871302ab6bb94d8db6fddecc03d5fdabe0771533c78341831fe4",
-      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属"
+      "current_sha256": "3ffccb72a55186765fad64a6a5b5729e8f22c94b8662539ffb13c24dbecf8495",
+      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属；OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场"
     },
     {
       "path": "src/main/opencode/hook-plugin-opencode2-tui-ownership.test.ts",
       "upstream_sha256": "cde60cce47e6bcc45358319ca95f03ab16fe6ff7fe5ce0f363601300dca1d4ed",
-      "current_sha256": "a1cfb0c5e1c01810e913d933146a9b8426aa708b0a7dbe62797ae4af7f080382",
-      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属"
+      "current_sha256": "5a98020038a9526376ae823bdd2af941fe5139f5e14e9c3d5a1c13dc0a462b53",
+      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属；OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场"
     },
     {
       "path": "src/main/opencode/hook-service-invalid-tui-config.test.ts",
       "upstream_sha256": "1cdbaf033427b31fce063248a62da980a6dde53ca6ff8040831400988e805617",
-      "current_sha256": "2bc580d8faa4cbf03008276859e3800d0182465e354315ada4703945899ad0a7",
-      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属"
+      "current_sha256": "d04484082cd76ffd72f6d23750bcb7b1e0f90fc810811cced216663c617a6f1a",
+      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属；OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场"
     },
     {
       "path": "src/main/opencode/legacy-shared-config-dir.ts",
@@ -334689,8 +334691,8 @@
     {
       "path": "src/main/opencode/opencode-startup-prompt-installer.test.ts",
       "upstream_sha256": "05de9ae6d137eb99ad7073c7b4963c05b3e79c0bef9621bdb5413f20b3fb8a33",
-      "current_sha256": "865f2168bcbd98068cc7436271824978f7568ffa3802c1e4ab645155a7117eb9",
-      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属"
+      "current_sha256": "12909ee9ec7064bf77efad205b32f46f85556e4088480e4e03245bf5b94ff5f4",
+      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属；OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场"
     },
     {
       "path": "src/main/opencode/opencode-startup-prompt-installer.ts",
@@ -334707,20 +334709,20 @@
     {
       "path": "src/main/opencode/opencode-startup-prompt-source.ts",
       "upstream_sha256": "caf3c3224e5bee2dbc2298e1741d7d3fb428d68e28013f82f5c329b660a9d270",
-      "current_sha256": "8b7c67540131bafc06eea9b56f0f0909a8fea39ef16f5ce2fcf85627276d18df",
-      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属"
+      "current_sha256": "a467e6330a91252a8c36ec7648b867a7117cf04461411134628f064835aad02f",
+      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属；OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场"
     },
     {
       "path": "src/main/opencode/overlay-dir-gc.test.ts",
       "upstream_sha256": "b2b00c5f25d400d439232a8d3a7df2e6867582278eff0fe92f22511c80705995",
-      "current_sha256": "58a15274c71f15594dac9d1abc23eaed99fb1c9067e09c939234251e25e350df",
-      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属"
+      "current_sha256": "9b7b33aefd01e77bfedbd5adbb9e7e4abeb3238500856c910b25b6eded266af5",
+      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属；OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场"
     },
     {
       "path": "src/main/opencode/status-plugin-factory-source.ts",
       "upstream_sha256": "7fdcd3d5d130a9d53d5f4bc7d1c5afe360c966000dafe49c5eb1399c32acc236",
-      "current_sha256": "92dd9a4c99de74db22346da5a67bedafade064aa7de73f909cb5d15243f11a48",
-      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属"
+      "current_sha256": "676332595e92ab3d2ee7c71028927544e3cd30060c78553acb38d3108247c6c8",
+      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属；OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场"
     },
     {
       "path": "src/main/opencode/status-plugin-shared-server-capability.test.ts",
@@ -334779,8 +334781,158 @@
     {
       "path": "src/wsl-guest/wsl-install-plugins-handler.test.ts",
       "upstream_sha256": "b52d6620a20475c7fbb9e4fef0872e9755424e3cba5a2dfeadc7a24b15766c18",
-      "current_sha256": "35e0eba00e945c7949f6e9f01e1b40d219e02154fbffc80afe4c4ecc29678ea2",
-      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属"
+      "current_sha256": "43703236df542b0ff522508b7c44f6a3f5561553ed67a0170fb3d32e779a697f",
+      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属；OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场"
+    },
+    {
+      "path": "src/main/agent-hooks/wsl-opencode-install-race.test.ts",
+      "upstream_sha256": "cd882624ed8a603dcbf8784091f74c9c096c3d6e96d142234999b65ed93a3d69",
+      "current_sha256": "60d989b02ecbfb1336fefa146bf039a59b754879da0ab7d895d140d62f107937",
+      "reason": "OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场"
+    },
+    {
+      "path": "src/main/agent-hooks/wsl-opencode-settings.test.ts",
+      "upstream_sha256": "a6e2ed1e41996b406e7ee98d6f3640d2e238aa2aad7a9f94489e60ae57ebcd3a",
+      "current_sha256": "812ff1db0b262868749f2284778c481da4d0da13154e8cc2c37c73703cc46140",
+      "reason": "OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场"
+    },
+    {
+      "path": "src/main/opencode/hook-plugin-background-child-completion.test.ts",
+      "upstream_sha256": "ea45fdf3053c21c2654e1036effda2d63e1b1c30e43107cfef7d58fdcd4dbaa6",
+      "current_sha256": "effe959537dd3465a8a8b2df653c6ffed2e36d9d0084a3140c0216790285c444",
+      "reason": "OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场"
+    },
+    {
+      "path": "src/main/opencode/hook-plugin-child-attention.test.ts",
+      "upstream_sha256": "94f7c748bc3f3984a9f525cb5fa4578ba0947c485acc3d530a3fac71667317db",
+      "current_sha256": "02c06cb3ed81e2bcfd03028b335843f09c87ed848461cc7509bc300aceb35417",
+      "reason": "OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场"
+    },
+    {
+      "path": "src/main/opencode/hook-plugin-fail-open-ownership.test.ts",
+      "upstream_sha256": "dc13f9017e2d687cf5ad9f962d7ae862e06351fdeed1c7fa758849f7a5173434",
+      "current_sha256": "d53e2d1f7e59a0bb365180d63d36a18a6b4a0428199e2ce3cd91d5e28facc6a2",
+      "reason": "OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场"
+    },
+    {
+      "path": "src/main/opencode/hook-plugin-lifecycle-delivery.test.ts",
+      "upstream_sha256": "c5e6a1af6feb4e03ed99bb9e49995d7bbba48cab5ca2c6ef7be5a53aa3f0daef",
+      "current_sha256": "a62c18fa2d86e36b758866415a1c4ca47240608085fb5b69cf7b9fa710a136ea",
+      "reason": "OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场"
+    },
+    {
+      "path": "src/main/opencode/hook-plugin-message-part-throttle.test.ts",
+      "upstream_sha256": "272e851972f57f96f4ddf89e6381de636daa9ef79e95b4fa2ce1c21bd9b35cf2",
+      "current_sha256": "063ad95d3bed9c403b6c4ce0496e35d196b66c12c04780ccea6b88ed76888d65",
+      "reason": "OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场"
+    },
+    {
+      "path": "src/main/opencode/hook-plugin-run-process-session-start.test.ts",
+      "upstream_sha256": "fee1fb5528e0475a3ace43a4e9c2568fd323bb256ae7e3feccd84e6c85600af1",
+      "current_sha256": "e5a27a65b14a2eb5abbbfcdeee2f12e652ce6c07c3764e57801b0dcee83024a2",
+      "reason": "OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场"
+    },
+    {
+      "path": "src/main/opencode/hook-service-legacy-acl.test.ts",
+      "upstream_sha256": "22b42f46ec0d3e7ae2560e3286363bb127dc991d4c415e9dfd91c9ea3aff5f24",
+      "current_sha256": "ad611d989b23af8beef004a63503414090e0c29e55ebf7573954ff8572fe4e89",
+      "reason": "OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场"
+    },
+    {
+      "path": "src/main/opencode/hook-service-startup-refresh.test.ts",
+      "upstream_sha256": "76870e1d942705045e7493945d401197b09b317cacd496224b06fc9a6bb8023a",
+      "current_sha256": "eff3642b99da33cec420a6a8c51c41b967bbd6e09797e9f3c8d78d4101851a11",
+      "reason": "OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场"
+    },
+    {
+      "path": "src/main/opencode/hook-service.ts",
+      "upstream_sha256": "868c4d409957e7efddfdee74570b2ebcfdda6479480d016e037ad27d1090ee3b",
+      "current_sha256": "181c722eebccc3daddc11e33e4548d95a123228e9e77f062206beaaaddcbe275",
+      "reason": "OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场"
+    },
+    {
+      "path": "src/main/opencode/opencode-plugin-config-writer.ts",
+      "upstream_sha256": "041a4e1775957c8a5f5e2a7256024d71ffda8018c8afc3db6c795284c9f0e67e",
+      "current_sha256": "84864bd1711e2e13c49ccf0af9ce83c0b59a40020685b4f7986f116864bc5ac6",
+      "reason": "OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场"
+    },
+    {
+      "path": "src/main/opencode/overlay-dir-names.ts",
+      "upstream_sha256": "02450bd49dfc66fc4709df02efc6ab00f88bda64f761208597457c0760c4d3c8",
+      "current_sha256": "e815abe79fb02afef09d8f5b5dff69bc3bfed529238178e547134198b5e428f6",
+      "reason": "OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场"
+    },
+    {
+      "path": "src/main/opencode2/status-plugin-setup-lifetime.test.ts",
+      "upstream_sha256": "cb0c7776ca89d55dbd7fcdbb188f37805330a0924573a1fa9c65cb3a87ad16f9",
+      "current_sha256": "0f3c32a2f9d689dbd15876ffeb8ff1b3f8e2372e265238f22ec5890b8aef768a",
+      "reason": "OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场"
+    },
+    {
+      "path": "src/main/opencode2/status-plugin-setup-source.ts",
+      "upstream_sha256": "cc19f13f6cd287d28167ee82941a9814e421222bec57225a534dddf9e0d84a40",
+      "current_sha256": "1de27a3301aa13a2fd901fb0d4c0966c2420a34703dc01e50a996f4410303394",
+      "reason": "OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场"
+    },
+    {
+      "path": "src/shared/opencode-installed-plugin.test.ts",
+      "upstream_sha256": "49390bef75631fdce5aebb5001047834e4c746d0b94895a34abdddac42f58f36",
+      "current_sha256": "0d711f5a66bba8ca13176ce25405351b0772969541439e4df0ae9584ae424e4e",
+      "reason": "OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场"
+    },
+    {
+      "path": "src/shared/opencode-plugin-atomic-write.test.ts",
+      "upstream_sha256": "fe45cd53c84ca475439b11277324623cceeccb92c943fcd79d0031bcda4dc591",
+      "current_sha256": "8b616241735f4b6d1ff822aca4a9e7eff0c908b8cc4b69745f8ef80bb0dade3b",
+      "reason": "OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场"
+    },
+    {
+      "path": "src/shared/opencode-startup-prompt-install.ts",
+      "upstream_sha256": "a2fed450cf09e9b43ca1b6d8d131dfb14d352913530cee53bc1c5e8581cef3e7",
+      "current_sha256": "e790eb81becf959da68491d226782e5fcbac27db3636cae349b1cfa486d0ee53",
+      "reason": "OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场"
+    },
+    {
+      "path": "src/shared/opencode-tui-config-registration.test.ts",
+      "upstream_sha256": "6c3682a1799ee20862929cd4eaf0ecd8fca25eac273bf45fc5e36abfd1990c17",
+      "current_sha256": "48e017631e055dbfbf62f18ec606e01616f76cba9a7e06f17080427adc95f128",
+      "reason": "OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场"
+    },
+    {
+      "path": "src/shared/opencode-tui-config-registration.ts",
+      "upstream_sha256": "0942ab7cd456c1a62885d702dcddfa66b091a3774502982af96e3ba73f879b0f",
+      "current_sha256": "ff8d9656e9520e17654258fb69b050365db9c1552876ea289ec96f4e797fa4e2",
+      "reason": "OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场"
+    },
+    {
+      "path": "src/shared/opencode-tui-plugin-install.ts",
+      "upstream_sha256": "4ea62f5d68090422fb9ce287b6e7750aaa424bcbb90d1158a59ed81e9e2e0253",
+      "current_sha256": "f5a8c0f03a7ed800600b569f31d16c7f6c0ea8b77a9f4819508d95952c370286",
+      "reason": "OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场"
+    },
+    {
+      "path": "src/wsl-guest/opencode-canonical-config.ts",
+      "upstream_sha256": "8588d9e7902984000c2dfa42d0fb7e30e719936ca856680cc7be8573a727446d",
+      "current_sha256": "0f1e6a46e12b517516b1c79c65695addd7c13254183c3cd912b8dda6cc5a31e1",
+      "reason": "OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场"
+    },
+    {
+      "path": "src/wsl-guest/opencode-startup-prompt-install.test.ts",
+      "upstream_sha256": "6bdc2ab9e8dfe32ca4df20ff7f15b148d6ad20824e4af3ffcdbfc01c077725db",
+      "current_sha256": "c9a4bafeb320e1a4fa8de5c9e5c0ca9263b8df06f9e0659b0bf8321edd6ab53b",
+      "reason": "OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场"
+    },
+    {
+      "path": "src/wsl-guest/plugin-overlay.test.ts",
+      "upstream_sha256": "65efb655043c8c4ecb8dd8a2b13be06164d7800ef7b67ecb51366cedc1b0f165",
+      "current_sha256": "a86c324a71ee6d5456e9b34f4156d772603ae0f8676148eadb0a4cfc236eb2b3",
+      "reason": "OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场"
+    },
+    {
+      "path": "src/wsl-guest/plugin-overlay.ts",
+      "upstream_sha256": "b0c27a5973a0ca14e565acda1a5c7a1d9cdf90906240ff02e59a56435066491d",
+      "current_sha256": "0bfe5a0e7c07ddd71a30e51725838a137e98cacacf23497d6e39d384f12e4293",
+      "reason": "OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场"
     }
   ],
   "reviewed_findings": [

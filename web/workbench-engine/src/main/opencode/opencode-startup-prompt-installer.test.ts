@@ -106,10 +106,10 @@ describe('OpenCode startup prompt installer', () => {
       expect(env.OPENCODE_CONFIG_DIR).toBe(statusOverlay)
       expect(env.ZKYQ_OPENCODE_SOURCE_CONFIG_DIR).toBe(source)
       expect(
-        readFileSync(join(statusOverlay, 'plugins', `orca-${agent}-status.js`), 'utf8')
+        readFileSync(join(statusOverlay, 'plugins', `zkyq-${agent}-status.js`), 'utf8')
       ).toContain('ORCA_STATUS_AGENT')
       expect(
-        existsSync(join(statusOverlay, 'plugins', 'orca-opencode-startup-prompt', 'tui.js'))
+        existsSync(join(statusOverlay, 'plugins', 'zkyq-opencode-startup-prompt', 'tui.js'))
       ).toBe(true)
       expect(readFileSync(join(statusOverlay, 'plugins', 'user.js'), 'utf8')).toBe('user bytes')
       const nested: Record<string, string> = {
@@ -120,7 +120,7 @@ describe('OpenCode startup prompt installer', () => {
       expect(nested.OPENCODE_CONFIG_DIR).toBe(statusOverlay)
       expect(nested.ZKYQ_OPENCODE_SOURCE_CONFIG_DIR).toBe(source)
       expect(readFileSync(join(source, 'plugins', 'user.js'), 'utf8')).toBe('user bytes')
-      expect(existsSync(join(source, 'plugins', `orca-${agent}-status.js`))).toBe(false)
+      expect(existsSync(join(source, 'plugins', `zkyq-${agent}-status.js`))).toBe(false)
     }
   )
   it.each(['inherited', 'explicit'] as const)(
@@ -129,7 +129,7 @@ describe('OpenCode startup prompt installer', () => {
       const configHome = join(root, selection === 'explicit' ? 'selected-config' : 'config')
       const config = join(configHome, 'opencode')
       mkdirSync(join(config, 'plugins'), { recursive: true })
-      writeFileSync(join(config, 'plugins', 'orca-opencode-status.js'), 'status entry')
+      writeFileSync(join(config, 'plugins', 'zkyq-opencode-status.js'), 'status entry')
       writeFileSync(join(config, 'plugins', 'user.js'), 'user entry')
       writeFileSync(join(config, 'opencode.json'), '{"model":"selected/model"}')
       const env: Record<string, string> = {
@@ -139,7 +139,7 @@ describe('OpenCode startup prompt installer', () => {
       }
       expect(installOpenCodeStartupPromptForLaunch(env)).toBe(true)
       expect(
-        readFileSync(join(env.OPENCODE_CONFIG_DIR, 'plugins', 'orca-opencode-status.js'), 'utf8')
+        readFileSync(join(env.OPENCODE_CONFIG_DIR, 'plugins', 'zkyq-opencode-status.js'), 'utf8')
       ).toBe('status entry')
       expect(readFileSync(join(env.OPENCODE_CONFIG_DIR, 'plugins', 'user.js'), 'utf8')).toBe(
         'user entry'
@@ -205,9 +205,9 @@ describe('OpenCode startup prompt installer', () => {
     expect(env.ZKYQ_OPENCODE_CONFIG_DIR).toBe(env.OPENCODE_CONFIG_DIR)
     expect(env.OPENCODE_CONFIG_CONTENT).toBe('{"model":"opencode/model"}')
     expect(
-      existsSync(join(env.OPENCODE_CONFIG_DIR, 'plugins', 'orca-opencode-startup-prompt', 'tui.js'))
+      existsSync(join(env.OPENCODE_CONFIG_DIR, 'plugins', 'zkyq-opencode-startup-prompt', 'tui.js'))
     ).toBe(true)
-    expect(existsSync(join(env.OPENCODE_CONFIG_DIR, 'plugins', 'orca-opencode-status.js'))).toBe(
+    expect(existsSync(join(env.OPENCODE_CONFIG_DIR, 'plugins', 'zkyq-opencode-status.js'))).toBe(
       false
     )
   })
@@ -215,11 +215,11 @@ describe('OpenCode startup prompt installer', () => {
     const service = createOpenCodeStartupPromptInstaller(() => 'prompt source')
     expect(service.buildPtyEnv('pane')).toEqual({})
     const plugins = join(root, 'config', 'opencode', 'plugins')
-    expect(readFileSync(join(plugins, 'orca-opencode-startup-prompt', 'tui.js'), 'utf8')).toBe(
+    expect(readFileSync(join(plugins, 'zkyq-opencode-startup-prompt', 'tui.js'), 'utf8')).toBe(
       'prompt source'
     )
-    expect(existsSync(join(plugins, 'orca-opencode-startup-prompt.js'))).toBe(false)
-    expect(existsSync(join(plugins, 'orca-opencode-status.js'))).toBe(false)
+    expect(existsSync(join(plugins, 'zkyq-opencode-startup-prompt.js'))).toBe(false)
+    expect(existsSync(join(plugins, 'zkyq-opencode-status.js'))).toBe(false)
     expect(existsSync(join(root, 'profile', 'opencode-startup-prompt-hooks'))).toBe(false)
   })
   it('preserves user config and plugins across source-scoped overlay refreshes', () => {
@@ -227,9 +227,9 @@ describe('OpenCode startup prompt installer', () => {
     mkdirSync(join(config, 'plugins'), { recursive: true })
     writeFileSync(join(config, 'opencode.json'), '{"model":"user/model"}')
     writeFileSync(join(config, 'plugins', 'user.js'), 'user source')
-    mkdirSync(join(config, 'plugins', 'orca-opencode-startup-prompt'))
+    mkdirSync(join(config, 'plugins', 'zkyq-opencode-startup-prompt'))
     writeFileSync(
-      join(config, 'plugins', 'orca-opencode-startup-prompt', 'tui.js'),
+      join(config, 'plugins', 'zkyq-opencode-startup-prompt', 'tui.js'),
       'user collision'
     )
     let source = 'first prompt source'
@@ -242,12 +242,12 @@ describe('OpenCode startup prompt installer', () => {
       throw new Error('Missing overlay')
     }
     expect(
-      readFileSync(join(first, 'plugins', 'orca-opencode-startup-prompt', 'tui.js'), 'utf8')
+      readFileSync(join(first, 'plugins', 'zkyq-opencode-startup-prompt', 'tui.js'), 'utf8')
     ).toBe(source)
     expect(readFileSync(join(first, 'opencode.json'), 'utf8')).toContain('user/model')
     expect(readFileSync(join(first, 'plugins', 'user.js'), 'utf8')).toBe('user source')
     expect(
-      readFileSync(join(config, 'plugins', 'orca-opencode-startup-prompt', 'tui.js'), 'utf8')
+      readFileSync(join(config, 'plugins', 'zkyq-opencode-startup-prompt', 'tui.js'), 'utf8')
     ).toBe('user collision')
   })
 })

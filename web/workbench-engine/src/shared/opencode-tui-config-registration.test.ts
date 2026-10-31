@@ -35,10 +35,10 @@ function root() {
 it('installs the 1.x object TUI entry and explicitly registers its file URL', () => {
   const configDir = root()
   const plugins = join(configDir, 'plugins')
-  writeOpenCodeTuiPlugin(plugins, 'orca-opencode-status.js', pluginSource)
-  const entry = join(plugins, 'orca-opencode-status-tui', 'tui.js')
+  writeOpenCodeTuiPlugin(plugins, 'zkyq-opencode-status.js', pluginSource)
+  const entry = join(plugins, 'zkyq-opencode-status-tui', 'tui.js')
   expect(readFileSync(entry, 'utf8')).toContain('tui: setupLegacyOpenCodeTui')
-  expect(readFileSync(entry, 'utf8')).toContain('const orcaServerPlugin =')
+  expect(readFileSync(entry, 'utf8')).toContain('const zkyqServerPlugin =')
   expect(parse(readFileSync(join(configDir, 'tui.json'), 'utf8'))).toEqual({
     plugin: [pathToFileURL(entry).href]
   })
@@ -52,8 +52,8 @@ function mainServer() { return 'main server'; }
 function mainSetup() { return 'main setup'; }
 export default { id: 'main-owned-id', server: mainServer, setup: mainSetup, unowned: { keep: true } };
 `
-  writeOpenCodeTuiPlugin(plugins, 'orca-opencode-status.js', source)
-  const entry = join(plugins, 'orca-opencode-status-tui', 'tui.js')
+  writeOpenCodeTuiPlugin(plugins, 'zkyq-opencode-status.js', source)
+  const entry = join(plugins, 'zkyq-opencode-status-tui', 'tui.js')
   const module: { exports: unknown } = { exports: null }
   runInNewContext(readFileSync(entry, 'utf8').replace(/^export default /m, 'module.exports = '), {
     module
@@ -99,14 +99,14 @@ it('leaves current TUI source and registration timestamps unchanged', () => {
   const dir = root()
   const plugins = join(dir, 'plugins')
   const source = pluginSource
-  writeOpenCodeTuiPlugin(plugins, 'orca-opencode-status.js', source)
-  const entry = join(plugins, 'orca-opencode-status-tui', 'tui.js')
+  writeOpenCodeTuiPlugin(plugins, 'zkyq-opencode-status.js', source)
+  const entry = join(plugins, 'zkyq-opencode-status-tui', 'tui.js')
   const config = join(dir, 'tui.json')
   const before = [statSync(entry).mtimeMs, statSync(config).mtimeMs]
-  writeOpenCodeTuiPlugin(plugins, 'orca-opencode-status.js', source)
+  writeOpenCodeTuiPlugin(plugins, 'zkyq-opencode-status.js', source)
   expect([statSync(entry).mtimeMs, statSync(config).mtimeMs]).toEqual(before)
   writeFileSync(config, '{}\n')
-  writeOpenCodeTuiPlugin(plugins, 'orca-opencode-status.js', source)
+  writeOpenCodeTuiPlugin(plugins, 'zkyq-opencode-status.js', source)
   expect(parse(readFileSync(config, 'utf8')).plugin).toEqual([pathToFileURL(entry).href])
   expect(statSync(entry).mtimeMs).toBe(before[0])
 })

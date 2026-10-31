@@ -92,12 +92,12 @@ describe('OpenCode plugin fail-open ownership', () => {
   }
 
   async function loadHooksWithContext(context: unknown): Promise<PluginHooks> {
-    const pluginPath = join(tempDir, 'orca-opencode-status.mjs')
+    const pluginPath = join(tempDir, 'zkyq-opencode-status.mjs')
     writeFileSync(pluginPath, _internals.getOpenCodePluginSource())
     const module = (await import(pathToFileURL(pluginPath).href)) as {
-      OrcaOpenCodeStatusPlugin: (ctx: unknown) => Promise<PluginHooks>
+      ZkyqOpenCodeStatusPlugin: (ctx: unknown) => Promise<PluginHooks>
     }
-    return module.OrcaOpenCodeStatusPlugin(context)
+    return module.ZkyqOpenCodeStatusPlugin(context)
   }
 
   function status(type: 'busy' | 'idle' | 'retry', sessionID = 'root'): PluginEvent {

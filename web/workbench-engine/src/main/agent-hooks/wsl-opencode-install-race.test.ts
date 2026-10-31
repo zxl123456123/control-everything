@@ -129,10 +129,10 @@ it.each([true, false])('coalesces waiters through a held %s enablement toggle', 
     expect(state.opencode2OverlayDir).toBeUndefined()
   } else {
     expect(
-      readFileSync(join(state.opencodeOverlayDir!, 'plugins', 'orca-opencode-status.js'), 'utf8')
+      readFileSync(join(state.opencodeOverlayDir!, 'plugins', 'zkyq-opencode-status.js'), 'utf8')
     ).toBe('// v1')
     expect(
-      readFileSync(join(state.opencode2OverlayDir!, 'plugins', 'orca-opencode2-status.js'), 'utf8')
+      readFileSync(join(state.opencode2OverlayDir!, 'plugins', 'zkyq-opencode2-status.js'), 'utf8')
     ).toBe('// v2')
   }
   await maybeRerunWslRelayGuestInstall(deps, state)

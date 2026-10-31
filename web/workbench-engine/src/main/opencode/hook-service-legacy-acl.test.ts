@@ -49,13 +49,13 @@ const hostPlatform = process.platform
 const variants = [
   {
     hooks: 'opencode-hooks',
-    file: 'orca-opencode-status.js',
+    file: 'zkyq-opencode-status.js',
     service: new OpenCodeHookService(),
     source: getOpenCodePluginSource
   },
   {
     hooks: 'opencode2-hooks',
-    file: 'orca-opencode2-status.js',
+    file: 'zkyq-opencode2-status.js',
     service: openCode2HookService,
     source: getOpenCode2PluginSource
   }
