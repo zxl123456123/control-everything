@@ -1,7 +1,15 @@
 import { AGENT_HOOK_IDENTITY_SUFFIXES } from '../../shared/agent-hook-environment-identity'
 
-export const HERMES_PLUGIN_NAME = 'orca-status'
-export const HERMES_PLUGIN_MARKER = 'Managed by Orca. Do not edit; changes may be overwritten.'
+export const HERMES_PLUGIN_NAME = 'zkyq-status'
+export const HERMES_PLUGIN_MARKER =
+  'Managed by Control Everything. Do not edit; changes may be overwritten.'
+export const RETIRED_HERMES_PLUGIN_NAME = 'orca-status'
+export const RETIRED_HERMES_PLUGIN_MARKER =
+  'Managed by Orca. Do not edit; changes may be overwritten.'
+
+export function isManagedHermesPlugin(content: string): boolean {
+  return content.includes(HERMES_PLUGIN_MARKER) || content.includes(RETIRED_HERMES_PLUGIN_MARKER)
+}
 
 export const HERMES_EVENTS = [
   'on_session_start',
@@ -21,8 +29,8 @@ export function getPluginManifest(): string {
     `# ${HERMES_PLUGIN_MARKER}`,
     `name: ${HERMES_PLUGIN_NAME}`,
     'version: 1.0.0',
-    'description: "Reports Hermes Agent lifecycle events to Orca."',
-    'author: "Orca"',
+    'description: "Reports Hermes Agent lifecycle events to Control Everything."',
+    'author: "Control Everything"',
     'kind: standalone',
     'provides_hooks:',
     ...HERMES_EVENTS.map((event) => `  - ${event}`),
@@ -142,7 +150,7 @@ def _endpoint_env() -> dict[str, str]:
     return env
 
 
-def _post_to_orca(payload: dict[str, Any]) -> None:
+def _post_to_zkyq(payload: dict[str, Any]) -> None:
     env = _endpoint_env()
     port = env.get("ZKYQ_AGENT_HOOK_PORT", "")
     token = env.get("ZKYQ_AGENT_HOOK_TOKEN", "")
@@ -197,7 +205,7 @@ def _payload_for_event(event_name: str, kwargs: dict[str, Any]) -> dict[str, Any
 
 def _make_hook(event_name: str) -> Callable[..., None]:
     def _hook(**kwargs: Any) -> None:
-        _post_to_orca(_payload_for_event(event_name, kwargs))
+        _post_to_zkyq(_payload_for_event(event_name, kwargs))
 
     return _hook
 

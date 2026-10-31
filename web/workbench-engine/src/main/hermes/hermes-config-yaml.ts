@@ -1,7 +1,7 @@
 import { isDeepStrictEqual } from 'node:util'
 import { parse } from 'yaml'
 
-import { HERMES_PLUGIN_NAME } from './hermes-managed-plugin-source'
+import { HERMES_PLUGIN_NAME, RETIRED_HERMES_PLUGIN_NAME } from './hermes-managed-plugin-source'
 import { updateHermesPluginDocument } from './hermes-config-document'
 
 export type HermesConfig = Record<string, unknown>
@@ -46,17 +46,22 @@ export function parseHermesConfig(content: string | null): ConfigParseResult {
 export function enablePlugin(config: HermesConfig): HermesConfig {
   const next: HermesConfig = { ...config }
   const plugins = isRecord(next.plugins) ? { ...next.plugins } : {}
-  const enabled = asStringArray(plugins.enabled) ?? []
+  const enabled = migratePluginNames(asStringArray(plugins.enabled) ?? [])
   const disabled = asStringArray(plugins.disabled)
   plugins.enabled = enabled.includes(HERMES_PLUGIN_NAME)
     ? enabled
     : [...enabled, HERMES_PLUGIN_NAME]
   if (disabled === null) {
     // Why: Hermes treats a malformed disabled list as empty. Normalize it here
-    // so Orca's install status matches what the real Hermes loader will do.
+    // so the install status matches what the real Hermes loader will do.
     plugins.disabled = []
-  } else if (disabled.includes(HERMES_PLUGIN_NAME)) {
-    const filtered = disabled.filter((name) => name !== HERMES_PLUGIN_NAME)
+  } else if (
+    disabled.includes(HERMES_PLUGIN_NAME) ||
+    disabled.includes(RETIRED_HERMES_PLUGIN_NAME)
+  ) {
+    const filtered = disabled.filter(
+      (name) => name !== HERMES_PLUGIN_NAME && name !== RETIRED_HERMES_PLUGIN_NAME
+    )
     plugins.disabled = filtered
   }
   next.plugins = plugins
@@ -71,7 +76,13 @@ export function disablePlugin(config: HermesConfig): HermesConfig {
   const plugins = { ...next.plugins }
   const enabled = asStringArray(plugins.enabled)
   if (enabled !== null && plugins.enabled !== undefined) {
-    plugins.enabled = enabled.filter((name) => name !== HERMES_PLUGIN_NAME)
+    plugins.enabled = enabled.filter(
+      (name) => name !== HERMES_PLUGIN_NAME && name !== RETIRED_HERMES_PLUGIN_NAME
+    )
+  }
+  const disabled = asStringArray(plugins.disabled)
+  if (disabled !== null && plugins.disabled !== undefined) {
+    plugins.disabled = migratePluginNames(disabled)
   }
   next.plugins = plugins
   return next
@@ -92,7 +103,19 @@ export function updateConfigContent(
   return updateHermesPluginDocument(content ?? '', next)
 }
 
-export function getConfigEnablement(config: HermesConfig): {
+function migratePluginNames(names: string[]): string[] {
+  const migrated = names.map((name) =>
+    name === RETIRED_HERMES_PLUGIN_NAME ? HERMES_PLUGIN_NAME : name
+  )
+  return migrated.filter(
+    (name, index) => name !== HERMES_PLUGIN_NAME || index === migrated.indexOf(name)
+  )
+}
+
+export function getConfigEnablement(
+  config: HermesConfig,
+  pluginName = HERMES_PLUGIN_NAME
+): {
   enabled: boolean
   disabled: boolean
   detail: string | null
@@ -109,8 +132,8 @@ export function getConfigEnablement(config: HermesConfig): {
     return { enabled: false, disabled: false, detail: 'plugins.disabled is not a string list' }
   }
   return {
-    enabled: enabled.includes(HERMES_PLUGIN_NAME),
-    disabled: disabled.includes(HERMES_PLUGIN_NAME),
+    enabled: enabled.includes(pluginName),
+    disabled: disabled.includes(pluginName),
     detail: null
   }
 }

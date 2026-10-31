@@ -197,7 +197,24 @@ export async function readManagedPluginFileRemote(
   return readFile(sftp, path)
 }
 
-/** Move a caller-verified managed file outside its provider's auto-load directory. */
+/** Reject links before inspecting a plugin directory; false means no existing directory. */
+export async function hasManagedPluginDirectoryRemote(
+  sftp: SFTPWrapper,
+  path: string
+): Promise<boolean> {
+  try {
+    const stat = await sftpOperation<{ isDirectory(): boolean }>(`lstat ${path}`, (callback) =>
+      sftp.lstat(path, callback)
+    )
+    if (!stat.isDirectory()) throw new Error(`Managed plugin path is not a directory: ${path}`)
+    return true
+  } catch (error) {
+    if (isNoEntryError(error)) return false
+    throw error
+  }
+}
+
+/** Move a caller-verified managed entry outside its provider's auto-load directory. */
 export async function moveManagedPluginRemote(
   sftp: SFTPWrapper,
   from: string,

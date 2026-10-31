@@ -335324,14 +335324,14 @@
     {
       "path": "src/main/hermes/hermes-managed-plugin-source.ts",
       "upstream_sha256": "66184c382e24dd4234c1242421510bc938713bbc26a4a559c5d372c662a3da78",
-      "current_sha256": "9e835b536557b020072605e16ae35ba7afcc3ffb8b08e15353b3498a37a633af",
-      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+      "current_sha256": "7a797933290b0ad50207c06fe96a404f31acb9cf7d1538ad2448653b0c828387",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义；Hermes插件目录、清单与启用名单统一zkyq；已知旧插件原字节移出加载目录，保护用户文件和链接，失败恢复，保留YAML注释和其他插件；本地与SFTP适配器验证"
     },
     {
       "path": "src/main/hermes/hook-service.test.ts",
       "upstream_sha256": "9e7bcb9182a378f63db0d24403afa5812f6d8c34ad82fde8e567857118202b46",
-      "current_sha256": "711f38cd87c59340d73d85160670d0c92b13bb1125962e7f01e06ebbee519385",
-      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+      "current_sha256": "b27b633722478a8fe87875d7f6d0264b7b3ec5dec484d83ab5892eba5936cd45",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义；Hermes插件目录、清单与启用名单统一zkyq；已知旧插件原字节移出加载目录，保护用户文件和链接，失败恢复，保留YAML注释和其他插件；本地与SFTP适配器验证"
     },
     {
       "path": "src/main/jcode/hook-gate-script.test.ts",
@@ -336662,8 +336662,8 @@
     {
       "path": "src/main/agent-hooks/installer-utils-remote.ts",
       "upstream_sha256": "17f065364e6735b0462da015ca4efc7a360fc76cca013068637df4b971b99380",
-      "current_sha256": "e9a4594023bfb1247a33bfec7d416d1d4bcd02873427236f41c0a809e1ade22c",
-      "reason": "Amp生成插件统一zkyq落盘名与平台标记；校验所有权后把旧入口原字节移出加载目录，发布失败恢复旧入口，本地与SFTP保持同一活跃插件"
+      "current_sha256": "bf91007be40bd32b6cb92588382d1cf039e193d7f453cdf1516cacc891921738",
+      "reason": "Amp生成插件统一zkyq落盘名与平台标记；校验所有权后把旧入口原字节移出加载目录，发布失败恢复旧入口，本地与SFTP保持同一活跃插件；Hermes插件目录、清单与启用名单统一zkyq；已知旧插件原字节移出加载目录，保护用户文件和链接，失败恢复，保留YAML注释和其他插件；本地与SFTP适配器验证"
     },
     {
       "path": "src/main/amp/hook-service.ts",
@@ -336676,6 +336676,72 @@
       "upstream_sha256": "5878aba948631168c056958a93b9edf414c4a3879790df8e9c3de55da1ded4b1",
       "current_sha256": "2ccfec888b7ba30b6720e83352c69a3e2bc20c43cd82bd03fbd0cb2199f2463c",
       "reason": "Amp生成插件统一zkyq落盘名与平台标记；校验所有权后把旧入口原字节移出加载目录，发布失败恢复旧入口，本地与SFTP保持同一活跃插件"
+    },
+    {
+      "path": "src/main/agent-hooks/managed-hook-local-filesystem.test-fixture.ts",
+      "upstream_sha256": "540219f9254eb3bb24b29ca64574b92607369536ff3f57bd5b61debf5b1e5a91",
+      "current_sha256": "4393ba5534a165afb9a6d92259f7250e6679c48fda7a7badca9a222657d9c635",
+      "reason": "Hermes插件目录、清单与启用名单统一zkyq；已知旧插件原字节移出加载目录，保护用户文件和链接，失败恢复，保留YAML注释和其他插件；本地与SFTP适配器验证"
+    },
+    {
+      "path": "src/main/hermes/hermes-config-comment-boundaries.test.ts",
+      "upstream_sha256": "3db1de9f34df0e068938e089659613f8011dd387f76e9b719fd5c9258c0777c0",
+      "current_sha256": "81811c660ad6526c672a5dc3433a58303671b24033198b9bda4abe27b09d87a7",
+      "reason": "Hermes插件目录、清单与启用名单统一zkyq；已知旧插件原字节移出加载目录，保护用户文件和链接，失败恢复，保留YAML注释和其他插件；本地与SFTP适配器验证"
+    },
+    {
+      "path": "src/main/hermes/hermes-config-document.test.ts",
+      "upstream_sha256": "c1e29c69692daebd48049e8590890b9a7c0f9052bbde12556c4e36bccf654a1f",
+      "current_sha256": "107a2da600c11d285301c369380fb9cf014bd9c72cf20c3888cbe4a540fe9a88",
+      "reason": "Hermes插件目录、清单与启用名单统一zkyq；已知旧插件原字节移出加载目录，保护用户文件和链接，失败恢复，保留YAML注释和其他插件；本地与SFTP适配器验证"
+    },
+    {
+      "path": "src/main/hermes/hermes-config-document.ts",
+      "upstream_sha256": "5dd12040bc55baae72e418b1ce0679143413eae0cd715c4296653e4b08250a22",
+      "current_sha256": "7664c8e2cdab9234a3f96cdcfa9648deb7458ad3150adc323bb3c3572ed30e9e",
+      "reason": "Hermes插件目录、清单与启用名单统一zkyq；已知旧插件原字节移出加载目录，保护用户文件和链接，失败恢复，保留YAML注释和其他插件；本地与SFTP适配器验证"
+    },
+    {
+      "path": "src/main/hermes/hermes-config-flow-insertion.test.ts",
+      "upstream_sha256": "5981a133ddf7c1326070d4d709694e64a8c8c062b2adae3fcff53d797518d233",
+      "current_sha256": "630a1054a6069c30addb0f86cc3daf09d87e5dc595316d6c11b03a2859202213",
+      "reason": "Hermes插件目录、清单与启用名单统一zkyq；已知旧插件原字节移出加载目录，保护用户文件和链接，失败恢复，保留YAML注释和其他插件；本地与SFTP适配器验证"
+    },
+    {
+      "path": "src/main/hermes/hermes-config-preservation.test.ts",
+      "upstream_sha256": "470f9d126b24a44d500f3c4f89f02cc18986e1174011554aabab5a305b2c6a0d",
+      "current_sha256": "167196e960c9896b3f13f1462126dc164faa7f4ece50e26c1d35ddb0a10ef556",
+      "reason": "Hermes插件目录、清单与启用名单统一zkyq；已知旧插件原字节移出加载目录，保护用户文件和链接，失败恢复，保留YAML注释和其他插件；本地与SFTP适配器验证"
+    },
+    {
+      "path": "src/main/hermes/hermes-config-remote-adapter.test.ts",
+      "upstream_sha256": "49ec6e9eedd2be0616b36547815427e6e8a2f76fc718e40e4e9105eca9334333",
+      "current_sha256": "d76add73fd1ecb157308e96cc62f3cd07f094d397e1576be0a0d73a2d0152dd7",
+      "reason": "Hermes插件目录、清单与启用名单统一zkyq；已知旧插件原字节移出加载目录，保护用户文件和链接，失败恢复，保留YAML注释和其他插件；本地与SFTP适配器验证"
+    },
+    {
+      "path": "src/main/hermes/hermes-config-source-edits.test.ts",
+      "upstream_sha256": "a04cda20d0177e684f83e13905a150a024ba1507b2b57a0a098d9db26c46facf",
+      "current_sha256": "e5f176c3e4ac841f009de16a53ce3711e020fb3c1bd667fa129288102ac12ca1",
+      "reason": "Hermes插件目录、清单与启用名单统一zkyq；已知旧插件原字节移出加载目录，保护用户文件和链接，失败恢复，保留YAML注释和其他插件；本地与SFTP适配器验证"
+    },
+    {
+      "path": "src/main/hermes/hermes-config-yaml.ts",
+      "upstream_sha256": "e754ae4aaca00cf0a9bcd02acc25ab896cc60175b15d847361c23f3d10407c94",
+      "current_sha256": "c55d5f78a676da0a6acbfa0e4ff00b7e73a14366c070b9da102dbfb6553ce402",
+      "reason": "Hermes插件目录、清单与启用名单统一zkyq；已知旧插件原字节移出加载目录，保护用户文件和链接，失败恢复，保留YAML注释和其他插件；本地与SFTP适配器验证"
+    },
+    {
+      "path": "src/main/hermes/hermes-home-filesystem.ts",
+      "upstream_sha256": "79095ecd1994eab90dc2e3913513e0a7f9cac874f6ccc57b6e2788dc2fe3205e",
+      "current_sha256": "795bfc0d841b76f33d9b765aa2e4cd1897f38c13e20ec66a9c66a1335b854888",
+      "reason": "Hermes插件目录、清单与启用名单统一zkyq；已知旧插件原字节移出加载目录，保护用户文件和链接，失败恢复，保留YAML注释和其他插件；本地与SFTP适配器验证"
+    },
+    {
+      "path": "src/main/hermes/hook-service.ts",
+      "upstream_sha256": "ffb3722111a7498a4ee41f98e115044cffda1086e0da9990d84950fb9e26d052",
+      "current_sha256": "0be49011b375a51552540721f5cf27e3d41503fdfdbed04eb1b6d5e0c3bafcd1",
+      "reason": "Hermes插件目录、清单与启用名单统一zkyq；已知旧插件原字节移出加载目录，保护用户文件和链接，失败恢复，保留YAML注释和其他插件；本地与SFTP适配器验证"
     }
   ],
   "reviewed_findings": [

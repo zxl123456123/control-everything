@@ -3,6 +3,7 @@ import { isAlias, isMap, isNode, isScalar, isSeq, parseDocument, visit } from 'y
 import type { Document, YAMLMap, YAMLSeq } from 'yaml'
 import type { HermesConfig } from './hermes-config-yaml'
 import { applyHermesPluginSourceEdits } from './hermes-config-source-edits'
+import { HERMES_PLUGIN_NAME, RETIRED_HERMES_PLUGIN_NAME } from './hermes-managed-plugin-source'
 
 function preserveRemovedComments(sequence: YAMLSeq, removed: unknown[], first: unknown): void {
   const comments = removed.flatMap((node) =>
@@ -38,6 +39,10 @@ function updateStringSequence(plugins: YAMLMap, key: string, values: unknown): v
   sequence.items = sequence.items.filter((item) => {
     if (!isScalar(item) || typeof item.value !== 'string') {
       throw new Error(`Hermes plugins.${key} must contain plain string entries`)
+    }
+    // Rename the owned entry in place to retain ordering, quoting and comments.
+    if (item.value === RETIRED_HERMES_PLUGIN_NAME && remaining.includes(HERMES_PLUGIN_NAME)) {
+      item.value = HERMES_PLUGIN_NAME
     }
     const index = remaining.indexOf(item.value)
     if (index === -1) {
