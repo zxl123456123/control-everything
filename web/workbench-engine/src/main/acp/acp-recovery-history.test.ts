@@ -106,7 +106,7 @@ describe('ACP restart recovery from the agent store', () => {
         clientMessageId: 'held',
         outcome: 'accepted',
         providerItemId: 'msg_2',
-        identity: { provider: 'orca', clientMessageId: 'held' }
+        identity: { provider: 'zkyq', clientMessageId: 'held' }
       }
     ])
   })

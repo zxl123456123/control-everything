@@ -53,9 +53,10 @@ import {
 // this client build requires a newer server. Exact app-version equality is
 // never required; these numbers define the supported compatibility window.
 
-export const RUNTIME_PROTOCOL_VERSION = 3
-export const MIN_COMPATIBLE_RUNTIME_CLIENT_VERSION = 2
-export const MIN_COMPATIBLE_RUNTIME_SERVER_VERSION = 2
+// v4 changes journal key namespaces; old readers must update before resuming a cursor.
+export const RUNTIME_PROTOCOL_VERSION = 4
+export const MIN_COMPATIBLE_RUNTIME_CLIENT_VERSION = 4
+export const MIN_COMPATIBLE_RUNTIME_SERVER_VERSION = 4
 
 // Why stars: importers keep reading every capability from here while each area owns its module.
 export * from './agent-session-runtime-capabilities'

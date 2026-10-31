@@ -59,7 +59,7 @@ function appendGoalRow(
   overrides: Partial<AgentJournalThreadGoal>
 ): Promise<unknown> {
   return journal.appendItem(
-    { provider: 'orca', clientMessageId: `goal-row:${journal.snapshot().items.length}` },
+    { provider: 'zkyq', clientMessageId: `goal-row:${journal.snapshot().items.length}` },
     { kind: 'status', text: 'Goal', threadGoal: { state: 'set', goal: { ...GOAL, ...overrides } } },
     { fence: 1, turnScope: AGENT_JOURNAL_THREAD_SCOPE }
   )

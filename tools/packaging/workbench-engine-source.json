@@ -327263,7 +327263,9 @@
     "src/main/antigravity/hooks-json-bundle-identity.test.ts",
     "src/main/agent-hooks/wsl-hook-relay-identity.test.ts",
     "src/wsl-guest/wsl-hook-endpoint-identity.test.ts",
-    "src/wsl-guest/wsl-hook-endpoint-identity.ts"
+    "src/wsl-guest/wsl-hook-endpoint-identity.ts",
+    "src/main/native-chat/agent-session-journal/journal-key-identity-migration.test.ts",
+    "src/main/native-chat/agent-session-journal/journal-row-key-identity.ts"
   ],
   "adapted_files": [
     {
@@ -337255,6 +337257,918 @@
       "upstream_sha256": "2be74612d6c70fef9536e62c533e75a7150e19b1ca4c787bfe24286ac4201ba8",
       "current_sha256": "ac2640d6147bebbe730dab4ffbd70311c7f567a42324034386f7b37269365088",
       "reason": "ACP权限归属声明统一zkyq，注册、公开RPC、客户端读取及renderer类型fixture同步；旧/未知输入沿既有最弱能力降级，保留provider语义、能力标志及实际权限处理，不改journal持久键"
+    },
+    {
+      "path": "mobile/src/session/mobile-native-chat-answered-prompts.test-fixture.ts",
+      "upstream_sha256": "2590031f2b9818de1934a0aeb1735a90d19dde109b3ac36c341834df529c9151",
+      "current_sha256": "f48c0ea499d37ea0054275447fe9bbe851d6e0aec6e09499690d53b96d4a8b24",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "mobile/src/session/mobile-native-chat-merged-snapshot-parity-hooks.test.tsx",
+      "upstream_sha256": "5732be7b393fa7ebc95a0470990cb326106718e04773c52d0438b9882fd46a64",
+      "current_sha256": "92948cdbc0203f57043eb15cf0ae0a3d3001238db984e88cac03b320c635a651",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "mobile/src/session/mobile-native-chat-merged-snapshot-parity.test.ts",
+      "upstream_sha256": "88184c4e23c1bb11c11c309f36fce49d15781a098cdf9babbc0669aa1b7e218b",
+      "current_sha256": "b4c1213f27ce85df750fde3fe189ba90447f17ed0a1ea4eae688137261869788",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "mobile/src/session/mobile-native-chat-stop-journal.test-fixture.ts",
+      "upstream_sha256": "7bfd60e91d6ba4214955740a731d6308d83d5b6bb6221306e35141ea7ed3cccf",
+      "current_sha256": "63f0d37fa57925e0c748683b2f8b6d4dd3d1dc9b5fb055a659321ffb35747456",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "mobile/src/session/use-mobile-structured-agent-turn-timing.test.tsx",
+      "upstream_sha256": "c95b83ba9cf1619b9c8a91a8e59040b7411c1cc805e6f21b4598585770cac956",
+      "current_sha256": "6287861d2d1ecd6d50ff474a5c84bd988903d2ea05fafa74a64cd1a3d039756c",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "mobile/src/transport/protocol-compat.test.ts",
+      "upstream_sha256": "57ab58c4875894a77c59e88e130b3ef7cee2ea0b9ae5885894b7c08bd411e477",
+      "current_sha256": "6679a1e37f55549fd1fc18e1db34b7ec434fac1c18f4e16f06c3d8b7702ddb9e",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "mobile/src/transport/protocol-version.ts",
+      "upstream_sha256": "4c1656b357225caddfb7151e9443b281801c818fdce9000efb181bb367b69986",
+      "current_sha256": "a18447d52a18c2f7b261c9027938bee6b830b8a2650013297d7eec2e6c2d0bd1",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/acp/acp-recovery-history.test.ts",
+      "upstream_sha256": "caea413158cf57ac64a54ecb8e45f7b2e128d505de5bb5345937a75f480a0be8",
+      "current_sha256": "b6027c4f8ee93d3a0b0f6178bcb8f50bfa00d5d6c67cf54aa5160da38a95c1a1",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/acp/acp-structured-host.test-support.ts",
+      "upstream_sha256": "ea68ae4c9835b20b712b55b0c97d0fa2c9766199a6eb0da7647a08b435c59380",
+      "current_sha256": "c6f8ce6bcc12a56125efb42e09f58ca1dc43f15d47c99749d1eeedfbf11dfc64",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/acp/acp-structured-session-adapter-resume.test.ts",
+      "upstream_sha256": "89ef45f80c58f86bc7a040f8d3d32b658a82b8762262fd21a857f4a27ac3175d",
+      "current_sha256": "8e86b3a8f922022d0cbdad7450bcb4937cd53d6a3a3402d41dad7031f8d60dab",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/acp/acp-structured-turns.ts",
+      "upstream_sha256": "a1dedaad0e487a99e87766ede382e968369e5834c9924ef34b823b869156e5b3",
+      "current_sha256": "245a716bfffc8a09e491a8b09c02719b4dc9bc0f529235b79bf8d888dd737078",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/ai-vault/structured-chat-cli-fork.ts",
+      "upstream_sha256": "f4c598cb0468666bede1664f11749cf2beedd5bb7f3f6a56107ffef09aa31d22",
+      "current_sha256": "a821de3e6d958101a1b5e870173e5ca4430ceb74ded61acc8cb8a80abc797ff4",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/claude/claude-background-task-row-journal.ts",
+      "upstream_sha256": "7d6fdc0ba6e0d9be2bfc5663a7ece83bbad05a3037cd7703ce5ce8044ebda254",
+      "current_sha256": "ef2797966b3a9228b60dfebcc01df0ea9f68eda6a29420feaef7e2d1d1e807ea",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/claude/claude-background-task-row-test-support.ts",
+      "upstream_sha256": "3270724666035f97974e8a911ba4bf4fd604e0ac5e068ddee6dcbbae025c763f",
+      "current_sha256": "2f7b95a4c4022ad10a755e4cbf32a9af72c9243bbc104bdbf66ebc2155818c51",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/claude/claude-background-task-rows.test.ts",
+      "upstream_sha256": "019244834f2402ed0bb3f506c86cf49052ede87c6e0757db1f0eb3b38f1696be",
+      "current_sha256": "04adac28ecec58d9c0f0bec9eb860ef68a9ef221d59938eeabb6b9a65472b3d3",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/claude/claude-background-task-turn-resumption.test.ts",
+      "upstream_sha256": "0b75bc69eed3bb0b4c6b27fb6e36c96e06b0771c921bc44e96972346b02e2f90",
+      "current_sha256": "0ca2b76170cc1db03544354c3f72fbfc0d6a592014b9ec5461de886b97cb7979",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/claude/claude-command-turn.test.ts",
+      "upstream_sha256": "e44ee58dcf50449df20669ba58a55a16c1469337187075abc36997bdeab4fa35",
+      "current_sha256": "9ab065e9a37cc130053732b00cc20e656b28012fd0ba696a6abc4f25122300ef",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/claude/claude-provisional-row-corrections.test.ts",
+      "upstream_sha256": "74bb0f6c955397d88d48f61a75f29d15adeb6cbdadfe520f725cb4f03cecb201",
+      "current_sha256": "1011bb2d0053ebcc26a6f82bc74c57e7aae69f4a7bad4ada5b6ebdeebd5b2b90",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/claude/claude-structured-item-translation.ts",
+      "upstream_sha256": "1e50f80c60e1e80a21de9b5bce8bbdc129cc761a0c4f0db324dfadc103276074",
+      "current_sha256": "712aff888b98d9f58c73a1472c0d86934f2d4ee37201755b0c6782736908bf73",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/claude/claude-structured-journal-translation-background-tasks.test.ts",
+      "upstream_sha256": "48f1a4151eadd94aadf88267de29155662adc186d40df2753a2b9d7ae573ba74",
+      "current_sha256": "c85ef223dccc223e388ca9c9e0c6a9eaf2499f1aef561e6e6d026a14ea03fd29",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/claude/claude-structured-journal-translation-subagents.test.ts",
+      "upstream_sha256": "426666aaf445b56afaddd6efbeca27eeb45635f4dcb5633ab201c1295832a166",
+      "current_sha256": "ccd1fd0e0c49d6a1a890297dad327f6d2d201c33779a1cf5819bdfcfa5ff4414",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/claude/claude-structured-journal-translation.test.ts",
+      "upstream_sha256": "aaf31319abcbbd4b09664d0c74dd25db2398f2d4547d6f6a572e511eee1d76c4",
+      "current_sha256": "c3891b04a8e7664eb702480ba795142328221baa177eb7508e4b54f3a4c7381c",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/claude/claude-structured-prompt-items.ts",
+      "upstream_sha256": "02df26e70874b362da3ba80d0ae8a65bd97cca048bcc84bbff27668e25246a49",
+      "current_sha256": "f81cca7be3da4f004ce29f34ed2160778dedea8d7e2154a879640644a429ed1d",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/claude/claude-structured-prompt-ownership.test.ts",
+      "upstream_sha256": "e1478eac5db3dd34755a262fd30cfced1d289bfbf9acf7ef705c9760f87c2f53",
+      "current_sha256": "329aa95619902147f75336ca6f8fb47cd2abdd8fc3b4f8c441a4fcd6bf183f71",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/claude/claude-structured-provider-fallback.ts",
+      "upstream_sha256": "915d2465c14719309a0c64ea378f6757a5143fca2170fc028d702b9e473cf298",
+      "current_sha256": "ff214049062a57cf60d7da580b4cfabf636a192577aa636aacf703726da7e88c",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/claude/claude-structured-session-reading-control.test.ts",
+      "upstream_sha256": "dbe0d41c3b6231d0fd45f1d9742725ab0df57e2c81e2172bf29dd4ce31b13a37",
+      "current_sha256": "a04112b12c463a05ae982d49614fefb920e9d316a68ff104221a3891ffe4de20",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/claude/claude-terminal-failure.ts",
+      "upstream_sha256": "4f10a57cfedc9c6375e328cdbdf1d65a091a205014b454aa60b3b7f7c2216dc4",
+      "current_sha256": "18fc0b9863dc3a90c41f3711a432a1085c53264bcd74f5345d8962462ffbe0c4",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/claude/claude-turn-outcome.test.ts",
+      "upstream_sha256": "5fb019d3fa31819bb68f59df0eb08b0df48bf92d3a1def80fe09e0b039d9e81e",
+      "current_sha256": "f4286f6c7b9493179090ec81f9b714e0e342355e59a29a0bf109f8f542522122",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/claude/claude-usage-limits.test.ts",
+      "upstream_sha256": "6030e5264828565e92c2184b376356dc5c953365f1d0d2f21e89459ec316071a",
+      "current_sha256": "a1948a40ccd6dbd19cb3a714ad5fe9c0d74b6a334c229612298fd4efff1a459a",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/codex/codex-command-turn-claim.test.ts",
+      "upstream_sha256": "6cb71466bcdfabcb759268e78c9fff30d8d014e7ecc12bc1b7ed3b2bb63c0382",
+      "current_sha256": "fd0ac1ae089c1a4eb0e6e6391a375ee6376579192234c1aadbd4ffc8d8ce2ea1",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/codex/codex-goal-journal-identity.ts",
+      "upstream_sha256": "55d5c3a3120ea038aac9ae64cd51c5bfdf0e13af1306dca01009993cf482ad08",
+      "current_sha256": "526c9a83a961b5b942b01aff022d8677b6d9a2aeb0c0677c71fba5216d5a5aae",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/codex/codex-history-journal-view.ts",
+      "upstream_sha256": "519e3a3490f198b1cfacef7e64146ab28242374161a0df4ffc404ff36e3aed3c",
+      "current_sha256": "e999307b02b7afa849fde12ad47fec5ad6c01db58a3a52a2bbb8a1e143a3aba4",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/codex/codex-persistent-command-retention.test.ts",
+      "upstream_sha256": "e53b8d6a375c2cebae48294517111fc7bbc03ce53be7ac829c9445641bdeff78",
+      "current_sha256": "0682a8dfe7f29283c1d1775b56ee3ffc0cd7f0dc3d0e753d24ec5b05b90a29ad",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/codex/codex-structured-dispatch-echo.test.ts",
+      "upstream_sha256": "8f6a259600d8d633632cb43a50eef1d5a5e419a29257ea27a0953a4d87848594",
+      "current_sha256": "6d256674dce3a5f6ce2e3a57d4ff13e5031a0139f2cbddd41bf1eda563cc76e9",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/codex/codex-structured-item-translation.test.ts",
+      "upstream_sha256": "2d6bdcd96ecc9c02c78601b51fae001fb8c8a1af76e23922124587c6c3bb3a01",
+      "current_sha256": "cfe6383d277e3f30e6c16c8f293f6141cf4dd7d70d2055faaba732b8f7c7d7e1",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/codex/codex-structured-journal-compactions.ts",
+      "upstream_sha256": "073d1d510c5679c3455dff93c7949e928b4b4b415f0f9795183da3d4cd1fd218",
+      "current_sha256": "6ca37ee55a962f473da4ac4afe5640eea7d2a848127ac143193be6c992e065d9",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/codex/codex-structured-journal-context-usage.test.ts",
+      "upstream_sha256": "39d27a19d36563b7c72ec4be589ed70535b107e40614aeb9d0ad7d1aee79c6af",
+      "current_sha256": "e29804c98197ae113af50ad83efedfe3d2430cdbdc2467438898662d3d53d3fe",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/codex/codex-structured-journal-generic-frames.ts",
+      "upstream_sha256": "cbc790601df9164722618ed0d9e991512fffda71dcdd9fdec4a69f60fe245c8d",
+      "current_sha256": "3bcedd89c161a7872f635a21c69ef41586cc75f7c64483180d59fffeff341d83",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/codex/codex-structured-journal-goal-revision.test.ts",
+      "upstream_sha256": "30969536f69b9dbb4df557befc67e3e562a347494fbd6bde5fbd29ea6ad5c1a3",
+      "current_sha256": "b820d01924fdf019751fbda3d8d3bc2fad2fa66c5bbf12a341df24ec5e6d96eb",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/codex/codex-structured-journal-translation-settlement.test.ts",
+      "upstream_sha256": "bd0881754ed8117cb774f4dc2d6f22535760ce49308f5e13d1df4d1110f3dbd1",
+      "current_sha256": "3517e065ae45531497478bad6e2f726e0a717cf557bde7a88f4e1e314b7a4805",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/codex/codex-structured-journal-translation.test.ts",
+      "upstream_sha256": "2066c957dcc728d1a29b35f5b901685d2988989da08e0013a9bbecd55478bc03",
+      "current_sha256": "56deba2d97406cbc424ade792446ee39015a99031a17b9c005830547515e7c47",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/codex/codex-structured-prompt-items.test.ts",
+      "upstream_sha256": "0b44bf5baa70d11d5b1cb8b6a40cef02dde516f3f1910e31284a68965036c43f",
+      "current_sha256": "0a77ff362dcecd4e2c239eda69d5e0d64f8221e1bce41d52ffa9c46999f1243e",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/codex/codex-structured-prompt-items.ts",
+      "upstream_sha256": "343e88240bbee989e65c73f4ff4aa2ea9ed4af74b0eb028fc14a31ec6f50b424",
+      "current_sha256": "3f5408c7826adf4d2d30597c957c584a4d9efe0cfe4566475dc9e8be13081f19",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/codex/codex-structured-reasoning-lifecycle.test.ts",
+      "upstream_sha256": "9c16a94c89a5891d3df15691765a84ac23da7c5a021fe2f31e97cdf9a2fcfe80",
+      "current_sha256": "5db41e810a48571810e86733f41e761d1688031c768488b46c104fa78d38f51c",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/codex/codex-structured-thread-catch-up-echo.spec.ts",
+      "upstream_sha256": "4adf75393972a9953dc177fc315cf63d7c6d4ec4aaa8cba76930b8ac926b6a3b",
+      "current_sha256": "1cf10738d9ca99420d3f8d86402898b8dabb7312c5d8d18dc27d51cc1784ccb8",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/codex/codex-thread-item-identity.ts",
+      "upstream_sha256": "d2dd17bfb2d36c9aece1c4f8f2945e82762bb3b7faf7388cc9050a7076c1eb2a",
+      "current_sha256": "a715bba476316c722cba1a1cd57af340d63ad748c508101f9edb576376e24dbc",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/native-chat/agent-session-journal/journal-atomic-terminal-settlement.spec.ts",
+      "upstream_sha256": "afa7b70f8ce3ece189abe504c56e51f028a27fa465c6e6313d8268b4cc3440b1",
+      "current_sha256": "8f9f7c36630a4a52cdc970cd77409af82bbba8db3717f17881181f06e4ab0887",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/native-chat/agent-session-journal/journal-closed-sets.test.ts",
+      "upstream_sha256": "59e2ec52ea236bbc153c59366a71ed33e5a9be5f0dfc4bdc63a2d1fac764d13f",
+      "current_sha256": "15fb9135ad8b516907635180a4a04cb65f03c8ac7c7e2ff01cfb57373e1fc5f6",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/native-chat/agent-session-journal/journal-context-clear.ts",
+      "upstream_sha256": "dc86c99c452625166fc556e0247f8c6ed8ed0fb9bdb3fa521fc454c9c360c4b9",
+      "current_sha256": "9a8f1bc9d3a4d678895d47f61965c6efeff3a5e76b4526cb60cc6183d7282cc3",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/native-chat/agent-session-journal/journal-item-fold.ts",
+      "upstream_sha256": "e7affa6b64ed530555ea15d2f3dfa582fa912114562c2a00b860bdc31fc53470",
+      "current_sha256": "f798bf76126d54191db1ce0f47a1e0197fb3e85324c807cbfd495a1addfdd312",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/native-chat/agent-session-journal/journal-item-identity.test.ts",
+      "upstream_sha256": "abb73a79fb3cd9456c444ce6437ce135b8f0d44f31348145d34751b9a15556ab",
+      "current_sha256": "4deb4652144751570baa816f16b355b707dbba2922f4ed9e72736c8399915dc8",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/native-chat/agent-session-journal/journal-item-revision.ts",
+      "upstream_sha256": "fb7727888e2053e27e5c89e0f9555fae22f8319a632d54d8c0cbca69e0e4d68e",
+      "current_sha256": "84fb98da43a91cf697ceb497be3de19e1d2dbd5cde7d877923c5c75998ed61ff",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/native-chat/agent-session-journal/journal-lifecycle-batch-appender.spec.ts",
+      "upstream_sha256": "47024a99ea1a446fd25053cd17a8a23f942d953341a0ed2b14288b1d9c62fd5e",
+      "current_sha256": "db51adbb424de007f03ad3b0e910f6a636194450be76e77ad48ecad62de11896",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/native-chat/agent-session-journal/journal-lifecycle-batch-partition.test.ts",
+      "upstream_sha256": "959a717511251540cff36a5b4ec853c0e1cfbe1e9776de923ac9303558a4fc3e",
+      "current_sha256": "d5f853de3d18bbb0a6ce1a27d339d1c2235ebd0136d0d6e1ba33b76eba8c1f79",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/native-chat/agent-session-journal/journal-lifecycle-mutation.ts",
+      "upstream_sha256": "ced954cfa74aee105bc44328220d2e3cb68a53143d37b004c0478e0f2c946429",
+      "current_sha256": "f61394c0d6556c9a2eb87bee7e18d725e3bcacc1b964b468ff506cfe4e58aa7e",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/native-chat/agent-session-journal/journal-provider-activity.ts",
+      "upstream_sha256": "8ff84f47dcefd1d748a953c1f7d74a6ba867120adec848ff6a2269448a69e810",
+      "current_sha256": "ac57d134e2c8aa295e5462a1a8eb753c63b919d3f023436796f5e8cd30552c0d",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/native-chat/agent-session-journal/journal-queued-rejection-batch.spec.ts",
+      "upstream_sha256": "3ddd9fedd3fc2b42611021b3de551f61344508e7c2b608df1a57c07c78d31f57",
+      "current_sha256": "a8db4285d2c07f188c6cbf9a9ac6a5ec2293e98a527e10a101b6eec8134d2513",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/native-chat/agent-session-journal/journal-reducer.test.ts",
+      "upstream_sha256": "8a505c36d95aac01117f8cfd282c2ff9103972c60d829267afd0dc1612b1d50d",
+      "current_sha256": "52cf259938bb4c14a2f5e8ccb2d17279c9fe22ea9ea61c1b5df0bea34a4138b9",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/native-chat/agent-session-journal/journal-reducer.ts",
+      "upstream_sha256": "d492dd06f528e702c75de5646e72408e02e1036a621e1ef0bb13ed0705c4add9",
+      "current_sha256": "bd5bb441ee13a44280e9124012c1110390bccfee1bf80755ae06a542b56c786f",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/native-chat/agent-session-journal/journal-rejected-message-placement.test.ts",
+      "upstream_sha256": "8955aebca094d934fc2c88dff946862648e74b3edd9e3f2fa9dd37b8f72b5f19",
+      "current_sha256": "4a45c7cc8b7585e2119da73e3c439d5719b1728c894351df04f036fe3b5c5399",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/native-chat/agent-session-journal/journal-restart-reconciliation.ts",
+      "upstream_sha256": "0fa90b8c791d94b218124bf0fbbee00bd525a4bb5a29ef1fceb9a9dcea712adc",
+      "current_sha256": "d8404dcb095c173b2da3bb61fa31ac18fafe419f53f792a42032d470b2846215",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/native-chat/agent-session-journal/journal-rewind-submission-retirement.ts",
+      "upstream_sha256": "8cf57b71e1de60b480effe1ce5a90ee548386a662c805b7c72da3d2dfc3ff9eb",
+      "current_sha256": "4d4f6b0f98e946563a7e546c7f2db6b2b39e2d5a784877e20d0ddca644de2b76",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/native-chat/agent-session-journal/journal-row-builders.ts",
+      "upstream_sha256": "b467a9936fdd914989d7958891b835406dc21edf9911648f252350914036fbae",
+      "current_sha256": "ad641e259224ef660d7ae05814fc987b2527988542bec79fb63b99bee17c6264",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/native-chat/agent-session-journal/journal-row-context-usage.spec.ts",
+      "upstream_sha256": "be34fa9503ca5646634b468f77df34bd3e4c8606b1ca479d85616f836ed450a9",
+      "current_sha256": "08b4ea088ae28e61ed6232ca780aa34717ef171a005ecceacefb201013ac6d6e",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/native-chat/agent-session-journal/journal-row-schema-version.spec.ts",
+      "upstream_sha256": "878e9b0dad10beb9d7700740c7491862ae3467c8499319d56eec09fda4eb51e5",
+      "current_sha256": "f6cb336caefb9dcd0f7e37f05499386d185633f66e2ce5a0be67afbc6806ba77",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/native-chat/agent-session-journal/journal-row-schema.ts",
+      "upstream_sha256": "25487d7749e998a6adf51ff17f6c288c36255484703adb0d010690647497830a",
+      "current_sha256": "ad33b61621bd041fe02fa2e93bffc9090f3d161ed0f4a1beabe58787604fc05d",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/native-chat/agent-session-journal/journal-row-writer.ts",
+      "upstream_sha256": "d0ff35d0602c6a10770d3e1963cfc6ee0f66feca7f9e5c9a64d2c2025346696b",
+      "current_sha256": "ca6d3cf5c7adee598592065609854dfec99cc0985ae206a15ef68cc48dc4b65e",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/native-chat/agent-session-journal/journal-stop-and-resume-rows.ts",
+      "upstream_sha256": "ab80b2e4121ebb9ce1a093915a6453b9d02e0da3356f73b3c786e3cffdbb99b5",
+      "current_sha256": "0f8dbd338983e4c12335681f376f00b0663edbbdaf3cf0300e5110af4d20fbad",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/native-chat/agent-session-journal/journal-stop-turn-end.ts",
+      "upstream_sha256": "3ad0bb0f1fcc45cb1d46a7fe9c38efbb6877c63afb7031933f0f4911be46f6c9",
+      "current_sha256": "de9578aed37a638d5616fa49112810765315ebde461e077a9f1be79097cb3519",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/native-chat/agent-session-journal/journal-store.spec.ts",
+      "upstream_sha256": "4b0ed12f79baf831ab72cb7730778c4f8626e6d3ca6643e9eac491cfba326a1a",
+      "current_sha256": "0986ca73e0c55ca44acccefc49ce3427f25324a7d0bd03cbacc6d9eeb67eaaf9",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/native-chat/agent-session-journal/journal-store.ts",
+      "upstream_sha256": "074bd05576a1d804118a3751b784bc7d99a95ca2522c338c7fd932ca2b4c5c9c",
+      "current_sha256": "ef984e9829de540fef4997bc11e9ca08bbbd4cf78e8124f0d7453b350cadd289",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/native-chat/agent-session-journal/journal-subagent-item.ts",
+      "upstream_sha256": "a708ce1548ab4edb4e04d40f7b6052f2c138cd3beeca36ef0930720b0d6f9225",
+      "current_sha256": "7fe8816d9cefe432637a6e37fad4f90199738c41181a193971e9a0c7985b7080",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/native-chat/agent-session-journal/journal-subagent-liveness.spec.ts",
+      "upstream_sha256": "576710739fb7198beb2bd2718b7954f8cf06e2b22e24d598d349445889022295",
+      "current_sha256": "9cc39af9b7a156077adbda75b0abfe4284a2d32914b33a694da1086fbc73a98c",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/native-chat/agent-session-journal/journal-submission-reconciler.ts",
+      "upstream_sha256": "89faa9ecdb3b764f8e02f088f27d26284b191d49fa0fa7109f41300c8b58ce7f",
+      "current_sha256": "e33583f2a9a36be9c4a887dc07d22e6bef8522febbea9c0187281d14c6fd19c4",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/native-chat/agent-session-journal/journal-terminal-settlement-validation.spec.ts",
+      "upstream_sha256": "68062aaad96d8423757ee0285d81ebf1637116f871e02f2a88dc922d5daa069b",
+      "current_sha256": "30fa597cb7109e358e388ded7ea9e0d16e0ed49b723a598db58ec4102f1d6456",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/native-chat/agent-session-journal/journal-turn-scope.test.ts",
+      "upstream_sha256": "c8435b908ce180b4132df139b9b25a10ba0d46b526485398cabe493f342a3b95",
+      "current_sha256": "4009a33714e3592f6547e67619517a177e834bca794417ed28e33a6666e4c6bd",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/native-chat/agent-session-journal/queued-message-store.spec.ts",
+      "upstream_sha256": "75da61557c173421dcc5e636eade597a4246dc9b94a308285168d5cc887435d5",
+      "current_sha256": "04976eff120ee29a81b8df07478ecc916a070ecb4dddf42773cc42d497f9a617",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/native-chat/agent-session-timeline/provider-timeline-assembler-attribution.test.ts",
+      "upstream_sha256": "97a81a34d63f07c09ba7ee1dcefff38d1766b355358361188265e38d375e3f86",
+      "current_sha256": "500e4784bc4671036332d91961c2047440ee9be48729cb2add01814f515ca501",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/native-chat/agent-session-wire/agent-session-history-conversation-window.test.ts",
+      "upstream_sha256": "9624be2e9ee7ed977eef5ba451cd629a93ea9265baf6a5829b9118dc6def7177",
+      "current_sha256": "64df31b107d17cb3f11ea89d9af03532f3fb295680bb536165088a22ecae0bd8",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/native-chat/agent-session-wire/agent-session-stop-note-projection.test.ts",
+      "upstream_sha256": "546de3dde5b63fd8d456cff082278e1f7dba220234c035a4647341c2956e35ec",
+      "current_sha256": "1d278e5932f7aeb444cc992ec7e3c872e859c42bcb6761a167459b49c5266252",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/native-chat/agent-session-wire/structured-agent-session-accept-then-deliver.test.ts",
+      "upstream_sha256": "127965ceed3fd23237fe25401de8dd68fc0b14fc220c965358fa22a8ea69e3e1",
+      "current_sha256": "0fa856adeab9d2c2500e4a51595f8d439b13e1587b8b9a65fc4aef44e01d7bff",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/native-chat/agent-session-wire/structured-agent-session-append-delivery.test.ts",
+      "upstream_sha256": "5e23e5e4efa72a159683e7a1813695fac3ad840bcc1fa60aa3abc8a34171c2a3",
+      "current_sha256": "ad57c6698cf6c4d368c63412da151092be9ad347d64607537c11ccd7c3134fd2",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/native-chat/agent-session-wire/structured-agent-session-command-readers.test.ts",
+      "upstream_sha256": "3d70afb71beb6af64354af524d8f43ca5582abab7fcffd2ceb491115a538d10e",
+      "current_sha256": "b8f1d97d2b564e82e62d6417f69701caaf7cf805f8abfcb3a1e9725c69ba4403",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/native-chat/agent-session-wire/structured-agent-session-command-turn.ts",
+      "upstream_sha256": "e981d684857815ad372e71e3dd0feafe725f095f6c10f710e253f0678978563d",
+      "current_sha256": "5270802ca7208b5cc540ffc3a04e1567612141c225ec12d9e6c97d78e40b3f3a",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/native-chat/agent-session-wire/structured-agent-session-conversations.test.ts",
+      "upstream_sha256": "56762564a1f7b24bc79d097e425d0d85c4db63b159a63cbf1a2523d4331be614",
+      "current_sha256": "2c35329bae95788f4fda7ec7ca43c761083a0871655b7799bb2337a4c5b68c3c",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/native-chat/agent-session-wire/structured-agent-session-dead-generation-settlement.test.ts",
+      "upstream_sha256": "a497212a1f78f7c2a664206666c3d4a86fda0ff95929c72633b23770be6b07c4",
+      "current_sha256": "560c63e5616ee12ef157185e211e579583a46ebd127ace1314b00aae036a9c52",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/native-chat/agent-session-wire/structured-agent-session-dead-generation-settlement.ts",
+      "upstream_sha256": "d2650aed0df7c0f0c5a3a6034bce982abc04177df91b2b9319a8a6bd8b888b27",
+      "current_sha256": "2481b6e271b4988dc6d49b932ee51584f19c6501d17e437f7e9fe25c1d605f87",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/native-chat/agent-session-wire/structured-agent-session-history-catch-up.test.ts",
+      "upstream_sha256": "85d95ba1676025d2888f45d476a88fd2696210c7abd8c63a0577f6420aaf61b7",
+      "current_sha256": "1541f7a4bb249f0bb27d2da52beb1a25228d0b1b559868f67ea45b5f430196e9",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/native-chat/agent-session-wire/structured-agent-session-host.test.ts",
+      "upstream_sha256": "9ce8ba2ed597544e1f9fc0947061b4ec029bfc321042e93ce67ed1dcd4d2c017",
+      "current_sha256": "dd886a40d5880e740b8b31f3873d486e8dd44be47c91fa99fc2001f0fe685fba",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/native-chat/agent-session-wire/structured-agent-session-interrupted-continuation.test.ts",
+      "upstream_sha256": "fbdcea450d51e0a9b6d1c490902b5f5b022e153133ab3c4313b8ef0a2ab7db68",
+      "current_sha256": "9b7cea361063e0fa021494300712fa2dbf3045629daa9741687ca70314ebe7c1",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/native-chat/agent-session-wire/structured-agent-session-orca-stop-row-readers.test.ts",
+      "upstream_sha256": "d33b5a913996528a712468486f28ea341a157feddfd536c02ade16054cd44ede",
+      "current_sha256": "a595bc6d9244cac08c6e6402d2120f0a10a2b338b9f072a5c26339f9393d2b6e",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/native-chat/agent-session-wire/structured-agent-session-orca-stop-row.ts",
+      "upstream_sha256": "de0e2e98d5a3c139ce6a015a42efe6ef8dc013154223df0862206c4367b06eb8",
+      "current_sha256": "f0ac5970c502f76960aca2eac8d446eb59698714a51ff4d93c6e39d5f0669995",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/native-chat/agent-session-wire/structured-agent-session-prompt-cancel.ts",
+      "upstream_sha256": "fc0028eb3dde8614bc530f69c3d3ccda4b6bf15227e406ceeca99c21a0897b80",
+      "current_sha256": "33f0668366c0e6b52cc95740eb65362b4fad2bd07c5caf2e3ab6a62719c3fbd0",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/native-chat/agent-session-wire/structured-agent-session-queued-action-receipts.test.ts",
+      "upstream_sha256": "aaf0fda743cea7dd008a587f1d397240d35c299762f9a86ee97e9a7536710d2e",
+      "current_sha256": "cb99f8d0b543ea27de4a74ef22b999ffb3e4b56c0a3edc5ac12933cc91c804f1",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/native-chat/agent-session-wire/structured-agent-session-queued-compact.test.ts",
+      "upstream_sha256": "0a4c2971dedc53985548817d04364ce594801e0a6438f4a3e27fb457aee8065b",
+      "current_sha256": "1c6c5c1a7bf6dac654f15007510d7baa7795b49eca9910cbd3310e98beb0d55d",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/native-chat/agent-session-wire/structured-agent-session-queued-gate.test.ts",
+      "upstream_sha256": "0bc2994ccb8d6c545d53f1150ec73084eb5ed0bf51ca782ddfb4b4d868e92312",
+      "current_sha256": "303ee5ac58765f47465ea58e696673c0757a5b174fb5d652e9bc3e75f9c3008e",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/native-chat/agent-session-wire/structured-agent-session-recovered-turn-clock.test.ts",
+      "upstream_sha256": "f63c90af8594184b8cd2c83d7387a9b8b44190e51e380671ef7f465afb310cdd",
+      "current_sha256": "07e23811dce7d0f338615b783fd2866d7bbab2f86df2e60f2ddf7f51b684febc",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/native-chat/agent-session-wire/structured-agent-session-resend-answer.test.ts",
+      "upstream_sha256": "5350b0d31396ae802913d339dab95d2555e844812096df64579a2d59c74e2598",
+      "current_sha256": "b14bf7c0168a58b88274e5fc8eccc60e52c65f3bb7bbf4c7844349a1f94bc88c",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/native-chat/agent-session-wire/structured-agent-session-resolved-append.test.ts",
+      "upstream_sha256": "ddb2a37d5a611c11b53f11d239f2fd29655bbe7fb03324ac910f2833ee02828a",
+      "current_sha256": "e0caf11937def12b1e8580128b6c265f7cdf39c26a5c4ca4240c3da8906f680a",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/native-chat/agent-session-wire/structured-agent-session-restart-continuation.ts",
+      "upstream_sha256": "877ccb0a646b4ada8fa79d59145f5268ae38663f7435e908417271b4b14e9c1e",
+      "current_sha256": "51bc02ff0f685508f2d2ab416d5c12b2056cf80eb04cc0c347904a179a91061b",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/native-chat/agent-session-wire/structured-agent-session-restart-provider-output.test.ts",
+      "upstream_sha256": "1b53629a1a7bfe2490abde5f5b3e59f34e8000af7bd6aaa712b12887e5ec0860",
+      "current_sha256": "8e6dadbfb882e88158702e64889af5680ac187b775f8f83b3f0cf64d7b7473ff",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/native-chat/agent-session-wire/structured-agent-session-restart-recovery-output.test.ts",
+      "upstream_sha256": "f6f860e78a6fd7e6ad2dc83dd62e5cc1856bc16cf4080c2568264a6392b1b9db",
+      "current_sha256": "0456f639b365fed061f9b8fab8a821edbfd17b16f8ccabfea2464b0739e4aed3",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/native-chat/agent-session-wire/structured-agent-session-restart-stream-duration.test.ts",
+      "upstream_sha256": "255b9b2943cfd7a58b1c0cce559bb97e424630936aded5ef52b2d4570ac479b4",
+      "current_sha256": "c46da33ea0d1cca992e0e6e16ea3f02426727db334c94009251e2d0acfc70696",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/native-chat/agent-session-wire/structured-agent-session-rewind-stop-note.test-fixture.ts",
+      "upstream_sha256": "228f3eb2f8b1d76010749954616f821a568858daab55232416d6420cfc8d402a",
+      "current_sha256": "4d8fee6ec7e3af5d857dfa0f40d71dc296a9809f35e6d7817283bd028f408dbe",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/native-chat/agent-session-wire/structured-agent-session-rewind.test.ts",
+      "upstream_sha256": "1477a4fff622f36ee644760a75c5c6739cbf31cd20172c37d1f886fdb86b5101",
+      "current_sha256": "e661491950b2431b2098930d13430904cc6b4f41c88fabb94187fc0bdafcf187",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/native-chat/agent-session-wire/structured-agent-session-stale-stop-row.ts",
+      "upstream_sha256": "1c9926b4411d52814ef53ff441d274cde7d74ff171ee76a2d66dba4df6a7d399",
+      "current_sha256": "935dbb2ab9cab575bb6d0f5ac6720226e9df61798e33ef0233d168731efd690e",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/native-chat/agent-session-wire/structured-agent-session-stale-turn-verdict.test.ts",
+      "upstream_sha256": "70012ebd7d2559a7195030e9483d90164ca751793a8f80fe1ccfdd32a2491a79",
+      "current_sha256": "973b4dcf20c12b5378838766fcf26ba5a5695921fcb0f38664701c77712f89fc",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/native-chat/agent-session-wire/structured-agent-session-start-failure-writer.test.ts",
+      "upstream_sha256": "89e9aebb10daa3489f4cdd8cfa864f16ed472660f1952e3e42b0fe5506cd4d45",
+      "current_sha256": "4a568a74e4bb1193c9017747d57615592ceb121eba0715e67cbd0fd55a83fdc3",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/native-chat/agent-session-wire/structured-agent-session-startup-failure-exit.test.ts",
+      "upstream_sha256": "05ec91cf864c5d69054cba828ef0c4b5883b45434e386f8561fbc161bb6a2bce",
+      "current_sha256": "daf45e3ce969f7a6c97031da0eadfd39e99d644c74ffed9f998ed730bd1ff4aa",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/native-chat/agent-session-wire/structured-agent-session-status-feed-clock.test.ts",
+      "upstream_sha256": "4336348f6d7e0769648a85e95faa21d6dfc5e89491b7a00fdd6926d1e6615aba",
+      "current_sha256": "1027482385c8bde744784488be1e4b5334bebfa8963a5ef3b81d906e86314e0b",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/native-chat/agent-session-wire/structured-agent-session-steer-while-stopping.test.ts",
+      "upstream_sha256": "8f406d9febc204ace92ed806ec02801f01e8a075d28d41bba659a9d76e7dea2d",
+      "current_sha256": "afa2d039f71eeaeb4e1c16d858fa28dc931f54b0203c061cc6efb9512705d4e7",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/native-chat/agent-session-wire/structured-agent-session-stopping-journal.test.ts",
+      "upstream_sha256": "f3e7e04c764df61be5e369d628babdc9b69de41cb838d688aa9a8e447fcbf399",
+      "current_sha256": "f02d3b9263713a426d7fa4ebc8b2d83e61ac7f79135c441fd204ec208181274e",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/native-chat/agent-session-wire/structured-agent-session-subagent-recency.test.ts",
+      "upstream_sha256": "8996b501f4e8ed4e7a8e7bcc09c66ea807a88602004eb0784553056d2178ba30",
+      "current_sha256": "c0a599b4fd0f1c57baf076f9c8c569791404305eb04b5b3d149d42a4ee32dc7d",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/native-chat/agent-session-wire/structured-agent-session-subscriber-background-tasks.test.ts",
+      "upstream_sha256": "c572623caf3d2d26eac39bbde46196445351b7f10e6a8c86d3ec39fe28d34809",
+      "current_sha256": "0eb5e1d105ed9b743e0d3edba498a63cd0037b80ea50926befb8d29135e9b234",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/native-chat/agent-session-wire/structured-agent-session-subscriber-journal-retention.test.ts",
+      "upstream_sha256": "e07287701d58ae7663695260b9a2ce474e4bd3810d509fc5431cf5ec792a8240",
+      "current_sha256": "17048b148500167d41cc11429735e1dd6e0f11bb0940cbacc66708891c4d44e9",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/native-chat/agent-session-wire/structured-agent-session-subscribers.test.ts",
+      "upstream_sha256": "98cc6cc95e27f7b1e19d4c58e9c7908a525d25014c98cd85a465ab109e7ff283",
+      "current_sha256": "d54bb2bcd19f3199f7d0e13068f5ae5008292acafa3e3047e32af25063fe7d96",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/native-chat/agent-session-wire/structured-agent-session-thread-goal.test.ts",
+      "upstream_sha256": "bfa07e73e3727e76680e1b07791b7f37d94d27239e4a85efb5a72d7e9fbf7335",
+      "current_sha256": "bdb36494393c92ae79e9d3a4727af54b8b0841e4f0a2a697c72cfca47c7eb653",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/native-chat/agent-session-wire/structured-agent-session-thread-goal.ts",
+      "upstream_sha256": "1595d01807fe5b2f9087f7757f75155c52438a359d4741021485be660011e4c9",
+      "current_sha256": "30351a7579d4b62efcf2e99e99100a5a37088bb94a8ac6bd8323ee0321a20ac4",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/native-chat/agent-session-wire/structured-agent-session-turn-completion-feed.test.ts",
+      "upstream_sha256": "e0e317d7b616aff971f3ac8d9bdbe2cbe8b926b260b987740cd6b2d65b78b6f4",
+      "current_sha256": "7f60cedbc31a3983e93178db4f562c087af34f3ff2238fec94b67826a9a966dd",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/native-chat/agent-session-wire/structured-agent-session-turns-prompt.ts",
+      "upstream_sha256": "a856b54733c75fa2fb232ccc1fe10c950a83b085b3e46a87b9026c1333644a25",
+      "current_sha256": "f9860c3fd348d49a942384920c7aeb7c75baac390a92a21ebc0427a65671e066",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/native-chat/agent-session-wire/structured-agent-session-unexpected-exit.test.ts",
+      "upstream_sha256": "5f16b63471daaf2736bc01fb0ceab0cf61358926c9794702c3a6b3b85abd5a22",
+      "current_sha256": "1f309f74e4a2dccecbdde3755374dabfa6f5495ca415305aec19e22ed3551bfe",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/native-chat/agent-session-wire/structured-conversation-command.test.ts",
+      "upstream_sha256": "91d13e193db170eca5476f3e9d9617eabfe0f68a46b103ca82f46f3740b4e996",
+      "current_sha256": "8047174b1e7b2515a3352d4280a632c3283cb0f54b913b79150383fadc3f1abe",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/native-chat/agent-session-wire/structured-rewind-cut.test.ts",
+      "upstream_sha256": "f08e9323e282e6f1e1d1870d55b1469657136b58cee2e8b2faf674befcb10f46",
+      "current_sha256": "1bc2e771d5db1b67ab4ab65463ccbbf48042527f9bc3eb0beef27976a229331f",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/pi/rpc-session-adapter.test.ts",
+      "upstream_sha256": "68f9a30639701f49f586fea32289616c1540968987b1b22610da647a388dd181",
+      "current_sha256": "80f3099bc5ece2ee4d01b697966fb7c6fa2375bdfa2f7d77da5ad76545f10c28",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/pi/rpc-session.ts",
+      "upstream_sha256": "8a693cb7b72b75c1b25393316439e0a9587293aba96cd645f5fff68d65d9bcde",
+      "current_sha256": "29750bceb7ee41e55e5082e474f8c7899a80dc7e209ee50b3f6f51f50f2ae368",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/main/runtime/structured-agent-session-codex-settlement-order.test.ts",
+      "upstream_sha256": "07cebdcd9db2fca33dfe1d508b05cb77fd08ac3927ce5c250c533eed4c4812e6",
+      "current_sha256": "a14267039e13271edf166c90b3546006a9321954becf9ba15f45939a507b125c",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/renderer/src/components/native-chat/NativeChatInterruptedContinue.test.tsx",
+      "upstream_sha256": "a2f1032ff71fc77020eb93fe75777e8f17184134750fd90669e3b21803a2d514",
+      "current_sha256": "313a0c66e51f5b4bd341305b84627e9f44690fa8a2d8e05819a83a0e5fd38c46",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/renderer/src/components/native-chat/NativeChatMessageList.rewind-rows.test.tsx",
+      "upstream_sha256": "b4d5b22022ec60ef53d8d928dcb4725ec123856636f91ff51a9a4f3637911e00",
+      "current_sha256": "fa5c36b8e112a29af3622e7409d63908751c11767417b8d89532fc1ffd891abf",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/renderer/src/components/native-chat/NativeChatMessageList.turn-membership.test.tsx",
+      "upstream_sha256": "6533198a53e28dcf382586f09821c04cad179ad0f78f9473927fe495174d0117",
+      "current_sha256": "21e1d111aca2c6e69becdae245101cfc570b663853fa1f232bfe9a301a1ea991",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/renderer/src/components/native-chat/NativeChatStructuredSession.orca-stop-continue.test.tsx",
+      "upstream_sha256": "3382e3d7cdcb0a36e8b45bb8244490467cf4fc8114cd0f55f2702c63413e5f01",
+      "current_sha256": "bc429da287317dcab27ea5438ba3e6d16559188533b74fd6e1fcf756852c8428",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/renderer/src/components/native-chat/native-chat-compaction-visibility.test.ts",
+      "upstream_sha256": "9506b1f3ec1b95ec7dfc00b45ebf8f916eddaf1cbc6e74b9802fa8e4d7a3bf15",
+      "current_sha256": "2863586394a5549ca1821fca73b209fb633794b7d094cfab094b0e30d04a2d77",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/renderer/src/components/native-chat/native-chat-transcript-slots.test.ts",
+      "upstream_sha256": "026953bc612cefe7248e2dabeb5546ac262c5854670411046695fbed21bce683",
+      "current_sha256": "6440bcfdd9268de0286503ed64400e1fd0fd7454753a0429319469f51caae821",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/renderer/src/components/native-chat/use-structured-agent-session-delivery-notices.test.tsx",
+      "upstream_sha256": "d64da7f8bf650d1d18e82e3c665bf656f3e90c5de2965d5e45dfd91f46b8ccfe",
+      "current_sha256": "8b9b77ce4ddc0ce2cf66977e0986be165c21e21f78bd59bd894f505323e445cb",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/renderer/src/components/native-chat/use-structured-agent-turn-timing.test.tsx",
+      "upstream_sha256": "58159d5730a1c96c090f42f7967da89c2f14770f440949e0b3633b9176685c5e",
+      "current_sha256": "119549d0e9cdc9ca19bf4e0869b9f9c701c0423f29a6512b411af2350589285e",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/shared/agent-session-journal-item-key.ts",
+      "upstream_sha256": "09ebe4758e3f38b5b7591f07f7b4dbfd04c7cc01713c9b0afe03b07b656d1fe8",
+      "current_sha256": "1b977b88845ca528341748baf4f292960cec938983cfafa9c525c695f65914e7",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/shared/agent-session-journal-types.ts",
+      "upstream_sha256": "58a24de7c259083a5be6f5b59506529a14dc89f47a7cbda4933bb51066cc7ead",
+      "current_sha256": "088c575067ec76801f239ce02e0c9f20bbc9ab3cf9ccbe1b7d8e849804deeb5b",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/shared/agent-session-turn-record.test.ts",
+      "upstream_sha256": "ea4d08d5e10c850eaef174db389f5995658f2b5e44900a792e106c8e0e00f5c7",
+      "current_sha256": "e66f928f6e9560ad149e87186fbd2d622393da146f811396718ad082e0ba5c1c",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/shared/native-chat-cut-turn-notice.test.ts",
+      "upstream_sha256": "bad4069ad911c792ba5bda497f6f1adef6eb6d3359f49aabaf9c66c5a9a8a17e",
+      "current_sha256": "0a1afeb8d491a913234230911bb33d45f8d2253319476ee5b4267503cc9990a2",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/shared/native-chat-cut-turn-notice.ts",
+      "upstream_sha256": "3ae679289a9eae1cb5efc4cdabe8e824ed04db122966bf8c2de2059e0ca3b950",
+      "current_sha256": "289c646e67eda4f3f672f74207b1cc71d0eee0a3d1084902edde7b359259f9d1",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/shared/native-chat-orca-stop-cut.test.ts",
+      "upstream_sha256": "7aea64592027ba8e7dfbc7d06266a420ff227843e11cf88682b69496483869a1",
+      "current_sha256": "ef482ca0b33ca7ce2b6c95f59b3ec18d456117d815f8e3944ef1f87c6706050e",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/shared/native-chat-turn-membership.test.ts",
+      "upstream_sha256": "18fe1e938db369b8fdc8449f1491de32dea5fa8f459c2cb7e59e227fcbfa8db1",
+      "current_sha256": "5947dfb188b659dd3adfefbded127af72babe243b72fbc2b6f7cdf6219bd0759",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/shared/native-chat-unverifiable-turn-status.test.ts",
+      "upstream_sha256": "97a35153cdba1324c4ec5eff1a7e4aeea4127dcbd9b1a64df906f0980882e977",
+      "current_sha256": "2388217c32c6f524873dcb0954cf385f6c27664df7b8b54e49eafbc064525dda",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/shared/protocol-compat.test.ts",
+      "upstream_sha256": "4084fa44589713540379e7588446dba54fdec2126a594b9bedef9cae440de186",
+      "current_sha256": "b119c8fd7070fe1b5a21107dafe04cc995d68b42e722e50fdd0fc2c894f41b19",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/shared/protocol-compat.ts",
+      "upstream_sha256": "4b6ec162ab9c991bfc9a804e850451946d38192c33173298d5d406d15b3f0868",
+      "current_sha256": "9dee5265b1fa69531b032ea955c405b2a899ca10e0af5273f19756242608692d",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/shared/protocol-version.ts",
+      "upstream_sha256": "731c1ed75359d4e311ffd627015c785f7f65f4a89c4d960cf0cdd4d689402b2a",
+      "current_sha256": "161943344be399bea46248f625079c2cbf550519a0388162364552dca58ab8de",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/shared/structured-agent-session-command-turn-identity.ts",
+      "upstream_sha256": "2d0154a71350aadf87330c4c8ca76f07029fa82b4b1727f5963390c2763d2b09",
+      "current_sha256": "8a241fd8cebf2aad75fd87a9d15ecfb75faed3fcc21af6f5b739f70a93d9ff85",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/shared/structured-agent-session-projection-sender.spec.ts",
+      "upstream_sha256": "996c6c530766183d1af151235160eea38cbffd56b0b97aad74f0c7ec9fd5c20d",
+      "current_sha256": "f196232570079aaf911ddc7543d4073db4af27ca7db0707b67bc7fe50c9c9a0a",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/shared/structured-agent-session-start-failure-row-key.ts",
+      "upstream_sha256": "bb0e0545ec8d9dce534c4c0cdc01f57e4bea340be10e1f4a49bd984b60bb1092",
+      "current_sha256": "b97239d1285b8b7769b2c1e4b3d53fa1d7101154bf954386f088611c2aca4480",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/shared/structured-agent-session-subagent-roster.test.ts",
+      "upstream_sha256": "19a111eb990e94c8b10d086f4eef2fc7e150035624994bb270e3bb5c8ce26b02",
+      "current_sha256": "8e72f5052b3be83302a1483a1e3339bb9b532abf583ecf981765a76891db0414",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/shared/structured-agent-session-turn-bars.test.ts",
+      "upstream_sha256": "5be945aae3a654bfbdbb358680f5c0f8f2f510e10faba98db34977399c8ae29f",
+      "current_sha256": "01a70fd8a3cf5b3f2c407187a34d36eaae3c67375d840c4b2604f517b0b2a5cd",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/shared/structured-agent-session-turn-timing-retention.test.ts",
+      "upstream_sha256": "a6068fd4e45d2d4eb09e797b49065f2b28e2a789b2e0e2d3f36f10a131bfb2a1",
+      "current_sha256": "d4c1f455432d9a7c71ad6706f0a478422b8550e5aadaa48dbf83140cc4b119f5",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
+    },
+    {
+      "path": "src/shared/structured-agent-session-turn-timing.test.ts",
+      "upstream_sha256": "c764e1e566f6e8087d560b6ebe4e9ec55405a85a6f3dc2514705f0e0f6632de0",
+      "current_sha256": "1a4de132f299da78142f6a151cd07d1c1ba0f4f47998ebe02406fcf30e3e41c3",
+      "reason": "journal持久身份统一zkyq，旧键和摘要域精确读取迁移、修订引用及客户端版本门禁同步；保留原始行、用户原文、超长/非标准编码地址及真实权限行为，直接生产者/消费者和回归同步新合同"
     }
   ],
   "reviewed_findings": [

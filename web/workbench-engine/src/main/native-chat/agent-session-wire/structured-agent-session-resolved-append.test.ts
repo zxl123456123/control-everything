@@ -23,7 +23,7 @@ import { estimateStructuredAgentSessionItemBytes } from './structured-agent-sess
 import { testEventSinkLogging } from './structured-agent-session-logger-test-support'
 import { codexProviderHandle } from '../../../shared/agent-session-provider-handle-encoding'
 
-const ROW: AgentJournalItemIdentity = { provider: 'orca', clientMessageId: 'row' }
+const ROW: AgentJournalItemIdentity = { provider: 'zkyq', clientMessageId: 'row' }
 
 const text = (value: string): AgentJournalItemBody => ({
   kind: 'message',

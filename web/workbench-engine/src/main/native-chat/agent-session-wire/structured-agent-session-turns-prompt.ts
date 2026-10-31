@@ -161,7 +161,7 @@ export async function performPrompt(
     }
     // The adapter's error is Orca's; the row says only what the user needs to know.
     await ctx.journal.appendItem(
-      { provider: 'orca', clientMessageId: `${input.itemId}#delivery` },
+      { provider: 'zkyq', clientMessageId: `${input.itemId}#delivery` },
       {
         kind: 'status',
         ...agentSessionFailureWords(agentSessionFailureFact('answerUnconfirmed'), {

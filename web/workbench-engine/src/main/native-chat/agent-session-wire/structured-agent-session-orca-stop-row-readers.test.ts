@@ -17,7 +17,7 @@ function cutChat(row: AgentJournalRenderItem['body']): AgentJournalRenderItem[] 
   const scope = { kind: 'turn' as const, turnItemId: TURN }
   return [
     {
-      itemId: agentJournalItemKey({ provider: 'orca', clientMessageId: 'user-1' }),
+      itemId: agentJournalItemKey({ provider: 'zkyq', clientMessageId: 'user-1' }),
       revision: 1,
       sequence: 1,
       observedAt: 1,
@@ -40,7 +40,7 @@ function cutChat(row: AgentJournalRenderItem['body']): AgentJournalRenderItem[] 
     },
     {
       itemId: agentJournalItemKey({
-        provider: 'orca',
+        provider: 'zkyq',
         clientMessageId: 'stale-session:session-1:shutdown-3-gen-1'
       }),
       revision: 1,

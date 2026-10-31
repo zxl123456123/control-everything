@@ -63,7 +63,7 @@ export function codexItemIdentity(input: {
     }
   }
   return {
-    provider: 'orca',
+    provider: 'zkyq',
     clientMessageId: input.historyImport
       ? `codex-history-item:${JSON.stringify([1, input.threadId, turnId, item.id])}`
       : `codex-item:${input.threadId}:${item.id}`

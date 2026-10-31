@@ -16,5 +16,6 @@
 // server feature added at a specific runtime protocol version. This
 // triggers a hard-block screen for users paired to older servers.
 
-export const MOBILE_PROTOCOL_VERSION = 3
-export const MIN_COMPATIBLE_DESKTOP_VERSION = 2
+// v4 uses the same journal addresses as the current desktop and web clients.
+export const MOBILE_PROTOCOL_VERSION = 4
+export const MIN_COMPATIBLE_DESKTOP_VERSION = 4

@@ -136,6 +136,24 @@ describe('evaluateCompat', () => {
 })
 
 describe('evaluateRuntimeCompat', () => {
+  it.each([0, 1, 2, 3])('blocks protocol %i before journal keys cross versions', (old) => {
+    expect(
+      evaluateRuntimeCompat({
+        clientProtocolVersion: old,
+        minCompatibleServerProtocolVersion: 0,
+        serverProtocolVersion: RUNTIME_PROTOCOL_VERSION,
+        serverMinCompatibleClientProtocolVersion: MIN_COMPATIBLE_RUNTIME_CLIENT_VERSION
+      })
+    ).toMatchObject({ kind: 'blocked', reason: 'client-too-old' })
+    expect(
+      evaluateRuntimeCompat({
+        clientProtocolVersion: RUNTIME_PROTOCOL_VERSION,
+        minCompatibleServerProtocolVersion: MIN_COMPATIBLE_RUNTIME_SERVER_VERSION,
+        serverProtocolVersion: old,
+        serverMinCompatibleClientProtocolVersion: 0
+      })
+    ).toMatchObject({ kind: 'blocked', reason: 'server-too-old' })
+  })
   it('keeps the current client and current server self-compatible', () => {
     const verdict = evaluateRuntimeCompat({
       clientProtocolVersion: RUNTIME_PROTOCOL_VERSION,

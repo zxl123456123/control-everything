@@ -188,7 +188,7 @@ describe('same-conversation clear', () => {
     const source = store.getRecord(HOST_TEST_SESSION)!
     const tab = store.getSessionTabId(HOST_TEST_SESSION)
     await journal().appendItem(
-      { provider: 'orca', clientMessageId: 'earlier' },
+      { provider: 'zkyq', clientMessageId: 'earlier' },
       hostTestMessage('earlier'),
       {
         fence: source.lease.runtimeFence,

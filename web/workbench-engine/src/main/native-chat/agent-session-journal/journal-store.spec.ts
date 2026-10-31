@@ -394,7 +394,7 @@ export function registerJournalStoreTests(): void {
           },
           {
             kind: 'item',
-            identity: { provider: 'orca', clientMessageId: 'exit-status' },
+            identity: { provider: 'zkyq', clientMessageId: 'exit-status' },
             body: { kind: 'status', text: 'Provider exited' },
             turnScope: AGENT_JOURNAL_THREAD_SCOPE
           },

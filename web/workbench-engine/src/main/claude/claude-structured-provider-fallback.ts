@@ -158,7 +158,7 @@ export function createClaudeProviderFrameFallback(
         beforeAppend?.()
         // One row per retry run, revised by each attempt, never the frame as a row.
         const identity = {
-          provider: 'orca',
+          provider: 'zkyq',
           clientMessageId: `provider-retry:claude:${acquisitionId}:${retryRun(retrying)}`
         } as const
         const body = claudeApiRetryRowBody(retrying)
@@ -174,7 +174,7 @@ export function createClaudeProviderFrameFallback(
         }
         beforeAppend?.()
         const identity = {
-          provider: 'orca',
+          provider: 'zkyq',
           clientMessageId: `provider-frame:claude:${acquisitionId}:${sequence}`
         } as const
         sink.appendItem(identity, body, stamp?.(identity, body) ?? { turnScope: turnScope() })
@@ -193,7 +193,7 @@ export function createClaudeProviderFrameFallback(
       }
       beforeAppend?.()
       const identity = {
-        provider: 'orca',
+        provider: 'zkyq',
         clientMessageId: `provider-frame:claude:${acquisitionId}:${sequence}`
       } as const
       const body: AgentJournalStatusItem =

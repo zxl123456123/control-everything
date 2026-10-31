@@ -33,7 +33,7 @@ const EXIT_REASON = 'Claude Code is not signed in. Sign in with the Claude CLI'
 const EXIT_TEXT = 'Codex stopped before it finished starting. Send your message to try again.'
 // The first child (generation-1) is lost at setup; the send starts generation-2.
 const START_ROW = agentJournalItemKey({
-  provider: 'orca',
+  provider: 'zkyq',
   clientMessageId: 'start-failure:generation-2'
 })
 

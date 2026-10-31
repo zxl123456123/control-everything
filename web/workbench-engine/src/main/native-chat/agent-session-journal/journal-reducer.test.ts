@@ -508,7 +508,7 @@ describe('submission and dispatch state machine', () => {
       }
       rows.push({
         kind: 'item',
-        itemId: 'orca:cancel-between-sends',
+        itemId: 'zkyq:cancel-between-sends',
         revision: 1,
         body: { kind: 'status', text: 'Cancelled an earlier turn.' },
         ...base(rows.length + 1)
@@ -680,7 +680,7 @@ describe('bounded item-key collisions', () => {
 
 describe('re-adding a tombstoned row', () => {
   it('builds the rebuilt row above the tombstone that removed it', () => {
-    const identity: AgentJournalItemIdentity = { provider: 'orca', clientMessageId: 'roster' }
+    const identity: AgentJournalItemIdentity = { provider: 'zkyq', clientMessageId: 'roster' }
     const itemId = agentJournalItemKey(identity)
     const state = createJournalReducerState('session-1', EPOCH)
     applyJournalRow(
@@ -721,7 +721,7 @@ describe('re-adding a tombstoned row', () => {
   // `buildJournalTombstoneRow` takes `max(itemRevision, tombstoneRevision) + 1`
   // — so what this pins is the map state itself, not the ranking.
   it('removes the row again after it was re-added', () => {
-    const identity: AgentJournalItemIdentity = { provider: 'orca', clientMessageId: 'roster' }
+    const identity: AgentJournalItemIdentity = { provider: 'zkyq', clientMessageId: 'roster' }
     const itemId = agentJournalItemKey(identity)
     const state = createJournalReducerState('session-1', EPOCH)
     applyJournalRow(

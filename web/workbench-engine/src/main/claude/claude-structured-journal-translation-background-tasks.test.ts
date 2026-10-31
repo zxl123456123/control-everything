@@ -25,7 +25,7 @@ const TASK_ID = 'byjnee2no'
 const SUMMARY = 'Background command "Wait for the verification verdict" failed with exit code 1'
 
 function orcaClientMessageId(identity: AgentJournalItemIdentity): string | null {
-  return identity.provider === 'orca' ? identity.clientMessageId : null
+  return identity.provider === 'zkyq' ? identity.clientMessageId : null
 }
 
 function harness() {
@@ -210,7 +210,7 @@ describe('claude journal translation — background task rows', () => {
     })
     deferred.bind(target)
     deferred.sink.appendItem(
-      { provider: 'orca', clientMessageId: 'blocked-prefill' },
+      { provider: 'zkyq', clientMessageId: 'blocked-prefill' },
       { kind: 'message', role: 'system', blocks: [{ type: 'text', text: 'prefill' }] },
       { turnScope: AGENT_JOURNAL_THREAD_SCOPE }
     )
@@ -285,9 +285,9 @@ describe('claude journal translation — background task rows', () => {
     await deferred.drained()
 
     expect([...persisted.keys()].filter((key) => key.includes('queued-overflow'))).toEqual([
-      'orca:claude-background-task%3Aqueued-overflow'
+      'zkyq:claude-background-task%3Aqueued-overflow'
     ])
-    expect(blockOf(persisted.get('orca:claude-background-task%3Aqueued-overflow'))).toMatchObject({
+    expect(blockOf(persisted.get('zkyq:claude-background-task%3Aqueued-overflow'))).toMatchObject({
       state: 'idle',
       parentToolUseId: 'toolu-final',
       summary: 'No completion record was found'
@@ -327,9 +327,9 @@ describe('claude journal translation — background task rows', () => {
     )
     await deferred.drained()
     expect([...persisted.keys()].filter((key) => key.includes('bound-overflow'))).toEqual([
-      'orca:claude-background-task%3Abound-overflow'
+      'zkyq:claude-background-task%3Abound-overflow'
     ])
-    expect(blockOf(persisted.get('orca:claude-background-task%3Abound-overflow'))).toMatchObject({
+    expect(blockOf(persisted.get('zkyq:claude-background-task%3Abound-overflow'))).toMatchObject({
       state: 'idle',
       parentToolUseId: 'toolu-first'
     })
@@ -350,8 +350,8 @@ describe('claude journal translation — background task rows', () => {
     )
     await deferred.drained()
     expect([...persisted.keys()].filter((key) => key.includes('bound-overflow'))).toEqual([
-      'orca:claude-background-task%3Abound-overflow',
-      'orca:claude-background-task%3Abound-overflow%232'
+      'zkyq:claude-background-task%3Abound-overflow',
+      'zkyq:claude-background-task%3Abound-overflow%232'
     ])
   })
 
@@ -394,8 +394,8 @@ describe('claude journal translation — background task rows', () => {
     await restarted.drained()
 
     expect([...persisted.keys()].filter((key) => key.includes('queued-restart'))).toEqual([
-      'orca:claude-background-task%3Aqueued-restart',
-      'orca:claude-background-task%3Aqueued-restart%232'
+      'zkyq:claude-background-task%3Aqueued-restart',
+      'zkyq:claude-background-task%3Aqueued-restart%232'
     ])
   })
 
@@ -435,8 +435,8 @@ describe('claude journal translation — background task rows', () => {
     await deferred.drained()
 
     expect([...persisted.keys()].filter((key) => key.includes('queued-overlap'))).toEqual([
-      'orca:claude-background-task%3Aqueued-overlap',
-      'orca:claude-background-task%3Aqueued-overlap%232'
+      'zkyq:claude-background-task%3Aqueued-overlap',
+      'zkyq:claude-background-task%3Aqueued-overlap%232'
     ])
   })
 
@@ -496,7 +496,7 @@ describe('claude journal translation — background task rows', () => {
       })
     )
     expect([...persisted.keys()].filter((key) => key.includes('reused-after-reconnect'))).toEqual([
-      'orca:claude-background-task%3Areused-after-reconnect'
+      'zkyq:claude-background-task%3Areused-after-reconnect'
     ])
     resumed.dispose()
 
@@ -514,8 +514,8 @@ describe('claude journal translation — background task rows', () => {
 
     const rows = [...persisted.entries()].filter(([key]) => key.includes('reused-after-reconnect'))
     expect(rows.map(([key]) => key)).toEqual([
-      'orca:claude-background-task%3Areused-after-reconnect',
-      'orca:claude-background-task%3Areused-after-reconnect%232'
+      'zkyq:claude-background-task%3Areused-after-reconnect',
+      'zkyq:claude-background-task%3Areused-after-reconnect%232'
     ])
   })
 

@@ -274,7 +274,7 @@ describe("a person's Stop inside a live turn", () => {
   function providerRows(items: ReturnType<typeof sinkState>['items']): number {
     return items.filter(
       (item) =>
-        item.identity.provider === 'orca' &&
+        item.identity.provider === 'zkyq' &&
         item.identity.clientMessageId.startsWith('provider-frame:')
     ).length
   }

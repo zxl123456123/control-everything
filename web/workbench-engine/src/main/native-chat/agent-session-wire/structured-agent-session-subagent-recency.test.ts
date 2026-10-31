@@ -97,7 +97,7 @@ async function openSession() {
   /** The prompt as the host journals it; provider user frames never become user rows. */
   const prompt = (clientMessageId: string, text: string) =>
     journal.appendItem(
-      { provider: 'orca', clientMessageId },
+      { provider: 'zkyq', clientMessageId },
       { kind: 'message', role: 'user', blocks: [{ type: 'text', text }] },
       { fence: 1, turnScope: AGENT_JOURNAL_THREAD_SCOPE }
     )

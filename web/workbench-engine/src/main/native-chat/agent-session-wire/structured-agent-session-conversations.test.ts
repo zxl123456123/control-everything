@@ -46,7 +46,7 @@ function session(journal: AgentSessionJournal) {
 
 function appendStatus(journal: AgentSessionJournal, text: string) {
   return journal.appendItem(
-    { provider: 'orca', clientMessageId: text },
+    { provider: 'zkyq', clientMessageId: text },
     { kind: 'status', text },
     { fence: 0, turnScope: AGENT_JOURNAL_THREAD_SCOPE }
   )

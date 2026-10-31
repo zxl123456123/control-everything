@@ -858,7 +858,7 @@ describe('a rewind an earlier child left prepared', () => {
       persistRewindRecord(store, SESSION, fence, {
         operationId: 'rewind-op',
         callerKey: 'client-1',
-        itemId: 'orca:rewound',
+        itemId: 'zkyq:rewound',
         providerItemId: `codex:${THREAD}:turn-1:0`,
         expectedEpoch: 'epoch-before',
         phase: 'provider-succeeded',

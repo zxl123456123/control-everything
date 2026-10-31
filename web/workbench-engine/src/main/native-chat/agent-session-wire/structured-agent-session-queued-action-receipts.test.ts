@@ -563,7 +563,7 @@ describe('source-bound ordinary Continue', () => {
     if (!journal) {
       throw new Error('expected an open journal')
     }
-    const identity = { provider: 'orca' as const, clientMessageId: id }
+    const identity = { provider: 'zkyq' as const, clientMessageId: id }
     const turnItemId = agentJournalItemKey(identity)
     await journal.appendItem(
       identity,
@@ -578,7 +578,7 @@ describe('source-bound ordinary Continue', () => {
       { fence: 1, turnScope: { kind: 'thread' } }
     )
     await journal.appendItem(
-      { provider: 'orca', clientMessageId: `failure-${id}` },
+      { provider: 'zkyq', clientMessageId: `failure-${id}` },
       {
         kind: 'status',
         ...agentSessionFailureWords({ kind: 'usageLimitReached' }, { surface: 'row' })

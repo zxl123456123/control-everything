@@ -21,7 +21,7 @@ export function observeJournalProviderActivity(
   // Codex detail rows use the Orca namespace; fallback rows already name their provider.
   if (
     !identity ||
-    (identity.provider === 'orca' &&
+    (identity.provider === 'zkyq' &&
       !identity.clientMessageId.startsWith('codex-item:') &&
       !(body.kind === 'status' && body.providerFrame !== undefined))
   ) {

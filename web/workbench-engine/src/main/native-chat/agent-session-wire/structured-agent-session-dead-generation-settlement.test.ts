@@ -175,7 +175,7 @@ describe('dead structured-session generation settlement', () => {
     const content = 'x'.repeat(MAX_JOURNAL_LIFECYCLE_BATCH_BYTES)
     for (const state of ['running', 'completed'] as const) {
       await journal.appendItem(
-        { provider: 'orca', clientMessageId: `large-${state}` },
+        { provider: 'zkyq', clientMessageId: `large-${state}` },
         { kind: 'tool-call', name: 'Write', input: { content }, state },
         { fence: 7, turnScope: AGENT_JOURNAL_THREAD_SCOPE }
       )

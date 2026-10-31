@@ -22,7 +22,7 @@ import {
 import { createClaudeJournalTranslator } from './claude-structured-journal-translation'
 
 const COMMAND_IDENTITY: AgentJournalItemIdentity = {
-  provider: 'orca',
+  provider: 'zkyq',
   clientMessageId: 'command-turn:cmd-1'
 }
 const COMMAND_KEY = agentJournalItemKey(COMMAND_IDENTITY)
@@ -31,7 +31,7 @@ const RUNNING = {
   kind: 'turn' as const,
   turnId: 'compact:cmd-1',
   state: 'running' as const,
-  userItemId: 'orca:submission:cmd-1',
+  userItemId: 'zkyq:submission:cmd-1',
   requestedAt: 900,
   startedAt: 1_000
 }
@@ -94,7 +94,7 @@ function harness() {
       clientMessageId: 'cmd-1',
       turnId: RUNNING.turnId,
       identity: COMMAND_IDENTITY,
-      resultIdentity: { provider: 'orca', clientMessageId: 'command-result:cmd-1' },
+      resultIdentity: { provider: 'zkyq', clientMessageId: 'command-result:cmd-1' },
       running: RUNNING,
       providerSessionId: CAPTURED_COMPACT_SESSION_ID,
       sentUuid
@@ -136,7 +136,7 @@ describe('a captured /compact as the open Claude turn', () => {
     // Not the continuation summary, not the command's echo, not a lifecycle opcode row.
     expect(drawn()).toEqual([
       {
-        key: agentJournalItemKey({ provider: 'orca', clientMessageId: 'command-result:cmd-1' }),
+        key: agentJournalItemKey({ provider: 'zkyq', clientMessageId: 'command-result:cmd-1' }),
         body: { kind: 'status', text: 'Context compacted', presentation: 'compaction' },
         turnScope: IN_COMMAND
       }

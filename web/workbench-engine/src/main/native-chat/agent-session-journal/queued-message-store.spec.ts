@@ -145,7 +145,7 @@ export function registerQueuedMessageStoreTests(): void {
     it('opens a database an older build shaped (no drafts table) and creates the table', async () => {
       const first = await open()
       await first.appendItem(
-        { provider: 'orca', clientMessageId: 'seed' },
+        { provider: 'zkyq', clientMessageId: 'seed' },
         { kind: 'status', text: 'seed' },
         { fence: 0, turnScope: AGENT_JOURNAL_THREAD_SCOPE }
       )

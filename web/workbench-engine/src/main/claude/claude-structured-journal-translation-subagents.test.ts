@@ -11,7 +11,7 @@ import { createClaudeJournalTranslator } from './claude-structured-journal-trans
 
 /** The union's other arms carry no client message id, so reading one narrows. */
 function orcaClientMessageId(identity: AgentJournalItemIdentity): string | null {
-  return identity.provider === 'orca' ? identity.clientMessageId : null
+  return identity.provider === 'zkyq' ? identity.clientMessageId : null
 }
 
 function harness() {

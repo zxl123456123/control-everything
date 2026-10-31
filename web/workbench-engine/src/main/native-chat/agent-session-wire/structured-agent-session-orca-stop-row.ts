@@ -103,13 +103,13 @@ export async function recordStructuredAgentSessionShutdownCut(input: {
     const items = input.journal.snapshot().items
     const written = items.some((item) => {
       const identity = parseAgentJournalItemKey(item.itemId)
-      return identity?.provider === 'orca' && identity.clientMessageId === clientMessageId
+      return identity?.provider === 'zkyq' && identity.clientMessageId === clientMessageId
     })
     if (written || !cutByNobody(items.find((item) => item.itemId === turnItemId))) {
       return
     }
     await input.journal.appendItem(
-      { provider: 'orca', clientMessageId },
+      { provider: 'zkyq', clientMessageId },
       orcaStopRowBody(input.failureTextContext, input.trigger),
       { fence: input.rowFence, turnScope: { kind: 'turn', turnItemId } }
     )

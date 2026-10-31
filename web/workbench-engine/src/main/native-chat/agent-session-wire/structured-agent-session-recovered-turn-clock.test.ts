@@ -65,7 +65,7 @@ async function sessionWithRunningTurn() {
     stateDirectory: join(root, SESSION)
   })
   await journal.appendItem(
-    { provider: 'orca', clientMessageId: 'prompt-1' },
+    { provider: 'zkyq', clientMessageId: 'prompt-1' },
     { kind: 'message', role: 'user', blocks: [{ type: 'text', text: 'long job' }] },
     { fence: 1, turnScope: AGENT_JOURNAL_THREAD_SCOPE }
   )

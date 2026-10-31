@@ -13,6 +13,7 @@ import type {
 import type { AgentSessionExecutionOptions } from '../../../shared/agent-session-execution-options'
 import { agentSessionJournalProviderHandle } from '../../../shared/agent-session-provider-handle-encoding'
 import { journalRowSchemaVersion } from '../../../shared/agent-session-journal-types'
+import { canonicalJournalRowKeys } from './journal-row-key-identity'
 import { agentJournalLinkageFields } from '../../../shared/agent-session-journal-producer'
 import { agentJournalItemKey } from '../../../shared/agent-session-journal-item-key'
 import { journalItemOwnerFence } from './journal-item-provenance'
@@ -261,7 +262,7 @@ export function buildJournalItemRow(
   // any item at or below it — so a re-add has to outrank the tombstone too.
   const revision = nextJournalItemRevision(input.state, itemId, input.revisions)
   const body = turnEndAfterStop(input.state, resolved, input.body)
-  return {
+  return canonicalJournalRowKeys<JournalItemRow>({
     kind: 'item',
     ...journalItemEchoFields(input),
     itemId,
@@ -273,7 +274,7 @@ export function buildJournalItemRow(
     ...(input.recovered ? { recovered: input.recovered } : {}),
     turnScope: input.turnScope,
     ...agentJournalLinkageFields(input.linkage)
-  }
+  })
 }
 
 export function buildJournalTombstoneRow(input: {
@@ -284,14 +285,15 @@ export function buildJournalTombstoneRow(input: {
   ts: number
   revisions?: Map<string, number>
 }): JournalTombstoneRow {
+  const itemId = journalLifecycleMutationItemId({ itemId: input.itemId })
   return {
     kind: 'tombstone',
-    itemId: input.itemId,
+    itemId,
     // Symmetric with the item builder: `upsertItem` clearing the tombstone on a
     // re-add is what keeps the two maps disjoint, and that invariant lives in the
     // reducer. Outranking both here means a repeat removal cannot be dropped as a
     // stale revision if it ever stops holding.
-    revision: nextJournalItemRevision(input.state, input.itemId, input.revisions),
+    revision: nextJournalItemRevision(input.state, itemId, input.revisions),
     ...journalRowBase(input.state.epoch, input.seq, input.fence, input.ts)
   }
 }

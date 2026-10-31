@@ -81,7 +81,7 @@ async function openFeed() {
     feed.publish(SESSION, journal)
   }
   await write(
-    { provider: 'orca', clientMessageId: 'prompt-1' },
+    { provider: 'zkyq', clientMessageId: 'prompt-1' },
     { kind: 'message', role: 'user', blocks: [{ type: 'text', text: 'go' }] }
   )
   return { published, write }

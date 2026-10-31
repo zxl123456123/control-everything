@@ -15,7 +15,10 @@ import type {
   AgentJournalTurnLifecycle,
   AgentSessionJournalIdentity
 } from '../../../shared/agent-session-journal-types'
-import { agentJournalItemKey } from '../../../shared/agent-session-journal-item-key'
+import {
+  agentJournalItemKey,
+  canonicalAgentJournalItemKey
+} from '../../../shared/agent-session-journal-item-key'
 import type { AgentSessionContextUsage } from '../../../shared/agent-session-context-usage'
 import { latestStructuredAgentContextFacts } from '../../../shared/structured-agent-session-context-usage'
 import {
@@ -209,14 +212,15 @@ export class AgentSessionJournal {
 
   /** One reduced item's body by its journal key, for a writer revising a row it can name. */
   itemBody = (itemId: string): AgentJournalItemBody | null =>
-    this.state.items.get(itemId)?.body ?? null
+    this.state.items.get(canonicalAgentJournalItemKey(itemId))?.body ?? null
 
   /** Host-only: the stopped messages each handed-over send carried, by its client message id. */
   stoppedHistoryCarried = (): ReadonlyMap<string, readonly string[]> =>
     this.state.stoppedHistoryCarried
 
   /** One reduced item with its attribution, for a writer that needs the turn a row joined. */
-  item = (itemId: string): AgentJournalRenderItem | null => this.state.items.get(itemId) ?? null
+  item = (itemId: string): AgentJournalRenderItem | null =>
+    this.state.items.get(canonicalAgentJournalItemKey(itemId)) ?? null
 
   /** Visits reduced items with the producer that wrote each, for a producer re-deriving what an
    *  earlier run of this session left. */
@@ -252,10 +256,12 @@ export class AgentSessionJournal {
 
   /** Whose execution the item is now, while it is in the timeline: the run a reusable child's row
    *  last named (`JournalItemRow.executionOwner`), else its creator (`JournalItemRow.ownerFence`). */
-  itemFence = (itemId: string): number | undefined => journalItemExecutionFence(this.state, itemId)
+  itemFence = (itemId: string): number | undefined =>
+    journalItemExecutionFence(this.state, canonicalAgentJournalItemKey(itemId))
 
   /** Both provenance facts as stored, for a rebuild that writes them again. */
-  itemProvenance = (itemId: string) => journalItemProvenance(this.state, itemId)
+  itemProvenance = (itemId: string) =>
+    journalItemProvenance(this.state, canonicalAgentJournalItemKey(itemId))
 
   /** Latest saved output at this fence, excluding client actions and recovery bookkeeping. */
   lastProviderActivityAt = (fence: number) => this.state.providerActivityAt.get(fence)

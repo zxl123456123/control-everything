@@ -165,8 +165,8 @@ describe('codex item identity', () => {
       ordinals
     })
 
-    expect(command).toEqual({ provider: 'orca', clientMessageId: 'codex-item:thread-abc:item-2' })
-    expect(orphan).toEqual({ provider: 'orca', clientMessageId: 'codex-item:thread-abc:item-1' })
+    expect(command).toEqual({ provider: 'zkyq', clientMessageId: 'codex-item:thread-abc:item-2' })
+    expect(orphan).toEqual({ provider: 'zkyq', clientMessageId: 'codex-item:thread-abc:item-1' })
   })
 })
 

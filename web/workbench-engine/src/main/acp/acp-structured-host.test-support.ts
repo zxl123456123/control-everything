@@ -146,7 +146,7 @@ export async function openHostRig(
   const exchange = async (text: string, end: boolean) => {
     await ready()
     const journal = host.collaboratorsForTests().sessions.get(SESSION)!.journal
-    await journal.appendItem({ provider: 'orca', clientMessageId: 'm1' }, hello, {
+    await journal.appendItem({ provider: 'zkyq', clientMessageId: 'm1' }, hello, {
       fence: fence(),
       turnScope: { kind: 'thread' }
     })

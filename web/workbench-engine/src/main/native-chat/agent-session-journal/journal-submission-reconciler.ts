@@ -31,7 +31,7 @@ export type ProviderHistoryItem = {
    *  provider content. Used only to break an otherwise unique tie. */
   payloadFingerprint: string | null
   /** Absent when the provider keeps no identity of its own for the item: a submission it matches
-   *  keeps Orca's (`orca:<clientMessageId>`), which is the identity its row already has. */
+   *  keeps the host's (`zkyq:<clientMessageId>`), which is the identity its row already has. */
   identity?: AgentJournalItemIdentity
 }
 
@@ -172,7 +172,7 @@ function resolveOne(
       clientMessageId: submission.clientMessageId,
       outcome: 'accepted',
       providerItemId: item.providerItemId,
-      identity: item.identity ?? { provider: 'orca', clientMessageId: submission.clientMessageId }
+      identity: item.identity ?? { provider: 'zkyq', clientMessageId: submission.clientMessageId }
     }
   }
   if (ambiguous.has(submission.clientMessageId)) {

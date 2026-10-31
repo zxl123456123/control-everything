@@ -93,7 +93,7 @@ const cutChat: AgentJournalRenderItem[] = [
     body: { kind: 'turn', turnId: 'cut', state: 'interrupted', startedAt: 1, completedAt: 5 }
   },
   {
-    itemId: agentJournalItemKey({ provider: 'orca', clientMessageId: 'stale-session:s:death-1-5' }),
+    itemId: agentJournalItemKey({ provider: 'zkyq', clientMessageId: 'stale-session:s:death-1-5' }),
     revision: 1,
     sequence: 2,
     observedAt: 6,

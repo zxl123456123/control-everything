@@ -73,7 +73,7 @@ export function registerJournalRowContextUsageTests(): void {
     })
 
   function row(ordinal: number): AgentJournalItemIdentity {
-    return { provider: 'orca', clientMessageId: `row-${ordinal}` }
+    return { provider: 'zkyq', clientMessageId: `row-${ordinal}` }
   }
 
   const turn = (turnId: string, contextUsage?: AgentSessionContextUsage): AgentJournalItemBody => ({
@@ -152,7 +152,7 @@ export function registerJournalRowContextUsageTests(): void {
           mutations: [
             {
               kind: 'item',
-              itemId: 'orca:row-0',
+              itemId: 'zkyq:row-0',
               revision: 2,
               body: { ...turn('turn-0'), contextUsage: { window: { tokens: -1 } } }
             }
@@ -160,7 +160,7 @@ export function registerJournalRowContextUsageTests(): void {
         })
       )
       expect(parsed.ok && parsed.row.kind === 'lifecycle-batch' && parsed.row.mutations).toEqual([
-        { kind: 'item', itemId: 'orca:row-0', revision: 2, body: turn('turn-0') }
+        { kind: 'item', itemId: 'zkyq:row-0', revision: 2, body: turn('turn-0') }
       ])
     })
   })

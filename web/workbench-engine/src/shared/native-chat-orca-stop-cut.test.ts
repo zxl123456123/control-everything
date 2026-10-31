@@ -17,7 +17,7 @@ const turnId = agentJournalItemKey({ provider: 'codex', threadId: 't', turnId: '
 
 function userMessage(sequence: number): AgentJournalRenderItem {
   return {
-    itemId: agentJournalItemKey({ provider: 'orca', clientMessageId: `user-${sequence}` }),
+    itemId: agentJournalItemKey({ provider: 'zkyq', clientMessageId: `user-${sequence}` }),
     revision: 1,
     sequence,
     observedAt: sequence,
@@ -47,7 +47,7 @@ function cutTurn(outcome?: AgentJournalTurnOutcome): AgentJournalRenderItem {
 function stopRow(orcaStop: { cause: string } | undefined, scoped = true): AgentJournalRenderItem {
   return {
     itemId: agentJournalItemKey({
-      provider: 'orca',
+      provider: 'zkyq',
       clientMessageId: orcaShutdownRowClientMessageId('session-1', 3, 'gen-1')
     }),
     revision: 1,

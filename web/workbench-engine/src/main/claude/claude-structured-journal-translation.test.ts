@@ -582,7 +582,7 @@ describe('Claude structured journal translation', () => {
       state.items.map((item) => [agentJournalItemKey(item.identity), item.body])
     )
     expect(keyed.has('claude:claude-session:user-1')).toBe(false)
-    expect(keyed.get('orca:claude-tool%3Aclaude-session%3Atool-1')).toMatchObject({
+    expect(keyed.get('zkyq:claude-tool%3Aclaude-session%3Atool-1')).toMatchObject({
       kind: 'tool-call',
       name: 'Bash',
       callId: 'tool-1',
@@ -667,7 +667,7 @@ describe('Claude structured journal translation', () => {
     )
 
     expect(state.items.map((item) => agentJournalItemKey(item.identity))).toEqual([
-      'orca:claude-tool%3Aclaude-session%3Atool-1'
+      'zkyq:claude-tool%3Aclaude-session%3Atool-1'
     ])
     expect(state.items[0]?.body).toMatchObject({
       kind: 'tool-call',
@@ -780,7 +780,7 @@ describe('Claude structured journal translation', () => {
       options: expect.arrayContaining([{ id: 'allow', label: 'Allow' }])
     })
     expect(bindings[0]).toEqual([
-      'orca:claude-prompt%3Aorca-session%3Apermission-1',
+      'zkyq:claude-prompt%3Aorca-session%3Apermission-1',
       'permission-1'
     ])
 
@@ -808,7 +808,7 @@ describe('Claude structured journal translation', () => {
       ]
     })
     expect(bindings.at(-1)).toEqual([
-      'orca:claude-prompt%3Aorca-session%3Aquestions-1',
+      'zkyq:claude-prompt%3Aorca-session%3Aquestions-1',
       'questions-1'
     ])
 

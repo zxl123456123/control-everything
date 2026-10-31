@@ -177,7 +177,7 @@ describe('Codex context usage in the journal', () => {
 
     // The host opens the command's turn; the provider turn Codex starts for it writes none.
     const identity: AgentJournalItemIdentity = {
-      provider: 'orca',
+      provider: 'zkyq',
       clientMessageId: 'command-turn:cmd-1'
     }
     const running = { kind: 'turn' as const, turnId: 'compact:cmd-1', state: 'running' as const }
@@ -186,7 +186,7 @@ describe('Codex context usage in the journal', () => {
       clientMessageId: 'cmd-1',
       turnId: running.turnId,
       identity,
-      resultIdentity: { provider: 'orca', clientMessageId: 'command-result:cmd-1' },
+      resultIdentity: { provider: 'zkyq', clientMessageId: 'command-result:cmd-1' },
       running
     })
     on('turn/started', { turn: { id: 'compact-turn' } })

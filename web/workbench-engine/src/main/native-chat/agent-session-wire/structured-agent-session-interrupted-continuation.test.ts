@@ -212,7 +212,7 @@ it('continues a reply the user had steered before Orca stopped', async () => {
   }
   // A steer the cut turn took: the client still offers Continue, so the host must agree.
   await journal.appendItem(
-    { provider: 'orca', clientMessageId: 'steer' },
+    { provider: 'zkyq', clientMessageId: 'steer' },
     hostTestMessage('also update the tests'),
     { fence, turnScope: { kind: 'turn', turnItemId } }
   )
