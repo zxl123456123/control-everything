@@ -1,8 +1,8 @@
 import type { PiAgentKind } from '../../shared/pi-agent-kind'
 
-export const ORCA_PI_PREFILL_EXTENSION_FILE = 'orca-prefill.ts'
+export { PI_PREFILL_EXTENSION_FILE } from '../../shared/pi-managed-extension-install'
 
-// Why: prefill-without-submit needs an env-var the bundled `orca-prefill.ts`
+// Why: prefill-without-submit needs an env-var the bundled `zkyq-prefill.ts`
 // extension can read on session_start. Each kind owns its own variable so an
 // OMP PTY never honors a Pi draft (or vice versa).
 type PrefillAgentKind = Exclude<PiAgentKind, 'prime-agent'>

@@ -251,12 +251,12 @@ export function createPtyIpcSuiteEnvironment(): PtyIpcSuiteEnvironment {
           if (!existingAgentDir && !materializeDefaultHome) {
             return {
               ORCA_OMP_STATUS_EXTENSION:
-                '/tmp/orca-user-data/omp-managed-status-extension/orca-agent-status.ts'
+                '/tmp/orca-user-data/omp-managed-status-extension/zkyq-agent-status.ts'
             }
           }
           return {
             ORCA_OMP_SOURCE_AGENT_DIR: existingAgentDir ?? '/tmp/default-omp-agent',
-            ORCA_OMP_STATUS_EXTENSION: `${existingAgentDir ?? '/tmp/default-omp-agent'}/extensions/orca-agent-status.ts`
+            ORCA_OMP_STATUS_EXTENSION: `${existingAgentDir ?? '/tmp/default-omp-agent'}/extensions/zkyq-agent-status.ts`
           }
         }
         if (kind === 'prime-agent') {

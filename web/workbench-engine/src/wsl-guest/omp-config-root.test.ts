@@ -41,8 +41,8 @@ describe('relay OMP config root', () => {
       )
       const expected = join(home, config || '.omp', 'agent')
       expect(result?.sourceAgentDir).toBe(expected)
-      expect(readFileSync(join(expected, 'extensions', 'orca-agent-status.ts'), 'utf8')).toContain(
-        '@orca-managed-pi-extension'
+      expect(readFileSync(join(expected, 'extensions', 'zkyq-agent-status.ts'), 'utf8')).toContain(
+        '@zkyq-managed-pi-extension'
       )
       if (config) {
         expect(existsSync(join(home, '.omp'))).toBe(false)

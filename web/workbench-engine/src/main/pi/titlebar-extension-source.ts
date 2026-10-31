@@ -2,7 +2,7 @@ import { getPiTitlebarLifetimeSourceLines } from './titlebar-extension-lifetime-
 import type { PiAgentKind } from '../../shared/pi-agent-kind'
 import { getPiOmpRuntimeDetectionSourceLines } from './agent-status-runtime-detection-source'
 
-export const ORCA_PI_EXTENSION_FILE = 'orca-titlebar-spinner.ts'
+export { PI_TITLEBAR_EXTENSION_FILE } from '../../shared/pi-managed-extension-install'
 
 export function getPiTitlebarExtensionSource(kind: PiAgentKind = 'pi'): string {
   // Why: OMP reports input waits through its own approval events, which the status

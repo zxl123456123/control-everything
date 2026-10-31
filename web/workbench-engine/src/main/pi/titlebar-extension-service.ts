@@ -1,18 +1,22 @@
 import { materializeOmpFreshConfig } from '../../shared/omp-fresh-config'
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { getAppEnvironment } from '../../shared/app-environment'
 import { createHash } from 'node:crypto'
 import {
-  ORCA_PI_AGENT_STATUS_EXTENSION_FILE,
+  PI_AGENT_STATUS_EXTENSION_FILE,
   getPiAgentStatusExtensionSource
 } from './agent-status-extension-source'
+import { PI_PREFILL_EXTENSION_FILE, getPiPrefillExtensionSource } from './prefill-extension-source'
 import {
-  ORCA_PI_PREFILL_EXTENSION_FILE,
-  getPiPrefillExtensionSource
-} from './prefill-extension-source'
-import { ORCA_PI_EXTENSION_FILE, getPiTitlebarExtensionSource } from './titlebar-extension-source'
+  PI_TITLEBAR_EXTENSION_FILE,
+  getPiTitlebarExtensionSource
+} from './titlebar-extension-source'
+import {
+  markManagedPiExtension,
+  writeManagedPiExtension
+} from '../../shared/pi-managed-extension-install'
 import {
   isSafeDescendCandidate as sharedIsSafeDescendCandidate,
   safeRemoveOverlay
@@ -27,7 +31,6 @@ import type { PiAgentKind } from '../../shared/pi-agent-kind'
 export const isSafeDescendCandidate = sharedIsSafeDescendCandidate
 
 const PI_AGENT_SUBDIR = 'agent'
-const ORCA_MANAGED_EXTENSION_MARKER = '@orca-managed-pi-extension'
 const OMP_MANAGED_STATUS_EXTENSION_DIR = 'omp-managed-status-extension'
 
 type ManagedExtensionWriteResult = 'written' | 'skipped-user-owned' | 'failed'
@@ -68,12 +71,6 @@ function toSafeOverlayDirName(ptyId: string): string {
   return createHash('sha256').update(ptyId).digest('hex').slice(0, 32)
 }
 
-function withOrcaManagedExtensionMarker(source: string): string {
-  return source.includes(ORCA_MANAGED_EXTENSION_MARKER)
-    ? source
-    : `// ${ORCA_MANAGED_EXTENSION_MARKER}\n${source}`
-}
-
 export class PiTitlebarExtensionService {
   private getOverlayRoot(kind: LegacyOverlayAgentKind): string {
     return join(getAppEnvironment().getPath('userData'), OVERLAY_ROOT_DIR_NAME[kind])
@@ -102,22 +99,9 @@ export class PiTitlebarExtensionService {
     safeRemoveOverlay(overlayDir, this.getOverlayRoot(kind))
   }
 
-  private canOverwriteManagedExtension(path: string): boolean {
-    try {
-      return readFileSync(path, 'utf8').includes(ORCA_MANAGED_EXTENSION_MARKER)
-    } catch {
-      return true
-    }
-  }
-
   private writeManagedExtension(path: string, source: string): ManagedExtensionWriteResult {
-    if (existsSync(path) && !this.canOverwriteManagedExtension(path)) {
-      return 'skipped-user-owned'
-    }
-
     try {
-      writeFileSync(path, source)
-      return 'written'
+      return writeManagedPiExtension(path, source) ? 'written' : 'skipped-user-owned'
     } catch {
       return 'failed'
     }
@@ -134,7 +118,7 @@ export class PiTitlebarExtensionService {
       return undefined
     }
 
-    const fallbackPath = join(fallbackDir, ORCA_PI_AGENT_STATUS_EXTENSION_FILE)
+    const fallbackPath = join(fallbackDir, PI_AGENT_STATUS_EXTENSION_FILE)
     return this.writeManagedExtension(fallbackPath, source) === 'written' ? fallbackPath : undefined
   }
 
@@ -151,16 +135,16 @@ export class PiTitlebarExtensionService {
 
     if (kind !== 'prime-agent') {
       this.writeManagedExtension(
-        join(extensionsDir, ORCA_PI_EXTENSION_FILE),
-        withOrcaManagedExtensionMarker(getPiTitlebarExtensionSource(kind))
+        join(extensionsDir, PI_TITLEBAR_EXTENSION_FILE),
+        markManagedPiExtension(getPiTitlebarExtensionSource(kind))
       )
       this.writeManagedExtension(
-        join(extensionsDir, ORCA_PI_PREFILL_EXTENSION_FILE),
-        withOrcaManagedExtensionMarker(getPiPrefillExtensionSource(kind))
+        join(extensionsDir, PI_PREFILL_EXTENSION_FILE),
+        markManagedPiExtension(getPiPrefillExtensionSource(kind))
       )
     }
-    const statusExtensionPath = join(extensionsDir, ORCA_PI_AGENT_STATUS_EXTENSION_FILE)
-    const statusSource = withOrcaManagedExtensionMarker(getPiAgentStatusExtensionSource(kind))
+    const statusExtensionPath = join(extensionsDir, PI_AGENT_STATUS_EXTENSION_FILE)
+    const statusSource = markManagedPiExtension(getPiAgentStatusExtensionSource(kind))
     const statusResult = this.writeManagedExtension(statusExtensionPath, statusSource)
 
     return {
@@ -209,7 +193,7 @@ export class PiTitlebarExtensionService {
     const materializeDefaultHome = options?.materializeDefaultHome !== false
     if (!existsSync(sourceAgentDir) && !materializeDefaultHome) {
       if (kind === 'omp') {
-        const statusSource = withOrcaManagedExtensionMarker(getPiAgentStatusExtensionSource(kind))
+        const statusSource = markManagedPiExtension(getPiAgentStatusExtensionSource(kind))
         const statusExtensionPath = this.writeOmpFallbackStatusExtension(statusSource)
         return statusExtensionPath
           ? { ...freshConfigEnv, ORCA_OMP_STATUS_EXTENSION: statusExtensionPath }

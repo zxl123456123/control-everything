@@ -18,7 +18,7 @@ import { getPiAgentStatusRuntimeDetectionSourceLines } from './agent-status-runt
 import { getPiAgentStatusWslCurlSourceLines } from './agent-status-wsl-curl-source'
 import { getPiSubagentSnapshotSourceLines } from './agent-status-subagent-roster-source'
 
-export const ORCA_PI_AGENT_STATUS_EXTENSION_FILE = 'orca-agent-status.ts'
+export { PI_AGENT_STATUS_EXTENSION_FILE } from '../../shared/pi-managed-extension-install'
 
 /** Source of the status extension installed into a Pi-family agent's extension
  *  dir: it POSTs lifecycle, tool, and (under OMP) model events to Orca's hook

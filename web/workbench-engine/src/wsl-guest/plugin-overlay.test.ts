@@ -31,6 +31,34 @@ describe('PluginOverlayManager', () => {
     rmSync(homeDir, { recursive: true, force: true })
   })
 
+  it.each(['pi', 'omp', 'prime-agent'] as const)(
+    'migrates a retired %s extension through the relay installer',
+    (kind) => {
+      const directory = join(homeDir, 'agent-home')
+      const extensions = join(directory, 'extensions')
+      mkdirSync(extensions, { recursive: true })
+      const original = '// @orca-managed-pi-extension\r\n// retained operator edit 中文\r\n'
+      writeFileSync(join(extensions, 'orca-agent-status.ts'), original)
+      writeFileSync(join(directory, 'auth.json'), 'retained auth fixture')
+      manager.setSources({
+        piExtensionSource: 'pi fixture',
+        ompExtensionSource: 'omp fixture',
+        primeAgentExtensionSource: 'prime fixture'
+      })
+      expect(manager.materializePi('migration-test', directory, kind)).toEqual({
+        sourceAgentDir: directory,
+        statusExtensionPath: join(extensions, 'zkyq-agent-status.ts')
+      })
+      expect(readdirSync(extensions)).toEqual(['zkyq-agent-status.ts'])
+      const archiveDir = join(directory, '.zkyq-retired-extensions')
+      expect(readFileSync(join(archiveDir, readdirSync(archiveDir)[0]), 'utf8')).toBe(original)
+      expect(readFileSync(join(directory, 'auth.json'), 'utf8')).toBe('retained auth fixture')
+      const before = statSync(join(extensions, 'zkyq-agent-status.ts')).mtimeMs
+      expect(manager.materializePi('migration-repeat', directory, kind)).not.toBeNull()
+      expect(statSync(join(extensions, 'zkyq-agent-status.ts')).mtimeMs).toBe(before)
+    }
+  )
+
   it('reports no source until install runs', () => {
     expect(manager.hasOpenCodeSource()).toBe(false)
     expect(manager.hasPiSource()).toBe(false)
@@ -238,15 +266,15 @@ describe('PluginOverlayManager', () => {
     manager.setSources({ piExtensionSource: '// pi extension' })
     const result = manager.materializePi('tab-2:0')
     expect(result?.sourceAgentDir).toBeDefined()
-    const file = join(result!.sourceAgentDir!, 'extensions', 'orca-agent-status.ts')
+    const file = join(result!.sourceAgentDir!, 'extensions', 'zkyq-agent-status.ts')
     expect(result?.statusExtensionPath).toBe(file)
     expect(existsSync(file)).toBe(true)
-    expect(readFileSync(file, 'utf8')).toContain('@orca-managed-pi-extension')
+    expect(readFileSync(file, 'utf8')).toContain('@zkyq-managed-pi-extension')
   })
 
   it("does not overwrite a user's same-named remote Pi extension file", () => {
     const piAgentDir = join(homeDir, '.pi', 'agent')
-    const extensionFile = join(piAgentDir, 'extensions', 'orca-agent-status.ts')
+    const extensionFile = join(piAgentDir, 'extensions', 'zkyq-agent-status.ts')
     mkdirSync(join(piAgentDir, 'extensions'), { recursive: true })
     writeFileSync(extensionFile, 'user-owned remote status extension')
 
@@ -267,10 +295,10 @@ describe('PluginOverlayManager', () => {
     expect(piResult?.sourceAgentDir).toBeDefined()
     expect(ompResult?.sourceAgentDir).toBeDefined()
     expect(
-      readFileSync(join(piResult!.sourceAgentDir!, 'extensions', 'orca-agent-status.ts'), 'utf8')
+      readFileSync(join(piResult!.sourceAgentDir!, 'extensions', 'zkyq-agent-status.ts'), 'utf8')
     ).toContain('// pi extension')
     expect(
-      readFileSync(join(ompResult!.sourceAgentDir!, 'extensions', 'orca-agent-status.ts'), 'utf8')
+      readFileSync(join(ompResult!.sourceAgentDir!, 'extensions', 'zkyq-agent-status.ts'), 'utf8')
     ).toContain('// omp extension')
   })
 
@@ -317,8 +345,8 @@ describe('PluginOverlayManager', () => {
       'user extension'
     )
     expect(readdirSync(join(dir!, 'extensions')).sort()).toEqual([
-      'orca-agent-status.ts',
-      'user-ext'
+      'user-ext',
+      'zkyq-agent-status.ts'
     ])
     expect(JSON.parse(readFileSync(join(dir!, 'settings.json'), 'utf8'))).toEqual({
       defaultProvider: 'amazon-bedrock',
@@ -354,7 +382,7 @@ describe('PluginOverlayManager', () => {
     expect(dir).toBeDefined()
     expect(readFileSync(join(dir!, 'auth.json'), 'utf8')).toBe('custom token')
     expect(readFileSync(join(dir!, 'extensions', 'custom.ts'), 'utf8')).toBe('custom extension')
-    expect(readFileSync(join(dir!, 'extensions', 'orca-agent-status.ts'), 'utf8')).toContain(
+    expect(readFileSync(join(dir!, 'extensions', 'zkyq-agent-status.ts'), 'utf8')).toContain(
       '// pi extension'
     )
   })
@@ -406,7 +434,7 @@ describe('PluginOverlayManager', () => {
       expect(readFileSync(join(dir!, 'auth.json'), 'utf8')).toBe('pi token')
       const extensions = readdirSync(join(dir!, 'extensions')).sort()
       expect(extensions).toContain('pi-ext')
-      expect(extensions).toContain('orca-agent-status.ts')
+      expect(extensions).toContain('zkyq-agent-status.ts')
       expect(extensions).not.toContain('omp-ext')
     })
 
@@ -425,7 +453,7 @@ describe('PluginOverlayManager', () => {
       expect(readFileSync(join(dir!, 'auth.json'), 'utf8')).toBe('omp token')
       const extensions = readdirSync(join(dir!, 'extensions')).sort()
       expect(extensions).toContain('omp-ext')
-      expect(extensions).toContain('orca-agent-status.ts')
+      expect(extensions).toContain('zkyq-agent-status.ts')
       expect(extensions).not.toContain('pi-ext')
     })
 
@@ -444,7 +472,7 @@ describe('PluginOverlayManager', () => {
       // Pi-only home must NOT leak into the OMP home.
       expect(existsSync(join(dir!, 'auth.json'))).toBe(false)
       const extensions = readdirSync(join(dir!, 'extensions')).sort()
-      expect(extensions).toEqual(['orca-agent-status.ts'])
+      expect(extensions).toEqual(['zkyq-agent-status.ts'])
     })
 
     it('bare-shell prep does not create missing remote agent homes (#10196)', () => {

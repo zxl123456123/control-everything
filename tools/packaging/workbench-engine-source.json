@@ -327255,7 +327255,9 @@
     "src/main/agent-hooks/shared-hook-state-identity.test.ts",
     "src/shared/agent-hook-environment-identity.test.ts",
     "src/shared/agent-hook-environment-identity.ts",
-    "src/main/agent-hooks/wsl-hook-fs-adapter.test.ts"
+    "src/main/agent-hooks/wsl-hook-fs-adapter.test.ts",
+    "src/shared/pi-managed-extension-install.ts",
+    "src/shared/pi-managed-extension-install.test.ts"
   ],
   "adapted_files": [
     {
@@ -331791,8 +331793,8 @@
     {
       "path": "src/main/ipc/pty-ipc-suite-environment.ts",
       "upstream_sha256": "e02bc0ae199320f5b22e3def571ee0a2a4a97d2500d750c062edd8f02f8e8687",
-      "current_sha256": "8a7acf4cc4167e21d18c8222b90a25b169f723363641a097bed69c4bd0ba5193",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+      "current_sha256": "93a476a070db5500f6c4c931c86fc7c428064633ea3a2e95e6b67f541d888960",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义；Pi/OMP/Prime扩展统一zkyq文件名和生成标记；本机与relay共用精确所有权检查、原子发布和旧入口原字节移出加载目录，保护用户文件并在发布失败时恢复；保留旧overlay数据排除合同"
     },
     {
       "path": "src/main/ipc/pty/opencode-legacy-spawn-deletions.test.ts",
@@ -334827,8 +334829,8 @@
     {
       "path": "src/wsl-guest/wsl-install-plugins-handler.test.ts",
       "upstream_sha256": "b52d6620a20475c7fbb9e4fef0872e9755424e3cba5a2dfeadc7a24b15766c18",
-      "current_sha256": "43703236df542b0ff522508b7c44f6a3f5561553ed67a0170fb3d32e779a697f",
-      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属；OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场"
+      "current_sha256": "6c78a6d4b53d9ca8feaee86b0ca43044a5e886f34160c1d10c2eedba07c2f57c",
+      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属；OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场；Pi/OMP/Prime扩展统一zkyq文件名和生成标记；本机与relay共用精确所有权检查、原子发布和旧入口原字节移出加载目录，保护用户文件并在发布失败时恢复；保留旧overlay数据排除合同"
     },
     {
       "path": "src/main/agent-hooks/wsl-opencode-install-race.test.ts",
@@ -334971,14 +334973,14 @@
     {
       "path": "src/wsl-guest/plugin-overlay.test.ts",
       "upstream_sha256": "65efb655043c8c4ecb8dd8a2b13be06164d7800ef7b67ecb51366cedc1b0f165",
-      "current_sha256": "a86c324a71ee6d5456e9b34f4156d772603ae0f8676148eadb0a4cfc236eb2b3",
-      "reason": "OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场"
+      "current_sha256": "73296ccb0266c78b8f4009e817714a40bb6b5a842cbf082d0281008793217e4d",
+      "reason": "OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场；Pi/OMP/Prime扩展统一zkyq文件名和生成标记；本机与relay共用精确所有权检查、原子发布和旧入口原字节移出加载目录，保护用户文件并在发布失败时恢复；保留旧overlay数据排除合同"
     },
     {
       "path": "src/wsl-guest/plugin-overlay.ts",
       "upstream_sha256": "b0c27a5973a0ca14e565acda1a5c7a1d9cdf90906240ff02e59a56435066491d",
-      "current_sha256": "0bfe5a0e7c07ddd71a30e51725838a137e98cacacf23497d6e39d384f12e4293",
-      "reason": "OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场"
+      "current_sha256": "cd5a1a3d285b0b5523baeba22990fa5c8cd63941270e97e79ddd5f14cee83a6d",
+      "reason": "OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场；Pi/OMP/Prime扩展统一zkyq文件名和生成标记；本机与relay共用精确所有权检查、原子发布和旧入口原字节移出加载目录，保护用户文件并在发布失败时恢复；保留旧overlay数据排除合同"
     },
     {
       "path": "config/scripts/build-windows-agent-hook.mjs",
@@ -335355,8 +335357,8 @@
     {
       "path": "src/main/pi/agent-status-extension-source.ts",
       "upstream_sha256": "c02210343e79f22a8c44376a7f89fefed1a9b2aab49826d169dc8fab9a364ec5",
-      "current_sha256": "00d8afb67e002f5ebe26450f3c7f176cd2e9d345a14f95c2add42e0c5dd0c7f1",
-      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+      "current_sha256": "bfc1324563d4f5a7c195e298246f836f04e38754fb5e5ea6057285787438865e",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义；Pi/OMP/Prime扩展统一zkyq文件名和生成标记；本机与relay共用精确所有权检查、原子发布和旧入口原字节移出加载目录，保护用户文件并在发布失败时恢复；保留旧overlay数据排除合同"
     },
     {
       "path": "src/main/pi/agent-status-wsl-curl-source.ts",
@@ -336183,8 +336185,8 @@
     {
       "path": "src/main/pi/prefill-extension-source.ts",
       "upstream_sha256": "388fe31c6b9831187983c291c2c6adbb8bd13c6cc99a18a77bbe9a79787f7dd0",
-      "current_sha256": "8f349ca0e73259f0704e76bebfc7fa5481a8a4bad2f2edf3d841cf6f46287875",
-      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+      "current_sha256": "2f2d44728f8b1c1d5f2da357b7ebe864fc844e87a7357a9771a0762c42abba25",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义；Pi/OMP/Prime扩展统一zkyq文件名和生成标记；本机与relay共用精确所有权检查、原子发布和旧入口原字节移出加载目录，保护用户文件并在发布失败时恢复；保留旧overlay数据排除合同"
     },
     {
       "path": "src/main/pi/rpc-model-catalog-probe.test.ts",
@@ -336207,8 +336209,8 @@
     {
       "path": "src/main/pi/titlebar-extension-source.ts",
       "upstream_sha256": "91d2b88498e93f3f4f6bd363541deea28d0ea244575065b4d695d61cdd858793",
-      "current_sha256": "9164f043a225fcac79bad3b83cd56bae5ef77eca6b7c2ef524e52ee5de709bce",
-      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+      "current_sha256": "3ccb3474f0abe6deef91237603f62eb7558a3c2050650aced98890995b10a368",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义；Pi/OMP/Prime扩展统一zkyq文件名和生成标记；本机与relay共用精确所有权检查、原子发布和旧入口原字节移出加载目录，保护用户文件并在发布失败时恢复；保留旧overlay数据排除合同"
     },
     {
       "path": "src/main/providers/local-pty-launch-helpers.ts",
@@ -336767,6 +336769,48 @@
       "upstream_sha256": "ac7e2c0b290782dd63a0f5c067434ef11683d555aa2a6c2d6facc57f6dc17a33",
       "current_sha256": "f8bfdfab78a9526df6c6ddf891027bda3e693e5dc669d9e2e25eeacc5850d00d",
       "reason": "补齐WSL文件桥lstat，使插件身份迁移的所有权校验保持可用；保留home边界、错误映射和不跟随符号链接的语义"
+    },
+    {
+      "path": "src/main/ipc/pty-ipc-test-constants.ts",
+      "upstream_sha256": "18f5d70f927e15cb01a0234484413d9c150aca2a907da3981de310815e440e8a",
+      "current_sha256": "b051c19f472ab4770df9b3f491fd48dc49bbc97ec3a34d706e214f663b0565ac",
+      "reason": "Pi/OMP/Prime扩展统一zkyq文件名和生成标记；本机与relay共用精确所有权检查、原子发布和旧入口原字节移出加载目录，保护用户文件并在发布失败时恢复；保留旧overlay数据排除合同"
+    },
+    {
+      "path": "src/main/pi/legacy-omp-overlay-migration.ts",
+      "upstream_sha256": "bf5babab56a66ff35698cf78f7e98354bef118c175caa0690967594aabe3cabc",
+      "current_sha256": "d852005f0b6c602bea27b1334696ab4b934dca3d1fe9646ab5e06e529959228a",
+      "reason": "Pi/OMP/Prime扩展统一zkyq文件名和生成标记；本机与relay共用精确所有权检查、原子发布和旧入口原字节移出加载目录，保护用户文件并在发布失败时恢复；保留旧overlay数据排除合同"
+    },
+    {
+      "path": "src/main/pi/titlebar-extension-overlay-path.test.ts",
+      "upstream_sha256": "82b9f4729b930a2709e363b55e90a4c8669e8c4a06750ee8882fce38582eecc4",
+      "current_sha256": "a2577f18d11ec5b046ba26c2bcee097b69b66bf19c0e74e87ca70b00e17b2763",
+      "reason": "Pi/OMP/Prime扩展统一zkyq文件名和生成标记；本机与relay共用精确所有权检查、原子发布和旧入口原字节移出加载目录，保护用户文件并在发布失败时恢复；保留旧overlay数据排除合同"
+    },
+    {
+      "path": "src/main/pi/titlebar-extension-service.test.ts",
+      "upstream_sha256": "9d51f92f8412bf1daafda7e48e651e51dd8859d7df0a03b8b143ccd0ac33472f",
+      "current_sha256": "3bb025bd2aa9838058153a57fdd7466a4881c8ca20bbebdfd061ba8b2ccdccd5",
+      "reason": "Pi/OMP/Prime扩展统一zkyq文件名和生成标记；本机与relay共用精确所有权检查、原子发布和旧入口原字节移出加载目录，保护用户文件并在发布失败时恢复；保留旧overlay数据排除合同"
+    },
+    {
+      "path": "src/main/pi/titlebar-extension-service.ts",
+      "upstream_sha256": "9e79e0f6c0d79ca19a3a6d0b63a8e9b6b8dd4e1055cd2a394041755f257a1968",
+      "current_sha256": "8a2b8f2be63b1305267f596987ebd501db6a4c83653044e97044ee3ea846e03d",
+      "reason": "Pi/OMP/Prime扩展统一zkyq文件名和生成标记；本机与relay共用精确所有权检查、原子发布和旧入口原字节移出加载目录，保护用户文件并在发布失败时恢复；保留旧overlay数据排除合同"
+    },
+    {
+      "path": "src/wsl-guest/omp-config-root.test.ts",
+      "upstream_sha256": "b6371faf8472d6b7be198a22dbb467f375175f65880592ef80b236aaaa61b6e9",
+      "current_sha256": "2deacd77018ac6d704aee7969b5b3e4aa62642d7084b06b07d95ede9ce108c06",
+      "reason": "Pi/OMP/Prime扩展统一zkyq文件名和生成标记；本机与relay共用精确所有权检查、原子发布和旧入口原字节移出加载目录，保护用户文件并在发布失败时恢复；保留旧overlay数据排除合同"
+    },
+    {
+      "path": "src/wsl-guest/omp-status-extension.ts",
+      "upstream_sha256": "66296ef77f4d2f45bf744e284c5e553faa18e26945cf8ad7b6310558be145181",
+      "current_sha256": "429f8c5a4b35c64a54ed06e9d7b2dd06c69ac221abdeb85a6863fd7ca3201324",
+      "reason": "Pi/OMP/Prime扩展统一zkyq文件名和生成标记；本机与relay共用精确所有权检查、原子发布和旧入口原字节移出加载目录，保护用户文件并在发布失败时恢复；保留旧overlay数据排除合同"
     }
   ],
   "reviewed_findings": [
@@ -338692,42 +338736,42 @@
       "path": "src/main/ipc/pty-ipc-test-constants.ts",
       "rule": "absolute-windows-path",
       "line": 16,
-      "sha256": "18f5d70f927e15cb01a0234484413d9c150aca2a907da3981de310815e440e8a",
+      "sha256": "b051c19f472ab4770df9b3f491fd48dc49bbc97ec3a34d706e214f663b0565ac",
       "reason": "固定上游公开测试夹具中的通用工程、托管、默认系统或虚构用户路径，未读取本机配置；限定具体行和文件hash。"
     },
     {
       "path": "src/main/ipc/pty-ipc-test-constants.ts",
       "rule": "absolute-windows-path",
       "line": 29,
-      "sha256": "18f5d70f927e15cb01a0234484413d9c150aca2a907da3981de310815e440e8a",
+      "sha256": "b051c19f472ab4770df9b3f491fd48dc49bbc97ec3a34d706e214f663b0565ac",
       "reason": "固定上游公开测试夹具中的通用工程、托管、默认系统或虚构用户路径，未读取本机配置；限定具体行和文件hash。"
     },
     {
       "path": "src/main/ipc/pty-ipc-test-constants.ts",
       "rule": "absolute-windows-path",
       "line": 30,
-      "sha256": "18f5d70f927e15cb01a0234484413d9c150aca2a907da3981de310815e440e8a",
+      "sha256": "b051c19f472ab4770df9b3f491fd48dc49bbc97ec3a34d706e214f663b0565ac",
       "reason": "固定上游公开测试夹具中的通用工程、托管、默认系统或虚构用户路径，未读取本机配置；限定具体行和文件hash。"
     },
     {
       "path": "src/main/ipc/pty-ipc-test-constants.ts",
       "rule": "absolute-windows-path",
       "line": 34,
-      "sha256": "18f5d70f927e15cb01a0234484413d9c150aca2a907da3981de310815e440e8a",
+      "sha256": "b051c19f472ab4770df9b3f491fd48dc49bbc97ec3a34d706e214f663b0565ac",
       "reason": "固定上游公开测试夹具中的通用工程、托管、默认系统或虚构用户路径，未读取本机配置；限定具体行和文件hash。"
     },
     {
       "path": "src/main/ipc/pty-ipc-test-constants.ts",
       "rule": "absolute-windows-path",
       "line": 41,
-      "sha256": "18f5d70f927e15cb01a0234484413d9c150aca2a907da3981de310815e440e8a",
+      "sha256": "b051c19f472ab4770df9b3f491fd48dc49bbc97ec3a34d706e214f663b0565ac",
       "reason": "固定上游公开测试夹具中的通用工程、托管、默认系统或虚构用户路径，未读取本机配置；限定具体行和文件hash。"
     },
     {
       "path": "src/main/ipc/pty-ipc-test-constants.ts",
       "rule": "gitleaks:generic-api-key",
       "line": 46,
-      "sha256": "18f5d70f927e15cb01a0234484413d9c150aca2a907da3981de310815e440e8a",
+      "sha256": "b051c19f472ab4770df9b3f491fd48dc49bbc97ec3a34d706e214f663b0565ac",
       "reason": "固定上游公开测试夹具中的伪造认证响应，占位JWT无算法头及有效签名，仅用于假客户端测试；非真实凭据，限定具体行与文件hash。"
     },
     {

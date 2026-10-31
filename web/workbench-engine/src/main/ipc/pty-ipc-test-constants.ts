@@ -21,7 +21,7 @@ export const BUNDLED_CLI_PATH = getBundledLauncherPath('darwin', BUNDLED_RESOURC
 export const expectedOmpStatusExtension = posix.join(
   '/tmp/orca-user-data',
   'omp-managed-status-extension',
-  'orca-agent-status.ts'
+  'zkyq-agent-status.ts'
 )
 
 // Why: Windows resolves a bare PowerShell name to an absolute exe before ConPTY, else CreateProcessW fails with error 5 (PR #6537 / #5161).

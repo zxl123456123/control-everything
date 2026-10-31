@@ -49,10 +49,10 @@ describe.skipIf(process.platform === 'win32')('createInstallPluginsHandler (gues
         HOME: home,
         ORCA_WSL_HOOK_INSTANCE: 'inst-pi'
       })
-      const source = '// @orca-managed-pi-extension\nexport default {}\n'
+      const source = '// @zkyq-managed-pi-extension\nexport default {}\n'
       const res = install({ piExtensionSource: source, launchKind: 'pi' })
       expect(res.overlayDirs.pi).toBe(join(home, '.pi', 'agent'))
-      const extension = join(home, '.pi', 'agent', 'extensions', 'orca-agent-status.ts')
+      const extension = join(home, '.pi', 'agent', 'extensions', 'zkyq-agent-status.ts')
       expect(readFileSync(extension, 'utf8')).toContain(source)
     })
   })
