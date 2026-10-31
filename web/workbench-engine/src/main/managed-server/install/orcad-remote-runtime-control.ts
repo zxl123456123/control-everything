@@ -10,6 +10,7 @@ import {
   readWindowsOrcadLaunchReport,
   readWindowsOrcadSlotRuntime,
   readWindowsOrcadSlotEntry,
+  readWindowsOrcadLaunchEnvironmentVersion,
   windowsOrcadLaunchCommand,
   windowsOrcadLaunchRuntimeCommand
 } from './orcad-remote-launch-windows'
@@ -116,7 +117,13 @@ export async function launchOrcadAndAwaitReadiness(
     readWindowsOrcadLaunchReport(
       await execOrcadRemote(
         target,
-        windowsOrcadLaunchCommand(target.host, spec, slotRuntime, slotEntry)
+        windowsOrcadLaunchCommand(
+          target.host,
+          spec,
+          slotRuntime,
+          slotEntry,
+          readWindowsOrcadLaunchEnvironmentVersion(slotAnswer)
+        )
       )
     )
   } else {

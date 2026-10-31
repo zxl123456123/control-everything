@@ -37,7 +37,7 @@ async function launchUnderLoginUmask(): Promise<void> {
   const command = orcadLaunchCommand(posix, {
     remoteInstallDir: slotDir,
     // No runtime marker in the slot, so this legacy path runs the stub entry below.
-    nodePath: '/bin/sh',
+    nodePath: process.execPath,
     fullVersion: '0.2.0+bb01',
     userDataDir: join(home, '.orca'),
     bindHost: '127.0.0.1',
@@ -60,7 +60,7 @@ describe.skipIf(process.platform === 'win32')('orcad launch file modes', () => {
     mkdirSync(slotDir, { recursive: true, mode: 0o755 })
     chmodSync(baseDir, 0o755)
     chmodSync(slotDir, 0o755)
-    writeFileSync(join(slotDir, 'orcad.js'), `printf '%s\\n' '${READY_LINE}'\n`)
+    writeFileSync(join(slotDir, 'orcad.js'), `console.log(${JSON.stringify(READY_LINE)})\n`)
   })
 
   afterEach(() => {
@@ -95,7 +95,7 @@ describe.skipIf(process.platform === 'win32')('orcad launch file modes', () => {
   it('runs the daemon itself at the login umask', async () => {
     writeFileSync(
       join(slotDir, 'orcad.js'),
-      `mkdir daemon-dir && : > daemon-file && printf '%s\\n' '${READY_LINE}'\n`
+      `require('node:fs').mkdirSync('daemon-dir'); require('node:fs').writeFileSync('daemon-file', ''); console.log(${JSON.stringify(READY_LINE)})\n`
     )
 
     await launchUnderLoginUmask()
@@ -111,7 +111,7 @@ describe.skipIf(process.platform === 'win32')('orcad launch file modes', () => {
     slotDir = join(home, 'custom-slot')
     mkdirSync(slotDir, { mode: 0o755 })
     chmodSync(home, 0o755)
-    writeFileSync(join(slotDir, 'orcad.js'), `printf '%s\\n' '${READY_LINE}'\n`)
+    writeFileSync(join(slotDir, 'orcad.js'), `console.log(${JSON.stringify(READY_LINE)})\n`)
 
     await launchUnderLoginUmask()
 

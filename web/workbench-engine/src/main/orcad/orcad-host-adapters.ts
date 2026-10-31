@@ -2,6 +2,10 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import process from 'node:process'
+import {
+  ORCAD_VERSION_ENV,
+  migrateOrcadManagedLaunchEnvironment
+} from '../../shared/orcad-managed-launch-env'
 import { ORCAD_CLI_PACKAGE_FILENAME } from '../../shared/orcad-artifacts'
 import { setAppEnvironment, type AppEnvironment } from '../../shared/app-environment'
 import { setSecretStore } from '../../shared/secret-store'
@@ -18,6 +22,7 @@ export function runOrcadQuitHandlers(): void {
 }
 
 function createNodeAppEnvironment(): AppEnvironment {
+  migrateOrcadManagedLaunchEnvironment(process.env)
   const quitHandlers: (() => void)[] = []
   // The main signal handler awaits runtime and browser teardown before process.exit.
   // Keep will-quit callbacks synchronous, but never let them pre-empt that async barrier.
@@ -38,7 +43,7 @@ function createNodeAppEnvironment(): AppEnvironment {
   return {
     getPath: resolveOrcadPath,
     getAppPath: () => resolveOrcadInstallRoot(),
-    getVersion: () => process.env.ORCA_VERSION ?? '0.0.0-orcad',
+    getVersion: () => process.env[ORCAD_VERSION_ENV] ?? '0.0.0-orcad',
     // Why still true: consumers read this as "production build, not a dev checkout" —
     // it gates HTTPS-only skill downloads, the real CLI command name, and shell-PATH
     // hydration. Answering false to satisfy a path resolver would relax a security

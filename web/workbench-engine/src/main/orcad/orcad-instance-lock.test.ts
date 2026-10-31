@@ -93,6 +93,26 @@ afterEach(() => {
 })
 
 describe('acquireOrcadInstanceLock', () => {
+  it.each(['ORCA_VERSION', 'ZKYQ_VERSION'])(
+    'records the selected %s under the canonical environment identity',
+    (key) => {
+      vi.stubEnv('ORCA_VERSION', undefined)
+      vi.stubEnv('ZKYQ_VERSION', undefined)
+      vi.stubEnv(key, '0.1.0+selected')
+      try {
+        const lock = acquireOrcadInstanceLock(
+          makeRoot(),
+          hooks({ version: undefined, preserveRootPermissions: true })
+        )
+        expect(lock.record.version).toBe('0.1.0+selected')
+        expect(process.env.ZKYQ_VERSION).toBe('0.1.0+selected')
+        expect(process.env.ORCA_VERSION).toBeUndefined()
+        lock.release()
+      } finally {
+        vi.unstubAllEnvs()
+      }
+    }
+  )
   it('publishes a record naming the holder and removes it on release', () => {
     const root = makeRoot()
     const lock = acquireOrcadInstanceLock(root, hooks())

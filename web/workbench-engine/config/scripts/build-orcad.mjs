@@ -30,6 +30,7 @@ import {
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import process from 'node:process'
+import { ORCAD_MANAGED_LAUNCH_ENVIRONMENT_VERSION } from '../../src/shared/orcad-managed-launch-env.ts'
 import { smokeProfileStateWorkers } from './profile-state-worker-smoke.mjs'
 import { smokeForeignSqliteReaderWorker } from './foreign-sqlite-reader-worker-smoke.mjs'
 import { smokeSessionScannerService } from './session-scanner-service-smoke.mjs'
@@ -82,8 +83,9 @@ function cpSync(source, output, options) {
   recordCopiedTree(source, output)
 }
 function recordCopiedTree(from, to) {
-    if (statSync(from).isDirectory()) for (const name of readdirSync(from)) recordCopiedTree(join(from, name), join(to, name))
-    else copiedInputs.push({ source: from, output: to })
+  if (statSync(from).isDirectory())
+    for (const name of readdirSync(from)) recordCopiedTree(join(from, name), join(to, name))
+  else copiedInputs.push({ source: from, output: to })
 }
 // Why beside orcad.js: every forked child and worker resolves its entry in the app root, and a
 // deployment has no desktop out/main to fall back to. A missing one only shows on a host as a
@@ -279,6 +281,7 @@ const cliPackage = {
   type: 'commonjs',
   private: true,
   version: cliVersion,
+  zkyqManagedLaunchEnvironment: ORCAD_MANAGED_LAUNCH_ENVIRONMENT_VERSION,
   commit: resolveWorkbenchBuildCommit()
 }
 writeFileSync(join(OUT_DIR, ORCAD_CLI_PACKAGE_FILENAME), `${JSON.stringify(cliPackage)}\n`)
@@ -446,8 +449,16 @@ if (process.exitCode !== 1) {
     agentBrowserFilename: AGENT_BROWSER_NAME
   })
   writeFileSync(join(OUT_DIR, ORCAD_VERSION_FILENAME), fullVersion)
-  for (const name of [ORCAD_SERVER_TARGET_FILENAME, ORCAD_NODE_RUNTIME_MARKER_FILENAME, ORCAD_CLI_PACKAGE_FILENAME, ORCAD_VERSION_FILENAME]) {
-    copiedInputs.push({ source: join(ROOT, 'config/scripts/build-orcad.mjs'), output: join(OUT_DIR, name) })
+  for (const name of [
+    ORCAD_SERVER_TARGET_FILENAME,
+    ORCAD_NODE_RUNTIME_MARKER_FILENAME,
+    ORCAD_CLI_PACKAGE_FILENAME,
+    ORCAD_VERSION_FILENAME
+  ]) {
+    copiedInputs.push({
+      source: join(ROOT, 'config/scripts/build-orcad.mjs'),
+      output: join(OUT_DIR, name)
+    })
   }
   writeDistributionRecord(ROOT, 'runtime', metafiles, {}, copiedInputs)
   console.log(

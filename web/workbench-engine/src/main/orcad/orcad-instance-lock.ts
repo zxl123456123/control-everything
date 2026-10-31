@@ -17,6 +17,7 @@ import { linkSync, mkdirSync, statSync, unlinkSync, writeFileSync } from 'node:f
 import { userInfo } from 'node:os'
 import { join } from 'node:path'
 import process from 'node:process'
+import { migrateOrcadManagedLaunchEnvironment } from '../../shared/orcad-managed-launch-env'
 import { z } from 'zod'
 import {
   compareOrcadProcessIdentity,
@@ -136,6 +137,7 @@ export function acquireOrcadInstanceLock(
   dataRoot: string,
   hooks: OrcadInstanceLockHooks = {}
 ): OrcadInstanceLock {
+  migrateOrcadManagedLaunchEnvironment(process.env)
   const identity = (hooks.identity ?? defaultIdentity)()
   const isAlive = hooks.processIsAlive ?? isProcessAlive
   const readStartedAt = hooks.startedAtMs ?? readOrcadProcessStartedAtMs
@@ -170,7 +172,7 @@ export function acquireOrcadInstanceLock(
     startedAtMs: readStartedAt(process.pid),
     ...readIncarnation(process.pid),
     identity,
-    version: (hooks.version ?? (() => process.env.ORCA_VERSION ?? 'unknown'))(),
+    version: (hooks.version ?? (() => process.env.ZKYQ_VERSION ?? 'unknown'))(),
     acquiredAt: (hooks.now ?? (() => new Date()))().toISOString(),
     nonce: randomUUID(),
     role: hooks.role ?? 'orcad',

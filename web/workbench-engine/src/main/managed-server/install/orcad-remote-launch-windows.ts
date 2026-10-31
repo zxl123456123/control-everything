@@ -29,8 +29,13 @@ import {
 } from './orcad-remote-windows-node'
 import {
   ORCAD_WINDOWS_ENTRY_MARKER,
-  ORCAD_WINDOWS_RUNTIME_MARKER
+  ORCAD_WINDOWS_RUNTIME_MARKER,
+  ORCAD_WINDOWS_LAUNCH_ENV_MARKER
 } from '../host-state/orcad-windows-host-script'
+import {
+  ORCAD_VERSION_ENV,
+  orcadLaunchEnvironmentKey
+} from '../../../shared/orcad-managed-launch-env'
 import {
   ORCAD_LOG_FILENAME,
   ORCAD_READINESS_FILENAME,
@@ -83,7 +88,8 @@ export function windowsOrcadLaunchCommand(
   host: RemoteHostPlatform,
   spec: OrcadLaunchSpec,
   slotRuntime: string,
-  slotEntry = joinRemotePath(host, spec.remoteInstallDir, 'orcad.js')
+  slotEntry = joinRemotePath(host, spec.remoteInstallDir, 'orcad.js'),
+  environmentVersion: 0 | 1 = 1
 ): string {
   const dir = spec.remoteInstallDir
   return orcadWindowsNodeCommandLine(slotRuntime, [
@@ -100,12 +106,12 @@ export function windowsOrcadLaunchCommand(
     WINDOWS_BREAKAWAY_PROCESS_FILE_FLAG,
     joinRemotePath(host, dir, ORCAD_WINDOWS_PROCESS_FILENAME),
     WINDOWS_BREAKAWAY_ENV_FLAG,
-    `ORCA_VERSION=${spec.fullVersion}`,
+    `${orcadLaunchEnvironmentKey(ORCAD_VERSION_ENV, environmentVersion)}=${spec.fullVersion}`,
     WINDOWS_BREAKAWAY_ENV_FLAG,
     `ZKYQ_USER_DATA=${spec.userDataDir}`,
     ...orcadManagedLaunchEnv(spec).flatMap(([name, value]) => [
       WINDOWS_BREAKAWAY_ENV_FLAG,
-      `${name}=${value}`
+      `${orcadLaunchEnvironmentKey(name, environmentVersion)}=${value}`
     ]),
     ORCAD_WINDOWS_BREAKAWAY_CONTRACT.argsFlag,
     '--json',
@@ -114,6 +120,13 @@ export function windowsOrcadLaunchCommand(
     '--port',
     String(spec.port)
   ])
+}
+
+export function readWindowsOrcadLaunchEnvironmentVersion(output: string): 0 | 1 {
+  const raw = readOrcadWindowsEncodedAnswer(output, ORCAD_WINDOWS_LAUNCH_ENV_MARKER)
+  if (raw === null || raw === '0') return 0
+  if (raw === '1') return 1
+  throw new Error('Unsupported server launch environment version')
 }
 
 /** The launched PID, or a refusal (no breakaway route) or failure the deploy must surface. */

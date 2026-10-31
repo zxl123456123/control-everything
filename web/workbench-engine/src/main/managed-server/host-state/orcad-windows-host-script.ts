@@ -12,6 +12,7 @@
  * re-decodes native output through the console code page.
  */
 import { createHash } from 'node:crypto'
+import { parseOrcadLaunchEnvironmentVersion } from '../../../shared/orcad-managed-launch-env'
 import {
   ORCAD_LAUNCHER_FILENAME,
   ORCAD_SERVER_ENTRY_FILENAME,
@@ -21,6 +22,7 @@ import {
   ORCAD_RUNTIMES_DIRNAME,
   ORCAD_WINDOWS_PROCESS_TREE_FILENAME
 } from '../../../shared/orcad-artifacts'
+import { ORCAD_CLI_PACKAGE_FILENAME } from '../../../shared/orcad-artifacts'
 import {
   ORCAD_STOP_REQUEST_FILENAME,
   ORCAD_STOP_REQUESTS_CAPABILITY
@@ -46,6 +48,7 @@ export const ORCAD_BUILD_HASH_MARKER = '__ORCAD_BUILD_HASH__'
 export const ORCAD_WINDOWS_READINESS_MARKER = '__ORCAD_READINESS__'
 export const ORCAD_WINDOWS_RUNTIME_MARKER = '__ORCAD_RUNTIME__'
 export const ORCAD_WINDOWS_ENTRY_MARKER = '__ORCAD_ENTRY__'
+export const ORCAD_WINDOWS_LAUNCH_ENV_MARKER = '__ZKYQ_LAUNCH_ENV__'
 export const ORCAD_WINDOWS_LIVENESS_MANY_MARKER = '__ORCAD_LIVENESS__'
 export const ORCAD_WINDOWS_LOG_TAIL_MARKER = '__ORCAD_LOG_TAIL__'
 /** A slot whose marker names no usable runtime; the POSIX selector exits the same way. */
@@ -271,6 +274,9 @@ const ops = {
     if (!/^[0-9a-f]{64}$/.test(sha)) process.exit(${ORCAD_WINDOWS_RUNTIME_MISSING_EXIT})
     const runtime = path.join(path.dirname(slotDir), ${text(ORCAD_RUNTIMES_DIRNAME)}, ${text(ORCAD_NODE_RUNTIME_DIR_PREFIX)} + sha, ${text(ORCAD_NODE_RUNTIME_WINDOWS_EXECUTABLE)})
     try { if (!fs.statSync(runtime).isFile()) process.exit(${ORCAD_WINDOWS_RUNTIME_MISSING_EXIT}) } catch { process.exit(${ORCAD_WINDOWS_RUNTIME_MISSING_EXIT}) }
+    let launchPackage = null
+    try { launchPackage = fs.readFileSync(path.join(slotDir, ${text(ORCAD_CLI_PACKAGE_FILENAME)}), 'utf8') } catch (error) { if (error.code !== 'ENOENT') throw error }
+    const launchEnvironmentVersion = (${parseOrcadLaunchEnvironmentVersion.toString()})(launchPackage)
     if (mode === 'clear-stop-request') {
       try { fs.unlinkSync(path.join(slotDir, ${text(ORCAD_STOP_REQUEST_FILENAME)})) } catch (error) { if (error.code !== 'ENOENT') process.exit(1) }
     }
@@ -279,6 +285,7 @@ const ops = {
     answer([
       [${text(ORCAD_WINDOWS_RUNTIME_MARKER)}, Buffer.from(runtime, 'utf8').toString('base64')].join(' '),
       [${text(ORCAD_WINDOWS_ENTRY_MARKER)}, Buffer.from(entry, 'utf8').toString('base64')].join(' '),
+      [${text(ORCAD_WINDOWS_LAUNCH_ENV_MARKER)}, Buffer.from(String(launchEnvironmentVersion), 'utf8').toString('base64')].join(' '),
       ''
     ].join('\\n'))
   },

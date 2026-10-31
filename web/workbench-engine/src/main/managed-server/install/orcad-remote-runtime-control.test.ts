@@ -15,7 +15,10 @@ import { launchOrcadAndAwaitReadiness } from './orcad-remote-runtime-control'
 import { getRemoteHostPlatform } from '../../ssh/ssh-remote-platform'
 import type { OrcadLaunchSpec } from './orcad-remote-launch'
 import { orcadLaunchCommand } from './orcad-remote-launch'
-import { windowsOrcadLaunchCommand } from './orcad-remote-launch-windows'
+import {
+  windowsOrcadLaunchCommand,
+  readWindowsOrcadLaunchEnvironmentVersion
+} from './orcad-remote-launch-windows'
 import { createSshOperationAbortError } from '../../ssh/connection/ssh-exec-options'
 
 const host = getRemoteHostPlatform('linux-arm64')
@@ -31,9 +34,34 @@ const spec: OrcadLaunchSpec = {
 const READY = `${JSON.stringify({ type: 'orca_server_ready', runtimeId: 'r1' })}\n`
 const mockExec = vi.mocked(execCommand)
 
+it.each([0, 1] as const)(
+  'selects Windows launch environment %s from the installed package answer',
+  (version) => {
+    const answer = '__ZKYQ_LAUNCH_ENV__ ' + Buffer.from(String(version)).toString('base64')
+    expect(readWindowsOrcadLaunchEnvironmentVersion(answer)).toBe(version)
+    const windows = getRemoteHostPlatform('win32-x64')
+    const command = windowsOrcadLaunchCommand(windows, spec, 'node.exe', 'orcad.js', version)
+    expect(command).toContain(version === 1 ? 'ZKYQ_VERSION=' : 'ORCA_VERSION=')
+    expect(command).not.toContain(version === 1 ? 'ORCA_VERSION=' : 'ZKYQ_VERSION=')
+    expect(command).toContain(
+      version === 1 ? 'ZKYQ_SERVER_MANAGED_ACTIVATION_ROOT=' : 'ORCA_ORCAD_MANAGED_ACTIVATION_ROOT='
+    )
+  }
+)
+it('accepts an old host answer and refuses a future Windows environment format', () => {
+  expect(readWindowsOrcadLaunchEnvironmentVersion('')).toBe(0)
+  expect(() => readWindowsOrcadLaunchEnvironmentVersion('__ZKYQ_LAUNCH_ENV__ Mg==')).toThrow(
+    'Unsupported'
+  )
+})
+
 it('carries the selected data directory through both remote launch dialects', () => {
   const windows = getRemoteHostPlatform('win32-x64')
-  const windowsSpec = { ...spec, remoteInstallDir: win32.join(tmpdir(), 'runtime-slot'), userDataDir: win32.join(tmpdir(), 'existing Orca profile') }
+  const windowsSpec = {
+    ...spec,
+    remoteInstallDir: win32.join(tmpdir(), 'runtime-slot'),
+    userDataDir: win32.join(tmpdir(), 'existing Orca profile')
+  }
   for (const command of [
     orcadLaunchCommand(host, spec),
     windowsOrcadLaunchCommand(windows, windowsSpec, win32.join(tmpdir(), 'runtime/node.exe'))

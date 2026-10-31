@@ -3,6 +3,13 @@
  * app-side by `src/main/orcad/orcad-local-serve-selection.ts`; the CLI only asks and runs.
  */
 import { dirname, join } from 'node:path'
+import { readFileSync } from 'node:fs'
+import { ORCAD_CLI_PACKAGE_FILENAME } from '../../shared/orcad-artifacts'
+import {
+  ORCAD_VERSION_ENV,
+  orcadLaunchEnvironment,
+  parseOrcadLaunchEnvironmentVersion
+} from '../../shared/orcad-managed-launch-env'
 import { runProcess, spawnProcess } from '@orca/process-host'
 import type { ProcessSpec } from '@orca/process-host/process-spec'
 import {
@@ -79,20 +86,32 @@ export function serveWithOrcad(
 ): Promise<number> {
   const runtimeEnv = { ...baseEnv }
   delete runtimeEnv.ORCA_USER_DATA
+  delete runtimeEnv.ORCA_VERSION
+  delete runtimeEnv.ZKYQ_VERSION
+  let launchPackage: string | null = null
+  try {
+    launchPackage = readFileSync(join(dirname(selection.entry), ORCAD_CLI_PACKAGE_FILENAME), 'utf8')
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+  }
+  const environmentVersion = parseOrcadLaunchEnvironmentVersion(launchPackage)
   const spec: ProcessSpec = {
     program: selection.runtime,
     args: [selection.entry, ...orcadServeArgs(args, webClientRoot)],
     detached: args.recipeJson === true,
     cwd: dirname(selection.entry),
     stdio: args.recipeJson === true ? ['ignore', 'pipe', 'inherit'] : 'inherit',
-    env: {
-      ...runtimeEnv,
-      // The desktop's profile: its instance lock makes the two refuse each other.
-      ZKYQ_USER_DATA: userDataPath,
-      ORCA_VERSION: selection.version,
-      // Always set: a value inherited from an Orca terminal would name another install's copy.
-      [SPEECH_RECOGNIZER_DIR_ENV]: speechRecognizerDir ?? ''
-    }
+    env: orcadLaunchEnvironment(
+      {
+        ...runtimeEnv,
+        // The desktop's profile: its instance lock makes the two refuse each other.
+        ZKYQ_USER_DATA: userDataPath,
+        [ORCAD_VERSION_ENV]: selection.version,
+        // Always set: a value inherited from an Orca terminal would name another install's copy.
+        [SPEECH_RECOGNIZER_DIR_ENV]: speechRecognizerDir ?? ''
+      },
+      environmentVersion
+    )
   }
   const spawnChild = shouldRedactSupervisedStdout(args.supervise === true)
     ? redactingSpawn(spawnProcess)

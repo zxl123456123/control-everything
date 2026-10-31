@@ -327273,7 +327273,9 @@
     "src/main/agent-hooks/wsl-hook-relay-retirement.test.ts",
     "src/shared/managed-data-account-environment-identity.test.ts",
     "src/wsl-guest/relay-hooks-identity.test.ts",
-    "src/wsl-guest/relay-hooks-identity.ts"
+    "src/wsl-guest/relay-hooks-identity.ts",
+    "src/cli/runtime/serve-orcad-environment.test.ts",
+    "src/shared/orcad-managed-launch-env.test.ts"
   ],
   "adapted_files": [
     {
@@ -327477,8 +327479,8 @@
     {
       "path": "config/scripts/build-orcad.mjs",
       "upstream_sha256": "07295bbbd5159a3cbcb42e204d8b2599d0ba3cb4301350b815c24bde9615c05c",
-      "current_sha256": "0c014b80acb0ec363af65760ec92d09c17f86984e342765ff307d32c32e58a54",
-      "reason": "N1: export the exact pinned browser core through existing distribution ownership for desktop news collection.；技能安装更新使用本平台提交和子目录，保留上游来源记录与历史安装识别，同步实际构建和说明"
+      "current_sha256": "9c834e1deec30d486d0c7e9e2ef9e624eda56f50c1c2269c61637dd93416c787",
+      "reason": "N1: export the exact pinned browser core through existing distribution ownership for desktop news collection.；技能安装更新使用本平台提交和子目录，保留上游来源记录与历史安装识别，同步实际构建和说明；服务启动版本、激活根及测试空闲超时统一ZKYQ，旧输入单向迁移；沿内容hash内包元数据选择冻结旧安装格式，保留回退、锁版本和空闲退出功能，新安装不双发旧字段"
     },
     {
       "path": "config/scripts/build-source-commit.mjs",
@@ -329655,8 +329657,8 @@
     {
       "path": "src/main/orcad/orcad-host-adapters.ts",
       "upstream_sha256": "835ae5ce81cf7fc30453a73c3f18385daf0ce63613dc5576387fc2131dc91962",
-      "current_sha256": "9a12db2613549394dc7628c551112374269f12ebfddbdc7297ea7777b1a069d1",
-      "reason": "Support explicit profile-contained credential storage while preserving existing keys and host tool configuration.; 平台命令入口和帮助统一品牌，精简账号说明与工作台展示，保留兼容协议及原生功能。；迁移应用版本环境变量并隔离驻留旧版 daemon"
+      "current_sha256": "63566d42bfb09d90765de384ebe7dbf1e3117e53deb27df14afaadf74ea53231",
+      "reason": "Support explicit profile-contained credential storage while preserving existing keys and host tool configuration.; 平台命令入口和帮助统一品牌，精简账号说明与工作台展示，保留兼容协议及原生功能。；迁移应用版本环境变量并隔离驻留旧版 daemon；服务启动版本、激活根及测试空闲超时统一ZKYQ，旧输入单向迁移；沿内容hash内包元数据选择冻结旧安装格式，保留回退、锁版本和空闲退出功能，新安装不双发旧字段"
     },
     {
       "path": "config/electron-builder.config.cjs",
@@ -329865,8 +329867,8 @@
     {
       "path": "src/main/managed-server/install/orcad-remote-launch-file-modes.test.ts",
       "upstream_sha256": "8cd0ca4bbe24929e2f32bc9322f91ebedde1bab1dfbf8e921994ebcdce5b7095",
-      "current_sha256": "b6ef1cb94b1d636540fd4f208da71bc09f9131eeff66038a1a03597edc06dcf1",
-      "reason": "配对链接生成解析和手机注册统一zkyq协议，迁移已保存VM配对链接并保留凭据及用户数据，更新脱敏和提示"
+      "current_sha256": "a2a72ae3396bdb352345043e55f21e76a99bba8d07ab6678c377a7480e72219a",
+      "reason": "配对链接生成解析和手机注册统一zkyq协议，迁移已保存VM配对链接并保留凭据及用户数据，更新脱敏和提示；服务启动版本、激活根及测试空闲超时统一ZKYQ，旧输入单向迁移；沿内容hash内包元数据选择冻结旧安装格式，保留回退、锁版本和空闲退出功能，新安装不双发旧字段"
     },
     {
       "path": "src/renderer/src/components/mobile/MobileHero.test.tsx",
@@ -330051,8 +330053,8 @@
     {
       "path": "src/main/orcad/orcad-instance-lock.ts",
       "upstream_sha256": "1f376abb35d8fd882d5aa44d036be171d54fdc24e85ef7fe31e7549a718c9c61",
-      "current_sha256": "a580774e87acf8674922e4c7f13fd0e2fd0f08ecc49ffe25756d4165b5fd6934",
-      "reason": "统一凭据保护、启动校验、实例占用和账号归属的产品文字，保留原因恢复方法及用户输入，不改安全或存储行为；运行宿主数据根配置统一ZKYQ_USER_DATA，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；迁移已有 VM 资源环境契约并保护离线快照"
+      "current_sha256": "4cbbecf65250cb9677d385696b9c50de8df70e171583f8721c907721a9bc9ba1",
+      "reason": "统一凭据保护、启动校验、实例占用和账号归属的产品文字，保留原因恢复方法及用户输入，不改安全或存储行为；运行宿主数据根配置统一ZKYQ_USER_DATA，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；迁移已有 VM 资源环境契约并保护离线快照；服务启动版本、激活根及测试空闲超时统一ZKYQ，旧输入单向迁移；沿内容hash内包元数据选择冻结旧安装格式，保留回退、锁版本和空闲退出功能，新安装不双发旧字段"
     },
     {
       "path": "src/shared/host-account-launch-env.ts",
@@ -330069,8 +330071,8 @@
     {
       "path": "src/main/orcad/orcad-instance-lock.test.ts",
       "upstream_sha256": "9810fab6f35ea669aaf943ac358603b2d40f4da6d6f1c49c0a3cb3b0c56595dc",
-      "current_sha256": "f48dcefb0b18dfe8550cca3f5ef1ffba187cf5aa96cf30e8c3c6e75fe75d9d06",
-      "reason": "统一凭据保护、启动校验、实例占用和账号归属的产品文字，保留原因恢复方法及用户输入，不改安全或存储行为"
+      "current_sha256": "b1febc9142538ce30fefc5cfd7bbe4b3f084132ca16c27f46aab7e6e2e413b87",
+      "reason": "统一凭据保护、启动校验、实例占用和账号归属的产品文字，保留原因恢复方法及用户输入，不改安全或存储行为；服务启动版本、激活根及测试空闲超时统一ZKYQ，旧输入单向迁移；沿内容hash内包元数据选择冻结旧安装格式，保留回退、锁版本和空闲退出功能，新安装不双发旧字段"
     },
     {
       "path": "src/shared/runtime-environment-store.test.ts",
@@ -331137,26 +331139,26 @@
     {
       "path": "src/cli/runtime/serve-orcad-launch.ts",
       "upstream_sha256": "6b36a01224688d68d26952a3080849e2743dad3cdcbefa6fbc60a829f48e1b7c",
-      "current_sha256": "187716fa11073b6639cb2b75e2cfbbd3f18d5c1e851e3032180eadbd2d37ad10",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+      "current_sha256": "fc01710e7bf3f18e983559b085e5f1bed305f0e1c008688c5da47c8bf2023266",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；服务启动版本、激活根及测试空闲超时统一ZKYQ，旧输入单向迁移；沿内容hash内包元数据选择冻结旧安装格式，保留回退、锁版本和空闲退出功能，新安装不双发旧字段"
     },
     {
       "path": "src/main/managed-server/install/orcad-remote-launch-windows.ts",
       "upstream_sha256": "28a790728288ceb6c6274dcb331252618452b985bd7ddb381dece4eec5289ec0",
-      "current_sha256": "97a0409e228874bd893621d4a57cceca58871698373d8c9f5687d5d0087b13e2",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+      "current_sha256": "b3d8365c75b7f05074a54fc6c1fe812b808d48003a44fd043aa001d638c55f17",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；服务启动版本、激活根及测试空闲超时统一ZKYQ，旧输入单向迁移；沿内容hash内包元数据选择冻结旧安装格式，保留回退、锁版本和空闲退出功能，新安装不双发旧字段"
     },
     {
       "path": "src/main/managed-server/install/orcad-remote-launch.ts",
       "upstream_sha256": "3833488a00655fda351351461d403483cd63fa52926c23b7f4eff6e2e6b3fee5",
-      "current_sha256": "62d0d301d594f935216a4384a0fe2de31415015095acce7f5a639fefe352dcc6",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+      "current_sha256": "1b66dafe3805b0f5ce3b54bf3d8d3931e2497aa4aa9d74e8854f5489f2a844fc",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；服务启动版本、激活根及测试空闲超时统一ZKYQ，旧输入单向迁移；沿内容hash内包元数据选择冻结旧安装格式，保留回退、锁版本和空闲退出功能，新安装不双发旧字段"
     },
     {
       "path": "src/main/managed-server/install/orcad-remote-runtime-control.test.ts",
       "upstream_sha256": "727e75ed997ffb9bad0c3d00792ae9931cedab43207bc5b8dc4674d8b8d9a987",
-      "current_sha256": "e9a677495cd4aced9efc16374050f1912da12f3dc2d097657e88bd694ae0723a",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+      "current_sha256": "a93ff500eefb88eac92591bf751375fb36d77c9b5941cbd25aa716b6d4be6526",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；服务启动版本、激活根及测试空闲超时统一ZKYQ，旧输入单向迁移；沿内容hash内包元数据选择冻结旧安装格式，保留回退、锁版本和空闲退出功能，新安装不双发旧字段"
     },
     {
       "path": "src/main/orcad/electron-serve-browser-environment.ts",
@@ -331221,8 +331223,8 @@
     {
       "path": "src/main/orcad/orcad-stop-request-shutdown.integration.test.ts",
       "upstream_sha256": "7874b10026c80b9abb24425547ea32dd52ad40fd1f026bf3f6f6e1f68fc054fe",
-      "current_sha256": "a8faf023ca5c26fb5d8658ca7d20749552671025f2ea4cf604d3640738561bf9",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+      "current_sha256": "f16c23e075cf7c9679777d84b5a6bd0fc4bce67bc3cc4bb605533b272df6a142",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；服务启动版本、激活根及测试空闲超时统一ZKYQ，旧输入单向迁移；沿内容hash内包元数据选择冻结旧安装格式，保留回退、锁版本和空闲退出功能，新安装不双发旧字段"
     },
     {
       "path": "src/main/ssh/orcad-update-plan.ts",
@@ -338261,6 +338263,54 @@
       "upstream_sha256": "89265688fbae7cc4929c809fbca6030b12e2d7f04271591c94a2aff67323f70b",
       "current_sha256": "80174d4bd4996b7c98c2bbf3c72320908b1eb3686c88af64181c9b5ea2496116",
       "reason": "中继插件目录统一为.zkyq-relay，保留活跃旧读者与最新写入，确认退出后退役桥接及托管旧扩展，迁移导出路径防止重建覆盖原数据"
+    },
+    {
+      "path": "src/main/managed-server/activation/orcad-activation-gate.ts",
+      "upstream_sha256": "168bd2750bd7ca45fa42f2e8d5c49abd914eef50b0844c39facd076f58107ff1",
+      "current_sha256": "4d28349e5b2e83520aa390d04ebe2b9825a1348303a0fe9352a71208894ed966",
+      "reason": "服务启动版本、激活根及测试空闲超时统一ZKYQ，旧输入单向迁移；沿内容hash内包元数据选择冻结旧安装格式，保留回退、锁版本和空闲退出功能，新安装不双发旧字段"
+    },
+    {
+      "path": "src/main/managed-server/host-state/orcad-windows-host-script.ts",
+      "upstream_sha256": "f53c07eb63e36fb4d0e9e1744151c517dc5ac985eebe70ad17f4d3d14132ba2b",
+      "current_sha256": "1f0387cade958634b054e4d17ad798eb1e3ee5c9494d92eaf6ff33f5cb50719d",
+      "reason": "服务启动版本、激活根及测试空闲超时统一ZKYQ，旧输入单向迁移；沿内容hash内包元数据选择冻结旧安装格式，保留回退、锁版本和空闲退出功能，新安装不双发旧字段"
+    },
+    {
+      "path": "src/main/managed-server/install/orcad-remote-runtime-control.ts",
+      "upstream_sha256": "d8886f9fb550b63aeb20394bea2b57223f3786d1edcb33ced13f1be87c3195a9",
+      "current_sha256": "3d49ff9749d91af353aef432add7a02bee4f85b124a2fd18afe23038af4ec3f5",
+      "reason": "服务启动版本、激活根及测试空闲超时统一ZKYQ，旧输入单向迁移；沿内容hash内包元数据选择冻结旧安装格式，保留回退、锁版本和空闲退出功能，新安装不双发旧字段"
+    },
+    {
+      "path": "src/main/orcad/orcad-health.ts",
+      "upstream_sha256": "be146b846d133145d9d8d7b4e901dab9973e4f1639f0422901e113d3e09e426e",
+      "current_sha256": "0f79e1a3ac70c45e48997534c72104dbaacd0c2f3f2f4138c910ced25d642584",
+      "reason": "服务启动版本、激活根及测试空闲超时统一ZKYQ，旧输入单向迁移；沿内容hash内包元数据选择冻结旧安装格式，保留回退、锁版本和空闲退出功能，新安装不双发旧字段"
+    },
+    {
+      "path": "src/main/orcad/orcad-managed-idle-exit.ts",
+      "upstream_sha256": "8035a1001f51e2f981e46229620db1bb7f9ebf4547bf13ebd4179ec2ce11207e",
+      "current_sha256": "42f746570a118430cae1f470f8ae57b931b9454bbd3ec9dc1e10a19dacf43b8e",
+      "reason": "服务启动版本、激活根及测试空闲超时统一ZKYQ，旧输入单向迁移；沿内容hash内包元数据选择冻结旧安装格式，保留回退、锁版本和空闲退出功能，新安装不双发旧字段"
+    },
+    {
+      "path": "src/shared/orcad-idle-exit.ts",
+      "upstream_sha256": "751cfe2f575e9eed6d5fb333bad2e4e02da73e3ec7751e321adb7813fad8007c",
+      "current_sha256": "2f89f0e446455d197965ff4f07f9e749571ebf141f99d598a009d1254804d452",
+      "reason": "服务启动版本、激活根及测试空闲超时统一ZKYQ，旧输入单向迁移；沿内容hash内包元数据选择冻结旧安装格式，保留回退、锁版本和空闲退出功能，新安装不双发旧字段"
+    },
+    {
+      "path": "src/shared/orcad-managed-launch-env.ts",
+      "upstream_sha256": "d0f09fdd9a738be293ff8d54906589bbb0d5f39e850a73ba1ed9dc81fcff91ac",
+      "current_sha256": "29c83926c659744aa8fe7824fe991687cf6b432cf1ae24c549915568ab8fbb8f",
+      "reason": "服务启动版本、激活根及测试空闲超时统一ZKYQ，旧输入单向迁移；沿内容hash内包元数据选择冻结旧安装格式，保留回退、锁版本和空闲退出功能，新安装不双发旧字段"
+    },
+    {
+      "path": "src/shared/windows-breakaway-launcher.ts",
+      "upstream_sha256": "7c624edb4f87d1d7f1742ce788356e30370da86b59fcfd482410213ba4c48131",
+      "current_sha256": "cc5f0f3e14fb6a7cfc1b769afddb236aa8e23b94b21a242f7c245c8482924b85",
+      "reason": "服务启动版本、激活根及测试空闲超时统一ZKYQ，旧输入单向迁移；沿内容hash内包元数据选择冻结旧安装格式，保留回退、锁版本和空闲退出功能，新安装不双发旧字段"
     }
   ],
   "reviewed_findings": [
