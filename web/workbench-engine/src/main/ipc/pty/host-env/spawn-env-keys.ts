@@ -2,7 +2,10 @@ import {
   ORCA_AGENT_SESSION_ID_ENV,
   ZKYQ_AGENT_SESSION_ID_ENV
 } from '../../../../shared/agent-session-caller-env'
-import { ORCA_STRUCTURED_SESSION_ENV } from '../../../../shared/structured-session-marker'
+import {
+  ORCA_STRUCTURED_SESSION_ENV,
+  ZKYQ_STRUCTURED_SESSION_ENV
+} from '../../../../shared/structured-session-marker'
 
 export const AGENT_HOOK_RUNTIME_ENV_KEYS = [
   'ORCA_AGENT_HOOK_PORT',
@@ -26,5 +29,6 @@ export const CLAUDE_CHILD_SESSION_STAMP_ENV_KEYS = [
 export const ORCA_AGENT_SESSION_CALLER_ENV_KEYS = [
   ORCA_AGENT_SESSION_ID_ENV,
   ZKYQ_AGENT_SESSION_ID_ENV,
-  ORCA_STRUCTURED_SESSION_ENV
+  ORCA_STRUCTURED_SESSION_ENV,
+  ZKYQ_STRUCTURED_SESSION_ENV
 ] as const

@@ -42,10 +42,9 @@
  * PTY leaf. It would also open `selectExactWorkerProviderSession`, which is fail-closed today
  * precisely because a structured session emits no hook agent status.
  *
- * `ORCA_STRUCTURED_SESSION` stays beside the id for a CLI that predates it — one reached through a
- * global install when a shell rc resets PATH — which would otherwise guess a sibling's terminal;
- * such a CLI refuses on the marker. A current CLI checks the id first, so the marker never makes a
- * session with an id identity-less.
+ * `ZKYQ_STRUCTURED_SESSION` stays beside the id so a child missing its id refuses instead of
+ * guessing a sibling's terminal. A current CLI checks the id first, so the marker never makes a
+ * session with an id identity-less. The retired marker is stripped from inherited environments.
  *
  * The handle is read from the registry at spawn time, so an in-host recovery respawn re-bakes the
  * SAME handle rather than a stale or fresh one, and a `/clear` successor bakes its worker's.
@@ -61,7 +60,10 @@ import {
   ORCA_SCRUB_SAFE_LAUNCH_ENV,
   ORCA_SCRUB_SAFE_PANE_ENV
 } from '../../shared/agent-hook-scrub-safe-env'
-import { ORCA_STRUCTURED_SESSION_ENV } from '../../shared/structured-session-marker'
+import {
+  ORCA_STRUCTURED_SESSION_ENV,
+  ZKYQ_STRUCTURED_SESSION_ENV
+} from '../../shared/structured-session-marker'
 import { withCliRuntimeOnPath } from '../../shared/node-cli-command-resolution'
 import { prependOrcaCliDirToChildPath } from '../cli/orca-cli-child-path'
 import { AGENT_HOOK_RUNTIME_ENV_KEYS } from '../ipc/pty/host-env/spawn-env-keys'
@@ -114,9 +116,13 @@ export function sealStructuredSessionChild(input: {
     : identity.env
   return {
     env: { ...env, [ORCA_AGENT_SESSION_SPAWN_TOKEN_ENV]: input.spawnToken },
-    envToDelete: [...new Set([...input.inheritedEnvToDelete, ORCA_AGENT_SESSION_ID_ENV])].filter(
-      (key) => !named.has(key)
-    ),
+    envToDelete: [
+      ...new Set([
+        ...input.inheritedEnvToDelete,
+        ORCA_AGENT_SESSION_ID_ENV,
+        ORCA_STRUCTURED_SESSION_ENV
+      ])
+    ].filter((key) => !named.has(key)),
     commandEnv: identity.commandEnv
   }
 }
@@ -129,10 +135,11 @@ function childIdentity(
   const named: Record<string, string> = {
     ...(identity ? { ORCA_TERMINAL_HANDLE: identity.handle } : {}),
     [ZKYQ_AGENT_SESSION_ID_ENV]: sessionId,
-    [ORCA_STRUCTURED_SESSION_ENV]: '1'
+    [ZKYQ_STRUCTURED_SESSION_ENV]: '1'
   }
   const env = { ...childEnv, ...named }
   delete env[ORCA_AGENT_SESSION_ID_ENV]
+  delete env[ORCA_STRUCTURED_SESSION_ENV]
   return { env, commandEnv: { ...named, ...applyThisAppCli(env) } }
 }
 

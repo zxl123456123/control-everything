@@ -70,7 +70,7 @@ describe('the Codex child environment', () => {
       CODEX_HOME: '/pinned/home',
       [ORCA_AGENT_SESSION_SPAWN_TOKEN_ENV]: 'spawn-token',
       ZKYQ_AGENT_SESSION_ID: 'session-not-a-worker',
-      ORCA_STRUCTURED_SESSION: '1',
+      ZKYQ_STRUCTURED_SESSION: '1',
       ZKYQ_CLI_COMMAND: expect.stringMatching(DEV_CLI_LAUNCHER),
       ...(process.platform !== 'win32'
         ? { ORCA_CLI_BIN_DIR: expect.stringMatching(DEV_CLI_BIN_DIR) }
@@ -93,7 +93,7 @@ describe('the Codex child environment', () => {
       [ORCA_AGENT_SESSION_SPAWN_TOKEN_ENV]: 'spawn-token',
       // Not a worker, so no handle: the id alone names this chat as a caller.
       ZKYQ_AGENT_SESSION_ID: sessionId,
-      ORCA_STRUCTURED_SESSION: '1',
+      ZKYQ_STRUCTURED_SESSION: '1',
       ZKYQ_CLI_COMMAND: expect.stringMatching(DEV_CLI_LAUNCHER),
       ...(process.platform !== 'win32'
         ? { ORCA_CLI_BIN_DIR: expect.stringMatching(DEV_CLI_BIN_DIR) }

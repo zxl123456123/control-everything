@@ -338,7 +338,7 @@ describe.skipIf(skip || process.platform === 'win32')('packaged plain-Node struc
       expect(report.env).toMatchObject({
         HOME: home,
         ORCA_AGENT_SESSION_ID: sessionId,
-        ORCA_STRUCTURED_SESSION: '1',
+        ZKYQ_STRUCTURED_SESSION: '1',
         ZKYQ_USER_DATA_PATH: userData,
         ORCA_SDK_CONTRACT_SCENARIO_PATH: scenarioPath,
         ORCA_SDK_CONTRACT_REPORT_PATH: reportPath

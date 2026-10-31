@@ -36,7 +36,8 @@ const IDENTITY_ENV = [
   'ORCA_AGENT_SESSION_ID',
   'ORCA_TERMINAL_HANDLE',
   'ORCA_PANE_KEY',
-  'ORCA_STRUCTURED_SESSION'
+  'ORCA_STRUCTURED_SESSION',
+  'ZKYQ_STRUCTURED_SESSION'
 ] as const
 const originalEnv = Object.fromEntries(IDENTITY_ENV.map((name) => [name, process.env[name]]))
 
@@ -401,25 +402,31 @@ describe('the identity a session presents', () => {
     expect(callsTo('send')[0]?.from).toBeUndefined()
   })
 
-  it('never treats a session that has an id as identity-less, even beside the old marker', async () => {
-    setEnv({ ORCA_AGENT_SESSION_ID: SESSION, ORCA_STRUCTURED_SESSION: '1' })
+  it.each(['ZKYQ_STRUCTURED_SESSION', 'ORCA_STRUCTURED_SESSION'])(
+    'never treats a session that has an id as identity-less, beside %s',
+    async (marker) => {
+      setEnv({ ORCA_AGENT_SESSION_ID: SESSION, [marker]: '1' })
 
-    await invoke('check', flagMap({}))
+      await invoke('check', flagMap({}))
 
-    expect(callsTo('check')).toHaveLength(1)
-    expect(getTerminalHandleMock).not.toHaveBeenCalled()
-  })
+      expect(callsTo('check')).toHaveLength(1)
+      expect(getTerminalHandleMock).not.toHaveBeenCalled()
+    }
+  )
 
-  it('keeps the identity-less refusal, without --from advice, for a child that has no id', async () => {
-    setEnv({ ORCA_STRUCTURED_SESSION: '1' })
+  it.each(['ZKYQ_STRUCTURED_SESSION', 'ORCA_STRUCTURED_SESSION'])(
+    'keeps the identity-less refusal without --from advice for %s',
+    async (marker) => {
+      setEnv({ [marker]: '1' })
 
-    await expect(invoke('reply', flagMap({ id: 'msg_1', body: 'b' }))).rejects.toMatchObject({
-      code: 'no_active_sender_terminal',
-      message: expect.not.stringContaining('Pass --from')
-    })
-    expect(getTerminalHandleMock).not.toHaveBeenCalled()
-    expect(callMock).not.toHaveBeenCalled()
-  })
+      await expect(invoke('reply', flagMap({ id: 'msg_1', body: 'b' }))).rejects.toMatchObject({
+        code: 'no_active_sender_terminal',
+        message: expect.not.stringContaining('Pass --from')
+      })
+      expect(getTerminalHandleMock).not.toHaveBeenCalled()
+      expect(callMock).not.toHaveBeenCalled()
+    }
+  )
 
   it('leaves a terminal agent exactly as it was: its own handle is the caller', async () => {
     setEnv({ ORCA_TERMINAL_HANDLE: 'term_pty', ORCA_PANE_KEY: 'tab_pty:1:2' })

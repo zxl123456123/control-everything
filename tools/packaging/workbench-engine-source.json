@@ -327212,8 +327212,8 @@
     {
       "path": "src/main/ipc/pty/host-env/spawn-env-keys.ts",
       "upstream_sha256": "b6509e243c19546f1b5ed4845026ce6a54dbd15c2d6fbd5f1b097b9d3ee51f5a",
-      "current_sha256": "032dc90499e987d5afe05df967f9049a80551872e9a9080fb8bedca4ff6350e3",
-      "reason": "新会话身份环境变量迁移并保护旧会话"
+      "current_sha256": "c28ae0a11bda0557e75c6f11c864920632914385ead99b7933bd1947d03f46e3",
+      "reason": "新会话身份环境变量迁移并保护旧会话；迁移结构化会话标记，清理继承环境并保留已运行旧会话的安全识别"
     },
     {
       "path": "src/main/runtime/orchestration/orchestration-party-cli-address.test.ts",
@@ -327236,8 +327236,8 @@
     {
       "path": "src/main/wsl/wsl-orcad-structured-chat-contract.ts",
       "upstream_sha256": "d202404fab5fad24ca8bb587af8eee1c6ab04d0d79467bb830836489271560a6",
-      "current_sha256": "44f1f3732182f8def86b6a1b2b5102defa638cc5f96b59bddbebfd1d29e0d020",
-      "reason": "新会话身份环境变量迁移并保护旧会话"
+      "current_sha256": "70bc1ba3ae927da0a6bed14fe3eda9c6a0b80c0eef1e8b1967b245d0656dadfb",
+      "reason": "新会话身份环境变量迁移并保护旧会话；迁移结构化会话标记，清理继承环境并保留已运行旧会话的安全识别"
     },
     {
       "path": "src/main/claude/__fixtures__/claude-agent-sdk-scripted-cli.mjs",
@@ -330668,14 +330668,14 @@
     {
       "path": "src/main/codex/codex-structured-child-environment.test.ts",
       "upstream_sha256": "ab0d0e81f8da8cc9fcd65f628d2c08580eff504e944a9f5d9642a794d0e024cf",
-      "current_sha256": "d41e06b3355b8f5fbaa3423ed61c88b2029fcd3b232a17714b6d73c9ee573beb",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；迁移远程主机选择环境变量并防止错误路由；新会话身份环境变量迁移；恢复会话集成测试所需夹具、使用通用路径并核对迁移后的命令身份"
+      "current_sha256": "f494adec1085fd999abff3860c81346058e311bb6105aca69f2a148bcf7e46da",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；迁移远程主机选择环境变量并防止错误路由；新会话身份环境变量迁移；恢复会话集成测试所需夹具、使用通用路径并核对迁移后的命令身份；迁移结构化会话标记，清理继承环境并保留已运行旧会话的安全识别"
     },
     {
       "path": "src/main/codex/codex-structured-session-adapter.test.ts",
       "upstream_sha256": "d622eef99dded1a5b302dab81d41c2bef02990f56ba2de5b91e8487a2cbf05a1",
-      "current_sha256": "bde9f2ce1915ce5a582331446bca2d5fefa353c94401142cad7bfb5fb417c282",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；迁移远程主机选择环境变量并防止错误路由；恢复会话集成测试所需夹具、使用通用路径并核对迁移后的命令身份"
+      "current_sha256": "a291a2aed0c65ce2d9c26efee7043ed85765ba6f195085a9c66dca16ac9bfb2d",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；迁移远程主机选择环境变量并防止错误路由；恢复会话集成测试所需夹具、使用通用路径并核对迁移后的命令身份；迁移结构化会话标记，清理继承环境并保留已运行旧会话的安全识别"
     },
     {
       "path": "src/main/daemon/shell-ready-bash-wrapper.test.ts",
@@ -331112,8 +331112,8 @@
     {
       "path": "src/main/orcad/orcad-packaged-structured-chat.integration.test.ts",
       "upstream_sha256": "1b51e407e430c215c6fdc7cd6b52847da0b2a982bae3d214b7fc1df90b5a49c0",
-      "current_sha256": "d5d5c2a7d3654766d1600e055393eb71307bcb1c38964d97584f7968d60de9a1",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
+      "current_sha256": "ed061e09fbcaca9ce29636160e0fcca5b9f4d0fac6fd59cc534098075a711768",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；迁移结构化会话标记，清理继承环境并保留已运行旧会话的安全识别"
     },
     {
       "path": "src/main/orcad/orcad-serve-parity.integration.test.ts",
@@ -331298,8 +331298,8 @@
     {
       "path": "src/cli/orchestration-session-caller-cli.test.ts",
       "upstream_sha256": "ac2e812ad5ebf8848effaae106f8248be2af915f4234148541ed403848f3ab15",
-      "current_sha256": "b0de2ef3d434ec1f84a7db4851243f2a3c1ef5a33e6ab6dc660955a2fcac481c",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；迁移会话地址命名及相关验证"
+      "current_sha256": "c3c32feae5136adca2e3e89ec0ed64106424eda08a577f7da7b6ae46a78d28f0",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；迁移会话地址命名及相关验证；迁移结构化会话标记，清理继承环境并保留已运行旧会话的安全识别"
     },
     {
       "path": "src/cli/runtime/client-execution-host.test.ts",
@@ -331832,8 +331832,8 @@
     {
       "path": "src/main/runtime/structured-session-child-env.ts",
       "upstream_sha256": "c6430d04f35adccb249dd1e6b1eaf824ee0e85efa92287e141348f59dc246627",
-      "current_sha256": "f3345165c4f6a1493c166d67ad3c7f12dcf4ea43c7dff169a0b0f4e3ebfad268",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；迁移远程主机选择环境变量并防止错误路由；新会话身份环境变量迁移"
+      "current_sha256": "7248c1aae169302b810def4a8edb04d02f9dc2612b6f603bd6fd27260d9511ab",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；迁移远程主机选择环境变量并防止错误路由；新会话身份环境变量迁移；迁移结构化会话标记，清理继承环境并保留已运行旧会话的安全识别"
     },
     {
       "path": "src/main/runtime/unreadable-secret-store-preservation.win32.test.ts",
@@ -334126,6 +334126,18 @@
       "upstream_sha256": "ebab9601039ad9ff01e7730f0a1cf7b02bf1475c9255b0e1506043da175847d7",
       "current_sha256": "d548c52981f42883fb904c56df75344766d05372f0cfe1a22c24890a18688237",
       "reason": "恢复会话集成测试所需夹具、使用通用路径并核对迁移后的命令身份"
+    },
+    {
+      "path": "src/cli/orchestration-structured-session-no-identity.test.ts",
+      "upstream_sha256": "d304fcdfee9f0dd610f4f12963faa1bfbc10062d05b497f7928b604d727786d9",
+      "current_sha256": "1c2d3294aa3b0a8b86677910a60884a5558394b26e008358949acc96c6d501a8",
+      "reason": "迁移结构化会话标记，清理继承环境并保留已运行旧会话的安全识别"
+    },
+    {
+      "path": "src/shared/structured-session-marker.ts",
+      "upstream_sha256": "ee5721b69ac9ecd2aeec64f165dec4b97549a102fd87c0dde93345b03582a683",
+      "current_sha256": "e80ecd4a306d811e6fd961acaba32012780d7d36260150e663089fafeca958c7",
+      "reason": "迁移结构化会话标记，清理继承环境并保留已运行旧会话的安全识别"
     }
   ],
   "reviewed_findings": [
