@@ -327260,7 +327260,8 @@
     "src/shared/pi-managed-extension-install.test.ts",
     "src/main/grok/grok-hook-config-identity.test.ts",
     "src/main/grok/grok-hook-config-identity.ts",
-    "src/main/antigravity/hooks-json-bundle-identity.test.ts"
+    "src/main/antigravity/hooks-json-bundle-identity.test.ts",
+    "src/main/agent-hooks/wsl-hook-relay-identity.test.ts"
   ],
   "adapted_files": [
     {
@@ -331880,8 +331881,8 @@
     {
       "path": "src/main/pty/wsl-orca-env.ts",
       "upstream_sha256": "79f15d7b17d41f207a8f68127df82b7b538dea45e6d45578fd519e5ac93e691d",
-      "current_sha256": "e1b06a01d43c0b1fbaea09d64df6eac97cfb547d1987d15a332a149dc06bce57",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义；Pi/OMP/Prime私有运行环境统一为ZKYQ，启动、扩展、草稿、进程所有者和WSL传递使用一致名称；旧环境仅在既有单向迁移入口读取并移除，保留第三方公开配置、路径、草稿和父子隔离行为"
+      "current_sha256": "915207aaf42dc682602cf82d3ee1cabf760e80af4c3eb63e17c81e83d3b13b89",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义；Pi/OMP/Prime私有运行环境统一为ZKYQ，启动、扩展、草稿、进程所有者和WSL传递使用一致名称；旧环境仅在既有单向迁移入口读取并移除，保留第三方公开配置、路径、草稿和父子隔离行为；WSL Hook relay版本/实例/调试环境与版本隔离程序缓存统一ZKYQ/.zkyq-wsl，继承环境单向迁移；同步WSLENV与guest入口，主机端点名对齐既有POSIX v2发布，保留Hook回传与重启协调能力"
     },
     {
       "path": "src/main/rate-limits/hidden-rate-limit-pty-cwd.ts",
@@ -334832,20 +334833,20 @@
     {
       "path": "src/wsl-guest/wsl-install-plugins-handler.test.ts",
       "upstream_sha256": "b52d6620a20475c7fbb9e4fef0872e9755424e3cba5a2dfeadc7a24b15766c18",
-      "current_sha256": "6c78a6d4b53d9ca8feaee86b0ca43044a5e886f34160c1d10c2eedba07c2f57c",
-      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属；OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场；Pi/OMP/Prime扩展统一zkyq文件名和生成标记；本机与relay共用精确所有权检查、原子发布和旧入口原字节移出加载目录，保护用户文件并在发布失败时恢复；保留旧overlay数据排除合同"
+      "current_sha256": "0ea3730b285e193bae0929f781f4f77aa1d348dede65094b3f153e60e966e59b",
+      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属；OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场；Pi/OMP/Prime扩展统一zkyq文件名和生成标记；本机与relay共用精确所有权检查、原子发布和旧入口原字节移出加载目录，保护用户文件并在发布失败时恢复；保留旧overlay数据排除合同；WSL Hook relay版本/实例/调试环境与版本隔离程序缓存统一ZKYQ/.zkyq-wsl，继承环境单向迁移；同步WSLENV与guest入口，主机端点名对齐既有POSIX v2发布，保留Hook回传与重启协调能力"
     },
     {
       "path": "src/main/agent-hooks/wsl-opencode-install-race.test.ts",
       "upstream_sha256": "cd882624ed8a603dcbf8784091f74c9c096c3d6e96d142234999b65ed93a3d69",
-      "current_sha256": "60d989b02ecbfb1336fefa146bf039a59b754879da0ab7d895d140d62f107937",
-      "reason": "OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场"
+      "current_sha256": "d59a815bd27f3c210be061e1c9ed1d8d81176e8bfa66dd2db1889c2f8ce44b34",
+      "reason": "OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场；WSL Hook relay版本/实例/调试环境与版本隔离程序缓存统一ZKYQ/.zkyq-wsl，继承环境单向迁移；同步WSLENV与guest入口，主机端点名对齐既有POSIX v2发布，保留Hook回传与重启协调能力"
     },
     {
       "path": "src/main/agent-hooks/wsl-opencode-settings.test.ts",
       "upstream_sha256": "a6e2ed1e41996b406e7ee98d6f3640d2e238aa2aad7a9f94489e60ae57ebcd3a",
-      "current_sha256": "812ff1db0b262868749f2284778c481da4d0da13154e8cc2c37c73703cc46140",
-      "reason": "OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场"
+      "current_sha256": "865f68c5b3a7a4622139ccd81c3b27dd918c07698da07b74c046c6fd58e33831",
+      "reason": "OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场；WSL Hook relay版本/实例/调试环境与版本隔离程序缓存统一ZKYQ/.zkyq-wsl，继承环境单向迁移；同步WSLENV与guest入口，主机端点名对齐既有POSIX v2发布，保留Hook回传与重启协调能力"
     },
     {
       "path": "src/main/opencode/hook-plugin-background-child-completion.test.ts",
@@ -335246,8 +335247,8 @@
     {
       "path": "src/main/agent-hooks/wsl-hook-relay-live.integration.test.ts",
       "upstream_sha256": "cd396146a7f56a608c523f2920e935b3372f8c33aead98b7343cd50370934c89",
-      "current_sha256": "451d23ed4f60e7ea3ce806729b45d4650bf9fe8f6a3c6667cffe2a7d8e143f8b",
-      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+      "current_sha256": "3114638779e60584ceaffc3be18a3c8527c3d45f9c116f9d83f590bca7316c00",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义；WSL Hook relay版本/实例/调试环境与版本隔离程序缓存统一ZKYQ/.zkyq-wsl，继承环境单向迁移；同步WSLENV与guest入口，主机端点名对齐既有POSIX v2发布，保留Hook回传与重启协调能力"
     },
     {
       "path": "src/main/amp/agent-status-plugin-source.ts",
@@ -335762,8 +335763,8 @@
     {
       "path": "src/main/agent-hooks/wsl-hook-relay-launch.ts",
       "upstream_sha256": "41bbcb89c8899492d8d5e407241dfaa8d182f5c213825b98379ec816035aae6b",
-      "current_sha256": "c43e7712a72e4f7daee05659de5e1f8722144a729fe0045f125d24025a3773cd",
-      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+      "current_sha256": "239d206b750f39aa010a4c308f9f4700ab519a383574db129ce91a4c587b790f",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义；WSL Hook relay版本/实例/调试环境与版本隔离程序缓存统一ZKYQ/.zkyq-wsl，继承环境单向迁移；同步WSLENV与guest入口，主机端点名对齐既有POSIX v2发布，保留Hook回传与重启协调能力"
     },
     {
       "path": "src/main/agent-hooks/wsl-hook-relay-manager.ts",
@@ -335774,8 +335775,8 @@
     {
       "path": "src/main/agent-hooks/wsl-opencode-settings-lifetime.test.ts",
       "upstream_sha256": "0eea41cc84e1fd0a8796d67a48d5e1255efbd3f5b7b5b79afd6aab46c1abf386",
-      "current_sha256": "ccc488562dcf78d07b57b991a87e0335f29ed51f59961b875b896bd499ddfb20",
-      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+      "current_sha256": "6c90461585dd40158e164771ad5c2ec4f88d18146a668154d7ddcd796e9f7a57",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义；WSL Hook relay版本/实例/调试环境与版本隔离程序缓存统一ZKYQ/.zkyq-wsl，继承环境单向迁移；同步WSLENV与guest入口，主机端点名对齐既有POSIX v2发布，保留Hook回传与重启协调能力"
     },
     {
       "path": "src/main/agent-launch/agent-launch-token.ts",
@@ -336584,8 +336585,8 @@
     {
       "path": "src/wsl-guest/wsl-agent-hook-relay.ts",
       "upstream_sha256": "afbf4fe2d3a62c068c1e33133ba730dff1ef384357fd0883ca6381bf8cd4f3a9",
-      "current_sha256": "39b5a3cd831a110cceb0ef1cc0963a3a620d64163446f2f93c7694ec1d3a25bd",
-      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+      "current_sha256": "b6181ba265060067442a9174a970cf94802380bca3543e3615049f5c6ab46630",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义；WSL Hook relay版本/实例/调试环境与版本隔离程序缓存统一ZKYQ/.zkyq-wsl，继承环境单向迁移；同步WSLENV与guest入口，主机端点名对齐既有POSIX v2发布，保留Hook回传与重启协调能力"
     },
     {
       "path": "tests/e2e/cli-agent-unopened-workspace-resume.spec.ts",
@@ -336758,8 +336759,8 @@
     {
       "path": "src/shared/wsl-hook-relay-contract.ts",
       "upstream_sha256": "7ed688269a490bd1b9d12b6edea60d9c531a0b4fb0e7b537bc163122d3154401",
-      "current_sha256": "2f7f29e6e10e801d0e93ff0156b8edf43eb7509d72e789bfd1508e440c1d649d",
-      "reason": "补齐WSL文件桥lstat，使插件身份迁移的所有权校验保持可用；保留home边界、错误映射和不跟随符号链接的语义"
+      "current_sha256": "c3b71d89ed974804d67709facf7fc29cde67092ead1c4276ac1f458d8c6e9519",
+      "reason": "补齐WSL文件桥lstat，使插件身份迁移的所有权校验保持可用；保留home边界、错误映射和不跟随符号链接的语义；WSL Hook relay版本/实例/调试环境与版本隔离程序缓存统一ZKYQ/.zkyq-wsl，继承环境单向迁移；同步WSLENV与guest入口，主机端点名对齐既有POSIX v2发布，保留Hook回传与重启协调能力"
     },
     {
       "path": "src/wsl-guest/wsl-hook-fs-bridge.test.ts",
@@ -337144,6 +337145,12 @@
       "upstream_sha256": "302eb7fa7975b7f12827d256ee94a0655aa6c62b511968c8fe9f13fbfd4f2648",
       "current_sha256": "c0f430e1c5e3397e2957e72cf8d07e41b8129a00f04b845d29960f6a94b650bf",
       "reason": "Antigravity Hook分组、事件、浏览器标记和ACP客户端身份统一zkyq/Control Everything；迁移旧分组保留用户Hook及启停状态，冲突先校验，旧事件仅输入迁移；保持权限响应、登录、会话及凭据位置"
+    },
+    {
+      "path": "src/main/agent-hooks/wsl-hook-relay-link.ts",
+      "upstream_sha256": "67bcb993fcdccc93112571b15589b340a20e72ded6319301fce433deff9ce1c8",
+      "current_sha256": "541ceaacdd1b09cd987d621f6b051969a3e8af4a9a14631cc147c97cb6f805e2",
+      "reason": "WSL Hook relay版本/实例/调试环境与版本隔离程序缓存统一ZKYQ/.zkyq-wsl，继承环境单向迁移；同步WSLENV与guest入口，主机端点名对齐既有POSIX v2发布，保留Hook回传与重启协调能力"
     }
   ],
   "reviewed_findings": [

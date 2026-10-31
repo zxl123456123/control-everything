@@ -147,7 +147,7 @@ describe.skipIf(process.platform === 'win32')(
         '.orca-wsl',
         'agent-hooks',
         'instance-liveinstance',
-        'endpoint.env'
+        'endpoint-v2.env'
       )
       expect(existsSync(endpointFile)).toBe(true)
       const endpointText = readFileSync(endpointFile, 'utf8')

@@ -17,6 +17,7 @@ import {
 import { addOrcaWslInteropEnv } from '../pty/wsl-orca-env'
 import { runWslProcess } from '../wsl/wsl-runner'
 import { resolveWslInteropSpawnCwd } from '../wsl-interop-spawn-directory'
+import { migrateAgentHookEnvironmentIdentity } from '../../shared/agent-hook-environment-identity'
 import {
   WSL_HOOK_RELAY_BUNDLE_NAME,
   WSL_HOOK_RELAY_DIR,
@@ -91,13 +92,13 @@ export function buildGuestInstallScript(bundleJs: Buffer, version: string): stri
     'umask 077',
     `d="${guestRelayDirExpr(version)}"`,
     'mkdir -p "$d"',
-    `base64 -d > "$d/bundle.$$.tmp" << 'ORCA_EOF_BUNDLE'`,
+    `base64 -d > "$d/bundle.$$.tmp" << 'ZKYQ_EOF_BUNDLE'`,
     b64.trimEnd(),
-    'ORCA_EOF_BUNDLE',
+    'ZKYQ_EOF_BUNDLE',
     `mv "$d/bundle.$$.tmp" "$d/${WSL_HOOK_RELAY_BUNDLE_NAME}"`,
-    `cat > "$d/launch.$$.tmp" << 'ORCA_EOF_LAUNCH'`,
+    `cat > "$d/launch.$$.tmp" << 'ZKYQ_EOF_LAUNCH'`,
     buildGuestLaunchScript(version).trimEnd(),
-    'ORCA_EOF_LAUNCH',
+    'ZKYQ_EOF_LAUNCH',
     'mv "$d/launch.$$.tmp" "$d/launch.sh"',
     'chmod 700 "$d/launch.sh"',
     // Version marker last: a partial install stays "stale" and reinstalls.
@@ -247,8 +248,10 @@ export function buildWslRelaySpawnEnv(
   bundleVersion: string,
   instanceKey: string
 ): NodeJS.ProcessEnv {
+  const inherited = { ...process.env }
+  migrateAgentHookEnvironmentIdentity(inherited)
   const env: NodeJS.ProcessEnv = {
-    ...process.env,
+    ...inherited,
     WSL_UTF8: '1',
     ZKYQ_AGENT_HOOK_PORT: coords.ZKYQ_AGENT_HOOK_PORT,
     ZKYQ_AGENT_HOOK_TOKEN: coords.ZKYQ_AGENT_HOOK_TOKEN,

@@ -12,6 +12,7 @@
 // period and no daemon socket.
 import { AGENT_HOOK_INFER_INTERRUPT_METHOD } from '../shared/agent-hook-interrupt-reconciliation'
 import { homedir } from 'node:os'
+import { migrateAgentHookEnvironmentIdentity } from '../shared/agent-hook-environment-identity'
 
 import { RELAY_SENTINEL } from './protocol'
 import { RelayDispatcher } from './dispatcher'
@@ -32,6 +33,7 @@ import {
 } from '../shared/wsl-hook-relay-contract'
 
 async function main(): Promise<void> {
+  migrateAgentHookEnvironmentIdentity(process.env)
   const windowsPort = Number(process.env.ZKYQ_AGENT_HOOK_PORT ?? '')
   const token = process.env.ZKYQ_AGENT_HOOK_TOKEN ?? ''
   if (!Number.isInteger(windowsPort) || windowsPort <= 0 || token.length === 0) {

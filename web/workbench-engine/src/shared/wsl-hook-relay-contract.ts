@@ -6,7 +6,7 @@
 // See docs/agent-status-over-wsl.md (STA-1515).
 
 /** Guest-side install dir for the relay bundle, relative to `$HOME`. */
-export const WSL_HOOK_RELAY_DIR = '.orca-wsl/hook-relay'
+export const WSL_HOOK_RELAY_DIR = '.zkyq-wsl/hook-relay'
 export const WSL_HOOK_RELAY_BUNDLE_NAME = 'wsl-agent-hook-relay.js'
 export const WSL_HOOK_RELAY_VERSION_FILE = '.version'
 
@@ -14,14 +14,14 @@ export const WSL_HOOK_RELAY_VERSION_FILE = '.version'
  *  WSLENV so a stale guest install is detected by the guest itself. Also
  *  namespaces the guest install dir, so concurrent Orca instances with
  *  different bundle versions (dev + prod) never reinstall over each other. */
-export const WSL_HOOK_RELAY_VERSION_ENV = 'ORCA_WSL_HOOK_RELAY_VERSION'
+export const WSL_HOOK_RELAY_VERSION_ENV = 'ZKYQ_WSL_HOOK_RELAY_VERSION'
 
 /** Stable per-instance identity for the guest endpoint dir, crossed via
  *  WSLENV. Derived from the Windows endpoint file path (userData +
  *  namespace), NOT the hook port: the port changes every app launch, and a
  *  port-keyed dir would leave daemon-surviving agents sourcing a stale file
  *  after an Orca restart — the exact re-coordination this exists to serve. */
-export const WSL_HOOK_RELAY_INSTANCE_ENV = 'ORCA_WSL_HOOK_INSTANCE'
+export const WSL_HOOK_RELAY_INSTANCE_ENV = 'ZKYQ_WSL_HOOK_INSTANCE'
 
 /** Launch-script exit codes. 42 mirrors the SSH relay's handshake-mismatch
  *  convention: the host reinstalls the bundle and relaunches once. */
@@ -76,8 +76,8 @@ export function sanitizeWslHookInstanceKey(value: string | undefined): string | 
 
 /** The guest is always POSIX, so the Windows host must name the guest's
  *  endpoint file explicitly — its own `getEndpointFileName()` would say
- *  `endpoint.cmd`. Matches the POSIX branch of that helper. */
-export const WSL_HOOK_RELAY_ENDPOINT_FILE = 'endpoint.env'
+ *  `endpoint-v2.cmd`. Matches the POSIX branch of that helper. */
+export const WSL_HOOK_RELAY_ENDPOINT_FILE = 'endpoint-v2.env'
 
 /** connectionId stamped on WSL-relayed hook envelopes. Transport provenance
  *  only: the pane is a LOCAL pane on a local repo, so ownership checks must

@@ -1,4 +1,7 @@
 export const AGENT_HOOK_IDENTITY_SUFFIXES = [
+  'WSL_HOOK_RELAY_VERSION',
+  'WSL_HOOK_INSTANCE',
+  'WSL_HOOK_RELAY_DEBUG',
   'ANTIGRAVITY_EVENT',
   'HOOK_AGENT_PID',
   'PANE_KEY',
@@ -41,6 +44,9 @@ export function migrateAgentHookEnvironmentIdentity(
 ): void {
   // Installed plugins embed this function, so it must not reference module-level values.
   const suffixes = [
+    'WSL_HOOK_RELAY_VERSION',
+    'WSL_HOOK_INSTANCE',
+    'WSL_HOOK_RELAY_DEBUG',
     'ANTIGRAVITY_EVENT',
     'HOOK_AGENT_PID',
     'PANE_KEY',

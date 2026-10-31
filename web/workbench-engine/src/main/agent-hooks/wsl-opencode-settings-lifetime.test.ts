@@ -95,7 +95,7 @@ describe.skipIf(process.platform === 'win32')('WSL public-manager settings lifet
     const install = createInstallPluginsHandler(new PluginOverlayManager({ homeDir: home }), {
       HOME: home,
       XDG_CONFIG_HOME: join(home, '.config'),
-      ORCA_WSL_HOOK_INSTANCE: 'independent-manager'
+      ZKYQ_WSL_HOOK_INSTANCE: 'independent-manager'
     })
     dispatcher.onRequest(AGENT_HOOK_INSTALL_PLUGINS_METHOD, async (params) => {
       requests.push(params)
