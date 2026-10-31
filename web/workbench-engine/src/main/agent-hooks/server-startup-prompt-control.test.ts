@@ -65,7 +65,7 @@ describe('startup prompt control with status hooks disabled', () => {
       const post = (path: string) =>
         fetch(`http://127.0.0.1:${coords.port}${path}`, {
           method: 'POST',
-          headers: { 'x-orca-agent-hook-token': coords.token },
+          headers: { 'x-zkyq-agent-hook-token': coords.token },
           body: '{}'
         })
       expect((await post('/hook/opencode')).status).toBe(404)
@@ -114,7 +114,7 @@ describe('startup prompt control with status hooks disabled', () => {
       const post = (path: string, body: string, token = coords.token) =>
         fetch(`http://127.0.0.1:${coords.port}${path}`, {
           method: 'POST',
-          headers: { 'content-type': 'application/json', 'x-orca-agent-hook-token': token },
+          headers: { 'content-type': 'application/json', 'x-zkyq-agent-hook-token': token },
           body
         })
       expect((await post(OPENCODE_STARTUP_PROMPT_CLAIM_PATH, '{}', 'wrong')).status).toBe(403)

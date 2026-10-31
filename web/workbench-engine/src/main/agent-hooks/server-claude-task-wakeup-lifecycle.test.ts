@@ -59,7 +59,7 @@ async function host(remote: boolean, launchToken?: string) {
             'Content-Type': 'application/json',
             // Advancing fake time can expire a pooled HTTP socket before the next post.
             Connection: 'close',
-            'X-Orca-Agent-Hook-Token': relay.getCoordinates().token
+            'X-Zkyq-Agent-Hook-Token': relay.getCoordinates().token
           },
           body: JSON.stringify(body)
         })

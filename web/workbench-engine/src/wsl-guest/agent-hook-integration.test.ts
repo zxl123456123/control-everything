@@ -123,7 +123,7 @@ describe('Integration: relay hook server → mux → AgentHookServer.ingestRemot
     const { port, token } = hookServer.getCoordinates()
     const response = await fetch(`http://127.0.0.1:${port}/hook/claude`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Orca-Agent-Hook-Token': token },
+      headers: { 'Content-Type': 'application/json', 'X-Zkyq-Agent-Hook-Token': token },
       body: JSON.stringify({
         paneKey,
         tabId: 'tab-7',
@@ -177,7 +177,7 @@ describe('Integration: relay hook server → mux → AgentHookServer.ingestRemot
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-Orca-Agent-Hook-Token': token
+        'X-Zkyq-Agent-Hook-Token': token
       },
       body: JSON.stringify({
         paneKey: `tab-7:${LEAF_7}`,
@@ -228,7 +228,7 @@ describe('Integration: relay hook server → mux → AgentHookServer.ingestRemot
           method: 'POST',
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
-            'X-Orca-Agent-Hook-Token': token
+            'X-Zkyq-Agent-Hook-Token': token
           },
           body: new URLSearchParams({
             paneKey: `tab-7:${LEAF_7}`,
@@ -266,7 +266,7 @@ describe('Integration: relay hook server → mux → AgentHookServer.ingestRemot
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
-          'X-Orca-Agent-Hook-Token': token
+          'X-Zkyq-Agent-Hook-Token': token
         },
         body: new URLSearchParams({ paneKey: `tab-7:${LEAF_7}`, payload }).toString()
       })
@@ -288,7 +288,7 @@ describe('Integration: relay hook server → mux → AgentHookServer.ingestRemot
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Orca-Agent-Hook-Token': token
+          'X-Zkyq-Agent-Hook-Token': token
         },
         body: JSON.stringify({ paneKey: `tab-7:${LEAF_7}`, payload })
       })
@@ -320,7 +320,7 @@ describe('Integration: relay hook server → mux → AgentHookServer.ingestRemot
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Orca-Agent-Hook-Token': token
+          'X-Zkyq-Agent-Hook-Token': token
         },
         body: JSON.stringify({
           paneKey: `tab-7:${LEAF_7}`,
@@ -375,7 +375,7 @@ describe('Integration: relay hook server → mux → AgentHookServer.ingestRemot
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Orca-Agent-Hook-Token': token
+          'X-Zkyq-Agent-Hook-Token': token
         },
         body: JSON.stringify({
           paneKey: `tab-9:${LEAF_9}`,
@@ -417,7 +417,7 @@ describe('Integration: relay hook server → mux → AgentHookServer.ingestRemot
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Orca-Agent-Hook-Token': token
+          'X-Zkyq-Agent-Hook-Token': token
         },
         body: JSON.stringify({
           paneKey: `tab-7:${LEAF_7}`,
@@ -484,7 +484,7 @@ describe('Integration: relay hook server → mux → AgentHookServer.ingestRemot
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-Orca-Agent-Hook-Token': token
+        'X-Zkyq-Agent-Hook-Token': token
       },
       body: JSON.stringify({
         paneKey: `tab-9:${LEAF_9}`,

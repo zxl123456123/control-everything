@@ -158,7 +158,7 @@ describe.runIf(process.platform === 'win32')('Windows jcode hook payload deliver
       request.on('end', () => {
         posts.push({
           path: request.url,
-          token: request.headers['x-orca-agent-hook-token'],
+          token: request.headers['x-zkyq-agent-hook-token'],
           form: new URLSearchParams(body)
         })
         response.end('{}')

@@ -71,10 +71,10 @@ describe('shared agent-hook-listener', () => {
   it('normalizes a raw JSON hook body with metadata headers', async () => {
     const req = createReadableRequest({
       'content-type': 'application/json',
-      'x-orca-pane-key': paneKey,
-      'x-orca-worktree-id': 'repo::/tmp/work',
-      'x-orca-agent-hook-env': 'production',
-      'x-orca-agent-hook-version': '1'
+      'x-zkyq-pane-key': paneKey,
+      'x-zkyq-worktree-id': 'repo::/tmp/work',
+      'x-zkyq-agent-hook-env': 'production',
+      'x-zkyq-agent-hook-version': '1'
     })
     const body = readRequestBody(req as unknown as IncomingMessage)
     req.emit('data', Buffer.from('{"hook_event_name":"UserPromptSubmit","prompt":"hello"}'))
@@ -95,8 +95,8 @@ describe('shared agent-hook-listener', () => {
     const merged = mergeAgentHookRequestHeaders(
       { hook_event_name: 'UserPromptSubmit', prompt: 'hello' },
       {
-        'x-orca-agent-hook-meta-encoding': 'base64',
-        'x-orca-agent-hook-meta': packedMetadata(
+        'x-zkyq-agent-hook-meta-encoding': 'base64',
+        'x-zkyq-agent-hook-meta': packedMetadata(
           paneKey,
           'tab-1',
           '',
@@ -125,8 +125,8 @@ describe('shared agent-hook-listener', () => {
       prompt: 'hello'
     }
     const merged = mergeAgentHookRequestHeaders(rawBody, {
-      'x-orca-pane-key': paneKey,
-      'x-orca-tab-id': 'tab-1'
+      'x-zkyq-pane-key': paneKey,
+      'x-zkyq-tab-id': 'tab-1'
     })
 
     expect(merged).toMatchObject({ paneKey, tabId: 'tab-1', payload: rawBody })

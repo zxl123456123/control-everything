@@ -59,7 +59,7 @@ export async function postHookEvent(
       'Content-Type': 'application/json',
       // Fake-time advances must not expire a pooled socket before the next hook.
       Connection: 'close',
-      'X-Orca-Agent-Hook-Token': env.ORCA_AGENT_HOOK_TOKEN
+      'X-Zkyq-Agent-Hook-Token': env.ORCA_AGENT_HOOK_TOKEN
     },
     body: JSON.stringify(body)
   })

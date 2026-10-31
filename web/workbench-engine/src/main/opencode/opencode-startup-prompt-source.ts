@@ -24,7 +24,7 @@ async function claimStartupPrompt(nonce, digest, endpoint, requestId) {
     const port = Number(coords.port);
     if (!Number.isInteger(port) || port < 1 || port > 65535) return false;
     response = await fetch("http://127.0.0.1:" + port + "${OPENCODE_STARTUP_PROMPT_CLAIM_PATH}", {
-      method: "POST", headers: { "content-type": "application/json", "x-orca-agent-hook-token": coords.token },
+      method: "POST", headers: { "content-type": "application/json", "x-zkyq-agent-hook-token": coords.token },
       body: JSON.stringify({ nonce, digest, requestId }), signal: AbortSignal.timeout(1000)
     });
     if (!response.ok) return response.status === 408 || response.status === 429 || response.status >= 500 ? "pending" : false;

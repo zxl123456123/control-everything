@@ -327210,7 +327210,10 @@
     "src/shared/opencode-environment-identity.ts",
     "src/shared/opencode-plugin-identity.test.ts",
     "src/shared/opencode-plugin-identity.ts",
-    "src/main/agent-hooks/windows-native-hook-identity.test.ts"
+    "src/main/agent-hooks/windows-native-hook-identity.test.ts",
+    "src/main/agent-hooks/server-header-identity.test.ts",
+    "src/shared/agent-hook-request-headers.test.ts",
+    "src/shared/agent-hook-request-headers.ts"
   ],
   "adapted_files": [
     {
@@ -331974,8 +331977,8 @@
     {
       "path": "tests/e2e/helpers/completed-worker-retirement-fixture.ts",
       "upstream_sha256": "c9d110eb41667a89fe4202f5fcfbd3b68bc78697e6e1ee3ec6966b53a2af6228",
-      "current_sha256": "77fa5fd84885f888b91e196fec8c5c4fddc672d7c97a902aee14ea42d2c26fde",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；迁移远程主机选择环境变量并防止错误路由"
+      "current_sha256": "ce084f07e34767678b15c5845a6164af266ad1976a7c5507a696c727dd09afd4",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；迁移远程主机选择环境变量并防止错误路由；Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
     },
     {
       "path": "tests/e2e/helpers/daemon-generation-safety-fixtures.ts",
@@ -334710,8 +334713,8 @@
     {
       "path": "src/main/opencode/opencode-startup-prompt-source.ts",
       "upstream_sha256": "caf3c3224e5bee2dbc2298e1741d7d3fb428d68e28013f82f5c329b660a9d270",
-      "current_sha256": "a467e6330a91252a8c36ec7648b867a7117cf04461411134628f064835aad02f",
-      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属；OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场"
+      "current_sha256": "29edcd2c4cbe2db56684d6d1f988c9f8fd760e8b4dcf4eb2eb9a2629b4f3bbc3",
+      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属；OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场；Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
     },
     {
       "path": "src/main/opencode/overlay-dir-gc.test.ts",
@@ -334818,8 +334821,8 @@
     {
       "path": "src/main/opencode/hook-plugin-lifecycle-delivery.test.ts",
       "upstream_sha256": "c5e6a1af6feb4e03ed99bb9e49995d7bbba48cab5ca2c6ef7be5a53aa3f0daef",
-      "current_sha256": "a62c18fa2d86e36b758866415a1c4ca47240608085fb5b69cf7b9fa710a136ea",
-      "reason": "OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场"
+      "current_sha256": "3844d1b81a6c11ee30a4dd1a3a366c24d04e0e04d28d78d887c3cc15160d8ed4",
+      "reason": "OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场；Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
     },
     {
       "path": "src/main/opencode/hook-plugin-message-part-throttle.test.ts",
@@ -334980,14 +334983,14 @@
     {
       "path": "native/windows-agent-hook/src/main.rs",
       "upstream_sha256": "9fbd844834a09a852490c57b3e10a08418dbc38da957d60d585246dc70195a08",
-      "current_sha256": "dc87dbe0c8e082b53c537824449eb37484ae226362e35425a1edc98a7670e209",
-      "reason": "Windows原生Hook统一zkyq文件及Control Everything PE身份，更新构建/打包/安装并识别旧注册以清理，保留版权和执行权限"
+      "current_sha256": "720cba6c5d7ac2970181dc2003c099b9b55af60f02dce28dde5016a76bc58687",
+      "reason": "Windows原生Hook统一zkyq文件及Control Everything PE身份，更新构建/打包/安装并识别旧注册以清理，保留版权和执行权限；Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
     },
     {
       "path": "src/main/agent-hooks/installer-utils.ts",
       "upstream_sha256": "96686e86e3d60180f7adcbc2dbe3cef17b8916acd49a462768ec495fdc8c3645",
-      "current_sha256": "5aecac9704ae0a67dbaa645888f798bd8e73bffd083ecdeb8568f23b12781c7c",
-      "reason": "Windows原生Hook统一zkyq文件及Control Everything PE身份，更新构建/打包/安装并识别旧注册以清理，保留版权和执行权限"
+      "current_sha256": "6c034e51187bd11e0ba795033a2a6212595938f0d58a9d392a5cf06b37684e61",
+      "reason": "Windows原生Hook统一zkyq文件及Control Everything PE身份，更新构建/打包/安装并识别旧注册以清理，保留版权和执行权限；Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
     },
     {
       "path": "src/main/agent-hooks/locked-executable-rename.test.ts",
@@ -335012,6 +335015,468 @@
       "upstream_sha256": "beb1af03f878c99eb80382aa983ab27a54e3da8fd262679f4e3a11a1fe8ec128",
       "current_sha256": "c9525ec58b2782c1a591d488678ca055485fcf2f2f877e4dcddd4f7ec9f8b09a",
       "reason": "Windows原生Hook统一zkyq文件及Control Everything PE身份，更新构建/打包/安装并识别旧注册以清理，保留版权和执行权限"
+    },
+    {
+      "path": "config/scripts/verify-agent-hook-stdin-lifecycle.mjs",
+      "upstream_sha256": "d18acef13456e68dd94bb5263326c8aea23d39ec08141229213cc63abe422975",
+      "current_sha256": "8ca13abb42a855a0315205686f4ae6d10a340e4d9b018187e10187cd9a43aba9",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+    },
+    {
+      "path": "src/main/agent-hooks/hook-post-command.ts",
+      "upstream_sha256": "6fa42e63914f56642d4c086f6ec6ae824e7ab9b2d01d3cb7ff433674eba122c7",
+      "current_sha256": "f10cbbc0ae78e55c19d86d3becb7fbeb4ff0c1ad407ce5f178d8a59a43670870",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+    },
+    {
+      "path": "src/main/agent-hooks/manual-compact-hook-stream.test.ts",
+      "upstream_sha256": "fa5a9ec917ba586dad340bffcc32e6c0ec745e67bf1ece75c34ed45ebe0a24b0",
+      "current_sha256": "ee1a64ac6c6855596df13f4e2c9726c829a7871f416e0bff2e4ae69786775e7a",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+    },
+    {
+      "path": "src/main/agent-hooks/server-claude-child-permission-lifecycle.test.ts",
+      "upstream_sha256": "a0496616378ff8a1436a88c4fd4073bb0fb442fdd50d13ecd23238afe0e54f09",
+      "current_sha256": "cb833440e0a2485dc88f6e41515a9bc56ae5178f19e9950396afdd52b800b562",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+    },
+    {
+      "path": "src/main/agent-hooks/server-claude-permission-tool-failure.test.ts",
+      "upstream_sha256": "fb87df217d3a1ab754806dcc493851f25b3ecff399f8da9e60726fe7c478f37a",
+      "current_sha256": "ae36ffcabfd3883ec13d0cbbd4d89800ff99c6bab5eb6787e09289410ec2bae0",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+    },
+    {
+      "path": "src/main/agent-hooks/server-claude-permission-visibility.test.ts",
+      "upstream_sha256": "26d001db0b38906e319a9393ddde690561d289cde748eb5a5ad39582029785b7",
+      "current_sha256": "8a9da4b3d9d05c9f801c37e4f2db7493de6f2242c2046234817d4eb73bc066f0",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+    },
+    {
+      "path": "src/main/agent-hooks/server-claude-task-wakeup-lifecycle.test.ts",
+      "upstream_sha256": "28b41860976e0523778f0b75abf19e3a1db5bd31745b92113a9201b3226d3cad",
+      "current_sha256": "a5d3caeaff9d4a393e950790fc2584aeaaa9eb22555612cfe275440c8c5b8ad8",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+    },
+    {
+      "path": "src/main/agent-hooks/server-closed-tab-suppression.test.ts",
+      "upstream_sha256": "2acca8ce7bceac034b2879e40538619f80edc28a4a72155aefdae46507653303",
+      "current_sha256": "2e35f8125e3f4369017892063fc63562b2b4a98f77765aca3b30c59816424e2c",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+    },
+    {
+      "path": "src/main/agent-hooks/server-codex-interrupt-hook.test.ts",
+      "upstream_sha256": "bb6433e15b5b502f058448e5176bd001c89f66723a72757c76f7ab96e7eea560",
+      "current_sha256": "c58bae72f6257629a167170c9ecb5cb59f9293519246be3a742698a56531068d",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+    },
+    {
+      "path": "src/main/agent-hooks/server-codex-review-turn-end.test.ts",
+      "upstream_sha256": "ffc9c2d799d2bf3894e731cdd2e0e4838b4222fdd6b6fc549cf5dd53036ac8c2",
+      "current_sha256": "91ecb6137c0465ec2fd6b44c4513147882cb43fed110009acd12d319348df80c",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+    },
+    {
+      "path": "src/main/agent-hooks/server-codex-subagent-transcript.test.ts",
+      "upstream_sha256": "2ce913557ac14ad8396abf7abf980cf7a8d56cbb4e7cb5b5332417e328628542",
+      "current_sha256": "2085a687566db628e2b5303e0841500f1ba5b6fc9f695eddd0027021073753c2",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+    },
+    {
+      "path": "src/main/agent-hooks/server-codex-turn-interruption.test.ts",
+      "upstream_sha256": "03b23839894e4cc83d77dd30638498253ad13b449dc8c04b5dc0e9bf613d6e7f",
+      "current_sha256": "ae251cb61102fb4579a4df014d97f8264df9f69e450b1e30dd39d6f882b182e3",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+    },
+    {
+      "path": "src/main/agent-hooks/server-copilot-normalization.test.ts",
+      "upstream_sha256": "a11c78f94c3f3fc0f163fea9d5834ca32b7029d926b6a5b93287c4cb44ad01f8",
+      "current_sha256": "7599f3fc2c1562cafe4cc860dedfa5bcd4016af83558c00f8873ec39131d0050",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+    },
+    {
+      "path": "src/main/agent-hooks/server-grok-background-status.test.ts",
+      "upstream_sha256": "bd7187fce526381956100cda622a539a6533b224dad47f8d9bd03737153b1c94",
+      "current_sha256": "c01736e86ef521418d1549849442122a00d20147bb3d701eaf4f29910562c532",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+    },
+    {
+      "path": "src/main/agent-hooks/server-grok-cancel.test.ts",
+      "upstream_sha256": "389606d74aed785b6e208e67ff9ad397bcecceb85feb0f7e77d12a605e297d5d",
+      "current_sha256": "9baffbf7b76d2232b1ce2ce056fd9d9eb08707c178cf4f9e9c03ac9ce51e6d0b",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+    },
+    {
+      "path": "src/main/agent-hooks/server-grok-discovery.test.ts",
+      "upstream_sha256": "efe58120b9103de8b3697b8cad7c620c567b986f4e9edab4c3bd296aa0829426",
+      "current_sha256": "11b305168c6420ddb19d4229f9d5f4c2c01966eebf30c68599076836958616ec",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+    },
+    {
+      "path": "src/main/agent-hooks/server-hook-http-ingest.test.ts",
+      "upstream_sha256": "74151f6023b6fcf001ede532be1ce1fc114739adc68ad127d29cf2f733c53a54",
+      "current_sha256": "5ed75e35c62e22d6696c5e07b79b9dd9ea698c900e1e81451e0b23ceb792e1e8",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+    },
+    {
+      "path": "src/main/agent-hooks/server-interrupt-inference-guards.test.ts",
+      "upstream_sha256": "72a4ee78602832ba4e6834bde3803abd51d5f1122a5947e55039bd2877f14e4b",
+      "current_sha256": "57706c32dd64bcb49669fbbd1a5064db9ef6b97050d27d5d542ec4f41ba8f910",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+    },
+    {
+      "path": "src/main/agent-hooks/server-muse-session-log-poll.test.ts",
+      "upstream_sha256": "257add1b4c04835e895c548fef4304850f110bfcaebd581a76ebb9aee8a8c546",
+      "current_sha256": "a10819184032fa70a1692efc7a03063a21c6d260d837328bb9e832bc408d75b2",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+    },
+    {
+      "path": "src/main/agent-hooks/server-nested-agent-roster.test.ts",
+      "upstream_sha256": "dcbdde1b380ae886f21f013d7dbcdbbdae4b0c02a898e2f62d81b1eb0d2e142f",
+      "current_sha256": "3cc463ed420814e671b95c06c63d353a4507de51f3aa933f38fa2a37347381a2",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+    },
+    {
+      "path": "src/main/agent-hooks/server-opencode-lifecycle.test.ts",
+      "upstream_sha256": "688920ca6c20900c19a4c907b9b5d2c5c81b6ef96ebfc2f3f82650c4500cd6cc",
+      "current_sha256": "4123905b3801ca06f3e206fbb984f71496c94ba45a99ead4f7e5eb1b427d5b7f",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+    },
+    {
+      "path": "src/main/agent-hooks/server-opencode-tui-identity.test.ts",
+      "upstream_sha256": "835b9a4974f8c5e738e1a463d8fac65105a7e2ba51ba59578c899bf94eb4badb",
+      "current_sha256": "dc23bddd35a26f7104553ee5ce8eb05a0f5d60e5ff53939a2725bcade5d77618",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+    },
+    {
+      "path": "src/main/agent-hooks/server-prompt-sent-telemetry.test.ts",
+      "upstream_sha256": "4fb98b9b61fb54bf7363df9f84abb55974ef8b774d7db7a2b4ee004c0af4a25a",
+      "current_sha256": "e5e5b1600093ba2553c259407f7a4193c4e92c3eafcc7c52f613be647b23b542",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+    },
+    {
+      "path": "src/main/agent-hooks/server-relayed-claude-cancel.test.ts",
+      "upstream_sha256": "37deb0dbe8a226dc953a3319bb9e6fe76058ddc71b6ccdc5eda8638ea1e51629",
+      "current_sha256": "1df3e3edef7d11a0f7b3f801e3538167eec921973665b2d972cd59a0f80f2bd5",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+    },
+    {
+      "path": "src/main/agent-hooks/server-relayed-claude-permission-replay.test.ts",
+      "upstream_sha256": "10715f12490c5f4f4518cebed63c5a3f74afebd111d7c74aa24805b101e11fb5",
+      "current_sha256": "71f1e9d72843a8ed6955c24d2cf0c151aa0c33bff6e5d9a52c3a41ad73e59525",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+    },
+    {
+      "path": "src/main/agent-hooks/server-startup-prompt-control.test.ts",
+      "upstream_sha256": "2c02eebc62ce6f8226ab3ab75bf30b0dfb68ed798b1d1115a856a5431b4c6fbc",
+      "current_sha256": "a15eea0883d9f02f1ab8ce8a068ff5629735ee2a09faf59950357a29f19a3286",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+    },
+    {
+      "path": "src/main/agent-hooks/server-status-listener-fanout.test.ts",
+      "upstream_sha256": "1a146ab3e3f4a83e0ac7dab657fc6444b080b7c272ba139dd4152666faa6e92c",
+      "current_sha256": "96bbbddbec1863d3aa252da09978d9b7a6fbb538f98607178bde6a2c24ae9f98",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+    },
+    {
+      "path": "src/main/agent-hooks/server-transport-interference.test.ts",
+      "upstream_sha256": "aabce7b0f189211444b4132a3e972b1c7d77683d6ffaffa6ced8de8afb8ec0b0",
+      "current_sha256": "9cdba2e663c9c298ca2b6e24865be27c61a5c0222904ab30fe971bbe208d26e4",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+    },
+    {
+      "path": "src/main/agent-hooks/server.test-fixtures.ts",
+      "upstream_sha256": "fedaa9cdbef305048ad1672c106128ed9380c85f4cc940619faa8040f08cf029",
+      "current_sha256": "b14afac151c760b0f4d3c1688d744172c679d590abb280cf81cbfab67376acfd",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+    },
+    {
+      "path": "src/main/agent-hooks/server/server-lifecycle.ts",
+      "upstream_sha256": "a57b23977846b2f05380a9df566dfcd90b6df736bda23081c5351ffbda4f2ff3",
+      "current_sha256": "8da428165ded783ddbce52866526ccae1b2d9e2e64a288454ddcaa6612db6840",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+    },
+    {
+      "path": "src/main/agent-hooks/wsl-hook-relay-live.integration.test.ts",
+      "upstream_sha256": "cd396146a7f56a608c523f2920e935b3372f8c33aead98b7343cd50370934c89",
+      "current_sha256": "2b9027ab764d5233c7fe09ba4142de396289f0b63369aebae01fdb79c0b17658",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+    },
+    {
+      "path": "src/main/amp/agent-status-plugin-source.ts",
+      "upstream_sha256": "975bd2306d670652bfe5681a716782adc11dcf638ebe489a87a4ae740698e551",
+      "current_sha256": "422f6d18b60f083e0c58c8ae8276ce82bbe8053b49b39bf05569ace3b67f216d",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+    },
+    {
+      "path": "src/main/antigravity/hook-script.ts",
+      "upstream_sha256": "cda9c396a8607fe1ffaaf46a5dab1c506b10f78cc207899b6a20aad3549676e8",
+      "current_sha256": "f9aa444089c9c1a232602922d16792162e6cd1e74b2c366b12da622b8615f17f",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+    },
+    {
+      "path": "src/main/antigravity/windows-hook-json-post.ts",
+      "upstream_sha256": "4fda7b63e3120315d167b48cf9f6e458f0f7cc38485493d6cee5eb3696dd6af9",
+      "current_sha256": "884f082f2e9d813980b6b0b030f769122005c700478c021500cb39dad7d40fc9",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+    },
+    {
+      "path": "src/main/claude/statusline-script.ts",
+      "upstream_sha256": "2673c1118111eb10ca7e7a929e619dd537bac32f6a2d0ca16c95d7ae9a865900",
+      "current_sha256": "5a2834060ccc56ce006b48215e208693f15dafc248b5c63099e28210e9168cf7",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+    },
+    {
+      "path": "src/main/command-code/command-code-managed-script.ts",
+      "upstream_sha256": "2ae236d913d916ecde4432b0ff388d29604ef63154da29a2e473e58fe895e166",
+      "current_sha256": "59bfadc4fd71bc29e8823cc88547697b36f5950188f536551b1b53c0a4e1ee3e",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+    },
+    {
+      "path": "src/main/command-code/hook-service.test.ts",
+      "upstream_sha256": "11dc6f7cd44ebbe056b991c9268fdcda4a449f37ce7da803746efea275051edf",
+      "current_sha256": "39c8eaa18e034109d8fcad6044782bc1b4f9a049b7abd6d38c38b01693235990",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+    },
+    {
+      "path": "src/main/copilot/copilot-managed-script.ts",
+      "upstream_sha256": "365e7f4dddb11ae2c05fb84d0d03efc99083882a35fa871fb20618835a9c1a4a",
+      "current_sha256": "d6797158966653235165a4d3a3dec92e3b4dc082efb94af2b119b99ed491e87e",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+    },
+    {
+      "path": "src/main/cursor/hook-script.ts",
+      "upstream_sha256": "5a61432ee6d7eeb25ee96dc2ad8bc29b00b3248abdd863e49db24988d212aa4e",
+      "current_sha256": "070869198caa10e64da697d28322e29959a5eeb5e23be715b8243828415ec15c",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+    },
+    {
+      "path": "src/main/cursor/hook-service.ts",
+      "upstream_sha256": "122e97ef88689a51398b5733a91cffb007fa6f4ebfb84c88b1c67b4b5899fefa",
+      "current_sha256": "6bab539e6c4a3dc99b566e6c470700b557cb6d7bb0333896d761c9a8a2d0df4f",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+    },
+    {
+      "path": "src/main/devin/hook-service.ts",
+      "upstream_sha256": "c3fc391215758a4c966c292ab568b5b0ba2b5a79a32a9d1e4eed797aebcdfa89",
+      "current_sha256": "e051de7cc53942cbf0edf39e4a361b5951ab873a0b931ca3d3f474334619d479",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+    },
+    {
+      "path": "src/main/droid/hook-service.ts",
+      "upstream_sha256": "381fe0d9a741a1d0628bf8de71ad5e87ad0961e0f4a0e1fb25b8973009444ec6",
+      "current_sha256": "2640d088e04b0f50286ea97479c830c4339a0a206f8625df589f693129dbb675",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+    },
+    {
+      "path": "src/main/gemini/hook-service.ts",
+      "upstream_sha256": "b08fb72f8f5cb02f7ed93761cd4ec0968268480a62b4975ecab55b7a273d5609",
+      "current_sha256": "878efbe90a9f8bb5904f06136d7f0e08b9c0876eddd73f579715a57ac766e4ce",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+    },
+    {
+      "path": "src/main/grok/grok-hook-script.ts",
+      "upstream_sha256": "c51214881465ad7a7abc9c125267fe33a81593cb39d5367486fa7f221e7a34cd",
+      "current_sha256": "f0027d981e8fb07a93c759a09f8e7bb4e52ce9d41b06fa7744eb0eaab1a4979a",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+    },
+    {
+      "path": "src/main/hermes/hermes-managed-plugin-source.ts",
+      "upstream_sha256": "66184c382e24dd4234c1242421510bc938713bbc26a4a559c5d372c662a3da78",
+      "current_sha256": "07f10eced3d46959e7795092d850b8615d8019d9ebfc8f7ff8fac5e6482a93a7",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+    },
+    {
+      "path": "src/main/hermes/hook-service.test.ts",
+      "upstream_sha256": "9e7bcb9182a378f63db0d24403afa5812f6d8c34ad82fde8e567857118202b46",
+      "current_sha256": "9a8f3f08c13bd65fb0f3d2939e21cf1c762d34e40559ac6119d320bd30add393",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+    },
+    {
+      "path": "src/main/jcode/hook-gate-script.test.ts",
+      "upstream_sha256": "6dad27be6753fe3b8a0b283f8c71929e0b66868e4b4170fb988bf78e900398ae",
+      "current_sha256": "73274102b26786a3914327ce62cca851a1d9c6839259fb6b0b40dd3f5e1c95c3",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+    },
+    {
+      "path": "src/main/kimi/hook-service.ts",
+      "upstream_sha256": "a56d305e3b67fa2d8ca406d56dc80c2bf6b66106ccda6c75e51f4b898434a293",
+      "current_sha256": "070eda2589daa1269ccc1d5e112526ca034e7d688fa629bd00e897c009ccdd57",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+    },
+    {
+      "path": "src/main/opencode/status-plugin-post-source.ts",
+      "upstream_sha256": "d25f9e37c3fa7f6a7d89257d4b27d43ed247c6cf75573217b618f76b3cd5967a",
+      "current_sha256": "22b205474bc2036e879f23d01dfdf01e464bd0038f43359826d1337b8799205b",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+    },
+    {
+      "path": "src/main/pi/agent-status-extension-source.ts",
+      "upstream_sha256": "c02210343e79f22a8c44376a7f89fefed1a9b2aab49826d169dc8fab9a364ec5",
+      "current_sha256": "d04aa3869e488eefb491ac104c529042a1490193e38416f53d52cab8085de319",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+    },
+    {
+      "path": "src/main/pi/agent-status-wsl-curl-source.ts",
+      "upstream_sha256": "edc994ca13a3a9eb505dcb8f1f98c20a260b388ff1c066d0e614cb818d89772d",
+      "current_sha256": "6d8f0856f6119bbd0ece4f4a9e0d1b3b2d9bc05488979560cf5249321f3e0bd2",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+    },
+    {
+      "path": "src/main/runtime/opencode-finished-session-authority.test.ts",
+      "upstream_sha256": "f3fc2c1f54777e298333ed55152720e597658da4a5bc0060bc931d2cd95584f1",
+      "current_sha256": "327802b4ed0f30259b2d1dfa5a5a866d597f1d8f1cd447dc934e2fef0ef30499",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+    },
+    {
+      "path": "src/shared/agent-hook-listener-transport.test.ts",
+      "upstream_sha256": "1b06dab2f92a827058d4ca5c3dfcf21545bff83749d1d59c7d68b3e35c736aed",
+      "current_sha256": "a46546c2c97ff75d688076a928485e4877980db6e21aa958b1f93329b1ef99d1",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+    },
+    {
+      "path": "src/shared/agent-hook-listener/hook-envelope.ts",
+      "upstream_sha256": "ca30cb9a0541e8c43db38efe7a51149a5b78c5880f681c31e5be35d0631fa860",
+      "current_sha256": "7f518b97582b4d174ae510630f7ff0d520b6b20c25ace8acc3d5b9d2603f1304",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+    },
+    {
+      "path": "src/wsl-guest/agent-hook-canonical-status.test.ts",
+      "upstream_sha256": "ee6614e86959c88d1d8b68480e0f2653fb80683afd511718e77a7a210910b203",
+      "current_sha256": "6821b773e93cd3e8be0121bb1479cd8f3ca4f6a2cf3c6190dfc8e861e525aa61",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+    },
+    {
+      "path": "src/wsl-guest/agent-hook-integration.test.ts",
+      "upstream_sha256": "c85027c6470ab99951ff5a4611cf901c755c2b806964014e7b70478931bfcb80",
+      "current_sha256": "684b8b58860c7d68df7118447c285bcb6a32196217d837afc2758212abea8386",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+    },
+    {
+      "path": "src/wsl-guest/agent-hook-interrupt-reconciliation.test.ts",
+      "upstream_sha256": "688bdb559d61bc830a8437c5bc319ad74e0eba6a89aac71f43e40b4549b6c220",
+      "current_sha256": "7a4dd2b203190e56996faf97eb4cc71c8a6ed49cc069770101ff70f22fffca13",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+    },
+    {
+      "path": "src/wsl-guest/agent-hook-opencode-tui-identity.test.ts",
+      "upstream_sha256": "1903df59a63d079a713e3de123e6974facb5dbcb64f88dcd6cd3afad846ea07e",
+      "current_sha256": "7760ef0be17fd319e699841f9f3bb4c651e61fbd9911bdb47b0fae736e491a89",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+    },
+    {
+      "path": "src/wsl-guest/agent-hook-provider-normalization.test.ts",
+      "upstream_sha256": "1021fbf93557e2bb1f5949e164a39fde65e7ef84a6f9df76766565342c2732ec",
+      "current_sha256": "abe65385ceb93d6dace3545470ea3c616a95765f880f7012027e330a74863f54",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+    },
+    {
+      "path": "src/wsl-guest/agent-hook-request.ts",
+      "upstream_sha256": "698c2c151fb5dd21c1ff0fed1dec9c605ae53daedf5ade2840c7012d638fe5c9",
+      "current_sha256": "22cf74ef78198529031bef773f8b2637fd9ab06fd0fbb176593b81893f36c834",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+    },
+    {
+      "path": "src/wsl-guest/agent-hook-server-claude-owed-notification-expiry.test.ts",
+      "upstream_sha256": "b7f03e4e6e2e37d2f96488ac023fef07852fdd3166479b5fb5cef01626c1eabb",
+      "current_sha256": "e4750e1547a05b9fe8f1cff4cc2bf92ec67950e5d9481ef15b41e9c6fad6542b",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+    },
+    {
+      "path": "src/wsl-guest/agent-hook-server-codex-subagent-transcript.test.ts",
+      "upstream_sha256": "63387c4d2fe4b1b8a1d93582c751fdb378b79134afed6de327400623a2c1a97a",
+      "current_sha256": "3668190814f397995334abf1da15fdb4a6e24d86046ab733bb17defeae5d8937",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+    },
+    {
+      "path": "src/wsl-guest/agent-hook-server-codex-turn-interruption.test.ts",
+      "upstream_sha256": "896fdf715c85ce250e45d2bc36ebe5e8b2d7ac6aa2be016758f7d3895b6c1736",
+      "current_sha256": "ff65d212faa844fd6a2b3d612548a1ef44790c6a64f190927df6c6f3085942bc",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+    },
+    {
+      "path": "src/wsl-guest/agent-hook-server.test.ts",
+      "upstream_sha256": "419114a458cdd3412e8264bcbac4ff04bc24db824d0c435077f960e28a947c69",
+      "current_sha256": "ace96bdfa8c79b1af81ae57153de7e046f671162e413085a9c89cf73b666c0ed",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+    },
+    {
+      "path": "src/wsl-guest/relay-agent-presence.test.ts",
+      "upstream_sha256": "d9f359e751c3acbab3f658cef749346d1cc149e9f94f851e4415f72f79373cef",
+      "current_sha256": "2406e53eb2b36e6b532fe9671fd0b83be52c5964ac7b473ede44f3154f6a4de2",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+    },
+    {
+      "path": "src/wsl-guest/relay-http-owner-probe-lifecycle.test.ts",
+      "upstream_sha256": "52aa2d5f358037748b7c30e24b5582b64d4c314ff0a3c01256e42fb034cbd349",
+      "current_sha256": "a34b76c2e90526f52ce43a28509da8062954061508a6c9b46cb4961f32d3aeee",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+    },
+    {
+      "path": "src/wsl-guest/relay-idle-process-owner.test.ts",
+      "upstream_sha256": "26ac0ab179701167e4b98da0c8c01a81eb1f3f47a54e967adc21da009a07012d",
+      "current_sha256": "8297231a66aa3d423237db68bbc733df04add385652c5d67e8681b541642f57d",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+    },
+    {
+      "path": "tests/e2e/helpers/agent-hook-endpoint.ts",
+      "upstream_sha256": "90cd51059907c33dd768c2991b4390f210ea7622dbc1ea7af1a8ee5f023eca95",
+      "current_sha256": "2d27857014ff76a4782031577fe9122c99003f4b6de9fa0433bbe356ad844952",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+    },
+    {
+      "path": "tests/e2e/native-chat-zcode-transcript.spec.ts",
+      "upstream_sha256": "9f977aae8d3de1cc3add97de435ed67b00f13d1c4109e2cab12ea6d3be0530dc",
+      "current_sha256": "60600e32a676f3cc79a3688415d52be9427653b1eb482d3c72af09c523edd1d3",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+    },
+    {
+      "path": "tests/e2e/nested-agent-idle-session-owner.spec.ts",
+      "upstream_sha256": "d8342aa36a694cf30c72b975e0246bb1b078419131ca35434aa656af75582697",
+      "current_sha256": "eb6657e98924121e0306464e7c0095b93fd270056cde38aca411a0a56c762bb9",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+    },
+    {
+      "path": "tests/e2e/omp-completion-retry-status.spec.ts",
+      "upstream_sha256": "4fbc4cfc8c3b72d15670e60f96c545d6d2e768c6a52f577dd640ed82e4169824",
+      "current_sha256": "2df55795e85dcd425801225dfe6dd949b8a06bc2f9779e943cd89d121251b29d",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+    },
+    {
+      "path": "tests/e2e/orchestration-legacy-worker-restart-recovery.spec.ts",
+      "upstream_sha256": "fa116a83637749f06fef5252e158c265f420c9e85620038ab40742a1cffd230f",
+      "current_sha256": "621cfad50ca4bce95347385c220d59b9bb4995e49aa4466f15b52f2d2ee54358",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+    },
+    {
+      "path": "tests/e2e/orchestration-worker-transcript-providers.spec.ts",
+      "upstream_sha256": "46c0d6dbf61af7f0c9435d1c4f712d7a29453dff9e69a7f1d85a695a740b3931",
+      "current_sha256": "b7933d794b0da8958832510d433ae00da5e0e7188be23860e9f4f0d5730c08e8",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+    },
+    {
+      "path": "tests/e2e/pi-ui-prompt-status.spec.ts",
+      "upstream_sha256": "a524f1835bde0000bbcce409892b0cbb8bba5194eb2fccab62a9038a65640ea6",
+      "current_sha256": "44fa1db9c20b850e33e2879586a7cad405f77dc32539baee5989e6c68ecdb66a",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+    },
+    {
+      "path": "tests/e2e/settings-agent-awake.spec.ts",
+      "upstream_sha256": "73c343e2ed59fe520dbb558eb3d0be94b3095868b638d039b892380977c9ecf4",
+      "current_sha256": "3d7d56627ca3572c036f07f92a7b05900c766bcc34d77ac5a538a0ce20569e5f",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+    },
+    {
+      "path": "tests/e2e/ssh-orcad-workspace-tools.spec.ts",
+      "upstream_sha256": "5c48daa79c85198bbcf358b2cdec41471e6599cd08f7e8030fa6b6434ee9d0f5",
+      "current_sha256": "1e67276ec6078ad70e25d0fae2c8f323763e176083a0cc6d58b6cace3c4618f9",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
+    },
+    {
+      "path": "tests/e2e/status-bar-caffeinate.spec.ts",
+      "upstream_sha256": "e843e99d7d751289304c3b0a35930e256f4239f830c65f56498d6affbe3478b8",
+      "current_sha256": "5d2661e0c94a4c1c9f7027819f28dee657bfb0ab08a358e0c994488ecc2e9144",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为"
     }
   ],
   "reviewed_findings": [
@@ -335677,7 +336142,7 @@
       "path": "src/main/claude/statusline-script.ts",
       "rule": "absolute-windows-path",
       "line": 63,
-      "sha256": "2673c1118111eb10ca7e7a929e619dd537bac32f6a2d0ca16c95d7ae9a865900",
+      "sha256": "5a2834060ccc56ce006b48215e208693f15dafc248b5c63099e28210e9168cf7",
       "reason": "Windows已知系统目录/系统可执行程序的默认或环境回退，不是个人工程路径；保留系统解析功能。"
     },
     {

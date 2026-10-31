@@ -137,7 +137,7 @@ describe('HermesHookService', () => {
         req.on('end', () => {
           try {
             expect(req.url).toBe('/hook/hermes')
-            expect(req.headers['x-orca-agent-hook-token']).toBe('token-1')
+            expect(req.headers['x-zkyq-agent-hook-token']).toBe('token-1')
             res.writeHead(204)
             res.end()
             clearTimeout(timeout)

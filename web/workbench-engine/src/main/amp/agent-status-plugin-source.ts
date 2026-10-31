@@ -101,7 +101,7 @@ export function getAmpPluginSource(): string {
     '      signal: controller.signal,',
     '      headers: {',
     '        "Content-Type": "application/json",',
-    '        "X-Orca-Agent-Hook-Token": coords.token',
+    '        "X-Zkyq-Agent-Hook-Token": coords.token',
     '      },',
     '      body: JSON.stringify({',
     '        paneKey,',

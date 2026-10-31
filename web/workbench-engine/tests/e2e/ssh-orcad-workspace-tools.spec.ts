@@ -147,7 +147,7 @@ test('a managed terminal reports agent status from hooks and from Pi-style title
       tabId,
       [
         '( sleep 0.2; curl -sS -X POST "http://127.0.0.1:${ORCA_AGENT_HOOK_PORT}/hook/codex"',
-        '-H "X-Orca-Agent-Hook-Token: ${ORCA_AGENT_HOOK_TOKEN}"',
+        '-H "X-Zkyq-Agent-Hook-Token: ${ORCA_AGENT_HOOK_TOKEN}"',
         '--data-urlencode "paneKey=${ORCA_PANE_KEY}" --data-urlencode "tabId=${ORCA_TAB_ID}"',
         '--data-urlencode "worktreeId=${ORCA_WORKTREE_ID}" --data-urlencode "env=${ORCA_AGENT_HOOK_ENV}"',
         '--data-urlencode "version=${ORCA_AGENT_HOOK_VERSION}"',

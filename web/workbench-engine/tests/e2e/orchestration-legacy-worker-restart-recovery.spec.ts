@@ -63,7 +63,7 @@ async function emitAuthorityHook(hookEventName) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-Orca-Agent-Hook-Token': token
+        'X-Zkyq-Agent-Hook-Token': token
       },
       body: JSON.stringify({
         paneKey: process.env.ORCA_PANE_KEY,

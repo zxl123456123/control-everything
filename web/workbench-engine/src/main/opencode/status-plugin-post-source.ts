@@ -34,7 +34,7 @@ export function getStatusPluginPostSource(hookPathname: string): string[] {
     '      method: "POST",',
     '      headers: {',
     '        "Content-Type": "application/json",',
-    '        "X-Orca-Agent-Hook-Token": coords.token,',
+    '        "X-Zkyq-Agent-Hook-Token": coords.token,',
     '      },',
     '      body,',
     '      signal: controller.signal,',

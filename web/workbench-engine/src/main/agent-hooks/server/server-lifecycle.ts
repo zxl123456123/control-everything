@@ -3,6 +3,7 @@ import { checkHookOwnerPresence } from '../../../shared/agent-hook-owner-presenc
 import { parsePaneKey } from '../../../shared/stable-pane-id'
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
 import { randomUUID } from 'node:crypto'
+import { normalizeAgentHookRequestHeaders } from '../../../shared/agent-hook-request-headers'
 
 import {
   CLAUDE_STATUSLINE_PATHNAME,
@@ -68,7 +69,8 @@ export abstract class AgentHookServerLifecycle extends AgentHookServerStatusHook
         return
       }
       // Why: authenticate before spending work reading an untrusted body.
-      if (req.headers['x-orca-agent-hook-token'] !== this.token) {
+      const headers = normalizeAgentHookRequestHeaders(req.headers)
+      if (!headers || headers['x-zkyq-agent-hook-token'] !== this.token) {
         res.writeHead(403)
         res.end()
         return

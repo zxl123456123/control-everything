@@ -53,9 +53,9 @@ describe('RelayAgentHookServer', () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Orca-Agent-Hook-Token': token,
-          'X-Orca-Agent-Hook-Meta-Encoding': 'base64',
-          'X-Orca-Agent-Hook-Meta': Buffer.from(
+          'X-Zkyq-Agent-Hook-Token': token,
+          'X-Zkyq-Agent-Hook-Meta-Encoding': 'base64',
+          'X-Zkyq-Agent-Hook-Meta': Buffer.from(
             [PANE_KEY, 'tab-1', '', 'wt-1', 'remote', '1'].join('\x1f')
           ).toString('base64')
         },
@@ -188,7 +188,7 @@ describe('RelayAgentHookServer', () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Orca-Agent-Hook-Token': token
+          'X-Zkyq-Agent-Hook-Token': token
         },
         body: JSON.stringify({
           paneKey: PANE_KEY,
@@ -225,7 +225,7 @@ describe('RelayAgentHookServer', () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Orca-Agent-Hook-Token': token
+          'X-Zkyq-Agent-Hook-Token': token
         },
         body: JSON.stringify({
           paneKey: PANE_KEY,
@@ -254,7 +254,7 @@ describe('RelayAgentHookServer', () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Orca-Agent-Hook-Token': token
+          'X-Zkyq-Agent-Hook-Token': token
         },
         body: JSON.stringify({
           paneKey: PANE_KEY,
@@ -274,7 +274,7 @@ describe('RelayAgentHookServer', () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Orca-Agent-Hook-Token': token
+          'X-Zkyq-Agent-Hook-Token': token
         },
         body: JSON.stringify({
           paneKey: PANE_KEY,
@@ -289,7 +289,7 @@ describe('RelayAgentHookServer', () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Orca-Agent-Hook-Token': token
+          'X-Zkyq-Agent-Hook-Token': token
         },
         body: JSON.stringify({
           paneKey: PANE_KEY,
@@ -317,7 +317,7 @@ describe('RelayAgentHookServer', () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Orca-Agent-Hook-Token': 'wrong'
+          'X-Zkyq-Agent-Hook-Token': 'wrong'
         },
         body: '{}'
       })
@@ -338,7 +338,7 @@ describe('RelayAgentHookServer', () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Orca-Agent-Hook-Token': token
+          'X-Zkyq-Agent-Hook-Token': token
         },
         body: JSON.stringify({ value: 'x'.repeat(HOOK_REQUEST_MAX_BYTES + 1) })
       })
@@ -359,7 +359,7 @@ describe('RelayAgentHookServer', () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Orca-Agent-Hook-Token': token
+          'X-Zkyq-Agent-Hook-Token': token
         },
         body: JSON.stringify({
           paneKey: PANE_KEY,
@@ -395,7 +395,7 @@ describe('RelayAgentHookServer', () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Orca-Agent-Hook-Token': token
+          'X-Zkyq-Agent-Hook-Token': token
         },
         body: JSON.stringify({
           paneKey: PANE_KEY,
@@ -451,7 +451,7 @@ describe('RelayAgentHookServer', () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Orca-Agent-Hook-Token': token
+          'X-Zkyq-Agent-Hook-Token': token
         },
         body: JSON.stringify({
           paneKey: PANE_KEY,
@@ -480,7 +480,7 @@ describe('RelayAgentHookServer', () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Orca-Agent-Hook-Token': token
+          'X-Zkyq-Agent-Hook-Token': token
         },
         body: JSON.stringify({
           paneKey: 'tab-1:0',
@@ -543,7 +543,7 @@ describe('RelayAgentHookServer', () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Orca-Agent-Hook-Token': token
+          'X-Zkyq-Agent-Hook-Token': token
         },
         body: JSON.stringify({
           paneKey: PANE_KEY,
@@ -557,7 +557,7 @@ describe('RelayAgentHookServer', () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Orca-Agent-Hook-Token': token
+          'X-Zkyq-Agent-Hook-Token': token
         },
         body: JSON.stringify({
           paneKey: PANE_KEY,
@@ -600,7 +600,7 @@ describe('RelayAgentHookServer', () => {
       const post = (payload: Record<string, unknown>) =>
         fetch(`http://127.0.0.1:${port}/hook/claude`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-Orca-Agent-Hook-Token': token },
+          headers: { 'Content-Type': 'application/json', 'X-Zkyq-Agent-Hook-Token': token },
           body: JSON.stringify({
             paneKey: PANE_KEY,
             tabId: 'tab-1',
@@ -649,7 +649,7 @@ describe('RelayAgentHookServer', () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Orca-Agent-Hook-Token': token
+          'X-Zkyq-Agent-Hook-Token': token
         },
         body: JSON.stringify({
           paneKey: PANE_KEY,
@@ -663,7 +663,7 @@ describe('RelayAgentHookServer', () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Orca-Agent-Hook-Token': token
+          'X-Zkyq-Agent-Hook-Token': token
         },
         body: JSON.stringify({
           paneKey: PANE_KEY,
@@ -705,7 +705,7 @@ describe('RelayAgentHookServer', () => {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'X-Orca-Agent-Hook-Token': token
+            'X-Zkyq-Agent-Hook-Token': token
           },
           body: JSON.stringify({
             paneKey,
@@ -761,7 +761,7 @@ describe('RelayAgentHookServer', () => {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'X-Orca-Agent-Hook-Token': token
+            'X-Zkyq-Agent-Hook-Token': token
           },
           body: JSON.stringify({
             paneKey: PANE_KEY,
@@ -810,7 +810,7 @@ describe('RelayAgentHookServer', () => {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'X-Orca-Agent-Hook-Token': token
+            'X-Zkyq-Agent-Hook-Token': token
           },
           body: JSON.stringify({
             paneKey: PANE_KEY,

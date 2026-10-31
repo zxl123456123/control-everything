@@ -185,7 +185,7 @@ describe('OpenCode finished-session launch authority (STA-4557)', () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Orca-Agent-Hook-Token': hookEnv.ORCA_AGENT_HOOK_TOKEN
+          'X-Zkyq-Agent-Hook-Token': hookEnv.ORCA_AGENT_HOOK_TOKEN
         },
         body: JSON.stringify({
           paneKey: pane.paneKey,
@@ -246,7 +246,7 @@ describe('OpenCode finished-session launch authority (STA-4557)', () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Orca-Agent-Hook-Token': hookEnv.ORCA_AGENT_HOOK_TOKEN
+          'X-Zkyq-Agent-Hook-Token': hookEnv.ORCA_AGENT_HOOK_TOKEN
         },
         body: JSON.stringify({
           paneKey: pane.paneKey,
@@ -295,7 +295,7 @@ describe('OpenCode finished-session launch authority (STA-4557)', () => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-Orca-Agent-Hook-Token': hookEnv.ORCA_AGENT_HOOK_TOKEN
+        'X-Zkyq-Agent-Hook-Token': hookEnv.ORCA_AGENT_HOOK_TOKEN
       },
       body: JSON.stringify({
         paneKey: pane.paneKey,

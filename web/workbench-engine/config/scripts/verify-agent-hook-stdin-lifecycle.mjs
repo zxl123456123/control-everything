@@ -297,7 +297,7 @@ async function verifyForwarding(scripts, home, payload) {
           )
         )
       }
-      if (request.headers['x-orca-agent-hook-token'] !== 'electron-verification-token') {
+      if (request.headers['x-zkyq-agent-hook-token'] !== 'electron-verification-token') {
         throw new Error([script.fileName, ' lost the hook token header'].join(''))
       }
       if (form.get('payload') !== payload) {

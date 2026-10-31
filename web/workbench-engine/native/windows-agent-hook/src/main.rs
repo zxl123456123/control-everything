@@ -134,7 +134,7 @@ fn post(source: &str, port: &str, token: &str, form: &[(&str, String)], payload:
     let mut request = format!(
         "POST /hook/{source} HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\n\
          Content-Type: application/x-www-form-urlencoded\r\n\
-         X-Orca-Agent-Hook-Token: {token}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+         X-Zkyq-Agent-Hook-Token: {token}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
         body.len()
     )
     .into_bytes();

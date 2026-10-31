@@ -77,7 +77,7 @@ async function startSshPane(): Promise<SshPane> {
       const { port, token } = pane.relay.getCoordinates()
       const response = await fetch(`http://127.0.0.1:${port}/hook/claude`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Orca-Agent-Hook-Token': token },
+        headers: { 'Content-Type': 'application/json', 'X-Zkyq-Agent-Hook-Token': token },
         body: JSON.stringify(buildBody(payload))
       })
       expect(response.status).toBe(204)

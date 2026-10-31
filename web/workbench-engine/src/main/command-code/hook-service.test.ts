@@ -133,7 +133,7 @@ describe('CommandCodeHookService', () => {
       req.on('end', () => {
         requests.push({
           body,
-          token: req.headers['x-orca-agent-hook-token']
+          token: req.headers['x-zkyq-agent-hook-token']
         })
         res.statusCode = 204
         res.end()

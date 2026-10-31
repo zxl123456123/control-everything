@@ -64,7 +64,7 @@ describe('AgentHookServer Codex subagent transcript polling', () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Orca-Agent-Hook-Token': env.ORCA_AGENT_HOOK_TOKEN
+          'X-Zkyq-Agent-Hook-Token': env.ORCA_AGENT_HOOK_TOKEN
         },
         body: JSON.stringify({
           paneKey: PANE_KEY,
@@ -115,7 +115,7 @@ describe('AgentHookServer Codex subagent transcript polling', () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Orca-Agent-Hook-Token': env.ORCA_AGENT_HOOK_TOKEN
+          'X-Zkyq-Agent-Hook-Token': env.ORCA_AGENT_HOOK_TOKEN
         },
         body: JSON.stringify({
           paneKey: PANE_KEY,
@@ -170,7 +170,7 @@ describe('AgentHookServer Codex subagent transcript polling', () => {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'X-Orca-Agent-Hook-Token': env.ORCA_AGENT_HOOK_TOKEN
+            'X-Zkyq-Agent-Hook-Token': env.ORCA_AGENT_HOOK_TOKEN
           },
           body: JSON.stringify({ paneKey: PANE_KEY, tabId: 'tab-1', worktreeId: 'wt-1', payload })
         })
