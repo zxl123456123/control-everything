@@ -332771,14 +332771,14 @@
     {
       "path": "src/main/daemon/daemon-foreground-confirmation-protocol.test.ts",
       "upstream_sha256": "6a7537df9c680841ddb7a3c6f8220dbee228e1b701101e4c046c03d9c75dcee4",
-      "current_sha256": "fea62d2df62557643f772a172324db57bf2045d47cf970680d9a8ec1ba66144a",
-      "reason": "迁移终端历史交接变量并以新版 daemon 隔离旧 shell 合同；迁移应用版本环境变量并隔离驻留旧版 daemon；终端资源环境变量改名及启动迁移；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义；Pi/OMP/Prime私有运行环境统一为ZKYQ，启动、扩展、草稿、进程所有者和WSL传递使用一致名称；旧环境仅在既有单向迁移入口读取并移除，保留第三方公开配置、路径、草稿和父子隔离行为"
+      "current_sha256": "9bcd4b358c02c7098bc9bf0872c332f98a0823e2b2ff37574a561b2bb53ac366",
+      "reason": "迁移终端历史交接变量并以新版 daemon 隔离旧 shell 合同；迁移应用版本环境变量并隔离驻留旧版 daemon；终端资源环境变量改名及启动迁移；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义；Pi/OMP/Prime私有运行环境统一为ZKYQ，启动、扩展、草稿、进程所有者和WSL传递使用一致名称；旧环境仅在既有单向迁移入口读取并移除，保留第三方公开配置、路径、草稿和父子隔离行为；Pi/OMP运行状态、Symbol所有者表、shell辅助函数和提示统一为zkyq/Control Everything；迁移旧属性原对象并删除旧键，保留进行中队列、监听、标题计时器和主会话归属，旧draft仅作输入识别，不输出旧别名"
     },
     {
       "path": "src/main/daemon/daemon-protocol-version.ts",
       "upstream_sha256": "88ebc0c1b28e532deca3026e4e11ecce06faeacd2948506b2f6e1cb901454f82",
-      "current_sha256": "a044fe77df15099d952b79a1645036a79e124d82f9214b53af892ac761b2e53e",
-      "reason": "迁移终端历史交接变量并以新版 daemon 隔离旧 shell 合同；迁移应用版本环境变量并隔离驻留旧版 daemon；终端资源环境变量改名及启动迁移；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义；Pi/OMP/Prime私有运行环境统一为ZKYQ，启动、扩展、草稿、进程所有者和WSL传递使用一致名称；旧环境仅在既有单向迁移入口读取并移除，保留第三方公开配置、路径、草稿和父子隔离行为"
+      "current_sha256": "4185a994aef4986a09e205c9fb233b1978a313e37e9c79df54c50f61ad0f5c19",
+      "reason": "迁移终端历史交接变量并以新版 daemon 隔离旧 shell 合同；迁移应用版本环境变量并隔离驻留旧版 daemon；终端资源环境变量改名及启动迁移；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义；Pi/OMP/Prime私有运行环境统一为ZKYQ，启动、扩展、草稿、进程所有者和WSL传递使用一致名称；旧环境仅在既有单向迁移入口读取并移除，保留第三方公开配置、路径、草稿和父子隔离行为；Pi/OMP运行状态、Symbol所有者表、shell辅助函数和提示统一为zkyq/Control Everything；迁移旧属性原对象并删除旧键，保留进行中队列、监听、标题计时器和主会话归属，旧draft仅作输入识别，不输出旧别名"
     },
     {
       "path": "src/main/providers/local-pty-finalize-environment.ts",
@@ -335357,14 +335357,14 @@
     {
       "path": "src/main/pi/agent-status-extension-source.ts",
       "upstream_sha256": "c02210343e79f22a8c44376a7f89fefed1a9b2aab49826d169dc8fab9a364ec5",
-      "current_sha256": "0502ce85da0ae497e8ae4560c7f7f1dddbedd440a0d9f59ea8b70e41675ba907",
-      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义；Pi/OMP/Prime扩展统一zkyq文件名和生成标记；本机与relay共用精确所有权检查、原子发布和旧入口原字节移出加载目录，保护用户文件并在发布失败时恢复；保留旧overlay数据排除合同；新OMP扩展只注册及发布zkyq-model，桌面和手机模型选择按会话实际能力调用；旧存活进程能力仅作输入保留，不新增旧命令别名，保持模型选择、错误处理与重载能力"
+      "current_sha256": "00fe1802ce2483756098caa59295b9861cb2fad33fc9c1a72d8ce53ae3d8e488",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义；Pi/OMP/Prime扩展统一zkyq文件名和生成标记；本机与relay共用精确所有权检查、原子发布和旧入口原字节移出加载目录，保护用户文件并在发布失败时恢复；保留旧overlay数据排除合同；新OMP扩展只注册及发布zkyq-model，桌面和手机模型选择按会话实际能力调用；旧存活进程能力仅作输入保留，不新增旧命令别名，保持模型选择、错误处理与重载能力；Pi/OMP运行状态、Symbol所有者表、shell辅助函数和提示统一为zkyq/Control Everything；迁移旧属性原对象并删除旧键，保留进行中队列、监听、标题计时器和主会话归属，旧draft仅作输入识别，不输出旧别名"
     },
     {
       "path": "src/main/pi/agent-status-wsl-curl-source.ts",
       "upstream_sha256": "edc994ca13a3a9eb505dcb8f1f98c20a260b388ff1c066d0e614cb818d89772d",
-      "current_sha256": "31d5944c4cbb73146eb4ac24ff2215ea7fa7ecd42235d629d2ee1859219b86a8",
-      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+      "current_sha256": "8d9a5e6d3830a2f01bda9c41416973c2af41b42b04f8d5af23bcd1265c3ea97a",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义；Pi/OMP运行状态、Symbol所有者表、shell辅助函数和提示统一为zkyq/Control Everything；迁移旧属性原对象并删除旧键，保留进行中队列、监听、标题计时器和主会话归属，旧draft仅作输入识别，不输出旧别名"
     },
     {
       "path": "src/main/runtime/opencode-finished-session-authority.test.ts",
@@ -336167,8 +336167,8 @@
     {
       "path": "src/main/pi/agent-status-extension-test-harness.ts",
       "upstream_sha256": "5713a6a49d8bfb954bc7e97104a98f243569385d525e54610f75c11d632a66e8",
-      "current_sha256": "7d0444b34936fa69cd96940319e8f8fa9472f4ea9d27a85fea7c57f3b73105eb",
-      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+      "current_sha256": "741c9e91f13629b5677a2a4d953d347542351832b0e6ec3b78ebcb90e696f5cf",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义；Pi/OMP运行状态、Symbol所有者表、shell辅助函数和提示统一为zkyq/Control Everything；迁移旧属性原对象并删除旧键，保留进行中队列、监听、标题计时器和主会话归属，旧draft仅作输入识别，不输出旧别名"
     },
     {
       "path": "src/main/pi/agent-status-ui-prompt.test.ts",
@@ -336179,8 +336179,8 @@
     {
       "path": "src/main/pi/omp-session-status-owner-source.ts",
       "upstream_sha256": "c9323f092b65a81807c7455823dea5bc7a928cdf6abc5962903b5af9afebb91e",
-      "current_sha256": "e974eee3e97a25d2a5cbf90f1722f55fb6c245293749a7ca513572f66fbffec0",
-      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+      "current_sha256": "abd4a598229ef20fbb5ceb669451ec166a46befb6ee6f68033629937d2a69a86",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义；Pi/OMP运行状态、Symbol所有者表、shell辅助函数和提示统一为zkyq/Control Everything；迁移旧属性原对象并删除旧键，保留进行中队列、监听、标题计时器和主会话归属，旧draft仅作输入识别，不输出旧别名"
     },
     {
       "path": "src/main/pi/prefill-extension-source.ts",
@@ -336197,20 +336197,20 @@
     {
       "path": "src/main/pi/titlebar-extension-lifetime-source.ts",
       "upstream_sha256": "f416e3d78ee5284121b0cbb288c5f6218f6693a952468101b9586f00d9503327",
-      "current_sha256": "e985ef21ee2d15b97b5f42af612d2208b5857fe1604a6740c2e3873a923c4d80",
-      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+      "current_sha256": "74b2370f8e8bc865cf66cb1a16b897d9288f6a0ea1847192984ea45167b72861",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义；Pi/OMP运行状态、Symbol所有者表、shell辅助函数和提示统一为zkyq/Control Everything；迁移旧属性原对象并删除旧键，保留进行中队列、监听、标题计时器和主会话归属，旧draft仅作输入识别，不输出旧别名"
     },
     {
       "path": "src/main/pi/titlebar-extension-source.test.ts",
       "upstream_sha256": "68d8b962ccb1bbbf38cb110298c8ed064210f8bb76c3452564411a59e74f081a",
-      "current_sha256": "6a7c4af4a9a69cedf518c05fef2b421ba321e76a5ad26c8d991d2bd0f529780d",
-      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义；Pi/OMP/Prime私有运行环境统一为ZKYQ，启动、扩展、草稿、进程所有者和WSL传递使用一致名称；旧环境仅在既有单向迁移入口读取并移除，保留第三方公开配置、路径、草稿和父子隔离行为"
+      "current_sha256": "78c3803802d7a5d01e8e5a9613133b78cae707509b1697e6202565a5968d8b9d",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义；Pi/OMP/Prime私有运行环境统一为ZKYQ，启动、扩展、草稿、进程所有者和WSL传递使用一致名称；旧环境仅在既有单向迁移入口读取并移除，保留第三方公开配置、路径、草稿和父子隔离行为；Pi/OMP运行状态、Symbol所有者表、shell辅助函数和提示统一为zkyq/Control Everything；迁移旧属性原对象并删除旧键，保留进行中队列、监听、标题计时器和主会话归属，旧draft仅作输入识别，不输出旧别名"
     },
     {
       "path": "src/main/pi/titlebar-extension-source.ts",
       "upstream_sha256": "91d2b88498e93f3f4f6bd363541deea28d0ea244575065b4d695d61cdd858793",
-      "current_sha256": "bb4cfd53f5aff232e828077144ef72f6e2b85739f10afa8150b034d53501c7ae",
-      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义；Pi/OMP/Prime扩展统一zkyq文件名和生成标记；本机与relay共用精确所有权检查、原子发布和旧入口原字节移出加载目录，保护用户文件并在发布失败时恢复；保留旧overlay数据排除合同；Pi/OMP/Prime私有运行环境统一为ZKYQ，启动、扩展、草稿、进程所有者和WSL传递使用一致名称；旧环境仅在既有单向迁移入口读取并移除，保留第三方公开配置、路径、草稿和父子隔离行为"
+      "current_sha256": "88f9fe946787489bff4a7bfbc9b1a2ddd384f63d9a14f95b09720d2e00006fa0",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义；Pi/OMP/Prime扩展统一zkyq文件名和生成标记；本机与relay共用精确所有权检查、原子发布和旧入口原字节移出加载目录，保护用户文件并在发布失败时恢复；保留旧overlay数据排除合同；Pi/OMP/Prime私有运行环境统一为ZKYQ，启动、扩展、草稿、进程所有者和WSL传递使用一致名称；旧环境仅在既有单向迁移入口读取并移除，保留第三方公开配置、路径、草稿和父子隔离行为；Pi/OMP运行状态、Symbol所有者表、shell辅助函数和提示统一为zkyq/Control Everything；迁移旧属性原对象并删除旧键，保留进行中队列、监听、标题计时器和主会话归属，旧draft仅作输入识别，不输出旧别名"
     },
     {
       "path": "src/main/providers/local-pty-launch-helpers.ts",
@@ -336911,8 +336911,8 @@
     {
       "path": "src/main/pi/agent-status-handler-source.ts",
       "upstream_sha256": "95d270381a70b00236940e2995ad853e7867276e582b7d4638f4a90f5d2d52e4",
-      "current_sha256": "ce357a7d1b746a25dc231db853141ade0c06c26eee0325690aca3e8da221c8f9",
-      "reason": "Pi/OMP/Prime私有运行环境统一为ZKYQ，启动、扩展、草稿、进程所有者和WSL传递使用一致名称；旧环境仅在既有单向迁移入口读取并移除，保留第三方公开配置、路径、草稿和父子隔离行为"
+      "current_sha256": "9f6e45048b7a7bacc69a0679459c4d6b60f68a65b8282ca0b9c6f5ed7d385103",
+      "reason": "Pi/OMP/Prime私有运行环境统一为ZKYQ，启动、扩展、草稿、进程所有者和WSL传递使用一致名称；旧环境仅在既有单向迁移入口读取并移除，保留第三方公开配置、路径、草稿和父子隔离行为；Pi/OMP运行状态、Symbol所有者表、shell辅助函数和提示统一为zkyq/Control Everything；迁移旧属性原对象并删除旧键，保留进行中队列、监听、标题计时器和主会话归属，旧draft仅作输入识别，不输出旧别名"
     },
     {
       "path": "src/main/pi/agent-status-owner-recovery.test.ts",
@@ -336923,20 +336923,20 @@
     {
       "path": "src/main/pty/omp-shell-wrapper-alias-safety.test.ts",
       "upstream_sha256": "e956d0299293857033a4db84372a37f6cb25609ad2dc5cdb0a2b800fa7874c7f",
-      "current_sha256": "b83782b8c1242d60874e822cf734f539683f0105778267ccb909b459e0d56c10",
-      "reason": "Pi/OMP/Prime私有运行环境统一为ZKYQ，启动、扩展、草稿、进程所有者和WSL传递使用一致名称；旧环境仅在既有单向迁移入口读取并移除，保留第三方公开配置、路径、草稿和父子隔离行为"
+      "current_sha256": "f7a5fe6c4bbaba5f88b3518b6dcf6f49fbafc5567b5ab8c3d1060fb30d04daec",
+      "reason": "Pi/OMP/Prime私有运行环境统一为ZKYQ，启动、扩展、草稿、进程所有者和WSL传递使用一致名称；旧环境仅在既有单向迁移入口读取并移除，保留第三方公开配置、路径、草稿和父子隔离行为；Pi/OMP运行状态、Symbol所有者表、shell辅助函数和提示统一为zkyq/Control Everything；迁移旧属性原对象并删除旧键，保留进行中队列、监听、标题计时器和主会话归属，旧draft仅作输入识别，不输出旧别名"
     },
     {
       "path": "src/main/pty/omp-shell-wrapper.node-pty.test.ts",
       "upstream_sha256": "eab53a12ea59aa011840ef18aae594bc3b2f127e3694999787b0cb583ee08e0e",
-      "current_sha256": "9f15396306e50e5fc3afd767987e35edbeb484aee286ba231228b6dcad5107e6",
-      "reason": "Pi/OMP/Prime私有运行环境统一为ZKYQ，启动、扩展、草稿、进程所有者和WSL传递使用一致名称；旧环境仅在既有单向迁移入口读取并移除，保留第三方公开配置、路径、草稿和父子隔离行为"
+      "current_sha256": "8e500d4b8b6b683430bf32e794f3f72016562fc169cb4f660272e5afa4ff2078",
+      "reason": "Pi/OMP/Prime私有运行环境统一为ZKYQ，启动、扩展、草稿、进程所有者和WSL传递使用一致名称；旧环境仅在既有单向迁移入口读取并移除，保留第三方公开配置、路径、草稿和父子隔离行为；Pi/OMP运行状态、Symbol所有者表、shell辅助函数和提示统一为zkyq/Control Everything；迁移旧属性原对象并删除旧键，保留进行中队列、监听、标题计时器和主会话归属，旧draft仅作输入识别，不输出旧别名"
     },
     {
       "path": "src/main/pty/omp-shell-wrapper.ts",
       "upstream_sha256": "fcf15117265833933064f0315ce1b02473d8f5618efed09c0d3f8d4872395fcf",
-      "current_sha256": "d59e231a0fc2ac4403f5b25b3cd6f31d5b943b66044da732d786b6651886d3c1",
-      "reason": "Pi/OMP/Prime私有运行环境统一为ZKYQ，启动、扩展、草稿、进程所有者和WSL传递使用一致名称；旧环境仅在既有单向迁移入口读取并移除，保留第三方公开配置、路径、草稿和父子隔离行为"
+      "current_sha256": "6401ca2e34c067184d99d8ca87e3783aa4b1e448f835a7e3485deb3f5d4a9d38",
+      "reason": "Pi/OMP/Prime私有运行环境统一为ZKYQ，启动、扩展、草稿、进程所有者和WSL传递使用一致名称；旧环境仅在既有单向迁移入口读取并移除，保留第三方公开配置、路径、草稿和父子隔离行为；Pi/OMP运行状态、Symbol所有者表、shell辅助函数和提示统一为zkyq/Control Everything；迁移旧属性原对象并删除旧键，保留进行中队列、监听、标题计时器和主会话归属，旧draft仅作输入识别，不输出旧别名"
     },
     {
       "path": "src/main/pty/pi-process-owner-env.ts",
@@ -336959,8 +336959,8 @@
     {
       "path": "src/shared/omp-draft-launch.ts",
       "upstream_sha256": "7b4453596f9ba013382551748c364a9b3247ce32da194cb1e1d334fda1688a66",
-      "current_sha256": "3d71b356191de1df51addf622c4073e3aa22797a788e02cc1cbd342cfbc4687f",
-      "reason": "Pi/OMP/Prime私有运行环境统一为ZKYQ，启动、扩展、草稿、进程所有者和WSL传递使用一致名称；旧环境仅在既有单向迁移入口读取并移除，保留第三方公开配置、路径、草稿和父子隔离行为"
+      "current_sha256": "be65cf08f653a33d9dd830dce995d5b23b43b62e06350e7b47e5cb54460cdc24",
+      "reason": "Pi/OMP/Prime私有运行环境统一为ZKYQ，启动、扩展、草稿、进程所有者和WSL传递使用一致名称；旧环境仅在既有单向迁移入口读取并移除，保留第三方公开配置、路径、草稿和父子隔离行为；Pi/OMP运行状态、Symbol所有者表、shell辅助函数和提示统一为zkyq/Control Everything；迁移旧属性原对象并删除旧键，保留进行中队列、监听、标题计时器和主会话归属，旧draft仅作输入识别，不输出旧别名"
     },
     {
       "path": "src/shared/omp-fresh-launch-cmd.win32.test.ts",
@@ -336977,14 +336977,14 @@
     {
       "path": "src/shared/omp-fresh-launch.spec.ts",
       "upstream_sha256": "c00d06996fa1007a8d0e5236f763c9f1462eade66db264b4d77f70cb5ca97906",
-      "current_sha256": "3ee0de4e0ac1839655fe20d8b0cff4a4ac186a0e1b38ce8b709507a3136bd415",
-      "reason": "Pi/OMP/Prime私有运行环境统一为ZKYQ，启动、扩展、草稿、进程所有者和WSL传递使用一致名称；旧环境仅在既有单向迁移入口读取并移除，保留第三方公开配置、路径、草稿和父子隔离行为"
+      "current_sha256": "d1dad6363b1756f70a35ad018490b3004d543fbddb4b2047c425536c6a7d8c84",
+      "reason": "Pi/OMP/Prime私有运行环境统一为ZKYQ，启动、扩展、草稿、进程所有者和WSL传递使用一致名称；旧环境仅在既有单向迁移入口读取并移除，保留第三方公开配置、路径、草稿和父子隔离行为；Pi/OMP运行状态、Symbol所有者表、shell辅助函数和提示统一为zkyq/Control Everything；迁移旧属性原对象并删除旧键，保留进行中队列、监听、标题计时器和主会话归属，旧draft仅作输入识别，不输出旧别名"
     },
     {
       "path": "src/shared/omp-fresh-launch.ts",
       "upstream_sha256": "9294552a9a75fd98c800c6953ac4f4f31dedd29ca0980526bd19a07593086f7f",
-      "current_sha256": "1279278ee4f6a7a46b75b71afb0c06cf0e04882b212887c86f937a4e82b8b243",
-      "reason": "Pi/OMP/Prime私有运行环境统一为ZKYQ，启动、扩展、草稿、进程所有者和WSL传递使用一致名称；旧环境仅在既有单向迁移入口读取并移除，保留第三方公开配置、路径、草稿和父子隔离行为"
+      "current_sha256": "50f0406d5b2ce166ef8938080189840b83dd2672a9b8568c1650e82ba058e47c",
+      "reason": "Pi/OMP/Prime私有运行环境统一为ZKYQ，启动、扩展、草稿、进程所有者和WSL传递使用一致名称；旧环境仅在既有单向迁移入口读取并移除，保留第三方公开配置、路径、草稿和父子隔离行为；Pi/OMP运行状态、Symbol所有者表、shell辅助函数和提示统一为zkyq/Control Everything；迁移旧属性原对象并删除旧键，保留进行中队列、监听、标题计时器和主会话归属，旧draft仅作输入识别，不输出旧别名"
     },
     {
       "path": "src/shared/pi-agent-kind.ts",
@@ -336997,6 +336997,30 @@
       "upstream_sha256": "33324e170de00188190b7478fd5dddde1880e2db94b8b09018a32beebdf45e19",
       "current_sha256": "b2bd1a29f01a769a4134dca98163cb1466d9855566b0056c58c80f6bcfe517fe",
       "reason": "Pi/OMP/Prime私有运行环境统一为ZKYQ，启动、扩展、草稿、进程所有者和WSL传递使用一致名称；旧环境仅在既有单向迁移入口读取并移除，保留第三方公开配置、路径、草稿和父子隔离行为"
+    },
+    {
+      "path": "src/main/pi/agent-status-extension-session-change.test.ts",
+      "upstream_sha256": "77d5d35f182743f37243b358372f296b5c45f8e25f6c48c1efe15e97ec95646a",
+      "current_sha256": "138fc9f207f1e60fbdf534dfe470199b6c8fe6a6c4e5f00770e25b0ef6e960cd",
+      "reason": "Pi/OMP运行状态、Symbol所有者表、shell辅助函数和提示统一为zkyq/Control Everything；迁移旧属性原对象并删除旧键，保留进行中队列、监听、标题计时器和主会话归属，旧draft仅作输入识别，不输出旧别名"
+    },
+    {
+      "path": "src/main/pi/agent-status-post-queue-source.ts",
+      "upstream_sha256": "09b3f88413aeae9418469b5103ef746b734715f44b681fe2240c5ba296d7f637",
+      "current_sha256": "abf9c0121161dc4ba95e455493c4410f046a5a383206fe44d366c9ec54739b05",
+      "reason": "Pi/OMP运行状态、Symbol所有者表、shell辅助函数和提示统一为zkyq/Control Everything；迁移旧属性原对象并删除旧键，保留进行中队列、监听、标题计时器和主会话归属，旧draft仅作输入识别，不输出旧别名"
+    },
+    {
+      "path": "src/main/pi/agent-status-reload-delivery.test.ts",
+      "upstream_sha256": "628c200ca2b81a8b78b3e319c8531390317a93ec9ea4630c88a18504b4f296f7",
+      "current_sha256": "3222247f7ec2a01f8a685e6aafdcdc7aa8b426918b95fb98e591df4d0645144f",
+      "reason": "Pi/OMP运行状态、Symbol所有者表、shell辅助函数和提示统一为zkyq/Control Everything；迁移旧属性原对象并删除旧键，保留进行中队列、监听、标题计时器和主会话归属，旧draft仅作输入识别，不输出旧别名"
+    },
+    {
+      "path": "src/main/pi/agent-status-subagent-roster-source.ts",
+      "upstream_sha256": "09daea66fd3a36cc04ed8a14555db1598cffb32a3519d32f746c913ccfbc833f",
+      "current_sha256": "7f9b3430618479aa5b279e8ae8849ec2f3a01c1366ccb074ec5f539dab19c89e",
+      "reason": "Pi/OMP运行状态、Symbol所有者表、shell辅助函数和提示统一为zkyq/Control Everything；迁移旧属性原对象并删除旧键，保留进行中队列、监听、标题计时器和主会话归属，旧draft仅作输入识别，不输出旧别名"
     }
   ],
   "reviewed_findings": [

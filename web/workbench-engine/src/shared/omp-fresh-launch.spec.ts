@@ -1,8 +1,21 @@
 import { describe, expect, it } from 'vitest'
 import { isFreshOmpLaunchCommand, withFreshOmpLaunch } from './omp-fresh-launch'
 import { buildAgentStartupPlan } from './tui-agent-startup'
+import { withOmpDraftCleanup } from './omp-draft-launch'
 
 describe('OMP fresh launch intent', () => {
+  it.each(['posix', 'powershell', 'cmd'] as const)(
+    'recognizes an old %s draft wrapper while only generating current identifiers',
+    (shell) => {
+      const current = withOmpDraftCleanup(withFreshOmpLaunch('omp', shell), shell)
+      const legacy = current
+        .replaceAll('__zkyq_omp_draft', '__orca_omp_draft')
+        .replaceAll('ZKYQ_OMP_FRESH_CONFIG', 'ORCA_OMP_FRESH_CONFIG')
+      expect(isFreshOmpLaunchCommand(legacy)).toBe(true)
+      expect(current).not.toMatch(/orca/i)
+    }
+  )
+
   it.each(['posix', 'powershell', 'cmd'] as const)(
     'recognizes a persisted legacy %s guard without publishing it again',
     (shell) => {

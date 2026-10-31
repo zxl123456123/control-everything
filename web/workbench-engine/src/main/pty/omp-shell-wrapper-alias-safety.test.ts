@@ -79,7 +79,7 @@ describe.skipIf(process.platform === 'win32' || !zshAvailable)('OMP wrapper glob
       [
         `alias -g -- ${token}='${token} 2>&1 | cat'`,
         getPosixOmpShellWrapper(),
-        `if ! __orca_omp_should_skip_extension '${token}'; then exit 1; fi`,
+        `if ! __zkyq_omp_should_skip_extension '${token}'; then exit 1; fi`,
         'printf "parsed\\n"',
         `alias -g -- '${token}'`
       ].join('\n')

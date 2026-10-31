@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { createAgentStatusExtensionHarness } from './agent-status-extension-test-harness'
+import { getPiAgentStatusExtensionSource } from './agent-status-extension-source'
 import { agentEndCount, endTurn, posts } from './agent-status-subagent-event-fixtures'
 
 beforeEach(() => vi.useFakeTimers())
@@ -31,7 +32,18 @@ it('does not overwrite the next turn with an old completion retried across reloa
 it.each(['failure', 'success'] as const)(
   'serializes the next turn behind an in-flight completion on reload (%s)',
   async (delivery) => {
-    const harness = createAgentStatusExtensionHarness({ kind: 'pi', existsSync: () => true })
+    let globals: Record<string, unknown> = {}
+    const harness = createAgentStatusExtensionHarness({
+      kind: 'pi',
+      existsSync: () => true,
+      seedGlobals: (home) => {
+        globals = home
+      },
+      initialSource: getPiAgentStatusExtensionSource('pi')
+        .replaceAll('__zkyqPi', '__orcaPi')
+        .replace('migratePiRunStateIdentity(globalThis)', '')
+        .replace('migratePiRunStateIdentity(piEventBus)', '')
+    })
     const ctx = {
       isIdle: () => true,
       sessionManager: { getSessionId: () => 'A', getSessionFile: () => '/sessions/A.jsonl' }
@@ -49,7 +61,15 @@ it.each(['failure', 'success'] as const)(
         })
     )
     await endTurn(harness)
+    const queue = globals.__orcaPiStatusPostQueue
+    const roster = globals.__orcaPiSubagents
+    expect(queue).toBeDefined()
+    expect(roster).toBeDefined()
     await harness.reloadPi()
+    expect(globals.__zkyqPiStatusPostQueue).toBe(queue)
+    expect(globals.__zkyqPiSubagents).toBe(roster)
+    expect(globals).not.toHaveProperty('__orcaPiStatusPostQueue')
+    expect(globals).not.toHaveProperty('__orcaPiSubagents')
     await harness.callHook('session_start', { reason: 'reload' }, ctx)
     await harness.callHook('agent_start', {}, ctx)
     await vi.advanceTimersByTimeAsync(0)
@@ -66,6 +86,28 @@ it.each(['failure', 'success'] as const)(
     expect(vi.getTimerCount()).toBe(0)
   }
 )
+
+it('preserves both conflicting states before attempting a runtime identity migration', () => {
+  const queue = {}
+  const retired = { active: new Set(['retained']) }
+  const current = { active: new Set(['current']) }
+  let globals: Record<string, unknown> = {}
+  expect(() =>
+    createAgentStatusExtensionHarness({
+      kind: 'pi',
+      seedGlobals: (home) => {
+        globals = home
+        home.__orcaPiStatusPostQueue = queue
+        home.__orcaPiSubagents = retired
+        home.__zkyqPiSubagents = current
+      }
+    })
+  ).toThrow('conflicting Pi runtime state')
+  expect(globals.__orcaPiStatusPostQueue).toBe(queue)
+  expect(globals.__orcaPiSubagents).toBe(retired)
+  expect(globals.__zkyqPiSubagents).toBe(current)
+  expect(globals).not.toHaveProperty('__zkyqPiStatusPostQueue')
+})
 
 it('recovers a completion on reload without requiring a new turn', async () => {
   const harness = createAgentStatusExtensionHarness({ kind: 'pi', existsSync: () => true })

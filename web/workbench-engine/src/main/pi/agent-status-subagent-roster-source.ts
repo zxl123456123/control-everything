@@ -63,14 +63,15 @@ export function getPiSubagentSnapshotSourceLines(): string[] {
 // survives there. OMP and Prime keep one bus for the session.
 export function getPiSubagentRosterSetupSourceLines(kind: PiAgentKind): string[] {
   return [
-    '  const piEventBus = (pi as { events?: { __orcaPiSubagents?: SubagentRoster; __orcaPiSubagentsHeard?: boolean; __orcaPiRunnerExitsHeard?: boolean; on?: (name: string, handler: (event: unknown) => void) => void } }).events',
+    '  const piEventBus = (pi as { events?: { __zkyqPiSubagents?: SubagentRoster; __zkyqPiSubagentsHeard?: boolean; __zkyqPiRunnerExitsHeard?: boolean; on?: (name: string, handler: (event: unknown) => void) => void } }).events',
+    '  migratePiRunStateIdentity(piEventBus)',
     kind === 'pi'
-      ? '  const runStateHome: { __orcaPiSubagents?: SubagentRoster } | undefined = isOmpRuntime() ? piEventBus : (globalThis as { __orcaPiSubagents?: SubagentRoster })'
-      : '  const runStateHome: { __orcaPiSubagents?: SubagentRoster } | undefined = piEventBus',
+      ? '  const runStateHome: { __zkyqPiSubagents?: SubagentRoster } | undefined = isOmpRuntime() ? piEventBus : (globalThis as { __zkyqPiSubagents?: SubagentRoster })'
+      : '  const runStateHome: { __zkyqPiSubagents?: SubagentRoster } | undefined = piEventBus',
     // Why: a roster an older in-process build left on this bus is adopted, with the subscriptions it made.
-    '  const busRoster = piEventBus?.__orcaPiSubagents',
-    '  const lifecycleState: SubagentRoster = busRoster ?? runStateHome?.__orcaPiSubagents ?? { active: new Set<string>(), waiting: false }',
-    '  if (runStateHome) runStateHome.__orcaPiSubagents = lifecycleState',
+    '  const busRoster = piEventBus?.__zkyqPiSubagents',
+    '  const lifecycleState: SubagentRoster = busRoster ?? runStateHome?.__zkyqPiSubagents ?? { active: new Set<string>(), waiting: false }',
+    '  if (runStateHome) runStateHome.__zkyqPiSubagents = lifecycleState',
     // Why: optional on the shared roster so one created by an older in-process build gains them on /reload.
     '  const subagentDetails = (lifecycleState.details ??= new Map<string, SubagentDetail>())',
     // Why: completion is a per-RUN fact. A sibling extension (the memory reminder is one) can
@@ -94,14 +95,14 @@ export function getPiSubagentRosterSetupSourceLines(kind: PiAgentKind): string[]
     '    lifecycleState.waiting = false',
     '  }',
     // Why: one subscription per bus object; Pi drops a replaced registration's own.
-    '  if (ownsPaneRoster && piEventBus?.on && !piEventBus.__orcaPiSubagentsHeard && !busRoster?.listener) {',
-    '    piEventBus.__orcaPiSubagentsHeard = true',
+    '  if (ownsPaneRoster && piEventBus?.on && !piEventBus.__zkyqPiSubagentsHeard && !busRoster?.listener) {',
+    '    piEventBus.__zkyqPiSubagentsHeard = true',
     "    piEventBus.on('task:subagent:lifecycle', (event: unknown) => lifecycleState.onEvent?.(event))",
     "    piEventBus.on('subagent:async-started', (event: unknown) => lifecycleState.onEvent?.(event, 'started'))",
     "    piEventBus.on('subagent:async-complete', (event: unknown) => lifecycleState.onEvent?.(event, 'completed'))",
     '  }',
-    '  if (ownsPaneRoster && piEventBus?.on && !piEventBus.__orcaPiRunnerExitsHeard && !busRoster?.runnerExitListener) {',
-    '    piEventBus.__orcaPiRunnerExitsHeard = true',
+    '  if (ownsPaneRoster && piEventBus?.on && !piEventBus.__zkyqPiRunnerExitsHeard && !busRoster?.runnerExitListener) {',
+    '    piEventBus.__zkyqPiRunnerExitsHeard = true',
     "    piEventBus.on('subagent:process-terminal', (event: unknown) => lifecycleState.onRunnerExit?.(event))",
     '  }'
   ]

@@ -1,8 +1,14 @@
 export function getPiTitlebarLifetimeSourceLines(): string[] {
   return [
     '  // Why: replacement factories share the process realm; retire the old owner before painting.',
-    "  const ownersKey = Symbol.for('orca.pi.titlebar.owners')",
-    '  const owners = globalThis[ownersKey] ??= new Map()',
+    "  const ownersKey = Symbol.for('zkyq.pi.titlebar.owners')",
+    "  const retiredKey = Object.getOwnPropertySymbols(globalThis).find(key => key.description === 'orca.pi.titlebar.owners')",
+    '  const retiredOwners = retiredKey === undefined ? undefined : globalThis[retiredKey]',
+    '  if (retiredOwners !== undefined && globalThis[ownersKey] !== undefined && retiredOwners !== globalThis[ownersKey]) {',
+    "    throw new Error('Control Everything: conflicting Pi titlebar owners. Finish active work and restart the agent.')",
+    '  }',
+    '  const owners = globalThis[ownersKey] ??= retiredOwners ?? new Map()',
+    '  if (retiredKey !== undefined) delete globalThis[retiredKey]',
     '  const paneKey = process.env.ZKYQ_PANE_KEY',
     '  owners.get(paneKey)?.()',
     '  let disposed = false',

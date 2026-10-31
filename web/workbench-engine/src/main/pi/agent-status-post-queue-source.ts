@@ -2,13 +2,32 @@ import type { PiAgentKind } from '../../shared/pi-agent-kind'
 
 export function getPiAgentStatusPostQueueSourceLines(kind: PiAgentKind): string[] {
   return [
+    'function migratePiRunStateIdentity(home: object | undefined): void {',
+    '  if (!home) return',
+    '  const state = home as Record<string, unknown>',
+    "  const suffixes = ['StatusPostQueue', 'Subagents', 'SubagentsHeard', 'RunnerExitsHeard']",
+    '  for (const suffix of suffixes) {',
+    "    const retired = '__orcaPi' + suffix",
+    "    const current = '__zkyqPi' + suffix",
+    '    if (state[retired] !== undefined && state[current] !== undefined && state[retired] !== state[current]) {',
+    "      throw new Error('Control Everything: conflicting Pi runtime state (' + current + '). Finish active work and restart the agent.')",
+    '    }',
+    '  }',
+    '  for (const suffix of suffixes) {',
+    "    const retired = '__orcaPi' + suffix",
+    "    const current = '__zkyqPi' + suffix",
+    '    if (state[current] === undefined && state[retired] !== undefined) state[current] = state[retired]',
+    '    delete state[retired]',
+    '  }',
+    '}',
     'type HookPost = { hookEventName: string; extra: Record<string, unknown>; metadata: Record<string, unknown>; ompRuntime: boolean; revision: number; attempts: number; delivered: boolean; final?: boolean }',
     'type HookPostQueue = { activePost: HookPost | null; pendingPost: HookPost | null; latestPost: HookPost | null; finalPosts: HookPost[]; finalRetryTimer: ReturnType<typeof setTimeout> | null; postRevision: number; retryTimer: ReturnType<typeof setTimeout> | null }',
     ...(kind === 'pi'
       ? [
-          'declare global { var __orcaPiStatusPostQueue: HookPostQueue | undefined }',
+          'declare global { var __zkyqPiStatusPostQueue: HookPostQueue | undefined }',
+          'migratePiRunStateIdentity(globalThis)',
           // Why: old delivery continuations and a reloaded registration must serialize through one queue.
-          'const postQueue: HookPostQueue = globalThis.__orcaPiStatusPostQueue ??= { activePost: null, pendingPost: null, latestPost: null, finalPosts: [], finalRetryTimer: null, postRevision: 0, retryTimer: null }'
+          'const postQueue: HookPostQueue = globalThis.__zkyqPiStatusPostQueue ??= { activePost: null, pendingPost: null, latestPost: null, finalPosts: [], finalRetryTimer: null, postRevision: 0, retryTimer: null }'
         ]
       : [
           'const postQueue: HookPostQueue = { activePost: null, pendingPost: null, latestPost: null, finalPosts: [], finalRetryTimer: null, postRevision: 0, retryTimer: null }'
@@ -66,7 +85,7 @@ export function getPiAgentStatusPostQueueSourceLines(kind: PiAgentKind): string[
     '      if (next.final) {',
     '        if (next.attempts >= 3) {',
     '          postQueue.finalPosts.shift()',
-    "          console.warn('[orca-pi-status] hook delivery failed after retries:', next.hookEventName)",
+    "          console.warn('[zkyq-pi-status] hook delivery failed after retries:', next.hookEventName)",
     '          return',
     '        }',
     '        postQueue.finalRetryTimer = setTimeout(() => {',
@@ -78,7 +97,7 @@ export function getPiAgentStatusPostQueueSourceLines(kind: PiAgentKind): string[
     '      }',
     '      if (!next.ompRuntime || next.revision !== postQueue.postRevision) return',
     '      if (next.attempts >= 3) {',
-    "        console.warn('[orca-pi-status] hook delivery failed after retries:', next.hookEventName)",
+    "        console.warn('[zkyq-pi-status] hook delivery failed after retries:', next.hookEventName)",
     '        return',
     '      }',
     '      const delay = 250 * 2 ** next.attempts++',

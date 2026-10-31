@@ -54,6 +54,7 @@ export type AgentStatusExtensionHarness = {
   }
   handlers: Record<string, HookHandler>
   processEnv: Record<string, string | undefined>
+  readSymbolState: () => Record<string, unknown>
   callHook: (name: string, event?: unknown, context?: HookContext) => Promise<void>
   emitPiEvent: (name: string, event: unknown) => void
   piEventListenerCount: (name: string) => number
@@ -115,6 +116,8 @@ export function createAgentStatusExtensionHarness(args: {
   fetchImpl?: (...params: Parameters<typeof fetch>) => Promise<unknown>
   // Runs before the first registration, to leave state an older build would have put on the bus.
   seedEventBus?: (bus: EventEmitter) => void
+  seedGlobals?: (globals: Record<string, unknown>) => void
+  initialSource?: string
   // Pi before 0.84 handed every registration the one shared bus.
   sharedEventBus?: boolean
 }): AgentStatusExtensionHarness {
@@ -215,13 +218,15 @@ export function createAgentStatusExtensionHarness(args: {
     clearTimeout
   } as Record<string, unknown>
   context.globalThis = context
+  args.seedGlobals?.(context)
 
   const source = getPiAgentStatusExtensionSource(args.kind)
-  const output = transpileExtensionSource(source)
+  let output = transpileExtensionSource(args.initialSource ?? source)
   createContext(context)
   // Why: a function scope per evaluation, so a Pi reload can evaluate the module again in one realm.
   const evaluateModule = (): NonNullable<typeof module.exports.default> => {
     runInContext(`(function () {\n${output}\n})()`, context)
+    output = transpileExtensionSource(source)
     const factory = module.exports.default
     if (!factory) {
       throw new Error('expected default export from generated source')
@@ -294,6 +299,11 @@ export function createAgentStatusExtensionHarness(args: {
     fsMock,
     handlers,
     processEnv: processMock.env,
+    readSymbolState: () =>
+      runInContext(
+        'Object.fromEntries(Object.getOwnPropertySymbols(globalThis).map(key => [key.description, Reflect.get(globalThis, key)]))',
+        context
+      ),
     callHook,
     emitPiEvent: (name, event) => {
       piEvents.emit(name, event)

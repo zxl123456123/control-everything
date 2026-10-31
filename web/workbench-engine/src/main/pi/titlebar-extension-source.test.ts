@@ -121,6 +121,21 @@ describe('getPiTitlebarExtensionSource', () => {
     vi.useRealTimers()
   })
 
+  it('moves the legacy owner registry and retires its timer before the replacement paints', () => {
+    const globals: Record<string | symbol, unknown> = {}
+    const legacy = Symbol.for('orca.pi.titlebar.owners')
+    const current = Symbol.for('zkyq.pi.titlebar.owners')
+    const timer = setInterval(() => {}, 100)
+    const dispose = vi.fn(() => clearInterval(timer))
+    const owners = new Map([['pane-1', dispose]])
+    globals[legacy] = owners
+    createHarness({ globals })
+    expect(dispose).toHaveBeenCalledOnce()
+    expect(globals[current]).toBe(owners)
+    expect(Reflect.has(globals, legacy)).toBe(false)
+    expect(vi.getTimerCount()).toBe(0)
+  })
+
   it('registers nothing outside an Orca pane', () => {
     expect(createHarness({ paneKey: '' }).handlers).toEqual({})
   })
