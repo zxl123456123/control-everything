@@ -326301,6 +326301,33 @@
       "bytes": 6578,
       "kind": "source",
       "reason": "preserved_internal_source_layout"
+    },
+    {
+      "path": "src/main/runtime/agent-transcript-pane-test-harness.ts",
+      "source_path": "src/main/runtime/agent-transcript-pane-test-harness.ts",
+      "git_blob": "89899702c7c8267b57af7021bc5ff9385e9c4fc2",
+      "sha256": "16589bd95af0c1dc61bb6d858b5480cf2cd68cb037cd3fac26c5ca996bd0d60a",
+      "bytes": 6046,
+      "kind": "source",
+      "reason": "preserved_internal_source_layout"
+    },
+    {
+      "path": "src/main/ipc/pty-ipc-test-constants.ts",
+      "source_path": "src/main/ipc/pty-ipc-test-constants.ts",
+      "git_blob": "e3eae546ca63f11f8dac3eb14a2af7a204c31117",
+      "sha256": "18f5d70f927e15cb01a0234484413d9c150aca2a907da3981de310815e440e8a",
+      "bytes": 2813,
+      "kind": "source",
+      "reason": "preserved_internal_source_layout"
+    },
+    {
+      "path": "src/main/ipc/pty-ipc-daemon-provider-fixtures.ts",
+      "source_path": "src/main/ipc/pty-ipc-daemon-provider-fixtures.ts",
+      "git_blob": "c2068320dde474e37585b337ca840e18c7d2db03",
+      "sha256": "54bcd4e1f3202ec94e6b5ff942493719c385dd50c5eb9b4881751c48d8a577bd",
+      "bytes": 5892,
+      "kind": "source",
+      "reason": "preserved_internal_source_layout"
     }
   ],
   "resources": [
@@ -331768,8 +331795,8 @@
     {
       "path": "src/main/providers/local-pty-shell-ready-wrapper-generation.test.ts",
       "upstream_sha256": "095560af91cfe5f5f587186793634f20ea6646acb0b6d7ba1e959c6beda3915e",
-      "current_sha256": "da19e6646b4dc0cb34dfaccd6a4bc3eac4fc480c9a225c2b0aaad6064d6a7168",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+      "current_sha256": "7b04f224266420f4989e1b68dab643276cf0837e20a3cb9ee419cc4358c4c580",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；恢复实际验收所需夹具并核对跨平台路径及Windows无POSIX包装的行为"
     },
     {
       "path": "src/main/providers/local-pty-shell-ready-wrapper-root.ts",
@@ -334542,6 +334569,12 @@
       "upstream_sha256": "01d4c346c13ad8f80ee321888742b97ca4e7bf97140177404815fa2f7cf05463",
       "current_sha256": "e832b5a19b91bf7bbf0780a5a4271985a08cf230b9a7c73bc7eb20a212f5eaea",
       "reason": "同步服务接入当前变量名与产品文案，保留翻译键和控件行为"
+    },
+    {
+      "path": "src/main/ipc/pty-login-shell-startup-commands.test.ts",
+      "upstream_sha256": "56945c0605657541023a6dea8dbcb5a8a58f4078fed0d6dce1f74d7557a91f8d",
+      "current_sha256": "56e0ba87e700cf64c151f53b458fdb5164208566a942c58597eadee42980502b",
+      "reason": "恢复实际验收所需夹具并核对跨平台路径及Windows无POSIX包装的行为"
     }
   ],
   "reviewed_findings": [
@@ -336455,6 +336488,62 @@
       "line": 11,
       "sha256": "47a67ca67160f5eb60bc5a9b400ecc04639ff0f36af852bdf61a17c569951936",
       "reason": "上游公开代码注释、CLI/界面示例中的路径语法，用来解释drive/root/UNC/转义等规则；非读取的个人配置，限定具体行及文件hash。"
+    },
+    {
+      "path": "src/main/ipc/pty-ipc-daemon-provider-fixtures.ts",
+      "rule": "absolute-windows-path",
+      "line": 82,
+      "sha256": "54bcd4e1f3202ec94e6b5ff942493719c385dd50c5eb9b4881751c48d8a577bd",
+      "reason": "固定上游公开测试夹具中的通用工程、托管、默认系统或虚构用户路径，未读取本机配置；限定具体行和文件hash。"
+    },
+    {
+      "path": "src/main/ipc/pty-ipc-test-constants.ts",
+      "rule": "absolute-windows-path",
+      "line": 16,
+      "sha256": "18f5d70f927e15cb01a0234484413d9c150aca2a907da3981de310815e440e8a",
+      "reason": "固定上游公开测试夹具中的通用工程、托管、默认系统或虚构用户路径，未读取本机配置；限定具体行和文件hash。"
+    },
+    {
+      "path": "src/main/ipc/pty-ipc-test-constants.ts",
+      "rule": "absolute-windows-path",
+      "line": 29,
+      "sha256": "18f5d70f927e15cb01a0234484413d9c150aca2a907da3981de310815e440e8a",
+      "reason": "固定上游公开测试夹具中的通用工程、托管、默认系统或虚构用户路径，未读取本机配置；限定具体行和文件hash。"
+    },
+    {
+      "path": "src/main/ipc/pty-ipc-test-constants.ts",
+      "rule": "absolute-windows-path",
+      "line": 30,
+      "sha256": "18f5d70f927e15cb01a0234484413d9c150aca2a907da3981de310815e440e8a",
+      "reason": "固定上游公开测试夹具中的通用工程、托管、默认系统或虚构用户路径，未读取本机配置；限定具体行和文件hash。"
+    },
+    {
+      "path": "src/main/ipc/pty-ipc-test-constants.ts",
+      "rule": "absolute-windows-path",
+      "line": 34,
+      "sha256": "18f5d70f927e15cb01a0234484413d9c150aca2a907da3981de310815e440e8a",
+      "reason": "固定上游公开测试夹具中的通用工程、托管、默认系统或虚构用户路径，未读取本机配置；限定具体行和文件hash。"
+    },
+    {
+      "path": "src/main/ipc/pty-ipc-test-constants.ts",
+      "rule": "absolute-windows-path",
+      "line": 41,
+      "sha256": "18f5d70f927e15cb01a0234484413d9c150aca2a907da3981de310815e440e8a",
+      "reason": "固定上游公开测试夹具中的通用工程、托管、默认系统或虚构用户路径，未读取本机配置；限定具体行和文件hash。"
+    },
+    {
+      "path": "src/main/ipc/pty-ipc-test-constants.ts",
+      "rule": "gitleaks:generic-api-key",
+      "line": 46,
+      "sha256": "18f5d70f927e15cb01a0234484413d9c150aca2a907da3981de310815e440e8a",
+      "reason": "固定上游公开测试夹具中的伪造认证响应，占位JWT无算法头及有效签名，仅用于假客户端测试；非真实凭据，限定具体行与文件hash。"
+    },
+    {
+      "path": "src/main/runtime/agent-transcript-pane-test-harness.ts",
+      "rule": "absolute-windows-path",
+      "line": 46,
+      "sha256": "16589bd95af0c1dc61bb6d858b5480cf2cd68cb037cd3fac26c5ca996bd0d60a",
+      "reason": "固定上游公开测试夹具中的通用工程、托管、默认系统或虚构用户路径，未读取本机配置；限定具体行和文件hash。"
     }
   ],
   "feature_adoptions": [

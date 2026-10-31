@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { spawnSync } from 'node:child_process'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { join, sep } from 'node:path'
 import { existsSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import {
   describePosix,
@@ -83,7 +83,13 @@ describe('shell-ready wrapper root resolution', () => {
       setTestUserDataPath(root)
       const { getShellReadyLaunchConfig } = await importFreshLocalPtyShellReady()
       const config = getShellReadyLaunchConfig('/bin/zsh')
-      expect(config.env.ZDOTDIR).toBe(join(getShellReadyWrapperRoot(), 'zsh'))
+      expect(getShellReadyWrapperRoot().startsWith(join(root, 'shell-wrappers') + sep)).toBe(true)
+      if (process.platform === 'win32') {
+        expect(config.supportsReadyMarker).toBe(false)
+        expect(config.env.ZDOTDIR).toBeUndefined()
+      } else {
+        expect(config.env.ZDOTDIR).toBe(`${getShellReadyWrapperRoot()}/zsh`)
+      }
     } finally {
       rmSync(root, { recursive: true, force: true })
     }

@@ -9,7 +9,6 @@ import { setupPtyIpcSuite } from './pty-ipc-test-harness'
 import { userInfo } from 'node:os'
 import { resetMacosLoginShellPreflightForTests } from '../providers/macos-tcc-login-shell'
 import { registerPtyHandlers } from './pty/register-handlers'
-import { join } from 'node:path'
 import { POSIX_SHELL_STARTUP_COMMAND_ENV } from '../pty/posix-shell-startup-command'
 // Why resolved rather than hardcoded: the wrapper tree is content-addressed.
 import { getShellReadyWrapperRoot } from '../providers/local-pty-shell-ready-wrapper-root'
@@ -124,7 +123,7 @@ describe('registerPtyHandlers', () => {
       expect(args).toEqual(['-l'])
       expect(options.env.OPENCODE_CONFIG_DIR).toBe('/tmp/orca-opencode-config')
       expect(options.env.ORCA_OPENCODE_CONFIG_DIR).toBe('/tmp/orca-opencode-config')
-      expect(options.env.ZDOTDIR).toBe(join(getShellReadyWrapperRoot(), 'zsh'))
+      expect(options.env.ZDOTDIR).toBe(`${getShellReadyWrapperRoot()}/zsh`)
       expect(options.env.ORCA_SHELL_FEATURES).not.toContain('ready')
     } finally {
       Object.defineProperty(process, 'platform', {
@@ -165,7 +164,7 @@ describe('registerPtyHandlers', () => {
       expect(options.env.PI_CODING_AGENT_DIR).toBe('/tmp/user-pi-agent')
       expect(options.env.ORCA_PI_CODING_AGENT_DIR).toBeUndefined()
       expect(options.env.ORCA_PI_SOURCE_AGENT_DIR).toBe('/tmp/user-pi-agent')
-      expect(options.env.ZDOTDIR).toBe(join(getShellReadyWrapperRoot(), 'zsh'))
+      expect(options.env.ZDOTDIR).toBe(`${getShellReadyWrapperRoot()}/zsh`)
       expect(options.env.ORCA_SHELL_FEATURES).not.toContain('ready')
     } finally {
       Object.defineProperty(process, 'platform', {
