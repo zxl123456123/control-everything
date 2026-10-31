@@ -327260,14 +327260,14 @@
     {
       "path": "src/cli/specs/project.ts",
       "upstream_sha256": "349406f7bf535d9605dd4849b85ad0d0f065e699ed228afc9cb50af50a24e97f",
-      "current_sha256": "8e89c03f234cd5bd76e159b2d04b045cceb431616e514898dbd6f67fcd3e132c",
-      "reason": "帮助示例及运行时描述使用平台身份"
+      "current_sha256": "0dd5694ae8849cde3c9e099e5276db00e49f5d77b25b6d4c39e4fb2eb816dce4",
+      "reason": "帮助示例及运行时描述使用平台身份；将日常 CLI 帮助源目录统一为掌控一切身份，保持命令合同与帮助输出"
     },
     {
       "path": "src/cli/specs/search.ts",
       "upstream_sha256": "a962113b15e754b6f58e4d4b6db06266afd15f023d11ca6c842c63d08bf07ea9",
-      "current_sha256": "c63db2cbe0889437763108468e67184736967c41f7a45e3dbdd19186762f96a4",
-      "reason": "帮助示例及运行时描述使用平台身份"
+      "current_sha256": "ccf9a80318db89c1784c1bebee32bf36b68cce4afff2ab12c58d4761da36cc5c",
+      "reason": "帮助示例及运行时描述使用平台身份；将日常 CLI 帮助源目录统一为掌控一切身份，保持命令合同与帮助输出"
     },
     {
       "path": "src/cli/specs/file.ts",
@@ -327278,8 +327278,8 @@
     {
       "path": "src/cli/specs/managed-server.ts",
       "upstream_sha256": "be39437eddf4a77638608051e27e5e041418fbb0d72a55f9a5ee1869c164d1a8",
-      "current_sha256": "455dc8ef0cb0cc184a32bb7f341e0fb4b8bfcf7af5adc58922a5eefaa77e8285",
-      "reason": "帮助示例及运行时描述使用平台身份"
+      "current_sha256": "e66bef9f57ac9dd63ca5bc3dc2efdfa8d747499832bd2c609a310a3e0bc53b92",
+      "reason": "帮助示例及运行时描述使用平台身份；将日常 CLI 帮助源目录统一为掌控一切身份，保持命令合同与帮助输出"
     },
     {
       "path": "src/main/runtime/agent-session-record-rows.ts",
@@ -329762,8 +329762,8 @@
     {
       "path": "src/cli/specs/environment.ts",
       "upstream_sha256": "65ab5985f74982b316081fe4b7405b7b40b88f443ce3e2764d8b2a51ef0b714b",
-      "current_sha256": "25a01bb2a5639437f47244156ac9235e205b0c52f1b36cd5bff6af4c3d47ddc3",
-      "reason": "配对链接生成解析和手机注册统一zkyq协议，迁移已保存VM配对链接并保留凭据及用户数据，更新脱敏和提示"
+      "current_sha256": "557db71158f33ab90cdff3a368e8ab753bdda3e4a766e56d29f4475744a57705",
+      "reason": "配对链接生成解析和手机注册统一zkyq协议，迁移已保存VM配对链接并保留凭据及用户数据，更新脱敏和提示；将日常 CLI 帮助源目录统一为掌控一切身份，保持命令合同与帮助输出"
     },
     {
       "path": "src/main/managed-server/install/orcad-remote-launch-file-modes.test.ts",
@@ -333266,8 +333266,8 @@
     {
       "path": "src/cli/specs/core.ts",
       "upstream_sha256": "ba4787cf4f75cd465ad575e9f42af3ced8f8e4234e75ef175a29d7a1db452205",
-      "current_sha256": "bfa00de6905e9ac2594198e74c23a318ab6eb6e9ea02380a555d15d09360e516",
-      "reason": "项目配置统一新文件名，保留旧文件迁移与信任行为；帮助示例改用通用项目；状态命令会话字段统一命名"
+      "current_sha256": "d7d3482fdb98279990dc1e0b82e6abcbdb8e1ad2a17465e782da8b9bf2f896f6",
+      "reason": "项目配置统一新文件名，保留旧文件迁移与信任行为；帮助示例改用通用项目；状态命令会话字段统一命名；将日常 CLI 帮助源目录统一为掌控一切身份，保持命令合同与帮助输出"
     },
     {
       "path": "src/cli/specs/vm.ts",
@@ -333410,8 +333410,8 @@
     {
       "path": "src/cli/specs/repo.ts",
       "upstream_sha256": "3cf7b619f6fa3735c9b37518fe4195e9f4961c44ef1679b8be52e5928ed34298",
-      "current_sha256": "395a228d856ccbb1cd2f84530fa736cb2871f20a3c23ac7d58e9ec136aa56a0c",
-      "reason": "显式迁移已跟踪项目配置，保留 Git 索引和用户修改；支持安全迁移未跟踪和被忽略的项目配置"
+      "current_sha256": "c1aaf5f47bdc6dc32a6102eb62e45482d297d5d0dae13810e49867d83a3a83fd",
+      "reason": "显式迁移已跟踪项目配置，保留 Git 索引和用户修改；支持安全迁移未跟踪和被忽略的项目配置；将日常 CLI 帮助源目录统一为掌控一切身份，保持命令合同与帮助输出"
     },
     {
       "path": "src/cli/cli-error.ts",
@@ -334204,6 +334204,60 @@
       "upstream_sha256": "551b5fd95f7560a06f1cce2f8ddc98c2f5b48e8cd1f8580d33100075841fcade",
       "current_sha256": "1d1b80e7c740eb0a647fe391f6c5e119584d6ad9b5f48cfdc68a8c100f3e323c",
       "reason": "迁移进程恢复令牌环境身份并保持旧进程恢复和会话清理"
+    },
+    {
+      "path": "src/cli/specs/account.ts",
+      "upstream_sha256": "d8556d1ad7b1e5fa2a975af3fb820aa689abdb7ec83eb3ee83a5d6cdfb1a8c3f",
+      "current_sha256": "26f47196e17f9c32144646eb2290984c61c16415a6f7fc7b1786ea3df81de723",
+      "reason": "将日常 CLI 帮助源目录统一为掌控一切身份，保持命令合同与帮助输出"
+    },
+    {
+      "path": "src/cli/specs/diagnostics.ts",
+      "upstream_sha256": "a1fac19de7930eff423cb6aab4ba9a857d3eb2b6ff8966f481380562684f3f91",
+      "current_sha256": "0b3169a22e3a08f33c3ad26c3fe63efc6747044423a8bb71cf32f3ce34616732",
+      "reason": "将日常 CLI 帮助源目录统一为掌控一切身份，保持命令合同与帮助输出"
+    },
+    {
+      "path": "src/cli/specs/introspection.ts",
+      "upstream_sha256": "2aff2b6a018424d5cfdbe197c6e2585d0ca23f9b80ad69f5a71b7296d633d673",
+      "current_sha256": "5ff818122360d35f5d8bc03976114fbe21241772950234d13f4a562c888ed6b0",
+      "reason": "将日常 CLI 帮助源目录统一为掌控一切身份，保持命令合同与帮助输出"
+    },
+    {
+      "path": "src/cli/specs/reference.ts",
+      "upstream_sha256": "d6487f2097df993f7430386cdefe01fb659041d77da6e3d0ff66b7d57d6e6d30",
+      "current_sha256": "9a824cb6b49e23c34e77ee7c2bcda907c45b3d423a4b38ef9c492581506cfa17",
+      "reason": "将日常 CLI 帮助源目录统一为掌控一切身份，保持命令合同与帮助输出"
+    },
+    {
+      "path": "src/cli/specs/terminal-close.ts",
+      "upstream_sha256": "376f6957489edab19b30cc1545a8a13dfb6519ed8ec5b8beeaeeef41dda27373",
+      "current_sha256": "895830704af954d681c098f27eb8d26bc567bb14795f8d7ceecb3625aae26b02",
+      "reason": "将日常 CLI 帮助源目录统一为掌控一切身份，保持命令合同与帮助输出"
+    },
+    {
+      "path": "src/cli/specs/terminal-daemon.ts",
+      "upstream_sha256": "90fad94c2bf0ab99509914a64d6eac33a26cbeecc8e5f66ff3c22345928cf4a1",
+      "current_sha256": "832da6b2afae846f1dbed751009980f279c1152bccf18efd9c41f24523c9dcba",
+      "reason": "将日常 CLI 帮助源目录统一为掌控一切身份，保持命令合同与帮助输出"
+    },
+    {
+      "path": "src/cli/specs/terminal-send.ts",
+      "upstream_sha256": "2983dc39f291ae9e874497b4676186d5daf2f6901a46e887e32d4461188d521b",
+      "current_sha256": "84d02162998c57bed7d3a1c4404b43e59c35abb049ddba1d54198b8df7dc7c81",
+      "reason": "将日常 CLI 帮助源目录统一为掌控一切身份，保持命令合同与帮助输出"
+    },
+    {
+      "path": "src/cli/specs/terminal-set-pane-title.ts",
+      "upstream_sha256": "3a0de75f3ad72400f1a973e55aeb16b65517710b362b81e0cce44d6001a9b8ee",
+      "current_sha256": "f1c5e0d9a94435886363e28dd22320677122e1ed89fc763f85e62b0c9dfa4036",
+      "reason": "将日常 CLI 帮助源目录统一为掌控一切身份，保持命令合同与帮助输出"
+    },
+    {
+      "path": "src/cli/specs/worktree-set.ts",
+      "upstream_sha256": "285b21cccc3ee856d62a7532fb462a7933714ff01c5adaa16da7eff6595ef3ba",
+      "current_sha256": "c6be05237f91955e3d56b0cb288b4dd1aefca330e4e6f4c81e7f34e628df8157",
+      "reason": "将日常 CLI 帮助源目录统一为掌控一切身份，保持命令合同与帮助输出"
     }
   ],
   "reviewed_findings": [
@@ -334750,21 +334804,21 @@
       "path": "src/cli/specs/core.ts",
       "rule": "absolute-windows-path",
       "line": 234,
-      "sha256": "bfa00de6905e9ac2594198e74c23a318ab6eb6e9ea02380a555d15d09360e516",
+      "sha256": "d7d3482fdb98279990dc1e0b82e6abcbdb8e1ad2a17465e782da8b9bf2f896f6",
       "reason": "上游公开代码注释、CLI/界面示例中的路径语法，用来解释drive/root/UNC/转义等规则；非读取的个人配置，限定具体行及文件hash。"
     },
     {
       "path": "src/cli/specs/project.ts",
       "rule": "personal-home-path",
       "line": 43,
-      "sha256": "8e89c03f234cd5bd76e159b2d04b045cceb431616e514898dbd6f67fcd3e132c",
+      "sha256": "0dd5694ae8849cde3c9e099e5276db00e49f5d77b25b6d4c39e4fb2eb816dce4",
       "reason": "公开的路径模板、跨平台解析说明或通用示例；未读取本机账号/目录，保留语义并限定具体行及文件hash。"
     },
     {
       "path": "src/cli/specs/search.ts",
       "rule": "personal-home-path",
-      "line": 44,
-      "sha256": "c63db2cbe0889437763108468e67184736967c41f7a45e3dbdd19186762f96a4",
+      "line": 45,
+      "sha256": "ccf9a80318db89c1784c1bebee32bf36b68cce4afff2ab12c58d4761da36cc5c",
       "reason": "公开的路径模板、跨平台解析说明或通用示例；未读取本机账号/目录，保留语义并限定具体行及文件hash。"
     },
     {
