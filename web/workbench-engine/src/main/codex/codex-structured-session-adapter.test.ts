@@ -168,10 +168,10 @@ describe('CodexStructuredSessionAdapter.acquire', () => {
         approvalsReviewer: 'user',
         // A user's `inherit = "core"` policy would strip these from every command the chat runs.
         config: {
-          'shell_environment_policy.set.ORCA_AGENT_SESSION_ID': 'session-1',
+          'shell_environment_policy.set.ZKYQ_AGENT_SESSION_ID': 'session-1',
           'shell_environment_policy.set.ORCA_STRUCTURED_SESSION': '1',
           'shell_environment_policy.set.ZKYQ_CLI_COMMAND': expect.stringMatching(
-            /^[^:;]*[\\/]cli[\\/]bin[\\/]zkyq-dev$/
+            /^(?:[A-Za-z]:)?[^:;]*[\\/]cli[\\/]bin[\\/]zkyq-dev(?:\.cmd)?$/
           ),
           'shell_environment_policy.set.ZKYQ_USER_DATA_PATH': expect.any(String),
           'shell_environment_policy.set.ZKYQ_ENVIRONMENT': '',

@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { openCodexAppServerConnection } from './codex-app-server-connection'
 import { ORCA_AGENT_SESSION_SPAWN_TOKEN_ENV } from '../../shared/agent-session-caller-env'
 import { sealStructuredSessionChild } from '../runtime/structured-session-child-env'
@@ -12,10 +12,15 @@ import {
   structuredWorkerProcessIncarnation
 } from '../runtime/structured-worker-identity'
 
-const DEV_CLI_BIN_FIRST = /^[^:;]*[\\/]cli[\\/]bin[:;]/
-const DEV_CLI_BIN_DIR = /^[^:;]*[\\/]cli[\\/]bin$/
+const DEV_CLI_BIN_FIRST = /^(?:[A-Za-z]:)?[^:;]*[\\/]cli[\\/]bin[:;]/
+const DEV_CLI_BIN_DIR = /^(?:[A-Za-z]:)?[^:;]*[\\/]cli[\\/]bin$/
 // The dev launcher by absolute path: a login shell's profile cannot reorder it behind a global.
-const DEV_CLI_LAUNCHER = /^[^:;]*[\\/]cli[\\/]bin[\\/]zkyq-dev$/
+const DEV_CLI_LAUNCHER = /^(?:[A-Za-z]:)?[^:;]*[\\/]cli[\\/]bin[\\/]zkyq-dev(?:\.cmd)?$/
+
+beforeEach(() => {
+  vi.stubEnv('PATH', '/test-bin')
+})
+afterEach(() => vi.unstubAllEnvs())
 
 /** The sealed env a Codex launch of `sessionId` spawns with, over a shell env of `env`. */
 async function codexChildEnv(

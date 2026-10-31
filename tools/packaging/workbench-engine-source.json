@@ -326283,6 +326283,24 @@
       "bytes": 1400,
       "kind": "build",
       "reason": "root_build_contract"
+    },
+    {
+      "path": "src/main/native-chat/agent-session-record-test-fixture.ts",
+      "source_path": "src/main/native-chat/agent-session-record-test-fixture.ts",
+      "git_blob": "13040eb99e31922ed46e94c1b4ec07a90ff5b68d",
+      "sha256": "49420cd67c027c43d58adbd5deb0cfb729933293ac7f2fe90e557f28ca0ab786",
+      "bytes": 1421,
+      "kind": "source",
+      "reason": "preserved_internal_source_layout"
+    },
+    {
+      "path": "src/main/runtime/structured-chat-coordinator-fake-codex-fixture.ts",
+      "source_path": "src/main/runtime/structured-chat-coordinator-fake-codex-fixture.ts",
+      "git_blob": "3987165c00f02a74904b6eaf7b6af617091fba3b",
+      "sha256": "ebab9601039ad9ff01e7730f0a1cf7b02bf1475c9255b0e1506043da175847d7",
+      "bytes": 6578,
+      "kind": "source",
+      "reason": "preserved_internal_source_layout"
     }
   ],
   "resources": [
@@ -330650,14 +330668,14 @@
     {
       "path": "src/main/codex/codex-structured-child-environment.test.ts",
       "upstream_sha256": "ab0d0e81f8da8cc9fcd65f628d2c08580eff504e944a9f5d9642a794d0e024cf",
-      "current_sha256": "444ca52f230cb85600773c772c66779105cf6cab3833168974871786b6beed2d",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；迁移远程主机选择环境变量并防止错误路由；新会话身份环境变量迁移"
+      "current_sha256": "d41e06b3355b8f5fbaa3423ed61c88b2029fcd3b232a17714b6d73c9ee573beb",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；迁移远程主机选择环境变量并防止错误路由；新会话身份环境变量迁移；恢复会话集成测试所需夹具、使用通用路径并核对迁移后的命令身份"
     },
     {
       "path": "src/main/codex/codex-structured-session-adapter.test.ts",
       "upstream_sha256": "d622eef99dded1a5b302dab81d41c2bef02990f56ba2de5b91e8487a2cbf05a1",
-      "current_sha256": "5648a9aaef8643d781bef5eb0f58508c7c6817c69e65032728c48be67d80bd25",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；迁移远程主机选择环境变量并防止错误路由"
+      "current_sha256": "bde9f2ce1915ce5a582331446bca2d5fefa353c94401142cad7bfb5fb417c282",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；迁移远程主机选择环境变量并防止错误路由；恢复会话集成测试所需夹具、使用通用路径并核对迁移后的命令身份"
     },
     {
       "path": "src/main/daemon/shell-ready-bash-wrapper.test.ts",
@@ -333992,8 +334010,8 @@
     {
       "path": "src/main/runtime/structured-chat-worker-start.test.ts",
       "upstream_sha256": "26f3bdc4e0173e61baea22e90256f1c649f4c6d4bdafec4153e8e4e05ea6ef24",
-      "current_sha256": "572784f69f72418531efdfc3fcfba8b39b7ce0ddb28add63bb1d7084766b4e40",
-      "reason": "迁移会话地址命名及相关验证"
+      "current_sha256": "0631e27fc767782ccc03e7b7b9efb81b6bf5c0939c6a9e941c1049ea31a83652",
+      "reason": "迁移会话地址命名及相关验证；恢复会话集成测试所需夹具、使用通用路径并核对迁移后的命令身份"
     },
     {
       "path": "src/renderer/src/components/native-chat/NativeChatAgentMessageSenders.test.tsx",
@@ -334084,6 +334102,30 @@
       "upstream_sha256": "5c7894f853b3554b24b6b35b8a3ece4ee10e18daad06cd684a65574a941b77d4",
       "current_sha256": "d9778c3309782712ec736687fbad3519982f50294907b25b1fad4b4d3438596a",
       "reason": "迁移会话身份 RPC 字段并验证跨版本调用"
+    },
+    {
+      "path": "src/main/runtime/structured-chat-coordinator-mail-rig.test-fixture.ts",
+      "upstream_sha256": "cb1c93b81afcda59fcbbcddf5d3bc2170ebdf9cfc2d64a80c502b79110ba9d9f",
+      "current_sha256": "fd666e53153208b9804e988b767f207b627d5a8cb69bca8189bfcd21427efea6",
+      "reason": "恢复会话集成测试所需夹具、使用通用路径并核对迁移后的命令身份"
+    },
+    {
+      "path": "src/main/runtime/structured-chat-dispatch-worker.test.ts",
+      "upstream_sha256": "8b205dce668b02697cbcb94f204246be96c0c25a05d12ea96a5a87c85cd66c61",
+      "current_sha256": "3f098fcb22eacf64825b99d39f3a9222802043132e0f725b3cbe278c1fef3da2",
+      "reason": "恢复会话集成测试所需夹具、使用通用路径并核对迁移后的命令身份"
+    },
+    {
+      "path": "src/main/native-chat/agent-session-record-test-fixture.ts",
+      "upstream_sha256": "49420cd67c027c43d58adbd5deb0cfb729933293ac7f2fe90e557f28ca0ab786",
+      "current_sha256": "c8216c65b8fbcefda267309a69cb2ad4aa6eee6ae07e747a412efa773563ea5a",
+      "reason": "恢复会话集成测试所需夹具、使用通用路径并核对迁移后的命令身份"
+    },
+    {
+      "path": "src/main/runtime/structured-chat-coordinator-fake-codex-fixture.ts",
+      "upstream_sha256": "ebab9601039ad9ff01e7730f0a1cf7b02bf1475c9255b0e1506043da175847d7",
+      "current_sha256": "d548c52981f42883fb904c56df75344766d05372f0cfe1a22c24890a18688237",
+      "reason": "恢复会话集成测试所需夹具、使用通用路径并核对迁移后的命令身份"
     }
   ],
   "reviewed_findings": [
