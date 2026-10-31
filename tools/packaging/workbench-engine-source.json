@@ -326918,6 +326918,7 @@
     }
   ],
   "local_files": [
+    "src/cli/recipe-env-python.ts",
     "build-origin.json",
     "config/scripts/distribution-record.mjs",
     "config/scripts/vite-web-ligatures-entry.test.ts",
@@ -333130,8 +333131,8 @@
     {
       "path": "src/cli/specs/vm.ts",
       "upstream_sha256": "c5564973b50e7c34a28af735d854b8fc822767fe02523b98bc6dc0897eb9b51e",
-      "current_sha256": "9d20d33be73aa45e5a51c0691176aad18e1a1d2e7b5b3adcae2f4e3b0b183591",
-      "reason": "项目配置统一新文件名，保留旧文件迁移与信任行为；提供受限配方环境变量显式迁移入口；支持安全迁移 PowerShell 配方环境读取；迁移已有 VM 资源环境契约并保护离线快照"
+      "current_sha256": "2c51d3546b097b17ec768cb1305e70840b05fe40dd8876c5f243f72e5de671db",
+      "reason": "项目配置统一新文件名，保留旧文件迁移与信任行为；提供受限配方环境变量显式迁移入口；支持安全迁移 PowerShell 配方环境读取；迁移已有 VM 资源环境契约并保护离线快照；支持迁移 Python 配方环境读取"
     },
     {
       "path": "src/main/hooks-effective-hook-resolution.test.ts",
@@ -333250,8 +333251,8 @@
     {
       "path": "src/shared/ephemeral-vm-recipe-doctor.ts",
       "upstream_sha256": "51befcc6d70d12ed663a36ef674d4c8646881e71ce1373151c4bb3cdfaea8dc2",
-      "current_sha256": "108d511d4236ce539f4c6c468c0f35a9a08e8df7a7e40c7415a40ab70207bf45",
-      "reason": "项目配置统一新文件名，保留旧文件迁移与信任行为；新环境配方与实例使用掌控一切身份；只读诊断配方旧环境变量和检查范围；提供受限配方环境变量显式迁移入口；诊断未迁移的配方环境契约"
+      "current_sha256": "ebf4c9e8449a79235ad41b3ced24cee5fd55cca661269623f4c510257d54b782",
+      "reason": "项目配置统一新文件名，保留旧文件迁移与信任行为；新环境配方与实例使用掌控一切身份；只读诊断配方旧环境变量和检查范围；提供受限配方环境变量显式迁移入口；诊断未迁移的配方环境契约；支持迁移 Python 配方环境读取"
     },
     {
       "path": "src/cli/handlers/repo.ts",

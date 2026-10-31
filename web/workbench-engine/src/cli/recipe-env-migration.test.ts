@@ -10,6 +10,7 @@ import {
 } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { spawnSync } from 'node:child_process'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { migrateRecipeEnvironment } from './recipe-env-migration'
 import { VM_HANDLERS } from './handlers/vm'
@@ -27,6 +28,13 @@ vi.mock('node:fs', async (importOriginal) => {
 })
 
 const roots: string[] = []
+const pythonAvailable =
+  spawnSync(process.platform === 'win32' ? 'python' : 'python3', [
+    '-I',
+    '-S',
+    '-c',
+    'import ast, sys; assert sys.version_info >= (3, 9)'
+  ]).status === 0
 function fixture(contents: string | Buffer, extension = '.sh'): string {
   const root = mkdtempSync(join(tmpdir(), 'zkyq-recipe-migration-'))
   roots.push(root)
@@ -118,9 +126,108 @@ describe('recipe environment migration', () => {
       expect(() => migrateRecipeEnvironment(path, false)).toThrow()
     }
     expect(() => migrateRecipeEnvironment('relative.sh', false)).toThrow(
-      'absolute shell or PowerShell script'
+      'absolute shell, PowerShell or Python script'
     )
   })
+
+  it.runIf(pythonAvailable).each(['\n', '\r\n'])(
+    'migrates direct Python environment reads and preserves other bytes with %j line endings',
+    (eol) => {
+      const original = [
+        '\ufeffimport os',
+        'label = "中文"; mode = os.environ["ORCA_VM_MODE"]',
+        "url = os.environ.get('ORCA_REPO_URL')",
+        'instance = os.getenv("ORCA_VM_INSTANCE_ID", "")',
+        'raise RuntimeError("must never execute during inspection")',
+        ''
+      ].join(eol)
+      const path = fixture(original, '.py')
+      const before = statSync(path)
+      const preview = migrateRecipeEnvironment(path, true)
+      expect(preview.replacements.map((item) => item.line)).toEqual([2, 3, 4])
+      expect(readFileSync(path, 'utf8')).toBe(original)
+      migrateRecipeEnvironment(path, false)
+      expect(readFileSync(path, 'utf8')).toBe(original.replaceAll('ORCA_', 'ZKYQ_'))
+      expect(statSync(path).ino).toBe(before.ino)
+      expect(migrateRecipeEnvironment(path, true).replacements).toEqual([])
+    }
+  )
+
+  it
+    .runIf(pythonAvailable)
+    .each([
+      'import os\nos.environ["ORCA_VM_MODE"] = "create"',
+      'import os\ndel os.environ["ORCA_VM_MODE"]',
+      'import os\nos.putenv("ORCA_VM_MODE", "create")',
+      'import os\nprint("ORCA_VM_MODE")',
+      'import os\n# ORCA_VM_MODE\nprint("ok")',
+      'import os\nprint(os.environ["orca_vm_mode"])',
+      'import os\nos = object()\nprint(os.environ["ORCA_VM_MODE"])',
+      'print(os.environ["ORCA_VM_MODE"])',
+      'import os\nprint(os.environ["ORCA_VM_MODE"'
+    ])('refuses ambiguous Python references without editing the file', (original) => {
+    const path = fixture(original, '.py')
+    expect(() => migrateRecipeEnvironment(path, false)).toThrow('review')
+    expect(readFileSync(path, 'utf8')).toBe(original)
+  })
+
+  it.runIf(pythonAvailable)(
+    'preserves four lifecycle operations after migrating a Python recipe',
+    async () => {
+      const script = [
+        'import json, os',
+        'mode = os.environ["ORCA_VM_MODE"]',
+        'instance = os.environ.get("ORCA_VM_INSTANCE_ID")',
+        'repo = os.getenv("ORCA_REPO_URL")',
+        'if mode in ("create", "resume"):',
+        '    print(json.dumps({"schemaVersion": 1, "connection": {"type": "ssh", "target": {"label": "fixture", "host": "127.0.0.1", "port": 22, "username": "fixture"}, "projectRoot": "/fixture"}, "userData": {"instance": instance, "repo": repo}}))',
+        'else:',
+        '    print(mode + "|" + instance + "|" + repo)'
+      ].join('\n')
+      const path = fixture(script, '.py')
+      const repoPath = join(path, '..')
+      const program = process.platform === 'win32' ? 'python' : 'python3'
+      const command = `${program} -I -S "${path}"`
+      const recipe = {
+        id: 'fixture',
+        name: 'fixture',
+        create: command,
+        suspend: command,
+        resume: command,
+        destroy: command
+      }
+      const execute = async (environmentContract?: 'zkyq') => {
+        const current = { ...recipe, ...(environmentContract ? { environmentContract } : {}) }
+        const start = await runEphemeralVmRecipeStart({
+          recipe: current,
+          repoPath,
+          context: { instanceId: 'fixture-vm', repoUrl: 'https://example.test/repo' }
+        })
+        if (!start.ok) throw new Error(start.error)
+        const args = {
+          recipe: current,
+          repoPath,
+          context: start.context,
+          recipeResult: start.result
+        }
+        const suspend = await runEphemeralVmRecipeSuspend(args)
+        const resume = await runEphemeralVmRecipeResume(args)
+        const destroy = await runEphemeralVmRecipeCleanup(args)
+        expect(suspend.ok && resume.ok && destroy.ok).toBe(true)
+        return {
+          start: start.result,
+          suspend: suspend.stdout,
+          resume: resume.ok && !resume.skipped ? resume.result : null,
+          destroy: destroy.stdout
+        }
+      }
+      const before = await execute()
+      expect(migrateRecipeEnvironment(path, true).replacements).toHaveLength(3)
+      migrateRecipeEnvironment(path, false)
+      expect(await execute('zkyq')).toEqual(before)
+    },
+    30_000
+  )
 
   it.runIf(process.platform === 'win32')(
     'migrates parsed PowerShell reads without changing other bytes',

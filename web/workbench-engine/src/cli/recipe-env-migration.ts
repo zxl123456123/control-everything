@@ -2,6 +2,7 @@ import { closeSync, fstatSync, lstatSync, openSync, readSync, writeSync } from '
 import { extname, isAbsolute } from 'node:path'
 import { RuntimeClientError } from './runtime/types'
 import { powerShellEnvironmentReads } from './recipe-env-powershell'
+import { pythonEnvironmentReads } from './recipe-env-python'
 
 const LEGACY_RECIPE_VARIABLE =
   /(?<![A-Za-z0-9_])ORCA_(?:VM_MODE|VM_INSTANCE_ID|RECIPE_ID|PROJECT_ID|WORKSPACE_ID|WORKSPACE_NAME|REPO_PATH|REPO_URL|REPO_BRANCH|REPO_REF_HEAD|REPO_REF|RECIPE_RESULT_SCHEMA_VERSION|VERSION)(?![A-Za-z0-9_])/g
@@ -9,7 +10,7 @@ const MAX_SCRIPT_BYTES = 256 * 1024
 
 type Replacement = { oldName: string; newName: string; line: number; offset: number }
 
-/** Explicitly migrate unambiguous shell environment reads without changing other file bytes. */
+/** Explicitly migrate unambiguous environment reads without changing other file bytes. */
 export function migrateRecipeEnvironment(
   path: string,
   dryRun: boolean
@@ -20,10 +21,11 @@ export function migrateRecipeEnvironment(
 } {
   const extension = extname(path).toLowerCase()
   const powerShell = extension === '.ps1'
-  if (!isAbsolute(path) || !['.sh', '.bash', '.zsh', '.ps1'].includes(extension)) {
+  const python = extension === '.py'
+  if (!isAbsolute(path) || !['.sh', '.bash', '.zsh', '.ps1', '.py'].includes(extension)) {
     throw new RuntimeClientError(
       'invalid_argument',
-      'Pass an absolute shell or PowerShell script path with --path.'
+      'Pass an absolute shell, PowerShell or Python script path with --path.'
     )
   }
   const info = lstatSync(path)
@@ -67,7 +69,9 @@ export function migrateRecipeEnvironment(
     }
     const names = [
       ...content.matchAll(
-        powerShell ? new RegExp(LEGACY_RECIPE_VARIABLE.source, 'gi') : LEGACY_RECIPE_VARIABLE
+        powerShell || python
+          ? new RegExp(LEGACY_RECIPE_VARIABLE.source, 'gi')
+          : LEGACY_RECIPE_VARIABLE
       )
     ]
     if (names.length > 1024) {
@@ -76,7 +80,7 @@ export function migrateRecipeEnvironment(
         'The script has too many references; review it manually.'
       )
     }
-    if (!powerShell && names.length && /['\\`]|<<|\$\(/.test(content)) {
+    if (!powerShell && !python && names.length && /['\\`]|<<|\$\(/.test(content)) {
       throw new RuntimeClientError(
         'invalid_argument',
         'The script has ambiguous shell syntax; review it manually.'
@@ -84,6 +88,7 @@ export function migrateRecipeEnvironment(
     }
     if (
       !powerShell &&
+      !python &&
       names.length &&
       content.split(/\r?\n/).some((line) => {
         const code = line.trimStart().startsWith('#') ? '' : line
@@ -97,6 +102,8 @@ export function migrateRecipeEnvironment(
     }
     const replacements: Replacement[] = []
     const powerShellReads = powerShell && names.length ? powerShellEnvironmentReads(content) : []
+    const pythonReads =
+      python && names.length ? new Set(pythonEnvironmentReads(content)) : new Set<number>()
     let previousIndex = 0
     let previousOffset = 0
     let lineNumber = 1
@@ -106,6 +113,8 @@ export function migrateRecipeEnvironment(
       const lineEnd = content.indexOf('\n', index)
       const line = content.slice(lineStart, lineEnd < 0 ? undefined : lineEnd)
       const before = content.slice(Math.max(lineStart, index - 2), index)
+      const preceding = content.slice(previousIndex, index)
+      const offset = previousOffset + Buffer.byteLength(preceding, 'utf8')
       const validPowerShellRead = powerShellReads.some((item) => {
         if (item.writes) return false
         const end = index + match[0].length
@@ -120,17 +129,17 @@ export function migrateRecipeEnvironment(
         )
       })
       if (
-        powerShell
-          ? !validPowerShellRead || !match[0].startsWith('ORCA_')
-          : line.includes('#') || !(before.endsWith('$') || before.endsWith('${'))
+        python
+          ? !pythonReads.has(offset) || !match[0].startsWith('ORCA_')
+          : powerShell
+            ? !validPowerShellRead || !match[0].startsWith('ORCA_')
+            : line.includes('#') || !(before.endsWith('$') || before.endsWith('${'))
       ) {
         throw new RuntimeClientError(
           'invalid_argument',
           'The script contains an ambiguous legacy name; review it manually.'
         )
       }
-      const preceding = content.slice(previousIndex, index)
-      const offset = previousOffset + Buffer.byteLength(preceding, 'utf8')
       lineNumber += preceding.match(/\n/g)?.length ?? 0
       replacements.push({
         oldName: match[0],
