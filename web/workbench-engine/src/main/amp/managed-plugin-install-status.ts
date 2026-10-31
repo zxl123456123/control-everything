@@ -1,9 +1,13 @@
-import { existsSync, readFileSync } from 'node:fs'
+import { lstatSync, readFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 
 import type { AgentHookInstallStatus } from '../../shared/agent-hook-types'
-import { AMP_PLUGIN_FILE, AMP_PLUGIN_MARKER } from './agent-status-plugin-source'
+import {
+  AMP_PLUGIN_FILE,
+  AMP_PLUGIN_MARKER,
+  RETIRED_AMP_PLUGIN_MARKER
+} from './agent-status-plugin-source'
 
 export type PluginFileState =
   | { kind: 'absent' }
@@ -11,17 +15,17 @@ export type PluginFileState =
   | { kind: 'unmanaged' }
   | { kind: 'error'; detail: string }
 
-export function getPluginPath(): string {
-  return join(homedir(), '.config', 'amp', 'plugins', AMP_PLUGIN_FILE)
+export function getPluginPath(fileName = AMP_PLUGIN_FILE): string {
+  return join(homedir(), '.config', 'amp', 'plugins', fileName)
 }
 
-export function getRemotePluginPath(remoteHome: string): string {
+export function getRemotePluginPath(remoteHome: string, fileName = AMP_PLUGIN_FILE): string {
   const home = remoteHome.replace(/\/$/, '')
-  return `${home}/.config/amp/plugins/${AMP_PLUGIN_FILE}`
+  return `${home}/.config/amp/plugins/${fileName}`
 }
 
 export function isManagedPlugin(content: string): boolean {
-  return content.includes(AMP_PLUGIN_MARKER)
+  return content.includes(AMP_PLUGIN_MARKER) || content.includes(RETIRED_AMP_PLUGIN_MARKER)
 }
 
 function isCompleteManagedPlugin(content: string): boolean {
@@ -37,10 +41,10 @@ function isCompleteManagedPlugin(content: string): boolean {
 }
 
 export function readLocalPluginState(pluginPath: string): PluginFileState {
-  if (!existsSync(pluginPath)) {
-    return { kind: 'absent' }
-  }
   try {
+    const entry = lstatSync(pluginPath, { throwIfNoEntry: false })
+    if (!entry) return { kind: 'absent' }
+    if (!entry.isFile()) return { kind: 'unmanaged' }
     const content = readFileSync(pluginPath, 'utf-8')
     if (!isManagedPlugin(content)) {
       return { kind: 'unmanaged' }
@@ -78,7 +82,7 @@ export function statusFromState(
         state: 'partial',
         configPath: pluginPath,
         managedHooksPresent: false,
-        detail: 'Amp Orca status plugin exists but is not Orca-managed'
+        detail: 'The Amp status plugin file is user-managed'
       }
     case 'error':
       return {

@@ -181,6 +181,32 @@ export async function writeTextFileRemoteAtomic(
   }
 }
 
+/** Plugin identity migration never takes ownership of a user-supplied link. */
+export async function readManagedPluginFileRemote(
+  sftp: SFTPWrapper,
+  path: string
+): Promise<string | null> {
+  let stat: { isFile(): boolean }
+  try {
+    stat = await sftpOperation(`lstat ${path}`, (callback) => sftp.lstat(path, callback))
+  } catch (error) {
+    if (isNoEntryError(error)) return null
+    throw error
+  }
+  if (!stat.isFile()) throw new Error(`Managed plugin path is not a regular file: ${path}`)
+  return readFile(sftp, path)
+}
+
+/** Move a caller-verified managed file outside its provider's auto-load directory. */
+export async function moveManagedPluginRemote(
+  sftp: SFTPWrapper,
+  from: string,
+  to: string
+): Promise<void> {
+  await mkdirpRemote(sftp, dirnamePosix(to))
+  await rename(sftp, from, to)
+}
+
 // ─── Private SFTP primitives ────────────────────────────────────────
 
 function sftpOperation<T>(

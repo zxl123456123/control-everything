@@ -335246,8 +335246,8 @@
     {
       "path": "src/main/amp/agent-status-plugin-source.ts",
       "upstream_sha256": "975bd2306d670652bfe5681a716782adc11dcf638ebe489a87a4ae740698e551",
-      "current_sha256": "c63e2ff172f6ce8f0baa17a7a76276acacece86e3292e2d01a0f736752cb4c64",
-      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+      "current_sha256": "7d5c4d8a2f5cc589fb5177ccd9aa985174136b87f4cbc7c4c36aed57c079f7c9",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义；Amp生成插件统一zkyq落盘名与平台标记；校验所有权后把旧入口原字节移出加载目录，发布失败恢复旧入口，本地与SFTP保持同一活跃插件"
     },
     {
       "path": "src/main/antigravity/hook-script.ts",
@@ -335780,8 +335780,8 @@
     {
       "path": "src/main/amp/hook-service.test.ts",
       "upstream_sha256": "9a990b112b4bf67e1286170135328326712980725a19ccf80b6803d54917ab56",
-      "current_sha256": "fdfd42dc23468f2eebf6157985c3a91dd591ba3549afc821bc8212f4be18f240",
-      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+      "current_sha256": "ffb95e6e4a1e3bab3d2c8088a05c8a42fb6d6670aa1b570033cb79f1bf2f718f",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义；Amp生成插件统一zkyq落盘名与平台标记；校验所有权后把旧入口原字节移出加载目录，发布失败恢复旧入口，本地与SFTP保持同一活跃插件"
     },
     {
       "path": "src/main/antigravity/hook-service.ts",
@@ -336658,6 +336658,24 @@
       "upstream_sha256": "436c256b1c7266b3b79d9f7e46a2e67f0aa96612233650d4deb4cef94c1b4cdf",
       "current_sha256": "99bfd37d76dbb323d9fb08ea467db58bae45ec6cb46d70b1df13547711f67502",
       "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+    },
+    {
+      "path": "src/main/agent-hooks/installer-utils-remote.ts",
+      "upstream_sha256": "17f065364e6735b0462da015ca4efc7a360fc76cca013068637df4b971b99380",
+      "current_sha256": "e9a4594023bfb1247a33bfec7d416d1d4bcd02873427236f41c0a809e1ade22c",
+      "reason": "Amp生成插件统一zkyq落盘名与平台标记；校验所有权后把旧入口原字节移出加载目录，发布失败恢复旧入口，本地与SFTP保持同一活跃插件"
+    },
+    {
+      "path": "src/main/amp/hook-service.ts",
+      "upstream_sha256": "91b171f1c90e05ce8936aeee07b9f047a5de4567b0677ded210bfb5e5e2cb94f",
+      "current_sha256": "7a390723bfed7214a215079f3288d541a5c02a73a6c7e9401afde67eea3e52ea",
+      "reason": "Amp生成插件统一zkyq落盘名与平台标记；校验所有权后把旧入口原字节移出加载目录，发布失败恢复旧入口，本地与SFTP保持同一活跃插件"
+    },
+    {
+      "path": "src/main/amp/managed-plugin-install-status.ts",
+      "upstream_sha256": "5878aba948631168c056958a93b9edf414c4a3879790df8e9c3de55da1ded4b1",
+      "current_sha256": "2ccfec888b7ba30b6720e83352c69a3e2bc20c43cd82bd03fbd0cb2199f2463c",
+      "reason": "Amp生成插件统一zkyq落盘名与平台标记；校验所有权后把旧入口原字节移出加载目录，发布失败恢复旧入口，本地与SFTP保持同一活跃插件"
     }
   ],
   "reviewed_findings": [
