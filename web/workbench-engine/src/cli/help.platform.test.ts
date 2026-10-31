@@ -80,6 +80,11 @@ it('uses a generic project in the worktree creation example', async () => {
 it('uses platform identity across the command catalog while naming the real migration and protocol fields', async () => {
   const { formatCommandHelp } = await help(true)
   for (const spec of COMMAND_SPECS) {
+    const source = [spec.summary, spec.usage, ...(spec.notes ?? []), ...(spec.examples ?? [])]
+      .join('\n')
+      .replaceAll('orca.yaml', '')
+    expect(spec.usage, spec.path.join(' ')).toMatch(/^zkyq /)
+    expect(source, spec.path.join(' ')).not.toMatch(/orca|ce-workbench/i)
     const text = formatCommandHelp(spec)
     const withoutContractNames = text.replaceAll('orca.yaml', '')
     expect(withoutContractNames, spec.path.join(' ')).not.toMatch(/orca|ce-workbench/i)

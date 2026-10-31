@@ -327272,8 +327272,8 @@
     {
       "path": "src/cli/specs/file.ts",
       "upstream_sha256": "18208829d3fb535ab24d227890c8eec8ca551c20d529a172a319d928c8e0424d",
-      "current_sha256": "1b7af57b91229dd716d20e2276e444db5c42b5dd30ba96d33c757a24045c6312",
-      "reason": "帮助示例及运行时描述使用平台身份"
+      "current_sha256": "d83bb943676ac51f74aa931fe3cfcc7147f6d3269cbb850d5ef3e4c43b05dcf8",
+      "reason": "帮助示例及运行时描述使用平台身份；统一剩余 CLI 帮助源目录和原始目录校验，保持命令合同与帮助输出"
     },
     {
       "path": "src/cli/specs/managed-server.ts",
@@ -333272,8 +333272,8 @@
     {
       "path": "src/cli/specs/vm.ts",
       "upstream_sha256": "c5564973b50e7c34a28af735d854b8fc822767fe02523b98bc6dc0897eb9b51e",
-      "current_sha256": "2c51d3546b097b17ec768cb1305e70840b05fe40dd8876c5f243f72e5de671db",
-      "reason": "项目配置统一新文件名，保留旧文件迁移与信任行为；提供受限配方环境变量显式迁移入口；支持安全迁移 PowerShell 配方环境读取；迁移已有 VM 资源环境契约并保护离线快照；支持迁移 Python 配方环境读取"
+      "current_sha256": "4be32a6386e76f14624c7d446e7212de5a5784a3cb193f1249ce16370cb92a48",
+      "reason": "项目配置统一新文件名，保留旧文件迁移与信任行为；提供受限配方环境变量显式迁移入口；支持安全迁移 PowerShell 配方环境读取；迁移已有 VM 资源环境契约并保护离线快照；支持迁移 Python 配方环境读取；统一剩余 CLI 帮助源目录和原始目录校验，保持命令合同与帮助输出"
     },
     {
       "path": "src/main/hooks-effective-hook-resolution.test.ts",
@@ -334258,6 +334258,84 @@
       "upstream_sha256": "285b21cccc3ee856d62a7532fb462a7933714ff01c5adaa16da7eff6595ef3ba",
       "current_sha256": "c6be05237f91955e3d56b0cb288b4dd1aefca330e4e6f4c81e7f34e628df8157",
       "reason": "将日常 CLI 帮助源目录统一为掌控一切身份，保持命令合同与帮助输出"
+    },
+    {
+      "path": "src/cli/specs/agent-hooks.ts",
+      "upstream_sha256": "77bde5ec650bbc467a7676903daa72fc1fa832b2a5843c198b5306aa618e2fe4",
+      "current_sha256": "90ff9c53b48f5e50d9487946838b12a1ebe7e32e620cb67666073dc3a7b84ea7",
+      "reason": "统一剩余 CLI 帮助源目录和原始目录校验，保持命令合同与帮助输出"
+    },
+    {
+      "path": "src/cli/specs/agent-launch.ts",
+      "upstream_sha256": "32837ba9c4623505a0021cc4692c84df9c21cede1f1afaaf9266530794207b5d",
+      "current_sha256": "9caaf11026790f33937dea7c2e20a9a73b364ee53fe573ad55f1c86c981c59a4",
+      "reason": "统一剩余 CLI 帮助源目录和原始目录校验，保持命令合同与帮助输出"
+    },
+    {
+      "path": "src/cli/specs/artifacts.ts",
+      "upstream_sha256": "a1efc48f9b2d2cf0c561325fda16fcaf4d65c5cbdc93b7f75dbe3e14065f5edc",
+      "current_sha256": "a2a68b13b9358524b891d8497b779bb26b4ab10e75f670dc7f6e29d2f7c17c57",
+      "reason": "统一剩余 CLI 帮助源目录和原始目录校验，保持命令合同与帮助输出"
+    },
+    {
+      "path": "src/cli/specs/automations.ts",
+      "upstream_sha256": "166e29e2c9a22d827d0d6c53337bd9e5364bcb057249ecc1b10aee506335fdcb",
+      "current_sha256": "560315c90166b385e30ebd453550cb370353ce5292e00ab3f7f5bb45bcafe3cd",
+      "reason": "统一剩余 CLI 帮助源目录和原始目录校验，保持命令合同与帮助输出"
+    },
+    {
+      "path": "src/cli/specs/browser-advanced.ts",
+      "upstream_sha256": "b755509f2d7aa1ab8d94a0690fb3c8f10a31af042585e72edb0a81e303a2e086",
+      "current_sha256": "05cc3c8a154a1479809730303fbaef5560fb99f0040bc35b8e649a77e64cbc17",
+      "reason": "统一剩余 CLI 帮助源目录和原始目录校验，保持命令合同与帮助输出"
+    },
+    {
+      "path": "src/cli/specs/browser-basic.ts",
+      "upstream_sha256": "54bebea604d77e8991b04b01939f858e783c750f838b58864ecffb4106236ca3",
+      "current_sha256": "36bfcd15cb64e8fdb5dbb02a3c2f3318a282c0e416d4c2b3e030cdbaed6f6bf9",
+      "reason": "统一剩余 CLI 帮助源目录和原始目录校验，保持命令合同与帮助输出"
+    },
+    {
+      "path": "src/cli/specs/computer.ts",
+      "upstream_sha256": "f8d723dfaf626c447e1d1002a4c902ef161d0421515ae8577cbf1631a879bc20",
+      "current_sha256": "94300fe6755dfc90280766ce25912fc1ae6f76b489012eef029a9ee6dbe13d71",
+      "reason": "统一剩余 CLI 帮助源目录和原始目录校验，保持命令合同与帮助输出"
+    },
+    {
+      "path": "src/cli/specs/jira.ts",
+      "upstream_sha256": "cdac56bef7e766fe6e9e3a3bca52869afe24af625978e91732d0a6a43baa544e",
+      "current_sha256": "e7752e095d4344a62a1208091c9decbc84d4b1629de9dad23b5f408ac66a4129",
+      "reason": "统一剩余 CLI 帮助源目录和原始目录校验，保持命令合同与帮助输出"
+    },
+    {
+      "path": "src/cli/specs/linear-mcp.ts",
+      "upstream_sha256": "7d8f75224ec11331c823f43caa2858e8ab774d0bae3ffdce7e492ebeade87c88",
+      "current_sha256": "1273d7c8b158c1b260e49ef7ed58b511e10abe3f1afc053d320d305b53ee24a8",
+      "reason": "统一剩余 CLI 帮助源目录和原始目录校验，保持命令合同与帮助输出"
+    },
+    {
+      "path": "src/cli/specs/linear.ts",
+      "upstream_sha256": "c6b2e60d190cb614388ea3be60bff35a296cfe16fb5cbd062c3ad6c9a86d09fc",
+      "current_sha256": "8b88ea219d5d3d9cf544b8d2446c0ebe9d56e9f1d101f3ecb977989e2a41ecad",
+      "reason": "统一剩余 CLI 帮助源目录和原始目录校验，保持命令合同与帮助输出"
+    },
+    {
+      "path": "src/cli/specs/orchestration-worker-specs.ts",
+      "upstream_sha256": "ffcd3e08792a5fdde24d2c149ea5a16a48861f8fcbbb5d4a7e83acf6a43e09d3",
+      "current_sha256": "e397de25bc4e486c2ce13c3a143bf913532d4e5f9d724df44c31aad2cf5292ed",
+      "reason": "统一剩余 CLI 帮助源目录和原始目录校验，保持命令合同与帮助输出"
+    },
+    {
+      "path": "src/cli/specs/orchestration.ts",
+      "upstream_sha256": "4443f9bba516ce3666b0de09d0ee169d1de71bfeedcd6909177b18b424550b74",
+      "current_sha256": "ddcb0030f300628b4099d4ab03edcd9224c99c446625fad6a49d195468d3ebd1",
+      "reason": "统一剩余 CLI 帮助源目录和原始目录校验，保持命令合同与帮助输出"
+    },
+    {
+      "path": "src/cli/specs/speech.ts",
+      "upstream_sha256": "2bce3a35d0bedceee6d7ab16e926a735b743962498b2513b3ec3b951ccc41243",
+      "current_sha256": "02f505aeaba9c661feb8c4376385c2e27632eb80408a52229f1e988b5877f4a1",
+      "reason": "统一剩余 CLI 帮助源目录和原始目录校验，保持命令合同与帮助输出"
     }
   ],
   "reviewed_findings": [
