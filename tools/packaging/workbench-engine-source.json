@@ -327261,7 +327261,9 @@
     "src/main/grok/grok-hook-config-identity.test.ts",
     "src/main/grok/grok-hook-config-identity.ts",
     "src/main/antigravity/hooks-json-bundle-identity.test.ts",
-    "src/main/agent-hooks/wsl-hook-relay-identity.test.ts"
+    "src/main/agent-hooks/wsl-hook-relay-identity.test.ts",
+    "src/wsl-guest/wsl-hook-endpoint-identity.test.ts",
+    "src/wsl-guest/wsl-hook-endpoint-identity.ts"
   ],
   "adapted_files": [
     {
@@ -335247,8 +335249,8 @@
     {
       "path": "src/main/agent-hooks/wsl-hook-relay-live.integration.test.ts",
       "upstream_sha256": "cd396146a7f56a608c523f2920e935b3372f8c33aead98b7343cd50370934c89",
-      "current_sha256": "3114638779e60584ceaffc3be18a3c8527c3d45f9c116f9d83f590bca7316c00",
-      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义；WSL Hook relay版本/实例/调试环境与版本隔离程序缓存统一ZKYQ/.zkyq-wsl，继承环境单向迁移；同步WSLENV与guest入口，主机端点名对齐既有POSIX v2发布，保留Hook回传与重启协调能力"
+      "current_sha256": "7571e114c0524ae31f41d112d18097073c4d832768231f39a6f6b59ddef9d62c",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义；WSL Hook relay版本/实例/调试环境与版本隔离程序缓存统一ZKYQ/.zkyq-wsl，继承环境单向迁移；同步WSLENV与guest入口，主机端点名对齐既有POSIX v2发布，保留Hook回传与重启协调能力；WSL端点坐标统一.zkyq-wsl，启动前校验并迁移原实例数据；保留冻结读者路径、待送达spool与原文件inode，占用时保持新坐标可用并在下次启动重试实体迁移；冲突及异常链接不覆盖，发布失败恢复"
     },
     {
       "path": "src/main/amp/agent-status-plugin-source.ts",
@@ -336585,8 +336587,8 @@
     {
       "path": "src/wsl-guest/wsl-agent-hook-relay.ts",
       "upstream_sha256": "afbf4fe2d3a62c068c1e33133ba730dff1ef384357fd0883ca6381bf8cd4f3a9",
-      "current_sha256": "b6181ba265060067442a9174a970cf94802380bca3543e3615049f5c6ab46630",
-      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义；WSL Hook relay版本/实例/调试环境与版本隔离程序缓存统一ZKYQ/.zkyq-wsl，继承环境单向迁移；同步WSLENV与guest入口，主机端点名对齐既有POSIX v2发布，保留Hook回传与重启协调能力"
+      "current_sha256": "3d0ea3b41064df5c54d20d9e89150c921b58ba69aaf029a331d327d5b19b96cf",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义；WSL Hook relay版本/实例/调试环境与版本隔离程序缓存统一ZKYQ/.zkyq-wsl，继承环境单向迁移；同步WSLENV与guest入口，主机端点名对齐既有POSIX v2发布，保留Hook回传与重启协调能力；WSL端点坐标统一.zkyq-wsl，启动前校验并迁移原实例数据；保留冻结读者路径、待送达spool与原文件inode，占用时保持新坐标可用并在下次启动重试实体迁移；冲突及异常链接不覆盖，发布失败恢复"
     },
     {
       "path": "tests/e2e/cli-agent-unopened-workspace-resume.spec.ts",
@@ -336759,8 +336761,8 @@
     {
       "path": "src/shared/wsl-hook-relay-contract.ts",
       "upstream_sha256": "7ed688269a490bd1b9d12b6edea60d9c531a0b4fb0e7b537bc163122d3154401",
-      "current_sha256": "c3b71d89ed974804d67709facf7fc29cde67092ead1c4276ac1f458d8c6e9519",
-      "reason": "补齐WSL文件桥lstat，使插件身份迁移的所有权校验保持可用；保留home边界、错误映射和不跟随符号链接的语义；WSL Hook relay版本/实例/调试环境与版本隔离程序缓存统一ZKYQ/.zkyq-wsl，继承环境单向迁移；同步WSLENV与guest入口，主机端点名对齐既有POSIX v2发布，保留Hook回传与重启协调能力"
+      "current_sha256": "d1781f893ec40a6fe714ba639d2645dfde20b12223712408aef090926e99ae9d",
+      "reason": "补齐WSL文件桥lstat，使插件身份迁移的所有权校验保持可用；保留home边界、错误映射和不跟随符号链接的语义；WSL Hook relay版本/实例/调试环境与版本隔离程序缓存统一ZKYQ/.zkyq-wsl，继承环境单向迁移；同步WSLENV与guest入口，主机端点名对齐既有POSIX v2发布，保留Hook回传与重启协调能力；WSL端点坐标统一.zkyq-wsl，启动前校验并迁移原实例数据；保留冻结读者路径、待送达spool与原文件inode，占用时保持新坐标可用并在下次启动重试实体迁移；冲突及异常链接不覆盖，发布失败恢复"
     },
     {
       "path": "src/wsl-guest/wsl-hook-fs-bridge.test.ts",

@@ -144,7 +144,7 @@ describe.skipIf(process.platform === 'win32')(
       // endpoint file rather than assuming the preferred port bind won.
       const endpointFile = join(
         fakeHome,
-        '.orca-wsl',
+        '.zkyq-wsl',
         'agent-hooks',
         'instance-liveinstance',
         'endpoint-v2.env'

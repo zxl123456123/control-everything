@@ -65,7 +65,7 @@ export type WslFsResult<T extends object = object> = ({ ok: true } & T) | WslFsF
  *  that rewrite is what re-coordinates them onto fresh port/token. */
 export function wslHookRelayEndpointDir(guestHome: string, instanceKey: string): string {
   const home = guestHome.endsWith('/') ? guestHome.slice(0, -1) : guestHome
-  return `${home}/.orca-wsl/agent-hooks/instance-${instanceKey}`
+  return `${home}/.zkyq-wsl/agent-hooks/instance-${instanceKey}`
 }
 
 /** Keep instance keys shell/path-inert on both sides of the boundary. */

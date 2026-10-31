@@ -13,6 +13,7 @@
 import { AGENT_HOOK_INFER_INTERRUPT_METHOD } from '../shared/agent-hook-interrupt-reconciliation'
 import { homedir } from 'node:os'
 import { migrateAgentHookEnvironmentIdentity } from '../shared/agent-hook-environment-identity'
+import { prepareWslHookEndpointDirectory } from './wsl-hook-endpoint-identity'
 
 import { RELAY_SENTINEL } from './protocol'
 import { RelayDispatcher } from './dispatcher'
@@ -28,8 +29,7 @@ import {
 import { publishAgentHookEnvelope } from './agent-hook-envelope-publication'
 import {
   sanitizeWslHookInstanceKey,
-  WSL_HOOK_RELAY_INSTANCE_ENV,
-  wslHookRelayEndpointDir
+  WSL_HOOK_RELAY_INSTANCE_ENV
 } from '../shared/wsl-hook-relay-contract'
 
 async function main(): Promise<void> {
@@ -68,7 +68,7 @@ async function main(): Promise<void> {
   const instanceKey =
     sanitizeWslHookInstanceKey(process.env[WSL_HOOK_RELAY_INSTANCE_ENV]) ?? `port${windowsPort}`
   const hookServer = new RelayAgentHookServer({
-    endpointDir: wslHookRelayEndpointDir(homedir(), instanceKey),
+    endpointDir: prepareWslHookEndpointDirectory(homedir(), instanceKey),
     token,
     preferredPort: windowsPort,
     forward: (envelope) => publishAgentHookEnvelope(dispatcher, envelope)
