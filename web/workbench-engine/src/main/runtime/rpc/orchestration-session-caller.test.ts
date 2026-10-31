@@ -255,12 +255,12 @@ describe('orchestration session callers at the dispatch entry', () => {
       await expectRefusedWithNoEffects(
         'ffffffff-0000-4000-8000-000000000000',
         CODES.unknown,
-        /No Orca agent session .* exists on this host/
+        /No agent session .* exists on this host/
       )
     })
 
     it('a terminal handle presented as a session id', async () => {
-      await expectRefusedWithNoEffects('term_4f2c9a0b', CODES.unknown, /not an Orca session ID/)
+      await expectRefusedWithNoEffects('term_4f2c9a0b', CODES.unknown, /not a workbench session ID/)
     })
 
     it("a provider's session id, with a hint naming the Orca id", async () => {
@@ -271,7 +271,7 @@ describe('orchestration session callers at the dispatch entry', () => {
         ok: false,
         error: {
           code: CODES.providerId,
-          message: `${PROVIDER_ID_X} is the provider's own session id, which changes on /clear. This session's Control Everything session ID is orca_session_id:${SESSION_X}; set ZKYQ_AGENT_SESSION_ID=${SESSION_X} instead. No effects were applied.`,
+          message: `${PROVIDER_ID_X} is the provider's own session id, which changes on /clear. This session's Control Everything session ID is agent_session:${SESSION_X}; set ZKYQ_AGENT_SESSION_ID=${SESSION_X} instead. No effects were applied.`,
           data: { orcaSessionId: SESSION_X, effectsApplied: false }
         }
       })
@@ -408,7 +408,7 @@ describe('orchestration session callers at the dispatch entry', () => {
       ).run
       expect(h.db.getRunRaw(idOf(run))?.coordinator_orca_session_id).toBe(SESSION_X)
 
-      const stranger = 'orca_session_id:0b5e2d7c-9a41-4c3e-8f62-7d1a3e5b9c08'
+      const stranger = 'agent_session:0b5e2d7c-9a41-4c3e-8f62-7d1a3e5b9c08'
       const refused = await h.dispatch(
         orchestrationRequest(
           'orchestration.runCreate',
@@ -450,7 +450,7 @@ describe('orchestration session callers at the dispatch entry', () => {
         )
         expect(resultOf(listed)).toMatchObject({ runId })
 
-        const stranger = 'orca_session_id:0b5e2d7c-9a41-4c3e-8f62-7d1a3e5b9c08'
+        const stranger = 'agent_session:0b5e2d7c-9a41-4c3e-8f62-7d1a3e5b9c08'
         const refused = await h.dispatch(
           orchestrationRequest(method, { run: runId, [param]: stranger }, { sessionId: SESSION_Y })
         )

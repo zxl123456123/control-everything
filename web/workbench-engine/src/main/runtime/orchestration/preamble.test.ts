@@ -234,8 +234,8 @@ describe('buildDispatchPreamble', () => {
       taskId: 'task_SNAP',
       dispatchId: 'ctx_SNAP',
       taskSpec: 'TASK_BODY',
-      coordinatorHandle: 'orca_session_id:COORD',
-      workerHandle: 'orca_session_id:WORKER'
+      coordinatorHandle: 'agent_session:COORD',
+      workerHandle: 'agent_session:WORKER'
     })
     expect(result).toMatchSnapshot()
   })
@@ -270,10 +270,11 @@ describe('sub-dispatch section', () => {
 })
 
 describe('how the preamble names the worker and its coordinator, by kind', () => {
-  const SESSION_COORD = 'orca_session_id:4a1f6c2e-8b3d-4e7a-9c15-0d2b6e8f1a37'
-  const SESSION_WORKER = 'orca_session_id:7e3b9d15-2c4a-4f86-a0b1-5c9e2d7f3b64'
+  const SESSION_COORD = 'agent_session:4a1f6c2e-8b3d-4e7a-9c15-0d2b6e8f1a37'
+  const SESSION_WORKER = 'agent_session:7e3b9d15-2c4a-4f86-a0b1-5c9e2d7f3b64'
   const header = (preamble: string) => preamble.slice(0, preamble.indexOf('\n\n'))
-  const FIRST = 'You are working inside Control Everything, a multi-agent workspace. You are a dispatched worker.'
+  const FIRST =
+    'You are working inside Control Everything, a multi-agent workspace. You are a dispatched worker.'
 
   it("follows each party's own kind when a session and a terminal meet", () => {
     expect(header(buildDispatchPreamble(baseParams({ workerHandle: SESSION_WORKER })))).toBe(

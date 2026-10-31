@@ -63,6 +63,27 @@ describe('federated home Run migration', () => {
     expect(db.getMessageById('message_legacy_home')?.run_id).toBe(stubRunId)
   })
 
+  it('replays an old coordinator address after session-address migration without changing message text', () => {
+    attachWithoutRunId(db, 'ctx_address')
+    const old = 'orca_session_id:4a1f6c2e-8b3d-4e7a-9c15-0d2b6e8f1a37'
+    const current = 'agent_session:4a1f6c2e-8b3d-4e7a-9c15-0d2b6e8f1a37'
+    const params = {
+      dispatchId: 'ctx_address',
+      messageId: 'message_address',
+      payload: JSON.stringify({ from: old, subject: old, body: old, type: 'status' })
+    }
+    expect(importFederatedControlMessage(db, params)).toEqual({ imported: true, type: 'status' })
+    db.db.prepare('UPDATE messages SET from_handle = ? WHERE id = ?').run(old, params.messageId)
+    db.db.pragma('user_version = 43')
+    db.migrate()
+    expect(importFederatedControlMessage(db, params)).toEqual({ imported: false, type: 'status' })
+    expect(db.getMessageById(params.messageId)).toMatchObject({
+      from_handle: current,
+      subject: old,
+      body: old
+    })
+  })
+
   it('rejects a whitespace-only Run id instead of minting a stub', () => {
     expect(() => attachWithoutRunId(db, 'ctx_blank', '   ')).toThrow('Missing Run ID')
     expect(db.getRemoteDispatchAttachment('ctx_blank')).toBeUndefined()

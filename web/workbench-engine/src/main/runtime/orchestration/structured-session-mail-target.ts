@@ -1,12 +1,12 @@
 /**
  * Where a mailbox owned by a structured session is delivered: a chat that coordinates a Run
- * (`run:<id>` with no coordinator handle), a session addressed directly at `orca_session_id:<id>`, and the
+ * (`run:<id>` with no coordinator handle), a session addressed directly at `agent_session:<id>`, and the
  * live session behind a structured worker's handle. The session is resolved here, never a pane, and
  * takes the pointer as a session turn.
  */
 
 import {
-  ORCA_SESSION_ADDRESS_PREFIX,
+  hasSessionAddressPrefix,
   isOrcaSessionId,
   parseOrcaSessionAddress,
   type OrcaSessionId
@@ -79,14 +79,14 @@ export function chatDispatchMailTarget(
 }
 
 /**
- * The target of an `orca_session_id:<id>` mailbox; `undefined` when the handle is not a session address at
+ * The target of an `agent_session:<id>` mailbox; `undefined` when the handle is not a session address at
  * all, so other address forms keep their own resolution.
  */
 export function structuredSessionAddressTarget(
   mailboxHandle: string,
   db: OrchestrationDb | null | undefined
 ): StructuredPointerTarget | null | undefined {
-  if (!mailboxHandle.startsWith(ORCA_SESSION_ADDRESS_PREFIX)) {
+  if (!hasSessionAddressPrefix(mailboxHandle)) {
     return undefined
   }
   const sessionId = parseOrcaSessionAddress(mailboxHandle)

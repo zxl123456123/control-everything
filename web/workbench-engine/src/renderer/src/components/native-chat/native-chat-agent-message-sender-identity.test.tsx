@@ -85,7 +85,7 @@ function source(terminal = false): AgentMessageSource {
     senders: [
       {
         party: {
-          address: terminal ? 'term-a' : `orca_session_id:${ROOT}`,
+          address: terminal ? 'term-a' : `agent_session:${ROOT}`,
           terminalHandle: terminal ? 'term-a' : null,
           orcaSessionId: terminal ? null : ROOT
         },

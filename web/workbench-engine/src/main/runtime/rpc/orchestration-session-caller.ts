@@ -12,7 +12,7 @@
  * - A live lease: released, mid owner change or unreconciled sessions cannot act.
  * - The session wins over any declared caller: a declared handle must name this same session, and
  *   a structured worker's session id maps to the handle and pane it was minted.
- * - A request with no session id that declares an `orca_session_id:` caller gets the party it names: a
+ * - A request with no session id that declares an `agent_session:` caller gets the party it names: a
  *   worker's handle, or a refusal for a chat, whose address alone identifies nobody.
  */
 import { agentSessionLeaseAdmitsWriter } from '../../../shared/agent-session-lease-adjudication'
@@ -79,7 +79,7 @@ export type ResolvedOrchestrationRequest = {
 const NO_EFFECTS = { effectsApplied: false } as const
 
 /**
- * Whether this request names its caller by a session id, or declares an `orca_session_id:` address as its
+ * Whether this request names its caller by a session id, or declares an `agent_session:` address as its
  * caller. Synchronous, so every other request, terminal callers included, takes no extra async hop.
  */
 export function needsOrchestrationCallerResolution(request: RpcRequest): boolean {
@@ -116,18 +116,18 @@ export async function resolveOrchestrationSessionCaller(
   const claimed: unknown = evidence?.agentSessionId
   if (route?.pairedDeviceId !== undefined) {
     throw hostBoundary(
-      'This request reached Orca from a paired client, and an Orca session ID identifies a caller only on the host that runs that session.'
+      'This request reached Control Everything from a paired client, and a workbench session ID identifies a caller only on the host that runs that session.'
     )
   }
   if (evidence?.host) {
     throw hostBoundary(
-      `This command ran in ${evidence.host.kind === 'ssh' ? 'an SSH' : 'a WSL'} environment, and an Orca session ID identifies a caller only on the host that runs that session.`
+      `This command ran in ${evidence.host.kind === 'ssh' ? 'an SSH' : 'a WSL'} environment, and a workbench session ID identifies a caller only on the host that runs that session.`
     )
   }
   if (typeof claimed !== 'string' || !isOrcaSessionId(claimed)) {
     throw new OrchestrationError(
       CODES.unknown,
-      'The caller named an ID that is not an Orca session ID. No effects were applied.',
+      'The caller named an ID that is not a workbench session ID. No effects were applied.',
       NO_EFFECTS
     )
   }
@@ -165,7 +165,7 @@ async function readSessionRecord(
   if (!store) {
     throw new OrchestrationError(
       CODES.notLive,
-      `Agent session ${sessionId} cannot be verified: this Orca is not running its agent-session host. No effects were applied.`,
+      `Agent session ${sessionId} cannot be verified: this workbench is not running its agent-session host. No effects were applied.`,
       NO_EFFECTS
     )
   }
@@ -182,7 +182,7 @@ async function readSessionRecord(
   }
   throw new OrchestrationError(
     CODES.unknown,
-    `No Orca agent session ${sessionId} exists on this host. No effects were applied.`,
+    `No agent session ${sessionId} exists on this host. No effects were applied.`,
     NO_EFFECTS
   )
 }
@@ -190,7 +190,7 @@ async function readSessionRecord(
 function assertSessionCanAct(sessionId: string, record: AgentSessionRecord): void {
   if (!structuredWorkerHostScope(record.location)) {
     throw hostBoundary(
-      `Agent session ${sessionId} runs on another host, and an Orca session ID identifies a caller only on the host that runs that session.`
+      `Agent session ${sessionId} runs on another host, and a workbench session ID identifies a caller only on the host that runs that session.`
     )
   }
   if (agentSessionLeaseAdmitsWriter(record.lease)) {
@@ -211,7 +211,7 @@ function assertSessionCanAct(sessionId: string, record: AgentSessionRecord): voi
   )
 }
 
-/** A request with no session id that declares an `orca_session_id:` caller: a worker's is its handle. */
+/** A request with no session id that declares an `agent_session:` caller: a worker's is its handle. */
 function bindDeclaredSessionAddress(db: OrchestrationDb, request: RpcRequest): RpcRequest {
   const name = ORCHESTRATION_CALLER_PARAM[request.method]
   const declared = declaredSessionAddress(request)

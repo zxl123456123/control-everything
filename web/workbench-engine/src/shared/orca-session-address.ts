@@ -1,26 +1,29 @@
 import { isAgentSessionId } from './agent-session-record'
 import { STRUCTURED_WORKER_HANDLE_PREFIX } from './structured-worker-handle'
-import { ORCA_SESSION_ADDRESS_PREFIX } from './orca-session-address-prefix'
+import {
+  LEGACY_SESSION_ADDRESS_PREFIX,
+  ORCA_SESSION_ADDRESS_PREFIX
+} from './orca-session-address-prefix'
 
 /**
  * The Orca session id is the id Orca minted for a structured session (its session record id, the
  * value of `ZKYQ_AGENT_SESSION_ID`), never the provider's own session id. Orchestration stores,
  * bare, the one the agent is addressed by: for a `/clear`ed chat, its lineage root's, not the live
- * session's. Mail addresses the session as `orca_session_id:<id>`, beside `run:<id>` and `dispatch:<id>`,
+ * session's. Mail addresses the session as `agent_session:<id>`, beside `run:<id>` and `dispatch:<id>`,
  * and derives that spelling here rather than storing it.
  *
  * Where the session runs is not part of the id; it is read from the session record when needed. PTY
  * agents have none today, and never a pane-keyed one: a pane outlives the agent in it, so such an id
  * would be inherited by the pane's next occupant.
  */
-export { ORCA_SESSION_ADDRESS_PREFIX }
+export { ORCA_SESSION_ADDRESS_PREFIX, hasSessionAddressPrefix } from './orca-session-address-prefix'
 
 declare const orcaSessionIdBrand: unique symbol
 declare const orcaSessionAddressBrand: unique symbol
 
 /** A bare Orca session id; only `isOrcaSessionId` and `parseOrcaSessionAddress` produce one. */
 export type OrcaSessionId = string & { readonly [orcaSessionIdBrand]: true }
-/** An `orca_session_id:<id>` mail address; only `formatOrcaSessionAddress` produces one. */
+/** An `agent_session:<id>` mail address; only `formatOrcaSessionAddress` produces one. */
 export type OrcaSessionAddress = string & { readonly [orcaSessionAddressBrand]: true }
 
 // Terminal handles (`term_` from the PTY runtime, `structworker_` from structured-worker-identity)
@@ -41,12 +44,17 @@ export function formatOrcaSessionAddress(orcaSessionId: OrcaSessionId): OrcaSess
   return address
 }
 
-/** The bare Orca session id of an `orca_session_id:<id>` address; anything else reads as null. */
+/** The bare Orca session id of an `agent_session:<id>` address; anything else reads as null. */
 export function parseOrcaSessionAddress(address: string | null | undefined): OrcaSessionId | null {
-  if (!address?.startsWith(ORCA_SESSION_ADDRESS_PREFIX)) {
+  const prefix = address?.startsWith(ORCA_SESSION_ADDRESS_PREFIX)
+    ? ORCA_SESSION_ADDRESS_PREFIX
+    : address?.startsWith(LEGACY_SESSION_ADDRESS_PREFIX)
+      ? LEGACY_SESSION_ADDRESS_PREFIX
+      : undefined
+  if (!address || !prefix) {
     return null
   }
-  const id = address.slice(ORCA_SESSION_ADDRESS_PREFIX.length)
+  const id = address.slice(prefix.length)
   return isOrcaSessionId(id) ? id : null
 }
 

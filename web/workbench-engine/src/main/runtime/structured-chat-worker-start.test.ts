@@ -1,5 +1,5 @@
 import './rpc/unused-default-rpc-methods.test-fixture'
-// `worker-start --terminal orca_session_id:<id>`: a chat adopted as a worker, on the
+// `worker-start --terminal agent_session:<id>`: a chat adopted as a worker, on the
 // coordinator-mail rig. Its task is a queued send, read the way the terminal path reads its own
 // write; a stop or a failed start never touches the chat.
 

@@ -84,10 +84,10 @@ function locate(
 
 describe('where a sender opens', () => {
   it("opens a chat at its `/clear` lineage's live session, in that session's worktree", () => {
-    expect(locate(`orca_session_id:${ROOT}`, { records: clearedChat() })).toEqual({
+    expect(locate(`agent_session:${ROOT}`, { records: clearedChat() })).toEqual({
       location: { kind: 'chat', sessionId: LIVE, worktreeId: 'wt-chat' }
     })
-    expect(locate(`orca_session_id:${ROOT}`)).toEqual({ location: null, lost: 'chat' })
+    expect(locate(`agent_session:${ROOT}`)).toEqual({ location: null, lost: 'chat' })
   })
 
   it('opens a terminal this run issued at its handle', () => {
@@ -150,10 +150,10 @@ describe('where a sender opens', () => {
     resolveParty.mockImplementationOnce(() => {
       throw new OrchestrationError(CODES.notLive, 'lost its identity')
     })
-    expect(locate(`orca_session_id:${ROOT}`)).toEqual({ location: null, lost: 'chat' })
+    expect(locate(`agent_session:${ROOT}`)).toEqual({ location: null, lost: 'chat' })
     resolveParty.mockImplementationOnce(() => {
       throw new Error('database is locked')
     })
-    expect(() => locate(`orca_session_id:${ROOT}`)).toThrow('database is locked')
+    expect(() => locate(`agent_session:${ROOT}`)).toThrow('database is locked')
   })
 })

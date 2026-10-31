@@ -1,6 +1,6 @@
 /**
  * A chat as a Dispatch assignee. Its Dispatch row names it by its `/clear` root address,
- * `orca_session_id:<root>`, and holds no pane or process: whether it can still work is read off the
+ * `agent_session:<root>`, and holds no pane or process: whether it can still work is read off the
  * session records the same way mail to it is, so the two can never disagree.
  */
 

@@ -307,7 +307,7 @@ describe.each(CALLER_VERBS)('orchestration $command run as an agent session', (v
     }
   )
 
-  it.runIf(verb.callerFlag !== undefined).each([`orca_session_id:${SESSION}`, SESSION])(
+  it.runIf(verb.callerFlag !== undefined).each([`agent_session:${SESSION}`, SESSION])(
     'accepts a caller flag that restates the session (%s)',
     async (restated) => {
       await invoke(verb.command, flagMap({ ...verb.flags, [verb.callerFlag ?? 'from']: restated }))
@@ -328,12 +328,12 @@ describe.each(CALLER_VERBS.filter((verb) => verb.callerFlag !== undefined))(
       // The chat's address is its lineage root's, which only the host's session records know.
       const flags = flagMap({
         ...verb.flags,
-        [verb.callerFlag ?? 'from']: `orca_session_id:${ROOT}`
+        [verb.callerFlag ?? 'from']: `agent_session:${ROOT}`
       })
       await invoke(verb.command, flags)
 
       const [params] = callsTo(verb.method)
-      expect(params?.[verb.callerParam]).toBe(`orca_session_id:${ROOT}`)
+      expect(params?.[verb.callerParam]).toBe(`agent_session:${ROOT}`)
       expect(params?.terminalPaneKey).toBeUndefined()
       expect(params?.senderPaneKey).toBeUndefined()
       expect(getTerminalHandleMock).not.toHaveBeenCalled()
@@ -360,11 +360,11 @@ describe.each([
   })
 
   it('accepts a --from that restates the session', async () => {
-    await invoke(command, flagMap({ run: 'run_1', from: `orca_session_id:${SESSION}` }))
+    await invoke(command, flagMap({ run: 'run_1', from: `agent_session:${SESSION}` }))
     expect(callsTo(method)[0]?.[callerParam]).toBeUndefined()
   })
 
-  it.each([`orca_session_id:${ROOT}`, 'orca_session_id:9d4c1b2a-3e5f-4a6b-8c7d-0e1f2a3b4c5d'])(
+  it.each([`agent_session:${ROOT}`, 'agent_session:9d4c1b2a-3e5f-4a6b-8c7d-0e1f2a3b4c5d'])(
     'sends a session address it cannot place (%s) for the host to check, never dropping it',
     async (declared) => {
       // A /clear-ed chat's root is accepted by the host; anyone else is refused there, before any
@@ -444,7 +444,7 @@ describe('the identity a session presents', () => {
       return callsTo('dispatchShow')[0]?.from
     }
     asSessionWithInheritedPane()
-    expect(await preview({})).toBe(`orca_session_id:${SESSION}`)
+    expect(await preview({})).toBe(`agent_session:${SESSION}`)
     // Not a caller flag: it names the text to preview, so it is never fenced.
     expect(await preview({ from: 'term_sibling' })).toBe('term_sibling')
     setEnv({ ORCA_AGENT_SESSION_ID: SESSION, ORCA_TERMINAL_HANDLE: 'structworker_self' })
@@ -460,7 +460,7 @@ describe('the identity a session presents', () => {
     await invoke('ask', flagMap({ to: 'term_worker', question: 'q' }), false)
 
     const advice = errors.mock.calls.map(([line]) => String(line)).join('\n')
-    expect(advice).toContain('--resume msg_1')
+    expect(advice).toContain('"--resume" "msg_1"')
     expect(advice).not.toContain('--from')
   })
 })

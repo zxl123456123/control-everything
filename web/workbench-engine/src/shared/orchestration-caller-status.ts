@@ -1,5 +1,5 @@
 /**
- * The calling agent's Orca session ID (`orca_session_id:<id>`), as the host resolved it from the
+ * The calling agent's Orca session ID (`agent_session:<id>`), as the host resolved it from the
  * session id injected into the caller's environment; never from a flag. Terminal agents have none
  * yet. `orca status --json` reports it as `caller`.
  */

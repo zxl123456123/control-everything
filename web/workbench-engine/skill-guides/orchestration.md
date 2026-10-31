@@ -69,7 +69,7 @@ requested.
 - Use the executable you used to run `skills get` for the entire run. In the
   examples below, replace `CLI` with it; do not create a shell variable or run
   `CLI` literally. If it fails, report that exact error instead of switching.
-- `CLI status --json` shows your Control Everything session address as `caller.sessionId` when you have one.
+- `CLI status --json` shows your Control Everything session ID as `caller.sessionId` when you have one.
 - A successful `orchestration send` proves durable enqueue; its wake or nudge is
   best-effort attention only and does not prove the recipient read or accepted it.
 

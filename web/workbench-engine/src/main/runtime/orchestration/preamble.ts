@@ -1,6 +1,9 @@
 import type { OrchestrationCliCommand } from './cli-command'
 import type { RuntimeAgentPromptWriteOptions } from '../runtime-terminal-contracts'
-import { ORCA_DISPATCH_PROMPT_LEAD_LINE, ORCA_DISPATCH_STATUS_PREAMBLE_PREFIX } from '../../../shared/orca-dispatch-status-prompt'
+import {
+  ORCA_DISPATCH_PROMPT_LEAD_LINE,
+  ORCA_DISPATCH_STATUS_PREAMBLE_PREFIX
+} from '../../../shared/orca-dispatch-status-prompt'
 import { ORCA_SESSION_ADDRESS_PREFIX } from '../../../shared/orca-session-address-prefix'
 
 export type PreambleParams = {
@@ -12,7 +15,7 @@ export type PreambleParams = {
   // or refreshing the retry.
   dispatchId: string
   taskSpec: string
-  /** A terminal handle, or a session's `orca_session_id:<id>`; each is labelled by its kind. */
+  /** A terminal handle, or a session's `agent_session:<id>`; each is labelled by its kind. */
   coordinatorHandle: string
   workerHandle: string
   devMode?: boolean
@@ -71,7 +74,12 @@ export function buildDispatchPreamble(params: PreambleParams): string {
   // Why: in dev mode, agents must use zkyq-dev to connect to the dev runtime's
   // socket. Without this, agents inside the dev Electron app would call the
   // production CLI and talk to the wrong Orca instance (Section 6.4).
-  const cli = params.cliCommand === 'zkyq' ? 'zkyq' : params.devMode ? 'zkyq-dev' : (params.cliCommand ?? 'zkyq')
+  const cli =
+    params.cliCommand === 'zkyq'
+      ? 'zkyq'
+      : params.devMode
+        ? 'zkyq-dev'
+        : (params.cliCommand ?? 'zkyq')
   const chat = isSessionHandle(params.workerHandle)
   const surface = chat ? 'chat' : 'terminal'
   const postDoneInstructions = buildPostWorkerDoneInstructions({

@@ -129,7 +129,7 @@ describe('status reports a session caller identity', () => {
     async (name) => {
       process.env[name] = SESSION
       process.env.ORCA_TERMINAL_HANDLE = 'term_tui'
-      const caller = { orcaSessionId: `orca_session_id:${SESSION}`, live: true }
+      const caller = { orcaSessionId: `agent_session:${SESSION}`, live: true }
       callerShowReply = { result: { caller } }
 
       expect(await statusCaller()).toEqual({ sessionId: caller.orcaSessionId, live: true })
@@ -140,7 +140,7 @@ describe('status reports a session caller identity', () => {
         agentSessionId: SESSION,
         terminalHandle: 'term_tui'
       })
-      expect(await status(false)).toContain(`\nsessionId: orca_session_id:${SESSION}`)
+      expect(await status(false)).toContain(`\nsessionId: agent_session:${SESSION}`)
     }
   )
 

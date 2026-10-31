@@ -30,7 +30,7 @@ import { inspectWorkerTerminal } from './orchestration/worker/worker-observation
 const WORKTREE = 'repo::wt'
 const STRUCTURED_HANDLE = 'structworker_worker'
 const TERMINAL_HANDLE = 'term_worker'
-const STRUCTURED_ORCA_SESSION_ID = 'orca_session_id:sess_worker'
+const STRUCTURED_ORCA_SESSION_ID = 'agent_session:sess_worker'
 
 const structuredPreambles: string[] = []
 // The session host the code under test reads; a structural fake, so no host type is claimed.
@@ -258,7 +258,7 @@ describe('a worker cannot tell which mode it is running in', () => {
     expect(showTerminal).not.toHaveBeenCalled()
     // Its sub-worker is told the coordinator's Orca session ID, not the handle it was minted.
     expect(vi.mocked(runtime.sendTerminalAgentPrompt).mock.calls[0]?.[1]).toContain(
-      "Your coordinator's workbench session ID is: orca_session_id:sess_coord\n"
+      "Your coordinator's workbench session ID is: agent_session:sess_coord\n"
     )
     expect(vi.mocked(runtime.sendTerminalAgentPrompt).mock.calls[0]?.[1]).toContain(
       '=== SUB-DISPATCH ==='

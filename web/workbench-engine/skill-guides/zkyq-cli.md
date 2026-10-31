@@ -156,7 +156,7 @@ CLI reference find STA-1234 --json
 - Repeat create `--reference` to seed links before setup/agent startup. Do not combine it with legacy `--pr`, `--issue`, `--linear-issue`, `--gitlab-issue`, or `--gitlab-mr` flags. Legacy `worktree set --pr` still appends/selects; `linkedItems` remains the worktree output field.
 - Find accepts a full URL or native issue key such as `STA-1234`; no bare numbers or custom shorthand. It searches stored links across sources, not conversation text (`CLI search`). Narrow with `--worktree` or `--repo`; optionally `--include-archived`, `--limit` (default 50 workspaces). Check `truncated` before assuming complete coverage. Remote selectors refer to the execution host; never use local `current` for a paired host.
 - Find returns all known agents in each matching workspace. `linked: true` requires recorded reference/session evidence; `linked: false` means ownership is unknown. Check `liveness` (`live`, `unverifiable`, `exited`) and choose the intended agent; never infer ownership merely from workspace membership.
-- Send through the returned exact `terminal` handle or `mailbox` (`dispatch:<id>` / `orca_session_id:<id>`). A `run:<id>` targets a coordinator. Find does not send, and adding links from a shell records no agent ownership.
+- Send through the returned exact `terminal` handle or `mailbox` (`dispatch:<id>` / `agent_session:<id>`). A `run:<id>` targets a coordinator. Find does not send, and adding links from a shell records no agent ownership.
 
 ```text
 CLI terminal send --terminal <terminal-from-find> --text "Status?" --enter --json

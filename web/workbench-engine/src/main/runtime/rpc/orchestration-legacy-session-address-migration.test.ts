@@ -54,8 +54,8 @@ function seedEarlierBuildRows(db: OrchestrationDb): { toX: string; fromX: string
      VALUES (?, ?, ?, 'batch', 1)`
   )
   pointer.run(LEGACY_X, SESSION_X, 'op_legacy_x')
-  pointer.run(LEGACY_Y, SESSION_Y, 'op_legacy_y')
-  pointer.run(ADDRESS_Y, SESSION_Y, 'op_current_y')
+  pointer.run(LEGACY_Y, SESSION_Y, 'op_current_y')
+  pointer.run(`orca_session_id:${SESSION_Y}`, SESSION_Y, 'op_current_y')
   db.createCoordinatorRun({ spec: 'spec', coordinatorHandle: LEGACY_X })
   db.db.pragma('user_version = 42')
   return { toX: toX.id, fromX: fromX.id }
@@ -158,7 +158,7 @@ describe('a database an earlier build wrote session:<id> addresses into', () => 
       /"(from_handle|to_handle|terminal_handle|mailbox_handle|coordinator_handle)":"session:/
     )
     expect(remembered).toEqual([
-      { run_id: 'run_both', terminal_handle: `orca_session_id:${BOTH_SESSION}` },
+      { run_id: 'run_both', terminal_handle: `agent_session:${BOTH_SESSION}` },
       { run_id: 'run_earlier', terminal_handle: ADDRESS_Y }
     ])
     expect(pointers).toEqual([

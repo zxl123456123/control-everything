@@ -28,10 +28,10 @@ describe('the Orca session ID a chat copies', () => {
   })
 
   it("is the host's Orca session ID for the conversation, not the live session's", async () => {
-    callRuntimeRpc.mockResolvedValue({ orcaSessionId: `orca_session_id:${ROOT}` })
+    callRuntimeRpc.mockResolvedValue({ orcaSessionId: `agent_session:${ROOT}` })
 
     await expect(resolveStructuredSessionOrcaSessionId(LOCAL, LIVE)).resolves.toBe(
-      `orca_session_id:${ROOT}`
+      `agent_session:${ROOT}`
     )
     expect(callRuntimeRpc).toHaveBeenCalledWith(LOCAL, 'orchestration.sessionAddress', {
       sessionId: LIVE
@@ -42,7 +42,7 @@ describe('the Orca session ID a chat copies', () => {
     callRuntimeRpc.mockRejectedValue(failure('method_not_found', 'Unknown method'))
 
     await expect(resolveStructuredSessionOrcaSessionId(LOCAL, LIVE)).resolves.toBe(
-      `orca_session_id:${LIVE}`
+      `agent_session:${LIVE}`
     )
   })
 

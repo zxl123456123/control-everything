@@ -4,7 +4,7 @@ import { DropdownMenuItem } from '@/components/ui/dropdown-menu'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { translate } from '@/i18n/i18n'
 
-/** Copies the chat's Orca session ID from the host: `orca_session_id:<root>`, which `/clear` keeps. */
+/** Copies the chat's Orca session ID from the host: `agent_session:<root>`, which `/clear` keeps. */
 export function NativeChatCopyOrcaSessionIdMenuItem({
   resolveOrcaSessionId
 }: {

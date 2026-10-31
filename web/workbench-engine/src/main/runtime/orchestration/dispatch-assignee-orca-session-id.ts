@@ -4,7 +4,7 @@ import { canonicalOrcaSessionId } from './canonical-orca-session-id'
 
 /**
  * The Orca session id a Dispatch row stores for its assignee: the structured worker its process
- * incarnation names, or the chat its `orca_session_id:` handle names. A PTY has none.
+ * incarnation names, or the chat its `agent_session:` handle names. A PTY has none.
  */
 export function dispatchAssigneeOrcaSessionId(assignee: {
   handle: string

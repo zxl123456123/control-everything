@@ -413,7 +413,7 @@ describe('useNativeChatContextMenu', () => {
   })
 
   describe('Copy Orca Session ID', () => {
-    const orcaSessionId = 'orca_session_id:4a1f6c2e-8b3d-4e7a-9c15-0d2b6e8f1a37'
+    const orcaSessionId = 'agent_session:4a1f6c2e-8b3d-4e7a-9c15-0d2b6e8f1a37'
     const writeClipboardText = vi.fn()
 
     beforeEach(() => {

@@ -1,6 +1,10 @@
 import { MESSAGE_TYPES, type MessagePriority, type MessageType } from './types'
 import type { OrchestrationDb } from './db'
 import { OrchestrationError } from './orchestration-error'
+import {
+  formatOrcaSessionAddress,
+  parseOrcaSessionAddress
+} from '../../../shared/orca-session-address'
 
 const MESSAGE_TYPE_SET = new Set<MessageType>(MESSAGE_TYPES)
 
@@ -38,8 +42,9 @@ export function parseFederatedControlMessage(payload: string): FederatedControlM
   ) {
     throw new OrchestrationError('invalid_argument', 'Federated control message is incomplete.')
   }
+  const sessionId = parseOrcaSessionAddress(message.from)
   return {
-    from: message.from,
+    from: sessionId ? formatOrcaSessionAddress(sessionId) : message.from,
     subject: message.subject,
     body: message.body,
     type: message.type as MessageType,

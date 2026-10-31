@@ -17,7 +17,7 @@ function store(record: AgentSessionRecord, visible: boolean): AgentSessionRecord
 
 describe('a chat assignee', () => {
   it('is named only by an Orca session ID handle', () => {
-    expect(chatAssigneeSessionId(`orca_session_id:${CHAT}`)).toBe(CHAT)
+    expect(chatAssigneeSessionId(`agent_session:${CHAT}`)).toBe(CHAT)
     expect(chatAssigneeSessionId('term_worker')).toBeNull()
     expect(chatAssigneeSessionId(null)).toBeNull()
   })
