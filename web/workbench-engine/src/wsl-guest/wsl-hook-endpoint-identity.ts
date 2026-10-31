@@ -22,7 +22,7 @@ function directoryPath(path: string): void {
   }
 }
 
-function hasManagedEndpoint(
+export function hasManagedEndpoint(
   directory: string,
   names = ['endpoint-v2.env', 'endpoint.env']
 ): boolean {
@@ -54,7 +54,7 @@ function hasManagedEndpoint(
   })
 }
 
-function retireLegacyEndpoint(directory: string): void {
+export function retireLegacyEndpoint(directory: string): void {
   if (hasManagedEndpoint(directory, ['endpoint.env'])) unlinkSync(join(directory, 'endpoint.env'))
 }
 

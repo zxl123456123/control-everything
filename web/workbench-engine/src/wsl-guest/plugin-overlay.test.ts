@@ -6,6 +6,7 @@ import {
   mkdtempSync,
   readFileSync,
   readdirSync,
+  renameSync,
   rmSync,
   statSync,
   symlinkSync,
@@ -66,10 +67,18 @@ describe('PluginOverlayManager', () => {
     mkdirSync(directory, { recursive: true })
     writeFileSync(previous, original)
     const before = statSync(previous).mtimeMs
+    manager = new PluginOverlayManager({ homeDir })
     manager.setSources({ ompExtensionSource: 'current fixture source' })
     expect(
       manager.materializePi('live-shell', undefined, 'omp', { materializeDefaultHome: false })
-    ).toEqual({ statusExtensionPath: join(directory, 'zkyq-agent-status.ts') })
+    ).toEqual({
+      statusExtensionPath: join(
+        homeDir,
+        '.zkyq-relay',
+        'omp-managed-status-extension',
+        'zkyq-agent-status.ts'
+      )
+    })
     expect(readFileSync(previous, 'utf8')).toBe(original)
     expect(statSync(previous).mtimeMs).toBe(before)
     expect(existsSync(join(homeDir, '.omp'))).toBe(false)
@@ -106,6 +115,71 @@ describe('PluginOverlayManager', () => {
     expect(existsSync(expected)).toBe(true)
     expect(readFileSync(expected, 'utf8')).toBe('export const X = 1')
   })
+
+  it.each(['opencode', 'opencode2'] as const)(
+    'keeps migrated %s data when its retired source path names the output itself',
+    (agent) => {
+      manager.setSources({
+        opencodePluginSource: 'export const before = 1',
+        opencode2PluginSource: 'export const before = 1'
+      })
+      const directory = manager.materializeOpenCode('retained-source', undefined, agent)!
+      writeFileSync(join(directory, 'user-note.json'), '{"retained":"最新内容"}')
+      const retiredSource = directory.replace('.zkyq-relay', '.orca-relay')
+      renameSync(join(homeDir, '.zkyq-relay'), join(homeDir, '.orca-relay'))
+      manager = new PluginOverlayManager({ homeDir, retiredReaders: true })
+      manager.setSources({
+        opencodePluginSource: 'export const after = 2',
+        opencode2PluginSource: 'export const after = 2'
+      })
+      expect(manager.materializeOpenCode('retained-source', retiredSource, agent)).toBe(directory)
+      expect(readFileSync(join(directory, 'user-note.json'), 'utf8')).toBe(
+        '{"retained":"最新内容"}'
+      )
+      expect(readFileSync(join(directory, 'plugins', `zkyq-${agent}-status.js`), 'utf8')).toBe(
+        'export const after = 2'
+      )
+      expect(existsSync(join(homeDir, '.orca-relay'))).toBe(false)
+    }
+  )
+
+  it('keeps the current cache when a stale source has no migrated counterpart', () => {
+    manager.setSources({ opencodePluginSource: 'export const current = 1' })
+    const directory = manager.materializeOpenCode('missing-input')!
+    writeFileSync(join(directory, 'keep.json'), 'retained cache')
+    expect(
+      manager.materializeOpenCode('missing-input', join(homeDir, '.orca-relay', 'unknown'))
+    ).toBeNull()
+    expect(readFileSync(join(directory, 'keep.json'), 'utf8')).toBe('retained cache')
+  })
+
+  it('recognizes current and retired overlay inputs without accepting adjacent user paths', () => {
+    expect(manager.isRelayOverlayPath(join(homeDir, '.zkyq-relay', 'opencode-overlays'))).toBe(true)
+    expect(manager.isRelayOverlayPath(join(homeDir, '.orca-relay', 'opencode-overlays'))).toBe(true)
+    expect(manager.isRelayOverlayPath(join(homeDir, '.orca-relay-user'))).toBe(false)
+  })
+  it.each(['pi', 'omp', 'prime-agent'] as const)(
+    'keeps %s source data reachable after its old exported path retires',
+    (kind) => {
+      manager.setSources({ opencodePluginSource: 'export const marker = 1' })
+      manager.materializeOpenCode('ownership-marker')
+      const currentSource = join(homeDir, '.zkyq-relay', 'custom-agent')
+      mkdirSync(currentSource, { recursive: true })
+      writeFileSync(join(currentSource, 'auth.json'), 'retained user bytes')
+      renameSync(join(homeDir, '.zkyq-relay'), join(homeDir, '.orca-relay'))
+      manager = new PluginOverlayManager({ homeDir, retiredReaders: true })
+      manager.setSources({
+        piExtensionSource: 'pi source',
+        ompExtensionSource: 'omp source',
+        primeAgentExtensionSource: 'prime source'
+      })
+      const previousSource = currentSource.replace('.zkyq-relay', '.orca-relay')
+      expect(manager.materializePi('source-input', previousSource, kind)?.sourceAgentDir).toBe(
+        currentSource
+      )
+      expect(readFileSync(join(currentSource, 'auth.json'), 'utf8')).toBe('retained user bytes')
+    }
+  )
 
   it('keeps the OpenCode 2 plugin in a separate overlay and filename', () => {
     manager.setSources({ opencode2PluginSource: 'export const V2 = 1' })
@@ -413,7 +487,7 @@ describe('PluginOverlayManager', () => {
     const content = 'agent.db relay credentials'
 
     expect(existsSync(sourcePath)).toBe(false)
-    expect(existsSync(join(homeDir, '.orca-relay', 'omp-overlays'))).toBe(false)
+    expect(existsSync(join(homeDir, '.zkyq-relay', 'omp-overlays'))).toBe(false)
     expect(existsSync(join(sourceDir, 'history.db'))).toBe(false)
     writeFileSync(sourcePath, content)
 
@@ -508,10 +582,10 @@ describe('PluginOverlayManager', () => {
       const bareOmp = manager.materializePi('tab-bare-omp:0', undefined, 'omp', {
         materializeDefaultHome: false
       })
-      // Why: bare OMP keeps status via ~/.orca-relay/… without SOURCE_AGENT_DIR or ~/.omp.
+      // Why: bare OMP keeps status via ~/.zkyq-relay/… without SOURCE_AGENT_DIR or ~/.omp.
       expect(bareOmp?.sourceAgentDir).toBeUndefined()
       expect(bareOmp?.statusExtensionPath).toEqual(
-        expect.stringContaining(join('.orca-relay', 'omp-managed-status-extension'))
+        expect.stringContaining(join('.zkyq-relay', 'omp-managed-status-extension'))
       )
       expect(existsSync(bareOmp!.statusExtensionPath!)).toBe(true)
       expect(readFileSync(bareOmp!.statusExtensionPath!, 'utf8')).toContain('// omp extension')

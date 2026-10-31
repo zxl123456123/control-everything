@@ -18,6 +18,30 @@ describe('plugin overlay env source resolution', () => {
     __resetShellStartupEnvCache()
   })
 
+  it('resolves an exported retired root only after its migrated counterpart exists', () => {
+    const current = join(homeDir, '.zkyq-relay', 'opencode-overlays', 'owned')
+    const retired = join(homeDir, '.orca-relay', 'opencode-overlays', 'owned')
+    const env = { HOME: homeDir, ZKYQ_OPENCODE_SOURCE_CONFIG_DIR: retired }
+    expect(resolveOpenCodeSourceConfigDir(env, undefined)).toBe(retired)
+    mkdirSync(current, { recursive: true })
+    expect(resolveOpenCodeSourceConfigDir(env, undefined)).toBe(current)
+    mkdirSync(retired, { recursive: true })
+    expect(resolveOpenCodeSourceConfigDir(env, undefined)).toBe(retired)
+  })
+  it.each(['pi', 'omp', 'prime-agent'] as const)(
+    'resolves a migrated %s private source without changing unrelated environment values',
+    (kind) => {
+      const current = join(homeDir, '.zkyq-relay', 'custom-agent')
+      const previous = join(homeDir, '.orca-relay', 'custom-agent')
+      mkdirSync(current, { recursive: true })
+      const key = `ZKYQ_${kind === 'prime-agent' ? 'PRIME_AGENT' : kind.toUpperCase()}_SOURCE_AGENT_DIR`
+      const env = { HOME: homeDir, [key]: previous, USER_NOTE: 'preserved' }
+      expect(resolvePiSourceAgentDir(env, undefined, kind)).toBe(current)
+      expect(env[key]).toBe(previous)
+      expect(env.USER_NOTE).toBe('preserved')
+    }
+  )
+
   it.skipIf(process.platform === 'win32')(
     'uses zsh startup exports before inherited public overlay env',
     () => {

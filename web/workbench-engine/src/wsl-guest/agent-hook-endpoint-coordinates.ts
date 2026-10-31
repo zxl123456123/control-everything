@@ -3,6 +3,7 @@
 // the ORCA_AGENT_HOOK_* env vars injected into relay-spawned PTYs. IO-free.
 import { basename, dirname, join } from 'node:path'
 import { homedir } from 'node:os'
+import { RELAY_HOOKS_DIR } from './relay-hooks-identity'
 
 import {
   ZKYQ_HOOK_PROTOCOL_VERSION,
@@ -10,11 +11,10 @@ import {
 } from '../shared/agent-hook-types'
 
 // Why: relay's userData equivalent under $HOME so each user on a shared dev box gets their own 0o700 dir.
-const RELAY_HOOKS_DIR_NAME = '.orca-relay'
 const RELAY_HOOKS_SUBDIR = 'agent-hooks'
 
 export function defaultEndpointDir(): string {
-  return join(homedir(), RELAY_HOOKS_DIR_NAME, RELAY_HOOKS_SUBDIR)
+  return join(homedir(), RELAY_HOOKS_DIR, RELAY_HOOKS_SUBDIR)
 }
 
 function isWindowsNamedPipePath(sockPath: string): boolean {

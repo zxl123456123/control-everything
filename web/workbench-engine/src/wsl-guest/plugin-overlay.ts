@@ -29,10 +29,10 @@ import {
 // We deliberately do not reuse OpenCodeHookService / PiTitlebarExtensionService
 // directly: those modules import `electron` and ride on Orca's userData
 // path. The relay's electron-free constraint forces a thin parallel
-// implementation rooted at $HOME/.orca-relay/ for OpenCode and at the remote
+// implementation rooted at $HOME/.zkyq-relay/ for OpenCode and at the remote
 // Pi/OMP homes for those agents.
 import { createHash } from 'node:crypto'
-import { existsSync, mkdirSync } from 'node:fs'
+import { existsSync, mkdirSync, realpathSync } from 'node:fs'
 import { writeOverlayOpenCodePluginAtomically } from '../shared/opencode-plugin-atomic-write'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
@@ -45,11 +45,15 @@ import {
 } from './opencode-canonical-config'
 import { writeRelayOmpStatusExtension } from './omp-status-extension'
 import {
+  canonicalRelayHooksPath,
+  prepareRelayHooksDirectory,
+  RELAY_HOOKS_DIR
+} from './relay-hooks-identity'
+import {
   openCodeTuiPluginDirName,
   writeOpenCodeTuiPlugin
 } from '../shared/opencode-tui-plugin-install'
 type LegacyOverlayAgentKind = Exclude<PiAgentKind, 'prime-agent'>
-const RELAY_HOOKS_DIR = '.orca-relay'
 const OPENCODE_OVERLAY_SUBDIR = 'opencode-overlays'
 const OPENCODE2_OVERLAY_SUBDIR = 'opencode2-overlays'
 const PI_OVERLAY_SUBDIR_BY_KIND: Record<LegacyOverlayAgentKind, string> = {
@@ -132,14 +136,15 @@ export class PluginOverlayManager {
   private opencodeRoot: string
   private opencode2Root: string
   private piRoots: Record<LegacyOverlayAgentKind, string>
-  constructor(opts?: { homeDir?: string }) {
+  constructor(opts?: { homeDir?: string; retiredReaders?: boolean }) {
     const home = opts?.homeDir ?? homedir()
     this.homeDir = home
-    this.opencodeRoot = join(home, RELAY_HOOKS_DIR, OPENCODE_OVERLAY_SUBDIR)
-    this.opencode2Root = join(home, RELAY_HOOKS_DIR, OPENCODE2_OVERLAY_SUBDIR)
+    const root = prepareRelayHooksDirectory(home, opts?.retiredReaders === true)
+    this.opencodeRoot = join(root, OPENCODE_OVERLAY_SUBDIR)
+    this.opencode2Root = join(root, OPENCODE2_OVERLAY_SUBDIR)
     this.piRoots = {
-      pi: join(home, RELAY_HOOKS_DIR, PI_OVERLAY_SUBDIR_BY_KIND.pi),
-      omp: join(home, RELAY_HOOKS_DIR, PI_OVERLAY_SUBDIR_BY_KIND.omp)
+      pi: join(root, PI_OVERLAY_SUBDIR_BY_KIND.pi),
+      omp: join(root, PI_OVERLAY_SUBDIR_BY_KIND.omp)
     }
   }
   /** Replace the cached source bodies. Called from relay.ts when Orca sends
@@ -212,12 +217,18 @@ export class PluginOverlayManager {
     const root = agent === 'opencode2' ? this.opencode2Root : this.opencodeRoot
     const dir = join(root, safeDirName(id))
     try {
-      safeRemoveOverlay(dir, root)
-      mkdirSync(dir, { recursive: true })
-      if (existingConfigDir) {
-        if (!existsSync(existingConfigDir)) {
-          return null
-        }
+      if (existingConfigDir)
+        existingConfigDir = canonicalRelayHooksPath(existingConfigDir, this.homeDir)
+      if (existingConfigDir && !existsSync(existingConfigDir)) return null
+      const sameSource =
+        existingConfigDir &&
+        existsSync(dir) &&
+        realpathSync(existingConfigDir) === realpathSync(dir)
+      if (!sameSource) {
+        safeRemoveOverlay(dir, root)
+        mkdirSync(dir, { recursive: true })
+      }
+      if (existingConfigDir && !sameSource) {
         // Why: OPENCODE_CONFIG_DIR is a single config root. Mirror the user's
         // remote root into the overlay before adding Orca's plugin so status
         // reporting does not hide their auth, models, keybinds, or plugins.
@@ -314,6 +325,8 @@ export class PluginOverlayManager {
       return null
     }
     try {
+      if (existingAgentDir)
+        existingAgentDir = canonicalRelayHooksPath(existingAgentDir, this.homeDir)
       const sourceAgentDir =
         existingAgentDir ?? this.getDefaultPiAgentDir(kind, options?.configDirName)
       if (existingAgentDir && !existsSync(existingAgentDir)) {

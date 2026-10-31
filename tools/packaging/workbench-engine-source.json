@@ -327271,7 +327271,9 @@
     "src/main/native-chat/agent-session-journal/journal-v3-export.ts",
     "src/main/native-chat/agent-session-journal/journal-v3-key.ts",
     "src/main/agent-hooks/wsl-hook-relay-retirement.test.ts",
-    "src/shared/managed-data-account-environment-identity.test.ts"
+    "src/shared/managed-data-account-environment-identity.test.ts",
+    "src/wsl-guest/relay-hooks-identity.test.ts",
+    "src/wsl-guest/relay-hooks-identity.ts"
   ],
   "adapted_files": [
     {
@@ -334831,14 +334833,14 @@
     {
       "path": "src/wsl-guest/plugin-overlay-env.test.ts",
       "upstream_sha256": "fae283ad3530d1e40f97401e8016bee760ec075af802edc0bec6c9aae733f7b4",
-      "current_sha256": "a0d01854503a74654edce8e6c6ebb73b94687264052d776241b696a3d2d6221a",
-      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属；Pi/OMP/Prime私有运行环境统一为ZKYQ，启动、扩展、草稿、进程所有者和WSL传递使用一致名称；旧环境仅在既有单向迁移入口读取并移除，保留第三方公开配置、路径、草稿和父子隔离行为"
+      "current_sha256": "54a5157c771c86fc799d9227736d017aa87a96731514e576b86fe3a554c2741c",
+      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属；Pi/OMP/Prime私有运行环境统一为ZKYQ，启动、扩展、草稿、进程所有者和WSL传递使用一致名称；旧环境仅在既有单向迁移入口读取并移除，保留第三方公开配置、路径、草稿和父子隔离行为；中继插件目录统一为.zkyq-relay，保留活跃旧读者与最新写入，确认退出后退役桥接及托管旧扩展，迁移导出路径防止重建覆盖原数据"
     },
     {
       "path": "src/wsl-guest/plugin-overlay-env.ts",
       "upstream_sha256": "bcfe66c42a3e5ee5a37c210ae11450efaab648d5f615d0b8323642fd0c188fc6",
-      "current_sha256": "b589dc5450ce9959569c1d8596461410fcb89969ac5762fb866e578634f9b573",
-      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义；Pi/OMP/Prime私有运行环境统一为ZKYQ，启动、扩展、草稿、进程所有者和WSL传递使用一致名称；旧环境仅在既有单向迁移入口读取并移除，保留第三方公开配置、路径、草稿和父子隔离行为"
+      "current_sha256": "ba3969ce6603d55c8d53714635b93cf73ed326357f211437ca682ec303968818",
+      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义；Pi/OMP/Prime私有运行环境统一为ZKYQ，启动、扩展、草稿、进程所有者和WSL传递使用一致名称；旧环境仅在既有单向迁移入口读取并移除，保留第三方公开配置、路径、草稿和父子隔离行为；中继插件目录统一为.zkyq-relay，保留活跃旧读者与最新写入，确认退出后退役桥接及托管旧扩展，迁移导出路径防止重建覆盖原数据"
     },
     {
       "path": "src/wsl-guest/wsl-install-plugins-handler.test.ts",
@@ -334975,8 +334977,8 @@
     {
       "path": "src/wsl-guest/opencode-canonical-config.ts",
       "upstream_sha256": "8588d9e7902984000c2dfa42d0fb7e30e719936ca856680cc7be8573a727446d",
-      "current_sha256": "0f1e6a46e12b517516b1c79c65695addd7c13254183c3cd912b8dda6cc5a31e1",
-      "reason": "OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场"
+      "current_sha256": "09839ae0ca5ef79b3a28a7aebe12914d8e575c59f0df2ad3d6ee15ee303e9abf",
+      "reason": "OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场；中继插件目录统一为.zkyq-relay，保留活跃旧读者与最新写入，确认退出后退役桥接及托管旧扩展，迁移导出路径防止重建覆盖原数据"
     },
     {
       "path": "src/wsl-guest/opencode-startup-prompt-install.test.ts",
@@ -334987,14 +334989,14 @@
     {
       "path": "src/wsl-guest/plugin-overlay.test.ts",
       "upstream_sha256": "65efb655043c8c4ecb8dd8a2b13be06164d7800ef7b67ecb51366cedc1b0f165",
-      "current_sha256": "729e01cf1833d48d449a3d1ab3b2f3b2484546cc8a8574a9c1c9ffebf46fa127",
-      "reason": "OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场；Pi/OMP/Prime扩展统一zkyq文件名和生成标记；本机与relay共用精确所有权检查、原子发布和旧入口原字节移出加载目录，保护用户文件并在发布失败时恢复；保留旧overlay数据排除合同；新OMP fallback仅发布zkyq路径；自动发现扩展照常迁走旧入口，已存在且被旧shell固定引用的输入原字节只读保留，防止改名破坏活跃终端；Pi/OMP/Prime私有运行环境统一为ZKYQ，启动、扩展、草稿、进程所有者和WSL传递使用一致名称；旧环境仅在既有单向迁移入口读取并移除，保留第三方公开配置、路径、草稿和父子隔离行为"
+      "current_sha256": "6bac1910d0a6f3d2e4362ba94124ee6cc15275d684c0469f1403704281e41bca",
+      "reason": "OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场；Pi/OMP/Prime扩展统一zkyq文件名和生成标记；本机与relay共用精确所有权检查、原子发布和旧入口原字节移出加载目录，保护用户文件并在发布失败时恢复；保留旧overlay数据排除合同；新OMP fallback仅发布zkyq路径；自动发现扩展照常迁走旧入口，已存在且被旧shell固定引用的输入原字节只读保留，防止改名破坏活跃终端；Pi/OMP/Prime私有运行环境统一为ZKYQ，启动、扩展、草稿、进程所有者和WSL传递使用一致名称；旧环境仅在既有单向迁移入口读取并移除，保留第三方公开配置、路径、草稿和父子隔离行为；中继插件目录统一为.zkyq-relay，保留活跃旧读者与最新写入，确认退出后退役桥接及托管旧扩展，迁移导出路径防止重建覆盖原数据"
     },
     {
       "path": "src/wsl-guest/plugin-overlay.ts",
       "upstream_sha256": "b0c27a5973a0ca14e565acda1a5c7a1d9cdf90906240ff02e59a56435066491d",
-      "current_sha256": "c92388d9d7b5e0f26c1608ea7c8cfd409a2b04e92ad6da41f13f21985759b5bb",
-      "reason": "OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场；Pi/OMP/Prime扩展统一zkyq文件名和生成标记；本机与relay共用精确所有权检查、原子发布和旧入口原字节移出加载目录，保护用户文件并在发布失败时恢复；保留旧overlay数据排除合同；Pi/OMP/Prime私有运行环境统一为ZKYQ，启动、扩展、草稿、进程所有者和WSL传递使用一致名称；旧环境仅在既有单向迁移入口读取并移除，保留第三方公开配置、路径、草稿和父子隔离行为"
+      "current_sha256": "840c91088c4f1ade7ed28c66ccfd26e65e712d413a116576eb6894289a95dcb2",
+      "reason": "OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场；Pi/OMP/Prime扩展统一zkyq文件名和生成标记；本机与relay共用精确所有权检查、原子发布和旧入口原字节移出加载目录，保护用户文件并在发布失败时恢复；保留旧overlay数据排除合同；Pi/OMP/Prime私有运行环境统一为ZKYQ，启动、扩展、草稿、进程所有者和WSL传递使用一致名称；旧环境仅在既有单向迁移入口读取并移除，保留第三方公开配置、路径、草稿和父子隔离行为；中继插件目录统一为.zkyq-relay，保留活跃旧读者与最新写入，确认退出后退役桥接及托管旧扩展，迁移导出路径防止重建覆盖原数据"
     },
     {
       "path": "config/scripts/build-windows-agent-hook.mjs",
@@ -335455,8 +335457,8 @@
     {
       "path": "src/wsl-guest/agent-hook-server.test.ts",
       "upstream_sha256": "419114a458cdd3412e8264bcbac4ff04bc24db824d0c435077f960e28a947c69",
-      "current_sha256": "f5626fbf324ed9e1284290a37daa2187599031071a893a1197ebf6358a3af931",
-      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+      "current_sha256": "ce255e00a159d9d9777a0fcfb0bb3d5fa539512c510ae22dfe9fa3174f158557",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义；中继插件目录统一为.zkyq-relay，保留活跃旧读者与最新写入，确认退出后退役桥接及托管旧扩展，迁移导出路径防止重建覆盖原数据"
     },
     {
       "path": "src/wsl-guest/relay-agent-presence.test.ts",
@@ -336577,8 +336579,8 @@
     {
       "path": "src/wsl-guest/agent-hook-endpoint-coordinates.ts",
       "upstream_sha256": "8038a16a4ab0821444a82e911d3f2c6dda8d71291628163e3781f60238e9e711",
-      "current_sha256": "4dac3ecb981f6259d0b2076c2062baa0d9cf40cbd87e9d503555c2946b5670c2",
-      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+      "current_sha256": "f9be7e4b2f9e57d1e370c73626c954f0dddae30ddd8156a733299213deeff1f5",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义；中继插件目录统一为.zkyq-relay，保留活跃旧读者与最新写入，确认退出后退役桥接及托管旧扩展，迁移导出路径防止重建覆盖原数据"
     },
     {
       "path": "src/wsl-guest/agent-hook-result-retry-scheduler.ts",
@@ -336595,8 +336597,8 @@
     {
       "path": "src/wsl-guest/wsl-agent-hook-relay.ts",
       "upstream_sha256": "afbf4fe2d3a62c068c1e33133ba730dff1ef384357fd0883ca6381bf8cd4f3a9",
-      "current_sha256": "c77f3eaeb626e89de0876e12e8d043dc8f201720e13e262212bc44929e0e5d37",
-      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义；WSL Hook relay版本/实例/调试环境与版本隔离程序缓存统一ZKYQ/.zkyq-wsl，继承环境单向迁移；同步WSLENV与guest入口，主机端点名对齐既有POSIX v2发布，保留Hook回传与重启协调能力；WSL端点坐标统一.zkyq-wsl，启动前校验并迁移原实例数据；保留冻结读者路径、待送达spool与原文件inode，占用时保持新坐标可用并在下次启动重试实体迁移；冲突及异常链接不覆盖，发布失败恢复；WSL旧端点实例入口仅凭确认停机退役，保留未知状态及存活读者的连接，沿现有停机观察和WSLENV传递证据"
+      "current_sha256": "db7775b1a9b515aad89735aa6081d05b8bd5d5af0c335929b248db9cf24c897c",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义；WSL Hook relay版本/实例/调试环境与版本隔离程序缓存统一ZKYQ/.zkyq-wsl，继承环境单向迁移；同步WSLENV与guest入口，主机端点名对齐既有POSIX v2发布，保留Hook回传与重启协调能力；WSL端点坐标统一.zkyq-wsl，启动前校验并迁移原实例数据；保留冻结读者路径、待送达spool与原文件inode，占用时保持新坐标可用并在下次启动重试实体迁移；冲突及异常链接不覆盖，发布失败恢复；WSL旧端点实例入口仅凭确认停机退役，保留未知状态及存活读者的连接，沿现有停机观察和WSLENV传递证据；中继插件目录统一为.zkyq-relay，保留活跃旧读者与最新写入，确认退出后退役桥接及托管旧扩展，迁移导出路径防止重建覆盖原数据"
     },
     {
       "path": "tests/e2e/cli-agent-unopened-workspace-resume.spec.ts",
@@ -336823,8 +336825,8 @@
     {
       "path": "src/wsl-guest/omp-status-extension.ts",
       "upstream_sha256": "66296ef77f4d2f45bf744e284c5e553faa18e26945cf8ad7b6310558be145181",
-      "current_sha256": "0d77a125e05354baab70851a8de44643016728d2e7b059cbf7db4eb6575dc69c",
-      "reason": "Pi/OMP/Prime扩展统一zkyq文件名和生成标记；本机与relay共用精确所有权检查、原子发布和旧入口原字节移出加载目录，保护用户文件并在发布失败时恢复；保留旧overlay数据排除合同；新OMP fallback仅发布zkyq路径；自动发现扩展照常迁走旧入口，已存在且被旧shell固定引用的输入原字节只读保留，防止改名破坏活跃终端"
+      "current_sha256": "a0b5b6a5601dfa8ccc76d869523f906e4a661c36eb013a15c851670b02b0e74f",
+      "reason": "Pi/OMP/Prime扩展统一zkyq文件名和生成标记；本机与relay共用精确所有权检查、原子发布和旧入口原字节移出加载目录，保护用户文件并在发布失败时恢复；保留旧overlay数据排除合同；新OMP fallback仅发布zkyq路径；自动发现扩展照常迁走旧入口，已存在且被旧shell固定引用的输入原字节只读保留，防止改名破坏活跃终端；中继插件目录统一为.zkyq-relay，保留活跃旧读者与最新写入，确认退出后退役桥接及托管旧扩展，迁移导出路径防止重建覆盖原数据"
     },
     {
       "path": "mobile/src/session/mobile-omp-session-catalog.ts",
@@ -338253,6 +338255,12 @@
       "upstream_sha256": "360e8442af122e7edf12e6296d7bd92e8ccf2b5be3b38c7f594bc30052ba4f32",
       "current_sha256": "b7f0c9feda42ef52c4a0e681f8b7f7904cfdd11a8ef55f4a6f2abc8a9dcc06b6",
       "reason": "账户私有环境单向迁移ZKYQ，保留XDG/OpenCode原契约、原始环境与私有凭据引用、未知元数据及明确删除，统一shell/PTY/ACP新输出"
+    },
+    {
+      "path": "src/wsl-guest/agent-hook-server-contract.ts",
+      "upstream_sha256": "89265688fbae7cc4929c809fbca6030b12e2d7f04271591c94a2aff67323f70b",
+      "current_sha256": "80174d4bd4996b7c98c2bbf3c72320908b1eb3686c88af64181c9b5ea2496116",
+      "reason": "中继插件目录统一为.zkyq-relay，保留活跃旧读者与最新写入，确认退出后退役桥接及托管旧扩展，迁移导出路径防止重建覆盖原数据"
     }
   ],
   "reviewed_findings": [

@@ -1,12 +1,13 @@
 import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
+import { RELAY_HOOKS_DIR } from './relay-hooks-identity'
 import {
   PI_AGENT_STATUS_EXTENSION_FILE,
   writeManagedPiExtension
 } from '../shared/pi-managed-extension-install'
 
 export function writeRelayOmpStatusExtension(homeDir: string, source: string): string | null {
-  const directory = join(homeDir, '.orca-relay', 'omp-managed-status-extension')
+  const directory = join(homeDir, RELAY_HOOKS_DIR, 'omp-managed-status-extension')
   try {
     mkdirSync(directory, { recursive: true })
     const path = join(directory, PI_AGENT_STATUS_EXTENSION_FILE)

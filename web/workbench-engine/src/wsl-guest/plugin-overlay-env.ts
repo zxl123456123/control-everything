@@ -1,4 +1,6 @@
 import { resolveLoginShellEnvironment } from '../main/startup/login-shell-environment'
+import { homedir } from 'node:os'
+import { canonicalRelayHooksPath } from './relay-hooks-identity'
 import { migrateAgentHookEnvironmentIdentity } from '../shared/agent-hook-environment-identity'
 import { migrateOpenCodeEnvironmentIdentity } from '../shared/opencode-environment-identity'
 import { readSessionShellStartupEnvVar } from '../main/pty/shell-startup-env'
@@ -29,11 +31,12 @@ export function resolveOpenCodeSourceConfigDir(
   env = { ...env }
   migrateAgentHookEnvironmentIdentity(env)
   migrateOpenCodeEnvironmentIdentity(env)
-  return firstNonEmpty(
+  const source = firstNonEmpty(
     env.ZKYQ_OPENCODE_SOURCE_CONFIG_DIR,
     readStartupEnv('OPENCODE_CONFIG_DIR', env, shell),
     env.OPENCODE_CONFIG_DIR
   )
+  return source ? canonicalRelayHooksPath(source, env.HOME ?? homedir()) : source
 }
 
 export function resolvePiSourceAgentDir(
@@ -46,16 +49,17 @@ export function resolvePiSourceAgentDir(
 
   const sourceDir = firstNonEmpty(env[sourceKey])
   if (sourceDir) {
-    return sourceDir
+    return canonicalRelayHooksPath(sourceDir, env.HOME ?? homedir())
   }
 
   const startupDir = readStartupEnv(primaryKey, env, shell)
   if (startupDir) {
-    return startupDir
+    return canonicalRelayHooksPath(startupDir, env.HOME ?? homedir())
   }
 
   if (kind === 'prime-agent') {
-    return firstNonEmpty(env[primaryKey])
+    const primary = firstNonEmpty(env[primaryKey])
+    return primary ? canonicalRelayHooksPath(primary, env.HOME ?? homedir()) : primary
   }
 
   const overlayKey = kind === 'omp' ? 'ZKYQ_OMP_CODING_AGENT_DIR' : 'ZKYQ_PI_CODING_AGENT_DIR'
@@ -69,7 +73,7 @@ export function resolvePiSourceAgentDir(
     env[primaryKey] !== env[overlayKey] &&
     env[primaryKey] !== env[otherOverlayKey]
   ) {
-    return env[primaryKey]
+    return canonicalRelayHooksPath(env[primaryKey], env.HOME ?? homedir())
   }
   return undefined
 }

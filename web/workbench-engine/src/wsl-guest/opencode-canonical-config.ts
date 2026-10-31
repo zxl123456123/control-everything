@@ -1,5 +1,6 @@
 import { existsSync, mkdirSync } from 'node:fs'
 import { isAbsolute, join, relative, resolve } from 'node:path'
+import { RELAY_HOOKS_DIR } from './relay-hooks-identity'
 import { resolveOpenCodeConfigDirectory } from '../shared/opencode-config-directory'
 import { isInstalledOpenCodePluginCurrent } from '../shared/opencode-installed-plugin'
 import { writeCanonicalOpenCodePluginAtomically } from '../shared/opencode-plugin-atomic-write'
@@ -8,8 +9,6 @@ import {
   migrateOpenCodePluginIdentity,
   retiredOpenCodePluginFileName
 } from '../shared/opencode-plugin-identity'
-
-const RELAY_HOOKS_DIR = '.orca-relay'
 
 export type OpenCodeAgent = 'opencode' | 'opencode2'
 
@@ -48,8 +47,9 @@ export function installOpenCodePluginInCanonicalConfig(
 }
 
 export function isRelayOpenCodeOverlayPath(path: string, homeDir: string): boolean {
-  const relayRoot = resolve(homeDir, RELAY_HOOKS_DIR)
   const candidate = resolve(isAbsolute(path) ? path : join(homeDir, path))
-  const relativePath = relative(relayRoot, candidate)
-  return relativePath === '' || (!relativePath.startsWith('..') && !isAbsolute(relativePath))
+  return [RELAY_HOOKS_DIR, '.orca-relay'].some((name) => {
+    const relativePath = relative(resolve(homeDir, name), candidate)
+    return relativePath === '' || (!relativePath.startsWith('..') && !isAbsolute(relativePath))
+  })
 }

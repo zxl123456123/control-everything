@@ -92,7 +92,12 @@ async function main(): Promise<void> {
   // overlay here — the same PluginOverlayManager path the SSH relay uses. One
   // handler for the relay's life: it remembers the materialized overlay so
   // repeat installs don't rebuild it under running agents.
-  const installPlugins = createInstallPluginsHandler(new PluginOverlayManager(), process.env)
+  const installPlugins = createInstallPluginsHandler(
+    new PluginOverlayManager({
+      retiredReaders: process.env[WSL_HOOK_RELAY_RETIRED_READERS_ENV] === '1'
+    }),
+    process.env
+  )
   dispatcher.onRequest(AGENT_HOOK_INSTALL_PLUGINS_METHOD, async (params) => installPlugins(params))
 
   registerWslHookFsHandlers(dispatcher, homedir(), () => ({
