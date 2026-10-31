@@ -23,6 +23,10 @@ export const WSL_HOOK_RELAY_VERSION_ENV = 'ZKYQ_WSL_HOOK_RELAY_VERSION'
  *  after an Orca restart — the exact re-coordination this exists to serve. */
 export const WSL_HOOK_RELAY_INSTANCE_ENV = 'ZKYQ_WSL_HOOK_INSTANCE'
 
+/** Host-confirmed distro stop: readers from before the stop have all exited.
+ * Internal launch evidence, overwritten by the host rather than inherited. */
+export const WSL_HOOK_RELAY_RETIRED_READERS_ENV = 'ZKYQ_WSL_HOOK_RETIRED_READERS'
+
 /** Launch-script exit codes. 42 mirrors the SSH relay's handshake-mismatch
  *  convention: the host reinstalls the bundle and relaunches once. */
 export const WSL_HOOK_RELAY_STALE_EXIT_CODE = 42

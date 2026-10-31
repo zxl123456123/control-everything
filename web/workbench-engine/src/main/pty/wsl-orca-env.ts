@@ -116,6 +116,7 @@ export function addOrcaWslInteropEnv(env: Record<string, string>): void {
     ...opencodeOverlayEntries,
     'ZKYQ_WSL_HOOK_RELAY_VERSION/u',
     'ZKYQ_WSL_HOOK_INSTANCE/u',
+    'ZKYQ_WSL_HOOK_RETIRED_READERS/u',
     'ZKYQ_OMP_SOURCE_AGENT_DIR/p',
     `ZKYQ_OMP_STATUS_EXTENSION/${env.ZKYQ_OMP_STATUS_EXTENSION?.startsWith('/') ? 'u' : 'p'}`,
     ...(env.ZKYQ_PI_SOURCE_AGENT_DIR?.startsWith('/') ? ['ZKYQ_PI_SOURCE_AGENT_DIR/u'] : []),

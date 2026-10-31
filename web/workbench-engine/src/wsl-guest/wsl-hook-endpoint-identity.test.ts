@@ -127,6 +127,72 @@ it('does not move an unrecognized directory', () => {
   expect(existsSync(current)).toBe(false)
 })
 
+it('retires the frozen-reader link after confirmed exit without changing current data', () => {
+  seed()
+  prepareWslHookEndpointDirectory(home, 'fixture')
+  writeFileSync(join(current, 'new-session.json'), 'latest session bytes\n')
+  const inode = lstatSync(join(current, 'new-session.json')).ino
+  expect(prepareWslHookEndpointDirectory(home, 'fixture', true)).toBe(current)
+  expect(lstatSync(retired, { throwIfNoEntry: false })).toBeUndefined()
+  expect(readFileSync(join(current, 'new-session.json'), 'utf8')).toBe('latest session bytes\n')
+  expect(lstatSync(join(current, 'new-session.json')).ino).toBe(inode)
+  expect(existsSync(join(current, 'endpoint.env'))).toBe(false)
+  prepareWslHookEndpointDirectory(home, 'fixture')
+  expect(existsSync(retired)).toBe(false)
+})
+
+it('moves an owned cold directory without publishing an obsolete entry', () => {
+  seed()
+  writeFileSync(join(retired, 'queued.jsonl'), 'unread event\n')
+  prepareWslHookEndpointDirectory(home, 'fixture', true)
+  expect(lstatSync(current).isDirectory()).toBe(true)
+  expect(existsSync(retired)).toBe(false)
+  expect(existsSync(join(current, 'endpoint.env'))).toBe(false)
+  expect(readFileSync(join(current, 'queued.jsonl'), 'utf8')).toBe('unread event\n')
+})
+
+it('retires an owned v1 endpoint after a previous partial retirement', () => {
+  mkdirSync(current, { recursive: true })
+  writeFileSync(join(current, 'endpoint.env'), body)
+  prepareWslHookEndpointDirectory(home, 'fixture', true)
+  expect(existsSync(join(current, 'endpoint.env'))).toBe(false)
+})
+
+it('preserves an unrecognized v1 file while retiring its owned directory link', () => {
+  seed()
+  prepareWslHookEndpointDirectory(home, 'fixture')
+  writeFileSync(join(current, 'endpoint.env'), body + 'USER_VALUE=keep\n')
+  prepareWslHookEndpointDirectory(home, 'fixture', true)
+  expect(existsSync(retired)).toBe(false)
+  expect(readFileSync(join(current, 'endpoint.env'), 'utf8')).toBe(body + 'USER_VALUE=keep\n')
+})
+
+it('retries a busy retirement without dropping pending data or rebuilding the old link', () => {
+  seed()
+  fault.busy = true
+  prepareWslHookEndpointDirectory(home, 'fixture')
+  writeFileSync(join(current, 'queued.jsonl'), 'latest pending event\n')
+  prepareWslHookEndpointDirectory(home, 'fixture', true)
+  expect(lstatSync(current).isSymbolicLink()).toBe(true)
+  expect(readFileSync(join(retired, 'queued.jsonl'), 'utf8')).toBe('latest pending event\n')
+  fault.busy = false
+  prepareWslHookEndpointDirectory(home, 'fixture', true)
+  expect(lstatSync(current).isDirectory()).toBe(true)
+  expect(existsSync(retired)).toBe(false)
+  expect(readFileSync(join(current, 'queued.jsonl'), 'utf8')).toBe('latest pending event\n')
+})
+
+it('does not remove an unrelated link even after confirmed exit', () => {
+  mkdirSync(current, { recursive: true })
+  const outside = join(home, 'other-instance')
+  mkdirSync(outside)
+  writeFileSync(join(outside, 'keep.txt'), 'user bytes')
+  mkdirSync(join(retired, '..'), { recursive: true })
+  symlinkSync(outside, retired, 'dir')
+  expect(() => prepareWslHookEndpointDirectory(home, 'fixture', true)).toThrow('unexpected target')
+  expect(readFileSync(join(retired, 'keep.txt'), 'utf8')).toBe('user bytes')
+})
+
 it('restores the original directory if publishing the frozen path fails', () => {
   seed()
   fault.link = true

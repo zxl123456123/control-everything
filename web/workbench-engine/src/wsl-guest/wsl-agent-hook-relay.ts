@@ -29,7 +29,8 @@ import {
 import { publishAgentHookEnvelope } from './agent-hook-envelope-publication'
 import {
   sanitizeWslHookInstanceKey,
-  WSL_HOOK_RELAY_INSTANCE_ENV
+  WSL_HOOK_RELAY_INSTANCE_ENV,
+  WSL_HOOK_RELAY_RETIRED_READERS_ENV
 } from '../shared/wsl-hook-relay-contract'
 
 async function main(): Promise<void> {
@@ -68,7 +69,11 @@ async function main(): Promise<void> {
   const instanceKey =
     sanitizeWslHookInstanceKey(process.env[WSL_HOOK_RELAY_INSTANCE_ENV]) ?? `port${windowsPort}`
   const hookServer = new RelayAgentHookServer({
-    endpointDir: prepareWslHookEndpointDirectory(homedir(), instanceKey),
+    endpointDir: prepareWslHookEndpointDirectory(
+      homedir(),
+      instanceKey,
+      process.env[WSL_HOOK_RELAY_RETIRED_READERS_ENV] === '1'
+    ),
     token,
     preferredPort: windowsPort,
     forward: (envelope) => publishAgentHookEnvelope(dispatcher, envelope)

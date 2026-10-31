@@ -22,6 +22,7 @@ import {
   WSL_HOOK_RELAY_BUNDLE_NAME,
   WSL_HOOK_RELAY_DIR,
   WSL_HOOK_RELAY_INSTANCE_ENV,
+  WSL_HOOK_RELAY_RETIRED_READERS_ENV,
   WSL_HOOK_RELAY_NO_NODE_EXIT_CODE,
   WSL_HOOK_RELAY_STALE_EXIT_CODE,
   WSL_HOOK_RELAY_VERSION_ENV,
@@ -246,7 +247,8 @@ export function formatWslRelayFailure(failure: WslRelayStartupFailure): string {
 export function buildWslRelaySpawnEnv(
   coords: Record<string, string>,
   bundleVersion: string,
-  instanceKey: string
+  instanceKey: string,
+  retiredReaders = false
 ): NodeJS.ProcessEnv {
   const inherited = { ...process.env }
   migrateAgentHookEnvironmentIdentity(inherited)
@@ -258,7 +260,8 @@ export function buildWslRelaySpawnEnv(
     ZKYQ_AGENT_HOOK_ENV: coords.ZKYQ_AGENT_HOOK_ENV,
     ZKYQ_AGENT_HOOK_VERSION: coords.ZKYQ_AGENT_HOOK_VERSION,
     [WSL_HOOK_RELAY_VERSION_ENV]: bundleVersion,
-    [WSL_HOOK_RELAY_INSTANCE_ENV]: instanceKey
+    [WSL_HOOK_RELAY_INSTANCE_ENV]: instanceKey,
+    [WSL_HOOK_RELAY_RETIRED_READERS_ENV]: retiredReaders ? '1' : '0'
   }
   // Why: the relay derives its own guest endpoint path; a /p-translated
   // Windows endpoint here would only add WSLENV noise.

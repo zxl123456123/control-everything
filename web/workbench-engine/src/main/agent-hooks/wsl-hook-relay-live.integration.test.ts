@@ -89,6 +89,8 @@ describe.skipIf(process.platform === 'win32')(
         instanceKey: () => 'liveinstance',
         resolveBundle: () => ({ jsPath: BUNDLE_JS, version }),
         listDistros: async () => ['LiveDistro'],
+        readRunningDistros: async () => ({ status: 'unavailable' }),
+        onDistrosStopped: () => () => {},
         spawnRelay: (_distro, env) => {
           child = spawn(process.execPath, [BUNDLE_JS], {
             env: { ...env, HOME: fakeHome },

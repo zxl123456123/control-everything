@@ -22,7 +22,8 @@ import {
 } from './wsl-hook-relay-launch'
 import { waitForWslRelaySentinel } from './wsl-hook-relay-sentinel'
 import { listWslDistrosAsync } from '../wsl'
-import { isWslDistroRunning } from '../wsl-background-distro-gate'
+import { isWslDistroRunning, readConfirmedRunningWslDistros } from '../wsl-background-distro-gate'
+import { onRunningWslDistrosStopped } from '../wsl-running-distro-cache'
 import { isWslAgentHookRelayEnabled } from '../../shared/agent-hook-relay'
 
 // Why: fresh WSL intermittently throws "Catastrophic failure (E_UNEXPECTED)"
@@ -62,6 +63,9 @@ export type WslHookRelayManagerDeps = {
   listDistros: () => Promise<string[]>
   /** Restart timers check this so relay recovery never resurrects a VM the user shut down. */
   isDistroRunning: typeof isWslDistroRunning
+  /** Unlike the background boolean gate, unavailable discovery is never evidence of exit. */
+  readRunningDistros: typeof readConfirmedRunningWslDistros
+  onDistrosStopped: typeof onRunningWslDistrosStopped
   spawnRelay: typeof spawnWslRelayProcess
   runInstall: typeof runWslInstallProcess
   waitForSentinel: typeof waitForWslRelaySentinel
@@ -105,6 +109,8 @@ export const defaultWslHookRelayDeps: WslHookRelayManagerDeps = {
   readBundle: (jsPath) => readFileSync(jsPath),
   listDistros: () => listWslDistrosAsync(),
   isDistroRunning: isWslDistroRunning,
+  readRunningDistros: readConfirmedRunningWslDistros,
+  onDistrosStopped: onRunningWslDistrosStopped,
   spawnRelay: spawnWslRelayProcess,
   runInstall: runWslInstallProcess,
   waitForSentinel: waitForWslRelaySentinel,

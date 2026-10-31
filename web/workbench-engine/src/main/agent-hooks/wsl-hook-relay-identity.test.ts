@@ -9,6 +9,7 @@ import {
   WSL_HOOK_RELAY_DIR,
   WSL_HOOK_RELAY_ENDPOINT_FILE,
   WSL_HOOK_RELAY_INSTANCE_ENV,
+  WSL_HOOK_RELAY_RETIRED_READERS_ENV,
   WSL_HOOK_RELAY_VERSION_ENV
 } from '../../shared/wsl-hook-relay-contract'
 import { wireWslRelayLink, type WslRelayLinkOptions } from './wsl-hook-relay-link'
@@ -67,6 +68,27 @@ it('migrates inherited relay keys before authoritative launch values and preserv
   expect(env.WSLENV).toContain('ZKYQ_WSL_HOOK_RELAY_VERSION/u')
   expect(env.WSLENV).toContain('ZKYQ_WSL_HOOK_INSTANCE/u')
   expect(env.WSLENV).toContain('PUBLIC/p')
+})
+
+it.each([false, true])(
+  'overwrites inherited retirement evidence with host proof: %s',
+  (confirmed) => {
+    vi.stubEnv(WSL_HOOK_RELAY_RETIRED_READERS_ENV, confirmed ? '0' : '1')
+    vi.stubEnv('WSLENV', `${WSL_HOOK_RELAY_RETIRED_READERS_ENV}/u:PUBLIC/p`)
+    const env = buildWslRelaySpawnEnv({}, 'fixture', 'fixture', confirmed)
+    expect(env[WSL_HOOK_RELAY_RETIRED_READERS_ENV]).toBe(confirmed ? '1' : '0')
+    expect(
+      env.WSLENV?.split(':').filter((entry) => entry.startsWith(WSL_HOOK_RELAY_RETIRED_READERS_ENV))
+    ).toEqual([`${WSL_HOOK_RELAY_RETIRED_READERS_ENV}/u`])
+    expect(env.WSLENV).toContain('PUBLIC/p')
+  }
+)
+
+it('clears inherited retirement evidence unless the host explicitly confirms it', () => {
+  vi.stubEnv(WSL_HOOK_RELAY_RETIRED_READERS_ENV, '1')
+  expect(buildWslRelaySpawnEnv({}, 'fixture', 'fixture')[WSL_HOOK_RELAY_RETIRED_READERS_ENV]).toBe(
+    '0'
+  )
 })
 
 it('keeps forwarding events when diagnostics use the current debug flag', () => {

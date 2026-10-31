@@ -42,8 +42,13 @@ export class WslHookRelayManager {
   private defaultDistro: string | null = null
   private disposed = false
   private warnedBundleMissing = false
+  private stoppedReaderDistros = new Set<string>()
+  private unsubscribeDistroStops: () => void
   constructor(deps: Partial<WslHookRelayManagerDeps> = {}) {
     this.deps = { ...defaultWslHookRelayDeps, ...deps }
+    this.unsubscribeDistroStops = this.deps.onDistrosStopped((distros) => {
+      for (const distro of distros) this.stoppedReaderDistros.add(wslHookRelayStateKey(distro))
+    })
     this.recovery = new WslRelayRecovery({
       isDistroRunning: (distro) => this.deps.isDistroRunning(distro),
       warn: (message) => this.deps.warn(message),
@@ -101,6 +106,7 @@ export class WslHookRelayManager {
    *  manager reusable, so re-enabling hooks can start relays again without an app restart. */
   disposeAll({ permanent = true }: { permanent?: boolean } = {}): void {
     this.disposed ||= permanent
+    if (permanent) this.unsubscribeDistroStops()
     for (const state of this.states.values()) {
       this.recovery.clearTimers(state)
       state.mux?.dispose()
@@ -184,29 +190,38 @@ export class WslHookRelayManager {
       cooldownUntil: 0
     }
     this.states.set(key, state)
-    const env = buildWslRelaySpawnEnv(coords, bundle.version, instanceKey)
-    state.startup = launchWslRelayWithInstall({
-      distro: state.distro,
-      env,
-      bundleJsPath: bundle.jsPath,
-      version: bundle.version,
-      io: this.deps,
-      isDisposed: () => this.disposed || this.states.get(key) !== state,
-      onChild: (child) => {
-        state.child = child
-      },
-      onNoNode: () =>
-        this.markFailed(
-          state,
-          `no node >= 18 found in distro '${state.distro}'; agent hooks stay degraded there`,
-          { cooldownBaseMs: NO_NODE_COOLDOWN_MS }
-        ),
-      onFailure: (message) =>
-        this.markFailed(state, message, {
-          cooldownBaseMs: FAILURE_COOLDOWN_BASE_MS
-        }),
-      connect: (transport, child) => this.connect(state, transport, child, instanceKey)
-    }).catch((err) => {
+    state.startup = (async () => {
+      // This probe must precede every guest spawn/install. A relay exit alone
+      // says nothing about surviving terminals; a confirmed distro stop does.
+      const running = await this.deps.readRunningDistros()
+      const retiredReaders =
+        this.stoppedReaderDistros.delete(key) ||
+        (running.status === 'confirmed' &&
+          !running.distros.some((name) => wslHookRelayStateKey(name) === key))
+      const env = buildWslRelaySpawnEnv(coords, bundle.version, instanceKey, retiredReaders)
+      await launchWslRelayWithInstall({
+        distro: state.distro,
+        env,
+        bundleJsPath: bundle.jsPath,
+        version: bundle.version,
+        io: this.deps,
+        isDisposed: () => this.disposed || this.states.get(key) !== state,
+        onChild: (child) => {
+          state.child = child
+        },
+        onNoNode: () =>
+          this.markFailed(
+            state,
+            `no node >= 18 found in distro '${state.distro}'; agent hooks stay degraded there`,
+            { cooldownBaseMs: NO_NODE_COOLDOWN_MS }
+          ),
+        onFailure: (message) =>
+          this.markFailed(state, message, {
+            cooldownBaseMs: FAILURE_COOLDOWN_BASE_MS
+          }),
+        connect: (transport, child) => this.connect(state, transport, child, instanceKey)
+      })
+    })().catch((err) => {
       state.child?.kill()
       state.mux?.dispose()
       if (state.phase !== 'failed') {

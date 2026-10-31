@@ -22,8 +22,11 @@ function directoryPath(path: string): void {
   }
 }
 
-function hasManagedEndpoint(directory: string): boolean {
-  return ['endpoint-v2.env', 'endpoint.env'].some((name) => {
+function hasManagedEndpoint(
+  directory: string,
+  names = ['endpoint-v2.env', 'endpoint.env']
+): boolean {
+  return names.some((name) => {
     const file = join(directory, name)
     const stat = lstatSync(file, { throwIfNoEntry: false })
     if (!stat?.isFile() || stat.size > 64 * 1024) return false
@@ -51,10 +54,18 @@ function hasManagedEndpoint(directory: string): boolean {
   })
 }
 
+function retireLegacyEndpoint(directory: string): void {
+  if (hasManagedEndpoint(directory, ['endpoint.env'])) unlinkSync(join(directory, 'endpoint.env'))
+}
+
 /** Prepare the canonical instance view and relocate when the filesystem allows it.
  * Existing readers retain one migration link; fresh instances create only the current path.
- * Removing that link requires confirming the old PTY/Agent cohort has exited. */
-export function prepareWslHookEndpointDirectory(home: string, instanceKey: string): string {
+ * Only a host-confirmed distro stop permits retiring the old PTY/Agent view. */
+export function prepareWslHookEndpointDirectory(
+  home: string,
+  instanceKey: string,
+  retiredReaders = false
+): string {
   if (sanitizeWslHookInstanceKey(instanceKey) !== instanceKey) {
     throw new Error('Invalid WSL hook endpoint instance key')
   }
@@ -78,13 +89,20 @@ export function prepareWslHookEndpointDirectory(home: string, instanceKey: strin
   } else {
     directoryPath(current)
   }
-  if (!prior) return current
+  if (!prior) {
+    if (retiredReaders) retireLegacyEndpoint(current)
+    return current
+  }
   if (prior.isSymbolicLink()) {
     if (
       resolve(dirname(retired), readlinkSync(retired)) !== resolve(current) ||
       !lstatSync(current, { throwIfNoEntry: false })?.isDirectory()
     ) {
       throw new Error('WSL hook endpoint migration link has an unexpected target')
+    }
+    if (retiredReaders) {
+      retireLegacyEndpoint(current)
+      unlinkSync(retired)
     }
     return current
   }
@@ -107,6 +125,10 @@ export function prepareWslHookEndpointDirectory(home: string, instanceKey: strin
     }
     if (code !== 'EACCES' && code !== 'EPERM' && code !== 'EBUSY') throw error
     console.warn('[wsl-hook-relay] endpoint relocation deferred until open files close')
+    return current
+  }
+  if (retiredReaders) {
+    retireLegacyEndpoint(current)
     return current
   }
   try {

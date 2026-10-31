@@ -138,6 +138,8 @@ describe.skipIf(process.platform === 'win32')('WSL public-manager settings lifet
       readBundle: () => Buffer.from('// fixture'),
       listDistros: async () => ['fixture'],
       isDistroRunning: async () => true,
+      readRunningDistros: async () => ({ status: 'unavailable' }),
+      onDistrosStopped: () => () => {},
       spawnRelay: () => fakeChild(),
       runInstall: async () => ({ code: 0, stderr: '' }),
       waitForSentinel: async () => activeGuest.transport,
