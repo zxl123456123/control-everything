@@ -1,8 +1,7 @@
 import { EventEmitter } from 'node:events'
 import type { ClientChannel } from 'ssh2'
 import { expect, it, vi } from 'vitest'
-import { RELAY_SENTINEL } from '../remote-exec/remote-frame-protocol'
-import { waitForSentinel } from './ssh-relay-sentinel'
+import { waitForSentinel, RELEASED_RELAY_SENTINEL as RELAY_SENTINEL } from './ssh-relay-sentinel'
 
 it.each([1, 256])('copies each startup prefix once across %i chunks', async (chunks) => {
   const channel = Object.assign(new EventEmitter(), {

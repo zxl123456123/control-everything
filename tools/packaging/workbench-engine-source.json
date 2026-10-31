@@ -337153,6 +337153,60 @@
       "upstream_sha256": "67bcb993fcdccc93112571b15589b340a20e72ded6319301fce433deff9ce1c8",
       "current_sha256": "541ceaacdd1b09cd987d621f6b051969a3e8af4a9a14631cc147c97cb6f805e2",
       "reason": "WSL Hook relay版本/实例/调试环境与版本隔离程序缓存统一ZKYQ/.zkyq-wsl，继承环境单向迁移；同步WSLENV与guest入口，主机端点名对齐既有POSIX v2发布，保留Hook回传与重启协调能力"
+    },
+    {
+      "path": "src/main/browser/wsl-browser-network-relay-launch.test.ts",
+      "upstream_sha256": "7436288c08ac8a41f89759f8c5b03211da1bc4a75a81bbee5fdf5579415a9439",
+      "current_sha256": "b9c10940f5cc6d087ec1021775b9f58ff4dd4f89e78dca08ed20da0666b5f798",
+      "reason": "当前WSL relay readiness/握手身份统一ZKYQ，浏览器版本隔离程序缓存改.zkyq-wsl；已发布旧SSH sentinel仅在既有legacy输入边界固定读取，保持13字节帧、JSON-RPC2.0、凭据检查、网络流控及存活会话能力"
+    },
+    {
+      "path": "src/main/browser/wsl-browser-network-relay-launch.ts",
+      "upstream_sha256": "1b492e691aad1bbe5543b4f77b1509fed1d5b03e880a50d8874fd7289cdeffc9",
+      "current_sha256": "81b37951d60bd312947b6ad28f63efdb68fc3e5956555052d5f0cad6e71f7dda",
+      "reason": "当前WSL relay readiness/握手身份统一ZKYQ，浏览器版本隔离程序缓存改.zkyq-wsl；已发布旧SSH sentinel仅在既有legacy输入边界固定读取，保持13字节帧、JSON-RPC2.0、凭据检查、网络流控及存活会话能力"
+    },
+    {
+      "path": "src/main/ssh/legacy-relay/ssh-relay-sentinel-copy-budget.test.ts",
+      "upstream_sha256": "ae824307d5f60d078e1b78686f33a596f8ffaa0d37302875056c0e526cbebf61",
+      "current_sha256": "26e501d64d70299415dbabda9c8b9fc5d3e1e42c942a5620ec43ec27884ed83e",
+      "reason": "当前WSL relay readiness/握手身份统一ZKYQ，浏览器版本隔离程序缓存改.zkyq-wsl；已发布旧SSH sentinel仅在既有legacy输入边界固定读取，保持13字节帧、JSON-RPC2.0、凭据检查、网络流控及存活会话能力"
+    },
+    {
+      "path": "src/main/ssh/legacy-relay/ssh-relay-sentinel.test.ts",
+      "upstream_sha256": "d2bff2460fc133e059a5da65d0707539771467da92de886d47c7b04813e49f01",
+      "current_sha256": "734c907620c0efdb90fad936f79a27827ecf24e42fc4ed786f971d37ff0d41b0",
+      "reason": "当前WSL relay readiness/握手身份统一ZKYQ，浏览器版本隔离程序缓存改.zkyq-wsl；已发布旧SSH sentinel仅在既有legacy输入边界固定读取，保持13字节帧、JSON-RPC2.0、凭据检查、网络流控及存活会话能力"
+    },
+    {
+      "path": "src/main/ssh/legacy-relay/ssh-relay-sentinel.ts",
+      "upstream_sha256": "9db4c1723ed77f9ca79308780757df6fe8e31f4d3264ccf26f6d82cabf9b0a3e",
+      "current_sha256": "1c25f72757d2fbe5cba817247bd125c1f636e833fc81b23d24bc972d28211a66",
+      "reason": "当前WSL relay readiness/握手身份统一ZKYQ，浏览器版本隔离程序缓存改.zkyq-wsl；已发布旧SSH sentinel仅在既有legacy输入边界固定读取，保持13字节帧、JSON-RPC2.0、凭据检查、网络流控及存活会话能力"
+    },
+    {
+      "path": "src/main/ssh/remote-exec/remote-frame-protocol.ts",
+      "upstream_sha256": "397e938488c51c355bdbf1c17412b949da802ae2ec94b10efe78da4f085d3c40",
+      "current_sha256": "907a0b1be2060f3d4321a9b0c1c3f3628a3e3bde04c9d28e2dccee08e33c983f",
+      "reason": "当前WSL relay readiness/握手身份统一ZKYQ，浏览器版本隔离程序缓存改.zkyq-wsl；已发布旧SSH sentinel仅在既有legacy输入边界固定读取，保持13字节帧、JSON-RPC2.0、凭据检查、网络流控及存活会话能力"
+    },
+    {
+      "path": "src/shared/wsl-browser-network-relay-contract.ts",
+      "upstream_sha256": "318e6e4f3aaa28128daab215d5235cde6e8ad34747fad87deaea82fcfe727c32",
+      "current_sha256": "25312c063edc5a67e79066c6f5f0132cc24f129c5c548c0f13277ee8711e04f8",
+      "reason": "当前WSL relay readiness/握手身份统一ZKYQ，浏览器版本隔离程序缓存改.zkyq-wsl；已发布旧SSH sentinel仅在既有legacy输入边界固定读取，保持13字节帧、JSON-RPC2.0、凭据检查、网络流控及存活会话能力"
+    },
+    {
+      "path": "src/wsl-guest/protocol-handshake.test.ts",
+      "upstream_sha256": "59372031c9295e383ac49f13a1a80968be1ccc6ea1d843c37310c3fdaf35193f",
+      "current_sha256": "a1cd150406a54fb53b2442369cb7146063f696af930c1ccc8b8dd81aaacfee9a",
+      "reason": "当前WSL relay readiness/握手身份统一ZKYQ，浏览器版本隔离程序缓存改.zkyq-wsl；已发布旧SSH sentinel仅在既有legacy输入边界固定读取，保持13字节帧、JSON-RPC2.0、凭据检查、网络流控及存活会话能力"
+    },
+    {
+      "path": "src/wsl-guest/protocol.ts",
+      "upstream_sha256": "3ab462e495cc1a8509ea20fc7a8d982974d405feaf02017876de78ed30ba738c",
+      "current_sha256": "4613cc71a6eb900648df3f6a6b3189681cae0ef8431edcebe74a2963adc5eebb",
+      "reason": "当前WSL relay readiness/握手身份统一ZKYQ，浏览器版本隔离程序缓存改.zkyq-wsl；已发布旧SSH sentinel仅在既有legacy输入边界固定读取，保持13字节帧、JSON-RPC2.0、凭据检查、网络流控及存活会话能力"
     }
   ],
   "reviewed_findings": [

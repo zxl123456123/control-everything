@@ -4,7 +4,7 @@
 
 import { HEADER_LENGTH, MAX_MESSAGE_SIZE } from '../../../shared/relay-frame-decoder'
 export const RELAY_VERSION = '0.1.0'
-export const RELAY_SENTINEL = `ORCA-RELAY v${RELAY_VERSION} READY\n`
+export const RELAY_SENTINEL = `ZKYQ-RELAY v${RELAY_VERSION} READY\n`
 export const RELAY_SENTINEL_TIMEOUT_MS = 10_000
 export const RELAY_REMOTE_DIR = '.orca-remote'
 

@@ -25,7 +25,7 @@ export {
 export type { DecodedFrame, FrameDecoderOptions } from './relay-frame-decoder'
 
 export const RELAY_VERSION = '0.1.0'
-export const RELAY_SENTINEL = `ORCA-RELAY v${RELAY_VERSION} READY\n`
+export const RELAY_SENTINEL = `ZKYQ-RELAY v${RELAY_VERSION} READY\n`
 
 export const MessageType = {
   Regular: 1,
@@ -38,14 +38,14 @@ export const MessageType = {
 // to refuse mismatched-version --connect bridges that would otherwise drive a
 // stale daemon.
 export type HandshakeMessage =
-  | { type: 'orca-relay-handshake'; version: string; endpointCredential?: string }
+  | { type: 'zkyq-relay-handshake'; version: string; endpointCredential?: string }
   // Why optional and informational: bridge and daemon already match exactly on `version`;
   // this only names the runtime executing the daemon (design D8.1).
-  | { type: 'orca-relay-handshake-ok'; version: string; runtime?: RelayHandshakeRuntime }
-  | { type: 'orca-relay-handshake-mismatch'; expected: string; got: string }
+  | { type: 'zkyq-relay-handshake-ok'; version: string; runtime?: RelayHandshakeRuntime }
+  | { type: 'zkyq-relay-handshake-mismatch'; expected: string; got: string }
   // Why a distinct reply: the bridge exits with its own code so the client can tell a refused
   // credential from a crashed relay. Old bridges reject the unknown type and exit 1 pre-sentinel.
-  | { type: 'orca-relay-handshake-credential-mismatch' }
+  | { type: 'zkyq-relay-handshake-credential-mismatch' }
 
 export type RelayHandshakeRuntime = { kind: string; version: string }
 
@@ -58,10 +58,10 @@ export function encodeHandshakeFrame(msg: HandshakeMessage): Buffer {
 // both sides interpolate its version fields into log lines. `JSON.parse` can produce values a
 // template literal throws on, so anything that reaches a reader must already be a string.
 const HANDSHAKE_STRING_FIELDS: Readonly<Record<HandshakeMessage['type'], readonly string[]>> = {
-  'orca-relay-handshake': ['version'],
-  'orca-relay-handshake-ok': ['version'],
-  'orca-relay-handshake-mismatch': ['expected', 'got'],
-  'orca-relay-handshake-credential-mismatch': []
+  'zkyq-relay-handshake': ['version'],
+  'zkyq-relay-handshake-ok': ['version'],
+  'zkyq-relay-handshake-mismatch': ['expected', 'got'],
+  'zkyq-relay-handshake-credential-mismatch': []
 }
 
 // Optional fields are peer-supplied too, so the parser only proves the type of what it returns if
@@ -72,10 +72,10 @@ const HANDSHAKE_STRING_FIELDS: Readonly<Record<HandshakeMessage['type'], readonl
 const HANDSHAKE_OPTIONAL_STRING_FIELDS: Readonly<
   Record<HandshakeMessage['type'], readonly string[]>
 > = {
-  'orca-relay-handshake': ['endpointCredential'],
-  'orca-relay-handshake-ok': [],
-  'orca-relay-handshake-mismatch': [],
-  'orca-relay-handshake-credential-mismatch': []
+  'zkyq-relay-handshake': ['endpointCredential'],
+  'zkyq-relay-handshake-ok': [],
+  'zkyq-relay-handshake-mismatch': [],
+  'zkyq-relay-handshake-credential-mismatch': []
 }
 
 export function parseHandshakeMessage(payload: Buffer): HandshakeMessage {
@@ -108,7 +108,7 @@ export function parseHandshakeMessage(payload: Buffer): HandshakeMessage {
       throw new Error(`Handshake field ${field} is not a string`)
     }
   }
-  if (t === 'orca-relay-handshake-ok' && msg.runtime !== undefined) {
+  if (t === 'zkyq-relay-handshake-ok' && msg.runtime !== undefined) {
     const runtime = msg.runtime
     if (
       typeof runtime !== 'object' ||

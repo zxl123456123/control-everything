@@ -14,8 +14,15 @@ import {
 import { wireWslRelayLink, type WslRelayLinkOptions } from './wsl-hook-relay-link'
 import { AGENT_HOOK_NOTIFICATION_METHOD } from '../../shared/agent-hook-relay'
 import { getEndpointFileName } from '../../shared/agent-hook-listener/endpoint-publication'
+import { RELAY_SENTINEL as HOST_RELAY_SENTINEL } from '../ssh/remote-exec/remote-frame-protocol'
+import { RELAY_SENTINEL as GUEST_RELAY_SENTINEL } from '../../wsl-guest/protocol'
 
 afterEach(() => vi.unstubAllEnvs())
+
+it('agrees on the current readiness marker at both ends of the WSL stream', () => {
+  expect(HOST_RELAY_SENTINEL).toBe('ZKYQ-RELAY v0.1.0 READY\n')
+  expect(GUEST_RELAY_SENTINEL).toBe(HOST_RELAY_SENTINEL)
+})
 
 it('names the endpoint actually published by the POSIX guest', () => {
   expect(WSL_HOOK_RELAY_ENDPOINT_FILE).toBe(getEndpointFileName().replace(/\.cmd$/, '.env'))

@@ -7,6 +7,7 @@ import {
   buildWslBrowserNetworkGuestInstallScript,
   buildWslBrowserNetworkGuestLaunchScript
 } from './wsl-browser-network-relay-launch'
+import { WSL_BROWSER_NETWORK_RELAY_SENTINEL } from '../../shared/wsl-browser-network-relay-contract'
 
 const roots: string[] = []
 
@@ -17,11 +18,17 @@ afterEach(() => {
 })
 
 describe('WSL browser network relay launch', () => {
+  it('publishes only the current program cache and readiness identity', () => {
+    const script = buildWslBrowserNetworkGuestInstallScript(Buffer.from('fixture'), '1.2.3')
+    expect(WSL_BROWSER_NETWORK_RELAY_SENTINEL).toBe('ZKYQ-WSL-BROWSER-NETWORK v1 READY\n')
+    expect(script).toContain('.zkyq-wsl/browser-network/1.2.3')
+    expect(script).not.toMatch(/ORCA_EOF|\.orca-wsl/)
+  })
   it('builds a shell-valid exact-version launcher with a Node 18 floor', () => {
     const script = buildWslBrowserNetworkGuestLaunchScript('0.1.0+abc123')
 
     execFileSync('sh', ['-n'], { input: script })
-    expect(script).toContain('.orca-wsl/browser-network/0.1.0+abc123')
+    expect(script).toContain('.zkyq-wsl/browser-network/0.1.0+abc123')
     expect(script).toContain('Number(process.versions.node.split(".")[0])>=18')
     expect(script).toContain('wsl-browser-network-relay.js')
     expect(() => buildWslBrowserNetworkGuestLaunchScript("bad'version")).toThrow(
@@ -38,7 +45,7 @@ describe('WSL browser network relay launch', () => {
 
     execFileSync('sh', ['-s'], { input: script, env: { ...process.env, HOME: root } })
 
-    const installDir = join(root, '.orca-wsl', 'browser-network', version)
+    const installDir = join(root, '.zkyq-wsl', 'browser-network', version)
     expect(readFileSync(join(installDir, 'wsl-browser-network-relay.js'))).toEqual(bundle)
     expect(readFileSync(join(installDir, '.browser-network-version'), 'utf8')).toBe(version)
     expect(readFileSync(join(installDir, 'launch.sh'), 'utf8')).toContain(version)
