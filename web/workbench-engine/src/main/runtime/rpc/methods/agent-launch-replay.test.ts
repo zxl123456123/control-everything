@@ -26,6 +26,7 @@ import {
   type AgentSessionOperationRow
 } from '../../../../shared/agent-session-operation-ledger'
 import type { AgentSessionRecordStore } from '../../agent-session-record-store'
+import { closeTestJournalHostDatabase } from '../../../native-chat/agent-session-journal/journal-host-database-test-support'
 import {
   editPersistedTestAgentSessionStore,
   openTestAgentSessionRecordStore,
@@ -131,6 +132,7 @@ beforeEach(async () => {
 
 afterEach(async () => {
   setAgentLaunchRecordStore(null)
+  closeTestJournalHostDatabase(directory)
   await rm(directory, { recursive: true, force: true })
 })
 
@@ -284,6 +286,7 @@ describe('a replay answers from the record', () => {
     const params = createLaunch({ operationId: OPERATION_ID })
     const first = await launch(params, runtime)
 
+    closeTestJournalHostDatabase(directory)
     const reopened = await openTestAgentSessionRecordStore(directory)
     setAgentLaunchRecordStore(reopened)
     const afterRestart = runtimeStub()
@@ -495,6 +498,7 @@ describe('an unreadable launch payload costs one replay, never the store', () =>
     await launch(params, runtime)
     await rewriteRecordedLaunch({ outcome: { kind: 'structured' }, worktreeId: 'wt-1' })
 
+    closeTestJournalHostDatabase(directory)
     const reopened = await openTestAgentSessionRecordStore(directory)
     setAgentLaunchRecordStore(reopened)
 

@@ -327159,6 +327159,24 @@
   ],
   "adapted_files": [
     {
+      "path": "src/main/runtime/agent-session-record-rows.ts",
+      "upstream_sha256": "57f5e4e5df3443e792e43018b910a89cfad8cff92591fb9fcaf1cd2679aaeb39",
+      "current_sha256": "5f5bd0c23f2cf6abde932c37dda4a6b61265289c74a05481a7b09b4c3256b1ae",
+      "reason": "完整读取包含零字节的会话操作回执键并验证重启安全"
+    },
+    {
+      "path": "src/main/runtime/agent-session-record-store-test-harness.ts",
+      "upstream_sha256": "cc87225f9b497c42d8b33e0ec7cc0db59f5924ee703d1f4a20e62d43257c6881",
+      "current_sha256": "26ece0e347bdd88b60d6a2ee84bcc9412f8653ace0453b81621f9147bdbce6a5",
+      "reason": "完整读取包含零字节的会话操作回执键并验证重启安全"
+    },
+    {
+      "path": "src/main/runtime/rpc/methods/agent-launch-replay.test.ts",
+      "upstream_sha256": "573f328239347a120b7165f537feac988c60fa78588ae780696c6c85dec47e7e",
+      "current_sha256": "a0a78df01d2e8c13e3330df88c84372be0cb2041406b919726c5044ab19d59e7",
+      "reason": "完整读取包含零字节的会话操作回执键并验证重启安全"
+    },
+    {
       "path": "src/cli/runtime/terminal-prompt-mutation-recovery.ts",
       "upstream_sha256": "e243d202440b2e0110a5e3a045ae6735493144d1e486738bb0846ae16c2a9f7a",
       "current_sha256": "63e84e1eeb0a0a28630489210c669238f6606ddac22a159db067388c091ba8fc",

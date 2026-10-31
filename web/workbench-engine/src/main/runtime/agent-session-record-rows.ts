@@ -119,9 +119,15 @@ export function loadAgentSessionStoreRows(db: Database.Database): AgentSessionSt
     }
   }
   for (const row of db
-    .prepare('SELECT operation_key, row_json FROM agent_session_operations ORDER BY rowid')
+    .prepare(
+      'SELECT CAST(operation_key AS BLOB) AS operation_key, row_json FROM agent_session_operations ORDER BY rowid'
+    )
     .all()) {
-    const key = text(row, 'operation_key')
+    // Operation keys contain NUL; reading SQLite TEXT may truncate them at that byte.
+    const key =
+      row.operation_key instanceof Uint8Array
+        ? Buffer.from(row.operation_key).toString('utf8')
+        : null
     const parsed = parseJson(text(row, 'row_json'))
     if (key !== null && parsed.ok && isReadableAgentSessionStoreOperation(key, parsed.value)) {
       state.operations.set(key, parsed.value)
