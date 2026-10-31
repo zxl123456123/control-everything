@@ -83,6 +83,25 @@ describe('managed Pi extension identity installation', () => {
     }
   )
 
+  it('publishes only the current filename for a new pinned fallback', () => {
+    const path = join(directory, PI_AGENT_STATUS_EXTENSION_FILE)
+    expect(writeManagedPiExtension(path, 'new source', 'pinned')).toBe(true)
+    expect(readdirSync(directory)).toEqual([PI_AGENT_STATUS_EXTENSION_FILE])
+  })
+
+  it('leaves a pinned retired input byte-for-byte untouched while updating the current module', () => {
+    const previous = join(directory, 'orca-agent-status.ts')
+    const original = `// ${RETIRED_PI_MANAGED_EXTENSION_MARKER}\r\n// retained input 中文\r\n`
+    writeFileSync(previous, original)
+    const before = statSync(previous).mtimeMs
+    const current = join(directory, PI_AGENT_STATUS_EXTENSION_FILE)
+    expect(writeManagedPiExtension(current, 'new source', 'pinned')).toBe(true)
+    expect(readFileSync(previous, 'utf8')).toBe(original)
+    expect(statSync(previous).mtimeMs).toBe(before)
+    expect(readFileSync(current, 'utf8')).toContain(PI_MANAGED_EXTENSION_MARKER)
+    expect(existsSync(join(root, '.zkyq-retired-extensions'))).toBe(false)
+  })
+
   it('rejects a dangling link without following or replacing it', () => {
     const path = join(directory, PI_AGENT_STATUS_EXTENSION_FILE)
     symlinkSync(join(root, 'missing'), path, 'junction')

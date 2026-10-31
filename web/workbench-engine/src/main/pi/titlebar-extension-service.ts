@@ -99,9 +99,13 @@ export class PiTitlebarExtensionService {
     safeRemoveOverlay(overlayDir, this.getOverlayRoot(kind))
   }
 
-  private writeManagedExtension(path: string, source: string): ManagedExtensionWriteResult {
+  private writeManagedExtension(
+    path: string,
+    source: string,
+    location: 'auto-discovered' | 'pinned' = 'auto-discovered'
+  ): ManagedExtensionWriteResult {
     try {
-      return writeManagedPiExtension(path, source) ? 'written' : 'skipped-user-owned'
+      return writeManagedPiExtension(path, source, location) ? 'written' : 'skipped-user-owned'
     } catch {
       return 'failed'
     }
@@ -119,7 +123,9 @@ export class PiTitlebarExtensionService {
     }
 
     const fallbackPath = join(fallbackDir, PI_AGENT_STATUS_EXTENSION_FILE)
-    return this.writeManagedExtension(fallbackPath, source) === 'written' ? fallbackPath : undefined
+    return this.writeManagedExtension(fallbackPath, source, 'pinned') === 'written'
+      ? fallbackPath
+      : undefined
   }
 
   private installManagedExtensions(

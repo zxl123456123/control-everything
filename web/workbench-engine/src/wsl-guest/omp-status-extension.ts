@@ -10,7 +10,7 @@ export function writeRelayOmpStatusExtension(homeDir: string, source: string): s
   try {
     mkdirSync(directory, { recursive: true })
     const path = join(directory, PI_AGENT_STATUS_EXTENSION_FILE)
-    return writeManagedPiExtension(path, source) ? path : null
+    return writeManagedPiExtension(path, source, 'pinned') ? path : null
   } catch (err) {
     process.stderr.write(
       `[plugin-overlay] failed to write OMP managed status extension: ${err instanceof Error ? err.message : String(err)}\n`

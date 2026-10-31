@@ -598,6 +598,29 @@ describe('PiTitlebarExtensionService', () => {
     expectPiHomeIntact()
   })
 
+  it('keeps an extension pinned by a live OMP shell while exposing only the current path', () => {
+    const fakeHome = mkdtempSync(join(tmpdir(), 'zkyq-omp-live-input-'))
+    const directory = join(userDataDir, 'omp-managed-status-extension')
+    const previous = join(directory, 'orca-agent-status.ts')
+    const original = '// @orca-managed-pi-extension\r\n// live shell fixture 中文\r\n'
+    mkdirSync(directory, { recursive: true })
+    writeFileSync(previous, original)
+    const before = statSync(previous).mtimeMs
+    homedirOverride.current = fakeHome
+    try {
+      const env = new PiTitlebarExtensionService().buildPtyEnv('live-shell', undefined, 'omp', {
+        materializeDefaultHome: false
+      })
+      expect(env.ORCA_OMP_STATUS_EXTENSION).toBe(join(directory, 'zkyq-agent-status.ts'))
+      expect(readFileSync(previous, 'utf8')).toBe(original)
+      expect(statSync(previous).mtimeMs).toBe(before)
+      expect(existsSync(join(fakeHome, '.omp'))).toBe(false)
+    } finally {
+      homedirOverride.current = ''
+      rmSync(fakeHome, { recursive: true, force: true })
+    }
+  })
+
   it('uses an Orca-owned OMP status extension when a same-named user file exists', () => {
     const userStatusExtension = 'user-owned status extension'
     const userStatusPath = join(piHome, 'extensions', 'zkyq-agent-status.ts')

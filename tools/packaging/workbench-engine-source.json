@@ -334973,8 +334973,8 @@
     {
       "path": "src/wsl-guest/plugin-overlay.test.ts",
       "upstream_sha256": "65efb655043c8c4ecb8dd8a2b13be06164d7800ef7b67ecb51366cedc1b0f165",
-      "current_sha256": "73296ccb0266c78b8f4009e817714a40bb6b5a842cbf082d0281008793217e4d",
-      "reason": "OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场；Pi/OMP/Prime扩展统一zkyq文件名和生成标记；本机与relay共用精确所有权检查、原子发布和旧入口原字节移出加载目录，保护用户文件并在发布失败时恢复；保留旧overlay数据排除合同"
+      "current_sha256": "d39c4012cfcc4854c779c497352d587ce0d549c837efa0e6b0627d281314e888",
+      "reason": "OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场；Pi/OMP/Prime扩展统一zkyq文件名和生成标记；本机与relay共用精确所有权检查、原子发布和旧入口原字节移出加载目录，保护用户文件并在发布失败时恢复；保留旧overlay数据排除合同；新OMP fallback仅发布zkyq路径；自动发现扩展照常迁走旧入口，已存在且被旧shell固定引用的输入原字节只读保留，防止改名破坏活跃终端"
     },
     {
       "path": "src/wsl-guest/plugin-overlay.ts",
@@ -336791,14 +336791,14 @@
     {
       "path": "src/main/pi/titlebar-extension-service.test.ts",
       "upstream_sha256": "9d51f92f8412bf1daafda7e48e651e51dd8859d7df0a03b8b143ccd0ac33472f",
-      "current_sha256": "3bb025bd2aa9838058153a57fdd7466a4881c8ca20bbebdfd061ba8b2ccdccd5",
-      "reason": "Pi/OMP/Prime扩展统一zkyq文件名和生成标记；本机与relay共用精确所有权检查、原子发布和旧入口原字节移出加载目录，保护用户文件并在发布失败时恢复；保留旧overlay数据排除合同"
+      "current_sha256": "af528d6c9154f0bb9eeeedaadfbe433528eec814f054f39fa2611b285767136f",
+      "reason": "Pi/OMP/Prime扩展统一zkyq文件名和生成标记；本机与relay共用精确所有权检查、原子发布和旧入口原字节移出加载目录，保护用户文件并在发布失败时恢复；保留旧overlay数据排除合同；新OMP fallback仅发布zkyq路径；自动发现扩展照常迁走旧入口，已存在且被旧shell固定引用的输入原字节只读保留，防止改名破坏活跃终端"
     },
     {
       "path": "src/main/pi/titlebar-extension-service.ts",
       "upstream_sha256": "9e79e0f6c0d79ca19a3a6d0b63a8e9b6b8dd4e1055cd2a394041755f257a1968",
-      "current_sha256": "8a2b8f2be63b1305267f596987ebd501db6a4c83653044e97044ee3ea846e03d",
-      "reason": "Pi/OMP/Prime扩展统一zkyq文件名和生成标记；本机与relay共用精确所有权检查、原子发布和旧入口原字节移出加载目录，保护用户文件并在发布失败时恢复；保留旧overlay数据排除合同"
+      "current_sha256": "ef5fbef07e0dcf3919cfc9ce15e45bac0b97de7faeca4c3753191696ab38e6d4",
+      "reason": "Pi/OMP/Prime扩展统一zkyq文件名和生成标记；本机与relay共用精确所有权检查、原子发布和旧入口原字节移出加载目录，保护用户文件并在发布失败时恢复；保留旧overlay数据排除合同；新OMP fallback仅发布zkyq路径；自动发现扩展照常迁走旧入口，已存在且被旧shell固定引用的输入原字节只读保留，防止改名破坏活跃终端"
     },
     {
       "path": "src/wsl-guest/omp-config-root.test.ts",
@@ -336809,8 +336809,8 @@
     {
       "path": "src/wsl-guest/omp-status-extension.ts",
       "upstream_sha256": "66296ef77f4d2f45bf744e284c5e553faa18e26945cf8ad7b6310558be145181",
-      "current_sha256": "429f8c5a4b35c64a54ed06e9d7b2dd06c69ac221abdeb85a6863fd7ca3201324",
-      "reason": "Pi/OMP/Prime扩展统一zkyq文件名和生成标记；本机与relay共用精确所有权检查、原子发布和旧入口原字节移出加载目录，保护用户文件并在发布失败时恢复；保留旧overlay数据排除合同"
+      "current_sha256": "0d77a125e05354baab70851a8de44643016728d2e7b059cbf7db4eb6575dc69c",
+      "reason": "Pi/OMP/Prime扩展统一zkyq文件名和生成标记；本机与relay共用精确所有权检查、原子发布和旧入口原字节移出加载目录，保护用户文件并在发布失败时恢复；保留旧overlay数据排除合同；新OMP fallback仅发布zkyq路径；自动发现扩展照常迁走旧入口，已存在且被旧shell固定引用的输入原字节只读保留，防止改名破坏活跃终端"
     }
   ],
   "reviewed_findings": [

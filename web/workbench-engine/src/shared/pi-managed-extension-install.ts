@@ -43,7 +43,11 @@ function readManagedExtension(path: string): string | null | false {
 }
 
 /** Replace only owned entries; retired modules are preserved outside auto-discovery. */
-export function writeManagedPiExtension(path: string, source: string): boolean {
+export function writeManagedPiExtension(
+  path: string,
+  source: string,
+  location: 'auto-discovered' | 'pinned' = 'auto-discovered'
+): boolean {
   const name = basename(path)
   if (
     ![
@@ -64,7 +68,8 @@ export function writeManagedPiExtension(path: string, source: string): boolean {
   const staged = join(directory, `.${randomUUID()}.tmp`)
   try {
     mkdirSync(directory, { recursive: true })
-    if (previous !== null) {
+    // Pinned fallbacks live outside discovery; old shells still hold their original input path.
+    if (previous !== null && location === 'auto-discovered') {
       const archiveDir = join(dirname(directory), '.zkyq-retired-extensions')
       mkdirSync(archiveDir, { recursive: true })
       const destination = join(archiveDir, `${name}-${randomUUID()}.disabled`)

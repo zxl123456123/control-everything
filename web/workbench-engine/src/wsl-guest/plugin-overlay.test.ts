@@ -59,6 +59,22 @@ describe('PluginOverlayManager', () => {
     }
   )
 
+  it('keeps an extension pinned by a live OMP shell while exposing only the current path', () => {
+    const directory = join(homeDir, '.orca-relay', 'omp-managed-status-extension')
+    const previous = join(directory, 'orca-agent-status.ts')
+    const original = '// @orca-managed-pi-extension\r\n// live shell fixture 中文\r\n'
+    mkdirSync(directory, { recursive: true })
+    writeFileSync(previous, original)
+    const before = statSync(previous).mtimeMs
+    manager.setSources({ ompExtensionSource: 'current fixture source' })
+    expect(
+      manager.materializePi('live-shell', undefined, 'omp', { materializeDefaultHome: false })
+    ).toEqual({ statusExtensionPath: join(directory, 'zkyq-agent-status.ts') })
+    expect(readFileSync(previous, 'utf8')).toBe(original)
+    expect(statSync(previous).mtimeMs).toBe(before)
+    expect(existsSync(join(homeDir, '.omp'))).toBe(false)
+  })
+
   it('reports no source until install runs', () => {
     expect(manager.hasOpenCodeSource()).toBe(false)
     expect(manager.hasPiSource()).toBe(false)
