@@ -64,14 +64,14 @@ describe('plugin overlay env source resolution', () => {
     }
   )
 
-  it('keeps explicit original-source env ahead of startup hints', () => {
+  it.each(['ORCA', 'ZKYQ'])('keeps %s original-source env ahead of startup hints', (prefix) => {
     writeFileSync(join(homeDir, '.zshrc'), 'export OPENCODE_CONFIG_DIR="$HOME/company-opencode"\n')
 
     expect(
       resolveOpenCodeSourceConfigDir(
         {
           HOME: homeDir,
-          ORCA_OPENCODE_SOURCE_CONFIG_DIR: '/remote/original-opencode',
+          [`${prefix}_OPENCODE_SOURCE_CONFIG_DIR`]: '/remote/original-opencode',
           OPENCODE_CONFIG_DIR: '/tmp/inherited-opencode-overlay'
         },
         '/bin/zsh'

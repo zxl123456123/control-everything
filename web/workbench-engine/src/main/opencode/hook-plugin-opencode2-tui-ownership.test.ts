@@ -39,7 +39,7 @@ const SES_A = 'ses_f161fd85fffeieT0zYt80ZKorS'
 const SES_B = 'ses_f161fcd7affeffV0OOrMCrTxtQ'
 const ENV_KEYS = [
   'ORCA_PANE_KEY',
-  'ORCA_OPENCODE_AGENT',
+  'ZKYQ_OPENCODE_AGENT',
   'ORCA_AGENT_HOOK_ENDPOINT',
   'ORCA_AGENT_HOOK_PORT',
   'ORCA_AGENT_HOOK_TOKEN'
@@ -98,7 +98,7 @@ describe('OpenCode 2 TUI reporter: each pane reports its own sessions', () => {
     for (const key of ENV_KEYS) {
       savedEnv[key] = process.env[key]
     }
-    process.env.ORCA_OPENCODE_AGENT = 'opencode'
+    process.env.ZKYQ_OPENCODE_AGENT = 'opencode'
     delete process.env.ORCA_AGENT_HOOK_ENDPOINT
     process.env.ORCA_AGENT_HOOK_PORT = '59999'
     process.env.ORCA_AGENT_HOOK_TOKEN = 'test-token'
@@ -811,7 +811,7 @@ describe('OpenCode 2 TUI reporter: each pane reports its own sessions', () => {
     ['a TUI outside an Orca pane', () => fakeTui()]
   ])('stays silent in %s', async (label, make) => {
     if (label === 'the other pane variant') {
-      process.env.ORCA_OPENCODE_AGENT = 'opencode2'
+      process.env.ZKYQ_OPENCODE_AGENT = 'opencode2'
     }
     process.env.ORCA_PANE_KEY = PANE_A
     if (label === 'a TUI outside an Orca pane') {

@@ -1,4 +1,5 @@
 import { resolveLoginShellEnvironment } from '../main/startup/login-shell-environment'
+import { migrateOpenCodeEnvironmentIdentity } from '../shared/opencode-environment-identity'
 import { readSessionShellStartupEnvVar } from '../main/pty/shell-startup-env'
 import {
   PRIMARY_AGENT_DIR_ENV_BY_KIND,
@@ -24,8 +25,10 @@ export function resolveOpenCodeSourceConfigDir(
   env: Record<string, string>,
   shell: string | undefined
 ): string | undefined {
+  env = { ...env }
+  migrateOpenCodeEnvironmentIdentity(env)
   return firstNonEmpty(
-    env.ORCA_OPENCODE_SOURCE_CONFIG_DIR,
+    env.ZKYQ_OPENCODE_SOURCE_CONFIG_DIR,
     readStartupEnv('OPENCODE_CONFIG_DIR', env, shell),
     env.OPENCODE_CONFIG_DIR
   )

@@ -35,7 +35,10 @@ describe('OpenCode status plugin module contract', () => {
   // env. Pin every input here so the run does not depend on the developer's Orca session
   // (an inherited ORCA_AGENT_HOOK_ENDPOINT would otherwise redirect the post to a live app).
   const ENV_KEYS = [
+    'ZKYQ_OPENCODE_PLUGIN_API',
     'ORCA_OPENCODE_PLUGIN_API',
+    'ZKYQ_OPENCODE_AGENT',
+    'ORCA_OPENCODE_AGENT',
     'ORCA_PANE_KEY',
     'ORCA_AGENT_HOOK_ENDPOINT',
     'ORCA_AGENT_HOOK_PORT',
@@ -56,6 +59,8 @@ describe('OpenCode status plugin module contract', () => {
     // Why: the generated plugin self-disables when this names a different major,
     // so an inherited value from the developer's own Orca pane would leave
     // `hooks.event` undefined and fail the contract for the wrong reason.
+    delete process.env.ZKYQ_OPENCODE_PLUGIN_API
+    delete process.env.ZKYQ_OPENCODE_AGENT
     delete process.env.ORCA_OPENCODE_PLUGIN_API
     delete process.env.ORCA_OPENCODE_AGENT
     delete process.env.ORCA_AGENT_HOOK_ENDPOINT
@@ -89,10 +94,26 @@ describe('OpenCode status plugin module contract', () => {
   }
 
   it('selects the same factory for a v1 execution host', async () => {
-    process.env.ORCA_OPENCODE_PLUGIN_API = 'v1'
+    process.env.ZKYQ_OPENCODE_PLUGIN_API = 'v1'
     const module = await loadPluginModule()
     expect(module.default).toBeTypeOf('function')
     expect(module.default).toBe(module.OrcaOpenCodeStatusPlugin)
+  })
+
+  it('migrates an already running v1 host before selecting the generated module contract', async () => {
+    process.env.ORCA_OPENCODE_PLUGIN_API = 'v1'
+    const module = await loadPluginModule()
+    expect(module.default).toBe(module.OrcaOpenCodeStatusPlugin)
+    expect(process.env.ZKYQ_OPENCODE_PLUGIN_API).toBe('v1')
+    expect(process.env.ORCA_OPENCODE_PLUGIN_API).toBeUndefined()
+  })
+
+  it('retains agent ownership when loading from a retired environment', async () => {
+    process.env.ORCA_OPENCODE_AGENT = 'opencode2'
+    const module = await loadPluginModule()
+    expect(await module.OrcaOpenCodeStatusPlugin?.({})).toEqual({})
+    expect(process.env.ZKYQ_OPENCODE_AGENT).toBe('opencode2')
+    expect(process.env.ORCA_OPENCODE_AGENT).toBeUndefined()
   })
 
   it('exposes a default export carrying a string id and a callable server()', async () => {

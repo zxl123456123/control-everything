@@ -334,7 +334,7 @@ function inheritedEnvironment(): Record<string, string> {
     ZKYQ_CLI_COMMAND: '/parent/orca',
     ORCA_CLI_BIN_DIR: '/parent/bin',
     ZKYQ_USER_DATA_PATH: '/parent/user-data',
-    ORCA_OPENCODE_CONFIG_DIR: '/parent/opencode-overlay',
+    ZKYQ_OPENCODE_CONFIG_DIR: '/parent/opencode-overlay',
     ORCA_DATA_ACCOUNT_PROVIDER: 'parent-account',
     CLAUDE_CONFIG_DIR: '/parent/claude',
     CLAUDE_CODE_SESSION_ID: 'parent-claude-session',

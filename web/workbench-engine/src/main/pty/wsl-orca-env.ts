@@ -74,7 +74,7 @@ export function addOrcaWslInteropEnv(env: Record<string, string>): void {
   // Windows value into /mnt/c and let in-guest OpenCode adopt it as its config
   // root — reachable via the relay spawn's process.env (wsl-hook-relay-launch)
   // and via daemon-inherited env, which buildPtyHostEnv's delete cannot reach.
-  const opencodeOverlayEntries = (['OPENCODE_CONFIG_DIR', 'ORCA_OPENCODE_CONFIG_DIR'] as const)
+  const opencodeOverlayEntries = (['OPENCODE_CONFIG_DIR', 'ZKYQ_OPENCODE_CONFIG_DIR'] as const)
     .filter((name) => env[name]?.startsWith('/'))
     .map((name) => `${name}/u`)
   // Why: wsl.exe only imports selected Windows env vars, so WSL needs the wrapper root, pane identity, and hook/OMP coordinates at start.
@@ -97,7 +97,7 @@ export function addOrcaWslInteropEnv(env: Record<string, string>): void {
     'ORCA_AGENT_LAUNCH_TOKEN/u',
     // The guest plugin uses this marker to select the OpenCode variant that
     // owns the pane when both native and WSL installations are present.
-    'ORCA_OPENCODE_AGENT/u',
+    'ZKYQ_OPENCODE_AGENT/u',
     `${SETUP_AGENT_SEQUENCE_STARTUP_COMMAND_ENV}/u`,
     `${SETUP_AGENT_SEQUENCE_STARTUP_SCRIPT_ENV}/u`,
     'ORCA_ORCHESTRATION_COMPATIBILITY_HOST_KIND/u',

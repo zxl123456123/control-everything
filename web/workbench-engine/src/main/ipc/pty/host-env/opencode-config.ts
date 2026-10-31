@@ -10,6 +10,7 @@ import { isTuiAgentEnabled } from '../../../../shared/tui-agent-selection'
 import { resolveOpenCodeConfigDirectory } from '../../../../shared/opencode-config-directory'
 import { readSessionShellStartupEnvVar } from '../../../pty/shell-startup-env'
 import type { BuildPtyHostEnvOptions } from './types'
+import { migrateOpenCodeEnvironmentIdentity } from '../../../../shared/opencode-environment-identity'
 
 type OpenCodeSourceConfig = {
   inheritedEnv: NodeJS.ProcessEnv
@@ -20,6 +21,9 @@ export function captureOpenCodeSourceConfig(
   env: Record<string, string>,
   userDataPath: string
 ): OpenCodeSourceConfig {
+  const currentInherited = { ...process.env }
+  migrateOpenCodeEnvironmentIdentity(currentInherited)
+  migrateOpenCodeEnvironmentIdentity(env)
   const isLegacyDirectory = (dir: string | undefined): boolean =>
     isOpenCodeLegacySharedConfigDir(dir, userDataPath)
   const inheritedEnv: NodeJS.ProcessEnv = {}
@@ -27,8 +31,8 @@ export function captureOpenCodeSourceConfig(
     if (isLegacyDirectory(env[key])) {
       delete env[key]
     }
-    if (!isLegacyDirectory(process.env[key])) {
-      inheritedEnv[key] = process.env[key]
+    if (!isLegacyDirectory(currentInherited[key])) {
+      inheritedEnv[key] = currentInherited[key]
     }
   }
   // A daemon or sibling shell can retain a retired path that main no longer sees.
@@ -58,18 +62,18 @@ export function applyOpenCodeStatusPluginEnv(
     env,
     {
       primary: 'OPENCODE_CONFIG_DIR',
-      overlay: 'ORCA_OPENCODE_CONFIG_DIR',
-      source: 'ORCA_OPENCODE_SOURCE_CONFIG_DIR',
+      overlay: 'ZKYQ_OPENCODE_CONFIG_DIR',
+      source: 'ZKYQ_OPENCODE_SOURCE_CONFIG_DIR',
       preserveExplicitPrimary: true
     },
     config.inheritedEnv
   )
-  delete env.ORCA_OPENCODE_AGENT
+  delete env.ZKYQ_OPENCODE_AGENT
   if (!agent) {
     return null
   }
   const service = agent === 'opencode2' ? openCode2HookService : openCodeHookService
-  env.ORCA_OPENCODE_AGENT = agent
+  env.ZKYQ_OPENCODE_AGENT = agent
   // WSL owns its config writes; only the guest overlay may enter a WSL pane.
   if (!options.isWsl) {
     const executionEnv = { ...process.env, ...env }
@@ -82,11 +86,11 @@ export function applyOpenCodeStatusPluginEnv(
   }
   if (env.OPENCODE_CONFIG_DIR) {
     // Shell startup can re-export the default; preserve this pane's overlay and original source.
-    env.ORCA_OPENCODE_CONFIG_DIR = env.OPENCODE_CONFIG_DIR
+    env.ZKYQ_OPENCODE_CONFIG_DIR = env.OPENCODE_CONFIG_DIR
     if (config.directory) {
-      env.ORCA_OPENCODE_SOURCE_CONFIG_DIR = config.directory
+      env.ZKYQ_OPENCODE_SOURCE_CONFIG_DIR = config.directory
     } else {
-      delete env.ORCA_OPENCODE_SOURCE_CONFIG_DIR
+      delete env.ZKYQ_OPENCODE_SOURCE_CONFIG_DIR
     }
   }
   return agent

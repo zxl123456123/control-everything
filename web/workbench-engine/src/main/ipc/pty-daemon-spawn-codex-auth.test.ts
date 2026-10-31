@@ -450,13 +450,13 @@ describe('registerPtyHandlers', () => {
           join(consumerConfigHome, 'opencode')
         )
         expect(env.OPENCODE_CONFIG_DIR).toBe('/tmp/orca-opencode-overlay')
-        expect(env.ORCA_OPENCODE_CONFIG_DIR).toBe('/tmp/orca-opencode-overlay')
-        expect(env.ORCA_OPENCODE_SOURCE_CONFIG_DIR).toBe('/user/custom/opencode')
+        expect(env.ZKYQ_OPENCODE_CONFIG_DIR).toBe('/tmp/orca-opencode-overlay')
+        expect(env.ZKYQ_OPENCODE_SOURCE_CONFIG_DIR).toBe('/user/custom/opencode')
       })
       it('uses source OpenCode config env instead of remirroring a parent overlay', async () => {
         const env = await daemonSpawnAndGetEnv({
           OPENCODE_CONFIG_DIR: '/tmp/parent-orca-opencode-overlay',
-          ORCA_OPENCODE_SOURCE_CONFIG_DIR: '/user/custom/opencode',
+          ZKYQ_OPENCODE_SOURCE_CONFIG_DIR: '/user/custom/opencode',
           XDG_CONFIG_HOME: consumerConfigHome
         })
         expect(openCodeBuildPtyEnvMock).toHaveBeenCalledWith(
@@ -465,8 +465,8 @@ describe('registerPtyHandlers', () => {
           join(consumerConfigHome, 'opencode')
         )
         expect(env.OPENCODE_CONFIG_DIR).toBe('/tmp/orca-opencode-overlay')
-        expect(env.ORCA_OPENCODE_CONFIG_DIR).toBe('/tmp/orca-opencode-overlay')
-        expect(env.ORCA_OPENCODE_SOURCE_CONFIG_DIR).toBe('/user/custom/opencode')
+        expect(env.ZKYQ_OPENCODE_CONFIG_DIR).toBe('/tmp/orca-opencode-overlay')
+        expect(env.ZKYQ_OPENCODE_SOURCE_CONFIG_DIR).toBe('/user/custom/opencode')
       })
       it('installs Pi managed extensions without redirecting homes on the daemon path', async () => {
         const env = await daemonSpawnAndGetEnv({ PI_CODING_AGENT_DIR: '/user/.pi/agent' })

@@ -33,8 +33,8 @@ type PluginModule = {
 
 const ENV_KEYS = [
   'ORCA_PANE_KEY',
-  'ORCA_OPENCODE_AGENT',
-  'ORCA_OPENCODE_PLUGIN_API',
+  'ZKYQ_OPENCODE_AGENT',
+  'ZKYQ_OPENCODE_PLUGIN_API',
   'ORCA_AGENT_HOOK_ENDPOINT',
   'ORCA_AGENT_HOOK_PORT',
   'ORCA_AGENT_HOOK_TOKEN'
@@ -81,8 +81,8 @@ describe.each(['opencode', 'opencode2'] as const)('%s plugin disposal by host', 
       savedEnv[key] = process.env[key]
     }
     process.env.ORCA_PANE_KEY = 'tab-1:leaf-1'
-    process.env.ORCA_OPENCODE_AGENT = agent
-    process.env.ORCA_OPENCODE_PLUGIN_API = 'v2'
+    process.env.ZKYQ_OPENCODE_AGENT = agent
+    process.env.ZKYQ_OPENCODE_PLUGIN_API = 'v2'
     delete process.env.ORCA_AGENT_HOOK_ENDPOINT
     process.env.ORCA_AGENT_HOOK_PORT = '59999'
     process.env.ORCA_AGENT_HOOK_TOKEN = 'test-token'

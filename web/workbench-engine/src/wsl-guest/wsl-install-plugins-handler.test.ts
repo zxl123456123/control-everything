@@ -111,7 +111,7 @@ describe.skipIf(process.platform === 'win32')('createInstallPluginsHandler (gues
 
       mkdirSync(userConfig, { recursive: true })
       writeFileSync(join(userConfig, 'opencode.json'), '{"model":"late"}')
-      env.ORCA_OPENCODE_SOURCE_CONFIG_DIR = userConfig
+      env.ZKYQ_OPENCODE_SOURCE_CONFIG_DIR = userConfig
 
       // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: Runtime validation or the local test fixture establishes the asserted shape.
       const dir = install({ opencodePluginSource: source }).overlayDirs.opencode as string
@@ -176,7 +176,7 @@ describe.skipIf(process.platform === 'win32')('createInstallPluginsHandler (gues
       writeFileSync(join(userConfig, 'opencode.json'), '{"model":"user-set"}')
       const install = createInstallPluginsHandler(new PluginOverlayManager({ homeDir: home }), {
         HOME: home,
-        ORCA_OPENCODE_SOURCE_CONFIG_DIR: userConfig,
+        ZKYQ_OPENCODE_SOURCE_CONFIG_DIR: userConfig,
         ORCA_WSL_HOOK_INSTANCE: 'inst1'
       })
       // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: Runtime validation or the local test fixture establishes the asserted shape.

@@ -283,7 +283,7 @@ describePosix('epilogue under hostile user shell options', () => {
       const spawnEnv: Record<string, string> = {
         HOME: home,
         ZKYQ_HISTFILE: scoped,
-        ORCA_OPENCODE_CONFIG_DIR: opencodeDir
+        ZKYQ_OPENCODE_CONFIG_DIR: opencodeDir
       }
       const features = selectShellStartupFeatures({
         shellPath: ZSH_PATH,

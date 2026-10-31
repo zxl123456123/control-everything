@@ -28,7 +28,7 @@ type Post = { hook_event_name: string; sessionID?: string }
 
 const ENV_KEYS = [
   'ORCA_PANE_KEY',
-  'ORCA_OPENCODE_AGENT',
+  'ZKYQ_OPENCODE_AGENT',
   'ORCA_AGENT_HOOK_ENDPOINT',
   'ORCA_AGENT_HOOK_PORT',
   'ORCA_AGENT_HOOK_TOKEN'
@@ -47,7 +47,7 @@ describe.each(['opencode', 'opencode2'] as const)('%s plugin OpenCode 2 lineage'
       savedEnv[key] = process.env[key]
     }
     process.env.ORCA_PANE_KEY = 'tab-1:leaf-1'
-    process.env.ORCA_OPENCODE_AGENT = agent
+    process.env.ZKYQ_OPENCODE_AGENT = agent
     delete process.env.ORCA_AGENT_HOOK_ENDPOINT
     process.env.ORCA_AGENT_HOOK_PORT = '59999'
     process.env.ORCA_AGENT_HOOK_TOKEN = 'test-token'

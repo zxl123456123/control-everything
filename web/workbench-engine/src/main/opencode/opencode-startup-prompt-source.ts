@@ -1,6 +1,7 @@
 import { OPENCODE_NATIVE_PROMPT_VERSIONS } from '../../shared/opencode-cli-version'
 import { cancelUnreadResponseBody } from '../lib/unread-response-body'
 import { parseAgentHookEndpointFile } from '../../shared/agent-hook-endpoint-file'
+import { migrateOpenCodeEnvironmentIdentity } from '../../shared/opencode-environment-identity'
 import {
   OPENCODE_STARTUP_PROMPT_SHA256_ENV,
   OPENCODE_STARTUP_PROMPT_NONCE_ENV,
@@ -11,6 +12,7 @@ import {
 
 export function getOpenCodeStartupPromptSource(): string {
   return String.raw`
+(${migrateOpenCodeEnvironmentIdentity.toString()})(process.env);
 const parseEndpoint = ${parseAgentHookEndpointFile.toString()};
 const cancelUnreadResponseBody = ${cancelUnreadResponseBody.toString()};
 async function claimStartupPrompt(nonce, digest, endpoint, requestId) {

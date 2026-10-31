@@ -327205,7 +327205,9 @@
     "src/main/runtime/orchestration/db/schema/migrate-v44.ts",
     "src/main/runtime/rpc/orchestration-session-address-migration.test.ts",
     "src/main/source-control/source-control-environment.test.ts",
-    "src/main/source-control/source-control-environment.ts"
+    "src/main/source-control/source-control-environment.ts",
+    "src/shared/opencode-environment-identity.test.ts",
+    "src/shared/opencode-environment-identity.ts"
   ],
   "adapted_files": [
     {
@@ -330229,8 +330231,8 @@
     {
       "path": "src/main/ipc/pty/host-env/assembly.ts",
       "upstream_sha256": "cea26bedafe323d652f0b6f2acba821a564220742d4f122a8bb9f18e858e1a09",
-      "current_sha256": "1aefc00a4bcd956238900a7abdc896443fc19af2c903c6b7de24923a017fc096",
-      "reason": "WSL命令迁移为zkyq，成功写入后退役受管理旧入口，保留用户文件和桥接参数，失效旧命令修复缓存并对齐派发环境；原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者；开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
+      "current_sha256": "6b65bbf5fa1a5ae9401ab2b76b2c8da8079aa47b6eafae2fcd93d720fda56d50",
+      "reason": "WSL命令迁移为zkyq，成功写入后退役受管理旧入口，保留用户文件和桥接参数，失效旧命令修复缓存并对齐派发环境；原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者；开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属"
     },
     {
       "path": "src/main/ipc/pty/host-env/codex-hook-reconcile-spawn.test.ts",
@@ -330781,8 +330783,8 @@
     {
       "path": "src/main/shell-startup-feature-channel.test.ts",
       "upstream_sha256": "6c8d7a6f84895b6a36330e2b4c5a205220ebced59f9023e7145d339b48de0183",
-      "current_sha256": "027715f1e9597b74d9026f2eb8ee47f12ae4ae8e5db42130d741bd6cd92d95a9",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；迁移终端历史交接变量并以新版 daemon 隔离旧 shell 合同"
+      "current_sha256": "ee81cc6f53ea403fb862c94ee92bcbeb79a1d53447646153f1f396df19986050",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；迁移终端历史交接变量并以新版 daemon 隔离旧 shell 合同；OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属"
     },
     {
       "path": "src/main/startup/run-electron-vite-dev.test.ts",
@@ -331705,14 +331707,14 @@
     {
       "path": "src/main/daemon/pty-subprocess-test-harness.ts",
       "upstream_sha256": "06273ab97e275c5b548f342d030d44300e1ef99c9c4199fe4bb7e9011b8b903b",
-      "current_sha256": "ea58963f331c93cc46ffddd04df1fd413f12070f19f435ce93d7a5c9af296fae",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+      "current_sha256": "e576940b8b307379c87879b11c0ee271bc518db505afc8a8fae63402d9f6ed06",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属"
     },
     {
       "path": "src/main/daemon/pty-subprocess/spawn-environment.ts",
       "upstream_sha256": "a2132d872276824fe527d1a97077c5dfeee9fc18e2ddc0815e77010e115cbdb7",
-      "current_sha256": "c367336e74d93971cab74f69fe0c6d6cc1e6765e4e6ab0cd5a512e7534672ae8",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；本地与远端终端进程标识统一为 zkyq；迁移终端历史交接变量并以新版 daemon 隔离旧 shell 合同；迁移应用版本环境变量并隔离驻留旧版 daemon"
+      "current_sha256": "daa8865cbce2d457a5cfcd0452992c8be9af90c115dc6b73930e144ffe2ce1b6",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；本地与远端终端进程标识统一为 zkyq；迁移终端历史交接变量并以新版 daemon 隔离旧 shell 合同；迁移应用版本环境变量并隔离驻留旧版 daemon；OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属"
     },
     {
       "path": "src/main/daemon/pty-subprocess/spawn-preflight-health-probe.test.ts",
@@ -331735,8 +331737,8 @@
     {
       "path": "src/main/ipc/pty-ipc-process-env-scope.ts",
       "upstream_sha256": "30b5be7243b9a3ca2d99f36ebdd62eb9cc142fbcea0a7b9730523ea8ed9dea51",
-      "current_sha256": "4cc797d660522a410d0997657b47eccaf9cfc47162a08f29bb742565ae9d63ff",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+      "current_sha256": "3e38017caddd447d67bfbde7218fe833246572bd93f16d0a2c79f933d8e81ae2",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属"
     },
     {
       "path": "src/main/ipc/pty-ipc-suite-environment.ts",
@@ -331747,8 +331749,8 @@
     {
       "path": "src/main/ipc/pty/opencode-legacy-spawn-deletions.test.ts",
       "upstream_sha256": "7283e3cd65d6f27a773e77b4d03c3f831098c32390c39f056166d8a494a3e262",
-      "current_sha256": "471c60d3ebc2bcde6e7638b3475999bfe6e2365d34575c46eab36d1040aa232b",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+      "current_sha256": "afc5f13667b9adf097039d7e8cb5e80b9aa4ec1ca618c8b441ec8abe9e2f5222",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属"
     },
     {
       "path": "src/main/native-chat/session-file-resolver.test.ts",
@@ -331795,8 +331797,8 @@
     {
       "path": "src/main/providers/local-pty-shell-ready-wrapper-generation.test.ts",
       "upstream_sha256": "095560af91cfe5f5f587186793634f20ea6646acb0b6d7ba1e959c6beda3915e",
-      "current_sha256": "7b04f224266420f4989e1b68dab643276cf0837e20a3cb9ee419cc4358c4c580",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；恢复实际验收所需夹具并核对跨平台路径及Windows无POSIX包装的行为"
+      "current_sha256": "3207c4493dda967a6f3534150bbb625c6fe5aa4db25a89ec39f1f4072f26b955",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；恢复实际验收所需夹具并核对跨平台路径及Windows无POSIX包装的行为；OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属"
     },
     {
       "path": "src/main/providers/local-pty-shell-ready-wrapper-root.ts",
@@ -331825,8 +331827,8 @@
     {
       "path": "src/main/pty/wsl-orca-env.ts",
       "upstream_sha256": "79f15d7b17d41f207a8f68127df82b7b538dea45e6d45578fd519e5ac93e691d",
-      "current_sha256": "22941502dd2861e86818a09a5ce53ffcadf91c753f3a638ce40d8241bfd96b6b",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
+      "current_sha256": "97820a17ad393dac82524dfd864de6953766a1b90c9ce8f17e700e0616e65904",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属"
     },
     {
       "path": "src/main/rate-limits/hidden-rate-limit-pty-cwd.ts",
@@ -331855,8 +331857,8 @@
     {
       "path": "src/main/runtime/structured-agent-launch-parity.test.ts",
       "upstream_sha256": "842230c594bf65a7e6abfc9c13d47b7bd172559de1a373acf4e9285092c95360",
-      "current_sha256": "17d73a6be5c3c1348243b061ada6b79045a94aad3bb7828923fe7e9d9d71015d",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
+      "current_sha256": "e4ae5326afb389388d1ccc50b8bf0f829a8d1fb7dc8d309caaaaeda9763fd108",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属"
     },
     {
       "path": "src/main/runtime/structured-session-child-env.ts",
@@ -332713,8 +332715,8 @@
     {
       "path": "src/main/providers/local-pty-spawn-environment.ts",
       "upstream_sha256": "bf76ed09538492ebf83fd3b94d936837414bced629aa2a78d446f10e6cba7313",
-      "current_sha256": "c42eba19e83e970da5984a44155e60bc81f862cdbaf857d6f03be0a7167e15f3",
-      "reason": "本地与远端终端进程标识统一为 zkyq；迁移应用版本环境变量并隔离驻留旧版 daemon"
+      "current_sha256": "6fedd6350c5eb6b6d0ec0c6cc22e09da945b8f99795e9e1b49a146dd55cdcb7c",
+      "reason": "本地与远端终端进程标识统一为 zkyq；迁移应用版本环境变量并隔离驻留旧版 daemon；OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属"
     },
     {
       "path": "src/main/daemon/daemon-foreground-confirmation-protocol.test.ts",
@@ -332737,8 +332739,8 @@
     {
       "path": "src/main/shell-startup-features.ts",
       "upstream_sha256": "0d8e2ff5bd3e4a5f167592ed98537e11ef704defe48e21015dc870f332bb6162",
-      "current_sha256": "eb0a0010537e17ee1f6668080ba3287fb5996d458302004ba0ee77771f668583",
-      "reason": "迁移终端历史交接变量并以新版 daemon 隔离旧 shell 合同"
+      "current_sha256": "c2c4e99b8a1db2973fbed1eb20e2286713849065f5eb28287d690790317838e2",
+      "reason": "迁移终端历史交接变量并以新版 daemon 隔离旧 shell 合同；OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属"
     },
     {
       "path": "src/main/shell-templates.ts",
@@ -334573,8 +334575,212 @@
     {
       "path": "src/main/ipc/pty-login-shell-startup-commands.test.ts",
       "upstream_sha256": "56945c0605657541023a6dea8dbcb5a8a58f4078fed0d6dce1f74d7557a91f8d",
-      "current_sha256": "56e0ba87e700cf64c151f53b458fdb5164208566a942c58597eadee42980502b",
-      "reason": "恢复实际验收所需夹具并核对跨平台路径及Windows无POSIX包装的行为"
+      "current_sha256": "3944beebf87328e9ac508f75d6eac5a130dffd2537d68a6436f3f3ebf372ddc2",
+      "reason": "恢复实际验收所需夹具并核对跨平台路径及Windows无POSIX包装的行为；OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属"
+    },
+    {
+      "path": "src/main/acp/acp-structured-launch-resolution-opencode.test.ts",
+      "upstream_sha256": "60d27f19c6056dbc77057524b62378cca19de820aa007a4f91b386ddafe3450c",
+      "current_sha256": "debb0863fad4cdbf4333cdc8a9bfc039788e3387a0af40ba12d29ae312604e87",
+      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属"
+    },
+    {
+      "path": "src/main/daemon/daemon-bash-shell-ready-rcfile.ts",
+      "upstream_sha256": "71fcba2c825d8233ec08a808bb9d44eac136ed79f30a863d5cb58bc4bf56f3fe",
+      "current_sha256": "0cbe254cbcb739d9d1b66de020689fc36061bc6adca2f302ed21df55e1fe41f0",
+      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属"
+    },
+    {
+      "path": "src/main/ipc/pty-daemon-spawn-codex-auth.test.ts",
+      "upstream_sha256": "182831271701d1363e9fafd8e5d85f301f40e87fbbb52cd6e42f7f06cd3f14d5",
+      "current_sha256": "b6fa43910ff6d9cc5d7f03d79c55911ecc1f3fde2479c269ebcaa77641dd3550",
+      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属"
+    },
+    {
+      "path": "src/main/ipc/pty-hidden-at-spawn-mark.test.ts",
+      "upstream_sha256": "4a63b0f9907fd636c1b40e9914ac47cf9a6332dbcc78ced663d46b96b3c6d794",
+      "current_sha256": "74a37f535bcfae3ebb8f4f3fd56f7ee023715c94c41690dfffe45bd32d412ee9",
+      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属"
+    },
+    {
+      "path": "src/main/ipc/pty-listener-teardown-and-orphans.test.ts",
+      "upstream_sha256": "8d11dd64a43361aa8b4a1fa7a0718836ea574b9cf6801a9a137ca93b8a285203",
+      "current_sha256": "301f2d3e6be7487b14cff5b4ae4cff5c7c4d3daeeb574c1203d298425629ee16",
+      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属"
+    },
+    {
+      "path": "src/main/ipc/pty/host-env/opencode-config.ts",
+      "upstream_sha256": "13a9b6f7db7b67b0b6282547cdfbcc00dc8f79354ddf88b14f5d942fe375c8b9",
+      "current_sha256": "0cded2a32c43bfad532f3648719eba5081d5aa070e5663b6198a4cf173c7a9d9",
+      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属"
+    },
+    {
+      "path": "src/main/ipc/pty/host-env/pi-agent.ts",
+      "upstream_sha256": "c8b9adc0b17c83a16e8dd098971664b3347e508b4ea002fd7d584b108c72e47f",
+      "current_sha256": "966d29d4ad835df8011a704df006c873db55e8b2db59ba0b3635e1ba1ca40ff1",
+      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属"
+    },
+    {
+      "path": "src/main/opencode/hook-plugin-dispose-host.test.ts",
+      "upstream_sha256": "03464f31dd696e20d5fb970ca6de97d9a6b5782ef2a5b396244b526ff8107357",
+      "current_sha256": "8491655e4e19f87f1bcd3cd340f62d81e0c8eb080c0e6d3d4e5903fa2db933d5",
+      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属"
+    },
+    {
+      "path": "src/main/opencode/hook-plugin-legacy-tui-ownership.test.ts",
+      "upstream_sha256": "1ae4e28d19b8d3d41301a75f27e4a00350a2f9e320ded49c5cb2910e3db9981d",
+      "current_sha256": "d73c63e9ca613980adfbe6f270430ed06e3603a2b6d23a482a3619463492df40",
+      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属"
+    },
+    {
+      "path": "src/main/opencode/hook-plugin-module-contract.test.ts",
+      "upstream_sha256": "83058a9caa66067f270541ee4b4f799aea80b356466e57b67129955640987cca",
+      "current_sha256": "f9c716a598b50e94bbd11605046a1de70702b193d3b93e256d53fd52dfa4cf66",
+      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属"
+    },
+    {
+      "path": "src/main/opencode/hook-plugin-opencode2-session-lineage.test.ts",
+      "upstream_sha256": "bcd5d6684cbfb3050c31db68e7d5c459786ee9459dcd2175cae3417a50c1f433",
+      "current_sha256": "38c381cef9d32726ed7d41a1cbd05d9de55a9a76ca4b9780be217d0e31ab6365",
+      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属"
+    },
+    {
+      "path": "src/main/opencode/hook-plugin-opencode2-setup.test.ts",
+      "upstream_sha256": "05f08876e8e12ec86045d0ec5721da1802bdc3240447237c23b92613c4c5f549",
+      "current_sha256": "065823fbd3fe871302ab6bb94d8db6fddecc03d5fdabe0771533c78341831fe4",
+      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属"
+    },
+    {
+      "path": "src/main/opencode/hook-plugin-opencode2-tui-ownership.test.ts",
+      "upstream_sha256": "cde60cce47e6bcc45358319ca95f03ab16fe6ff7fe5ce0f363601300dca1d4ed",
+      "current_sha256": "a1cfb0c5e1c01810e913d933146a9b8426aa708b0a7dbe62797ae4af7f080382",
+      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属"
+    },
+    {
+      "path": "src/main/opencode/hook-service-invalid-tui-config.test.ts",
+      "upstream_sha256": "1cdbaf033427b31fce063248a62da980a6dde53ca6ff8040831400988e805617",
+      "current_sha256": "2bc580d8faa4cbf03008276859e3800d0182465e354315ada4703945899ad0a7",
+      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属"
+    },
+    {
+      "path": "src/main/opencode/legacy-shared-config-dir.ts",
+      "upstream_sha256": "aba9026672e74e8e1c57dcf9b5ed5f6f21fbf983118bb4847498bf223db27f01",
+      "current_sha256": "3cbc184fbf1835b106d0dd5c93fc25f0433acc3309177cfe7151f14702d72019",
+      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属"
+    },
+    {
+      "path": "src/main/opencode/opencode-acp-environment.ts",
+      "upstream_sha256": "98749577ca67168c25b12a63bbd011b79d2c0625371e17f4ecc3ef23f5b368bc",
+      "current_sha256": "ad5298dc44da02a08cf5d46785b5e97ded1add09ab145c8b37fbbb115a8e7adc",
+      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属"
+    },
+    {
+      "path": "src/main/opencode/opencode-pty-launch.test.ts",
+      "upstream_sha256": "22eedd4ef4c762b9e6159ad37e5dff97766638bb7ff1c806096c89061453db61",
+      "current_sha256": "c2b2aeccde4cd58dc753ca256999457e05b6177058eb3dcf79c5347f9e5ad77d",
+      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属"
+    },
+    {
+      "path": "src/main/opencode/opencode-pty-launch.ts",
+      "upstream_sha256": "042d5f73fda752f35f9372d34075445473b644d4957df246342aff867784515f",
+      "current_sha256": "eca655170037a89f9315aff4b4a5b255980cd817a89953c89baee160cdd76f28",
+      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属"
+    },
+    {
+      "path": "src/main/opencode/opencode-startup-prompt-installer.test.ts",
+      "upstream_sha256": "05de9ae6d137eb99ad7073c7b4963c05b3e79c0bef9621bdb5413f20b3fb8a33",
+      "current_sha256": "865f2168bcbd98068cc7436271824978f7568ffa3802c1e4ab645155a7117eb9",
+      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属"
+    },
+    {
+      "path": "src/main/opencode/opencode-startup-prompt-installer.ts",
+      "upstream_sha256": "9dbbe963556edf220c9c06b07a813b6fcf79a87ddfb7764956180063b3bae6d7",
+      "current_sha256": "1bfb4c433d159fc62d404cba8e7ce024ad90ada8bc9ecf2a9022e24913901b72",
+      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属"
+    },
+    {
+      "path": "src/main/opencode/opencode-startup-prompt-owner.test.ts",
+      "upstream_sha256": "246c7bca66c147a0e233c229e9cbc0187115ad9f33850f2349dedd5f22670ebe",
+      "current_sha256": "aa94faaae9cfe879f2299cc6f2d036b0e242a554468d67bca3eb71d0674ee18b",
+      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属"
+    },
+    {
+      "path": "src/main/opencode/opencode-startup-prompt-source.ts",
+      "upstream_sha256": "caf3c3224e5bee2dbc2298e1741d7d3fb428d68e28013f82f5c329b660a9d270",
+      "current_sha256": "8b7c67540131bafc06eea9b56f0f0909a8fea39ef16f5ce2fcf85627276d18df",
+      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属"
+    },
+    {
+      "path": "src/main/opencode/overlay-dir-gc.test.ts",
+      "upstream_sha256": "b2b00c5f25d400d439232a8d3a7df2e6867582278eff0fe92f22511c80705995",
+      "current_sha256": "58a15274c71f15594dac9d1abc23eaed99fb1c9067e09c939234251e25e350df",
+      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属"
+    },
+    {
+      "path": "src/main/opencode/status-plugin-factory-source.ts",
+      "upstream_sha256": "7fdcd3d5d130a9d53d5f4bc7d1c5afe360c966000dafe49c5eb1399c32acc236",
+      "current_sha256": "92dd9a4c99de74db22346da5a67bedafade064aa7de73f909cb5d15243f11a48",
+      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属"
+    },
+    {
+      "path": "src/main/opencode/status-plugin-shared-server-capability.test.ts",
+      "upstream_sha256": "5ed68e7d90f562419d39c3696315cca8da0e7f570b3723e32c1813d2a5f9efe9",
+      "current_sha256": "719c1264ac310299a154020b4c969e6c06d2276621116a0ea54868c1c8a9dc25",
+      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属"
+    },
+    {
+      "path": "src/main/opencode2/status-plugin-tui-source.ts",
+      "upstream_sha256": "fc4070ca3679c79e261d36413bbc9572d15bebeab01d4862022e3470b22bce66",
+      "current_sha256": "74f76bc8c9a7144a74acb5c8670425385bbecb6510be2483afb6cb13f1358873",
+      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属"
+    },
+    {
+      "path": "src/main/powershell-osc133-bootstrap.ts",
+      "upstream_sha256": "bf0894151d684d2d6b42793f64e374208ad96cc5bd21cfeffd119b1bbb7a53a5",
+      "current_sha256": "0f0edec4c64f037287add6a0a49ab87e7bd8bec2524c38c6cacc773edc59a32f",
+      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属"
+    },
+    {
+      "path": "src/main/providers/local-pty-shell-ready-bash-rcfile.ts",
+      "upstream_sha256": "69601101261fec868256338fc4efc021dc60cd5284a3d3799b44bb9182dd0f72",
+      "current_sha256": "444a542ec7564143b3c5fc28a906d282bc18ffb1a3693720c7f8b5910bb51df7",
+      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属"
+    },
+    {
+      "path": "src/main/text-generation/commit-message-agent-environment.ts",
+      "upstream_sha256": "96afb97ef87d103b887fdb7570a25a61c53065dcc8c3b0bd845a8f986989cc42",
+      "current_sha256": "d250285d4669a142c5eaac811d560f0daacda939ea8795d797d4e56ac4300f17",
+      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属"
+    },
+    {
+      "path": "src/main/zsh-startup-wrapper-builder.ts",
+      "upstream_sha256": "25498a3c8ee4d8e54aac433135838cc44ccd19229fc5bd28ff38f4a55826e1f1",
+      "current_sha256": "b084be793a5db9d61b5719c939e88d1c1ad1a09b0ab14d5d5a211ad3abc62909",
+      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属"
+    },
+    {
+      "path": "src/shared/opencode-startup-prompt.ts",
+      "upstream_sha256": "295cd86d1e03df27a37f09070cbfd740c55177bcf9619d2b3644d47900233649",
+      "current_sha256": "0f24dbeb36cf578379728818bc8a1735e6181ba5ce39a694e7acee7bc822b7a2",
+      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属"
+    },
+    {
+      "path": "src/wsl-guest/plugin-overlay-env.test.ts",
+      "upstream_sha256": "fae283ad3530d1e40f97401e8016bee760ec075af802edc0bec6c9aae733f7b4",
+      "current_sha256": "cb0f6f854c9ce1d3b38d274995e1685e8dc239cf35cb51144c5da250139a8a73",
+      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属"
+    },
+    {
+      "path": "src/wsl-guest/plugin-overlay-env.ts",
+      "upstream_sha256": "bcfe66c42a3e5ee5a37c210ae11450efaab648d5f615d0b8323642fd0c188fc6",
+      "current_sha256": "412414218f92bffbd3f01d0486d96a0e18a54b34c9b5ae4283b8dc61ed9dde45",
+      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属"
+    },
+    {
+      "path": "src/wsl-guest/wsl-install-plugins-handler.test.ts",
+      "upstream_sha256": "b52d6620a20475c7fbb9e4fef0872e9755424e3cba5a2dfeadc7a24b15766c18",
+      "current_sha256": "35e0eba00e945c7949f6e9f01e1b40d219e02154fbffc80afe4c4ecc29678ea2",
+      "reason": "OpenCode平台环境统一ZKYQ，按环境层迁移旧输入并保留配置优先级、插件协议和提示归属"
     }
   ],
   "reviewed_findings": [

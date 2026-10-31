@@ -1,8 +1,9 @@
 import { restoreOrStripOverlayEnv } from '../../shared/agent-overlay-env'
 import { getAppEnvironment } from '../../shared/app-environment'
 import { isOpenCodeLegacySharedConfigDir } from './legacy-shared-config-dir'
+import { migrateOpenCodeEnvironmentIdentity } from '../../shared/opencode-environment-identity'
 
-const ORCA_ENV_PREFIXES = ['ORCA_OPENCODE_', 'ORCA_DATA_ACCOUNT_']
+const PLATFORM_ENV_PREFIXES = ['ZKYQ_OPENCODE_', 'ORCA_OPENCODE_', 'ORCA_DATA_ACCOUNT_']
 const ACCOUNT_ENV_KEYS = ['XDG_DATA_HOME', 'XDG_STATE_HOME', 'OPENCODE_DB', 'OPENCODE_AUTH_CONTENT']
 
 /**
@@ -17,6 +18,12 @@ export function scrubOpenCodeAcpEnvironment(
   inherited: NodeJS.ProcessEnv,
   userDataPath: string | null = orcaUserDataPath()
 ): string[] {
+  const retiredInheritedKeys = Object.keys(inherited).filter((key) =>
+    key.startsWith('ORCA_OPENCODE_')
+  )
+  inherited = { ...inherited }
+  migrateOpenCodeEnvironmentIdentity(inherited)
+  migrateOpenCodeEnvironmentIdentity(env)
   const view: Record<string, string> = {}
   for (const [key, value] of Object.entries(inherited)) {
     if (value !== undefined) {
@@ -28,13 +35,13 @@ export function scrubOpenCodeAcpEnvironment(
     view,
     {
       primary: 'OPENCODE_CONFIG_DIR',
-      overlay: 'ORCA_OPENCODE_CONFIG_DIR',
-      source: 'ORCA_OPENCODE_SOURCE_CONFIG_DIR',
+      overlay: 'ZKYQ_OPENCODE_CONFIG_DIR',
+      source: 'ZKYQ_OPENCODE_SOURCE_CONFIG_DIR',
       preserveExplicitPrimary: true
     },
     {}
   )
-  const removed: string[] = []
+  const removed: string[] = [...retiredInheritedKeys]
   if (
     view.OPENCODE_CONFIG_DIR === undefined ||
     (userDataPath !== null &&
@@ -52,12 +59,12 @@ export function scrubOpenCodeAcpEnvironment(
     }
   }
   for (const key of new Set([...Object.keys(env), ...Object.keys(inherited)])) {
-    if (ORCA_ENV_PREFIXES.some((prefix) => key.startsWith(prefix))) {
+    if (PLATFORM_ENV_PREFIXES.some((prefix) => key.startsWith(prefix))) {
       delete env[key]
       removed.push(key)
     }
   }
-  return removed
+  return [...new Set(removed)]
 }
 
 function orcaUserDataPath(): string | null {

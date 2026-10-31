@@ -20,12 +20,12 @@ const PANE_A = 'tabA:aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
 const PANE_B = 'tabB:bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
 const ENV_KEYS = [
   'ORCA_PANE_KEY',
-  'ORCA_OPENCODE_AGENT',
+  'ZKYQ_OPENCODE_AGENT',
   'ORCA_AGENT_HOOK_ENDPOINT',
   'ORCA_AGENT_HOOK_PORT',
   'ORCA_AGENT_HOOK_TOKEN',
   'ORCA_AGENT_HOOK_OPENCODE_TUI',
-  'ORCA_OPENCODE_PLUGIN_API'
+  'ZKYQ_OPENCODE_PLUGIN_API'
 ] as const
 const created = (id: string, parentID?: string): LegacyTuiEvent => ({
   type: 'session.created',
@@ -50,8 +50,8 @@ describe('OpenCode 1 TUI API pane reporting', () => {
     savedArgv = process.argv
     savedEnv = Object.fromEntries(ENV_KEYS.map((key) => [key, process.env[key]]))
     process.argv = ['opencode', 'attach', 'http://127.0.0.1:4096']
-    process.env.ORCA_OPENCODE_PLUGIN_API = 'v2'
-    process.env.ORCA_OPENCODE_AGENT = 'opencode'
+    process.env.ZKYQ_OPENCODE_PLUGIN_API = 'v2'
+    process.env.ZKYQ_OPENCODE_AGENT = 'opencode'
     process.env.ORCA_AGENT_HOOK_PORT = '59999'
     process.env.ORCA_AGENT_HOOK_TOKEN = 'fixture'
     process.env.ORCA_AGENT_HOOK_OPENCODE_TUI = '1'
@@ -133,7 +133,7 @@ describe('OpenCode 1 TUI API pane reporting', () => {
   })
 
   it('loads the selected v1 factory through the release fallback once and retains the separate TUI', async () => {
-    process.env.ORCA_OPENCODE_PLUGIN_API = getOpenCodeCliCapabilities('1.18.30').pluginApi
+    process.env.ZKYQ_OPENCODE_PLUGIN_API = getOpenCodeCliCapabilities('1.18.30').pluginApi
     process.argv = ['opencode', 'serve']
     process.env.ORCA_PANE_KEY = PANE_A
     const path = join(dir, 'selected-v1-server.mjs')
@@ -347,7 +347,7 @@ describe('OpenCode 1 TUI API pane reporting', () => {
         process.argv = ['opencode']
       }
       if (kind === 'other-agent') {
-        process.env.ORCA_OPENCODE_AGENT = 'mimo-code'
+        process.env.ZKYQ_OPENCODE_AGENT = 'mimo-code'
       }
       if (kind === 'wrong-version') {
         tui.api.app.version = '2.0.16'

@@ -40,7 +40,7 @@ __orca_restore_agent_teams_path
 ${ORCA_CLI_POSIX_PATH_RESTORE}
 # Why: user startup files may set the default OpenCode config after Orca's
 # spawn env; restore the Orca-managed config dir before the first prompt.
-[[ -n "\${ORCA_OPENCODE_CONFIG_DIR:-}" ]] && export OPENCODE_CONFIG_DIR="\${ORCA_OPENCODE_CONFIG_DIR}"
+[[ -n "\${ZKYQ_OPENCODE_CONFIG_DIR:-}" ]] && export OPENCODE_CONFIG_DIR="\${ZKYQ_OPENCODE_CONFIG_DIR}"
 ${MANAGED_DATA_ACCOUNT_POSIX_RESTORE}
 [[ -n "\${ORCA_MIMOCODE_HOME:-}" ]] && export MIMOCODE_HOME="\${ORCA_MIMOCODE_HOME}"
 ${getPosixOmpShellWrapper()}

@@ -29,6 +29,7 @@ import { applyScrubSafeAgentEnvAliases } from '../../../shared/agent-hook-scrub-
 import type { TuiAgent } from '../../../shared/tui-agent'
 import type { PtySubprocessOptions } from '../pty-subprocess'
 import { ORCAD_MANAGED_ACTIVATION_ROOT_ENV } from '../../../shared/orcad-managed-launch-env'
+import { migrateOpenCodeEnvironmentIdentity } from '../../../shared/opencode-environment-identity'
 
 const PANE_IDENTITY_ENV_KEYS = [
   'ORCA_PANE_KEY',
@@ -61,6 +62,9 @@ function deleteRequestedDaemonEnvKeys(
   env: Record<string, string>,
   keys: readonly string[] | undefined
 ): void {
+  const currentKeys = [...(keys ?? [])]
+  migrateOpenCodeEnvironmentIdentity(env, currentKeys)
+  keys = currentKeys
   const userDataPath = process.env.ZKYQ_USER_DATA_PATH
   if (userDataPath) {
     for (const key of getLegacyOpenCodeEnvKeysToDelete(env, userDataPath, {})) {
@@ -74,16 +78,16 @@ function deleteRequestedDaemonEnvKeys(
     env.CODEX_HOME === env.ORCA_CODEX_HOME
   // A merged caller config can supersede the daemon's recorded overlay source.
   if (
-    keys?.includes('ORCA_OPENCODE_CONFIG_DIR') &&
+    keys?.includes('ZKYQ_OPENCODE_CONFIG_DIR') &&
     (env.OPENCODE_CONFIG_DIR === undefined ||
-      env.OPENCODE_CONFIG_DIR === env.ORCA_OPENCODE_CONFIG_DIR)
+      env.OPENCODE_CONFIG_DIR === env.ZKYQ_OPENCODE_CONFIG_DIR)
   ) {
     restoreOrStripOverlayEnv(
       env,
       {
         primary: 'OPENCODE_CONFIG_DIR',
-        overlay: 'ORCA_OPENCODE_CONFIG_DIR',
-        source: 'ORCA_OPENCODE_SOURCE_CONFIG_DIR'
+        overlay: 'ZKYQ_OPENCODE_CONFIG_DIR',
+        source: 'ZKYQ_OPENCODE_SOURCE_CONFIG_DIR'
       },
       {}
     )
@@ -173,6 +177,9 @@ function removeInheritedDevAgentHookEndpoint(
 /** A persistent daemon's inherited environment cannot supply ownership for a new pane. */
 export function createDaemonPtyEnvironment(opts: PtySubprocessOptions): Record<string, string> {
   const inheritedEnv = stripInheritedBuildModeEnv(process.env)
+  migrateOpenCodeEnvironmentIdentity(inheritedEnv)
+  opts = { ...opts, env: opts.env ? { ...opts.env } : undefined }
+  if (opts.env) migrateOpenCodeEnvironmentIdentity(opts.env)
   restoreManagedDataAccountEnvironment(inheritedEnv)
   const env: Record<string, string> = {
     ...mergeGitConfigEnvProtocol(inheritedEnv, opts.env),

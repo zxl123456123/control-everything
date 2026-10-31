@@ -5,6 +5,7 @@ import {
 } from '../../../../shared/pi-agent-kind'
 import { readSessionShellStartupEnvVar } from '../../../pty/shell-startup-env'
 import { getAgentLaunchExecutableName } from '../../../../shared/agent-command-line-intent'
+import { migrateOpenCodeEnvironmentIdentity } from '../../../../shared/opencode-environment-identity'
 import {
   AGENT_HOOK_RUNTIME_ENV_KEYS,
   CLAUDE_CHILD_SESSION_STAMP_ENV_KEYS,
@@ -133,9 +134,9 @@ export function getInheritedAgentHookEnvKeysToDelete(
   // Why: providers merge process.env after cleanup; delete stale hook keys without dropping fresh coordinates buildPtyHostEnv set.
   return [
     ...AGENT_HOOK_RUNTIME_ENV_KEYS,
-    'ORCA_OPENCODE_AGENT',
-    'ORCA_OPENCODE_CONFIG_DIR',
-    'ORCA_OPENCODE_SOURCE_CONFIG_DIR'
+    'ZKYQ_OPENCODE_AGENT',
+    'ZKYQ_OPENCODE_CONFIG_DIR',
+    'ZKYQ_OPENCODE_SOURCE_CONFIG_DIR'
   ].filter((key) => env[key] === undefined)
 }
 
@@ -172,13 +173,16 @@ export function resolveOpenCodeSourceConfigDir(
   baseEnv: Record<string, string>,
   inheritedEnv: NodeJS.ProcessEnv = process.env
 ): string | undefined {
+  migrateOpenCodeEnvironmentIdentity(baseEnv)
+  inheritedEnv = { ...inheritedEnv }
+  migrateOpenCodeEnvironmentIdentity(inheritedEnv)
   const configDir = baseEnv.OPENCODE_CONFIG_DIR ?? inheritedEnv.OPENCODE_CONFIG_DIR
-  const orcaConfigDir = baseEnv.ORCA_OPENCODE_CONFIG_DIR ?? inheritedEnv.ORCA_OPENCODE_CONFIG_DIR
+  const orcaConfigDir = baseEnv.ZKYQ_OPENCODE_CONFIG_DIR ?? inheritedEnv.ZKYQ_OPENCODE_CONFIG_DIR
   if (configDir && orcaConfigDir && configDir !== orcaConfigDir) {
     return configDir
   }
   const sourceDir =
-    baseEnv.ORCA_OPENCODE_SOURCE_CONFIG_DIR ?? inheritedEnv.ORCA_OPENCODE_SOURCE_CONFIG_DIR
+    baseEnv.ZKYQ_OPENCODE_SOURCE_CONFIG_DIR ?? inheritedEnv.ZKYQ_OPENCODE_SOURCE_CONFIG_DIR
   if (sourceDir) {
     return sourceDir
   }

@@ -2,6 +2,7 @@ import {
   getOpenCode2ModuleSource,
   getOpenCode2EventNormalizationSource
 } from '../opencode2/status-plugin-setup-source'
+import { migrateOpenCodeEnvironmentIdentity } from '../../shared/opencode-environment-identity'
 
 export function getStatusPluginFactorySource(options: {
   emitSessionStart: boolean
@@ -14,6 +15,7 @@ export function getStatusPluginFactorySource(options: {
   // collision as an 'orca-opencode-status' plugin failure.
   const pluginID = expectedAgent === 'opencode2' ? 'orca-opencode2-status' : 'orca-opencode-status'
   return [
+    `(${migrateOpenCodeEnvironmentIdentity.toString()})(process.env);`,
     ...(options.emitNextEvents ? getOpenCode2EventNormalizationSource() : []),
     '// Why: accept the factory argument as an optional opaque parameter instead',
     '// of destructuring (`async ({ client }) => …`). OpenCode can invoke the',
@@ -21,7 +23,7 @@ export function getStatusPluginFactorySource(options: {
     '// destructuring form throw synchronously and crash OpenCode with an opaque',
     '// UnknownError before any event is ever dispatched.',
     'export const OrcaOpenCodeStatusPlugin = async (_ctx) => {',
-    `  if (process.env.ORCA_OPENCODE_AGENT && process.env.ORCA_OPENCODE_AGENT !== '${expectedAgent}') return {};`,
+    `  if (process.env.ZKYQ_OPENCODE_AGENT && process.env.ZKYQ_OPENCODE_AGENT !== '${expectedAgent}') return {};`,
     '  const client = _ctx?.client;',
     '  const sessionsOutliveDispose = _ctx?.sessionsOutliveDispose === true;',
     '  const factoryID = ++nextFactoryID;',
@@ -290,7 +292,7 @@ export function getStatusPluginFactorySource(options: {
     ...(options.emitNextEvents ? getOpenCode2ModuleSource(pluginID, expectedAgent) : []),
     '',
     '// OpenCode 1 requires a callable default; OpenCode 2 validates a plugin object.',
-    'export default process.env.ORCA_OPENCODE_PLUGIN_API === "v1" ? OrcaOpenCodeStatusPlugin : {',
+    'export default process.env.ZKYQ_OPENCODE_PLUGIN_API === "v1" ? OrcaOpenCodeStatusPlugin : {',
     `  id: "${pluginID}",`,
     '  server: OrcaOpenCodeStatusPlugin,',
     ...(options.emitNextEvents ? ['  setup: setupOpenCode2Status,'] : []),

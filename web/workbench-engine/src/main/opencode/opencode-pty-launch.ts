@@ -4,6 +4,7 @@ import { randomUUID, createHash } from 'node:crypto'
 import { agentHookServer } from '../agent-hooks/server'
 import { tokenizeStartupCommand } from '../../shared/tui-agent-startup-shell'
 import { isOpenCodeRunCommand } from '../../shared/opencode-headless-command'
+import { migrateOpenCodeEnvironmentIdentity } from '../../shared/opencode-environment-identity'
 import {
   OPENCODE_STARTUP_PROMPT_SHA256_ENV,
   OPENCODE_STARTUP_PROMPT_NONCE_ENV,
@@ -35,20 +36,23 @@ export async function prepareOpenCodePtyLaunch(options: {
   isFreshLaunch: boolean
   wsl?: { distro?: string }
 }): Promise<{ env: Record<string, string> | undefined; command: string | undefined }> {
+  const inherited = { ...process.env }
+  migrateOpenCodeEnvironmentIdentity(inherited)
   let command = options.command
   const env = options.env ? { ...options.env } : undefined
+  migrateOpenCodeEnvironmentIdentity(env ?? {}, options.envToDelete)
   const requestedPrompt = env?.[OPENCODE_STARTUP_PROMPT_SHA256_ENV]
   const body = env?.[OPENCODE_STARTUP_PROMPT_BODY_ENV]
   const shell = env?.[OPENCODE_STARTUP_PROMPT_SHELL_ENV]
   if (env) {
-    delete env.ORCA_OPENCODE_PLUGIN_API
+    delete env.ZKYQ_OPENCODE_PLUGIN_API
     for (const key of intentKeys) {
       delete env[key]
     }
   }
   // Providers merge their own ambient environment after this preparation.
-  if (!options.envToDelete.includes('ORCA_OPENCODE_PLUGIN_API')) {
-    options.envToDelete.push('ORCA_OPENCODE_PLUGIN_API')
+  if (!options.envToDelete.includes('ZKYQ_OPENCODE_PLUGIN_API')) {
+    options.envToDelete.push('ZKYQ_OPENCODE_PLUGIN_API')
   }
   for (const key of intentKeys) {
     if (!options.envToDelete.includes(key)) {
@@ -59,7 +63,7 @@ export async function prepareOpenCodePtyLaunch(options: {
     return { env, command }
   }
   const probeEnv: Record<string, string> = {}
-  for (const [key, value] of Object.entries({ ...process.env, ...env })) {
+  for (const [key, value] of Object.entries({ ...inherited, ...env })) {
     if (value !== undefined) {
       probeEnv[key] = value
     }
@@ -74,9 +78,9 @@ export async function prepareOpenCodePtyLaunch(options: {
   }
   const launchEnv: Record<string, string> = {
     ...env,
-    ORCA_OPENCODE_PLUGIN_API: capabilities.pluginApi
+    ZKYQ_OPENCODE_PLUGIN_API: capabilities.pluginApi
   }
-  options.envToDelete.splice(options.envToDelete.indexOf('ORCA_OPENCODE_PLUGIN_API'), 1)
+  options.envToDelete.splice(options.envToDelete.indexOf('ZKYQ_OPENCODE_PLUGIN_API'), 1)
   if (
     capabilities.promptMode === 'prefill' &&
     !options.wsl &&
@@ -107,8 +111,8 @@ export async function prepareOpenCodePtyLaunch(options: {
         if (installOpenCodeStartupPromptForLaunch(launchEnv, false, probeEnv)) {
           for (const key of [
             'OPENCODE_CONFIG_DIR',
-            'ORCA_OPENCODE_CONFIG_DIR',
-            'ORCA_OPENCODE_SOURCE_CONFIG_DIR'
+            'ZKYQ_OPENCODE_CONFIG_DIR',
+            'ZKYQ_OPENCODE_SOURCE_CONFIG_DIR'
           ]) {
             const deletion = options.envToDelete.indexOf(key)
             if (launchEnv[key] && deletion !== -1) {
@@ -133,7 +137,7 @@ export async function prepareOpenCodePtyLaunch(options: {
     }
   }
   if (options.wsl) {
-    addWslEnvKeys(launchEnv, ['ORCA_OPENCODE_PLUGIN_API'])
+    addWslEnvKeys(launchEnv, ['ZKYQ_OPENCODE_PLUGIN_API'])
   }
   return { env: launchEnv, command }
 }

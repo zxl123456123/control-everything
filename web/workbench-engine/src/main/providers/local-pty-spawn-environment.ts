@@ -1,4 +1,5 @@
 import { mergeGitConfigEnvProtocol } from '../../shared/git-credential-prompt-env'
+import { migrateOpenCodeEnvironmentIdentity } from '../../shared/opencode-environment-identity'
 import { restoreManagedDataAccountEnvironment } from '../../shared/managed-data-account-environment'
 import {
   ORCA_IMAGE_PROTOCOL_ENV,
@@ -56,6 +57,10 @@ export function buildInheritedLocalPtyEnvironment(
   envToDelete: readonly string[] = []
 ): Record<string, string> {
   const inheritedEnv = stripInheritedBuildModeEnv(process.env)
+  migrateOpenCodeEnvironmentIdentity(inheritedEnv)
+  explicitEnv = explicitEnv ? { ...explicitEnv } : undefined
+  const currentDeletions = [...envToDelete]
+  migrateOpenCodeEnvironmentIdentity(explicitEnv ?? {}, currentDeletions)
   restoreManagedDataAccountEnvironment(inheritedEnv)
   const spawnEnv: Record<string, string> = {
     ...mergeGitConfigEnvProtocol(inheritedEnv, explicitEnv),
@@ -73,7 +78,7 @@ export function buildInheritedLocalPtyEnvironment(
   removeAppImageRuntimeEnv(spawnEnv)
   removeChromiumDisabledSessionBus(spawnEnv)
   removeInheritedNoColor(spawnEnv)
-  for (const key of envToDelete) {
+  for (const key of currentDeletions) {
     delete spawnEnv[key]
   }
   if (explicitEnv?.TERM) {
@@ -91,8 +96,10 @@ export function enforceLocalPtySpawnEnvironmentOverrides(
   spawn: PtySpawnOptions,
   finalEnv: Record<string, string>
 ): void {
+  const currentDeletions = [...(spawn.envToDelete ?? [])]
+  migrateOpenCodeEnvironmentIdentity(finalEnv, currentDeletions)
   stripPiProcessOwnerEnv(finalEnv)
-  for (const key of spawn.envToDelete ?? []) {
+  for (const key of currentDeletions) {
     delete finalEnv[key]
   }
   if (spawn.env?.TERM) {

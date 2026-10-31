@@ -122,7 +122,7 @@ describe('registerPtyHandlers', () => {
       expect(shell).toBe('/bin/zsh')
       expect(args).toEqual(['-l'])
       expect(options.env.OPENCODE_CONFIG_DIR).toBe('/tmp/orca-opencode-config')
-      expect(options.env.ORCA_OPENCODE_CONFIG_DIR).toBe('/tmp/orca-opencode-config')
+      expect(options.env.ZKYQ_OPENCODE_CONFIG_DIR).toBe('/tmp/orca-opencode-config')
       expect(options.env.ZDOTDIR).toBe(`${getShellReadyWrapperRoot()}/zsh`)
       expect(options.env.ORCA_SHELL_FEATURES).not.toContain('ready')
     } finally {
@@ -160,7 +160,7 @@ describe('registerPtyHandlers', () => {
       expect(shell).toBe('/bin/zsh')
       expect(args).toEqual(['-l'])
       expect(options.env.OPENCODE_CONFIG_DIR).toBeUndefined()
-      expect(options.env.ORCA_OPENCODE_CONFIG_DIR).toBeUndefined()
+      expect(options.env.ZKYQ_OPENCODE_CONFIG_DIR).toBeUndefined()
       expect(options.env.PI_CODING_AGENT_DIR).toBe('/tmp/user-pi-agent')
       expect(options.env.ORCA_PI_CODING_AGENT_DIR).toBeUndefined()
       expect(options.env.ORCA_PI_SOURCE_AGENT_DIR).toBe('/tmp/user-pi-agent')

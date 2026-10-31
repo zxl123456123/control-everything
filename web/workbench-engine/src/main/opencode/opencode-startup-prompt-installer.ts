@@ -5,6 +5,7 @@ import { resolveOpenCodeConfigDirectory } from '../../shared/opencode-config-dir
 import { isOverlayOpenCodePluginCurrent } from '../../shared/opencode-installed-plugin'
 import { getOpenCodeStartupPromptSource } from './opencode-startup-prompt-source'
 import { resolveOpenCodeSourceConfigDir } from '../ipc/pty/host-env/pi-agent'
+import { migrateOpenCodeEnvironmentIdentity } from '../../shared/opencode-environment-identity'
 import {
   OPENCODE_STARTUP_PROMPT_NONCE_ENV,
   OPENCODE_STARTUP_PROMPT_SHA256_ENV,
@@ -27,19 +28,23 @@ const installer = createOpenCodeStartupPromptInstaller(getOpenCodeStartupPromptS
 export function installOpenCodeStartupPromptForLaunch(
   env: Record<string, string>,
   restoreAfterShellStartup = true,
-  sourceEnvironment: NodeJS.ProcessEnv = { ...process.env, ...env }
+  sourceEnvironment?: NodeJS.ProcessEnv
 ): boolean {
+  const inherited = { ...(sourceEnvironment ?? process.env) }
+  migrateOpenCodeEnvironmentIdentity(inherited)
+  migrateOpenCodeEnvironmentIdentity(env)
+  sourceEnvironment = sourceEnvironment ? inherited : { ...inherited, ...env }
   const nonce = env[OPENCODE_STARTUP_PROMPT_NONCE_ENV]
-  if (!nonce || env.ORCA_OPENCODE_PLUGIN_API !== 'v2') {
+  if (!nonce || env.ZKYQ_OPENCODE_PLUGIN_API !== 'v2') {
     return false
   }
   const source =
     resolveOpenCodeSourceConfigDir(env, sourceEnvironment) ||
     resolveOpenCodeConfigDirectory(sourceEnvironment)
   const statusOwner =
-    env.ORCA_OPENCODE_AGENT === 'opencode2' ? openCode2HookService : openCodeHookService
+    env.ZKYQ_OPENCODE_AGENT === 'opencode2' ? openCode2HookService : openCodeHookService
   const existing =
-    env.OPENCODE_CONFIG_DIR && env.OPENCODE_CONFIG_DIR === env.ORCA_OPENCODE_CONFIG_DIR
+    env.OPENCODE_CONFIG_DIR && env.OPENCODE_CONFIG_DIR === env.ZKYQ_OPENCODE_CONFIG_DIR
       ? installer.installIntoSourceOverlay(env.OPENCODE_CONFIG_DIR, source, statusOwner)
       : 'unmatched'
   const overlay =
@@ -66,11 +71,11 @@ export function installOpenCodeStartupPromptForLaunch(
     return false
   }
   env.OPENCODE_CONFIG_DIR = overlay
-  env.ORCA_OPENCODE_SOURCE_CONFIG_DIR = source
+  env.ZKYQ_OPENCODE_SOURCE_CONFIG_DIR = source
   if (restoreAfterShellStartup || existing === 'installed') {
-    env.ORCA_OPENCODE_CONFIG_DIR = overlay
+    env.ZKYQ_OPENCODE_CONFIG_DIR = overlay
   } else {
-    delete env.ORCA_OPENCODE_CONFIG_DIR
+    delete env.ZKYQ_OPENCODE_CONFIG_DIR
   }
   return true
 }
