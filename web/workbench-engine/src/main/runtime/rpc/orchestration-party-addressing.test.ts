@@ -217,11 +217,21 @@ describe('every target param resolves both spellings of a party to one canonical
   })
 
   it('sessionAddress: any session, a worker too, is its workbench session ID', async () => {
-    expect(await as(undefined, 'orchestration.sessionAddress', { sessionId: SESSION_Z })).toEqual({
-      orcaSessionId: ADDRESS_Z
+    expect(
+      await as(undefined, 'orchestration.sessionAddress', {
+        sessionId: SESSION_Z,
+        responseFormat: 'workbench'
+      })
+    ).toEqual({
+      sessionId: ADDRESS_Z
     })
-    expect(await as(undefined, 'orchestration.sessionAddress', { sessionId: SESSION_Y })).toEqual({
-      orcaSessionId: ADDRESS_Y
+    expect(
+      await as(undefined, 'orchestration.sessionAddress', {
+        sessionId: SESSION_Y,
+        responseFormat: 'workbench'
+      })
+    ).toEqual({
+      sessionId: ADDRESS_Y
     })
   })
 

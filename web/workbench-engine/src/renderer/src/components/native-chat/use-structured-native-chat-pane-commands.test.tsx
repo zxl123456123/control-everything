@@ -86,7 +86,7 @@ function StructuredChatTab(): ReactNode {
 describe('a structured chat tab', () => {
   beforeEach(() => {
     items.list = []
-    callRuntimeRpc.mockReset().mockResolvedValue({ orcaSessionId: `agent_session:${SESSION}` })
+    callRuntimeRpc.mockReset().mockResolvedValue({ sessionId: `agent_session:${SESSION}` })
     Object.assign(window, {
       api: { ui: { writeClipboardText: vi.fn().mockResolvedValue(undefined) } }
     })
@@ -103,7 +103,8 @@ describe('a structured chat tab', () => {
     expect(item).toBeDefined()
     await vi.waitFor(() =>
       expect(callRuntimeRpc).toHaveBeenCalledWith(TARGET, 'orchestration.sessionAddress', {
-        sessionId: SESSION
+        sessionId: SESSION,
+        responseFormat: 'workbench'
       })
     )
   })

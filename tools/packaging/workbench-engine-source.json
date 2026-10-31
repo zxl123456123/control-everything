@@ -327170,20 +327170,20 @@
     {
       "path": "src/cli/runtime/status-caller.ts",
       "upstream_sha256": "cdb54e79b4db8fd2acaf346f56dc2d3188db858b5f4a08c540a92be7bcce9f8b",
-      "current_sha256": "b61feab1a6a2bbfec7e137d4e7e8b9c68c3be71cf612aa9788986188a46f64d6",
-      "reason": "状态命令会话字段统一命名并保持宿主地址"
+      "current_sha256": "ed8336b2d7c340dabc25501643f0b7a3460797f601a9e3707663de84e8ec0db3",
+      "reason": "状态命令会话字段统一命名并保持宿主地址；迁移会话身份 RPC 字段并验证跨版本调用"
     },
     {
       "path": "src/shared/orchestration-caller-status.ts",
       "upstream_sha256": "e64b50d9af9282b611617dea7ccad666a261447660d6da9f22fa1062b285cab4",
-      "current_sha256": "ec7ef703931acc1323c3595eca20f6e1c2e085b3d62d53e9f6d86e4c0ac407b4",
-      "reason": "状态命令会话字段统一命名并保持宿主地址；迁移会话地址命名及相关验证"
+      "current_sha256": "fd54f6f66092ea010682c7256b4cd427e30ec4c49fcf18a73701e22f1d091284",
+      "reason": "状态命令会话字段统一命名并保持宿主地址；迁移会话地址命名及相关验证；迁移会话身份 RPC 字段并验证跨版本调用"
     },
     {
       "path": "src/cli/runtime/status-caller.test.ts",
       "upstream_sha256": "c60a95cb98d010d5704fe5553c15d2f486a5fa1b507429fc7dc9524bbe0d0391",
-      "current_sha256": "40d85c069662ee01acaec5fbc1f34953bc0532cbd3ff75c8cdfcc09e67692dd9",
-      "reason": "通过本地 IPC 验证新旧会话身份和冲突拒绝；状态命令会话字段统一命名；迁移会话地址命名及相关验证"
+      "current_sha256": "a8ca69792bad4a8a21d95a2560b8bf5320c3792a34f8cb61b134f444ed3fa9f9",
+      "reason": "通过本地 IPC 验证新旧会话身份和冲突拒绝；状态命令会话字段统一命名；迁移会话地址命名及相关验证；迁移会话身份 RPC 字段并验证跨版本调用"
     },
     {
       "path": "src/main/claude/claude-stream-json-connection.test.ts",
@@ -330068,8 +330068,8 @@
     {
       "path": "src/shared/rpc-contract/orchestration-params.ts",
       "upstream_sha256": "68bb9c9790c343c3d4e36509b49585e3e7a71d213f253e73ebd8698699d0081c",
-      "current_sha256": "0a972da6f4e41c66664c4c9319aed546e76d4997991cb9bb1ab570260cfaf69c",
-      "reason": "统一已安装zkyq宿主的Agent派发、收信及恢复命令与状态摘要身份，保留历史记录识别和用户内容；开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；编排命令合同收敛为zkyq/zkyq-dev，恢复与接管提示使用新命令，保留历史会话数据和授权约束"
+      "current_sha256": "3d1c3154a2afc049c267634471b25dd5f1b1d3cbac996fb3f77938f99f941902",
+      "reason": "统一已安装zkyq宿主的Agent派发、收信及恢复命令与状态摘要身份，保留历史记录识别和用户内容；开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；编排命令合同收敛为zkyq/zkyq-dev，恢复与接管提示使用新命令，保留历史会话数据和授权约束；迁移会话身份 RPC 字段并验证跨版本调用"
     },
     {
       "path": "src/main/cli/cli-install-location.ts",
@@ -332600,8 +332600,8 @@
     {
       "path": "src/shared/rpc-contract/rpc-params-catalog.generated.ts",
       "upstream_sha256": "165420b63f49dc20d9d1387e1a341f92a51dcbfc5cfa3cdd3a6126eed0632c28",
-      "current_sha256": "cdef722eda6bb090285465ec45e6f419b9886a086d5951fa626e8d7f5a4ffff5",
-      "reason": "提供受权限保护的技能旧名称保全迁移入口及合同"
+      "current_sha256": "a1632c6c90f92d79a14e1bb018003588081a582a8012bce175f04612ba2b773b",
+      "reason": "提供受权限保护的技能旧名称保全迁移入口及合同；迁移会话身份 RPC 字段并验证跨版本调用"
     },
     {
       "path": "src/shared/rpc-contract/skills-params.ts",
@@ -333950,8 +333950,8 @@
     {
       "path": "src/main/runtime/rpc/orchestration-party-addressing.test.ts",
       "upstream_sha256": "4e1c54fee85ced08418b35bc2762f8f94e3ae763892269622b8701232756bee2",
-      "current_sha256": "477e3a483be0567eb0022d915aec511df16b31b4f7c37bbc25c1cc01604a6f9f",
-      "reason": "迁移会话地址命名及相关验证"
+      "current_sha256": "2008ff9313257191c4ff0f90a42f78ab749bde8c6c79347ee24819be000eac6a",
+      "reason": "迁移会话地址命名及相关验证；迁移会话身份 RPC 字段并验证跨版本调用"
     },
     {
       "path": "src/main/runtime/rpc/orchestration-session-recipient.test.ts",
@@ -334028,8 +334028,8 @@
     {
       "path": "src/renderer/src/components/native-chat/use-structured-native-chat-pane-commands.test.tsx",
       "upstream_sha256": "79be9f4a2968a99849a86594d92da60bc53cf0d86c6f916acb2ec68057b415a5",
-      "current_sha256": "963a5cbc6496c050a1aa91888a519b501af7bb9fa21461cb05931815710bfa61",
-      "reason": "迁移会话地址命名及相关验证"
+      "current_sha256": "fbe78a756dfbebcf25411b6ca28dbbd5a1b1a83922a53a0792d36be25439d918",
+      "reason": "迁移会话地址命名及相关验证；迁移会话身份 RPC 字段并验证跨版本调用"
     },
     {
       "path": "src/renderer/src/lib/open-agent-message-sender.test.ts",
@@ -334040,8 +334040,8 @@
     {
       "path": "src/renderer/src/runtime/structured-session-orca-session-id.test.ts",
       "upstream_sha256": "d36e92a46083c1b5526fdfa1e89cd164965428d4c88dc3e4a98396d31668c350",
-      "current_sha256": "47c1e182d7d8fc896613ac27de7ffe8c6ced045f21cc0ad9ab02a2e247280657",
-      "reason": "迁移会话地址命名及相关验证"
+      "current_sha256": "e966c29076cdc88aa4a6e46e1e2ca2d7f130952e0178695544c51643a6c9e787",
+      "reason": "迁移会话地址命名及相关验证；迁移会话身份 RPC 字段并验证跨版本调用"
     },
     {
       "path": "src/shared/agent-session-message-source.test.ts",
@@ -334066,6 +334066,24 @@
       "upstream_sha256": "4db5664e2ea2b815c1bfde640715fa085844d0f9e719cdc3812b9cf688003035",
       "current_sha256": "e8489ff71d1fdccc1590adeb91b38f936f51e2167b9179593a19387898e1378c",
       "reason": "迁移会话地址命名及相关验证"
+    },
+    {
+      "path": "src/main/runtime/rpc/methods/orchestration/caller-show.ts",
+      "upstream_sha256": "fb4b89bb8822435a6d94440c013282ea9b3463b060616909616badd710e1c31a",
+      "current_sha256": "fd69df7560d53199c924d2a067d1723af1a40c856bca8bd76655686806c5b5a3",
+      "reason": "迁移会话身份 RPC 字段并验证跨版本调用"
+    },
+    {
+      "path": "src/main/runtime/rpc/orchestration-caller-show.test.ts",
+      "upstream_sha256": "6d519e33f59eb687d7b8f1cb0c017486d22374817ad0772038dc5b791cb24527",
+      "current_sha256": "f9b07712c284cc3dc77546f3eaf673531877e8ff65db4360ee6d7613bd9b0616",
+      "reason": "迁移会话身份 RPC 字段并验证跨版本调用"
+    },
+    {
+      "path": "src/renderer/src/runtime/structured-session-orca-session-id.ts",
+      "upstream_sha256": "5c7894f853b3554b24b6b35b8a3ece4ee10e18daad06cd684a65574a941b77d4",
+      "current_sha256": "d9778c3309782712ec736687fbad3519982f50294907b25b1fad4b4d3438596a",
+      "reason": "迁移会话身份 RPC 字段并验证跨版本调用"
     }
   ],
   "reviewed_findings": [

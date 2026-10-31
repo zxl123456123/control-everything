@@ -129,20 +129,36 @@ describe('status reports a session caller identity', () => {
     async (name) => {
       process.env[name] = SESSION
       process.env.ORCA_TERMINAL_HANDLE = 'term_tui'
-      const caller = { orcaSessionId: `agent_session:${SESSION}`, live: true }
+      const caller = { orcaSessionId: `orca_session_id:${SESSION}`, live: true }
       callerShowReply = { result: { caller } }
 
       expect(await statusCaller()).toEqual({ sessionId: caller.orcaSessionId, live: true })
       const [request] = callerShowRequests()
-      // Nothing names the caller in params: the host reads the envelope, as every verb's entry does.
-      expect(request?.params).toBeUndefined()
+      // The option selects a response shape; caller identity still comes from the envelope.
+      expect(request?.params).toEqual({ responseFormat: 'workbench' })
       expect(request?.orchestrationCompatibilityEvidence).toMatchObject({
         agentSessionId: SESSION,
         terminalHandle: 'term_tui'
       })
-      expect(await status(false)).toContain(`\nsessionId: agent_session:${SESSION}`)
+      expect(await status(false)).toContain(`\nsessionId: orca_session_id:${SESSION}`)
     }
   )
+
+  it('reports the new response field from an upgraded host', async () => {
+    process.env.ZKYQ_AGENT_SESSION_ID = SESSION
+    callerShowReply = { result: { caller: { sessionId: `agent_session:${SESSION}`, live: true } } }
+    expect(await statusCaller()).toEqual({ sessionId: `agent_session:${SESSION}`, live: true })
+  })
+
+  it('does not report an ambiguous identity when a host sends conflicting fields', async () => {
+    process.env.ZKYQ_AGENT_SESSION_ID = SESSION
+    callerShowReply = {
+      result: {
+        caller: { sessionId: `agent_session:${SESSION}`, orcaSessionId: 'other', live: true }
+      }
+    }
+    expect(await statusCaller()).toBeUndefined()
+  })
 
   it('rejects conflicting new and legacy identities before making a request', async () => {
     process.env.ZKYQ_AGENT_SESSION_ID = SESSION

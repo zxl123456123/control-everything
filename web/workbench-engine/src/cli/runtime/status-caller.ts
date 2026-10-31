@@ -3,6 +3,7 @@ import type {
   CliStatusCaller,
   OrchestrationCallerShowResult
 } from '../../shared/orchestration-caller-status'
+import { sessionIdentityFromRpc } from '../../shared/orchestration-caller-status'
 import { ORCHESTRATION_SESSION_CALLER_ERROR_CODES } from '../../shared/orchestration-session-caller-codes'
 import type { RuntimeClient } from './client'
 import { RuntimeClientError } from './types'
@@ -29,11 +30,11 @@ export async function resolveCliStatusCaller(
   try {
     const response = await client.call<OrchestrationCallerShowResult>(
       'orchestration.callerShow',
-      undefined,
+      { responseFormat: 'workbench' },
       { timeoutMs: CALLER_SHOW_TIMEOUT_MS }
     )
     const caller = response.result.caller
-    return caller ? { sessionId: caller.orcaSessionId, live: caller.live } : undefined
+    return caller ? { sessionId: sessionIdentityFromRpc(caller), live: caller.live } : undefined
   } catch (error) {
     if (error instanceof RuntimeClientError && SESSION_REFUSAL_CODES.has(error.code)) {
       return { live: false, refusal: { code: error.code, message: error.message } }

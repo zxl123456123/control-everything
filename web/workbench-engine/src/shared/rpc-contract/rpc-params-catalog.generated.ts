@@ -434,6 +434,7 @@ import {
 } from './orchestration-gates-params'
 import {
   AskParams,
+  CallerShowParams,
   CheckParams,
   DispatchParams,
   DispatchShowParams,
@@ -1181,7 +1182,7 @@ export const RPC_PARAMS_BY_METHOD = {
   'orcad.migration.stageSnapshotChunk': OrcadMigrationSnapshotChunkRequestSchema,
   'orcad.terminalCensus': OrcadTerminalCensusParamsSchema,
   'orchestration.ask': AskParams,
-  'orchestration.callerShow': null,
+  'orchestration.callerShow': CallerShowParams,
   'orchestration.check': CheckParams,
   'orchestration.dispatch': DispatchParams,
   'orchestration.dispatchShow': DispatchShowParams,
