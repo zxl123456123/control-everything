@@ -1,6 +1,5 @@
 import type { ITerminalOptions } from '@xterm/xterm'
 import { isWslUncPath } from '../../../../shared/wsl-paths'
-import { isWindowsAbsolutePathLike } from '../../../../shared/cross-platform-path'
 import { LOCAL_EXECUTION_HOST_ID, type ExecutionHostId } from '../../../../shared/execution-host'
 
 export type WindowsPtyCompatibilityContext = {
@@ -44,8 +43,8 @@ function buildXtermWindowsPtyOptions(
 }
 
 /**
- * Native ConPTY backend hints require a local Windows pane. Active-line reflow
- * also follows an explicit Windows host path on paired viewers.
+ * xterm options that select the native-Windows ConPTY backend, returned only for
+ * a genuine local Windows pane and `{}` otherwise.
  *
  * Why it requires `executionHostId`: a serve/remote-runtime pane on a Windows
  * client looks local to the raw heuristic (no SSH `connectionId`, Linux `cwd`),
@@ -55,12 +54,7 @@ export function buildWindowsPtyCompatibilityOptions(
   context: WindowsPtyCompatibilityContext & { executionHostId: ExecutionHostId }
 ): Partial<ITerminalOptions> {
   if (!isLocalNativeWindowsConpty(context)) {
-    // Paired viewers follow the host's native path, independently of the viewer OS.
-    return isWindowsAbsolutePathLike(context.cwd ?? '') &&
-      !isWslCwd(context.cwd) &&
-      !isWslShellOverride(context.shellOverride)
-      ? { reflowCursorLine: true }
-      : {}
+    return {}
   }
   return buildLocalConptyTerminalOptions(context.osRelease)
 }
@@ -70,10 +64,7 @@ export function buildWindowsPtyCompatibilityOptions(
 export function buildLocalConptyTerminalOptions(
   osRelease: string | null | undefined
 ): Partial<ITerminalOptions> {
-  return {
-    windowsPty: buildXtermWindowsPtyOptions(parseWindowsBuildNumber(osRelease)),
-    reflowCursorLine: true
-  }
+  return { windowsPty: buildXtermWindowsPtyOptions(parseWindowsBuildNumber(osRelease)) }
 }
 
 /** Mirror of main's effectiveShellOverride fold (pty.ts spawn handlers): a

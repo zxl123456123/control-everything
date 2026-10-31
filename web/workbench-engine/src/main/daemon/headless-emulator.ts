@@ -34,8 +34,6 @@ export type HeadlessEmulatorOptions = {
   cols: number
   rows: number
   scrollback?: number
-  /** Native ConPTY reflows the active line on resize; POSIX shells repaint it themselves. */
-  conpty?: boolean
   /** Query reply sink (terminal-query-authority.md); only `forwardQueryReplies` writes emit here. The daemon Session must never pass this. */
   onQueryReply?: (reply: string) => void
   pathFlavor?: 'posix' | 'win32'
@@ -92,7 +90,6 @@ export class HeadlessEmulator {
       scrollback: opts.scrollback ?? DEFAULT_SCROLLBACK,
       allowProposedApi: true,
       logLevel: 'off',
-      reflowCursorLine: opts.conpty === true,
       // Why: parse CSI =/>/< u pushes so CSI ? u answers with the flags the hidden app pushed (renderer parity).
       vtExtensions: { kittyKeyboard: true }
     })

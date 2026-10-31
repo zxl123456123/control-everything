@@ -327257,9 +327257,7 @@
     "src/shared/agent-hook-environment-identity.ts",
     "src/main/agent-hooks/wsl-hook-fs-adapter.test.ts",
     "src/shared/pi-managed-extension-install.ts",
-    "src/shared/pi-managed-extension-install.test.ts",
-    "src/main/daemon/headless-emulator-conpty-reflow.test.ts",
-    "src/renderer/src/lib/pane-manager/windows-pty-compatibility.test.ts"
+    "src/shared/pi-managed-extension-install.test.ts"
   ],
   "adapted_files": [
     {
@@ -336897,42 +336895,6 @@
       "upstream_sha256": "940f490d4e9e78217640f95d37f6efe357dee1bcec27533b97dad82fc688682c",
       "current_sha256": "60a4412e9f4f3a95a96e8309d95e40695ad32ef030ab3c686727195b5d0b979d",
       "reason": "新OMP扩展只注册及发布zkyq-model，桌面和手机模型选择按会话实际能力调用；旧存活进程能力仅作输入保留，不新增旧命令别名，保持模型选择、错误处理与重载能力"
-    },
-    {
-      "path": "src/main/daemon/headless-emulator.ts",
-      "upstream_sha256": "723bdc95107260b15447bda0cf13982a8a43df5e7a9235135c181328ad6d65b2",
-      "current_sha256": "3e287acb6854dcdbc2132dd8042b4af75a0c370ec8a433dcc252eff1505bb2d6",
-      "reason": "修复原生Windows ConPTY缩放时光标行未同步重排导致的叠字；运行模型、冷恢复和本地及成对页面采用一致规则，POSIX/WSL仍由shell重绘，不新增用户设置或传输"
-    },
-    {
-      "path": "src/main/daemon/history-reader.ts",
-      "upstream_sha256": "aa75ba4ad6b172f063c317947cf50ae28b0182a3f3c89bceec13e565573bbfba",
-      "current_sha256": "caef7f48776da8faf83af24d7f50431a690060949bf8e224bf162e3a9c1b33a5",
-      "reason": "修复原生Windows ConPTY缩放时光标行未同步重排导致的叠字；运行模型、冷恢复和本地及成对页面采用一致规则，POSIX/WSL仍由shell重绘，不新增用户设置或传输"
-    },
-    {
-      "path": "src/main/daemon/session-output-plane.ts",
-      "upstream_sha256": "992f9061bff095d3c2b0dbf13d74f357e49a9755041ab67908478741306ea780",
-      "current_sha256": "db68de3f5dbf78869f8c49e5a9377738a04d211a095fb434f891b4dcb3ca1f8e",
-      "reason": "修复原生Windows ConPTY缩放时光标行未同步重排导致的叠字；运行模型、冷恢复和本地及成对页面采用一致规则，POSIX/WSL仍由shell重绘，不新增用户设置或传输"
-    },
-    {
-      "path": "src/main/runtime/terminal/output/headless-terminal-state.ts",
-      "upstream_sha256": "58996195f6f6ff983238d28febd863a194a6dce662eb8678e53803178a4d0d7d",
-      "current_sha256": "6c4bafd37ed96f5704c868073259e50712374567a4d95fd77fed60463e86cf4a",
-      "reason": "修复原生Windows ConPTY缩放时光标行未同步重排导致的叠字；运行模型、冷恢复和本地及成对页面采用一致规则，POSIX/WSL仍由shell重绘，不新增用户设置或传输"
-    },
-    {
-      "path": "src/renderer/src/components/terminal-pane/terminal-pane-manager-options.ts",
-      "upstream_sha256": "97f7bac2bc9620ef293f51805599885525446a19ccbf3f3e01a54556b8355a8d",
-      "current_sha256": "3c55f78d964e57b9ed67b68d720db6f749637269b778191de0ef2394a0092d06",
-      "reason": "修复原生Windows ConPTY缩放时光标行未同步重排导致的叠字；运行模型、冷恢复和本地及成对页面采用一致规则，POSIX/WSL仍由shell重绘，不新增用户设置或传输"
-    },
-    {
-      "path": "src/renderer/src/lib/pane-manager/windows-pty-compatibility.ts",
-      "upstream_sha256": "bb9b222fbb4a6aedcaae99f2df67ed793538b7035f1c9ab36beae9011ce1b2a7",
-      "current_sha256": "447701e966e42af6d1dbd809e0223847dc190b21ae83687b5a7b8304df8b84e4",
-      "reason": "修复原生Windows ConPTY缩放时光标行未同步重排导致的叠字；运行模型、冷恢复和本地及成对页面采用一致规则，POSIX/WSL仍由shell重绘，不新增用户设置或传输"
     }
   ],
   "reviewed_findings": [

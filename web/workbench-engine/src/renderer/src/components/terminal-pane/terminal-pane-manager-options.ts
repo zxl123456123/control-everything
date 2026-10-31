@@ -13,10 +13,7 @@ import {
   resolveTerminalCursorInactiveStyle
 } from '@/lib/pane-manager/pane-terminal-options'
 import { buildFontFamily } from '@/lib/monospace-font-family'
-import {
-  buildWindowsPtyCompatibilityOptions,
-  resolveWindowsShellOverride
-} from '@/lib/pane-manager/windows-pty-compatibility'
+import { buildWindowsPtyCompatibilityOptions } from '@/lib/pane-manager/windows-pty-compatibility'
 import { buildTerminalKeyboardProtocolOptions } from '@/lib/pane-manager/terminal-keyboard-protocol'
 import { resolvePaneKeyboardProtocolAgent } from './terminal-keyboard-protocol-pane-agent'
 import { getConnectionId } from '@/lib/connection-context'
@@ -147,10 +144,7 @@ export function createTerminalPaneManagerOptions(
         osRelease: platformInfo?.osRelease,
         connectionId: getConnectionId(worktreeId),
         cwd: context.startupCwd,
-        shellOverride: resolveWindowsShellOverride(
-          currentTab?.shellOverride,
-          currentSettings?.terminalWindowsShell
-        ),
+        shellOverride: currentTab?.shellOverride,
         executionHostId: getExecutionHostIdForWorktree(storeState, worktreeId),
         tuiAgent: knownTuiAgent
       }

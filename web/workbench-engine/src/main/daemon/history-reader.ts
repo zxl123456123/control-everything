@@ -272,8 +272,7 @@ export class HistoryReader {
         cols: checkpoint?.cols ?? meta.cols,
         rows: checkpoint?.rows ?? meta.rows,
         scrollback: DAEMON_RESTORE_SCROLLBACK_ROWS,
-        wslDistro,
-        conpty: process.platform === 'win32' && !wslDistro
+        wslDistro
       })
       const replay = new ColdRestoreReplayWriter(emulator)
       try {
