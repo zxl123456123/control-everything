@@ -211,20 +211,20 @@ export function buildPtyHostEnv(
     // Why: nested PTYs must not inherit stale source or overlay state from another agent.
     restoreOrStripOverlayEnv(baseEnv, {
       primary: 'PI_CODING_AGENT_DIR',
-      overlay: 'ORCA_PI_CODING_AGENT_DIR',
-      source: 'ORCA_PI_SOURCE_AGENT_DIR'
+      overlay: 'ZKYQ_PI_CODING_AGENT_DIR',
+      source: 'ZKYQ_PI_SOURCE_AGENT_DIR'
     })
     restoreOrStripOverlayEnv(baseEnv, {
       primary: 'PI_CODING_AGENT_DIR',
-      overlay: 'ORCA_OMP_CODING_AGENT_DIR',
-      source: 'ORCA_OMP_SOURCE_AGENT_DIR'
+      overlay: 'ZKYQ_OMP_CODING_AGENT_DIR',
+      source: 'ZKYQ_OMP_SOURCE_AGENT_DIR'
     })
     if (shouldPrepareOmpShadow) {
       Object.assign(baseEnv, piTitlebarExtensionService.buildFreshOmpEnv())
     }
-    delete baseEnv.ORCA_OMP_STATUS_EXTENSION
-    delete baseEnv.ORCA_PRIME_AGENT_SOURCE_AGENT_DIR
-    delete baseEnv.ORCA_PRIME_AGENT_STATUS_EXTENSION
+    delete baseEnv.ZKYQ_OMP_STATUS_EXTENSION
+    delete baseEnv.ZKYQ_PRIME_AGENT_SOURCE_AGENT_DIR
+    delete baseEnv.ZKYQ_PRIME_AGENT_STATUS_EXTENSION
   }
 
   if (opts.isWsl && opts.agentStatusHooksEnabled) {
@@ -232,12 +232,12 @@ export function buildPtyHostEnv(
     if (explicitPiAgentKind === 'pi') {
       const guestPiDir = wslHookRelayManager.getGuestAgentPath(distro, 'pi')
       if (guestPiDir) {
-        baseEnv.ORCA_PI_SOURCE_AGENT_DIR = guestPiDir
+        baseEnv.ZKYQ_PI_SOURCE_AGENT_DIR = guestPiDir
       }
     } else if (explicitPiAgentKind === 'omp') {
       const guestOmpExtension = wslHookRelayManager.getGuestAgentPath(distro, 'omp')
       if (guestOmpExtension) {
-        baseEnv.ORCA_OMP_STATUS_EXTENSION = guestOmpExtension
+        baseEnv.ZKYQ_OMP_STATUS_EXTENSION = guestOmpExtension
       }
     }
   }

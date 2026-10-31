@@ -5,6 +5,26 @@ import {
 } from './agent-hook-environment-identity'
 import { parseAgentHookEndpointFile } from './agent-hook-endpoint-file'
 
+it('moves Pi-family paths, drafts and WSL flags without changing public agent settings', () => {
+  const env = {
+    ORCA_PI_SOURCE_AGENT_DIR: '/fixture/用户 config',
+    ORCA_OMP_PREFILL: 'Keep the draft\nwith details',
+    ORCA_PRIME_AGENT_STATUS_OWNED: '123',
+    PI_CODING_AGENT_DIR: '/fixture/public',
+    WSLENV: 'ORCA_PI_SOURCE_AGENT_DIR/p:ORCA_OMP_PREFILL/u:PI_CODING_AGENT_DIR/u'
+  }
+  const deleted = ['ORCA_PRIME_AGENT_STATUS_OWNED', 'ZKYQ_PRIME_AGENT_STATUS_OWNED']
+  migrateAgentHookEnvironmentIdentity(env, deleted)
+  expect(env).toEqual({
+    ZKYQ_PI_SOURCE_AGENT_DIR: '/fixture/用户 config',
+    ZKYQ_OMP_PREFILL: 'Keep the draft\nwith details',
+    ZKYQ_PRIME_AGENT_STATUS_OWNED: '123',
+    PI_CODING_AGENT_DIR: '/fixture/public',
+    WSLENV: 'ZKYQ_PI_SOURCE_AGENT_DIR/p:ZKYQ_OMP_PREFILL/u:PI_CODING_AGENT_DIR/u'
+  })
+  expect(deleted).toEqual(['ZKYQ_PRIME_AGENT_STATUS_OWNED'])
+})
+
 it.each(AGENT_HOOK_IDENTITY_SUFFIXES)(
   'migrates the declared %s key in its embedded implementation',
   (suffix) => {

@@ -482,10 +482,10 @@ describe('registerPtyHandlers', () => {
           materializeDefaultHome: false
         })
         expect(env.PI_CODING_AGENT_DIR).toBe('/user/.pi/agent')
-        expect(env.ORCA_PI_CODING_AGENT_DIR).toBeUndefined()
-        expect(env.ORCA_PI_SOURCE_AGENT_DIR).toBe('/user/.pi/agent')
-        expect(env.ORCA_OMP_CODING_AGENT_DIR).toBeUndefined()
-        expect(env.ORCA_OMP_STATUS_EXTENSION).toBe(expectedOmpStatusExtension)
+        expect(env.ZKYQ_PI_CODING_AGENT_DIR).toBeUndefined()
+        expect(env.ZKYQ_PI_SOURCE_AGENT_DIR).toBe('/user/.pi/agent')
+        expect(env.ZKYQ_OMP_CODING_AGENT_DIR).toBeUndefined()
+        expect(env.ZKYQ_OMP_STATUS_EXTENSION).toBe(expectedOmpStatusExtension)
       })
       it('does not materialize agent homes when another daemon agent mentions OMP', async () => {
         const env = await daemonSpawnAndGetEnv(undefined, undefined, undefined, undefined, {
@@ -497,7 +497,7 @@ describe('registerPtyHandlers', () => {
         expect(piBuildPtyEnvMock).toHaveBeenCalledWith(expect.any(String), undefined, 'pi', {
           materializeDefaultHome: false
         })
-        expect(env.ORCA_PI_SOURCE_AGENT_DIR).toBeUndefined()
+        expect(env.ZKYQ_PI_SOURCE_AGENT_DIR).toBeUndefined()
       })
       it('threads command: "omp" through to piBuildPtyEnv on the daemon path with OMP status metadata', async () => {
         // Why: mirror of the local-spawn OMP threading assertion; the daemon path's `command` forwarding could silently regress otherwise.
@@ -515,13 +515,13 @@ describe('registerPtyHandlers', () => {
           { materializeDefaultHome: true }
         )
         expect(env.PI_CODING_AGENT_DIR).toBe('/user/.omp/agent')
-        expect(env.ORCA_OMP_CODING_AGENT_DIR).toBeUndefined()
-        expect(env.ORCA_OMP_STATUS_EXTENSION).toBe(
-          '/user/.omp/agent/extensions/orca-agent-status.ts'
+        expect(env.ZKYQ_OMP_CODING_AGENT_DIR).toBeUndefined()
+        expect(env.ZKYQ_OMP_STATUS_EXTENSION).toBe(
+          '/user/.omp/agent/extensions/zkyq-agent-status.ts'
         )
-        expect(env.ORCA_OMP_SOURCE_AGENT_DIR).toBe('/user/.omp/agent')
-        expect(env.ORCA_PI_CODING_AGENT_DIR).toBeUndefined()
-        expect(env.ORCA_PI_SOURCE_AGENT_DIR).toBeUndefined()
+        expect(env.ZKYQ_OMP_SOURCE_AGENT_DIR).toBe('/user/.omp/agent')
+        expect(env.ZKYQ_PI_CODING_AGENT_DIR).toBeUndefined()
+        expect(env.ZKYQ_PI_SOURCE_AGENT_DIR).toBeUndefined()
       })
       it('uses sequenced startup env as the daemon OMP launch hint when command is a wrapper', async () => {
         const env = await daemonSpawnAndGetEnv(
@@ -541,10 +541,10 @@ describe('registerPtyHandlers', () => {
           'omp',
           { materializeDefaultHome: true }
         )
-        expect(env.ORCA_OMP_STATUS_EXTENSION).toBe(
-          '/user/.omp/agent/extensions/orca-agent-status.ts'
+        expect(env.ZKYQ_OMP_STATUS_EXTENSION).toBe(
+          '/user/.omp/agent/extensions/zkyq-agent-status.ts'
         )
-        expect(env.ORCA_PI_SOURCE_AGENT_DIR).toBeUndefined()
+        expect(env.ZKYQ_PI_SOURCE_AGENT_DIR).toBeUndefined()
       })
       it('injects the selected Codex home on the daemon path', async () => {
         const env = await daemonSpawnAndGetEnv({}, () => TEST_CODEX_HOME)

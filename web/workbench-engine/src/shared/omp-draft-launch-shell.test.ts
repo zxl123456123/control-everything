@@ -39,12 +39,12 @@ it.each(
       }
       const define =
         shell === 'fish'
-          ? 'function omp; printf "%s\\n" "$ORCA_OMP_PREFILL" >> "$CAPTURE"; printf agent-stderr >&2; return 17; end; '
-          : 'omp() { printf "%s\\n" "$ORCA_OMP_PREFILL" >> "$CAPTURE"; printf agent-stderr >&2; return 17; }; '
+          ? 'function omp; printf "%s\\n" "$ZKYQ_OMP_PREFILL" >> "$CAPTURE"; printf agent-stderr >&2; return 17; end; '
+          : 'omp() { printf "%s\\n" "$ZKYQ_OMP_PREFILL" >> "$CAPTURE"; printf agent-stderr >&2; return 17; }; '
       const observe =
         shell === 'fish'
-          ? '; set -l result $status; set -q ORCA_OMP_PREFILL; and exit 91; exit $result'
-          : '; result=$?; test -z "${ORCA_OMP_PREFILL+x}" || exit 91; exit "$result"'
+          ? '; set -l result $status; set -q ZKYQ_OMP_PREFILL; and exit 91; exit $result'
+          : '; result=$?; test -z "${ZKYQ_OMP_PREFILL+x}" || exit 91; exit "$result"'
       for (const present of [true, false]) {
         if (!present) {
           await rm(config)
@@ -53,7 +53,7 @@ it.each(
           program: shell,
           args: ['-c', (nounset ? 'set -u; ' : '') + define + plan.launchCommand + observe],
           cwd: root,
-          env: { ...process.env, ...plan.env, ORCA_OMP_FRESH_CONFIG: config, CAPTURE: calls }
+          env: { ...process.env, ...plan.env, ZKYQ_OMP_FRESH_CONFIG: config, CAPTURE: calls }
         })
         expect(result.code, result.stderr).toBe(present ? 17 : 1)
         expect(result.stderr).toContain(

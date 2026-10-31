@@ -218,8 +218,8 @@ describe('registerPtyHandlers', () => {
           { materializeDefaultHome: false }
         )
         expect(env.PI_CODING_AGENT_DIR).toBeUndefined()
-        expect(env.ORCA_PI_CODING_AGENT_DIR).toBeUndefined()
-        expect(env.ORCA_PI_SOURCE_AGENT_DIR).toBe('/ambient/pi/agent')
+        expect(env.ZKYQ_PI_CODING_AGENT_DIR).toBeUndefined()
+        expect(env.ZKYQ_PI_SOURCE_AGENT_DIR).toBe('/ambient/pi/agent')
       })
       it('does not mutate the caller-provided args.env on the daemon path', async () => {
         // Why: the handler clones baseEnv so IPC-provided env stays pristine; a regression would leak Orca host env back into the renderer's reused copy.

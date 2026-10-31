@@ -96,7 +96,7 @@ describe('plugin overlay env source resolution', () => {
       resolvePiSourceAgentDir(
         {
           HOME: homeDir,
-          ORCA_PRIME_AGENT_SOURCE_AGENT_DIR: '/remote/original-prime',
+          ZKYQ_PRIME_AGENT_SOURCE_AGENT_DIR: '/remote/original-prime',
           PRIME_AGENT_CODING_AGENT_DIR: '/tmp/inherited-prime'
         },
         '/bin/zsh',

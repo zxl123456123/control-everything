@@ -17,7 +17,20 @@ export const AGENT_HOOK_IDENTITY_SUFFIXES = [
   'AGENT_HOOK_ROOT',
   'AGENT_HOOK_TOKEN',
   'AGENT_HOOK_TRANSPORT',
-  'AGENT_HOOK_VERSION'
+  'AGENT_HOOK_VERSION',
+  'OMP_CODING_AGENT_DIR',
+  'OMP_FRESH_CONFIG',
+  'OMP_PREFILL',
+  'OMP_SOURCE_AGENT_DIR',
+  'OMP_STATUS_EXTENSION',
+  'PI_CODING_AGENT_DIR',
+  'PI_PREFILL',
+  'PI_SOURCE_AGENT_DIR',
+  'PI_STATUS_OWNED',
+  'PI_TITLE_MARKER_OWNED',
+  'PRIME_AGENT_SOURCE_AGENT_DIR',
+  'PRIME_AGENT_STATUS_EXTENSION',
+  'PRIME_AGENT_STATUS_OWNED'
 ] as const
 
 /** Migrate platform-owned Hook keys before merging inherited and explicit environments. */
@@ -45,7 +58,20 @@ export function migrateAgentHookEnvironmentIdentity(
     'AGENT_HOOK_ROOT',
     'AGENT_HOOK_TOKEN',
     'AGENT_HOOK_TRANSPORT',
-    'AGENT_HOOK_VERSION'
+    'AGENT_HOOK_VERSION',
+    'OMP_CODING_AGENT_DIR',
+    'OMP_FRESH_CONFIG',
+    'OMP_PREFILL',
+    'OMP_SOURCE_AGENT_DIR',
+    'OMP_STATUS_EXTENSION',
+    'PI_CODING_AGENT_DIR',
+    'PI_PREFILL',
+    'PI_SOURCE_AGENT_DIR',
+    'PI_STATUS_OWNED',
+    'PI_TITLE_MARKER_OWNED',
+    'PRIME_AGENT_SOURCE_AGENT_DIR',
+    'PRIME_AGENT_STATUS_EXTENSION',
+    'PRIME_AGENT_STATUS_OWNED'
   ]
   for (const suffix of suffixes) {
     const current = `ZKYQ_${suffix}`

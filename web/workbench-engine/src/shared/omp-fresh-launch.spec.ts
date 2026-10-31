@@ -1,13 +1,23 @@
 import { describe, expect, it } from 'vitest'
-import { withFreshOmpLaunch } from './omp-fresh-launch'
+import { isFreshOmpLaunchCommand, withFreshOmpLaunch } from './omp-fresh-launch'
 import { buildAgentStartupPlan } from './tui-agent-startup'
 
 describe('OMP fresh launch intent', () => {
+  it.each(['posix', 'powershell', 'cmd'] as const)(
+    'recognizes a persisted legacy %s guard without publishing it again',
+    (shell) => {
+      const current = withFreshOmpLaunch('omp', shell)
+      const legacy = current.replaceAll('ZKYQ_OMP_FRESH_CONFIG', 'ORCA_OMP_FRESH_CONFIG')
+      expect(isFreshOmpLaunchCommand(legacy)).toBe(true)
+      expect(current).not.toContain('ORCA_OMP_FRESH_CONFIG')
+    }
+  )
+
   it.each(['omp', 'omp launch', 'omp --model provider/model', 'omp --config user.yml'])(
     '%s adds the final overlay',
     (command) => {
       expect(withFreshOmpLaunch(command, 'posix')).toContain(
-        `${command} --config "$ORCA_OMP_FRESH_CONFIG"`
+        `${command} --config "$ZKYQ_OMP_FRESH_CONFIG"`
       )
     }
   )
@@ -40,9 +50,9 @@ describe('OMP fresh launch intent', () => {
   })
   it('quotes the host config path for each Windows shell', () => {
     expect(withFreshOmpLaunch('omp', 'powershell')).toContain(
-      'omp --config "$env:ORCA_OMP_FRESH_CONFIG"'
+      'omp --config "$env:ZKYQ_OMP_FRESH_CONFIG"'
     )
-    expect(withFreshOmpLaunch('omp', 'cmd')).toContain('omp --config "%~$ORCA_OMP_FRESH_CONFIG:!"')
+    expect(withFreshOmpLaunch('omp', 'cmd')).toContain('omp --config "%~$ZKYQ_OMP_FRESH_CONFIG:!"')
   })
   it('keeps fresh intent out of saved resume command and environment', () => {
     const plan = buildAgentStartupPlan({
@@ -51,8 +61,8 @@ describe('OMP fresh launch intent', () => {
       cmdOverrides: {},
       platform: 'linux'
     })
-    expect(plan?.launchCommand).toContain('--config "$ORCA_OMP_FRESH_CONFIG"')
-    expect(JSON.stringify(plan?.launchConfig)).not.toContain('ORCA_OMP_FRESH_CONFIG')
+    expect(plan?.launchCommand).toContain('--config "$ZKYQ_OMP_FRESH_CONFIG"')
+    expect(JSON.stringify(plan?.launchConfig)).not.toContain('ZKYQ_OMP_FRESH_CONFIG')
     expect(plan?.env).toBeUndefined()
   })
   it('requires host-owned configuration for fresh SSH launches', () => {
@@ -63,6 +73,6 @@ describe('OMP fresh launch intent', () => {
       platform: 'linux',
       isRemote: true
     })
-    expect(plan?.launchCommand).toContain('test -f "$ORCA_OMP_FRESH_CONFIG"')
+    expect(plan?.launchCommand).toContain('test -f "$ZKYQ_OMP_FRESH_CONFIG"')
   })
 })

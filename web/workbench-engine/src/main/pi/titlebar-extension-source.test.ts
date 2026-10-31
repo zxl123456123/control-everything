@@ -65,7 +65,7 @@ function createHarness(
     exports: module.exports,
     process: {
       env: { ZKYQ_PANE_KEY: options.paneKey ?? 'pane-1', ...options.env },
-      pid: options.env?.ORCA_PI_TITLE_MARKER_OWNED === undefined ? 111 : 222,
+      pid: options.env?.ZKYQ_PI_TITLE_MARKER_OWNED === undefined ? 111 : 222,
       title: options.processTitle ?? 'pi',
       argv: ['node', 'pi'],
       cwd: options.cwdImpl ?? (() => CWD)
@@ -591,7 +591,7 @@ describe('getPiTitlebarExtensionSource', () => {
   it('leaves the needs-input marker to the process that owns the pane', async () => {
     // Why: child agents inherit ZKYQ_PANE_KEY, and a second process asserting the marker
     // would report needs-input for a pane it does not speak for.
-    const harness = createHarness({ env: { ORCA_PI_TITLE_MARKER_OWNED: '111' } })
+    const harness = createHarness({ env: { ZKYQ_PI_TITLE_MARKER_OWNED: '111' } })
 
     await harness.callHook('agent_start')
     await harness.callHook('ui_prompt_start')

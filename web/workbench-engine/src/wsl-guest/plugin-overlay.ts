@@ -65,7 +65,7 @@ const OPENCODE_PLUGIN_ENTRIES = new Set([
 ])
 const PI_AGENT_SUBDIR = 'agent'
 const OMP_MANAGED_STATUS_EXTENSION_DIR = 'omp-managed-status-extension'
-// Why: bare-shell OMP still needs ORCA_OMP_STATUS_EXTENSION without mkdir ~/.omp.
+// Why: bare-shell OMP still needs ZKYQ_OMP_STATUS_EXTENSION without mkdir ~/.omp.
 // Mirror local userData/omp-managed-status-extension under the relay home root.
 // Why: source-dir resolution is keyed off the launching agent (Pi or OMP).
 // Both consume `PI_CODING_AGENT_DIR` but default to different `~/.<kind>/agent`

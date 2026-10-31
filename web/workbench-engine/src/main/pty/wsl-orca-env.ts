@@ -116,14 +116,14 @@ export function addOrcaWslInteropEnv(env: Record<string, string>): void {
     ...opencodeOverlayEntries,
     'ORCA_WSL_HOOK_RELAY_VERSION/u',
     'ORCA_WSL_HOOK_INSTANCE/u',
-    'ORCA_OMP_SOURCE_AGENT_DIR/p',
-    `ORCA_OMP_STATUS_EXTENSION/${env.ORCA_OMP_STATUS_EXTENSION?.startsWith('/') ? 'u' : 'p'}`,
-    ...(env.ORCA_PI_SOURCE_AGENT_DIR?.startsWith('/') ? ['ORCA_PI_SOURCE_AGENT_DIR/u'] : []),
+    'ZKYQ_OMP_SOURCE_AGENT_DIR/p',
+    `ZKYQ_OMP_STATUS_EXTENSION/${env.ZKYQ_OMP_STATUS_EXTENSION?.startsWith('/') ? 'u' : 'p'}`,
+    ...(env.ZKYQ_PI_SOURCE_AGENT_DIR?.startsWith('/') ? ['ZKYQ_PI_SOURCE_AGENT_DIR/u'] : []),
     `${ORCA_IMAGE_PROTOCOL_ENV}/u`,
     'CLAUDE_CODE_FORCE_TERMINAL_IMAGES/u',
     // Why only Orca's marker: a real Windows-side SSH session must not leak into bare guest shells.
     ...(env.SSH_CONNECTION === CODEX_REMOTE_VIEWER_SSH_CONNECTION ? ['SSH_CONNECTION/u'] : []),
-    'ORCA_OMP_FRESH_CONFIG/p',
+    'ZKYQ_OMP_FRESH_CONFIG/p',
     ...worktreeSetupWslenvEntries(env)
   ]
   applyWslenvPassthrough(env, passthroughEntries)

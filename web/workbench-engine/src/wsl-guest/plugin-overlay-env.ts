@@ -58,8 +58,8 @@ export function resolvePiSourceAgentDir(
     return firstNonEmpty(env[primaryKey])
   }
 
-  const overlayKey = kind === 'omp' ? 'ORCA_OMP_CODING_AGENT_DIR' : 'ORCA_PI_CODING_AGENT_DIR'
-  const otherOverlayKey = kind === 'omp' ? 'ORCA_PI_CODING_AGENT_DIR' : 'ORCA_OMP_CODING_AGENT_DIR'
+  const overlayKey = kind === 'omp' ? 'ZKYQ_OMP_CODING_AGENT_DIR' : 'ZKYQ_PI_CODING_AGENT_DIR'
+  const otherOverlayKey = kind === 'omp' ? 'ZKYQ_PI_CODING_AGENT_DIR' : 'ZKYQ_OMP_CODING_AGENT_DIR'
 
   // Why: a mismatched Orca overlay shadow means this shell inherited the other
   // Pi-compatible agent's PTY overlay. Do not remirror that overlay into this

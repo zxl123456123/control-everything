@@ -6,9 +6,9 @@ import {
 import type { LocalPtyLaunchPlan } from './local-pty-launch-plan'
 
 const ownerEnv = {
-  ORCA_PI_STATUS_OWNED: '1234',
-  ORCA_PRIME_AGENT_STATUS_OWNED: '1234',
-  ORCA_PI_TITLE_MARKER_OWNED: '1234'
+  ZKYQ_PI_STATUS_OWNED: '1234',
+  ZKYQ_PRIME_AGENT_STATUS_OWNED: '1234',
+  ZKYQ_PI_TITLE_MARKER_OWNED: '1234'
 }
 const terminalEnv = {
   ZKYQ_PANE_KEY: 'new-tab:new-leaf',

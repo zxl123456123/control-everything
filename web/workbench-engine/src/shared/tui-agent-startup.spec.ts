@@ -283,18 +283,21 @@ describe('tui agent startup plans', () => {
     expect(plan?.launchCommand).toBe('zkyq claude-teams')
   })
 
-  it.each(['linux', 'darwin'] as const)('uses the managed runtime command for Claude Agent Teams on %s SSH remotes', (platform) => {
-    const plan = buildAgentStartupPlan({
-      agent: 'claude-agent-teams',
-      prompt: '',
-      cmdOverrides: {},
-      platform,
-      isRemote: true,
-      allowEmptyPromptLaunch: true
-    })
+  it.each(['linux', 'darwin'] as const)(
+    'uses the managed runtime command for Claude Agent Teams on %s SSH remotes',
+    (platform) => {
+      const plan = buildAgentStartupPlan({
+        agent: 'claude-agent-teams',
+        prompt: '',
+        cmdOverrides: {},
+        platform,
+        isRemote: true,
+        allowEmptyPromptLaunch: true
+      })
 
-    expect(plan?.launchCommand).toBe('zkyq claude-teams')
-  })
+      expect(plan?.launchCommand).toBe('zkyq claude-teams')
+    }
+  )
 
   it('uses the native Windows command for Claude Agent Teams on SSH remotes', () => {
     const plan = buildAgentStartupPlan({
@@ -685,7 +688,7 @@ describe('tui agent startup plans', () => {
         cmdOverrides: {},
         platform: 'win32'
       })?.launchCommand
-    ).toBe('pi; Remove-Item Env:ORCA_PI_PREFILL -ErrorAction SilentlyContinue')
+    ).toBe('pi; Remove-Item Env:ZKYQ_PI_PREFILL -ErrorAction SilentlyContinue')
 
     expect(
       buildAgentDraftLaunchPlan({
@@ -695,12 +698,12 @@ describe('tui agent startup plans', () => {
         platform: 'win32',
         shell: 'cmd'
       })?.launchCommand
-    ).toBe('pi & set "ORCA_PI_PREFILL="')
+    ).toBe('pi & set "ZKYQ_PI_PREFILL="')
   })
 
-  it('returns an OMP draft plan with ORCA_OMP_PREFILL (OMP-scoped, not Pi-shared)', () => {
+  it('returns an OMP draft plan with ZKYQ_OMP_PREFILL (OMP-scoped, not Pi-shared)', () => {
     // Why: OMP owns its own managed prefill extension and env var.
-    // orca-prefill.ts reads ORCA_OMP_PREFILL for OMP launches — see
+    // orca-prefill.ts reads ZKYQ_OMP_PREFILL for OMP launches — see
     // src/main/pi/titlebar-extension-service.ts — so a draft plan for OMP
     // MUST emit that name. A regression here would either silently drop the
     // draft (Pi var ignored by OMP) or honor a stale Pi-PTY draft.
@@ -712,7 +715,7 @@ describe('tui agent startup plans', () => {
     })
 
     expect(plan).not.toBeNull()
-    expect(plan?.env).toEqual({ ORCA_OMP_PREFILL: 'fix the omp regression' })
+    expect(plan?.env).toEqual({ ZKYQ_OMP_PREFILL: 'fix the omp regression' })
     expect(plan?.expectedProcess).toBe('omp')
     expect(plan?.launchConfig.agentCommand).toBe('omp')
   })
@@ -785,7 +788,7 @@ describe('tui agent startup plans', () => {
       platform: 'linux'
     })
 
-    expect(plan?.env).toEqual({ ORCA_AGENT_MODE: 'managed', ORCA_PI_PREFILL: 'prefill text' })
+    expect(plan?.env).toEqual({ ORCA_AGENT_MODE: 'managed', ZKYQ_PI_PREFILL: 'prefill text' })
     expect(plan?.launchConfig).toEqual({
       agentCommand: 'pi',
       agentArgs: '',

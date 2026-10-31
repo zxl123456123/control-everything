@@ -167,7 +167,7 @@ export class PiTitlebarExtensionService {
 
   buildFreshOmpEnv(): Record<string, string> {
     return {
-      ORCA_OMP_FRESH_CONFIG: materializeOmpFreshConfig(
+      ZKYQ_OMP_FRESH_CONFIG: materializeOmpFreshConfig(
         join(getAppEnvironment().getPath('userData'), OMP_MANAGED_STATUS_EXTENSION_DIR)
       )
     }
@@ -202,7 +202,7 @@ export class PiTitlebarExtensionService {
         const statusSource = markManagedPiExtension(getPiAgentStatusExtensionSource(kind))
         const statusExtensionPath = this.writeOmpFallbackStatusExtension(statusSource)
         return statusExtensionPath
-          ? { ...freshConfigEnv, ORCA_OMP_STATUS_EXTENSION: statusExtensionPath }
+          ? { ...freshConfigEnv, ZKYQ_OMP_STATUS_EXTENSION: statusExtensionPath }
           : freshConfigEnv
       }
       return {}
@@ -215,14 +215,14 @@ export class PiTitlebarExtensionService {
     const installed = this.installManagedExtensions(sourceAgentDir, kind)
     const env: Record<string, string> = { ...freshConfigEnv }
     if (kind === 'omp') {
-      env.ORCA_OMP_SOURCE_AGENT_DIR = installed.sourceAgentDir
+      env.ZKYQ_OMP_SOURCE_AGENT_DIR = installed.sourceAgentDir
       if (installed.statusExtensionPath) {
-        env.ORCA_OMP_STATUS_EXTENSION = installed.statusExtensionPath
+        env.ZKYQ_OMP_STATUS_EXTENSION = installed.statusExtensionPath
       }
     } else if (kind === 'prime-agent') {
-      env.ORCA_PRIME_AGENT_SOURCE_AGENT_DIR = installed.sourceAgentDir
+      env.ZKYQ_PRIME_AGENT_SOURCE_AGENT_DIR = installed.sourceAgentDir
     } else {
-      env.ORCA_PI_SOURCE_AGENT_DIR = installed.sourceAgentDir
+      env.ZKYQ_PI_SOURCE_AGENT_DIR = installed.sourceAgentDir
     }
     return env
   }

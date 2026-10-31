@@ -8,8 +8,8 @@ export { PI_PREFILL_EXTENSION_FILE } from '../../shared/pi-managed-extension-ins
 type PrefillAgentKind = Exclude<PiAgentKind, 'prime-agent'>
 
 const PREFILL_ENV_VAR_BY_KIND: Record<PrefillAgentKind, string> = {
-  pi: 'ORCA_PI_PREFILL',
-  omp: 'ORCA_OMP_PREFILL'
+  pi: 'ZKYQ_PI_PREFILL',
+  omp: 'ZKYQ_OMP_PREFILL'
 }
 
 export function getPiPrefillExtensionSource(kind: PrefillAgentKind): string {
