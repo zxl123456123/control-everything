@@ -58,9 +58,9 @@ export const MANAGED_SERVER_COMMAND_SPECS: CommandSpec[] = [
     usage: 'orca environment stop --environment <selector> --yes [--json]',
     allowedFlags: [...GLOBAL_FLAGS, 'yes'],
     notes: [
-      'Stops orcad on the SSH host and, once the host proves it exited, removes the server from this machine. Its terminals end. Requires --yes.',
-      'If the host cannot prove orcad exited, the server stays linked and the refusal says why; nothing is removed on a guess. For a host that is gone for good, use `orca environment forget`.',
-      'If this server is the default host for new projects, choose another one first. `orca environment cancel-stop` withdraws a stop orcad has not acted on yet.',
+      'Stops the runtime on the SSH host and, once the host proves it exited, removes the server from this machine. Its terminals end. Requires --yes.',
+      'If the host cannot prove the runtime exited, the server stays linked and the refusal says why; nothing is removed on a guess. For a host that is gone for good, use `orca environment forget`.',
+      'If this server is the default host for new projects, choose another one first. `orca environment cancel-stop` withdraws a stop the runtime has not acted on yet.',
       SELECTOR_NOTE,
       DESKTOP_NOTE
     ],
@@ -74,7 +74,7 @@ export const MANAGED_SERVER_COMMAND_SPECS: CommandSpec[] = [
     allowedFlags: [...GLOBAL_FLAGS, 'yes'],
     notes: [
       'Removes the server from this machine without contacting its host, so the SSH host can then be removed. Use it when the host was deleted or can never be reached again. Requires --yes.',
-      'Nothing on the host is stopped: if it comes back, orcad may still be running there, and connecting to it again relinks it.',
+      'Nothing on the host is stopped: if it comes back, the runtime may still be running there, and connecting to it again relinks it.',
       SELECTOR_NOTE,
       DESKTOP_NOTE
     ],
@@ -82,7 +82,7 @@ export const MANAGED_SERVER_COMMAND_SPECS: CommandSpec[] = [
   },
   {
     path: ['environment', 'cancel-stop'],
-    summary: 'Withdraw a managed Orca server stop that orcad has not acted on yet',
+    summary: 'Withdraw a managed Orca server stop that the runtime has not acted on yet',
     usage: 'orca environment cancel-stop --environment <selector> [--json]',
     allowedFlags: [...GLOBAL_FLAGS],
     notes: [SELECTOR_NOTE, DESKTOP_NOTE]

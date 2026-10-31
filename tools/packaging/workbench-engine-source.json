@@ -327159,6 +327159,30 @@
   ],
   "adapted_files": [
     {
+      "path": "src/cli/specs/project.ts",
+      "upstream_sha256": "349406f7bf535d9605dd4849b85ad0d0f065e699ed228afc9cb50af50a24e97f",
+      "current_sha256": "8e89c03f234cd5bd76e159b2d04b045cceb431616e514898dbd6f67fcd3e132c",
+      "reason": "帮助示例及运行时描述使用平台身份"
+    },
+    {
+      "path": "src/cli/specs/search.ts",
+      "upstream_sha256": "a962113b15e754b6f58e4d4b6db06266afd15f023d11ca6c842c63d08bf07ea9",
+      "current_sha256": "c63db2cbe0889437763108468e67184736967c41f7a45e3dbdd19186762f96a4",
+      "reason": "帮助示例及运行时描述使用平台身份"
+    },
+    {
+      "path": "src/cli/specs/file.ts",
+      "upstream_sha256": "18208829d3fb535ab24d227890c8eec8ca551c20d529a172a319d928c8e0424d",
+      "current_sha256": "1b7af57b91229dd716d20e2276e444db5c42b5dd30ba96d33c757a24045c6312",
+      "reason": "帮助示例及运行时描述使用平台身份"
+    },
+    {
+      "path": "src/cli/specs/managed-server.ts",
+      "upstream_sha256": "be39437eddf4a77638608051e27e5e041418fbb0d72a55f9a5ee1869c164d1a8",
+      "current_sha256": "455dc8ef0cb0cc184a32bb7f341e0fb4b8bfcf7af5adc58922a5eefaa77e8285",
+      "reason": "帮助示例及运行时描述使用平台身份"
+    },
+    {
       "path": "src/main/runtime/agent-session-record-rows.ts",
       "upstream_sha256": "57f5e4e5df3443e792e43018b910a89cfad8cff92591fb9fcaf1cd2679aaeb39",
       "current_sha256": "5f5bd0c23f2cf6abde932c37dda4a6b61265289c74a05481a7b09b4c3256b1ae",
@@ -334262,14 +334286,14 @@
       "path": "src/cli/specs/project.ts",
       "rule": "personal-home-path",
       "line": 43,
-      "sha256": "349406f7bf535d9605dd4849b85ad0d0f065e699ed228afc9cb50af50a24e97f",
+      "sha256": "8e89c03f234cd5bd76e159b2d04b045cceb431616e514898dbd6f67fcd3e132c",
       "reason": "公开的路径模板、跨平台解析说明或通用示例；未读取本机账号/目录，保留语义并限定具体行及文件hash。"
     },
     {
       "path": "src/cli/specs/search.ts",
       "rule": "personal-home-path",
       "line": 44,
-      "sha256": "a962113b15e754b6f58e4d4b6db06266afd15f023d11ca6c842c63d08bf07ea9",
+      "sha256": "c63db2cbe0889437763108468e67184736967c41f7a45e3dbdd19186762f96a4",
       "reason": "公开的路径模板、跨平台解析说明或通用示例；未读取本机账号/目录，保留语义并限定具体行及文件hash。"
     },
     {

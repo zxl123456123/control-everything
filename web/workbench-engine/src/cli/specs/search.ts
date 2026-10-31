@@ -41,7 +41,7 @@ export const SEARCH_COMMAND_SPECS: CommandSpec[] = [
     examples: [
       'orca search "strict mode violation getByRole"',
       'orca search resolveTerminalPath --agent claude --sort newest',
-      'orca search "kernel panic" --path /Users/me/orca --since 2026-08-01T00:00:00Z --json',
+      'orca search "kernel panic" --path /Users/me/example-repo --since 2026-08-01T00:00:00Z --json',
       'orca search "kernel panic" --limit 50 --cursor eyJ2IjoxfQ',
       'orca search --index-status',
       'orca search "flaky test" --environment build-server'
