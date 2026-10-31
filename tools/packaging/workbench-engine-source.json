@@ -327160,10 +327160,28 @@
   ],
   "adapted_files": [
     {
+      "path": "src/cli/format.ts",
+      "upstream_sha256": "f4ff6e2216c90a2a7ddc706957cd966f1510e7ff7304bdfd89d935d9665778d9",
+      "current_sha256": "50e511a40516c103efab6c12ce8975a40dd07706efb95854119502025b56d8a5",
+      "reason": "状态命令会话字段统一命名并保持宿主地址"
+    },
+    {
+      "path": "src/cli/runtime/status-caller.ts",
+      "upstream_sha256": "cdb54e79b4db8fd2acaf346f56dc2d3188db858b5f4a08c540a92be7bcce9f8b",
+      "current_sha256": "b61feab1a6a2bbfec7e137d4e7e8b9c68c3be71cf612aa9788986188a46f64d6",
+      "reason": "状态命令会话字段统一命名并保持宿主地址"
+    },
+    {
+      "path": "src/shared/orchestration-caller-status.ts",
+      "upstream_sha256": "e64b50d9af9282b611617dea7ccad666a261447660d6da9f22fa1062b285cab4",
+      "current_sha256": "b75d792d230a40aa599d6c0de12c3e0491a7917b13623f86e7b7eb0cc059792c",
+      "reason": "状态命令会话字段统一命名并保持宿主地址"
+    },
+    {
       "path": "src/cli/runtime/status-caller.test.ts",
       "upstream_sha256": "c60a95cb98d010d5704fe5553c15d2f486a5fa1b507429fc7dc9524bbe0d0391",
-      "current_sha256": "ebc5bcde1e016e78ae98213cd3966499a4f1620bb5a81c7ab14fcd37b82458bf",
-      "reason": "通过本地 IPC 验证新旧会话身份和冲突拒绝"
+      "current_sha256": "c6b42d5d00e8efed7bc7faa76dbc7d735ab86db6d65bfd85a8d05e02751bf61d",
+      "reason": "通过本地 IPC 验证新旧会话身份和冲突拒绝；状态命令会话字段统一命名"
     },
     {
       "path": "src/main/claude/claude-stream-json-connection.test.ts",
@@ -330588,8 +330606,8 @@
     {
       "path": "src/cli/bundled-skill-guides.ts",
       "upstream_sha256": "d939b2344aec6921d99a7994596db6e7e5b45c36f489e3c8e55fe40160b5b7d6",
-      "current_sha256": "7b984361e5aca8455199170da2826a29cb219566da672bebe46db07f2a691d2b",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物；项目配置统一新文件名，保留旧文件迁移与信任行为；新环境配方与实例使用掌控一切身份；新配方契约移除旧环境变量并保留既有资源生命周期；迁移已有 VM 资源环境契约并保护离线快照"
+      "current_sha256": "786b6181b31a2da8247c760305a25ccd6f7dc4cf1e98b32bc351999b338e82de",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物；项目配置统一新文件名，保留旧文件迁移与信任行为；新环境配方与实例使用掌控一切身份；新配方契约移除旧环境变量并保留既有资源生命周期；迁移已有 VM 资源环境契约并保护离线快照；状态命令会话字段统一命名"
     },
     {
       "path": "src/cli/handlers/orchestration-worker-cli.test.ts",
@@ -332220,8 +332238,8 @@
     {
       "path": "skill-guides/orchestration.md",
       "upstream_sha256": "f0009a1bbe18ff6a8efd6a64c75a8fb047ebb6f01788fcf9b9ecede6378d9f89",
-      "current_sha256": "df87882c0c8bb29f3dfedf0671cada82ab02b957556e664869ef9d5ffed65199",
-      "reason": "技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物"
+      "current_sha256": "833d0b9041ea31b593bff1e067c5645c32944966f6b6ef4afac9cdbf005dbc20",
+      "reason": "技能指南、引用与安装stub统一产品称呼和zkyq命令，保留参数及现有数据合同，同步生成物；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物；状态命令会话字段统一命名"
     },
     {
       "path": "skill-guides/orchestration/references/coordinator-loop.md",
@@ -333228,8 +333246,8 @@
     {
       "path": "src/cli/specs/core.ts",
       "upstream_sha256": "ba4787cf4f75cd465ad575e9f42af3ced8f8e4234e75ef175a29d7a1db452205",
-      "current_sha256": "4143f0adf65be5d71b9b62636de1b08a3633d38f8b088fefe391bae8cfe05cc1",
-      "reason": "项目配置统一新文件名，保留旧文件迁移与信任行为；帮助示例改用通用项目"
+      "current_sha256": "bfa00de6905e9ac2594198e74c23a318ab6eb6e9ea02380a555d15d09360e516",
+      "reason": "项目配置统一新文件名，保留旧文件迁移与信任行为；帮助示例改用通用项目；状态命令会话字段统一命名"
     },
     {
       "path": "src/cli/specs/vm.ts",
@@ -334319,14 +334337,14 @@
       "path": "src/cli/bundled-skill-guides.ts",
       "rule": "personal-home-path",
       "line": 54,
-      "sha256": "7b984361e5aca8455199170da2826a29cb219566da672bebe46db07f2a691d2b",
+      "sha256": "786b6181b31a2da8247c760305a25ccd6f7dc4cf1e98b32bc351999b338e82de",
       "reason": "公开的路径模板、跨平台解析说明或通用示例；未读取本机账号/目录，保留语义并限定具体行及文件hash。"
     },
     {
       "path": "src/cli/bundled-skill-guides.ts",
       "rule": "personal-home-path",
       "line": 57,
-      "sha256": "7b984361e5aca8455199170da2826a29cb219566da672bebe46db07f2a691d2b",
+      "sha256": "786b6181b31a2da8247c760305a25ccd6f7dc4cf1e98b32bc351999b338e82de",
       "reason": "公开的路径模板、跨平台解析说明或通用示例；未读取本机账号/目录，保留语义并限定具体行及文件hash。"
     },
     {
@@ -334340,7 +334358,7 @@
       "path": "src/cli/specs/core.ts",
       "rule": "absolute-windows-path",
       "line": 234,
-      "sha256": "4143f0adf65be5d71b9b62636de1b08a3633d38f8b088fefe391bae8cfe05cc1",
+      "sha256": "bfa00de6905e9ac2594198e74c23a318ab6eb6e9ea02380a555d15d09360e516",
       "reason": "上游公开代码注释、CLI/界面示例中的路径语法，用来解释drive/root/UNC/转义等规则；非读取的个人配置，限定具体行及文件hash。"
     },
     {

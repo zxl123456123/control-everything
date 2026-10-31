@@ -32,7 +32,8 @@ export async function resolveCliStatusCaller(
       undefined,
       { timeoutMs: CALLER_SHOW_TIMEOUT_MS }
     )
-    return response.result.caller ?? undefined
+    const caller = response.result.caller
+    return caller ? { sessionId: caller.orcaSessionId, live: caller.live } : undefined
   } catch (error) {
     if (error instanceof RuntimeClientError && SESSION_REFUSAL_CODES.has(error.code)) {
       return { live: false, refusal: { code: error.code, message: error.message } }

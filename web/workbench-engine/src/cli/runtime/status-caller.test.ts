@@ -132,7 +132,7 @@ describe('status reports a session caller identity', () => {
       const caller = { orcaSessionId: `orca_session_id:${SESSION}`, live: true }
       callerShowReply = { result: { caller } }
 
-      expect(await statusCaller()).toEqual(caller)
+      expect(await statusCaller()).toEqual({ sessionId: caller.orcaSessionId, live: true })
       const [request] = callerShowRequests()
       // Nothing names the caller in params: the host reads the envelope, as every verb's entry does.
       expect(request?.params).toBeUndefined()
@@ -140,7 +140,7 @@ describe('status reports a session caller identity', () => {
         agentSessionId: SESSION,
         terminalHandle: 'term_tui'
       })
-      expect(await status(false)).toContain(`\norcaSessionId: orca_session_id:${SESSION}`)
+      expect(await status(false)).toContain(`\nsessionId: orca_session_id:${SESSION}`)
     }
   )
 
@@ -164,7 +164,7 @@ describe('status reports a session caller identity', () => {
     expect(printed.result).not.toHaveProperty('caller')
     // The status text ends where main's does, with nothing about the caller.
     expect(text.split('\n').at(-1)).toMatch(/^graphState: /)
-    expect(text).not.toMatch(/^(?:orcaSessionId|caller):/m)
+    expect(text).not.toMatch(/^(?:sessionId|orcaSessionId|caller):/m)
     expect(callerShowRequests()).toHaveLength(0)
   })
 
@@ -178,9 +178,7 @@ describe('status reports a session caller identity', () => {
       live: false,
       refusal: { code: 'session_caller_not_live', message: `Agent session ${SESSION} has ended.` }
     })
-    expect(await status(false)).toContain(
-      '\norcaSessionId: none (refused: session_caller_not_live)'
-    )
+    expect(await status(false)).toContain('\nsessionId: none (refused: session_caller_not_live)')
   })
 
   it('leaves the caller out when the host predates the method', async () => {

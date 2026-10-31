@@ -18,7 +18,7 @@ export type OrchestrationCallerRefusal = {
  * Absent from a status result when there is nothing to show: not a session, an unreachable
  * runtime, or a host that predates `orchestration.callerShow`.
  */
-export type CliStatusCaller = OrchestrationCallerSession | OrchestrationCallerRefusal
+export type CliStatusCaller = { sessionId: string; live: boolean } | OrchestrationCallerRefusal
 
 /** `null`: the caller is not an Orca session. */
 export type OrchestrationCallerShowResult = { caller: OrchestrationCallerSession | null }
