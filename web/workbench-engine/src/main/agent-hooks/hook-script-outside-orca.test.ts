@@ -63,9 +63,9 @@ describe('managed hook outside an Orca terminal', () => {
 
 describe('antigravity out-of-band event name', () => {
   it('records hookEventName and filters tool progress on it', () => {
-    const lines = buildPosixHookSpoolLines('antigravity', 'ORCA_ANTIGRAVITY_EVENT').join('\n')
+    const lines = buildPosixHookSpoolLines('antigravity', 'ZKYQ_ANTIGRAVITY_EVENT').join('\n')
     expect(lines).toContain('"hookEventName":"%s"')
-    expect(lines).toContain('${ORCA_ANTIGRAVITY_EVENT:-}')
+    expect(lines).toContain('${ZKYQ_ANTIGRAVITY_EVENT:-}')
     expect(lines).toContain('in PreToolUse|PostToolUse|PostToolUseFailure) return 0')
     // payload-based filtering stays the default for every other provider
     expect(buildPosixHookSpoolLines('codex').join('\n')).toContain('case "$payload" in')

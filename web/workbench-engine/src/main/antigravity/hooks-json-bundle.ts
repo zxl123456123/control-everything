@@ -10,6 +10,7 @@ import {
 import {
   ANTIGRAVITY_EVENTS,
   ANTIGRAVITY_HOOK_BUNDLE_NAME,
+  RETIRED_ANTIGRAVITY_HOOK_BUNDLE_NAME,
   ANTIGRAVITY_MANAGED_SCRIPT_FILE_NAMES,
   type AntigravityEvent
 } from './hook-events'
@@ -101,11 +102,46 @@ function removeManagedCommandsFromBundle(
   return next
 }
 
+function migrateBundleIdentity(config: HooksConfig): void {
+  const current = config[ANTIGRAVITY_HOOK_BUNDLE_NAME]
+  const previous = config[RETIRED_ANTIGRAVITY_HOOK_BUNDLE_NAME]
+  for (const bundle of [current, previous]) {
+    if (bundle !== undefined && !isRecord(bundle))
+      throw new Error('Invalid Antigravity hook bundle; preserve its contents before retrying')
+  }
+  if (previous === undefined) return
+  if (
+    isRecord(current) &&
+    isRecord(previous) &&
+    (current.enabled === undefined ? true : current.enabled) !==
+      (previous.enabled === undefined ? true : previous.enabled)
+  ) {
+    throw new Error('Control Everything: conflicting Antigravity hook bundle enablement')
+  }
+  const next = {
+    ...(previous as Record<string, unknown>),
+    ...(current as Record<string, unknown> | undefined)
+  }
+  for (const [key, value] of Object.entries(previous as Record<string, unknown>)) {
+    if (!isRecord(current) || !Object.prototype.hasOwnProperty.call(current, key)) continue
+    const existing = current[key]
+    if (Array.isArray(existing) && Array.isArray(value)) next[key] = [...value, ...existing]
+    else if (JSON.stringify(existing) !== JSON.stringify(value))
+      throw new Error(
+        'Control Everything: conflicting Antigravity hook bundle metadata (' + key + ')'
+      )
+  }
+  // Publish only after all metadata conflicts have been checked; neither input is mutated above.
+  config[ANTIGRAVITY_HOOK_BUNDLE_NAME] = next
+  delete config[RETIRED_ANTIGRAVITY_HOOK_BUNDLE_NAME]
+}
+
 export function buildInstalledConfig(
   config: HooksConfig,
   commandForEvent: (event: AntigravityEvent) => string,
   isManagedCommand: (command: string | undefined) => boolean
 ): void {
+  migrateBundleIdentity(config)
   const bundle = removeManagedCommandsFromBundle(getBundle(config), isManagedCommand)
 
   for (const event of ANTIGRAVITY_EVENTS) {
@@ -120,6 +156,7 @@ export function buildInstalledConfig(
 }
 
 export function removeInstalledConfig(config: HooksConfig): void {
+  migrateBundleIdentity(config)
   const isManagedCommand = createAntigravityManagedCommandMatcher()
   const bundle = removeManagedCommandsFromBundle(getBundle(config), isManagedCommand)
   if (Object.keys(bundle).length === 0) {

@@ -34,7 +34,7 @@ it('delivers exact split UTF-8 JSON without EOF and bounds empty or partial inpu
     ZKYQ_AGENT_HOOK_PORT: String(address.port),
     ZKYQ_AGENT_HOOK_TOKEN: 'disposable-proof-token',
     ZKYQ_PANE_KEY: 'proof!pane',
-    ORCA_ANTIGRAVITY_EVENT: 'PreInvocation'
+    ZKYQ_ANTIGRAVITY_EVENT: 'PreInvocation'
   }
   const payload = JSON.stringify({
     message: '日本語 😀 café {"quoted"} \\ tail',

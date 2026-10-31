@@ -327259,7 +327259,8 @@
     "src/shared/pi-managed-extension-install.ts",
     "src/shared/pi-managed-extension-install.test.ts",
     "src/main/grok/grok-hook-config-identity.test.ts",
-    "src/main/grok/grok-hook-config-identity.ts"
+    "src/main/grok/grok-hook-config-identity.ts",
+    "src/main/antigravity/hooks-json-bundle-identity.test.ts"
   ],
   "adapted_files": [
     {
@@ -335257,14 +335258,14 @@
     {
       "path": "src/main/antigravity/hook-script.ts",
       "upstream_sha256": "cda9c396a8607fe1ffaaf46a5dab1c506b10f78cc207899b6a20aad3549676e8",
-      "current_sha256": "b398c060c9c337b1cbe493e3e45167003d10393cfc39df0ddede2e42362b3fd1",
-      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+      "current_sha256": "410bd0733a48901dd6ab6f3c39b79fcfb6956aff7830c4ec91d45e44cea51d11",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义；Antigravity Hook分组、事件、浏览器标记和ACP客户端身份统一zkyq/Control Everything；迁移旧分组保留用户Hook及启停状态，冲突先校验，旧事件仅输入迁移；保持权限响应、登录、会话及凭据位置"
     },
     {
       "path": "src/main/antigravity/windows-hook-json-post.ts",
       "upstream_sha256": "4fda7b63e3120315d167b48cf9f6e458f0f7cc38485493d6cee5eb3696dd6af9",
-      "current_sha256": "5775fe863ce418737658199907c93c02361ae0fea3afa4992d4cd5a26e8a921d",
-      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+      "current_sha256": "ad87d5ea4d9cfcf33772f48086e94b5598a78b57f387f6065216145a7e29b7b2",
+      "reason": "Hook传输统一X-Zkyq请求头；旧客户端输入归一化并拒绝冲突，保留鉴权、元数据和事件行为；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义；Antigravity Hook分组、事件、浏览器标记和ACP客户端身份统一zkyq/Control Everything；迁移旧分组保留用户Hook及启停状态，冲突先校验，旧事件仅输入迁移；保持权限响应、登录、会话及凭据位置"
     },
     {
       "path": "src/main/claude/statusline-script.ts",
@@ -335683,8 +335684,8 @@
     {
       "path": "src/main/agent-hooks/hook-script-outside-orca.test.ts",
       "upstream_sha256": "0e531317f8bbf32b0e277627c51d14e51a20d9ab0a72c0c7b6f13fe5844f702f",
-      "current_sha256": "660bed5645fae9bc3dc5f713aa6ab863d39e86259eb98826500dea78129d7b84",
-      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+      "current_sha256": "ef8cc25f12c78b19ae3bd34a28905333ce8d8300838f2ccae4f331a368139e65",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义；Antigravity Hook分组、事件、浏览器标记和ACP客户端身份统一zkyq/Control Everything；迁移旧分组保留用户Hook及启停状态，冲突先校验，旧事件仅输入迁移；保持权限响应、登录、会话及凭据位置"
     },
     {
       "path": "src/main/agent-hooks/hook-stdin-contract.ts",
@@ -335791,20 +335792,20 @@
     {
       "path": "src/main/antigravity/hook-service.ts",
       "upstream_sha256": "9407863523ba5a62b46f699b9c7606901994e579a277b1f4d65113629611f0f5",
-      "current_sha256": "4b2a25804f1ed89bc20a746cd1c8535864d8246adfeba96945a998fa6fab7291",
-      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+      "current_sha256": "611e645421fe4126b3626cf268df9cd4980666efd3f160598a515858ed0636aa",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义；Antigravity Hook分组、事件、浏览器标记和ACP客户端身份统一zkyq/Control Everything；迁移旧分组保留用户Hook及启停状态，冲突先校验，旧事件仅输入迁移；保持权限响应、登录、会话及凭据位置"
     },
     {
       "path": "src/main/antigravity/posix-hook-invocation.test.ts",
       "upstream_sha256": "0819ace7fcb1b79f96ee92b62b772badd39435930d3f43497cb3719437ab7938",
-      "current_sha256": "8a62e34438de2098346743e4a8a38ffd819a0a741dbfbf738cfcefe7de211441",
-      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+      "current_sha256": "a3053bc1dacd3ddcd54260d869a70cf896f5f37b5021f2b0e3c648b1175ad6de",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义；Antigravity Hook分组、事件、浏览器标记和ACP客户端身份统一zkyq/Control Everything；迁移旧分组保留用户Hook及启停状态，冲突先校验，旧事件仅输入迁移；保持权限响应、登录、会话及凭据位置"
     },
     {
       "path": "src/main/antigravity/windows-hook-json-post.test.ts",
       "upstream_sha256": "228a5847c53ab4cd98656b6e18a21f9b4e86fa3ec3b33f1574b38ca8001ad9e2",
-      "current_sha256": "6d41a39b9efa881126154d86915188d6e2483602f6fb691e0b9d5af541765be1",
-      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+      "current_sha256": "35d755ec0fc38dc9a699c0794760b5b361b81477be8f0869880c09102b97fc46",
+      "reason": "通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义；Antigravity Hook分组、事件、浏览器标记和ACP客户端身份统一zkyq/Control Everything；迁移旧分组保留用户Hook及启停状态，冲突先校验，旧事件仅输入迁移；保持权限响应、登录、会话及凭据位置"
     },
     {
       "path": "src/main/claude-accounts/claude-profile-provisioning.test.ts",
@@ -337053,6 +337054,96 @@
       "upstream_sha256": "09c1d7309e3b8e110f6c5be6dcab6747c425adb409bbfeaf2e2f3ec2eab40e84",
       "current_sha256": "532f896720b05508f1807f6d151ac523593baf5854875f52193b4e9f65b806fa",
       "reason": "Grok专属配置、备份、清理标记和Windows内部变量迁至zkyq；整组冲突预检、独占发布并保留用户Hook、原字节、空配置停用和本机symlink语义；远程迁移不覆盖既有文件或接管用户链接"
+    },
+    {
+      "path": "src/main/acp/acp-agent-connection.ts",
+      "upstream_sha256": "342ab3a8803b26d0946055c30a332c05917ce7cefc56af80bb9fe3ec37f7eeaf",
+      "current_sha256": "da966ca3eeba3f53ae1f9bf54b4fba347c358b914548f809e6c430c4cc082e8b",
+      "reason": "Antigravity Hook分组、事件、浏览器标记和ACP客户端身份统一zkyq/Control Everything；迁移旧分组保留用户Hook及启停状态，冲突先校验，旧事件仅输入迁移；保持权限响应、登录、会话及凭据位置"
+    },
+    {
+      "path": "src/main/acp/acp-conversation-copy.test.ts",
+      "upstream_sha256": "38a3b5c59fb91a653bb77a16f03eb94a69cd007f82950eda712799650a8569bd",
+      "current_sha256": "b2e6ba3f9229a8d30789fb1b166ded0238ee1ffc07391b2661858b038c6a972b",
+      "reason": "Antigravity Hook分组、事件、浏览器标记和ACP客户端身份统一zkyq/Control Everything；迁移旧分组保留用户Hook及启停状态，冲突先校验，旧事件仅输入迁移；保持权限响应、登录、会话及凭据位置"
+    },
+    {
+      "path": "src/main/acp/acp-conversation-copy.ts",
+      "upstream_sha256": "7251c25b54f31aa7642530bae9c73d5832a3de70bcd0d3653f113c87af441578",
+      "current_sha256": "0d00175520c13c22f78762cfb7f16ca4de13761137b1ebf49755fbc1748e4d4b",
+      "reason": "Antigravity Hook分组、事件、浏览器标记和ACP客户端身份统一zkyq/Control Everything；迁移旧分组保留用户Hook及启停状态，冲突先校验，旧事件仅输入迁移；保持权限响应、登录、会话及凭据位置"
+    },
+    {
+      "path": "src/main/acp/acp-dialects/grok-requests.ts",
+      "upstream_sha256": "71a7cc678b957a498f3daf69f21f0339313cf6cfe2a1f0d6b279ade562b7d617",
+      "current_sha256": "140dfaa5d370fe4db69dc9825bf469b78d18f9016cb88044a2c1518f4acf67ce",
+      "reason": "Antigravity Hook分组、事件、浏览器标记和ACP客户端身份统一zkyq/Control Everything；迁移旧分组保留用户Hook及启停状态，冲突先校验，旧事件仅输入迁移；保持权限响应、登录、会话及凭据位置"
+    },
+    {
+      "path": "src/main/acp/acp-structured-acquire.ts",
+      "upstream_sha256": "9f6aa2076b6ab0b14e16d0bab5e87ee25a44a747c3501b091b085f282ca3266f",
+      "current_sha256": "46f0dae28523bb5621906f55dcf427cb827b671e8835ba7b1529e6d11acfc3c0",
+      "reason": "Antigravity Hook分组、事件、浏览器标记和ACP客户端身份统一zkyq/Control Everything；迁移旧分组保留用户Hook及启停状态，冲突先校验，旧事件仅输入迁移；保持权限响应、登录、会话及凭据位置"
+    },
+    {
+      "path": "src/main/acp/acp-structured-session-adapter-lifecycle.test.ts",
+      "upstream_sha256": "f552aa8bb72f25293fcb89a252771417547b653d3f06539a3236aa0ab10e26c5",
+      "current_sha256": "5391ce6b14eb1c7adadf8ee0dda20ed98e620c74743ebf033ef2bf8b05b3d0ec",
+      "reason": "Antigravity Hook分组、事件、浏览器标记和ACP客户端身份统一zkyq/Control Everything；迁移旧分组保留用户Hook及启停状态，冲突先校验，旧事件仅输入迁移；保持权限响应、登录、会话及凭据位置"
+    },
+    {
+      "path": "src/main/acp/acp-structured-session.ts",
+      "upstream_sha256": "f7519d417f5e8363bdd0a5cb189691b4511bba3f49d8d5b0c6b0b80c4cf114e1",
+      "current_sha256": "7e7bee2e77e255a584d472d5f105dcc9d2f012d1a7faf6449c6cb4bd346684c8",
+      "reason": "Antigravity Hook分组、事件、浏览器标记和ACP客户端身份统一zkyq/Control Everything；迁移旧分组保留用户Hook及启停状态，冲突先校验，旧事件仅输入迁移；保持权限响应、登录、会话及凭据位置"
+    },
+    {
+      "path": "src/main/antigravity/antigravity-acp-runtime-probe.ts",
+      "upstream_sha256": "7832da943b6b88b3b624e22f4626647588a47ff7364075931dc7f8930be53f29",
+      "current_sha256": "e43e19df3e6c2787a343335cc7b9f0f89fff6d32c956d0faed3930ffdee946c8",
+      "reason": "Antigravity Hook分组、事件、浏览器标记和ACP客户端身份统一zkyq/Control Everything；迁移旧分组保留用户Hook及启停状态，冲突先校验，旧事件仅输入迁移；保持权限响应、登录、会话及凭据位置"
+    },
+    {
+      "path": "src/main/antigravity/antigravity-browser-helper.ts",
+      "upstream_sha256": "8ba1d847b57874bd350c399705cfbe85fee86df51432108f3e2a6394ce9d7b92",
+      "current_sha256": "79fec722abb2f89ccc77c11869404d98cdec864e7dea323a90255b0bae56b671",
+      "reason": "Antigravity Hook分组、事件、浏览器标记和ACP客户端身份统一zkyq/Control Everything；迁移旧分组保留用户Hook及启停状态，冲突先校验，旧事件仅输入迁移；保持权限响应、登录、会话及凭据位置"
+    },
+    {
+      "path": "src/main/antigravity/antigravity-chat-account.ts",
+      "upstream_sha256": "66e244754ba37b5d044b74e6f16528f3c6f518c9562bfb2e9078f0431fb56720",
+      "current_sha256": "93f0ef88be5bd629eb940413f8f5d8402c7a9c5674a242e3e4a984f18d5c8349",
+      "reason": "Antigravity Hook分组、事件、浏览器标记和ACP客户端身份统一zkyq/Control Everything；迁移旧分组保留用户Hook及启停状态，冲突先校验，旧事件仅输入迁移；保持权限响应、登录、会话及凭据位置"
+    },
+    {
+      "path": "src/main/antigravity/antigravity-chat-sign-in.test.ts",
+      "upstream_sha256": "d663a94892cab9434e05e12c04d397510c33415fc8f7c02d262d7d978cabe83b",
+      "current_sha256": "09975d09f2912951d30198799a1e0144c09bbcb850dfeee3f31fa4979974010d",
+      "reason": "Antigravity Hook分组、事件、浏览器标记和ACP客户端身份统一zkyq/Control Everything；迁移旧分组保留用户Hook及启停状态，冲突先校验，旧事件仅输入迁移；保持权限响应、登录、会话及凭据位置"
+    },
+    {
+      "path": "src/main/antigravity/antigravity-chat-sign-in.ts",
+      "upstream_sha256": "c7a0a8eaa37426ca9f35e6dc0830f9f5de148439e698991d4f05f5169e8dbecc",
+      "current_sha256": "aad451e05effd1e9acba0fd387f265c8d33d12f74d5d1c3d9658c1243a0e2c1a",
+      "reason": "Antigravity Hook分组、事件、浏览器标记和ACP客户端身份统一zkyq/Control Everything；迁移旧分组保留用户Hook及启停状态，冲突先校验，旧事件仅输入迁移；保持权限响应、登录、会话及凭据位置"
+    },
+    {
+      "path": "src/main/antigravity/hook-events.ts",
+      "upstream_sha256": "87f044f22d6bae97e3b09392a10e1654acc6db85f516ef12e15eb2b553af085b",
+      "current_sha256": "b53a6ecd9fdcfb3416ee197c2c87575f13210e15763186b469bdcb19cc828809",
+      "reason": "Antigravity Hook分组、事件、浏览器标记和ACP客户端身份统一zkyq/Control Everything；迁移旧分组保留用户Hook及启停状态，冲突先校验，旧事件仅输入迁移；保持权限响应、登录、会话及凭据位置"
+    },
+    {
+      "path": "src/main/antigravity/hooks-json-bundle.ts",
+      "upstream_sha256": "7fabcded894fb179117426dc3106c841462b2ff51b9578452fde3d29cd913028",
+      "current_sha256": "518dabcff56fb8be0553c1292f91a867d18eb31f86c0f4e93c00df1c25a1340d",
+      "reason": "Antigravity Hook分组、事件、浏览器标记和ACP客户端身份统一zkyq/Control Everything；迁移旧分组保留用户Hook及启停状态，冲突先校验，旧事件仅输入迁移；保持权限响应、登录、会话及凭据位置"
+    },
+    {
+      "path": "src/main/antigravity/native-credential-backend.ts",
+      "upstream_sha256": "302eb7fa7975b7f12827d256ee94a0655aa6c62b511968c8fe9f13fbfd4f2648",
+      "current_sha256": "c0f430e1c5e3397e2957e72cf8d07e41b8129a00f04b845d29960f6a94b650bf",
+      "reason": "Antigravity Hook分组、事件、浏览器标记和ACP客户端身份统一zkyq/Control Everything；迁移旧分组保留用户Hook及启停状态，冲突先校验，旧事件仅输入迁移；保持权限响应、登录、会话及凭据位置"
     }
   ],
   "reviewed_findings": [

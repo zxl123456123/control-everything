@@ -1,4 +1,5 @@
 export const AGENT_HOOK_IDENTITY_SUFFIXES = [
+  'ANTIGRAVITY_EVENT',
   'HOOK_AGENT_PID',
   'PANE_KEY',
   'TAB_ID',
@@ -40,6 +41,7 @@ export function migrateAgentHookEnvironmentIdentity(
 ): void {
   // Installed plugins embed this function, so it must not reference module-level values.
   const suffixes = [
+    'ANTIGRAVITY_EVENT',
     'HOOK_AGENT_PID',
     'PANE_KEY',
     'TAB_ID',

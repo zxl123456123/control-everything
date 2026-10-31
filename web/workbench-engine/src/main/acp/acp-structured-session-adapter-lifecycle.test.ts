@@ -31,6 +31,9 @@ describe('ACP Stop names a turn', () => {
   it('a Stop naming a turn that has ended stops nothing running now', async () => {
     const rig = await openAcpAdapterRig()
     await rig.acquire()
+    expect(rig.sent('initialize')[0]?.params).toMatchObject({
+      clientInfo: { name: 'zkyq', version: '1' }
+    })
     await sendHello(rig, 'old')
     const old = await rig.frame('session/prompt')
     rig.child().agent.notify('session/update', replyChunk('prompt:old', 'done'))

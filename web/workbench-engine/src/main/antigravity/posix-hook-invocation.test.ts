@@ -16,7 +16,7 @@ vi.mock('node:os', async (importOriginal) => ({
 }))
 
 const hooksSchema = z.object({
-  'orca-status': z.record(
+  'zkyq-status': z.record(
     z.string(),
     z.array(
       z.object({
@@ -33,7 +33,7 @@ function installedCommand(home: string, event: string): string {
   const config = hooksSchema.parse(
     JSON.parse(readFileSync(join(home, '.gemini', 'config', 'hooks.json'), 'utf8'))
   )
-  const hook = config['orca-status'][event]?.[0]
+  const hook = config['zkyq-status'][event]?.[0]
   const command = hook?.command ?? hook?.hooks?.[0]?.command
   if (!command) {
     throw new Error(`Missing ${event} hook`)

@@ -5,13 +5,13 @@
 import { quotePosixShellDoubleQuotedApostrophe } from '../../shared/shell-argument-quoting'
 import { runProcess } from '@orca/process-host'
 
-export const ANTIGRAVITY_BROWSER_MARKER = '__ORCA_ANTIGRAVITY_AUTH_URL__'
+export const ANTIGRAVITY_BROWSER_MARKER = '__ZKYQ_ANTIGRAVITY_AUTH_URL__'
 
 // EPIPE still exits 0, or Python falls back to a real browser once nothing reads the output.
 const HELPER_SOURCE =
   `process.stderr.on("error",()=>process.exit(0)).write(` +
   `"${ANTIGRAVITY_BROWSER_MARKER}"+JSON.stringify(process.argv[1])+"\\n",()=>process.exit(0))`
-const PREFLIGHT_URL = 'https://example.invalid/orca-antigravity-browser-preflight'
+const PREFLIGHT_URL = 'https://example.invalid/zkyq-antigravity-browser-preflight'
 
 // Python splits BROWSER with shlex.
 

@@ -24,6 +24,7 @@ import {
 } from '../agent-hooks/managed-hook-script-refresh'
 import {
   ANTIGRAVITY_EVENTS,
+  RETIRED_ANTIGRAVITY_HOOK_BUNDLE_NAME,
   ANTIGRAVITY_PRE_TOOL_USE_DECISION,
   type AntigravityEvent
 } from './hook-events'
@@ -59,7 +60,7 @@ function getWindowsWrapperScriptPath(event: AntigravityEvent): string {
 function getPosixManagedCommand(scriptPath: string, event: AntigravityEvent): string {
   const command = wrapPosixHookCommand(
     scriptPath,
-    { ORCA_ANTIGRAVITY_EVENT: event.eventName },
+    { ZKYQ_ANTIGRAVITY_EVENT: event.eventName },
     // Why: a missing managed script must not brick tools; the guard answers PreToolUse itself instead of staying silent.
     event.eventName === 'PreToolUse' ? { fallbackStdout: ANTIGRAVITY_PRE_TOOL_USE_DECISION } : {}
   )
@@ -120,11 +121,9 @@ export class AntigravityHookService {
     const currentCommands = new Set(
       ANTIGRAVITY_EVENTS.map((event) => getManagedCommand(scriptPath, event))
     )
-    const staleManagedPresent = bundleHasStaleManagedCommand(
-      bundle,
-      isManagedCommand,
-      currentCommands
-    )
+    const staleManagedPresent =
+      config[RETIRED_ANTIGRAVITY_HOOK_BUNDLE_NAME] !== undefined ||
+      bundleHasStaleManagedCommand(bundle, isManagedCommand, currentCommands)
     const missing: string[] = []
     let presentCount = 0
     for (const event of ANTIGRAVITY_EVENTS) {

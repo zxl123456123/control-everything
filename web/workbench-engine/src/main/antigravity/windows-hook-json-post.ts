@@ -38,7 +38,7 @@ function finish() {
     ['paneKey', 'ZKYQ_PANE_KEY'], ['tabId', 'ZKYQ_TAB_ID'],
     ['launchToken', 'ZKYQ_AGENT_LAUNCH_TOKEN'], ['worktreeId', 'ZKYQ_WORKTREE_ID'],
     ['env', 'ZKYQ_AGENT_HOOK_ENV'], ['version', 'ZKYQ_AGENT_HOOK_VERSION'],
-    ['hook_event_name', 'ORCA_ANTIGRAVITY_EVENT']
+    ['hook_event_name', 'ZKYQ_ANTIGRAVITY_EVENT']
   ]) form.set(name, env[variable] || '');
   form.set('payload', payload.trim() ? payload : '{}');
   const body = form.toString();

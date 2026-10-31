@@ -1,4 +1,5 @@
-export const ANTIGRAVITY_HOOK_BUNDLE_NAME = 'orca-status'
+export const ANTIGRAVITY_HOOK_BUNDLE_NAME = 'zkyq-status'
+export const RETIRED_ANTIGRAVITY_HOOK_BUNDLE_NAME = 'orca-status'
 
 export const ANTIGRAVITY_EVENTS = [
   {

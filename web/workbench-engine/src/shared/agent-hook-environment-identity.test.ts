@@ -5,6 +5,12 @@ import {
 } from './agent-hook-environment-identity'
 import { parseAgentHookEndpointFile } from './agent-hook-endpoint-file'
 
+it('moves an inherited Antigravity event and its WSL flags to the current identity', () => {
+  const env = { ORCA_ANTIGRAVITY_EVENT: 'PreToolUse', WSLENV: 'ORCA_ANTIGRAVITY_EVENT/u' }
+  migrateAgentHookEnvironmentIdentity(env)
+  expect(env).toEqual({ ZKYQ_ANTIGRAVITY_EVENT: 'PreToolUse', WSLENV: 'ZKYQ_ANTIGRAVITY_EVENT/u' })
+})
+
 it('moves Pi-family paths, drafts and WSL flags without changing public agent settings', () => {
   const env = {
     ORCA_PI_SOURCE_AGENT_DIR: '/fixture/用户 config',

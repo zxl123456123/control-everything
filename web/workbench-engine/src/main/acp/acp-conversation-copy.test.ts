@@ -57,6 +57,9 @@ describe('copying a chat conversation for the CLI', () => {
         ...(agent === 'omp' ? { filePath: '/account-a/sessions/copy-1.jsonl' } : {})
       }
       await expect(rig.adapter.copyConversation(request)).resolves.toEqual(expected)
+      expect(rig.sent('initialize')[0]?.params).toMatchObject({
+        clientInfo: { name: 'zkyq', version: '1' }
+      })
       expect(rig.child().agent.frames.map((frame) => frame.method)).toEqual([
         'initialize',
         'session/fork'
