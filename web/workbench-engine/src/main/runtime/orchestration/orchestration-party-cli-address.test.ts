@@ -1,5 +1,9 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import { injectedSessionAddress } from '../../../shared/agent-session-caller-env'
+import {
+  injectedSessionAddress,
+  readInjectedAgentSessionId
+} from '../../../shared/agent-session-caller-env'
+import { createOrchestrationCompatibilityEnvelope } from '../../../cli/runtime/orchestration-compatibility-envelope'
 import { testOrcaSessionId } from '../../../shared/orca-session-address-test-fixture'
 import {
   mintStructuredWorkerHandle,
@@ -19,6 +23,23 @@ afterEach(() => {
 })
 
 describe("the CLI's own address", () => {
+  it('resolves new and in-flight legacy session identities without guessing on conflict', () => {
+    const current = { ZKYQ_AGENT_SESSION_ID: CHAT }
+    const legacy = { ORCA_AGENT_SESSION_ID: CHAT }
+    expect(readInjectedAgentSessionId(current)).toBe(CHAT)
+    expect(readInjectedAgentSessionId(legacy)).toBe(CHAT)
+    expect(injectedSessionAddress(current)).toBe(resolveOrcaSessionParty(CHAT, null).address)
+    expect(
+      createOrchestrationCompatibilityEnvelope(current).orchestrationCompatibilityEvidence
+    ).toMatchObject({ agentSessionId: CHAT })
+    expect(readInjectedAgentSessionId({ ...current, ...legacy })).toBe(CHAT)
+    expect(() =>
+      createOrchestrationCompatibilityEnvelope({
+        ...current,
+        ORCA_AGENT_SESSION_ID: WORKER
+      })
+    ).toThrow('Conflicting agent session identities')
+  })
   it("is a chat's session address, even beside a pane handle it inherited", () => {
     const hostAddress = resolveOrcaSessionParty(CHAT, null).address
     expect(injectedSessionAddress({ ORCA_AGENT_SESSION_ID: CHAT })).toBe(hostAddress)

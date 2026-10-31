@@ -326918,6 +326918,7 @@
     }
   ],
   "local_files": [
+    "src/main/runtime/structured-session-identity.test.ts",
     "src/cli/recipe-env-python.ts",
     "build-origin.json",
     "config/scripts/distribution-record.mjs",
@@ -327158,6 +327159,60 @@
     "src/cli/handlers/account-wsl-location.test.ts"
   ],
   "adapted_files": [
+    {
+      "path": "src/main/claude/claude-stream-json-connection.test.ts",
+      "upstream_sha256": "01bab0b84db8200a38e74709249736fabc7394b54bc272ce24c3f19a9b087b77",
+      "current_sha256": "e121b5ed05909a102a623f73950bf3dee8985f841f6bdecbd100118d8767fef3",
+      "reason": "验证新会话身份在实际 Claude 子进程中传递并清除旧身份"
+    },
+    {
+      "path": "src/main/ipc/pty/host-env/spawn-env-keys.ts",
+      "upstream_sha256": "b6509e243c19546f1b5ed4845026ce6a54dbd15c2d6fbd5f1b097b9d3ee51f5a",
+      "current_sha256": "032dc90499e987d5afe05df967f9049a80551872e9a9080fb8bedca4ff6350e3",
+      "reason": "新会话身份环境变量迁移并保护旧会话"
+    },
+    {
+      "path": "src/main/runtime/orchestration/orchestration-party-cli-address.test.ts",
+      "upstream_sha256": "1b929f59e41890e5e92792031ee19652c6acd33dd9397fd4bd739a2c5a74434c",
+      "current_sha256": "bb2445740f4cf3a71d4623f0768dbf7179d3fc972e279cd63607161154513189",
+      "reason": "新会话身份环境变量迁移并保护旧会话"
+    },
+    {
+      "path": "src/main/runtime/rpc/orchestration-session-caller.test.ts",
+      "upstream_sha256": "6fd17f263a00dfaaa6b90b7ed66005973fe079c7ca320a3833e0673de61b83f9",
+      "current_sha256": "c67f6b394873130a459ec173f6b5ca0a16706539626cad12846bdf1b846a14f0",
+      "reason": "新会话身份环境变量迁移并保护旧会话"
+    },
+    {
+      "path": "src/main/runtime/rpc/orchestration-session-caller.ts",
+      "upstream_sha256": "64dd9a1307de694c73b1d61d77860d5c1d304501c08462d82133a406bd4afe32",
+      "current_sha256": "8b07e68f66c85a6fe50cf4613fd45aa6a6cc4a0e54cdbcee4df2666094f53beb",
+      "reason": "新会话身份环境变量迁移并保护旧会话"
+    },
+    {
+      "path": "src/main/wsl/wsl-orcad-structured-chat-contract.ts",
+      "upstream_sha256": "d202404fab5fad24ca8bb587af8eee1c6ab04d0d79467bb830836489271560a6",
+      "current_sha256": "44f1f3732182f8def86b6a1b2b5102defa638cc5f96b59bddbebfd1d29e0d020",
+      "reason": "新会话身份环境变量迁移并保护旧会话"
+    },
+    {
+      "path": "src/main/claude/__fixtures__/claude-agent-sdk-scripted-cli.mjs",
+      "upstream_sha256": "2d104289ea9d539884f7acc967970ee966f3de63d972f0dc521a2f667e21513b",
+      "current_sha256": "5dc381e87a63404f0c2a29121ea67b6ad364a21282e3161202475e7fe3e099c0",
+      "reason": "新会话身份环境变量迁移并保护旧会话"
+    },
+    {
+      "path": "src/shared/agent-session-caller-env.ts",
+      "upstream_sha256": "5bd635cb3fbcf59fa5784580e501e4223401cd69601d986075d84007017d67cc",
+      "current_sha256": "0a20f6d1d7042b087b34b62d046d55f17ee3b422b0de5aa27a9fbc845e42b606",
+      "reason": "新会话身份环境变量迁移并保护旧会话"
+    },
+    {
+      "path": "src/shared/orca-session-address.ts",
+      "upstream_sha256": "cf821ba18a36194293efac045bd826a250c6d000e8442c7c66b92a12ec7d9d0d",
+      "current_sha256": "cdc29cac4dbbe02f1aee14d0afcdc1c53982605f740a1750a13b913db582cfa6",
+      "reason": "新会话身份环境变量迁移并保护旧会话"
+    },
     {
       "path": "src/cli/specs/project.ts",
       "upstream_sha256": "349406f7bf535d9605dd4849b85ad0d0f065e699ed228afc9cb50af50a24e97f",
@@ -330569,8 +330624,8 @@
     {
       "path": "src/main/codex/codex-structured-child-environment.test.ts",
       "upstream_sha256": "ab0d0e81f8da8cc9fcd65f628d2c08580eff504e944a9f5d9642a794d0e024cf",
-      "current_sha256": "7256e2eb985c27052bf8a66db705f51a78675a281e571c4825b098ec84e92ddb",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；迁移远程主机选择环境变量并防止错误路由"
+      "current_sha256": "444ca52f230cb85600773c772c66779105cf6cab3833168974871786b6beed2d",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；迁移远程主机选择环境变量并防止错误路由；新会话身份环境变量迁移"
     },
     {
       "path": "src/main/codex/codex-structured-session-adapter.test.ts",
@@ -331733,8 +331788,8 @@
     {
       "path": "src/main/runtime/structured-session-child-env.ts",
       "upstream_sha256": "c6430d04f35adccb249dd1e6b1eaf824ee0e85efa92287e141348f59dc246627",
-      "current_sha256": "b984c5c51c1e8a556a616da2405f89fcd6fb39a8095bddac673ec8ee8f4e5404",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；迁移远程主机选择环境变量并防止错误路由"
+      "current_sha256": "f3345165c4f6a1493c166d67ad3c7f12dcf4ea43c7dff169a0b0f4e3ebfad268",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；迁移远程主机选择环境变量并防止错误路由；新会话身份环境变量迁移"
     },
     {
       "path": "src/main/runtime/unreadable-secret-store-preservation.win32.test.ts",

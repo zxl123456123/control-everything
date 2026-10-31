@@ -64,7 +64,7 @@ describe('the Codex child environment', () => {
       EXAMPLE_GATEWAY_TOKEN: 'shell-exported',
       CODEX_HOME: '/pinned/home',
       [ORCA_AGENT_SESSION_SPAWN_TOKEN_ENV]: 'spawn-token',
-      ORCA_AGENT_SESSION_ID: 'session-not-a-worker',
+      ZKYQ_AGENT_SESSION_ID: 'session-not-a-worker',
       ORCA_STRUCTURED_SESSION: '1',
       ZKYQ_CLI_COMMAND: expect.stringMatching(DEV_CLI_LAUNCHER),
       ...(process.platform !== 'win32'
@@ -87,7 +87,7 @@ describe('the Codex child environment', () => {
     expect(sealed(sessionId)).toEqual({
       [ORCA_AGENT_SESSION_SPAWN_TOKEN_ENV]: 'spawn-token',
       // Not a worker, so no handle: the id alone names this chat as a caller.
-      ORCA_AGENT_SESSION_ID: sessionId,
+      ZKYQ_AGENT_SESSION_ID: sessionId,
       ORCA_STRUCTURED_SESSION: '1',
       ZKYQ_CLI_COMMAND: expect.stringMatching(DEV_CLI_LAUNCHER),
       ...(process.platform !== 'win32'
@@ -116,7 +116,7 @@ describe('the Codex child environment', () => {
     try {
       const env = sealed(sessionId)
       expect(env.ORCA_TERMINAL_HANDLE).toBe(handle)
-      expect(env.ORCA_AGENT_SESSION_ID).toBe(sessionId)
+      expect(env.ZKYQ_AGENT_SESSION_ID).toBe(sessionId)
       expect(env.ZKYQ_CLI_COMMAND).toMatch(DEV_CLI_LAUNCHER)
       // A pane key here would leak into hook-emitted agent statuses, which assume a PTY leaf.
       expect(env.ORCA_PANE_KEY).toBeUndefined()
@@ -137,7 +137,8 @@ const ENV_REPORTING_APP_SERVER = String.raw`
       return send({
         id: message.id,
         result: {
-          sessionId: process.env.ORCA_AGENT_SESSION_ID ?? null,
+          sessionId: process.env.ZKYQ_AGENT_SESSION_ID ?? null,
+          legacySessionId: process.env.ORCA_AGENT_SESSION_ID ?? null,
           cliCommand: process.env.ZKYQ_CLI_COMMAND ?? null,
           selectors: [
             process.env.ZKYQ_ENVIRONMENT,
@@ -172,15 +173,22 @@ describe('the spawned Codex child', () => {
     vi.stubEnv('ZKYQ_PAIRING_CODE', 'stale-pairing')
     vi.stubEnv('ZKYQ_REMOTE_PAIRING', 'stale-remote-pairing')
     const sessionId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d'
-    const env = sealed(sessionId)
+    const { env, envToDelete } = sealStructuredSessionChild({
+      sessionId,
+      spawnToken: 'spawn-token',
+      env: {},
+      inheritedEnvToDelete: []
+    })
     const connection = await openCodexAppServerConnection({
       command: process.execPath,
       args: ['-e', ENV_REPORTING_APP_SERVER],
-      env
+      env,
+      envToDelete
     })
     try {
       await expect(connection.request('test/env')).resolves.toEqual({
         sessionId,
+        legacySessionId: null,
         cliCommand: expect.stringMatching(DEV_CLI_LAUNCHER),
         selectors: ['', '', '', '', '', ''],
         cliBinDir: process.platform === 'win32' ? null : expect.stringMatching(DEV_CLI_BIN_DIR),

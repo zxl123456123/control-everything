@@ -11,6 +11,7 @@ import { ORCA_SESSION_ADDRESS_PREFIX } from './orca-session-address-prefix'
 import { isStructuredWorkerHandle } from './structured-worker-handle'
 
 export const ORCA_AGENT_SESSION_ID_ENV = 'ORCA_AGENT_SESSION_ID'
+export const ZKYQ_AGENT_SESSION_ID_ENV = 'ZKYQ_AGENT_SESSION_ID'
 
 /** The spawn token a structured session's child echoes, so the owner probe can tell a live child
  *  of that reservation from a same-pid stranger. */
@@ -19,8 +20,12 @@ export const ORCA_AGENT_SESSION_SPAWN_TOKEN_ENV = 'ORCA_AGENT_SESSION_SPAWN_TOKE
 export function readInjectedAgentSessionId(
   env: Readonly<Record<string, string | undefined>> = process.env
 ): string | undefined {
-  const value = env[ORCA_AGENT_SESSION_ID_ENV]?.trim()
-  return value ? value : undefined
+  const current = env[ZKYQ_AGENT_SESSION_ID_ENV]?.trim()
+  const legacy = env[ORCA_AGENT_SESSION_ID_ENV]?.trim()
+  if (current && legacy && current !== legacy) {
+    throw new Error('Conflicting agent session identities; no request was sent.')
+  }
+  return current || legacy || undefined
 }
 
 /**

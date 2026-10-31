@@ -17,7 +17,7 @@
  */
 import { agentSessionLeaseAdmitsWriter } from '../../../shared/agent-session-lease-adjudication'
 import type { AgentSessionRecord } from '../../../shared/agent-session-record'
-import { ORCA_AGENT_SESSION_ID_ENV } from '../../../shared/agent-session-caller-env'
+import { ZKYQ_AGENT_SESSION_ID_ENV } from '../../../shared/agent-session-caller-env'
 import {
   ORCA_SESSION_ADDRESS_PREFIX,
   isOrcaSessionId,
@@ -176,7 +176,7 @@ async function readSessionRecord(
   if (found.kind === 'provider-id') {
     throw new OrchestrationError(
       CODES.providerId,
-      `${sessionId} is the provider's own session id, which changes on /clear. This session's Orca session ID is ${ORCA_SESSION_ADDRESS_PREFIX}${found.orcaSessionId}; set ${ORCA_AGENT_SESSION_ID_ENV}=${found.orcaSessionId} instead. No effects were applied.`,
+      `${sessionId} is the provider's own session id, which changes on /clear. This session's Control Everything session ID is ${ORCA_SESSION_ADDRESS_PREFIX}${found.orcaSessionId}; set ${ZKYQ_AGENT_SESSION_ID_ENV}=${found.orcaSessionId} instead. No effects were applied.`,
       { ...NO_EFFECTS, orcaSessionId: found.orcaSessionId }
     )
   }

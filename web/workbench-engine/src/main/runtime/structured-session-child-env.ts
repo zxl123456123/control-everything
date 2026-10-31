@@ -5,7 +5,7 @@
  * The orchestration identity — and the CLI reachability — a structured session's own child needs to
  * speak for itself.
  *
- * Every structured session carries `ORCA_AGENT_SESSION_ID`, the id Orca minted for it — never the
+ * Every structured session carries `ZKYQ_AGENT_SESSION_ID`, the id minted for it — never the
  * provider's, which rotates on `/clear`. The CLI sends it as the caller, so a bare
  * `orca orchestration check` acts as this session instead of guessing a terminal: with no pane of
  * its own, every guess landed on a sibling, and a destructive `check` consumed that sibling's mail.
@@ -54,7 +54,8 @@
 import { getAppEnvironment, hasAppEnvironment } from '../../shared/app-environment'
 import {
   ORCA_AGENT_SESSION_ID_ENV,
-  ORCA_AGENT_SESSION_SPAWN_TOKEN_ENV
+  ORCA_AGENT_SESSION_SPAWN_TOKEN_ENV,
+  ZKYQ_AGENT_SESSION_ID_ENV
 } from '../../shared/agent-session-caller-env'
 import {
   ORCA_SCRUB_SAFE_LAUNCH_ENV,
@@ -113,7 +114,9 @@ export function sealStructuredSessionChild(input: {
     : identity.env
   return {
     env: { ...env, [ORCA_AGENT_SESSION_SPAWN_TOKEN_ENV]: input.spawnToken },
-    envToDelete: input.inheritedEnvToDelete.filter((key) => !named.has(key)),
+    envToDelete: [...new Set([...input.inheritedEnvToDelete, ORCA_AGENT_SESSION_ID_ENV])].filter(
+      (key) => !named.has(key)
+    ),
     commandEnv: identity.commandEnv
   }
 }
@@ -125,10 +128,11 @@ function childIdentity(
   const identity = resolveStructuredWorkerIdentityForSession(sessionId, null)
   const named: Record<string, string> = {
     ...(identity ? { ORCA_TERMINAL_HANDLE: identity.handle } : {}),
-    [ORCA_AGENT_SESSION_ID_ENV]: sessionId,
+    [ZKYQ_AGENT_SESSION_ID_ENV]: sessionId,
     [ORCA_STRUCTURED_SESSION_ENV]: '1'
   }
   const env = { ...childEnv, ...named }
+  delete env[ORCA_AGENT_SESSION_ID_ENV]
   return { env, commandEnv: { ...named, ...applyThisAppCli(env) } }
 }
 
