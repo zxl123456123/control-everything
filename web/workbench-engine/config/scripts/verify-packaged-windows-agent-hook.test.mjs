@@ -16,7 +16,7 @@ function resourcesWith(image) {
   roots.push(resourcesDir)
   if (image) {
     mkdirSync(join(resourcesDir, 'bin'))
-    writeFileSync(join(resourcesDir, 'bin', 'orca-agent-hook.exe'), image)
+    writeFileSync(join(resourcesDir, 'bin', 'zkyq-agent-hook.exe'), image)
   }
   return resourcesDir
 }
@@ -39,6 +39,15 @@ describe('verifyPackagedWindowsAgentHook', () => {
 
   it('refuses a missing hook instead of shipping the .cmd fallback silently', () => {
     expect(() => verifyPackagedWindowsAgentHook(resourcesWith(null), 1)).toThrow(
+      'Missing packaged agent hook'
+    )
+  })
+
+  it('refuses a package containing only the retired executable name', () => {
+    const resources = resourcesWith(null)
+    mkdirSync(join(resources, 'bin'))
+    writeFileSync(join(resources, 'bin', 'orca-agent-hook.exe'), peImage({ arch: 'x64' }))
+    expect(() => verifyPackagedWindowsAgentHook(resources, 1)).toThrow(
       'Missing packaged agent hook'
     )
   })

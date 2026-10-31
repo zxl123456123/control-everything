@@ -81,8 +81,10 @@ export function createManagedCommandMatcher(
     `agent-hooks/${scriptStem}.ps1`,
     `agent-hooks/${scriptStem}.sh`
   ]
-  // The shared native hook names its agent in the first argument: `orca-agent-hook.exe claude`.
-  const nativeHook = `agent-hooks/${WINDOWS_NATIVE_HOOK_EXECUTABLE_NAME} ${getWindowsNativeHookAgent(scriptFileName)} `
+  // The shared native hook names its agent in the first argument: `zkyq-agent-hook.exe claude`.
+  const nativeHooks = [WINDOWS_NATIVE_HOOK_EXECUTABLE_NAME, 'orca-agent-hook.exe'].map(
+    (name) => `agent-hooks/${name} ${getWindowsNativeHookAgent(scriptFileName)} `
+  )
   return (command) => {
     if (!command) {
       return false
@@ -92,7 +94,9 @@ export function createManagedCommandMatcher(
     const normalizedCommand = searchText.replaceAll('\\', '/')
     return (
       needles.some((needle) => normalizedCommand.includes(needle)) ||
-      normalizedCommand.split('\n').some((line) => `${line} `.includes(nativeHook))
+      normalizedCommand
+        .split('\n')
+        .some((line) => nativeHooks.some((hook) => `${line} `.includes(hook)))
     )
   }
 }

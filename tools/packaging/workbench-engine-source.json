@@ -327209,7 +327209,8 @@
     "src/shared/opencode-environment-identity.test.ts",
     "src/shared/opencode-environment-identity.ts",
     "src/shared/opencode-plugin-identity.test.ts",
-    "src/shared/opencode-plugin-identity.ts"
+    "src/shared/opencode-plugin-identity.ts",
+    "src/main/agent-hooks/windows-native-hook-identity.test.ts"
   ],
   "adapted_files": [
     {
@@ -329597,8 +329598,8 @@
     {
       "path": "config/electron-builder.config.cjs",
       "upstream_sha256": "145988a8484048fbdf0f7f9361eac6ceb406af6a0be306f42f4fccae99bacd29",
-      "current_sha256": "9a4094e4685a6b89f0ff353b94c1c8f4eedc515e69b1524b566add764415a695",
-      "reason": "Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands.；统一Windows桌面命令安装状态、宿主能力、批处理分发和原生恢复命令为zkyq，保留PATH及消息参数行为；Windows命令源码路径同步物理改名；原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者；macOS打包CLI物理改名zkyq，同步安装/回收/卸载与本地派发，保留用户命令及文件竞态保护"
+      "current_sha256": "cd569e8b05f7025b553257a16f3bef125dd7ac3e1633ea3cda240dbef2d1f3b1",
+      "reason": "Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands.；统一Windows桌面命令安装状态、宿主能力、批处理分发和原生恢复命令为zkyq，保留PATH及消息参数行为；Windows命令源码路径同步物理改名；原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者；macOS打包CLI物理改名zkyq，同步安装/回收/卸载与本地派发，保留用户命令及文件竞态保护；Windows原生Hook统一zkyq文件及Control Everything PE身份，更新构建/打包/安装并识别旧注册以清理，保留版权和执行权限"
     },
     {
       "path": "config/scripts/build-windows-cli-launcher.mjs",
@@ -334933,6 +334934,84 @@
       "upstream_sha256": "b0c27a5973a0ca14e565acda1a5c7a1d9cdf90906240ff02e59a56435066491d",
       "current_sha256": "0bfe5a0e7c07ddd71a30e51725838a137e98cacacf23497d6e39d384f12e4293",
       "reason": "OpenCode插件产物统一zkyq，精确迁移已生成的旧模块与TUI注册，保留用户设置和冲突现场"
+    },
+    {
+      "path": "config/scripts/build-windows-agent-hook.mjs",
+      "upstream_sha256": "2c157a5adc21adf16621914a9ee811e5eaf49a4601262e8117df362fd8282a49",
+      "current_sha256": "e346f5975853ac3063591437efa85c41bfa2ca2bbcd3f278e197b4b68bc095a4",
+      "reason": "Windows原生Hook统一zkyq文件及Control Everything PE身份，更新构建/打包/安装并识别旧注册以清理，保留版权和执行权限"
+    },
+    {
+      "path": "config/scripts/verify-packaged-windows-agent-hook.cjs",
+      "upstream_sha256": "486f90c6161f726e2bba63b3a766bda26f6cc504c1265f3f1db61b702ef0ebbf",
+      "current_sha256": "3ae98f02e08e917f16e1592f56f2391644f120a4517580ea76ddf8413c7a9e8f",
+      "reason": "Windows原生Hook统一zkyq文件及Control Everything PE身份，更新构建/打包/安装并识别旧注册以清理，保留版权和执行权限"
+    },
+    {
+      "path": "config/scripts/verify-packaged-windows-agent-hook.test.mjs",
+      "upstream_sha256": "dad2cae0e82d4d55620f6a61ce02e811080980505bec6b7003b24fd73642dc69",
+      "current_sha256": "43281465cc66d59afbfc603c48a43c343d12a95c2295f69886332dc2f544cb1a",
+      "reason": "Windows原生Hook统一zkyq文件及Control Everything PE身份，更新构建/打包/安装并识别旧注册以清理，保留版权和执行权限"
+    },
+    {
+      "path": "native/windows-agent-hook/Cargo.lock",
+      "upstream_sha256": "f216c8fdbf4cf6f356cbc367e523a20de1876a404d81b8a8040c74b3715f024a",
+      "current_sha256": "7f51ed475896fd761ad5a3bfc72118c19c68c4bf8f4f6fffc33e89e4a89bf54b",
+      "reason": "Windows原生Hook统一zkyq文件及Control Everything PE身份，更新构建/打包/安装并识别旧注册以清理，保留版权和执行权限"
+    },
+    {
+      "path": "native/windows-agent-hook/Cargo.toml",
+      "upstream_sha256": "c9f9b61df80bd4b596d67f6e8493add23c07707c1d17c71229a878edb93ac543",
+      "current_sha256": "6043778dcf01a993cc529ebacf71e3ea940f9807673d534d9204353da7a7b23b",
+      "reason": "Windows原生Hook统一zkyq文件及Control Everything PE身份，更新构建/打包/安装并识别旧注册以清理，保留版权和执行权限"
+    },
+    {
+      "path": "native/windows-agent-hook/app.manifest",
+      "upstream_sha256": "ffe981483aaa8fce144e79153b071cc8438c882b80d81d94af8e6377fd142bec",
+      "current_sha256": "26225b423d8a89e9fb18597eeee2a64b333b0f81a54f34a698d679d7b58ebee8",
+      "reason": "Windows原生Hook统一zkyq文件及Control Everything PE身份，更新构建/打包/安装并识别旧注册以清理，保留版权和执行权限"
+    },
+    {
+      "path": "native/windows-agent-hook/build.rs",
+      "upstream_sha256": "940a291c7db476125b4ea7d0e5554b65aa564eea56cc59b1c7ba742543058cab",
+      "current_sha256": "d100f7e209583b3a8228f9b6f8e498d7e91d956e0f2f34d267d3d1ccb5a6df7c",
+      "reason": "Windows原生Hook统一zkyq文件及Control Everything PE身份，更新构建/打包/安装并识别旧注册以清理，保留版权和执行权限"
+    },
+    {
+      "path": "native/windows-agent-hook/src/main.rs",
+      "upstream_sha256": "9fbd844834a09a852490c57b3e10a08418dbc38da957d60d585246dc70195a08",
+      "current_sha256": "dc87dbe0c8e082b53c537824449eb37484ae226362e35425a1edc98a7670e209",
+      "reason": "Windows原生Hook统一zkyq文件及Control Everything PE身份，更新构建/打包/安装并识别旧注册以清理，保留版权和执行权限"
+    },
+    {
+      "path": "src/main/agent-hooks/installer-utils.ts",
+      "upstream_sha256": "96686e86e3d60180f7adcbc2dbe3cef17b8916acd49a462768ec495fdc8c3645",
+      "current_sha256": "5aecac9704ae0a67dbaa645888f798bd8e73bffd083ecdeb8568f23b12781c7c",
+      "reason": "Windows原生Hook统一zkyq文件及Control Everything PE身份，更新构建/打包/安装并识别旧注册以清理，保留版权和执行权限"
+    },
+    {
+      "path": "src/main/agent-hooks/locked-executable-rename.test.ts",
+      "upstream_sha256": "e775edbaa990473aba1a2f18793570a91291c5e1eb85aadcb1ff1287b3cdbd6d",
+      "current_sha256": "0d34b8d3975e8f72aac0dd85c937a9e681fa93badaf17dc4a2185095c3bff4f4",
+      "reason": "Windows原生Hook统一zkyq文件及Control Everything PE身份，更新构建/打包/安装并识别旧注册以清理，保留版权和执行权限"
+    },
+    {
+      "path": "src/main/agent-hooks/windows-native-hook-exe.test-fixture.ts",
+      "upstream_sha256": "36d41874a7f8484c48b539f03830b5af9664f7d9e1569b0279c3303b6fac5689",
+      "current_sha256": "8fe441023f04771b2c5ca5200f25e548c9ca7af886b09e01b7f88a7b76ad57e1",
+      "reason": "Windows原生Hook统一zkyq文件及Control Everything PE身份，更新构建/打包/安装并识别旧注册以清理，保留版权和执行权限"
+    },
+    {
+      "path": "src/main/agent-hooks/windows-native-hook-executable.ts",
+      "upstream_sha256": "46d9a2665b199b8bb99a8573e85d3098be67c6984b06cbfa61e2aac198277d60",
+      "current_sha256": "bfbcc213d9070bf65ef5ef994cb3a2eb7c78d7779af4edbd7a5a4a609f850f92",
+      "reason": "Windows原生Hook统一zkyq文件及Control Everything PE身份，更新构建/打包/安装并识别旧注册以清理，保留版权和执行权限"
+    },
+    {
+      "path": "src/main/claude/hook-settings.ts",
+      "upstream_sha256": "beb1af03f878c99eb80382aa983ab27a54e3da8fd262679f4e3a11a1fe8ec128",
+      "current_sha256": "c9525ec58b2782c1a591d488678ca055485fcf2f2f877e4dcddd4f7ec9f8b09a",
+      "reason": "Windows原生Hook统一zkyq文件及Control Everything PE身份，更新构建/打包/安装并识别旧注册以清理，保留版权和执行权限"
     }
   ],
   "reviewed_findings": [
@@ -335437,7 +335516,7 @@
       "path": "native/windows-agent-hook/app.manifest",
       "rule": "fixed-external-ipv4",
       "line": 3,
-      "sha256": "ffe981483aaa8fce144e79153b071cc8438c882b80d81d94af8e6377fd142bec",
+      "sha256": "26225b423d8a89e9fb18597eeee2a64b333b0f81a54f34a698d679d7b58ebee8",
       "reason": "四段数字在此处表示程序集/浏览器/构建工具版本，不是服务器地址；修改会改变版本或兼容性语义。"
     },
     {

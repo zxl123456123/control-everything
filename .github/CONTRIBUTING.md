@@ -115,6 +115,8 @@ python tools/packaging/workbench_engine.py check-output --run-dir C:/example/che
 
 替换为自己的绝对工具/检出路径。每次使用新的证据目录，Windows native scratch 路径应短；失败保留日志。构建固定执行 packages、移动资源生成、mobile web、原生依赖、Web和Windows运行时。来源SHA、宿主SHA和实际产物hash分别记录；`out/`、`.build/`、依赖缓存与证据不提交。`--materials` 提供审核后的源码/提供者和许可材料，由 `workbench_materials.py` 在本次产物生成后精确绑定，再由原 collector 核完整闭包；不再依赖编译后预期失败和手工改 hash。材料准备与完整桌面出包命令只维护在 [Windows 构建流水线](../docs/guides/windows.md#构建与技术预发布)。Android签名/推送身份与自建服务仍需分别验收，不能用本机编译成功替代。
 
+Windows 原生 Hook 使用 `native/windows-agent-hook`，正式入口为 `config/scripts/build-windows-agent-hook.mjs`，默认交付文件是该包下 `.build/zkyq-agent-hook.exe`。该包的 `target/` 与 `.build/` 为该入口精确声明的编译目录，不进入源码清单；打包只收集上述 EXE，其他目录仍按来源清单核验。改名验收核对实际 PE 属性、原执行权限和真实 EXE 的中性响应及本机事件上报。
+
 字体、供应商图标、完整界面静态导入资源及Windows launcher编译图标仅按清单精确字节和完整notice放行；未知媒体、上游执行规则、私人fixture和任意嵌套docs仍拒绝。文本仍经隐私与Gitleaks扫描，changes模式按被检查commit自己的清单核验。对应用来源/构建规则的修改运行：
 
 ```powershell

@@ -18,6 +18,8 @@ node_modules/
 /web/workbench-engine/mobile/ios/
 /web/workbench-engine/src/packages/process-host/dist/
 /web/workbench-engine/native/windows-cli-launcher/target/
+/web/workbench-engine/native/windows-agent-hook/target/
+/web/workbench-engine/native/windows-agent-hook/.build/
 
 # Publish only reviewed project documentation; keep development records local.
 /docs/*

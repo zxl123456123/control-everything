@@ -117,7 +117,9 @@ class WorkbenchBuildTests(unittest.TestCase):
     def test_only_exact_generated_files_and_known_build_trees_are_excluded(self):
         before = BUILD.check_source(self.root)
         for relative in (*BUILD.MOBILE_GENERATED, 'src/packages/process-host/dist/index.js', 'mobile/.expo/state.json',
-                         'native/windows-cli-launcher/target/release/zkyq.exe'):
+                         'native/windows-cli-launcher/target/release/zkyq.exe',
+                         'native/windows-agent-hook/target/release/zkyq-agent-hook.exe',
+                         'native/windows-agent-hook/.build/zkyq-agent-hook.exe'):
             target = self.unit / relative
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_text('generated fixture')

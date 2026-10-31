@@ -1,5 +1,5 @@
-//! Orca's native Windows agent hook, registered as `orca-agent-hook.exe <agent>`: answers
-//! `{}`, then posts the hook payload to Orca's loopback listener and waits for the reply,
+//! Control Everything's native Windows agent hook, registered as `zkyq-agent-hook.exe <agent>`: answers
+//! `{}`, then posts the hook payload to the loopback listener and waits for the reply,
 //! so status events arrive in the order the agent emitted them.
 //!
 //! Why native: the `.cmd` form costs a cmd.exe start (plus the user's AutoRun) and
