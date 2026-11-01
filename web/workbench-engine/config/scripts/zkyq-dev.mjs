@@ -9,14 +9,24 @@ const scriptPath = realpathSync(import.meta.filename)
 const scriptDir = path.dirname(scriptPath)
 const repoRoot = path.resolve(scriptDir, '..', '..')
 const cliEntry =
-  process.env.ORCA_DEV_CLI_ENTRY_PATH ?? path.join(repoRoot, 'out', 'cli', 'index.js')
+  process.env.ZKYQ_DEV_CLI_ENTRY_PATH ?? path.join(repoRoot, 'out', 'cli', 'index.js')
+if (!process.env.ZKYQ_DEV_CLI_ENTRY_PATH && process.env.ORCA_DEV_CLI_ENTRY_PATH) {
+  throw new Error(
+    'Set ZKYQ_DEV_CLI_ENTRY_PATH to the selected CLI entry instead of ORCA_DEV_CLI_ENTRY_PATH.'
+  )
+}
 
 if (!existsSync(cliEntry)) {
   console.error("zkyq-dev: CLI not built yet. Run 'pnpm run build:cli' first.")
   process.exit(1)
 }
 
-process.env.ZKYQ_USER_DATA_PATH = process.env.ORCA_DEV_USER_DATA_PATH ?? getDefaultDevUserDataPath()
+if (!process.env.ZKYQ_DEV_USER_DATA_PATH && process.env.ORCA_DEV_USER_DATA_PATH) {
+  throw new Error(
+    'Set ZKYQ_DEV_USER_DATA_PATH to the same data directory instead of ORCA_DEV_USER_DATA_PATH.'
+  )
+}
+process.env.ZKYQ_USER_DATA_PATH = process.env.ZKYQ_DEV_USER_DATA_PATH ?? getDefaultDevUserDataPath()
 // Why: custom dev profiles do not necessarily contain "orca-dev" in their path; carry explicit provenance into the CLI.
 process.env.ZKYQ_DEV_CLI_INVOCATION = '1'
 process.env.ZKYQ_CLI_COMMAND = 'zkyq-dev'
@@ -45,19 +55,23 @@ if (result.signal) {
 process.exit(result.status ?? (result.error ? 1 : 0))
 
 function getDefaultDevUserDataPath() {
+  let current
   if (process.platform === 'darwin') {
-    return path.join(process.env.HOME ?? '', 'Library', 'Application Support', 'orca-dev')
-  }
-  if (process.platform === 'win32') {
-    return path.join(
+    current = path.join(process.env.HOME ?? '', 'Library', 'Application Support', 'zkyq-dev')
+  } else if (process.platform === 'win32') {
+    current = path.join(
       process.env.APPDATA ?? path.join(process.env.USERPROFILE ?? '', 'AppData', 'Roaming'),
-      'orca-dev'
+      'zkyq-dev'
+    )
+  } else {
+    current = path.join(
+      process.env.XDG_CONFIG_HOME ?? path.join(process.env.HOME ?? '', '.config'),
+      'zkyq-dev'
     )
   }
-  return path.join(
-    process.env.XDG_CONFIG_HOME ?? path.join(process.env.HOME ?? '', '.config'),
-    'orca-dev'
-  )
+  // Do not create a second profile while a previous desktop still owns the old default.
+  const previous = path.join(path.dirname(current), 'orca-dev')
+  return !existsSync(current) && existsSync(previous) ? previous : current
 }
 
 function getElectronExecutable() {

@@ -33,9 +33,9 @@ describe('zkyq-dev package bin', () => {
     execFileSync(process.execPath, [wrapperPath, '--help'], {
       env: {
         ...process.env,
-        ORCA_DEV_CLI_ENTRY_PATH: cliEntry,
+        ZKYQ_DEV_CLI_ENTRY_PATH: cliEntry,
         ZKYQ_CLI_COMMAND: 'orca-dev',
-        ORCA_DEV_USER_DATA_PATH: path.join(root, 'user-data'),
+        ZKYQ_DEV_USER_DATA_PATH: path.join(root, 'user-data'),
         ZKYQ_APP_EXECUTABLE: path.join(root, 'Electron')
       },
       stdio: 'ignore'

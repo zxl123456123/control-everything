@@ -13,6 +13,14 @@ import { canStartOrcaServer } from './serve-app-launcher'
 afterEach(() => vi.unstubAllEnvs())
 
 describe('resolveLaunchUserDataPath', () => {
+  it('rejects the retired development profile setting before choosing another directory', () => {
+    expect(() =>
+      resolveLaunchUserDataPath({
+        ZKYQ_APP_EXECUTABLE_NEEDS_APP_ROOT: '1',
+        ORCA_DEV_USER_DATA_PATH: 'previous development profile'
+      })
+    ).toThrow('ZKYQ_DEV_USER_DATA_PATH')
+  })
   it.each(['ORCA_APP_EXECUTABLE', 'ORCA_APP_EXECUTABLE_NEEDS_APP_ROOT'])(
     'rejects retired %s before selecting a default app or profile',
     (key) => {
@@ -70,7 +78,7 @@ describe('resolveLaunchUserDataPath', () => {
     expect(
       resolveLaunchUserDataPath({
         ZKYQ_USER_DATA_PATH: 'rel/profile',
-        ORCA_DEV_USER_DATA_PATH: '/dev',
+        ZKYQ_DEV_USER_DATA_PATH: '/dev',
         ZKYQ_APP_EXECUTABLE_NEEDS_APP_ROOT: '1'
       })
     ).toBe(resolve('rel/profile'))
@@ -78,12 +86,12 @@ describe('resolveLaunchUserDataPath', () => {
 
   it("falls back to the dev app's own profile for a dev executable", () => {
     expect(resolveLaunchUserDataPath({ ZKYQ_APP_EXECUTABLE_NEEDS_APP_ROOT: '1' })).toBe(
-      resolve(join(getPlatformUserDataPath(), '..', 'orca-dev'))
+      resolve(join(getPlatformUserDataPath(), '..', 'zkyq-dev'))
     )
   })
 
-  it('ignores ORCA_DEV_USER_DATA_PATH for a packaged executable', () => {
-    expect(resolveLaunchUserDataPath({ ORCA_DEV_USER_DATA_PATH: '/dev' })).toBe(
+  it('ignores ZKYQ_DEV_USER_DATA_PATH for a packaged executable', () => {
+    expect(resolveLaunchUserDataPath({ ZKYQ_DEV_USER_DATA_PATH: '/dev' })).toBe(
       getPlatformUserDataPath()
     )
   })
@@ -103,7 +111,7 @@ describe('pinLaunchUserDataPath', () => {
     })
     expect(
       pinLaunchUserDataPath([], { ZKYQ_APP_EXECUTABLE_NEEDS_APP_ROOT: '1' }, '/p').env
-    ).toMatchObject({ ORCA_DEV_USER_DATA_PATH: '/p' })
+    ).toMatchObject({ ZKYQ_DEV_USER_DATA_PATH: '/p' })
   })
 })
 

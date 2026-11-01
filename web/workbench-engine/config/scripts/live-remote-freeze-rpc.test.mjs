@@ -18,7 +18,7 @@ it('keeps Windows source invocation in the selected development profile', () => 
   const invocation = resolveOrcaCliInvocation({
     platform: 'win32',
     nodeExecutable: 'node.exe',
-    env: { ORCA_DEV_REPO_ROOT: repo, ORCA_DEV_USER_DATA_PATH: profile }
+    env: { ORCA_DEV_REPO_ROOT: repo, ZKYQ_DEV_USER_DATA_PATH: profile }
   })
   expect(invocation.command).toBe('node.exe')
   expect(invocation.prefixArgs).toEqual([win32.join(repo, 'out/cli/index.js')])

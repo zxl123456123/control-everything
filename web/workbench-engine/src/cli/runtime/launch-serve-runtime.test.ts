@@ -65,7 +65,7 @@ describe('orca serve host selection', () => {
     delete process.env.ZKYQ_APP_EXECUTABLE
     delete process.env.ORCA_SERVE_RUNTIME
     delete process.env.ZKYQ_USER_DATA_PATH
-    delete process.env.ORCA_DEV_USER_DATA_PATH
+    delete process.env.ZKYQ_DEV_USER_DATA_PATH
     delete process.env.ZKYQ_APP_EXECUTABLE_NEEDS_APP_ROOT
   })
 
@@ -204,10 +204,10 @@ describe('orca serve host selection', () => {
       ])
     })
 
-    it('uses ORCA_DEV_USER_DATA_PATH for both the selector and a dev Electron child', async () => {
+    it('uses ZKYQ_DEV_USER_DATA_PATH for both the selector and a dev Electron child', async () => {
       const profile = resolve('/isolated/dev-profile')
       delete process.env.ZKYQ_USER_DATA_PATH
-      process.env.ORCA_DEV_USER_DATA_PATH = profile
+      process.env.ZKYQ_DEV_USER_DATA_PATH = profile
       process.env.ZKYQ_APP_EXECUTABLE_NEEDS_APP_ROOT = '1'
       resolveLocalServeRuntimeMock.mockResolvedValue({ kind: 'electron', reason: 'dev' })
       electronChild()
@@ -218,7 +218,7 @@ describe('orca serve host selection', () => {
       )
       // A dev build ignores --user-data-dir and reads this instead.
       expect(electronSpawn().env).toMatchObject({
-        ORCA_DEV_USER_DATA_PATH: profile,
+        ZKYQ_DEV_USER_DATA_PATH: profile,
         ORCA_SERVE_USER_DATA_PATH: profile
       })
     })

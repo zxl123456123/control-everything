@@ -9,7 +9,7 @@ import {
   symlinkSync,
   unlinkSync
 } from 'node:fs'
-import { basename, dirname, join, relative, resolve, toNamespacedPath, isAbsolute } from 'node:path'
+import { dirname, join, relative, resolve, toNamespacedPath, isAbsolute } from 'node:path'
 import { bestEffortFsyncDirectorySync } from '../../shared/secure-file'
 import {
   acquireOrcadInstanceLock,
@@ -132,25 +132,7 @@ export function admitDefaultDataRoot(previous: string, current: string): string 
   }
 }
 
-/** Explicit old defaults may still be supplied by launchers after a completed move. */
-export function resolveMigratedDefaultDataRoot(path: string): string {
-  if (!isAbsolute(path)) return path
-  const name = basename(path)
-  const currentName =
-    name === '.orca'
-      ? '.zkyq'
-      : name === 'orca' || name === 'Orca'
-        ? 'zkyq'
-        : name === 'orca-dev'
-          ? 'zkyq-dev'
-          : /^\.orca-[a-f0-9]{8}$/.test(name)
-            ? name.replace('.orca-', '.zkyq-')
-            : null
-  if (!currentName) return path
-  const current = join(dirname(path), currentName)
-  const record = readDefaultDataRootRecord(current)
-  return record?.previousName === name ? current : path
-}
+export { resolveMigratedDefaultDataRoot } from './default-data-root-record-reader'
 
 /** Publish a previous-build entrance before an offline rollback can launch that build. */
 export function handOffDefaultDataRootToPreviousBuild(previous: string, current: string): void {

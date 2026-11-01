@@ -301,7 +301,7 @@ describe('run-electron-vite-dev', () => {
       const wrapper = spawn(process.execPath, [wrapperPath], {
         cwd: resolve('.'),
         env: devWrapperTestEnv({
-          ORCA_DEV_USER_DATA_PATH: userDataPath,
+          ZKYQ_DEV_USER_DATA_PATH: userDataPath,
           ORCA_ELECTRON_VITE_CLI: fakeCliPath,
           ORCA_SKIP_DEV_ELECTRON_APP_PREPARE: '1',
           ORCA_SKIP_DEV_WEB_PREPARE: '1',

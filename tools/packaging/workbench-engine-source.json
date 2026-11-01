@@ -327291,7 +327291,10 @@
     "src/main/persistence/default-data-root-readers.ts",
     "src/main/persistence/default-data-root-record.test.ts",
     "src/main/persistence/default-data-root-record.ts",
-    "src/main/persistence/profile-state/profile-state-data-root-move.test.ts"
+    "src/main/persistence/profile-state/profile-state-data-root-move.test.ts",
+    "src/cli/runtime/default-data-root-paths.test.ts",
+    "src/main/persistence/default-data-root-record-reader.ts",
+    "src/main/startup/configure-default-data-roots.test.ts"
   ],
   "adapted_files": [
     {
@@ -330603,8 +330606,8 @@
     {
       "path": "config/scripts/live-remote-freeze-rpc.mjs",
       "upstream_sha256": "7caae4f4c3130536c5da85727cd9adbe123dfe05522467a39efe92a980b1d99a",
-      "current_sha256": "0c6fa0df7ebb3694a85aa23109252697de7fb1fd022b87431d2439a896bd7a1f",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；当前本地与SSH运行组件统一zkyq调用，移除过时relay命令分支并同步Agent启动、收信、回复与诊断默认入口；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；应用启动配置对统一ZKYQ身份，调用方和生成脚本同步，旧值拒绝默认回退并保持旧脚本归属识别；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
+      "current_sha256": "540329bbbee2228c0a63c449f7a27cc07cb722a7433726e0d6916e3a35771e6b",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；当前本地与SSH运行组件统一zkyq调用，移除过时relay命令分支并同步Agent启动、收信、回复与诊断默认入口；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；应用启动配置对统一ZKYQ身份，调用方和生成脚本同步，旧值拒绝默认回退并保持旧脚本归属识别；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；桌面和CLI默认目录统一zkyq/zkyq-dev，在Electron ready前沿既有所有权迁移；保持旧实例发现、自定义/E2E目录和开发启动/测试生产者，迁移记录只读读取不加载原生进程依赖"
     },
     {
       "path": "config/scripts/orcad-terminal-smoke-change-scope.mjs",
@@ -330615,8 +330618,8 @@
     {
       "path": "config/scripts/run-electron-vite-dev.mjs",
       "upstream_sha256": "02b2f864cdc4b4c1c2ac410f8ad901b4d2d191e5a1fd0a2d9ae466c3f65fdac9",
-      "current_sha256": "5bea343a3a2030b994a36de339df056c2ba889b30d99840a24668cf54dd66f2f",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+      "current_sha256": "980756b9dc4778c3024aade20f55b91a0428aa86b058bbe9b8bf8460041b1bdb",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；桌面和CLI默认目录统一zkyq/zkyq-dev，在Electron ready前沿既有所有权迁移；保持旧实例发现、自定义/E2E目录和开发启动/测试生产者，迁移记录只读读取不加载原生进程依赖"
     },
     {
       "path": "config/scripts/verify-cli-bin.mjs",
@@ -330633,14 +330636,14 @@
     {
       "path": "config/scripts/zkyq-dev-bin.test.mjs",
       "upstream_sha256": "72e310e8352642bbebc79d7af2d5f1dfc27ef22aeecdee908647554bc6fe8d98",
-      "current_sha256": "9b80f90e6ef6f62fdaa1f7917faf7fb24887ee8001f63c34f38e072d2158cea7",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；应用启动配置对统一ZKYQ身份，调用方和生成脚本同步，旧值拒绝默认回退并保持旧脚本归属识别；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
+      "current_sha256": "2f4b55cb7a83b8c87cef24f5c8c9176262327dc161ebad99fa37f498b5d81003",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；应用启动配置对统一ZKYQ身份，调用方和生成脚本同步，旧值拒绝默认回退并保持旧脚本归属识别；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；桌面和CLI默认目录统一zkyq/zkyq-dev，在Electron ready前沿既有所有权迁移；保持旧实例发现、自定义/E2E目录和开发启动/测试生产者，迁移记录只读读取不加载原生进程依赖"
     },
     {
       "path": "config/scripts/zkyq-dev.mjs",
       "upstream_sha256": "7c283b0e22e4f47cc968dc97c371fce168462dbe3b773421755476a3a1236342",
-      "current_sha256": "1f50b3d9a9732270fba9f4d48cdb0fe61e4106161ce9532b05fd041529419f0e",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；应用启动配置对统一ZKYQ身份，调用方和生成脚本同步，旧值拒绝默认回退并保持旧脚本归属识别；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别"
+      "current_sha256": "3e8e6edd50a37d6c901bf9a11bbb9bf4fc8c6169f7331856b1824608df72f7ee",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；应用启动配置对统一ZKYQ身份，调用方和生成脚本同步，旧值拒绝默认回退并保持旧脚本归属识别；命令选择和开发调用标记统一ZKYQ，保持自定义路径并同步子进程、WSL、技能说明与历史脚本退役识别；桌面和CLI默认目录统一zkyq/zkyq-dev，在Electron ready前沿既有所有权迁移；保持旧实例发现、自定义/E2E目录和开发启动/测试生产者，迁移记录只读读取不加载原生进程依赖"
     },
     {
       "path": "package.json",
@@ -330873,8 +330876,8 @@
     {
       "path": "src/main/startup/run-electron-vite-dev.test.ts",
       "upstream_sha256": "1b1eb41c07b47d9ebb91d6ef3081acfd5241fa0be44472d4b488df068dc0e7bf",
-      "current_sha256": "1d83b5142ff347e6017324395cd0e1358910609b6c8c97a26148b0cdcb967b9d",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+      "current_sha256": "a35d7979d9277e548ab877b4c398dc084e791d0b8c86a6a4707b71f2f4e887cc",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；桌面和CLI默认目录统一zkyq/zkyq-dev，在Electron ready前沿既有所有权迁移；保持旧实例发现、自定义/E2E目录和开发启动/测试生产者，迁移记录只读读取不加载原生进程依赖"
     },
     {
       "path": "src/main/wsl-managed-cli-path-restore.test.ts",
@@ -331143,8 +331146,8 @@
     {
       "path": "config/scripts/runtime-serve-terminal-smoke.mjs",
       "upstream_sha256": "537cc883e6ff20f2080d3466357a0bc41284768d8e1e89f1ef4fce284611bbf3",
-      "current_sha256": "d3796949103819f20af0e0c75886e653303f676922f1a63107d2bee2c26cdb8a",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+      "current_sha256": "a327666ffa7d2475cccd503322c2a96266566596dee3000edd0670ae5f9a4b78",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；桌面和CLI默认目录统一zkyq/zkyq-dev，在Electron ready前沿既有所有权迁移；保持旧实例发现、自定义/E2E目录和开发启动/测试生产者，迁移记录只读读取不加载原生进程依赖"
     },
     {
       "path": "mobile/scripts/repro-worktree-startup-stream.ts",
@@ -331305,8 +331308,8 @@
     {
       "path": "config/scripts/remote-agent-session-authority-repro.mjs",
       "upstream_sha256": "db049463ccf05ec5631c3c1dd322e5e2d2357de14e0facdf2fa0a27ca2d05d27",
-      "current_sha256": "db3cd2f1fd4527d1a7680868da34f459e11c2ea1ebd80bdff942b2fda7654116",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+      "current_sha256": "f612539a102cb7543ffbf85da690615e74163664a5e86b559d117306a2a1b65d",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；桌面和CLI默认目录统一zkyq/zkyq-dev，在Electron ready前沿既有所有权迁移；保持旧实例发现、自定义/E2E目录和开发启动/测试生产者，迁移记录只读读取不加载原生进程依赖"
     },
     {
       "path": "config/scripts/run-codex-real-account-validation.mjs",
@@ -331437,8 +331440,8 @@
     {
       "path": "src/cli/runtime/launch-serve-runtime.test.ts",
       "upstream_sha256": "2527679ab17a7241b44f46bcae7c88992e301782b0d5ff2f346a4ff17ee2b0bf",
-      "current_sha256": "c807775e7d9cdb1c7e181480e72b08db6aa53c7501dd6fe38368143069d6f689",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；应用启动配置对统一ZKYQ身份，调用方和生成脚本同步，旧值拒绝默认回退并保持旧脚本归属识别"
+      "current_sha256": "614d965fac8f4cdce59aeee44cf6aef30276560ba23282d610ba71064b459e2e",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；应用启动配置对统一ZKYQ身份，调用方和生成脚本同步，旧值拒绝默认回退并保持旧脚本归属识别；桌面和CLI默认目录统一zkyq/zkyq-dev，在Electron ready前沿既有所有权迁移；保持旧实例发现、自定义/E2E目录和开发启动/测试生产者，迁移记录只读读取不加载原生进程依赖"
     },
     {
       "path": "src/cli/runtime/launch-serve-supervise.test.ts",
@@ -331449,20 +331452,20 @@
     {
       "path": "src/cli/runtime/launch-user-data-path.test.ts",
       "upstream_sha256": "6c182c2a1b231eee54eb08096a90067cbaa352970edde58408743b84a0773c38",
-      "current_sha256": "e672ad6a3bf9cd6b2cde3a3e47ce8d1331dc1f1b0257a1955de3dde882b2c40e",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；应用启动配置对统一ZKYQ身份，调用方和生成脚本同步，旧值拒绝默认回退并保持旧脚本归属识别"
+      "current_sha256": "a2bbbb708401f16acb1ef9100630488edb7b39a1704063fcc0c7dd724247b5b6",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；应用启动配置对统一ZKYQ身份，调用方和生成脚本同步，旧值拒绝默认回退并保持旧脚本归属识别；桌面和CLI默认目录统一zkyq/zkyq-dev，在Electron ready前沿既有所有权迁移；保持旧实例发现、自定义/E2E目录和开发启动/测试生产者，迁移记录只读读取不加载原生进程依赖"
     },
     {
       "path": "src/cli/runtime/launch-user-data-path.ts",
       "upstream_sha256": "b17c1f5004fcbafca4462729e71bb4a1260bd70d503def6bb1a86e7d630ae7fb",
-      "current_sha256": "800e714ae5b940ab40ec64cb8055894e065ba8e68d9f0ed4c68e1725ae727e56",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；应用启动配置对统一ZKYQ身份，调用方和生成脚本同步，旧值拒绝默认回退并保持旧脚本归属识别"
+      "current_sha256": "2d455614b597fbc78b42a77badb3fee83e7da2abfddf009ea62b1e6975d5b60a",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；应用启动配置对统一ZKYQ身份，调用方和生成脚本同步，旧值拒绝默认回退并保持旧脚本归属识别；桌面和CLI默认目录统一zkyq/zkyq-dev，在Electron ready前沿既有所有权迁移；保持旧实例发现、自定义/E2E目录和开发启动/测试生产者，迁移记录只读读取不加载原生进程依赖"
     },
     {
       "path": "src/cli/runtime/metadata.ts",
       "upstream_sha256": "dbe7caf05552dc961b228647c4ede7e9bd9f62ae75729d71eb335c5cdafd62c0",
-      "current_sha256": "ddc64c3b62f727e5eece921b50beabeb68944e1181f486b0e0d70b08b4f4b9f4",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；统一命令行连接与恢复提示的产品名称及可执行命令；迁移运行时发现文件并保护新旧进程所有权"
+      "current_sha256": "bb369c7c74718448d925c3fd68a5690da5fc0c9071cc666d3046c89b8f514252",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；统一命令行连接与恢复提示的产品名称及可执行命令；迁移运行时发现文件并保护新旧进程所有权；桌面和CLI默认目录统一zkyq/zkyq-dev，在Electron ready前沿既有所有权迁移；保持旧实例发现、自定义/E2E目录和开发启动/测试生产者，迁移记录只读读取不加载原生进程依赖"
     },
     {
       "path": "src/cli/runtime/profile-state-recovery-launch.test.ts",
@@ -331971,8 +331974,8 @@
     {
       "path": "src/main/startup/configure-process.ts",
       "upstream_sha256": "798997b882c6455e222907f33a4a92033adcc24023cee122958192e7544679e5",
-      "current_sha256": "87cb0ba0a591b0743a8a0eb71207991a3fe3f1a5ecd58857452a78f091a0ea79",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+      "current_sha256": "468fd3b10f2da07729512c0d68f16e12be74348e5e4b219168e59210235616c1",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；桌面和CLI默认目录统一zkyq/zkyq-dev，在Electron ready前沿既有所有权迁移；保持旧实例发现、自定义/E2E目录和开发启动/测试生产者，迁移记录只读读取不加载原生进程依赖"
     },
     {
       "path": "src/main/startup/profile-state-recovery-preflight.test.ts",
@@ -332883,8 +332886,8 @@
     {
       "path": "src/main/startup/main-process-preflight.ts",
       "upstream_sha256": "4b11f94815b622a6a86533e97d9579c197d3b6ff28d358f72688fd0808cb5de3",
-      "current_sha256": "e6a8e09c45832247cde6858f0b7196e9d743f3773af30f49901af26965b7ca35",
-      "reason": "迁移应用版本环境变量并隔离驻留旧版 daemon；迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据"
+      "current_sha256": "e190e5db7a8102f92da56b0060cc093d2b3990af6801178adef542444ddf3962",
+      "reason": "迁移应用版本环境变量并隔离驻留旧版 daemon；迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据；桌面和CLI默认目录统一zkyq/zkyq-dev，在Electron ready前沿既有所有权迁移；保持旧实例发现、自定义/E2E目录和开发启动/测试生产者，迁移记录只读读取不加载原生进程依赖"
     },
     {
       "path": "src/cli/handlers/profile-state.test.ts",
@@ -333711,8 +333714,8 @@
     {
       "path": "src/main/startup/single-instance-lock.ts",
       "upstream_sha256": "6b22d249c3a61c369f0b16cbff52d253afeee204dcbf6966fc6bad2038fef7dc",
-      "current_sha256": "560cca91f7da563520cd6d9b229490f7b7bf0113d672f23da4f163509ddbd704",
-      "reason": "迁移运行时发现文件并保护新旧进程所有权"
+      "current_sha256": "8d2b23e2b7e8fb260d72c5c840672ba2953d382b6602e1ead74b64a8fa03baec",
+      "reason": "迁移运行时发现文件并保护新旧进程所有权；桌面和CLI默认目录统一zkyq/zkyq-dev，在Electron ready前沿既有所有权迁移；保持旧实例发现、自定义/E2E目录和开发启动/测试生产者，迁移记录只读读取不加载原生进程依赖"
     },
     {
       "path": "src/main/startup/windows-user-data-acl.test.ts",
@@ -333735,8 +333738,8 @@
     {
       "path": "tests/e2e/helpers/computer-cli-driver.ts",
       "upstream_sha256": "58ae67cf7f7e28b143c827da50dadca8833759e1f2c7b802665c3128df453b6b",
-      "current_sha256": "05cd3f159b165a6448488fb6d385b388e9c59330bad2e6828ed84cd21eb369d3",
-      "reason": "迁移运行时发现文件并保护新旧进程所有权"
+      "current_sha256": "3984a45f10efd0b8a6005d6c25228361b9e90119d12c0dc7802377a25417762a",
+      "reason": "迁移运行时发现文件并保护新旧进程所有权；桌面和CLI默认目录统一zkyq/zkyq-dev，在Electron ready前沿既有所有权迁移；保持旧实例发现、自定义/E2E目录和开发启动/测试生产者，迁移记录只读读取不加载原生进程依赖"
     },
     {
       "path": "src/cli/runtime/status.ts",
@@ -338531,6 +338534,60 @@
       "upstream_sha256": "93fd4d6c33266886820152038bc2c9b4d4318308214e50c9e457b4c6cc3c6439",
       "current_sha256": "311d5c401f4241c53ed79f2aee542e8616c75cbacc2991aa24eeba0296b2d797",
       "reason": "默认数据目录改名时仅对同父目录的新旧命名桥接保留原daemon连接地址，避免Windows命名管道和长Unix socket hash变化导致后台终端失联；显式自定义路径保持原语义，旧入口退役后恢复新目录地址"
+    },
+    {
+      "path": "config/scripts/verify-linux-wayland-gpu-sandbox.mjs",
+      "upstream_sha256": "8c9f0ec85250110771b9d72ce787b7d51a8bbb1f64559b284752d3539128c9de",
+      "current_sha256": "3c268d590d11368bed7c1b536c498dc9ea18abad160c58ee23dd4d3c68a6e711",
+      "reason": "桌面和CLI默认目录统一zkyq/zkyq-dev，在Electron ready前沿既有所有权迁移；保持旧实例发现、自定义/E2E目录和开发启动/测试生产者，迁移记录只读读取不加载原生进程依赖"
+    },
+    {
+      "path": "config/scripts/windows-apphang-repro/electron-dev-session.mjs",
+      "upstream_sha256": "0d9e856587b13f8a03f38d5a8ef309ad341f0f6dda9cadd59b020f89e8000cd9",
+      "current_sha256": "5495d5a34dd99eb62d19c7586f19c8c30282356b5c18922bef8bafb93bc76775",
+      "reason": "桌面和CLI默认目录统一zkyq/zkyq-dev，在Electron ready前沿既有所有权迁移；保持旧实例发现、自定义/E2E目录和开发启动/测试生产者，迁移记录只读读取不加载原生进程依赖"
+    },
+    {
+      "path": "src/main/startup/main-process-ready-foundation.ts",
+      "upstream_sha256": "42be31b307e6a92ede72f05e919f3906fc1ee217d2ef92787439ef1c55e2eb58",
+      "current_sha256": "e247361bbfc476ff5fe8b780d663769c215a6d84f017cf79c87cbb75e503a585",
+      "reason": "桌面和CLI默认目录统一zkyq/zkyq-dev，在Electron ready前沿既有所有权迁移；保持旧实例发现、自定义/E2E目录和开发启动/测试生产者，迁移记录只读读取不加载原生进程依赖"
+    },
+    {
+      "path": "src/main/startup/serve-user-data-path-guard.ts",
+      "upstream_sha256": "4fd52852137d5eb33ee75dddb0dabf75f84cfda80568cac0fe2925c8d91ef7a1",
+      "current_sha256": "0de93c893ceb6bae3665e85939aa8fff0542659e381c19714d421d4023b225e9",
+      "reason": "桌面和CLI默认目录统一zkyq/zkyq-dev，在Electron ready前沿既有所有权迁移；保持旧实例发现、自定义/E2E目录和开发启动/测试生产者，迁移记录只读读取不加载原生进程依赖"
+    },
+    {
+      "path": "tests/e2e/terminal-cli-split-closed-before-mount.spec.ts",
+      "upstream_sha256": "10f84e47ad7a739865f9f1449958db704a175f16f748a05c0d65184b999a74e4",
+      "current_sha256": "9f11a0f07edaa0df223dfe295dbf4eaa23278cf7f88672374241417badbb352d",
+      "reason": "桌面和CLI默认目录统一zkyq/zkyq-dev，在Electron ready前沿既有所有权迁移；保持旧实例发现、自定义/E2E目录和开发启动/测试生产者，迁移记录只读读取不加载原生进程依赖"
+    },
+    {
+      "path": "tests/e2e/terminal-parked-cli-split.spec.ts",
+      "upstream_sha256": "ad9bc52cb5a59a4f4b2e52346339d2fcd4a91e978553fa0994ac91986514960f",
+      "current_sha256": "173a1634ddf6830299f212ce9c5442bd3fc0f49bd9783a51017812dd2a741052",
+      "reason": "桌面和CLI默认目录统一zkyq/zkyq-dev，在Electron ready前沿既有所有权迁移；保持旧实例发现、自定义/E2E目录和开发启动/测试生产者，迁移记录只读读取不加载原生进程依赖"
+    },
+    {
+      "path": "tests/e2e/terminal-send-agent-prompt-submit.spec.ts",
+      "upstream_sha256": "a3e0e03f845a4cbf36f58c19539ce3854d6de4903f41c6c6c9533443d6e5fbc1",
+      "current_sha256": "90d0463821c6b8063a93e4e06c52393674fa12c491c9409cd071ec385cde33f0",
+      "reason": "桌面和CLI默认目录统一zkyq/zkyq-dev，在Electron ready前沿既有所有权迁移；保持旧实例发现、自定义/E2E目录和开发启动/测试生产者，迁移记录只读读取不加载原生进程依赖"
+    },
+    {
+      "path": "tests/tools/benchmarks/workspace-switch-paint-latency.mjs",
+      "upstream_sha256": "c75bf53d1d60094ff4ce6a6d0c227228d3f908215562718f66aea4fce8f134ee",
+      "current_sha256": "0b08b367647c9fe3bc06d24852e305a0b4bf339dac958cb584dd6aaeefb23799",
+      "reason": "桌面和CLI默认目录统一zkyq/zkyq-dev，在Electron ready前沿既有所有权迁移；保持旧实例发现、自定义/E2E目录和开发启动/测试生产者，迁移记录只读读取不加载原生进程依赖"
+    },
+    {
+      "path": "tests/tools/benchmarks/worktree-deletion-dev-bench.mjs",
+      "upstream_sha256": "21b44174a0f0434e7d1d2307f51e09f05a84d355e335eba7f1ce69d68eb57c55",
+      "current_sha256": "be0b1fc2d2fbbc6b2fa2324469f7ecb15593459117095c79ebf16479bec428e6",
+      "reason": "桌面和CLI默认目录统一zkyq/zkyq-dev，在Electron ready前沿既有所有权迁移；保持旧实例发现、自定义/E2E目录和开发启动/测试生产者，迁移记录只读读取不加载原生进程依赖"
     }
   ],
   "reviewed_findings": [
@@ -339671,8 +339728,8 @@
     {
       "path": "src/main/startup/configure-process.ts",
       "rule": "personal-home-path",
-      "line": 155,
-      "sha256": "87cb0ba0a591b0743a8a0eb71207991a3fe3f1a5ecd58857452a78f091a0ea79",
+      "line": 159,
+      "sha256": "468fd3b10f2da07729512c0d68f16e12be74348e5e4b219168e59210235616c1",
       "reason": "Linuxbrew的约定公共安装目录，非个人home配置。"
     },
     {

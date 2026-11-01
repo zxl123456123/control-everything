@@ -363,7 +363,7 @@ async function startServer(port) {
   const env = {
     ...process.env,
     [pathKey]: `${binPath}${pathDelimiter}${process.env[pathKey] ?? ''}`,
-    ORCA_DEV_USER_DATA_PATH: profilePath,
+    ZKYQ_DEV_USER_DATA_PATH: profilePath,
     ZKYQ_USER_DATA_PATH: profilePath,
     ORCA_REPRO_SPAWN_MARKER: spawnMarkerPath,
     ORCA_REPRO_EXIT_TRIGGER: exitTriggerPath,

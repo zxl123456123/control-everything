@@ -39,7 +39,7 @@ export function resolveOrcaCliInvocation({
   ) {
     const defaultUserDataPath = path.win32.join(
       env.APPDATA ?? path.win32.join(env.USERPROFILE ?? '', 'AppData', 'Roaming'),
-      'orca-dev'
+      'zkyq-dev'
     )
     return {
       command: nodeExecutable,
@@ -47,7 +47,7 @@ export function resolveOrcaCliInvocation({
       env: {
         ...env,
         ZKYQ_USER_DATA_PATH:
-          env.ZKYQ_USER_DATA_PATH ?? env.ORCA_DEV_USER_DATA_PATH ?? defaultUserDataPath,
+          env.ZKYQ_USER_DATA_PATH ?? env.ZKYQ_DEV_USER_DATA_PATH ?? defaultUserDataPath,
         ZKYQ_DEV_CLI_INVOCATION: '1',
         ZKYQ_CLI_COMMAND: 'zkyq-dev',
         ZKYQ_APP_EXECUTABLE:

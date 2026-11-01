@@ -432,22 +432,30 @@ function restoreElectronFrameworkSymlinks(appPath) {
 }
 
 function getDevUserDataPath() {
+  if (process.env.ZKYQ_DEV_USER_DATA_PATH) {
+    return process.env.ZKYQ_DEV_USER_DATA_PATH
+  }
   if (process.env.ORCA_DEV_USER_DATA_PATH) {
-    return process.env.ORCA_DEV_USER_DATA_PATH
-  }
-  if (process.platform === 'darwin') {
-    return path.join(process.env.HOME ?? '', 'Library', 'Application Support', 'orca-dev')
-  }
-  if (process.platform === 'win32') {
-    return path.join(
-      process.env.APPDATA ?? path.join(process.env.USERPROFILE ?? '', 'AppData', 'Roaming'),
-      'orca-dev'
+    throw new Error(
+      'Set ZKYQ_DEV_USER_DATA_PATH to the same data directory instead of ORCA_DEV_USER_DATA_PATH.'
     )
   }
-  return path.join(
-    process.env.XDG_CONFIG_HOME ?? path.join(process.env.HOME ?? '', '.config'),
-    'orca-dev'
-  )
+  let current
+  if (process.platform === 'darwin') {
+    current = path.join(process.env.HOME ?? '', 'Library', 'Application Support', 'zkyq-dev')
+  } else if (process.platform === 'win32') {
+    current = path.join(
+      process.env.APPDATA ?? path.join(process.env.USERPROFILE ?? '', 'AppData', 'Roaming'),
+      'zkyq-dev'
+    )
+  } else {
+    current = path.join(
+      process.env.XDG_CONFIG_HOME ?? path.join(process.env.HOME ?? '', '.config'),
+      'zkyq-dev'
+    )
+  }
+  const previous = path.join(path.dirname(current), 'orca-dev')
+  return !existsSync(current) && existsSync(previous) ? previous : current
 }
 
 function prepareDevCliWrapper() {
