@@ -3,14 +3,17 @@
  * used for 15 minutes stops its server, and the next connect starts it again.
  */
 import { z } from 'zod'
+import { migrateOrcadManagedLaunchEnvironment } from './orcad-managed-launch-env'
 
 /** Test-only quiet period; a client forwards it to the servers it launches. */
-export const ORCAD_E2E_IDLE_TIMEOUT_ENV = 'ORCA_E2E_ORCAD_IDLE_TIMEOUT_MS'
+export const ORCAD_E2E_IDLE_TIMEOUT_ENV = 'ZKYQ_E2E_SERVER_IDLE_TIMEOUT_MS'
 export const ORCAD_IDLE_EXIT_TIMEOUT_MS = 15 * 60_000
 const ORCAD_E2E_IDLE_TIMEOUT_MAX_MS = 60 * 60_000
 
 /** The bounded test override, or null when unset or out of range. */
 export function readOrcadE2EIdleTimeoutMs(env: NodeJS.ProcessEnv): number | null {
+  env = { ...env }
+  migrateOrcadManagedLaunchEnvironment(env)
   const raw = env[ORCAD_E2E_IDLE_TIMEOUT_ENV]
   const value = raw ? Number(raw) : Number.NaN
   return Number.isSafeInteger(value) && value >= 1 && value <= ORCAD_E2E_IDLE_TIMEOUT_MAX_MS

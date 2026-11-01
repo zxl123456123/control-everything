@@ -2,34 +2,30 @@ import { accessSync, constants } from 'node:fs'
 import { delimiter, dirname, isAbsolute, join, relative } from 'node:path'
 import { RuntimeClientError } from './types'
 import { resolveLaunchUserDataPath } from './launch-user-data-path'
+import { assertCurrentAppLaunchEnvironment } from './app-launch-environment'
 
 /**
- * Only a CLI run by an installed Orca app's executable can start a server. The `orca` that an
- * SSH-launched Orca server puts on a remote host runs on plain Node, belongs to that server's
+ * Only a CLI run by an installed desktop app's executable can start a server. The `zkyq` that an
+ * SSH-launched server puts on a remote host runs on plain Node, belongs to that server's
  * profile, and is rewritten with each server version.
  */
 export function canStartOrcaServer(env: NodeJS.ProcessEnv): boolean {
-  const override = env.ORCA_APP_EXECUTABLE
+  assertCurrentAppLaunchEnvironment(env)
+  const override = env.ZKYQ_APP_EXECUTABLE
   return (
     (typeof override === 'string' && override.trim().length > 0) || env.ELECTRON_RUN_AS_NODE === '1'
   )
 }
 
-/** Linux installs the app's CLI as `orca-ide`: a bare `orca` there is often the screen reader. */
-export function appCliName(platform: NodeJS.Platform): string {
-  return platform === 'linux' ? 'orca-ide' : 'orca'
-}
-
 const NOT_AN_APP_CLI =
-  "This `orca` command isn't running from an installed Orca app. On a host Orca reaches over SSH, it belongs to that connection's server and can't start one of its own."
+  "This `zkyq` command isn't running from an installed Control Everything app. An SSH-managed command belongs to that connection's server and can't start another server."
 
-export function serverOnlyServeMessage(platform: NodeJS.Platform): string {
-  return `${NOT_AN_APP_CLI} Install the Orca app on this machine and run \`${appCliName(platform)} serve\` from a plain login shell, or set ORCA_APP_EXECUTABLE to the Orca app executable.`
+export function serverOnlyServeMessage(): string {
+  return `${NOT_AN_APP_CLI} Install the Control Everything app on this machine and run \`zkyq serve\` from a plain login shell, or set ZKYQ_APP_EXECUTABLE to the app executable.`
 }
 
-function serverOnlyServiceInstallMessage(platform: NodeJS.Platform): string {
-  const name = appCliName(platform)
-  return `Could not find the installed Orca app's \`${name}\` command on PATH. ${NOT_AN_APP_CLI} Install the Orca app on this machine, then run \`${name} serve service install\` from a plain login shell so the service uses the app's own profile, or pass --command <absolute path to the app's ${name}>.`
+function serverOnlyServiceInstallMessage(): string {
+  return `Could not find the installed app's \`zkyq\` command on PATH. ${NOT_AN_APP_CLI} Install the Control Everything app on this machine, then run \`zkyq serve service install\` from a plain login shell so the service uses the app's own profile, or pass --command <absolute path to the app's zkyq>.`
 }
 
 function isVersionScopedDir(dir: string, userData: string): boolean {
@@ -66,12 +62,12 @@ export function resolveServiceCommand(
     if (isVersionScopedDir(dirname(explicit), userData)) {
       throw new RuntimeClientError(
         'invalid_argument',
-        `--command points at a launcher tied to one Orca version, which the next update replaces: ${explicit}. Pass the installed Orca app's \`${appCliName(deps.platform)}\` instead.`
+        `--command points at a launcher tied to one app version, which the next update replaces: ${explicit}. Pass the installed app's \`zkyq\` instead.`
       )
     }
     return explicit
   }
-  const name = appCliName(deps.platform)
+  const name = 'zkyq'
   for (const dir of (deps.env.PATH ?? '').split(delimiter).filter(isAbsolute)) {
     // Why skip: launchers under the profile or a mounted AppImage point at one version's files.
     if (!isVersionScopedDir(dir, userData) && isExecutable(join(dir, name))) {
@@ -81,7 +77,7 @@ export function resolveServiceCommand(
   throw new RuntimeClientError(
     'cli_not_found',
     canStartOrcaServer(deps.env)
-      ? `Could not find the \`${name}\` command on PATH. Install it from Orca Settings, or pass --command <absolute path>.`
-      : serverOnlyServiceInstallMessage(deps.platform)
+      ? `Could not find the \`${name}\` command on PATH. Install it from Settings, or pass --command <absolute path>.`
+      : serverOnlyServiceInstallMessage()
   )
 }

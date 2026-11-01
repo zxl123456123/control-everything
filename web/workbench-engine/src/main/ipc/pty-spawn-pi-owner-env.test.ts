@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { setupPtyIpcSuite } from './pty-ipc-test-harness'
 import { createDaemonActiveProviderFixtures } from './pty-ipc-daemon-provider-fixtures'
 import { registerPtyHandlers } from './pty/register-handlers'
+import { resolvePiAgentSourceDir } from './pty/host-env/pi-agent'
 
 vi.mock('electron', () => import('./pty-ipc-mock-registry').then((m) => m.electronModuleMock()))
 vi.mock('fs', () => import('./pty-ipc-mock-registry').then((m) => m.fsModuleMock()))
@@ -48,12 +49,22 @@ vi.mock('../codex/codex-state-db-backfill-recovery', () =>
 )
 
 const ownerEnv = {
-  ORCA_PI_STATUS_OWNED: '1234',
-  ORCA_PRIME_AGENT_STATUS_OWNED: '1234',
-  ORCA_PI_TITLE_MARKER_OWNED: '1234'
+  ZKYQ_PI_STATUS_OWNED: '1234',
+  ZKYQ_PRIME_AGENT_STATUS_OWNED: '1234',
+  ZKYQ_PI_TITLE_MARKER_OWNED: '1234'
 }
 
 describe('Pi ownership deletion requests for persistent daemons', () => {
+  it('reads inherited and explicit legacy source paths through the migration boundary', () => {
+    vi.stubEnv('ZKYQ_PI_SOURCE_AGENT_DIR', undefined)
+    vi.stubEnv('ORCA_PI_SOURCE_AGENT_DIR', '/fixture/inherited source')
+    expect(resolvePiAgentSourceDir({}, 'pi')).toBe('/fixture/inherited source')
+    const explicit = { ORCA_PI_SOURCE_AGENT_DIR: '/fixture/explicit source' }
+    expect(resolvePiAgentSourceDir(explicit, 'pi')).toBe('/fixture/explicit source')
+    expect(explicit).toEqual({ ZKYQ_PI_SOURCE_AGENT_DIR: '/fixture/explicit source' })
+    expect(process.env.ORCA_PI_SOURCE_AGENT_DIR).toBe('/fixture/inherited source')
+  })
+
   const { handlers, mainWindow } = setupPtyIpcSuite()
   const { setupDaemonAdapter, daemonSpawnAndGetOptions } = createDaemonActiveProviderFixtures({
     handlers,

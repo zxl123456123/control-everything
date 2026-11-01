@@ -104,7 +104,7 @@ import { mainProcessState as state } from './main-process-state'
 import { initializeSyntheticTitleRuntime } from './synthetic-title-runtime'
 import { initializeBrowserProcessUserAgent } from '../browser/browser-process-user-agent'
 import { initializeBrowserIdentityModeStore } from '../browser/browser-identity-mode-store'
-import { acquireProfileStateRuntimeAdmission } from '../persistence/profile-state/profile-state-access'
+import { acquireProfileStateAdmissionWithDataMigration } from '../persistence/profile-state/profile-state-data-name-migration'
 import { getActiveProfileStateLocation } from '../persistence/profile-state/profile-state-active-location'
 import {
   acquireDesktopProfileLockOrExplain,
@@ -181,7 +181,8 @@ function initializeMainProcessPreflight(options: MainProcessPreflightOptions): b
   // Why (issue #9441): without this, one rejected background promise during startup restore kills main silently (exit 1, no crash report).
   installUnhandledRejectionLogging()
   // Why: expose the app version via process.env so main and the forked daemon can set TERM_PROGRAM_VERSION without importing electron.
-  process.env.ORCA_APP_VERSION = app.getVersion()
+  delete process.env.ORCA_APP_VERSION
+  process.env.ZKYQ_APP_VERSION = app.getVersion()
   configureRemoteServerUpdater({
     getSnapshot: getRemoteServerUpdaterSnapshot,
     check: checkForRemoteServerUpdate,
@@ -252,7 +253,7 @@ function initializeMainProcessPreflight(options: MainProcessPreflightOptions): b
   }
   startMainThreadChurnProbe({ extraStats: () => ({ diffCache: settledDiffCache.stats() }) })
   // Why: acquire AFTER configureDevUserDataPath — Electron derives lock identity from `userData`, so dev/packaged lock in separate namespaces.
-  // Why dev locks too: two processes on one profile corrupt its stores (PR #1326 / #1312); parallel `pnpm dev` needs ORCA_DEV_USER_DATA_PATH per copy.
+  // Why dev locks too: two processes on one profile corrupt its stores (PR #1326 / #1312); parallel `pnpm dev` needs ZKYQ_DEV_USER_DATA_PATH per copy.
   const bypass = shouldBypassSingleInstanceLock({ isDev, isServeMode: state.isServeMode })
   const skip = shouldSkipSingleInstanceLock({ isDev, isServeMode: state.isServeMode })
   if (bypass) {
@@ -282,7 +283,9 @@ function initializeMainProcessPreflight(options: MainProcessPreflightOptions): b
   if (!skip && !bypass && !acquireDesktopProfileLockOrExplain(getCanonicalUserDataPath())) {
     return false
   }
-  state.profileStateAdmission = acquireProfileStateRuntimeAdmission(getCanonicalUserDataPath())
+  state.profileStateAdmission = acquireProfileStateAdmissionWithDataMigration(
+    getCanonicalUserDataPath()
+  )
   // Renderer and worker defaults must be fixed before any session exists.
   initializeBrowserProcessUserAgent(
     initializeBrowserIdentityModeStore(getCanonicalUserDataPath()).appliedMode

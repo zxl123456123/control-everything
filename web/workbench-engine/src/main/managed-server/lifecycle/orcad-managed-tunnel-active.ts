@@ -85,14 +85,18 @@ export function resolveManagedTunnelBinding(
   const targetStore = dependencies.getTargetStore()
   const connectionManager = dependencies.getConnectionManager()
   if (!targetStore || !connectionManager) {
-    throw new Error('SSH is unavailable on this client; this host’s Orca server is unverifiable.')
+    throw new Error(
+      'SSH is unavailable on this client; this host’s Control Everything server is unverifiable.'
+    )
   }
   const target = targetStore.getTarget(deployment.sshTargetId)
   if (!target || target.generation !== deployment.sshTargetGeneration) {
-    throw new Error('The SSH registration for this host’s Orca server was removed or re-created.')
+    throw new Error(
+      'The SSH registration for this host’s Control Everything server was removed or re-created.'
+    )
   }
   if (getManagedOrcadFenceEnvironmentId(target) !== environment.id) {
-    throw new Error('The SSH target is no longer owned by this host’s Orca server.')
+    throw new Error('The SSH target is no longer owned by this host’s Control Everything server.')
   }
   return { deployment, targetStore, connectionManager, target }
 }
@@ -149,7 +153,7 @@ export function recordActiveOrcadTunnel(
 /** A run a close(), ownership change or transport change overtook: it must not read as success. */
 class OrcadTunnelSupersededError extends Error {
   constructor() {
-    super('Orca SSH tunnel setup was superseded.')
+    super('Control Everything SSH tunnel setup was superseded.')
     this.name = 'OrcadTunnelSupersededError'
   }
 }

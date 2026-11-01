@@ -15,6 +15,20 @@ const CODEX = {
 }
 
 describe('decodeAgentSessionAgentsResult', () => {
+  it.each(['zkyq', 'orca', 'future-policy', undefined])(
+    'normalizes the host enforcement value %s without changing other capabilities or input',
+    (approvalEnforcement) => {
+      const row = {
+        agent: 'grok',
+        capabilities: { ...CODEX.capabilities, approvalEnforcement }
+      }
+      const before = structuredClone(row)
+      expect(decodeAgentSessionAgentsResult({ agents: [row] })).toEqual([
+        { ...row, capabilities: { ...row.capabilities, approvalEnforcement: 'zkyq' } }
+      ])
+      expect(row).toEqual(before)
+    }
+  )
   it('reads every well-formed agent', () => {
     expect(decodeAgentSessionAgentsResult({ agents: [CODEX] })).toEqual([CODEX])
   })
@@ -56,7 +70,7 @@ describe('decodeAgentSessionAgentsResult', () => {
           contextUsage: false,
           imagePrompts: false,
           steering: 'queue',
-          approvalEnforcement: 'orca'
+          approvalEnforcement: 'zkyq'
         }
       }
     ])

@@ -12,6 +12,7 @@ describe('plugin VM recipe artifacts', () => {
         id: 'cloud-sandbox',
         name: 'Cloud Sandbox',
         checkoutMode: 'provisioned-root',
+        environmentContract: 'zkyq',
         create: './scripts/create.sh',
         suspend: './scripts/suspend.sh',
         resume: './scripts/resume.sh',
@@ -22,7 +23,8 @@ describe('plugin VM recipe artifacts', () => {
     expect(recipe).toMatchObject({
       id: 'cloud-sandbox',
       name: 'Cloud Sandbox',
-      checkoutMode: 'provisioned-root'
+      checkoutMode: 'provisioned-root',
+      environmentContract: 'zkyq'
     })
     expect(listPluginVmRecipeCommands(recipe)).toEqual([
       { phase: 'create', command: './scripts/create.sh' },

@@ -191,8 +191,8 @@ async function exerciseChat(lane: ChatLane, root: string, worktree: string, cwd:
     expect(report.cwd).toBe(cwd)
     expect(report.execPath).toMatch(/^\//u)
     expect(report.env).toMatchObject({
-      ORCA_AGENT_SESSION_ID: sessionId,
-      ORCA_STRUCTURED_SESSION: '1'
+      ZKYQ_AGENT_SESSION_ID: sessionId,
+      ZKYQ_STRUCTURED_SESSION: '1'
     })
     expect(report.controlRequests.some((entry) => entry.request.subtype === 'interrupt')).toBe(true)
     expect(report.controlResponses).toEqual(

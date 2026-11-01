@@ -1,4 +1,4 @@
-"""Run the integrated workbench using an explicit isolated development profile."""
+"""Run the workbench with an independent profile and the host's tools and Agent configuration."""
 
 import argparse
 from pathlib import Path
@@ -19,6 +19,8 @@ def main(argv=None):
     parser.add_argument("--build-run", type=Path, required=True)
     parser.add_argument("--git", type=Path, required=True)
     parser.add_argument("--workspace-root", type=Path, action="append", required=True)
+    parser.add_argument("--isolated-environment", action="store_true",
+                        help="Use an isolated tool environment instead of the host's tools and Agent configuration.")
     parser.add_argument("--port", type=int, default=8769)
     args = parser.parse_args(argv)
     if not 1024 <= args.port <= 65535 or not args.data_dir.is_absolute():
@@ -32,7 +34,8 @@ def main(argv=None):
         # Bind the HTTP port first; no request is served before the runtime is ready.
         server = build_profile_server(args.data_dir, args.port)
         runtime = WorkbenchRuntime(RuntimeConfig(engine, args.build_run, args.data_dir / "workbench",
-                                                 args.git, tuple(args.workspace_root)))
+                                                 args.git, tuple(args.workspace_root),
+                                                 inherit_host_environment=not args.isolated_environment))
         runtime.start(server.origin)
         server.attach_workbench_runtime(runtime)
         server.workbench_assets = assets

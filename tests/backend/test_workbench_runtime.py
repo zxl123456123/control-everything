@@ -43,7 +43,7 @@ class FakeAPI:
         if '--no-pairing' in argv:
             state = self.data / 'state'
             state.mkdir(parents=True, exist_ok=True)
-            (state / 'orca-runtime.json').write_text(json.dumps({'runtimeId': f'runtime-{pid}', 'pid': pid,
+            (state / 'zkyq-runtime.json').write_text(json.dumps({'runtimeId': f'runtime-{pid}', 'pid': pid,
                 'authToken': 'fixture-owner-secret', 'startedAt': 1250,
                 'transports': [{'kind': 'named-pipe', 'endpoint': r'\\.\pipe\fixture'},
                                {'kind': 'websocket', 'endpoint': 'ws://127.0.0.1:23456'}]}))
@@ -143,6 +143,52 @@ class WorkbenchRuntimeTests(unittest.TestCase):
 
     def start(self):
         self.manager.start('http://127.0.0.1:12345', timeout=.1)
+
+    def test_runtime_identity_reads_legacy_only_when_current_metadata_is_absent(self):
+        self.start()
+        state = self.data / 'state'
+        current = state / 'zkyq-runtime.json'
+        legacy = state / 'orca-runtime.json'
+        current.replace(legacy)
+        metadata, _, _, _ = self.manager._read_identity()
+        self.assertEqual(metadata['pid'], self.manager._pid)
+        current.write_text('{invalid', encoding='utf-8')
+        with self.assertRaises(json.JSONDecodeError):
+            self.manager._read_identity()
+        self.assertTrue(legacy.is_file())
+
+    def test_runtime_identity_selects_held_legacy_process_over_stale_current_record(self):
+        self.start()
+        state = self.data / 'state'
+        current = state / 'zkyq-runtime.json'
+        legacy = state / 'orca-runtime.json'
+        legacy.write_bytes(current.read_bytes())
+        stale = json.loads(current.read_text())
+        stale['pid'] = self.manager._pid + 1000
+        current.write_text(json.dumps(stale))
+        metadata, _, _, _ = self.manager._read_identity()
+        self.assertEqual(metadata['pid'], self.manager._pid)
+        legacy_data = json.loads(legacy.read_text())
+        legacy_data['pid'] += 1
+        legacy.write_text(json.dumps(legacy_data))
+        with self.assertRaises(WorkbenchUnavailable):
+            self.manager._read_identity()
+
+    def test_seed_uses_new_name_without_shadowing_previous_data_or_backups(self):
+        self.manager._prepare('http://127.0.0.1:12345')
+        state = self.data / 'state'
+        current = state / 'zkyq-data.json'
+        previous = state / 'orca-data.json'
+        self.assertTrue(current.is_file())
+        self.assertFalse(previous.exists())
+        current.replace(previous)
+        self.manager._prepare('http://127.0.0.1:12345')
+        self.assertTrue(previous.is_file())
+        self.assertFalse(current.exists())
+        previous.replace(state / 'orca-data.json.bak.0')
+        self.manager._prepare('http://127.0.0.1:12345')
+        self.assertTrue((state / 'orca-data.json.bak.0').is_file())
+        self.assertFalse(current.exists())
 
     def test_remote_grants_are_journaled_before_exposure_and_retired_after_restart(self):
         from unittest.mock import Mock
@@ -306,19 +352,24 @@ class WorkbenchRuntimeTests(unittest.TestCase):
             'CE_WORKBENCH_PUBLIC_ORIGIN': 'https://stale.example.test',
             'CE_WORKBENCH_DEVICE_PROOF': 'stale-proof', 'CE_REMOTE_DEVICE_ID': 'stale-device',
             'CE_WORKBENCH_CREDENTIAL_ROOT': str(host / 'stale-credentials'),
+            'ORCA_USER_DATA': str(host / 'stale-profile'),
+            'ORCA_USER_DATA_PATH': str(host / 'stale-cli-profile'),
         }
         with patch.dict(os.environ, inherited):
             self.start()
         env = next(row for row in self.api.calls if row[0] == 'spawn')[3]
         for key, value in inherited.items():
-            if key.startswith('CE_') or key == 'PATH':
+            if key.startswith('CE_') or key in {'PATH', 'ORCA_USER_DATA', 'ORCA_USER_DATA_PATH'}:
                 continue
             self.assertEqual(env[key], value, key)
         self.assertEqual(env['PATH'].split(os.pathsep)[0], inherited['PATH'])
         self.assertEqual(env['CE_WORKBENCH_HOST_ENVIRONMENT'], '1')
         self.assertEqual(env['CE_WORKBENCH_ISOLATED'], '1')
         self.assertEqual(env['CE_WORKBENCH_ORIGIN'], 'http://127.0.0.1:12345')
-        self.assertEqual(env['ORCA_USER_DATA'], str(self.data / 'state'))
+        self.assertEqual(env['ZKYQ_USER_DATA'], str(self.data / 'state'))
+        self.assertNotIn('ORCA_USER_DATA', env)
+        self.assertEqual(env['ZKYQ_USER_DATA_PATH'], str(self.data / 'state'))
+        self.assertNotIn('ORCA_USER_DATA_PATH', env)
         for key in ('CE_WORKBENCH_PUBLIC_ORIGIN', 'CE_WORKBENCH_DEVICE_PROOF', 'CE_REMOTE_DEVICE_ID',
                     'CE_WORKBENCH_CREDENTIAL_ROOT'):
             self.assertNotIn(key, env)

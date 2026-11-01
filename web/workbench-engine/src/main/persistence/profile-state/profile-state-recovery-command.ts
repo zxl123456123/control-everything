@@ -1,4 +1,9 @@
 import { existsSync, readFileSync, rmSync } from 'node:fs'
+import { homedir } from 'node:os'
+import { dirname, join } from 'node:path'
+import { hasExplicitPlatformCredentialRoot } from '../../credentials/credential-root'
+import { handOffDefaultDataRootToPreviousBuild } from '../default-data-root-migration'
+import { readDefaultDataRootRecord } from '../default-data-root-record'
 import {
   ProfileStateRecoveryCommandError,
   type ProfileStateRecoverySelector,
@@ -17,6 +22,10 @@ import { quarantineProfileStateDatabase } from './profile-state-database-quarant
 import { ProfileStateSqliteAuthority } from './profile-state-sqlite-authority'
 import { durableWriteTempPath, writeFileDurableSync } from '../../durable-file-write'
 import { assertProfileStateMaintenance, type ProfileStateMaintenance } from './profile-state-access'
+import {
+  handOffProfileJsonToPreviousBuild,
+  migrateProfileStateDataNames
+} from './profile-state-data-name-migration'
 import {
   openProfileStateDatabaseReadOnly,
   openWritableProfileStateDatabase
@@ -61,6 +70,7 @@ export function rollbackProfileState(
   maintenance: ProfileStateMaintenance,
   profileId?: string
 ): ProfileStateRollbackResult {
+  migrateProfileStateDataNames(userDataPath, maintenance)
   let result = getProfileStateExports(userDataPath, profileId)
   if (profileHasPendingProjectMove(result.profileId, userDataPath)) {
     throw new ProfileStateRecoveryCommandError(
@@ -116,13 +126,41 @@ export function rollbackProfileState(
     exportPath,
     profileId: result.profileId,
     ...(revision === null ? { reason: 'profile-state-adopt-current-json' } : {}),
-    beforeRestore: () => invalidateActiveProfileMarker(userDataPath, result.profileId)
+    beforeRestore: () => {
+      if (selector.kind === 'latest-json') {
+        const roots = [
+          userDataPath,
+          ...(!hasExplicitPlatformCredentialRoot() ? [join(homedir(), '.zkyq')] : [])
+        ]
+        for (const current of new Set(roots)) {
+          const record = readDefaultDataRootRecord(current)
+          if (record)
+            handOffDefaultDataRootToPreviousBuild(
+              join(dirname(current), record.previousName),
+              current
+            )
+        }
+      }
+      invalidateActiveProfileMarker(userDataPath, result.profileId)
+    }
   })
   syncHttp1CompatibilityMarkerAfterRollback(userDataPath, result.dataFile, result.profileId)
+  const restoredPath =
+    selector.kind === 'latest-json' || selector.kind === 'json'
+      ? handOffProfileJsonToPreviousBuild(
+          userDataPath,
+          {
+            profileId: result.profileId,
+            dataFile: result.dataFile,
+            databasePath: result.databaseFile
+          },
+          maintenance
+        )
+      : result.dataFile
   return {
     ...result,
     storage: 'json',
-    restoredPath: result.dataFile,
+    restoredPath,
     revision,
     quarantineDirectory: recovered.quarantine.directory,
     removedDatabaseFiles: recovered.removedDatabaseFiles

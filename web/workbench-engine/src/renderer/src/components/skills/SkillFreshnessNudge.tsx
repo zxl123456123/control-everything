@@ -6,7 +6,7 @@ import { useActiveProjectSkillRuntime } from '@/hooks/useActiveProjectSkillRunti
 import { translate } from '@/i18n/i18n'
 import { useAppStore } from '@/store'
 import {
-  isOrcaSkillLockSource,
+  isWorkbenchSkillLockSource,
   skillPlacementParticipatesInGlobalFreshness
 } from '../../../../shared/skill-freshness'
 import { requestSkillFreshnessUpdateDialog } from './skill-freshness-update-dialog'
@@ -74,7 +74,7 @@ export function SkillFreshnessNudge(): null {
       installation.status === 'outdated' &&
       eligibleNames.has(installation.name) &&
       // Why: a same-named skill from somewhere else is listed in the dialog, never nudged.
-      isOrcaSkillLockSource(installation.lockSource) &&
+      isWorkbenchSkillLockSource(installation.lockSource) &&
       installation.physicalIdentity
         ? [
             {

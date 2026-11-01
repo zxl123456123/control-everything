@@ -110,7 +110,7 @@ export async function acquireAcpStructuredSession(input: {
       envToDelete: launch.envToDelete
     },
     {
-      clientInfo: { name: 'orca', version: '1' },
+      clientInfo: { name: 'zkyq', version: '1' },
       ...(spec.signIn ? { signIn: spec.signIn } : {}),
       onPermission: (request, context) => {
         if (!isAcpReadySession(session) || !session.turns?.acceptsRequests) {

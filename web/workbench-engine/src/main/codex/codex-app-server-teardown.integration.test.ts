@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ORCA_AGENT_SESSION_SPAWN_TOKEN_ENV } from '../../shared/agent-session-caller-env'
+import { ZKYQ_AGENT_SESSION_SPAWN_TOKEN_ENV } from '../../shared/agent-session-caller-env'
 import {
   openCodexAppServerConnection,
   type CodexAppServerConnection
@@ -57,7 +57,7 @@ async function openServer(
       command: process.execPath,
       args: ['-e', FORCE_KILL_APP_SERVER],
       env: {
-        [ORCA_AGENT_SESSION_SPAWN_TOKEN_ENV]: `teardown-test-${process.pid}-${exitMode ?? 'forced'}-${iteration}`,
+        [ZKYQ_AGENT_SESSION_SPAWN_TOKEN_ENV]: `teardown-test-${process.pid}-${exitMode ?? 'forced'}-${iteration}`,
         ...(exitMode ? { ORCA_TEST_PROVIDER_EXIT_MODE: exitMode } : {})
       }
     },

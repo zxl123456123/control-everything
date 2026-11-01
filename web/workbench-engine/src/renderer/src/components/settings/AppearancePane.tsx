@@ -272,9 +272,8 @@ export function AppearancePane({
         </AppearanceSection>
       ) : null}
 
-      {/* App icon stays at the bottom of Appearance as a small easter egg,
-          matching production — not buried inside Interface advanced. */}
-      {appIconMatches ? (
+      {/* Native app icons have no Dock or window-switcher effect in the Web client. */}
+      {!isWebClient && appIconMatches ? (
         <SearchableSetting
           title={translate('auto.components.settings.AppearancePane.ca1590d42f', 'App Icon')}
           description={translate(

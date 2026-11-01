@@ -90,7 +90,7 @@ export async function resolveManagedOrcadTunnelPort(input: OrcadTunnelPortInput)
   } catch (error) {
     // Why fall back: the identity check after the forward still catches a wrong server.
     console.warn(
-      '[ssh] Could not read the managed Orca server port; trying the preferred one:',
+      '[ssh] Could not read the managed Control Everything server port; trying the preferred one:',
       error
     )
     return access.remotePort

@@ -18,6 +18,30 @@ describe('plugin overlay env source resolution', () => {
     __resetShellStartupEnvCache()
   })
 
+  it('resolves an exported retired root only after its migrated counterpart exists', () => {
+    const current = join(homeDir, '.zkyq-relay', 'opencode-overlays', 'owned')
+    const retired = join(homeDir, '.orca-relay', 'opencode-overlays', 'owned')
+    const env = { HOME: homeDir, ZKYQ_OPENCODE_SOURCE_CONFIG_DIR: retired }
+    expect(resolveOpenCodeSourceConfigDir(env, undefined)).toBe(retired)
+    mkdirSync(current, { recursive: true })
+    expect(resolveOpenCodeSourceConfigDir(env, undefined)).toBe(current)
+    mkdirSync(retired, { recursive: true })
+    expect(resolveOpenCodeSourceConfigDir(env, undefined)).toBe(retired)
+  })
+  it.each(['pi', 'omp', 'prime-agent'] as const)(
+    'resolves a migrated %s private source without changing unrelated environment values',
+    (kind) => {
+      const current = join(homeDir, '.zkyq-relay', 'custom-agent')
+      const previous = join(homeDir, '.orca-relay', 'custom-agent')
+      mkdirSync(current, { recursive: true })
+      const key = `ZKYQ_${kind === 'prime-agent' ? 'PRIME_AGENT' : kind.toUpperCase()}_SOURCE_AGENT_DIR`
+      const env = { HOME: homeDir, [key]: previous, USER_NOTE: 'preserved' }
+      expect(resolvePiSourceAgentDir(env, undefined, kind)).toBe(current)
+      expect(env[key]).toBe(previous)
+      expect(env.USER_NOTE).toBe('preserved')
+    }
+  )
+
   it.skipIf(process.platform === 'win32')(
     'uses zsh startup exports before inherited public overlay env',
     () => {
@@ -64,14 +88,14 @@ describe('plugin overlay env source resolution', () => {
     }
   )
 
-  it('keeps explicit original-source env ahead of startup hints', () => {
+  it.each(['ORCA', 'ZKYQ'])('keeps %s original-source env ahead of startup hints', (prefix) => {
     writeFileSync(join(homeDir, '.zshrc'), 'export OPENCODE_CONFIG_DIR="$HOME/company-opencode"\n')
 
     expect(
       resolveOpenCodeSourceConfigDir(
         {
           HOME: homeDir,
-          ORCA_OPENCODE_SOURCE_CONFIG_DIR: '/remote/original-opencode',
+          [`${prefix}_OPENCODE_SOURCE_CONFIG_DIR`]: '/remote/original-opencode',
           OPENCODE_CONFIG_DIR: '/tmp/inherited-opencode-overlay'
         },
         '/bin/zsh'
@@ -96,7 +120,7 @@ describe('plugin overlay env source resolution', () => {
       resolvePiSourceAgentDir(
         {
           HOME: homeDir,
-          ORCA_PRIME_AGENT_SOURCE_AGENT_DIR: '/remote/original-prime',
+          ZKYQ_PRIME_AGENT_SOURCE_AGENT_DIR: '/remote/original-prime',
           PRIME_AGENT_CODING_AGENT_DIR: '/tmp/inherited-prime'
         },
         '/bin/zsh',

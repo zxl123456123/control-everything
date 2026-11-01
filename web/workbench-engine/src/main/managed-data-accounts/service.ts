@@ -12,6 +12,7 @@ import { captureDataAccountCredentials } from './credential-capture'
 import { ManagedDataAccountProfileRemoval } from './profile-removal'
 import {
   captureManagedDataAccountOriginalEnvironment,
+  migrateManagedDataAccountEnvironmentIdentity,
   restoreManagedDataAccountEnvironment
 } from '../../shared/managed-data-account-environment'
 
@@ -168,6 +169,7 @@ export class ManagedDataAccountService {
     environment: Record<string, string>,
     selected: Record<string, string>
   ): void {
+    migrateManagedDataAccountEnvironmentIdentity(environment)
     const value = environment.OPENCODE_AUTH_CONTENT
     let reference: string | undefined
     if (value && selected.OPENCODE_AUTH_CONTENT === '') {
@@ -198,17 +200,18 @@ export class ManagedDataAccountService {
   }
 
   restoreOriginalEnvironment(environment: Record<string, string | undefined>): void {
+    migrateManagedDataAccountEnvironmentIdentity(environment)
     // A copied reference needs the exact overlay captured by this host service.
     const selection = JSON.stringify([
-      environment.ORCA_DATA_ACCOUNT_DATA_HOME,
-      environment.ORCA_DATA_ACCOUNT_STATE_HOME
+      environment.ZKYQ_DATA_ACCOUNT_DATA_HOME,
+      environment.ZKYQ_DATA_ACCOUNT_STATE_HOME
     ])
     const ownsSelection =
-      environment.ORCA_DATA_ACCOUNT_PROVIDER === 'opencode' &&
+      environment.ZKYQ_DATA_ACCOUNT_PROVIDER === 'opencode' &&
       environment.OPENCODE_AUTH_CONTENT === '' &&
       environment.OPENCODE_DB === 'opencode.db' &&
-      environment.XDG_DATA_HOME === environment.ORCA_DATA_ACCOUNT_DATA_HOME &&
-      environment.XDG_STATE_HOME === environment.ORCA_DATA_ACCOUNT_STATE_HOME
+      environment.XDG_DATA_HOME === environment.ZKYQ_DATA_ACCOUNT_DATA_HOME &&
+      environment.XDG_STATE_HOME === environment.ZKYQ_DATA_ACCOUNT_STATE_HOME
     restoreManagedDataAccountEnvironment(environment, true, (reference) => {
       const baseline = this.inlineAuthBaselines.get(reference)
       return ownsSelection && baseline?.selections.has(selection) ? baseline.value : undefined

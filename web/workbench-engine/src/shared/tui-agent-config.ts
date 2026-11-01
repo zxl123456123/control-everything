@@ -35,14 +35,15 @@ const TUI_AGENT_CONFIG_SOURCE: Record<TuiAgent, TuiAgentConfigSource> = {
   },
   'claude-agent-teams': {
     // Why: an Orca-provided launch mode, not a separate binary; detection follows the Orca CLI.
-    detectCmd: 'orca',
-    detectCmdAliases: ['orca-dev', 'orca-ide'],
+    detectCmd: 'zkyq',
+    detectCmdAliases: ['zkyq-dev'],
     // Why: require Claude too so fresh installs (Orca shim always present) don't report Agent Teams without an agent CLI.
     detectRequiredCommands: ['claude'],
     // Why: Windows/WSL use Claude's in-process Agent Teams fallback, not this Orca native-pane/tmux-shim wrapper.
     detectUnsupportedRuntimes: ['win32', 'wsl'],
-    launchCmd: 'orca claude-teams',
+    launchCmd: 'zkyq claude-teams',
     launchCmdByPlatform: {
+      darwin: `${getOrcaCliCommandNameForPlatform('darwin')} claude-teams`,
       linux: `${getOrcaCliCommandNameForPlatform('linux')} claude-teams`,
       win32: `${getOrcaCliCommandNameForPlatform('win32')} claude-teams`
     },
@@ -137,14 +138,14 @@ const TUI_AGENT_CONFIG_SOURCE: Record<TuiAgent, TuiAgentConfigSource> = {
     detectCmd: 'pi',
     promptInjectionMode: 'argv',
     // Why: pi has no `--prefill` and paste-after-ready races its long startup; the orca-prefill extension seeds this env var instead.
-    draftPromptEnvVar: 'ORCA_PI_PREFILL',
+    draftPromptEnvVar: 'ZKYQ_PI_PREFILL',
     // Why: Pi decodes CSI-u; Esc+CR submits after tool subprocesses reset live KKP state (#9703).
     windowsShiftEnterEncoding: 'csi-u'
   },
   omp: {
     detectCmd: 'omp',
     promptInjectionMode: 'argv',
-    draftPromptEnvVar: 'ORCA_OMP_PREFILL',
+    draftPromptEnvVar: 'ZKYQ_OMP_PREFILL',
     // Why: OMP wraps Pi's TUI, so the bytes land in a Pi reader that decodes CSI-u (see pi above).
     windowsShiftEnterEncoding: 'csi-u'
   },
@@ -371,11 +372,8 @@ export function getTuiAgentDetectCommands(config: TuiAgentConfig): string[] {
 export function getTuiAgentLaunchCommand(
   config: TuiAgentConfig,
   platform: NodeJS.Platform,
-  opts?: { isRemote?: boolean }
+  _opts?: { isRemote?: boolean }
 ): string {
-  // Why: local-only orca-ide rename (avoids GNOME Orca clash) must not leak to Linux remotes, whose relay shim is always `orca`.
-  if (opts?.isRemote && platform === 'linux') {
-    return config.launchCmd
-  }
+  // Local and managed remote runtimes publish the same platform command.
   return config.launchCmdByPlatform?.[platform] ?? config.launchCmd
 }

@@ -287,14 +287,14 @@ describe('Grok status: the structured session is the only producer', () => {
   it('strips every pane identity and hook endpoint an inherited environment carries', () => {
     const inherited = {
       PATH: '/usr/bin',
-      ORCA_PANE_KEY: 'tab-1:pane-1',
-      ORCA_AGENT_PANE: 'tab-1:pane-1',
-      ORCA_TAB_ID: 'tab-1',
-      ORCA_WORKTREE_ID: 'wt-1',
-      ORCA_AGENT_LAUNCH_TOKEN: 'launch-1',
-      ORCA_AGENT_HOOK_PORT: '4321',
-      ORCA_AGENT_HOOK_TOKEN: 'secret',
-      ORCA_AGENT_HOOK_ENDPOINT: '/tmp/endpoint'
+      ZKYQ_PANE_KEY: 'tab-1:pane-1',
+      ZKYQ_AGENT_PANE: 'tab-1:pane-1',
+      ZKYQ_TAB_ID: 'tab-1',
+      ZKYQ_WORKTREE_ID: 'wt-1',
+      ZKYQ_AGENT_LAUNCH_TOKEN: 'launch-1',
+      ZKYQ_AGENT_HOOK_PORT: '4321',
+      ZKYQ_AGENT_HOOK_TOKEN: 'secret',
+      ZKYQ_AGENT_HOOK_ENDPOINT: '/tmp/endpoint'
     }
     const spec = createProviderSpawnSpec(
       {

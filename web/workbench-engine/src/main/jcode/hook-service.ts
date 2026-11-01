@@ -1,3 +1,9 @@
+import {
+  buildPosixHookEndpointRefresh,
+  buildPosixHookEnvironmentIdentityMigration,
+  buildWindowsHookEndpointRefresh,
+  buildWindowsHookEnvironmentIdentityMigration
+} from '../agent-hooks/hook-environment-identity-prelude'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'
 import type { SFTPWrapper } from 'ssh2'
@@ -46,11 +52,10 @@ function getManagedScript(target: 'local' | 'posix' = 'local'): string {
     const payloadFile = '%ORCA_JCODE_PAYLOAD_FILE%'
     return [
       '@echo off',
-      // EnableDelayedExpansion so `!JCODE_HOOK_PAYLOAD!` is written verbatim: plain
-      // `%VAR%` expansion re-parses the JSON's quotes and `&` as batch syntax.
-      'setlocal EnableDelayedExpansion',
+      'setlocal DisableDelayedExpansion',
+      ...buildWindowsHookEnvironmentIdentityMigration(),
       // Why: endpoint file holds the live port/token; a PTY that outlives an Orca restart carries stale env, so `call` it to refresh (else PTY env).
-      'if defined ORCA_AGENT_HOOK_ENDPOINT if exist "%ORCA_AGENT_HOOK_ENDPOINT%" call "%ORCA_AGENT_HOOK_ENDPOINT%" 2>nul',
+      ...buildWindowsHookEndpointRefresh(),
       // Why the guard comes first here, unlike the POSIX script: on Windows a hook
       // that owns stdin outside an Orca pane can hang forever, because the caller
       // abandons the pipe rather than closing it (#11549). A jcode gate that exits
@@ -62,7 +67,10 @@ function getManagedScript(target: 'local' | 'posix' = 'local'): string {
       // larger than the pipe buffer stalls the agent mid-write.
       `if "%JCODE_HOOK_EVENT%"=="pre_tool" ${WINDOWS_HOOK_STDIN_DRAIN_COMMAND}`,
       `set "ORCA_JCODE_PAYLOAD_FILE=%TEMP%\\orca-jcode-hook-%RANDOM%%RANDOM%.json"`,
-      `>"${payloadFile}" echo(!JCODE_HOOK_PAYLOAD!`,
+      // Expand the payload once without re-parsing its JSON as batch syntax.
+      'setlocal EnableDelayedExpansion',
+      '>"!ORCA_JCODE_PAYLOAD_FILE!" echo(!JCODE_HOOK_PAYLOAD!',
+      'endlocal',
       // Input redirection avoids spawning cmd's extra pipeline shells on every event.
       `<"${payloadFile}" ${buildWindowsAgentHookPostCommand('jcode', [
         '  --data-urlencode "hook_event_name=%JCODE_HOOK_EVENT%" ^',
@@ -78,18 +86,17 @@ function getManagedScript(target: 'local' | 'posix' = 'local'): string {
 
   return [
     '#!/bin/sh',
+    ...buildPosixHookEnvironmentIdentityMigration(),
     // Why: endpoint file holds the live port/token; PTYs that outlive an Orca restart carry stale env, so source it to reach the new server (else PTY env).
     // Why: silence the `.` builtin (2>/dev/null + `|| :`) so a TOCTOU race or CRLF-mangled line can't leak shell parse errors into agent transcripts (fail-open).
-    'if [ -n "$ORCA_AGENT_HOOK_ENDPOINT" ] && [ -r "$ORCA_AGENT_HOOK_ENDPOINT" ]; then',
-    '  . "$ORCA_AGENT_HOOK_ENDPOINT" 2>/dev/null || :',
-    'fi',
+    ...buildPosixHookEndpointRefresh(),
     // Why before the env guard: pre_tool is jcode's gate — it writes the tool input to
     // our stdin and waits for us, so stdin must be drained before ANY exit path or a
     // tool input larger than the pipe buffer stalls the agent mid-write.
     'if [ "$JCODE_HOOK_EVENT" = pre_tool ]; then',
     `  ${POSIX_HOOK_STDIN_DRAIN_COMMAND}`,
     'fi',
-    'if [ -z "$ORCA_AGENT_HOOK_PORT" ] || [ -z "$ORCA_AGENT_HOOK_TOKEN" ] || [ -z "$ORCA_PANE_KEY" ]; then',
+    'if [ -z "$ZKYQ_AGENT_HOOK_PORT" ] || [ -z "$ZKYQ_AGENT_HOOK_TOKEN" ] || [ -z "$ZKYQ_PANE_KEY" ]; then',
     '  exit 0',
     'fi',
     // Why the env var rather than a stdin capture: jcode hands the hook its payload as
@@ -211,7 +218,7 @@ export class JcodeHookService {
     // Why: remote-Windows is out of scope for v1 (same as Devin); assume POSIX.
     const remoteConfigPath = getJcodeRemoteConfigPath(remoteHome)
     const remoteScriptFileName = getJcodePosixManagedScriptFileName()
-    const remoteScriptPath = `${remoteHome.replace(/\/+$/, '')}/.orca/agent-hooks/${remoteScriptFileName}`
+    const remoteScriptPath = `${remoteHome.replace(/\/+$/, '')}/.zkyq/agent-hooks/${remoteScriptFileName}`
     try {
       const body = await readTextFileRemote(sftp, remoteConfigPath)
       const content = body === null ? '' : body

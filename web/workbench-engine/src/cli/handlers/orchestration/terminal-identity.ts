@@ -64,7 +64,7 @@ export async function resolveOrchestrationTerminalHandle(
  *
  * `terminal.resolveIdentity`, never `terminal.show`: `show` is a PTY verb, so it missed for a
  * structured worker and reported `terminal_handle_stale` for a handle that was perfectly live —
- * which then failed every coordinator verb, because the pane remint below needs an `ORCA_PANE_KEY`
+ * which then failed every coordinator verb, because the pane remint below needs an `ZKYQ_PANE_KEY`
  * a structured child deliberately does not carry.
  */
 async function isLiveTerminalHandle(handle: string, client: RuntimeClient): Promise<boolean> {
@@ -123,7 +123,7 @@ async function resolveOrchestrationPaneTerminalHandle(
   client: RuntimeClient,
   options: { optional?: boolean } = {}
 ): Promise<string | undefined> {
-  const paneKey = process.env.ORCA_PANE_KEY
+  const paneKey = process.env.ZKYQ_PANE_KEY
   if (!paneKey || paneKey.length === 0) {
     return undefined
   }
@@ -244,7 +244,7 @@ export function throwNoActiveSenderTerminal(): never {
       'Codex ran this orchestration command without ORCA_TERMINAL_HANDLE. If Codex was started in ' +
         'an Orca terminal, its shell_environment_policy removed it, and relaunching the same way ' +
         'will not restore it. Start Codex by typing `codex` in an Orca terminal, or set ' +
-        'inherit = "all" with include_only listing the variables to keep plus "ORCA_*". ' +
+        'inherit = "all" with include_only listing the variables to keep plus "ORCA_*" and "ZKYQ_USER_DATA_PATH". ' +
         "Pass --from only with your own terminal's handle — another pane's handle would act on " +
         'its mailbox.'
     )

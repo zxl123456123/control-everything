@@ -11,7 +11,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 const callMock = vi.fn()
 const getTerminalHandleMock = vi.hoisted(() => vi.fn())
 const originalTerminalHandle = process.env.ORCA_TERMINAL_HANDLE
-const originalPaneKey = process.env.ORCA_PANE_KEY
+const originalPaneKey = process.env.ZKYQ_PANE_KEY
 // Why: isolate the handler's flag-to-param mapping; printResult only writes output.
 vi.mock('../format', () => ({ printResult: vi.fn() }))
 vi.mock('../selectors', () => ({ getTerminalHandle: getTerminalHandleMock }))
@@ -55,9 +55,9 @@ afterEach(() => {
     process.env.ORCA_TERMINAL_HANDLE = originalTerminalHandle
   }
   if (originalPaneKey === undefined) {
-    delete process.env.ORCA_PANE_KEY
+    delete process.env.ZKYQ_PANE_KEY
   } else {
-    process.env.ORCA_PANE_KEY = originalPaneKey
+    process.env.ZKYQ_PANE_KEY = originalPaneKey
   }
 })
 
@@ -67,7 +67,7 @@ describe('orchestration dispatch coordinator handle', () => {
     vi.mocked(printResult).mockReset()
     getTerminalHandleMock.mockReset()
     delete process.env.ORCA_TERMINAL_HANDLE
-    delete process.env.ORCA_PANE_KEY
+    delete process.env.ZKYQ_PANE_KEY
   })
 
   const invokeDispatch = (flags: Map<string, string | boolean>, json = true) =>
@@ -143,7 +143,7 @@ describe('orchestration dispatch coordinator handle', () => {
 
   it('remints a stale coordinator env handle from the caller pane key', async () => {
     process.env.ORCA_TERMINAL_HANDLE = 'term_stale_coord'
-    process.env.ORCA_PANE_KEY = 'tab_coord:leaf_coord'
+    process.env.ZKYQ_PANE_KEY = 'tab_coord:leaf_coord'
     stubStaleHandleRemint('term_live_coord', {
       result: { dispatch: { id: 'ctx_1', task_id: 'task_1', status: 'dispatched' } }
     })
@@ -197,7 +197,7 @@ describe('orchestration dispatch coordinator handle', () => {
 
   it('propagates unexpected caller pane remint failures for coordinator commands', async () => {
     process.env.ORCA_TERMINAL_HANDLE = 'term_stale_coord'
-    process.env.ORCA_PANE_KEY = 'tab_coord:leaf_coord'
+    process.env.ZKYQ_PANE_KEY = 'tab_coord:leaf_coord'
     stubStaleHandleRemintFailure(
       new RuntimeClientError('runtime_unavailable', 'runtime_unavailable')
     )
@@ -226,7 +226,7 @@ describe('orchestration dispatch coordinator handle', () => {
 
   it('uses a live coordinator handle for dispatch-show preamble previews', async () => {
     process.env.ORCA_TERMINAL_HANDLE = 'term_stale_coord'
-    process.env.ORCA_PANE_KEY = 'tab_coord:leaf_coord'
+    process.env.ZKYQ_PANE_KEY = 'tab_coord:leaf_coord'
     stubStaleHandleRemint('term_live_coord', {
       result: { dispatch: null, preamble: 'preamble' }
     })
@@ -273,7 +273,7 @@ describe('orchestration task-create caller handle', () => {
     callMock.mockReset()
     getTerminalHandleMock.mockReset()
     delete process.env.ORCA_TERMINAL_HANDLE
-    delete process.env.ORCA_PANE_KEY
+    delete process.env.ZKYQ_PANE_KEY
   })
 
   const invokeTaskCreate = (flags: Map<string, string | boolean>) =>
@@ -324,7 +324,7 @@ describe('orchestration task-create caller handle', () => {
 
   it('remints a stale task creator env handle from the caller pane key', async () => {
     process.env.ORCA_TERMINAL_HANDLE = 'term_stale'
-    process.env.ORCA_PANE_KEY = 'tab_creator:leaf_creator'
+    process.env.ZKYQ_PANE_KEY = 'tab_creator:leaf_creator'
     stubStaleHandleRemint('term_live', {
       result: { task: { id: 'task_1', status: 'ready' } }
     })

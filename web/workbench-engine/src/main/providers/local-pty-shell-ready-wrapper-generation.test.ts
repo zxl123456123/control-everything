@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { spawnSync } from 'node:child_process'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { join, sep } from 'node:path'
 import { existsSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import {
   describePosix,
@@ -76,14 +76,20 @@ describe('ensureShellReadyWrappersAt', () => {
 })
 
 describe('shell-ready wrapper root resolution', () => {
-  // Why: daemon-entry fork is plain Node (no electron), so the wrapper root resolves from ORCA_USER_DATA_PATH, not app.getPath.
-  it('resolves the wrapper root from ORCA_USER_DATA_PATH', async () => {
+  // Why: daemon-entry fork is plain Node (no electron), so the wrapper root resolves from ZKYQ_USER_DATA_PATH, not app.getPath.
+  it('resolves the wrapper root from ZKYQ_USER_DATA_PATH', async () => {
     const root = mkdtempSync(join(tmpdir(), 'orca-userdata-env-'))
     try {
       setTestUserDataPath(root)
       const { getShellReadyLaunchConfig } = await importFreshLocalPtyShellReady()
       const config = getShellReadyLaunchConfig('/bin/zsh')
-      expect(config.env.ZDOTDIR).toBe(join(getShellReadyWrapperRoot(), 'zsh'))
+      expect(getShellReadyWrapperRoot().startsWith(join(root, 'shell-wrappers') + sep)).toBe(true)
+      if (process.platform === 'win32') {
+        expect(config.supportsReadyMarker).toBe(false)
+        expect(config.env.ZDOTDIR).toBeUndefined()
+      } else {
+        expect(config.env.ZDOTDIR).toBe(`${getShellReadyWrapperRoot()}/zsh`)
+      }
     } finally {
       rmSync(root, { recursive: true, force: true })
     }
@@ -309,31 +315,31 @@ describePosix('local PTY shell-ready launch config', () => {
     const zshrc = readFileSync(join(getShellReadyWrapperRoot(), 'zsh', '.zshenv'), 'utf8')
     const bashRc = getBashShellReadyRcfileContent()
     const restoreLine =
-      '[[ -n "${ORCA_OPENCODE_CONFIG_DIR:-}" ]] && export OPENCODE_CONFIG_DIR="${ORCA_OPENCODE_CONFIG_DIR}"'
+      '[[ -n "${ZKYQ_OPENCODE_CONFIG_DIR:-}" ]] && export OPENCODE_CONFIG_DIR="${ZKYQ_OPENCODE_CONFIG_DIR}"'
     const mimoRestoreLine =
       '[[ -n "${ORCA_MIMOCODE_HOME:-}" ]] && export MIMOCODE_HOME="${ORCA_MIMOCODE_HOME}"'
     const codexRestoreLine =
       '[[ -n "${ORCA_CODEX_HOME:-}" ]] && export CODEX_HOME="${ORCA_CODEX_HOME}"'
     const agentTeamsPathRestoreLine = '[[ -n "${ORCA_AGENT_TEAMS_SHIM_DIR:-}" ]] || return 0'
-    const ompWrapperLine = 'command omp --extension "${ORCA_OMP_STATUS_EXTENSION}" "$@"'
+    const ompWrapperLine = 'command omp --extension "${ZKYQ_OMP_STATUS_EXTENSION}" "$@"'
     expect(zshrc).toContain(restoreLine)
     expect(bashRc).toContain(restoreLine)
     expect(zshrc).toContain(mimoRestoreLine)
     expect(bashRc).toContain(mimoRestoreLine)
-    expect(zshrc).not.toContain('ORCA_PI_CODING_AGENT_DIR')
-    expect(bashRc).not.toContain('ORCA_PI_CODING_AGENT_DIR')
+    expect(zshrc).not.toContain('ZKYQ_PI_CODING_AGENT_DIR')
+    expect(bashRc).not.toContain('ZKYQ_PI_CODING_AGENT_DIR')
     expect(zshrc).toContain(codexRestoreLine)
     expect(zshrc).toContain(agentTeamsPathRestoreLine)
     expect(bashRc).toContain(agentTeamsPathRestoreLine)
     expect(bashRc).toContain(codexRestoreLine)
-    expect(zshrc).not.toContain('ORCA_OMP_CODING_AGENT_DIR')
-    expect(bashRc).not.toContain('ORCA_OMP_CODING_AGENT_DIR')
+    expect(zshrc).not.toContain('ZKYQ_OMP_CODING_AGENT_DIR')
+    expect(bashRc).not.toContain('ZKYQ_OMP_CODING_AGENT_DIR')
     expect(zshrc).toContain(ompWrapperLine)
     expect(bashRc).toContain(ompWrapperLine)
     for (const wrapperFile of [zshrc, bashRc]) {
       expect(wrapperFile).not.toContain('prime-agent()')
       expect(wrapperFile).not.toContain('__orca_prime_agent')
-      expect(wrapperFile).not.toContain('ORCA_PRIME_AGENT_STATUS_EXTENSION')
+      expect(wrapperFile).not.toContain('ZKYQ_PRIME_AGENT_STATUS_EXTENSION')
       expect(wrapperFile).not.toContain('command prime-agent --extension')
     }
   })

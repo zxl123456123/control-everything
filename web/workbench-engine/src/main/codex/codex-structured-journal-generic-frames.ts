@@ -158,7 +158,7 @@ export class CodexJournalGenericFrames {
     }
     this.fallbackSequence += 1
     const identity = {
-      provider: 'orca' as const,
+      provider: 'zkyq' as const,
       clientMessageId:
         translated.body.failure?.kind === 'usageLimitReached' && frameTurnId
           ? `terminal-failure:codex:${JSON.stringify([threadId, frameTurnId])}`
@@ -206,7 +206,7 @@ export class CodexJournalGenericFrames {
           ? `${summary.count} more provider notification${summary.count === 1 ? '' : 's'} not shown across evicted turns`
           : `${summary.count} more provider notification${summary.count === 1 ? '' : 's'} not shown for this turn`
       const identity = {
-        provider: 'orca' as const,
+        provider: 'zkyq' as const,
         clientMessageId: `provider-frame-suppressed:codex:${bucket}`
       }
       // A summary across evicted turns names no producer and belongs to no turn.

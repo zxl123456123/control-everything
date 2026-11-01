@@ -13,8 +13,8 @@ describe('orchestration compatibility evidence', () => {
     expect(
       readOrchestrationCompatibilityEvidence({
         ORCA_TERMINAL_HANDLE: 'term_wsl',
-        ORCA_PANE_KEY: 'tab:leaf',
-        ORCA_AGENT_LAUNCH_TOKEN: 'launch-secret',
+        ZKYQ_PANE_KEY: 'tab:leaf',
+        ZKYQ_AGENT_LAUNCH_TOKEN: 'launch-secret',
         [ORCHESTRATION_COMPATIBILITY_HOST_KIND_ENV]: 'wsl',
         [ORCHESTRATION_COMPATIBILITY_HOST_ID_ENV]: 'local',
         [ORCHESTRATION_COMPATIBILITY_HOST_INCARNATION_ENV]: 'Ubuntu'
@@ -30,7 +30,7 @@ describe('orchestration compatibility evidence', () => {
   it('rejects partial host stamps instead of accepting caller-chosen scope', () => {
     expect(
       readOrchestrationCompatibilityEvidence({
-        ORCA_PANE_KEY: 'tab:leaf',
+        ZKYQ_PANE_KEY: 'tab:leaf',
         [ORCHESTRATION_COMPATIBILITY_HOST_KIND_ENV]: 'ssh',
         [ORCHESTRATION_COMPATIBILITY_HOST_ID_ENV]: 'saved-target',
         [ORCHESTRATION_COMPATIBILITY_HOST_INCARNATION_ENV]: 'connection-only'

@@ -6,8 +6,22 @@
  */
 export const ORCAD_SNAPSHOT_MEMBERS = [
   'orca-profile-index.json',
+  'orca-profile-index.json.bak',
+  'zkyq-profile-index.json',
+  'zkyq-profile-index.json.bak',
   // Pre-profiles layout; still read as a migration source.
   'orca-data.json',
+  'zkyq-data.json',
+  'orca-data.json.bak.0',
+  'orca-data.json.bak.1',
+  'orca-data.json.bak.2',
+  'orca-data.json.bak.3',
+  'orca-data.json.bak.4',
+  'zkyq-data.json.bak.0',
+  'zkyq-data.json.bak.1',
+  'zkyq-data.json.bak.2',
+  'zkyq-data.json.bak.3',
+  'zkyq-data.json.bak.4',
   'profiles',
   // Cross-profile SQLite moves must survive an orcad rollback too.
   'profile-move-intents'
@@ -15,6 +29,35 @@ export const ORCAD_SNAPSHOT_MEMBERS = [
 
 /** Never captured and never restored — see `orcad-state-snapshot.ts`. */
 export const ORCAD_SNAPSHOT_EXCLUDED = ['daemon', 'logs'] as const
+
+/** POSIX list of fixed members and valid retained JSON exports in one or more roots. */
+export function posixSnapshotMembersFunction(): string {
+  for (const member of ORCAD_SNAPSHOT_MEMBERS) {
+    if (!/^[A-Za-z0-9._-]+$/.test(member)) throw new Error('Unsafe snapshot member name')
+  }
+  // Send a shared suffix once when both data-name families include it.
+  const paired = ORCAD_SNAPSHOT_MEMBERS.filter((name) => name.startsWith('orca-'))
+    .map((name) => name.slice(5))
+    .filter((suffix) => ORCAD_SNAPSHOT_MEMBERS.some((name) => name === `zkyq-${suffix}`))
+  const remaining = ORCAD_SNAPSHOT_MEMBERS.filter(
+    (name) => !paired.some((suffix) => name === `orca-${suffix}` || name === `zkyq-${suffix}`)
+  )
+  return [
+    'snapshot_members() {',
+    paired.length ? `for p in orca zkyq; do printf "$p-%s " ${paired.join(' ')}; done;` : '',
+    remaining.length ? `printf "%s " ${remaining.join(' ')};` : '',
+    // Callers use command substitutions, so these short variables stay in their subshell.
+    'for r in "$@"; do',
+    'for f in "$r"/orca-data.json.sqlite-export.*.json "$r"/zkyq-data.json.sqlite-export.*.json; do',
+    '[ -e "$f" ] || [ -L "$f" ] || continue;',
+    'n=${f##*/}; v=${n#*.sqlite-export.}; v=${v%.json};',
+    'case "$v" in (""|*[!0-9]*) continue;; esac;',
+    'v=${v#"${v%%[!0]*}"};',
+    '[ -n "$v" ] || continue;',
+    '[ ${#v} -lt 16 ] || { [ ${#v} -eq 16 ] && [ "$v" -le 9007199254740991 ]; } || continue;',
+    'printf "%s " "$n"; done; done; };'
+  ].join(' ')
+}
 
 export const ORCAD_STATE_RESTORE_STAGE_DIRNAME = '.orcad-state-restore-stage'
 

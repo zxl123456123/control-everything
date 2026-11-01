@@ -2,11 +2,15 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import process from 'node:process'
+import {
+  ORCAD_VERSION_ENV,
+  migrateOrcadManagedLaunchEnvironment
+} from '../../shared/orcad-managed-launch-env'
 import { ORCAD_CLI_PACKAGE_FILENAME } from '../../shared/orcad-artifacts'
 import { setAppEnvironment, type AppEnvironment } from '../../shared/app-environment'
 import { setSecretStore } from '../../shared/secret-store'
 import { resolveOrcadInstallRoot, resolveOrcadPath } from './orcad-app-paths'
-import { getOrcadCliLauncherPath } from './orcad-cli-launcher'
+import { getOrcadAccountCommand, getOrcadCliLauncherPath } from './orcad-cli-launcher'
 import { createOrcadSecretStore, type OrcadSecretStore } from './orcad-secret-store'
 import { setSpeechServiceFactories } from '../speech/speech-runtime-service'
 import { orcadSpeechServiceFactories } from './orcad-speech-services'
@@ -18,6 +22,7 @@ export function runOrcadQuitHandlers(): void {
 }
 
 function createNodeAppEnvironment(): AppEnvironment {
+  migrateOrcadManagedLaunchEnvironment(process.env)
   const quitHandlers: (() => void)[] = []
   // The main signal handler awaits runtime and browser teardown before process.exit.
   // Keep will-quit callbacks synchronous, but never let them pre-empt that async barrier.
@@ -38,7 +43,7 @@ function createNodeAppEnvironment(): AppEnvironment {
   return {
     getPath: resolveOrcadPath,
     getAppPath: () => resolveOrcadInstallRoot(),
-    getVersion: () => process.env.ORCA_VERSION ?? '0.0.0-orcad',
+    getVersion: () => process.env[ORCAD_VERSION_ENV] ?? '0.0.0-orcad',
     // Why still true: consumers read this as "production build, not a dev checkout" —
     // it gates HTTPS-only skill downloads, the real CLI command name, and shell-PATH
     // hydration. Answering false to satisfy a path resolver would relax a security
@@ -46,6 +51,7 @@ function createNodeAppEnvironment(): AppEnvironment {
     // instead (see parcel-watcher-entry-path.ts).
     isPackaged: () => true,
     getCliLauncherPath: getOrcadCliLauncherPath,
+    getCliAccountCommand: getOrcadAccountCommand,
     onWillQuit: (handler) => quitHandlers.push(handler),
     exit: (code = 0) => process.exit(code),
     // Why []: there are no Chromium processes on this host to measure.
@@ -69,10 +75,11 @@ export async function prepareOrcadSecretStore(
 
 /**
  * The Orca release this server was built from, stamped into the bundle's own `out/package.json`.
- * Why: `status.get` and the updater report ORCA_APP_VERSION, which only the desktop's preflight
+ * Why: `status.get` and the updater report ZKYQ_APP_VERSION, which only the desktop's preflight
  * sets, so a server read `0.0.0-dev`. The bundle wins over an inherited value from another build.
  */
 export function stampOrcadAppVersion(installRoot: () => string = resolveOrcadInstallRoot): void {
+  delete process.env.ORCA_APP_VERSION
   let version: unknown
   try {
     const path = join(installRoot(), ...ORCAD_CLI_PACKAGE_FILENAME.split('/'))
@@ -82,7 +89,7 @@ export function stampOrcadAppVersion(installRoot: () => string = resolveOrcadIns
     return
   }
   if (typeof version === 'string' && version.length > 0) {
-    process.env.ORCA_APP_VERSION = version
+    process.env.ZKYQ_APP_VERSION = version
   }
 }
 

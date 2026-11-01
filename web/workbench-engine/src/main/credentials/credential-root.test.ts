@@ -8,6 +8,8 @@ describe('platform credential root', () => {
   let root: string
   beforeEach(() => {
     root = mkdtempSync(join(tmpdir(), 'credential-root-'))
+    vi.stubEnv('HOME', root)
+    vi.stubEnv('USERPROFILE', root)
     vi.stubEnv('CE_WORKBENCH_CREDENTIAL_ROOT', undefined)
     vi.stubEnv('CE_WORKBENCH_ISOLATED', undefined)
   })
@@ -16,7 +18,7 @@ describe('platform credential root', () => {
     rmSync(root, { recursive: true, force: true })
   })
   it('keeps the host credential directory when not configured', () => {
-    expect(credentialRoot()).toBe(join(homedir(), '.orca'))
+    expect(credentialRoot()).toBe(join(homedir(), '.zkyq'))
     expect(hasExplicitPlatformCredentialRoot()).toBe(false)
   })
   it('uses only an existing platform profile child directory', () => {
@@ -25,7 +27,7 @@ describe('platform credential root', () => {
     mkdirSync(credentials, { recursive: true })
     vi.stubEnv('CE_WORKBENCH_ISOLATED', '1')
     vi.stubEnv('CE_WORKBENCH_ORIGIN', 'http://127.0.0.1:12345')
-    vi.stubEnv('ORCA_USER_DATA', profile)
+    vi.stubEnv('ZKYQ_USER_DATA', profile)
     vi.stubEnv('CE_WORKBENCH_CREDENTIAL_ROOT', credentials)
     expect(credentialRoot()).toBe(realpathSync(credentials))
     expect(hasExplicitPlatformCredentialRoot()).toBe(true)
@@ -36,7 +38,7 @@ describe('platform credential root', () => {
   })
   it('does not redirect non-platform tools', () => {
     vi.stubEnv('CE_WORKBENCH_CREDENTIAL_ROOT', root)
-    expect(credentialRoot()).toBe(join(homedir(), '.orca'))
+    expect(credentialRoot()).toBe(join(homedir(), '.zkyq'))
     expect(hasExplicitPlatformCredentialRoot()).toBe(false)
   })
 })

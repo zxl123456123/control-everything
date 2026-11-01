@@ -37,7 +37,10 @@ export async function buildWithPairingRepair(
     if (!(error instanceof OrcadManagedPairingRejectedError)) {
       throw error
     }
-    console.warn('[managed-orcad] The Orca server refused this desktop; pairing again:', error)
+    console.warn(
+      '[managed-orcad] The Control Everything server refused this desktop; pairing again:',
+      error
+    )
   }
   // Why the refused revision: a repair another caller already landed is joined, not redone.
   const repaired = await recovery.repairs.repair(environmentId, pairingRevisionOf(refused))

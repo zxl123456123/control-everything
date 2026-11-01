@@ -334,11 +334,14 @@ def added_findings(root, parent, current, report, historical_docs=()):
             continue
         rejected = False
         for name in names:
-            resource = policy.resource(name) if policy else None
+            # A rename's source belongs to the parent tree, not the destination inventory.
+            path_policy = (committed_policy(root, parent)
+                           if name != value and name.startswith(UNIT) and parent else policy)
+            resource = path_policy.resource(name) if path_policy else None
             reason = forbidden(name, reviewed_resource=resource is not None)
             if reason == "excluded-directory" and name in historical_docs:
                 reason = None
-            if name.startswith(UNIT) and (policy is None or not policy.contains(name)):
+            if name.startswith(UNIT) and (path_policy is None or not path_policy.contains(name)):
                 reason = "unregistered-workbench-source"
             path = relative_path(name)
             if status == "M" and path.parts[0] == "videos" and path.suffix.lower() in {".md", ".json", ".mjs"}:

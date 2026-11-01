@@ -1,10 +1,14 @@
 # Keep this adapted metadata file byte-stable on Windows checkout.
 /.gitattributes text eol=lf
+/resources/linux/bin/zkyq text eol=lf
+/resources/darwin/bin/zkyq text eol=lf
+/resources/linux/packaging/after-install.sh text eol=lf
+/resources/linux/packaging/after-remove.sh text eol=lf
 # A shebang plus CRLF makes vite's SSR transform emit a literal `#!` mid-module,
 # so any suite importing the script dies at load with a SyntaxError. Pin the whole
 # directory rather than the scripts that happen to have a test today.
 /config/scripts/**/*.mjs text eol=lf
-/skill-guides/*.md text eol=lf
+/skill-guides/**/*.md text eol=lf
 /skill-stubs/*.md text eol=lf
 /skill-stubs/_shared/*.md text eol=lf
 /skills/*/SKILL.md text eol=lf
@@ -122,3 +126,5 @@
 /src/renderer/src/i18n/locales/ja.json text eol=lf
 /src/renderer/src/i18n/locales/ko.json text eol=lf
 /src/renderer/src/i18n/locales/pt.json text eol=lf
+
+/config/scripts/verify-skills-cli-runtime.cjs text eol=lf

@@ -288,11 +288,11 @@ export function registerPtyConnectionRemoteRuntimeAttachTests(): void {
           },
           launchToken: expect.stringMatching(new RegExp(`^${UUID_RE}$`)),
           env: expect.objectContaining({
-            ORCA_PANE_KEY: paneKey,
-            ORCA_TAB_ID: 'tab-1',
-            ORCA_WORKTREE_ID: 'wt-1',
-            ORCA_WORKSPACE_ID: 'wt-1',
-            ORCA_AGENT_LAUNCH_TOKEN: expect.stringMatching(new RegExp(`^${UUID_RE}$`))
+            ZKYQ_PANE_KEY: paneKey,
+            ZKYQ_TAB_ID: 'tab-1',
+            ZKYQ_WORKTREE_ID: 'wt-1',
+            ZKYQ_WORKSPACE_ID: 'wt-1',
+            ZKYQ_AGENT_LAUNCH_TOKEN: expect.stringMatching(new RegExp(`^${UUID_RE}$`))
           })
         })
       )

@@ -48,7 +48,7 @@ export function createOrcadSecretStore(
         case 'plaintext':
           return state.reason
         case 'pending':
-          return "Orca's headless server has not loaded its credential key yet."
+          return "The workbench server has not loaded its credential key yet."
       }
     },
     async prepare(next) {

@@ -1,4 +1,4 @@
-import { Suspense, useRef } from 'react'
+import { Suspense, useEffect, useRef } from 'react'
 import { lazyWithRetry as lazy } from '@/lib/lazy-with-retry'
 import { translate } from '@/i18n/i18n'
 import Sidebar from '../components/Sidebar'
@@ -11,6 +11,8 @@ import { TitlebarLeftControls } from './TitlebarLeftControls'
 import { RightSidebarToggle, TitlebarMainStrip } from './TitlebarMainStrip'
 import type { AppChromeLayout } from './use-app-chrome-layout'
 import type { FloatingWorkspacePanelState } from './use-floating-workspace-panel'
+import { PlatformWorkspaceToolbar } from '../web/PlatformWorkspaceToolbar'
+import { useAppStore } from '../store'
 
 const Landing = lazy(() => import('../components/Landing'))
 const WorktreeCreationPanel = lazy(
@@ -93,6 +95,21 @@ export function AppWorkspaceShell(props: {
   floatingWorkspace: FloatingWorkspacePanelState
 }): React.JSX.Element {
   const { layout, floatingWorkspace } = props
+  const platformMode = ['/studio', '/workbench/web-index.html'].includes(window.location.pathname)
+  const persistedUIReady = useAppStore((state) => state.persistedUIReady)
+  useEffect(() => {
+    if (!platformMode || !persistedUIReady) return
+    const screen = window.matchMedia('(max-width: 700px)')
+    const collapse = () => {
+      if (!screen.matches) return
+      // Web panel preferences are browser-local; never resize the host desktop.
+      useAppStore.getState().setSidebarOpen(false)
+      useAppStore.getState().setRightSidebarOpen(false)
+    }
+    collapse()
+    screen.addEventListener('change', collapse)
+    return () => screen.removeEventListener('change', collapse)
+  }, [platformMode, persistedUIReady])
   const titlebarLeftControls = <TitlebarLeftControls layout={layout} />
   const titlebarMainStrip = <TitlebarMainStrip layout={layout} />
   // Why: keep virtualized scroll memory above the sidebar's workspace/landing remount so the left list doesn't restart at scrollTop 0.
@@ -112,7 +129,18 @@ export function AppWorkspaceShell(props: {
         'The app is still running. Retry the shell or use the menu to report the crash details.'
       )}
     >
-      <div className="flex flex-row flex-1 min-h-0 overflow-hidden">
+      <div className="flex flex-row flex-1 min-h-0 overflow-hidden" data-workbench-shell="">
+        {platformMode && (layout.sidebarOpen || layout.rightSidebarOpen) && (
+          <button
+            type="button"
+            className="platform-mobile-panel-dismiss"
+            aria-label="收起侧栏，返回工作区"
+            onClick={() => {
+              useAppStore.getState().setSidebarOpen(false)
+              useAppStore.getState().setRightSidebarOpen(false)
+            }}
+          />
+        )}
         {/* Why: keep the non-workspace titlebar inside this left+center wrapper so it doesn't span over the right-sidebar column. */}
         <div className="flex flex-col flex-1 min-w-0 min-h-0">
           {/* Why: workspace view drops the full-width titlebar so tab groups extend to the top; settings/landing/tasks keep it. */}
@@ -127,6 +155,7 @@ export function AppWorkspaceShell(props: {
               layout.leftTitlebarChromeLayout.shouldMount ? (
                 /* Why: when the sidebar is collapsed, take this titlebar-height header out of flex layout so the terminal/editor reclaim the left edge. */
                 <div
+                  data-workbench-navigation-column={layout.sidebarOpen ? 'open' : 'closed'}
                   className={`flex min-h-0 flex-col shrink-0${layout.sidebarOpen ? '' : ' relative w-0 overflow-visible'}`}
                 >
                   <div
@@ -151,10 +180,16 @@ export function AppWorkspaceShell(props: {
                   </div>
                 </div>
               ) : (
-                <WorktreeSidebar layout={layout} scrollRefs={sidebarScrollRefs} />
+                <div
+                  data-workbench-navigation-column={layout.sidebarOpen ? 'open' : 'closed'}
+                  className={`flex min-h-0 flex-col shrink-0${layout.sidebarOpen ? '' : ' w-0 overflow-hidden'}`}
+                >
+                  <WorktreeSidebar layout={layout} scrollRefs={sidebarScrollRefs} />
+                </div>
               )
             ) : null}
-            <div className="flex flex-col flex-1 min-w-0 min-h-0 overflow-hidden">
+            <div className="flex flex-col flex-1 min-w-0 min-h-0 overflow-hidden" data-workbench-canvas="">
+              {platformMode && layout.workspaceChromeActive ? <PlatformWorkspaceToolbar /> : null}
               {/* Why: automations/artifacts own their page headers; the stacked titlebar would be an empty 36px stripe. */}
               {layout.stackedSidebarOpen &&
               layout.activeView !== 'automations' &&

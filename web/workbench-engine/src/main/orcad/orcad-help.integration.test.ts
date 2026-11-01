@@ -40,7 +40,7 @@ describe('real orcad executable help', () => {
       const result = await runProcess({
         program: process.execPath,
         args: [launcher, ...argv],
-        env: { ...process.env, ORCA_BACKGROUND_LAUNCH: '1', ORCA_USER_DATA: dataRoot },
+        env: { ...process.env, ORCA_BACKGROUND_LAUNCH: '1', ZKYQ_USER_DATA: dataRoot },
         timeoutMs: 10_000
       })
       expect(result.code, result.stderr).toBe(0)
@@ -48,6 +48,9 @@ describe('real orcad executable help', () => {
       expect(result.stderr).toBe('')
       expect(result.stdout).toContain('Usage: orcad [options]')
       expect(result.stdout).toContain('--bind <ip>')
+      expect(result.stdout).toContain('Control Everything runtime')
+      expect(result.stdout).toContain('ZKYQ_USER_DATA')
+      expect(result.stdout).not.toMatch(/\bORCA_USER_DATA\b/)
       expect(result.stdout).not.toContain('"type":"orca_server_ready"')
       await expect(readdir(dataRoot)).rejects.toMatchObject({ code: 'ENOENT' })
     }
@@ -62,7 +65,7 @@ describe('real orcad executable help', () => {
     const result = await runProcess({
       program: process.execPath,
       args: [launcher, '--help'],
-      env: { ...process.env, ORCA_BACKGROUND_LAUNCH: '1', ORCA_USER_DATA: dataRoot },
+      env: { ...process.env, ORCA_BACKGROUND_LAUNCH: '1', ZKYQ_USER_DATA: dataRoot },
       timeoutMs: 10_000
     })
     expect(result.code, result.stderr).toBe(0)

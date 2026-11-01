@@ -89,7 +89,7 @@ describe('registerPtyHandlers', () => {
           cwd: '/tmp',
           env: expect.objectContaining({
             SHELL: '/bin/zsh',
-            ORCA_OPENCODE_CONFIG_DIR: '/tmp/orca-opencode-config',
+            ZKYQ_OPENCODE_CONFIG_DIR: '/tmp/orca-opencode-config',
             ORCA_SHELL_FEATURES: 'overlay,history,markers',
             ZDOTDIR: join(getShellReadyWrapperRoot(), 'zsh')
           })

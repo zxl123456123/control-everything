@@ -11,7 +11,7 @@ export const SERVE_SUPERVISOR_STANDBY_BASE_MS = 5_000
 export const SERVE_SUPERVISOR_STANDBY_MAX_MS = 60_000
 /** One piece of advice wherever a give-up is reported; reinstalling the service clears the brake. */
 export const SERVE_GAVE_UP_ADVICE =
-  'Fix the cause, then run `orca serve service install` again (or, outside a service, `orca serve --supervise --force` once).'
+  'Fix the cause, then run `zkyq serve service install` again (or, outside a service, `zkyq serve --supervise --force` once).'
 
 /**
  * Durable per profile, so the brake survives the service manager restarting the supervisor:

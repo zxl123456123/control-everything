@@ -145,12 +145,12 @@ describe('OpenCode ACP launch resolution', () => {
     })
   })
 
-  it("restores the user's own config directory over Orca's status overlay", async () => {
+  it.each(['ORCA', 'ZKYQ'])("restores the user's config from a %s overlay", async (prefix) => {
     const inheritedEnv = {
       OPENCODE_CONFIG_DIR: '/orca/overlay',
-      ORCA_OPENCODE_CONFIG_DIR: '/orca/overlay',
-      ORCA_OPENCODE_SOURCE_CONFIG_DIR: '/home/user/.config/opencode-mine',
-      ORCA_OPENCODE_AGENT: 'opencode'
+      [`${prefix}_OPENCODE_CONFIG_DIR`]: '/orca/overlay',
+      [`${prefix}_OPENCODE_SOURCE_CONFIG_DIR`]: '/home/user/.config/opencode-mine',
+      [`${prefix}_OPENCODE_AGENT`]: 'opencode'
     }
     const launch = await resolver(openCodeRecord(UNMANAGED), { inheritedEnv })({ identity })
     expect(launch.env.OPENCODE_CONFIG_DIR).toBe('/home/user/.config/opencode-mine')
@@ -164,14 +164,14 @@ describe('OpenCode ACP launch resolution', () => {
       inheritedEnv,
       'darwin'
     ).env
-    expect(Object.keys(child).filter((key) => key.startsWith('ORCA_OPENCODE_'))).toEqual([])
+    expect(Object.keys(child).filter((key) => /^(?:ORCA|ZKYQ)_OPENCODE_/.test(key))).toEqual([])
     expect(child.OPENCODE_CONFIG_DIR).toBe('/home/user/.config/opencode-mine')
   })
 
   it('drops an inherited overlay with no recorded source, so the default config is read', async () => {
     const inheritedEnv = {
       OPENCODE_CONFIG_DIR: '/orca/overlay',
-      ORCA_OPENCODE_CONFIG_DIR: '/orca/overlay'
+      ZKYQ_OPENCODE_CONFIG_DIR: '/orca/overlay'
     }
     const launch = await resolver(openCodeRecord(UNMANAGED), { inheritedEnv })({ identity })
     const child = createProviderSpawnSpec(
@@ -185,18 +185,44 @@ describe('OpenCode ACP launch resolution', () => {
       'darwin'
     ).env
     expect(child.OPENCODE_CONFIG_DIR).toBeUndefined()
-    expect(child.ORCA_OPENCODE_CONFIG_DIR).toBeUndefined()
+    expect(child.ZKYQ_OPENCODE_CONFIG_DIR).toBeUndefined()
   })
+
+  it.each(['ORCA_DATA_ACCOUNT_', 'ZKYQ_DATA_ACCOUNT_'])(
+    'strips inherited %s markers from the actual ACP child without changing its pinned account',
+    (prefix) => {
+      const inherited = {
+        [prefix + 'PROVIDER']: 'opencode',
+        [prefix + 'FUTURE_METADATA']: 'opaque-context'
+      }
+      const env = {
+        XDG_DATA_HOME: 'selected-data',
+        XDG_STATE_HOME: 'selected-state',
+        OPENCODE_DB: 'opencode.db',
+        OPENCODE_AUTH_CONTENT: ''
+      }
+      const removed = scrubOpenCodeAcpEnvironment(env, inherited, null)
+      const child = createProviderSpawnSpec(
+        { command: 'fixture', args: [], env, envToDelete: removed },
+        inherited,
+        'darwin'
+      ).env
+      expect(child.XDG_DATA_HOME).toBe('selected-data')
+      expect(child.XDG_STATE_HOME).toBe('selected-state')
+      expect(Object.keys(child).some((key) => /^(ORCA|ZKYQ)_DATA_ACCOUNT_/.test(key))).toBe(false)
+      expect(removed).toContain(prefix + 'FUTURE_METADATA')
+    }
+  )
 
   it("drops Orca's retired shared plugin directory an old shell still exports", () => {
     const env: Record<string, string> = {
       OPENCODE_CONFIG_DIR: '/orca-data/opencode-hooks/shared',
-      ORCA_DATA_ACCOUNT_PROVIDER: 'opencode'
+      ZKYQ_DATA_ACCOUNT_PROVIDER: 'opencode'
     }
     const removed = scrubOpenCodeAcpEnvironment(env, {}, '/orca-data')
     expect(env.OPENCODE_CONFIG_DIR).toBeUndefined()
     expect(removed).toEqual(
-      expect.arrayContaining(['OPENCODE_CONFIG_DIR', 'ORCA_DATA_ACCOUNT_PROVIDER'])
+      expect.arrayContaining(['OPENCODE_CONFIG_DIR', 'ZKYQ_DATA_ACCOUNT_PROVIDER'])
     )
   })
 
@@ -205,7 +231,7 @@ describe('OpenCode ACP launch resolution', () => {
       launchEnv: { OPENCODE_CONFIG_DIR: '/home/user/team-config' },
       inheritedEnv: {
         OPENCODE_CONFIG_DIR: '/orca/overlay',
-        ORCA_OPENCODE_CONFIG_DIR: '/orca/overlay'
+        ZKYQ_OPENCODE_CONFIG_DIR: '/orca/overlay'
       }
     })({ identity })
     expect(launch.env.OPENCODE_CONFIG_DIR).toBe('/home/user/team-config')

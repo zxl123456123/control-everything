@@ -8,7 +8,7 @@
  * The #21097 accident was a chat that named a sibling's terminal and consumed that sibling's mail.
  *
  * The session env here is the hardest case, a chat that inherited a pane's `ORCA_TERMINAL_HANDLE`
- * and `ORCA_PANE_KEY` (an Orca launched from an Orca terminal), and the implicit-terminal guess has
+ * and `ZKYQ_PANE_KEY` (an Orca launched from an Orca terminal), and the implicit-terminal guess has
  * a sibling to find.
  */
 
@@ -35,8 +35,9 @@ const ROOT = '0b5e2d7c-9a41-4c3e-8f62-7d1a3e5b9c08'
 const IDENTITY_ENV = [
   'ORCA_AGENT_SESSION_ID',
   'ORCA_TERMINAL_HANDLE',
-  'ORCA_PANE_KEY',
-  'ORCA_STRUCTURED_SESSION'
+  'ZKYQ_PANE_KEY',
+  'ORCA_STRUCTURED_SESSION',
+  'ZKYQ_STRUCTURED_SESSION'
 ] as const
 const originalEnv = Object.fromEntries(IDENTITY_ENV.map((name) => [name, process.env[name]]))
 
@@ -248,7 +249,7 @@ function asSessionWithInheritedPane(): void {
   setEnv({
     ORCA_AGENT_SESSION_ID: SESSION,
     ORCA_TERMINAL_HANDLE: 'term_inherited_pane',
-    ORCA_PANE_KEY: 'tab_inherited:11111111-1111-4111-8111-111111111111'
+    ZKYQ_PANE_KEY: 'tab_inherited:11111111-1111-4111-8111-111111111111'
   })
 }
 
@@ -307,7 +308,7 @@ describe.each(CALLER_VERBS)('orchestration $command run as an agent session', (v
     }
   )
 
-  it.runIf(verb.callerFlag !== undefined).each([`orca_session_id:${SESSION}`, SESSION])(
+  it.runIf(verb.callerFlag !== undefined).each([`agent_session:${SESSION}`, SESSION])(
     'accepts a caller flag that restates the session (%s)',
     async (restated) => {
       await invoke(verb.command, flagMap({ ...verb.flags, [verb.callerFlag ?? 'from']: restated }))
@@ -328,12 +329,12 @@ describe.each(CALLER_VERBS.filter((verb) => verb.callerFlag !== undefined))(
       // The chat's address is its lineage root's, which only the host's session records know.
       const flags = flagMap({
         ...verb.flags,
-        [verb.callerFlag ?? 'from']: `orca_session_id:${ROOT}`
+        [verb.callerFlag ?? 'from']: `agent_session:${ROOT}`
       })
       await invoke(verb.command, flags)
 
       const [params] = callsTo(verb.method)
-      expect(params?.[verb.callerParam]).toBe(`orca_session_id:${ROOT}`)
+      expect(params?.[verb.callerParam]).toBe(`agent_session:${ROOT}`)
       expect(params?.terminalPaneKey).toBeUndefined()
       expect(params?.senderPaneKey).toBeUndefined()
       expect(getTerminalHandleMock).not.toHaveBeenCalled()
@@ -360,11 +361,11 @@ describe.each([
   })
 
   it('accepts a --from that restates the session', async () => {
-    await invoke(command, flagMap({ run: 'run_1', from: `orca_session_id:${SESSION}` }))
+    await invoke(command, flagMap({ run: 'run_1', from: `agent_session:${SESSION}` }))
     expect(callsTo(method)[0]?.[callerParam]).toBeUndefined()
   })
 
-  it.each([`orca_session_id:${ROOT}`, 'orca_session_id:9d4c1b2a-3e5f-4a6b-8c7d-0e1f2a3b4c5d'])(
+  it.each([`agent_session:${ROOT}`, 'agent_session:9d4c1b2a-3e5f-4a6b-8c7d-0e1f2a3b4c5d'])(
     'sends a session address it cannot place (%s) for the host to check, never dropping it',
     async (declared) => {
       // A /clear-ed chat's root is accepted by the host; anyone else is refused there, before any
@@ -401,28 +402,34 @@ describe('the identity a session presents', () => {
     expect(callsTo('send')[0]?.from).toBeUndefined()
   })
 
-  it('never treats a session that has an id as identity-less, even beside the old marker', async () => {
-    setEnv({ ORCA_AGENT_SESSION_ID: SESSION, ORCA_STRUCTURED_SESSION: '1' })
+  it.each(['ZKYQ_STRUCTURED_SESSION', 'ORCA_STRUCTURED_SESSION'])(
+    'never treats a session that has an id as identity-less, beside %s',
+    async (marker) => {
+      setEnv({ ORCA_AGENT_SESSION_ID: SESSION, [marker]: '1' })
 
-    await invoke('check', flagMap({}))
+      await invoke('check', flagMap({}))
 
-    expect(callsTo('check')).toHaveLength(1)
-    expect(getTerminalHandleMock).not.toHaveBeenCalled()
-  })
+      expect(callsTo('check')).toHaveLength(1)
+      expect(getTerminalHandleMock).not.toHaveBeenCalled()
+    }
+  )
 
-  it('keeps the identity-less refusal, without --from advice, for a child that has no id', async () => {
-    setEnv({ ORCA_STRUCTURED_SESSION: '1' })
+  it.each(['ZKYQ_STRUCTURED_SESSION', 'ORCA_STRUCTURED_SESSION'])(
+    'keeps the identity-less refusal without --from advice for %s',
+    async (marker) => {
+      setEnv({ [marker]: '1' })
 
-    await expect(invoke('reply', flagMap({ id: 'msg_1', body: 'b' }))).rejects.toMatchObject({
-      code: 'no_active_sender_terminal',
-      message: expect.not.stringContaining('Pass --from')
-    })
-    expect(getTerminalHandleMock).not.toHaveBeenCalled()
-    expect(callMock).not.toHaveBeenCalled()
-  })
+      await expect(invoke('reply', flagMap({ id: 'msg_1', body: 'b' }))).rejects.toMatchObject({
+        code: 'no_active_sender_terminal',
+        message: expect.not.stringContaining('Pass --from')
+      })
+      expect(getTerminalHandleMock).not.toHaveBeenCalled()
+      expect(callMock).not.toHaveBeenCalled()
+    }
+  )
 
   it('leaves a terminal agent exactly as it was: its own handle is the caller', async () => {
-    setEnv({ ORCA_TERMINAL_HANDLE: 'term_pty', ORCA_PANE_KEY: 'tab_pty:1:2' })
+    setEnv({ ORCA_TERMINAL_HANDLE: 'term_pty', ZKYQ_PANE_KEY: 'tab_pty:1:2' })
     callMock.mockImplementation(async (name: string) =>
       name === 'terminal.resolveIdentity' ? { result: { identity: { live: true } } } : RESULT
     )
@@ -444,7 +451,7 @@ describe('the identity a session presents', () => {
       return callsTo('dispatchShow')[0]?.from
     }
     asSessionWithInheritedPane()
-    expect(await preview({})).toBe(`orca_session_id:${SESSION}`)
+    expect(await preview({})).toBe(`agent_session:${SESSION}`)
     // Not a caller flag: it names the text to preview, so it is never fenced.
     expect(await preview({ from: 'term_sibling' })).toBe('term_sibling')
     setEnv({ ORCA_AGENT_SESSION_ID: SESSION, ORCA_TERMINAL_HANDLE: 'structworker_self' })
@@ -460,7 +467,7 @@ describe('the identity a session presents', () => {
     await invoke('ask', flagMap({ to: 'term_worker', question: 'q' }), false)
 
     const advice = errors.mock.calls.map(([line]) => String(line)).join('\n')
-    expect(advice).toContain('--resume msg_1')
+    expect(advice).toContain('"--resume" "msg_1"')
     expect(advice).not.toContain('--from')
   })
 })
@@ -529,15 +536,15 @@ describe('the orchestration envelope', () => {
 
   it('binds whichever current Orca CLI the agent reached, not only the one the session names', () => {
     // A login shell can put another install's `orca` first, and the packaged Windows launcher
-    // rewrites ORCA_CLI_COMMAND in its own process. Neither matters: the id rides the envelope
+    // rewrites ZKYQ_CLI_COMMAND in its own process. Neither matters: the id rides the envelope
     // and the pinned instance is the one dialed.
-    vi.stubEnv('ORCA_USER_DATA_PATH', '/data/session-orca')
+    vi.stubEnv('ZKYQ_USER_DATA_PATH', '/data/session-orca')
     try {
       const envelope = createOrchestrationCompatibilityEnvelope({
         ORCA_AGENT_SESSION_ID: SESSION,
-        ORCA_CLI_COMMAND: 'orca',
+        ZKYQ_CLI_COMMAND: 'orca',
         ORCA_WINDOWS_PACKAGED_CLI_LAUNCHER: '1',
-        ORCA_USER_DATA_PATH: '/data/session-orca'
+        ZKYQ_USER_DATA_PATH: '/data/session-orca'
       })
 
       expect(envelope.orchestrationCompatibilityEvidence).toEqual({ agentSessionId: SESSION })

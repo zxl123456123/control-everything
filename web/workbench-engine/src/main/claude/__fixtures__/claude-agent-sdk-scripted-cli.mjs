@@ -34,7 +34,8 @@ const report = {
   env: Object.fromEntries(
     Object.entries(process.env).filter(
       ([key]) =>
-        key.startsWith('ORCA_') || ['HOME', 'CODEX_HOME', 'CLAUDE_CONFIG_DIR'].includes(key)
+        key.startsWith('ORCA_') ||
+        ['HOME', 'CODEX_HOME', 'CLAUDE_CONFIG_DIR', 'ZKYQ_AGENT_SESSION_ID'].includes(key)
     )
   ),
   controlRequests: [],

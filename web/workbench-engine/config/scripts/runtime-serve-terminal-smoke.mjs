@@ -199,7 +199,7 @@ function resolveLaunch(userDataDir) {
       label: `orcad (${ORCAD_ENTRY})`,
       command: packagedNodeRuntimePath(ORCAD_DIR, currentTarget()),
       args: [ORCAD_ENTRY, '--port', String(PORT), '--json'],
-      env: { ORCA_USER_DATA: userDataDir }
+      env: { ZKYQ_USER_DATA: userDataDir }
     }
   }
   if (target !== 'electron') {
@@ -220,7 +220,7 @@ function resolveLaunch(userDataDir) {
     label: `electron (${serveEntry})`,
     command: override ?? 'npx',
     args: override ? serveArgs : ['electron', ...serveArgs],
-    env: { ORCA_DEV_USER_DATA_PATH: userDataDir }
+    env: { ZKYQ_DEV_USER_DATA_PATH: userDataDir }
   }
 }
 
@@ -369,7 +369,7 @@ async function main() {
       )
     }
     log('terminal round trip OK')
-    if (launch.env.ORCA_USER_DATA && process.platform !== 'win32') {
+    if (launch.env.ZKYQ_USER_DATA && process.platform !== 'win32') {
       const cliNonce = randomBytes(8).toString('hex')
       orca(pairingCode, [
         'terminal',

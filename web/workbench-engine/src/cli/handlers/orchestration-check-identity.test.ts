@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 const callMock = vi.hoisted(() => vi.fn())
 const getTerminalHandleMock = vi.hoisted(() => vi.fn())
 const originalTerminalHandle = process.env.ORCA_TERMINAL_HANDLE
-const originalPaneKey = process.env.ORCA_PANE_KEY
+const originalPaneKey = process.env.ZKYQ_PANE_KEY
 
 const printResultMock = vi.hoisted(() => vi.fn())
 vi.mock('../format', () => ({ printResult: printResultMock }))
@@ -17,7 +17,7 @@ describe('orchestration check identity', () => {
     printResultMock.mockReset()
     getTerminalHandleMock.mockReset()
     delete process.env.ORCA_TERMINAL_HANDLE
-    delete process.env.ORCA_PANE_KEY
+    delete process.env.ZKYQ_PANE_KEY
   })
 
   afterEach(() => {
@@ -27,9 +27,9 @@ describe('orchestration check identity', () => {
       process.env.ORCA_TERMINAL_HANDLE = originalTerminalHandle
     }
     if (originalPaneKey === undefined) {
-      delete process.env.ORCA_PANE_KEY
+      delete process.env.ZKYQ_PANE_KEY
     } else {
-      process.env.ORCA_PANE_KEY = originalPaneKey
+      process.env.ZKYQ_PANE_KEY = originalPaneKey
     }
   })
 
@@ -43,7 +43,7 @@ describe('orchestration check identity', () => {
 
   it('carries the caller pane key when the environment handle may be stale', async () => {
     process.env.ORCA_TERMINAL_HANDLE = 'term_stale_coord'
-    process.env.ORCA_PANE_KEY = 'tab_coord:leaf_coord'
+    process.env.ZKYQ_PANE_KEY = 'tab_coord:leaf_coord'
     getTerminalHandleMock.mockRejectedValue(new Error('active terminal fallback is unsafe'))
 
     await invokeCheck(new Map<string, string | boolean>([['wait', true]]))

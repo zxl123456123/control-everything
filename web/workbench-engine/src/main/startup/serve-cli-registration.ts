@@ -18,7 +18,7 @@ export async function registerCliForHeadlessServe(): Promise<void> {
     // extraction timeout; this gives the whole AppImage wait one deadline and visible progress.
     const preparation = await prepareAppImageCopyForServe({ appImagePath })
     if (preparation.status === 'unavailable') {
-      console.warn(`[serve] orca CLI install skipped: ${preparation.reason}`)
+      console.warn(`[serve] Workbench CLI install skipped: ${preparation.reason}`)
       return
     }
     appImageDeadlineAt = preparation.deadlineAt
@@ -32,15 +32,15 @@ export async function registerCliForHeadlessServe(): Promise<void> {
       ...(appImageDeadlineAt === undefined ? {} : { appImageDeadlineAt })
     }).install()
     console.log(
-      `[serve] orca CLI install: ${cliStatus.state}${cliStatus.commandPath ? ` (${cliStatus.commandPath})` : ''}`
+      `[serve] Workbench CLI install: ${cliStatus.state}${cliStatus.commandPath ? ` (${cliStatus.commandPath})` : ''}`
     )
   } catch (error) {
     console.warn(
-      '[serve] orca CLI install skipped:',
+      '[serve] Workbench CLI install skipped:',
       error instanceof Error ? error.message : String(error)
     )
   }
-  // Why: Linux CLI installs as `orca-ide`, but the Claude Team launcher invokes bare `orca`; drop a ~/.local/bin dispatcher (ahead of /usr/bin) so it resolves. Best-effort.
+  // Publish a dispatcher if no CLI symlink was registered. Existing foreign entries stay untouched.
   if (process.platform === 'linux' && app.isPackaged && process.resourcesPath) {
     try {
       const dispatcher = await installLinuxBareOrcaDispatcher({
@@ -48,12 +48,12 @@ export async function registerCliForHeadlessServe(): Promise<void> {
         ...(appImageDeadlineAt === undefined ? {} : { appImageDeadlineAt })
       })
       console.log(
-        `[serve] bare orca dispatcher ${dispatcher.state}: ${dispatcher.dispatcherPath}` +
+        `[serve] Workbench dispatcher ${dispatcher.state}: ${dispatcher.dispatcherPath}` +
           `${dispatcher.target ? ` -> ${dispatcher.target}` : ''}`
       )
     } catch (error) {
       console.warn(
-        '[serve] bare orca dispatcher install skipped:',
+        '[serve] Workbench dispatcher install skipped:',
         error instanceof Error ? error.message : String(error)
       )
     }

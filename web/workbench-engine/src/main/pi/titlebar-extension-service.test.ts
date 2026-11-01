@@ -10,6 +10,7 @@ import {
   readFileSync,
   readdirSync,
   rmSync,
+  statSync,
   symlinkSync,
   writeFileSync
 } from 'node:fs'
@@ -99,9 +100,9 @@ describe('PiTitlebarExtensionService', () => {
   })
 
   it.each([
-    ['pi', '.pi', 'ORCA_PI_SOURCE_AGENT_DIR'],
-    ['omp', '.omp', 'ORCA_OMP_SOURCE_AGENT_DIR'],
-    ['prime-agent', '.prime', 'ORCA_PRIME_AGENT_SOURCE_AGENT_DIR']
+    ['pi', '.pi', 'ZKYQ_PI_SOURCE_AGENT_DIR'],
+    ['omp', '.omp', 'ZKYQ_OMP_SOURCE_AGENT_DIR'],
+    ['prime-agent', '.prime', 'ZKYQ_PRIME_AGENT_SOURCE_AGENT_DIR']
   ] as const)('does not reinterpret XDG data as %s configuration', (kind, root, sourceKey) => {
     const fakeHome = mkdtempSync(join(tmpdir(), 'orca-agent-xdg-'))
     const dataHome = join(fakeHome, 'data')
@@ -131,19 +132,19 @@ describe('PiTitlebarExtensionService', () => {
         configDirName: environment.PI_CONFIG_DIR
       })
       const agentDir = join(fakeHome, '.config', 'omp', 'agent')
-      expect(env.ORCA_OMP_SOURCE_AGENT_DIR).toBe(agentDir)
-      expect(existsSync(join(agentDir, 'extensions', 'orca-agent-status.ts'))).toBe(true)
+      expect(env.ZKYQ_OMP_SOURCE_AGENT_DIR).toBe(agentDir)
+      expect(existsSync(join(agentDir, 'extensions', 'zkyq-agent-status.ts'))).toBe(true)
       expect(env.PI_CODING_AGENT_DIR).toBeUndefined()
       expect(existsSync(join(fakeHome, '.omp'))).toBe(false)
       expect(existsSync(environment.XDG_DATA_HOME)).toBe(false)
       expect(
         service.buildPtyEnv('pty-explicit', piHome, 'omp', {
           configDirName: environment.PI_CONFIG_DIR
-        }).ORCA_OMP_SOURCE_AGENT_DIR
+        }).ZKYQ_OMP_SOURCE_AGENT_DIR
       ).toBe(piHome)
       expect(
         service.buildPtyEnv('pty-pi', undefined, 'pi', { configDirName: environment.PI_CONFIG_DIR })
-          .ORCA_PI_SOURCE_AGENT_DIR
+          .ZKYQ_PI_SOURCE_AGENT_DIR
       ).toBe(join(fakeHome, '.pi', 'agent'))
     } finally {
       homedirOverride.current = ''
@@ -164,7 +165,7 @@ describe('PiTitlebarExtensionService', () => {
           materializeDefaultHome: true
         }
       )
-      expect(env.ORCA_OMP_SOURCE_AGENT_DIR).toBe(join(fakeHome, '.omp', 'agent'))
+      expect(env.ZKYQ_OMP_SOURCE_AGENT_DIR).toBe(join(fakeHome, '.omp', 'agent'))
       expect(existsSync(join(fakeHome, 'host-profile'))).toBe(false)
     } finally {
       vi.unstubAllEnvs()
@@ -196,24 +197,55 @@ describe('PiTitlebarExtensionService', () => {
     })
   }
 
+  it.each(['pi', 'omp', 'prime-agent'] as const)(
+    'migrates the %s auto-loaded entries and retains user state',
+    (kind) => {
+      const names =
+        kind === 'prime-agent' ? ['agent-status'] : ['agent-status', 'prefill', 'titlebar-spinner']
+      const previous = new Map(
+        names.map((name) => [name, `// @orca-managed-pi-extension\r\n// retained ${name} 中文\r\n`])
+      )
+      for (const [name, source] of previous)
+        writeFileSync(join(piHome, 'extensions', `orca-${name}.ts`), source)
+      const service = new PiTitlebarExtensionService()
+      service.buildPtyEnv('migration-test', piHome, kind)
+      expect(readdirSync(join(piHome, 'extensions')).sort()).toEqual([
+        'user-ext',
+        ...names.map((name) => `zkyq-${name}.ts`).sort()
+      ])
+      const archiveDir = join(piHome, '.zkyq-retired-extensions')
+      const archives = readdirSync(archiveDir)
+      expect(archives).toHaveLength(names.length)
+      for (const [name, source] of previous) {
+        const archived = archives.find((file) => file.startsWith(`zkyq-${name}.ts-`))!
+        expect(readFileSync(join(archiveDir, archived), 'utf8')).toBe(source)
+      }
+      const status = join(piHome, 'extensions', 'zkyq-agent-status.ts')
+      const before = statSync(status).mtimeMs
+      service.buildPtyEnv('migration-repeat', piHome, kind)
+      expect(statSync(status).mtimeMs).toBe(before)
+      expectPiHomeIntact()
+    }
+  )
+
   it('buildPtyEnv installs Orca extensions into the user agent dir without redirecting the home', () => {
     const svc = new PiTitlebarExtensionService()
     const env = svc.buildPtyEnv('pty-1', piHome, 'pi')
 
     expect(env.PI_CODING_AGENT_DIR).toBeUndefined()
-    expect(env.ORCA_PI_SOURCE_AGENT_DIR).toBe(piHome)
+    expect(env.ZKYQ_PI_SOURCE_AGENT_DIR).toBe(piHome)
     const extensions = readdirSync(join(piHome, 'extensions')).sort()
     expect(extensions).toEqual([
-      'orca-agent-status.ts',
-      'orca-prefill.ts',
-      'orca-titlebar-spinner.ts',
-      'user-ext'
+      'user-ext',
+      'zkyq-agent-status.ts',
+      'zkyq-prefill.ts',
+      'zkyq-titlebar-spinner.ts'
     ])
     const statusExtensionSource = readFileSync(
-      join(piHome, 'extensions', 'orca-agent-status.ts'),
+      join(piHome, 'extensions', 'zkyq-agent-status.ts'),
       'utf-8'
     )
-    expect(statusExtensionSource).toContain('@orca-managed-pi-extension')
+    expect(statusExtensionSource).toContain('@zkyq-managed-pi-extension')
     expect(statusExtensionSource).toContain('/hook/pi')
     expectPiHomeIntact()
   })
@@ -223,7 +255,7 @@ describe('PiTitlebarExtensionService', () => {
     svc.buildPtyEnv('pty-2', piHome, 'pi')
     svc.clearPty('pty-2')
 
-    expect(existsSync(join(piHome, 'extensions', 'orca-agent-status.ts'))).toBe(true)
+    expect(existsSync(join(piHome, 'extensions', 'zkyq-agent-status.ts'))).toBe(true)
     expectPiHomeIntact()
   })
 
@@ -231,15 +263,15 @@ describe('PiTitlebarExtensionService', () => {
     const svc = new PiTitlebarExtensionService()
     const env = svc.buildPtyEnv('pty-prime', piHome, 'prime-agent')
 
-    expect(env).toEqual({ ORCA_PRIME_AGENT_SOURCE_AGENT_DIR: piHome })
+    expect(env).toEqual({ ZKYQ_PRIME_AGENT_SOURCE_AGENT_DIR: piHome })
     expect(readdirSync(join(piHome, 'extensions')).sort()).toEqual([
-      'orca-agent-status.ts',
-      'user-ext'
+      'user-ext',
+      'zkyq-agent-status.ts'
     ])
-    const source = readFileSync(join(piHome, 'extensions', 'orca-agent-status.ts'), 'utf-8')
+    const source = readFileSync(join(piHome, 'extensions', 'zkyq-agent-status.ts'), 'utf-8')
     expect(source).toContain('/hook/prime-agent')
-    expect(existsSync(join(piHome, 'extensions', 'orca-titlebar-spinner.ts'))).toBe(false)
-    expect(existsSync(join(piHome, 'extensions', 'orca-prefill.ts'))).toBe(false)
+    expect(existsSync(join(piHome, 'extensions', 'zkyq-titlebar-spinner.ts'))).toBe(false)
+    expect(existsSync(join(piHome, 'extensions', 'zkyq-prefill.ts'))).toBe(false)
     expectPiHomeIntact()
   })
 
@@ -250,7 +282,7 @@ describe('PiTitlebarExtensionService', () => {
 
     expect(firstEnv.PI_CODING_AGENT_DIR).toBeUndefined()
     expect(secondEnv.PI_CODING_AGENT_DIR).toBeUndefined()
-    expect(secondEnv.ORCA_PI_SOURCE_AGENT_DIR).toBe(firstEnv.ORCA_PI_SOURCE_AGENT_DIR)
+    expect(secondEnv.ZKYQ_PI_SOURCE_AGENT_DIR).toBe(firstEnv.ZKYQ_PI_SOURCE_AGENT_DIR)
     expect(readFileSync(join(piHome, 'extensions', 'user-ext', 'ext.ts'), 'utf-8')).toBe(
       'user extension'
     )
@@ -264,10 +296,10 @@ describe('PiTitlebarExtensionService', () => {
     const sourcePath = join(piHome, 'agent.db')
 
     expect(env.PI_CODING_AGENT_DIR).toBeUndefined()
-    expect(readFileSync(env.ORCA_OMP_FRESH_CONFIG, 'utf8')).toBe('autoResume: false\n')
-    expect(env.ORCA_OMP_FRESH_CONFIG.startsWith(userDataDir)).toBe(true)
-    expect(env.ORCA_OMP_SOURCE_AGENT_DIR).toBe(piHome)
-    expect(env.ORCA_OMP_STATUS_EXTENSION).toBe(join(piHome, 'extensions', 'orca-agent-status.ts'))
+    expect(readFileSync(env.ZKYQ_OMP_FRESH_CONFIG, 'utf8')).toBe('autoResume: false\n')
+    expect(env.ZKYQ_OMP_FRESH_CONFIG.startsWith(userDataDir)).toBe(true)
+    expect(env.ZKYQ_OMP_SOURCE_AGENT_DIR).toBe(piHome)
+    expect(env.ZKYQ_OMP_STATUS_EXTENSION).toBe(join(piHome, 'extensions', 'zkyq-agent-status.ts'))
     expect(existsSync(sourcePath)).toBe(false)
     expect(existsSync(join(userDataDir, 'omp-agent-overlays'))).toBe(false)
     expect(existsSync(join(piHome, 'history.db'))).toBe(false)
@@ -317,7 +349,7 @@ describe('PiTitlebarExtensionService', () => {
     expect(
       readFileSync(join(piHome, 'extensions', 'legacy-package', 'orca-prefill.ts'), 'utf-8')
     ).toBe('user package file')
-    expect(readFileSync(join(piHome, 'extensions', 'orca-agent-status.ts'), 'utf-8')).toContain(
+    expect(readFileSync(join(piHome, 'extensions', 'zkyq-agent-status.ts'), 'utf-8')).toContain(
       '/hook/omp'
     )
     expect(readFileSync(join(overlayDir, '.orca-omp-overlay-migration-complete'), 'utf-8')).toBe(
@@ -519,9 +551,9 @@ describe('PiTitlebarExtensionService', () => {
 
   it('refreshes a managed spinner in an explicitly selected senpi home', () => {
     const agentDir = join(userDataDir, '.omo', 'agent')
-    const extensionPath = join(agentDir, 'extensions', 'orca-titlebar-spinner.ts')
+    const extensionPath = join(agentDir, 'extensions', 'zkyq-titlebar-spinner.ts')
     mkdirSync(join(agentDir, 'extensions'), { recursive: true })
-    writeFileSync(extensionPath, '// @orca-managed-pi-extension\nstale spinner')
+    writeFileSync(extensionPath, '// @zkyq-managed-pi-extension\nstale spinner')
     const svc = new PiTitlebarExtensionService()
     svc.buildPtyEnv('pty-senpi', agentDir, 'pi')
     expect(readFileSync(extensionPath, 'utf8')).toContain(getPiTitlebarExtensionSource())
@@ -531,8 +563,8 @@ describe('PiTitlebarExtensionService', () => {
     const svc = new PiTitlebarExtensionService()
     svc.buildPtyEnv('pty-refresh-1', piHome, 'pi')
     writeFileSync(
-      join(piHome, 'extensions', 'orca-agent-status.ts'),
-      '// @orca-managed-pi-extension\nstale'
+      join(piHome, 'extensions', 'zkyq-agent-status.ts'),
+      '// @zkyq-managed-pi-extension\nstale'
     )
 
     rmSync(join(piHome, 'extensions', 'user-ext'), { recursive: true, force: true })
@@ -543,7 +575,7 @@ describe('PiTitlebarExtensionService', () => {
     const secondEnv = svc.buildPtyEnv('pty-refresh-2', piHome, 'pi')
 
     expect(secondEnv.PI_CODING_AGENT_DIR).toBeUndefined()
-    expect(readFileSync(join(piHome, 'extensions', 'orca-agent-status.ts'), 'utf-8')).toContain(
+    expect(readFileSync(join(piHome, 'extensions', 'zkyq-agent-status.ts'), 'utf-8')).toContain(
       '/hook/pi'
     )
     expect(readFileSync(join(piHome, 'auth.json'), 'utf-8')).toBe('rotated token')
@@ -554,21 +586,44 @@ describe('PiTitlebarExtensionService', () => {
 
   it("does not overwrite a user's same-named Orca extension file", () => {
     const userStatusExtension = 'user-owned status extension'
-    writeFileSync(join(piHome, 'extensions', 'orca-agent-status.ts'), userStatusExtension, 'utf-8')
+    writeFileSync(join(piHome, 'extensions', 'zkyq-agent-status.ts'), userStatusExtension, 'utf-8')
 
     const svc = new PiTitlebarExtensionService()
     const env = svc.buildPtyEnv('pty-same-name-extension', piHome, 'pi')
 
     expect(env.PI_CODING_AGENT_DIR).toBeUndefined()
-    expect(readFileSync(join(piHome, 'extensions', 'orca-agent-status.ts'), 'utf-8')).toBe(
+    expect(readFileSync(join(piHome, 'extensions', 'zkyq-agent-status.ts'), 'utf-8')).toBe(
       userStatusExtension
     )
     expectPiHomeIntact()
   })
 
+  it('keeps an extension pinned by a live OMP shell while exposing only the current path', () => {
+    const fakeHome = mkdtempSync(join(tmpdir(), 'zkyq-omp-live-input-'))
+    const directory = join(userDataDir, 'omp-managed-status-extension')
+    const previous = join(directory, 'orca-agent-status.ts')
+    const original = '// @orca-managed-pi-extension\r\n// live shell fixture 中文\r\n'
+    mkdirSync(directory, { recursive: true })
+    writeFileSync(previous, original)
+    const before = statSync(previous).mtimeMs
+    homedirOverride.current = fakeHome
+    try {
+      const env = new PiTitlebarExtensionService().buildPtyEnv('live-shell', undefined, 'omp', {
+        materializeDefaultHome: false
+      })
+      expect(env.ZKYQ_OMP_STATUS_EXTENSION).toBe(join(directory, 'zkyq-agent-status.ts'))
+      expect(readFileSync(previous, 'utf8')).toBe(original)
+      expect(statSync(previous).mtimeMs).toBe(before)
+      expect(existsSync(join(fakeHome, '.omp'))).toBe(false)
+    } finally {
+      homedirOverride.current = ''
+      rmSync(fakeHome, { recursive: true, force: true })
+    }
+  })
+
   it('uses an Orca-owned OMP status extension when a same-named user file exists', () => {
     const userStatusExtension = 'user-owned status extension'
-    const userStatusPath = join(piHome, 'extensions', 'orca-agent-status.ts')
+    const userStatusPath = join(piHome, 'extensions', 'zkyq-agent-status.ts')
     writeFileSync(userStatusPath, userStatusExtension, 'utf-8')
 
     const svc = new PiTitlebarExtensionService()
@@ -577,11 +632,11 @@ describe('PiTitlebarExtensionService', () => {
     const fallbackStatusPath = join(
       userDataDir,
       'omp-managed-status-extension',
-      'orca-agent-status.ts'
+      'zkyq-agent-status.ts'
     )
     expect(readFileSync(userStatusPath, 'utf-8')).toBe(userStatusExtension)
-    expect(env.ORCA_OMP_STATUS_EXTENSION).toBe(fallbackStatusPath)
-    expect(readFileSync(fallbackStatusPath, 'utf-8')).toContain('@orca-managed-pi-extension')
+    expect(env.ZKYQ_OMP_STATUS_EXTENSION).toBe(fallbackStatusPath)
+    expect(readFileSync(fallbackStatusPath, 'utf-8')).toContain('@zkyq-managed-pi-extension')
     expect(readFileSync(fallbackStatusPath, 'utf-8')).toContain('/hook/omp')
   })
 
@@ -598,10 +653,10 @@ describe('PiTitlebarExtensionService', () => {
         const env = svc.buildPtyEnv('pty-symlinked-extensions', piHome, 'pi')
 
         expect(env.PI_CODING_AGENT_DIR).toBeUndefined()
-        expect(existsSync(join(realExtensionsDir, 'orca-agent-status.ts'))).toBe(true)
-        expect(existsSync(join(realExtensionsDir, 'orca-prefill.ts'))).toBe(true)
-        expect(existsSync(join(realExtensionsDir, 'orca-titlebar-spinner.ts'))).toBe(true)
-        expect(readFileSync(join(realExtensionsDir, 'orca-agent-status.ts'), 'utf-8')).toContain(
+        expect(existsSync(join(realExtensionsDir, 'zkyq-agent-status.ts'))).toBe(true)
+        expect(existsSync(join(realExtensionsDir, 'zkyq-prefill.ts'))).toBe(true)
+        expect(existsSync(join(realExtensionsDir, 'zkyq-titlebar-spinner.ts'))).toBe(true)
+        expect(readFileSync(join(realExtensionsDir, 'zkyq-agent-status.ts'), 'utf-8')).toContain(
           '/hook/pi'
         )
       } finally {
@@ -628,7 +683,7 @@ describe('PiTitlebarExtensionService', () => {
       const env = svc.buildPtyEnv('pty-4', piHome, 'pi')
 
       expect(env.PI_CODING_AGENT_DIR).toBeUndefined()
-      expect(env.ORCA_PI_SOURCE_AGENT_DIR).toBe(piHome)
+      expect(env.ZKYQ_PI_SOURCE_AGENT_DIR).toBe(piHome)
       expect(existsSync(legacyOverlayDir)).toBe(false)
       expectPiHomeIntact()
     }
@@ -659,12 +714,12 @@ describe('PiTitlebarExtensionService', () => {
         const env = svc.buildPtyEnv('pty-pi-both', undefined, 'pi')
 
         expect(env.PI_CODING_AGENT_DIR).toBeUndefined()
-        expect(env.ORCA_PI_SOURCE_AGENT_DIR).toBe(join(fakeHome, '.pi', 'agent'))
+        expect(env.ZKYQ_PI_SOURCE_AGENT_DIR).toBe(join(fakeHome, '.pi', 'agent'))
         expect(
-          existsSync(join(fakeHome, '.pi', 'agent', 'extensions', 'orca-agent-status.ts'))
+          existsSync(join(fakeHome, '.pi', 'agent', 'extensions', 'zkyq-agent-status.ts'))
         ).toBe(true)
         expect(
-          existsSync(join(fakeHome, '.omp', 'agent', 'extensions', 'orca-agent-status.ts'))
+          existsSync(join(fakeHome, '.omp', 'agent', 'extensions', 'zkyq-agent-status.ts'))
         ).toBe(false)
       } finally {
         homedirOverride.current = ''
@@ -683,18 +738,18 @@ describe('PiTitlebarExtensionService', () => {
         const env = svc.buildPtyEnv('pty-omp-both', undefined, 'omp')
 
         expect(env.PI_CODING_AGENT_DIR).toBeUndefined()
-        expect(env.ORCA_OMP_SOURCE_AGENT_DIR).toBe(join(fakeHome, '.omp', 'agent'))
-        expect(env.ORCA_OMP_STATUS_EXTENSION).toBe(
-          join(fakeHome, '.omp', 'agent', 'extensions', 'orca-agent-status.ts')
+        expect(env.ZKYQ_OMP_SOURCE_AGENT_DIR).toBe(join(fakeHome, '.omp', 'agent'))
+        expect(env.ZKYQ_OMP_STATUS_EXTENSION).toBe(
+          join(fakeHome, '.omp', 'agent', 'extensions', 'zkyq-agent-status.ts')
         )
         expect(
           readFileSync(
-            join(fakeHome, '.omp', 'agent', 'extensions', 'orca-agent-status.ts'),
+            join(fakeHome, '.omp', 'agent', 'extensions', 'zkyq-agent-status.ts'),
             'utf-8'
           )
         ).toContain('/hook/omp')
         expect(
-          existsSync(join(fakeHome, '.pi', 'agent', 'extensions', 'orca-agent-status.ts'))
+          existsSync(join(fakeHome, '.pi', 'agent', 'extensions', 'zkyq-agent-status.ts'))
         ).toBe(false)
       } finally {
         homedirOverride.current = ''
@@ -717,13 +772,13 @@ describe('PiTitlebarExtensionService', () => {
 
         const ompAgentDir = join(fakeHome, '.omp', 'agent')
         expect(env.PI_CODING_AGENT_DIR).toBeUndefined()
-        expect(env.ORCA_OMP_SOURCE_AGENT_DIR).toBe(ompAgentDir)
+        expect(env.ZKYQ_OMP_SOURCE_AGENT_DIR).toBe(ompAgentDir)
         expect(existsSync(join(ompAgentDir, 'auth.json'))).toBe(false)
         const extensions = readdirSync(join(ompAgentDir, 'extensions')).sort()
         expect(extensions).toEqual([
-          'orca-agent-status.ts',
-          'orca-prefill.ts',
-          'orca-titlebar-spinner.ts'
+          'zkyq-agent-status.ts',
+          'zkyq-prefill.ts',
+          'zkyq-titlebar-spinner.ts'
         ])
       } finally {
         homedirOverride.current = ''
@@ -749,11 +804,11 @@ describe('PiTitlebarExtensionService', () => {
         expect(piEnv).toEqual({})
         expect(existsSync(join(fakeHome, '.pi'))).toBe(false)
         expect(existsSync(join(fakeHome, '.omp'))).toBe(false)
-        expect(ompEnv.ORCA_OMP_SOURCE_AGENT_DIR).toBeUndefined()
-        expect(ompEnv.ORCA_OMP_STATUS_EXTENSION).toEqual(
+        expect(ompEnv.ZKYQ_OMP_SOURCE_AGENT_DIR).toBeUndefined()
+        expect(ompEnv.ZKYQ_OMP_STATUS_EXTENSION).toEqual(
           expect.stringContaining('omp-managed-status-extension')
         )
-        expect(existsSync(ompEnv.ORCA_OMP_STATUS_EXTENSION!)).toBe(true)
+        expect(existsSync(ompEnv.ZKYQ_OMP_STATUS_EXTENSION!)).toBe(true)
       } finally {
         homedirOverride.current = ''
         rmSync(fakeHome, { recursive: true, force: true })

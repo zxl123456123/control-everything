@@ -93,7 +93,7 @@ export const copy = {
     subtitle: '扫描电脑上的二维码',
     paste: '改为粘贴配对码',
     pasteTitle: '粘贴配对码',
-    pastePlaceholder: 'orca://pair?code=… 或配对码',
+    pastePlaceholder: 'zkyq://pair?code=… 或配对码',
     pasteSubmit: '配对',
     connecting: '正在连接电脑…',
     cancel: '取消',

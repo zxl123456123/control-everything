@@ -56,8 +56,9 @@ function restartDeps(overrides: Partial<AppImageRestartDeps> = {}): AppImageRest
     env: {
       ELECTRON_RUN_AS_NODE: '1',
       ORCA_SERVE_SUPERVISOR_APP_ROOT: '/old/app.asar.unpacked',
-      ORCA_NODE_OPTIONS: '--max-old-space-size=4096',
-      ORCA_USER_DATA_PATH: '/profiles/b1',
+      ZKYQ_NODE_OPTIONS: '--max-old-space-size=4096',
+      ZKYQ_NODE_REPL_EXTERNAL_MODULE: 'user-repl-loader',
+      ZKYQ_USER_DATA_PATH: '/profiles/b1',
       APPIMAGE: '/old/Orca.AppImage',
       APPDIR: '/tmp/.mount_old'
     },
@@ -125,8 +126,9 @@ describe('supervised serve and a replaced AppImage', () => {
       appImagePath,
       [appImagePath, 'serve', '--supervise'],
       expect.objectContaining({
-        ORCA_USER_DATA_PATH: '/profiles/b1',
-        NODE_OPTIONS: '--max-old-space-size=4096'
+        ZKYQ_USER_DATA_PATH: '/profiles/b1',
+        NODE_OPTIONS: '--max-old-space-size=4096',
+        NODE_REPL_EXTERNAL_MODULE: 'user-repl-loader'
       })
     )
     const env = vi.mocked(deps.execve).mock.calls[0]?.[2]

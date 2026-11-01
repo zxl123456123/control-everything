@@ -10,6 +10,7 @@ import { cp, mkdir, readdir, rename, rm, stat, writeFile } from 'node:fs/promise
 import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:path'
 import { cloneMacTree } from '../../main/macos-tree-clone'
 import { isProcessAlive } from '../../shared/serve-bundle-coordination'
+import { assertCurrentAppLaunchEnvironment } from './app-launch-environment'
 
 /** Set on the re-run supervisor: the app root its own `__dirname` no longer points at. */
 export const SERVE_SUPERVISOR_APP_ROOT_ENV = 'ORCA_SERVE_SUPERVISOR_APP_ROOT'
@@ -163,11 +164,12 @@ function runsFromAppImage(appRoot: string, env: NodeJS.ProcessEnv): boolean {
 export async function relocateServeSupervisor(
   deps: SupervisorRelocationDeps
 ): Promise<'in-place' | 'already-relocated' | 'relocated'> {
+  assertCurrentAppLaunchEnvironment(deps.env)
   if (deps.env[SERVE_SUPERVISOR_APP_ROOT_ENV]) {
     return 'already-relocated'
   }
   // Why packaged only: a dev or overridden executable has no app swapped under it by an update.
-  const override = deps.env.ORCA_APP_EXECUTABLE
+  const override = deps.env.ZKYQ_APP_EXECUTABLE
   if (
     deps.env.ELECTRON_RUN_AS_NODE !== '1' ||
     (typeof override === 'string' && override.trim().length > 0) ||

@@ -75,8 +75,9 @@ describe('preflightElectronServe', () => {
       preflightElectronServe({}, userData, { platform: 'linux', deps: deps({ reachable: true }) })
     ).resolves.toBe(3)
     expect(String(stderr.mock.calls[0]?.[0])).toContain(
-      'Orca is already running for this userData profile as pid 4242; not starting a second process.'
+      'Control Everything is already running for this userData profile as pid 4242; not starting a second process.'
     )
+    expect(String(stderr.mock.calls[0]?.[0])).toContain('zkyq status')
   })
 
   it('prints the refusal as a JSON envelope for --json callers', async () => {
@@ -102,6 +103,7 @@ describe('preflightElectronServe', () => {
       preflightElectronServe({}, userData, { platform: 'linux', deps: deps({ probe: 'unproven' }) })
     ).resolves.toBe(3)
     expect(String(stderr.mock.calls[1]?.[0])).toContain('cannot be shown to be free')
+    expect(String(stderr.mock.calls[0]?.[0])).toContain('zkyq status')
   })
 
   it('treats a denied status check as unverifiable, not as stopped', async () => {
@@ -124,6 +126,36 @@ describe('preflightElectronServe', () => {
     ).resolves.toBeNull()
   })
 
+  it('checks a legacy listener even when a current record exists', async () => {
+    const legacy = { ...METADATA, runtimeId: 'legacy' }
+    const checks = {
+      ...deps({ metadata: METADATA }),
+      readLegacyMetadata: () => legacy,
+      probeListener: vi.fn(async (candidate: RuntimeMetadata) =>
+        candidate.runtimeId === 'legacy' ? ('accepting' as const) : ('not-listening' as const)
+      )
+    }
+    await expect(
+      preflightElectronServe({}, userData, { platform: 'linux', deps: checks })
+    ).resolves.toBe(3)
+    expect(checks.probeListener).toHaveBeenCalledWith(legacy)
+  })
+
+  it('refuses to start when the legacy owner record cannot be read', async () => {
+    const checks = {
+      ...deps({ metadata: null }),
+      readLegacyMetadata: () => {
+        throw new Error('unreadable')
+      }
+    }
+    await expect(
+      preflightElectronServe({ json: true }, userData, { platform: 'linux', deps: checks })
+    ).resolves.toBe(3)
+    expect(JSON.parse(String(stdout.mock.calls[0]?.[0]))).toMatchObject({
+      error: { code: 'runtime_serve_already_running', data: { verdict: 'unverifiable' } }
+    })
+  })
+
   describe('remembered macOS startup abort', () => {
     const fingerprint = () => 'Background|ssh=1|sandbox=0'
 
@@ -140,6 +172,7 @@ describe('preflightElectronServe', () => {
       })
       expect(result).toBe(78)
       expect(String(stderr.mock.calls[0]?.[0])).toContain('--force')
+      expect(String(stderr.mock.calls[0]?.[0])).toContain('`zkyq serve`')
     })
 
     it('lets a different environment, an expired park, or --force through', () => {

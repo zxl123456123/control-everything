@@ -17,7 +17,8 @@ SOURCE_MANIFEST = 'tools/packaging/workbench-engine-source.json'
 UPSTREAM = '32370a5e05a22935adb79f6cbf83a3228fe879ac'
 REPOSITORY = 'https://github.com/stablyai/orca'
 GENERATED_TREES = {'out', '.build', '.cache', 'mobile/.cache', 'mobile/.expo',
-                   'src/packages/process-host/dist', 'native/windows-cli-launcher/target'}
+                   'src/packages/process-host/dist', 'native/windows-cli-launcher/target',
+                   'native/windows-agent-hook/target', 'native/windows-agent-hook/.build'}
 MOBILE_GENERATED = {
     'mobile/src/terminal/terminal-webview-engine.generated.ts',
     'mobile/src/terminal/terminal-webview-engine-css.generated.ts',

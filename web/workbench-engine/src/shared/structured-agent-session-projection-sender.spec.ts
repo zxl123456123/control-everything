@@ -21,7 +21,7 @@ function message(role: 'user' | 'assistant', from?: unknown): AgentJournalRender
     blocks: [{ type: 'text', text: 'hi' }]
   }
   return {
-    itemId: `orca:submission:${role}`,
+    itemId: `zkyq:submission:${role}`,
     sequence: 1,
     revision: 0,
     observedAt: 1,

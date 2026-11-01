@@ -4,6 +4,7 @@
 import React, { createRef, type ReactNode } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { toast } from 'sonner'
 import type * as I18n from '@/i18n/i18n'
 import type { NativeChatComposerHandle } from './NativeChatComposer'
 import { useStructuredNativeChatPaneCommands } from './use-structured-native-chat-pane-commands'
@@ -86,25 +87,41 @@ function StructuredChatTab(): ReactNode {
 describe('a structured chat tab', () => {
   beforeEach(() => {
     items.list = []
-    callRuntimeRpc.mockReset().mockResolvedValue({ orcaSessionId: `orca_session_id:${SESSION}` })
+    callRuntimeRpc.mockReset().mockResolvedValue({ sessionId: `agent_session:${SESSION}` })
     Object.assign(window, {
       api: { ui: { writeClipboardText: vi.fn().mockResolvedValue(undefined) } }
     })
   })
 
-  it("offers Copy Orca Session ID, asking the tab's host for this session's Orca session ID", async () => {
+  it("copies the session ID returned by the tab's host", async () => {
     renderToStaticMarkup(<StructuredChatTab />)
 
     const item = items.list.find(
-      (candidate) => childrenText(candidate.children) === 'Copy Orca Session ID'
+      (candidate) => childrenText(candidate.children) === 'Copy Session ID'
     )
     item?.onSelect?.()
 
     expect(item).toBeDefined()
     await vi.waitFor(() =>
       expect(callRuntimeRpc).toHaveBeenCalledWith(TARGET, 'orchestration.sessionAddress', {
-        sessionId: SESSION
+        sessionId: SESSION,
+        responseFormat: 'workbench'
       })
     )
+    await vi.waitFor(() => {
+      expect(window.api.ui.writeClipboardText).toHaveBeenCalledWith(`agent_session:${SESSION}`)
+      expect(toast.success).toHaveBeenCalledWith('Session ID copied')
+    })
+  })
+
+  it('shows a failure when the clipboard write fails', async () => {
+    vi.mocked(window.api.ui.writeClipboardText).mockRejectedValueOnce(new Error('clipboard denied'))
+    renderToStaticMarkup(<StructuredChatTab />)
+    const item = items.list.find(
+      (candidate) => childrenText(candidate.children) === 'Copy Session ID'
+    )
+    expect(item).toBeDefined()
+    item?.onSelect?.()
+    await vi.waitFor(() => expect(toast.error).toHaveBeenCalledWith('Unable to copy session ID'))
   })
 })

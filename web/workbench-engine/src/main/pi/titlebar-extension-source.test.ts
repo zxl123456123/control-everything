@@ -64,8 +64,8 @@ function createHarness(
     module,
     exports: module.exports,
     process: {
-      env: { ORCA_PANE_KEY: options.paneKey ?? 'pane-1', ...options.env },
-      pid: options.env?.ORCA_PI_TITLE_MARKER_OWNED === undefined ? 111 : 222,
+      env: { ZKYQ_PANE_KEY: options.paneKey ?? 'pane-1', ...options.env },
+      pid: options.env?.ZKYQ_PI_TITLE_MARKER_OWNED === undefined ? 111 : 222,
       title: options.processTitle ?? 'pi',
       argv: ['node', 'pi'],
       cwd: options.cwdImpl ?? (() => CWD)
@@ -119,6 +119,21 @@ describe('getPiTitlebarExtensionSource', () => {
 
   afterEach(() => {
     vi.useRealTimers()
+  })
+
+  it('moves the legacy owner registry and retires its timer before the replacement paints', () => {
+    const globals: Record<string | symbol, unknown> = {}
+    const legacy = Symbol.for('orca.pi.titlebar.owners')
+    const current = Symbol.for('zkyq.pi.titlebar.owners')
+    const timer = setInterval(() => {}, 100)
+    const dispose = vi.fn(() => clearInterval(timer))
+    const owners = new Map([['pane-1', dispose]])
+    globals[legacy] = owners
+    createHarness({ globals })
+    expect(dispose).toHaveBeenCalledOnce()
+    expect(globals[current]).toBe(owners)
+    expect(Reflect.has(globals, legacy)).toBe(false)
+    expect(vi.getTimerCount()).toBe(0)
   })
 
   it('registers nothing outside an Orca pane', () => {
@@ -589,9 +604,9 @@ describe('getPiTitlebarExtensionSource', () => {
   })
 
   it('leaves the needs-input marker to the process that owns the pane', async () => {
-    // Why: child agents inherit ORCA_PANE_KEY, and a second process asserting the marker
+    // Why: child agents inherit ZKYQ_PANE_KEY, and a second process asserting the marker
     // would report needs-input for a pane it does not speak for.
-    const harness = createHarness({ env: { ORCA_PI_TITLE_MARKER_OWNED: '111' } })
+    const harness = createHarness({ env: { ZKYQ_PI_TITLE_MARKER_OWNED: '111' } })
 
     await harness.callHook('agent_start')
     await harness.callHook('ui_prompt_start')

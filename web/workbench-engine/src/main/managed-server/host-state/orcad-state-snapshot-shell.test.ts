@@ -53,7 +53,7 @@ describe.skipIf(process.platform === 'win32')('snapshot commands on a real shell
     base = mkdtempSync(join(tmpdir(), 'orcad-snapshot-shell-'))
     root = join(base, 'root')
     snapshot = join(base, 'snapshots', 'pre-1')
-    remoteBase = join(base, '.orca-remote')
+    remoteBase = join(base, '.zkyq-remote')
     mkdirSync(join(root, 'profiles'), { recursive: true })
     mkdirSync(join(root, 'daemon'), { recursive: true })
     writeFileSync(join(root, 'profiles', 'p.json'), 'old')
@@ -63,6 +63,39 @@ describe.skipIf(process.platform === 'win32')('snapshot commands on a real shell
   afterEach(() => {
     rmSync(base, { recursive: true, force: true })
   })
+
+  it.each(['.orca', '.orca-1234abcd'])(
+    'refuses a retired %s root without reporting empty state or recreating it',
+    async (name) => {
+      const retired = join(base, name)
+      const current = join(base, name.replace('.orca', '.zkyq'))
+      mkdirSync(current)
+      const data = join(current, 'zkyq-data.json')
+      writeFileSync(data, 'latest')
+      expect(
+        parseOrcadSnapshotCapture(
+          await sh(captureOrcadStateSnapshotCommand(posix, retired, snapshot, remoteBase))
+        )
+      ).toBe('failed')
+      expect(
+        parseOrcadSnapshotCapture(
+          await sh(captureOrcadStateSnapshotCommand(posix, current, snapshot, remoteBase))
+        )
+      ).toBe('captured')
+      expect(
+        parseOrcadSnapshotRestore(
+          await sh(restoreOrcadStateSnapshotCommand(posix, retired, snapshot, remoteBase))
+        )
+      ).toBe('failed')
+      expect(
+        parseOrcadSnapshotRestore(
+          await sh(clearOrcadStateSnapshotMembersCommand(posix, retired, remoteBase))
+        )
+      ).toBe('failed')
+      expect(existsSync(retired)).toBe(false)
+      expect(readFileSync(data, 'utf8')).toBe('latest')
+    }
+  )
 
   it('captures and restores fenced state through a gateway with a 10 KiB exec limit', async () => {
     const fence = { lockDir: join(remoteBase, 'activation.lock'), token: 'snapshot-test-owner' }
@@ -114,6 +147,82 @@ describe.skipIf(process.platform === 'win32')('snapshot commands on a real shell
     expect(existsSync(join(root, 'profiles', 'added.json'))).toBe(false)
     expect(readFileSync(join(root, 'daemon', 'token'), 'utf8')).toBe('rotated')
     expect(existsSync(join(root, '.orcad-state-restore-stage'))).toBe(false)
+  })
+
+  it('captures and restores both root export names while leaving unrelated files intact', async () => {
+    const oldExport = join(root, 'orca-data.json.sqlite-export.17.json')
+    const newExport = join(root, 'zkyq-data.json.sqlite-export.42.json')
+    const unrelated = join(root, 'zkyq-data.json.sqlite-export.notes.json')
+    const leadingZeroExport = join(root, 'zkyq-data.json.sqlite-export.0007.json')
+    const maximumExport = join(root, 'orca-data.json.sqlite-export.9007199254740991.json')
+    const overflowExport = join(root, 'zkyq-data.json.sqlite-export.9007199254740992.json')
+    writeFileSync(oldExport, 'old export')
+    writeFileSync(newExport, 'new export')
+    writeFileSync(unrelated, 'unmanaged')
+    writeFileSync(leadingZeroExport, 'leading zero export')
+    writeFileSync(maximumExport, 'maximum export')
+    writeFileSync(overflowExport, 'unmanaged overflow')
+    expect(
+      parseOrcadSnapshotCapture(
+        await sh(captureOrcadStateSnapshotCommand(posix, root, snapshot, remoteBase))
+      )
+    ).toBe('captured')
+    writeFileSync(oldExport, 'changed')
+    writeFileSync(leadingZeroExport, 'changed')
+    writeFileSync(maximumExport, 'changed')
+    writeFileSync(overflowExport, 'latest unmanaged overflow')
+    writeFileSync(join(root, 'zkyq-data.json.sqlite-export.99.json'), 'added')
+    expect(
+      parseOrcadSnapshotRestore(
+        await sh(restoreOrcadStateSnapshotCommand(posix, root, snapshot, remoteBase))
+      )
+    ).toBe('restored')
+    expect(readFileSync(oldExport, 'utf8')).toBe('old export')
+    expect(readFileSync(newExport, 'utf8')).toBe('new export')
+    expect(existsSync(join(root, 'zkyq-data.json.sqlite-export.99.json'))).toBe(false)
+    expect(readFileSync(unrelated, 'utf8')).toBe('unmanaged')
+    expect(readFileSync(leadingZeroExport, 'utf8')).toBe('leading zero export')
+    expect(readFileSync(maximumExport, 'utf8')).toBe('maximum export')
+    expect(readFileSync(overflowExport, 'utf8')).toBe('latest unmanaged overflow')
+  })
+
+  it.each(['orca', 'zkyq'])('restores the %s profile index and its backup', async (name) => {
+    const index = join(root, `${name}-profile-index.json`)
+    writeFileSync(index, 'primary')
+    writeFileSync(`${index}.bak`, 'backup')
+    expect(
+      parseOrcadSnapshotCapture(
+        await sh(captureOrcadStateSnapshotCommand(posix, root, snapshot, remoteBase))
+      )
+    ).toBe('captured')
+    writeFileSync(index, 'changed')
+    writeFileSync(`${index}.bak`, 'changed backup')
+    expect(
+      parseOrcadSnapshotRestore(
+        await sh(restoreOrcadStateSnapshotCommand(posix, root, snapshot, remoteBase))
+      )
+    ).toBe('restored')
+    expect(readFileSync(index, 'utf8')).toBe('primary')
+    expect(readFileSync(`${index}.bak`, 'utf8')).toBe('backup')
+  })
+
+  it('does not discard an index backup omitted by an older snapshot', async () => {
+    const index = join(root, 'orca-profile-index.json')
+    writeFileSync(index, 'before')
+    expect(
+      parseOrcadSnapshotCapture(
+        await sh(captureOrcadStateSnapshotCommand(posix, root, snapshot, remoteBase))
+      )
+    ).toBe('captured')
+    writeFileSync(index, 'current')
+    writeFileSync(`${index}.bak`, 'unrepresented backup')
+    expect(
+      parseOrcadSnapshotRestore(
+        await sh(restoreOrcadStateSnapshotCommand(posix, root, snapshot, remoteBase))
+      )
+    ).toBe('failed')
+    expect(readFileSync(index, 'utf8')).toBe('current')
+    expect(readFileSync(`${index}.bak`, 'utf8')).toBe('unrepresented backup')
   })
 
   it('captures on a BusyBox before 1.30, whose timeout only takes `-t SECS`', async () => {

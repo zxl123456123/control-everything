@@ -154,8 +154,8 @@ export function registerPtyConnectionColdRestoreResumeCommandTests(): void {
           expect.objectContaining({
             command: "codex 'resume' 'codex-session-1'",
             env: expect.objectContaining({
-              ORCA_PANE_KEY: paneKey,
-              ORCA_AGENT_LAUNCH_TOKEN: expect.stringMatching(new RegExp(`^${UUID_RE}$`))
+              ZKYQ_PANE_KEY: paneKey,
+              ZKYQ_AGENT_LAUNCH_TOKEN: expect.stringMatching(new RegExp(`^${UUID_RE}$`))
             })
           })
         )

@@ -82,8 +82,8 @@ export function useNativeChatSessionOptions(args: {
   const reportedModel = useAppStore((state) =>
     paneKey ? (state.agentStatusByPaneKey[paneKey]?.model ?? null) : null
   )
-  const canSwitchOmpModel = useAppStore((state) =>
-    paneKey ? state.agentStatusByPaneKey[paneKey]?.modelSwitchCommand === 'orca-model' : false
+  const ompModelSwitchCommand = useAppStore((state) =>
+    paneKey ? state.agentStatusByPaneKey[paneKey]?.modelSwitchCommand : undefined
   )
   // The hook-reported model this surface last applied. Only a report that CHANGES
   // is evidence: the same value is re-delivered on every status ping, and a
@@ -124,7 +124,7 @@ export function useNativeChatSessionOptions(args: {
       mode: targetPtyId ? 'live' : 'draft',
       reportedValues,
       dispatchCommand,
-      canSwitchOmpModel,
+      ompModelSwitchCommand,
       onAgentPicker,
       persistSelection: ({ modelId, optionId, value, adoptModelAsLaunchDefault }) =>
         // Paired PTY launches still assemble their launch preferences from client settings.
@@ -136,7 +136,7 @@ export function useNativeChatSessionOptions(args: {
     })
   }, [
     agent,
-    canSwitchOmpModel,
+    ompModelSwitchCommand,
     dispatchCommand,
     discoveryContext,
     onAgentPicker,

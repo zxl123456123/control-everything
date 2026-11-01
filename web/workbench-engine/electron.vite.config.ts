@@ -11,7 +11,7 @@ import { createProcessHostDevRebuildPlugin } from './config/build-plugins/proces
 import { createViteCacheRetentionPlugin } from './config/build-plugins/vite-cache-retention'
 import { MAIN_BUILD_ENTRY_POINTS } from './config/build-plugins/main-build-entry-points'
 import { createPlainNodeEntryGuardPlugin } from './config/build-plugins/plain-node-entry-guard'
-import { resolveBuildSourceCommit } from './config/scripts/build-source-commit.mjs'
+import { resolveWorkbenchBuildCommit } from './config/scripts/build-source-commit.mjs'
 
 const BUNDLED_MAIN_DEPENDENCIES = new Set([
   'stream-json',
@@ -75,7 +75,7 @@ function createDarkBuildMarkerPlugin(): Plugin {
 
 // Why: official skill installs pin to the commit the build came from, so they match the
 // bundled skills on every channel. Main runs the installer; the renderer prints the command.
-const ORCA_BUILD_COMMIT_LITERAL = JSON.stringify(resolveBuildSourceCommit())
+const ORCA_BUILD_COMMIT_LITERAL = JSON.stringify(resolveWorkbenchBuildCommit())
 
 function createStartupDiagnosticsBanner(chunkName: string): string {
   return `

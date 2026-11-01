@@ -12,8 +12,7 @@ import {
 import { codexProviderHandle } from '../../../shared/agent-session-provider-handle-encoding'
 
 export function registerJournalRowSchemaVersionTests(): void {
-  // Which rows an older host can still read: only rows that carry a turn item
-  // are stamped with the version it does not know, and the epoch row never is.
+  // Every current write fences a host that still derives the old key namespace.
   // Read raw: the reader upcasts every row to the current version, so only the
   // stored row_json says what an older build would see.
   describe('journal row schema versions', () => {
@@ -28,7 +27,7 @@ export function registerJournalRowSchemaVersionTests(): void {
       await rm(root, { recursive: true, force: true })
     })
 
-    it('stamps v3 only on rows that carry a turn item', async () => {
+    it('stamps v4 on every row, including the epoch and non-turn items', async () => {
       const journal = await opener.open({
         identity: {
           sessionId: 'session-1',
@@ -40,7 +39,7 @@ export function registerJournalRowSchemaVersionTests(): void {
         now: () => 1_000,
         stateDirectory: join(root, 'session-1')
       })
-      const identity = { provider: 'orca' as const, clientMessageId: 'm1' }
+      const identity = { provider: 'zkyq' as const, clientMessageId: 'm1' }
       await journal.appendItem(
         identity,
         { kind: 'message', role: 'user', blocks: [{ type: 'text', text: 'hi' }] },
@@ -63,9 +62,9 @@ export function registerJournalRowSchemaVersionTests(): void {
           .map((row) => JSON.parse(row.rowJson))
           .map((row: { kind: string; v: number }) => [row.kind, row.v])
         expect(stored).toEqual([
-          ['epoch', 2],
-          ['item', 2],
-          ['item', 3]
+          ['epoch', 4],
+          ['item', 4],
+          ['item', 4]
         ])
       } finally {
         opened.close()

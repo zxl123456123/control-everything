@@ -386,7 +386,7 @@ it('retains a newly accepted pre-echo failure after acquisition has consumed its
   emit({ ...connection.sent[0], uuid: 'owner' })
   emit(quota('refusal', 'owner').message)
   emit({ ...failedResult('owner', 1200, LIMIT_TEXT).message, user_message_uuid: 'owner' })
-  t.sink.appendItem({ provider: 'orca', clientMessageId: 'new-send' }, USER_MESSAGE, {
+  t.sink.appendItem({ provider: 'zkyq', clientMessageId: 'new-send' }, USER_MESSAGE, {
     turnScope: { kind: 'thread' }
   })
   await adapter.dispatch({

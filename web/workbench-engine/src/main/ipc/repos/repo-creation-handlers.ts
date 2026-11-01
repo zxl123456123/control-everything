@@ -35,7 +35,8 @@ export async function probeLocalGitAvailability(): Promise<boolean> {
  * override for the local host, which is the only scope this handler answers for.
  *
  * Why the untouched default does not count: `workspaceDir` is never blank -- new
- * installs seed it with `~/orca/workspaces`. Treating that seeded value as a choice
+ * installs seed it with `~/zkyq/workspaces` (previously `~/orca/workspaces`). Treating
+ * either seeded value as a choice
  * would silently relocate every existing user's projects into the worktree root,
  * where each project would then host its own worktrees inside its working tree.
  */
@@ -48,13 +49,15 @@ function getDefaultCreateProjectParent(store: Store): string {
     'defaultWorktreeLocation',
     settings.workspaceDir ?? ''
   ).trim()
-  const isUntouchedDefault =
-    normalizeRuntimePathForComparison(configured) ===
-    normalizeRuntimePathForComparison(getDefaultWorkspaceDir(home))
+  const isUntouchedDefault = [getDefaultWorkspaceDir(home), join(home, 'orca', 'workspaces')].some(
+    (defaultPath) =>
+      normalizeRuntimePathForComparison(configured) ===
+      normalizeRuntimePathForComparison(defaultPath)
+  )
   if (configured && !isUntouchedDefault) {
     return configured
   }
-  return join(home, 'orca', 'projects')
+  return join(home, 'zkyq', 'projects')
 }
 
 export function registerRepoCreationHandlers(mainWindow: BrowserWindow, store: Store): void {

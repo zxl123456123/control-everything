@@ -5,7 +5,7 @@ const mocks = vi.hoisted(() => ({ browser: vi.fn(), codex: vi.fn(), adopt: vi.fn
   hydrate: vi.fn(), reconcile: vi.fn(), opencode: vi.fn() }))
 vi.mock('./orcad-instance-lock', () => ({ acquireOrcadInstanceLock: () => ({
   path: '/fixture/state/orcad.lock', record: { pid: 1, startedAtMs: 1, nonce: 'fixture' }, release: vi.fn() }) }))
-vi.mock('../persistence/profile-state/profile-state-access', () => ({ acquireProfileStateRuntimeAdmission: () => ({ release: vi.fn() }) }))
+vi.mock('../persistence/profile-state/profile-state-data-name-migration', () => ({ acquireProfileStateAdmissionWithDataMigration: () => ({ release: vi.fn() }) }))
 vi.mock('./orcad-browser-startup', () => ({ startOrcadBrowserProvider: mocks.browser }))
 vi.mock('../runtime/agent-session-runtime-end-record', () => ({ recordAgentSessionRuntimeEnd: vi.fn() }))
 vi.mock('../codex/codex-hook-reconcile', () => ({ startCodexHooks: mocks.codex }))

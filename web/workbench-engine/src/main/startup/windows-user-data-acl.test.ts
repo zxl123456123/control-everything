@@ -54,7 +54,7 @@ describe('ensureWindowsUserDataAclGrant', () => {
     mkdirSync(join(userDataPath, 'agent-hooks'))
     mkdirSync(join(userDataPath, 'codex-runtime-home'))
     // Files carry no inheritable rule to fix, so they are not touched.
-    writeFileSync(join(userDataPath, 'orca-runtime.json'), '{}')
+    writeFileSync(join(userDataPath, 'zkyq-runtime.json'), '{}')
 
     expect(await awaitResult(userDataPath)).toEqual({ mode: 'granted' })
 

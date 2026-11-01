@@ -56,7 +56,7 @@ function withPlannedLaunch(
           env: {
             ...args.env,
             ...planned.env,
-            ...(launchToken ? { ORCA_AGENT_LAUNCH_TOKEN: launchToken } : {})
+            ...(launchToken ? { ZKYQ_AGENT_LAUNCH_TOKEN: launchToken } : {})
           }
         }
       : {}),

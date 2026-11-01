@@ -31,7 +31,7 @@ export function staleStopRow(
   cutBy: (item: AgentJournalRenderItem) => StaleCut
 ): {
   kind: 'item'
-  identity: { provider: 'orca'; clientMessageId: string }
+  identity: { provider: 'zkyq'; clientMessageId: string }
   body: AgentJournalStatusItem
 } | null {
   const cuts = items.map(cutBy)
@@ -42,7 +42,7 @@ export function staleStopRow(
     return {
       kind: 'item',
       identity: {
-        provider: 'orca',
+        provider: 'zkyq',
         clientMessageId: `${STALE_SESSION_ROW_PREFIX}${input.sessionId}:death-${evidence.ownerFence ?? 'unowned'}-${evidence.observedAt}`
       },
       body: orcaStopRowBody(input.failureTextContext, evidence.runtimeEnd)
@@ -57,7 +57,7 @@ export function staleStopRow(
     kind: 'item',
     // Named by the owner it explains, which every later runtime finds the same.
     identity: {
-      provider: 'orca',
+      provider: 'zkyq',
       clientMessageId: `${STALE_SESSION_ROW_PREFIX}${input.sessionId}:replaced-${fence}`
     },
     body: orcaStopRowBody(

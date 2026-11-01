@@ -52,7 +52,7 @@ describe('MobileEmulatorAgentControlRow freshness authority', () => {
 
   it('exposes local freshness only for a resolved local non-WSL runtime', () => {
     renderToStaticMarkup(<MobileEmulatorAgentControlRow />)
-    expect(mocks.freshnessSkillName).toBe('orca-cli')
+    expect(mocks.freshnessSkillName).toBe('zkyq-cli')
 
     mocks.canUseLocalSkillFreshness = false
     renderToStaticMarkup(<MobileEmulatorAgentControlRow />)
@@ -64,5 +64,23 @@ describe('MobileEmulatorAgentControlRow freshness authority', () => {
     expect(mocks.panelProps.onBeforeOpenTerminal).toBeUndefined()
     expect(mocks.panelProps.preInstallNotice).toBeUndefined()
     expect(mocks.panelProps.installDisabled).toBeUndefined()
+  })
+
+  it('shows executable emulator commands using the current CLI name', () => {
+    const markup = renderToStaticMarkup(<MobileEmulatorAgentControlRow />)
+    expect(markup).toContain('zkyq emulator list --json')
+    expect(markup).toContain('zkyq emulator attach')
+    expect(markup).toContain('zkyq emulator tap 0.5 0.7 --json')
+    expect(markup).toContain('zkyq emulator type')
+    expect(markup).not.toMatch(/orca emulator/i)
+  })
+
+  it('uses the current CLI name in the prompts offered for copying', async () => {
+    const { MobileEmulatorExamples } = await vi.importActual<
+      typeof import('./MobileEmulatorExamples')
+    >('./MobileEmulatorExamples')
+    const markup = renderToStaticMarkup(<MobileEmulatorExamples />)
+    expect(markup).toContain('Using zkyq CLI')
+    expect(markup).not.toContain('Orca CLI')
   })
 })

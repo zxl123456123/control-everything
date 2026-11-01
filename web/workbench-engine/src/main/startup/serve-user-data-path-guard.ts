@@ -1,4 +1,5 @@
 import { SERVE_USER_DATA_PATH_ENV, isSameUserDataPath } from '../../shared/serve-user-data-path'
+import { resolveMigratedDefaultDataRoot } from '../persistence/default-data-root-record-reader'
 
 /**
  * Returns the refusal message when this serve launch landed on a profile other than the one
@@ -20,8 +21,14 @@ export function checkServeUserDataPath(options: {
   if (!options.isServeMode || !expected) {
     return null
   }
-  if (isSameUserDataPath(expected, options.userDataPath, options.platform)) {
+  if (
+    isSameUserDataPath(
+      resolveMigratedDefaultDataRoot(expected),
+      options.userDataPath,
+      options.platform
+    )
+  ) {
     return null
   }
-  return `[serve] orca serve chose the profile at ${expected}, but this launch resolved ${options.userDataPath}; refusing to start so it cannot touch another profile's running Orca.`
+  return `[serve] zkyq serve chose the profile at ${expected}, but this launch resolved ${options.userDataPath}; refusing to start so it cannot touch another profile's running Control Everything.`
 }

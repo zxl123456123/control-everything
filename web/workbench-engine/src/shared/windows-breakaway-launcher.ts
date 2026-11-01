@@ -12,6 +12,7 @@ import { createRequire } from 'node:module'
 import { quoteWindowsArgument } from '@orca/process-host/windows-command-line'
 import {
   formatWindowsBreakawayLaunchReport,
+  ORCAD_WINDOWS_BREAKAWAY_CONTRACT,
   WINDOWS_BREAKAWAY_ENV_FLAG,
   WINDOWS_BREAKAWAY_EXIT_CODES,
   WINDOWS_BREAKAWAY_LAUNCH_FLAG,
@@ -23,6 +24,7 @@ import {
   type WindowsBreakawayLaunchReport
 } from './windows-breakaway-launch'
 import { ORCAD_WINDOWS_PROCESS_TREE_FILENAME } from './orcad-artifacts'
+import { applyOrcadLaunchEnvironmentOverrides } from './orcad-managed-launch-env'
 
 /** Both bundles stage the addon under this name beside their entry script. */
 const WINDOWS_PROCESS_TREE_ADDON = `./${ORCAD_WINDOWS_PROCESS_TREE_FILENAME}`
@@ -257,7 +259,11 @@ export function runWindowsBreakawayLaunchIfRequested(
     return false
   }
   // CreateProcessW gets no environment block, so the child inherits this process's, edits included.
-  Object.assign(process.env, request.env)
+  if (contract.argsFlag === ORCAD_WINDOWS_BREAKAWAY_CONTRACT.argsFlag) {
+    applyOrcadLaunchEnvironmentOverrides(process.env, request.env)
+  } else {
+    Object.assign(process.env, request.env)
+  }
   if (request.keepPreviousStderr) {
     keepPreviousStderrLog(request.stderrPath)
   }

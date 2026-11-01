@@ -3,12 +3,14 @@ import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { runProcess } from '@orca/process-host'
+import * as atomicFiles from '../codex-accounts/fs-utils'
 import {
   ORCAD_CLI_ENTRY_FILENAME,
   ORCAD_WINDOWS_CLI_LAUNCHER_FILENAME
 } from '../../shared/orcad-artifacts'
 import {
   ORCAD_WINDOWS_CLI_LAUNCHER_CONFIG_FILENAME,
+  getOrcadAccountCommand,
   getOrcadCliLauncherPath,
   prepareOrcadCliLauncher
 } from './orcad-cli-launcher'
@@ -23,12 +25,15 @@ let directory = ''
 const platformDescriptor = Object.getOwnPropertyDescriptor(process, 'platform')!
 
 beforeEach(async () => {
+  vi.stubEnv('CE_WORKBENCH_ISOLATED', '')
   directory = await mkdtemp(join(tmpdir(), 'orca-node-cli-'))
   roots.install = join(directory, "server ' slot")
   roots.profile = join(directory, "profile ' data")
 })
 
 afterEach(async () => {
+  vi.restoreAllMocks()
+  vi.unstubAllEnvs()
   Object.defineProperty(process, 'platform', platformDescriptor)
   await rm(directory, { recursive: true, force: true })
 })
@@ -38,7 +43,7 @@ async function writeCli(): Promise<void> {
   await mkdir(dirname(path), { recursive: true })
   await writeFile(
     path,
-    'console.log(JSON.stringify({profile:process.env.ORCA_USER_DATA_PATH, args:process.argv.slice(2), electron:process.env.ELECTRON_RUN_AS_NODE}))'
+    'console.log(JSON.stringify({profile:process.env.ZKYQ_USER_DATA_PATH, args:process.argv.slice(2), electron:process.env.ELECTRON_RUN_AS_NODE}))'
   )
 }
 
@@ -49,7 +54,7 @@ describe('orcad profile CLI launcher', () => {
       await writeCli()
       await prepareOrcadCliLauncher()
       const launcher = getOrcadCliLauncherPath()
-      expect(launcher).toBe(join(roots.profile, 'cli', 'bin', 'orca'))
+      expect(launcher).toBe(join(roots.profile, 'cli', 'bin', 'zkyq'))
       if (!launcher) {
         throw new Error('CLI launcher is missing')
       }
@@ -59,7 +64,7 @@ describe('orcad profile CLI launcher', () => {
         args,
         env: {
           ...process.env,
-          ORCA_USER_DATA_PATH: '/another/owner',
+          ZKYQ_USER_DATA_PATH: '/another/owner',
           ELECTRON_RUN_AS_NODE: '1',
           NODE_OPTIONS: '--require /missing/inherited/preload'
         },
@@ -92,7 +97,7 @@ describe('orcad profile CLI launcher', () => {
       })
       expect(result.code).toBe(0)
       expect(JSON.parse(result.stdout)).toEqual({
-        ORCA_USER_DATA_PATH: roots.profile,
+        ZKYQ_USER_DATA_PATH: roots.profile,
         ORCA_ENVIRONMENT: 'other-server',
         ORCA_PAIRING_CODE: 'other-pairing'
       })
@@ -121,6 +126,47 @@ describe('orcad profile CLI launcher', () => {
     roots.install = join(directory, 'old server')
     await prepareOrcadCliLauncher()
     expect(getOrcadCliLauncherPath()).toBeNull()
+    expect(getOrcadAccountCommand()).toBeUndefined()
+  })
+
+  it.each([false, true])('migrates the POSIX command with the same runtime and profile: platform=%s', async (platform) => {
+    Object.defineProperty(process, 'platform', { configurable: true, value: 'linux' })
+    vi.stubEnv('CE_WORKBENCH_ISOLATED', platform ? '1' : '')
+    vi.stubEnv('CE_WORKBENCH_ORIGIN', 'http://127.0.0.1:8878')
+    await writeCli()
+    await mkdir(join(roots.profile, 'cli', 'bin'), { recursive: true })
+    await writeFile(join(roots.profile, 'cli', 'bin', 'ce-workbench'), 'old generated command')
+    await writeFile(join(roots.profile, 'cli', 'bin', 'orca'), 'old internal command')
+    await prepareOrcadCliLauncher()
+    expect(getOrcadCliLauncherPath()).toBe(join(roots.profile, 'cli', 'bin', 'zkyq'))
+    expect(getOrcadAccountCommand()).toBe('zkyq')
+    expect(await readFile(join(roots.profile, 'cli', 'bin', 'zkyq'), 'utf8')).toBe(
+      await readFile(getOrcadCliLauncherPath()!, 'utf8')
+    )
+    await expect(readFile(join(roots.profile, 'cli', 'bin', 'ce-workbench'))).rejects.toMatchObject({ code: 'ENOENT' })
+    await expect(readFile(join(roots.profile, 'cli', 'bin', 'orca'))).rejects.toMatchObject({ code: 'ENOENT' })
+  })
+
+  it('runs the direct CLI entry without a branding wrapper or added environment marker', async () => {
+    Object.defineProperty(process, 'platform', { configurable: true, value: 'linux' })
+    vi.stubEnv('CE_WORKBENCH_ISOLATED', '1')
+    vi.stubEnv('CE_WORKBENCH_ORIGIN', 'http://127.0.0.1:8878')
+    await writeCli()
+    await writeFile(
+      join(roots.install, ...ORCAD_CLI_ENTRY_FILENAME.split('/')),
+      'console.log(JSON.stringify({ brand: process.env.CE_WORKBENCH_CLI, args: process.argv.slice(2) }))'
+    )
+    vi.stubEnv('CE_WORKBENCH_CLI', '')
+    await prepareOrcadCliLauncher()
+    const args = ['account', 'add', '--label', 'Orca user label', '--help']
+    const result = await runProcess({
+      program: process.execPath,
+      args: [join(roots.install, ...ORCAD_CLI_ENTRY_FILENAME.split('/')), ...args],
+      timeoutMs: 5000
+    })
+    expect(result.code).toBe(0)
+    expect(JSON.parse(result.stdout)).toEqual({ brand: '', args })
+    await expect(readFile(join(roots.profile, 'cli', 'bin', 'platform-entry.cjs'))).rejects.toMatchObject({ code: 'ENOENT' })
   })
 
   describe('on a Windows host', () => {
@@ -143,7 +189,7 @@ describe('orcad profile CLI launcher', () => {
       await writeLauncher('native launcher v1')
       await prepareOrcadCliLauncher()
       const launcher = getOrcadCliLauncherPath()
-      expect(launcher).toBe(join(binDir(), 'orca.exe'))
+      expect(launcher).toBe(join(binDir(), 'zkyq.exe'))
       expect(await readFile(launcher!, 'utf8')).toBe('native launcher v1')
       expect(await readConfig()).toBe(
         [
@@ -155,8 +201,42 @@ describe('orcad profile CLI launcher', () => {
       )
       // cmd.exe reparses `%*`, so no batch or PowerShell proxy may shadow the exe.
       expect((await readdir(binDir())).sort()).toEqual(
-        [ORCAD_WINDOWS_CLI_LAUNCHER_CONFIG_FILENAME, 'orca.exe'].sort()
+        [ORCAD_WINDOWS_CLI_LAUNCHER_CONFIG_FILENAME, 'zkyq.exe'].sort()
       )
+      expect(getOrcadAccountCommand()).toBe('zkyq')
+    })
+
+    it.each([false, true])('migrates generated commands and the old wrapper: platform=%s', async (platform) => {
+      vi.stubEnv('CE_WORKBENCH_ISOLATED', platform ? '1' : '')
+      vi.stubEnv('CE_WORKBENCH_ORIGIN', 'http://127.0.0.1:8878')
+      await writeCli()
+      await writeLauncher('native launcher v1')
+      await mkdir(binDir(), { recursive: true })
+      await writeFile(join(binDir(), 'ce-workbench.exe'), 'native launcher v0')
+      await writeFile(join(binDir(), 'orca.exe'), 'native launcher v0')
+      await writeFile(join(binDir(), 'orca-launcher.cfg'), 'node=old runtime\n')
+      await writeFile(join(binDir(), 'platform-entry.cjs'), 'old branding wrapper')
+      await prepareOrcadCliLauncher()
+      expect(getOrcadCliLauncherPath()).toBe(join(binDir(), 'zkyq.exe'))
+      expect(getOrcadAccountCommand()).toBe('zkyq')
+      expect(await readFile(join(binDir(), 'zkyq.exe'), 'utf8')).toBe('native launcher v1')
+      expect(await readFile(join(binDir(), 'zkyq-launcher.cfg'), 'utf8')).toContain(
+        `user-data=${roots.profile}`
+      )
+      await expect(readFile(join(binDir(), 'orca-launcher.cfg'))).rejects.toMatchObject({ code: 'ENOENT' })
+      await expect(readFile(join(binDir(), 'ce-workbench.exe'))).rejects.toMatchObject({ code: 'ENOENT' })
+      await expect(readFile(join(binDir(), 'orca.exe'))).rejects.toMatchObject({ code: 'ENOENT' })
+      roots.install = join(directory, 'updated server')
+      await writeCli()
+      await writeLauncher('native launcher v2')
+      await prepareOrcadCliLauncher()
+      expect(await readFile(join(binDir(), 'zkyq.exe'), 'utf8')).toBe('native launcher v2')
+      await expect(readFile(join(binDir(), 'ce-workbench.exe'))).rejects.toMatchObject({ code: 'ENOENT' })
+      expect(await readConfig()).toContain(`cli=${join(roots.install, 'out', 'cli', 'index.js')}`)
+      await expect(readFile(join(binDir(), 'platform-entry.cjs'))).rejects.toMatchObject({ code: 'ENOENT' })
+      roots.install = join(directory, 'old server')
+      await prepareOrcadCliLauncher()
+      expect(getOrcadAccountCommand()).toBeUndefined()
     })
 
     it('refreshes the launcher and its target when the host switches server slots', async () => {
@@ -167,14 +247,40 @@ describe('orcad profile CLI launcher', () => {
       await writeCli()
       await writeLauncher('native launcher v2')
       await prepareOrcadCliLauncher()
-      expect(await readFile(join(binDir(), 'orca.exe'), 'utf8')).toBe('native launcher v2')
+      expect(await readFile(join(binDir(), 'zkyq.exe'), 'utf8')).toBe('native launcher v2')
       expect(await readConfig()).toContain(`cli=${join(roots.install, 'out', 'cli', 'index.js')}`)
     })
 
-    it('leaves a slot without the native launcher with no orca command', async () => {
+    it('does not advertise a command for a slot without the native launcher', async () => {
       await writeCli()
+      await mkdir(binDir(), { recursive: true })
+      await writeFile(join(binDir(), 'orca-launcher.cfg'), 'node=old runtime\n')
       await prepareOrcadCliLauncher()
       expect(getOrcadCliLauncherPath()).toBeNull()
+      expect(await readFile(join(binDir(), 'orca-launcher.cfg'), 'utf8')).toBe('node=old runtime\n')
+    })
+
+    it('publishes the new config first and retains the old one if binary installation fails', async () => {
+      await writeCli()
+      await writeLauncher('native launcher v1')
+      await mkdir(binDir(), { recursive: true })
+      await writeFile(join(binDir(), 'orca-launcher.cfg'), 'node=old runtime\n')
+      const writeAtomically = atomicFiles.writeFileAtomically
+      vi.spyOn(atomicFiles, 'writeFileAtomically').mockImplementation((path, contents, options) => {
+        if (path.endsWith('.exe')) {
+          expect(path).toBe(join(binDir(), 'zkyq.exe'))
+          throw new Error('simulated binary publication failure')
+        }
+        writeAtomically(path, contents, options)
+      })
+      await expect(prepareOrcadCliLauncher()).rejects.toThrow()
+      expect(await readFile(join(binDir(), 'zkyq-launcher.cfg'), 'utf8')).toContain(`node=${process.execPath}`)
+      expect(await readFile(join(binDir(), 'orca-launcher.cfg'), 'utf8')).toBe('node=old runtime\n')
+      expect(getOrcadCliLauncherPath()).toBeNull()
+      vi.restoreAllMocks()
+      await prepareOrcadCliLauncher()
+      expect(getOrcadCliLauncherPath()).toBe(join(binDir(), 'zkyq.exe'))
+      await expect(readFile(join(binDir(), 'orca-launcher.cfg'))).rejects.toMatchObject({ code: 'ENOENT' })
     })
   })
 })

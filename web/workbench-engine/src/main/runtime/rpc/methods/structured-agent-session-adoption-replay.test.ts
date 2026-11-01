@@ -130,7 +130,7 @@ beforeEach(async () => {
   // Why: the adopting create pre-trusts its folder in ~/.codex and Orca's managed Codex home.
   vi.stubEnv('HOME', join(root, 'home'))
   vi.stubEnv('USERPROFILE', join(root, 'home'))
-  vi.stubEnv('ORCA_USER_DATA_PATH', join(root, 'user-data'))
+  vi.stubEnv('ZKYQ_USER_DATA_PATH', join(root, 'user-data'))
 })
 
 afterEach(async () => {

@@ -1,4 +1,5 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { randomUUID } from 'node:crypto'
+import { existsSync, lstatSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 
@@ -7,8 +8,8 @@ import { parseHermesConfig } from './hermes-config-yaml'
 import { resolveHooksJsonWritePath } from '../agent-hooks/hook-config-write-path'
 import { writeHooksJson } from '../agent-hooks/installer-utils'
 import {
-  HERMES_PLUGIN_MARKER,
   HERMES_PLUGIN_NAME,
+  isManagedHermesPlugin,
   getPluginInitSource,
   getPluginManifest
 } from './hermes-managed-plugin-source'
@@ -22,8 +23,8 @@ export function getConfigPath(): string {
   return join(getHermesHome(), 'config.yaml')
 }
 
-export function getPluginDir(): string {
-  return join(getHermesHome(), 'plugins', HERMES_PLUGIN_NAME)
+export function getPluginDir(name = HERMES_PLUGIN_NAME): string {
+  return join(getHermesHome(), 'plugins', name)
 }
 
 function getManifestPath(pluginDir = getPluginDir()): string {
@@ -52,33 +53,62 @@ export function writeConfigFile(configPath: string, content: string): void {
 export function getPluginFilesState(pluginDir = getPluginDir()): {
   present: boolean
   managed: boolean
+  writable: boolean
   detail: string | null
 } {
   const manifestPath = getManifestPath(pluginDir)
   const initPath = getInitPath(pluginDir)
-  if (!existsSync(manifestPath) || !existsSync(initPath)) {
-    return { present: false, managed: false, detail: 'Managed Hermes plugin files are missing' }
-  }
   try {
-    const manifest = readFileSync(manifestPath, 'utf-8')
-    const init = readFileSync(initPath, 'utf-8')
-    const managed = manifest.includes(HERMES_PLUGIN_MARKER) && init.includes(HERMES_PLUGIN_MARKER)
+    const directory = lstatSync(pluginDir, { throwIfNoEntry: false })
+    if (!directory) return { present: false, managed: false, writable: true, detail: null }
+    if (!directory.isDirectory())
+      throw new Error(`Hermes plugin path is not a directory: ${pluginDir}`)
+    let count = 0
+    for (const path of [manifestPath, initPath]) {
+      const file = lstatSync(path, { throwIfNoEntry: false })
+      if (!file) continue
+      if (!file.isFile() || !isManagedHermesPlugin(readFileSync(path, 'utf-8'))) {
+        throw new Error(`Hermes plugin file is user-managed: ${path}`)
+      }
+      count++
+    }
     return {
       present: true,
-      managed,
-      detail: managed ? null : 'Hermes orca-status plugin exists but is not Orca-managed'
+      managed: count === 2,
+      writable: true,
+      detail: count === 2 ? null : 'Managed Hermes plugin files are missing'
     }
   } catch (error) {
     return {
       present: true,
       managed: false,
+      writable: false,
       detail: error instanceof Error ? error.message : String(error)
     }
   }
 }
 
 export function writePluginFiles(pluginDir = getPluginDir()): void {
+  const state = getPluginFilesState(pluginDir)
+  if (!state.writable) throw new Error(state.detail ?? 'Hermes plugin is user-managed')
   mkdirSync(pluginDir, { recursive: true })
-  writeFileSync(getManifestPath(pluginDir), getPluginManifest(), 'utf-8')
-  writeFileSync(getInitPath(pluginDir), getPluginInitSource(), 'utf-8')
+  for (const [path, content] of [
+    [getManifestPath(pluginDir), getPluginManifest()],
+    [getInitPath(pluginDir), getPluginInitSource()]
+  ]) {
+    if (!existsSync(path) || readFileSync(path, 'utf-8') !== content) {
+      writeFileSync(path, content, 'utf-8')
+    }
+  }
+}
+
+export function archivePluginDirectory(pluginDir: string): string {
+  const archive = join(
+    getHermesHome(),
+    '.zkyq-retired-plugins',
+    `${HERMES_PLUGIN_NAME}-${randomUUID()}`
+  )
+  mkdirSync(join(getHermesHome(), '.zkyq-retired-plugins'), { recursive: true })
+  renameSync(pluginDir, archive)
+  return archive
 }

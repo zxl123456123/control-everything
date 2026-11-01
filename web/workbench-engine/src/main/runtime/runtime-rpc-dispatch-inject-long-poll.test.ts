@@ -20,8 +20,8 @@ describe('orchestration.dispatch --inject as a long poll', () => {
         method: 'orchestration.dispatch',
         params
       })
-    expect(dispatch({ task: 'task_1', to: 'orca_session_id:x', inject: true })).toBe('wait')
-    expect(dispatch({ task: 'task_1', to: 'orca_session_id:x' })).toBeNull()
+    expect(dispatch({ task: 'task_1', to: 'agent_session:x', inject: true })).toBe('wait')
+    expect(dispatch({ task: 'task_1', to: 'agent_session:x' })).toBeNull()
     // A terminal inject writes and returns; it keeps a short-RPC slot.
     expect(dispatch({ task: 'task_1', to: 'term_worker', inject: true })).toBeNull()
   })
@@ -46,7 +46,7 @@ describe('orchestration.dispatch --inject as a long poll', () => {
         id: 'req_dispatch',
         authToken: metadata!.authToken,
         method: 'orchestration.dispatch',
-        params: { task: 'task_1', to: 'orca_session_id:x', inject: true }
+        params: { task: 'task_1', to: 'agent_session:x', inject: true }
       })
       await session.done
 

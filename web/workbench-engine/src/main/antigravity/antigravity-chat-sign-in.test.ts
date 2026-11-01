@@ -125,6 +125,7 @@ async function signInAgainst(
     }),
     stopLiveChats: async () => {},
     connect: vi.fn<ConnectAcpAgent<AcpAgentConnection>>((launch, connectionOptions) => {
+      expect(connectionOptions?.clientInfo).toEqual({ name: 'zkyq', version: '1' })
       const connection = createAcpAgentConnection(launch, connectionOptions, () => child)
       options.configure?.(connection)
       return connection

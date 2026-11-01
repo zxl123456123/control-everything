@@ -5,13 +5,24 @@ import {
 } from './orchestration-recovery-command'
 
 describe('orchestration recovery command identity', () => {
+  it('refuses an old override instead of silently selecting another executable', () => {
+    expect(() =>
+      resolveOrchestrationCliExecutable({ ORCA_CLI_COMMAND: '/selected/custom CLI' })
+    ).toThrow('ZKYQ_CLI_COMMAND')
+    expect(
+      resolveOrchestrationCliExecutable({
+        ORCA_CLI_COMMAND: '/old CLI',
+        ZKYQ_CLI_COMMAND: '/selected/custom CLI'
+      })
+    ).toBe('/selected/custom CLI')
+  })
   it.each([
-    ['configured dev', { ORCA_CLI_COMMAND: 'orca-dev' }, 'darwin', 'orca-dev'],
-    ['configured WSL', { ORCA_CLI_COMMAND: 'orca-ide' }, 'linux', 'orca-ide'],
-    ['dev checkout', { ORCA_DEV_REPO_ROOT: '/repo' }, 'darwin', 'orca-dev'],
-    ['packaged Linux', {}, 'linux', 'orca-ide'],
-    ['local macOS', {}, 'darwin', 'orca'],
-    ['local Windows', {}, 'win32', 'orca']
+    ['configured dev', { ZKYQ_CLI_COMMAND: 'zkyq-dev' }, 'darwin', 'zkyq-dev'],
+    ['configured WSL', { ZKYQ_CLI_COMMAND: 'orca-ide' }, 'linux', 'orca-ide'],
+    ['dev checkout', { ORCA_DEV_REPO_ROOT: '/repo' }, 'darwin', 'zkyq-dev'],
+    ['packaged Linux', {}, 'linux', 'zkyq'],
+    ['local macOS', {}, 'darwin', 'zkyq'],
+    ['local Windows', {}, 'win32', 'zkyq']
   ] as const)('resolves the %s CLI identity', (_name, env, platform, expected) => {
     expect(resolveOrchestrationCliExecutable(env, platform)).toBe(expected)
   })
@@ -49,7 +60,7 @@ describe('orchestration recovery command identity', () => {
       buildOrchestrationRecoveryCommand(
         'orchestration.workerStart',
         { task: 'task_1' },
-        'orca-dev',
+        'zkyq-dev',
         [
           'orchestration',
           'worker-start',
@@ -61,7 +72,7 @@ describe('orchestration recovery command identity', () => {
         ]
       )
     ).toEqual([
-      'orca-dev',
+      'zkyq-dev',
       'orchestration',
       'worker-start',
       '--task',

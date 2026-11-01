@@ -4,6 +4,8 @@ import { lazyWithRetry as lazy } from '@/lib/lazy-with-retry'
 import { saveStoredWebRuntimeEnvironment } from './web-runtime-environment'
 import { initWebDeviceKeySupport } from './web-device-key-support'
 import './platform-project-entry.css'
+import './platform-workbench.css'
+import { PlatformWorkspaceHeader } from './PlatformWorkspaceHeader'
 import {
   createPlatformEnvironment,
   loadPlatformProjectBootstrap,
@@ -34,6 +36,7 @@ function WorkspaceMounted({ onReady }: { onReady: () => void }): null {
 }
 
 export default function PlatformProjectEntry(): React.JSX.Element {
+  const workspaceContentRef = useRef<HTMLDivElement>(null)
   const [data, setData] = useState<PlatformProjectBootstrap | null>(null)
   const [runtimeData, setRuntimeData] = useState<PlatformRuntimeBootstrap | null>(null)
   const [runtimeError, setRuntimeError] = useState('')
@@ -171,7 +174,6 @@ export default function PlatformProjectEntry(): React.JSX.Element {
   const projectId = route.view === 'project' ? route.id : ''
   const previousProjectId = useRef(projectId)
   const pendingProjectReveal = useRef(false)
-  const currentData = data?.project.id === projectId ? data : null
   const developing = route.view === 'project' && ['workspace', 'activity'].includes(route.tab)
   const needsProjectRuntime = developing || projectSettings
   const workbench = route.view === 'workbench'
@@ -307,7 +309,7 @@ export default function PlatformProjectEntry(): React.JSX.Element {
           const trigger = settingsTrigger.current
           requestAnimationFrame(() => {
             if (trigger?.isConnected) trigger.focus({ preventScroll: true })
-            else document.querySelector<HTMLElement>('.platform-project-name, .platform-studio-host')?.focus({ preventScroll: true })
+            else document.querySelector<HTMLElement>('.platform-project-back, .platform-studio-host')?.focus({ preventScroll: true })
           })
         }
         if (
@@ -364,6 +366,42 @@ export default function PlatformProjectEntry(): React.JSX.Element {
       previous.forEach((inert, element) => { element.inert = inert })
     }
   }, [pauseWorkspacePortals])
+  useLayoutEffect(() => {
+    const content = workspaceContentRef.current!
+    let measuredCanvas: HTMLElement | null = null
+    const updateBounds = () => {
+      // Portaled panels follow live chrome, including notices and the canvas inset.
+      const canvas = content.querySelector<HTMLElement>('[data-workbench-canvas]')
+      const tabs = canvas?.querySelector<HTMLElement>('[data-workbench-tabs]')?.getBoundingClientRect()
+      const toolbar = canvas?.querySelector<HTMLElement>('.platform-workspace-toolbar')?.getBoundingClientRect()
+      const top = tabs?.height ? tabs.bottom : (toolbar?.bottom ?? (canvas || content).getBoundingClientRect().top + (canvas?.clientTop || 0)) + 36
+      document.documentElement.style.setProperty('--platform-workspace-panel-top', `${top}px`)
+      if (canvas) document.documentElement.style.setProperty('--platform-workspace-panel-left', `${canvas.getBoundingClientRect().left}px`)
+    }
+    const observer = new ResizeObserver(updateBounds)
+    const attachCanvas = () => {
+      const canvas = content.querySelector<HTMLElement>('[data-workbench-canvas]')
+      if (measuredCanvas !== canvas) {
+        if (measuredCanvas) observer.unobserve(measuredCanvas)
+        measuredCanvas = canvas
+        if (canvas) observer.observe(canvas)
+      }
+      updateBounds()
+    }
+    // The lazy app can mount after this effect. Once present, ignore mutations inside editor/terminal content.
+    const mounts = new MutationObserver((records) => {
+      if (!measuredCanvas?.isConnected || records.some((record) => record.target === measuredCanvas)) attachCanvas()
+    })
+    mounts.observe(content, { childList: true, subtree: true })
+    observer.observe(content)
+    attachCanvas()
+    return () => {
+      mounts.disconnect()
+      observer.disconnect()
+      document.documentElement.style.removeProperty('--platform-workspace-panel-top')
+      document.documentElement.style.removeProperty('--platform-workspace-panel-left')
+    }
+  }, [showWorkspace, showSettings, showWorkbench])
   useEffect(() => {
     if (!contextActive || (!showWorkspace && !showWorkbench)) return
     let active = true
@@ -527,31 +565,15 @@ export default function PlatformProjectEntry(): React.JSX.Element {
   }, [connected, chosen?.name, archived?.name])
   return (
     <div className="platform-project-entry bg-background">
-      {projectId && (
-        <nav className="platform-project-tabs" aria-label="项目工作区导航">
-          <a href="#home" className="platform-project-back">
-            项目总览
-          </a>
-          <span
-            className="platform-project-name"
-            aria-label="当前项目"
-            title={chosen?.directory || archived?.directory}
-          >
-            {developing && unlinkedWorkspace
-              ? '未关联的开发目录'
-              : chosen?.name || archived?.name || currentData?.project.name || '项目工作区'}
-          </span>
-          <div className="platform-project-tablist">
-            <a href={projectRoute(projectId)} aria-current={developing ? 'page' : undefined}>开发</a>
-          </div>
-        </nav>
+      {(projectId || workbench || globalSettings) && (
+        <PlatformWorkspaceHeader projectName={projectId ? (chosen?.name || archived?.name || '项目') : undefined}
+          settings={projectSettings || globalSettings} />
       )}
       {navigationNotice && (
         <p role="status" className="platform-navigation-notice">
           {navigationNotice}
         </p>
       )}
-      {workbench && <nav className="platform-project-tabs" aria-label="项目工作台导航"><a href="#home" className="platform-project-back">项目总览</a><span className="platform-project-name">项目工作台</span></nav>}
       <PlatformStudioSurface
         hidden={displayWorkspace || showSettings || showWorkbench}
         pending={Boolean(nativeSettings || workbench || (developing && !showWorkspace && !archived))}
@@ -607,7 +629,7 @@ export default function PlatformProjectEntry(): React.JSX.Element {
       {runtimeData && (workbench || globalSettings) && <Suspense fallback={null}><PlatformRuntimeNavigation data={runtimeData} projects={projects}
         active={workbench || globalSettings} workbench={workbench} entryRevision={acceptedRevision}
         settingsScope={globalSettings ? scope : undefined} onReady={onRuntimeReady} /></Suspense>}
-      <div className="platform-project-content" hidden={!displayWorkspace && !showSettings && !showWorkbench}
+      <div ref={workspaceContentRef} className="platform-project-content" hidden={!displayWorkspace && !showSettings && !showWorkbench}
         inert={!showWorkspace && !showSettings && !showWorkbench} aria-busy={retainWorkspace && !showWorkspace}>
         <PlatformProjectContext.Provider
           value={connected && (readyData === data || retainWorkspace) && !unlinkedWorkspace ? data : null}

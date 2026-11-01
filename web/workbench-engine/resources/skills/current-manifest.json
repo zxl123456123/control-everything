@@ -4,160 +4,160 @@
     {
       "name": "computer-use",
       "sourcePath": "skills/computer-use",
-      "packageDigest": "425634e3ebf27690cc613eaf17b6337b36769153ec6bca85dc4ebf65d4d6b8b4",
+      "packageDigest": "dfd88220aa7f0bef719b87fcee01797d4cb3fa2361fdde24a45de4b2d5821729",
       "files": [
         {
           "path": "SKILL.md",
-          "size": 2211,
+          "size": 2068,
           "executable": false,
           "classification": "text",
-          "exactSha256": "2839933fd35216845461466403e6061488005f6df57126d0cd0f769ea45753f3",
-          "textNormalizedSha256": "2839933fd35216845461466403e6061488005f6df57126d0cd0f769ea45753f3",
-          "identitySha256": "2839933fd35216845461466403e6061488005f6df57126d0cd0f769ea45753f3"
+          "exactSha256": "c20cec62c34387553a8c867d1e65c869f0b389e799d7b14865801caadd7980bb",
+          "textNormalizedSha256": "c20cec62c34387553a8c867d1e65c869f0b389e799d7b14865801caadd7980bb",
+          "identitySha256": "c20cec62c34387553a8c867d1e65c869f0b389e799d7b14865801caadd7980bb"
         }
       ]
     },
     {
       "name": "jira-tickets",
       "sourcePath": "skills/jira-tickets",
-      "packageDigest": "48ca2a93818e17bf1e942452e835800e8f967a935d3082e1e9c03fff9ddb3d19",
+      "packageDigest": "18978831116e327de469aacf465e0e412354acf143af2f3b4cfdc888ed96f3c9",
       "files": [
         {
           "path": "SKILL.md",
-          "size": 2129,
+          "size": 1957,
           "executable": false,
           "classification": "text",
-          "exactSha256": "5534da4000f4f4c87f7dbb263345a213068c0099a1440186adea865e17d90dfe",
-          "textNormalizedSha256": "5534da4000f4f4c87f7dbb263345a213068c0099a1440186adea865e17d90dfe",
-          "identitySha256": "5534da4000f4f4c87f7dbb263345a213068c0099a1440186adea865e17d90dfe"
+          "exactSha256": "1d5ace2e5d0771a798dfbda566065007b248d98e9f706f86d2361f3819ed37b5",
+          "textNormalizedSha256": "1d5ace2e5d0771a798dfbda566065007b248d98e9f706f86d2361f3819ed37b5",
+          "identitySha256": "1d5ace2e5d0771a798dfbda566065007b248d98e9f706f86d2361f3819ed37b5"
         }
       ]
     },
     {
       "name": "linear-tickets",
       "sourcePath": "skills/linear-tickets",
-      "packageDigest": "1eab442d048b79ab0b836adf57663ac384988dd79172ec5f14193eb05e037715",
+      "packageDigest": "9a726081c9e20a2fa248a43c82990bb92be47604226e497d6080807f16ed2ab5",
       "files": [
         {
           "path": "SKILL.md",
-          "size": 2231,
+          "size": 2073,
           "executable": false,
           "classification": "text",
-          "exactSha256": "e181f86073da65c492361469d504fe15e7ae61bc99990bc41bea47aa13455619",
-          "textNormalizedSha256": "e181f86073da65c492361469d504fe15e7ae61bc99990bc41bea47aa13455619",
-          "identitySha256": "e181f86073da65c492361469d504fe15e7ae61bc99990bc41bea47aa13455619"
-        }
-      ]
-    },
-    {
-      "name": "orca-cli",
-      "sourcePath": "skills/orca-cli",
-      "packageDigest": "0736bcbbb69ed18f9a36a58ad2eda47b6db55b30509953cf5ba5f0032058c535",
-      "files": [
-        {
-          "path": "SKILL.md",
-          "size": 2372,
-          "executable": false,
-          "classification": "text",
-          "exactSha256": "aa76f86505010096e8ea9edda1705a78aae7af45e54485f3fe0460664c1d9e4a",
-          "textNormalizedSha256": "aa76f86505010096e8ea9edda1705a78aae7af45e54485f3fe0460664c1d9e4a",
-          "identitySha256": "aa76f86505010096e8ea9edda1705a78aae7af45e54485f3fe0460664c1d9e4a"
-        }
-      ]
-    },
-    {
-      "name": "orca-emulator",
-      "sourcePath": "skills/orca-emulator",
-      "packageDigest": "1dc42e5addc613abd85eba639d4ac36d9c7b3bc6f7186f0a2d54d10dae3f06d3",
-      "files": [
-        {
-          "path": "SKILL.md",
-          "size": 2337,
-          "executable": false,
-          "classification": "text",
-          "exactSha256": "3da7191179e46cb0e1a6a936f1eb54254f6e98ec38849e1c95f0e11073076b48",
-          "textNormalizedSha256": "3da7191179e46cb0e1a6a936f1eb54254f6e98ec38849e1c95f0e11073076b48",
-          "identitySha256": "3da7191179e46cb0e1a6a936f1eb54254f6e98ec38849e1c95f0e11073076b48"
-        }
-      ]
-    },
-    {
-      "name": "orca-emulator-android",
-      "sourcePath": "skills/orca-emulator-android",
-      "packageDigest": "c348091d953427fc9800a1d49d94054866348008766879b24ef742cb613dc3d9",
-      "files": [
-        {
-          "path": "SKILL.md",
-          "size": 2234,
-          "executable": false,
-          "classification": "text",
-          "exactSha256": "3ade4e6f8f2717ca899fd841e61f116963a406e9527015b803854c16d012e278",
-          "textNormalizedSha256": "3ade4e6f8f2717ca899fd841e61f116963a406e9527015b803854c16d012e278",
-          "identitySha256": "3ade4e6f8f2717ca899fd841e61f116963a406e9527015b803854c16d012e278"
-        }
-      ]
-    },
-    {
-      "name": "orca-jira",
-      "sourcePath": "skills/orca-jira",
-      "packageDigest": "815931fe3f4b52437ca15db4b512ce4033b84b3ce1639df0882cc4f7adfc005d",
-      "files": [
-        {
-          "path": "SKILL.md",
-          "size": 2080,
-          "executable": false,
-          "classification": "text",
-          "exactSha256": "ca83c4662fbc2306efb9043674998b0ca5abacc78ec2e5f85e5db80288e6777a",
-          "textNormalizedSha256": "ca83c4662fbc2306efb9043674998b0ca5abacc78ec2e5f85e5db80288e6777a",
-          "identitySha256": "ca83c4662fbc2306efb9043674998b0ca5abacc78ec2e5f85e5db80288e6777a"
-        }
-      ]
-    },
-    {
-      "name": "orca-linear",
-      "sourcePath": "skills/orca-linear",
-      "packageDigest": "95f52429823e887317046f23b671d05408a947c296e5b2e44e9173dfc1d5aa4e",
-      "files": [
-        {
-          "path": "SKILL.md",
-          "size": 2088,
-          "executable": false,
-          "classification": "text",
-          "exactSha256": "8da23ef96470906315cace8ff84f8056255ee37d1b2d5db84d8b7b3270a0ba0f",
-          "textNormalizedSha256": "8da23ef96470906315cace8ff84f8056255ee37d1b2d5db84d8b7b3270a0ba0f",
-          "identitySha256": "8da23ef96470906315cace8ff84f8056255ee37d1b2d5db84d8b7b3270a0ba0f"
-        }
-      ]
-    },
-    {
-      "name": "orca-per-workspace-env",
-      "sourcePath": "skills/orca-per-workspace-env",
-      "packageDigest": "103f0671da111c9ad3def6c46da8d432e656878b840e6cc742219f4a3a4dbceb",
-      "files": [
-        {
-          "path": "SKILL.md",
-          "size": 2257,
-          "executable": false,
-          "classification": "text",
-          "exactSha256": "c005d126a13d2913351472f07690f1c1a660d4f286e2a5f21864aee294f436ce",
-          "textNormalizedSha256": "c005d126a13d2913351472f07690f1c1a660d4f286e2a5f21864aee294f436ce",
-          "identitySha256": "c005d126a13d2913351472f07690f1c1a660d4f286e2a5f21864aee294f436ce"
+          "exactSha256": "95a7d6fbce6e0ed13a27c311b3baf04e41cdaff1bf8881f8f940cfa281a71f27",
+          "textNormalizedSha256": "95a7d6fbce6e0ed13a27c311b3baf04e41cdaff1bf8881f8f940cfa281a71f27",
+          "identitySha256": "95a7d6fbce6e0ed13a27c311b3baf04e41cdaff1bf8881f8f940cfa281a71f27"
         }
       ]
     },
     {
       "name": "orchestration",
       "sourcePath": "skills/orchestration",
-      "packageDigest": "195f26431ecfb6df41b941b22958a2330b110bac7b7e97004e0b35fe586e41d9",
+      "packageDigest": "6443120047d8e81f1e42d19ef5e5711e5e2763b55e047964ddab28efafb13bbb",
       "files": [
         {
           "path": "SKILL.md",
-          "size": 3671,
+          "size": 3583,
           "executable": false,
           "classification": "text",
-          "exactSha256": "cd1b364bf35781bad06bf75ab1766afa8d6cec69cb2060529691d89871a2098a",
-          "textNormalizedSha256": "cd1b364bf35781bad06bf75ab1766afa8d6cec69cb2060529691d89871a2098a",
-          "identitySha256": "cd1b364bf35781bad06bf75ab1766afa8d6cec69cb2060529691d89871a2098a"
+          "exactSha256": "3204d2c80928873d901b60682e9c46e8ec41a67e1921c345c8e8e76e7183d3c1",
+          "textNormalizedSha256": "3204d2c80928873d901b60682e9c46e8ec41a67e1921c345c8e8e76e7183d3c1",
+          "identitySha256": "3204d2c80928873d901b60682e9c46e8ec41a67e1921c345c8e8e76e7183d3c1"
+        }
+      ]
+    },
+    {
+      "name": "zkyq-cli",
+      "sourcePath": "skills/zkyq-cli",
+      "packageDigest": "6ef41821a03c9c30ab287a2c3e35524d700302d86ffbf2905dbc0de2cd1d4de6",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "size": 2313,
+          "executable": false,
+          "classification": "text",
+          "exactSha256": "2a014b85eefea1b46a1e4eeefc04ed7504170d7517bde895b57ea2952b99981b",
+          "textNormalizedSha256": "2a014b85eefea1b46a1e4eeefc04ed7504170d7517bde895b57ea2952b99981b",
+          "identitySha256": "2a014b85eefea1b46a1e4eeefc04ed7504170d7517bde895b57ea2952b99981b"
+        }
+      ]
+    },
+    {
+      "name": "zkyq-emulator",
+      "sourcePath": "skills/zkyq-emulator",
+      "packageDigest": "6e1aaee6e0d4b790edde2a2bb0a6b079f3d63bed13b3edc3d11efe7461f2a67c",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "size": 2250,
+          "executable": false,
+          "classification": "text",
+          "exactSha256": "e885b14641bf954398d4c9e9b9aa16ed684f9239853ebf6b7883af345271dd42",
+          "textNormalizedSha256": "e885b14641bf954398d4c9e9b9aa16ed684f9239853ebf6b7883af345271dd42",
+          "identitySha256": "e885b14641bf954398d4c9e9b9aa16ed684f9239853ebf6b7883af345271dd42"
+        }
+      ]
+    },
+    {
+      "name": "zkyq-emulator-android",
+      "sourcePath": "skills/zkyq-emulator-android",
+      "packageDigest": "27ecc0f4e1c72852c39c358cde490f4aad68b80b3ac38098be541932d8dbbe23",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "size": 2119,
+          "executable": false,
+          "classification": "text",
+          "exactSha256": "4ff4a299a8e243de58b0ec953a24cb98b328cae5784d3b9dd1785ee906e52207",
+          "textNormalizedSha256": "4ff4a299a8e243de58b0ec953a24cb98b328cae5784d3b9dd1785ee906e52207",
+          "identitySha256": "4ff4a299a8e243de58b0ec953a24cb98b328cae5784d3b9dd1785ee906e52207"
+        }
+      ]
+    },
+    {
+      "name": "zkyq-jira",
+      "sourcePath": "skills/zkyq-jira",
+      "packageDigest": "23bd6b9f3a48d841d70e61727bbf953068897d921d19913aac97f2fce11cc6ec",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "size": 1951,
+          "executable": false,
+          "classification": "text",
+          "exactSha256": "dd0f486a74b2767103e66e85c9c9ef33a1b428be27d691117a2b5e45aaf88164",
+          "textNormalizedSha256": "dd0f486a74b2767103e66e85c9c9ef33a1b428be27d691117a2b5e45aaf88164",
+          "identitySha256": "dd0f486a74b2767103e66e85c9c9ef33a1b428be27d691117a2b5e45aaf88164"
+        }
+      ]
+    },
+    {
+      "name": "zkyq-linear",
+      "sourcePath": "skills/zkyq-linear",
+      "packageDigest": "cbc7a40d1c919ba8c69b978ea7e6f8259e057ac726d9bc18dabfbb29746ffeb8",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "size": 1959,
+          "executable": false,
+          "classification": "text",
+          "exactSha256": "7444c1e4fe23619ef4a8250c2ab0e5b6b8ef171b6db6ed3ca4796a69ef628551",
+          "textNormalizedSha256": "7444c1e4fe23619ef4a8250c2ab0e5b6b8ef171b6db6ed3ca4796a69ef628551",
+          "identitySha256": "7444c1e4fe23619ef4a8250c2ab0e5b6b8ef171b6db6ed3ca4796a69ef628551"
+        }
+      ]
+    },
+    {
+      "name": "zkyq-per-workspace-env",
+      "sourcePath": "skills/zkyq-per-workspace-env",
+      "packageDigest": "aa8e1d489d04b0c349f332fb22f12de67311e7d6a937f183cb1a2179a15821a7",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "size": 2127,
+          "executable": false,
+          "classification": "text",
+          "exactSha256": "fa9e038dbc21283a604fd2ca2d7eb7966de5bf1dbf11de060e6a41f34a222821",
+          "textNormalizedSha256": "fa9e038dbc21283a604fd2ca2d7eb7966de5bf1dbf11de060e6a41f34a222821",
+          "identitySha256": "fa9e038dbc21283a604fd2ca2d7eb7966de5bf1dbf11de060e6a41f34a222821"
         }
       ]
     }

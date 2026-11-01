@@ -29,9 +29,10 @@ export default function WorkspaceKanbanSheet({
   statusBarVisible
 }: WorkspaceKanbanSheetProps): React.JSX.Element {
   const drawerLeft = sidebarOpen ? sidebarWidth : 0
-  const drawerLeftCss = sidebarOpen
+  const sidebarLeftCss = sidebarOpen
     ? `var(--workspace-sidebar-live-width, ${sidebarWidth}px)`
     : '0px'
+  const drawerLeftCss = `var(--platform-workspace-panel-left, ${sidebarLeftCss})`
   const drawerBottom = `${statusBarVisible ? STATUS_BAR_RESERVE_HEIGHT : 0}px`
   const keepOpenForOutsideEvent = (event: {
     preventDefault: () => void
@@ -70,7 +71,7 @@ export default function WorkspaceKanbanSheet({
         showCloseButton={false}
         className="workspace-kanban-sheet-content bg-worktree-sidebar p-0 sm:max-w-none"
         overlayStyle={{
-          top: WORKSPACE_TOP_CHROME_HEIGHT,
+          top: `var(--platform-workspace-panel-top, ${WORKSPACE_TOP_CHROME_HEIGHT}px)`,
           bottom: drawerBottom,
           left: drawerLeftCss,
           pointerEvents: 'none'
@@ -79,7 +80,7 @@ export default function WorkspaceKanbanSheet({
           {
             ...leftSidebarStyle,
             left: drawerLeftCss,
-            top: WORKSPACE_TOP_CHROME_HEIGHT,
+            top: `var(--platform-workspace-panel-top, ${WORKSPACE_TOP_CHROME_HEIGHT}px)`,
             bottom: drawerBottom,
             height: 'auto',
             width: `min(calc(100vw - ${drawerLeftCss}), 1294px)`

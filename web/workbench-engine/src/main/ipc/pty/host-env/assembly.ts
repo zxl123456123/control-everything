@@ -34,6 +34,8 @@ import { AGENT_HOOK_RUNTIME_ENV_KEYS } from './spawn-env-keys'
 import { applyManagedDataAccountEnvironment } from '../../../managed-data-accounts/launch-environment'
 import { applyOpenCodeStatusPluginEnv, captureOpenCodeSourceConfig } from './opencode-config'
 import { applyCodexRemoteViewerClipboardEnv } from './codex-terminal-clipboard'
+import { getOrcaCliCommandNameForPlatform } from '../../../../shared/orca-cli-command-name'
+import { DEV_COMMAND_NAME } from '../../../cli/cli-install-constants'
 
 /**
  * Mutates `baseEnv` in place with all host-local PTY env vars and returns it.
@@ -140,7 +142,7 @@ export function buildPtyHostEnv(
       wslHookRelayManager.ensureForDistro(distro, opts.selectedCodexHomePath, wslLaunchKind)
       const guestEndpoint = wslHookRelayManager.getGuestEndpointFilePath(distro)
       if (guestEndpoint) {
-        baseEnv.ORCA_AGENT_HOOK_ENDPOINT = guestEndpoint
+        baseEnv.ZKYQ_AGENT_HOOK_ENDPOINT = guestEndpoint
       }
       // Why: OpenCode loads its status plugin from a guest config overlay, so point OPENCODE_CONFIG_DIR at the guest dir the relay materialized.
       const opencodeOverlayDir = openCodeAgent
@@ -148,13 +150,13 @@ export function buildPtyHostEnv(
         : null
       if (opencodeOverlayDir) {
         baseEnv.OPENCODE_CONFIG_DIR = opencodeOverlayDir
-        baseEnv.ORCA_OPENCODE_CONFIG_DIR = opencodeOverlayDir
-        delete baseEnv.ORCA_OPENCODE_SOURCE_CONFIG_DIR
+        baseEnv.ZKYQ_OPENCODE_CONFIG_DIR = opencodeOverlayDir
+        delete baseEnv.ZKYQ_OPENCODE_SOURCE_CONFIG_DIR
       } else {
         // Only guest overlays belong in WSL; otherwise let OpenCode use its guest config.
         delete baseEnv.OPENCODE_CONFIG_DIR
-        delete baseEnv.ORCA_OPENCODE_CONFIG_DIR
-        delete baseEnv.ORCA_OPENCODE_SOURCE_CONFIG_DIR
+        delete baseEnv.ZKYQ_OPENCODE_CONFIG_DIR
+        delete baseEnv.ZKYQ_OPENCODE_SOURCE_CONFIG_DIR
       }
     }
   }
@@ -209,20 +211,20 @@ export function buildPtyHostEnv(
     // Why: nested PTYs must not inherit stale source or overlay state from another agent.
     restoreOrStripOverlayEnv(baseEnv, {
       primary: 'PI_CODING_AGENT_DIR',
-      overlay: 'ORCA_PI_CODING_AGENT_DIR',
-      source: 'ORCA_PI_SOURCE_AGENT_DIR'
+      overlay: 'ZKYQ_PI_CODING_AGENT_DIR',
+      source: 'ZKYQ_PI_SOURCE_AGENT_DIR'
     })
     restoreOrStripOverlayEnv(baseEnv, {
       primary: 'PI_CODING_AGENT_DIR',
-      overlay: 'ORCA_OMP_CODING_AGENT_DIR',
-      source: 'ORCA_OMP_SOURCE_AGENT_DIR'
+      overlay: 'ZKYQ_OMP_CODING_AGENT_DIR',
+      source: 'ZKYQ_OMP_SOURCE_AGENT_DIR'
     })
     if (shouldPrepareOmpShadow) {
       Object.assign(baseEnv, piTitlebarExtensionService.buildFreshOmpEnv())
     }
-    delete baseEnv.ORCA_OMP_STATUS_EXTENSION
-    delete baseEnv.ORCA_PRIME_AGENT_SOURCE_AGENT_DIR
-    delete baseEnv.ORCA_PRIME_AGENT_STATUS_EXTENSION
+    delete baseEnv.ZKYQ_OMP_STATUS_EXTENSION
+    delete baseEnv.ZKYQ_PRIME_AGENT_SOURCE_AGENT_DIR
+    delete baseEnv.ZKYQ_PRIME_AGENT_STATUS_EXTENSION
   }
 
   if (opts.isWsl && opts.agentStatusHooksEnabled) {
@@ -230,12 +232,12 @@ export function buildPtyHostEnv(
     if (explicitPiAgentKind === 'pi') {
       const guestPiDir = wslHookRelayManager.getGuestAgentPath(distro, 'pi')
       if (guestPiDir) {
-        baseEnv.ORCA_PI_SOURCE_AGENT_DIR = guestPiDir
+        baseEnv.ZKYQ_PI_SOURCE_AGENT_DIR = guestPiDir
       }
     } else if (explicitPiAgentKind === 'omp') {
       const guestOmpExtension = wslHookRelayManager.getGuestAgentPath(distro, 'omp')
       if (guestOmpExtension) {
-        baseEnv.ORCA_OMP_STATUS_EXTENSION = guestOmpExtension
+        baseEnv.ZKYQ_OMP_STATUS_EXTENSION = guestOmpExtension
       }
     }
   }
@@ -279,31 +281,37 @@ export function buildPtyHostEnv(
   // Why: WSL shells need the managed userData root for shell-ready wrappers; dev-mode terminals need the same export so `orca` targets the live dev instance.
   if (opts.isWsl) {
     wslInteropHealthMonitor.noteActivity(opts.wslDistro ?? null)
-    baseEnv.ORCA_USER_DATA_PATH = opts.userDataPath
-    // Why: managed WSL registration uses `orca-ide`; exposing that literal scopes agent guidance to WSL without a bare-orca shim.
-    baseEnv.ORCA_CLI_COMMAND = getWslCliCommandName(opts.isPackaged)
+    baseEnv.ZKYQ_USER_DATA_PATH = opts.userDataPath
     const managedCliDir = getManagedWslCliDir(opts)
     if (managedCliDir) {
       baseEnv.ORCA_WSL_CLI_DIR = managedCliDir
     }
   } else {
     if (!opts.isPackaged) {
-      baseEnv.ORCA_USER_DATA_PATH ??= opts.userDataPath
+      baseEnv.ZKYQ_USER_DATA_PATH ??= opts.userDataPath
     }
-    delete baseEnv.ORCA_CLI_COMMAND
+    delete baseEnv.ZKYQ_CLI_COMMAND
   }
   prependOrcaCliDirToChildPath(baseEnv, {
     isPackaged: opts.isPackaged,
     userDataPath: opts.userDataPath,
     resourcesPath: opts.resourcesPath
   })
+  if (opts.isWsl) {
+    // The host helper can set a Windows launcher path; the guest needs its managed shell command.
+    baseEnv.ZKYQ_CLI_COMMAND = getWslCliCommandName(opts.isPackaged)
+  }
 
   if (
     opts.routeBrowserOpensToClient === true &&
     baseEnv.BROWSER === undefined &&
     process.env.BROWSER === undefined
   ) {
-    const cliCommand = opts.isWsl ? getWslCliCommandName(opts.isPackaged) : 'orca'
+    const cliCommand = opts.isWsl
+      ? getWslCliCommandName(opts.isPackaged)
+      : opts.isPackaged
+        ? getOrcaCliCommandNameForPlatform(process.platform)
+        : DEV_COMMAND_NAME + (process.platform === 'win32' ? '.cmd' : '')
     baseEnv.BROWSER = `${cliCommand} open-url --url %s`
   }
   // Why the browser-relay flag: both mean a headless runtime whose viewer is another machine.

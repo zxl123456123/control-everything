@@ -1,13 +1,13 @@
 export function getOmpModelCommandSourceLines(): string[] {
   return [
     "  if (isOmpRuntime() && typeof pi.registerCommand === 'function' && typeof pi.setModel === 'function') {",
-    "    pi.registerCommand('orca-model', {",
-    "      description: 'Switch the model selected in Orca',",
+    "    pi.registerCommand('zkyq-model', {",
+    "      description: 'Switch the selected model',",
     '      handler: async (selector, ctx) => {',
     '        const models = ctx.modelRegistry.getAvailable()',
     "        const model = models.find((candidate) => candidate.provider + '/' + candidate.id === selector.trim())",
     '        if (!model) {',
-    "          ctx.ui.notify('Model is no longer available. Refresh the Orca model picker.', 'error')",
+    "          ctx.ui.notify('Model is no longer available. Refresh the model picker.', 'error')",
     '          return',
     '        }',
     '        if (!await pi.setModel(model)) {',

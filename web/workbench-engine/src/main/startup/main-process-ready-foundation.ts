@@ -1,4 +1,8 @@
 import { app, session } from 'electron'
+import { homedir } from 'node:os'
+import { join } from 'node:path'
+import { hasExplicitPlatformCredentialRoot } from '../credentials/credential-root'
+import { migrateDefaultCredentialDataRoot } from '../persistence/default-data-root-migration'
 import { applyBackgroundActivationPolicy } from '../window/foreground-activation-policy'
 import { applyElectronProxySettings } from '../network/proxy-settings'
 import { installElectronProxyRequestGuard } from '../network/electron-proxy-request-guard'
@@ -60,6 +64,9 @@ import { reportProfileStateSaveDelay } from './profile-state-save-delay'
 
 export async function initializeReadyFoundation(): Promise<void> {
   logStartupMilestone('app-ready')
+  if (!hasExplicitPlatformCredentialRoot()) {
+    await migrateDefaultCredentialDataRoot(join(homedir(), '.orca'), join(homedir(), '.zkyq'))
+  }
   // Why: a headless automated run must not claim a macOS Dock tile or the menu bar.
   applyBackgroundActivationPolicy({ warn: console.warn })
   installElectronProxyRequestGuard(session.defaultSession)

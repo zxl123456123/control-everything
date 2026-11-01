@@ -7,11 +7,11 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 const ORCA_SHELL_WRAPPER_ENV = [
-  'ORCA_OPENCODE_CONFIG_DIR',
+  'ZKYQ_OPENCODE_CONFIG_DIR',
   'ORCA_MIMOCODE_HOME',
-  'ORCA_PI_CODING_AGENT_DIR',
-  'ORCA_OMP_CODING_AGENT_DIR',
-  'ORCA_OMP_STATUS_EXTENSION',
+  'ZKYQ_PI_CODING_AGENT_DIR',
+  'ZKYQ_OMP_CODING_AGENT_DIR',
+  'ZKYQ_OMP_STATUS_EXTENSION',
   'ORCA_CODEX_HOME',
   'ORCA_AGENT_TEAMS_SHIM_DIR',
   'ORCA_REMOTE_CLI_BIN_DIR'
@@ -107,10 +107,10 @@ export function useDaemonPtySubprocessEnv(mocks: PtySubprocessSpawnMocks): {
     mocks.resolveUnixShellPathMock.mockReset()
     mocks.resolveUnixShellPathMock.mockImplementation((shellPath: string) => shellPath)
     mocks.isPwshAvailableMock.mockReturnValue(false)
-    previousUserDataPath = process.env.ORCA_USER_DATA_PATH
+    previousUserDataPath = process.env.ZKYQ_USER_DATA_PATH
     previousPowerlevelWizardDisable = process.env[POWERLEVEL10K_WIZARD_DISABLE_ENV]
     state.userDataPath = mkdtempSync(join(tmpdir(), 'daemon-pty-subprocess-test-'))
-    process.env.ORCA_USER_DATA_PATH = state.userDataPath
+    process.env.ZKYQ_USER_DATA_PATH = state.userDataPath
     delete process.env[POWERLEVEL10K_WIZARD_DISABLE_ENV]
     for (const key of ORCA_SHELL_WRAPPER_ENV) {
       savedWrapperEnv[key] = process.env[key]
@@ -120,9 +120,9 @@ export function useDaemonPtySubprocessEnv(mocks: PtySubprocessSpawnMocks): {
 
   afterEach(() => {
     if (previousUserDataPath === undefined) {
-      delete process.env.ORCA_USER_DATA_PATH
+      delete process.env.ZKYQ_USER_DATA_PATH
     } else {
-      process.env.ORCA_USER_DATA_PATH = previousUserDataPath
+      process.env.ZKYQ_USER_DATA_PATH = previousUserDataPath
     }
     if (previousPowerlevelWizardDisable === undefined) {
       delete process.env[POWERLEVEL10K_WIZARD_DISABLE_ENV]

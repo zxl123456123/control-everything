@@ -72,7 +72,7 @@ test('a CLI agent in a never-opened workspace resumes after quit and relaunch', 
   writeFileSync(resumeLog, '')
   writeFileSync(
     fakeAgent,
-    `#!/bin/sh\nprintf '%s\\n' "$ORCA_PANE_KEY" >> '${resumeLog}'\nexec sleep 3600\n`
+    `#!/bin/sh\nprintf '%s\\n' "$ZKYQ_PANE_KEY" >> '${resumeLog}'\nexec sleep 3600\n`
   )
   chmodSync(fakeAgent, 0o755)
   const resumedPaneKeys = (): string[] =>

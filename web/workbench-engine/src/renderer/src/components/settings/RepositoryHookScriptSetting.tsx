@@ -82,9 +82,11 @@ function SaveIndicator({ status }: { status: HookSaveStatus }) {
       <span
         className={`size-1.5 rounded-full ${status === 'error' ? 'bg-destructive' : isSaving ? 'animate-pulse bg-amber-500' : 'bg-emerald-500'}`}
       />
-      {status === 'error' ? '保存失败，请重试' : isSaving
-        ? translate('auto.components.settings.RepositoryHooksSection.81057d5f71', 'Saving...')
-        : translate('auto.components.settings.RepositoryHooksSection.2b6356e744', 'Saved')}
+      {status === 'error'
+        ? '保存失败，请重试'
+        : isSaving
+          ? translate('auto.components.settings.RepositoryHooksSection.81057d5f71', 'Saving...')
+          : translate('auto.components.settings.RepositoryHooksSection.2b6356e744', 'Saved')}
     </span>
   )
 }
@@ -113,7 +115,8 @@ export function RepositoryHookScriptSetting({
   const [showLocal, setShowLocal] = useState(value.length > 0)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   useEffect(() => {
-    if (saveStatus === 'error' && focusOnError && inputRef.current?.isConnected) inputRef.current.focus()
+    if (saveStatus === 'error' && focusOnError && inputRef.current?.isConnected)
+      inputRef.current.focus()
   }, [saveStatus, focusOnError])
 
   const showLocalEditor = showLocal || value.length > 0 || !hasShared
@@ -131,7 +134,10 @@ export function RepositoryHookScriptSetting({
         <div className="space-y-2">
           <div className="flex items-center justify-between gap-2">
             <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium text-emerald-700 dark:text-emerald-300">
-              {translate('auto.components.settings.RepositoryHooksSection.39da2ae12f', 'orca.yaml')}
+              {translate(
+                'auto.components.settings.RepositoryHooksSection.39da2ae12f',
+                'project configuration'
+              )}
               <span className="font-normal text-emerald-700/80 dark:text-emerald-300/80">
                 {translate(
                   'auto.components.settings.RepositoryHooksSection.f828e1de19',
@@ -144,7 +150,7 @@ export function RepositoryHookScriptSetting({
               <code className="rounded bg-muted px-1 py-0.5">
                 {translate(
                   'auto.components.settings.RepositoryHooksSection.39da2ae12f',
-                  'orca.yaml'
+                  'project configuration'
                 )}
               </code>{' '}
               {translate(
@@ -236,11 +242,11 @@ export function LocalCommandSourceNotice({
             {notice.kind === 'checking'
               ? translate(
                   'auto.components.settings.RepositoryHooksSection.7f78e5eea6',
-                  'Local scripts are saved. Orca is still checking orca.yaml before it can recommend which script source to use.'
+                  'Local scripts are saved. Control Everything is still checking project configuration before it can recommend which script source to use.'
                 )
               : translate(
                   'auto.components.settings.RepositoryHooksSection.0ce113fd7b',
-                  'Local scripts are saved, but Script Source is set to orca.yaml only.'
+                  'Local scripts are saved, but Script Source is set to project configuration only.'
                 )}
           </p>
         </div>

@@ -94,7 +94,7 @@ describe('codex goal accounting revisions', () => {
     root = await mkdtemp(join(tmpdir(), 'orca-goal-revision-'))
     const journal = await journals.open({ identity: IDENTITY, stateDirectory: root })
     await journal.appendItem(
-      { provider: 'orca', clientMessageId: 'earlier' },
+      { provider: 'zkyq', clientMessageId: 'earlier' },
       { kind: 'status', text: 'Context compacted' },
       { fence: 1, turnScope: AGENT_JOURNAL_THREAD_SCOPE }
     )
@@ -105,7 +105,7 @@ describe('codex goal accounting revisions', () => {
     await drained()
     const [, created] = journal.snapshot().items
     await journal.appendItem(
-      { provider: 'orca', clientMessageId: 'later' },
+      { provider: 'zkyq', clientMessageId: 'later' },
       { kind: 'status', text: 'Something after the goal' },
       { fence: 1, turnScope: AGENT_JOURNAL_THREAD_SCOPE }
     )
@@ -130,9 +130,9 @@ describe('codex goal accounting revisions', () => {
 
     const items = journal.snapshot().items
     expect(items.map((item) => item.itemId)).toEqual([
-      'orca:earlier',
+      'zkyq:earlier',
       created?.itemId,
-      'orca:later'
+      'zkyq:later'
     ])
     const revised = items[1]
     expect(revised?.sequence).toBe(created?.sequence)

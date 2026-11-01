@@ -105,7 +105,7 @@ beforeEach(() => {
   root = mkdtempSync(join(tmpdir(), 'orca-codex-checkpoint-races-'))
   homedirMock.mockReturnValue(root)
   getPathMock.mockReturnValue(join(root, 'user-data'))
-  vi.stubEnv('ORCA_USER_DATA_PATH', join(root, 'user-data'))
+  vi.stubEnv('ZKYQ_USER_DATA_PATH', join(root, 'user-data'))
   vi.stubEnv('XDG_CONFIG_HOME', join(root, '.config'))
   vi.stubEnv('CODEX_HOME', join(root, '.codex'))
   const sessions = join(root, '.codex', 'sessions')

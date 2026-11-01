@@ -1,11 +1,13 @@
 import type { JournalReducerState } from './journal-reducer'
+import { canonicalAgentJournalItemKey } from '../../../shared/agent-session-journal-item-key'
 
 export function nextJournalItemRevision(
   state: JournalReducerState,
   itemId: string,
   revisions?: Map<string, number>
 ): number {
-  const resolved = state.aliases.get(itemId) ?? itemId
+  const current = canonicalAgentJournalItemKey(itemId)
+  const resolved = state.aliases.get(current) ?? current
   const revision =
     (revisions?.get(resolved) ??
       Math.max(state.items.get(resolved)?.revision ?? 0, state.tombstones.get(resolved) ?? 0)) + 1

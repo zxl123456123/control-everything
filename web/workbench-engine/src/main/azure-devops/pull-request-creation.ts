@@ -20,6 +20,7 @@ import {
 import { getAzureDevOpsPullRequestForBranch } from './client'
 import { mapAzureDevOpsPullRequest, type RawAzureDevOpsPullRequest } from './pull-request-mappers'
 import { getAzureDevOpsRepoRef, type AzureDevOpsRepoRef } from './repository-ref'
+import { readSourceControlEnvironment as envValue } from '../source-control/source-control-environment'
 
 const CREATE_REQUEST_TIMEOUT_MS = 60_000
 
@@ -29,16 +30,11 @@ type AzureDevOpsCreateAuthConfig = {
   username: string | null
 }
 
-function envValue(name: string): string | null {
-  const value = process.env[name]?.trim() ?? ''
-  return value.length > 0 ? value : null
-}
-
 function getAuthConfig(): AzureDevOpsCreateAuthConfig {
   return {
-    pat: envValue('ORCA_AZURE_DEVOPS_TOKEN') ?? envValue('ORCA_AZURE_DEVOPS_PAT'),
-    accessToken: envValue('ORCA_AZURE_DEVOPS_ACCESS_TOKEN'),
-    username: envValue('ORCA_AZURE_DEVOPS_USERNAME')
+    pat: envValue('ZKYQ_AZURE_DEVOPS_TOKEN') ?? envValue('ZKYQ_AZURE_DEVOPS_PAT'),
+    accessToken: envValue('ZKYQ_AZURE_DEVOPS_ACCESS_TOKEN'),
+    username: envValue('ZKYQ_AZURE_DEVOPS_USERNAME')
   }
 }
 
@@ -126,7 +122,7 @@ function classifyCreateError(error: unknown): CreateHostedReviewResult {
       ok: false,
       code: 'auth_required',
       error:
-        'Create PR failed: Azure DevOps is not authenticated. Next step: set ORCA_AZURE_DEVOPS_TOKEN in this environment.'
+        'Create PR failed: Azure DevOps is not authenticated. Next step: set ZKYQ_AZURE_DEVOPS_TOKEN in this environment.'
     }
   }
   if (status === 409 || lower.includes('already exists') || lower.includes('active pull request')) {

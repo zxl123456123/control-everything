@@ -54,7 +54,7 @@ function openJournal(name: string): Promise<AgentSessionJournal> {
 
 async function appendRow(journal: AgentSessionJournal, id: string): Promise<void> {
   await journal.appendItem(
-    { provider: 'orca', clientMessageId: id },
+    { provider: 'zkyq', clientMessageId: id },
     { kind: 'status', text: id },
     { fence: 1, turnScope: AGENT_JOURNAL_THREAD_SCOPE }
   )

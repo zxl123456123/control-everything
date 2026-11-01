@@ -153,7 +153,7 @@ async function ceilingCase(bundlePath, prefix) {
       `while [ ! -f ${r}.go ]; do sleep 0.05; done; for i in 1 2 3 4 5; do sleep 600 & done; ` +
         `echo ok > ${r}.forked; wait`
     ],
-    { ORCA_TERMINAL_PROCESS_CEILING: '64' }
+    { ZKYQ_TERMINAL_PROCESS_CEILING: '64' }
   )
   assert.equal(daemon.ceiling.state, 'on', JSON.stringify(daemon.ceiling))
   const [forkBomb, neighbour] = daemon.scopes
