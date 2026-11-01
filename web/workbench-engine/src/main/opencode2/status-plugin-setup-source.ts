@@ -94,7 +94,7 @@ async function setupOpenCode2Status(ctx) {
   let hooks;
   // Why: OpenCode may probe setup() with no context during startup, and the setup
   // API shape can drift between releases. Never throw from setup ${EM_DASH} a throw surfaces
-  // as an 'orca-opencode-status' plugin failed error in the TUI, which is worse
+  // as an 'zkyq-opencode-status' plugin failed error in the TUI, which is worse
   // than silently running without status reporting.
   try {
     if (!ctx || typeof ctx.session?.hook !== "function" || typeof ctx.event?.subscribe !== "function") return noop;
@@ -108,7 +108,7 @@ async function setupOpenCode2Status(ctx) {
     // subagent's work publishes as if it were the root's.
     const client = { session: { get: async (input, options) => { const result = await ctx.session.get(input, options); return result && typeof result.id === "string" ? { data: result } : result; } } };
     // Why: this host disposes plugins on a hot reload while turns keep running.
-    hooks = await OrcaOpenCodeStatusPlugin({ client, sessionsOutliveDispose: true });
+    hooks = await ZkyqOpenCodeStatusPlugin({ client, sessionsOutliveDispose: true });
     if (!hooks || typeof hooks.event !== "function") return noop;
     const promptRegistration = await ctx.session.hook("prompt", async (properties) => {
       await hooks.event({ event: { type: "session.next.prompt.admitted", properties } });

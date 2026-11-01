@@ -1,5 +1,5 @@
 import { existsSync, readFileSync, realpathSync } from 'node:fs'
-import { dirname, join, resolve } from 'node:path'
+import { dirname, isAbsolute, join, relative, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { applyEdits, modify, parse, type ParseError } from 'jsonc-parser'
 import {
@@ -15,6 +15,16 @@ export function registerOpenCodeTuiPlugin(
   entry: string,
   ownership: 'canonical' | 'overlay'
 ): void {
+  prepareOpenCodeTuiPluginRegistration(configDir, entry, ownership)()
+}
+
+/** Validate before renaming an installed plugin; apply the config edit after the move. */
+export function prepareOpenCodeTuiPluginRegistration(
+  configDir: string,
+  entry: string,
+  ownership: 'canonical' | 'overlay',
+  previousEntry?: string
+): () => void {
   const configPath =
     ['tui.jsonc', 'tui.json'].map((name) => join(configDir, name)).find(existsSync) ??
     join(configDir, 'tui.json')
@@ -37,12 +47,39 @@ export function registerOpenCodeTuiPlugin(
     ownership === 'overlay' && typeof item === 'string' && /^\.{1,2}[\\/]/.test(item)
       ? pathToFileURL(resolve(sourceDir, item)).href
       : item
-  const plugins = entries.map((item) =>
+  let plugins = entries.map((item) =>
     Array.isArray(item) && typeof item[0] === 'string'
       ? [rebase(item[0]), ...item.slice(1)]
       : rebase(item)
   )
-  if (!plugins.includes(plugin)) {
+  if (previousEntry) {
+    const retired = new Set([
+      pathToFileURL(previousEntry).href,
+      pathToFileURL(resolve(sourceDir, relative(configDir, previousEntry))).href
+    ])
+    const normalize = (value: unknown): unknown =>
+      typeof value === 'string' && (isAbsolute(value) || /^\.{1,2}[\\/]/.test(value))
+        ? pathToFileURL(resolve(sourceDir, value)).href
+        : value
+    let found: string | undefined
+    let changed = false
+    plugins = plugins.flatMap((item) => {
+      const value = Array.isArray(item) ? item[0] : item
+      const url = normalize(value)
+      if (!retired.has(url as string) && url !== plugin) return [item]
+      changed ||= retired.has(url as string)
+      const options = JSON.stringify(Array.isArray(item) ? item.slice(1) : [])
+      if (found !== undefined) {
+        if (found !== options) {
+          throw new InvalidOpenCodeTuiConfigError('Conflicting OpenCode TUI plugin registrations')
+        }
+        return []
+      }
+      found = options
+      return [Array.isArray(item) ? [plugin, ...item.slice(1)] : plugin]
+    })
+    if (!changed) return () => {}
+  } else if (!plugins.some((item) => (Array.isArray(item) ? item[0] : item) === plugin)) {
     plugins.push(plugin)
   }
   const updated = applyEdits(
@@ -52,11 +89,11 @@ export function registerOpenCodeTuiPlugin(
     })
   )
   if (updated === text) {
-    return
+    return () => {}
   }
   const write =
     ownership === 'canonical'
       ? writeCanonicalOpenCodePluginAtomically
       : writeOverlayOpenCodePluginAtomically
-  write(configPath, updated)
+  return () => write(configPath, updated)
 }

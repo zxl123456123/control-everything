@@ -49,7 +49,7 @@ async function makeFixture() {
 }
 
 async function writePayload(rootPath: string): Promise<string> {
-  const launcherPath = join(rootPath, 'resources', 'bin', 'orca-ide')
+  const launcherPath = join(rootPath, 'resources', 'bin', 'zkyq')
   await mkdir(dirname(launcherPath), { recursive: true })
   await writeFile(launcherPath, '#!/usr/bin/env bash\n', { mode: 0o755 })
   return launcherPath

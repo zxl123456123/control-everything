@@ -32,7 +32,7 @@ export async function probeAntigravityAcpServer(
   signal: AbortSignal
 ): Promise<void> {
   // The server's home and its temp unpack (about 1 GB) both live here, so one delete reclaims them.
-  const home = await mkdtemp(join(tmpdir(), 'orca-antigravity-probe-'))
+  const home = await mkdtemp(join(tmpdir(), 'zkyq-antigravity-probe-'))
   const probe: { connection?: AcpAgentConnection } = {}
   let answer: unknown = null
   try {

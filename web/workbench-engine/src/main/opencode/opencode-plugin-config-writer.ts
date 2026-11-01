@@ -1,5 +1,6 @@
 import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
+import { migrateOpenCodePluginIdentity } from '../../shared/opencode-plugin-identity'
 import {
   isInstalledOpenCodePluginCurrent,
   isOverlayOpenCodePluginCurrent
@@ -25,6 +26,12 @@ export function writeOpenCodePluginConfig(options: {
   mkdirSync(pluginsDir, { recursive: true })
   const pluginPath = join(pluginsDir, options.pluginFileName)
   const source = options.getSource()
+  migrateOpenCodePluginIdentity(
+    options.configDir,
+    options.pluginFileName,
+    source,
+    options.ownership
+  )
   if (options.tuiOnlyDirectory) {
     writeOpenCodeTuiPluginDirectory(pluginsDir, options.tuiOnlyDirectory, source, options.ownership)
     return

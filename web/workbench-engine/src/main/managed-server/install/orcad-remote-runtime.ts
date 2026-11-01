@@ -10,7 +10,7 @@ import {
 } from '../../../shared/orcad-artifacts'
 import { assertPosixOrcadHost } from './orcad-remote-host-support'
 import { quotePosixShell } from '../../../shared/shell-argument-quoting'
-import { joinRemotePath, type RemoteHostPlatform } from '../../ssh/ssh-remote-platform'
+import type { RemoteHostPlatform } from '../../ssh/ssh-remote-platform'
 
 /** `orcad_slot=<dir>;`, so the selections below name the long slot path once on the wire. */
 function assignOrcadSlot(directory: string): string {
@@ -57,13 +57,11 @@ export function selectOrcadSlotRuntimeCommand(
   legacyNodePath: string
 ): string {
   assertPosixOrcadHost(host)
-  const nodeMarker = quotePosixShell(
-    joinRemotePath(host, directory, ORCAD_NODE_RUNTIME_MARKER_FILENAME)
-  )
-  const runtime = quotePosixShell(joinRemotePath(host, directory, orcadBunRuntimeFilename(host.os)))
-  const target = quotePosixShell(joinRemotePath(host, directory, ORCAD_BUILD_TARGET_FILENAME))
+  const nodeMarker = `"$orcad_slot"/${quotePosixShell(ORCAD_NODE_RUNTIME_MARKER_FILENAME)}`
+  const runtime = `"$orcad_slot"/${quotePosixShell(orcadBunRuntimeFilename(host.os))}`
+  const target = `"$orcad_slot"/${quotePosixShell(ORCAD_BUILD_TARGET_FILENAME)}`
   return (
-    `if [ -e ${nodeMarker} ]; then ${orcadNodeSlotRuntimeCommand(host, directory)}` +
+    `${assignOrcadSlot(directory)}if [ -e ${nodeMarker} ]; then ${orcadNodeSlotRuntimeCommand(host, directory)}` +
     `elif [ -e ${target} ] || [ -e ${runtime} ]; then ` +
     `[ -x ${runtime} ] || exit 78; orcad_runtime=${runtime}; ` +
     `else orcad_runtime=${quotePosixShell(legacyNodePath)}; fi`

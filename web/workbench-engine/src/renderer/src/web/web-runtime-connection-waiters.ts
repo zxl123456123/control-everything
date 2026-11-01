@@ -24,7 +24,7 @@ export class WebRuntimeConnectionWaiters {
       return Promise.reject(this.options.getAuthError())
     }
     if (this.options.isIntentionallyClosed()) {
-      return Promise.reject(new Error('Remote Orca runtime connection closed.'))
+      return Promise.reject(new Error('Remote Control Everything runtime connection closed.'))
     }
     return new Promise((resolve, reject) => {
       const cleanup = (): void => {

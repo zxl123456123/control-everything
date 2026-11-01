@@ -47,6 +47,18 @@ test('missing, malformed and wrong repository provenance never falls back to hos
   assert.notEqual(run().status, 0);
 });
 
+test('adapted skills use the platform commit while upstream provenance stays fixed', () => {
+  const script = pathToFileURL(path.join(source, 'config/scripts/build-source-commit.mjs')).href;
+  const result = spawnSync(process.execPath, ['--input-type=module', '-e',
+    `import {resolveBuildSourceCommit, resolveWorkbenchBuildCommit} from ${JSON.stringify(script)}; console.log(JSON.stringify({upstream:resolveBuildSourceCommit(),workbench:resolveWorkbenchBuildCommit()}));`],
+    { cwd: root, encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+  const expected = spawnSync('git', ['rev-parse', 'HEAD'], { cwd: source, encoding: 'utf8' });
+  assert.equal(expected.status, 0, expected.stderr);
+  assert.deepEqual(JSON.parse(result.stdout), { upstream: commit, workbench: expected.stdout.trim() });
+  assert.notEqual(expected.stdout.trim(), commit);
+});
+
 async function nativeFixture() {
   for (const name of ['config/scripts/build-windows-process-tree-addon.mjs',
     'config/scripts/native-build-entry.cjs', 'config/scripts/windows-process-tree-prepared-addon.mjs',

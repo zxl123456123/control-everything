@@ -139,7 +139,11 @@ export class AcpAgentConnection extends AcpSessionRuntime {
     }
     // A broken sign-in line on the protocol stream is a broken agent, not a sign-in answer.
     unreadable = () =>
-      super.close(new AcpConnectionClosedError('The agent printed a sign-in link Orca cannot read'))
+      super.close(
+        new AcpConnectionClosedError(
+          'The agent printed a sign-in link Control Everything cannot read'
+        )
+      )
     child.stderr.on('error', (error) => super.close(error))
     managed.onExit((exit) => {
       const error =

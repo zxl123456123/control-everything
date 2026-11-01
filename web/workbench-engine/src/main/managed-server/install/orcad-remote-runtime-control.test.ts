@@ -1,4 +1,6 @@
 import type * as ExecCommandModule from '../../ssh/remote-exec/remote-exec-command'
+import { tmpdir } from 'node:os'
+import { win32 } from 'node:path'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('../../ssh/remote-exec/remote-exec-command', async (importOriginal) => ({
@@ -9,23 +11,87 @@ vi.mock('../../ssh/remote-exec/remote-exec-command', async (importOriginal) => (
 }))
 
 import { execCommand } from '../../ssh/remote-exec/remote-exec-command'
-import { launchOrcadAndAwaitReadiness } from './orcad-remote-runtime-control'
+import { execOrcadRemote, launchOrcadAndAwaitReadiness } from './orcad-remote-runtime-control'
+import { runWithOrcadFence } from '../activation/orcad-activation-fence-scope'
 import { getRemoteHostPlatform } from '../../ssh/ssh-remote-platform'
 import type { OrcadLaunchSpec } from './orcad-remote-launch'
+import { orcadLaunchCommand } from './orcad-remote-launch'
+import {
+  windowsOrcadLaunchCommand,
+  readWindowsOrcadLaunchEnvironmentVersion
+} from './orcad-remote-launch-windows'
 import { createSshOperationAbortError } from '../../ssh/connection/ssh-exec-options'
 
 const host = getRemoteHostPlatform('linux-arm64')
 const spec: OrcadLaunchSpec = {
-  remoteInstallDir: '/root/.orca-remote/orcad-0.1.0+07d0995735e0',
+  remoteInstallDir: '/root/.zkyq-remote/orcad-0.1.0+07d0995735e0',
   nodePath: '/usr/bin/node',
   fullVersion: '0.1.0+07d0995735e0',
   userDataDir: '/root/.orca',
   bindHost: '127.0.0.1',
   port: 6768,
-  activationRoot: '/root/.orca-remote/.orcad-activation-transaction'
+  activationRoot: '/root/.zkyq-remote/.orcad-activation-transaction'
 }
 const READY = `${JSON.stringify({ type: 'orca_server_ready', runtimeId: 'r1' })}\n`
 const mockExec = vi.mocked(execCommand)
+
+it('keeps the activation fence and cancellation while allowing a pinned-runtime transfer timeout', async () => {
+  const signal = new AbortController().signal
+  mockExec.mockReset().mockResolvedValue('copied')
+  await expect(
+    runWithOrcadFence({ lockDir: '/test-home/activation.lock', token: 'owned-token' }, () =>
+      execOrcadRemote({ conn: Object.create(null), host, signal }, 'echo copied', signal, 300_000)
+    )
+  ).resolves.toBe('copied')
+  expect(mockExec).toHaveBeenCalledWith(
+    Object.create(null),
+    expect.stringContaining('activation.lock'),
+    {
+      wrapCommand: true,
+      signal,
+      timeoutMs: 300_000
+    }
+  )
+  expect(mockExec.mock.calls[0][1]).toContain('echo copied')
+})
+
+it.each([0, 1] as const)(
+  'selects Windows launch environment %s from the installed package answer',
+  (version) => {
+    const answer = '__ZKYQ_LAUNCH_ENV__ ' + Buffer.from(String(version)).toString('base64')
+    expect(readWindowsOrcadLaunchEnvironmentVersion(answer)).toBe(version)
+    const windows = getRemoteHostPlatform('win32-x64')
+    const command = windowsOrcadLaunchCommand(windows, spec, 'node.exe', 'orcad.js', version)
+    expect(command).toContain(version === 1 ? 'ZKYQ_VERSION=' : 'ORCA_VERSION=')
+    expect(command).not.toContain(version === 1 ? 'ORCA_VERSION=' : 'ZKYQ_VERSION=')
+    expect(command).toContain(
+      version === 1 ? 'ZKYQ_SERVER_MANAGED_ACTIVATION_ROOT=' : 'ORCA_ORCAD_MANAGED_ACTIVATION_ROOT='
+    )
+  }
+)
+it('accepts an old host answer and refuses a future Windows environment format', () => {
+  expect(readWindowsOrcadLaunchEnvironmentVersion('')).toBe(0)
+  expect(() => readWindowsOrcadLaunchEnvironmentVersion('__ZKYQ_LAUNCH_ENV__ Mg==')).toThrow(
+    'Unsupported'
+  )
+})
+
+it('carries the selected data directory through both remote launch dialects', () => {
+  const windows = getRemoteHostPlatform('win32-x64')
+  const windowsSpec = {
+    ...spec,
+    remoteInstallDir: win32.join(tmpdir(), 'runtime-slot'),
+    userDataDir: win32.join(tmpdir(), 'existing Orca profile')
+  }
+  expect(orcadLaunchCommand(host, spec)).toContain('ZKYQ_USER_DATA=')
+  const runtime = win32.join(tmpdir(), 'runtime/node.exe')
+  const current = windowsOrcadLaunchCommand(windows, windowsSpec, runtime)
+  expect(current).toContain('ZKYQ_USER_DATA=')
+  expect(current).not.toContain('ORCA_USER_DATA=')
+  const previous = windowsOrcadLaunchCommand(windows, windowsSpec, runtime, undefined, 0)
+  expect(previous).toContain('ORCA_USER_DATA=')
+  expect(previous).toContain('ZKYQ_USER_DATA=')
+})
 
 function launch(signal?: AbortSignal) {
   return launchOrcadAndAwaitReadiness(

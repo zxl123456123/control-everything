@@ -5,6 +5,7 @@ import {
   type AgentStatusExtensionHarness,
   type HookContext
 } from './agent-status-extension-test-harness'
+import { getPiAgentStatusExtensionSource } from './agent-status-extension-source'
 import {
   agentEndCount,
   childIds,
@@ -508,6 +509,49 @@ describe('children that start outside a turn', () => {
 })
 
 describe('OMP session switches', () => {
+  it('adopts the legacy owner map without allowing a child session to take over on reload', async () => {
+    const harness = createAgentStatusExtensionHarness({
+      kind: 'omp',
+      existsSync: () => true,
+      initialSource: getPiAgentStatusExtensionSource('omp')
+        .replace(
+          "key.description === 'orca.omp.status-session-owners'",
+          "key.description === 'fixture.unused'"
+        )
+        .replace(
+          "Symbol.for('zkyq.omp.status-session-owners')",
+          "Symbol.for('orca.omp.status-session-owners')"
+        )
+    })
+    const { context } = ompSession()
+    await harness.callHook('agent_start', {}, context)
+    await vi.advanceTimersByTimeAsync(0)
+    const legacy = 'orca.omp.status-session-owners'
+    const current = 'zkyq.omp.status-session-owners'
+    const owners = harness.readSymbolState()[legacy]
+    expect(owners).toBeDefined()
+    await harness.reloadPi()
+    await vi.advanceTimersByTimeAsync(0)
+    const count = harness.fetchMock.mock.calls.length
+    await harness.callHook(
+      'agent_start',
+      {},
+      {
+        sessionManager: {
+          getSessionId: () => 'child',
+          getSessionFile: () => '/sessions/child.jsonl'
+        }
+      }
+    )
+    await vi.advanceTimersByTimeAsync(0)
+    expect(harness.fetchMock).toHaveBeenCalledTimes(count)
+    expect(harness.readSymbolState()[current]).toBe(owners)
+    expect(harness.readSymbolState()).not.toHaveProperty(legacy)
+    await harness.callHook('agent_start', {}, context)
+    await vi.advanceTimersByTimeAsync(0)
+    expect(harness.fetchMock).toHaveBeenCalledTimes(count + 1)
+  })
+
   beforeEach(() => {
     vi.useFakeTimers()
   })
@@ -651,11 +695,15 @@ describe('OMP session switches', () => {
   it.each(['omp', 'pi'] as const)(
     'takes over a roster and its subscriptions that an older build left on the %s bus',
     async (kind) => {
+      let seededBus: Record<string, unknown> = {}
       const harness = createAgentStatusExtensionHarness({
         kind,
         sharedEventBus: true,
         seedEventBus: (bus) => {
+          seededBus = bus as unknown as Record<string, unknown>
           Object.assign(bus, {
+            __orcaPiSubagentsHeard: true,
+            __orcaPiRunnerExitsHeard: true,
             __orcaPiSubagents: {
               active: new Set(['old-child']),
               waiting: false,
@@ -667,6 +715,11 @@ describe('OMP session switches', () => {
       })
       expect(harness.piEventListenerCount('task:subagent:lifecycle')).toBe(0)
       expect(harness.piEventListenerCount('subagent:process-terminal')).toBe(0)
+      expect(seededBus).not.toHaveProperty('__orcaPiSubagents')
+      expect(seededBus).not.toHaveProperty('__orcaPiSubagentsHeard')
+      expect(seededBus).not.toHaveProperty('__orcaPiRunnerExitsHeard')
+      expect(seededBus.__zkyqPiSubagentsHeard).toBe(true)
+      expect(seededBus.__zkyqPiRunnerExitsHeard).toBe(true)
 
       await harness.callHook('agent_start')
       await vi.advanceTimersByTimeAsync(0)

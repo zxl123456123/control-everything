@@ -1,4 +1,5 @@
 import type Database from '../../sqlite/sync-database'
+import { canonicalCommandReceipt } from './command-receipt-key-identity'
 import { journalPragmaNumber } from './journal-database'
 import { JOURNAL_DB_SCHEMA_VERSION } from './journal-database-schema'
 import { assertJournalWritable } from './journal-write-guards'
@@ -88,7 +89,7 @@ function readCommandReceiptCandidates(
       if (!parsed.success) {
         return unreadable
       }
-      receipts.push(parsed.data)
+      receipts.push(canonicalCommandReceipt(parsed.data))
     }
     return { verdict: 'readable', receipts }
   } catch (error) {
@@ -132,7 +133,7 @@ export function insertCommandReceiptIfAbsent(
   if (!db.isTransaction) {
     throw new Error('a command receipt must be written inside an open transaction')
   }
-  const written = commandReceiptSchema.parse(receipt)
+  const written = canonicalCommandReceipt(commandReceiptSchema.parse(receipt))
   const claim = commandReceiptScopeSchema.parse(scope)
   if (claim.kind === 'caller' && claim.callerKey !== written.callerKey) {
     throw new Error('command caller does not match its scope')

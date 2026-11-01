@@ -219,7 +219,7 @@ afterAll(() => rmSync(crashRoot, { recursive: true, force: true }))
 beforeEach(() => {
   root = mkdtempSync(join(tmpdir(), 'orca-domain-transfer-'))
   writeFileSync(
-    join(root, 'orca-profile-index.json'),
+    join(root, 'zkyq-profile-index.json'),
     JSON.stringify({
       schemaVersion: ORCA_PROFILE_INDEX_SCHEMA_VERSION,
       activeProfileId: 'source',

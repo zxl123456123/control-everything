@@ -10,6 +10,7 @@ import {
   readWindowsOrcadLaunchReport,
   readWindowsOrcadSlotRuntime,
   readWindowsOrcadSlotEntry,
+  readWindowsOrcadLaunchEnvironmentVersion,
   windowsOrcadLaunchCommand,
   windowsOrcadLaunchRuntimeCommand
 } from './orcad-remote-launch-windows'
@@ -43,18 +44,22 @@ export type OrcadRemoteExecTarget = {
   signal?: AbortSignal
   /** Locates the runtime store for host-record scripts; required on Windows, unused elsewhere. */
   remoteHome?: string
+  /** Set only by the managed context; an explicit custom directory never enters migration. */
+  defaultDataRoot?: string
 }
 
 /** Under a held activation fence, the step runs only while the host still names this run its owner. */
 export async function execOrcadRemote(
   target: OrcadRemoteExecTarget,
   command: string,
-  signal = target.signal
+  signal = target.signal,
+  timeoutMs?: number
 ): Promise<string> {
   const fence = currentOrcadFence()
   const run = (line: string): Promise<string> =>
     execCommand(target.conn, line, {
       wrapCommand: target.host.commandDialect !== 'powershell',
+      ...(timeoutMs === undefined ? {} : { timeoutMs }),
       signal
     })
   try {
@@ -106,6 +111,16 @@ export async function launchOrcadAndAwaitReadiness(
   },
   spec: OrcadLaunchSpec
 ): Promise<OrcadReadinessParse> {
+  if (target.defaultDataRoot && target.remoteHome) {
+    const { prepareManagedDataRoot } = await import('./orcad-remote-data-roots')
+    const prepared = await prepareManagedDataRoot(
+      { ...target, remoteHome: target.remoteHome },
+      target.defaultDataRoot,
+      spec.remoteInstallDir,
+      'launch'
+    )
+    spec = { ...spec, userDataDir: prepared.launchUserDataDir }
+  }
   if (isWindowsRemoteHost(target.host)) {
     const slotAnswer = await execOrcadRemote(
       target,
@@ -116,7 +131,13 @@ export async function launchOrcadAndAwaitReadiness(
     readWindowsOrcadLaunchReport(
       await execOrcadRemote(
         target,
-        windowsOrcadLaunchCommand(target.host, spec, slotRuntime, slotEntry)
+        windowsOrcadLaunchCommand(
+          target.host,
+          spec,
+          slotRuntime,
+          slotEntry,
+          readWindowsOrcadLaunchEnvironmentVersion(slotAnswer)
+        )
       )
     )
   } else {

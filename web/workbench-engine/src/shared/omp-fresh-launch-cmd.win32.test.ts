@@ -42,7 +42,7 @@ it.skipIf(process.platform !== 'win32')(
               ...process.env,
               CAPTURE: capture,
               ORCA_EXPANSION_PROBE: 'unexpected',
-              ORCA_OMP_FRESH_CONFIG: config,
+              ZKYQ_OMP_FRESH_CONFIG: config,
               ORCA_SEQUENCED_STARTUP_COMMAND: launch
             },
             input: `${line}\r\nexit %errorlevel%\r\n`

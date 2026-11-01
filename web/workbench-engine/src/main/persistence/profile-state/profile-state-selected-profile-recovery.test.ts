@@ -6,6 +6,7 @@ import { acquireProfileStateMaintenance } from './profile-state-access'
 import { migrateProfileStateToSqlite } from './profile-state-migration'
 import { getProfileStateExports, rollbackProfileState } from './profile-state-recovery-command'
 import { bootstrapProfileStateAuthority } from './profile-state-authority-bootstrap'
+import { acquireProfileStateAdmissionWithDataMigration } from './profile-state-data-name-migration'
 
 const roots: string[] = []
 afterEach(() => roots.splice(0).forEach((root) => rmSync(root, { recursive: true, force: true })))
@@ -21,7 +22,7 @@ function fixture() {
   const profiles = ['active', 'inactive'].map((profileId) => {
     const directory = join(root, 'profiles', profileId)
     mkdirSync(directory, { recursive: true })
-    const dataFile = join(directory, 'orca-data.json')
+    const dataFile = join(directory, 'zkyq-data.json')
     const databaseFile = join(directory, 'profile-state.db')
     const legacy = JSON.stringify({ settings: { theme: 'legacy' } })
     writeFileSync(dataFile, legacy)
@@ -52,7 +53,8 @@ describe('explicit profile recovery selection', () => {
     try {
       const result = rollbackProfileState(f.root, { kind: 'latest-json' }, maintenance, 'inactive')
       expect(result.profileId).toBe('inactive')
-      expect(JSON.parse(readFileSync(f.inactive.dataFile, 'utf8'))).toEqual({
+      expect(result.restoredPath).toBe(join(f.root, 'profiles', 'inactive', 'orca-data.json'))
+      expect(JSON.parse(readFileSync(result.restoredPath, 'utf8'))).toEqual({
         settings: { theme: 'inactive' }
       })
       expect(existsSync(f.inactive.databaseFile)).toBe(false)
@@ -63,6 +65,7 @@ describe('explicit profile recovery selection', () => {
     expect(readFileSync(f.active.databaseFile).equals(activeBytes)).toBe(true)
     expect(readFileSync(f.indexPath, 'utf8')).toBe(indexBytes)
     expect(readFileSync(markerPath, 'utf8')).toBe('active-marker')
+    acquireProfileStateAdmissionWithDataMigration(f.root).release()
     const reopened = bootstrapProfileStateAuthority(f.inactive)
     expect(reopened.migrated).toBe(true)
     reopened.authority?.close()

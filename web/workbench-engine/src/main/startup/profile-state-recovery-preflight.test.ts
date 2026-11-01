@@ -76,7 +76,7 @@ beforeEach(() => {
   mocks.requestSingleInstanceLock.mockReturnValue(true)
   mocks.whenReady.mockResolvedValue(undefined)
   mocks.showMessageBox.mockResolvedValue({ response: 0 })
-  vi.stubEnv('ORCA_USER_DATA_PATH', '/stale/inherited/root')
+  vi.stubEnv('ZKYQ_USER_DATA_PATH', '/stale/inherited/root')
   vi.stubEnv('ORCA_BYPASS_SINGLE_INSTANCE_LOCK', '1')
   vi.stubEnv('ORCA_E2E_ENFORCE_SINGLE_INSTANCE_LOCK', '0')
 })
@@ -98,7 +98,7 @@ function fixture() {
     join(root, 'orca-profile-index.json'),
     JSON.stringify({ activeProfileId: profileId, profiles: [{ id: profileId }] })
   )
-  const dataFile = join(directory, 'orca-data.json')
+  const dataFile = join(directory, 'zkyq-data.json')
   const databaseFile = join(directory, 'profile-state.db')
   const exportFile = profileStateJsonExportPath(dataFile, 1)
   const restored = {
@@ -135,7 +135,7 @@ describe('Electron recovery preflight', () => {
     const start = source.indexOf('export function runMainProcessPreflight(')
     const recovery = source.indexOf('if (runProfileStateRecoveryPreflight())', start)
     const redirect = source.indexOf('const cliLaunchRedirect = maybeRedirectCliLaunch(', start)
-    const admission = source.indexOf('acquireProfileStateRuntimeAdmission(', start)
+    const admission = source.indexOf('acquireProfileStateAdmissionWithDataMigration(', start)
     expect(start).toBeGreaterThanOrEqual(0)
     expect(recovery).toBeGreaterThan(start)
     expect(redirect).toBeGreaterThan(recovery)
@@ -165,19 +165,21 @@ describe('Electron recovery preflight', () => {
         return true
       })
       expect(runProfileStateRecoveryPreflight(item.argv)).toBe(true)
-      expect(process.env.ORCA_USER_DATA_PATH).toBe(item.root)
+      expect(process.env.ZKYQ_USER_DATA_PATH).toBe(item.root)
       expect(process.env.ORCA_BACKGROUND_LAUNCH).toBe('1')
       expect(mocks.background).toHaveBeenCalledOnce()
       expect(mocks.requestSingleInstanceLock).toHaveBeenCalledOnce()
+      const restoredPath =
+        kind === 'json' ? item.dataFile.replace('zkyq-data.json', 'orca-data.json') : item.dataFile
       expect(response()).toMatchObject({
         ok: true,
         result: {
           storage: 'json',
           revision: kind === 'json' ? 1 : null,
-          restoredPath: item.dataFile
+          restoredPath
         }
       })
-      expect(JSON.parse(readFileSync(item.dataFile, 'utf8'))).toEqual(item.restored)
+      expect(JSON.parse(readFileSync(restoredPath, 'utf8'))).toEqual(item.restored)
       expect(existsSync(item.databaseFile)).toBe(false)
       expect(existsSync(item.exportFile)).toBe(false)
       expect(mocks.exit).toHaveBeenCalledWith(0)
@@ -193,7 +195,7 @@ describe('Electron recovery preflight', () => {
     expect(response()).toMatchObject({
       ok: false,
       code: 'runtime_error',
-      message: expect.stringContaining('Stop Orca')
+      message: expect.stringContaining('Stop Control Everything')
     })
     expect(readFileSync(item.databaseFile, 'utf8')).toBe('broken database')
     expect(JSON.parse(readFileSync(item.dataFile, 'utf8'))).toEqual({ old: true })
@@ -209,7 +211,9 @@ describe('Electron recovery preflight', () => {
       throw new Error('EPIPE')
     })
     expect(() => runProfileStateRecoveryPreflight(item.argv)).not.toThrow()
-    expect(JSON.parse(readFileSync(item.dataFile, 'utf8'))).toEqual(item.restored)
+    expect(
+      JSON.parse(readFileSync(item.dataFile.replace('zkyq-data.json', 'orca-data.json'), 'utf8'))
+    ).toEqual(item.restored)
     expect(mocks.exit).toHaveBeenCalledWith(1)
     const runtime = acquireProfileStateRuntimeAdmission(item.root)
     runtime.release()
@@ -335,8 +339,13 @@ describe('Electron recovery preflight', () => {
       await vi.waitFor(() => expect(mocks.exit).toHaveBeenCalledWith(1))
       expect(mocks.relaunch).not.toHaveBeenCalled()
       expect(mocks.showMessageBox).toHaveBeenCalledWith(
-        expect.objectContaining({ detail: expect.stringContaining('Stop Orca') })
+        expect.objectContaining({
+          title: 'Control Everything could not finish recovering this profile',
+          message: 'Control Everything could not apply the selected profile state.',
+          detail: expect.stringContaining('Reopen Control Everything to choose again.')
+        })
       )
+      expect(mocks.showMessageBox.mock.calls[0][0].detail).toContain('Stop Control Everything')
       expect(readFileSync(item.databaseFile, 'utf8')).toBe('broken database')
     })
 

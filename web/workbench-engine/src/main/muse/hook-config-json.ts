@@ -5,16 +5,16 @@ import { isPlainObject } from '../agent-hooks/installer-utils'
 
 // Muse strips nonstandard environment variables from managed hooks unless allowlisted.
 export const MUSE_MANAGED_HOOK_ENV_VARS = [
-  'ORCA_AGENT_HOOK_PORT',
-  'ORCA_AGENT_HOOK_TOKEN',
-  'ORCA_AGENT_HOOK_ENV',
-  'ORCA_AGENT_HOOK_VERSION',
-  'ORCA_AGENT_HOOK_TRANSPORT',
-  'ORCA_AGENT_HOOK_ENDPOINT',
-  'ORCA_PANE_KEY',
-  'ORCA_TAB_ID',
-  'ORCA_WORKTREE_ID',
-  'ORCA_AGENT_LAUNCH_TOKEN',
+  'ZKYQ_AGENT_HOOK_PORT',
+  'ZKYQ_AGENT_HOOK_TOKEN',
+  'ZKYQ_AGENT_HOOK_ENV',
+  'ZKYQ_AGENT_HOOK_VERSION',
+  'ZKYQ_AGENT_HOOK_TRANSPORT',
+  'ZKYQ_AGENT_HOOK_ENDPOINT',
+  'ZKYQ_PANE_KEY',
+  'ZKYQ_TAB_ID',
+  'ZKYQ_WORKTREE_ID',
+  'ZKYQ_AGENT_LAUNCH_TOKEN',
   // Why: Windows cmd AutoRun scripts commonly live under %USERPROFILE%; without it every hook exits 1.
   'USERPROFILE'
 ] as const
@@ -90,7 +90,18 @@ export function serializeMuseSettings(
     const names = Array.isArray(existing)
       ? existing.filter((value): value is string => typeof value === 'string')
       : []
-    const nextNames = [...new Set([...names, ...MUSE_MANAGED_HOOK_ENV_VARS])]
+    const retiredNames = new Map<string, string>(
+      MUSE_MANAGED_HOOK_ENV_VARS.filter((name) => name.startsWith('ZKYQ_')).map((name) => [
+        name.replace(/^ZKYQ_/, 'ORCA_'),
+        name
+      ])
+    )
+    const nextNames = [
+      ...new Set([
+        ...names.map((name) => retiredNames.get(name) ?? name),
+        ...MUSE_MANAGED_HOOK_ENV_VARS
+      ])
+    ]
     if (JSON.stringify(existing) !== JSON.stringify(nextNames)) {
       text = applyEdits(
         text,

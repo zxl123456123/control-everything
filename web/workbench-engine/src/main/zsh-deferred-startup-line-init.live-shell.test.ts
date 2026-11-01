@@ -85,8 +85,8 @@ describe('zsh deferred startup after prompt-hook replacement', () => {
         mkdirSync(bin, { recursive: true })
       }
       for (const bin of [cliBin, ambientBin]) {
-        writeFileSync(join(bin, 'orca-dev'), '#!/bin/sh\nexit 0\n')
-        chmodSync(join(bin, 'orca-dev'), 0o755)
+        writeFileSync(join(bin, 'zkyq-dev'), '#!/bin/sh\nexit 0\n')
+        chmodSync(join(bin, 'zkyq-dev'), 0o755)
       }
       writeFileSync(
         join(home, '.zshenv'),
@@ -140,7 +140,7 @@ describe('zsh deferred startup after prompt-hook replacement', () => {
         // Stock cases replay this replacement after the fixture installs its own widgets.
         DEBIAN_PREVENT_KEYBOARD_CHANGES: '1',
         ZDOTDIR: wrapperDir,
-        ORCA_HISTFILE: join(home, 'scoped-history')
+        ZKYQ_HISTFILE: join(home, 'scoped-history')
       }
       const launcher = prependOrcaCliDirToChildPath(env, { isPackaged: false, userDataPath: home })
       const features = selectShellStartupFeatures({
@@ -166,7 +166,7 @@ describe('zsh deferred startup after prompt-hook replacement', () => {
           ...(repeatSource
             ? ['source -- "$HOME/wrapper/.zshenv"', 'source -- "$HOME/wrapper/.zshenv"']
             : []),
-          'O_LK=$(command -v orca-dev)',
+          'O_LK=$(command -v zkyq-dev)',
           'O_SR=${+widgets[__orca_saved_line_init]}',
           ...(scheduleCleanup
             ? [

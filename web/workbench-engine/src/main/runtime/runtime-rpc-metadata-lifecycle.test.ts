@@ -49,7 +49,7 @@ describe('OrcaRuntimeRpcServer', () => {
 
   it('reclaims runtime metadata clobbered by a second instance that has since died', async () => {
     // Why: #7848 — a launch that slips past the single-instance lock republishes
-    // orca-runtime.json with its own pid, so the CLI reports stale_bootstrap
+    // zkyq-runtime.json with its own pid, so the CLI reports stale_bootstrap
     // against this still-serving runtime once that instance exits.
     const userDataPath = mkdtempSync(join(tmpdir(), 'orca-runtime-rpc-'))
     const runtime = new OrcaRuntimeService()

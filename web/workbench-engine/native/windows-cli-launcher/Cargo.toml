@@ -1,17 +1,17 @@
 [package]
-name = "orca-cli-launcher"
+name = "zkyq-cli-launcher"
 version = "0.0.0"
 edition = "2021"
 publish = false
 
-# Why the bin is named `orca`: it ships as resources\bin\orca.exe, and the PE's
+# The binary ships as resources\bin\zkyq.exe, and the PE's
 # OriginalFilename must match the file users actually invoke.
 [[bin]]
-name = "orca"
+name = "zkyq"
 path = "src/main.rs"
 
 [[bin]]
-name = "orca-administrator-restart"
+name = "zkyq-administrator-restart"
 path = "src/administrator_launcher.rs"
 
 [build-dependencies]

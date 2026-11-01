@@ -1,10 +1,12 @@
 import { dirname, join, resolve } from 'node:path'
 import { SERVE_USER_DATA_PATH_ENV } from '../../shared/serve-user-data-path'
 import { getPlatformUserDataPath } from './metadata'
+import { assertCurrentAppLaunchEnvironment } from './app-launch-environment'
+import { resolveMigratedDefaultDataRoot } from '../../main/persistence/default-data-root-record-reader'
 
-/** An unpackaged checkout build, which takes its profile from ORCA_DEV_USER_DATA_PATH, not --user-data-dir. */
+/** An unpackaged checkout build also accepts an explicit development profile. */
 function launchesDevApp(env: NodeJS.ProcessEnv): boolean {
-  return env.ORCA_APP_EXECUTABLE_NEEDS_APP_ROOT === '1'
+  return env.ZKYQ_APP_EXECUTABLE_NEEDS_APP_ROOT === '1'
 }
 
 /**
@@ -12,13 +14,24 @@ function launchesDevApp(env: NodeJS.ProcessEnv): boolean {
  * Absolute, because the child runs from the app root, not the caller's cwd.
  */
 export function resolveLaunchUserDataPath(env: NodeJS.ProcessEnv = process.env): string {
+  assertCurrentAppLaunchEnvironment(env)
+  if (env.ZKYQ_USER_DATA_PATH) {
+    return resolveMigratedDefaultDataRoot(resolve(env.ZKYQ_USER_DATA_PATH))
+  }
   if (env.ORCA_USER_DATA_PATH) {
-    return resolve(env.ORCA_USER_DATA_PATH)
+    throw new Error(
+      'ORCA_USER_DATA_PATH was retired. Set ZKYQ_USER_DATA_PATH to the same data directory.'
+    )
   }
   if (launchesDevApp(env)) {
-    // Mirrors the dev app's own default (`<appData>/orca-dev`).
+    if (!env.ZKYQ_DEV_USER_DATA_PATH && env.ORCA_DEV_USER_DATA_PATH) {
+      throw new Error(
+        'ORCA_DEV_USER_DATA_PATH was retired. Set ZKYQ_DEV_USER_DATA_PATH to the same data directory.'
+      )
+    }
+    // Mirrors the development desktop's default.
     return resolve(
-      env.ORCA_DEV_USER_DATA_PATH || join(dirname(getPlatformUserDataPath()), 'orca-dev')
+      env.ZKYQ_DEV_USER_DATA_PATH || join(dirname(getPlatformUserDataPath()), 'zkyq-dev')
     )
   }
   return getPlatformUserDataPath()
@@ -30,9 +43,14 @@ export function pinLaunchUserDataPath(
   env: NodeJS.ProcessEnv,
   userDataPath: string
 ): { args: string[]; env: NodeJS.ProcessEnv } {
-  const pinnedEnv: NodeJS.ProcessEnv = { ...env, ORCA_USER_DATA_PATH: userDataPath }
+  assertCurrentAppLaunchEnvironment(env)
+  const pinnedEnv: NodeJS.ProcessEnv = { ...env, ZKYQ_USER_DATA_PATH: userDataPath }
+  delete pinnedEnv.ORCA_APP_EXECUTABLE
+  delete pinnedEnv.ORCA_APP_EXECUTABLE_NEEDS_APP_ROOT
+  delete pinnedEnv.ORCA_USER_DATA_PATH
+  delete pinnedEnv.ORCA_DEV_USER_DATA_PATH
   if (launchesDevApp(env)) {
-    pinnedEnv.ORCA_DEV_USER_DATA_PATH = userDataPath
+    pinnedEnv.ZKYQ_DEV_USER_DATA_PATH = userDataPath
   }
   return { args: [...args, `--user-data-dir=${userDataPath}`], env: pinnedEnv }
 }

@@ -1,8 +1,7 @@
 import { EventEmitter } from 'node:events'
 import { describe, expect, it, vi } from 'vitest'
 import type { ClientChannel } from 'ssh2'
-import { waitForSentinel } from './ssh-relay-sentinel'
-import { RELAY_SENTINEL } from '../remote-exec/remote-frame-protocol'
+import { waitForSentinel, RELEASED_RELAY_SENTINEL as RELAY_SENTINEL } from './ssh-relay-sentinel'
 import {
   RelayVersionMismatchError,
   RELAY_EXIT_CODE_VERSION_MISMATCH
@@ -26,6 +25,9 @@ function createMockChannel(): MockChannel {
 }
 
 describe('waitForSentinel', () => {
+  it('keeps the released readiness marker independent of the current protocol', () => {
+    expect(RELAY_SENTINEL).toBe('ORCA-RELAY v0.1.0 READY\n')
+  })
   it('closes and rejects with AbortError while clearing startup resources on abort', async () => {
     vi.useFakeTimers()
     try {

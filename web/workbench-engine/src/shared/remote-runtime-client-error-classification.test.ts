@@ -6,6 +6,7 @@ import {
   isRuntimeRpcQueueOverloadError,
   toRemoteRuntimeClientErrorLike
 } from './remote-runtime-client-error-classification'
+import { withRemoteRuntimeTailscaleHint } from './remote-runtime-tailscale-hint'
 
 describe('remote runtime client error classification', () => {
   it.each([
@@ -64,6 +65,27 @@ describe('remote runtime client error classification', () => {
     expect(isRecoverableRemoteRuntimeConnectionError(error)).toBe(true)
   })
 
+  it.each(['Control Everything', 'Orca'])(
+    'keeps code-stripped connection recovery and network hints for %s',
+    (brand) => {
+      for (const message of [
+        `Could not connect to the remote ${brand} runtime.`,
+        `Remote ${brand} runtime closed the connection.`,
+        `Timed out waiting for the remote ${brand} runtime to respond.`
+      ]) {
+        expect(isRecoverableRemoteRuntimeConnectionError({ message })).toBe(true)
+        expect(withRemoteRuntimeTailscaleHint(message, 'ws://example.test')).toContain(
+          'https://tailscale.com/download'
+        )
+        expect(isRecoverableRemoteRuntimeConnectionError({ code: 'unauthorized', message })).toBe(
+          false
+        )
+      }
+      const refused = `Remote ${brand} runtime rejected the pairing token.`
+      expect(withRemoteRuntimeTailscaleHint(refused, 'ws://example.test')).toBe(refused)
+    }
+  )
+
   // Pins the list so a dropped or added code is a deliberate, reviewed change (round-2 S5).
   it('pins the recoverable codes and message fragments', () => {
     expect([...RECOVERABLE_CODES].toSorted()).toEqual([
@@ -76,6 +98,11 @@ describe('remote runtime client error classification', () => {
       'timeout'
     ])
     expect(RECOVERABLE_MESSAGE_FRAGMENTS).toEqual([
+      'could not connect to the remote control everything runtime',
+      'remote control everything runtime closed the connection',
+      'remote control everything runtime connection closed',
+      'remote control everything runtime is not connected',
+      'timed out waiting for the remote control everything runtime',
       'could not connect to the remote orca runtime',
       'remote orca runtime closed the connection',
       'remote orca runtime connection closed',

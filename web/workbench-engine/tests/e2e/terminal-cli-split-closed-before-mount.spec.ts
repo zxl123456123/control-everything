@@ -43,7 +43,7 @@ async function runCliSplit(
       ],
       {
         cwd: repoRoot,
-        env: { ...process.env, ORCA_DEV_USER_DATA_PATH: userDataDir },
+        env: { ...process.env, ZKYQ_DEV_USER_DATA_PATH: userDataDir },
         timeout: 30_000
       }
     )

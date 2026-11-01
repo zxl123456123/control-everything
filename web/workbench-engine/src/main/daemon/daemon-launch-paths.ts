@@ -9,9 +9,13 @@ import { DaemonClient } from './client'
 import { daemonRecoveryProbeTimeoutMs } from './daemon-recovery-budget'
 import { remainingDaemonRequestTimeoutMs } from './daemon-request-deadline'
 import { PROTOCOL_VERSION, type ListSessionsResult } from './types'
+import { defaultDataRootProcessIdentityPath } from '../persistence/default-data-root-identity'
 
 export function getDaemonRuntimeDir(): string {
-  const dir = join(getAppEnvironment().getPath('userData'), 'daemon')
+  const dir = join(
+    defaultDataRootProcessIdentityPath(getAppEnvironment().getPath('userData')),
+    'daemon'
+  )
   ensurePrivateDir(dir)
   return dir
 }

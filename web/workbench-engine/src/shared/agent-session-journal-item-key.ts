@@ -8,7 +8,9 @@ import type { AgentJournalItemIdentity } from './agent-session-journal-types'
 
 const KEY_DELIMITER = ':'
 const VERBATIM_BOUNDED_COMPONENT_TAG = '%FF'
-const BOUNDED_COMPONENT_PATTERN = /^[\s\S]{0,40}~orca-oversized~(?:[1-9]\d*)~[0-9a-f]{16}$/
+const GENERATED_BOUNDED_COMPONENT_TAG = '%FE'
+const BOUNDED_COMPONENT_PATTERN = /^[\s\S]{0,40}~zkyq-oversized~(?:[1-9]\d*)~[0-9a-f]{16}$/
+const LEGACY_BOUNDED_COMPONENT_PATTERN = /^[\s\S]{0,40}~orca-oversized~(?:[1-9]\d*)~[0-9a-f]{16}$/
 const PARSED_JOURNAL_ITEM_KEY = Symbol('parsedJournalItemKey')
 
 type ParsedJournalItemIdentity = AgentJournalItemIdentity & {
@@ -40,7 +42,7 @@ export function boundJournalKeyComponent(value: string): string {
   }
   const h1 = fnv1a32(value, 0x811c9dc5).toString(16).padStart(8, '0')
   const h2 = fnv1a32(value, 0x0100_0193).toString(16).padStart(8, '0')
-  return `${wellFormedBoundedHead(value, 40)}~orca-oversized~${value.length}~${h1}${h2}`
+  return `${wellFormedBoundedHead(value, 40)}~zkyq-oversized~${value.length}~${h1}${h2}`
 }
 
 /** The diagnostic head must be valid Unicode for `encodeURIComponent`: a pair
@@ -103,13 +105,16 @@ function encodePart(value: string | number): string {
   const bounded = boundJournalKeyComponent(raw)
   const encoded = encodeURIComponent(bounded)
   // `%FF` is not valid UTF-8 and cannot be emitted by encodeURIComponent.
-  return raw === bounded && isBoundedComponentRepresentation(raw)
+  if (raw !== bounded) {
+    return `${GENERATED_BOUNDED_COMPONENT_TAG}${encoded}`
+  }
+  return isBoundedComponentRepresentation(raw)
     ? `${VERBATIM_BOUNDED_COMPONENT_TAG}${encoded}`
     : encoded
 }
 
 function isBoundedComponentRepresentation(value: string): boolean {
-  return BOUNDED_COMPONENT_PATTERN.test(value)
+  return BOUNDED_COMPONENT_PATTERN.test(value) || LEGACY_BOUNDED_COMPONENT_PATTERN.test(value)
 }
 
 /**
@@ -123,7 +128,7 @@ function isBoundedComponentRepresentation(value: string): boolean {
  * plus the uuid. Text never participates.
  */
 export function agentJournalItemKey(identity: AgentJournalItemIdentity): string {
-  // Parsed pre-tag digest keys must keep addressing their persisted revision chain.
+  // Parsed digests retain their encoded domain after legacy address normalization.
   const parsedKey = (identity as ParsedJournalItemIdentity)[PARSED_JOURNAL_ITEM_KEY]
   if (parsedKey !== undefined) {
     return parsedKey
@@ -139,8 +144,8 @@ export function agentJournalItemKey(identity: AgentJournalItemIdentity): string 
   if (identity.provider === 'claude') {
     return ['claude', encodePart(identity.sessionId), encodePart(identity.uuid)].join(KEY_DELIMITER)
   }
-  if (identity.provider === 'orca') {
-    return ['orca', encodePart(identity.clientMessageId)].join(KEY_DELIMITER)
+  if (identity.provider === 'zkyq') {
+    return ['zkyq', encodePart(identity.clientMessageId)].join(KEY_DELIMITER)
   }
   return [
     'legacy',
@@ -152,7 +157,13 @@ export function agentJournalItemKey(identity: AgentJournalItemIdentity): string 
 
 /** Key for the pre-dispatch submission placeholder, before any provider echo. */
 export function agentJournalSubmissionKey(clientMessageId: string): string {
-  return agentJournalItemKey({ provider: 'orca', clientMessageId })
+  return agentJournalItemKey({ provider: 'zkyq', clientMessageId })
+}
+
+/** Canonicalize only a valid item key, never arbitrary payload or provider ids. */
+export function canonicalAgentJournalItemKey(key: string): string {
+  const identity = parseAgentJournalItemKey(key)
+  return identity ? agentJournalItemKey(identity) : key
 }
 
 /**
@@ -165,35 +176,35 @@ export function parseAgentJournalItemKey(key: string): AgentJournalItemIdentity 
   // Persisted keys can be corrupted: a malformed percent sequence must fail
   // the parse, never throw through journal replay or open.
   const parts: string[] = []
-  let preserveExactKey = false
+  const canonicalParts: string[] = []
   for (const part of key.split(KEY_DELIMITER)) {
     const decoded = decodePart(part)
     if (!decoded) {
       return null
     }
     parts.push(decoded.value)
-    preserveExactKey ||= decoded.tagged || isBoundedComponentRepresentation(decoded.value)
+    canonicalParts.push(decoded.encoded)
   }
   const [provider, ...rest] = parts
+  canonicalParts[0] = provider === 'orca' ? 'zkyq' : canonicalParts[0]!
+  const canonicalKey = canonicalParts.join(KEY_DELIMITER)
   if (provider === 'codex' && rest.length === 3) {
     const ordinal = Number(rest[2])
     return Number.isSafeInteger(ordinal) && ordinal >= 0
       ? parsedIdentity(
           { provider, threadId: rest[0] as string, turnId: rest[1] as string, ordinal },
-          key,
-          preserveExactKey
+          canonicalKey
         )
       : null
   }
   if (provider === 'claude' && rest.length === 2) {
     return parsedIdentity(
       { provider, sessionId: rest[0] as string, uuid: rest[1] as string },
-      key,
-      preserveExactKey
+      canonicalKey
     )
   }
-  if (provider === 'orca' && rest.length === 1) {
-    return parsedIdentity({ provider, clientMessageId: rest[0] as string }, key, preserveExactKey)
+  if ((provider === 'zkyq' || provider === 'orca') && rest.length === 1) {
+    return parsedIdentity({ provider: 'zkyq', clientMessageId: rest[0] as string }, canonicalKey)
   }
   if (provider === 'legacy' && rest.length === 3) {
     return parsedIdentity(
@@ -203,32 +214,60 @@ export function parseAgentJournalItemKey(key: string): AgentJournalItemIdentity 
         sessionId: rest[1] as string,
         recordId: rest[2] as string
       },
-      key,
-      preserveExactKey
+      canonicalKey
     )
   }
   return null
 }
 
-function decodePart(part: string): { value: string; tagged: boolean } | null {
+function decodePart(part: string): { value: string; encoded: string } | null {
   const tagged = part.startsWith(VERBATIM_BOUNDED_COMPONENT_TAG)
+  const generated = part.startsWith(GENERATED_BOUNDED_COMPONENT_TAG)
   try {
     const value = decodeURIComponent(
-      tagged ? part.slice(VERBATIM_BOUNDED_COMPONENT_TAG.length) : part
+      tagged || generated ? part.slice(VERBATIM_BOUNDED_COMPONENT_TAG.length) : part
     )
-    return !tagged || isBoundedComponentRepresentation(value) ? { value, tagged } : null
+    if (generated) {
+      return BOUNDED_COMPONENT_PATTERN.test(value)
+        ? {
+            value,
+            encoded: `${GENERATED_BOUNDED_COMPONENT_TAG}${encodeURIComponent(value)}`
+          }
+        : null
+    }
+    if (tagged) {
+      return isBoundedComponentRepresentation(value)
+        ? {
+            value,
+            encoded: `${VERBATIM_BOUNDED_COMPONENT_TAG}${encodeURIComponent(value)}`
+          }
+        : null
+    }
+    if (LEGACY_BOUNDED_COMPONENT_PATTERN.test(value)) {
+      // Replace only the final digest marker; a user's diagnostic head is opaque.
+      const current = value.replace(
+        /~orca-oversized~(?=[1-9]\d*~[0-9a-f]{16}$)/,
+        '~zkyq-oversized~'
+      )
+      return {
+        value: current,
+        encoded: `${GENERATED_BOUNDED_COMPONENT_TAG}${encodeURIComponent(current)}`
+      }
+    }
+    // Pre-bound journals can contain a genuinely long address. Do not digest it
+    // on read: its revisions and outbound reset still name that exact address.
+    return {
+      value,
+      encoded: isBoundedComponentRepresentation(value)
+        ? `${VERBATIM_BOUNDED_COMPONENT_TAG}${encodeURIComponent(value)}`
+        : part
+    }
   } catch {
     return null
   }
 }
 
-function parsedIdentity<T extends AgentJournalItemIdentity>(
-  identity: T,
-  key: string,
-  preserveExactKey: boolean
-): T {
-  if (preserveExactKey) {
-    Object.defineProperty(identity, PARSED_JOURNAL_ITEM_KEY, { value: key })
-  }
+function parsedIdentity<T extends AgentJournalItemIdentity>(identity: T, key: string): T {
+  Object.defineProperty(identity, PARSED_JOURNAL_ITEM_KEY, { value: key })
   return identity
 }

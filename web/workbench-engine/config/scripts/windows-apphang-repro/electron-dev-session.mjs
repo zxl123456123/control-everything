@@ -60,7 +60,7 @@ export function launchDevApp({ cdpPort, userDataDir }) {
     NODE_ENV: 'development',
     // Why: this disposable repro profile must not add real-home Codex work to
     // app-hang measurements or expose the developer's Codex state.
-    ORCA_DEV_USER_DATA_PATH: userDataDir,
+    ZKYQ_DEV_USER_DATA_PATH: userDataDir,
     HOME: isolatedHome,
     USERPROFILE: isolatedHome,
     ORCA_SKIP_DEV_WEB_PREPARE: '1',

@@ -64,8 +64,8 @@ describe('reexecServeUnderInitReaper', () => {
         APPDIR: '/tmp/.mount_orcaX',
         APPIMAGE: '/opt/orca/orca.AppImage',
         ELECTRON_RUN_AS_NODE: '1',
-        ORCA_NODE_OPTIONS: '--max-old-space-size=4096',
-        ORCA_NODE_REPL_EXTERNAL_MODULE: ''
+        ZKYQ_NODE_OPTIONS: '--max-old-space-size=4096',
+        ZKYQ_NODE_REPL_EXTERNAL_MODULE: ''
       },
       exists: (path) => path === '/bin/bash' || path === '/opt/orca/orca.AppImage'
     })

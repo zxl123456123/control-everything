@@ -1,8 +1,11 @@
 import { quotePosixShellDoubleQuotedApostrophe } from '../../shared/shell-argument-quoting'
 import { quotePowerShellLiteral } from '../../shared/powershell-native-argument'
+import { DEV_COMMAND_NAME } from './cli-install-constants'
 
 const MANAGED_MARKER = '# Orca managed WSL CLI launcher'
 const BRIDGE_MANAGED_MARKER = '# Orca managed WSL CLI PowerShell bridge'
+export const WSL_CLI_COMMAND_NAME = 'zkyq'
+export const LEGACY_WSL_COMMAND_NAMES = ['orca', 'orca-ide'] as const
 
 const FIND_INTEROP_POWERSHELL = `if command -v powershell.exe >/dev/null 2>&1; then
   ORCA_POWERSHELL=powershell.exe
@@ -73,14 +76,17 @@ export function buildWslBridgeScript(app?: {
   userDataPath: string
   cliEntryPath?: string
 }): string {
-  const setAppEnv = app
-    ? [
-        `$env:ORCA_USER_DATA_PATH = ${quotePowerShellLiteral(app.userDataPath)}`,
-        // Why: WSLENV /p maps this guest-only dir back; an app the CLI starts must not inherit it.
-        'Remove-Item Env:ORCA_WSL_CLI_DIR -ErrorAction SilentlyContinue',
-        ...(app.cliEntryPath ? buildDevCliEnv(app.cliEntryPath) : [])
-      ]
-    : []
+  const setAppEnv = [
+    `$env:ZKYQ_CLI_COMMAND = '${app?.cliEntryPath ? DEV_COMMAND_NAME : WSL_CLI_COMMAND_NAME}'`,
+    ...(app
+      ? [
+          `$env:ZKYQ_USER_DATA_PATH = ${quotePowerShellLiteral(app.userDataPath)}`,
+          // Why: WSLENV /p maps this guest-only dir back; an app the CLI starts must not inherit it.
+          'Remove-Item Env:ORCA_WSL_CLI_DIR -ErrorAction SilentlyContinue',
+          ...(app.cliEntryPath ? buildDevCliEnv(app.cliEntryPath) : [])
+        ]
+      : [])
+  ]
   // Why the BOM: PowerShell 5.1 reads BOM-less scripts as ANSI, garbling non-ASCII embedded paths.
   return `${app ? '\uFEFF' : ''}${BRIDGE_MANAGED_MARKER}
 function ConvertTo-NativeCommandLineArgument {
@@ -140,16 +146,18 @@ try {
   if ($args.Count -gt $ForwardArgStart) {
     $ForwardArgs = @($args[$ForwardArgStart..($args.Count - 1)])
   }
+  $ForwardArgs = @('--zkyq-wsl-bridge-v2') + $ForwardArgs
+  Remove-Item Env:ORCA_CLI_CWD, Env:ORCA_CLI_WSL_DISTRO -ErrorAction SilentlyContinue
   if ([string]::IsNullOrEmpty($WslCwd)) {
-    Remove-Item Env:ORCA_CLI_CWD -ErrorAction SilentlyContinue
+    Remove-Item Env:ZKYQ_CLI_CWD -ErrorAction SilentlyContinue
   } else {
-    $env:ORCA_CLI_CWD = $WslCwd
+    $env:ZKYQ_CLI_CWD = $WslCwd
   }
   # Do not let an inherited Windows environment choose the caller's account location.
   if ([string]::IsNullOrEmpty($WslDistro)) {
-    Remove-Item Env:ORCA_CLI_WSL_DISTRO -ErrorAction SilentlyContinue
+    Remove-Item Env:ZKYQ_CLI_WSL_DISTRO -ErrorAction SilentlyContinue
   } else {
-    $env:ORCA_CLI_WSL_DISTRO = $WslDistro
+    $env:ZKYQ_CLI_WSL_DISTRO = $WslDistro
   }
   $LauncherDirectory = Split-Path -Parent $OrcaLauncher
   Push-Location -LiteralPath $LauncherDirectory
@@ -186,9 +194,9 @@ exit $exitCode
 function buildDevCliEnv(cliEntryPath: string): string[] {
   return [
     "$env:ELECTRON_RUN_AS_NODE = '1'",
-    "if (-not $env:ORCA_APP_EXECUTABLE) { $env:ORCA_APP_EXECUTABLE = $OrcaLauncher; $env:ORCA_APP_EXECUTABLE_NEEDS_APP_ROOT = '1' }",
-    '$env:ORCA_NODE_OPTIONS = $env:NODE_OPTIONS',
-    '$env:ORCA_NODE_REPL_EXTERNAL_MODULE = $env:NODE_REPL_EXTERNAL_MODULE',
+    "if (-not $env:ZKYQ_APP_EXECUTABLE) { $env:ZKYQ_APP_EXECUTABLE = $OrcaLauncher; $env:ZKYQ_APP_EXECUTABLE_NEEDS_APP_ROOT = '1' }",
+    '$env:ZKYQ_NODE_OPTIONS = $env:NODE_OPTIONS',
+    '$env:ZKYQ_NODE_REPL_EXTERNAL_MODULE = $env:NODE_REPL_EXTERNAL_MODULE',
     'Remove-Item Env:NODE_OPTIONS, Env:NODE_REPL_EXTERNAL_MODULE -ErrorAction SilentlyContinue',
     `$ForwardArgs = @(${quotePowerShellLiteral(cliEntryPath)}) + $ForwardArgs`
   ]
@@ -201,7 +209,7 @@ function bridgeLines(lines: readonly string[]): string {
 export function getBridgePathFromCommandPath(commandPath: string): string {
   // Why: both the current Linux command and the legacy pre-rename command
   // share one WSL bridge under ~/.local/share/orca.
-  return `${commandPath.replace(/\/\.local\/bin\/(?:orca|orca-ide)$/, '/.local/share/orca')}/orca-wsl-bridge.ps1`
+  return `${commandPath.replace(/\/\.local\/bin\/(?:zkyq|orca|orca-ide)$/, '/.local/share/orca')}/orca-wsl-bridge.ps1`
 }
 
 export function buildSafeReplaceGuard(path: string, managedMarker: string): string {
@@ -236,7 +244,7 @@ export function buildManagedLegacyRemoveCommand(quotedLegacyCommandPath: string)
   return `if [ ! -L ${quotedLegacyCommandPath} ] && [ -f ${quotedLegacyCommandPath} ] && grep -Fq ${quotePosixShellDoubleQuotedApostrophe(MANAGED_MARKER)} ${quotedLegacyCommandPath}; then rm -f ${quotedLegacyCommandPath}; fi`
 }
 
-export function buildSafeRemoveCommand(commandPath: string, legacyCommandPath?: string): string {
+export function buildSafeRemoveCommand(commandPath: string, legacyCommandPaths: readonly string[] = []): string {
   const bridgePath = getBridgePathFromCommandPath(commandPath)
   return [
     // Why -eu not -euo pipefail: this script runs via runWslProcess's `sh -s`,
@@ -248,9 +256,7 @@ export function buildSafeRemoveCommand(commandPath: string, legacyCommandPath?: 
     `rm -f ${quotePosixShellDoubleQuotedApostrophe(commandPath)} ${quotePosixShellDoubleQuotedApostrophe(bridgePath)}`,
     // Why: leaving a managed legacy `orca` behind lets startup reconciliation
     // re-adopt it as opt-in proof and silently undo this removal.
-    ...(legacyCommandPath
-      ? [buildManagedLegacyRemoveCommand(quotePosixShellDoubleQuotedApostrophe(legacyCommandPath))]
-      : [])
+    ...legacyCommandPaths.map((path) => buildManagedLegacyRemoveCommand(quotePosixShellDoubleQuotedApostrophe(path)))
   ].join('\n')
 }
 

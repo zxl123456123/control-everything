@@ -87,15 +87,19 @@ export class WebRuntimeConnectionTransport {
     if (!this.intentionallyClosed) this.openConnection()
   }
 
-  readonly call: WebRuntimeRequestRegistry['call'] = (method, params, options) =>
-    { assertContextActive(); return this.requestRegistry.call(method, params, options) }
+  readonly call: WebRuntimeRequestRegistry['call'] = (method, params, options) => {
+    assertContextActive()
+    return this.requestRegistry.call(method, params, options)
+  }
 
   close(options: { notifySubscriptions?: boolean } = {}): void {
     this.intentionallyClosed = true
     this.unsubscribeContext?.()
     this.clearTimers()
-    this.requestRegistry.rejectAll('Remote Orca runtime connection closed.')
-    this.connectionWaiters.rejectAll(new Error('Remote Orca runtime connection closed.'))
+    this.requestRegistry.rejectAll('Remote Control Everything runtime connection closed.')
+    this.connectionWaiters.rejectAll(
+      new Error('Remote Control Everything runtime connection closed.')
+    )
     this.subscriptionRegistry.close(options.notifySubscriptions ?? true)
     this.ws?.close()
     this.ws = null

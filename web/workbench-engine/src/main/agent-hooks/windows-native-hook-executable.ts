@@ -1,7 +1,7 @@
 import { join, win32 } from 'node:path'
 
 /** The packaged binary (native/windows-agent-hook), installed under the same name. */
-export const WINDOWS_NATIVE_HOOK_EXECUTABLE_NAME = 'orca-agent-hook.exe'
+export const WINDOWS_NATIVE_HOOK_EXECUTABLE_NAME = 'zkyq-agent-hook.exe'
 
 /** The agent argument the exe takes for a managed script: `…\claude-hook.cmd` → `claude`. */
 export function getWindowsNativeHookAgent(scriptPath: string): string {

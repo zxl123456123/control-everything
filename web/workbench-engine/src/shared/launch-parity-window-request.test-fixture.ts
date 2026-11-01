@@ -139,14 +139,14 @@ export function windowSpawnRequest(c: WindowLaunchCase): Record<string, unknown>
     cwd,
     env: {
       ...request.agentEnv,
-      ORCA_WORKSPACE_ID: worktreeId,
+      ZKYQ_WORKSPACE_ID: worktreeId,
       ...(workspace.kind === 'folder'
-        ? { ORCA_PROJECT_GROUP_ID: 'pg-1', ORCA_WORKSPACE_ROOT: workspace.path }
+        ? { ZKYQ_PROJECT_GROUP_ID: 'pg-1', ZKYQ_WORKSPACE_ROOT: workspace.path }
         : {}),
-      ORCA_PANE_KEY: `${LAUNCH_TAB_ID}:${LAUNCH_LEAF_ID}`,
-      ORCA_TAB_ID: LAUNCH_TAB_ID,
-      ORCA_WORKTREE_ID: worktreeId,
-      ORCA_AGENT_LAUNCH_TOKEN: LAUNCH_TOKEN
+      ZKYQ_PANE_KEY: `${LAUNCH_TAB_ID}:${LAUNCH_LEAF_ID}`,
+      ZKYQ_TAB_ID: LAUNCH_TAB_ID,
+      ZKYQ_WORKTREE_ID: worktreeId,
+      ZKYQ_AGENT_LAUNCH_TOKEN: LAUNCH_TOKEN
     },
     command: request.command,
     launchConfig: {
@@ -179,13 +179,13 @@ export function windowSpawnRequest(c: WindowLaunchCase): Record<string, unknown>
 
 // The pane identity keys the plan names; agent hook and CLI keys vary by host and are not launch facts.
 export const IDENTITY_ENV_KEYS = [
-  'ORCA_WORKSPACE_ID',
-  'ORCA_PROJECT_GROUP_ID',
-  'ORCA_WORKSPACE_ROOT',
-  'ORCA_PANE_KEY',
-  'ORCA_TAB_ID',
-  'ORCA_WORKTREE_ID',
-  'ORCA_AGENT_LAUNCH_TOKEN',
+  'ZKYQ_WORKSPACE_ID',
+  'ZKYQ_PROJECT_GROUP_ID',
+  'ZKYQ_WORKSPACE_ROOT',
+  'ZKYQ_PANE_KEY',
+  'ZKYQ_TAB_ID',
+  'ZKYQ_WORKTREE_ID',
+  'ZKYQ_AGENT_LAUNCH_TOKEN',
   'ORCA_TERMINAL_HANDLE'
 ] as const
 

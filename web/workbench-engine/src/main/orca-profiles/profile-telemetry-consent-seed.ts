@@ -1,8 +1,10 @@
 import { existsSync } from 'node:fs'
+import { dirname } from 'node:path'
 import type { GlobalSettings } from '../../shared/global-settings-types'
 import { acquireProfileStateRuntimeAdmission } from '../persistence/profile-state/profile-state-access'
 import { isProfileStateSqliteAvailable } from '../persistence/profile-state/profile-state-database'
 import { migrateProfileStateToSqlite } from '../persistence/profile-state/profile-state-migration'
+import { profileStateDataFileForRead } from '../persistence/profile-state/profile-state-data-name-migration'
 import {
   getOrcaProfileDataFile,
   getOrcaProfileStateDatabaseFile,
@@ -24,6 +26,9 @@ export function seedNewOrcaProfileTelemetryConsent(
   const admission = acquireProfileStateRuntimeAdmission(userDataPath)
   try {
     const dataFile = getOrcaProfileDataFile(profileId, userDataPath)
+    if (profileStateDataFileForRead(dirname(dataFile)) !== dataFile) {
+      throw new Error('Profile data must be migrated before telemetry consent is seeded')
+    }
     const databaseFile = getOrcaProfileStateDatabaseFile(profileId, userDataPath)
     if (existsSync(dataFile) || existsSync(databaseFile)) {
       return

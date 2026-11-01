@@ -6,7 +6,7 @@
     "orientation": "default",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
-    "scheme": "orca",
+    "scheme": "zkyq",
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/splash-icon.png",

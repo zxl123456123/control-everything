@@ -23,9 +23,11 @@ import {
   SkillUploadCommitRequestSchema
 } from '../../../../shared/skill-upload-session-contract'
 import {
+  clearSkillDiscoveryCaches,
   discoverSkillsOnTarget,
   resolveSkillDiscoveryTarget
 } from '../../../skills/skill-discovery-target'
+import { retireRenamedBundledSkills } from '../../../skills/skill-name-migration'
 import { SKILL_INSTALL_RESULT_V2_CAPABILITY } from '../../../../shared/skill-install-capability'
 import type { OrcaRuntimeService } from '../../orca-runtime'
 import {
@@ -36,6 +38,7 @@ import {
 import {
   SkillsCancelInstallParams,
   SkillsDiscoverParams,
+  SkillsMigrateNamesParams,
   SkillsGetInstallProgressParams
 } from '../../../../shared/rpc-contract/skills-params'
 
@@ -65,6 +68,26 @@ function skillDeleteDependencies(
 }
 
 export const SKILL_METHODS = [
+  defineMethod({
+    name: 'skills.migrateNames',
+    permission: 'skills-admin',
+    params: SkillsMigrateNamesParams,
+    handler: async (params, { runtime }) => {
+      const target = resolveDiscoveryTarget(params.target ?? {}, runtime)
+      // Never reinterpret a guest installation as files on the Windows host.
+      if (target.kind !== 'native-host') {
+        throw new Error(
+          'Skill name migration requires the runtime on the machine that stores the skills.'
+        )
+      }
+      try {
+        return { archived: await retireRenamedBundledSkills({ names: params.names, global: true }) }
+      } finally {
+        // A failed batch may already have archived earlier skills.
+        clearSkillDiscoveryCaches()
+      }
+    }
+  }),
   defineMethod({
     name: 'skills.discover',
     permission: 'workspace',

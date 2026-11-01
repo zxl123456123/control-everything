@@ -20,10 +20,10 @@ import { orcadLaunchCommand } from './orcad-remote-launch'
 import { getRemoteHostPlatform } from '../../ssh/ssh-remote-platform'
 
 // The readiness file carries the pairing offer's device token: under a login umask of 022 it must
-// still come out owner-only, and so must the slot and `~/.orca-remote` that hold it.
+// still come out owner-only, and so must the slot and `~/.zkyq-remote` that hold it.
 
 const posix = getRemoteHostPlatform('linux-x64')
-const READY_LINE = '{"type":"orca_server_ready","pairing":{"url":"orca://pair#token"}}'
+const READY_LINE = '{"type":"orca_server_ready","pairing":{"url":"zkyq://pair#token"}}'
 
 let home: string
 let baseDir: string
@@ -37,7 +37,7 @@ async function launchUnderLoginUmask(): Promise<void> {
   const command = orcadLaunchCommand(posix, {
     remoteInstallDir: slotDir,
     // No runtime marker in the slot, so this legacy path runs the stub entry below.
-    nodePath: '/bin/sh',
+    nodePath: process.execPath,
     fullVersion: '0.2.0+bb01',
     userDataDir: join(home, '.orca'),
     bindHost: '127.0.0.1',
@@ -55,12 +55,12 @@ async function launchUnderLoginUmask(): Promise<void> {
 describe.skipIf(process.platform === 'win32')('orcad launch file modes', () => {
   beforeEach(() => {
     home = mkdtempSync(join(tmpdir(), 'orcad-launch-modes-'))
-    baseDir = join(home, '.orca-remote')
+    baseDir = join(home, '.zkyq-remote')
     slotDir = join(baseDir, 'orcad-0.2.0+bb01')
     mkdirSync(slotDir, { recursive: true, mode: 0o755 })
     chmodSync(baseDir, 0o755)
     chmodSync(slotDir, 0o755)
-    writeFileSync(join(slotDir, 'orcad.js'), `printf '%s\\n' '${READY_LINE}'\n`)
+    writeFileSync(join(slotDir, 'orcad.js'), `console.log(${JSON.stringify(READY_LINE)})\n`)
   })
 
   afterEach(() => {
@@ -95,7 +95,7 @@ describe.skipIf(process.platform === 'win32')('orcad launch file modes', () => {
   it('runs the daemon itself at the login umask', async () => {
     writeFileSync(
       join(slotDir, 'orcad.js'),
-      `mkdir daemon-dir && : > daemon-file && printf '%s\\n' '${READY_LINE}'\n`
+      `require('node:fs').mkdirSync('daemon-dir'); require('node:fs').writeFileSync('daemon-file', ''); console.log(${JSON.stringify(READY_LINE)})\n`
     )
 
     await launchUnderLoginUmask()
@@ -107,11 +107,11 @@ describe.skipIf(process.platform === 'win32')('orcad launch file modes', () => {
     expect(mode(join(slotDir, ORCAD_LOG_FILENAME))).toBe(0o600)
   })
 
-  it('leaves a parent that is not ~/.orca-remote alone', async () => {
+  it('leaves a parent that is not ~/.zkyq-remote alone', async () => {
     slotDir = join(home, 'custom-slot')
     mkdirSync(slotDir, { mode: 0o755 })
     chmodSync(home, 0o755)
-    writeFileSync(join(slotDir, 'orcad.js'), `printf '%s\\n' '${READY_LINE}'\n`)
+    writeFileSync(join(slotDir, 'orcad.js'), `console.log(${JSON.stringify(READY_LINE)})\n`)
 
     await launchUnderLoginUmask()
 

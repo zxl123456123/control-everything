@@ -160,7 +160,7 @@ afterEach(() => {
   db.close()
 })
 
-const chatParty = { address: `orca_session_id:${CHAT}`, terminalHandle: null, orcaSessionId: CHAT }
+const chatParty = { address: `agent_session:${CHAT}`, terminalHandle: null, orcaSessionId: CHAT }
 const terminalParty = (handle: string) => ({
   address: handle,
   terminalHandle: handle,
@@ -365,8 +365,8 @@ describe("a sender's name, from what Orca shows for it", () => {
 
   it('builds the one sender a message records: its party and the name it has now', () => {
     session.unifiedTabs = { [WORKTREE]: [chatTab(null, 'Fix the login flow')] }
-    expect(names().sender(`orca_session_id:${CHAT}`)).toEqual({
-      party: { address: `orca_session_id:${CHAT}`, terminalHandle: null, orcaSessionId: CHAT },
+    expect(names().sender(`agent_session:${CHAT}`)).toEqual({
+      party: { address: `agent_session:${CHAT}`, terminalHandle: null, orcaSessionId: CHAT },
       name: 'Fix the login flow'
     })
   })

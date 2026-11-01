@@ -61,7 +61,7 @@ function buildFixture(options: { aliasCodex?: boolean } = {}): Fixture {
   }
   writeStub(launcherPath, intendedMarker)
   // The impostor a user's own bin directory could hold under every CLI name Orca uses.
-  for (const name of ['orca', 'orca-ide', 'orca-dev']) {
+  for (const name of ['zkyq', 'zkyq-dev', 'orca', 'orca-ide', 'orca-dev']) {
     writeStub(join(hijackDir, name), hijackMarker)
   }
   writeStub(join(codexDir, 'codex'), codexMarker)

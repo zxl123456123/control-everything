@@ -39,7 +39,7 @@ export XDG_CACHE_HOME="$state_dir/cache"
 export XDG_RUNTIME_DIR="$state_dir/runtime"
 export LIBGL_ALWAYS_SOFTWARE=1
 # Every entrypoint must serve the profile the caller chose, not the default one.
-export ORCA_USER_DATA_PATH="$state_dir/profile"
+export ZKYQ_USER_DATA_PATH="$state_dir/profile"
 mkdir -p "$HOME" "$XDG_CONFIG_HOME" "$XDG_CACHE_HOME" "$XDG_RUNTIME_DIR"
 chmod 700 "$XDG_RUNTIME_DIR"
 
@@ -47,7 +47,7 @@ case "$entrypoint_kind" in
   app) entrypoint=("$app_root/AppRun" --no-sandbox) ;;
   appimage) entrypoint=(/input/orca.AppImage --appimage-extract-and-run --no-sandbox) ;;
   launcher)
-    entrypoint=("$app_root/resources/bin/orca-ide")
+    entrypoint=("$app_root/resources/bin/zkyq")
     ;;
   *) echo "unsupported entrypoint: $entrypoint_kind" >&2; exit 64 ;;
 esac
@@ -83,16 +83,16 @@ if [[ -z "$ready_line" ]]; then
   exit 1
 fi
 
-if [[ ! -f "$ORCA_USER_DATA_PATH/orca-runtime.json" || -e "$XDG_CONFIG_HOME/orca/orca-runtime.json" ]]; then
-  ls -la "$ORCA_USER_DATA_PATH" "$XDG_CONFIG_HOME" >&2 || true
-  echo "FAIL: serve ignored ORCA_USER_DATA_PATH; its runtime metadata is not in $ORCA_USER_DATA_PATH" >&2
+if [[ ! -f "$ZKYQ_USER_DATA_PATH/zkyq-runtime.json" || -e "$XDG_CONFIG_HOME/orca/zkyq-runtime.json" ]]; then
+  ls -la "$ZKYQ_USER_DATA_PATH" "$XDG_CONFIG_HOME" >&2 || true
+  echo "FAIL: serve ignored ZKYQ_USER_DATA_PATH; its runtime metadata is not in $ZKYQ_USER_DATA_PATH" >&2
   exit 1
 fi
 
 registered_cli_verified=false
 if [[ "$entrypoint_kind" == appimage ]]; then
-  registered_cli="$HOME/.local/bin/orca-ide"
-  expected_target="$XDG_CACHE_HOME/orca/appimage/launcher/orca-ide"
+  registered_cli="$HOME/.local/bin/zkyq"
+  expected_target="$XDG_CACHE_HOME/orca/appimage/launcher/zkyq"
   actual_target=$(readlink "$registered_cli" 2>/dev/null || true)
   if [[ "$actual_target" != "$expected_target" ]]; then
     echo "FAIL: registered CLI target is ${actual_target:-missing}; expected $expected_target" >&2

@@ -68,7 +68,7 @@ function sendsWhileAttaching(agent: AcpScriptedAgent, reply: string): void {
 
 /** Orca's send of `hello` as `m1` and Grok's reply, ended or cut off. */
 async function exchange(rig: AcpAdapterRig, reply: string, end: boolean): Promise<void> {
-  await rig.rig.eventSink.appendItem({ provider: 'orca', clientMessageId: 'm1' }, hello, {
+  await rig.rig.eventSink.appendItem({ provider: 'zkyq', clientMessageId: 'm1' }, hello, {
     turnScope: { kind: 'thread' }
   })
   await sendHello(rig, 'm1')

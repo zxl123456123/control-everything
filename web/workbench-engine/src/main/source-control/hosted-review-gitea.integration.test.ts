@@ -24,8 +24,8 @@ function sendJson(res: ServerResponse, body: unknown): void {
 
 describe('Gitea hosted review integration', () => {
   beforeEach(() => {
-    process.env = { ...OLD_ENV, ORCA_GITEA_TOKEN: 'local-token' }
-    delete process.env.ORCA_GITEA_API_BASE_URL
+    process.env = { ...OLD_ENV, ZKYQ_GITEA_TOKEN: 'local-token' }
+    delete process.env.ZKYQ_GITEA_API_BASE_URL
     _resetGiteaRepoRefCache()
   })
 

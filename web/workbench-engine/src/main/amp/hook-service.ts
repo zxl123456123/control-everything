@@ -5,12 +5,14 @@ import type { SFTPWrapper } from 'ssh2'
 
 import type { AgentHookInstallStatus } from '../../shared/agent-hook-types'
 import {
-  readTextFileRemote,
+  readManagedPluginFileRemote,
+  moveManagedPluginRemote,
   writeTextFileRemoteAtomic
 } from '../agent-hooks/installer-utils-remote'
 import {
   AMP_PLUGIN_FILE,
   AMP_PLUGIN_MARKER,
+  RETIRED_AMP_PLUGIN_FILE,
   getAmpPluginSource
 } from './agent-status-plugin-source'
 import {
@@ -20,6 +22,14 @@ import {
   readLocalPluginState,
   statusFromState
 } from './managed-plugin-install-status'
+
+function retireLocalPlugin(path: string): string {
+  const directory = join(dirname(dirname(path)), '.zkyq-retired-plugins')
+  mkdirSync(directory, { recursive: true, mode: 0o700 })
+  const target = join(directory, `zkyq-agent-status-${randomUUID()}.ts.disabled`)
+  renameSync(path, target)
+  return target
+}
 
 function writeTextFileAtomic(filePath: string, content: string): void {
   const dir = dirname(filePath)
@@ -52,7 +62,16 @@ function writeTextFileAtomic(filePath: string, content: string): void {
 export class AmpHookService {
   getStatus(): AgentHookInstallStatus {
     const pluginPath = getPluginPath()
-    return statusFromState(pluginPath, readLocalPluginState(pluginPath))
+    const current = readLocalPluginState(pluginPath)
+    if (current.kind === 'unmanaged' || current.kind === 'error')
+      return statusFromState(pluginPath, current)
+    const previousPath = getPluginPath(RETIRED_AMP_PLUGIN_FILE)
+    const previous = readLocalPluginState(previousPath)
+    if (previous.kind === 'absent') return statusFromState(pluginPath, current)
+    const status = statusFromState(previousPath, previous)
+    return previous.kind === 'managed'
+      ? { ...status, state: 'partial', detail: 'Managed Amp plugin identity needs migration' }
+      : status
   }
 
   install(): AgentHookInstallStatus {
@@ -61,16 +80,36 @@ export class AmpHookService {
     if (state.kind === 'unmanaged' || state.kind === 'error') {
       return statusFromState(pluginPath, state)
     }
-    writeTextFileAtomic(pluginPath, getAmpPluginSource())
+    const previousPath = getPluginPath(RETIRED_AMP_PLUGIN_FILE)
+    const previous = readLocalPluginState(previousPath)
+    if (previous.kind === 'unmanaged' || previous.kind === 'error')
+      return statusFromState(previousPath, previous)
+    const archived = previous.kind === 'managed' ? retireLocalPlugin(previousPath) : undefined
+    try {
+      writeTextFileAtomic(pluginPath, getAmpPluginSource())
+    } catch (error) {
+      if (archived) renameSync(archived, previousPath)
+      throw error
+    }
     return this.getStatus()
   }
 
   async installRemote(sftp: SFTPWrapper, remoteHome: string): Promise<AgentHookInstallStatus> {
     const remotePluginPath = getRemotePluginPath(remoteHome)
+    const previousPath = getRemotePluginPath(remoteHome, RETIRED_AMP_PLUGIN_FILE)
+    let archived: string | undefined
     try {
-      const existing = await readTextFileRemote(sftp, remotePluginPath)
+      const existing = await readManagedPluginFileRemote(sftp, remotePluginPath)
       if (existing !== null && !isManagedPlugin(existing)) {
         return statusFromState(remotePluginPath, { kind: 'unmanaged' })
+      }
+      const previous = await readManagedPluginFileRemote(sftp, previousPath)
+      if (previous !== null && !isManagedPlugin(previous))
+        return statusFromState(previousPath, { kind: 'unmanaged' })
+      if (previous !== null) {
+        const archivePath = `${remoteHome.replace(/\/$/, '')}/.config/amp/.zkyq-retired-plugins/zkyq-agent-status-${randomUUID()}.ts.disabled`
+        await moveManagedPluginRemote(sftp, previousPath, archivePath)
+        archived = archivePath
       }
       await writeTextFileRemoteAtomic(sftp, remotePluginPath, getAmpPluginSource())
       return {
@@ -81,12 +120,20 @@ export class AmpHookService {
         detail: null
       }
     } catch (error) {
+      let detail = error instanceof Error ? error.message : String(error)
+      if (archived) {
+        try {
+          await moveManagedPluginRemote(sftp, archived, previousPath)
+        } catch (restoreError) {
+          detail += `; Previous plugin preserved at ${archived}; restoration failed: ${String(restoreError)}`
+        }
+      }
       return {
         agent: 'amp',
         state: 'error',
         configPath: remotePluginPath,
         managedHooksPresent: false,
-        detail: error instanceof Error ? error.message : String(error)
+        detail
       }
     }
   }
@@ -96,9 +143,10 @@ export class AmpHookService {
     const state = readLocalPluginState(pluginPath)
     if (state.kind === 'managed') {
       unlinkSync(pluginPath)
-      return this.getStatus()
     }
-    return statusFromState(pluginPath, state)
+    const previousPath = getPluginPath(RETIRED_AMP_PLUGIN_FILE)
+    if (readLocalPluginState(previousPath).kind === 'managed') retireLocalPlugin(previousPath)
+    return this.getStatus()
   }
 }
 

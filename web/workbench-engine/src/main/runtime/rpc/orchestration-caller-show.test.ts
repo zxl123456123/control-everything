@@ -22,6 +22,8 @@ import {
 } from './orchestration-session-caller-test-fixture'
 
 const hostRef = vi.hoisted((): { current: unknown } => ({ current: null }))
+const OLD_X = `orca_session_id:${SESSION_X}`
+const OLD_Y = `orca_session_id:${SESSION_Y}`
 vi.mock('../../native-chat/agent-session-wire/structured-agent-session-registry', () => ({
   getStructuredAgentSessionHost: () => hostRef.current
 }))
@@ -51,7 +53,7 @@ describe('orchestration.callerShow: a session learns its Orca session ID from th
     )
 
     expect(resultOf(response)).toEqual({
-      caller: { orcaSessionId: ADDRESS_X, live: true }
+      caller: { orcaSessionId: OLD_X, live: true }
     })
   })
 
@@ -86,9 +88,9 @@ describe('orchestration.callerShow: a session learns its Orca session ID from th
     )
     const checked = resultOf(await asX('orchestration.check', { all: true, format: true }))
 
-    expect(shown).toEqual({ caller: { orcaSessionId: ADDRESS_Y, live: true } })
-    expect(preamble).toContain(`Your coordinator's Orca session ID is: ${ADDRESS_X}\n`)
-    expect(preamble).toContain(`Your Orca session ID is: ${ADDRESS_Y}\n`)
+    expect(shown).toEqual({ caller: { orcaSessionId: OLD_Y, live: true } })
+    expect(preamble).toContain(`Your coordinator's workbench session ID is: ${ADDRESS_X}\n`)
+    expect(preamble).toContain(`Your workbench session ID is: ${ADDRESS_Y}\n`)
     expect(preamble).not.toContain(handle)
     // Storage is unchanged: the mail it sends as either spelling is keyed by its minted handle.
     expect(checked.messages).toEqual([expect.objectContaining({ from_handle: handle })])
@@ -148,8 +150,27 @@ describe('orchestration.callerShow: a session learns its Orca session ID from th
       )
       const acting = resultOf(await h.dispatch(callerShow({ sessionId })))
       // One derivation: the conversation's root, which the successor copies and acts as too.
-      expect(shown.orcaSessionId).toBe(ADDRESS_X)
+      expect(shown.orcaSessionId).toBe(OLD_X)
       expect(acting.caller).toMatchObject({ orcaSessionId: shown.orcaSessionId })
+      const newShown = resultOf(
+        await h.dispatch(
+          orchestrationRequest('orchestration.sessionAddress', {
+            sessionId,
+            responseFormat: 'workbench'
+          })
+        )
+      )
+      const newActing = resultOf(
+        await h.dispatch(
+          orchestrationRequest(
+            'orchestration.callerShow',
+            { responseFormat: 'workbench' },
+            { sessionId }
+          )
+        )
+      )
+      expect(newShown).toEqual({ sessionId: ADDRESS_X })
+      expect(newActing.caller).toMatchObject({ sessionId: ADDRESS_X })
     }
   })
 
@@ -165,5 +186,35 @@ describe('orchestration.callerShow: a session learns its Orca session ID from th
     const response = await h.dispatch(callerShow({}))
 
     expect(resultOf(response)).toEqual({ caller: null })
+  })
+
+  it('returns only the new field when requested, while preserving old callers', async () => {
+    const current = resultOf(
+      await h.dispatch(
+        orchestrationRequest(
+          'orchestration.callerShow',
+          { responseFormat: 'workbench' },
+          { sessionId: SESSION_X }
+        )
+      )
+    )
+    expect(current).toEqual({ caller: { sessionId: ADDRESS_X, live: true } })
+    const previous = resultOf(await h.dispatch(callerShow({ sessionId: SESSION_X })))
+    expect(previous).toEqual({ caller: { orcaSessionId: OLD_X, live: true } })
+    const address = resultOf(
+      await h.dispatch(
+        orchestrationRequest('orchestration.sessionAddress', {
+          sessionId: SESSION_X,
+          responseFormat: 'workbench'
+        })
+      )
+    )
+    expect(address).toEqual({ sessionId: ADDRESS_X })
+    const oldAddress = resultOf(
+      await h.dispatch(
+        orchestrationRequest('orchestration.sessionAddress', { sessionId: SESSION_X })
+      )
+    )
+    expect(oldAddress).toEqual({ orcaSessionId: OLD_X })
   })
 })

@@ -2,7 +2,7 @@
 // `posix.resolve` against a POSIX guest home. On win32 `posix.resolve` of a
 // Windows tmpdir yields an invalid path, so the whole suite is skipped there
 // (the bridge only ever runs inside a Linux WSL guest).
-import { mkdtempSync, rmSync, statSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, rmSync, statSync, symlinkSync, writeFileSync } from 'node:fs'
 import { posix } from 'node:path'
 import { tmpdir } from 'node:os'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
@@ -87,6 +87,40 @@ describe.skipIf(process.platform === 'win32')('registerWslHookFsHandlers (WSL fs
       path: posix.join(home, 'does-not-exist.txt')
     })
     expect(result).toMatchObject({ ok: false, errno: 'ENOENT' })
+  })
+
+  it('distinguishes real files and directories from dangling links without following them', async () => {
+    const file = posix.join(home, 'plugin.ts')
+    const directory = posix.join(home, 'plugin')
+    const link = posix.join(home, 'plugin-link')
+    writeFileSync(file, 'fixture')
+    mkdirSync(directory)
+    symlinkSync(posix.join(home, 'missing'), link)
+    expect(await call(WSL_HOOK_FS_METHODS.lstat, { path: file })).toMatchObject({
+      ok: true,
+      file: true,
+      directory: false
+    })
+    expect(await call(WSL_HOOK_FS_METHODS.lstat, { path: directory })).toMatchObject({
+      ok: true,
+      file: false,
+      directory: true
+    })
+    expect(await call(WSL_HOOK_FS_METHODS.lstat, { path: link })).toMatchObject({
+      ok: true,
+      file: false,
+      directory: false
+    })
+  })
+
+  it('keeps lstat home-scoped and returns missing-file errors as data', async () => {
+    expect(await call(WSL_HOOK_FS_METHODS.lstat, { path: '/etc/passwd' })).toMatchObject({
+      ok: false,
+      errno: 'EACCES'
+    })
+    expect(
+      await call(WSL_HOOK_FS_METHODS.lstat, { path: posix.join(home, 'missing') })
+    ).toMatchObject({ ok: false, errno: 'ENOENT' })
   })
 
   it('allows readdir existence probes on an ancestor of home and on /', async () => {

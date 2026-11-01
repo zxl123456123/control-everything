@@ -9,9 +9,10 @@ import {
 } from '@/hooks/useInstalledAgentSkills'
 import {
   LINEAR_AGENT_SKILL_NAMES,
-  ORCA_LINEAR_SKILL_INSTALL_COMMAND
+  WORKBENCH_LINEAR_SKILL_INSTALL_COMMAND,
+  WORKBENCH_LINEAR_SKILL_NAME
 } from '@/lib/agent-feature-install-commands'
-import { getLinearAgentSkillUpdateCommand } from '@/lib/linear-agent-skill-update-command'
+import { getLinearAgentSkillUpdateTarget } from '@/lib/linear-agent-skill-update-command'
 import { lazyWithRetry } from '@/lib/lazy-with-retry'
 import { cn } from '@/lib/utils'
 import { buildSkillCommandForRuntime } from '../settings/CliSkillRuntimeSetup'
@@ -109,16 +110,16 @@ export function LinearAgentSkillSetupPrompt({
     sourceKinds: GLOBAL_AGENT_SKILL_SOURCE_KINDS
   })
   const command = useMemo(
-    () => buildSkillCommandForRuntime(ORCA_LINEAR_SKILL_INSTALL_COMMAND, agentRuntime),
+    () => buildSkillCommandForRuntime(WORKBENCH_LINEAR_SKILL_INSTALL_COMMAND, agentRuntime),
     [agentRuntime]
   )
+  const updateTarget = useMemo(
+    () => getLinearAgentSkillUpdateTarget(skill.skills, skill.installed),
+    [skill.installed, skill.skills]
+  )
   const installedCommand = useMemo(
-    () =>
-      buildSkillCommandForRuntime(
-        getLinearAgentSkillUpdateCommand(skill.skills, skill.installed),
-        agentRuntime
-      ),
-    [agentRuntime, skill.installed, skill.skills]
+    () => buildSkillCommandForRuntime(updateTarget.command, agentRuntime),
+    [agentRuntime, updateTarget]
   )
   const terminalShellOverride = getLinearPromptTerminalShellOverride(
     currentPlatform,
@@ -223,6 +224,11 @@ export function LinearAgentSkillSetupPrompt({
         missingLabel={missingLabel}
         command={command}
         installedCommand={installedCommand}
+        migrationSkillName={
+          !skill.installed || updateTarget.skillName === WORKBENCH_LINEAR_SKILL_NAME
+            ? WORKBENCH_LINEAR_SKILL_NAME
+            : undefined
+        }
         terminalShellOverride={terminalShellOverride}
         terminalRuntime={agentRuntime}
         installed={skill.installed}

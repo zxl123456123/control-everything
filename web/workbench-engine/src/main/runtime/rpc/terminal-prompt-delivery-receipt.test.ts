@@ -32,7 +32,8 @@ function request(
   terminal: string,
   promptRequestId: string,
   text: string,
-  waitSubmitMs?: number
+  waitSubmitMs?: number,
+  clientId = 'zkyq-cli'
 ): RpcRequest {
   return {
     id: `rpc-${promptRequestId}`,
@@ -45,7 +46,7 @@ function request(
       enter: true,
       agentPrompt: true,
       waitSubmitMs,
-      client: { id: 'orca-cli', type: 'desktop' }
+      client: { id: clientId, type: 'desktop' }
     }
   }
 }
@@ -164,6 +165,31 @@ describe('durable terminal prompt delivery receipts', () => {
     expect(first).toMatchObject({ ok: true, result: { mutation: { replayed: false } } })
     expect(replay).toMatchObject({ ok: true, result: { mutation: { replayed: true } } })
     expect(harness.writes).toEqual(writesAfterFirst)
+    harness.db.close()
+  })
+
+  it('replays a historical CLI receipt through RPC without writing the prompt twice', async () => {
+    vi.useFakeTimers()
+    const harness = await createHarness('codex', true)
+    const firstPromise = harness.dispatcher.dispatch(
+      request(harness.handle, 'renamed-client', 'preserve once', undefined, 'orca-cli')
+    )
+    await vi.runAllTimersAsync()
+    const first = await firstPromise
+    const writesAfterFirst = [...harness.writes]
+    const replacement = new RpcDispatcher({ runtime: harness.runtime, methods: TERMINAL_METHODS })
+    const replay = await replacement.dispatch(
+      request(harness.handle, 'renamed-client', 'preserve once')
+    )
+    const changed = await replacement.dispatch(
+      request(harness.handle, 'renamed-client', 'different prompt')
+    )
+
+    expect(first).toMatchObject({ ok: true, result: { mutation: { replayed: false } } })
+    expect(replay).toMatchObject({ ok: true, result: { mutation: { replayed: true } } })
+    expect(changed).toMatchObject({ ok: false, error: { code: 'request_mismatch' } })
+    expect(harness.writes).toEqual(writesAfterFirst)
+    expect(harness.writes.filter((data) => data === '\r')).toHaveLength(1)
     harness.db.close()
   })
 

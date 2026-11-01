@@ -139,7 +139,7 @@ describe('the name a sender is shown under', () => {
     useAppStore.setState({ unifiedTabsByWorktree: { [WORKTREE]: [chatTab()] } })
     renderSenders(
       source({
-        address: `orca_session_id:${SESSION}`,
+        address: `agent_session:${SESSION}`,
         terminalHandle: null,
         orcaSessionId: SESSION
       })
@@ -151,7 +151,7 @@ describe('the name a sender is shown under', () => {
     useAppStore.setState({ unifiedTabsByWorktree: { [WORKTREE]: [chatTab()] } })
     renderSenders(
       source(
-        { address: `orca_session_id:${SESSION}`, terminalHandle: null, orcaSessionId: SESSION },
+        { address: `agent_session:${SESSION}`, terminalHandle: null, orcaSessionId: SESSION },
         'Port the parser task'
       )
     )

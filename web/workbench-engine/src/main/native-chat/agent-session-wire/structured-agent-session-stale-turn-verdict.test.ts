@@ -481,7 +481,7 @@ describe('stale session state on a cold acquire', () => {
       )
       now = 800
       await journal.appendItem(
-        { provider: 'orca', clientMessageId: 'late-send' },
+        { provider: 'zkyq', clientMessageId: 'late-send' },
         { kind: 'message', role: 'user', blocks: [{ type: 'text', text: 'next task' }] },
         { fence: 1, turnScope }
       )

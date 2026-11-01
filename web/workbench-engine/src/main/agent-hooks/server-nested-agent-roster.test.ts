@@ -43,7 +43,7 @@ describe('nested agent hooks preserve the owning pane', () => {
                   method: 'POST',
                   headers: {
                     'Content-Type': 'application/json',
-                    'X-Orca-Agent-Hook-Token': relay.getCoordinates().token
+                    'X-Zkyq-Agent-Hook-Token': relay.getCoordinates().token
                   },
                   body: JSON.stringify(body)
                 })

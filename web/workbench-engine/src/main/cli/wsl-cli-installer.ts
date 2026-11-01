@@ -11,7 +11,8 @@ import {
   getPosixDirname,
   getWslBridgeMarker,
   getWslLauncherMarker,
-  parseManagedLauncherTarget
+  parseManagedLauncherTarget,
+  LEGACY_WSL_COMMAND_NAMES
 } from './wsl-cli-scripts'
 import { quotePosixShellDoubleQuotedApostrophe } from '../../shared/shell-argument-quoting'
 import { buildWslCliInstallCommand } from './wsl-cli-registration-command'
@@ -27,7 +28,6 @@ import {
 
 const MANAGED_MARKER = getWslLauncherMarker()
 const BRIDGE_MANAGED_MARKER = getWslBridgeMarker()
-const LEGACY_WSL_COMMAND_NAME = 'orca'
 const WSL_COMMAND_TIMEOUT_MS = 10_000
 
 function normalizeManagedScriptContent(content: string): string {
@@ -179,16 +179,19 @@ export class WslCliInstaller {
       return { changed: true, managed: true, status: await this.install(status) }
     }
 
-    const legacyCommandPath = status.commandPath
-      ? `${getPosixDirname(status.commandPath)}/${LEGACY_WSL_COMMAND_NAME}`
-      : null
-    if (!legacyCommandPath || !this.distro) {
+    if (!status.commandPath || !this.distro) {
       return { changed: false, managed: status.state === 'installed', status }
     }
 
-    const legacyContent = await this.readCommandFile(this.distro, legacyCommandPath)
-    const legacyManaged =
-      typeof legacyContent === 'string' && legacyContent.includes(MANAGED_MARKER)
+    let legacyManaged = false
+    for (const name of LEGACY_WSL_COMMAND_NAMES) {
+      const legacyPath = `${getPosixDirname(status.commandPath)}/${name}`
+      const content = await this.readCommandFile(this.distro, legacyPath)
+      if (typeof content === 'string' && content.includes(MANAGED_MARKER)) {
+        legacyManaged = true
+        break
+      }
+    }
     if (!legacyManaged) {
       return { changed: false, managed: status.state === 'installed', status }
     }
@@ -236,7 +239,7 @@ export class WslCliInstaller {
     if (!status.supported || !status.commandPath) {
       return status
     }
-    const legacyCommandPath = `${getPosixDirname(status.commandPath)}/${LEGACY_WSL_COMMAND_NAME}`
+    const legacyCommandPaths = LEGACY_WSL_COMMAND_NAMES.map((name) => `${getPosixDirname(status.commandPath)}/${name}`)
     if (status.state === 'not_installed') {
       // Why: a managed legacy `orca` left behind would later be re-adopted by
       // startup reconciliation as opt-in proof, silently undoing this removal.
@@ -244,7 +247,7 @@ export class WslCliInstaller {
         this.distro as string,
         [
           'set -eu',
-          buildManagedLegacyRemoveCommand(quotePosixShellDoubleQuotedApostrophe(legacyCommandPath))
+          ...legacyCommandPaths.map((path) => buildManagedLegacyRemoveCommand(quotePosixShellDoubleQuotedApostrophe(path)))
         ].join('\n')
       )
       return status
@@ -255,7 +258,7 @@ export class WslCliInstaller {
 
     await this.run(
       this.distro as string,
-      buildSafeRemoveCommand(status.commandPath, legacyCommandPath)
+      buildSafeRemoveCommand(status.commandPath, legacyCommandPaths)
     )
     return this.getStatus()
   }

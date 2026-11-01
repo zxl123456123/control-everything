@@ -13,10 +13,11 @@
  * it says nothing about the daemon, which is what makes a non-destructive restart possible.
  */
 import { randomUUID } from 'node:crypto'
-import { linkSync, mkdirSync, statSync, unlinkSync, writeFileSync } from 'node:fs'
+import { linkSync, lstatSync, mkdirSync, statSync, unlinkSync, writeFileSync } from 'node:fs'
 import { userInfo } from 'node:os'
 import { join } from 'node:path'
 import process from 'node:process'
+import { migrateOrcadManagedLaunchEnvironment } from '../../shared/orcad-managed-launch-env'
 import { z } from 'zod'
 import {
   compareOrcadProcessIdentity,
@@ -101,6 +102,8 @@ export type OrcadInstanceLockHooks = OrcadDataRootPrivacyHooks & {
    * hold Electron's single-instance lock first, which is what lets it reclaim a desktop record.
    */
   role?: 'orcad' | 'desktop'
+  /** Maintenance owns this lock but must not change an existing desktop profile's permissions. */
+  preserveRootPermissions?: boolean
   machineIdentity?: () => string | null
   /** Whether no other machine can reach the data root, for records that name no machine. */
   dataRootIsOnLocalDisk?: (dataRoot: string) => boolean
@@ -134,6 +137,7 @@ export function acquireOrcadInstanceLock(
   dataRoot: string,
   hooks: OrcadInstanceLockHooks = {}
 ): OrcadInstanceLock {
+  migrateOrcadManagedLaunchEnvironment(process.env)
   const identity = (hooks.identity ?? defaultIdentity)()
   const isAlive = hooks.processIsAlive ?? isProcessAlive
   const readStartedAt = hooks.startedAtMs ?? readOrcadProcessStartedAtMs
@@ -157,7 +161,7 @@ export function acquireOrcadInstanceLock(
     )
   }
   // The desktop's profile keeps the permissions it was created with; orcad tightens its own.
-  if ((hooks.role ?? 'orcad') === 'orcad') {
+  if ((hooks.role ?? 'orcad') === 'orcad' && !hooks.preserveRootPermissions) {
     assertOrcadDataRootIsPrivate(dataRoot, hooks)
   }
 
@@ -168,7 +172,7 @@ export function acquireOrcadInstanceLock(
     startedAtMs: readStartedAt(process.pid),
     ...readIncarnation(process.pid),
     identity,
-    version: (hooks.version ?? (() => process.env.ORCA_VERSION ?? 'unknown'))(),
+    version: (hooks.version ?? (() => process.env.ZKYQ_VERSION ?? 'unknown'))(),
     acquiredAt: (hooks.now ?? (() => new Date()))().toISOString(),
     nonce: randomUUID(),
     role: hooks.role ?? 'orcad',
@@ -244,7 +248,7 @@ export function acquireOrcadInstanceLock(
       'orcad_instance_lock_foreign_identity',
       `The orcad data root ${dataRoot} is locked by identity ${existing.identity} (pid ` +
         `${existing.pid}); this process runs as ${identity}. Two identities sharing one data ` +
-        'root corrupts it. Give each its own ORCA_USER_DATA.'
+        'root corrupts it. Give each its own ZKYQ_USER_DATA.'
     )
   }
   const locality = orcadLockHolderLocality(existing, record, dataRootIsLocal)
@@ -254,7 +258,7 @@ export function acquireOrcadInstanceLock(
       'orcad_instance_lock_held',
       `${describeLockHolder(existing)} (pid ${existing.pid}, started ${existing.acquiredAt}) ` +
         `holds the data root ${dataRoot}${locality === 'foreign' ? ' from another machine' : ''}. ` +
-        'Orca cannot check from here whether it is still running, because this data root may be ' +
+        'The workbench cannot check from here whether it is still running, because this data root may be ' +
         `shared with other machines. Stop it there, or if it is not running anywhere, delete ` +
         `${lockPath} and try again.`
     )
@@ -271,7 +275,7 @@ export function acquireOrcadInstanceLock(
       'orcad_instance_lock_held',
       `${describeLockHolder(existing)} (pid ${existing.pid}, started ` +
         `${existing.acquiredAt || 'unknown'}) already owns the data root ${dataRoot}. Stop it ` +
-        'before starting another, or use a different ORCA_USER_DATA.'
+        'before starting another, or use a different ZKYQ_USER_DATA.'
     )
   }
   reclaimAndPublish(lockPath, dataRoot, existingContents, publish, recoveryOwner)
@@ -326,15 +330,15 @@ function possiblyReusedPidError(
   processName: (pid: number) => string | null
 ): OrcadInstanceLockError {
   const name = processName(existing.pid)
-  const holder = existing.role === 'desktop' ? 'the Orca desktop app' : 'orcad'
+  const holder = existing.role === 'desktop' ? 'the Control Everything desktop app' : 'orcad'
   return new OrcadInstanceLockError(
     'orcad_instance_lock_held',
     `The orcad instance lock at ${lockPath} names pid ${existing.pid}, which is still running ` +
       `(as ${name ? `"${name}"` : 'an unknown program'}). This lock, written by ${holder} at ` +
-      `${existing.acquiredAt}, does not record which boot it came from, so Orca cannot tell ` +
+      `${existing.acquiredAt}, does not record which boot it came from, so the workbench cannot tell ` +
       `whether that process is still ${holder} or an unrelated program that reused the PID. ` +
       `If you are sure ${holder} is not running for this data root, delete ${lockPath} and ` +
-      'try again, or use a different ORCA_USER_DATA.'
+      'try again, or use a different ZKYQ_USER_DATA.'
   )
 }
 
@@ -347,7 +351,7 @@ function garbledLockIsAbandoned(lockPath: string): boolean {
 }
 
 function describeLockHolder(record: OrcadLockRecord): string {
-  return record.role === 'desktop' ? 'The Orca desktop app' : 'Another orcad'
+  return record.role === 'desktop' ? 'The Control Everything desktop app' : 'Another orcad'
 }
 
 function makeLock(lockPath: string, record: OrcadLockRecord): OrcadInstanceLock {
@@ -374,4 +378,26 @@ function makeLock(lockPath: string, record: OrcadLockRecord): OrcadInstanceLock 
       }
     }
   }
+}
+
+/** Rebind our unchanged instance record after its exclusively held root moved. */
+export function relocateOrcadInstanceLockAfterRootMove(
+  previous: OrcadInstanceLock,
+  dataRoot: string
+): OrcadInstanceLock {
+  const path = join(dataRoot, ORCAD_LOCK_FILE_NAME)
+  const current = readOrcadInstanceLockRecord(path)
+  if (
+    lstatSync(previous.path, { throwIfNoEntry: false }) ||
+    previous.record.pid !== process.pid ||
+    current?.pid !== previous.record.pid ||
+    current.nonce !== previous.record.nonce
+  ) {
+    throw new OrcadInstanceLockError(
+      'orcad_instance_lock_held',
+      'The moved data root does not hold this process’s instance lock.'
+    )
+  }
+  previous.release()
+  return makeLock(path, previous.record)
 }

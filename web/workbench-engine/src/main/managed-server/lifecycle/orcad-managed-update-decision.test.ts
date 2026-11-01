@@ -34,7 +34,7 @@ describe('the three update intents', () => {
       reason: 'host-newer'
     })
     expect(admitOrcadRecordForIntent('update', '1.5.0')(newer, '1.5.0+ab')).toMatch(
-      /Orca 2\.0\.0 last ran/
+      /Control Everything 2\.0\.0 last ran/
     )
     expect(admitOrcadRecordForIntent('force', '1.5.0')(newer, '1.5.0+ab')).toBeNull()
     expect(admitOrcadRecordForIntent('update', '1.5.0')(rolledBack, '1.5.0+ab')).toBeNull()

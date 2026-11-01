@@ -46,7 +46,7 @@ describe('native public account configuration', () => {
   })
   it('loads the real build config, preserves pairing and derives one exact callback', () => {
     const value = config()
-    expect(value.scheme).toEqual(['orca', 'com.example.workbench'])
+    expect(value.scheme).toEqual(['zkyq', 'com.example.workbench'])
     expect(value.extra.existing).toBe(true)
     expect(readPlatformBrowserPortal(value)).toEqual({
       status: 'ready',

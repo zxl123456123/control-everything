@@ -39,7 +39,7 @@ const SECRET_KEYS = new Set([
   'attachmentId',
   'compatibilityEvidence',
   'orchestrationCompatibilityEvidence',
-  'ORCA_AGENT_LAUNCH_TOKEN',
+  'ZKYQ_AGENT_LAUNCH_TOKEN',
   ORCHESTRATION_COMPATIBILITY_HOST_INCARNATION_ENV,
   ORCHESTRATION_COMPATIBILITY_ATTACHMENT_ENV
 ])
@@ -53,8 +53,8 @@ export function readOrchestrationCompatibilityEvidence(
   env: Readonly<Record<string, string | undefined>>
 ): OrchestrationCompatibilityEvidence | undefined {
   const terminalHandle = boundedValue(env.ORCA_TERMINAL_HANDLE)
-  const paneKey = boundedValue(env.ORCA_PANE_KEY)
-  const launchToken = boundedValue(env.ORCA_AGENT_LAUNCH_TOKEN)
+  const paneKey = boundedValue(env.ZKYQ_PANE_KEY)
+  const launchToken = boundedValue(env.ZKYQ_AGENT_LAUNCH_TOKEN)
   const host = readHostStamp(env)
   if (!terminalHandle && !paneKey && !launchToken && !host) {
     return undefined

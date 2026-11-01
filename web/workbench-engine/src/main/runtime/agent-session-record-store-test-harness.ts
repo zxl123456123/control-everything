@@ -166,10 +166,13 @@ export async function readPersistedTestAgentSessionStore(
     ) as PersistedAgentSessionRecord
   }
   for (const row of db
-    .prepare('SELECT operation_key, row_json FROM agent_session_operations ORDER BY rowid')
+    .prepare(
+      'SELECT CAST(operation_key AS BLOB) AS operation_key, row_json FROM agent_session_operations ORDER BY rowid'
+    )
     .all()) {
+    if (!(row.operation_key instanceof Uint8Array)) throw new Error('invalid operation key')
     // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: test read-back of rows the store wrote after validating them.
-    persisted.operations[String(row.operation_key)] = parsed(
+    persisted.operations[Buffer.from(row.operation_key).toString('utf8')] = parsed(
       row.row_json
     ) as AgentSessionOperationRow
   }

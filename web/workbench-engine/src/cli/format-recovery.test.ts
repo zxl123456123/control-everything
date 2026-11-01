@@ -262,7 +262,7 @@ describe('CLI error recovery', () => {
     const output = formatCliError(error)
 
     expect(output).toContain('--retry-request mutation_1')
-    expect(output).not.toContain('orca open')
+    expect(output).not.toContain('zkyq open')
   })
 })
 
@@ -283,7 +283,8 @@ describe('stale terminal handle recovery', () => {
     })
 
     expect(output).toContain('terminal_handle_stale')
-    expect(output).toContain('Next step: Terminal handles belong to the Orca server')
+    expect(output).toContain('Next step: Terminal handles belong to the server')
+    expect(output).toContain('zkyq terminal list --environment <server>')
     expect(output).toContain('--environment <server>')
   })
 
@@ -298,7 +299,7 @@ describe('stale terminal handle recovery', () => {
     expect(JSON.parse(String(log.mock.calls[0]?.[0]))).toMatchObject({
       error: {
         code: 'terminal_handle_stale',
-        data: { nextSteps: [expect.stringContaining('--environment <server>')] }
+        data: { nextSteps: [expect.stringContaining('zkyq terminal list --environment <server>')] }
       }
     })
     log.mockRestore()

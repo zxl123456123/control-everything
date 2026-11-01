@@ -33,6 +33,7 @@ const fixture = vi.hoisted(() => ({
   actionNames: [] as string[],
   selectionOnly: false,
   settingsReady: true,
+  settingsClose: null as (() => void) | null,
   settingsCallback: null as ((ready: SettingsTargetReady | null) => void) | null
 }))
 vi.mock('./platform-project-bootstrap', () => ({
@@ -138,6 +139,7 @@ vi.mock('./platform-workspace-app', () => ({
   default: () => {
     const project = useContext(PlatformProjectContext)
     const presentation = useContext(PlatformSettingsContext)
+    fixture.settingsClose = presentation?.onClose ?? null
     fixture.settingsCallback = presentation?.onReady ?? null
     useEffect(() => {
       const scope = presentation?.scope
@@ -173,6 +175,7 @@ beforeEach(() => {
   fixture.actionNames = []
   fixture.selectionOnly = false
   fixture.settingsReady = true
+  fixture.settingsClose = null
   fixture.settingsCallback = null
   fixture.load.mockReset()
   fixture.runtimeLoad.mockReset().mockResolvedValue({ runtime: bootstrap().runtime })
@@ -471,7 +474,7 @@ it('initializes development when activity is the first requested view', async ()
   publish([project])
   await waitFor(() => expect(screen.getByTestId('project-context').textContent).toBe('One'))
   expect(fixture.load).toHaveBeenCalledTimes(1)
-  expect(screen.getByRole('link', { name: '开发' }).getAttribute('aria-current')).toBe('page')
+  expect(document.documentElement.dataset.platformView).toBe('workspace')
 })
 
 it.each(['workspace', 'tasks'])(
@@ -494,11 +497,11 @@ it.each(['workspace', 'tasks'])(
     await act(async () => {
       window.location.hash = '#home'
     })
-    await waitFor(() => expect(screen.queryByLabelText('当前项目')).toBeNull())
+    await waitFor(() => expect(screen.queryByRole('navigation', { name: '项目工作区导航' })).toBeNull())
     await act(async () => {
       window.location.hash = '#project/p-one/' + tab
     })
-    await waitFor(() => expect(screen.getByLabelText('当前项目').textContent).toBe('One'))
+    await waitFor(() => expect(screen.getByTestId('project-context').textContent).toBe('One'))
     await act(async () => {
       window.location.hash = '#project/p-one/workspace'
     })
@@ -516,7 +519,7 @@ it.each(['tasks', 'review', 'attention', 'monitor'])(
     render(<PlatformProjectEntry />)
     publish([project])
     await waitFor(() => expect(screen.getByTestId('project-context').textContent).toBe('One'))
-    expect(screen.getByLabelText('当前项目').textContent).toBe('One')
+    expect(fixture.navigationData.at(-1)?.project.id).toBe(project.id)
     expect(document.title).toBe('One · 掌控一切')
     expect(fixture.load).toHaveBeenCalledTimes(1)
     expect(fixture.bridgeMounts).toHaveBeenCalledTimes(1)
@@ -634,11 +637,11 @@ it('delivers a warm overview task request only to the reactivated project bridge
   await act(async () => {
     window.location.hash = '#home'
   })
-  await waitFor(() => expect(screen.queryByLabelText('当前项目')).toBeNull())
+  await waitFor(() => expect(screen.queryByRole('navigation', { name: '项目工作区导航' })).toBeNull())
   await act(async () => {
     window.location.hash = '#project/p-one/tasks'
   })
-  await waitFor(() => expect(screen.getByLabelText('当前项目').textContent).toBe('One'))
+  await waitFor(() => expect(screen.getByTestId('project-context').textContent).toBe('One'))
   const request = { projectId: 'p-one', taskId: 'task-one' }
   act(() => {
     window.dispatchEvent(
@@ -823,7 +826,7 @@ it.each(['workspace', 'activity', 'tasks', 'review'])(
     window.history.replaceState(null, '', '#project/p-one/' + tab)
     render(<PlatformProjectEntry />)
     publish([], [project])
-    await waitFor(() => expect(screen.getByLabelText('当前项目').textContent).toBe('One'))
+    await waitFor(() => expect(document.title).toBe('One · 掌控一切'))
     expect(fixture.load).not.toHaveBeenCalled()
     expect(screen.queryByRole('alert')).toBeNull()
     expect(screen.queryByRole('button', { name: '重试连接' })).toBeNull()
@@ -844,7 +847,7 @@ it('bootstraps a restored cold-start project and keeps archived metadata out of 
   }
   render(<PlatformProjectEntry />)
   publish([], [project, archivedOther])
-  await waitFor(() => expect(screen.getByLabelText('当前项目').textContent).toBe('One'))
+  await waitFor(() => expect(document.title).toBe('One · 掌控一切'))
   expect(fixture.load).not.toHaveBeenCalled()
   publish([project], [archivedOther])
   await waitFor(() => expect(screen.getByTestId('project-context').textContent).toBe('One'))
@@ -936,15 +939,7 @@ it('keeps the app and pending agent bridge mounted across task and activity tabs
     await act(async () => {
       window.location.hash = '#project/p-one/' + tab
     })
-    await waitFor(() =>
-      expect(
-        screen
-          .getByRole('link', {
-            name: '开发'
-          })
-          .getAttribute('aria-current')
-      ).toBe('page')
-    )
+    await waitFor(() => expect(document.documentElement.dataset.platformView).toBe('workspace'))
     expect(screen.getByTestId('project-context')).toBe(app)
   }
   expect(fixture.bridgeMounts).toHaveBeenCalledTimes(1)
@@ -952,12 +947,72 @@ it('keeps the app and pending agent bridge mounted across task and activity tabs
   expect(fixture.load).toHaveBeenCalledTimes(1)
 })
 
-it('uses a static current project label and keeps project switching in the native sidebar', async () => {
+it('shows project identity with one guarded return link above the workspace', async () => {
   render(<PlatformProjectEntry />)
   publish([project])
   await waitFor(() => expect(screen.getByTestId('project-context').textContent).toBe('One'))
   expect(screen.queryByRole('combobox', { name: '切换项目' })).toBeNull()
-  expect(screen.getByLabelText('当前项目').textContent).toBe('One')
+  const navigation = screen.getByRole('navigation', { name: '项目工作区导航' })
+  expect(navigation.textContent).toContain('项目总览')
+  expect(navigation.textContent).toContain('One')
+  expect(navigation.querySelectorAll('a')).toHaveLength(1)
+  expect(screen.getByRole('link', { name: '项目总览' }).getAttribute('href')).toBe('#home')
+  expect(screen.queryByLabelText('当前项目')).toBeNull()
+  expect(screen.queryByRole('link', { name: '开发' })).toBeNull()
+  expect(document.title).toBe('One · 掌控一切')
+})
+
+it('uses the same compact return navigation for the project-independent workbench', async () => {
+  window.history.replaceState(null, '', '#workbench')
+  render(<PlatformProjectEntry />)
+  publish([project])
+  await waitFor(() => expect(document.documentElement.dataset.platformView).toBe('workspace'))
+  const navigation = screen.getByRole('navigation', { name: '项目工作台导航' })
+  expect(navigation.classList.contains('platform-project-tabs')).toBe(true)
+  expect(navigation.textContent).toContain('项目总览')
+  expect(navigation.textContent).toContain('工作台')
+  expect(navigation.querySelectorAll('a')).toHaveLength(1)
+  expect(screen.getByRole('link', { name: '项目总览' }).getAttribute('href')).toBe('#home')
+})
+
+it('keeps the existing draft guard on the return link without remounting the workspace', async () => {
+  render(<PlatformProjectEntry />)
+  publish([project])
+  await waitFor(() => expect(screen.getByTestId('project-context').textContent).toBe('One'))
+  const app = screen.getByTestId('project-context')
+  const guard = vi.fn((event: Event) => event.preventDefault())
+  window.addEventListener('platform-before-navigate', guard)
+  try {
+    await act(async () => { fireEvent.click(screen.getByRole('link', { name: '项目总览' })) })
+    await waitFor(() => expect(guard).toHaveBeenCalledOnce())
+    expect((guard.mock.calls[0][0] as CustomEvent).detail.to).toBe('#home')
+    expect(window.location.hash).toBe('#project/p-one/workspace')
+    expect(screen.getByTestId('project-context')).toBe(app)
+    expect(app.textContent).toBe('One')
+    expect(fixture.bridgeMounts).toHaveBeenCalledTimes(1)
+    expect(fixture.bridgeUnmounts).not.toHaveBeenCalled()
+  } finally {
+    window.removeEventListener('platform-before-navigate', guard)
+  }
+})
+
+it('returns focus to the remaining back link when the settings trigger was removed', async () => {
+  render(<PlatformProjectEntry />)
+  publish([project])
+  await waitFor(() => expect(screen.getByTestId('project-context').textContent).toBe('One'))
+  const trigger = document.createElement('button')
+  document.body.append(trigger)
+  trigger.focus()
+  try {
+    await act(async () => { window.location.hash = '#project/p-one/settings' })
+    await waitFor(() => expect(screen.getByLabelText('Native name draft')).toBeTruthy())
+    trigger.remove()
+    await act(async () => fixture.settingsClose!())
+    await waitFor(() => expect(window.location.hash).toBe('#project/p-one/workspace'))
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole('link', { name: '项目总览' })))
+  } finally {
+    trigger.remove()
+  }
 })
 
 it('does not label a missing project with the previous project identity', async () => {
@@ -968,7 +1023,7 @@ it('does not label a missing project with the previous project identity', async 
     window.location.hash = '#project/p-missing/workspace'
   })
   await waitFor(() => expect(screen.getByRole('alert').textContent).toContain('不存在'))
-  expect(screen.getByLabelText('当前项目').textContent).toBe('项目工作区')
+  expect(screen.getByRole('navigation', { name: '项目工作区导航' }).textContent).not.toContain('One')
   expect(screen.getByRole('link', { name: '返回项目总览' }).getAttribute('href')).toBe('#home')
   expect(screen.getByRole('button', { name: '重试连接' })).toBeTruthy()
   expect(window.location.hash).toBe('#project/p-missing/workspace')
@@ -982,7 +1037,7 @@ it('retains connection errors and retry for a registered project whose bootstrap
   await waitFor(() => expect(screen.getByRole('alert').textContent).toContain('未能连接'))
   expect(screen.getByRole('button', { name: '重试连接' })).toBeTruthy()
   expect(screen.getByRole('link', { name: '返回项目总览' }).getAttribute('href')).toBe('#home')
-  expect(screen.getByLabelText('当前项目').textContent).toBe('One')
+  expect(document.title).toBe('One · 掌控一切')
   expect(window.location.hash).toBe('#project/p-one/workspace')
 })
 
@@ -990,7 +1045,7 @@ it('keeps a cold-start unknown project distinct from archived identity', async (
   render(<PlatformProjectEntry />)
   publish([], [{ id: 'another-archive', name: 'Another archive' }])
   await waitFor(() => expect(screen.getByRole('alert').textContent).toContain('项目不存在'))
-  expect(screen.getByLabelText('当前项目').textContent).toBe('项目工作区')
+  expect(screen.getByRole('navigation', { name: '项目工作区导航' }).textContent).not.toContain('One')
   expect(screen.getByRole('button', { name: '重试连接' })).toBeTruthy()
   expect(fixture.load).not.toHaveBeenCalled()
   expect((screen.getByTestId('studio-surface') as HTMLElement).dataset.pending).toBe('true')
@@ -1013,7 +1068,7 @@ it('keeps project B when a slower project A bootstrap arrives after switching', 
   })
   await waitFor(() => expect(screen.getByTestId('project-context').textContent).toBe('Two'))
   await act(async () => resolveA(bootstrap()))
-  expect(screen.getByLabelText('当前项目').textContent).toBe('Two')
+  expect(document.title).toBe('Two · 掌控一切')
   expect(screen.getByTestId('project-context').textContent).toBe('Two')
   expect(window.location.hash).toBe('#project/p-two/workspace')
 })
@@ -1036,18 +1091,16 @@ it('guards body shadow dialogs and accepts the next navigation after closing', a
     })
     await waitFor(() => expect(screen.getByRole('status').textContent).toContain('请先完成或关闭'))
     expect(window.location.hash).toBe('#project/p-one/workspace')
-    expect(screen.getByRole('link', { name: '开发' }).getAttribute('aria-current')).toBe('page')
-    expect(screen.getByLabelText('当前项目').textContent).toBe('One')
+    expect(document.documentElement.dataset.platformView).toBe('workspace')
+    expect(screen.getByTestId('project-context').textContent).toBe('One')
     expect((screen.getByTestId('studio-surface') as HTMLElement).hidden).toBe(true)
     dialog.removeAttribute('open')
     await act(async () => {
       window.location.hash = '#project/p-one/review'
     })
-    await waitFor(() =>
-      expect(screen.getByRole('link', { name: '开发' }).getAttribute('aria-current')).toBe('page')
-    )
+    await waitFor(() => expect(window.location.hash).toBe('#project/p-one/review'))
     expect((screen.getByTestId('studio-surface') as HTMLElement).hidden).toBe(true)
-    expect(screen.getByLabelText('当前项目').textContent).toBe('One')
+    expect(screen.getByTestId('project-context').textContent).toBe('One')
   } finally {
     host.remove()
   }
@@ -1065,7 +1118,8 @@ it('keeps the target title and hides the workspace until that project is activat
   fixture.load.mockReturnValueOnce(new Promise((done) => { resolve = done }))
   await act(async () => { window.location.hash = '#project/p-two/workspace' })
   await waitFor(() => expect(fixture.load).toHaveBeenCalledTimes(2))
-  expect(screen.getByLabelText('当前项目').textContent).toBe('Two')
+  expect(screen.getByRole('navigation', { name: '项目工作区导航' }).textContent).not.toContain('One')
+  expect(screen.getByRole('navigation', { name: '项目工作区导航' }).textContent).toContain('Two')
   expect(document.title).toBe('Two · 掌控一切')
   expect(app.closest('.platform-project-content')?.hasAttribute('hidden')).toBe(true)
   expect(screen.getByTestId('studio-surface').dataset.pending).toBe('true')
@@ -1097,7 +1151,8 @@ it('keeps development as the project entry without the retired progress board', 
   render(<PlatformProjectEntry />)
   publish([project])
   await waitFor(() => expect(screen.getByTestId('project-context').textContent).toBe('One'))
-  expect(screen.getByRole('link', { name: '开发' })).toBeTruthy()
+  expect(document.documentElement.dataset.platformView).toBe('workspace')
+  expect(screen.queryByRole('link', { name: '开发' })).toBeNull()
   expect(screen.queryByRole('link', { name: '进展' })).toBeNull()
   expect(screen.queryByRole('link', { name: '活动' })).toBeNull()
   expect(screen.queryByRole('link', { name: '全部事项' })).toBeNull()
@@ -1150,6 +1205,27 @@ it('retains the same project read-only during reconnect and resumes without remo
   expect(fixture.bridgeUnmounts).not.toHaveBeenCalled()
   expect(menu.inert).toBe(false)
   menu.remove()
+})
+
+it('measures a lazily mounted canvas and its later workspace toolbar', async () => {
+  const view = render(<PlatformProjectEntry />)
+  publish([project])
+  const app = await screen.findByTestId('project-context')
+  const content = app.closest('.platform-project-content')!
+  const canvas = document.createElement('div')
+  canvas.setAttribute('data-workbench-canvas', '')
+  canvas.getBoundingClientRect = () => ({ left: 344, top: 90 } as DOMRect)
+  content.append(canvas)
+  await waitFor(() => expect(document.documentElement.style.getPropertyValue('--platform-workspace-panel-left')).toBe('344px'))
+  const toolbar = document.createElement('div')
+  toolbar.className = 'platform-workspace-toolbar'
+  toolbar.getBoundingClientRect = () => ({ bottom: 152 } as DOMRect)
+  canvas.append(toolbar)
+  await waitFor(() => expect(document.documentElement.style.getPropertyValue('--platform-workspace-panel-top')).toBe('188px'))
+  toolbar.remove()
+  await waitFor(() => expect(document.documentElement.style.getPropertyValue('--platform-workspace-panel-top')).toBe('126px'))
+  view.unmount()
+  expect(document.documentElement.style.getPropertyValue('--platform-workspace-panel-left')).toBe('')
 })
 
 it('does not retain a revoked connection or reveal another project with stale readiness', async () => {

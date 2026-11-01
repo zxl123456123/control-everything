@@ -16,7 +16,7 @@ import * as codexHomes from '../codex/codex-home-paths'
 let root: string
 beforeEach(async () => {
   root = await realpath(await mkdtemp(join(tmpdir(), 'orca-source-admission-')))
-  vi.stubEnv('ORCA_USER_DATA_PATH', join(root, 'user-data'))
+  vi.stubEnv('ZKYQ_USER_DATA_PATH', join(root, 'user-data'))
 })
 afterEach(async () => {
   vi.unstubAllEnvs()

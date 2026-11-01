@@ -93,7 +93,7 @@ test('orca open-url on orcad serve opens the page in the paired desktop', async 
       '127.0.0.1',
       '--json'
     ],
-    env: { ...profile.env, ORCA_USER_DATA: profile.userDataDir },
+    env: { ...profile.env, ZKYQ_USER_DATA: profile.userDataDir },
     timeoutMs: 120_000,
     parseReady: (stdout) => {
       const newline = stdout.indexOf('\n')
@@ -123,7 +123,7 @@ test('orca open-url on orcad serve opens the page in the paired desktop', async 
           worktree,
           '--json'
         ],
-        env: { ...profile.env, ORCA_USER_DATA: profile.userDataDir },
+        env: { ...profile.env, ZKYQ_USER_DATA: profile.userDataDir },
         timeoutMs: 90_000
       })
 
@@ -246,7 +246,7 @@ test('orca open-url on orcad serve opens the page in the paired desktop', async 
         worktree,
         '--json'
       ],
-      env: { ...profile.env, ORCA_USER_DATA: profile.userDataDir },
+      env: { ...profile.env, ZKYQ_USER_DATA: profile.userDataDir },
       timeoutMs: 30_000
     })
     writeFileSync(testInfo.outputPath('tab-list-with-desktop.txt'), tabs.stdout + tabs.stderr)

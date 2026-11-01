@@ -3,21 +3,52 @@ import { GLOBAL_FLAGS } from '../args'
 
 export const VM_COMMAND_SPECS: CommandSpec[] = [
   {
+    path: ['vm', 'runtime', 'list'],
+    summary: 'List saved local VM runtime identities and environment contracts',
+    usage: 'zkyq vm runtime list [--json]',
+    allowedFlags: ['help', 'json']
+  },
+  {
+    path: ['vm', 'runtime', 'migrate-env'],
+    destructive: true,
+    summary: 'Switch a reviewed saved VM recipe to the current environment contract',
+    usage: 'zkyq vm runtime migrate-env --runtime-id <id> --recipe-id <id> --yes [--json]',
+    allowedFlags: ['help', 'json', 'runtime-id', 'recipe-id', 'yes'],
+    notes: [
+      'Stop the local workbench before migration; the saved recipe commands and resource data are preserved.',
+      '--yes asserts that every lifecycle script and indirect call has been migrated to ZKYQ_ variables.'
+    ]
+  },
+  {
+    path: ['vm', 'recipe', 'migrate-env'],
+    destructive: true,
+    summary: 'Migrate unambiguous legacy environment reads in one local script',
+    usage: 'zkyq vm recipe migrate-env --path <absolute-script-path> [--dry-run] [--json]',
+    allowedFlags: ['help', 'json', 'path', 'dry-run'],
+    notes: [
+      'Run --dry-run first and review the indicated lines. The command never prints script contents.',
+      'Supports UTF-8 simple .sh, .bash, .zsh, .ps1 and .py scripts; PowerShell or Python 3.9+ is required to inspect its respective language.',
+      'Ambiguous syntax and indirect or dynamically constructed variable names require manual review.',
+      'Review indirectly called scripts separately.',
+      'Run when no other process is editing the script. A failed write may require manual inspection.'
+    ]
+  },
+  {
     path: ['vm', 'recipe', 'doctor'],
     summary: 'Validate a per-workspace environment recipe without provisioning by default',
     usage:
-      'orca vm recipe doctor <recipe-id> [--repo-path <path>] [--provision|--connect] [--json]',
+      'zkyq vm recipe doctor <recipe-id> [--repo-path <path>] [--provision|--connect] [--json]',
     allowedFlags: [...GLOBAL_FLAGS, 'recipe-id', 'repo-path', 'provision', 'connect'],
     positionalArgs: ['recipe-id'],
     notes: [
-      'Reads environmentRecipes from orca.yaml in the repo path, validates the selected recipe, and reports agent-friendly checks.',
+      'Reads environmentRecipes from zkyq.yaml in the repo path, validates the selected recipe, and reports agent-friendly checks.',
       'This default mode is non-destructive and does not run the recipe command.',
       'Use --provision or --connect to run the recipe, validate its result, and run cleanup when configured.'
     ],
     examples: [
-      'orca vm recipe doctor cloud-sandbox',
-      'orca vm recipe doctor cloud-sandbox --repo-path /path/to/repo --json',
-      'orca vm recipe doctor cloud-sandbox --provision --json'
+      'zkyq vm recipe doctor cloud-sandbox',
+      'zkyq vm recipe doctor cloud-sandbox --repo-path /path/to/repo --json',
+      'zkyq vm recipe doctor cloud-sandbox --provision --json'
     ]
   }
 ]

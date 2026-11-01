@@ -22,6 +22,7 @@ import { journalBatchMutationProducer, journalRenderItem } from './journal-rende
 import { compareAgentJournalItems } from '../../../shared/agent-session-journal-position'
 import {
   agentJournalSubmissionKey,
+  canonicalAgentJournalItemKey,
   parseAgentJournalItemKey
 } from '../../../shared/agent-session-journal-item-key'
 import { agentSessionSendBodyFingerprint } from '../../../shared/structured-agent-session-send-mutation'
@@ -216,6 +217,7 @@ export function resolveJournalItemId(
   itemId: string,
   body?: AgentJournalRenderItem['body']
 ): string {
+  itemId = canonicalAgentJournalItemKey(itemId)
   const aliased = state.aliases.get(itemId)
   if (aliased) {
     return aliased
@@ -238,7 +240,7 @@ export function isProviderUserMessageEcho(
     body.kind === 'message' &&
     body.role === 'user' &&
     identity !== null &&
-    identity.provider !== 'orca'
+    identity.provider !== 'zkyq'
   )
 }
 

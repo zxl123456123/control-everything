@@ -48,12 +48,7 @@ export function writeOpenCodeTuiPluginDirectory(
 ): void {
   const dir = join(pluginsDir, directoryName)
   const entry = join(dir, 'tui.js')
-  // The 1.x TUI loader rejects a default object that also exposes server().
-  const tuiSource =
-    source.includes('const ORCA_STATUS_AGENT = "opencode";') &&
-    source.includes('async function setupLegacyOpenCodeTui(')
-      ? `${source.replace(/^export default /m, 'const orcaServerPlugin = ')}\nconst { server: _orcaServerOnly, ...orcaTuiPlugin } = orcaServerPlugin;\nexport default { id: ${JSON.stringify(directoryName.replace(/-tui$/, ''))}, setup: setupOpenCode2Status, ...orcaTuiPlugin, tui: setupLegacyOpenCodeTui };\n`
-      : source
+  const tuiSource = getOpenCodeTuiPluginSource(directoryName, source)
   const isCurrent =
     ownership === 'canonical' ? isInstalledOpenCodePluginCurrent : isOverlayOpenCodePluginCurrent
   if (isCurrent(entry, tuiSource)) {
@@ -71,6 +66,14 @@ export function writeOpenCodeTuiPluginDirectory(
   if (tuiSource !== source) {
     registerTuiPlugin(pluginsDir, entry, ownership)
   }
+}
+
+export function getOpenCodeTuiPluginSource(directoryName: string, source: string): string {
+  // The 1.x TUI loader rejects a default object that also exposes server().
+  return source.includes('const ORCA_STATUS_AGENT = "opencode";') &&
+    source.includes('async function setupLegacyOpenCodeTui(')
+    ? `${source.replace(/^export default /m, 'const zkyqServerPlugin = ')}\nconst { server: _zkyqServerOnly, ...zkyqTuiPlugin } = zkyqServerPlugin;\nexport default { id: ${JSON.stringify(directoryName.replace(/-tui$/, ''))}, setup: setupOpenCode2Status, ...zkyqTuiPlugin, tui: setupLegacyOpenCodeTui };\n`
+    : source
 }
 
 function registerTuiPlugin(

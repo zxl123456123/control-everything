@@ -59,7 +59,7 @@ describe('orchestration RPC methods', () => {
       vi.mocked(runtime.getTerminalProcessIncarnation).mockImplementation((handle) =>
         handle === 'term_worker' ? 'runtime_test:term_worker:1' : null
       )
-      vi.spyOn(runtime, 'getTerminalOrchestrationCliCommand').mockReturnValue('orca')
+      vi.spyOn(runtime, 'getTerminalOrchestrationCliCommand').mockReturnValue('zkyq')
       vi.spyOn(runtime, 'sendTerminalAgentPrompt').mockResolvedValue({
         handle: 'term_worker',
         accepted: true,

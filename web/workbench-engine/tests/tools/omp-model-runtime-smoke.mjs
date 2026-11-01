@@ -33,13 +33,13 @@ const server = Bun.serve({
   }
 })
 Object.assign(process.env, {
-  ORCA_PANE_KEY: 'model-proof',
-  ORCA_AGENT_LAUNCH_TOKEN: 'model-proof',
-  ORCA_TAB_ID: 'model-proof',
-  ORCA_WORKTREE_ID: 'model-proof',
-  ORCA_AGENT_HOOK_PORT: String(server.port),
-  ORCA_AGENT_HOOK_TOKEN: 'model-proof',
-  ORCA_AGENT_HOOK_ENV: 'model-proof'
+  ZKYQ_PANE_KEY: 'model-proof',
+  ZKYQ_AGENT_LAUNCH_TOKEN: 'model-proof',
+  ZKYQ_TAB_ID: 'model-proof',
+  ZKYQ_WORKTREE_ID: 'model-proof',
+  ZKYQ_AGENT_HOOK_PORT: String(server.port),
+  ZKYQ_AGENT_HOOK_TOKEN: 'model-proof',
+  ZKYQ_AGENT_HOOK_ENV: 'model-proof'
 })
 delete process.env.ORCA_PI_STATUS_OWNED
 const authStorage = await AuthStorage.create(join(root, 'auth.db'))

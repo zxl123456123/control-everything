@@ -51,7 +51,7 @@ function writeFakeAgent(dir: string): { command: string; log: string } {
   writeFileSync(log, '')
   writeFileSync(
     command,
-    `#!/bin/sh\nprintf '%s\\n' "$ORCA_PANE_KEY" >> '${log}'\nexec sleep 3600\n`
+    `#!/bin/sh\nprintf '%s\\n' "$ZKYQ_PANE_KEY" >> '${log}'\nexec sleep 3600\n`
   )
   chmodSync(command, 0o755)
   return { command, log }

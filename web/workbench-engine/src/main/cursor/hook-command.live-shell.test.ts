@@ -60,7 +60,7 @@ describe.skipIf(process.platform === 'win32')('local Cursor hooks through login 
       throw new Error('Cursor preToolUse hook was not installed')
     }
     command = registered
-    scriptPath = join(home, '.orca', 'agent-hooks', 'cursor-hook.sh')
+    scriptPath = join(home, '.zkyq', 'agent-hooks', 'cursor-hook.sh')
   })
 
   afterEach(() => {
@@ -71,10 +71,10 @@ describe.skipIf(process.platform === 'win32')('local Cursor hooks through login 
   function environment(): NodeJS.ProcessEnv {
     return {
       ...process.env,
-      ORCA_AGENT_HOOK_ENDPOINT: '',
-      ORCA_AGENT_HOOK_PORT: '',
-      ORCA_AGENT_HOOK_TOKEN: '',
-      ORCA_PANE_KEY: '',
+      ZKYQ_AGENT_HOOK_ENDPOINT: '',
+      ZKYQ_AGENT_HOOK_PORT: '',
+      ZKYQ_AGENT_HOOK_TOKEN: '',
+      ZKYQ_PANE_KEY: '',
       ORCA_TEST_EXPAND: 'expanded',
       ORCA_TEST_LITERAL: hostileLiteral,
       HOME: fixture,

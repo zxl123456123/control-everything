@@ -1,6 +1,6 @@
 /**
  * The desktop browser bridge: a managed SSH host's orcad forwards browser commands from the host's
- * own `orca` CLI to a desktop that opted in with "Allow this host's orca CLI to control Orca".
+ * CLI to a desktop that opted in to remote browser control.
  *
  * Both sides gate on DESKTOP_BROWSER_BRIDGE_RUNTIME_CAPABILITY: orcad advertises it in status, and
  * the desktop declares it on the socket it attaches with. A peer without it never attaches, so the
@@ -20,14 +20,14 @@ export const DESKTOP_BROWSER_BRIDGE_NOT_FORWARDED_CODE = 'desktop_browser_bridge
 export const DESKTOP_BROWSER_BRIDGE_SCOPE_CODE = 'desktop_browser_bridge_out_of_scope'
 export const DESKTOP_BROWSER_BRIDGE_UNROUTED_CODE = 'desktop_browser_bridge_unrouted'
 
-export const DESKTOP_BROWSER_BRIDGE_SETTING_LABEL = "Allow this host's orca CLI to control Orca"
+export const DESKTOP_BROWSER_BRIDGE_SETTING_LABEL = 'Remote browser control'
 
 /** The desktop also withholds the bridge while this host's pages browse from the desktop's own network. */
 export const DESKTOP_BROWSER_BRIDGE_ROUTING_SETTING_LABEL = 'Settings › Browser › SSH workspaces'
 export const DESKTOP_BROWSER_BRIDGE_ROUTING_OPT_OUT_LABEL =
   'Hosts browsing from this device instead'
 
-export const DESKTOP_BROWSER_BRIDGE_UNAVAILABLE_MESSAGE = `No Orca desktop is sharing its browser with this host. On your desktop, open this host's SSH settings and turn on "${DESKTOP_BROWSER_BRIDGE_SETTING_LABEL}", make sure ${DESKTOP_BROWSER_BRIDGE_ROUTING_SETTING_LABEL} is "SSH host" and this host isn't listed under "${DESKTOP_BROWSER_BRIDGE_ROUTING_OPT_OUT_LABEL}", and keep the host connected. The desktop needs an Orca version that supports it.`
+export const DESKTOP_BROWSER_BRIDGE_UNAVAILABLE_MESSAGE = `No Control Everything desktop is sharing its browser with this host. On your desktop, open this host's SSH settings and turn on "${DESKTOP_BROWSER_BRIDGE_SETTING_LABEL}", make sure ${DESKTOP_BROWSER_BRIDGE_ROUTING_SETTING_LABEL} is "SSH host" and this host isn't listed under "${DESKTOP_BROWSER_BRIDGE_ROUTING_OPT_OUT_LABEL}", and keep the host connected. The desktop must support remote browser control.`
 
 /**
  * The only commands a host may run on the desktop browser. Narrower than the relay bridge before

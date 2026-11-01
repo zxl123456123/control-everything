@@ -67,7 +67,7 @@ beforeEach(() => {
   accountHome = join(home, '.local', 'share', 'orca', 'codex-accounts', 'a1', 'home')
   mkdirSync(accountHome, { recursive: true })
   mkdirSync(join(root, 'user-data'))
-  vi.stubEnv('ORCA_USER_DATA_PATH', join(root, 'user-data'))
+  vi.stubEnv('ZKYQ_USER_DATA_PATH', join(root, 'user-data'))
   vi.stubEnv('CODEX_HOME', '')
   mocks.homedir.mockReturnValue(home)
   mocks.hashes = Object.fromEntries(

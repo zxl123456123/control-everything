@@ -57,8 +57,8 @@ export function formatRemoteRuntimeCloseMessage(code: number, reason: Buffer): s
     suffixParts.push(reasonText)
   }
   return suffixParts.length > 0
-    ? `Remote Orca runtime closed the connection (${suffixParts.join(': ')}).`
-    : 'Remote Orca runtime closed the connection.'
+    ? `Remote Control Everything runtime closed the connection (${suffixParts.join(': ')}).`
+    : 'Remote Control Everything runtime closed the connection.'
 }
 
 export function ignoreSettledRemoteRuntimeSocketError(): void {}

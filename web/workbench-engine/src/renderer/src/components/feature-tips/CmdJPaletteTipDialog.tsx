@@ -28,6 +28,9 @@ export function CmdJPaletteTipDialog({
   onSkip: () => void
   onRebindClick: () => void
 }): JSX.Element {
+  const platformMode =
+    typeof window !== 'undefined' &&
+    ['/studio', '/workbench/web-index.html'].includes(window.location.pathname)
   // Why: read the live binding so the title chip stays correct after a rebind
   // and on Linux/Windows (Ctrl+Shift+J) — matching the visual's key chips.
   const worktreePaletteShortcutLabel = useShortcutLabel('worktree.palette')
@@ -38,7 +41,7 @@ export function CmdJPaletteTipDialog({
   // The tip's title uses "<shortcut>" as a placeholder token; split it so we
   // can render the live label as a styled <kbd> chip inline. Missing token
   // degrades to the plain title.
-  const titleParts = tip.title.split('<shortcut>')
+  const titleParts = translate('platform.tip.palette.title', tip.title).split('<shortcut>')
   const titlePrefix = titleParts[0]
   const titleSuffix = titleParts.slice(1).join('<shortcut>')
 
@@ -52,17 +55,23 @@ export function CmdJPaletteTipDialog({
       // Why: Radix auto-focuses the first focusable child; without this the
       // inline rebind link in the description gets the focus ring on open.
       onOpenAutoFocus={(event) => event.preventDefault()}
-      visual={<CmdJPaletteFeatureTipVisual />}
+      visual={platformMode ? undefined : <CmdJPaletteFeatureTipVisual />}
     >
       <DialogHeader className="gap-4 text-left">
         <div>
           {/* Why: uppercase eyebrow reads as a category label, not a feature launch. */}
-          <FeatureTipEyebrow label={tip.eyebrow} />
+          <FeatureTipEyebrow label={translate('platform.tip.palette.eyebrow', tip.eyebrow)} />
           {/* Why: flow the shortcut chip as inline text (not a flex item) so the
                 short Mac label (⌘⇧J) stays on one line, while a wide label like
                 "Ctrl+Shift+J" wraps to the next line only when it doesn't fit —
                 instead of being pushed to the right edge on Win/Linux. */}
-          <DialogTitle className="text-2xl font-semibold leading-tight tracking-tight md:text-[1.75rem]">
+          <DialogTitle
+            className={
+              platformMode
+                ? 'text-xl font-semibold leading-snug tracking-tight'
+                : 'text-2xl font-semibold leading-tight tracking-tight md:text-[1.75rem]'
+            }
+          >
             {titlePrefix.trimEnd()}
             {displayShortcutLabel ? (
               <>
@@ -72,10 +81,12 @@ export function CmdJPaletteTipDialog({
                 </kbd>
               </>
             ) : null}
-            {titleSuffix ? ` ${titleSuffix}` : null}
+            {titleSuffix ? ` ${titleSuffix.trimStart()}` : null}
           </DialogTitle>
           <DialogDescription className="mt-3 max-w-2xl space-y-3 text-sm leading-relaxed">
-            <span className="block">{tip.description}</span>
+            <span className="block">
+              {translate('platform.tip.palette.description', tip.description)}
+            </span>
             <FeatureTipSettingsLine
               lead={translate(
                 'auto.components.feature.tips.CmdJPaletteTipDialog.8241897205',
@@ -91,14 +102,15 @@ export function CmdJPaletteTipDialog({
         </div>
       </DialogHeader>
 
-      <DialogFooter className="mt-8 flex sm:justify-stretch">
+      <DialogFooter className={platformMode ? 'mt-4 flex' : 'mt-8 flex sm:justify-stretch'}>
         <FeatureTipActions
           currentTip={tip}
           primaryBusy={primaryBusy}
           onPrimaryAction={onPrimaryAction}
           onSkip={onSkip}
           showSkip={false}
-          fullWidth
+          fullWidth={!platformMode}
+          label={translate('platform.tip.palette.acknowledge', tip.ctaLabel)}
         />
       </DialogFooter>
     </FeatureTipDialogFrame>

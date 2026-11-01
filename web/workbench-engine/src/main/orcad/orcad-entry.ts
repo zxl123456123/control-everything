@@ -13,12 +13,13 @@
 import { join } from 'node:path'
 import process from 'node:process'
 import { getAppEnvironment } from '../../shared/app-environment'
+import { PROFILE_STATE_DATA_FILE_NAME } from '../../shared/profile-state-storage-paths'
 import { isPlatformRuntime, readPlatformRuntimePolicy } from '../platform-runtime-policy'
 import { hasExplicitPlatformCredentialRoot } from '../credentials/credential-root'
 import { ALL_RPC_METHODS } from '../runtime/rpc/methods'
 import { platformOwnerMethods } from './platform-owner-methods'
 import { PLATFORM_TASK_PROGRESS_METHODS } from './platform-task-progress-methods'
-import { resolveOrcadInstallRoot, resolveUserDataPath } from './orcad-app-paths'
+import { resolveOrcadInstallRoot, prepareOrcadDefaultDataRoots } from './orcad-app-paths'
 import { prepareOrcadCliLauncher } from './orcad-cli-launcher'
 import {
   installOrcadHostAdapters,
@@ -65,12 +66,13 @@ export async function startOrcad(options: OrcadOptions = {}): Promise<OrcadHandl
   if (policy && options.bind !== undefined && options.bind !== '127.0.0.1') {
     throw new Error('platform_loopback_required')
   }
+  const userDataPath = await prepareOrcadDefaultDataRoots()
   installOrcadHostAdapters()
   // Why: an orcad started from an Orca terminal must not fence its own CLI children to that Orca.
   stampRuntimeSourceEnv(process.env, null)
-  const userDataPath = resolveUserDataPath()
   // Why, as on the desktop: an inherited value would aim the CLI-shared Codex home paths elsewhere.
-  process.env.ORCA_USER_DATA_PATH = userDataPath
+  process.env.ZKYQ_USER_DATA_PATH = userDataPath
+  delete process.env.ORCA_USER_DATA_PATH
   const { readiness, instance, stop } = await startOrcadWithHost(
     userDataPath,
     (registerCleanup) => startOrcadRuntime(options, registerCleanup),
@@ -93,14 +95,14 @@ async function prepareOrcadSecretStoreAndMigrate(userDataPath: string): Promise<
   const { reportSecretProtectionGap } = await import('../host/secret-protection-report')
   const { migratePlaintextCredentials, orcadCredentialRoot } =
     await import('./orcad-plaintext-credential-migration')
-  // Why the credential root, not userData: a disposable ORCA_USER_DATA would take the key with it.
+  // Why the credential root, not userData: a disposable ZKYQ_USER_DATA would take the key with it.
   const required = hasExplicitPlatformCredentialRoot()
   const ready = await prepareOrcadSecretStore(orcadCredentialRoot(), userDataPath, required)
   if (required && !ready) throw new Error('platform_credential_key_unavailable')
   if (ready) {
     migratePlaintextCredentials(getSecretStore())
   }
-  reportSecretProtectionGap({ dataFile: join(userDataPath, 'orca-data.json') })
+  reportSecretProtectionGap({ dataFile: join(userDataPath, PROFILE_STATE_DATA_FILE_NAME) })
 }
 
 async function startOrcadRuntime(
@@ -108,7 +110,9 @@ async function startOrcadRuntime(
   registerCleanup: (cleanup: OrcadRuntimeCleanup) => void
 ): Promise<Pick<OrcadHandle, 'readiness'>> {
   // Started first so the login-shell probe overlaps the imports and store startup below.
-  const loginEnvironment = (isPlatformRuntime() ? Promise.resolve([]) : adoptWslHostLoginEnvironment()).then(
+  const loginEnvironment = (
+    isPlatformRuntime() ? Promise.resolve([]) : adoptWslHostLoginEnvironment()
+  ).then(
     (names) => {
       if (names.length > 0) {
         console.info(`[orcad] adopted login-shell variables: ${names.join(', ')}`)
@@ -135,7 +139,8 @@ async function startOrcadRuntime(
   const { agentHookRuntimeDeps } = await import('../agent-hooks/agent-hook-runtime-deps')
   const { installHookStatusSessionTabsRepublish } =
     await import('../agent-hooks/hook-status-session-tabs-republish')
-  const { orcadStatusHooksEnabled, startOrcadManagedAgentHooks } = await import('./orcad-managed-agent-hooks')
+  const { orcadStatusHooksEnabled, startOrcadManagedAgentHooks } =
+    await import('./orcad-managed-agent-hooks')
   const { AgentStatusObservedPaneIdentities, AgentStatusObservedPaneIdentityCapture } =
     await import('../runtime/agent-status-observed-pane-identity')
 
@@ -361,19 +366,31 @@ async function startOrcadRuntime(
     // once a device has connected, so a loopback deployment would silently go wide one
     // restart after its first client paired.
     pinnedBindHost: bindHost,
-    webClientRoot: isPlatformRuntime() ? undefined : resolveOrcadWebClientRoot(options.webClientRoot),
-    ...(isPlatformRuntime() ? { methods: [...ALL_RPC_METHODS, ...platformOwnerMethods(() => rpc), ...PLATFORM_TASK_PROGRESS_METHODS] } : {}),
+    webClientRoot: isPlatformRuntime()
+      ? undefined
+      : resolveOrcadWebClientRoot(options.webClientRoot),
+    ...(isPlatformRuntime()
+      ? {
+          methods: [
+            ...ALL_RPC_METHODS,
+            ...platformOwnerMethods(() => rpc),
+            ...PLATFORM_TASK_PROGRESS_METHODS
+          ]
+        }
+      : {}),
     ...orcadWsPortOptions(options.port)
   })
   // Stops first: no RPC may write while the rest of the runtime is torn down.
   registerCleanup(() => rpc.stop())
   await rpc.start()
   if (!isPlatformRuntime()) startOrcadAutomations(runtime, profileStore, registerCleanup)
-  const pushService = isPlatformRuntime() ? null : DesktopPushService.create({
-    runtime,
-    runtimeRpc: rpc,
-    gatewayUrl: resolvePushGatewayOrigin(process.env, getAppEnvironment().isPackaged())
-  })
+  const pushService = isPlatformRuntime()
+    ? null
+    : DesktopPushService.create({
+        runtime,
+        runtimeRpc: rpc,
+        gatewayUrl: resolvePushGatewayOrigin(process.env, getAppEnvironment().isPackaged())
+      })
   pushService?.start()
   getAppEnvironment().onWillQuit(() => pushService?.stop())
   console.error(`[orcad] ${describeOrcadBindExposure(bindHost)}`)

@@ -4,7 +4,7 @@ set -uo pipefail
 
 case_name=${1:?launch case is required}
 extracted_root=${ORCA_TEST_EXTRACTED_ROOT:-/artifacts/squashfs-root}
-launcher="$extracted_root/resources/bin/orca-ide"
+launcher="$extracted_root/resources/bin/zkyq"
 command_timeout_seconds=${ORCA_TEST_COMMAND_TIMEOUT_SECONDS:-60}
 
 if ((EUID == 0)); then

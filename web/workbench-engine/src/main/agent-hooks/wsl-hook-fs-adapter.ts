@@ -12,7 +12,11 @@ import {
   type ManagedHookDetectionSettings
 } from './managed-hook-detection-commands'
 import type { SshChannelMultiplexer } from '../ssh/ssh-channel-multiplexer'
-import { WSL_HOOK_FS_METHODS, type WslFsResult } from '../../shared/wsl-hook-relay-contract'
+import {
+  WSL_HOOK_FS_METHODS,
+  type WslFsEntryStats,
+  type WslFsResult
+} from '../../shared/wsl-hook-relay-contract'
 import type { AgentHookInstallStatus } from '../../shared/agent-hook-types'
 
 /** Run the shared remote hook installers against a WSL guest over the relay's fs bridge. */
@@ -80,6 +84,7 @@ export async function installWslGuestHooks(options: {
 }
 
 type SftpCallback<T = void> = (err: Error | null, value?: T) => void
+type SftpEntryStats = { mode: number; isFile(): boolean; isDirectory(): boolean }
 
 // Why: installer-utils-remote classifies errors by ssh2's numeric SFTP status
 // codes (ENOENT=2, already-exists=4). Map guest POSIX errno onto those so the
@@ -150,6 +155,13 @@ export function createWslHookSftpAdapter(mux: SshChannelMultiplexer): SFTPWrappe
           mode: r.mode
         })
       )
+    },
+    lstat(path: string, callback: SftpCallback<SftpEntryStats>): void {
+      call<WslFsEntryStats, SftpEntryStats>(WSL_HOOK_FS_METHODS.lstat, { path }, callback, (r) => ({
+        mode: r.mode,
+        isFile: () => r.file,
+        isDirectory: () => r.directory
+      }))
     },
     // Why: POSIX rename overwrites atomically, which is exactly the OpenSSH
     // overwrite-rename semantics the installers prefer — so the extension is

@@ -1,4 +1,7 @@
 import { Buffer } from 'node:buffer'
+import { readSourceControlEnvironment as envValue } from '../source-control/source-control-environment'
+
+export { envValue }
 
 export const DEFAULT_API_BASE_URL = 'https://api.bitbucket.org/2.0'
 
@@ -12,17 +15,12 @@ export type BitbucketAuthConfig = {
   apiToken: string | null
 }
 
-export function envValue(name: string): string | null {
-  const value = process.env[name]?.trim() ?? ''
-  return value.length > 0 ? value : null
-}
-
 export function getEnvAuthConfig(): BitbucketAuthConfig {
   return {
-    baseUrl: envValue('ORCA_BITBUCKET_API_BASE_URL') ?? DEFAULT_API_BASE_URL,
-    accessToken: envValue('ORCA_BITBUCKET_ACCESS_TOKEN'),
-    email: envValue('ORCA_BITBUCKET_EMAIL'),
-    apiToken: envValue('ORCA_BITBUCKET_API_TOKEN')
+    baseUrl: envValue('ZKYQ_BITBUCKET_API_BASE_URL') ?? DEFAULT_API_BASE_URL,
+    accessToken: envValue('ZKYQ_BITBUCKET_ACCESS_TOKEN'),
+    email: envValue('ZKYQ_BITBUCKET_EMAIL'),
+    apiToken: envValue('ZKYQ_BITBUCKET_API_TOKEN')
   }
 }
 

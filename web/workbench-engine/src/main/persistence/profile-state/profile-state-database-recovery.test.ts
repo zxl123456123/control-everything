@@ -55,7 +55,7 @@ async function fixture(options: { profileId?: string; empty?: boolean; json?: st
   mkdirSync(directory, { recursive: true })
   const maintenance = acquireProfileStateMaintenance(root)
   const databasePath = join(directory, 'profile-state.db')
-  const dataFile = join(directory, 'orca-data.json')
+  const dataFile = join(directory, 'zkyq-data.json')
   const exportPath = profileStateJsonExportPath(dataFile, 1)
   const backupPath = profileStateDatabaseBackupPath(
     databasePath,

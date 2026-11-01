@@ -24,7 +24,7 @@ export function prepareWindowsAdministratorRestart(): Electron.RelaunchOptions {
   }
   const cliLauncher = getBundledLauncherPath('win32', process.resourcesPath)
   const launcher =
-    cliLauncher && win32.join(win32.dirname(cliLauncher), 'orca-administrator-restart.exe')
+    cliLauncher && win32.join(win32.dirname(cliLauncher), 'zkyq-administrator-restart.exe')
   if (!launcher || !existsSync(launcher)) {
     throw new Error('The Windows administrator launcher is unavailable.')
   }

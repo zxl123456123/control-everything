@@ -1,4 +1,6 @@
 import { z } from 'zod'
+import { homedir } from 'node:os'
+import { join } from 'node:path'
 import type { CommandHandler } from '../dispatch'
 import { printResult } from '../format'
 import { rejectRemoteSelectionFlags } from '../remote-selection-flag-rejection'
@@ -12,7 +14,10 @@ import {
   getProfileStateExports,
   rollbackProfileState
 } from '../../main/persistence/profile-state/profile-state-recovery-command'
-import { acquireProfileStateMaintenance } from '../../main/persistence/profile-state/profile-state-access'
+import {
+  acquireProfileStateMaintenance,
+  acquireProfileStateRuntimeAdmission
+} from '../../main/persistence/profile-state/profile-state-access'
 import {
   isProfileStateRecoveryCommandError,
   type ProfileStateExportsResult,
@@ -23,6 +28,9 @@ import {
   canLaunchProfileStateRecovery,
   launchProfileStateRecovery
 } from '../runtime/profile-state-recovery-launch'
+import { hasExplicitPlatformCredentialRoot } from '../../main/credentials/credential-root'
+import { readDefaultDataRootRecord } from '../../main/persistence/default-data-root-record'
+import { retireIdleDefaultDataRootDaemons } from '../../main/persistence/default-data-root-readers'
 
 function localSuccess<TResult>(result: TResult): RuntimeRpcSuccess<TResult> {
   return {
@@ -87,8 +95,24 @@ async function requireStoppedRuntime(client: RuntimeClient): Promise<void> {
   if (status.result.runtime.reachable || status.result.app.running) {
     throw new RuntimeClientError(
       'runtime_error',
-      'Stop Orca before profile-state rollback so no process can write the SQLite database.'
+      'Stop Control Everything before profile-state rollback so no process can write the SQLite database.'
     )
+  }
+}
+
+async function preparePreviousBuildRoots(
+  userDataPath: string,
+  selector: ProfileStateRecoverySelector
+): Promise<void> {
+  if (selector.kind !== 'latest-json') return
+  const roots = [
+    userDataPath,
+    ...(!hasExplicitPlatformCredentialRoot() ? [join(homedir(), '.zkyq')] : [])
+  ]
+  for (const current of new Set(roots)) {
+    const record = readDefaultDataRootRecord(current)
+    if (!record) continue
+    await retireIdleDefaultDataRootDaemons(current)
   }
 }
 
@@ -110,10 +134,16 @@ function parseRevision(flags: Map<string, string | boolean>): number {
 export const PROFILE_STATE_HANDLERS: Record<string, CommandHandler> = {
   'profile state exports': async ({ flags, json }) => {
     rejectProfileStateRemoteSelection(flags)
-    const result = translateRecoveryError(() =>
-      getProfileStateExports(getDefaultUserDataPath(), parseProfileId(flags))
-    )
-    printResult(localSuccess(result), json, formatExports)
+    const userDataPath = getDefaultUserDataPath()
+    const admission = acquireProfileStateRuntimeAdmission(userDataPath)
+    try {
+      const result = translateRecoveryError(() =>
+        getProfileStateExports(userDataPath, parseProfileId(flags))
+      )
+      printResult(localSuccess(result), json, formatExports)
+    } finally {
+      admission.release()
+    }
   },
   'profile state rollback': async ({ client, flags, json }) => {
     rejectProfileStateRemoteSelection(flags)
@@ -123,6 +153,7 @@ export const PROFILE_STATE_HANDLERS: Record<string, CommandHandler> = {
     let result: ProfileStateRollbackResult
     if (canLaunchProfileStateRecovery()) {
       await requireStoppedRuntime(client)
+      await preparePreviousBuildRoots(userDataPath, selector)
       result = await launchProfileStateRecovery({
         userDataPath,
         selector,
@@ -132,6 +163,7 @@ export const PROFILE_STATE_HANDLERS: Record<string, CommandHandler> = {
       const maintenance = acquireProfileStateMaintenance(userDataPath)
       try {
         await requireStoppedRuntime(client)
+        await preparePreviousBuildRoots(userDataPath, selector)
         result = translateRecoveryError(() =>
           rollbackProfileState(userDataPath, selector, maintenance, profileId)
         )

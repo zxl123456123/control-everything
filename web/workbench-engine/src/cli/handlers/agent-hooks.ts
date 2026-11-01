@@ -25,7 +25,7 @@ const WSL_CODEX_PREPARE_TIMEOUT_MS = 50_000
 
 async function getDataPath(): Promise<string> {
   return (
-    (await getProfileStateLocation())?.dataFile ?? join(getDefaultUserDataPath(), 'orca-data.json')
+    (await getProfileStateLocation())?.dataFile ?? (await legacyProfileStateLocation()).dataFile
   )
 }
 
@@ -34,10 +34,12 @@ async function getProfileStateLocation(): Promise<ProfileStateOfflineLocation | 
   return getActiveProfileStateLocation()
 }
 
-function legacyProfileStateLocation(): ProfileStateOfflineLocation {
+async function legacyProfileStateLocation(): Promise<ProfileStateOfflineLocation> {
   const userDataPath = getDefaultUserDataPath()
+  const { profileStateDataFileForRead } =
+    await import('../../main/persistence/profile-state/profile-state-data-name-migration.js')
   return {
-    dataFile: join(userDataPath, 'orca-data.json'),
+    dataFile: profileStateDataFileForRead(userDataPath),
     databaseFile: join(userDataPath, 'profile-state.db'),
     profileId: DEFAULT_LOCAL_ORCA_PROFILE_ID
   }
@@ -62,7 +64,7 @@ async function readAdmittedHookSettingsFromDisk(): Promise<
   const { readAgentHookSettingsFromProfileState } =
     await import('../../main/persistence/profile-state/profile-state-offline-settings.js')
   return readAgentHookSettingsFromProfileState(
-    (await getProfileStateLocation()) ?? legacyProfileStateLocation()
+    (await getProfileStateLocation()) ?? (await legacyProfileStateLocation())
   )
 }
 
@@ -78,6 +80,9 @@ async function updateEnabledOnDisk(enabled: boolean): Promise<{
   // A stopped-status response cannot exclude startup racing the first import.
   const maintenance = acquireProfileStateMaintenance(getDefaultUserDataPath())
   try {
+    const { migrateProfileStateDataNames } =
+      await import('../../main/persistence/profile-state/profile-state-data-name-migration.js')
+    migrateProfileStateDataNames(getDefaultUserDataPath(), maintenance)
     return await updateAdmittedEnabledOnDisk(enabled)
   } finally {
     maintenance.release()
@@ -92,7 +97,7 @@ async function updateAdmittedEnabledOnDisk(enabled: boolean): Promise<{
     await import('../../main/persistence/profile-state/profile-state-offline-settings.js')
   let location = await getProfileStateLocation()
   if (!location) {
-    const legacy = legacyProfileStateLocation()
+    const legacy = await legacyProfileStateLocation()
     const { classifyProfileStateStorage } =
       await import('../../main/persistence/profile-state/profile-state-storage-classification.js')
     const storage = classifyProfileStateStorage(legacy.dataFile, legacy.databaseFile)

@@ -37,7 +37,7 @@ export async function launchProfileStateRecovery(
     env: {
       ...stripElectronRunAsNode(process.env),
       ORCA_BACKGROUND_LAUNCH: '1',
-      ORCA_USER_DATA_PATH: userDataPath
+      ZKYQ_USER_DATA_PATH: userDataPath
     },
     // Recovery may copy large backups; the lock owner must finish or be explicitly terminated.
     timeoutMs: null

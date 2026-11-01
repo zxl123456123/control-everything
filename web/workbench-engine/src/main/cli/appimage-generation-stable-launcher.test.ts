@@ -29,7 +29,7 @@ async function makeGeneration() {
   const generationRoot = join(cacheRootPath, 'a'.repeat(24), 'b'.repeat(24))
   const resourcesPath = join(generationRoot, 'resources')
   await mkdir(join(resourcesPath, 'bin'), { recursive: true })
-  await writeFile(join(resourcesPath, 'bin', 'orca-ide'), '#!/usr/bin/env bash\n', { mode: 0o755 })
+  await writeFile(join(resourcesPath, 'bin', 'zkyq'), '#!/usr/bin/env bash\n', { mode: 0o755 })
   await writeFile(join(generationRoot, 'orca-ide'), '', { mode: 0o755 })
   expect(ensureAppImageStableLauncher(cacheRootPath)).toBe(
     resolveAppImageStableLauncherPath(cacheRootPath)

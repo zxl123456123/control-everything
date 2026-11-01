@@ -16,7 +16,10 @@ vi.mock('./native-chat-session-option-discovery', () => ({
 const storeState: {
   settings: Record<string, unknown>
   updateSettings: () => Promise<undefined>
-  agentStatusByPaneKey: Record<string, { model?: string; modelSwitchCommand?: 'orca-model' }>
+  agentStatusByPaneKey: Record<
+    string,
+    { model?: string; modelSwitchCommand?: 'zkyq-model' | 'orca-model' }
+  >
 } = {
   settings: {},
   updateSettings: async () => undefined,
@@ -75,7 +78,7 @@ describe('useNativeChatSessionOptions model reporting', () => {
     const dispatchCommand = vi.fn()
     storeState.agentStatusByPaneKey['tab-omp:leaf'] = {
       model: 'deepseek/deepseek-v4-pro',
-      modelSwitchCommand: 'orca-model'
+      modelSwitchCommand: 'zkyq-model'
     }
     const { result } = renderHook(() =>
       useNativeChatSessionOptions({
@@ -113,7 +116,7 @@ describe('useNativeChatSessionOptions model reporting', () => {
       const dispatchCommand = vi.fn()
       storeState.agentStatusByPaneKey[paneKey] = {
         model: 'deepseek/deepseek-v4-pro',
-        modelSwitchCommand: 'orca-model'
+        modelSwitchCommand: 'zkyq-model'
       }
       const { result, rerender } = renderHook(() =>
         useNativeChatSessionOptions({
@@ -127,7 +130,7 @@ describe('useNativeChatSessionOptions model reporting', () => {
       await waitFor(() => expect(modelDescriptor(result.current.snapshot).choices).toHaveLength(2))
       storeState.agentStatusByPaneKey[paneKey] = {
         model: reportedModel,
-        modelSwitchCommand: 'orca-model'
+        modelSwitchCommand: 'zkyq-model'
       }
       rerender()
       await waitFor(() =>
@@ -147,7 +150,7 @@ describe('useNativeChatSessionOptions model reporting', () => {
     const paneKey = 'tab-omp-pick:leaf'
     storeState.agentStatusByPaneKey[paneKey] = {
       model: 'deepseek/deepseek-v4-pro',
-      modelSwitchCommand: 'orca-model'
+      modelSwitchCommand: 'zkyq-model'
     }
     const { result, rerender } = renderHook(() =>
       useNativeChatSessionOptions({
@@ -164,7 +167,7 @@ describe('useNativeChatSessionOptions model reporting', () => {
     )
 
     await result.current.surface!.setOption('model', 'minimax-cn/MiniMax-M3')
-    expect(dispatchCommand).toHaveBeenCalledWith('/orca-model minimax-cn/MiniMax-M3')
+    expect(dispatchCommand).toHaveBeenCalledWith('/zkyq-model minimax-cn/MiniMax-M3')
     await waitFor(() =>
       expect(modelDescriptor(result.current.snapshot).currentValue).toBe('minimax-cn/MiniMax-M3')
     )
@@ -172,7 +175,7 @@ describe('useNativeChatSessionOptions model reporting', () => {
     // The same report re-delivered on the next status ping is not new evidence.
     storeState.agentStatusByPaneKey[paneKey] = {
       model: 'deepseek/deepseek-v4-pro',
-      modelSwitchCommand: 'orca-model'
+      modelSwitchCommand: 'zkyq-model'
     }
     rerender()
     await Promise.resolve()
@@ -181,7 +184,7 @@ describe('useNativeChatSessionOptions model reporting', () => {
     // A changed report is: the hook confirms the switch.
     storeState.agentStatusByPaneKey[paneKey] = {
       model: 'minimax-cn/MiniMax-M3',
-      modelSwitchCommand: 'orca-model'
+      modelSwitchCommand: 'zkyq-model'
     }
     rerender()
     await waitFor(() =>
@@ -189,6 +192,41 @@ describe('useNativeChatSessionOptions model reporting', () => {
         result.current.snapshot.find((descriptor) => descriptor.id === 'model')?.valueSource
       ).toBe('reported')
     )
+  })
+
+  it('updates the dispatched command when a retained OMP extension reloads', async () => {
+    discoverModels.mockResolvedValue(OMP_DISCOVERED)
+    const paneKey = 'tab-omp-reload:leaf'
+    storeState.agentStatusByPaneKey[paneKey] = {
+      model: 'deepseek/deepseek-v4-pro',
+      modelSwitchCommand: 'orca-model'
+    }
+    const dispatchCommand = vi.fn()
+    const { result, rerender } = renderHook(() =>
+      useNativeChatSessionOptions({
+        agent: 'omp',
+        terminalTabId: 'tab-omp-reload',
+        targetPtyId: 'pty-omp-reload',
+        dispatchCommand,
+        paneKey
+      })
+    )
+    await waitFor(() => expect(modelDescriptor(result.current.snapshot).choices).toHaveLength(2))
+    await result.current.surface!.setOption('model', 'minimax-cn/MiniMax-M3')
+    expect(dispatchCommand).toHaveBeenLastCalledWith('/orca-model minimax-cn/MiniMax-M3')
+
+    storeState.agentStatusByPaneKey[paneKey].modelSwitchCommand = 'zkyq-model'
+    rerender()
+    await result.current.surface!.setOption('model', 'deepseek/deepseek-v4-pro')
+    expect(dispatchCommand).toHaveBeenLastCalledWith('/zkyq-model deepseek/deepseek-v4-pro')
+
+    delete storeState.agentStatusByPaneKey[paneKey].modelSwitchCommand
+    rerender()
+    expect(result.current.snapshot[0].settable).toBe(false)
+    await expect(
+      result.current.surface!.setOption('model', 'minimax-cn/MiniMax-M3')
+    ).rejects.toThrow()
+    expect(dispatchCommand).toHaveBeenCalledTimes(2)
   })
 
   it('ignores a hook-reported model for Claude, whose frame is authoritative', async () => {

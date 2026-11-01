@@ -197,9 +197,9 @@ describe('a send the host rejected', () => {
   // never ran and fold the one row naming the cause behind a "Worked for 0s".
   it('leaves the row naming the cause on screen', () => {
     const messages = [
-      text('orca:first-start', DIAGNOSTIC, 'system'),
-      text('orca:dead', 'Reply with exactly: DEAD', 'user'),
-      text('orca:restart-exit', DIAGNOSTIC, 'system')
+      text('zkyq:first-start', DIAGNOSTIC, 'system'),
+      text('zkyq:dead', 'Reply with exactly: DEAD', 'user'),
+      text('zkyq:restart-exit', DIAGNOSTIC, 'system')
     ]
     const settledByTurn = selectStructuredAgentSettledTurns(
       [],
@@ -217,16 +217,16 @@ describe('a send the host rejected', () => {
       ]
     )
     const turnStatuses = selectNativeChatTurnStatuses(
-      { 'orca:dead': { startedAt: 900, workedSeconds: 0 } },
-      { activeTurnKey: 'orca:dead', isWorking: false, thinking: false, settledByTurn }
+      { 'zkyq:dead': { startedAt: 900, workedSeconds: 0 } },
+      { activeTurnKey: 'zkyq:dead', isWorking: false, thinking: false, settledByTurn }
     )
 
     const slots = build(messages, { turnStatuses })
 
     expect(slots.map((slot) => [slot.message.id, slot.folded, slot.status])).toEqual([
-      ['orca:first-start', false, undefined],
-      ['orca:dead', false, undefined],
-      ['orca:restart-exit', false, undefined]
+      ['zkyq:first-start', false, undefined],
+      ['zkyq:dead', false, undefined],
+      ['zkyq:restart-exit', false, undefined]
     ])
   })
 })

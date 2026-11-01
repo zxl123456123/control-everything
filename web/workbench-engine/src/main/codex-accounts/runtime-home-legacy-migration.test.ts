@@ -85,7 +85,7 @@ describe('CodexRuntimeHomeService', () => {
     const staleRuntimeHomePath = join(staleUserDataDir, 'codex-runtime-home', 'home')
     try {
       mkdirSync(staleRuntimeHomePath, { recursive: true })
-      process.env.ORCA_USER_DATA_PATH = staleUserDataDir
+      process.env.ZKYQ_USER_DATA_PATH = staleUserDataDir
       const legacyLaunchHomePath = join(
         testState.userDataDir,
         'codex-runtime-home',
@@ -110,7 +110,7 @@ describe('CodexRuntimeHomeService', () => {
       const { CodexRuntimeHomeService } = await import('./runtime-home-service')
       new CodexRuntimeHomeService(store as never)
 
-      expect(process.env.ORCA_USER_DATA_PATH).toBe(testState.userDataDir)
+      expect(process.env.ZKYQ_USER_DATA_PATH).toBe(testState.userDataDir)
       expect(normalizeLinkTarget(readlinkSync(legacyActiveHomePath))).toBe(
         normalizeLinkTarget(getRuntimeCodexHomePath())
       )

@@ -252,8 +252,8 @@ describe('command aliases dispatch to the canonical handler', () => {
   })
 
   it('keeps `agent-context` local when remote environment variables are set', async () => {
-    vi.stubEnv('ORCA_PAIRING_CODE', 'pairing-code')
-    vi.stubEnv('ORCA_ENVIRONMENT', 'stale-environment')
+    vi.stubEnv('ZKYQ_PAIRING_CODE', 'pairing-code')
+    vi.stubEnv('ZKYQ_ENVIRONMENT', 'stale-environment')
     try {
       await main(['agent-context', '--json'], '/tmp/repo')
 
@@ -273,8 +273,8 @@ describe('artifact runtime routing', () => {
   })
 
   it('uses the desktop runtime despite remote-selection environment fallbacks', async () => {
-    vi.stubEnv('ORCA_ENVIRONMENT', 'remote-environment')
-    vi.stubEnv('ORCA_PAIRING_CODE', 'remote-pairing-code')
+    vi.stubEnv('ZKYQ_ENVIRONMENT', 'remote-environment')
+    vi.stubEnv('ZKYQ_PAIRING_CODE', 'remote-pairing-code')
     vi.spyOn(console, 'log').mockImplementation(() => undefined)
     callMock.mockResolvedValue(okFixture('artifact-list', { status: 'ok', value: [] }))
     runtimeClientConstructorMock.mockClear()
@@ -284,6 +284,41 @@ describe('artifact runtime routing', () => {
     expect(process.exitCode).not.toBe(1)
     expect(runtimeClientConstructorMock).toHaveBeenCalledWith(null, null)
     expect(callMock).toHaveBeenCalledWith('artifacts.list', {})
+  })
+})
+
+describe('retired remote selection', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs()
+    vi.restoreAllMocks()
+    process.exitCode = 0
+  })
+
+  it.each([
+    ['ORCA_ENVIRONMENT', 'ZKYQ_ENVIRONMENT'],
+    ['ORCA_PAIRING_CODE', 'ZKYQ_PAIRING_CODE'],
+    ['ORCA_REMOTE_PAIRING', 'ZKYQ_REMOTE_PAIRING']
+  ])('refuses %s before dispatch, including with an explicit host', async (oldName, newName) => {
+    vi.stubEnv(oldName, 'private-value')
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {})
+    runtimeClientConstructorMock.mockClear()
+    callMock.mockReset()
+    await main(['worktree', 'list', '--environment', 'other-server', '--json'], '/tmp/repo')
+    expect(process.exitCode).toBe(1)
+    expect(runtimeClientConstructorMock).not.toHaveBeenCalled()
+    expect(callMock).not.toHaveBeenCalled()
+    const output = log.mock.calls.flat().join('\n')
+    expect(output).toContain(`${oldName} → ${newName}`)
+    expect(output).not.toContain('private-value')
+  })
+
+  it('keeps explicitly local commands available with retired selectors', async () => {
+    vi.stubEnv('ORCA_ENVIRONMENT', 'old-server')
+    vi.spyOn(console, 'log').mockImplementation(() => {})
+    callMock.mockReset()
+    await main(['agent-context', '--json'], '/tmp/repo')
+    expect(process.exitCode).not.toBe(1)
+    expect(callMock).not.toHaveBeenCalled()
   })
 })
 
@@ -306,7 +341,7 @@ describe('unknown command surfaces a suggestion', () => {
     expect(process.exitCode).toBe(1)
     const stderr = errorSpy.mock.calls.map((call) => String(call[0])).join('\n')
     expect(stderr).toContain('Unknown command: worktree remov')
-    expect(stderr).toContain('orca worktree')
+    expect(stderr).toContain('zkyq worktree')
   })
 
   it.each([
@@ -328,7 +363,7 @@ describe('unknown command surfaces a suggestion', () => {
       const output = logSpy.mock.calls.flat().join('\n')
       expect(output).toContain('invalid_argument')
       expect(output).toContain('"runtimeId": null')
-      expect(output).not.toContain(`orca ${forbidden}`)
+      expect(output).not.toContain(`zkyq ${forbidden}`)
       expect(output).not.toContain(`"${forbidden}"`)
       expect(runtimeClientConstructorMock).not.toHaveBeenCalled()
       expect(callMock).not.toHaveBeenCalled()
@@ -337,7 +372,7 @@ describe('unknown command surfaces a suggestion', () => {
     }
 
     await main(input.split(' '), '/tmp/repo')
-    expect(errorSpy.mock.calls.flat().join('\n')).not.toContain(`orca ${forbidden}`)
+    expect(errorSpy.mock.calls.flat().join('\n')).not.toContain(`zkyq ${forbidden}`)
     expect(runtimeClientConstructorMock).not.toHaveBeenCalled()
     expect(callMock).not.toHaveBeenCalled()
   })
@@ -421,7 +456,7 @@ describe('unknown help command surfaces a suggestion', () => {
     await main(argv, '/tmp/repo')
 
     expect(process.exitCode).toBe(1)
-    expect(logSpy.mock.calls.flat().join('\n')).toContain('Did you mean: orca worktree')
+    expect(logSpy.mock.calls.flat().join('\n')).toContain('Did you mean: zkyq worktree')
     logSpy.mockRestore()
     process.exitCode = 0
   })
@@ -444,7 +479,7 @@ describe('nested command group help', () => {
 
         expect(process.exitCode).toBe(0)
         const output = logSpy.mock.calls.flat().join('\n')
-        expect(output).toContain(`orca ${path.join(' ')}`)
+        expect(output).toContain(`zkyq ${path.join(' ')}`)
         for (const command of commands) {
           expect(output).toContain(command)
         }
@@ -465,7 +500,7 @@ describe('orca help', () => {
 
     await main(['--help'], '/tmp/repo')
 
-    expect(logSpy.mock.calls[0][0]).toContain('Usage: orca <command>')
+    expect(logSpy.mock.calls[0][0]).toContain('Usage: zkyq <command>')
     expect(callMock).not.toHaveBeenCalled()
     logSpy.mockRestore()
   })
@@ -483,7 +518,7 @@ describe('orca help', () => {
     await main(['linear', '--help'], '/tmp/repo')
 
     const groupHelp = String(logSpy.mock.calls[0][0])
-    expect(groupHelp).toContain('orca linear')
+    expect(groupHelp).toContain('zkyq linear')
     expect(groupHelp).toContain('issue')
     expect(groupHelp).not.toContain('--comments')
 
@@ -491,7 +526,7 @@ describe('orca help', () => {
     await main(['linear', 'issue', '--help'], '/tmp/repo')
 
     const issueHelp = String(logSpy.mock.calls[0][0])
-    expect(issueHelp).toContain('orca linear issue')
+    expect(issueHelp).toContain('zkyq linear issue')
     expect(issueHelp).toContain('--comments')
     expect(callMock).not.toHaveBeenCalled()
     logSpy.mockRestore()

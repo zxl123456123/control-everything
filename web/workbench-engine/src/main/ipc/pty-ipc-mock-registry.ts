@@ -142,7 +142,7 @@ export const agentHookServerModuleMock = () => ({
 export const piTitlebarExtensionModuleMock = () => ({
   piTitlebarExtensionService: {
     buildPtyEnv: piBuildPtyEnvMock,
-    buildFreshOmpEnv: () => ({ ORCA_OMP_FRESH_CONFIG: '/tmp/orca-fresh-session.yml' }),
+    buildFreshOmpEnv: () => ({ ZKYQ_OMP_FRESH_CONFIG: '/tmp/orca-fresh-session.yml' }),
     clearPty: piClearPtyMock
   }
 })

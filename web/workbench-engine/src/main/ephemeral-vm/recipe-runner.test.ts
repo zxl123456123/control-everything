@@ -109,7 +109,7 @@ describe('runEphemeralVmRecipeStart', () => {
     expect(result.ok).toBe(true)
     if (result.ok) {
       expect(result.context.recipeId).toBe('cloud-sandbox')
-      expect(result.context.instanceId).toMatch(/^orca-/)
+      expect(result.context.instanceId).toMatch(/^zkyq-/)
       expect(getEphemeralVmRecipeResultProjectRoot(result.result)).toBe('/workspace/repo')
       expect(result.result.userData).toEqual({ providerResourceId: result.context.instanceId })
       expect(result.stderr).toContain(`cwd:${realpathSync(repoPath)}`)

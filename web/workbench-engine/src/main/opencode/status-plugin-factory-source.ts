@@ -2,6 +2,8 @@ import {
   getOpenCode2ModuleSource,
   getOpenCode2EventNormalizationSource
 } from '../opencode2/status-plugin-setup-source'
+import { migrateAgentHookEnvironmentIdentity } from '../../shared/agent-hook-environment-identity'
+import { migrateOpenCodeEnvironmentIdentity } from '../../shared/opencode-environment-identity'
 
 export function getStatusPluginFactorySource(options: {
   emitSessionStart: boolean
@@ -11,17 +13,20 @@ export function getStatusPluginFactorySource(options: {
   const expectedAgent = options.expectedAgent ?? (options.emitNextEvents ? 'opencode2' : 'opencode')
   // Why: opencode and opencode2 share one config dir, so both plugin files load in
   // either binary. Distinct ids keep the loader from reporting a duplicate-id
-  // collision as an 'orca-opencode-status' plugin failure.
-  const pluginID = expectedAgent === 'opencode2' ? 'orca-opencode2-status' : 'orca-opencode-status'
+  // collision as an 'zkyq-opencode-status' plugin failure.
+  const pluginID = expectedAgent === 'opencode2' ? 'zkyq-opencode2-status' : 'zkyq-opencode-status'
   return [
+    `const migrateHookEnvironment = ${migrateAgentHookEnvironmentIdentity.toString()};`,
+    'migrateHookEnvironment(process.env);',
+    `(${migrateOpenCodeEnvironmentIdentity.toString()})(process.env);`,
     ...(options.emitNextEvents ? getOpenCode2EventNormalizationSource() : []),
     '// Why: accept the factory argument as an optional opaque parameter instead',
     '// of destructuring (`async ({ client }) => …`). OpenCode can invoke the',
     '// plugin factory with undefined during startup, which makes the',
     '// destructuring form throw synchronously and crash OpenCode with an opaque',
     '// UnknownError before any event is ever dispatched.',
-    'export const OrcaOpenCodeStatusPlugin = async (_ctx) => {',
-    `  if (process.env.ORCA_OPENCODE_AGENT && process.env.ORCA_OPENCODE_AGENT !== '${expectedAgent}') return {};`,
+    'export const ZkyqOpenCodeStatusPlugin = async (_ctx) => {',
+    `  if (process.env.ZKYQ_OPENCODE_AGENT && process.env.ZKYQ_OPENCODE_AGENT !== '${expectedAgent}') return {};`,
     '  const client = _ctx?.client;',
     '  const sessionsOutliveDispose = _ctx?.sessionsOutliveDispose === true;',
     '  const factoryID = ++nextFactoryID;',
@@ -290,9 +295,9 @@ export function getStatusPluginFactorySource(options: {
     ...(options.emitNextEvents ? getOpenCode2ModuleSource(pluginID, expectedAgent) : []),
     '',
     '// OpenCode 1 requires a callable default; OpenCode 2 validates a plugin object.',
-    'export default process.env.ORCA_OPENCODE_PLUGIN_API === "v1" ? OrcaOpenCodeStatusPlugin : {',
+    'export default process.env.ZKYQ_OPENCODE_PLUGIN_API === "v1" ? ZkyqOpenCodeStatusPlugin : {',
     `  id: "${pluginID}",`,
-    '  server: OrcaOpenCodeStatusPlugin,',
+    '  server: ZkyqOpenCodeStatusPlugin,',
     ...(options.emitNextEvents ? ['  setup: setupOpenCode2Status,'] : []),
     '};',
     ''
