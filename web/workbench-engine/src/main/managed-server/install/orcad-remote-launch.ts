@@ -17,7 +17,7 @@ import {
   ORCAD_LAUNCHER_FILENAME,
   ORCAD_SERVER_ENTRY_FILENAME
 } from '../../../shared/orcad-artifacts'
-import { quotePosixShell } from '../../../shared/shell-argument-quoting'
+import { quotePosixShellUnlessPlain as quotePosixShell } from '../../../shared/shell-argument-quoting'
 import {
   isWindowsRemoteHost,
   joinRemotePath,
@@ -126,11 +126,11 @@ export function orcadLaunchCommand(
   const recordSession = detach === 'nohup' && recordsOrcadLaunchSshSession(host)
   const entries: [string, string][] = [
     [ORCAD_VERSION_ENV, spec.fullVersion],
-    ['ZKYQ_USER_DATA', spec.userDataDir],
     ...orcadManagedLaunchEnv(spec)
   ]
   const launchEnv = [
     'unset ORCA_VERSION ORCA_ORCAD_MANAGED_ACTIVATION_ROOT ORCA_E2E_ORCAD_IDLE_TIMEOUT_MS ZKYQ_VERSION ZKYQ_SERVER_MANAGED_ACTIVATION_ROOT ZKYQ_E2E_SERVER_IDLE_TIMEOUT_MS;',
+    `export ZKYQ_USER_DATA=${quotePosixShell(spec.userDataDir)};`,
     'if [ "$orcad_launch_env_version" = 1 ]; then',
     ...entries.map(([name, value]) => `export ${name}=${quotePosixShell(value)};`),
     'else',
@@ -152,7 +152,7 @@ export function orcadLaunchCommand(
     `{ chmod 700 ${privateDirs.map(quotePosixShell).join(' ')} 2>/dev/null || :; } &&`,
     `cd ${dir} &&`,
     `${selectOrcadSlotRuntimeCommand(host, spec.remoteInstallDir, spec.nodePath)} &&`,
-    `orcad_launch_env_version=$("$orcad_runtime" -e ${quotePosixShell(versionProbe)} ${quotePosixShell(joinRemotePath(host, spec.remoteInstallDir, ORCAD_CLI_PACKAGE_FILENAME))}) || exit 78;`,
+    `orcad_launch_env_version=$("$orcad_runtime" -e ${quotePosixShell(versionProbe)} ${quotePosixShell(ORCAD_CLI_PACKAGE_FILENAME)}) || exit 78;`,
     // Why truncate: a re-launch into a dir that already holds a previous readiness line would
     // otherwise let the deploy activate on the OLD process's health payload.
     `: > ${readiness} &&`,

@@ -7,7 +7,7 @@
  * prunes every other `pre-*` capture first, and the activation checks for room before it stops
  * the running server: a host that cannot fit the snapshot keeps that server.
  */
-import { quotePosixShell } from '../../../shared/shell-argument-quoting'
+import { quotePosixShellUnlessPlain as quotePosixShell } from '../../../shared/shell-argument-quoting'
 import { isWindowsRemoteHost, type RemoteHostPlatform } from '../../ssh/ssh-remote-platform'
 import {
   ORCAD_SNAPSHOT_FAILURE,
@@ -34,7 +34,7 @@ export function pruneOrcadSnapshotsScript(snapshotsRoot: string, keep: readonly 
 }
 
 function prunePatterns(keep: readonly string[]): string {
-  // Quoted, so `+` and `.` in a version match only themselves; `''` keeps nothing. Callers wrap
+  // Pattern operators stay quoted; plain names need no quotes. `''` keeps nothing. Callers wrap
   // these in `(...)`: bash 3.2 misparses a bare `pat)` inside `$(...)`.
   return keep.length > 0 ? keep.map(quotePosixShell).join('|') : "''"
 }

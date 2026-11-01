@@ -85,10 +85,10 @@ export function writeOrcadLaunchSshSessionCommand(
   host: RemoteHostPlatform,
   userDataDir: string
 ): string {
-  const file = recordPath(host, userDataDir)
+  const file = '"$orcad_session_file"'
   return (
     // Why mkdir: on a first deploy the detached server may not have created its data root yet.
-    `{ orcad_bg=$!; ( umask 077; mkdir -p ${quotePosixShell(userDataDir)} ); ` +
+    `{ orcad_bg=$!; orcad_session_file=${recordPath(host, userDataDir)}; ( umask 077; mkdir -p ${quotePosixShell(userDataDir)} ); ` +
     `${liveDaemonShellFunction(host, userDataDir)} ` +
     'orcad_daemon_live; orcad_dl=$?; ' +
     'if [ "$orcad_dl" = 0 ]; then ' +

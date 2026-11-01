@@ -331156,8 +331156,8 @@
     {
       "path": "src/main/managed-server/install/orcad-remote-launch.ts",
       "upstream_sha256": "3833488a00655fda351351461d403483cd63fa52926c23b7f4eff6e2e6b3fee5",
-      "current_sha256": "1b66dafe3805b0f5ce3b54bf3d8d3931e2497aa4aa9d74e8854f5489f2a844fc",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；服务启动版本、激活根及测试空闲超时统一ZKYQ，旧输入单向迁移；沿内容hash内包元数据选择冻结旧安装格式，保留回退、锁版本和空闲退出功能，新安装不双发旧字段"
+      "current_sha256": "bad4c3f40316603b69dae21cfcb84cd9105374d5af38603d991a7a2cd38b8cf6",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；服务启动版本、激活根及测试空闲超时统一ZKYQ，旧输入单向迁移；沿内容hash内包元数据选择冻结旧安装格式，保留回退、锁版本和空闲退出功能，新安装不双发旧字段；收敛修复POSIX执行字节预算：复用短引用并只发送一次相同成员后缀/slot/session路径，保留数据枚举、环境探测和安全拒绝，预算上限不变"
     },
     {
       "path": "src/main/managed-server/install/orcad-remote-runtime-control.test.ts",
@@ -333028,26 +333028,26 @@
     {
       "path": "src/main/managed-server/host-state/orcad-state-snapshot-members.ts",
       "upstream_sha256": "3f9f58323078c08b07d53239713a0cb1b645c3d241269f6cc4777ad58c50e1b6",
-      "current_sha256": "1ae63ae745bdbc599170c33dd6e964a08a36dde62dbea3921e5153c8d645ae15",
-      "reason": "迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据；迁移配置索引及备份并保护回退快照"
+      "current_sha256": "d9fabd15e806503314334097ab6b92b99c4ce7865a5c488affd608d7885672b7",
+      "reason": "迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据；迁移配置索引及备份并保护回退快照；收敛修复POSIX执行字节预算：复用短引用并只发送一次相同成员后缀/slot/session路径，保留数据枚举、环境探测和安全拒绝，预算上限不变"
     },
     {
       "path": "src/main/managed-server/host-state/orcad-state-snapshot-shell.test.ts",
       "upstream_sha256": "156b0536bba72c191eff82364a416dea8a021eee25044083f3431e83c92c540a",
-      "current_sha256": "1b401eb14ab8d78dd76eb680d75d448f18e03615f57feb0cb586b9cc544bf64f",
-      "reason": "迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据；迁移配置索引及备份并保护回退快照；SSH/WSL 规范安装根改为 .zkyq-remote；保留机器归属、冻结旧读者与最新写入，原子移动同一数据目录并在已登记读者确认退出后移除旧入口，修正内部链接；同步安装/快照/GC/历史/旧 relay census 与直接回归，不改变业务数据位置或许可证"
+      "current_sha256": "30a181fa8dd4f41137fc7b3912dd69aa1c047adb162da09f56d9ab7e8e8d3b22",
+      "reason": "迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据；迁移配置索引及备份并保护回退快照；SSH/WSL 规范安装根改为 .zkyq-remote；保留机器归属、冻结旧读者与最新写入，原子移动同一数据目录并在已登记读者确认退出后移除旧入口，修正内部链接；同步安装/快照/GC/历史/旧 relay census 与直接回归，不改变业务数据位置或许可证；收敛修复POSIX执行字节预算：复用短引用并只发送一次相同成员后缀/slot/session路径，保留数据枚举、环境探测和安全拒绝，预算上限不变"
     },
     {
       "path": "src/main/managed-server/host-state/orcad-state-snapshot-space.ts",
       "upstream_sha256": "403cda9d97da8ad37bc42f947c158a4cfa17954184a03ad02db91c91b6a7bba9",
-      "current_sha256": "038279930c5a1b62c2c870ba1ae34e94857cfe858c294f7705c34119f46259c1",
-      "reason": "迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据"
+      "current_sha256": "7ef89906939faec592cc9ba4d6ea1a07112f54d048979425d10eae833bfed708",
+      "reason": "迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据；收敛修复POSIX执行字节预算：复用短引用并只发送一次相同成员后缀/slot/session路径，保留数据枚举、环境探测和安全拒绝，预算上限不变"
     },
     {
       "path": "src/main/managed-server/host-state/orcad-state-snapshot.ts",
       "upstream_sha256": "3a7b62390d112b7c0a69ddcd56a5057f0b116ad4dabcf822b156a83be544c78c",
-      "current_sha256": "8e16bddae0aebee993c1ae7a6ef07049013f3b64a17f7315dc0268ad54b735ce",
-      "reason": "迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据；迁移配置索引及备份并保护回退快照"
+      "current_sha256": "636329d38a2a8ef958c17f70b24634cabb6c93a610bc14f557c69cb201edbf37",
+      "reason": "迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据；迁移配置索引及备份并保护回退快照；收敛修复POSIX执行字节预算：复用短引用并只发送一次相同成员后缀/slot/session路径，保留数据枚举、环境探测和安全拒绝，预算上限不变"
     },
     {
       "path": "src/main/managed-server/host-state/orcad-windows-host-state-ops.test.ts",
@@ -338502,6 +338502,18 @@
       "upstream_sha256": "53e8573235770242cc1e0968dd318f8c56a80b465c5a51b6b106038ca26ead2a",
       "current_sha256": "c13a01d438b72c28fcef416071c850efb9853b01be0d5bde4505a5809d5b1394",
       "reason": "SSH/WSL 规范安装根改为 .zkyq-remote；保留机器归属、冻结旧读者与最新写入，原子移动同一数据目录并在已登记读者确认退出后移除旧入口，修正内部链接；同步安装/快照/GC/历史/旧 relay census 与直接回归，不改变业务数据位置或许可证"
+    },
+    {
+      "path": "src/main/managed-server/install/orcad-remote-runtime.ts",
+      "upstream_sha256": "ab1162f3be1a10d500dcdcdee92cb9a1d6bed2363e94ebd3ede02cf1c7bda908",
+      "current_sha256": "8f5c5e2d28414b83ef7f2e2ef37803053827e3b40c08664ced4176412e036426",
+      "reason": "收敛修复POSIX执行字节预算：复用短引用并只发送一次相同成员后缀/slot/session路径，保留数据枚举、环境探测和安全拒绝，预算上限不变"
+    },
+    {
+      "path": "src/main/ssh/orcad-launch-ssh-session.ts",
+      "upstream_sha256": "0674273e82ab245feecbd0d236e36b0943a3a20eff74ea84d5c385f5a6b2a73f",
+      "current_sha256": "25fd6e046ac62e4aa9b1997681e76b70d49b3421f74ca1e8fa544d072ac1d517",
+      "reason": "收敛修复POSIX执行字节预算：复用短引用并只发送一次相同成员后缀/slot/session路径，保留数据枚举、环境探测和安全拒绝，预算上限不变"
     }
   ],
   "reviewed_findings": [

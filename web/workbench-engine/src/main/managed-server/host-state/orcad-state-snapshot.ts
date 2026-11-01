@@ -23,7 +23,7 @@ import {
   posixOrcadFenceOwnedTest,
   type OrcadFence
 } from '../activation/orcad-activation-fence-scope'
-import { quotePosixShell } from '../../../shared/shell-argument-quoting'
+import { quotePosixShellUnlessPlain as quotePosixShell } from '../../../shared/shell-argument-quoting'
 import {
   isWindowsRemoteHost,
   joinRemotePath,

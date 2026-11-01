@@ -35,18 +35,27 @@ export function posixSnapshotMembersFunction(): string {
   for (const member of ORCAD_SNAPSHOT_MEMBERS) {
     if (!/^[A-Za-z0-9._-]+$/.test(member)) throw new Error('Unsafe snapshot member name')
   }
+  // Send a shared suffix once when both data-name families include it.
+  const paired = ORCAD_SNAPSHOT_MEMBERS.filter((name) => name.startsWith('orca-'))
+    .map((name) => name.slice(5))
+    .filter((suffix) => ORCAD_SNAPSHOT_MEMBERS.some((name) => name === `zkyq-${suffix}`))
+  const remaining = ORCAD_SNAPSHOT_MEMBERS.filter(
+    (name) => !paired.some((suffix) => name === `orca-${suffix}` || name === `zkyq-${suffix}`)
+  )
   return [
     'snapshot_members() {',
-    `printf '%s' '${ORCAD_SNAPSHOT_MEMBERS.join(' ')}';`,
-    'for snapshot_root in "$@"; do',
-    'for snapshot_file in "$snapshot_root"/orca-data.json.sqlite-export.*.json "$snapshot_root"/zkyq-data.json.sqlite-export.*.json; do',
-    '[ -e "$snapshot_file" ] || [ -L "$snapshot_file" ] || continue;',
-    'snapshot_name=${snapshot_file##*/}; snapshot_revision=${snapshot_name#*.sqlite-export.}; snapshot_revision=${snapshot_revision%.json};',
-    'case "$snapshot_revision" in (\'\'|*[!0-9]*) continue;; esac;',
-    'snapshot_number=$(printf %s "$snapshot_revision" | sed \'s/^0*//\');',
-    '[ -n "$snapshot_number" ] || continue;',
-    '[ ${#snapshot_number} -lt 16 ] || { [ ${#snapshot_number} -eq 16 ] && [ "$snapshot_number" -le 9007199254740991 ]; } || continue;',
-    'printf " %s" "$snapshot_name"; done; done; };'
+    paired.length ? `for p in orca zkyq; do printf "$p-%s " ${paired.join(' ')}; done;` : '',
+    remaining.length ? `printf "%s " ${remaining.join(' ')};` : '',
+    // Callers use command substitutions, so these short variables stay in their subshell.
+    'for r in "$@"; do',
+    'for f in "$r"/orca-data.json.sqlite-export.*.json "$r"/zkyq-data.json.sqlite-export.*.json; do',
+    '[ -e "$f" ] || [ -L "$f" ] || continue;',
+    'n=${f##*/}; v=${n#*.sqlite-export.}; v=${v%.json};',
+    'case "$v" in (""|*[!0-9]*) continue;; esac;',
+    'v=${v#"${v%%[!0]*}"};',
+    '[ -n "$v" ] || continue;',
+    '[ ${#v} -lt 16 ] || { [ ${#v} -eq 16 ] && [ "$v" -le 9007199254740991 ]; } || continue;',
+    'printf "%s " "$n"; done; done; };'
   ].join(' ')
 }
 

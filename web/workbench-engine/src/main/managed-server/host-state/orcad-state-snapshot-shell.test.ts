@@ -120,15 +120,24 @@ describe.skipIf(process.platform === 'win32')('snapshot commands on a real shell
     const oldExport = join(root, 'orca-data.json.sqlite-export.17.json')
     const newExport = join(root, 'zkyq-data.json.sqlite-export.42.json')
     const unrelated = join(root, 'zkyq-data.json.sqlite-export.notes.json')
+    const leadingZeroExport = join(root, 'zkyq-data.json.sqlite-export.0007.json')
+    const maximumExport = join(root, 'orca-data.json.sqlite-export.9007199254740991.json')
+    const overflowExport = join(root, 'zkyq-data.json.sqlite-export.9007199254740992.json')
     writeFileSync(oldExport, 'old export')
     writeFileSync(newExport, 'new export')
     writeFileSync(unrelated, 'unmanaged')
+    writeFileSync(leadingZeroExport, 'leading zero export')
+    writeFileSync(maximumExport, 'maximum export')
+    writeFileSync(overflowExport, 'unmanaged overflow')
     expect(
       parseOrcadSnapshotCapture(
         await sh(captureOrcadStateSnapshotCommand(posix, root, snapshot, remoteBase))
       )
     ).toBe('captured')
     writeFileSync(oldExport, 'changed')
+    writeFileSync(leadingZeroExport, 'changed')
+    writeFileSync(maximumExport, 'changed')
+    writeFileSync(overflowExport, 'latest unmanaged overflow')
     writeFileSync(join(root, 'zkyq-data.json.sqlite-export.99.json'), 'added')
     expect(
       parseOrcadSnapshotRestore(
@@ -139,6 +148,9 @@ describe.skipIf(process.platform === 'win32')('snapshot commands on a real shell
     expect(readFileSync(newExport, 'utf8')).toBe('new export')
     expect(existsSync(join(root, 'zkyq-data.json.sqlite-export.99.json'))).toBe(false)
     expect(readFileSync(unrelated, 'utf8')).toBe('unmanaged')
+    expect(readFileSync(leadingZeroExport, 'utf8')).toBe('leading zero export')
+    expect(readFileSync(maximumExport, 'utf8')).toBe('maximum export')
+    expect(readFileSync(overflowExport, 'utf8')).toBe('latest unmanaged overflow')
   })
 
   it.each(['orca', 'zkyq'])('restores the %s profile index and its backup', async (name) => {
