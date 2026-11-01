@@ -138,6 +138,12 @@ function withStateMutationLock(run) {
     const beat = setInterval(refreshFence, ${ORCAD_STATE_MUTATION_FENCE_HEARTBEAT_SECONDS * 1000})
     try {
       refreshFence()
+      const root = opArgs[0]
+      const name = path.basename(root)
+      if ((name === '.orca' || /^[.]orca-[a-f0-9]{8}$/.test(name)) && !lstatOrNull(root) &&
+          lstatOrNull(path.join(path.dirname(root), name.replace('.orca', '.zkyq')))) {
+        throw new Error('The data directory moved; reconnect before retrying.')
+      }
       token = await run(...opArgs)
     } catch {
       token = 'FAILED'

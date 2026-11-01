@@ -27,6 +27,8 @@ import { quotePosixShellUnlessPlain as quotePosixShell } from '../../../shared/s
 import {
   isWindowsRemoteHost,
   joinRemotePath,
+  remoteBasename,
+  remoteDirname,
   type RemoteHostPlatform
 } from '../../ssh/ssh-remote-platform'
 import type { OrcadWindowsHostStateOp } from './orcad-windows-host-state-ops'
@@ -57,6 +59,19 @@ function windowsStateCommand(
     return null
   }
   return orcadWindowsHostOpCommand(host, baseDir, op, args)
+}
+
+/** A retired default is not an empty profile, and must not be recreated by a restore. */
+function posixRetiredDataRootGuard(host: RemoteHostPlatform, root: string): string {
+  const name = remoteBasename(root, host)
+  if (name !== '.orca' && !/^\.orca-[a-f0-9]{8}$/.test(name)) return ''
+  const current = quotePosixShell(
+    joinRemotePath(host, remoteDirname(root, host), name.replace('.orca', '.zkyq'))
+  )
+  return (
+    `[ -e "$root" ] || [ -L "$root" ] || { [ ! -e ${current} ] && [ ! -L ${current} ]; } || ` +
+    `{ echo '${ORCAD_SNAPSHOT_FAILURE} The data directory moved; reconnect before retrying.'; echo FAILED; exit 0; };`
+  )
 }
 
 /** Past this the host kills a capture, restore or clear; the client waits a minute longer. */
@@ -163,6 +178,7 @@ export function captureOrcadStateSnapshotCommand(
     baseDir,
     [
       `root=${quotePosixShell(userDataDir)}; dir=${quotePosixShell(snapshotDir)};`,
+      posixRetiredDataRootGuard(host, userDataDir),
       posixSnapshotMembersFunction(),
       `archive="$dir"/state.tar;`,
       `snapshot_fail() { printf '${ORCAD_SNAPSHOT_FAILURE} %s\\n' "$(printf %s "$1" | tr '\\n' ' ' | cut -c 1-400)"; echo FAILED; exit 0; };`,
@@ -255,6 +271,7 @@ export function restoreOrcadStateSnapshotCommand(
     baseDir,
     [
       `root=${quotePosixShell(userDataDir)};`,
+      posixRetiredDataRootGuard(host, userDataDir),
       posixSnapshotMembersFunction(),
       `archive=${quotePosixShell(joinRemotePath(host, snapshotDir, 'state.tar'))};`,
       `stage="$root"/${ORCAD_STATE_RESTORE_STAGE_DIRNAME};`,
@@ -292,7 +309,9 @@ export function clearOrcadStateSnapshotMembersCommand(
   return serializedStateMutationCommand(
     baseDir,
     [
-      `root=${quotePosixShell(userDataDir)}; test -d "$root" || mkdir -p "$root"; ok=1;`,
+      `root=${quotePosixShell(userDataDir)};`,
+      posixRetiredDataRootGuard(host, userDataDir),
+      'test -d "$root" || mkdir -p "$root"; ok=1;',
       posixSnapshotMembersFunction(),
       'members=$(snapshot_members "$root");',
       removeMembersCommand('$members'),

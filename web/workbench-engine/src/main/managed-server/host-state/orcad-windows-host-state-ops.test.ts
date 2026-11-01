@@ -48,6 +48,24 @@ async function op(name: OrcadWindowsHostOp, ...args: string[]): Promise<string> 
 }
 
 describe('Windows snapshot ops', () => {
+  it.each(['.orca', '.orca-1234abcd'])(
+    'refuses a retired %s root without creating empty or split state',
+    async (name) => {
+      const retired = join(dir, name)
+      const current = join(dir, name.replace('.orca', '.zkyq'))
+      if (existsSync(retired)) rmSync(retired, { recursive: true })
+      mkdirSync(current)
+      const data = join(current, 'zkyq-data.json')
+      writeFileSync(data, 'latest')
+      expect(await op('snapshot-capture', retired, snapshot)).toBe('FAILED')
+      expect(await op('snapshot-capture', current, snapshot)).toBe('CAPTURED')
+      expect(await op('snapshot-restore', retired, snapshot)).toBe('FAILED')
+      expect(await op('snapshot-clear', retired)).toBe('FAILED')
+      expect(existsSync(retired)).toBe(false)
+      expect(readFileSync(data, 'utf8')).toBe('latest')
+    }
+  )
+
   it('does not discard an index backup omitted by an older snapshot', async () => {
     expect(await op('snapshot-capture', root, snapshot)).toBe('CAPTURED')
     const index = join(root, 'orca-profile-index.json')

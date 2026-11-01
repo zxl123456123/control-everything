@@ -64,6 +64,39 @@ describe.skipIf(process.platform === 'win32')('snapshot commands on a real shell
     rmSync(base, { recursive: true, force: true })
   })
 
+  it.each(['.orca', '.orca-1234abcd'])(
+    'refuses a retired %s root without reporting empty state or recreating it',
+    async (name) => {
+      const retired = join(base, name)
+      const current = join(base, name.replace('.orca', '.zkyq'))
+      mkdirSync(current)
+      const data = join(current, 'zkyq-data.json')
+      writeFileSync(data, 'latest')
+      expect(
+        parseOrcadSnapshotCapture(
+          await sh(captureOrcadStateSnapshotCommand(posix, retired, snapshot, remoteBase))
+        )
+      ).toBe('failed')
+      expect(
+        parseOrcadSnapshotCapture(
+          await sh(captureOrcadStateSnapshotCommand(posix, current, snapshot, remoteBase))
+        )
+      ).toBe('captured')
+      expect(
+        parseOrcadSnapshotRestore(
+          await sh(restoreOrcadStateSnapshotCommand(posix, retired, snapshot, remoteBase))
+        )
+      ).toBe('failed')
+      expect(
+        parseOrcadSnapshotRestore(
+          await sh(clearOrcadStateSnapshotMembersCommand(posix, retired, remoteBase))
+        )
+      ).toBe('failed')
+      expect(existsSync(retired)).toBe(false)
+      expect(readFileSync(data, 'utf8')).toBe('latest')
+    }
+  )
+
   it('captures and restores fenced state through a gateway with a 10 KiB exec limit', async () => {
     const fence = { lockDir: join(remoteBase, 'activation.lock'), token: 'snapshot-test-owner' }
     mkdirSync(fence.lockDir, { recursive: true })
