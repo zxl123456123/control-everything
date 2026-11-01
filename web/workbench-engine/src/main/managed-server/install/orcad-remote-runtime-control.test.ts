@@ -11,7 +11,8 @@ vi.mock('../../ssh/remote-exec/remote-exec-command', async (importOriginal) => (
 }))
 
 import { execCommand } from '../../ssh/remote-exec/remote-exec-command'
-import { launchOrcadAndAwaitReadiness } from './orcad-remote-runtime-control'
+import { execOrcadRemote, launchOrcadAndAwaitReadiness } from './orcad-remote-runtime-control'
+import { runWithOrcadFence } from '../activation/orcad-activation-fence-scope'
 import { getRemoteHostPlatform } from '../../ssh/ssh-remote-platform'
 import type { OrcadLaunchSpec } from './orcad-remote-launch'
 import { orcadLaunchCommand } from './orcad-remote-launch'
@@ -23,16 +24,36 @@ import { createSshOperationAbortError } from '../../ssh/connection/ssh-exec-opti
 
 const host = getRemoteHostPlatform('linux-arm64')
 const spec: OrcadLaunchSpec = {
-  remoteInstallDir: '/root/.orca-remote/orcad-0.1.0+07d0995735e0',
+  remoteInstallDir: '/root/.zkyq-remote/orcad-0.1.0+07d0995735e0',
   nodePath: '/usr/bin/node',
   fullVersion: '0.1.0+07d0995735e0',
   userDataDir: '/root/.orca',
   bindHost: '127.0.0.1',
   port: 6768,
-  activationRoot: '/root/.orca-remote/.orcad-activation-transaction'
+  activationRoot: '/root/.zkyq-remote/.orcad-activation-transaction'
 }
 const READY = `${JSON.stringify({ type: 'orca_server_ready', runtimeId: 'r1' })}\n`
 const mockExec = vi.mocked(execCommand)
+
+it('keeps the activation fence and cancellation while allowing a pinned-runtime transfer timeout', async () => {
+  const signal = new AbortController().signal
+  mockExec.mockReset().mockResolvedValue('copied')
+  await expect(
+    runWithOrcadFence({ lockDir: '/test-home/activation.lock', token: 'owned-token' }, () =>
+      execOrcadRemote({ conn: Object.create(null), host, signal }, 'echo copied', signal, 300_000)
+    )
+  ).resolves.toBe('copied')
+  expect(mockExec).toHaveBeenCalledWith(
+    Object.create(null),
+    expect.stringContaining('activation.lock'),
+    {
+      wrapCommand: true,
+      signal,
+      timeoutMs: 300_000
+    }
+  )
+  expect(mockExec.mock.calls[0][1]).toContain('echo copied')
+})
 
 it.each([0, 1] as const)(
   'selects Windows launch environment %s from the installed package answer',

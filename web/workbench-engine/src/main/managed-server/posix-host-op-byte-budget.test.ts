@@ -43,6 +43,11 @@ import { orcadSnapshotSpaceCommand } from './host-state/orcad-state-snapshot-spa
 import { posixProcessGroupCommand } from './host-state/orcad-state-mutation-owner-record'
 import { orcadMachineClaimCommand } from './host-state/orcad-machine-claim-command'
 import { orcadMachineHomeProbeCommand } from './host-state/orcad-machine-home'
+import {
+  deferredRemoteRootCommand,
+  releaseRemoteRootLockCommand,
+  remoteRootProbeCommand
+} from './host-state/remote-root-identity-commands'
 import { executablePermissionsCommand } from './install/orcad-remote-install'
 import {
   orcadNodeSlotRuntimeCommand,
@@ -105,7 +110,7 @@ type HostCase = { host: RemoteHostPlatform; target: NodeRuntimeTarget; nodePath:
 
 // Realistic worst case: a long NFS home, a long account name and a held activation fence.
 const home = `/net/nfs-home-cluster-03/users/engineering/${'a'.repeat(48)}.longname`
-const baseDir = `${home}/.orca-remote`
+const baseDir = `${home}/.zkyq-remote`
 const slotDir = `${baseDir}/orcad-1.4.299-rc.12+${'f'.repeat(40)}`
 const userDataDir = `${baseDir}/orcad-data`
 const snapshotDir = `${baseDir}/orcad-snapshots/pre-1.4.299-rc.12-1760000000000`
@@ -171,6 +176,9 @@ const BUILDERS: Readonly<Record<string, (c: HostCase) => string>> = {
   posixProcessGroupCommand: () => posixProcessGroupCommand('"$pid"'),
   orcadMachineClaimCommand: ({ host }) => orcadMachineClaimCommand(host, home, 'k'.repeat(64)),
   orcadMachineHomeProbeCommand: ({ host }) => orcadMachineHomeProbeCommand(host),
+  remoteRootProbeCommand: ({ host }) => remoteRootProbeCommand(host, home),
+  deferredRemoteRootCommand: ({ host }) => deferredRemoteRootCommand(host, home, token),
+  releaseRemoteRootLockCommand: ({ host }) => releaseRemoteRootLockCommand(host, home, token),
   selectOrcadSlotEntryCommand: ({ host }) => selectOrcadSlotEntryCommand(host, slotDir),
   orcadNodeSlotRuntimeCommand: ({ host }) => orcadNodeSlotRuntimeCommand(host, slotDir),
   selectOrcadSlotRuntimeCommand: ({ host, nodePath }) =>
@@ -275,6 +283,7 @@ const BUILDERS: Readonly<Record<string, (c: HostCase) => string>> = {
 
 // Exported builders that never produce a POSIX host op, and why.
 const NOT_POSIX_HOST_OPS: Readonly<Record<string, string>> = {
+  windowsRemoteRootMoveCommand: 'moves the Windows root outside the installed node.exe',
   powerShellCommand: 'builds the Windows PowerShell exec line',
   spawnProxyCommand: 'spawns a local ProxyCommand process',
   buildSshLoginShellCommand: 'wraps a caller-built op in the login shell',

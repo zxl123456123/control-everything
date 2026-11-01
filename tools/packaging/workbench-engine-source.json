@@ -327275,7 +327275,11 @@
     "src/wsl-guest/relay-hooks-identity.test.ts",
     "src/wsl-guest/relay-hooks-identity.ts",
     "src/cli/runtime/serve-orcad-environment.test.ts",
-    "src/shared/orcad-managed-launch-env.test.ts"
+    "src/shared/orcad-managed-launch-env.test.ts",
+    "src/main/managed-server/host-state/remote-root-identity-commands.ts",
+    "src/main/managed-server/host-state/remote-root-identity-host.test.ts",
+    "src/main/managed-server/host-state/remote-root-identity-host.ts",
+    "src/main/managed-server/host-state/remote-root-identity.ts"
   ],
   "adapted_files": [
     {
@@ -329243,8 +329247,8 @@
     {
       "path": "src/renderer/src/i18n/locales/en.json",
       "upstream_sha256": "80d9d9800a00b8441914d0f223af22c4bbc66318ab27141506c9b33edfe35209",
-      "current_sha256": "be1f91973eeac61d40c14e3cc21455072e6365a216ea7fd211837a350794ed6a",
-      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained.；配对链接生成解析和手机注册统一zkyq协议，迁移已保存VM配对链接并保留凭据及用户数据，更新脱敏和提示；浏览器路径配置统一ZKYQ_BROWSER_EXECUTABLE，清理状态与远程浏览器权限文案，保留路径和权限范围；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物；移除 CLI 技能区域重复的旧品牌说明及对应翻译；账号设置的当前产品名称及语言目录统一；CLI 注册状态和错误提示统一当前命令名称；模拟器命令、错误和提示统一 zkyq；项目配置统一新文件名，保留旧文件迁移与信任行为；统一用量分享卡片和分享文案的产品身份；统一智能体状态钩子与文件夹信任设置的产品身份；统一会话 ID 复制文案并保留功能验证；同步服务接入当前变量名与产品文案，保留翻译键和控件行为"
+      "current_sha256": "83b49964933f5cab7db71f68e66b6ac779d198b83b1fc50b7a0572106ca2bf13",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained.；配对链接生成解析和手机注册统一zkyq协议，迁移已保存VM配对链接并保留凭据及用户数据，更新脱敏和提示；浏览器路径配置统一ZKYQ_BROWSER_EXECUTABLE，清理状态与远程浏览器权限文案，保留路径和权限范围；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物；移除 CLI 技能区域重复的旧品牌说明及对应翻译；账号设置的当前产品名称及语言目录统一；CLI 注册状态和错误提示统一当前命令名称；模拟器命令、错误和提示统一 zkyq；项目配置统一新文件名，保留旧文件迁移与信任行为；统一用量分享卡片和分享文案的产品身份；统一智能体状态钩子与文件夹信任设置的产品身份；统一会话 ID 复制文案并保留功能验证；同步服务接入当前变量名与产品文案，保留翻译键和控件行为；SSH/WSL 规范安装根改为 .zkyq-remote；保留机器归属、冻结旧读者与最新写入，原子移动同一数据目录并在已登记读者确认退出后移除旧入口，修正内部链接；同步安装/快照/GC/历史/旧 relay census 与直接回归，不改变业务数据位置或许可证"
     },
     {
       "path": "src/renderer/src/lib/tab-number-shortcuts.ts",
@@ -329867,8 +329871,8 @@
     {
       "path": "src/main/managed-server/install/orcad-remote-launch-file-modes.test.ts",
       "upstream_sha256": "8cd0ca4bbe24929e2f32bc9322f91ebedde1bab1dfbf8e921994ebcdce5b7095",
-      "current_sha256": "a2a72ae3396bdb352345043e55f21e76a99bba8d07ab6678c377a7480e72219a",
-      "reason": "配对链接生成解析和手机注册统一zkyq协议，迁移已保存VM配对链接并保留凭据及用户数据，更新脱敏和提示；服务启动版本、激活根及测试空闲超时统一ZKYQ，旧输入单向迁移；沿内容hash内包元数据选择冻结旧安装格式，保留回退、锁版本和空闲退出功能，新安装不双发旧字段"
+      "current_sha256": "c0b05f9edeae593b300db5151af811f44e304b5e512fe7a18daf4e2aecc048af",
+      "reason": "配对链接生成解析和手机注册统一zkyq协议，迁移已保存VM配对链接并保留凭据及用户数据，更新脱敏和提示；服务启动版本、激活根及测试空闲超时统一ZKYQ，旧输入单向迁移；沿内容hash内包元数据选择冻结旧安装格式，保留回退、锁版本和空闲退出功能，新安装不双发旧字段；SSH/WSL 规范安装根改为 .zkyq-remote；保留机器归属、冻结旧读者与最新写入，原子移动同一数据目录并在已登记读者确认退出后移除旧入口，修正内部链接；同步安装/快照/GC/历史/旧 relay census 与直接回归，不改变业务数据位置或许可证"
     },
     {
       "path": "src/renderer/src/components/mobile/MobileHero.test.tsx",
@@ -329945,8 +329949,8 @@
     {
       "path": "src/renderer/src/i18n/locales/pt.json",
       "upstream_sha256": "d28d34edd8a908bbcf85131235bff6fda0b1133558e21d2ad5ad87703864a1a0",
-      "current_sha256": "b440dc5b35a83f5b88f494eb35e07277e2f366fcf2eb40744f66bc71a72181c2",
-      "reason": "配对链接生成解析和手机注册统一zkyq协议，迁移已保存VM配对链接并保留凭据及用户数据，更新脱敏和提示；浏览器路径配置统一ZKYQ_BROWSER_EXECUTABLE，清理状态与远程浏览器权限文案，保留路径和权限范围；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物；移除 CLI 技能区域重复的旧品牌说明及对应翻译；账号设置的当前产品名称及语言目录统一；CLI 注册状态和错误提示统一当前命令名称；模拟器命令、错误和提示统一 zkyq；项目配置统一新文件名，保留旧文件迁移与信任行为；统一用量分享卡片和分享文案的产品身份；统一智能体状态钩子与文件夹信任设置的产品身份；统一会话 ID 复制文案并保留功能验证；同步服务接入当前变量名与产品文案，保留翻译键和控件行为"
+      "current_sha256": "69f31e9cc345cf5f95afd4ff91ba6f2869a0131edc670727ba26461eb177dab7",
+      "reason": "配对链接生成解析和手机注册统一zkyq协议，迁移已保存VM配对链接并保留凭据及用户数据，更新脱敏和提示；浏览器路径配置统一ZKYQ_BROWSER_EXECUTABLE，清理状态与远程浏览器权限文案，保留路径和权限范围；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物；移除 CLI 技能区域重复的旧品牌说明及对应翻译；账号设置的当前产品名称及语言目录统一；CLI 注册状态和错误提示统一当前命令名称；模拟器命令、错误和提示统一 zkyq；项目配置统一新文件名，保留旧文件迁移与信任行为；统一用量分享卡片和分享文案的产品身份；统一智能体状态钩子与文件夹信任设置的产品身份；统一会话 ID 复制文案并保留功能验证；同步服务接入当前变量名与产品文案，保留翻译键和控件行为；SSH/WSL 规范安装根改为 .zkyq-remote；保留机器归属、冻结旧读者与最新写入，原子移动同一数据目录并在已登记读者确认退出后移除旧入口，修正内部链接；同步安装/快照/GC/历史/旧 relay census 与直接回归，不改变业务数据位置或许可证"
     },
     {
       "path": "src/renderer/src/lib/ephemeral-vm-workspace-target.integration.test.ts",
@@ -331157,8 +331161,8 @@
     {
       "path": "src/main/managed-server/install/orcad-remote-runtime-control.test.ts",
       "upstream_sha256": "727e75ed997ffb9bad0c3d00792ae9931cedab43207bc5b8dc4674d8b8d9a987",
-      "current_sha256": "a93ff500eefb88eac92591bf751375fb36d77c9b5941cbd25aa716b6d4be6526",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；服务启动版本、激活根及测试空闲超时统一ZKYQ，旧输入单向迁移；沿内容hash内包元数据选择冻结旧安装格式，保留回退、锁版本和空闲退出功能，新安装不双发旧字段"
+      "current_sha256": "6e5d3158efa2fc6d80757e7509b4896cc2f4a8bc6d5db0ceb64d8fcd05188674",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；服务启动版本、激活根及测试空闲超时统一ZKYQ，旧输入单向迁移；沿内容hash内包元数据选择冻结旧安装格式，保留回退、锁版本和空闲退出功能，新安装不双发旧字段；SSH/WSL 规范安装根改为 .zkyq-remote；保留机器归属、冻结旧读者与最新写入，原子移动同一数据目录并在已登记读者确认退出后移除旧入口，修正内部链接；同步安装/快照/GC/历史/旧 relay census 与直接回归，不改变业务数据位置或许可证"
     },
     {
       "path": "src/main/orcad/electron-serve-browser-environment.ts",
@@ -333029,8 +333033,8 @@
     {
       "path": "src/main/managed-server/host-state/orcad-state-snapshot-shell.test.ts",
       "upstream_sha256": "156b0536bba72c191eff82364a416dea8a021eee25044083f3431e83c92c540a",
-      "current_sha256": "721063c9fc7ca86c0c9c72a8ebfe33515be128453880f39f5ee29066a4328aa1",
-      "reason": "迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据；迁移配置索引及备份并保护回退快照"
+      "current_sha256": "1b401eb14ab8d78dd76eb680d75d448f18e03615f57feb0cb586b9cc544bf64f",
+      "reason": "迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据；迁移配置索引及备份并保护回退快照；SSH/WSL 规范安装根改为 .zkyq-remote；保留机器归属、冻结旧读者与最新写入，原子移动同一数据目录并在已登记读者确认退出后移除旧入口，修正内部链接；同步安装/快照/GC/历史/旧 relay census 与直接回归，不改变业务数据位置或许可证"
     },
     {
       "path": "src/main/managed-server/host-state/orcad-state-snapshot-space.ts",
@@ -333047,8 +333051,8 @@
     {
       "path": "src/main/managed-server/host-state/orcad-windows-host-state-ops.test.ts",
       "upstream_sha256": "a2526c53a2e9b7e462e0421a24d9d9b10ddf296214c1bc6296d6b844277270a8",
-      "current_sha256": "01290e16752a6e97fcd091da858b7bceee0e8079af403eff5fe5a071a5d54ca3",
-      "reason": "迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据；迁移配置索引及备份并保护回退快照；迁移运行时发现文件并保护新旧进程所有权"
+      "current_sha256": "959ea9100ad1e927ec3067f47bca305fedb0a7a56a5df1c5824ffe6e2702eeb9",
+      "reason": "迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据；迁移配置索引及备份并保护回退快照；迁移运行时发现文件并保护新旧进程所有权；SSH/WSL 规范安装根改为 .zkyq-remote；保留机器归属、冻结旧读者与最新写入，原子移动同一数据目录并在已登记读者确认退出后移除旧入口，修正内部链接；同步安装/快照/GC/历史/旧 relay census 与直接回归，不改变业务数据位置或许可证"
     },
     {
       "path": "src/main/managed-server/host-state/orcad-windows-host-state-ops.ts",
@@ -337199,8 +337203,8 @@
     {
       "path": "src/main/ssh/remote-exec/remote-frame-protocol.ts",
       "upstream_sha256": "397e938488c51c355bdbf1c17412b949da802ae2ec94b10efe78da4f085d3c40",
-      "current_sha256": "907a0b1be2060f3d4321a9b0c1c3f3628a3e3bde04c9d28e2dccee08e33c983f",
-      "reason": "当前WSL relay readiness/握手身份统一ZKYQ，浏览器版本隔离程序缓存改.zkyq-wsl；已发布旧SSH sentinel仅在既有legacy输入边界固定读取，保持13字节帧、JSON-RPC2.0、凭据检查、网络流控及存活会话能力"
+      "current_sha256": "bfdb647e00672d500481e86431c5d64e7d225ec1b6dd284ecf79b0f217b4b87b",
+      "reason": "当前WSL relay readiness/握手身份统一ZKYQ，浏览器版本隔离程序缓存改.zkyq-wsl；已发布旧SSH sentinel仅在既有legacy输入边界固定读取，保持13字节帧、JSON-RPC2.0、凭据检查、网络流控及存活会话能力；SSH/WSL 规范安装根改为 .zkyq-remote；保留机器归属、冻结旧读者与最新写入，原子移动同一数据目录并在已登记读者确认退出后移除旧入口，修正内部链接；同步安装/快照/GC/历史/旧 relay census 与直接回归，不改变业务数据位置或许可证"
     },
     {
       "path": "src/shared/wsl-browser-network-relay-contract.ts",
@@ -338279,8 +338283,8 @@
     {
       "path": "src/main/managed-server/install/orcad-remote-runtime-control.ts",
       "upstream_sha256": "d8886f9fb550b63aeb20394bea2b57223f3786d1edcb33ced13f1be87c3195a9",
-      "current_sha256": "3d49ff9749d91af353aef432add7a02bee4f85b124a2fd18afe23038af4ec3f5",
-      "reason": "服务启动版本、激活根及测试空闲超时统一ZKYQ，旧输入单向迁移；沿内容hash内包元数据选择冻结旧安装格式，保留回退、锁版本和空闲退出功能，新安装不双发旧字段"
+      "current_sha256": "37a2f0c97fba759a43236cba32d6af25a74f535cae685fbb9ac7d3bcc90bb4c0",
+      "reason": "服务启动版本、激活根及测试空闲超时统一ZKYQ，旧输入单向迁移；沿内容hash内包元数据选择冻结旧安装格式，保留回退、锁版本和空闲退出功能，新安装不双发旧字段；SSH/WSL 规范安装根改为 .zkyq-remote；保留机器归属、冻结旧读者与最新写入，原子移动同一数据目录并在已登记读者确认退出后移除旧入口，修正内部链接；同步安装/快照/GC/历史/旧 relay census 与直接回归，不改变业务数据位置或许可证"
     },
     {
       "path": "src/main/orcad/orcad-health.ts",
@@ -338311,6 +338315,192 @@
       "upstream_sha256": "7c624edb4f87d1d7f1742ce788356e30370da86b59fcfd482410213ba4c48131",
       "current_sha256": "cc5f0f3e14fb6a7cfc1b769afddb236aa8e23b94b21a242f7c245c8482924b85",
       "reason": "服务启动版本、激活根及测试空闲超时统一ZKYQ，旧输入单向迁移；沿内容hash内包元数据选择冻结旧安装格式，保留回退、锁版本和空闲退出功能，新安装不双发旧字段"
+    },
+    {
+      "path": "src/main/managed-server/activation/orcad-activation-fence-generation.test.ts",
+      "upstream_sha256": "e225bcdc2a3f0415d49fba5071c9e2bcf65e28f408fb6a4a4aca52a44b5f8f7a",
+      "current_sha256": "72f1b684f6750814c303e5d8b8246af5de9b0647f1dba9d84c9b704d499329c7",
+      "reason": "SSH/WSL 规范安装根改为 .zkyq-remote；保留机器归属、冻结旧读者与最新写入，原子移动同一数据目录并在已登记读者确认退出后移除旧入口，修正内部链接；同步安装/快照/GC/历史/旧 relay census 与直接回归，不改变业务数据位置或许可证"
+    },
+    {
+      "path": "src/main/managed-server/host-state/orcad-machine-home.test.ts",
+      "upstream_sha256": "1aaa6c5102712a3ed509e65e2d17a57a07aa069e35e0c7a22a3bfe4631cc45e5",
+      "current_sha256": "04beaf8587f2e2e9f099140f20c2ed748b6af8838f77936bd978ed77c75d55a4",
+      "reason": "SSH/WSL 规范安装根改为 .zkyq-remote；保留机器归属、冻结旧读者与最新写入，原子移动同一数据目录并在已登记读者确认退出后移除旧入口，修正内部链接；同步安装/快照/GC/历史/旧 relay census 与直接回归，不改变业务数据位置或许可证"
+    },
+    {
+      "path": "src/main/managed-server/host-state/orcad-machine-home.ts",
+      "upstream_sha256": "57fb119ad30539dc986e4155a1433028b865c3f11e92292efc519931fd0950f9",
+      "current_sha256": "b9a411a9df34ad7c8acb6fbfce02fda4202d08f07a9b11cba7366d95a10345cb",
+      "reason": "SSH/WSL 规范安装根改为 .zkyq-remote；保留机器归属、冻结旧读者与最新写入，原子移动同一数据目录并在已登记读者确认退出后移除旧入口，修正内部链接；同步安装/快照/GC/历史/旧 relay census 与直接回归，不改变业务数据位置或许可证"
+    },
+    {
+      "path": "src/main/managed-server/install/orcad-remote-context.ts",
+      "upstream_sha256": "9a2b0defa003761169021c55b3f0fd4a13584b13e0048c35425ff72b585286e1",
+      "current_sha256": "946d8425b458e4d5c63eba20ad577847ef8629e14d6ee910365713421bbd68ff",
+      "reason": "SSH/WSL 规范安装根改为 .zkyq-remote；保留机器归属、冻结旧读者与最新写入，原子移动同一数据目录并在已登记读者确认退出后移除旧入口，修正内部链接；同步安装/快照/GC/历史/旧 relay census 与直接回归，不改变业务数据位置或许可证"
+    },
+    {
+      "path": "src/main/managed-server/install/orcad-remote-node-runtime-noexec.test.ts",
+      "upstream_sha256": "464f476f4ba17e6e78b528120f4dd711d541ad37ffaa4db8b1747347f6f8a7ad",
+      "current_sha256": "5189b64eba4d51c5dba9489da07e245dfccc15f23209c54bb684f46e19547dcf",
+      "reason": "SSH/WSL 规范安装根改为 .zkyq-remote；保留机器归属、冻结旧读者与最新写入，原子移动同一数据目录并在已登记读者确认退出后移除旧入口，修正内部链接；同步安装/快照/GC/历史/旧 relay census 与直接回归，不改变业务数据位置或许可证"
+    },
+    {
+      "path": "src/main/managed-server/install/orcad-remote-node-runtime-recorded-probe.test.ts",
+      "upstream_sha256": "544afc83ec2b3bef616ace766898bf6aa5279e13272c9ca8ad1d7271a3272f16",
+      "current_sha256": "0e551731164d132242d4f615e640b0cdec0959d574d06f187ec12043a399301f",
+      "reason": "SSH/WSL 规范安装根改为 .zkyq-remote；保留机器归属、冻结旧读者与最新写入，原子移动同一数据目录并在已登记读者确认退出后移除旧入口，修正内部链接；同步安装/快照/GC/历史/旧 relay census 与直接回归，不改变业务数据位置或许可证"
+    },
+    {
+      "path": "src/main/managed-server/install/orcad-remote-node-runtime-slow-hash.test.ts",
+      "upstream_sha256": "6319c82448970fb83b695e8cdfef3ee8e438f4eaaf1b8c2e1d83576b4821540a",
+      "current_sha256": "948fe05c88ad7f8f7aba09dd08e3a4440966cdf0ddee38462222667d2a51895a",
+      "reason": "SSH/WSL 规范安装根改为 .zkyq-remote；保留机器归属、冻结旧读者与最新写入，原子移动同一数据目录并在已登记读者确认退出后移除旧入口，修正内部链接；同步安装/快照/GC/历史/旧 relay census 与直接回归，不改变业务数据位置或许可证"
+    },
+    {
+      "path": "src/main/managed-server/install/orcad-remote-runtime.test.ts",
+      "upstream_sha256": "528c398d57f73d151b74b66546e74d9f7cefd2bb901180250f5f6afad73ecbd5",
+      "current_sha256": "ea28eee3e4665463ffd61ae17d29c712b7e941411ba0ebd1086e11d01cc83691",
+      "reason": "SSH/WSL 规范安装根改为 .zkyq-remote；保留机器归属、冻结旧读者与最新写入，原子移动同一数据目录并在已登记读者确认退出后移除旧入口，修正内部链接；同步安装/快照/GC/历史/旧 relay census 与直接回归，不改变业务数据位置或许可证"
+    },
+    {
+      "path": "src/main/managed-server/install/orcad-remote-shell-commands.integration.test.ts",
+      "upstream_sha256": "feab520861ad0070136db13396cbc36dce30a8f1429d426dd66a04e78d620dcb",
+      "current_sha256": "b1b0085e5bcf1a100b7001f7bf414befa6ae7abce5a7498cfdae785368f7d7af",
+      "reason": "SSH/WSL 规范安装根改为 .zkyq-remote；保留机器归属、冻结旧读者与最新写入，原子移动同一数据目录并在已登记读者确认退出后移除旧入口，修正内部链接；同步安装/快照/GC/历史/旧 relay census 与直接回归，不改变业务数据位置或许可证"
+    },
+    {
+      "path": "src/main/managed-server/install/remote-install-gc-termination.test.ts",
+      "upstream_sha256": "a2c7d654d1dd1701a8ed6315f829c37727fb98781b6a8bfbe612f9d8c4cf9e0b",
+      "current_sha256": "f2ebfa92e32ea93e59e12dcbec1ee4f65d7c304f54b1f03f9589422f6b24df85",
+      "reason": "SSH/WSL 规范安装根改为 .zkyq-remote；保留机器归属、冻结旧读者与最新写入，原子移动同一数据目录并在已登记读者确认退出后移除旧入口，修正内部链接；同步安装/快照/GC/历史/旧 relay census 与直接回归，不改变业务数据位置或许可证"
+    },
+    {
+      "path": "src/main/managed-server/install/remote-install-model.test.ts",
+      "upstream_sha256": "b87bec5bb2ab1ba7335c54aa40d8e9c65833ad016930d4750a1c53ca22416c81",
+      "current_sha256": "5879230e6fbbe8aba072a0002f00aea404f88a4bd89cb19e167fb3820dc5e219",
+      "reason": "SSH/WSL 规范安装根改为 .zkyq-remote；保留机器归属、冻结旧读者与最新写入，原子移动同一数据目录并在已登记读者确认退出后移除旧入口，修正内部链接；同步安装/快照/GC/历史/旧 relay census 与直接回归，不改变业务数据位置或许可证"
+    },
+    {
+      "path": "src/main/managed-server/install/remote-node-runtime-store-gc.test.ts",
+      "upstream_sha256": "8615c4aaeb8f93c26146dc1caf968539478ef574eb480871033d9202ce68eaa0",
+      "current_sha256": "52a7e408a84a4c0cddd8330c79ec3cafef42955d863c526ed1cec91263c3421a",
+      "reason": "SSH/WSL 规范安装根改为 .zkyq-remote；保留机器归属、冻结旧读者与最新写入，原子移动同一数据目录并在已登记读者确认退出后移除旧入口，修正内部链接；同步安装/快照/GC/历史/旧 relay census 与直接回归，不改变业务数据位置或许可证"
+    },
+    {
+      "path": "src/main/managed-server/lifecycle/orcad-managed-tunnel-transport-real-openssh.test.ts",
+      "upstream_sha256": "2116e22df1515a586e84708070a0a0671bda853c4f396075c6bd80b2e19e22b0",
+      "current_sha256": "6851e9bf9c3f594a387829f27b74c943dfb2a094c38e564fbbf1ada6ea9c51e0",
+      "reason": "SSH/WSL 规范安装根改为 .zkyq-remote；保留机器归属、冻结旧读者与最新写入，原子移动同一数据目录并在已登记读者确认退出后移除旧入口，修正内部链接；同步安装/快照/GC/历史/旧 relay census 与直接回归，不改变业务数据位置或许可证"
+    },
+    {
+      "path": "src/main/managed-server/posix-host-op-byte-budget.test.ts",
+      "upstream_sha256": "d17c2e513506fa7d5c5f9e5fce27ed62be82cf06628acf611c9d9afa9141a264",
+      "current_sha256": "9faf7727ec80f83bb14960c1d141d579739dee2a8416ad274179f093e206aada",
+      "reason": "SSH/WSL 规范安装根改为 .zkyq-remote；保留机器归属、冻结旧读者与最新写入，原子移动同一数据目录并在已登记读者确认退出后移除旧入口，修正内部链接；同步安装/快照/GC/历史/旧 relay census 与直接回归，不改变业务数据位置或许可证"
+    },
+    {
+      "path": "src/main/orcad/orcad-cross-runtime-daemon-adoption.integration.test.ts",
+      "upstream_sha256": "ac3b996e68ca03b743a89ff27c04755cbe5ab9632d9b4af90f160e9a740ae003",
+      "current_sha256": "952e9f22e8c678dfa2e4c984fb463df9a8491fa380a453d1f1a5b3697ea8dc27",
+      "reason": "SSH/WSL 规范安装根改为 .zkyq-remote；保留机器归属、冻结旧读者与最新写入，原子移动同一数据目录并在已登记读者确认退出后移除旧入口，修正内部链接；同步安装/快照/GC/历史/旧 relay census 与直接回归，不改变业务数据位置或许可证"
+    },
+    {
+      "path": "src/main/ssh/connection/ssh-connection-file-transfer-session-lost.test.ts",
+      "upstream_sha256": "42741e9825c9805353a48f3280ed7f81f6350cb157bf0d42b37be4eae0cdd9f0",
+      "current_sha256": "62ff1f1fd21e003548f9a469e7d42f6c296fdbae09662ca9ae0f8606c14e76dc",
+      "reason": "SSH/WSL 规范安装根改为 .zkyq-remote；保留机器归属、冻结旧读者与最新写入，原子移动同一数据目录并在已登记读者确认退出后移除旧入口，修正内部链接；同步安装/快照/GC/历史/旧 relay census 与直接回归，不改变业务数据位置或许可证"
+    },
+    {
+      "path": "src/main/ssh/connection/ssh-connection-sftp-wire.test.ts",
+      "upstream_sha256": "8d391ebf25467bda9e832fb5d921b97ea76986593e86805249af51ce886aea51",
+      "current_sha256": "56bbf871bb6ea02de5863bd4c4abd6623ec44a791dd055e9a52172bf2e214e7e",
+      "reason": "SSH/WSL 规范安装根改为 .zkyq-remote；保留机器归属、冻结旧读者与最新写入，原子移动同一数据目录并在已登记读者确认退出后移除旧入口，修正内部链接；同步安装/快照/GC/历史/旧 relay census 与直接回归，不改变业务数据位置或许可证"
+    },
+    {
+      "path": "src/main/ssh/legacy-relay/legacy-relay-endpoints.ts",
+      "upstream_sha256": "02f35f55caed518e6a45f42c3cd32299e724b5ac91d47b849adf43478cddd1f3",
+      "current_sha256": "43a9dfde0b81398bd7c73dfc384fc588928874f99f32dd8b124a23a95b296b9f",
+      "reason": "SSH/WSL 规范安装根改为 .zkyq-remote；保留机器归属、冻结旧读者与最新写入，原子移动同一数据目录并在已登记读者确认退出后移除旧入口，修正内部链接；同步安装/快照/GC/历史/旧 relay census 与直接回归，不改变业务数据位置或许可证"
+    },
+    {
+      "path": "src/main/ssh/legacy-relay/ssh-host-relay-endpoint-census.ts",
+      "upstream_sha256": "88e6b8c34aee00f72939fa1fd9094e556e2d1726725782c895a787fba3d6114c",
+      "current_sha256": "6da5aef2a8d1b549210f410ef9ab39ec79fdd801a2c75a9c3847f17489238520",
+      "reason": "SSH/WSL 规范安装根改为 .zkyq-remote；保留机器归属、冻结旧读者与最新写入，原子移动同一数据目录并在已登记读者确认退出后移除旧入口，修正内部链接；同步安装/快照/GC/历史/旧 relay census 与直接回归，不改变业务数据位置或许可证"
+    },
+    {
+      "path": "src/main/ssh/legacy-relay/ssh-host-relay-windows-census.ts",
+      "upstream_sha256": "5cc97751b1ea409f117f7dd3dfa15e2e2e7e6b16998b9bf803ead018db3f194a",
+      "current_sha256": "6935ba427e17d39896eb0be2e2e5a2b32f0e05f3c3cd8edcf55b0d9818a19f48",
+      "reason": "SSH/WSL 规范安装根改为 .zkyq-remote；保留机器归属、冻结旧读者与最新写入，原子移动同一数据目录并在已登记读者确认退出后移除旧入口，修正内部链接；同步安装/快照/GC/历史/旧 relay census 与直接回归，不改变业务数据位置或许可证"
+    },
+    {
+      "path": "src/main/ssh/legacy-relay/ssh-host-relay-windows-inventory.ts",
+      "upstream_sha256": "034042feeecb9b39b0724de03527fb406ab39f4834519b38dddb668940400611",
+      "current_sha256": "b16261013eac706bdb8d1b74fb4c25a41c10211ce91457db0ee67df5dce24f47",
+      "reason": "SSH/WSL 规范安装根改为 .zkyq-remote；保留机器归属、冻结旧读者与最新写入，原子移动同一数据目录并在已登记读者确认退出后移除旧入口，修正内部链接；同步安装/快照/GC/历史/旧 relay census 与直接回归，不改变业务数据位置或许可证"
+    },
+    {
+      "path": "src/main/ssh/legacy-relay/ssh-host-relay-windows-pipe-access.test.ts",
+      "upstream_sha256": "bbea3b1ae61dbc9332e69cbf231e544be3f80e1c1cb666350ee56178312f444c",
+      "current_sha256": "82ab70615df3c9e27169f3ba65a4acab5fc6c209e62fe23fe6b989401efb2515",
+      "reason": "SSH/WSL 规范安装根改为 .zkyq-remote；保留机器归属、冻结旧读者与最新写入，原子移动同一数据目录并在已登记读者确认退出后移除旧入口，修正内部链接；同步安装/快照/GC/历史/旧 relay census 与直接回归，不改变业务数据位置或许可证"
+    },
+    {
+      "path": "src/main/ssh/orcad-exited-own-fence.test.ts",
+      "upstream_sha256": "72e9607d89318f095b57a62334b86ae2112d4eaa64656580dc4510b8c103bd68",
+      "current_sha256": "2931de708d89df911c030eda3c29db4b080a0170d346974fc35be87c4b26efdc",
+      "reason": "SSH/WSL 规范安装根改为 .zkyq-remote；保留机器归属、冻结旧读者与最新写入，原子移动同一数据目录并在已登记读者确认退出后移除旧入口，修正内部链接；同步安装/快照/GC/历史/旧 relay census 与直接回归，不改变业务数据位置或许可证"
+    },
+    {
+      "path": "src/main/ssh/orcad-exited-own-install-lock.test.ts",
+      "upstream_sha256": "417bbe31c7085c5fab84a2fee7bfac5e6f87caaa01ba6c563ee9341c52320371",
+      "current_sha256": "d66472ed5d88c64e081251a742ab508a2d9875d7c13144d8c716278492574686",
+      "reason": "SSH/WSL 规范安装根改为 .zkyq-remote；保留机器归属、冻结旧读者与最新写入，原子移动同一数据目录并在已登记读者确认退出后移除旧入口，修正内部链接；同步安装/快照/GC/历史/旧 relay census 与直接回归，不改变业务数据位置或许可证"
+    },
+    {
+      "path": "src/main/ssh/orcad-stdio-bridge.test.ts",
+      "upstream_sha256": "0b91c3dab7c55209b3800f72b3a6c8882991f9e96729e58817ab4f5bcd471dd5",
+      "current_sha256": "e3fb6862760f7d7d9c566a9b93de7c755e7ca9b4507e245d481b167d4032e6ae",
+      "reason": "SSH/WSL 规范安装根改为 .zkyq-remote；保留机器归属、冻结旧读者与最新写入，原子移动同一数据目录并在已登记读者确认退出后移除旧入口，修正内部链接；同步安装/快照/GC/历史/旧 relay census 与直接回归，不改变业务数据位置或许可证"
+    },
+    {
+      "path": "src/main/ssh/ssh-exec-command-decoder-fallback.test.ts",
+      "upstream_sha256": "ba821e541500bf91572624b279d4f92005191c117f814246e04a30b13351fbcb",
+      "current_sha256": "e30ea722f12040024a319c95f3a1304a49b0208ee77b885af169c826f487cfbd",
+      "reason": "SSH/WSL 规范安装根改为 .zkyq-remote；保留机器归属、冻结旧读者与最新写入，原子移动同一数据目录并在已登记读者确认退出后移除旧入口，修正内部链接；同步安装/快照/GC/历史/旧 relay census 与直接回归，不改变业务数据位置或许可证"
+    },
+    {
+      "path": "src/main/ssh/ssh-host-unserved-status.ts",
+      "upstream_sha256": "d120a69546a814afc13f38859baa3b85488acae47cbf8dd7f89b5800647aea59",
+      "current_sha256": "663ce7990ef4073c0420f0b81ed159a4ddd7feaa91ef751379543cb42f4e038e",
+      "reason": "SSH/WSL 规范安装根改为 .zkyq-remote；保留机器归属、冻结旧读者与最新写入，原子移动同一数据目录并在已登记读者确认退出后移除旧入口，修正内部链接；同步安装/快照/GC/历史/旧 relay census 与直接回归，不改变业务数据位置或许可证"
+    },
+    {
+      "path": "src/main/ssh/ssh-system-transport.integration.test.ts",
+      "upstream_sha256": "b41d6832ea7b07b616c55046a978deaa101e48cddfd2ae36b1cc2830e7a0ad76",
+      "current_sha256": "1b4cb7d40a19e9dae359eb756d69e72ee55f04f9a5dc928e64ae4fa322d1edf4",
+      "reason": "SSH/WSL 规范安装根改为 .zkyq-remote；保留机器归属、冻结旧读者与最新写入，原子移动同一数据目录并在已登记读者确认退出后移除旧入口，修正内部链接；同步安装/快照/GC/历史/旧 relay census 与直接回归，不改变业务数据位置或许可证"
+    },
+    {
+      "path": "src/main/worktree-history-file-path.ts",
+      "upstream_sha256": "b0b04151717e3fb245b17ad8ba140db32e0af55c7c740a14684e3c2729c5f0aa",
+      "current_sha256": "e6cdf8a10d69baad10cb5c9da55f10dc22e37b5a4588389f34a2287ff658dc2f",
+      "reason": "SSH/WSL 规范安装根改为 .zkyq-remote；保留机器归属、冻结旧读者与最新写入，原子移动同一数据目录并在已登记读者确认退出后移除旧入口，修正内部链接；同步安装/快照/GC/历史/旧 relay census 与直接回归，不改变业务数据位置或许可证"
+    },
+    {
+      "path": "src/main/wsl/wsl-orcad-stdio-bridge.test.ts",
+      "upstream_sha256": "60a20c11088f36f7429872d7c9ad18a9f96c420a4ecd49e1a275838c8fa13187",
+      "current_sha256": "1039dea5ed9adc605a92358dc8325a99237cff17338bf8fec25ec026c4486067",
+      "reason": "SSH/WSL 规范安装根改为 .zkyq-remote；保留机器归属、冻结旧读者与最新写入，原子移动同一数据目录并在已登记读者确认退出后移除旧入口，修正内部链接；同步安装/快照/GC/历史/旧 relay census 与直接回归，不改变业务数据位置或许可证"
+    },
+    {
+      "path": "src/renderer/src/ssh/ssh-host-server-status-copy.ts",
+      "upstream_sha256": "53e8573235770242cc1e0968dd318f8c56a80b465c5a51b6b106038ca26ead2a",
+      "current_sha256": "c13a01d438b72c28fcef416071c850efb9853b01be0d5bde4505a5809d5b1394",
+      "reason": "SSH/WSL 规范安装根改为 .zkyq-remote；保留机器归属、冻结旧读者与最新写入，原子移动同一数据目录并在已登记读者确认退出后移除旧入口，修正内部链接；同步安装/快照/GC/历史/旧 relay census 与直接回归，不改变业务数据位置或许可证"
     }
   ],
   "reviewed_findings": [
@@ -339718,28 +339908,28 @@
       "path": "src/renderer/src/i18n/locales/en.json",
       "rule": "absolute-windows-path",
       "line": 12218,
-      "sha256": "be1f91973eeac61d40c14e3cc21455072e6365a216ea7fd211837a350794ed6a",
+      "sha256": "83b49964933f5cab7db71f68e66b6ac779d198b83b1fc50b7a0572106ca2bf13",
       "reason": "上游公开代码注释、CLI/界面示例中的路径语法，用来解释drive/root/UNC/转义等规则；非读取的个人配置，限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/en.json",
       "rule": "personal-home-path",
       "line": 12218,
-      "sha256": "be1f91973eeac61d40c14e3cc21455072e6365a216ea7fd211837a350794ed6a",
+      "sha256": "83b49964933f5cab7db71f68e66b6ac779d198b83b1fc50b7a0572106ca2bf13",
       "reason": "公开的路径模板、跨平台解析说明或通用示例；未读取本机账号/目录，保留语义并限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/en.json",
       "rule": "absolute-windows-path",
       "line": 12204,
-      "sha256": "be1f91973eeac61d40c14e3cc21455072e6365a216ea7fd211837a350794ed6a",
+      "sha256": "83b49964933f5cab7db71f68e66b6ac779d198b83b1fc50b7a0572106ca2bf13",
       "reason": "上游公开代码注释、CLI/界面示例中的路径语法，用来解释drive/root/UNC/转义等规则；非读取的个人配置，限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/en.json",
       "rule": "personal-home-path",
       "line": 12204,
-      "sha256": "be1f91973eeac61d40c14e3cc21455072e6365a216ea7fd211837a350794ed6a",
+      "sha256": "83b49964933f5cab7db71f68e66b6ac779d198b83b1fc50b7a0572106ca2bf13",
       "reason": "公开的路径模板、跨平台解析说明或通用示例；未读取本机账号/目录，保留语义并限定具体行及文件hash。"
     },
     {
@@ -339858,28 +340048,28 @@
       "path": "src/renderer/src/i18n/locales/pt.json",
       "rule": "absolute-windows-path",
       "line": 6723,
-      "sha256": "b440dc5b35a83f5b88f494eb35e07277e2f366fcf2eb40744f66bc71a72181c2",
+      "sha256": "69f31e9cc345cf5f95afd4ff91ba6f2869a0131edc670727ba26461eb177dab7",
       "reason": "上游公开代码注释、CLI/界面示例中的路径语法，用来解释drive/root/UNC/转义等规则；非读取的个人配置，限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/pt.json",
       "rule": "personal-home-path",
       "line": 6723,
-      "sha256": "b440dc5b35a83f5b88f494eb35e07277e2f366fcf2eb40744f66bc71a72181c2",
+      "sha256": "69f31e9cc345cf5f95afd4ff91ba6f2869a0131edc670727ba26461eb177dab7",
       "reason": "公开的路径模板、跨平台解析说明或通用示例；未读取本机账号/目录，保留语义并限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/pt.json",
       "rule": "absolute-windows-path",
       "line": 7905,
-      "sha256": "b440dc5b35a83f5b88f494eb35e07277e2f366fcf2eb40744f66bc71a72181c2",
+      "sha256": "69f31e9cc345cf5f95afd4ff91ba6f2869a0131edc670727ba26461eb177dab7",
       "reason": "上游公开代码注释、CLI/界面示例中的路径语法，用来解释drive/root/UNC/转义等规则；非读取的个人配置，限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/pt.json",
       "rule": "personal-home-path",
       "line": 7905,
-      "sha256": "b440dc5b35a83f5b88f494eb35e07277e2f366fcf2eb40744f66bc71a72181c2",
+      "sha256": "69f31e9cc345cf5f95afd4ff91ba6f2869a0131edc670727ba26461eb177dab7",
       "reason": "公开的路径模板、跨平台解析说明或通用示例；未读取本机账号/目录，保留语义并限定具体行及文件hash。"
     },
     {

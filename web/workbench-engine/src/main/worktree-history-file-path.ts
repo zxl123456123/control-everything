@@ -43,8 +43,8 @@ const ORCA_MINTED_HISTFILE = new RegExp(
     // which reaches the guest as the /mnt/<drive>/... form of the same tail.
     `terminal-history-wsl/[^/]+/${WORKTREE_HASH}/${HISTORY_FILE}` +
     '|' +
-    // Relay: ~/.orca-remote/terminal-history/<hash>-<file>
-    `\\.orca-remote/terminal-history/${WORKTREE_HASH}-${HISTORY_FILE}` +
+    // Relay: the canonical root and history inherited from an older runtime.
+    `\\.(?:zkyq|orca)-remote/terminal-history/${WORKTREE_HASH}-${HISTORY_FILE}` +
     ')$'
 )
 

@@ -8,7 +8,7 @@
  */
 import type { SshConnection } from '../connection/ssh-connection'
 import { quotePosixShell } from '../../../shared/shell-argument-quoting'
-import { RELAY_REMOTE_DIR } from '../remote-exec/remote-frame-protocol'
+import { RELAY_REMOTE_DIR, RETIRED_RELAY_REMOTE_DIR } from '../remote-exec/remote-frame-protocol'
 import { SHORT_RELAY_SOCKET_DIR_PREFIX } from '../relay-socket-path-limit'
 import { execCommand } from '../remote-exec/remote-exec-command'
 import {
@@ -33,11 +33,14 @@ const MAX_CENSUS_ENDPOINTS = 32
  */
 function hostRelayEndpointListCommand(remoteHome: string): string {
   return [
-    `base=${quotePosixShell(`${remoteHome}/${RELAY_REMOTE_DIR}`)}`,
     `short_base="${SHORT_RELAY_SOCKET_DIR_PREFIX}$(id -u 2>/dev/null)"`,
-    'for sock in "$base"/relay-*/relay*.sock "$short_base"/relay-*/relay*.sock; do',
+    `seen=''; for base in ${quotePosixShell(`${remoteHome}/${RETIRED_RELAY_REMOTE_DIR}`)} ${quotePosixShell(`${remoteHome}/${RELAY_REMOTE_DIR}`)}; do`,
+    '[ -d "$base" ] || continue; actual=$(cd "$base" && pwd -P) || exit 1; [ "$actual" = "$seen" ] && continue; seen="$actual";',
+    'for sock in "$base"/relay-*/relay*.sock; do',
     '  [ -S "$sock" ] && printf \'%s\\n\' "$sock"',
     'done',
+    'done',
+    'for sock in "$short_base"/relay-*/relay*.sock; do [ -S "$sock" ] && printf \'%s\\n\' "$sock"; done',
     'true'
   ].join('\n')
 }

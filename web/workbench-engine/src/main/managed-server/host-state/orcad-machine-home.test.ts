@@ -176,7 +176,7 @@ function loginHomeResult() {
 }
 
 function claimPath(): string {
-  return join(home, '.orca-remote', ORCAD_MACHINE_CLAIM_FILENAME)
+  return join(home, '.zkyq-remote', ORCAD_MACHINE_CLAIM_FILENAME)
 }
 
 function legacyOwner(name: string, machineIdentity: string | null = uuidOf(name)): void {
@@ -203,7 +203,7 @@ describe.runIf(POSIX)('resolveOrcadMachineHome on a home several machines share'
     const bHome = await resolveOrcadMachineHome(b, true)
     expect(bHome.loginHome).toBe(home)
     expect(bHome.orcadHome).toMatch(
-      new RegExp(`^${home}/\\.orca-remote/${ORCAD_MACHINE_HOMES_DIRNAME}/[a-f0-9]{16}$`)
+      new RegExp(`^${home}/\\.zkyq-remote/${ORCAD_MACHINE_HOMES_DIRNAME}/[a-f0-9]{16}$`)
     )
     expect(statSync(bHome.orcadHome).mode & 0o777).toBe(0o700)
     // A sibling of `~/.orca`, so the runtime socket inside it stays within the path limit.
@@ -214,7 +214,7 @@ describe.runIf(POSIX)('resolveOrcadMachineHome on a home several machines share'
     expect(await resolveOrcadMachineHome(a, true)).toEqual(loginHomeResult())
     expect(
       computeRemoteInstallDir(ORCAD_INSTALL_MODEL, bHome.orcadHome, '0.1.0+abc').startsWith(
-        `${bHome.orcadHome}/.orca-remote/`
+        `${bHome.orcadHome}/.zkyq-remote/`
       )
     ).toBe(true)
   })
@@ -238,19 +238,19 @@ describe.runIf(POSIX)('resolveOrcadMachineHome on a home several machines share'
 
   it('upgrades an existing single-machine install in place', async () => {
     const a = machine('node-a')
-    mkdirSync(join(home, '.orca-remote', 'orcad-0.1.0+abc'), {
+    mkdirSync(join(home, '.zkyq-remote', 'orcad-0.1.0+abc'), {
       recursive: true
     })
-    writeFileSync(join(home, '.orca-remote', 'orcad-active.json'), '{"schemaVersion":1}')
+    writeFileSync(join(home, '.zkyq-remote', 'orcad-active.json'), '{"schemaVersion":1}')
     mkdirSync(join(home, '.orca', 'profiles'), { recursive: true })
     legacyOwner('node-a')
 
     expect(await resolveOrcadMachineHome(a, true)).toEqual(loginHomeResult())
     expect(existsSync(claimPath())).toBe(true)
-    expect(readFileSync(join(home, '.orca-remote', 'orcad-active.json'), 'utf8')).toBe(
+    expect(readFileSync(join(home, '.zkyq-remote', 'orcad-active.json'), 'utf8')).toBe(
       '{"schemaVersion":1}'
     )
-    expect(existsSync(join(home, '.orca-remote', ORCAD_MACHINE_HOMES_DIRNAME))).toBe(false)
+    expect(existsSync(join(home, '.zkyq-remote', ORCAD_MACHINE_HOMES_DIRNAME))).toBe(false)
   })
 
   it('leaves an unclaimed install to the machine whose orcad holds its data root', async () => {
@@ -277,14 +277,14 @@ describe.runIf(POSIX)('resolveOrcadMachineHome on a home several machines share'
     ])
     expect(homes.filter((resolved) => resolved.orcadHome === home)).toHaveLength(1)
     // No partial claim is left behind.
-    expect(readdirNames(join(home, '.orca-remote'))).toEqual(
+    expect(readdirNames(join(home, '.zkyq-remote'))).toEqual(
       [ORCAD_MACHINE_CLAIM_FILENAME, ORCAD_MACHINE_HOMES_DIRNAME].sort()
     )
   })
 
   it('keeps a Mac whose orcad predates macOS machine identity on its running install', async () => {
     const a = machine('node-a')
-    mkdirSync(join(home, '.orca-remote', 'orcad-0.1.0+abc'), { recursive: true })
+    mkdirSync(join(home, '.zkyq-remote', 'orcad-0.1.0+abc'), { recursive: true })
     // Older orcads on macOS recorded no machine identity at all.
     legacyOwner('node-a', null)
     expect(await resolveOrcadMachineHome(a, true)).toEqual(loginHomeResult())
@@ -294,8 +294,8 @@ describe.runIf(POSIX)('resolveOrcadMachineHome on a home several machines share'
   it('never lets another Mac claim a live install whose owner recorded no machine identity', async () => {
     const nfs = { homeSource: 'filer:/export/home' }
     const b = machine('node-b', 'node-b', nfs)
-    mkdirSync(join(home, '.orca-remote', 'orcad-0.1.0+abc'), { recursive: true })
-    writeFileSync(join(home, '.orca-remote', 'orcad-active.json'), '{"schemaVersion":1}')
+    mkdirSync(join(home, '.zkyq-remote', 'orcad-0.1.0+abc'), { recursive: true })
+    writeFileSync(join(home, '.zkyq-remote', 'orcad-active.json'), '{"schemaVersion":1}')
     // node-a's older orcad is running: its owner names only node-a's hostname.
     legacyOwner('node-a', null)
 
@@ -321,14 +321,14 @@ describe.runIf(POSIX)('resolveOrcadMachineHome on a home several machines share'
       resolveOrcadMachineHome(b, true)
     ])
     expect(homes.filter((resolved) => resolved.orcadHome === home)).toHaveLength(1)
-    expect(readdirNames(join(home, '.orca-remote'))).toEqual(
+    expect(readdirNames(join(home, '.zkyq-remote'))).toEqual(
       [
         ORCAD_MACHINE_CLAIM_ARBITER_DIRNAME,
         ORCAD_MACHINE_CLAIM_FILENAME,
         ORCAD_MACHINE_HOMES_DIRNAME
       ].sort()
     )
-    expect(readdirNames(join(home, '.orca-remote', ORCAD_MACHINE_CLAIM_ARBITER_DIRNAME))).toEqual([
+    expect(readdirNames(join(home, '.zkyq-remote', ORCAD_MACHINE_CLAIM_ARBITER_DIRNAME))).toEqual([
       ORCAD_MACHINE_CLAIM_FILENAME
     ])
     // Stable on later connects.
@@ -338,7 +338,7 @@ describe.runIf(POSIX)('resolveOrcadMachineHome on a home several machines share'
   })
 
   it('lets exactly one of two machines replace an empty claim', async () => {
-    mkdirSync(join(home, '.orca-remote'))
+    mkdirSync(join(home, '.zkyq-remote'))
     writeFileSync(claimPath(), '')
     const homes = await Promise.all([
       resolveOrcadMachineHome(machine('node-a', 'node-a', { claimWriteDelay: 0 }), true),
@@ -364,7 +364,7 @@ describe.runIf(POSIX)('resolveOrcadMachineHome on a home several machines share'
   })
 
   it('replaces an empty claim a full disk left behind', async () => {
-    mkdirSync(join(home, '.orca-remote'))
+    mkdirSync(join(home, '.zkyq-remote'))
     writeFileSync(claimPath(), '')
     expect(await resolveOrcadMachineHome(machine('node-a'), true)).toEqual(loginHomeResult())
     expect(readFileSync(claimPath(), 'utf8')).toContain('machineKey')
@@ -373,11 +373,11 @@ describe.runIf(POSIX)('resolveOrcadMachineHome on a home several machines share'
   it.skipIf(process.getuid?.() === 0)(
     'says why it could not write the claim, and leaves no partial behind (#30491)',
     async () => {
-      const remote = mkdirp(home, '.orca-remote')
+      const remote = mkdirp(home, '.zkyq-remote')
       chmodSync(remote, 0o500)
       try {
         await expect(resolveOrcadMachineHome(machine('node-a'), true)).rejects.toThrow(
-          /^orcad could not claim this host's \.orca-remote: could not write a claim file in ~\/\.orca-remote: .*Permission denied.*belongs to this user and is writable/u
+          /^orcad could not claim this host's \.zkyq-remote: could not write a claim file in ~\/\.zkyq-remote: .*Permission denied.*belongs to this user and is writable/u
         )
         expect(readdirSync(remote)).toEqual([])
       } finally {
@@ -399,7 +399,7 @@ describe.runIf(POSIX)('resolveOrcadMachineHome on a home several machines share'
   it('names a full disk when the claim cannot be moved into place (#30491)', async () => {
     const full = { noHardLinks: true, availableKb: 0, claimMoveError: 'No space left on device' }
     await expect(resolveOrcadMachineHome(machine('node-a', 'node-a', full), true)).rejects.toThrow(
-      /could not move the claim into place at ~\/\.orca-remote\/orcad-machine\.json: mv: No space left on device\. The filesystem holding ~\/\.orca-remote has 0 KB free/u
+      /could not move the claim into place at ~\/\.zkyq-remote\/orcad-machine\.json: mv: No space left on device\. The filesystem holding ~\/\.zkyq-remote has 0 KB free/u
     )
     expect(existsSync(claimPath())).toBe(false)
     // Once there is room the same machine claims the home.
@@ -409,7 +409,7 @@ describe.runIf(POSIX)('resolveOrcadMachineHome on a home several machines share'
   })
 
   it('refuses to guess when the claim cannot be read', async () => {
-    mkdirSync(join(home, '.orca-remote'))
+    mkdirSync(join(home, '.zkyq-remote'))
     writeFileSync(claimPath(), 'not json')
     await expect(resolveOrcadMachineHome(machine('node-a'), true)).rejects.toThrow(
       /cannot tell which machine owns/
@@ -421,12 +421,12 @@ describe.runIf(POSIX)('resolveOrcadMachineHome on a home several machines share'
     const a = machine('node-a', 'node-a', nfs)
     const b = machine('node-b', 'node-b', nfs)
     // node-a's pre-claim orcad shut down cleanly, which removes its data-root owner.
-    writeFileSync(join(mkdirp(home, '.orca-remote'), 'orcad-active.json'), '{"schemaVersion":1}')
+    writeFileSync(join(mkdirp(home, '.zkyq-remote'), 'orcad-active.json'), '{"schemaVersion":1}')
     mkdirp(home, '.orca', '.profile-state-access', 'participants')
 
     await expect(resolveOrcadMachineHome(b, true)).rejects.toThrow(/can't tell which machine/)
     expect(existsSync(claimPath())).toBe(false)
-    expect(existsSync(join(home, '.orca-remote', ORCAD_MACHINE_HOMES_DIRNAME))).toBe(false)
+    expect(existsSync(join(home, '.zkyq-remote', ORCAD_MACHINE_HOMES_DIRNAME))).toBe(false)
 
     // The user runs the claim node-a's message names, on node-a.
     const message = await resolveOrcadMachineHome(a, true).then(
@@ -445,8 +445,8 @@ describe.runIf(POSIX)('resolveOrcadMachineHome on a home several machines share'
     mkdirp(home, '.orca', '.profile-state-access', 'participants')
     expect(await resolveOrcadMachineHome(a, true)).toEqual(loginHomeResult())
 
-    // The printed fix also works on a home that has no `~/.orca-remote` yet.
-    rmSync(join(home, '.orca-remote'), { recursive: true })
+    // The printed fix also works on a home that has no `~/.zkyq-remote` yet.
+    rmSync(join(home, '.zkyq-remote'), { recursive: true })
     const fix = orcadMachineOwnershipUnresolvedMessage('a'.repeat(16), null)
     await execOrcadRemote(a, fix.slice(fix.indexOf('reconnect: ') + 'reconnect: '.length))
     expect(readFileSync(claimPath(), 'utf8')).toContain('a'.repeat(16))
@@ -454,13 +454,13 @@ describe.runIf(POSIX)('resolveOrcadMachineHome on a home several machines share'
 
   it('claims a stopped pre-claim install on a local disk, which no other machine can share', async () => {
     const a = machine('node-a', 'node-a', { homeSource: '/dev/disk3s5' })
-    writeFileSync(join(mkdirp(home, '.orca-remote'), 'orcad-active.json'), '{"schemaVersion":1}')
+    writeFileSync(join(mkdirp(home, '.zkyq-remote'), 'orcad-active.json'), '{"schemaVersion":1}')
     expect(await resolveOrcadMachineHome(a, true)).toEqual(loginHomeResult())
   })
 
   it('keeps WSL on the login home without probing or claiming', async () => {
     expect(await resolveOrcadMachineHome(machine('node-a'), false)).toEqual(loginHomeResult())
-    expect(existsSync(join(home, '.orca-remote'))).toBe(false)
+    expect(existsSync(join(home, '.zkyq-remote'))).toBe(false)
   })
 })
 

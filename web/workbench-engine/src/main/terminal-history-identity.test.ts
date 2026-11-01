@@ -1,8 +1,20 @@
 import { describe, expect, it } from 'vitest'
 import { createDaemonPtyEnvironment } from './daemon/pty-subprocess/spawn-environment'
 import { injectHistoryEnv, updateHistoryEnvForFallback } from './terminal-history'
+import { dropInheritedOrcaHistFile } from './worktree-history-file-path'
 
 describe('history handoff identity', () => {
+  it.each(['zkyq', 'orca'])('isolates a nested pane from inherited %s relay history', (brand) => {
+    const env: Record<string, string> = {
+      HISTFILE: `/test-home/.${brand}-remote/terminal-history/0123456789abcdef-bash_history`
+    }
+    dropInheritedOrcaHistFile(env)
+    expect(env.HISTFILE).toBeUndefined()
+    env.HISTFILE = `/test-home/.${brand}-remote/terminal-history/custom_history`
+    dropInheritedOrcaHistFile(env)
+    expect(env.HISTFILE).toBe(`/test-home/.${brand}-remote/terminal-history/custom_history`)
+  })
+
   it('drops inherited handoff names while preserving a caller history file', () => {
     const env = {
       HISTFILE: '/tmp/example/user-history',

@@ -12,7 +12,10 @@
  */
 import { createHash } from 'node:crypto'
 import { quotePosixShell } from '../../../shared/shell-argument-quoting'
-import { RELAY_REMOTE_DIR } from '../../ssh/remote-exec/remote-frame-protocol'
+import {
+  RELAY_REMOTE_DIR,
+  RETIRED_RELAY_REMOTE_DIR
+} from '../../ssh/remote-exec/remote-frame-protocol'
 import { ORCAD_ACTIVATION_FILENAME } from '../activation/orcad-activation-record'
 import { parseDarwinPlatformUuid } from '../../persistence/profile-state/profile-state-access-identity'
 import {
@@ -71,6 +74,7 @@ type OrcadMachineClaimRead =
 
 export type OrcadMachineHomeProbe = {
   loginHome: string
+  rootDirectoryName?: typeof RELAY_REMOTE_DIR | typeof RETIRED_RELAY_REMOTE_DIR
   identity: OrcadMachineIdentity | null
   claim: OrcadMachineClaimRead
   /** Profile-state owners (live orcads, or crashed ones) in the login home's data root. */
@@ -101,11 +105,13 @@ type OrcadMachineOwnershipUnresolvedCause = 'stopped-install' | 'unattributed-ow
  * in one exec. Identity sources match `profile-state-access-identity.ts`, so the two agree.
  */
 export function orcadMachineHomeProbeCommand(host: RemoteHostPlatform): string {
-  const claim = `"$HOME"/${quotePosixShell(`${RELAY_REMOTE_DIR}/${ORCAD_MACHINE_CLAIM_FILENAME}`)}`
+  const claim = `"$identity_root"/${quotePosixShell(ORCAD_MACHINE_CLAIM_FILENAME)}`
   const access = `"$HOME"/${quotePosixShell(ACCESS_ROOT)}`
-  const homes = `"$HOME"/${quotePosixShell(`${RELAY_REMOTE_DIR}/${ORCAD_MACHINE_HOMES_DIRNAME}`)}`
-  const activation = `"$HOME"/${quotePosixShell(`${RELAY_REMOTE_DIR}/${ORCAD_ACTIVATION_FILENAME}`)}`
+  const homes = `"$identity_root"/${quotePosixShell(ORCAD_MACHINE_HOMES_DIRNAME)}`
+  const activation = `"$identity_root"/${quotePosixShell(ORCAD_ACTIVATION_FILENAME)}`
   return [
+    `identity_root_name=${quotePosixShell(RELAY_REMOTE_DIR)}; identity_root="$HOME/$identity_root_name";`,
+    `if [ ! -e "$identity_root" ] && [ ! -L "$identity_root" ] && { [ -e "$HOME/${RETIRED_RELAY_REMOTE_DIR}" ] || [ -L "$HOME/${RETIRED_RELAY_REMOTE_DIR}" ]; }; then identity_root_name=${quotePosixShell(RETIRED_RELAY_REMOTE_DIR)}; identity_root="$HOME/$identity_root_name"; fi;`,
     `printf '%s\\n' "$HOME"; echo ${SECTION};`,
     host.os === 'darwin'
       ? // Bare first so a test (or a host that moved it) can supply its own ioreg.
@@ -124,7 +130,7 @@ export function orcadMachineHomeProbeCommand(host: RemoteHostPlatform): string {
     `[ -e ${activation} ] && echo ${INSTALLED}; echo ${SECTION};`,
     // macOS `stat -f` takes a format, not a filesystem; its df source still names the device.
     host.os === 'darwin' ? '' : `stat -f -c %T "$HOME" 2>/dev/null; echo ${SECTION};`,
-    `df -P "$HOME" 2>/dev/null | tail -n 1; true`
+    `df -P "$HOME" 2>/dev/null | tail -n 1; true; echo ${SECTION}; printf '%s\\n' "$identity_root_name"`
   ].join(' ')
 }
 
@@ -133,7 +139,13 @@ export function parseOrcadMachineHomeProbe(
   host: RemoteHostPlatform
 ): OrcadMachineHomeProbe {
   const sections = output.split(new RegExp(`^${SECTION}$`, 'mu'))
-  if (sections.length !== (host.os === 'darwin' ? 8 : 9)) {
+  const previousCount = host.os === 'darwin' ? 8 : 9
+  const rootDirectoryName =
+    sections.length === previousCount + 1 ? sections.pop()?.trim() : RETIRED_RELAY_REMOTE_DIR
+  if (
+    sections.length !== previousCount ||
+    (rootDirectoryName !== RELAY_REMOTE_DIR && rootDirectoryName !== RETIRED_RELAY_REMOTE_DIR)
+  ) {
     throw new Error('orcad machine-home probe returned no verifiable answer')
   }
   const [homeRaw, machineRaw, hostnameRaw, claimRaw, ownersRaw, homesRaw, installedRaw] = sections
@@ -145,6 +157,7 @@ export function parseOrcadMachineHomeProbe(
   }
   return {
     loginHome,
+    rootDirectoryName,
     identity: orcadMachineIdentity(host, machineRaw.trim(), hostnameRaw.trim()),
     claim: parseClaimSection(claimRaw.trim()),
     dataRootOwners: ownersRaw
@@ -282,7 +295,7 @@ export function decideOrcadMachineHome(
   }
   if (claim.state === 'unreadable') {
     throw new Error(
-      `orcad cannot tell which machine owns ${RELAY_REMOTE_DIR}/${ORCAD_MACHINE_CLAIM_FILENAME}: ${claim.reason}`
+      `orcad cannot tell which machine owns ${probe.rootDirectoryName ?? RELAY_REMOTE_DIR}/${ORCAD_MACHINE_CLAIM_FILENAME}: ${claim.reason}`
     )
   }
   if (claim.state === 'present') {
@@ -310,20 +323,21 @@ export function decideOrcadMachineHome(
 export function orcadMachineOwnershipUnresolvedMessage(
   machineKey: string,
   hostname: string | null,
-  cause: OrcadMachineOwnershipUnresolvedCause = 'stopped-install'
+  cause: OrcadMachineOwnershipUnresolvedCause = 'stopped-install',
+  rootDirectoryName: typeof RELAY_REMOTE_DIR | typeof RETIRED_RELAY_REMOTE_DIR = RELAY_REMOTE_DIR
 ): string {
   const claim = JSON.stringify({ schemaVersion: ORCAD_MACHINE_CLAIM_SCHEMA_VERSION, machineKey })
-  const path = `~/${RELAY_REMOTE_DIR}/${ORCAD_MACHINE_CLAIM_FILENAME}`
+  const path = `~/${rootDirectoryName}/${ORCAD_MACHINE_CLAIM_FILENAME}`
   const why =
     cause === 'stopped-install'
       ? 'that stopped server left no record of its own'
-      : 'the older Orca server there recorded only a hostname, which does not identify its machine'
+      : 'the older server there recorded only a hostname, which does not identify its machine'
   return (
-    `Orca can't tell which machine set up the Orca server in ~/${RELAY_REMOTE_DIR}: ` +
+    `Control Everything can't tell which machine set up the server in ~/${rootDirectoryName}: ` +
     `this home may be shared by several machines, and ${why}. ` +
     'If another machine set it up, connect to that one and run the command shown there. ' +
     `If ${hostname ?? 'this machine'} set it up, run this on it, then reconnect: ` +
-    `mkdir -p ~/${RELAY_REMOTE_DIR} && printf '%s' '${claim}' > ${path}`
+    `mkdir -p ~/${rootDirectoryName} && printf '%s' '${claim}' > ${path}`
   )
 }
 

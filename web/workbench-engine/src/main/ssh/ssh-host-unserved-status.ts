@@ -27,7 +27,7 @@ const HELD_MOVE_MESSAGE =
   'Orca paused moving this host’s projects to its Orca server because it couldn’t confirm the server’s copy. Nothing is lost: the host keeps its projects and stays locked until the move finishes. Connect again to resume. If the server can’t come back, stop or forget it in Settings > Orca on your SSH hosts.'
 
 const NOEXEC_MESSAGE =
-  'This host doesn’t allow running programs from ~/.orca-remote, so Orca can’t start its server there. This usually means the home folder is mounted with noexec. Ask the host’s administrator to allow running programs there, then connect again.'
+  'This host doesn’t allow running programs from ~/.zkyq-remote, so Control Everything can’t start its server there. This usually means the home folder is mounted with noexec. Ask the host’s administrator to allow running programs there, then connect again.'
 
 const CONTACT_LOST_MESSAGE =
   'Orca lost contact with this host while setting up its server. Nothing on the host was stopped. Connect again to continue.'

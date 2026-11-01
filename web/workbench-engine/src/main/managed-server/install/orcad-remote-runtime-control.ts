@@ -50,12 +50,14 @@ export type OrcadRemoteExecTarget = {
 export async function execOrcadRemote(
   target: OrcadRemoteExecTarget,
   command: string,
-  signal = target.signal
+  signal = target.signal,
+  timeoutMs?: number
 ): Promise<string> {
   const fence = currentOrcadFence()
   const run = (line: string): Promise<string> =>
     execCommand(target.conn, line, {
       wrapCommand: target.host.commandDialect !== 'powershell',
+      ...(timeoutMs === undefined ? {} : { timeoutMs }),
       signal
     })
   try {

@@ -12996,7 +12996,7 @@
           "behindNoTemplate": "Runs a version of Orca’s server this app can’t update; this build has no server for this host.",
           "behindMigrating": "Runs Orca’s server, which updates after its project move finishes.",
           "behindCheckFailed": "Runs Orca’s server; Orca couldn’t check whether it is behind this app.",
-          "runtimeNoexec": "This host doesn’t allow running programs from ~/.orca-remote, so Orca can’t start its server there. This usually means the home folder is mounted with noexec. Ask the host’s administrator to allow running programs there, then connect again.",
+          "runtimeNoexec": "This host doesn’t allow running programs from ~/.zkyq-remote, so Control Everything can’t start its server there. This usually means the home folder is mounted with noexec. Ask the host’s administrator to allow running programs there, then connect again.",
           "setupContactLost": "Orca lost contact with this host while setting up its server. Nothing on the host was stopped. Connect again to continue.",
           "nodeDownloadBlocked": "Neither this computer nor this host could download Node.js, which Orca’s server needs. Use a Node.js mirror, or check the network on both machines.",
           "nodeDownloadBlockedNoMirror": "Neither this computer nor this host could download Node.js, which Orca’s server needs. Check the network or proxy on both machines, then connect again.",

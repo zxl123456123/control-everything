@@ -8532,7 +8532,7 @@
           "behindNoTemplate": "Executa uma versão do servidor Orca que este aplicativo não consegue atualizar; esta compilação não tem um servidor para este host.",
           "behindMigrating": "Executa o servidor Orca, que será atualizado após a movimentação dos projetos terminar.",
           "behindCheckFailed": "Executa o servidor Orca; o Orca não conseguiu verificar se a versão está desatualizada em relação a este aplicativo.",
-          "runtimeNoexec": "Este host não permite executar programas em ~/.orca-remote, então o Orca não consegue iniciar o servidor lá. Isso geralmente significa que a pasta pessoal está montada com noexec. Peça ao administrador do host para permitir a execução de programas lá e conecte novamente.",
+          "runtimeNoexec": "Este host não permite executar programas em ~/.zkyq-remote, então o Control Everything não consegue iniciar o servidor lá. Isso geralmente significa que a pasta pessoal está montada com noexec. Peça ao administrador do host para permitir a execução de programas lá e conecte novamente.",
           "setupContactLost": "O Orca perdeu contato com este host ao configurar o servidor. Nada foi interrompido no host. Conecte novamente para continuar.",
           "nodeDownloadBlocked": "Nem este computador nem este host conseguiram baixar o Node.js, necessário para o servidor Orca. Use um espelho do Node.js ou verifique a rede nas duas máquinas.",
           "nodeDownloadBlockedNoMirror": "Nem este computador nem este host conseguiram baixar o Node.js, necessário para o servidor Orca. Verifique a rede ou o proxy nas duas máquinas e conecte novamente.",
