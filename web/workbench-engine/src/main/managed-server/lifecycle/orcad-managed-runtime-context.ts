@@ -89,6 +89,7 @@ export function managedOrcadSlot(
     remoteHome: context.remoteHome,
     nodePath: MANAGED_ORCAD_LEGACY_NODE_PATH,
     userDataDir: context.userDataDir,
+    defaultDataRoot: context.defaultDataRoot,
     bindHost: ORCAD_BIND_HOST,
     port,
     signal

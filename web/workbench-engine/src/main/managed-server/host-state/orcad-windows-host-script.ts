@@ -14,6 +14,12 @@
 import { createHash } from 'node:crypto'
 import { parseOrcadLaunchEnvironmentVersion } from '../../../shared/orcad-managed-launch-env'
 import {
+  MANAGED_DATA_ROOT_PATH_MARKER,
+  MANAGED_DATA_ROOT_HELPER_MARKER,
+  MANAGED_DATA_ROOT_TARGET_MARKER
+} from '../../../shared/managed-data-roots'
+import { ORCAD_INSTALL_MODEL, remoteInstallVersionDirRegex } from '../install/remote-install-model'
+import {
   ORCAD_LAUNCHER_FILENAME,
   ORCAD_SERVER_ENTRY_FILENAME,
   ORCAD_NODE_RUNTIME_DIR_PREFIX,
@@ -22,6 +28,7 @@ import {
   ORCAD_RUNTIMES_DIRNAME,
   ORCAD_WINDOWS_PROCESS_TREE_FILENAME
 } from '../../../shared/orcad-artifacts'
+import { ORCAD_INSTALL_COMPLETE_FILENAME } from '../../../shared/orcad-artifacts'
 import { ORCAD_CLI_PACKAGE_FILENAME } from '../../../shared/orcad-artifacts'
 import {
   ORCAD_STOP_REQUEST_FILENAME,
@@ -66,6 +73,7 @@ export type OrcadWindowsHostOp =
   | 'record-read'
   | 'record-publish'
   | 'slot-runtime'
+  | 'data-root-probe'
   | 'remove-file'
   | 'remove-tree'
   | 'fence-check'
@@ -264,6 +272,32 @@ const ops = {
   'remove-tree'(target) {
     fs.rmSync(target, { recursive: true, force: true, maxRetries: 5 })
     answer('')
+  },
+
+  'data-root-probe'(base, current, preferred) {
+    const name = path.basename(current)
+    if (name !== '.zkyq' && !/^[.]zkyq-[a-f0-9]{8}$/.test(name)) throw new Error('Unexpected managed data directory')
+    const previous = path.join(path.dirname(current), name.replace('.zkyq', '.orca'))
+    const exists = value => { try { return fs.lstatSync(value) } catch (error) { if (error.code === 'ENOENT') return null; throw error } }
+    const c = exists(current), o = exists(previous)
+    if (c && o && fs.realpathSync(current).toLowerCase() !== fs.realpathSync(previous).toLowerCase()) throw new Error('Conflicting default data directories')
+    const value = c ? {userDataDir:current,state:'current'} : o ? {userDataDir:previous,state:'previous'} : {userDataDir:current,state:'empty'}
+    const cap = dir => {
+      const file = path.join(dir, ${text(ORCAD_CLI_PACKAGE_FILENAME)})
+      const stats = exists(file)
+      if (!stats) return false
+      if (!stats.isFile() || stats.size > 65536) throw new Error('Invalid component capabilities')
+      return JSON.parse(fs.readFileSync(file,'utf8')).zkyqDefaultDataRoots === 1
+    }
+    const candidates = [...(preferred ? [preferred] : []), ...fs.readdirSync(base).filter(name => new RegExp(${text(remoteInstallVersionDirRegex(ORCAD_INSTALL_MODEL).source)}).test(name)).map(name => path.join(base,name))]
+    const helper = candidates.find(dir => exists(dir)?.isDirectory() && exists(path.join(dir,${text(ORCAD_INSTALL_COMPLETE_FILENAME)}))?.isFile() && cap(dir)) || ''
+    const line = (marker, value) => marker + ' ' + Buffer.from(value).toString('base64')
+    answer([
+      line(${text(MANAGED_DATA_ROOT_PATH_MARKER)},JSON.stringify(value)),
+      line(${text(MANAGED_DATA_ROOT_HELPER_MARKER)},helper),
+      line(${text(MANAGED_DATA_ROOT_TARGET_MARKER)},preferred && cap(preferred) ? '1' : '0'),
+      ''
+    ].join('\\n'))
   },
 
   // The node.exe a slot's marker names; with clear-stop-request, also drops a stale request.

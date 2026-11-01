@@ -95,6 +95,7 @@ import {
   readOrcadReadinessNowCommand
 } from './install/orcad-remote-readiness-wait'
 import { orcadPosixStdioBridgeCommand } from './lifecycle/orcad-stdio-bridge-script'
+import { managedDataRootProbeCommand } from './install/orcad-remote-data-roots'
 
 // Why 6 KB: gateways cut exec requests near 10 KB (#30491). This bounds the wire string: the
 // fence-guarded command, wrapped uncompressed as a host without gzip/base64 receives it.
@@ -155,6 +156,12 @@ function promoteArgs({
 }
 
 const BUILDERS: Readonly<Record<string, (c: HostCase) => string>> = {
+  managedDataRootProbeCommand: ({ host }) =>
+    managedDataRootProbeCommand(
+      { host, remoteHome: home, conn: Object.create(null) },
+      `${home}/.zkyq-1234abcd`,
+      slotDir
+    ),
   serializedStateMutationCommand: () => serializedStateMutationCommand(baseDir, ':', 20, fence),
   // As activation runs it: pruning every other capture but the recorded one.
   captureOrcadStateSnapshotCommand: ({ host }) =>

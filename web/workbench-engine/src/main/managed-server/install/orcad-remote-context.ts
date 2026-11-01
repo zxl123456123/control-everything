@@ -37,6 +37,7 @@ import { detectRemoteHostPlatform } from '../../ssh/ssh-remote-platform-detectio
 import { OrcadHostUnsupportedError } from '../../orcad/orcad-host-unavailable'
 import { rememberSshHostPlatform } from '../../ssh/ssh-host-platform-memo'
 import { prepareRemoteRootIdentity } from '../host-state/remote-root-identity'
+import { discoverManagedDataRoot } from './orcad-remote-data-roots'
 
 /** Defaults to SSH: most lifecycle code still reads SSH-only target fields. */
 export type OrcadRemoteContext<Target extends OrcadHostTarget = SshTarget> = {
@@ -52,6 +53,8 @@ export type OrcadRemoteContext<Target extends OrcadHostTarget = SshTarget> = {
   remoteHome: string
   target: Target
   userDataDir: string
+  /** The owned canonical default, even while an older installed slot still uses its old name. */
+  defaultDataRoot?: string
 }
 
 export async function resolveOrcadRemoteContext<Target extends OrcadHostTarget = SshTarget>(
@@ -98,6 +101,7 @@ export async function resolveOrcadRemoteContext<Target extends OrcadHostTarget =
     ...remote,
     remoteHome
   })
+  const discovered = await discoverManagedDataRoot({ ...remote, remoteHome }, userDataDir)
   return {
     activationRecord,
     serverTarget,
@@ -105,7 +109,8 @@ export async function resolveOrcadRemoteContext<Target extends OrcadHostTarget =
     host,
     remoteHome,
     target,
-    userDataDir
+    userDataDir: discovered.userDataDir,
+    defaultDataRoot: userDataDir
   }
 }
 
@@ -135,7 +140,7 @@ export async function resolveOrcadMachineHome(
     return {
       loginHome,
       orcadHome: loginHome,
-      userDataDir: joinRemotePath(host, loginHome, '.orca')
+      userDataDir: joinRemotePath(host, loginHome, '.zkyq')
     }
   }
   const probe = parseOrcadMachineHomeProbe(
@@ -176,7 +181,7 @@ export async function resolveOrcadMachineHome(
     return {
       loginHome,
       orcadHome: loginHome,
-      userDataDir: joinRemotePath(host, loginHome, '.orca')
+      userDataDir: joinRemotePath(host, loginHome, '.zkyq')
     }
   }
   const orcadHome = orcadMachineHomeDir(host, loginHome, decision.machineKey)

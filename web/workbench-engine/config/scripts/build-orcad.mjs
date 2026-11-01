@@ -31,6 +31,7 @@ import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import process from 'node:process'
 import { ORCAD_MANAGED_LAUNCH_ENVIRONMENT_VERSION } from '../../src/shared/orcad-managed-launch-env.ts'
+import { MANAGED_DATA_ROOT_VERSION } from '../../src/shared/managed-data-roots.ts'
 import { smokeProfileStateWorkers } from './profile-state-worker-smoke.mjs'
 import { smokeForeignSqliteReaderWorker } from './foreign-sqlite-reader-worker-smoke.mjs'
 import { smokeSessionScannerService } from './session-scanner-service-smoke.mjs'
@@ -282,6 +283,7 @@ const cliPackage = {
   private: true,
   version: cliVersion,
   zkyqManagedLaunchEnvironment: ORCAD_MANAGED_LAUNCH_ENVIRONMENT_VERSION,
+  zkyqDefaultDataRoots: MANAGED_DATA_ROOT_VERSION,
   commit: resolveWorkbenchBuildCommit()
 }
 writeFileSync(join(OUT_DIR, ORCAD_CLI_PACKAGE_FILENAME), `${JSON.stringify(cliPackage)}\n`)

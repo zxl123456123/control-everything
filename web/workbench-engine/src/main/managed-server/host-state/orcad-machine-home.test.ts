@@ -172,7 +172,7 @@ function machine(name: string, hostname = name, options: MachineOptions = {}) {
 }
 
 function loginHomeResult() {
-  return { loginHome: home, orcadHome: home, userDataDir: join(home, '.orca') }
+  return { loginHome: home, orcadHome: home, userDataDir: join(home, '.zkyq') }
 }
 
 function claimPath(): string {
@@ -207,7 +207,7 @@ describe.runIf(POSIX)('resolveOrcadMachineHome on a home several machines share'
     )
     expect(statSync(bHome.orcadHome).mode & 0o777).toBe(0o700)
     // A sibling of `~/.orca`, so the runtime socket inside it stays within the path limit.
-    expect(bHome.userDataDir).toMatch(new RegExp(`^${home}/\\.orca-[a-f0-9]{8}$`))
+    expect(bHome.userDataDir).toMatch(new RegExp(`^${home}/\\.zkyq-[a-f0-9]{8}$`))
 
     // Stable on every later connect, in either order.
     expect(await resolveOrcadMachineHome(b, true)).toEqual(bHome)

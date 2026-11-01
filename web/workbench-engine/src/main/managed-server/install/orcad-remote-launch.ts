@@ -129,11 +129,12 @@ export function orcadLaunchCommand(
     ...orcadManagedLaunchEnv(spec)
   ]
   const launchEnv = [
-    'unset ORCA_VERSION ORCA_ORCAD_MANAGED_ACTIVATION_ROOT ORCA_E2E_ORCAD_IDLE_TIMEOUT_MS ZKYQ_VERSION ZKYQ_SERVER_MANAGED_ACTIVATION_ROOT ZKYQ_E2E_SERVER_IDLE_TIMEOUT_MS;',
+    'unset ORCA_VERSION ORCA_USER_DATA ORCA_ORCAD_MANAGED_ACTIVATION_ROOT ORCA_E2E_ORCAD_IDLE_TIMEOUT_MS ZKYQ_VERSION ZKYQ_SERVER_MANAGED_ACTIVATION_ROOT ZKYQ_E2E_SERVER_IDLE_TIMEOUT_MS;',
     `export ZKYQ_USER_DATA=${quotePosixShell(spec.userDataDir)};`,
     'if [ "$orcad_launch_env_version" = 1 ]; then',
     ...entries.map(([name, value]) => `export ${name}=${quotePosixShell(value)};`),
     'else',
+    'export ORCA_USER_DATA="$ZKYQ_USER_DATA";',
     ...entries.map(
       ([name, value]) => `export ${orcadLaunchEnvironmentKey(name, 0)}=${quotePosixShell(value)};`
     ),

@@ -107,7 +107,10 @@ type OrcadMachineOwnershipUnresolvedCause = 'stopped-install' | 'unattributed-ow
  */
 export function orcadMachineHomeProbeCommand(host: RemoteHostPlatform): string {
   const claim = `"$identity_root"/${quotePosixShell(ORCAD_MACHINE_CLAIM_FILENAME)}`
-  const access = `"$HOME"/${quotePosixShell(ACCESS_ROOT)}`
+  const access = [
+    `"$HOME"/${quotePosixShell('.zkyq/.profile-state-access')}`,
+    `"$HOME"/${quotePosixShell(ACCESS_ROOT)}`
+  ]
   const homes = `"$identity_root"/${quotePosixShell(ORCAD_MACHINE_HOMES_DIRNAME)}`
   const activation = `"$identity_root"/${quotePosixShell(ORCAD_ACTIVATION_FILENAME)}`
   return [
@@ -125,7 +128,7 @@ export function orcadMachineHomeProbeCommand(host: RemoteHostPlatform): string {
     `then echo ${CLAIM_ABSENT};`,
     `elif [ -f ${claim} ]; then echo ${CLAIM_PRESENT}; head -c ${RECORD_MAX_BYTES} ${claim}; echo;`,
     `else echo UNREADABLE; fi; echo ${SECTION};`,
-    `for f in ${access}/participants/*/*.owner ${access}/maintenance/*.owner; do`,
+    `for f in ${access.flatMap((root) => [`${root}/participants/*/*.owner`, `${root}/maintenance/*.owner`]).join(' ')}; do`,
     `[ -f "$f" ] && { head -c ${RECORD_MAX_BYTES} "$f"; echo; }; done; echo ${SECTION};`,
     `ls -1 ${homes} 2>/dev/null; echo ${SECTION};`,
     `[ -e ${activation} ] && echo ${INSTALLED}; echo ${SECTION};`,
@@ -396,5 +399,5 @@ export function orcadMachineDataRoot(
   loginHome: string,
   machineKey: string
 ): string {
-  return joinRemotePath(host, loginHome, `.orca-${machineKey.slice(0, 8)}`)
+  return joinRemotePath(host, loginHome, `.zkyq-${machineKey.slice(0, 8)}`)
 }

@@ -327295,7 +327295,12 @@
     "src/cli/runtime/default-data-root-paths.test.ts",
     "src/main/persistence/default-data-root-record-reader.ts",
     "src/main/startup/configure-default-data-roots.test.ts",
-    "src/renderer/src/components/sidebar/create-project-defaults.test.ts"
+    "src/renderer/src/components/sidebar/create-project-defaults.test.ts",
+    "src/main/managed-server/install/orcad-remote-data-roots.test.ts",
+    "src/main/managed-server/install/orcad-remote-data-roots.ts",
+    "src/main/orcad/orcad-managed-data-roots.test.ts",
+    "src/main/orcad/orcad-managed-data-roots.ts",
+    "src/shared/managed-data-roots.ts"
   ],
   "adapted_files": [
     {
@@ -327499,8 +327504,8 @@
     {
       "path": "config/scripts/build-orcad.mjs",
       "upstream_sha256": "07295bbbd5159a3cbcb42e204d8b2599d0ba3cb4301350b815c24bde9615c05c",
-      "current_sha256": "9c834e1deec30d486d0c7e9e2ef9e624eda56f50c1c2269c61637dd93416c787",
-      "reason": "N1: export the exact pinned browser core through existing distribution ownership for desktop news collection.；技能安装更新使用本平台提交和子目录，保留上游来源记录与历史安装识别，同步实际构建和说明；服务启动版本、激活根及测试空闲超时统一ZKYQ，旧输入单向迁移；沿内容hash内包元数据选择冻结旧安装格式，保留回退、锁版本和空闲退出功能，新安装不双发旧字段"
+      "current_sha256": "e9ce829bcb6fa27087a72f5a01e9aad79bbbdf0cbd6a565a4f0a272ffb06025c",
+      "reason": "N1: export the exact pinned browser core through existing distribution ownership for desktop news collection.；技能安装更新使用本平台提交和子目录，保留上游来源记录与历史安装识别，同步实际构建和说明；服务启动版本、激活根及测试空闲超时统一ZKYQ，旧输入单向迁移；沿内容hash内包元数据选择冻结旧安装格式，保留回退、锁版本和空闲退出功能，新安装不双发旧字段；受管默认根由已安装组件沿生产mover/交接迁移，发现与快照/启动/旧slot回退使用同一数据；只有受管context传递规范根，自定义目录不迁移；Windows仅读取已登记的原根桥接，旧变量仅发给冻结消费者，普通新启动清除旧身份"
     },
     {
       "path": "config/scripts/build-source-commit.mjs",
@@ -331165,20 +331170,20 @@
     {
       "path": "src/main/managed-server/install/orcad-remote-launch-windows.ts",
       "upstream_sha256": "28a790728288ceb6c6274dcb331252618452b985bd7ddb381dece4eec5289ec0",
-      "current_sha256": "b3d8365c75b7f05074a54fc6c1fe812b808d48003a44fd043aa001d638c55f17",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；服务启动版本、激活根及测试空闲超时统一ZKYQ，旧输入单向迁移；沿内容hash内包元数据选择冻结旧安装格式，保留回退、锁版本和空闲退出功能，新安装不双发旧字段"
+      "current_sha256": "75b114c69c5fa0902ba9952a7377da27379b9947adb064236d7f70bdb4d0251c",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；服务启动版本、激活根及测试空闲超时统一ZKYQ，旧输入单向迁移；沿内容hash内包元数据选择冻结旧安装格式，保留回退、锁版本和空闲退出功能，新安装不双发旧字段；受管默认根由已安装组件沿生产mover/交接迁移，发现与快照/启动/旧slot回退使用同一数据；只有受管context传递规范根，自定义目录不迁移；Windows仅读取已登记的原根桥接，旧变量仅发给冻结消费者，普通新启动清除旧身份"
     },
     {
       "path": "src/main/managed-server/install/orcad-remote-launch.ts",
       "upstream_sha256": "3833488a00655fda351351461d403483cd63fa52926c23b7f4eff6e2e6b3fee5",
-      "current_sha256": "bad4c3f40316603b69dae21cfcb84cd9105374d5af38603d991a7a2cd38b8cf6",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；服务启动版本、激活根及测试空闲超时统一ZKYQ，旧输入单向迁移；沿内容hash内包元数据选择冻结旧安装格式，保留回退、锁版本和空闲退出功能，新安装不双发旧字段；收敛修复POSIX执行字节预算：复用短引用并只发送一次相同成员后缀/slot/session路径，保留数据枚举、环境探测和安全拒绝，预算上限不变"
+      "current_sha256": "b09a7cbe871d223d1a5236717f3e17d078e133222cf7f7333e2047773e95656b",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；服务启动版本、激活根及测试空闲超时统一ZKYQ，旧输入单向迁移；沿内容hash内包元数据选择冻结旧安装格式，保留回退、锁版本和空闲退出功能，新安装不双发旧字段；收敛修复POSIX执行字节预算：复用短引用并只发送一次相同成员后缀/slot/session路径，保留数据枚举、环境探测和安全拒绝，预算上限不变；受管默认根由已安装组件沿生产mover/交接迁移，发现与快照/启动/旧slot回退使用同一数据；只有受管context传递规范根，自定义目录不迁移；Windows仅读取已登记的原根桥接，旧变量仅发给冻结消费者，普通新启动清除旧身份"
     },
     {
       "path": "src/main/managed-server/install/orcad-remote-runtime-control.test.ts",
       "upstream_sha256": "727e75ed997ffb9bad0c3d00792ae9931cedab43207bc5b8dc4674d8b8d9a987",
-      "current_sha256": "6e5d3158efa2fc6d80757e7509b4896cc2f4a8bc6d5db0ceb64d8fcd05188674",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；服务启动版本、激活根及测试空闲超时统一ZKYQ，旧输入单向迁移；沿内容hash内包元数据选择冻结旧安装格式，保留回退、锁版本和空闲退出功能，新安装不双发旧字段；SSH/WSL 规范安装根改为 .zkyq-remote；保留机器归属、冻结旧读者与最新写入，原子移动同一数据目录并在已登记读者确认退出后移除旧入口，修正内部链接；同步安装/快照/GC/历史/旧 relay census 与直接回归，不改变业务数据位置或许可证"
+      "current_sha256": "46e51a134393d5cc17ae85e099f8488ffbfa5d8b01dcc3a9e79875c5d9f4d820",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；服务启动版本、激活根及测试空闲超时统一ZKYQ，旧输入单向迁移；沿内容hash内包元数据选择冻结旧安装格式，保留回退、锁版本和空闲退出功能，新安装不双发旧字段；SSH/WSL 规范安装根改为 .zkyq-remote；保留机器归属、冻结旧读者与最新写入，原子移动同一数据目录并在已登记读者确认退出后移除旧入口，修正内部链接；同步安装/快照/GC/历史/旧 relay census 与直接回归，不改变业务数据位置或许可证；受管默认根由已安装组件沿生产mover/交接迁移，发现与快照/启动/旧slot回退使用同一数据；只有受管context传递规范根，自定义目录不迁移；Windows仅读取已登记的原根桥接，旧变量仅发给冻结消费者，普通新启动清除旧身份"
     },
     {
       "path": "src/main/orcad/electron-serve-browser-environment.ts",
@@ -333067,14 +333072,14 @@
     {
       "path": "src/main/managed-server/host-state/orcad-windows-host-state-ops.test.ts",
       "upstream_sha256": "a2526c53a2e9b7e462e0421a24d9d9b10ddf296214c1bc6296d6b844277270a8",
-      "current_sha256": "5331218063019d8352fa81e26c2c411a95c97401bcfb6feb7d521e5bfb4103e5",
-      "reason": "迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据；迁移配置索引及备份并保护回退快照；迁移运行时发现文件并保护新旧进程所有权；SSH/WSL 规范安装根改为 .zkyq-remote；保留机器归属、冻结旧读者与最新写入，原子移动同一数据目录并在已登记读者确认退出后移除旧入口，修正内部链接；同步安装/快照/GC/历史/旧 relay census 与直接回归，不改变业务数据位置或许可证；已迁移默认业务根不能被旧管理路径当成空快照，capture/restore/clear在任何重建或删除前拒绝该旧路径；保留真实新根数据和原命令字节预算"
+      "current_sha256": "90cf61f055c12d9c9ff695693f748f23f1e92e017dc88776c2644b52bf53abec",
+      "reason": "迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据；迁移配置索引及备份并保护回退快照；迁移运行时发现文件并保护新旧进程所有权；SSH/WSL 规范安装根改为 .zkyq-remote；保留机器归属、冻结旧读者与最新写入，原子移动同一数据目录并在已登记读者确认退出后移除旧入口，修正内部链接；同步安装/快照/GC/历史/旧 relay census 与直接回归，不改变业务数据位置或许可证；已迁移默认业务根不能被旧管理路径当成空快照，capture/restore/clear在任何重建或删除前拒绝该旧路径；保留真实新根数据和原命令字节预算；受管默认根由已安装组件沿生产mover/交接迁移，发现与快照/启动/旧slot回退使用同一数据；只有受管context传递规范根，自定义目录不迁移；Windows仅读取已登记的原根桥接，旧变量仅发给冻结消费者，普通新启动清除旧身份"
     },
     {
       "path": "src/main/managed-server/host-state/orcad-windows-host-state-ops.ts",
       "upstream_sha256": "f79efbaee53e62d4fe1215e0fa75834b396dd1907c0442e9fbb104c2cbf32437",
-      "current_sha256": "d969f6de3789df807edf141c72277ae0dd40ebd11b68774a7727ef515d39206f",
-      "reason": "迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据；迁移配置索引及备份并保护回退快照；迁移运行时发现文件并保护新旧进程所有权；已迁移默认业务根不能被旧管理路径当成空快照，capture/restore/clear在任何重建或删除前拒绝该旧路径；保留真实新根数据和原命令字节预算"
+      "current_sha256": "02ccd8206526d7afe74edec09d598c1217541cfd453f0fcf664c3c13d25d8cd1",
+      "reason": "迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据；迁移配置索引及备份并保护回退快照；迁移运行时发现文件并保护新旧进程所有权；已迁移默认业务根不能被旧管理路径当成空快照，capture/restore/clear在任何重建或删除前拒绝该旧路径；保留真实新根数据和原命令字节预算；受管默认根由已安装组件沿生产mover/交接迁移，发现与快照/启动/旧slot回退使用同一数据；只有受管context传递规范根，自定义目录不迁移；Windows仅读取已登记的原根桥接，旧变量仅发给冻结消费者，普通新启动清除旧身份"
     },
     {
       "path": "src/main/orca-profiles/profile-index-store.test.ts",
@@ -338293,14 +338298,14 @@
     {
       "path": "src/main/managed-server/host-state/orcad-windows-host-script.ts",
       "upstream_sha256": "f53c07eb63e36fb4d0e9e1744151c517dc5ac985eebe70ad17f4d3d14132ba2b",
-      "current_sha256": "1f0387cade958634b054e4d17ad798eb1e3ee5c9494d92eaf6ff33f5cb50719d",
-      "reason": "服务启动版本、激活根及测试空闲超时统一ZKYQ，旧输入单向迁移；沿内容hash内包元数据选择冻结旧安装格式，保留回退、锁版本和空闲退出功能，新安装不双发旧字段"
+      "current_sha256": "472501fdb1665b4b66b1fb13cfa134c6ecd90ed4d8c810649976007a3a2b5cac",
+      "reason": "服务启动版本、激活根及测试空闲超时统一ZKYQ，旧输入单向迁移；沿内容hash内包元数据选择冻结旧安装格式，保留回退、锁版本和空闲退出功能，新安装不双发旧字段；受管默认根由已安装组件沿生产mover/交接迁移，发现与快照/启动/旧slot回退使用同一数据；只有受管context传递规范根，自定义目录不迁移；Windows仅读取已登记的原根桥接，旧变量仅发给冻结消费者，普通新启动清除旧身份"
     },
     {
       "path": "src/main/managed-server/install/orcad-remote-runtime-control.ts",
       "upstream_sha256": "d8886f9fb550b63aeb20394bea2b57223f3786d1edcb33ced13f1be87c3195a9",
-      "current_sha256": "37a2f0c97fba759a43236cba32d6af25a74f535cae685fbb9ac7d3bcc90bb4c0",
-      "reason": "服务启动版本、激活根及测试空闲超时统一ZKYQ，旧输入单向迁移；沿内容hash内包元数据选择冻结旧安装格式，保留回退、锁版本和空闲退出功能，新安装不双发旧字段；SSH/WSL 规范安装根改为 .zkyq-remote；保留机器归属、冻结旧读者与最新写入，原子移动同一数据目录并在已登记读者确认退出后移除旧入口，修正内部链接；同步安装/快照/GC/历史/旧 relay census 与直接回归，不改变业务数据位置或许可证"
+      "current_sha256": "75dc39f4eb3dd8b1e7d752ebcb635b51344e128943b19d575817a0ed3426aaef",
+      "reason": "服务启动版本、激活根及测试空闲超时统一ZKYQ，旧输入单向迁移；沿内容hash内包元数据选择冻结旧安装格式，保留回退、锁版本和空闲退出功能，新安装不双发旧字段；SSH/WSL 规范安装根改为 .zkyq-remote；保留机器归属、冻结旧读者与最新写入，原子移动同一数据目录并在已登记读者确认退出后移除旧入口，修正内部链接；同步安装/快照/GC/历史/旧 relay census 与直接回归，不改变业务数据位置或许可证；受管默认根由已安装组件沿生产mover/交接迁移，发现与快照/启动/旧slot回退使用同一数据；只有受管context传递规范根，自定义目录不迁移；Windows仅读取已登记的原根桥接，旧变量仅发给冻结消费者，普通新启动清除旧身份"
     },
     {
       "path": "src/main/orcad/orcad-health.ts",
@@ -338341,20 +338346,20 @@
     {
       "path": "src/main/managed-server/host-state/orcad-machine-home.test.ts",
       "upstream_sha256": "1aaa6c5102712a3ed509e65e2d17a57a07aa069e35e0c7a22a3bfe4631cc45e5",
-      "current_sha256": "04beaf8587f2e2e9f099140f20c2ed748b6af8838f77936bd978ed77c75d55a4",
-      "reason": "SSH/WSL 规范安装根改为 .zkyq-remote；保留机器归属、冻结旧读者与最新写入，原子移动同一数据目录并在已登记读者确认退出后移除旧入口，修正内部链接；同步安装/快照/GC/历史/旧 relay census 与直接回归，不改变业务数据位置或许可证"
+      "current_sha256": "ac6d8a1fa92c5d6352dd44ce77edb97eacec7a90e2e15a523fb797f8769c52d5",
+      "reason": "SSH/WSL 规范安装根改为 .zkyq-remote；保留机器归属、冻结旧读者与最新写入，原子移动同一数据目录并在已登记读者确认退出后移除旧入口，修正内部链接；同步安装/快照/GC/历史/旧 relay census 与直接回归，不改变业务数据位置或许可证；受管默认根由已安装组件沿生产mover/交接迁移，发现与快照/启动/旧slot回退使用同一数据；只有受管context传递规范根，自定义目录不迁移；Windows仅读取已登记的原根桥接，旧变量仅发给冻结消费者，普通新启动清除旧身份"
     },
     {
       "path": "src/main/managed-server/host-state/orcad-machine-home.ts",
       "upstream_sha256": "57fb119ad30539dc986e4155a1433028b865c3f11e92292efc519931fd0950f9",
-      "current_sha256": "916797a37b3c2d297af03e497db705e127b47bb357b9bc5d68d4f95c0519373c",
-      "reason": "SSH/WSL 规范安装根改为 .zkyq-remote；保留机器归属、冻结旧读者与最新写入，原子移动同一数据目录并在已登记读者确认退出后移除旧入口，修正内部链接；同步安装/快照/GC/历史/旧 relay census 与直接回归，不改变业务数据位置或许可证；共享 HOME 安装根退役按机器保存本地设备/文件标识，等待已知外机 profile owner 与旧 hostname 归属；归档并重新核验 v1 确认，保护最新用户写入，不改变业务数据根或许可证"
+      "current_sha256": "14c6c86749994454a7affe949a0ec64e1cb1d3064793a611e7b5b0bc5ea236b1",
+      "reason": "SSH/WSL 规范安装根改为 .zkyq-remote；保留机器归属、冻结旧读者与最新写入，原子移动同一数据目录并在已登记读者确认退出后移除旧入口，修正内部链接；同步安装/快照/GC/历史/旧 relay census 与直接回归，不改变业务数据位置或许可证；共享 HOME 安装根退役按机器保存本地设备/文件标识，等待已知外机 profile owner 与旧 hostname 归属；归档并重新核验 v1 确认，保护最新用户写入，不改变业务数据根或许可证；受管默认根由已安装组件沿生产mover/交接迁移，发现与快照/启动/旧slot回退使用同一数据；只有受管context传递规范根，自定义目录不迁移；Windows仅读取已登记的原根桥接，旧变量仅发给冻结消费者，普通新启动清除旧身份"
     },
     {
       "path": "src/main/managed-server/install/orcad-remote-context.ts",
       "upstream_sha256": "9a2b0defa003761169021c55b3f0fd4a13584b13e0048c35425ff72b585286e1",
-      "current_sha256": "bae0983f69343410d07ad116f367fdaaa31eebca670aed4bed747282a92843a5",
-      "reason": "SSH/WSL 规范安装根改为 .zkyq-remote；保留机器归属、冻结旧读者与最新写入，原子移动同一数据目录并在已登记读者确认退出后移除旧入口，修正内部链接；同步安装/快照/GC/历史/旧 relay census 与直接回归，不改变业务数据位置或许可证；共享 HOME 安装根退役按机器保存本地设备/文件标识，等待已知外机 profile owner 与旧 hostname 归属；归档并重新核验 v1 确认，保护最新用户写入，不改变业务数据根或许可证"
+      "current_sha256": "b2403bc035bdd6b06efceedb37d449b4575bac5e91629ab42020b8cf9c337ab0",
+      "reason": "SSH/WSL 规范安装根改为 .zkyq-remote；保留机器归属、冻结旧读者与最新写入，原子移动同一数据目录并在已登记读者确认退出后移除旧入口，修正内部链接；同步安装/快照/GC/历史/旧 relay census 与直接回归，不改变业务数据位置或许可证；共享 HOME 安装根退役按机器保存本地设备/文件标识，等待已知外机 profile owner 与旧 hostname 归属；归档并重新核验 v1 确认，保护最新用户写入，不改变业务数据根或许可证；受管默认根由已安装组件沿生产mover/交接迁移，发现与快照/启动/旧slot回退使用同一数据；只有受管context传递规范根，自定义目录不迁移；Windows仅读取已登记的原根桥接，旧变量仅发给冻结消费者，普通新启动清除旧身份"
     },
     {
       "path": "src/main/managed-server/install/orcad-remote-node-runtime-noexec.test.ts",
@@ -338413,8 +338418,8 @@
     {
       "path": "src/main/managed-server/posix-host-op-byte-budget.test.ts",
       "upstream_sha256": "d17c2e513506fa7d5c5f9e5fce27ed62be82cf06628acf611c9d9afa9141a264",
-      "current_sha256": "9faf7727ec80f83bb14960c1d141d579739dee2a8416ad274179f093e206aada",
-      "reason": "SSH/WSL 规范安装根改为 .zkyq-remote；保留机器归属、冻结旧读者与最新写入，原子移动同一数据目录并在已登记读者确认退出后移除旧入口，修正内部链接；同步安装/快照/GC/历史/旧 relay census 与直接回归，不改变业务数据位置或许可证"
+      "current_sha256": "47ce1336ef0b9c59fd37e69ee2805cc118bfd752febe769b3e36fbbbe3e85bda",
+      "reason": "SSH/WSL 规范安装根改为 .zkyq-remote；保留机器归属、冻结旧读者与最新写入，原子移动同一数据目录并在已登记读者确认退出后移除旧入口，修正内部链接；同步安装/快照/GC/历史/旧 relay census 与直接回归，不改变业务数据位置或许可证；受管默认根由已安装组件沿生产mover/交接迁移，发现与快照/启动/旧slot回退使用同一数据；只有受管context传递规范根，自定义目录不迁移；Windows仅读取已登记的原根桥接，旧变量仅发给冻结消费者，普通新启动清除旧身份"
     },
     {
       "path": "src/main/orcad/orcad-cross-runtime-daemon-adoption.integration.test.ts",
@@ -338613,6 +338618,36 @@
       "upstream_sha256": "2655e7e2b9a26c2f1c4afb6574f6b8b8e27ac7ef8f15cab4c49aba9cbab97933",
       "current_sha256": "8658729a98089a65d36c0f52cedce8b8450abe25b4652b963e0704af1a02fce2",
       "reason": "新建项目与工作区默认目录使用zkyq；识别旧版种子值以避免把项目嵌入worktree，自定义路径和远程目录显示保持原值"
+    },
+    {
+      "path": "src/main/managed-server/install/orcad-remote-rollback.ts",
+      "upstream_sha256": "68d025860c47c384fcade5808cef5b20855c4005cdcb68b79bee40bb9bfa5225",
+      "current_sha256": "7609039a400f617f19b90805d9d0604db9c9d05970b12ac9ef25fe008e6a7a48",
+      "reason": "受管默认根由已安装组件沿生产mover/交接迁移，发现与快照/启动/旧slot回退使用同一数据；只有受管context传递规范根，自定义目录不迁移；Windows仅读取已登记的原根桥接，旧变量仅发给冻结消费者，普通新启动清除旧身份"
+    },
+    {
+      "path": "src/main/managed-server/lifecycle/orcad-managed-runtime-context.ts",
+      "upstream_sha256": "9f5aea5b65fcda520e12c239fc6a9073fa821a7496acffbcbc2d2f5f92462175",
+      "current_sha256": "bd9eea4bde1a0a0c124664deaa5adc51d116ebcf18e9e6a164627e34884ab0d3",
+      "reason": "受管默认根由已安装组件沿生产mover/交接迁移，发现与快照/启动/旧slot回退使用同一数据；只有受管context传递规范根，自定义目录不迁移；Windows仅读取已登记的原根桥接，旧变量仅发给冻结消费者，普通新启动清除旧身份"
+    },
+    {
+      "path": "src/main/orcad/main.ts",
+      "upstream_sha256": "a752c45b585aff640d75760921bd448944fc65f7501f7d05ade6201f427faf00",
+      "current_sha256": "45d7668acdd3de1b31e89f08e2c2fa00b1c0ee1fdb18201666310b42d2bc26b0",
+      "reason": "受管默认根由已安装组件沿生产mover/交接迁移，发现与快照/启动/旧slot回退使用同一数据；只有受管context传递规范根，自定义目录不迁移；Windows仅读取已登记的原根桥接，旧变量仅发给冻结消费者，普通新启动清除旧身份；一次性回执沿已有ASCII/base64合同传递，保全Windows中文和空格路径"
+    },
+    {
+      "path": "src/main/ssh/orcad-installed-activation.ts",
+      "upstream_sha256": "7de2a3fa10f6dbd3ff48e3338343b821c029060fbf7a47197743363cbaa1ff47",
+      "current_sha256": "163de9aad5b7f38a0778c16b116523d1a0e58b56dffa48edb90e43c63f68eb4e",
+      "reason": "受管默认根由已安装组件沿生产mover/交接迁移，发现与快照/启动/旧slot回退使用同一数据；只有受管context传递规范根，自定义目录不迁移；Windows仅读取已登记的原根桥接，旧变量仅发给冻结消费者，普通新启动清除旧身份"
+    },
+    {
+      "path": "src/main/ssh/orcad-remote-deploy.ts",
+      "upstream_sha256": "bffdbca7026108de5a0eec35e2a86e733cce3e34d6666dff034fd6e60adabe47",
+      "current_sha256": "fb14f9794901dfe232c13d725ee53aa307dc6af2e00b8b000ea529d9bd3cae77",
+      "reason": "受管默认根由已安装组件沿生产mover/交接迁移，发现与快照/启动/旧slot回退使用同一数据；只有受管context传递规范根，自定义目录不迁移；Windows仅读取已登记的原根桥接，旧变量仅发给冻结消费者，普通新启动清除旧身份"
     }
   ],
   "reviewed_findings": [

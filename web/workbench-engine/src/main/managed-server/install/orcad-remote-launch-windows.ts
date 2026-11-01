@@ -109,6 +109,9 @@ export function windowsOrcadLaunchCommand(
     `${orcadLaunchEnvironmentKey(ORCAD_VERSION_ENV, environmentVersion)}=${spec.fullVersion}`,
     WINDOWS_BREAKAWAY_ENV_FLAG,
     `ZKYQ_USER_DATA=${spec.userDataDir}`,
+    ...(environmentVersion === 0
+      ? [WINDOWS_BREAKAWAY_ENV_FLAG, `ORCA_USER_DATA=${spec.userDataDir}`]
+      : []),
     ...orcadManagedLaunchEnv(spec).flatMap(([name, value]) => [
       WINDOWS_BREAKAWAY_ENV_FLAG,
       `${orcadLaunchEnvironmentKey(name, environmentVersion)}=${value}`

@@ -83,13 +83,14 @@ it('carries the selected data directory through both remote launch dialects', ()
     remoteInstallDir: win32.join(tmpdir(), 'runtime-slot'),
     userDataDir: win32.join(tmpdir(), 'existing Orca profile')
   }
-  for (const command of [
-    orcadLaunchCommand(host, spec),
-    windowsOrcadLaunchCommand(windows, windowsSpec, win32.join(tmpdir(), 'runtime/node.exe'))
-  ]) {
-    expect(command).toContain('ZKYQ_USER_DATA=')
-    expect(command).not.toContain('ORCA_USER_DATA=')
-  }
+  expect(orcadLaunchCommand(host, spec)).toContain('ZKYQ_USER_DATA=')
+  const runtime = win32.join(tmpdir(), 'runtime/node.exe')
+  const current = windowsOrcadLaunchCommand(windows, windowsSpec, runtime)
+  expect(current).toContain('ZKYQ_USER_DATA=')
+  expect(current).not.toContain('ORCA_USER_DATA=')
+  const previous = windowsOrcadLaunchCommand(windows, windowsSpec, runtime, undefined, 0)
+  expect(previous).toContain('ORCA_USER_DATA=')
+  expect(previous).toContain('ZKYQ_USER_DATA=')
 })
 
 function launch(signal?: AbortSignal) {

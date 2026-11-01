@@ -43,10 +43,28 @@ const text = JSON.stringify
 /** Evaluated inside the host script, after `fs`, `path`, `answer` and `ops` exist. */
 export const ORCAD_WINDOWS_HOST_STATE_OPS = `
 const MEMBERS = ${text(ORCAD_SNAPSHOT_MEMBERS)}
+function snapshotRootStats(root) {
+  const stats = lstatOrNull(root)
+  if (!stats?.isSymbolicLink()) return stats
+  const name = path.basename(root)
+  if (!/^[.](?:orca|zkyq)(?:-[a-f0-9]{8})?$/.test(name)) throw new Error('Unowned state root link')
+  const currentName = name.replace('.orca', '.zkyq')
+  const previousName = currentName.replace('.zkyq', '.orca')
+  const current = path.join(path.dirname(root), currentName)
+  const other = path.join(path.dirname(root), name === currentName ? previousName : currentName)
+  const recordPath = path.join(path.dirname(root), '.zkyq-data-migrations', currentName, 'identity.json')
+  const recordStats = lstatOrNull(recordPath)
+  if (!recordStats?.isFile() || recordStats.size > 65536 || !lstatOrNull(other)?.isDirectory()) throw new Error('Unowned state root link')
+  const record = JSON.parse(fs.readFileSync(recordPath, 'utf8'))
+  if (record.schemaVersion !== 1 || record.currentName !== currentName || record.previousName !== previousName ||
+      !['bridged','previous-build'].includes(record.phase) ||
+      fs.realpathSync(root).toLowerCase() !== fs.realpathSync(other).toLowerCase()) throw new Error('Unowned state root link')
+  return fs.statSync(root)
+}
 function snapshotMembers(...roots) {
   const result = new Set(MEMBERS)
   for (const root of roots) {
-    const stats = lstatOrNull(root)
+    const stats = snapshotRootStats(root)
     if (!stats) continue
     if (!stats.isDirectory()) throw new Error('state root is not a directory')
     for (const name of fs.readdirSync(root)) {
@@ -144,6 +162,7 @@ function withStateMutationLock(run) {
           lstatOrNull(path.join(path.dirname(root), name.replace('.orca', '.zkyq')))) {
         throw new Error('The data directory moved; reconnect before retrying.')
       }
+      snapshotRootStats(root)
       token = await run(...opArgs)
     } catch {
       token = 'FAILED'
@@ -277,7 +296,7 @@ Object.assign(ops, {
 
   'snapshot-compare'(root, snapshotDir) {
     try {
-      const rootStats = lstatOrNull(root)
+      const rootStats = snapshotRootStats(root)
       const state = path.join(snapshotDir, STATE_DIR)
       const stateStats = lstatOrNull(state)
       if (!rootStats || !rootStats.isDirectory() || !stateStats || !stateStats.isDirectory()) return answer('UNKNOWN')

@@ -18,6 +18,12 @@ import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { runProcess, spawnProcess } from '@orca/process-host'
 import { ORCAD_WINDOWS_HOST_SCRIPT, type OrcadWindowsHostOp } from './orcad-windows-host-script'
+import { readOrcadWindowsEncodedAnswer } from '../install/orcad-remote-windows-node'
+import {
+  MANAGED_DATA_ROOT_PATH_MARKER,
+  MANAGED_DATA_ROOT_HELPER_MARKER,
+  MANAGED_DATA_ROOT_TARGET_MARKER
+} from '../../../shared/managed-data-roots'
 
 let dir = ''
 let root = ''
@@ -48,6 +54,54 @@ async function op(name: OrcadWindowsHostOp, ...args: string[]): Promise<string> 
 }
 
 describe('Windows snapshot ops', () => {
+  it('discovers the existing data and a complete capable slot without creating the new root', async () => {
+    const base = join(dir, '.zkyq-remote')
+    const slot = join(base, 'orcad-0.2.0+bb02')
+    mkdirSync(join(slot, 'out'), { recursive: true })
+    writeFileSync(join(slot, 'out/package.json'), JSON.stringify({ zkyqDefaultDataRoots: 1 }))
+    writeFileSync(join(slot, '.install-complete'), 'fixture')
+    const current = join(dir, '.zkyq')
+    const output = await op('data-root-probe', base, current, slot)
+    expect(
+      JSON.parse(readOrcadWindowsEncodedAnswer(output, MANAGED_DATA_ROOT_PATH_MARKER)!)
+    ).toEqual({ userDataDir: root, state: 'previous' })
+    expect(readOrcadWindowsEncodedAnswer(output, MANAGED_DATA_ROOT_HELPER_MARKER)).toBe(slot)
+    expect(readOrcadWindowsEncodedAnswer(output, MANAGED_DATA_ROOT_TARGET_MARKER)).toBe('1')
+    expect(existsSync(current)).toBe(false)
+  })
+
+  it.each(['.orca', '.orca-1234abcd'])(
+    'uses an owned migration bridge for %s without allowing arbitrary root links',
+    async (name) => {
+      const previous = join(dir, name)
+      mkdirSync(previous, { recursive: true })
+      const currentName = name.replace('.orca', '.zkyq')
+      const current = join(dir, currentName)
+      const file = join(previous, 'zkyq-data.json')
+      writeFileSync(file, 'latest')
+      symlinkSync(previous, current, 'junction')
+      expect(await op('snapshot-capture', current, snapshot)).toBe('FAILED')
+      const coordinator = join(dir, '.zkyq-data-migrations', currentName)
+      mkdirSync(coordinator, { recursive: true })
+      writeFileSync(
+        join(coordinator, 'identity.json'),
+        JSON.stringify({
+          schemaVersion: 1,
+          currentName,
+          previousName: name,
+          phase: 'bridged'
+        })
+      )
+      expect(await op('snapshot-capture', current, snapshot)).toBe('CAPTURED')
+      writeFileSync(file, 'changed')
+      expect(await op('snapshot-restore', current, snapshot)).toBe('RESTORED')
+      expect(readFileSync(file, 'utf8')).toBe('latest')
+      expect(await op('snapshot-compare', current, snapshot)).toBe('UNCHANGED')
+      expect(await op('snapshot-clear', current)).toBe('RESTORED')
+      expect(existsSync(file)).toBe(false)
+    }
+  )
+
   it.each(['.orca', '.orca-1234abcd'])(
     'refuses a retired %s root without creating empty or split state',
     async (name) => {
