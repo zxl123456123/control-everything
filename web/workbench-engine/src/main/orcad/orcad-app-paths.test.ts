@@ -41,16 +41,16 @@ describe('resolveUserDataPath', () => {
     expect(resolveUserDataPath()).toBe(selected)
   })
 
-  it('prefers ZKYQ_USER_DATA, then XDG_DATA_HOME, then ~/.orca', () => {
+  it('prefers ZKYQ_USER_DATA, then XDG_DATA_HOME, then ~/.zkyq', () => {
     vi.stubEnv('ZKYQ_USER_DATA', join(sep, 'srv', 'orca-state'))
     vi.stubEnv('XDG_DATA_HOME', join(sep, 'xdg'))
     expect(resolveUserDataPath()).toBe(join(sep, 'srv', 'orca-state'))
 
     vi.stubEnv('ZKYQ_USER_DATA', '')
-    expect(resolveUserDataPath()).toBe(join(sep, 'xdg', 'Orca'))
+    expect(resolveUserDataPath()).toBe(join(sep, 'xdg', 'zkyq'))
 
     vi.stubEnv('XDG_DATA_HOME', '')
-    expect(resolveUserDataPath()).toBe(join(homedir(), '.orca'))
+    expect(resolveUserDataPath()).toBe(join(homedir(), '.zkyq'))
   })
 })
 

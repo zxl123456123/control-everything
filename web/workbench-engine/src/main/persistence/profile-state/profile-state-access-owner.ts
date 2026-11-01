@@ -248,7 +248,7 @@ export function reclaimExitedOwner(path: string): void {
 export function publishAccessOwner(paths: ProfileStateAccessPaths, exclusive: boolean) {
   const token = randomUUID()
   const candidate = join(paths.candidates, token)
-  const target = exclusive ? paths.maintenance : join(paths.participants, token)
+  let target = exclusive ? paths.maintenance : join(paths.participants, token)
   const entry = `${token}.owner`
   mkdirSync(candidate, { mode: 0o700 })
   let published = false
@@ -301,6 +301,12 @@ export function publishAccessOwner(paths: ProfileStateAccessPaths, exclusive: bo
   let released = false
   return {
     token,
+    relocate(nextTarget: string): void {
+      if (released || readOwner(join(nextTarget, entry))?.token !== token) {
+        throw new ProfileStateAccessError('Moved profile state owner does not match its lease')
+      }
+      target = nextTarget
+    },
     assertActive(): void {
       if (released || readOwner(join(target, entry))?.token !== token) {
         throw new ProfileStateAccessError('Profile state access has already been released')

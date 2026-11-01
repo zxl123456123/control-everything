@@ -5,6 +5,11 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { setAppEnvironment } from '../../shared/app-environment'
 import { getDaemonRuntimeDir } from '../daemon/daemon-launch-paths'
 import { getDaemonSocketPath } from '../daemon/daemon-spawner'
+import {
+  defaultDataRootRecordPaths,
+  newDefaultDataRootRecord,
+  writeDefaultDataRootRecord
+} from './default-data-root-record'
 
 const roots: string[] = []
 
@@ -66,6 +71,20 @@ describe('default data root transition and persistent terminal identity', () => 
     mkdirSync(current)
     useRoot(current)
     expect(getDaemonRuntimeDir()).toBe(join(current, 'daemon'))
+  })
+
+  it('retains the previous namespace while a recorded rollback entrance is in use', () => {
+    const root = fixture()
+    const previous = join(root, '.orca')
+    const current = join(root, '.zkyq')
+    mkdirSync(current)
+    mkdirSync(defaultDataRootRecordPaths(current).coordinator, { recursive: true })
+    const record = newDefaultDataRootRecord(previous, current)
+    record.phase = 'previous-build'
+    writeDefaultDataRootRecord(current, record)
+    symlinkSync(current, previous, process.platform === 'win32' ? 'junction' : 'dir')
+    useRoot(current)
+    expect(getDaemonRuntimeDir()).toBe(join(previous, 'daemon'))
   })
 
   it('preserves a new-name alias whose target belongs to another directory', () => {

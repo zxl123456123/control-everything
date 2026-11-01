@@ -1,4 +1,6 @@
 import { z } from 'zod'
+import { homedir } from 'node:os'
+import { join } from 'node:path'
 import type { CommandHandler } from '../dispatch'
 import { printResult } from '../format'
 import { rejectRemoteSelectionFlags } from '../remote-selection-flag-rejection'
@@ -26,6 +28,9 @@ import {
   canLaunchProfileStateRecovery,
   launchProfileStateRecovery
 } from '../runtime/profile-state-recovery-launch'
+import { hasExplicitPlatformCredentialRoot } from '../../main/credentials/credential-root'
+import { readDefaultDataRootRecord } from '../../main/persistence/default-data-root-record'
+import { retireIdleDefaultDataRootDaemons } from '../../main/persistence/default-data-root-readers'
 
 function localSuccess<TResult>(result: TResult): RuntimeRpcSuccess<TResult> {
   return {
@@ -95,6 +100,22 @@ async function requireStoppedRuntime(client: RuntimeClient): Promise<void> {
   }
 }
 
+async function preparePreviousBuildRoots(
+  userDataPath: string,
+  selector: ProfileStateRecoverySelector
+): Promise<void> {
+  if (selector.kind !== 'latest-json') return
+  const roots = [
+    userDataPath,
+    ...(!hasExplicitPlatformCredentialRoot() ? [join(homedir(), '.zkyq')] : [])
+  ]
+  for (const current of new Set(roots)) {
+    const record = readDefaultDataRootRecord(current)
+    if (!record) continue
+    await retireIdleDefaultDataRootDaemons(current)
+  }
+}
+
 function parseRevision(flags: Map<string, string | boolean>): number {
   const rawRevision = flags.get('revision')
   if (typeof rawRevision !== 'string' || rawRevision.length === 0) {
@@ -132,6 +153,7 @@ export const PROFILE_STATE_HANDLERS: Record<string, CommandHandler> = {
     let result: ProfileStateRollbackResult
     if (canLaunchProfileStateRecovery()) {
       await requireStoppedRuntime(client)
+      await preparePreviousBuildRoots(userDataPath, selector)
       result = await launchProfileStateRecovery({
         userDataPath,
         selector,
@@ -141,6 +163,7 @@ export const PROFILE_STATE_HANDLERS: Record<string, CommandHandler> = {
       const maintenance = acquireProfileStateMaintenance(userDataPath)
       try {
         await requireStoppedRuntime(client)
+        await preparePreviousBuildRoots(userDataPath, selector)
         result = translateRecoveryError(() =>
           rollbackProfileState(userDataPath, selector, maintenance, profileId)
         )

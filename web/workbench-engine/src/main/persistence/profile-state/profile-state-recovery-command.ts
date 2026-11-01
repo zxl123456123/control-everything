@@ -1,4 +1,9 @@
 import { existsSync, readFileSync, rmSync } from 'node:fs'
+import { homedir } from 'node:os'
+import { dirname, join } from 'node:path'
+import { hasExplicitPlatformCredentialRoot } from '../../credentials/credential-root'
+import { handOffDefaultDataRootToPreviousBuild } from '../default-data-root-migration'
+import { readDefaultDataRootRecord } from '../default-data-root-record'
 import {
   ProfileStateRecoveryCommandError,
   type ProfileStateRecoverySelector,
@@ -121,7 +126,23 @@ export function rollbackProfileState(
     exportPath,
     profileId: result.profileId,
     ...(revision === null ? { reason: 'profile-state-adopt-current-json' } : {}),
-    beforeRestore: () => invalidateActiveProfileMarker(userDataPath, result.profileId)
+    beforeRestore: () => {
+      if (selector.kind === 'latest-json') {
+        const roots = [
+          userDataPath,
+          ...(!hasExplicitPlatformCredentialRoot() ? [join(homedir(), '.zkyq')] : [])
+        ]
+        for (const current of new Set(roots)) {
+          const record = readDefaultDataRootRecord(current)
+          if (record)
+            handOffDefaultDataRootToPreviousBuild(
+              join(dirname(current), record.previousName),
+              current
+            )
+        }
+      }
+      invalidateActiveProfileMarker(userDataPath, result.profileId)
+    }
   })
   syncHttp1CompatibilityMarkerAfterRollback(userDataPath, result.dataFile, result.profileId)
   const restoredPath =

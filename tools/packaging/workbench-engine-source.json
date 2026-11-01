@@ -327282,7 +327282,16 @@
     "src/main/managed-server/host-state/remote-root-identity.ts",
     "src/main/managed-server/host-state/orcad-remote-context-root-scope.test.ts",
     "src/main/persistence/default-data-root-identity.ts",
-    "src/main/persistence/default-data-root-identity.test.ts"
+    "src/main/persistence/default-data-root-identity.test.ts",
+    "src/main/orcad/orcad-default-data-roots.test.ts",
+    "src/main/persistence/default-data-root-migration-failure.test.ts",
+    "src/main/persistence/default-data-root-migration.test.ts",
+    "src/main/persistence/default-data-root-migration.ts",
+    "src/main/persistence/default-data-root-readers.test.ts",
+    "src/main/persistence/default-data-root-readers.ts",
+    "src/main/persistence/default-data-root-record.test.ts",
+    "src/main/persistence/default-data-root-record.ts",
+    "src/main/persistence/profile-state/profile-state-data-root-move.test.ts"
   ],
   "adapted_files": [
     {
@@ -327672,8 +327681,8 @@
     {
       "path": "src/main/orcad/orcad-entry.ts",
       "upstream_sha256": "972748b4e46cd0cc3f08c61b82f6a7dc7a1553d2706f93323537865aac496193",
-      "current_sha256": "391d4c2cc6e1f736fbbf6ab43f496f937053852ad175713c633b3f2a0b297e68",
-      "reason": "Support explicit profile-contained credential storage while preserving existing keys and host tool configuration.；运行宿主数据根配置统一ZKYQ_USER_DATA，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据"
+      "current_sha256": "0bfe81a5c4a71ff5ae31baecc3d85877710ac383b887feb00ea8da01918fd7d8",
+      "reason": "Support explicit profile-contained credential storage while preserving existing keys and host tool configuration.；运行宿主数据根配置统一ZKYQ_USER_DATA，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据；将默认业务与凭据入口接入zkyq迁移：维护锁随根移动、活跃读者保持单一视图、仅认证空闲daemon自退役；保持既有密钥身份与显式自定义路径，记录旧版离线回退入口"
     },
     {
       "path": "src/main/orcad/orcad-lifecycle.ts",
@@ -330060,8 +330069,8 @@
     {
       "path": "src/main/orcad/orcad-instance-lock.ts",
       "upstream_sha256": "1f376abb35d8fd882d5aa44d036be171d54fdc24e85ef7fe31e7549a718c9c61",
-      "current_sha256": "4cbbecf65250cb9677d385696b9c50de8df70e171583f8721c907721a9bc9ba1",
-      "reason": "统一凭据保护、启动校验、实例占用和账号归属的产品文字，保留原因恢复方法及用户输入，不改安全或存储行为；运行宿主数据根配置统一ZKYQ_USER_DATA，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；迁移已有 VM 资源环境契约并保护离线快照；服务启动版本、激活根及测试空闲超时统一ZKYQ，旧输入单向迁移；沿内容hash内包元数据选择冻结旧安装格式，保留回退、锁版本和空闲退出功能，新安装不双发旧字段"
+      "current_sha256": "f5dc33cc254f9d5889f36b8f5b35253a2187071d3d904f32ceca7a4e9945e691",
+      "reason": "统一凭据保护、启动校验、实例占用和账号归属的产品文字，保留原因恢复方法及用户输入，不改安全或存储行为；运行宿主数据根配置统一ZKYQ_USER_DATA，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；迁移已有 VM 资源环境契约并保护离线快照；服务启动版本、激活根及测试空闲超时统一ZKYQ，旧输入单向迁移；沿内容hash内包元数据选择冻结旧安装格式，保留回退、锁版本和空闲退出功能，新安装不双发旧字段；将默认业务与凭据入口接入zkyq迁移：维护锁随根移动、活跃读者保持单一视图、仅认证空闲daemon自退役；保持既有密钥身份与显式自定义路径，记录旧版离线回退入口"
     },
     {
       "path": "src/shared/host-account-launch-env.ts",
@@ -331182,14 +331191,14 @@
     {
       "path": "src/main/orcad/orcad-app-paths.test.ts",
       "upstream_sha256": "fc852cb06ef1d0712ba126a1e8480a6a0eca8735c864680b9ec4708890dd9e0e",
-      "current_sha256": "ff81c832f27b1ad6ca30775aff8923bf94ccb08b81b3dbcd20693578545d024e",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+      "current_sha256": "ef8bb5a8c2b88900fc7cd5fc3a463b598974c8e8e068e6a0cb98ae99db0348a1",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；将默认业务与凭据入口接入zkyq迁移：维护锁随根移动、活跃读者保持单一视图、仅认证空闲daemon自退役；保持既有密钥身份与显式自定义路径，记录旧版离线回退入口"
     },
     {
       "path": "src/main/orcad/orcad-app-paths.ts",
       "upstream_sha256": "07a85a96f3c9ae956ab5d5392ab5c7fc64649d77fff1009b60fdc61c63adbdb2",
-      "current_sha256": "68f788ef8e86f124c2368bba588d689a8b8c884084f8999f5dcac190fb03a660",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+      "current_sha256": "6cc8118245d59c4564cb684732c92bfc139cf069b06f5e42f5ccec1f35acdd6f",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；将默认业务与凭据入口接入zkyq迁移：维护锁随根移动、活跃读者保持单一视图、仅认证空闲daemon自退役；保持既有密钥身份与显式自定义路径，记录旧版离线回退入口"
     },
     {
       "path": "src/main/orcad/orcad-cli-launcher.integration.test.ts",
@@ -331314,14 +331323,14 @@
     {
       "path": "config/scripts/vitest-real-agent-home-write-guard.test.ts",
       "upstream_sha256": "d9ccf2ac9532630792323afbddbc34e6bca05299a47530d3e97883e3a6b41b99",
-      "current_sha256": "6c128c07158e7a6bc4d6b09a44cecf87498356bc8036e24eb827efc350a71ac9",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+      "current_sha256": "a3fe71f808de6ddfe81f95bb99bb41e4ffda715d055ea4457cfb06812e7fe77c",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；将默认业务与凭据入口接入zkyq迁移：维护锁随根移动、活跃读者保持单一视图、仅认证空闲daemon自退役；保持既有密钥身份与显式自定义路径，记录旧版离线回退入口"
     },
     {
       "path": "config/scripts/vitest-real-agent-home-write-guard.ts",
       "upstream_sha256": "d3057f6e322945712b78798627d123bdcf383aa65e35ae0aadaa3fd32e1aa877",
-      "current_sha256": "9228309097cd65be95bc0f2a978d77cf6fd325ea1b9aad3817722927cc5488b2",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+      "current_sha256": "1978948201f8c63018d4c14fc34953220071d4f1ddfd231f2fccc8f42421c9d0",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；将默认业务与凭据入口接入zkyq迁移：维护锁随根移动、活跃读者保持单一视图、仅认证空闲daemon自退役；保持既有密钥身份与显式自定义路径，记录旧版离线回退入口"
     },
     {
       "path": "config/scripts/windows-daemon-workspace-close-repro.mjs",
@@ -332880,14 +332889,14 @@
     {
       "path": "src/cli/handlers/profile-state.test.ts",
       "upstream_sha256": "8cdb996571078bfbd43a5e5d2ab31dd3df2fc442753cb47e0cb16866c0981d6e",
-      "current_sha256": "22c92f695956c4e28412882e9a8785a8db712b665424521a619e5b8cddd882c2",
-      "reason": "配置状态恢复提示及复制命令统一 zkyq，保留数据与回滚语义；迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据；迁移远程主机选择环境变量并防止错误路由"
+      "current_sha256": "f5f38fe067312d11fd84453b25818a91ba7c1096f250107510756507ac17a55e",
+      "reason": "配置状态恢复提示及复制命令统一 zkyq，保留数据与回滚语义；迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据；迁移远程主机选择环境变量并防止错误路由；将默认业务与凭据入口接入zkyq迁移：维护锁随根移动、活跃读者保持单一视图、仅认证空闲daemon自退役；保持既有密钥身份与显式自定义路径，记录旧版离线回退入口"
     },
     {
       "path": "src/cli/handlers/profile-state.ts",
       "upstream_sha256": "fb42dc4e60312b6d8af85af302be4c59def1a92fc388579796598034c30617de",
-      "current_sha256": "e4338f23eec5ab256eb02677131c5297e286653eb9ade20707322b16a56e23b2",
-      "reason": "配置状态恢复提示及复制命令统一 zkyq，保留数据与回滚语义；迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据"
+      "current_sha256": "8eed094c6e6e8d7d4be0053d20803f8d6db939cc0a29eba2748fdd645fe0e2f3",
+      "reason": "配置状态恢复提示及复制命令统一 zkyq，保留数据与回滚语义；迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据；将默认业务与凭据入口接入zkyq迁移：维护锁随根移动、活跃读者保持单一视图、仅认证空闲daemon自退役；保持既有密钥身份与显式自定义路径，记录旧版离线回退入口"
     },
     {
       "path": "src/cli/specs/profile-state.test.ts",
@@ -332910,8 +332919,8 @@
     {
       "path": "src/main/persistence/profile-state/profile-state-access-owner.ts",
       "upstream_sha256": "0309d18d61389fdbcf601154b6d2d4f56660673f4f6a1368b553c1d6ad6c3bb9",
-      "current_sha256": "4615f7c066fdfdf07ba6431ed164d39016ba465bcc682e51b253d5329780b063",
-      "reason": "配置状态恢复提示及复制命令统一 zkyq，保留数据与回滚语义"
+      "current_sha256": "a837c437c0e08ebf810f0dd5f8bf355f6a332f9297aa7818966f6d13c72062cd",
+      "reason": "配置状态恢复提示及复制命令统一 zkyq，保留数据与回滚语义；将默认业务与凭据入口接入zkyq迁移：维护锁随根移动、活跃读者保持单一视图、仅认证空闲daemon自退役；保持既有密钥身份与显式自定义路径，记录旧版离线回退入口"
     },
     {
       "path": "src/main/persistence/profile-state/profile-state-bootstrap-publication-race.test.ts",
@@ -333006,8 +333015,8 @@
     {
       "path": "src/main/persistence/profile-state/profile-state-access.ts",
       "upstream_sha256": "f45642235b4c06ec6829323a8ec6e6585735ae220272ad5919c23e3d50ede96e",
-      "current_sha256": "f24e40be78d57c624caedaa25152fda035203e5204ae54e9e45606ed8397d24a",
-      "reason": "配置名称迁移须校验所属维护锁与数据根；迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据"
+      "current_sha256": "e33598c31c8b62fd39923b32f7c0f363207116a8b027ba8829ac235237e4d53e",
+      "reason": "配置名称迁移须校验所属维护锁与数据根；迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据；将默认业务与凭据入口接入zkyq迁移：维护锁随根移动、活跃读者保持单一视图、仅认证空闲daemon自退役；保持既有密钥身份与显式自定义路径，记录旧版离线回退入口"
     },
     {
       "path": "src/cli/handlers/agent-hooks.ts",
@@ -333018,8 +333027,8 @@
     {
       "path": "src/cli/handlers/profile-state-recovery-admission.test.ts",
       "upstream_sha256": "4cacf01920be971eb3db5f3d925822cd39cd1ab5967b9a342a5d9a66f204d728",
-      "current_sha256": "008c84822b1ca6f8160564dcfe4efafad3efea0695aafae0f1ae0168d38c859d",
-      "reason": "迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据"
+      "current_sha256": "3d6f82465ca4fb7d53410711354a405699cc7833cc5e7304a75406a5cbfa560c",
+      "reason": "迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据；将默认业务与凭据入口接入zkyq迁移：维护锁随根移动、活跃读者保持单一视图、仅认证空闲daemon自退役；保持既有密钥身份与显式自定义路径，记录旧版离线回退入口"
     },
     {
       "path": "src/main/managed-server/host-state/orcad-state-newest-mtime.ts",
@@ -333144,8 +333153,8 @@
     {
       "path": "src/main/persistence/profile-state/profile-state-recovery-command.ts",
       "upstream_sha256": "fb98a322e21059511d97caa6b2ba5c0d39267995ea43d694974cbbf5854c7f14",
-      "current_sha256": "252d0ea20ca1ac6adaf3d36bf5057703b639b958a4397f98226e91864699e36a",
-      "reason": "迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据；迁移配置索引及备份并保护回退快照"
+      "current_sha256": "8226eb02247d718def0216a43ebe308a2e480a3e9482322eab41e81f6a7deeb1",
+      "reason": "迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据；迁移配置索引及备份并保护回退快照；将默认业务与凭据入口接入zkyq迁移：维护锁随根移动、活跃读者保持单一视图、仅认证空闲daemon自退役；保持既有密钥身份与显式自定义路径，记录旧版离线回退入口"
     },
     {
       "path": "src/main/persistence/profile-state/profile-state-recovery-crash-boundaries.test.ts",

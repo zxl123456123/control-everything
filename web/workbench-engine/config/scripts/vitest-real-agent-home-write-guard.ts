@@ -17,6 +17,8 @@ const AGENT_HOME_ENTRIES = [
   '.codex',
   '.claude',
   '.orca',
+  '.zkyq',
+  '.zkyq-data-migrations',
   '.cursor',
   '.copilot',
   '.gemini',
@@ -67,7 +69,10 @@ function protectedRoots(): string[] {
     ...AGENT_HOME_ENTRIES.map((entry) => join(home, entry)),
     join(home, 'Library', 'Application Support', 'orca'),
     join(home, '.config', 'orca'),
-    join(home, 'AppData', 'Roaming', 'orca')
+    join(home, 'AppData', 'Roaming', 'orca'),
+    join(home, 'Library', 'Application Support', 'zkyq'),
+    join(home, '.config', 'zkyq'),
+    join(home, 'AppData', 'Roaming', 'zkyq')
   ])
   for (const name of INHERITED_STATE_ENV) {
     const value = process.env[name]

@@ -13,7 +13,7 @@
  * it says nothing about the daemon, which is what makes a non-destructive restart possible.
  */
 import { randomUUID } from 'node:crypto'
-import { linkSync, mkdirSync, statSync, unlinkSync, writeFileSync } from 'node:fs'
+import { linkSync, lstatSync, mkdirSync, statSync, unlinkSync, writeFileSync } from 'node:fs'
 import { userInfo } from 'node:os'
 import { join } from 'node:path'
 import process from 'node:process'
@@ -378,4 +378,26 @@ function makeLock(lockPath: string, record: OrcadLockRecord): OrcadInstanceLock 
       }
     }
   }
+}
+
+/** Rebind our unchanged instance record after its exclusively held root moved. */
+export function relocateOrcadInstanceLockAfterRootMove(
+  previous: OrcadInstanceLock,
+  dataRoot: string
+): OrcadInstanceLock {
+  const path = join(dataRoot, ORCAD_LOCK_FILE_NAME)
+  const current = readOrcadInstanceLockRecord(path)
+  if (
+    lstatSync(previous.path, { throwIfNoEntry: false }) ||
+    previous.record.pid !== process.pid ||
+    current?.pid !== previous.record.pid ||
+    current.nonce !== previous.record.nonce
+  ) {
+    throw new OrcadInstanceLockError(
+      'orcad_instance_lock_held',
+      'The moved data root does not hold this process’s instance lock.'
+    )
+  }
+  previous.release()
+  return makeLock(path, previous.record)
 }

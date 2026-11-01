@@ -20,6 +20,12 @@ afterEach(() => {
 })
 
 describe('vitest real-agent-home write guard', () => {
+  it.each(['.zkyq', '.zkyq-data-migrations'])('protects the renamed default state %s', (entry) => {
+    const target = missingRealFolder(entry)
+    expect(() => rmSync(target, { force: true })).toThrow(/real-agent-home guard/)
+    expect(existsSync(target)).toBe(false)
+  })
+
   it.each([undefined, '', '0', 'true', '1'])(
     'keeps only the explicitly opted-in Claude profile for %s',
     (value) => {

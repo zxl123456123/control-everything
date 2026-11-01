@@ -72,7 +72,15 @@ vi.mock('../runtime-client', () => {
 
 const temporaryDirectories: string[] = []
 
+beforeEach(() => {
+  const home = mkdtempSync(join(tmpdir(), 'recovery-home-'))
+  temporaryDirectories.push(home)
+  vi.stubEnv('HOME', home)
+  vi.stubEnv('USERPROFILE', home)
+})
+
 afterEach(() => {
+  vi.unstubAllEnvs()
   for (const directory of temporaryDirectories.splice(0)) {
     rmSync(directory, { recursive: true, force: true })
   }

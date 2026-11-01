@@ -72,6 +72,10 @@ const liveState = {
 }
 
 beforeEach(() => {
+  const home = mkdtempSync(join(tmpdir(), 'recovery-home-'))
+  roots.push(home)
+  vi.stubEnv('HOME', home)
+  vi.stubEnv('USERPROFILE', home)
   mocks.status.mockReset().mockResolvedValue({
     result: { app: { running: false }, runtime: { reachable: false } }
   })
@@ -79,6 +83,7 @@ beforeEach(() => {
 })
 
 afterEach(() => {
+  vi.unstubAllEnvs()
   vi.restoreAllMocks()
   for (const root of roots.splice(0)) {
     rmSync(root, { recursive: true, force: true })
