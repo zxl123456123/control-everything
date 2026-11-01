@@ -36,6 +36,10 @@ describe('profile state data filename migration', () => {
     const dataFile = join(profile, 'zkyq-data.json')
     fs.writeFileSync(dataFile, 'restored')
     fs.writeFileSync(`${dataFile}.bak.0`, 'backup')
+    const bootstrapFile = join(directory, 'zkyq-data.json')
+    fs.writeFileSync(bootstrapFile, 'bootstrap')
+    fs.writeFileSync(`${bootstrapFile}.bak.0`, 'bootstrap backup')
+    fs.writeFileSync(`${bootstrapFile}.sqlite-export.2.json`, 'bootstrap export')
     fs.writeFileSync(join(directory, 'zkyq-profile-index.json'), 'index')
     fs.writeFileSync(join(directory, 'zkyq-profile-index.json.bak'), 'index backup')
     const maintenance = acquireProfileStateMaintenance(directory)
@@ -50,6 +54,13 @@ describe('profile state data filename migration', () => {
       expect(fs.readFileSync(previous, 'utf8')).toBe('restored')
       expect(fs.readFileSync(`${previous}.bak.0`, 'utf8')).toBe('backup')
       expect(fs.existsSync(dataFile)).toBe(false)
+      const previousBootstrap = join(directory, 'orca-data.json')
+      expect(fs.readFileSync(previousBootstrap, 'utf8')).toBe('bootstrap')
+      expect(fs.readFileSync(`${previousBootstrap}.bak.0`, 'utf8')).toBe('bootstrap backup')
+      expect(fs.readFileSync(`${previousBootstrap}.sqlite-export.2.json`, 'utf8')).toBe(
+        'bootstrap export'
+      )
+      expect(fs.existsSync(bootstrapFile)).toBe(false)
       expect(fs.readFileSync(join(directory, 'orca-profile-index.json'), 'utf8')).toBe('index')
       expect(fs.readFileSync(join(directory, 'orca-profile-index.json.bak'), 'utf8')).toBe(
         'index backup'
@@ -61,35 +72,46 @@ describe('profile state data filename migration', () => {
     expect(fs.readFileSync(dataFile, 'utf8')).toBe('restored')
     expect(fs.readFileSync(`${dataFile}.bak.0`, 'utf8')).toBe('backup')
     expect(fs.existsSync(previous)).toBe(false)
+    expect(fs.readFileSync(bootstrapFile, 'utf8')).toBe('bootstrap')
+    expect(fs.readFileSync(`${bootstrapFile}.bak.0`, 'utf8')).toBe('bootstrap backup')
+    expect(fs.readFileSync(`${bootstrapFile}.sqlite-export.2.json`, 'utf8')).toBe(
+      'bootstrap export'
+    )
     expect(fs.readFileSync(join(directory, 'zkyq-profile-index.json'), 'utf8')).toBe('index')
     expect(fs.readFileSync(join(directory, 'zkyq-profile-index.json.bak'), 'utf8')).toBe(
       'index backup'
     )
   })
 
-  it('does not overwrite an existing previous-build file during handoff', () => {
-    const directory = root()
-    const profile = join(directory, 'profiles', 'p1')
-    fs.mkdirSync(profile, { recursive: true })
-    const dataFile = join(profile, 'zkyq-data.json')
-    const previous = join(profile, 'orca-data.json')
-    fs.writeFileSync(dataFile, 'restored')
-    fs.writeFileSync(previous, 'existing')
-    const maintenance = acquireProfileStateMaintenance(directory)
-    try {
-      expect(() =>
-        handOffProfileJsonToPreviousBuild(
-          directory,
-          { profileId: 'p1', dataFile, databasePath: join(profile, 'profile-state.db') },
-          maintenance
-        )
-      ).toThrow()
-      expect(fs.readFileSync(dataFile, 'utf8')).toBe('restored')
-      expect(fs.readFileSync(previous, 'utf8')).toBe('existing')
-    } finally {
-      maintenance.release()
+  it.each(['profile', 'root'])(
+    'does not overwrite an existing previous-build file in %s during handoff',
+    (scope) => {
+      const directory = root()
+      const profile = join(directory, 'profiles', 'p1')
+      fs.mkdirSync(profile, { recursive: true })
+      const dataFile = join(profile, 'zkyq-data.json')
+      const previous = join(scope === 'profile' ? profile : directory, 'orca-data.json')
+      fs.writeFileSync(dataFile, 'restored')
+      const bootstrapFile = join(directory, 'zkyq-data.json')
+      fs.writeFileSync(bootstrapFile, 'bootstrap')
+      fs.writeFileSync(previous, 'existing')
+      const maintenance = acquireProfileStateMaintenance(directory)
+      try {
+        expect(() =>
+          handOffProfileJsonToPreviousBuild(
+            directory,
+            { profileId: 'p1', dataFile, databasePath: join(profile, 'profile-state.db') },
+            maintenance
+          )
+        ).toThrow()
+        expect(fs.readFileSync(dataFile, 'utf8')).toBe('restored')
+        expect(fs.readFileSync(bootstrapFile, 'utf8')).toBe('bootstrap')
+        expect(fs.readFileSync(previous, 'utf8')).toBe('existing')
+      } finally {
+        maintenance.release()
+      }
     }
-  })
+  )
   it('migrates an index backup even when the primary is absent', () => {
     const directory = root()
     fs.writeFileSync(join(directory, 'orca-profile-index.json.bak'), 'backup')

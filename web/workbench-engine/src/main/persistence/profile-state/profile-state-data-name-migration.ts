@@ -66,16 +66,20 @@ export function handOffProfileJsonToPreviousBuild(
   const directory = dirname(profile.dataFile)
   const previous = join(directory, OLD_DATA_NAME)
   if (!lstatSync(profile.dataFile).isFile()) throw new Error('Profile JSON is not a regular file')
-  const moves = readdirSync(directory)
-    .filter(
-      (name) =>
-        name.startsWith(DATA_NAME) && isManagedOldName(OLD_DATA_NAME + name.slice(DATA_NAME.length))
-    )
-    .map((name) => ({
-      source: join(directory, name),
-      target: join(directory, OLD_DATA_NAME + name.slice(DATA_NAME.length)),
-      directory
-    }))
+  // The older host may seed root JSON before opening a profile, so hand off that family too.
+  const moves = [...new Set([directory, root])].flatMap((dataDirectory) =>
+    readdirSync(dataDirectory)
+      .filter(
+        (name) =>
+          name.startsWith(DATA_NAME) &&
+          isManagedOldName(OLD_DATA_NAME + name.slice(DATA_NAME.length))
+      )
+      .map((name) => ({
+        source: join(dataDirectory, name),
+        target: join(dataDirectory, OLD_DATA_NAME + name.slice(DATA_NAME.length)),
+        directory: dataDirectory
+      }))
+  )
   executeMoves(
     [...moves, ...indexMoves(root, PROFILE_INDEX_FILE_NAME, PREVIOUS_PROFILE_INDEX_FILE_NAME)],
     maintenance
