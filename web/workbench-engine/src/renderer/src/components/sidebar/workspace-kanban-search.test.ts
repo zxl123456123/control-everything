@@ -3,7 +3,10 @@ import { WORKTREE_PALETTE_QUERY_MAX_BYTES } from '@/lib/worktree-palette-query-b
 import type { Repo } from '../../../../shared/repo-types'
 import type { Worktree } from '../../../../shared/worktree/types'
 import { getWorktreeHostIdentity } from '../../../../shared/worktree/host-qualified-identity'
+import { getRepoHostIdentity } from '../../../../shared/repo-host-identity'
+import { repo as makeRepo } from './sidebar-list-golden-factories.test-fixture'
 import {
+  buildWorkspaceBoardPaletteDocuments,
   buildWorkspaceKanbanLaneViews,
   matchWorkspaceBoardWorktrees
 } from './workspace-kanban-search'
@@ -130,6 +133,59 @@ describe('matchWorkspaceBoardWorktrees', () => {
     expect(match([local, remote], 'local-only')).toEqual(identities(local))
     expect(match([local, remote], 'remote-only')).toEqual(identities(remote))
     expect(match([local], 'local-only')).toEqual(identities(local))
+  })
+
+  it('matches a runtime-owned project without borrowing a same-id repo from another host', () => {
+    const local = worktree({ id: 'shared', branch: 'local-branch' })
+    const runtime = worktree({
+      id: 'shared', hostId: 'runtime:host-a', runtimeOwnerEnvironmentId: 'host-a', branch: 'develop'
+    })
+    const otherRuntime = worktree({
+      id: 'shared', hostId: 'runtime:host-b', runtimeOwnerEnvironmentId: 'host-b', branch: 'other'
+    })
+    const repos = [
+      makeRepo('repo-a', 'Local project', { executionHostId: 'local' }),
+      makeRepo('repo-a', 'mianban-develop', { executionHostId: 'runtime:host-a' }),
+      makeRepo('repo-a', 'Other project', { executionHostId: 'runtime:host-b' })
+    ]
+    const args = {
+      worktrees: [local, runtime, otherRuntime],
+      repoMap: new Map([[repos[0]!.id, repos[0]!]]),
+      repoMapByHostIdentity: new Map(repos.map((repo) => [getRepoHostIdentity(repo), repo]))
+    }
+    const documents = buildWorkspaceBoardPaletteDocuments(args)
+    for (const query of ['mianban-develop', 'mianban-develop/develop']) {
+      expect(matchWorkspaceBoardWorktrees({ ...args, documents, query })).toEqual(identities(runtime))
+    }
+    expect(matchWorkspaceBoardWorktrees({ ...args, query: 'Local project' })).toEqual(identities(local))
+    expect(matchWorkspaceBoardWorktrees({ ...args, query: 'Other project' })).toEqual(identities(otherRuntime))
+  })
+
+  it('does not fall back to a foreign repo when the runtime owner repo is absent', () => {
+    const runtime = worktree({ id: 'runtime', hostId: 'runtime:missing', runtimeOwnerEnvironmentId: 'missing' })
+    expect(matchWorkspaceBoardWorktrees({
+      worktrees: [runtime], query: 'orca', repoMap, repoMapByHostIdentity: new Map()
+    })).toEqual(new Set())
+  })
+
+  it('returns the physical board identity for a runtime-owned SSH workspace', () => {
+    const local = worktree({ id: 'shared', branch: 'local-branch' })
+    const remote = worktree({
+      id: 'shared', hostId: 'ssh:box', runtimeOwnerEnvironmentId: 'host-a', branch: 'remote-branch'
+    })
+    const repo = makeRepo('repo-a', 'Remote project', { executionHostId: 'runtime:host-a' })
+    const args = {
+      worktrees: [local, remote], repoMap,
+      repoMapByHostIdentity: new Map([[getRepoHostIdentity(repo), repo]])
+    }
+    for (const query of ['Remote project', 'remote-branch']) {
+      const matched = matchWorkspaceBoardWorktrees({ ...args, query })
+      expect(matched).toEqual(identities(remote))
+      const lanes = buildWorkspaceKanbanLaneViews({
+        worktreesByStatus: new Map([['todo', args.worktrees]]), matchingWorktreeIds: matched
+      })
+      expect(lanes.get('todo')?.items).toEqual([remote])
+    }
   })
 })
 

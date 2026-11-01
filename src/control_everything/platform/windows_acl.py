@@ -6,9 +6,55 @@ import hashlib
 import os
 from pathlib import Path
 import platform
+import stat
 
 PREPARATION_ACCESS = 0x000E0000  # READ_CONTROL | WRITE_DAC | WRITE_OWNER
 SECURITY_PARTS = 0x17  # Owner, group, DACL and mandatory label, without audit privileges.
+_DESKTOP_LOCK_ROOT = None
+
+
+def _validated_lock_root(path):
+    path = Path(path)
+    if not path.is_absolute() or path == Path(path.anchor) or '..' in path.parts:
+        raise ValueError('sandbox_lock_root_invalid')
+    for item in (path, *path.parents):
+        info = item.lstat()
+        if stat.S_ISLNK(info.st_mode) or getattr(info, 'st_file_attributes', 0) & 0x400:
+            raise ValueError('sandbox_lock_root_invalid')
+    if not path.is_dir():
+        raise ValueError('sandbox_lock_root_invalid')
+    return path.resolve(strict=True)
+
+
+def configure_desktop_lock_root(path):
+    """Select the existing shared root from the trusted desktop command line."""
+    global _DESKTOP_LOCK_ROOT
+    root = _validated_lock_root(path)
+    info = root.stat()
+    _DESKTOP_LOCK_ROOT = (root, info.st_dev, info.st_ino)
+
+
+def _lock_root():
+    if _DESKTOP_LOCK_ROOT is None:
+        root = Path(os.environ.get('LOCALAPPDATA') or Path.home()) / 'control-everything' / 'sandbox-locks'
+        root.mkdir(parents=True, exist_ok=True)
+        return root
+    root, device, inode = _DESKTOP_LOCK_ROOT
+    validated = _validated_lock_root(root)
+    info = validated.stat()
+    if (validated, info.st_dev, info.st_ino) != (root, device, inode):
+        raise OSError('sandbox_lock_root_changed')
+    return root
+
+
+def _check_lock_file(path):
+    try:
+        info = path.lstat()
+    except FileNotFoundError:
+        return None
+    if not stat.S_ISREG(info.st_mode) or getattr(info, 'st_file_attributes', 0) & 0x400:
+        raise OSError('sandbox_lock_file_invalid')
+    return info
 
 
 class Trustee(c.Structure):
@@ -186,9 +232,15 @@ def file_identity(path):
 
 @contextmanager
 def _file_lock(key, exclusive):
-    root = Path(os.environ.get('LOCALAPPDATA') or Path.home()) / 'control-everything' / 'sandbox-locks'
-    root.mkdir(parents=True, exist_ok=True)
-    with open(root / (hashlib.sha256(key.encode('utf-8')).hexdigest() + '.lock'), 'a+b') as handle:
+    root = _lock_root()
+    path = root / (hashlib.sha256(key.encode('utf-8')).hexdigest() + '.lock')
+    if _DESKTOP_LOCK_ROOT is not None:
+        _check_lock_file(path)
+    with open(path, 'a+b') as handle:
+        if _DESKTOP_LOCK_ROOT is not None:
+            named, opened = _check_lock_file(path), os.fstat(handle.fileno())
+            if named is None or (named.st_dev, named.st_ino) != (opened.st_dev, opened.st_ino):
+                raise OSError('sandbox_lock_file_changed')
         if os.name == 'nt':
             import msvcrt
             api, overlap = ACLAPI(), Overlapped()

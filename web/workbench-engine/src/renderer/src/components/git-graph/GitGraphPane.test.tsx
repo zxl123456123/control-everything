@@ -13,7 +13,8 @@ const mocks = vi.hoisted(() => ({
         message: 'Merge feature',
         parentIds: ['b', 'c'],
         displayId: 'commit-a',
-        author: 'Fixture'
+        author: 'Fixture',
+        references: [{ id: 'refs/heads/feature', name: 'feature', category: 'branches' }]
       }
     ],
     allRefs: true,
@@ -46,7 +47,10 @@ describe('GitGraphPane', () => {
     )
     expect(screen.getByRole('status').textContent).toContain('200')
     expect(screen.getByText(/Detached commits/)).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: /Open commit commit-a/ }))
+    const commit = screen.getByRole('button', { name: /Open commit commit-a/ })
+    expect(commit.getAttribute('aria-description')).toContain('Fixture · commit-a')
+    expect(commit.getAttribute('aria-description')).toContain('feature')
+    fireEvent.click(commit)
     expect(mocks.open).toHaveBeenCalledWith(expect.objectContaining({ id: 'commit-a' }))
     fireEvent.click(screen.getByRole('button', { name: 'Refresh graph' }))
     expect(mocks.refresh).toHaveBeenCalledTimes(1)

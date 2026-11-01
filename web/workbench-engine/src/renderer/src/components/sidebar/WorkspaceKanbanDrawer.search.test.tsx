@@ -269,6 +269,35 @@ afterEach(() => {
 })
 
 describe('WorkspaceKanbanDrawer search', () => {
+  it('keeps runtime-owned project matches and selected SSH cards aligned in both views', () => {
+    const local = { ...alpha, hostId: 'local' as const }
+    const remote = {
+      ...beta, id: local.id, hostId: 'ssh:box' as const, runtimeOwnerEnvironmentId: 'host-a'
+    }
+    useAppStore.setState({
+      repos: [
+        { id: 'repo-a', path: '/local', displayName: 'Fixture project', connectionId: null },
+        { id: 'repo-a', path: '/remote', displayName: 'mianban-develop', executionHostId: 'runtime:host-a' }
+      ] as Repo[],
+      worktreesByRepo: { 'repo-a': [local, remote] }
+    })
+    selectionState.current = [local, remote]
+    renderDrawer(true, false)
+    const initialWorktrees = selectionScopeState.current
+    typeQuery('mianban-develop')
+    expect(headerState.current).toMatchObject({ viewMode: 'workspaces', matchCount: 1, totalCount: 2 })
+    expect(selectionScopeState.current).toEqual([remote])
+    act(() => headerState.current?.onViewModeChange('status'))
+    expect(gridState.current?.laneViews.get('todo')?.items).toEqual([remote])
+    expect(gridState.current?.selectedWorktrees).toEqual([remote])
+    expect(pointerDragState.current?.selectedWorktrees).toEqual([remote])
+    const event = { target: document.createElement('div') } as unknown as React.MouseEvent<HTMLElement>
+    expect(gridState.current?.onContextMenuSelect(event, remote)).toEqual([remote])
+    act(() => headerState.current?.onClearQuery())
+    expect(gridState.current?.laneViews.get('todo')?.items).toEqual(initialWorktrees)
+    expect(headerState.current).toMatchObject({ matchCount: 2, totalCount: 2 })
+  })
+
   it('defaults to the overview and preserves the query while switching views', () => {
     renderDrawer(true, false)
     expect(headerState.current?.viewMode).toBe('workspaces')

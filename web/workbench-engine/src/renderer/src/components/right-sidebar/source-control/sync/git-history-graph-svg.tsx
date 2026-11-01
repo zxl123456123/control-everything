@@ -40,10 +40,12 @@ function GraphPath({
 
 export function GitHistoryGraphSvg({
   viewModel,
-  laneCount = 1
+  laneCount = 1,
+  className
 }: {
   viewModel: GitHistoryItemViewModel
   laneCount?: number
+  className?: string
 }): React.JSX.Element {
   const historyItem = viewModel.historyItem
   const inputSwimlanes = viewModel.inputSwimlanes
@@ -153,9 +155,10 @@ export function GitHistoryGraphSvg({
 
   const cx = SWIMLANE_WIDTH * (circleIndex + 1)
   const cy = SWIMLANE_NODE_Y
-  const width =
+  const rowWidth =
     SWIMLANE_WIDTH *
-    (Math.max(inputSwimlanes.length, outputSwimlanes.length, laneCount, circleIndex + 1) + 1)
+    (Math.max(inputSwimlanes.length, outputSwimlanes.length, 1, circleIndex + 1) + 1)
+  const width = Math.max(rowWidth, SWIMLANE_WIDTH * (laneCount + 1))
   const isBoundaryNode =
     viewModel.kind === 'incoming-changes' || viewModel.kind === 'outgoing-changes'
   const isMergeNode = historyItem.parentIds.length > 1
@@ -163,10 +166,18 @@ export function GitHistoryGraphSvg({
   return (
     <svg
       aria-hidden="true"
-      className="shrink-0 overflow-visible"
+      className={`shrink-0 overflow-visible ${className ?? ''}`}
+      style={
+        {
+          '--git-graph-row-width': `${rowWidth}px`,
+          '--git-graph-width': `${width}px`
+        } as React.CSSProperties
+      }
       width={width}
       height={SWIMLANE_HEIGHT}
-      viewBox={`0 0 ${width} ${SWIMLANE_HEIGHT}`}
+      // A wider graph column adds space to the right without moving or scaling any lane.
+      viewBox={`0 0 ${rowWidth} ${SWIMLANE_HEIGHT}`}
+      preserveAspectRatio="xMinYMid meet"
     >
       {paths}
       {viewModel.kind === 'HEAD' && (

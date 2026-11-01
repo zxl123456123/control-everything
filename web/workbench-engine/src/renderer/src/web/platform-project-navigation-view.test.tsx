@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import type { PlatformProjectBootstrap } from './platform-project-bootstrap'
 import type { Worktree } from '../../../shared/worktree/types'
@@ -133,7 +133,7 @@ it('rejects a same-id repo on another host or a renamed project before opening S
   expect(fixture.state.openSettingsPage).not.toHaveBeenCalled()
   expect(fixture.activate).not.toHaveBeenCalled()
 })
-afterEach(cleanup)
+afterEach(() => { cleanup(); vi.unstubAllGlobals() })
 
 it('restores the requested workspace before reflecting a later settings action', () => {
   fixture.state.worktrees = { 'repo-a': [worktree] }
@@ -162,7 +162,7 @@ it.each(['empty', 'disconnected', 'activation'] as const)('keeps %s recovery rea
   const onReady = vi.fn()
   const view = render(<PlatformNavigation data={data} projects={projects} active pending onSelection={vi.fn()} onReady={onReady} />)
   expect(screen.getByRole('status').textContent).toContain(
-    mode === 'empty' ? '尚无可定位的工作区' : mode === 'disconnected' ? '连接已中断' : '工作区暂不可定位'
+    mode === 'empty' ? '尚无可定位的工作区' : mode === 'disconnected' ? '正在自动重连' : '工作区暂不可定位'
   )
   expect(screen.getByRole('button', { name: '重新加载工作区' })).toBeTruthy()
   expect(screen.getByRole('link', { name: '返回项目' }).getAttribute('href')).toBe('#home')
@@ -181,4 +181,51 @@ it('reports source navigation ready without activating or waking a workspace', (
   expect(onReady).toHaveBeenLastCalledWith(data)
   expect(fixture.activate).not.toHaveBeenCalled()
   expect(onSelection).not.toHaveBeenCalled()
+})
+
+it('distinguishes reconnecting from revoked access and restores readiness after contact returns', () => {
+  fixture.state.worktrees = { 'repo-a': [worktree] }
+  const onReady = vi.fn(), onConnectionState = vi.fn()
+  const props = { data, projects, active: true, selectionOnly: true, onSelection: vi.fn(), onReady, onConnectionState }
+  const view = render(<PlatformNavigation {...props} />)
+  expect(onReady).toHaveBeenLastCalledWith(data)
+  fixture.state.runtimeStatusByEnvironmentId.set('env-a', { snapshot: { verification: 'checking', transport: 'disconnected' } })
+  view.rerender(<PlatformNavigation {...props} />)
+  expect(onReady).toHaveBeenLastCalledWith(null)
+  expect(onConnectionState).toHaveBeenLastCalledWith(data, 'reconnecting')
+  expect(screen.getByRole('status').textContent).toContain('正在自动重连')
+  expect(screen.getByRole('status').textContent).not.toContain('重启')
+  fixture.state.runtimeStatusByEnvironmentId.set('env-a', { snapshot: { verification: 'blocked', transport: 'disconnected', blockedReason: 'access-revoked' } })
+  view.rerender(<PlatformNavigation {...props} />)
+  expect(onConnectionState).toHaveBeenLastCalledWith(data, 'blocked')
+  expect(screen.getByRole('status').textContent).toContain('授权已失效')
+  expect(screen.queryByRole('button', { name: '重试连接' })).toBeNull()
+  fixture.state.runtimeStatusByEnvironmentId.set('env-a', { snapshot: { verification: 'verified', transport: 'ready' } })
+  view.rerender(<PlatformNavigation {...props} />)
+  expect(onReady).toHaveBeenLastCalledWith(data)
+  expect(onConnectionState).toHaveBeenLastCalledWith(data, 'ready')
+  expect(screen.queryByRole('button')).toBeNull()
+  expect(fixture.activate).not.toHaveBeenCalled()
+})
+
+it('does not treat retired verified evidence as a ready workspace', () => {
+  fixture.state.worktrees = { 'repo-a': [worktree] }
+  fixture.state.runtimeStatusByEnvironmentId.set('env-a', { snapshot: { verification: 'verified', transport: 'ready', retired: true } })
+  const onReady = vi.fn()
+  render(<PlatformNavigation data={data} projects={projects} active selectionOnly onSelection={vi.fn()} onReady={onReady} />)
+  expect(onReady).toHaveBeenLastCalledWith(null)
+  expect(screen.getByRole('status').textContent).toContain('连接已关闭')
+  expect(fixture.activate).not.toHaveBeenCalled()
+})
+
+it('retries only the existing connection without reloading or launching a workspace', async () => {
+  const connect = vi.fn().mockResolvedValue({ ok: false })
+  vi.stubGlobal('api', { runtimeEnvironments: { connect } })
+  fixture.state.runtimeStatusByEnvironmentId.set('env-a', { snapshot: { verification: 'unavailable', transport: 'disconnected' } })
+  render(<PlatformNavigation data={data} projects={projects} active onSelection={vi.fn()} />)
+  fireEvent.click(screen.getByRole('button', { name: '重试连接' }))
+  await waitFor(() => expect(connect).toHaveBeenCalledExactlyOnceWith({ selector: 'env-a', timeoutMs: 15000 }))
+  await waitFor(() => expect(screen.getByRole('status').textContent).toContain('仍未连接'))
+  expect(fixture.activate).not.toHaveBeenCalled()
+  expect(fixture.state.fetchRepos).not.toHaveBeenCalled()
 })

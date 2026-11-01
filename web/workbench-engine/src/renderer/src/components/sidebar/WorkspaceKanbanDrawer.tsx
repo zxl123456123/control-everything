@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useAppStore } from '@/store'
-import { useAllWorktrees, useRepoMap } from '@/store/selectors'
+import { useAllWorktrees, useRepoMap, useRepos } from '@/store/selectors'
 import { useWorkspaceStatusDocumentDrop } from './use-workspace-status-drop'
 import { useWorkspaceKanbanAreaSelection } from './use-workspace-kanban-area-selection'
 import { useWorkspaceKanbanCardPointerDrag } from './use-workspace-kanban-card-pointer-drag'
@@ -22,6 +22,7 @@ import { useWorkspaceKanbanRenderLifecycle } from './use-workspace-kanban-render
 import { useWorkspaceKanbanDrawerLingering } from './use-workspace-kanban-drawer-lingering'
 import { buildWorktreeManualOrderCatalog } from './worktree-manual-order-catalog'
 import { selectFolderWorkspaces } from '@/store/workspace-record-selectors'
+import { getRepoHostIdentity } from '../../../../shared/repo-host-identity'
 
 type WorkspaceKanbanDrawerProps = {
   leftSidebarStyle?: React.CSSProperties
@@ -62,6 +63,11 @@ function WorkspaceKanbanDrawerContent({
   const allWorktrees = useAllWorktrees()
   const folderWorkspaces = useAppStore((s) => selectFolderWorkspaces(s))
   const repoMap = useRepoMap()
+  const repos = useRepos()
+  const repoMapByHostIdentity = useMemo(
+    () => new Map(repos.map((repo) => [getRepoHostIdentity(repo), repo])),
+    [repos]
+  )
   const activeWorktreeId = useAppStore((s) => s.activeWorktreeId)
   const activeWorkspaceExecutionHostId = useAppStore((s) => s.activeWorkspaceExecutionHostId)
   const updateWorktreeMeta = useAppStore((s) => s.updateWorktreeMeta)
@@ -101,6 +107,7 @@ function WorkspaceKanbanDrawerContent({
     allWorktrees,
     open,
     repoMap,
+    repoMapByHostIdentity,
     sortBy,
     workspaceStatuses
   })

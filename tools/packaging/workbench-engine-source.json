@@ -326920,6 +326920,7 @@
   "local_files": [
     "build-origin.json",
     "config/scripts/distribution-record.mjs",
+    "config/scripts/orcad-playwright-core-package.mjs",
     "config/scripts/vite-web-ligatures-entry.test.ts",
     "mobile/app/ce-computers.tsx",
     "mobile/app/ce-invite.tsx",
@@ -326996,6 +326997,8 @@
     "mobile/src/diagnostics/connection-diagnostics-view.test.tsx",
     "mobile/src/platform-account/PlatformAccountScreen.test.tsx",
     "mobile/src/platform-account/PlatformAccountScreen.tsx",
+    "mobile/src/platform-account/browser-portal.test.ts",
+    "mobile/src/platform-account/browser-portal.ts",
     "mobile/src/platform-account/config.test.ts",
     "mobile/src/platform-account/config.ts",
     "mobile/src/platform-account/controller.test.ts",
@@ -327007,6 +327010,9 @@
     "mobile/src/platform-account/secure-store.test.ts",
     "mobile/src/platform-account/secure-store.ts",
     "src/main/ai-vault/platform-ai-vault-roots.test.ts",
+    "src/main/credentials/credential-root.test.ts",
+    "src/main/credentials/credential-root.ts",
+    "src/main/ipc/filesystem-git-history-routing.test.ts",
     "src/main/orcad/platform-owner-client.test.ts",
     "src/main/orcad/platform-owner-client.ts",
     "src/main/orcad/platform-owner-methods.test.ts",
@@ -327021,26 +327027,55 @@
     "src/main/runtime/rpc/remote-websocket-admission.ts",
     "src/main/runtime/rpc/ws-transport-remote.test.ts",
     "src/main/windows/windows-process-table-loader.test.ts",
+    "src/renderer/src/components/FirstLaunchBanner.presentation.test.tsx",
+    "src/renderer/src/components/Landing.platform.test.tsx",
     "src/renderer/src/components/NewWorkspaceComposerModal.platform-project.test.tsx",
     "src/renderer/src/components/activity/activity-bound-project-scope.test.ts",
     "src/renderer/src/components/activity/activity-bound-project-scope.ts",
     "src/renderer/src/components/activity/activity-scope-filter-controls.platform.test.tsx",
     "src/renderer/src/components/activity/use-agent-pane-threads.bound-scope.test.tsx",
+    "src/renderer/src/components/automations/AutomationDeleteDialogs.focus.test.tsx",
+    "src/renderer/src/components/crash-report/CrashReportDialogSurface.presentation.test.tsx",
+    "src/renderer/src/components/feature-tips/CliSetupTipDialog.management.test.tsx",
+    "src/renderer/src/components/git-graph/GitGraphPane.test.tsx",
+    "src/renderer/src/components/git-graph/GitGraphPane.tsx",
+    "src/renderer/src/components/git-graph/useGitGraphHistory.test.tsx",
+    "src/renderer/src/components/git-graph/useGitGraphHistory.ts",
     "src/renderer/src/components/mobile/MobilePage.platform.test.tsx",
+    "src/renderer/src/components/settings/RepositoryHooksSection.save-close.test.tsx",
+    "src/renderer/src/components/settings/Settings.presentation.test.tsx",
+    "src/renderer/src/components/settings/SettingsSection.scope.test.tsx",
+    "src/renderer/src/components/settings/settings-draft-session.test.tsx",
     "src/renderer/src/components/settings/use-settings-store-model.host-scope.test.tsx",
+    "src/renderer/src/components/sidebar/WorkspaceOverview.test.tsx",
+    "src/renderer/src/components/sidebar/WorkspaceOverview.tsx",
+    "src/renderer/src/components/sidebar/use-workspace-kanban-search.test.tsx",
+    "src/renderer/src/components/skills/SkillRow.selection-hit.test.tsx",
+    "src/renderer/src/components/ui/management-surface.test.tsx",
+    "src/renderer/src/components/ui/management-surface.tsx",
     "src/renderer/src/i18n/platform-ui-copy.test.ts",
     "src/renderer/src/i18n/platform-ui-copy.ts",
+    "src/renderer/src/lib/app-font-family.test.ts",
+    "src/renderer/src/lib/left-sidebar-appearance.test.ts",
     "src/renderer/src/lib/platform-catalog-icons.test.tsx",
+    "src/renderer/src/lib/standalone-appearance.test.ts",
+    "src/renderer/src/lib/standalone-appearance.ts",
+    "src/renderer/src/lib/standalone-entry-appearance.test.tsx",
+    "src/renderer/src/store/slices/tabs/tabs-git-graph.test.ts",
+    "src/renderer/src/store/slices/tabs/tabs-git-graph.ts",
     "src/renderer/src/web/platform-add-project.test.ts",
     "src/renderer/src/web/platform-agent-bridge.test.tsx",
     "src/renderer/src/web/platform-agent-bridge.tsx",
     "src/renderer/src/web/platform-agent-launch.test.ts",
     "src/renderer/src/web/platform-agent-launch.ts",
+    "src/renderer/src/web/platform-appearance.test.ts",
+    "src/renderer/src/web/platform-appearance.ts",
     "src/renderer/src/web/platform-dialog-visibility.test.tsx",
+    "src/renderer/src/web/platform-project-actions.test.ts",
+    "src/renderer/src/web/platform-project-actions.ts",
     "src/renderer/src/web/platform-project-bootstrap.test.ts",
     "src/renderer/src/web/platform-project-bootstrap.ts",
     "src/renderer/src/web/platform-project-context.ts",
-    "src/renderer/src/components/Landing.platform.test.tsx",
     "src/renderer/src/web/platform-project-entry.css",
     "src/renderer/src/web/platform-project-entry.test.tsx",
     "src/renderer/src/web/platform-project-entry.tsx",
@@ -327052,9 +327087,14 @@
     "src/renderer/src/web/platform-project-selection.test.tsx",
     "src/renderer/src/web/platform-route.test.ts",
     "src/renderer/src/web/platform-route.ts",
+    "src/renderer/src/web/platform-settings-navigation.test.tsx",
+    "src/renderer/src/web/platform-settings-navigation.ts",
     "src/renderer/src/web/platform-studio-surface.test.tsx",
     "src/renderer/src/web/platform-studio-surface.tsx",
     "src/renderer/src/web/platform-workspace-app.tsx",
+    "src/renderer/src/web/preload-api/platform-native-repo-adoption.test.ts",
+    "src/renderer/src/web/preload-api/platform-native-repo-adoption.ts",
+    "src/renderer/src/web/preload-api/web-git-api-history.test.ts",
     "src/renderer/src/web/preload-api/web-runtime-credentials.test.ts",
     "src/renderer/src/web/preload-api/web-wsl-host-unavailable.test.ts",
     "src/renderer/src/web/remote-context.test.ts",
@@ -327063,59 +327103,10 @@
     "src/renderer/src/web/standalone-web-root.tsx",
     "src/renderer/src/web/web-root.tsx",
     "src/shared/platform-task-progress-contract.ts",
-    "src/renderer/src/components/FirstLaunchBanner.presentation.test.tsx",
-    "src/renderer/src/components/automations/AutomationDeleteDialogs.focus.test.tsx",
-    "src/renderer/src/components/crash-report/CrashReportDialogSurface.presentation.test.tsx",
-    "src/renderer/src/components/feature-tips/CliSetupTipDialog.management.test.tsx",
-    "src/renderer/src/components/settings/RepositoryHooksSection.save-close.test.tsx",
-    "src/renderer/src/components/settings/Settings.presentation.test.tsx",
-    "src/renderer/src/components/settings/SettingsSection.scope.test.tsx",
-    "src/renderer/src/components/settings/settings-draft-session.test.tsx",
-    "src/renderer/src/components/skills/SkillRow.selection-hit.test.tsx",
-    "src/renderer/src/components/ui/management-surface.test.tsx",
-    "src/renderer/src/components/ui/management-surface.tsx",
-    "src/renderer/src/lib/app-font-family.test.ts",
-    "src/renderer/src/lib/left-sidebar-appearance.test.ts",
-    "src/renderer/src/lib/standalone-appearance.test.ts",
-    "src/renderer/src/lib/standalone-appearance.ts",
-    "src/renderer/src/lib/standalone-entry-appearance.test.tsx",
-    "src/renderer/src/web/platform-appearance.test.ts",
-    "src/renderer/src/web/platform-appearance.ts",
-    "src/renderer/src/web/platform-settings-navigation.test.tsx",
-    "src/renderer/src/web/platform-settings-navigation.ts",
-    "mobile/src/platform-account/browser-portal.test.ts",
-    "mobile/src/platform-account/browser-portal.ts",
-    "config/scripts/orcad-playwright-core-package.mjs",
-    "src/renderer/src/web/preload-api/platform-native-repo-adoption.ts",
-    "src/renderer/src/web/preload-api/platform-native-repo-adoption.test.ts",
-    "src/renderer/src/web/platform-project-actions.test.ts",
-    "src/renderer/src/web/platform-project-actions.ts",
-    "src/main/ipc/filesystem-git-history-routing.test.ts",
-    "src/renderer/src/components/git-graph/GitGraphPane.test.tsx",
-    "src/renderer/src/components/git-graph/GitGraphPane.tsx",
-    "src/renderer/src/components/git-graph/useGitGraphHistory.test.tsx",
-    "src/renderer/src/components/git-graph/useGitGraphHistory.ts",
-    "src/renderer/src/components/sidebar/WorkspaceOverview.test.tsx",
-    "src/renderer/src/components/sidebar/WorkspaceOverview.tsx",
-    "src/renderer/src/store/slices/tabs/tabs-git-graph.test.ts",
-    "src/renderer/src/store/slices/tabs/tabs-git-graph.ts",
-    "src/renderer/src/web/preload-api/web-git-api-history.test.ts",
     "src/shared/workspace-layout/workspace-layout-git-graph-tab.test.ts",
     "src/shared/workspace-layout/workspace-layout-git-graph-tab.ts"
   ],
   "adapted_files": [
-    {
-      "path": "src/renderer/src/components/status-bar/status-bar-density.ts",
-      "upstream_sha256": "cce79fca4e0ff34344285c7546b3bdd5ac89c25d85b296dd4249073ab0aba795",
-      "current_sha256": "96b10190b3fb286cfba604e55e593c57261534b3ff93f8fb65e92d0b59f1bae6",
-      "reason": "Keep density probes stable when folding usage changes the measured layout."
-    },
-    {
-      "path": "src/renderer/src/components/status-bar/status-bar-density.test.ts",
-      "upstream_sha256": "1be16edb4fbd8ea7c11af4f1c12857b30ded0f402494e5e47879577d22e63085",
-      "current_sha256": "99c0716c526f7f3e614793bd804b711689dbd16e4549e6c95d6b4aa723237332",
-      "reason": "Regress density probe loops and recovery after resizing and content changes."
-    },
     {
       "path": ".gitattributes",
       "upstream_sha256": "65896d38cc866d394db2d10d25f9d76a33dc1e78091b071d26913155237efa2a",
@@ -327315,10 +327306,52 @@
       "reason": "M1a-R: bypass automatic external and WSL home discovery"
     },
     {
+      "path": "src/main/bitbucket/credential-store.ts",
+      "upstream_sha256": "35d6c0a725eb98cf673fa46d316df7010b989257adcb0666a6337362a8aab632",
+      "current_sha256": "86eaf3191511b7485bab0b3f0017a9150b9f1ea4bd5b91543d102424d8c03089",
+      "reason": "Retain separately developed functionality outside the workbench identity goal; see convergence scope ledger and pre-goal baseline diff."
+    },
+    {
+      "path": "src/main/credentials/encrypted-api-key-file-store.ts",
+      "upstream_sha256": "e89d42718c78ff000c330ac20442e3249663696b6504f4f963b62515b62aec53",
+      "current_sha256": "5737a9ceb0bbfa9c4aa26a436c50aaddbcfb3e61d59cab56000f7b1c48ddcde8",
+      "reason": "Retain separately developed functionality outside the workbench identity goal; see convergence scope ledger and pre-goal baseline diff."
+    },
+    {
+      "path": "src/main/ipc/filesystem/filesystem-git-status-handlers.ts",
+      "upstream_sha256": "0e811242c844a649983cc1f67f4c32c67711859eea4ac10d5a112666f80f5e52",
+      "current_sha256": "fae86d5596eb839b364a92c3c0a1b7cdbfc69c04bece86597148d019f2ab3819",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
+      "path": "src/main/jira/site-credential-store.ts",
+      "upstream_sha256": "3cef8e5cc6ec3d32270a2b3233729663619614a61f54e7a645c1c8b5a348c7de",
+      "current_sha256": "fb257e0dc972a7eca07b122e889dda87ac24493cc72cce10641a9bdda0977878",
+      "reason": "Retain separately developed functionality outside the workbench identity goal; see convergence scope ledger and pre-goal baseline diff."
+    },
+    {
+      "path": "src/main/linear/linear-credential-paths.ts",
+      "upstream_sha256": "aeb269ad089584ea8435b5f9c756cb911942942b30c25d9a063a9aa296351bd6",
+      "current_sha256": "4ac47597e2076beab3784cd72efd3b0d80f1925b020aaf52bc8cd259d7010685",
+      "reason": "Retain separately developed functionality outside the workbench identity goal; see convergence scope ledger and pre-goal baseline diff."
+    },
+    {
+      "path": "src/main/minimax/minimax-cookie-store.ts",
+      "upstream_sha256": "f99c2f958d0199fdd93e500a5c5a229c29bda70fd971c702da9e61cb9bbc35b1",
+      "current_sha256": "fe33ed847ff6b81a89296ff94929a85dad80ef1be1b863ffa46dbbba521fbdeb",
+      "reason": "Retain separately developed functionality outside the workbench identity goal; see convergence scope ledger and pre-goal baseline diff."
+    },
+    {
       "path": "src/main/orcad/orcad-entry.ts",
       "upstream_sha256": "972748b4e46cd0cc3f08c61b82f6a7dc7a1553d2706f93323537865aac496193",
-      "current_sha256": "ae656dd40d7cc88c907bc93e7f9a196a48f72bd6bca2e8be471807bcc78e1d8f",
-      "reason": "M1a-R: complete RPC catalog plus owner methods; disable unconfigured automatic services; project-progress: register bounded native progress operations; use the same explicit platform status-listener setting at server startup and subsequent updates"
+      "current_sha256": "00314c441a9f44129cbe7323957eda40878f5d30082648cd6ba610e6da977781",
+      "reason": "M1a-R: complete RPC catalog plus owner methods; disable unconfigured automatic services; project-progress: register bounded native progress operations; use the same explicit platform status-listener setting at server startup and subsequent updates Retain separately developed functionality outside the workbench identity goal; see convergence scope ledger and pre-goal baseline diff."
+    },
+    {
+      "path": "src/main/orcad/orcad-host-adapters.ts",
+      "upstream_sha256": "835ae5ce81cf7fc30453a73c3f18385daf0ce63613dc5576387fc2131dc91962",
+      "current_sha256": "e33e37c5e10e927a298bf8627b9e4e79d7ae577b32eea6c3558e01d69bdc555b",
+      "reason": "Retain separately developed functionality outside the workbench identity goal; see convergence scope ledger and pre-goal baseline diff."
     },
     {
       "path": "src/main/orcad/orcad-lifecycle.ts",
@@ -327333,6 +327366,24 @@
       "reason": "Platform runtime honors the explicit agentStatusHooksEnabled setting for initial status listener and setting changes; automatic hook installation, agent-home rewrites, and login environment initialization remain skipped."
     },
     {
+      "path": "src/main/orcad/orcad-plaintext-credential-migration.ts",
+      "upstream_sha256": "f077438f85b520dc5e5ab2b921d8ab6dce470f1bc2555a4a8d68eb22444cb383",
+      "current_sha256": "aa8941c44ee3db68c58b728ebe10bf5b3dd3f9b8a49e220f5ee74025c8bca95d",
+      "reason": "Retain separately developed functionality outside the workbench identity goal; see convergence scope ledger and pre-goal baseline diff."
+    },
+    {
+      "path": "src/main/orcad/orcad-secret-key-resolution.ts",
+      "upstream_sha256": "62de60606b5ae932dfc2d67a7d4bdcd1d1da216d859dad5d246dd299b09d3e31",
+      "current_sha256": "3666db2868f36841a3befce7bc92a23aede2690b0598b767c514f8da5270b08b",
+      "reason": "Retain separately developed functionality outside the workbench identity goal; see convergence scope ledger and pre-goal baseline diff."
+    },
+    {
+      "path": "src/main/orcad/orcad-secret-store.test.ts",
+      "upstream_sha256": "f09694512e0ff912ab59b0582e17a3d1af9f83fb74db4eac7291e3b6b40fdf22",
+      "current_sha256": "dd8bb47293c0c5aae11867c858798a0b2eb1b0ff6c42db893753473689a48b54",
+      "reason": "Retain separately developed functionality outside the workbench identity goal; see convergence scope ledger and pre-goal baseline diff."
+    },
+    {
       "path": "src/main/providers/windows-shell-args.ts",
       "upstream_sha256": "d5716e7ff67b485b53bc62784a384a97492ff35fc24b65d79844fe63b73ca0b8",
       "current_sha256": "dc278d188a9fdc1e28c4c1e0180c3e083dbbc079ee7fdc794568ef4fcf6d04e5",
@@ -327343,6 +327394,12 @@
       "upstream_sha256": "183ad5fe14844c5e8e2e08a9b9c7c1b4af06dee6dfffaded86c9e803cb7a7ce7",
       "current_sha256": "41f5215a23a90c2a5ae2ca19d90da49e937452abef5ff2b8a935dcd7d4c0c6c2",
       "reason": "M1a-R: no automatic official rule download"
+    },
+    {
+      "path": "src/main/runtime/mobile-session-terminal-persistence-retirement.ts",
+      "upstream_sha256": "6f5ba7205d2651320b34428f079a34f10dae8bbb5ecd355112485b73d88ec7a2",
+      "current_sha256": "6a8db390884d5a7c1dc9280d0960842a33b6cc70a1858fef74ca524b8adfa2d6",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
     },
     {
       "path": "src/main/runtime/orca-runtime.ts",
@@ -327381,6 +327438,18 @@
       "reason": "Keep sidebar visibility browser-local and use narrow-screen defaults without overriding explicit preferences"
     },
     {
+      "path": "src/main/runtime/rpc/methods/git.test.ts",
+      "upstream_sha256": "08061a031157cc252f66b56c7a6c1df767689cacc182852c7dcb42404bae91de",
+      "current_sha256": "a3126fda08d4acd66e338f9b538b47a1db04c8a54f4d25a766bce48a1532a822",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
+      "path": "src/main/runtime/rpc/methods/git.ts",
+      "upstream_sha256": "691f6bd1b4b666cc22b4dfff2bd0a807bb66b2d15d8e9b09bd0a043519b040e2",
+      "current_sha256": "c8ee27473ff782627cb71c17139555bb41529450758d12254b967e68f368902e",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
       "path": "src/main/runtime/rpc/orchestration-mutation-receipt.ts",
       "upstream_sha256": "0deac772afccf8740a61e05bc4fb44f88849c06baf745acebd523f542e7fa1db",
       "current_sha256": "f3e2b32de9c9c02d673a20280ae16b0ec3a83758d9acb4ce018ed8309240e61c",
@@ -327405,16 +327474,46 @@
       "reason": "project-progress: bounded native operation, trustworthy observation, and durable receipt integration"
     },
     {
+      "path": "src/main/speech/openai-api-key-store.ts",
+      "upstream_sha256": "f211ee8e430258a07ac7eb44fdfb956243867d789849f34a8c4fbfa1da1d89d3",
+      "current_sha256": "594a7c4ee41eeb05544854f1106557af52742ed7702c7e8ffc590951972fc303",
+      "reason": "Retain separately developed functionality outside the workbench identity goal; see convergence scope ledger and pre-goal baseline diff."
+    },
+    {
       "path": "src/main/windows/windows-process-table.ts",
       "upstream_sha256": "ad2fdee205c0e0bcd7399a13551c8a08f205458c14e94c863fa5e79652b2bf7c",
       "current_sha256": "b186355ec78506b8221589a225d3f53893634228bf1fa830973246d9e9223ba4",
       "reason": "M1a-R2: deployed native sibling takes precedence over ancestor npm prebuild; broken sibling fails closed"
     },
     {
+      "path": "src/main/zcode/zcode-plan-api-key-store.ts",
+      "upstream_sha256": "30b9e4436150cdc248bf8d32ff56ce616ebb420bccbcbeaeed537ad627554601",
+      "current_sha256": "b3722c351fc5afb2de909e9f80e96e9ce7d774ed716c0a9cea287010dacaef58",
+      "reason": "Retain separately developed functionality outside the workbench identity goal; see convergence scope ledger and pre-goal baseline diff."
+    },
+    {
       "path": "src/renderer/src/app-shell/TitlebarLeftControls.tsx",
       "upstream_sha256": "274b5e3bd1414e927003fb42de2a292fe261df9776fa6d6c9b0feb155fb5d201",
       "current_sha256": "6ee67c150491a3e23e1a10970d88b571bf2c1f38121007d8bdbe9ed26f32f6fc",
       "reason": "M1a-W: product app-name and accessibility label in paired Web; M1a navigation: preserve a single project workspace while integrating platform business views"
+    },
+    {
+      "path": "src/renderer/src/app-shell/use-document-appearance.ts",
+      "upstream_sha256": "202dde89806666b3cf79d44dc0da968d99ab40d89dd70406f2c608c40a6b3b95",
+      "current_sha256": "cb46333d04f88b787805e94401ad350db6baf9f8f8330dae4f6404a9e23fbb71",
+      "reason": "UI r1 S1: fixed management theme, typography and scoped primitives; use-document-appearance.ts."
+    },
+    {
+      "path": "src/renderer/src/assets/main.css",
+      "upstream_sha256": "144736d3a3bc065d2fda3761b2e81c2ae8e8368ba125da5e0c4bea1be1f8d1a7",
+      "current_sha256": "d08f8a9c94c17ab83b61f848aa5c9119cc1d09ca2fb440d1e736fbfeefa05f5e",
+      "reason": "N1: restore native project controls and upstream presentation while preserving platform identity, project registration, draft protection and the single global account surface."
+    },
+    {
+      "path": "src/renderer/src/components/FirstLaunchBanner.tsx",
+      "upstream_sha256": "6df9a7d3468bb17b081eb56e7f6a3a6f850c52ef489484313a7f0e788f9163d4",
+      "current_sha256": "bd532226640e1059f05633a687d70b9490410fd2ebc5280877fbc38917d4c1ce",
+      "reason": "UI r1 S8: fixed window appearance and bounded recovery/help presentation; FirstLaunchBanner.tsx."
     },
     {
       "path": "src/renderer/src/components/Landing.tsx",
@@ -327447,10 +327546,34 @@
       "reason": "P4: isolate immutable remote browser context and scoped storage; preserve local behavior. P4: immutable remote context and explicit scoped storage; local behavior retained. UI r1 S8: fixed window appearance and bounded recovery/help presentation; UnexpectedSignoutCard.tsx."
     },
     {
+      "path": "src/renderer/src/components/UpdateCard.error-card.test.tsx",
+      "upstream_sha256": "16626a8e3497939a2b9866bbde03e61daea4ff00176f948cdcb82c6e119546a2",
+      "current_sha256": "1da48408ac1a146c697928cd19ef6bd2496ba59ed7f7964847330644c8e05fe6",
+      "reason": "UI r1 S8: fixed window appearance and bounded recovery/help presentation; UpdateCard.error-card.test.tsx."
+    },
+    {
+      "path": "src/renderer/src/components/UpdateCard.tsx",
+      "upstream_sha256": "6d0e432f2cf371a18a51aac923b08613eb5d11a0a7391b15ce62145197445a45",
+      "current_sha256": "f2920393f44a96051e8cc76e80e701d613bbf63f1a6a2442090d8d6e4a4f020f",
+      "reason": "UI r1 S8: fixed window appearance and bounded recovery/help presentation; UpdateCard.tsx."
+    },
+    {
       "path": "src/renderer/src/components/activity/ActivityPrototypePage.tsx",
       "upstream_sha256": "bc0524c2d723510bef7db608f37fbd6491e03cfebad43a82689a72d90b45fc29",
       "current_sha256": "c2d414d8d7dfe38db29ceced623dc3f9f8af4fedcf506ca7325bc94023d35ad7",
       "reason": "Unify project ownership, task editing and native Agent activity in the integrated workspace UI r1 S8: native nondevelopment presentation with original actions and gates; ActivityPrototypePage.tsx."
+    },
+    {
+      "path": "src/renderer/src/components/activity/ActivityTitlebarControls.tsx",
+      "upstream_sha256": "35f678e293e03c47f16152cc41a39656f00934582cd17f3b33a2235d8341207e",
+      "current_sha256": "c0d38b86363e431e5ea2d09ba30c19f5fd74daa7aaacd1f49bcbf3e37d5091d5",
+      "reason": "UI r1 S8: native nondevelopment presentation with original actions and gates; ActivityTitlebarControls.tsx."
+    },
+    {
+      "path": "src/renderer/src/components/activity/activity-auto-mark-read-loop.react185.test.tsx",
+      "upstream_sha256": "598155b19e9bcdad4d501d63748b1b6e74044147da48d1f6739a647db199cca1",
+      "current_sha256": "e47b3b64459af75e5578ce2e5b3d81d421ec1db9b9f53f6e0c25b6e528e8d629",
+      "reason": "UI r1 S8: native nondevelopment presentation with original actions and gates; activity-auto-mark-read-loop.react185.test.tsx."
     },
     {
       "path": "src/renderer/src/components/activity/activity-scope-filter-controls.tsx",
@@ -327477,16 +327600,112 @@
       "reason": "Unify project ownership, task editing and native Agent activity in the integrated workspace"
     },
     {
+      "path": "src/renderer/src/components/activity/activity-thread-row.tsx",
+      "upstream_sha256": "cf15340c75c52cc69cbb9c6b69a92396c2bad4939d29528f8686bd37ddcdc2d9",
+      "current_sha256": "ef370c002da6e83011044344c594940101a2c9d573cbefe152c65f62ad16e7f8",
+      "reason": "UI r1 S8: native nondevelopment presentation with original actions and gates; activity-thread-row.tsx."
+    },
+    {
       "path": "src/renderer/src/components/activity/use-agent-pane-threads.ts",
       "upstream_sha256": "52942fcf89cf3b2c79df72a2d60da2170a1d2651030b8d250bcd0f137507fb90",
       "current_sha256": "dee267c5e2c2b6b62619b2b9a1ef6dc5deb80e7a49aa966a36c7969fe733891f",
       "reason": "Unify project ownership, task editing and native Agent activity in the integrated workspace"
     },
     {
+      "path": "src/renderer/src/components/artifacts/ArtifactCollection.tsx",
+      "upstream_sha256": "393628eeebdf0e85fd3a4a39d07a41736c690f8a403c742a6012e2241d588c4e",
+      "current_sha256": "252db7175b02942afcc4712f4676bec008f1f2253d3d59e363cc2577635ca034",
+      "reason": "UI r1 S8: native nondevelopment presentation with original actions and gates; ArtifactCollection.tsx."
+    },
+    {
+      "path": "src/renderer/src/components/artifacts/ArtifactDetailDrawer.tsx",
+      "upstream_sha256": "14022972471876b2802e8837bb1ca21b364965a82d95ff6d9a81c6e5c1df3f6e",
+      "current_sha256": "ca58defcf93654b43245a0b5a20c33863b8c4734acb718f6143fcec8ef111624",
+      "reason": "UI r1 S8: native nondevelopment presentation with original actions and gates; ArtifactDetailDrawer.tsx."
+    },
+    {
+      "path": "src/renderer/src/components/artifacts/ArtifactDetailHeader.tsx",
+      "upstream_sha256": "c6c75bc1965b14910fda3e887928c3163486f9e7c948416cdd40dbad3c206d20",
+      "current_sha256": "57f267c94fdc0516b85fd0fafb0d452d4c5f7ba66ebbb151a07967fc0e3d30b8",
+      "reason": "UI r1 S8: native nondevelopment presentation with original actions and gates; ArtifactDetailHeader.tsx."
+    },
+    {
+      "path": "src/renderer/src/components/artifacts/ArtifactsPage.test.tsx",
+      "upstream_sha256": "26ccdc33e807c16ed9701d547df91d55565a8a8139e04415700160b2d0cc74a7",
+      "current_sha256": "eebaae249f2450dff7dec50eb3d9ac974d9fd25ba6a8d204c4059b0ee1d544b0",
+      "reason": "UI r1 S8: native nondevelopment presentation with original actions and gates; ArtifactsPage.test.tsx."
+    },
+    {
+      "path": "src/renderer/src/components/artifacts/ArtifactsPage.tsx",
+      "upstream_sha256": "72d052d26836870b89c31ff4f21fc778363080c893d80aa98bdc0b81fe111f87",
+      "current_sha256": "dd093aadec89185a99b5d70e3dea94268c1049d556dab9bcf7666cc55f538bae",
+      "reason": "UI r1 S8: native nondevelopment presentation with original actions and gates; ArtifactsPage.tsx."
+    },
+    {
+      "path": "src/renderer/src/components/artifacts/ArtifactsPageStates.tsx",
+      "upstream_sha256": "b2265a249592dce37076c2fee809270ec0c1f204330042a4a4a49bd9116be5af",
+      "current_sha256": "e2ecfaef6e4bf01c98ed1b325e6053fd8e34b8ec2a55030e106febabf7f15cdd",
+      "reason": "UI r1 S8: native nondevelopment presentation with original actions and gates; ArtifactsPageStates.tsx."
+    },
+    {
+      "path": "src/renderer/src/components/artifacts/artifact-list-windowing.test.tsx",
+      "upstream_sha256": "89b2aff94f72fea6c50b204a83bb66b8ce8ea3f8f639deabf66cf411835de0a9",
+      "current_sha256": "78338843f13e7455ebde5ac35b0acdc191f3d1b588db93e3360e0be389bfe050",
+      "reason": "N1: restore native project controls and upstream presentation while preserving platform identity, project registration, draft protection and the single global account surface."
+    },
+    {
+      "path": "src/renderer/src/components/automations/AutomationDeleteDialogs.tsx",
+      "upstream_sha256": "17a085c0678a31f62c5c399102e1a6d8c2639fb4b44be25de26d62c59534583f",
+      "current_sha256": "98f75c5c9149f67060749df48fcf571bad340e4d6fdff785abaaf1f854c0e2a7",
+      "reason": "UI r1 S8: native nondevelopment presentation with original actions and gates; AutomationDeleteDialogs.tsx."
+    },
+    {
+      "path": "src/renderer/src/components/automations/AutomationEditorDialog.tsx",
+      "upstream_sha256": "de13001b37e5cccb63ba84b0210ab5544210ca73b6bca37aa29b2723affbe359",
+      "current_sha256": "df9ce11b6fb802505c7d7ef2d672ba59c4c5eca059283fb8e9ca6f269ca1b1b0",
+      "reason": "UI r1 S8: native nondevelopment presentation with original actions and gates; AutomationEditorDialog.tsx."
+    },
+    {
+      "path": "src/renderer/src/components/automations/AutomationEditorSettingsSidebar.tsx",
+      "upstream_sha256": "973d1952294622226e928a0c94cf95771b184aee18776ce5b3f50d70b3888074",
+      "current_sha256": "c10159415e7d90aede0b9e23015a087543ebe8e4022f3f9d7d01f3c499344ec9",
+      "reason": "UI r1 S8: native nondevelopment presentation with original actions and gates; AutomationEditorSettingsSidebar.tsx."
+    },
+    {
+      "path": "src/renderer/src/components/automations/AutomationsPageSurface.tsx",
+      "upstream_sha256": "116b18a372ce0d8d92a8fffa24f5af06a37a4613ab113e91dffe3fff1dffac8b",
+      "current_sha256": "8b74b669ffe6c7e37b9566c2ec587cb4bb45c0fcc00148ca21e038b07fefb6e0",
+      "reason": "UI r1 S8: native nondevelopment presentation with original actions and gates; AutomationsPageSurface.tsx."
+    },
+    {
       "path": "src/renderer/src/components/browser-pane/annotate/use-markup-draw-hint.ts",
       "upstream_sha256": "c254bc61948ffecbac4194836dcbf89c39b6f1071afdefa4ee84c43f9ae8abb1",
       "current_sha256": "a8c05a59d07b5a5c59e451a67c1a39dfc4a3413dd7c0394b8a60dcc4473d928f",
       "reason": "P4: isolate immutable remote browser context and scoped storage; preserve local behavior. P4: immutable remote context and explicit scoped storage; local behavior retained."
+    },
+    {
+      "path": "src/renderer/src/components/confirmation-dialog-context.ts",
+      "upstream_sha256": "765439270d0ec7e7a5bd22a555630c2823e1a0a34155c9a817f81eeb2b8c354d",
+      "current_sha256": "75abc4df1c76f669cd13a5aaa23c75769e6d189b30132f424d1ef876c43935c8",
+      "reason": "UI r1 S4: explicit settings scope, accessible fields and draft/portal lifecycle; confirmation-dialog-context.ts."
+    },
+    {
+      "path": "src/renderer/src/components/confirmation-dialog.test.tsx",
+      "upstream_sha256": "c32e9406fde44455a4650d3f8d6a8bc06242c5a2ab9878dcbd7f8850bdde5dea",
+      "current_sha256": "4fd31614ed71b573755b7872322ea0ee6435cb55ace8fbd8c9daacc107ea2e7c",
+      "reason": "UI r1 S4: explicit settings scope, accessible fields and draft/portal lifecycle; confirmation-dialog.test.tsx."
+    },
+    {
+      "path": "src/renderer/src/components/confirmation-dialog.tsx",
+      "upstream_sha256": "eaba066a19ee9760655bab6f7049ca14a8b440efa9cd244e8a954588bf289fa0",
+      "current_sha256": "1398e5f80b2fe66a324cbc8b13a9e9d86408a8e619a0e76dff8bd2d4246aaa35",
+      "reason": "UI r1 S4: explicit settings scope, accessible fields and draft/portal lifecycle; confirmation-dialog.tsx."
+    },
+    {
+      "path": "src/renderer/src/components/crash-report/CrashReportDialogSurface.tsx",
+      "upstream_sha256": "749824822531cc7d9b16cbc5df84eb58bd4a6b3fdb9b0299fcc32d6ed65ed96e",
+      "current_sha256": "2a17b94e44f5e76ce888362f000b88033ec43cbe8c408b77072bb781594b365d",
+      "reason": "UI r1 S8: fixed window appearance and bounded recovery/help presentation; CrashReportDialogSurface.tsx."
     },
     {
       "path": "src/renderer/src/components/editor/file-view-preference-storage.ts",
@@ -327507,10 +327726,46 @@
       "reason": "P4: isolate immutable remote browser context and scoped storage; preserve local behavior. P4: immutable remote context and explicit scoped storage; local behavior retained."
     },
     {
+      "path": "src/renderer/src/components/error-boundaries/RecoverableRenderErrorBoundary.tsx",
+      "upstream_sha256": "241f296c51ca8fd0bb2d9f1c070c5284f940819ba028229a99ff4097a3687c07",
+      "current_sha256": "77ad43fb1e2780d67a82b1dc1ff4406042147c33c240a56a2c05f97ad53ed72f",
+      "reason": "UI r1 S8: fixed window appearance and bounded recovery/help presentation; RecoverableRenderErrorBoundary.tsx."
+    },
+    {
+      "path": "src/renderer/src/components/feature-tips/CmdJPaletteTipDialog.test.tsx",
+      "upstream_sha256": "295879f0983a4e58c4016b6efb12abd55daa8299e9fead1ae05e65580b6efc0d",
+      "current_sha256": "64c8bc78620671d3edef8b42b59440dd75045b95dfacd772dec1d0613d98a85e",
+      "reason": "UI r1 S8: fixed window appearance and bounded recovery/help presentation; CmdJPaletteTipDialog.test.tsx."
+    },
+    {
+      "path": "src/renderer/src/components/feature-tips/FeatureTipDialogFrame.tsx",
+      "upstream_sha256": "7acc87808c01560b22628fcfd1e5bc4d28f61e7c38c9eaefff616d968c0c9d76",
+      "current_sha256": "09b423c73ea60df4c7c31a7ceb49eab2efded929342eb8d59fa8a83d398d143b",
+      "reason": "UI r1 S8: fixed window appearance and bounded recovery/help presentation; FeatureTipDialogFrame.tsx."
+    },
+    {
       "path": "src/renderer/src/components/feature-tips/FeatureTipsModal.tsx",
       "upstream_sha256": "fcb16e77747dc64dd59902d06cab8ad2900109257807191ce01e616b2dd48442",
       "current_sha256": "ed8a33b8153015280d43f2d786a4c5ffbd1978bc64170c69cc1c6e0887845918",
       "reason": "P4: isolate immutable remote browser context and scoped storage; preserve local behavior. P4: immutable remote context and explicit scoped storage; local behavior retained."
+    },
+    {
+      "path": "src/renderer/src/components/feature-tips/NativeChatUpgradeTipDialog.test.tsx",
+      "upstream_sha256": "24982448e2185f592b1b63774fc7c297b34fc29a72b7d3313e341b51403dad7f",
+      "current_sha256": "8a6851509e5ffcd0f8af6a77ebe9505fd1a2e4734951ab029e0839e0a73d6875",
+      "reason": "UI r1 S8: fixed window appearance and bounded recovery/help presentation; NativeChatUpgradeTipDialog.test.tsx."
+    },
+    {
+      "path": "src/renderer/src/components/feature-tips/NativeChatUpgradeTipDialog.tsx",
+      "upstream_sha256": "1d9b0e27b1b194b92c7aed3a09a223182ae644d6634923097b46790970bb2dd4",
+      "current_sha256": "8f197393a58c7c75ba703b99101ec2dbe12db42d64dab3ea69c5bbefbe149978",
+      "reason": "UI r1 S8: fixed window appearance and bounded recovery/help presentation; NativeChatUpgradeTipDialog.tsx."
+    },
+    {
+      "path": "src/renderer/src/components/feature-tips/VoiceDictationTipDialog.test.tsx",
+      "upstream_sha256": "67359eb84aa8094e4409beb513a216191796282e3b8078c81bcbedbe1c208631",
+      "current_sha256": "2a534b97b4b2b5d1c9cf619bfe54e043ec384c5ef3a6cbb8ccfd94b912424a41",
+      "reason": "UI r1 S8: fixed window appearance and bounded recovery/help presentation; VoiceDictationTipDialog.test.tsx."
     },
     {
       "path": "src/renderer/src/components/feature-wall/BrowserUseSkillSetupCard.tsx",
@@ -327615,6 +327870,12 @@
       "reason": "N1: restore native project controls and upstream presentation while preserving platform identity, project registration, draft protection and the single global account surface."
     },
     {
+      "path": "src/renderer/src/components/mobile/MobilePageContent.tsx",
+      "upstream_sha256": "6e619f043334fad53e6adad25931b6e712e260520e499181a3f5d951b9b42029",
+      "current_sha256": "6ee0cf2dc4b8942f38c260e63bcc126de2fe1668cbb300f9528e5537d409b42f",
+      "reason": "UI r1 S8: native nondevelopment presentation with original actions and gates; MobilePageContent.tsx."
+    },
+    {
       "path": "src/renderer/src/components/native-chat/native-chat-composer-draft-indexeddb.ts",
       "upstream_sha256": "fbc94efbe6e241c1f17ea836f29ed8b040454874a1fcc9782cb8014b66fcfde3",
       "current_sha256": "10f7e8720fa5a1ac7dc78fb11c69d3533dfdd0d34e73c964a8342eff0bc8095e",
@@ -327645,10 +327906,58 @@
       "reason": "P4: isolate immutable remote browser context and scoped storage; preserve local behavior. P4: immutable remote context and explicit scoped storage; local behavior retained."
     },
     {
+      "path": "src/renderer/src/components/onboarding/ThemeStep.test.ts",
+      "upstream_sha256": "04f0a48136a739d90c40616a267737c7ea898f1dc8b79c7ee37878b48025e984",
+      "current_sha256": "b7e76c26b58895611e475cbc434db1eb2b16f26394a89448146d396a8d21ff54",
+      "reason": "UI r1 S1: fixed management theme, typography and scoped primitives; ThemeStep.test.ts."
+    },
+    {
+      "path": "src/renderer/src/components/onboarding/ThemeStep.tsx",
+      "upstream_sha256": "6398b7ee3de8d2a791960cf62e442f7eead32b06cd27de88b0a67ee3b9297508",
+      "current_sha256": "717cb958a3563212ec2922aa684310f144c1afaff30c9ba4a30c322062e6e178",
+      "reason": "UI r1 S1: fixed management theme, typography and scoped primitives; ThemeStep.tsx."
+    },
+    {
       "path": "src/renderer/src/components/onboarding/onboarding-feature-setup.ts",
       "upstream_sha256": "cd3befd67c4f2294f08ef998e4b87cfa41dcfa86ee854387124497bc4f645cd0",
       "current_sha256": "463c69e24a39a2ed3c3c94897ef5784284b904d5a8af9a69c8c1e28cd7b351fd",
       "reason": "P4: isolate immutable remote browser context and scoped storage; preserve local behavior. P4: immutable remote context and explicit scoped storage; local behavior retained."
+    },
+    {
+      "path": "src/renderer/src/components/onboarding/onboarding-flow-state.ts",
+      "upstream_sha256": "7dc972eb8a5e54d07704bbfcdd08b2a0452b75ffc34e7297b71ceb0c32064d27",
+      "current_sha256": "33806278eb3f3d63ea105b9baa4eb4f8009299a9388745c8e582f1aeee8b03b2",
+      "reason": "UI r1 S1: fixed management theme, typography and scoped primitives; onboarding-flow-state.ts."
+    },
+    {
+      "path": "src/renderer/src/components/onboarding/onboarding-settings-hydration.test.ts",
+      "upstream_sha256": "249ee1f19ec72743ba949ab25b5807cf5ab389695afc749056bf5b0f0987ae42",
+      "current_sha256": "d08210b31b93b6b48f7dbb64f1715d0e7a061174e6c4abbcd83ee225a08ee34f",
+      "reason": "UI r1 S1: fixed management theme, typography and scoped primitives; onboarding-settings-hydration.test.ts."
+    },
+    {
+      "path": "src/renderer/src/components/onboarding/onboarding-settings-hydration.ts",
+      "upstream_sha256": "428d614d067bbab4efbbb4846fdf9f8a0c7b5f692edbf571927487d7a18ce732",
+      "current_sha256": "632732419cb4274839ad204b20f30484850543db5c93137db2f897a7ee625391",
+      "reason": "UI r1 S1: fixed management theme, typography and scoped primitives; onboarding-settings-hydration.ts."
+    },
+    {
+      "path": "src/renderer/src/components/onboarding/use-onboarding-flow-persistence.ts",
+      "upstream_sha256": "052f8c4e9339cf0ceab9472853f7bab1122698644e83ee93b5ff034b53747d56",
+      "current_sha256": "c9bc3beb331d28bfaf88f5f3b1562a78d7ec9979bd256f43fbe50d87e5c8f400",
+      "reason": "UI r1 S1: fixed management theme, typography and scoped primitives; use-onboarding-flow-persistence.ts."
+    },
+    {
+      "path": "src/renderer/src/components/onboarding/use-onboarding-flow.test.ts",
+      "upstream_sha256": "e6801f220f09c03b1b3aadd8997c4dce8eac447fe8b195876f776335c4f1a1d8",
+      "current_sha256": "0a82b65e4ef0379945dc0b21a8b16c3edc910e4cd76d52ae3f53a650e7464f18",
+      "reason": "UI r1 S1: fixed management theme, typography and scoped primitives; use-onboarding-flow.test.ts."
+    },
+    {
+      "path": "src/renderer/src/components/onboarding/use-onboarding-flow.ts",
+      "upstream_sha256": "ed5f6201421d9135932be653ba59f935322d3643cb5a646d908862630625d9df",
+      "current_sha256": "3b4e13c9a12f75d7286cb9abc315d5ce73cbc5f3a7599b82fa71eae3077c7783",
+      "reason": "UI r1 S1: fixed management theme, typography and scoped primitives; use-onboarding-flow.ts."
     },
     {
       "path": "src/renderer/src/components/pet/PetOverlay.tsx",
@@ -327669,6 +327978,36 @@
       "reason": "P4: isolate immutable remote browser context and scoped storage; preserve local behavior. P4: immutable remote context and explicit scoped storage; local behavior retained."
     },
     {
+      "path": "src/renderer/src/components/right-sidebar/source-control/panel/panel-content.tsx",
+      "upstream_sha256": "765ed0aa6636eb4807b6e9a2fe5bafdd3b99f5c1dd103118f7c5a79ae3dc9d37",
+      "current_sha256": "7b9071cee40452f259e894609c2722fb528fb631fa2471f6702df636d5db7aea",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
+      "path": "src/renderer/src/components/right-sidebar/source-control/sync/git-history-graph-svg.test.tsx",
+      "upstream_sha256": "e091e72381db4bea20241a52ed435f007466190d6473c8d37d28f853869591ab",
+      "current_sha256": "8330f721ec60c3e3705c1fe7830bb46173ffe8dbd2455039cc0c82b05796fd56",
+      "reason": "Retain separately developed functionality outside the workbench identity goal; see convergence scope ledger and pre-goal baseline diff."
+    },
+    {
+      "path": "src/renderer/src/components/right-sidebar/source-control/sync/git-history-graph-svg.tsx",
+      "upstream_sha256": "cbd89fd6981e7c562a2edccdd418d6740c959304b402bf18ee0813d5430c3433",
+      "current_sha256": "db300f39a1b6639c7038c2b308a9241150de8df4192460ca9c2891800d6399f9",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained. Retain separately developed functionality outside the workbench identity goal; see convergence scope ledger and pre-goal baseline diff."
+    },
+    {
+      "path": "src/renderer/src/components/right-sidebar/source-control/sync/git-history-panel.tsx",
+      "upstream_sha256": "225b7841dee8e68728b907def0445690997d7f4641c477ae75874470c1c992b5",
+      "current_sha256": "eb4e0feb17abb9ae54d622a6128e6bb18f5d921669e5ecba40096b43a43cad36",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
+      "path": "src/renderer/src/components/right-sidebar/source-control/sync/git-history-row.tsx",
+      "upstream_sha256": "e75c0a169c3a394d402917c40496d1e0a83d2108e7d967a570fe807869e63033",
+      "current_sha256": "58e5e8189967ebb077bf22a3240f944521090211bb1c426666e853d03340f3ff",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained. Retain separately developed functionality outside the workbench identity goal; see convergence scope ledger and pre-goal baseline diff."
+    },
+    {
       "path": "src/renderer/src/components/settings/AgentCatalogRow.tsx",
       "upstream_sha256": "75f25789aa139db9ac9990d1088078e0049b9c3eeff8904878db0c297acf14d9",
       "current_sha256": "d7d05fc5e47ec3460a2a6199f2de599b8f4c06856dff7a7f7b4a1b3154b4983f",
@@ -327679,6 +328018,18 @@
       "upstream_sha256": "2aee68e9695fa1eacc03301f0bc13d843d1d41a8c206252b667a30adfe238c64",
       "current_sha256": "53b0c9bd0bcbe3be3bdf99f517e0f245c846b3c13c324ff55185e5df2ffd5eb0",
       "reason": "Studio S6: allow enabled undetected agents to configure host launch settings without changing detection or default eligibility; cover host-only writes and explicit refresh"
+    },
+    {
+      "path": "src/renderer/src/components/settings/AppearanceInterfaceSection.tsx",
+      "upstream_sha256": "c260ccb6d5dc7223f94d315b0819b5611ebfdc3c1894b8bf11977904e1fd271c",
+      "current_sha256": "84c437fec67ca04b09f7b52a09798c67beb005d1d2aafa4b6e5dffd1f213a2de",
+      "reason": "UI r1 S1: fixed management theme, typography and scoped primitives; AppearanceInterfaceSection.tsx."
+    },
+    {
+      "path": "src/renderer/src/components/settings/AppearancePane.test.tsx",
+      "upstream_sha256": "c42a1f6b2dd497dc10dc7a73b27bcd5a9c78d7813fcb9bbea2b8cbb316e60866",
+      "current_sha256": "456376e1194bff0b5347f982584c810103f920682d36f903eec17d242a0de422",
+      "reason": "UI r1 S1: fixed management theme, typography and scoped primitives; AppearancePane.test.tsx."
     },
     {
       "path": "src/renderer/src/components/settings/BrowserUsePane.tsx",
@@ -327693,10 +328044,58 @@
       "reason": "Studio S6: allow enabled undetected agents to configure host launch settings without changing detection or default eligibility; cover host-only writes and explicit refresh"
     },
     {
+      "path": "src/renderer/src/components/settings/LeftSidebarAppearanceSetting.tsx",
+      "upstream_sha256": "f6fdcdac9cb23d31cf43c6fd9b93cf250c82184bef696e1f7a33aac9d53a9f81",
+      "current_sha256": "08bb59ad471849cf04e531878897665fdfbdc259ab49cc15177996ed001a9bbb",
+      "reason": "UI r1 S1: fixed management theme, typography and scoped primitives; LeftSidebarAppearanceSetting.tsx."
+    },
+    {
       "path": "src/renderer/src/components/settings/MobileSettingsPane.tsx",
       "upstream_sha256": "d2fc14224af0c98d0c879439f98c57b85ce39a5400032c4e63bf40379dc2f165",
       "current_sha256": "6409eb33a4a2bb566f79e89e0dda144d65f1767118738c00acf74fc984d71afa",
       "reason": "M1a-W: platform mobile status instead of official client install/pairing; M1a navigation: preserve a single project workspace while integrating platform business views"
+    },
+    {
+      "path": "src/renderer/src/components/settings/PrivacyPane.test.ts",
+      "upstream_sha256": "8f2e8c5a6d3c6aadd9228e4ad244f806e2f60e02f7ebe5df4f63d500c6531cb8",
+      "current_sha256": "27e27fc935c6f26fb7821971e36cb9e0597f6dc0420fcd7f894091b32d0d1365",
+      "reason": "UI r1 S4: explicit settings scope, accessible fields and draft/portal lifecycle; PrivacyPane.test.ts."
+    },
+    {
+      "path": "src/renderer/src/components/settings/PrivacyPane.tsx",
+      "upstream_sha256": "6effb22642ef2a26627ad08ad1cd557de0d4b29d0476977337393b84320fc527",
+      "current_sha256": "7c4e0c83d44dadc9023b6b3420ca049b2f4e1b1130a22b0c7cd4e698d99313df",
+      "reason": "UI r1 S4: explicit settings scope, accessible fields and draft/portal lifecycle; PrivacyPane.tsx."
+    },
+    {
+      "path": "src/renderer/src/components/settings/RepositoryHookScriptSetting.tsx",
+      "upstream_sha256": "32f5108c3fea379505b1c1e230c694c78fd33ff4fc2033377c321ba0b34691cc",
+      "current_sha256": "d0a434988caf46456c2ef21ec33b4af3c9e83dcb81bb7d1f3b3a24f89151f323",
+      "reason": "UI r1 S4: explicit settings scope, accessible fields and draft/portal lifecycle; RepositoryHookScriptSetting.tsx."
+    },
+    {
+      "path": "src/renderer/src/components/settings/RepositoryHooksSection.test.ts",
+      "upstream_sha256": "3735d1d67df87a0b5b8f320db1ab9940b1bddb5fd73a66f146925b226c5347c8",
+      "current_sha256": "aa03907452a2b541c936074b17a69fa00cb2d85f59d6fac82d86f9c7ebe5bb4e",
+      "reason": "UI r1 S4: explicit settings scope, accessible fields and draft/portal lifecycle; RepositoryHooksSection.test.ts."
+    },
+    {
+      "path": "src/renderer/src/components/settings/RepositoryHooksSection.tsx",
+      "upstream_sha256": "9ca1e6d81da7a509a1d8462262668ef627fe851478360aaa7586d3f1f96e2508",
+      "current_sha256": "b31d20016984e12c307740d557423a2ef919845fea002f522fa3d01b4a236f30",
+      "reason": "UI r1 S4: explicit settings scope, accessible fields and draft/portal lifecycle; RepositoryHooksSection.tsx."
+    },
+    {
+      "path": "src/renderer/src/components/settings/RepositoryHostSetupsSection.tsx",
+      "upstream_sha256": "c6853ebc53e757cd7dcbe1ba9ff4bd83953790e115212f3e0bd27aa71b86244c",
+      "current_sha256": "e3952d6a7d029f89814e51cccad4eac1b724401fc44a689b5801a1412c67228c",
+      "reason": "UI r1 S4: explicit settings scope, accessible fields and draft/portal lifecycle; RepositoryHostSetupsSection.tsx."
+    },
+    {
+      "path": "src/renderer/src/components/settings/RepositoryPane.test.ts",
+      "upstream_sha256": "253007a426ae9e5549e1f8f545d927600d85aaf0a7cb98f84e1e6bbc2e33257c",
+      "current_sha256": "c7393d2852532a26fb9e76314135e1ffeeecf455f9797c84ced8016a3c580c38",
+      "reason": "N1: restore native project controls and upstream presentation while preserving platform identity, project registration, draft protection and the single global account surface."
     },
     {
       "path": "src/renderer/src/components/settings/RepositoryPane.tsx",
@@ -327705,16 +328104,112 @@
       "reason": "N1: restore native project controls and upstream presentation while preserving platform identity, project registration, draft protection and the single global account surface."
     },
     {
+      "path": "src/renderer/src/components/settings/RepositoryRemoveProjectButton.tsx",
+      "upstream_sha256": "32d1e681e88091a9c11241db7152c1effa43b45c0f2d8822b287ba12b0cc0877",
+      "current_sha256": "7b54a0b2b92a771e4f4517b0eb68c6f67026734b45b671fb987d6a76d9a8f170",
+      "reason": "N1: restore native project controls and upstream presentation while preserving platform identity, project registration, draft protection and the single global account surface."
+    },
+    {
+      "path": "src/renderer/src/components/settings/RepositorySourceControlAiSection.tsx",
+      "upstream_sha256": "9a06e52f59d4242a300c63959771a712e4e5672e3617a1b6167d1d8012115a39",
+      "current_sha256": "17410e163f15b8f93ba5bc527b2d961c122c0ab01e27b1a71109a2bdd70e0d6d",
+      "reason": "UI r1 S4: explicit settings scope, accessible fields and draft/portal lifecycle; RepositorySourceControlAiSection.tsx."
+    },
+    {
+      "path": "src/renderer/src/components/settings/Settings.tsx",
+      "upstream_sha256": "b814c3658c9641e587940484503f11d8ca2a6d42fdae7c86c9fa122c23bac8d7",
+      "current_sha256": "0376eaaf937d6e57a33404d437f5f717d6e8e70fe48e33914d79e58a062b6c67",
+      "reason": "N1: restore native project controls and upstream presentation while preserving platform identity, project registration, draft protection and the single global account surface."
+    },
+    {
+      "path": "src/renderer/src/components/settings/SettingsFormControls.segmented-control.test.tsx",
+      "upstream_sha256": "2ba12ea72911914910914984b3f9eb61a9333a27e3c901bcad91a32479ce6af4",
+      "current_sha256": "e66a6ca09fc9dfd8e5c353f336c3a0898e96d32abd206909443bce210541f83c",
+      "reason": "N1: restore native project controls and upstream presentation while preserving platform identity, project registration, draft protection and the single global account surface."
+    },
+    {
+      "path": "src/renderer/src/components/settings/SettingsSection.tsx",
+      "upstream_sha256": "7b34b08d41aa86fb8b077d3aa61e539fbbfc363ebeed1cb8f9a7788b182bfdd8",
+      "current_sha256": "301a703ed7f012047357af274d0fd2d0e94a6b17f10316a7c40918d49f9937bc",
+      "reason": "N1: restore native project controls and upstream presentation while preserving platform identity, project registration, draft protection and the single global account surface."
+    },
+    {
+      "path": "src/renderer/src/components/settings/SettingsSidebar.tsx",
+      "upstream_sha256": "814c08cd2e531a3109c8cc2459deb7f7bbcc3eaec8cbbf42981783d5a1972297",
+      "current_sha256": "0d9c5b698ece6c50c4b19429a381065e0adb6bacfb8c63e0545929fa415dcf96",
+      "reason": "UI r1 S4: explicit settings scope, accessible fields and draft/portal lifecycle; SettingsSidebar.tsx."
+    },
+    {
+      "path": "src/renderer/src/components/settings/appearance-search.ts",
+      "upstream_sha256": "4dd156ae13bc2bfdd1fdbc7f5b4148e65011c315b42cedbb534636f58db8152e",
+      "current_sha256": "57ff6873540c1baf079499c5265b7c5ed5bb3ad4981b6d446af709221a595562",
+      "reason": "UI r1 S1: fixed management theme, typography and scoped primitives; appearance-search.ts."
+    },
+    {
+      "path": "src/renderer/src/components/settings/chat-settings-unsaved-guard.test.tsx",
+      "upstream_sha256": "cf3cecbeac1c908efee41591b9c90ca59bced63203700aa41d49d6e46cfb424f",
+      "current_sha256": "f036fd68f69899522387a69f73e44b1fcb9a4963619588b46c6bcb52c56363f9",
+      "reason": "UI r1 S4: explicit settings scope, accessible fields and draft/portal lifecycle; chat-settings-unsaved-guard.test.tsx."
+    },
+    {
       "path": "src/renderer/src/components/settings/local-network-connection-history.ts",
       "upstream_sha256": "b625acf53e61c758fd3f67f64b11504b642de4d473e8fb4f357f8e38342b33ed",
       "current_sha256": "d607e271edb28e00c45442f303f040a4dfcbd05552cd867f58ad7127955844e6",
       "reason": "P4: isolate immutable remote browser context and scoped storage; preserve local behavior. P4: immutable remote context and explicit scoped storage; local behavior retained."
     },
     {
+      "path": "src/renderer/src/components/settings/repository-source-control-ai-global-ux.ts",
+      "upstream_sha256": "7900b760631e5c26f0c05807891914d15421e4c5abac5860c3b8773853482742",
+      "current_sha256": "0902de3f8f9a31e8e855bb7cabd2379374d2a46276fe578ade265f7a331e31ac",
+      "reason": "UI r1 S4: explicit settings scope, accessible fields and draft/portal lifecycle; repository-source-control-ai-global-ux.ts."
+    },
+    {
       "path": "src/renderer/src/components/settings/repository-source-control-ai-labels.ts",
       "upstream_sha256": "36b0830bf58c9fc53795767125181eb409f6e283f9259c3d1c6ae23f6dec7e38",
       "current_sha256": "0a0c03861feb68ae84f0952948746124d9e5bac73c99483c3557bcc5e46dac8e",
       "reason": "M1a-W: default prompt label uses the central platform copy while standalone keeps its original text"
+    },
+    {
+      "path": "src/renderer/src/components/settings/settings-page-renderer.tsx",
+      "upstream_sha256": "3ea0a7e52ede96094ea76943ddcde5ca2a1378b2260cd98800986224e92b5874",
+      "current_sha256": "fe6e8766b804b184807f8535f822d7de23ec6cd335b5aead32c06077d3b5a369",
+      "reason": "UI r1 S4: explicit settings scope, accessible fields and draft/portal lifecycle; settings-page-renderer.tsx."
+    },
+    {
+      "path": "src/renderer/src/components/settings/settings-project-section-renderer.tsx",
+      "upstream_sha256": "9288399dd575700f613cd36bba8bb6fe8cf7485835565cb99f2fff8e06717683",
+      "current_sha256": "d2f2ee807a3cc6f2cb80df5aa33f73a3a17170ce43d4f152f262532c3a1d0af8",
+      "reason": "UI r1 S4: explicit settings scope, accessible fields and draft/portal lifecycle; settings-project-section-renderer.tsx."
+    },
+    {
+      "path": "src/renderer/src/components/settings/use-repository-hook-settings-draft.test.tsx",
+      "upstream_sha256": "2e1a5d41080d65a77fbbad17e04ec7909d28135b88669f2d109b42f912fb1648",
+      "current_sha256": "a781c2b7b2a8871b8225d4f18ffc842c9a913973e01992709073cc3861df9946",
+      "reason": "UI r1 S4: explicit settings scope, accessible fields and draft/portal lifecycle; use-repository-hook-settings-draft.test.tsx."
+    },
+    {
+      "path": "src/renderer/src/components/settings/use-repository-hook-settings-draft.ts",
+      "upstream_sha256": "5d150bd5cb2677f09a7dc7c42a76b8bed6c09e5b87cebd0d2a426bd3d1402802",
+      "current_sha256": "80b90ef8e023ec8e54b50f92c2c476606d2e2d046cd947f36dc2bcf4eb6904d1",
+      "reason": "UI r1 S4: explicit settings scope, accessible fields and draft/portal lifecycle; use-repository-hook-settings-draft.ts."
+    },
+    {
+      "path": "src/renderer/src/components/settings/use-settings-interaction-controller.ts",
+      "upstream_sha256": "03ef550b2d5d4f8cdabea73e066618faaa121421b61a6c7277516625e4753514",
+      "current_sha256": "ddd1462ae4796a9ab0e35333efa3033db8a53d9f4375ac71ff74602fecb6a5b0",
+      "reason": "UI r1 S4: explicit settings scope, accessible fields and draft/portal lifecycle; use-settings-interaction-controller.ts."
+    },
+    {
+      "path": "src/renderer/src/components/settings/use-settings-navigation-model.ts",
+      "upstream_sha256": "0f3d0c357e8dcba5336068d98f2372302f0038c67dce40b94f1aa69ad5dceef8",
+      "current_sha256": "778faf7dbf0f89541885ed5e872b0f8f3570aa0a853f0e11262ff1739767aead",
+      "reason": "UI r1 S4: explicit settings scope, accessible fields and draft/portal lifecycle; use-settings-navigation-model.ts."
+    },
+    {
+      "path": "src/renderer/src/components/settings/use-settings-page-effects.ts",
+      "upstream_sha256": "e42891293ce5227176f6cc95b03bd34055e4ba3fbb364045644ac98b23c7b341",
+      "current_sha256": "5fa2877d15e4ca0121a177a388e51e384a1f52ecfeafcd8c31889b2b3f4c1ed0",
+      "reason": "UI r1 S4: explicit settings scope, accessible fields and draft/portal lifecycle; use-settings-page-effects.ts."
     },
     {
       "path": "src/renderer/src/components/settings/use-settings-store-model.ts",
@@ -327729,10 +328224,28 @@
       "reason": "M1a navigation: preserve a single project workspace while integrating platform business views"
     },
     {
+      "path": "src/renderer/src/components/setup-guide/SetupGuideModal.tsx",
+      "upstream_sha256": "38856d00af30c9ec9fe6f30938ba4cd3213be2bd99e458614fe43138a66ce38f",
+      "current_sha256": "8150881639c1e3c1b15aad63601029162d7149fc8be37cca52124596b295fdef",
+      "reason": "UI r1 S8: fixed window appearance and bounded recovery/help presentation; SetupGuideModal.tsx."
+    },
+    {
       "path": "src/renderer/src/components/sidebar/LinearAgentSkillSetupPrompt.tsx",
       "upstream_sha256": "411b91400e565e5979d3aa35310c7f0f3346028a946e82d938f9128d0398aca2",
       "current_sha256": "d7cbf37b3ac68b364560646c69fa805f98617643bedc0f30f26568f48092aa06",
       "reason": "P4: isolate immutable remote browser context and scoped storage; preserve local behavior. P4: immutable remote context and explicit scoped storage; local behavior retained."
+    },
+    {
+      "path": "src/renderer/src/components/sidebar/RemoveFolderDialog.test.tsx",
+      "upstream_sha256": "38d0ddb99b789f6f262ac9535f869735adeed902e1b221efe12e6b345fa812f6",
+      "current_sha256": "2cd4b3d16c83f90aa354a9fa01ab2f3568fe9f859966783500b3bc3e2014dc18",
+      "reason": "N1: restore native project controls and upstream presentation while preserving platform identity, project registration, draft protection and the single global account surface."
+    },
+    {
+      "path": "src/renderer/src/components/sidebar/RemoveFolderDialog.tsx",
+      "upstream_sha256": "2be0690829cb1b6bb58042039732aa02485fb8dea9879d46fec4602d6530c002",
+      "current_sha256": "67278d8a147763babb02403bbaa9be6938efe1a00a6f3c1762ab31b21fe75144",
+      "reason": "N1: restore native project controls and upstream presentation while preserving platform identity, project registration, draft protection and the single global account surface."
     },
     {
       "path": "src/renderer/src/components/sidebar/SeveredTerminalDaemonBanner.tsx",
@@ -327783,6 +328296,42 @@
       "reason": "P4: isolate immutable remote browser context and scoped storage; preserve local behavior. P4: immutable remote context and explicit scoped storage; local behavior retained."
     },
     {
+      "path": "src/renderer/src/components/sidebar/WorkspaceKanbanDrawer.search.test.tsx",
+      "upstream_sha256": "d2a3287338f0c76a0b4f8d6c7fd377fd01305e57c77c745bd7c12ff535169815",
+      "current_sha256": "3b7188e386c3d7d8ce8c4012870197d294b5048c202e88727fed7c3d1eb65236",
+      "reason": "DEV-VIEWS: reuse native workspace cards and filtering in a responsive virtualized overview alongside the existing status board. Retain separately developed functionality outside the workbench identity goal; see convergence scope ledger and pre-goal baseline diff."
+    },
+    {
+      "path": "src/renderer/src/components/sidebar/WorkspaceKanbanDrawer.task-status-sync.test.tsx",
+      "upstream_sha256": "d4f893ab89a5210a571e4e54cf7e216bf97b1ca5cd630416e632a7ab0a7f02a0",
+      "current_sha256": "56d0d59d7b5c652e0d9b72416541ab52e7ab0af041e27704db78fb4d639e42bf",
+      "reason": "DEV-VIEWS: reuse native workspace cards and filtering in a responsive virtualized overview alongside the existing status board."
+    },
+    {
+      "path": "src/renderer/src/components/sidebar/WorkspaceKanbanDrawer.tsx",
+      "upstream_sha256": "920027f611d436d1d954fbc963d76840fc3af246609818cd650d44cb2309c797",
+      "current_sha256": "640a3cd2d369a273a3dd2b95f811ee2731102197e335b788f5b2e52b02583b23",
+      "reason": "DEV-VIEWS: reuse native workspace cards and filtering in a responsive virtualized overview alongside the existing status board. Retain separately developed functionality outside the workbench identity goal; see convergence scope ledger and pre-goal baseline diff."
+    },
+    {
+      "path": "src/renderer/src/components/sidebar/WorkspaceKanbanDrawerHeader.test.tsx",
+      "upstream_sha256": "6fa9493dfb4c670ced4a747a6aafccbb2cc46646a970f9852a256954ac963622",
+      "current_sha256": "5b4081c4de0d0a632a1b9b42d7820e4dcc16da673f0bbe3afb0b021c0236de8b",
+      "reason": "DEV-VIEWS: reuse native workspace cards and filtering in a responsive virtualized overview alongside the existing status board."
+    },
+    {
+      "path": "src/renderer/src/components/sidebar/WorkspaceKanbanDrawerHeader.tsx",
+      "upstream_sha256": "9fa2db6deae2ef5284ba19917c0b81f6ee6a7ffd9184d9dcb6eaa21cba5980bb",
+      "current_sha256": "9cf90c4304688efd8d28e139e607073cff7354506d5036ca57d054c927d28bd4",
+      "reason": "DEV-VIEWS: reuse native workspace cards and filtering in a responsive virtualized overview alongside the existing status board."
+    },
+    {
+      "path": "src/renderer/src/components/sidebar/WorkspaceKanbanDrawerView.tsx",
+      "upstream_sha256": "7a84d294b0d02ee48dec38b509900fe9d722b3cf57b0e5011010d765e0c10b67",
+      "current_sha256": "8d6249a330231e13cf6550fb31517d4b3d40b2b33c5635cd95c9d118bf7b0c95",
+      "reason": "DEV-VIEWS: reuse native workspace cards and filtering in a responsive virtualized overview alongside the existing status board."
+    },
+    {
       "path": "src/renderer/src/components/sidebar/WorktreeList.tsx",
       "upstream_sha256": "5a8aa0bac4b1b7b2d37f4283cbaec26b15fe9705b9c0f8f32caf865cb6faafc4",
       "current_sha256": "2529f8558155ea117582eb5860ee179e37e6d887bcda3ee997f187d623e51807",
@@ -327807,6 +328356,30 @@
       "reason": "N1: restore native project controls and upstream presentation while preserving platform identity, project registration, draft protection and the single global account surface."
     },
     {
+      "path": "src/renderer/src/components/sidebar/use-workspace-kanban-board-projection.ts",
+      "upstream_sha256": "26f2dde54d2d6de307b09d694ab6ec968350f04256d54d2fc0c9004019b5884c",
+      "current_sha256": "b8a5ad6efafbf114606f62b3120d7151e4c5a05ff09f96f95ed4ee2187c6bfee",
+      "reason": "Retain separately developed functionality outside the workbench identity goal; see convergence scope ledger and pre-goal baseline diff."
+    },
+    {
+      "path": "src/renderer/src/components/sidebar/use-workspace-kanban-search.ts",
+      "upstream_sha256": "49465719e199f407a9c193b5e5a3d84321bccd26166a2c5dca169f1cd599080f",
+      "current_sha256": "1361cc5179883f70b968b6cc8fe776f8d9f1444fe680c27b3ce5be7409e967ae",
+      "reason": "Retain separately developed functionality outside the workbench identity goal; see convergence scope ledger and pre-goal baseline diff."
+    },
+    {
+      "path": "src/renderer/src/components/sidebar/workspace-kanban-search.test.ts",
+      "upstream_sha256": "58c6c3088f12b0f40955f99d29adecfbd4b91ad2c258982792d0f978b4c88dec",
+      "current_sha256": "fd2f285b70fba88c11f78e7ef5c6fd021f06481bde8633b83e953bb85f386f1f",
+      "reason": "Retain separately developed functionality outside the workbench identity goal; see convergence scope ledger and pre-goal baseline diff."
+    },
+    {
+      "path": "src/renderer/src/components/sidebar/workspace-kanban-search.ts",
+      "upstream_sha256": "c5b6904115d797fb7fa45d7cbcbca60c07cc587b51d4075219bddf0b734136e0",
+      "current_sha256": "d56bb31a0620cbfb5e31e2498f0092146c1a95e7cf9e23aaae36b1f3e5a4cffc",
+      "reason": "Retain separately developed functionality outside the workbench identity goal; see convergence scope ledger and pre-goal baseline diff."
+    },
+    {
       "path": "src/renderer/src/components/sidebar/worktree-list/listing/use-visible-worktrees.ts",
       "upstream_sha256": "0bf645aa3d4c6fc48b59f660a7a4830eb721757adb90e74e985f79ea1a4ae254",
       "current_sha256": "a064e22363e822afd44093c6f145d654f9b87a3353b948abc191e57da275d3aa",
@@ -327816,6 +328389,144 @@
       "path": "src/renderer/src/components/sidebar/worktree-list/rows/repo-header-project-actions.tsx",
       "upstream_sha256": "f87de2c55e0c16983bb17c95d2606ac2c1b1666f68b1c036ac8e0f427077d8f6",
       "current_sha256": "ca4f4ef758103527cfab43f7fa9cadbd1135a7d846ecff77c2961d492cd6c055",
+      "reason": "N1: restore native project controls and upstream presentation while preserving platform identity, project registration, draft protection and the single global account surface."
+    },
+    {
+      "path": "src/renderer/src/components/skills/SkillDetailDialog.tsx",
+      "upstream_sha256": "1ffaad2fbacc2ee0b05a7ff24d03405d98993080296cd7db94a4b55bd68f9d6d",
+      "current_sha256": "ce41d1682d0e120ec2bc43e6194b2c74cb2a68f1b86a6ab1d0339644e0857f17",
+      "reason": "UI r1 S8: native nondevelopment presentation with original actions and gates; SkillDetailDialog.tsx."
+    },
+    {
+      "path": "src/renderer/src/components/skills/SkillInstallDialog.tsx",
+      "upstream_sha256": "602c792896059098b16014ab450cbc3bccc29018f429a487d264fa26e83d68bf",
+      "current_sha256": "6e80d51a1c6f8fce15055f41d0176592cb00d630d0732c450c6a39e9c6f3c959",
+      "reason": "UI r1 S8: native nondevelopment presentation with original actions and gates; SkillInstallDialog.tsx."
+    },
+    {
+      "path": "src/renderer/src/components/skills/SkillInstallManagementDialog.tsx",
+      "upstream_sha256": "8876d62446ed02a09df0b0631587a812b3b1b37e1fe48a959bf8bf8d9b577842",
+      "current_sha256": "4858f862cc41ee764edd64a7400234284574a86ab642fc959e255cce612adc7c",
+      "reason": "UI r1 S8: native nondevelopment presentation with original actions and gates; SkillInstallManagementDialog.tsx."
+    },
+    {
+      "path": "src/renderer/src/components/skills/SkillRow.tsx",
+      "upstream_sha256": "6ebddc74d645310edba28182ba18b3e79b12d9a5c688bb8eb742ec73091d4b0d",
+      "current_sha256": "108c742056d01d09366f2cc30db10a514fa372f9ebd80e34e03c54be7ee99459",
+      "reason": "UI r1 S8: native nondevelopment presentation with original actions and gates; SkillRow.tsx."
+    },
+    {
+      "path": "src/renderer/src/components/skills/SkillShareDialog.tsx",
+      "upstream_sha256": "c5dacc8aa80150588bc637d86d7765252648a4979d73a0e22061499bff626281",
+      "current_sha256": "2d886c1fd80e4fb475cfd98c1bac5abb879679804d976171f6113f99de0af767",
+      "reason": "UI r1 S8: native nondevelopment presentation with original actions and gates; SkillShareDialog.tsx."
+    },
+    {
+      "path": "src/renderer/src/components/skills/SkillsPage.tsx",
+      "upstream_sha256": "96b16e328c1c0bbb55df758cee2f96a8895dca6d32e90353295f2307bdf2b2d9",
+      "current_sha256": "a6fbf9d10a8a9505f49b016d1a467db99a98a7ca5eb0d6e31e3dda41021e79a7",
+      "reason": "UI r1 S8: native nondevelopment presentation with original actions and gates; SkillsPage.tsx."
+    },
+    {
+      "path": "src/renderer/src/components/status-bar/WorkspaceSpaceManagerPanel.tsx",
+      "upstream_sha256": "27b878937a1c69d94c13febce5e4361705b1a4326eeec1381cde3c82f2b15707",
+      "current_sha256": "b8c042e6d955c0ea35ee42849d3c417d894f1471937f67c51830a3fd607e0aa2",
+      "reason": "UI r1 S8: native nondevelopment presentation with original actions and gates; WorkspaceSpaceManagerPanel.tsx."
+    },
+    {
+      "path": "src/renderer/src/components/status-bar/status-bar-density.test.ts",
+      "upstream_sha256": "1be16edb4fbd8ea7c11af4f1c12857b30ded0f402494e5e47879577d22e63085",
+      "current_sha256": "99c0716c526f7f3e614793bd804b711689dbd16e4549e6c95d6b4aa723237332",
+      "reason": "Regress density probe loops and recovery after resizing and content changes."
+    },
+    {
+      "path": "src/renderer/src/components/status-bar/status-bar-density.ts",
+      "upstream_sha256": "cce79fca4e0ff34344285c7546b3bdd5ac89c25d85b296dd4249073ab0aba795",
+      "current_sha256": "96b10190b3fb286cfba604e55e593c57261534b3ff93f8fb65e92d0b59f1bae6",
+      "reason": "Keep density probes stable when folding usage changes the measured layout."
+    },
+    {
+      "path": "src/renderer/src/components/status-bar/workspace-space-manager-toolbar.tsx",
+      "upstream_sha256": "517e94ee6cc6182b1191decfa0b370b6b420e63f66a81741f899728e1db6a9a9",
+      "current_sha256": "468e551a872f72c9cd6ea612a494b13e2442e6604b2f3f4f6c5a5c0929b2f864",
+      "reason": "UI r1 S8: native nondevelopment presentation with original actions and gates; workspace-space-manager-toolbar.tsx."
+    },
+    {
+      "path": "src/renderer/src/components/tab-bar/EditorFileTab.tsx",
+      "upstream_sha256": "60b09a21efdd837a8a61f83eab168aad766764e26133310df0c711f04886b60b",
+      "current_sha256": "23aac4a1554988d1855f7a63552917bd63222ab2682d7931b05ad486d770f9ef",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
+      "path": "src/renderer/src/components/tab-bar/TabBarItemRow.tsx",
+      "upstream_sha256": "df8d2fa0d2d25ab6e469bdaf22aa9c94d1b92158440e65e249a1e320ff555d43",
+      "current_sha256": "beade9925574b8091730a03d36d7f90c9bf7c9df756726cec110d6304cd99b7f",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
+      "path": "src/renderer/src/components/tab-bar/group-tab-order.ts",
+      "upstream_sha256": "ca2815ecf8392fe9047bed1f93393cd4f2853e44d3398bcfd192543cfdff13c7",
+      "current_sha256": "e97d4f661b7255b5a1b51e9153b253cbb965b4642a30f815aa2573714f53af3c",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
+      "path": "src/renderer/src/components/tab-bar/reconcile-order.ts",
+      "upstream_sha256": "222a532227822bba3cdcdbad8c54f735902eb842f8c71c2c4538a22eaa3fe6af",
+      "current_sha256": "e05facd53baa6a77b880280f2277992db4a60a8dae1fcefc48dbc02538048a25",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
+      "path": "src/renderer/src/components/tab-bar/tab-bar-item-model.ts",
+      "upstream_sha256": "88027d3ed0671060509041c153783ab5c3ee99c55ca00863778d8498d71ec58b",
+      "current_sha256": "759dd366d87a79c4cbf55136877bd23b978154abe920a2b8899a7e0411529dbf",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
+      "path": "src/renderer/src/components/tab-bar/tab-bar-item-surface.tsx",
+      "upstream_sha256": "9e32fd961c60004b91d9a4321a44cd9a6e47ced86b5ef1b0962f6222d07a94bd",
+      "current_sha256": "c9bdd5b0ae2ec03ca31f364e1354c4b26d4b4af9c5ee9deca10e72a686fbb9a5",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
+      "path": "src/renderer/src/components/tab-bar/tab-bar-props.ts",
+      "upstream_sha256": "9f9e5e680f35770e72b17ac984adc69a4f95b992a8f11116146d936c64ad001b",
+      "current_sha256": "b89e8750def83f114372ff0bc0a9274abc0635122ee5fc0b10a074f1e849834b",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
+      "path": "src/renderer/src/components/tab-bar/use-tab-bar-item-projection.ts",
+      "upstream_sha256": "be76f1b6ef82255a3d27a7588559edf3411f454790597a27ef98e261eac02d21",
+      "current_sha256": "d91d416663dd915f574d31fdcb169a904c03ed7642112da9eead0e9daa9adbcd",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
+      "path": "src/renderer/src/components/tab-group/TabGroupPanel.tsx",
+      "upstream_sha256": "aae50835b2910b6db8b950f5af07492a9424a8275fdc7a919a9146301fb1918e",
+      "current_sha256": "4b906e19d91922012c8c20c38f534f6240cdd927c8429cab16ad6c4f53d7cba0",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
+      "path": "src/renderer/src/components/tab-group/tab-drag-data.ts",
+      "upstream_sha256": "8cc0c998a46a9a9e4ecbaf573abbd8ac3fb48d09906babad23436932cdcc9a3c",
+      "current_sha256": "7137b717d920ff707422cbb8f911b7ee4d51baa3346da01e01c332e21bd21a6c",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
+      "path": "src/renderer/src/components/tab-group/useTabGroupActivationCommands.ts",
+      "upstream_sha256": "e100efbab221075a2fbdf786753ea6bab20e2fa5090da4cf5ccf324752df781d",
+      "current_sha256": "150754a7981e8c3c3e402467c4b504100ce95158cad5b3fcb0a489e1c2b9774c",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
+      "path": "src/renderer/src/components/tab-group/workspace-tab-close-commands.ts",
+      "upstream_sha256": "05bc89d0a6851b8e08f1268012920f8d1cc8011da3cb75f204ad800c29751dbb",
+      "current_sha256": "571145f74313b638db22c2ab7ffa5040860e6df9971e6423483af337c5c09c3a",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
+      "path": "src/renderer/src/components/task-page/Surface.tsx",
+      "upstream_sha256": "823cbfaf26576beba35c0e018e0ad659bbfa05d51118a91512b45097e256e3db",
+      "current_sha256": "50589e48ab7c3214a62b1a637086eb17efd7260381add07131bf1fa4cff7fe19",
       "reason": "N1: restore native project controls and upstream presentation while preserving platform identity, project registration, draft protection and the single global account surface."
     },
     {
@@ -327843,6 +328554,48 @@
       "reason": "N1: restore native project controls and upstream presentation while preserving platform identity, project registration, draft protection and the single global account surface."
     },
     {
+      "path": "src/renderer/src/components/ui/dropdown-menu.tsx",
+      "upstream_sha256": "b20e72fd80f69767d5768bc34898b508bcf24f39b4ac44243b0a737e1279ad5f",
+      "current_sha256": "9b2dcbd44d0a29b5b566c624b690272e29f07d277855aa446331d46d30ad1df5",
+      "reason": "UI r1 S4: explicit settings scope, accessible fields and draft/portal lifecycle; dropdown-menu.tsx."
+    },
+    {
+      "path": "src/renderer/src/components/ui/popover.tsx",
+      "upstream_sha256": "8ddad9613833b8f5fc05c74e2d5728db36a27ecf620139d5d73fb54b160c266a",
+      "current_sha256": "eb49dd0f90ec53d3a9b342008abfd5499fb5aadb5629f4f5859788d183a2e42e",
+      "reason": "UI r1 S4: explicit settings scope, accessible fields and draft/portal lifecycle; popover.tsx."
+    },
+    {
+      "path": "src/renderer/src/components/ui/select.tsx",
+      "upstream_sha256": "61be2ecba5fdce29ea91e837b9228fa1b6f405974fcde84f3370f838dc2c6116",
+      "current_sha256": "37e4a70eb49e1d3a71c5808415709c72a0ffa6213aa02cf35e2371b761d49288",
+      "reason": "UI r1 S4: explicit settings scope, accessible fields and draft/portal lifecycle; select.tsx."
+    },
+    {
+      "path": "src/renderer/src/components/workspace-space/WorkspaceSpacePage.tsx",
+      "upstream_sha256": "ef9b0d529826326937d78e08e443066c3936929077bfd35b1d534e0751db9ab4",
+      "current_sha256": "6bf24cdab1e73f6e610b1e730a9a863d1a4541336e1cf3e2ba587d3191294156",
+      "reason": "UI r1 S8: native nondevelopment presentation with original actions and gates; WorkspaceSpacePage.tsx."
+    },
+    {
+      "path": "src/renderer/src/hooks/ipc-tab-switch.ts",
+      "upstream_sha256": "ff15ccd7407f8e91c213ff889ce7bf91145703ae9563f792c827ffe12c71a406",
+      "current_sha256": "8b70805a668d42d2a53a820a2e1a8d79908aef2b10a48d9d4d555ce27fcf8a34",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
+      "path": "src/renderer/src/hooks/useActiveProjectSkillRuntime.test.tsx",
+      "upstream_sha256": "e82df65359480627c9dfca39d4deb65e98304269daaec09b83597194d0c889e8",
+      "current_sha256": "e045da12aa1741689b624031a5ad83401ec5f59ac117fa4bdc272ac4565aca69",
+      "reason": "UI r1 S4: explicit settings scope, accessible fields and draft/portal lifecycle; useActiveProjectSkillRuntime.test.tsx."
+    },
+    {
+      "path": "src/renderer/src/hooks/useActiveProjectSkillRuntime.ts",
+      "upstream_sha256": "a13cd6247c98c923a51d2a1e8dfc7f677f247d16ee099c150f25c32f2a9683f9",
+      "current_sha256": "bab89980f7df14c3967dbbb6efb00d51b50d0f637eb993ba3e6d20d59b8597c7",
+      "reason": "UI r1 S4: explicit settings scope, accessible fields and draft/portal lifecycle; useActiveProjectSkillRuntime.ts."
+    },
+    {
       "path": "src/renderer/src/hooks/useSettingsNavigationMetadata.ts",
       "upstream_sha256": "d678fed0fc0e90b83dd2e486e6bb21edffb6cf59c406d54a0f21a6fb0c592690",
       "current_sha256": "df0def1b628f9b164b4d27dfb6549ec422efff5137f90fab18a139ce5118d5a9",
@@ -327853,6 +328606,18 @@
       "upstream_sha256": "eb9a73fb7cfeb99c352004b9099159d8aa7ccb31bd7a576054c854475f86a882",
       "current_sha256": "628ca40658188ffd4863fd220557f9e143ab15e40ba70a597d37ca20f01df5da",
       "reason": "M1a-W: exact platform route selects confirmed copy in an independent namespace without marking lazy translation catalogs loaded; M1a navigation: preserve a single project workspace while integrating platform business views"
+    },
+    {
+      "path": "src/renderer/src/i18n/locales/en.json",
+      "upstream_sha256": "80d9d9800a00b8441914d0f223af22c4bbc66318ab27141506c9b33edfe35209",
+      "current_sha256": "aa852f95deee573af83a9508df03dd6cdd3fec100367ae7db87ca3d8c5b9f30d",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
+      "path": "src/renderer/src/i18n/locales/zh.json",
+      "upstream_sha256": "a7ceebd563b9c0405b9b72489d6d3386dae6fe24a7abe68d1d2185df3b1231e7",
+      "current_sha256": "e739dda326b8a410ca9d4ab625d316e4e96828574f54272aee2810d87d836389",
+      "reason": "UI r1 S8: fixed window appearance and bounded recovery/help presentation; zh.json. DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
     },
     {
       "path": "src/renderer/src/lib/agent-catalog.tsx",
@@ -327889,6 +328654,12 @@
       "upstream_sha256": "13f3173f8bec13c4b58b7bb0ceff5e0c485f5f8acc32434b22162f24b4571a86",
       "current_sha256": "495b5459c9ba911848ecad5b71465619bf6102e2a115615e7b3e8e1ba3154262",
       "reason": "Unify project ownership, task editing and native Agent activity in the integrated workspace"
+    },
+    {
+      "path": "src/renderer/src/lib/app-font-family.ts",
+      "upstream_sha256": "4bdd09061b5cff39344473aac70ac7e728d66266bcb80bd7c6353840ef28efd6",
+      "current_sha256": "454d17f0b1e8e5b72d78fe1b4390b1232a918ee81cebe10c95895207993e67fa",
+      "reason": "UI r1 S1: fixed management theme, typography and scoped primitives; app-font-family.ts."
     },
     {
       "path": "src/renderer/src/lib/app-keyboard-router.test.ts",
@@ -327933,6 +328704,12 @@
       "reason": "P4: isolate immutable remote browser context and scoped storage; preserve local behavior. P4: immutable remote context and explicit scoped storage; local behavior retained."
     },
     {
+      "path": "src/renderer/src/lib/left-sidebar-appearance.ts",
+      "upstream_sha256": "c893214c8f98e77ceffd429c6a75f4aaecc224c4f3de6420829eb5403798cfab",
+      "current_sha256": "5e63fc3674aa46199e2b369854ce65ffc3b1fb95cf7a2e148104eee3771cf804",
+      "reason": "UI r1 S1: fixed management theme, typography and scoped primitives; left-sidebar-appearance.ts."
+    },
+    {
       "path": "src/renderer/src/lib/open-in-app-catalog.tsx",
       "upstream_sha256": "e65c2ffb17d74d27d876f9797591350430903cc2e1759c94f5f9e369aa117967",
       "current_sha256": "03a80a8c228ec962be112156c87f4973b6597d8e06c53a922bf24102ff84217e",
@@ -327951,16 +328728,52 @@
       "reason": "P4: isolate immutable remote browser context and scoped storage; preserve local behavior. P4: immutable remote context and explicit scoped storage; local behavior retained."
     },
     {
+      "path": "src/renderer/src/lib/settings-navigation-types.ts",
+      "upstream_sha256": "5d1fb5fdfb86863799802f9aa5ecb70a5a7a21549ac4eed330e74d21a3945f39",
+      "current_sha256": "6dfb4cb74e1d791f19f90ea5a5dd879a300c5ebaa682f6e1507a75258861b4dd",
+      "reason": "UI r1 S4: explicit settings scope, accessible fields and draft/portal lifecycle; settings-navigation-types.ts."
+    },
+    {
       "path": "src/renderer/src/lib/structured-agent-session-launch-persistence.ts",
       "upstream_sha256": "4d5dd411cf361d3ce11c4223d56c353ee6c7daa6966b108eba417c5f60b7972a",
       "current_sha256": "664793f10c161882edbaa0835310465e18618cb97ae87a2d851b1c403e85535e",
       "reason": "P4: isolate immutable remote browser context and scoped storage; preserve local behavior. P4: immutable remote context and explicit scoped storage; local behavior retained."
     },
     {
+      "path": "src/renderer/src/lib/tab-number-shortcuts.ts",
+      "upstream_sha256": "6405b03c3f3087c9234821851f5dde28feff8cd9058a06bee66be709e894870f",
+      "current_sha256": "377c34d4b4f2bb3fa3df2b6bfdc81567e3a1611677bc880046e9d45084d0e043",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
       "path": "src/renderer/src/lib/terminal-shortcut-capture-notification.tsx",
       "upstream_sha256": "760ddfaeb087bbdad9630971a7d27294b58268299d8cc798e192c5b8f3500299",
       "current_sha256": "a057fcbb1298f0ccf346d59cee46f3f4ed38e85b035ea361eabfa27e0a922760",
       "reason": "P4: isolate immutable remote browser context and scoped storage; preserve local behavior. P4: immutable remote context and explicit scoped storage; local behavior retained."
+    },
+    {
+      "path": "src/renderer/src/main.tsx",
+      "upstream_sha256": "ade8fa233731240d214f1b2addae8ece594f6635f89491ffb4bf4a0dcbf6a49d",
+      "current_sha256": "94dca927f7b518338e0f530dc23614fdfce878003ce15158096955d2d32132b2",
+      "reason": "UI r1 S8: fixed window appearance and bounded recovery/help presentation; main.tsx."
+    },
+    {
+      "path": "src/renderer/src/popout.tsx",
+      "upstream_sha256": "16f7b29e982a20f62f5799c36b21f725b15ac3da71af058b43b538fa1d85fce4",
+      "current_sha256": "e8cdf1ff54b87a6a1b194efb88482fcbecc3e511020348ac166128f6520c7002",
+      "reason": "UI r1 S8: fixed window appearance and bounded recovery/help presentation; popout.tsx."
+    },
+    {
+      "path": "src/renderer/src/runtime/layout-apply-send.ts",
+      "upstream_sha256": "795a251ea4b89fbd6fcdcea6ffacbd0f63e7c067cabaf1c1b68753fefa90cead",
+      "current_sha256": "3152cb4c4665fab581e8e7fda635a12b85e91fc06439ba8875e953e29708b64e",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
+      "path": "src/renderer/src/runtime/layout-owner-content-tab-open.ts",
+      "upstream_sha256": "20f8b93a9c76568030472fab419c9bac9d4d67d74b1cd04ea578fe67a909ccef",
+      "current_sha256": "203a58546ba64e86f62e8c43d67a4184ea8693e48bf9af07a4fab682c5db177d",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
     },
     {
       "path": "src/renderer/src/runtime/remote-agent-session-launch.test.ts",
@@ -327973,6 +328786,12 @@
       "upstream_sha256": "d9e3042e76a6031b29fbbb11986c3384eb68dd4547d3db638bb803a56f90d72e",
       "current_sha256": "7e944f4ced6202fb8733bb480606002cfef6f450f9b18bd72aecb3dd784ccd93",
       "reason": "Unify project ownership, task editing and native Agent activity in the integrated workspace"
+    },
+    {
+      "path": "src/renderer/src/runtime/server-layout-frame-ids.ts",
+      "upstream_sha256": "36571593ef4d76eaba44d8bdbf7e93d4276e3beae5357f764e7af75d02e05227",
+      "current_sha256": "a9356ddf0a73e524ecd74410b8dd2636bb22969d5303fc68e4ae63fb5a3f9fd2",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
     },
     {
       "path": "src/renderer/src/runtime/web-runtime-session-terminal-host-authority.test.ts",
@@ -327999,6 +328818,78 @@
       "reason": "Unify project ownership, task editing and native Agent activity in the integrated workspace"
     },
     {
+      "path": "src/renderer/src/space.tsx",
+      "upstream_sha256": "3872aa7b740accfbd1b195aad6d5a6f8a5edcf606608398df80140e8043685af",
+      "current_sha256": "09a5c299894293b7ae5c41d03ef80962ed27a286e3de52467a496ce5d306b2d1",
+      "reason": "UI r1 S8: fixed window appearance and bounded recovery/help presentation; space.tsx."
+    },
+    {
+      "path": "src/renderer/src/store/floating-workspace-panel-selector.ts",
+      "upstream_sha256": "3eab15e13fb45f4f7010d393100a96ef1e420e6846a03ab85cccb1c675494bab",
+      "current_sha256": "d90b1af1c12f080ff28eeef54db58721833b5c2d6d9632e5a7483b78779187b0",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
+      "path": "src/renderer/src/store/repos/repo-update.ts",
+      "upstream_sha256": "270d9acee929d45869f183d681c23ef5ce35f9828d61cc9062e0b8ac0f5fb4eb",
+      "current_sha256": "be04e4788c6f0e223d158b07332c98a928f1cc654b251b9137b62edd58ade8af",
+      "reason": "N1: restore native project controls and upstream presentation while preserving platform identity, project registration, draft protection and the single global account surface."
+    },
+    {
+      "path": "src/renderer/src/store/slices/editor/tabs/editor-tab-content-type.ts",
+      "upstream_sha256": "4deb3096d5df0a76f36f374a8e35e43b859a73491fa580d7b9fc091bbd5b7fb9",
+      "current_sha256": "980390f449f1567d70dd3c3c6e79bd896edadb06db31f0aec47760385284d903",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
+      "path": "src/renderer/src/store/slices/repos-project-mutations.test.ts",
+      "upstream_sha256": "107d7f522db04fd8809dee0ca0522787effa93b9dcaff5a8b690079cfeaff4e8",
+      "current_sha256": "4a9fe05e3aaf4e5f4fc783777e7e767757fdf2e80229ebd0abe17eef2b89f250",
+      "reason": "N1: restore native project controls and upstream presentation while preserving platform identity, project registration, draft protection and the single global account surface."
+    },
+    {
+      "path": "src/renderer/src/store/slices/repos-update-serialization.spec.ts",
+      "upstream_sha256": "ec1f49163e128eed121a7c2689d1adee7ef3636681b79abedec77c5c085b7842",
+      "current_sha256": "166fa844ae2c3e77f2aab26521620d3fd6bdb0d08b7d708fa853d86f2073dd29",
+      "reason": "N1: restore native project controls and upstream presentation while preserving platform identity, project registration, draft protection and the single global account surface."
+    },
+    {
+      "path": "src/renderer/src/store/slices/tabs/content-tab-close-through-layout-owner.ts",
+      "upstream_sha256": "ea52ff8f28be52115b8cc1b7d3c79849f4278ecec17cbf85d71d87bf25630410",
+      "current_sha256": "4565f9724ede53df28c15a8dedb244e486e27ae8fd032a7e4e4afb8c9eac179b",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
+      "path": "src/renderer/src/store/slices/tabs/create-tabs-slice.ts",
+      "upstream_sha256": "ebc27ff5d6dfc1653af763a3549cc61f624b390af36b104c2b0f1bc319c14449",
+      "current_sha256": "92ce8fc47f70c4ce766aa7d0b0b0e10c72b6fa0af9381568dd5d42cdeca26241",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
+      "path": "src/renderer/src/store/slices/tabs/tab-selection-contract.test.ts",
+      "upstream_sha256": "69fcd19bdc8d019919333c9fd90d39079fd67350a0fbf8802369eb53de36b883",
+      "current_sha256": "c9966f49ce36b32e99a4a54ca101ff5c759a782ea5147f23fa4004a0de71d683",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
+      "path": "src/renderer/src/store/slices/tabs/tabs-drag-preview-actions.ts",
+      "upstream_sha256": "a6c6944826c4349a652c1549f15b9d88321ea7a2d2a14d90323e77b229d18a94",
+      "current_sha256": "d27378f6e70c51e055240570bab1e4b3e54a2350469c047a236b296b38d0a565",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
+      "path": "src/renderer/src/store/slices/tabs/tabs-reconciliation.ts",
+      "upstream_sha256": "5beaa036b1065693aac37064e74b2bec97df3751c9f8dd04ed85a49baa1c6ca5",
+      "current_sha256": "ed76368cf422c5c11a655b19c0299817e51e6358701dd529ad8331552920ade6",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
+      "path": "src/renderer/src/store/slices/tabs/tabs-slice-contract.ts",
+      "upstream_sha256": "4683ece078f6e083b11b31b114c9b62a04d75c290f6b4e623598de1f51747699",
+      "current_sha256": "23a86fc3eb2c8c521d213cd6902d8eadd7546ee5ead4f6d45dd6709fa23b76b9",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
       "path": "src/renderer/src/web/main.tsx",
       "upstream_sha256": "15dfb0a6b72637f667f480272f8459140ac81aa024ae30eabddef3a689030004",
       "current_sha256": "a23649aa6631605e579bbe6c6a6008a1540f4c926f15542dc256c744b25a2c5c",
@@ -328009,6 +328900,12 @@
       "upstream_sha256": "45d9733aefd46b788b4ec300eb07ddabb649541876c6f6753446b7c952310f57",
       "current_sha256": "c290d0d8e353d89f90eddc0f77df60bc57a945e422674b42f420d41e431330b5",
       "reason": "M1a-W: product identity and same-origin asset base"
+    },
+    {
+      "path": "src/renderer/src/web/preload-api/web-git-api.ts",
+      "upstream_sha256": "0f761e9f8c81690d7b5a804fe1faad596e7e3e966a6191bc4bd19fcf1e503131",
+      "current_sha256": "5adcf004d298e91e7a2fba0444fd333ed90bd12de7466cce27e27154e7d16173",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
     },
     {
       "path": "src/renderer/src/web/preload-api/web-keybindings-api.ts",
@@ -328033,6 +328930,12 @@
       "upstream_sha256": "4713b98be31fe678e656a1d48355ce11bb309ca816d5912e522ab55c25b62f4d",
       "current_sha256": "7bfc266520f68ff60bafdbfdb7cf4b0f154d28abdbee8f020baf66897efcd965",
       "reason": "Keep sidebar visibility browser-local and use narrow-screen defaults without overriding explicit preferences P4: immutable remote context and explicit scoped storage; local behavior retained."
+    },
+    {
+      "path": "src/renderer/src/web/preload-api/web-runtime-calls.ts",
+      "upstream_sha256": "8d5ae359c9c95e649250cdc5fb10dd45c2d306f7ee80eb997b7a79e140cda272",
+      "current_sha256": "16021f070100f478f4f832da29672d8bfe7279a11a2fb310782efbdc72181c4f",
+      "reason": "N1: restore native project controls and upstream presentation while preserving platform identity, project registration, draft protection and the single global account surface."
     },
     {
       "path": "src/renderer/src/web/preload-api/web-runtime-credentials.ts",
@@ -328119,6 +329022,30 @@
       "reason": "Project-progress: expose the optional read-only status-hook capability without changing source settings or writable launch-settings schema."
     },
     {
+      "path": "src/shared/git-history-real-repository.test.ts",
+      "upstream_sha256": "63540b6771e2bca9d7ac744cbd1a88a7464e596c885195df892174d69b608022",
+      "current_sha256": "ce1abeb2b134614a5fa1dda9b3bc5d6fccabc39748ac3acfd347150960730b8f",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
+      "path": "src/shared/git-history-types.ts",
+      "upstream_sha256": "37057b1e9f08a72065a4aa869041c9d2d23a4fce9bf335b5337dc43d610f7836",
+      "current_sha256": "bbea6af6c405bc797e926af83133ef9dd4d9409d5d2726674b864145052b39b6",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
+      "path": "src/shared/git-history.test.ts",
+      "upstream_sha256": "58adbc3838e16a82b8b2ec59a6fa63fe30eab12c7238cc5783ebeadc292105cf",
+      "current_sha256": "c30edfda872bd0243f27663e45c99de68e07fa4bfc34c085c4f65f13c448b7c7",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
+      "path": "src/shared/git-history.ts",
+      "upstream_sha256": "0b4738c41eb68ff728ed863419b8bbe9b5171fcb1b925b8180d6c6c0dc71a5fd",
+      "current_sha256": "d32339a2e7ab2e0e16b3c5e4cbee56ddcf0502bd742036e3359b17863cbd6ca6",
+      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
       "path": "src/shared/mobile-relay-pairing-fixtures.ts",
       "upstream_sha256": "8bc0304cd786c336a572e9f77287a237582a5b0d9dfc85a5cc6f68929d96c6f8",
       "current_sha256": "e440204215b47fc683fd884bdabe8279c72af0df3d550247821412143afc3d3e",
@@ -328153,840 +329080,6 @@
       "upstream_sha256": "2001224fdbce605a7f6eedd2f840b1d50bd73f9893ec12675bf02c198f4c3dd6",
       "current_sha256": "113dc27f5fcc93db020c31be8f2d6fd7bf0677ce4a4687629f07f6846d7d1d81",
       "reason": "Restore the fixed upstream synthetic fixture with reserved documentation endpoints and generic example paths."
-    },
-    {
-      "path": "vite.web.config.ts",
-      "upstream_sha256": "ee91ccdb61743a54d9bc8fe4a05e1660026659539357fb3a5602900e530ea10c",
-      "current_sha256": "861dfbaa0b465a36610e00e524807f30e72a70b4eb86769701ff05af1dc26b1c",
-      "reason": "S2: disable marketing wall and emit Vite manifest; S6: resolve the exact @xterm/addon-ligatures import to its published browser-safe UMD main instead of the Node-dependent ESM entry; preserve all other aliases"
-    },
-    {
-      "path": "src/renderer/src/app-shell/use-document-appearance.ts",
-      "upstream_sha256": "202dde89806666b3cf79d44dc0da968d99ab40d89dd70406f2c608c40a6b3b95",
-      "current_sha256": "cb46333d04f88b787805e94401ad350db6baf9f8f8330dae4f6404a9e23fbb71",
-      "reason": "UI r1 S1: fixed management theme, typography and scoped primitives; use-document-appearance.ts."
-    },
-    {
-      "path": "src/renderer/src/assets/main.css",
-      "upstream_sha256": "144736d3a3bc065d2fda3761b2e81c2ae8e8368ba125da5e0c4bea1be1f8d1a7",
-      "current_sha256": "d08f8a9c94c17ab83b61f848aa5c9119cc1d09ca2fb440d1e736fbfeefa05f5e",
-      "reason": "N1: restore native project controls and upstream presentation while preserving platform identity, project registration, draft protection and the single global account surface."
-    },
-    {
-      "path": "src/renderer/src/components/FirstLaunchBanner.tsx",
-      "upstream_sha256": "6df9a7d3468bb17b081eb56e7f6a3a6f850c52ef489484313a7f0e788f9163d4",
-      "current_sha256": "bd532226640e1059f05633a687d70b9490410fd2ebc5280877fbc38917d4c1ce",
-      "reason": "UI r1 S8: fixed window appearance and bounded recovery/help presentation; FirstLaunchBanner.tsx."
-    },
-    {
-      "path": "src/renderer/src/components/UpdateCard.error-card.test.tsx",
-      "upstream_sha256": "16626a8e3497939a2b9866bbde03e61daea4ff00176f948cdcb82c6e119546a2",
-      "current_sha256": "1da48408ac1a146c697928cd19ef6bd2496ba59ed7f7964847330644c8e05fe6",
-      "reason": "UI r1 S8: fixed window appearance and bounded recovery/help presentation; UpdateCard.error-card.test.tsx."
-    },
-    {
-      "path": "src/renderer/src/components/UpdateCard.tsx",
-      "upstream_sha256": "6d0e432f2cf371a18a51aac923b08613eb5d11a0a7391b15ce62145197445a45",
-      "current_sha256": "f2920393f44a96051e8cc76e80e701d613bbf63f1a6a2442090d8d6e4a4f020f",
-      "reason": "UI r1 S8: fixed window appearance and bounded recovery/help presentation; UpdateCard.tsx."
-    },
-    {
-      "path": "src/renderer/src/components/activity/ActivityTitlebarControls.tsx",
-      "upstream_sha256": "35f678e293e03c47f16152cc41a39656f00934582cd17f3b33a2235d8341207e",
-      "current_sha256": "c0d38b86363e431e5ea2d09ba30c19f5fd74daa7aaacd1f49bcbf3e37d5091d5",
-      "reason": "UI r1 S8: native nondevelopment presentation with original actions and gates; ActivityTitlebarControls.tsx."
-    },
-    {
-      "path": "src/renderer/src/components/activity/activity-auto-mark-read-loop.react185.test.tsx",
-      "upstream_sha256": "598155b19e9bcdad4d501d63748b1b6e74044147da48d1f6739a647db199cca1",
-      "current_sha256": "e47b3b64459af75e5578ce2e5b3d81d421ec1db9b9f53f6e0c25b6e528e8d629",
-      "reason": "UI r1 S8: native nondevelopment presentation with original actions and gates; activity-auto-mark-read-loop.react185.test.tsx."
-    },
-    {
-      "path": "src/renderer/src/components/activity/activity-thread-row.tsx",
-      "upstream_sha256": "cf15340c75c52cc69cbb9c6b69a92396c2bad4939d29528f8686bd37ddcdc2d9",
-      "current_sha256": "ef370c002da6e83011044344c594940101a2c9d573cbefe152c65f62ad16e7f8",
-      "reason": "UI r1 S8: native nondevelopment presentation with original actions and gates; activity-thread-row.tsx."
-    },
-    {
-      "path": "src/renderer/src/components/artifacts/ArtifactCollection.tsx",
-      "upstream_sha256": "393628eeebdf0e85fd3a4a39d07a41736c690f8a403c742a6012e2241d588c4e",
-      "current_sha256": "252db7175b02942afcc4712f4676bec008f1f2253d3d59e363cc2577635ca034",
-      "reason": "UI r1 S8: native nondevelopment presentation with original actions and gates; ArtifactCollection.tsx."
-    },
-    {
-      "path": "src/renderer/src/components/artifacts/ArtifactDetailDrawer.tsx",
-      "upstream_sha256": "14022972471876b2802e8837bb1ca21b364965a82d95ff6d9a81c6e5c1df3f6e",
-      "current_sha256": "ca58defcf93654b43245a0b5a20c33863b8c4734acb718f6143fcec8ef111624",
-      "reason": "UI r1 S8: native nondevelopment presentation with original actions and gates; ArtifactDetailDrawer.tsx."
-    },
-    {
-      "path": "src/renderer/src/components/artifacts/ArtifactDetailHeader.tsx",
-      "upstream_sha256": "c6c75bc1965b14910fda3e887928c3163486f9e7c948416cdd40dbad3c206d20",
-      "current_sha256": "57f267c94fdc0516b85fd0fafb0d452d4c5f7ba66ebbb151a07967fc0e3d30b8",
-      "reason": "UI r1 S8: native nondevelopment presentation with original actions and gates; ArtifactDetailHeader.tsx."
-    },
-    {
-      "path": "src/renderer/src/components/artifacts/ArtifactsPage.test.tsx",
-      "upstream_sha256": "26ccdc33e807c16ed9701d547df91d55565a8a8139e04415700160b2d0cc74a7",
-      "current_sha256": "eebaae249f2450dff7dec50eb3d9ac974d9fd25ba6a8d204c4059b0ee1d544b0",
-      "reason": "UI r1 S8: native nondevelopment presentation with original actions and gates; ArtifactsPage.test.tsx."
-    },
-    {
-      "path": "src/renderer/src/components/artifacts/ArtifactsPage.tsx",
-      "upstream_sha256": "72d052d26836870b89c31ff4f21fc778363080c893d80aa98bdc0b81fe111f87",
-      "current_sha256": "dd093aadec89185a99b5d70e3dea94268c1049d556dab9bcf7666cc55f538bae",
-      "reason": "UI r1 S8: native nondevelopment presentation with original actions and gates; ArtifactsPage.tsx."
-    },
-    {
-      "path": "src/renderer/src/components/artifacts/ArtifactsPageStates.tsx",
-      "upstream_sha256": "b2265a249592dce37076c2fee809270ec0c1f204330042a4a4a49bd9116be5af",
-      "current_sha256": "e2ecfaef6e4bf01c98ed1b325e6053fd8e34b8ec2a55030e106febabf7f15cdd",
-      "reason": "UI r1 S8: native nondevelopment presentation with original actions and gates; ArtifactsPageStates.tsx."
-    },
-    {
-      "path": "src/renderer/src/components/artifacts/artifact-list-windowing.test.tsx",
-      "upstream_sha256": "89b2aff94f72fea6c50b204a83bb66b8ce8ea3f8f639deabf66cf411835de0a9",
-      "current_sha256": "78338843f13e7455ebde5ac35b0acdc191f3d1b588db93e3360e0be389bfe050",
-      "reason": "N1: restore native project controls and upstream presentation while preserving platform identity, project registration, draft protection and the single global account surface."
-    },
-    {
-      "path": "src/renderer/src/components/automations/AutomationDeleteDialogs.tsx",
-      "upstream_sha256": "17a085c0678a31f62c5c399102e1a6d8c2639fb4b44be25de26d62c59534583f",
-      "current_sha256": "98f75c5c9149f67060749df48fcf571bad340e4d6fdff785abaaf1f854c0e2a7",
-      "reason": "UI r1 S8: native nondevelopment presentation with original actions and gates; AutomationDeleteDialogs.tsx."
-    },
-    {
-      "path": "src/renderer/src/components/automations/AutomationEditorDialog.tsx",
-      "upstream_sha256": "de13001b37e5cccb63ba84b0210ab5544210ca73b6bca37aa29b2723affbe359",
-      "current_sha256": "df9ce11b6fb802505c7d7ef2d672ba59c4c5eca059283fb8e9ca6f269ca1b1b0",
-      "reason": "UI r1 S8: native nondevelopment presentation with original actions and gates; AutomationEditorDialog.tsx."
-    },
-    {
-      "path": "src/renderer/src/components/automations/AutomationEditorSettingsSidebar.tsx",
-      "upstream_sha256": "973d1952294622226e928a0c94cf95771b184aee18776ce5b3f50d70b3888074",
-      "current_sha256": "c10159415e7d90aede0b9e23015a087543ebe8e4022f3f9d7d01f3c499344ec9",
-      "reason": "UI r1 S8: native nondevelopment presentation with original actions and gates; AutomationEditorSettingsSidebar.tsx."
-    },
-    {
-      "path": "src/renderer/src/components/automations/AutomationsPageSurface.tsx",
-      "upstream_sha256": "116b18a372ce0d8d92a8fffa24f5af06a37a4613ab113e91dffe3fff1dffac8b",
-      "current_sha256": "8b74b669ffe6c7e37b9566c2ec587cb4bb45c0fcc00148ca21e038b07fefb6e0",
-      "reason": "UI r1 S8: native nondevelopment presentation with original actions and gates; AutomationsPageSurface.tsx."
-    },
-    {
-      "path": "src/renderer/src/components/confirmation-dialog-context.ts",
-      "upstream_sha256": "765439270d0ec7e7a5bd22a555630c2823e1a0a34155c9a817f81eeb2b8c354d",
-      "current_sha256": "75abc4df1c76f669cd13a5aaa23c75769e6d189b30132f424d1ef876c43935c8",
-      "reason": "UI r1 S4: explicit settings scope, accessible fields and draft/portal lifecycle; confirmation-dialog-context.ts."
-    },
-    {
-      "path": "src/renderer/src/components/confirmation-dialog.test.tsx",
-      "upstream_sha256": "c32e9406fde44455a4650d3f8d6a8bc06242c5a2ab9878dcbd7f8850bdde5dea",
-      "current_sha256": "4fd31614ed71b573755b7872322ea0ee6435cb55ace8fbd8c9daacc107ea2e7c",
-      "reason": "UI r1 S4: explicit settings scope, accessible fields and draft/portal lifecycle; confirmation-dialog.test.tsx."
-    },
-    {
-      "path": "src/renderer/src/components/confirmation-dialog.tsx",
-      "upstream_sha256": "eaba066a19ee9760655bab6f7049ca14a8b440efa9cd244e8a954588bf289fa0",
-      "current_sha256": "1398e5f80b2fe66a324cbc8b13a9e9d86408a8e619a0e76dff8bd2d4246aaa35",
-      "reason": "UI r1 S4: explicit settings scope, accessible fields and draft/portal lifecycle; confirmation-dialog.tsx."
-    },
-    {
-      "path": "src/renderer/src/components/crash-report/CrashReportDialogSurface.tsx",
-      "upstream_sha256": "749824822531cc7d9b16cbc5df84eb58bd4a6b3fdb9b0299fcc32d6ed65ed96e",
-      "current_sha256": "2a17b94e44f5e76ce888362f000b88033ec43cbe8c408b77072bb781594b365d",
-      "reason": "UI r1 S8: fixed window appearance and bounded recovery/help presentation; CrashReportDialogSurface.tsx."
-    },
-    {
-      "path": "src/renderer/src/components/error-boundaries/RecoverableRenderErrorBoundary.tsx",
-      "upstream_sha256": "241f296c51ca8fd0bb2d9f1c070c5284f940819ba028229a99ff4097a3687c07",
-      "current_sha256": "77ad43fb1e2780d67a82b1dc1ff4406042147c33c240a56a2c05f97ad53ed72f",
-      "reason": "UI r1 S8: fixed window appearance and bounded recovery/help presentation; RecoverableRenderErrorBoundary.tsx."
-    },
-    {
-      "path": "src/renderer/src/components/feature-tips/CmdJPaletteTipDialog.test.tsx",
-      "upstream_sha256": "295879f0983a4e58c4016b6efb12abd55daa8299e9fead1ae05e65580b6efc0d",
-      "current_sha256": "64c8bc78620671d3edef8b42b59440dd75045b95dfacd772dec1d0613d98a85e",
-      "reason": "UI r1 S8: fixed window appearance and bounded recovery/help presentation; CmdJPaletteTipDialog.test.tsx."
-    },
-    {
-      "path": "src/renderer/src/components/feature-tips/FeatureTipDialogFrame.tsx",
-      "upstream_sha256": "7acc87808c01560b22628fcfd1e5bc4d28f61e7c38c9eaefff616d968c0c9d76",
-      "current_sha256": "09b423c73ea60df4c7c31a7ceb49eab2efded929342eb8d59fa8a83d398d143b",
-      "reason": "UI r1 S8: fixed window appearance and bounded recovery/help presentation; FeatureTipDialogFrame.tsx."
-    },
-    {
-      "path": "src/renderer/src/components/feature-tips/NativeChatUpgradeTipDialog.test.tsx",
-      "upstream_sha256": "24982448e2185f592b1b63774fc7c297b34fc29a72b7d3313e341b51403dad7f",
-      "current_sha256": "8a6851509e5ffcd0f8af6a77ebe9505fd1a2e4734951ab029e0839e0a73d6875",
-      "reason": "UI r1 S8: fixed window appearance and bounded recovery/help presentation; NativeChatUpgradeTipDialog.test.tsx."
-    },
-    {
-      "path": "src/renderer/src/components/feature-tips/NativeChatUpgradeTipDialog.tsx",
-      "upstream_sha256": "1d9b0e27b1b194b92c7aed3a09a223182ae644d6634923097b46790970bb2dd4",
-      "current_sha256": "8f197393a58c7c75ba703b99101ec2dbe12db42d64dab3ea69c5bbefbe149978",
-      "reason": "UI r1 S8: fixed window appearance and bounded recovery/help presentation; NativeChatUpgradeTipDialog.tsx."
-    },
-    {
-      "path": "src/renderer/src/components/feature-tips/VoiceDictationTipDialog.test.tsx",
-      "upstream_sha256": "67359eb84aa8094e4409beb513a216191796282e3b8078c81bcbedbe1c208631",
-      "current_sha256": "2a534b97b4b2b5d1c9cf619bfe54e043ec384c5ef3a6cbb8ccfd94b912424a41",
-      "reason": "UI r1 S8: fixed window appearance and bounded recovery/help presentation; VoiceDictationTipDialog.test.tsx."
-    },
-    {
-      "path": "src/renderer/src/components/mobile/MobilePageContent.tsx",
-      "upstream_sha256": "6e619f043334fad53e6adad25931b6e712e260520e499181a3f5d951b9b42029",
-      "current_sha256": "6ee0cf2dc4b8942f38c260e63bcc126de2fe1668cbb300f9528e5537d409b42f",
-      "reason": "UI r1 S8: native nondevelopment presentation with original actions and gates; MobilePageContent.tsx."
-    },
-    {
-      "path": "src/renderer/src/components/onboarding/ThemeStep.test.ts",
-      "upstream_sha256": "04f0a48136a739d90c40616a267737c7ea898f1dc8b79c7ee37878b48025e984",
-      "current_sha256": "b7e76c26b58895611e475cbc434db1eb2b16f26394a89448146d396a8d21ff54",
-      "reason": "UI r1 S1: fixed management theme, typography and scoped primitives; ThemeStep.test.ts."
-    },
-    {
-      "path": "src/renderer/src/components/onboarding/ThemeStep.tsx",
-      "upstream_sha256": "6398b7ee3de8d2a791960cf62e442f7eead32b06cd27de88b0a67ee3b9297508",
-      "current_sha256": "717cb958a3563212ec2922aa684310f144c1afaff30c9ba4a30c322062e6e178",
-      "reason": "UI r1 S1: fixed management theme, typography and scoped primitives; ThemeStep.tsx."
-    },
-    {
-      "path": "src/renderer/src/components/onboarding/onboarding-flow-state.ts",
-      "upstream_sha256": "7dc972eb8a5e54d07704bbfcdd08b2a0452b75ffc34e7297b71ceb0c32064d27",
-      "current_sha256": "33806278eb3f3d63ea105b9baa4eb4f8009299a9388745c8e582f1aeee8b03b2",
-      "reason": "UI r1 S1: fixed management theme, typography and scoped primitives; onboarding-flow-state.ts."
-    },
-    {
-      "path": "src/renderer/src/components/onboarding/onboarding-settings-hydration.test.ts",
-      "upstream_sha256": "249ee1f19ec72743ba949ab25b5807cf5ab389695afc749056bf5b0f0987ae42",
-      "current_sha256": "d08210b31b93b6b48f7dbb64f1715d0e7a061174e6c4abbcd83ee225a08ee34f",
-      "reason": "UI r1 S1: fixed management theme, typography and scoped primitives; onboarding-settings-hydration.test.ts."
-    },
-    {
-      "path": "src/renderer/src/components/onboarding/onboarding-settings-hydration.ts",
-      "upstream_sha256": "428d614d067bbab4efbbb4846fdf9f8a0c7b5f692edbf571927487d7a18ce732",
-      "current_sha256": "632732419cb4274839ad204b20f30484850543db5c93137db2f897a7ee625391",
-      "reason": "UI r1 S1: fixed management theme, typography and scoped primitives; onboarding-settings-hydration.ts."
-    },
-    {
-      "path": "src/renderer/src/components/onboarding/use-onboarding-flow-persistence.ts",
-      "upstream_sha256": "052f8c4e9339cf0ceab9472853f7bab1122698644e83ee93b5ff034b53747d56",
-      "current_sha256": "c9bc3beb331d28bfaf88f5f3b1562a78d7ec9979bd256f43fbe50d87e5c8f400",
-      "reason": "UI r1 S1: fixed management theme, typography and scoped primitives; use-onboarding-flow-persistence.ts."
-    },
-    {
-      "path": "src/renderer/src/components/onboarding/use-onboarding-flow.test.ts",
-      "upstream_sha256": "e6801f220f09c03b1b3aadd8997c4dce8eac447fe8b195876f776335c4f1a1d8",
-      "current_sha256": "0a82b65e4ef0379945dc0b21a8b16c3edc910e4cd76d52ae3f53a650e7464f18",
-      "reason": "UI r1 S1: fixed management theme, typography and scoped primitives; use-onboarding-flow.test.ts."
-    },
-    {
-      "path": "src/renderer/src/components/onboarding/use-onboarding-flow.ts",
-      "upstream_sha256": "ed5f6201421d9135932be653ba59f935322d3643cb5a646d908862630625d9df",
-      "current_sha256": "3b4e13c9a12f75d7286cb9abc315d5ce73cbc5f3a7599b82fa71eae3077c7783",
-      "reason": "UI r1 S1: fixed management theme, typography and scoped primitives; use-onboarding-flow.ts."
-    },
-    {
-      "path": "src/renderer/src/components/settings/AppearanceInterfaceSection.tsx",
-      "upstream_sha256": "c260ccb6d5dc7223f94d315b0819b5611ebfdc3c1894b8bf11977904e1fd271c",
-      "current_sha256": "84c437fec67ca04b09f7b52a09798c67beb005d1d2aafa4b6e5dffd1f213a2de",
-      "reason": "UI r1 S1: fixed management theme, typography and scoped primitives; AppearanceInterfaceSection.tsx."
-    },
-    {
-      "path": "src/renderer/src/components/settings/AppearancePane.test.tsx",
-      "upstream_sha256": "c42a1f6b2dd497dc10dc7a73b27bcd5a9c78d7813fcb9bbea2b8cbb316e60866",
-      "current_sha256": "456376e1194bff0b5347f982584c810103f920682d36f903eec17d242a0de422",
-      "reason": "UI r1 S1: fixed management theme, typography and scoped primitives; AppearancePane.test.tsx."
-    },
-    {
-      "path": "src/renderer/src/components/settings/LeftSidebarAppearanceSetting.tsx",
-      "upstream_sha256": "f6fdcdac9cb23d31cf43c6fd9b93cf250c82184bef696e1f7a33aac9d53a9f81",
-      "current_sha256": "08bb59ad471849cf04e531878897665fdfbdc259ab49cc15177996ed001a9bbb",
-      "reason": "UI r1 S1: fixed management theme, typography and scoped primitives; LeftSidebarAppearanceSetting.tsx."
-    },
-    {
-      "path": "src/renderer/src/components/settings/PrivacyPane.test.ts",
-      "upstream_sha256": "8f2e8c5a6d3c6aadd9228e4ad244f806e2f60e02f7ebe5df4f63d500c6531cb8",
-      "current_sha256": "27e27fc935c6f26fb7821971e36cb9e0597f6dc0420fcd7f894091b32d0d1365",
-      "reason": "UI r1 S4: explicit settings scope, accessible fields and draft/portal lifecycle; PrivacyPane.test.ts."
-    },
-    {
-      "path": "src/renderer/src/components/settings/PrivacyPane.tsx",
-      "upstream_sha256": "6effb22642ef2a26627ad08ad1cd557de0d4b29d0476977337393b84320fc527",
-      "current_sha256": "7c4e0c83d44dadc9023b6b3420ca049b2f4e1b1130a22b0c7cd4e698d99313df",
-      "reason": "UI r1 S4: explicit settings scope, accessible fields and draft/portal lifecycle; PrivacyPane.tsx."
-    },
-    {
-      "path": "src/renderer/src/components/settings/RepositoryHookScriptSetting.tsx",
-      "upstream_sha256": "32f5108c3fea379505b1c1e230c694c78fd33ff4fc2033377c321ba0b34691cc",
-      "current_sha256": "d0a434988caf46456c2ef21ec33b4af3c9e83dcb81bb7d1f3b3a24f89151f323",
-      "reason": "UI r1 S4: explicit settings scope, accessible fields and draft/portal lifecycle; RepositoryHookScriptSetting.tsx."
-    },
-    {
-      "path": "src/renderer/src/components/settings/RepositoryHooksSection.test.ts",
-      "upstream_sha256": "3735d1d67df87a0b5b8f320db1ab9940b1bddb5fd73a66f146925b226c5347c8",
-      "current_sha256": "aa03907452a2b541c936074b17a69fa00cb2d85f59d6fac82d86f9c7ebe5bb4e",
-      "reason": "UI r1 S4: explicit settings scope, accessible fields and draft/portal lifecycle; RepositoryHooksSection.test.ts."
-    },
-    {
-      "path": "src/renderer/src/components/settings/RepositoryHooksSection.tsx",
-      "upstream_sha256": "9ca1e6d81da7a509a1d8462262668ef627fe851478360aaa7586d3f1f96e2508",
-      "current_sha256": "b31d20016984e12c307740d557423a2ef919845fea002f522fa3d01b4a236f30",
-      "reason": "UI r1 S4: explicit settings scope, accessible fields and draft/portal lifecycle; RepositoryHooksSection.tsx."
-    },
-    {
-      "path": "src/renderer/src/components/settings/RepositoryHostSetupsSection.tsx",
-      "upstream_sha256": "c6853ebc53e757cd7dcbe1ba9ff4bd83953790e115212f3e0bd27aa71b86244c",
-      "current_sha256": "e3952d6a7d029f89814e51cccad4eac1b724401fc44a689b5801a1412c67228c",
-      "reason": "UI r1 S4: explicit settings scope, accessible fields and draft/portal lifecycle; RepositoryHostSetupsSection.tsx."
-    },
-    {
-      "path": "src/renderer/src/components/settings/RepositorySourceControlAiSection.tsx",
-      "upstream_sha256": "9a06e52f59d4242a300c63959771a712e4e5672e3617a1b6167d1d8012115a39",
-      "current_sha256": "17410e163f15b8f93ba5bc527b2d961c122c0ab01e27b1a71109a2bdd70e0d6d",
-      "reason": "UI r1 S4: explicit settings scope, accessible fields and draft/portal lifecycle; RepositorySourceControlAiSection.tsx."
-    },
-    {
-      "path": "src/renderer/src/components/settings/Settings.tsx",
-      "upstream_sha256": "b814c3658c9641e587940484503f11d8ca2a6d42fdae7c86c9fa122c23bac8d7",
-      "current_sha256": "0376eaaf937d6e57a33404d437f5f717d6e8e70fe48e33914d79e58a062b6c67",
-      "reason": "N1: restore native project controls and upstream presentation while preserving platform identity, project registration, draft protection and the single global account surface."
-    },
-    {
-      "path": "src/renderer/src/components/settings/SettingsFormControls.segmented-control.test.tsx",
-      "upstream_sha256": "2ba12ea72911914910914984b3f9eb61a9333a27e3c901bcad91a32479ce6af4",
-      "current_sha256": "e66a6ca09fc9dfd8e5c353f336c3a0898e96d32abd206909443bce210541f83c",
-      "reason": "N1: restore native project controls and upstream presentation while preserving platform identity, project registration, draft protection and the single global account surface."
-    },
-    {
-      "path": "src/renderer/src/components/settings/SettingsSection.tsx",
-      "upstream_sha256": "7b34b08d41aa86fb8b077d3aa61e539fbbfc363ebeed1cb8f9a7788b182bfdd8",
-      "current_sha256": "301a703ed7f012047357af274d0fd2d0e94a6b17f10316a7c40918d49f9937bc",
-      "reason": "N1: restore native project controls and upstream presentation while preserving platform identity, project registration, draft protection and the single global account surface."
-    },
-    {
-      "path": "src/renderer/src/components/settings/SettingsSidebar.tsx",
-      "upstream_sha256": "814c08cd2e531a3109c8cc2459deb7f7bbcc3eaec8cbbf42981783d5a1972297",
-      "current_sha256": "0d9c5b698ece6c50c4b19429a381065e0adb6bacfb8c63e0545929fa415dcf96",
-      "reason": "UI r1 S4: explicit settings scope, accessible fields and draft/portal lifecycle; SettingsSidebar.tsx."
-    },
-    {
-      "path": "src/renderer/src/components/settings/appearance-search.ts",
-      "upstream_sha256": "4dd156ae13bc2bfdd1fdbc7f5b4148e65011c315b42cedbb534636f58db8152e",
-      "current_sha256": "57ff6873540c1baf079499c5265b7c5ed5bb3ad4981b6d446af709221a595562",
-      "reason": "UI r1 S1: fixed management theme, typography and scoped primitives; appearance-search.ts."
-    },
-    {
-      "path": "src/renderer/src/components/settings/chat-settings-unsaved-guard.test.tsx",
-      "upstream_sha256": "cf3cecbeac1c908efee41591b9c90ca59bced63203700aa41d49d6e46cfb424f",
-      "current_sha256": "f036fd68f69899522387a69f73e44b1fcb9a4963619588b46c6bcb52c56363f9",
-      "reason": "UI r1 S4: explicit settings scope, accessible fields and draft/portal lifecycle; chat-settings-unsaved-guard.test.tsx."
-    },
-    {
-      "path": "src/renderer/src/components/settings/repository-source-control-ai-global-ux.ts",
-      "upstream_sha256": "7900b760631e5c26f0c05807891914d15421e4c5abac5860c3b8773853482742",
-      "current_sha256": "0902de3f8f9a31e8e855bb7cabd2379374d2a46276fe578ade265f7a331e31ac",
-      "reason": "UI r1 S4: explicit settings scope, accessible fields and draft/portal lifecycle; repository-source-control-ai-global-ux.ts."
-    },
-    {
-      "path": "src/renderer/src/components/settings/settings-page-renderer.tsx",
-      "upstream_sha256": "3ea0a7e52ede96094ea76943ddcde5ca2a1378b2260cd98800986224e92b5874",
-      "current_sha256": "fe6e8766b804b184807f8535f822d7de23ec6cd335b5aead32c06077d3b5a369",
-      "reason": "UI r1 S4: explicit settings scope, accessible fields and draft/portal lifecycle; settings-page-renderer.tsx."
-    },
-    {
-      "path": "src/renderer/src/components/settings/settings-project-section-renderer.tsx",
-      "upstream_sha256": "9288399dd575700f613cd36bba8bb6fe8cf7485835565cb99f2fff8e06717683",
-      "current_sha256": "d2f2ee807a3cc6f2cb80df5aa33f73a3a17170ce43d4f152f262532c3a1d0af8",
-      "reason": "UI r1 S4: explicit settings scope, accessible fields and draft/portal lifecycle; settings-project-section-renderer.tsx."
-    },
-    {
-      "path": "src/renderer/src/components/settings/use-repository-hook-settings-draft.test.tsx",
-      "upstream_sha256": "2e1a5d41080d65a77fbbad17e04ec7909d28135b88669f2d109b42f912fb1648",
-      "current_sha256": "a781c2b7b2a8871b8225d4f18ffc842c9a913973e01992709073cc3861df9946",
-      "reason": "UI r1 S4: explicit settings scope, accessible fields and draft/portal lifecycle; use-repository-hook-settings-draft.test.tsx."
-    },
-    {
-      "path": "src/renderer/src/components/settings/use-repository-hook-settings-draft.ts",
-      "upstream_sha256": "5d150bd5cb2677f09a7dc7c42a76b8bed6c09e5b87cebd0d2a426bd3d1402802",
-      "current_sha256": "80b90ef8e023ec8e54b50f92c2c476606d2e2d046cd947f36dc2bcf4eb6904d1",
-      "reason": "UI r1 S4: explicit settings scope, accessible fields and draft/portal lifecycle; use-repository-hook-settings-draft.ts."
-    },
-    {
-      "path": "src/renderer/src/components/settings/use-settings-interaction-controller.ts",
-      "upstream_sha256": "03ef550b2d5d4f8cdabea73e066618faaa121421b61a6c7277516625e4753514",
-      "current_sha256": "ddd1462ae4796a9ab0e35333efa3033db8a53d9f4375ac71ff74602fecb6a5b0",
-      "reason": "UI r1 S4: explicit settings scope, accessible fields and draft/portal lifecycle; use-settings-interaction-controller.ts."
-    },
-    {
-      "path": "src/renderer/src/components/settings/use-settings-navigation-model.ts",
-      "upstream_sha256": "0f3d0c357e8dcba5336068d98f2372302f0038c67dce40b94f1aa69ad5dceef8",
-      "current_sha256": "778faf7dbf0f89541885ed5e872b0f8f3570aa0a853f0e11262ff1739767aead",
-      "reason": "UI r1 S4: explicit settings scope, accessible fields and draft/portal lifecycle; use-settings-navigation-model.ts."
-    },
-    {
-      "path": "src/renderer/src/components/settings/use-settings-page-effects.ts",
-      "upstream_sha256": "e42891293ce5227176f6cc95b03bd34055e4ba3fbb364045644ac98b23c7b341",
-      "current_sha256": "5fa2877d15e4ca0121a177a388e51e384a1f52ecfeafcd8c31889b2b3f4c1ed0",
-      "reason": "UI r1 S4: explicit settings scope, accessible fields and draft/portal lifecycle; use-settings-page-effects.ts."
-    },
-    {
-      "path": "src/renderer/src/components/setup-guide/SetupGuideModal.tsx",
-      "upstream_sha256": "38856d00af30c9ec9fe6f30938ba4cd3213be2bd99e458614fe43138a66ce38f",
-      "current_sha256": "8150881639c1e3c1b15aad63601029162d7149fc8be37cca52124596b295fdef",
-      "reason": "UI r1 S8: fixed window appearance and bounded recovery/help presentation; SetupGuideModal.tsx."
-    },
-    {
-      "path": "src/renderer/src/components/skills/SkillDetailDialog.tsx",
-      "upstream_sha256": "1ffaad2fbacc2ee0b05a7ff24d03405d98993080296cd7db94a4b55bd68f9d6d",
-      "current_sha256": "ce41d1682d0e120ec2bc43e6194b2c74cb2a68f1b86a6ab1d0339644e0857f17",
-      "reason": "UI r1 S8: native nondevelopment presentation with original actions and gates; SkillDetailDialog.tsx."
-    },
-    {
-      "path": "src/renderer/src/components/skills/SkillInstallDialog.tsx",
-      "upstream_sha256": "602c792896059098b16014ab450cbc3bccc29018f429a487d264fa26e83d68bf",
-      "current_sha256": "6e80d51a1c6f8fce15055f41d0176592cb00d630d0732c450c6a39e9c6f3c959",
-      "reason": "UI r1 S8: native nondevelopment presentation with original actions and gates; SkillInstallDialog.tsx."
-    },
-    {
-      "path": "src/renderer/src/components/skills/SkillInstallManagementDialog.tsx",
-      "upstream_sha256": "8876d62446ed02a09df0b0631587a812b3b1b37e1fe48a959bf8bf8d9b577842",
-      "current_sha256": "4858f862cc41ee764edd64a7400234284574a86ab642fc959e255cce612adc7c",
-      "reason": "UI r1 S8: native nondevelopment presentation with original actions and gates; SkillInstallManagementDialog.tsx."
-    },
-    {
-      "path": "src/renderer/src/components/skills/SkillRow.tsx",
-      "upstream_sha256": "6ebddc74d645310edba28182ba18b3e79b12d9a5c688bb8eb742ec73091d4b0d",
-      "current_sha256": "108c742056d01d09366f2cc30db10a514fa372f9ebd80e34e03c54be7ee99459",
-      "reason": "UI r1 S8: native nondevelopment presentation with original actions and gates; SkillRow.tsx."
-    },
-    {
-      "path": "src/renderer/src/components/skills/SkillShareDialog.tsx",
-      "upstream_sha256": "c5dacc8aa80150588bc637d86d7765252648a4979d73a0e22061499bff626281",
-      "current_sha256": "2d886c1fd80e4fb475cfd98c1bac5abb879679804d976171f6113f99de0af767",
-      "reason": "UI r1 S8: native nondevelopment presentation with original actions and gates; SkillShareDialog.tsx."
-    },
-    {
-      "path": "src/renderer/src/components/skills/SkillsPage.tsx",
-      "upstream_sha256": "96b16e328c1c0bbb55df758cee2f96a8895dca6d32e90353295f2307bdf2b2d9",
-      "current_sha256": "a6fbf9d10a8a9505f49b016d1a467db99a98a7ca5eb0d6e31e3dda41021e79a7",
-      "reason": "UI r1 S8: native nondevelopment presentation with original actions and gates; SkillsPage.tsx."
-    },
-    {
-      "path": "src/renderer/src/components/status-bar/WorkspaceSpaceManagerPanel.tsx",
-      "upstream_sha256": "27b878937a1c69d94c13febce5e4361705b1a4326eeec1381cde3c82f2b15707",
-      "current_sha256": "b8c042e6d955c0ea35ee42849d3c417d894f1471937f67c51830a3fd607e0aa2",
-      "reason": "UI r1 S8: native nondevelopment presentation with original actions and gates; WorkspaceSpaceManagerPanel.tsx."
-    },
-    {
-      "path": "src/renderer/src/components/status-bar/workspace-space-manager-toolbar.tsx",
-      "upstream_sha256": "517e94ee6cc6182b1191decfa0b370b6b420e63f66a81741f899728e1db6a9a9",
-      "current_sha256": "468e551a872f72c9cd6ea612a494b13e2442e6604b2f3f4f6c5a5c0929b2f864",
-      "reason": "UI r1 S8: native nondevelopment presentation with original actions and gates; workspace-space-manager-toolbar.tsx."
-    },
-    {
-      "path": "src/renderer/src/components/task-page/Surface.tsx",
-      "upstream_sha256": "823cbfaf26576beba35c0e018e0ad659bbfa05d51118a91512b45097e256e3db",
-      "current_sha256": "50589e48ab7c3214a62b1a637086eb17efd7260381add07131bf1fa4cff7fe19",
-      "reason": "N1: restore native project controls and upstream presentation while preserving platform identity, project registration, draft protection and the single global account surface."
-    },
-    {
-      "path": "src/renderer/src/components/ui/dropdown-menu.tsx",
-      "upstream_sha256": "b20e72fd80f69767d5768bc34898b508bcf24f39b4ac44243b0a737e1279ad5f",
-      "current_sha256": "9b2dcbd44d0a29b5b566c624b690272e29f07d277855aa446331d46d30ad1df5",
-      "reason": "UI r1 S4: explicit settings scope, accessible fields and draft/portal lifecycle; dropdown-menu.tsx."
-    },
-    {
-      "path": "src/renderer/src/components/ui/popover.tsx",
-      "upstream_sha256": "8ddad9613833b8f5fc05c74e2d5728db36a27ecf620139d5d73fb54b160c266a",
-      "current_sha256": "eb49dd0f90ec53d3a9b342008abfd5499fb5aadb5629f4f5859788d183a2e42e",
-      "reason": "UI r1 S4: explicit settings scope, accessible fields and draft/portal lifecycle; popover.tsx."
-    },
-    {
-      "path": "src/renderer/src/components/ui/select.tsx",
-      "upstream_sha256": "61be2ecba5fdce29ea91e837b9228fa1b6f405974fcde84f3370f838dc2c6116",
-      "current_sha256": "37e4a70eb49e1d3a71c5808415709c72a0ffa6213aa02cf35e2371b761d49288",
-      "reason": "UI r1 S4: explicit settings scope, accessible fields and draft/portal lifecycle; select.tsx."
-    },
-    {
-      "path": "src/renderer/src/components/workspace-space/WorkspaceSpacePage.tsx",
-      "upstream_sha256": "ef9b0d529826326937d78e08e443066c3936929077bfd35b1d534e0751db9ab4",
-      "current_sha256": "6bf24cdab1e73f6e610b1e730a9a863d1a4541336e1cf3e2ba587d3191294156",
-      "reason": "UI r1 S8: native nondevelopment presentation with original actions and gates; WorkspaceSpacePage.tsx."
-    },
-    {
-      "path": "src/renderer/src/hooks/useActiveProjectSkillRuntime.test.tsx",
-      "upstream_sha256": "e82df65359480627c9dfca39d4deb65e98304269daaec09b83597194d0c889e8",
-      "current_sha256": "e045da12aa1741689b624031a5ad83401ec5f59ac117fa4bdc272ac4565aca69",
-      "reason": "UI r1 S4: explicit settings scope, accessible fields and draft/portal lifecycle; useActiveProjectSkillRuntime.test.tsx."
-    },
-    {
-      "path": "src/renderer/src/hooks/useActiveProjectSkillRuntime.ts",
-      "upstream_sha256": "a13cd6247c98c923a51d2a1e8dfc7f677f247d16ee099c150f25c32f2a9683f9",
-      "current_sha256": "bab89980f7df14c3967dbbb6efb00d51b50d0f637eb993ba3e6d20d59b8597c7",
-      "reason": "UI r1 S4: explicit settings scope, accessible fields and draft/portal lifecycle; useActiveProjectSkillRuntime.ts."
-    },
-    {
-      "path": "src/renderer/src/i18n/locales/zh.json",
-      "upstream_sha256": "a7ceebd563b9c0405b9b72489d6d3386dae6fe24a7abe68d1d2185df3b1231e7",
-      "current_sha256": "e739dda326b8a410ca9d4ab625d316e4e96828574f54272aee2810d87d836389",
-      "reason": "UI r1 S8: fixed window appearance and bounded recovery/help presentation; zh.json. DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
-    },
-    {
-      "path": "src/renderer/src/lib/app-font-family.ts",
-      "upstream_sha256": "4bdd09061b5cff39344473aac70ac7e728d66266bcb80bd7c6353840ef28efd6",
-      "current_sha256": "454d17f0b1e8e5b72d78fe1b4390b1232a918ee81cebe10c95895207993e67fa",
-      "reason": "UI r1 S1: fixed management theme, typography and scoped primitives; app-font-family.ts."
-    },
-    {
-      "path": "src/renderer/src/lib/left-sidebar-appearance.ts",
-      "upstream_sha256": "c893214c8f98e77ceffd429c6a75f4aaecc224c4f3de6420829eb5403798cfab",
-      "current_sha256": "5e63fc3674aa46199e2b369854ce65ffc3b1fb95cf7a2e148104eee3771cf804",
-      "reason": "UI r1 S1: fixed management theme, typography and scoped primitives; left-sidebar-appearance.ts."
-    },
-    {
-      "path": "src/renderer/src/lib/settings-navigation-types.ts",
-      "upstream_sha256": "5d1fb5fdfb86863799802f9aa5ecb70a5a7a21549ac4eed330e74d21a3945f39",
-      "current_sha256": "6dfb4cb74e1d791f19f90ea5a5dd879a300c5ebaa682f6e1507a75258861b4dd",
-      "reason": "UI r1 S4: explicit settings scope, accessible fields and draft/portal lifecycle; settings-navigation-types.ts."
-    },
-    {
-      "path": "src/renderer/src/main.tsx",
-      "upstream_sha256": "ade8fa233731240d214f1b2addae8ece594f6635f89491ffb4bf4a0dcbf6a49d",
-      "current_sha256": "94dca927f7b518338e0f530dc23614fdfce878003ce15158096955d2d32132b2",
-      "reason": "UI r1 S8: fixed window appearance and bounded recovery/help presentation; main.tsx."
-    },
-    {
-      "path": "src/renderer/src/popout.tsx",
-      "upstream_sha256": "16f7b29e982a20f62f5799c36b21f725b15ac3da71af058b43b538fa1d85fce4",
-      "current_sha256": "e8cdf1ff54b87a6a1b194efb88482fcbecc3e511020348ac166128f6520c7002",
-      "reason": "UI r1 S8: fixed window appearance and bounded recovery/help presentation; popout.tsx."
-    },
-    {
-      "path": "src/renderer/src/space.tsx",
-      "upstream_sha256": "3872aa7b740accfbd1b195aad6d5a6f8a5edcf606608398df80140e8043685af",
-      "current_sha256": "09a5c299894293b7ae5c41d03ef80962ed27a286e3de52467a496ce5d306b2d1",
-      "reason": "UI r1 S8: fixed window appearance and bounded recovery/help presentation; space.tsx."
-    },
-    {
-      "path": "src/renderer/src/web/preload-api/web-runtime-calls.ts",
-      "upstream_sha256": "8d5ae359c9c95e649250cdc5fb10dd45c2d306f7ee80eb997b7a79e140cda272",
-      "current_sha256": "16021f070100f478f4f832da29672d8bfe7279a11a2fb310782efbdc72181c4f",
-      "reason": "N1: restore native project controls and upstream presentation while preserving platform identity, project registration, draft protection and the single global account surface."
-    },
-    {
-      "path": "src/renderer/src/store/repos/repo-update.ts",
-      "upstream_sha256": "270d9acee929d45869f183d681c23ef5ce35f9828d61cc9062e0b8ac0f5fb4eb",
-      "current_sha256": "be04e4788c6f0e223d158b07332c98a928f1cc654b251b9137b62edd58ade8af",
-      "reason": "N1: restore native project controls and upstream presentation while preserving platform identity, project registration, draft protection and the single global account surface."
-    },
-    {
-      "path": "src/renderer/src/store/slices/repos-project-mutations.test.ts",
-      "upstream_sha256": "107d7f522db04fd8809dee0ca0522787effa93b9dcaff5a8b690079cfeaff4e8",
-      "current_sha256": "4a9fe05e3aaf4e5f4fc783777e7e767757fdf2e80229ebd0abe17eef2b89f250",
-      "reason": "N1: restore native project controls and upstream presentation while preserving platform identity, project registration, draft protection and the single global account surface."
-    },
-    {
-      "path": "src/renderer/src/store/slices/repos-update-serialization.spec.ts",
-      "upstream_sha256": "ec1f49163e128eed121a7c2689d1adee7ef3636681b79abedec77c5c085b7842",
-      "current_sha256": "166fa844ae2c3e77f2aab26521620d3fd6bdb0d08b7d708fa853d86f2073dd29",
-      "reason": "N1: restore native project controls and upstream presentation while preserving platform identity, project registration, draft protection and the single global account surface."
-    },
-    {
-      "path": "src/renderer/src/components/settings/RepositoryPane.test.ts",
-      "upstream_sha256": "253007a426ae9e5549e1f8f545d927600d85aaf0a7cb98f84e1e6bbc2e33257c",
-      "current_sha256": "c7393d2852532a26fb9e76314135e1ffeeecf455f9797c84ced8016a3c580c38",
-      "reason": "N1: restore native project controls and upstream presentation while preserving platform identity, project registration, draft protection and the single global account surface."
-    },
-    {
-      "path": "src/renderer/src/components/settings/RepositoryRemoveProjectButton.tsx",
-      "upstream_sha256": "32d1e681e88091a9c11241db7152c1effa43b45c0f2d8822b287ba12b0cc0877",
-      "current_sha256": "7b54a0b2b92a771e4f4517b0eb68c6f67026734b45b671fb987d6a76d9a8f170",
-      "reason": "N1: restore native project controls and upstream presentation while preserving platform identity, project registration, draft protection and the single global account surface."
-    },
-    {
-      "path": "src/renderer/src/components/sidebar/RemoveFolderDialog.test.tsx",
-      "upstream_sha256": "38d0ddb99b789f6f262ac9535f869735adeed902e1b221efe12e6b345fa812f6",
-      "current_sha256": "2cd4b3d16c83f90aa354a9fa01ab2f3568fe9f859966783500b3bc3e2014dc18",
-      "reason": "N1: restore native project controls and upstream presentation while preserving platform identity, project registration, draft protection and the single global account surface."
-    },
-    {
-      "path": "src/renderer/src/components/sidebar/RemoveFolderDialog.tsx",
-      "upstream_sha256": "2be0690829cb1b6bb58042039732aa02485fb8dea9879d46fec4602d6530c002",
-      "current_sha256": "67278d8a147763babb02403bbaa9be6938efe1a00a6f3c1762ab31b21fe75144",
-      "reason": "N1: restore native project controls and upstream presentation while preserving platform identity, project registration, draft protection and the single global account surface."
-    },
-    {
-      "path": "src/main/ipc/filesystem/filesystem-git-status-handlers.ts",
-      "upstream_sha256": "0e811242c844a649983cc1f67f4c32c67711859eea4ac10d5a112666f80f5e52",
-      "current_sha256": "fae86d5596eb839b364a92c3c0a1b7cdbfc69c04bece86597148d019f2ab3819",
-      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
-    },
-    {
-      "path": "src/main/runtime/mobile-session-terminal-persistence-retirement.ts",
-      "upstream_sha256": "6f5ba7205d2651320b34428f079a34f10dae8bbb5ecd355112485b73d88ec7a2",
-      "current_sha256": "6a8db390884d5a7c1dc9280d0960842a33b6cc70a1858fef74ca524b8adfa2d6",
-      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
-    },
-    {
-      "path": "src/main/runtime/rpc/methods/git.test.ts",
-      "upstream_sha256": "08061a031157cc252f66b56c7a6c1df767689cacc182852c7dcb42404bae91de",
-      "current_sha256": "a3126fda08d4acd66e338f9b538b47a1db04c8a54f4d25a766bce48a1532a822",
-      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
-    },
-    {
-      "path": "src/main/runtime/rpc/methods/git.ts",
-      "upstream_sha256": "691f6bd1b4b666cc22b4dfff2bd0a807bb66b2d15d8e9b09bd0a043519b040e2",
-      "current_sha256": "c8ee27473ff782627cb71c17139555bb41529450758d12254b967e68f368902e",
-      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
-    },
-    {
-      "path": "src/renderer/src/components/right-sidebar/source-control/panel/panel-content.tsx",
-      "upstream_sha256": "765ed0aa6636eb4807b6e9a2fe5bafdd3b99f5c1dd103118f7c5a79ae3dc9d37",
-      "current_sha256": "7b9071cee40452f259e894609c2722fb528fb631fa2471f6702df636d5db7aea",
-      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
-    },
-    {
-      "path": "src/renderer/src/components/right-sidebar/source-control/sync/git-history-graph-svg.tsx",
-      "upstream_sha256": "cbd89fd6981e7c562a2edccdd418d6740c959304b402bf18ee0813d5430c3433",
-      "current_sha256": "b787cf4ea5022acef0580fff0db14374eb3a476d4b8ce3dfd0e72d0ccc27ea1a",
-      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
-    },
-    {
-      "path": "src/renderer/src/components/right-sidebar/source-control/sync/git-history-panel.tsx",
-      "upstream_sha256": "225b7841dee8e68728b907def0445690997d7f4641c477ae75874470c1c992b5",
-      "current_sha256": "eb4e0feb17abb9ae54d622a6128e6bb18f5d921669e5ecba40096b43a43cad36",
-      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
-    },
-    {
-      "path": "src/renderer/src/components/right-sidebar/source-control/sync/git-history-row.tsx",
-      "upstream_sha256": "e75c0a169c3a394d402917c40496d1e0a83d2108e7d967a570fe807869e63033",
-      "current_sha256": "ef1c20fa39c11b4c713e0e16a85782760d920eb7f577b1c2b08c44afaf3c88eb",
-      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
-    },
-    {
-      "path": "src/renderer/src/components/sidebar/WorkspaceKanbanDrawer.search.test.tsx",
-      "upstream_sha256": "d2a3287338f0c76a0b4f8d6c7fd377fd01305e57c77c745bd7c12ff535169815",
-      "current_sha256": "64d024c128b02c073bfdf6088c170423cc09766e93321ac5ecf7bb6558d7d240",
-      "reason": "DEV-VIEWS: reuse native workspace cards and filtering in a responsive virtualized overview alongside the existing status board."
-    },
-    {
-      "path": "src/renderer/src/components/sidebar/WorkspaceKanbanDrawer.task-status-sync.test.tsx",
-      "upstream_sha256": "d4f893ab89a5210a571e4e54cf7e216bf97b1ca5cd630416e632a7ab0a7f02a0",
-      "current_sha256": "56d0d59d7b5c652e0d9b72416541ab52e7ab0af041e27704db78fb4d639e42bf",
-      "reason": "DEV-VIEWS: reuse native workspace cards and filtering in a responsive virtualized overview alongside the existing status board."
-    },
-    {
-      "path": "src/renderer/src/components/sidebar/WorkspaceKanbanDrawer.tsx",
-      "upstream_sha256": "920027f611d436d1d954fbc963d76840fc3af246609818cd650d44cb2309c797",
-      "current_sha256": "1365e5024384a287626a4c44229e6da5694a4361d0653f62defd3a798deea541",
-      "reason": "DEV-VIEWS: reuse native workspace cards and filtering in a responsive virtualized overview alongside the existing status board."
-    },
-    {
-      "path": "src/renderer/src/components/sidebar/WorkspaceKanbanDrawerHeader.test.tsx",
-      "upstream_sha256": "6fa9493dfb4c670ced4a747a6aafccbb2cc46646a970f9852a256954ac963622",
-      "current_sha256": "5b4081c4de0d0a632a1b9b42d7820e4dcc16da673f0bbe3afb0b021c0236de8b",
-      "reason": "DEV-VIEWS: reuse native workspace cards and filtering in a responsive virtualized overview alongside the existing status board."
-    },
-    {
-      "path": "src/renderer/src/components/sidebar/WorkspaceKanbanDrawerHeader.tsx",
-      "upstream_sha256": "9fa2db6deae2ef5284ba19917c0b81f6ee6a7ffd9184d9dcb6eaa21cba5980bb",
-      "current_sha256": "9cf90c4304688efd8d28e139e607073cff7354506d5036ca57d054c927d28bd4",
-      "reason": "DEV-VIEWS: reuse native workspace cards and filtering in a responsive virtualized overview alongside the existing status board."
-    },
-    {
-      "path": "src/renderer/src/components/sidebar/WorkspaceKanbanDrawerView.tsx",
-      "upstream_sha256": "7a84d294b0d02ee48dec38b509900fe9d722b3cf57b0e5011010d765e0c10b67",
-      "current_sha256": "8d6249a330231e13cf6550fb31517d4b3d40b2b33c5635cd95c9d118bf7b0c95",
-      "reason": "DEV-VIEWS: reuse native workspace cards and filtering in a responsive virtualized overview alongside the existing status board."
-    },
-    {
-      "path": "src/renderer/src/components/tab-bar/EditorFileTab.tsx",
-      "upstream_sha256": "60b09a21efdd837a8a61f83eab168aad766764e26133310df0c711f04886b60b",
-      "current_sha256": "23aac4a1554988d1855f7a63552917bd63222ab2682d7931b05ad486d770f9ef",
-      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
-    },
-    {
-      "path": "src/renderer/src/components/tab-bar/TabBarItemRow.tsx",
-      "upstream_sha256": "df8d2fa0d2d25ab6e469bdaf22aa9c94d1b92158440e65e249a1e320ff555d43",
-      "current_sha256": "beade9925574b8091730a03d36d7f90c9bf7c9df756726cec110d6304cd99b7f",
-      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
-    },
-    {
-      "path": "src/renderer/src/components/tab-bar/group-tab-order.ts",
-      "upstream_sha256": "ca2815ecf8392fe9047bed1f93393cd4f2853e44d3398bcfd192543cfdff13c7",
-      "current_sha256": "e97d4f661b7255b5a1b51e9153b253cbb965b4642a30f815aa2573714f53af3c",
-      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
-    },
-    {
-      "path": "src/renderer/src/components/tab-bar/reconcile-order.ts",
-      "upstream_sha256": "222a532227822bba3cdcdbad8c54f735902eb842f8c71c2c4538a22eaa3fe6af",
-      "current_sha256": "e05facd53baa6a77b880280f2277992db4a60a8dae1fcefc48dbc02538048a25",
-      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
-    },
-    {
-      "path": "src/renderer/src/components/tab-bar/tab-bar-item-model.ts",
-      "upstream_sha256": "88027d3ed0671060509041c153783ab5c3ee99c55ca00863778d8498d71ec58b",
-      "current_sha256": "759dd366d87a79c4cbf55136877bd23b978154abe920a2b8899a7e0411529dbf",
-      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
-    },
-    {
-      "path": "src/renderer/src/components/tab-bar/tab-bar-item-surface.tsx",
-      "upstream_sha256": "9e32fd961c60004b91d9a4321a44cd9a6e47ced86b5ef1b0962f6222d07a94bd",
-      "current_sha256": "c9bdd5b0ae2ec03ca31f364e1354c4b26d4b4af9c5ee9deca10e72a686fbb9a5",
-      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
-    },
-    {
-      "path": "src/renderer/src/components/tab-bar/tab-bar-props.ts",
-      "upstream_sha256": "9f9e5e680f35770e72b17ac984adc69a4f95b992a8f11116146d936c64ad001b",
-      "current_sha256": "b89e8750def83f114372ff0bc0a9274abc0635122ee5fc0b10a074f1e849834b",
-      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
-    },
-    {
-      "path": "src/renderer/src/components/tab-bar/use-tab-bar-item-projection.ts",
-      "upstream_sha256": "be76f1b6ef82255a3d27a7588559edf3411f454790597a27ef98e261eac02d21",
-      "current_sha256": "d91d416663dd915f574d31fdcb169a904c03ed7642112da9eead0e9daa9adbcd",
-      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
-    },
-    {
-      "path": "src/renderer/src/components/tab-group/TabGroupPanel.tsx",
-      "upstream_sha256": "aae50835b2910b6db8b950f5af07492a9424a8275fdc7a919a9146301fb1918e",
-      "current_sha256": "4b906e19d91922012c8c20c38f534f6240cdd927c8429cab16ad6c4f53d7cba0",
-      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
-    },
-    {
-      "path": "src/renderer/src/components/tab-group/tab-drag-data.ts",
-      "upstream_sha256": "8cc0c998a46a9a9e4ecbaf573abbd8ac3fb48d09906babad23436932cdcc9a3c",
-      "current_sha256": "7137b717d920ff707422cbb8f911b7ee4d51baa3346da01e01c332e21bd21a6c",
-      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
-    },
-    {
-      "path": "src/renderer/src/components/tab-group/useTabGroupActivationCommands.ts",
-      "upstream_sha256": "e100efbab221075a2fbdf786753ea6bab20e2fa5090da4cf5ccf324752df781d",
-      "current_sha256": "150754a7981e8c3c3e402467c4b504100ce95158cad5b3fcb0a489e1c2b9774c",
-      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
-    },
-    {
-      "path": "src/renderer/src/components/tab-group/workspace-tab-close-commands.ts",
-      "upstream_sha256": "05bc89d0a6851b8e08f1268012920f8d1cc8011da3cb75f204ad800c29751dbb",
-      "current_sha256": "571145f74313b638db22c2ab7ffa5040860e6df9971e6423483af337c5c09c3a",
-      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
-    },
-    {
-      "path": "src/renderer/src/hooks/ipc-tab-switch.ts",
-      "upstream_sha256": "ff15ccd7407f8e91c213ff889ce7bf91145703ae9563f792c827ffe12c71a406",
-      "current_sha256": "8b70805a668d42d2a53a820a2e1a8d79908aef2b10a48d9d4d555ce27fcf8a34",
-      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
-    },
-    {
-      "path": "src/renderer/src/i18n/locales/en.json",
-      "upstream_sha256": "80d9d9800a00b8441914d0f223af22c4bbc66318ab27141506c9b33edfe35209",
-      "current_sha256": "aa852f95deee573af83a9508df03dd6cdd3fec100367ae7db87ca3d8c5b9f30d",
-      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
-    },
-    {
-      "path": "src/renderer/src/lib/tab-number-shortcuts.ts",
-      "upstream_sha256": "6405b03c3f3087c9234821851f5dde28feff8cd9058a06bee66be709e894870f",
-      "current_sha256": "377c34d4b4f2bb3fa3df2b6bfdc81567e3a1611677bc880046e9d45084d0e043",
-      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
-    },
-    {
-      "path": "src/renderer/src/runtime/layout-apply-send.ts",
-      "upstream_sha256": "795a251ea4b89fbd6fcdcea6ffacbd0f63e7c067cabaf1c1b68753fefa90cead",
-      "current_sha256": "3152cb4c4665fab581e8e7fda635a12b85e91fc06439ba8875e953e29708b64e",
-      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
-    },
-    {
-      "path": "src/renderer/src/runtime/layout-owner-content-tab-open.ts",
-      "upstream_sha256": "20f8b93a9c76568030472fab419c9bac9d4d67d74b1cd04ea578fe67a909ccef",
-      "current_sha256": "203a58546ba64e86f62e8c43d67a4184ea8693e48bf9af07a4fab682c5db177d",
-      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
-    },
-    {
-      "path": "src/renderer/src/runtime/server-layout-frame-ids.ts",
-      "upstream_sha256": "36571593ef4d76eaba44d8bdbf7e93d4276e3beae5357f764e7af75d02e05227",
-      "current_sha256": "a9356ddf0a73e524ecd74410b8dd2636bb22969d5303fc68e4ae63fb5a3f9fd2",
-      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
-    },
-    {
-      "path": "src/renderer/src/store/floating-workspace-panel-selector.ts",
-      "upstream_sha256": "3eab15e13fb45f4f7010d393100a96ef1e420e6846a03ab85cccb1c675494bab",
-      "current_sha256": "d90b1af1c12f080ff28eeef54db58721833b5c2d6d9632e5a7483b78779187b0",
-      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
-    },
-    {
-      "path": "src/renderer/src/store/slices/editor/tabs/editor-tab-content-type.ts",
-      "upstream_sha256": "4deb3096d5df0a76f36f374a8e35e43b859a73491fa580d7b9fc091bbd5b7fb9",
-      "current_sha256": "980390f449f1567d70dd3c3c6e79bd896edadb06db31f0aec47760385284d903",
-      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
-    },
-    {
-      "path": "src/renderer/src/store/slices/tabs/content-tab-close-through-layout-owner.ts",
-      "upstream_sha256": "ea52ff8f28be52115b8cc1b7d3c79849f4278ecec17cbf85d71d87bf25630410",
-      "current_sha256": "4565f9724ede53df28c15a8dedb244e486e27ae8fd032a7e4e4afb8c9eac179b",
-      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
-    },
-    {
-      "path": "src/renderer/src/store/slices/tabs/create-tabs-slice.ts",
-      "upstream_sha256": "ebc27ff5d6dfc1653af763a3549cc61f624b390af36b104c2b0f1bc319c14449",
-      "current_sha256": "92ce8fc47f70c4ce766aa7d0b0b0e10c72b6fa0af9381568dd5d42cdeca26241",
-      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
-    },
-    {
-      "path": "src/renderer/src/store/slices/tabs/tab-selection-contract.test.ts",
-      "upstream_sha256": "69fcd19bdc8d019919333c9fd90d39079fd67350a0fbf8802369eb53de36b883",
-      "current_sha256": "c9966f49ce36b32e99a4a54ca101ff5c759a782ea5147f23fa4004a0de71d683",
-      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
-    },
-    {
-      "path": "src/renderer/src/store/slices/tabs/tabs-drag-preview-actions.ts",
-      "upstream_sha256": "a6c6944826c4349a652c1549f15b9d88321ea7a2d2a14d90323e77b229d18a94",
-      "current_sha256": "d27378f6e70c51e055240570bab1e4b3e54a2350469c047a236b296b38d0a565",
-      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
-    },
-    {
-      "path": "src/renderer/src/store/slices/tabs/tabs-reconciliation.ts",
-      "upstream_sha256": "5beaa036b1065693aac37064e74b2bec97df3751c9f8dd04ed85a49baa1c6ca5",
-      "current_sha256": "ed76368cf422c5c11a655b19c0299817e51e6358701dd529ad8331552920ade6",
-      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
-    },
-    {
-      "path": "src/renderer/src/store/slices/tabs/tabs-slice-contract.ts",
-      "upstream_sha256": "4683ece078f6e083b11b31b114c9b62a04d75c290f6b4e623598de1f51747699",
-      "current_sha256": "23a86fc3eb2c8c521d213cd6902d8eadd7546ee5ead4f6d45dd6709fa23b76b9",
-      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
-    },
-    {
-      "path": "src/renderer/src/web/preload-api/web-git-api.ts",
-      "upstream_sha256": "0f761e9f8c81690d7b5a804fe1faad596e7e3e966a6191bc4bd19fcf1e503131",
-      "current_sha256": "5adcf004d298e91e7a2fba0444fd333ed90bd12de7466cce27e27154e7d16173",
-      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
-    },
-    {
-      "path": "src/shared/git-history-real-repository.test.ts",
-      "upstream_sha256": "63540b6771e2bca9d7ac744cbd1a88a7464e596c885195df892174d69b608022",
-      "current_sha256": "ce1abeb2b134614a5fa1dda9b3bc5d6fccabc39748ac3acfd347150960730b8f",
-      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
-    },
-    {
-      "path": "src/shared/git-history-types.ts",
-      "upstream_sha256": "37057b1e9f08a72065a4aa869041c9d2d23a4fce9bf335b5337dc43d610f7836",
-      "current_sha256": "bbea6af6c405bc797e926af83133ef9dd4d9409d5d2726674b864145052b39b6",
-      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
-    },
-    {
-      "path": "src/shared/git-history.test.ts",
-      "upstream_sha256": "58adbc3838e16a82b8b2ec59a6fa63fe30eab12c7238cc5783ebeadc292105cf",
-      "current_sha256": "c30edfda872bd0243f27663e45c99de68e07fa4bfc34c085c4f65f13c448b7c7",
-      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
-    },
-    {
-      "path": "src/shared/git-history.ts",
-      "upstream_sha256": "0b4738c41eb68ff728ed863419b8bbe9b5171fcb1b925b8180d6c6c0dc71a5fd",
-      "current_sha256": "d32339a2e7ab2e0e16b3c5e4cbee56ddcf0502bd742036e3359b17863cbd6ca6",
-      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
     },
     {
       "path": "src/shared/rpc-contract/git-params.ts",
@@ -329035,6 +329128,12 @@
       "upstream_sha256": "5d889e2683bb191754dad6801cd6a0c75b69a8c4595430e17feb4a3b1013cdf6",
       "current_sha256": "65f5b99971c2eb9c9cc5d97b0e157eda19fa958e1b627d249895a24e03a2d325",
       "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
+    },
+    {
+      "path": "vite.web.config.ts",
+      "upstream_sha256": "ee91ccdb61743a54d9bc8fe4a05e1660026659539357fb3a5602900e530ea10c",
+      "current_sha256": "861dfbaa0b465a36610e00e524807f30e72a70b4eb86769701ff05af1dc26b1c",
+      "reason": "S2: disable marketing wall and emit Vite manifest; S6: resolve the exact @xterm/addon-ligatures import to its published browser-safe UMD main instead of the Node-dependent ESM entry; preserve all other aliases"
     }
   ],
   "reviewed_findings": [

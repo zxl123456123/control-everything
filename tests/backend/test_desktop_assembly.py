@@ -21,21 +21,69 @@ from control_everything.integrations.workbench_runtime import RuntimeConfig, Wor
 
 
 class DesktopAssemblyTests(unittest.TestCase):
+    def test_saved_endpoints_are_loaded_when_desktop_restarts(self):
+        with TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            config = {'engine_root': 'engine', 'build_run': 'build', 'git': 'git.exe',
+                      'ssh': 'ssh.exe', 'keygen': 'ssh-keygen.exe', 'issuer': '', 'hub_origin': ''}
+            (root / 'desktop-runtime.json').write_text(json.dumps(config))
+            files = [{'path': name} for name in ('desktop-runtime.json', 'engine/output', 'build/output', 'git.exe', 'ssh.exe', 'ssh-keygen.exe')]
+            server = Mock(profile=SimpleNamespace(data_dir=root / 'profile'))
+            saved = {'issuer': 'https://identity.example.test/realm', 'hub_origin': 'https://hub.example.test', 'storage': 'isolated'}
+            with patch('control_everything.http.desktop.manifest.verify_payload', return_value={'files': files}), \
+                 patch('control_everything.http.desktop.build_profile_server', return_value=server), \
+                 patch('control_everything.http.desktop._news_runtime', return_value={}), \
+                 patch('control_everything.http.desktop.WorkbenchAssets'), \
+                 patch('control_everything.http.desktop.WorkbenchRuntime'), \
+                 patch('control_everything.http.desktop.InitialServerConfig') as setup, \
+                 patch('control_everything.http.desktop.ConnectorConfig') as connector_config, \
+                 patch('control_everything.http.desktop.ConnectorStore') as connector_store, \
+                 patch('control_everything.http.desktop.RemoteConnector'), \
+                 patch('control_everything.http.desktop.RemoteAccount'):
+                setup.return_value.load.return_value = saved
+                desktop = build_desktop(root)
+                connector_store.assert_called_once_with(root / 'profile' / 'remote' / 'self-hosted')
+                connector_store.reset_mock()
+                setup.return_value.load.reset_mock()
+                setup.return_value.load.return_value = {**saved, 'storage': 'generation-' + 'a' * 32}
+                build_desktop(root)
+                connector_store.assert_called_once_with(root / 'profile' / 'remote' / ('generation-' + 'a' * 32))
+                connector_store.reset_mock()
+                setup.return_value.load.reset_mock()
+                setup.return_value.load.return_value = {**saved, 'storage': 'legacy'}
+                legacy = build_desktop(root)
+                connector_store.assert_called_once_with(root / 'profile' / 'remote')
+            setup.return_value.load.assert_called_once_with(None)
+            self.assertEqual(connector_config.call_args.args[:2], (saved['issuer'], saved['hub_origin']))
+            self.assertIs(desktop.server_setup, setup.return_value)
+            self.assertIsNone(legacy.server_setup)
+
     def test_installed_desktop_uses_host_environment(self):
         with TemporaryDirectory() as temporary:
             root = Path(temporary)
             config = {'engine_root': 'engine', 'build_run': 'build', 'git': 'git.exe',
                       'ssh': 'ssh.exe', 'keygen': 'ssh-keygen.exe', 'issuer': '', 'hub_origin': ''}
             (root / 'desktop-runtime.json').write_text(json.dumps(config))
-            files = [{'path': name} for name in ('desktop-runtime.json', 'engine/output', 'build/output', 'git.exe')]
+            files = [{'path': name} for name in ('desktop-runtime.json', 'engine/output', 'build/output', 'git.exe', 'ssh.exe', 'ssh-keygen.exe')]
             server = Mock(profile=SimpleNamespace(data_dir=root / 'profile'))
             with patch('control_everything.http.desktop.manifest.verify_payload', return_value={'files': files}), \
                  patch('control_everything.http.desktop.build_profile_server', return_value=server), \
                  patch('control_everything.http.desktop._news_runtime', return_value={}), \
                  patch('control_everything.http.desktop.WorkbenchAssets'), \
                  patch('control_everything.http.desktop.WorkbenchRuntime') as runtime:
-                build_desktop(root)
+                build_desktop(root, credential_root=root / 'profile' / 'workbench' / 'state' / 'credentials')
             self.assertTrue(runtime.call_args.args[0].inherit_host_environment)
+            self.assertEqual(runtime.call_args.args[0].credential_root,
+                             root / 'profile' / 'workbench' / 'state' / 'credentials')
+
+    def test_explicit_credential_directory_reaches_desktop_assembly(self):
+        from control_everything.http import desktop as module
+        with TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            selected = root / 'state' / 'credentials'
+            with patch.object(module, 'build_desktop') as build, patch.object(module.webbrowser, 'open'):
+                module.main(['--product-root', str(root), '--credential-root', str(selected)])
+            self.assertEqual(build.call_args.kwargs, {'credential_root': selected})
 
     def test_news_runtime_uses_only_manifest_registered_node_and_exact_core(self):
         with TemporaryDirectory() as temporary:
@@ -165,6 +213,13 @@ class DesktopAssemblyTests(unittest.TestCase):
         desktop.connector.connect.assert_not_called()
         desktop.tick()
         desktop.runtime.close.assert_not_called()
+
+    def test_configuration_change_blocks_background_connection_until_restart(self):
+        desktop, _ = self.setup_desktop()
+        desktop.configuration_changed = True
+        desktop.tick()
+        desktop.connector.connect.assert_not_called()
+        desktop.runtime.start.assert_not_called()
 
     def test_roots_follow_registered_main_directories_only_without_runtime_restart(self):
         desktop, root = self.setup_desktop()

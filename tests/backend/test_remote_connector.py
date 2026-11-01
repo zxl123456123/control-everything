@@ -11,7 +11,7 @@ import unittest
 from unittest.mock import Mock
 
 from control_everything.integrations.remote_connector import (
-    ConnectorConfig, RemotePeer, ConnectorError, ConnectorStore, DPAPI, RemoteConnector, DeviceKeys,
+    ConnectorConfig, RemotePeer, ConnectorError, ConnectorStore, DPAPI, RemoteConnector, DeviceKeys, InitialServerConfig,
 )
 
 from control_everything.integrations.oidc_discovery import OidcDiscovery
@@ -62,7 +62,8 @@ class Peer:
             if self.tokens:
                 value = self.tokens.pop(0)
                 if isinstance(value, Exception): raise value
-            return {"access_token": "fixture-oauth", "refresh_token": "discard-this"}
+                return value
+            return {"access_token": "fixture-oauth", "refresh_token": "discard-this", "expires_in": 3600}
         if path.endswith('/identity'):
             if self.identity_error: raise self.identity_error
             return deepcopy(self.identity)
@@ -97,6 +98,80 @@ class ConnectorConfigTests(unittest.TestCase):
                       ssh_executable=self.tool, keygen_executable=self.tool)
         values.update(overrides)
         return ConnectorConfig(**values)
+
+    def test_initial_server_config_is_one_time_and_protected(self):
+        root = Path(self.temp.name).resolve() / 'remote'
+        api = SimpleNamespace(owner=lambda _: object(), close=lambda _: None)
+        factory = lambda p: ConnectorStore(p, protector=Protector(), secure_directory=lambda _: None, api=api)
+        setup = InitialServerConfig(root, self.tool, self.tool, store_factory=factory)
+        self.assertIsNone(setup.load())
+        setup.configure('https://identity.example.test/realms/team', 'https://workbench.example.test')
+        first = setup.load()
+        stale = InitialServerConfig(root, self.tool, self.tool, store_factory=factory)
+        stale.load()
+        self.assertEqual(first['issuer'], 'https://identity.example.test/realms/team')
+        self.assertEqual(first['hub_origin'], 'https://workbench.example.test')
+        self.assertRegex(first['storage'], r'^generation-[0-9a-f]{32}$')
+        self.assertTrue((root / 'server-config.bin').read_bytes().startswith(b'PROTECTED:'))
+        old_store = factory(root / first['storage'])
+        setup.configure('https://other.example.test/realm', 'https://other.example.test')
+        second = setup.load()
+        self.assertNotEqual(first['storage'], second['storage'])
+        with self.assertRaises(ConnectorError):
+            stale.configure('https://stale.example.test/realm', 'https://stale.example.test')
+        old_store.write('credentials.bin', {'control_token': 'late-old-token'}, protected=True)
+        self.assertIsNone(factory(root / second['storage']).read('credentials.bin', protected=True))
+        self.assertEqual(old_store.read('credentials.bin', protected=True)['control_token'], 'late-old-token')
+        factory(root / second['storage']).write('pending.json', {'operation': 'bind'})
+        with self.assertRaises(ConnectorError):
+            setup.configure('https://third.example.test/realm', 'https://third.example.test')
+        self.assertEqual(setup.load(), second)
+
+    def test_reconfiguration_rejects_saved_credentials_and_recovery(self):
+        for name in ('credentials.bin', 'account-oauth.json', 'pending.json', 'revocation.json', 'revocation_requested.json'):
+            root = Path(self.temp.name) / ('reconfigure-' + name.replace('.', '-'))
+            factory = lambda p: ConnectorStore(p, protector=Protector(), secure_directory=lambda _: None,
+                                                api=SimpleNamespace(owner=lambda _: object(), close=lambda _: None))
+            setup = InitialServerConfig(root, self.tool, self.tool, store_factory=factory)
+            setup.configure('https://identity.example.test/realm', 'https://workbench.example.test')
+            first = setup.load()
+            state = factory(root / first['storage'])
+            state.write(name, {'fixture': True}, protected=name.endswith('.bin') or name == 'account-oauth.json')
+            with self.subTest(name=name), self.assertRaises(ConnectorError):
+                setup.configure('https://other.example.test/realm', 'https://other.example.test')
+            self.assertEqual(setup.load(), first)
+
+    def test_initial_server_config_rejects_existing_state_and_invalid_urls(self):
+        for name in ('credentials.bin', 'account-oauth.json', 'pending.json', 'revocation.json', 'installation.json'):
+            root = Path(self.temp.name).resolve() / name.replace('.', '-')
+            root.mkdir()
+            (root / name).write_bytes(b'fixture')
+            factory = lambda p: ConnectorStore(p, protector=Protector(), secure_directory=lambda _: None,
+                                                api=SimpleNamespace(owner=lambda _: object(), close=lambda _: None))
+            setup = InitialServerConfig(root, self.tool, self.tool, store_factory=factory)
+            with self.subTest(name=name), self.assertRaises(ConnectorError):
+                setup.configure('https://identity.example.test/realm', 'https://workbench.example.test')
+            self.assertFalse((root / 'server-config.bin').exists())
+        with self.assertRaises(ValueError):
+            InitialServerConfig(Path(self.temp.name) / 'new', self.tool, self.tool).configure('https://user:secret@identity.example.test', 'https://workbench.example.test')
+
+    def test_embedded_endpoints_pin_legacy_profile_without_changing_credentials(self):
+        root = Path(self.temp.name).resolve() / 'legacy'
+        root.mkdir()
+        (root / 'credentials.bin').write_bytes(b'legacy-protected-credential')
+        factory = lambda p: ConnectorStore(p, protector=Protector(), secure_directory=lambda _: None,
+                                            api=SimpleNamespace(owner=lambda _: object(), close=lambda _: None))
+        setup = InitialServerConfig(root, self.tool, self.tool, store_factory=factory)
+        embedded = {'issuer': 'https://identity.example.test/realm', 'hub_origin': 'https://workbench.example.test'}
+        saved = {**embedded, 'storage': 'legacy'}
+        self.assertEqual(setup.load(embedded), saved)
+        self.assertEqual(setup.load(), saved)
+        self.assertEqual((root / 'credentials.bin').read_bytes(), b'legacy-protected-credential')
+        with self.assertRaises(ConnectorError):
+            setup.load({**embedded, 'hub_origin': 'https://other.example.test'})
+        with self.assertRaises(ConnectorError):
+            setup.configure(embedded['issuer'], embedded['hub_origin'])
+        self.assertEqual(setup.load(), saved)
 
     def test_any_https_issuer_path_is_preserved(self):
         for path in ('', '/realms/team', '/identity/realms/control-everything', '/auth/realms/team', '/application/o/workbench',
@@ -192,6 +267,41 @@ class ConnectorTests(unittest.TestCase):
         self.connector._stop = ClockStop(self.clock)
 
     def authorize(self): self.connector._authorize()
+
+    def test_confirmation_renews_expired_device_access_and_keeps_tokens_private(self):
+        self.peer.tokens = [{'access_token': 'old-access', 'refresh_token': 'first-refresh', 'expires_in': 60}]
+        self.authorize()
+        self.clock[0] += 90
+        self.peer.tokens = [{'access_token': 'new-access', 'refresh_token': 'rotated-refresh', 'expires_in': 60}]
+        self.connector.confirm()
+        refreshes = [call for call in self.peer.calls if call[1] == '/token' and call[2]['grant_type'] == 'refresh_token']
+        self.assertEqual(len(refreshes), 1)
+        self.assertEqual(refreshes[0][2]['refresh_token'], 'first-refresh')
+        enrollments = [call for call in self.peer.calls if call[1].endswith('/enrollment') or call[1].endswith('/complete')]
+        self.assertTrue(all(call[3] == 'new-access' for call in enrollments))
+        self.assertIsNone(self.connector._oauth_refresh)
+        self.assertIsNone(self.connector._oauth_deadline)
+        self.assertNotIn('refresh', json.dumps(self.connector.status()))
+
+    def test_expired_confirmation_rejects_changed_account_before_enrollment(self):
+        self.authorize()
+        self.clock[0] += 4000
+        self.peer.identity['account']['sub'] = 'different-subject'
+        with self.assertRaisesRegex(ConnectorError, 'remote_identity_changed'):
+            self.connector.confirm()
+        self.assertFalse(any(call[1].endswith('/enrollment') for call in self.peer.calls))
+        self.connector.keys.sign.assert_not_called()
+        self.assertIsNone(self.store.read('pending.json'))
+
+    def test_failed_refresh_does_not_enroll_or_keep_refresh_credentials(self):
+        self.authorize()
+        self.clock[0] += 4000
+        self.peer.tokens = [ConnectorError('invalid_grant', 400)]
+        with self.assertRaisesRegex(ConnectorError, 'invalid_grant'):
+            self.connector.confirm()
+        self.assertFalse(any(call[1].endswith('/enrollment') for call in self.peer.calls))
+        self.connector.keys.sign.assert_not_called()
+        self.assertIsNone(self.connector._oauth_refresh)
 
     def test_status_exposes_configured_portal_without_authorization_or_credentials(self):
         status = self.connector.status()
@@ -341,6 +451,25 @@ class ConnectorTests(unittest.TestCase):
             self.authorize(); self.connector.confirm()
             self.assertIsNone(second.read('credentials.bin',protected=True))
             self.assertIsNone(second.read('pending.json'))
+
+    def test_legacy_process_binding_after_configuration_cannot_feed_isolated_connector(self):
+        isolated = ConnectorStore(self.store.root / 'self-hosted', protector=Protector(),
+                                  secure_directory=lambda p: None, api=self.store.api)
+        peer = Peer()
+        connector = RemoteConnector(self.connector.config, isolated, peer=peer, keys=self.connector.keys,
+                                    now=lambda: self.clock[0])
+        self.authorize()
+        self.connector.confirm()
+        self.store.write('account-oauth.json', {'access_token': 'legacy-account-token'}, protected=True)
+        connector.connect(1, 2)
+        self.assertEqual(peer.calls, [])
+        self.assertIsNone(isolated.read('credentials.bin', protected=True))
+        self.assertIsNone(isolated.read('account-oauth.json', protected=True))
+        isolated.write('credentials.bin', {'device_id': 'device-1', 'generation': 1,
+                       'credential_revision': 1, 'control_token': 'B' * 43}, protected=True)
+        connector.connect(1, 2, runtime_ready=False)
+        self.assertEqual(peer.calls[0][3], 'B' * 43)
+        self.assertEqual(self.store.read('credentials.bin', protected=True)['control_token'], TOKEN)
 
     def test_dpapi_current_user_roundtrip_and_tampering(self):
         protector=DPAPI(); blob=protector.protect(b'synthetic nonpersonal fixture')

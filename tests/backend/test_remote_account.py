@@ -158,3 +158,95 @@ class LocalAccountBoundaryTests(unittest.TestCase):
             handle_account(handler, "/api/desktop/account/members")
             handler.reject.assert_called_once_with(400, "invalid_request")
             handler.server.desktop_account.members.assert_not_called()
+
+    def test_initial_configuration_requires_local_controls_and_an_unconfigured_account(self):
+        from control_everything.http.workbench_remote import handle_account
+        path = '/api/desktop/account/configure'
+        body = {'issuer': 'https://identity.example.test/realm', 'hub_origin': 'https://hub.example.test'}
+        for headers in ({'Host': 'attacker.test'}, {'Origin': 'https://attacker.test'},
+                        {'X-Session-CSRF': 'wrong'}, {'X-Session-Client': 'stdio'},
+                        {'X-CE-Proxy-Token': 'proxy'}):
+            handler = self.handler(**headers)
+            handler.path = path
+            handler.server.desktop_account = None
+            handler.server.desktop = SimpleNamespace(server_setup=Mock())
+            handler.read_json_body.return_value = body
+            handle_account(handler, path, write=True)
+            handler.reject.assert_called_once_with(403, 'local_control_required')
+            handler.server.desktop.server_setup.configure.assert_not_called()
+        handler = self.handler()
+        handler.path = path
+        handler.server.desktop_account = None
+        handler.server.desktop = SimpleNamespace(server_setup=Mock())
+        handler.read_json_body.return_value = body
+        handle_account(handler, path, write=True)
+        handler.server.desktop.server_setup.configure.assert_called_once_with(body['issuer'], body['hub_origin'])
+        handler.reply.assert_called_once_with(200, {'saved': True, 'restart_required': True})
+        handler.server.desktop_account = Mock()
+        handler.server.desktop.server_setup.configure.reset_mock()
+        handle_account(handler, path, write=True)
+        handler.reject.assert_called_once_with(409, 'remote_restart_required')
+        handler.server.desktop.server_setup.configure.assert_not_called()
+
+    def test_configured_account_can_correct_only_while_unbound_and_signed_out(self):
+        from control_everything.http.workbench_remote import handle_account
+        path = '/api/desktop/account/configure'
+        for account_state, device_state, accepted in [('signed_out', 'unbound', True),
+                                                       ('signed_in', 'unbound', False),
+                                                       ('authorizing', 'unbound', False),
+                                                       ('signed_out', 'authorizing', False),
+                                                       ('signed_out', 'online', False)]:
+            handler = self.handler()
+            handler.path = path
+            handler.server.desktop = SimpleNamespace(server_setup=Mock())
+            handler.server.desktop_account.status.return_value = {'state': account_state}
+            handler.server.remote_connector = SimpleNamespace(status=Mock(return_value={'state': device_state}))
+            handler.read_json_body.return_value = {'issuer': 'https://identity.example.test/realm', 'hub_origin': 'https://hub.example.test'}
+            handle_account(handler, path, write=True)
+            with self.subTest(account=account_state, device=device_state):
+                if accepted:
+                    handler.server.desktop.server_setup.configure.assert_called_once()
+                else:
+                    handler.reject.assert_called_once_with(409, 'remote_configuration_locked')
+                    handler.server.desktop.server_setup.configure.assert_not_called()
+
+    def test_configuration_serializes_authorization_and_blocks_old_service_until_restart(self):
+        import threading
+        from control_everything.http.workbench_remote import handle_account, handle_post
+        started, release = threading.Event(), threading.Event()
+        setup = Mock()
+        def save(*_):
+            started.set()
+            if not release.wait(5):
+                raise RuntimeError('test synchronization timed out')
+        setup.configure.side_effect = save
+        desktop = SimpleNamespace(server_setup=setup, configuration_lock=threading.RLock(), configuration_changed=False)
+        account = Mock()
+        account.status.return_value = {'state': 'signed_out'}
+        connector = SimpleNamespace(status=Mock(return_value={'state': 'unbound'}),
+                                    begin_authorization=Mock(), confirm=Mock(), revoke=Mock())
+        def handler(path):
+            result = self.handler()
+            result.path = path
+            result.server.desktop = desktop
+            result.server.desktop_account = account
+            result.server.remote_connector = connector
+            return result
+        configure = handler('/api/desktop/account/configure')
+        configure.read_json_body.return_value = {'issuer': 'https://identity.example.test/realm', 'hub_origin': 'https://hub.example.test'}
+        authorize = handler('/api/desktop/account/authorize')
+        first = threading.Thread(target=handle_account, args=(configure, configure.path), kwargs={'write': True})
+        second = threading.Thread(target=handle_account, args=(authorize, authorize.path), kwargs={'write': True})
+        first.start()
+        self.assertTrue(started.wait(5))
+        second.start()
+        release.set()
+        first.join(5)
+        second.join(5)
+        self.assertFalse(first.is_alive() or second.is_alive())
+        account.authorize.assert_not_called()
+        authorize.reject.assert_called_once_with(409, 'remote_restart_required')
+        device = handler('/api/desktop/remote/authorize')
+        handle_post(device, device.path)
+        connector.begin_authorization.assert_not_called()
+        device.reject.assert_called_once_with(409, 'remote_restart_required')

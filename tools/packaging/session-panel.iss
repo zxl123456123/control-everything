@@ -55,6 +55,9 @@ type
 var
   PayloadPaths, PayloadHashes: TArrayOfString;
   BootstrapRoot, ContextFile, PreflightReceipt, Operation: String;
+  DataDirectoryChoice: TInputOptionWizardPage;
+  DataDirectoryPage: TInputDirWizardPage;
+  SelectedDataDirectory: String;
   MaintenanceHandle: THandle;
   MaintenanceHeld, BootstrapExtracted, Prepared, InstallPayload, InstallCommitted: Boolean;
   ReportSequence: Integer;
@@ -175,6 +178,8 @@ begin
   if UseInvocation then Parameters := Parameters + ' --invocation-file ' + QuoteArgument(ContextFile);
   if Payload <> '' then Parameters := Parameters + ' --payload ' + QuoteArgument(Payload);
   if Receipt <> '' then Parameters := Parameters + ' --receipt-file ' + QuoteArgument(Receipt);
+  if ((Command = 'preflight') or (Command = 'commit')) and (Operation = 'install') and (SelectedDataDirectory <> '') then
+    Parameters := Parameters + ' --desktop-data-dir ' + QuoteArgument(SelectedDataDirectory);
   Started := Exec(AddBackslash(BootstrapRoot) + 'runtime\python.exe', Parameters,
     BootstrapRoot, SW_HIDE, ewWaitUntilTerminated, ExitCode);
   if not Started then RaiseException('无法启动已校验的私有维护程序。');
@@ -252,6 +257,31 @@ begin
   Result := True;
 end;
 
+procedure InitializeWizard;
+begin
+  DataDirectoryChoice := CreateInputOptionPage(wpSelectDir, '应用数据位置',
+    '选择应用数据位置', '此安装器不会自动迁移旧数据。', True, False);
+  DataDirectoryChoice.Add('沿用原有数据目录规则');
+  DataDirectoryChoice.Add('选择自定义数据目录');
+  DataDirectoryChoice.SelectedValueIndex := 0;
+  DataDirectoryPage := CreateInputDirPage(DataDirectoryChoice.ID, '应用数据位置',
+    '选择自定义数据目录', '如选择已有目录，请先确认它是正确的应用数据目录。',
+    False, 'SessionPanelData');
+  DataDirectoryPage.Add('应用数据目录：');
+  DataDirectoryPage.Values[0] := '';
+end;
+
+function ShouldSkipPage(PageID: Integer): Boolean;
+begin
+  Result := False;
+  if (PageID = DataDirectoryChoice.ID) or (PageID = DataDirectoryPage.ID) then begin
+    if FileExists(AddBackslash(ExpandConstant('{app}')) + '.install\root.json') then
+      Result := True
+    else if PageID = DataDirectoryPage.ID then
+      Result := DataDirectoryChoice.SelectedValueIndex <> 1;
+  end;
+end;
+
 procedure EnsureDefaultParent;
 var Parent, DefaultParent, App: String;
 begin
@@ -286,6 +316,16 @@ begin
     EnsureDefaultParent;
     Operation := 'install';
     if FileExists(AddBackslash(ExpandConstant('{app}')) + '.install\root.json') then Operation := 'upgrade';
+    SelectedDataDirectory := '';
+    if (Operation = 'install') and not WizardSilent and (DataDirectoryChoice.SelectedValueIndex = 1) then begin
+      SelectedDataDirectory := Trim(DataDirectoryPage.Values[0]);
+      if SelectedDataDirectory <> '' then begin
+        if not PathIsRooted(SelectedDataDirectory) or (ExtractFileDrive(SelectedDataDirectory) = '') then
+          RaiseException('应用数据目录必须是完整的绝对路径。');
+        SelectedDataDirectory := ExpandFileName(SelectedDataDirectory);
+        RequireNoReparse(SelectedDataDirectory);
+      end;
+    end;
     ContextFile := NewReport('context');
     RunMaintenance('prepare', ContextFile, '', '', 'prepared', False);
     AcquireMaintenance;

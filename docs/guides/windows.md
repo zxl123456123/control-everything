@@ -146,6 +146,10 @@ if ($LASTEXITCODE -ne 0) { throw 'Installed acceptance failed; retain the instal
 
 另外人工核开始菜单/cmd 实际启动、真实浏览器交互、数据重启保留及适用的资讯、终端、Git、桌面返回、远端账号/设备和 SSH。源码合同、内部 Desktop 装配不证明 cmd wrapper 已运行。Win10/11 矩阵、手机现场、Android APK、未配置服务等分别标明实际覆盖，不能以一次本机成功代替。
 
+自建远程接入还需核对 Hub 配置的 `static_paths` 与本次实际运行版本。先验证载荷中的 `workbench-build/web-assets.json` 及对应文件尺寸、SHA，再将非 HTML 条目加 `/workbench/` 前缀与服务端清单比对；同时核对 `http.gateway.WEB_ASSETS`、`http.workbench.STUDIO_RESOURCES`、`http.news_reader.ASSETS` 中非 HTML 的平台资源。只补内置引擎会漏掉宠物、新闻等随后加载的脚本。按精确路径追加缺项，保留仍受支持版本的条目，不改成目录通配；服务器私有配置在服务器上备份，不加入发布附件。
+
+更新后重新加载 Hub，并在登录后的手机浏览器实际进入 `/studio`、打开自己的项目与终端。设备显示“在线”只证明连接和健康检查，不能证明页面脚本已获放行；空白页、资源加载失败、登录回调失败均应记录为未通过。安装器上传前须保存这次远程访问的实际结果。
+
 ### 5. 验收后发布
 
 1. 公开发布前确认受测提交已在 main（界面已经项目主导者确认），版本与 tag 未占用。需要远端检查时手动执行 `ci.yml` 并核同一 SHA；push 不会自动触发它。

@@ -235,6 +235,60 @@ class ConnectorStore:
         safe_path(self.root / name).unlink(missing_ok=True)
 
 
+class InitialServerConfig:
+    """Write one server identity only before any remote credentials exist."""
+    def __init__(self, root, ssh, keygen, *, store_factory=ConnectorStore):
+        self.root, self.ssh, self.keygen, self.store_factory = safe_path(root), ssh, keygen, store_factory
+        self.expected_storage = None
+
+    def load(self, embedded=None):
+        if not embedded and not safe_path(self.root / 'server-config.bin').exists():
+            return None
+        store = self.store_factory(self.root)
+        with store.locked():
+            value = store.read('server-config.bin', protected=True)
+            if value is not None:
+                if (not isinstance(value, dict) or set(value) != {'issuer', 'hub_origin', 'storage'}
+                        or not isinstance(value['storage'], str) or
+                        not re.fullmatch(r'legacy|isolated|generation-[0-9a-f]{32}', value['storage'])):
+                    raise ConnectorError('remote_state_invalid')
+                ConnectorConfig(value['issuer'], value['hub_origin'], self.ssh, self.keygen)
+                if embedded and (value['storage'] != 'legacy' or
+                                 {key: value[key] for key in embedded} != embedded):
+                    raise ConnectorError('remote_configuration_locked', 409)
+            elif embedded:
+                ConnectorConfig(embedded['issuer'], embedded['hub_origin'], self.ssh, self.keygen)
+                value = {**embedded, 'storage': 'legacy'}
+                store.write('server-config.bin', value, protected=True)
+            else:
+                raise ConnectorError('remote_state_invalid')
+        self.expected_storage = value['storage']
+        return value
+
+    def configure(self, issuer, hub_origin):
+        ConnectorConfig(issuer, hub_origin, self.ssh, self.keygen)
+        store = self.store_factory(self.root)
+        with store.locked():
+            current = store.read('server-config.bin', protected=True)
+            if (current.get('storage') if current else None) != self.expected_storage:
+                raise ConnectorError('remote_configuration_locked', 409)
+            if current is None:
+                if any(item.name != 'connector.lock' for item in store.root.iterdir()):
+                    raise ConnectorError('remote_configuration_locked', 409)
+            else:
+                storage = current.get('storage')
+                if not isinstance(storage, str) or not re.fullmatch(r'isolated|generation-[0-9a-f]{32}', storage):
+                    raise ConnectorError('remote_configuration_locked', 409)
+                previous = store.root / ('self-hosted' if storage == 'isolated' else storage)
+                if previous.exists():
+                    previous_store = self.store_factory(previous)
+                    with previous_store.locked():
+                        if any((previous / name).exists() for name in ('credentials.bin', 'account-oauth.json', 'pending.json', 'revocation.json', 'revocation_requested.json')):
+                            raise ConnectorError('remote_configuration_locked', 409)
+            store.write('server-config.bin', {'issuer': issuer, 'hub_origin': hub_origin,
+                        'storage': 'generation-' + uuid.uuid4().hex}, protected=True)
+
+
 class DeviceKeys:
     def __init__(self, executable):
         self.executable = safe_path(executable)
@@ -280,6 +334,7 @@ class RemoteConnector:
         self._stop = threading.Event()
         self._worker = None
         self._oauth = None
+        self._oauth_refresh = self._oauth_deadline = None
         self._grant = None
         self._identity = None
         self._account = None
@@ -315,6 +370,7 @@ class RemoteConnector:
             if self._worker and self._worker.is_alive():
                 raise ConnectorError("remote_authorization_in_progress")
             self._oauth = self._account = self._status_match = None
+            self._oauth_refresh = self._oauth_deadline = None
             self._stop.clear()
             self._state, self._code = "authorizing", "authorization_pending"
             self._worker = threading.Thread(target=self._authorize, name="remote-device-authorization", daemon=True)
@@ -355,6 +411,11 @@ class RemoteConnector:
                 access = token.get("access_token")
                 if not isinstance(access, str) or not access or len(access) > 32768:
                     raise ConnectorError("remote_token_invalid")
+                refresh, expires = token.get('refresh_token'), token.get('expires_in')
+                if ((refresh is not None and (not isinstance(refresh, str) or not refresh or len(refresh) > 32768))
+                        or (expires is not None and (type(expires) is not int or not 1 <= expires <= 86400))):
+                    raise ConnectorError('remote_token_invalid')
+                deadline = self.now() + expires if expires is not None else None
                 identity = self.peer.request("GET", "/remote/desktop/identity", token=access)
                 account = identity.get("account", {})
                 if (not isinstance(account.get("sub"), str) or not account["sub"]
@@ -378,6 +439,7 @@ class RemoteConnector:
                     if self._stop.is_set():
                         return
                     self._oauth = access
+                    self._oauth_refresh, self._oauth_deadline = refresh, deadline
                     self._account = {"issuer": account["issuer"], "sub": account["sub"], "name": str(account.get("name") or account["sub"])}
                     self._status_match = match
                     self._operation = "recover" if match else "bind"
@@ -386,6 +448,7 @@ class RemoteConnector:
         except (ConnectorError, ProcessError, OSError, ValueError) as error:
             with self._lock:
                 self._oauth = None
+                self._oauth_refresh = self._oauth_deadline = None
                 self._state, self._code = "unbound", getattr(error, "code", "remote_state_invalid")
         finally:
             self._grant = None
@@ -393,12 +456,37 @@ class RemoteConnector:
     def _identity_body(self):
         return {k: self._identity[k] for k in ("installation_id", "public_key")}
 
+    def _renew_enrollment_token(self):
+        # Human confirmation may outlive the short device-flow access token.
+        if self._oauth_deadline is None or self._oauth_deadline > self.now() + 30:
+            return
+        if not self._oauth_refresh:
+            raise ConnectorError('remote_authorization_required')
+        token = self.peer.request('POST', '/token', {'client_id': self.config.client_id,
+            'grant_type': 'refresh_token', 'refresh_token': self._oauth_refresh}, oauth=True)
+        access, expires = token.get('access_token'), token.get('expires_in')
+        refresh = token.get('refresh_token', self._oauth_refresh)
+        if (not isinstance(access, str) or not access or len(access) > 32768
+                or not isinstance(refresh, str) or not refresh or len(refresh) > 32768
+                or type(expires) is not int or not 1 <= expires <= 86400):
+            raise ConnectorError('remote_token_invalid')
+        identity = self.peer.request('GET', '/remote/desktop/identity', token=access)
+        account = identity.get('account', {})
+        if (not isinstance(account, dict) or account.get('issuer') != self._account['issuer']
+                or account.get('sub') != self._account['sub']):
+            raise ConnectorError('remote_identity_changed')
+        if identity.get('member_active') is not True:
+            raise ConnectorError('remote_membership_required')
+        self._oauth, self._oauth_refresh = access, refresh
+        self._oauth_deadline = self.now() + expires
+
     def confirm(self):
         with self._lock:
             if self._state != "awaiting_local_confirmation" or not self._oauth:
                 raise ConnectorError("remote_confirmation_required")
             self._state = "enrolling"
             try:
+                self._renew_enrollment_token()
                 with self.store.locked():
                     body = self._identity_body()
                     match = self._status_match
@@ -431,6 +519,7 @@ class RemoteConnector:
                 raise ConnectorError(self._code) from None
             finally:
                 self._oauth = self._account = None
+                self._oauth_refresh = self._oauth_deadline = None
 
     def _accept_reply(self, pending, reply):
         if self.store.read("pending.json") != pending:
@@ -638,4 +727,5 @@ class RemoteConnector:
                 raise ConnectorError("remote_worker_cleanup_unverified")
         with self._lock:
             self._oauth = self._account = self._grant = None
+            self._oauth_refresh = self._oauth_deadline = None
             self._disconnect()

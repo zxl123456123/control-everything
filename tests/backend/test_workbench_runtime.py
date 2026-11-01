@@ -305,6 +305,7 @@ class WorkbenchRuntimeTests(unittest.TestCase):
             'TEMP': str(host / 'tmp'), 'TMP': str(host / 'tmp'),
             'CE_WORKBENCH_PUBLIC_ORIGIN': 'https://stale.example.test',
             'CE_WORKBENCH_DEVICE_PROOF': 'stale-proof', 'CE_REMOTE_DEVICE_ID': 'stale-device',
+            'CE_WORKBENCH_CREDENTIAL_ROOT': str(host / 'stale-credentials'),
         }
         with patch.dict(os.environ, inherited):
             self.start()
@@ -318,7 +319,8 @@ class WorkbenchRuntimeTests(unittest.TestCase):
         self.assertEqual(env['CE_WORKBENCH_ISOLATED'], '1')
         self.assertEqual(env['CE_WORKBENCH_ORIGIN'], 'http://127.0.0.1:12345')
         self.assertEqual(env['ORCA_USER_DATA'], str(self.data / 'state'))
-        for key in ('CE_WORKBENCH_PUBLIC_ORIGIN', 'CE_WORKBENCH_DEVICE_PROOF', 'CE_REMOTE_DEVICE_ID'):
+        for key in ('CE_WORKBENCH_PUBLIC_ORIGIN', 'CE_WORKBENCH_DEVICE_PROOF', 'CE_REMOTE_DEVICE_ID',
+                    'CE_WORKBENCH_CREDENTIAL_ROOT'):
             self.assertNotIn(key, env)
         self.assertFalse(host.exists())
         self.assertFalse((self.data / 'home').exists())
@@ -333,6 +335,33 @@ class WorkbenchRuntimeTests(unittest.TestCase):
         self.assertEqual(env['USERPROFILE'], ambient['USERPROFILE'])
         self.assertEqual(env['CE_WORKBENCH_DEVICE_PROOF'], 'A' * 43)
         self.assertEqual(env['CE_WORKBENCH_PUBLIC_ORIGIN'], 'https://workbench.example.test')
+
+    def test_desktop_discards_case_variant_of_untrusted_credential_root(self):
+        ambient = {'SystemRoot': str(self.root / 'system'), 'USERPROFILE': str(self.root / 'user'),
+                   'ce_workbench_credential_root': str(self.root / 'untrusted')}
+        env = workbench_environment(self.data, self.engine / 'node.exe', self.config.git_executable,
+                                    'http://127.0.0.1:12345', ambient, inherit_host_environment=True)
+        self.assertNotIn('CE_WORKBENCH_CREDENTIAL_ROOT', {key.upper() for key in env})
+        self.assertEqual(env['USERPROFILE'], ambient['USERPROFILE'])
+
+    def test_explicit_credential_root_preserves_host_configuration(self):
+        selected = self.data / 'state' / 'credentials'
+        selected.mkdir(parents=True)
+        ambient = {'SystemRoot': str(self.root / 'system'), 'HOME': str(self.root / 'host'),
+                   'CLAUDE_CONFIG_DIR': str(self.root / 'host-claude'),
+                   'CE_WORKBENCH_CREDENTIAL_ROOT': str(self.root / 'untrusted')}
+        env = workbench_environment(self.data, self.root / 'node.exe', self.config.git_executable,
+                                    'http://127.0.0.1:12345', ambient, inherit_host_environment=True,
+                                    credential_root=selected)
+        self.assertEqual(env['CE_WORKBENCH_CREDENTIAL_ROOT'], str(selected))
+        self.assertEqual(env['HOME'], ambient['HOME'])
+        self.assertEqual(env['CLAUDE_CONFIG_DIR'], ambient['CLAUDE_CONFIG_DIR'])
+
+    def test_explicit_credential_root_cannot_escape_profile_or_be_missing(self):
+        for selected in (self.root, self.data / 'state', self.data / 'state' / 'missing'):
+            with self.subTest(selected=selected), self.assertRaises(WorkbenchUnavailable):
+                workbench_environment(self.data, self.root / 'node.exe', self.config.git_executable,
+                                      'http://127.0.0.1:12345', credential_root=selected)
 
     def test_system_directory_survives_legacy_pty_path_scanner(self):
         node, git = self.root / 'node/node.exe', self.root / 'git/git.exe'

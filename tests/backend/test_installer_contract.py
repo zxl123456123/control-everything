@@ -173,6 +173,31 @@ class InstallerScriptTests(unittest.TestCase):
         self.assertIn('PreflightReceipt', after)
         self.assertNotIn('session-panel.cmd', after)
 
+    def test_data_directory_is_opt_in_and_upgrade_preserves_existing_selection(self):
+        wizard = body('InitializeWizard')
+        self.assertIn('CreateInputOptionPage(wpSelectDir', wizard)
+        self.assertIn('CreateInputDirPage(DataDirectoryChoice.ID', wizard)
+        self.assertIn('DataDirectoryChoice.SelectedValueIndex := 0', wizard)
+        self.assertIn("DataDirectoryChoice.Add('沿用原有数据目录规则')", wizard)
+        self.assertIn("DataDirectoryChoice.Add('选择自定义数据目录')", wizard)
+        self.assertIn("DataDirectoryPage.Values[0] := ''", wizard)
+        self.assertIn('不会自动迁移旧数据', wizard)
+        self.assertIn("'.install\\root.json'", body('ShouldSkipPage'))
+        self.assertIn('DataDirectoryChoice.SelectedValueIndex <> 1', body('ShouldSkipPage'))
+        prepare = body('PrepareToInstall')
+        self.assertIn("SelectedDataDirectory := ''", prepare)
+        self.assertIn("(Operation = 'install') and not WizardSilent", prepare)
+        self.assertIn('(DataDirectoryChoice.SelectedValueIndex = 1)', prepare)
+        self.assertIn('PathIsRooted(SelectedDataDirectory)', prepare)
+        self.assertIn('RequireNoReparse(SelectedDataDirectory)', prepare)
+
+    def test_data_directory_is_quoted_and_sent_to_initial_preflight_and_commit(self):
+        run = body('RunMaintenance')
+        guard = "((Command = 'preflight') or (Command = 'commit')) and (Operation = 'install') and (SelectedDataDirectory <> '')"
+        self.assertIn(guard, run)
+        self.assertIn("' --desktop-data-dir ' + QuoteArgument(SelectedDataDirectory)", run)
+        self.assertLess(run.index(guard), run.index('Started := Exec'))
+
     def test_only_parent_acquires_and_releases_the_actual_mutex(self):
         acquire = body('AcquireMaintenance')
         self.assertLess(acquire.index('ConvertSecurityDescriptor'), acquire.index('NativeCreateMutex'))

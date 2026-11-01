@@ -47,6 +47,26 @@ class WorkbenchRemoteTests(unittest.TestCase):
         h=self.handler();handle_get(h,'/api/desktop/remote/authorize');h.reject.assert_called_once_with(405,'method_not_allowed')
         h=self.handler();h.client_address=('192.0.2.1',1234);handle_get(h,'/api/desktop/remote/status');h.reject.assert_called_once_with(403,'local_control_required')
         self.assertFalse(handle_get(h,'/unrelated'))
+
+    def test_unrelated_post_does_not_wait_for_configuration_lock(self):
+        import threading
+        from control_everything.http.workbench_remote import handle_account
+        handler = self.handler()
+        lock = threading.RLock()
+        handler.server.desktop = SimpleNamespace(configuration_lock=lock)
+        completed, values = threading.Event(), []
+        def route():
+            values.append(handle_post(handler, '/api/unrelated'))
+            values.append(handle_account(handler, '/api/unrelated', write=True))
+            completed.set()
+        with lock:
+            worker = threading.Thread(target=route)
+            worker.start()
+            completed_in_time = completed.wait(2)
+        worker.join(5)
+        self.assertFalse(worker.is_alive())
+        self.assertTrue(completed_in_time, 'unrelated requests waited for configuration lock')
+        self.assertEqual(values, [False, False])
     def health_handler(self):
         h=self.handler()
         h.headers=Message()

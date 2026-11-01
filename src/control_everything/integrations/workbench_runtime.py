@@ -38,6 +38,7 @@ class RuntimeConfig:
     remote_generation: int | None = None
     platform_installation_id: str | None = None
     inherit_host_environment: bool = False
+    credential_root: Path | None = None
 
 
 def safe_path(value):
@@ -83,7 +84,7 @@ def loopback_origin(value, scheme="http"):
 
 
 def workbench_environment(data_root, node, git, origin, ambient=None, *, remote_origin=None,
-                          device_proof=None, inherit_host_environment=False):
+                          device_proof=None, inherit_host_environment=False, credential_root=None):
     ambient = os.environ if ambient is None else ambient
     system = ambient.get("SystemRoot") or ambient.get("SYSTEMROOT")
     if not system or not Path(system).is_absolute():
@@ -117,9 +118,17 @@ def workbench_environment(data_root, node, git, origin, ambient=None, *, remote_
         env.update(owned)
         env["PATH"] = os.pathsep.join(filter(None, (ambient.get("PATH"), fallback_path)))
         env["CE_WORKBENCH_HOST_ENVIRONMENT"] = "1"
-        for key in ("CE_WORKBENCH_PUBLIC_ORIGIN", "CE_WORKBENCH_DEVICE_PROOF",
-                    "CE_REMOTE_DEVICE_ID", "CE_REMOTE_GENERATION", "CE_REMOTE_INSTALLATION_ID"):
-            env.pop(key, None)
+        controlled = {"CE_WORKBENCH_CREDENTIAL_ROOT", "CE_WORKBENCH_PUBLIC_ORIGIN", "CE_WORKBENCH_DEVICE_PROOF",
+                      "CE_REMOTE_DEVICE_ID", "CE_REMOTE_GENERATION", "CE_REMOTE_INSTALLATION_ID"}
+        for key in tuple(env):
+            if key.upper() in controlled:
+                env.pop(key)
+    if credential_root is not None:
+        selected = safe_path(credential_root)
+        state = safe_path(data_root / 'state')
+        if selected == state or not selected.is_relative_to(state) or not selected.is_dir():
+            raise WorkbenchUnavailable('runtime_credential_root_invalid')
+        env['CE_WORKBENCH_CREDENTIAL_ROOT'] = str(selected)
     if remote_origin is not None:
         from control_everything.integrations.remote_access import RemoteAccess
         RemoteAccess(remote_origin, device_proof)
@@ -207,7 +216,8 @@ class WorkbenchRuntime:
             raise WorkbenchUnavailable("runtime_profile_not_isolated")
         self._env = workbench_environment(data, self._node, git, self._origin,
                                          remote_origin=self.config.public_origin, device_proof=self.config.device_proof,
-                                         inherit_host_environment=self.config.inherit_host_environment)
+                                         inherit_host_environment=self.config.inherit_host_environment,
+                                         credential_root=self.config.credential_root)
         remote_identity = (self.config.remote_device_id, self.config.remote_generation, self.config.platform_installation_id)
         if any(value is not None for value in remote_identity):
             device, generation, installation = remote_identity
