@@ -329854,8 +329854,8 @@
     {
       "path": "src/cli/root-help-text-secondary.ts",
       "upstream_sha256": "3d853c3c6a1483fb25b6f5d42ec83a6c4ad5da6b199477129d74f590655a05c2",
-      "current_sha256": "5d8229c59ce4af097edc77f21318e2ce08012d284d5d923684a822c0f1fb4b44",
-      "reason": "配对链接生成解析和手机注册统一zkyq协议，迁移已保存VM配对链接并保留凭据及用户数据，更新脱敏和提示；迁移远程主机选择环境变量并防止错误路由"
+      "current_sha256": "3740965cf26908d9651b5cb0816a91406722d9f2f702a26a32c9d078ad7fed7f",
+      "reason": "配对链接生成解析和手机注册统一zkyq协议，迁移已保存VM配对链接并保留凭据及用户数据，更新脱敏和提示；迁移远程主机选择环境变量并防止错误路由；实际组合 CLI 验收移除根帮助中的源项目仓库名、维护者分支和个人目录示例，使用通用项目，保留命令语法、外部输入和完整许可"
     },
     {
       "path": "src/cli/runtime/runtime-remote-pairing.ts",
@@ -339035,13 +339035,6 @@
       "rule": "personal-home-path",
       "line": 57,
       "sha256": "73f9ecb370ce52d7706760c5999ee34514d86cf3684aa7d35bb19903f83af2ae",
-      "reason": "公开的路径模板、跨平台解析说明或通用示例；未读取本机账号/目录，保留语义并限定具体行及文件hash。"
-    },
-    {
-      "path": "src/cli/root-help-text-secondary.ts",
-      "rule": "personal-home-path",
-      "line": 175,
-      "sha256": "5d8229c59ce4af097edc77f21318e2ce08012d284d5d923684a822c0f1fb4b44",
       "reason": "公开的路径模板、跨平台解析说明或通用示例；未读取本机账号/目录，保留语义并限定具体行及文件hash。"
     },
     {

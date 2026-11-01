@@ -29,8 +29,10 @@ it.each([false, true])(
     expect(formatGroupHelp(COMMAND_SPECS, ['account'])).toContain(`${name} account <command>`)
     const output = vi.spyOn(console, 'log').mockImplementation(() => {})
     printHelp(COMMAND_SPECS)
-    expect(output.mock.calls.flat().join('\n')).toContain(`Usage: ${name} <command>`)
-    expect(output.mock.calls.flat().join('\n')).toContain(`Launch ${product}`)
+    const rootHelp = output.mock.calls.flat().join('\n')
+    expect(rootHelp).toContain(`Usage: ${name} <command>`)
+    expect(rootHelp).toContain(`Launch ${product}`)
+    expect(rootHelp).not.toMatch(/orca|ce-workbench|stably|Jinwoo-H/i)
   }
 )
 
