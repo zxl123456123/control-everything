@@ -7,14 +7,15 @@ import {
 export const REMOTE_ROOT_IDENTITY_LOCK = '.zkyq-remote-identity.lock'
 export const REMOTE_ROOT_IDENTITY_OWNER = '.identity-owner'
 export const REMOTE_ROOT_IDENTITY_RECORD = '.zkyq-root-identity.json'
+export const REMOTE_ROOT_IDENTITY_SCHEMA_VERSION = 2
 
-/** Runs only after the host-native rename, under the caller's existing install lock. */
+/** Runs under the existing install lock; Windows moves the root before entry. */
 export const REMOTE_ROOT_IDENTITY_SCRIPT = String.raw`'use strict'
 const fs = require('node:fs')
 const path = require('node:path')
 const { randomUUID } = require('node:crypto')
 const { spawnSync } = require('node:child_process')
-const [homeArg, scopeArg, expectedArg, token, mode = 'finalize'] = process.argv.slice(2)
+const [homeArg, scopeArg, expectedArg, token, mode = 'finalize', aliasesArg] = process.argv.slice(2)
 const home = path.resolve(homeArg)
 const current = path.join(home, ${JSON.stringify(RELAY_REMOTE_DIR)})
 const retired = path.join(home, ${JSON.stringify(RETIRED_RELAY_REMOTE_DIR)})
@@ -25,8 +26,18 @@ const stat = file => fs.lstatSync(file, { throwIfNoEntry: false })
 const answer = result => console.log(JSON.stringify(result))
 const scope = JSON.parse(Buffer.from(scopeArg, 'base64').toString('utf8'))
 const expected = JSON.parse(Buffer.from(expectedArg, 'base64').toString('utf8'))
+const aliases = aliasesArg === undefined ? [] : JSON.parse(Buffer.from(aliasesArg, 'base64').toString('utf8'))
 const validKey = key => typeof key === 'string' && /^(?:[a-f0-9]{16}|local|unattributed)$/.test(key)
-if (!path.isAbsolute(homeArg) || (scope !== null && !validKey(scope)) || !Array.isArray(expected) || !expected.every(validKey)) throw Error('Invalid remote root identity coordinates')
+if (!path.isAbsolute(homeArg) || (scope !== null && !validKey(scope)) || !Array.isArray(expected) || !expected.every(validKey) || !Array.isArray(aliases) || !aliases.every(key => key !== 'unattributed' && validKey(key)) || (scope === null && aliases.length)) throw Error('Invalid remote root identity coordinates')
+function readRecord(file) {
+  const saved = stat(file)
+  if (!saved) return null
+  if (!saved.isFile() || saved.size > 65536) throw Error('Remote root identity record is not a regular bounded file')
+  const record = JSON.parse(fs.readFileSync(file, 'utf8'))
+  if (![1, ${REMOTE_ROOT_IDENTITY_SCHEMA_VERSION}].includes(record.schemaVersion) || typeof record.generation !== 'string' || !Array.isArray(record.expectedScopes) || !record.expectedScopes.every(validKey) || !Array.isArray(record.retiredScopes) || !record.retiredScopes.every(validKey)) throw Error('Unsupported remote root identity record')
+  if (record.schemaVersion === ${REMOTE_ROOT_IDENTITY_SCHEMA_VERSION} && (!record.rootIdentities || typeof record.rootIdentities !== 'object' || Array.isArray(record.rootIdentities) || !Object.entries(record.rootIdentities).every(([key,value]) => validKey(key) && typeof value === 'string' && /^\d+:\d+$/.test(value)))) throw Error('Unsupported remote root identity record')
+  return record
+}
 function assertOwner() {
   const entry = stat(lock), file = stat(owner)
   if (!entry || !entry.isDirectory() || entry.isSymbolicLink() || !file || !file.isFile() || fs.readFileSync(owner, 'utf8') !== token) throw Error('Remote root identity lock ownership changed')
@@ -143,7 +154,7 @@ if (mode === 'prepare') {
     const priorRecord = path.join(retired, ${JSON.stringify(REMOTE_ROOT_IDENTITY_RECORD)})
     const prior = stat(priorRecord)
     if (prior) {
-      if (!prior.isFile() || prior.size > 65536 || JSON.parse(fs.readFileSync(priorRecord, 'utf8')).schemaVersion !== 1) throw Error('Unsupported remote root identity record')
+      readRecord(priorRecord)
       fs.renameSync(priorRecord, path.join(retired, '.zkyq-root-identity-previous-' + randomUUID() + '.json'))
     }
     if (deferred) fs.unlinkSync(current)
@@ -159,29 +170,38 @@ if (mode === 'prepare') {
     }
   }
 }
-const old = stat(retired), present = stat(current)
+let record = readRecord(recordPath)
+let old = stat(retired)
+const present = stat(current)
+// Version 1 could retire before a foreign profile owner was registered. Revalidate its receipts.
+if (!old && record?.schemaVersion === 1 && present?.isDirectory() && !present.isSymbolicLink()) {
+  fs.symlinkSync(current, retired, process.platform === 'win32' ? 'junction' : 'dir')
+  old = stat(retired)
+}
 if (!old) {
   answer({ state: 'current' })
 } else if (sameLink(current, retired) && old.isDirectory() && !old.isSymbolicLink()) {
   answer({ state: 'deferred', reason: 'open-files' })
 } else {
   if (!sameLink(retired, current) || !present?.isDirectory() || present.isSymbolicLink()) throw Error('Remote root bridge has an unexpected target')
-  let record = null
-  const saved = stat(recordPath)
-  if (saved) {
-    if (!saved.isFile() || saved.size > 65536) throw Error('Remote root identity record is not a regular bounded file')
-    record = JSON.parse(fs.readFileSync(recordPath, 'utf8'))
-    if (record.schemaVersion !== 1 || typeof record.generation !== 'string' || !Array.isArray(record.expectedScopes) || !record.expectedScopes.every(validKey) || !Array.isArray(record.retiredScopes) || !record.retiredScopes.every(validKey)) throw Error('Unsupported remote root identity record')
-  }
   const rootStat = fs.statSync(current, { bigint: true })
   const rootIdentity = rootStat.dev.toString() + ':' + rootStat.ino.toString()
-  if (!record || record.rootIdentity !== rootIdentity) record = { ...record, schemaVersion: 1, generation: randomUUID(), rootIdentity, expectedScopes: [], retiredScopes: [] }
+  if (record?.schemaVersion === 1) {
+    fs.copyFileSync(recordPath, path.join(current, '.zkyq-root-identity-previous-' + randomUUID() + '.json'), fs.constants.COPYFILE_EXCL)
+    record = { ...record, schemaVersion: ${REMOTE_ROOT_IDENTITY_SCHEMA_VERSION}, generation: randomUUID(), rootIdentities: {}, retiredScopes: [] }
+  }
+  if (!record) record = { schemaVersion: ${REMOTE_ROOT_IDENTITY_SCHEMA_VERSION}, generation: randomUUID(), rootIdentities: {}, expectedScopes: [], retiredScopes: [] }
+  if (scope !== null && record.rootIdentities[scope] && record.rootIdentities[scope] !== rootIdentity) record = { ...record, generation: randomUUID(), rootIdentities: {}, retiredScopes: [] }
+  // Device numbers are local to each client's mount, not a shared export identity.
+  record.rootIdentity = rootIdentity
+  if (scope !== null) record.rootIdentities[scope] = rootIdentity
   record.expectedScopes = [...new Set([...record.expectedScopes.filter(key => key !== 'unattributed' || expected.includes(key)), ...expected])]
   if (record.expectedScopes.length === 0) record.expectedScopes.push('unattributed')
   const verdict = oldReaders()
   if (scope !== null) {
-    record.retiredScopes = record.retiredScopes.filter(key => key !== scope)
-    if (verdict === 'exited') record.retiredScopes.push(scope)
+    const receipts = new Set([scope, ...aliases])
+    record.retiredScopes = record.retiredScopes.filter(key => !receipts.has(key))
+    if (verdict === 'exited') record.retiredScopes.push(...[...receipts].filter(key => record.expectedScopes.includes(key)))
   }
   writeRecord(record)
   if (scope === null || verdict !== 'exited' || !record.expectedScopes.every(key => key !== 'unattributed' && record.retiredScopes.includes(key))) {

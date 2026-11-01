@@ -41,11 +41,16 @@ import {
 import {
   REMOTE_ROOT_IDENTITY_LOCK,
   REMOTE_ROOT_IDENTITY_OWNER,
+  REMOTE_ROOT_IDENTITY_SCHEMA_VERSION,
   REMOTE_ROOT_IDENTITY_SCRIPT,
   REMOTE_ROOT_IDENTITY_SCRIPT_FILENAME
 } from './remote-root-identity-host'
 
-export type RemoteRootIdentityScope = { key: string | null; expectedKeys: readonly string[] }
+export type RemoteRootIdentityScope = {
+  key: string | null
+  expectedKeys: readonly string[]
+  aliases?: readonly string[]
+}
 export type RemoteRootIdentityResult = {
   state: 'current' | 'bridged' | 'deferred'
   reason?: string
@@ -84,7 +89,28 @@ export async function prepareRemoteRootIdentity(
     if (probe.old === 'dir' && probe.current === 'dir')
       throw new Error('Both current and retired remote install directories exist')
     if (probe.record) {
-      if (Buffer.byteLength(probe.record) > 65536 || JSON.parse(probe.record).schemaVersion !== 1)
+      const record = JSON.parse(probe.record)
+      const validKey = (key: unknown) =>
+        typeof key === 'string' && /^(?:[a-f0-9]{16}|local|unattributed)$/.test(key)
+      if (
+        Buffer.byteLength(probe.record) > 65536 ||
+        ![1, REMOTE_ROOT_IDENTITY_SCHEMA_VERSION].includes(record.schemaVersion) ||
+        typeof record.generation !== 'string' ||
+        !Array.isArray(record.expectedScopes) ||
+        !record.expectedScopes.every(validKey) ||
+        !Array.isArray(record.retiredScopes) ||
+        !record.retiredScopes.every(validKey)
+      )
+        throw new Error('Unsupported remote root identity record')
+      if (
+        record.schemaVersion === REMOTE_ROOT_IDENTITY_SCHEMA_VERSION &&
+        (!record.rootIdentities ||
+          typeof record.rootIdentities !== 'object' ||
+          Array.isArray(record.rootIdentities) ||
+          !Object.entries(record.rootIdentities).every(
+            ([key, value]) => validKey(key) && typeof value === 'string' && /^\d+:\d+$/.test(value)
+          ))
+      )
         throw new Error('Unsupported remote root identity record')
     }
   }
@@ -92,7 +118,9 @@ export async function prepareRemoteRootIdentity(
     await execOrcadRemote(remote, remoteRootProbeCommand(host, home))
   )
   check(probe)
-  if (probe.old === 'absent') return { state: 'current' }
+  const needsV1Revalidation = (probe: RemoteRootProbe) =>
+    Boolean(probe.record && JSON.parse(probe.record).schemaVersion === 1)
+  if (probe.old === 'absent' && !needsV1Revalidation(probe)) return { state: 'current' }
   const token = randomUUID()
   await acquireInstallLock(remote.conn, home, host, {
     signal: remote.signal,
@@ -105,7 +133,7 @@ export async function prepareRemoteRootIdentity(
   try {
     probe = parseRemoteRootProbe(await execOrcadRemote(remote, remoteRootProbeCommand(host, home)))
     check(probe)
-    if (probe.old === 'absent') return { state: 'current' }
+    if (probe.old === 'absent' && !needsV1Revalidation(probe)) return { state: 'current' }
     let base = probe.old === 'dir' ? old : current
     const runtimeDir = nodeRuntimeStoreDir(host, base, target)
     const runtimeStatus = (
@@ -179,7 +207,8 @@ export async function prepareRemoteRootIdentity(
       encode(scope.key),
       encode(scope.expectedKeys),
       token,
-      !isWindowsRemoteHost(host) && probe.old === 'dir' ? 'prepare' : 'finalize'
+      !isWindowsRemoteHost(host) && probe.old === 'dir' ? 'prepare' : 'finalize',
+      encode(scope.aliases ?? [])
     ]
     const command = isWindowsRemoteHost(host)
       ? orcadWindowsNodeCommandLine(runtime, args)

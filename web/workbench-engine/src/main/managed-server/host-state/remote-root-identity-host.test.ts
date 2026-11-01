@@ -4,9 +4,11 @@ import {
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  readdirSync,
   realpathSync,
   rmSync,
   symlinkSync,
+  unlinkSync,
   writeFileSync
 } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -59,7 +61,8 @@ function runHost(
   expected = [a],
   verdict: 'exited' | 'live' | 'canonical-live' | 'unverifiable' = 'exited',
   mode = 'finalize',
-  failJunctionPublish = false
+  failJunctionPublish = false,
+  client: { device?: bigint; aliases?: string[] } = {}
 ): { state: string; reason?: string } {
   let output: { state: string; reason?: string } | undefined
   const encode = (value: unknown) => Buffer.from(JSON.stringify(value)).toString('base64')
@@ -99,7 +102,16 @@ function runHost(
       platform: process.platform,
       pid: process.pid,
       getuid: () => uid,
-      argv: ['node', 'host.cjs', home, encode(scope), encode(expected), token, mode],
+      argv: [
+        'node',
+        'host.cjs',
+        home,
+        encode(scope),
+        encode(expected),
+        token,
+        mode,
+        encode(client.aliases ?? [])
+      ],
       exit: (code: number) => {
         throw new Error(`fixture_exit_${code}`)
       }
@@ -107,11 +119,18 @@ function runHost(
     require: (name: string) => {
       if (name === 'node:child_process') return { spawnSync: () => ({ status: 0, stdout: census }) }
       const actual = require(name)
-      if (name !== 'node:fs' || !failJunctionPublish) return actual
+      if (name !== 'node:fs') return actual
       return {
         ...actual,
+        statSync: (file: string, options: unknown) => {
+          const result = actual.statSync(file, options)
+          return file === current && client.device !== undefined
+            ? { ...result, dev: client.device }
+            : result
+        },
         renameSync: (source: string, target: string) => {
           if (
+            failJunctionPublish &&
             source.includes('.zkyq-link-') &&
             target.endsWith('current-data') &&
             !existsSync(target)
@@ -193,6 +212,76 @@ it('retains one inode and newer writes until every registered machine confirms e
   expect(runHost()).toEqual({ state: 'current' })
   expect(existsSync(old)).toBe(false)
 })
+it('combines exit receipts from clients with different local device numbers', async () => {
+  seed()
+  await move()
+  expect(runHost(a, [a, b], 'exited', 'finalize', false, { device: 101n })).toEqual({
+    state: 'bridged',
+    reason: 'other-machines'
+  })
+  expect(runHost(b, [a, b], 'exited', 'finalize', false, { device: 202n })).toEqual({
+    state: 'current'
+  })
+  expect(existsSync(old)).toBe(false)
+  expect(readFileSync(join(current, 'user-note.txt'), 'utf8')).toBe('latest user bytes 中文\n')
+})
+it('requires fresh peer receipts after one client observes a replacement root', async () => {
+  seed()
+  await move()
+  const c = 'c'.repeat(16),
+    expected = [a, b, c]
+  runHost(a, expected, 'exited', 'finalize', false, { device: 101n })
+  runHost(b, expected, 'exited', 'finalize', false, { device: 202n })
+  const previous = JSON.parse(readFileSync(join(current, REMOTE_ROOT_IDENTITY_RECORD), 'utf8'))
+  expect(runHost(a, [a], 'exited', 'finalize', false, { device: 303n }).state).toBe('bridged')
+  const changed = JSON.parse(readFileSync(join(current, REMOTE_ROOT_IDENTITY_RECORD), 'utf8'))
+  expect(changed.generation).not.toBe(previous.generation)
+  expect(changed.expectedScopes).toEqual(expected)
+  expect(changed.retiredScopes).toEqual([a])
+  expect(runHost(c, expected, 'exited', 'finalize', false, { device: 404n }).state).toBe('bridged')
+  expect(runHost(b, expected, 'exited', 'finalize', false, { device: 202n })).toEqual({
+    state: 'current'
+  })
+})
+it('archives version-one bytes and revalidates a previously retired root', async () => {
+  seed()
+  await move()
+  unlinkSync(old)
+  const raw =
+    JSON.stringify({
+      schemaVersion: 1,
+      generation: 'old-generation',
+      rootIdentity: '101:123',
+      expectedScopes: [a, b],
+      retiredScopes: [a, b],
+      custom: { keep: 'original bytes' }
+    }) + '\n'
+  writeFileSync(join(current, REMOTE_ROOT_IDENTITY_RECORD), raw)
+  expect(runHost(a, [a, b])).toEqual({ state: 'bridged', reason: 'other-machines' })
+  expect(realpathSync(old)).toBe(realpathSync(current))
+  const record = JSON.parse(readFileSync(join(current, REMOTE_ROOT_IDENTITY_RECORD), 'utf8'))
+  expect(record.schemaVersion).toBe(2)
+  expect(record.retiredScopes).toEqual([a])
+  expect(record.custom).toEqual({ keep: 'original bytes' })
+  const archived = readdirSync(current).find((name) =>
+    name.startsWith('.zkyq-root-identity-previous-')
+  )
+  expect(archived).toBeDefined()
+  expect(readFileSync(join(current, archived!), 'utf8')).toBe(raw)
+  expect(runHost(b, [a, b])).toEqual({ state: 'current' })
+})
+it('keeps a legacy hostname receipt pending until its own current actor confirms exit', async () => {
+  seed()
+  await move()
+  const legacy = 'c'.repeat(16)
+  expect(runHost(a, [a, legacy])).toEqual({ state: 'bridged', reason: 'other-machines' })
+  expect(runHost(b, [a, b], 'live', 'finalize', false, { aliases: [legacy] }).state).toBe('bridged')
+  const live = JSON.parse(readFileSync(join(current, REMOTE_ROOT_IDENTITY_RECORD), 'utf8'))
+  expect(live.retiredScopes).not.toContain(legacy)
+  expect(runHost(b, [a, b], 'exited', 'finalize', false, { aliases: [legacy] })).toEqual({
+    state: 'current'
+  })
+})
 it.each(['live', 'canonical-live', 'unverifiable'] as const)(
   'keeps the bridge when the current machine is %s',
   async (verdict) => {
@@ -216,7 +305,7 @@ it('does not retire a bridge for an unattributed caller', async () => {
 it('refuses future records and changed ownership before removing data', async () => {
   seed()
   await move()
-  writeFileSync(join(current, REMOTE_ROOT_IDENTITY_RECORD), '{"schemaVersion":2}')
+  writeFileSync(join(current, REMOTE_ROOT_IDENTITY_RECORD), '{"schemaVersion":3}')
   expect(() => runHost()).toThrow('Unsupported')
   expect(readFileSync(join(old, 'user-note.txt'), 'utf8')).toBe('latest user bytes 中文\n')
   writeFileSync(join(home, REMOTE_ROOT_IDENTITY_LOCK, REMOTE_ROOT_IDENTITY_OWNER), 'other-owner')

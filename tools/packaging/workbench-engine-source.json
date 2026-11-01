@@ -327279,7 +327279,8 @@
     "src/main/managed-server/host-state/remote-root-identity-commands.ts",
     "src/main/managed-server/host-state/remote-root-identity-host.test.ts",
     "src/main/managed-server/host-state/remote-root-identity-host.ts",
-    "src/main/managed-server/host-state/remote-root-identity.ts"
+    "src/main/managed-server/host-state/remote-root-identity.ts",
+    "src/main/managed-server/host-state/orcad-remote-context-root-scope.test.ts"
   ],
   "adapted_files": [
     {
@@ -338331,14 +338332,14 @@
     {
       "path": "src/main/managed-server/host-state/orcad-machine-home.ts",
       "upstream_sha256": "57fb119ad30539dc986e4155a1433028b865c3f11e92292efc519931fd0950f9",
-      "current_sha256": "b9a411a9df34ad7c8acb6fbfce02fda4202d08f07a9b11cba7366d95a10345cb",
-      "reason": "SSH/WSL 规范安装根改为 .zkyq-remote；保留机器归属、冻结旧读者与最新写入，原子移动同一数据目录并在已登记读者确认退出后移除旧入口，修正内部链接；同步安装/快照/GC/历史/旧 relay census 与直接回归，不改变业务数据位置或许可证"
+      "current_sha256": "916797a37b3c2d297af03e497db705e127b47bb357b9bc5d68d4f95c0519373c",
+      "reason": "SSH/WSL 规范安装根改为 .zkyq-remote；保留机器归属、冻结旧读者与最新写入，原子移动同一数据目录并在已登记读者确认退出后移除旧入口，修正内部链接；同步安装/快照/GC/历史/旧 relay census 与直接回归，不改变业务数据位置或许可证；共享 HOME 安装根退役按机器保存本地设备/文件标识，等待已知外机 profile owner 与旧 hostname 归属；归档并重新核验 v1 确认，保护最新用户写入，不改变业务数据根或许可证"
     },
     {
       "path": "src/main/managed-server/install/orcad-remote-context.ts",
       "upstream_sha256": "9a2b0defa003761169021c55b3f0fd4a13584b13e0048c35425ff72b585286e1",
-      "current_sha256": "946d8425b458e4d5c63eba20ad577847ef8629e14d6ee910365713421bbd68ff",
-      "reason": "SSH/WSL 规范安装根改为 .zkyq-remote；保留机器归属、冻结旧读者与最新写入，原子移动同一数据目录并在已登记读者确认退出后移除旧入口，修正内部链接；同步安装/快照/GC/历史/旧 relay census 与直接回归，不改变业务数据位置或许可证"
+      "current_sha256": "bae0983f69343410d07ad116f367fdaaa31eebca670aed4bed747282a92843a5",
+      "reason": "SSH/WSL 规范安装根改为 .zkyq-remote；保留机器归属、冻结旧读者与最新写入，原子移动同一数据目录并在已登记读者确认退出后移除旧入口，修正内部链接；同步安装/快照/GC/历史/旧 relay census 与直接回归，不改变业务数据位置或许可证；共享 HOME 安装根退役按机器保存本地设备/文件标识，等待已知外机 profile owner 与旧 hostname 归属；归档并重新核验 v1 确认，保护最新用户写入，不改变业务数据根或许可证"
     },
     {
       "path": "src/main/managed-server/install/orcad-remote-node-runtime-noexec.test.ts",

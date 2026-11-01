@@ -81,6 +81,7 @@ export type OrcadMachineHomeProbe = {
   dataRootOwners: readonly {
     host: string | null
     machineIdentity: string | null
+    platform?: string
   }[]
   /** Keys that already have a machine home under `~/.orca-remote/hosts/`. */
   machineHomeKeys: readonly string[]
@@ -195,12 +196,46 @@ export function orcadMachineIdentity(
   if (!machineIdentity) {
     return null
   }
-  const key = createHash('sha256')
-    .update(`${host.os}:${machineIdentity}`)
-    .digest('hex')
-    .slice(0, 16)
+  const key = machineScopeKey(`${host.os}:${machineIdentity}`)
   const hostname = /^[\x21-\x7e]{1,255}$/u.test(hostnameRaw) ? hostnameRaw : null
   return { key, machineIdentity, hostname }
+}
+
+function machineScopeKey(identity: string): string {
+  return createHash('sha256').update(identity).digest('hex').slice(0, 16)
+}
+
+/** Include profile leases that predate machine claims or machine-home directories. */
+export function orcadMachineHomeRootScope(
+  probe: OrcadMachineHomeProbe,
+  host: RemoteHostPlatform
+): {
+  key: string | null
+  expectedKeys: string[]
+  aliases: string[]
+} {
+  const key = probe.identity?.key ?? null
+  const legacyKey = (platform: string, hostname: string) =>
+    machineScopeKey(`legacy-profile-owner:${platform}:${hostname}`)
+  const ownerKeys = probe.dataRootOwners.map((owner) => {
+    const platform = owner.platform ?? host.os
+    return owner.machineIdentity
+      ? machineScopeKey(`${platform}:${owner.machineIdentity.toLowerCase()}`)
+      : legacyKey(platform, owner.host ?? '')
+  })
+  return {
+    key,
+    expectedKeys: [
+      ...new Set([
+        key ?? 'unattributed',
+        ...(probe.claim.state === 'present' ? [probe.claim.machineKey] : []),
+        ...probe.machineHomeKeys,
+        ...ownerKeys
+      ])
+    ],
+    // Legacy leases use the same hostname attribution as ownerMachine below.
+    aliases: probe.identity?.hostname ? [legacyKey(host.os, probe.identity.hostname)] : []
+  }
 }
 
 function parseClaimSection(raw: string): OrcadMachineClaimRead {
@@ -244,6 +279,9 @@ function parseOwnerLine(line: string): OrcadMachineHomeProbe['dataRootOwners'][n
       return null
     }
     return {
+      ...('platform' in owner && typeof owner.platform === 'string'
+        ? { platform: owner.platform }
+        : {}),
       host: 'host' in owner && typeof owner.host === 'string' ? owner.host : null,
       machineIdentity:
         'machineIdentity' in owner && typeof owner.machineIdentity === 'string'

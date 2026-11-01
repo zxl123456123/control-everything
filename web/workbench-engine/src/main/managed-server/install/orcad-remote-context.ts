@@ -15,6 +15,7 @@ import {
   orcadMachineDataRoot,
   orcadMachineHomeDir,
   orcadMachineHomeProbeCommand,
+  orcadMachineHomeRootScope,
   orcadMachineOwnershipUnresolvedMessage,
   parseOrcadMachineHomeProbe
 } from '../host-state/orcad-machine-home'
@@ -153,15 +154,12 @@ export async function resolveOrcadMachineHome(
       )
     )
   }
-  const key = probe.identity?.key ?? null
-  const expectedKeys = [
-    ...new Set([
-      ...(key ? [key] : ['unattributed']),
-      ...(probe.claim.state === 'present' ? [probe.claim.machineKey] : []),
-      ...probe.machineHomeKeys
-    ])
-  ]
-  await prepareRemoteRootIdentity(remote, loginHome, runtimeTarget, { key, expectedKeys })
+  await prepareRemoteRootIdentity(
+    remote,
+    loginHome,
+    runtimeTarget,
+    orcadMachineHomeRootScope(probe, host)
+  )
   if (decision.kind === 'claim') {
     const won = readOrcadMachineClaimAnswer(
       await execOrcadRemote(remote, orcadMachineClaimCommand(host, loginHome, decision.machineKey))
