@@ -327280,7 +327280,9 @@
     "src/main/managed-server/host-state/remote-root-identity-host.test.ts",
     "src/main/managed-server/host-state/remote-root-identity-host.ts",
     "src/main/managed-server/host-state/remote-root-identity.ts",
-    "src/main/managed-server/host-state/orcad-remote-context-root-scope.test.ts"
+    "src/main/managed-server/host-state/orcad-remote-context-root-scope.test.ts",
+    "src/main/persistence/default-data-root-identity.ts",
+    "src/main/persistence/default-data-root-identity.test.ts"
   ],
   "adapted_files": [
     {
@@ -338514,6 +338516,12 @@
       "upstream_sha256": "0674273e82ab245feecbd0d236e36b0943a3a20eff74ea84d5c385f5a6b2a73f",
       "current_sha256": "25fd6e046ac62e4aa9b1997681e76b70d49b3421f74ca1e8fa544d072ac1d517",
       "reason": "收敛修复POSIX执行字节预算：复用短引用并只发送一次相同成员后缀/slot/session路径，保留数据枚举、环境探测和安全拒绝，预算上限不变"
+    },
+    {
+      "path": "src/main/daemon/daemon-launch-paths.ts",
+      "upstream_sha256": "93fd4d6c33266886820152038bc2c9b4d4318308214e50c9e457b4c6cc3c6439",
+      "current_sha256": "311d5c401f4241c53ed79f2aee542e8616c75cbacc2991aa24eeba0296b2d797",
+      "reason": "默认数据目录改名时仅对同父目录的新旧命名桥接保留原daemon连接地址，避免Windows命名管道和长Unix socket hash变化导致后台终端失联；显式自定义路径保持原语义，旧入口退役后恢复新目录地址"
     }
   ],
   "reviewed_findings": [
