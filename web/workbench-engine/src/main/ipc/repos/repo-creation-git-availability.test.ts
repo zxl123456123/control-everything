@@ -3,6 +3,12 @@
  * answer `false`; everything else rejects so the renderer's existing `unknown` branch is reachable.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { ipcMain, type BrowserWindow } from 'electron'
+import { homedir } from 'node:os'
+import { join } from 'node:path'
+import type { Store } from '../../persistence'
+import { getDefaultSettings } from '../../../shared/constants'
+import { LOCAL_EXECUTION_HOST_ID } from '../../../shared/execution-host'
 
 const { gitExecFileAsyncMock } = vi.hoisted(() => ({ gitExecFileAsyncMock: vi.fn() }))
 
@@ -22,7 +28,47 @@ vi.mock('./repo-added-telemetry', () => ({ emitRepoAdded: vi.fn() }))
 vi.mock('./repos-changed-notification', () => ({ notifyReposChanged: vi.fn() }))
 vi.mock('./local-repo-registration', () => ({ addLocalRepoFromPath: vi.fn() }))
 
-import { probeLocalGitAvailability } from './repo-creation-handlers'
+import { probeLocalGitAvailability, registerRepoCreationHandlers } from './repo-creation-handlers'
+
+describe('repos:getDefaultCreateProjectParent', () => {
+  beforeEach(() => {
+    vi.mocked(ipcMain.handle).mockClear()
+  })
+
+  function resolveParent(settings = getDefaultSettings(homedir())): string {
+    registerRepoCreationHandlers({} as BrowserWindow, { getSettings: () => settings } as Store)
+    const handler = vi
+      .mocked(ipcMain.handle)
+      .mock.calls.find(([channel]) => channel === 'repos:getDefaultCreateProjectParent')?.[1]
+    expect(handler).toBeDefined()
+    return handler!({} as Electron.IpcMainInvokeEvent)
+  }
+
+  it('uses the canonical projects directory for a fresh install', () => {
+    expect(resolveParent()).toBe(join(homedir(), 'zkyq', 'projects'))
+  })
+
+  it('recognizes the previous seeded workspace without nesting projects inside worktrees', () => {
+    const settings = getDefaultSettings(homedir())
+    settings.workspaceDir = join(homedir(), 'orca', 'workspaces')
+    expect(resolveParent(settings)).toBe(join(homedir(), 'zkyq', 'projects'))
+  })
+
+  it('keeps a configured directory, including a user directory containing the previous name', () => {
+    const settings = getDefaultSettings(homedir())
+    settings.workspaceDir = join(homedir(), 'custom', 'orca', 'projects')
+    expect(resolveParent(settings)).toBe(settings.workspaceDir)
+  })
+
+  it('honors the local host override', () => {
+    const settings = getDefaultSettings(homedir())
+    const chosen = join(homedir(), 'chosen-projects')
+    settings.hostSettingOverrides = {
+      [LOCAL_EXECUTION_HOST_ID]: { defaultWorktreeLocation: chosen }
+    }
+    expect(resolveParent(settings)).toBe(chosen)
+  })
+})
 
 describe('repos:isGitAvailable', () => {
   beforeEach(() => {

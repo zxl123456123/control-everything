@@ -327294,7 +327294,8 @@
     "src/main/persistence/profile-state/profile-state-data-root-move.test.ts",
     "src/cli/runtime/default-data-root-paths.test.ts",
     "src/main/persistence/default-data-root-record-reader.ts",
-    "src/main/startup/configure-default-data-roots.test.ts"
+    "src/main/startup/configure-default-data-roots.test.ts",
+    "src/renderer/src/components/sidebar/create-project-defaults.test.ts"
   ],
   "adapted_files": [
     {
@@ -338588,6 +338589,30 @@
       "upstream_sha256": "21b44174a0f0434e7d1d2307f51e09f05a84d355e335eba7f1ce69d68eb57c55",
       "current_sha256": "be0b1fc2d2fbbc6b2fa2324469f7ecb15593459117095c79ebf16479bec428e6",
       "reason": "桌面和CLI默认目录统一zkyq/zkyq-dev，在Electron ready前沿既有所有权迁移；保持旧实例发现、自定义/E2E目录和开发启动/测试生产者，迁移记录只读读取不加载原生进程依赖"
+    },
+    {
+      "path": "src/main/ipc/repos/repo-creation-git-availability.test.ts",
+      "upstream_sha256": "3d7d00da12cfeab051408ad32861997d0f652cbb43f20a48047354876ba0bec1",
+      "current_sha256": "e6deb1862b02347c0d2d2ce209b0d67a3d2e77706e98baf7f00599b48c3bc3af",
+      "reason": "新建项目与工作区默认目录使用zkyq；识别旧版种子值以避免把项目嵌入worktree，自定义路径和远程目录显示保持原值"
+    },
+    {
+      "path": "src/main/ipc/repos/repo-creation-handlers.ts",
+      "upstream_sha256": "a2945049deaf4314ad33d645322f493fee01ae03801e4a1cdf4a775f98329cff",
+      "current_sha256": "50c69a76c188a56127dbd9d5d814a113dd19dd2c5cb21b677353d24e2775c168",
+      "reason": "新建项目与工作区默认目录使用zkyq；识别旧版种子值以避免把项目嵌入worktree，自定义路径和远程目录显示保持原值"
+    },
+    {
+      "path": "src/renderer/src/components/sidebar/create-project-defaults.ts",
+      "upstream_sha256": "0ccdc9ea23deab4dbdd929d0792f9682f54fca1fc69f988d41d94edcb58bf9e0",
+      "current_sha256": "1a0a5b5285dedb5f0281cff471dac6b2713259a0f41c2386532a398408705052",
+      "reason": "新建项目与工作区默认目录使用zkyq；识别旧版种子值以避免把项目嵌入worktree，自定义路径和远程目录显示保持原值"
+    },
+    {
+      "path": "src/shared/constants.ts",
+      "upstream_sha256": "2655e7e2b9a26c2f1c4afb6574f6b8b8e27ac7ef8f15cab4c49aba9cbab97933",
+      "current_sha256": "8658729a98089a65d36c0f52cedce8b8450abe25b4652b963e0704af1a02fce2",
+      "reason": "新建项目与工作区默认目录使用zkyq；识别旧版种子值以避免把项目嵌入worktree，自定义路径和远程目录显示保持原值"
     }
   ],
   "reviewed_findings": [
