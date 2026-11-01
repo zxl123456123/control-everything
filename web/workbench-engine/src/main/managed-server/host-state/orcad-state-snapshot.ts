@@ -187,7 +187,7 @@ export function captureOrcadStateSnapshotCommand(
       'members=; for m in $(snapshot_members "$root"); do',
       'if [ -e "$root/$m" ] || [ -L "$root/$m" ]; then',
       'links=$(find "$root/$m" -type l -print 2>&1) && [ -z "$links" ] ||',
-      'snapshot_fail "$m holds a symbolic link or an entry Orca cannot read: $links";',
+      'snapshot_fail "$m holds a symbolic link or an entry Control Everything cannot read: $links";',
       'members="$members $m"; fi; done;',
       // Umask first so the snapshot dir, not just the archive, is owner-only.
       'if [ -z "$members" ]; then echo EMPTY; else umask 077;',

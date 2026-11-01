@@ -328452,8 +328452,8 @@
     {
       "path": "src/renderer/src/web/web-runtime-connection-transport.ts",
       "upstream_sha256": "cedbbe89a38a433e1fe840e0e1e4aab165ed746d0062c049a9b7d283845b0b8f",
-      "current_sha256": "e1e3b313ecaa073b17f9487b785f9dac2f5bfcc2b1438238f8d6f0d27c9ec520",
-      "reason": "P4: isolate immutable remote browser context and scoped storage; preserve local behavior. P4: immutable remote context and explicit scoped storage; local behavior retained."
+      "current_sha256": "f2943225fbcd7f7a67de4ab5099414d9157a90b1d3ec23415e8ff73758ff730e",
+      "reason": "P4: isolate immutable remote browser context and scoped storage; preserve local behavior. P4: immutable remote context and explicit scoped storage; local behavior retained.；远程连接标签和诊断统一Control Everything；保留错误码/协议及历史错误输入识别，同步无code重试、网络提示和真实回归，原命令字节预算不变"
     },
     {
       "path": "src/renderer/src/web/web-runtime-credential-source.test.ts",
@@ -333060,14 +333060,14 @@
     {
       "path": "src/main/managed-server/host-state/orcad-state-snapshot-space.ts",
       "upstream_sha256": "403cda9d97da8ad37bc42f947c158a4cfa17954184a03ad02db91c91b6a7bba9",
-      "current_sha256": "7ef89906939faec592cc9ba4d6ea1a07112f54d048979425d10eae833bfed708",
-      "reason": "迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据；收敛修复POSIX执行字节预算：复用短引用并只发送一次相同成员后缀/slot/session路径，保留数据枚举、环境探测和安全拒绝，预算上限不变"
+      "current_sha256": "7a7c2356e1438943c7ac82f40d70890ca7eb7fea16daab4b6eb8c150eee95dec",
+      "reason": "迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据；收敛修复POSIX执行字节预算：复用短引用并只发送一次相同成员后缀/slot/session路径，保留数据枚举、环境探测和安全拒绝，预算上限不变；远程连接标签和诊断统一Control Everything；保留错误码/协议及历史错误输入识别，同步无code重试、网络提示和真实回归，原命令字节预算不变"
     },
     {
       "path": "src/main/managed-server/host-state/orcad-state-snapshot.ts",
       "upstream_sha256": "3a7b62390d112b7c0a69ddcd56a5057f0b116ad4dabcf822b156a83be544c78c",
-      "current_sha256": "cde0231c3acb667797660e1e095f2bf82a5ce214306b48b81cd77e33eb32215a",
-      "reason": "迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据；迁移配置索引及备份并保护回退快照；收敛修复POSIX执行字节预算：复用短引用并只发送一次相同成员后缀/slot/session路径，保留数据枚举、环境探测和安全拒绝，预算上限不变；已迁移默认业务根不能被旧管理路径当成空快照，capture/restore/clear在任何重建或删除前拒绝该旧路径；保留真实新根数据和原命令字节预算"
+      "current_sha256": "22c2f48d061f5a21ed3353ae97dc8bef156d8ae4c1581d60c7014c777be9b358",
+      "reason": "迁移配置数据文件族并接入启动、离线恢复和远程快照，保全回退数据；迁移配置索引及备份并保护回退快照；收敛修复POSIX执行字节预算：复用短引用并只发送一次相同成员后缀/slot/session路径，保留数据枚举、环境探测和安全拒绝，预算上限不变；已迁移默认业务根不能被旧管理路径当成空快照，capture/restore/clear在任何重建或删除前拒绝该旧路径；保留真实新根数据和原命令字节预算；远程连接标签和诊断统一Control Everything；保留错误码/协议及历史错误输入识别，同步无code重试、网络提示和真实回归，原命令字节预算不变"
     },
     {
       "path": "src/main/managed-server/host-state/orcad-windows-host-state-ops.test.ts",
@@ -338628,8 +338628,8 @@
     {
       "path": "src/main/managed-server/lifecycle/orcad-managed-runtime-context.ts",
       "upstream_sha256": "9f5aea5b65fcda520e12c239fc6a9073fa821a7496acffbcbc2d2f5f92462175",
-      "current_sha256": "bd9eea4bde1a0a0c124664deaa5adc51d116ebcf18e9e6a164627e34884ab0d3",
-      "reason": "受管默认根由已安装组件沿生产mover/交接迁移，发现与快照/启动/旧slot回退使用同一数据；只有受管context传递规范根，自定义目录不迁移；Windows仅读取已登记的原根桥接，旧变量仅发给冻结消费者，普通新启动清除旧身份"
+      "current_sha256": "08cc074defeda01b4584f0119ff60ca8c6bc28a4b5fe658454ef41bb31703be4",
+      "reason": "受管默认根由已安装组件沿生产mover/交接迁移，发现与快照/启动/旧slot回退使用同一数据；只有受管context传递规范根，自定义目录不迁移；Windows仅读取已登记的原根桥接，旧变量仅发给冻结消费者，普通新启动清除旧身份；远程连接标签和诊断统一Control Everything；保留错误码/协议及历史错误输入识别，同步无code重试、网络提示和真实回归，原命令字节预算不变"
     },
     {
       "path": "src/main/orcad/main.ts",
@@ -338648,6 +338648,336 @@
       "upstream_sha256": "bffdbca7026108de5a0eec35e2a86e733cce3e34d6666dff034fd6e60adabe47",
       "current_sha256": "fb14f9794901dfe232c13d725ee53aa307dc6af2e00b8b000ea529d9bd3cae77",
       "reason": "受管默认根由已安装组件沿生产mover/交接迁移，发现与快照/启动/旧slot回退使用同一数据；只有受管context传递规范根，自定义目录不迁移；Windows仅读取已登记的原根桥接，旧变量仅发给冻结消费者，普通新启动清除旧身份"
+    },
+    {
+      "path": "src/main/managed-server/activation/orcad-activation-fence-hold.ts",
+      "upstream_sha256": "c7f97c95d670299bd3fbcf5c1549c623595a351529e53fbd01b657972a639884",
+      "current_sha256": "348c20d6e164980a84864225dddf6c8f4c0a2c9274789bdc975ac06889639c25",
+      "reason": "远程连接标签和诊断统一Control Everything；保留错误码/协议及历史错误输入识别，同步无code重试、网络提示和真实回归，原命令字节预算不变"
+    },
+    {
+      "path": "src/main/managed-server/install/orcad-remote-windows-node.ts",
+      "upstream_sha256": "5a98dff835e38991e719a54f5ca35b26ba94a9090df079eebad87d611f58ec79",
+      "current_sha256": "e8793937c9f62f287c3a67f8cd12a0bfc1dbab27809da9dcbc1cb8dc07a43fb6",
+      "reason": "远程连接标签和诊断统一Control Everything；保留错误码/协议及历史错误输入识别，同步无code重试、网络提示和真实回归，原命令字节预算不变"
+    },
+    {
+      "path": "src/main/managed-server/install/remote-install-out-of-space.ts",
+      "upstream_sha256": "2cf609d974f66339d849403bb4aeeb79bfbbd55bf04ddcb92452fb7a324fef2d",
+      "current_sha256": "a7b39f4979b48e88ada5cec74df77c975b17ce404845b4f4b6472aceb0512094",
+      "reason": "远程连接标签和诊断统一Control Everything；保留错误码/协议及历史错误输入识别，同步无code重试、网络提示和真实回归，原命令字节预算不变"
+    },
+    {
+      "path": "src/main/managed-server/install/remote-versioned-install.ts",
+      "upstream_sha256": "fcd87eea1670782b18bbf186f3d1709127c1607efd86c7c92a801c1f917b2da2",
+      "current_sha256": "d8f93a7a15f2e5cd9f740cb0f5ea251b522a773c908e6cab4834583b7df5213e",
+      "reason": "远程连接标签和诊断统一Control Everything；保留错误码/协议及历史错误输入识别，同步无code重试、网络提示和真实回归，原命令字节预算不变"
+    },
+    {
+      "path": "src/main/managed-server/lifecycle/orcad-managed-bound-port.ts",
+      "upstream_sha256": "7a59f2daf83ee9ab25bea1a070071e26cc7b9d740f1ec45ebfc3d616740e7804",
+      "current_sha256": "d40ad02e16a599804416ba9745dc1d7af726dfe6f0a3a030fb4ba06471522c73",
+      "reason": "远程连接标签和诊断统一Control Everything；保留错误码/协议及历史错误输入识别，同步无code重试、网络提示和真实回归，原命令字节预算不变"
+    },
+    {
+      "path": "src/main/managed-server/lifecycle/orcad-managed-launch-session.ts",
+      "upstream_sha256": "fa1903e0fce0ef4fdac0f81e856f81a252a39b5b317b65ddadafce6db7931507",
+      "current_sha256": "cc547db823305656e11e10d2ecb0c9421ec4c10c3fdf0d2999d976d430f8c355",
+      "reason": "远程连接标签和诊断统一Control Everything；保留错误码/协议及历史错误输入识别，同步无code重试、网络提示和真实回归，原命令字节预算不变"
+    },
+    {
+      "path": "src/main/managed-server/lifecycle/orcad-managed-pairing-repair-failure.ts",
+      "upstream_sha256": "598435a237c6a41d7bac11b7b7b4456e5e67efc53f3240133f3e1955f1ba2d94",
+      "current_sha256": "3e2d9ff7af59fc4dbfb6dbb37182ac00e9b8389927c27172d4c82b255ea24f7c",
+      "reason": "远程连接标签和诊断统一Control Everything；保留错误码/协议及历史错误输入识别，同步无code重试、网络提示和真实回归，原命令字节预算不变"
+    },
+    {
+      "path": "src/main/managed-server/lifecycle/orcad-managed-pairing-repair.ts",
+      "upstream_sha256": "b26858469785beab0c496a50e8aa3812e3766903fb85d9d5f9a9853035fac8c3",
+      "current_sha256": "ddc152981fbd4dd5d4663801c7d4360e70d51702bc37c30b8d6067f69626e71b",
+      "reason": "远程连接标签和诊断统一Control Everything；保留错误码/协议及历史错误输入识别，同步无code重试、网络提示和真实回归，原命令字节预算不变"
+    },
+    {
+      "path": "src/main/managed-server/lifecycle/orcad-managed-serving.ts",
+      "upstream_sha256": "210c88d0fbb483b4e21e279240a858410330692c2c495377bcbfc1f91999efd6",
+      "current_sha256": "1b98cf801979890584e6e1e05f6d11bffa2946d54b7b6d85632e4760fd08d066",
+      "reason": "远程连接标签和诊断统一Control Everything；保留错误码/协议及历史错误输入识别，同步无code重试、网络提示和真实回归，原命令字节预算不变"
+    },
+    {
+      "path": "src/main/managed-server/lifecycle/orcad-managed-tunnel-active.ts",
+      "upstream_sha256": "0e711b8b3b7722f8206a55a1351b815c6d8eec57aadcb9e1e2f3115b7bd6af16",
+      "current_sha256": "674cf4a591d4355e268147dcc151071c9dc9f16dcf8131bf1e6fbc8102d0ff6a",
+      "reason": "远程连接标签和诊断统一Control Everything；保留错误码/协议及历史错误输入识别，同步无code重试、网络提示和真实回归，原命令字节预算不变"
+    },
+    {
+      "path": "src/main/managed-server/lifecycle/orcad-managed-tunnel-identity.ts",
+      "upstream_sha256": "ba5d60dff286adcac365143a8c10016aeb077f8141fe07d3b5fdfcab44b933ec",
+      "current_sha256": "38456480e6085f3ef042b8f3c568e99df22cee497b26498e9d6b9d5b3d36ba51",
+      "reason": "远程连接标签和诊断统一Control Everything；保留错误码/协议及历史错误输入识别，同步无code重试、网络提示和真实回归，原命令字节预算不变"
+    },
+    {
+      "path": "src/main/managed-server/lifecycle/orcad-managed-tunnel-manager.ts",
+      "upstream_sha256": "81c5811218c6fe3dd7395458ca978cc7a48b8c7e5674472c48dc77530ff1c6a3",
+      "current_sha256": "bfa21ed4214ec66571166164d706ec7bd557205461395917b3300346cfcff188",
+      "reason": "远程连接标签和诊断统一Control Everything；保留错误码/协议及历史错误输入识别，同步无code重试、网络提示和真实回归，原命令字节预算不变"
+    },
+    {
+      "path": "src/main/managed-server/lifecycle/orcad-managed-tunnel-pairing-recovery.ts",
+      "upstream_sha256": "04bf31ba6ea1097f6abdccb971ff3ebf340155db1701ff0d512943f96c3aa657",
+      "current_sha256": "ae086bdbf46dee8e3692fb6beb35bfc914af54f20aa0e9494f71e9f3c581779f",
+      "reason": "远程连接标签和诊断统一Control Everything；保留错误码/协议及历史错误输入识别，同步无code重试、网络提示和真实回归，原命令字节预算不变"
+    },
+    {
+      "path": "src/main/managed-server/lifecycle/orcad-managed-tunnel-resume.ts",
+      "upstream_sha256": "bc20c9d311902532d614addb1dc607e02b00e8bcbea7fb07b649b942b338a70e",
+      "current_sha256": "4b84dcc609e5a68bbda60aa7301d4aca808088b658e9b3e0f2dd69dfb10c0288",
+      "reason": "远程连接标签和诊断统一Control Everything；保留错误码/协议及历史错误输入识别，同步无code重试、网络提示和真实回归，原命令字节预算不变"
+    },
+    {
+      "path": "src/main/managed-server/lifecycle/orcad-managed-tunnel-serving.ts",
+      "upstream_sha256": "8d01d23653c7061b6dc7ea90aa4aaf8bd14150f005849536e564c2e4a63da82e",
+      "current_sha256": "3f7b7f82455dafe979a989818ca0d3cc65abc25d133473880e955b5b78f949a9",
+      "reason": "远程连接标签和诊断统一Control Everything；保留错误码/协议及历史错误输入识别，同步无code重试、网络提示和真实回归，原命令字节预算不变"
+    },
+    {
+      "path": "src/main/managed-server/lifecycle/orcad-managed-tunnel-target.ts",
+      "upstream_sha256": "ca75c68017b280d0ec5184cbd0c53fa5e249025a6e1d3ffc16175d125726b519",
+      "current_sha256": "9e49d62e64263b08118702dd164f656abbcf9e381f74d67a237851e86bf872fe",
+      "reason": "远程连接标签和诊断统一Control Everything；保留错误码/协议及历史错误输入识别，同步无code重试、网络提示和真实回归，原命令字节预算不变"
+    },
+    {
+      "path": "src/main/managed-server/lifecycle/orcad-managed-tunnel-transport.ts",
+      "upstream_sha256": "41f19decc993f052d37e022d5a2b88d9c107399164d0147ffc1c9b2c39c157c1",
+      "current_sha256": "144aa96a419a1ceab11cafe5c357761921c4677945e04d007e165c6fc0b45c3b",
+      "reason": "远程连接标签和诊断统一Control Everything；保留错误码/协议及历史错误输入识别，同步无code重试、网络提示和真实回归，原命令字节预算不变"
+    },
+    {
+      "path": "src/main/managed-server/lifecycle/orcad-managed-tunnel.test.ts",
+      "upstream_sha256": "2aab77f214ddd5969e5d7ac41ed71f78685efc2e1a9cda2cbdb10957ee8dbaa3",
+      "current_sha256": "12a4bed7eaa761a1889e42efbf225c0f563dee2ca6bab024bcdd081fd2c25e09",
+      "reason": "远程连接标签和诊断统一Control Everything；保留错误码/协议及历史错误输入识别，同步无code重试、网络提示和真实回归，原命令字节预算不变"
+    },
+    {
+      "path": "src/main/managed-server/lifecycle/orcad-managed-update-decision.test.ts",
+      "upstream_sha256": "5f4ac5c83612161abd312c3740a11200839ec539def88ef095105fc85e7176a9",
+      "current_sha256": "7913f90bdcba6b44cdf3d0c6cc74d9ba1b4d61bfcb155c5429f892f4323fe066",
+      "reason": "远程连接标签和诊断统一Control Everything；保留错误码/协议及历史错误输入识别，同步无code重试、网络提示和真实回归，原命令字节预算不变"
+    },
+    {
+      "path": "src/main/managed-server/lifecycle/orcad-managed-update-decision.ts",
+      "upstream_sha256": "cbdec4cb093fc64f967dc71a11b0000b0a4051498aec6d2239dac4971eb1338a",
+      "current_sha256": "dcfeea5234fd34378e3ee26864c5da06d46d3ecff8d7256a3163f22721b0c0f9",
+      "reason": "远程连接标签和诊断统一Control Everything；保留错误码/协议及历史错误输入识别，同步无code重试、网络提示和真实回归，原命令字节预算不变"
+    },
+    {
+      "path": "src/main/managed-server/lifecycle/orcad-managed-update-on-restore.ts",
+      "upstream_sha256": "fa20ea51de02713b39fb259b9f88e5f55c30a6af377276e175237327e772f297",
+      "current_sha256": "735a9205e5bbe15072f2243446814f4fe51fdc7b79d1d1c8a8f06e26a15b488f",
+      "reason": "远程连接标签和诊断统一Control Everything；保留错误码/协议及历史错误输入识别，同步无code重试、网络提示和真实回归，原命令字节预算不变"
+    },
+    {
+      "path": "src/main/managed-server/lifecycle/orcad-runtime-conversion.ts",
+      "upstream_sha256": "416cba57414266ce717366c5f0ec6214707a822a2cdfedd8a897cda6d478d572",
+      "current_sha256": "15549aaf566e5f3509494f0a4b241f4e38c1d2b88525caf0d6837204a23f4c00",
+      "reason": "远程连接标签和诊断统一Control Everything；保留错误码/协议及历史错误输入识别，同步无code重试、网络提示和真实回归，原命令字节预算不变"
+    },
+    {
+      "path": "src/main/managed-server/lifecycle/orcad-runtime-deployment.ts",
+      "upstream_sha256": "ab3317c2e0091c3ca2b67d52680e4bd9f78b268283dbd466b62c7f2f388980f4",
+      "current_sha256": "cb317341191c2edaa1de58fb4e9c85eb5123537dab7dfe0eb8f373a6ed1d7e28",
+      "reason": "远程连接标签和诊断统一Control Everything；保留错误码/协议及历史错误输入识别，同步无code重试、网络提示和真实回归，原命令字节预算不变"
+    },
+    {
+      "path": "src/main/managed-server/lifecycle/orcad-runtime-target.ts",
+      "upstream_sha256": "d3a1a053a9efe4eebb90df3daaa9db2bb22b23683341d9f8f3ef4b899e2ceb8c",
+      "current_sha256": "a5d62333ed190968d532daa002244d73c65ab6f9a062e02e9def8fe66641a791",
+      "reason": "远程连接标签和诊断统一Control Everything；保留错误码/协议及历史错误输入识别，同步无code重试、网络提示和真实回归，原命令字节预算不变"
+    },
+    {
+      "path": "src/main/managed-server/lifecycle/orcad-stdio-bridge-provider.ts",
+      "upstream_sha256": "6d73a3a1ec0ae0b44c2f800b4f86f4d0795f4dd0b81dd6ca671ab89f63a59c39",
+      "current_sha256": "9d0552ec55fe4681f555e1fdd968b282ebdf26c2b3e3d94b645bb25fbd357854",
+      "reason": "远程连接标签和诊断统一Control Everything；保留错误码/协议及历史错误输入识别，同步无code重试、网络提示和真实回归，原命令字节预算不变"
+    },
+    {
+      "path": "src/main/runtime/mobile-desktop-relay/delegated-phone-grants.ts",
+      "upstream_sha256": "4a316c62b7bf959d11cea79c43deb2c291a013253c44f1665222c62177d868be",
+      "current_sha256": "7cb2192e0616764b807f2a0400cfd591dc822b4a331d5e6e8205b3fc007fa3dc",
+      "reason": "远程连接标签和诊断统一Control Everything；保留错误码/协议及历史错误输入识别，同步无code重试、网络提示和真实回归，原命令字节预算不变"
+    },
+    {
+      "path": "src/renderer/src/web/web-runtime-client.test.ts",
+      "upstream_sha256": "874b5bd3b7cda6273e2e8b7718fb10a1cb83c2990a26c029bd85eaf0056d0f1a",
+      "current_sha256": "5b6fd13f22b8e8fc3658674455cefee0e8d0b8f859eebe7b9515767fb0573a12",
+      "reason": "远程连接标签和诊断统一Control Everything；保留错误码/协议及历史错误输入识别，同步无code重试、网络提示和真实回归，原命令字节预算不变"
+    },
+    {
+      "path": "src/renderer/src/web/web-runtime-client.ts",
+      "upstream_sha256": "e6ba9184ee7782edf28cfe01718ac190665bea63fa467e13daa75ebb1e752430",
+      "current_sha256": "b6b1003bd27d97292551a62a233a495a45869d281a448fac50e7f8fa27acae0f",
+      "reason": "远程连接标签和诊断统一Control Everything；保留错误码/协议及历史错误输入识别，同步无code重试、网络提示和真实回归，原命令字节预算不变"
+    },
+    {
+      "path": "src/renderer/src/web/web-runtime-connection-waiters.ts",
+      "upstream_sha256": "1a6d6918e7cbb64497b28328477b789d65d1043470fdf9707525b6104af3bbb8",
+      "current_sha256": "a31aa76434e1d4e9531b30533584555398e9839c69c76fa47c5d342b31fb6644",
+      "reason": "远程连接标签和诊断统一Control Everything；保留错误码/协议及历史错误输入识别，同步无code重试、网络提示和真实回归，原命令字节预算不变"
+    },
+    {
+      "path": "src/renderer/src/web/web-runtime-request-registry.ts",
+      "upstream_sha256": "195f005efef1a3a4005db05809c9ba948afd0eff427f6d857ce605cff9de209e",
+      "current_sha256": "57c1bc9f85d163881052f9fa2a3480c19c6e84f775d8a360ae725f66b5a5682d",
+      "reason": "远程连接标签和诊断统一Control Everything；保留错误码/协议及历史错误输入识别，同步无code重试、网络提示和真实回归，原命令字节预算不变"
+    },
+    {
+      "path": "src/shared/remote-runtime-client-error-classification.test.ts",
+      "upstream_sha256": "db1fae9c84d9bb765a4877b7bd2953d27d49d3a01383eb5e3f75ca0b9720f969",
+      "current_sha256": "fdcdda5393688e6dcd04954dba71d1dab5d4725dd1b37d9b34aa98e71b384192",
+      "reason": "远程连接标签和诊断统一Control Everything；保留错误码/协议及历史错误输入识别，同步无code重试、网络提示和真实回归，原命令字节预算不变"
+    },
+    {
+      "path": "src/shared/remote-runtime-client-error-classification.ts",
+      "upstream_sha256": "8a6019fabca66dc863e7b155537770b4a9c8f04eedc0685c03ca4e8164ff6c23",
+      "current_sha256": "cca20f551d178fa489995316c73018ea4b6cc1ed4d27bba540a8da9b0f83f661",
+      "reason": "远程连接标签和诊断统一Control Everything；保留错误码/协议及历史错误输入识别，同步无code重试、网络提示和真实回归，原命令字节预算不变"
+    },
+    {
+      "path": "src/shared/remote-runtime-client-handshake.ts",
+      "upstream_sha256": "750fd253b9c6103a1a32b06c873c1ba290accd1c6401786b58ea169f011807a1",
+      "current_sha256": "c820f9266fe4b45d0ccc78ba094f1e9115803aab568eb036bfb3f3f729f38b05",
+      "reason": "远程连接标签和诊断统一Control Everything；保留错误码/协议及历史错误输入识别，同步无code重试、网络提示和真实回归，原命令字节预算不变"
+    },
+    {
+      "path": "src/shared/remote-runtime-client.test.ts",
+      "upstream_sha256": "def69d5461e867923d2fc3823555aa237a427fd55426eddc59d0fac3e7371c99",
+      "current_sha256": "1f7e7001b0b1d9f92df6a2d47cf27ccfd8958cbee67869bae44656cc26f7a6a0",
+      "reason": "远程连接标签和诊断统一Control Everything；保留错误码/协议及历史错误输入识别，同步无code重试、网络提示和真实回归，原命令字节预算不变"
+    },
+    {
+      "path": "src/shared/remote-runtime-connect-bound.ts",
+      "upstream_sha256": "663ae091044d73df195477b05ac2bdbdba718618d5e165a9b99c749643e6a498",
+      "current_sha256": "5a47771c8cc69c41ce645e6a9ffb7947b27ed616e9593109a3342a05f70a8ef1",
+      "reason": "远程连接标签和诊断统一Control Everything；保留错误码/协议及历史错误输入识别，同步无code重试、网络提示和真实回归，原命令字节预算不变"
+    },
+    {
+      "path": "src/shared/remote-runtime-passthrough-socket.ts",
+      "upstream_sha256": "62a890f273105318500ef8633d23e25d75646083d04e90da6bea2d2774f28867",
+      "current_sha256": "fb3af7e8d652c6ac8bbc5aea1cc3f6f8be1cd718e7aad356a767f143e4d421e8",
+      "reason": "远程连接标签和诊断统一Control Everything；保留错误码/协议及历史错误输入识别，同步无code重试、网络提示和真实回归，原命令字节预算不变"
+    },
+    {
+      "path": "src/shared/remote-runtime-request-connection-stale.test.ts",
+      "upstream_sha256": "498b372bd1b095817bb3bc096bdf1bb0279a2a6c64fe51ff917157c707beb552",
+      "current_sha256": "8fe63d727e86b56a12baf9e1fd0ff9ba6b90ec6f671f1dd2d6543db98264c7be",
+      "reason": "远程连接标签和诊断统一Control Everything；保留错误码/协议及历史错误输入识别，同步无code重试、网络提示和真实回归，原命令字节预算不变"
+    },
+    {
+      "path": "src/shared/remote-runtime-request-connection.ts",
+      "upstream_sha256": "aa40c4fe9e3f0b32d7a1d849addaef1b87494b0c20187c621bc7b6ff655c0315",
+      "current_sha256": "0e3d09b28bc577dfffb03c96499bc8d3a7f968467512040092ee494466926b9c",
+      "reason": "远程连接标签和诊断统一Control Everything；保留错误码/协议及历史错误输入识别，同步无code重试、网络提示和真实回归，原命令字节预算不变"
+    },
+    {
+      "path": "src/shared/remote-runtime-request-frames.ts",
+      "upstream_sha256": "e2853f810d2e5c3a84cc0ee240cbfa39141ca2285effc457627772e385c02a9f",
+      "current_sha256": "aee5eadafee4d765a129c12dae1980248fe2b47e8e695f5e91d08ccf7036c479",
+      "reason": "远程连接标签和诊断统一Control Everything；保留错误码/协议及历史错误输入识别，同步无code重试、网络提示和真实回归，原命令字节预算不变"
+    },
+    {
+      "path": "src/shared/remote-runtime-request-response-router.test.ts",
+      "upstream_sha256": "75606ccc95783ae635ccb3bc1aec29278232a3a2e154d121b7f683768b6236aa",
+      "current_sha256": "47d378ac2a3685ab0ca72a529809172b5b0d2bfc74750889ceec28cf847333d7",
+      "reason": "远程连接标签和诊断统一Control Everything；保留错误码/协议及历史错误输入识别，同步无code重试、网络提示和真实回归，原命令字节预算不变"
+    },
+    {
+      "path": "src/shared/remote-runtime-request-response-router.ts",
+      "upstream_sha256": "180f64e7e6c5845ab63b01fd2f068c54b6586ebf22c3b36070acf44eb13c66f2",
+      "current_sha256": "1e269d45f23f3448da9a7942d4354eb452fe00e05aa98a643904c792193e0511",
+      "reason": "远程连接标签和诊断统一Control Everything；保留错误码/协议及历史错误输入识别，同步无code重试、网络提示和真实回归，原命令字节预算不变"
+    },
+    {
+      "path": "src/shared/remote-runtime-request-socket.ts",
+      "upstream_sha256": "d15e2e9daf41f356ee746720614476becbce965404522a58c599c628708f1a8b",
+      "current_sha256": "6ca9ca12011796116acdc2011b56c0e098fed83c4b2a05dd1ef98920bcbcdde6",
+      "reason": "远程连接标签和诊断统一Control Everything；保留错误码/协议及历史错误输入识别，同步无code重试、网络提示和真实回归，原命令字节预算不变"
+    },
+    {
+      "path": "src/shared/remote-runtime-request-websocket.ts",
+      "upstream_sha256": "c91836c2f99e27db1cf9e37c2f73e87f4256650a2798a6611697a0bb30a4d8dc",
+      "current_sha256": "e671475f1fc96aadc42da0a031fefde40c12d23bec4c1cda3122e8bbcc22989f",
+      "reason": "远程连接标签和诊断统一Control Everything；保留错误码/协议及历史错误输入识别，同步无code重试、网络提示和真实回归，原命令字节预算不变"
+    },
+    {
+      "path": "src/shared/remote-runtime-shared-control-connection.test.ts",
+      "upstream_sha256": "332e6bbb7de5d1fb17046863b807b419fa4a3fb16b62d568a7347550b61339f8",
+      "current_sha256": "672186b1ef8528e93aa642e74e997d8cda960fec43b8688cdc4e5e24afe7f93b",
+      "reason": "远程连接标签和诊断统一Control Everything；保留错误码/协议及历史错误输入识别，同步无code重试、网络提示和真实回归，原命令字节预算不变"
+    },
+    {
+      "path": "src/shared/remote-runtime-shared-control-open.ts",
+      "upstream_sha256": "6b347b4730095b8f8ded11d4472207e6e019aa8265833bb2abe4298c079f6699",
+      "current_sha256": "797ac63a7c39fec2166ab8e2aafb1800718b0d7ae7b8d37ca534658a1e8f1f39",
+      "reason": "远程连接标签和诊断统一Control Everything；保留错误码/协议及历史错误输入识别，同步无code重试、网络提示和真实回归，原命令字节预算不变"
+    },
+    {
+      "path": "src/shared/remote-runtime-shared-control-protocol.ts",
+      "upstream_sha256": "926e483b4ba7e4c52c192b305cdb6f50fbe4a247831d7465c713e8a2bc817bef",
+      "current_sha256": "5569a758e0362cb60d0bb5c26fc0652fc33717afedf0e917a2edf82cc02029ce",
+      "reason": "远程连接标签和诊断统一Control Everything；保留错误码/协议及历史错误输入识别，同步无code重试、网络提示和真实回归，原命令字节预算不变"
+    },
+    {
+      "path": "src/shared/remote-runtime-shared-control-refusal.ts",
+      "upstream_sha256": "3ce9b7e36622598ad9b31b2de4b7f3923ff63f21da993aa97b945210458dcf31",
+      "current_sha256": "12da29ed99b66cca03d14c379f4266347aad284c86b3c0a2e3e9bb91d32028cc",
+      "reason": "远程连接标签和诊断统一Control Everything；保留错误码/协议及历史错误输入识别，同步无code重试、网络提示和真实回归，原命令字节预算不变"
+    },
+    {
+      "path": "src/shared/remote-runtime-subscription-frame-router.test.ts",
+      "upstream_sha256": "139a4aebc45ac87cba8d2665710c2700dccba1c81b6ec216aa185f3f92ab0285",
+      "current_sha256": "017e271a61009690cc111949a65dd59c20dba7fa994770fd892cd96c15ec4248",
+      "reason": "远程连接标签和诊断统一Control Everything；保留错误码/协议及历史错误输入识别，同步无code重试、网络提示和真实回归，原命令字节预算不变"
+    },
+    {
+      "path": "src/shared/remote-runtime-subscription-frame-router.ts",
+      "upstream_sha256": "823b8daf10f1615faf5992c0f5c9227756253f51e9a461e319cea591c7dcd5aa",
+      "current_sha256": "b1cd77a43e4c6e84ecef2c0222b62ab4301f86570e6aa941eb99a487d1701a68",
+      "reason": "远程连接标签和诊断统一Control Everything；保留错误码/协议及历史错误输入识别，同步无code重试、网络提示和真实回归，原命令字节预算不变"
+    },
+    {
+      "path": "src/shared/remote-runtime-subscription-outbound.ts",
+      "upstream_sha256": "b7a2d04c5071a6ed6aac8e375305ec76a2acc8c24e547ba29460919c7fb65402",
+      "current_sha256": "40900886ef6d1288f25124bc441271fdf8dcba05e2cb762971c66a791b6c3cd6",
+      "reason": "远程连接标签和诊断统一Control Everything；保留错误码/协议及历史错误输入识别，同步无code重试、网络提示和真实回归，原命令字节预算不变"
+    },
+    {
+      "path": "src/shared/remote-runtime-subscription-transport.ts",
+      "upstream_sha256": "fec707d0269d3c8fde5f1830a4284ae6c96af41dcaf45078f4f55e21c694684d",
+      "current_sha256": "27f062dc6412757114702d28b763541013251b49e47742b9a18903ea49a0e7f5",
+      "reason": "远程连接标签和诊断统一Control Everything；保留错误码/协议及历史错误输入识别，同步无code重试、网络提示和真实回归，原命令字节预算不变"
+    },
+    {
+      "path": "src/shared/remote-runtime-tailscale-hint.ts",
+      "upstream_sha256": "48d5f03c56a2a128d28609985af614a35829677293e6a4eeb6fe442866cd3c93",
+      "current_sha256": "1a243daefc56665255799eb94bc8e8813704de87d5ab623b6a68a5bd52e081ae",
+      "reason": "远程连接标签和诊断统一Control Everything；保留错误码/协议及历史错误输入识别，同步无code重试、网络提示和真实回归，原命令字节预算不变"
+    },
+    {
+      "path": "src/shared/remote-runtime-transport-error-agreement.test.ts",
+      "upstream_sha256": "b948b4f6f790741c387e7d0a1e12dbc084c79e6868cb12462e00cebf0d91e3dc",
+      "current_sha256": "34377197a54383fefe218054e780fa12db2584d2fb078ebf97acd3a47a08a216",
+      "reason": "远程连接标签和诊断统一Control Everything；保留错误码/协议及历史错误输入识别，同步无code重试、网络提示和真实回归，原命令字节预算不变"
+    },
+    {
+      "path": "src/shared/runtime-host-status-owner.test.ts",
+      "upstream_sha256": "9d228e7dd1f8d4e87f9d5424ef65a4aa2efda7fb00676fce97395680f7254e6f",
+      "current_sha256": "d8c3348af0b96d5397bacbd8cc99f6a778c1b4866daaa9bf1eebdea7a92fea48",
+      "reason": "远程连接标签和诊断统一Control Everything；保留错误码/协议及历史错误输入识别，同步无code重试、网络提示和真实回归，原命令字节预算不变"
+    },
+    {
+      "path": "src/shared/runtime-host-status-owner.ts",
+      "upstream_sha256": "183ff40ab228142ee2532737c9dd4e1ac1cfb52b263a64bf6a80d862c8e97620",
+      "current_sha256": "61c3da6a367ec15ed025be64f5be9adf2d8ecaed2181cb32ab2593b6d5279c5d",
+      "reason": "远程连接标签和诊断统一Control Everything；保留错误码/协议及历史错误输入识别，同步无code重试、网络提示和真实回归，原命令字节预算不变"
     }
   ],
   "reviewed_findings": [
@@ -340440,7 +340770,7 @@
       "path": "src/shared/remote-runtime-tailscale-hint.ts",
       "rule": "fixed-external-ipv4",
       "line": 22,
-      "sha256": "48d5f03c56a2a128d28609985af614a35829677293e6a4eeb6fe442866cd3c93",
+      "sha256": "1a243daefc56665255799eb94bc8e8813704de87d5ab623b6a68a5bd52e081ae",
       "reason": "已核上下文为通配绑定、环回/私网/CGNAT范围、平台DNS/组播或网络解析判定，不是私人服务器配置；不能为扫描破坏网络语义。"
     },
     {

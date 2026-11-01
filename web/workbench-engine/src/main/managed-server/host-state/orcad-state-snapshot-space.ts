@@ -113,11 +113,11 @@ export function orcadSnapshotShortfallMessage(
   // Says only what the update did: the record names the server, not whether it is up.
   const keeps = where.active
     ? `The update left the current server (${where.active}) in place.`
-    : 'Orca cannot start its server on this host until then.'
+    : 'Control Everything cannot start its server on this host until then.'
   const free = formatKb(space.availableKb - space.reclaimKb)
   const reclaim =
     space.reclaimKb > 0
-      ? ` (plus ${formatKb(space.reclaimKb)} Orca would reclaim from earlier snapshots)`
+      ? ` (plus ${formatKb(space.reclaimKb)} Control Everything would reclaim from earlier snapshots)`
       : ''
   return (
     `Not enough disk space to snapshot ${where.userDataDir} before activating ` +
