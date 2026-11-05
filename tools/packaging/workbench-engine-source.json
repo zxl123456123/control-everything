@@ -327830,8 +327830,8 @@
     {
       "path": "src/renderer/src/components/activity/ActivityPrototypePage.tsx",
       "upstream_sha256": "bc0524c2d723510bef7db608f37fbd6491e03cfebad43a82689a72d90b45fc29",
-      "current_sha256": "9566445d0d541682e320bde783558aa5449414fca8e997ecc25480dd85b0f027",
-      "reason": "Unify project ownership, task editing and native Agent activity in the integrated workspace UI r1 S8: native nondevelopment presentation with original actions and gates; ActivityPrototypePage.tsx."
+      "current_sha256": "f760e5290fe8fab895f1d3f8a8e08f005cf4043f4d61cd60a579ebd82e21f526",
+      "reason": "Unify project ownership, task editing and native Agent activity in the integrated workspace UI r1 S8: native nondevelopment presentation with original actions and gates. Use the workbench segmented control and disclose the office detail pane on selection."
     },
     {
       "path": "src/renderer/src/components/activity/activity-scope-filter-controls.tsx",

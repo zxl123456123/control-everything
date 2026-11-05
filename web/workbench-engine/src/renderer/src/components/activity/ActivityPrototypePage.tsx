@@ -1,6 +1,8 @@
 import { ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ManagementSurfaceProvider } from '@/components/ui/management-surface'
+import { Toggle } from '@/components/ui/toggle'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { translate } from '@/i18n/i18n'
 import React, {
   useCallback,
@@ -127,6 +129,13 @@ export default function ActivityPrototypePage(): React.JSX.Element {
   const selectedThread = effectiveSelectedPaneKey
     ? (allThreads.find((thread) => thread.paneKey === effectiveSelectedPaneKey) ?? null)
     : null
+  const showingOffice = Boolean(officeMode && platformProject)
+  const officeHasSelection = showingOffice && selectedThread !== null &&
+    visibleThreads.some((thread) => thread.paneKey === selectedThread.paneKey)
+  const showingMobileDetail = mobileDetailOpen && (!showingOffice || officeHasSelection)
+  const detailVisibility = showingOffice && !officeHasSelection
+    ? 'hidden'
+    : showingMobileDetail ? 'flex' : 'hidden md:flex'
   const selectedTabId = selectedThread?.tab.id ?? null
   const selectedWorktreeAvailable = selectedThread
     ? hasActivityThreadWorkspace(selectedThread, storeData)
@@ -370,21 +379,67 @@ export default function ActivityPrototypePage(): React.JSX.Element {
   // Why (page padding): no top/horizontal padding so the page reaches the window edges; the titlebar and the right pane's title row (pt-2) supply the top spacing.
   return (
     <div ref={setActivityPageRef} className="flex h-full min-h-0 flex-col bg-background pb-3">
-      {platformProject && <div className="flex shrink-0 gap-2 px-3 py-2" aria-label="活动展示方式">
-        <Button variant={officeMode ? 'outline' : 'default'} aria-pressed={!officeMode} onClick={() => setOfficeMode(false)}>列表</Button>
-        <Button variant={officeMode ? 'default' : 'outline'} aria-pressed={officeMode} onClick={() => setOfficeMode(true)}>办公室</Button>
-      </div>}
+      {platformProject && (
+        <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border px-3 py-1.5">
+          <ToggleGroup
+            type="single"
+            variant="segmented"
+            size="xs"
+            spacing={1}
+            value={showingOffice ? 'office' : 'list'}
+            onValueChange={(value) => {
+              if (value === 'office' || value === 'list') {
+                setOfficeMode(value === 'office')
+                setMobileDetailOpen(false)
+              }
+            }}
+            aria-label="活动展示方式"
+            className="bg-muted p-0.5"
+          >
+            <ToggleGroupItem value="list">列表</ToggleGroupItem>
+            <ToggleGroupItem value="office">办公室</ToggleGroupItem>
+          </ToggleGroup>
+          {showingOffice && (
+            <div className="flex items-center gap-1">
+              <Toggle
+                variant="segmented"
+                size="xs"
+                pressed={showChildAgents}
+                onPressedChange={setShowChildAgents}
+              >
+                {translate('auto.components.activity.ActivityPrototypePage.showChildAgents', 'Show child agents')}
+              </Toggle>
+              {officeHasSelection && (
+                <Button
+                  variant="ghost"
+                  size="xs"
+                  onClick={() => {
+                    setSelectedPaneKey(null)
+                    setMobileDetailOpen(false)
+                  }}
+                >
+                  收起详情
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
+      )}
       <main className="flex min-h-0 flex-1 overflow-hidden">
-        <div className={mobileDetailOpen ? 'hidden min-h-0 max-w-full md:contents' : 'contents'}>
+        <div className={showingMobileDetail ? 'hidden min-h-0 max-w-full md:contents' : 'contents'}>
           <ManagementSurfaceProvider value={true}>
-            {officeMode && platformProject ? <OfficeActivityView
+            {showingOffice ? <OfficeActivityView
               key={`${boundScope?.hostId}:${boundScope?.repoId}`}
               threads={visibleThreads}
               showChildAgents={showChildAgents}
-              active={!mobileDetailOpen || wideScreen}
+              selectedPaneKey={selectedThread?.paneKey}
+              active={!showingMobileDetail || wideScreen}
               onSelect={(paneKey) => {
                 const thread = visibleThreads.find((value) => value.paneKey === paneKey)
-                if (thread) { selectThread(thread); setMobileDetailOpen(true) }
+                if (thread) {
+                  selectThread(thread)
+                  setMobileDetailOpen(true)
+                }
               }}
             /> :
             <ActivityThreadListPane
@@ -425,11 +480,7 @@ export default function ActivityPrototypePage(): React.JSX.Element {
           </ManagementSurfaceProvider>
         </div>
         <div
-          className={
-            mobileDetailOpen
-              ? 'flex min-h-0 min-w-0 flex-1 flex-col'
-              : 'hidden min-h-0 min-w-0 flex-1 flex-col md:flex'
-          }
+          className={`${detailVisibility} min-h-0 min-w-0 flex-1 flex-col${showingOffice ? ' md:border-l md:border-border' : ''}`}
         >
           <div className="ce-management-surface shrink-0 p-4 md:hidden">
             <Button type="button" variant="outline" onClick={() => setMobileDetailOpen(false)}>

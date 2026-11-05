@@ -76,10 +76,22 @@ describe('OfficeActivityView', () => {
     expect(onSelect).toHaveBeenCalledTimes(2)
   })
 
-  it('shows an honest empty state without fabricating workers', () => {
+  it('uses the native empty state and only mounts the scene once activity is present', () => {
     act(() => root.render(<OfficeActivityView threads={[]} showChildAgents={false} active onSelect={() => {}} />))
-    expect(container.textContent).toContain('当前范围没有可显示的 Agent')
-    expect(fixture.update).toHaveBeenLastCalledWith(expect.objectContaining({ agents: [], flows: [] }))
+    intersect(true)
+    expect(container.textContent).toContain('当前项目的会话符合列表筛选条件后')
+    expect(container.querySelector('canvas')).toBeNull()
+    expect(fixture.update).not.toHaveBeenCalled()
+
+    act(() => root.render(<OfficeActivityView threads={[thread(1)]} showChildAgents={false} active selectedPaneKey="pane-1" onSelect={() => {}} />))
+    expect(container.querySelector('canvas')).not.toBeNull()
+    expect(fixture.setActive).toHaveBeenLastCalledWith(true)
+    expect(fixture.update).toHaveBeenLastCalledWith(expect.objectContaining({ selectedId: 'scene:pane-1' }))
+    expect(button('Agent 1').getAttribute('aria-pressed')).toBe('true')
+
+    act(() => root.render(<OfficeActivityView threads={[]} showChildAgents={false} active onSelect={() => {}} />))
+    expect(fixture.destroy).toHaveBeenCalledOnce()
+    expect(container.querySelector('canvas')).toBeNull()
   })
 
   it('paginates 12 workstations and suspends animation before switching', () => {

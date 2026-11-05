@@ -9,6 +9,7 @@ const sources = ['office-art.js', 'office-scene.js'].map(name => fs.readFileSync
 
 function harness({ width = 1024, reduced = false, ratio = 1, scheme = 'dark', surface = '' } = {}) {
   let time = 0, sequence = 0, available = width, draws = 0, glyphs = [], background = '';
+  const paintedColors = new Set();
   const themeObservers = [], themeRoot = {};
   const scheduled = new Map(), observers = [], selections = [];
   const events = value => Object.assign(value, {
@@ -26,7 +27,8 @@ function harness({ width = 1024, reduced = false, ratio = 1, scheme = 'dark', su
     getBoundingClientRect() { return { width: available, height: parseFloat(this.style.height) || 0, left: 12, top: 20 }; },
   });
   const ctx = { setTransform() {}, fillRect(x, y, w, h) {
-    if (x === 0 && y === 0 && w === available && h === parseFloat(canvas.style.height)) { draws++; glyphs = []; background = this.fillStyle; }
+    if (x === 0 && y === 0 && w === available && h === parseFloat(canvas.style.height)) { draws++; glyphs = []; background = this.fillStyle; paintedColors.clear(); }
+    paintedColors.add(this.fillStyle);
   }, fillText(text, x, y) { glyphs.push({ text, x, y }); } };
   canvas.getContext = () => ctx;
   const schedule = (callback, delay, kind) => { const id = ++sequence; scheduled.set(id, { callback, at: time + delay, kind }); return id; };
@@ -59,7 +61,7 @@ function harness({ width = 1024, reduced = false, ratio = 1, scheme = 'dark', su
     }
     time = end;
   }
-  return { scene, canvas, document, media, observers, selections, advance,
+  return { scene, canvas, document, media, observers, selections, advance, paintedColors,
     get background() { return background; }, get themeOptions() { return themeObservers[0].options; },
     theme(nextScheme, nextSurface) { scheme = nextScheme; surface = nextSurface; themeObservers.filter(item => item.connected).forEach(item => item.callback()); },
     art: context.window.WorkspaceMonitorArt, layout: context.window.WorkspaceMonitorScene.layout,
@@ -91,10 +93,12 @@ test('native activity uses neutral nodes and allows explicit labels without inve
 test('canvas follows its host surface theme without replacing the scene or scheduling hidden work', () => {
   const h = harness({ scheme: 'light', surface: '#ffffff' });
   assert.ok(h.themeOptions.attributeFilter.includes('class'));
-  h.scene.update(view([])); h.scene.setActive(true);
+  h.scene.update(view([agent('a', 'working')])); h.scene.setActive(true);
   assert.equal(h.background, '#ffffff');
+  assert.ok(h.paintedColors.has('#e8eef5'));
   h.theme('dark', '#0a0a0a');
   assert.equal(h.background, '#0a0a0a');
+  assert.ok(h.paintedColors.has(h.art.P.screen));
   h.scene.setActive(false); const before = h.draws;
   h.theme('light', '#ffffff'); assert.equal(h.draws, before);
   h.scene.setActive(true); assert.equal(h.background, '#ffffff');

@@ -65,7 +65,8 @@ export const WorkspaceMonitorScene = (() => {
           ink: style.getPropertyValue('--monitor-ink').trim(), soft: style.getPropertyValue('--monitor-soft').trim() };
         if (style.colorScheme === 'light') Object.assign(colors, { faint: '#64748b', line: '#cbd5e1',
           manager: '#9a4c16', jevA: '#7544bd', jevB: '#aa2869', sol: '#285e9c', working: '#267342',
-          waiting: '#94600f', done: '#176b78', unknown: '#7544bd', idle: '#64748b', error: '#94600f' });
+          waiting: '#94600f', done: '#176b78', unknown: '#7544bd', idle: '#64748b', error: '#94600f',
+          screen: '#e8eef5' });
         for (const [key, value] of Object.entries(colors)) palette.set(art.P[key], value);
       }
       const color = value => palette.get(value) || value;
