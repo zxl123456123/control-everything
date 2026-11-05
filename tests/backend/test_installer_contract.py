@@ -119,7 +119,7 @@ class InstallerIncludesTests(PayloadFixture):
 
 class InstallerScriptTests(unittest.TestCase):
     def test_path_limit_precedes_bootstrap_parent_creation_and_target_writes(self):
-        prepare = body('PrepareToInstall')
+        prepare = body('PrepareInstallation')
         positions = [prepare.index(value) for value in (
             'ReleaseMaintenance', 'RequireSupportedInstallPaths', 'ExtractTemporaryFiles',
             'EnsureDefaultParent', "RunMaintenance('prepare'", "RunMaintenance('preflight'")]
@@ -158,20 +158,35 @@ class InstallerScriptTests(unittest.TestCase):
         self.assertNotIn('current.json', SCRIPT)
 
     def test_bootstrap_hashes_precede_prepare_mutex_and_preflight(self):
-        prepare = body('PrepareToInstall')
+        prepare = body('PrepareInstallation')
         positions = [prepare.index(value) for value in (
-            'ExtractTemporaryFiles', 'VerifyTable(BootstrapRoot)', "RunMaintenance('prepare'",
+            'ExtractTemporaryFiles', "RunMaintenance('prepare'",
             'AcquireMaintenance', "RunMaintenance('preflight'", 'Prepared := True')]
         self.assertEqual(positions, sorted(positions))
         self.assertIn("+ '{app}\\versions\\{#PayloadId}'", prepare)
         self.assertIn("if not InstallPayload then begin", prepare)
         self.assertIn("RunMaintenance('verify', NewReport('existing')", prepare)
-        self.assertIn('Result := GetExceptionMessage', prepare)
+        self.assertNotIn('VerifyTable(BootstrapRoot)', prepare)
+        self.assertIn('Result := GetExceptionMessage', body('PrepareToInstall'))
         after = body('CurStepChanged')
         self.assertLess(after.index("RunMaintenance('verify'"), after.index("RunMaintenance('commit'"))
         self.assertIn('ssPostInstall', after)
         self.assertIn('PreflightReceipt', after)
         self.assertNotIn('session-panel.cmd', after)
+
+    def test_interactive_progress_covers_preparation_and_final_registration(self):
+        wizard = body('InitializeWizard')
+        self.assertIn('if not WizardSilent then', wizard)
+        self.assertIn('CreateOutputMarqueeProgressPage', wizard)
+        update = body('UpdateMaintenanceProgress')
+        self.assertIn('MaintenanceProgress.SetText', update)
+        self.assertIn('MaintenanceProgress.Animate', update)
+        for stage in ('PrepareToInstall', 'CurStepChanged'):
+            callback = body(stage)
+            self.assertLess(callback.index('MaintenanceProgress.Show'), callback.index('finally'))
+            self.assertLess(callback.index('finally'), callback.index('MaintenanceProgress.Hide'))
+        self.assertIn('UpdateMaintenanceProgress', body('PrepareInstallation'))
+        self.assertIn('UpdateMaintenanceProgress', body('CurStepChanged'))
 
     def test_data_directory_is_opt_in_and_upgrade_preserves_existing_selection(self):
         wizard = body('InitializeWizard')
@@ -184,7 +199,7 @@ class InstallerScriptTests(unittest.TestCase):
         self.assertIn('不会自动迁移旧数据', wizard)
         self.assertIn("'.install\\root.json'", body('ShouldSkipPage'))
         self.assertIn('DataDirectoryChoice.SelectedValueIndex <> 1', body('ShouldSkipPage'))
-        prepare = body('PrepareToInstall')
+        prepare = body('PrepareInstallation')
         self.assertIn("SelectedDataDirectory := ''", prepare)
         self.assertIn("(Operation = 'install') and not WizardSilent", prepare)
         self.assertIn('(DataDirectoryChoice.SelectedValueIndex = 1)', prepare)
@@ -238,8 +253,8 @@ class InstallerScriptTests(unittest.TestCase):
         self.assertIn('CreateDir(DefaultParent)', parent)
         self.assertNotIn('ForceDirectories', parent)
         self.assertNotIn('CreateDir(App)', parent)
-        self.assertLess(body('PrepareToInstall').index('EnsureDefaultParent'),
-                        body('PrepareToInstall').index("RunMaintenance('prepare'"))
+        self.assertLess(body('PrepareInstallation').index('EnsureDefaultParent'),
+                        body('PrepareInstallation').index("RunMaintenance('prepare'"))
 
     def test_success_exit_requires_committed_launcher(self):
         self.assertIn('InstallCommitted := True', body('CurStepChanged'))

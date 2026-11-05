@@ -55,6 +55,7 @@ type
 var
   PayloadPaths, PayloadHashes: TArrayOfString;
   BootstrapRoot, ContextFile, PreflightReceipt, Operation: String;
+  MaintenanceProgress: TOutputMarqueeProgressWizardPage;
   DataDirectoryChoice: TInputOptionWizardPage;
   DataDirectoryPage: TInputDirWizardPage;
   SelectedDataDirectory: String;
@@ -257,8 +258,19 @@ begin
   Result := True;
 end;
 
+procedure UpdateMaintenanceProgress(Stage: String);
+begin
+  Log('Session Panel stage: ' + Stage);
+  if MaintenanceProgress <> nil then begin
+    MaintenanceProgress.SetText(Stage, '');
+    MaintenanceProgress.Animate;
+  end;
+end;
+
 procedure InitializeWizard;
 begin
+  if not WizardSilent then
+    MaintenanceProgress := CreateOutputMarqueeProgressPage('安装 Session Panel', '正在检查安装文件和应用状态。');
   DataDirectoryChoice := CreateInputOptionPage(wpSelectDir, '应用数据位置',
     '选择应用数据位置', '此安装器不会自动迁移旧数据。', True, False);
   DataDirectoryChoice.Add('沿用原有数据目录规则');
@@ -299,45 +311,58 @@ begin
   RequireNoReparse(DefaultParent);
 end;
 
+procedure PrepareInstallation;
+begin
+  ReleaseMaintenance;
+  RequireSupportedInstallPaths;
+  if not BootstrapExtracted then begin
+    UpdateMaintenanceProgress('正在解压临时安装文件…');
+    ExtractTemporaryFiles('{app}\versions\{#PayloadId}\*');
+    BootstrapRoot := AddBackslash(ExpandConstant('{tmp}')) + '{app}\versions\{#PayloadId}';
+    BootstrapExtracted := True;
+  end;
+  EnsureDefaultParent;
+  Operation := 'install';
+  if FileExists(AddBackslash(ExpandConstant('{app}')) + '.install\root.json') then Operation := 'upgrade';
+  SelectedDataDirectory := '';
+  if (Operation = 'install') and not WizardSilent and (DataDirectoryChoice.SelectedValueIndex = 1) then begin
+    SelectedDataDirectory := Trim(DataDirectoryPage.Values[0]);
+    if SelectedDataDirectory <> '' then begin
+      if not PathIsRooted(SelectedDataDirectory) or (ExtractFileDrive(SelectedDataDirectory) = '') then
+        RaiseException('应用数据目录必须是完整的绝对路径。');
+      SelectedDataDirectory := ExpandFileName(SelectedDataDirectory);
+      RequireNoReparse(SelectedDataDirectory);
+    end;
+  end;
+  UpdateMaintenanceProgress('正在校验安装文件…');
+  ContextFile := NewReport('context');
+  RunMaintenance('prepare', ContextFile, '', '', 'prepared', False);
+  UpdateMaintenanceProgress('正在检查目标目录和运行中的应用…');
+  AcquireMaintenance;
+  PreflightReceipt := NewReport('preflight');
+  RunMaintenance('preflight', PreflightReceipt, '', '', 'ready', True);
+  RequireNoReparse(InstalledVersionRoot);
+  InstallPayload := not DirExists(InstalledVersionRoot);
+  if not InstallPayload then begin
+    UpdateMaintenanceProgress('正在检查已安装的同版本文件…');
+    VerifyTable(InstalledVersionRoot);
+    RunMaintenance('verify', NewReport('existing'), InstalledVersionRoot, '', 'ready', True);
+  end;
+  Prepared := True;
+end;
+
 function PrepareToInstall(var NeedsRestart: Boolean): String;
 begin
   Result := '';
   NeedsRestart := False;
   Prepared := False;
   try
-    ReleaseMaintenance;
-    RequireSupportedInstallPaths;
-    if not BootstrapExtracted then begin
-      ExtractTemporaryFiles('{app}\versions\{#PayloadId}\*');
-      BootstrapRoot := AddBackslash(ExpandConstant('{tmp}')) + '{app}\versions\{#PayloadId}';
-      BootstrapExtracted := True;
+    try
+      if MaintenanceProgress <> nil then MaintenanceProgress.Show;
+      PrepareInstallation;
+    finally
+      if MaintenanceProgress <> nil then MaintenanceProgress.Hide;
     end;
-    VerifyTable(BootstrapRoot);
-    EnsureDefaultParent;
-    Operation := 'install';
-    if FileExists(AddBackslash(ExpandConstant('{app}')) + '.install\root.json') then Operation := 'upgrade';
-    SelectedDataDirectory := '';
-    if (Operation = 'install') and not WizardSilent and (DataDirectoryChoice.SelectedValueIndex = 1) then begin
-      SelectedDataDirectory := Trim(DataDirectoryPage.Values[0]);
-      if SelectedDataDirectory <> '' then begin
-        if not PathIsRooted(SelectedDataDirectory) or (ExtractFileDrive(SelectedDataDirectory) = '') then
-          RaiseException('应用数据目录必须是完整的绝对路径。');
-        SelectedDataDirectory := ExpandFileName(SelectedDataDirectory);
-        RequireNoReparse(SelectedDataDirectory);
-      end;
-    end;
-    ContextFile := NewReport('context');
-    RunMaintenance('prepare', ContextFile, '', '', 'prepared', False);
-    AcquireMaintenance;
-    PreflightReceipt := NewReport('preflight');
-    RunMaintenance('preflight', PreflightReceipt, '', '', 'ready', True);
-    RequireNoReparse(InstalledVersionRoot);
-    InstallPayload := not DirExists(InstalledVersionRoot);
-    if not InstallPayload then begin
-      VerifyTable(InstalledVersionRoot);
-      RunMaintenance('verify', NewReport('existing'), InstalledVersionRoot, '', 'ready', True);
-    end;
-    Prepared := True;
   except
     Result := GetExceptionMessage;
     Log('Session Panel preflight blocked: ' + Result);
@@ -348,10 +373,17 @@ procedure CurStepChanged(CurStep: TSetupStep);
 begin
   if CurStep = ssPostInstall then begin
     if not Prepared or not MaintenanceHeld then RaiseException('安装未经过维护预检。');
-    VerifyTable(InstalledVersionRoot);
-    RunMaintenance('verify', NewReport('verify'), InstalledVersionRoot, '', 'ready', True);
-    RunMaintenance('commit', NewReport('commit'), InstalledVersionRoot, PreflightReceipt, 'committed', True);
-    InstallCommitted := True;
+    try
+      if MaintenanceProgress <> nil then MaintenanceProgress.Show;
+      UpdateMaintenanceProgress('正在校验已写入的安装文件…');
+      VerifyTable(InstalledVersionRoot);
+      RunMaintenance('verify', NewReport('verify'), InstalledVersionRoot, '', 'ready', True);
+      UpdateMaintenanceProgress('正在登记此版本和更新启动入口…');
+      RunMaintenance('commit', NewReport('commit'), InstalledVersionRoot, PreflightReceipt, 'committed', True);
+      InstallCommitted := True;
+    finally
+      if MaintenanceProgress <> nil then MaintenanceProgress.Hide;
+    end;
   end;
 end;
 
