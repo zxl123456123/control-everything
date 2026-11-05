@@ -199,7 +199,6 @@
 #animation-stage[data-reading-view=list] #directory-title{font-size:18px;font-weight:700;letter-spacing:-.01em}
 #animation-stage[data-reading-view=list] #list-total{margin-left:4px;padding:2px 8px;border-radius:999px;background:var(--soft)}
 #animation-stage[data-reading-view=list] .search-wrap{padding-inline:4px}
-#animation-stage[data-reading-view=list] #search{border-color:transparent;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--line) 72%,transparent)}
 #animation-stage[data-reading-view=list] #title-list{
   grid-template-columns:repeat(3,minmax(0,1fr));
   gap:22px;
@@ -209,7 +208,7 @@
   position:relative;
   gap:15px;
   overflow:hidden;
-  padding:0 18px 18px;
+  padding:18px;
   border:1px solid color-mix(in srgb,var(--line) 85%,transparent);
   border-radius:18px;
   background:var(--paper);
@@ -234,7 +233,7 @@
 #animation-stage[data-reading-view=list] .title-row-thumbnail{
   width:calc(100% + 36px);
   height:184px;
-  margin:0 -18px;
+  margin:-18px -18px 0;
   border-radius:17px 17px 0 0;
   background:var(--soft);
 }
@@ -258,21 +257,21 @@
 }
 #animation-stage[data-reading-view=list] .row-type{margin-left:auto;color:var(--muted)}
 #animation-stage[data-reading-view=list] .row-date{font-variant-numeric:tabular-nums}
-#animation-stage[data-reading-view=list] .title-row:first-child{
+#animation-stage[data-reading-view=list] .title-row:nth-child(1 of :not([hidden])){
   grid-column:span 2;
   background:linear-gradient(135deg,var(--news-card-tint),var(--paper) 62%);
 }
-#animation-stage[data-reading-view=list] .title-row:first-child:has(.title-row-thumbnail:not([hidden])){
+#animation-stage[data-reading-view=list] .title-row:nth-child(1 of :not([hidden])):has(.title-row-thumbnail:not([hidden])){
   display:grid;
   grid-template-columns:minmax(0,1fr) minmax(250px,.92fr);
   grid-template-rows:1fr auto;
+  align-items:center;
   gap:18px 24px;
   padding:24px;
 }
-#animation-stage[data-reading-view=list] .title-row:first-child .title-row-content{align-self:center}
-#animation-stage[data-reading-view=list] .title-row:first-child .title-row-title{font-size:clamp(23px,2vw,30px);line-height:1.32;-webkit-line-clamp:4}
-#animation-stage[data-reading-view=list] .title-row:first-child .title-row-summary{font-size:15px;line-height:25px;-webkit-line-clamp:4}
-#animation-stage[data-reading-view=list] .title-row:first-child .title-row-thumbnail{
+#animation-stage[data-reading-view=list] .title-row:nth-child(1 of :not([hidden])) .title-row-title{font-size:clamp(23px,2vw,30px);line-height:1.32;-webkit-line-clamp:4}
+#animation-stage[data-reading-view=list] .title-row:nth-child(1 of :not([hidden])) .title-row-summary{font-size:15px;line-height:25px;-webkit-line-clamp:4}
+#animation-stage[data-reading-view=list] .title-row:nth-child(1 of :not([hidden])) .title-row-thumbnail{
   grid-column:2;
   grid-row:1/3;
   width:100%;
@@ -281,30 +280,29 @@
   margin:0;
   border-radius:14px;
 }
-#animation-stage[data-reading-view=list] .title-row:first-child .title-row-meta{grid-column:1;align-self:end}
-@media(hover:hover){
+#animation-stage[data-reading-view=list] .title-row:nth-child(1 of :not([hidden])) .title-row-meta{grid-column:1}
+@media(hover:hover) and (prefers-reduced-motion:no-preference){
   #animation-stage[data-reading-view=list] .title-row:hover{transform:translateY(-3px)}
 }
 @media(max-width:1120px){
   #animation-stage[data-reading-view=list] #title-list{grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
-  #animation-stage[data-reading-view=list] .title-row:first-child:has(.title-row-thumbnail:not([hidden])){grid-template-columns:minmax(0,1fr) minmax(220px,.82fr)}
+  #animation-stage[data-reading-view=list] .title-row:nth-child(1 of :not([hidden])):has(.title-row-thumbnail:not([hidden])){grid-template-columns:minmax(0,1fr) minmax(220px,.82fr)}
 }
 @media(max-width:720px){
   .news-source-controls{margin-inline:0;padding:8px}
   .news-source-controls #schedule-status{margin-left:0;text-align:left}
   #animation-stage[data-reading-view=list] .directory-head{margin-inline:0}
   #animation-stage[data-reading-view=list] #title-list{gap:14px;padding-inline:0}
-  #animation-stage[data-reading-view=list] .title-row{padding:0 16px 16px;border-radius:16px}
-  #animation-stage[data-reading-view=list] .title-row-thumbnail{width:calc(100% + 32px);margin-inline:-16px}
-  #animation-stage[data-reading-view=list] .title-row:first-child:has(.title-row-thumbnail:not([hidden])){grid-template-columns:minmax(0,1fr) minmax(190px,.78fr);padding:20px;gap:16px 20px}
+  #animation-stage[data-reading-view=list] .title-row{padding:16px;border-radius:16px}
+  #animation-stage[data-reading-view=list] .title-row-thumbnail{width:calc(100% + 32px);margin:-16px -16px 0}
+  #animation-stage[data-reading-view=list] .title-row:nth-child(1 of :not([hidden])):has(.title-row-thumbnail:not([hidden])){grid-template-columns:minmax(0,1fr) minmax(190px,.78fr);padding:20px;gap:16px 20px}
 }
 @media(max-width:620px){
   #animation-stage[data-reading-view=list] #title-list{grid-template-columns:1fr}
-  #animation-stage[data-reading-view=list] .title-row:first-child{grid-column:auto}
-  #animation-stage[data-reading-view=list] .title-row:first-child:has(.title-row-thumbnail:not([hidden])){display:flex;padding:0 16px 16px;gap:15px}
-  #animation-stage[data-reading-view=list] .title-row:first-child .title-row-thumbnail{order:-1;width:calc(100% + 32px);height:200px;min-height:0;margin:0 -16px;border-radius:15px 15px 0 0}
-  #animation-stage[data-reading-view=list] .title-row:first-child .title-row-title{font-size:21px;line-height:30px}
-  #animation-stage[data-reading-view=list] .title-row:first-child .title-row-meta{width:100%}
+  #animation-stage[data-reading-view=list] .title-row:nth-child(1 of :not([hidden])){grid-column:auto}
+  #animation-stage[data-reading-view=list] .title-row:nth-child(1 of :not([hidden])):has(.title-row-thumbnail:not([hidden])){display:flex;align-items:stretch;padding:0 16px 16px;gap:15px}
+  #animation-stage[data-reading-view=list] .title-row:nth-child(1 of :not([hidden])) .title-row-thumbnail{order:-1;width:calc(100% + 32px);height:200px;min-height:0;margin:0 -16px;border-radius:15px 15px 0 0}
+  #animation-stage[data-reading-view=list] .title-row:nth-child(1 of :not([hidden])) .title-row-title{font-size:21px;line-height:30px}
 }
 :scope[data-embedded=true]{height:100%;display:flex;flex-direction:column}:scope[data-embedded=true] #news-room{height:100%;min-height:0;width:100%;max-width:none}:scope[data-embedded=true] #animation-stage{min-height:0}
 }
