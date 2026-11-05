@@ -377,8 +377,8 @@ begin
       if MaintenanceProgress <> nil then MaintenanceProgress.Show;
       UpdateMaintenanceProgress('正在校验已写入的安装文件…');
       VerifyTable(InstalledVersionRoot);
-      RunMaintenance('verify', NewReport('verify'), InstalledVersionRoot, '', 'ready', True);
-      UpdateMaintenanceProgress('正在登记此版本和更新启动入口…');
+      { Commit verifies the installed payload again before it changes any registration. }
+      UpdateMaintenanceProgress('正在校验版本登记并更新启动入口…');
       RunMaintenance('commit', NewReport('commit'), InstalledVersionRoot, PreflightReceipt, 'committed', True);
       InstallCommitted := True;
     finally

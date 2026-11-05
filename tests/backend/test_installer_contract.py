@@ -169,7 +169,7 @@ class InstallerScriptTests(unittest.TestCase):
         self.assertNotIn('VerifyTable(BootstrapRoot)', prepare)
         self.assertIn('Result := GetExceptionMessage', body('PrepareToInstall'))
         after = body('CurStepChanged')
-        self.assertLess(after.index("RunMaintenance('verify'"), after.index("RunMaintenance('commit'"))
+        self.assertLess(after.index('VerifyTable(InstalledVersionRoot)'), after.index("RunMaintenance('commit'"))
         self.assertIn('ssPostInstall', after)
         self.assertIn('PreflightReceipt', after)
         self.assertNotIn('session-panel.cmd', after)
@@ -243,7 +243,7 @@ class InstallerScriptTests(unittest.TestCase):
         for exit_code in range(20, 27):
             self.assertIn(str(exit_code) + ': RaiseException', run)
         stages = re.findall(r"RunMaintenance\('([^']+)'", body('CurStepChanged'))
-        self.assertEqual(stages, ['verify', 'commit'])
+        self.assertEqual(stages, ['commit'])
 
     def test_missing_parent_creation_is_limited_to_the_default_user_programs(self):
         parent = body('EnsureDefaultParent')

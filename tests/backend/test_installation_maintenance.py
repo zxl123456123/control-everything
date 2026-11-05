@@ -362,6 +362,14 @@ class MaintenanceTests(InstallationFixture):
         context = REGISTRY.ProductContext.load(destination)
         with self.assertRaises(MAINTENANCE.Blocked):
             MAINTENANCE.commit_install(context, target, api=self.api)
+        runtime = destination / 'runtime/python313.dll'
+        original = runtime.read_bytes()
+        runtime.write_bytes(b'tampered')
+        with self.assertRaises(MAINTENANCE.manifest.ManifestError):
+            MAINTENANCE.commit_install(context, target, api=self.api, receipt=receipt)
+        self.assertFalse((target / '.install').exists())
+        self.assertFalse((target / 'session-panel.cmd').exists())
+        runtime.write_bytes(original)
         result = MAINTENANCE.commit_install(context, target, api=self.api, receipt=receipt)
         self.assertEqual(result['status'], 'committed')
         self.assertIn(self.context.version_id.encode(), (target / 'session-panel.cmd').read_bytes())
