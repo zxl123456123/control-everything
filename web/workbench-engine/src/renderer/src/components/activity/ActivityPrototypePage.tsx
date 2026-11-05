@@ -29,6 +29,7 @@ import { hasActivityThreadWorkspace } from './activity-thread-actions'
 import { useActivityThreadActionBindings } from './use-activity-thread-action-bindings'
 import { ActivityThreadListPane } from './activity-thread-list-pane'
 import { ActivityThreadDetailPane } from './activity-thread-detail-pane'
+import { OfficeActivityView } from './OfficeActivityView'
 import {
   otherActivityTerminalSlot,
   useActivityTerminalLoadingLabel,
@@ -60,6 +61,15 @@ export default function ActivityPrototypePage(): React.JSX.Element {
   )
   const [query, setQuery] = useState('')
   const [mobileDetailOpen, setMobileDetailOpen] = useState(false)
+  const [officeMode, setOfficeMode] = useState(false)
+  const [wideScreen, setWideScreen] = useState(() => window.matchMedia('(min-width: 768px)').matches)
+  useEffect(() => {
+    const media = window.matchMedia('(min-width: 768px)')
+    const update = () => setWideScreen(media.matches)
+    media.addEventListener('change', update)
+    update()
+    return () => media.removeEventListener('change', update)
+  }, [])
   const activityFilterInputRef = useRef<HTMLInputElement | null>(null)
   // Why: bounds auto mark-read to one acknowledgement per selected thread turn.
   const autoAcknowledgedTurnRef = useRef<string | null>(null)
@@ -360,9 +370,23 @@ export default function ActivityPrototypePage(): React.JSX.Element {
   // Why (page padding): no top/horizontal padding so the page reaches the window edges; the titlebar and the right pane's title row (pt-2) supply the top spacing.
   return (
     <div ref={setActivityPageRef} className="flex h-full min-h-0 flex-col bg-background pb-3">
+      {platformProject && <div className="flex shrink-0 gap-2 px-3 py-2" aria-label="活动展示方式">
+        <Button variant={officeMode ? 'outline' : 'default'} aria-pressed={!officeMode} onClick={() => setOfficeMode(false)}>列表</Button>
+        <Button variant={officeMode ? 'default' : 'outline'} aria-pressed={officeMode} onClick={() => setOfficeMode(true)}>办公室</Button>
+      </div>}
       <main className="flex min-h-0 flex-1 overflow-hidden">
         <div className={mobileDetailOpen ? 'hidden min-h-0 max-w-full md:contents' : 'contents'}>
           <ManagementSurfaceProvider value={true}>
+            {officeMode && platformProject ? <OfficeActivityView
+              key={`${boundScope?.hostId}:${boundScope?.repoId}`}
+              threads={visibleThreads}
+              showChildAgents={showChildAgents}
+              active={!mobileDetailOpen || wideScreen}
+              onSelect={(paneKey) => {
+                const thread = visibleThreads.find((value) => value.paneKey === paneKey)
+                if (thread) { selectThread(thread); setMobileDetailOpen(true) }
+              }}
+            /> :
             <ActivityThreadListPane
               lockProjectScope={platformProject !== undefined}
               threadListRef={threadListRef}
@@ -397,7 +421,7 @@ export default function ActivityPrototypePage(): React.JSX.Element {
               canJumpToWorkspace={canJumpToWorkspace}
               isThreadListResizing={isThreadListResizing}
               onResizeStart={onResizeStart}
-            />
+            />}
           </ManagementSurfaceProvider>
         </div>
         <div

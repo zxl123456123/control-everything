@@ -326999,6 +326999,14 @@
     }
   ],
   "local_files": [
+    "src/renderer/src/components/activity/OfficeActivityView.test.tsx",
+    "src/renderer/src/components/activity/OfficeActivityView.tsx",
+    "src/renderer/src/components/activity/office-activity-model.ts",
+    "src/renderer/src/components/activity/office-activity-model.test.ts",
+    "src/renderer/src/components/activity/office-scene/office-art.js",
+    "src/renderer/src/components/activity/office-scene/office-scene.js",
+    "src/renderer/src/components/activity/office-scene/office-scene.d.ts",
+    "src/renderer/src/components/activity/office-scene/office-scene.test.cjs",
     "src/main/runtime/structured-session-identity.test.ts",
     "src/cli/recipe-env-python.ts",
     "build-origin.json",
@@ -327822,7 +327830,7 @@
     {
       "path": "src/renderer/src/components/activity/ActivityPrototypePage.tsx",
       "upstream_sha256": "bc0524c2d723510bef7db608f37fbd6491e03cfebad43a82689a72d90b45fc29",
-      "current_sha256": "c2d414d8d7dfe38db29ceced623dc3f9f8af4fedcf506ca7325bc94023d35ad7",
+      "current_sha256": "9566445d0d541682e320bde783558aa5449414fca8e997ecc25480dd85b0f027",
       "reason": "Unify project ownership, task editing and native Agent activity in the integrated workspace UI r1 S8: native nondevelopment presentation with original actions and gates; ActivityPrototypePage.tsx."
     },
     {
