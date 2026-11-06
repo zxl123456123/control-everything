@@ -311,6 +311,13 @@ begin
   end;
 end;
 
+function NextButtonClick(CurPageID: Integer): Boolean;
+begin
+  Result := True;
+  if MaintenanceProgress <> nil then Result := CurPageID <> MaintenanceProgress.ID;
+  if not Result then Log('Session Panel ignored Next while maintenance is active.');
+end;
+
 procedure EnsureDefaultParent;
 var Parent, DefaultParent, App: String;
 begin
@@ -408,8 +415,9 @@ end;
 
 procedure CurStepChanged(CurStep: TSetupStep);
 begin
+  if ((CurStep = ssInstall) or (CurStep = ssPostInstall)) and (not Prepared or not MaintenanceHeld) then
+    RaiseException('安装未经过维护预检。');
   if CurStep = ssPostInstall then begin
-    if not Prepared or not MaintenanceHeld then RaiseException('安装未经过维护预检。');
     try
       if MaintenanceProgress <> nil then MaintenanceProgress.Show;
       UpdateMaintenanceProgress('正在校验已写入的安装文件…');

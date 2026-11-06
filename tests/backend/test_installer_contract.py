@@ -189,6 +189,13 @@ class InstallerScriptTests(unittest.TestCase):
         self.assertIn('PreflightReceipt', after)
         self.assertNotIn('session-panel.cmd', after)
 
+    def test_install_rejects_reentry_and_checks_preflight_before_writes(self):
+        next_button = body('NextButtonClick')
+        self.assertIn('if MaintenanceProgress <> nil then Result := CurPageID <> MaintenanceProgress.ID', next_button)
+        steps = body('CurStepChanged')
+        self.assertIn('(CurStep = ssInstall) or (CurStep = ssPostInstall)', steps)
+        self.assertLess(steps.index('not Prepared or not MaintenanceHeld'), steps.index('if CurStep = ssPostInstall then'))
+
     def test_interactive_progress_covers_preparation_and_final_registration(self):
         wizard = body('InitializeWizard')
         self.assertIn('if not WizardSilent then', wizard)
