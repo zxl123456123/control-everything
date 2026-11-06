@@ -208,6 +208,7 @@ def build(inputs_file, run_name, *, root=ROOT, runner=subprocess.run):
         step('inno-includes', [*python, 'tools/packaging/inno_include.py', '--payload', output / 'payload',
                               '--output', output / 'inno-includes'])
         step('installer', [paths['inno_dir'] / 'ISCC.exe', '/DPayloadIncludeDir=' + str(output / 'inno-includes'),
+                           '/DDesktopIconFile=' + str(output / 'desktop-window/session-panel.ico'),
                            '/DInstallerOutputDir=' + str(output / 'installer'), 'tools/packaging/session-panel.iss'])
         installer = unlinked(output / 'installer' / f'session-panel-{version}-windows-x64.exe')
         sources = read(output / 'payload/SOURCE-AVAILABILITY.json')

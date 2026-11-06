@@ -24,6 +24,9 @@ UninstallLogMode=append
 DisableProgramGroupPage=yes
 UsePreviousAppDir=yes
 SetupLogging=yes
+#ifdef DesktopIconFile
+SetupIconFile={#DesktopIconFile}
+#endif
 OutputDir={#InstallerOutputDir}
 OutputBaseFilename=session-panel-{#PayloadVersion}-windows-x64
 Compression=lzma2
