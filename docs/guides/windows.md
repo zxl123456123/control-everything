@@ -12,7 +12,7 @@
 
 安装目录支持中文和空格；当前产品按普通 Windows 路径工作，每个完整交付文件路径须少于260个UTF-16字符。安装器在写入目标前检查整个固定文件清单，超限时提示选择更短目录，不修改系统的长路径策略。
 
-安装按当前用户运行，无需管理员权限，默认位置为 `%LOCALAPPDATA%/Programs/SessionPanel`。从开始菜单的 **Session Panel** 打开网关控制台，再在浏览器访问 `http://127.0.0.1:8766/workspace`；安装不会自动启动网关或外部 Agent。端口被占用时明确退出，可从 PowerShell 指定自己的端口和 profile：
+安装按当前用户运行，无需管理员权限，默认位置为 `%LOCALAPPDATA%/Programs/SessionPanel`。含 Windows 窗口组件的新候选从开始菜单 **Session Panel** 打开独立工作台窗口，安装时可选创建桌面快捷方式。窗口使用 Microsoft Edge WebView2 Runtime，关闭窗口后关闭本次桌面服务。已公开的 0.1.0a10 等较早安装包仍沿用控制台与浏览器入口。端口被占用时明确退出，可从 PowerShell 指定自己的端口和 profile：
 
 ```powershell
 $panel = Join-Path $env:LOCALAPPDATA 'Programs/SessionPanel/session-panel.cmd'
@@ -69,7 +69,8 @@ Python wheel 的许可由 `notices.py` 收集实际原文。少数已审查但�
   "portable_git": "C:/example/checkout/work/windows-release/inputs/portable-git",
   "git_receipt": "C:/example/checkout/work/windows-release/inputs/portable-git-receipt.json",
   "endpoints": "C:/example/checkout/work/windows-release/inputs/endpoints.json",
-  "inno_dir": "C:/example/checkout/work/windows-release/inputs/inno"
+  "inno_dir": "C:/example/checkout/work/windows-release/inputs/inno",
+  "webview2_sdk": "C:/example/checkout/work/windows-release/inputs/webview2-1.0.4314.35.nupkg"
 }
 ```
 
@@ -99,6 +100,8 @@ if ($LASTEXITCODE -ne 0) { throw 'Portable Git preparation failed' }
 
 命令核 `desktop_payload.py` 固定的官方归档 SHA256，再以已审 files 逐项核当前目录，复用产品组装的组件覆盖、许可和对应源码校验；同名文件改动也会拒绝，不能重算 hash 给它重新背书。新输出与已审收据必须同父目录，使 `source_materials` 相对路径有效；输出不能在运行目录内，也不能覆盖旧收据。工具不执行解包器、不创造初始信任依据；缺少已审收据时停在材料准备，不把当前目录扫描当成官方来源证明。
 
+独立窗口使用 [Microsoft WebView2 SDK 1.0.4314.35](https://www.nuget.org/packages/Microsoft.Web.WebView2/1.0.4314.35)。从官方 NuGet 源准备 SDK 原包，统一构建核 SHA-256 并保留 SDK 许可与通知。目标机器使用已有的 [Evergreen WebView2 Runtime](https://learn.microsoft.com/microsoft-edge/webview2/concepts/distribution)。运行时缺失时窗口会提示，不会改用浏览器。
+
 ### 3. 每次只运行一个构建入口
 
 确认工作树干净、输入审核妥当、固定环境已准备，然后从本检出根执行：
@@ -116,7 +119,8 @@ if ($LASTEXITCODE -ne 0) { throw 'Candidate build failed; inspect the retained r
 | Python 包 | `python -m build`，sdist → wheel，要求各一个 |
 | 原生观察 | 固定 `build_observer.py` 的 fmt/test/clippy/release，静态 CRT；同一工具链用 `--filter-platform x86_64-pc-windows-msvc` 生成 Cargo 元数据，从 resolve 图选择观察后台根及传递 normal/build 依赖，逐包保留完整许可校验 |
 | 内置工作台 | `workbench_engine.py build --materials ...`，源码检查、锁定依赖、编译、产物探针、材料绑定、完整许可闭包 |
-| 产品组装 | `build_windows.py --release`，完整十二项输入，源码与轮子、engine、observer、Git及源码附件逐项验证 |
+| Windows 独立窗口 | `build_desktop_window.py` 从固定 Microsoft WebView2 SDK 与 x64 MSVC 构建，产物及许可随清单入包 |
+| 产品组装 | `build_windows.py --release`，逐项验证 Windows 窗口、源码与轮子、工作台、观察后台、Git 及源码附件 |
 | 安装器 | `inno_include.py` → `ISCC.exe`，精确文件清单与 hash；编译器退出码非0即停止 |
 
 每轮使用新的 run-name 和干净检出；不覆盖已有 release 输出、engine 的 `out/.build` 或已存在的 release observer。失败保留完整 stdout/stderr 与阶段退出码，修复后另建候选，不自动删目录重试。

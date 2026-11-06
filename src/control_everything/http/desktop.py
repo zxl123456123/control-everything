@@ -4,6 +4,7 @@ import argparse
 from dataclasses import replace
 from pathlib import Path
 import re
+import subprocess
 import threading
 import webbrowser
 from urllib.parse import urlsplit
@@ -17,9 +18,10 @@ from control_everything.integrations.workbench_runtime import RuntimeConfig, Wor
 
 
 class Desktop:
-    def __init__(self, server, runtime, connector=None, account=None, server_setup=None):
+    def __init__(self, server, runtime, connector=None, account=None, server_setup=None, *, window_host=None):
         self.server, self.runtime, self.connector = server, runtime, connector
         self.server_setup = server_setup
+        self.window_host = window_host
         self.configuration_lock = threading.RLock()
         self.configuration_changed = False
         self._stop = threading.Event()
@@ -102,6 +104,20 @@ class Desktop:
         while not self._stop.wait(2):
             self.tick()
 
+    def serve(self):
+        if self.window_host is None:
+            webbrowser.open(self.server.local_origin + '/desktop')
+            self.server.serve_forever()
+            return
+        user_data = self.server.profile.data_dir / 'desktop-window'
+        server_thread = threading.Thread(target=self.server.serve_forever, name='desktop-http')
+        server_thread.start()
+        try:
+            subprocess.run([self.window_host, str(self.server.server_port), user_data], check=True)
+        finally:
+            self.server.shutdown()
+            server_thread.join()
+
     def close(self):
         self._stop.set()
         if self.server.desktop_account:
@@ -168,7 +184,8 @@ def build_desktop(product_root, data_dir=None, port=8766, *, credential_root=Non
                                         ConnectorStore(remote_root), on_revoked=runtime.revoke_remote_devices)
         account = RemoteAccount(connector.peer, connector.store) if connector else None
         editable = not embedded['issuer'] and not embedded['hub_origin'] and selected.get('storage') != 'legacy'
-        return Desktop(server, runtime, connector, account, setup if editable else None)
+        window_host = manifest.no_links(root / manifest.DESKTOP_WINDOW_EXE) if manifest.DESKTOP_WINDOW_EXE in names else None
+        return Desktop(server, runtime, connector, account, setup if editable else None, window_host=window_host)
     except Exception:
         server.server_close()
         raise
@@ -199,8 +216,7 @@ def main(argv=None):
     try:
         desktop.start()
         print(f'本机电脑绑定：{desktop.server.local_origin}/desktop', flush=True)
-        webbrowser.open(desktop.server.local_origin + '/desktop')
-        desktop.server.serve_forever()
+        desktop.serve()
     except KeyboardInterrupt:
         pass
     finally:

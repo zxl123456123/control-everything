@@ -155,7 +155,8 @@ def prepare_git(archive, portable_git, reviewed_receipt, output, api, check_noti
     return receipt
 
 
-def stage(output, engine_root, build_run, portable_git, git_receipt, endpoints, api, helpers, source_bundle=None):
+def stage(output, engine_root, build_run, portable_git, git_receipt, endpoints, api, helpers,
+          source_bundle=None, window_build=None):
     output, engine_root, build_run, portable_git = map(Path, (output, engine_root, build_run, portable_git))
     for path in (engine_root, build_run, portable_git, Path(git_receipt), Path(endpoints)):
         if not path.is_absolute():
@@ -209,6 +210,10 @@ def stage(output, engine_root, build_run, portable_git, git_receipt, endpoints, 
                'git': 'portable-git/cmd/git.exe', 'ssh': 'portable-git/usr/bin/ssh.exe',
                'keygen': 'portable-git/usr/bin/ssh-keygen.exe', **config}
     (output / 'desktop-runtime.json').write_bytes(api.canonical_json(runtime) + b'\n')
+    window = None
+    if window_build is not None:
+        window, component = helpers('build_desktop_window').stage(window_build, output, api)
+        distribution['external'] = [*distribution['external'], component]
     notices = notice_document(distribution, components)
     (output / 'DESKTOP-NOTICES.json').write_bytes(api.canonical_json(notices) + b'\n')
     text = []
@@ -220,7 +225,8 @@ def stage(output, engine_root, build_run, portable_git, git_receipt, endpoints, 
         text.append('\n---\n' + ', '.join(owners) + '\n' + '\n'.join(notice['sources']) + '\n' + notice['text'] + '\n')
     with (output / 'THIRD-PARTY-NOTICES.txt').open('a', encoding='utf-8') as stream:
         stream.write(''.join(text))
-    return {'engine_source': source, 'portable_git_archive_sha256': GIT_SHA256, 'source_bundle': availability}
+    return {'engine_source': source, 'portable_git_archive_sha256': GIT_SHA256, 'source_bundle': availability,
+            **({'window': window} if window is not None else {})}
 
 
 def main(argv=None):

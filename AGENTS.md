@@ -16,6 +16,7 @@
 - 一次性脚本、临时副本、缓存、构建输出与预览 profile 归 `work/<feature>/`。新写或重新启用的临时 driver 必须通过 `python tools/scripts/run_task.py <feature> --output <产物> -- <命令>` 启动，真实输出从 `CE_TASK_WORK_DIR` 派生并与声明一致；禁止独立盘根常量、未声明的输出覆盖和裸运行旧脚本。入口校验声明与子进程临时环境，不是 OS 沙箱，执行者仍须核对实际写入。正式工具的 `work/ce-native`、`work/workbench-engine-build/<run>/` 合同及普通自动清理单测保持；禁止修改系统 TEMP/TMP 或创建外部路径别名。
 - 结项按任务清理明确可重建的临时内容，保留最终验收、实际失败及仍被引用的构建输入。不能按年龄批量删除源码副本、依赖、产品或 profile；先核对清单、解析后的目标、链接、进程与恢复来源。ignored 材料不是备份，私人证据只导出到使用者指定的受控位置，不自行上传。
 - 提交前同时核对 staged diff 与 MERGE_HEAD、变基/拣选状态；独立任务不得消费原有未完成合并。只暂存本人文件，不还原其他人的工作。推送前核对上游及全部待推送提交，历史改写仍须明确授权。
+- Windows 独立窗口源码归 `native/desktop`，复用包内工作台和本机服务，不写业务库。
 - 生产 Python 只放入 `src/control_everything` 所属功能包，前端唯一源码在 `web`；不要建立根影子包。构建工具归 `tools/packaging`，资源按显式白名单入包。测试按 backend/frontend/e2e/fixtures 类型放置；具体归属见 [CONTRIBUTING.md](.github/CONTRIBUTING.md)。内部引用真实实现，Python CLI 使用 control_everything 包名，保持公开资源 URL 和已有数据位置。
 - 新增文件先检查归属；依赖遵守 `tools/architecture/importlinter.ini`，运行 `python tools/scripts/check_architecture.py layout` 和官方 Import Linter。不得经旧 CLI、兼容转发或动态导入绕过方向约束；新增构建单元须同时更新规则与贡献指南。
 - HTTP 入口保留权限、请求处理及装配，页面主脚本保留状态及装配；新业务处理和完整展示放入所属模块。跨项目/事项的管理写入保持现有同库事务，Rust 不写业务库。

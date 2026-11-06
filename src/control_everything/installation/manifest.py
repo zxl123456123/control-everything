@@ -7,6 +7,7 @@ import re
 import stat
 
 NATIVE_EXE = 'native/observer/session-panel-observer.exe'
+DESKTOP_WINDOW_EXE = 'native/desktop/session-panel.exe'
 NATIVE_MANIFEST = 'native/observer/manifest.json'
 NATIVE_FILES = {NATIVE_EXE, NATIVE_MANIFEST}
 BASE_FILES = {'runtime/python.exe', 'runtime/python313.dll', 'runtime/python313.zip', 'runtime/python313._pth',

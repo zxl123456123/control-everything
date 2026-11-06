@@ -106,6 +106,8 @@ def ownership_error(value):
             return None if len(parts) == 3 and path.suffix in {'.py', '.cjs', '.ps1'} else 'scripts_are_development_entries'
         return None if section in {'typescript', 'remote-reader', 'architecture', 'packaging'} else 'unknown_development_tool'
     if top == 'native':
+        if value == 'native/desktop/main.cpp':
+            return None
         return None if section == 'observer' and path.suffix in {'.rs', '.toml', '.lock', '.json'} else 'unknown_native_owner'
     if top == 'docs':
         if section == 'examples':

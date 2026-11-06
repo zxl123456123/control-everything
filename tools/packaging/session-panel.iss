@@ -33,8 +33,12 @@ WizardStyle=modern
 [Files]
 #include PayloadIncludeDir + "\payload-files.iss"
 
+[Tasks]
+Name: "desktopicon"; Description: "创建桌面快捷方式"; Flags: unchecked
+
 [Icons]
-Name: "{userprograms}\Session Panel"; Filename: "{app}\session-panel.cmd"; WorkingDir: "{app}"
+Name: "{userprograms}\Session Panel"; Filename: "{app}\session-panel.cmd"; WorkingDir: "{app}"; Flags: runminimized; IconFilename: "{app}\versions\{#PayloadId}\native\desktop\session-panel.exe"
+Name: "{userdesktop}\Session Panel"; Filename: "{app}\session-panel.cmd"; WorkingDir: "{app}"; Tasks: desktopicon; Flags: runminimized; IconFilename: "{app}\versions\{#PayloadId}\native\desktop\session-panel.exe"
 
 [Code]
 const

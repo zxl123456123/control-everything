@@ -21,6 +21,22 @@ from control_everything.integrations.workbench_runtime import RuntimeConfig, Wor
 
 
 class DesktopAssemblyTests(unittest.TestCase):
+    def test_packaged_window_owns_server_lifetime_without_opening_browser(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            server = Mock(server_port=14401, profile=SimpleNamespace(data_dir=root / 'profile'))
+            window = root / 'session-panel.exe'
+            desktop = Desktop(server, Mock(), window_host=window)
+            with patch('control_everything.http.desktop.subprocess.run') as run, \
+                 patch('control_everything.http.desktop.webbrowser.open') as browser:
+                run.side_effect = OSError('window launch failed')
+                with self.assertRaisesRegex(OSError, 'window launch failed'):
+                    desktop.serve()
+            run.assert_called_once_with([window, '14401', root / 'profile' / 'desktop-window'], check=True)
+            browser.assert_not_called()
+            server.serve_forever.assert_called_once_with()
+            server.shutdown.assert_called_once_with()
+
     def test_saved_endpoints_are_loaded_when_desktop_restarts(self):
         with TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -64,14 +80,16 @@ class DesktopAssemblyTests(unittest.TestCase):
             config = {'engine_root': 'engine', 'build_run': 'build', 'git': 'git.exe',
                       'ssh': 'ssh.exe', 'keygen': 'ssh-keygen.exe', 'issuer': '', 'hub_origin': ''}
             (root / 'desktop-runtime.json').write_text(json.dumps(config))
-            files = [{'path': name} for name in ('desktop-runtime.json', 'engine/output', 'build/output', 'git.exe', 'ssh.exe', 'ssh-keygen.exe')]
+            files = [{'path': name} for name in ('desktop-runtime.json', 'engine/output', 'build/output', 'git.exe', 'ssh.exe', 'ssh-keygen.exe',
+                     'native/desktop/session-panel.exe')]
             server = Mock(profile=SimpleNamespace(data_dir=root / 'profile'))
             with patch('control_everything.http.desktop.manifest.verify_payload', return_value={'files': files}), \
                  patch('control_everything.http.desktop.build_profile_server', return_value=server), \
                  patch('control_everything.http.desktop._news_runtime', return_value={}), \
                  patch('control_everything.http.desktop.WorkbenchAssets'), \
                  patch('control_everything.http.desktop.WorkbenchRuntime') as runtime:
-                build_desktop(root, credential_root=root / 'profile' / 'workbench' / 'state' / 'credentials')
+                desktop = build_desktop(root, credential_root=root / 'profile' / 'workbench' / 'state' / 'credentials')
+            self.assertEqual(desktop.window_host, root / 'native/desktop/session-panel.exe')
             self.assertTrue(runtime.call_args.args[0].inherit_host_environment)
             self.assertEqual(runtime.call_args.args[0].credential_root,
                              root / 'profile' / 'workbench' / 'state' / 'credentials')

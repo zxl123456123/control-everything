@@ -84,6 +84,7 @@ Import Linter 的固定依赖在 `tools/architecture/requirements.txt`。内容/
 | `src/control_everything/installation` | Windows完整产品清单、所属登记与协作维护；不写业务库 |
 | `src/control_everything/platform` | Windows Job、安装身份及句柄原语；不依赖上层功能包 |
 | `native/observer` | Windows 只读进程观察、受限本机管道及核验后的窗口返回；不写管理库 |
+| `native/desktop` | Windows 独立应用窗口，承载工作台页面，使用固定 WebView2 SDK 构建 |
 
 生产 Python 包只放在 `src/control_everything`，不要在根目录建立影子包。`src/control_everything/paths.py` 分别定位检出目录、包内资源和用户数据；源码模式保留旧根数据合同，安装模式不会把程序目录当数据目录。包根的四个 CLI 文件只保留模块入口，内部引用指向功能包中的真实实现，不能依赖入口转发内部符号。
 

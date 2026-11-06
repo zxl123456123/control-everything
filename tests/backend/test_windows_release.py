@@ -101,12 +101,14 @@ class WindowsReleaseTests(unittest.TestCase):
         commands = {name: argv for name, argv, _ in self.calls}
         self.assertIn('--release', commands['observer-build'])
         self.assertIn('--materials', commands['engine-build'])
+        window = commands['desktop-window']
+        self.assertEqual(window[window.index('--sdk') + 1], self.values['webview2_sdk'])
         cargo = commands['cargo-metadata']
         self.assertEqual(cargo[cargo.index('--filter-platform') + 1], 'x86_64-pc-windows-msvc')
         product = commands['product']
         for flag in ('wheel', 'wheelhouse', 'runtime-zip', 'observer-release', 'output',
                      'cargo-packages', 'inno-license', 'engine-root', 'engine-run',
-                     'portable-git', 'git-receipt', 'endpoints'):
+                     'portable-git', 'git-receipt', 'endpoints', 'desktop-window'):
             self.assertIn('--' + flag, product)
         self.assertIn('--release', product)
         self.assertEqual(RELEASE.read(self.output / 'cargo-packages.json'), self.cargo_metadata['packages'])

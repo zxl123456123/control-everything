@@ -14,7 +14,7 @@ import tomllib
 
 ROOT = Path(__file__).resolve().parents[2]
 INPUTS = {'node', 'pnpm', 'engine_materials', 'wheelhouse', 'runtime_zip',
-          'portable_git', 'git_receipt', 'endpoints', 'inno_dir'}
+          'portable_git', 'git_receipt', 'endpoints', 'inno_dir', 'webview2_sdk'}
 DIRECTORIES = {'engine_materials', 'wheelhouse', 'portable_git', 'inno_dir'}
 
 
@@ -172,6 +172,8 @@ def build(inputs_file, run_name, *, root=ROOT, runner=subprocess.run):
         for name in ('PYTHONPATH', 'PYTHONHOME', 'NODE_OPTIONS', 'NODE_PATH'):
             native_env.pop(name, None)
         native_env.update({key: value for key, value in environment.items() if key.startswith('PYTHON')})
+        step('desktop-window', [*python, 'tools/packaging/build_desktop_window.py',
+                                '--sdk', paths['webview2_sdk'], '--output', output / 'desktop-window'])
         step('engine-source', [*python, 'tools/packaging/workbench_engine.py', 'check-source'])
         step('python-package', [*python, '-m', 'build', '--outdir', output / 'dist'])
         wheels = list((output / 'dist').glob('*.whl'))
@@ -197,7 +199,8 @@ def build(inputs_file, run_name, *, root=ROOT, runner=subprocess.run):
              '--observer-release', root / 'work/native-observer/release-install', '--output', output / 'payload',
              '--cargo-packages', output / 'cargo-packages.json', '--inno-license', paths['inno_dir'] / 'license.txt',
              '--engine-root', engine_root, '--engine-run', engine_run, '--portable-git', paths['portable_git'],
-             '--git-receipt', paths['git_receipt'], '--endpoints', paths['endpoints']])
+             '--git-receipt', paths['git_receipt'], '--endpoints', paths['endpoints'],
+             '--desktop-window', output / 'desktop-window'])
         product = read(output / 'payload/product.json')
         version = tomllib.loads((root / 'pyproject.toml').read_text(encoding='utf-8'))['project']['version']
         if product['source']['commit'] != commit or product['source']['dirty'] or product['version'] != version:
