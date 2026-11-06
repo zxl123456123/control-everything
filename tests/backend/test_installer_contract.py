@@ -77,10 +77,25 @@ class InstallerIncludesTests(PayloadFixture):
         INNO.generate_includes(stage, output)
         table = (output / 'payload-hashes.iss').read_text(encoding='utf-8-sig')
         self.assertIn("资料''s.txt", table)
+        self.assertIn("PayloadBatchPatterns[0] := '*';", table)
         self.assertEqual(INNO.pascal_string("a'b"), "'a''b'")
         for invalid in ('x".txt', 'x{app}.txt', 'x\ny.txt', 'x\0y.txt'):
             with self.subTest(invalid=invalid), self.assertRaisesRegex(ValueError, 'invalid_installer_path'):
                 INNO.inno_path(invalid)
+
+    def test_extraction_batches_match_each_file_once_with_bounded_counts(self):
+        names = ['LICENSE', 'runtime/large.dll', *(f'runtime/lib/x{index:04}.py' for index in range(2500))]
+        rows = [{'path': name, 'size': 100 * 1024 * 1024 if name.endswith('.dll') else 1024} for name in names]
+        batches = INNO.extraction_batches(rows, '0.1.0a11-fixture')
+        extracted = []
+        for pattern, count in batches:
+            files = [name for name in names if (name.lower().startswith(pattern[:-1])
+                     if pattern.endswith('*') else name.lower() == pattern.lower())]
+            self.assertEqual(len(files), count)
+            self.assertLessEqual(count, 1024)
+            extracted.extend(files)
+        self.assertCountEqual(extracted, names)
+        self.assertIn(('runtime/large.dll', 1), batches)
 
     def test_missing_bootstrap_tampered_payload_and_extra_files_fail_before_output(self):
         stage, document = super().payload()
@@ -121,7 +136,7 @@ class InstallerScriptTests(unittest.TestCase):
     def test_path_limit_precedes_bootstrap_parent_creation_and_target_writes(self):
         prepare = body('PrepareInstallation')
         positions = [prepare.index(value) for value in (
-            'ReleaseMaintenance', 'RequireSupportedInstallPaths', 'ExtractTemporaryFiles',
+            'ReleaseMaintenance', 'RequireSupportedInstallPaths', 'ExtractBootstrap',
             'EnsureDefaultParent', "RunMaintenance('prepare'", "RunMaintenance('preflight'")]
         self.assertEqual(positions, sorted(positions))
         guard = body('RequireSupportedInstallPaths')
@@ -160,7 +175,7 @@ class InstallerScriptTests(unittest.TestCase):
     def test_bootstrap_hashes_precede_prepare_mutex_and_preflight(self):
         prepare = body('PrepareInstallation')
         positions = [prepare.index(value) for value in (
-            'ExtractTemporaryFiles', "RunMaintenance('prepare'",
+            'ExtractBootstrap', "RunMaintenance('prepare'",
             'AcquireMaintenance', "RunMaintenance('preflight'", 'Prepared := True')]
         self.assertEqual(positions, sorted(positions))
         self.assertIn("+ '{app}\\versions\\{#PayloadId}'", prepare)
@@ -180,7 +195,11 @@ class InstallerScriptTests(unittest.TestCase):
         self.assertIn('CreateOutputMarqueeProgressPage', wizard)
         update = body('UpdateMaintenanceProgress')
         self.assertIn('MaintenanceProgress.SetText', update)
-        self.assertIn('MaintenanceProgress.Animate', update)
+        self.assertIn('MaintenanceProgress.SetText', body('ShowFileProgress'))
+        self.assertIn('ShowFileProgress(I + 1)', body('VerifyTable'))
+        extraction = body('ExtractBootstrap')
+        self.assertLess(extraction.index('ExtractTemporaryFiles(Prefix + PayloadBatchPatterns[I])'),
+                        extraction.rindex('ShowFileProgress(Completed)'))
         for stage in ('PrepareToInstall', 'CurStepChanged'):
             callback = body(stage)
             self.assertLess(callback.index('MaintenanceProgress.Show'), callback.index('finally'))

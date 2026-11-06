@@ -53,9 +53,11 @@ type
   end;
 
 var
-  PayloadPaths, PayloadHashes: TArrayOfString;
+  PayloadPaths, PayloadHashes, PayloadBatchPatterns: TArrayOfString;
+  PayloadBatchCounts: array of Integer;
   BootstrapRoot, ContextFile, PreflightReceipt, Operation: String;
   MaintenanceProgress: TOutputMarqueeProgressWizardPage;
+  MaintenanceStage: String;
   DataDirectoryChoice: TInputOptionWizardPage;
   DataDirectoryPage: TInputDirWizardPage;
   SelectedDataDirectory: String;
@@ -137,16 +139,26 @@ begin
   Result := AddBackslash(ExpandConstant('{tmp}')) + 'maintenance-' + Stage + '-' + IntToStr(ReportSequence) + '.json';
 end;
 
+procedure ShowFileProgress(Completed: Integer);
+begin
+  if MaintenanceProgress <> nil then
+    MaintenanceProgress.SetText(MaintenanceStage,
+      IntToStr(Completed) + ' / ' + IntToStr(GetArrayLength(PayloadPaths)) + ' 个文件');
+end;
+
 procedure VerifyTable(Root: String);
 var I: Integer; FileName: String;
 begin
   RequireNoReparse(Root);
+  ShowFileProgress(0);
   for I := 0 to GetArrayLength(PayloadPaths) - 1 do begin
     FileName := AddBackslash(Root) + PayloadPaths[I];
     RequireNoReparse(FileName);
     if not FileExists(FileName) then RaiseException('完整安装文件缺失，需使用可信安装器修复。');
     if CompareText(GetSHA256OfFile(FileName), PayloadHashes[I]) <> 0 then
       RaiseException('完整安装文件校验失败，已停止维护。');
+    if ((I + 1) mod 32 = 0) or (I + 1 = GetArrayLength(PayloadPaths)) then
+      ShowFileProgress(I + 1);
   end;
 end;
 
@@ -261,10 +273,8 @@ end;
 procedure UpdateMaintenanceProgress(Stage: String);
 begin
   Log('Session Panel stage: ' + Stage);
-  if MaintenanceProgress <> nil then begin
-    MaintenanceProgress.SetText(Stage, '');
-    MaintenanceProgress.Animate;
-  end;
+  MaintenanceStage := Stage;
+  if MaintenanceProgress <> nil then MaintenanceProgress.SetText(Stage, '');
 end;
 
 procedure InitializeWizard;
@@ -311,13 +321,33 @@ begin
   RequireNoReparse(DefaultParent);
 end;
 
+procedure ExtractBootstrap;
+var Prefix: String; I, Completed, Count: Integer;
+begin
+  Prefix := '{app}\versions\{#PayloadId}\';
+  if MaintenanceProgress = nil then begin
+    if ExtractTemporaryFiles(Prefix + '*') <> GetArrayLength(PayloadPaths) then
+      RaiseException('临时安装文件数量不匹配。');
+    Exit;
+  end;
+  Completed := 0;
+  ShowFileProgress(Completed);
+  for I := 0 to GetArrayLength(PayloadBatchPatterns) - 1 do begin
+    Count := ExtractTemporaryFiles(Prefix + PayloadBatchPatterns[I]);
+    if Count <> PayloadBatchCounts[I] then RaiseException('临时安装文件数量不匹配。');
+    Completed := Completed + Count;
+    ShowFileProgress(Completed);
+  end;
+  if Completed <> GetArrayLength(PayloadPaths) then RaiseException('临时安装文件数量不匹配。');
+end;
+
 procedure PrepareInstallation;
 begin
   ReleaseMaintenance;
   RequireSupportedInstallPaths;
   if not BootstrapExtracted then begin
     UpdateMaintenanceProgress('正在解压临时安装文件…');
-    ExtractTemporaryFiles('{app}\versions\{#PayloadId}\*');
+    ExtractBootstrap;
     BootstrapRoot := AddBackslash(ExpandConstant('{tmp}')) + '{app}\versions\{#PayloadId}';
     BootstrapExtracted := True;
   end;

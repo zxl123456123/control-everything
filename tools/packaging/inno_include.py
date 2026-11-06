@@ -24,6 +24,31 @@ def inno_path(value):
     return value
 
 
+def extraction_batches(rows, version_id):
+    # Each call scans the Inno file table. Use broad, disjoint path prefixes where possible.
+    def partition(group, prefix=''):
+        if len(group) == 1:
+            yield group[0]['path'], 1
+        elif prefix and len(group) <= 1024 and sum(row['size'] for row in group) <= 64 * 1024 * 1024:
+            yield prefix + '*', len(group)
+        else:
+            children = {}
+            for row in group:
+                name = row['path'].lower()
+                if len(name) == len(prefix):
+                    yield row['path'], 1
+                else:
+                    children.setdefault(name[len(prefix)], []).append(row)
+            for initial, members in children.items():
+                yield from partition(members, prefix + initial)
+
+    # Use Inno's existing wildcard for Unicode paths or paths too long for an exact pattern.
+    pattern_prefix_length = len('{app}/versions/' + version_id + '/')
+    if any(not row['path'].isascii() or pattern_prefix_length + len(row['path']) >= 260 for row in rows):
+        return [('*', len(rows))]
+    return list(partition(rows))
+
+
 def generate_includes(payload, output):
     api = BUILD.contract()
     payload, output = Path(payload), Path(output)
@@ -63,6 +88,12 @@ def generate_includes(payload, output):
                        'Flags: ignoreversion; Check: ShouldInstallPayload')
         table.append(f'  PayloadPaths[{index}] := {pascal_string(relative.replace("/", chr(92)))};')
         table.append(f'  PayloadHashes[{index}] := {pascal_string(row["sha256"])};')
+    batches = extraction_batches(rows, version_id)
+    table.append(f'  SetArrayLength(PayloadBatchPatterns, {len(batches)});')
+    table.append(f'  SetArrayLength(PayloadBatchCounts, {len(batches)});')
+    for index, (pattern, count) in enumerate(batches):
+        table.append(f'  PayloadBatchPatterns[{index}] := {pascal_string(pattern.replace("/", chr(92)))};')
+        table.append(f'  PayloadBatchCounts[{index}] := {count};')
     table.extend(['end;', ''])
     texts = {'payload-defines.iss': definitions, 'payload-files.iss': '\n'.join(entries) + '\n',
              'payload-hashes.iss': '\n'.join(table)}
