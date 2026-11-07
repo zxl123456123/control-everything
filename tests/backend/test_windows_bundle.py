@@ -154,7 +154,8 @@ class ManifestTests(PayloadFixture):
 
     def test_paths_case_collisions_file_directory_collisions_and_bool_sizes_fail(self):
         _stage, original = self.payload()
-        for value in ('../escape', '/root', 'C:/example/root', 'a\\b', '.', 'x/../y', 'a//b', 'NUL.txt', 'file:stream', 'tail.'):
+        for value in ('../escape', '/root', 'C:/example/root', 'a\\b', '.', 'x/../y', 'a//b', 'NUL.txt', 'file:stream', 'tail.',
+                      'deep/con.txt', 'prn', 'Aux.log', 'com1.exe', 'deep/COM9/leaf', 'lpt1', 'Lpt9.txt'):
             with self.subTest(value=value), self.assertRaises(MANIFEST.ManifestError):
                 MANIFEST.relative_path(value)
         for rows in ([{'path': 'Runtime/extra.txt', 'size': 1, 'sha256': 'a' * 64}],

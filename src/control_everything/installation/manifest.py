@@ -17,6 +17,8 @@ BASE_FILES = {'runtime/python.exe', 'runtime/python313.dll', 'runtime/python313.
 FIELDS = {'schema', 'product', 'version', 'target', 'python', 'source', 'compatibility', 'native', 'files', 'closure'}
 MAX_MANIFEST_BYTES = 16 * 1024 * 1024
 HEX = re.compile(r'[0-9a-f]{64}\Z')
+WINDOWS_RESERVED_NAMES = frozenset({'CON', 'PRN', 'AUX', 'NUL',
+                                   *(f'COM{i}' for i in range(1, 10)), *(f'LPT{i}' for i in range(1, 10))})
 
 
 class ManifestError(ValueError):
@@ -60,7 +62,7 @@ def relative_path(value):
         raise ManifestError('invalid_path', value)
     for part in path.parts:
         if (part.endswith(('.', ' ')) or any(char in part for char in '<>"|?*')
-                or part.split('.')[0].upper() in {'CON', 'PRN', 'AUX', 'NUL', *(f'COM{i}' for i in range(1, 10)), *(f'LPT{i}' for i in range(1, 10))}):
+                or part.split('.')[0].upper() in WINDOWS_RESERVED_NAMES):
             raise ManifestError('invalid_path', value)
     return path
 
@@ -112,13 +114,13 @@ def validate_manifest(document):
     names, seen, components = [], set(), {}
     for row in document['files']:
         exact(row, {'path', 'size', 'sha256'}, 'file_fields')
-        relative_path(row['path'])
+        path = relative_path(row['path'])
         folded = row['path'].casefold()
         if folded == 'product.json' or folded in seen:
             raise ManifestError('duplicate_path', row['path'])
         seen.add(folded)
         names.append(row['path'])
-        for prefix in (PurePosixPath(row['path']), *PurePosixPath(row['path']).parents):
+        for prefix in (path, *path.parents):
             if str(prefix) == '.':
                 continue
             value = str(prefix)
