@@ -205,7 +205,7 @@ def load_records(root, api, *, pending=None):
     files, directories = manifest.inventory(directory)
     if directories - {'versions', 'profiles', 'http', 'backups'}:
         raise RegistryError('unknown_record_directory')
-    versions, profiles, http = {}, {}, []
+    versions, profiles, http, contexts = {}, {}, [], {}
     for name, path in sorted(files.items()):
         if name == 'root.json':
             continue
@@ -219,7 +219,7 @@ def load_records(root, api, *, pending=None):
             raise RegistryError('unknown_record')
         key, record = filename[:-5], read_record(path)
         if prefix == 'versions':
-            validate_version(root, key, record, api)
+            contexts[key] = validate_version(root, key, record, api)
             versions[key] = record
         elif prefix == 'profiles':
             manifest.exact(record, {'schema', 'profile_key', 'directory', 'associations'}, 'profile_fields')
@@ -260,7 +260,7 @@ def load_records(root, api, *, pending=None):
     version_root = root / 'versions'
     if not version_root.is_dir() or {path.name for path in version_root.iterdir()} != known:
         raise RegistryError('unknown_version_directory')
-    return owner, versions, profiles, http
+    return owner, versions, profiles, http, contexts
 
 
 class RegistrationLease:
@@ -276,7 +276,7 @@ class RegistrationLease:
 def register_http(context, profile, *, api=None):
     """Caller holds install_mutex until observer.start has returned."""
     api = default_api() if api is None else api
-    root, versions, profiles, _http = load_records(context.install_root, api)
+    root, versions, profiles, _http, _contexts = load_records(context.install_root, api)
     current = version_record(context, api)
     if (context.version_id not in versions
             or any(versions[context.version_id][field] != current[field] for field in current if field != 'native')):

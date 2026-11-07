@@ -240,16 +240,19 @@ class RegistryTests(InstallationFixture):
         second = self.make_version('0.1.0a2')
         REGISTRY.write_record(self.install / '.install/versions' / (second.version_id + '.json'), REGISTRY.version_record(second, self.api))
         self.profile(context=second)
-        _root, versions, profiles, http = REGISTRY.load_records(self.install, self.api)
+        _root, versions, profiles, http, contexts = REGISTRY.load_records(self.install, self.api)
         self.assertEqual(len(versions), 2)
         self.assertEqual(set(profiles[self.api.profile_key(profile)]['associations']), set(versions))
         self.assertEqual(http, [])
+        self.assertEqual(set(contexts), set(versions))
+        for key, context in contexts.items():
+            self.assertEqual(REGISTRY.version_record(context, self.api), versions[key])
 
     def test_native_missing_keeps_basic_registration_and_expected_old_association(self):
         original = REGISTRY.read_record(self.install / '.install/versions' / (self.context.version_id + '.json'))
         (self.context.version_dir / MANIFEST.NATIVE_EXE).unlink()
         self.profile()
-        _root, _versions, profiles, _http = REGISTRY.load_records(self.install, self.api)
+        _root, _versions, profiles, _http, _contexts = REGISTRY.load_records(self.install, self.api)
         association = next(iter(profiles.values()))['associations'][self.context.version_id]
         self.assertEqual(association, original['native'])
 

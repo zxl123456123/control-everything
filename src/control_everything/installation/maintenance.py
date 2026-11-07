@@ -148,11 +148,10 @@ def verify_native(association, context, api):
     return Path(association['image']['path'])
 
 
-def stop_profile(profile, versions, api, stopped):
+def stop_profile(profile, versions, contexts, api, stopped):
     with ExitStack() as stack:
         for key, association in profile['associations'].items():
-            context = registry.ProductContext.load(versions[key]['directory']['path'])
-            verify_native(association, context, api)
+            verify_native(association, contexts[key], api)
         peer = api.pipe_peer(profile['profile_key'])
         if peer is None:
             return None
@@ -269,7 +268,7 @@ def preflight(install_root, operation, report_path, *, api, invocation=None, pay
             else:
                 if desktop_data_dir is not None:
                     raise Blocked(24, 'data_directory_migration_required')
-                owner, versions, profiles, http = registry.load_records(root, api)
+                owner, versions, profiles, http, contexts = registry.load_records(root, api)
                 receipt.update(root=owner['directory'], install_id=owner['install_id'])
                 launcher = root / 'session-panel.cmd'
                 if not launcher.is_file():
@@ -277,10 +276,9 @@ def preflight(install_root, operation, report_path, *, api, invocation=None, pay
                 receipt['launcher_sha256'] = manifest.sha256(launcher)
                 scan_processes(root, http, profiles, participants, api)
                 for key in sorted(versions):
-                    context = registry.ProductContext.load(versions[key]['directory']['path'])
-                    verify_native(versions[key]['native'], context, api)
+                    verify_native(versions[key]['native'], contexts[key], api)
                 for key in sorted(profiles):
-                    stop_profile(profiles[key], versions, api, stopped)
+                    stop_profile(profiles[key], versions, contexts, api, stopped)
                 receipt['denied_unrelated_pids'] = scan_processes(root, http, profiles, participants, api, after=True)
                 try:
                     with api.exclusive_asset_handles(project_assets(root, versions)):
@@ -310,7 +308,7 @@ def verify_install(context, install_root, *, api, invocation=None):
     if invocation is not None and context.document['closure'] != invocation['bootstrap_closure']:
         raise Blocked(24, 'payload_invocation_identity')
     if (root / '.install/root.json').exists():
-        registry.load_records(root, api, pending=context)
+        return registry.load_records(root, api, pending=context)
     else:
         # Initial [Files] may contain only the selected version and exact Inno metadata.
         uninstaller = api.registered_uninstaller(root)
@@ -318,17 +316,16 @@ def verify_install(context, install_root, *, api, invocation=None):
         allowed = {'versions', inno.name, inno.with_suffix('.dat').name, inno.with_suffix('.msg').name}
         if {p.name for p in root.iterdir()} - allowed or {p.name for p in (root / 'versions').iterdir()} != {context.version_id}:
             raise Blocked(24, 'unknown_initial_assets')
-    return context
+    return None
 
 
 def final_commit_check(context, root, participants, api, *, existing):
     """A ready receipt does not prove that the installation is still idle."""
     versions, profiles, http = {}, {}, []
     if existing:
-        _owner, versions, profiles, http = registry.load_records(root, api, pending=context)
-        for record in versions.values():
-            old = registry.ProductContext.load(record['directory']['path'])
-            verify_native(record['native'], old, api)
+        _owner, versions, profiles, http, contexts = registry.load_records(root, api, pending=context)
+        for key, record in versions.items():
+            verify_native(record['native'], contexts[key], api)
     # The new version is also in scope before its first root/version record exists.
     verify_native(registry.native_association(context, api), context, api)
     scan_processes(root, http, profiles, participants, api, after=True)
@@ -374,15 +371,14 @@ def commit_install(context, install_root, *, invocation=None, receipt=None, api=
                 or receipt['closure'] != context.document['closure'] or receipt['version_id'] != context.version_id
                 or invocation is not None and receipt['nonce'] != invocation['nonce']):
             raise Blocked(24, 'receipt_identity')
-        verify_install(context, root, api=api, invocation=invocation)
+        records = verify_install(context, root, api=api, invocation=invocation)
         launcher = root / 'session-panel.cmd'
         if receipt['root'] is not None:
-            owner = registry.load_root(root, api)
+            owner, _versions, _profiles, _http, contexts = records
             if (owner['directory'] != receipt['root'] or owner['install_id'] != receipt['install_id']
                     or not launcher.is_file() or manifest.sha256(launcher) != receipt['launcher_sha256']):
                 raise Blocked(24, 'installation_changed')
-            _owner, versions, _profiles, _http = registry.load_records(root, api, pending=context)
-            data_token = launcher_data_token(launcher.read_bytes(), root, versions)
+            data_token = launcher_data_token(launcher.read_bytes(), root, contexts)
         else:
             if launcher.exists() or (root / '.install').exists():
                 raise Blocked(24, 'initial_target_changed')
@@ -497,11 +493,11 @@ def launcher_bytes(version_id, *, desktop, data_token=None):
     return ('@echo off\r\n"' + prefix + '\\runtime\\python.exe" -I -B -X utf8 -m ' + entry + ' %*\r\n').encode('ascii')
 
 
-def launcher_data_token(raw, root, versions):
+def launcher_data_token(raw, root, contexts):
     match = re.search(rb' --installed-data-dir ([A-Za-z0-9_-]{1,4096}) %\*\r\n\Z', raw)
     token = match.group(1).decode('ascii') if match else None
-    for key, record in versions.items():
-        document = registry.ProductContext.load(record['directory']['path']).document
+    for key, context in contexts.items():
+        document = context.document
         paths = {row['path'] for row in document['files']}
         desktop = 'desktop-runtime.json' in paths
         supports_data = 'runtime/Lib/site-packages/control_everything/installation/desktop_settings.py' in paths

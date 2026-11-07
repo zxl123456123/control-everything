@@ -256,6 +256,33 @@ class MaintenanceTests(InstallationFixture):
         self.assertNotIn(self.install / 'unins000.exe', assets)
         self.assertNotIn(self.install / 'unins000.dat', assets)
 
+    def test_payload_change_after_record_read_blocks_before_native_stop(self):
+        self.profile('one', pid=201)
+        original = self.api.pipe_peer
+        calls = 0
+        def changed_peer(key):
+            nonlocal calls
+            calls += 1
+            if calls == 2:
+                (self.context.version_dir / 'runtime/python313.dll').write_bytes(b'changed')
+            return original(key)
+        with patch.object(self.api, 'pipe_peer', side_effect=changed_peer):
+            self.assertEqual(self.run_preflight()[0], 24)
+        self.assertFalse(any(call[0] == 'stop' for call in self.api.calls))
+
+    def test_payload_change_after_process_scan_blocks_before_exclusive_check(self):
+        original = MAINTENANCE.scan_processes
+        def changed_scan(*args, **kwargs):
+            result = original(*args, **kwargs)
+            if kwargs.get('after'):
+                (self.context.version_dir / 'runtime/python313.dll').write_bytes(b'changed')
+            return result
+        before = (self.install / 'session-panel.cmd').read_bytes()
+        with patch.object(MAINTENANCE, 'scan_processes', side_effect=changed_scan):
+            self.assertEqual(self.run_preflight()[0], 24)
+        self.assertEqual((self.install / 'session-panel.cmd').read_bytes(), before)
+        self.assertFalse(any(call[0] == 'exclusive' for call in self.api.calls))
+
     def test_same_profile_keeps_old_association_and_uses_peer_version(self):
         path = self.profile('one')
         second = self.make_version('0.1.0a2')
@@ -483,6 +510,26 @@ class MaintenanceTests(InstallationFixture):
                 finally:
                     lease.close()
                     self.api.processes[100].running = False
+
+    def test_commit_refreshes_payload_after_launcher_inspection(self):
+        for relative in ('runtime/python313.dll', MANIFEST.NATIVE_EXE):
+            with self.subTest(relative=relative):
+                code, receipt = self.run_preflight(payload=self.context.version_dir)
+                self.assertEqual(code, 0)
+                path = self.context.version_dir / relative
+                original, launcher = path.read_bytes(), (self.install / 'session-panel.cmd').read_bytes()
+                inspect = MAINTENANCE.launcher_data_token
+                def changed_launcher(*args):
+                    result = inspect(*args)
+                    path.write_bytes(b'changed')
+                    return result
+                try:
+                    with patch.object(MAINTENANCE, 'launcher_data_token', side_effect=changed_launcher):
+                        with self.assertRaises(ValueError):
+                            MAINTENANCE.commit_install(self.context, self.install, api=self.api, receipt=receipt)
+                    self.assertEqual((self.install / 'session-panel.cmd').read_bytes(), launcher)
+                finally:
+                    path.write_bytes(original)
 
     def test_commit_blocks_new_native_without_stopping_it_for_every_operation(self):
         profile = self.profile()
