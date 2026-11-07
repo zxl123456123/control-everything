@@ -79,6 +79,14 @@ class PayloadFixture(unittest.TestCase):
 
 
 class ManifestTests(PayloadFixture):
+    def test_sha256_reads_complete_files_across_buffer_boundaries(self):
+        for size in (0, 1, 256 * 1024 + 17, 1024 * 1024 + 1):
+            with self.subTest(size=size):
+                raw = (bytes(range(256)) * (size // 256 + 1))[:size]
+                path = self.root / 'hash-input.bin'
+                path.write_bytes(raw)
+                self.assertEqual(MANIFEST.sha256(path), hashlib.sha256(raw).hexdigest())
+
     def test_complete_closure_and_deterministic_version_identity(self):
         stage, document = self.payload()
         self.assertEqual(document['compatibility']['profile_config'], [1, 2, 3, 4])

@@ -78,11 +78,8 @@ def no_links(path):
 
 
 def sha256(path):
-    digest = hashlib.sha256()
     with Path(path).open('rb') as stream:
-        for block in iter(lambda: stream.read(1024 * 1024), b''):
-            digest.update(block)
-    return digest.hexdigest()
+        return hashlib.file_digest(stream, 'sha256').hexdigest()
 
 
 def exact(value, fields, reason):
