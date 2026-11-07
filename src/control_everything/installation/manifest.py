@@ -1,5 +1,6 @@
 """Standard-library-only integrity rules shared by build and installed runtime."""
 
+from concurrent.futures import ThreadPoolExecutor
 import hashlib
 import json
 from pathlib import Path, PurePosixPath
@@ -180,14 +181,20 @@ def verify_payload(version_dir, strict_native=False):
         parents = {str(parent) for name in expected for parent in PurePosixPath(name).parents if str(parent) != '.'}
         if extras or directories - parents:
             raise ManifestError('unexpected_asset', sorted(extras or directories - parents)[0])
-        for name, row in expected.items():
-            if not strict_native and name in NATIVE_FILES:
-                continue
+        def verify_file(item):
+            name, row = item
             path = files.get(name)
             if path is None:
                 raise ManifestError('missing_asset', name)
             if path.stat().st_size != row['size'] or sha256(path) != row['sha256']:
                 raise ManifestError('asset_mismatch', name)
+
+        rows = [(name, row) for name, row in expected.items() if strict_native or name not in NATIVE_FILES]
+        # Bound queued work as well as open readers; wait for readers even on failure.
+        with ThreadPoolExecutor(max_workers=8) as executor:
+            for offset in range(0, len(rows), 256):
+                for _ in executor.map(verify_file, rows[offset:offset + 256]):
+                    pass
         if strict_native:
             native = strict_json(files[NATIVE_MANIFEST].read_text(encoding='utf-8'))
             exact(native, {'protocol', 'build', 'toolchain', 'binary', 'sha256'}, 'native_manifest_fields')
