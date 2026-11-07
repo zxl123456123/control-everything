@@ -63,6 +63,14 @@ class InstallerIncludesTests(PayloadFixture):
         hashes = re.findall(r"PayloadHashes\[\d+\] := '([0-9a-f]{64})';", table)
         self.assertEqual(paths, sorted(rows))
         self.assertEqual(hashes, [rows[name]['sha256'] for name in sorted(rows)])
+        bootstrap = {row['path']: row for row in receipt['bootstrap_files']}
+        self.assertLess(len(bootstrap), len(rows))
+        self.assertIn(INNO.BOOTSTRAP_ENTRY, bootstrap)
+        self.assertNotIn('BUILD-INPUTS.json', bootstrap)
+        paths = [value.replace("''", "'").replace('\\', '/') for value in re.findall(r"BootstrapPaths\[\d+\] := '((?:''|[^'])*)';", table)]
+        hashes = re.findall(r"BootstrapHashes\[\d+\] := '([0-9a-f]{64})';", table)
+        self.assertEqual(paths, sorted(bootstrap))
+        self.assertEqual(hashes, [bootstrap[name]['sha256'] for name in sorted(bootstrap)])
         for name, expected in receipt['includes'].items():
             self.assertEqual(hashlib.sha256((output / name).read_bytes()).hexdigest(), expected)
 
@@ -72,12 +80,20 @@ class InstallerIncludesTests(PayloadFixture):
         extra = stage / name
         extra.parent.mkdir(parents=True)
         extra.write_bytes(b'fixture bytes')
+        selected_name = "runtime/Lib/site-packages/control_everything/资料's.py"
+        (stage / selected_name).write_bytes(b'# synthetic module')
         BUILD.write_product_manifest(stage, '0.1.0a1', SOURCE)
         output = self.root / '包含 空格'
-        INNO.generate_includes(stage, output)
+        receipt = INNO.generate_includes(stage, output)
         table = (output / 'payload-hashes.iss').read_text(encoding='utf-8-sig')
         self.assertIn("资料''s.txt", table)
-        self.assertIn("PayloadBatchPatterns[0] := '*';", table)
+        patterns = [value.replace("''", "'").replace('\\', '/') for value in re.findall(r"BootstrapBatchPatterns\[\d+\] := '((?:''|[^'])*)';", table)]
+        extracted = [row['path'] for pattern in patterns for row in receipt['files']
+                     if (row['path'].lower().startswith(pattern[:-1].lower())
+                         if pattern.endswith('*') else row['path'].lower() == pattern.lower())]
+        self.assertCountEqual(extracted, [row['path'] for row in receipt['bootstrap_files']])
+        self.assertIn(selected_name, extracted)
+        self.assertNotIn(name, extracted)
         self.assertEqual(INNO.pascal_string("a'b"), "'a''b'")
         for invalid in ('x".txt', 'x{app}.txt', 'x\ny.txt', 'x\0y.txt'):
             with self.subTest(invalid=invalid), self.assertRaisesRegex(ValueError, 'invalid_installer_path'):
@@ -181,10 +197,10 @@ class InstallerScriptTests(unittest.TestCase):
         self.assertIn("+ '{app}\\versions\\{#PayloadId}'", prepare)
         self.assertIn("if not InstallPayload then begin", prepare)
         self.assertIn("RunMaintenance('verify', NewReport('existing')", prepare)
-        self.assertNotIn('VerifyTable(BootstrapRoot)', prepare)
+        self.assertNotIn('VerifyTable(BootstrapRoot,', prepare)
         self.assertIn('Result := GetExceptionMessage', body('PrepareToInstall'))
         after = body('CurStepChanged')
-        self.assertLess(after.index('VerifyTable(InstalledVersionRoot)'), after.index("RunMaintenance('commit'"))
+        self.assertLess(after.index('VerifyTable(InstalledVersionRoot, PayloadPaths, PayloadHashes)'), after.index("RunMaintenance('commit'"))
         self.assertIn('ssPostInstall', after)
         self.assertIn('PreflightReceipt', after)
         self.assertNotIn('session-panel.cmd', after)
@@ -203,10 +219,10 @@ class InstallerScriptTests(unittest.TestCase):
         update = body('UpdateMaintenanceProgress')
         self.assertIn('MaintenanceProgress.SetText', update)
         self.assertIn('MaintenanceProgress.SetText', body('ShowFileProgress'))
-        self.assertIn('ShowFileProgress(I + 1)', body('VerifyTable'))
+        self.assertIn('ShowFileProgress(I + 1, GetArrayLength(Paths))', body('VerifyTable'))
         extraction = body('ExtractBootstrap')
-        self.assertLess(extraction.index('ExtractTemporaryFiles(Prefix + PayloadBatchPatterns[I])'),
-                        extraction.rindex('ShowFileProgress(Completed)'))
+        self.assertLess(extraction.index('ExtractTemporaryFiles(Prefix + BootstrapBatchPatterns[I])'),
+                        extraction.rindex('ShowFileProgress(Completed, GetArrayLength(BootstrapPaths))'))
         for stage in ('PrepareToInstall', 'CurStepChanged'):
             callback = body(stage)
             self.assertLess(callback.index('MaintenanceProgress.Show'), callback.index('finally'))
@@ -253,7 +269,7 @@ class InstallerScriptTests(unittest.TestCase):
         self.assertNotIn('NativeReleaseMutex', run)
         self.assertIn('--invocation-file', run)
         self.assertNotIn('skip-lock', run)
-        self.assertLess(run.index('VerifyTable(BootstrapRoot)'), run.index('Started := Exec'))
+        self.assertLess(run.index('VerifyTable(BootstrapRoot, BootstrapPaths, BootstrapHashes)'), run.index('Started := Exec'))
         self.assertIn("+ 'runtime\\python.exe'", run)
         self.assertIn("'-I -B -X utf8 -m control_everything.installation.maintenance '", run)
 
@@ -298,10 +314,11 @@ class InstallerScriptTests(unittest.TestCase):
         self.assertIn("RunMaintenance('commit'", confirmed)
         self.assertIn('not Prepared or not MaintenanceHeld', confirmed)
         copy = body('CopyBoundUninstallBootstrap')
-        self.assertIn('GetArrayLength(PayloadPaths)', copy)
+        self.assertIn('GetArrayLength(BootstrapPaths)', copy)
+        self.assertNotIn('PayloadPaths[I]', copy)
         self.assertIn('CopyFile(Source, Destination, True)', copy)
         self.assertLess(copy.index('CopyFile('), copy.index('GetSHA256OfFile(Destination)'))
-        self.assertIn('VerifyTable(BootstrapRoot)', copy)
+        self.assertIn('VerifyTable(BootstrapRoot, BootstrapPaths, BootstrapHashes)', copy)
         for forbidden in ('FindFirst', '*.exe', '*.dat', '*.msg', 'native_missing', 'system32', 'profile', 'DeleteFile'):
             self.assertNotIn(forbidden, copy)
         self.assertNotIn('ExtractTemporaryFiles', uninstall)

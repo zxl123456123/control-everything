@@ -24,18 +24,29 @@ def inno_path(value):
     return value
 
 
-def extraction_batches(rows, version_id):
+def extraction_batches(rows, version_id, *, archive_rows=None):
+    selected = {row['path'].lower() for row in rows}
+    excluded = [row['path'].lower() for row in (archive_rows or rows) if row['path'].lower() not in selected]
+    pattern_prefix_length = len('{app}/versions/' + version_id + '/')
+
+    def usable(pattern):
+        return pattern.isascii() and pattern_prefix_length + len(pattern) < 260
+
     # Each call scans the Inno file table. Use broad, disjoint path prefixes where possible.
     def partition(group, prefix=''):
-        if len(group) == 1:
+        if len(group) == 1 and usable(group[0]['path']):
             yield group[0]['path'], 1
-        elif prefix and len(group) <= 1024 and sum(row['size'] for row in group) <= 64 * 1024 * 1024:
+        elif (prefix and usable(prefix + '*') and len(group) <= 1024
+              and sum(row['size'] for row in group) <= 64 * 1024 * 1024
+              and not any(name.startswith(prefix) for name in excluded)):
             yield prefix + '*', len(group)
         else:
             children = {}
             for row in group:
                 name = row['path'].lower()
                 if len(name) == len(prefix):
+                    if not usable(row['path']):
+                        raise ValueError('bootstrap_extraction_pattern_unavailable')
                     yield row['path'], 1
                 else:
                     children.setdefault(name[len(prefix)], []).append(row)
@@ -43,8 +54,7 @@ def extraction_batches(rows, version_id):
                 yield from partition(members, prefix + initial)
 
     # Use Inno's existing wildcard for Unicode paths or paths too long for an exact pattern.
-    pattern_prefix_length = len('{app}/versions/' + version_id + '/')
-    if any(not row['path'].isascii() or pattern_prefix_length + len(row['path']) >= 260 for row in rows):
+    if not excluded and any(not usable(row['path']) for row in rows):
         return [('*', len(rows))]
     return list(partition(rows))
 
@@ -65,6 +75,8 @@ def generate_includes(payload, output):
     rows.append({'path': 'product.json', 'size': (payload / 'product.json').stat().st_size,
                  'sha256': api.sha256(payload / 'product.json')})
     rows.sort(key=lambda row: row['path'])
+    bootstrap = api.bootstrap_rows(document) + [next(row for row in rows if row['path'] == 'product.json')]
+    bootstrap.sort(key=lambda row: row['path'])
     version_id = document['version'] + '-' + document['closure'][:16]
     definitions = '\n'.join([
         '// Generated from the verified product manifest; do not edit.',
@@ -88,12 +100,17 @@ def generate_includes(payload, output):
                        'Flags: ignoreversion; Check: ShouldInstallPayload')
         table.append(f'  PayloadPaths[{index}] := {pascal_string(relative.replace("/", chr(92)))};')
         table.append(f'  PayloadHashes[{index}] := {pascal_string(row["sha256"])};')
-    batches = extraction_batches(rows, version_id)
-    table.append(f'  SetArrayLength(PayloadBatchPatterns, {len(batches)});')
-    table.append(f'  SetArrayLength(PayloadBatchCounts, {len(batches)});')
+    table.append(f'  SetArrayLength(BootstrapPaths, {len(bootstrap)});')
+    table.append(f'  SetArrayLength(BootstrapHashes, {len(bootstrap)});')
+    for index, row in enumerate(bootstrap):
+        table.append(f'  BootstrapPaths[{index}] := {pascal_string(row["path"].replace("/", chr(92)))};')
+        table.append(f'  BootstrapHashes[{index}] := {pascal_string(row["sha256"])};')
+    batches = extraction_batches(bootstrap, version_id, archive_rows=rows)
+    table.append(f'  SetArrayLength(BootstrapBatchPatterns, {len(batches)});')
+    table.append(f'  SetArrayLength(BootstrapBatchCounts, {len(batches)});')
     for index, (pattern, count) in enumerate(batches):
-        table.append(f'  PayloadBatchPatterns[{index}] := {pascal_string(pattern.replace("/", chr(92)))};')
-        table.append(f'  PayloadBatchCounts[{index}] := {count};')
+        table.append(f'  BootstrapBatchPatterns[{index}] := {pascal_string(pattern.replace("/", chr(92)))};')
+        table.append(f'  BootstrapBatchCounts[{index}] := {count};')
     table.extend(['end;', ''])
     texts = {'payload-defines.iss': definitions, 'payload-files.iss': '\n'.join(entries) + '\n',
              'payload-hashes.iss': '\n'.join(table)}
@@ -101,7 +118,7 @@ def generate_includes(payload, output):
     for name, text in texts.items():
         (output / name).write_text(text, encoding='utf-8-sig')
     receipt = {'schema': 1, 'version_id': version_id, 'version': document['version'],
-               'closure': document['closure'], 'files': rows,
+               'closure': document['closure'], 'files': rows, 'bootstrap_files': bootstrap,
                'includes': {name: hashlib.sha256((output / name).read_bytes()).hexdigest() for name in texts}}
     (output / 'include-receipt.json').write_text(json.dumps(receipt, ensure_ascii=False, indent=2), encoding='utf-8')
     return receipt

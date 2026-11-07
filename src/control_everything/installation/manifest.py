@@ -165,8 +165,27 @@ def inventory(root):
     return files, directories
 
 
+def bootstrap_rows(document):
+    """Select the interpreter, application code and native protocol for maintenance."""
+    packages = 'runtime/Lib/site-packages/'
+    return [row for row in document['files'] if row['path'] in NATIVE_FILES or
+            row['path'].startswith('runtime/') and
+            (not row['path'].startswith(packages) or
+             row['path'].startswith(packages + 'control_everything/') or
+             row['path'] == packages + 'sitecustomize.py')]
+
+
 def verify_payload(version_dir, strict_native=False):
     """Verify immutable base assets; native is separately gated for degraded runtime use."""
+    return _verify(version_dir, strict_native=strict_native, maintenance=False)
+
+
+def verify_bootstrap(version_dir):
+    """Verify the closed maintenance subset, never a runnable desktop product."""
+    return _verify(version_dir, strict_native=True, maintenance=True)
+
+
+def _verify(version_dir, *, strict_native, maintenance):
     root = no_links(version_dir)
     try:
         manifest_path = no_links(root / 'product.json')
@@ -176,7 +195,7 @@ def verify_payload(version_dir, strict_native=False):
             raise ManifestError('manifest_oversize')
         document = validate_manifest(strict_json(raw.decode('utf-8')))
         files, directories = inventory(root)
-        expected = {row['path']: row for row in document['files']}
+        expected = {row['path']: row for row in (bootstrap_rows(document) if maintenance else document['files'])}
         extras = set(files) - set(expected) - {'product.json'}
         parents = {str(parent) for name in expected for parent in PurePosixPath(name).parents if str(parent) != '.'}
         if extras or directories - parents:

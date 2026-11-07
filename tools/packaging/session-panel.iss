@@ -60,8 +60,8 @@ type
   end;
 
 var
-  PayloadPaths, PayloadHashes, PayloadBatchPatterns: TArrayOfString;
-  PayloadBatchCounts: array of Integer;
+  PayloadPaths, PayloadHashes, BootstrapPaths, BootstrapHashes, BootstrapBatchPatterns: TArrayOfString;
+  BootstrapBatchCounts: array of Integer;
   BootstrapRoot, ContextFile, PreflightReceipt, Operation: String;
   MaintenanceProgress: TOutputMarqueeProgressWizardPage;
   MaintenanceStage: String;
@@ -146,26 +146,26 @@ begin
   Result := AddBackslash(ExpandConstant('{tmp}')) + 'maintenance-' + Stage + '-' + IntToStr(ReportSequence) + '.json';
 end;
 
-procedure ShowFileProgress(Completed: Integer);
+procedure ShowFileProgress(Completed, Total: Integer);
 begin
   if MaintenanceProgress <> nil then
     MaintenanceProgress.SetText(MaintenanceStage,
-      IntToStr(Completed) + ' / ' + IntToStr(GetArrayLength(PayloadPaths)) + ' 个文件');
+      IntToStr(Completed) + ' / ' + IntToStr(Total) + ' 个文件');
 end;
 
-procedure VerifyTable(Root: String);
+procedure VerifyTable(Root: String; const Paths, Hashes: TArrayOfString);
 var I: Integer; FileName: String;
 begin
   RequireNoReparse(Root);
-  ShowFileProgress(0);
-  for I := 0 to GetArrayLength(PayloadPaths) - 1 do begin
-    FileName := AddBackslash(Root) + PayloadPaths[I];
+  ShowFileProgress(0, GetArrayLength(Paths));
+  for I := 0 to GetArrayLength(Paths) - 1 do begin
+    FileName := AddBackslash(Root) + Paths[I];
     RequireNoReparse(FileName);
     if not FileExists(FileName) then RaiseException('完整安装文件缺失，需使用可信安装器修复。');
-    if CompareText(GetSHA256OfFile(FileName), PayloadHashes[I]) <> 0 then
+    if CompareText(GetSHA256OfFile(FileName), Hashes[I]) <> 0 then
       RaiseException('完整安装文件校验失败，已停止维护。');
-    if ((I + 1) mod 32 = 0) or (I + 1 = GetArrayLength(PayloadPaths)) then
-      ShowFileProgress(I + 1);
+    if ((I + 1) mod 32 = 0) or (I + 1 = GetArrayLength(Paths)) then
+      ShowFileProgress(I + 1, GetArrayLength(Paths));
   end;
 end;
 
@@ -191,7 +191,7 @@ end;
 procedure RunMaintenance(Command, Report, Payload, Receipt, ExpectedStatus: String; UseInvocation: Boolean);
 var Parameters: String; ExitCode: Integer; Started: Boolean;
 begin
-  VerifyTable(BootstrapRoot);
+  VerifyTable(BootstrapRoot, BootstrapPaths, BootstrapHashes);
   Parameters := '-I -B -X utf8 -m control_everything.installation.maintenance ' + Command +
     ' --install-root ' + QuoteArgument(ExpandConstant('{app}')) +
     ' --operation ' + Operation + ' --report ' + QuoteArgument(Report);
@@ -339,20 +339,15 @@ procedure ExtractBootstrap;
 var Prefix: String; I, Completed, Count: Integer;
 begin
   Prefix := '{app}\versions\{#PayloadId}\';
-  if MaintenanceProgress = nil then begin
-    if ExtractTemporaryFiles(Prefix + '*') <> GetArrayLength(PayloadPaths) then
-      RaiseException('临时安装文件数量不匹配。');
-    Exit;
-  end;
   Completed := 0;
-  ShowFileProgress(Completed);
-  for I := 0 to GetArrayLength(PayloadBatchPatterns) - 1 do begin
-    Count := ExtractTemporaryFiles(Prefix + PayloadBatchPatterns[I]);
-    if Count <> PayloadBatchCounts[I] then RaiseException('临时安装文件数量不匹配。');
+  ShowFileProgress(Completed, GetArrayLength(BootstrapPaths));
+  for I := 0 to GetArrayLength(BootstrapBatchPatterns) - 1 do begin
+    Count := ExtractTemporaryFiles(Prefix + BootstrapBatchPatterns[I]);
+    if Count <> BootstrapBatchCounts[I] then RaiseException('临时安装文件数量不匹配。');
     Completed := Completed + Count;
-    ShowFileProgress(Completed);
+    ShowFileProgress(Completed, GetArrayLength(BootstrapPaths));
   end;
-  if Completed <> GetArrayLength(PayloadPaths) then RaiseException('临时安装文件数量不匹配。');
+  if Completed <> GetArrayLength(BootstrapPaths) then RaiseException('临时安装文件数量不匹配。');
 end;
 
 procedure PrepareInstallation;
@@ -389,7 +384,7 @@ begin
   InstallPayload := not DirExists(InstalledVersionRoot);
   if not InstallPayload then begin
     UpdateMaintenanceProgress('正在检查已安装的同版本文件…');
-    VerifyTable(InstalledVersionRoot);
+    VerifyTable(InstalledVersionRoot, PayloadPaths, PayloadHashes);
     RunMaintenance('verify', NewReport('existing'), InstalledVersionRoot, '', 'ready', True);
   end;
   Prepared := True;
@@ -421,7 +416,7 @@ begin
     try
       if MaintenanceProgress <> nil then MaintenanceProgress.Show;
       UpdateMaintenanceProgress('正在校验已写入的安装文件…');
-      VerifyTable(InstalledVersionRoot);
+      VerifyTable(InstalledVersionRoot, PayloadPaths, PayloadHashes);
       { Commit verifies the installed payload again before it changes any registration. }
       UpdateMaintenanceProgress('正在校验版本登记并更新启动入口…');
       RunMaintenance('commit', NewReport('commit'), InstalledVersionRoot, PreflightReceipt, 'committed', True);
@@ -441,20 +436,20 @@ end;
 procedure CopyBoundUninstallBootstrap;
 var I: Integer; Source, Destination: String;
 begin
-  VerifyTable(InstalledVersionRoot);
+  VerifyTable(InstalledVersionRoot, BootstrapPaths, BootstrapHashes);
   BootstrapRoot := AddBackslash(ExpandConstant('{tmp}')) + '{app}\versions\{#PayloadId}';
   if DirExists(BootstrapRoot) then RaiseException('卸载临时目录冲突。');
-  for I := 0 to GetArrayLength(PayloadPaths) - 1 do begin
-    Source := AddBackslash(InstalledVersionRoot) + PayloadPaths[I];
-    Destination := AddBackslash(BootstrapRoot) + PayloadPaths[I];
+  for I := 0 to GetArrayLength(BootstrapPaths) - 1 do begin
+    Source := AddBackslash(InstalledVersionRoot) + BootstrapPaths[I];
+    Destination := AddBackslash(BootstrapRoot) + BootstrapPaths[I];
     RequireNoReparse(Source);
     RequireNoReparse(Destination);
     if not ForceDirectories(ExtractFileDir(Destination)) then RaiseException('无法创建私有卸载目录。');
     if not CopyFile(Source, Destination, True) then RaiseException('无法复制已登记的卸载文件。');
-    if CompareText(GetSHA256OfFile(Destination), PayloadHashes[I]) <> 0 then
+    if CompareText(GetSHA256OfFile(Destination), BootstrapHashes[I]) <> 0 then
       RaiseException('卸载文件副本校验失败。');
   end;
-  VerifyTable(BootstrapRoot);
+  VerifyTable(BootstrapRoot, BootstrapPaths, BootstrapHashes);
 end;
 
 function InitializeUninstall: Boolean;

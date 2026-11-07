@@ -100,6 +100,15 @@ class ProductContext:
             raise RegistryError('version_location')
         return cls(path, path.parent.parent, document, key)
 
+    @classmethod
+    def load_bootstrap(cls, version_dir):
+        path = manifest.no_links(version_dir)
+        document = manifest.verify_bootstrap(path)
+        key = version_id(document)
+        if path.name != key or path.parent.name != 'versions':
+            raise RegistryError('version_location')
+        return cls(path, path.parent.parent, document, key)
+
 
 def load_root(root, api):
     root = manifest.no_links(root)

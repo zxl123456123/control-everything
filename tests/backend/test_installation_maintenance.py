@@ -317,7 +317,12 @@ class MaintenanceTests(InstallationFixture):
 
     def invocation(self, *, uninstall=False):
         destination = self.root / '{app}' / 'versions' / self.context.version_id
-        shutil.copytree(self.context.version_dir, destination)
+        destination.mkdir(parents=True)
+        names = {row['path'] for row in REGISTRY.manifest.bootstrap_rows(self.context.document)} | {'product.json'}
+        for name in names:
+            target = destination / name
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(self.context.version_dir / name, target)
         setup = self.root / 'setup.exe'
         setup.write_bytes(b'Inno fixture')
         parent = self.api.add_process(500, setup)
@@ -348,6 +353,27 @@ class MaintenanceTests(InstallationFixture):
         self.assertEqual(self.api.mutex_waits, 0)
         (Path(invocation['bootstrap']) / 'runtime/python313.dll').write_bytes(b'tampered')
         self.assertEqual(self.run_preflight(invocation=invocation)[0], 24)
+
+    def test_maintenance_subset_is_closed_and_native_is_never_degraded(self):
+        invocation = self.invocation()
+        root = Path(invocation['bootstrap'])
+        self.assertEqual(REGISTRY.ProductContext.load_bootstrap(root).document, self.context.document)
+        with self.assertRaises(REGISTRY.manifest.ManifestError):
+            REGISTRY.ProductContext.load(root)
+        for name in REGISTRY.manifest.NATIVE_FILES:
+            with self.subTest(name=name):
+                target = root / name
+                original = target.read_bytes()
+                target.write_bytes(b'corrupt')
+                try:
+                    with self.assertRaises(REGISTRY.manifest.ManifestError):
+                        REGISTRY.ProductContext.load_bootstrap(root)
+                finally:
+                    target.write_bytes(original)
+        extra = root / 'BUILD-INPUTS.json'
+        shutil.copyfile(self.context.version_dir / extra.name, extra)
+        with self.assertRaises(REGISTRY.manifest.ManifestError):
+            REGISTRY.ProductContext.load_bootstrap(root)
 
     def test_new_install_receipt_required_and_unknown_data_preserved(self):
         target = self.root / 'new install'

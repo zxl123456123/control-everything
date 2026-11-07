@@ -59,8 +59,7 @@ def canonical_temp_root():
 
 def bootstrap_context(api):
     process = api.current_identity()
-    context = registry.ProductContext.load(Path(process['image']['path']).parent.parent)
-    manifest.verify_payload(context.version_dir, strict_native=True)
+    context = registry.ProductContext.load_bootstrap(Path(process['image']['path']).parent.parent)
     if (process['image'] != api.file_identity(context.version_dir / 'runtime/python.exe')
             or context.version_dir.is_relative_to(canonical_temp_root()) is False
             or context.install_root.name != '{app}'):
