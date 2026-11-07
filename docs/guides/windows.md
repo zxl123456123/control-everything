@@ -6,22 +6,22 @@
 
 ## Windows 标准安装
 
-当前提供 [0.1.0a10 Windows x64 开发预览版](https://github.com/zxl123456123/control-everything/releases/tag/v0.1.0a10)。安装器尚未签名；实际验证范围和未覆盖项目见该版本说明。开发者也可按[源码启动指南](usage.md#多-agent-工作台)运行。
+当前提供 [0.1.0a12 Windows x64 开发预览版](https://github.com/zxl123456123/control-everything/releases/tag/v0.1.0a12)。安装器尚未签名；实际验证范围和未覆盖项目见该版本说明。开发者也可按[源码启动指南](usage.md#多-agent-工作台)运行。
 
-普通用户从 [GitHub Releases](https://github.com/zxl123456123/control-everything/releases) 下载 `session-panel-0.1.0a10-windows-x64.exe`，先用 `Get-FileHash -Algorithm SHA256` 与该次发布的 `SHA256SUMS.txt` 核对，再运行安装器。标准产品自带 CPython 3.13.16、固定 Python 依赖、前端资源和 release Rust 原生观察后台，无需另外安装 Python、Node、npm 或 Rust 编译器。源码归档供开发使用，不能代替完整安装器。
+普通用户从 [GitHub Releases](https://github.com/zxl123456123/control-everything/releases) 下载 `session-panel-0.1.0a12-windows-x64.exe`，先用 `Get-FileHash -Algorithm SHA256` 与该次发布的 `SHA256SUMS.txt` 核对，再运行安装器。标准产品自带 CPython 3.13.16、固定 Python 依赖、前端资源和 release Rust 原生观察后台，无需另外安装 Python、Node、npm 或 Rust 编译器。源码归档供开发使用，不能代替完整安装器。
 
 安装目录支持中文和空格；当前产品按普通 Windows 路径工作，每个完整交付文件路径须少于260个UTF-16字符。安装器在写入目标前检查整个固定文件清单，超限时提示选择更短目录，不修改系统的长路径策略。
 
-安装按当前用户运行，无需管理员权限，默认位置为 `%LOCALAPPDATA%/Programs/SessionPanel`。含 Windows 窗口组件的新候选从开始菜单 **Session Panel** 打开独立工作台窗口，安装时可选创建桌面快捷方式。窗口使用 Microsoft Edge WebView2 Runtime，关闭窗口后关闭本次桌面服务。已公开的 0.1.0a10 等较早安装包仍沿用控制台与浏览器入口。端口被占用时明确退出，可从 PowerShell 指定自己的端口和 profile：
+安装按当前用户运行，无需管理员权限，默认位置为 `%LOCALAPPDATA%/Programs/SessionPanel`。0.1.0a12 从开始菜单 **Session Panel** 打开独立工作台窗口，安装时可选创建桌面快捷方式。窗口使用 Microsoft Edge WebView2 Runtime，关闭窗口后关闭本次桌面服务。已公开的 0.1.0a10 等较早安装包仍沿用控制台与浏览器入口。端口被占用时明确退出，可从 PowerShell 指定自己的端口和 profile：
 
 ```powershell
 $panel = Join-Path $env:LOCALAPPDATA 'Programs/SessionPanel/session-panel.cmd'
 & $panel --data-dir 'C:/example/SessionPanel/main' --port 14401
 ```
 
-在所属控制台按 Ctrl+C 正常停止网关。关闭页面或网关不会终止独立原生观察后台，更不会终止外部 Agent。维护前先停止自己运行的全部网关；安装器会核对本安装登记的全部版本及 profile，并通过每个后台原来的 EXE 正常停止自有观察进程。未知身份、仍运行的 HTTP 或无法证实退出的进程会阻止维护，保留现有入口，不按程序名强杀，不接管其他安装或 profile。
+关闭独立窗口即可停止本次桌面服务；手动运行网关时，在所属控制台按 Ctrl+C 正常停止。关闭页面或网关不会终止独立原生观察后台，更不会终止外部 Agent。维护前先停止自己运行的全部网关；安装器会核对本安装登记的全部版本及 profile，并通过每个后台原来的 EXE 正常停止自有观察进程。未知身份、仍运行的 HTTP 或无法证实退出的进程会阻止维护，保留现有入口，不按程序名强杀，不接管其他安装或 profile。
 
-升级保留旧版本目录，安装文件核验和登记完成后才切换 `session-panel.cmd`。重新运行可信的原版本安装器可选择该版本的完整闭包；同版本可重新安装。回退前保留 profile 备份，并确认旧程序支持当前配置和管理库格式；安装器不会隐式迁移、降级或搬迁数据。卸载使用 Windows“已安装的应用”中的 **Session Panel**，只处理安装日志和严格核验的自有管理文件；profile、备份和未知用户文件保留。卸载不会替你关闭网关，遇到阻塞先正常退出自己运行的实例，再重试。
+常规更新无需先卸载：关闭程序后运行新版安装器，选择原安装目录原位升级。升级保留旧版本目录，安装文件核验和登记完成后才切换 `session-panel.cmd`。重新运行可信的原版本安装器可选择该版本的完整闭包；同版本可重新安装。回退前保留 profile 备份，并确认旧程序支持当前配置和管理库格式；安装器不会隐式迁移、降级或搬迁数据。卸载使用 Windows“已安装的应用”中的 **Session Panel**，只处理安装日志和严格核验的自有管理文件；profile、备份和未知用户文件保留。卸载不会替你关闭网关，遇到阻塞先正常退出自己运行的实例，再重试。
 
 目标平台为 Windows 10/11 x64；技术预发布的安装器与原生程序目前未签名，上游组件的数字签名不代表组合产品已签名。每次发布说明列出实际验收范围；开发机或托管 Windows runner 的受控 PATH 验收不能替代两种系统的完整干净机器验证。项目源码采用 [MIT 许可证](../../LICENSE)；随产品附带项目许可证及实际依赖的第三方声明与摘要，第三方依赖遵循各自的许可证。
 

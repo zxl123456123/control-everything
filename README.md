@@ -1,10 +1,10 @@
 # Control Everything · 开发工作台
 
-在一个本地网页中管理多个项目和任务，查看开发会话、项目进度与工具用量。
+在本机工作台中管理多个项目和任务，查看开发会话、项目进度与工具用量。
 
 适合同时使用多个开发工具、在不同项目之间切换的个人开发者。项目与任务保存在本机，基础管理无需配置 Agent、SSH 或远端服务。
 
-[下载安装包](https://github.com/zxl123456123/control-everything/releases/tag/v0.1.0a10) · [项目文档](docs/README.md) · [参与开发](.github/CONTRIBUTING.md)
+[下载安装包](https://github.com/zxl123456123/control-everything/releases/tag/v0.1.0a12) · [项目文档](docs/README.md) · [参与开发](.github/CONTRIBUTING.md)
 
 ## 产品展示
 
@@ -26,11 +26,11 @@ https://github.com/user-attachments/assets/be96cc58-6bd8-4221-b0aa-77c0f9e31804
 
 ## 快速开始
 
-**Windows x64 开发预览版 0.1.0a10**：[下载安装包](https://github.com/zxl123456123/control-everything/releases/download/v0.1.0a10/session-panel-0.1.0a10-windows-x64.exe) · [ZIP](https://github.com/zxl123456123/control-everything/releases/download/v0.1.0a10/session-panel-0.1.0a10-windows-x64-delivery.zip) · [版本说明与校验值](https://github.com/zxl123456123/control-everything/releases/tag/v0.1.0a10)。安装包自带运行环境，无需另装 Python、Node.js 或 Rust。
+**Windows x64 开发预览版 0.1.0a12**：[下载安装包](https://github.com/zxl123456123/control-everything/releases/download/v0.1.0a12/session-panel-0.1.0a12-windows-x64.exe) · [ZIP](https://github.com/zxl123456123/control-everything/releases/download/v0.1.0a12/session-panel-0.1.0a12-windows-x64-delivery.zip) · [版本说明与校验值](https://github.com/zxl123456123/control-everything/releases/tag/v0.1.0a12)。安装包自带运行环境，无需另装 Python、Node.js 或 Rust。
 
-1. 下载并运行安装器。
-2. 从开始菜单的 **Session Panel** 启动程序（安装入口暂沿用此名称）。
-3. 打开 **http://127.0.0.1:8766/workspace**，点击“添加项目”开始使用。
+1. 下载并运行安装器，选择安装目录。
+2. 从开始菜单的 **Session Panel** 启动独立应用窗口；安装时可勾选创建桌面快捷方式。
+3. 在窗口中点击“添加项目”开始使用。
 
 也可按[源码启动指南](docs/guides/usage.md#多-agent-工作台)运行。数据保存在本机；安装维护见 [Windows 安装指南](docs/guides/windows.md)，独立数据目录、端口设置、导入与备份见[使用指南](docs/guides/usage.md)。
 
