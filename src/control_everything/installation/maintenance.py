@@ -308,7 +308,7 @@ def verify_install(context, install_root, *, api, invocation=None):
     if invocation is not None and context.document['closure'] != invocation['bootstrap_closure']:
         raise Blocked(24, 'payload_invocation_identity')
     if (root / '.install/root.json').exists():
-        return registry.load_records(root, api, pending=context)
+        return registry.load_records(root, api, pending=context, verified={context.version_id: context})
     else:
         # Initial [Files] may contain only the selected version and exact Inno metadata.
         uninstaller = api.registered_uninstaller(root)
@@ -319,11 +319,11 @@ def verify_install(context, install_root, *, api, invocation=None):
     return None
 
 
-def final_commit_check(context, root, participants, api, *, existing):
+def final_commit_check(context, root, participants, api, *, existing, verified):
     """A ready receipt does not prove that the installation is still idle."""
     versions, profiles, http = {}, {}, []
     if existing:
-        _owner, versions, profiles, http, contexts = registry.load_records(root, api, pending=context)
+        _owner, versions, profiles, http, contexts = registry.load_records(root, api, pending=context, verified=verified)
         for key, record in versions.items():
             verify_native(record['native'], contexts[key], api)
     # The new version is also in scope before its first root/version record exists.
@@ -372,6 +372,7 @@ def commit_install(context, install_root, *, invocation=None, receipt=None, api=
                 or invocation is not None and receipt['nonce'] != invocation['nonce']):
             raise Blocked(24, 'receipt_identity')
         records = verify_install(context, root, api=api, invocation=invocation)
+        contexts = {}
         launcher = root / 'session-panel.cmd'
         if receipt['root'] is not None:
             owner, _versions, _profiles, _http, contexts = records
@@ -390,7 +391,7 @@ def commit_install(context, install_root, *, invocation=None, receipt=None, api=
         version_path = root / '.install/versions' / (context.version_id + '.json')
         if version_path.exists() and registry.read_record(version_path) != current:
             raise Blocked(24, 'version_registration_changed')
-        final_commit_check(context, root, participants, api, existing=receipt['root'] is not None)
+        final_commit_check(context, root, participants, api, existing=receipt['root'] is not None, verified=contexts)
         if receipt['root'] is None:
             registry.write_record(root / '.install/root.json', owner)
         if operation == 'uninstall':

@@ -155,14 +155,17 @@ def version_record(context, api):
             'runtime': api.file_identity(context.version_dir / 'runtime/python.exe'), 'native': native_association(context, api)}
 
 
-def validate_version(root, key, record, api):
+def validate_version(root, key, record, api, *, context=None):
     if type(key) is not str or not TOKEN.fullmatch(key):
         raise RegistryError('version_key')
     manifest.exact(record, {'schema', 'version_id', 'directory', 'product_sha256', 'closure', 'runtime', 'native'}, 'version_fields')
     directory = contained(root, identity(record['directory'])['path'])
     if directory != root / 'versions' / key or type(record['schema']) is not int or record['schema'] != 1 or record['version_id'] != key:
         raise RegistryError('version_location')
-    context = ProductContext.load(directory)
+    if context is None:
+        context = ProductContext.load(directory)
+    elif context.version_dir != directory:
+        raise RegistryError('version_location')
     expected = version_record(context, api)
     # Missing native is tolerated at runtime, but records must retain the original identity.
     if any(record[field] != expected[field] for field in ('schema', 'version_id', 'directory', 'product_sha256', 'closure', 'runtime')):
@@ -198,7 +201,8 @@ def process_record(value):
     return value
 
 
-def load_records(root, api, *, pending=None):
+def load_records(root, api, *, pending=None, verified=None):
+    # Reuse only within a maintenance commit that will strictly reread all assets before writing.
     root = manifest.no_links(root)
     owner = load_root(root, api)
     directory = root / '.install'
@@ -219,7 +223,8 @@ def load_records(root, api, *, pending=None):
             raise RegistryError('unknown_record')
         key, record = filename[:-5], read_record(path)
         if prefix == 'versions':
-            contexts[key] = validate_version(root, key, record, api)
+            contexts[key] = validate_version(root, key, record, api,
+                                             context=verified.get(key) if verified is not None else None)
             versions[key] = record
         elif prefix == 'profiles':
             manifest.exact(record, {'schema', 'profile_key', 'directory', 'associations'}, 'profile_fields')

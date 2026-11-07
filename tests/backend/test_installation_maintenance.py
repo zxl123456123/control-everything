@@ -531,6 +531,28 @@ class MaintenanceTests(InstallationFixture):
                 finally:
                     path.write_bytes(original)
 
+    def test_commit_refreshes_records_after_launcher_inspection(self):
+        second = self.make_version('0.1.0a2')
+        path = self.install / '.install/versions' / (second.version_id + '.json')
+        REGISTRY.write_record(path, REGISTRY.version_record(second, self.api))
+        code, receipt = self.run_preflight(payload=self.context.version_dir)
+        self.assertEqual(code, 0)
+        original, launcher = path.read_bytes(), (self.install / 'session-panel.cmd').read_bytes()
+        inspect = MAINTENANCE.launcher_data_token
+        def changed_record(*args):
+            result = inspect(*args)
+            record = json.loads(original)
+            record['product_sha256'] = 'a' * 64
+            REGISTRY.write_record(path, record)
+            return result
+        try:
+            with patch.object(MAINTENANCE, 'launcher_data_token', side_effect=changed_record):
+                with self.assertRaisesRegex(REGISTRY.RegistryError, 'version_identity'):
+                    MAINTENANCE.commit_install(self.context, self.install, api=self.api, receipt=receipt)
+            self.assertEqual((self.install / 'session-panel.cmd').read_bytes(), launcher)
+        finally:
+            path.write_bytes(original)
+
     def test_commit_blocks_new_native_without_stopping_it_for_every_operation(self):
         profile = self.profile()
         for operation in ('install', 'upgrade', 'rollback', 'uninstall'):
