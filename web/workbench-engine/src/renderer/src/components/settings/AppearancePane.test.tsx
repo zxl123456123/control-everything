@@ -245,6 +245,7 @@ describe('AppearancePane', () => {
   })
 
   afterEach(() => {
+    vi.restoreAllMocks()
     delete (window as unknown as { api?: unknown }).api
     delete (window as unknown as { __ORCA_WEB_CLIENT__?: boolean }).__ORCA_WEB_CLIENT__
   })
@@ -256,6 +257,26 @@ describe('AppearancePane', () => {
     })
     expect(appearanceSectionToggle(container, 'chat')).toBeUndefined()
     expect(container.textContent).not.toContain('Reset chat appearance')
+  })
+
+  it('finds platform transparency directly from a Chinese settings search', async () => {
+    vi.spyOn(window.location, 'pathname', 'get').mockReturnValue('/studio')
+    mocks.state.settingsSearchQuery = '透明度'
+    const container = await renderAppearancePane(getDefaultSettings('/tmp'))
+    expect(appearanceSectionToggle(container, 'interface')?.getAttribute('aria-expanded')).toBe(
+      'true'
+    )
+    expect(
+      container.querySelector('[role="slider"][aria-label="Interface Transparency"]')
+    ).not.toBeNull()
+  })
+
+  it('does not offer platform transparency in standalone Electron appearance', async () => {
+    mocks.state.settingsSearchQuery = ''
+    const container = await renderAppearancePane(getDefaultSettings('/tmp'))
+    expect(
+      container.querySelector('[role="slider"][aria-label="Interface Transparency"]')
+    ).toBeNull()
   })
 
   it('shows language as a primary interface control without opening Advanced', async () => {

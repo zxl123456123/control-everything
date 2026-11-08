@@ -7,11 +7,13 @@ import {
   platformAppearance
 } from '../web/platform-appearance'
 import { useAppStore } from '../store'
+import { normalizeWorkbenchSurfaceOpacity } from '../../../shared/workbench-appearance'
 
 /** Applies the settings-driven theme and app font to the document root. */
 export function useDocumentAppearance(): void {
   const theme = useAppStore((s) => s.settings?.theme)
   const appFontFamily = useAppStore((s) => s.settings?.appFontFamily)
+  const workbenchSurfaceOpacity = useAppStore((s) => s.settings?.workbenchSurfaceOpacity)
 
   const updateSettingsOrThrow = useAppStore((s) => s.updateSettingsOrThrow)
   const platform = isPlatformAppearance()
@@ -46,4 +48,15 @@ export function useDocumentAppearance(): void {
       buildAppFontFamily(appFontFamily)
     )
   }, [appFontFamily])
+
+  useEffect(() => {
+    if (!platform) return
+    document.documentElement.style.setProperty(
+      '--ce-workbench-opacity',
+      String(normalizeWorkbenchSurfaceOpacity(workbenchSurfaceOpacity))
+    )
+    return () => {
+      document.documentElement.style.removeProperty('--ce-workbench-opacity')
+    }
+  }, [platform, workbenchSurfaceOpacity])
 }

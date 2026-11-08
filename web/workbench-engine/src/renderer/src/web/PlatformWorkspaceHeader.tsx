@@ -28,7 +28,6 @@ export function PlatformWorkspaceHeader({
           {projectName || (settings ? '开发设置' : '工作台')}
         </span>
       </nav>
-      <span className="platform-workspace-caption">{settings ? '偏好与配置' : '项目工作台'}</span>
     </header>
   )
 }

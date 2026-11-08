@@ -296,6 +296,12 @@
       }
     },
     "appearance": {
+      "surfaceTransparency": {
+        "title": "Interface Transparency",
+        "description": "Let the warm background show through workspace panels. Text stays clear; terminal opacity is separate.",
+        "reset": "Reset to 18%",
+        "saveError": "Could not save the appearance. Your previous setting has been restored."
+      },
       "language": {
         "title": "Language",
         "description": "Choose the language used by the Orca interface.",

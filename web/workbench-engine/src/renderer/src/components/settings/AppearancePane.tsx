@@ -20,6 +20,7 @@ import {
   getSidebarEntries,
   getStatusBarEntries,
   getSystemTrayEntries,
+  getSurfaceTransparencyEntries,
   getThemeEntries,
   getTitlebarEntries,
   getTypographyEntries,
@@ -35,6 +36,7 @@ import { getRendererAppPlatform } from '@/lib/renderer-app-platform'
 import { isWebClientLocation } from '@/lib/web-client-location'
 import { SHOW_UI_LANGUAGE_SETTING } from '@/i18n/supported-languages'
 import { translate } from '@/i18n/i18n'
+import { isPlatformAppearance } from '../../web/platform-appearance'
 import {
   getLeftSidebarAppearanceEntry,
   getWorkspaceCardLayoutEntry
@@ -138,6 +140,7 @@ export function AppearancePane({
   const interfaceSearchEntries = [
     { title: interfaceTitle },
     ...getThemeEntries(),
+    ...(isPlatformAppearance() ? getSurfaceTransparencyEntries() : []),
     ...getZoomEntries(),
     ...getTypographyEntries(),
     ...(SHOW_UI_LANGUAGE_SETTING ? getLanguageEntries() : []),
