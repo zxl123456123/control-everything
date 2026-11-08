@@ -327316,6 +327316,24 @@
   ],
   "adapted_files": [
     {
+      "path": "src/renderer/src/web/web-runtime-client-capabilities.ts",
+      "upstream_sha256": "eb448d05acc5afc23d670a3c03c568eda7b27e4186a00761258e05384cc2d27d",
+      "current_sha256": "fecda93523228d658cf1b01c3ef84202e0d6beb2090509b232e860017a3cbf4f",
+      "reason": "浏览器沿共享renderer声明结构化会话及Claude、注册Agent和Pi对话渲染能力，保留服务端按客户端过滤。"
+    },
+    {
+      "path": "src/renderer/src/web/web-runtime-connection-frame-router.test.ts",
+      "upstream_sha256": "88fe31ba4ee3e5a0572b623022c0a8fe55326dda4965630b90960268ff0150a4",
+      "current_sha256": "7b227097749001c2f2cc62e8426f8770904f291013ff4f2f0593498efff0ae50",
+      "reason": "解密实际浏览器legacy及v2设备密钥认证帧并核签名，验证结构化会话渲染能力随握手发送。"
+    },
+    {
+      "path": "src/main/runtime/rpc/methods/session-tab-registered-agent-projection.test.ts",
+      "upstream_sha256": "eabe590a84af2102ea391d45688f728ca77c3931518541506acd91acfbcb3931",
+      "current_sha256": "db4067af86fb3505d58eb41a625261377cd5fa0d239cd5f65af67c5c4367ff97",
+      "reason": "以实际浏览器能力表经过真实host投影，确认共享renderer支持的Agent标签、分组及活动选择不丢失。"
+    },
+    {
       "path": "src/cli/format.ts",
       "upstream_sha256": "f4ff6e2216c90a2a7ddc706957cd966f1510e7ff7304bdfd89d935d9665778d9",
       "current_sha256": "50e511a40516c103efab6c12ce8975a40dd07706efb95854119502025b56d8a5",
@@ -338820,8 +338838,8 @@
     {
       "path": "src/renderer/src/web/web-runtime-client.test.ts",
       "upstream_sha256": "874b5bd3b7cda6273e2e8b7718fb10a1cb83c2990a26c029bd85eaf0056d0f1a",
-      "current_sha256": "5b6fd13f22b8e8fc3658674455cefee0e8d0b8f859eebe7b9515767fb0573a12",
-      "reason": "远程连接标签和诊断统一Control Everything；保留错误码/协议及历史错误输入识别，同步无code重试、网络提示和真实回归，原命令字节预算不变"
+      "current_sha256": "a3e3a976dd8899e9a6e854772c87bf84e468afac36c7ddebb1570996af7bbaf6",
+      "reason": "远程连接标签和诊断统一Control Everything；保留错误码/协议及历史错误输入识别，同步无code重试、网络提示和真实回归，原命令字节预算不变；核对浏览器结构化会话渲染能力随实际认证帧发送。"
     },
     {
       "path": "src/renderer/src/web/web-runtime-client.ts",
