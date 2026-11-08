@@ -115,7 +115,7 @@ test('inactive remote pages show one focused account link without navigating or 
 test('an early invalidation waits for the document body and local pages never show a notice',()=>{
   const f=fixture();let appended=0,focused=0;
   f.window.CERemoteContext.invalidate();
-  const dialog={setAttribute(){},addEventListener(){},showModal(){},querySelector:()=>({focus(){focused++;}})};
+  const dialog={style:{},setAttribute(){},addEventListener(){},showModal(){},querySelector:()=>({style:{},focus(){focused++;}})};
   f.window.document.createElement=()=>dialog;f.window.document.body={append(){appended++;}};
   f.events.DOMContentLoaded();assert.equal(appended,1);assert.equal(focused,1);
   const local=fixture();local.window.document.querySelector=()=>null;delete local.window.CERemoteContext;delete local.window.CERemotePageState;
