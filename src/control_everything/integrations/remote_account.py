@@ -4,7 +4,7 @@ import threading
 import time
 from urllib.parse import urlencode, urlsplit
 
-from .remote_connector import ConnectorError
+from .remote_connector import ConnectorError, verified_complete_uri
 
 
 class RemoteAccount:
@@ -72,6 +72,9 @@ class RemoteAccount:
             if self._grant:
                 value.update(state="authorizing", **{key: self._grant[key] for key in
                              ("user_code", "verification_uri", "expires_in")})
+                complete = verified_complete_uri(self._grant.get("verification_uri_complete"), self.peer.config.issuer)
+                if complete:
+                    value["verification_uri_complete"] = complete
             return value
 
     def authorize(self):

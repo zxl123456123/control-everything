@@ -44,6 +44,23 @@ class RemoteHubServiceTests(unittest.TestCase):
         self.assertEqual(renamed["device"]["device_id"], device["device_id"])
         self.error("device_not_found", self.hub.revoke, B, device["device_id"])
 
+    def test_browser_device_status_expires_with_heartbeat_and_recovers(self):
+        device = bind(self.hub)
+        now = [1000]
+        self.hub.store.clock = lambda: now[0]
+        self.hub.heartbeat(device["control_token"], INSTALL, True)
+        for elapsed, state in [(0, "online"), (45, "online"), (46, "offline")]:
+            now[0] = 1000 + elapsed
+            shown, _ = self.hub.session(A, "")
+            self.assertEqual(shown["device"]["state"], state)
+            self.assertEqual(shown["device"]["device_id"], device["device_id"])
+        self.assertEqual(self.hub.store.device(device["device_id"])["state"], "online")
+        self.hub.heartbeat(device["control_token"], INSTALL, True)
+        self.assertEqual(self.hub.session(A, "")[0]["device"]["state"], "online")
+        with self.hub.store.transaction() as db:
+            db.execute("UPDATE devices SET last_heartbeat=NULL WHERE device_id=?", (device["device_id"],))
+        self.assertEqual(self.hub.session(A, "")[0]["device"]["state"], "offline")
+
     def test_lost_bind_response_recovery_and_second_lost_response(self):
         challenge = self.hub.begin_enrollment(A, INSTALL, KEY, "Computer")
         first = complete(self.hub, A, challenge)

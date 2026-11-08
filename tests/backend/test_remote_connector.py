@@ -54,10 +54,15 @@ class Peer:
         self.identity_error = None
         self.revoke_error = None
         self.verification_uri = "https://identity.example.test/realms/team/device"
+        self.verification_uri_complete = None
 
     def request(self, method, path, body=None, token=None, *, oauth=False):
         self.calls.append((method, path, body, token))
-        if path == "/auth/device": return {"device_code": "secret-code", "user_code": "USER-CODE", "verification_uri": self.verification_uri, "expires_in": 30, "interval": 1}
+        if path == "/auth/device":
+            grant = {"device_code": "secret-code", "user_code": "USER-CODE", "verification_uri": self.verification_uri, "expires_in": 30, "interval": 1}
+            if self.verification_uri_complete is not None:
+                grant["verification_uri_complete"] = self.verification_uri_complete
+            return grant
         if path == "/token":
             if self.tokens:
                 value = self.tokens.pop(0)
@@ -336,6 +341,27 @@ class ConnectorTests(unittest.TestCase):
         self.peer.verification_uri='https://attacker.example.test/device'
         self.authorize()
         self.assertEqual(self.connector.status()['code'],'remote_verification_uri_invalid')
+
+    def test_complete_verification_uri_is_optional_and_same_origin(self):
+        base = self.peer.verification_uri
+        cases = [(base + '?user_code=USER-CODE', True), (None, False),
+                 ('https://attacker.example.test/device', False), ('http://identity.example.test/device', False),
+                 ('https://user@identity.example.test/device', False), (base + '#fragment', False),
+                 (base + '\n.evil', False), ('https://identity.example.test:bad/device', False),
+                 (42, False), (base + 'x' * 4096, False)]
+        for index, (complete, accepted) in enumerate(cases):
+            with self.subTest(case=index):
+                self.peer.verification_uri_complete = complete
+                observed = []
+                self.connector._state = 'authorizing'
+                self.connector._stop = SimpleNamespace(wait=lambda _: observed.append(self.connector.status()) or True)
+                self.authorize()
+                status = observed[0]
+                self.assertEqual(status['verification_uri'], base)
+                self.assertEqual(status['user_code'], 'USER-CODE')
+                self.assertEqual(status.get('verification_uri_complete'), complete if accepted else None)
+                self.assertNotIn('device_code', status)
+                self.assertNotIn('token', json.dumps(status))
 
     def test_confirm_required_before_key_registration(self):
         with self.assertRaisesRegex(ConnectorError, 'confirmation_required'): self.connector.confirm()

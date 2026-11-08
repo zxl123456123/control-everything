@@ -29,6 +29,22 @@ NAMESPACE = "control-everything-device-enrollment-v1"
 LIMIT = 65536
 
 
+def verified_complete_uri(value, issuer):
+    if (not isinstance(value, str) or not 1 <= len(value) <= 4096
+            or any(ord(char) <= 32 or ord(char) == 127 for char in value)
+            or '\\' in value or '#' in value):
+        return None
+    try:
+        uri, source = urlsplit(value), urlsplit(issuer)
+        uri.port  # Validate malformed ports before exposing the URI.
+        if (uri.scheme != 'https' or (uri.scheme, uri.netloc) != (source.scheme, source.netloc)
+                or uri.username or uri.password or uri.fragment):
+            return None
+    except ValueError:
+        return None
+    return value
+
+
 class ConnectorError(Exception):
     def __init__(self, code, status=0):
         self.code, self.status = code, status
@@ -355,6 +371,9 @@ class RemoteConnector:
                       "portal_url": self.config.hub_origin + "/remote"}
             if self._grant and self._state == "authorizing":
                 result.update({k: self._grant[k] for k in ("user_code", "verification_uri", "expires_in")})
+                complete = verified_complete_uri(self._grant.get("verification_uri_complete"), self.config.issuer)
+                if complete:
+                    result["verification_uri_complete"] = complete
             if self._account and self._state == "awaiting_local_confirmation":
                 result.update(account=dict(self._account), operation=self._operation, member_active=True)
             elif self._account and self._code == "remote_membership_required":

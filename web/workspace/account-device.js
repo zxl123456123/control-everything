@@ -13,7 +13,7 @@
     if (!['remote', 'local'].includes(mode)) throw new Error('account_mode_required');
     const remote = mode === 'remote';
     const context = remote && scope.CERemoteContext?.context ? scope.CERemoteContext : null;
-    let disposed = false, generation = 0, csrf = '', account = null, device = null;
+    let disposed = false, generation = 0, csrf = '', account = null, device = null, signedOut = false, recheckPending = false;
     let admin = false, busy = false, reading = false, timer, configured = false, revokeTarget = null, composing = false;
     let localIdentity = '', localAccountConfigured = false, localAccountAuthorizing = false, localMayConfigure = false, configurationSaved = false;
     let membersOffset = 0, membersTotal = 0, membersEpoch = 0, membersReading = false, adminViewEpoch = 0;
@@ -33,7 +33,7 @@
           <form data-node="activation" hidden><label>小组邀请码<input name="invite" required autocomplete="off" placeholder="输入收到的邀请码"></label><button class="ce-account-primary" type="submit">激活小组接入</button></form>
           <button type="button" data-action="logout" hidden>退出账号</button>
         </div></section>
-        <section class="ce-account-card ce-account-setting"><div class="ce-account-card-title"><span class="ce-account-media">${icon('computer')}</span><h2 data-node="device-name">电脑接入</h2><span class="ce-account-badge" data-node="device-state">读取中</span></div><div class="ce-account-body"><p data-node="device-help"></p><div data-node="local-actions" hidden><p data-node="local-help"></p><button class="ce-account-primary" type="button" data-action="authorize">连接这台电脑</button><div data-node="grant" hidden><p>电脑授权码</p><output class="ce-account-code" data-node="code"></output><p><a data-node="verification" target="_blank" rel="noopener noreferrer">打开电脑授权页面 ↗</a></p></div><button class="ce-account-primary" type="button" data-action="confirm" hidden>确认绑定这台电脑</button></div><p><a class="ce-account-primary" data-node="open" href="/studio" hidden>进入工作台 →</a></p><div class="ce-account-danger-zone" data-node="revoke-area" hidden><button class="ce-account-danger" type="button" data-action="revoke">撤销电脑连接</button></div></div></section>
+        <section class="ce-account-card ce-account-setting"><div class="ce-account-card-title"><span class="ce-account-media">${icon('computer')}</span><h2 data-node="device-name">电脑接入</h2><span class="ce-account-badge" data-node="device-state">读取中</span></div><div class="ce-account-body"><p data-node="device-help"></p><p data-node="device-error" role="status"></p><div data-node="local-actions" hidden><p data-node="local-help"></p><button class="ce-account-primary" type="button" data-action="authorize">连接这台电脑</button><div data-node="grant" hidden><p>电脑授权码</p><output class="ce-account-code" data-node="code"></output><p><a data-node="verification" target="_blank" rel="noopener noreferrer">打开电脑授权页面 ↗</a></p></div><button class="ce-account-primary" type="button" data-action="confirm" hidden>确认绑定这台电脑</button></div><p><a class="ce-account-primary" data-node="open" href="/studio" hidden>进入工作台 →</a></p><div class="ce-account-danger-zone" data-node="revoke-area" hidden><button class="ce-account-danger" type="button" data-action="revoke">撤销电脑连接</button></div></div></section>
       </div>
       <section class="ce-account-card ce-account-members" data-node="invitations" hidden>
         <div class="ce-account-card-title"><span class="ce-account-media">${icon('members')}</span><h2 data-node="members-title">成员</h2><button type="button" data-action="invitation">邀请成员</button></div>
@@ -56,7 +56,8 @@
     function recheckAdminView() {
       if (disposed) return;
       adminViewEpoch++; clearMembers(); clearInvitation(); $('invitations').hidden = true;
-      if (!scope.document.hidden) void refresh();
+      if (remote) { scope.clearTimeout(timer); if (!scope.document.hidden) poll(); }
+      if (!scope.document.hidden) { if (reading) recheckPending = true; else void refresh(); }
     }
     function clearAccount() {
       csrf = ''; account = device = null; admin = false; busy = false; pending.clear();
@@ -65,6 +66,7 @@
       $('membership').dataset.tone = $('device-state').dataset.tone = 'neutral';
       $('device-name').textContent = '电脑接入'; $('device-state').textContent = '未连接';
       $('device-help').textContent = '';
+      $('device-error').textContent = '';
       for (const name of ['activation','invitations','revoke-area','open']) $(name).hidden = true;
       for (const name of ['invitation','logout','revoke']) action(name).disabled = false;
       action('logout').hidden = true;
@@ -90,6 +92,7 @@
         ...(body ? {body: JSON.stringify(body)} : {})});
       if (disposed || mine !== generation) return null;
       if (remote && response.status === 401) {
+        signedOut = true; recheckPending = false; scope.clearTimeout(timer);
         if (context) endSession('/remote');
         else { retire(); notify(); $('login').hidden = false; $('status').textContent = '请登录账号后继续。'; }
         return null;
@@ -157,7 +160,7 @@
         $('members-page').textContent = `${Math.floor(membersOffset / membersLimit) + 1} / ${Math.max(1, Math.ceil(membersTotal / membersLimit))}`;
       } catch (failure) {
         if (disposed || mine !== generation || epoch !== membersEpoch || !admin || requestCsrf !== csrf) return;
-        if (failure.status === 403) { clearMembers(); $('invitations').hidden = true; error(failure); }
+        if (failure.status === 403) { adminViewEpoch++; clearMembers(); clearInvitation(); $('invitations').hidden = true; error(failure); }
         else { $('members-status').textContent = failure.message; $('members-status').dataset.tone = 'error'; }
       } finally {
         if (!disposed && epoch === membersEpoch) {
@@ -167,14 +170,17 @@
         }
       }
     }
-    function renderRemote(value) {
+    function renderRemote(value, readMembers) {
       if (value.session_changed === true || (account && account.sub !== value.account.sub)) {
         if (context) { endSession('/remote'); return; }
         retire(); notify();
       } else if (csrf && csrf !== value.csrf) { retire(); }
+      const roleChanged = admin !== (value.admin === true);
+      if (roleChanged) { adminViewEpoch++; clearMembers(); clearInvitation(); }
       csrf = value.csrf; account = value.account; device = value.device; admin = value.admin === true;
+      if (signedOut) { signedOut = false; poll(); }
       if (onPortal && scope.location.origin) onPortal(scope.location.origin + '/remote');
-      clearInvitation(); $('login').hidden = true; action('logout').hidden = false;
+      if (readMembers) clearInvitation(); $('login').hidden = true; action('logout').hidden = false;
       $('account').textContent = account.name || account.sub;
       $('membership').textContent = value.membership === 'active' ? '已激活' : '待激活';
       $('membership').dataset.tone = value.membership === 'active' ? 'success' : 'warning';
@@ -184,9 +190,9 @@
       $('device-name').textContent = device?.name || '电脑接入';
       $('device-state').textContent = device ? (remoteStates[device.state] || '状态未知') : '尚未绑定';
       $('device-state').dataset.tone = connectionTone(device?.state);
-      $('device-help').textContent = !device ? (value.membership === 'active' ? '请在电脑端登录账号并确认绑定。' : '激活小组接入后，在电脑端登录账号并确认绑定。') : '';
+      $('device-help').textContent = !device ? (value.membership === 'active' ? '请在电脑端登录账号并确认绑定。' : '激活小组接入后，在电脑端登录账号并确认绑定。') : device.state === 'offline' ? '请确认电脑已联网、未休眠，并保持软件运行。连接恢复后，此页会自动更新。' : '';
       $('open').hidden = device?.state !== 'online'; $('revoke-area').hidden = !device || device.state === 'revoked';
-      if (admin) void loadMembers();
+      if (admin && (readMembers || roleChanged)) void loadMembers();
     }
     function renderLocal(value) {
       configured = value.configured !== false; device = value;
@@ -197,6 +203,7 @@
       $('device-state').textContent = remoteStates[value.state] || ({unbound:'尚未绑定',authorizing:'授权中',awaiting_local_confirmation:'等待确认'}[value.state] || '未连接');
       $('device-state').dataset.tone = connectionTone(value.state);
       $('device-help').textContent = configured ? '' : configurationSaved ? '服务配置已保存，重新打开软件后连接电脑。' : '请先填写账号和设备服务地址，再连接这台电脑。';
+      $('device-error').textContent = ({expired_token:'电脑授权已过期，请重新连接这台电脑。',access_denied:'电脑授权已取消，可重新连接。',remote_membership_required:'请先登录账号，填写邀请码激活小组接入，再连接这台电脑。',remote_network_unavailable:'暂时无法连接服务，请检查网络后重试。',device_already_bound:'此账号已绑定另一台电脑，请先在浏览器账号页撤销原连接。',remote_authorization_required:'电脑授权已失效，请重新连接并核对账号。'})[value.code] || '';
       action('authorize').disabled = !configured || value.state === 'authorizing';
       action('authorize').hidden = !configured || value.state === 'awaiting_local_confirmation';
       action('authorize').textContent = value.state === 'authorizing' ? '授权中' : ['online','offline'].includes(value.state) ? '重新连接' : '登录 / 注册账号';
@@ -204,7 +211,7 @@
       action('confirm').disabled = !configured;
       action('confirm').textContent = value.operation === 'recover' ? '确认恢复这台电脑的连接' : '确认绑定这台电脑';
       $('grant').hidden = !value.verification_uri; $('code').textContent = value.user_code || '';
-      if (value.verification_uri) $('verification').href = value.verification_uri;
+      if (value.verification_uri) $('verification').href = value.verification_uri_complete || value.verification_uri;
       $('revoke-area').hidden = !configured || ['unbound','revoked'].includes(value.state);
       $('open').hidden = typeof returnHash === 'string'; $('open').textContent = '返回工作台 →';
       if (typeof returnHash === 'string' && /^#[a-zA-Z0-9/_-]*$/.test(returnHash)) $('open').href = '/studio' + returnHash;
@@ -229,7 +236,7 @@
       $('invitations').hidden = !admin || scope.document.hidden;
       $('account-grant').hidden = !value.verification_uri;
       $('account-code').textContent = value.user_code || '';
-      if (value.verification_uri) $('account-verification').href = value.verification_uri;
+      if (value.verification_uri) $('account-verification').href = value.verification_uri_complete || value.verification_uri;
       $('account-error').textContent = value.code ? ({expired_token:'登录授权已过期，请重新登录。',access_denied:'登录授权已取消。',remote_network_unavailable:'账号服务暂时无法连接，请刷新重试。'})[value.code] || '账号登录已失效，请重新登录。' : '';
       // Computer enrollment remains an explicit, separate action.
       action('authorize').textContent = device?.state === 'authorizing' ? '授权中' : ['online','offline'].includes(device?.state) ? '重新连接电脑' : '连接这台电脑';
@@ -243,13 +250,16 @@
         const value = await request(remote ? '/remote/api/session' : '/api/desktop/remote/status');
         if (!value || disposed || mine !== generation) return;
         $('status').dataset.tone = '';
-        if (remote) renderRemote(value); else renderLocal(value);
+        if (remote) renderRemote(value, readMembers); else renderLocal(value);
         if (!remote) {
           const identity = await request('/api/desktop/account/status');
           if (identity && !disposed && mine === generation) renderLocalAccount(identity, readMembers);
         }
       } catch (failure) { if (mine === generation) error(failure); }
-      finally { reading = false; }
+      finally {
+        reading = false;
+        if (recheckPending && !disposed) { recheckPending = false; if (!scope.document.hidden) void refresh(); }
+      }
     }
     async function mutate(kind, body = {}) {
       if (disposed || pending.has(kind) || (!remote && busy) || reading || !csrf || (kind === 'invitation' && !admin) || (!remote && kind === 'account-authorize' && localAccountAuthorizing) || (!remote && !configured && !localAccountConfigured)) return;
@@ -322,7 +332,15 @@
     on(dialog, 'cancel', event => { event.preventDefault(); if (!composing && !event.isComposing) closeRevoke(); });
     on(dialog, 'keydown', event => { if (event.key === 'Escape') { event.stopPropagation?.(); if (composing || event.isComposing || event.keyCode === 229) event.preventDefault(); } });
     on(dialog, 'close', () => { revokeTarget = null; if (!disposed) action('revoke').focus(); });
-    function poll() { timer = scope.setTimeout(() => { if (disposed) return; if (!scope.document.hidden) void refresh(false); poll(); }, 2000); }
+    function poll() {
+      scope.clearTimeout(timer);
+      if (disposed || (remote && (signedOut || scope.document.hidden))) return;
+      timer = scope.setTimeout(() => {
+        if (disposed) return;
+        if (!scope.document.hidden && !(remote && busy)) void refresh(false);
+        poll();
+      }, remote ? 5000 : 2000);
+    }
     function dispose() {
       if (disposed) return; disposed = true; ++generation; ++membersEpoch; csrf = ''; account = device = null;
       controller.abort(); scope.clearTimeout(timer); unsubscribe();
@@ -331,7 +349,7 @@
     }
     let unsubscribe = () => {};
     if (context) unsubscribe = context.onInactive(dispose);
-    if (!disposed) { void refresh(); if (!remote) poll(); }
+    if (!disposed) { void refresh(); poll(); }
     return dispose;
   }
   scope.StudioAccountDevice = Object.freeze({mount});

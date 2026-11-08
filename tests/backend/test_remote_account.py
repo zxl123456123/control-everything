@@ -126,6 +126,27 @@ class AccountTests(unittest.TestCase):
         self.account._poll(self.peer.grant)
         self.assertIsNone(self.store.read("account-oauth.json", protected=True))
 
+    def test_complete_verification_uri_is_optional_and_same_origin(self):
+        base = self.peer.grant["verification_uri"]
+        cases = [(base + "?user_code=TEST-CODE", True), (None, False),
+                 ("https://other.example.test/device?user_code=TEST-CODE", False),
+                 ("http://id.example.test/device", False), ("https://user@id.example.test/device", False),
+                 (base + "#fragment", False), (base + "\n.evil", False),
+                 ("https://id.example.test:bad/device", False), (42, False), (base + "x" * 4096, False)]
+        for index, (complete, accepted) in enumerate(cases):
+            with self.subTest(case=index):
+                self.account._worker = None
+                self.peer.grant.pop("verification_uri_complete", None)
+                if complete is not None:
+                    self.peer.grant["verification_uri_complete"] = complete
+                with patch("control_everything.integrations.remote_account.threading.Thread"):
+                    status = self.account.authorize()
+                self.assertEqual(status["verification_uri"], base)
+                self.assertEqual(status["user_code"], "TEST-CODE")
+                self.assertEqual(status.get("verification_uri_complete"), complete if accepted else None)
+                self.assertNotIn("device_code", status)
+                self.assertNotIn("token", str(status))
+
 
 class LocalAccountBoundaryTests(unittest.TestCase):
     def handler(self, **overrides):

@@ -79,9 +79,12 @@ class RemoteHubService:
         csrf, set_cookie = self.sessions.open(identity, cookie)
         membership = self.store.member_status(identity)
         device = self.store.own_device(identity)
+        shown = public_device(device) if device else None
+        if shown:
+            shown["state"] = self._effective_state(device)
         return {"account": {"sub": identity.sub, "name": identity.name or identity.sub}, "membership": membership,
                 "admin": self.is_admin(identity),
-                "device": public_device(device) if device else None, "csrf": csrf, "session_changed": bool(set_cookie)}, set_cookie
+                "device": shown, "csrf": csrf, "session_changed": bool(set_cookie)}, set_cookie
 
     def create_invitation(self, identity):
         if not self.is_admin(identity):
