@@ -6,6 +6,7 @@ import shutil
 import subprocess
 from pathlib import Path
 import tempfile
+import threading
 from types import SimpleNamespace
 import unittest
 from unittest.mock import Mock
@@ -15,6 +16,7 @@ from control_everything.integrations.remote_connector import (
 )
 
 from control_everything.integrations.oidc_discovery import OidcDiscovery
+from control_everything.integrations.remote_account import RemoteAccount
 TOKEN = "A" * 43
 CONFIG = {"device_id": "device-1", "generation": 1, "credential_revision": 1,
           "public_origin": "https://workbench.example.test", "proxy_token": TOKEN,
@@ -272,6 +274,106 @@ class ConnectorTests(unittest.TestCase):
         self.connector._stop = ClockStop(self.clock)
 
     def authorize(self): self.connector._authorize()
+
+    def signed_in_account(self):
+        self.peer.identity.update(admin=False, membership='active')
+        peer = SimpleNamespace(config=self.connector.config, request=self.peer.request)
+        account = RemoteAccount(peer, self.store, clock=lambda: self.clock[0])
+        account._save({'access_token': 'account-access-token', 'refresh_token': 'account-refresh-token', 'expires_in': 60})
+        return account
+
+    def test_account_session_reuses_login_and_requires_local_confirmation(self):
+        account = self.signed_in_account()
+        status = self.connector.begin_account_authorization(account)
+        self.assertEqual(status['state'], 'awaiting_local_confirmation')
+        self.assertEqual(status['account']['sub'], 'subject-A')
+        self.assertFalse(any(call[1] == '/auth/device' or call[1].endswith('/enrollment') for call in self.peer.calls))
+        self.assertIsNone(self.connector._oauth)
+        self.assertIsNone(self.connector._oauth_refresh)
+        self.assertNotIn('account-access-token', json.dumps(status))
+        self.connector.confirm()
+        self.assertEqual(self.connector.status()['state'], 'connecting')
+        self.assertEqual(len([c for c in self.peer.calls if c[1].endswith('/identity')]), 2)
+
+    def test_account_confirmation_rejects_logout_new_login_or_changed_membership(self):
+        for scenario in ('logout', 'login', 'identity', 'membership'):
+            with self.subTest(scenario=scenario):
+                account = self.signed_in_account()
+                self.peer.identity['account']['sub'] = 'subject-A'
+                self.peer.identity['membership'] = 'active'
+                self.connector.begin_account_authorization(account)
+                if scenario == 'logout':
+                    account.logout()
+                elif scenario == 'login':
+                    with unittest.mock.patch('control_everything.integrations.remote_account.threading.Thread'):
+                        account.authorize()
+                    account._save({'access_token': 'new-account-access', 'refresh_token': 'new-account-refresh', 'expires_in': 60})
+                elif scenario == 'identity':
+                    self.peer.identity['account']['sub'] = 'subject-B'
+                else:
+                    self.peer.identity['membership'] = 'inactive'
+                with self.assertRaises(ConnectorError):
+                    self.connector.confirm()
+                self.assertFalse(any(c[1].endswith('/enrollment') for c in self.peer.calls))
+
+    def test_account_session_recovery_keeps_pending_and_version_checks(self):
+        account = self.signed_in_account()
+        self.peer.match = {'device_id':'device-1', 'generation':1, 'credential_revision':1, 'recoverable':True}
+        self.peer.complete_revision = 2
+        self.store.write('pending.json', {'operation':'bind'})
+        status = self.connector.begin_account_authorization(account)
+        self.assertEqual(status['operation'], 'recover')
+        self.connector.confirm()
+        self.assertIsNone(self.store.read('pending.json'))
+        self.assertEqual(self.store.read('credentials.bin', protected=True)['credential_revision'], 2)
+
+    def test_account_refresh_owned_only_by_account_and_legacy_confirmation_rechecks_member(self):
+        account = self.signed_in_account()
+        self.connector.begin_account_authorization(account)
+        self.clock[0] += 45
+        self.peer.tokens = [{'access_token': 'new-account-access', 'refresh_token': 'new-account-refresh', 'expires_in': 120}]
+        self.connector.confirm()
+        refreshes = [c for c in self.peer.calls if c[1] == '/token']
+        self.assertEqual(len(refreshes), 1)
+        self.assertEqual(account._tokens['refresh_token'], 'new-account-refresh')
+        self.assertIsNone(self.connector._oauth_refresh)
+        self.authorize()
+        self.peer.identity['member_active'] = False
+        with self.assertRaisesRegex(ConnectorError, 'remote_membership_required'):
+            self.connector.confirm()
+
+    def test_logout_waits_for_confirmation_using_account_session(self):
+        account = self.signed_in_account()
+        self.connector.begin_account_authorization(account)
+        entered, release, logged_out = threading.Event(), threading.Event(), threading.Event()
+        request = self.peer.request
+        def blocking_request(method, path, body=None, token=None, **kwargs):
+            if path.endswith('/enrollment'):
+                entered.set()
+                if not release.wait(5):
+                    raise RuntimeError('confirmation timeout')
+            return request(method, path, body, token, **kwargs)
+        self.peer.request = blocking_request
+        errors = []
+        def confirm():
+            try:
+                self.connector.confirm()
+            except Exception as error:
+                errors.append(error)
+        confirmation = threading.Thread(target=confirm)
+        logout = threading.Thread(target=lambda: (account.logout(), logged_out.set()))
+        confirmation.start()
+        self.assertTrue(entered.wait(5))
+        logout.start()
+        try:
+            self.assertFalse(logged_out.wait(.1))
+        finally:
+            release.set()
+            confirmation.join(5)
+            logout.join(5)
+        self.assertFalse(confirmation.is_alive() or logout.is_alive())
+        self.assertEqual(errors, [])
+        self.assertTrue(logged_out.is_set())
 
     def test_confirmation_renews_expired_device_access_and_keeps_tokens_private(self):
         self.peer.tokens = [{'access_token': 'old-access', 'refresh_token': 'first-refresh', 'expires_in': 60}]

@@ -23,6 +23,26 @@ class WorkbenchRemoteTests(unittest.TestCase):
         h.server.remote_connector.confirm.assert_not_called()
         h.reply.assert_called_once_with(200,{'state':'unbound','code':'unbound'})
 
+    def test_connect_selects_account_only_when_signed_in_without_silent_error_fallback(self):
+        for state, code, action in [('signed_in', '', 'reuse'), ('signed_out', '', 'legacy'),
+                                    ('signed_out', 'remote_network_unavailable', 'reject'),
+                                    ('authorizing', '', 'reject')]:
+            with self.subTest(state=state, code=code):
+                h = self.handler(Origin='http://127.0.0.1:8766', **{'X-Session-CSRF':'csrf'})
+                connector = h.server.remote_connector
+                connector.begin_account_authorization = Mock()
+                account = SimpleNamespace(status=Mock(return_value={'state':state, 'code':code}))
+                h.server.desktop_account = account
+                handle_post(h, '/api/desktop/remote/authorize')
+                if action == 'reuse':
+                    connector.begin_account_authorization.assert_called_once_with(account)
+                elif action == 'legacy':
+                    connector.begin_authorization.assert_called_once()
+                else:
+                    h.reject.assert_called_once()
+                    connector.begin_authorization.assert_not_called()
+                    connector.begin_account_authorization.assert_not_called()
+
     def test_remote_proof_public_host_and_null_origin_reject_owner_controls(self):
         cases=[{'X-CE-Device-Proof':'proof'},{'Origin':'null'},{'Host':'public.example.test'}, {'X-CE-Proxy-Token':'legacy'}]
         for headers in cases:

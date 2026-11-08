@@ -311,7 +311,7 @@ test('local authorization links prefer complete URLs and keep confirmation codes
 });
 
 test('computer authorization failures offer recovery without confirming or rebinding',async()=>{
-  for(const [code,message] of [['expired_token',/过期/],['remote_membership_required',/邀请码/],['device_already_bound',/另一台电脑/],['remote_authorization_required',/重新连接/]]) {
+  for(const [code,message] of [['expired_token',/过期/],['remote_membership_required',/邀请码/],['device_already_bound',/另一台电脑/],['remote_authorization_required',/重新连接/],['remote_identity_changed',/核对账号/],['account_login_required',/先登录/]]) {
     const f=fixture(path=>response(path==='/api/bootstrap'?{csrf_token:'local'}:{configured:true,state:'unbound',code}),{mode:'local'});await settle();
     assert.match(f.get('device-error').textContent,message);assert.equal(f.calls.some(call=>call.options.method==='POST'),false);f.dispose();
   }

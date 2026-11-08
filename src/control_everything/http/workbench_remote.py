@@ -147,7 +147,17 @@ def _handle_post(handler, path):
         handler.reject(405, "method_not_allowed")
         return True
     try:
-        actions[path]()
+        if path == "/api/desktop/remote/authorize" and getattr(handler.server, "desktop_account", None):
+            account = handler.server.desktop_account
+            account_status = account.status()
+            if account_status.get("state") == "signed_in":
+                connector.begin_account_authorization(account)
+            elif account_status.get("state") != "signed_out" or account_status.get("code"):
+                raise ConnectorError(account_status.get("code") or "remote_authorization_in_progress")
+            else:
+                connector.begin_authorization()
+        else:
+            actions[path]()
         handler.reply(200, connector.status())
     except ConnectorError as error:
         handler.reject(409, error.code)

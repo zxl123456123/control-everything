@@ -354,6 +354,7 @@ class RemoteConnector:
         self._grant = None
         self._identity = None
         self._account = None
+        self._session_account = self._session_expected = None
         self._status_match = None
         self._tunnel = None
         self._access = None
@@ -389,12 +390,50 @@ class RemoteConnector:
             if self._worker and self._worker.is_alive():
                 raise ConnectorError("remote_authorization_in_progress")
             self._oauth = self._account = self._status_match = None
+            self._session_account = self._session_expected = None
             self._oauth_refresh = self._oauth_deadline = None
             self._stop.clear()
             self._state, self._code = "authorizing", "authorization_pending"
             self._worker = threading.Thread(target=self._authorize, name="remote-device-authorization", daemon=True)
             self._worker.start()
         return self.status()
+
+    def begin_account_authorization(self, account):
+        with self._lock:
+            if self._worker and self._worker.is_alive():
+                raise ConnectorError("remote_authorization_in_progress")
+            self._oauth = self._account = self._status_match = None
+            self._session_account = self._session_expected = None
+            self._oauth_refresh = self._oauth_deadline = None
+            try:
+                with account.enrollment_session() as (epoch, identity, access):
+                    with self.store.locked():
+                        self._identity = self.keys.ensure(self.store)
+                    self._prepare_enrollment(identity, access)
+                    self._session_account = account
+                    self._session_expected = (epoch, identity['issuer'], identity['sub'])
+                    self._state, self._code = "awaiting_local_confirmation", "local_confirmation_required"
+            except (ConnectorError, ProcessError, OSError, ValueError) as error:
+                self._state, self._code = "unbound", getattr(error, "code", "remote_state_invalid")
+                raise ConnectorError(self._code) from None
+            return self.status()
+
+    def _prepare_enrollment(self, account, access):
+        try:
+            match = self.peer.request("POST", "/remote/desktop/enrollment/status", self._identity_body(), access)
+        except ConnectorError as error:
+            if error.status != 404:
+                raise
+            match = None
+        pending = self.store.read("pending.json")
+        if pending and not match:
+            raise ConnectorError("remote_recovery_not_found")
+        if match and not match.get("recoverable"):
+            raise ConnectorError("device_not_recoverable")
+        self._account = {"issuer": account["issuer"], "sub": account["sub"],
+                         "name": str(account.get("name") or account["sub"])}
+        self._status_match = match
+        self._operation = "recover" if match else "bind"
 
     def _authorize(self):
         try:
@@ -443,25 +482,12 @@ class RemoteConnector:
                 self._account = {"issuer": account["issuer"], "sub": account["sub"], "name": str(account.get("name") or account["sub"])}
                 if identity.get("member_active") is not True:
                     raise ConnectorError("remote_membership_required")
-                try:
-                    match = self.peer.request("POST", "/remote/desktop/enrollment/status", self._identity_body(), access)
-                except ConnectorError as error:
-                    if error.status != 404:
-                        raise
-                    match = None
-                pending = self.store.read("pending.json")
-                if pending and not match:
-                    raise ConnectorError("remote_recovery_not_found")
-                if match and not match.get("recoverable"):
-                    raise ConnectorError("device_not_recoverable")
                 with self._lock:
                     if self._stop.is_set():
                         return
+                    self._prepare_enrollment(account, access)
                     self._oauth = access
                     self._oauth_refresh, self._oauth_deadline = refresh, deadline
-                    self._account = {"issuer": account["issuer"], "sub": account["sub"], "name": str(account.get("name") or account["sub"])}
-                    self._status_match = match
-                    self._operation = "recover" if match else "bind"
                     self._state, self._code = "awaiting_local_confirmation", "local_confirmation_required"
                 return
         except (ConnectorError, ProcessError, OSError, ValueError) as error:
@@ -501,35 +527,23 @@ class RemoteConnector:
 
     def confirm(self):
         with self._lock:
-            if self._state != "awaiting_local_confirmation" or not self._oauth:
+            if self._state != "awaiting_local_confirmation" or not (self._oauth or self._session_account):
                 raise ConnectorError("remote_confirmation_required")
             self._state = "enrolling"
             try:
-                self._renew_enrollment_token()
-                with self.store.locked():
-                    body = self._identity_body()
-                    match = self._status_match
-                    if self._operation == "recover":
-                        body.update(device_id=match["device_id"], generation=match["generation"],
-                                    expected_credential_revision=match["credential_revision"])
-                        path = "/remote/desktop/enrollment/recover"
-                    else:
-                        body["name"] = "Windows computer"
-                        path = "/remote/desktop/enrollment"
-                    challenge = self.peer.request("POST", path, body, self._oauth)
-                    challenge_id = challenge.get("challenge_id", "")
-                    if not re.fullmatch(r"[A-Za-z0-9_-]{1,128}", challenge_id):
-                        raise ConnectorError("remote_challenge_invalid")
-                    payload = base64.b64decode(challenge["payload"], validate=True)
-                    expected = {"challenge_id": challenge_id, "operation": self._operation,
-                                "installation_id": self._identity["installation_id"], "key_fingerprint": self._identity["key_fingerprint"]}
-                    if match:
-                        expected.update(target_device_id=match["device_id"], generation=match["generation"],
-                                        expected_credential_revision=match["credential_revision"])
-                    self.store.write("pending.json", expected)
-                    signature = self.keys.sign(self.store, payload)
-                    reply = self.peer.request("POST", f"/remote/desktop/enrollment/{challenge_id}/complete", {"signature": signature}, self._oauth)
-                    self._accept_reply(expected, reply)
+                if self._session_account:
+                    with self._session_account.enrollment_session(self._session_expected) as (_, _, access):
+                        self._complete_enrollment(access)
+                else:
+                    self._renew_enrollment_token()
+                    identity = self.peer.request('GET', '/remote/desktop/identity', token=self._oauth)
+                    account = identity.get('account', {})
+                    if (not isinstance(account, dict) or account.get('issuer') != self._account['issuer']
+                            or account.get('sub') != self._account['sub']):
+                        raise ConnectorError('remote_identity_changed')
+                    if identity.get('member_active') is not True:
+                        raise ConnectorError('remote_membership_required')
+                    self._complete_enrollment(self._oauth)
                 self._state, self._code = "connecting", "connecting"
                 return self.status()
             except (ConnectorError, ProcessError, OSError, ValueError, KeyError) as error:
@@ -539,6 +553,33 @@ class RemoteConnector:
             finally:
                 self._oauth = self._account = None
                 self._oauth_refresh = self._oauth_deadline = None
+                self._session_account = self._session_expected = None
+
+    def _complete_enrollment(self, access):
+        with self.store.locked():
+            body = self._identity_body()
+            match = self._status_match
+            if self._operation == "recover":
+                body.update(device_id=match["device_id"], generation=match["generation"],
+                            expected_credential_revision=match["credential_revision"])
+                path = "/remote/desktop/enrollment/recover"
+            else:
+                body["name"] = "Windows computer"
+                path = "/remote/desktop/enrollment"
+            challenge = self.peer.request("POST", path, body, access)
+            challenge_id = challenge.get("challenge_id", "")
+            if not re.fullmatch(r"[A-Za-z0-9_-]{1,128}", challenge_id):
+                raise ConnectorError("remote_challenge_invalid")
+            payload = base64.b64decode(challenge["payload"], validate=True)
+            expected = {"challenge_id": challenge_id, "operation": self._operation,
+                        "installation_id": self._identity["installation_id"], "key_fingerprint": self._identity["key_fingerprint"]}
+            if match:
+                expected.update(target_device_id=match["device_id"], generation=match["generation"],
+                                expected_credential_revision=match["credential_revision"])
+            self.store.write("pending.json", expected)
+            signature = self.keys.sign(self.store, payload)
+            reply = self.peer.request("POST", f"/remote/desktop/enrollment/{challenge_id}/complete", {"signature": signature}, access)
+            self._accept_reply(expected, reply)
 
     def _accept_reply(self, pending, reply):
         if self.store.read("pending.json") != pending:
@@ -747,4 +788,5 @@ class RemoteConnector:
         with self._lock:
             self._oauth = self._account = self._grant = None
             self._oauth_refresh = self._oauth_deadline = None
+            self._session_account = self._session_expected = None
             self._disconnect()

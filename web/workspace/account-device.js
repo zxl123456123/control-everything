@@ -203,7 +203,7 @@
       $('device-state').textContent = remoteStates[value.state] || ({unbound:'尚未绑定',authorizing:'授权中',awaiting_local_confirmation:'等待确认'}[value.state] || '未连接');
       $('device-state').dataset.tone = connectionTone(value.state);
       $('device-help').textContent = configured ? '' : configurationSaved ? '服务配置已保存，重新打开软件后连接电脑。' : '请先填写账号和设备服务地址，再连接这台电脑。';
-      $('device-error').textContent = ({expired_token:'电脑授权已过期，请重新连接这台电脑。',access_denied:'电脑授权已取消，可重新连接。',remote_membership_required:'请先登录账号，填写邀请码激活小组接入，再连接这台电脑。',remote_network_unavailable:'暂时无法连接服务，请检查网络后重试。',device_already_bound:'此账号已绑定另一台电脑，请先在浏览器账号页撤销原连接。',remote_authorization_required:'电脑授权已失效，请重新连接并核对账号。'})[value.code] || '';
+      $('device-error').textContent = ({expired_token:'电脑授权已过期，请重新连接这台电脑。',access_denied:'电脑授权已取消，可重新连接。',remote_membership_required:'请先登录账号，填写邀请码激活小组接入，再连接这台电脑。',remote_network_unavailable:'暂时无法连接服务，请检查网络后重试。',device_already_bound:'此账号已绑定另一台电脑，请先在浏览器账号页撤销原连接。',remote_authorization_required:'电脑授权已失效，请重新连接并核对账号。',remote_identity_changed:'账号登录状态已变化，请重新连接电脑并核对账号。',account_login_required:'请先登录账号，再连接这台电脑。'})[value.code] || '';
       action('authorize').disabled = !configured || value.state === 'authorizing';
       action('authorize').hidden = !configured || value.state === 'awaiting_local_confirmation';
       action('authorize').textContent = value.state === 'authorizing' ? '授权中' : ['online','offline'].includes(value.state) ? '重新连接' : '登录 / 注册账号';

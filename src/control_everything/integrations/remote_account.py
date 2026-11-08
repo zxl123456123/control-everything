@@ -2,6 +2,7 @@
 
 import threading
 import time
+from contextlib import contextmanager
 from urllib.parse import urlencode, urlsplit
 
 from .remote_connector import ConnectorError, verified_complete_uri
@@ -17,6 +18,7 @@ class RemoteAccount:
         self._identity = None
         self._checked = 0
         self._error = ""
+        self._epoch = object()
         self._tokens = store.read("account-oauth.json", protected=True)
         if self._tokens and self._tokens.get("issuer") != peer.config.issuer:
             self._tokens = None
@@ -41,7 +43,8 @@ class RemoteAccount:
         return self._tokens["access_token"]
 
     def _read_identity(self):
-        value = self.peer.request("GET", "/remote/desktop/identity", token=self._access())
+        access = self._access()
+        value = self.peer.request("GET", "/remote/desktop/identity", token=access)
         account = value.get("account")
         if (not isinstance(account, dict) or account.get("issuer") != self.peer.config.issuer
                 or not isinstance(account.get("sub"), str) or not account["sub"]
@@ -52,6 +55,29 @@ class RemoteAccount:
         self._identity = {"account": account, "admin": value["admin"],
                           "membership": value.get("membership", "inactive")}
         self._checked = self.clock()
+        return access
+
+    @contextmanager
+    def enrollment_session(self, expected=None):
+        with self._lock:
+            if expected is not None and expected[0] is not self._epoch:
+                raise ConnectorError("remote_identity_changed", 401)
+            try:
+                access = self._read_identity()
+            except ConnectorError as error:
+                if error.status in (400, 401, 403):
+                    self._epoch = object()
+                    self._identity = self._tokens = None
+                    self.store.clear("account-oauth.json")
+                raise
+            identity = self._identity
+            account = identity["account"]
+            if expected is not None and (account["issuer"], account["sub"]) != expected[1:]:
+                self._epoch = object()
+                raise ConnectorError("remote_identity_changed", 401)
+            if identity["membership"] != "active":
+                raise ConnectorError("remote_membership_required", 403)
+            yield self._epoch, dict(account), access
 
     def status(self):
         with self._lock:
@@ -63,6 +89,7 @@ class RemoteAccount:
                     self._identity = None
                     self._error = error.code
                     if error.status in (400, 401, 403):
+                        self._epoch = object()
                         self._tokens = None
                         self.store.clear("account-oauth.json")
             value = {"configured": True, "state": "signed_in" if self._identity else "signed_out",
@@ -81,6 +108,7 @@ class RemoteAccount:
         with self._lock:
             if self._worker and self._worker.is_alive():
                 raise ConnectorError("remote_authorization_in_progress", 409)
+            self._epoch = object()
             self._stop.clear()
             grant = self.peer.request("POST", "/auth/device", {
                 "client_id": self.peer.config.client_id, "scope": "openid profile"}, oauth=True)
@@ -143,6 +171,7 @@ class RemoteAccount:
                 self._identity = None
                 self._checked = 0
                 if error.status in (400, 401, 403):
+                    self._epoch = object()
                     self._tokens = None
                     self.store.clear("account-oauth.json")
                 raise
@@ -160,6 +189,8 @@ class RemoteAccount:
             return result
 
     def logout(self):
+        with self._lock:
+            self._epoch = object()
         self.close()
         with self._lock:
             self._tokens = self._identity = self._grant = None
