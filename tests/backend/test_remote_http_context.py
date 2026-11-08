@@ -94,6 +94,17 @@ class RemoteHTTPTests(unittest.TestCase):
             self.assertEqual(self.request(route)[1]["reason"], "remote_agent_route_rejected")
             self.assertEqual(self.request(route, "POST", {})[1]["reason"], "remote_agent_route_rejected")
 
+    def test_reconnect_bootstrap_requires_panel_client_and_never_starts_runtime(self):
+        revision = self.profile.store.list_revision()
+        for value in ([], ""):
+            with self.subTest(client=value):
+                status, response = self.request("/api/bootstrap", headers={"X-Session-Client": value})
+                self.assertEqual((status, response["reason"]), (403, "client_header_required"))
+        self.assertEqual(self.request("/api/bootstrap", headers={"X-Session-Client": "panel"})[0], 200)
+        self.assertEqual(self.profile.store.list_revision(), revision)
+        self.runtime.bootstrap.assert_not_called()
+        self.runtime.bootstrap_runtime.assert_not_called()
+
     def test_original_csrf_and_public_origin_are_required_for_writes(self):
         body = {"project_id": self.project["id"]}
         for headers in ({"Origin": []}, {"Origin": ""}, {"Origin": [ORIGIN] * 2},

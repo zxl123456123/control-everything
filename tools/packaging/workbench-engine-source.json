@@ -327150,6 +327150,7 @@
     "src/renderer/src/web/preload-api/web-wsl-host-unavailable.test.ts",
     "src/renderer/src/web/remote-context.test.ts",
     "src/renderer/src/web/remote-context.ts",
+    "src/renderer/src/web/web-runtime-connection-session.test.ts",
     "src/renderer/src/web/standalone-web-root.test.tsx",
     "src/renderer/src/web/standalone-web-root.tsx",
     "src/renderer/src/web/web-root.tsx",
@@ -328463,8 +328464,8 @@
     {
       "path": "src/renderer/src/web/web-runtime-connection-transport.ts",
       "upstream_sha256": "cedbbe89a38a433e1fe840e0e1e4aab165ed746d0062c049a9b7d283845b0b8f",
-      "current_sha256": "f2943225fbcd7f7a67de4ab5099414d9157a90b1d3ec23415e8ff73758ff730e",
-      "reason": "P4: isolate immutable remote browser context and scoped storage; preserve local behavior. P4: immutable remote context and explicit scoped storage; local behavior retained.；远程连接标签和诊断统一Control Everything；保留错误码/协议及历史错误输入识别，同步无code重试、网络提示和真实回归，原命令字节预算不变"
+      "current_sha256": "6d4cdcb7e973a40872aa2f4a97e828146b8570629ed0a1d6f54c17afedc5063d",
+      "reason": "P4: isolate immutable remote browser context and scoped storage; preserve local behavior. P4: immutable remote context and explicit scoped storage; local behavior retained.；远程连接标签和诊断统一Control Everything；保留错误码/协议及历史错误输入识别，同步无code重试、网络提示和真实回归，原命令字节预算不变；浏览器重连沿既有超时核对原页面授权，失效后引导重新登录"
     },
     {
       "path": "src/renderer/src/web/web-runtime-credential-source.test.ts",

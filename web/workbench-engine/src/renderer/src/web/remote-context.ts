@@ -63,15 +63,19 @@ export function invalidateContext(): void {
   }
   state.listeners.clear()
 }
-function guardedResponse(response: Response): Response {
+function guardedResponse(response: Response, signal?: AbortSignal | null): Response {
+  const assertAvailable = (): void => {
+    assertContextActive()
+    if (signal?.aborted) throw signal.reason
+  }
   return new Proxy(response, { get(target, key) {
-    if (key === 'clone') return () => { assertContextActive(); return guardedResponse(target.clone()) }
+    if (key === 'clone') return () => { assertAvailable(); return guardedResponse(target.clone(), signal) }
     const value = Reflect.get(target, key, target)
     if (['json', 'text', 'blob', 'arrayBuffer', 'formData', 'bytes'].includes(String(key)) && typeof value === 'function') {
       return async (...args: unknown[]) => {
-        assertContextActive()
+        assertAvailable()
         const result = await value.apply(target, args)
-        assertContextActive()
+        assertAvailable()
         return result
       }
     }
@@ -121,9 +125,10 @@ export const contextFetch: typeof fetch = async (input, init?: RequestInit) => {
   )
   headers.set('X-CE-Context', page.context)
   const response = await fetch(input, { ...init, headers })
+  if (init?.signal?.aborted) throw init.signal.reason
   if (response.status === 401 || response.status === 403) invalidateContext()
   else assertContextActive()
-  return guardedResponse(response)
+  return guardedResponse(response, init?.signal)
 }
 
 export function remoteWebSocketEndpoint(endpoint: string): string {

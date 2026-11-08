@@ -89,3 +89,36 @@ test('a suspended tab detects a missed account notification before a delayed bod
   await assert.rejects(response.json(),/remote_context_inactive/);
   assert.equal(api.active,false);
 });
+
+test('inactive remote pages show one focused account link without navigating or discarding drafts',async()=>{
+  const {pathToFileURL}=require('node:url'),path=require('node:path');
+  const {Window}=await import(pathToFileURL(path.resolve('web/workbench-engine/node_modules/happy-dom/lib/index.js')).href);
+  for(const fallback of [false,true]) {
+    const window=new Window({url:'https://workbench.example.test/studio'});
+    try {
+      window.document.head.innerHTML='<meta name="ce-remote-context" content="'+'C'.repeat(32)+'"><meta name="ce-storage-scope" content="'+'a'.repeat(64)+'">';
+      window.document.body.innerHTML='<textarea>unfinished draft</textarea>';
+      if(fallback) window.HTMLDialogElement.prototype.showModal=undefined;
+      vm.runInNewContext(fs.readFileSync('web/workspace/remote-context.js','utf8'),{window,Headers,Request,URL});
+      const api=window.CERemoteContext;
+      api.invalidate(); api.invalidate();
+      const dialogs=window.document.querySelectorAll('dialog');assert.equal(dialogs.length,1);
+      const dialog=dialogs[0],link=dialog.querySelector('a');
+      assert.equal(dialog.open,true);assert.equal(link.getAttribute('href'),'/remote');
+      assert.equal(window.document.activeElement,link);assert.match(dialog.textContent,/登录状态或访问权限已变化/);
+      assert.equal(window.location.pathname,'/studio');assert.equal(window.document.querySelector('textarea').value,'unfinished draft');
+      assert.equal(dialog.dispatchEvent(new window.Event('cancel',{cancelable:true})),false);
+    } finally { await window.happyDOM.close(); }
+  }
+});
+
+test('an early invalidation waits for the document body and local pages never show a notice',()=>{
+  const f=fixture();let appended=0,focused=0;
+  f.window.CERemoteContext.invalidate();
+  const dialog={setAttribute(){},addEventListener(){},showModal(){},querySelector:()=>({focus(){focused++;}})};
+  f.window.document.createElement=()=>dialog;f.window.document.body={append(){appended++;}};
+  f.events.DOMContentLoaded();assert.equal(appended,1);assert.equal(focused,1);
+  const local=fixture();local.window.document.querySelector=()=>null;delete local.window.CERemoteContext;delete local.window.CERemotePageState;
+  vm.runInContext(fs.readFileSync('web/workspace/remote-context.js','utf8'),local.context);
+  local.window.CERemoteContext.invalidate();assert.equal(local.events.DOMContentLoaded,undefined);
+});

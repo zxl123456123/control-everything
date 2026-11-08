@@ -20,6 +20,22 @@
     state.listeners.add(callback);
     return () => state.listeners.delete(callback);
   }
+  function showInactiveNotice() {
+    const show = () => {
+      const dialog = scope.document.createElement('dialog');
+      dialog.setAttribute('aria-label', '工作区登录状态已失效');
+      dialog.setAttribute('role', 'alertdialog');
+      dialog.innerHTML = '<h2>请重新确认账号</h2><p>当前工作区的登录状态或访问权限已变化，请返回账号页重新登录并确认。</p><a href="/remote">返回账号页重新登录</a>';
+      dialog.addEventListener('cancel', event => event.preventDefault());
+      scope.document.body.append(dialog);
+      if (typeof dialog.showModal === 'function') dialog.showModal();
+      else dialog.setAttribute('open', '');
+      dialog.querySelector('a').focus();
+    };
+    if (scope.document.body) show();
+    else scope.addEventListener('DOMContentLoaded', show, {once: true});
+  }
+  onInactive(showInactiveNotice);
   function invalidate() {
     if (!context || !state.active) return;
     state.active = false;
