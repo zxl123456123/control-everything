@@ -1,5 +1,6 @@
 """Product assembly and active-work preservation contracts."""
 
+import base64
 from dataclasses import replace
 from io import BytesIO
 from email.message import Message
@@ -17,7 +18,9 @@ from control_everything.workspace.news_runtime import NewsRuntime
 from control_everything.http.gateway import PanelHandler, build_profile_server
 from control_everything.http.remote_context import inject
 from control_everything.integrations.remote_access import RemoteAccess
+from control_everything.integrations.remote_connector import ConnectorError, ConnectorStore, RemoteConnector
 from control_everything.integrations.workbench_runtime import RuntimeConfig, WorkbenchUnavailable
+from tests.backend.test_remote_connector import Peer, Protector, TOKEN
 
 
 class DesktopAssemblyTests(unittest.TestCase):
@@ -231,6 +234,7 @@ class DesktopAssemblyTests(unittest.TestCase):
         desktop.connector.connect.assert_not_called()
         desktop.tick()
         desktop.runtime.close.assert_not_called()
+        desktop.connector.status.assert_not_called()
 
     def test_configuration_change_blocks_background_connection_until_restart(self):
         desktop, _ = self.setup_desktop()
@@ -238,6 +242,123 @@ class DesktopAssemblyTests(unittest.TestCase):
         desktop.tick()
         desktop.connector.connect.assert_not_called()
         desktop.runtime.start.assert_not_called()
+
+    def setup_connected_desktop(self):
+        desktop, root = self.setup_desktop()
+        store = ConnectorStore(root / 'remote', protector=Protector(), secure_directory=lambda _: None,
+                               api=SimpleNamespace(owner=Mock(return_value=1), close=Mock()))
+        store.write('installation.json', {'installation_id': 'installation-1'})
+        store.write('credentials.bin', {'device_id': 'device-1', 'generation': 1,
+                    'credential_revision': 1, 'control_token': TOKEN}, protected=True)
+        peer, clock = Peer(), [0]
+        tunnel = SimpleNamespace(running=True, start=Mock(), close=Mock())
+        retire = Mock()
+        config = SimpleNamespace(issuer='https://identity.example.test/realms/team',
+                                 hub_origin='https://workbench.example.test', client_id='workbench-desktop',
+                                 ssh_executable=root / 'ssh.exe', keygen_executable=root / 'keygen.exe')
+        connector = RemoteConnector(config, store, peer=peer, now=lambda: clock[0],
+                                    tunnel_factory=lambda _: tunnel, on_revoked=retire)
+        self.addCleanup(connector.close)
+        desktop.connector = connector
+        access = connector.prepare_access()
+        identity = connector.health_identity
+        desktop.runtime.config = replace(desktop.runtime.config, public_origin=access.public_origin,
+            device_proof=access.proxy_secret, remote_device_id=identity['device_id'],
+            remote_generation=identity['generation'], platform_installation_id=identity['platform_installation_id'])
+        desktop.tick()
+        self.assertEqual(connector.status()['state'], 'online')
+        return desktop, peer, clock, tunnel, retire
+
+    def test_transient_network_failure_retries_without_restarting_runtime(self):
+        desktop, peer, clock, tunnel, retire = self.setup_connected_desktop()
+        original = desktop.runtime.config
+        peer.config_error = ConnectorError('remote_network_unavailable')
+        desktop.tick()
+        self.assertIsNone(desktop.connector.remote_access)
+        self.assertEqual(desktop.connector.status()['state'], 'offline')
+        count = len(peer.calls)
+        desktop.tick()
+        self.assertEqual(len(peer.calls), count)
+        self.assertFalse(desktop.restart_required)
+        clock[0] = desktop.connector._next_retry
+        peer.config_error = None
+        desktop.tick()
+        self.assertEqual(desktop.connector.status()['state'], 'online')
+        desktop.tick()
+        self.assertFalse(desktop.restart_required)
+        self.assertIs(desktop.runtime.config, original)
+        desktop.runtime.start.assert_not_called()
+        desktop.runtime.close.assert_not_called()
+        self.assertEqual(tunnel.start.call_count, 2)
+        retire.assert_not_called()
+
+    def test_network_recovery_with_changed_binding_still_requires_restart(self):
+        proof = base64.urlsafe_b64encode(b'B' * 32).decode().rstrip('=')
+        for field, value in (('public_origin', 'https://other.example.test'), ('proxy_token', proof),
+                             ('device_id', 'device-2'), ('generation', 2)):
+            with self.subTest(field=field):
+                desktop, peer, clock, _, _ = self.setup_connected_desktop()
+                original = desktop.runtime.config
+                peer.config_error = ConnectorError('remote_network_unavailable')
+                desktop.tick()
+                peer.config_error = None
+                peer.config[field] = value
+                if field in ('device_id', 'generation'):
+                    credential = desktop.connector.store.read('credentials.bin', protected=True)
+                    credential[field] = value
+                    desktop.connector.store.write('credentials.bin', credential, protected=True)
+                clock[0] = desktop.connector._next_retry
+                desktop.tick()
+                self.assertIsNotNone(desktop.connector.remote_access)
+                count = len(peer.calls)
+                desktop.tick()
+                self.assertTrue(desktop.restart_required)
+                self.assertEqual(len(peer.calls), count)
+                self.assertIs(desktop.runtime.config, original)
+                desktop.runtime.start.assert_not_called()
+                desktop.runtime.close.assert_not_called()
+
+    def test_other_connector_failures_keep_restart_and_revocation_cleanup(self):
+        cases = [(status, 'control_token_invalid', False) for status in (401, 403, 410)]
+        cases += [(401, 'control_token_invalid', True), (0, 'remote_revision_mismatch', False),
+                  (0, 'synthetic_unknown_code', False)]
+        for status, code, cleanup_fails in cases:
+            with self.subTest(status=status, code=code, cleanup_fails=cleanup_fails):
+                desktop, peer, _, _, retire = self.setup_connected_desktop()
+                original = desktop.runtime.config
+                if cleanup_fails:
+                    retire.side_effect = RuntimeError('fixture-cleanup')
+                peer.config_error = ConnectorError(code, status)
+                desktop.tick()
+                self.assertIsNone(desktop.connector.remote_access)
+                if status:
+                    retire.assert_called_once()
+                    self.assertEqual(desktop.connector.status()['state'], 'revoked')
+                    self.assertEqual(desktop.connector.store.read('revocation.json') is not None, cleanup_fails)
+                else:
+                    retire.assert_not_called()
+                    self.assertEqual(desktop.connector.status()['state'], 'offline')
+                count = len(peer.calls)
+                desktop.tick()
+                self.assertTrue(desktop.restart_required)
+                self.assertEqual(len(peer.calls), count)
+                self.assertIs(desktop.runtime.config, original)
+                desktop.runtime.start.assert_not_called()
+                desktop.runtime.close.assert_not_called()
+
+    def test_only_explicit_offline_network_status_can_preserve_missing_access(self):
+        for status in ({}, Mock(), {'state': 'offline'}, {'code': 'remote_network_unavailable'},
+                       {'state': 'revoked', 'code': 'remote_network_unavailable'}):
+            with self.subTest(status_type=type(status).__name__):
+                desktop, _ = self.setup_desktop()
+                desktop.runtime.config = replace(desktop.runtime.config, public_origin='https://workbench.example.test',
+                    device_proof='A' * 43, remote_device_id='d', remote_generation=1, platform_installation_id='i')
+                desktop.connector.status.return_value = status
+                desktop.tick()
+                self.assertTrue(desktop.restart_required)
+                desktop.connector.connect.assert_not_called()
+                desktop.runtime.start.assert_not_called()
+                desktop.runtime.close.assert_not_called()
 
     def test_roots_follow_registered_main_directories_only_without_runtime_restart(self):
         desktop, root = self.setup_desktop()

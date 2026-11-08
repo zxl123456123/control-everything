@@ -47,6 +47,11 @@ class Desktop:
 
     def configure_runtime(self):
         access = self.connector.remote_access if self.connector else None
+        if self.connector is not None and access is None and self.runtime.ready:
+            status = self.connector.status()
+            if status.get('state') == 'offline' and status.get('code') == 'remote_network_unavailable':
+                # A transient transport failure does not change the running runtime's binding.
+                return True
         identity = self.connector.health_identity if access else None
         config = replace(self.runtime.config, public_origin=access.public_origin if access else None,
                          device_proof=access.proxy_secret if access else None,
