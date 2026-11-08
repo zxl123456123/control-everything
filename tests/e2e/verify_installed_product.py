@@ -116,14 +116,11 @@ class Acceptance:
                     'http_block_reason_not_proven')
 
     def launcher(self, install_root, version_id):
-        document, actual_id = payload_document(install_root / 'versions' / version_id)
+        _, actual_id = payload_document(install_root / 'versions' / version_id)
         require(actual_id == version_id, 'active_product_identity')
-        prefix = '%~dp0versions\\' + version_id
-        entry = ('control_everything.http.desktop --product-root "' + prefix + '"'
-                 if desktop_product(document) else 'control_everything.gateway')
-        expected = ('@echo off\r\n"' + prefix + '\\runtime\\python.exe" -I -B -X utf8 -m '
-                    + entry + ' %*\r\n').encode('ascii')
-        require((install_root / 'session-panel.cmd').read_bytes() == expected, 'active_launcher_target')
+        version = install_root / 'versions' / version_id
+        self.run([version / 'runtime/python.exe', '-I', '-B', '-X', 'utf8', Path(__file__).resolve(),
+                  '--launcher-probe', '--payload', version])
 
     def probe(self, version, profile, label, *, while_http=None):
         ready, stop = self.root / (label + '-ready.json'), self.root / (label + '-stop')
@@ -153,6 +150,18 @@ class Acceptance:
 
 def desktop_product(document):
     return any(row['path'] == 'desktop-runtime.json' for row in document['files'])
+
+
+def verify_launcher(payload):
+    from types import SimpleNamespace
+    from control_everything.installation.maintenance import launcher_data_token
+    document, version_id = payload_document(payload)
+    root = payload.parent.parent
+    try:
+        launcher_data_token((root / 'session-panel.cmd').read_bytes(), root,
+                            {version_id: SimpleNamespace(document=document)})
+    except ValueError:
+        raise ValueError('active_launcher_target') from None
 
 
 def build_probe_server(payload, profile, document, news_source):
@@ -325,11 +334,15 @@ def main(argv=None):
     parser.add_argument('--second-payload', type=Path)
     parser.add_argument('--second-installer', type=Path)
     parser.add_argument('--probe', action='store_true', help=argparse.SUPPRESS)
+    parser.add_argument('--launcher-probe', action='store_true', help=argparse.SUPPRESS)
     parser.add_argument('--profile', type=Path, help=argparse.SUPPRESS)
     parser.add_argument('--ready', type=Path, help=argparse.SUPPRESS)
     parser.add_argument('--stop', type=Path, help=argparse.SUPPRESS)
     args = parser.parse_args(argv)
     require(sys.platform == 'win32' and platform.machine().lower() in ('amd64', 'x86_64'), 'windows_x64_required')
+    if args.launcher_probe:
+        verify_launcher(args.payload)
+        return 0
     if args.probe:
         return probe(args)
     require(args.installer is not None and args.evidence is not None, 'installer_and_evidence_required')

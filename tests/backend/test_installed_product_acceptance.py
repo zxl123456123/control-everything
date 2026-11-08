@@ -13,6 +13,7 @@ from urllib.parse import urlsplit
 from control_everything.http.gateway import PanelHandler
 from control_everything.http.workbench import WorkbenchAssets
 from control_everything.installation.maintenance import launcher_bytes
+from control_everything.installation.desktop_settings import encode_data_directory
 from control_everything.paths import web_root
 from tests.backend.test_workbench_http import asset_fixture
 from tests.e2e import verify_installed_product as acceptance
@@ -36,14 +37,41 @@ class InstalledProductAcceptanceTests(unittest.TestCase):
                 launcher = self.root / 'session-panel.cmd'
                 launcher.write_bytes(launcher_bytes(version_id, desktop=desktop))
                 driver = acceptance.Acceptance(self.root, {})
-                driver.launcher(self.root, version_id)
-                launcher.write_bytes(launcher_bytes(version_id, desktop=not desktop))
-                with self.assertRaisesRegex(ValueError, 'active_launcher_target'):
+                with patch.object(driver, 'run', side_effect=lambda argv: acceptance.verify_launcher(version)) as run:
                     driver.launcher(self.root, version_id)
+                    self.assertEqual(run.call_args.args[0][0], version / 'runtime/python.exe')
+                    self.assertIn('-I', run.call_args.args[0])
+                    launcher.write_bytes(launcher_bytes(version_id, desktop=not desktop))
+                    with self.assertRaisesRegex(ValueError, 'active_launcher_target'):
+                        driver.launcher(self.root, version_id)
         document['closure'] = 'b' * 64
         (version / 'product.json').write_text(json.dumps(document), encoding='utf-8')
         with self.assertRaisesRegex(ValueError, 'active_product_identity'):
             driver.launcher(self.root, version_id)
+
+    def test_desktop_launcher_accepts_default_and_selected_data_contract(self):
+        version_id = '0.1.0a13-' + 'c' * 16
+        version = self.root / 'versions' / version_id
+        version.mkdir(parents=True)
+        document = {'product': 'session-panel', 'version': '0.1.0a13', 'closure': 'c' * 64,
+                    'files': [{'path': 'desktop-runtime.json'},
+                              {'path': 'runtime/Lib/site-packages/control_everything/installation/desktop_settings.py'}]}
+        (version / 'product.json').write_text(json.dumps(document), encoding='utf-8')
+        launcher = self.root / 'session-panel.cmd'
+        selected = str(self.root.parent / (self.root.name + '-profile'))
+        token = encode_data_directory(self.root, selected)
+        for data_token in ('_', token):
+            with self.subTest(data_token=data_token):
+                launcher.write_bytes(launcher_bytes(version_id, desktop=True, data_token=data_token))
+                acceptance.verify_launcher(version)
+        for data_token in (None, 'not_valid_encoding'):
+            with self.subTest(invalid=data_token):
+                launcher.write_bytes(launcher_bytes(version_id, desktop=True, data_token=data_token))
+                with self.assertRaisesRegex(ValueError, 'active_launcher_target'):
+                    acceptance.verify_launcher(version)
+        launcher.write_bytes(launcher_bytes(version_id, desktop=True, data_token='_') + b'echo unexpected\r\n')
+        with self.assertRaisesRegex(ValueError, 'active_launcher_target'):
+            acceptance.verify_launcher(version)
 
     def test_manifest_selects_desktop_assembly_without_legacy_fallback(self):
         desktop = SimpleNamespace(server=object())
