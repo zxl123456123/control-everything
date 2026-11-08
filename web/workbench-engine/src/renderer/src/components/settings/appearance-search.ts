@@ -8,6 +8,7 @@ import { SHOW_UI_LANGUAGE_SETTING } from '@/i18n/supported-languages'
 import { getStatusBarToggles } from './appearance-status-bar-search'
 import { getUsagePercentageDisplayEntry } from './appearance-usage-percentage-search'
 import { getMenuBarIconEntries, getSystemTrayEntries } from './appearance-system-presence-search'
+import { isPlatformAppearance } from '../../web/platform-appearance'
 
 export {
   getMenuBarIconEntries,
@@ -27,6 +28,17 @@ export const getThemeEntries = createLocalizedCatalog((): SettingsSearchEntry[] 
       ...translateSearchKeyword('auto.components.settings.appearance.search.262fe1d24f', 'dark'),
       ...translateSearchKeyword('auto.components.settings.appearance.search.44d873fd18', 'light')
     ]
+  }
+])
+
+export const getSurfaceTransparencyEntries = createLocalizedCatalog((): SettingsSearchEntry[] => [
+  {
+    title: translate('settings.appearance.surfaceTransparency.title', 'Interface Transparency'),
+    description: translate(
+      'settings.appearance.surfaceTransparency.description',
+      'Let the warm background show through workspace panels. Text stays clear; terminal opacity is separate.'
+    ),
+    keywords: ['透明', '透明度', '玻璃', 'opacity', 'transparency', 'glass', 'background']
   }
 ])
 
@@ -258,6 +270,9 @@ export function getAppearancePaneSearchEntries(
   return [
     ...getAppearanceSectionEntries(),
     ...getThemeEntries(),
+    ...(typeof window !== 'undefined' && isPlatformAppearance()
+      ? getSurfaceTransparencyEntries()
+      : []),
     ...(SHOW_UI_LANGUAGE_SETTING ? getLanguageEntries() : []),
     ...getTypographyEntries(),
     ...getZoomEntries(),

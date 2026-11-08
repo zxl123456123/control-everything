@@ -104,7 +104,7 @@ export function buildWorktreeCardPresentation(card: WorktreeCardController) {
     !isFolder &&
     branch.length > 0 &&
     !newCardStyle &&
-    (!compactCards || branch !== worktree.displayName)
+    branch !== visibleCardTitle.trim()
   // Why: rebases already surface in source control, so dense cards skip the persistent rebase chip.
   const showConflictOperationBadge =
     !!conflictOperation && conflictOperation !== 'unknown' && conflictOperation !== 'rebase'
