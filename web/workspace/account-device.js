@@ -23,7 +23,9 @@
     const listeners = [];
     container.innerHTML = `<section class="ce-account">
       <header class="ce-account-heading"><h1 tabindex="-1">账号与设备</h1><button class="ce-account-refresh" type="button" data-action="refresh" aria-label="刷新" title="刷新"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 7v5h-5M20 12a8 8 0 1 1-2.3-5.7"/></svg></button></header>
+      <p class="ce-account-refreshing" data-node="refreshing" role="status" aria-live="polite" hidden>正在刷新连接状态…</p>
       <p class="ce-account-notice" data-node="status" role="status" aria-live="polite">正在读取连接状态…</p>
+      <fieldset class="ce-account-refresh-controls" data-node="refresh-controls">
       <div class="ce-account-grid">
         <section class="ce-account-card ce-account-setting"><div class="ce-account-card-title"><span class="ce-account-media">${icon('account')}</span><h2>账号</h2><span class="ce-account-badge" data-node="membership">读取中</span></div><div class="ce-account-body">
           <p class="ce-account-identity" data-node="account"></p>
@@ -41,7 +43,8 @@
         <div class="ce-account-members-wrap" data-node="members-table" hidden><table class="ce-account-members-table"><thead><tr><th scope="col">成员</th><th scope="col">角色</th><th scope="col">成员状态</th><th scope="col">电脑</th><th scope="col">注册时间</th></tr></thead><tbody data-node="members-list"></tbody></table></div>
         <nav class="ce-account-pagination" data-node="members-pages" aria-label="成员分页" hidden><button type="button" data-action="members-previous" aria-label="上一页" title="上一页"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m15 5-7 7 7 7"/></svg></button><span data-node="members-page"></span><button type="button" data-action="members-next" aria-label="下一页" title="下一页"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg></button></nav>
       </section>
-      <dialog class="ce-account-dialog" data-node="revoke-dialog" aria-label="撤销电脑连接"><h2>撤销电脑连接？</h2><p>这台电脑的远程连接将断开，不会删除本机项目。需要重新授权后才能恢复远程访问。</p><p data-node="revoke-error" class="ce-account-dialog-error" role="alert" tabindex="-1" hidden></p><div class="ce-account-dialog-actions"><button type="button" data-action="cancel-revoke" autofocus>取消</button><button class="ce-account-danger" type="button" data-action="confirm-revoke">确认撤销连接</button></div></dialog>
+      </fieldset>
+      <dialog class="ce-account-dialog" data-node="revoke-dialog" aria-label="撤销电脑连接"><h2>撤销电脑连接？</h2><p>这台电脑的远程连接将断开，不会删除本机项目。需要重新授权后才能恢复远程访问。</p><p data-node="revoke-error" class="ce-account-dialog-error" role="alert" tabindex="-1" hidden></p><div class="ce-account-dialog-actions"><button type="button" data-action="cancel-revoke" autofocus>取消</button><fieldset class="ce-account-refresh-controls" data-node="revoke-refresh-controls"><button class="ce-account-danger" type="button" data-action="confirm-revoke">确认撤销连接</button></fieldset></div></dialog>
     </section>`;
     const $ = name => container.querySelector(`[data-node="${name}"]`);
     const action = name => container.querySelector(`[data-action="${name}"]`);
@@ -245,6 +248,9 @@
     async function refresh(readMembers = true) {
       if (disposed || (!remote && busy) || reading) return;
       reading = true; const mine = generation;
+      $('refresh-controls').disabled = $('revoke-refresh-controls').disabled = true;
+      action('refresh').disabled = true;
+      $('refreshing').hidden = false;
       try {
         if (!remote && !csrf) { const bootstrap = await request('/api/bootstrap'); if (!bootstrap || disposed || mine !== generation) return; csrf = bootstrap.csrf_token; }
         const value = await request(remote ? '/remote/api/session' : '/api/desktop/remote/status');
@@ -258,6 +264,7 @@
       } catch (failure) { if (mine === generation) error(failure); }
       finally {
         reading = false;
+        if (!disposed) { $('refresh-controls').disabled = $('revoke-refresh-controls').disabled = false; action('refresh').disabled = false; $('refreshing').hidden = true; }
         if (recheckPending && !disposed) { recheckPending = false; if (!scope.document.hidden) void refresh(); }
       }
     }

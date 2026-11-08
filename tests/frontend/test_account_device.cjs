@@ -116,6 +116,35 @@ test('local polling is serial, visibility-aware and disposal clears timers/liste
   let release,reads=0;const f=fixture(path=>path==='/api/bootstrap'?response({csrf_token:'local'}):++reads===1?response({state:'online',configured:true}):new Promise(resolve=>release=resolve),{mode:'local'});await settle();assert.equal(f.get('device-state').textContent,'在线');assert.equal(f.timers.size,1);f.window.document.hidden=true;await f.tick();assert.equal(reads,1);f.window.document.hidden=false;await f.tick();await f.tick();assert.equal(reads,2);const signal=f.calls.at(-1).options.signal;f.dispose();assert.equal(signal.aborted,true);assert.equal(f.timers.size,0);assert.equal(f.button('authorize').listenerCount,0);release(response({state:'offline',account:{sub:'late'}}));await settle();assert.notEqual(f.get('account').textContent,'late');
 });
 
+test('refresh disables guarded controls until both local reads finish and restores current state',async()=>{
+  let deviceRelease, accountRelease, delayed=false;
+  const f=fixture(path=>path==='/api/bootstrap'?response({csrf_token:'local'}):path==='/api/desktop/remote/status' && delayed?new Promise(resolve=>deviceRelease=resolve):response({state:'unbound',configured:true}),
+    {mode:'local',accountSession:()=>delayed?new Promise(resolve=>accountRelease=resolve):({configured:true,state:'signed_in',account:{sub:'member'},membership:'active'})});
+  await settle(); assert.equal(f.get('refresh-controls').disabled,false); assert.equal(f.button('authorize').disabled,false);
+  delayed=true; f.click('refresh'); await settle();
+  assert.equal(f.get('refresh-controls').disabled,true); assert.equal(f.get('revoke-refresh-controls').disabled,true); assert.equal(f.button('refresh').disabled,true); assert.equal(f.get('refreshing').hidden,false);
+  f.click('authorize'); assert.equal(f.calls.filter(c=>c.options.method==='POST').length,0);
+  deviceRelease(response({state:'unbound',configured:true})); await settle(); assert.equal(f.get('refresh-controls').disabled,true);
+  accountRelease({configured:true,state:'signed_in',account:{sub:'member'},membership:'active'}); await settle();
+  assert.equal(f.get('refresh-controls').disabled,false); assert.equal(f.button('refresh').disabled,false); assert.equal(f.get('refreshing').hidden,true); assert.equal(f.button('authorize').disabled,false);
+  delayed=false; f.click('authorize'); await settle(); assert.equal(f.calls.filter(c=>c.path==='/api/desktop/remote/authorize').length,1); f.dispose();
+});
+
+test('failed refresh releases controls while retaining explicit error',async()=>{
+  let fail=false;const f=fixture(path=>{if(fail)throw new Error('读取失败');return response(path==='/api/bootstrap'?{csrf_token:'local'}:{state:'unbound',configured:true});},{mode:'local'});
+  await settle(); fail=true; f.click('refresh'); await settle();
+  assert.equal(f.get('refresh-controls').disabled,false); assert.equal(f.get('revoke-refresh-controls').disabled,false); assert.equal(f.get('refreshing').hidden,true); assert.equal(f.get('status').textContent,'读取失败'); f.dispose();
+});
+
+test('refresh keeps revoke confirmation disabled until target changes can be rejected',async()=>{
+  let release, reads=0; const f=fixture(()=>++reads===1?response(session({device:{device_id:'first',state:'online'}})):new Promise(resolve=>release=resolve));
+  await settle(); f.click('revoke'); f.click('refresh'); await settle();
+  assert.equal(f.get('revoke-refresh-controls').disabled,true); f.click('confirm-revoke'); assert.equal(f.calls.filter(c=>c.options.method==='POST').length,0);
+  release(response(session({device:{device_id:'second',state:'online'}}))); await settle();
+  assert.equal(f.get('revoke-refresh-controls').disabled,false); f.click('confirm-revoke'); await settle();
+  assert.equal(f.calls.filter(c=>c.options.method==='POST').length,0); assert.match(f.get('revoke-error').textContent,/状态已变化/); f.dispose();
+});
+
 test('compact local rows retain authorization codes, explicit account confirmation, restart notice and read errors',async()=>{
   let current={configured:true,state:'authorizing',verification_uri:'https://example.test/activate',user_code:'SYNTHETIC'};
   const f=fixture(path=>response(path==='/api/bootstrap'?{csrf_token:'local'}:current),{mode:'local'});await settle();
@@ -197,6 +226,11 @@ test('real account DOM keeps members private to admins and uses the full respons
   let admin=true;w.fetch=async path=>response(path.startsWith('/remote/api/admin/members?')?directoryPage(directory):session({admin}));
   w.eval(source);const dispose=w.StudioAccountDevice.mount(root,{mode:'remote'});t.after(dispose);
   for(let i=0;i<8;i++)await new Promise(resolve=>setImmediate(resolve));
+  const controls=root.querySelector('[data-node="refresh-controls"]');
+  for(const selector of ['[data-action="authorize"]','[data-action="confirm"]','[data-action="account-authorize"]','[data-action="logout"]','[data-action="revoke"]','[data-action="invitation"]','[data-node="activation"] button','[data-action="configure"]'])assert.equal(controls.contains(root.querySelector(selector)),true);
+  const revokeControls=root.querySelector('[data-node="revoke-refresh-controls"]');
+  assert.equal(revokeControls.contains(root.querySelector('[data-action="confirm-revoke"]')),true);assert.equal(revokeControls.contains(root.querySelector('[data-action="cancel-revoke"]')),false);
+  assert.equal(w.getComputedStyle(controls).padding,'0px');assert.equal(w.getComputedStyle(controls).borderWidth,'0px');
   assert.equal(root.querySelectorAll('table tbody tr').length,3);assert.equal(root.querySelectorAll('img').length,0);assert.equal(root.querySelector('td').textContent,'<img src=x onerror=alert(1)>');
   assert.equal(w.getComputedStyle(root.querySelector('td')).fontSize,'15px');assert.equal(w.getComputedStyle(root.querySelector('h2')).fontSize,'16px');assert.equal(w.getComputedStyle(root.querySelector('tbody tr')).display,width===390?'grid':'table-row');
   const rows=[...root.querySelectorAll('tbody tr')];
