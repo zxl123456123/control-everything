@@ -301,6 +301,17 @@ class RemoteHubStore:
             if status == "disabled":
                 self.invalidate_account_sessions(account, db=db)
 
+    def activate_member(self, identity):
+        """Activate an ordinary member atomically, without undoing an explicit disable."""
+        with self.transaction() as db:
+            account = self.ensure_account_row(db, identity.issuer, identity.sub)
+            current = db.execute("SELECT status FROM members WHERE account_id=?", (account,)).fetchone()
+            if current is not None and current[0] == "disabled":
+                raise HubError("member_disabled", 403)
+            db.execute("INSERT INTO members(account_id,status) VALUES(?,'active') "
+                       "ON CONFLICT(account_id) DO NOTHING", (account,))
+            return account
+
     def invalidate_account_sessions(self, account_id, db=None):
         if db is None:
             with self.transaction() as own:

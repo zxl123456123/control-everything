@@ -48,6 +48,20 @@ python tools/scripts/keycloak_add_mobile_client.py --dry-run
 
 注册和密码由自建 Keycloak 处理。管理员使用同一 `/remote` 账号入口登录，账号与设备页显示注册成员、接入状态、角色、当前电脑及注册时间；未使用邀请码的注册者也会列出。注册成功不会自动激活接入，电脑仍须在桌面端授权并明确确认绑定。管理员身份只认私有配置中的精确 `sub`，不能因用户名相同而授予权限。
 
+### 管理员发放固定普通账号
+
+1. 在 hub 私有配置 `issuer` 对应的 Keycloak realm 中，由管理员通过 **Users → Add user** 为每人创建独立普通用户；在该用户的 **Credentials → Set Password** 设置密码，将 **Temporary** 关闭后保存。已有密码使用 Reset Password。此流程不依赖邮件，不执行 Send Email，创建和密码操作参见 [Keycloak 官方指南](https://www.keycloak.org/docs/latest/server_admin/index.html#_users)。
+2. 从该用户详情复制精确 **User ID**（OIDC `sub`），不能填写 username 或 email。核对用户与配置属于同一个 realm；命令不会联网检查用户是否存在，填错 ID 也不能激活真正的账号。
+3. 持有私有配置的运维人员在 hub 主机、本仓库根目录执行：
+
+   ```text
+   python tools/scripts/remote_hub_admin.py --config <private.json> activate-member --sub <id>
+   ```
+
+命令只使用配置的固定 `issuer`；不接受 `--issuer`、`--account-id` 或 `--from-*`。同一用户重复执行安全，保留原 `account_id`、设备及其他账号状态；已有 `disabled` 成员会以 `member_disabled` 拒绝，不会重新启用。该操作仅开通普通成员资格，用户无需消费邀请码；不会加入 `admin_subjects`，配置管理员及其同账号身份会被拒绝。它是本地运维命令，没有新增 HTTP 写接口，用户仍须在桌面端明确绑定本人电脑。
+
+以上是使用说明与本地测试覆盖，不代表该命令已经部署到真实 hub，也没有真实账号开通或登录验收证据。
+
 oauth2-proxy 样例使用通用的 `provider = "oidc"`，端点由 issuer 的发现文档提供。代理配置沿用样例中的 `backend_logout_url`：取发现文档里的 `end_session_endpoint`（Keycloak 为 `…/protocol/openid-connect/logout`），由代理替换 `{id_token}`。`/oauth2/sign_out` 单独使用只会清理代理 cookie，可能在下一次登录时自动回到原账号；配置后应实测“退出→再次登录”会进入登录/注册页面。无需把 ID Token 下发浏览器或增加成员管理权限。
 
 成员目录使用单独的 confidential client `workbench-user-directory`，启用 service accounts，关闭浏览器与直接密码授权，设置 `fullScopeAllowed=false`。仅向其 service account 及 client role scope 映射 `realm-management` 的 `query-users`、`view-users`，不要授予 `manage-users`、`realm-admin` 或 `impersonation`。在原 hub 私有 JSON 增加以下可选字段，秘密仅留在服务器：
