@@ -339098,6 +339098,36 @@
       "upstream_sha256": "ae73103e038e8954b5369ecb6052cad52b58bb410bbcd4a50cb76d7c1ce488b5",
       "current_sha256": "bf912f3f3cd7f414c579a7b0160b28186d104f31da9c255edbb523a7696b481a",
       "reason": "仅缩短未命名普通终端的Windows shell可执行路径标签，保留原始标题及命名优先级"
+    },
+    {
+      "path": "src/renderer/src/components/worktree-jump-palette-primitives.tsx",
+      "upstream_sha256": "97dd0db909f5daf87b660711b0ac7322e48410078f364266d6df5bb1df6a30dc",
+      "current_sha256": "6ddc07056de2a494a4c611bf8953bf326861b7037e388bef0d8392c37e1acee0",
+      "reason": "搜索名称与位置分层，长路径优先保留尾部或命中上下文，相同工作区和分支去重复。"
+    },
+    {
+      "path": "src/renderer/src/components/worktree-jump-palette-workspace-tab-row.tsx",
+      "upstream_sha256": "b6e9e282f0fd230f4926a6da0c228e3deb312c8fedf0cc23d58ea29a11e5aef4",
+      "current_sha256": "38c94abf9b033e9b7071c7682df3f4f7959548b18b77c525d78ebd0b640e939a",
+      "reason": "搜索名称与位置分层，长路径优先保留尾部或命中上下文，相同工作区和分支去重复。"
+    },
+    {
+      "path": "src/renderer/src/components/worktree-jump-palette-worktree-row.tsx",
+      "upstream_sha256": "2925341b6c785593c48e80721a2850d9cb433a672a834511fc4567f2e41b29e2",
+      "current_sha256": "af96a6d06b4e9b6ea2a7e702b4923ea8571e627dbf5662329c00fbfc8f1d6d7d",
+      "reason": "搜索名称与位置分层，长路径优先保留尾部或命中上下文，相同工作区和分支去重复。"
+    },
+    {
+      "path": "src/renderer/src/components/WorktreeJumpPalette.test.tsx",
+      "upstream_sha256": "87a3c78150ac75b8841c7c25efca81ffb76060d7154e38ed41cf49c894656951",
+      "current_sha256": "43f350ea554ed24513a242e84ff750557c1971a343a98b3eef9f74affa976a72",
+      "reason": "搜索名称与位置分层，长路径优先保留尾部或命中上下文，相同工作区和分支去重复。"
+    },
+    {
+      "path": "src/renderer/src/components/worktree-jump-palette-interleaved-sections.test.tsx",
+      "upstream_sha256": "e78d1c86734ae041888b857702a5ebe3719738707911460c3db8f2ad12c4589a",
+      "current_sha256": "a4de5548c186d5da4ba3e3b5a3e577496499c60b9513f31eaa0622a358b039c8",
+      "reason": "搜索名称与位置分层，长路径优先保留尾部或命中上下文，相同工作区和分支去重复。"
     }
   ],
   "reviewed_findings": [

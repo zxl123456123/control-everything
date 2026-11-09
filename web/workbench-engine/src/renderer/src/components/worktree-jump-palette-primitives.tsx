@@ -7,6 +7,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { splitPathHeadForElision } from '@/lib/path-head-elision'
 import { RepoBadgeMark } from '@/components/repo/RepoBadgeLabel'
 import { cn } from '@/lib/utils'
+import { isWindowsAbsolutePathLike } from '../../../shared/cross-platform-path'
 
 const NO_SECONDARY_MATCHES: readonly { text: string; ranges: readonly MatchRange[] }[] = []
 
@@ -114,7 +115,8 @@ export function PaletteOpenTabPrimaryLine({
   secondaryMatches = NO_SECONDARY_MATCHES,
   elideSecondaryPathHead = false,
   sessionAge,
-  leadingBadges
+  leadingBadges,
+  location
 }: {
   title: string
   titleRanges: readonly MatchRange[]
@@ -124,73 +126,108 @@ export function PaletteOpenTabPrimaryLine({
   elideSecondaryPathHead?: boolean
   sessionAge?: string
   leadingBadges?: React.ReactNode
+  location?: React.ReactNode
 }): React.JSX.Element {
   const showSecondary = secondaryText.trim().length > 0
+  const titleSplit =
+    isWindowsAbsolutePathLike(title) || title.startsWith('/')
+      ? splitPathHeadForElision(title, titleRanges)
+      : null
   const additionalSecondaryMatches = secondaryMatches.filter(
     (match) => match.text && match.text !== secondaryText
   )
 
   return (
-    <div className="flex min-w-0 items-center gap-2 overflow-hidden">
-      <span
-        data-slot="palette-open-tab-title"
-        className={cn(
-          'truncate text-[14px] font-semibold tracking-[-0.01em] text-foreground',
-          showSecondary ? 'max-w-[62%] shrink-0' : 'min-w-0'
-        )}
-      >
-        <HighlightedText text={title} matchRanges={titleRanges} />
-      </span>
-      {sessionAge ? (
-        <span
-          aria-label={translate(
-            'auto.components.WorktreeJumpPalette.lastActiveTime',
-            'Last active {{value0}} ago',
-            { value0: sessionAge }
-          )}
-          className="shrink-0 text-[11px] font-medium tabular-nums text-muted-foreground/70"
-        >
-          {sessionAge}
-        </span>
-      ) : null}
-      {leadingBadges}
-      {showSecondary ? (
-        <PaletteOpenTabSecondaryText
-          text={secondaryText}
-          ranges={secondaryRanges}
-          elidePathHead={elideSecondaryPathHead}
-        />
-      ) : null}
-      {additionalSecondaryMatches.length ? (
-        <>
-          {/* Tab selects the palette filter, so the badge stays out of the tab order and
-              reads its matches through the row's own accessible name instead. */}
-          <span className="sr-only" data-slot="palette-open-tab-extra-matches">
-            {additionalSecondaryMatches.map((match) => match.text).join(', ')}
+    <div className="min-w-0 space-y-1">
+      <div className="flex min-w-0 items-center gap-2">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span
+              data-slot="palette-open-tab-title"
+              className="flex min-w-0 flex-1 text-[14px] font-semibold tracking-[-0.01em] text-foreground"
+            >
+              {titleSplit ? (
+                <>
+                  <span className="min-w-0 shrink-[999] truncate">{titleSplit.head}</span>
+                  <span className="min-w-0 shrink truncate">
+                    <HighlightedText text={titleSplit.tail} matchRanges={titleSplit.tailRanges} />
+                  </span>
+                </>
+              ) : (
+                <span className="truncate">
+                  <HighlightedText text={title} matchRanges={titleRanges} />
+                </span>
+              )}
+            </span>
+          </TooltipTrigger>
+          <TooltipContent side="top" sideOffset={4} className="max-w-96 break-all">
+            {title}
+          </TooltipContent>
+        </Tooltip>
+        {sessionAge ? (
+          <span
+            aria-label={translate(
+              'auto.components.WorktreeJumpPalette.lastActiveTime',
+              'Last active {{value0}} ago',
+              { value0: sessionAge }
+            )}
+            className="shrink-0 text-[11px] font-medium tabular-nums text-muted-foreground/70"
+          >
+            {sessionAge}
           </span>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span
-                aria-hidden
-                tabIndex={-1}
-                className="shrink-0 self-center rounded-[6px] border border-border/60 bg-background/45 px-1.5 py-px text-[9px] font-medium leading-normal text-muted-foreground/88"
-              >
-                +{additionalSecondaryMatches.length}
+        ) : null}
+        {leadingBadges}
+      </div>
+      {showSecondary || additionalSecondaryMatches.length > 0 || location ? (
+        <div
+          className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1"
+          data-slot="palette-open-tab-context"
+        >
+          {showSecondary ? (
+            <PaletteOpenTabSecondaryText
+              text={secondaryText}
+              ranges={secondaryRanges}
+              elidePathHead={elideSecondaryPathHead}
+            />
+          ) : null}
+          {additionalSecondaryMatches.length ? (
+            <>
+              {/* Tab selects the palette filter, so the badge stays out of the tab order and
+              reads its matches through the row's own accessible name instead. */}
+              <span className="sr-only" data-slot="palette-open-tab-extra-matches">
+                {additionalSecondaryMatches.map((match) => match.text).join(', ')}
               </span>
-            </TooltipTrigger>
-            <TooltipContent side="top" sideOffset={4} align="start" className="max-w-96 space-y-1">
-              {additionalSecondaryMatches.map((match) => (
-                <div className="break-all" key={match.text}>
-                  <HighlightedText
-                    text={match.text}
-                    matchRanges={match.ranges}
-                    highlightClassName="font-semibold text-inherit"
-                  />
-                </div>
-              ))}
-            </TooltipContent>
-          </Tooltip>
-        </>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span
+                    aria-hidden
+                    tabIndex={-1}
+                    className="shrink-0 self-center rounded-[6px] border border-border/60 bg-background/45 px-1.5 py-px text-[9px] font-medium leading-normal text-muted-foreground/88"
+                  >
+                    +{additionalSecondaryMatches.length}
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent
+                  side="top"
+                  sideOffset={4}
+                  align="start"
+                  className="max-w-96 space-y-1"
+                >
+                  {additionalSecondaryMatches.map((match) => (
+                    <div className="break-all" key={match.text}>
+                      <HighlightedText
+                        text={match.text}
+                        matchRanges={match.ranges}
+                        highlightClassName="font-semibold text-inherit"
+                      />
+                    </div>
+                  ))}
+                </TooltipContent>
+              </Tooltip>
+            </>
+          ) : null}
+          {location}
+        </div>
       ) : null}
     </div>
   )
@@ -227,7 +264,7 @@ export function PaletteLocationChip({
     <span
       data-slot="palette-location-chip"
       className={cn(
-        'inline-flex min-w-0 max-w-[260px] items-center gap-1.5 overflow-hidden rounded-md border border-border bg-muted px-2 py-1 text-[11px] font-semibold leading-none text-foreground',
+        'inline-flex min-w-0 max-w-full items-center gap-1.5 overflow-hidden text-[11px] leading-5 text-muted-foreground',
         className
       )}
     >
