@@ -329478,8 +329478,8 @@
     {
       "path": "src/renderer/src/app-shell/AppWorkspaceShell.tsx",
       "upstream_sha256": "bb676aa34fee5de4985aab6a363b0dd84a320e5f0d66da0a823a161c57e179a9",
-      "current_sha256": "69f7c1131613809d733245204ef31b35feb41ac75d5cf98e384c01a502bf3c83",
-      "reason": "平台工作台统一视觉与品牌展示；保留原生功能与独立模式。；精简顶部骨架并统一终端和编辑器玻璃底层，修复透明默认背景下WebGL矩形alpha并同步既有生成补丁和锁文件"
+      "current_sha256": "f7ee95be8634a584ee88cd8a5b553811dd0c9f4cf412f86ce468c1727d64a431",
+      "reason": "平台工作台统一视觉与品牌展示；保留原生功能与独立模式。；精简顶部骨架并统一终端和编辑器玻璃底层，修复透明默认背景下WebGL矩形alpha并同步既有生成补丁和锁文件；按实际左右面板宽度临时覆盖侧栏以保留可读正文，窗口尺寸变化不改保存偏好。"
     },
     {
       "path": "src/renderer/src/components/feature-tips/CmdJPaletteTipDialog.tsx",
