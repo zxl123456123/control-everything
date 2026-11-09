@@ -329478,8 +329478,8 @@
     {
       "path": "src/renderer/src/app-shell/AppWorkspaceShell.tsx",
       "upstream_sha256": "bb676aa34fee5de4985aab6a363b0dd84a320e5f0d66da0a823a161c57e179a9",
-      "current_sha256": "45ed808b6625286c972ed70c0491b67fd5ef4b3496c498a170f5734548357c5e",
-      "reason": "平台工作台统一视觉与品牌展示；保留原生功能与独立模式。"
+      "current_sha256": "69f7c1131613809d733245204ef31b35feb41ac75d5cf98e384c01a502bf3c83",
+      "reason": "平台工作台统一视觉与品牌展示；保留原生功能与独立模式。；精简顶部骨架并统一终端和编辑器玻璃底层，修复透明默认背景下WebGL矩形alpha并同步既有生成补丁和锁文件"
     },
     {
       "path": "src/renderer/src/components/feature-tips/CmdJPaletteTipDialog.tsx",
@@ -339056,6 +339056,36 @@
       "upstream_sha256": "a2180cd3930a9bac5442d4d57ea448a1dd4325d38778e7888727a82b4e032ad3",
       "current_sha256": "1a97bf6ee54a38ebe0a5e6783456c9906d432b65ae68351a882c97af039e3c41",
       "reason": "暖色玻璃工作台及可持久透明度设置"
+    },
+    {
+      "path": "src/renderer/src/components/terminal-pane/terminal-appearance.test.ts",
+      "upstream_sha256": "6d7d5bec13ce18d1d4ed74c0f99cb1b2f2ba415c4c07d656a383668dd6bb0a57",
+      "current_sha256": "61f355fa73290b66836dacddef09c90f4f8edbd33821f519f5ef7abce7f25293",
+      "reason": "精简顶部骨架并统一终端和编辑器玻璃底层，修复透明默认背景下WebGL矩形alpha并同步既有生成补丁和锁文件"
+    },
+    {
+      "path": "src/renderer/src/components/terminal-pane/terminal-appearance.ts",
+      "upstream_sha256": "37053d4596a6bf2f48d650fd7c8121805ab002b196b0aecefd12a1d9d2d6c22c",
+      "current_sha256": "b63d455672a5af5f6665a33add8582f52ceccde2e98bd8e8784407e8a9f9637f",
+      "reason": "精简顶部骨架并统一终端和编辑器玻璃底层，修复透明默认背景下WebGL矩形alpha并同步既有生成补丁和锁文件"
+    },
+    {
+      "path": "config/patches/xterm-src/@xterm__addon-webgl@0.20.0-beta.300.src.patch",
+      "upstream_sha256": "313853551578ac1938c761e9ae8f4d9fb3acfcb65f497b8f82a612f6ac65aa86",
+      "current_sha256": "a90ad058d15de9c6254eb289cb461274975d792327e139becea1ba4418e33647",
+      "reason": "精简顶部骨架并统一终端和编辑器玻璃底层，修复透明默认背景下WebGL矩形alpha并同步既有生成补丁和锁文件"
+    },
+    {
+      "path": "config/patches/@xterm__addon-webgl@0.20.0-beta.300.patch",
+      "upstream_sha256": "5349718f2c19d9319a81552580bf9618ded9b00f3707a5c6cdbbae1910849cd9",
+      "current_sha256": "575f2af69d150573cad0af2d73626bfc95e615109c43ecdaf844e890deaabd6e",
+      "reason": "精简顶部骨架并统一终端和编辑器玻璃底层，修复透明默认背景下WebGL矩形alpha并同步既有生成补丁和锁文件"
+    },
+    {
+      "path": "pnpm-lock.yaml",
+      "upstream_sha256": "572f4b269aaf9d282b9073bebcfe235eb3b1c14a144f0bb133cc8ae0b90bd8d5",
+      "current_sha256": "f5c57979bbeb178cf117f6eba25a7b600ee36d7665e6ba94268f402d21bd5df9",
+      "reason": "精简顶部骨架并统一终端和编辑器玻璃底层，修复透明默认背景下WebGL矩形alpha并同步既有生成补丁和锁文件"
     }
   ],
   "reviewed_findings": [
@@ -339063,15 +339093,15 @@
       "path": "config/patches/@xterm__addon-webgl@0.20.0-beta.300.patch",
       "rule": "gitleaks:generic-api-key",
       "line": 6,
-      "sha256": "5349718f2c19d9319a81552580bf9618ded9b00f3707a5c6cdbbae1910849cd9",
-      "reason": "已按Gitleaks精确column复核：命中FourKeyMap导出类赋值（压缩JavaScript代码），不是凭据；保留必需patch字节，限定本文件hash/rule/line。"
+      "sha256": "575f2af69d150573cad0af2d73626bfc95e615109c43ecdaf844e890deaabd6e",
+      "reason": "已重新复核Gitleaks两处旧命中：redacted Match及唯一FourKeyMap/TwoKeyMap导出初始化声明与原补丁逐字节相同；不依赖第二条偏移的column。不是凭据，仍限定本文件hash/rule/line，不新增豁免。"
     },
     {
       "path": "config/patches/@xterm__addon-webgl@0.20.0-beta.300.patch",
       "rule": "gitleaks:generic-api-key",
       "line": 7,
-      "sha256": "5349718f2c19d9319a81552580bf9618ded9b00f3707a5c6cdbbae1910849cd9",
-      "reason": "已按Gitleaks精确column复核：命中FourKeyMap导出类赋值（压缩JavaScript代码），不是凭据；保留必需patch字节，限定本文件hash/rule/line。"
+      "sha256": "575f2af69d150573cad0af2d73626bfc95e615109c43ecdaf844e890deaabd6e",
+      "reason": "已重新复核Gitleaks两处旧命中：redacted Match及唯一FourKeyMap/TwoKeyMap导出初始化声明与原补丁逐字节相同；不依赖第二条偏移的column。不是凭据，仍限定本文件hash/rule/line，不新增豁免。"
     },
     {
       "path": "config/patches/@xterm__xterm@6.1.0-beta.304.patch",

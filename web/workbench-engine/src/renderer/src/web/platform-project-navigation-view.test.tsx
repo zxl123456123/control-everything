@@ -21,6 +21,22 @@ const worktree = {
   id: 'main', repoId: 'repo-a', runtimeOwnerEnvironmentId: 'env-a', hostId: 'local',
   isMainWorktree: true, displayName: 'Main'
 } as Worktree
+
+it('keeps workspace details in the header and removes them when its project is inactive', () => {
+  const header = render(<div id="platform-workspace-info" />)
+  const host = header.container.firstElementChild!
+  fixture.state.worktrees = { 'repo-a': [{ ...worktree, path: 'C:/example/one' }] }
+  fixture.state.activeWorktreeId = 'main'
+  fixture.state.activeWorkspaceExecutionHostId = 'runtime:env-a'
+  const props = { data, projects, active: true, selectionOnly: true, onSelection: vi.fn() }
+  const view = render(<PlatformNavigation {...props} />)
+  expect(host.textContent).toContain('工作区信息')
+  expect(host.textContent).toContain('C:/example/one')
+  expect(view.container.querySelector('details')).toBeNull()
+  view.rerender(<PlatformNavigation {...props} active={false} />)
+  expect(host.textContent).toBe('')
+})
+
 beforeEach(() => {
   window.history.replaceState(null, '', '#project/p-one/workspace')
   fixture.activate.mockReset().mockReturnValue(false)

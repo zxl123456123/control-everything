@@ -565,10 +565,10 @@ export default function PlatformProjectEntry(): React.JSX.Element {
   }, [connected, chosen?.name, archived?.name])
   return (
     <div className="platform-project-entry bg-background">
-      {(projectId || workbench || globalSettings) && (
-        <PlatformWorkspaceHeader projectName={projectId ? (chosen?.name || archived?.name || '项目') : undefined}
-          settings={projectSettings || globalSettings} />
-      )}
+      {/* Keep portal hosts stable while the native workbench is retained behind Studio. */}
+      <PlatformWorkspaceHeader active={Boolean(projectId || workbench || globalSettings)}
+        projectName={projectId ? (chosen?.name || archived?.name || '项目') : undefined}
+        settings={projectSettings || globalSettings} workspaceInert={!showWorkspace && !showWorkbench} />
       {navigationNotice && (
         <p role="status" className="platform-navigation-notice">
           {navigationNotice}

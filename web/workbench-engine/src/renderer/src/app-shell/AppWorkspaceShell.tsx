@@ -188,7 +188,11 @@ export function AppWorkspaceShell(props: {
                 </div>
               )
             ) : null}
-            <div className="flex flex-col flex-1 min-w-0 min-h-0 overflow-hidden" data-workbench-canvas="">
+            <div
+              className="flex flex-col flex-1 min-w-0 min-h-0 overflow-hidden"
+              data-workbench-canvas=""
+              data-workbench-workspace={layout.workspaceChromeActive || undefined}
+            >
               {platformMode && layout.workspaceChromeActive ? <PlatformWorkspaceToolbar /> : null}
               {/* Why: automations/artifacts own their page headers; the stacked titlebar would be an empty 36px stripe. */}
               {layout.stackedSidebarOpen &&
