@@ -3,13 +3,29 @@
 import json
 import os
 from pathlib import Path
+import re
 
-from .identity import SSHSignatureVerifier, TokenIntrospector, VERIFICATION_MODES
+from .identity import HubError, Identity, SSHSignatureVerifier, TokenIntrospector, VERIFICATION_MODES
 from .health import DeviceChannelProbe
 from .provisioner import UnixProvisionerClient
 from .service import RemoteHubService
 from .store import RemoteHubStore
 from .directory import KeycloakUserDirectory
+
+
+def validate_member_subject(sub):
+    if not isinstance(sub, str) or not re.fullmatch(r"[\x21-\x7e]{1,255}", sub):
+        raise HubError("invalid_member_subject", 400)
+
+
+def activate_member(service, sub):
+    """Local private-config operation for an existing ordinary identity; no IdP writes."""
+    validate_member_subject(sub)
+    identity = Identity(service.identities.issuer, sub, "", 0)
+    if service.is_admin(identity):
+        raise HubError("ordinary_member_required", 403)
+    account = service.store.activate_member(identity)
+    return {"issuer": identity.issuer, "sub": sub, "account_id": account, "membership": "active"}
 
 
 def build_service(config_path):
