@@ -13,7 +13,6 @@ export function PlatformWorkspaceHeader({
         <span className="platform-workspace-monogram" aria-hidden="true">
           CE
         </span>
-        <span>掌控一切</span>
       </div>
       <nav
         className="platform-project-tabs"
