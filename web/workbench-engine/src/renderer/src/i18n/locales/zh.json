@@ -127,7 +127,7 @@
     "appearance": {
       "surfaceTransparency": {
         "title": "界面透明度",
-        "description": "让暖色背景透过工作台面板，文字保持清晰。终端背景透明度可单独设置。",
+        "description": "让背景透过工作台面板（包括终端）。终端自身的背景不透明度会在此基础上叠加。",
         "reset": "恢复为 18%",
         "saveError": "外观设置保存失败，已恢复原来的透明度。"
       },
