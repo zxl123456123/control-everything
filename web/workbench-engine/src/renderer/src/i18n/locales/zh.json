@@ -1,4 +1,7 @@
 {
+  "terminal-touch-controls": {
+    "enter": "回车"
+  },
   "git-graph": {
     "title": "Git 图",
     "refresh": "刷新 Git 图",

@@ -327312,9 +327312,17 @@
     "src/shared/managed-data-roots.ts",
     "src/renderer/src/components/settings/PlatformSurfaceTransparencyControl.test.tsx",
     "src/renderer/src/components/settings/PlatformSurfaceTransparencyControl.tsx",
-    "src/shared/workbench-appearance.ts"
+    "src/shared/workbench-appearance.ts",
+    "src/renderer/src/components/terminal-pane/TerminalTouchControls.tsx",
+    "src/renderer/src/components/terminal-pane/TerminalTouchControls.test.tsx"
   ],
   "adapted_files": [
+    {
+      "path": "src/renderer/src/components/terminal-pane/TerminalPaneSurface.tsx",
+      "upstream_sha256": "cf17658a917463c5bf4e68919f79925c7bec1a12af41faab84ca151e90f26a84",
+      "current_sha256": "3e0fd7cae14bc254fcb9d28570aab3f57d189cc21d35f8e04a7f9eadb0e19569",
+      "reason": "iPhone浏览器在当前可见终端接入触控回车入口，保留原输入、权限及重连守卫。"
+    },
     {
       "path": "src/renderer/src/web/web-runtime-client-capabilities.ts",
       "upstream_sha256": "eb448d05acc5afc23d670a3c03c568eda7b27e4186a00761258e05384cc2d27d",
@@ -327817,7 +327825,7 @@
       "path": "src/renderer/src/app-shell/TitlebarLeftControls.tsx",
       "upstream_sha256": "274b5e3bd1414e927003fb42de2a292fe261df9776fa6d6c9b0feb155fb5d201",
       "current_sha256": "38aa8719763180e43668266d1b17d396e473d312b34eb2a5236a09ed2b405777",
-      "reason": "M1a-W: product app-name and accessibility label in paired Web; M1a navigation: preserve a single project workspace while integrating platform business views；平台工作台统一视觉与品牌展示。；收起导航时去重复标题和多余间距，为标签保留可读宽度，显示已有当前工作区定位文案。"
+      "reason": "M1a-W: product app-name and accessibility label in paired Web; M1a navigation: preserve a single project workspace while integrating platform business views；平台工作台统一视觉与品牌展示。；桌面可读性优化：正文共同预算、搜索名称位置层次、紧凑标签和已有定位入口、透明度叠加说明。"
     },
     {
       "path": "src/renderer/src/components/Landing.tsx",
@@ -328879,7 +328887,7 @@
       "path": "src/renderer/src/components/settings/appearance-search.ts",
       "upstream_sha256": "4dd156ae13bc2bfdd1fdbc7f5b4148e65011c315b42cedbb534636f58db8152e",
       "current_sha256": "caa3911bd07962a54de6b55837053085defb0a6152d3b6361d652fa743095de5",
-      "reason": "UI r1 S1: fixed management theme, typography and scoped primitives; appearance-search.ts.；暖色玻璃工作台及可持久透明度设置；平台透明度说明明确包含终端面板，并说明终端自身背景不透明度在基础上叠加。"
+      "reason": "UI r1 S1: fixed management theme, typography and scoped primitives; appearance-search.ts.；暖色玻璃工作台及可持久透明度设置；桌面可读性优化：正文共同预算、搜索名称位置层次、紧凑标签和已有定位入口、透明度叠加说明。"
     },
     {
       "path": "src/renderer/src/components/settings/chat-settings-unsaved-guard.test.tsx",
@@ -329034,8 +329042,8 @@
     {
       "path": "src/renderer/src/i18n/locales/zh.json",
       "upstream_sha256": "a7ceebd563b9c0405b9b72489d6d3386dae6fe24a7abe68d1d2185df3b1231e7",
-      "current_sha256": "8c1181f3402975c4febb6776b589936cc1942032b83f7f54a3d69fd67eebb5a2",
-      "reason": "UI r1 S8: fixed window appearance and bounded recovery/help presentation; zh.json. DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained.；配对链接生成解析和手机注册统一zkyq协议，迁移已保存VM配对链接并保留凭据及用户数据，更新脱敏和提示；浏览器路径配置统一ZKYQ_BROWSER_EXECUTABLE，清理状态与远程浏览器权限文案，保留路径和权限范围；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物；移除 CLI 技能区域重复的旧品牌说明及对应翻译；账号设置的当前产品名称及语言目录统一；CLI 注册状态和错误提示统一当前命令名称；模拟器命令、错误和提示统一 zkyq；项目配置统一新文件名，保留旧文件迁移与信任行为；统一用量分享卡片和分享文案的产品身份；统一智能体状态钩子与文件夹信任设置的产品身份；统一会话 ID 复制文案并保留功能验证；同步服务接入当前变量名与产品文案，保留翻译键和控件行为；暖色玻璃工作台及可持久透明度设置；平台透明度说明明确包含终端面板，并说明终端自身背景不透明度在基础上叠加。"
+      "current_sha256": "13a2b19a10730518f8213514703f8b80dd3b3b9216259d50d29597adc8df745c",
+      "reason": "iPhone终端触控回车标签；UI r1 S8: fixed window appearance and bounded recovery/help presentation; zh.json. DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained.；配对链接生成解析和手机注册统一zkyq协议，迁移已保存VM配对链接并保留凭据及用户数据，更新脱敏和提示；浏览器路径配置统一ZKYQ_BROWSER_EXECUTABLE，清理状态与远程浏览器权限文案，保留路径和权限范围；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物；移除 CLI 技能区域重复的旧品牌说明及对应翻译；账号设置的当前产品名称及语言目录统一；CLI 注册状态和错误提示统一当前命令名称；模拟器命令、错误和提示统一 zkyq；项目配置统一新文件名，保留旧文件迁移与信任行为；统一用量分享卡片和分享文案的产品身份；统一智能体状态钩子与文件夹信任设置的产品身份；统一会话 ID 复制文案并保留功能验证；同步服务接入当前变量名与产品文案，保留翻译键和控件行为；暖色玻璃工作台及可持久透明度设置；桌面可读性优化：正文共同预算、搜索名称位置层次、紧凑标签和已有定位入口、透明度叠加说明。"
     },
     {
       "path": "src/renderer/src/lib/app-font-family.ts",
@@ -329298,8 +329306,8 @@
     {
       "path": "src/renderer/src/i18n/locales/en.json",
       "upstream_sha256": "80d9d9800a00b8441914d0f223af22c4bbc66318ab27141506c9b33edfe35209",
-      "current_sha256": "dcf43a033c941bf4a3c7c3dc9d9bb4e6975d8367957c24a7035ecfb7d27561af",
-      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained.；配对链接生成解析和手机注册统一zkyq协议，迁移已保存VM配对链接并保留凭据及用户数据，更新脱敏和提示；浏览器路径配置统一ZKYQ_BROWSER_EXECUTABLE，清理状态与远程浏览器权限文案，保留路径和权限范围；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物；移除 CLI 技能区域重复的旧品牌说明及对应翻译；账号设置的当前产品名称及语言目录统一；CLI 注册状态和错误提示统一当前命令名称；模拟器命令、错误和提示统一 zkyq；项目配置统一新文件名，保留旧文件迁移与信任行为；统一用量分享卡片和分享文案的产品身份；统一智能体状态钩子与文件夹信任设置的产品身份；统一会话 ID 复制文案并保留功能验证；同步服务接入当前变量名与产品文案，保留翻译键和控件行为；SSH/WSL 规范安装根改为 .zkyq-remote；保留机器归属、冻结旧读者与最新写入，原子移动同一数据目录并在已登记读者确认退出后移除旧入口，修正内部链接；同步安装/快照/GC/历史/旧 relay census 与直接回归，不改变业务数据位置或许可证；暖色玻璃工作台及可持久透明度设置；平台透明度说明明确包含终端面板，并说明终端自身背景不透明度在基础上叠加。"
+      "current_sha256": "b3414af02c89b4873ba88966a4b370e452c95dfee25870ad0f9e3dcc69fb4543",
+      "reason": "iPhone终端触控回车标签；DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained.；配对链接生成解析和手机注册统一zkyq协议，迁移已保存VM配对链接并保留凭据及用户数据，更新脱敏和提示；浏览器路径配置统一ZKYQ_BROWSER_EXECUTABLE，清理状态与远程浏览器权限文案，保留路径和权限范围；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物；移除 CLI 技能区域重复的旧品牌说明及对应翻译；账号设置的当前产品名称及语言目录统一；CLI 注册状态和错误提示统一当前命令名称；模拟器命令、错误和提示统一 zkyq；项目配置统一新文件名，保留旧文件迁移与信任行为；统一用量分享卡片和分享文案的产品身份；统一智能体状态钩子与文件夹信任设置的产品身份；统一会话 ID 复制文案并保留功能验证；同步服务接入当前变量名与产品文案，保留翻译键和控件行为；SSH/WSL 规范安装根改为 .zkyq-remote；保留机器归属、冻结旧读者与最新写入，原子移动同一数据目录并在已登记读者确认退出后移除旧入口，修正内部链接；同步安装/快照/GC/历史/旧 relay census 与直接回归，不改变业务数据位置或许可证；暖色玻璃工作台及可持久透明度设置；桌面可读性优化：正文共同预算、搜索名称位置层次、紧凑标签和已有定位入口、透明度叠加说明。"
     },
     {
       "path": "src/renderer/src/lib/tab-number-shortcuts.ts",
@@ -329479,7 +329487,7 @@
       "path": "src/renderer/src/app-shell/AppWorkspaceShell.tsx",
       "upstream_sha256": "bb676aa34fee5de4985aab6a363b0dd84a320e5f0d66da0a823a161c57e179a9",
       "current_sha256": "f7ee95be8634a584ee88cd8a5b553811dd0c9f4cf412f86ce468c1727d64a431",
-      "reason": "平台工作台统一视觉与品牌展示；保留原生功能与独立模式。；精简顶部骨架并统一终端和编辑器玻璃底层，修复透明默认背景下WebGL矩形alpha并同步既有生成补丁和锁文件；按实际左右面板宽度临时覆盖侧栏以保留可读正文，窗口尺寸变化不改保存偏好。"
+      "reason": "平台工作台统一视觉与品牌展示；保留原生功能与独立模式。；精简顶部骨架并统一终端和编辑器玻璃底层，修复透明默认背景下WebGL矩形alpha并同步既有生成补丁和锁文件；桌面可读性优化：正文共同预算、搜索名称位置层次、紧凑标签和已有定位入口、透明度叠加说明。"
     },
     {
       "path": "src/renderer/src/components/feature-tips/CmdJPaletteTipDialog.tsx",
@@ -339103,37 +339111,37 @@
       "path": "src/renderer/src/components/worktree-jump-palette-primitives.tsx",
       "upstream_sha256": "97dd0db909f5daf87b660711b0ac7322e48410078f364266d6df5bb1df6a30dc",
       "current_sha256": "6ddc07056de2a494a4c611bf8953bf326861b7037e388bef0d8392c37e1acee0",
-      "reason": "搜索名称与位置分层，长路径优先保留尾部或命中上下文，相同工作区和分支去重复。"
+      "reason": "桌面可读性优化：正文共同预算、搜索名称位置层次、紧凑标签和已有定位入口、透明度叠加说明。"
     },
     {
       "path": "src/renderer/src/components/worktree-jump-palette-workspace-tab-row.tsx",
       "upstream_sha256": "b6e9e282f0fd230f4926a6da0c228e3deb312c8fedf0cc23d58ea29a11e5aef4",
       "current_sha256": "38c94abf9b033e9b7071c7682df3f4f7959548b18b77c525d78ebd0b640e939a",
-      "reason": "搜索名称与位置分层，长路径优先保留尾部或命中上下文，相同工作区和分支去重复。"
+      "reason": "桌面可读性优化：正文共同预算、搜索名称位置层次、紧凑标签和已有定位入口、透明度叠加说明。"
     },
     {
       "path": "src/renderer/src/components/worktree-jump-palette-worktree-row.tsx",
       "upstream_sha256": "2925341b6c785593c48e80721a2850d9cb433a672a834511fc4567f2e41b29e2",
       "current_sha256": "af96a6d06b4e9b6ea2a7e702b4923ea8571e627dbf5662329c00fbfc8f1d6d7d",
-      "reason": "搜索名称与位置分层，长路径优先保留尾部或命中上下文，相同工作区和分支去重复。"
+      "reason": "桌面可读性优化：正文共同预算、搜索名称位置层次、紧凑标签和已有定位入口、透明度叠加说明。"
     },
     {
       "path": "src/renderer/src/components/WorktreeJumpPalette.test.tsx",
       "upstream_sha256": "87a3c78150ac75b8841c7c25efca81ffb76060d7154e38ed41cf49c894656951",
       "current_sha256": "43f350ea554ed24513a242e84ff750557c1971a343a98b3eef9f74affa976a72",
-      "reason": "搜索名称与位置分层，长路径优先保留尾部或命中上下文，相同工作区和分支去重复。"
+      "reason": "桌面可读性优化：正文共同预算、搜索名称位置层次、紧凑标签和已有定位入口、透明度叠加说明。"
     },
     {
       "path": "src/renderer/src/components/worktree-jump-palette-interleaved-sections.test.tsx",
       "upstream_sha256": "e78d1c86734ae041888b857702a5ebe3719738707911460c3db8f2ad12c4589a",
       "current_sha256": "a4de5548c186d5da4ba3e3b5a3e577496499c60b9513f31eaa0622a358b039c8",
-      "reason": "搜索名称与位置分层，长路径优先保留尾部或命中上下文，相同工作区和分支去重复。"
+      "reason": "桌面可读性优化：正文共同预算、搜索名称位置层次、紧凑标签和已有定位入口、透明度叠加说明。"
     },
     {
       "path": "src/renderer/src/components/sidebar/ScrollToCurrentWorkspaceToolbarButton.tsx",
       "upstream_sha256": "890d449a2bac710ba25b4a1cbcdc2a2a15fe0b2e9607c1973b9fb6f95f819f59",
       "current_sha256": "afe776c68c4a55eb4bab8705aed120d4f2a953889a1c7ca8e2234c9bb99e9e89",
-      "reason": "收起导航时去重复标题和多余间距，为标签保留可读宽度，显示已有当前工作区定位文案。"
+      "reason": "桌面可读性优化：正文共同预算、搜索名称位置层次、紧凑标签和已有定位入口、透明度叠加说明。"
     }
   ],
   "reviewed_findings": [
@@ -340533,29 +340541,29 @@
     {
       "path": "src/renderer/src/i18n/locales/en.json",
       "rule": "absolute-windows-path",
-      "line": 12224,
-      "sha256": "dcf43a033c941bf4a3c7c3dc9d9bb4e6975d8367957c24a7035ecfb7d27561af",
+      "line": 12227,
+      "sha256": "b3414af02c89b4873ba88966a4b370e452c95dfee25870ad0f9e3dcc69fb4543",
       "reason": "上游公开代码注释、CLI/界面示例中的路径语法，用来解释drive/root/UNC/转义等规则；非读取的个人配置，限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/en.json",
       "rule": "personal-home-path",
-      "line": 12224,
-      "sha256": "dcf43a033c941bf4a3c7c3dc9d9bb4e6975d8367957c24a7035ecfb7d27561af",
+      "line": 12227,
+      "sha256": "b3414af02c89b4873ba88966a4b370e452c95dfee25870ad0f9e3dcc69fb4543",
       "reason": "公开的路径模板、跨平台解析说明或通用示例；未读取本机账号/目录，保留语义并限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/en.json",
       "rule": "absolute-windows-path",
-      "line": 12210,
-      "sha256": "dcf43a033c941bf4a3c7c3dc9d9bb4e6975d8367957c24a7035ecfb7d27561af",
+      "line": 12213,
+      "sha256": "b3414af02c89b4873ba88966a4b370e452c95dfee25870ad0f9e3dcc69fb4543",
       "reason": "上游公开代码注释、CLI/界面示例中的路径语法，用来解释drive/root/UNC/转义等规则；非读取的个人配置，限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/en.json",
       "rule": "personal-home-path",
-      "line": 12210,
-      "sha256": "dcf43a033c941bf4a3c7c3dc9d9bb4e6975d8367957c24a7035ecfb7d27561af",
+      "line": 12213,
+      "sha256": "b3414af02c89b4873ba88966a4b370e452c95dfee25870ad0f9e3dcc69fb4543",
       "reason": "公开的路径模板、跨平台解析说明或通用示例；未读取本机账号/目录，保留语义并限定具体行及文件hash。"
     },
     {
@@ -340701,29 +340709,29 @@
     {
       "path": "src/renderer/src/i18n/locales/zh.json",
       "rule": "absolute-windows-path",
-      "line": 11932,
-      "sha256": "8c1181f3402975c4febb6776b589936cc1942032b83f7f54a3d69fd67eebb5a2",
+      "line": 11935,
+      "sha256": "13a2b19a10730518f8213514703f8b80dd3b3b9216259d50d29597adc8df745c",
       "reason": "上游公开代码注释、CLI/界面示例中的路径语法，用来解释drive/root/UNC/转义等规则；非读取的个人配置，限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/zh.json",
       "rule": "personal-home-path",
-      "line": 11932,
-      "sha256": "8c1181f3402975c4febb6776b589936cc1942032b83f7f54a3d69fd67eebb5a2",
+      "line": 11935,
+      "sha256": "13a2b19a10730518f8213514703f8b80dd3b3b9216259d50d29597adc8df745c",
       "reason": "公开的路径模板、跨平台解析说明或通用示例；未读取本机账号/目录，保留语义并限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/zh.json",
       "rule": "absolute-windows-path",
-      "line": 11918,
-      "sha256": "8c1181f3402975c4febb6776b589936cc1942032b83f7f54a3d69fd67eebb5a2",
+      "line": 11921,
+      "sha256": "13a2b19a10730518f8213514703f8b80dd3b3b9216259d50d29597adc8df745c",
       "reason": "上游公开代码注释、CLI/界面示例中的路径语法，用来解释drive/root/UNC/转义等规则；非读取的个人配置，限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/zh.json",
       "rule": "personal-home-path",
-      "line": 11918,
-      "sha256": "8c1181f3402975c4febb6776b589936cc1942032b83f7f54a3d69fd67eebb5a2",
+      "line": 11921,
+      "sha256": "13a2b19a10730518f8213514703f8b80dd3b3b9216259d50d29597adc8df745c",
       "reason": "公开的路径模板、跨平台解析说明或通用示例；未读取本机账号/目录，保留语义并限定具体行及文件hash。"
     },
     {

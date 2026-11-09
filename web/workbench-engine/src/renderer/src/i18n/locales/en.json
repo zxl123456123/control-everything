@@ -1,4 +1,7 @@
 {
+  "terminal-touch-controls": {
+    "enter": "Enter"
+  },
   "git-graph": {
     "title": "Git Graph",
     "refresh": "Refresh graph",

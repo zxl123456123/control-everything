@@ -19,6 +19,7 @@ import { handleInternalTerminalFileDrop } from './terminal-drop-handler'
 import { TerminalQuickCommandEditorDialog } from './TerminalQuickCommandEditorDialog'
 import { TerminalPaneNativeChatPortal } from './TerminalPaneNativeChatPortal'
 import { TerminalPaneSleepingPortals } from './TerminalPaneSleepingPortals'
+import { TerminalTouchControls } from './TerminalTouchControls'
 import {
   TerminalPaneCodexRestartPortals,
   TerminalPaneMobileDriverPortals,
@@ -362,6 +363,19 @@ export function TerminalPaneSurface({
       />
       <TerminalPaneRecoveryPortals controller={controller} />
       <TerminalPaneSleepingPortals controller={controller} />
+      {isActive &&
+        terminalContentVisible &&
+        !searchOpen &&
+        !showSshReconnectOverlay &&
+        !(effectiveChatViewMode && activePaneIsChatLeaf) &&
+        activePane && (
+          <TerminalTouchControls
+            key={activePane.id}
+            pane={activePane}
+            managerRef={managerRef}
+            paneTransportsRef={paneTransportsRef}
+          />
+        )}
       <TerminalPaneMobileDriverPortals controller={controller} />
       <CloseTerminalDialog
         open={pendingCloseConfirmation !== null}
