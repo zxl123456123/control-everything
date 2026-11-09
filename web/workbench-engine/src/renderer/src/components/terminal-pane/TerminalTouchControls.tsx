@@ -57,8 +57,10 @@ export function TerminalTouchControls({ pane, managerRef, paneTransportsRef }: P
     !transport?.isConnected() ||
     ptyId === null
   const enter = () => {
+    const activePane = managerRef.current?.getActivePane()
     if (
-      managerRef.current?.getActivePane() !== pane ||
+      activePane?.id !== pane.id ||
+      activePane.terminal !== pane.terminal ||
       !transport ||
       paneTransportsRef.current.get(pane.id) !== transport ||
       ptyId === null ||

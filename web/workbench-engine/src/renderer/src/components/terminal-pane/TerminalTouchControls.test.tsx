@@ -3,6 +3,8 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ManagedPane, PaneManager } from '@/lib/pane-manager/pane-manager'
+import type { ManagedPaneInternal } from '@/lib/pane-manager/pane-manager-types'
+import { toPublicPane } from '@/lib/pane-manager/pane-public-view'
 import type { PtyTransport } from './pty-transport-types'
 import { TerminalTouchControls } from './TerminalTouchControls'
 import {
@@ -38,7 +40,7 @@ function fixture(ios = true, initiallyConnected = true) {
     container: paneContainer,
     terminal: { element, textarea, options, input }
   } as unknown as ManagedPane
-  let activePane: ManagedPane = pane
+  let activePane: ManagedPane | null = pane
   let ptyId: string | null = initiallyConnected ? 'pty-1' : null
   let connected = initiallyConnected
   const sendInput = vi.fn()
@@ -48,7 +50,9 @@ function fixture(ios = true, initiallyConnected = true) {
     sendInput
   } as unknown as PtyTransport
   const managerRef = {
-    current: { getActivePane: () => activePane } as PaneManager
+    current: {
+      getActivePane: () => activePane && toPublicPane(activePane as ManagedPaneInternal)
+    } as PaneManager
   }
   const paneTransportsRef = { current: new Map([[pane.id, transport]]) }
   const root = createRoot(container)
@@ -71,6 +75,7 @@ function fixture(ios = true, initiallyConnected = true) {
     options,
     transport,
     paneTransportsRef,
+    managerRef,
     button,
     click,
     sendInput,
@@ -82,6 +87,12 @@ function fixture(ios = true, initiallyConnected = true) {
     },
     switchPane: () => {
       activePane = { ...pane, id: 2 }
+    },
+    replaceTerminal: () => {
+      activePane = { ...pane, terminal: { ...pane.terminal } } as ManagedPane
+    },
+    clearActivePane: () => {
+      activePane = null
     }
   }
 }
@@ -117,6 +128,15 @@ describe('iOS terminal Return control', () => {
     expect(f.button).toBeNull()
   })
 
+  it('submits repeated taps when the manager returns fresh public pane views', () => {
+    const f = fixture()
+    expect(f.managerRef.current.getActivePane()).not.toBe(f.pane)
+    expect(f.managerRef.current.getActivePane()?.terminal).toBe(f.pane.terminal)
+    f.click()
+    f.click()
+    expect(f.input.mock.calls).toEqual([['\r', true], ['\r', true]])
+  })
+
   it('enables after the first PTY connection without an unrelated parent render', async () => {
     const f = fixture(true, false)
     expect(f.button?.disabled).toBe(true)
@@ -131,7 +151,7 @@ describe('iOS terminal Return control', () => {
     expect(f.input).toHaveBeenCalledTimes(1)
   })
 
-  it.each(['disabled', 'disconnected', 'replaced-transport', 'changed-pty', 'changed-pane'])(
+  it.each(['disabled', 'disconnected', 'replaced-transport', 'changed-pty', 'changed-pane', 'replaced-terminal', 'no-active-pane'])(
     'does not submit to a %s input target, even without a React update',
     (state) => {
       const f = fixture()
@@ -140,6 +160,8 @@ describe('iOS terminal Return control', () => {
       if (state === 'replaced-transport') f.paneTransportsRef.current.set(1, { ...f.transport })
       if (state === 'changed-pty') f.setPty('pty-2')
       if (state === 'changed-pane') f.switchPane()
+      if (state === 'replaced-terminal') f.replaceTerminal()
+      if (state === 'no-active-pane') f.clearActivePane()
       f.click()
       expect(f.input).not.toHaveBeenCalled()
     }
