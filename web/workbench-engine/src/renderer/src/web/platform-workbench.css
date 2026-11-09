@@ -469,8 +469,27 @@
 .platform-project-entry [data-workbench-tabs] {
   background: var(--ce-workbench-glass);
 }
+/* The page header already identifies the workspace; collapsed chrome only needs its controls. */
+.platform-project-entry .titlebar-left-floating .titlebar-app-name {
+  display: none;
+}
+.platform-project-entry .titlebar-left-floating [data-workbench-history] {
+  margin-inline: 0;
+  padding-left: 0;
+}
+.platform-project-entry .titlebar-left-floating [data-workbench-history]:not(:has(button:enabled)) {
+  display: none;
+}
 .platform-project-entry .terminal-tab-strip {
   border-right-color: transparent;
+}
+.platform-project-entry .terminal-tab-strip > [data-tab-strip-slot] {
+  min-width: 112px;
+}
+@container tab-strip (max-width: 480px) {
+  .platform-project-entry [data-workbench-tabs] > button[aria-disabled] {
+    display: none;
+  }
 }
 .platform-project-entry .terminal-tab-strip [data-tab-id] {
   height: calc(100% - 8px);
@@ -485,6 +504,18 @@
 }
 .platform-project-entry .terminal-tab-strip [data-tab-rename-input] {
   font-size: inherit;
+}
+.platform-reveal-current-label {
+  display: none;
+}
+.platform-project-entry [data-workbench-reveal-current] {
+  width: auto;
+  gap: 6px;
+  padding-inline: 6px;
+}
+.platform-project-entry .platform-reveal-current-label {
+  display: inline;
+  font-size: 12px;
 }
 
 .platform-project-entry [data-workbench-tools-open='true'] {

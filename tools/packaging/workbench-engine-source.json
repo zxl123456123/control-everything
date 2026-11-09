@@ -327816,8 +327816,8 @@
     {
       "path": "src/renderer/src/app-shell/TitlebarLeftControls.tsx",
       "upstream_sha256": "274b5e3bd1414e927003fb42de2a292fe261df9776fa6d6c9b0feb155fb5d201",
-      "current_sha256": "268775afc68027a824932c08a7829da169b88310e47b71115141d16557802a6d",
-      "reason": "M1a-W: product app-name and accessibility label in paired Web; M1a navigation: preserve a single project workspace while integrating platform business views；平台工作台统一视觉与品牌展示。"
+      "current_sha256": "38aa8719763180e43668266d1b17d396e473d312b34eb2a5236a09ed2b405777",
+      "reason": "M1a-W: product app-name and accessibility label in paired Web; M1a navigation: preserve a single project workspace while integrating platform business views；平台工作台统一视觉与品牌展示。；收起导航时去重复标题和多余间距，为标签保留可读宽度，显示已有当前工作区定位文案。"
     },
     {
       "path": "src/renderer/src/components/Landing.tsx",
@@ -339128,6 +339128,12 @@
       "upstream_sha256": "e78d1c86734ae041888b857702a5ebe3719738707911460c3db8f2ad12c4589a",
       "current_sha256": "a4de5548c186d5da4ba3e3b5a3e577496499c60b9513f31eaa0622a358b039c8",
       "reason": "搜索名称与位置分层，长路径优先保留尾部或命中上下文，相同工作区和分支去重复。"
+    },
+    {
+      "path": "src/renderer/src/components/sidebar/ScrollToCurrentWorkspaceToolbarButton.tsx",
+      "upstream_sha256": "890d449a2bac710ba25b4a1cbcdc2a2a15fe0b2e9607c1973b9fb6f95f819f59",
+      "current_sha256": "afe776c68c4a55eb4bab8705aed120d4f2a953889a1c7ca8e2234c9bb99e9e89",
+      "reason": "收起导航时去重复标题和多余间距，为标签保留可读宽度，显示已有当前工作区定位文案。"
     }
   ],
   "reviewed_findings": [
