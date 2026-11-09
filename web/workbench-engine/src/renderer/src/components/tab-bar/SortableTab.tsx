@@ -41,7 +41,16 @@ import { NativeChatNamingErrorBlock, NativeChatNamingFailedDialog } from './Nati
 /** What the strip draws for a terminal or native chat tab; never a source of agent identity. */
 type SortableTabModel = Pick<
   TerminalTab,
-  'id' | 'worktreeId' | 'title' | 'customTitle' | 'color' | 'shellOverride' | 'launchAgent'
+  | 'id'
+  | 'worktreeId'
+  | 'title'
+  | 'customTitle'
+  | 'quickCommandLabel'
+  | 'aiVaultTitle'
+  | 'generatedTitle'
+  | 'color'
+  | 'shellOverride'
+  | 'launchAgent'
 >
 
 export type SortableTabProps = {
@@ -130,6 +139,29 @@ export default function SortableTab({
   // Why: with a provider icon shown, strip the agent's own leading glyph so the tab doesn't show two icons for one agent.
   const displayTitle =
     tab.customTitle ?? (tabAgent ? stripLeadingAgentTitleDecoration(tab.title) : tab.title)
+  // Shorten only unnamed shell executable paths; hover, rename and stored titles stay intact.
+  const shellPath =
+    tab.customTitle === null &&
+    !tab.quickCommandLabel?.trim() &&
+    !tab.aiVaultTitle?.title.trim() &&
+    !tab.generatedTitle?.trim() &&
+    !tabAgent &&
+    !nativeChat
+      ? /^[a-z]:[\\/](?:[^\\/:*?"<>|\r\n]+[\\/])*(cmd|powershell|pwsh|wsl|bash)\.exe$/i.exec(
+          tab.title
+        )
+      : null
+  const shellExecutable = shellPath?.[1].toLowerCase()
+  const tabLabel =
+    shellExecutable === 'cmd'
+      ? 'CMD'
+      : shellExecutable === 'powershell' || shellExecutable === 'pwsh'
+        ? 'PowerShell'
+        : shellExecutable === 'wsl'
+          ? 'WSL'
+          : shellExecutable === 'bash'
+            ? 'Bash'
+            : displayTitle
 
   const { attributes, listeners, setNodeRef } = useSortable({
     id: tab.id,
@@ -297,7 +329,7 @@ export default function SortableTab({
           spellCheck={false}
         />
       ) : (
-        <span className={`${TAB_LABEL_WIDTH_CLASSES} mr-1`}>{displayTitle}</span>
+        <span className={`${TAB_LABEL_WIDTH_CLASSES} mr-1`}>{tabLabel}</span>
       )}
       {tab.color && !isEditing && (
         <span

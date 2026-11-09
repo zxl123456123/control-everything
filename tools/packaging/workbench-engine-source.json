@@ -339086,6 +339086,18 @@
       "upstream_sha256": "572f4b269aaf9d282b9073bebcfe235eb3b1c14a144f0bb133cc8ae0b90bd8d5",
       "current_sha256": "f5c57979bbeb178cf117f6eba25a7b600ee36d7665e6ba94268f402d21bd5df9",
       "reason": "精简顶部骨架并统一终端和编辑器玻璃底层，修复透明默认背景下WebGL矩形alpha并同步既有生成补丁和锁文件"
+    },
+    {
+      "path": "src/renderer/src/components/tab-bar/SortableTab.tsx",
+      "upstream_sha256": "a4fc71b0afda32c2a1809713ef06fa3a4ec56183a33fba4468fd8dd325586645",
+      "current_sha256": "1c4d74e95156cdbd2339b52520aee735aa5109f20b1a26562d98876055b5c475",
+      "reason": "仅缩短未命名普通终端的Windows shell可执行路径标签，保留原始标题及命名优先级"
+    },
+    {
+      "path": "src/renderer/src/components/tab-bar/tab-title-tooltip.test.tsx",
+      "upstream_sha256": "ae73103e038e8954b5369ecb6052cad52b58bb410bbcd4a50cb76d7c1ce488b5",
+      "current_sha256": "bf912f3f3cd7f414c579a7b0160b28186d104f31da9c255edbb523a7696b481a",
+      "reason": "仅缩短未命名普通终端的Windows shell可执行路径标签，保留原始标题及命名优先级"
     }
   ],
   "reviewed_findings": [
