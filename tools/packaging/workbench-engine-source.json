@@ -327312,9 +327312,17 @@
     "src/shared/managed-data-roots.ts",
     "src/renderer/src/components/settings/PlatformSurfaceTransparencyControl.test.tsx",
     "src/renderer/src/components/settings/PlatformSurfaceTransparencyControl.tsx",
-    "src/shared/workbench-appearance.ts"
+    "src/shared/workbench-appearance.ts",
+    "src/renderer/src/components/terminal-pane/TerminalTouchControls.tsx",
+    "src/renderer/src/components/terminal-pane/TerminalTouchControls.test.tsx"
   ],
   "adapted_files": [
+    {
+      "path": "src/renderer/src/components/terminal-pane/TerminalPaneSurface.tsx",
+      "upstream_sha256": "cf17658a917463c5bf4e68919f79925c7bec1a12af41faab84ca151e90f26a84",
+      "current_sha256": "3e0fd7cae14bc254fcb9d28570aab3f57d189cc21d35f8e04a7f9eadb0e19569",
+      "reason": "iPhone浏览器在当前可见终端接入触控回车入口，保留原输入、权限及重连守卫。"
+    },
     {
       "path": "src/renderer/src/web/web-runtime-client-capabilities.ts",
       "upstream_sha256": "eb448d05acc5afc23d670a3c03c568eda7b27e4186a00761258e05384cc2d27d",
@@ -329034,8 +329042,8 @@
     {
       "path": "src/renderer/src/i18n/locales/zh.json",
       "upstream_sha256": "a7ceebd563b9c0405b9b72489d6d3386dae6fe24a7abe68d1d2185df3b1231e7",
-      "current_sha256": "1eeacf0c05e559af8d7ef631093ef14eca809e08be4d0aa0921a3fc11ed41340",
-      "reason": "UI r1 S8: fixed window appearance and bounded recovery/help presentation; zh.json. DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained.；配对链接生成解析和手机注册统一zkyq协议，迁移已保存VM配对链接并保留凭据及用户数据，更新脱敏和提示；浏览器路径配置统一ZKYQ_BROWSER_EXECUTABLE，清理状态与远程浏览器权限文案，保留路径和权限范围；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物；移除 CLI 技能区域重复的旧品牌说明及对应翻译；账号设置的当前产品名称及语言目录统一；CLI 注册状态和错误提示统一当前命令名称；模拟器命令、错误和提示统一 zkyq；项目配置统一新文件名，保留旧文件迁移与信任行为；统一用量分享卡片和分享文案的产品身份；统一智能体状态钩子与文件夹信任设置的产品身份；统一会话 ID 复制文案并保留功能验证；同步服务接入当前变量名与产品文案，保留翻译键和控件行为；暖色玻璃工作台及可持久透明度设置"
+      "current_sha256": "17d1cec0851bc71585149b20344ad33f41145c26a09e2885443298acbea14f66",
+      "reason": "iPhone终端触控回车标签；UI r1 S8: fixed window appearance and bounded recovery/help presentation; zh.json. DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained.；配对链接生成解析和手机注册统一zkyq协议，迁移已保存VM配对链接并保留凭据及用户数据，更新脱敏和提示；浏览器路径配置统一ZKYQ_BROWSER_EXECUTABLE，清理状态与远程浏览器权限文案，保留路径和权限范围；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物；移除 CLI 技能区域重复的旧品牌说明及对应翻译；账号设置的当前产品名称及语言目录统一；CLI 注册状态和错误提示统一当前命令名称；模拟器命令、错误和提示统一 zkyq；项目配置统一新文件名，保留旧文件迁移与信任行为；统一用量分享卡片和分享文案的产品身份；统一智能体状态钩子与文件夹信任设置的产品身份；统一会话 ID 复制文案并保留功能验证；同步服务接入当前变量名与产品文案，保留翻译键和控件行为；暖色玻璃工作台及可持久透明度设置"
     },
     {
       "path": "src/renderer/src/lib/app-font-family.ts",
@@ -329298,8 +329306,8 @@
     {
       "path": "src/renderer/src/i18n/locales/en.json",
       "upstream_sha256": "80d9d9800a00b8441914d0f223af22c4bbc66318ab27141506c9b33edfe35209",
-      "current_sha256": "15989faed3f39138ab01a39c7b6b7d1ee645f83764fe2dd21c701a65de25e1e7",
-      "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained.；配对链接生成解析和手机注册统一zkyq协议，迁移已保存VM配对链接并保留凭据及用户数据，更新脱敏和提示；浏览器路径配置统一ZKYQ_BROWSER_EXECUTABLE，清理状态与远程浏览器权限文案，保留路径和权限范围；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物；移除 CLI 技能区域重复的旧品牌说明及对应翻译；账号设置的当前产品名称及语言目录统一；CLI 注册状态和错误提示统一当前命令名称；模拟器命令、错误和提示统一 zkyq；项目配置统一新文件名，保留旧文件迁移与信任行为；统一用量分享卡片和分享文案的产品身份；统一智能体状态钩子与文件夹信任设置的产品身份；统一会话 ID 复制文案并保留功能验证；同步服务接入当前变量名与产品文案，保留翻译键和控件行为；SSH/WSL 规范安装根改为 .zkyq-remote；保留机器归属、冻结旧读者与最新写入，原子移动同一数据目录并在已登记读者确认退出后移除旧入口，修正内部链接；同步安装/快照/GC/历史/旧 relay census 与直接回归，不改变业务数据位置或许可证；暖色玻璃工作台及可持久透明度设置"
+      "current_sha256": "b9aab67d489865dd54ea077f7023349f73c5d0388e64374532a68112fc10d087",
+      "reason": "iPhone终端触控回车标签；DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained.；配对链接生成解析和手机注册统一zkyq协议，迁移已保存VM配对链接并保留凭据及用户数据，更新脱敏和提示；浏览器路径配置统一ZKYQ_BROWSER_EXECUTABLE，清理状态与远程浏览器权限文案，保留路径和权限范围；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物；移除 CLI 技能区域重复的旧品牌说明及对应翻译；账号设置的当前产品名称及语言目录统一；CLI 注册状态和错误提示统一当前命令名称；模拟器命令、错误和提示统一 zkyq；项目配置统一新文件名，保留旧文件迁移与信任行为；统一用量分享卡片和分享文案的产品身份；统一智能体状态钩子与文件夹信任设置的产品身份；统一会话 ID 复制文案并保留功能验证；同步服务接入当前变量名与产品文案，保留翻译键和控件行为；SSH/WSL 规范安装根改为 .zkyq-remote；保留机器归属、冻结旧读者与最新写入，原子移动同一数据目录并在已登记读者确认退出后移除旧入口，修正内部链接；同步安装/快照/GC/历史/旧 relay census 与直接回归，不改变业务数据位置或许可证；暖色玻璃工作台及可持久透明度设置"
     },
     {
       "path": "src/renderer/src/lib/tab-number-shortcuts.ts",
@@ -340455,29 +340463,29 @@
     {
       "path": "src/renderer/src/i18n/locales/en.json",
       "rule": "absolute-windows-path",
-      "line": 12224,
-      "sha256": "15989faed3f39138ab01a39c7b6b7d1ee645f83764fe2dd21c701a65de25e1e7",
+      "line": 12227,
+      "sha256": "b9aab67d489865dd54ea077f7023349f73c5d0388e64374532a68112fc10d087",
       "reason": "上游公开代码注释、CLI/界面示例中的路径语法，用来解释drive/root/UNC/转义等规则；非读取的个人配置，限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/en.json",
       "rule": "personal-home-path",
-      "line": 12224,
-      "sha256": "15989faed3f39138ab01a39c7b6b7d1ee645f83764fe2dd21c701a65de25e1e7",
+      "line": 12227,
+      "sha256": "b9aab67d489865dd54ea077f7023349f73c5d0388e64374532a68112fc10d087",
       "reason": "公开的路径模板、跨平台解析说明或通用示例；未读取本机账号/目录，保留语义并限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/en.json",
       "rule": "absolute-windows-path",
-      "line": 12210,
-      "sha256": "15989faed3f39138ab01a39c7b6b7d1ee645f83764fe2dd21c701a65de25e1e7",
+      "line": 12213,
+      "sha256": "b9aab67d489865dd54ea077f7023349f73c5d0388e64374532a68112fc10d087",
       "reason": "上游公开代码注释、CLI/界面示例中的路径语法，用来解释drive/root/UNC/转义等规则；非读取的个人配置，限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/en.json",
       "rule": "personal-home-path",
-      "line": 12210,
-      "sha256": "15989faed3f39138ab01a39c7b6b7d1ee645f83764fe2dd21c701a65de25e1e7",
+      "line": 12213,
+      "sha256": "b9aab67d489865dd54ea077f7023349f73c5d0388e64374532a68112fc10d087",
       "reason": "公开的路径模板、跨平台解析说明或通用示例；未读取本机账号/目录，保留语义并限定具体行及文件hash。"
     },
     {
@@ -340623,29 +340631,29 @@
     {
       "path": "src/renderer/src/i18n/locales/zh.json",
       "rule": "absolute-windows-path",
-      "line": 11932,
-      "sha256": "1eeacf0c05e559af8d7ef631093ef14eca809e08be4d0aa0921a3fc11ed41340",
+      "line": 11935,
+      "sha256": "17d1cec0851bc71585149b20344ad33f41145c26a09e2885443298acbea14f66",
       "reason": "上游公开代码注释、CLI/界面示例中的路径语法，用来解释drive/root/UNC/转义等规则；非读取的个人配置，限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/zh.json",
       "rule": "personal-home-path",
-      "line": 11932,
-      "sha256": "1eeacf0c05e559af8d7ef631093ef14eca809e08be4d0aa0921a3fc11ed41340",
+      "line": 11935,
+      "sha256": "17d1cec0851bc71585149b20344ad33f41145c26a09e2885443298acbea14f66",
       "reason": "公开的路径模板、跨平台解析说明或通用示例；未读取本机账号/目录，保留语义并限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/zh.json",
       "rule": "absolute-windows-path",
-      "line": 11918,
-      "sha256": "1eeacf0c05e559af8d7ef631093ef14eca809e08be4d0aa0921a3fc11ed41340",
+      "line": 11921,
+      "sha256": "17d1cec0851bc71585149b20344ad33f41145c26a09e2885443298acbea14f66",
       "reason": "上游公开代码注释、CLI/界面示例中的路径语法，用来解释drive/root/UNC/转义等规则；非读取的个人配置，限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/zh.json",
       "rule": "personal-home-path",
-      "line": 11918,
-      "sha256": "1eeacf0c05e559af8d7ef631093ef14eca809e08be4d0aa0921a3fc11ed41340",
+      "line": 11921,
+      "sha256": "17d1cec0851bc71585149b20344ad33f41145c26a09e2885443298acbea14f66",
       "reason": "公开的路径模板、跨平台解析说明或通用示例；未读取本机账号/目录，保留语义并限定具体行及文件hash。"
     },
     {
