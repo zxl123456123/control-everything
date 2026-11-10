@@ -23,7 +23,7 @@ function fixture(fetcher, {mode='remote',embedded=false,members=async()=>respons
   const container={set innerHTML(value){for(const tag of value.matchAll(/<[^>]*data-(node|action)="([^"]+)"[^>]*>/g)){nodes.set(tag[1]+':'+tag[2],node(tag[2],/\bhidden\b/.test(tag[0])));}},querySelector(selector){const m=selector.match(/data-(node|action)="([^"]+)"/);return nodes.get(m[1]+':'+m[2]);},replaceChildren(){unmounted=true;}};
   const context=embedded?{context:'synthetic',active:true,onInactive(fn){inactive.add(fn);return()=>inactive.delete(fn);},invalidate(){this.active=false;for(const fn of [...inactive])fn();inactive.clear();}}:null;
   const document=node('document'),windowEvents=node('window');document.createElement=tag=>node(tag);
-  const window={document,CERemoteContext:context,addEventListener:(...args)=>windowEvents.addEventListener(...args),removeEventListener:(...args)=>windowEvents.removeEventListener(...args),localStorage:{setItem:(...args)=>notices.push(args)},location:{assign:url=>navigations.push(url)},setTimeout(fn){timers.set(++sequence,fn);return sequence;},clearTimeout(id){timers.delete(id);},fetch:async(path,options)=>{calls.push({path,options});if(path.startsWith('/remote/api/admin/members?')||path.startsWith('/api/desktop/account/members?'))return members(path,options);if(path==='/api/desktop/account/status')return response(accountSession?accountSession():{configured:localConfigured,state:'signed_out'});const result=await fetcher(path,options);if(path==='/api/desktop/remote/status')localConfigured=(await result.json()).configured!==false;return result;}};
+  const window={document,CERemoteContext:context,addEventListener:(...args)=>windowEvents.addEventListener(...args),removeEventListener:(...args)=>windowEvents.removeEventListener(...args),localStorage:{setItem:(...args)=>notices.push(args)},location:{assign:url=>navigations.push(url)},setTimeout(fn,delay){fn.delay=delay;timers.set(++sequence,fn);return sequence;},clearTimeout(id){timers.delete(id);},fetch:async(path,options)=>{calls.push({path,options});if(path.startsWith('/remote/api/admin/members?')||path.startsWith('/api/desktop/account/members?'))return members(path,options);if(path==='/api/desktop/account/status')return response(accountSession?accountSession():{configured:localConfigured,state:'signed_out'});const result=await fetcher(path,options);if(path==='/api/desktop/remote/status')localConfigured=(await result.json()).configured!==false;return result;}};
   vm.runInNewContext(source,{window,AbortController,FormData});
   const dispose=window.StudioAccountDevice.mount(container,{mode,returnHash:'#projects',onPortal:value=>portals.push(value)});
   return {calls,navigations,notices,portals,timers,context,dispose,window,windowEvents,visibility(hidden){document.hidden=hidden;document.emit('visibilitychange');},focusWindow(){windowEvents.emit('focus');},get:name=>nodes.get('node:'+name),button:name=>nodes.get('action:'+name),click(name){nodes.get('action:'+name).emit('click');},get focused(){return focused;},get unmounted(){return unmounted;},async tick(){const [id,fn]=timers.entries().next().value;timers.delete(id);fn();await settle();}};
@@ -33,6 +33,47 @@ test('raw independent 401 never parses JSON and exposes only login',async()=>{
   assert.equal(parsed,false);assert.equal(f.get('login').hidden,false);assert.equal(f.get('account').textContent,'');
   for(const name of ['activation','invitations','revoke-area','open'])assert.equal(f.get(name).hidden,true);
   assert.match(f.get('status').textContent,/请登录/);assert.equal(f.navigations.length,0);f.dispose();
+});
+
+test('local account badges settle after reading an already active ordinary member', async () => {
+  const f = fixture(path => response(path === '/api/bootstrap' ? {csrf_token:'local'} : {configured:true,state:'unbound'}), {
+    mode:'local', accountSession:() => ({configured:true,state:'signed_in',membership:'active',admin:false,account:{sub:'ordinary',name:'普通成员'}})
+  });
+  await settle();
+  assert.equal(f.get('membership').textContent, '已激活');
+  assert.equal(f.get('membership').dataset.icon, 'user-check');
+  assert.equal(f.get('membership').dataset.pulse, 'none');
+  assert.equal(f.get('activation').hidden, true);
+  assert.equal(f.get('invitations').hidden, true);
+  f.dispose();
+});
+
+test('expired standalone sessions clear private rows and recover through a fresh focus read', async () => {
+  let stage = 'signed_in';
+  const f = fixture(() => stage === 'expired' ? response({},401) : response(session(stage === 'recovered'
+    ? {csrf:'replacement-csrf',account:{sub:'ordinary',name:'新普通成员'}}
+    : {admin:true})), {members:() => response(directoryPage([directoryMember(0)]))});
+  await settle();
+  stage = 'expired';
+  f.click('refresh');
+  await settle();
+  assert.equal(f.get('expired').hidden, false);
+  assert.equal(f.get('expired').dataset.tone, 'warning');
+  assert.equal(f.get('members-list').children.length, 0);
+  assert.equal(f.get('invitation-code').textContent, '');
+  assert.equal(f.timers.size, 0);
+  assert.deepEqual(f.navigations, []);
+  stage = 'recovered';
+  f.focusWindow();
+  await settle();
+  assert.equal(f.get('expired-title').textContent, '已重新登录');
+  assert.equal(f.get('expired').dataset.tone, 'success');
+  assert.equal(f.get('account').textContent, '新普通成员');
+  assert.equal(f.get('relogin').hidden, true);
+  assert.equal(f.get('invitations').hidden, true);
+  assert.equal(f.get('members-list').children.length, 0);
+  f.dispose();
+  assert.equal(f.timers.size, 0);
 });
 test('unconfigured local account can save service addresses with CSRF and asks for restart',async()=>{
   const f=fixture((path,options)=>response(path==='/api/bootstrap'?{csrf_token:'local'}:path==='/api/desktop/account/configure'?{saved:true,restart_required:true}:{configured:false,state:'unbound'}),{mode:'local'});
@@ -232,7 +273,7 @@ test('real account DOM keeps members private to admins and uses the full respons
   assert.equal(revokeControls.contains(root.querySelector('[data-action="confirm-revoke"]')),true);assert.equal(revokeControls.contains(root.querySelector('[data-action="cancel-revoke"]')),false);
   assert.equal(w.getComputedStyle(controls).padding,'0px');assert.equal(w.getComputedStyle(controls).borderWidth,'0px');
   assert.equal(root.querySelectorAll('table tbody tr').length,3);assert.equal(root.querySelectorAll('img').length,0);assert.equal(root.querySelector('td').textContent,'<img src=x onerror=alert(1)>');
-  assert.equal(w.getComputedStyle(root.querySelector('td')).fontSize,'15px');assert.equal(w.getComputedStyle(root.querySelector('h2')).fontSize,'16px');assert.equal(w.getComputedStyle(root.querySelector('tbody tr')).display,width===390?'grid':'table-row');
+  assert.equal(w.getComputedStyle(root.querySelector('td')).fontSize,'15px');assert.equal(w.getComputedStyle(root.querySelector('h2')).fontSize,'18px');assert.equal(w.getComputedStyle(root.querySelector('tbody tr')).display,width===390?'grid':'table-row');
   const rows=[...root.querySelectorAll('tbody tr')];
   assert.equal(rows[0].cells[2].textContent,'已激活');assert.equal(rows[0].cells[2].querySelector('.ce-account-badge').dataset.tone,'success');
   assert.equal(rows[0].cells[3].textContent,'工作电脑 · 离线');assert.equal(rows[0].cells[3].querySelector('.ce-account-badge').dataset.tone,'neutral');
@@ -243,13 +284,13 @@ test('real account DOM keeps members private to admins and uses the full respons
   assert.equal(rows[0].cells[1].querySelector('svg').getAttribute('aria-hidden'),'true');
   const icons=[...root.querySelectorAll('.ce-account-setting .ce-account-media svg')];assert.equal(icons.length,2);assert.notEqual(icons[0].innerHTML,icons[1].innerHTML);assert.ok(icons.every(icon=>icon.getAttribute('aria-hidden')==='true'));
   assert.equal(root.querySelector('.ce-account-grid').contains(root.querySelector('[data-node="invitations"]')),false);assert.equal(root.querySelectorAll('th').length,5);assert.equal(root.querySelector('input[type="checkbox"]'),null);
-  assert.equal(w.getComputedStyle(root.querySelector('.ce-account-media')).width,'32px');assert.equal(w.getComputedStyle(root.querySelector('.ce-account-members-wrap')).borderRadius,'8px');
-  const refreshStyle=w.getComputedStyle(root.querySelector('[data-action="refresh"]'));assert.equal(refreshStyle.minHeight,width===390?'44px':'36px');assert.match(refreshStyle.transition,/transform 180ms/);
+  assert.equal(w.getComputedStyle(root.querySelector('.ce-account-media')).width,'40px');assert.equal(w.getComputedStyle(root.querySelector('.ce-account-members-wrap')).borderRadius,'20px');
+  const refreshStyle=w.getComputedStyle(root.querySelector('[data-action="refresh"]'));assert.equal(refreshStyle.minHeight,'44px');assert.match(refreshStyle.transition,/transform 335ms/);
   const themeButton=brand.querySelector('[data-theme-toggle]');assert.equal(themeButton.closest('.ce-account'),null);
-  assert.equal(w.getComputedStyle(themeButton).minHeight,width===390?'44px':'36px');assert.match(w.getComputedStyle(themeButton).transition,/transform 180ms/);
+  assert.equal(w.getComputedStyle(themeButton).minHeight,'44px');assert.match(w.getComputedStyle(themeButton).transition,/transform 335ms/);
   themeButton.disabled=true;assert.equal(Number(w.getComputedStyle(themeButton).opacity),0.5);themeButton.disabled=false;
   themeButton.setAttribute('aria-busy','true');assert.equal(w.getComputedStyle(themeButton).cursor,'wait');themeButton.removeAttribute('aria-busy');
-  assert.equal(w.getComputedStyle(root.querySelector('input')).fontSize,width===390?'16px':'15px');
+  assert.equal(w.getComputedStyle(root.querySelector('input')).fontSize,'16px');
   admin=false;root.querySelector('[data-action="refresh"]').click();for(let i=0;i<8;i++)await new Promise(resolve=>setImmediate(resolve));assert.equal(root.querySelector('[data-node="invitations"]').hidden,true);assert.equal(root.querySelectorAll('tbody tr').length,0);
   }
 });
@@ -318,7 +359,7 @@ test('remote polling stays serial and stops after session expiry until explicit 
   await f.tick();await f.tick();assert.equal(reads,2);
   finish(response({},401));await settle();assert.equal(f.timers.size,0);assert.equal(f.get('login').hidden,false);
   f.window.fetch=async()=>{reads++;return response(session());};
-  f.click('refresh');await settle();assert.equal(reads,3);assert.equal(f.timers.size,1);assert.equal(f.get('login').hidden,true);
+  f.click('refresh');await settle();assert.equal(reads,3);assert.equal(f.timers.size,2);assert.equal([...f.timers.values()].filter(fn=>fn.delay===5000).length,1);assert.equal([...f.timers.values()].filter(fn=>fn.delay===2800).length,1);assert.equal(f.get('login').hidden,true);
   f.dispose();
 });
 

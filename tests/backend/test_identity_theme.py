@@ -29,13 +29,21 @@ class IdentityThemeTests(unittest.TestCase):
         config = properties(THEME / "theme.properties")
         self.assertEqual(config, {
             "parent": "keycloak.v2", "import": "common/keycloak",
-            "styles": "css/styles.css css/studio.css?v=20261026-1", "locales": "zh-Hans,en",
+            "styles": "css/styles.css css/studio.css?v=20261027-1", "locales": "zh-Hans,en",
         })
         self.assertTrue((THEME / "resources/css/studio.css").is_file())
 
     def test_messages_preserve_parent_parameter_contracts(self):
         messages = properties(THEME / "messages/messages_zh_Hans.properties")
-        self.assertEqual(set(messages), {"loginTitle", "loginAccountTitle", "registerTitle", "oauthGrantTitle", "oauth2DeviceVerificationTitle", "verifyOAuth2DeviceUserCode"})
+        self.assertEqual(set(messages), {
+            "loginTitle", "loginAccountTitle", "registerTitle", "oauthGrantTitle", "oauthGrantRequest",
+            "oauth2DeviceVerificationTitle", "verifyOAuth2DeviceUserCode",
+            "oauth2DeviceInvalidUserCodeMessage", "oauth2DeviceExpiredUserCodeMessage",
+            "oauth2DeviceVerificationCompleteHeader", "oauth2DeviceVerificationCompleteMessage",
+            "oauth2DeviceVerificationFailedHeader", "oauth2DeviceVerificationFailedMessage",
+            "oauth2DeviceConsentDeniedMessage", "errorTitle", "invalidUserMessage",
+            "noAccount", "backToLogin", "doYes", "doNo",
+        })
         for key, value in messages.items():
             expected = ["{0}"] if key in {"loginTitle", "oauthGrantTitle"} else []
             self.assertEqual(re.findall(r"\{\d+\}", value), expected, key)
@@ -62,8 +70,8 @@ class IdentityThemeTests(unittest.TestCase):
         self.assertNotIn("prefers-color-scheme", css)
         self.assertIn("forced-colors: active", css)
         self.assertIn(":focus-visible", css)
-        self.assertIn("--studio-input: #858585", css)
-        self.assertIn("--studio-input: #929292", css)
+        self.assertIn("--ca-input: #7b8aa0", css)
+        self.assertIn("--ca-input: #6d7f9a", css)
 
     def test_theme_is_sdist_source_but_not_a_wheel_web_asset(self):
         manifest = (ROOT / "MANIFEST.in").read_text(encoding="utf-8")

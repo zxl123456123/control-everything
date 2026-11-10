@@ -334,7 +334,7 @@ class PanelHandler(BaseHTTPRequestHandler):
             if not self.allowed():
                 return
             return self.reply(200, (WEB / "workspace/desktop.html").read_bytes(), "text/html; charset=utf-8",
-                              csp="default-src 'self'; script-src 'self'; style-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'none'")
+                              csp="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; object-src 'none'; frame-ancestors 'none'; base-uri 'none'")
         if path.path.startswith("/api/agent/"):
             return self.agent_get(path)
         if not self.allowed(api=path.path.startswith("/api/")):

@@ -209,6 +209,18 @@ class LocalDesktopHTTPTests(unittest.TestCase):
         self.connector.connect.assert_not_called()
         self.assertEqual(self.request('/api/desktop/remote/status?unknown=1')[0],400)
 
+    def test_desktop_theme_allows_inline_images_with_strict_script_and_frame_sources(self):
+        self.assertEqual(self.request('/desktop')[0], 200)
+        policy = self.last_handler.reply.call_args.kwargs['csp']
+        directives = dict(part.strip().split(' ', 1) for part in policy.split(';') if part.strip())
+        self.assertEqual(directives, {
+            'default-src': "'self'", 'script-src': "'self'", 'style-src': "'self'",
+            'img-src': "'self' data:", 'object-src': "'none'",
+            'frame-ancestors': "'none'", 'base-uri': "'none'",
+        })
+        for kind in ('connect-src', 'frame-src', 'font-src'):
+            self.assertEqual(directives.get(kind, directives['default-src']), "'self'")
+
     def test_local_confirmation_requires_empty_body_origin_and_csrf(self):
         for body in ({"owner":"other"}, []):
             self.assertEqual(self.request('/api/desktop/remote/confirm','POST',body)[0],400)
