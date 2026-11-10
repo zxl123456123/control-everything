@@ -4,7 +4,7 @@
 
 适合同时使用多个开发工具、在不同项目之间切换的个人开发者。项目与任务保存在本机，基础管理无需配置 Agent、SSH 或远端服务。
 
-[下载安装包](https://github.com/zxl123456123/control-everything/releases/tag/v0.1.0a12) · [项目文档](docs/README.md) · [参与开发](.github/CONTRIBUTING.md)
+[下载安装包](https://github.com/zxl123456123/control-everything/releases/tag/v0.1.0a18) · [项目文档](docs/README.md) · [参与开发](.github/CONTRIBUTING.md)
 
 ## 产品展示
 
@@ -26,7 +26,7 @@ https://github.com/user-attachments/assets/be96cc58-6bd8-4221-b0aa-77c0f9e31804
 
 ## 快速开始
 
-**Windows x64 开发预览版 0.1.0a12**：[下载安装包](https://github.com/zxl123456123/control-everything/releases/download/v0.1.0a12/session-panel-0.1.0a12-windows-x64.exe) · [ZIP](https://github.com/zxl123456123/control-everything/releases/download/v0.1.0a12/session-panel-0.1.0a12-windows-x64-delivery.zip) · [版本说明与校验值](https://github.com/zxl123456123/control-everything/releases/tag/v0.1.0a12)。安装包自带运行环境，无需另装 Python、Node.js 或 Rust。
+**Windows x64 技术预发布版 0.1.0a18**：[下载安装包](https://github.com/zxl123456123/control-everything/releases/download/v0.1.0a18/session-panel-0.1.0a18-windows-x64.exe) · [依赖对应源码](https://github.com/zxl123456123/control-everything/releases/download/v0.1.0a18/session-panel-0.1.0a18-sources.zip) · [版本说明与校验值](https://github.com/zxl123456123/control-everything/releases/tag/v0.1.0a18)。安装包自带运行环境，无需另装 Python、Node.js 或 Rust；源码 ZIP 不能代替安装器。
 
 1. 下载并运行安装器，选择安装目录。
 2. 从开始菜单的 **Session Panel** 启动独立应用窗口；安装时可勾选创建桌面快捷方式。

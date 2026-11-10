@@ -6,13 +6,13 @@
 
 ## Windows 标准安装
 
-当前提供 [0.1.0a12 Windows x64 开发预览版](https://github.com/zxl123456123/control-everything/releases/tag/v0.1.0a12)。安装器尚未签名；实际验证范围和未覆盖项目见该版本说明。开发者也可按[源码启动指南](usage.md#多-agent-工作台)运行。
+当前提供 [0.1.0a18 Windows x64 技术预发布版](https://github.com/zxl123456123/control-everything/releases/tag/v0.1.0a18)：[安装器](https://github.com/zxl123456123/control-everything/releases/download/v0.1.0a18/session-panel-0.1.0a18-windows-x64.exe) · [依赖对应源码](https://github.com/zxl123456123/control-everything/releases/download/v0.1.0a18/session-panel-0.1.0a18-sources.zip)。安装器尚未签名；实际验证范围和未覆盖项目见该版本说明。开发者也可按[源码启动指南](usage.md#多-agent-工作台)运行。
 
-普通用户从 [GitHub Releases](https://github.com/zxl123456123/control-everything/releases) 下载 `session-panel-0.1.0a12-windows-x64.exe`，先用 `Get-FileHash -Algorithm SHA256` 与该次发布的 `SHA256SUMS.txt` 核对，再运行安装器。标准产品自带 CPython 3.13.16、固定 Python 依赖、前端资源和 release Rust 原生观察后台，无需另外安装 Python、Node、npm 或 Rust 编译器。源码归档供开发使用，不能代替完整安装器。
+普通用户下载 `session-panel-0.1.0a18-windows-x64.exe`，先用 `Get-FileHash -Algorithm SHA256` 与该次发布的 `SHA256SUMS.txt` 核对，再运行安装器。标准产品自带 CPython 3.13.16、固定 Python 依赖、前端资源和 release Rust 原生观察后台，无需另外安装 Python、Node、npm 或 Rust 编译器。依赖源码附件用于对应源码分发，不能代替完整安装器或 GitHub 的项目源码快照。
 
 安装目录支持中文和空格；当前产品按普通 Windows 路径工作，每个完整交付文件路径须少于260个UTF-16字符。安装器在写入目标前检查整个固定文件清单，超限时提示选择更短目录，不修改系统的长路径策略。
 
-安装按当前用户运行，无需管理员权限，默认位置为 `%LOCALAPPDATA%/Programs/SessionPanel`。0.1.0a12 从开始菜单 **Session Panel** 打开独立工作台窗口，安装时可选创建桌面快捷方式。窗口使用 Microsoft Edge WebView2 Runtime，关闭窗口后关闭本次桌面服务。已公开的 0.1.0a10 等较早安装包仍沿用控制台与浏览器入口。端口被占用时明确退出，可从 PowerShell 指定自己的端口和 profile：
+安装按当前用户运行，无需管理员权限，默认位置为 `%LOCALAPPDATA%/Programs/SessionPanel`。安装后从开始菜单 **Session Panel** 打开独立工作台窗口，安装时可选创建桌面快捷方式。窗口使用 Microsoft Edge WebView2 Runtime，关闭窗口后关闭本次桌面服务。已公开的 0.1.0a10 等较早安装包仍沿用控制台与浏览器入口。端口被占用时明确退出，可从 PowerShell 指定自己的端口和 profile：
 
 ```powershell
 $panel = Join-Path $env:LOCALAPPDATA 'Programs/SessionPanel/session-panel.cmd'
