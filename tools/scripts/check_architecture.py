@@ -137,6 +137,7 @@ def ownership_error(value):
                                 'docs/guides/EMBEDDING.md', 'docs/guides/PETS_INTEGRATION.md'} else 'unknown_public_guide'
     if top == '.github':
         return None if value in {'.github/CODEOWNERS', '.github/pull_request_template.md', '.github/CONTRIBUTING.md'} or (
+            section == 'ISSUE_TEMPLATE' and len(parts) == 3 and path.suffix == '.md') or (
             section == 'workflows' and len(parts) == 3 and path.suffix in {'.yml', '.yaml'}) else 'unknown_repository_automation'
     if value == '.cargo/config.toml':
         return None
