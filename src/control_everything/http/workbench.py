@@ -17,6 +17,7 @@ WEB = web_root()
 STUDIO_RESOURCES = {
     "/studio-shell.js": ("studio-shell.js", "text/javascript; charset=utf-8"),
     "/studio-pet-settings.js": ("studio-pet-settings.js", "text/javascript; charset=utf-8"),
+    "/studio-members-admin.js": ("studio-members-admin.js", "text/javascript; charset=utf-8"),
     "/studio-mascot.js": ("studio-mascot.js", "text/javascript; charset=utf-8"),
     "/remote/account-device.js": ("account-device.js", "text/javascript; charset=utf-8"),
     "/remote/remote-account.css": ("remote-account.css", "text/css; charset=utf-8"),

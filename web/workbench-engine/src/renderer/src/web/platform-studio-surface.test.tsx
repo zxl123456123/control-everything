@@ -47,6 +47,7 @@ it('downloads dependencies in order once and keeps load-error recovery available
     '/news-pet-status.js',
     '/studio-shell.js',
     '/studio-pet-settings.js',
+    '/studio-members-admin.js',
     '/studio-mascot.js',
     '/news-surface.js',
     '/studio-preview.js'
@@ -62,7 +63,7 @@ it('downloads dependencies in order once and keeps load-error recovery available
   view.rerender(<PlatformStudioSurface hidden={false} onProjects={onProjects} />)
   expect(view.container.querySelector('section')?.hasAttribute('inert')).toBe(false)
   expect(view.container.querySelector<HTMLElement>('.platform-studio-host')?.hidden).toBe(false)
-  expect(scripts).toHaveLength(15)
+  expect(scripts).toHaveLength(16)
   view.rerender(<PlatformStudioSurface hidden={false} pending onProjects={onProjects} />)
   await act(async () => {
     scripts[0].dispatchEvent(new Event('error'))
