@@ -1,0 +1,227 @@
+import React from 'react'
+import { ChevronDown } from 'lucide-react'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { cn } from '@/lib/utils'
+import type { GitHistoryItem, GitHistoryItemRef } from '../../../../../../shared/git-history'
+import type { GitHistoryItemViewModel } from '../../../../../../shared/git-history-graph'
+import { GitHistoryGraphSvg, graphColor } from './git-history-graph-svg'
+import { dedupeRemoteTrackingRefs } from '../../../../../../shared/git-history-ref-display'
+import { translate } from '@/i18n/i18n'
+
+function GitHistoryRefBadge({ itemRef }: { itemRef: GitHistoryItemRef }): React.JSX.Element {
+  const refLabel = itemRef.category ? `${itemRef.name} (${itemRef.category})` : itemRef.name
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span
+          className="max-w-[8rem] truncate rounded-full border bg-sidebar px-1.5 py-0.5 text-[10px] leading-none"
+          style={{
+            borderColor: itemRef.color ? graphColor(itemRef.color) : 'var(--border)',
+            color: itemRef.color ? graphColor(itemRef.color) : 'var(--muted-foreground)'
+          }}
+        >
+          {itemRef.name}
+        </span>
+      </TooltipTrigger>
+      <TooltipContent side="bottom" sideOffset={6} className="max-w-72">
+        {refLabel}
+      </TooltipContent>
+    </Tooltip>
+  )
+}
+
+type GitHistoryRowProps = React.HTMLAttributes<HTMLElement> & {
+  viewModel: GitHistoryItemViewModel
+  graphLaneCount?: number
+  layout?: 'sidebar' | 'pane'
+  expanded?: boolean
+  preserveRefIds?: readonly string[]
+  onOpenCommit?: (item: GitHistoryItem) => void
+  onToggleExpand?: (item: GitHistoryItem) => void
+}
+
+export const GitHistoryRow = React.forwardRef<HTMLElement, GitHistoryRowProps>(
+  function GitHistoryRow(
+    {
+      viewModel,
+      graphLaneCount,
+      layout = 'sidebar',
+      expanded = false,
+      preserveRefIds,
+      onOpenCommit,
+      onToggleExpand,
+      className,
+      ...rootProps
+    },
+    ref
+  ): React.JSX.Element {
+    const item = viewModel.historyItem
+    const isBoundaryNode =
+      viewModel.kind === 'incoming-changes' || viewModel.kind === 'outgoing-changes'
+    // Expanding to an inline file list is the primary click; opening the combined
+    // diff stays reachable from the expanded list. Fall back to open-all when no
+    // expand handler is wired so the row still does something useful.
+    const canExpand = !isBoundaryNode && Boolean(onToggleExpand)
+    const canOpenCommit = !isBoundaryNode && Boolean(onOpenCommit)
+    const isInteractive = canExpand || canOpenCommit
+    // A local branch and its own remote-tracking ref at the same commit are
+    // redundant, so collapse the pair to one pill.
+    const refs =
+      layout === 'pane'
+        ? (item.references ?? [])
+        : dedupeRemoteTrackingRefs(item.references ?? [], { preserveRefIds })
+    const visibleRefs = refs.slice(0, 2)
+    const hiddenRefs = refs.slice(2)
+    const rowTooltip =
+      layout === 'pane'
+        ? [
+            item.message || item.subject,
+            [item.author, item.displayId].filter(Boolean).join(' · '),
+            refs.map((ref) => ref.name).join(', ')
+          ]
+            .filter(Boolean)
+            .join('\n\n')
+        : item.message || item.subject
+    const rowClassName = cn(
+      'grid w-full min-w-0 items-center gap-x-1.5 px-3 text-left text-xs transition-colors',
+      layout === 'pane'
+        ? // The pane can be narrow even in a wide window with both sidebars open.
+          'min-h-6 grid-cols-[auto_minmax(0,1fr)] @lg/git-graph:grid-cols-[auto_minmax(0,1fr)_minmax(0,12rem)] @3xl/git-graph:grid-cols-[auto_minmax(0,1fr)_minmax(0,16rem)_6rem_4rem]'
+        : 'min-h-[26px] grid-cols-[auto_minmax(0,1fr)_auto] py-0.5',
+      isInteractive && 'cursor-pointer hover:bg-accent/40 focus-visible:bg-accent/40',
+      !isInteractive && 'cursor-default',
+      isBoundaryNode && 'text-muted-foreground',
+      className
+    )
+    const rowContent = (
+      <>
+        <GitHistoryGraphSvg
+          viewModel={viewModel}
+          laneCount={graphLaneCount}
+          className={
+            layout === 'pane'
+              ? 'w-[var(--git-graph-row-width)] @lg/git-graph:w-[var(--git-graph-width)]'
+              : undefined
+          }
+        />
+        <div className="flex min-w-0 items-center gap-1 overflow-hidden">
+          {canExpand && (
+            <ChevronDown
+              aria-hidden="true"
+              className={cn(
+                'size-3 shrink-0 text-muted-foreground transition-transform',
+                !expanded && '-rotate-90'
+              )}
+            />
+          )}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="block min-w-0 flex-1 truncate text-foreground">{item.subject}</span>
+            </TooltipTrigger>
+            <TooltipContent
+              side="bottom"
+              sideOffset={6}
+              collisionPadding={8}
+              className="max-w-[min(76ch,var(--radix-tooltip-content-available-width))] break-words text-wrap whitespace-pre-wrap"
+            >
+              {rowTooltip}
+            </TooltipContent>
+          </Tooltip>
+        </div>
+        {(refs.length > 0 || layout === 'pane') && (
+          <div
+            className={cn(
+              'shrink-0 items-center gap-1 overflow-hidden',
+              layout === 'pane' ? 'hidden min-w-0 @lg/git-graph:flex' : 'flex'
+            )}
+          >
+            {visibleRefs.map((ref) => (
+              <GitHistoryRefBadge key={ref.id} itemRef={ref} />
+            ))}
+            {hiddenRefs.length > 0 && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="shrink-0 text-[10px] leading-none text-muted-foreground">
+                    +{hiddenRefs.length}
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" sideOffset={6} className="max-w-72">
+                  {hiddenRefs.map((ref) => ref.name).join(', ')}
+                </TooltipContent>
+              </Tooltip>
+            )}
+          </div>
+        )}
+        {layout === 'pane' && (
+          <>
+            <span
+              className="hidden truncate text-right text-muted-foreground @3xl/git-graph:block"
+              title={item.author}
+            >
+              {item.author}
+            </span>
+            <span className="hidden font-mono text-right text-muted-foreground @3xl/git-graph:block">
+              {item.displayId}
+            </span>
+          </>
+        )}
+      </>
+    )
+
+    if (!isInteractive) {
+      return (
+        <div
+          {...rootProps}
+          ref={ref as React.Ref<HTMLDivElement>}
+          className={rowClassName}
+          data-testid="git-history-row"
+        >
+          {rowContent}
+        </div>
+      )
+    }
+
+    const handleClick = (): void => {
+      if (canExpand) {
+        onToggleExpand?.(item)
+        return
+      }
+      onOpenCommit?.(item)
+    }
+
+    return (
+      <button
+        {...rootProps}
+        ref={ref as React.Ref<HTMLButtonElement>}
+        type="button"
+        className={rowClassName}
+        aria-expanded={canExpand ? expanded : undefined}
+        aria-description={layout === 'pane' ? rowTooltip : undefined}
+        aria-label={
+          canExpand
+            ? expanded
+              ? translate(
+                  'auto.components.right.sidebar.GitHistoryRow.4a8d9e0c1f',
+                  'Hide files in commit {{value0}}: {{value1}}',
+                  { value0: item.displayId ?? item.id, value1: item.subject }
+                )
+              : translate(
+                  'auto.components.right.sidebar.GitHistoryRow.2f9c41ab07',
+                  'Show files in commit {{value0}}: {{value1}}',
+                  { value0: item.displayId ?? item.id, value1: item.subject }
+                )
+            : translate(
+                'auto.components.right.sidebar.GitHistoryPanel.8232c8b2f2',
+                'Open commit {{value0}}: {{value1}}',
+                { value0: item.displayId ?? item.id, value1: item.subject }
+              )
+        }
+        data-testid="git-history-row"
+        onClick={handleClick}
+      >
+        {rowContent}
+      </button>
+    )
+  }
+)

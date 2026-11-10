@@ -1,0 +1,93 @@
+import { resolveLoginShellEnvironment } from '../main/startup/login-shell-environment'
+import { homedir } from 'node:os'
+import { canonicalRelayHooksPath } from './relay-hooks-identity'
+import { migrateAgentHookEnvironmentIdentity } from '../shared/agent-hook-environment-identity'
+import { migrateOpenCodeEnvironmentIdentity } from '../shared/opencode-environment-identity'
+import { readSessionShellStartupEnvVar } from '../main/pty/shell-startup-env'
+import {
+  PRIMARY_AGENT_DIR_ENV_BY_KIND,
+  SOURCE_AGENT_DIR_ENV_BY_KIND,
+  type PiAgentKind
+} from '../shared/pi-agent-kind'
+
+function firstNonEmpty(...values: (string | undefined)[]): string | undefined {
+  return values.find((value) => typeof value === 'string' && value.length > 0)
+}
+
+function readStartupEnv(
+  name: string,
+  env: Record<string, string>,
+  shell: string | undefined
+): string | undefined {
+  // Why the session env first: it is closer to the user's shell than the relay
+  // process env, and fish config lives under its XDG_CONFIG_HOME.
+  return readSessionShellStartupEnvVar(name, env, shell)
+}
+
+export function resolveOpenCodeSourceConfigDir(
+  env: Record<string, string>,
+  shell: string | undefined
+): string | undefined {
+  env = { ...env }
+  migrateAgentHookEnvironmentIdentity(env)
+  migrateOpenCodeEnvironmentIdentity(env)
+  const source = firstNonEmpty(
+    env.ZKYQ_OPENCODE_SOURCE_CONFIG_DIR,
+    readStartupEnv('OPENCODE_CONFIG_DIR', env, shell),
+    env.OPENCODE_CONFIG_DIR
+  )
+  return source ? canonicalRelayHooksPath(source, env.HOME ?? homedir()) : source
+}
+
+export function resolvePiSourceAgentDir(
+  env: Record<string, string>,
+  shell: string | undefined,
+  kind: PiAgentKind
+): string | undefined {
+  const sourceKey = SOURCE_AGENT_DIR_ENV_BY_KIND[kind]
+  const primaryKey = PRIMARY_AGENT_DIR_ENV_BY_KIND[kind]
+
+  const sourceDir = firstNonEmpty(env[sourceKey])
+  if (sourceDir) {
+    return canonicalRelayHooksPath(sourceDir, env.HOME ?? homedir())
+  }
+
+  const startupDir = readStartupEnv(primaryKey, env, shell)
+  if (startupDir) {
+    return canonicalRelayHooksPath(startupDir, env.HOME ?? homedir())
+  }
+
+  if (kind === 'prime-agent') {
+    const primary = firstNonEmpty(env[primaryKey])
+    return primary ? canonicalRelayHooksPath(primary, env.HOME ?? homedir()) : primary
+  }
+
+  const overlayKey = kind === 'omp' ? 'ZKYQ_OMP_CODING_AGENT_DIR' : 'ZKYQ_PI_CODING_AGENT_DIR'
+  const otherOverlayKey = kind === 'omp' ? 'ZKYQ_PI_CODING_AGENT_DIR' : 'ZKYQ_OMP_CODING_AGENT_DIR'
+
+  // Why: a mismatched Orca overlay shadow means this shell inherited the other
+  // Pi-compatible agent's PTY overlay. Do not remirror that overlay into this
+  // launch; let plugin-overlay default to the selected kind's own home dir.
+  if (
+    env[primaryKey] &&
+    env[primaryKey] !== env[overlayKey] &&
+    env[primaryKey] !== env[otherOverlayKey]
+  ) {
+    return canonicalRelayHooksPath(env[primaryKey], env.HOME ?? homedir())
+  }
+  return undefined
+}
+
+export async function resolveOmpConfigDirName(
+  env: Record<string, string>,
+  shell: string | undefined
+): Promise<string | undefined> {
+  if (env.PI_CONFIG_DIR !== undefined) {
+    return env.PI_CONFIG_DIR || '.omp'
+  }
+  const profile = await resolveLoginShellEnvironment({
+    shellOverride: shell ?? env.SHELL ?? null,
+    env
+  })
+  return profile.PI_CONFIG_DIR === '' ? '.omp' : profile.PI_CONFIG_DIR
+}

@@ -6,7 +6,10 @@ const vm = require('node:vm');
 const assert = require('node:assert/strict');
 const root = path.resolve(__dirname, '../..');
 const sourcePath = process.argv[2] ? path.resolve(process.argv[2]) : path.join(root, 'web/progress/progress.js');
-const source = fs.readFileSync(sourcePath, 'utf8').replace(/load\(\)\.catch\(\(\) => \{ statusLine\.textContent = "工作台没有读出来。"; \}\);\s*$/, '');
+const rawSource = fs.readFileSync(sourcePath, 'utf8');
+const automaticLoad = /(?:^|\r?\n)load\(\)\.catch\(\(\) => \{ statusLine\.textContent = "[^"\r\n]*"; \}\);\s*$/;
+assert.match(rawSource, automaticLoad, 'Expected the standalone automatic load entry');
+const source = rawSource.replace(automaticLoad, '');
 class Element {
   constructor(tag = 'div') {
     this.tag = tag; this.children = []; this.listeners = {}; this.attributes = {}; this.dataset = {}; this.value = ''; this.disabled = false; this.text = '';
@@ -22,16 +25,21 @@ class Element {
   set textContent(value) { this.text = String(value); this.children = []; }
 }
 function fixture() {
-  const nodes = new Map(), requests = [];
+  const nodes = new Map(), requests = [], themeReads = [], themeMounts = [], themeDisposals = [], pageEvents = {};
   const node = selector => { if (!nodes.has(selector)) nodes.set(selector, new Element()); return nodes.get(selector); };
-  const context = vm.createContext({ document: { querySelector: node, createElement: tag => new Element(tag), createElementNS: (_ns, tag) => new Element(tag), createTextNode: text => text }, window: { matchMedia: () => ({ matches: true }) }, location: { origin: 'http://127.0.0.1:14401' }, Intl, Date, Number, console,
+  const headTheme = {mount(options) { themeMounts.push(options); return () => themeDisposals.push('unmount'); }, dispose() { themeDisposals.push('dispose'); }};
+  const context = vm.createContext({ document: { querySelector: node, createElement: tag => new Element(tag), createElementNS: (_ns, tag) => new Element(tag), createTextNode: text => text }, window: { matchMedia: () => ({ matches: true }), CEUITheme: {pageTheme: headTheme, earlyRead(key) { themeReads.push(key); return {mount:headTheme.mount,dispose:headTheme.dispose}; }}, addEventListener(key,fn) { pageEvents[key]=fn; } }, location: { origin: 'http://127.0.0.1:14401' }, Intl, Date, Number, console,
     fetch: url => new Promise((resolve, reject) => requests.push({ url, resolve, reject })) });
   vm.runInContext(source, context);
   const run = value => vm.runInContext(value, context);
   run(`profileMode=true; csrf='fixture'; projects=[{id:'archived',name:'Archived',archived:true,state:null,percent:null,note:'',records:[],sessions:[]},{id:'active',name:'Active',archived:false,state:null,percent:null,note:'',records:[],sessions:[]}]; selected='archived'; ensureStage(); paintSide({todos:[],todos_total:0,news:[]}); paintRail(); paintBoard();`);
-  return { nodes, requests, node, run, context };
+  return { nodes, requests, node, run, context, themeReads, themeMounts, themeDisposals, pageEvents };
 }
 const cases = [];
+let testsCompleted = false;
+process.once('beforeExit', () => {
+  if (!testsCompleted) { console.error(JSON.stringify({ cases, error: 'Synthetic tests exited before completion' }, null, 2)); process.exitCode = 1; }
+});
 async function test(name, callback) { try { await callback(); cases.push({ name, passed: true }); } catch (error) { cases.push({ name, passed: false, error: error.stack }); } }
 const response = (note, total = 41) => ({ ok: true, json: async () => ({ items: [{ recorded_at: null, origin: 'manual', state: '在做', percent: null, note }], total }) });
 function clickProject(f, surface, index) { f.node(surface).children[index].listeners.click(); }
@@ -57,11 +65,30 @@ async function historyOrder(firstId, secondId, firstOffset, secondOffset, firstR
     const html = fs.readFileSync(path.join(root, 'web/workspace/workspace.html'), 'utf8');
     assert.equal((html.match(/id="manual-form"/g) || []).length, 1);
   });
+  await test('standalone progress reuses one external head theme and remounts only after page disposal',()=>{
+    const f=fixture();assert.equal(f.themeReads.length,0);assert.equal(f.themeMounts[0].roots[0],f.node('.desk'));assert.equal(f.themeMounts[0].toggles[0],f.node('#progress-theme'));f.pageEvents.pagehide({persisted:true});assert.deepEqual(f.themeDisposals,['unmount','dispose']);f.pageEvents.pageshow({persisted:true});assert.deepEqual(f.themeReads,['ce.progress.theme']);
+    const html=fs.readFileSync(path.join(root,'web/progress/progress.html'),'utf8');assert.match(html,/data-ce-theme-key="ce.progress.theme"/);assert.doesNotMatch(html,/<script>/);
+  });
+  await test('manual progress rejection preserves a genuine unknown percent and the current note',async()=>{
+    const f=fixture();f.run(`selected='active';built.note.value='保留的人工说明';built.enabled.checked=false;built.percent.value='';var savingRecord=save('active','在做',built.note.value,null);`);assert.equal(f.run('built.fields.disabled'),true);
+    f.requests[0].resolve({ok:false,status:409,json:async()=>({reason:'synthetic_conflict',field:'note'})});await f.run('savingRecord');assert.equal(f.run('built.note.value'),'保留的人工说明');assert.equal(f.run('built.percent.value'),'');assert.match(f.run('built.feedback.textContent'),/草稿已保留/);assert.equal(f.run('built.fields.disabled'),false);
+  });
+  await test('formal state labels keep the original manual values and pressed selection',()=>{
+    const f=fixture();assert.equal(f.run("built.choices.children.find(button=>button.dataset.state==='等我').textContent"),'待处理');
+    f.run("built.choices.children.find(button=>button.dataset.state==='等我').listeners.click();");assert.equal(f.run('built.state.value'),'等我');assert.equal(f.requests.length,0);
+    f.run("projects[0].state='在做';showProject(false);");assert.equal(f.run("built.choices.children.find(button=>button.dataset.state==='在做').attributes['aria-pressed']"),'true');
+  });
   for (const [surface, label] of [['#progress-rail', 'rail'], ['#progress-board', 'board']]) await test(`${label}: archived -> active -> archived -> active`, () => {
     const f = fixture(); assert.equal(todoDisabled(f), true);
     for (const [index, expected] of [[1, false], [0, true], [1, false]]) { clickProject(f, surface, index); assert.equal(todoDisabled(f), expected); assert.equal(f.node('#todo-zone').children[0].children[1].disabled, expected); }
   });
   await test('legacy selection leaves original launcher behavior available', () => { const f = fixture(); f.run('profileMode=false; paintSide({todos:[],news:[],launchers:[]}); paintRail(); paintBoard();'); clickProject(f, '#progress-rail', 1); assert.equal(todoDisabled(f), false); assert.equal(f.node('#launch-zone').children.length, 4); });
+  await test('an empty legacy project collection has an explicit empty state without manufacturing progress', () => {
+    const f = fixture(); f.run('profileMode=false;projects=[];paintBoard();');
+    assert.match(f.node('#progress-board').textContent, /尚无项目进度记录/);
+    assert.doesNotMatch(f.node('#progress-board').textContent, /0%|已完成/);
+    assert.equal(f.requests.length, 0);
+  });
   await test('unknown rail uses explicit text and no numeric fill', () => { const f = fixture(), row = f.node('#progress-rail').children[0]; assert.equal(row.children[1].children[1].textContent, '未记录 · 无记录'); assert.equal(row.children[2].children[0].style.values['--fill'], undefined); assert.equal(row.children[2].children[0].hidden, true); });
   await test('zero rail remains genuine numeric progress', () => { const f = fixture(); f.run("projects[0].percent=0; projects[0].state='未开始'; paintRail(); showProject(false);"); assert.equal(f.node('#progress-rail').children[0].children[2].children[0].style.values['--fill'], '0%'); assert.equal(f.run('built.label.textContent'), '0'); });
   await test('A slow / B fast keeps B history', () => historyOrder('archived', 'active', 0, 0, false));
@@ -90,5 +117,6 @@ async function historyOrder(firstId, secondId, firstOffset, secondOffset, firstR
     assert.equal(f.node('#todo-zone').children[0].children[0], input); assert.equal(input.value, 'unfinished draft');
     assert.equal(f.requests.filter(row => row.url === '/api/desk/news').length, 1);
   });
+  testsCompleted = true;
   console.log(JSON.stringify({ scope: 'pure DOM / controlled promises only', source: sourcePath, cases, failures: cases.filter(item => !item.passed).length }, null, 2)); process.exitCode = cases.some(item => !item.passed) ? 1 : 0;
 })();

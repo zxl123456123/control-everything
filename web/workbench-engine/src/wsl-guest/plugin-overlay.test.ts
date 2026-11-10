@@ -1,0 +1,703 @@
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import {
+  existsSync,
+  lstatSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  renameSync,
+  rmSync,
+  statSync,
+  symlinkSync,
+  utimesSync,
+  writeFileSync
+} from 'node:fs'
+import { tmpdir } from 'node:os'
+import { basename, join } from 'node:path'
+import { PluginOverlayManager } from './plugin-overlay'
+import { resolvePiSourceAgentDir } from './plugin-overlay-env'
+import { installOpenCodePluginInCanonicalConfig } from './opencode-canonical-config'
+
+describe('PluginOverlayManager', () => {
+  let homeDir: string
+  let manager: PluginOverlayManager
+
+  beforeEach(() => {
+    homeDir = mkdtempSync(join(tmpdir(), 'plugin-overlay-'))
+    manager = new PluginOverlayManager({ homeDir })
+  })
+
+  afterEach(() => {
+    rmSync(homeDir, { recursive: true, force: true })
+  })
+
+  it.each(['pi', 'omp', 'prime-agent'] as const)(
+    'migrates a retired %s extension through the relay installer',
+    (kind) => {
+      const directory = join(homeDir, 'agent-home')
+      const extensions = join(directory, 'extensions')
+      mkdirSync(extensions, { recursive: true })
+      const original = '// @orca-managed-pi-extension\r\n// retained operator edit 中文\r\n'
+      writeFileSync(join(extensions, 'orca-agent-status.ts'), original)
+      writeFileSync(join(directory, 'auth.json'), 'retained auth fixture')
+      manager.setSources({
+        piExtensionSource: 'pi fixture',
+        ompExtensionSource: 'omp fixture',
+        primeAgentExtensionSource: 'prime fixture'
+      })
+      expect(manager.materializePi('migration-test', directory, kind)).toEqual({
+        sourceAgentDir: directory,
+        statusExtensionPath: join(extensions, 'zkyq-agent-status.ts')
+      })
+      expect(readdirSync(extensions)).toEqual(['zkyq-agent-status.ts'])
+      const archiveDir = join(directory, '.zkyq-retired-extensions')
+      expect(readFileSync(join(archiveDir, readdirSync(archiveDir)[0]), 'utf8')).toBe(original)
+      expect(readFileSync(join(directory, 'auth.json'), 'utf8')).toBe('retained auth fixture')
+      const before = statSync(join(extensions, 'zkyq-agent-status.ts')).mtimeMs
+      expect(manager.materializePi('migration-repeat', directory, kind)).not.toBeNull()
+      expect(statSync(join(extensions, 'zkyq-agent-status.ts')).mtimeMs).toBe(before)
+    }
+  )
+
+  it('keeps an extension pinned by a live OMP shell while exposing only the current path', () => {
+    const directory = join(homeDir, '.orca-relay', 'omp-managed-status-extension')
+    const previous = join(directory, 'orca-agent-status.ts')
+    const original = '// @orca-managed-pi-extension\r\n// live shell fixture 中文\r\n'
+    mkdirSync(directory, { recursive: true })
+    writeFileSync(previous, original)
+    const before = statSync(previous).mtimeMs
+    manager = new PluginOverlayManager({ homeDir })
+    manager.setSources({ ompExtensionSource: 'current fixture source' })
+    expect(
+      manager.materializePi('live-shell', undefined, 'omp', { materializeDefaultHome: false })
+    ).toEqual({
+      statusExtensionPath: join(
+        homeDir,
+        '.zkyq-relay',
+        'omp-managed-status-extension',
+        'zkyq-agent-status.ts'
+      )
+    })
+    expect(readFileSync(previous, 'utf8')).toBe(original)
+    expect(statSync(previous).mtimeMs).toBe(before)
+    expect(existsSync(join(homeDir, '.omp'))).toBe(false)
+  })
+
+  it('reports no source until install runs', () => {
+    expect(manager.hasOpenCodeSource()).toBe(false)
+    expect(manager.hasPiSource()).toBe(false)
+    expect(manager.materializeOpenCode('tab-1:0')).toBeNull()
+    expect(manager.materializePi('tab-1:0')).toBeNull()
+  })
+
+  it.each(['opencode', 'opencode2'] as const)(
+    'upgrades a retired canonical %s filename during refresh-only installs',
+    (agent) => {
+      const env = { XDG_CONFIG_HOME: join(homeDir, 'xdg') }
+      const plugins = join(homeDir, 'xdg', 'opencode', 'plugins')
+      const old = `orca-${agent}-status.js`
+      const current = `zkyq-${agent}-status.js`
+      const source = `export default { id: "zkyq-${agent}-status" };`
+      mkdirSync(plugins, { recursive: true })
+      writeFileSync(join(plugins, old), source.replaceAll('zkyq-', 'orca-'))
+      expect(installOpenCodePluginInCanonicalConfig(source, agent, env, homeDir, true)).toBe(true)
+      expect(existsSync(join(plugins, old))).toBe(false)
+      expect(readFileSync(join(plugins, current), 'utf8')).toBe(source)
+    }
+  )
+
+  it('materializes OpenCode plugin into <overlay>/plugins/<file>', () => {
+    manager.setSources({ opencodePluginSource: 'export const X = 1' })
+    const dir = manager.materializeOpenCode('tab-1:0')
+    expect(dir).not.toBeNull()
+    const expected = join(dir!, 'plugins', 'zkyq-opencode-status.js')
+    expect(existsSync(expected)).toBe(true)
+    expect(readFileSync(expected, 'utf8')).toBe('export const X = 1')
+  })
+
+  it.each(['opencode', 'opencode2'] as const)(
+    'keeps migrated %s data when its retired source path names the output itself',
+    (agent) => {
+      manager.setSources({
+        opencodePluginSource: 'export const before = 1',
+        opencode2PluginSource: 'export const before = 1'
+      })
+      const directory = manager.materializeOpenCode('retained-source', undefined, agent)!
+      writeFileSync(join(directory, 'user-note.json'), '{"retained":"最新内容"}')
+      const retiredSource = directory.replace('.zkyq-relay', '.orca-relay')
+      renameSync(join(homeDir, '.zkyq-relay'), join(homeDir, '.orca-relay'))
+      manager = new PluginOverlayManager({ homeDir, retiredReaders: true })
+      manager.setSources({
+        opencodePluginSource: 'export const after = 2',
+        opencode2PluginSource: 'export const after = 2'
+      })
+      expect(manager.materializeOpenCode('retained-source', retiredSource, agent)).toBe(directory)
+      expect(readFileSync(join(directory, 'user-note.json'), 'utf8')).toBe(
+        '{"retained":"最新内容"}'
+      )
+      expect(readFileSync(join(directory, 'plugins', `zkyq-${agent}-status.js`), 'utf8')).toBe(
+        'export const after = 2'
+      )
+      expect(existsSync(join(homeDir, '.orca-relay'))).toBe(false)
+    }
+  )
+
+  it('keeps the current cache when a stale source has no migrated counterpart', () => {
+    manager.setSources({ opencodePluginSource: 'export const current = 1' })
+    const directory = manager.materializeOpenCode('missing-input')!
+    writeFileSync(join(directory, 'keep.json'), 'retained cache')
+    expect(
+      manager.materializeOpenCode('missing-input', join(homeDir, '.orca-relay', 'unknown'))
+    ).toBeNull()
+    expect(readFileSync(join(directory, 'keep.json'), 'utf8')).toBe('retained cache')
+  })
+
+  it('recognizes current and retired overlay inputs without accepting adjacent user paths', () => {
+    expect(manager.isRelayOverlayPath(join(homeDir, '.zkyq-relay', 'opencode-overlays'))).toBe(true)
+    expect(manager.isRelayOverlayPath(join(homeDir, '.orca-relay', 'opencode-overlays'))).toBe(true)
+    expect(manager.isRelayOverlayPath(join(homeDir, '.orca-relay-user'))).toBe(false)
+  })
+  it.each(['pi', 'omp', 'prime-agent'] as const)(
+    'keeps %s source data reachable after its old exported path retires',
+    (kind) => {
+      manager.setSources({ opencodePluginSource: 'export const marker = 1' })
+      manager.materializeOpenCode('ownership-marker')
+      const currentSource = join(homeDir, '.zkyq-relay', 'custom-agent')
+      mkdirSync(currentSource, { recursive: true })
+      writeFileSync(join(currentSource, 'auth.json'), 'retained user bytes')
+      renameSync(join(homeDir, '.zkyq-relay'), join(homeDir, '.orca-relay'))
+      manager = new PluginOverlayManager({ homeDir, retiredReaders: true })
+      manager.setSources({
+        piExtensionSource: 'pi source',
+        ompExtensionSource: 'omp source',
+        primeAgentExtensionSource: 'prime source'
+      })
+      const previousSource = currentSource.replace('.zkyq-relay', '.orca-relay')
+      expect(manager.materializePi('source-input', previousSource, kind)?.sourceAgentDir).toBe(
+        currentSource
+      )
+      expect(readFileSync(join(currentSource, 'auth.json'), 'utf8')).toBe('retained user bytes')
+    }
+  )
+
+  it('keeps the OpenCode 2 plugin in a separate overlay and filename', () => {
+    manager.setSources({ opencode2PluginSource: 'export const V2 = 1' })
+    expect(manager.hasOpenCodeSource('opencode2')).toBe(true)
+    const dir = manager.materializeOpenCode('tab-2:0', undefined, 'opencode2')
+    expect(dir).not.toBeNull()
+    expect(readFileSync(join(dir!, 'plugins', 'zkyq-opencode2-status.js'), 'utf8')).toBe(
+      'export const V2 = 1'
+    )
+    expect(existsSync(join(dir!, 'plugins', 'zkyq-opencode-status.js'))).toBe(false)
+  })
+
+  it('installs OpenCode plugins in the canonical XDG config roots', () => {
+    manager.setSources({
+      opencodePluginSource: 'v1 plugin',
+      opencode2PluginSource: 'v2 plugin'
+    })
+
+    expect(
+      manager.installOpenCodePlugin('opencode', { XDG_CONFIG_HOME: join(homeDir, 'xdg') })
+    ).toBe(true)
+    expect(
+      manager.installOpenCodePlugin('opencode2', { XDG_CONFIG_HOME: join(homeDir, 'xdg') })
+    ).toBe(true)
+    expect(
+      readFileSync(join(homeDir, 'xdg', 'opencode', 'plugins', 'zkyq-opencode-status.js'), 'utf8')
+    ).toBe('v1 plugin')
+    expect(
+      readFileSync(join(homeDir, 'xdg', 'opencode', 'plugins', 'zkyq-opencode2-status.js'), 'utf8')
+    ).toBe('v2 plugin')
+    const tuiEntry = join(
+      homeDir,
+      'xdg',
+      'opencode',
+      'plugins',
+      'zkyq-opencode2-status-tui',
+      'tui.js'
+    )
+    expect(readFileSync(tuiEntry, 'utf8')).toBe('v2 plugin')
+    expect(
+      readFileSync(
+        join(homeDir, 'xdg', 'opencode', 'plugins', 'zkyq-opencode-status-tui', 'tui.js'),
+        'utf8'
+      )
+    ).toBe('v1 plugin')
+
+    // Why: OpenCode 2 reloads plugins when a plugins/ entry is rewritten, so an unchanged
+    // TUI copy must not be touched on the next launch.
+    const past = new Date('2020-01-01T00:00:00Z')
+    utimesSync(tuiEntry, past, past)
+    manager.installOpenCodePlugin('opencode2', { XDG_CONFIG_HOME: join(homeDir, 'xdg') })
+    expect(statSync(tuiEntry).mtimeMs).toBe(past.getTime())
+  })
+
+  // Why: OpenCode 2 reloads a plugin whose file mtime changed, even with unchanged bytes.
+  it('leaves a current canonical plugin untouched and replaces a stale one', () => {
+    const env = { XDG_CONFIG_HOME: join(homeDir, 'xdg') }
+    const pluginPath = join(homeDir, 'xdg', 'opencode', 'plugins', 'zkyq-opencode2-status.js')
+    manager.setSources({ opencode2PluginSource: 'v2 plugin' })
+    manager.installOpenCodePlugin('opencode2', env)
+    const past = new Date('2020-01-01T00:00:00Z')
+    utimesSync(pluginPath, past, past)
+
+    expect(manager.installOpenCodePlugin('opencode2', env)).toBe(true)
+    expect(statSync(pluginPath).mtimeMs).toBe(past.getTime())
+
+    manager.setSources({ opencode2PluginSource: 'v2 plugin, next release' })
+    expect(manager.installOpenCodePlugin('opencode2', env)).toBe(true)
+    expect(readFileSync(pluginPath, 'utf8')).toBe('v2 plugin, next release')
+  })
+
+  // Why: OpenCode 2 loads through a file-level symlink (dotfile managers) and stats its target.
+  it.skipIf(process.platform === 'win32')(
+    'leaves a symlinked canonical plugin with current bytes untouched',
+    () => {
+      const env = { XDG_CONFIG_HOME: join(homeDir, 'xdg') }
+      const pluginsDir = join(homeDir, 'xdg', 'opencode', 'plugins')
+      const pluginPath = join(pluginsDir, 'zkyq-opencode2-status.js')
+      const targetPath = join(homeDir, 'dotfiles-zkyq-opencode2-status.js')
+      mkdirSync(pluginsDir, { recursive: true })
+      writeFileSync(targetPath, 'v2 plugin')
+      symlinkSync(targetPath, pluginPath)
+      const past = new Date('2020-01-01T00:00:00Z')
+      utimesSync(targetPath, past, past)
+      manager.setSources({ opencode2PluginSource: 'v2 plugin' })
+
+      expect(manager.installOpenCodePlugin('opencode2', env)).toBe(true)
+      expect(lstatSync(pluginPath).isSymbolicLink()).toBe(true)
+      expect(statSync(targetPath).mtimeMs).toBe(past.getTime())
+
+      manager.setSources({ opencode2PluginSource: 'v2 plugin, next release' })
+      expect(manager.installOpenCodePlugin('opencode2', env)).toBe(true)
+      expect(lstatSync(pluginPath).isSymbolicLink()).toBe(true)
+      expect(readFileSync(pluginPath, 'utf8')).toBe('v2 plugin, next release')
+      expect(readFileSync(targetPath, 'utf8')).toBe('v2 plugin, next release')
+    }
+  )
+
+  // Why: a service that reloads between the two writes must already find the TUI copy and stand down.
+  it('writes the TUI copy before the server plugin file', () => {
+    manager.setSources({ opencode2PluginSource: 'v2 plugin' })
+    const pluginsDir = join(homeDir, 'xdg', 'opencode', 'plugins')
+    // A directory in the server file's place makes that write fail.
+    mkdirSync(join(pluginsDir, 'zkyq-opencode2-status.js'), { recursive: true })
+
+    expect(
+      manager.installOpenCodePlugin('opencode2', { XDG_CONFIG_HOME: join(homeDir, 'xdg') })
+    ).toBe(false)
+    expect(readFileSync(join(pluginsDir, 'zkyq-opencode2-status-tui', 'tui.js'), 'utf8')).toBe(
+      'v2 plugin'
+    )
+  })
+
+  it('mirrors a preexisting remote OpenCode config dir before adding Orca plugin', () => {
+    const userConfigDir = join(homeDir, 'company-opencode')
+    mkdirSync(join(userConfigDir, 'plugins'), { recursive: true })
+    writeFileSync(join(userConfigDir, 'opencode.json'), '{"provider":"custom"}')
+    writeFileSync(join(userConfigDir, 'plugins', 'user-plugin.js'), 'user plugin')
+    writeFileSync(join(userConfigDir, 'plugins', 'zkyq-opencode-status.js'), 'user same-name')
+
+    manager.setSources({ opencodePluginSource: 'orca plugin' })
+    const dir = manager.materializeOpenCode('tab-opencode:0', userConfigDir)
+
+    expect(dir).not.toBeNull()
+    expect(readFileSync(join(dir!, 'opencode.json'), 'utf8')).toBe('{"provider":"custom"}')
+    expect(readFileSync(join(dir!, 'plugins', 'user-plugin.js'), 'utf8')).toBe('user plugin')
+    expect(readFileSync(join(dir!, 'plugins', 'zkyq-opencode-status.js'), 'utf8')).toBe(
+      'orca plugin'
+    )
+    expect(readFileSync(join(userConfigDir, 'plugins', 'zkyq-opencode-status.js'), 'utf8')).toBe(
+      'user same-name'
+    )
+  })
+
+  // Why: the remote/guest config root keeps whichever Orca plugin files earlier
+  // launches installed. Mirroring the other major's file into this overlay would
+  // hand the agent a plugin whose variant gate registers nothing.
+  it.each([
+    { agent: 'opencode', stale: 'zkyq-opencode2-status.js', own: 'zkyq-opencode-status.js' },
+    { agent: 'opencode2', stale: 'zkyq-opencode-status.js', own: 'zkyq-opencode2-status.js' }
+  ] as const)(
+    "keeps the other major's stale plugin out of the $agent overlay",
+    ({ agent, stale, own }) => {
+      const userConfigDir = join(homeDir, '.config', 'opencode')
+      mkdirSync(join(userConfigDir, 'plugins'), { recursive: true })
+      writeFileSync(join(userConfigDir, 'plugins', stale), 'stale other-major plugin')
+      const staleTui = stale.replace(/\.js$/, '-tui')
+      mkdirSync(join(userConfigDir, 'plugins', staleTui))
+      writeFileSync(join(userConfigDir, 'plugins', staleTui, 'tui.js'), 'stale other-major plugin')
+      writeFileSync(join(userConfigDir, 'plugins', 'user-plugin.js'), 'user plugin')
+
+      manager.setSources({ opencodePluginSource: 'v1', opencode2PluginSource: 'v2' })
+      const dir = manager.materializeOpenCode('tab-1:0', userConfigDir, agent)
+
+      expect(dir).not.toBeNull()
+      const ownTui = own.replace(/\.js$/, '-tui')
+      expect(readdirSync(join(dir!, 'plugins')).sort()).toEqual(
+        [own, ownTui, 'user-plugin.js'].sort()
+      )
+      // The TUI copy is the same module; its setup() tells a TUI context from a server one.
+      expect(readFileSync(join(dir!, 'plugins', ownTui, 'tui.js'), 'utf8')).toBe(
+        agent === 'opencode2' ? 'v2' : 'v1'
+      )
+    }
+  )
+
+  it('does not override a missing preexisting OpenCode config dir', () => {
+    manager.setSources({ opencodePluginSource: 'orca plugin' })
+
+    expect(manager.materializeOpenCode('tab-missing:0', join(homeDir, 'missing'))).toBeNull()
+  })
+
+  it('installs Pi extension into the real agent extensions dir', () => {
+    manager.setSources({ piExtensionSource: '// pi extension' })
+    const result = manager.materializePi('tab-2:0')
+    expect(result?.sourceAgentDir).toBeDefined()
+    const file = join(result!.sourceAgentDir!, 'extensions', 'zkyq-agent-status.ts')
+    expect(result?.statusExtensionPath).toBe(file)
+    expect(existsSync(file)).toBe(true)
+    expect(readFileSync(file, 'utf8')).toContain('@zkyq-managed-pi-extension')
+  })
+
+  it("does not overwrite a user's same-named remote Pi extension file", () => {
+    const piAgentDir = join(homeDir, '.pi', 'agent')
+    const extensionFile = join(piAgentDir, 'extensions', 'zkyq-agent-status.ts')
+    mkdirSync(join(piAgentDir, 'extensions'), { recursive: true })
+    writeFileSync(extensionFile, 'user-owned remote status extension')
+
+    manager.setSources({ piExtensionSource: '// pi extension' })
+    expect(manager.materializePi('tab-user-owned-pi:0')).toBeNull()
+    expect(readFileSync(extensionFile, 'utf8')).toBe('user-owned remote status extension')
+  })
+
+  it('uses the kind-specific Pi-compatible extension source when available', () => {
+    manager.setSources({
+      piExtensionSource: '// pi extension',
+      ompExtensionSource: '// omp extension'
+    })
+
+    const piResult = manager.materializePi('tab-kind-pi:0', undefined, 'pi')
+    const ompResult = manager.materializePi('tab-kind-omp:0', undefined, 'omp')
+
+    expect(piResult?.sourceAgentDir).toBeDefined()
+    expect(ompResult?.sourceAgentDir).toBeDefined()
+    expect(
+      readFileSync(join(piResult!.sourceAgentDir!, 'extensions', 'zkyq-agent-status.ts'), 'utf8')
+    ).toContain('// pi extension')
+    expect(
+      readFileSync(join(ompResult!.sourceAgentDir!, 'extensions', 'zkyq-agent-status.ts'), 'utf8')
+    ).toContain('// omp extension')
+  })
+
+  it('uses only the Prime-specific source in the default Prime agent dir', () => {
+    manager.setSources({ piExtensionSource: '// pi extension' })
+    expect(manager.materializePi('tab-prime-missing:0', undefined, 'prime-agent')).toBeNull()
+
+    manager.setSources({ primeAgentExtensionSource: '// prime extension' })
+    const result = manager.materializePi('tab-prime:0', undefined, 'prime-agent')
+    expect(result?.sourceAgentDir).toBe(join(homeDir, '.prime', 'agent'))
+    expect(readFileSync(result!.statusExtensionPath!, 'utf8')).toContain('// prime extension')
+    expect(readFileSync(result!.statusExtensionPath!, 'utf8')).not.toContain('// pi extension')
+  })
+
+  it('installs Orca status extension into the remote default Pi agent dir', () => {
+    const piAgentDir = join(homeDir, '.pi', 'agent')
+    mkdirSync(join(piAgentDir, 'skills', 'my-skill'), { recursive: true })
+    mkdirSync(join(piAgentDir, 'extensions', 'user-ext'), { recursive: true })
+    writeFileSync(join(piAgentDir, 'auth.json'), 'secret token')
+    writeFileSync(join(piAgentDir, 'skills', 'my-skill', 'SKILL.md'), 'critical user skill')
+    writeFileSync(join(piAgentDir, 'extensions', 'user-ext', 'ext.ts'), 'user extension')
+    writeFileSync(
+      join(piAgentDir, 'settings.json'),
+      JSON.stringify({
+        defaultProvider: 'amazon-bedrock',
+        hideThinkingBlock: false,
+        terminal: {
+          showImages: false,
+          clearOnShrink: false
+        }
+      })
+    )
+
+    manager.setSources({ piExtensionSource: '// pi extension' })
+    const result = manager.materializePi('tab-pi:0')
+    const dir = result?.sourceAgentDir
+
+    expect(dir).toBeDefined()
+    expect(readFileSync(join(dir!, 'auth.json'), 'utf8')).toBe('secret token')
+    expect(readFileSync(join(dir!, 'skills', 'my-skill', 'SKILL.md'), 'utf8')).toBe(
+      'critical user skill'
+    )
+    expect(readFileSync(join(dir!, 'extensions', 'user-ext', 'ext.ts'), 'utf8')).toBe(
+      'user extension'
+    )
+    expect(readdirSync(join(dir!, 'extensions')).sort()).toEqual([
+      'user-ext',
+      'zkyq-agent-status.ts'
+    ])
+    expect(JSON.parse(readFileSync(join(dir!, 'settings.json'), 'utf8'))).toEqual({
+      defaultProvider: 'amazon-bedrock',
+      hideThinkingBlock: false,
+      terminal: {
+        showImages: false,
+        clearOnShrink: false
+      }
+    })
+    expect(JSON.parse(readFileSync(join(piAgentDir, 'settings.json'), 'utf8'))).toEqual({
+      defaultProvider: 'amazon-bedrock',
+      hideThinkingBlock: false,
+      terminal: {
+        showImages: false,
+        clearOnShrink: false
+      }
+    })
+  })
+
+  it('mirrors a preexisting remote Pi agent dir instead of the default', () => {
+    const defaultAgentDir = join(homeDir, '.pi', 'agent')
+    const customAgentDir = join(homeDir, 'custom-pi-agent')
+    mkdirSync(defaultAgentDir, { recursive: true })
+    mkdirSync(join(customAgentDir, 'extensions'), { recursive: true })
+    writeFileSync(join(defaultAgentDir, 'auth.json'), 'default token')
+    writeFileSync(join(customAgentDir, 'auth.json'), 'custom token')
+    writeFileSync(join(customAgentDir, 'extensions', 'custom.ts'), 'custom extension')
+
+    manager.setSources({ piExtensionSource: '// pi extension' })
+    const result = manager.materializePi('tab-custom-pi:0', customAgentDir)
+    const dir = result?.sourceAgentDir
+
+    expect(dir).toBeDefined()
+    expect(readFileSync(join(dir!, 'auth.json'), 'utf8')).toBe('custom token')
+    expect(readFileSync(join(dir!, 'extensions', 'custom.ts'), 'utf8')).toBe('custom extension')
+    expect(readFileSync(join(dir!, 'extensions', 'zkyq-agent-status.ts'), 'utf8')).toContain(
+      '// pi extension'
+    )
+  })
+
+  it('leaves lazy OMP agent.db in the real remote home on the relay', () => {
+    manager.setSources({ piExtensionSource: '// pi extension' })
+    const sourceDir = join(homeDir, '.omp', 'agent')
+    const first = manager.materializePi('tab-relay-omp-sqlite:0', undefined, 'omp')
+
+    expect(first?.sourceAgentDir).toBe(sourceDir)
+    const sourcePath = join(sourceDir, 'agent.db')
+    const content = 'agent.db relay credentials'
+
+    expect(existsSync(sourcePath)).toBe(false)
+    expect(existsSync(join(homeDir, '.zkyq-relay', 'omp-overlays'))).toBe(false)
+    expect(existsSync(join(sourceDir, 'history.db'))).toBe(false)
+    writeFileSync(sourcePath, content)
+
+    expect(readFileSync(sourcePath, 'utf8')).toBe(content)
+
+    const second = manager.materializePi('tab-relay-omp-sqlite:0', undefined, 'omp')
+
+    expect(second?.sourceAgentDir).toBe(first?.sourceAgentDir)
+    expect(readFileSync(join(second!.sourceAgentDir!, 'agent.db'), 'utf8')).toBe(content)
+  })
+
+  // Why: per-agent source dir. The renderer picks Pi or OMP per
+  // launch, and the relay must use the right `~/.<kind>/agent` source —
+  // disk-presence guessing (always-Pi or first-exists) shadows the other
+  // agent's user extensions when both dirs exist on the remote disk.
+  describe('per-agent default source dir (no cross-agent fallback)', () => {
+    function seedAgentDir(dotDir: '.pi' | '.omp', tag: string): string {
+      const agentDir = join(homeDir, dotDir, 'agent')
+      mkdirSync(join(agentDir, 'extensions', `${tag}-ext`), { recursive: true })
+      writeFileSync(join(agentDir, 'extensions', `${tag}-ext`, 'ext.ts'), `${tag} extension`)
+      writeFileSync(join(agentDir, 'auth.json'), `${tag} token`)
+      return agentDir
+    }
+
+    it('launching pi with both ~/.pi/agent and ~/.omp/agent present installs into ~/.pi/agent', () => {
+      seedAgentDir('.pi', 'pi')
+      seedAgentDir('.omp', 'omp')
+
+      manager.setSources({ piExtensionSource: '// pi extension' })
+      const result = manager.materializePi('tab-relay-pi-both:0', undefined, 'pi')
+      const dir = result?.sourceAgentDir
+
+      expect(dir).toBe(join(homeDir, '.pi', 'agent'))
+      expect(readFileSync(join(dir!, 'auth.json'), 'utf8')).toBe('pi token')
+      const extensions = readdirSync(join(dir!, 'extensions')).sort()
+      expect(extensions).toContain('pi-ext')
+      expect(extensions).toContain('zkyq-agent-status.ts')
+      expect(extensions).not.toContain('omp-ext')
+    })
+
+    it('launching omp with both ~/.pi/agent and ~/.omp/agent present installs into ~/.omp/agent', () => {
+      seedAgentDir('.pi', 'pi')
+      seedAgentDir('.omp', 'omp')
+
+      manager.setSources({ piExtensionSource: '// pi extension' })
+      const result = manager.materializePi('tab-relay-omp-both:0', undefined, 'omp')
+      const dir = result?.sourceAgentDir
+
+      expect(dir).toBe(join(homeDir, '.omp', 'agent'))
+      // Even though ~/.pi/agent exists, the OMP launch MUST mirror OMP's
+      // source dir. Cross-agent fallback would silently shadow the user's
+      // OMP extensions on the remote.
+      expect(readFileSync(join(dir!, 'auth.json'), 'utf8')).toBe('omp token')
+      const extensions = readdirSync(join(dir!, 'extensions')).sort()
+      expect(extensions).toContain('omp-ext')
+      expect(extensions).toContain('zkyq-agent-status.ts')
+      expect(extensions).not.toContain('pi-ext')
+    })
+
+    it('launching omp when only ~/.pi/agent exists does NOT mirror Pi state', () => {
+      // Why: missing OMP source dir on the remote must create only OMP's
+      // own extension dir. Pi state must never cross-pollinate in.
+      seedAgentDir('.pi', 'pi')
+      expect(existsSync(join(homeDir, '.omp'))).toBe(false)
+      expect(existsSync(join(homeDir, '.prime'))).toBe(false)
+
+      manager.setSources({ piExtensionSource: '// pi extension' })
+      const result = manager.materializePi('tab-relay-omp-empty:0', undefined, 'omp')
+      const dir = result?.sourceAgentDir
+
+      expect(dir).toBe(join(homeDir, '.omp', 'agent'))
+      // Pi-only home must NOT leak into the OMP home.
+      expect(existsSync(join(dir!, 'auth.json'))).toBe(false)
+      const extensions = readdirSync(join(dir!, 'extensions')).sort()
+      expect(extensions).toEqual(['zkyq-agent-status.ts'])
+    })
+
+    it('bare-shell prep does not create missing remote agent homes (#10196)', () => {
+      expect(existsSync(join(homeDir, '.pi'))).toBe(false)
+      expect(existsSync(join(homeDir, '.omp'))).toBe(false)
+      manager.setSources({
+        piExtensionSource: '// pi extension',
+        ompExtensionSource: '// omp extension',
+        primeAgentExtensionSource: '// prime extension'
+      })
+
+      expect(
+        manager.materializePi('tab-bare-pi:0', undefined, 'pi', {
+          materializeDefaultHome: false
+        })
+      ).toBeNull()
+      const bareOmp = manager.materializePi('tab-bare-omp:0', undefined, 'omp', {
+        materializeDefaultHome: false
+      })
+      // Why: bare OMP keeps status via ~/.zkyq-relay/… without SOURCE_AGENT_DIR or ~/.omp.
+      expect(bareOmp?.sourceAgentDir).toBeUndefined()
+      expect(bareOmp?.statusExtensionPath).toEqual(
+        expect.stringContaining(join('.zkyq-relay', 'omp-managed-status-extension'))
+      )
+      expect(existsSync(bareOmp!.statusExtensionPath!)).toBe(true)
+      expect(readFileSync(bareOmp!.statusExtensionPath!, 'utf8')).toContain('// omp extension')
+      expect(existsSync(join(homeDir, '.pi'))).toBe(false)
+      expect(existsSync(join(homeDir, '.omp'))).toBe(false)
+      expect(
+        manager.materializePi('tab-bare-prime:0', undefined, 'prime-agent', {
+          materializeDefaultHome: false
+        })
+      ).toBeNull()
+      expect(existsSync(join(homeDir, '.prime'))).toBe(false)
+    })
+  })
+
+  it('does not override a missing preexisting Pi agent dir', () => {
+    manager.setSources({ piExtensionSource: '// pi extension' })
+
+    expect(manager.materializePi('tab-missing-pi:0', join(homeDir, 'missing-pi'))).toBeNull()
+  })
+
+  it('clearOverlay removes OpenCode overlays without deleting real Pi/OMP homes', () => {
+    manager.setSources({
+      opencodePluginSource: 'opencode',
+      opencode2PluginSource: 'opencode2',
+      piExtensionSource: 'pi',
+      ompExtensionSource: 'omp'
+    })
+    const opencodeDir = manager.materializeOpenCode('tab-3:0')!
+    const opencode2Dir = manager.materializeOpenCode('tab-3:0', undefined, 'opencode2')!
+    const piDir = manager.materializePi('tab-3:0', undefined, 'pi')!.sourceAgentDir!
+    const ompDir = manager.materializePi('tab-3:0', undefined, 'omp')!.sourceAgentDir!
+    expect(piDir).not.toBe(ompDir)
+    expect(existsSync(opencodeDir)).toBe(true)
+    expect(existsSync(opencode2Dir)).toBe(true)
+    expect(existsSync(piDir)).toBe(true)
+    expect(existsSync(ompDir)).toBe(true)
+
+    manager.clearOverlay('tab-3:0')
+
+    expect(existsSync(opencodeDir)).toBe(false)
+    expect(existsSync(opencode2Dir)).toBe(false)
+    expect(existsSync(piDir)).toBe(true)
+    expect(existsSync(ompDir)).toBe(true)
+  })
+
+  it.skipIf(process.platform === 'win32')(
+    'clearOverlay removes OpenCode overlay symlinks without deleting their targets',
+    () => {
+      const userConfigDir = join(homeDir, 'company-opencode')
+      const linkedTarget = join(homeDir, 'linked-plugin-target')
+      mkdirSync(join(userConfigDir, 'plugins'), { recursive: true })
+      mkdirSync(linkedTarget, { recursive: true })
+      writeFileSync(join(linkedTarget, 'keep.js'), 'do not delete')
+      symlinkSync(linkedTarget, join(userConfigDir, 'plugins', 'linked-plugin'), 'dir')
+
+      manager.setSources({ opencodePluginSource: 'orca plugin' })
+      const dir = manager.materializeOpenCode('tab-opencode-symlink:0', userConfigDir)!
+      expect(existsSync(join(dir, 'plugins', 'linked-plugin'))).toBe(true)
+
+      manager.clearOverlay('tab-opencode-symlink:0')
+
+      expect(existsSync(dir)).toBe(false)
+      expect(readFileSync(join(linkedTarget, 'keep.js'), 'utf8')).toBe('do not delete')
+    }
+  )
+
+  it('produces stable overlay dirs for a given id (idempotent re-materialization)', () => {
+    manager.setSources({ opencodePluginSource: 'first' })
+    const dirA = manager.materializeOpenCode('tab-stable:0')!
+    manager.setSources({ opencodePluginSource: 'second' })
+    const dirB = manager.materializeOpenCode('tab-stable:0')!
+    expect(dirA).toBe(dirB)
+    expect(readFileSync(join(dirA, 'plugins', 'zkyq-opencode-status.js'), 'utf8')).toBe('second')
+  })
+
+  it('hashes unsafe pane ids into portable overlay directory names', () => {
+    manager.setSources({ opencodePluginSource: 'plugin' })
+    const dir = manager.materializeOpenCode('tab/with\\unsafe:chars\n0')
+
+    expect(dir).not.toBeNull()
+    expect(basename(dir!)).toMatch(/^[a-f0-9]{32}$/)
+    expect(dir).not.toContain('tab/with')
+    expect(existsSync(join(dir!, 'plugins', 'zkyq-opencode-status.js'))).toBe(true)
+  })
+})
+
+describe('resolvePiSourceAgentDir', () => {
+  it('uses only the selected kind source shadow when resolving inherited overlays', () => {
+    const env = {
+      HOME: mkdtempSync(join(tmpdir(), 'plugin-overlay-env-')),
+      PI_CODING_AGENT_DIR: '/tmp/parent-orca-pi-overlay',
+      ZKYQ_PI_CODING_AGENT_DIR: '/tmp/parent-orca-pi-overlay',
+      ZKYQ_PI_SOURCE_AGENT_DIR: '/user/.pi/agent'
+    }
+    try {
+      expect(resolvePiSourceAgentDir(env, undefined, 'pi')).toBe('/user/.pi/agent')
+      expect(resolvePiSourceAgentDir(env, undefined, 'omp')).toBeUndefined()
+    } finally {
+      rmSync(env.HOME, { recursive: true, force: true })
+    }
+  })
+
+  it('keeps explicit PI_CODING_AGENT_DIR values when they are not Orca overlays', () => {
+    const env = {
+      HOME: mkdtempSync(join(tmpdir(), 'plugin-overlay-env-')),
+      PI_CODING_AGENT_DIR: '/user/custom-omp-agent',
+      ZKYQ_PI_SOURCE_AGENT_DIR: '/user/.pi/agent'
+    }
+    try {
+      expect(resolvePiSourceAgentDir(env, undefined, 'omp')).toBe('/user/custom-omp-agent')
+    } finally {
+      rmSync(env.HOME, { recursive: true, force: true })
+    }
+  })
+})

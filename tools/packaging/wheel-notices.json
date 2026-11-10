@@ -1,0 +1,445 @@
+{
+  "schema": 1,
+  "wheels": [
+    {
+      "name": "sentencepiece",
+      "version": "0.2.2",
+      "filename": "sentencepiece-0.2.2-cp313-cp313-win_amd64.whl",
+      "sha256": "74f0ee601047c0c12a783088b51be4e6214a62ecd9e02278c477433cd16e0ed9",
+      "source": "https://files.pythonhosted.org/packages/09/fa/d2d6369257fd2f0de616b1c7110b73fab409ef61b14f1b9e0010ed325914/sentencepiece-0.2.2-cp313-cp313-win_amd64.whl",
+      "notices": [
+        {
+          "component": "SentencePiece",
+          "version": "0.2.2",
+          "license": "Apache-2.0",
+          "source": "https://github.com/google/sentencepiece/blob/e0cce7d37b065b5140349dbe12c6bcf6192fdd78/LICENSE",
+          "file": "sentencepiece-LICENSE.txt",
+          "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+        },
+        {
+          "component": "SentencePiece / Abseil",
+          "version": "20260526.0",
+          "license": "Apache-2.0",
+          "source": "https://github.com/abseil/abseil-cpp/blob/5650e9cf76d3be4318d5fa3af38ee483ddfd5e4a/LICENSE",
+          "file": "abseil-LICENSE.txt",
+          "sha256": "c79a7fea0e3cac04cd43f20e7b648e5a0ff8fa5344e644b0ee09ca1162b62747"
+        },
+        {
+          "component": "SentencePiece / darts-clone",
+          "version": "vendored in 0.2.2",
+          "license": "BSD-3-Clause",
+          "source": "https://github.com/google/sentencepiece/blob/e0cce7d37b065b5140349dbe12c6bcf6192fdd78/third_party/darts_clone/LICENSE",
+          "file": "darts-clone-LICENSE.txt",
+          "sha256": "155f59997298ee336602c49f9c1110f268ac394ca2197eb02647a3555935ad52"
+        },
+        {
+          "component": "SentencePiece / esaxx",
+          "version": "vendored in 0.2.2",
+          "license": "MIT",
+          "source": "https://github.com/google/sentencepiece/blob/e0cce7d37b065b5140349dbe12c6bcf6192fdd78/third_party/esaxx/LICENSE",
+          "file": "esaxx-LICENSE.txt",
+          "sha256": "7c28553d1d3312d65fe309f76a22ebaf33a3d76c8c1e3b98a88ee4654ecb53db"
+        },
+        {
+          "component": "SentencePiece / protobuf-lite",
+          "version": "vendored in 0.2.2",
+          "license": "BSD-3-Clause",
+          "source": "https://github.com/google/sentencepiece/blob/e0cce7d37b065b5140349dbe12c6bcf6192fdd78/third_party/protobuf-lite/LICENSE",
+          "file": "protobuf-lite-LICENSE.txt",
+          "sha256": "6e5e117324afd944dcf67f36cf329843bc1a92229a8cd9bb573d7a83130fea7d"
+        },
+        {
+          "component": "SentencePiece / pybind11",
+          "version": "3.x ABI; upstream build did not pin the patch version",
+          "license": "BSD-3-Clause",
+          "source": "https://github.com/pybind/pybind11/blob/v3.0.4/LICENSE",
+          "file": "pybind11-LICENSE.txt",
+          "sha256": "83965b843b98f670d3a85bd041ed4b372c8ec50d7b4a5995a83ac697ba675dcb",
+          "review_note": "Official v3.0.0 through v3.0.4 LICENSE files have identical bytes and Git blob e466b0dfda14f3a7c8ece512937eb99c8b7b6d68; no exact binary patch version is claimed."
+        },
+        {
+          "component": "SentencePiece / Unicode data",
+          "version": "data bundled in 0.2.2",
+          "license": "Unicode-3.0",
+          "source": "https://www.unicode.org/license.txt",
+          "file": "Unicode-LICENSE-v3.txt",
+          "sha256": "e7a93b009565cfce55919a381437ac4db883e9da2126fa28b91d12732bc53d96"
+        }
+      ]
+    },
+    {
+      "name": "ctranslate2",
+      "version": "4.8.3",
+      "filename": "ctranslate2-4.8.3-cp313-cp313-win_amd64.whl",
+      "sha256": "c3c5d19b83df19f9f708ed16145fbc20b06827462f1a68c5286efc0ad41aa0c1",
+      "source": "https://files.pythonhosted.org/packages/1d/d0/86d89881ffaa29ac54bb01a2da0b0680d39a9b737f5d0f799056ffc00bfe/ctranslate2-4.8.3-cp313-cp313-win_amd64.whl",
+      "build_recipe": "https://github.com/OpenNMT/CTranslate2/blob/8d91aa08225004755360daa43deb62b35b1ed65d/python/tools/prepare_build_environment_windows.sh",
+      "review_note": "Unmodified official wheel. Native static dependency versions follow the fixed source release recipe; cuDNN and Intel OpenMP DLL hashes independently match the official vendor archives. Intel credist references an April 2023 EULA in its preamble while the same signed 2025.3 installer ships the August 2024 EULA; both vendor documents are retained without editing.",
+      "native_files": {
+        "ctranslate2/cudnn64_9.dll": "9edbcdff73b0af070eb160b2ce66e59feca04aa017351d8eedcc5e8e149967d2",
+        "ctranslate2/libiomp5md.dll": "982233366b0afcda1e0f55a0b134097e35b779613f54ddb69e685e6cd06b755f"
+      },
+      "notices": [
+        {
+          "component": "CTranslate2 / CTranslate2",
+          "version": "4.8.3",
+          "license": "MIT",
+          "source": "https://raw.githubusercontent.com/OpenNMT/CTranslate2/8d91aa08225004755360daa43deb62b35b1ed65d/LICENSE",
+          "file": "ctranslate2-LICENSE.txt",
+          "sha256": "54aa79d9fe3c09e67a16dcd95b9e88676405a6ec174efda31036983cf7672ecb"
+        },
+        {
+          "component": "CTranslate2 / cpu_features",
+          "version": "8a494eb1e158ec2050e5f699a504fbc9b896a43b",
+          "license": "Apache-2.0 and included notices",
+          "source": "https://raw.githubusercontent.com/google/cpu_features/8a494eb1e158ec2050e5f699a504fbc9b896a43b/LICENSE",
+          "file": "cpu_features-LICENSE.txt",
+          "sha256": "af272c1b4dd08dd61d43e001d3134119d03ca7a2b057a64f7355fdf27fbea3dd"
+        },
+        {
+          "component": "CTranslate2 / spdlog",
+          "version": "76fb40d95455f249bd70824ecfcae7a8f0930fa3",
+          "license": "MIT",
+          "source": "https://raw.githubusercontent.com/gabime/spdlog/76fb40d95455f249bd70824ecfcae7a8f0930fa3/LICENSE",
+          "file": "spdlog-LICENSE.txt",
+          "sha256": "a7241a379cb98d37788f82c2fc2e484c3ae85dae881fd3406f0637644850926f"
+        },
+        {
+          "component": "CTranslate2 / oneDNN",
+          "version": "3.1.1",
+          "license": "Apache-2.0",
+          "source": "https://raw.githubusercontent.com/oneapi-src/oneDNN/v3.1.1/LICENSE",
+          "file": "oneDNN-LICENSE.txt",
+          "sha256": "dd12452e1ae11e3282271aa5895d8175296b83e936a027209f9399d26a407d0f"
+        },
+        {
+          "component": "CTranslate2 / oneDNN vendor combined notices",
+          "version": "3.1.1",
+          "license": "See included component terms",
+          "source": "https://raw.githubusercontent.com/oneapi-src/oneDNN/v3.1.1/THIRD-PARTY-PROGRAMS",
+          "file": "oneDNN-THIRD-PARTY-PROGRAMS.txt",
+          "sha256": "9117585dfc6b5cd0fafc063312f28a86ec82eb97bf68316dcefcaaa7fc11428e"
+        },
+        {
+          "component": "CTranslate2 / oneDNN ITT Notify",
+          "version": "3.1.1 source",
+          "license": "BSD-3-Clause",
+          "source": "https://raw.githubusercontent.com/oneapi-src/oneDNN/v3.1.1/src/common/ittnotify/LICENSE.BSD",
+          "file": "oneDNN-ittnotify-LICENSE.txt",
+          "sha256": "51e80f0261cdc1962e9b9a1c80f9aa6a7adf0b05f0f217caf59141f59b2ad1c1"
+        },
+        {
+          "component": "CTranslate2 / CUTLASS",
+          "version": "bbe579a9e3beb6ea6626d9227ec32d0dae119a49",
+          "license": "BSD-3-Clause",
+          "source": "https://raw.githubusercontent.com/NVIDIA/cutlass/bbe579a9e3beb6ea6626d9227ec32d0dae119a49/LICENSE.txt",
+          "file": "cutlass-LICENSE.txt",
+          "sha256": "6fc6ad419e4d26571a14c7c4d26b65345865c20dd8686ddcf5e8673f54d3d233"
+        },
+        {
+          "component": "CTranslate2 / CCCL vendor combined notices",
+          "version": "b5fe509fd11a925f90d6495176707cc1184eed9d",
+          "license": "See included component terms",
+          "source": "https://raw.githubusercontent.com/NVIDIA/cccl/b5fe509fd11a925f90d6495176707cc1184eed9d/LICENSE",
+          "file": "cccl-LICENSE.txt",
+          "sha256": "01b767dcd7d36f42efb608076741cf83f154a995e198028cb698aadc3a43b63b"
+        },
+        {
+          "component": "CTranslate2 / CUB",
+          "version": "CCCL b5fe509fd11a925f90d6495176707cc1184eed9d",
+          "license": "BSD-3-Clause",
+          "source": "https://raw.githubusercontent.com/NVIDIA/cccl/b5fe509fd11a925f90d6495176707cc1184eed9d/cub/LICENSE.TXT",
+          "file": "cccl-cub-LICENSE.txt",
+          "sha256": "2e15eba2e130f3e80d9e91724c7dce3781ce99316324681ff54b00c1fc9759b3"
+        },
+        {
+          "component": "CTranslate2 / libcudacxx",
+          "version": "CCCL b5fe509fd11a925f90d6495176707cc1184eed9d",
+          "license": "Apache-2.0 WITH LLVM-exception and included notices",
+          "source": "https://raw.githubusercontent.com/NVIDIA/cccl/b5fe509fd11a925f90d6495176707cc1184eed9d/libcudacxx/LICENSE.TXT",
+          "file": "cccl-libcudacxx-LICENSE.txt",
+          "sha256": "f2905be651fc32d33ad754a74e318e0a19eae7a134a23b1b1a4eb7496bfc1d93"
+        },
+        {
+          "component": "CTranslate2 / Thrust",
+          "version": "CCCL b5fe509fd11a925f90d6495176707cc1184eed9d",
+          "license": "Apache-2.0 and included notices",
+          "source": "https://raw.githubusercontent.com/NVIDIA/cccl/b5fe509fd11a925f90d6495176707cc1184eed9d/thrust/LICENSE",
+          "file": "cccl-thrust-LICENSE.txt",
+          "sha256": "9e42656b2b02223cee05e2344fee5673d9d5b731ac686ad1e3e543ace6ea6b95"
+        },
+        {
+          "component": "CTranslate2 / SIMD_Utils AVX512 helper",
+          "version": "0.2.5 header in 4.8.3",
+          "license": "BSD-2-Clause",
+          "source": "https://raw.githubusercontent.com/JishinMaster/simd_utils/b3f3e45d9fa6356fd1eb5071d361c92c864182f2/LICENSE",
+          "file": "simd-utils-LICENSE.txt",
+          "sha256": "dfaa54b4188ffa0e6298ce7ea27c865d12edcf73d742e2200ce9812db6268c0f"
+        },
+        {
+          "component": "CTranslate2 / AVX mathfun helper",
+          "version": "vendored in 4.8.3 source",
+          "license": "MIT AND Zlib",
+          "source": "https://raw.githubusercontent.com/OpenNMT/CTranslate2/8d91aa08225004755360daa43deb62b35b1ed65d/third_party/avx_mathfun.h",
+          "file": "avx-mathfun-LICENSE.txt",
+          "sha256": "e003505dfbca157688240dd3495c83ed80e2af797f9dd3ac0823e5dc028e5a54",
+          "source_sha256": "0420c25e0a8f87d9e1827c006913c2455f694cc966d2163acd0c058d7321016f",
+          "transform": "Complete first source comment containing the full original license"
+        },
+        {
+          "component": "CTranslate2 / spdlog bundled fmt",
+          "version": "vendored in 4.8.3 source",
+          "license": "MIT",
+          "source": "https://raw.githubusercontent.com/gabime/spdlog/76fb40d95455f249bd70824ecfcae7a8f0930fa3/include/spdlog/fmt/bundled/format.h",
+          "file": "fmt-LICENSE.txt",
+          "sha256": "2a342daf2271890c957fbff5f0803476cb50dad0d2771ae9c85f749112476037",
+          "source_sha256": "6fd10a3e3f316452fd9c81f8aa7135faa165d14b5fd12f40b71233ba35fc5a4c",
+          "transform": "Complete first source comment containing the full original license"
+        },
+        {
+          "component": "CTranslate2 / pybind11",
+          "version": "2.13.6",
+          "license": "BSD-3-Clause",
+          "source": "https://raw.githubusercontent.com/pybind/pybind11/v2.13.6/LICENSE",
+          "file": "pybind11-LICENSE.txt",
+          "sha256": "83965b843b98f670d3a85bd041ed4b372c8ec50d7b4a5995a83ac697ba675dcb"
+        },
+        {
+          "component": "CTranslate2 / NVIDIA CUDA runtime and vendor notices",
+          "version": "12.8.90 (Toolkit 12.8.1)",
+          "license": "NVIDIA CUDA Toolkit agreement and included component terms",
+          "source": "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cudart/windows-x86_64/cuda_cudart-windows-x86_64-12.8.90-archive.zip",
+          "file": "nvidia-cuda-LICENSE.txt",
+          "sha256": "e2c71babfd18a8e69542dd7e9ca018f9caa438094001a58e6bc4d8c999bf0d07",
+          "source_archive_sha256": "4a39058fd8519444a81cfc7ae055d136f48d1a31ffa41ae255b35b2edd61e13b",
+          "source_member": "cuda_cudart-windows-x86_64-12.8.90-archive/LICENSE"
+        },
+        {
+          "component": "CTranslate2 / NVIDIA cuDNN and vendor notices",
+          "version": "9.10.2 build 21, CUDA12",
+          "license": "NVIDIA SDK agreement and included component terms",
+          "source": "https://developer.download.nvidia.com/compute/cudnn/redist/redistrib_9.10.2.json",
+          "file": "nvidia-cudnn-LICENSE.txt",
+          "sha256": "295a1b7118d3417f5d6a943e5f87b59e2a0631fb277129c3b15dee6248adc7cf",
+          "source_archive_sha256": "c1a4567d822ebda7373fa1f19255dff4942302de741f830160b6c7d1fb31af23",
+          "source_member": "LICENSE",
+          "review_note": "The official redistribution manifest selects the Windows x86_64 CUDA12 archive by source_archive_sha256. source_member is relative to its top-level directory; the upstream four-part version is written as release plus build to distinguish it from a network address."
+        },
+        {
+          "component": "CTranslate2 / Intel compiler redistribution designation",
+          "version": "2025.3",
+          "license": "See included Intel and component terms",
+          "source": "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/1f18901e-877d-469d-a41a-a10f11b39336/intel-oneapi-base-toolkit-2025.3.0.372_offline.exe",
+          "file": "intel-compiler-credist.txt",
+          "sha256": "396a881181eceee56bbc2468d52d2ffd5fa313aa0b4b9ec509d5dd35872ab554",
+          "source_archive_sha256": "f4dde6e5ea732b1624f0a50df546401712bccdf45766c9a23b0865f95863f541",
+          "source_package": "packages/intel.oneapi.win.cpp-dpcpp-common,v=2025.3.0+640/cupPayload.cup",
+          "source_package_sha256": "2df178f3e5a12d0a4c55d526a0bc55a094829fbf9e1223a7a9117fcd8f4239aa",
+          "source_member": "_installdir/compiler/2025.3/share/doc/compiler/credist.txt"
+        },
+        {
+          "component": "CTranslate2 / Intel OpenMP vendor notices",
+          "version": "2025.3.0",
+          "license": "See included Intel and component terms",
+          "source": "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/1f18901e-877d-469d-a41a-a10f11b39336/intel-oneapi-base-toolkit-2025.3.0.372_offline.exe",
+          "file": "intel-openmp-THIRD-PARTY-PROGRAMS.txt",
+          "sha256": "f8ce918fe7311ce279e68380a2e233f8a42b1cd3dda8f4c48d6de97a0255c1d7",
+          "source_archive_sha256": "f4dde6e5ea732b1624f0a50df546401712bccdf45766c9a23b0865f95863f541",
+          "source_package": "packages/intel.oneapi.win.openmp,v=2025.3.0+640/cupPayload.cup",
+          "source_package_sha256": "9605885e79f82d668c239871894ab42603ba698f85776da1a7d04922f6a325ad",
+          "source_member": "_installdir/compiler/2025.3/share/doc/compiler/licensing/openmp/third-party-programs.txt"
+        },
+        {
+          "component": "CTranslate2 / Intel oneTBB nested license",
+          "version": "2022.3.0",
+          "license": "See included Intel and component terms",
+          "source": "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/1f18901e-877d-469d-a41a-a10f11b39336/intel-oneapi-base-toolkit-2025.3.0.372_offline.exe",
+          "file": "intel-tbb-LICENSE.txt",
+          "sha256": "4229ebf297195a64279a99566431731c411f744a34e1213a5b1e69a8fa286ea1",
+          "source_archive_sha256": "f4dde6e5ea732b1624f0a50df546401712bccdf45766c9a23b0865f95863f541",
+          "source_package": "packages/intel.oneapi.win.tbb.runtime,v=2022.3.0+380/cupPayload.cup",
+          "source_package_sha256": "bcfb40a888c0326d99afdd52930e423685fbb848acfb399ab3a8226931e4bc35",
+          "source_member": "_installdir/tbb/2022.3/share/doc/tbb/licensing/license.txt"
+        },
+        {
+          "component": "CTranslate2 / Intel oneTBB nested notices",
+          "version": "2022.3.0",
+          "license": "See included Intel and component terms",
+          "source": "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/1f18901e-877d-469d-a41a-a10f11b39336/intel-oneapi-base-toolkit-2025.3.0.372_offline.exe",
+          "file": "intel-tbb-THIRD-PARTY-PROGRAMS.txt",
+          "sha256": "1f6de0bd498c04c9283c6306379e2db2492e1c4e7d2b248c8de0e8fe9124cd03",
+          "source_archive_sha256": "f4dde6e5ea732b1624f0a50df546401712bccdf45766c9a23b0865f95863f541",
+          "source_package": "packages/intel.oneapi.win.tbb.runtime,v=2022.3.0+380/cupPayload.cup",
+          "source_package_sha256": "bcfb40a888c0326d99afdd52930e423685fbb848acfb399ab3a8226931e4bc35",
+          "source_member": "_installdir/tbb/2022.3/share/doc/tbb/licensing/third-party-programs.txt"
+        },
+        {
+          "component": "CTranslate2 / Intel TCM nested license",
+          "version": "1.4.1",
+          "license": "See included Intel and component terms",
+          "source": "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/1f18901e-877d-469d-a41a-a10f11b39336/intel-oneapi-base-toolkit-2025.3.0.372_offline.exe",
+          "file": "intel-tcm-LICENSE.txt",
+          "sha256": "6c00ae54b2a610ea009e0f5c5d3aa79023eb694c7fb72857654c53c6e99d7c97",
+          "source_archive_sha256": "f4dde6e5ea732b1624f0a50df546401712bccdf45766c9a23b0865f95863f541",
+          "source_package": "packages/intel.oneapi.win.tcm,v=1.4.1+444/cupPayload.cup",
+          "source_package_sha256": "bc0d00df9917fc966d00c4b0415311328615c8ce3d7f5a0a849e58ff094e7950",
+          "source_member": "_installdir/tcm/1.4/share/doc/tcm/licensing/license.txt"
+        },
+        {
+          "component": "CTranslate2 / Intel TCM nested notices",
+          "version": "1.4.1",
+          "license": "See included Intel and component terms",
+          "source": "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/1f18901e-877d-469d-a41a-a10f11b39336/intel-oneapi-base-toolkit-2025.3.0.372_offline.exe",
+          "file": "intel-tcm-THIRD-PARTY-PROGRAMS.txt",
+          "sha256": "0c359ebe1a1c58c3bb42eb228b6c3310361fe75d99ddb2fa29c536bf2a290955",
+          "source_archive_sha256": "f4dde6e5ea732b1624f0a50df546401712bccdf45766c9a23b0865f95863f541",
+          "source_package": "packages/intel.oneapi.win.tcm,v=1.4.1+444/cupPayload.cup",
+          "source_package_sha256": "bc0d00df9917fc966d00c4b0415311328615c8ce3d7f5a0a849e58ff094e7950",
+          "source_member": "_installdir/tcm/1.4/share/doc/tcm/licensing/third-party-programs.txt"
+        },
+        {
+          "component": "CTranslate2 / Intel oneMKL vendor combined notices",
+          "version": "2025.3.0",
+          "license": "See included component terms",
+          "source": "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/1f18901e-877d-469d-a41a-a10f11b39336/intel-oneapi-base-toolkit-2025.3.0.372_offline.exe",
+          "file": "intel-mkl-third-party-programs-benchmarks.txt",
+          "sha256": "1f1224af12a7d3e51150ce6f762e32472076a31f6e44db41d3b651a7fa20f2f5",
+          "source_archive_sha256": "f4dde6e5ea732b1624f0a50df546401712bccdf45766c9a23b0865f95863f541",
+          "source_package": "packages/intel.oneapi.win.mkl.runtime,v=2025.3.0+453/cupPayload.cup",
+          "source_package_sha256": "81b96a1c66d8268edf6fcd03c04a6a453dc0fb98eceec631094716077eb58d14",
+          "source_member": "_installdir/mkl/2025.3/share/doc/mkl/licensing/third-party-programs-benchmarks.txt",
+          "review_note": "Complete vendor aggregate and referenced notices retained; optional components in this document are not asserted to be separately shipped."
+        },
+        {
+          "component": "CTranslate2 / Intel oneMKL vendor combined notices",
+          "version": "2025.3.0",
+          "license": "See included component terms",
+          "source": "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/1f18901e-877d-469d-a41a-a10f11b39336/intel-oneapi-base-toolkit-2025.3.0.372_offline.exe",
+          "file": "intel-mkl-third-party-programs-IntelMPI.txt",
+          "sha256": "82fa46762c37662a52ab9df58781813c1dc6c268ae2b6f9cf2d83183e706aa09",
+          "source_archive_sha256": "f4dde6e5ea732b1624f0a50df546401712bccdf45766c9a23b0865f95863f541",
+          "source_package": "packages/intel.oneapi.win.mkl.runtime,v=2025.3.0+453/cupPayload.cup",
+          "source_package_sha256": "81b96a1c66d8268edf6fcd03c04a6a453dc0fb98eceec631094716077eb58d14",
+          "source_member": "_installdir/mkl/2025.3/share/doc/mkl/licensing/third-party-programs-IntelMPI.txt",
+          "review_note": "Complete vendor aggregate and referenced notices retained; optional components in this document are not asserted to be separately shipped."
+        },
+        {
+          "component": "CTranslate2 / Intel oneMKL vendor combined notices",
+          "version": "2025.3.0",
+          "license": "See included component terms",
+          "source": "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/1f18901e-877d-469d-a41a-a10f11b39336/intel-oneapi-base-toolkit-2025.3.0.372_offline.exe",
+          "file": "intel-mkl-third-party-programs-level-zero.txt",
+          "sha256": "cfe7d2ba4b4cd53271c7f91937e906256c0f14ea62ba33ffb556664b8d39aa59",
+          "source_archive_sha256": "f4dde6e5ea732b1624f0a50df546401712bccdf45766c9a23b0865f95863f541",
+          "source_package": "packages/intel.oneapi.win.mkl.runtime,v=2025.3.0+453/cupPayload.cup",
+          "source_package_sha256": "81b96a1c66d8268edf6fcd03c04a6a453dc0fb98eceec631094716077eb58d14",
+          "source_member": "_installdir/mkl/2025.3/share/doc/mkl/licensing/third-party-programs-level-zero.txt",
+          "review_note": "Complete vendor aggregate and referenced notices retained; optional components in this document are not asserted to be separately shipped."
+        },
+        {
+          "component": "CTranslate2 / Intel oneMKL vendor combined notices",
+          "version": "2025.3.0",
+          "license": "See included component terms",
+          "source": "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/1f18901e-877d-469d-a41a-a10f11b39336/intel-oneapi-base-toolkit-2025.3.0.372_offline.exe",
+          "file": "intel-mkl-third-party-programs-oneMath.txt",
+          "sha256": "2ba4e9858c253331691370f4e8e3899ca6a5baa20907f189f5970635870b860d",
+          "source_archive_sha256": "f4dde6e5ea732b1624f0a50df546401712bccdf45766c9a23b0865f95863f541",
+          "source_package": "packages/intel.oneapi.win.mkl.runtime,v=2025.3.0+453/cupPayload.cup",
+          "source_package_sha256": "81b96a1c66d8268edf6fcd03c04a6a453dc0fb98eceec631094716077eb58d14",
+          "source_member": "_installdir/mkl/2025.3/share/doc/mkl/licensing/third-party-programs-oneMath.txt",
+          "review_note": "Complete vendor aggregate and referenced notices retained; optional components in this document are not asserted to be separately shipped."
+        },
+        {
+          "component": "CTranslate2 / Intel oneMKL vendor combined notices",
+          "version": "2025.3.0",
+          "license": "See included component terms",
+          "source": "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/1f18901e-877d-469d-a41a-a10f11b39336/intel-oneapi-base-toolkit-2025.3.0.372_offline.exe",
+          "file": "intel-mkl-third-party-programs-oneTBB.txt",
+          "sha256": "d507da4fffae647ebc1bbb7e12cc5cca8087d36b0d78cc75caa96cae37688cb1",
+          "source_archive_sha256": "f4dde6e5ea732b1624f0a50df546401712bccdf45766c9a23b0865f95863f541",
+          "source_package": "packages/intel.oneapi.win.mkl.runtime,v=2025.3.0+453/cupPayload.cup",
+          "source_package_sha256": "81b96a1c66d8268edf6fcd03c04a6a453dc0fb98eceec631094716077eb58d14",
+          "source_member": "_installdir/mkl/2025.3/share/doc/mkl/licensing/third-party-programs-oneTBB.txt",
+          "review_note": "Complete vendor aggregate and referenced notices retained; optional components in this document are not asserted to be separately shipped."
+        },
+        {
+          "component": "CTranslate2 / Intel oneMKL vendor combined notices",
+          "version": "2025.3.0",
+          "license": "See included component terms",
+          "source": "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/1f18901e-877d-469d-a41a-a10f11b39336/intel-oneapi-base-toolkit-2025.3.0.372_offline.exe",
+          "file": "intel-mkl-third-party-programs-openmp.txt",
+          "sha256": "8fdfbbdfed13bca3641da35182e7ee1bb92a99f302ce8b0deb981ac1f18adee2",
+          "source_archive_sha256": "f4dde6e5ea732b1624f0a50df546401712bccdf45766c9a23b0865f95863f541",
+          "source_package": "packages/intel.oneapi.win.mkl.runtime,v=2025.3.0+453/cupPayload.cup",
+          "source_package_sha256": "81b96a1c66d8268edf6fcd03c04a6a453dc0fb98eceec631094716077eb58d14",
+          "source_member": "_installdir/mkl/2025.3/share/doc/mkl/licensing/third-party-programs-openmp.txt",
+          "review_note": "Complete vendor aggregate and referenced notices retained; optional components in this document are not asserted to be separately shipped."
+        },
+        {
+          "component": "CTranslate2 / Intel oneMKL vendor combined notices",
+          "version": "2025.3.0",
+          "license": "See included component terms",
+          "source": "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/1f18901e-877d-469d-a41a-a10f11b39336/intel-oneapi-base-toolkit-2025.3.0.372_offline.exe",
+          "file": "intel-mkl-third-party-programs-safestring.txt",
+          "sha256": "415000d1887939ffc6826e0ed3f099cebcab6aaeda2da0acb017110a456b3d42",
+          "source_archive_sha256": "f4dde6e5ea732b1624f0a50df546401712bccdf45766c9a23b0865f95863f541",
+          "source_package": "packages/intel.oneapi.win.mkl.runtime,v=2025.3.0+453/cupPayload.cup",
+          "source_package_sha256": "81b96a1c66d8268edf6fcd03c04a6a453dc0fb98eceec631094716077eb58d14",
+          "source_member": "_installdir/mkl/2025.3/share/doc/mkl/licensing/third-party-programs-safestring.txt",
+          "review_note": "Complete vendor aggregate and referenced notices retained; optional components in this document are not asserted to be separately shipped."
+        },
+        {
+          "component": "CTranslate2 / Intel oneMKL vendor combined notices",
+          "version": "2025.3.0",
+          "license": "See included component terms",
+          "source": "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/1f18901e-877d-469d-a41a-a10f11b39336/intel-oneapi-base-toolkit-2025.3.0.372_offline.exe",
+          "file": "intel-mkl-third-party-programs.txt",
+          "sha256": "6fb57367c2107b8b3347e0e9db10d368c7b9ea898a08132b2f841b24b86f076f",
+          "source_archive_sha256": "f4dde6e5ea732b1624f0a50df546401712bccdf45766c9a23b0865f95863f541",
+          "source_package": "packages/intel.oneapi.win.mkl.runtime,v=2025.3.0+453/cupPayload.cup",
+          "source_package_sha256": "81b96a1c66d8268edf6fcd03c04a6a453dc0fb98eceec631094716077eb58d14",
+          "source_member": "_installdir/mkl/2025.3/share/doc/mkl/licensing/third-party-programs.txt",
+          "review_note": "Complete vendor aggregate and referenced notices retained; optional components in this document are not asserted to be separately shipped."
+        },
+        {
+          "component": "CTranslate2 / Intel compiler EULA",
+          "version": "August 2024",
+          "license": "Intel Developer Tools EULA",
+          "source": "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/1f18901e-877d-469d-a41a-a10f11b39336/intel-oneapi-base-toolkit-2025.3.0.372_offline.exe",
+          "file": "intel-compiler-EULA.txt",
+          "sha256": "3e723b384b70c06ad0250a5c63b900cc08cf89a08610eb340a0074da94f22e18",
+          "source_sha256": "4e96f3006c9d51b38561f9802da896480dc48e7703a76c206292bf6d6d11a781",
+          "transform": "System.Windows.Forms.RichTextBox.Rtf -> Text, UTF-8 without BOM; original signed source retained",
+          "source_archive_sha256": "f4dde6e5ea732b1624f0a50df546401712bccdf45766c9a23b0865f95863f541",
+          "source_package": "packages/intel.oneapi.win.cpp-dpcpp-common,v=2025.3.0+640/cupPayload.cup",
+          "source_member": "_installdir/compiler/2025.3/share/doc/compiler/licensing/c/LICENSE.rtf"
+        },
+        {
+          "component": "CTranslate2 / Intel oneMKL license",
+          "version": "October 2022; oneMKL 2025.3.0",
+          "license": "Intel Simplified Software License",
+          "source": "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/1f18901e-877d-469d-a41a-a10f11b39336/intel-oneapi-base-toolkit-2025.3.0.372_offline.exe",
+          "file": "intel-mkl-LICENSE.txt",
+          "sha256": "45b533700d5a7dd767f865c56f5a92fff091a66180002b610eea917223c14e9a",
+          "source_sha256": "d56da0d4f1f8ba97a2f912f03f6b782bad2f2baa5b0445e6f505b2e0f1bc38da",
+          "transform": "System.Windows.Forms.RichTextBox.Rtf -> Text, UTF-8 without BOM; original signed source retained",
+          "source_archive_sha256": "f4dde6e5ea732b1624f0a50df546401712bccdf45766c9a23b0865f95863f541",
+          "source_package": "packages/intel.oneapi.win.mkl.runtime,v=2025.3.0+453/cupPayload.cup",
+          "source_member": "_installdir/mkl/2025.3/share/doc/mkl/licensing/license.rtf"
+        },
+        {
+          "component": "CTranslate2 / Intel OpenMP wheel EULA",
+          "version": "August 2024; OpenMP 2025.3.0",
+          "license": "Intel Developer Tools EULA",
+          "source": "https://pypi.org/project/intel-openmp/2025.3.0/",
+          "file": "intel-openmp-EULA.txt",
+          "sha256": "28529142173be36cca1a01051e54c5b51a699e339d9cad2238ffbf77b79ec93e",
+          "source_member": "intel_openmp-2025.3.0.dist-info/LICENSE.txt",
+          "source_archive_sha256": "8ff899d01a41b92ffe0e618b221ea633127d16df726086082d381c431c31339d",
+          "source_sha256": "febfb69a5b058f55892dc7f341108a9ca29d50e9fe85723a57eebbb826436958",
+          "transform": "Lossless CP1252 to UTF-8 transcoding"
+        }
+      ]
+    }
+  ]
+}

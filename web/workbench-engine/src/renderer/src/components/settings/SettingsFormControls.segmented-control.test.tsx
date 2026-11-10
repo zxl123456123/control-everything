@@ -1,0 +1,80 @@
+// @vitest-environment happy-dom
+import { useState } from 'react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { TooltipProvider } from '../ui/tooltip'
+import { SettingsSegmentedControl } from './SettingsFormControls'
+
+afterEach(cleanup)
+
+function renderControl(onChange = vi.fn()): { onChange: ReturnType<typeof vi.fn> } {
+  render(
+    <TooltipProvider>
+      <SettingsSegmentedControl<string>
+        value="stable"
+        onChange={onChange}
+        options={[
+          { value: 'stable', label: 'Stable' },
+          {
+            value: 'hourly',
+            label: 'Hourly',
+            disabled: true,
+            ariaLabel: 'Hourly (macOS and Windows only)',
+            tooltip: 'Hourly builds are produced only for macOS and Windows.'
+          }
+        ]}
+      />
+    </TooltipProvider>
+  )
+  return { onChange }
+}
+
+describe('SettingsSegmentedControl unavailable options', () => {
+  it('retains upstream option buttons and typed clicks without a custom arrow controller', async () => {
+    const onChange = vi.fn()
+    function Control() {
+      const [value, setValue] = useState(1)
+      return <SettingsSegmentedControl value={value} onChange={(next) => { onChange(next); setValue(next) }}
+        options={[{ value: 1, label: 'One' }, { value: 2, label: 'Two' }, { value: 3, label: 'Three' }]} />
+    }
+    render(<Control />)
+    const one = screen.getByRole('radio', { name: 'One' })
+    const two = screen.getByRole('radio', { name: 'Two' })
+    for (const radio of screen.getAllByRole('radio')) {
+      expect(radio.tagName).toBe('BUTTON')
+      expect(radio.tabIndex).toBe(0)
+    }
+    one.focus()
+    for (const key of ['ArrowRight', 'End', 'Home']) fireEvent.keyDown(one, { key })
+    expect(document.activeElement).toBe(one)
+    expect(one.getAttribute('aria-checked')).toBe('true')
+    expect(onChange).not.toHaveBeenCalled()
+    fireEvent.click(two)
+    await waitFor(() => expect(two.getAttribute('aria-checked')).toBe('true'))
+    expect(onChange).toHaveBeenLastCalledWith(2)
+  })
+  // Why: a native disabled button leaves the tab order, so keyboard users can never
+  // focus it to open the tooltip explaining why the option is unavailable.
+  it('marks unavailable options aria-disabled so their tooltip stays reachable', async () => {
+    renderControl()
+
+    const hourly = screen.getByRole('radio', { name: 'Hourly (macOS and Windows only)' })
+    expect(hourly.hasAttribute('disabled')).toBe(false)
+    expect(hourly.getAttribute('aria-disabled')).toBe('true')
+
+    fireEvent.focus(hourly)
+    expect(
+      await screen.findAllByText('Hourly builds are produced only for macOS and Windows.')
+    ).not.toHaveLength(0)
+  })
+
+  it('ignores clicks on unavailable options', () => {
+    const { onChange } = renderControl()
+
+    fireEvent.click(screen.getByRole('radio', { name: 'Hourly (macOS and Windows only)' }))
+    expect(onChange).not.toHaveBeenCalled()
+
+    fireEvent.click(screen.getByRole('radio', { name: 'Stable' }))
+    expect(onChange).toHaveBeenCalledWith('stable')
+  })
+})

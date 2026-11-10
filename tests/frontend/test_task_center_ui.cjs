@@ -65,7 +65,9 @@ test('empty projects: quick creation is title-only and succeeds without a projec
 });
 test('literal titles, empty raw IDs and same raw ID from separate origins stay distinct', () => {
   const f = fixture(page([item({ title: '<img onerror=attack()>', origin_id: '' }), item({ id: '00000000-0000-4000-8000-000000000002', origin: 'todo' }), item({ id: '00000000-0000-4000-8000-000000000003' })]));
-  assert.match(f.get('items-list').textContent, /<img onerror=attack\(\)>/); assert.match(f.get('items-list').textContent, /空原ID/);
+  assert.match(f.get('items-list').textContent, /<img onerror=attack\(\)>/);
+  assert.doesNotMatch(f.get('items-list').textContent, /空原ID/);
+  f.api.open(item({ origin_id: '' })); assert.match(f.get('item-identity').textContent, /空原ID/);
   assert.equal(f.get('items-list').children.length, 3); assert.equal(f.host.querySelectorAll('img').length, 0);
 });
 for (const state of ['todo', 'doing', 'blocked', 'review', 'done']) test(`state ${state} updates by internal UUID, never raw origin ID`, async () => {
@@ -142,10 +144,37 @@ test('late page response cannot replace newer page or updated snapshot; drafts s
   const stale = f.api.refresh(0); f.api.update({ ...f.snapshot, items_page: page([item({ title: 'SNAPSHOT' })]) });
   f.reads[2].resolve(page([item({ title: 'LATE' })])); await stale; assert.match(f.get('items-list').textContent, /SNAPSHOT/); assert.equal(f.get('item-quick-title').value, 'quick draft');
 });
-test('read failure is visible, keeps draft, removes old page and recovers', async () => {
-  const f = fixture(); f.api.open(item()); f.get('item-title').value = 'draft'; const pending = f.api.refresh(0);
-  f.reads[0].reject(new Error('read lost')); await pending; assert.match(f.get('items-status').textContent, /读取失败/); assert.ok(!f.get('items-list').textContent.includes('原任务'));
-  const recovered = f.api.refresh(0); f.reads[1].resolve(page()); await recovered; assert.match(f.get('items-list').textContent, /原任务/); assert.equal(f.get('item-title').value, 'draft');
+test('same-scope read failure keeps the last page with stale feedback and retains the editor', async () => {
+  const f = fixture(page([item({ title: '已读快照' })])); f.api.open(item()); f.get('item-title').value = 'draft'; const pending = f.api.refresh(0);
+  f.reads[0].reject(new Error('read lost')); await pending; assert.match(f.get('items-status').textContent, /读取失败.*上次记录/); assert.match(f.get('items-list').textContent, /已读快照/);
+  const recovered = f.api.refresh(0); f.reads[1].resolve(page()); await recovered; assert.match(f.get('items-list').textContent, /编辑详情/); assert.equal(f.get('item-title').value, 'draft');
+});
+
+test('metadata-only update reads no unscoped page and context replacement clears the previous project before GET', async () => {
+  const f = fixture(page([item({ title: '旧范围快照' })]), { projects: [{ id: 'a', name: 'A' }, { id: 'b', name: 'B' }] });
+  f.api.update(f.snapshot, { refresh: false }); assert.equal(f.reads.length, 0);
+  const first = f.api.setContext({ projectId: 'a', scope: 'all', state: '' });
+  assert.doesNotMatch(f.get('items-list').textContent, /旧范围快照/); assert.match(f.reads[0].url, /project_id=a/);
+  const next = f.api.setContext({ projectId: 'b', scope: 'all', state: '' });
+  f.reads[0].resolve(page([item({ title: 'A 晚到' })])); await first;
+  f.reads[1].reject(new Error('B unavailable')); await next;
+  assert.doesNotMatch(f.get('items-list').textContent, /A 晚到|旧范围快照/); assert.match(f.get('items-status').textContent, /读取失败/);
+});
+
+test('setActive and dispose retire late reads without closing a hidden draft or accepting a stale page', async () => {
+  const f = fixture(); f.api.open(item()); f.get('item-title').value = '保留';
+  const pending = f.api.refresh(0); f.api.setActive(false); f.reads[0].resolve(page([item({ title: '隐藏晚到' })])); await pending;
+  assert.equal(f.get('item-editor').open, true); assert.equal(f.get('item-title').value, '保留'); assert.doesNotMatch(f.get('items-list').textContent, /隐藏晚到/);
+  f.api.setActive(true); const retired = f.api.refresh(0); f.api.dispose(); const before = f.host.textContent;
+  f.reads[1].resolve(page([item({ title: '退役晚到' })])); await retired;
+  assert.equal(f.get('item-editor').open, false); assert.equal(f.host.textContent, before); assert.equal(f.reads.length, 2);
+});
+
+test('a confirmed write after disposal has one receipt and never refreshes or reopens retired DOM', async () => {
+  let saved = 0; const f = fixture(page(), { onSaved: () => saved++ }); f.get('item-quick-title').value = '已发送';
+  const pending = f.get('item-quick-form').fire('submit'); f.api.dispose(); const before = f.host.textContent;
+  f.writes[0].resolve({ item: item() }); await pending;
+  assert.equal(f.writes.length, 1); assert.equal(f.reads.length, 0); assert.equal(saved, 0); assert.equal(f.host.textContent, before);
 });
 test('archived/orphan original associations and unavailable sessions are preserved on state-only edit', async () => {
   const f = fixture(page(), { projects: [{ id: 'archived', name: '旧项目', archived: true }] });
@@ -161,4 +190,61 @@ test('Hermes and Pi are task labels only; explicit project unlink sends null', a
 test('confirmed save is not reported as unknown if project refresh fails', async () => {
   const f = fixture(page(), { onSaved: async () => { throw new Error('refresh failed'); } }); f.get('item-quick-title').value = 'confirmed';
   const pending = f.get('item-quick-form').fire('submit'); await settleWrite(f, pending); assert.equal(f.get('item-quick-title').value, ''); assert.match(f.get('item-quick-feedback').textContent, /保存已确认/);
+});
+
+test('project context defaults new items without reassigning existing global items', async () => {
+  const f = fixture(page(), { projects: [{ id: 'p', name: 'Project' }] });
+  const loading = f.api.setContext({ projectId: 'p' });
+  assert.equal(new URL('http://local' + f.reads.at(-1).url).searchParams.get('project_id'), 'p');
+  f.reads.at(-1).resolve(page()); await loading;
+  f.api.open(); assert.equal(f.get('item-project_id').value, 'p');
+  f.api.open(item()); assert.equal(f.get('item-project_id').value, '');
+  f.get('item-quick-title').value = 'project task'; await f.get('item-quick-title').fire('input');
+  const saving = f.get('item-quick-form').fire('submit');
+  assert.equal(f.writes[0].payload.project_id, 'p'); await settleWrite(f, saving);
+});
+
+test('quick and detail drafts retain identity across project and attention navigation', async () => {
+  const f = fixture(page(), { projects: [{ id: 'p', name: 'Project' }] });
+  let pending = f.api.setContext({ projectId: 'p' }); f.reads.at(-1).resolve(page()); await pending;
+  f.get('item-quick-title').value = 'draft'; await f.get('item-quick-title').fire('input');
+  f.api.open(item()); f.get('item-title').value = 'detail draft';
+  pending = f.api.setContext({ scope: 'attention' });
+  assert.equal(new URL('http://local' + f.reads.at(-1).url).searchParams.get('scope'), 'attention');
+  f.reads.at(-1).resolve(page()); await pending;
+  assert.equal(f.get('item-title').value, 'detail draft');
+  const reads = f.reads.length; f.api.setContext({ scope: 'attention' }); assert.equal(f.reads.length, reads);
+  const saving = f.get('item-quick-form').fire('submit');
+  assert.equal(f.writes[0].payload.project_id, 'p'); await settleWrite(f, saving);
+});
+
+for (const entry of ['quick', 'detail']) test(`${entry} permits an unlinked manual item in a selected Codex project while its source is unavailable`, async () => {
+  const projectId = 'cx-' + '1'.repeat(24);
+  const f = fixture(page([]), { projects: [{ id: projectId, name: 'Codex project', read_only: true, binding_available: false }] });
+  f.snapshot.codex_desktop = { status: 'unavailable' }; f.api.update(f.snapshot);
+  const loading = f.api.setContext({ projectId }); f.reads.at(-1).resolve(page([])); await loading;
+  let saving;
+  if (entry === 'quick') {
+    f.get('item-quick-title').value = 'Manual next step'; await f.get('item-quick-title').fire('input');
+    saving = f.get('item-quick-form').fire('submit');
+  } else {
+    f.api.open(); f.get('item-title').value = 'Manual next step';
+    assert.equal(f.get('item-session_key').value, ''); saving = f.get('item-form').fire('submit');
+  }
+  assert.equal(f.writes.length, 1); assert.equal(f.writes[0].payload.project_id, projectId);
+  assert.ok(!f.writes[0].payload.session_key);
+  await settleWrite(f, saving, { item: item({ title: 'Manual next step', project_id: projectId }) });
+});
+
+test('unavailable Codex source still blocks a new nonempty session association and openSession', async () => {
+  const projectId = 'cx-' + '1'.repeat(24), key = 'codex:00000000-0000-4000-8000-000000000009';
+  const session = { session_key: key, thread_id: key.slice(6), cwd: 'C:/example/project', assignment_state: 'assigned', project_id: projectId, binding_available: true };
+  const f = fixture(page([]), { projects: [{ id: projectId, name: 'Codex', read_only: true, binding_available: false }], sessions: [session] });
+  f.snapshot.codex_desktop = { status: 'stale' }; f.api.update(f.snapshot);
+  assert.equal(f.api.openSession(session, projectId), false);
+  const loading = f.api.setContext({ projectId }); f.reads.at(-1).resolve(page([])); await loading;
+  f.api.open(); f.get('item-title').value = 'Linked next step'; f.get('item-provider_id').value = 'codex';
+  await f.get('item-provider_id').fire('change'); f.get('item-session_key').value = key;
+  await f.get('item-form').fire('submit');
+  assert.equal(f.writes.length, 0); assert.match(f.get('item-feedback').textContent, /Codex 来源当前不能建立新关联/);
 });

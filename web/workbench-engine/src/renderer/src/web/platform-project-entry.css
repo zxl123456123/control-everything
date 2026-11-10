@@ -1,0 +1,76 @@
+.platform-project-entry {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.platform-project-tabs {display:flex;align-items:center;flex:0 0 44px;min-height:44px;min-width:0;padding:0 12px;border-bottom:1px solid var(--border);color:var(--foreground);background:var(--background)}
+.platform-project-back {display:inline-flex;align-items:center;min-height:40px;padding:4px 10px;border-radius:12px;white-space:nowrap;color:var(--foreground);font-size:14px;line-height:22px;font-weight:600;text-decoration:none}
+.platform-project-back:hover {background:var(--accent)}
+.platform-project-tabs a:focus-visible {outline:2px solid var(--ring);outline-offset:3px}
+.platform-runtime-status {flex:0 0 auto;min-height:22px;position:relative;padding:2px 18px;text-align:right;font-size:11px;color:var(--muted-foreground)}
+:root[data-platform-view=studio] .platform-runtime-status {display:none}
+.platform-studio-surface {flex:1 1 0;min-height:0;overflow:auto;background:var(--background)}
+.platform-studio-host {display:block;min-height:100%;font-family:var(--app-font-family)}
+.platform-studio-host,.platform-project-dialog-host {--platform-bg:var(--background);--platform-panel:var(--card);--platform-text:var(--foreground);--platform-sub:var(--muted-foreground);--platform-soft:var(--muted);--platform-line:var(--border);--platform-input-border:var(--input);--platform-ring:var(--ring);--platform-hover:var(--accent);--platform-primary:var(--primary);--platform-on-primary:var(--primary-foreground)}
+.platform-surface-feedback {padding:32px;display:flex;flex-wrap:wrap;gap:16px;align-items:center;color:var(--foreground)}
+.platform-surface-feedback button,.platform-surface-feedback a {padding:8px 14px;border:1px solid var(--border);border-radius:7px}
+.platform-navigation-notice {padding:6px 20px;background:var(--accent);color:var(--foreground);font-size:13px}
+.platform-project-content:not([hidden]),.platform-studio-surface:not([hidden]) {animation:platform-enter 160ms ease-out}
+.platform-project-entry [hidden] {display:none!important}
+@keyframes platform-enter {from {opacity:.65;transform:translateY(4px)} to {opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce) {.platform-project-content,.platform-studio-surface {animation:none!important}}
+
+.platform-project-entry > .platform-project-content {
+  flex: 1 1 0%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Unlayered so the original App's unlayered viewport height cannot override it. */
+.platform-project-entry .app-layout {
+  width: 100%;
+  height: 100%;
+}
+
+:root[data-platform-view='workspace'] :is(.titlebar, .titlebar-left) {
+  background: var(--sidebar);
+  border-color: var(--border);
+}
+
+:root[data-platform-view='workspace'] .titlebar-app-name-main {
+  color: var(--primary);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+
+
+
+
+
+
+
+
+
+.platform-workspace-context {display:inline-block;max-width:100%;text-align:left}
+.platform-workspace-context summary {cursor:pointer;overflow-wrap:anywhere}
+.platform-workspace-context > div {position:absolute;right:10px;top:100%;z-index:30;max-width:min(560px,calc(100vw - 20px));padding:10px 14px;border:1px solid var(--border);border-radius:7px;background:var(--background);box-shadow:0 4px 16px #0002;overflow-wrap:anywhere}
+.platform-workspace-context p {margin:3px 0}
+
+.platform-project-all-tasks {white-space:nowrap;color:var(--muted-foreground);font-size:12px;text-decoration:none}
+
+:root[data-platform-view=studio] .platform-runtime-status[data-pending=true]:not([hidden]) {display:block;padding:16px 20px;text-align:left;font-size:13px}
+.platform-runtime-status[data-recovering=true]:not([hidden]) {display:flex;flex-wrap:wrap;align-items:center;gap:6px 16px;padding:8px 18px;text-align:left;font-size:13px;background:var(--accent);pointer-events:auto;position:relative;z-index:80}
+.platform-runtime-status[data-recovering=true] .platform-runtime-recovery {margin-top:0;gap:12px}
+.platform-project-content[aria-busy=true] {opacity:.75}
+.platform-runtime-recovery {display:flex;gap:16px;align-items:center;margin-top:12px}
+.platform-runtime-recovery button,.platform-runtime-recovery a {padding:8px 14px;border:1px solid var(--border);border-radius:7px;color:var(--foreground)}
+
+@media (forced-colors:active) {
+  .platform-project-tabs a:focus-visible {outline-color:Highlight}
+}
+@media(pointer:coarse){.platform-project-back{min-height:44px;min-width:44px}}

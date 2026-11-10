@@ -9,14 +9,44 @@ node_modules/
 /build/
 /dist/
 *.egg-info/
+/web/workbench-engine/out/
+/web/workbench-engine/.build/
+/web/workbench-engine/.cache/
+/web/workbench-engine/mobile/.expo/
+/web/workbench-engine/mobile/dist/
+/web/workbench-engine/mobile/android/
+/web/workbench-engine/mobile/ios/
+/web/workbench-engine/src/packages/process-host/dist/
+/web/workbench-engine/native/windows-cli-launcher/target/
+/web/workbench-engine/native/windows-agent-hook/target/
+/web/workbench-engine/native/windows-agent-hook/.build/
 
-# Private project documentation stays local
-/docs/
+# Publish only reviewed project documentation; keep development records local.
+/docs/*
+!/docs/README.md
+!/docs/architecture/
+/docs/architecture/*
+!/docs/architecture/architecture.md
+!/docs/architecture/workbench-contract.md
+!/docs/guides/
+/docs/guides/*
+!/docs/guides/usage.md
+!/docs/guides/integrations.md
+!/docs/guides/windows.md
+!/docs/guides/development-files.md
+!/docs/guides/EMBEDDING.md
+!/docs/guides/PETS_INTEGRATION.md
+!/docs/examples/
+# Reviewed workbench identity/device/Caddy examples remain public; exact owners are
+# enumerated in tools/scripts/check_architecture.py, never real service configuration.
+/docs/current/
+/docs/archive/
 
 # Local video source and renders are not publication candidates
 /videos/
 
 # Local configuration and user data
+/.claude/
 /.codex/*
 /.env
 /.env.*
@@ -30,3 +60,46 @@ node_modules/
 *.sqlite3.*
 *.sqlite-*
 *.log
+
+# Only individually reviewed original wheel notices are publication inputs.
+/tools/packaging/wheel-notices/*
+!/tools/packaging/wheel-notices/sentencepiece-LICENSE.txt
+!/tools/packaging/wheel-notices/abseil-LICENSE.txt
+!/tools/packaging/wheel-notices/darts-clone-LICENSE.txt
+!/tools/packaging/wheel-notices/esaxx-LICENSE.txt
+!/tools/packaging/wheel-notices/protobuf-lite-LICENSE.txt
+!/tools/packaging/wheel-notices/pybind11-LICENSE.txt
+!/tools/packaging/wheel-notices/Unicode-LICENSE-v3.txt
+!/tools/packaging/wheel-notices/avx-mathfun-LICENSE.txt
+!/tools/packaging/wheel-notices/cccl-cub-LICENSE.txt
+!/tools/packaging/wheel-notices/cccl-libcudacxx-LICENSE.txt
+!/tools/packaging/wheel-notices/cccl-LICENSE.txt
+!/tools/packaging/wheel-notices/cccl-thrust-LICENSE.txt
+!/tools/packaging/wheel-notices/cpu_features-LICENSE.txt
+!/tools/packaging/wheel-notices/ctranslate2-LICENSE.txt
+!/tools/packaging/wheel-notices/cutlass-LICENSE.txt
+!/tools/packaging/wheel-notices/fmt-LICENSE.txt
+!/tools/packaging/wheel-notices/intel-compiler-credist.txt
+!/tools/packaging/wheel-notices/intel-compiler-EULA.txt
+!/tools/packaging/wheel-notices/intel-mkl-LICENSE.txt
+!/tools/packaging/wheel-notices/intel-mkl-third-party-programs-benchmarks.txt
+!/tools/packaging/wheel-notices/intel-mkl-third-party-programs-IntelMPI.txt
+!/tools/packaging/wheel-notices/intel-mkl-third-party-programs-level-zero.txt
+!/tools/packaging/wheel-notices/intel-mkl-third-party-programs-oneMath.txt
+!/tools/packaging/wheel-notices/intel-mkl-third-party-programs-oneTBB.txt
+!/tools/packaging/wheel-notices/intel-mkl-third-party-programs-openmp.txt
+!/tools/packaging/wheel-notices/intel-mkl-third-party-programs-safestring.txt
+!/tools/packaging/wheel-notices/intel-mkl-third-party-programs.txt
+!/tools/packaging/wheel-notices/intel-openmp-EULA.txt
+!/tools/packaging/wheel-notices/intel-openmp-THIRD-PARTY-PROGRAMS.txt
+!/tools/packaging/wheel-notices/intel-tbb-LICENSE.txt
+!/tools/packaging/wheel-notices/intel-tbb-THIRD-PARTY-PROGRAMS.txt
+!/tools/packaging/wheel-notices/intel-tcm-LICENSE.txt
+!/tools/packaging/wheel-notices/intel-tcm-THIRD-PARTY-PROGRAMS.txt
+!/tools/packaging/wheel-notices/nvidia-cuda-LICENSE.txt
+!/tools/packaging/wheel-notices/nvidia-cudnn-LICENSE.txt
+!/tools/packaging/wheel-notices/oneDNN-ittnotify-LICENSE.txt
+!/tools/packaging/wheel-notices/oneDNN-LICENSE.txt
+!/tools/packaging/wheel-notices/oneDNN-THIRD-PARTY-PROGRAMS.txt
+!/tools/packaging/wheel-notices/simd-utils-LICENSE.txt
+!/tools/packaging/wheel-notices/spdlog-LICENSE.txt

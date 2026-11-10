@@ -1,0 +1,89 @@
+/** One bounded owner-pipe request. Auth material arrives on stdin, never argv. */
+import { createConnection } from 'node:net'
+import { randomUUID } from 'node:crypto'
+import { decodePairingOffer } from '../../shared/pairing'
+import { ORCHESTRATION_CONTRACT_VERSION } from '../../shared/protocol-version'
+
+const METHODS = new Set(['repo.list', 'repo.add', 'repo.update', 'worktree.list', 'platform.bootstrapDevice', 'platform.revokeDevice'])
+for (const operation of ['create', 'observe', 'resume', 'send', 'receipt']) METHODS.add(`platform.taskProgress.${operation}`)
+const MAX_BYTES = 1024 * 1024
+
+async function main(): Promise<void> {
+  let input = ''
+  process.stdin.setEncoding('utf8')
+  for await (const chunk of process.stdin) {
+    input += chunk.toString('utf8')
+    if (Buffer.byteLength(input) > MAX_BYTES) throw new Error('owner_request_too_large')
+  }
+  const request = JSON.parse(input)
+  if (!METHODS.has(request.method) || typeof request.authToken !== 'string' || !request.authToken ||
+      typeof request.endpoint !== 'string' || !request.endpoint.startsWith('\\\\.\\pipe\\') ||
+      typeof request.expectedRuntimeId !== 'string' || !request.expectedRuntimeId) {
+    throw new Error('owner_request_invalid')
+  }
+  if (request.method === 'repo.update') {
+    const params = request.params
+    // The platform owns project names, not arbitrary native repository settings.
+    if (!params || typeof params !== 'object' || Object.keys(params).sort().join(',') !== 'repo,updates'
+        || typeof params.repo !== 'string' || !params.repo.startsWith('id:') || params.repo.length <= 3
+        || !params.updates || typeof params.updates !== 'object'
+        || Object.keys(params.updates).join(',') !== 'displayName'
+        || typeof params.updates.displayName !== 'string' || !params.updates.displayName.trim()) {
+      throw new Error('owner_request_invalid')
+    }
+  }
+  const id = randomUUID()
+  const mutation = request.method === 'platform.taskProgress.send'
+  if (mutation && (request.orchestrationContractVersion !== ORCHESTRATION_CONTRACT_VERSION ||
+      typeof request.orchestrationRequestId !== 'string' || request.orchestrationRequestId !== request.params?.origin?.requestId))
+    throw new Error('owner_request_invalid')
+  if (!mutation && (request.orchestrationContractVersion !== undefined || request.orchestrationRequestId !== undefined))
+    throw new Error('owner_request_invalid')
+  const response = await new Promise<{ ok: boolean; result?: unknown }>((resolve, reject) => {
+    const socket = createConnection(request.endpoint)
+    socket.setEncoding('utf8')
+    let pending = ''
+    const deadline = setTimeout(() => finish(new Error('owner_request_timeout')), 25000)
+    const finish = (error?: Error, value?: { ok: boolean; result?: unknown }): void => {
+      clearTimeout(deadline)
+      socket.destroy()
+      if (error) reject(error)
+      else resolve(value!)
+    }
+    socket.once('error', error => finish(error))
+    socket.once('connect', () => socket.write(JSON.stringify({ id, method: request.method,
+      params: request.params, authToken: request.authToken,
+      ...(mutation ? { orchestrationContractVersion: request.orchestrationContractVersion,
+        orchestrationRequestId: request.orchestrationRequestId } : {}) }) + '\n'))
+    socket.on('data', chunk => {
+      pending += chunk.toString('utf8')
+      if (Buffer.byteLength(pending) > MAX_BYTES) return finish(new Error('owner_reply_too_large'))
+      while (pending.includes('\n')) {
+        const boundary = pending.indexOf('\n')
+        const line = pending.slice(0, boundary)
+        pending = pending.slice(boundary + 1)
+        try {
+          const value = JSON.parse(line)
+          if (value._keepalive === true) continue
+          if (value.id !== id || value._meta?.runtimeId !== request.expectedRuntimeId) {
+            return finish(new Error('owner_reply_identity_mismatch'))
+          }
+          if (!value.ok) return finish(new Error('owner_rpc_rejected'))
+          if (request.method === 'platform.bootstrapDevice' && value.result?.available === true) {
+            value.result.offer = decodePairingOffer(value.result.pairingUrl)
+          }
+          return finish(undefined, value)
+        } catch {
+          return finish(new Error('owner_reply_invalid'))
+        }
+      }
+    })
+    socket.once('end', () => finish(new Error('owner_reply_incomplete')))
+  })
+  process.stdout.write(JSON.stringify(response) + '\n')
+}
+
+main().catch(() => {
+  process.stdout.write(JSON.stringify({ ok: false, error: { code: 'runtime_owner_request_failed' } }) + '\n')
+  process.exitCode = 1
+})

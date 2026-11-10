@@ -8,7 +8,9 @@ import importlib.util
 import json
 from pathlib import Path
 import sys
+import threading
 from types import SimpleNamespace
+from unittest.mock import patch
 import uuid
 
 from tests.backend.test_windows_bundle import PayloadFixture, BUILD, MANIFEST
@@ -165,7 +167,7 @@ class InstallationFixture(PayloadFixture):
         uninstaller = self.install / 'unins000.exe'
         uninstaller.write_bytes(b'Inno fixture')
         (self.install / 'unins000.dat').write_bytes(b'Inno locked data fixture')
-        (self.install / 'session-panel.cmd').write_bytes(b'old launcher\r\n')
+        (self.install / 'session-panel.cmd').write_bytes(MAINTENANCE.launcher_bytes(self.context.version_id, desktop=False))
         REGISTRY.write_record(self.install / '.install/root.json', {'schema': 1, 'install_id': str(uuid.uuid4()),
             'owner': '0102', 'directory': self.api.directory_identity(self.install),
             'uninstaller': self.api.file_identity(uninstaller)})
@@ -190,21 +192,67 @@ class InstallationFixture(PayloadFixture):
 
 
 class RegistryTests(InstallationFixture):
+    def test_failed_verification_waits_for_active_file_readers(self):
+        root = self.context.version_dir
+        failing, slow = [row['path'] for row in self.context.document['files'][:2]]
+        entered, failed, release, done = (threading.Event() for _ in range(4))
+        original = REGISTRY.manifest.sha256
+        errors = []
+
+        def read(path):
+            name = path.relative_to(root).as_posix()
+            if name == slow:
+                with path.open('rb') as stream:
+                    stream.read(1)
+                    entered.set()
+                    if not release.wait(10):
+                        raise TimeoutError('reader was not released')
+            if name == failing:
+                if not entered.wait(10):
+                    raise TimeoutError('reader did not start')
+                failed.set()
+                raise OSError('synthetic read failure')
+            return original(path)
+
+        def verify():
+            try:
+                REGISTRY.manifest.verify_payload(root, strict_native=True)
+            except Exception as error:
+                errors.append(error)
+            finally:
+                done.set()
+
+        with patch.object(REGISTRY.manifest, 'sha256', side_effect=read):
+            thread = threading.Thread(target=verify)
+            thread.start()
+            try:
+                self.assertTrue(failed.wait(10))
+                self.assertFalse(done.wait(.05))
+            finally:
+                release.set()
+                thread.join(10)
+        self.assertFalse(thread.is_alive())
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors[0].reason, 'payload_io_error')
+
     def test_profile_retains_two_version_associations_and_close_is_exact(self):
         profile = self.profile()
         second = self.make_version('0.1.0a2')
         REGISTRY.write_record(self.install / '.install/versions' / (second.version_id + '.json'), REGISTRY.version_record(second, self.api))
         self.profile(context=second)
-        _root, versions, profiles, http = REGISTRY.load_records(self.install, self.api)
+        _root, versions, profiles, http, contexts = REGISTRY.load_records(self.install, self.api)
         self.assertEqual(len(versions), 2)
         self.assertEqual(set(profiles[self.api.profile_key(profile)]['associations']), set(versions))
         self.assertEqual(http, [])
+        self.assertEqual(set(contexts), set(versions))
+        for key, context in contexts.items():
+            self.assertEqual(REGISTRY.version_record(context, self.api), versions[key])
 
     def test_native_missing_keeps_basic_registration_and_expected_old_association(self):
         original = REGISTRY.read_record(self.install / '.install/versions' / (self.context.version_id + '.json'))
         (self.context.version_dir / MANIFEST.NATIVE_EXE).unlink()
         self.profile()
-        _root, _versions, profiles, _http = REGISTRY.load_records(self.install, self.api)
+        _root, _versions, profiles, _http, _contexts = REGISTRY.load_records(self.install, self.api)
         association = next(iter(profiles.values()))['associations'][self.context.version_id]
         self.assertEqual(association, original['native'])
 

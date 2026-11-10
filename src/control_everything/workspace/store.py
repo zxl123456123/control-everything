@@ -2,24 +2,44 @@
 
 import sqlite3
 import threading
+import time
 import json
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 from uuid import uuid4
 
-from control_everything.input_validation import ProfileError
+from control_everything.input_validation import ProfileError, absolute_path
 from control_everything.workspace.validation import (
-    project_id_valid, path_key, validate_project, finite_number, observation_owner,
+    project_id_valid, path_key, validate_project, validate_codex_project, finite_number, observation_owner,
+    imported_id_valid, validate_candidate_project,
 )
 from control_everything.workspace import task_schema as tasks
 from control_everything.workspace.task_schema import BASE_SCHEMA, MANAGEMENT_SCHEMA
 
-MANAGEMENT_TABLES = tasks.SCHEMA2_TABLES
+MANAGEMENT_TABLES = tasks.SCHEMA10_TABLES
 
 
 def now_utc():
     return datetime.now(timezone.utc).isoformat()
+
+
+@contextmanager
+def connection_lock(lock, deadline=None, cancel_event=None):
+    if deadline is None:
+        with lock:
+            yield
+        return
+    while True:
+        remaining = deadline - time.monotonic()
+        if remaining <= 0 or cancel_event is not None and cancel_event.is_set():
+            raise WorkspaceError('store_busy')
+        if lock.acquire(timeout=min(.05, remaining)):
+            break
+    try:
+        yield
+    finally:
+        lock.release()
 
 
 class WorkspaceError(Exception):
@@ -34,7 +54,7 @@ class WorkspaceStore:
         self.profile = profile
         self.write_lock = threading.RLock()
 
-    def validate_schema(self, connection, version=2):
+    def validate_schema(self, connection, version=tasks.SCHEMA_VERSION):
         tasks.validate_schema(connection, version)
 
     def checked_management_connection(self, connection):
@@ -42,15 +62,20 @@ class WorkspaceStore:
         tasks.register_writer(connection)
 
     @contextmanager
-    def connection(self):
+    def connection(self, *, timeout=None, cancel_event=None):
         connection = None
+        deadline = None if timeout is None else time.monotonic() + timeout
         try:
-            connection = sqlite3.connect(self.path, timeout=5 if self.profile else 3)
+            busy_timeout = (5 if self.profile else 3) if timeout is None else max(0, min(timeout, .05))
+            connection = sqlite3.connect(self.path, timeout=busy_timeout)
             connection.row_factory = sqlite3.Row
-            connection.execute("PRAGMA busy_timeout=5000" if self.profile else "PRAGMA busy_timeout=3000")
+            connection.execute(f"PRAGMA busy_timeout={int(busy_timeout * 1000)}")
+            if deadline is not None:
+                connection.set_progress_handler(lambda: int(time.monotonic() >= deadline or
+                    cancel_event is not None and cancel_event.is_set()), 100)
             if self.profile:
                 connection.execute("PRAGMA foreign_keys=ON")
-            with self._schema_lock:
+            with connection_lock(self._schema_lock, deadline, cancel_event):
                 version = connection.execute("PRAGMA user_version").fetchone()[0]
                 if self.profile:
                     tables = connection.execute("SELECT name FROM sqlite_master").fetchall()
@@ -59,16 +84,16 @@ class WorkspaceStore:
                         try:
                             # A second process might have initialized while we waited.
                             if not connection.execute("SELECT name FROM sqlite_master").fetchone():
-                                tasks.install_schema2(connection, fresh=True)
+                                tasks.install_schema10(connection, fresh=True)
                             connection.commit()
                         except Exception:
                             connection.rollback()
                             raise
-                    elif version == 1:
-                        self.validate_schema(connection, 1)
+                    elif version in (1, 2, 3, 4, 5, 6, 7, 8, 9):
+                        self.validate_schema(connection, version)
                         raise WorkspaceError("migration_required")
                     self.checked_management_connection(connection)
-                elif version == 2:
+                elif version >= 2:
                     # Refuse before a legacy ExecutionStore can create its tables.
                     raise WorkspaceError("schema_error")
                 elif not self._initialized:
@@ -86,7 +111,7 @@ class WorkspaceStore:
                         );
                         """)
                 self._initialized = True
-            with self.write_lock, connection:
+            with connection_lock(self.write_lock, deadline, cancel_event), connection:
                 yield connection
         except (sqlite3.Error, OSError, OverflowError) as error:
             reason = "store_busy" if self.profile and isinstance(error, sqlite3.OperationalError) and ("locked" in str(error) or "busy" in str(error)) else "storage_error" if self.profile else "storage_unavailable"
@@ -119,7 +144,7 @@ class WorkspaceStore:
                 raise WorkspaceError("task_not_found")
             return dict(row)
 
-    def save_task(self, fields, task_id=None):
+    def save_task(self, fields, task_id=None, *, agent_settings=None):
         if self.profile:
             with self.connection() as connection:
                 connection.execute("BEGIN IMMEDIATE")
@@ -131,6 +156,14 @@ class WorkspaceStore:
                     old = self._origin_item(connection, 'task', task_id)
                     # The legacy service includes its raw id in the validated body.
                     changes = {key: fields[key] for key in ('title', 'project_id', 'provider_id', 'state', 'session_key')}
+                    self._check_public_item_update(connection, old, changes)
+                    if (agent_settings is not None and old['project_id'] != changes['project_id']
+                            and old['assigned_agent_id'] is not None):
+                        agent = next((row for row in agent_settings['items']
+                                      if row['id'] == old['assigned_agent_id'] and row['enabled']), None)
+                        if (agent is None or agent['project_ids']
+                                and changes['project_id'] not in agent['project_ids']):
+                            raise ProfileError('invalid_item', 'assigned_agent_id')
                     self._update_item(connection, old, changes)
                 return dict(connection.execute("SELECT * FROM tasks WHERE id=?", (task_id,)).fetchone())
         now = datetime.now(timezone.utc).isoformat()
@@ -183,23 +216,94 @@ class WorkspaceStore:
     def list_projects(self, *, include_archived=True):
         with self.connection() as connection:
             rows = connection.execute("SELECT * FROM projects" + ("" if include_archived else " WHERE archived=0") + " ORDER BY position,id").fetchall()
+            if not rows:
+                return []
+            directories = {}
+            for value in connection.execute("SELECT project_id,binding_id,path FROM project_directories ORDER BY project_id,is_primary DESC,binding_id"):
+                directories.setdefault(value["project_id"], []).append({"id": value["binding_id"], "path": value["path"]})
+            sources = {value["project_id"]: {key: value[key] for key in ("kind", "directory_id", "relative_path")}
+                       for value in connection.execute("SELECT project_id,kind,directory_id,relative_path FROM project_sources")}
             items = []
             for row in rows:
                 item = dict(row)
                 item["archived"] = bool(item["archived"])
-                item["directories"] = [{"id": value["binding_id"], "path": value["path"]} for value in connection.execute(
-                    "SELECT binding_id,path FROM project_directories WHERE project_id=? ORDER BY is_primary DESC,binding_id", (item["id"],))]
+                item["directories"] = directories.get(item["id"], [])
                 item["root"] = next(value["path"] for value in item["directories"] if value["id"] == "main")
-                item["source"] = dict(connection.execute("SELECT kind,directory_id,relative_path FROM project_sources WHERE project_id=?", (item["id"],)).fetchone())
+                item["source"] = dict(sources.get(item["id"]))
                 items.append(item)
             return items
 
+    def adopt_project(self, name, directory):
+        """Reuse one active main directory or register it in the same write transaction."""
+        if not absolute_path(directory):
+            raise ProfileError('invalid_project', 'directories')
+        with self.connection() as connection:
+            connection.execute('BEGIN IMMEDIATE')
+            matches = connection.execute('''SELECT p.id,p.name,p.archived,d.binding_id,d.is_primary,s.kind
+                FROM project_directories d JOIN projects p ON p.id=d.project_id
+                LEFT JOIN project_sources s ON s.project_id=p.id WHERE d.path_key=?''', (path_key(directory),)).fetchall()
+            if any(row['archived'] for row in matches):
+                raise ProfileError('project_archived', status=409)
+            if len(matches) > 1 or matches and (matches[0]['binding_id'] != 'main' or not matches[0]['is_primary']):
+                raise ProfileError('directory_conflict', 'directories', status=409)
+            if matches:
+                existing = matches[0]
+                if existing['kind'] == 'codex':
+                    raise ProfileError('invalid_project', 'id', message='read_only_project')
+                if existing['kind'] is None:
+                    raise ProfileError('invalid_source', 'source')
+                return {'id': existing['id'], 'name': existing['name']}
+            item = validate_project({'id': None, 'name': name, 'archived': False,
+                                     'directories': [{'id': 'main', 'path': directory}],
+                                     'source': {'kind': 'none', 'directory_id': None, 'relative_path': None}})
+            if connection.execute('SELECT COUNT(*) FROM projects').fetchone()[0] >= 1000:
+                raise ProfileError('invalid_project', 'projects', message='project_budget_exceeded')
+            identity, stamp = 'p-' + uuid4().hex, now_utc()
+            position = connection.execute('SELECT COALESCE(MAX(position),-1)+1 FROM projects').fetchone()[0]
+            connection.execute('INSERT INTO projects VALUES(?,?,?,?,?,?)', (identity, item['name'], 0, stamp, stamp, position))
+            connection.execute('INSERT INTO project_directories VALUES(?,?,?,?,?)',
+                               (identity, 'main', directory, item['directories'][0]['path_key'], 1))
+            connection.execute('INSERT INTO project_sources VALUES(?,?,?,?)', (identity, 'none', None, None))
+            tasks.bump_list_revision(connection)
+            return dict(connection.execute('SELECT id,name FROM projects WHERE id=?', (identity,)).fetchone())
+
     def save_project(self, body, *, restore=False):
-        item = validate_project(body, restore=restore)
-        identity, stamp = item["id"], now_utc()
+        if type(body) is not dict:
+            raise ProfileError("invalid_project", "project")
+        identity, stamp = body.get("project_id" if restore else "id"), now_utc()
+        if identity is not None and not project_id_valid(identity):
+            raise ProfileError("invalid_project", "id")
+        expected = None
+        if 'expected' in body:
+            expected = body['expected']
+            if (restore or identity is None or type(expected) is not dict
+                    or set(expected) != {'name', 'archived', 'directories', 'source'}):
+                raise ProfileError('invalid_project', 'expected')
+            body = {key: value for key, value in body.items() if key != 'expected'}
         with self.connection() as connection:
             connection.execute("BEGIN IMMEDIATE")
             existing = connection.execute("SELECT * FROM projects WHERE id=?", (identity,)).fetchone()
+            imported_edit = existing is not None and imported_id_valid(identity) and not restore
+            item = validate_project(body, restore=restore, allow_imported_id=imported_edit)
+            old_bindings = {tuple(row) for row in connection.execute("SELECT binding_id,path_key FROM project_directories WHERE project_id=?", (identity,))}
+            marker = connection.execute("SELECT kind,directory_id,relative_path FROM project_sources WHERE project_id=?", (identity,)).fetchone()
+            if expected is not None:
+                checked = validate_project({**expected, 'id': identity}, allow_imported_id=imported_edit)
+                if existing is None:
+                    raise ProfileError('not_found', 'id', status=404)
+                if marker is not None and marker['kind'] == 'codex':
+                    raise ProfileError('invalid_project', 'id', message='read_only_project')
+                if (existing['name'] != checked['name'] or bool(existing['archived']) != checked['archived']
+                        or old_bindings != {(row['id'], row['path_key']) for row in checked['directories']}
+                        or (dict(marker) if marker is not None else None) != checked['source']):
+                    raise ProfileError('project_changed', status=409)
+            if (existing is not None and self.profile and
+                    (old_bindings != {(row['id'], row['path_key']) for row in item['directories']}
+                     or item['archived'] != bool(existing['archived'])) and
+                    connection.execute("SELECT 1 FROM task_native_runs WHERE project_id=? AND active_slot=1", (identity,)).fetchone()):
+                raise ProfileError('native_managed_project', status=409)
+            if marker is not None and marker['kind'] == "codex":
+                raise ProfileError("invalid_project", "id", message="read_only_project")
             if restore:
                 references = sum(connection.execute(f"SELECT COUNT(*) FROM {table} WHERE project_id=?", (identity,)).fetchone()[0]
                                  for table in ("tasks", "project_manual", "todos"))
@@ -209,8 +313,10 @@ class WorkspaceStore:
                 raise ProfileError("not_found", "id", status=404)
             if existing is None and connection.execute("SELECT COUNT(*) FROM projects").fetchone()[0] >= 1000:
                 raise ProfileError("invalid_project", "projects", message="project_budget_exceeded")
-            if not item["archived"]:
+            if imported_edit or not item["archived"]:
                 for binding in item["directories"]:
+                    if imported_edit and (binding["id"], binding["path_key"]) in old_bindings:
+                        continue
                     if connection.execute("""SELECT 1 FROM project_directories d JOIN projects p ON p.id=d.project_id
                         WHERE p.archived=0 AND d.path_key=? AND p.id!=?""", (binding["path_key"], identity or "")).fetchone():
                         raise ProfileError("directory_conflict", "directories", status=409)
@@ -226,6 +332,33 @@ class WorkspaceStore:
             connection.execute("INSERT INTO project_sources VALUES(?,?,?,?)", (identity, *(item["source"][key] for key in ("kind", "directory_id", "relative_path"))))
             tasks.bump_list_revision(connection)
         return next(row for row in self.list_projects() if row["id"] == identity)
+
+    def list_revision(self):
+        with self.connection() as connection:
+            return connection.execute('SELECT list_revision FROM task_center_meta WHERE id=1').fetchone()[0]
+
+    def join_candidate(self, projection, *, expected_revision):
+        project = (validate_codex_project(projection) if projection.get("source", {}).get("kind") == "codex"
+                   else validate_candidate_project(projection))
+        with self.connection() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            if connection.execute('SELECT list_revision FROM task_center_meta WHERE id=1').fetchone()[0] != expected_revision:
+                raise ProfileError("selection_conflict", status=409)
+            if connection.execute('SELECT 1 FROM projects WHERE id=?', (project['id'],)).fetchone():
+                return False
+            if project['source']['kind'] == 'codex':
+                self._materialize_codex_project(connection, projection)
+            else:
+                if connection.execute('SELECT COUNT(*) FROM projects').fetchone()[0] >= 1000:
+                    raise ProfileError('invalid_project', 'projects', message='project_budget_exceeded')
+                stamp = now_utc()
+                position = connection.execute('SELECT COALESCE(MAX(position),-1)+1 FROM projects').fetchone()[0]
+                connection.execute('INSERT INTO projects VALUES(?,?,?,?,?,?)', (project['id'], project['name'], 0, stamp, stamp, position))
+                connection.executemany('INSERT INTO project_directories VALUES(?,?,?,?,?)',
+                    [(project['id'], row['id'], row['path'], row['path_key'], int(row['id'] == 'main')) for row in project['directories']])
+                connection.execute('INSERT INTO project_sources VALUES(?,?,?,?)', (project['id'], 'none', None, None))
+            tasks.bump_list_revision(connection)
+        return True
 
     def manual_rows(self):
         with self.connection() as connection:
@@ -286,7 +419,9 @@ class WorkspaceStore:
                 if not isinstance(body, dict) or set(body) != {"id"} or not isinstance(body["id"], str):
                     raise ValueError("invalid_request")
                 old = self._origin_item(connection, 'todo', body['id'])
-                self._update_item(connection, old, {'state': old['resume_state'] if old['state'] == 'done' else 'done'})
+                changes = {'state': old['resume_state'] if old['state'] == 'done' else 'done'}
+                self._check_public_item_update(connection, old, changes)
+                self._update_item(connection, old, changes)
             else:
                 if not isinstance(body, dict) or set(body) != {"text", "project_id"}:
                     raise ValueError("invalid_request")
@@ -297,6 +432,9 @@ class WorkspaceStore:
                 if not 1 <= len(text) <= 40:
                     raise ValueError("invalid_request")
                 if identity and connection.execute("SELECT 1 FROM projects WHERE id=? AND archived=0", (identity,)).fetchone() is None:
+                    raise ValueError("invalid_request")
+                marker = connection.execute("SELECT kind FROM project_sources WHERE project_id=?", (identity,)).fetchone()
+                if identity.startswith("cx-") or marker is not None and marker[0] == "codex":
                     raise ValueError("invalid_request")
                 position = connection.execute("SELECT COALESCE(MIN(position),0)-1 FROM todos").fetchone()[0]
                 stamp = now_utc()
@@ -369,21 +507,53 @@ class WorkspaceStore:
         if type(order) is not int or order < -(1 << 63):
             raise WorkspaceError('order_exhausted')
         state = fields['state']
+        priority = fields.get('priority')
+        focus = fields.get('focus', 0)
+        assigned_agent_id = fields.get('assigned_agent_id')
+        if (priority is not None and (type(priority) is not int or priority not in (0, 1, 2))
+                or type(focus) is not int or focus not in (0, 1)
+                or assigned_agent_id is not None and (type(assigned_agent_id) is not str
+                                                      or not 1 <= len(assigned_agent_id) <= 64)):
+            raise WorkspaceError('invalid_item')
         row = dict(id=str(uuid4()), origin=origin, origin_id=raw_id if raw_id is not None else str(uuid4()),
                    title=fields['title'], project_id=fields['project_id'], provider_id=fields['provider_id'],
                    state=state, session_key=fields['session_key'], source=source,
                    created_at=created_at, updated_at=updated_at, todo_position=todo_position,
-                   sort_index=order, resume_state=state if state != 'done' else 'todo', revision=1)
+                   sort_index=order, resume_state=state if state != 'done' else 'todo', revision=1,
+                   priority=priority, focus=focus, assigned_agent_id=assigned_agent_id,
+                   progress_revision=0, current_delivery_id=None, accepted_delivery_id=None)
         tasks.insert_item(connection, row)
         tasks.bump_list_revision(connection)
         return row
 
     @staticmethod
+    def _check_public_item_update(connection, current, fields):
+        # Internal execution projection and human review use their own guarded transactions.
+        protected = {'project_id', 'provider_id', 'state', 'session_key', 'assigned_agent_id'}
+        if any(key in protected and fields[key] != current[key] for key in fields):
+            if connection.execute("SELECT 1 FROM task_native_runs WHERE task_id=? AND active_slot=1",
+                                  (current['id'],)).fetchone():
+                raise ProfileError('native_managed_item', status=409)
+            managed = connection.execute(
+                "SELECT 1 FROM agent_runs ar JOIN task_dispatches d ON d.id=ar.dispatch_id "
+                "WHERE ar.task_id=? AND ar.status IN ('claimed','running','waiting_review') "
+                "AND d.delivery_mode='auto' AND d.external_ref IS NOT NULL LIMIT 1",
+                (current['id'],)).fetchone()
+            if managed is not None:
+                raise ProfileError('execution_managed_item', status=409)
+
+    @staticmethod
     def _update_item(connection, old, changes, expected_revision=None):
         if expected_revision is not None and old['revision'] != expected_revision:
             raise WorkspaceError('item_changed')
-        allowed = {'title', 'project_id', 'provider_id', 'state', 'session_key'}
+        allowed = {'title', 'project_id', 'provider_id', 'state', 'session_key', 'priority', 'focus', 'assigned_agent_id'}
         if not isinstance(changes, dict) or not changes or set(changes) - allowed:
+            raise WorkspaceError('invalid_item')
+        if ('priority' in changes and changes['priority'] is not None
+                and (type(changes['priority']) is not int or changes['priority'] not in (0, 1, 2))
+                or 'focus' in changes and (type(changes['focus']) is not int or changes['focus'] not in (0, 1))
+                or 'assigned_agent_id' in changes and changes['assigned_agent_id'] is not None
+                and (type(changes['assigned_agent_id']) is not str or not 1 <= len(changes['assigned_agent_id']) <= 64)):
             raise WorkspaceError('invalid_item')
         changed = {key: value for key, value in changes.items() if value != old[key]}
         if not changed:
@@ -410,7 +580,7 @@ class WorkspaceStore:
             return dict(row)
 
     @staticmethod
-    def _check_item_associations(connection, fields, old=None, session_cwd=None):
+    def _check_item_associations(connection, fields, old=None, session_cwd=None, codex_session_project_id=None):
         merged = {**old, **fields} if old is not None else fields
         project_changed = old is None or merged['project_id'] != old['project_id']
         link_changed = old is None or any(merged[key] != old[key] for key in ('project_id', 'provider_id', 'session_key'))
@@ -419,21 +589,53 @@ class WorkspaceStore:
             if connection.execute('SELECT 1 FROM projects WHERE id=? AND archived=0', (merged['project_id'],)).fetchone() is None:
                 raise ProfileError('invalid_item', 'project_id')
         if check_session:
+            marker = connection.execute('SELECT kind FROM project_sources WHERE project_id=?', (merged['project_id'],)).fetchone()
+            if marker is not None and marker[0] == 'codex':
+                if codex_session_project_id != merged['project_id']:
+                    raise WorkspaceError('session_project_mismatch')
+                return
             if session_cwd is None:
                 raise WorkspaceError('session_not_in_sample')
             # Only database facts are refreshed here; the request's session sample stays outside the write transaction.
             projects = {}
             for row in connection.execute('''SELECT p.id,d.path FROM projects p JOIN project_directories d
-                                             ON p.id=d.project_id WHERE p.archived=0'''):
+                                             ON p.id=d.project_id JOIN project_sources s ON s.project_id=p.id
+                                             WHERE p.archived=0 AND s.kind!='codex' '''):
                 projects.setdefault(row['id'], {'id': row['id'], 'directories': []})['directories'].append({'path': row['path']})
             if observation_owner(session_cwd, list(projects.values())) != merged['project_id']:
                 raise WorkspaceError('session_project_mismatch')
 
-    def save_item(self, fields, *, item_id=None, expected_revision=None, session_cwd=None):
+    @staticmethod
+    def _materialize_codex_project(connection, projection):
+        project = validate_codex_project(projection)
+        identity = project['id']
+        existing = connection.execute('SELECT kind FROM project_sources WHERE project_id=?', (identity,)).fetchone()
+        if existing is not None:
+            if existing[0] != 'codex':
+                raise ProfileError('invalid_item', 'project_id')
+            return
+        if connection.execute('SELECT 1 FROM projects WHERE id=?', (identity,)).fetchone():
+            raise ProfileError('invalid_item', 'project_id')
+        if connection.execute('SELECT COUNT(*) FROM projects').fetchone()[0] >= 1000:
+            raise ProfileError('invalid_project', 'projects', message='project_budget_exceeded')
+        stamp = now_utc()
+        position = connection.execute('SELECT COALESCE(MAX(position),-1)+1 FROM projects').fetchone()[0]
+        connection.execute('INSERT INTO projects VALUES(?,?,?,?,?,?)', (identity, project['name'], 0, stamp, stamp, position))
+        connection.executemany('INSERT INTO project_directories VALUES(?,?,?,?,?)',
+            [(identity, row['id'], row['path'], row['path_key'], int(row['id'] == 'main')) for row in project['directories']])
+        connection.execute('INSERT INTO project_sources VALUES(?,?,?,?)', (identity, 'codex', None, None))
+
+    def save_item(self, fields, *, item_id=None, expected_revision=None, session_cwd=None,
+                  codex_project=None, codex_session_project_id=None):
         with self.connection() as connection:
             connection.execute('BEGIN IMMEDIATE')
             if item_id is None:
-                self._check_item_associations(connection, fields, session_cwd=session_cwd)
+                if codex_project is not None:
+                    if codex_project.get('id') != fields.get('project_id'):
+                        raise ProfileError('invalid_item', 'project_id')
+                    self._materialize_codex_project(connection, codex_project)
+                self._check_item_associations(connection, fields, session_cwd=session_cwd,
+                                               codex_session_project_id=codex_session_project_id)
                 stamp = now_utc()
                 return self._create_item(connection, fields, created_at=stamp, updated_at=stamp)
             row = connection.execute('SELECT * FROM task_items WHERE id=?', (item_id,)).fetchone()
@@ -444,34 +646,52 @@ class WorkspaceStore:
             current = dict(row)
             if current['revision'] != expected_revision:
                 raise WorkspaceError('item_changed')
-            if not isinstance(fields, dict) or not fields or set(fields) - {'title', 'project_id', 'provider_id', 'state', 'session_key'}:
+            if ('assigned_agent_id' in fields
+                    and fields['assigned_agent_id'] != current['assigned_agent_id']
+                    and connection.execute(
+                        "SELECT 1 FROM agent_runs WHERE task_id=? AND status IN ('claimed','running','waiting_review') LIMIT 1",
+                        (item_id,)).fetchone() is not None):
+                raise ProfileError('agent_run_conflict', status=409)
+            if not isinstance(fields, dict) or not fields or set(fields) - {'title', 'project_id', 'provider_id', 'state', 'session_key', 'priority', 'focus', 'assigned_agent_id'}:
                 raise WorkspaceError('invalid_item')
-            self._check_item_associations(connection, fields, current, session_cwd)
+            self._check_public_item_update(connection, current, fields)
+            if codex_project is not None:
+                if codex_project.get('id') != fields.get('project_id', current['project_id']):
+                    raise ProfileError('invalid_item', 'project_id')
+                self._materialize_codex_project(connection, codex_project)
+            self._check_item_associations(connection, fields, current, session_cwd, codex_session_project_id)
             return self._update_item(connection, current, fields, expected_revision)
 
     def list_items(self, *, offset=0, limit=50, scope='all', project_id=None, provider_id=None,
-                   state=None, list_revision=None):
+                   state=None, list_revision=None, focus=None, priority=None, sort='manual'):
         if (type(offset) is not int or type(limit) is not int or offset < 0 or not 1 <= limit <= 100
                 or list_revision is not None and (type(list_revision) is not int or not 1 <= list_revision <= tasks.MAX_REVISION)):
             raise WorkspaceError('invalid_item')
+        if (focus is not None and (type(focus) is not int or focus not in (0, 1))
+                or priority is not None and (type(priority) is not int or priority not in (0, 1, 2))
+                or sort not in ('manual', 'priority')):
+            raise ProfileError('invalid_query')
         with self.connection() as connection:
             connection.execute('BEGIN')
             revision = connection.execute('SELECT list_revision FROM task_center_meta WHERE id=1').fetchone()[0]
             if offset > 0 and list_revision is None or list_revision is not None and list_revision != revision:
                 raise WorkspaceError('list_changed')
-            if scope not in ('all', 'active', 'archived', 'orphan', 'global') or not 0 <= offset or not 1 <= limit <= 100:
+            if scope not in ('all', 'active', 'archived', 'orphan', 'global', 'attention') or not 0 <= offset or not 1 <= limit <= 100:
                 raise WorkspaceError('invalid_item')
             where, args = [], []
             clause = {'active': 'p.archived=0', 'archived': 'p.archived=1',
                       'orphan': "p.id IS NULL AND t.project_id IS NOT NULL AND t.project_id!=''",
-                      'global': "(t.project_id IS NULL OR t.project_id='')"}.get(scope)
+                      'global': "(t.project_id IS NULL OR t.project_id='')",
+                      'attention': "t.state IN ('blocked','review')"}.get(scope)
             if clause:
                 where.append(clause)
-            for key, value in (('project_id', project_id), ('provider_id', provider_id), ('state', state)):
+            for key, value in (('project_id', project_id), ('provider_id', provider_id), ('state', state),
+                               ('focus', focus), ('priority', priority)):
                 if value is not None:
                     where.append('t.' + key + '=?')
                     args.append(value)
             source = ' FROM task_items t LEFT JOIN projects p ON p.id=t.project_id' + (' WHERE ' + ' AND '.join(where) if where else '')
             total = connection.execute('SELECT COUNT(*)' + source, args).fetchone()[0]
-            rows = connection.execute('SELECT t.*' + source + ' ORDER BY t.sort_index,t.id LIMIT ? OFFSET ?', (*args, limit, offset)).fetchall()
+            ordering = 'COALESCE(t.priority,3),t.sort_index,t.id' if sort == 'priority' else 't.sort_index,t.id'
+            rows = connection.execute('SELECT t.*' + source + ' ORDER BY ' + ordering + ' LIMIT ? OFFSET ?', (*args, limit, offset)).fetchall()
             return {'items': [dict(row) for row in rows], 'total': total, 'offset': offset, 'limit': limit, 'list_revision': revision}

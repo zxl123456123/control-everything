@@ -1,0 +1,273 @@
+"""Account login never enrolls a computer or sends OAuth credentials to the UI."""
+
+from copy import deepcopy
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from types import SimpleNamespace
+import unittest
+from unittest.mock import Mock, patch
+
+from control_everything.integrations.remote_account import RemoteAccount
+from control_everything.integrations.remote_connector import ConnectorError, ConnectorStore
+from .test_remote_connector import ClockStop, Protector
+
+
+class Peer:
+    config = SimpleNamespace(issuer="https://id.example.test/realms/team", client_id="workbench-desktop")
+
+    def __init__(self):
+        self.calls, self.replies = [], []
+        self.admin = True
+        self.identity_error = None
+        self.grant = {"device_code": "private-device-code", "user_code": "TEST-CODE", "expires_in": 60,
+                      "interval": 1, "verification_uri": self.config.issuer + "/device"}
+
+    def request(self, method, path, body=None, token=None, *, oauth=False):
+        self.calls.append((method, path, body, token))
+        if path == "/auth/device":
+            return deepcopy(self.grant)
+        if path == "/token":
+            if self.replies:
+                reply = self.replies.pop(0)
+                if isinstance(reply, Exception):
+                    raise reply
+                return reply
+            return {"access_token": "private-access-token", "refresh_token": "private-refresh-token", "expires_in": 300}
+        if path.endswith("/identity"):
+            if self.identity_error:
+                raise self.identity_error
+            return {"account": {"issuer": self.config.issuer, "sub": "synthetic-owner", "name": "Owner"},
+                    "admin": self.admin, "membership": "active"}
+        if path.startswith("/remote/desktop/admin/members?"):
+            return {"items": [], "total": 0, "offset": 0, "limit": 25}
+        if path == "/remote/desktop/invitations":
+            return {"invitation": "synthetic-invitation"}
+        raise AssertionError(path)
+
+
+class AccountTests(unittest.TestCase):
+    def setUp(self):
+        temporary = TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        self.store = ConnectorStore(Path(temporary.name), protector=Protector())
+        self.peer, self.clock = Peer(), [1000]
+        self.account = RemoteAccount(self.peer, self.store, clock=lambda: self.clock[0])
+        self.account._stop = ClockStop(self.clock)
+
+    def login(self):
+        with patch("control_everything.integrations.remote_account.threading.Thread"):
+            status = self.account.authorize()
+        self.assertEqual(status["state"], "authorizing")
+        self.assertNotIn("device_code", status)
+        self.account._poll(self.peer.grant)
+
+    def test_login_persists_protected_account_without_enrollment_or_browser_token(self):
+        self.login()
+        status = self.account.status()
+        self.assertEqual(status["account"]["name"], "Owner")
+        self.assertTrue(status["admin"])
+        self.assertNotIn("private-", str(status))
+        raw = (self.store.root / "account-oauth.json").read_bytes()
+        self.assertTrue(raw.startswith(b"PROTECTED:"))
+        self.assertFalse(any("enrollment" in call[1] for call in self.peer.calls))
+        restored = RemoteAccount(self.peer, self.store, clock=lambda: self.clock[0])
+        self.assertEqual(restored.status()["account"]["sub"], "synthetic-owner")
+
+    def test_refresh_and_logout_do_not_revoke_or_rebind_a_computer(self):
+        self.login()
+        self.clock[0] += 300
+        self.assertEqual(self.account.status()["state"], "signed_in")
+        self.assertTrue(any(call[2] and call[2].get("grant_type") == "refresh_token" for call in self.peer.calls))
+        self.account._worker = None
+        self.assertIsNone(self.account.logout()["account"])
+        self.assertFalse((self.store.root / "account-oauth.json").exists())
+        self.assertFalse(any("revoke" in call[1] or "enrollment" in call[1] for call in self.peer.calls))
+
+    def test_role_loss_is_checked_before_directory_access(self):
+        self.login()
+        self.account.members()
+        before = len([call for call in self.peer.calls if "/admin/members" in call[1]])
+        self.peer.admin = False
+        with self.assertRaisesRegex(ConnectorError, "admin_required"):
+            self.account.members()
+        self.assertEqual(len([call for call in self.peer.calls if "/admin/members" in call[1]]), before)
+        self.assertFalse(self.account.status()["admin"])
+
+    def test_expired_or_revoked_identity_does_not_keep_an_admin_view(self):
+        self.login()
+        self.clock[0] += 31
+        self.peer.identity_error = ConnectorError("invalid_identity", 401)
+        status = self.account.status()
+        self.assertIsNone(status["account"])
+        self.assertFalse(status["admin"])
+        self.assertIsNone(self.store.read("account-oauth.json", protected=True))
+
+    def test_slow_down_and_pending_obey_the_grant_interval(self):
+        self.peer.replies = [ConnectorError("authorization_pending"), ConnectorError("slow_down")]
+        self.login()
+        self.assertEqual(self.account._stop.waits, [1, 1, 6])
+        self.assertEqual(self.account.status()["state"], "signed_in")
+
+    def test_directory_identity_rejection_clears_saved_admin_immediately(self):
+        self.login()
+        self.peer.identity_error = ConnectorError("invalid_identity", 401)
+        with self.assertRaisesRegex(ConnectorError, "invalid_identity"):
+            self.account.members()
+        self.assertIsNone(self.account.status()["account"])
+        self.assertFalse(self.account.status()["admin"])
+        self.assertIsNone(self.store.read("account-oauth.json", protected=True))
+
+    def test_cross_origin_authorization_and_cancelled_late_token_are_rejected(self):
+        self.peer.grant["verification_uri"] = "https://other.example.test/device"
+        with self.assertRaisesRegex(ConnectorError, "remote_grant_invalid"):
+            self.account.authorize()
+        self.assertIsNone(self.account.status()["account"])
+        self.account._stop.set()
+        self.account._poll(self.peer.grant)
+        self.assertIsNone(self.store.read("account-oauth.json", protected=True))
+
+    def test_complete_verification_uri_is_optional_and_same_origin(self):
+        base = self.peer.grant["verification_uri"]
+        cases = [(base + "?user_code=TEST-CODE", True), (None, False),
+                 ("https://other.example.test/device?user_code=TEST-CODE", False),
+                 ("http://id.example.test/device", False), ("https://user@id.example.test/device", False),
+                 (base + "#fragment", False), (base + "\n.evil", False),
+                 ("https://id.example.test:bad/device", False), (42, False), (base + "x" * 4096, False)]
+        for index, (complete, accepted) in enumerate(cases):
+            with self.subTest(case=index):
+                self.account._worker = None
+                self.peer.grant.pop("verification_uri_complete", None)
+                if complete is not None:
+                    self.peer.grant["verification_uri_complete"] = complete
+                with patch("control_everything.integrations.remote_account.threading.Thread"):
+                    status = self.account.authorize()
+                self.assertEqual(status["verification_uri"], base)
+                self.assertEqual(status["user_code"], "TEST-CODE")
+                self.assertEqual(status.get("verification_uri_complete"), complete if accepted else None)
+                self.assertNotIn("device_code", status)
+                self.assertNotIn("token", str(status))
+
+
+class LocalAccountBoundaryTests(unittest.TestCase):
+    def handler(self, **overrides):
+        from email.message import Message
+        headers = Message()
+        for key, value in {"Host": "127.0.0.1:12345", "Origin": "http://127.0.0.1:12345",
+                           "X-Session-Client": "panel", "X-Session-CSRF": "synthetic-csrf", **overrides}.items():
+            headers[key] = value
+        return SimpleNamespace(headers=headers, client_address=("127.0.0.1", 1),
+            server=SimpleNamespace(local_origin="http://127.0.0.1:12345", csrf_token="synthetic-csrf", desktop_account=Mock()),
+            path="/api/desktop/account/members?limit=25&offset=0", reply=Mock(), reject=Mock(), read_json_body=Mock(return_value={}))
+
+    def test_host_origin_proxy_and_client_cannot_bypass_local_account_boundary(self):
+        from control_everything.http.workbench_remote import handle_account
+        for headers in ({"Host":"attacker.test"}, {"Origin":"https://other.test"},
+                        {"X-CE-Proxy-Token":"proxy"}, {"X-Session-Client":"stdio"}):
+            handler = self.handler(**headers)
+            self.assertTrue(handle_account(handler, "/api/desktop/account/members"))
+            handler.reject.assert_called_once_with(403, "local_control_required")
+            handler.server.desktop_account.members.assert_not_called()
+
+    def test_write_csrf_and_strict_pagination_precede_remote_requests(self):
+        from control_everything.http.workbench_remote import handle_account
+        handler = self.handler(**{"X-Session-CSRF":"wrong"})
+        handle_account(handler, "/api/desktop/account/logout", write=True)
+        handler.server.desktop_account.logout.assert_not_called()
+        for query in ("limit=0", "limit=25&limit=1", "offset=-1", "limit=25&extra=1"):
+            handler = self.handler()
+            handler.path = "/api/desktop/account/members?" + query
+            handle_account(handler, "/api/desktop/account/members")
+            handler.reject.assert_called_once_with(400, "invalid_request")
+            handler.server.desktop_account.members.assert_not_called()
+
+    def test_initial_configuration_requires_local_controls_and_an_unconfigured_account(self):
+        from control_everything.http.workbench_remote import handle_account
+        path = '/api/desktop/account/configure'
+        body = {'issuer': 'https://identity.example.test/realm', 'hub_origin': 'https://hub.example.test'}
+        for headers in ({'Host': 'attacker.test'}, {'Origin': 'https://attacker.test'},
+                        {'X-Session-CSRF': 'wrong'}, {'X-Session-Client': 'stdio'},
+                        {'X-CE-Proxy-Token': 'proxy'}):
+            handler = self.handler(**headers)
+            handler.path = path
+            handler.server.desktop_account = None
+            handler.server.desktop = SimpleNamespace(server_setup=Mock())
+            handler.read_json_body.return_value = body
+            handle_account(handler, path, write=True)
+            handler.reject.assert_called_once_with(403, 'local_control_required')
+            handler.server.desktop.server_setup.configure.assert_not_called()
+        handler = self.handler()
+        handler.path = path
+        handler.server.desktop_account = None
+        handler.server.desktop = SimpleNamespace(server_setup=Mock())
+        handler.read_json_body.return_value = body
+        handle_account(handler, path, write=True)
+        handler.server.desktop.server_setup.configure.assert_called_once_with(body['issuer'], body['hub_origin'])
+        handler.reply.assert_called_once_with(200, {'saved': True, 'restart_required': True})
+        handler.server.desktop_account = Mock()
+        handler.server.desktop.server_setup.configure.reset_mock()
+        handle_account(handler, path, write=True)
+        handler.reject.assert_called_once_with(409, 'remote_restart_required')
+        handler.server.desktop.server_setup.configure.assert_not_called()
+
+    def test_configured_account_can_correct_only_while_unbound_and_signed_out(self):
+        from control_everything.http.workbench_remote import handle_account
+        path = '/api/desktop/account/configure'
+        for account_state, device_state, accepted in [('signed_out', 'unbound', True),
+                                                       ('signed_in', 'unbound', False),
+                                                       ('authorizing', 'unbound', False),
+                                                       ('signed_out', 'authorizing', False),
+                                                       ('signed_out', 'online', False)]:
+            handler = self.handler()
+            handler.path = path
+            handler.server.desktop = SimpleNamespace(server_setup=Mock())
+            handler.server.desktop_account.status.return_value = {'state': account_state}
+            handler.server.remote_connector = SimpleNamespace(status=Mock(return_value={'state': device_state}))
+            handler.read_json_body.return_value = {'issuer': 'https://identity.example.test/realm', 'hub_origin': 'https://hub.example.test'}
+            handle_account(handler, path, write=True)
+            with self.subTest(account=account_state, device=device_state):
+                if accepted:
+                    handler.server.desktop.server_setup.configure.assert_called_once()
+                else:
+                    handler.reject.assert_called_once_with(409, 'remote_configuration_locked')
+                    handler.server.desktop.server_setup.configure.assert_not_called()
+
+    def test_configuration_serializes_authorization_and_blocks_old_service_until_restart(self):
+        import threading
+        from control_everything.http.workbench_remote import handle_account, handle_post
+        started, release = threading.Event(), threading.Event()
+        setup = Mock()
+        def save(*_):
+            started.set()
+            if not release.wait(5):
+                raise RuntimeError('test synchronization timed out')
+        setup.configure.side_effect = save
+        desktop = SimpleNamespace(server_setup=setup, configuration_lock=threading.RLock(), configuration_changed=False)
+        account = Mock()
+        account.status.return_value = {'state': 'signed_out'}
+        connector = SimpleNamespace(status=Mock(return_value={'state': 'unbound'}),
+                                    begin_authorization=Mock(), confirm=Mock(), revoke=Mock())
+        def handler(path):
+            result = self.handler()
+            result.path = path
+            result.server.desktop = desktop
+            result.server.desktop_account = account
+            result.server.remote_connector = connector
+            return result
+        configure = handler('/api/desktop/account/configure')
+        configure.read_json_body.return_value = {'issuer': 'https://identity.example.test/realm', 'hub_origin': 'https://hub.example.test'}
+        authorize = handler('/api/desktop/account/authorize')
+        first = threading.Thread(target=handle_account, args=(configure, configure.path), kwargs={'write': True})
+        second = threading.Thread(target=handle_account, args=(authorize, authorize.path), kwargs={'write': True})
+        first.start()
+        self.assertTrue(started.wait(5))
+        second.start()
+        release.set()
+        first.join(5)
+        second.join(5)
+        self.assertFalse(first.is_alive() or second.is_alive())
+        account.authorize.assert_not_called()
+        authorize.reject.assert_called_once_with(409, 'remote_restart_required')
+        device = handler('/api/desktop/remote/authorize')
+        handle_post(device, device.path)
+        connector.begin_authorization.assert_not_called()
+        device.reject.assert_called_once_with(409, 'remote_restart_required')

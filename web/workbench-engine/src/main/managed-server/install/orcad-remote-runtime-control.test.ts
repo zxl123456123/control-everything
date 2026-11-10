@@ -1,0 +1,145 @@
+import type * as ExecCommandModule from '../../ssh/remote-exec/remote-exec-command'
+import { tmpdir } from 'node:os'
+import { win32 } from 'node:path'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+vi.mock('../../ssh/remote-exec/remote-exec-command', async (importOriginal) => ({
+  ...(await importOriginal<typeof ExecCommandModule>()),
+  execCommand: vi.fn(),
+  isUnconfirmedSshCommandTermination: (error: unknown) =>
+    error instanceof Error && error.message === 'unconfirmed'
+}))
+
+import { execCommand } from '../../ssh/remote-exec/remote-exec-command'
+import { execOrcadRemote, launchOrcadAndAwaitReadiness } from './orcad-remote-runtime-control'
+import { runWithOrcadFence } from '../activation/orcad-activation-fence-scope'
+import { getRemoteHostPlatform } from '../../ssh/ssh-remote-platform'
+import type { OrcadLaunchSpec } from './orcad-remote-launch'
+import { orcadLaunchCommand } from './orcad-remote-launch'
+import {
+  windowsOrcadLaunchCommand,
+  readWindowsOrcadLaunchEnvironmentVersion
+} from './orcad-remote-launch-windows'
+import { createSshOperationAbortError } from '../../ssh/connection/ssh-exec-options'
+
+const host = getRemoteHostPlatform('linux-arm64')
+const spec: OrcadLaunchSpec = {
+  remoteInstallDir: '/root/.zkyq-remote/orcad-0.1.0+07d0995735e0',
+  nodePath: '/usr/bin/node',
+  fullVersion: '0.1.0+07d0995735e0',
+  userDataDir: '/root/.orca',
+  bindHost: '127.0.0.1',
+  port: 6768,
+  activationRoot: '/root/.zkyq-remote/.orcad-activation-transaction'
+}
+const READY = `${JSON.stringify({ type: 'orca_server_ready', runtimeId: 'r1' })}\n`
+const mockExec = vi.mocked(execCommand)
+
+it('keeps the activation fence and cancellation while allowing a pinned-runtime transfer timeout', async () => {
+  const signal = new AbortController().signal
+  mockExec.mockReset().mockResolvedValue('copied')
+  await expect(
+    runWithOrcadFence({ lockDir: '/test-home/activation.lock', token: 'owned-token' }, () =>
+      execOrcadRemote({ conn: Object.create(null), host, signal }, 'echo copied', signal, 300_000)
+    )
+  ).resolves.toBe('copied')
+  expect(mockExec).toHaveBeenCalledWith(
+    Object.create(null),
+    expect.stringContaining('activation.lock'),
+    {
+      wrapCommand: true,
+      signal,
+      timeoutMs: 300_000
+    }
+  )
+  expect(mockExec.mock.calls[0][1]).toContain('echo copied')
+})
+
+it.each([0, 1] as const)(
+  'selects Windows launch environment %s from the installed package answer',
+  (version) => {
+    const answer = '__ZKYQ_LAUNCH_ENV__ ' + Buffer.from(String(version)).toString('base64')
+    expect(readWindowsOrcadLaunchEnvironmentVersion(answer)).toBe(version)
+    const windows = getRemoteHostPlatform('win32-x64')
+    const command = windowsOrcadLaunchCommand(windows, spec, 'node.exe', 'orcad.js', version)
+    expect(command).toContain(version === 1 ? 'ZKYQ_VERSION=' : 'ORCA_VERSION=')
+    expect(command).not.toContain(version === 1 ? 'ORCA_VERSION=' : 'ZKYQ_VERSION=')
+    expect(command).toContain(
+      version === 1 ? 'ZKYQ_SERVER_MANAGED_ACTIVATION_ROOT=' : 'ORCA_ORCAD_MANAGED_ACTIVATION_ROOT='
+    )
+  }
+)
+it('accepts an old host answer and refuses a future Windows environment format', () => {
+  expect(readWindowsOrcadLaunchEnvironmentVersion('')).toBe(0)
+  expect(() => readWindowsOrcadLaunchEnvironmentVersion('__ZKYQ_LAUNCH_ENV__ Mg==')).toThrow(
+    'Unsupported'
+  )
+})
+
+it('carries the selected data directory through both remote launch dialects', () => {
+  const windows = getRemoteHostPlatform('win32-x64')
+  const windowsSpec = {
+    ...spec,
+    remoteInstallDir: win32.join(tmpdir(), 'runtime-slot'),
+    userDataDir: win32.join(tmpdir(), 'existing Orca profile')
+  }
+  expect(orcadLaunchCommand(host, spec)).toContain('ZKYQ_USER_DATA=')
+  const runtime = win32.join(tmpdir(), 'runtime/node.exe')
+  const current = windowsOrcadLaunchCommand(windows, windowsSpec, runtime)
+  expect(current).toContain('ZKYQ_USER_DATA=')
+  expect(current).not.toContain('ORCA_USER_DATA=')
+  const previous = windowsOrcadLaunchCommand(windows, windowsSpec, runtime, undefined, 0)
+  expect(previous).toContain('ORCA_USER_DATA=')
+  expect(previous).toContain('ZKYQ_USER_DATA=')
+})
+
+function launch(signal?: AbortSignal) {
+  return launchOrcadAndAwaitReadiness(
+    { conn: Object.create(null), host, readinessTimeoutMs: 60_000, sleep: async () => {}, signal },
+    spec
+  )
+}
+
+describe('waiting for a launched candidate', () => {
+  beforeEach(() => {
+    mockExec.mockReset()
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+  })
+
+  // BUG-17: one failed read of the readiness file failed the launch, and the activation then
+  // stopped a candidate that went ready a moment later.
+  it('retries a failed readiness read instead of failing the launch', async () => {
+    mockExec
+      .mockResolvedValueOnce('1786\n')
+      .mockRejectedValueOnce(new Error('(SSH) Channel open failure: open failed'))
+      .mockResolvedValueOnce(READY)
+    await expect(launch()).resolves.toMatchObject({
+      state: 'ready',
+      readiness: { runtimeId: 'r1' }
+    })
+  })
+
+  it('still fails at once on an unconfirmed termination, which may have run remotely', async () => {
+    mockExec.mockResolvedValueOnce('1786\n').mockRejectedValueOnce(new Error('unconfirmed'))
+    await expect(launch()).rejects.toThrow('unconfirmed')
+  })
+
+  it('stops retrying a readiness read that the retired SSH transport cancelled', async () => {
+    const cancelled = createSshOperationAbortError()
+    mockExec
+      .mockResolvedValueOnce('1786\n')
+      .mockRejectedValueOnce(cancelled)
+      .mockResolvedValueOnce(READY)
+    await expect(launch()).rejects.toBe(cancelled)
+    expect(mockExec).toHaveBeenCalledTimes(2)
+  })
+
+  it('rejects a readiness reply received after its caller cancelled', async () => {
+    const controller = new AbortController()
+    mockExec.mockResolvedValueOnce('1786\n').mockImplementationOnce(async () => {
+      controller.abort()
+      return READY
+    })
+    await expect(launch(controller.signal)).rejects.toMatchObject({ name: 'AbortError' })
+  })
+})

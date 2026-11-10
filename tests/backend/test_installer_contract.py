@@ -63,6 +63,14 @@ class InstallerIncludesTests(PayloadFixture):
         hashes = re.findall(r"PayloadHashes\[\d+\] := '([0-9a-f]{64})';", table)
         self.assertEqual(paths, sorted(rows))
         self.assertEqual(hashes, [rows[name]['sha256'] for name in sorted(rows)])
+        bootstrap = {row['path']: row for row in receipt['bootstrap_files']}
+        self.assertLess(len(bootstrap), len(rows))
+        self.assertIn(INNO.BOOTSTRAP_ENTRY, bootstrap)
+        self.assertNotIn('BUILD-INPUTS.json', bootstrap)
+        paths = [value.replace("''", "'").replace('\\', '/') for value in re.findall(r"BootstrapPaths\[\d+\] := '((?:''|[^'])*)';", table)]
+        hashes = re.findall(r"BootstrapHashes\[\d+\] := '([0-9a-f]{64})';", table)
+        self.assertEqual(paths, sorted(bootstrap))
+        self.assertEqual(hashes, [bootstrap[name]['sha256'] for name in sorted(bootstrap)])
         for name, expected in receipt['includes'].items():
             self.assertEqual(hashlib.sha256((output / name).read_bytes()).hexdigest(), expected)
 
@@ -72,15 +80,38 @@ class InstallerIncludesTests(PayloadFixture):
         extra = stage / name
         extra.parent.mkdir(parents=True)
         extra.write_bytes(b'fixture bytes')
+        selected_name = "runtime/Lib/site-packages/control_everything/资料's.py"
+        (stage / selected_name).write_bytes(b'# synthetic module')
         BUILD.write_product_manifest(stage, '0.1.0a1', SOURCE)
         output = self.root / '包含 空格'
-        INNO.generate_includes(stage, output)
+        receipt = INNO.generate_includes(stage, output)
         table = (output / 'payload-hashes.iss').read_text(encoding='utf-8-sig')
         self.assertIn("资料''s.txt", table)
+        patterns = [value.replace("''", "'").replace('\\', '/') for value in re.findall(r"BootstrapBatchPatterns\[\d+\] := '((?:''|[^'])*)';", table)]
+        extracted = [row['path'] for pattern in patterns for row in receipt['files']
+                     if (row['path'].lower().startswith(pattern[:-1].lower())
+                         if pattern.endswith('*') else row['path'].lower() == pattern.lower())]
+        self.assertCountEqual(extracted, [row['path'] for row in receipt['bootstrap_files']])
+        self.assertIn(selected_name, extracted)
+        self.assertNotIn(name, extracted)
         self.assertEqual(INNO.pascal_string("a'b"), "'a''b'")
         for invalid in ('x".txt', 'x{app}.txt', 'x\ny.txt', 'x\0y.txt'):
             with self.subTest(invalid=invalid), self.assertRaisesRegex(ValueError, 'invalid_installer_path'):
                 INNO.inno_path(invalid)
+
+    def test_extraction_batches_match_each_file_once_with_bounded_counts(self):
+        names = ['LICENSE', 'runtime/large.dll', *(f'runtime/lib/x{index:04}.py' for index in range(2500))]
+        rows = [{'path': name, 'size': 100 * 1024 * 1024 if name.endswith('.dll') else 1024} for name in names]
+        batches = INNO.extraction_batches(rows, '0.1.0a11-fixture')
+        extracted = []
+        for pattern, count in batches:
+            files = [name for name in names if (name.lower().startswith(pattern[:-1])
+                     if pattern.endswith('*') else name.lower() == pattern.lower())]
+            self.assertEqual(len(files), count)
+            self.assertLessEqual(count, 1024)
+            extracted.extend(files)
+        self.assertCountEqual(extracted, names)
+        self.assertIn(('runtime/large.dll', 1), batches)
 
     def test_missing_bootstrap_tampered_payload_and_extra_files_fail_before_output(self):
         stage, document = super().payload()
@@ -119,9 +150,9 @@ class InstallerIncludesTests(PayloadFixture):
 
 class InstallerScriptTests(unittest.TestCase):
     def test_path_limit_precedes_bootstrap_parent_creation_and_target_writes(self):
-        prepare = body('PrepareToInstall')
+        prepare = body('PrepareInstallation')
         positions = [prepare.index(value) for value in (
-            'ReleaseMaintenance', 'RequireSupportedInstallPaths', 'ExtractTemporaryFiles',
+            'ReleaseMaintenance', 'RequireSupportedInstallPaths', 'ExtractBootstrap',
             'EnsureDefaultParent', "RunMaintenance('prepare'", "RunMaintenance('preflight'")]
         self.assertEqual(positions, sorted(positions))
         guard = body('RequireSupportedInstallPaths')
@@ -158,20 +189,71 @@ class InstallerScriptTests(unittest.TestCase):
         self.assertNotIn('current.json', SCRIPT)
 
     def test_bootstrap_hashes_precede_prepare_mutex_and_preflight(self):
-        prepare = body('PrepareToInstall')
+        prepare = body('PrepareInstallation')
         positions = [prepare.index(value) for value in (
-            'ExtractTemporaryFiles', 'VerifyTable(BootstrapRoot)', "RunMaintenance('prepare'",
+            'ExtractBootstrap', "RunMaintenance('prepare'",
             'AcquireMaintenance', "RunMaintenance('preflight'", 'Prepared := True')]
         self.assertEqual(positions, sorted(positions))
         self.assertIn("+ '{app}\\versions\\{#PayloadId}'", prepare)
         self.assertIn("if not InstallPayload then begin", prepare)
         self.assertIn("RunMaintenance('verify', NewReport('existing')", prepare)
-        self.assertIn('Result := GetExceptionMessage', prepare)
+        self.assertNotIn('VerifyTable(BootstrapRoot,', prepare)
+        self.assertIn('Result := GetExceptionMessage', body('PrepareToInstall'))
         after = body('CurStepChanged')
-        self.assertLess(after.index("RunMaintenance('verify'"), after.index("RunMaintenance('commit'"))
+        self.assertLess(after.index('VerifyTable(InstalledVersionRoot, PayloadPaths, PayloadHashes)'), after.index("RunMaintenance('commit'"))
         self.assertIn('ssPostInstall', after)
         self.assertIn('PreflightReceipt', after)
         self.assertNotIn('session-panel.cmd', after)
+
+    def test_install_rejects_reentry_and_checks_preflight_before_writes(self):
+        next_button = body('NextButtonClick')
+        self.assertIn('if MaintenanceProgress <> nil then Result := CurPageID <> MaintenanceProgress.ID', next_button)
+        steps = body('CurStepChanged')
+        self.assertIn('(CurStep = ssInstall) or (CurStep = ssPostInstall)', steps)
+        self.assertLess(steps.index('not Prepared or not MaintenanceHeld'), steps.index('if CurStep = ssPostInstall then'))
+
+    def test_interactive_progress_covers_preparation_and_final_registration(self):
+        wizard = body('InitializeWizard')
+        self.assertIn('if not WizardSilent then', wizard)
+        self.assertIn('CreateOutputMarqueeProgressPage', wizard)
+        update = body('UpdateMaintenanceProgress')
+        self.assertIn('MaintenanceProgress.SetText', update)
+        self.assertIn('MaintenanceProgress.SetText', body('ShowFileProgress'))
+        self.assertIn('ShowFileProgress(I + 1, GetArrayLength(Paths))', body('VerifyTable'))
+        extraction = body('ExtractBootstrap')
+        self.assertLess(extraction.index('ExtractTemporaryFiles(Prefix + BootstrapBatchPatterns[I])'),
+                        extraction.rindex('ShowFileProgress(Completed, GetArrayLength(BootstrapPaths))'))
+        for stage in ('PrepareToInstall', 'CurStepChanged'):
+            callback = body(stage)
+            self.assertLess(callback.index('MaintenanceProgress.Show'), callback.index('finally'))
+            self.assertLess(callback.index('finally'), callback.index('MaintenanceProgress.Hide'))
+        self.assertIn('UpdateMaintenanceProgress', body('PrepareInstallation'))
+        self.assertIn('UpdateMaintenanceProgress', body('CurStepChanged'))
+
+    def test_data_directory_is_opt_in_and_upgrade_preserves_existing_selection(self):
+        wizard = body('InitializeWizard')
+        self.assertIn('CreateInputOptionPage(wpSelectDir', wizard)
+        self.assertIn('CreateInputDirPage(DataDirectoryChoice.ID', wizard)
+        self.assertIn('DataDirectoryChoice.SelectedValueIndex := 0', wizard)
+        self.assertIn("DataDirectoryChoice.Add('沿用原有数据目录规则')", wizard)
+        self.assertIn("DataDirectoryChoice.Add('选择自定义数据目录')", wizard)
+        self.assertIn("DataDirectoryPage.Values[0] := ''", wizard)
+        self.assertIn('不会自动迁移旧数据', wizard)
+        self.assertIn("'.install\\root.json'", body('ShouldSkipPage'))
+        self.assertIn('DataDirectoryChoice.SelectedValueIndex <> 1', body('ShouldSkipPage'))
+        prepare = body('PrepareInstallation')
+        self.assertIn("SelectedDataDirectory := ''", prepare)
+        self.assertIn("(Operation = 'install') and not WizardSilent", prepare)
+        self.assertIn('(DataDirectoryChoice.SelectedValueIndex = 1)', prepare)
+        self.assertIn('PathIsRooted(SelectedDataDirectory)', prepare)
+        self.assertIn('RequireNoReparse(SelectedDataDirectory)', prepare)
+
+    def test_data_directory_is_quoted_and_sent_to_initial_preflight_and_commit(self):
+        run = body('RunMaintenance')
+        guard = "((Command = 'preflight') or (Command = 'commit')) and (Operation = 'install') and (SelectedDataDirectory <> '')"
+        self.assertIn(guard, run)
+        self.assertIn("' --desktop-data-dir ' + QuoteArgument(SelectedDataDirectory)", run)
+        self.assertLess(run.index(guard), run.index('Started := Exec'))
 
     def test_only_parent_acquires_and_releases_the_actual_mutex(self):
         acquire = body('AcquireMaintenance')
@@ -187,7 +269,7 @@ class InstallerScriptTests(unittest.TestCase):
         self.assertNotIn('NativeReleaseMutex', run)
         self.assertIn('--invocation-file', run)
         self.assertNotIn('skip-lock', run)
-        self.assertLess(run.index('VerifyTable(BootstrapRoot)'), run.index('Started := Exec'))
+        self.assertLess(run.index('VerifyTable(BootstrapRoot, BootstrapPaths, BootstrapHashes)'), run.index('Started := Exec'))
         self.assertIn("+ 'runtime\\python.exe'", run)
         self.assertIn("'-I -B -X utf8 -m control_everything.installation.maintenance '", run)
 
@@ -203,7 +285,7 @@ class InstallerScriptTests(unittest.TestCase):
         for exit_code in range(20, 27):
             self.assertIn(str(exit_code) + ': RaiseException', run)
         stages = re.findall(r"RunMaintenance\('([^']+)'", body('CurStepChanged'))
-        self.assertEqual(stages, ['verify', 'commit'])
+        self.assertEqual(stages, ['commit'])
 
     def test_missing_parent_creation_is_limited_to_the_default_user_programs(self):
         parent = body('EnsureDefaultParent')
@@ -213,8 +295,8 @@ class InstallerScriptTests(unittest.TestCase):
         self.assertIn('CreateDir(DefaultParent)', parent)
         self.assertNotIn('ForceDirectories', parent)
         self.assertNotIn('CreateDir(App)', parent)
-        self.assertLess(body('PrepareToInstall').index('EnsureDefaultParent'),
-                        body('PrepareToInstall').index("RunMaintenance('prepare'"))
+        self.assertLess(body('PrepareInstallation').index('EnsureDefaultParent'),
+                        body('PrepareInstallation').index("RunMaintenance('prepare'"))
 
     def test_success_exit_requires_committed_launcher(self):
         self.assertIn('InstallCommitted := True', body('CurStepChanged'))
@@ -232,10 +314,11 @@ class InstallerScriptTests(unittest.TestCase):
         self.assertIn("RunMaintenance('commit'", confirmed)
         self.assertIn('not Prepared or not MaintenanceHeld', confirmed)
         copy = body('CopyBoundUninstallBootstrap')
-        self.assertIn('GetArrayLength(PayloadPaths)', copy)
+        self.assertIn('GetArrayLength(BootstrapPaths)', copy)
+        self.assertNotIn('PayloadPaths[I]', copy)
         self.assertIn('CopyFile(Source, Destination, True)', copy)
         self.assertLess(copy.index('CopyFile('), copy.index('GetSHA256OfFile(Destination)'))
-        self.assertIn('VerifyTable(BootstrapRoot)', copy)
+        self.assertIn('VerifyTable(BootstrapRoot, BootstrapPaths, BootstrapHashes)', copy)
         for forbidden in ('FindFirst', '*.exe', '*.dat', '*.msg', 'native_missing', 'system32', 'profile', 'DeleteFile'):
             self.assertNotIn(forbidden, copy)
         self.assertNotIn('ExtractTemporaryFiles', uninstall)

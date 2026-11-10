@@ -1,0 +1,524 @@
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useAppStore } from '../store'
+import { selectWorktreesByRepo } from '../store/workspace-record-selectors'
+import { activateAndRevealWorktree } from '../lib/worktree-activation'
+import { getRepoExecutionHostId, toRuntimeExecutionHostId } from '../../../shared/execution-host'
+import type { PlatformProjectBootstrap, PlatformRuntimeBootstrap } from './platform-project-bootstrap'
+import { getActiveSidebarWorkspaceId, parseWorkspaceKey } from '../../../shared/workspace-scope'
+import { findFolderWorkspaceOwner } from '../lib/folder-workspace-runtime-owner'
+import {
+  choosePlatformWorktree,
+  describePlatformWorkspace,
+  createPlatformProjectNavigator
+} from './platform-project-navigation'
+import type { PlatformProject } from './platform-studio-surface'
+import { projectRoute, readPlatformRoute } from './platform-route'
+import { getProjectHostSetupProjectionFromState } from '../store/project-host-setup-selector'
+import { resolvePlatformProjectSettingsScope } from './platform-settings-navigation'
+import type { SettingsPresentationScope } from '../lib/settings-navigation-types'
+
+export type PlatformConnectionState = 'starting' | 'ready' | 'reconnecting' | 'blocked'
+
+export function PlatformRuntimeNavigation({
+  data, projects, active, workbench, entryRevision, settingsScope, onReady
+}: {
+  data: PlatformRuntimeBootstrap
+  projects: PlatformProject[]
+  active: boolean
+  workbench: boolean
+  entryRevision: number
+  settingsScope?: SettingsPresentationScope
+  onReady: (revision: number | null) => void
+}): null {
+  const hydrated = useAppStore(state => state.hydrationSucceeded)
+  const terminalsReady = useAppStore(state => state.terminalStartupRestorationReady)
+  const catalogReady = useAppStore(state => state.startupWorktreeRefreshCompleted)
+  const activeView = useAppStore(state => state.activeView)
+  const selected = useAppStore(state => getActiveSidebarWorkspaceId(state.activeWorkspaceKey, state.activeWorktreeId))
+  const host = useAppStore(state => state.activeWorkspaceExecutionHostId)
+  const repos = useAppStore(state => state.repos)
+  const target = useAppStore(state => state.settingsNavigationTarget)
+  const snapshot = useAppStore(state => state.runtimeStatusByEnvironmentId.get(data.runtime.environmentId)?.snapshot)
+  const initialized = useRef<number | null>(null)
+  const ready = hydrated && terminalsReady && catalogReady &&
+    snapshot?.verification === 'verified' && !snapshot.retired && snapshot.transport === 'ready'
+
+  useEffect(() => {
+    if (!active || !ready) { onReady(null); return }
+    const state = useAppStore.getState()
+    if (workbench && initialized.current !== entryRevision) {
+      initialized.current = entryRevision
+      state.setActiveWorktree(null)
+      state.setActiveView('terminal')
+    }
+    if (settingsScope && state.activeView !== 'settings') state.openSettingsPage()
+    onReady(entryRevision)
+  }, [active, ready, workbench, entryRevision, settingsScope, onReady])
+
+  useEffect(() => {
+    if (!active || !workbench || !ready || initialized.current !== entryRevision) return
+    const state = useAppStore.getState()
+    if (state.activeView !== activeView ||
+      getActiveSidebarWorkspaceId(state.activeWorkspaceKey, state.activeWorktreeId) !== selected) return
+    const runtimeHost = toRuntimeExecutionHostId(data.runtime.environmentId)
+    const normalize = (path: string) => path.replaceAll('\\', '/').replace(/\/+$/, '').toLowerCase()
+    const projectAt = (path: string) => {
+      const matches = projects.filter(project => project.directory && normalize(project.directory) === normalize(path))
+      return matches.length === 1 ? matches[0] : null
+    }
+    if (activeView === 'settings') {
+      if (!target || target.pane !== 'repo') {
+        const pane = target?.pane ?? 'appearance'
+        window.location.hash = '#settings/' + (pane === 'appearance' ? 'workbench-appearance' : pane)
+      }
+      else {
+        const repo = repos.find(repo => repo.id === target.repoId &&
+          getRepoExecutionHostId(repo) === (target.hostId ?? runtimeHost) && getRepoExecutionHostId(repo) === runtimeHost)
+        const project = repo && projectAt(repo.path)
+        if (project) window.location.hash = projectRoute(project.id, 'settings')
+      }
+      return
+    }
+    if (!selected || host !== runtimeHost) return
+    const scope = parseWorkspaceKey(selected)
+    const folder = scope?.type === 'folder' ? findFolderWorkspaceOwner(state, scope.folderWorkspaceId, runtimeHost) : null
+    const tree = scope?.type === 'folder' ? null : state.getKnownWorktreeById(selected, runtimeHost)
+    const repo = tree && repos.find(repo => repo.id === tree.repoId && getRepoExecutionHostId(repo) === runtimeHost)
+    const project = folder ? projectAt(folder.folderPath) : repo ? projectAt(repo.path) : null
+    if (project) window.location.hash = projectRoute(project.id)
+  }, [active, workbench, ready, entryRevision, data, selected, host, repos, projects, activeView, target])
+
+  useEffect(() => {
+    if (!active || !settingsScope) return
+    const accepted = (event: Event) => {
+      const next = readPlatformRoute({ hash: (event as CustomEvent<{ to: string }>).detail.to, search: '' })
+      if (next.view !== 'settings' && !(next.view === 'project' && next.tab === 'settings') &&
+        useAppStore.getState().activeView === 'settings') useAppStore.getState().closeSettingsPage()
+    }
+    window.addEventListener('platform-navigation-accepted', accepted)
+    return () => window.removeEventListener('platform-navigation-accepted', accepted)
+  }, [active, settingsScope])
+  return null
+}
+
+export default function PlatformNavigation({
+  data,
+  projects,
+  active,
+  selectionOnly = false,
+  pending = false,
+  canCreateWorkspace = false,
+  surface = 'workspace',
+  onSelection,
+  onReady,
+  onConnectionState,
+  settingsScope,
+  onSettingsScope
+}: {
+  data: PlatformProjectBootstrap
+  projects: PlatformProject[]
+  active: boolean
+  selectionOnly?: boolean
+  pending?: boolean
+  canCreateWorkspace?: boolean
+  surface?: 'workspace' | 'activity'
+  onSelection: (id: string | null) => void
+  onReady?: (data: PlatformProjectBootstrap | null) => void
+  onConnectionState?: (data: PlatformProjectBootstrap, state: PlatformConnectionState) => void
+  settingsScope?: SettingsPresentationScope
+  onSettingsScope?: (scope: Extract<SettingsPresentationScope, { kind: 'project' }> | null) => void
+}): React.JSX.Element {
+  const hydrated = useAppStore((state) => state.hydrationSucceeded)
+  const terminalsReady = useAppStore((state) => state.terminalStartupRestorationReady)
+  const catalogReady = useAppStore((state) => state.startupWorktreeRefreshCompleted)
+  const repos = useAppStore((state) => state.repos)
+  const worktrees = useAppStore(selectWorktreesByRepo)
+  const activeWorktreeId = useAppStore((state) => state.activeWorktreeId)
+  const activeView = useAppStore((state) => state.activeView)
+  const settingsTarget = useAppStore((state) => state.settingsNavigationTarget)
+  const hostSetups = useAppStore(getProjectHostSetupProjectionFromState)
+  const activated = useRef<PlatformProjectBootstrap | null>(null)
+  const shownSurface = useRef<{
+    data: PlatformProjectBootstrap
+    surface: 'workspace' | 'activity'
+  } | null>(null)
+  const snapshot = useAppStore(
+    (state) => state.runtimeStatusByEnvironmentId.get(data.runtime.environmentId)?.snapshot
+  )
+  const navigate = useMemo(
+    () => createPlatformProjectNavigator(data, activateAndRevealWorktree),
+    [data]
+  )
+  const [notice, setNotice] = useState('正在恢复项目工作区…')
+  const [catalogError, setCatalogError] = useState('')
+  const [retryingConnection, setRetryingConnection] = useState(false)
+  const [connectionError, setConnectionError] = useState('')
+  const connectionRequest = useRef(0)
+  const [pendingCreation, setPendingCreation] = useState<{ projectId: string; repoId: string } | null>(null)
+  const project = projects.find((row) => row.id === data.project.id)
+  const normalize = (value: string) => value.replaceAll('\\', '/').replace(/\/+$/, '').toLowerCase()
+  const isProjectRepo = (repo: (typeof repos)[number]) =>
+    Boolean(project?.directory && normalize(project.directory) === normalize(repo.path))
+
+  const runtimeReady = hydrated && terminalsReady && catalogReady &&
+    snapshot?.verification === 'verified' && !snapshot.retired && snapshot.transport === 'ready'
+  const connectionState: PlatformConnectionState = !snapshot ? 'starting'
+    : snapshot.retired || snapshot.verification === 'blocked' ? 'blocked'
+      : snapshot.verification === 'verified' && snapshot.transport === 'ready' ? 'ready' : 'reconnecting'
+  useEffect(() => {
+    if (active) onConnectionState?.(data, connectionState)
+    if (connectionState === 'ready') setConnectionError('')
+  }, [active, data, connectionState, onConnectionState])
+  useEffect(() => {
+    connectionRequest.current++
+    setRetryingConnection(false)
+    setConnectionError('')
+    return () => { connectionRequest.current++ }
+  }, [data, active])
+  const reconnect = async () => {
+    const request = ++connectionRequest.current
+    setRetryingConnection(true)
+    setConnectionError('')
+    try {
+      const result = await window.api.runtimeEnvironments.connect({
+        selector: data.runtime.environmentId, timeoutMs: 15000
+      })
+      if (connectionRequest.current === request && !result.ok)
+        setConnectionError('仍未连接。若服务已更新，请重新加载工作区。')
+    } catch {
+      if (connectionRequest.current === request)
+        setConnectionError('仍未连接。若服务已更新，请重新加载工作区。')
+    } finally {
+      if (connectionRequest.current === request) setRetryingConnection(false)
+    }
+  }
+  useEffect(() => {
+    const accepted = (event: Event) => {
+      if (!settingsScope) return
+      const next = readPlatformRoute({ hash: (event as CustomEvent<{ to: string }>).detail.to, search: '' })
+      const staysNative = (next.view === 'project' && next.tab === 'settings') ||
+        (next.view === 'settings' && !['appearance', 'account', 'sources'].includes(next.tab))
+      if (!staysNative && useAppStore.getState().activeView === 'settings')
+        useAppStore.getState().closeSettingsPage()
+    }
+    window.addEventListener('platform-navigation-accepted', accepted)
+    return () => window.removeEventListener('platform-navigation-accepted', accepted)
+  }, [settingsScope])
+  useEffect(() => {
+    if (!settingsScope || !runtimeReady) { onSettingsScope?.(null); return }
+    if (settingsScope.kind === 'project') {
+      const exact = resolvePlatformProjectSettingsScope(settingsScope.contextKey, data, project, repos, hostSetups.setups)
+      onSettingsScope?.(exact)
+      if (!exact) return
+    }
+    // Open only the original page. Its scoped catalog and section handshake owns reveal.
+    if (useAppStore.getState().activeView !== 'settings') useAppStore.getState().openSettingsPage()
+  }, [settingsScope, runtimeReady, data, project, repos, hostSetups, onSettingsScope])
+
+  useEffect(() => {
+    if (!active || selectionOnly || activeView !== 'settings' || settingsScope) return
+    // A restored settings view cannot replace the explicit incoming project route.
+    // Reflect native settings actions only after this requested surface was revealed.
+    if (!runtimeReady || shownSurface.current?.data !== data ||
+      shownSurface.current.surface !== surface || useAppStore.getState().activeView !== 'settings') return
+    const target = settingsTarget
+    if (!target || target.pane !== 'repo') {
+      const pane = target?.pane ?? 'appearance'
+      window.location.hash = '#settings/' + (pane === 'appearance' ? 'workbench-appearance' : pane)
+      return
+    }
+    const repo = repos.find(row => row.id === target.repoId &&
+      getRepoExecutionHostId(row) === (target.hostId ?? toRuntimeExecutionHostId(data.runtime.environmentId)))
+    const matches = repo ? projects.filter(row => row.directory && normalize(row.directory) === normalize(repo.path)) : []
+    if (matches.length === 1) window.location.hash = projectRoute(matches[0].id, 'settings')
+  }, [active, selectionOnly, activeView, settingsScope, settingsTarget, repos, projects, data, surface, runtimeReady])
+
+  useEffect(() => {
+    const create = (event: Event) => {
+      if (!active) return
+      const { repoId, executionHostId } = (event as CustomEvent<{ repoId: string; executionHostId: string }>).detail ?? {}
+      const repo = useAppStore.getState().repos.find((row) => row.id === repoId &&
+        getRepoExecutionHostId(row) === executionHostId &&
+        getRepoExecutionHostId(row) === toRuntimeExecutionHostId(data.runtime.environmentId))
+      const selected = repo && projects.find((row) => row.directory && normalize(row.directory) === normalize(repo.path))
+      if (!repo || !selected) {
+        setCatalogError('请先将这个目录添加为项目。')
+        return
+      }
+      // Route before opening the modal so its existing project scope is the clicked row.
+      setPendingCreation({ projectId: selected.id, repoId: repo.id })
+      window.location.hash = projectRoute(selected.id)
+    }
+    window.addEventListener('platform-create-workspace', create)
+    return () => window.removeEventListener('platform-create-workspace', create)
+  }, [active, data.runtime.environmentId, projects])
+
+  useEffect(() => {
+    if (!pendingCreation) return
+    const stillRequested = () => {
+      const current = readPlatformRoute(window.location)
+      return current.id === pendingCreation.projectId && current.tab === 'workspace'
+    }
+    const cancelAfterNavigation = () => {
+      if (!stillRequested()) setPendingCreation(null)
+    }
+    window.addEventListener('hashchange', cancelAfterNavigation)
+    if (!stillRequested()) setPendingCreation(null)
+    else if (active && canCreateWorkspace && data.project.id === pendingCreation.projectId &&
+      data.target.repoId === pendingCreation.repoId) {
+      setPendingCreation(null)
+      useAppStore.getState().openModal('new-workspace-composer', {
+        initialRepoId: pendingCreation.repoId, telemetrySource: 'sidebar'
+      })
+    }
+    return () => window.removeEventListener('hashchange', cancelAfterNavigation)
+  }, [pendingCreation, active, canCreateWorkspace, data])
+
+  useEffect(() => {
+    if (
+      !project ||
+      project.name !== data.project.name ||
+      !hydrated ||
+      !catalogReady ||
+      snapshot?.retired ||
+      snapshot?.verification !== 'verified' ||
+      snapshot.transport !== 'ready'
+    )
+      return
+    let disposed = false
+    setCatalogError('')
+    const state = useAppStore.getState()
+    const hostId = toRuntimeExecutionHostId(data.runtime.environmentId)
+    if (
+      state.repos.some(
+        (row) =>
+          row.id === data.target.repoId &&
+          getRepoExecutionHostId(row) === hostId &&
+          isProjectRepo(row) &&
+          row.displayName === project.name
+      ) &&
+      choosePlatformWorktree(
+        Object.values(selectWorktreesByRepo(state)).flat(),
+        data,
+        state.activeWorktreeId
+      )
+    )
+      return
+    // Web repo-change notifications are unavailable; fetch a newly bootstrapped project's catalog explicitly.
+    void state
+      .fetchRepos({ runtimeEnvironmentId: data.runtime.environmentId, throwOnError: true })
+      .then(() => {
+        if (!disposed)
+          return useAppStore
+            .getState()
+            .fetchWorktrees(data.target.repoId, { executionHostId: hostId })
+        return undefined
+      })
+      .catch(() => {
+        if (!disposed) setCatalogError('项目目录未能刷新，请重新加载页面后重试。')
+      })
+    return () => {
+      disposed = true
+    }
+  }, [
+    data,
+    project?.name,
+    project?.directory,
+    hydrated,
+    catalogReady,
+    snapshot?.verification,
+    snapshot?.transport
+  ])
+
+  useEffect(() => {
+    if (!active) return
+    const hostId = toRuntimeExecutionHostId(data.runtime.environmentId)
+    const repo = repos.find(
+      (row) =>
+        row.id === data.target.repoId &&
+        getRepoExecutionHostId(row) === hostId &&
+        isProjectRepo(row) &&
+        row.displayName === project?.name
+    )
+    const state = useAppStore.getState()
+    const ready =
+      Boolean(project) &&
+      project?.name === data.project.name &&
+      hydrated &&
+      terminalsReady &&
+      catalogReady &&
+      snapshot?.verification === 'verified' &&
+      !snapshot.retired &&
+      snapshot.transport === 'ready'
+    const message = selectionOnly ? (ready && repo ? '项目已打开' : '正在恢复项目工作区…') : navigate({
+      ready,
+      hasRepo: Boolean(repo),
+      worktrees: Object.values(worktrees).flat(),
+      activeWorktreeId: state.activeWorktreeId
+    })
+    if (message === '项目已打开') activated.current = data
+    onReady?.(ready && repo && message === '项目已打开' ? data : null)
+    setNotice(message)
+  }, [
+    active,
+    selectionOnly,
+    data,
+    project?.name,
+    project?.directory,
+    hydrated,
+    terminalsReady,
+    catalogReady,
+    repos,
+    worktrees,
+    snapshot,
+    navigate,
+    onReady
+  ])
+
+  useEffect(() => {
+    if (!active || selectionOnly) {
+      shownSurface.current = null
+      return
+    }
+    const current = readPlatformRoute(window.location)
+    if (
+      current.view !== 'project' ||
+      current.id !== data.project.id ||
+      current.tab !== surface ||
+      activated.current !== data ||
+      !hydrated ||
+      !terminalsReady ||
+      !catalogReady ||
+      snapshot?.retired ||
+      snapshot?.verification !== 'verified' ||
+      snapshot.transport !== 'ready'
+    )
+      return
+    if (shownSurface.current?.data === data && shownSurface.current.surface === surface) return
+    const state = useAppStore.getState()
+    if (
+      !project ||
+      project.name !== data.project.name ||
+      !repos.some(
+        (repo) =>
+          repo.id === data.target.repoId &&
+          getRepoExecutionHostId(repo) === toRuntimeExecutionHostId(data.runtime.environmentId) &&
+          isProjectRepo(repo) &&
+          repo.displayName === project.name
+      )
+    )
+      return
+    const target = choosePlatformWorktree(
+      Object.values(worktrees).flat(),
+      data,
+      state.activeWorktreeId
+    )
+    if (!target) return
+    if (surface === 'activity') state.openActivityPage()
+    else if (state.activeView !== 'terminal') {
+      if (state.activeView === 'activity') state.closeActivityPage()
+      activateAndRevealWorktree(target.id, {
+        executionHostId: toRuntimeExecutionHostId(data.runtime.environmentId)
+      })
+    }
+    shownSurface.current = { data, surface }
+  }, [
+    active,
+    selectionOnly,
+    data,
+    surface,
+    hydrated,
+    terminalsReady,
+    catalogReady,
+    snapshot,
+    worktrees,
+    repos,
+    project?.name,
+    project?.directory
+  ])
+
+  useEffect(() => {
+    const current = readPlatformRoute(window.location)
+    if (
+      active &&
+      surface === 'activity' &&
+      shownSurface.current?.data === data &&
+      shownSurface.current.surface === 'activity' &&
+      useAppStore.getState().activeView === 'terminal' &&
+      current.view === 'project' &&
+      current.id === data.project.id &&
+      current.tab === 'activity'
+    ) {
+      window.location.hash = projectRoute(data.project.id)
+    }
+  }, [active, data, surface, activeView])
+
+  useEffect(() => {
+    if (!active || activated.current !== data) return
+    const state = useAppStore.getState()
+    const selected = Object.values(worktrees)
+      .flat()
+      .find((row) => row.id === state.activeWorktreeId)
+    const repo = repos.find(
+      (row) =>
+        row.id === selected?.repoId &&
+        getRepoExecutionHostId(row) === toRuntimeExecutionHostId(data.runtime.environmentId)
+    )
+    if (selectionOnly && repo?.id !== data.target.repoId) return
+    if (!repo) {
+      onSelection(null)
+      return
+    }
+    if (repo.id === data.target.repoId && project && isProjectRepo(repo)) {
+      onSelection(data.project.id)
+      return
+    }
+    const matches = projects.filter(
+      (project) => project.directory && normalize(project.directory) === normalize(repo.path)
+    )
+    onSelection(matches.length === 1 ? matches[0].id : null)
+  }, [active, selectionOnly, data, projects, activeWorktreeId, repos, worktrees, onSelection])
+
+  const connectionNotice = connectionState === 'reconnecting'
+    ? '连接暂时中断，正在自动重连；已打开的工作区暂时暂停操作。'
+    : connectionState === 'blocked'
+      ? snapshot?.blockedReason === 'incompatible'
+        ? '工作台与运行组件版本不兼容，请更新后重新加载。'
+        : snapshot?.retired
+          ? '工作区连接已关闭，请重新加载工作区。'
+          : '工作区连接授权已失效，请重新加载以验证访问权限。'
+      : null
+  const recovering = connectionState === 'reconnecting' || connectionState === 'blocked'
+  const selected = Object.values(worktrees).flat().find((row) => row.id === activeWorktreeId) ?? null
+  const workspace = hydrated && catalogReady ? describePlatformWorkspace(repos, selected, data) : null
+  return (
+    <div className="platform-runtime-status" data-pending={pending} data-recovering={recovering} hidden={!active} aria-live="polite">
+      <span role="status">
+        {connectionError || connectionNotice || catalogError || (notice !== '项目已打开'
+          ? pending && notice.startsWith('项目中尚无')
+            ? '项目中尚无可定位的工作区，请返回项目检查目录，或重新加载工作区。'
+            : notice
+          : null)}
+      </span>
+      {(pending || recovering) && (
+        <div className="platform-runtime-recovery">
+          {connectionState === 'reconnecting' && <button type="button" disabled={retryingConnection} onClick={() => void reconnect()}>
+            {retryingConnection ? '正在连接…' : '重试连接'}
+          </button>}
+          <button type="button" onClick={() => window.location.reload()}>重新加载工作区</button>
+          <a href="#home">返回项目</a>
+        </div>
+      )}
+      {workspace && !pending && (
+        <details className="platform-workspace-context">
+          <summary>工作区：{workspace.name} · {workspace.mode}</summary>
+          <div>
+            <p>目录：{workspace.path || '尚未读取'}</p>
+            {workspace.branch && <p>分支：{workspace.branch}</p>}
+            <p>同一目录内的 Agent 共用文件，项目设置也可能包含共享路径；工作区不是运行安全沙箱。</p>
+          </div>
+        </details>
+      )}
+    </div>
+  )
+}

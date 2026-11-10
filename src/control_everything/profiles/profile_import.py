@@ -17,9 +17,10 @@ from control_everything.sessions import observation_settings
 from control_everything.workspace import task_schema
 from control_everything.sessions.source import canonical_uuid
 from control_everything.workspace.service import WorkspaceService, TASK_STATES, PROVIDERS
-from control_everything.workspace.store import (BASE_SCHEMA, MANAGEMENT_TABLES, WorkspaceError, WorkspaceStore,
+from control_everything.workspace.store import (BASE_SCHEMA, WorkspaceError, WorkspaceStore,
                               now_utc)
-from control_everything.workspace.validation import finite_number, project_id_valid, validate_project
+from control_everything.workspace.validation import (finite_number, project_id_valid, validate_project,
+    validate_codex_project, validate_stored_imported_project)
 
 TASK_COLUMNS = "id,title,project_id,provider_id,state,session_key,source,created_at,updated_at"
 RECORD_COLUMNS = "id,provider_id,product,day,metric,value,currency,window_label,note,source,created_at,updated_at"
@@ -267,7 +268,7 @@ def create_backup(profile):
         try:
             version = connection.execute('PRAGMA user_version').fetchone()[0]
             task_schema.validate_schema(connection, version)
-            tables = task_schema.SCHEMA1_TABLES if version == 1 else MANAGEMENT_TABLES
+            tables = task_schema.tables_for(version)
             counts = {table: connection.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0] for table in tables}
         finally:
             connection.close()
@@ -397,11 +398,11 @@ def validate_backup(directory):
             invalid("manifest", "budget_exceeded")
         manifest = strict_json(manifest_path.read_text(encoding="utf-8"))
         if (not isinstance(manifest, dict) or set(manifest) != {"version", "schema_version", "created_at", "origin_data_dir", "files", "counts"}
-                or type(manifest["version"]) is not int or manifest["version"] not in (1, 2)
+                or type(manifest["version"]) is not int or manifest["version"] not in (1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
                 or type(manifest["schema_version"]) is not int or manifest["schema_version"] != manifest['version']
                 or not isinstance(manifest["files"], dict) or set(manifest["files"]) != BACKUP_FILES
                 or not isinstance(manifest["counts"], dict) or set(manifest["counts"]) != set(
-                    task_schema.SCHEMA1_TABLES if manifest['version'] == 1 else MANAGEMENT_TABLES)
+                    task_schema.tables_for(manifest['schema_version']))
                 or not absolute_path(manifest["origin_data_dir"])):
             invalid("manifest")
         timestamp(manifest["created_at"], "manifest.created_at")
@@ -424,9 +425,23 @@ def validate_backup(directory):
             task_schema.validate_schema(connection, manifest['schema_version'])
             if connection.execute('PRAGMA foreign_key_check').fetchone():
                 invalid('management.sqlite3')
-            if manifest['schema_version'] == 2:
+            if manifest['schema_version'] >= 2:
                 for title, in connection.execute('SELECT title FROM task_items'):
                     task_schema.check_text(title)
+            for identity, name, archived, kind, directory_id, relative in connection.execute(
+                    "SELECT p.id,p.name,p.archived,s.kind,s.directory_id,s.relative_path FROM projects p "
+                    "JOIN project_sources s ON s.project_id=p.id WHERE s.kind='codex' OR p.id LIKE 'cx-%'"):
+                validate_codex_project({"id": identity, "name": name, "archived": bool(archived),
+                    "directories": [{"id": binding, "path": path} for binding, path in connection.execute(
+                        'SELECT binding_id,path FROM project_directories WHERE project_id=?', (identity,))],
+                    "source": {"kind": kind, "directory_id": directory_id, "relative_path": relative}})
+            for identity, name, archived, kind, directory_id, relative in connection.execute(
+                    "SELECT p.id,p.name,p.archived,s.kind,s.directory_id,s.relative_path FROM projects p "
+                    "JOIN project_sources s ON s.project_id=p.id WHERE p.id LIKE 'cl-%' OR p.id LIKE 'oc-%'"):
+                validate_stored_imported_project({"id": identity, "name": name, "archived": bool(archived),
+                    "directories": [{"id": binding, "path": path} for binding, path in connection.execute(
+                        'SELECT binding_id,path FROM project_directories WHERE project_id=?', (identity,))],
+                    "source": {"kind": kind, "directory_id": directory_id, "relative_path": relative}})
             for table in manifest['counts']:
                 count = manifest["counts"][table]
                 if type(count) is not int or count < 0 or connection.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0] != count:
@@ -460,8 +475,12 @@ def restore_backup(backup_dir, data_dir):
             invalid('backup', 'source_changed')
         config_path = temporary / "profile.json"
         config = validate_config(strict_json(config_path.read_text(encoding="utf-8")))
-        if config["version"] == 3:
+        if config["version"] >= 3:
             config["observations"] = observation_settings.restore_intent(config["observations"])
+            if config["version"] >= 4:
+                config["codex"]["enabled"] = False
+                for source in config["workbench"]["sources"].values():
+                    source["enabled"] = False
             from control_everything.profiles.profile import Profile
             # The copied original was verified above; only the new intent is transformed.
             Profile(temporary)._write_config(config)

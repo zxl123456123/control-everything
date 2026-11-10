@@ -1,0 +1,88 @@
+"""Serve Studio assets only; integrated testing uses preview_workbench.py."""
+
+import argparse
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[2] / "web" / "workspace"
+RESOURCES = {
+    "/ui-theme.js": ("ui-theme.js", "text/javascript; charset=utf-8"),
+    "/ui-dialog.js": ("ui-dialog.js", "text/javascript; charset=utf-8"),
+    "/studio-shell.js": ("studio-shell.js", "text/javascript; charset=utf-8"),
+    "/studio-pet-settings.js": ("studio-pet-settings.js", "text/javascript; charset=utf-8"),
+    "/news-pets.js": ("news-pets.js", "text/javascript; charset=utf-8"),
+    "/news-pet-dial.js": ("news-pet-dial.js", "text/javascript; charset=utf-8"),
+    "/news-pet-wheel.js": ("news-pet-wheel.js", "text/javascript; charset=utf-8"),
+    "/news-pet-prefs.js": ("news-pet-prefs.js", "text/javascript; charset=utf-8"),
+    "/news-pet-director.js": ("news-pet-director.js", "text/javascript; charset=utf-8"),
+    "/news-pet-status.js": ("news-pet-status.js", "text/javascript; charset=utf-8"),
+    "/news-naidragon.js": ("news-naidragon.js", "text/javascript; charset=utf-8"),
+    "/news-tabbycat.js": ("news-tabbycat.js", "text/javascript; charset=utf-8"),
+    "/studio-mascot.js": ("studio-mascot.js", "text/javascript; charset=utf-8"),
+    "/": ("studio-preview.html", "text/html; charset=utf-8"),
+    "/studio-preview.html": ("studio-preview.html", "text/html; charset=utf-8"),
+    "/studio-preview.css": ("studio-preview.css", "text/css; charset=utf-8"),
+    "/studio-preview.js": ("studio-preview.js", "text/javascript; charset=utf-8"),
+    "/studio-data.js": ("studio-data.js", "text/javascript; charset=utf-8"),
+    "/workspace.css": ("workspace.css", "text/css; charset=utf-8"),
+    "/task-center.js": ("task-center.js", "text/javascript; charset=utf-8"),
+    "/agents.js": ("agents.js", "text/javascript; charset=utf-8"),
+    "/execution.js": ("execution.js", "text/javascript; charset=utf-8"),
+}
+
+
+class PreviewHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self._serve(include_body=True)
+
+    def do_HEAD(self):
+        self._serve(include_body=False)
+
+    def _serve(self, *, include_body):
+        resource = RESOURCES.get(self.path)
+        if resource is None:
+            self.send_error(404)
+            return
+        filename, content_type = resource
+        try:
+            content = (ROOT / filename).read_bytes()
+        except OSError:
+            self.send_error(503, "Preview resource unavailable")
+            return
+        self.send_response(200)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(len(content)))
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("Referrer-Policy", "no-referrer")
+        # This policy applies only to the isolated preview, never the product gateway.
+        self.send_header("Content-Security-Policy", (
+            "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
+            "connect-src 'none'; frame-src 'none'; object-src 'none'; "
+            "base-uri 'none'; frame-ancestors 'none'; form-action 'none'"
+        ))
+        self.end_headers()
+        if include_body:
+            self.wfile.write(content)
+
+    def log_message(self, _format, *_args):
+        # Do not copy user-supplied URL paths or query strings into logs.
+        pass
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--port", type=int, default=8769)
+    args = parser.parse_args()
+    with ThreadingHTTPServer(("127.0.0.1", args.port), PreviewHandler) as server:
+        print(f"Studio assets only: http://127.0.0.1:{server.server_port}/ ; business API is unavailable. "
+              "Use preview_workbench.py for the integrated /studio page.", flush=True)
+        try:
+            server.serve_forever()
+        except KeyboardInterrupt:
+            pass
+
+
+if __name__ == "__main__":
+    main()

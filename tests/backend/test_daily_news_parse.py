@@ -24,6 +24,38 @@ def parse(data, source_id='openai'):
 
 
 class DailyNewsParseTests(unittest.TestCase):
+    def test_rss_encoded_body_survives_missing_description_as_plain_text(self):
+        raw = rss([item(extra='<content:encoded xmlns:content="http://purl.org/rss/1.0/modules/content/"><![CDATA['
+                              '<p>First source paragraph.</p><script>POISON</script><p>Second paragraph.</p>'
+                              ']]></content:encoded>')])
+        row = parse(raw)['items'][0]
+        self.assertEqual(row['feed_content'], 'First source paragraph.\n\nSecond paragraph.')
+        self.assertEqual(row['summary_kind'], 'rss_content')
+        self.assertNotIn('POISON', row['summary'])
+        self.assertFalse(row['feed_content_truncated'])
+
+    def test_atom_inline_content_and_external_content_are_distinct(self):
+        raw = ('<feed xmlns="http://www.w3.org/2005/Atom"><entry><title>Inline</title>'
+               '<link href="https://example.com/inline"/><content type="html">&lt;p&gt;Source body&lt;/p&gt;</content>'
+               '</entry><entry><title>External</title><link href="https://example.com/external"/>'
+               '<content src="https://example.com/body"/></entry></feed>').encode()
+        rows = {row['title']: row for row in parse(raw)['items']}
+        self.assertEqual(rows['Inline']['feed_content'], 'Source body')
+        self.assertEqual(rows['Inline']['summary_kind'], 'atom_content')
+        self.assertNotIn('feed_content', rows['External'])
+
+    def test_inline_content_has_a_worker_byte_budget_and_discloses_truncation(self):
+        rows = [item(url=f'https://example.com/{index}', extra='<content:encoded '
+                     'xmlns:content="http://purl.org/rss/1.0/modules/content/">' + '中' * 6000 + '</content:encoded>')
+                for index in range(20)]
+        result = parse(rss(rows))
+        self.assertLessEqual(sum(len(row['feed_content'].encode('utf-8')) for row in result['items']), 96000)
+        self.assertTrue(all(row['feed_content_truncated'] for row in result['items']))
+        from control_everything.workspace.news_worker import validate_result, source_frame, LINE_BYTES
+        validate_result(result, 'openai', 'Synthetic source', 'ai')
+        frame = source_frame('ai', 'a' * 32, 'openai', result, None, BASE, 'application/xml', FETCHED)
+        self.assertLess(len(json.dumps(frame, ensure_ascii=False).encode('utf-8')), LINE_BYTES)
+
     def test_rss_direct_provenance_missing_summary_and_stable_id(self):
         result = parse(rss([item(extra='<media:description xmlns:media="urn:media">Not a source summary</media:description>')]))
         row = result['items'][0]

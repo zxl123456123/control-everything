@@ -1,0 +1,14 @@
+[Unit]
+Description=Dedicated workbench device SSH transport
+After=network.target
+
+[Service]
+Type=simple
+ExecStartPre=/usr/sbin/sshd -t -f /etc/ce-device-sshd.conf
+ExecStart=/usr/sbin/sshd -D -f /etc/ce-device-sshd.conf
+Restart=on-failure
+KillMode=control-group
+# Keep this service name ce-device-sshd.service: process attribution checks its exact cgroup.
+
+[Install]
+WantedBy=multi-user.target

@@ -1,12 +1,24 @@
-"""Check file ownership for explicit or Git publication candidates."""
+"""Check publication ownership and local documentation/artifact layout."""
 
 import argparse
 import json
+import re
 from pathlib import Path, PurePosixPath
 import subprocess
+import sys
+from functools import lru_cache
 
 ROOT = Path(__file__).resolve().parents[2]
-ROOT_FILES = {'.gitattributes', '.gitignore', 'AGENTS.md', 'README.md',
+sys.path.insert(0, str(ROOT / 'tools' / 'packaging'))
+from workbench_source_policy import load_policy, SourcePolicyError
+
+
+@lru_cache(maxsize=1)
+def workbench_policy():
+    return load_policy(lambda name: (ROOT / name).read_bytes())
+
+
+ROOT_FILES = {'.gitattributes', '.gitignore', 'AGENTS.md', 'README.md', 'LICENSE',
               'requirements.txt', 'rust-toolchain.toml', 'pyproject.toml', 'MANIFEST.in', 'setup.py'}
 PACKAGE_FILES = {'__init__.py', 'paths.py', 'input_validation.py', 'gateway.py',
                  'profile.py', 'native_processes.py', 'mcp_stdio.py'}
@@ -30,27 +42,99 @@ def ownership_error(value):
         if len(parts) == 3:
             return None if parts[2] in PACKAGE_FILES else 'package_root_is_for_entries_and_foundations'
         return None if parts[2] in PACKAGES and path.suffix == '.py' else 'unknown_backend_owner'
+    if value.startswith('web/workspace/identity-theme/'):
+        return None if value in {
+            'web/workspace/identity-theme/control-everything/login/theme.properties',
+            'web/workspace/identity-theme/control-everything/login/resources/css/studio.css',
+            'web/workspace/identity-theme/control-everything/login/messages/messages_zh_Hans.properties'} else 'unknown_frontend_owner'
     if top == 'web':
-        return None if section in {'sessions', 'progress', 'workspace'} and path.suffix in {
+        if section == 'workbench-engine':
+            try:
+                return None if workbench_policy().contains(value) else 'unregistered_workbench_source'
+            except (OSError, ValueError, KeyError, TypeError, SourcePolicyError):
+                return 'invalid_workbench_source_manifest'
+        return None if section in {'sessions', 'progress', 'workspace', 'product'} and path.suffix in {
             '.html', '.css', '.js', '.ts'} else 'unknown_frontend_owner'
     if top == 'tests':
         return None if value == 'tests/__init__.py' or section in {
             'backend', 'frontend', 'e2e', 'fixtures'} else 'unknown_test_type'
     if top == 'tools':
+        if value.startswith('tools/packaging/wheel-notices/'):
+            return None if value in {
+                'tools/packaging/wheel-notices/sentencepiece-LICENSE.txt',
+                'tools/packaging/wheel-notices/abseil-LICENSE.txt',
+                'tools/packaging/wheel-notices/darts-clone-LICENSE.txt',
+                'tools/packaging/wheel-notices/esaxx-LICENSE.txt',
+                'tools/packaging/wheel-notices/protobuf-lite-LICENSE.txt',
+                'tools/packaging/wheel-notices/pybind11-LICENSE.txt',
+                'tools/packaging/wheel-notices/Unicode-LICENSE-v3.txt',
+                'tools/packaging/wheel-notices/avx-mathfun-LICENSE.txt',
+                'tools/packaging/wheel-notices/cccl-cub-LICENSE.txt',
+                'tools/packaging/wheel-notices/cccl-libcudacxx-LICENSE.txt',
+                'tools/packaging/wheel-notices/cccl-LICENSE.txt',
+                'tools/packaging/wheel-notices/cccl-thrust-LICENSE.txt',
+                'tools/packaging/wheel-notices/cpu_features-LICENSE.txt',
+                'tools/packaging/wheel-notices/ctranslate2-LICENSE.txt',
+                'tools/packaging/wheel-notices/cutlass-LICENSE.txt',
+                'tools/packaging/wheel-notices/fmt-LICENSE.txt',
+                'tools/packaging/wheel-notices/intel-compiler-credist.txt',
+                'tools/packaging/wheel-notices/intel-compiler-EULA.txt',
+                'tools/packaging/wheel-notices/intel-mkl-LICENSE.txt',
+                'tools/packaging/wheel-notices/intel-mkl-third-party-programs-benchmarks.txt',
+                'tools/packaging/wheel-notices/intel-mkl-third-party-programs-IntelMPI.txt',
+                'tools/packaging/wheel-notices/intel-mkl-third-party-programs-level-zero.txt',
+                'tools/packaging/wheel-notices/intel-mkl-third-party-programs-oneMath.txt',
+                'tools/packaging/wheel-notices/intel-mkl-third-party-programs-oneTBB.txt',
+                'tools/packaging/wheel-notices/intel-mkl-third-party-programs-openmp.txt',
+                'tools/packaging/wheel-notices/intel-mkl-third-party-programs-safestring.txt',
+                'tools/packaging/wheel-notices/intel-mkl-third-party-programs.txt',
+                'tools/packaging/wheel-notices/intel-openmp-EULA.txt',
+                'tools/packaging/wheel-notices/intel-openmp-THIRD-PARTY-PROGRAMS.txt',
+                'tools/packaging/wheel-notices/intel-tbb-LICENSE.txt',
+                'tools/packaging/wheel-notices/intel-tbb-THIRD-PARTY-PROGRAMS.txt',
+                'tools/packaging/wheel-notices/intel-tcm-LICENSE.txt',
+                'tools/packaging/wheel-notices/intel-tcm-THIRD-PARTY-PROGRAMS.txt',
+                'tools/packaging/wheel-notices/nvidia-cuda-LICENSE.txt',
+                'tools/packaging/wheel-notices/nvidia-cudnn-LICENSE.txt',
+                'tools/packaging/wheel-notices/oneDNN-ittnotify-LICENSE.txt',
+                'tools/packaging/wheel-notices/oneDNN-LICENSE.txt',
+                'tools/packaging/wheel-notices/oneDNN-THIRD-PARTY-PROGRAMS.txt',
+                'tools/packaging/wheel-notices/simd-utils-LICENSE.txt',
+                'tools/packaging/wheel-notices/spdlog-LICENSE.txt',
+            } else 'unregistered_wheel_notice'
         if section == 'scripts':
             return None if len(parts) == 3 and path.suffix in {'.py', '.cjs', '.ps1'} else 'scripts_are_development_entries'
         return None if section in {'typescript', 'remote-reader', 'architecture', 'packaging'} else 'unknown_development_tool'
     if top == 'native':
+        if value == 'native/desktop/main.cpp':
+            return None
         return None if section == 'observer' and path.suffix in {'.rs', '.toml', '.lock', '.json'} else 'unknown_native_owner'
-    if top == 'guide':
+    if top == 'docs':
         if section == 'examples':
             return None if value in {
-                'guide/examples/integrations/codex.toml.example',
-                'guide/examples/integrations/integration-settings.example.json',
-                'guide/examples/legacy/progress-manual.example.json',
-                'guide/examples/legacy/progress-registry.example.json',
+                'docs/examples/integrations/codex.toml.example',
+                'docs/examples/integrations/integration-settings.example.json',
+                'docs/examples/integrations/workbench-device-provisioner.service.example',
+                'docs/examples/integrations/workbench-device-provisioner.socket.example',
+                'docs/examples/integrations/workbench-device-sshd.example.conf',
+                'docs/examples/integrations/workbench-device-sshd.service.example',
+                'docs/examples/integrations/workbench-identity.hub.example.json',
+                'docs/examples/integrations/workbench-identity.hub.service.example',
+                'docs/examples/integrations/workbench-identity.oauth2-proxy.example.cfg',
+                'docs/examples/integrations/workbench-identity.README.md',
+                'docs/examples/integrations/workbench-identity.realm.example.json',
+                'docs/examples/integrations/workbench-remote.Caddyfile.example',
+                'docs/examples/legacy/progress-manual.example.json',
+                'docs/examples/legacy/progress-registry.example.json',
+                'docs/examples/pets/naidragon-embed.html',
+                'docs/examples/pets/naidragon-embed.css',
+                'docs/examples/pets/naidragon-embed.js',
             } else 'unknown_example_owner'
-        return None if value in {'guide/usage.md', 'guide/integrations.md', 'guide/windows.md'} else 'unknown_public_guide'
+        return None if value in {'docs/README.md', 'docs/architecture/architecture.md',
+                                'docs/architecture/workbench-contract.md', 'docs/guides/usage.md',
+                                'docs/guides/integrations.md', 'docs/guides/windows.md',
+                                'docs/guides/development-files.md',
+                                'docs/guides/EMBEDDING.md', 'docs/guides/PETS_INTEGRATION.md'} else 'unknown_public_guide'
     if top == '.github':
         return None if value in {'.github/CODEOWNERS', '.github/pull_request_template.md', '.github/CONTRIBUTING.md'} or (
             section == 'ISSUE_TEMPLATE' and len(parts) == 3 and path.suffix == '.md') or (
@@ -68,6 +152,34 @@ def git_candidates(root=ROOT):
                    if name and root.joinpath(*PurePosixPath(name).parts).is_file()})
 
 
+def local_layout_errors(root=ROOT):
+    failures = []
+    for relative in ('docs', 'docs/current', 'docs/archive', 'work', 'work/archive'):
+        directory = root / relative
+        if not directory.is_dir():
+            continue
+        for path in sorted(directory.iterdir()):
+            if path.is_dir():
+                if relative == 'docs/current':
+                    readme = path / 'README.md'
+                    if not readme.is_file():
+                        failures.append({'path': path.relative_to(root).as_posix(),
+                                         'reason': 'active_task_requires_readme'})
+                    elif re.search(r'^[-*] 当前状态[:：]\s*(?:已结束|已归档)\s*[。.]?\s*$',
+                                   readme.read_text(encoding='utf-8-sig').split('\n## ', 1)[0], re.M):
+                        failures.append({'path': path.relative_to(root).as_posix(),
+                                         'reason': 'closed_task_requires_archive'})
+                if relative == 'docs' and path.name not in {'guides', 'architecture', 'examples', 'current', 'archive'}:
+                    failures.append({'path': path.relative_to(root).as_posix(),
+                                     'reason': 'unknown_documentation_directory'})
+                continue
+            if relative in {'docs', 'work'} and path.name == 'README.md':
+                continue
+            failures.append({'path': path.relative_to(root).as_posix(),
+                             'reason': 'local_file_requires_feature_directory'})
+    return failures
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('mode', choices=['layout'])
@@ -78,6 +190,8 @@ def main():
         if not isinstance(files, list) or not files:
             raise ValueError('nonempty_candidate_array_required')
         failures = [{'path': value, 'reason': reason} for value in files if (reason := ownership_error(value))]
+        if not args.files:
+            failures.extend(local_layout_errors())
     except (OSError, ValueError, subprocess.SubprocessError) as error:
         print(json.dumps({'status': 'blocked', 'reason': type(error).__name__}))
         return 2

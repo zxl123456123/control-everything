@@ -1,0 +1,74 @@
+import { AGENT_JOURNAL_THREAD_SCOPE } from '../../../shared/agent-session-journal-types'
+import { mkdtemp, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { agentJournalTurnBody } from '../../../shared/agent-session-turn-record'
+import {
+  createTrackedJournalOpener,
+  openTestJournalHostDatabase,
+  liveTestJournalRows
+} from './journal-host-database-test-support'
+import { codexProviderHandle } from '../../../shared/agent-session-provider-handle-encoding'
+
+export function registerJournalRowSchemaVersionTests(): void {
+  // Every current write fences a host that still derives the old key namespace.
+  // Read raw: the reader upcasts every row to the current version, so only the
+  // stored row_json says what an older build would see.
+  describe('journal row schema versions', () => {
+    let root = ''
+    const opener = createTrackedJournalOpener()
+
+    beforeEach(async () => {
+      root = await mkdtemp(join(tmpdir(), 'orca-journal-row-version-'))
+    })
+    afterEach(async () => {
+      await opener.closeAll()
+      await rm(root, { recursive: true, force: true })
+    })
+
+    it('stamps v4 on every row, including the epoch and non-turn items', async () => {
+      const journal = await opener.open({
+        identity: {
+          sessionId: 'session-1',
+          workspaceId: 'workspace-1',
+          hostId: 'local',
+          agent: 'codex',
+          providerHandle: codexProviderHandle('thread-1')
+        },
+        now: () => 1_000,
+        stateDirectory: join(root, 'session-1')
+      })
+      const identity = { provider: 'zkyq' as const, clientMessageId: 'm1' }
+      await journal.appendItem(
+        identity,
+        { kind: 'message', role: 'user', blocks: [{ type: 'text', text: 'hi' }] },
+        { fence: 1, turnScope: AGENT_JOURNAL_THREAD_SCOPE }
+      )
+      await journal.appendItem(
+        {
+          provider: 'legacy',
+          agent: 'codex',
+          sessionId: 'session-1',
+          recordId: 'turn-lifecycle:t1'
+        },
+        agentJournalTurnBody({ turnId: 't1', state: 'running', startedAt: 1_000 }),
+        { fence: 1, turnScope: AGENT_JOURNAL_THREAD_SCOPE }
+      )
+      await journal.close()
+      const opened = openTestJournalHostDatabase(join(root, 'session-1'))
+      try {
+        const stored = liveTestJournalRows(opened.db, 'session-1')
+          .map((row) => JSON.parse(row.rowJson))
+          .map((row: { kind: string; v: number }) => [row.kind, row.v])
+        expect(stored).toEqual([
+          ['epoch', 4],
+          ['item', 4],
+          ['item', 4]
+        ])
+      } finally {
+        opened.close()
+      }
+    })
+  })
+}

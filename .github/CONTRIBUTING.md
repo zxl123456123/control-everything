@@ -6,9 +6,74 @@
 
 发现异常用[问题反馈](ISSUE_TEMPLATE/bug_report.md)，提出新需求或体验改进用[功能建议](ISSUE_TEMPLATE/feature_request.md)。按自己的话写，不需要懂代码；负责人、优先级和技术拆分由维护者后续补充。模板放在 `.github/ISSUE_TEMPLATE/*.md`，不保存运行数据。
 
-提交 PR 时使用[改动说明模板](pull_request_template.md)，回答为什么改、改了什么、如何验证和剩余注意事项。小改动可以每项只写一句；验证结果仍须如实记录。模板用于说明已有工作，不改变当前分支、审查和 CI 政策；本机开发记录继续放在 ignored `docs/`，不复制整份工作流报告到 Issue 或 PR。
+提交 PR 时使用[改动说明模板](pull_request_template.md)，回答为什么改、改了什么、如何验证和剩余注意事项。小改动可以每项只写一句；验证结果仍须如实记录。模板用于说明已有工作，不改变当前分支、审查和 CI 政策；本机开发记录继续放在 ignored `docs/current/<feature>/`，结束后按[文件管理指南](../docs/guides/development-files.md)归档，不复制整份工作流报告到 Issue 或 PR。
 
-公开使用说明和接入示例统一放在 `guide/`，开发脚本放在 `tools/scripts/`，贡献指南放在 `.github/CONTRIBUTING.md`；本机开发记录仍只放 ignored `docs/`。下文命令均从仓库根目录执行。
+## 开发与出包从这里开始
+
+本文是开发工作流总入口；每次构建 EXE 按 [Windows 构建流水线](../docs/guides/windows.md#构建与技术预发布)逐步执行。模块细节继续放在下文，任务过程以本机任务 README 为入口，详细记录与产物按文件管理指南存放，不再另建平行的 workflow、release 或打包说明。
+
+| 要做的事 | 唯一维护位置 |
+| --- | --- |
+| 日常开发、验证、预览和交接 | 本文 |
+| 新版本 EXE 的输入、构建、安装验收和发布 | [Windows 指南](../docs/guides/windows.md#构建与技术预发布) |
+| 当前需求、负责人、状态与本轮证据 | 本机 `docs/current/<feature>/README.md` |
+| 临时文件、保留与归档规则 | [开发文件与产物管理](../docs/guides/development-files.md) |
+| 实际执行逻辑与远端检查 | `tools/packaging/`、`tools/scripts/`、`.github/workflows/` |
+
+### 一次开发迭代
+
+1. **核对现场。** 读任务 README、实际实现与相关官方文档，运行 `git status --short --branch`，核对是否存在合并、变基、拣选状态；确认当前分支与上游差异。遇到他人改动先协调文件归属，需要隔离时从明确基线建立独立分支/worktree，不能靠还原制造干净工作树。
+2. **登记一个目标。** 在本机任务 README 写目标、验收、负责人、拟改文件、当前状态、阻塞与证据。重构与功能分开，旁支问题只记录；先确认文件归属再新增代码。
+3. **准备所需环境并实现。** 新检出按下文环境章节准备；已有环境核验版本后复用。后端、普通前端、内置工作台与 Rust 分别使用所属入口，不必每次小改动都重建整个 EXE。
+4. **运行相称验证。** 按下表选测试，阅读完整输出和退出码。记录失败、警告、跳过与未验证项；改动后重跑受影响检查，不能引用上轮或子任务的成功代替本轮证据。
+5. **预览与验收。** 界面改动先进入 develop 并提供真实页面预览，使用隔离 profile、允许的测试目录和实际 API。项目主导者确认后才合入、推送 main；单测、静态 HTML 和编译成功都不能替代此确认。
+6. **提交与推送。** 检查最终 diff，只显式暂存本次文件，再读 staged diff 和 Git 操作状态。每轮一个 Conventional Commit，说明为什么改。推送前运行 `git log --oneline origin/main..HEAD` 并核对实际上游的完整待推送区间，确认所有提交都在授权范围内；不强推或改写历史。
+7. **交接或结项。** 任务 README 更新实际命令、退出码、提交、预览/产物位置和下一步，并写明工作树已关闭的实际结果，或保留原因与负责人。暂停与待验收留在 current；确认结束后按文件管理指南保留原文、hash 与路径映射再归档。需要交付新 EXE 时进入 Windows 构建流水线。
+
+### 多工作树并行与集成
+
+并行任务先写清各自的范围、基线、文件归属、验收方式和目标分支，并由本轮执行者明确一名集成负责人。共享接口或数据结构有前置依赖时，先完成共同依赖；不要仅因修改不同文件就认定任务独立。开工和恢复时的规则核对、任务模板见[开发文件与产物管理](../docs/guides/development-files.md)。
+
+准备合入的任务先停止编辑、提交并交付实际验证证据；其他独立任务可继续。集成负责人检查目标工作树状态和待合入范围，按顺序合入，每次完成相关验证再处理下一项；最后复核组合 diff 并运行覆盖组合行为的相称检查。各树单独通过测试不能代替组合结果验证。冲突或验证失败时先解决当前集成，保留双方需求和失败证据，不并发推进同一目标分支。
+
+这一流程参考 [VS Code 的并行任务、集成与复测指南](https://code.visualstudio.com/docs/agents/guides/delegate-two-tasks)。采用任务范围、顺序集成和组合复测，沿用本项目的 develop 预览与 main 确认边界；不新增强制 PR、远端 CI 或审批层，具体 Git 操作仍遵守原有授权规则。
+
+### 按改动选择验证
+
+| 改动范围 | 验证入口 |
+| --- | --- |
+| 仅文档 | 相对链接、命令与实际入口核对，`git diff --check`，归属检查 |
+| Python 业务 | `python -m unittest -v tests.backend.<相关模块>`；跨模块改动检查 Import Linter |
+| 普通 JS / CSS / 页面 | 相关 `tests/frontend/*.cjs`；交互变化补实际浏览器预览/验收 |
+| 观察 / 资讯 TypeScript | 下文对应 typecheck/build/check；源码变更提交生成 JS，检查现有交付物时先 check |
+| 内置项目工作台 | 来源清单、相关 engine 测试及 [构建合同](#内置项目工作台源码与构建)；集成行为用 [真实预览](#studio-与内置项目工作台开发预览) |
+| Rust 观察后台 | [固定工具链](#windows-原生观察开发)的 fmt、test、clippy、build；发包使用 release 产物 |
+| 安装器 / 分发 | Windows 指南中的构建合同、产品闭包与安装验收；源码测试不能替代新 EXE |
+
+新增文件或改变模块依赖时，运行：
+
+```powershell
+python tools/scripts/check_architecture.py layout
+if ($LASTEXITCODE -ne 0) { throw 'Layout check failed' }
+lint-imports --config tools/architecture/importlinter.ini --no-cache --no-logo
+if ($LASTEXITCODE -ne 0) { throw 'Import contracts failed' }
+```
+
+Import Linter 的固定依赖在 `tools/architecture/requirements.txt`。内容/秘密检查按 [既有入口](#内容和秘密检查)执行；各检查职责不同，不能互相替代。命令在本检出根目录执行，使用已核验的 Python/Node；不要用管道末端命令的退出码代替被测命令。
+
+### 本地开发与远端流水线的边界
+
+当前快速开发不强制 PR、独立审查或等待远端 CI。`ci.yml` 仅有 `workflow_dispatch`，push/PR 不会自动触发；需要远端证据时手动运行并核对该次 SHA。旧 `release.yml` 出包配方已退役，统一由本机 `build_windows_release.py` 生成候选，安装验收后再发布，详见 Windows 指南。不要把“已推送”写成“CI 已通过”或“安装包已发布”。
+
+组织方式参考 [uv 的贡献指南](https://docs.astral.sh/uv/reference/contributing/)：在一个开发入口里串起准备、测试与发布，并从项目元数据取版本。保留本项目的 develop 预览确认、Python/Rust/内置工作台构建器和本地验证节奏；不照搬其包管理器、自动版本更新或强制发布 PR。
+
+## 开发材料归属
+
+公开指南放 `docs/guides/`，架构与契约放 `docs/architecture/`，接入示例放 `docs/examples/`，`docs` 根只保留 [README.md 索引](../docs/README.md)；开发脚本放 `tools/scripts/`。活跃任务记录放 ignored `docs/current/<feature>/`，以 README.md 记录目标、验收、负责人、文件归属、状态、阻塞及证据链接；历史记录放 ignored `docs/archive/<feature>/`。日志、截图、隔离数据与构建产物放 ignored `work/<feature>/`，旧材料放 `work/archive/<feature>/`；`current`、`archive` 根只放任务目录，`work` 根另保留 README.md 索引。本机记录不提交，整理时保留原文、失败证据和旧路径到新位置的清单。下文命令均从仓库根目录执行。
+
+一次性脚本、临时 clone、缓存、构建输出、预览 profile 和需留证的 TEMP/TMP 必须在本检出 `work/<feature>/` 下，不能为了缩短路径在盘根创建 `ce-*` 副本，也不能改用户或系统临时目录。正式构建沿用已有 `work/ce-native`、`work/workbench-engine-build/<run>/`；普通自动清理的单测可使用系统 Temp。需要临时环境时只给该子进程传任务内的环境变量；用完清理可重建内容，报告与失败日志按任务留存。历史脚本的旧绝对路径保留为证据，恢复前须重新核对，不能直接重跑。`python tools/scripts/check_architecture.py layout` 同时检查本机文档和 work 根散件；显式 `--files` 只检查给定发布候选。
+
+具体流程见[开发文件与产物管理](../docs/guides/development-files.md)。新一次性 driver 先登记 current 任务，再经 `python tools/scripts/run_task.py <feature> --output <产物> -- <命令>` 运行；实际写入从 `CE_TASK_WORK_DIR` 派生。入口检查声明路径、固定任务 cwd 和子进程临时目录，不能替代阅读 driver 的真实写入。结项保留最终验收、实际失败、映射清单及仍被引用的构建输入，再整理其他可重建材料；不按日期清空 archive。README 顶部明确当前状态，结束后归档；暂停和待验收保持 current。提交前额外核对原有合并/变基/拣选状态，独立任务不能消费别人的未完成合并。ignored 证据需要另行备份，不自行选择外部目录或上传。
 
 ## 功能目录与新增代码归属
 
@@ -25,16 +90,117 @@
 | `src/control_everything/installation` | Windows完整产品清单、所属登记与协作维护；不写业务库 |
 | `src/control_everything/platform` | Windows Job、安装身份及句柄原语；不依赖上层功能包 |
 | `native/observer` | Windows 只读进程观察、受限本机管道及核验后的窗口返回；不写管理库 |
+| `native/desktop` | Windows 独立应用窗口，承载工作台页面，使用固定 WebView2 SDK 构建 |
 
 生产 Python 包只放在 `src/control_everything`，不要在根目录建立影子包。`src/control_everything/paths.py` 分别定位检出目录、包内资源和用户数据；源码模式保留旧根数据合同，安装模式不会把程序目录当数据目录。包根的四个 CLI 文件只保留模块入口，内部引用指向功能包中的真实实现，不能依赖入口转发内部符号。
 
-前端按 `web/sessions`、`web/progress`、`web/workspace` 分组；执行界面属于工作台，放在 `web/workspace/execution.js`。新增页面资源放入所属功能目录，并在 HTTP 静态白名单中显式映射。物理路径与公开 URL 分开维护：搬文件不改变 `/workspace`、`/workspace.js` 等地址，也不改变普通脚本加载顺序。
+前端按 `web/sessions`、`web/progress`、`web/workspace`、`web/product` 分组；执行界面属于工作台，放在 `web/workspace/execution.js`。产品介绍页属于 `web/product`，通过 `/product`、`/product.css`、`/product.js` 独立提供，只展示产品信息，不读取或写入管理数据。新增页面资源放入所属功能目录，并在 HTTP 静态白名单中显式映射。物理路径与公开 URL 分开维护：搬文件不改变 `/workspace`、`/workspace.js` 等地址，也不改变普通脚本加载顺序。
 
 测试按类型落位：Python 单元/合成接口测试在 `tests/backend`，纯 Node 源码与 DOM 合同在 `tests/frontend`，浏览器及协议 harness 在 `tests/e2e`，共享合成程序在 `tests/fixtures`。Python 发现入口仍是 `tests`；新增后端测试保持可递归发现。新增功能若横跨前后端，各自放入对应功能目录，并补充相应类型测试。
 
-公开配置样例属于 `guide/examples/integrations`，受支持的旧记录格式样例属于 `guide/examples/legacy`；它们不是真实运行数据。新记录写入所选 profile，旧根 JSON/SQLite 的默认位置和显式导入合同保持。远端 reader 的独立依赖在 `tools/remote-reader/requirements.txt`，不要装进本机环境。根 `requirements.txt`、`rust-toolchain.toml` 和 `.cargo/config.toml` 保持现有工具入口。
+公开配置样例属于 `docs/examples/integrations`，受支持的旧记录格式样例属于 `docs/examples/legacy`；它们不是真实运行数据。新记录写入所选 profile，旧根 JSON/SQLite 的默认位置和显式导入合同保持。远端 reader 的独立依赖在 `tools/remote-reader/requirements.txt`，不要装进本机环境。根 `requirements.txt`、`rust-toolchain.toml` 和 `.cargo/config.toml` 保持现有工具入口。
+
+账号与电脑接入的无秘密部署样例为 `docs/examples/integrations/workbench-identity.*`、`workbench-device-*` 和 `workbench-remote.Caddyfile.example`；精确归属在 `tools/scripts/check_architecture.py` 登记。远程账号页静态文件由中央站点的 `/remote` 提供，不依赖某台已绑定电脑。`http/desktop.py` 仅消费产品清单校验后的资源；`http/remote_context.py` 处理逐设备证明后的页面元数据。浏览器在任何存储读取之前冻结页面 context，显式分区 Storage 与聊天草稿 IndexedDB；远程环境的设备密钥仅保留在页面内存。真实部署、两个账号 HTTP/WS、安装与手机验收须分别留证，单元测试不代表新 EXE 或原生 iOS/Android 已交付。
 
 ## 环境和验证
+
+### 内置项目工作台源码与构建
+
+`web/workbench-engine` 保存固定上游的桌面、Web、移动端和运行时源码，保留内部相对目录及许可。来源清单位于 `tools/packaging/workbench-engine-source.json`，精确记录文件、资源与本地适配；新增文件须同时更新清单。它是独立 React/TypeScript/Node 构建单元，其他普通脚本页面仍遵守原目录与编译合同。
+
+项目之外沿用 Studio；项目内部接入完整原工作台和配置。项目添加沿用原生目录浏览、新建和克隆控件，成功后由 `/api/workbench/adopt-repo` 根据当前受管运行时的真实 Repo 幂等登记，不让平台表单替换原流程；列表确认失败只重试登记或读取，不重放创建、克隆。账号与设备统一使用 Studio 全局页面，原生旧移动入口仅保留兼容转入。源码持有与构建不代表运行时、Android APK或自建账号服务已验收。旧独立 iframe 预览保留为历史开发工具，不是最终产品接入方案。普通 Python wheel 当前不包含此源码树、Node或原生产物，HTTP也不递归提供该目录。
+
+项目名称和移除沿用原控件；集成模式的移除保存平台归档，保留事项、文件、终端和草稿，不调用原生清理。名称编辑复用原宿主更新队列，平台保存、原生回显和列表确认逐步完成；部分成功不得伪装成回滚。原生动作与 Studio 项目编辑通过既有保存接口的可选 `expected` 项目快照，在同库事务内核对名称、归档、目录和来源；旧页面冲突返回 `project_changed`，保留输入，不自动覆盖另一窗口。
+
+构建使用显式 Node 24 和 pnpm 12.14.0 原生可执行文件；开发 Node 与随包运行时的 pin 分开核对。root/mobile/cloud 保持各自锁文件，依赖准备禁用未列出的安装脚本。入口不安装全局工具、不启动客户端、不运行个人 Agent：
+
+```powershell
+python tools/packaging/workbench_engine.py check-source
+python tools/packaging/workbench_engine.py build --node C:/example/node24/node.exe --pnpm C:/example/pnpm/pnpm.exe --scratch-root C:/example/checkout/work/ce-native --run-dir C:/example/checkout/work/workbench-engine-build/local --materials C:/example/checkout/work/windows-release/inputs/engine-materials
+python tools/packaging/workbench_engine.py check-output --run-dir C:/example/checkout/work/workbench-engine-build/local
+```
+
+替换为自己的绝对工具/检出路径。每次使用新的证据目录，Windows native scratch 路径应短；失败保留日志。构建固定执行 packages、移动资源生成、mobile web、原生依赖、Web和Windows运行时。来源SHA、宿主SHA和实际产物hash分别记录；`out/`、`.build/`、依赖缓存与证据不提交。`--materials` 提供审核后的源码/提供者和许可材料，由 `workbench_materials.py` 在本次产物生成后精确绑定，再由原 collector 核完整闭包；不再依赖编译后预期失败和手工改 hash。材料准备与完整桌面出包命令只维护在 [Windows 构建流水线](../docs/guides/windows.md#构建与技术预发布)。Android签名/推送身份与自建服务仍需分别验收，不能用本机编译成功替代。
+
+journal v4 身份变更的降级数据使用 `node tools/packaging/export_workbench_journal_v3.mjs <source-db> <new-output-directory>`（显式 Node 24 和本检出独立依赖）。它保留源数据库，通过 SQLite backup API 导出含 WAL 的一致副本，在副本内转换地址/回执后发布独立 v3 数据文件；目标目录必须全新，失败的 pending 文件保留，不覆盖已有产物。实际回退前停止应用和 Agent，再导出最后写入；该工具不安装旧版本、不替换运行中的 profile，也不处理配置/其他数据迁移，不能单凭导出成功宣称整个应用已回退。
+
+Windows 原生 Hook 使用 `native/windows-agent-hook`，正式入口为 `config/scripts/build-windows-agent-hook.mjs`，默认交付文件是该包下 `.build/zkyq-agent-hook.exe`。该包的 `target/` 与 `.build/` 为该入口精确声明的编译目录，不进入源码清单；打包只收集上述 EXE，其他目录仍按来源清单核验。改名验收核对实际 PE 属性、原执行权限和真实 EXE 的中性响应及本机事件上报。
+
+字体、供应商图标、完整界面静态导入资源及Windows launcher编译图标仅按清单精确字节和完整notice放行；未知媒体、上游执行规则、私人fixture和任意嵌套docs仍拒绝。文本仍经隐私与Gitleaks扫描，changes模式按被检查commit自己的清单核验。对应用来源/构建规则的修改运行：
+
+```powershell
+python -m unittest -v tests.backend.test_workbench_engine_build tests.backend.test_architecture tests.backend.test_repository_checks tests.backend.test_packaging
+node --test tests/frontend/test_workbench_engine_provenance.cjs
+python tools/scripts/check_architecture.py layout
+lint-imports --config tools/architecture/importlinter.ini --no-cache --no-logo
+```
+
+### Studio 与内置项目工作台开发预览
+
+产品入口 `/studio` 在内置运行时已装配时使用同文档项目界面。项目外复用 `studio-preview.*` 的已选布局；项目内统一进入原生开发工作台，保留会话、终端及 Orca 工作区板。Studio 自研进展看板已退役，不再加载其展示资源，也不回退到旧事项看板。Studio 在 Shadow DOM 中隔离样式，仍访问同源真实 API，不使用 iframe。`/studio-shell` 只提供固定的 Studio 模板，脚本与样式由入口明确列出；未装配运行时的服务继续提供独立 Studio。
+
+项目路径使用 `#project/<id>/workspace` 等片段，旧直接项目 URL 保持兼容。旧项目 tasks、review、attention、monitor、items、board、manage 片段归一到同项目开发页，全局 inbox、tasks、attention 入口回项目总览。原工作区侧栏切换已登记目录时同步项目身份；未关联开发目录的会话等项目范围能力不能沿用旧项目。离开前先处理已打开的编辑窗口，草稿不因页面切换丢失。`orca-surface.js/css` 仅保留旧预览历史。
+
+集成服务的旧 `/workspace` 入口回到 `/studio`，保留项目片段；未装配运行时的服务维持原入口。零项目总览的“进入工作台”打开 `#workbench`，以受保护的 runtime-only bootstrap 加载完整原生空工作台；旧 `#workspace`、`#project-setup` 映射到同一入口。内层 `add-repo`、侧栏及筛选菜单沿用原生添加、浏览宿主、新建 Git 项目和克隆流程，取消保留当前工作台。原生操作成功后由 `/api/workbench/adopt-repo` 按受管运行时中的真实 Repo 幂等登记，确认平台列表后继续原生流程；未确认时不重放创建或克隆。新建 Git 项目沿原生规则初始化和首次提交，需要该运行环境具备提交身份；添加已有 Git 目录按原生仓库根解析。普通目录沿用原添加目录流程。项目行加号只创建该项目下的工作区；来源许可与外部 Agent 配置保留在高级管理入口。
+
+项目总览默认显示正常项目，三点菜单只提供归档或恢复，不提供外层改名、项目配置或管理表单；“全部”包含两种状态，正常用蓝色、归档用琥珀色标记，名称保持普通字号。归档或恢复经带 expected 快照的保存接口确认后更新列表；失败不重放写入。原生项目名称在 bootstrap 时同步；内层沿用原名称编辑、移除按钮和原确认控件。集成模式的移除保存平台归档，保留文件、事项、终端与草稿，不调用原生 repo.rm；恢复后重新显示。原生“项目设置”保留图标、Hooks、Git、MCP 等配置。顶部显示当前项目名称，切换项目使用原生侧栏。内层工作区创建绑定当前已登记项目及宿主，不能被旧筛选或旧创建草稿切到另一项目。PlatformProjectContext 的 undefined 表示独立工作台，null 表示平台尚无已验证项目，活动页在后者显示空范围而非全局数据。
+
+进展专用 JS/CSS 及其 HTTP、打包登记已移除。原生工作区状态仍由 Orca 管理，不与本平台业务完成状态自动等同。已有事项、交付、反馈、验收记录及独立兼容管理页的共享 API 保留；退役展示页不迁移或删除用户数据。
+
+原生开发由后端持久启动意图、宿主唯一绑定与有界观察形成进展。原生输入通过受限 owner 方法和持久回执处理，浏览器不直接发送终端输入，也不以临时 tab/PTY 作为永久会话身份。后台只读观察已有目标和发送回执；刷新、查询与服务重启不会自动创建会话或重发消息。没有可信绑定或交付材料时显示来源缺口，Agent 正常结束只产生未独立验证的候选成果，不能自动确认完成。缺少结构化请求身份的提问或权限操作返回原会话处理。
+
+项目活动页的办公室视图沿用现有项目与宿主范围、活动线程和详情面板，字符场景位于 `web/workbench-engine/src/renderer/src/components/activity/office-scene/`，并保留原作者许可。场景只展示有来源的 Agent 状态，普通状态变化不制造任务交接；屏幕或视图不可见时停止绘制。新增代码须登记引擎源码清单，并通过原生活动范围、场景生命周期和集成浏览器验收。
+
+原生交付与反馈 API 继续保留当前 delivery ID、版本和发送回执等原有合同，旧人工验收仍要求结论、理由和确认；本次只移除进展展示页的写操作。保存、输入已接受、观察到继续执行与完成仍是不同事实，历史回执按实际状态显示，送达未知不能自动重发。项目外工作台样式和开发区保持原职责；本模块继承宿主主题，真实 Shadow DOM、黑白主题与窄屏交互须另行验证。
+
+
+开发预览默认沿用启动进程的本机工具路径、用户目录、Git 与 Agent 配置，应用项目库和运行时状态仍写入显式指定的独立 profile；不复制账号凭据。可登记本机真实项目进行开发，也可使用合成 Git 项目复现问题。完成源码单元构建后，用开发入口启动。`--workspace-root` 只填写本次允许使用的项目目录，可重复传入；各路径必须使用本机实际绝对路径：
+
+```powershell
+python tools/scripts/preview_workbench.py --data-dir C:/example/checkout/work/preview/profile --build-run C:/example/checkout/work/workbench-engine-build/local --git C:/example/git/git.exe --workspace-root C:/example/checkout/work/preview/repo --port 8769
+```
+
+需要空白工具环境做隔离测试时，在命令末尾加 `--isolated-environment`；此时 PATH、HOME 和 Agent 配置目录改用预览专用值。通常的本机开发不加这个参数。继承环境只决定工具与配置从哪里读取，不代表 Agent 已登录、启动成功或完成模型调用；验收须分别记录。
+
+入口先绑定平台端口，再显式准备自有运行时，获得确切 WebSocket 地址后才提供页面。打开 `http://127.0.0.1:8769/studio`；端口不决定环境继承，配置由服务启动方式决定，浏览器不持有owner凭据。退出时只回收本次管理的进程，失败保留证据。页面可打开不代表个人项目、模型付费调用、Android或自建账号现场已通过。
+
+`preview_studio.py` 仅供静态资源检查，不提供业务 API，页面会明确显示数据加载失败，不能将其作为融合验收。定向验证：
+
+```powershell
+node --test tests/frontend/test_orca_surface.cjs
+python -m unittest tests.backend.test_studio_preview_server -v
+```
+
+### 独立游戏创作预览
+
+游戏创作保留为独立源码检出预览，需显式启动后访问其实际本机地址。Studio 顶层导航、窄屏顶栏和设置页不再提供游戏入口或地址配置；下述独立预览命令及项目库边界继续适用。
+
+此功能是源码检出预览。显式配置 Godot 引擎和已存在的本机项目库目录：
+
+```powershell
+python -m control_everything.http.creator --engine <ENGINE_EXE> --library <LIBRARY_DIR> --port 8770
+```
+
+库位于仓库内时，只允许根 `work/` 下的独立目录；也可选仓库外目录，但不能包含本仓库、引擎或安装资源。项目库以 UUID 分隔各工程的 `project/` 源码、`project.json` 元数据、`brief.md` 创作说明与 `runs/` 运行记录。不要将这些实际数据提交到源码库。
+
+首次打开是真实空库。用户可创建独立 2D/3D 空白工程，或打开库内已有项目；首片不导入任意外部目录，也不预填具体游戏。同名项目仍有不同 UUID 和 `user://` 目录键，页面展示实际源码位置及该键；它不是对用户修改后游戏脚本的沙箱承诺。
+
+项目页提供场景/脚本资源概览、创作说明保存、上下文复制，以及“在 Godot 中编辑”“独立试玩”“检查工程”。场景树、材质、参数和实际可视化编辑由独立 Godot 窗口承担。创建页面不是浏览器游戏编辑器；未保存说明在当前页面按项目保留，关闭或刷新页面前须点击“保存说明”。资源列表有界扫描，截断会明确显示。
+
+Agent 源码接入由项目工作区持续建设。可选 `--agent-client-url <WORKSPACE_URL>` 指向已配置的平台工作区普通 HTTP(S) 页面；默认空地址时显示“项目工作区接入待配置”，不显示可点入口，不要求安装外部官方客户端。当前只准备或复制上下文，没有自动发送、会话绑定或已连接承诺。复制失败会展开可手动选择的文本；内容包含实际工程路径、说明、所选资源和固定资源导入检查方法，不包含临时 CSRF 令牌。
+
+资源导入检查使用固定的 `--headless --editor --import` 入口；只有退出码和有界日志判据同时满足才显示本次检查通过。它不代表所有未引用脚本、玩法、画质、性能或存档通过，源码改动后必须重新检查。每条操作记录保留项目 ID 和运行 ID，不把其他项目的结果当作当前工程状态。
+
+同一项目同时只允许一个本服务原生操作，全服务每类动作最多一个；工程编辑期间可在原生编辑器中试玩。忙碌准入仅覆盖本服务实际拥有的进程，不能证明外部启动或服务重启遗留窗口不存在。保存与关闭由原生窗口负责，网页不提供强停或通用保存退出协议。关闭页面不会停止原生窗口；停服务前自行保存并关闭，服务也不接管旧 PID。
+
+页面只由独立 loopback 服务提供，与 Studio 共享样式，不修改生产网关或加入生产资源包。定向纯 Node 检查：
+
+```powershell
+node --test tests/frontend/test_creator_ui.cjs tests/frontend/test_orca_surface.cjs
+node --check web/workspace/creator.js
+```
+
+真实项目创建/重启、引擎窗口、好坏导入检查、页面宽窄屏/明暗/键盘及项目工作区返回由验收负责人另行运行并记录命令、退出码和失败；Node 合同不能代替这些证据。
 
 ### 模块边界与新增代码
 
@@ -57,6 +223,8 @@
 安装记录只提供所属线索，维护重新核 OS 创建时间、SID/session、规范映像与 fileID，再用实际旧原 EXE 正常 status/stop；HTTP 或未知安装进程仍运行时阻塞。Inno 自有 EXE/DAT/MSG 交其卸载日志处理，项目不夺锁；卸载仅清精确自有管理文件，业务数据与未知资料保留。临时 bootstrap 和直接 OS 父链用于防错归属与并发，不宣称认证安装脚本、证明父锁所有者或抵御同 SID 主动伪造整个未签名产品。安装现场与全新 Windows 兼容结论须单独留实际证据。
 
 额度 DOM 展示在 `web/workspace/quota.js`，观察动作处理在 `http/observation_routes.py`；主脚本、网关只委派相应职责。前端仍使用普通 Window 模块，依赖注入、DOM 合同、脚本顺序及独立代码审查共同约束；Python 导入检查不覆盖 JavaScript 或 SQL 的业务含义。
+
+沙箱准备请求由 `http/sandbox_routes.py` 处理，权限原语归 `platform/windows_acl.py`，准备状态和恢复证据归 `execution/sandbox_preparations.py`。准备确认绑定目录 ID、对象身份、当前权限摘要和代次；执行、准备与恢复共用跨进程目录租约，目录租约先于配置状态锁。仅为项目根补充当前用户所缺的准备权限，不向子项传播用户授权；恢复仅在对象及当前权限与记录完全匹配时恢复该根 DACL，不撤销 DSH 后续持久沙箱标签。缓存和恢复证据留在本机 profile，不进入提交。
 
 开发环境先按下文安装 editable 包，再显式安装固定工具，从根执行：
 
@@ -84,6 +252,12 @@ python -m venv .venv
 基础测试使用合成配置、临时文件和 mock，不需要作者服务器或个人工具。首次完整测试涉及固定 Gitleaks 检查时，先按下文安装已核验工具；不能把缺工具跳过称为完整检查通过。本机 requirements 固定 MCP 1.30.0，远端新 reader 环境另用 tools/remote-reader/requirements.txt，不能把两套环境混为一次升级。
 
 ### Python 分发构建
+
+本节说明分发模块的职责与 Python 包合同；每次新 EXE 的完整操作顺序只维护在 [Windows 构建流水线](../docs/guides/windows.md#构建与技术预发布)。
+
+发行闭包的依赖归属与许可校验归 `tools/packaging/workbench_distribution.py`；Windows payload 组装归 `tools/packaging/desktop_payload.py`，稳定启动与维护入口归 `installation/maintenance.py`。engine 的 `config/scripts/distribution-record.mjs` 收集实际构建输入、外部文件与输出关系，由现有 runtime、mobile、SDK、Vite 构建脚本调用；新增脚本也须通过来源清单的精确成员校验，不扩大 HTTP 文件服务根。`tests/backend/test_workbench_distribution.py`、`test_desktop_payload.py` 覆盖 Python 合同；`tests/frontend/test_distribution_record.cjs` 与 `test_distribution_cross_tool.cjs` 验证 JavaScript producer 及跨工具输入。`tests/e2e/remote_device_acceptance.py` 是显式目标的现场验收入口，其合成测试归 `tests/backend/test_remote_device_acceptance.py`；源码单测不能替代公网与物理设备验收。
+
+Windows 构建同时生成运行 payload 和同级 `session-panel-<version>-sources.zip`。对应源码归档不安装到用户目录；安装包中的 `SOURCE-AVAILABILITY.json` 记录准确文件名、大小、SHA256和源码成员索引。发布时必须将源码附件与安装器、校验和在同一版本中一并提供等效下载，不得只发布 exe。Git/SSH/终端文件及逐组件许可仍完整保留；缺失或篡改对应材料会阻断构建。原始模块图、包元数据和许可证据保留在 ignored build run，安装包只交付按摘要去重的完整许可文本与组件对应表，不能以精简交付记录替代构建期的闭包验证。每轮输出使用新目录，已有源码附件拒绝覆盖。
 
 `pyproject.toml` 是产品版本的唯一来源，运行依赖只从根 `requirements.txt` 读取。`tools/packaging` 负责分发构建，不放业务逻辑；其工具依赖单独固定，不加入运行 requirements。完整开发测试中的构建合同也需要这些固定工具：
 
@@ -170,8 +344,8 @@ node --test tests/frontend/test_observation_ui.cjs
 ```powershell
 $checkData = Join-Path (Get-Location) 'work/new-member-profile'
 .\.venv\Scripts\python.exe -m control_everything.profile init --data-dir $checkData
-.\.venv\Scripts\python.exe -m control_everything.profile validate-settings --file (Resolve-Path guide/examples/integrations/integration-settings.example.json).Path
-.\.venv\Scripts\python.exe -m control_everything.profile import-settings --file (Resolve-Path guide/examples/integrations/integration-settings.example.json).Path --data-dir $checkData
+.\.venv\Scripts\python.exe -m control_everything.profile validate-settings --file (Resolve-Path docs/examples/integrations/integration-settings.example.json).Path
+.\.venv\Scripts\python.exe -m control_everything.profile import-settings --file (Resolve-Path docs/examples/integrations/integration-settings.example.json).Path --data-dir $checkData
 .\.venv\Scripts\python.exe -m control_everything.profile status --data-dir $checkData
 .\.venv\Scripts\python.exe -m control_everything.gateway --data-dir $checkData --port 14401
 ```
@@ -208,11 +382,11 @@ node tests/e2e/verify_workspace.cjs --fixture
 实现者仅运行经代码核过的无listener合成合同；真实旧连接/多进程停写、CLI迁移恢复回退、HTTP/Edge以及全量discover由验收负责人承接并保存全部退出码、失败和清理收据。纯单测入口为 `tests.backend.test_task_store` 与 `tests.backend.test_task_migration`；它们只操作TemporaryDirectory，不是用户迁移验收。
 
 1. 在本机任务记录中写明目标、范围和实际验证结果；开始和结束均核对 `git status`、diff，注明未验证项。
-2. 当前采用直接提交并推送 main 的快速开发方式，不强制 PR、独立审查或等待远端 CI。需要并行隔离时再使用分支或 worktree；共用工作树先协调文件归属。
+2. 当前快速开发不强制 PR、独立审查或等待远端 CI；界面变更先在 develop 提供真实预览，项目主导者确认后才合入并推送 main。需要并行隔离时再使用分支或 worktree；共用工作树先协调文件归属。
 3. 执行与改动相称的本地验证；每次迭代独立提交，信息说明原因。代码、数据迁移和发布仍需各自实际验证，不能把未运行的检查称为通过。
 4. 按任务授权提交和推送。使用显式文件清单暂存并检查 staged diff，推送前检查上游和完整 outgoing commit 区间。不要将别人的未提交改动混入自己的提交。
 
-提交和推送遵循当前任务授权。产品宣传只使用项目主导者选定的成片，通过 GitHub 视频附件供首页播放；不将媒体制作资料加入源码提交，也不删除本机媒体草稿。没有选定仓库许可证前，不自行添加许可证或宣称任意再分发许可。
+提交和推送遵循当前任务授权。产品宣传只使用项目主导者选定的成片，通过 GitHub 视频附件供首页播放；不将媒体制作资料加入源码提交，也不删除本机媒体草稿。项目源码与文档采用 [MIT 许可证](../LICENSE)，再分发时保留版权和许可声明；第三方依赖仍遵循各自的许可证。
 
 ## 内容和秘密检查
 
@@ -227,7 +401,7 @@ python tools/scripts/check_repository.py changes --base <base-commit> --head <he
 
 `changes` 检查 base..head 全部新增提交中逐提交新增行，个人路径或秘密先加入再删除也会阻断。普通提交对比父树；合并提交检查相对各父均新增的隐私命中，避免把同步 base 已有值当作新引入，侧支新值仍由其引入提交检查。Gitleaks 扫描同一完整区间，并显式使用 `--diff-merges=first-parent`，覆盖仅在合并解决冲突时加入的秘密。报告记录 base、head、merge_base 及每项隐私命中的 commit，兼容 PR 分支创建后 main 又前进的情况。未修改的旧个人值不阻断普通 PR；改名保持的旧内容不算新增。base/head 必须是真实提交；首次导入的全零 before、缺失 ref、无共同历史或空提交区间会失败，维护者须明确首次导入范围并运行完整候选检查，不能静默跳过。
 
-`docs/` 开发记录和 `videos/` 制作资料只留本地；.gitignore 不会自动取消旧文件跟踪，发布负责人须核对最终跟踪清单且保留本机原件。`docs/` 在两种扫描模式均禁入；`videos/` 下已有 `.md`、`.json`、`.mjs` 文本仅在 `changes` 模式的原路径修改中进入完整扫描，仍受嵌套目录、私人文件、二进制和隐私/秘密检查约束，新增、改名或复制到该目录的内容及媒体仍禁入。
+`docs/` 只发布经过核对的架构、使用和开发文档及通用示例。新增公开文档时，同步更新 `.gitignore` 的放行清单、`check_architecture.py` 的归属清单及 `check_repository.py` 的 `PUBLIC_DOCS`；公开文档仍须执行隐私与密钥扫描。`docs/current/`、其他未放行文档和 `videos/` 制作资料只留本地，不能以项目文档名义提交开发过程记录。.gitignore 不会自动取消旧文件跟踪，发布负责人须核对最终跟踪清单且保留本机原件。`videos/` 下已有 `.md`、`.json`、`.mjs` 文本仅在 `changes` 模式的原路径修改中进入完整扫描，仍受嵌套目录、私人文件、二进制和隐私/秘密检查约束，新增、改名或复制到该目录的内容及媒体仍禁入。
 
 未提交文件用严格的 `release` 模式，不虚构 changes 提交范围。手写一个 ignored JSON 清单，`files` 列出本次准备发布的全部相对文件路径，`excluded` 明确记录未纳入的路径（可为空）：
 
@@ -253,17 +427,17 @@ python tools/scripts/check_repository.py release --manifest work/checks/candidat
 
 main 的远端规则仅保留防强推与防删分支，不要求 PR 或必需 CI。调整远端规则后必须读取实际生效结果；以后恢复多人协作门槛须由项目主导者另行决定，不能从旧说明自动重建。
 
-安装器发布仍是单独的手动操作，实际产品构建与验收要求见[Windows 安装与维护](../guide/windows.md)。日常快速提交不代表已发布安装器，也不替代发布验收。
+安装器发布仍是单独的手动操作，实际产品构建与验收要求见[Windows 安装与维护](../docs/guides/windows.md)。日常快速提交不代表已发布安装器，也不替代发布验收。
 
 ## 源码与测试目录
 
-后端生产源码在 `src/control_everything`，业务按 `http`、`sessions`、`workspace`、`execution`、`profiles`、`integrations` 组织，安装维护归 `installation`，Win32 适配归 `platform`。前端使用原生 HTML/CSS 和普通脚本，唯一资源源码放在 `web/sessions`、`web/progress`、`web/workspace`，构建 wheel 时按 HTTP 白名单收进包内；普通启动直接消费已交付 JS，无需 Node、npm 或现场编译。公开页面和资源 URL 保持不变，例如 `/workspace.js` 对应物理文件 `web/workspace/workspace.js`。
+后端生产源码在 `src/control_everything`，业务按 `http`、`sessions`、`workspace`、`execution`、`profiles`、`integrations` 组织，安装维护归 `installation`，Win32 适配归 `platform`。前端使用原生 HTML/CSS 和普通脚本，唯一资源源码放在 `web/sessions`、`web/progress`、`web/workspace`、`web/product`，构建 wheel 时按 HTTP 白名单收进包内；普通启动直接消费已交付 JS，无需 Node、npm 或现场编译。原有页面和资源 URL 保持不变，例如 `/workspace.js` 对应物理文件 `web/workspace/workspace.js`；独立产品介绍页 `/product` 对应 `web/product/index.html`。
 
 本机观察与每日资讯分别以 `web/workspace/observation.ts`、`news.ts` 和邻近类型声明为手写源码，两个 JS 为同一固定 TypeScript 5.9.3 的生成物；其他模块继续手写 JS。修改对应 TS 后运行 `node tools/scripts/build_observation.cjs build` 或 `node tools/scripts/build_news.cjs build`，连同生成 JS 提交，再用对应 `check` 比较完整字节；不要手改生成物。Node24/项目内固定工具的显式准备、缺工具失败与全部验证命令见[观察前端 TypeScript 开发](CONTRIBUTING.md#观察前端-typescript-开发)。原 URL 和普通脚本相对顺序保留，新 `/news.js` 在页面主脚本前加载，不增加常驻 Node 服务。
 
 测试按 `tests/backend`（Python）、`tests/frontend`（纯 Node 合同）、`tests/e2e`（浏览器/协议 harness）和 `tests/fixtures`（合成替身）归类。新增功能放入所属功能目录，测试按类型放置；详细职责与验证命令见 [参与开发](CONTRIBUTING.md)。源码 CLI 统一为 `python -m control_everything.gateway` 等新包名命令，内部代码直接导入功能包实现。
 
-公开接入样例放在 `guide/examples/integrations`，旧格式导入样例放在 `guide/examples/legacy`；TypeScript、架构检查和远端 reader 的开发配置分别放在 `tools` 的对应目录。根目录保留项目入口说明、共同依赖及工具自动发现需要的配置；`src/control_everything` 是后端 Python 包名，功能继续按所属子包开发，产品显示名称不改变导入和 CLI 合同。实际 profile、数据库和日志不属于源码树，不随目录整理搬迁。
+公开接入样例放在 `docs/examples/integrations`，旧格式导入样例放在 `docs/examples/legacy`；TypeScript、架构检查和远端 reader 的开发配置分别放在 `tools` 的对应目录。根目录保留项目入口说明、共同依赖及工具自动发现需要的配置；`src/control_everything` 是后端 Python 包名，功能继续按所属子包开发，产品显示名称不改变导入和 CLI 合同。实际 profile、数据库和日志不属于源码树，不随目录整理搬迁。
 
 多人开发同时检查文件归属与 Python 依赖方向；新增构建单元须连同规则和指南审查。HTTP 网关和页面主脚本负责装配，完整业务处理及展示放入所属模块。检查命令、允许依赖和合并要求见[参与开发](CONTRIBUTING.md#模块边界与新增代码)。
 
@@ -274,11 +448,12 @@ main 的远端规则仅保留防强推与防删分支，不要求 PR 或必需 C
 | Codex 元数据库、项目文档来源 | 用户按需登记；不配置也可人工管理，不自动读取私人来源 |
 | SSH/远端 reader、终端、工作台、个人启动器 | 按需接入；终端依赖远端，工作台依赖终端，启动器可独立启用 |
 | 公开资讯与官方额度 | 资讯按源容忍超时；额度仅显式查询，未配置账号不影响管理 |
-| Node、TypeScript、Rust 编译器、浏览器测试工具 | 开发或验证工具，不属于普通用户的业务依赖 |
+| 固定 Node 运行时与内置工作台 | 标准桌面包内置，由平台构建和管理，不要求另装官方客户端 |
+| TypeScript、Rust 编译器、浏览器测试工具 | 开发或验证工具，普通用户无需安装 |
 
-当前产品不开放 Agent 执行、审批或费用试跑。Orca 不属于产品运行依赖；仓库中的 `tools/scripts/orca_preflight.py` 及其测试仅为未接入工作台的历史离线预检工具。
+项目开发复用内置工作台的宿主 Agent 探测和选择，启动取决于宿主已安装并配置的能力。平台持久记录任务与会话绑定，实际交付仍需人工验收；外部程序注册为可选接入。`web/workbench-engine` 是标准桌面包的运行组成，固定来源单独构建并验证分发闭包，不进入普通 Python wheel。仓库中的 `tools/scripts/orca_preflight.py` 及其测试保留为历史离线预检工具，不能替代当前构建和实际会话验收。
 
-公开接入样例放在 `guide/examples/integrations`；`guide/examples/legacy` 的 [项目登记样例](../guide/examples/legacy/progress-registry.example.json) 和 [人工进度样例](../guide/examples/legacy/progress-manual.example.json) 说明仍受支持的旧记录格式，供显式导入时参考。正常使用的数据保存在所选 profile；整理样例不会移动源码旁已有的私人文件。固定 TypeScript 配置与编译器清单位于 `tools/typescript`，远端正文 reader 的依赖单独位于 `tools/remote-reader/requirements.txt`；本机依赖仍使用根 `requirements.txt`。
+公开接入样例放在 `docs/examples/integrations`；`docs/examples/legacy` 的 [项目登记样例](../docs/examples/legacy/progress-registry.example.json) 和 [人工进度样例](../docs/examples/legacy/progress-manual.example.json) 说明仍受支持的旧记录格式，供显式导入时参考。正常使用的数据保存在所选 profile；整理样例不会移动源码旁已有的私人文件。固定 TypeScript 配置与编译器清单位于 `tools/typescript`，远端正文 reader 的依赖单独位于 `tools/remote-reader/requirements.txt`；本机依赖仍使用根 `requirements.txt`。
 
 ## 验证与撤销
 
@@ -297,3 +472,70 @@ node tests/e2e/verify_control_everything.cjs --fixture
 真实 SSH 补绑、独立 SDK 合成链/空结果对照、选中真实 UUID 分页、Edge 桌面/360px、真实 focus 和 Codex 加载由协调者分别承接。fixture 自证不代表这些已验收；详细状态与所有失败保留在本地开发记录及 ignored `work/`，不提交仓库。
 
 Ctrl+C 停网关即可停本批查询，原 Claude/SSH/Zellij 对话继续运行。代码回退需与对应 profile 版本配套，先保留备份，再在另一个空数据目录恢复并验证；真实 MCP 回退仅撤销本 server 表并由用户重载。删除本地 `.venv` 或远端 reader `.venv` 前确认绝对路径和本批归属。保留研究、方案和实施报告；不删除远端 `.claude`、项目或 Workbench。已经切换的 pane 由用户自行切回。
+
+项目工作空间由 `web/workspace/project-space.js` 负责项目导航、全部事项、待处理和会话展示，任务编辑与分页继续复用 `task-center.js` 的同一份事项。`attention` 查询范围在数据库分页前筛选人工状态为阻塞或待验收的事项；进程运行和普通待办不属于该范围。`workspace.js` 负责装配。
+
+项目“协作监控”由 `workspace/monitor.py` 提供同库只读、项目过滤后的分页快照；`web/workspace/project-monitor.js` 管理页面与请求生命周期，`monitor-model.js` 区分业务事项、最新认领、受控执行记录和外部会话元数据，`monitor-scene.js` 绘制，`monitor-art.js` 保留上游字符艺术及完整许可。最近活动窗口不承诺无损事件续传，执行结束不代表人工验收，外部会话活动未知；内部运行时未接通时明确显示，不另开 SDK 会话或读取私人日志。切页和后台停止绘制及轮询。合成合同运行 `python -m unittest tests.backend.test_project_monitor tests.backend.test_packaging`、`node --test tests/frontend/test_project_monitor.cjs tests/frontend/test_monitor_scene.cjs tests/frontend/test_project_space_ui.cjs`；真实页面和未来内部运行时来源分别验收，不用合成预览代替实际接通。
+
+本机 Codex 项目适配器为 `sessions/codex_desktop.py`：只读显式来源及相邻桌面配置，先合并归属再分页，不按目录合并项目。旧 `codex_index.py` 与六字段、12 条接口保持兼容。内部完整快照不直接返回工作台首页；会话页通过 `/api/workspace/codex/sessions` 分页获取。外部项目使用来源实例与项目 ID 的稳定身份，只读刷新不写管理库；用户显式加入时先在同一事务内保存项目、目录及规范 `codex` 来源标记，后续事项仍在同库事务内校验保存。标记复用已有管理表与备份闭包，schema 和 manifest 版本保持；手工项目保存拒绝该来源，已有外部项目也不得通过伪造来源覆盖。来源陈旧、读取不完整或归属冲突不得授权新关联，原事项状态编辑须保留。
+
+
+项目接入由 `sessions/project_sources.py` 提供固定三来源只读元数据，`workspace/project_selection.py` 负责显式加入和移出，`profiles/workbench_settings.py` 保存许可与移出意图，`http/onboarding_routes.py` 只装配请求。`/workspace-admin` 的高级来源及历史项目接入流程位于 `web/workspace/onboarding.js`，由对应管理页协调刷新，不接管内置工作台的原生 AddRepoDialog；资源必须同时纳入 HTTP、MANIFEST 和 build_assets 白名单。合成合同：`python -m unittest -v tests.backend.test_project_sources tests.backend.test_workbench_selection tests.backend.test_onboarding_routes` 与 `node --test tests/frontend/test_onboarding_ui.cjs`。真实产品启动和浏览器验收另由验收负责人留证。
+
+
+### 新闻阅读器
+
+Studio 首页和手机顶部通过 `#news` 在当前工作台内打开新闻；`/news` 保留独立入口。新闻实例由 `news-surface.js` 挂载并保留阅读状态，来源设置由 `news-settings.js` 管理。旧 `news.ts/news.js` 与固定 RSS API 保持兼容；阅读展示在 `web/workspace/news-reader.*`，蜘蛛动画在 `news-spider.js`。隐藏蜘蛛只停止动画展示，不停止阅读或已启用的更新。`news-browser.js`、`news-public-embed.js` 是仅服务端执行的浏览 worker，按白名单入包，不作为 HTTP 静态文件提供；普通阅读和 RSS 无需 Node。
+
+“来源与更新”支持内置来源启停、公开 HTTPS RSS/Atom/RSSHub 订阅地址、分组及包含/排除关键词。不连接私网、localhost、带凭据地址或自签名服务，不自动部署 RSSHub。筛选只影响阅读视图，停用来源保留旧内容；已读、收藏、归档仍使用当前浏览器按 reader 身份保存的阅读记录。订阅正文按源实际内容展示；摘要不会被标为全文，自定义来源不自动抓取任意网页正文。
+
+计划默认关闭；启用时明确选择间隔频率（15 分钟至 7 天）或每日时刻与时区。计划更新“来源与更新”中启用的来源；专栏编辑器中的来源继续按需刷新，手动刷新仍包含专栏缓存。公开浏览采集须另外选择纳入计划、主题和关键词。计划由服务启动恢复，关闭网页仍执行，服务退出即停止；重启后错过多次只合并一次。保存设置与执行成功分开，界面显示下次、上次和失败状态。同一 profile 只允许一个服务写入；订阅批次与浏览采集共用一个执行槽，繁忙的手动请求不会排队，未核验进程清理时停止新采集。升级或回退前先停止该 profile 的旧服务，旧版本不能识别新 owner 锁。
+
+阅读列表默认按上海时区的当天发布日期筛选，发布说明缺发布日期时使用更新时间，HN 使用收录时间；抓取时间不会把旧文变成今日新闻。可从日期选择或空态“查看历史”切到全部，不删除历史或收藏；页面跨午夜自动更新。卡片取已有正文首个自然段作预览，只用“图文/文章”标识媒体类型；来源旁蓝点为未读，空心灰点为已读，阅读标记继续保存在账号/阅读器作用域内。未知正文先读取再打开，确认仅有失败摘要的条目按内容签名从列表隐藏，正文更新后可恢复；不会把错误/重试小字留在正文里。采集时间与来源告警不占阅读页底部，文章操作保留已读、收藏、归档。主标题与正文用颜色/字号分层；Trafilatura 适配保留多级标题、引用、代码及缩进，仍用纯文本 DOM 展示，旧缓存不强制迁移。新闻采集没有 AI 模型调用，正文预览也不是 AI 总结；中文切换仍使用本地翻译模型。
+
+采集窗口将配置与状态分开：开始前设置关键词和主题，进行中仅展示 CSS/SVG 流光动效、一个当前状态和必要操作，结束后显示真实内容数量，可重新设置并采集。已知阶段总量时展示真实百分比，未知时不伪造百分比；保存阶段等待服务端合入结束。来源保留在文章卡片与原文信息，不在状态窗口展示来源列表、日志或回放入口；后台事件与调试截图接口保留，普通界面不请求截图。明暗与窄屏可用，关窗仍继续采集，但状态动效在关窗、切后台、终态和减少动态偏好下停止。蜘蛛默认隐藏，显示选择按阅读器与远程账号范围保存；隐藏不挂载或暂停动画，阅读与采集继续。
+
+关键词采集的 AI Coding/Agent/模型主题优先匹配量子位、少数派 RSS，有匹配时不再请求海外来源；普通采集直接解析国内来源的静态正文，不加载页面脚本，需要步骤截图时才打开完整页面。每批最多 20 篇，所选 profile 已采集的正文/完整订阅内容先按 URL 排除，后续采集继续未收集文章；仅有摘要的文章仍可重试原文，固定 RSS 标题不算已采集正文。量子位订阅不足一批时最多读取四页，重复分页停止，不假定其他来源支持分页。无匹配时再读取 Peter Steinberger/Anthropic 或 DeepMind/OpenAI 对应订阅；Claude 使用官方 Atom，Tibo 保留作者原文入口，显式 X 链接沿用公开嵌入。英文常用主题词同时匹配对应中文词，不把作者预设当成本次全网搜索结果。每次原文访问使用独立 Page，避免残留导航干扰；同域订阅重定向有界处理，原文受限时保留带范围标签的来源内容/摘要。页面无发布日期时保留订阅发布日期，Atom 更新时间独立展示，无关键词匹配按正常空结果处理。固定 RSS API 与其既有来源保持兼容。
+
+后端 `workspace/news_reader.py` 管理所选 profile 的 `news-reader/` 数据，`news_research.py` 管理单槽、有截止时间的独占浏览进程，`news_article.py` 提取固定来源正文。HTTP 装配在 `http/news_reader.py`，沿用 Host、Origin、client header 和 CSRF 校验。截图经带权限头的 fetch 转为 Blob 显示。研究数据、模型、截图和个人工具路径不提交。
+
+普通安装包含固定版本的正文提取器；本地翻译额外依赖通过 `python -m pip install -e ".[news]"` 安装。RSS/Atom 内联内容按纯文本保留，原文受阻时回退到订阅源内容并说明是否截断；HN 只对服务端已收录的链接提取正文，仍校验公共 DNS、HTTPS 和同域跳转。页面显示具体失败原因，手动重新读取可绕过失败冷却，不丢失已有成功缓存。完整 Windows 产品的浏览采集复用包内固定 Node 与引擎锁定的 `playwright-core` 1.64.0，后者由 `config/scripts/orcad-playwright-core-package.mjs` 精确导出并纳入原分发所属与许可核验；HTTP 装配仅从已验证产品清单注入路径，不回退系统 Node 或全局 `NODE_PATH`。Windows 使用本机 Edge 的临时隔离 context。源码开发模式仍可通过 `CONTROL_EVERYTHING_NEWS_NODE` 指定 Node，并按标准 Node 模块解析加载开发 Playwright；其他平台的浏览器依赖按官方说明准备。依赖缺失时保留已有新闻并返回明确不可用状态。
+
+`python tools/scripts/prepare_news_translation.py --data-dir <PROFILE_DIR>` 下载校验后的公开英译中模型；默认模型目录为默认 profile 的 `news-reader/translation-model/translate-en_zh-1_9`，使用其他 profile 时通过 `CONTROL_EVERYTHING_NEWS_MODEL` 指定已准备的模型目录。模型只在用户切换中文时载入，不自动下载或调用云翻译。
+
+定向验证：
+
+```powershell
+python -m unittest -v tests.backend.test_news_reader tests.backend.test_news_article tests.backend.test_daily_news_http tests.backend.test_packaging
+node tests/e2e/verify_news_reader.cjs
+node tests/e2e/verify_news_sources.cjs
+python tools/scripts/check_architecture.py layout
+lint-imports --config tools/architecture/importlinter.ini --no-cache --no-logo
+```
+
+E2E 使用明确标记的合成页面，截图保存在 ignored `work/news-reader-tests/`；真实 RSS、X 官方嵌入和本地翻译另行记录实际结果。公开嵌入的节选和媒体失败不代表完整线程或稳定全量抓取。
+
+### 账号与认证界面资源
+
+账号与设备展示模块为 `web/workspace/account-device.js`，Studio、独立 `/remote` 与 `/desktop` 共用；本机精确提供 `/remote/account-device.js`、`/remote/remote-account.css`。中央站点的 `remote-ui` 目录只复制 `web/workspace/` 中 `remote-account.html`、`remote-account.js`、`remote-account.css`、`account-device.js`、`ui-theme.js` 五个源文件，保持同名。Caddy 仅以 `/remote`、`/remote/` 两个文档别名提供 HTML，并精确提供 `/remote/remote-account.js`、`/remote/remote-account.css`、`/remote/account-device.js`、`/remote/ui-theme.js`；不开放 `/remote/*` 或直接 HTML URL。既有设备代理与 hub 静态授权范围不因此扩大。该样例需要部署负责人在自建现场核验，源码检查不代表已重载 Caddy。
+
+`web/workspace/identity-theme/control-everything/login/` 仅维护 `theme.properties`、`resources/css/studio.css`、`messages/messages_zh_Hans.properties` 三个身份服务部署资产。sdist 显式保留三文件，Python wheel 与 HTTP 资源不包含主题；不把主题目录当文件服务根。新增 properties 必须逐文件登记并经过内容/秘密检查，不能按目录豁免。
+
+### 管理界面主题、字体与确认资源
+
+普通页面共用 `web/workspace/ui-theme.js`，确认原语为 `ui-dialog.js`，Studio 导航壳为 `studio-shell.js`。网关精确提供 `/ui-theme.js`、`/ui-dialog.js`，Studio provider 提供 `/studio-shell.js`；三个文件同时列入 `build_assets.py` 和 `MANIFEST.in`。独立创作服务仅增加 `/ui-theme.js`；新闻 provider 保留原资源表，由网关提供共用脚本。静态 Studio 预览精确提供三脚本，仍无业务 API。
+
+普通文档在 head 用外部同步 script 的 `data-ce-theme-key` 声明该页既有 key；`CEUITheme.pageTheme` 是早读生成的同一个只读 controller 引用，消费者复用它 mount，并在页面退役时 dispose。远程元数据与 context 必须先冻结，再读任何存储。BFCache 恢复时不复用已 dispose 的 controller；不新建主题 key、另一份 store 或跨账号广播。集成 React 页面沿自己的 authority 与 document-theme，不能再加载普通主题 helper。`ui-dialog.js` 应先于 onboarding、agents、project-space，`studio-shell.js` 先于 studio-preview；确认样式在已加载的 `workspace.css`，不注入 inline style 或新增 CSS URL。
+
+管理正文使用 Geist 与系统中文 fallback；终端、代码、diff、技术标识保持自己的字体。唯一字体源为 `web/workbench-engine/src/renderer/src/assets/fonts/Geist-Variable.woff2`（69436 字节，SHA256 `e24cec106619c03f0b3519e31b9bc55e0d5e926b6a95b8d798cd8cef215b1505`），完整许可在 `web/workbench-engine/licenses/Geist-OFL-notice.md`。`tools/packaging/build_ui_font.py` 只替换两个既有资产的标记块，不手写另一份字体、不新增 HTTP 字体 URL。普通 helper 将标记块中的 base64 解码为原字体 bytes，以 `FontFace` 的 BufferSource 供给，适配现有禁止 inline script 与 data 字体 URL 的 CSP；不放宽策略。登录 CSS 继续使用同一字节生成块与父 `keycloak.v2` 主题，父 CSP 下的字体加载须现场验证。
+
+从源码检出目录运行（使用显式 Python/Node 24）：
+
+```powershell
+python tools/packaging/build_ui_font.py build
+python tools/packaging/build_ui_font.py check
+python -m unittest -v tests.backend.test_ui_font_assets tests.backend.test_identity_theme tests.backend.test_packaging tests.backend.test_creator_http tests.backend.test_architecture
+node --test tests/frontend/test_ui_theme.cjs tests/frontend/test_ui_dialog.cjs
+```
+
+`build` 后连同两资产的生成块检查 diff；`check` 不写文件并核完整原字节与 OFL。登录固定三资产、中央固定五文件、实际字体加载、两 Shadow 焦点和权限写入分别验收；纯单元不证明真实部署。`tests/e2e/verify_workbench_interactions.cjs` 属于隔离产品预览验收，新闻 harness `tests/e2e/verify_news_reader.cjs` 使用全部路由截获的合成数据及原新闻 CSP；两者由验收负责人运行并保留浏览器报告。

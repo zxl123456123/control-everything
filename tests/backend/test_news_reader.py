@@ -1,0 +1,460 @@
+"""Reader persistence, source identity, HTTP permissions and owned job contracts."""
+import copy
+import hashlib
+import json
+import os
+from pathlib import Path
+from tempfile import TemporaryDirectory
+import threading
+import subprocess
+from types import SimpleNamespace
+import unittest
+from unittest.mock import Mock, patch
+
+from control_everything.workspace.news_reader import NewsReader
+from control_everything.workspace.news_research import ResearchJobs
+from tests.backend import test_execution_http
+from control_everything.http.gateway import PanelServer
+from control_everything.http.news_reader import _reader
+
+
+def item(url='https://blog.google/article', date='2026-10-23T08:00:00+00:00', source='google_ai'):
+    return {'id': hashlib.sha256((source + ':' + url).encode()).hexdigest()[:24], 'url': url,
+            'title': 'An article', 'summary': 'Source summary', 'source_id': source, 'source_name': source,
+            'published_at': date, 'fetched_at': '2026-10-23T09:00:00+00:00', 'stream': 'ai'}
+
+
+class Source:
+    def __init__(self):
+        self.items = [item()]
+        self.failed = False
+        self.refreshes = []
+
+    def get(self, stream):
+        return {'items': [] if self.failed or stream == 'hn' else copy.deepcopy(self.items),
+                'sources': [{'id': 'google_ai', 'last_success_at': None if self.failed else '2026-10-23T09:00:00+00:00',
+                             'status': 'unavailable' if self.failed else 'available', 'reason': 'timeout' if self.failed else None}],
+                'refresh': {'state': 'idle', 'reason': None}, 'sampled_at': '2026-10-23T09:00:00+00:00'}
+
+    def refresh(self, stream):
+        self.refreshes.append(stream)
+        return self.get(stream)
+
+
+def owned_browser(events=(), *, stderr='', code=0):
+    class Batch:
+        def __init__(self, node, config, stop, on_event):
+            self.api = SimpleNamespace(errors=stderr.encode(), code=code)
+            self.on_event = on_event
+
+        def run(self):
+            for event in events:
+                self.on_event(event)
+            return [], 'worker_failed' if code else None, True
+    return Batch
+
+
+class ReaderTests(unittest.TestCase):
+    def test_verified_runtime_is_private_and_never_uses_ambient_node(self):
+        node = self.root / 'pinned-node.exe'
+        node.write_bytes(b'fixture')
+        core = self.root / 'core'
+        core.mkdir()
+        (core / 'index.js').write_text('module.exports = {}')
+        extra_reader = NewsReader(self.root, self.source, runtime={'node': str(node), 'playwright_core': str(core)})
+        self.addCleanup(extra_reader.close)
+        jobs = extra_reader.jobs
+        with patch.dict(os.environ, {'CONTROL_EVERYTHING_NEWS_NODE': str(self.root / 'wrong')}), \
+                patch('control_everything.workspace.news_research.shutil.which') as ambient, patch.object(jobs, '_run') as run:
+            job = jobs.begin('coding', 'coding')
+            jobs.thread.join(timeout=1)
+        ambient.assert_not_called()
+        self.assertEqual(run.call_args.args[2], str(node))
+        private = json.loads((jobs.root / job['job_id'] / 'request.json').read_text(encoding='utf-8'))
+        self.assertEqual(private['playwright_core'], str(core))
+        self.assertNotIn('playwright_core', job)
+        self.assertNotIn(str(core), json.dumps(job))
+        for runtime in ({}, {'node': str(node), 'playwright_core': str(self.root / 'missing')}):
+            unavailable = ResearchJobs(self.root, Mock(), runtime=runtime)
+            with patch.dict(os.environ, {'CONTROL_EVERYTHING_NEWS_NODE': __file__}), \
+                    patch('control_everything.workspace.news_research.shutil.which') as ambient, \
+                    patch('control_everything.workspace.news_research.subprocess.Popen') as spawn:
+                with self.assertRaises(OSError):
+                    unavailable.begin('coding', 'coding')
+            ambient.assert_not_called()
+            spawn.assert_not_called()
+
+    def test_feed_updated_time_orders_without_inventing_publication(self):
+        row = {**item('https://github.com/example/release', None, 'github_com'),
+               'updated_at': '2026-10-26T00:00:00+00:00',
+               'body_blocks': [{'type': 'p', 'text': 'Actual publisher release note.'}]}
+        result = self.reader.merge([row])
+        self.assertEqual(result['sample']['streams']['ai']['items'][0]['id'], row['id'])
+        document = self.reader.article(row['id'])
+        self.assertIsNone(document['published_at'])
+        self.assertEqual(document['updated_at'], row['updated_at'])
+
+    def test_zero_matches_complete_but_blocked_sources_fail(self):
+        for stages, expected in ((['search', 'merge'], 'complete'), (['blocked', 'merge'], 'failed')):
+            identity = ('a' if expected == 'complete' else 'b') * 32
+            folder = self.reader.jobs.root / identity
+            folder.mkdir(parents=True)
+            (folder / 'result.json').write_text(json.dumps({'items': []}), encoding='utf-8')
+            job = {'job_id': identity, 'state': 'running', 'topic': 'coding', 'events': []}
+            events = [{'stage': stage, 'message': stage} for stage in stages]
+            with patch('control_everything.workspace.news_research.BrowserBatch', owned_browser(events)):
+                self.reader.jobs._run_owned(job, folder / 'request.json', 'node')
+            self.assertEqual(job['state'], expected)
+            self.assertEqual('error' in job, expected == 'failed')
+
+    def test_worker_startup_failure_reports_safe_missing_dependency_reason(self):
+        jobs = self.reader.jobs
+        identity = 'c' * 32
+        folder = jobs.root / identity
+        folder.mkdir(parents=True)
+        job = {'job_id': identity, 'state': 'running', 'topic': 'coding', 'events': []}
+        stderr = "Error: Cannot find module 'playwright'\nRequire stack:\nC:/example/private-profile/news-browser.js"
+        with patch('control_everything.workspace.news_research.BrowserBatch', owned_browser(stderr=stderr, code=1)):
+            jobs._run_owned(job, folder / 'request.json', 'node')
+        self.assertEqual(job['state'], 'failed')
+        self.assertIn('playwright', job['error'].lower())
+        self.assertNotIn('private-profile', json.dumps(job))
+        self.assertNotIn('Require stack', json.dumps(job))
+        self.assertEqual(json.loads((folder / 'worker-exit.json').read_text(encoding='utf-8'))['stderr'], stderr)
+
+    def test_worker_failures_keep_source_reason_for_failed_and_partial_jobs(self):
+        for has_items in (False, True):
+            with self.subTest(has_items=has_items):
+                jobs = self.reader.jobs
+                identity = ('d' if has_items else 'e') * 32
+                folder = jobs.root / identity
+                folder.mkdir(parents=True)
+                captured = [{**item('https://sspai.com/post/fixture'), 'content_kind': 'full_text',
+                             'body_blocks': [{'type': 'p', 'text': 'Synthetic captured article.'}]}] if has_items else []
+                (folder / 'result.json').write_text(json.dumps({'items': captured}), encoding='utf-8')
+                reason = '来源返回 HTTP 403，未提取'
+                event = {'stage': 'blocked', 'message': reason, 'detail': 'private diagnostic fixture'}
+                job = {'job_id': identity, 'state': 'running', 'topic': 'coding', 'events': []}
+                with patch('control_everything.workspace.news_research.BrowserBatch', owned_browser([event])):
+                    jobs._run_owned(job, folder / 'request.json', 'node')
+                self.assertEqual(job['state'], 'partial' if has_items else 'failed')
+                self.assertIn(reason, job.get('error', ''))
+                if has_items:
+                    self.assertIn('result', job)
+                    saved = json.loads((self.root / 'research-items.json').read_text(encoding='utf-8'))
+                    self.assertEqual(saved[0]['url'], captured[0]['url'])
+
+    def setUp(self):
+        self.temporary = TemporaryDirectory()
+        self.addCleanup(self.temporary.cleanup)
+        self.root = Path(self.temporary.name)
+        self.source = Source()
+        # Migration fixture: snapshots are read without touching the public collector.
+        (self.root / 'feeds.json').write_text(json.dumps({stream: self.source.get(stream) for stream in ('ai', 'hn')}), encoding='utf-8')
+        self.reader = NewsReader(self.root, self.source)
+        self.addCleanup(self.reader.close)
+
+    def test_real_source_replaces_snapshot_and_newest_publication_leads(self):
+        self.reader.sample()
+        older = {**item('https://x.com/example/status/123', '2025-01-02T00:00:00Z', 'x'),
+                 'body_blocks': [{'type': 'p', 'text': 'Original post'}]}
+        sample = self.reader.merge([older])
+        self.assertEqual(sample['sample']['streams']['ai']['items'][0]['url'], self.source.items[0]['url'])
+        self.assertFalse(any('body_blocks' in row for row in self.reader.feeds['ai']['items']))
+        saved = NewsReader(self.root, self.source)
+        self.addCleanup(saved.close)
+        self.assertIn(older['id'], saved.research)
+        other = NewsReader(self.root / 'other', self.source)
+        self.addCleanup(other.close)
+        self.assertNotIn(older['id'], other.research)
+
+    def test_same_source_url_keeps_original_identity_and_full_content(self):
+        original = self.source.items[0]
+        self.reader.sample()
+        capture = {**original, 'id': 'a' * 24, 'source_id': 'blog_google',
+                   'body_blocks': [{'type': 'p', 'text': 'Captured text'}], 'images': [], 'content_kind': 'full_text',
+                   'content_origin': 'publisher_feed'}
+        rows = self.reader.merge([capture])['sample']['streams']['ai']['items']
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]['id'], original['id'])
+        self.assertEqual(self.reader.article(original['id'])['blocks'], capture['body_blocks'])
+
+    def test_failed_refresh_preserves_old_time_and_content(self):
+        before = self.reader.sample()
+        self.reader.accept_feeds(self.reader.runtime.settings['sources'], [], 'timeout')
+        after = self.reader.sample()
+        self.assertEqual(after['sample']['streams']['ai']['items'], before['sample']['streams']['ai']['items'])
+        self.assertEqual(after['sample']['captured_at'], before['sample']['captured_at'])
+        self.assertEqual(after['sample']['sources'][0]['reason'], 'timeout')
+        self.assertEqual(self.source.refreshes, [])
+
+    def test_unknown_article_never_fetches(self):
+        with patch('control_everything.workspace.news_reader.load_article') as fetch:
+            self.assertIsNone(self.reader.article('a' * 24))
+            fetch.assert_not_called()
+
+    def test_collection_skips_captured_bodies_but_retries_summaries_in_its_own_profile(self):
+        full = {**item('https://sspai.com/post/full'), 'content_kind': 'full_text',
+                'body_blocks': [{'type': 'p', 'text': 'A captured article body.'}]}
+        feed = {**item('https://github.com/example/release'), 'content_kind': 'summary',
+                'completeness': 'feed_content', 'body_blocks': [{'type': 'p', 'text': 'Publisher release notes.'}]}
+        summary = {**item('https://sspai.com/post/summary'), 'content_kind': 'summary',
+                   'completeness': 'feed_summary', 'body_blocks': [{'type': 'p', 'text': 'Short source excerpt.'}]}
+        self.reader.merge([full, feed, summary])
+        self.assertCountEqual(self.reader.collected_urls(), [full['url'], feed['url']])
+        restored = NewsReader(self.root, self.source)
+        self.addCleanup(restored.close)
+        self.assertCountEqual(restored.collected_urls(), [full['url'], feed['url']])
+        other = NewsReader(self.root / 'other', self.source)
+        self.addCleanup(other.close)
+        self.assertEqual(other.collected_urls(), [])
+        jobs = self.reader.jobs
+        with patch.dict(os.environ, {'CONTROL_EVERYTHING_NEWS_NODE': __file__}), patch.object(jobs, '_run'):
+            job = jobs.begin('coding', 'coding')
+            jobs.thread.join(timeout=1)
+        config = json.loads((jobs.root / job['job_id'] / 'request.json').read_text(encoding='utf-8'))
+        self.assertCountEqual(config['known_urls'], [full['url'], feed['url']])
+        self.assertNotIn('known_urls', job)
+
+    def test_saved_document_remains_readable_after_leaving_feed_window(self):
+        identity = 'a' * 24
+        folder = self.root / 'article-cache'
+        folder.mkdir()
+        saved = {'id': identity, 'content_kind': 'full_text', 'blocks': [{'type': 'p', 'text': 'Saved body'}]}
+        (folder / (identity + '.json')).write_text(json.dumps(saved), encoding='utf-8')
+        with patch('control_everything.workspace.news_reader.load_article') as fetch:
+            self.assertEqual(self.reader.article(identity), saved)
+            self.assertIsNone(self.reader.article('../' + identity))
+            self.assertIsNone(self.reader.article('b' * 24))
+            fetch.assert_not_called()
+
+    def test_excerpt_metadata_and_image_survive_reader(self):
+        post = {**item('https://x.com/example/status/123', None, 'x'), 'published_raw': '2026-01-02',
+                'published_precision': 'day', 'content_kind': 'summary', 'completeness': 'public_embed',
+                'incomplete': True, 'images': [{'url': 'https://pbs.twimg.com/card_img/example', 'caption': '链接预览图'}],
+                'body_blocks': [{'type': 'p', 'text': 'Actual excerpt'}]}
+        self.reader.merge([post])
+        doc = self.reader.article(post['id'])
+        self.assertTrue(doc['incomplete'])
+        self.assertIsNone(doc['published_at'])
+        self.assertEqual(doc['images'], post['images'])
+
+    def test_history_restores_only_terminal_own_job_and_exact_frame(self):
+        jobs = self.reader.jobs
+        identity = 'a' * 32
+        folder = jobs.root / identity
+        folder.mkdir(parents=True)
+        saved = {'job_id': identity, 'state': 'partial', 'topic': 'coding', 'query': 'agents', 'events': []}
+        (folder / 'job.json').write_text(json.dumps(saved), encoding='utf-8')
+        (folder / 'frame-001.jpg').write_bytes(b'fixture')
+        self.assertEqual(jobs.latest(), saved)
+        self.assertEqual(jobs.frame_path(identity, 'frame-001.jpg'), folder / 'frame-001.jpg')
+        self.assertIsNone(jobs.frame_path(identity, '../job.json'))
+        self.assertIsNone(jobs.snapshot('../' + identity))
+        jobs.latest()['events'].append('changed')
+        self.assertEqual(jobs.latest()['events'], [])
+        saved['state'] = 'running'
+        (folder / 'job.json').write_text(json.dumps(saved), encoding='utf-8')
+        self.assertIsNone(ResearchJobs(self.root, Mock()).latest())
+
+    def test_invalid_requests_missing_node_and_busy_do_not_spawn(self):
+        jobs = self.reader.jobs
+        for query, topic in [(None, 'coding'), ('', 'coding'), ('x' * 241, 'coding'), ('x', []), ('x', 'unknown')]:
+            with self.assertRaises(ValueError):
+                jobs.begin(query, topic)
+        with patch.dict(os.environ, {'CONTROL_EVERYTHING_NEWS_NODE': str(self.root / 'missing')}):
+            with self.assertRaises(OSError):
+                jobs.begin('AI coding', 'coding')
+        with patch.dict(os.environ, {'CONTROL_EVERYTHING_NEWS_NODE': __file__}), patch('subprocess.Popen') as spawn:
+            jobs.jobs['b' * 32] = {'job_id': 'b' * 32, 'state': 'running'}
+            with self.assertRaises(RuntimeError):
+                jobs.begin('AI coding', 'coding')
+            spawn.assert_not_called()
+
+    def test_close_only_stops_owned_process_and_waits_its_thread(self):
+        jobs = self.reader.jobs
+        jobs.process, jobs.thread = Mock(), Mock()
+        jobs.thread.is_alive.return_value = False
+        jobs.process = None
+        thread = jobs.thread
+        with patch.object(jobs, '_stop') as stop:
+            jobs.close()
+            stop.assert_called_once_with(jobs.process)
+        self.assertTrue(jobs.closed)
+        thread.join.assert_called_once_with(timeout=5)
+
+
+class ReaderHTTPTests(unittest.TestCase):
+    request = test_execution_http.ExecutionHTTPTests.request
+
+    def setUp(self):
+        self.reader = Mock()
+        self.reader.sample.return_value = {'sample': {}}
+        self.server = SimpleNamespace(news_reader=self.reader, _news_reader_lock=threading.Lock(),
+            _news_reader_closed=False,
+            expected_host='127.0.0.1:1234', origin='http://127.0.0.1:1234', csrf_token='token')
+
+    def test_only_explicit_same_origin_embedding_changes_ancestor_policy(self):
+        from urllib.parse import urlsplit
+        from control_everything.http.news_reader import handle_get, CSP
+        handler = Mock()
+        for route in ('/news', '/news?embedded=1'):
+            handler.reset_mock()
+            self.assertTrue(handle_get(handler, urlsplit(route)))
+            csp = handler.reply.call_args.kwargs['csp']
+            expected = CSP.replace("frame-ancestors 'none'", "frame-ancestors 'self'") if '?' in route else CSP
+            self.assertEqual(csp, expected)
+            self.assertEqual(handler.reply.call_args.args[0], 200)
+        for route in ('/news?embedded=0', '/news?embedded=1&embedded=1', '/news?embedded=1&url=https://example.com', '/news-reader.js?embedded=1'):
+            handler.reset_mock()
+            handle_get(handler, urlsplit(route))
+            handler.reject.assert_called_once_with(400, 'invalid_query')
+            handler.reply.assert_not_called()
+        self.assertEqual(self.request('/news?embedded=1', headers={'Host': 'evil'})[0], 403)
+
+    def test_existing_permission_gate_precedes_all_reader_work(self):
+        for headers in ({'Host': 'evil'}, {'X-Session-Client': ''}):
+            self.assertEqual(self.request('/api/workspace/news/reader', headers=headers)[0], 403)
+        for headers in ({'Origin': ''}, {'X-Session-CSRF': ''}, {'X-Session-Client': ''}):
+            self.assertEqual(self.request('/api/workspace/news/research', 'POST', {'query': 'AI', 'topic': 'coding'}, headers)[0], 403)
+        self.reader.sample.assert_not_called()
+        self.reader.jobs.begin.assert_not_called()
+
+    def test_query_body_budgets_and_refresh(self):
+        self.assertEqual(self.request('/api/workspace/news/reader?url=https://example.com')[0], 400)
+        for query in ('', 'id=bad', 'id=' + 'a' * 24 + '&id=' + 'b' * 24):
+            self.assertEqual(self.request('/api/workspace/news/article?' + query)[0], 400)
+        self.assertEqual(self.request('/api/workspace/news/reader/refresh', 'POST', {})[0], 200)
+        self.reader.sample.assert_called_once_with(refresh=True)
+        self.assertEqual(self.request('/api/workspace/news/research', 'POST', {'url': 'https://example.com'})[0], 400)
+        self.assertEqual(self.request('/api/workspace/news/research', 'POST',
+                         {'query': 'coding', 'topic': 'coding', 'playwright_core': '/untrusted/module'})[0], 400)
+        self.assertEqual(self.request('/api/workspace/news/research', 'POST', b' ' * 2049)[0], 413)
+        self.assertEqual(self.request('/api/workspace/news/translate', 'POST', {'texts': [1], 'source': 'en', 'target': 'zh'})[0], 400)
+
+    def test_article_retry_is_explicit_and_rejects_other_parameters(self):
+        identity = 'a' * 24
+        self.reader.article.return_value = {'id': identity}
+        self.assertEqual(self.request('/api/workspace/news/article?id=' + identity + '&retry=1')[0], 200)
+        self.reader.article.assert_called_once_with(identity, retry=True)
+        for suffix in ('&retry=0', '&retry=', '&retry=1&retry=1', '&retry=1&url=https://example.com'):
+            self.assertEqual(self.request('/api/workspace/news/article?id=' + identity + suffix)[0], 400)
+
+    def test_screenshot_capture_is_optional_and_boolean(self):
+        self.reader.runtime.request_research.return_value = {'job_id': 'a' * 32}
+        for capture in (False, True):
+            self.assertEqual(self.request('/api/workspace/news/research', 'POST',
+                             {'query': 'AI', 'topic': 'coding', 'capture_frames': capture})[0], 202)
+            self.reader.runtime.request_research.assert_called_with('AI', 'coding', capture_frames=capture)
+        self.assertEqual(self.request('/api/workspace/news/research', 'POST',
+                         {'query': 'AI', 'topic': 'coding', 'capture_frames': 'false'})[0], 400)
+
+    def test_unknown_document_and_active_job_status(self):
+        self.reader.article.return_value = None
+        self.assertEqual(self.request('/api/workspace/news/article?id=' + 'a' * 24)[0], 404)
+        from control_everything.workspace.news_runtime import NewsBusy
+        self.reader.runtime.request_research.side_effect = NewsBusy('research_running')
+        self.reader.runtime.snapshot.return_value = {'state': 'running'}
+        self.reader.jobs.latest.return_value = {'job_id': 'a' * 32, 'state': 'running', 'events': []}
+        response = self.request('/api/workspace/news/research', 'POST', {'query': 'AI', 'topic': 'coding'})
+        self.assertEqual(response[0], 409)
+        self.assertEqual(response[1]['state'], 'running')
+
+    def test_favicon_request_is_answered_without_an_error(self):
+        from http.client import HTTPConnection
+        from http.server import ThreadingHTTPServer
+        from control_everything.http.gateway import PanelHandler
+
+        with ThreadingHTTPServer(('127.0.0.1', 0), PanelHandler) as server:
+            server.expected_host = '127.0.0.1:' + str(server.server_port)
+            server.origin = 'http://' + server.expected_host
+            server.csrf_token = 'fixture'
+            thread = threading.Thread(target=server.serve_forever, daemon=True)
+            thread.start()
+            connection = HTTPConnection('127.0.0.1', server.server_port, timeout=5)
+            try:
+                connection.request('GET', '/favicon.ico')
+                response = connection.getresponse()
+                self.assertEqual(response.status, 204)
+                self.assertIsNone(response.getheader('Content-Length'))
+                self.assertEqual(response.read(), b'')
+            finally:
+                connection.close()
+                server.shutdown()
+                thread.join(timeout=5)
+        self.assertFalse(thread.is_alive())
+        self.reader.sample.assert_not_called()
+
+    def test_static_reader_csp_and_no_network_side_effect(self):
+        self.assertEqual(self.request('/news')[0], 200)
+        self.assertIn('img-src', self.last_handler.reply.call_args.kwargs['csp'])
+        self.assertIn('frame-src \'none\'', self.last_handler.reply.call_args.kwargs['csp'])
+        self.reader.sample.assert_not_called()
+
+    def test_settings_envelope_cas_budget_validation_and_ownership(self):
+        from control_everything.workspace.news_runtime import RevisionConflict, NewsUnavailable
+        runtime = self.reader.runtime
+        runtime.envelope.return_value = {'reader_id': 'a', 'settings': {'revision': 2}, 'runtime': {'owner': 'owned'}}
+        runtime.settings = {'revision': 2}
+        runtime.snapshot.return_value = {'owner': 'blocked'}
+        self.assertEqual(self.request('/api/workspace/news/settings')[1]['settings']['revision'], 2)
+        runtime.save_settings.side_effect = RevisionConflict('revision_conflict')
+        self.assertEqual(self.request('/api/workspace/news/settings', 'POST', {})[0], 409)
+        runtime.save_settings.side_effect = ValueError('sources.url')
+        result = self.request('/api/workspace/news/settings', 'POST', {})
+        self.assertEqual(result[0], 400)
+        self.assertEqual(result[1]['field'], 'sources.url')
+        runtime.save_settings.side_effect = NewsUnavailable('owner_elsewhere')
+        self.assertEqual(self.request('/api/workspace/news/settings', 'POST', {})[0], 503)
+        self.assertEqual(self.request('/api/workspace/news/settings', 'POST', b' '*65537)[0], 413)
+
+    def test_studio_csp_only_adds_images_and_private_workers_not_served(self):
+        from control_everything.http import workbench, news_reader
+        self.assertIn("img-src 'self' data: https: blob:", workbench.STUDIO_CSP)
+        self.assertIn("script-src 'self'", workbench.STUDIO_CSP)
+        self.assertIn("connect-src 'self'", workbench.STUDIO_CSP)
+        self.assertNotIn('/news-browser.js', news_reader.ASSETS)
+        self.assertNotIn('/news-public-embed.js', news_reader.ASSETS)
+        self.assertIn('/news-settings.js', news_reader.ASSETS)
+        self.assertIn('/news-surface.js', workbench.STUDIO_RESOURCES)
+
+    def test_disconnected_client_is_not_sent_an_error_reply(self):
+        self.request('/api/workspace/news/reader', disconnect=True)
+        self.last_handler.reply.assert_called_once()
+
+    def test_reader_cleanup_failure_does_not_skip_existing_cleanup(self):
+        server = PanelServer.__new__(PanelServer)
+        server._news_reader_lock = threading.Lock()
+        server.news_reader, server.news_source, server.observer, server.execution = Mock(), Mock(), Mock(), Mock()
+        reader, source, observer, execution = server.news_reader, server.news_source, server.observer, server.execution
+        server._news_lease = 'lease'
+        reader.close.side_effect = subprocess.TimeoutExpired('taskkill', 10)
+        with patch('http.server.ThreadingHTTPServer.server_close'), self.assertRaises(subprocess.TimeoutExpired):
+            server.server_close()
+        source.release.assert_called_once_with('lease')
+        observer.close_client.assert_called_once()
+        execution.close.assert_called_once()
+        with self.assertRaises(OSError):
+            _reader(server)
+
+    def test_reader_scope_is_stable_only_for_its_profile(self):
+        with TemporaryDirectory() as temporary:
+            first = NewsReader(Path(temporary) / 'a', Source())
+            again = NewsReader(Path(temporary) / 'a', Source())
+            other = NewsReader(Path(temporary) / 'b', Source())
+            self.assertEqual(first.sample()['reader_id'], again.sample()['reader_id'])
+            self.assertNotEqual(first.reader_id, other.reader_id)
+            for reader in (first, again, other):
+                reader.close()
+
+    def test_http_injects_only_server_owned_runtime_at_reader_construction(self):
+        server = SimpleNamespace(news_reader=None, _news_reader_lock=threading.Lock(), _news_reader_closed=False,
+                                 news_reader_root=Path('owned-profile'), news_source=Mock(),
+                                 news_runtime={'node': 'verified-node', 'playwright_core': 'verified-core'})
+        with patch('control_everything.http.news_reader.NewsReader') as create:
+            self.assertIs(_reader(server), create.return_value)
+        create.assert_called_once_with(server.news_reader_root, server.news_source, runtime=server.news_runtime)
+
+
+if __name__ == '__main__':
+    unittest.main()

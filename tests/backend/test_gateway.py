@@ -11,7 +11,7 @@ from tempfile import TemporaryDirectory
 from unittest.mock import Mock, patch
 from email.message import Message
 
-from control_everything.http.gateway import WEB, PanelHandler, build_profile_server, make_server
+from control_everything.http.gateway import WEB, PanelHandler, PanelServer, build_profile_server, make_server
 from tests.fixtures.integration_config import integration_config
 
 SOURCE = integration_config()["integrations"]["remote"]["source"]
@@ -392,10 +392,15 @@ class GatewayDispatchTests(unittest.TestCase):
         for headers in ({'Host': 'outside.example'}, {'Origin': 'https://outside.example'}, {'X-Session-Client': ''}):
             with self.subTest(headers=headers), patch('control_everything.http.gateway.list_codex_threads') as reader:
                 handler = self.handler(headers=headers, path='/api/codex/threads'); handler.do_GET()
-                reader.assert_not_called(); self.assertEqual(handler.reject.call_args.args[0], 403)
+                reader.assert_not_called()
+                if 'Host' in headers:
+                    handler.reply.assert_called_once_with(403, {'reason': 'host_rejected'})
+                else:
+                    self.assertEqual(handler.reject.call_args.args[0], 403)
         with patch('control_everything.http.gateway.list_codex_threads') as reader:
             handler = self.handler(path='/api/codex/threads'); handler.headers['Host'] = handler.server.expected_host
-            handler.do_GET(); reader.assert_not_called(); self.assertEqual(handler.reject.call_args.args[0], 403)
+            handler.do_GET(); reader.assert_not_called()
+            handler.reply.assert_called_once_with(403, {'reason': 'host_rejected'})
 
     def test_codex_unavailable_is_503_and_private_exception_is_sanitized(self):
         with patch('control_everything.http.gateway.list_codex_threads', return_value={'available': False, 'reason': 'codex_index_unavailable'}) as reader:
@@ -415,8 +420,7 @@ class GatewayRejectionTests(unittest.TestCase):
         return handler
 
     def test_small_body_keeps_rejection_precedence_and_restores_timeout(self):
-        cases = [({"Host": "outside", "Origin": "outside"}, 403, "host_rejected"),
-                 ({"Origin": "outside", "X-Session-Client": ""}, 403, "origin_rejected"),
+        cases = [({"Origin": "outside", "X-Session-Client": ""}, 403, "origin_rejected"),
                  ({"X-Session-Client": "", "X-Session-CSRF": "bad"}, 403, "client_header_required"),
                  ({"X-Session-CSRF": "bad"}, 403, "csrf_rejected"),
                  ({"Content-Type": "text/plain"}, 400, "invalid_request")]
@@ -430,6 +434,14 @@ class GatewayRejectionTests(unittest.TestCase):
                 self.assertEqual(handler.server.service.mock_calls, [])
                 handler.reject(status, reason)
                 handler.rfile.read1.assert_called_once_with(2)
+
+    def test_host_gate_refuses_before_reading_an_untrusted_body(self):
+        handler = self.handler({"Host": "outside", "Origin": "outside"})
+        handler.do_POST()
+        handler.reply.assert_called_once_with(403, {"reason": "host_rejected"})
+        handler.rfile.read1.assert_not_called()
+        handler.rfile.read.assert_not_called()
+        self.assertEqual(handler.server.service.mock_calls, [])
 
     def test_length_boundary_and_unreliable_framing_never_read(self):
         handler = self.handler({"X-Session-CSRF": "bad", "Content-Length": "4096"}, b"x" * 4096 + b"unread")
@@ -499,6 +511,18 @@ class GatewayRejectionTests(unittest.TestCase):
 
 
 class GatewayEntryTests(unittest.TestCase):
+    def test_initial_asset_connections_can_queue_before_dispatch(self):
+        # The Studio entry requests sixteen independent static resources together.
+        server = PanelServer(('127.0.0.1', 0), PanelHandler)
+        clients = []
+        try:
+            for _ in range(16):
+                clients.append(socket.create_connection(server.server_address, timeout=0.5))
+        finally:
+            for client in clients:
+                client.close()
+            server.server_close()
+
     def test_legacy_cli_contract(self):
         import runpy
         from unittest.mock import patch

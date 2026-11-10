@@ -8,12 +8,36 @@ import re
 import stat
 import subprocess
 import tempfile
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tools" / "packaging"))
+from workbench_source_policy import UNIT, load_policy, SourcePolicyError
 
 
 VERSION = "8.30.1"
 MEDIA = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".ico", ".bmp",
          ".mp4", ".mov", ".webm", ".avi", ".mp3", ".wav", ".ogg", ".woff", ".woff2"}
 PRIVATE_NAMES = {"progress-registry.json", "progress-manual.json", "progress-todos.json"}
+LEGACY_PUBLIC_DOCS = {"docs/architecture.md", "docs/usage.md", "docs/integrations.md", "docs/windows.md",
+                      "docs/workbench-contract.md", "docs/EMBEDDING.md", "docs/PETS_INTEGRATION.md"}
+PUBLIC_DOCS = {"docs/README.md", "docs/architecture/architecture.md", "docs/guides/usage.md", "docs/guides/integrations.md", "docs/guides/windows.md",
+               "docs/guides/development-files.md",
+               "docs/architecture/workbench-contract.md", "docs/guides/EMBEDDING.md", "docs/guides/PETS_INTEGRATION.md",
+               "docs/examples/pets/naidragon-embed.html", "docs/examples/pets/naidragon-embed.css", "docs/examples/pets/naidragon-embed.js",
+               "docs/examples/integrations/codex.toml.example",
+               "docs/examples/integrations/integration-settings.example.json",
+               "docs/examples/integrations/workbench-device-provisioner.service.example",
+               "docs/examples/integrations/workbench-device-provisioner.socket.example",
+               "docs/examples/integrations/workbench-device-sshd.example.conf",
+               "docs/examples/integrations/workbench-device-sshd.service.example",
+               "docs/examples/integrations/workbench-identity.README.md",
+               "docs/examples/integrations/workbench-identity.hub.example.json",
+               "docs/examples/integrations/workbench-identity.hub.service.example",
+               "docs/examples/integrations/workbench-identity.oauth2-proxy.example.cfg",
+               "docs/examples/integrations/workbench-identity.realm.example.json",
+               "docs/examples/integrations/workbench-remote.Caddyfile.example",
+               "docs/examples/legacy/progress-manual.example.json",
+               "docs/examples/legacy/progress-registry.example.json"}
 WINDOWS_PATH = re.compile(r"(?i)(?<![\w])(?:[a-z]:[\\/]+(?:users|documents and settings)[\\/]+[^\s'\"<>]+|[a-z]:[\\/]+(?!temporary(?:[\\/]|$)|temp(?:[\\/]|$)|example(?:[\\/]|$))[^\s'\"<>]+)")
 HOME_PATH = re.compile(r"/(?:home|Users)/([^/\s'\"<>]+)(?:/|$)")
 IPV4 = re.compile(r"(?<![\d.])(?:\d{1,3}(?:\\*\.)){3}\d{1,3}(?![\d.])")
@@ -49,13 +73,58 @@ def relative_path(value):
     return path
 
 
-def forbidden(value):
+def forbidden(value, *, reviewed_resource=False):
     path = relative_path(value)
+    if value.startswith('tools/packaging/wheel-notices/') and value not in {
+            'tools/packaging/wheel-notices/sentencepiece-LICENSE.txt',
+            'tools/packaging/wheel-notices/abseil-LICENSE.txt',
+            'tools/packaging/wheel-notices/darts-clone-LICENSE.txt',
+            'tools/packaging/wheel-notices/esaxx-LICENSE.txt',
+            'tools/packaging/wheel-notices/protobuf-lite-LICENSE.txt',
+            'tools/packaging/wheel-notices/pybind11-LICENSE.txt',
+            'tools/packaging/wheel-notices/Unicode-LICENSE-v3.txt',
+            'tools/packaging/wheel-notices/avx-mathfun-LICENSE.txt',
+            'tools/packaging/wheel-notices/cccl-cub-LICENSE.txt',
+            'tools/packaging/wheel-notices/cccl-libcudacxx-LICENSE.txt',
+            'tools/packaging/wheel-notices/cccl-LICENSE.txt',
+            'tools/packaging/wheel-notices/cccl-thrust-LICENSE.txt',
+            'tools/packaging/wheel-notices/cpu_features-LICENSE.txt',
+            'tools/packaging/wheel-notices/ctranslate2-LICENSE.txt',
+            'tools/packaging/wheel-notices/cutlass-LICENSE.txt',
+            'tools/packaging/wheel-notices/fmt-LICENSE.txt',
+            'tools/packaging/wheel-notices/intel-compiler-credist.txt',
+            'tools/packaging/wheel-notices/intel-compiler-EULA.txt',
+            'tools/packaging/wheel-notices/intel-mkl-LICENSE.txt',
+            'tools/packaging/wheel-notices/intel-mkl-third-party-programs-benchmarks.txt',
+            'tools/packaging/wheel-notices/intel-mkl-third-party-programs-IntelMPI.txt',
+            'tools/packaging/wheel-notices/intel-mkl-third-party-programs-level-zero.txt',
+            'tools/packaging/wheel-notices/intel-mkl-third-party-programs-oneMath.txt',
+            'tools/packaging/wheel-notices/intel-mkl-third-party-programs-oneTBB.txt',
+            'tools/packaging/wheel-notices/intel-mkl-third-party-programs-openmp.txt',
+            'tools/packaging/wheel-notices/intel-mkl-third-party-programs-safestring.txt',
+            'tools/packaging/wheel-notices/intel-mkl-third-party-programs.txt',
+            'tools/packaging/wheel-notices/intel-openmp-EULA.txt',
+            'tools/packaging/wheel-notices/intel-openmp-THIRD-PARTY-PROGRAMS.txt',
+            'tools/packaging/wheel-notices/intel-tbb-LICENSE.txt',
+            'tools/packaging/wheel-notices/intel-tbb-THIRD-PARTY-PROGRAMS.txt',
+            'tools/packaging/wheel-notices/intel-tcm-LICENSE.txt',
+            'tools/packaging/wheel-notices/intel-tcm-THIRD-PARTY-PROGRAMS.txt',
+            'tools/packaging/wheel-notices/nvidia-cuda-LICENSE.txt',
+            'tools/packaging/wheel-notices/nvidia-cudnn-LICENSE.txt',
+            'tools/packaging/wheel-notices/oneDNN-ittnotify-LICENSE.txt',
+            'tools/packaging/wheel-notices/oneDNN-LICENSE.txt',
+            'tools/packaging/wheel-notices/oneDNN-THIRD-PARTY-PROGRAMS.txt',
+            'tools/packaging/wheel-notices/simd-utils-LICENSE.txt',
+            'tools/packaging/wheel-notices/spdlog-LICENSE.txt',
+            }:
+        return 'unregistered-wheel-notice'
     parts = tuple(part.lower() for part in path.parts)
     name = parts[-1]
-    if any(part in {".git", "docs", "work", ".venv", ".exe", "node_modules", "__pycache__", "videos"} for part in parts):
+    if "docs" in parts and value not in PUBLIC_DOCS:
         return "excluded-directory"
-    if path.suffix.lower() in MEDIA:
+    if any(part in {".git", "work", ".venv", ".exe", "node_modules", "__pycache__", "videos"} for part in parts):
+        return "excluded-directory"
+    if path.suffix.lower() in MEDIA and not reviewed_resource:
         return "media"
     if ((name == ".env" or name.startswith(".env.")) and name != ".env.example"
             or ".codex" in parts and value != ".codex/config.toml.example"
@@ -65,7 +134,7 @@ def forbidden(value):
     return None
 
 
-def safe_file(root, value):
+def safe_file(root, value, *, reviewed_resource=False):
     path = root.joinpath(*relative_path(value).parts)
     cursor = path
     while cursor != root:
@@ -79,7 +148,7 @@ def safe_file(root, value):
         canonical_name = canonical.relative_to(root).as_posix()
     except ValueError:
         raise CheckError("candidate-outside-root") from None
-    if forbidden(canonical_name):
+    if forbidden(canonical_name, reviewed_resource=reviewed_resource):
         raise CheckError("forbidden-canonical-candidate")
     if not canonical.is_file():
         raise CheckError("missing-candidate")
@@ -114,7 +183,7 @@ def scan_gitleaks(root, executable, source, mode, interval=None):
         config = scratch / "default.toml"
         config.write_text("[extend]\nuseDefault = true\n", encoding="utf-8")
         template = scratch / "report.tmpl"
-        template.write_text('{{ range . }}{{ .RuleID }}\t{{ .File }}\t{{ .StartLine }}\n{{ end }}', encoding="utf-8")
+        template.write_text('{{ range . }}{{ .RuleID }}\t{{ .File }}\t{{ .StartLine }}\t{{ .Commit }}\n{{ end }}', encoding="utf-8")
         ignored = scratch / "empty-ignore"
         ignored.mkdir()
         report = scratch / "findings.txt"
@@ -122,13 +191,13 @@ def scan_gitleaks(root, executable, source, mode, interval=None):
                    "--ignore-gitleaks-allow", "--config", str(config), "--gitleaks-ignore-path", str(ignored),
                    "--report-format", "template", "--report-template", str(template), "--report-path", str(report)]
         if interval:
-            command.append("--log-opts=" + interval + " --diff-merges=first-parent")
+            command.append("--log-opts=" + interval + " --diff-merges=first-parent --text --no-ext-diff --no-textconv")
         result = run(command, root)
         findings = []
         if report.exists():
             for line in report.read_text(encoding="utf-8").splitlines():
                 fields = line.split("\t")
-                if len(fields) != 3 or not fields[2].isdigit():
+                if len(fields) != 4 or not fields[2].isdigit():
                     raise CheckError("invalid-gitleaks-report")
                 raw_path = fields[1].replace("\\", "/")
                 if mode == "dir" and Path(fields[1]).is_absolute():
@@ -137,8 +206,48 @@ def scan_gitleaks(root, executable, source, mode, interval=None):
                     except ValueError:
                         raise CheckError("invalid-gitleaks-path") from None
                 relative_path(raw_path)
-                findings.append({"rule": "gitleaks:" + fields[0], "path": raw_path, "line": int(fields[2])})
+                finding = {"rule": "gitleaks:" + fields[0], "path": raw_path, "line": int(fields[2])}
+                if mode == "git":
+                    if not re.fullmatch(r"[0-9a-f]{40}", fields[3]):
+                        raise CheckError("invalid-gitleaks-commit")
+                    finding["commit"] = fields[3]
+                findings.append(finding)
         return {"version": VERSION, "exit_code": result.returncode, "findings": findings}
+
+
+def record_findings(report, findings, policy=None):
+    for finding in findings:
+        reason = policy.reviewed_finding(finding) if policy else None
+        if reason:
+            report.setdefault("reviewed_findings", []).append(dict(finding, review_reason=reason))
+        else:
+            report["findings"].append(finding)
+
+
+def committed_policy(root, current):
+    def read_committed(name):
+        entry = git(root, "ls-tree", "-z", current, "--", name)
+        if not entry.startswith((b"100644 ", b"100755 ")):
+            raise SourcePolicyError("invalid-workbench-committed-file")
+        return git(root, "show", current + ":" + name)
+    try:
+        return load_policy(read_committed)
+    except (OSError, ValueError, KeyError, TypeError, CheckError):
+        return None
+
+
+def classify_gitleaks(report, policy_for):
+    result = report["gitleaks"]
+    unresolved = []
+    for finding in result["findings"]:
+        policy = policy_for(finding)
+        reason = policy.reviewed_finding(finding) if policy else None
+        if reason:
+            report.setdefault("reviewed_findings", []).append(dict(finding, review_reason=reason))
+        else:
+            unresolved.append(finding)
+    # Keep the scanner's exit code and complete findings as evidence.
+    result["unresolved_findings"] = unresolved
 
 
 def check_release(root, manifest, report, executable):
@@ -152,32 +261,49 @@ def check_release(root, manifest, report, executable):
     report["excluded"] = [str(relative_path(path)) for path in excluded]
     if len(set(files)) != len(files):
         raise CheckError("duplicate-candidate")
+    policy = None
+    if any(value.startswith(UNIT) for value in files):
+        try:
+            policy = load_policy(lambda name: safe_file(root, name).read_bytes())
+        except (OSError, ValueError, KeyError, TypeError):
+            raise CheckError("invalid-workbench-source-manifest") from None
     with tempfile.TemporaryDirectory(prefix="repository-candidates-") as directory:
         destination = Path(directory)
         for value in files:
-            reason = forbidden(value)
+            resource = policy.resource(value) if policy else None
+            reason = forbidden(value, reviewed_resource=resource is not None)
+            if value.startswith(UNIT) and (policy is None or not policy.contains(value)):
+                reason = "unregistered-workbench-source"
             if reason:
                 report["blocked"].append({"path": value, "reason": reason})
                 continue
             try:
-                data = safe_file(root, value).read_bytes()
-                if b"\x00" in data:
+                data = safe_file(root, value, reviewed_resource=resource is not None).read_bytes()
+                if resource is not None:
+                    policy.validate_resource(value, data)
+                if b"\x00" in data and resource is None:
                     raise CheckError("binary-candidate")
-                text = data.decode("utf-8-sig")
+                try:
+                    text = data.decode("utf-8-sig") if b"\x00" not in data else ""
+                except UnicodeError:
+                    if resource is None:
+                        raise
+                    text = ""
             except UnicodeError:
                 report["blocked"].append({"path": value, "reason": "non-utf8-candidate"})
                 continue
-            except (OSError, CheckError) as error:
-                reason = str(error) if isinstance(error, CheckError) else "candidate-read-failed"
+            except (OSError, CheckError, SourcePolicyError) as error:
+                reason = str(error) if isinstance(error, (CheckError, SourcePolicyError)) else "candidate-read-failed"
                 report["blocked"].append({"path": value, "reason": reason})
                 continue
             report["included"].append({"path": value, "sha256": hashlib.sha256(data).hexdigest()})
-            report["findings"].extend(privacy(text, value))
+            record_findings(report, privacy(text, value), policy)
             target = destination.joinpath(*PurePosixPath(value).parts)
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_bytes(data)
         if report["included"]:
             report["gitleaks"] = scan_gitleaks(root, executable, destination, "dir")
+            classify_gitleaks(report, lambda finding: policy)
         else:
             raise CheckError("no-readable-candidates")
 
@@ -188,10 +314,13 @@ def commit(root, value):
     return git(root, "rev-parse", "--verify", value + "^{commit}").decode("ascii").strip()
 
 
-def added_findings(root, parent, current, report):
+def added_findings(root, parent, current, report, historical_docs=()):
     difference = ["diff", parent, current] if parent else ["diff-tree", "--root", "--no-commit-id", "-r", current]
     records = git(root, *difference, "--name-status", "-z", "--find-renames").decode("utf-8").split("\0")
     findings = []
+    policy = None
+    if any(value.startswith(UNIT) for value in records):
+        policy = committed_policy(root, current)
     index = 0
     while index < len(records) - 1:
         status, value = records[index:index + 2]
@@ -205,7 +334,15 @@ def added_findings(root, parent, current, report):
             continue
         rejected = False
         for name in names:
-            reason = forbidden(name)
+            # A rename's source belongs to the parent tree, not the destination inventory.
+            path_policy = (committed_policy(root, parent)
+                           if name != value and name.startswith(UNIT) and parent else policy)
+            resource = path_policy.resource(name) if path_policy else None
+            reason = forbidden(name, reviewed_resource=resource is not None)
+            if reason == "excluded-directory" and name in historical_docs:
+                reason = None
+            if name.startswith(UNIT) and (path_policy is None or not path_policy.contains(name)):
+                reason = "unregistered-workbench-source"
             path = relative_path(name)
             if status == "M" and path.parts[0] == "videos" and path.suffix.lower() in {".md", ".json", ".mjs"}:
                 # Existing video source edits still pass every other path and content guard.
@@ -219,10 +356,39 @@ def added_findings(root, parent, current, report):
         if entry.startswith((b"120000 ", b"160000 ")):
             report["blocked"].append({"path": value, "reason": "linked-candidate"})
             continue
-        patch = git(root, *difference, "--patch", "--no-color", "--no-ext-diff", "--no-textconv", "--unified=0", "--find-renames", "--", *names).decode("utf-8")
+        resource = policy.resource(value) if policy else None
+        if resource is not None:
+            try:
+                data = policy.read_file(value)
+                policy.validate_resource(value, data)
+            except (OSError, ValueError, KeyError, TypeError, CheckError) as error:
+                report["blocked"].append({"path": value, "reason": str(error) if isinstance(error, SourcePolicyError) else "invalid-workbench-resource"})
+                continue
+            if b"\x00" in data:
+                report["included"].append({"path": value, "commit": current})
+                continue
+            try:
+                data.decode("utf-8-sig")
+            except UnicodeError:
+                report["included"].append({"path": value, "commit": current})
+                continue
+        options = ["--patch", "--no-color", "--no-ext-diff", "--no-textconv", "--unified=0", "--find-renames"]
+        patch = git(root, *difference, *options, "--", *names).decode("utf-8")
         if re.search(r"^(?:GIT binary patch|Binary files .* differ)$", patch, re.M):
-            report["blocked"].append({"path": value, "reason": "binary-candidate"})
-            continue
+            # Attributes can hide UTF-8 text. Verify the admitted committed blob, never the working file.
+            if not entry.startswith((b"100644 blob ", b"100755 blob ")):
+                report["blocked"].append({"path": value, "reason": "non-regular-candidate"})
+                continue
+            data = git(root, "cat-file", "blob", current + ":" + value)
+            if b"\x00" in data:
+                report["blocked"].append({"path": value, "reason": "binary-candidate"})
+                continue
+            try:
+                data.decode("utf-8-sig")
+            except UnicodeError:
+                report["blocked"].append({"path": value, "reason": "non-utf8-candidate"})
+                continue
+            patch = git(root, *difference, *options, "--text", "--", *names).decode("utf-8")
         included = {"path": value, "commit": current}
         if included not in report["included"]:
             report["included"].append(included)
@@ -249,20 +415,35 @@ def check_changes(root, base, head, report, executable):
     commits = git(root, "rev-list", "--reverse", "--topo-order", interval).decode("ascii").splitlines()
     if not commits:
         raise CheckError("empty-commit-range")
+    # Retired public paths remain scan candidates only when absent from the final tree.
+    remaining_legacy_docs = set(git(root, "ls-tree", "--name-only", "-z", head, "--",
+                                    *sorted(LEGACY_PUBLIC_DOCS)).decode("utf-8").split("\0")) - {""}
+    historical_docs = LEGACY_PUBLIC_DOCS - remaining_legacy_docs
+    report["blocked"].extend({"path": name, "reason": "excluded-directory"}
+                             for name in sorted(remaining_legacy_docs))
     for current in commits:
         parents = git(root, "rev-list", "--parents", "-n", "1", current).decode("ascii").split()[1:]
-        findings = added_findings(root, parents[0] if parents else None, current, report)
+        findings = added_findings(root, parents[0] if parents else None, current, report, historical_docs)
         # Imported parent content is already covered where its new commit introduced it.
         for parent in parents[1:]:
             if not findings:
                 break
-            other = added_findings(root, parent, current, report)
+            other = added_findings(root, parent, current, report, historical_docs)
             keys = {(item["path"], item["line"], item["rule"]) for item in other}
             findings = [item for item in findings if (item["path"], item["line"], item["rule"]) in keys]
-        report["findings"].extend(dict(item, commit=current) for item in findings)
+        record_findings(report, [dict(item, commit=current) for item in findings], committed_policy(root, current))
     if report["blocked"]:
         raise CheckError("forbidden-commit-content-not-read")
     report["gitleaks"] = scan_gitleaks(root, executable, root, "git", interval)
+    policies = {}
+    def policy_for(finding):
+        revision = finding.get("commit")
+        if revision not in commits:
+            return None
+        if revision not in policies:
+            policies[revision] = committed_policy(root, revision)
+        return policies[revision]
+    classify_gitleaks(report, policy_for)
 
 
 def main(argv=None):
@@ -281,7 +462,8 @@ def main(argv=None):
     try:
         report_path = args.report if args.report.is_absolute() else root / args.report
         relative = report_path.absolute().relative_to(root).as_posix()
-        if not relative.startswith("work/") or ".." in PurePosixPath(relative).parts:
+        parts = PurePosixPath(relative).parts
+        if not relative.startswith("work/") or len(parts) < 3 or ".." in parts:
             raise CheckError("report-must-be-under-work")
         # Check each existing parent before creating or writing evidence.
         cursor = report_path.absolute()
@@ -300,7 +482,11 @@ def main(argv=None):
                 raise CheckError("base-and-head-required")
             check_changes(root, args.base, args.head, report, executable)
         leaks = report.get("gitleaks", {})
-        if not report["blocked"] and not report["findings"] and leaks.get("exit_code") == 0 and not leaks.get("findings"):
+        scan_finished = leaks.get("exit_code") == 0 or (
+            leaks.get("exit_code") == 1 and bool(leaks.get("findings"))
+            and not leaks.get("unresolved_findings", leaks.get("findings")))
+        if (not report["blocked"] and not report["findings"] and scan_finished
+                and not leaks.get("unresolved_findings", leaks.get("findings"))):
             report["status"] = "passed"
     except CheckError as error:
         report["errors"].append(str(error))

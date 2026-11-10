@@ -1,0 +1,57 @@
+// Presentation only; Studio owns data, navigation and registration state.
+'use strict';
+(() => {
+  const escape = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
+  const labels = { appearance: '外观', account: '账号与设备', development: '开发工具偏好' };
+  const icons = {
+    news: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 8h10M7 12h10M7 16h6"/>',
+    settings: '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>',
+    account: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
+    folder: '<path d="M3 7V4h6l3 3h9v13H3Z"/>',
+    search: '<circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/>',
+    cards: '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
+    sort: '<path d="M8 3v18m-4-4 4 4 4-4M16 21V3m-4 4 4-4 4 4"/>',
+    list: '<path d="M9 5h12M9 12h12M9 19h12M3 5h1M3 12h1M3 19h1"/>',
+    attention: '<path d="m12 3 10 18H2L12 3Z"/><path d="M12 9v4m0 4h.01"/>',
+    delivery: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6m-12 7 3 3 5-6"/>',
+    archive: '<rect x="3" y="3" width="18" height="4" rx="1"/><path d="M5 7v14h14V7m-10 5h6"/>',
+    dot: '<circle cx="12" cy="12" r="4" fill="currentColor" stroke="none"/>',
+    more: '<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>',
+  };
+  const icon = name => `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icons[name]}</svg>`;
+  const available = project => !project.archived && project.binding_available !== false && Boolean(project.directories?.find(row => row.id === 'main')?.path || project.root);
+  /**
+   * Shared panel for loading, error and unavailable states so every page explains what happened
+   * and offers one next step. Titles and messages are escaped here; actions are trusted markup.
+   */
+  function renderStatePanel({ tone = 'neutral', title, message = '', actions = '' }) {
+    const role = tone === 'error' ? 'alert' : 'status';
+    return `<section class="ce-state-panel" data-tone="${tone}" role="${role}"><h2>${escape(title)}</h2>${message ? `<p>${escape(message)}</p>` : ''}${actions ? `<div class="ce-state-actions">${actions}</div>` : ''}</section>`;
+  }
+  const loadingPlaceholder = () => '<div class="ce-skeleton" role="status" aria-busy="true" aria-label="正在读取项目"><span></span><span></span><span></span></div>';
+  const retryButton = (label = '重试') => `<button type="button" class="ce-button ce-primary" data-action="refresh">${label}</button>`;
+  function renderNavigation({ current }) {
+    const link = (label, href, active, symbol) => `<a class="ce-nav${active ? ' is-current' : ''}" href="${href}"${active ? ' aria-current="page"' : ''} title="${escape(label)}" aria-label="${escape(label)}">${icon(symbol)}<span>${label}</span></a>`;
+    return `<div class="ce-brand"><span class="ce-monogram" aria-hidden="true">⌘</span><span>Control Everything</span></div><nav class="ce-navgroup" aria-label="主导航">${link('项目总览', '#home', current.view === 'home', 'folder')}${link('新闻', '#news', current.view === 'news', 'news')}</nav><div class="ce-rail-bottom"><nav class="ce-navgroup" aria-label="管理">${link('设置', '#settings/appearance', current.view === 'settings' && current.tab !== 'account', 'settings')}${link(labels.account, '#settings/account', current.view === 'settings' && current.tab === 'account' || current.view === 'mobile', 'account')}</nav></div>`;
+  }
+  function projectCard({ project }, { developmentUrl, writable = true }) {
+    const name = escape(project.name), id = escape(project.id);
+    const status = project.archived ? '已归档' : '正常';
+    const menu = writable && !project.read_only && project.source?.kind !== 'codex' ? `<button type="button" class="ce-iconbtn" data-project-menu="${id}" aria-label="项目菜单：${name}" aria-haspopup="menu">${icon('more')}</button>` : '';
+    return `<article class="ce-overview-card${project.archived ? ' is-archived' : ' is-active'}" data-project-card="${id}"><div class="ce-overview-title"><span class="ce-project-kind-icon">${icon(project.archived ? 'archive' : 'folder')}</span><h2><a class="ce-project-title-link" href="${escape(developmentUrl(project.id))}" data-open-project="${id}">${name}</a></h2>${menu}</div><div class="ce-overview-bottom"><span class="ce-project-badges"><span class="ce-project-status ce-project-lifecycle">${icon(project.archived ? 'archive' : 'dot')}${status}</span></span></div></article>`;
+  }
+  function renderOverview({ projects, query, projectFilter = 'active', sort, viewMode, developmentUrl, writable = true, runtimeAvailable = true }) {
+    const filtered = projects.map(project => ({ project })).filter(row => (projectFilter === 'all' || Boolean(row.project.archived) === (projectFilter === 'archived')) && row.project.name.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()));
+    filtered.sort((a, b) => (sort === 'updated' ? String(b.project.updated_at || '').localeCompare(String(a.project.updated_at || '')) : 0) || a.project.name.localeCompare(b.project.name, 'zh-CN'));
+    const noMatch = Boolean(query);
+    const unavailable = !runtimeAvailable || projects.some(project => !project.archived) && !projects.some(available);
+    const unavailableMessage = !runtimeAvailable ? '项目运行组件未连接，暂时只能查看项目总览' : projects.every(project => project.archived) ? '项目均已归档' : '当前项目目录不可用';
+    if (!projects.length) return '<div class="ce-heading ce-overview-heading"><h1 tabindex="-1">项目总览</h1></div><section class="ce-empty ce-projects-empty"><span class="ce-project-empty-icon" aria-hidden="true">' + icon('folder') + '</span><h2>还没有项目</h2><p>进入工作台，添加第一个项目。</p><a class="ce-button ce-primary" href="#workbench">进入工作台</a></section>';
+    return `<div class="ce-heading ce-overview-heading"><h1 tabindex="-1">项目总览</h1></div>${unavailable ? `<section class="ce-setup-notice" role="status"><span>${unavailableMessage}</span>${runtimeAvailable ? '<a class="ce-button" href="#workbench">进入工作台</a>' : ''}</section>` : ''}<div class="ce-toolbar ce-overview-toolbar"><label class="ce-search">${icon('search')}<input id="studio-project-search" type="search" aria-label="搜索项目名称" placeholder="搜索项目" value="${escape(query)}"></label><div class="ce-segment" aria-label="项目筛选"><button type="button" data-action="active-projects" aria-pressed="${projectFilter === 'active'}">正常</button><button type="button" data-action="all-projects" aria-pressed="${projectFilter === 'all'}">全部</button><button type="button" data-action="archived-projects" aria-pressed="${projectFilter === 'archived'}">已归档</button></div><label class="ce-project-sort-control" title="项目排序：${sort === 'name' ? '项目名称' : '最近更新'}">${icon('sort')}<select id="studio-project-sort" aria-label="项目排序"><option value="updated"${sort === 'updated' ? ' selected' : ''}>最近更新</option><option value="name"${sort === 'name' ? ' selected' : ''}>项目名称</option></select></label><div class="ce-segment" aria-label="项目视图"><button type="button" data-action="view-cards" aria-label="卡片视图" title="卡片视图" aria-pressed="${viewMode === 'cards'}">${icon('cards')}</button><button type="button" data-action="view-list" aria-label="列表视图" title="列表视图" aria-pressed="${viewMode === 'list'}">${icon('list')}</button></div></div><p class="ce-overview-count" role="status"${noMatch ? '' : ' hidden'}>${filtered.length} 个项目</p><div class="ce-overview-list" data-view="${viewMode}">${filtered.map(row => projectCard(row, { developmentUrl, writable })).join('') || `<div class="ce-empty">${noMatch ? '没有匹配的项目。<button type="button" class="ce-button" data-action="clear-project-filters">清除筛选</button>' : projectFilter === 'active' ? '暂无正常项目<a class="ce-button" href="#workbench">进入工作台</a>' : '暂无归档项目'}</div>`}</div>`;
+  }
+  function renderSettingsLanding({ section, integrated }) {
+    const title = labels[section] || labels.development;
+    return `<div class="ce-heading"><h1>${title}</h1></div><section class="ce-empty" role="status">${integrated ? '此设置入口尚未就绪。' : '请在已连接的项目工作台中使用开发设置。'}<a class="ce-button" href="#home">返回项目总览</a></section>`;
+  }
+  window.StudioShell = { renderStatePanel, loadingPlaceholder, retryButton, renderNavigation, renderOverview, renderSettingsLanding, projectCard };
+})();

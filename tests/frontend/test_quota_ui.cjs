@@ -73,3 +73,42 @@ test('the real controller injects dependencies and the page loads quota before t
   assert.ok(html.indexOf('src="/quota.js" defer') < html.indexOf('src="/workspace.js" defer'));
   assert.equal((html.match(/src="\/quota.js"/g) || []).length, 1);
 });
+
+test('quota dials distinguish actual zero usage from missing data', () => {
+  const f = fixture();
+  f.render(quota({ status: 'available', buckets: [{ id: 'default', primary: { used_percent: 0, window_minutes: 300, resets_at: null }, secondary: { used_percent: null, window_minutes: 10080, resets_at: null } }] }));
+  const dials = descendants(f.dependencies.root).filter(node => node.className === 'quota-dial');
+  assert.equal(dials[0].dataset.known, 'true'); assert.match(dials[0].textContent, /100%/);
+  assert.equal(dials[0].style, undefined);
+  assert.equal(descendants(dials[0]).find(node => node.class === 'quota-ring-value')['stroke-dasharray'], '100 100');
+  assert.equal(dials[1].dataset.known, 'false'); assert.doesNotMatch(dials[1].textContent, /0%|100%/);
+  f.render(quota({})); assert.equal(descendants(f.dependencies.root).filter(node => node.className === 'quota-dial').length, 0);
+});
+
+test('usage page has no manual ledger form or record requests', async () => {
+  const html = fs.readFileSync(path.join(repo, 'web/workspace/workspace.html'), 'utf8');
+  const controller = fs.readFileSync(path.join(repo, 'web/workspace/workspace.js'), 'utf8');
+  assert.doesNotMatch(html, /id="(?:new-record|record-form|records-list)"/);
+  assert.doesNotMatch(controller, /\/api\/workspace\/records|function saveRecord|function openRecord/);
+  const reads = [], nodes = new Map();
+  const context = vm.createContext({ app: { csrf: 'test', profileMode: true },
+    $: id => { if (!nodes.has(id)) nodes.set(id, new Element()); return nodes.get(id); },
+    api: async url => { reads.push(url); return { status: 'ok', codex: quota({}) }; }, renderQuota() {} });
+  const fn = controller.match(/async function loadUsage\([^]*?\n\}/)[0];
+  await vm.runInContext(fn + '\nloadUsage()', context);
+  assert.deepEqual(reads, ['/api/workspace/usage']);
+});
+
+test('overview reports the tightest window and distinguishes low, exhausted and unknown quotas', () => {
+  const f = fixture(); f.render(quota({ status: 'available', buckets: [
+    { id: 'codex', primary: { used_percent: 10, window_minutes: 300 }, secondary: { used_percent: 85, window_minutes: 10080 } },
+    { id: 'extra', primary: { used_percent: 100, window_minutes: 60 }, secondary: { used_percent: null, window_minutes: null } }
+  ] }));
+  assert.match(f.dependencies.summary.textContent, /最少剩余 0%/);
+  assert.match(f.dependencies.summary.textContent, /extra · 1 小时窗口/);
+  const rows = descendants(f.dependencies.root).filter(node => node.className === 'quota-window');
+  assert.deepEqual(rows.map(row => row.dataset.level), ['normal', 'low', 'empty', 'unknown']);
+  assert.match(rows[0].textContent, /5 小时额度/); assert.match(rows[1].textContent, /7 天额度/);
+  assert.match(rows[1].textContent, /余量较低/); assert.match(rows[2].textContent, /本窗口已用尽/);
+  assert.match(rows[3].textContent, /尚无可用数值/);
+});

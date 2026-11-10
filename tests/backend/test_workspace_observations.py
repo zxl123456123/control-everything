@@ -1,5 +1,6 @@
 """Workspace observations use synthetic storage and handler dispatch, with no listener."""
 
+from email.message import Message
 import copy
 import hashlib
 import json
@@ -54,7 +55,10 @@ class WorkspaceObservationTests(unittest.TestCase):
 
     def handler(self, body=None, allowed=True):
         handler = object.__new__(gateway.PanelHandler)
-        handler.server = SimpleNamespace(observer=Mock(), workspace=Mock(), profile=None)
+        handler.server = SimpleNamespace(observer=Mock(), workspace=Mock(), profile=None,
+                                         expected_host="127.0.0.1:1", origin="http://127.0.0.1:1")
+        handler.headers = Message()
+        handler.headers["Host"] = handler.server.expected_host
         handler.server.observer.request.return_value = {"status": "available", "reason": None, "kind": "observed_instance"}
         handler.reply, handler.reject = Mock(), Mock()
         handler.allowed = Mock(return_value=allowed)
@@ -84,7 +88,7 @@ class WorkspaceObservationTests(unittest.TestCase):
         handler.read_json_body.assert_not_called()
         handler.server.observer.request.assert_not_called()
 
-    def test_statuses_and_side_effect_free_bind_assembly(self):
+    def test_statuses_and_observer_stays_idle_during_bind(self):
         handler = self.handler({"action_id": "a", "generation": "g", "seq": 1})
         for value, status in (({"status": "limited", "reason": "action_expired"}, 409),
                               ({"status": "unavailable", "reason": "native_missing"}, 503),
@@ -94,7 +98,11 @@ class WorkspaceObservationTests(unittest.TestCase):
             handler.reply.assert_called_with(status, value)
         with tempfile.TemporaryDirectory() as directory:
             fake = Mock(server_address=("127.0.0.1", 14401))
-            with patch.object(gateway, "PanelServer", return_value=fake), patch("threading.Thread", side_effect=AssertionError("thread")):
+            with (
+                patch.object(gateway, "PanelServer", return_value=fake),
+                patch.object(gateway.news_reader, "NewsReader"),
+                patch("threading.Thread", side_effect=AssertionError("thread")),
+            ):
                 server = gateway.build_profile_server(directory, 14401, quota_source=Mock(), news_source=Mock())
             self.assertFalse(server.observer.started)
             self.assertEqual({item.name for item in Path(directory).iterdir()}, {"profile.json", ".profile.lock", "workspace-state.sqlite3"})

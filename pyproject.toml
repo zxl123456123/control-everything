@@ -4,11 +4,16 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "control-everything"
-version = "0.1.0a1"
+version = "0.1.0a18"
 description = "Local session observation and project management panel"
 readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
 requires-python = ">=3.12"
 dynamic = ["dependencies"]
+
+[project.optional-dependencies]
+news = ["ctranslate2==4.8.3", "sentencepiece==0.2.2"]
 
 [tool.setuptools.dynamic]
 dependencies = {file = ["requirements.txt"]}

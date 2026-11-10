@@ -1,0 +1,143 @@
+import type { CommandSpec } from '../args'
+import { GLOBAL_FLAGS } from '../args'
+
+export const SKILL_COMMAND_SPECS: CommandSpec[] = [
+  {
+    path: ['skills', 'migrate'],
+    summary: 'Preserve and retire renamed skill copies after installation',
+    usage: 'zkyq skills migrate [--skill <current-name>]... [--all] [--local] [--json]',
+    allowedFlags: ['help', 'json', 'skill', 'all', 'local'],
+    notes: [
+      'Run on the machine where the replacement skills were installed. Forwarded host invocations are refused.',
+      'Verifies replacement bytes and installation provenance before moving old copies outside skill discovery roots.',
+      'Preserves edited old contents and reports archive locations. Does not download or overwrite replacement skills.',
+      'Uses global installations by default; --local selects the current project.'
+    ],
+    examples: ['zkyq skills migrate --skill zkyq-cli --json']
+  },
+  {
+    path: ['skills', 'installed'],
+    summary: 'List installed skill selectors',
+    usage: 'zkyq skills installed [--json]',
+    allowedFlags: [...GLOBAL_FLAGS],
+    notes: [
+      'Lists discovery IDs and names without reading skill contents into the CLI.',
+      'Package metadata is validated when the selected skills are shared.',
+      'Use an exact ID or an unambiguous name with `zkyq skills share --skill <selector>`.'
+    ]
+  },
+  {
+    path: ['skills', 'share'],
+    summary: 'Publish explicitly selected installed skills behind one unlisted link',
+    usage:
+      'zkyq skills share --skill <selector> [--skill <selector> ...] --bundle-name <name> ' +
+      '[--release-notes <text>] [--json]',
+    allowedFlags: [...GLOBAL_FLAGS, 'skill', 'bundle-name', 'release-notes'],
+    notes: [
+      'Requires the default-off permission in Settings → Share Skills.',
+      'The bundle name may be human-readable; Control Everything converts it to a portable lowercase package name.',
+      'Selectors are exact discovery IDs or unambiguous names from `zkyq skills installed`.',
+      'Only discovered skill directories can be selected; arbitrary paths and --all are not supported.',
+      'The resulting link is unlisted. Anyone with it can inspect and install the bundle.'
+    ],
+    examples: [
+      'zkyq skills share --skill frontend --bundle-name "Frontend Skills"',
+      'zkyq skills share --skill frontend --skill testing --bundle-name "Team Toolkit" --json'
+    ]
+  },
+  {
+    path: ['skills', 'list'],
+    summary: 'List version-matched skill guides bundled with this Control Everything CLI',
+    usage: 'zkyq skills list [--json]',
+    allowedFlags: [...GLOBAL_FLAGS],
+    notes: [
+      'Reads bundled guide metadata locally without contacting the Control Everything runtime.',
+      'With --json, prints a topics array of canonical names and one-line descriptions.',
+      'Use `zkyq skills get <name>` for the compact guide, `--full` for its full reference package, or `zkyq skills install` to install skills.'
+    ]
+  },
+  {
+    path: ['skills', 'get'],
+    aliases: [['skills', 'show']],
+    summary: 'Print a version-matched skill guide as Markdown',
+    usage: 'zkyq skills get <topic> [--full | --reference <name>] [--json]',
+    allowedFlags: [...GLOBAL_FLAGS, 'topic', 'full', 'reference', 'references'],
+    positionalArgs: ['topic'],
+    notes: [
+      'Reads bundled guide content locally without contacting the Control Everything runtime.',
+      'Prints the compact guide by default. Use --full to print the full guide with bundled references when provided.',
+      'Use --reference <name> to print one bundled reference alone, which is what an action gate in the compact guide needs; --references lists the available names.',
+      'A reference name may be given bare (recovery-and-cleanup) or as the guide spells it (references/recovery-and-cleanup.md).',
+      'Use --json for a deterministic object containing canonical topic metadata and content.'
+    ],
+    examples: [
+      'zkyq skills get zkyq-cli',
+      'zkyq skills get orchestration --full',
+      'zkyq skills get orchestration --references',
+      'zkyq skills get orchestration --reference recovery-and-cleanup'
+    ]
+  },
+  {
+    path: ['skills', 'install'],
+    summary: 'Install bundled Control Everything skills via the community skills CLI',
+    usage:
+      'zkyq skills install [--skill <name>]... [--all] [--agent <name>[,<name>]] ' +
+      '[--local] [--dry-run] [--json]',
+    allowedFlags: [...GLOBAL_FLAGS, 'skill', 'all', 'agent', 'local', 'dry-run'],
+    notes: [
+      'Reads the bundled skill registry locally without contacting the Control Everything runtime.',
+      'Resolves to the same `npx skills@<pinned> add <repo>/tree/<commit>/web/workbench-engine/skills --skill <name> ...` ' +
+        'command used by Control Everything Settings, pinned to the commit this Control Everything build was made from, ' +
+        'plus the non-interactive flags an unattended host needs (`npx --yes` and `-y`), ' +
+        'then runs it and forwards its output and exit code.',
+      'Installs globally (all projects, adds --global) by default. Use --local to install ' +
+        'into the current project instead.',
+      'Targets the coding agents Control Everything detects on this host, plus the shared ' +
+        '.agents/skills directory. Without an explicit target the skills CLI installs ' +
+        'into every agent it knows about, which litters a host with config ' +
+        'directories for agents it does not have.',
+      'Use --agent <name>[,<name>...] to choose targets yourself, or --agent universal ' +
+        'for the shared directory alone. Required when Control Everything detects no agent.',
+      'Use --dry-run to print the resolved command without running it.',
+      'With --json, the skill listing and --dry-run emit JSON; a real install streams ' +
+        "npx's own non-JSON output live and rejects --json.",
+      'Omit --skill and --all to list installable skill names.',
+      'Intended for headless hosts (SSH, containers, CI) with no desktop Settings UI to copy the install command from.'
+    ],
+    examples: [
+      'zkyq skills install',
+      'zkyq skills install --skill zkyq-cli --skill orchestration',
+      'zkyq skills install --skill zkyq-cli --local',
+      'zkyq skills install --skill zkyq-cli --agent claude-code,codex',
+      'zkyq skills install --all --dry-run'
+    ]
+  },
+  {
+    path: ['skills', 'update'],
+    summary: 'Update Control Everything skills to the version this Control Everything build ships',
+    usage:
+      'zkyq skills update [--skill <name>]... [--all] [--agent <name>[,<name>]] ' +
+      '[--local] [--dry-run] [--json]',
+    allowedFlags: [...GLOBAL_FLAGS, 'skill', 'all', 'agent', 'local', 'dry-run'],
+    notes: [
+      'Reads the bundled skill registry locally without contacting the Control Everything runtime.',
+      'Runs the same pinned `npx skills add` command as `zkyq skills install`, which ' +
+        'replaces each selected skill with the copy this Control Everything build ships.',
+      'Updates the global install (all projects, adds --global) by default. Use --local to ' +
+        'update the current project instead.',
+      'Targets the same agents as `zkyq skills install`, or only the shared ' +
+        '.agents/skills directory when none is detected; use --agent to choose them yourself.',
+      'Use --dry-run to print the resolved command without running it.',
+      'With --json, the skill listing and --dry-run emit JSON; a real update streams ' +
+        "npx's own non-JSON output live and rejects --json.",
+      'Omit --skill and --all to list updatable skill names.',
+      'Intended for headless hosts (SSH, containers, CI) with no desktop Settings UI to copy the update command from.'
+    ],
+    examples: [
+      'zkyq skills update',
+      'zkyq skills update --skill zkyq-cli --skill orchestration',
+      'zkyq skills update --skill zkyq-cli --local',
+      'zkyq skills update --all --dry-run'
+    ]
+  }
+]

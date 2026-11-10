@@ -1,0 +1,12 @@
+[Unit]
+Description=Restricted device SSH provisioner socket
+
+[Socket]
+ListenStream=/run/ce-device-provisioner.sock
+SocketUser=root
+SocketGroup=ce-remote-hub
+SocketMode=0660
+RemoveOnStop=yes
+
+[Install]
+WantedBy=sockets.target

@@ -4,6 +4,7 @@ from ctypes import wintypes as w
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 import json
+import os
 from pathlib import Path
 import re
 import sys
@@ -19,13 +20,21 @@ if __name__ == '__main__':
 from control_everything.platform.windows_jobs import WindowsAPI, ExtendedLimits, SecurityAttributes, ProcessError
 from control_everything.workspace.news_parse import parse_feed_result, parse_hn_result, safe_news_url
 
-FEEDS = (('google_ai', 'Google AI', 'https://blog.google/technology/ai/rss/'),
-         ('openai', 'OpenAI News', 'https://openai.com/news/rss.xml'),
-         ('huggingface', 'Hugging Face Blog', 'https://huggingface.co/blog/feed.xml'))
+# Every preset feed must answer from mainland China and from overseas networks, serve https links on its own
+# host and stay under the 1 MiB feed budget. docs/guides/news-sources-report.md records how each one was verified.
+FEEDS = (('qbitai', '量子位', 'https://www.qbitai.com/feed'),
+         ('aiera', '新智元', 'https://aiera.com.cn/feed/'),
+         ('infoq_cn', 'InfoQ 中文', 'https://www.infoq.cn/feed'),
+         ('msr', 'Microsoft Research', 'https://www.microsoft.com/en-us/research/feed/'))
 HN = ('hn', 'Hacker News', 'https://hn.algolia.com/api/v1/search?tags=front_page&hitsPerPage=4')
 LINE_BYTES = 256 * 1024
 REASONS = {'timeout', 'http_error', 'oversize', 'invalid_feed', 'unsupported_format', 'parse_budget',
            'redirect_rejected', 'encoding_unsupported', 'worker_failed', 'platform_unsupported'}
+
+
+def default_proxy_handler():
+    """Honour the system/env proxy (needed behind a VPN) unless CONTROL_EVERYTHING_NEWS_NO_PROXY=1."""
+    return ProxyHandler({}) if os.environ.get('CONTROL_EVERYTHING_NEWS_NO_PROXY') == '1' else ProxyHandler()
 
 
 def definitions(stream):
@@ -60,7 +69,7 @@ def source_url(value, original):
 def fetch(definition, stream, token, deadline, *, opener=None, clock=time.monotonic):
     source_id, name, original = definition
     url, mime, result, reason = original, None, None, None
-    opener = opener or build_opener(ProxyHandler({}), NoRedirect())
+    opener = opener or build_opener(default_proxy_handler(), NoRedirect())
     try:
         for hop in range(4):
             if not source_url(url, original):
@@ -269,7 +278,11 @@ def validate_result(result, key, name, stream):
               'updated_at', 'submitted_at', 'content_origin', 'summary', 'summary_kind', 'summary_truncated', 'summary_reason', 'title_truncated'}
     seen = set()
     for item in items:
-        if not isinstance(item, dict) or set(item) != fields or item['source_id'] != key or item['source_name'] != name:
+        content_fields = {'feed_content', 'feed_content_truncated'} if isinstance(item, dict) and 'feed_content' in item and stream == 'ai' else set()
+        if not isinstance(item, dict) or set(item) != fields | content_fields or item['source_id'] != key or item['source_name'] != name:
+            raise ValueError('worker_failed')
+        if content_fields and (not isinstance(item['feed_content'], str) or len(item['feed_content'].encode('utf-8')) > 12000
+                               or type(item['feed_content_truncated']) is not bool):
             raise ValueError('worker_failed')
         if not isinstance(item['id'], str) or not re.fullmatch('[a-f0-9]{24}', item['id']) or item['id'] in seen:
             raise ValueError('worker_failed')
@@ -286,12 +299,14 @@ def validate_result(result, key, name, stream):
             if value is not None:
                 if not isinstance(value, str) or len(value) > 64 or datetime.fromisoformat(value).tzinfo is None:
                     raise ValueError('worker_failed')
-        if item['date_reason'] not in (None, 'missing', 'invalid', 'timezone_unknown') or item['summary_kind'] not in (None, 'rss_description', 'atom_summary') or item['summary_reason'] not in (None, 'missing', 'empty', 'summary_too_long', 'unsupported_type'):
+        if item['date_reason'] not in (None, 'missing', 'invalid', 'timezone_unknown') or item['summary_kind'] not in (None, 'rss_description', 'atom_summary', 'rss_content', 'atom_content') or item['summary_reason'] not in (None, 'missing', 'empty', 'summary_too_long', 'unsupported_type'):
             raise ValueError('worker_failed')
         if item['content_origin'] != ('hn_submission' if stream == 'hn' else 'publisher_feed') or stream == 'hn' and item['published_at'] is not None:
             raise ValueError('worker_failed')
         if any(type(item[field]) is not bool for field in ('summary_truncated', 'title_truncated')):
             raise ValueError('worker_failed')
+    if sum(len(item.get('feed_content', '').encode('utf-8')) for item in items) > 96000:
+        raise ValueError('worker_failed')
 
 
 class OwnedBatch:

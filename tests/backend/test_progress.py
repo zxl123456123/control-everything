@@ -100,7 +100,7 @@ class ProgressBoardTests(unittest.TestCase):
                     response = connection.getresponse()
                     page = response.read()
                     self.assertEqual(response.status, 200)
-                    self.assertIn("工作台".encode(), page)
+                    self.assertIn("人工进度".encode(), page)
                     self.assertNotIn("当前阶段".encode(), page)
                     connection.close()
                     connection = http.client.HTTPConnection(*server.server_address, timeout=3)

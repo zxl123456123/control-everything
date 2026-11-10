@@ -74,20 +74,24 @@ test('profile capability setup keeps local registration navigation visible when 
   const node = id => {
     if (!nodes.has(id)) {
       const value = new Element(); value.after = () => {}; value.parentElement = { prepend() {} };
-      value.previousElementSibling = { querySelector: () => node('session-index-link') };
+      if (id === 'project-dialog') value.querySelector = () => node('project-dialog-toolbar');
+      // The actual Codex heading now has local session buttons, with no anchor.
+      value.previousElementSibling = { querySelector: () => null };
       nodes.set(id, value);
     }
     return nodes.get(id);
   };
-  const context = vm.createContext({ $: node, app: { capabilities: {}, view: 'overview', pages: {} },
+  const context = vm.createContext({ $: node, window: {}, api() {}, post() {}, loadBase() {}, app: { capabilities: {}, view: 'overview', pages: {} },
     document: { querySelector(selector) {
       if (selector === '#agents-view .section-heading a') return node('open-registration-settings');
       return node(selector);
     } }, el: () => new Element(), link: () => new Element(), fillOptions() {}, showView() {},
-    saveProject() {}, saveManual() {}, saveSettings() {}, importLegacy() {}, syncSource() {}, projectBytes() {} });
+    saveProject() {}, saveManual() {}, saveSettings() {}, importLegacy() {}, syncSource() {}, projectBytes() {}, requestProjectClose() {}, captureProjectDraft() {} });
   vm.runInContext(setup + '\nsetupProfile();', context);
   assert.equal(node('open-registration-settings').hidden, false);
   assert.equal(node('provider-sessions-link').hidden, true);
+  assert.ok(html.includes('data-go="codex-sessions/projectless"'));
+  assert.ok(html.includes('data-go="codex-sessions/unknown"'));
 });
 
 test('default path only reads cache, 2 second polling never overlaps and renders unknown session independently', async () => {
@@ -318,7 +322,7 @@ test('legal no-sample snapshot is consumed with unknown coverage and no invented
   f.reads[0].resolve({ status: 'unknown', reason: 'connecting', sampled_at_ms: null, generation: null, config_revision: null, config_hash: null,
     coverage: { status: 'unknown' }, installations: [], resources: [], instances: [], project_refs: [], unassigned: [] });
   await tick();
-  assert.match(f.node('observation-status').textContent, /覆盖未知/);
+  assert.match(f.node('observation-resource-summary').textContent, /覆盖未知/);
   assert.doesNotMatch(f.node('observation-status').textContent, /观察读取失败/);
   assert.match(f.node('native-instances').textContent, /数量未知/);
   assert.equal(f.writes.length, 0);
@@ -331,7 +335,8 @@ for (const mode of ['missing', 'null', 'minimal', 'nullable']) test(`observed re
   if (mode === 'minimal') value.registrations = [{ registration_id: registrationId, status: 'pending' }];
   if (mode === 'nullable') value.registrations = [{ registration_id: registrationId, status: 'future_status', label: null, category: null, can_pick: null, reason: null }];
   f.reads[0].resolve(value); await tick();
-  assert.match(f.node('observation-status').textContent, /可用.*覆盖未知/);
+  assert.match(f.node('observation-status').textContent, /可用/);
+  assert.match(f.node('observation-resource-summary').textContent, /覆盖未知/);
   if (mode === 'minimal' || mode === 'nullable') {
     assert.match(f.node('native-registrations').textContent, /已登记工具.*安装未核验/);
     assert.equal(pickerButton(f).disabled, true);
@@ -347,8 +352,8 @@ for (const mode of ['missing', 'null']) test(`same-version settings accept ${mod
   if (mode === 'missing') { delete settings.validation; delete settings.application; }
   else { settings.validation = null; settings.application = null; }
   await openSettings(f, settings);
-  assert.match(f.node('registrations-status').textContent, /已应用同版本新样本/);
-  assert.match(f.node('registrations-list').textContent, /安装未核验.*运行与会话查看观察页/);
+  assert.match(f.node('registrations-status').textContent, /登记已应用/);
+  assert.match(f.node('registrations-list').textContent, /文件身份待核验.*运行与会话查看观察页/);
   assert.equal(f.writes.length, 0);
 });
 
@@ -357,7 +362,7 @@ test('actual profile_intent pending validation stays separate from persisted reg
   const value = settingsSnapshot([configuredRow()], 2);
   value.validation = [{ registration_id: registrationId, status: 'pending', reason: 'config_pending', source: 'profile_intent', sampled_at_ms: null, duplicate_of_id: null }];
   await openSettings(f, value);
-  assert.match(f.node('registrations-list').textContent, /安装未核验.*等待后台应用/);
+  assert.match(f.node('registrations-list').textContent, /文件身份待核验.*等待后台应用/);
   assert.doesNotMatch(f.node('registrations-list').textContent, /安装已核验/);
   assert.equal(f.writes.length, 0);
 });
@@ -517,4 +522,15 @@ declare const raw: unknown; if (hasStatus(raw)) raw.status.toUpperCase();`;
   inspect(ast); assert.doesNotMatch(typescript, /@ts-(?:ignore|nocheck|expect-error)/);
   fs.writeFileSync(path.join(folder, 'evidence.json'), JSON.stringify({ compiler: ts.version, evidence }, null, 2));
   console.log(JSON.stringify({ scope: 'actual ambient compile-only consumers', path: path.relative(root, folder), compiler: ts.version, evidence }));
+});
+
+test('hidden tabs stop scheduling observation reads and resume once visible', async () => {
+  const f = fixture(); f.reads[0].resolve(snapshot()); await tick();
+  f.document.hidden = true; f.documentEvents.visibilitychange();
+  await f.advance(30000); assert.equal(f.reads.length, 1);
+  f.document.hidden = false; f.documentEvents.visibilitychange();
+  assert.equal(f.reads.length, 2);
+  f.document.hidden = true; f.documentEvents.visibilitychange();
+  f.reads[1].resolve(snapshot()); await tick(); await f.advance(30000);
+  assert.equal(f.reads.length, 2);
 });

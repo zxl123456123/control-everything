@@ -1,0 +1,49 @@
+/**
+ * The Orca-minted agent session id, injected into a structured session's own child processes. When
+ * it is present it IS the orchestration caller: the CLI sends it in the orchestration envelope and
+ * the host resolves the session it names, so no terminal is resolved or guessed on its behalf.
+ *
+ * Identity by session id assumes one machine and one user. A host boundary (SSH, a paired peer,
+ * WSL) re-opens that decision: the host refuses a claim that arrives across one, and the SSH
+ * passthrough never carries the id.
+ */
+import { ORCA_SESSION_ADDRESS_PREFIX } from './orca-session-address-prefix'
+import { isStructuredWorkerHandle } from './structured-worker-handle'
+
+export const ORCA_AGENT_SESSION_ID_ENV = 'ORCA_AGENT_SESSION_ID'
+export const ZKYQ_AGENT_SESSION_ID_ENV = 'ZKYQ_AGENT_SESSION_ID'
+
+/** The spawn token a structured session's child echoes, so the owner probe can tell a live child
+ *  of that reservation from a same-pid stranger. */
+export const ZKYQ_AGENT_SESSION_SPAWN_TOKEN_ENV = 'ZKYQ_AGENT_SESSION_SPAWN_TOKEN'
+/** Input-only key for children that were already running before the host was upgraded. */
+export const LEGACY_AGENT_SESSION_SPAWN_TOKEN_ENV = 'ORCA_AGENT_SESSION_SPAWN_TOKEN'
+
+export function readInjectedAgentSessionId(
+  env: Readonly<Record<string, string | undefined>> = process.env
+): string | undefined {
+  const current = env[ZKYQ_AGENT_SESSION_ID_ENV]?.trim()
+  const legacy = env[ORCA_AGENT_SESSION_ID_ENV]?.trim()
+  if (current && legacy && current !== legacy) {
+    throw new Error('Conflicting agent session identities; no request was sent.')
+  }
+  return current || legacy || undefined
+}
+
+/**
+ * The address the host gives this session (`mailboxAddressOf` on its resolved party): a structured
+ * worker keeps the handle it was minted, any other session is `agent_session:<id>`. Only for text that
+ * must match what the host writes; the CLI spells it without the host resolver.
+ */
+export function injectedSessionAddress(
+  env: Readonly<Record<string, string | undefined>> = process.env
+): string | undefined {
+  const sessionId = readInjectedAgentSessionId(env)
+  if (!sessionId) {
+    return undefined
+  }
+  const ownHandle = env.ORCA_TERMINAL_HANDLE
+  return isStructuredWorkerHandle(ownHandle)
+    ? ownHandle
+    : `${ORCA_SESSION_ADDRESS_PREFIX}${sessionId}`
+}

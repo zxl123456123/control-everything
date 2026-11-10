@@ -1,0 +1,509 @@
+import { ArrowLeft } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { ManagementSurfaceProvider } from '@/components/ui/management-surface'
+import { Toggle } from '@/components/ui/toggle'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
+import { translate } from '@/i18n/i18n'
+import React, {
+  useCallback,
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState
+} from 'react'
+import { useAppStore } from '@/store'
+import { useSidebarResize } from '@/hooks/useSidebarResize'
+import {
+  setActivityTerminalPortals,
+  type ActivityTerminalPortalTarget
+} from './activity-terminal-portal'
+import {
+  reconcileActivityPortalThreads,
+  resolveActivityPortalSwap
+} from './activity-portal-thread-reconciliation'
+import { useAgentPaneThreads } from './use-agent-pane-threads'
+import { PlatformProjectContext } from '../../web/platform-project-context'
+import { toRuntimeExecutionHostId } from '../../../../shared/execution-host'
+import { handleActivityFilterFocusShortcut } from './activity-filter-focus-shortcut'
+import { hasActivityThreadWorkspace } from './activity-thread-actions'
+import { useActivityThreadActionBindings } from './use-activity-thread-action-bindings'
+import { ActivityThreadListPane } from './activity-thread-list-pane'
+import { ActivityThreadDetailPane } from './activity-thread-detail-pane'
+import { OfficeActivityView } from './OfficeActivityView'
+import {
+  otherActivityTerminalSlot,
+  useActivityTerminalLoadingLabel,
+  useActivityTerminalPortalStatus
+} from './activity-terminal-portal-status'
+import type { ActivityTerminalPortalSlotId } from './activity-thread-types'
+import { addAppKeyListener, removeAppKeyListener } from '@/lib/app-keyboard-router'
+import {
+  selectDetectedWorktreesByRepo,
+  selectFolderWorkspaces,
+  selectWorktreesByRepo
+} from '@/store/workspace-record-selectors'
+
+export * from './activity-prototype-page-exports'
+
+export default function ActivityPrototypePage(): React.JSX.Element {
+  const platformProject = useContext(PlatformProjectContext)
+  const boundScope = useMemo(
+    () =>
+      platformProject === undefined
+        ? undefined
+        : platformProject === null
+          ? null
+          : {
+              repoId: platformProject.target.repoId,
+              hostId: toRuntimeExecutionHostId(platformProject.runtime.environmentId)
+            },
+    [platformProject]
+  )
+  const [query, setQuery] = useState('')
+  const [mobileDetailOpen, setMobileDetailOpen] = useState(false)
+  const [officeMode, setOfficeMode] = useState(false)
+  const [wideScreen, setWideScreen] = useState(() => window.matchMedia('(min-width: 768px)').matches)
+  useEffect(() => {
+    const media = window.matchMedia('(min-width: 768px)')
+    const update = () => setWideScreen(media.matches)
+    media.addEventListener('change', update)
+    update()
+    return () => media.removeEventListener('change', update)
+  }, [])
+  const activityFilterInputRef = useRef<HTMLInputElement | null>(null)
+  // Why: bounds auto mark-read to one acknowledgement per selected thread turn.
+  const autoAcknowledgedTurnRef = useRef<string | null>(null)
+  // Why store-backed: persisted preferences shared with the sidebar agents list.
+  const readFilter = useAppStore((s) => s.agentsReadFilter)
+  const setReadFilter = useAppStore((s) => s.setAgentsReadFilter)
+  const groupBy = useAppStore((s) => s.agentsGroupBy)
+  const setGroupBy = useAppStore((s) => s.setAgentsGroupBy)
+  const compactMode = useAppStore((s) => s.agentsCompactMode)
+  const setCompactMode = useAppStore((s) => s.setAgentsCompactMode)
+  const showChildAgents = useAppStore((s) => s.agentsShowChildAgents)
+  const setShowChildAgents = useAppStore((s) => s.setAgentsShowChildAgents)
+  const [selectedPaneKey, setSelectedPaneKey] = useState<string | null>(null)
+  const [displayedPaneKey, setDisplayedPaneKey] = useState<string | null>(null)
+  const [activePortalSlotId, setActivePortalSlotId] =
+    useState<ActivityTerminalPortalSlotId>('primary')
+  const [primaryPortalTargetEl, setPrimaryPortalTargetEl] = useState<HTMLElement | null>(null)
+  const [secondaryPortalTargetEl, setSecondaryPortalTargetEl] = useState<HTMLElement | null>(null)
+  // Why (default width): thread cards are the primary surface; 480px lets prompts fill line-clamp-3 and keeps the per-card actions readable.
+  const [threadListWidth, setThreadListWidth] = useState(480)
+  const {
+    containerRef: threadListRef,
+    isResizing: isThreadListResizing,
+    onResizeStart
+  } = useSidebarResize<HTMLDivElement>({
+    isOpen: true,
+    width: threadListWidth,
+    minWidth: 320,
+    maxWidth: 720,
+    deltaSign: 1,
+    setWidth: setThreadListWidth
+  })
+
+  const {
+    storeData,
+    allThreads,
+    selectedPaneKeyIsLive,
+    effectiveSelectedPaneKey,
+    visibleThreads,
+    markAllReadThreads,
+    visibleThreadGroups
+  } = useAgentPaneThreads({
+    query,
+    readFilter,
+    groupBy,
+    selectedPaneKey,
+    showChildAgents,
+    boundScope
+  })
+  if (!selectedPaneKeyIsLive) {
+    // Why: rows disappear when agent retention or tab state changes; clear stale selection before detail/portal rendering targets it.
+    setSelectedPaneKey(null)
+  }
+
+  const selectedThread = effectiveSelectedPaneKey
+    ? (allThreads.find((thread) => thread.paneKey === effectiveSelectedPaneKey) ?? null)
+    : null
+  const showingOffice = Boolean(officeMode && platformProject)
+  const officeHasSelection = showingOffice && selectedThread !== null &&
+    visibleThreads.some((thread) => thread.paneKey === selectedThread.paneKey)
+  const showingMobileDetail = mobileDetailOpen && (!showingOffice || officeHasSelection)
+  const detailVisibility = showingOffice && !officeHasSelection
+    ? 'hidden'
+    : showingMobileDetail ? 'flex' : 'hidden md:flex'
+  const selectedTabId = selectedThread?.tab.id ?? null
+  const selectedWorktreeAvailable = selectedThread
+    ? hasActivityThreadWorkspace(selectedThread, storeData)
+    : false
+  // Why: repo-less terminal buckets can produce Activity rows, but the workspace Terminal tree only portals real worktrees.
+  const selectedHasLiveTab =
+    selectedThread && selectedTabId && selectedWorktreeAvailable
+      ? (storeData.tabsByWorktree[selectedThread.worktree.id] ?? []).some(
+          (tab) => tab.id === selectedTabId
+        )
+      : false
+  const displayedThread = displayedPaneKey
+    ? (allThreads.find((thread) => thread.paneKey === displayedPaneKey) ?? null)
+    : null
+  const displayedTabId = displayedThread?.tab.id ?? null
+  const displayedWorktreeAvailable = displayedThread
+    ? hasActivityThreadWorkspace(displayedThread, storeData)
+    : false
+  const displayedHasLiveTab =
+    displayedThread && displayedTabId && displayedWorktreeAvailable
+      ? (storeData.tabsByWorktree[displayedThread.worktree.id] ?? []).some(
+          (tab) => tab.id === displayedTabId
+        )
+      : false
+  const { visibleThread, stagedThread } = reconcileActivityPortalThreads({
+    selectedThread,
+    displayedThread,
+    selectedHasLiveTab: Boolean(selectedHasLiveTab),
+    displayedHasLiveTab: Boolean(displayedHasLiveTab)
+  })
+  const inactivePortalSlotId = otherActivityTerminalSlot(activePortalSlotId)
+  const portalTargetBySlot = {
+    primary: primaryPortalTargetEl,
+    secondary: secondaryPortalTargetEl
+  } satisfies Record<ActivityTerminalPortalSlotId, HTMLElement | null>
+  const activePortalTargetEl = portalTargetBySlot[activePortalSlotId]
+  const inactivePortalTargetEl = portalTargetBySlot[inactivePortalSlotId]
+  const visiblePortalStatus = useActivityTerminalPortalStatus(
+    activePortalTargetEl,
+    visibleThread?.paneKey ?? null,
+    visibleThread?.migrationUnsupportedPtyId !== undefined
+  )
+  const stagedPortalStatus = useActivityTerminalPortalStatus(
+    inactivePortalTargetEl,
+    stagedThread?.paneKey ?? null,
+    stagedThread?.migrationUnsupportedPtyId !== undefined
+  )
+  const visiblePortalReady = visiblePortalStatus === 'ready'
+  const visiblePortalUnavailable = visiblePortalStatus === 'unavailable'
+  const stagedPortalReady = stagedPortalStatus === 'ready'
+  const stagedPortalUnavailable = stagedPortalStatus === 'unavailable'
+  const showTerminalLoadingLabel = useActivityTerminalLoadingLabel(
+    Boolean(visibleThread && !stagedThread && !visiblePortalReady)
+  )
+
+  const setPrimaryPortalTarget = useCallback((target: HTMLElement | null): void => {
+    setPrimaryPortalTargetEl(target)
+  }, [])
+
+  const setSecondaryPortalTarget = useCallback((target: HTMLElement | null): void => {
+    setSecondaryPortalTargetEl(target)
+  }, [])
+
+  // Why (no flash): anchor the portal to the selected thread's ids; selectThread's multi-step store update can briefly reflect a stale "last active tab" (wrong-terminal flash).
+  // Why useMemo: stable descriptor identity so subscribers keep React.memo bail-outs; inactive descriptor stages the next terminal at the same size.
+  const portalDescriptors = useMemo(() => {
+    const descriptors: ActivityTerminalPortalTarget[] = []
+    if (visibleThread && activePortalTargetEl) {
+      descriptors.push({
+        slotId: activePortalSlotId,
+        requestToken: `${activePortalSlotId}:${visibleThread.paneKey}`,
+        target: activePortalTargetEl,
+        worktreeId: visibleThread.worktree.id,
+        tabId: visibleThread.tab.id,
+        paneKey: visibleThread.paneKey,
+        forceUnavailable: visibleThread.migrationUnsupportedPtyId !== undefined,
+        active: true
+      })
+    }
+    if (stagedThread && inactivePortalTargetEl) {
+      descriptors.push({
+        slotId: inactivePortalSlotId,
+        requestToken: `${inactivePortalSlotId}:${stagedThread.paneKey}`,
+        target: inactivePortalTargetEl,
+        worktreeId: stagedThread.worktree.id,
+        tabId: stagedThread.tab.id,
+        paneKey: stagedThread.paneKey,
+        forceUnavailable: stagedThread.migrationUnsupportedPtyId !== undefined,
+        active: false
+      })
+    }
+    return descriptors
+  }, [
+    activePortalSlotId,
+    activePortalTargetEl,
+    inactivePortalSlotId,
+    inactivePortalTargetEl,
+    stagedThread,
+    visibleThread
+  ])
+
+  // Why: swap-staged makes the displayed thread selected, so this branch cannot repeat by itself.
+  useLayoutEffect(() => {
+    const swap = resolveActivityPortalSwap({
+      selectedThread,
+      selectedHasLiveTab: Boolean(selectedHasLiveTab),
+      visibleThread,
+      stagedThread,
+      visiblePortalReady,
+      stagedPortalReady,
+      stagedPortalUnavailable
+    })
+    if (swap?.kind === 'clear') {
+      setDisplayedPaneKey(null)
+      return
+    }
+    if (swap?.kind === 'swap-staged') {
+      // Why: a stale selected pane must swap to the unavailable state, not leave the previous pane visible under the new row.
+      setActivePortalSlotId(inactivePortalSlotId)
+      setDisplayedPaneKey(swap.paneKey)
+      return
+    }
+    if (swap?.kind === 'settle-visible') {
+      setDisplayedPaneKey(swap.paneKey)
+    }
+  }, [
+    inactivePortalSlotId,
+    selectedHasLiveTab,
+    selectedThread,
+    stagedPortalUnavailable,
+    stagedPortalReady,
+    stagedThread,
+    visiblePortalReady,
+    visibleThread
+  ])
+
+  // Why useLayoutEffect (not useEffect): publish before paint so Terminal's portal subscriber rerenders in the same commit, else the stale target flashes on screen.
+  // Why no cleanup-to-null on each change: it forces the portal through null on every switch, flashing the workspace pane; null only on unmount (effect below).
+  // oxlint-disable-next-line react-doctor/no-derived-state-effect -- Why: this publishes portal descriptors to Terminal's external portal store before paint.
+  useLayoutEffect(() => {
+    setActivityTerminalPortals(portalDescriptors)
+  }, [portalDescriptors])
+
+  const setActivityPageRef = useCallback((node: HTMLDivElement | null): void => {
+    if (!node) {
+      // Why: portal cleanup must happen only on page unmount; clearing on descriptor changes flashes the workspace pane behind the activity slot.
+      setActivityTerminalPortals([])
+    }
+  }, [])
+
+  useEffect(() => {
+    const focusActivityFilter = (event: KeyboardEvent): void => {
+      handleActivityFilterFocusShortcut({
+        activeElement: document.activeElement,
+        event,
+        input: activityFilterInputRef.current,
+        terminalPortalTargets: [activePortalTargetEl, inactivePortalTargetEl]
+      })
+    }
+
+    addAppKeyListener('keydown', focusActivityFilter)
+    return () => removeAppKeyListener('keydown', focusActivityFilter)
+  }, [activePortalTargetEl, inactivePortalTargetEl])
+
+  const {
+    markThreadRead,
+    markThreadUnread,
+    markThreadsRead,
+    markThreadsUnread,
+    selectThread,
+    jumpToWorkspace,
+    markAllThreadsRead,
+    hasUnreadThreads,
+    hasCompletedThreads,
+    handleClearCompleted
+  } = useActivityThreadActionBindings({
+    visibleThreads,
+    markAllReadThreads,
+    acknowledgeAgents: storeData.acknowledgeAgents,
+    unacknowledgeAgents: storeData.unacknowledgeAgents,
+    setSelectedPaneKey
+  })
+
+  const worktreesByRepo = selectWorktreesByRepo(storeData)
+  const detectedWorktreesByRepo = selectDetectedWorktreesByRepo(storeData)
+  const folderWorkspaces = selectFolderWorkspaces(storeData)
+
+  const canJumpToWorkspace = useCallback(
+    (thread: Parameters<typeof hasActivityThreadWorkspace>[0]) =>
+      hasActivityThreadWorkspace(thread, {
+        worktreesByRepo,
+        detectedWorktreesByRepo,
+        folderWorkspaces,
+        floatingWorkspacePath: storeData.floatingWorkspacePath,
+        defaultHostId: storeData.defaultHostId
+      }),
+    [
+      worktreesByRepo,
+      detectedWorktreesByRepo,
+      folderWorkspaces,
+      storeData.floatingWorkspacePath,
+      storeData.defaultHostId
+    ]
+  )
+
+  useEffect(() => {
+    if (
+      !selectedThread ||
+      !selectedThread.unread ||
+      stagedThread ||
+      selectedThread.paneKey !== effectiveSelectedPaneKey
+    ) {
+      return
+    }
+    // Why (React #185): a turn stamped ahead of this clock (SSH/remote execution host) can never
+    // have its unread cleared, and each retry lands on a later millisecond, so acknowledgeAgents'
+    // `prev < now` guard rewrites the ack map every time and re-enters here forever through
+    // storeData. Auto-read is once per turn, not a retry.
+    const autoAcknowledgeKey = `${selectedThread.paneKey}:${selectedThread.latestTimestamp}`
+    if (autoAcknowledgedTurnRef.current === autoAcknowledgeKey) {
+      return
+    }
+    const selectedThreadHasDetailOnlyView =
+      !selectedHasLiveTab || selectedThread.migrationUnsupportedPtyId !== undefined
+    const selectedThreadIsVisibleTerminal =
+      visibleThread?.paneKey === effectiveSelectedPaneKey && visiblePortalReady
+    if (selectedThreadHasDetailOnlyView || selectedThreadIsVisibleTerminal) {
+      autoAcknowledgedTurnRef.current = autoAcknowledgeKey
+      storeData.acknowledgeAgents([selectedThread.paneKey])
+    }
+  }, [
+    selectedHasLiveTab,
+    effectiveSelectedPaneKey,
+    selectedThread,
+    stagedThread,
+    storeData,
+    visiblePortalReady,
+    visibleThread
+  ])
+
+  // Why (page padding): no top/horizontal padding so the page reaches the window edges; the titlebar and the right pane's title row (pt-2) supply the top spacing.
+  return (
+    <div ref={setActivityPageRef} className="flex h-full min-h-0 flex-col bg-background pb-3">
+      {platformProject && (
+        <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border px-3 py-1.5">
+          <ToggleGroup
+            type="single"
+            variant="segmented"
+            size="xs"
+            spacing={1}
+            value={showingOffice ? 'office' : 'list'}
+            onValueChange={(value) => {
+              if (value === 'office' || value === 'list') {
+                setOfficeMode(value === 'office')
+                setMobileDetailOpen(false)
+              }
+            }}
+            aria-label="活动展示方式"
+            className="bg-muted p-0.5"
+          >
+            <ToggleGroupItem value="list">列表</ToggleGroupItem>
+            <ToggleGroupItem value="office">办公室</ToggleGroupItem>
+          </ToggleGroup>
+          {showingOffice && (
+            <div className="flex items-center gap-1">
+              <Toggle
+                variant="segmented"
+                size="xs"
+                pressed={showChildAgents}
+                onPressedChange={setShowChildAgents}
+              >
+                {translate('auto.components.activity.ActivityPrototypePage.showChildAgents', 'Show child agents')}
+              </Toggle>
+              {officeHasSelection && (
+                <Button
+                  variant="ghost"
+                  size="xs"
+                  onClick={() => {
+                    setSelectedPaneKey(null)
+                    setMobileDetailOpen(false)
+                  }}
+                >
+                  收起详情
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+      <main className="flex min-h-0 flex-1 overflow-hidden">
+        <div className={showingMobileDetail ? 'hidden min-h-0 max-w-full md:contents' : 'contents'}>
+          <ManagementSurfaceProvider value={true}>
+            {showingOffice ? <OfficeActivityView
+              key={`${boundScope?.hostId}:${boundScope?.repoId}`}
+              threads={visibleThreads}
+              showChildAgents={showChildAgents}
+              selectedPaneKey={selectedThread?.paneKey}
+              active={!showingMobileDetail || wideScreen}
+              onSelect={(paneKey) => {
+                const thread = visibleThreads.find((value) => value.paneKey === paneKey)
+                if (thread) {
+                  selectThread(thread)
+                  setMobileDetailOpen(true)
+                }
+              }}
+            /> :
+            <ActivityThreadListPane
+              lockProjectScope={platformProject !== undefined}
+              threadListRef={threadListRef}
+              threadListWidth={threadListWidth}
+              activityFilterInputRef={activityFilterInputRef}
+              query={query}
+              onQueryChange={setQuery}
+              groupBy={groupBy}
+              onGroupByChange={setGroupBy}
+              readFilter={readFilter}
+              onReadFilterChange={setReadFilter}
+              compactMode={compactMode}
+              showChildAgents={showChildAgents}
+              hasUnreadThreads={hasUnreadThreads}
+              onCompactModeChange={setCompactMode}
+              onShowChildAgentsChange={setShowChildAgents}
+              onMarkAllThreadsRead={markAllThreadsRead}
+              hasCompletedThreads={hasCompletedThreads}
+              onClearCompleted={handleClearCompleted}
+              visibleThreadGroups={visibleThreadGroups}
+              visibleThreadCount={visibleThreads.length}
+              selectedPaneKey={selectedThread?.paneKey ?? null}
+              onSelectThread={(thread) => {
+                selectThread(thread)
+                setMobileDetailOpen(true)
+              }}
+              onJumpToWorkspace={jumpToWorkspace}
+              onMarkThreadRead={markThreadRead}
+              onMarkThreadUnread={markThreadUnread}
+              onMarkThreadsRead={markThreadsRead}
+              onMarkThreadsUnread={markThreadsUnread}
+              canJumpToWorkspace={canJumpToWorkspace}
+              isThreadListResizing={isThreadListResizing}
+              onResizeStart={onResizeStart}
+            />}
+          </ManagementSurfaceProvider>
+        </div>
+        <div
+          className={`${detailVisibility} min-h-0 min-w-0 flex-1 flex-col${showingOffice ? ' md:border-l md:border-border' : ''}`}
+        >
+          <div className="ce-management-surface shrink-0 p-4 md:hidden">
+            <Button type="button" variant="outline" onClick={() => setMobileDetailOpen(false)}>
+              <ArrowLeft className="size-4" />
+              {translate('auto.components.workspace.space.WorkspaceSpacePage.ecf72fdc3b', 'Back')}
+            </Button>
+          </div>
+          <ActivityThreadDetailPane
+            selectedThread={selectedThread}
+            selectedHasLiveTab={Boolean(selectedHasLiveTab)}
+            selectedWorktreeAvailable={selectedWorktreeAvailable}
+            visibleThread={visibleThread}
+            stagedThread={stagedThread}
+            activePortalSlotId={activePortalSlotId}
+            setPrimaryPortalTarget={setPrimaryPortalTarget}
+            setSecondaryPortalTarget={setSecondaryPortalTarget}
+            visiblePortalReady={visiblePortalReady}
+            visiblePortalUnavailable={visiblePortalUnavailable}
+            showTerminalLoadingLabel={showTerminalLoadingLabel}
+            visibleThreadCount={visibleThreads.length}
+          />
+        </div>
+      </main>
+    </div>
+  )
+}
