@@ -1,7 +1,7 @@
 #!/bin/bash
-# Why: register the bundled `orca-ide` CLI on PATH at package-install time.
+# Register the bundled command on PATH at package-install time.
 # The in-app "Install CLI" action (CliInstaller) can never run on a headless
-# server, so without this symlink `orca serve` is unreachable from the shell on
+# server, so without this symlink `zkyq serve` is unreachable from the shell on
 # the exact hosts that need it most. deb/rpm both run this after unpacking.
 #
 # The shim resolves the real app by walking up from its own location, so a
@@ -9,13 +9,13 @@
 # because electron-builder's directory name can vary by productName sanitization.
 set -e
 
-link="/usr/bin/orca-ide"
+link="/usr/bin/zkyq"
 
 is_owned_link() {
-  [ -L "$link" ] || return 1
+  [ -L "$1" ] || return 1
   local link_target candidate candidate_target
-  link_target="$(readlink -f -- "$link" 2>/dev/null || true)"
-  for candidate in /opt/Orca/resources/bin/orca-ide /opt/orca-ide/resources/bin/orca-ide /opt/orca/resources/bin/orca-ide; do
+  link_target="$(readlink -f -- "$1" 2>/dev/null || true)"
+  for candidate in /opt/{Orca,orca-ide,orca}/resources/bin/{zkyq,orca-ide,orca}; do
     candidate_target="$(readlink -f -- "$candidate" 2>/dev/null || true)"
     if [ -n "$candidate_target" ] && [ "$link_target" = "$candidate_target" ]; then
       return 0
@@ -32,11 +32,14 @@ for dir in /opt/Orca /opt/orca-ide /opt/orca; do
     chmod 4755 "$sandbox" || true
   fi
 
-  shim="$dir/resources/bin/orca-ide"
+  shim="$dir/resources/bin/zkyq"
   if [ -x "$shim" ]; then
-    # Only manage our own symlink; never clobber an unrelated /usr/bin/orca-ide.
-    if { [ ! -e "$link" ] && [ ! -L "$link" ]; } || is_owned_link; then
+    # Only manage our own symlink; never clobber another program's command.
+    if { [ ! -e "$link" ] && [ ! -L "$link" ]; } || is_owned_link "$link"; then
       ln -sfn -- "$shim" "$link"
+      for legacy in /usr/bin/orca-ide /usr/bin/orca; do
+        if is_owned_link "$legacy"; then rm -f -- "$legacy"; fi
+      done
     fi
     break
   fi

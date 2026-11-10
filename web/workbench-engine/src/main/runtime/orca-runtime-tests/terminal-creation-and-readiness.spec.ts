@@ -80,14 +80,14 @@ describe('OrcaRuntimeService', () => {
     // Why: agent status keys off `${tabId}:${leafId}`; main pre-allocates the tabId, env-stamps it before spawn, and reuses it for adoption.
     const spawnedEnv = spawnedPtyEnv(spawn.mock.calls[0]?.[0])
     expectStablePaneKeyEnv(spawnedEnv)
-    const spawnedLeafId = spawnedEnv.ORCA_PANE_KEY.slice(`${spawnedEnv.ORCA_TAB_ID}:`.length)
-    expect(spawnedEnv.ORCA_WORKTREE_ID).toBe(TEST_WORKTREE_ID)
-    expect(spawnedEnv.ORCA_AGENT_LAUNCH_TOKEN).toMatch(UUID_RE)
+    const spawnedLeafId = spawnedEnv.ZKYQ_PANE_KEY.slice(`${spawnedEnv.ZKYQ_TAB_ID}:`.length)
+    expect(spawnedEnv.ZKYQ_WORKTREE_ID).toBe(TEST_WORKTREE_ID)
+    expect(spawnedEnv.ZKYQ_AGENT_LAUNCH_TOKEN).toMatch(UUID_RE)
     // Why: the runtime spawn path must stamp the per-pane jcode runtime dir
     // exactly like the renderer pty:spawn path (unix platforms only).
     if (shouldInjectJcodeRuntimeDir(process.platform)) {
       expect(spawnedEnv[JCODE_RUNTIME_DIR_ENV_KEY]).toBe(
-        buildJcodeRuntimeDir(spawnedEnv.ORCA_PANE_KEY)
+        buildJcodeRuntimeDir(spawnedEnv.ZKYQ_PANE_KEY)
       )
     } else {
       expect(spawnedEnv[JCODE_RUNTIME_DIR_ENV_KEY]).toBeUndefined()
@@ -99,9 +99,9 @@ describe('OrcaRuntimeService', () => {
         agentArgs: '--model gpt-5',
         agentEnv: { CODEX_PROFILE: 'captured' }
       },
-      launchToken: spawnedEnv.ORCA_AGENT_LAUNCH_TOKEN,
+      launchToken: spawnedEnv.ZKYQ_AGENT_LAUNCH_TOKEN,
       activate: false,
-      tabId: spawnedEnv.ORCA_TAB_ID,
+      tabId: spawnedEnv.ZKYQ_TAB_ID,
       leafId: spawnedLeafId
     })
   })
@@ -271,8 +271,8 @@ describe('OrcaRuntimeService', () => {
     const spawnEnv = spawnedPtyEnv(spawn.mock.calls[0]?.[0])
     const evidence = {
       terminalHandle: terminal.handle,
-      paneKey: spawnEnv.ORCA_PANE_KEY,
-      launchToken: spawnEnv.ORCA_AGENT_LAUNCH_TOKEN
+      paneKey: spawnEnv.ZKYQ_PANE_KEY,
+      launchToken: spawnEnv.ZKYQ_AGENT_LAUNCH_TOKEN
     }
 
     expect(runtime.verifyOrchestrationCompatibilityCaller(evidence)).not.toBeNull()
@@ -282,7 +282,7 @@ describe('OrcaRuntimeService', () => {
 
     runtime.onPtyData('pty-authority', '\x1b]133;D;0\x07', 100)
 
-    expect(retireAuthority).toHaveBeenCalledWith(spawnEnv.ORCA_PANE_KEY)
+    expect(retireAuthority).toHaveBeenCalledWith(spawnEnv.ZKYQ_PANE_KEY)
     expect(runtime.verifyOrchestrationCompatibilityCaller(evidence)).toBeNull()
     expect((await runtime.listTerminals()).terminals).toEqual([
       expect.not.objectContaining({ agentIdentity: expect.anything() })

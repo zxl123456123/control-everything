@@ -49,6 +49,12 @@ export function WorktreeJumpPaletteWorktreeRow({
   const repoName = repo?.displayName ?? ''
   const branch = resolveWorktreeBranchLabel(worktree)
   const worktreeLabel = resolveWorktreeDisplayName(worktree)
+  const repeatedBranch = branch === worktreeLabel
+  const titleRanges = repeatedBranch
+    ? [...entry.match.displayNameRanges, ...entry.match.branchRanges].sort(
+        (left, right) => left.start - right.start
+      )
+    : entry.match.displayNameRanges
   const isCurrentWorktree = isPaletteCurrentWorktree(
     worktree,
     activeWorktreeId,
@@ -89,7 +95,7 @@ export function WorktreeJumpPaletteWorktreeRow({
         <PaletteWorktreeStatusDot worktree={worktree} />
       </div>
       <div className="min-w-0 flex-1">
-        <div className="flex items-center justify-between gap-2.5">
+        <div className="space-y-1">
           <div className="min-w-0 flex-1">
             <div className="flex min-w-0 items-center gap-2">
               {sshConnectionId && (
@@ -111,8 +117,11 @@ export function WorktreeJumpPaletteWorktreeRow({
                   )}
                 </span>
               )}
-              <span className="truncate text-[14px] font-semibold text-foreground">
-                <HighlightedText text={worktreeLabel} matchRanges={entry.match.displayNameRanges} />
+              <span
+                className="min-w-0 flex-1 truncate text-[14px] font-semibold text-foreground"
+                data-slot="palette-worktree-title"
+              >
+                <HighlightedText text={worktreeLabel} matchRanges={titleRanges} />
               </span>
               {sessionAge ? (
                 <span
@@ -136,40 +145,42 @@ export function WorktreeJumpPaletteWorktreeRow({
                   {translate('auto.components.WorktreeJumpPalette.739bda980c', 'primary')}
                 </span>
               )}
-              {branch.trim().length > 0 ? (
-                <>
-                  <span className="shrink-0 text-muted-foreground/45">·</span>
-                  <span className="truncate text-[12px] font-medium text-muted-foreground/92">
-                    <HighlightedText text={branch} matchRanges={entry.match.branchRanges} />
+            </div>
+          </div>
+          {hostBadge || repoName || (!repeatedBranch && branch.trim()) ? (
+            <div
+              className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-[11px] leading-5 text-muted-foreground"
+              data-slot="palette-worktree-context"
+            >
+              <PaletteHostBadgeChip badge={hostBadge} />
+              {repoName && (
+                <span className="inline-flex min-w-0 max-w-full items-center gap-1.5">
+                  <RepoBadgeMark color={repo?.badgeColor} />
+                  <span className="truncate">
+                    <HighlightedText text={repoName} matchRanges={entry.match.repoRanges} />
                   </span>
-                </>
+                </span>
+              )}
+              {!repeatedBranch && branch.trim() ? (
+                <span className="min-w-0 truncate" data-slot="palette-worktree-branch">
+                  <HighlightedText text={branch} matchRanges={entry.match.branchRanges} />
+                </span>
               ) : null}
             </div>
-            {entry.match.supportingText && (
-              <div className="mt-1.5 flex min-w-0 items-center gap-2 text-[12px] leading-5 text-muted-foreground/88">
-                <span className="inline-flex h-[18px] shrink-0 items-center rounded border border-border bg-foreground/[0.04] px-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                  {getPaletteSupportingTextLabel(entry.match.supportingText.labelKind)}
-                </span>
-                <span className="truncate">
-                  <HighlightedText
-                    text={entry.match.supportingText.text}
-                    matchRanges={entry.match.supportingText.matchRanges}
-                  />
-                </span>
-              </div>
-            )}
-          </div>
-          <div className="flex shrink-0 items-center gap-1.5">
-            <PaletteHostBadgeChip badge={hostBadge} />
-            {repoName && (
-              <span className="inline-flex max-w-[180px] items-center gap-1.5 rounded-md border border-border bg-muted px-2 py-1 text-[11px] font-semibold leading-none text-foreground">
-                <RepoBadgeMark color={repo?.badgeColor} />
-                <span className="truncate">
-                  <HighlightedText text={repoName} matchRanges={entry.match.repoRanges} />
-                </span>
+          ) : null}
+          {entry.match.supportingText && (
+            <div className="flex min-w-0 items-center gap-2 text-[12px] leading-5 text-muted-foreground/88">
+              <span className="inline-flex h-[18px] shrink-0 items-center rounded border border-border bg-foreground/[0.04] px-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                {getPaletteSupportingTextLabel(entry.match.supportingText.labelKind)}
               </span>
-            )}
-          </div>
+              <span className="truncate">
+                <HighlightedText
+                  text={entry.match.supportingText.text}
+                  matchRanges={entry.match.supportingText.matchRanges}
+                />
+              </span>
+            </div>
+          )}
         </div>
       </div>
     </CommandItem>

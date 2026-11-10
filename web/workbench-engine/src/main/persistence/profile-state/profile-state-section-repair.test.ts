@@ -47,7 +47,7 @@ async function profileWithNewerSaves(extra: Record<string, unknown> = {}) {
     join(root, 'orca-profile-index.json'),
     JSON.stringify({ activeProfileId: profileId, profiles: [{ id: profileId }] })
   )
-  const dataFile = join(directory, 'orca-data.json')
+  const dataFile = join(directory, 'zkyq-data.json')
   const databaseFile = join(directory, 'profile-state.db')
   const initialJson = JSON.stringify({
     ...extra,
@@ -172,7 +172,7 @@ describe('repairing damaged profile-state sections', () => {
         { domain: section, backupId: profile.backupId, backupCreatedAtMs: expect.any(Number) }
       ])
       expect(formatProfileStateStartupFailure(failure)).toContain(
-        `orca profile state rollback --repair --profile-id ${profileId}`
+        `zkyq profile state rollback --repair --profile-id ${profileId}`
       )
 
       expect(() =>
@@ -220,7 +220,7 @@ describe('repairing damaged profile-state sections', () => {
       const before = readFileSync(profile.databaseFile)
       expect(startupFailure(profile).repairableSections).toBeUndefined()
       expect(() => rollback(profile, { kind: 'repair' })).toThrow(
-        "Orca can't repair this profile one section at a time"
+        "Control Everything can't repair this profile one section at a time"
       )
       expect(readFileSync(profile.databaseFile)).toEqual(before)
     }

@@ -1,5 +1,9 @@
 import { Buffer } from 'node:buffer'
 import type { IncomingHttpHeaders } from 'node:http'
+import {
+  normalizeAgentHookRequestHeaders,
+  type AgentHookRequestHeaders
+} from '../agent-hook-request-headers'
 
 import type { AgentHookSource } from '../agent-hook-relay'
 import { parsePaneKey } from '../stable-pane-id'
@@ -7,7 +11,7 @@ import { MAX_PANE_KEY_LEN, warnOnHookEnvOrVersionMismatch } from './listener-lim
 import type { HookListenerState } from './listener-state'
 import { parseAgentHookJson } from './request-body'
 
-function readHookHeader(headers: IncomingHttpHeaders, name: string): string | undefined {
+function readHookHeader(headers: AgentHookRequestHeaders, name: string): string | undefined {
   const value = headers[name]
   return Array.isArray(value) ? value[0] : value
 }
@@ -23,7 +27,7 @@ function decodeBase64HookHeader(value: string): string | undefined {
 }
 
 function readHookMetadataHeader(
-  headers: IncomingHttpHeaders,
+  headers: AgentHookRequestHeaders,
   name: string,
   encoding: 'base64' | undefined
 ): string | undefined {
@@ -44,10 +48,10 @@ type HookMetadata = {
 }
 
 function readPackedHookMetadata(
-  headers: IncomingHttpHeaders,
+  headers: AgentHookRequestHeaders,
   encoding: 'base64' | undefined
 ): HookMetadata | null {
-  const encoded = readHookHeader(headers, 'x-orca-agent-hook-meta')
+  const encoded = readHookHeader(headers, 'x-zkyq-agent-hook-meta')
   if (encoded === undefined || encoding !== 'base64') {
     return null
   }
@@ -65,25 +69,30 @@ function readPackedHookMetadata(
 }
 
 /** Rebuilds the canonical envelope for POSIX hooks that carry raw JSON bodies. */
-export function mergeAgentHookRequestHeaders(body: unknown, headers: IncomingHttpHeaders): unknown {
+export function mergeAgentHookRequestHeaders(
+  body: unknown,
+  inputHeaders: IncomingHttpHeaders
+): unknown {
+  const headers = normalizeAgentHookRequestHeaders(inputHeaders)
+  if (!headers) return null
   const metadataEncoding =
-    readHookHeader(headers, 'x-orca-agent-hook-meta-encoding')?.trim().toLowerCase() === 'base64'
+    readHookHeader(headers, 'x-zkyq-agent-hook-meta-encoding')?.trim().toLowerCase() === 'base64'
       ? 'base64'
       : undefined
   const metadata = readPackedHookMetadata(headers, metadataEncoding) ?? {
-    paneKey: readHookMetadataHeader(headers, 'x-orca-pane-key', metadataEncoding) ?? '',
-    tabId: readHookMetadataHeader(headers, 'x-orca-tab-id', metadataEncoding),
-    launchToken: readHookMetadataHeader(headers, 'x-orca-launch-token', metadataEncoding),
-    worktreeId: readHookMetadataHeader(headers, 'x-orca-worktree-id', metadataEncoding),
-    env: readHookMetadataHeader(headers, 'x-orca-agent-hook-env', metadataEncoding),
-    version: readHookMetadataHeader(headers, 'x-orca-agent-hook-version', metadataEncoding)
+    paneKey: readHookMetadataHeader(headers, 'x-zkyq-pane-key', metadataEncoding) ?? '',
+    tabId: readHookMetadataHeader(headers, 'x-zkyq-tab-id', metadataEncoding),
+    launchToken: readHookMetadataHeader(headers, 'x-zkyq-launch-token', metadataEncoding),
+    worktreeId: readHookMetadataHeader(headers, 'x-zkyq-worktree-id', metadataEncoding),
+    env: readHookMetadataHeader(headers, 'x-zkyq-agent-hook-env', metadataEncoding),
+    version: readHookMetadataHeader(headers, 'x-zkyq-agent-hook-version', metadataEncoding)
   }
   if (!metadata.paneKey) {
     return body
   }
   return {
     ...metadata,
-    agentProcess: readHookHeader(headers, 'x-orca-agent-process'),
+    agentProcess: readHookHeader(headers, 'x-zkyq-agent-process'),
     payload: body
   }
 }

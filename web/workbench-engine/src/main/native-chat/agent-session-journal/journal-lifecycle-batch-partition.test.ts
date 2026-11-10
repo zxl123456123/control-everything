@@ -30,7 +30,7 @@ function item(
 ): Extract<JournalLifecycleMutationInput, { kind: 'item' }> {
   return {
     kind: 'item',
-    identity: { provider: 'orca', clientMessageId: `item:${index}` },
+    identity: { provider: 'zkyq', clientMessageId: `item:${index}` },
     body: { kind: 'tool-call', name: 'shell', input: { command: text }, state: 'failed' },
     turnScope: AGENT_JOURNAL_THREAD_SCOPE
   }
@@ -131,7 +131,7 @@ describe('journal lifecycle batch partitioning', () => {
       const mutations = Array.from(
         { length: random(230) },
         (_, index): JournalLifecycleMutationInput => {
-          const identity = { provider: 'orca' as const, clientMessageId: `item:"\\界😀:${index}` }
+          const identity = { provider: 'zkyq' as const, clientMessageId: `item:"\\界😀:${index}` }
           if (index % 23 === 0) {
             return { kind: 'tombstone', identity }
           }
@@ -227,7 +227,7 @@ describe('journal lifecycle batch partitioning', () => {
       ).toBe(false)
       const recoveredText = utf8Text(available - 17)
       const row = build(recoveredText, true)
-      expect(row.v).toBe(kind === 'turn' ? 3 : 2)
+      expect(row.v).toBe(4)
       expect(Buffer.byteLength(serializeJournalRow(row)) + 1).toBe(
         MAX_JOURNAL_LIFECYCLE_BATCH_BYTES
       )

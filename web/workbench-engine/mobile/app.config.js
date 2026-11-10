@@ -25,7 +25,11 @@ module.exports = ({ config }) => {
   return {
     ...config,
     scheme: [
-      ...new Set([...schemes, 'orca', ...(platformAccount.scheme ? [platformAccount.scheme] : [])])
+      ...new Set([
+        ...schemes.filter((scheme) => scheme !== 'orca'),
+        'zkyq',
+        ...(platformAccount.scheme ? [platformAccount.scheme] : [])
+      ])
     ],
     extra: {
       ...config.extra,

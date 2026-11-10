@@ -109,7 +109,7 @@ describe('a chat as the assignee of orchestration dispatch', () => {
     })
     const task = turnText(worker.turns[0]!)
     expect(task).toContain('build it')
-    expect(task).toContain(`Your Orca session ID is: ${WORKER}`)
+    expect(task).toContain(`Your workbench session ID is: ${WORKER}`)
     expect(task).toContain('The coordinator cannot see this chat')
     expect(task).toContain('it will send this chat a fresh')
     expect(task).not.toContain('this terminal')
@@ -256,7 +256,7 @@ describe('a chat as the assignee of orchestration dispatch', () => {
 
     await vi.waitFor(() => expect(worker.turns).toHaveLength(1), WAIT)
     expect(turnText(worker.turns[0]!)).toMatch(
-      /^You have 1 orchestration message\. Run `orca(-dev)? orchestration check`\.$/
+      /^You have 1 orchestration message\. Run `zkyq(-dev)? orchestration check`\.$/
     )
     expect(await queuedCardTexts(PEER_CHAT)).toEqual([])
     await settleTurn(PEER_CHAT, 0)

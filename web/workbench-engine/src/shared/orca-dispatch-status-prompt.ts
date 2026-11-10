@@ -6,12 +6,21 @@
 // inside AGENT_STATUS_MAX_FIELD_LENGTH.
 
 export const ORCA_DISPATCH_STATUS_PREAMBLE_PREFIX =
-  'You are working inside Orca, a multi-agent IDE.'
+  'You are working inside Control Everything, a multi-agent workspace.'
 export const ORCA_DISPATCH_STATUS_TASK_MARKER = '=== TASK ==='
 // Why: typed, not pasted, so Claude Code honors the brief: it follows a <pasted_content> block
 // only where the user's own words ask it to, and refused bare pasted briefs (STA-8200).
 export const ORCA_DISPATCH_PROMPT_LEAD_LINE =
+  'Please carry out this task from my workbench coordinator by following the brief I pasted below.'
+// Read historical stored prompts; new prompts and compact previews use only the current wording.
+const STORED_PREAMBLE_PREFIXES = [
+  ORCA_DISPATCH_STATUS_PREAMBLE_PREFIX,
+  'You are working inside Orca, a multi-agent IDE.'
+]
+const STORED_LEAD_LINES = [
+  ORCA_DISPATCH_PROMPT_LEAD_LINE,
   'Please carry out this task from my Orca coordinator by following the brief I pasted below.'
+]
 const ORCA_DISPATCH_STATUS_TASK_ID_MARKER = 'Your task ID is:'
 // Why: real preambles put === TASK === near the end (~4KB+). Scan past the
 // normal single-line budget so the task body is still reachable for compacting.
@@ -30,8 +39,11 @@ export function findOrcaDispatchPreambleStart(value: string): number {
   // bounded too, or leading whitespace can bypass the normalizer's scan cap.
   const scanEnd = Math.min(value.length, ORCA_DISPATCH_STATUS_SOURCE_SCAN_LIMIT)
   let start = skipTrimWhitespace(value, 0, scanEnd)
-  if (value.startsWith(ORCA_DISPATCH_PROMPT_LEAD_LINE, start)) {
-    start = skipTrimWhitespace(value, start + ORCA_DISPATCH_PROMPT_LEAD_LINE.length, scanEnd)
+  for (const lead of STORED_LEAD_LINES) {
+    if (value.startsWith(lead, start)) {
+      start = skipTrimWhitespace(value, start + lead.length, scanEnd)
+      break
+    }
   }
   if (value.startsWith(PASTED_CONTENT_OPEN_TAG, start)) {
     const tagLength = value.slice(start, start + PASTED_CONTENT_OPEN_TAG_MAX_LENGTH).indexOf('>')
@@ -40,8 +52,9 @@ export function findOrcaDispatchPreambleStart(value: string): number {
     }
     start = skipTrimWhitespace(value, start + tagLength + 1, scanEnd)
   }
-  return start + ORCA_DISPATCH_STATUS_PREAMBLE_PREFIX.length <= scanEnd &&
-    value.startsWith(ORCA_DISPATCH_STATUS_PREAMBLE_PREFIX, start)
+  return STORED_PREAMBLE_PREFIXES.some(
+    (prefix) => start + prefix.length <= scanEnd && value.startsWith(prefix, start)
+  )
     ? start
     : -1
 }

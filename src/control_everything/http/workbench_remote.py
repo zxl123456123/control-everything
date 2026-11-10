@@ -2,13 +2,84 @@
 
 import secrets
 import re
-from urllib.parse import urlsplit
+from contextlib import nullcontext
+from urllib.parse import parse_qs, urlsplit
 
 from control_everything.integrations.remote_access import PROXY_HEADER
 from control_everything.integrations.remote_connector import ConnectorError
 
 PATHS = {"/api/desktop/remote/status", "/api/desktop/remote/authorize",
          "/api/desktop/remote/confirm", "/api/desktop/remote/revoke"}
+ACCOUNT_PATHS = {"/api/desktop/account/" + name for name in
+                 ("status", "authorize", "logout", "members", "invitations", "activate", "configure")}
+
+
+def handle_account(handler, path, *, write=False):
+    if path not in ACCOUNT_PATHS:
+        return False
+    desktop = getattr(handler.server, 'desktop', None)
+    lock = getattr(desktop, 'configuration_lock', None) if write else None
+    with lock if lock is not None else nullcontext():
+        return _handle_account(handler, path, write=write)
+
+
+def _handle_account(handler, path, *, write=False):
+    if path not in ACCOUNT_PATHS:
+        return False
+    if (not local_control_allowed(handler, write=write)
+            or handler.headers.get_all("X-Session-Client", []) != ["panel"]):
+        handler.reject(403, "local_control_required")
+        return True
+    account = getattr(handler.server, "desktop_account", None)
+    name, query = path.rsplit("/", 1)[-1], urlsplit(handler.path).query
+    try:
+        desktop = getattr(handler.server, 'desktop', None)
+        if write and getattr(desktop, 'configuration_changed', False):
+            raise ConnectorError('remote_restart_required', 409)
+        if query and (write or name != "members"):
+            raise ValueError("invalid_request")
+        body = handler.read_json_body(max_bytes=1024, strict=True) if write else {}
+        expected = {"invite"} if name == "activate" else {"issuer", "hub_origin"} if name == "configure" else set()
+        if not isinstance(body, dict) or set(body) != expected:
+            raise ValueError("invalid_request")
+        if name == "configure" and write:
+            setup = getattr(getattr(handler.server, "desktop", None), "server_setup", None)
+            connector = getattr(handler.server, "remote_connector", None)
+            if (setup is None or (account is not None and account.status().get('state') != 'signed_out')
+                    or (connector is not None and connector.status().get('state') != 'unbound')):
+                raise ConnectorError("remote_configuration_locked", 409)
+            setup.configure(body['issuer'], body['hub_origin'])
+            desktop.configuration_changed = True
+            value = {"saved": True, "restart_required": True}
+        elif account is None:
+            if name != "status" or write:
+                raise ConnectorError("remote_not_configured", 409)
+            value = {"configured": False, "state": "signed_out", "account": None, "admin": False}
+        elif not write and name == "status":
+            value = account.status()
+            value['service_configurable'] = getattr(getattr(handler.server, 'desktop', None), 'server_setup', None) is not None
+        elif not write and name == "members":
+            values = parse_qs(query, keep_blank_values=True, strict_parsing=True, max_num_fields=2)
+            if (set(values) - {"limit", "offset"} or any(len(parts) != 1 or
+                    not re.fullmatch(r"[0-9]{1,10}", parts[0]) for parts in values.values())):
+                raise ValueError("invalid_pagination")
+            limit, offset = int(values.get("limit", ["25"])[0]), int(values.get("offset", ["0"])[0])
+            if not 1 <= limit <= 100 or not 0 <= offset <= 2147483647:
+                raise ValueError("invalid_pagination")
+            value = account.members(limit, offset)
+        elif write and name in ("authorize", "logout"):
+            value = getattr(account, name)()
+        elif write and name in ("invitations", "activate"):
+            value = account.mutate(name, body)
+        else:
+            handler.reject(405, "method_not_allowed")
+            return True
+        handler.reply(200, value)
+    except ConnectorError as error:
+        handler.reject(error.status or 503, error.code)
+    except (ValueError, TypeError, UnicodeError):
+        handler.reject(400, "invalid_request")
+    return True
 
 
 def local_control_allowed(handler, *, write=False):
@@ -30,6 +101,8 @@ def local_control_allowed(handler, *, write=False):
 
 
 def handle_get(handler, path):
+    if handle_account(handler, path):
+        return True
     if path not in PATHS:
         return False
     if path != "/api/desktop/remote/status":
@@ -44,10 +117,24 @@ def handle_get(handler, path):
 
 
 def handle_post(handler, path):
+    if path not in PATHS and path not in ACCOUNT_PATHS:
+        return False
+    desktop = getattr(handler.server, 'desktop', None)
+    lock = getattr(desktop, 'configuration_lock', None)
+    with lock if lock is not None else nullcontext():
+        return _handle_post(handler, path)
+
+
+def _handle_post(handler, path):
+    if handle_account(handler, path, write=True):
+        return True
     if path not in PATHS:
         return False
     if not local_control_allowed(handler, write=True):
         handler.reject(403, "local_control_required")
+        return True
+    if getattr(getattr(handler.server, 'desktop', None), 'configuration_changed', False):
+        handler.reject(409, 'remote_restart_required')
         return True
     connector = getattr(handler.server, "remote_connector", None)
     if connector is None:
@@ -60,7 +147,17 @@ def handle_post(handler, path):
         handler.reject(405, "method_not_allowed")
         return True
     try:
-        actions[path]()
+        if path == "/api/desktop/remote/authorize" and getattr(handler.server, "desktop_account", None):
+            account = handler.server.desktop_account
+            account_status = account.status()
+            if account_status.get("state") == "signed_in":
+                connector.begin_account_authorization(account)
+            elif account_status.get("state") != "signed_out" or account_status.get("code"):
+                raise ConnectorError(account_status.get("code") or "remote_authorization_in_progress")
+            else:
+                connector.begin_authorization()
+        else:
+            actions[path]()
         handler.reply(200, connector.status())
     except ConnectorError as error:
         handler.reject(409, error.code)

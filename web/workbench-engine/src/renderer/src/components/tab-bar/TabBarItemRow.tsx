@@ -168,15 +168,17 @@ function TabBarItemRow({
     onClose: () => actions.closeFile(item.id),
     onCloseAll: actions.closeAllFiles
   }
-  if (item.type === 'simulator') {
-    const simulatorLabel = item.data.label || 'Mobile Emulator'
+  if (item.type === 'simulator' || item.type === 'git-graph') {
+    const simulatorLabel =
+      item.data.label || (item.type === 'git-graph' ? 'Git Graph' : 'Mobile Emulator')
     const simulatorFile: OpenFile & { tabId: string } = {
       id: item.id,
       tabId: item.id,
       filePath: simulatorLabel,
       relativePath: simulatorLabel,
       worktreeId,
-      language: 'simulator',
+      language: item.type,
+      ...(item.type === 'git-graph' ? { readOnly: true } : {}),
       isPreview: false,
       isDirty: false,
       mode: 'edit'

@@ -5,6 +5,8 @@ import {
 } from '../../../../shared/pi-agent-kind'
 import { readSessionShellStartupEnvVar } from '../../../pty/shell-startup-env'
 import { getAgentLaunchExecutableName } from '../../../../shared/agent-command-line-intent'
+import { migrateAgentHookEnvironmentIdentity } from '../../../../shared/agent-hook-environment-identity'
+import { migrateOpenCodeEnvironmentIdentity } from '../../../../shared/opencode-environment-identity'
 import {
   AGENT_HOOK_RUNTIME_ENV_KEYS,
   CLAUDE_CHILD_SESSION_STAMP_ENV_KEYS,
@@ -15,7 +17,10 @@ export function readEnvWithProcessFallback(
   baseEnv: Record<string, string>,
   key: string
 ): string | undefined {
-  return baseEnv[key] ?? process.env[key]
+  migrateAgentHookEnvironmentIdentity(baseEnv)
+  const inheritedEnv = { ...process.env }
+  migrateAgentHookEnvironmentIdentity(inheritedEnv)
+  return baseEnv[key] ?? inheritedEnv[key]
 }
 
 export function resolvePiAgentSourceDir(
@@ -37,8 +42,8 @@ export function resolvePiAgentSourceDir(
     )
   }
 
-  const overlayKey = kind === 'omp' ? 'ORCA_OMP_CODING_AGENT_DIR' : 'ORCA_PI_CODING_AGENT_DIR'
-  const otherOverlayKey = kind === 'omp' ? 'ORCA_PI_CODING_AGENT_DIR' : 'ORCA_OMP_CODING_AGENT_DIR'
+  const overlayKey = kind === 'omp' ? 'ZKYQ_OMP_CODING_AGENT_DIR' : 'ZKYQ_PI_CODING_AGENT_DIR'
+  const otherOverlayKey = kind === 'omp' ? 'ZKYQ_PI_CODING_AGENT_DIR' : 'ZKYQ_OMP_CODING_AGENT_DIR'
 
   const publicDir = readEnvWithProcessFallback(baseEnv, primaryKey)
   const ownOverlayDir = readEnvWithProcessFallback(baseEnv, overlayKey)
@@ -60,18 +65,18 @@ export function resolveScopedPiAgentSourceDir(
 
 export function clearPiAgentShadowEnv(baseEnv: Record<string, string>, kind: PiAgentKind): void {
   if (kind === 'omp') {
-    delete baseEnv.ORCA_OMP_CODING_AGENT_DIR
-    delete baseEnv.ORCA_OMP_SOURCE_AGENT_DIR
-    delete baseEnv.ORCA_OMP_STATUS_EXTENSION
+    delete baseEnv.ZKYQ_OMP_CODING_AGENT_DIR
+    delete baseEnv.ZKYQ_OMP_SOURCE_AGENT_DIR
+    delete baseEnv.ZKYQ_OMP_STATUS_EXTENSION
     return
   }
   if (kind === 'prime-agent') {
-    delete baseEnv.ORCA_PRIME_AGENT_SOURCE_AGENT_DIR
-    delete baseEnv.ORCA_PRIME_AGENT_STATUS_EXTENSION
+    delete baseEnv.ZKYQ_PRIME_AGENT_SOURCE_AGENT_DIR
+    delete baseEnv.ZKYQ_PRIME_AGENT_STATUS_EXTENSION
     return
   }
-  delete baseEnv.ORCA_PI_CODING_AGENT_DIR
-  delete baseEnv.ORCA_PI_SOURCE_AGENT_DIR
+  delete baseEnv.ZKYQ_PI_CODING_AGENT_DIR
+  delete baseEnv.ZKYQ_PI_SOURCE_AGENT_DIR
 }
 
 export function exposePiManagedExtensionEnv(
@@ -80,32 +85,32 @@ export function exposePiManagedExtensionEnv(
   managedEnv: Record<string, string>
 ): void {
   if (kind === 'omp') {
-    delete baseEnv.ORCA_OMP_CODING_AGENT_DIR
-    if (managedEnv.ORCA_OMP_SOURCE_AGENT_DIR) {
-      baseEnv.ORCA_OMP_SOURCE_AGENT_DIR = managedEnv.ORCA_OMP_SOURCE_AGENT_DIR
+    delete baseEnv.ZKYQ_OMP_CODING_AGENT_DIR
+    if (managedEnv.ZKYQ_OMP_SOURCE_AGENT_DIR) {
+      baseEnv.ZKYQ_OMP_SOURCE_AGENT_DIR = managedEnv.ZKYQ_OMP_SOURCE_AGENT_DIR
     } else {
-      delete baseEnv.ORCA_OMP_SOURCE_AGENT_DIR
+      delete baseEnv.ZKYQ_OMP_SOURCE_AGENT_DIR
     }
-    if (managedEnv.ORCA_OMP_STATUS_EXTENSION) {
-      baseEnv.ORCA_OMP_STATUS_EXTENSION = managedEnv.ORCA_OMP_STATUS_EXTENSION
+    if (managedEnv.ZKYQ_OMP_STATUS_EXTENSION) {
+      baseEnv.ZKYQ_OMP_STATUS_EXTENSION = managedEnv.ZKYQ_OMP_STATUS_EXTENSION
     } else {
-      delete baseEnv.ORCA_OMP_STATUS_EXTENSION
+      delete baseEnv.ZKYQ_OMP_STATUS_EXTENSION
     }
     return
   }
   if (kind === 'prime-agent') {
-    if (managedEnv.ORCA_PRIME_AGENT_SOURCE_AGENT_DIR) {
-      baseEnv.ORCA_PRIME_AGENT_SOURCE_AGENT_DIR = managedEnv.ORCA_PRIME_AGENT_SOURCE_AGENT_DIR
+    if (managedEnv.ZKYQ_PRIME_AGENT_SOURCE_AGENT_DIR) {
+      baseEnv.ZKYQ_PRIME_AGENT_SOURCE_AGENT_DIR = managedEnv.ZKYQ_PRIME_AGENT_SOURCE_AGENT_DIR
     } else {
-      delete baseEnv.ORCA_PRIME_AGENT_SOURCE_AGENT_DIR
+      delete baseEnv.ZKYQ_PRIME_AGENT_SOURCE_AGENT_DIR
     }
     return
   }
-  delete baseEnv.ORCA_PI_CODING_AGENT_DIR
-  if (managedEnv.ORCA_PI_SOURCE_AGENT_DIR) {
-    baseEnv.ORCA_PI_SOURCE_AGENT_DIR = managedEnv.ORCA_PI_SOURCE_AGENT_DIR
+  delete baseEnv.ZKYQ_PI_CODING_AGENT_DIR
+  if (managedEnv.ZKYQ_PI_SOURCE_AGENT_DIR) {
+    baseEnv.ZKYQ_PI_SOURCE_AGENT_DIR = managedEnv.ZKYQ_PI_SOURCE_AGENT_DIR
   } else {
-    delete baseEnv.ORCA_PI_SOURCE_AGENT_DIR
+    delete baseEnv.ZKYQ_PI_SOURCE_AGENT_DIR
   }
 }
 
@@ -133,9 +138,9 @@ export function getInheritedAgentHookEnvKeysToDelete(
   // Why: providers merge process.env after cleanup; delete stale hook keys without dropping fresh coordinates buildPtyHostEnv set.
   return [
     ...AGENT_HOOK_RUNTIME_ENV_KEYS,
-    'ORCA_OPENCODE_AGENT',
-    'ORCA_OPENCODE_CONFIG_DIR',
-    'ORCA_OPENCODE_SOURCE_CONFIG_DIR'
+    'ZKYQ_OPENCODE_AGENT',
+    'ZKYQ_OPENCODE_CONFIG_DIR',
+    'ZKYQ_OPENCODE_SOURCE_CONFIG_DIR'
   ].filter((key) => env[key] === undefined)
 }
 
@@ -172,13 +177,18 @@ export function resolveOpenCodeSourceConfigDir(
   baseEnv: Record<string, string>,
   inheritedEnv: NodeJS.ProcessEnv = process.env
 ): string | undefined {
+  migrateAgentHookEnvironmentIdentity(baseEnv)
+  migrateOpenCodeEnvironmentIdentity(baseEnv)
+  inheritedEnv = { ...inheritedEnv }
+  migrateAgentHookEnvironmentIdentity(inheritedEnv)
+  migrateOpenCodeEnvironmentIdentity(inheritedEnv)
   const configDir = baseEnv.OPENCODE_CONFIG_DIR ?? inheritedEnv.OPENCODE_CONFIG_DIR
-  const orcaConfigDir = baseEnv.ORCA_OPENCODE_CONFIG_DIR ?? inheritedEnv.ORCA_OPENCODE_CONFIG_DIR
+  const orcaConfigDir = baseEnv.ZKYQ_OPENCODE_CONFIG_DIR ?? inheritedEnv.ZKYQ_OPENCODE_CONFIG_DIR
   if (configDir && orcaConfigDir && configDir !== orcaConfigDir) {
     return configDir
   }
   const sourceDir =
-    baseEnv.ORCA_OPENCODE_SOURCE_CONFIG_DIR ?? inheritedEnv.ORCA_OPENCODE_SOURCE_CONFIG_DIR
+    baseEnv.ZKYQ_OPENCODE_SOURCE_CONFIG_DIR ?? inheritedEnv.ZKYQ_OPENCODE_SOURCE_CONFIG_DIR
   if (sourceDir) {
     return sourceDir
   }

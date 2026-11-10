@@ -11,7 +11,7 @@ from tempfile import TemporaryDirectory
 from unittest.mock import Mock, patch
 from email.message import Message
 
-from control_everything.http.gateway import WEB, PanelHandler, build_profile_server, make_server
+from control_everything.http.gateway import WEB, PanelHandler, PanelServer, build_profile_server, make_server
 from tests.fixtures.integration_config import integration_config
 
 SOURCE = integration_config()["integrations"]["remote"]["source"]
@@ -511,6 +511,18 @@ class GatewayRejectionTests(unittest.TestCase):
 
 
 class GatewayEntryTests(unittest.TestCase):
+    def test_initial_asset_connections_can_queue_before_dispatch(self):
+        # The Studio entry requests sixteen independent static resources together.
+        server = PanelServer(('127.0.0.1', 0), PanelHandler)
+        clients = []
+        try:
+            for _ in range(16):
+                clients.append(socket.create_connection(server.server_address, timeout=0.5))
+        finally:
+            for client in clients:
+                client.close()
+            server.server_close()
+
     def test_legacy_cli_contract(self):
         import runpy
         from unittest.mock import patch

@@ -82,7 +82,9 @@ vi.mock('@/components/ui/sheet', () => ({
 }))
 
 vi.mock('./WorkspaceKanbanDrawerHeader', () => ({
-  default: () => <div data-testid="workspace-board-header" />
+  default: ({ onViewModeChange }: { onViewModeChange: (mode: 'status') => void }) => (
+    <button data-testid="workspace-board-header" onClick={() => onViewModeChange('status')} />
+  )
 }))
 
 vi.mock('./WorkspaceKanbanLaneGrid', () => ({
@@ -258,6 +260,9 @@ function renderDrawer(item: Worktree, enabled = true, statusBarVisible = true): 
       />
     )
   })
+  act(() => {
+    container.querySelector<HTMLButtonElement>('[data-testid="workspace-board-header"]')?.click()
+  })
 }
 
 beforeEach(() => {
@@ -290,10 +295,10 @@ describe('WorkspaceKanbanDrawer task status sync wiring', () => {
     const sheet = document.querySelector<HTMLElement>('[data-slot="sheet-content"]')
     const overlay = document.querySelector<HTMLElement>('[data-slot="sheet-overlay"]')
 
-    expect(sheet?.style.top).toBe('36px')
+    expect(sheet?.style.top).toBe('var(--platform-workspace-panel-top, 36px)')
     expect(sheet?.style.bottom).toBe('24px')
     expect(sheet?.style.height).toBe('auto')
-    expect(overlay?.style.top).toBe('36px')
+    expect(overlay?.style.top).toBe('var(--platform-workspace-panel-top, 36px)')
     expect(overlay?.style.bottom).toBe('24px')
     expect(overlay?.style.pointerEvents).toBe('none')
   })
@@ -304,10 +309,10 @@ describe('WorkspaceKanbanDrawer task status sync wiring', () => {
     const sheet = document.querySelector<HTMLElement>('[data-slot="sheet-content"]')
     const overlay = document.querySelector<HTMLElement>('[data-slot="sheet-overlay"]')
 
-    expect(sheet?.style.top).toBe('36px')
+    expect(sheet?.style.top).toBe('var(--platform-workspace-panel-top, 36px)')
     expect(sheet?.style.bottom).toBe('0px')
     expect(sheet?.style.height).toBe('auto')
-    expect(overlay?.style.top).toBe('36px')
+    expect(overlay?.style.top).toBe('var(--platform-workspace-panel-top, 36px)')
     expect(overlay?.style.bottom).toBe('0px')
     expect(overlay?.style.pointerEvents).toBe('none')
   })

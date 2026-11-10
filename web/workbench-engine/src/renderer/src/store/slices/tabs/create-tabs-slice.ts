@@ -12,12 +12,14 @@ import { createTabsDropActions } from './tabs-drop-actions'
 import { createTabsSplitRatioActions } from './tabs-split-ratio-actions'
 import { createTabsDragPreviewActions } from './tabs-drag-preview-actions'
 import { createTabsSessionActions } from './tabs-session-actions'
+import { openGitGraphTab } from './tabs-git-graph'
 
 export const createTabsSlice: StateCreator<AppState, [], [], TabsSlice> = (set, get) => ({
   unifiedTabsByWorktree: {},
   groupsByWorktree: {},
   activeGroupIdByWorktree: {},
   layoutByWorktree: {},
+  openGitGraph: (worktreeId, options) => openGitGraphTab(get, worktreeId, options),
   ...createTabsCreateActions(set, get),
   ...createTabsFocusActions(set, get),
   ...createTabsCloseActions(set, get),

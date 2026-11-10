@@ -76,9 +76,9 @@ function runDesktopRecovery(argv: readonly string[]): void {
       dialog.showMessageBox({
         type: 'error',
         buttons: ['Quit'],
-        title: 'Orca could not finish recovering this profile',
-        message: 'Orca could not apply the selected profile state.',
-        detail: `${response.message}\n\nReopen Orca to choose again.`
+        title: 'Control Everything could not finish recovering this profile',
+        message: 'Control Everything could not apply the selected profile state.',
+        detail: `${response.message}\n\nReopen Control Everything to choose again.`
       })
     )
     .catch((error: unknown) => console.warn('[profile-state] Recovery error dialog failed:', error))
@@ -102,14 +102,14 @@ function runRecoveryRequest(payload: string | undefined): ProfileStateRecoveryRe
     }
     const userDataPath = realpathSync(parsed.data.userDataPath)
     app.setPath('userData', userDataPath)
-    process.env.ORCA_USER_DATA_PATH = userDataPath
+    process.env.ZKYQ_USER_DATA_PATH = userDataPath
     const maintenance = acquireProfileStateMaintenance(userDataPath)
     try {
       // Force Electron's lock even when ordinary dev or diagnostic launches would bypass it.
       if (!acquireSingleInstanceLock(app, () => {})) {
         throw new ProfileStateRecoveryCommandError(
           'runtime_error',
-          'Stop Orca before profile-state rollback so no process can write the SQLite database.'
+          'Stop Control Everything before profile-state rollback so no process can write the SQLite database.'
         )
       }
       return {

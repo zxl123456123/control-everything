@@ -18,10 +18,10 @@ const CODEX_NO_DAEMON_SKIP_ARG_PATTERN = argPattern(CODEX_NO_DAEMON_SKIP_ARGS)
  */
 export const CODEX_COMMAND_IDENTITY_ENV_KEYS = [
   'ORCA_TERMINAL_HANDLE',
-  'ORCA_PANE_KEY',
-  'ORCA_WORKTREE_ID',
-  'ORCA_WORKSPACE_ID',
-  'ORCA_USER_DATA_PATH'
+  'ZKYQ_PANE_KEY',
+  'ZKYQ_WORKTREE_ID',
+  'ZKYQ_WORKSPACE_ID',
+  'ZKYQ_USER_DATA_PATH'
 ] as const
 
 // Why values holding `'` are skipped: a TOML literal can't carry one, and Codex's fallback for the

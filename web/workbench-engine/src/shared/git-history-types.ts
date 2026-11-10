@@ -57,6 +57,8 @@ export type GitHistoryItem = {
 export type GitHistoryOptions = {
   limit?: number
   baseRef?: string | null
+  /** Named local/remote branches, tags and this worktree's HEAD. */
+  allRefs?: boolean
 }
 
 export type GitHistoryResult = {
@@ -69,6 +71,8 @@ export type GitHistoryResult = {
   hasOutgoingChanges: boolean
   hasMore: boolean
   limit: number
+  /** Confirms that the execution host supports the repository graph scope. */
+  allRefs?: boolean
 }
 
 export type GitHistoryExecutor = (

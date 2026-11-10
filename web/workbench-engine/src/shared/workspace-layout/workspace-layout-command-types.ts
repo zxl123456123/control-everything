@@ -147,7 +147,10 @@ export type LayoutCommand =
       /** The editor's file id: the tab's entity. Absent (main's own opens only; the wire still
        *  requires it): main picks it for `file`. */
       fileId?: string
-      contentType: Exclude<TabContentType, 'terminal' | 'browser' | 'agent-session' | 'simulator'>
+      contentType: Exclude<
+        TabContentType,
+        'terminal' | 'browser' | 'agent-session' | 'simulator' | 'git-graph'
+      >
       /** Present for edit-mode files, which are restored after restart. */
       file?: LayoutEditorFile
       /** What the tab shows beyond its file; not saved. */
@@ -172,6 +175,15 @@ export type LayoutCommand =
       afterTabId?: string
       index?: number
       /** When the window drew the tab, so a later save of it matches main's copy. */
+      createdAt?: number
+      split?: NewGroupSplit
+    })
+  | (On & {
+      type: 'openGitGraphTab'
+      tabId: string
+      groupId?: string
+      afterTabId?: string
+      index?: number
       createdAt?: number
       split?: NewGroupSplit
     })

@@ -1,4 +1,5 @@
 import { checkHookOwnerPresence } from '../shared/agent-hook-owner-presence'
+import { normalizeAgentHookRequestHeaders } from '../shared/agent-hook-request-headers'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { HOOK_REQUEST_SLOWLORIS_MS } from '../shared/agent-hook-listener/listener-limits'
 import { mergeAgentHookRequestHeaders } from '../shared/agent-hook-listener/hook-envelope'
@@ -42,7 +43,8 @@ export async function handleRelayHookRequest(
     res.end()
     return
   }
-  if (req.headers['x-orca-agent-hook-token'] !== options.token) {
+  const headers = normalizeAgentHookRequestHeaders(req.headers)
+  if (!headers || headers['x-zkyq-agent-hook-token'] !== options.token) {
     res.writeHead(403)
     res.end()
     return

@@ -37,6 +37,7 @@ export type OrcadRollbackOptions = {
   record: OrcadActivationRecord
   nodePath: string
   userDataDir: string
+  defaultDataRoot?: string
   bindHost: string
   port: number
   census: OrcadTerminalCensus

@@ -1,8 +1,8 @@
 import { browserStorage } from '../../web/remote-context'
 import type { JSX } from 'react'
 import {
-  ORCA_CLI_SKILL_INSTALL_COMMAND,
-  ORCA_CLI_SKILL_NAME
+  WORKBENCH_CLI_SKILL_INSTALL_COMMAND,
+  WORKBENCH_CLI_SKILL_NAME
 } from '@/lib/agent-feature-install-commands'
 import { BROWSER_USE_ENABLED_STORAGE_KEY } from '@/lib/browser-use-setup-state'
 import type { InstalledAgentSkillState } from '@/hooks/useInstalledAgentSkills'
@@ -20,8 +20,11 @@ export function BrowserUseSkillSetupCard(props: {
   const { compact, terminalHeightPx, skill } = props
   const activeSkillRuntime = useActiveProjectSkillRuntime()
   const installCommand = !activeSkillRuntime.installDisabledReason
-    ? buildSkillCommandForRuntime(ORCA_CLI_SKILL_INSTALL_COMMAND, activeSkillRuntime.agentRuntime)
-    : ORCA_CLI_SKILL_INSTALL_COMMAND
+    ? buildSkillCommandForRuntime(
+        WORKBENCH_CLI_SKILL_INSTALL_COMMAND,
+        activeSkillRuntime.agentRuntime
+      )
+    : WORKBENCH_CLI_SKILL_INSTALL_COMMAND
 
   const handleBeforeOpenTerminal = (): void => {
     useAppStore.getState().recordFeatureInteraction('agent-browser-setup')
@@ -54,7 +57,7 @@ export function BrowserUseSkillSetupCard(props: {
       showRecheckWhenInstalled={false}
       onRecheck={skill.refresh}
       freshnessSkillName={
-        activeSkillRuntime.canUseLocalSkillFreshness ? ORCA_CLI_SKILL_NAME : undefined
+        activeSkillRuntime.canUseLocalSkillFreshness ? WORKBENCH_CLI_SKILL_NAME : undefined
       }
     />
   )

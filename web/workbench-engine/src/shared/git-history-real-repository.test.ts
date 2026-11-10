@@ -63,6 +63,77 @@ async function createRepository(inheritedEnv: NodeJS.ProcessEnv = process.env) {
 }
 
 describe('real unrelated Git histories', () => {
+  it('keeps graph branch and tag labels despite log exclusions without adding stash history', async () => {
+    const { repo, git } = await createRepository()
+    await git(['update-ref', 'refs/remotes/origin/unrelated', 'HEAD'])
+    await git(['tag', 'graph-tag'])
+    await git(['checkout', '--orphan', 'stash-only'])
+    await git(['commit', '--quiet', '--allow-empty', '-m', 'Stash-only history'])
+    await git(['update-ref', 'refs/stash', 'HEAD'])
+    await git(['checkout', '--detach', 'unrelated'])
+    await git(['branch', '-D', 'stash-only'])
+    await git(['config', 'log.excludeDecoration', 'refs/*'])
+
+    const result = await loadGitHistoryFromExecutor(git, repo, { allRefs: true })
+    const headOid = (await git(['rev-parse', 'HEAD'])).stdout.trim()
+    expect(result.currentRef).toMatchObject({ revision: headOid, category: 'commits' })
+    expect(result.items.find((item) => item.id === headOid)?.references).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: 'refs/heads/unrelated' }),
+        expect.objectContaining({ id: 'refs/remotes/origin/unrelated' }),
+        expect.objectContaining({ id: 'refs/tags/graph-tag' })
+      ])
+    )
+    expect(result.items.some((item) => item.subject === 'Stash-only history')).toBe(false)
+
+    // The existing sidebar still honors its original log decoration settings.
+    const sidebar = await loadGitHistoryFromExecutor(git, repo)
+    expect(sidebar.items.find((item) => item.id === headOid)?.references).toEqual([])
+  })
+
+  it('includes remote-only and tag-only histories, merges and detached HEAD within the cap', async () => {
+    const { repo, git } = await createRepository()
+    await git(['update-ref', 'refs/remotes/origin/unrelated', 'HEAD'])
+    await git(['checkout', 'first'])
+    await git(['branch', '-D', 'unrelated'])
+    await git(['checkout', '-b', 'feature'])
+    await git(['commit', '--quiet', '--allow-empty', '-m', 'Feature'])
+    await git(['checkout', 'first'])
+    await git(['merge', '--no-ff', '--quiet', '-m', 'Merge feature', 'feature'])
+    await git(['checkout', '--orphan', 'tag-only'])
+    await git(['commit', '--quiet', '--allow-empty', '-m', 'Tagged root'])
+    await git(['tag', '-a', 'v1', '-m', 'Release'])
+    await git(['checkout', '--detach', 'first'])
+    await git(['branch', '-D', 'tag-only'])
+    await git(['commit', '--quiet', '--allow-empty', '-m', 'Detached tip'])
+    const result = await loadGitHistoryFromExecutor(git, repo, { allRefs: true, limit: 200 })
+    expect(result.items.map((item) => item.subject)).toEqual(
+      expect.arrayContaining(['V', 'Tagged root', 'Detached tip', 'Merge feature', 'Feature'])
+    )
+    expect(result.items.find((item) => item.subject === 'Merge feature')?.parentIds).toHaveLength(2)
+    expect(result.items.find((item) => item.subject === 'Tagged root')?.references).toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: 'v1', category: 'tags' })])
+    )
+    expect(result.items.find((item) => item.subject === 'V')?.references).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: 'origin/unrelated', category: 'remote branches' })
+      ])
+    )
+    expect(result.currentRef?.revision).toBe((await git(['rev-parse', 'HEAD'])).stdout.trim())
+    expect(result.hasMore).toBe(false)
+  })
+
+  it('shows named refs even when the current HEAD is unborn, and handles a truly empty repository', async () => {
+    const { repo, git } = await createRepository()
+    await git(['checkout', '--orphan', 'unborn'])
+    const named = await loadGitHistoryFromExecutor(git, repo, { allRefs: true })
+    expect(named.items).toHaveLength(3)
+    expect(named.currentRef).toBeUndefined()
+    await git(['branch', '-D', 'first', 'unrelated'])
+    const empty = await loadGitHistoryFromExecutor(git, repo, { allRefs: true })
+    expect(empty).toMatchObject({ items: [], allRefs: true, hasMore: false })
+  })
+
   it.each(['repository pointers', 'config overrides'] as const)(
     'ignores inherited Git %s when creating a fixture',
     async (contamination) => {

@@ -28,13 +28,14 @@ describe('the Orca session ID a chat copies', () => {
   })
 
   it("is the host's Orca session ID for the conversation, not the live session's", async () => {
-    callRuntimeRpc.mockResolvedValue({ orcaSessionId: `orca_session_id:${ROOT}` })
+    callRuntimeRpc.mockResolvedValue({ sessionId: `agent_session:${ROOT}` })
 
     await expect(resolveStructuredSessionOrcaSessionId(LOCAL, LIVE)).resolves.toBe(
-      `orca_session_id:${ROOT}`
+      `agent_session:${ROOT}`
     )
     expect(callRuntimeRpc).toHaveBeenCalledWith(LOCAL, 'orchestration.sessionAddress', {
-      sessionId: LIVE
+      sessionId: LIVE,
+      responseFormat: 'workbench'
     })
   })
 
@@ -43,6 +44,20 @@ describe('the Orca session ID a chat copies', () => {
 
     await expect(resolveStructuredSessionOrcaSessionId(LOCAL, LIVE)).resolves.toBe(
       `orca_session_id:${LIVE}`
+    )
+  })
+
+  it('uses the exact legacy address returned by an older host', async () => {
+    callRuntimeRpc.mockResolvedValue({ orcaSessionId: `orca_session_id:${ROOT}` })
+    await expect(resolveStructuredSessionOrcaSessionId(LOCAL, LIVE)).resolves.toBe(
+      `orca_session_id:${ROOT}`
+    )
+  })
+
+  it('refuses conflicting response identities', async () => {
+    callRuntimeRpc.mockResolvedValue({ sessionId: `agent_session:${ROOT}`, orcaSessionId: 'other' })
+    await expect(resolveStructuredSessionOrcaSessionId(LOCAL, LIVE)).rejects.toThrow(
+      'Conflicting session identities'
     )
   })
 

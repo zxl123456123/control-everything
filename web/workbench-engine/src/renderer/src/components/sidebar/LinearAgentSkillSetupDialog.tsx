@@ -23,6 +23,7 @@ type LinearAgentSkillSetupDialogProps = {
   missingLabel: string
   command: string
   installedCommand: string
+  migrationSkillName?: string
   terminalShellOverride?: string
   terminalRuntime?: AgentSkillSetupPanelProps['terminalRuntime']
   installed: boolean
@@ -41,6 +42,7 @@ export function LinearAgentSkillSetupDialog({
   missingLabel,
   command,
   installedCommand,
+  migrationSkillName,
   terminalShellOverride,
   terminalRuntime,
   installed,
@@ -120,6 +122,7 @@ export function LinearAgentSkillSetupDialog({
               description={missingLabel}
               command={command}
               installedCommand={installedCommand}
+              migrationSkillName={migrationSkillName}
               terminalTitle={translate(
                 'auto.components.sidebar.LinearAgentSkillSetupPrompt.terminalTitle',
                 'Install Linear agent skill'

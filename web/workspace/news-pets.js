@@ -76,7 +76,7 @@
     };
   }
   const list = () => [...pets.values()].filter(isEnabled).map(pet => ({name: pet.name, label: pet.label, status: pet.status}));
-  register('spider', {label: '蜘蛛', mount: options => global.NewsSpider.mount(options)});
+  register('spider', {label: '蜘蛛', mount: lazy('spider', 'NewsSpider', 'news-spider.js')});
   register('naidragon', {label: '奶龙', status: true, mount: lazy('naidragon', 'NewsNaidragon', 'news-naidragon.js', ['spider'])});
   register('tabbycat', {label: '狸花猫', status: true, mount: lazy('tabbycat', 'NewsTabbycat', 'news-tabbycat.js', ['spider'])});
   // `status: true` marks pets that draw the usage/agent status chip; only they make the reader poll the status endpoints.

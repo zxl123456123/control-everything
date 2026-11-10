@@ -21,6 +21,9 @@ function visibleTypeForContentType(
   if (contentType === 'simulator') {
     return 'simulator'
   }
+  if (contentType === 'git-graph') {
+    return 'git-graph'
+  }
   return contentType ? 'editor' : undefined
 }
 

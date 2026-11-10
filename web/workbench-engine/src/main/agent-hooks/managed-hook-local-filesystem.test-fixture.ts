@@ -1,4 +1,4 @@
-import { chmod, mkdir, readFile, readdir, rename, stat, unlink, writeFile } from 'node:fs'
+import { chmod, lstat, mkdir, readFile, readdir, rename, stat, unlink, writeFile } from 'node:fs'
 import type { SFTPWrapper } from 'ssh2'
 
 type Callback<T = void> = (error: Error | null, value?: T) => void
@@ -34,6 +34,9 @@ export function createManagedHookLocalFilesystem(): SFTPWrapper {
     },
     stat(path: string, callback: Callback<{ mode: number }>): void {
       stat(path, (error, stats) => finish(callback, error, stats))
+    },
+    lstat(path: string, callback: Callback<{ mode: number }>): void {
+      lstat(path, (error, stats) => finish(callback, error, stats))
     },
     readdir(path: string, callback: Callback<{ filename: string }[]>): void {
       // Why names only: Kiro lists its agent configs by name; attrs have no consumer,

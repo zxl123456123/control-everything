@@ -39,8 +39,8 @@ function setup({prefs = {}, route = {view: 'home', tab: ''}, compact = false, re
   };
   const engines = [], wheels = [];
   const wheelFactory = {create(config) {
-    const wheel = {config, open: false, pinned: config.pinned, destroyed: false, refreshed: 0,
-      toggle(keyboard) { wheel.open = !wheel.open; wheel.keyboard = keyboard; }, isOpen: () => wheel.open, setPinned(value) { wheel.pinned = value; },
+    const wheel = {config, open: false, destroyed: false, refreshed: 0,
+      toggle(keyboard) { wheel.open = !wheel.open; wheel.keyboard = keyboard; }, isOpen: () => wheel.open,
       refresh() { wheel.refreshed++; }, close() { wheel.open = false; }, destroy() { wheel.destroyed = true; }};
     wheels.push(wheel); return wheel;
   }};
@@ -64,7 +64,7 @@ function setup({prefs = {}, route = {view: 'home', tab: ''}, compact = false, re
   const flags = {compact, reduced};
   const env = {compact: () => flags.compact, reduced: () => flags.reduced, onChange: fn => { envListener = fn; return () => { envListener = null; }; }};
   const mascot = context.window.StudioMascot.create({
-    host, route: () => current, navigate: hash => navigations.push(hash), prefs: window.NewsPetPrefs, dial: window.NewsPetDial,
+    host, route: () => current, navigate: hash => navigations.push(hash), prefs: window.NewsPetPrefs,
     director: window.NewsPetDirector, wheel: wheelFactory, pets, feed, env, storage: window.localStorage,
     setTimer: (fn, ms) => { const timer = {fn, ms}; timers.push(timer); return timer; }, clearTimer: timer => { timers = timers.filter(item => item !== timer); },
   });
@@ -81,16 +81,17 @@ function setup({prefs = {}, route = {view: 'home', tab: ''}, compact = false, re
 }
 
 // the dial's actions live in the wheel the host owns; the engine is never given any
+const state = (wheel, id) => { const item = wheel.config.actions().find(entry => entry.id === id); return {enabled: item.enabled, reason: item.reason, checked: item.checked}; };
 const ids = wheel => JSON.parse(JSON.stringify(wheel.config.actions().map(item => item.id)));
 
-test('policy shows the mascot on workbench pages and hides it on focused or self-owned surfaces', () => {
+test('policy shows the mascot on all routes except the reader, which owns its own pet', () => {
   const {policy} = setup().window.StudioMascot;
   for (const view of ['home', 'inbox', 'tools']) assert.equal(policy({view}).show, true, view);
   assert.equal(policy({view: 'settings', tab: 'appearance'}).show, true);
-  assert.equal(policy({view: 'settings', tab: 'account'}).reason, 'pairing-page');
+  assert.equal(policy({view: 'settings', tab: 'account'}).show, true);
   assert.equal(policy({view: 'news'}).reason, 'news-owns-pet');
-  for (const view of ['project', 'workbench', 'mobile']) assert.equal(policy({view}).reason, 'focused-surface', view);
-  assert.equal(policy({view: 'home'}, {compact: true}).reason, 'compact-viewport');
+  for (const view of ['project', 'workbench', 'mobile']) assert.equal(policy({view}).show, true, view);
+  assert.equal(policy({view: 'home'}, {compact: true}).show, true);
 });
 
 test('mounts the stored 3D pet on a workbench page and follows the route', () => {
@@ -100,37 +101,77 @@ test('mounts the stored 3D pet on a workbench page and follows the route', () =>
   assert.equal(t.engine().options.actions, undefined, 'and the engine is not handed any actions');
   assert.equal(t.engine().options.options.dock, 'br');
   t.go({view: 'project', id: 'a', tab: 'workspace'});
-  assert.equal(t.live().length, 0);
-  assert.equal(t.parts().length, 0, 'the overlay leaves no DOM behind');
+  assert.equal(t.live().length, 1, 'the same pet stays mounted in the project workspace');
   t.go({view: 'news'});
   assert.equal(t.live().length, 0);
   t.go({view: 'inbox'});
   assert.equal(t.live().length, 1);
 });
 
-test('the spider, a disabled pet and a compact viewport never mount an engine', () => {
-  assert.equal(setup().engines.length, 0, 'default pet is the spider');
+test('the spider and compact viewport mount, while a disabled pet does not', () => {
+  const spider = setup();
+  assert.equal(spider.engine().name, 'spider');
+  assert.equal(spider.feed().starts, 0, 'the spider does not use the 3D pet status feed');
   assert.equal(setup({prefs: {'news-reader-pet': 'naidragon', 'news-reader-pet-enabled': 'false'}}).engines.length, 0);
-  assert.equal(setup({prefs: {'news-reader-pet': 'naidragon'}, compact: true}).engines.length, 0);
+  assert.equal(setup({prefs: {'news-reader-pet': 'naidragon'}, compact: true}).engines.length, 1);
 });
 
 test('size and dock preferences reach the engine; a bottom-left pet sits beside the rail', () => {
   const t = setup({prefs: {'news-reader-pet': 'naidragon', 'news-reader-pet-size': 'large', 'news-reader-pet-dock': 'bl'}});
   assert.equal(t.engine().options.options.scale, 1.25);
   assert.equal(t.engine().options.options.dock, 'bl');
+  assert.equal(t.engine().options.options.margin, 64, 'the resting pet clears the bottom status bar');
   assert.equal(t.host.querySelector('.ce-mascot').style.left, '240px');
+  const depot = t.host.querySelector('.ce-mascot-depot'), key = t.host.querySelector('.ce-mascot-key');
+  assert.equal(depot.dataset.dock, 'bl');
+  assert.equal(key.dataset.dock, 'bl');
+  assert.match(key.style.left, /^calc\(240px \+ max\(64px,/);
+  depot.getBoundingClientRect = () => ({left: 304, top: 656});
+  assert.equal(t.liveWheel().config.anchor().left, 304, 'the wheel follows the left depot beside the rail');
   t.set({size: 'small', dock: 'auto'});
   assert.equal(t.engine().options.scale, 0.8);
   assert.equal(t.engine().options.dock, 'br');
+  assert.equal(t.engine().options.margin, 64);
   assert.equal(t.host.querySelector('.ce-mascot').style.left, '0px');
+  assert.equal(depot.dataset.dock, 'br');
+  assert.equal(key.style.left, '');
+  depot.getBoundingClientRect = () => ({left: 936, top: 656});
+  assert.equal(t.liveWheel().config.anchor().left, 840, 'the wheel follows the right depot');
 });
 
-test('switching the pet remounts, switching to the spider or off removes the overlay', () => {
+test('the spider uses a wider left and right dock with its wheel anchored to the depot', () => {
+  const t = setup({prefs: {'news-reader-pet-dock': 'bl'}});
+  assert.equal(t.engine().name, 'spider');
+  const depot = t.host.querySelector('.ce-mascot-depot'), key = t.host.querySelector('.ce-mascot-key');
+  assert.equal(depot.dataset.dock, 'bl');
+  assert.equal(key.dataset.dock, 'bl');
+  assert.equal(key.dataset.pet, 'spider');
+  assert.match(key.style.left, /^calc\(240px \+ max\(128px,/);
+  depot.getBoundingClientRect = () => ({left: 368, top: 592});
+  assert.equal(t.liveWheel().config.anchor().left, 320, 'the spider is centred in the wheel anchor');
+  assert.equal(t.liveWheel().config.anchor().top, 528, 'the wheel follows the raised spider');
+  t.set({dock: 'br'});
+  assert.equal(depot.dataset.dock, 'br');
+  assert.equal(key.style.left, '');
+  depot.getBoundingClientRect = () => ({left: 872, top: 592});
+  assert.equal(t.liveWheel().config.anchor().left, 824, 'the right dock also anchors at the spider centre');
+  assert.equal(t.liveWheel().config.anchor().top, 528);
+});
+
+test('the spider depot and keyboard trigger clear the bottom edge independently of 3D pets', () => {
+  const css = read('studio-preview.css');
+  assert.match(css, /\.ce-mascot-depot\{right:max\(64px,[^}]*bottom:max\(64px,/);
+  assert.match(css, /\.ce-mascot\[data-pet=spider\] \.ce-mascot-depot\{[^}]*bottom:max\(128px,/);
+  assert.match(css, /\.ce-mascot-key\[data-pet=spider\]\{bottom:max\(128px,/);
+});
+
+test('switching pets remounts and switching off removes the overlay', () => {
   const t = setup({prefs: {'news-reader-pet': 'naidragon'}});
   t.set({pet: 'tabbycat'});
   assert.deepEqual(t.engines.map(item => [item.name, item.destroyed]), [['naidragon', true], ['tabbycat', false]]);
   t.set({pet: 'spider'});
-  assert.equal(t.live().length, 0);
+  assert.equal(t.engine().name, 'spider');
+  assert.equal(t.live().length, 1);
   t.set({pet: 'naidragon'});
   assert.equal(t.live().length, 1);
   t.set({enabled: false});
@@ -179,32 +220,37 @@ test('the first-run hint shows once, never in quiet mode, and retries while the 
   assert.equal(quietLater.timers().length, 0, 'turning quiet mode on cancels the pending hint');
 });
 
-test('the dial uses the studio surface, hides the useless home entry and navigates through hashes', () => {
+test('the wheel always offers the six fixed slots; the page you are on is greyed and search is news-only', () => {
   const t = setup({prefs: {'news-reader-pet': 'naidragon'}});
-  assert.deepEqual(ids(t.liveWheel()), ['quiet', 'pet-settings', 'news']);
+  const all = ['workspace', 'news', 'search', 'quiet', 'pet-settings', 'hide-pet'];
+  assert.deepEqual(ids(t.liveWheel()), all);
+  assert.deepEqual(state(t.liveWheel(), 'workspace'), {enabled: false, reason: '当前页', checked: undefined}, 'the default route is home');
+  assert.equal(state(t.liveWheel(), 'news').enabled, true);
+  assert.deepEqual(state(t.liveWheel(), 'search'), {enabled: false, reason: '仅新闻页', checked: undefined});
   t.liveWheel().config.actions().find(item => item.id === 'news').run();
   t.liveWheel().config.actions().find(item => item.id === 'pet-settings').run();
   assert.deepEqual(t.navigations, ['#news', '#settings/appearance']);
   t.go({view: 'tools'});
-  assert.deepEqual(ids(t.liveWheel()), ['workspace', 'quiet', 'pet-settings']);
+  assert.deepEqual(ids(t.liveWheel()), all, 'a route change never reorders or drops a slot');
+  assert.equal(state(t.liveWheel(), 'workspace').enabled, true);
   t.liveWheel().config.actions().find(item => item.id === 'workspace').run();
   assert.equal(t.navigations.at(-1), '#home');
 });
 
-test('dial quiet and hide entries write preferences and announce through the live region', () => {
+test('quiet and hide write preferences and announce through the live region; the quiet slot shows its state', () => {
   const t = setup({prefs: {'news-reader-pet': 'naidragon'}});
   const note = t.host.querySelector('.ce-mascot-note');
   assert.equal(note.hidden, true);
+  assert.equal(state(t.liveWheel(), 'quiet').checked, false);
   t.liveWheel().config.actions().find(item => item.id === 'quiet').run();
   assert.equal(t.window.NewsPetPrefs.read().quiet, true);
   assert.match(note.textContent, /安静模式已开启/);
   assert.equal(note.hidden, false);
-  t.liveWheel().config.actions().find(item => item.id === 'hide-pet')?.run();
-  t.set({dial: ['quiet', 'hide-pet', 'pet-settings']});
+  assert.equal(state(t.liveWheel(), 'quiet').checked, true);
   t.liveWheel().config.actions().find(item => item.id === 'hide-pet').run();
   assert.equal(t.window.NewsPetPrefs.read().enabled, false);
   assert.equal(t.live().length, 0);
-  assert.match(note.textContent, /重新打开/);
+  assert.match(note.textContent, /设置 → 外观 → 宠物/);
 });
 
 test('the key button toggles the wheel; keyboard activation (detail 0) asks it to take focus', () => {
@@ -219,18 +265,20 @@ test('the key button toggles the wheel; keyboard activation (detail 0) asks it t
   assert.equal(t.engine().options.options.dial, false, 'the pet itself no longer draws a dial');
 });
 
-test('the wheel is anchored to the depot, follows the dial setting and the pin preference, and dies with the pet', () => {
+test('the wheel is anchored to the depot, is rebuilt when a route change greys another slot, and dies with the pet', () => {
   const t = setup({prefs: {'news-reader-pet': 'naidragon'}});
   const wheel = t.liveWheel();
   assert.equal(wheel.config.tapTarget.className, 'ce-mascot');
   const slot = wheel.config.anchor();
   assert.ok(slot.width > 0 && slot.height > 0 && Number.isFinite(slot.left) && Number.isFinite(slot.top), 'the anchor is a pet-sized resting slot, not the 1px depot');
-  assert.equal(wheel.config.pinned, false);
-  wheel.config.onPinChange(true);
-  assert.equal(t.window.NewsPetPrefs.read().dialPin, true, 'the pin goes through the shared preference');
-  assert.equal(wheel.pinned, true);
-  t.set({dial: ['quiet', 'hide-pet', 'pet-settings']});
-  assert.equal(wheel.refreshed, 1);
+  assert.equal('pinned' in wheel.config || 'onPinChange' in wheel.config, false, 'the pin feature is gone');
+  assert.equal(wheel.refreshed, 0);
+  t.go({view: 'tools'});
+  assert.equal(wheel.refreshed, 1, 'home to tools greys another slot');
+  t.go({view: 'inbox'});
+  assert.equal(wheel.refreshed, 1, 'same availability, no rebuild');
+  t.set({quiet: true});
+  assert.equal(wheel.refreshed, 2, 'the quiet slot shows its new state');
   t.go({view: 'news'});
   assert.equal(wheel.destroyed, true);
   assert.equal(t.liveWheel(), undefined);
@@ -253,11 +301,11 @@ test('a failing mount or the lazy fallback event removes the pet quietly and doe
   assert.equal(t.live().length, 1, 'picking another pet clears the failure');
 });
 
-test('viewport changes through the environment listener hide and restore the pet', () => {
+test('viewport changes keep the pet visible and reduced motion pauses it', () => {
   const t = setup({prefs: {'news-reader-pet': 'naidragon'}});
   assert.equal(t.live().length, 1);
   t.flags.compact = true; t.fireEnv();
-  assert.equal(t.live().length, 0);
+  assert.equal(t.live().length, 1);
   t.flags.compact = false; t.fireEnv();
   assert.equal(t.live().length, 1);
   t.flags.reduced = true; t.fireEnv();

@@ -36,7 +36,10 @@ type OnboardingInlineCommandTerminalProps = {
   onInteracted?: (method: 'keyboard' | 'pointer', event?: KeyboardEvent<HTMLElement>) => void
   onTerminalExit?: () => void
   // OSC 133;D reports the command outcome while the shell remains alive.
-  onCommandFinished?: (bestEffortExitCode: number | null) => void
+  onCommandFinished?: (
+    bestEffortExitCode: number | null,
+    owner?: TerminalCommandFinishedEventDetail['owner']
+  ) => void
 }
 
 /**
@@ -105,13 +108,15 @@ export function OnboardingInlineCommandTerminal({
       if (detail?.worktreeId !== worktreeId) {
         return
       }
-      onCommandFinished(detail.exitCode)
+      if (detail.owner && detail.owner.tabId !== tabId) return
+      if (detail.owner) onCommandFinished(detail.exitCode, detail.owner)
+      else onCommandFinished(detail.exitCode)
     }
     window.addEventListener(ORCA_TERMINAL_COMMAND_FINISHED_EVENT, handleCommandFinished)
     return () => {
       window.removeEventListener(ORCA_TERMINAL_COMMAND_FINISHED_EVENT, handleCommandFinished)
     }
-  }, [onCommandFinished, worktreeId])
+  }, [onCommandFinished, tabId, worktreeId])
 
   useEffect(() => {
     let cancelled = false

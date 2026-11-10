@@ -138,6 +138,25 @@ it.each(['json','text','blob'] as const)('guards delayed %s after Response alrea
   const rejected=expect(response[body]()).rejects.toThrow('remote_context_inactive')
   api.invalidateContext(); release('private'); await rejected
 })
+it('keeps an externally cancelled response from retiring an active page or delivering a late body', async () => {
+  const api = await import('./remote-context')
+  const controller = new AbortController(), late = new AbortController()
+  let deliver!: (value: Response) => void
+  vi.stubGlobal('fetch', vi.fn(() => new Promise<Response>(resolve => { deliver = resolve })))
+  const cancelled = api.contextFetch('/api/bootstrap', { signal: controller.signal })
+  const reason = new Error('caller cancelled')
+  const rejection = expect(cancelled).rejects.toBe(reason)
+  controller.abort(reason); deliver({ status: 401 } as Response)
+  await rejection
+  expect(() => api.assertContextActive()).not.toThrow()
+  let body!: (value: unknown) => void
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ status: 200, json: () => new Promise(resolve => { body = resolve }) }))
+  const reply = await api.contextFetch('/api/bootstrap', { signal: late.signal })
+  const pending = reply.json()
+  late.abort(); body('private')
+  await expect(pending).rejects.toBe(late.signal.reason)
+  expect(() => api.assertContextActive()).not.toThrow()
+})
 it('shares the actual plain helper one-way state on the same page', async()=>{
   const {readFileSync}=await import('node:fs')
   const {runInNewContext}=await import('node:vm')

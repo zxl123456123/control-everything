@@ -282,9 +282,9 @@ export const AUTOMATION_HANDLERS: Record<string, CommandHandler> = {
       id,
       ...(expectedOwner ? { expectedOwner } : {})
     })
-    const environment = getOptionalStringFlag(flags, 'environment') ?? process.env.ORCA_ENVIRONMENT
+    const environment = getOptionalStringFlag(flags, 'environment') ?? process.env.ZKYQ_ENVIRONMENT
     const preserveConnectionSettings = Boolean(
-      (client.isRemote && !environment) || process.env.ORCA_USER_DATA_PATH
+      (client.isRemote && !environment) || process.env.ZKYQ_USER_DATA_PATH
     )
     printResult(
       { ...result, result: { ...result.result, runId: result.result.run.id } },

@@ -35,7 +35,7 @@ describe('claude agent teams shim env', () => {
     // Why: the plan writes its tmux shim under ~/.orca.
     vi.stubEnv('HOME', root)
     vi.stubEnv('USERPROFILE', root)
-    const cliName = process.platform === 'win32' ? 'orca-dev.cmd' : 'orca-dev'
+    const cliName = process.platform === 'win32' ? 'zkyq-dev.cmd' : 'zkyq-dev'
     const cliPath = join(root, cliName)
     await writeFile(cliPath, '#!/usr/bin/env sh\n', 'utf8')
     if (process.platform !== 'win32') {
@@ -86,7 +86,7 @@ describe('claude agent teams shim env', () => {
   it('resolves the dev CLI wrapper for the tmux callback binary', async () => {
     const root = await mkdtemp(join(tmpdir(), 'orca-agent-teams-cli-'))
     roots.push(root)
-    const cliName = process.platform === 'win32' ? 'orca-dev.cmd' : 'orca-dev'
+    const cliName = process.platform === 'win32' ? 'zkyq-dev.cmd' : 'zkyq-dev'
     const cliPath = join(root, cliName)
     await writeFile(cliPath, '#!/usr/bin/env sh\n', 'utf8')
     if (process.platform !== 'win32') {
@@ -99,7 +99,7 @@ describe('claude agent teams shim env', () => {
   it('refuses to resolve a CLI through relative PATH entries or a bare override', async () => {
     const root = await mkdtemp(join(tmpdir(), 'orca-agent-teams-cli-'))
     roots.push(root)
-    for (const name of ['orca', 'orca-ide', 'orca.cmd']) {
+    for (const name of ['zkyq', 'zkyq.exe', 'orca', 'orca-ide', 'orca.cmd']) {
       const path = join(root, name)
       await writeFile(path, '#!/usr/bin/env sh\n', 'utf8')
       if (process.platform !== 'win32') {
@@ -123,7 +123,7 @@ describe('claude agent teams shim env', () => {
     async () => {
       const root = await mkdtemp(join(tmpdir(), 'orca-agent-teams-cli-'))
       roots.push(root)
-      const cliPath = join(root, 'orca.cmd')
+      const cliPath = join(root, 'zkyq.exe')
       await writeFile(cliPath, '@echo off\r\n', 'utf8')
 
       expect(resolveClaudeAgentTeamsShimBin({ Path: root })).toBe(cliPath)

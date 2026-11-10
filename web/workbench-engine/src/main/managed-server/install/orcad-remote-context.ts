@@ -15,6 +15,7 @@ import {
   orcadMachineDataRoot,
   orcadMachineHomeDir,
   orcadMachineHomeProbeCommand,
+  orcadMachineHomeRootScope,
   orcadMachineOwnershipUnresolvedMessage,
   parseOrcadMachineHomeProbe
 } from '../host-state/orcad-machine-home'
@@ -35,6 +36,8 @@ import {
 import { detectRemoteHostPlatform } from '../../ssh/ssh-remote-platform-detection'
 import { OrcadHostUnsupportedError } from '../../orcad/orcad-host-unavailable'
 import { rememberSshHostPlatform } from '../../ssh/ssh-host-platform-memo'
+import { prepareRemoteRootIdentity } from '../host-state/remote-root-identity'
+import { discoverManagedDataRoot } from './orcad-remote-data-roots'
 
 /** Defaults to SSH: most lifecycle code still reads SSH-only target fields. */
 export type OrcadRemoteContext<Target extends OrcadHostTarget = SshTarget> = {
@@ -44,12 +47,14 @@ export type OrcadRemoteContext<Target extends OrcadHostTarget = SshTarget> = {
   connection: OrcadHostTransport
   host: RemoteHostPlatform
   /**
-   * What `~/.orca-remote` hangs off: the login home, or this machine's own home when several
+   * What `~/.zkyq-remote` hangs off: the login home, or this machine's own home when several
    * machines share one (see `orcad-machine-home.ts`). `userDataDir` follows the same choice.
    */
   remoteHome: string
   target: Target
   userDataDir: string
+  /** The owned canonical default, even while an older installed slot still uses its old name. */
+  defaultDataRoot?: string
 }
 
 export async function resolveOrcadRemoteContext<Target extends OrcadHostTarget = SshTarget>(
@@ -60,18 +65,21 @@ export async function resolveOrcadRemoteContext<Target extends OrcadHostTarget =
 ): Promise<OrcadRemoteContext<Target>> {
   const host = detectedHost ?? (await detectRemoteHostPlatform(connection, { signal }))
   if (!host) {
-    throw new OrcadHostUnsupportedError('Orca’s server doesn’t support this SSH host’s platform.')
+    throw new OrcadHostUnsupportedError(
+      'Control Everything’s server doesn’t support this SSH host’s platform.'
+    )
   }
   const remote = { conn: connection, host, signal }
-  const { orcadHome: remoteHome, userDataDir } = await resolveOrcadMachineHome(
-    remote,
-    !isWslOrcadHostTarget(target)
-  )
   const serverTarget = await resolveOrcadRuntimeTarget({
     conn: connection,
     host,
     signal
   })
+  const { orcadHome: remoteHome, userDataDir } = await resolveOrcadMachineHome(
+    remote,
+    !isWslOrcadHostTarget(target),
+    serverTarget
+  )
   if (!isWslOrcadHostTarget(target)) {
     rememberSshHostPlatform(target.id, host, serverTarget)
   }
@@ -84,11 +92,16 @@ export async function resolveOrcadRemoteContext<Target extends OrcadHostTarget =
       serverTarget,
       signal
     })
+    await prepareRemoteRootIdentity(remote, remoteHome, serverTarget, {
+      key: 'local',
+      expectedKeys: ['local']
+    })
   }
   const activationRecord = await readOrcadActivationRecord({
     ...remote,
     remoteHome
   })
+  const discovered = await discoverManagedDataRoot({ ...remote, remoteHome }, userDataDir)
   return {
     activationRecord,
     serverTarget,
@@ -96,7 +109,8 @@ export async function resolveOrcadRemoteContext<Target extends OrcadHostTarget =
     host,
     remoteHome,
     target,
-    userDataDir
+    userDataDir: discovered.userDataDir,
+    defaultDataRoot: userDataDir
   }
 }
 
@@ -106,9 +120,11 @@ export async function resolveOrcadRemoteContext<Target extends OrcadHostTarget =
  */
 export async function resolveOrcadMachineHome(
   remote: OrcadRemoteExecTarget,
-  keyByMachine: boolean
+  keyByMachine: boolean,
+  serverTarget?: NodeRuntimeTarget
 ): Promise<{ loginHome: string; orcadHome: string; userDataDir: string }> {
   const { host } = remote
+  const runtimeTarget = serverTarget ?? (await resolveOrcadRuntimeTarget(remote))
   if (!keyByMachine || isWindowsRemoteHost(host)) {
     const loginHome = normalizeRemoteHome(
       await execOrcadRemote(remote, readRemoteHomeCommand(host)),
@@ -117,10 +133,14 @@ export async function resolveOrcadMachineHome(
     if (!validateRemoteHome(loginHome, host)) {
       throw new Error(`Remote home is not a valid path: ${loginHome.slice(0, 100)}`)
     }
+    await prepareRemoteRootIdentity(remote, loginHome, runtimeTarget, {
+      key: 'local',
+      expectedKeys: ['local']
+    })
     return {
       loginHome,
       orcadHome: loginHome,
-      userDataDir: joinRemotePath(host, loginHome, '.orca')
+      userDataDir: joinRemotePath(host, loginHome, '.zkyq')
     }
   }
   const probe = parseOrcadMachineHomeProbe(
@@ -134,10 +154,17 @@ export async function resolveOrcadMachineHome(
       orcadMachineOwnershipUnresolvedMessage(
         decision.machineKey,
         probe.identity?.hostname ?? null,
-        decision.cause
+        decision.cause,
+        probe.rootDirectoryName
       )
     )
   }
+  await prepareRemoteRootIdentity(
+    remote,
+    loginHome,
+    runtimeTarget,
+    orcadMachineHomeRootScope(probe, host)
+  )
   if (decision.kind === 'claim') {
     const won = readOrcadMachineClaimAnswer(
       await execOrcadRemote(remote, orcadMachineClaimCommand(host, loginHome, decision.machineKey))
@@ -154,11 +181,15 @@ export async function resolveOrcadMachineHome(
     return {
       loginHome,
       orcadHome: loginHome,
-      userDataDir: joinRemotePath(host, loginHome, '.orca')
+      userDataDir: joinRemotePath(host, loginHome, '.zkyq')
     }
   }
   const orcadHome = orcadMachineHomeDir(host, loginHome, decision.machineKey)
   await execOrcadRemote(remote, `umask 077; mkdir -p ${quotePosixShell(orcadHome)}`)
+  await prepareRemoteRootIdentity(remote, orcadHome, runtimeTarget, {
+    key: decision.machineKey,
+    expectedKeys: [decision.machineKey]
+  })
   return {
     loginHome,
     orcadHome,

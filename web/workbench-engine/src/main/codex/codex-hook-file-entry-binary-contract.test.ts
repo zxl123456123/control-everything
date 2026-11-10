@@ -107,7 +107,7 @@ describe.runIf(binary)('codex hook file-entry binary contract', { timeout: 180_0
     vi.stubEnv('HOME', home)
     vi.stubEnv('USERPROFILE', home)
     vi.stubEnv('CODEX_HOME', join(root, 'never-used-codex-home'))
-    vi.stubEnv('ORCA_USER_DATA_PATH', join(home, 'user-data'))
+    vi.stubEnv('ZKYQ_USER_DATA_PATH', join(home, 'user-data'))
     // Why: the app's userData always exists; the memo is written there.
     mkdirSync(join(home, 'user-data'))
     const codexVersion = await probeCodexVersion(binary!)
@@ -238,9 +238,9 @@ describe.runIf(binary)('codex hook file-entry binary contract', { timeout: 180_0
               HOME: home,
               CODEX_HOME: accountHome(),
               ORCA_CONTRACT_MOCK_KEY: 'x',
-              ORCA_PANE_KEY: 'contract-pane',
-              ORCA_AGENT_HOOK_PORT: String(port(receiver)),
-              ORCA_AGENT_HOOK_TOKEN: 'contract-token'
+              ZKYQ_PANE_KEY: 'contract-pane',
+              ZKYQ_AGENT_HOOK_PORT: String(port(receiver)),
+              ZKYQ_AGENT_HOOK_TOKEN: 'contract-token'
             }
           }
         )
@@ -296,7 +296,7 @@ describe.runIf(binary)('codex hook file-entry binary contract', { timeout: 180_0
       vi.stubEnv('HOME', home)
       vi.stubEnv('USERPROFILE', home)
       vi.stubEnv('CODEX_HOME', '')
-      vi.stubEnv('ORCA_USER_DATA_PATH', join(home, 'user-data'))
+      vi.stubEnv('ZKYQ_USER_DATA_PATH', join(home, 'user-data'))
       mkdirSync(join(home, 'user-data'))
       await reconcileRealHome()
     }
@@ -457,9 +457,9 @@ describe.runIf(binary)('codex hook file-entry binary contract', { timeout: 180_0
             ...codexHomeEnv,
             TERM: 'xterm-256color',
             ORCA_CONTRACT_MOCK_KEY: 'x',
-            ORCA_PANE_KEY: 'contract-pane',
-            ORCA_AGENT_HOOK_PORT: String(port(receiver)),
-            ORCA_AGENT_HOOK_TOKEN: 'contract-token'
+            ZKYQ_PANE_KEY: 'contract-pane',
+            ZKYQ_AGENT_HOOK_PORT: String(port(receiver)),
+            ZKYQ_AGENT_HOOK_TOKEN: 'contract-token'
           }
         }
       )

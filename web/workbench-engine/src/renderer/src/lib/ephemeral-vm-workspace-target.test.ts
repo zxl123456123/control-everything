@@ -50,7 +50,7 @@ describe('prepareEphemeralVmWorkspaceTarget', () => {
         updatedAt: 1,
         recipeResult: {
           schemaVersion: 1,
-          pairingCode: 'orca://pair?code=test',
+          pairingCode: 'zkyq://pair?code=test',
           projectRoot: '/workspace/repo'
         }
       }
@@ -265,7 +265,7 @@ describe('prepareEphemeralVmWorkspaceTarget', () => {
         recipeResult: {
           schemaVersion: 2,
           checkoutMode: 'provisioned-root',
-          pairingCode: 'orca://pair?code=test',
+          pairingCode: 'zkyq://pair?code=test',
           projectRoot: '/workspace/repo'
         }
       }
@@ -318,7 +318,7 @@ describe('prepareEphemeralVmWorkspaceTarget', () => {
         updatedAt: 1,
         recipeResult: {
           schemaVersion: 1,
-          pairingCode: 'orca://pair?code=test',
+          pairingCode: 'zkyq://pair?code=test',
           projectRoot: '/workspace/repo'
         }
       }
@@ -402,7 +402,7 @@ describe('prepareEphemeralVmWorkspaceTarget', () => {
         updatedAt: 1,
         recipeResult: {
           schemaVersion: 1,
-          pairingCode: 'orca://pair?code=test',
+          pairingCode: 'zkyq://pair?code=test',
           projectRoot: '/workspace/repo'
         }
       }
@@ -454,7 +454,7 @@ describe('prepareEphemeralVmWorkspaceTarget', () => {
         updatedAt: 1,
         recipeResult: {
           schemaVersion: 1,
-          pairingCode: 'orca://pair?code=test',
+          pairingCode: 'zkyq://pair?code=test',
           projectRoot: '/workspace/not-a-repo'
         }
       }

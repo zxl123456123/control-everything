@@ -3,7 +3,11 @@ import { existsSync } from 'node:fs'
 import { spawnProcess } from '@orca/process-host'
 import { userManagerEnv } from './daemon-cgroup-scope'
 import { setPtyActiveProcessLimit } from '../windows/windows-pty-job'
-import { resolveTerminalScopes, type TerminalScopeRuntime } from './terminal-scopes'
+import {
+  migrateTerminalResourceEnvironment,
+  resolveTerminalScopes,
+  type TerminalScopeRuntime
+} from './terminal-scopes'
 import type { PtyProcessCeilingState } from '../../shared/pty-process-ceiling-state'
 
 type DaemonLog = (event: string, details?: Record<string, unknown>) => void
@@ -16,8 +20,15 @@ export function initializeTerminalScopes(
   daemonScope: string | null,
   log: DaemonLog
 ): PtyProcessCeilingState {
+  const migration = migrateTerminalResourceEnvironment(process.env)
+  if (migration.migrated.length || migration.superseded.length) {
+    log('terminal-resource-environment-migration', {
+      migrated: migration.migrated,
+      superseded: migration.superseded
+    })
+  }
   const resolved = resolveTerminalScopes({
-    env: process.env,
+    env: migration.env,
     platform: process.platform,
     daemonScope,
     setWindowsLimit: setPtyActiveProcessLimit

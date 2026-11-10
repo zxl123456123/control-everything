@@ -3,7 +3,7 @@ import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { ManagementSurfaceProvider } from '@/components/ui/management-surface'
 
-/** Shared two-column tip layout: copy and actions on the left, a feature visual on the right. */
+/** Tips keep a compact column when no feature visual is supplied. */
 export function FeatureTipDialogFrame({
   open,
   onOpenChange,
@@ -14,23 +14,40 @@ export function FeatureTipDialogFrame({
   open: boolean
   onOpenChange: (open: boolean) => void
   onOpenAutoFocus: ComponentProps<typeof DialogContent>['onOpenAutoFocus']
-  visual: ReactNode
+  visual?: ReactNode
   children: ReactNode
 }): JSX.Element {
+  const platformMode =
+    typeof window !== 'undefined' &&
+    ['/studio', '/workbench/web-index.html'].includes(window.location.pathname)
+  const illustrated = Boolean(visual) && !platformMode
   return (
     <ManagementSurfaceProvider value>
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent
-          className="!flex max-h-[calc(100dvh-2rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-[820px] md:!flex-row"
+          className={
+            illustrated
+              ? '!flex max-h-[calc(100dvh-2rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-[820px] md:!flex-row'
+              : '!flex max-h-[calc(100dvh-2rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-[440px]'
+          }
+          data-feature-tip-layout={illustrated ? 'illustrated' : 'compact'}
           showCloseButton
           onOpenAutoFocus={onOpenAutoFocus}
         >
-          <div className="scrollbar-sleek flex min-h-0 min-w-0 flex-1 flex-col gap-6 overflow-y-auto p-6 pt-16 md:basis-1/2 md:pt-6">
+          <div
+            className={
+              illustrated
+                ? 'scrollbar-sleek flex min-h-0 min-w-0 flex-1 flex-col gap-6 overflow-y-auto p-6 pt-16 md:basis-1/2 md:pt-6'
+                : 'scrollbar-sleek flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-y-auto p-6 pt-10'
+            }
+          >
             {children}
           </div>
-          <div className="hidden min-h-0 min-w-0 self-stretch overflow-hidden bg-muted md:flex md:basis-1/2 md:border-l md:border-border">
-            <div className="h-full min-h-[23rem] w-full">{visual}</div>
-          </div>
+          {illustrated ? (
+            <div className="hidden min-h-0 min-w-0 self-stretch overflow-hidden bg-muted md:flex md:basis-1/2 md:border-l md:border-border">
+              <div className="h-full min-h-[23rem] w-full">{visual}</div>
+            </div>
+          ) : null}
         </DialogContent>
       </Dialog>
     </ManagementSurfaceProvider>

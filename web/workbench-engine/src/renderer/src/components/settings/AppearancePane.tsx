@@ -20,6 +20,7 @@ import {
   getSidebarEntries,
   getStatusBarEntries,
   getSystemTrayEntries,
+  getSurfaceTransparencyEntries,
   getThemeEntries,
   getTitlebarEntries,
   getTypographyEntries,
@@ -35,6 +36,7 @@ import { getRendererAppPlatform } from '@/lib/renderer-app-platform'
 import { isWebClientLocation } from '@/lib/web-client-location'
 import { SHOW_UI_LANGUAGE_SETTING } from '@/i18n/supported-languages'
 import { translate } from '@/i18n/i18n'
+import { isPlatformAppearance } from '../../web/platform-appearance'
 import {
   getLeftSidebarAppearanceEntry,
   getWorkspaceCardLayoutEntry
@@ -138,6 +140,7 @@ export function AppearancePane({
   const interfaceSearchEntries = [
     { title: interfaceTitle },
     ...getThemeEntries(),
+    ...(isPlatformAppearance() ? getSurfaceTransparencyEntries() : []),
     ...getZoomEntries(),
     ...getTypographyEntries(),
     ...(SHOW_UI_LANGUAGE_SETTING ? getLanguageEntries() : []),
@@ -272,9 +275,8 @@ export function AppearancePane({
         </AppearanceSection>
       ) : null}
 
-      {/* App icon stays at the bottom of Appearance as a small easter egg,
-          matching production — not buried inside Interface advanced. */}
-      {appIconMatches ? (
+      {/* Native app icons have no Dock or window-switcher effect in the Web client. */}
+      {!isWebClient && appIconMatches ? (
         <SearchableSetting
           title={translate('auto.components.settings.AppearancePane.ca1590d42f', 'App Icon')}
           description={translate(

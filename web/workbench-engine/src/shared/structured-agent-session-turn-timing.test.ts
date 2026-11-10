@@ -197,8 +197,8 @@ describe('explicit user-item attribution', () => {
 
   it('resolves a submission through its provider alias instead of journal order', () => {
     const items = [
-      user('orca:first'),
-      user('orca:second'),
+      user('zkyq:first'),
+      user('zkyq:second'),
       lifecycle('t1', {
         state: 'completed',
         userItemId: 'codex:thread:t1:0',
@@ -210,7 +210,7 @@ describe('explicit user-item attribution', () => {
       submission('first', 'codex:thread:t1:0'),
       submission('second', null)
     ])
-    expect([...timings.keys()]).toEqual(['orca:first'])
+    expect([...timings.keys()]).toEqual(['zkyq:first'])
   })
 
   it('uses the key directly when the user item is journaled under it', () => {
@@ -228,7 +228,7 @@ describe('explicit user-item attribution', () => {
 
   it('anchors to the record itself when a keyed row names a user item nobody journaled', () => {
     const items = [
-      user('orca:first'),
+      user('zkyq:first'),
       lifecycle('auto', {
         state: 'completed',
         userItemId: 'codex:thread:auto:0',
@@ -245,10 +245,10 @@ describe('explicit user-item attribution', () => {
 
   it('falls back to journal order only for rows without a key (older hosts)', () => {
     const items = [
-      user('orca:first'),
+      user('zkyq:first'),
       lifecycle('t1', { state: 'completed', startedAt: 1_000, completedAt: 2_000 })
     ]
-    expect([...selectStructuredAgentTurnTimings(items).keys()]).toEqual(['orca:first'])
+    expect([...selectStructuredAgentTurnTimings(items).keys()]).toEqual(['zkyq:first'])
   })
 })
 
@@ -291,8 +291,8 @@ describe('coalesced sends and canonical rows', () => {
 
   it('gives a turn shared by two accepted sends to the prompt that opened it', () => {
     const items = [
-      user('orca:first'),
-      user('orca:second'),
+      user('zkyq:first'),
+      user('zkyq:second'),
       lifecycle('t1', {
         state: 'completed',
         userItemId: 'codex:thread:t1:0',
@@ -304,7 +304,7 @@ describe('coalesced sends and canonical rows', () => {
       accepted('first', 'codex:thread:t1:0'),
       accepted('second', 'codex:thread:t1:0')
     ])
-    expect([...timings.keys()]).toEqual(['orca:first'])
+    expect([...timings.keys()]).toEqual(['zkyq:first'])
   })
 
   it('reads a canonical turn item exactly like the legacy carrier', () => {
@@ -318,15 +318,15 @@ describe('coalesced sends and canonical rows', () => {
         kind: 'turn',
         turnId: 't9',
         state: 'completed',
-        userItemId: 'orca:u9',
+        userItemId: 'zkyq:u9',
         startedAt: 1_000,
         completedAt: 9_000,
         durationMs: 7_172
       }
     }
-    const timings = selectStructuredAgentTurnTimings([user('orca:u9'), canonical])
-    expect(timings.get('orca:u9')).toMatchObject({ state: 'completed', durationMs: 7_172 })
-    expect(selectStructuredAgentSettledTurns([user('orca:u9'), canonical]).get('orca:u9')).toEqual({
+    const timings = selectStructuredAgentTurnTimings([user('zkyq:u9'), canonical])
+    expect(timings.get('zkyq:u9')).toMatchObject({ state: 'completed', durationMs: 7_172 })
+    expect(selectStructuredAgentSettledTurns([user('zkyq:u9'), canonical]).get('zkyq:u9')).toEqual({
       startedAt: 1_000,
       workedSeconds: 7
     })
@@ -358,31 +358,31 @@ describe('a rejected send', () => {
   // The local clock saw the send go pending and stop, which would read as "Worked for 0s"; the
   // host says the provider never got the message, so no turn ran and nothing may fold under it.
   it('opened no turn, whatever the local clock observed', () => {
-    const settled = selectStructuredAgentSettledTurns([user('orca:dead')], [rejected('dead')])
-    expect(settled.get('orca:dead')).toBeNull()
+    const settled = selectStructuredAgentSettledTurns([user('zkyq:dead')], [rejected('dead')])
+    expect(settled.get('zkyq:dead')).toBeNull()
 
     const statuses = selectNativeChatTurnStatuses(
-      { 'orca:dead': { startedAt: 900, workedSeconds: 0 } },
-      { activeTurnKey: 'orca:dead', isWorking: false, thinking: false, settledByTurn: settled }
+      { 'zkyq:dead': { startedAt: 900, workedSeconds: 0 } },
+      { activeTurnKey: 'zkyq:dead', isWorking: false, thinking: false, settledByTurn: settled }
     )
-    expect(statuses.completedByTurn['orca:dead']).toBeUndefined()
+    expect(statuses.completedByTurn['zkyq:dead']).toBeUndefined()
     expect(statuses.active).toBeNull()
   })
 
   it('keeps the duration of a turn the journal does record for it', () => {
     const settled = selectStructuredAgentSettledTurns(
       [
-        user('orca:ran'),
+        user('zkyq:ran'),
         lifecycle('t1', {
           state: 'interrupted',
-          userItemId: 'orca:ran',
+          userItemId: 'zkyq:ran',
           startedAt: 10_000,
           completedAt: 14_000
         })
       ],
       [rejected('ran')]
     )
-    expect(settled.get('orca:ran')).toEqual({
+    expect(settled.get('zkyq:ran')).toEqual({
       startedAt: 10_000,
       workedSeconds: 4,
       verdict: 'interruption'
@@ -396,22 +396,22 @@ describe('a rejected send', () => {
       lifecycle(userItemId, { userItemId, startedAt: 10_000, completedAt: 22_000, ...turn })
     ]
     const settled = selectStructuredAgentSettledTurns([
-      ...ended('orca:crashed', { state: 'interrupted' }),
-      ...ended('orca:stopped', { state: 'interrupted', outcome: 'cancellation' }),
-      ...ended('orca:finished', { state: 'completed', outcome: 'success' }),
-      ...ended('orca:unjudged', { state: 'completed' })
+      ...ended('zkyq:crashed', { state: 'interrupted' }),
+      ...ended('zkyq:stopped', { state: 'interrupted', outcome: 'cancellation' }),
+      ...ended('zkyq:finished', { state: 'completed', outcome: 'success' }),
+      ...ended('zkyq:unjudged', { state: 'completed' })
     ])
-    expect(settled.get('orca:crashed')).toEqual({
+    expect(settled.get('zkyq:crashed')).toEqual({
       startedAt: 10_000,
       workedSeconds: 12,
       verdict: 'interruption'
     })
-    expect(settled.get('orca:stopped')).toMatchObject({ verdict: 'cancellation' })
-    expect(settled.get('orca:finished')).toMatchObject({ verdict: 'success' })
-    expect(settled.get('orca:unjudged')).toEqual({ startedAt: 10_000, workedSeconds: 12 })
+    expect(settled.get('zkyq:stopped')).toMatchObject({ verdict: 'cancellation' })
+    expect(settled.get('zkyq:finished')).toMatchObject({ verdict: 'success' })
+    expect(settled.get('zkyq:unjudged')).toEqual({ startedAt: 10_000, workedSeconds: 12 })
     const statuses = selectNativeChatTurnStatuses(
       {},
-      { activeTurnKey: 'orca:crashed', isWorking: false, thinking: false, settledByTurn: settled }
+      { activeTurnKey: 'zkyq:crashed', isWorking: false, thinking: false, settledByTurn: settled }
     )
     expect(statuses.active).toMatchObject({ workedSeconds: 12, verdict: 'interruption' })
   })

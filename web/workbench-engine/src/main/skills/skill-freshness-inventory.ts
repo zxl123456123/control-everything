@@ -18,6 +18,8 @@ import {
 } from './skill-freshness-placement-observation'
 import { scanKnownPluginSkillCandidates } from './skill-plugin-cache-scan'
 import { readSkillLockSources } from './skill-lock-sources'
+import { BUNDLED_SKILL_RENAMES } from '../../shared/bundled-skill-renames'
+import { isWorkbenchSkillLockSource } from '../../shared/skill-freshness'
 
 export const MAXIMUM_REPOSITORY_SKILL_ROOTS = 128
 
@@ -43,7 +45,13 @@ export async function inventorySkillFreshness(args: {
     loadSkillBundleManifest(args.resourceRoot),
     readSkillLockSources({ homeDir: args.homeDir, stateHome: args.stateHome })
   ])
-  const currentByName = new Map(manifest.skills.map((skill) => [skill.name, skill]))
+  const scanEntries = manifest.skills.flatMap((skill) => [
+    skill,
+    ...Object.entries(BUNDLED_SKILL_RENAMES)
+      .filter(([, name]) => name === skill.name)
+      .map(([name]) => ({ ...skill, name }))
+  ])
+  const currentByName = new Map(scanEntries.map((skill) => [skill.name, skill]))
   const lockSourceOf = (name: string): string | null => lockSources.get(name) ?? null
   const discoveryArgs = {
     homeDir: args.homeDir,
@@ -63,7 +71,7 @@ export async function inventorySkillFreshness(args: {
     throw new Error('Missing canonical agent skills root')
   }
 
-  const homeTasks = manifest.skills.flatMap((current) =>
+  const homeTasks = scanEntries.flatMap((current) =>
     homeRoots.map(
       (root) => () =>
         classifyHomeSkillCandidate({
@@ -82,7 +90,7 @@ export async function inventorySkillFreshness(args: {
   )
 
   const candidateLstat = args.candidateLstat ?? ((path) => lstat(path))
-  const repoTasks = manifest.skills.flatMap((current) =>
+  const repoTasks = scanEntries.flatMap((current) =>
     repoRoots.map(
       (root) => () =>
         classifyUnsupportedSkillCandidate({
@@ -99,7 +107,7 @@ export async function inventorySkillFreshness(args: {
   const omittedRepoTasks =
     omittedRepoRoots.length === 0
       ? []
-      : manifest.skills.map(
+      : scanEntries.map(
           (current) => () =>
             observeSkillFreshnessInstallation({
               current,
@@ -153,11 +161,29 @@ export async function inventorySkillFreshness(args: {
   const installations = dedupeSkillFreshnessPlacements([
     ...homeInstallations,
     ...unsupportedInstallations
-  ]).sort(
-    (left, right) =>
-      left.name.localeCompare(right.name, 'en') ||
-      left.unresolvedPath.localeCompare(right.unresolvedPath, 'en')
-  )
+  ])
+    .map((installation) => {
+      const renamed = BUNDLED_SKILL_RENAMES[installation.name]
+      const pendingLock = Object.entries(BUNDLED_SKILL_RENAMES).some(
+        ([oldName, name]) =>
+          name === installation.name && isWorkbenchSkillLockSource(lockSourceOf(oldName))
+      )
+      return renamed || pendingLock
+        ? {
+            ...installation,
+            name: renamed ?? installation.name,
+            status:
+              installation.status === 'inaccessible'
+                ? ('inaccessible' as const)
+                : ('outdated' as const)
+          }
+        : installation
+    })
+    .sort(
+      (left, right) =>
+        left.name.localeCompare(right.name, 'en') ||
+        left.unresolvedPath.localeCompare(right.unresolvedPath, 'en')
+    )
 
   return {
     schemaVersion: 1,

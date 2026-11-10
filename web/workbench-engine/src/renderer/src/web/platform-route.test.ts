@@ -23,18 +23,18 @@ describe('platform page routes', () => {
     expect(read('#project/p-two/review', '?project_id=p-one')).toEqual({
       view: 'project',
       id: 'p-two',
-      tab: 'review'
+      tab: 'workspace'
     })
   })
-  it('keeps old management routes under the project and old inbox links as filters', () => {
-    expect(read('#project/p-one/manage').tab).toBe('tasks')
-    expect(read('#project/p-one/attention').tab).toBe('attention')
+  it('returns retired progress routes to development without losing project identity', () => {
+    for (const tab of ['tasks', 'review', 'attention', 'monitor', 'items', 'board', 'manage']) {
+      expect(read('#project/p-one/' + tab)).toEqual({ view: 'project', id: 'p-one', tab: 'workspace' })
+    }
     expect(read('#project/p-one/activity').tab).toBe('activity')
     expect(read('#project/p-one/sessions').tab).toBe('workspace')
-    expect(read('#attention')).toEqual({ view: 'inbox', id: '', tab: 'attention' })
-    expect(read('#tasks')).toEqual({ view: 'inbox', id: '', tab: 'all' })
-    expect(read('#inbox/attention').tab).toBe('attention')
-    expect(read('#inbox/review').tab).toBe('review')
+    for (const hash of ['#attention', '#tasks', '#inbox', '#inbox/attention', '#inbox/review']) {
+      expect(read(hash)).toEqual({ view: 'home', id: '', tab: '' })
+    }
     expect(read('#overview').view).toBe('home')
     expect(read('#settings')).toEqual({ view: 'settings', id: '', tab: 'appearance' })
     expect(read('#agents').view).toBe('tools')
@@ -50,9 +50,9 @@ describe('platform page routes', () => {
 })
 
 
-it('separates setup, global settings and explicit project intents without changing legacy task filters', () => {
+it('separates setup and settings from retired task views', () => {
   for (const hash of ['#workbench', '#workspace', '#project-setup']) expect(readPlatformRoute({ hash, search: '?project_id=p-one' })).toEqual({view:'workbench', id:'', tab:''})
   expect(readPlatformRoute({hash:'#settings/development',search:''})).toEqual({view:'settings',id:'',tab:'development'})
-  for (const tab of ['settings','items','board']) expect(readPlatformRoute({hash:'#project/p-one/'+tab,search:''})).toEqual({view:'project',id:'p-one',tab})
+  expect(readPlatformRoute({hash:'#project/p-one/settings',search:''})).toEqual({view:'project',id:'p-one',tab:'settings'})
   expect(readPlatformRoute({hash:'#settings/%2Fbad',search:''}).tab).toBe('appearance')
 })

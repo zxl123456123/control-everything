@@ -5,6 +5,7 @@ import type { AgentJournalCursor } from '../../../shared/agent-session-journal-t
 import type { JournalRow } from './journal-row-schema'
 import { assertJournalFence, assertJournalWritable } from './journal-write-guards'
 import type { JournalWriteBody } from './journal-write-queue'
+import { canonicalJournalRowKeys } from './journal-row-key-identity'
 
 /** Runs between BEGIN IMMEDIATE and COMMIT, on the SAME connection as the row
  *  insert; a throw rolls the whole append back. Synchronous by construction so
@@ -76,7 +77,7 @@ export class JournalRowWriter {
     return this.deps.serialize(() => {
       assertJournalWritable(this.deps.readOnly(), this.deps.sessionId)
       const savedAt = this.deps.now()
-      const row = build(this.deps.nextSequence(), savedAt)
+      const row = canonicalJournalRowKeys(build(this.deps.nextSequence(), savedAt))
       assertJournalFence(row.fence, this.deps.highestFence())
       try {
         // One INSERT: the chat's epoch pointer moves only when the epoch does.
@@ -122,7 +123,7 @@ export class JournalRowWriter {
     assertJournalWritable(this.deps.readOnly(), this.deps.sessionId)
     const first = this.deps.nextSequence()
     const ts = this.deps.now()
-    const rows = plan().map((build, index) => build(first + index, ts))
+    const rows = plan().map((build, index) => canonicalJournalRowKeys(build(first + index, ts)))
     if (rows.length === 0) {
       return rows
     }

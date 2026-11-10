@@ -1,11 +1,14 @@
 import { existsSync, mkdirSync } from 'node:fs'
 import { isAbsolute, join, relative, resolve } from 'node:path'
+import { RELAY_HOOKS_DIR } from './relay-hooks-identity'
 import { resolveOpenCodeConfigDirectory } from '../shared/opencode-config-directory'
 import { isInstalledOpenCodePluginCurrent } from '../shared/opencode-installed-plugin'
 import { writeCanonicalOpenCodePluginAtomically } from '../shared/opencode-plugin-atomic-write'
 import { writeOpenCodeTuiPlugin } from '../shared/opencode-tui-plugin-install'
-
-const RELAY_HOOKS_DIR = '.orca-relay'
+import {
+  migrateOpenCodePluginIdentity,
+  retiredOpenCodePluginFileName
+} from '../shared/opencode-plugin-identity'
 
 export type OpenCodeAgent = 'opencode' | 'opencode2'
 
@@ -19,12 +22,17 @@ export function installOpenCodePluginInCanonicalConfig(
   try {
     const configDir = resolveOpenCodeConfigDirectory(environment, homeDir)
     const pluginFileName =
-      agent === 'opencode2' ? 'orca-opencode2-status.js' : 'orca-opencode-status.js'
+      agent === 'opencode2' ? 'zkyq-opencode2-status.js' : 'zkyq-opencode-status.js'
     const pluginPath = join(configDir, 'plugins', pluginFileName)
-    if (onlyIfInstalled && !existsSync(pluginPath)) {
+    if (
+      onlyIfInstalled &&
+      !existsSync(pluginPath) &&
+      !existsSync(join(configDir, 'plugins', retiredOpenCodePluginFileName(pluginFileName)!))
+    ) {
       return false
     }
     mkdirSync(join(configDir, 'plugins'), { recursive: true })
+    migrateOpenCodePluginIdentity(configDir, pluginFileName, source, 'canonical')
     writeOpenCodeTuiPlugin(join(configDir, 'plugins'), pluginFileName, source)
     if (!isInstalledOpenCodePluginCurrent(pluginPath, source)) {
       writeCanonicalOpenCodePluginAtomically(pluginPath, source)
@@ -39,8 +47,9 @@ export function installOpenCodePluginInCanonicalConfig(
 }
 
 export function isRelayOpenCodeOverlayPath(path: string, homeDir: string): boolean {
-  const relayRoot = resolve(homeDir, RELAY_HOOKS_DIR)
   const candidate = resolve(isAbsolute(path) ? path : join(homeDir, path))
-  const relativePath = relative(relayRoot, candidate)
-  return relativePath === '' || (!relativePath.startsWith('..') && !isAbsolute(relativePath))
+  return [RELAY_HOOKS_DIR, '.orca-relay'].some((name) => {
+    const relativePath = relative(resolve(homeDir, name), candidate)
+    return relativePath === '' || (!relativePath.startsWith('..') && !isAbsolute(relativePath))
+  })
 }

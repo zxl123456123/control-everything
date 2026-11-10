@@ -1,6 +1,7 @@
 """Synthetic filesystem and fake Win32 contracts; never launch a runtime or model."""
 
 import hashlib
+from dataclasses import replace
 import json
 import os
 from pathlib import Path
@@ -11,7 +12,7 @@ from unittest.mock import patch
 import uuid
 
 from control_everything.integrations.workbench_runtime import (
-    RuntimeConfig, WorkbenchRuntime, WorkbenchUnavailable, isolated_environment, loopback_origin, safe_path,
+    RuntimeConfig, WorkbenchRuntime, WorkbenchUnavailable, workbench_environment, loopback_origin, safe_path,
 )
 from control_everything.platform.windows_jobs import ProcessError, WindowsAPI
 
@@ -42,7 +43,7 @@ class FakeAPI:
         if '--no-pairing' in argv:
             state = self.data / 'state'
             state.mkdir(parents=True, exist_ok=True)
-            (state / 'orca-runtime.json').write_text(json.dumps({'runtimeId': f'runtime-{pid}', 'pid': pid,
+            (state / 'zkyq-runtime.json').write_text(json.dumps({'runtimeId': f'runtime-{pid}', 'pid': pid,
                 'authToken': 'fixture-owner-secret', 'startedAt': 1250,
                 'transports': [{'kind': 'named-pipe', 'endpoint': r'\\.\pipe\fixture'},
                                {'kind': 'websocket', 'endpoint': 'ws://127.0.0.1:23456'}]}))
@@ -142,6 +143,52 @@ class WorkbenchRuntimeTests(unittest.TestCase):
 
     def start(self):
         self.manager.start('http://127.0.0.1:12345', timeout=.1)
+
+    def test_runtime_identity_reads_legacy_only_when_current_metadata_is_absent(self):
+        self.start()
+        state = self.data / 'state'
+        current = state / 'zkyq-runtime.json'
+        legacy = state / 'orca-runtime.json'
+        current.replace(legacy)
+        metadata, _, _, _ = self.manager._read_identity()
+        self.assertEqual(metadata['pid'], self.manager._pid)
+        current.write_text('{invalid', encoding='utf-8')
+        with self.assertRaises(json.JSONDecodeError):
+            self.manager._read_identity()
+        self.assertTrue(legacy.is_file())
+
+    def test_runtime_identity_selects_held_legacy_process_over_stale_current_record(self):
+        self.start()
+        state = self.data / 'state'
+        current = state / 'zkyq-runtime.json'
+        legacy = state / 'orca-runtime.json'
+        legacy.write_bytes(current.read_bytes())
+        stale = json.loads(current.read_text())
+        stale['pid'] = self.manager._pid + 1000
+        current.write_text(json.dumps(stale))
+        metadata, _, _, _ = self.manager._read_identity()
+        self.assertEqual(metadata['pid'], self.manager._pid)
+        legacy_data = json.loads(legacy.read_text())
+        legacy_data['pid'] += 1
+        legacy.write_text(json.dumps(legacy_data))
+        with self.assertRaises(WorkbenchUnavailable):
+            self.manager._read_identity()
+
+    def test_seed_uses_new_name_without_shadowing_previous_data_or_backups(self):
+        self.manager._prepare('http://127.0.0.1:12345')
+        state = self.data / 'state'
+        current = state / 'zkyq-data.json'
+        previous = state / 'orca-data.json'
+        self.assertTrue(current.is_file())
+        self.assertFalse(previous.exists())
+        current.replace(previous)
+        self.manager._prepare('http://127.0.0.1:12345')
+        self.assertTrue(previous.is_file())
+        self.assertFalse(current.exists())
+        previous.replace(state / 'orca-data.json.bak.0')
+        self.manager._prepare('http://127.0.0.1:12345')
+        self.assertTrue((state / 'orca-data.json.bak.0').is_file())
+        self.assertFalse(current.exists())
 
     def test_remote_grants_are_journaled_before_exposure_and_retired_after_restart(self):
         from unittest.mock import Mock
@@ -291,10 +338,86 @@ class WorkbenchRuntimeTests(unittest.TestCase):
             with self.subTest(value=value), self.assertRaises(WorkbenchUnavailable):
                 loopback_origin(value)
 
+    def test_desktop_inherits_host_configuration_without_creating_agent_homes(self):
+        host = self.root / 'user'
+        config = replace(self.config, inherit_host_environment=True)
+        self.manager.config = config
+        inherited = {
+            'HOME': str(host), 'USERPROFILE': str(host), 'APPDATA': str(host / 'roaming'),
+            'LOCALAPPDATA': str(host / 'local'), 'PATH': str(host / 'bin'),
+            'CLAUDE_CONFIG_DIR': str(host / 'claude'), 'CODEX_HOME': str(host / 'codex'),
+            'ANTHROPIC_BASE_URL': 'https://gateway.example.test', 'ANTHROPIC_AUTH_TOKEN': 'fixture-token',
+            'HTTPS_PROXY': 'http://proxy.example.test:8080', 'GIT_CONFIG_GLOBAL': str(host / 'gitconfig'),
+            'TEMP': str(host / 'tmp'), 'TMP': str(host / 'tmp'),
+            'CE_WORKBENCH_PUBLIC_ORIGIN': 'https://stale.example.test',
+            'CE_WORKBENCH_DEVICE_PROOF': 'stale-proof', 'CE_REMOTE_DEVICE_ID': 'stale-device',
+            'CE_WORKBENCH_CREDENTIAL_ROOT': str(host / 'stale-credentials'),
+            'ORCA_USER_DATA': str(host / 'stale-profile'),
+            'ORCA_USER_DATA_PATH': str(host / 'stale-cli-profile'),
+        }
+        with patch.dict(os.environ, inherited):
+            self.start()
+        env = next(row for row in self.api.calls if row[0] == 'spawn')[3]
+        for key, value in inherited.items():
+            if key.startswith('CE_') or key in {'PATH', 'ORCA_USER_DATA', 'ORCA_USER_DATA_PATH'}:
+                continue
+            self.assertEqual(env[key], value, key)
+        self.assertEqual(env['PATH'].split(os.pathsep)[0], inherited['PATH'])
+        self.assertEqual(env['CE_WORKBENCH_HOST_ENVIRONMENT'], '1')
+        self.assertEqual(env['CE_WORKBENCH_ISOLATED'], '1')
+        self.assertEqual(env['CE_WORKBENCH_ORIGIN'], 'http://127.0.0.1:12345')
+        self.assertEqual(env['ZKYQ_USER_DATA'], str(self.data / 'state'))
+        self.assertNotIn('ORCA_USER_DATA', env)
+        self.assertEqual(env['ZKYQ_USER_DATA_PATH'], str(self.data / 'state'))
+        self.assertNotIn('ORCA_USER_DATA_PATH', env)
+        for key in ('CE_WORKBENCH_PUBLIC_ORIGIN', 'CE_WORKBENCH_DEVICE_PROOF', 'CE_REMOTE_DEVICE_ID',
+                    'CE_WORKBENCH_CREDENTIAL_ROOT'):
+            self.assertNotIn(key, env)
+        self.assertFalse(host.exists())
+        self.assertFalse((self.data / 'home').exists())
+
+    def test_desktop_preserves_default_agent_home_lookup_and_authoritative_remote_proof(self):
+        ambient = {'SystemRoot': str(self.root / 'system'), 'USERPROFILE': str(self.root / 'user')}
+        env = workbench_environment(self.data, self.engine / 'node.exe', self.config.git_executable,
+                                    'http://127.0.0.1:12345', ambient, inherit_host_environment=True,
+                                    remote_origin='https://workbench.example.test', device_proof='A' * 43)
+        for key in ('HOME', 'CLAUDE_CONFIG_DIR', 'CODEX_HOME', 'GIT_CONFIG_GLOBAL', 'GIT_CONFIG_NOSYSTEM'):
+            self.assertNotIn(key, env)
+        self.assertEqual(env['USERPROFILE'], ambient['USERPROFILE'])
+        self.assertEqual(env['CE_WORKBENCH_DEVICE_PROOF'], 'A' * 43)
+        self.assertEqual(env['CE_WORKBENCH_PUBLIC_ORIGIN'], 'https://workbench.example.test')
+
+    def test_desktop_discards_case_variant_of_untrusted_credential_root(self):
+        ambient = {'SystemRoot': str(self.root / 'system'), 'USERPROFILE': str(self.root / 'user'),
+                   'ce_workbench_credential_root': str(self.root / 'untrusted')}
+        env = workbench_environment(self.data, self.engine / 'node.exe', self.config.git_executable,
+                                    'http://127.0.0.1:12345', ambient, inherit_host_environment=True)
+        self.assertNotIn('CE_WORKBENCH_CREDENTIAL_ROOT', {key.upper() for key in env})
+        self.assertEqual(env['USERPROFILE'], ambient['USERPROFILE'])
+
+    def test_explicit_credential_root_preserves_host_configuration(self):
+        selected = self.data / 'state' / 'credentials'
+        selected.mkdir(parents=True)
+        ambient = {'SystemRoot': str(self.root / 'system'), 'HOME': str(self.root / 'host'),
+                   'CLAUDE_CONFIG_DIR': str(self.root / 'host-claude'),
+                   'CE_WORKBENCH_CREDENTIAL_ROOT': str(self.root / 'untrusted')}
+        env = workbench_environment(self.data, self.root / 'node.exe', self.config.git_executable,
+                                    'http://127.0.0.1:12345', ambient, inherit_host_environment=True,
+                                    credential_root=selected)
+        self.assertEqual(env['CE_WORKBENCH_CREDENTIAL_ROOT'], str(selected))
+        self.assertEqual(env['HOME'], ambient['HOME'])
+        self.assertEqual(env['CLAUDE_CONFIG_DIR'], ambient['CLAUDE_CONFIG_DIR'])
+
+    def test_explicit_credential_root_cannot_escape_profile_or_be_missing(self):
+        for selected in (self.root, self.data / 'state', self.data / 'state' / 'missing'):
+            with self.subTest(selected=selected), self.assertRaises(WorkbenchUnavailable):
+                workbench_environment(self.data, self.root / 'node.exe', self.config.git_executable,
+                                      'http://127.0.0.1:12345', credential_root=selected)
+
     def test_system_directory_survives_legacy_pty_path_scanner(self):
         node, git = self.root / 'node/node.exe', self.root / 'git/git.exe'
         system = self.root / 'system'
-        env = isolated_environment(self.data, node, git, 'http://127.0.0.1:12345',
+        env = workbench_environment(self.data, node, git, 'http://127.0.0.1:12345',
                                    {'SystemRoot': str(system)})
         parts = env['PATH'].split(os.pathsep)
         # The pinned node-pty scanner consumes only delimiter-terminated segments.

@@ -4,10 +4,78 @@ import { EventEmitter } from 'node:events'
 import { mkdtempSync, rmSync } from 'node:fs'
 import { createServer } from 'node:net'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { join, win32 } from 'node:path'
 import { Script } from 'node:vm'
 import { describe, expect, it } from 'vitest'
-import { WINDOWS_PIPE_ACCESS_JS, windowsPipesNotRunHere } from './ssh-host-relay-windows-inventory'
+import {
+  WINDOWS_PIPE_ACCESS_JS,
+  WINDOWS_RELAY_INVENTORY_JS,
+  parseWindowsRelayInventory,
+  windowsPipesNotRunHere
+} from './ssh-host-relay-windows-inventory'
+import { getRemoteHostPlatform } from '../ssh-remote-platform'
+import { windowsRelayPipePathsForSocketName } from './ssh-relay-endpoints'
+
+it.each(['.zkyq-remote', '.orca-remote'])(
+  'retains native Windows paths for %s pipe credentials',
+  (root) => {
+    const host = getRemoteHostPlatform('win32-x64')
+    const home = win32.join(tmpdir(), 'relay-inventory-home')
+    const dir = win32.join(home, root, 'relay-0.1.0+abcd1234')
+    const pipe = windowsRelayPipePathsForSocketName(host, dir, 'sock')[0]
+    const inventory = parseWindowsRelayInventory(
+      host,
+      home,
+      [],
+      JSON.stringify({
+        directoryPaths: true,
+        pipes: [pipe.slice('\\\\.\\pipe\\'.length)],
+        dirs: { [dir]: { credentials: ['sock.credential'], markers: {} } }
+      })
+    )
+    expect(inventory?.pipes).toContain(pipe)
+    expect(inventory?.owners.get(pipe.toLowerCase())).toEqual({
+      dir,
+      credentialFile: dir.replace(/\\/g, '/') + '/sock.credential'
+    })
+  }
+)
+
+it('inventories an old root bridge once and preserves its original pipe coordinates', () => {
+  const home = win32.join(tmpdir(), 'relay-inventory-home'),
+    old = win32.join(home, '.orca-remote'),
+    current = win32.join(home, '.zkyq-remote')
+  const version = 'relay-0.1.0+abcd1234'
+  const output: string[] = [],
+    reads: string[] = []
+  new Script(WINDOWS_RELAY_INVENTORY_JS).runInNewContext({
+    process: {
+      argv: ['node', old, current],
+      stdout: { write: (text: string) => output.push(text) }
+    },
+    require: (name: string) =>
+      name === 'path'
+        ? win32
+        : {
+            realpathSync: () => current,
+            readdirSync: (file: string) => {
+              reads.push(file)
+              if (file === '\\\\.\\pipe\\') return []
+              if (file === old) return [version]
+              if (file === win32.join(old, version)) return ['sock.credential']
+              throw new Error('Unexpected directory read')
+            }
+          }
+  })
+  expect(JSON.parse(output[0])).toEqual({
+    pipes: [],
+    directoryPaths: true,
+    dirs: {
+      [win32.join(old, version)]: { credentials: ['sock.credential'], markers: {} }
+    }
+  })
+  expect(reads).not.toContain(current)
+})
 
 class ProbeSocket extends EventEmitter {
   destroyed = false

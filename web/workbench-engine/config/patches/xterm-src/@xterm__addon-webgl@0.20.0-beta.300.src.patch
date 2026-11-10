@@ -20,6 +20,37 @@ index 742f0879ff4f04509e4a07c8efdf0d5743fe8ee5..885a206a394fff783737a412c0b75bf9
  }`);
  }
  
+diff --git a/src/RectangleRenderer.ts b/src/RectangleRenderer.ts
+index eebfda3b3df9b4c8cefcc6a64692053ed5eaeefa..5ead9badc389717cdb129897cb6b41fcfb426c74 100644
+--- a/src/RectangleRenderer.ts
++++ b/src/RectangleRenderer.ts
+@@ -318,7 +318,7 @@ export class RectangleRenderer extends Disposable {
+           $rgba = this._themeService.colors.ansi[fg & Attributes.PCOLOR_MASK].rgba;
+           break;
+         case Attributes.CM_RGB:
+-          $rgba = (fg & Attributes.RGB_MASK) << 8;
++          $rgba = ((fg & Attributes.RGB_MASK) << 8) | 0xFF;
+           break;
+         case Attributes.CM_DEFAULT:
+         default:
+@@ -331,7 +331,7 @@ export class RectangleRenderer extends Disposable {
+           $rgba = this._themeService.colors.ansi[bg & Attributes.PCOLOR_MASK].rgba;
+           break;
+         case Attributes.CM_RGB:
+-          $rgba = (bg & Attributes.RGB_MASK) << 8;
++          $rgba = ((bg & Attributes.RGB_MASK) << 8) | 0xFF;
+           break;
+         case Attributes.CM_DEFAULT:
+         default:
+@@ -348,7 +348,7 @@ export class RectangleRenderer extends Disposable {
+     $r = (($rgba >> 24) & 0xFF) / 255;
+     $g = (($rgba >> 16) & 0xFF) / 255;
+     $b = (($rgba >> 8 ) & 0xFF) / 255;
+-    $a = 1;
++    $a = ($rgba & 0xFF) / 255;
+ 
+     this._addRectangle(vertices.attributes, offset, $x1, $y1, (endX - startX) * this._dimensions.device.cell.width, this._dimensions.device.cell.height, $r, $g, $b, $a);
+   }
 diff --git a/src/TextureAtlas.ts b/src/TextureAtlas.ts
 index 4977ad741065e26bbfd35bc50e7558a033b13340..f55805ddc3f266415f7f8e81e5b8c318e7db194c 100644
 --- a/src/TextureAtlas.ts

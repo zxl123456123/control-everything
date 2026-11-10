@@ -165,6 +165,14 @@ function normalizeVmRecipes(value: unknown): VmRecipeParseResult {
       }
       seenIds.add(id)
       const description = asTrimmedString(record.description)
+      if (record.environmentContract !== undefined && record.environmentContract !== 'zkyq') {
+        diagnostics.push({
+          index,
+          field: 'environmentContract',
+          message: `Recipe "${id}" environmentContract must be "zkyq".`
+        })
+        return null
+      }
       const checkoutMode = asTrimmedString(record.checkoutMode)
       if (checkoutMode && checkoutMode !== 'orca-worktree' && checkoutMode !== 'provisioned-root') {
         diagnostics.push({
@@ -182,6 +190,7 @@ function normalizeVmRecipes(value: unknown): VmRecipeParseResult {
         id,
         name,
         create,
+        ...(record.environmentContract === 'zkyq' ? { environmentContract: 'zkyq' as const } : {}),
         ...(checkoutMode ? { checkoutMode } : {}),
         ...(description ? { description } : {}),
         ...(suspend ? { suspend } : {}),

@@ -1,4 +1,4 @@
-// The dial's action pool (news-pet-dial.js): defaults, limits, toggling and what each surface may show.
+// The wheel's six fixed slots (news-pet-dial.js): which action sits where, and why a slot can be greyed.
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -10,43 +10,32 @@ const window = {};
 vm.runInContext(source, vm.createContext({window}));
 const dial = window.NewsPetDial;
 const plain = value => JSON.parse(JSON.stringify(value));
-const eq = (actual, expected) => assert.deepEqual(plain(actual), plain(expected));
-const ids = list => list.map(item => item.id);
 
-test('the pool has unique ids, labels and icons, and the defaults fit the limits', () => {
-  assert.equal(new Set(dial.POOL.map(a => a.id)).size, dial.POOL.length);
-  for (const action of dial.POOL) { assert.ok(action.label && action.icon, action.id); assert.ok(['any', 'news', 'studio'].includes(action.scope)); }
-  assert.ok(dial.DEFAULTS.length >= dial.MIN && dial.DEFAULTS.length <= dial.MAX);
-  assert.ok(dial.DEFAULTS.every(id => dial.POOL.some(a => a.id === id)));
-  eq([dial.MIN, dial.MAX], [3, 6]);
+test('there are exactly six slots, in clock order from 12 o\'clock, 60 degrees apart', () => {
+  assert.deepEqual(plain(dial.SLOTS.map(slot => [slot.id, slot.angle])), [
+    ['workspace', 0], ['news', 60], ['search', 120], ['quiet', 180], ['pet-settings', 240], ['hide-pet', 300],
+  ]);
 });
 
-test('normalize keeps valid ids in pool order and resets nonsense to the defaults', () => {
-  eq(dial.normalize(['quiet', 'next', 'next', 'bogus', 'workspace']), ['workspace', 'next', 'quiet']);
-  eq(dial.normalize(['next', 'search']), dial.DEFAULTS, 'two actions are too few');
-  eq(dial.normalize(null), dial.DEFAULTS);
-  eq(dial.parse('workspace,next,search,collect,save,archive,quiet,hide-pet'), ['workspace', 'next', 'search', 'collect', 'save', 'archive'], 'cut to six');
-  eq(dial.parse(null), dial.DEFAULTS);
+test('every slot has a label and an icon, ids are unique, and the data cannot be changed', () => {
+  assert.equal(new Set(dial.SLOTS.map(slot => slot.id)).size, 6);
+  for (const slot of dial.SLOTS) assert.ok(slot.label && slot.icon, slot.id);
+  assert.throws(() => { 'use strict'; dial.SLOTS.push({}); });
+  assert.throws(() => { 'use strict'; dial.SLOTS[0].angle = 90; });
 });
 
-test('toggle refuses to drop under three or climb over six, and says why', () => {
-  eq(dial.toggle(['workspace', 'next', 'quiet'], 'next'), {ids: ['workspace', 'next', 'quiet'], ok: false, reason: 'min'});
-  eq(dial.toggle(dial.DEFAULTS, 'save'), {ids: dial.DEFAULTS, ok: false, reason: 'max'});
-  eq(dial.toggle(dial.DEFAULTS, 'bogus').reason, 'unknown');
-  const added = dial.toggle(['workspace', 'next', 'quiet'], 'save');
-  eq(added, {ids: ['workspace', 'next', 'save', 'quiet'], ok: true});
-  eq(dial.toggle(added.ids, 'save').ids, ['workspace', 'next', 'quiet']);
+test('the page actions share the right half and the pet actions the left half', () => {
+  const side = group => dial.SLOTS.filter(slot => slot.group === group).map(slot => slot.angle);
+  assert.ok(side('page').every(angle => angle >= 0 && angle < 180));
+  assert.ok(side('pet').every(angle => angle >= 180 && angle < 360));
 });
 
-test('the news page may use news and general actions, never the Studio-only one', () => {
-  const list = ids(dial.forSurface(dial.POOL.map(a => a.id).slice(0, 6), 'news'));
-  assert.ok(!list.includes('news'));
-  eq(ids(dial.forSurface(dial.DEFAULTS, 'news')), dial.DEFAULTS);
+test('slot() finds a slot by id and says nothing for a stranger', () => {
+  assert.equal(dial.slot('quiet').angle, 180);
+  assert.equal(dial.slot('collect'), undefined);
 });
 
-test('the Studio drops news-only actions but never shows fewer than three', () => {
-  eq(ids(dial.forSurface(dial.DEFAULTS, 'studio')), ['workspace', 'quiet', 'pet-settings']);
-  eq(ids(dial.forSurface(dial.DEFAULTS, 'studio', ['workspace'])), ['quiet', 'pet-settings', 'news']);
-  eq(ids(dial.forSurface(['next', 'search', 'collect', 'quiet'], 'studio')), ['quiet', 'workspace', 'news']);
-  assert.ok(dial.forSurface(['workspace', 'news', 'quiet'], 'studio').every(a => a.scope !== 'news'));
+test('the reasons a slot can be off are short', () => {
+  for (const reason of Object.values(dial.REASONS)) assert.ok(reason.length <= 6, reason);
+  assert.equal(dial.REASONS.newsOnly, '仅新闻页');
 });

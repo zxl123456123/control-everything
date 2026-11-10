@@ -103,25 +103,45 @@ describe('useMobileNativeChatSessionOptions', () => {
     }
   )
 
-  it('switches an OMP session with /orca-model <selector>', async () => {
-    mount({
-      agent: 'omp',
-      reportedModel: 'deepseek/deepseek-v4-pro',
-      modelSwitchCommand: 'orca-model'
-    })
-    let applied: boolean | undefined
-    await act(async () => {
-      applied = await api!.setOption('model', 'minimax-cn/MiniMax-M3')
-    })
-    expect(applied).toBe(true)
-    expect(dispatchCommand).toHaveBeenCalledWith('/orca-model minimax-cn/MiniMax-M3')
-    const model = api!.snapshot[0]!
-    expect(model).toMatchObject({ valueSource: 'dispatched' })
-    expect(model.kind).toMatchObject({ currentValue: 'minimax-cn/MiniMax-M3' })
-    // The hook confirming the switch is the next report; a changed value is evidence.
-    update({ reportedModel: 'minimax-cn/MiniMax-M3' })
-    expect(api!.snapshot[0]).toMatchObject({ valueSource: 'reported' })
-  })
+  it.each(['zkyq-model', 'orca-model'])(
+    'switches an OMP session with /%s <selector>',
+    async (command) => {
+      mount({
+        agent: 'omp',
+        reportedModel: 'deepseek/deepseek-v4-pro',
+        modelSwitchCommand: command
+      })
+      let applied: boolean | undefined
+      await act(async () => {
+        applied = await api!.setOption('model', 'minimax-cn/MiniMax-M3')
+      })
+      expect(applied).toBe(true)
+      expect(dispatchCommand).toHaveBeenCalledWith(`/${command} minimax-cn/MiniMax-M3`)
+      const model = api!.snapshot[0]!
+      expect(model).toMatchObject({ valueSource: 'dispatched' })
+      expect(model.kind).toMatchObject({ currentValue: 'minimax-cn/MiniMax-M3' })
+      // The hook confirming the switch is the next report; a changed value is evidence.
+      update({ reportedModel: 'minimax-cn/MiniMax-M3' })
+      expect(api!.snapshot[0]).toMatchObject({ valueSource: 'reported' })
+    }
+  )
+
+  it.each([undefined, 'arbitrary-command'])(
+    'does not dispatch an unadvertised OMP command: %s',
+    async (command) => {
+      mount({
+        agent: 'omp',
+        reportedModel: 'deepseek/deepseek-v4-pro',
+        discoveredModels: [{ id: 'minimax-cn/MiniMax-M3', label: 'MiniMax', options: [] }],
+        modelSwitchCommand: command
+      })
+      expect(api!.snapshot[0]!.settable).toBe(false)
+      await act(async () => {
+        expect(await api!.setOption('model', 'minimax-cn/MiniMax-M3')).toBe(false)
+      })
+      expect(dispatchCommand).not.toHaveBeenCalled()
+    }
+  )
 
   it('applies a model pick through the catalog modelApply command', async () => {
     mount()

@@ -11,6 +11,9 @@ import {
 vi.mock('fs', () => ({
   readFileSync: vi.fn(),
   existsSync: vi.fn(),
+  lstatSync: vi.fn(() => {
+    throw Object.assign(new Error('missing'), { code: 'ENOENT' })
+  }),
   mkdirSync: vi.fn(),
   writeFileSync: vi.fn(),
   rmSync: vi.fn(),
@@ -25,6 +28,51 @@ describe('getEffectiveHooks', () => {
     commandSourcePolicy?: 'shared-only' | 'local-only' | 'run-both'
     scripts?: { setup: string; archive: string }
   }) => makeHookTestRepo(hookSettings)
+
+  it('loads the new project file, preferring it to a legacy file in the same worktree', async () => {
+    const fs = await import('node:fs')
+    const { join } = await import('node:path')
+    const current = join(TEST_WORKTREE_PATH, 'zkyq.yaml')
+    vi.mocked(fs.existsSync).mockImplementation(
+      (path) => path === current || path === TEST_WORKTREE_ORCA_YAML_PATH
+    )
+    vi.mocked(fs.readFileSync).mockImplementation((path) =>
+      path === current ? 'scripts:\n  setup: echo current\n' : 'scripts:\n  setup: echo old\n'
+    )
+    const { getEffectiveHooks } = await import('./hooks')
+    expect(getEffectiveHooks(makeRepo(), TEST_WORKTREE_PATH)?.scripts.setup).toBe('echo current')
+  })
+
+  it('does not run a legacy hook when the new file is invalid', async () => {
+    const fs = await import('node:fs')
+    const { join } = await import('node:path')
+    const current = join(TEST_WORKTREE_PATH, 'zkyq.yaml')
+    vi.mocked(fs.existsSync).mockImplementation(
+      (path) => path === current || path === TEST_WORKTREE_ORCA_YAML_PATH
+    )
+    vi.mocked(fs.readFileSync).mockImplementation((path) =>
+      path === current ? ': invalid yaml\n' : 'scripts:\n  setup: echo old\n'
+    )
+    const { loadHooks, hasHooksFile } = await import('./hooks')
+    expect(hasHooksFile(TEST_WORKTREE_PATH)).toBe(true)
+    expect(loadHooks(TEST_WORKTREE_PATH)).toBeNull()
+  })
+
+  it('does not fall back when the new path is a broken symlink', async () => {
+    const fs = await import('node:fs')
+    const { join } = await import('node:path')
+    const current = join(TEST_WORKTREE_PATH, 'zkyq.yaml')
+    vi.mocked(fs.existsSync).mockImplementation((path) => path === TEST_WORKTREE_ORCA_YAML_PATH)
+    vi.mocked(fs.lstatSync).mockImplementationOnce((path) => {
+      if (path === current) return {} as ReturnType<typeof fs.lstatSync>
+      throw Object.assign(new Error('missing'), { code: 'ENOENT' })
+    })
+    vi.mocked(fs.readFileSync).mockImplementation(() => {
+      throw new Error('unreadable')
+    })
+    const { loadHooks } = await import('./hooks')
+    expect(loadHooks(TEST_WORKTREE_PATH)).toBeNull()
+  })
 
   it('uses hooks from orca.yaml when present', async () => {
     const fs = await import('node:fs')

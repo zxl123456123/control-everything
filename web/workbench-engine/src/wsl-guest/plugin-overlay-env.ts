@@ -1,4 +1,8 @@
 import { resolveLoginShellEnvironment } from '../main/startup/login-shell-environment'
+import { homedir } from 'node:os'
+import { canonicalRelayHooksPath } from './relay-hooks-identity'
+import { migrateAgentHookEnvironmentIdentity } from '../shared/agent-hook-environment-identity'
+import { migrateOpenCodeEnvironmentIdentity } from '../shared/opencode-environment-identity'
 import { readSessionShellStartupEnvVar } from '../main/pty/shell-startup-env'
 import {
   PRIMARY_AGENT_DIR_ENV_BY_KIND,
@@ -24,11 +28,15 @@ export function resolveOpenCodeSourceConfigDir(
   env: Record<string, string>,
   shell: string | undefined
 ): string | undefined {
-  return firstNonEmpty(
-    env.ORCA_OPENCODE_SOURCE_CONFIG_DIR,
+  env = { ...env }
+  migrateAgentHookEnvironmentIdentity(env)
+  migrateOpenCodeEnvironmentIdentity(env)
+  const source = firstNonEmpty(
+    env.ZKYQ_OPENCODE_SOURCE_CONFIG_DIR,
     readStartupEnv('OPENCODE_CONFIG_DIR', env, shell),
     env.OPENCODE_CONFIG_DIR
   )
+  return source ? canonicalRelayHooksPath(source, env.HOME ?? homedir()) : source
 }
 
 export function resolvePiSourceAgentDir(
@@ -41,20 +49,21 @@ export function resolvePiSourceAgentDir(
 
   const sourceDir = firstNonEmpty(env[sourceKey])
   if (sourceDir) {
-    return sourceDir
+    return canonicalRelayHooksPath(sourceDir, env.HOME ?? homedir())
   }
 
   const startupDir = readStartupEnv(primaryKey, env, shell)
   if (startupDir) {
-    return startupDir
+    return canonicalRelayHooksPath(startupDir, env.HOME ?? homedir())
   }
 
   if (kind === 'prime-agent') {
-    return firstNonEmpty(env[primaryKey])
+    const primary = firstNonEmpty(env[primaryKey])
+    return primary ? canonicalRelayHooksPath(primary, env.HOME ?? homedir()) : primary
   }
 
-  const overlayKey = kind === 'omp' ? 'ORCA_OMP_CODING_AGENT_DIR' : 'ORCA_PI_CODING_AGENT_DIR'
-  const otherOverlayKey = kind === 'omp' ? 'ORCA_PI_CODING_AGENT_DIR' : 'ORCA_OMP_CODING_AGENT_DIR'
+  const overlayKey = kind === 'omp' ? 'ZKYQ_OMP_CODING_AGENT_DIR' : 'ZKYQ_PI_CODING_AGENT_DIR'
+  const otherOverlayKey = kind === 'omp' ? 'ZKYQ_PI_CODING_AGENT_DIR' : 'ZKYQ_OMP_CODING_AGENT_DIR'
 
   // Why: a mismatched Orca overlay shadow means this shell inherited the other
   // Pi-compatible agent's PTY overlay. Do not remirror that overlay into this
@@ -64,7 +73,7 @@ export function resolvePiSourceAgentDir(
     env[primaryKey] !== env[overlayKey] &&
     env[primaryKey] !== env[otherOverlayKey]
   ) {
-    return env[primaryKey]
+    return canonicalRelayHooksPath(env[primaryKey], env.HOME ?? homedir())
   }
   return undefined
 }

@@ -54,7 +54,7 @@ describe('orca serve restore resume', () => {
   })
 
   it('asks the local Orca to resume and never starts a server', async () => {
-    process.env.ORCA_ENVIRONMENT = 'paired-env'
+    process.env.ZKYQ_ENVIRONMENT = 'paired-env'
     callMock.mockResolvedValue({
       id: 'rpc',
       ok: true,

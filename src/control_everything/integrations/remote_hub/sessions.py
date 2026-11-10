@@ -15,9 +15,11 @@ class BrowserSessions:
 
     def _load(self, db, identity, cookie):
         row = db.execute("SELECT * FROM browser_sessions WHERE session_hash=?", (token_hash(cookie or ""),)).fetchone()
+        # Sessions belong to the internal account, so an identity-provider swap keeps them addressable
+        # through identities; a different account (or an unknown identity) never matches.
+        account = self.store.lookup_account(db, identity.issuer, identity.sub)
         if (row is None or row["invalidated"] or row["expires"] <= self.store.clock()
-                or row["issuer"] != identity.issuer or row["sub"] != identity.sub
-                or row["sid"] != identity.sid):
+                or account is None or row["account_id"] != account or row["sid"] != identity.sid):
             raise HubError("session_required", 401)
         return row
 
@@ -30,9 +32,9 @@ class BrowserSessions:
                 if cookie:
                     db.execute("UPDATE browser_sessions SET invalidated=1 WHERE session_hash=?", (token_hash(cookie),))
             token, csrf = secrets.token_urlsafe(32), secrets.token_urlsafe(32)
-            db.execute("INSERT INTO browser_sessions VALUES(?,?,?,?,?,?,0)",
-                       (token_hash(token), identity.issuer, identity.sub, identity.sid, csrf,
-                        self.store.clock() + 1800))
+            account = self.store.ensure_account_row(db, identity.issuer, identity.sub)
+            db.execute("INSERT INTO browser_sessions(session_hash,account_id,sid,csrf,expires,invalidated) VALUES(?,?,?,?,?,0)",
+                       (token_hash(token), account, identity.sid, csrf, self.store.clock() + 1800))
             return csrf, f"{COOKIE_NAME}={token}; Path=/; Secure; HttpOnly; SameSite=Lax"
 
     def validate(self, identity, cookie, *, csrf=None, origin=None):
@@ -64,7 +66,7 @@ class BrowserSessions:
                     raise HubError("context_mismatch", 403)
                 return row["context_id"], row["scope"]
             context_id, scope = secrets.token_urlsafe(24), token_hash(
-                "\0".join((identity.issuer, identity.sub, device["device_id"], str(device["generation"]))))
+                "\0".join((session["account_id"], device["device_id"], str(device["generation"]))))
             db.execute("INSERT INTO contexts VALUES(?,?,?,?,?)",
                        (context_id, session["session_hash"], device["device_id"], device["generation"], scope))
             return context_id, scope

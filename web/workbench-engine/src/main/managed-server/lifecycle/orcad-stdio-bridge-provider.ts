@@ -74,7 +74,7 @@ export async function startOrcadStdioBridge(
       throw error
     }
     // A slow or dropped check is loss of contact; sockets resolve the bridge again.
-    console.warn('[ssh] Orca stdio bridge check was unverifiable:', error)
+    console.warn('[ssh] Control Everything stdio bridge check was unverifiable:', error)
   }
   return listenOrcadStdioBridge(options, async () => {
     const resolved = await resolveBridge()

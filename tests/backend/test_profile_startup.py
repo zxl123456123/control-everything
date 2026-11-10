@@ -12,7 +12,12 @@ class ProfileStartupTests(unittest.TestCase):
         with TemporaryDirectory() as directory:
             fake = Mock()
             fake.server_address = ("127.0.0.1", 14401)
-            with patch.object(gateway, "PanelServer", return_value=fake), patch("control_everything.sessions.service.SessionService", side_effect=AssertionError("ssh")), patch("control_everything.execution.service.ExecutionService", side_effect=AssertionError("owner")):
+            with (
+                patch.object(gateway, "PanelServer", return_value=fake),
+                patch.object(gateway.news_reader, "NewsReader"),
+                patch("control_everything.sessions.service.SessionService", side_effect=AssertionError("ssh")),
+                patch("control_everything.execution.service.ExecutionService", side_effect=AssertionError("owner")),
+            ):
                 server = gateway.build_profile_server(directory, 14401, quota_source=Mock(), news_source=Mock())
             self.assertIsNone(server.service)
             self.assertIsNone(server.execution)

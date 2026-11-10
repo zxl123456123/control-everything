@@ -6,9 +6,9 @@ const source = fs.readFileSync('web/workspace/account-device.js', 'utf8');
 const settle = async () => { for(let i=0;i<30;i++) await Promise.resolve(); };
 const response = (value,status=200) => ({status,ok:status>=200&&status<300,json:async()=>value});
 const session = extra => ({csrf:'synthetic-csrf',account:{sub:'member',name:'测试成员'},membership:'active',admin:false,device:null,...extra});
-function fixture(fetcher, {mode='remote',embedded=false,members=async()=>response({items:[],total:0,limit:25,offset:0})}={}) {
+function fixture(fetcher, {mode='remote',embedded=false,members=async()=>response({items:[],total:0,limit:25,offset:0}),accountSession=null}={}) {
   const nodes=new Map(),calls=[],navigations=[],notices=[],portals=[],timers=new Map(),inactive=new Set();
-  let sequence=0,focused=null,unmounted=false;
+  let sequence=0,focused=null,unmounted=false,localConfigured=true;
   function node(name,hidden=false) {
     const events=new Map();let ownText='';
     return {hidden,dataset:{},disabled:false,open:false,children:[],
@@ -23,7 +23,7 @@ function fixture(fetcher, {mode='remote',embedded=false,members=async()=>respons
   const container={set innerHTML(value){for(const tag of value.matchAll(/<[^>]*data-(node|action)="([^"]+)"[^>]*>/g)){nodes.set(tag[1]+':'+tag[2],node(tag[2],/\bhidden\b/.test(tag[0])));}},querySelector(selector){const m=selector.match(/data-(node|action)="([^"]+)"/);return nodes.get(m[1]+':'+m[2]);},replaceChildren(){unmounted=true;}};
   const context=embedded?{context:'synthetic',active:true,onInactive(fn){inactive.add(fn);return()=>inactive.delete(fn);},invalidate(){this.active=false;for(const fn of [...inactive])fn();inactive.clear();}}:null;
   const document=node('document'),windowEvents=node('window');document.createElement=tag=>node(tag);
-  const window={document,CERemoteContext:context,addEventListener:(...args)=>windowEvents.addEventListener(...args),removeEventListener:(...args)=>windowEvents.removeEventListener(...args),localStorage:{setItem:(...args)=>notices.push(args)},location:{assign:url=>navigations.push(url)},setTimeout(fn){timers.set(++sequence,fn);return sequence;},clearTimeout(id){timers.delete(id);},fetch:async(path,options)=>{calls.push({path,options});return path.startsWith('/remote/api/admin/members?')?members(path,options):fetcher(path,options);}};
+  const window={document,CERemoteContext:context,addEventListener:(...args)=>windowEvents.addEventListener(...args),removeEventListener:(...args)=>windowEvents.removeEventListener(...args),localStorage:{setItem:(...args)=>notices.push(args)},location:{assign:url=>navigations.push(url)},setTimeout(fn,delay){fn.delay=delay;timers.set(++sequence,fn);return sequence;},clearTimeout(id){timers.delete(id);},fetch:async(path,options)=>{calls.push({path,options});if(path.startsWith('/remote/api/admin/members?')||path.startsWith('/api/desktop/account/members?'))return members(path,options);if(path==='/api/desktop/account/status')return response(accountSession?accountSession():{configured:localConfigured,state:'signed_out'});const result=await fetcher(path,options);if(path==='/api/desktop/remote/status')localConfigured=(await result.json()).configured!==false;return result;}};
   vm.runInNewContext(source,{window,AbortController,FormData});
   const dispose=window.StudioAccountDevice.mount(container,{mode,returnHash:'#projects',onPortal:value=>portals.push(value)});
   return {calls,navigations,notices,portals,timers,context,dispose,window,windowEvents,visibility(hidden){document.hidden=hidden;document.emit('visibilitychange');},focusWindow(){windowEvents.emit('focus');},get:name=>nodes.get('node:'+name),button:name=>nodes.get('action:'+name),click(name){nodes.get('action:'+name).emit('click');},get focused(){return focused;},get unmounted(){return unmounted;},async tick(){const [id,fn]=timers.entries().next().value;timers.delete(id);fn();await settle();}};
@@ -34,6 +34,74 @@ test('raw independent 401 never parses JSON and exposes only login',async()=>{
   for(const name of ['activation','invitations','revoke-area','open'])assert.equal(f.get(name).hidden,true);
   assert.match(f.get('status').textContent,/请登录/);assert.equal(f.navigations.length,0);f.dispose();
 });
+
+test('local account badges settle after reading an already active ordinary member', async () => {
+  const f = fixture(path => response(path === '/api/bootstrap' ? {csrf_token:'local'} : {configured:true,state:'unbound'}), {
+    mode:'local', accountSession:() => ({configured:true,state:'signed_in',membership:'active',admin:false,account:{sub:'ordinary',name:'普通成员'}})
+  });
+  await settle();
+  assert.equal(f.get('membership').textContent, '已激活');
+  assert.equal(f.get('membership').dataset.icon, 'user-check');
+  assert.equal(f.get('membership').dataset.pulse, 'none');
+  assert.equal(f.get('activation').hidden, true);
+  assert.equal(f.get('invitations').hidden, true);
+  f.dispose();
+});
+
+test('expired standalone sessions clear private rows and recover through a fresh focus read', async () => {
+  let stage = 'signed_in';
+  const f = fixture(() => stage === 'expired' ? response({},401) : response(session(stage === 'recovered'
+    ? {csrf:'replacement-csrf',account:{sub:'ordinary',name:'新普通成员'}}
+    : {admin:true})), {members:() => response(directoryPage([directoryMember(0)]))});
+  await settle();
+  stage = 'expired';
+  f.click('refresh');
+  await settle();
+  assert.equal(f.get('expired').hidden, false);
+  assert.equal(f.get('expired').dataset.tone, 'warning');
+  assert.equal(f.get('members-list').children.length, 0);
+  assert.equal(f.get('invitation-code').textContent, '');
+  assert.equal(f.timers.size, 0);
+  assert.deepEqual(f.navigations, []);
+  stage = 'recovered';
+  f.focusWindow();
+  await settle();
+  assert.equal(f.get('expired-title').textContent, '已重新登录');
+  assert.equal(f.get('expired').dataset.tone, 'success');
+  assert.equal(f.get('account').textContent, '新普通成员');
+  assert.equal(f.get('relogin').hidden, true);
+  assert.equal(f.get('invitations').hidden, true);
+  assert.equal(f.get('members-list').children.length, 0);
+  f.dispose();
+  assert.equal(f.timers.size, 0);
+});
+test('unconfigured local account can save service addresses with CSRF and asks for restart',async()=>{
+  const f=fixture((path,options)=>response(path==='/api/bootstrap'?{csrf_token:'local'}:path==='/api/desktop/account/configure'?{saved:true,restart_required:true}:{configured:false,state:'unbound'}),{mode:'local'});
+  await settle(); assert.equal(f.get('service-config').hidden,false);
+  f.get('service-issuer').value='https://identity.example.test/realms/team'; f.get('service-hub').value='https://hub.example.test';
+  f.get('service-config').emit('submit'); await settle();
+  const writes=f.calls.filter(call=>call.options.method==='POST'); assert.equal(writes.length,1);
+  assert.equal(writes[0].path,'/api/desktop/account/configure'); assert.equal(writes[0].options.headers['X-Session-CSRF'],'local');
+  assert.deepEqual(JSON.parse(writes[0].options.body),{issuer:'https://identity.example.test/realms/team',hub_origin:'https://hub.example.test'});
+  assert.equal(f.get('service-config').hidden,true); assert.match(f.get('status').textContent,/重新打开软件/); assert.match(f.get('device-help').textContent,/已保存.*重新打开软件/);
+  f.click('refresh'); await settle(); assert.match(f.get('status').textContent,/重新打开软件/); assert.match(f.get('device-help').textContent,/已保存.*重新打开软件/); f.dispose();
+});
+test('remote and configured accounts do not expose or submit service configuration',async()=>{
+  for(const mode of ['remote','local']){const f=fixture(path=>response(path==='/api/bootstrap'?{csrf_token:'local'}:mode==='remote'?session():{configured:true,state:'unbound'}),{mode});await settle();
+    assert.equal(f.get('service-config').hidden,true); f.get('service-issuer').value='https://identity.example.test'; f.get('service-hub').value='https://hub.example.test'; f.get('service-config').emit('submit'); await settle();
+    assert.equal(f.calls.filter(call=>call.options.method==='POST').length,0); f.dispose();}
+});
+test('an unbound signed-out account can correct a service address',async()=>{
+  const f=fixture(path=>response(path==='/api/bootstrap'?{csrf_token:'local'}:path==='/api/desktop/remote/status'?{configured:true,state:'unbound'}:{saved:true,restart_required:true}),{mode:'local',accountSession:()=>({configured:true,state:'signed_out',service_configurable:true})});
+  await settle(); assert.equal(f.get('service-config').hidden,false);
+  f.get('service-issuer').value='https://identity.example.test/realm';f.get('service-hub').value='https://hub.example.test';f.get('service-config').emit('submit');await settle();
+  assert.equal(f.calls.filter(call=>call.path==='/api/desktop/account/configure').length,1);assert.match(f.get('status').textContent,/重新打开软件/);assert.equal(f.get('local-account').hidden,true);assert.equal(f.get('local-actions').hidden,true);f.dispose();
+});
+test('failed service configuration gives an actionable message and allows retry',async()=>{
+  const f=fixture((path)=>response(path==='/api/bootstrap'?{csrf_token:'local'}:path==='/api/desktop/account/configure'?{error:'remote_configuration_locked'}:{configured:false,state:'unbound'},path==='/api/desktop/account/configure'?409:200),{mode:'local'}); await settle();
+  f.get('service-issuer').value='https://identity.example.test'; f.get('service-hub').value='https://hub.example.test'; f.get('service-config').emit('submit'); await settle();
+  assert.match(f.get('service-config-status').textContent,/保存失败/);assert.equal(f.button('configure').disabled,false);assert.equal(f.get('service-config').hidden,false);f.dispose();
+});
 test('independent new session adopts its account and successful logout retires page state',async()=>{
   const f=fixture(path=>response(path.endsWith('/session')?session({session_changed:true,admin:true}):{logout_url:'/oauth2/sign_out'}));await settle();
   assert.equal(f.get('account').textContent,'测试成员');assert.equal(f.get('invitations').hidden,false);assert.equal(f.notices.length,1);
@@ -42,7 +110,7 @@ test('independent new session adopts its account and successful logout retires p
 test('remote mode never loads bootstrap and keeps unbound and offline account management usable',async()=>{
   for(const device of [null,{device_id:'d',name:'测试电脑',state:'offline'},{device_id:'d',name:'测试电脑',state:'online'}]){
     const f=fixture(async()=>response(session({device})));await settle();assert.equal(f.calls[0].path,'/remote/api/session');assert.equal(f.calls.length,1);
-    assert.equal(f.get('account').textContent,'测试成员');assert.equal(f.get('open').hidden,device?.state!=='online');assert.equal(f.timers.size,0);f.dispose();
+    assert.equal(f.get('account').textContent,'测试成员');assert.equal(f.get('open').hidden,device?.state!=='online');assert.equal(f.timers.size,1);f.dispose();
   }
 });
 test('only boolean admin exposes invitations; non-admin click cannot send a write',async()=>{
@@ -74,19 +142,48 @@ test('revocation uses modal confirmation, cancel sends nothing and close restore
   const f=fixture(path=>response(path.endsWith('/session')?session({device:{device_id:'device/a',state:'online'}}):{revoked:true}));await settle();f.click('revoke');assert.equal(f.get('revoke-dialog').open,true);f.click('cancel-revoke');assert.equal(f.calls.length,1);assert.equal(f.focused,'revoke');f.click('revoke');f.click('confirm-revoke');await settle();assert.equal(f.calls[1].path,'/remote/api/devices/device%2Fa/revoke');f.dispose();
 });
 test('local mode loads bootstrap once, retains explicit confirmation and disables unconfigured actions',async()=>{
-  for(const configured of [false,true]){const f=fixture(path=>response(path==='/api/bootstrap'?{csrf_token:'synthetic-local-csrf'}:{configured,state:'awaiting_local_confirmation',account:{sub:'account',name:'本机待核对'},operation:'recover'}),{mode:'local'});await settle();assert.deepEqual(f.calls.map(c=>c.path),['/api/bootstrap','/api/desktop/remote/status']);assert.equal(f.button('authorize').disabled,!configured);assert.equal(f.button('confirm').hidden,false);assert.match(f.button('confirm').textContent,/恢复/);assert.equal(f.calls.length,2);f.click('confirm');await settle();assert.equal(f.calls.length,configured?4:2);if(configured){assert.equal(f.calls[2].options.headers['X-Session-CSRF'],'synthetic-local-csrf');assert.equal(f.calls[2].options.headers['X-CE-CSRF'],undefined);}f.dispose();}
+  for(const configured of [false,true]){const f=fixture(path=>response(path==='/api/bootstrap'?{csrf_token:'synthetic-local-csrf'}:{configured,state:'awaiting_local_confirmation',account:{sub:'account',name:'本机待核对'},operation:'recover'}),{mode:'local'});await settle();assert.deepEqual(f.calls.map(c=>c.path),['/api/bootstrap','/api/desktop/remote/status','/api/desktop/account/status']);assert.equal(f.button('authorize').disabled,!configured);assert.equal(f.button('confirm').hidden,false);assert.match(f.button('confirm').textContent,/恢复/);assert.equal(f.calls.length,3);f.click('confirm');await settle();assert.equal(f.calls.length,configured?6:3);if(configured){assert.equal(f.calls[3].options.headers['X-Session-CSRF'],'synthetic-local-csrf');assert.equal(f.calls[3].options.headers['X-CE-CSRF'],undefined);}f.dispose();}
 });
 test('local rows show identity only when supplied and keep stable states out of the notice',async()=>{
   for(const state of ['unbound','authorizing','revoked','online','offline','connecting','enrolling']) {
     const f=fixture(path=>response(path==='/api/bootstrap'?{csrf_token:'local'}:{state,configured:true}),{mode:'local'});await settle();
-    assert.equal(f.get('account').textContent,''); assert.equal(f.get('membership').textContent,['online','offline','connecting'].includes(state)?'连接已保存':'未登录');
+    assert.equal(f.get('account').textContent,''); assert.equal(f.get('membership').textContent,'未登录');
     assert.equal(f.get('status').textContent,''); assert.equal(f.get('device-help').textContent,'');
     assert.equal(f.get('device-state').textContent,({unbound:'尚未绑定',authorizing:'授权中',revoked:'连接已撤销',online:'在线',offline:'离线',connecting:'连接中',enrolling:'绑定中'})[state]); f.dispose();
   }
-  const f=fixture(path=>response(path==='/api/bootstrap'?{csrf_token:'local'}:{state:'unbound',configured:false}),{mode:'local'});await settle();assert.equal(f.get('membership').textContent,'账号服务未配置');assert.equal(f.get('local-actions').hidden,true);assert.equal(f.button('authorize').disabled,true);assert.equal(f.button('authorize').hidden,true);assert.match(f.get('device-help').textContent,/没有启用账号服务.*不影响本机项目/);f.dispose();
+  const f=fixture(path=>response(path==='/api/bootstrap'?{csrf_token:'local'}:{state:'unbound',configured:false}),{mode:'local'});await settle();assert.equal(f.get('membership').textContent,'账号服务未配置');assert.equal(f.get('local-actions').hidden,true);assert.equal(f.button('authorize').disabled,true);assert.equal(f.button('authorize').hidden,true);assert.match(f.get('device-help').textContent,/先填写账号和设备服务地址/);f.dispose();
 });
 test('local polling is serial, visibility-aware and disposal clears timers/listeners/late responses',async()=>{
   let release,reads=0;const f=fixture(path=>path==='/api/bootstrap'?response({csrf_token:'local'}):++reads===1?response({state:'online',configured:true}):new Promise(resolve=>release=resolve),{mode:'local'});await settle();assert.equal(f.get('device-state').textContent,'在线');assert.equal(f.timers.size,1);f.window.document.hidden=true;await f.tick();assert.equal(reads,1);f.window.document.hidden=false;await f.tick();await f.tick();assert.equal(reads,2);const signal=f.calls.at(-1).options.signal;f.dispose();assert.equal(signal.aborted,true);assert.equal(f.timers.size,0);assert.equal(f.button('authorize').listenerCount,0);release(response({state:'offline',account:{sub:'late'}}));await settle();assert.notEqual(f.get('account').textContent,'late');
+});
+
+test('refresh disables guarded controls until both local reads finish and restores current state',async()=>{
+  let deviceRelease, accountRelease, delayed=false;
+  const f=fixture(path=>path==='/api/bootstrap'?response({csrf_token:'local'}):path==='/api/desktop/remote/status' && delayed?new Promise(resolve=>deviceRelease=resolve):response({state:'unbound',configured:true}),
+    {mode:'local',accountSession:()=>delayed?new Promise(resolve=>accountRelease=resolve):({configured:true,state:'signed_in',account:{sub:'member'},membership:'active'})});
+  await settle(); assert.equal(f.get('refresh-controls').disabled,false); assert.equal(f.button('authorize').disabled,false);
+  delayed=true; f.click('refresh'); await settle();
+  assert.equal(f.get('refresh-controls').disabled,true); assert.equal(f.get('revoke-refresh-controls').disabled,true); assert.equal(f.button('refresh').disabled,true); assert.equal(f.get('refreshing').hidden,false);
+  f.click('authorize'); assert.equal(f.calls.filter(c=>c.options.method==='POST').length,0);
+  deviceRelease(response({state:'unbound',configured:true})); await settle(); assert.equal(f.get('refresh-controls').disabled,true);
+  accountRelease({configured:true,state:'signed_in',account:{sub:'member'},membership:'active'}); await settle();
+  assert.equal(f.get('refresh-controls').disabled,false); assert.equal(f.button('refresh').disabled,false); assert.equal(f.get('refreshing').hidden,true); assert.equal(f.button('authorize').disabled,false);
+  delayed=false; f.click('authorize'); await settle(); assert.equal(f.calls.filter(c=>c.path==='/api/desktop/remote/authorize').length,1); f.dispose();
+});
+
+test('failed refresh releases controls while retaining explicit error',async()=>{
+  let fail=false;const f=fixture(path=>{if(fail)throw new Error('读取失败');return response(path==='/api/bootstrap'?{csrf_token:'local'}:{state:'unbound',configured:true});},{mode:'local'});
+  await settle(); fail=true; f.click('refresh'); await settle();
+  assert.equal(f.get('refresh-controls').disabled,false); assert.equal(f.get('revoke-refresh-controls').disabled,false); assert.equal(f.get('refreshing').hidden,true); assert.equal(f.get('status').textContent,'读取失败'); f.dispose();
+});
+
+test('refresh keeps revoke confirmation disabled until target changes can be rejected',async()=>{
+  let release, reads=0; const f=fixture(()=>++reads===1?response(session({device:{device_id:'first',state:'online'}})):new Promise(resolve=>release=resolve));
+  await settle(); f.click('revoke'); f.click('refresh'); await settle();
+  assert.equal(f.get('revoke-refresh-controls').disabled,true); f.click('confirm-revoke'); assert.equal(f.calls.filter(c=>c.options.method==='POST').length,0);
+  release(response(session({device:{device_id:'second',state:'online'}}))); await settle();
+  assert.equal(f.get('revoke-refresh-controls').disabled,false); f.click('confirm-revoke'); await settle();
+  assert.equal(f.calls.filter(c=>c.options.method==='POST').length,0); assert.match(f.get('revoke-error').textContent,/状态已变化/); f.dispose();
 });
 
 test('compact local rows retain authorization codes, explicit account confirmation, restart notice and read errors',async()=>{
@@ -94,7 +191,7 @@ test('compact local rows retain authorization codes, explicit account confirmati
   const f=fixture(path=>response(path==='/api/bootstrap'?{csrf_token:'local'}:current),{mode:'local'});await settle();
   assert.equal(f.get('grant').hidden,false);assert.equal(f.get('code').textContent,'SYNTHETIC');assert.equal(f.get('verification').href,current.verification_uri);assert.equal(f.button('authorize').disabled,true);
   current={configured:true,state:'awaiting_local_confirmation',account:{sub:'synthetic-account',name:'待核对账号'}};f.click('refresh');await settle();
-  assert.equal(f.get('account').textContent,'待核对账号');assert.equal(f.button('confirm').hidden,false);assert.equal(f.button('authorize').hidden,true);assert.match(f.get('local-help').textContent,/核对账号/);assert.equal(f.calls.filter(c=>c.options.method==='POST').length,0);
+  assert.equal(f.get('account').textContent,'');assert.equal(f.button('confirm').hidden,false);assert.equal(f.button('authorize').hidden,true);assert.match(f.get('local-help').textContent,/待核对账号/);assert.equal(f.calls.filter(c=>c.options.method==='POST').length,0);
   current={configured:true,state:'online',runtime_restart_required:true};f.click('refresh');await settle();assert.match(f.get('status').textContent,/重新打开软件/);
   current=null;f.window.fetch=async()=>{throw new Error('Synthetic unavailable');};f.click('refresh');await settle();assert.equal(f.get('status').textContent,'Synthetic unavailable');assert.equal(f.get('status').dataset.tone,'error');f.dispose();
 });
@@ -137,6 +234,7 @@ test('member pagination advances by the server page and does not duplicate a pen
 test('member directory configuration and read failures are real errors, never invented empty success',async()=>{
   for(const code of ['member_directory_not_configured','member_directory_unavailable']){const f=fixture(()=>response(session({admin:true})),{members:()=>response({error:code},503)});await settle();assert.equal(f.get('members-table').hidden,true);assert.equal(f.get('members-status').dataset.tone,'error');assert.match(f.get('members-status').textContent,/未配置|不可用/);assert.doesNotMatch(f.get('members-status').textContent,/暂无注册成员/);assert.equal(f.get('invitations').hidden,false);f.dispose();}
   const f=fixture(()=>response(session({admin:true})),{members:()=>response(directoryPage([],1))});await settle();assert.match(f.get('members-status').textContent,/未完整读取/);f.dispose();
+  {const f=fixture(()=>response(session({admin:true})),{members:()=>response({...directoryPage([directoryMember(0)]),source:'hub_members'})});await settle();assert.equal(f.get('members-table').hidden,false);assert.match(f.get('members-status').textContent,/目录未配置/);f.dispose();}
 });
 test('directory responses cannot survive retirement, CSRF rotation, role loss or unmount',async()=>{
   for(const change of ['401','identity','csrf','role','dispose']) {
@@ -149,7 +247,7 @@ test('a forbidden directory read clears previously visible rows and retains the 
   let reads=0;const f=fixture(()=>response(session({admin:true})),{embedded:true,members:()=>++reads===1?response(directoryPage([directoryMember(0)])):response({error:'admin_required'},403)});await settle();assert.equal(f.get('members-list').children.length,1);f.click('refresh');await settle();assert.equal(f.get('members-list').children.length,0);assert.equal(f.get('invitations').hidden,true);assert.equal(f.context.active,true);assert.match(f.get('status').textContent,/刷新状态/);f.dispose();
 });
 test('local status publishes only a configured portal while keeping account and computer confirmation separate',async()=>{
-  let state={configured:true,state:'unbound',portal_url:'https://portal.example.test/remote'};const f=fixture(path=>response(path==='/api/bootstrap'?{csrf_token:'local'}:state),{mode:'local'});await settle();assert.equal(f.portals.at(-1),state.portal_url);assert.equal(f.get('account').textContent,'');assert.equal(f.button('confirm').hidden,true);assert.equal(f.get('device-state').textContent,'尚未绑定');assert.equal(f.button('authorize').textContent,'登录 / 注册账号');
+  let state={configured:true,state:'unbound',portal_url:'https://portal.example.test/remote'};const f=fixture(path=>response(path==='/api/bootstrap'?{csrf_token:'local'}:state),{mode:'local'});await settle();assert.equal(f.portals.at(-1),state.portal_url);assert.equal(f.get('account').textContent,'');assert.equal(f.button('confirm').hidden,true);assert.equal(f.get('device-state').textContent,'尚未绑定');assert.equal(f.button('authorize').textContent,'连接这台电脑');
   state={configured:false,state:'unbound',portal_url:'https://portal.example.test/remote'};f.click('refresh');await settle();assert.equal(f.portals.at(-1),'');assert.equal(f.button('authorize').hidden,true);f.dispose();
 });
 
@@ -169,6 +267,11 @@ test('real account DOM keeps members private to admins and uses the full respons
   let admin=true;w.fetch=async path=>response(path.startsWith('/remote/api/admin/members?')?directoryPage(directory):session({admin}));
   w.eval(source);const dispose=w.StudioAccountDevice.mount(root,{mode:'remote'});t.after(dispose);
   for(let i=0;i<8;i++)await new Promise(resolve=>setImmediate(resolve));
+  const controls=root.querySelector('[data-node="refresh-controls"]');
+  for(const selector of ['[data-action="authorize"]','[data-action="confirm"]','[data-action="account-authorize"]','[data-action="logout"]','[data-action="revoke"]','[data-action="invitation"]','[data-node="activation"] button','[data-action="configure"]'])assert.equal(controls.contains(root.querySelector(selector)),true);
+  const revokeControls=root.querySelector('[data-node="revoke-refresh-controls"]');
+  assert.equal(revokeControls.contains(root.querySelector('[data-action="confirm-revoke"]')),true);assert.equal(revokeControls.contains(root.querySelector('[data-action="cancel-revoke"]')),false);
+  assert.equal(w.getComputedStyle(controls).padding,'0px');assert.equal(w.getComputedStyle(controls).borderWidth,'0px');
   assert.equal(root.querySelectorAll('table tbody tr').length,3);assert.equal(root.querySelectorAll('img').length,0);assert.equal(root.querySelector('td').textContent,'<img src=x onerror=alert(1)>');
   assert.equal(w.getComputedStyle(root.querySelector('td')).fontSize,'15px');assert.equal(w.getComputedStyle(root.querySelector('h2')).fontSize,'18px');assert.equal(w.getComputedStyle(root.querySelector('tbody tr')).display,width===390?'grid':'table-row');
   const rows=[...root.querySelectorAll('tbody tr')];
@@ -207,6 +310,84 @@ test('focus clears the directory before serial reauthorization and disposal remo
   finish(response(session({admin:false})));await settle();assert.equal(f.get('members-list').children.length,0);assert.equal(f.get('invitations').hidden,true);assert.equal(f.window.document.listenerCount,1);assert.equal(f.windowEvents.listenerCount,1);
   f.dispose();assert.equal(f.window.document.listenerCount,0);assert.equal(f.windowEvents.listenerCount,0);const calls=f.calls.length;f.focusWindow();f.visibility(false);await settle();assert.equal(f.calls.length,calls);
 });
-test('local connector polling does not gain remote admin view listeners',async()=>{
-  const f=fixture(path=>response(path==='/api/bootstrap'?{csrf_token:'local'}:{configured:false,state:'unbound'}),{mode:'local'});await settle();assert.equal(f.window.document.listenerCount,0);assert.equal(f.windowEvents.listenerCount,0);const calls=f.calls.length;f.focusWindow();f.visibility(false);await settle();assert.equal(f.calls.length,calls);f.dispose();
+test('local admin members are inline, scoped to the signed-in account and cleared on role loss',async()=>{
+  let current={configured:true,state:'signed_in',account:{sub:'owner',name:'Owner'},membership:'active',admin:true};
+  let memberReads=0;
+  const f=fixture(path=>response(path==='/api/bootstrap'?{csrf_token:'local-csrf'}:{configured:true,state:'unbound'}),{mode:'local',accountSession:()=>current,members:async(path,options)=>{memberReads++;assert.equal(path,'/api/desktop/account/members?limit=25&offset=0');assert.equal(options.headers['X-Session-Client'],'panel');assert.equal(options.headers.Authorization,undefined);return response(directoryPage([directoryMember(0)]));}});
+  await settle();assert.equal(f.get('account').textContent,'Owner');assert.equal(f.get('invitations').hidden,false);assert.equal(f.get('members-list').children.length,1);assert.equal(memberReads,1);assert.equal(f.calls.some(call=>call.options.method==='POST'),false);
+  current={...current,admin:false};f.click('refresh');await settle();assert.equal(f.get('invitations').hidden,true);assert.equal(f.get('members-list').children.length,0);assert.equal(memberReads,1);f.dispose();
+});
+
+test('local account login and logout never confirm or revoke the computer',async()=>{
+  let current={configured:true,state:'signed_out',account:null,admin:false};
+  const f=fixture((path,options)=>{if(path.endsWith('/account/authorize'))current={configured:true,state:'signed_in',account:{sub:'owner',name:'Owner'},membership:'active',admin:false};if(path.endsWith('/account/logout'))current={configured:true,state:'signed_out',account:null,admin:false};return response(path==='/api/bootstrap'?{csrf_token:'local-csrf'}:path.startsWith('/api/desktop/account/')?{}:{configured:true,state:'online'});},{mode:'local',accountSession:()=>current});
+  await settle();f.click('account-authorize');await settle();assert.equal(f.get('account').textContent,'Owner');assert.equal(f.button('logout').hidden,false);f.click('logout');await settle();assert.equal(f.get('account').textContent,'');assert.equal(f.get('device-state').textContent,'在线');
+  const writes=f.calls.filter(call=>call.options.method==='POST');assert.deepEqual(writes.map(call=>call.path),['/api/desktop/account/authorize','/api/desktop/account/logout']);for(const call of writes)assert.equal(call.options.headers['X-Session-CSRF'],'local-csrf');f.dispose();
+});
+
+test('pending local login keeps its button disabled and cannot start another grant',async()=>{
+  let current={configured:true,state:'signed_out',account:null,admin:false};
+  const f=fixture(path=>{if(path.endsWith('/account/authorize'))current={...current,state:'authorizing',verification_uri:'https://id.example.test/device',user_code:'SYNTHETIC-CODE'};return response(path==='/api/bootstrap'?{csrf_token:'local-csrf'}:{configured:true,state:'unbound'});},{mode:'local',accountSession:()=>current});
+  await settle();f.click('account-authorize');await settle();assert.equal(f.button('account-authorize').disabled,true);assert.equal(f.get('account-code').textContent,'SYNTHETIC-CODE');f.click('account-authorize');await settle();assert.equal(f.calls.filter(call=>call.path.endsWith('/account/authorize')).length,1);f.dispose();
+});
+
+test('local account privacy listeners are removed on disposal',async()=>{
+  const f=fixture(path=>response(path==='/api/bootstrap'?{csrf_token:'local'}:{configured:false,state:'unbound'}),{mode:'local'});await settle();assert.equal(f.window.document.listenerCount,1);assert.equal(f.windowEvents.listenerCount,1);f.dispose();assert.equal(f.window.document.listenerCount,0);assert.equal(f.windowEvents.listenerCount,0);
+});
+
+test('remote device state updates without navigation and hidden pages stop polling',async()=>{
+  let state='offline';
+  const f=fixture(()=>response(session({device:{device_id:'own-device',state}})));await settle();
+  assert.equal(f.get('open').hidden,true);assert.match(f.get('device-help').textContent,/自动更新/);
+  state='online';await f.tick();assert.equal(f.get('open').hidden,false);assert.equal(f.get('device-state').textContent,'在线');
+  const before=f.calls.length;f.visibility(true);assert.equal(f.timers.size,0);assert.equal(f.calls.length,before);
+  f.visibility(false);await settle();assert.equal(f.timers.size,1);f.focusWindow();await settle();assert.equal(f.timers.size,1);
+  f.dispose();assert.equal(f.timers.size,0);
+});
+
+test('background session refresh preserves current invitations without reloading members',async()=>{
+  let memberReads=0;
+  const f=fixture(path=>response(path.endsWith('/session')?session({admin:true}):{invitation:'synthetic-invite'}),{members:()=>{memberReads++;return response(directoryPage([directoryMember(0)]));}});
+  await settle();f.click('invitation');await settle();assert.equal(f.get('invitation-code').textContent,'synthetic-invite');
+  await f.tick();await f.tick();assert.equal(memberReads,1);assert.equal(f.get('invitation-code').textContent,'synthetic-invite');
+  f.dispose();
+});
+
+test('remote polling stays serial and stops after session expiry until explicit refresh',async()=>{
+  let reads=0,finish;
+  const f=fixture(()=>++reads===1?response(session()):new Promise(resolve=>finish=resolve));await settle();
+  await f.tick();await f.tick();assert.equal(reads,2);
+  finish(response({},401));await settle();assert.equal(f.timers.size,0);assert.equal(f.get('login').hidden,false);
+  f.window.fetch=async()=>{reads++;return response(session());};
+  f.click('refresh');await settle();assert.equal(reads,3);assert.equal(f.timers.size,2);assert.equal([...f.timers.values()].filter(fn=>fn.delay===5000).length,1);assert.equal([...f.timers.values()].filter(fn=>fn.delay===2800).length,1);assert.equal(f.get('login').hidden,true);
+  f.dispose();
+});
+
+test('role loss during polling clears invitations and invalidates late admin writes',async()=>{
+  let admin=true,finish;
+  const f=fixture(path=>path.endsWith('/session')?response(session({admin})):new Promise(resolve=>finish=resolve));await settle();
+  f.click('invitation');admin=false;f.click('refresh');await settle();assert.equal(f.get('invitations').hidden,true);
+  admin=true;f.click('refresh');await settle();finish(response({invitation:'retired-invite'}));await settle();
+  assert.equal(f.get('invitation-code').textContent,'');f.dispose();
+});
+
+test('an expired in-flight session also cancels a queued focus recheck',async()=>{
+  let reads=0,finish;
+  const f=fixture(()=>++reads===1?response(session()):new Promise(resolve=>finish=resolve));await settle();
+  await f.tick();f.focusWindow();finish(response({},401));await settle();
+  assert.equal(reads,2);assert.equal(f.timers.size,0);assert.equal(f.get('login').hidden,false);f.dispose();
+});
+
+test('local authorization links prefer complete URLs and keep confirmation codes visible',async()=>{
+  const grant={verification_uri:'https://id.example.test/device',verification_uri_complete:'https://id.example.test/device?user_code=TEST-CODE',user_code:'TEST-CODE'};
+  const f=fixture(path=>response(path==='/api/bootstrap'?{csrf_token:'local'}:{configured:true,state:'authorizing',...grant}),{mode:'local',accountSession:()=>({configured:true,state:'authorizing',...grant})});
+  await settle();assert.equal(f.get('verification').href,grant.verification_uri_complete);assert.equal(f.get('account-verification').href,grant.verification_uri_complete);
+  assert.equal(f.get('code').textContent,'TEST-CODE');assert.equal(f.get('account-code').textContent,'TEST-CODE');f.dispose();
+});
+
+test('computer authorization failures offer recovery without confirming or rebinding',async()=>{
+  for(const [code,message] of [['expired_token',/过期/],['remote_membership_required',/邀请码/],['device_already_bound',/另一台电脑/],['remote_authorization_required',/重新连接/],['remote_identity_changed',/核对账号/],['account_login_required',/先登录/]]) {
+    const f=fixture(path=>response(path==='/api/bootstrap'?{csrf_token:'local'}:{configured:true,state:'unbound',code}),{mode:'local'});await settle();
+    assert.match(f.get('device-error').textContent,message);assert.equal(f.calls.some(call=>call.options.method==='POST'),false);f.dispose();
+  }
 });

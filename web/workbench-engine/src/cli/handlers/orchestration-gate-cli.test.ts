@@ -33,7 +33,7 @@ import { RuntimeClientError } from '../runtime/types'
 import { okFixture, queueFixtures } from '../test-fixtures'
 
 const originalTerminalHandle = process.env.ORCA_TERMINAL_HANDLE
-const originalPaneKey = process.env.ORCA_PANE_KEY
+const originalPaneKey = process.env.ZKYQ_PANE_KEY
 // Why: a structured-session marker inherited from the runner diverts these cases to the
 // structured refusal, so which branch they exercise would depend on who ran them.
 const originalStructuredSession = process.env.ORCA_STRUCTURED_SESSION
@@ -56,7 +56,7 @@ describe('orchestration gate commands carry caller identity', () => {
     logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
     errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
     delete process.env.ORCA_TERMINAL_HANDLE
-    delete process.env.ORCA_PANE_KEY
+    delete process.env.ZKYQ_PANE_KEY
     delete process.env.ORCA_STRUCTURED_SESSION
     process.exitCode = 0
   })
@@ -65,7 +65,7 @@ describe('orchestration gate commands carry caller identity', () => {
     logSpy.mockRestore()
     errorSpy.mockRestore()
     restoreEnv('ORCA_TERMINAL_HANDLE', originalTerminalHandle)
-    restoreEnv('ORCA_PANE_KEY', originalPaneKey)
+    restoreEnv('ZKYQ_PANE_KEY', originalPaneKey)
     restoreEnv('ORCA_STRUCTURED_SESSION', originalStructuredSession)
     process.exitCode = 0
   })
@@ -94,7 +94,7 @@ describe('orchestration gate commands carry caller identity', () => {
 
   it('remints a stale environment handle before authorizing gateCreate', async () => {
     process.env.ORCA_TERMINAL_HANDLE = 'term_stale'
-    process.env.ORCA_PANE_KEY = 'tab_coord:leaf_coord'
+    process.env.ZKYQ_PANE_KEY = 'tab_coord:leaf_coord'
     callMock.mockImplementation(async (method: string) => {
       if (method === 'terminal.resolveIdentity') {
         return okFixture('req_identity', { identity: { handle: 'term_stale', live: false } })

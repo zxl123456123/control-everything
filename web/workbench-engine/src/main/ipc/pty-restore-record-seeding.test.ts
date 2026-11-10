@@ -279,7 +279,7 @@ describe('registerPtyHandlers', () => {
       worktreeId: 'wt-gated',
       tabId,
       leafId,
-      env: { ORCA_PANE_KEY: paneKey }
+      env: { ZKYQ_PANE_KEY: paneKey }
     })
 
     // The renderer owns the emulator snapshot here — but the list/read records
@@ -433,7 +433,7 @@ describe('registerPtyHandlers', () => {
       worktreeId: 'wt-1',
       tabId: 'tab-1',
       leafId,
-      env: { ORCA_PANE_KEY: 'tab-1:0' }
+      env: { ZKYQ_PANE_KEY: 'tab-1:0' }
     })
 
     expect(registerPtyMock).toHaveBeenLastCalledWith(
@@ -457,7 +457,7 @@ describe('registerPtyHandlers', () => {
       worktreeId: 'wt-1',
       tabId: 'tab-1',
       leafId,
-      env: { ORCA_PANE_KEY: stablePaneKey }
+      env: { ZKYQ_PANE_KEY: stablePaneKey }
     })
 
     expect(registerPtyMock).toHaveBeenLastCalledWith(
@@ -473,7 +473,7 @@ describe('registerPtyHandlers', () => {
       worktreeId: 'wt-1',
       tabId: 'tab-1',
       leafId,
-      env: { ORCA_PANE_KEY: makePaneKey('tab-2', leafId) }
+      env: { ZKYQ_PANE_KEY: makePaneKey('tab-2', leafId) }
     })
 
     expect(registerPtyMock).toHaveBeenLastCalledWith(
@@ -494,16 +494,16 @@ describe('registerPtyHandlers', () => {
       tabId: 'tab-1',
       leafId,
       env: {
-        ORCA_PANE_KEY: remintedPaneKey,
-        ORCA_AGENT_LAUNCH_TOKEN: 'launch-remint'
+        ZKYQ_PANE_KEY: remintedPaneKey,
+        ZKYQ_AGENT_LAUNCH_TOKEN: 'launch-remint'
       }
     })
 
     expect(spawnMock.mock.calls.at(-1)?.[2]).toEqual(
       expect.objectContaining({
         env: expect.objectContaining({
-          ORCA_PANE_KEY: stablePaneKey,
-          ORCA_AGENT_LAUNCH_TOKEN: 'launch-remint'
+          ZKYQ_PANE_KEY: stablePaneKey,
+          ZKYQ_AGENT_LAUNCH_TOKEN: 'launch-remint'
         })
       })
     )
@@ -532,16 +532,16 @@ describe('registerPtyHandlers', () => {
       tabId: 'tab-2',
       leafId,
       env: {
-        ORCA_PANE_KEY: remintedPaneKey,
-        ORCA_AGENT_LAUNCH_TOKEN: 'launch-remint'
+        ZKYQ_PANE_KEY: remintedPaneKey,
+        ZKYQ_AGENT_LAUNCH_TOKEN: 'launch-remint'
       }
     })
 
     expect(spawnMock.mock.calls.at(-1)?.[2]).toEqual(
       expect.objectContaining({
         env: expect.objectContaining({
-          ORCA_PANE_KEY: claimedPaneKey,
-          ORCA_AGENT_LAUNCH_TOKEN: 'launch-remint'
+          ZKYQ_PANE_KEY: claimedPaneKey,
+          ZKYQ_AGENT_LAUNCH_TOKEN: 'launch-remint'
         })
       })
     )
@@ -571,7 +571,7 @@ describe('registerPtyHandlers', () => {
       worktreeId: 'wt-1',
       tabId: 'tab-1',
       leafId,
-      env: { ORCA_PANE_KEY: stablePaneKey }
+      env: { ZKYQ_PANE_KEY: stablePaneKey }
     })) as { id: string }
     const second = (await handlers.get('pty:spawn')!(null, {
       cols: 80,
@@ -579,7 +579,7 @@ describe('registerPtyHandlers', () => {
       worktreeId: 'wt-1',
       tabId: 'tab-1',
       leafId,
-      env: { ORCA_PANE_KEY: stablePaneKey }
+      env: { ZKYQ_PANE_KEY: stablePaneKey }
     })) as { id: string }
 
     expect(getPtyIdForPaneKey(stablePaneKey)).toBe(second.id)
@@ -605,7 +605,7 @@ describe('registerPtyHandlers', () => {
       worktreeId: 'wt-1',
       tabId: 'tab-1',
       leafId: '11111111-1111-4111-8111-111111111111',
-      env: { ORCA_PANE_KEY: stablePaneKey }
+      env: { ZKYQ_PANE_KEY: stablePaneKey }
     })
     const ptyId = getPtyIdForPaneKey(stablePaneKey)
     expect(ptyId).toBeDefined()
@@ -626,7 +626,7 @@ describe('registerPtyHandlers', () => {
       worktreeId: 'wt-1',
       tabId: 'tab-1',
       leafId,
-      env: { ORCA_PANE_KEY: stablePaneKey }
+      env: { ZKYQ_PANE_KEY: stablePaneKey }
     })) as { id: string }
 
     expect(getPtyIdForPaneKey(stablePaneKey)).toBe(current.id)

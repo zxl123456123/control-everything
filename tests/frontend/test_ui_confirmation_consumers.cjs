@@ -125,7 +125,7 @@ async function studioFixture(t) {
     return { ok: true, json: async () => body };
   };
   const host = w.document.getElementById('ce-studio'); host.id = 'fixture-mount';
-  for (const file of ['project-progress-model.js', 'project-progress.js', 'project-space.js', 'agents.js', 'studio-data.js', 'studio-shell.js', 'studio-preview.js']) w.eval(source(file));
+  for (const file of ['project-space.js', 'agents.js', 'studio-data.js', 'studio-shell.js', 'studio-preview.js']) w.eval(source(file));
   host.id = 'ce-studio'; const dispose = w.StudioPreview.mount(host); t.after(dispose); await tick();
   return { ...f, posts, projects,
     async open(id) { w.dispatchEvent(new w.CustomEvent('platform-manage-project', { detail: { directory: 'C:/example/' + id } })); await tick(); return host.querySelector('dialog.ce-project-settings[open]'); },
@@ -243,17 +243,13 @@ test('trusted context retirement removes collection listeners without changing t
   select.dispatchEvent(new w.Event('change')); assert.equal(wrapper.isConnected, false);
 });
 
-test('actual TaskCenter and Progress collection choices preserve locked ownership and dispose their presentation', async t => {
+test('actual TaskCenter collection choices preserve locked ownership and dispose their presentation', async t => {
   const f = await environment(t), w = f.w;
-  for (const name of ['agents.js','task-center.js','project-progress-model.js','project-progress.js']) w.eval(source(name));
-  const host = w.document.createElement('section'), progressHost = w.document.createElement('section'); w.document.body.append(host, progressHost);
+  for (const name of ['agents.js','task-center.js']) w.eval(source(name));
+  const host = w.document.createElement('section'); w.document.body.append(host);
   const project = { id: 'p-a', name: '同名项目', archived: false }, item = { id: '00000000-0000-4000-8000-000000000009', title: '原事项', project_id: 'p-a', provider_id: null, state: 'todo', session_key: null, origin: 'task', revision: 1 };
   const api = w.WorkspaceTaskCenter.create({ root: host, fetchJson: async () => ({ item, items: [item], total: 1, list_revision: 1 }), postJson: async () => { throw new Error('no write'); }, canWrite: () => false });
   api.update({ projects: { items: [project] }, sessions: { available: true, items: [] }, items_page: { items: [item], total: 1, list_revision: 1 } }, { refresh: false }); await api.open(item); await tick();
   assert.equal(host.querySelector('#item-project_id-query').disabled, true); assert.equal(host.querySelector('#item-project_id').value, 'p-a');
-  const progress = w.ProjectProgress.create({ root: progressHost, fetchJson: async () => ({ item }), postJson: async () => { throw new Error('no write'); } });
-  await progress.update({ workspace: { projects: { items: [project] } }, items: [item] });
-  const query = progressHost.querySelector('#pp-scope-query'); f.input(query, '同名'); query.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true })); query.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
-  assert.equal(progress.captureViewState().scope, 'p-a');
-  api.dispose(); progress.dispose(); assert.equal(host.querySelector('.ce-collection-choice'), null); assert.equal(progressHost.querySelector('.ce-collection-choice'), null);
+  api.dispose(); assert.equal(host.querySelector('.ce-collection-choice'), null);
 });

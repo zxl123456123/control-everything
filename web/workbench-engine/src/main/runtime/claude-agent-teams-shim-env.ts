@@ -78,7 +78,7 @@ export function resolveClaudeAgentTeamsShimBin(
     return bundled
   }
   return (
-    findExecutableOnPath(process.platform === 'win32' ? 'orca-dev.cmd' : 'orca-dev', pathValue) ??
+    findExecutableOnPath(process.platform === 'win32' ? 'zkyq-dev.cmd' : 'zkyq-dev', pathValue) ??
     findExecutableOnPath(getOrcaCliCommandNameForPlatform(process.platform), pathValue)
   )
 }
@@ -92,13 +92,13 @@ function bundledLauncherPath(): string | null {
     return null
   }
   if (process.platform === 'darwin') {
-    return join(process.resourcesPath, 'bin', 'orca')
+    return join(process.resourcesPath, 'bin', 'zkyq')
   }
   if (process.platform === 'linux') {
-    return join(process.resourcesPath, 'bin', 'orca-ide')
+    return join(process.resourcesPath, 'bin', 'zkyq')
   }
   if (process.platform === 'win32') {
-    return join(process.resourcesPath, 'bin', 'orca.exe')
+    return join(process.resourcesPath, 'bin', 'zkyq.exe')
   }
   return null
 }

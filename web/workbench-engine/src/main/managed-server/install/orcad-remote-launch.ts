@@ -17,7 +17,7 @@ import {
   ORCAD_LAUNCHER_FILENAME,
   ORCAD_SERVER_ENTRY_FILENAME
 } from '../../../shared/orcad-artifacts'
-import { quotePosixShell } from '../../../shared/shell-argument-quoting'
+import { quotePosixShellUnlessPlain as quotePosixShell } from '../../../shared/shell-argument-quoting'
 import {
   isWindowsRemoteHost,
   joinRemotePath,
@@ -48,7 +48,13 @@ import {
   ORCAD_E2E_IDLE_TIMEOUT_ENV,
   readOrcadE2EIdleTimeoutMs
 } from '../../../shared/orcad-idle-exit'
-import { ORCAD_MANAGED_ACTIVATION_ROOT_ENV } from '../../../shared/orcad-managed-launch-env'
+import {
+  ORCAD_MANAGED_ACTIVATION_ROOT_ENV,
+  ORCAD_VERSION_ENV,
+  orcadLaunchEnvironmentKey,
+  parseOrcadLaunchEnvironmentVersion
+} from '../../../shared/orcad-managed-launch-env'
+import { ORCAD_CLI_PACKAGE_FILENAME } from '../../../shared/orcad-artifacts'
 
 export type OrcadLaunchSpec = {
   remoteInstallDir: string
@@ -118,11 +124,23 @@ export function orcadLaunchCommand(
   ]
   // Why in the launching shell: the detached list below runs in a subshell whose variables are lost.
   const recordSession = detach === 'nohup' && recordsOrcadLaunchSshSession(host)
-  const launchEnv = [
-    `ORCA_VERSION=${quotePosixShell(spec.fullVersion)}`,
-    `ORCA_USER_DATA=${quotePosixShell(spec.userDataDir)}`,
-    ...orcadManagedLaunchEnv(spec).map(([name, value]) => `${name}=${quotePosixShell(value)}`)
+  const entries: [string, string][] = [
+    [ORCAD_VERSION_ENV, spec.fullVersion],
+    ...orcadManagedLaunchEnv(spec)
   ]
+  const launchEnv = [
+    'unset ORCA_VERSION ORCA_USER_DATA ORCA_ORCAD_MANAGED_ACTIVATION_ROOT ORCA_E2E_ORCAD_IDLE_TIMEOUT_MS ZKYQ_VERSION ZKYQ_SERVER_MANAGED_ACTIVATION_ROOT ZKYQ_E2E_SERVER_IDLE_TIMEOUT_MS;',
+    `export ZKYQ_USER_DATA=${quotePosixShell(spec.userDataDir)};`,
+    'if [ "$orcad_launch_env_version" = 1 ]; then',
+    ...entries.map(([name, value]) => `export ${name}=${quotePosixShell(value)};`),
+    'else',
+    'export ORCA_USER_DATA="$ZKYQ_USER_DATA";',
+    ...entries.map(
+      ([name, value]) => `export ${orcadLaunchEnvironmentKey(name, 0)}=${quotePosixShell(value)};`
+    ),
+    'fi;'
+  ]
+  const versionProbe = `const fs=require('fs');let raw=null;try{raw=fs.readFileSync(process.argv[1],'utf8')}catch(e){if(e.code!=='ENOENT')throw e}process.stdout.write(String((${parseOrcadLaunchEnvironmentVersion.toString()})(raw)))`
   return [
     ...(recordSession ? [captureOrcadLaunchSshSessionCommand()] : []),
     // The daemon gets this back: the git, terminals and agents it spawns create the user's files.
@@ -135,6 +153,7 @@ export function orcadLaunchCommand(
     `{ chmod 700 ${privateDirs.map(quotePosixShell).join(' ')} 2>/dev/null || :; } &&`,
     `cd ${dir} &&`,
     `${selectOrcadSlotRuntimeCommand(host, spec.remoteInstallDir, spec.nodePath)} &&`,
+    `orcad_launch_env_version=$("$orcad_runtime" -e ${quotePosixShell(versionProbe)} ${quotePosixShell(ORCAD_CLI_PACKAGE_FILENAME)}) || exit 78;`,
     // Why truncate: a re-launch into a dir that already holds a previous readiness line would
     // otherwise let the deploy activate on the OLD process's health payload.
     `: > ${readiness} &&`,

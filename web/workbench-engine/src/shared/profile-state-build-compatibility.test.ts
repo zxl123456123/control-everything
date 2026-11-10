@@ -19,4 +19,10 @@ describe('SQLite profile build selection', () => {
   it('leaves JSON-era build selection unaffected', () => {
     expect(profileStateBuildCompatibilityError('1.4.200', '1.4.199')).toBeNull()
   })
+
+  it('offers the installed recovery command before a JSON-era downgrade', () => {
+    const message = profileStateBuildCompatibilityError('1.4.221', '1.4.213')
+    expect(message).toContain('zkyq profile state rollback --latest-json --profile-id <id>')
+    expect(message).not.toContain('orca profile state')
+  })
 })

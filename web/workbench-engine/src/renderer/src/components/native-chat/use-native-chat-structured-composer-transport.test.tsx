@@ -11,7 +11,7 @@ const CAPABILITIES: AgentSessionCapabilities = {
   contextUsage: false,
   imagePrompts: true,
   steering: 'queue',
-  approvalEnforcement: 'orca'
+  approvalEnforcement: 'zkyq'
 }
 
 // A local chat names no paired runtime.

@@ -172,7 +172,7 @@ describe('a resent send id', () => {
     await persistRewindRecord(store, SESSION, store.getRecord(SESSION)!.lease.runtimeFence, {
       operationId: 'rewind-op',
       callerKey: CALLER.callerKey,
-      itemId: 'orca:rewound',
+      itemId: 'zkyq:rewound',
       providerItemId: `codex:${THREAD}:turn-1:0`,
       expectedEpoch: 'epoch-before',
       phase: 'prepared',

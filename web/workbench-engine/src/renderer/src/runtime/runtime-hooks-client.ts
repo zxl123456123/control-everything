@@ -19,6 +19,7 @@ export type HookCheckResult = {
   hasHooks: boolean
   hooks: OrcaHooks | null
   mayNeedUpdate: boolean
+  projectConfig?: { name: 'zkyq.yaml' | 'orca.yaml' | null; conflict: boolean }
 }
 
 export type IssueCommandReadResult = {

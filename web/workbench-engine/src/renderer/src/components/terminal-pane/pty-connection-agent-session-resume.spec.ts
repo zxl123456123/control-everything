@@ -85,10 +85,10 @@ export function registerPtyConnectionAgentSessionResumeTests(): void {
         agentArgs: '--model gpt-5 --reasoning-effort high',
         agentEnv: {
           CODEX_PROFILE: 'captured',
-          ORCA_PANE_KEY: 'wrong-pane',
-          ORCA_TAB_ID: 'wrong-tab',
-          ORCA_WORKTREE_ID: 'wrong-worktree',
-          ORCA_WORKSPACE_ID: 'wrong-workspace'
+          ZKYQ_PANE_KEY: 'wrong-pane',
+          ZKYQ_TAB_ID: 'wrong-tab',
+          ZKYQ_WORKTREE_ID: 'wrong-worktree',
+          ZKYQ_WORKSPACE_ID: 'wrong-workspace'
         }
       }
       mockStoreState = {
@@ -143,7 +143,7 @@ export function registerPtyConnectionAgentSessionResumeTests(): void {
         ([args]) => args.sessionId === 'lost-pty'
       )?.[0]
       const launchToken = (reattachArgs?.env as Record<string, string> | undefined)
-        ?.ORCA_AGENT_LAUNCH_TOKEN
+        ?.ZKYQ_AGENT_LAUNCH_TOKEN
 
       expect(transport.sendInput).not.toHaveBeenCalled()
       expect(launchToken).toMatch(new RegExp(`^${UUID_RE}$`))
@@ -153,11 +153,11 @@ export function registerPtyConnectionAgentSessionResumeTests(): void {
           command: "codex '--model' 'gpt-5' '--reasoning-effort' 'high' 'resume' 'codex-session-1'",
           env: expect.objectContaining({
             CODEX_PROFILE: 'captured',
-            ORCA_PANE_KEY: paneKey,
-            ORCA_TAB_ID: 'tab-1',
-            ORCA_WORKTREE_ID: 'wt-1',
-            ORCA_WORKSPACE_ID: 'wt-1',
-            ORCA_AGENT_LAUNCH_TOKEN: launchToken
+            ZKYQ_PANE_KEY: paneKey,
+            ZKYQ_TAB_ID: 'tab-1',
+            ZKYQ_WORKTREE_ID: 'wt-1',
+            ZKYQ_WORKSPACE_ID: 'wt-1',
+            ZKYQ_AGENT_LAUNCH_TOKEN: launchToken
           })
         })
       )
@@ -339,7 +339,7 @@ export function registerPtyConnectionAgentSessionResumeTests(): void {
           sessionId: 'lost-pty',
           command: "codex '--model' 'gpt-5-mini' 'resume' 'codex-session-1'",
           env: expect.objectContaining({
-            ORCA_AGENT_LAUNCH_TOKEN: expect.stringMatching(new RegExp(`^${UUID_RE}$`))
+            ZKYQ_AGENT_LAUNCH_TOKEN: expect.stringMatching(new RegExp(`^${UUID_RE}$`))
           })
         })
       )

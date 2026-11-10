@@ -71,13 +71,30 @@ async function run(name, topic, query, feedFor, knownUrls=[], runtimeModule=null
   } finally {await context?.close();}
 }
 
+async function launchFailure(name, error, expected) {
+  const folder = path.join(output, name); fs.mkdirSync(folder);
+  const config = path.join(folder, 'request.json');
+  fs.writeFileSync(config, JSON.stringify({job_id:'b'.repeat(32),topic:'coding',query:'coding',capture_frames:false}));
+  const events = []; let exitCode = 0;
+  const fakeProcess = {argv:['node',worker,config],platform:process.platform,
+    stdout:{write:line=>events.push(JSON.parse(line))},set exitCode(value){exitCode=value;}};
+  await vm.runInNewContext(fs.readFileSync(worker,'utf8'), {
+    require:id=>id==='playwright'?{chromium:{launch:async()=>{throw error;}}}:workerRequire(id),
+    process:fakeProcess,Buffer,URL,console
+  }, {filename:worker});
+  check(name + ': startup failure remains a failed worker', exitCode===1);
+  check(name + ': actionable reason excludes private diagnostics', events.length===1&&events[0].stage==='error'&&events[0].message===expected&&!JSON.stringify(events).includes('private-diagnostic'));
+}
+
 (async()=>{
+  await launchFailure('missing-edge',new Error("Chromium distribution 'msedge' is not found at C:/example/private-diagnostic/browser"),'采集浏览器未安装或不可用，请安装或修复 Microsoft Edge 后再试。');
+  await launchFailure('launch-timeout',Object.assign(new Error('private-diagnostic timeout stack'),{name:'TimeoutError'}),'采集请求超时，请检查网络连接后再试。');
   browser = await chromium.launch({channel:'msedge',headless:true});
   const runtimeModule=path.join(output,'verified-core');
   const injected=await run('verified-runtime','coding','coding',()=>rss([]),[],runtimeModule);
   check('worker loads the injected core module without a bare development Playwright fallback',injected.modules.includes(runtimeModule)&&!injected.modules.includes('playwright'));
   const domestic = await run('domestic-first','models','models',url=>rss([entry(url.includes('qbitai')?'https://www.qbitai.com/2026/10/test.html':'https://sspai.com/post/test','新的模型发布')]));
-  check('domestic feeds supply matching Chinese content without visiting foreign sources', domestic.items.length===2&&domestic.requests.every(url=>/qbitai\.com|sspai\.com/.test(new URL(url).hostname)));
+  check('domestic feeds supply matching Chinese content without visiting foreign sources', domestic.items.length===2&&domestic.requests.every(url=>/^(?:www\.qbitai\.com|aiera\.com\.cn|www\.infoq\.cn|sspai\.com)$/.test(new URL(url).hostname)));
   check('domestic publishers retain their names and readable body', domestic.items.every(row=>['量子位','少数派'].includes(row.source_name)&&row.content_kind==='full_text'));
   check('feed publication survives pages without publication metadata', domestic.items.every(row=>row.published_at==='2026-10-26T00:00:00.000Z'));
   check('static publisher extraction needs no navigation or script execution', domestic.navigations.length===0&&domestic.errors.length===0);
@@ -105,7 +122,7 @@ async function run(name, topic, query, feedFor, knownUrls=[], runtimeModule=null
   const exhausted=await run('already-collected','coding','coding',url=>/qbitai\.com|sspai\.com/.test(new URL(url).hostname)?rss(manyEntries):rss([]),[...batchUrls,...nextBatch.items.map(row=>row.url)]);
   check('exhausted sources report zero instead of counting old content again',exhausted.items.length===0&&exhausted.events.at(-1).counts.articles===0&&exhausted.navigations.length===0);
   const recovery = await run('failed-source','models','coding',url=>{
-    if(url.includes('openai.com'))throw new Error('fixture feed timeout');
+    if(url==='https://www.qbitai.com/feed')throw new Error('fixture feed timeout');
     return rss([entry('https://blog.google/blocked'),entry('https://blog.google/readable'),entry('https://localhost/private')]);
   });
   check('failure retains publisher summary without suppressing the next full article', recovery.items.length===2&&recovery.items.some(row=>row.content_kind==='full_text')&&recovery.items.some(row=>row.completeness==='feed_summary'));
@@ -114,19 +131,19 @@ async function run(name, topic, query, feedFor, knownUrls=[], runtimeModule=null
     '<updated>2026-10-01T00:00:00Z</updated><content type="html"><![CDATA[<p>Actual release note.</p><script>POISON</script><p>' + paragraph + '</p>]]></content></entry>' +
     '<entry><title>Claude title-only fixture</title><link href="https://github.com/anthropics/claude-code/releases/tag/title-only"/><content>Claude title-only fixture</content></entry></feed>';
   let attempts = 0;
-  const inline = await run('inline-atom','claude','Claude',()=>{if(++attempts===1)throw new Error('fixture feed timeout'); return atom;});
+  const inline = await run('inline-atom','claude','Claude',url=>{if(url!=='https://www.qbitai.com/feed')return rss([]); if(++attempts===1)throw new Error('fixture feed timeout'); return atom;});
   check('a transient feed failure retries once and recovers without a blocked source', attempts===2&&!inline.events.some(event=>event.stage==='blocked'));
   check('official Atom content is readable without opening the HTML page', inline.items.length===1&&inline.navigations.length===0&&inline.items[0].body_blocks.length===2);
   check('inline content stays labelled as publisher content', inline.items[0].completeness==='feed_content'&&inline.items[0].incomplete===true);
   check('feed markup is never executable or copied into text', !JSON.stringify(inline.items).includes('POISON'));
   check('a title repeated as feed content cannot become a readable article', !inline.items.some(row=>row.url.endsWith('/title-only')));
   const redirected = await run('feed-redirect','models','coding',url=>{
-    if(/qbitai\.com|sspai\.com/.test(new URL(url).hostname))throw new Error('fixture domestic feed unavailable');
-    if(url==='https://deepmind.google/blog/rss.xml')return {status:301,location:'/new-feed.xml'};
-    if(url.includes('openai.com'))return {status:301,location:'https://localhost/private'};
+    if(/^(?:www\.qbitai\.com|aiera\.com\.cn|www\.infoq\.cn|sspai\.com)$/.test(new URL(url).hostname))throw new Error('fixture domestic feed unavailable');
+    if(url==='https://simonwillison.net/tags/llms.atom')return {status:301,location:'/new-feed.xml'};
+    if(url==='https://www.microsoft.com/en-us/research/feed/')return {status:301,location:'https://localhost/private'};
     return rss([entry('https://blog.google/readable')]);
   });
-  check('canonical same-origin feed redirects remain readable', redirected.items.length===1&&redirected.items[0].content_kind==='full_text');
+  check('canonical same-origin feed redirects remain readable', redirected.requests.includes('https://simonwillison.net/new-feed.xml')&&redirected.items.length===1&&redirected.items[0].content_kind==='full_text');
   check('feed redirects cannot switch to a private or different origin', redirected.events.some(event=>event.detail==='redirect_rejected'));
   const unmatched = await run('no-match','coding','no-such-keyword',()=>rss([entry('https://steipete.me/readable')]));
   check('a keyword miss does not substitute unrelated preset articles', unmatched.items.length===0&&unmatched.navigations.length===0);

@@ -32,12 +32,12 @@ type PluginModule = {
 }
 
 const ENV_KEYS = [
-  'ORCA_PANE_KEY',
-  'ORCA_OPENCODE_AGENT',
-  'ORCA_OPENCODE_PLUGIN_API',
-  'ORCA_AGENT_HOOK_ENDPOINT',
-  'ORCA_AGENT_HOOK_PORT',
-  'ORCA_AGENT_HOOK_TOKEN'
+  'ZKYQ_PANE_KEY',
+  'ZKYQ_OPENCODE_AGENT',
+  'ZKYQ_OPENCODE_PLUGIN_API',
+  'ZKYQ_AGENT_HOOK_ENDPOINT',
+  'ZKYQ_AGENT_HOOK_PORT',
+  'ZKYQ_AGENT_HOOK_TOKEN'
 ] as const
 
 // A live OpenCode 2 event bus: stays open until the subscriber aborts.
@@ -80,12 +80,12 @@ describe.each(['opencode', 'opencode2'] as const)('%s plugin disposal by host', 
     for (const key of ENV_KEYS) {
       savedEnv[key] = process.env[key]
     }
-    process.env.ORCA_PANE_KEY = 'tab-1:leaf-1'
-    process.env.ORCA_OPENCODE_AGENT = agent
-    process.env.ORCA_OPENCODE_PLUGIN_API = 'v2'
-    delete process.env.ORCA_AGENT_HOOK_ENDPOINT
-    process.env.ORCA_AGENT_HOOK_PORT = '59999'
-    process.env.ORCA_AGENT_HOOK_TOKEN = 'test-token'
+    process.env.ZKYQ_PANE_KEY = 'tab-1:leaf-1'
+    process.env.ZKYQ_OPENCODE_AGENT = agent
+    process.env.ZKYQ_OPENCODE_PLUGIN_API = 'v2'
+    delete process.env.ZKYQ_AGENT_HOOK_ENDPOINT
+    process.env.ZKYQ_AGENT_HOOK_PORT = '59999'
+    process.env.ZKYQ_AGENT_HOOK_TOKEN = 'test-token'
     names = []
     vi.stubGlobal(
       'fetch',
@@ -109,7 +109,7 @@ describe.each(['opencode', 'opencode2'] as const)('%s plugin disposal by host', 
   })
 
   async function loadPluginModule(): Promise<PluginModule> {
-    const pluginPath = join(tempDir, `orca-${agent}-status.mjs`)
+    const pluginPath = join(tempDir, `zkyq-${agent}-status.mjs`)
     writeFileSync(
       pluginPath,
       agent === 'opencode2'

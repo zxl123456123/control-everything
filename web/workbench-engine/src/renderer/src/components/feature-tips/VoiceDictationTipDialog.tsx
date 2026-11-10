@@ -44,9 +44,9 @@ export function VoiceDictationTipDialog({
     >
       <DialogHeader className="gap-4 text-left">
         <div>
-          <FeatureTipEyebrow label={tip.eyebrow} />
+          <FeatureTipEyebrow label={translate('platform.tip.voice.eyebrow', tip.eyebrow)} />
           <DialogTitle className="text-2xl font-semibold leading-tight tracking-tight md:text-[1.75rem]">
-            {tip.title}
+            {translate('platform.tip.voice.title', tip.title)}
           </DialogTitle>
           <DialogDescription className="mt-3 max-w-2xl space-y-3 text-sm leading-relaxed">
             {shortcut.keys.length > 0 ? (
@@ -99,6 +99,7 @@ export function VoiceDictationTipDialog({
           showSkip={false}
           fullWidth
           primaryButtonRef={primaryButtonRef}
+          label={translate('platform.tip.voice.action', tip.ctaLabel)}
         />
       </DialogFooter>
     </FeatureTipDialogFrame>

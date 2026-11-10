@@ -6,12 +6,16 @@ import type {
   AgentJournalRowAttribution,
   AgentJournalTurnScope
 } from '../../../shared/agent-session-journal-types'
-import { agentJournalItemKey } from '../../../shared/agent-session-journal-item-key'
+import {
+  agentJournalItemKey,
+  canonicalAgentJournalItemKey
+} from '../../../shared/agent-session-journal-item-key'
 import {
   agentJournalLinkageFields,
   namesAgentJournalProducer
 } from '../../../shared/agent-session-journal-producer'
 import type { JournalLifecycleMutation } from './journal-row-schema'
+import { canonicalJournalRowKeys } from './journal-row-key-identity'
 
 export type JournalItemAddress =
   | { identity: AgentJournalItemIdentity; itemId?: never }
@@ -40,7 +44,7 @@ export type JournalLifecycleIdentityMutationInput = JournalLifecycleMutationInpu
 
 export function journalLifecycleMutationItemId(mutation: JournalItemAddress): string {
   if (mutation.itemId !== undefined) {
-    return mutation.itemId
+    return canonicalAgentJournalItemKey(mutation.itemId)
   }
   return agentJournalItemKey(mutation.identity)
 }
@@ -76,16 +80,18 @@ export function journalLifecycleMutationRow(
   /** What an item mutation states (`journalItemOwnerFence`). */
   ownerFence: number
 ): JournalLifecycleMutation {
-  return mutation.kind === 'item'
-    ? {
-        kind: 'item',
-        itemId,
-        revision,
-        body: mutation.body,
-        ...journalItemEchoFields(mutation),
-        turnScope: mutation.turnScope,
-        ownerFence,
-        ...agentJournalLinkageFields(mutation.linkage)
-      }
-    : { kind: 'tombstone', itemId, revision }
+  return canonicalJournalRowKeys<JournalLifecycleMutation>(
+    mutation.kind === 'item'
+      ? {
+          kind: 'item',
+          itemId,
+          revision,
+          body: mutation.body,
+          ...journalItemEchoFields(mutation),
+          turnScope: mutation.turnScope,
+          ownerFence,
+          ...agentJournalLinkageFields(mutation.linkage)
+        }
+      : { kind: 'tombstone', itemId, revision }
+  )
 }

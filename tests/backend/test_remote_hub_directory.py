@@ -137,15 +137,19 @@ class AdminMembersTests(unittest.TestCase):
         with self.hub.store.transaction() as db:
             self.assertEqual(before, list(db.iterdump()))
 
-    def test_non_admin_is_rejected_before_directory_and_missing_directory_is_not_empty(self):
+    def test_non_admin_is_rejected_before_directory_and_missing_directory_lists_hub_members_only(self):
         with self.assertRaises(HubError) as caught:
             self.hub.admin_members(B)
         self.assertEqual(caught.exception.code, "admin_required")
         self.directory.page.assert_not_called()
         self.hub.user_directory = None
-        with self.assertRaises(HubError) as caught:
-            self.hub.admin_members(A)
-        self.assertEqual((caught.exception.code, caught.exception.status), ("member_directory_not_configured", 503))
+        self.hub.store.set_member(B, "disabled")
+        result = self.hub.admin_members(A)
+        self.assertEqual((result["source"], result["total"]), ("hub_members", 2))
+        self.assertEqual([(i["account"]["sub"], i["membership"], i["admin"]) for i in result["items"]],
+                         [(A.sub, "active", True), (B.sub, "disabled", False)])
+        page = self.hub.admin_members(A, limit=1, offset=1)
+        self.assertEqual(([i["account"]["sub"] for i in page["items"]], page["total"]), ([B.sub], 2))
 
     def test_stale_device_is_offline_without_a_write_or_probe_and_revoked_is_not_current(self):
         bound = bind(self.hub)

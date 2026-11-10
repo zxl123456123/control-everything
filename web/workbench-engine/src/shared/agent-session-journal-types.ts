@@ -24,17 +24,13 @@ import type { AgentSessionExecutionOptions } from './agent-session-execution-opt
 export { type AgentType }
 
 /** Bump only alongside a read-time upcaster in `journal-row-schema.ts`. */
-/** v3 introduced the `turn` item. A row without one is still written at v2 so
- *  an older host keeps reading it; the first v3 row stops that host writing the chat
- *  (a released one keeps it read-only, this build fails its load) instead of truncating. */
-export const AGENT_SESSION_JOURNAL_SCHEMA_VERSION = 3
+/** v4 changes journal addresses. Every new row fences older writers, including rows
+ *  without a turn, so they cannot append an obsolete address to a migrated chat. */
+export const AGENT_SESSION_JOURNAL_SCHEMA_VERSION = 4
 export const AGENT_SESSION_JOURNAL_TURN_ITEM_SCHEMA_VERSION = 3
-const AGENT_SESSION_JOURNAL_PRE_TURN_SCHEMA_VERSION = 2
 
-export function journalRowSchemaVersion(bodies: readonly { kind: string }[]): number {
-  return bodies.some((body) => body.kind === 'turn')
-    ? AGENT_SESSION_JOURNAL_TURN_ITEM_SCHEMA_VERSION
-    : AGENT_SESSION_JOURNAL_PRE_TURN_SCHEMA_VERSION
+export function journalRowSchemaVersion(_bodies: readonly { kind: string }[]): number {
+  return AGENT_SESSION_JOURNAL_SCHEMA_VERSION
 }
 
 /** Epoch-qualified position in one journal. `sequence` 0 means "before the first row". */
@@ -75,8 +71,8 @@ export type AgentSessionJournalIdentity = {
 export type AgentJournalItemIdentity =
   | { provider: 'codex'; threadId: string; turnId: string; ordinal: number }
   | { provider: 'claude'; sessionId: string; uuid: string }
-  /** A submission Orca minted before any provider echo existed. */
-  | { provider: 'orca'; clientMessageId: string }
+  /** A submission the host minted before any provider echo existed. */
+  | { provider: 'zkyq'; clientMessageId: string }
   /** Bridge-era transcript record with no provider-stable identity. */
   | { provider: 'legacy'; agent: AgentType; sessionId: string; recordId: string }
 

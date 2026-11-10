@@ -12,6 +12,8 @@
 // period and no daemon socket.
 import { AGENT_HOOK_INFER_INTERRUPT_METHOD } from '../shared/agent-hook-interrupt-reconciliation'
 import { homedir } from 'node:os'
+import { migrateAgentHookEnvironmentIdentity } from '../shared/agent-hook-environment-identity'
+import { prepareWslHookEndpointDirectory } from './wsl-hook-endpoint-identity'
 
 import { RELAY_SENTINEL } from './protocol'
 import { RelayDispatcher } from './dispatcher'
@@ -28,14 +30,15 @@ import { publishAgentHookEnvelope } from './agent-hook-envelope-publication'
 import {
   sanitizeWslHookInstanceKey,
   WSL_HOOK_RELAY_INSTANCE_ENV,
-  wslHookRelayEndpointDir
+  WSL_HOOK_RELAY_RETIRED_READERS_ENV
 } from '../shared/wsl-hook-relay-contract'
 
 async function main(): Promise<void> {
-  const windowsPort = Number(process.env.ORCA_AGENT_HOOK_PORT ?? '')
-  const token = process.env.ORCA_AGENT_HOOK_TOKEN ?? ''
+  migrateAgentHookEnvironmentIdentity(process.env)
+  const windowsPort = Number(process.env.ZKYQ_AGENT_HOOK_PORT ?? '')
+  const token = process.env.ZKYQ_AGENT_HOOK_TOKEN ?? ''
   if (!Number.isInteger(windowsPort) || windowsPort <= 0 || token.length === 0) {
-    process.stderr.write('[wsl-hook-relay] missing ORCA_AGENT_HOOK_PORT/TOKEN in env\n')
+    process.stderr.write('[wsl-hook-relay] missing ZKYQ_AGENT_HOOK_PORT/TOKEN in env\n')
     process.exit(1)
   }
 
@@ -66,7 +69,11 @@ async function main(): Promise<void> {
   const instanceKey =
     sanitizeWslHookInstanceKey(process.env[WSL_HOOK_RELAY_INSTANCE_ENV]) ?? `port${windowsPort}`
   const hookServer = new RelayAgentHookServer({
-    endpointDir: wslHookRelayEndpointDir(homedir(), instanceKey),
+    endpointDir: prepareWslHookEndpointDirectory(
+      homedir(),
+      instanceKey,
+      process.env[WSL_HOOK_RELAY_RETIRED_READERS_ENV] === '1'
+    ),
     token,
     preferredPort: windowsPort,
     forward: (envelope) => publishAgentHookEnvelope(dispatcher, envelope)
@@ -85,7 +92,12 @@ async function main(): Promise<void> {
   // overlay here — the same PluginOverlayManager path the SSH relay uses. One
   // handler for the relay's life: it remembers the materialized overlay so
   // repeat installs don't rebuild it under running agents.
-  const installPlugins = createInstallPluginsHandler(new PluginOverlayManager(), process.env)
+  const installPlugins = createInstallPluginsHandler(
+    new PluginOverlayManager({
+      retiredReaders: process.env[WSL_HOOK_RELAY_RETIRED_READERS_ENV] === '1'
+    }),
+    process.env
+  )
   dispatcher.onRequest(AGENT_HOOK_INSTALL_PLUGINS_METHOD, async (params) => installPlugins(params))
 
   registerWslHookFsHandlers(dispatcher, homedir(), () => ({

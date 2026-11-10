@@ -47,7 +47,7 @@ function fixture() {
     join(root, 'orca-profile-index.json'),
     JSON.stringify({ activeProfileId: profileId, profiles: [{ id: profileId }] })
   )
-  const dataFile = join(directory, 'orca-data.json')
+  const dataFile = join(directory, 'zkyq-data.json')
   const databaseFile = join(directory, 'profile-state.db')
   const exportPath = profileStateJsonExportPath(dataFile, 1)
   const originalJson = JSON.stringify(originalState)

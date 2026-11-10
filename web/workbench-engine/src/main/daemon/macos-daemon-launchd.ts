@@ -56,7 +56,7 @@ function buildMacDaemonLaunchJob(
   bundle: MacDaemonBundle,
   label: string
 ): Record<string, unknown> {
-  const env: NodeJS.ProcessEnv = { ...process.env, ORCA_USER_DATA_PATH: options.userDataPath }
+  const env: NodeJS.ProcessEnv = { ...process.env, ZKYQ_USER_DATA_PATH: options.userDataPath }
   // The helper's executable is plain Node; Electron's Node-mode switch and IPC fds mean nothing there.
   delete env.ELECTRON_RUN_AS_NODE
   delete env.NODE_CHANNEL_FD

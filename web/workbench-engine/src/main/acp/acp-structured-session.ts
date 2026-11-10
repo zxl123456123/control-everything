@@ -130,7 +130,7 @@ export function endAcpStructuredSession(
   // Read at the proven exit: a crash usually ends the agent's stdout before its exit is observed,
   // so the connection's close comes first, but the agent's own last words are what explain it.
   const reason = session.closeRequested
-    ? `${session.spec.agent} ACP agent closed by Orca`
+    ? `${session.spec.agent} ACP agent closed by Control Everything`
     : session.journalClosed !== null && !stderr
       ? session.journalClosed
       : `${session.spec.agent} ACP agent exited${stderr ? `: ${stderr}` : ''}`

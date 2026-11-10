@@ -181,6 +181,58 @@ export async function writeTextFileRemoteAtomic(
   }
 }
 
+/** Plugin identity migration never takes ownership of a user-supplied link. */
+export async function readManagedPluginFileRemote(
+  sftp: SFTPWrapper,
+  path: string
+): Promise<string | null> {
+  let stat: { isFile(): boolean }
+  try {
+    stat = await sftpOperation(`lstat ${path}`, (callback) => sftp.lstat(path, callback))
+  } catch (error) {
+    if (isNoEntryError(error)) return null
+    throw error
+  }
+  if (!stat.isFile()) throw new Error(`Managed plugin path is not a regular file: ${path}`)
+  return readFile(sftp, path)
+}
+
+/** Reject links before inspecting a plugin directory; false means no existing directory. */
+export async function hasManagedPluginDirectoryRemote(
+  sftp: SFTPWrapper,
+  path: string
+): Promise<boolean> {
+  try {
+    const stat = await sftpOperation<{ isDirectory(): boolean }>(`lstat ${path}`, (callback) =>
+      sftp.lstat(path, callback)
+    )
+    if (!stat.isDirectory()) throw new Error(`Managed plugin path is not a directory: ${path}`)
+    return true
+  } catch (error) {
+    if (isNoEntryError(error)) return false
+    throw error
+  }
+}
+
+/** Move a caller-verified managed entry outside its provider's auto-load directory. */
+export async function moveManagedPluginRemote(
+  sftp: SFTPWrapper,
+  from: string,
+  to: string
+): Promise<void> {
+  await mkdirpRemote(sftp, dirnamePosix(to))
+  await rename(sftp, from, to)
+}
+
+/** SFTP v3 rename refuses an existing destination; identity moves must not overwrite it. */
+export async function moveHookConfigIdentityRemote(
+  sftp: SFTPWrapper,
+  from: string,
+  to: string
+): Promise<void> {
+  await renamePlain(sftp, from, to)
+}
+
 // ─── Private SFTP primitives ────────────────────────────────────────
 
 function sftpOperation<T>(

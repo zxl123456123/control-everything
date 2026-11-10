@@ -203,7 +203,7 @@ export class WebRuntimeClient {
       })
     ) {
       this.subscriptions.delete(id)
-      throw new Error('Remote Orca runtime is not connected.')
+      throw new Error('Remote Control Everything runtime is not connected.')
     }
     return {
       unsubscribe: () => {

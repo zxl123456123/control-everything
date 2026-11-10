@@ -35,9 +35,9 @@ function inheritedProfile(): Record<string, string> {
     XDG_STATE_HOME: join(tmpdir(), 'old-account', 'state'),
     OPENCODE_DB: 'opencode.db',
     OPENCODE_AUTH_CONTENT: '',
-    ORCA_DATA_ACCOUNT_DATA_HOME: join(tmpdir(), 'old-account', 'data'),
-    ORCA_DATA_ACCOUNT_STATE_HOME: join(tmpdir(), 'old-account', 'state'),
-    ORCA_DATA_ACCOUNT_PROVIDER: 'opencode'
+    ZKYQ_DATA_ACCOUNT_DATA_HOME: join(tmpdir(), 'old-account', 'data'),
+    ZKYQ_DATA_ACCOUNT_STATE_HOME: join(tmpdir(), 'old-account', 'state'),
+    ZKYQ_DATA_ACCOUNT_PROVIDER: 'opencode'
   }
 }
 
@@ -47,6 +47,26 @@ afterEach(() => {
 })
 
 describe('managed account inherited environment', () => {
+  it('normalizes explicit legacy child markers before merging daemon inheritance and deletions', () => {
+    vi.stubEnv('ZKYQ_DATA_ACCOUNT_PROVIDER', 'parent-future-provider')
+    vi.stubEnv('ZKYQ_DATA_ACCOUNT_FUTURE_METADATA', 'parent-opaque')
+    const explicit = {
+      ORCA_DATA_ACCOUNT_PROVIDER: 'child-future-provider',
+      ORCA_DATA_ACCOUNT_FUTURE_METADATA: 'child-opaque'
+    }
+    const child = createDaemonPtyEnvironment({
+      sessionId: 'test',
+      cols: 80,
+      rows: 24,
+      env: explicit,
+      envToDelete: ['ORCA_DATA_ACCOUNT_FUTURE_METADATA']
+    })
+    expect(child.ZKYQ_DATA_ACCOUNT_PROVIDER).toBe('child-future-provider')
+    expect(child.ZKYQ_DATA_ACCOUNT_FUTURE_METADATA).toBeUndefined()
+    expect(Object.keys(child).some((key) => key.startsWith('ORCA_DATA_ACCOUNT_'))).toBe(false)
+    expect(explicit.ORCA_DATA_ACCOUNT_FUTURE_METADATA).toBe('child-opaque')
+  })
+
   it.each(['opencode', 'opencode2', 'devin'])(
     'keeps the selected account for delayed %s',
     (agent) => {
@@ -54,7 +74,7 @@ describe('managed account inherited environment', () => {
       const env: Record<string, string> = {}
       applyManagedDataAccountEnvironment(env, { launchCommand: `sleep 30 && ${agent}` })
       expect(env.XDG_DATA_HOME).toBe(selected.value.XDG_DATA_HOME)
-      expect(env.ORCA_DATA_ACCOUNT_PROVIDER).toBe(agent === 'devin' ? 'devin' : 'opencode')
+      expect(env.ZKYQ_DATA_ACCOUNT_PROVIDER).toBe(agent === 'devin' ? 'devin' : 'opencode')
     }
   )
 
@@ -76,7 +96,7 @@ describe('managed account inherited environment', () => {
     const final = createDaemonPtyEnvironment({ sessionId: 'test', cols: 80, rows: 24, env })
     expect(final.XDG_DATA_HOME).toBe(join(tmpdir(), 'user-data'))
     expect(final.XDG_STATE_HOME).toBeUndefined()
-    expect(final.ORCA_DATA_ACCOUNT_DATA_HOME).toBeUndefined()
+    expect(final.ZKYQ_DATA_ACCOUNT_DATA_HOME).toBeUndefined()
   })
 
   it('keeps a fresh selection after the daemon restores its own parent profile', () => {

@@ -6,7 +6,7 @@ import { promisify } from 'node:util'
 import { createElectronHomeIsolation } from './electron-home-isolation'
 
 const execFileAsync = promisify(execFile)
-const RUNTIME_METADATA_FILE = 'orca-runtime.json'
+const RUNTIME_METADATA_FILE = 'zkyq-runtime.json'
 let orcaDevUserDataPath: string | null = null
 let orcaServeProcess: ChildProcess | null = null
 let orcaServeStdout = ''
@@ -165,7 +165,7 @@ async function ensureOrcaRuntimeServed(): Promise<void> {
 
 async function createComputerE2ERuntimeEnv(): Promise<NodeJS.ProcessEnv> {
   const userDataDir =
-    process.env.ORCA_DEV_USER_DATA_PATH ?? (await getComputerE2eOrcaDevUserDataPath())
+    process.env.ZKYQ_DEV_USER_DATA_PATH ?? (await getComputerE2eOrcaDevUserDataPath())
   // Why: agent runtimes export ELECTRON_RUN_AS_NODE, which would make the
   // spawned Electron behave as plain Node; strip it like every other caller.
   const { ELECTRON_RUN_AS_NODE: _electronRunAsNode, ...inheritedEnv } = process.env
@@ -180,7 +180,7 @@ async function createComputerE2ERuntimeEnv(): Promise<NodeJS.ProcessEnv> {
     ...isolation.env,
     // Why: the Node CLI and the Electron child must resolve the same runtime
     // metadata while the E2E boundary owns their home and Codex paths.
-    ORCA_DEV_USER_DATA_PATH: userDataDir
+    ZKYQ_DEV_USER_DATA_PATH: userDataDir
   }
 }
 

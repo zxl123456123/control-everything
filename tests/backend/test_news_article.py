@@ -17,6 +17,16 @@ from importlib.util import find_spec
 
 ROOT = Path(__file__).resolve().parent
 
+def load_cached(data, directory, *, retry=False):
+    def commit(identity, payload, html):
+        root = Path(directory)
+        root.mkdir(parents=True, exist_ok=True)
+        if html is not None:
+            (root / (identity + '.html')).write_bytes(html)
+        (root / (identity + '.json')).write_bytes(payload)
+        return True
+    return content.load_article(data, directory, retry=retry, commit_cache=commit)
+
 
 def item(source_id, url, summary='Source-provided summary.'):
     return {'id': hashlib.sha256((source_id + ':' + url).encode()).hexdigest()[:24],
@@ -72,7 +82,7 @@ class ArticleTests(unittest.TestCase):
         data = item('google_ai', 'https://blog.google/article')
         html = b'<article><p>A short source-provided teaser.</p><figure><img src="/chart.png"></figure></article>'
         with tempfile.TemporaryDirectory() as directory, patch.object(content, '_fetch_html', return_value=(html, data['url'])):
-            result = content.load_article(data, directory)
+            result = load_cached(data, directory)
             self.assertEqual(result['content_kind'], 'summary')
             self.assertEqual(result['reason'], 'extraction_insufficient')
             self.assertEqual(result['blocks'], [{'type': 'p', 'text': data['summary']}])
@@ -82,7 +92,7 @@ class ArticleTests(unittest.TestCase):
         html = (b'<article><h1>Diagram</h1><figure><img src="/chart.png" alt="Useful diagram">'
                 b'<figcaption>Workflow diagram.</figcaption></figure></article>')
         with tempfile.TemporaryDirectory() as directory, patch.object(content, '_fetch_html', return_value=(html, data['url'])):
-            result = content.load_article(data, directory)
+            result = load_cached(data, directory)
             self.assertEqual(result['content_kind'], 'summary')
             self.assertEqual(result['reason'], 'extraction_insufficient')
             self.assertEqual(result['blocks'], [])
@@ -100,13 +110,13 @@ class ArticleTests(unittest.TestCase):
             cache.write_text(json.dumps(saved), encoding='utf-8')
             cache.with_suffix('.html').write_bytes(self.image_html('<figure><img src="/chart.png"></figure>'))
             with patch.object(content, '_fetch_html') as fetch:
-                first = content.load_article(data, directory)
+                first = load_cached(data, directory)
                 self.assertEqual(first['fetched_at'], saved['fetched_at'])
                 self.assertEqual(first['blocks'], saved['blocks'])
                 self.assertEqual(first['images'][0]['url'], 'https://blog.google/chart.png')
                 self.assertEqual(first['images_version'], content.IMAGE_EXTRACTION_VERSION)
                 with patch.object(content, 'extract_images') as extract:
-                    self.assertEqual(content.load_article(data, directory), first)
+                    self.assertEqual(load_cached(data, directory), first)
                     extract.assert_not_called()
                 fetch.assert_not_called()
 
@@ -221,7 +231,7 @@ class ArticleTests(unittest.TestCase):
         data = item('hn', 'https://unknown.example/article', None)
         html = self.image_html('')
         with tempfile.TemporaryDirectory() as directory, patch.object(content, '_fetch_html', return_value=(html, data['url'])) as fetch:
-            result = content.load_article(data, directory)
+            result = load_cached(data, directory)
             self.assertEqual(result['content_kind'], 'full_text')
             fetch.assert_called_once_with(data['url'], 'unknown.example')
 
@@ -229,13 +239,13 @@ class ArticleTests(unittest.TestCase):
         data = {**item('openai', 'https://openai.com/article', None),
                 'feed_content': 'First publisher paragraph.\n\nSecond publisher paragraph.', 'feed_content_truncated': True}
         with tempfile.TemporaryDirectory() as directory, patch.object(content, '_fetch_html', side_effect=TimeoutError) as fetch:
-            first = content.load_article(data, directory)
+            first = load_cached(data, directory)
             self.assertTrue(first['feed_content'])
             self.assertTrue(first['feed_content_truncated'])
             self.assertEqual([row['text'] for row in first['blocks']], data['feed_content'].split('\n\n'))
-            content.load_article(data, directory)
+            load_cached(data, directory)
             self.assertEqual(fetch.call_count, 1)
-            content.load_article(data, directory, retry=True)
+            load_cached(data, directory, retry=True)
             self.assertEqual(fetch.call_count, 2)
 
     def test_hn_private_dns_is_rejected_before_connecting(self):
@@ -243,14 +253,14 @@ class ArticleTests(unittest.TestCase):
         private = (socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP, '', ('127.0.0.1', 443))
         with tempfile.TemporaryDirectory() as directory, patch.object(socket, 'getaddrinfo', return_value=[private]):
             with patch.object(socket.socket, 'connect') as connect:
-                result = content.load_article(data, directory)
+                result = load_cached(data, directory)
                 self.assertEqual(result['reason'], 'private_address')
                 connect.assert_not_called()
 
     def test_fallback_retains_summary_and_timestamp_and_cached_result(self):
         data = item('google_ai', 'https://blog.google/article')
         with tempfile.TemporaryDirectory() as directory, patch.object(content, '_fetch_html', side_effect=TimeoutError):
-            result = content.load_article(data, directory)
+            result = load_cached(data, directory)
             self.assertEqual(result['content_kind'], 'summary')
             self.assertEqual(result['reason'], 'timeout')
             self.assertEqual(result['blocks'][0]['text'], data['summary'])
@@ -261,9 +271,9 @@ class ArticleTests(unittest.TestCase):
         data = item('google_ai', 'https://blog.google/article')
         with tempfile.TemporaryDirectory() as directory:
             with patch.object(content, '_fetch_html', side_effect=TimeoutError):
-                first = content.load_article(data, directory)
+                first = load_cached(data, directory)
             with patch.object(content, '_fetch_html') as fetch:
-                second = content.load_article(data, directory)
+                second = load_cached(data, directory)
                 self.assertEqual(first, second)
                 fetch.assert_not_called()
 
@@ -272,12 +282,12 @@ class ArticleTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             with patch.object(content, '_now', return_value='2026-10-22T12:00:00+00:00'):
                 with patch.object(content, '_fetch_html', side_effect=TimeoutError):
-                    first = content.load_article(data, directory)
+                    first = load_cached(data, directory)
             data.update(title='Updated source title', summary='Updated source summary.',
                         fetched_at='2026-10-22T12:00:20+00:00')
             with patch.object(content, '_now', return_value='2026-10-22T12:00:20+00:00'):
                 with patch.object(content, '_fetch_html') as fetch:
-                    second = content.load_article(data, directory)
+                    second = load_cached(data, directory)
                     self.assertEqual(second['title'], data['title'])
                     self.assertEqual(second['blocks'], [{'type': 'p', 'text': data['summary']}])
                     self.assertEqual(second['feed_fetched_at'], data['fetched_at'])
@@ -287,10 +297,10 @@ class ArticleTests(unittest.TestCase):
     def test_removed_feed_summary_does_not_keep_old_cached_text(self):
         data = item('hn', 'https://unknown.example/article', 'Earlier source summary.')
         with tempfile.TemporaryDirectory() as directory:
-            content.load_article(data, directory)
+            load_cached(data, directory)
             data['summary'] = None
             with patch.object(content, '_fetch_html') as fetch:
-                result = content.load_article(data, directory)
+                result = load_cached(data, directory)
                 self.assertEqual(result['blocks'], [])
                 fetch.assert_not_called()
 
@@ -299,11 +309,11 @@ class ArticleTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             with patch.object(content, '_now', return_value='2026-10-22T12:00:00+00:00'):
                 with patch.object(content, '_fetch_html', side_effect=TimeoutError):
-                    content.load_article(data, directory)
+                    load_cached(data, directory)
             data['fetched_at'] = '2026-10-22T12:00:59+00:00'
             with patch.object(content, '_now', return_value='2026-10-22T12:01:01+00:00'):
                 with patch.object(content, '_fetch_html', side_effect=TimeoutError) as fetch:
-                    result = content.load_article(data, directory)
+                    result = load_cached(data, directory)
                     fetch.assert_called_once()
                     self.assertEqual(result['fetched_at'], '2026-10-22T12:01:01+00:00')
 
@@ -313,10 +323,10 @@ class ArticleTests(unittest.TestCase):
             for current_time in ('2026-10-22T12:00:00+00:00', '2026-10-22T12:01:01+00:00'):
                 with patch.object(content, '_now', return_value=current_time):
                     with patch.object(content, '_fetch_html', side_effect=TimeoutError):
-                        content.load_article(data, directory)
+                        load_cached(data, directory)
             with patch.object(content, '_now', return_value='2026-10-22T12:01:02+00:00'):
                 with patch.object(content, '_fetch_html') as fetch:
-                    content.load_article(data, directory)
+                    load_cached(data, directory)
                     fetch.assert_not_called()
 
     def test_invalid_or_future_attempt_timestamp_cannot_pin_failure_cache(self):
@@ -324,12 +334,12 @@ class ArticleTests(unittest.TestCase):
         for timestamp in (None, 'invalid-time', '2026-10-22T13:00:00+00:00', '2026-10-22T11:59:59'):
             with self.subTest(timestamp=timestamp), tempfile.TemporaryDirectory() as directory:
                 with patch.object(content, '_fetch_html', side_effect=TimeoutError):
-                    saved = content.load_article(data, directory)
+                    saved = load_cached(data, directory)
                 saved['fetched_at'] = timestamp
                 (Path(directory) / (data['id'] + '.json')).write_text(json.dumps(saved), encoding='utf-8')
                 with patch.object(content, '_now', return_value='2026-10-22T12:00:00+00:00'):
                     with patch.object(content, '_fetch_html', side_effect=TimeoutError) as fetch:
-                        content.load_article(data, directory)
+                        load_cached(data, directory)
                         fetch.assert_called_once()
 
     def test_expired_failure_can_recover_to_full_text(self):
@@ -338,11 +348,11 @@ class ArticleTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             with patch.object(content, '_now', return_value='2026-10-22T12:00:00+00:00'):
                 with patch.object(content, '_fetch_html', side_effect=TimeoutError):
-                    content.load_article(data, directory)
+                    load_cached(data, directory)
             with patch.object(content, '_now', return_value='2026-10-22T12:01:00+00:00'):
                 with patch.object(content, '_fetch_html', return_value=(b'<article/>', data['url'])) as fetch:
                     with patch.object(content, 'extract_blocks', return_value=expected_blocks):
-                        result = content.load_article(data, directory)
+                        result = load_cached(data, directory)
                         self.assertEqual(result['content_kind'], 'full_text')
                         self.assertIsNone(result['reason'])
                         self.assertEqual(result['blocks'], expected_blocks)
@@ -354,12 +364,12 @@ class ArticleTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             with patch.object(content, '_fetch_html', return_value=(b'<article/>', data['url'])):
                 with patch.object(content, 'extract_blocks', return_value=expected_blocks):
-                    first = content.load_article(data, directory)
+                    first = load_cached(data, directory)
             data.update(title='Current feed title', summary='Current source summary.',
                         fetched_at='2026-10-23T12:00:00+00:00')
             with patch.object(content, '_now', return_value='2026-10-23T12:01:00+00:00'):
                 with patch.object(content, '_fetch_html') as fetch:
-                    second = content.load_article(data, directory)
+                    second = load_cached(data, directory)
                     self.assertEqual(second['content_kind'], 'full_text')
                     self.assertEqual(second['blocks'], expected_blocks)
                     self.assertEqual(second['title'], data['title'])
@@ -370,7 +380,7 @@ class ArticleTests(unittest.TestCase):
         data = item('google_ai', 'https://blog.google/article')
         data['url'] = 'https://blog.google/other'
         with tempfile.TemporaryDirectory() as directory, self.assertRaisesRegex(ValueError, 'invalid_item'):
-            content.load_article(data, directory)
+            load_cached(data, directory)
 
 
 

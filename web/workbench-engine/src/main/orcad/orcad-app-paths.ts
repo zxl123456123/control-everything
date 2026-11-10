@@ -9,9 +9,16 @@
  */
 import { realpathSync } from 'node:fs'
 import { homedir, tmpdir } from 'node:os'
-import { dirname, join, resolve } from 'node:path'
+import { dirname, join, relative, resolve, isAbsolute } from 'node:path'
 import process from 'node:process'
 import type { AppPathName } from '../../shared/app-environment'
+import { hasExplicitPlatformCredentialRoot } from '../credentials/credential-root'
+import {
+  migrateDefaultCredentialDataRoot,
+  migrateDefaultProfileDataRootBeforeStartup,
+  resolveMigratedDefaultDataRoot
+} from '../persistence/default-data-root-migration'
+import { readDefaultDataRootRecord } from '../persistence/default-data-root-record'
 
 /** Empty is unset: a supervisor that exports `APPDATA=` has configured nothing. */
 function env(name: string): string | null {
@@ -19,14 +26,60 @@ function env(name: string): string | null {
   return value ? value : null
 }
 
-/** XDG-ish data root. `$ORCA_USER_DATA` wins so a smoke test can isolate state. */
+/** XDG-ish data root. `$ZKYQ_USER_DATA` wins so a smoke test can isolate state. */
 export function resolveUserDataPath(): string {
-  const explicit = env('ORCA_USER_DATA')
+  const explicit = env('ZKYQ_USER_DATA')
   if (explicit) {
-    return explicit
+    return resolveMigratedDefaultDataRoot(explicit)
+  }
+  if (env('ORCA_USER_DATA')) {
+    throw new Error('ORCA_USER_DATA was retired. Set ZKYQ_USER_DATA to the same data directory.')
   }
   const xdg = env('XDG_DATA_HOME')
-  return xdg ? join(xdg, 'Orca') : join(homedir(), '.orca')
+  return xdg ? join(xdg, 'zkyq') : join(homedir(), '.zkyq')
+}
+
+/** Run before installing adapters or opening any profile, credential or terminal reader. */
+export async function prepareOrcadDefaultDataRoots(): Promise<string> {
+  const initial = resolveUserDataPath()
+  const previous = join(homedir(), '.orca')
+  const current = join(homedir(), '.zkyq')
+  const same = (a: string, b: string) =>
+    process.platform === 'win32'
+      ? resolve(a).toLowerCase() === resolve(b).toLowerCase()
+      : resolve(a) === resolve(b)
+  if (!hasExplicitPlatformCredentialRoot() || same(initial, previous) || same(initial, current)) {
+    await migrateDefaultCredentialDataRoot(previous, current)
+  }
+  let selected = resolveUserDataPath()
+  if (!same(selected, current)) {
+    const record = readDefaultDataRootRecord(selected)
+    const xdg = env('XDG_DATA_HOME')
+    if (!env('ZKYQ_USER_DATA') && xdg) {
+      selected = await migrateDefaultProfileDataRootBeforeStartup(join(xdg, 'Orca'), selected)
+    } else if (record) {
+      selected = await migrateDefaultProfileDataRootBeforeStartup(
+        join(dirname(selected), record.previousName),
+        selected
+      )
+    }
+  }
+  const explicit = env('ZKYQ_USER_DATA')
+  const credentials = env('CE_WORKBENCH_CREDENTIAL_ROOT')
+  if (explicit && credentials && hasExplicitPlatformCredentialRoot() && !same(explicit, selected)) {
+    const suffix = relative(explicit, credentials)
+    if (
+      suffix &&
+      suffix !== '..' &&
+      !suffix.startsWith('../') &&
+      !suffix.startsWith('..\\') &&
+      !isAbsolute(suffix)
+    ) {
+      process.env.CE_WORKBENCH_CREDENTIAL_ROOT = join(selected, suffix)
+    }
+  }
+  process.env.ZKYQ_USER_DATA = selected
+  return selected
 }
 
 /** Electron's `'appData'` definition, computed without Electron. */

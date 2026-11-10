@@ -4,14 +4,15 @@ from http.cookies import SimpleCookie
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 import re
+import sys
 from urllib.parse import parse_qs, urlsplit
 
 from control_everything.integrations.remote_hub.identity import HubError
 from control_everything.integrations.remote_hub.sessions import COOKIE_NAME
 
 
-def _fields(body, names):
-    if not isinstance(body, dict) or set(body) != set(names):
+def _fields(body, names, optional=()):
+    if not isinstance(body, dict) or not set(names) <= set(body) <= set(names) | set(optional):
         raise HubError("invalid_request_fields", 400)
     return body
 
@@ -37,7 +38,7 @@ def dispatch(service, method, uri, headers, body):
     """Return (status, JSON body, response headers); no business transitions live here."""
     parsed = urlsplit(uri)
     path = parsed.path
-    if parsed.fragment or (parsed.query and path != "/remote/api/admin/members"):
+    if parsed.fragment or (parsed.query and path not in ("/remote/api/admin/members", "/remote/desktop/admin/members")):
         raise HubError("invalid_request_uri", 400)
     cookie = SimpleCookie()
     try:
@@ -51,7 +52,7 @@ def dispatch(service, method, uri, headers, body):
             if path.endswith("/config") and method == "GET":
                 return 200, service.config(token), {}
             if path.endswith("/heartbeat") and method == "POST":
-                values = _fields(body, ("installation_id", "runtime_ready"))
+                values = _fields(body, ("installation_id", "runtime_ready"), ("os_name", "os_version", "app_version"))
                 return 200, service.heartbeat(token, **values), {}
             if path.endswith("/revoke") and method == "POST":
                 _fields(body, ())
@@ -60,8 +61,16 @@ def dispatch(service, method, uri, headers, body):
         identity = service.identities.authenticate(token, "desktop")
         if path == "/remote/desktop/identity" and method == "GET":
             return 200, service.desktop_identity(identity), {}
+        if path == "/remote/desktop/admin/members" and method == "GET":
+            _fields(body, ())
+            return 200, service.admin_members(identity, **_pagination(parsed.query)), {}
         if method != "POST":
             raise HubError("method_not_allowed", 405)
+        if path == "/remote/desktop/invitations":
+            _fields(body, ())
+            return 200, service.create_invitation(identity), {}
+        if path == "/remote/desktop/activate":
+            return 200, service.activate(identity, **_fields(body, ("invite",))), {}
         if path == "/remote/desktop/enrollment":
             return 200, service.begin_enrollment(identity, **_fields(body, ("installation_id", "public_key", "name"))), {}
         if path == "/remote/desktop/enrollment/status":
@@ -71,6 +80,32 @@ def dispatch(service, method, uri, headers, body):
         match = re.fullmatch(r"/remote/desktop/enrollment/([A-Za-z0-9_-]{32})/complete", path)
         if match:
             return 200, service.complete_enrollment(identity, match[1], **_fields(body, ("signature",))), {}
+        raise HubError("not_found", 404)
+    if path.startswith("/remote/mobile/"):
+        # Bearer only: cookies, proxy identity headers and Origin play no part, and no CORS headers
+        # are ever emitted, so browsers cannot call this surface cross-origin.
+        identity = service.identities.authenticate(_bearer(headers), "mobile")
+        if path == "/remote/mobile/me":
+            if method != "GET":
+                raise HubError("method_not_allowed", 405)
+            _fields(body, ())
+            return 200, service.mobile_me(identity), {}
+        if path == "/remote/mobile/devices":
+            if method != "GET":
+                raise HubError("method_not_allowed", 405)
+            _fields(body, ())
+            return 200, service.mobile_devices(identity), {}
+        match = re.fullmatch(r"/remote/mobile/devices/([0-9a-f]{24})/revoke", path)
+        if path in ("/remote/mobile/activate", "/remote/mobile/logout") or match:
+            if method != "POST":
+                raise HubError("method_not_allowed", 405)
+            if match:
+                _fields(body, ())
+                return 200, service.mobile_revoke(identity, match[1]), {}
+            if path.endswith("/activate"):
+                return 200, service.mobile_activate(identity, **_fields(body, ("invite",))), {}
+            _fields(body, ())
+            return 200, service.mobile_logout(identity), {}
         raise HubError("not_found", 404)
     identity = service.browser_identity(headers.get("X-Auth-Request-Access-Token", ""),
                                         headers.get("X-Auth-Request-User", ""), headers.get("X-CE-Route-Proof", ""))
@@ -171,15 +206,66 @@ def build_server(address, service):
     return server
 
 
+def identity_admin(service, args, out=None):
+    """Local administrator actions on the identities table; prints one JSON document."""
+    out = out or sys.stdout
+    store = service.store
+    if args.action == "list-identities":
+        with store.transaction() as db:
+            rows = [dict(row) for row in db.execute(
+                "SELECT i.account_id,i.issuer,i.sub,COALESCE(m.status,'inactive') AS membership "
+                "FROM identities i LEFT JOIN members m ON m.account_id=i.account_id ORDER BY i.created_at,i.issuer,i.sub")]
+        print(json.dumps({"identities": rows}, ensure_ascii=False, indent=2), file=out)
+        return 0
+    account = args.account_id
+    if bool(account) == bool(args.from_sub):
+        raise SystemExit("link-identity needs exactly one of --account-id or --from-sub (with --from-issuer)")
+    if args.from_sub:
+        from control_everything.integrations.remote_hub.identity import Identity
+        account = store.account_id(Identity(args.from_issuer or service.identities.issuer, args.from_sub, "", 0))
+        if account is None:
+            raise SystemExit("no account is linked to the --from identity")
+    if not args.sub:
+        raise SystemExit("link-identity needs --sub")
+    try:
+        result = store.link_identity(account, args.issuer or service.identities.issuer, args.sub)
+    except HubError as error:
+        raise SystemExit("link-identity refused: " + error.code) from None
+    print(json.dumps(result, ensure_ascii=False, indent=2), file=out)
+    return 0
+
+
 def main(argv=None):
     import argparse
-    from control_everything.integrations.remote_hub.admin import build_service
+    from control_everything.integrations.remote_hub.admin import activate_member, build_service, validate_member_subject
     from control_everything.integrations.remote_hub.identity import Identity
     parser = argparse.ArgumentParser(description="Dedicated account-owned remote admission hub")
     parser.add_argument("--config", required=True)
-    parser.add_argument("action", choices=("serve", "bootstrap-admin", "reconcile"))
+    parser.add_argument("action", choices=("serve", "bootstrap-admin", "reconcile", "link-identity", "list-identities", "activate-member"))
+    # link-identity: attach an identity of a new/replacement identity provider to an existing account.
+    parser.add_argument("--account-id", help="32-hex internal account id (see list-identities)")
+    parser.add_argument("--from-issuer", help="alternative to --account-id: issuer of an already linked identity")
+    parser.add_argument("--from-sub", help="alternative to --account-id: subject of an already linked identity")
+    parser.add_argument("--issuer", help="issuer of the identity to link (defaults to the configured issuer)")
+    parser.add_argument("--sub", help="exact subject of the identity to link or ordinary member to activate")
     args = parser.parse_args(argv)
+    if args.action == "activate-member":
+        if any(value is not None for value in (args.issuer, args.account_id, args.from_issuer, args.from_sub)):
+            parser.error("activate-member accepts only --config and --sub")
+        try:
+            validate_member_subject(args.sub)
+        except HubError:
+            parser.error("activate-member requires --sub: 1-255 printable non-whitespace ASCII characters")
     service = build_service(args.config)
+    if args.action == "activate-member":
+        try:
+            result = activate_member(service, args.sub)
+        except HubError as error:
+            raise SystemExit("activate-member refused: " + error.code) from None
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+    if args.action in ("link-identity", "list-identities"):
+        return identity_admin(service, args)
     if args.action == "bootstrap-admin":
         for issuer, sub in service.admin_subjects:
             service.store.set_member(Identity(issuer, sub, "", 0))

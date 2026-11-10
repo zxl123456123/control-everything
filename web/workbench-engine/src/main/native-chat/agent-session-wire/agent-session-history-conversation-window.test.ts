@@ -219,7 +219,7 @@ describe('a history page over a session with a subagent', () => {
     expect(textsOf(tail)[0]).toBe('Kicked off subagent Audit')
     expect(textsOf(older)).toEqual(named('own-', 1, 3))
     expect(folded([tail])).toEqual([
-      { row: 'orca:subagent%3Aa', labels: ['a=Audit', 'b=Audit 2', 'c=Audit 3'] }
+      { row: 'zkyq:subagent%3Aa', labels: ['a=Audit', 'b=Audit 2', 'c=Audit 3'] }
     ])
     expect(folded([older, tail])).toEqual(folded([tail]))
   })
@@ -308,7 +308,7 @@ describe('a history page names the subagents whose roster row is older than it',
 
     expect(page.subagentRoster).toEqual([
       expect.objectContaining({
-        itemId: 'orca:subagent%3Atask-1',
+        itemId: 'zkyq:subagent%3Atask-1',
         entry: { id: 'task-1', label: 'run task-1', state: 'working' }
       })
     ])

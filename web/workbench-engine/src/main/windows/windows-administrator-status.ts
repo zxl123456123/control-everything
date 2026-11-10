@@ -17,7 +17,7 @@ async function readStatus(): Promise<boolean | null> {
   const environment = getAppEnvironment()
   const launcher = environment.isPackaged()
     ? getBundledLauncherPath('win32', process.resourcesPath)
-    : join(environment.getAppPath(), 'native', 'windows-cli-launcher', '.build', 'orca.exe')
+    : join(environment.getAppPath(), 'native', 'windows-cli-launcher', '.build', 'zkyq.exe')
   if (!launcher) {
     return null
   }

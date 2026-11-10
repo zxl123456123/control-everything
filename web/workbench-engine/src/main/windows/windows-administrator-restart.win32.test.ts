@@ -10,8 +10,8 @@ describe.runIf(process.platform === 'win32')('native Windows administrator resta
   it('keeps the CLI console-based and the administrator handoff free of console windows', async () => {
     const root = resolve(import.meta.dirname, '../../..')
     for (const [filename, subsystem] of [
-      ['orca.exe', 3],
-      ['orca-administrator-restart.exe', 2]
+      ['zkyq.exe', 3],
+      ['zkyq-administrator-restart.exe', 2]
     ] as const) {
       const binary = await readFile(join(root, 'native/windows-cli-launcher/.build', filename))
       const peOffset = binary.readUInt32LE(0x3c)
@@ -21,10 +21,10 @@ describe.runIf(process.platform === 'win32')('native Windows administrator resta
   })
   it('launches an elevated process with intact arguments without a UAC prompt', async (context) => {
     const root = resolve(import.meta.dirname, '../../..')
-    const launcher = join(root, 'native', 'windows-cli-launcher', '.build', 'orca.exe')
+    const launcher = join(root, 'native', 'windows-cli-launcher', '.build', 'zkyq.exe')
     const restartLauncher = join(
       root,
-      'native/windows-cli-launcher/.build/orca-administrator-restart.exe'
+      'native/windows-cli-launcher/.build/zkyq-administrator-restart.exe'
     )
     const status = await runProcess({ program: launcher, args: ['--orca-administrator-status'] })
     expect(status.code).toBe(0)

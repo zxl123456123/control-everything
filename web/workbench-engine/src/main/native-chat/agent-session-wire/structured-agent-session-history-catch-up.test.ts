@@ -58,8 +58,8 @@ describe('history catch-up runner', () => {
   }
   const plan: HistoryCatchUpPlan = {
     settlementId: 's',
-    mutations: [{ kind: 'tombstone', identity: { provider: 'orca', clientMessageId: 'old' } }],
-    keys: [agentJournalItemKey({ provider: 'orca', clientMessageId: 'old' })],
+    mutations: [{ kind: 'tombstone', identity: { provider: 'zkyq', clientMessageId: 'old' } }],
+    keys: [agentJournalItemKey({ provider: 'zkyq', clientMessageId: 'old' })],
     reservedBytes: 1
   }
   it('gives up at the deadline when the commit never becomes durable', async () => {

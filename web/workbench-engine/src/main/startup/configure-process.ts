@@ -9,6 +9,10 @@ import { DISABLED_CHROMIUM_FEATURES } from './disabled-chromium-features'
 import { readHttp1CompatibilityMarker } from './http1-compatibility-marker'
 import { checkServeUserDataPath } from './serve-user-data-path-guard'
 import { stampRuntimeSourceEnv } from '../../shared/runtime-source-env'
+import {
+  migrateDefaultProfileDataRoot,
+  resolveMigratedDefaultDataRoot
+} from '../persistence/default-data-root-migration'
 import { isLinuxWaylandSession } from '../../shared/linux-wayland-session'
 import {
   hasMissingProfileStateDatabaseWithRetainedAuthority,
@@ -212,17 +216,27 @@ export function configureDevUserDataPath(isDev: boolean): void {
     return
   }
 
-  if (!isDev) {
-    return
+  const overrideUserDataPath = isDev ? process.env.ZKYQ_DEV_USER_DATA_PATH : undefined
+  if (isDev && !overrideUserDataPath && process.env.ORCA_DEV_USER_DATA_PATH) {
+    throw new Error(
+      'ORCA_DEV_USER_DATA_PATH was retired. Set ZKYQ_DEV_USER_DATA_PATH to the same data directory.'
+    )
   }
-  const overrideUserDataPath = process.env.ORCA_DEV_USER_DATA_PATH
-  if (overrideUserDataPath) {
-    // Why: automated repros need an isolated profile so the dev's persisted tabs/worktrees don't skew startup and hide window bugs.
-    app.setPath('userData', overrideUserDataPath)
-    return
+  const appData = app.getPath('appData')
+  const current = join(appData, isDev ? 'zkyq-dev' : 'zkyq')
+  const previous = join(appData, isDev ? 'orca-dev' : 'orca')
+  const selected =
+    overrideUserDataPath ||
+    (app.commandLine.hasSwitch('user-data-dir') ? app.getPath('userData') : current)
+  if (areSameE2EHomePath(selected, current) || areSameE2EHomePath(selected, previous)) {
+    const migrated = migrateDefaultProfileDataRoot(previous, current)
+    app.setPath('userData', migrated)
+    // Chromium resolves this separately; both roots must be fixed before ready.
+    app.setPath('sessionData', migrated)
+  } else {
+    // Explicit custom profiles retain their location.
+    app.setPath('userData', resolveMigratedDefaultDataRoot(selected))
   }
-  // Why: without a dev-only path, pnpm dev overwrites the packaged app's runtime pointer under userData and breaks the orca CLI.
-  app.setPath('userData', join(app.getPath('appData'), 'orca-dev'))
 }
 
 function areSameE2EHomePath(left: string, right: string): boolean {
@@ -243,8 +257,9 @@ export function configureOrcaUserDataPathEnv(): void {
   if (serveProfileRefusal) {
     throw new Error(serveProfileRefusal)
   }
-  // Why: relaunches can inherit a stale ORCA_USER_DATA_PATH; canonicalize before CLI-shared modules build runtime-home paths.
-  process.env.ORCA_USER_DATA_PATH = userDataPath
+  // Why: relaunches can inherit a stale ZKYQ_USER_DATA_PATH; canonicalize before CLI-shared modules build runtime-home paths.
+  process.env.ZKYQ_USER_DATA_PATH = userDataPath
+  delete process.env.ORCA_USER_DATA_PATH
   // Why: an Orca started from another Orca's terminal must not fence its own CLI children to the parent.
   stampRuntimeSourceEnv(process.env, null)
 }

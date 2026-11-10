@@ -173,6 +173,99 @@ describe('terminal prompt mutation receipt retry boundary', () => {
     expect(invoke).toHaveBeenCalledOnce()
   })
 
+  it('replays an old CLI receipt with the renamed client without sending again', async () => {
+    const harness = createHarness()
+    databases.push(harness.db)
+    const requestId = 'identity-migration'
+    const invoke = vi.fn().mockResolvedValue({
+      send: { prompt: { stages: ['input_accepted', 'turn_started'], observation: 'supported' } }
+    })
+    await harness.executor.run(promptRequest(requestId), promptParams, invoke)
+    const renamed = { ...promptParams, client: { id: 'zkyq-cli', type: 'desktop' } }
+    const request = { ...promptRequest(requestId), params: renamed }
+
+    await expect(harness.executor.run(request, renamed, invoke)).resolves.toMatchObject({
+      mutation: { replayed: true }
+    })
+    expect(invoke).toHaveBeenCalledOnce()
+    await expect(
+      harness.executor.run(request, { ...renamed, text: 'different' }, invoke)
+    ).rejects.toMatchObject({
+      code: 'request_mismatch'
+    })
+    await expect(
+      harness.executor.run(
+        request,
+        { ...renamed, client: { id: 'other', type: 'desktop' } },
+        invoke
+      )
+    ).rejects.toMatchObject({
+      code: 'request_mismatch'
+    })
+    expect(invoke).toHaveBeenCalledOnce()
+  })
+
+  it('keeps an unresolved old prompt fenced after the client rename', async () => {
+    const harness = createHarness()
+    databases.push(harness.db)
+    const requestId = 'identity-unknown'
+    const invoke = vi.fn((mutation) => {
+      mutation?.markEffectPossible()
+      throw new Error('connection lost')
+    })
+    await expect(
+      harness.executor.run(promptRequest(requestId), promptParams, invoke)
+    ).rejects.toThrow('connection lost')
+    const renamed = { ...promptParams, client: { id: 'zkyq-cli', type: 'desktop' } }
+    await expect(
+      harness.executor.run({ ...promptRequest(requestId), params: renamed }, renamed, invoke)
+    ).rejects.toMatchObject({
+      code: 'operation_unknown'
+    })
+    expect(invoke).toHaveBeenCalledOnce()
+  })
+
+  it('joins an old in-flight prompt when the renamed client retries', async () => {
+    const harness = createHarness()
+    databases.push(harness.db)
+    const requestId = 'identity-in-flight'
+    let release!: () => void
+    const gate = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    const invoke = vi.fn(async () => {
+      await gate
+      return { send: { accepted: true } }
+    })
+    const first = harness.executor.run(promptRequest(requestId), promptParams, invoke)
+    const renamed = { ...promptParams, client: { id: 'zkyq-cli', type: 'desktop' } }
+    const retry = harness.executor.run(
+      { ...promptRequest(requestId), params: renamed },
+      renamed,
+      invoke
+    )
+    release()
+    const [original, replay] = await Promise.all([first, retry])
+    expect(original).toMatchObject({ mutation: { replayed: false } })
+    expect(replay).toMatchObject({ mutation: { replayed: true } })
+    expect(invoke).toHaveBeenCalledOnce()
+  })
+
+  it('does not accept the retired client identity for a newly recorded request', async () => {
+    const harness = createHarness()
+    databases.push(harness.db)
+    const requestId = 'new-identity'
+    const renamed = { ...promptParams, client: { id: 'zkyq-cli', type: 'desktop' } }
+    const invoke = vi.fn().mockResolvedValue({ send: { accepted: true } })
+    await harness.executor.run({ ...promptRequest(requestId), params: renamed }, renamed, invoke)
+    await expect(
+      harness.executor.run(promptRequest(requestId), promptParams, invoke)
+    ).rejects.toMatchObject({
+      code: 'request_mismatch'
+    })
+    expect(invoke).toHaveBeenCalledOnce()
+  })
+
   it('keeps an uncheckpointed pending worker_done fenced after restart', async () => {
     const harness = createHarness()
     databases.push(harness.db)

@@ -50,6 +50,7 @@ export type OrcadDeployOptions = {
   runtimeCacheRoot?: string
   nodePath: string
   userDataDir: string
+  defaultDataRoot?: string
   bindHost: string
   port: number
   /**

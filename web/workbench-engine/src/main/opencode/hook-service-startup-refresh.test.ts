@@ -15,8 +15,8 @@ import { setAppEnvironment } from '../../shared/app-environment'
 import { OpenCodeHookService, openCode2HookService, getOpenCode2PluginSource } from './hook-service'
 import { resolveOpenCodeConfigDirectory } from '../../shared/opencode-config-directory'
 
-const PLUGIN = 'orca-opencode2-status.js'
-const TUI_ENTRY = join('orca-opencode2-status-tui', 'tui.js')
+const PLUGIN = 'zkyq-opencode2-status.js'
+const TUI_ENTRY = join('zkyq-opencode2-status-tui', 'tui.js')
 
 describe('OpenCodeHookService.refreshInstalledPlugins (app start)', () => {
   let userDataDir: string
@@ -77,9 +77,32 @@ describe('OpenCodeHookService.refreshInstalledPlugins (app start)', () => {
     expect(existsSync(join(userDataDir, 'opencode2-config-overlays'))).toBe(false)
   })
 
+  it.each(['canonical', 'overlay'])(
+    'retires the previous plugin filenames at app start: %s',
+    (location) => {
+      const configDir =
+        location === 'canonical'
+          ? resolveOpenCodeConfigDirectory()
+          : join(userDataDir, 'opencode2-config-overlays', 'previous')
+      const plugins = join(configDir, 'plugins')
+      const old = 'orca-opencode2-status.js'
+      mkdirSync(join(plugins, 'orca-opencode2-status-tui'), { recursive: true })
+      const oldSource = getOpenCode2PluginSource()
+        .replaceAll('zkyq-opencode', 'orca-opencode')
+        .replaceAll('ZkyqOpenCodeStatusPlugin', 'OrcaOpenCodeStatusPlugin')
+      writeFileSync(join(plugins, old), oldSource)
+      writeFileSync(join(plugins, 'orca-opencode2-status-tui', 'tui.js'), oldSource)
+      openCode2HookService.refreshInstalledPlugins()
+      expect(existsSync(join(plugins, old))).toBe(false)
+      expect(existsSync(join(plugins, 'orca-opencode2-status-tui'))).toBe(false)
+      expect(readFileSync(join(plugins, PLUGIN), 'utf8')).toBe(getOpenCode2PluginSource())
+      expect(readFileSync(join(plugins, TUI_ENTRY), 'utf8')).toBe(getOpenCode2PluginSource())
+    }
+  )
+
   it('leaves a current install untouched so nothing reloads', () => {
     const pluginsDir = join(resolveOpenCodeConfigDirectory(), 'plugins')
-    mkdirSync(join(pluginsDir, 'orca-opencode2-status-tui'), { recursive: true })
+    mkdirSync(join(pluginsDir, 'zkyq-opencode2-status-tui'), { recursive: true })
     writeFileSync(join(pluginsDir, PLUGIN), getOpenCode2PluginSource())
     writeFileSync(join(pluginsDir, TUI_ENTRY), getOpenCode2PluginSource())
     const past = new Date('2020-01-01T00:00:00Z')
@@ -120,7 +143,7 @@ describe('OpenCodeHookService.refreshInstalledPlugins (app start)', () => {
     mkdirSync(pluginsDir, { recursive: true })
     writeFileSync(join(pluginsDir, PLUGIN), '// old')
     // A file where the TUI copy's directory belongs makes the config-dir write fail.
-    writeFileSync(join(pluginsDir, 'orca-opencode2-status-tui'), 'obstruction')
+    writeFileSync(join(pluginsDir, 'zkyq-opencode2-status-tui'), 'obstruction')
     const overlayPlugins = join(userDataDir, 'opencode2-config-overlays', 'a', 'plugins')
     mkdirSync(overlayPlugins, { recursive: true })
     writeFileSync(join(overlayPlugins, PLUGIN), '// old')

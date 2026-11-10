@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { ChevronDown, CircleHelp, RefreshCw } from 'lucide-react'
+import { ChevronDown, CircleHelp, Network, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
@@ -45,6 +45,7 @@ export function GitHistoryPanel({
   collapsed,
   onToggle,
   onRefresh,
+  onOpenGraph,
   onOpenCommit,
   onLoadCommitFiles,
   onOpenCommitFile,
@@ -54,6 +55,7 @@ export function GitHistoryPanel({
   collapsed: boolean
   onToggle: () => void
   onRefresh: () => void
+  onOpenGraph?: () => void
   onOpenCommit?: (item: GitHistoryItem) => void
   onLoadCommitFiles?: (item: GitHistoryItem) => Promise<GitBranchChangeEntry[]>
   onOpenCommitFile?: (
@@ -261,6 +263,18 @@ export function GitHistoryPanel({
             {result && <span className="text-[10px] font-medium tabular-nums">{count}</span>}
             {result?.hasMore && <span className="text-[10px] font-medium">+</span>}
           </button>
+          {onOpenGraph && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-xs"
+              onClick={onOpenGraph}
+              aria-label={translate('git-graph.open', 'Open Git Graph')}
+              title={translate('git-graph.open', 'Open Git Graph')}
+            >
+              <Network className="size-3.5" />
+            </Button>
+          )}
           <Tooltip>
             <TooltipTrigger asChild>
               <Button

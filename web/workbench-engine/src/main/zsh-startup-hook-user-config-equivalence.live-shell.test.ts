@@ -243,7 +243,7 @@ const CASES: ConfigCase[] = [
 function wrappedEnv(home: string): Record<string, string> {
   const features = selectShellStartupFeatures({
     shellPath: ZSH_PATH,
-    env: { HOME: home, ORCA_HISTFILE: join(home, 'scoped_history') },
+    env: { HOME: home, ZKYQ_HISTFILE: join(home, 'scoped_history') },
     hasStartupCommand: false,
     waitsForShellReady: false,
     emitsStartupIdentity: false
@@ -258,7 +258,7 @@ function wrappedEnv(home: string): Record<string, string> {
   return {
     PATH: '/usr/bin:/bin',
     HOME: home,
-    ORCA_HISTFILE: join(home, 'scoped_history'),
+    ZKYQ_HISTFILE: join(home, 'scoped_history'),
     ...env
   }
 }
@@ -310,16 +310,16 @@ describe.skipIf(process.platform === 'win32')('the fixes the old wrapper was bui
   let previousUserDataPath: string | undefined
 
   beforeAll(() => {
-    previousUserDataPath = process.env.ORCA_USER_DATA_PATH
+    previousUserDataPath = process.env.ZKYQ_USER_DATA_PATH
     userDataPath = mkdtempSync(join(tmpdir(), 'orca-hook-regression-'))
-    process.env.ORCA_USER_DATA_PATH = userDataPath
+    process.env.ZKYQ_USER_DATA_PATH = userDataPath
   })
 
   afterAll(() => {
     if (previousUserDataPath === undefined) {
-      delete process.env.ORCA_USER_DATA_PATH
+      delete process.env.ZKYQ_USER_DATA_PATH
     } else {
-      process.env.ORCA_USER_DATA_PATH = previousUserDataPath
+      process.env.ZKYQ_USER_DATA_PATH = previousUserDataPath
     }
     rmSync(userDataPath, { recursive: true, force: true })
   })
@@ -460,7 +460,7 @@ describe.skipIf(process.platform === 'win32')('the fixes the old wrapper was bui
       const { values } = await runZshPty({
         env: wrappedEnv(home),
         commands: [
-          'ORCA_CHILD_ENV="$(env | grep -cE \'^(ORCA_SHELL_FEATURES|ORCA_HISTFILE)=\' || true)"',
+          'ORCA_CHILD_ENV="$(env | grep -cE \'^(ORCA_SHELL_FEATURES|ZKYQ_HISTFILE)=\' || true)"',
           'ORCA_CHILD_ZDOTDIR="$(env | sed -n \'s/^ZDOTDIR=//p\')"'
         ],
         report: ['ORCA_CHILD_ENV', 'ORCA_CHILD_ZDOTDIR']

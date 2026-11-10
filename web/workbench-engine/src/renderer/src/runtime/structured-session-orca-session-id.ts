@@ -1,5 +1,7 @@
-import { formatOrcaSessionAddress, isOrcaSessionId } from '../../../shared/orca-session-address'
+import { isOrcaSessionId } from '../../../shared/orca-session-address'
+import { LEGACY_SESSION_ADDRESS_PREFIX } from '../../../shared/orca-session-address-prefix'
 import type { OrchestrationSessionAddressResult } from '../../../shared/orchestration-caller-status'
+import { sessionIdentityFromRpc } from '../../../shared/orchestration-caller-status'
 import { callRuntimeRpc } from './runtime-rpc-client'
 import { RuntimeRpcCallError } from './runtime-rpc-result'
 import type { RuntimeClientTarget } from '../../../shared/runtime-client-target'
@@ -19,13 +21,13 @@ export async function resolveStructuredSessionOrcaSessionId(
     const result = await callRuntimeRpc<OrchestrationSessionAddressResult>(
       target,
       'orchestration.sessionAddress',
-      { sessionId }
+      { sessionId, responseFormat: 'workbench' }
     )
-    return result.orcaSessionId
+    return sessionIdentityFromRpc(result)
   } catch (error) {
     // Why: a host that predates the method routes the current session's ID to the same chat.
     if (error instanceof RuntimeRpcCallError && error.code === 'method_not_found') {
-      return formatOrcaSessionAddress(sessionId)
+      return `${LEGACY_SESSION_ADDRESS_PREFIX}${sessionId}`
     }
     throw error
   }

@@ -24,6 +24,9 @@ UninstallLogMode=append
 DisableProgramGroupPage=yes
 UsePreviousAppDir=yes
 SetupLogging=yes
+#ifdef DesktopIconFile
+SetupIconFile={#DesktopIconFile}
+#endif
 OutputDir={#InstallerOutputDir}
 OutputBaseFilename=session-panel-{#PayloadVersion}-windows-x64
 Compression=lzma2
@@ -33,8 +36,12 @@ WizardStyle=modern
 [Files]
 #include PayloadIncludeDir + "\payload-files.iss"
 
+[Tasks]
+Name: "desktopicon"; Description: "创建桌面快捷方式"; Flags: unchecked
+
 [Icons]
-Name: "{userprograms}\Session Panel"; Filename: "{app}\session-panel.cmd"; WorkingDir: "{app}"
+Name: "{userprograms}\Session Panel"; Filename: "{app}\session-panel.cmd"; WorkingDir: "{app}"; Flags: runminimized; IconFilename: "{app}\versions\{#PayloadId}\native\desktop\session-panel.exe"
+Name: "{userdesktop}\Session Panel"; Filename: "{app}\session-panel.cmd"; WorkingDir: "{app}"; Tasks: desktopicon; Flags: runminimized; IconFilename: "{app}\versions\{#PayloadId}\native\desktop\session-panel.exe"
 
 [Code]
 const
@@ -53,8 +60,14 @@ type
   end;
 
 var
-  PayloadPaths, PayloadHashes: TArrayOfString;
+  PayloadPaths, PayloadHashes, BootstrapPaths, BootstrapHashes, BootstrapBatchPatterns: TArrayOfString;
+  BootstrapBatchCounts: array of Integer;
   BootstrapRoot, ContextFile, PreflightReceipt, Operation: String;
+  MaintenanceProgress: TOutputMarqueeProgressWizardPage;
+  MaintenanceStage: String;
+  DataDirectoryChoice: TInputOptionWizardPage;
+  DataDirectoryPage: TInputDirWizardPage;
+  SelectedDataDirectory: String;
   MaintenanceHandle: THandle;
   MaintenanceHeld, BootstrapExtracted, Prepared, InstallPayload, InstallCommitted: Boolean;
   ReportSequence: Integer;
@@ -133,16 +146,26 @@ begin
   Result := AddBackslash(ExpandConstant('{tmp}')) + 'maintenance-' + Stage + '-' + IntToStr(ReportSequence) + '.json';
 end;
 
-procedure VerifyTable(Root: String);
+procedure ShowFileProgress(Completed, Total: Integer);
+begin
+  if MaintenanceProgress <> nil then
+    MaintenanceProgress.SetText(MaintenanceStage,
+      IntToStr(Completed) + ' / ' + IntToStr(Total) + ' 个文件');
+end;
+
+procedure VerifyTable(Root: String; const Paths, Hashes: TArrayOfString);
 var I: Integer; FileName: String;
 begin
   RequireNoReparse(Root);
-  for I := 0 to GetArrayLength(PayloadPaths) - 1 do begin
-    FileName := AddBackslash(Root) + PayloadPaths[I];
+  ShowFileProgress(0, GetArrayLength(Paths));
+  for I := 0 to GetArrayLength(Paths) - 1 do begin
+    FileName := AddBackslash(Root) + Paths[I];
     RequireNoReparse(FileName);
     if not FileExists(FileName) then RaiseException('完整安装文件缺失，需使用可信安装器修复。');
-    if CompareText(GetSHA256OfFile(FileName), PayloadHashes[I]) <> 0 then
+    if CompareText(GetSHA256OfFile(FileName), Hashes[I]) <> 0 then
       RaiseException('完整安装文件校验失败，已停止维护。');
+    if ((I + 1) mod 32 = 0) or (I + 1 = GetArrayLength(Paths)) then
+      ShowFileProgress(I + 1, GetArrayLength(Paths));
   end;
 end;
 
@@ -168,13 +191,15 @@ end;
 procedure RunMaintenance(Command, Report, Payload, Receipt, ExpectedStatus: String; UseInvocation: Boolean);
 var Parameters: String; ExitCode: Integer; Started: Boolean;
 begin
-  VerifyTable(BootstrapRoot);
+  VerifyTable(BootstrapRoot, BootstrapPaths, BootstrapHashes);
   Parameters := '-I -B -X utf8 -m control_everything.installation.maintenance ' + Command +
     ' --install-root ' + QuoteArgument(ExpandConstant('{app}')) +
     ' --operation ' + Operation + ' --report ' + QuoteArgument(Report);
   if UseInvocation then Parameters := Parameters + ' --invocation-file ' + QuoteArgument(ContextFile);
   if Payload <> '' then Parameters := Parameters + ' --payload ' + QuoteArgument(Payload);
   if Receipt <> '' then Parameters := Parameters + ' --receipt-file ' + QuoteArgument(Receipt);
+  if ((Command = 'preflight') or (Command = 'commit')) and (Operation = 'install') and (SelectedDataDirectory <> '') then
+    Parameters := Parameters + ' --desktop-data-dir ' + QuoteArgument(SelectedDataDirectory);
   Started := Exec(AddBackslash(BootstrapRoot) + 'runtime\python.exe', Parameters,
     BootstrapRoot, SW_HIDE, ewWaitUntilTerminated, ExitCode);
   if not Started then RaiseException('无法启动已校验的私有维护程序。');
@@ -252,6 +277,47 @@ begin
   Result := True;
 end;
 
+procedure UpdateMaintenanceProgress(Stage: String);
+begin
+  Log('Session Panel stage: ' + Stage);
+  MaintenanceStage := Stage;
+  if MaintenanceProgress <> nil then MaintenanceProgress.SetText(Stage, '');
+end;
+
+procedure InitializeWizard;
+begin
+  if not WizardSilent then
+    MaintenanceProgress := CreateOutputMarqueeProgressPage('安装 Session Panel', '正在检查安装文件和应用状态。');
+  DataDirectoryChoice := CreateInputOptionPage(wpSelectDir, '应用数据位置',
+    '选择应用数据位置', '此安装器不会自动迁移旧数据。', True, False);
+  DataDirectoryChoice.Add('沿用原有数据目录规则');
+  DataDirectoryChoice.Add('选择自定义数据目录');
+  DataDirectoryChoice.SelectedValueIndex := 0;
+  DataDirectoryPage := CreateInputDirPage(DataDirectoryChoice.ID, '应用数据位置',
+    '选择自定义数据目录', '如选择已有目录，请先确认它是正确的应用数据目录。',
+    False, 'SessionPanelData');
+  DataDirectoryPage.Add('应用数据目录：');
+  DataDirectoryPage.Values[0] := '';
+end;
+
+function ShouldSkipPage(PageID: Integer): Boolean;
+begin
+  Result := False;
+  if (PageID = DataDirectoryChoice.ID) or (PageID = DataDirectoryPage.ID) then begin
+    if FileExists(AddBackslash(ExpandConstant('{app}')) + '.install\root.json') then
+      Result := True
+    else if PageID = DataDirectoryPage.ID then
+      Result := DataDirectoryChoice.SelectedValueIndex <> 1;
+  end;
+end;
+
+function NextButtonClick(CurPageID: Integer): Boolean;
+begin
+  Result := True;
+  if MaintenanceProgress <> nil then Result := CurPageID <> MaintenanceProgress.ID;
+  if not Result then Log('Session Panel ignored Next while maintenance is active.');
+end;
+
 procedure EnsureDefaultParent;
 var Parent, DefaultParent, App: String;
 begin
@@ -269,35 +335,73 @@ begin
   RequireNoReparse(DefaultParent);
 end;
 
+procedure ExtractBootstrap;
+var Prefix: String; I, Completed, Count: Integer;
+begin
+  Prefix := '{app}\versions\{#PayloadId}\';
+  Completed := 0;
+  ShowFileProgress(Completed, GetArrayLength(BootstrapPaths));
+  for I := 0 to GetArrayLength(BootstrapBatchPatterns) - 1 do begin
+    Count := ExtractTemporaryFiles(Prefix + BootstrapBatchPatterns[I]);
+    if Count <> BootstrapBatchCounts[I] then RaiseException('临时安装文件数量不匹配。');
+    Completed := Completed + Count;
+    ShowFileProgress(Completed, GetArrayLength(BootstrapPaths));
+  end;
+  if Completed <> GetArrayLength(BootstrapPaths) then RaiseException('临时安装文件数量不匹配。');
+end;
+
+procedure PrepareInstallation;
+begin
+  ReleaseMaintenance;
+  RequireSupportedInstallPaths;
+  if not BootstrapExtracted then begin
+    UpdateMaintenanceProgress('正在解压临时安装文件…');
+    ExtractBootstrap;
+    BootstrapRoot := AddBackslash(ExpandConstant('{tmp}')) + '{app}\versions\{#PayloadId}';
+    BootstrapExtracted := True;
+  end;
+  EnsureDefaultParent;
+  Operation := 'install';
+  if FileExists(AddBackslash(ExpandConstant('{app}')) + '.install\root.json') then Operation := 'upgrade';
+  SelectedDataDirectory := '';
+  if (Operation = 'install') and not WizardSilent and (DataDirectoryChoice.SelectedValueIndex = 1) then begin
+    SelectedDataDirectory := Trim(DataDirectoryPage.Values[0]);
+    if SelectedDataDirectory <> '' then begin
+      if not PathIsRooted(SelectedDataDirectory) or (ExtractFileDrive(SelectedDataDirectory) = '') then
+        RaiseException('应用数据目录必须是完整的绝对路径。');
+      SelectedDataDirectory := ExpandFileName(SelectedDataDirectory);
+      RequireNoReparse(SelectedDataDirectory);
+    end;
+  end;
+  UpdateMaintenanceProgress('正在校验安装文件…');
+  ContextFile := NewReport('context');
+  RunMaintenance('prepare', ContextFile, '', '', 'prepared', False);
+  UpdateMaintenanceProgress('正在检查目标目录和运行中的应用…');
+  AcquireMaintenance;
+  PreflightReceipt := NewReport('preflight');
+  RunMaintenance('preflight', PreflightReceipt, '', '', 'ready', True);
+  RequireNoReparse(InstalledVersionRoot);
+  InstallPayload := not DirExists(InstalledVersionRoot);
+  if not InstallPayload then begin
+    UpdateMaintenanceProgress('正在检查已安装的同版本文件…');
+    VerifyTable(InstalledVersionRoot, PayloadPaths, PayloadHashes);
+    RunMaintenance('verify', NewReport('existing'), InstalledVersionRoot, '', 'ready', True);
+  end;
+  Prepared := True;
+end;
+
 function PrepareToInstall(var NeedsRestart: Boolean): String;
 begin
   Result := '';
   NeedsRestart := False;
   Prepared := False;
   try
-    ReleaseMaintenance;
-    RequireSupportedInstallPaths;
-    if not BootstrapExtracted then begin
-      ExtractTemporaryFiles('{app}\versions\{#PayloadId}\*');
-      BootstrapRoot := AddBackslash(ExpandConstant('{tmp}')) + '{app}\versions\{#PayloadId}';
-      BootstrapExtracted := True;
+    try
+      if MaintenanceProgress <> nil then MaintenanceProgress.Show;
+      PrepareInstallation;
+    finally
+      if MaintenanceProgress <> nil then MaintenanceProgress.Hide;
     end;
-    VerifyTable(BootstrapRoot);
-    EnsureDefaultParent;
-    Operation := 'install';
-    if FileExists(AddBackslash(ExpandConstant('{app}')) + '.install\root.json') then Operation := 'upgrade';
-    ContextFile := NewReport('context');
-    RunMaintenance('prepare', ContextFile, '', '', 'prepared', False);
-    AcquireMaintenance;
-    PreflightReceipt := NewReport('preflight');
-    RunMaintenance('preflight', PreflightReceipt, '', '', 'ready', True);
-    RequireNoReparse(InstalledVersionRoot);
-    InstallPayload := not DirExists(InstalledVersionRoot);
-    if not InstallPayload then begin
-      VerifyTable(InstalledVersionRoot);
-      RunMaintenance('verify', NewReport('existing'), InstalledVersionRoot, '', 'ready', True);
-    end;
-    Prepared := True;
   except
     Result := GetExceptionMessage;
     Log('Session Panel preflight blocked: ' + Result);
@@ -306,12 +410,20 @@ end;
 
 procedure CurStepChanged(CurStep: TSetupStep);
 begin
+  if ((CurStep = ssInstall) or (CurStep = ssPostInstall)) and (not Prepared or not MaintenanceHeld) then
+    RaiseException('安装未经过维护预检。');
   if CurStep = ssPostInstall then begin
-    if not Prepared or not MaintenanceHeld then RaiseException('安装未经过维护预检。');
-    VerifyTable(InstalledVersionRoot);
-    RunMaintenance('verify', NewReport('verify'), InstalledVersionRoot, '', 'ready', True);
-    RunMaintenance('commit', NewReport('commit'), InstalledVersionRoot, PreflightReceipt, 'committed', True);
-    InstallCommitted := True;
+    try
+      if MaintenanceProgress <> nil then MaintenanceProgress.Show;
+      UpdateMaintenanceProgress('正在校验已写入的安装文件…');
+      VerifyTable(InstalledVersionRoot, PayloadPaths, PayloadHashes);
+      { Commit verifies the installed payload again before it changes any registration. }
+      UpdateMaintenanceProgress('正在校验版本登记并更新启动入口…');
+      RunMaintenance('commit', NewReport('commit'), InstalledVersionRoot, PreflightReceipt, 'committed', True);
+      InstallCommitted := True;
+    finally
+      if MaintenanceProgress <> nil then MaintenanceProgress.Hide;
+    end;
   end;
 end;
 
@@ -324,20 +436,20 @@ end;
 procedure CopyBoundUninstallBootstrap;
 var I: Integer; Source, Destination: String;
 begin
-  VerifyTable(InstalledVersionRoot);
+  VerifyTable(InstalledVersionRoot, BootstrapPaths, BootstrapHashes);
   BootstrapRoot := AddBackslash(ExpandConstant('{tmp}')) + '{app}\versions\{#PayloadId}';
   if DirExists(BootstrapRoot) then RaiseException('卸载临时目录冲突。');
-  for I := 0 to GetArrayLength(PayloadPaths) - 1 do begin
-    Source := AddBackslash(InstalledVersionRoot) + PayloadPaths[I];
-    Destination := AddBackslash(BootstrapRoot) + PayloadPaths[I];
+  for I := 0 to GetArrayLength(BootstrapPaths) - 1 do begin
+    Source := AddBackslash(InstalledVersionRoot) + BootstrapPaths[I];
+    Destination := AddBackslash(BootstrapRoot) + BootstrapPaths[I];
     RequireNoReparse(Source);
     RequireNoReparse(Destination);
     if not ForceDirectories(ExtractFileDir(Destination)) then RaiseException('无法创建私有卸载目录。');
     if not CopyFile(Source, Destination, True) then RaiseException('无法复制已登记的卸载文件。');
-    if CompareText(GetSHA256OfFile(Destination), PayloadHashes[I]) <> 0 then
+    if CompareText(GetSHA256OfFile(Destination), BootstrapHashes[I]) <> 0 then
       RaiseException('卸载文件副本校验失败。');
   end;
-  VerifyTable(BootstrapRoot);
+  VerifyTable(BootstrapRoot, BootstrapPaths, BootstrapHashes);
 end;
 
 function InitializeUninstall: Boolean;

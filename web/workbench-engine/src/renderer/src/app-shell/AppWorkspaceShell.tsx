@@ -1,4 +1,4 @@
-import { Suspense, useRef } from 'react'
+import { Suspense, useLayoutEffect, useRef, useState } from 'react'
 import { lazyWithRetry as lazy } from '@/lib/lazy-with-retry'
 import { translate } from '@/i18n/i18n'
 import Sidebar from '../components/Sidebar'
@@ -11,6 +11,9 @@ import { TitlebarLeftControls } from './TitlebarLeftControls'
 import { RightSidebarToggle, TitlebarMainStrip } from './TitlebarMainStrip'
 import type { AppChromeLayout } from './use-app-chrome-layout'
 import type { FloatingWorkspacePanelState } from './use-floating-workspace-panel'
+import { PlatformWorkspaceToolbar } from '../web/PlatformWorkspaceToolbar'
+import { useAppStore } from '../store'
+import { SYNC_FIT_PANES_EVENT } from '@/constants/terminal'
 
 const Landing = lazy(() => import('../components/Landing'))
 const WorktreeCreationPanel = lazy(
@@ -93,6 +96,53 @@ export function AppWorkspaceShell(props: {
   floatingWorkspace: FloatingWorkspacePanelState
 }): React.JSX.Element {
   const { layout, floatingWorkspace } = props
+  const platformMode = ['/studio', '/workbench/web-index.html'].includes(window.location.pathname)
+  const [shell, setShell] = useState<HTMLDivElement | null>(null)
+  const canvasFocusRef = useRef<HTMLElement | null>(null)
+  const [panelOverlay, setPanelOverlay] = useState<'none' | 'tools' | 'both'>('none')
+  useLayoutEffect(() => {
+    if (!platformMode || !shell) return
+    const navigation = shell.querySelector<HTMLElement>('[data-workbench-navigation-column]')
+    const tools = shell.querySelector<HTMLElement>('[data-workbench-tools]')
+    const updateLayout = () => {
+      // Measure the panels, not the reclaimed canvas, so moving a panel out of flow stays stable.
+      const width = shell.clientWidth
+      const navigationWidth = navigation?.getBoundingClientRect().width ?? 0
+      const toolsWidth = tools?.getBoundingClientRect().width ?? 0
+      setPanelOverlay(
+        width <= 700 || width - navigationWidth < 480
+          ? 'both'
+          : width - navigationWidth - toolsWidth < 480
+            ? 'tools'
+            : 'none'
+      )
+    }
+    updateLayout()
+    const observer = new ResizeObserver(updateLayout)
+    observer.observe(shell)
+    if (navigation) observer.observe(navigation)
+    if (tools) observer.observe(tools)
+    return () => observer.disconnect()
+  }, [
+    platformMode,
+    shell,
+    layout.showSidebar,
+    layout.showRightSidebarControls,
+    layout.leftTitlebarChromeLayout.shouldMount
+  ])
+  useLayoutEffect(() => {
+    if (platformMode) window.dispatchEvent(new CustomEvent(SYNC_FIT_PANES_EVENT))
+  }, [platformMode, panelOverlay])
+  const dismissPanels = () => {
+    if (panelOverlay === 'both') useAppStore.getState().setSidebarOpen(false)
+    useAppStore.getState().setRightSidebarOpen(false)
+    requestAnimationFrame(() => {
+      const target = canvasFocusRef.current?.isConnected
+        ? canvasFocusRef.current
+        : shell?.querySelector<HTMLElement>('[data-workbench-canvas] [data-active="true"]')
+      if (target?.isConnected && !target.closest('[inert]')) target.focus({ preventScroll: true })
+    })
+  }
   const titlebarLeftControls = <TitlebarLeftControls layout={layout} />
   const titlebarMainStrip = <TitlebarMainStrip layout={layout} />
   // Why: keep virtualized scroll memory above the sidebar's workspace/landing remount so the left list doesn't restart at scrollTop 0.
@@ -112,7 +162,29 @@ export function AppWorkspaceShell(props: {
         'The app is still running. Retry the shell or use the menu to report the crash details.'
       )}
     >
-      <div className="flex flex-row flex-1 min-h-0 overflow-hidden">
+      <div
+        ref={setShell}
+        className="flex flex-row flex-1 min-h-0 overflow-hidden"
+        data-workbench-shell=""
+        data-workbench-panel-overlay={platformMode ? panelOverlay : undefined}
+        onKeyDown={(event) => {
+          const overlayOpen =
+            panelOverlay === 'both'
+              ? layout.sidebarOpen || layout.rightSidebarOpen
+              : panelOverlay === 'tools' && layout.rightSidebarOpen
+          if (event.key === 'Escape' && !event.defaultPrevented && overlayOpen) {
+            dismissPanels()
+          }
+        }}
+      >
+        {platformMode && (layout.sidebarOpen || layout.rightSidebarOpen) && (
+          <button
+            type="button"
+            className="platform-mobile-panel-dismiss"
+            aria-label="收起侧栏，返回工作区"
+            onClick={dismissPanels}
+          />
+        )}
         {/* Why: keep the non-workspace titlebar inside this left+center wrapper so it doesn't span over the right-sidebar column. */}
         <div className="flex flex-col flex-1 min-w-0 min-h-0">
           {/* Why: workspace view drops the full-width titlebar so tab groups extend to the top; settings/landing/tasks keep it. */}
@@ -127,6 +199,7 @@ export function AppWorkspaceShell(props: {
               layout.leftTitlebarChromeLayout.shouldMount ? (
                 /* Why: when the sidebar is collapsed, take this titlebar-height header out of flex layout so the terminal/editor reclaim the left edge. */
                 <div
+                  data-workbench-navigation-column={layout.sidebarOpen ? 'open' : 'closed'}
                   className={`flex min-h-0 flex-col shrink-0${layout.sidebarOpen ? '' : ' relative w-0 overflow-visible'}`}
                 >
                   <div
@@ -151,10 +224,23 @@ export function AppWorkspaceShell(props: {
                   </div>
                 </div>
               ) : (
-                <WorktreeSidebar layout={layout} scrollRefs={sidebarScrollRefs} />
+                <div
+                  data-workbench-navigation-column={layout.sidebarOpen ? 'open' : 'closed'}
+                  className={`flex min-h-0 flex-col shrink-0${layout.sidebarOpen ? '' : ' w-0 overflow-hidden'}`}
+                >
+                  <WorktreeSidebar layout={layout} scrollRefs={sidebarScrollRefs} />
+                </div>
               )
             ) : null}
-            <div className="flex flex-col flex-1 min-w-0 min-h-0 overflow-hidden">
+            <div
+              className="flex flex-col flex-1 min-w-0 min-h-0 overflow-hidden"
+              data-workbench-canvas=""
+              data-workbench-workspace={layout.workspaceChromeActive || undefined}
+              onFocusCapture={(event) => {
+                canvasFocusRef.current = event.target
+              }}
+            >
+              {platformMode && layout.workspaceChromeActive ? <PlatformWorkspaceToolbar /> : null}
               {/* Why: automations/artifacts own their page headers; the stacked titlebar would be an empty 36px stripe. */}
               {layout.stackedSidebarOpen &&
               layout.activeView !== 'automations' &&

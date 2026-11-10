@@ -1,5 +1,5 @@
 import './rpc/unused-default-rpc-methods.test-fixture'
-// `worker-start --terminal orca_session_id:<id>`: a chat adopted as a worker, on the
+// `worker-start --terminal agent_session:<id>`: a chat adopted as a worker, on the
 // coordinator-mail rig. Its task is a queued send, read the way the terminal path reads its own
 // write; a stop or a failed start never touches the chat.
 
@@ -108,7 +108,7 @@ describe('worker-start --terminal names a chat', () => {
     })
     const dispatchId = String(receipt.dispatchId)
     const task = turnText(worker.turns[0]!)
-    expect(task).toContain(`Your Orca session ID is: ${WORKER}`)
+    expect(task).toContain(`Your workbench session ID is: ${WORKER}`)
     expect(task).toContain('The coordinator cannot see this chat')
     expect(task).toContain('it will send this chat a fresh')
     expect(task).not.toContain('this terminal')

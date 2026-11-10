@@ -1,5 +1,15 @@
-export const HERMES_PLUGIN_NAME = 'orca-status'
-export const HERMES_PLUGIN_MARKER = 'Managed by Orca. Do not edit; changes may be overwritten.'
+import { AGENT_HOOK_IDENTITY_SUFFIXES } from '../../shared/agent-hook-environment-identity'
+
+export const HERMES_PLUGIN_NAME = 'zkyq-status'
+export const HERMES_PLUGIN_MARKER =
+  'Managed by Control Everything. Do not edit; changes may be overwritten.'
+export const RETIRED_HERMES_PLUGIN_NAME = 'orca-status'
+export const RETIRED_HERMES_PLUGIN_MARKER =
+  'Managed by Orca. Do not edit; changes may be overwritten.'
+
+export function isManagedHermesPlugin(content: string): boolean {
+  return content.includes(HERMES_PLUGIN_MARKER) || content.includes(RETIRED_HERMES_PLUGIN_MARKER)
+}
 
 export const HERMES_EVENTS = [
   'on_session_start',
@@ -19,8 +29,8 @@ export function getPluginManifest(): string {
     `# ${HERMES_PLUGIN_MARKER}`,
     `name: ${HERMES_PLUGIN_NAME}`,
     'version: 1.0.0',
-    'description: "Reports Hermes Agent lifecycle events to Orca."',
-    'author: "Orca"',
+    'description: "Reports Hermes Agent lifecycle events to Control Everything."',
+    'author: "Control Everything"',
     'kind: standalone',
     'provides_hooks:',
     ...HERMES_EVENTS.map((event) => `  - ${event}`),
@@ -97,10 +107,29 @@ def _jsonable(value: Any, depth: int = 0, budget: Optional[list[int]] = None) ->
     return _truncate_string(repr(value))
 
 
+_HOOK_ENV_SUFFIXES = ${JSON.stringify(AGENT_HOOK_IDENTITY_SUFFIXES)}
+
+
+def _migrate_hook_env(env: dict[str, str]) -> dict[str, str] | None:
+    for suffix in _HOOK_ENV_SUFFIXES:
+        current, retired = "ZKYQ_" + suffix, "ORCA_" + suffix
+        if current in env and retired in env and env[current] != env[retired]:
+            return None
+    for suffix in _HOOK_ENV_SUFFIXES:
+        current, retired = "ZKYQ_" + suffix, "ORCA_" + suffix
+        if current not in env and retired in env:
+            env[current] = env[retired]
+        env.pop(retired, None)
+    return env
+
+
 def _endpoint_env() -> dict[str, str]:
-    env = dict(os.environ)
-    endpoint = env.get("ORCA_AGENT_HOOK_ENDPOINT", "")
+    env = _migrate_hook_env(dict(os.environ))
+    if env is None:
+        return {}
+    endpoint = env.get("ZKYQ_AGENT_HOOK_ENDPOINT", "")
     if endpoint and os.path.isfile(endpoint):
+        file_env: dict[str, str] = {}
         try:
             with open(endpoint, "r", encoding="utf-8") as f:
                 for raw in f:
@@ -111,26 +140,30 @@ def _endpoint_env() -> dict[str, str]:
                         line = line[4:]
                     key, sep, value = line.partition("=")
                     if sep and key:
-                        env[key] = value
+                        file_env[key] = value
         except OSError:
             pass
+        migrated = _migrate_hook_env(file_env)
+        if migrated is None:
+            return {}
+        env.update(migrated)
     return env
 
 
-def _post_to_orca(payload: dict[str, Any]) -> None:
+def _post_to_zkyq(payload: dict[str, Any]) -> None:
     env = _endpoint_env()
-    port = env.get("ORCA_AGENT_HOOK_PORT", "")
-    token = env.get("ORCA_AGENT_HOOK_TOKEN", "")
-    pane_key = env.get("ORCA_PANE_KEY", "")
+    port = env.get("ZKYQ_AGENT_HOOK_PORT", "")
+    token = env.get("ZKYQ_AGENT_HOOK_TOKEN", "")
+    pane_key = env.get("ZKYQ_PANE_KEY", "")
     if not port or not token or not pane_key:
         return
     body = {
         "paneKey": pane_key,
-        "launchToken": env.get("ORCA_AGENT_LAUNCH_TOKEN", ""),
-        "tabId": env.get("ORCA_TAB_ID", ""),
-        "worktreeId": env.get("ORCA_WORKTREE_ID", ""),
-        "env": env.get("ORCA_AGENT_HOOK_ENV", ""),
-        "version": env.get("ORCA_AGENT_HOOK_VERSION", ""),
+        "launchToken": env.get("ZKYQ_AGENT_LAUNCH_TOKEN", ""),
+        "tabId": env.get("ZKYQ_TAB_ID", ""),
+        "worktreeId": env.get("ZKYQ_WORKTREE_ID", ""),
+        "env": env.get("ZKYQ_AGENT_HOOK_ENV", ""),
+        "version": env.get("ZKYQ_AGENT_HOOK_VERSION", ""),
         "payload": payload,
     }
     data = json.dumps(body, separators=(",", ":")).encode("utf-8")
@@ -140,7 +173,7 @@ def _post_to_orca(payload: dict[str, Any]) -> None:
         method="POST",
         headers={
             "Content-Type": "application/json",
-            "X-Orca-Agent-Hook-Token": token,
+            ("X-Orca-Agent-Hook-Token" if env.get("ZKYQ_AGENT_HOOK_VERSION") == "1" else "X-Zkyq-Agent-Hook-Token"): token,
         },
     )
     try:
@@ -172,7 +205,7 @@ def _payload_for_event(event_name: str, kwargs: dict[str, Any]) -> dict[str, Any
 
 def _make_hook(event_name: str) -> Callable[..., None]:
     def _hook(**kwargs: Any) -> None:
-        _post_to_orca(_payload_for_event(event_name, kwargs))
+        _post_to_zkyq(_payload_for_event(event_name, kwargs))
 
     return _hook
 

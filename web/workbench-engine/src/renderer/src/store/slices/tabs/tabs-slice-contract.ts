@@ -29,6 +29,7 @@ export type TabsSlice = {
   groupsByWorktree: Record<string, TabGroup[]>
   activeGroupIdByWorktree: Record<string, string>
   layoutByWorktree: Record<string, TabGroupLayoutNode>
+  openGitGraph: (worktreeId: string, options?: { targetGroupId?: string }) => string
   createUnifiedTab: (
     worktreeId: string,
     contentType: TabContentType,

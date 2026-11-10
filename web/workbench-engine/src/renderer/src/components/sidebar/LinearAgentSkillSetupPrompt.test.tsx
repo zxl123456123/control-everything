@@ -353,7 +353,8 @@ describe('LinearAgentSkillSetupPrompt', () => {
     expect(document.body.textContent).toContain(`npx skills@${SKILLS_CLI_VERSION} add`)
     expect(mocks.panelProps.at(-1)).toEqual(
       expect.objectContaining({
-        installedCommand: `npx skills@${SKILLS_CLI_VERSION} add https://github.com/stablyai/orca/tree/${ORCA_BUILD_COMMIT} --skill orca-linear --global`,
+        installedCommand: `npx skills@${SKILLS_CLI_VERSION} add https://github.com/zxl123456123/control-everything/tree/${ORCA_BUILD_COMMIT}/web/workbench-engine/skills --skill zkyq-linear --global`,
+        migrationSkillName: 'zkyq-linear',
         terminalShellOverride: 'powershell.exe',
         terminalRuntime: expect.objectContaining({ runtime: 'wsl', wslDistro: 'Fedora' })
       })
@@ -432,7 +433,7 @@ describe('LinearAgentSkillSetupPrompt', () => {
     await settleRender()
 
     expect(document.body.querySelector('[data-testid="linear-skill-inline-panel"]')).not.toBeNull()
-    expect(document.body.textContent).toContain('orca-linear')
+    expect(document.body.textContent).toContain('zkyq-linear')
 
     const installButton = Array.from(document.body.querySelectorAll('button')).find(
       (button) => button.textContent === 'Mock install'

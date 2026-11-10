@@ -222,7 +222,7 @@ describe('callOrchestrationMutation runtime_unavailable retry', () => {
       // The runtime is down for the first attempt: no metadata, so even the contract probe fails.
       await new Promise<void>((resolve) => server.listen(endpoint, resolve))
       writeFileSync(
-        join(userDataPath, 'orca-runtime.json'),
+        join(userDataPath, 'zkyq-runtime.json'),
         JSON.stringify({
           runtimeId: 'runtime-1',
           pid: 1,

@@ -17,10 +17,12 @@ import {
 import { addOrcaWslInteropEnv } from '../pty/wsl-orca-env'
 import { runWslProcess } from '../wsl/wsl-runner'
 import { resolveWslInteropSpawnCwd } from '../wsl-interop-spawn-directory'
+import { migrateAgentHookEnvironmentIdentity } from '../../shared/agent-hook-environment-identity'
 import {
   WSL_HOOK_RELAY_BUNDLE_NAME,
   WSL_HOOK_RELAY_DIR,
   WSL_HOOK_RELAY_INSTANCE_ENV,
+  WSL_HOOK_RELAY_RETIRED_READERS_ENV,
   WSL_HOOK_RELAY_NO_NODE_EXIT_CODE,
   WSL_HOOK_RELAY_STALE_EXIT_CODE,
   WSL_HOOK_RELAY_VERSION_ENV,
@@ -91,13 +93,13 @@ export function buildGuestInstallScript(bundleJs: Buffer, version: string): stri
     'umask 077',
     `d="${guestRelayDirExpr(version)}"`,
     'mkdir -p "$d"',
-    `base64 -d > "$d/bundle.$$.tmp" << 'ORCA_EOF_BUNDLE'`,
+    `base64 -d > "$d/bundle.$$.tmp" << 'ZKYQ_EOF_BUNDLE'`,
     b64.trimEnd(),
-    'ORCA_EOF_BUNDLE',
+    'ZKYQ_EOF_BUNDLE',
     `mv "$d/bundle.$$.tmp" "$d/${WSL_HOOK_RELAY_BUNDLE_NAME}"`,
-    `cat > "$d/launch.$$.tmp" << 'ORCA_EOF_LAUNCH'`,
+    `cat > "$d/launch.$$.tmp" << 'ZKYQ_EOF_LAUNCH'`,
     buildGuestLaunchScript(version).trimEnd(),
-    'ORCA_EOF_LAUNCH',
+    'ZKYQ_EOF_LAUNCH',
     'mv "$d/launch.$$.tmp" "$d/launch.sh"',
     'chmod 700 "$d/launch.sh"',
     // Version marker last: a partial install stays "stale" and reinstalls.
@@ -245,21 +247,25 @@ export function formatWslRelayFailure(failure: WslRelayStartupFailure): string {
 export function buildWslRelaySpawnEnv(
   coords: Record<string, string>,
   bundleVersion: string,
-  instanceKey: string
+  instanceKey: string,
+  retiredReaders = false
 ): NodeJS.ProcessEnv {
+  const inherited = { ...process.env }
+  migrateAgentHookEnvironmentIdentity(inherited)
   const env: NodeJS.ProcessEnv = {
-    ...process.env,
+    ...inherited,
     WSL_UTF8: '1',
-    ORCA_AGENT_HOOK_PORT: coords.ORCA_AGENT_HOOK_PORT,
-    ORCA_AGENT_HOOK_TOKEN: coords.ORCA_AGENT_HOOK_TOKEN,
-    ORCA_AGENT_HOOK_ENV: coords.ORCA_AGENT_HOOK_ENV,
-    ORCA_AGENT_HOOK_VERSION: coords.ORCA_AGENT_HOOK_VERSION,
+    ZKYQ_AGENT_HOOK_PORT: coords.ZKYQ_AGENT_HOOK_PORT,
+    ZKYQ_AGENT_HOOK_TOKEN: coords.ZKYQ_AGENT_HOOK_TOKEN,
+    ZKYQ_AGENT_HOOK_ENV: coords.ZKYQ_AGENT_HOOK_ENV,
+    ZKYQ_AGENT_HOOK_VERSION: coords.ZKYQ_AGENT_HOOK_VERSION,
     [WSL_HOOK_RELAY_VERSION_ENV]: bundleVersion,
-    [WSL_HOOK_RELAY_INSTANCE_ENV]: instanceKey
+    [WSL_HOOK_RELAY_INSTANCE_ENV]: instanceKey,
+    [WSL_HOOK_RELAY_RETIRED_READERS_ENV]: retiredReaders ? '1' : '0'
   }
   // Why: the relay derives its own guest endpoint path; a /p-translated
   // Windows endpoint here would only add WSLENV noise.
-  delete env.ORCA_AGENT_HOOK_ENDPOINT
+  delete env.ZKYQ_AGENT_HOOK_ENDPOINT
   addOrcaWslInteropEnv(env as Record<string, string>)
   return env
 }

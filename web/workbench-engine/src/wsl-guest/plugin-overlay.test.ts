@@ -6,6 +6,7 @@ import {
   mkdtempSync,
   readFileSync,
   readdirSync,
+  renameSync,
   rmSync,
   statSync,
   symlinkSync,
@@ -16,6 +17,7 @@ import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
 import { PluginOverlayManager } from './plugin-overlay'
 import { resolvePiSourceAgentDir } from './plugin-overlay-env'
+import { installOpenCodePluginInCanonicalConfig } from './opencode-canonical-config'
 
 describe('PluginOverlayManager', () => {
   let homeDir: string
@@ -30,6 +32,58 @@ describe('PluginOverlayManager', () => {
     rmSync(homeDir, { recursive: true, force: true })
   })
 
+  it.each(['pi', 'omp', 'prime-agent'] as const)(
+    'migrates a retired %s extension through the relay installer',
+    (kind) => {
+      const directory = join(homeDir, 'agent-home')
+      const extensions = join(directory, 'extensions')
+      mkdirSync(extensions, { recursive: true })
+      const original = '// @orca-managed-pi-extension\r\n// retained operator edit 中文\r\n'
+      writeFileSync(join(extensions, 'orca-agent-status.ts'), original)
+      writeFileSync(join(directory, 'auth.json'), 'retained auth fixture')
+      manager.setSources({
+        piExtensionSource: 'pi fixture',
+        ompExtensionSource: 'omp fixture',
+        primeAgentExtensionSource: 'prime fixture'
+      })
+      expect(manager.materializePi('migration-test', directory, kind)).toEqual({
+        sourceAgentDir: directory,
+        statusExtensionPath: join(extensions, 'zkyq-agent-status.ts')
+      })
+      expect(readdirSync(extensions)).toEqual(['zkyq-agent-status.ts'])
+      const archiveDir = join(directory, '.zkyq-retired-extensions')
+      expect(readFileSync(join(archiveDir, readdirSync(archiveDir)[0]), 'utf8')).toBe(original)
+      expect(readFileSync(join(directory, 'auth.json'), 'utf8')).toBe('retained auth fixture')
+      const before = statSync(join(extensions, 'zkyq-agent-status.ts')).mtimeMs
+      expect(manager.materializePi('migration-repeat', directory, kind)).not.toBeNull()
+      expect(statSync(join(extensions, 'zkyq-agent-status.ts')).mtimeMs).toBe(before)
+    }
+  )
+
+  it('keeps an extension pinned by a live OMP shell while exposing only the current path', () => {
+    const directory = join(homeDir, '.orca-relay', 'omp-managed-status-extension')
+    const previous = join(directory, 'orca-agent-status.ts')
+    const original = '// @orca-managed-pi-extension\r\n// live shell fixture 中文\r\n'
+    mkdirSync(directory, { recursive: true })
+    writeFileSync(previous, original)
+    const before = statSync(previous).mtimeMs
+    manager = new PluginOverlayManager({ homeDir })
+    manager.setSources({ ompExtensionSource: 'current fixture source' })
+    expect(
+      manager.materializePi('live-shell', undefined, 'omp', { materializeDefaultHome: false })
+    ).toEqual({
+      statusExtensionPath: join(
+        homeDir,
+        '.zkyq-relay',
+        'omp-managed-status-extension',
+        'zkyq-agent-status.ts'
+      )
+    })
+    expect(readFileSync(previous, 'utf8')).toBe(original)
+    expect(statSync(previous).mtimeMs).toBe(before)
+    expect(existsSync(join(homeDir, '.omp'))).toBe(false)
+  })
+
   it('reports no source until install runs', () => {
     expect(manager.hasOpenCodeSource()).toBe(false)
     expect(manager.hasPiSource()).toBe(false)
@@ -37,24 +91,105 @@ describe('PluginOverlayManager', () => {
     expect(manager.materializePi('tab-1:0')).toBeNull()
   })
 
+  it.each(['opencode', 'opencode2'] as const)(
+    'upgrades a retired canonical %s filename during refresh-only installs',
+    (agent) => {
+      const env = { XDG_CONFIG_HOME: join(homeDir, 'xdg') }
+      const plugins = join(homeDir, 'xdg', 'opencode', 'plugins')
+      const old = `orca-${agent}-status.js`
+      const current = `zkyq-${agent}-status.js`
+      const source = `export default { id: "zkyq-${agent}-status" };`
+      mkdirSync(plugins, { recursive: true })
+      writeFileSync(join(plugins, old), source.replaceAll('zkyq-', 'orca-'))
+      expect(installOpenCodePluginInCanonicalConfig(source, agent, env, homeDir, true)).toBe(true)
+      expect(existsSync(join(plugins, old))).toBe(false)
+      expect(readFileSync(join(plugins, current), 'utf8')).toBe(source)
+    }
+  )
+
   it('materializes OpenCode plugin into <overlay>/plugins/<file>', () => {
     manager.setSources({ opencodePluginSource: 'export const X = 1' })
     const dir = manager.materializeOpenCode('tab-1:0')
     expect(dir).not.toBeNull()
-    const expected = join(dir!, 'plugins', 'orca-opencode-status.js')
+    const expected = join(dir!, 'plugins', 'zkyq-opencode-status.js')
     expect(existsSync(expected)).toBe(true)
     expect(readFileSync(expected, 'utf8')).toBe('export const X = 1')
   })
+
+  it.each(['opencode', 'opencode2'] as const)(
+    'keeps migrated %s data when its retired source path names the output itself',
+    (agent) => {
+      manager.setSources({
+        opencodePluginSource: 'export const before = 1',
+        opencode2PluginSource: 'export const before = 1'
+      })
+      const directory = manager.materializeOpenCode('retained-source', undefined, agent)!
+      writeFileSync(join(directory, 'user-note.json'), '{"retained":"最新内容"}')
+      const retiredSource = directory.replace('.zkyq-relay', '.orca-relay')
+      renameSync(join(homeDir, '.zkyq-relay'), join(homeDir, '.orca-relay'))
+      manager = new PluginOverlayManager({ homeDir, retiredReaders: true })
+      manager.setSources({
+        opencodePluginSource: 'export const after = 2',
+        opencode2PluginSource: 'export const after = 2'
+      })
+      expect(manager.materializeOpenCode('retained-source', retiredSource, agent)).toBe(directory)
+      expect(readFileSync(join(directory, 'user-note.json'), 'utf8')).toBe(
+        '{"retained":"最新内容"}'
+      )
+      expect(readFileSync(join(directory, 'plugins', `zkyq-${agent}-status.js`), 'utf8')).toBe(
+        'export const after = 2'
+      )
+      expect(existsSync(join(homeDir, '.orca-relay'))).toBe(false)
+    }
+  )
+
+  it('keeps the current cache when a stale source has no migrated counterpart', () => {
+    manager.setSources({ opencodePluginSource: 'export const current = 1' })
+    const directory = manager.materializeOpenCode('missing-input')!
+    writeFileSync(join(directory, 'keep.json'), 'retained cache')
+    expect(
+      manager.materializeOpenCode('missing-input', join(homeDir, '.orca-relay', 'unknown'))
+    ).toBeNull()
+    expect(readFileSync(join(directory, 'keep.json'), 'utf8')).toBe('retained cache')
+  })
+
+  it('recognizes current and retired overlay inputs without accepting adjacent user paths', () => {
+    expect(manager.isRelayOverlayPath(join(homeDir, '.zkyq-relay', 'opencode-overlays'))).toBe(true)
+    expect(manager.isRelayOverlayPath(join(homeDir, '.orca-relay', 'opencode-overlays'))).toBe(true)
+    expect(manager.isRelayOverlayPath(join(homeDir, '.orca-relay-user'))).toBe(false)
+  })
+  it.each(['pi', 'omp', 'prime-agent'] as const)(
+    'keeps %s source data reachable after its old exported path retires',
+    (kind) => {
+      manager.setSources({ opencodePluginSource: 'export const marker = 1' })
+      manager.materializeOpenCode('ownership-marker')
+      const currentSource = join(homeDir, '.zkyq-relay', 'custom-agent')
+      mkdirSync(currentSource, { recursive: true })
+      writeFileSync(join(currentSource, 'auth.json'), 'retained user bytes')
+      renameSync(join(homeDir, '.zkyq-relay'), join(homeDir, '.orca-relay'))
+      manager = new PluginOverlayManager({ homeDir, retiredReaders: true })
+      manager.setSources({
+        piExtensionSource: 'pi source',
+        ompExtensionSource: 'omp source',
+        primeAgentExtensionSource: 'prime source'
+      })
+      const previousSource = currentSource.replace('.zkyq-relay', '.orca-relay')
+      expect(manager.materializePi('source-input', previousSource, kind)?.sourceAgentDir).toBe(
+        currentSource
+      )
+      expect(readFileSync(join(currentSource, 'auth.json'), 'utf8')).toBe('retained user bytes')
+    }
+  )
 
   it('keeps the OpenCode 2 plugin in a separate overlay and filename', () => {
     manager.setSources({ opencode2PluginSource: 'export const V2 = 1' })
     expect(manager.hasOpenCodeSource('opencode2')).toBe(true)
     const dir = manager.materializeOpenCode('tab-2:0', undefined, 'opencode2')
     expect(dir).not.toBeNull()
-    expect(readFileSync(join(dir!, 'plugins', 'orca-opencode2-status.js'), 'utf8')).toBe(
+    expect(readFileSync(join(dir!, 'plugins', 'zkyq-opencode2-status.js'), 'utf8')).toBe(
       'export const V2 = 1'
     )
-    expect(existsSync(join(dir!, 'plugins', 'orca-opencode-status.js'))).toBe(false)
+    expect(existsSync(join(dir!, 'plugins', 'zkyq-opencode-status.js'))).toBe(false)
   })
 
   it('installs OpenCode plugins in the canonical XDG config roots', () => {
@@ -70,23 +205,23 @@ describe('PluginOverlayManager', () => {
       manager.installOpenCodePlugin('opencode2', { XDG_CONFIG_HOME: join(homeDir, 'xdg') })
     ).toBe(true)
     expect(
-      readFileSync(join(homeDir, 'xdg', 'opencode', 'plugins', 'orca-opencode-status.js'), 'utf8')
+      readFileSync(join(homeDir, 'xdg', 'opencode', 'plugins', 'zkyq-opencode-status.js'), 'utf8')
     ).toBe('v1 plugin')
     expect(
-      readFileSync(join(homeDir, 'xdg', 'opencode', 'plugins', 'orca-opencode2-status.js'), 'utf8')
+      readFileSync(join(homeDir, 'xdg', 'opencode', 'plugins', 'zkyq-opencode2-status.js'), 'utf8')
     ).toBe('v2 plugin')
     const tuiEntry = join(
       homeDir,
       'xdg',
       'opencode',
       'plugins',
-      'orca-opencode2-status-tui',
+      'zkyq-opencode2-status-tui',
       'tui.js'
     )
     expect(readFileSync(tuiEntry, 'utf8')).toBe('v2 plugin')
     expect(
       readFileSync(
-        join(homeDir, 'xdg', 'opencode', 'plugins', 'orca-opencode-status-tui', 'tui.js'),
+        join(homeDir, 'xdg', 'opencode', 'plugins', 'zkyq-opencode-status-tui', 'tui.js'),
         'utf8'
       )
     ).toBe('v1 plugin')
@@ -102,7 +237,7 @@ describe('PluginOverlayManager', () => {
   // Why: OpenCode 2 reloads a plugin whose file mtime changed, even with unchanged bytes.
   it('leaves a current canonical plugin untouched and replaces a stale one', () => {
     const env = { XDG_CONFIG_HOME: join(homeDir, 'xdg') }
-    const pluginPath = join(homeDir, 'xdg', 'opencode', 'plugins', 'orca-opencode2-status.js')
+    const pluginPath = join(homeDir, 'xdg', 'opencode', 'plugins', 'zkyq-opencode2-status.js')
     manager.setSources({ opencode2PluginSource: 'v2 plugin' })
     manager.installOpenCodePlugin('opencode2', env)
     const past = new Date('2020-01-01T00:00:00Z')
@@ -122,8 +257,8 @@ describe('PluginOverlayManager', () => {
     () => {
       const env = { XDG_CONFIG_HOME: join(homeDir, 'xdg') }
       const pluginsDir = join(homeDir, 'xdg', 'opencode', 'plugins')
-      const pluginPath = join(pluginsDir, 'orca-opencode2-status.js')
-      const targetPath = join(homeDir, 'dotfiles-orca-opencode2-status.js')
+      const pluginPath = join(pluginsDir, 'zkyq-opencode2-status.js')
+      const targetPath = join(homeDir, 'dotfiles-zkyq-opencode2-status.js')
       mkdirSync(pluginsDir, { recursive: true })
       writeFileSync(targetPath, 'v2 plugin')
       symlinkSync(targetPath, pluginPath)
@@ -148,12 +283,12 @@ describe('PluginOverlayManager', () => {
     manager.setSources({ opencode2PluginSource: 'v2 plugin' })
     const pluginsDir = join(homeDir, 'xdg', 'opencode', 'plugins')
     // A directory in the server file's place makes that write fail.
-    mkdirSync(join(pluginsDir, 'orca-opencode2-status.js'), { recursive: true })
+    mkdirSync(join(pluginsDir, 'zkyq-opencode2-status.js'), { recursive: true })
 
     expect(
       manager.installOpenCodePlugin('opencode2', { XDG_CONFIG_HOME: join(homeDir, 'xdg') })
     ).toBe(false)
-    expect(readFileSync(join(pluginsDir, 'orca-opencode2-status-tui', 'tui.js'), 'utf8')).toBe(
+    expect(readFileSync(join(pluginsDir, 'zkyq-opencode2-status-tui', 'tui.js'), 'utf8')).toBe(
       'v2 plugin'
     )
   })
@@ -163,7 +298,7 @@ describe('PluginOverlayManager', () => {
     mkdirSync(join(userConfigDir, 'plugins'), { recursive: true })
     writeFileSync(join(userConfigDir, 'opencode.json'), '{"provider":"custom"}')
     writeFileSync(join(userConfigDir, 'plugins', 'user-plugin.js'), 'user plugin')
-    writeFileSync(join(userConfigDir, 'plugins', 'orca-opencode-status.js'), 'user same-name')
+    writeFileSync(join(userConfigDir, 'plugins', 'zkyq-opencode-status.js'), 'user same-name')
 
     manager.setSources({ opencodePluginSource: 'orca plugin' })
     const dir = manager.materializeOpenCode('tab-opencode:0', userConfigDir)
@@ -171,10 +306,10 @@ describe('PluginOverlayManager', () => {
     expect(dir).not.toBeNull()
     expect(readFileSync(join(dir!, 'opencode.json'), 'utf8')).toBe('{"provider":"custom"}')
     expect(readFileSync(join(dir!, 'plugins', 'user-plugin.js'), 'utf8')).toBe('user plugin')
-    expect(readFileSync(join(dir!, 'plugins', 'orca-opencode-status.js'), 'utf8')).toBe(
+    expect(readFileSync(join(dir!, 'plugins', 'zkyq-opencode-status.js'), 'utf8')).toBe(
       'orca plugin'
     )
-    expect(readFileSync(join(userConfigDir, 'plugins', 'orca-opencode-status.js'), 'utf8')).toBe(
+    expect(readFileSync(join(userConfigDir, 'plugins', 'zkyq-opencode-status.js'), 'utf8')).toBe(
       'user same-name'
     )
   })
@@ -183,8 +318,8 @@ describe('PluginOverlayManager', () => {
   // launches installed. Mirroring the other major's file into this overlay would
   // hand the agent a plugin whose variant gate registers nothing.
   it.each([
-    { agent: 'opencode', stale: 'orca-opencode2-status.js', own: 'orca-opencode-status.js' },
-    { agent: 'opencode2', stale: 'orca-opencode-status.js', own: 'orca-opencode2-status.js' }
+    { agent: 'opencode', stale: 'zkyq-opencode2-status.js', own: 'zkyq-opencode-status.js' },
+    { agent: 'opencode2', stale: 'zkyq-opencode-status.js', own: 'zkyq-opencode2-status.js' }
   ] as const)(
     "keeps the other major's stale plugin out of the $agent overlay",
     ({ agent, stale, own }) => {
@@ -221,15 +356,15 @@ describe('PluginOverlayManager', () => {
     manager.setSources({ piExtensionSource: '// pi extension' })
     const result = manager.materializePi('tab-2:0')
     expect(result?.sourceAgentDir).toBeDefined()
-    const file = join(result!.sourceAgentDir!, 'extensions', 'orca-agent-status.ts')
+    const file = join(result!.sourceAgentDir!, 'extensions', 'zkyq-agent-status.ts')
     expect(result?.statusExtensionPath).toBe(file)
     expect(existsSync(file)).toBe(true)
-    expect(readFileSync(file, 'utf8')).toContain('@orca-managed-pi-extension')
+    expect(readFileSync(file, 'utf8')).toContain('@zkyq-managed-pi-extension')
   })
 
   it("does not overwrite a user's same-named remote Pi extension file", () => {
     const piAgentDir = join(homeDir, '.pi', 'agent')
-    const extensionFile = join(piAgentDir, 'extensions', 'orca-agent-status.ts')
+    const extensionFile = join(piAgentDir, 'extensions', 'zkyq-agent-status.ts')
     mkdirSync(join(piAgentDir, 'extensions'), { recursive: true })
     writeFileSync(extensionFile, 'user-owned remote status extension')
 
@@ -250,10 +385,10 @@ describe('PluginOverlayManager', () => {
     expect(piResult?.sourceAgentDir).toBeDefined()
     expect(ompResult?.sourceAgentDir).toBeDefined()
     expect(
-      readFileSync(join(piResult!.sourceAgentDir!, 'extensions', 'orca-agent-status.ts'), 'utf8')
+      readFileSync(join(piResult!.sourceAgentDir!, 'extensions', 'zkyq-agent-status.ts'), 'utf8')
     ).toContain('// pi extension')
     expect(
-      readFileSync(join(ompResult!.sourceAgentDir!, 'extensions', 'orca-agent-status.ts'), 'utf8')
+      readFileSync(join(ompResult!.sourceAgentDir!, 'extensions', 'zkyq-agent-status.ts'), 'utf8')
     ).toContain('// omp extension')
   })
 
@@ -300,8 +435,8 @@ describe('PluginOverlayManager', () => {
       'user extension'
     )
     expect(readdirSync(join(dir!, 'extensions')).sort()).toEqual([
-      'orca-agent-status.ts',
-      'user-ext'
+      'user-ext',
+      'zkyq-agent-status.ts'
     ])
     expect(JSON.parse(readFileSync(join(dir!, 'settings.json'), 'utf8'))).toEqual({
       defaultProvider: 'amazon-bedrock',
@@ -337,7 +472,7 @@ describe('PluginOverlayManager', () => {
     expect(dir).toBeDefined()
     expect(readFileSync(join(dir!, 'auth.json'), 'utf8')).toBe('custom token')
     expect(readFileSync(join(dir!, 'extensions', 'custom.ts'), 'utf8')).toBe('custom extension')
-    expect(readFileSync(join(dir!, 'extensions', 'orca-agent-status.ts'), 'utf8')).toContain(
+    expect(readFileSync(join(dir!, 'extensions', 'zkyq-agent-status.ts'), 'utf8')).toContain(
       '// pi extension'
     )
   })
@@ -352,7 +487,7 @@ describe('PluginOverlayManager', () => {
     const content = 'agent.db relay credentials'
 
     expect(existsSync(sourcePath)).toBe(false)
-    expect(existsSync(join(homeDir, '.orca-relay', 'omp-overlays'))).toBe(false)
+    expect(existsSync(join(homeDir, '.zkyq-relay', 'omp-overlays'))).toBe(false)
     expect(existsSync(join(sourceDir, 'history.db'))).toBe(false)
     writeFileSync(sourcePath, content)
 
@@ -389,7 +524,7 @@ describe('PluginOverlayManager', () => {
       expect(readFileSync(join(dir!, 'auth.json'), 'utf8')).toBe('pi token')
       const extensions = readdirSync(join(dir!, 'extensions')).sort()
       expect(extensions).toContain('pi-ext')
-      expect(extensions).toContain('orca-agent-status.ts')
+      expect(extensions).toContain('zkyq-agent-status.ts')
       expect(extensions).not.toContain('omp-ext')
     })
 
@@ -408,7 +543,7 @@ describe('PluginOverlayManager', () => {
       expect(readFileSync(join(dir!, 'auth.json'), 'utf8')).toBe('omp token')
       const extensions = readdirSync(join(dir!, 'extensions')).sort()
       expect(extensions).toContain('omp-ext')
-      expect(extensions).toContain('orca-agent-status.ts')
+      expect(extensions).toContain('zkyq-agent-status.ts')
       expect(extensions).not.toContain('pi-ext')
     })
 
@@ -427,7 +562,7 @@ describe('PluginOverlayManager', () => {
       // Pi-only home must NOT leak into the OMP home.
       expect(existsSync(join(dir!, 'auth.json'))).toBe(false)
       const extensions = readdirSync(join(dir!, 'extensions')).sort()
-      expect(extensions).toEqual(['orca-agent-status.ts'])
+      expect(extensions).toEqual(['zkyq-agent-status.ts'])
     })
 
     it('bare-shell prep does not create missing remote agent homes (#10196)', () => {
@@ -447,10 +582,10 @@ describe('PluginOverlayManager', () => {
       const bareOmp = manager.materializePi('tab-bare-omp:0', undefined, 'omp', {
         materializeDefaultHome: false
       })
-      // Why: bare OMP keeps status via ~/.orca-relay/… without SOURCE_AGENT_DIR or ~/.omp.
+      // Why: bare OMP keeps status via ~/.zkyq-relay/… without SOURCE_AGENT_DIR or ~/.omp.
       expect(bareOmp?.sourceAgentDir).toBeUndefined()
       expect(bareOmp?.statusExtensionPath).toEqual(
-        expect.stringContaining(join('.orca-relay', 'omp-managed-status-extension'))
+        expect.stringContaining(join('.zkyq-relay', 'omp-managed-status-extension'))
       )
       expect(existsSync(bareOmp!.statusExtensionPath!)).toBe(true)
       expect(readFileSync(bareOmp!.statusExtensionPath!, 'utf8')).toContain('// omp extension')
@@ -523,7 +658,7 @@ describe('PluginOverlayManager', () => {
     manager.setSources({ opencodePluginSource: 'second' })
     const dirB = manager.materializeOpenCode('tab-stable:0')!
     expect(dirA).toBe(dirB)
-    expect(readFileSync(join(dirA, 'plugins', 'orca-opencode-status.js'), 'utf8')).toBe('second')
+    expect(readFileSync(join(dirA, 'plugins', 'zkyq-opencode-status.js'), 'utf8')).toBe('second')
   })
 
   it('hashes unsafe pane ids into portable overlay directory names', () => {
@@ -533,7 +668,7 @@ describe('PluginOverlayManager', () => {
     expect(dir).not.toBeNull()
     expect(basename(dir!)).toMatch(/^[a-f0-9]{32}$/)
     expect(dir).not.toContain('tab/with')
-    expect(existsSync(join(dir!, 'plugins', 'orca-opencode-status.js'))).toBe(true)
+    expect(existsSync(join(dir!, 'plugins', 'zkyq-opencode-status.js'))).toBe(true)
   })
 })
 
@@ -542,8 +677,8 @@ describe('resolvePiSourceAgentDir', () => {
     const env = {
       HOME: mkdtempSync(join(tmpdir(), 'plugin-overlay-env-')),
       PI_CODING_AGENT_DIR: '/tmp/parent-orca-pi-overlay',
-      ORCA_PI_CODING_AGENT_DIR: '/tmp/parent-orca-pi-overlay',
-      ORCA_PI_SOURCE_AGENT_DIR: '/user/.pi/agent'
+      ZKYQ_PI_CODING_AGENT_DIR: '/tmp/parent-orca-pi-overlay',
+      ZKYQ_PI_SOURCE_AGENT_DIR: '/user/.pi/agent'
     }
     try {
       expect(resolvePiSourceAgentDir(env, undefined, 'pi')).toBe('/user/.pi/agent')
@@ -557,7 +692,7 @@ describe('resolvePiSourceAgentDir', () => {
     const env = {
       HOME: mkdtempSync(join(tmpdir(), 'plugin-overlay-env-')),
       PI_CODING_AGENT_DIR: '/user/custom-omp-agent',
-      ORCA_PI_SOURCE_AGENT_DIR: '/user/.pi/agent'
+      ZKYQ_PI_SOURCE_AGENT_DIR: '/user/.pi/agent'
     }
     try {
       expect(resolvePiSourceAgentDir(env, undefined, 'omp')).toBe('/user/custom-omp-agent')

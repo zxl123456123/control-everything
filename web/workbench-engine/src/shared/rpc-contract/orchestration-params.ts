@@ -42,7 +42,7 @@ export const CheckParams = z
     ack: OptionalString,
     compatibilityAck: OptionalString,
     compatibilityQuestionAck: OptionalString,
-    compatibilityCliCommand: z.enum(['orca', 'orca-ide', 'orca-dev']).optional(),
+    compatibilityCliCommand: z.enum(['zkyq', 'zkyq-dev']).optional(),
     run: OptionalString,
     wait: OptionalBoolean,
     timeoutMs: OptionalFiniteNumber
@@ -106,9 +106,15 @@ export const DispatchParams = z.object({
   run: OptionalString
 })
 
-/** An Orca agent session id; the answer is its conversation's Orca session ID. */
+// Old hosts ignore this option; new hosts only emit the new field when it is requested.
+export const CallerShowParams = z.object({
+  responseFormat: z.literal('workbench').optional()
+})
+
+/** An agent session id; the answer is its conversation's session ID. */
 export const SessionAddressParams = z.object({
-  sessionId: requiredString('Missing sessionId')
+  sessionId: requiredString('Missing sessionId'),
+  responseFormat: z.literal('workbench').optional()
 })
 
 /** A party's mailbox address, as a message's sender recorded it, and the mail that message
@@ -134,8 +140,8 @@ export const AskParams = z
     timeoutMs: OptionalFiniteNumber,
     from: OptionalString,
     run: OptionalString,
-    compatibilityCliCommand: z.enum(['orca', 'orca-ide', 'orca-dev']).optional(),
-    compatibilityWindowsCommand: z.enum(['orca', 'orca-ide']).optional()
+    compatibilityCliCommand: z.enum(['zkyq', 'zkyq-dev']).optional(),
+    compatibilityWindowsCommand: z.literal('zkyq').optional()
   })
   .superRefine((params, ctx) => {
     if ((params.question ? 1 : 0) + (params.resume ? 1 : 0) !== 1) {

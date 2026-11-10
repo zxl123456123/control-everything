@@ -21,6 +21,7 @@ PRIVATE_NAMES = {"progress-registry.json", "progress-manual.json", "progress-tod
 LEGACY_PUBLIC_DOCS = {"docs/architecture.md", "docs/usage.md", "docs/integrations.md", "docs/windows.md",
                       "docs/workbench-contract.md", "docs/EMBEDDING.md", "docs/PETS_INTEGRATION.md"}
 PUBLIC_DOCS = {"docs/README.md", "docs/architecture/architecture.md", "docs/guides/usage.md", "docs/guides/integrations.md", "docs/guides/windows.md",
+               "docs/guides/development-files.md",
                "docs/architecture/workbench-contract.md", "docs/guides/EMBEDDING.md", "docs/guides/PETS_INTEGRATION.md",
                "docs/examples/pets/naidragon-embed.html", "docs/examples/pets/naidragon-embed.css", "docs/examples/pets/naidragon-embed.js",
                "docs/examples/integrations/codex.toml.example",
@@ -74,6 +75,49 @@ def relative_path(value):
 
 def forbidden(value, *, reviewed_resource=False):
     path = relative_path(value)
+    if value.startswith('tools/packaging/wheel-notices/') and value not in {
+            'tools/packaging/wheel-notices/sentencepiece-LICENSE.txt',
+            'tools/packaging/wheel-notices/abseil-LICENSE.txt',
+            'tools/packaging/wheel-notices/darts-clone-LICENSE.txt',
+            'tools/packaging/wheel-notices/esaxx-LICENSE.txt',
+            'tools/packaging/wheel-notices/protobuf-lite-LICENSE.txt',
+            'tools/packaging/wheel-notices/pybind11-LICENSE.txt',
+            'tools/packaging/wheel-notices/Unicode-LICENSE-v3.txt',
+            'tools/packaging/wheel-notices/avx-mathfun-LICENSE.txt',
+            'tools/packaging/wheel-notices/cccl-cub-LICENSE.txt',
+            'tools/packaging/wheel-notices/cccl-libcudacxx-LICENSE.txt',
+            'tools/packaging/wheel-notices/cccl-LICENSE.txt',
+            'tools/packaging/wheel-notices/cccl-thrust-LICENSE.txt',
+            'tools/packaging/wheel-notices/cpu_features-LICENSE.txt',
+            'tools/packaging/wheel-notices/ctranslate2-LICENSE.txt',
+            'tools/packaging/wheel-notices/cutlass-LICENSE.txt',
+            'tools/packaging/wheel-notices/fmt-LICENSE.txt',
+            'tools/packaging/wheel-notices/intel-compiler-credist.txt',
+            'tools/packaging/wheel-notices/intel-compiler-EULA.txt',
+            'tools/packaging/wheel-notices/intel-mkl-LICENSE.txt',
+            'tools/packaging/wheel-notices/intel-mkl-third-party-programs-benchmarks.txt',
+            'tools/packaging/wheel-notices/intel-mkl-third-party-programs-IntelMPI.txt',
+            'tools/packaging/wheel-notices/intel-mkl-third-party-programs-level-zero.txt',
+            'tools/packaging/wheel-notices/intel-mkl-third-party-programs-oneMath.txt',
+            'tools/packaging/wheel-notices/intel-mkl-third-party-programs-oneTBB.txt',
+            'tools/packaging/wheel-notices/intel-mkl-third-party-programs-openmp.txt',
+            'tools/packaging/wheel-notices/intel-mkl-third-party-programs-safestring.txt',
+            'tools/packaging/wheel-notices/intel-mkl-third-party-programs.txt',
+            'tools/packaging/wheel-notices/intel-openmp-EULA.txt',
+            'tools/packaging/wheel-notices/intel-openmp-THIRD-PARTY-PROGRAMS.txt',
+            'tools/packaging/wheel-notices/intel-tbb-LICENSE.txt',
+            'tools/packaging/wheel-notices/intel-tbb-THIRD-PARTY-PROGRAMS.txt',
+            'tools/packaging/wheel-notices/intel-tcm-LICENSE.txt',
+            'tools/packaging/wheel-notices/intel-tcm-THIRD-PARTY-PROGRAMS.txt',
+            'tools/packaging/wheel-notices/nvidia-cuda-LICENSE.txt',
+            'tools/packaging/wheel-notices/nvidia-cudnn-LICENSE.txt',
+            'tools/packaging/wheel-notices/oneDNN-ittnotify-LICENSE.txt',
+            'tools/packaging/wheel-notices/oneDNN-LICENSE.txt',
+            'tools/packaging/wheel-notices/oneDNN-THIRD-PARTY-PROGRAMS.txt',
+            'tools/packaging/wheel-notices/simd-utils-LICENSE.txt',
+            'tools/packaging/wheel-notices/spdlog-LICENSE.txt',
+            }:
+        return 'unregistered-wheel-notice'
     parts = tuple(part.lower() for part in path.parts)
     name = parts[-1]
     if "docs" in parts and value not in PUBLIC_DOCS:
@@ -290,11 +334,14 @@ def added_findings(root, parent, current, report, historical_docs=()):
             continue
         rejected = False
         for name in names:
-            resource = policy.resource(name) if policy else None
+            # A rename's source belongs to the parent tree, not the destination inventory.
+            path_policy = (committed_policy(root, parent)
+                           if name != value and name.startswith(UNIT) and parent else policy)
+            resource = path_policy.resource(name) if path_policy else None
             reason = forbidden(name, reviewed_resource=resource is not None)
             if reason == "excluded-directory" and name in historical_docs:
                 reason = None
-            if name.startswith(UNIT) and (policy is None or not policy.contains(name)):
+            if name.startswith(UNIT) and (path_policy is None or not path_policy.contains(name)):
                 reason = "unregistered-workbench-source"
             path = relative_path(name)
             if status == "M" and path.parts[0] == "videos" and path.suffix.lower() in {".md", ".json", ".mjs"}:

@@ -10,6 +10,7 @@ import { isMissingError } from './cli-install-errors'
 import { CliInstallLocation } from './cli-install-location'
 import { isPathInsideOrEqual, samePathEntry } from './cli-install-path-format'
 import { extractLegacyAppImageCliWrapperTarget } from './legacy-appimage-cli-wrapper'
+import { extractManagedLinuxDispatcherTarget } from './linux-bare-orca-dispatcher'
 
 // Why: electron-builder's /opt directory name varies with productName sanitization, which is why
 // resources/linux/packaging/after-install.sh enumerates all three of these. A symlink into one is a
@@ -28,7 +29,8 @@ export class CliCommandInspection extends CliInstallLocation {
           const currentContent = await readFile(commandPath, 'utf8')
           const managedTarget =
             extractManagedUnixLauncherTarget(currentContent) ??
-            extractLegacyAppImageCliWrapperTarget(currentContent)
+            extractLegacyAppImageCliWrapperTarget(currentContent) ??
+            extractManagedLinuxDispatcherTarget(currentContent)
           if (managedTarget) {
             return this.buildStatus({
               commandPath,
@@ -37,7 +39,7 @@ export class CliCommandInspection extends CliInstallLocation {
               supported: true,
               state: 'stale',
               currentTarget: managedTarget,
-              detail: `${commandPath} contains an older Orca launcher.`
+              detail: `${commandPath} contains an older workbench launcher.`
             })
           }
         }
@@ -49,7 +51,7 @@ export class CliCommandInspection extends CliInstallLocation {
           supported: true,
           state: 'conflict',
           currentTarget: null,
-          detail: `${commandPath} exists but is not an Orca symlink.`
+          detail: `${commandPath} exists but is not a workbench symlink.`
         })
       }
 
@@ -89,8 +91,8 @@ export class CliCommandInspection extends CliInstallLocation {
         detail: isInstalled
           ? `Registered at ${commandPath}.`
           : isManagedStaleTarget
-            ? `${commandPath} points to an older Orca launcher.`
-            : `${commandPath} points to a non-Orca launcher.`
+            ? `${commandPath} points to an older workbench launcher.`
+            : `${commandPath} points to another application's launcher.`
       })
     } catch (error) {
       if (isMissingError(error)) {
@@ -101,7 +103,7 @@ export class CliCommandInspection extends CliInstallLocation {
           supported: true,
           state: 'not_installed',
           currentTarget: null,
-          detail: `Register ${commandPath} to use Orca from the terminal.`
+          detail: `Register ${commandPath} to use Control Everything from the terminal.`
         })
       }
       throw error
@@ -200,7 +202,7 @@ export class CliCommandInspection extends CliInstallLocation {
           supported: true,
           state: 'conflict',
           currentTarget: null,
-          detail: `${commandPath} exists but is not an Orca launcher script.`
+          detail: `${commandPath} exists but is not a workbench launcher script.`
         })
       }
 
@@ -239,7 +241,7 @@ export class CliCommandInspection extends CliInstallLocation {
           supported: true,
           state: 'not_installed',
           currentTarget: null,
-          detail: `Register ${commandPath} to use Orca from Command Prompt or PowerShell.`
+          detail: `Register ${commandPath} to use Control Everything from Command Prompt or PowerShell.`
         })
       }
       throw error

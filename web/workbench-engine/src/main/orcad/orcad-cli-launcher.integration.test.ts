@@ -46,7 +46,7 @@ it.skipIf(skip)(
       TMPDIR: root,
       CODEX_HOME: join(home, 'codex'),
       CLAUDE_CONFIG_DIR: join(home, 'claude'),
-      ORCA_USER_DATA: userData,
+      ZKYQ_USER_DATA: userData,
       ORCA_BACKGROUND_LAUNCH: '1',
       ORCA_DISABLE_MACOS_LOGIN_SHELL: '1'
     }
@@ -91,7 +91,7 @@ it.skipIf(skip)(
         userData,
         'cli',
         'bin',
-        process.platform === 'win32' ? 'orca.exe' : 'orca'
+        process.platform === 'win32' ? 'zkyq.exe' : 'zkyq'
       )
       expect(existsSync(launcher)).toBe(true)
       installFakeAppEnvironment({
@@ -103,10 +103,13 @@ it.skipIf(skip)(
         PATH: env.PATH ?? '',
         ORCA_ENVIRONMENT: 'stale-shell-selection',
         ORCA_PAIRING_CODE: 'stale-pairing',
-        ORCA_REMOTE_PAIRING: 'stale-remote-pairing'
+        ORCA_REMOTE_PAIRING: 'stale-remote-pairing',
+        ZKYQ_ENVIRONMENT: 'stale-shell-selection',
+        ZKYQ_PAIRING_CODE: 'stale-pairing',
+        ZKYQ_REMOTE_PAIRING: 'stale-remote-pairing'
       })
       const result = await runProcess({
-        program: childEnv.ORCA_CLI_COMMAND!,
+        program: childEnv.ZKYQ_CLI_COMMAND!,
         args: ['status', '--json'],
         env: { ...env, ...childEnv },
         cwd: home,
@@ -121,7 +124,7 @@ it.skipIf(skip)(
         }
       })
       const skill = await runProcess({
-        program: childEnv.ORCA_CLI_COMMAND!,
+        program: childEnv.ZKYQ_CLI_COMMAND!,
         args: ['skills', 'get', 'orchestration'],
         env: { ...env, ...childEnv },
         timeoutMs: 15_000
@@ -129,7 +132,7 @@ it.skipIf(skip)(
       expect(skill.code, skill.stderr).toBe(0)
       expect(skill.stdout).toContain('Worker obligations')
       const version = await runProcess({
-        program: childEnv.ORCA_CLI_COMMAND!,
+        program: childEnv.ZKYQ_CLI_COMMAND!,
         args: ['--version'],
         env: { ...env, ...childEnv },
         timeoutMs: 15_000
@@ -140,7 +143,7 @@ it.skipIf(skip)(
       const person = await runProcess({
         program: launcher,
         args: ['status', '--json'],
-        env: { ...env, ORCA_ENVIRONMENT: 'stale-shell-selection' },
+        env: { ...env, ZKYQ_ENVIRONMENT: 'stale-shell-selection' },
         cwd: home,
         timeoutMs: 15_000
       })

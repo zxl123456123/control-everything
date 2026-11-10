@@ -10,7 +10,6 @@ use std::env;
 fn main() {
     println!("cargo:rerun-if-changed=app.manifest");
     println!("cargo:rerun-if-env-changed=ORCA_LAUNCHER_VERSION");
-    println!("cargo:rerun-if-env-changed=ORCA_LAUNCHER_ICON");
     println!("cargo:rerun-if-env-changed=ORCA_LAUNCHER_FILENAME");
 
     if env::var("CARGO_CFG_TARGET_OS").as_deref() != Ok("windows") {
@@ -24,14 +23,14 @@ fn main() {
     let (major, minor, patch) = numeric_version_parts(&version);
 
     let mut resource = winresource::WindowsResource::new();
-    resource.set("ProductName", "Orca");
-    resource.set("FileDescription", "Orca CLI Launcher");
-    resource.set("CompanyName", "Stably AI");
+    resource.set("ProductName", "Control Everything");
+    resource.set("FileDescription", "Control Everything command launcher");
+    resource.set("CompanyName", "Control Everything contributors");
     resource.set(
         "LegalCopyright",
         "Copyright (C) Stably AI. All rights reserved.",
     );
-    let filename = env::var("ORCA_LAUNCHER_FILENAME").unwrap_or_else(|_| "orca.exe".into());
+    let filename = env::var("ORCA_LAUNCHER_FILENAME").unwrap_or_else(|_| "zkyq.exe".into());
     resource.set("InternalName", &filename);
     resource.set("OriginalFilename", &filename);
     resource.set("FileVersion", &format!("{major}.{minor}.{patch}.0"));
@@ -45,9 +44,6 @@ fn main() {
         (major << 48) | (minor << 32) | (patch << 16),
     );
     resource.set_manifest_file("app.manifest");
-    if let Ok(icon) = env::var("ORCA_LAUNCHER_ICON") {
-        resource.set_icon(&icon);
-    }
     resource
         .compile()
         .expect("failed to compile Windows resources");

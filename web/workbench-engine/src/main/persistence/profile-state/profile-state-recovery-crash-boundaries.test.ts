@@ -134,7 +134,7 @@ async function seedFixture(kind: 'json' | 'sqlite', accepted: boolean): Promise<
     join(root, 'orca-profile-index.json'),
     JSON.stringify({ activeProfileId: profileId, profiles: [{ id: profileId }] })
   )
-  const dataFile = join(directory, 'orca-data.json')
+  const dataFile = join(directory, 'zkyq-data.json')
   const databasePath = join(directory, 'profile-state.db')
   const exportPath = profileStateJsonExportPath(dataFile, 3)
   const backupPath = profileStateDatabaseBackupPath(

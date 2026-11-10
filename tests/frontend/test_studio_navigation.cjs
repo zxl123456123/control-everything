@@ -5,7 +5,6 @@ const vm = require('node:vm');
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const window = {};
-vm.runInNewContext(fs.readFileSync(path.resolve(__dirname, '../../web/workspace/project-progress-model.js'), 'utf8'), {window});
 vm.runInNewContext(fs.readFileSync(path.resolve(__dirname, '../../web/workspace/studio-shell.js'), 'utf8'), {window});
 const shell = window.StudioShell;
 test('integrated Studio retains its single authority-backed theme control', () => {
@@ -41,7 +40,7 @@ test('zero, all archived and unavailable projects reach the native workbench wit
   assert.match(empty, /还没有项目/); assert.doesNotMatch(empty, /studio-project-search|ce-summary-band/);
   assert.doesNotMatch(overview({projects:[project('one')]}), /href="#workbench"/);
   const offline = overview({projects:[project('one')],runtimeAvailable:false});
-  assert.match(offline, /项目运行组件未连接，暂时只能查看项目与事项进展/);
+  assert.match(offline, /项目运行组件未连接，暂时只能查看项目总览/);
   assert.doesNotMatch(offline, /href="#workbench"/, 'no call to action that leads nowhere while the runtime is down');
   assert.match(offline, /<section class="ce-setup-notice" role="status">/);
 });
@@ -66,45 +65,22 @@ test('the sidebar offers settings and account management while advanced compatib
   assert.equal(shell.renderProjectSetup, undefined);
 });
 
-test('overview facts use progress semantics and exclude records outside registered projects', () => {
-  const html = overview({items:[
-    {project_id:'one',state:'doing',progress:{native_run_id:'native',active_slot:0,observation_state:'working'}},
-    {project_id:'one',state:'todo',assignment_state:'waiting_user'},
-    {project_id:'one',state:'done',current_delivery_id:'delivery'},
-    {project_id:'one',state:'doing'},
-    {project_id:'missing',state:'review',current_delivery_id:'orphan-delivery'},
-  ]});
-  assert.match(html, /<dt>项目<\/dt><dd>1<\/dd>/);
-  assert.match(overview({projectFilter:'all'}), /<dt>项目<\/dt><dd>2<\/dd>/);
-  assert.match(html, /<dt>待处理<\/dt><dd>1<\/dd>/);
-  assert.match(html, /<dt>有交付<\/dt><dd>1<\/dd>/);
-  assert.match(html, /<span>1 进行中<\/span>/);
-  assert.deepEqual(ids(overview({projectFilter:'active',items:[{project_id:'one',state:'todo',assignment_state:'waiting_user'}]})), ['one']);
-});
-
-
-test('advanced settings retains precise compatibility destinations without restoring a routine entry', () => {
+test('retired advanced settings has no management controls or destinations', () => {
   const html = shell.renderSettingsLanding({ section: 'sources', integrated: true, creatorForm:'<form data-creator-form="true">游戏创作地址</form>' });
-  assert.equal((html.match(/data-action="external-access"/g) || []).length, 1);
-  assert.match(html, /<h1>高级接入<\/h1>/);
-  assert.match(html, /项目与会话导入/); assert.match(html, /事项 API 接入/);
-  assert.doesNotMatch(html, /agent-form|兼容|命令|审批|项目来源|外部程序接入/);
-  assert.match(html, /href="\/workspace-admin#settings"/); assert.doesNotMatch(html, /workspace-admin#projects/);
-  assert.equal((html.match(/class="ce-setting-row"/g) || []).length, 2);
-  assert.match(html, /aria-label="管理项目与会话导入">管理/);
-  assert.match(html, /aria-label="管理事项 API 接入">管理/);
-  assert.doesNotMatch(html, /<p\b|ce-tool-card|ce-access-setting/);
-  assert.doesNotMatch(html, /游戏创作|data-creator-form/);
+  assert.doesNotMatch(html, /高级接入|项目与会话导入|事项 API|external-access|workspace-admin|游戏创作|data-creator-form/);
 });
 
-test('settings and account carry their own icons and the settings pages get a three-way switcher', () => {
+test('settings and account keep distinct icons and no shared switcher', () => {
   const html = shell.renderNavigation({current:{view:'home'}});
   assert.ok(html.includes('<circle cx="12" cy="12" r="3"/>'), 'settings uses a gear');
   assert.ok(!html.includes('M3 6h18M3 12h18'), 'the sliders glyph is gone');
   assert.ok(html.includes('<circle cx="12" cy="8" r="4"/>'), 'account uses a person');
-  const tabs = shell.renderSettingsTabs('appearance');
-  assert.equal((tabs.match(/<a /g) || []).length, 3);
-  assert.equal((tabs.match(/aria-current="page"/g) || []).length, 1);
-  assert.doesNotMatch(tabs, /development/, 'the developer-preferences stub is not offered');
-  assert.doesNotMatch(shell.renderSettingsTabs('development'), /aria-current/);
+  assert.equal(shell.renderSettingsTabs, undefined);
+  assert.doesNotMatch(fs.readFileSync(path.resolve(__dirname, '../../web/workspace/studio-preview.html'),'utf8'), /studio-settings-nav/);
+});
+
+test('overview does not expose task progress summaries or shortcuts', () => {
+  const html = overview({items:[{project_id:'one',state:'review',current_delivery_id:'delivery'}]});
+  assert.doesNotMatch(html, /待处理|有交付|待验收|进行中|ce-summary-band|\/review|\/attention/);
+  assert.match(html, /href="#project\/one\/workspace"/);
 });

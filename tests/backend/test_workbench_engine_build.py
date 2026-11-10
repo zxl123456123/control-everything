@@ -55,6 +55,15 @@ class WorkbenchBuildTests(unittest.TestCase):
     def save(self):
         BUILD.write_json(self.root / BUILD.SOURCE_MANIFEST, self.manifest)
 
+    def directory_link(self, link, target):
+        if os.name == 'nt':
+            env = {**os.environ, 'TEST_LINK_PATH': str(link), 'TEST_LINK_TARGET': str(target)}
+            subprocess.run(['powershell.exe', '-NoProfile', '-NonInteractive', '-Command',
+                            'New-Item -ItemType Junction -Path $env:TEST_LINK_PATH -Target $env:TEST_LINK_TARGET | Out-Null'],
+                           env=env, check=True, capture_output=True)
+        else:
+            link.symlink_to(target, target_is_directory=True)
+
     def test_source_hash_uses_actual_bytes_but_git_blob_respects_attributes(self):
         first = BUILD.check_source(self.root)
         text = self.unit / 'LICENSE'
@@ -64,25 +73,31 @@ class WorkbenchBuildTests(unittest.TestCase):
         self.assertEqual(first['upstreamCommit'], BUILD.UPSTREAM)
         self.assertEqual(first['fileCount'], 7)
 
-    def test_native_chat_resources_keep_pinned_bytes_with_autocrlf_checkout(self):
+    def test_pinned_source_and_resources_keep_bytes_with_autocrlf_checkout(self):
+        (self.root / '.gitattributes').write_bytes((ROOT / '.gitattributes').read_bytes())
         attributes = (ROOT / BUILD.UNIT / '.gitattributes').read_bytes()
         (self.unit / '.gitattributes').write_bytes(attributes)
         names = ('resources/native-chat-visuals/.claude-plugin/plugin.json',
-                 'resources/native-chat-visuals/skills/orca-chat-visuals/SKILL.md')
+                 'resources/native-chat-visuals/skills/orca-chat-visuals/SKILL.md',
+                 'mobile/app.config.js', 'mobile/package.json', 'mobile/pnpm-lock.yaml',
+                 'src/renderer/src/assets/main.css', 'src/renderer/src/i18n/locales/zh.json')
         raw = '{"fixture": "合成 UTF-8"}\n'.encode('utf-8')
-        for name in names:
+        expected = dict.fromkeys(names, raw)
+        expected.update({'mobile/patches/fixture.patch': b'patch\r\n',
+                         'mobile/src/fixture.png': b'\x89PNG\r\n\x1a\n\x00fixture'})
+        for name, content in expected.items():
             target = self.unit / name
             target.parent.mkdir(parents=True, exist_ok=True)
-            target.write_bytes(raw)
-        subprocess.run(['git', '-c', 'core.autocrlf=true', 'add', '--', BUILD.UNIT],
+            target.write_bytes(content)
+        subprocess.run(['git', '-c', 'core.autocrlf=true', 'add', '--', '.gitattributes', BUILD.UNIT],
                        cwd=self.root, env=self.env, check=True, capture_output=True)
         checkout = self.root / 'checkout'
         subprocess.run(['git', '-c', 'core.autocrlf=true', 'checkout-index',
                         '--prefix=' + checkout.as_posix() + '/', '--all'],
                        cwd=self.root, env=self.env, check=True, capture_output=True)
-        for name in names:
+        for name, content in expected.items():
             with self.subTest(resource=name):
-                self.assertEqual((checkout / BUILD.UNIT / name).read_bytes(), raw)
+                self.assertEqual((checkout / BUILD.UNIT / name).read_bytes(), content)
         self.assertEqual((checkout / BUILD.UNIT / '.gitattributes').read_bytes(), attributes)
 
     def test_resource_bytes_missing_icon_and_unknown_files_are_rejected(self):
@@ -102,7 +117,9 @@ class WorkbenchBuildTests(unittest.TestCase):
     def test_only_exact_generated_files_and_known_build_trees_are_excluded(self):
         before = BUILD.check_source(self.root)
         for relative in (*BUILD.MOBILE_GENERATED, 'src/packages/process-host/dist/index.js', 'mobile/.expo/state.json',
-                         'native/windows-cli-launcher/target/release/orca.exe'):
+                         'native/windows-cli-launcher/target/release/zkyq.exe',
+                         'native/windows-agent-hook/target/release/zkyq-agent-hook.exe',
+                         'native/windows-agent-hook/.build/zkyq-agent-hook.exe'):
             target = self.unit / relative
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_text('generated fixture')
@@ -212,6 +229,117 @@ class WorkbenchBuildTests(unittest.TestCase):
         self.assertTrue(receipt['dirty'])
         self.assertEqual(receipt['tools']['pnpm']['sha256'], BUILD.sha256(pnpm))
         self.assertEqual(len(steps.call_args.args[0]), 9)
+
+    def test_bad_materials_stop_before_install_or_output_creation(self):
+        node, pnpm = self.root / 'node.exe', self.root / 'pnpm.exe'
+        node.write_bytes(b'node')
+        pnpm.write_bytes(b'pnpm')
+        run = self.root / 'work/workbench-engine-build/bad-materials'
+        materials = SimpleNamespace(read_inputs=lambda directory: (_ for _ in ()).throw(ValueError('bad proof')))
+        with patch.object(BUILD, 'material_api', return_value=materials), \
+                patch.object(BUILD, 'check_source', return_value={}), \
+                patch.object(BUILD, 'checked') as command, patch.object(BUILD, 'run_steps') as steps:
+            with self.assertRaisesRegex(BUILD.BuildError, 'distribution_materials_invalid:bad proof'):
+                BUILD.build(node, pnpm, self.root / 'work/ce-native', run, self.root,
+                            materials=self.root / 'reviewed')
+        command.assert_not_called()
+        steps.assert_not_called()
+        self.assertFalse(run.exists())
+
+    def test_material_binding_precedes_but_cannot_replace_distribution_validation(self):
+        run = self.root / 'work/workbench-engine-build/materials'
+        run.mkdir(parents=True)
+        node = self.unit / 'out/runtimes/node.exe'
+        node.parent.mkdir(parents=True)
+        node.write_bytes(b'node')
+        BUILD.write_json(run / 'build-provenance.json', {'tools': {
+            'node': {'path': str(node), 'sha256': BUILD.sha256(node)}, 'pnpm': {'path': str(self.root / 'pnpm.exe')}}})
+        data = {'web': [], 'mobile': {'assets': []}, 'runtime': [], 'newsRuntime': {'files': []},
+                'node': {'path': 'out/runtimes/node.exe', 'executableSha256': BUILD.sha256(node)},
+                'dependencies': [], 'artifactVersion': 'fixture'}
+        calls = []
+        def prepare(unit, rows, directory, materials):
+            self.assertTrue((directory / 'output-manifest.json').is_file())
+            self.assertTrue((directory / 'dependency-manifest.json').is_file())
+            calls.append((unit, rows, materials))
+            return {'input_hashes': {'external-components.json': 'a' * 64}}
+        with patch.object(BUILD, 'material_api', return_value=SimpleNamespace(prepare=prepare)), \
+                patch.object(BUILD, 'run_steps'), patch.object(BUILD, 'output_rows', return_value=[]), \
+                patch.object(BUILD.subprocess, 'run', return_value=SimpleNamespace(returncode=0, stdout=json.dumps(data), stderr='')):
+            with self.assertRaisesRegex(BUILD.BuildError, 'distribution_notices_incomplete:distribution_record_missing'):
+                BUILD.check_output(run, self.root, materials=self.root / 'reviewed')
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(calls[0][1][0]['sha256'], BUILD.sha256(node))
+        result = BUILD.read_json(run / 'build-provenance.json')
+        self.assertEqual(result['distribution'], 'not_verified')
+        self.assertIn('materials', result)
+        result['distribution'] = 'closure_verified'
+        BUILD.write_json(run / 'build-provenance.json', result)
+        def reject_materials(*args):
+            raise ValueError('changed proof')
+        with patch.object(BUILD, 'material_api', return_value=SimpleNamespace(prepare=reject_materials)), \
+                patch.object(BUILD, 'run_steps'), patch.object(BUILD, 'output_rows', return_value=[]), \
+                patch.object(BUILD.subprocess, 'run', return_value=SimpleNamespace(returncode=0, stdout=json.dumps(data), stderr='')):
+            with self.assertRaisesRegex(BUILD.BuildError, 'distribution_materials_invalid:changed proof'):
+                BUILD.check_output(run, self.root, materials=self.root / 'reviewed')
+        self.assertEqual(BUILD.read_json(run / 'build-provenance.json')['distribution'], 'not_verified')
+
+    @unittest.skipUnless(os.name == 'nt', 'Windows junction test')
+    def test_build_rejects_dependency_root_junctions_before_install(self):
+        other = self.root / 'other-checkout' / 'node_modules'
+        other.mkdir(parents=True)
+        sentinel = other / 'sentinel.txt'
+        sentinel.write_text('unchanged', encoding='utf-8')
+        node, pnpm = self.root / 'node.exe', self.root / 'pnpm.exe'
+        node.write_bytes(b'node')
+        pnpm.write_bytes(b'pnpm')
+        for relative in ('node_modules', 'mobile/node_modules'):
+            with self.subTest(relative=relative):
+                link = self.unit / relative
+                self.directory_link(link, other)
+                try:
+                    with patch.object(BUILD, 'run_steps') as steps, \
+                            patch.object(BUILD, 'check_source', return_value={'upstreamCommit': BUILD.UPSTREAM, 'sourceTreeSha256': 'b' * 64}), \
+                            patch.object(BUILD, 'checked', side_effect=['v24.19.0', '12.14.0', 'a' * 40, '']), \
+                            patch.object(BUILD, 'check_output', return_value={}):
+                        with self.assertRaisesRegex(BUILD.BuildError, 'linked_dependency_root'):
+                            BUILD.build(node, pnpm, self.root / 'work/ce-native',
+                                        self.root / 'work/workbench-engine-build/one', self.root)
+                    steps.assert_not_called()
+                    self.assertEqual(sentinel.read_text(encoding='utf-8'), 'unchanged')
+                    self.assertFalse((self.root / 'work/workbench-engine-build/one').exists())
+                finally:
+                    link.rmdir()
+
+    def test_build_accepts_package_links_inside_dependency_roots(self):
+        modules = self.unit / 'node_modules'
+        target = modules / '.pnpm' / 'package'
+        target.mkdir(parents=True)
+        link = modules / 'package'
+        self.directory_link(link, target)
+        node, pnpm = self.root / 'node.exe', self.root / 'pnpm.exe'
+        node.write_bytes(b'node')
+        pnpm.write_bytes(b'pnpm')
+        with patch.object(BUILD, 'checked', side_effect=['v24.19.0', '12.14.0', 'a' * 40, '']), \
+                patch.object(BUILD, 'check_source', return_value={'upstreamCommit': BUILD.UPSTREAM, 'sourceTreeSha256': 'b' * 64}), \
+                patch.object(BUILD, 'run_steps') as steps, \
+                patch.object(BUILD, 'check_output', return_value={}):
+            BUILD.build(node, pnpm, self.root / 'work/ce-native',
+                        self.root / 'work/workbench-engine-build/one', self.root)
+        steps.assert_called_once()
+
+    def test_build_rejects_dangling_dependency_root_link(self):
+        link = self.unit / 'node_modules'
+        target = self.root / 'missing'
+        target.mkdir()
+        self.directory_link(link, target)
+        target.rmdir()
+        with patch.object(BUILD, 'run_steps') as steps, \
+                patch.object(BUILD, 'check_source', return_value={}):
+            with self.assertRaisesRegex(BUILD.BuildError, 'linked_dependency_root'):
+                BUILD.build(self.root / 'node.exe', self.root / 'pnpm.exe', self.root / 'work/ce-native',
+                            self.root / 'work/workbench-engine-build/one', self.root)
+        steps.assert_not_called()
 
 
 if __name__ == '__main__':

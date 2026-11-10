@@ -113,7 +113,7 @@ describe('pty spawn placement threading', () => {
       worktreeId: WORKTREE,
       tabId: 'tab-placement',
       leafId: LEAF,
-      env: { ORCA_TAB_ID: 'tab-placement', ORCA_WORKTREE_ID: WORKTREE },
+      env: { ZKYQ_TAB_ID: 'tab-placement', ZKYQ_WORKTREE_ID: WORKTREE },
       ...extra
     })
   }
@@ -178,7 +178,7 @@ describe('pty spawn placement threading', () => {
       worktreeId: WORKTREE,
       tabId: 'tab-runtime',
       leafId: LEAF,
-      env: { ORCA_PANE_KEY: makePaneKey('tab-runtime', LEAF) },
+      env: { ZKYQ_PANE_KEY: makePaneKey('tab-runtime', LEAF) },
       persistHostSessionBinding: true,
       placement: SPLIT
     })

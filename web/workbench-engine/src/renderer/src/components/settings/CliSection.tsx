@@ -5,8 +5,8 @@ import { toast } from 'sonner'
 import type { CliInstallStatus } from '../../../../shared/cli-install-types'
 import type { GlobalSettings } from '../../../../shared/global-settings-types'
 import {
-  ORCA_CLI_SKILL_INSTALL_COMMAND,
-  ORCA_CLI_SKILL_NAME
+  WORKBENCH_CLI_SKILL_INSTALL_COMMAND,
+  WORKBENCH_CLI_SKILL_NAME
 } from '@/lib/agent-feature-install-commands'
 import {
   GLOBAL_AGENT_SKILL_SOURCE_KINDS,
@@ -48,23 +48,6 @@ function getRevealLabel(platform: string): string {
   return translate('auto.components.settings.CliSection.9fd4023db0', 'Show in File Manager')
 }
 
-function getInstallDescription(platform: string): string {
-  if (platform === 'darwin') {
-    return 'Register `orca` in /usr/local/bin.'
-  }
-  if (platform === 'linux') {
-    return 'Register `orca-ide` in ~/.local/bin.'
-  }
-  if (platform === 'win32') {
-    return 'Register `orca` in your user PATH.'
-  }
-  return 'CLI registration is not yet available on this platform.'
-}
-
-function getFallbackCommandName(platform: string): string {
-  return platform === 'linux' ? 'orca-ide' : 'orca'
-}
-
 export function CliSection({
   currentPlatform,
   settings,
@@ -91,12 +74,12 @@ export function CliSection({
     loading: cliSkillLoading,
     error: cliSkillError,
     refresh: refreshCliSkill
-  } = useInstalledAgentSkill(ORCA_CLI_SKILL_NAME, {
+  } = useInstalledAgentSkill(WORKBENCH_CLI_SKILL_NAME, {
     discoveryTarget: cliSkillDiscoveryTarget,
     sourceKinds: GLOBAL_AGENT_SKILL_SOURCE_KINDS
   })
   const cliSkillInstallCommand = buildSkillCommandForRuntime(
-    ORCA_CLI_SKILL_INSTALL_COMMAND,
+    WORKBENCH_CLI_SKILL_INSTALL_COMMAND,
     agentRuntime
   )
   const cliSkillTerminalShellOverride = getAgentSkillTerminalShellOverride(
@@ -114,7 +97,7 @@ export function CliSection({
   )
 
   const closeDialog = useCallback((): void => setDialogOpen(false), [])
-  const commandName = status?.commandName ?? getFallbackCommandName(currentPlatform)
+  const commandName = status?.commandName ?? 'zkyq'
   const { busyAction, installFailure, clearInstallFailure, install, remove } =
     useCliRegistrationActions({
       commandName,
@@ -162,14 +145,8 @@ export function CliSection({
     <section className="space-y-4" data-settings-section="cli">
       <div className="space-y-1">
         <h2 className="text-sm font-semibold">
-          {translate('auto.components.settings.CliSection.c5c0f2641d', 'Orca CLI')}
+          {translate('auto.components.settings.CliSection.c5c0f2641d', 'zkyq CLI')}
         </h2>
-        <p className="text-xs text-muted-foreground">
-          {translate(
-            'auto.components.settings.CliSection.outsideOrcaDescription',
-            'Orca terminals already have `orca`. Turn this on to use `orca` from other terminals outside Orca.'
-          )}
-        </p>
       </div>
 
       <div className="space-y-3 rounded-xl border border-border/60 bg-card/50 p-4">
@@ -186,7 +163,13 @@ export function CliSection({
                     'auto.components.settings.CliSection.d363e5929b',
                     'Checking CLI registration…'
                   )
-                : (status?.detail ?? getInstallDescription(currentPlatform))}
+                : (status?.detail ??
+                  (status
+                    ? null
+                    : translate(
+                        'auto.components.settings.CliSection.7baec27029',
+                        'Failed to load CLI status.'
+                      )))}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -309,22 +292,13 @@ export function CliSection({
               <Label>
                 {translate('auto.components.settings.CliSection.04873eea3e', 'Agent skills')}
               </Label>
-              <p className="text-xs text-muted-foreground">
-                {translate(
-                  'auto.components.settings.CliSection.36a6f919ba',
-                  'Give agents Orca-aware workspace, terminal, and progress workflows.'
-                )}
-              </p>
             </div>
 
             <AgentSkillSetupPanel
               className="mt-3"
               variant="inline"
               title={translate('auto.components.settings.CliSection.6053cf736c', 'CLI skill')}
-              description={translate(
-                'auto.components.settings.CliSection.e8012c03a1',
-                'Enables agents to use Orca workspace, terminal, and progress commands.'
-              )}
+              description={null}
               command={cliSkillInstallCommand}
               terminalTitle="CLI skill setup"
               terminalAriaLabel="CLI skill install terminal"
@@ -336,6 +310,7 @@ export function CliSection({
               error={cliSkillError}
               onRecheck={refreshCliSkill}
               freshnessSkillName={cliSkillFreshnessName}
+              migrationSkillName={WORKBENCH_CLI_SKILL_NAME}
             />
           </div>
         ) : null}

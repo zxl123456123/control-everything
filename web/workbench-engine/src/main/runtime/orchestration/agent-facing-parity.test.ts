@@ -1,7 +1,7 @@
 /**
  * A chat agent and a terminal agent run the same orchestration process: the same preamble, the
  * same pointer text and the same guide. They differ in how each is named (a terminal by its handle,
- * exactly as on main, a session by its Orca session ID) and in the preamble calling a chat a chat.
+ * exactly as on main, a session by its workbench session ID) and in the preamble calling a chat a chat.
  * Orca absorbs everything else.
  */
 import { readdirSync, readFileSync } from 'node:fs'
@@ -39,13 +39,13 @@ vi.mock('../rpc/methods/orchestration-structured-worker-session', () => ({
 }))
 
 const CHAT_SESSION = '4a1f6c2e-8b3d-4e7a-9c15-0d2b6e8f1a37'
-const CHAT_ADDRESS = `orca_session_id:${CHAT_SESSION}`
+const CHAT_ADDRESS = `agent_session:${CHAT_SESSION}`
 const TERMINAL_HANDLE = 'term_worker'
 // A structured worker's mailbox key: the handle it was minted, which its preamble never shows.
 const CHAT_WORKER_HANDLE = 'structworker_1'
 
 const db = new OrchestrationDb(':memory:')
-const SELF_LINE = `\nYour Orca session ID is: ${CHAT_ADDRESS}`
+const SELF_LINE = `\nYour workbench session ID is: ${CHAT_ADDRESS}`
 const previousEnvironment = hasAppEnvironment() ? getAppEnvironment() : null
 
 afterEach(() => {
@@ -79,7 +79,7 @@ function runtime(prompts: string[]): OrcaRuntimeService {
     {
       orchestrationSenderNames: { nameOf: () => null },
       getNestedWorkerMaxDepth: () => 2,
-      getTerminalOrchestrationCliCommand: () => 'orca',
+      getTerminalOrchestrationCliCommand: () => 'zkyq',
       sendTerminalAgentPrompt: async (handle, text) => {
         prompts.push(text)
         return { handle, accepted: true, bytesWritten: text.length }
@@ -153,7 +153,7 @@ describe('a chat agent and a terminal agent see the same text but for how each i
     const terminal = await renderPreamble('terminal')
     const withoutRedispatch = chat.replace(CHAT_REDISPATCH, TERMINAL_REDISPATCH)
 
-    expect(terminal).not.toContain('Orca session ID')
+    expect(terminal).not.toContain('workbench session ID')
     expect(chat).toContain(`Your task ID is: task_1${SELF_LINE}\n`)
     expect(chat).not.toContain(CHAT_WORKER_HANDLE)
     expect(chat).not.toContain('this terminal')
@@ -183,7 +183,7 @@ describe('a chat agent and a terminal agent see the same text but for how each i
         worktreeId: 'repo::/tmp/wt',
         runtimeCliCommand: runtimeOrchestrationCliCommand()
       })
-      expect(terminalCli).toBe(packaged ? 'orca' : 'orca-dev')
+      expect(terminalCli).toBe(packaged ? 'zkyq' : 'zkyq-dev')
 
       for (const mailbox of ['run:run_parity', CHAT_ADDRESS]) {
         expect(await renderChatPointer(mailbox)).toBe(
@@ -194,7 +194,7 @@ describe('a chat agent and a terminal agent see the same text but for how each i
   )
 })
 
-describe('agent-read text about an Orca session ID', () => {
+describe('agent-read text about an workbench session ID', () => {
   const guideDir = join(process.cwd(), 'skill-guides')
   const guide = [
     join(guideDir, 'orchestration.md'),

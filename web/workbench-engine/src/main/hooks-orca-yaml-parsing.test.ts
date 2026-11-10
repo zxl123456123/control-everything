@@ -1,10 +1,14 @@
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { existsSync } from 'node:fs'
 import { parseOrcaYaml } from './hooks'
 
 // Mock fs used by loadHooks
 vi.mock('fs', () => ({
   readFileSync: vi.fn(),
   existsSync: vi.fn(),
+  lstatSync: vi.fn(() => {
+    throw Object.assign(new Error('missing'), { code: 'ENOENT' })
+  }),
   mkdirSync: vi.fn(),
   writeFileSync: vi.fn(),
   rmSync: vi.fn(),
@@ -377,6 +381,7 @@ describe('parseOrcaYaml', () => {
 })
 
 describe('hasUnrecognizedOrcaYamlKeys', () => {
+  beforeEach(() => vi.mocked(existsSync).mockReturnValue(true))
   it('returns true when the file contains only keys this version does not handle', async () => {
     const fs = await import('node:fs')
     vi.mocked(fs.readFileSync).mockReturnValue('futureFeature: |\n  some config\n')

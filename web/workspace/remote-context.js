@@ -20,6 +20,41 @@
     state.listeners.add(callback);
     return () => state.listeners.delete(callback);
   }
+  function showInactiveNotice() {
+    const show = () => {
+      const dialog = scope.document.createElement('dialog');
+      dialog.setAttribute('aria-label', '工作区登录状态已失效');
+      dialog.setAttribute('role', 'alertdialog');
+      dialog.innerHTML = '<h2>请重新确认账号</h2><p>当前工作区的登录状态或访问权限已变化，请返回账号页重新登录并确认。</p><a href="/remote">返回账号页重新登录</a>';
+      // The engine resets native dialog styles; scope the layout to this notice.
+      Object.assign(dialog.style, {
+        position: 'fixed', inset: '0', margin: 'auto', boxSizing: 'border-box',
+        width: 'min(440px, calc(100vw - 32px))', maxHeight: 'calc(100dvh - 32px)',
+        padding: '24px', border: '1px solid var(--ce-line, var(--border, #e4e4e4))',
+        borderRadius: '24px', background: 'var(--ce-panel, var(--background, #ffffff))',
+        color: 'var(--ce-text, var(--foreground, #202020))', fontFamily: 'system-ui, sans-serif',
+        fontSize: '15px', lineHeight: '1.6', overflow: 'auto', overflowWrap: 'anywhere',
+        boxShadow: '0 16px 48px #0003'
+      });
+      Object.assign(dialog.querySelector('h2').style, {margin: '0', fontSize: '20px', fontWeight: '600'});
+      Object.assign(dialog.querySelector('p').style, {margin: '16px 0 24px'});
+      Object.assign(dialog.querySelector('a').style, {
+        display: 'block', boxSizing: 'border-box', minHeight: '44px', padding: '10px 16px',
+        borderRadius: '12px', textAlign: 'center', textDecoration: 'none', fontWeight: '600',
+        background: 'var(--ce-primary, var(--primary, #202020))',
+        color: 'var(--ce-on-primary, var(--primary-foreground, #ffffff))',
+        outline: '2px solid var(--ce-ring, var(--ring, #626262))', outlineOffset: '3px'
+      });
+      dialog.addEventListener('cancel', event => event.preventDefault());
+      scope.document.body.append(dialog);
+      if (typeof dialog.showModal === 'function') dialog.showModal();
+      else dialog.setAttribute('open', '');
+      dialog.querySelector('a').focus();
+    };
+    if (scope.document.body) show();
+    else scope.addEventListener('DOMContentLoaded', show, {once: true});
+  }
+  onInactive(showInactiveNotice);
   function invalidate() {
     if (!context || !state.active) return;
     state.active = false;

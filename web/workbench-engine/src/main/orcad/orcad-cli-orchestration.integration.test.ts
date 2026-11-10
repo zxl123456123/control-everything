@@ -27,7 +27,7 @@ import {
 import { resolveBundledOrcadRuntime } from './orcad-bundled-runtime'
 import { skipForMissingInputs } from './orcad-node-slot-fixture'
 
-const slotDir = resolve('out/orcad')
+const slotDir = resolve(process.env.ZKYQ_TEST_ORCAD_SLOT ?? 'out/orcad')
 const cliEntry = join(slotDir, ...ORCAD_CLI_ENTRY_FILENAME.split('/'))
 const windowsLauncher = join(slotDir, ...ORCAD_WINDOWS_CLI_LAUNCHER_FILENAME.split('/'))
 const runtime = existsSync(join(slotDir, ORCAD_NODE_RUNTIME_MARKER_FILENAME))
@@ -43,7 +43,7 @@ const skip = skipForMissingInputs('artifact', hasCli ? [] : ['the packaged serve
 function serverCliLauncher(userData: string): string {
   if (process.platform === 'win32') {
     const binDir = join(userData, 'cli', 'bin')
-    const launcher = join(binDir, 'orca.exe')
+    const launcher = join(binDir, 'zkyq.exe')
     mkdirSync(binDir, { recursive: true })
     copyFileSync(windowsLauncher, launcher)
     writeFileSync(
@@ -52,7 +52,7 @@ function serverCliLauncher(userData: string): string {
     )
     return launcher
   }
-  const launcher = join(userData, 'orca')
+  const launcher = join(userData, 'zkyq')
   writeFileSync(launcher, buildUnixCliLauncher(runtime!, cliEntry, userData, 'node'), {
     mode: 0o700
   })
@@ -111,7 +111,7 @@ it.skipIf(skip)(
       await new Promise<void>((ready) => server.listen(endpoint, ready))
       const launcher = serverCliLauncher(root)
       writeFileSync(
-        join(root, 'orca-runtime.json'),
+        join(root, 'zkyq-runtime.json'),
         JSON.stringify({
           runtimeId: 'runtime-owner',
           pid: process.pid,
@@ -135,8 +135,8 @@ it.skipIf(skip)(
         TMPDIR: root,
         CODEX_HOME: join(home, 'codex'),
         CLAUDE_CONFIG_DIR: join(home, 'claude'),
-        ORCA_USER_DATA_PATH: root,
-        ORCA_CLI_COMMAND: launcher,
+        ZKYQ_USER_DATA_PATH: root,
+        ZKYQ_CLI_COMMAND: launcher,
         ORCA_BACKGROUND_LAUNCH: '1',
         ...(process.platform === 'win32' ? { ORCA_WINDOWS_PACKAGED_CLI_LAUNCHER: '1' } : {})
       }
@@ -159,6 +159,7 @@ it.skipIf(skip)(
         { params: { resume: 'msg_1' } }
       ])
       for (const request of requests.filter((request) => request.method === 'orchestration.ask')) {
+        expect(request.params).toMatchObject({ compatibilityCliCommand: 'zkyq' })
         expect(request.params).not.toHaveProperty('compatibilityWindowsCommand')
       }
       const version = await runProcess({

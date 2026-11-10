@@ -12,6 +12,13 @@
  * re-decodes native output through the console code page.
  */
 import { createHash } from 'node:crypto'
+import { parseOrcadLaunchEnvironmentVersion } from '../../../shared/orcad-managed-launch-env'
+import {
+  MANAGED_DATA_ROOT_PATH_MARKER,
+  MANAGED_DATA_ROOT_HELPER_MARKER,
+  MANAGED_DATA_ROOT_TARGET_MARKER
+} from '../../../shared/managed-data-roots'
+import { ORCAD_INSTALL_MODEL, remoteInstallVersionDirRegex } from '../install/remote-install-model'
 import {
   ORCAD_LAUNCHER_FILENAME,
   ORCAD_SERVER_ENTRY_FILENAME,
@@ -21,6 +28,8 @@ import {
   ORCAD_RUNTIMES_DIRNAME,
   ORCAD_WINDOWS_PROCESS_TREE_FILENAME
 } from '../../../shared/orcad-artifacts'
+import { ORCAD_INSTALL_COMPLETE_FILENAME } from '../../../shared/orcad-artifacts'
+import { ORCAD_CLI_PACKAGE_FILENAME } from '../../../shared/orcad-artifacts'
 import {
   ORCAD_STOP_REQUEST_FILENAME,
   ORCAD_STOP_REQUESTS_CAPABILITY
@@ -46,6 +55,7 @@ export const ORCAD_BUILD_HASH_MARKER = '__ORCAD_BUILD_HASH__'
 export const ORCAD_WINDOWS_READINESS_MARKER = '__ORCAD_READINESS__'
 export const ORCAD_WINDOWS_RUNTIME_MARKER = '__ORCAD_RUNTIME__'
 export const ORCAD_WINDOWS_ENTRY_MARKER = '__ORCAD_ENTRY__'
+export const ORCAD_WINDOWS_LAUNCH_ENV_MARKER = '__ZKYQ_LAUNCH_ENV__'
 export const ORCAD_WINDOWS_LIVENESS_MANY_MARKER = '__ORCAD_LIVENESS__'
 export const ORCAD_WINDOWS_LOG_TAIL_MARKER = '__ORCAD_LOG_TAIL__'
 /** A slot whose marker names no usable runtime; the POSIX selector exits the same way. */
@@ -63,6 +73,7 @@ export type OrcadWindowsHostOp =
   | 'record-read'
   | 'record-publish'
   | 'slot-runtime'
+  | 'data-root-probe'
   | 'remove-file'
   | 'remove-tree'
   | 'fence-check'
@@ -263,6 +274,32 @@ const ops = {
     answer('')
   },
 
+  'data-root-probe'(base, current, preferred) {
+    const name = path.basename(current)
+    if (name !== '.zkyq' && !/^[.]zkyq-[a-f0-9]{8}$/.test(name)) throw new Error('Unexpected managed data directory')
+    const previous = path.join(path.dirname(current), name.replace('.zkyq', '.orca'))
+    const exists = value => { try { return fs.lstatSync(value) } catch (error) { if (error.code === 'ENOENT') return null; throw error } }
+    const c = exists(current), o = exists(previous)
+    if (c && o && fs.realpathSync(current).toLowerCase() !== fs.realpathSync(previous).toLowerCase()) throw new Error('Conflicting default data directories')
+    const value = c ? {userDataDir:current,state:'current'} : o ? {userDataDir:previous,state:'previous'} : {userDataDir:current,state:'empty'}
+    const cap = dir => {
+      const file = path.join(dir, ${text(ORCAD_CLI_PACKAGE_FILENAME)})
+      const stats = exists(file)
+      if (!stats) return false
+      if (!stats.isFile() || stats.size > 65536) throw new Error('Invalid component capabilities')
+      return JSON.parse(fs.readFileSync(file,'utf8')).zkyqDefaultDataRoots === 1
+    }
+    const candidates = [...(preferred ? [preferred] : []), ...fs.readdirSync(base).filter(name => new RegExp(${text(remoteInstallVersionDirRegex(ORCAD_INSTALL_MODEL).source)}).test(name)).map(name => path.join(base,name))]
+    const helper = candidates.find(dir => exists(dir)?.isDirectory() && exists(path.join(dir,${text(ORCAD_INSTALL_COMPLETE_FILENAME)}))?.isFile() && cap(dir)) || ''
+    const line = (marker, value) => marker + ' ' + Buffer.from(value).toString('base64')
+    answer([
+      line(${text(MANAGED_DATA_ROOT_PATH_MARKER)},JSON.stringify(value)),
+      line(${text(MANAGED_DATA_ROOT_HELPER_MARKER)},helper),
+      line(${text(MANAGED_DATA_ROOT_TARGET_MARKER)},preferred && cap(preferred) ? '1' : '0'),
+      ''
+    ].join('\\n'))
+  },
+
   // The node.exe a slot's marker names; with clear-stop-request, also drops a stale request.
   'slot-runtime'(slotDir, mode) {
     let sha
@@ -271,6 +308,9 @@ const ops = {
     if (!/^[0-9a-f]{64}$/.test(sha)) process.exit(${ORCAD_WINDOWS_RUNTIME_MISSING_EXIT})
     const runtime = path.join(path.dirname(slotDir), ${text(ORCAD_RUNTIMES_DIRNAME)}, ${text(ORCAD_NODE_RUNTIME_DIR_PREFIX)} + sha, ${text(ORCAD_NODE_RUNTIME_WINDOWS_EXECUTABLE)})
     try { if (!fs.statSync(runtime).isFile()) process.exit(${ORCAD_WINDOWS_RUNTIME_MISSING_EXIT}) } catch { process.exit(${ORCAD_WINDOWS_RUNTIME_MISSING_EXIT}) }
+    let launchPackage = null
+    try { launchPackage = fs.readFileSync(path.join(slotDir, ${text(ORCAD_CLI_PACKAGE_FILENAME)}), 'utf8') } catch (error) { if (error.code !== 'ENOENT') throw error }
+    const launchEnvironmentVersion = (${parseOrcadLaunchEnvironmentVersion.toString()})(launchPackage)
     if (mode === 'clear-stop-request') {
       try { fs.unlinkSync(path.join(slotDir, ${text(ORCAD_STOP_REQUEST_FILENAME)})) } catch (error) { if (error.code !== 'ENOENT') process.exit(1) }
     }
@@ -279,6 +319,7 @@ const ops = {
     answer([
       [${text(ORCAD_WINDOWS_RUNTIME_MARKER)}, Buffer.from(runtime, 'utf8').toString('base64')].join(' '),
       [${text(ORCAD_WINDOWS_ENTRY_MARKER)}, Buffer.from(entry, 'utf8').toString('base64')].join(' '),
+      [${text(ORCAD_WINDOWS_LAUNCH_ENV_MARKER)}, Buffer.from(String(launchEnvironmentVersion), 'utf8').toString('base64')].join(' '),
       ''
     ].join('\\n'))
   },

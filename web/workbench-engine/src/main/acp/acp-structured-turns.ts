@@ -153,7 +153,7 @@ export class AcpStructuredTurns {
     if (this.unsettled.delete(clientMessageId)) {
       this.deps.settle({
         clientMessageId,
-        providerIdentity: { provider: 'orca', clientMessageId }
+        providerIdentity: { provider: 'zkyq', clientMessageId }
       })
     }
   }

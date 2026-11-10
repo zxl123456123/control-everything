@@ -23,12 +23,12 @@ function readAppDirArg(argv) {
 
 function getPackagedCliPath(appDir) {
   if (process.platform === 'darwin' || appDir.endsWith('.app')) {
-    return join(appDir, 'Contents', 'Resources', 'bin', 'orca')
+    return join(appDir, 'Contents', 'Resources', 'bin', 'zkyq')
   }
   if (process.platform === 'win32') {
-    return join(appDir, 'resources', 'bin', 'orca.exe')
+    return join(appDir, 'resources', 'bin', 'zkyq.exe')
   }
-  return join(appDir, 'resources', 'bin', 'orca-ide')
+  return join(appDir, 'resources', 'bin', 'zkyq')
 }
 
 const appDir = resolve(readAppDirArg(process.argv.slice(2)))
@@ -41,6 +41,9 @@ try {
   const cliPath = getPackagedCliPath(copiedAppDir)
   const env = { ...process.env, NODE_PATH: '' }
   delete env.ORCA_CLI_CWD
+  delete env.ORCA_CLI_WSL_DISTRO
+  delete env.ZKYQ_CLI_CWD
+  delete env.ZKYQ_CLI_WSL_DISTRO
   const run = (args) =>
     execFileAsync(cliPath, args, {
       env,

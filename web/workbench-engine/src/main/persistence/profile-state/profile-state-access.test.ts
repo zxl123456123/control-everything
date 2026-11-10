@@ -130,7 +130,7 @@ describe('profile state admission and maintenance', () => {
     fs.mkdirSync(profileDir, { recursive: true })
     const files = {
       profileId,
-      dataFile: join(profileDir, 'orca-data.json'),
+      dataFile: join(profileDir, 'zkyq-data.json'),
       databasePath: join(profileDir, 'profile-state.db')
     }
     const owner = acquireProfileStateMaintenance(path)
@@ -157,7 +157,7 @@ describe('profile state admission and maintenance', () => {
       expect(() =>
         assertProfileStateMaintenance(owner, {
           profileId: 'escaped',
-          dataFile: join(outside, 'orca-data.json'),
+          dataFile: join(outside, 'zkyq-data.json'),
           databasePath: join(outside, 'profile-state.db')
         })
       ).toThrow('paths')

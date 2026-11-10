@@ -34,7 +34,7 @@ type RecordedPost = {
 
 type PluginEventHandler = (input: { event: unknown }) => Promise<void>
 
-const ENV_KEYS = ['ORCA_PANE_KEY', 'ORCA_AGENT_HOOK_PORT', 'ORCA_AGENT_HOOK_TOKEN'] as const
+const ENV_KEYS = ['ZKYQ_PANE_KEY', 'ZKYQ_AGENT_HOOK_PORT', 'ZKYQ_AGENT_HOOK_TOKEN'] as const
 
 describe('OpenCode plugin MessagePart throttling', () => {
   let tempDir: string
@@ -49,9 +49,9 @@ describe('OpenCode plugin MessagePart throttling', () => {
     for (const key of ENV_KEYS) {
       savedEnv[key] = process.env[key]
     }
-    process.env.ORCA_PANE_KEY = 'tab-1:leaf-1'
-    process.env.ORCA_AGENT_HOOK_PORT = '45678'
-    process.env.ORCA_AGENT_HOOK_TOKEN = 'test-token'
+    process.env.ZKYQ_PANE_KEY = 'tab-1:leaf-1'
+    process.env.ZKYQ_AGENT_HOOK_PORT = '45678'
+    process.env.ZKYQ_AGENT_HOOK_TOKEN = 'test-token'
     savedFetch = globalThis.fetch
     globalThis.fetch = vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
       posts.push({ url: String(url), body: JSON.parse(String(init?.body)) })
@@ -74,10 +74,10 @@ describe('OpenCode plugin MessagePart throttling', () => {
   })
 
   async function loadPluginEventHandler(): Promise<PluginEventHandler> {
-    const pluginPath = join(tempDir, 'orca-opencode-status.mjs')
+    const pluginPath = join(tempDir, 'zkyq-opencode-status.mjs')
     writeFileSync(pluginPath, _internals.getOpenCodePluginSource())
     const module = (await import(pathToFileURL(pluginPath).href)) as {
-      OrcaOpenCodeStatusPlugin: (ctx: unknown) => Promise<{ event: PluginEventHandler }>
+      ZkyqOpenCodeStatusPlugin: (ctx: unknown) => Promise<{ event: PluginEventHandler }>
     }
     const client = {
       session: {
@@ -85,7 +85,7 @@ describe('OpenCode plugin MessagePart throttling', () => {
         list: async () => ({ data: [{ id: 'session-1' }] })
       }
     }
-    const hooks = await module.OrcaOpenCodeStatusPlugin({ client })
+    const hooks = await module.ZkyqOpenCodeStatusPlugin({ client })
     return hooks.event
   }
 

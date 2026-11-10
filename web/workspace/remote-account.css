@@ -2,6 +2,7 @@
    Tokens mirror the mobile ce-ui design system (theme/tokens.ts, motion/springs.ts) under the --ca-* namespace,
    so the browser portal and the phone app read as one product. Do not reuse the --ce-* namespace here:
    ui-theme.js writes inline --ce-* values that belong to the workspace theme. */
+.ce-account-refresh-controls{border:0;margin:0;padding:0;min-width:0}.ce-account-refreshing{color:var(--ca-muted);margin-bottom:12px!important}
 
 /* ---- tokens: light (default), explicit dark, and system dark when no theme is chosen ---- */
 .ce-account-page,.ce-account-brand,.ce-account{

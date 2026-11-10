@@ -1,4 +1,5 @@
 import type { SkillProvider, SkillSourceKind } from './skills'
+import { WORKBENCH_SKILLS_REPOSITORY } from './agent-feature-install-commands'
 
 export type SkillBundleFileIdentity = {
   path: string
@@ -61,10 +62,10 @@ export type SkillFreshnessInstallation = {
   errorCategory: string | null
 }
 
-const ORCA_SKILL_LOCK_SOURCE = 'stablyai/orca'
+const LEGACY_SKILL_LOCK_SOURCE = 'stablyai/orca'
 
-/** Whether the skills.sh lock says this name was installed from Orca's repository. */
-export function isOrcaSkillLockSource(source: string | null): boolean {
+/** Recognize current installs and historical installs that still need migration. */
+export function isWorkbenchSkillLockSource(source: string | null): boolean {
   if (!source) {
     return false
   }
@@ -74,7 +75,7 @@ export function isOrcaSkillLockSource(source: string | null): boolean {
     .replace(/^https:\/\/github\.com\//, '')
     .replace(/\/+$/, '')
     .replace(/\.git$/, '')
-  return normalized === ORCA_SKILL_LOCK_SOURCE
+  return normalized === WORKBENCH_SKILLS_REPOSITORY || normalized === LEGACY_SKILL_LOCK_SOURCE
 }
 
 // Why: Orca's updater only ever passes --global, so a project's or a plugin's own copy is

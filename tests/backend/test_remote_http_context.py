@@ -94,6 +94,17 @@ class RemoteHTTPTests(unittest.TestCase):
             self.assertEqual(self.request(route)[1]["reason"], "remote_agent_route_rejected")
             self.assertEqual(self.request(route, "POST", {})[1]["reason"], "remote_agent_route_rejected")
 
+    def test_reconnect_bootstrap_requires_panel_client_and_never_starts_runtime(self):
+        revision = self.profile.store.list_revision()
+        for value in ([], ""):
+            with self.subTest(client=value):
+                status, response = self.request("/api/bootstrap", headers={"X-Session-Client": value})
+                self.assertEqual((status, response["reason"]), (403, "client_header_required"))
+        self.assertEqual(self.request("/api/bootstrap", headers={"X-Session-Client": "panel"})[0], 200)
+        self.assertEqual(self.profile.store.list_revision(), revision)
+        self.runtime.bootstrap.assert_not_called()
+        self.runtime.bootstrap_runtime.assert_not_called()
+
     def test_original_csrf_and_public_origin_are_required_for_writes(self):
         body = {"project_id": self.project["id"]}
         for headers in ({"Origin": []}, {"Origin": ""}, {"Origin": [ORIGIN] * 2},
@@ -197,6 +208,18 @@ class LocalDesktopHTTPTests(unittest.TestCase):
         self.connector.begin_authorization.assert_not_called()
         self.connector.connect.assert_not_called()
         self.assertEqual(self.request('/api/desktop/remote/status?unknown=1')[0],400)
+
+    def test_desktop_theme_allows_inline_images_with_strict_script_and_frame_sources(self):
+        self.assertEqual(self.request('/desktop')[0], 200)
+        policy = self.last_handler.reply.call_args.kwargs['csp']
+        directives = dict(part.strip().split(' ', 1) for part in policy.split(';') if part.strip())
+        self.assertEqual(directives, {
+            'default-src': "'self'", 'script-src': "'self'", 'style-src': "'self'",
+            'img-src': "'self' data:", 'object-src': "'none'",
+            'frame-ancestors': "'none'", 'base-uri': "'none'",
+        })
+        for kind in ('connect-src', 'frame-src', 'font-src'):
+            self.assertEqual(directives.get(kind, directives['default-src']), "'self'")
 
     def test_local_confirmation_requires_empty_body_origin_and_csrf(self):
         for body in ({"owner":"other"}, []):

@@ -1,4 +1,6 @@
 import { mergeGitConfigEnvProtocol } from '../../shared/git-credential-prompt-env'
+import { migrateAgentHookEnvironmentIdentity } from '../../shared/agent-hook-environment-identity'
+import { migrateOpenCodeEnvironmentIdentity } from '../../shared/opencode-environment-identity'
 import { restoreManagedDataAccountEnvironment } from '../../shared/managed-data-account-environment'
 import {
   ORCA_IMAGE_PROTOCOL_ENV,
@@ -25,6 +27,9 @@ export function buildLocalPtySpawnEnvironment(args: {
 }): Record<string, string> | Promise<Record<string, string>> {
   const { id, spawn, getOptions, plan } = args
   const spawnEnv = buildInheritedLocalPtyEnvironment(spawn.env, spawn.envToDelete)
+  const explicitEnv = { ...spawn.env }
+  migrateAgentHookEnvironmentIdentity(explicitEnv)
+  migrateOpenCodeEnvironmentIdentity(explicitEnv)
 
   // Why: on Windows LANG doesn't set the console code page; PYTHONUTF8=1 forces Python UTF-8 stdio to avoid garbled CJK.
   if (process.platform === 'win32') {
@@ -39,7 +44,7 @@ export function buildLocalPtySpawnEnvironment(args: {
     return spawnEnv
   }
   return getOptions().buildSpawnEnv!(id, spawnEnv, {
-    explicitEnv: spawn.env ?? {},
+    explicitEnv,
     command: spawn.command,
     launchAgent: spawn.launchAgent,
     codexHomePathOverride: spawn.codexHomePathOverride,
@@ -56,15 +61,34 @@ export function buildInheritedLocalPtyEnvironment(
   envToDelete: readonly string[] = []
 ): Record<string, string> {
   const inheritedEnv = stripInheritedBuildModeEnv(process.env)
+  // A parent pane cannot supply identity for this newly created terminal.
+  for (const suffix of [
+    'PANE_KEY',
+    'TAB_ID',
+    'WORKTREE_ID',
+    'AGENT_LAUNCH_TOKEN',
+    'AGENT_PANE',
+    'AGENT_LAUNCH',
+    'HOOK_AGENT_PID'
+  ]) {
+    delete inheritedEnv[`ORCA_${suffix}`]
+    delete inheritedEnv[`ZKYQ_${suffix}`]
+  }
+  migrateAgentHookEnvironmentIdentity(inheritedEnv)
+  migrateOpenCodeEnvironmentIdentity(inheritedEnv)
+  explicitEnv = explicitEnv ? { ...explicitEnv } : undefined
+  const currentDeletions = [...envToDelete]
+  migrateAgentHookEnvironmentIdentity(explicitEnv ?? {}, currentDeletions)
+  migrateOpenCodeEnvironmentIdentity(explicitEnv ?? {}, currentDeletions)
   restoreManagedDataAccountEnvironment(inheritedEnv)
   const spawnEnv: Record<string, string> = {
     ...mergeGitConfigEnvProtocol(inheritedEnv, explicitEnv),
     TERM: 'xterm-256color',
     COLORTERM: 'truecolor',
-    TERM_PROGRAM: 'Orca',
+    TERM_PROGRAM: 'zkyq',
     // Why: TUIs feature-gate on TERM_PROGRAM_VERSION; the fallback keeps tests and non-Electron runs working.
-    TERM_PROGRAM_VERSION: process.env.ORCA_APP_VERSION ?? '0.0.0-dev',
-    // Why: supports-hyperlinks rejects TERM_PROGRAM=Orca, so tools drop OSC 8 links; force it since xterm.js parses them.
+    TERM_PROGRAM_VERSION: process.env.ZKYQ_APP_VERSION ?? '0.0.0-dev',
+    // Why: tools may not recognize this terminal identifier; xterm.js supports OSC 8 links.
     FORCE_HYPERLINK: '1',
     [ORCA_IMAGE_PROTOCOL_ENV]: ORCA_IMAGE_PROTOCOL_VALUE
   } satisfies Record<string, string>
@@ -73,7 +97,7 @@ export function buildInheritedLocalPtyEnvironment(
   removeAppImageRuntimeEnv(spawnEnv)
   removeChromiumDisabledSessionBus(spawnEnv)
   removeInheritedNoColor(spawnEnv)
-  for (const key of envToDelete) {
+  for (const key of currentDeletions) {
     delete spawnEnv[key]
   }
   if (explicitEnv?.TERM) {
@@ -91,8 +115,11 @@ export function enforceLocalPtySpawnEnvironmentOverrides(
   spawn: PtySpawnOptions,
   finalEnv: Record<string, string>
 ): void {
+  const currentDeletions = [...(spawn.envToDelete ?? [])]
+  migrateAgentHookEnvironmentIdentity(finalEnv, currentDeletions)
+  migrateOpenCodeEnvironmentIdentity(finalEnv, currentDeletions)
   stripPiProcessOwnerEnv(finalEnv)
-  for (const key of spawn.envToDelete ?? []) {
+  for (const key of currentDeletions) {
     delete finalEnv[key]
   }
   if (spawn.env?.TERM) {

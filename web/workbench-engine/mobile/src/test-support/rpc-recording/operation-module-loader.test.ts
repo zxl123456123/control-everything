@@ -32,6 +32,21 @@ afterAll(() => {
 })
 
 describe('the mounted module loader', () => {
+  it('matches directory-qualified mutation and exposure suffixes on the host filesystem', () => {
+    const root = sourceTree({ 'value.ts': 'const value = 1; export const read = () => value' })
+    const modules = operationModuleLoader(
+      root,
+      { name: 'value', file: 'mobile/src/value.ts', before: '= 1', after: '= 2' },
+      [['src/value.ts', '\nexports.exposed = () => value + 10']]
+    )
+    const result = modules.load<{ read: () => number; exposed: () => number }>(
+      'mobile/src/value.ts'
+    )
+    expect(result.read()).toBe(2)
+    expect(result.exposed()).toBe(12)
+    expect(modules.mutationsApplied()).toBe(1)
+  })
+
   it('preserves constants through a star reexport in an evaluated module', () => {
     const modules = loaderOver({
       'constants.ts': `export const CAPABILITY = 'files.mutation-ownership.v1'`,

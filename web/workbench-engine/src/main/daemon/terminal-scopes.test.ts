@@ -1,11 +1,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
+  migrateTerminalResourceEnvironment,
   parsePtyProcessCeiling,
   PTY_PROCESS_CEILING_ENV,
   resolveTerminalScopes,
   type TerminalScopeRuntime
 } from './terminal-scopes'
 import {
+  initializeTerminalScopes,
   isTerminalScopeWrapper,
   setTerminalScopesForTest,
   wrapPtySpawnInTerminalScope
@@ -40,6 +42,80 @@ vi.mock('./daemon-cgroup-scope', async (importOriginal) => {
 const SLICE_CGROUP =
   '/user.slice/user-1000.slice/user@1000.service/orca_ptys_orca_daemon_1f_2e.slice'
 const SCOPE_ON = { on: expect.objectContaining({ slice: 'orca_ptys_orca_daemon_1f_2e.slice' }) }
+
+describe('terminal resource environment migration', () => {
+  it('copies all old limits without changing the parent environment', () => {
+    const original = {
+      ORCA_TERMINAL_PROCESS_CEILING: '2048',
+      ORCA_TERMINAL_MEMORY_MAX: '8G',
+      ORCA_TERMINAL_MEMORY_SWAP_MAX: '0'
+    }
+    const result = migrateTerminalResourceEnvironment(original)
+    expect(result.env).toEqual({
+      ZKYQ_TERMINAL_PROCESS_CEILING: '2048',
+      ZKYQ_TERMINAL_MEMORY_MAX: '8G',
+      ZKYQ_TERMINAL_MEMORY_SWAP_MAX: '0'
+    })
+    expect(result.migrated).toEqual([
+      PTY_PROCESS_CEILING_ENV,
+      TERMINAL_MEMORY_MAX_ENV,
+      TERMINAL_MEMORY_SWAP_MAX_ENV
+    ])
+    expect(result.superseded).toEqual([])
+    expect(original.ORCA_TERMINAL_MEMORY_MAX).toBe('8G')
+  })
+
+  it('honors explicit new settings, including disabled and invalid values', () => {
+    const result = migrateTerminalResourceEnvironment({
+      ORCA_TERMINAL_PROCESS_CEILING: '2048',
+      ZKYQ_TERMINAL_PROCESS_CEILING: '0',
+      ORCA_TERMINAL_MEMORY_MAX: '8G',
+      ZKYQ_TERMINAL_MEMORY_MAX: '',
+      ORCA_TERMINAL_MEMORY_SWAP_MAX: '1G',
+      ZKYQ_TERMINAL_MEMORY_SWAP_MAX: 'bad'
+    })
+    expect(result.migrated).toEqual([])
+    expect(result.superseded).toEqual([
+      PTY_PROCESS_CEILING_ENV,
+      TERMINAL_MEMORY_MAX_ENV,
+      TERMINAL_MEMORY_SWAP_MAX_ENV
+    ])
+    const resolved = resolveTerminalScopes(linuxInput(fakeManager(), { env: result.env }))
+    expect(resolved.ceiling).toEqual({ state: 'off', reason: 'disabled' })
+    expect(resolved.memory?.refused).toEqual([TERMINAL_MEMORY_SWAP_MAX_ENV])
+  })
+
+  it('keeps migrated limits effective in the real resolver', () => {
+    const { env } = migrateTerminalResourceEnvironment({
+      ORCA_TERMINAL_PROCESS_CEILING: '2048',
+      ORCA_TERMINAL_MEMORY_MAX: '8G',
+      ORCA_TERMINAL_MEMORY_SWAP_MAX: '0'
+    })
+    const resolved = resolveTerminalScopes(linuxInput(fakeManager({ pidsMax: '2048' }), { env }))
+    expect(resolved.ceiling).toMatchObject({ state: 'on', limit: 2048 })
+    expect(resolved.memory?.applied).toEqual(['MemoryMax=8589934592', 'MemorySwapMax=0'])
+  })
+
+  it('applies migrated settings during daemon initialization', () => {
+    vi.stubEnv('ORCA_TERMINAL_PROCESS_CEILING', '12')
+    vi.stubEnv('ZKYQ_TERMINAL_PROCESS_CEILING', undefined)
+    vi.stubEnv('ORCA_TERMINAL_MEMORY_MAX', undefined)
+    vi.stubEnv('ORCA_TERMINAL_MEMORY_SWAP_MAX', undefined)
+    vi.stubEnv('ZKYQ_TERMINAL_MEMORY_MAX', undefined)
+    vi.stubEnv('ZKYQ_TERMINAL_MEMORY_SWAP_MAX', undefined)
+    const log = vi.fn()
+    try {
+      expect(initializeTerminalScopes(null, log)).toEqual({ state: 'off', reason: 'invalid_limit' })
+      expect(log).toHaveBeenCalledWith('terminal-resource-environment-migration', {
+        migrated: [PTY_PROCESS_CEILING_ENV],
+        superseded: []
+      })
+    } finally {
+      vi.unstubAllEnvs()
+      setTerminalScopesForTest(null)
+    }
+  })
+})
 
 type Call = { program: string; args: string[] }
 

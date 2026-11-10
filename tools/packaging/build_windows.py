@@ -300,7 +300,8 @@ def validate_target_metadata(probe, identities):
     rows = {canonicalize_name(value['name']): value for value in probe['distributions']}
     if len(rows) != len(probe['distributions']) or {name: row['version'] for name, row in rows.items()} != expected:
         raise BuildError('installed_distribution_mismatch')
-    extras, pending, reached = {'control-everything': set()}, ['control-everything'], set()
+    # The complete Windows desktop includes the declared offline news translator.
+    extras, pending, reached = {'control-everything': {'news'}}, ['control-everything'], set()
     while pending:
         name = pending.pop()
         reached.add(name)
@@ -416,7 +417,7 @@ def write_product_manifest(stage, version, source):
 
 def build_payload(wheel, wheelhouse, runtime_zip, observer_release, output, cargo_packages, inno_license,
                   *, engine_root=None, engine_run=None, portable_git=None, git_receipt=None, endpoints=None,
-                  release=False, runner=subprocess.run):
+                  desktop_window=None, release=False, runner=subprocess.run):
     api, output = contract(), Path(output)
     if not output.is_absolute() or output.exists():
         raise BuildError('new_absolute_output_required')
@@ -434,6 +435,8 @@ def build_payload(wheel, wheelhouse, runtime_zip, observer_release, output, carg
     verify_product_sources(wheel, inputs, version)
     if any(value is None for value in (engine_root, engine_run, portable_git, git_receipt, endpoints)):
         raise BuildError("desktop_prepared_inputs_required")
+    if release and desktop_window is None:
+        raise BuildError('desktop_window_build_required')
     release_observer_info(observer_release)
     for path in (runtime_zip, cargo_packages, inno_license):
         api.no_links(path)
@@ -451,7 +454,7 @@ def build_payload(wheel, wheelhouse, runtime_zip, observer_release, output, carg
     compile_runtime(runtime, output, runner)
     helper('notices').collect_notices(output, [wheel, *wheels], runtime / 'LICENSE.txt', cargo_packages, inno_license)
     desktop = helper('desktop_payload').stage(output, engine_root, engine_run, portable_git, git_receipt, endpoints, api, helper,
-                                               source_bundle)
+                                               source_bundle, desktop_window)
     provenance = {'desktop': desktop, 'source_inputs': inputs, 'wheel_inputs': identities, 'native_build': native,
                   'runtime': DOWNLOADS['python'], 'installer_tool': DOWNLOADS['inno'],
                   'numeric_version': version_info(version), 'lock_sha256': api.sha256(lockfile),
@@ -470,12 +473,14 @@ def main(argv=None):
         parser.add_argument('--' + name, type=Path, required=True)
     for name in ('engine-root', 'engine-run', 'portable-git', 'git-receipt', 'endpoints'):
         parser.add_argument('--' + name, type=Path, required=True)
+    parser.add_argument('--desktop-window', type=Path)
     parser.add_argument('--release', action='store_true', help='Require a clean, committed source tree.')
     args = parser.parse_args(argv)
     try:
         result = build_payload(args.wheel, args.wheelhouse, args.runtime_zip, args.observer_release,
                                args.output, args.cargo_packages, args.inno_license, engine_root=args.engine_root, engine_run=args.engine_run,
-                               portable_git=args.portable_git, git_receipt=args.git_receipt, endpoints=args.endpoints, release=args.release)
+                               portable_git=args.portable_git, git_receipt=args.git_receipt, endpoints=args.endpoints,
+                               desktop_window=args.desktop_window, release=args.release)
         print(json.dumps(result))
         return 0
     except (OSError, ValueError, KeyError, zipfile.BadZipFile) as error:

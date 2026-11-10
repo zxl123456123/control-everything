@@ -63,7 +63,7 @@ describe('runtime environment store', () => {
         name: 'myself',
         pairingCode: pairingCode('ws://192.0.2.10:6768')
       })
-    ).toThrow(/this Orca itself/)
+    ).toThrow(/points to this computer/)
     expect(listEnvironments(userDataPath)).toEqual([])
   })
 

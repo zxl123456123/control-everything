@@ -331,10 +331,10 @@ module.exports = {
     // extraResources entry below; keeping them in app.asar would ship every
     // native variant (and duplicate the selected one).
     '!node_modules/sherpa-onnx*{,/**/*}',
-    // Why: the Windows CLI shim ships via extraResources to resources/bin/orca.cmd
-    // (beside the native resources/bin/orca.exe). Packing the source tree into
+    // Why: the Windows CLI shim ships via extraResources to resources/bin/zkyq.cmd
+    // (beside the native resources/bin/zkyq.exe). Packing the source tree into
     // app.asar too lets asarUnpack:['resources/**'] extract a second copy at
-    // app.asar.unpacked/resources/win32/bin/orca.cmd with no adjacent orca.exe,
+    // app.asar.unpacked/resources/win32/bin/zkyq.cmd with no adjacent zkyq.exe,
     // which fails to launch the CLI (#7351).
     '!resources/win32{,/**/*}'
   ],
@@ -581,22 +581,22 @@ module.exports = {
       ...windowsRuntimeResources,
       winSpeechNativeResource,
       {
-        from: 'resources/win32/bin/orca.cmd',
-        to: 'bin/orca.cmd'
+        from: 'resources/win32/bin/zkyq.cmd',
+        to: 'bin/zkyq.cmd'
       },
       {
-        from: 'native/windows-cli-launcher/.build/orca.exe',
-        to: 'bin/orca.exe'
+        from: 'native/windows-cli-launcher/.build/zkyq.exe',
+        to: 'bin/zkyq.exe'
       },
       {
-        from: 'native/windows-cli-launcher/.build/orca-administrator-restart.exe',
-        to: 'bin/orca-administrator-restart.exe'
+        from: 'native/windows-cli-launcher/.build/zkyq-administrator-restart.exe',
+        to: 'bin/zkyq-administrator-restart.exe'
       },
       // Why resources/bin: SignPath signs every unsigned PE under win-unpacked, and the hook
-      // installer copies this signed file into ~/.orca/agent-hooks (#20913).
+      // installer copies this signed file into ~/.zkyq/agent-hooks (#20913).
       {
-        from: 'native/windows-agent-hook/.build/orca-agent-hook.exe',
-        to: 'bin/orca-agent-hook.exe'
+        from: 'native/windows-agent-hook/.build/zkyq-agent-hook.exe',
+        to: 'bin/zkyq-agent-hook.exe'
       },
       {
         from: 'node_modules/agent-browser/bin/agent-browser-win32-x64.exe',
@@ -669,8 +669,8 @@ module.exports = {
       ...createPackagedRuntimeNodeModuleResources('darwin'),
       macSpeechNativeResource,
       {
-        from: 'resources/darwin/bin/orca',
-        to: 'bin/orca'
+        from: 'resources/darwin/bin/zkyq',
+        to: 'bin/zkyq'
       },
       {
         from: 'node_modules/agent-browser/bin/agent-browser-darwin-${arch}',
@@ -741,8 +741,8 @@ module.exports = {
         to: 'bin/orca-wayland-clipboard'
       },
       {
-        from: 'resources/linux/bin/orca-ide',
-        to: 'bin/orca-ide'
+        from: 'resources/linux/bin/zkyq',
+        to: 'bin/zkyq'
       },
       {
         from: 'node_modules/agent-browser/bin/agent-browser-linux-${arch}',
@@ -778,7 +778,7 @@ module.exports = {
       'xclip',
       'xvfb'
     ],
-    // Why: symlink the bundled CLI onto PATH at install time so `orca-ide serve`
+    // Why: symlink the bundled CLI onto PATH at install time so `zkyq serve`
     // works on a headless host. The in-app CLI registration (CliInstaller) is
     // GUI-triggered and can never run on a server, so without this the CLI is
     // unreachable from the shell on exactly the hosts that need it.
@@ -840,7 +840,7 @@ function chmodUnixCliLaunchers(resourcesDir, electronPlatformName) {
   if (electronPlatformName === 'win32') {
     return
   }
-  for (const launcherName of ['orca', 'orca-ide']) {
+  for (const launcherName of ['zkyq']) {
     const launcherPath = join(resourcesDir, 'bin', launcherName)
     if (!existsSync(launcherPath)) {
       continue

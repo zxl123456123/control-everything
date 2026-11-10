@@ -8,6 +8,7 @@ import {
   renameSync,
   unlinkSync
 } from 'node:fs'
+import { constants, copyFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { randomUUID } from 'node:crypto'
@@ -81,8 +82,10 @@ export function createManagedCommandMatcher(
     `agent-hooks/${scriptStem}.ps1`,
     `agent-hooks/${scriptStem}.sh`
   ]
-  // The shared native hook names its agent in the first argument: `orca-agent-hook.exe claude`.
-  const nativeHook = `agent-hooks/${WINDOWS_NATIVE_HOOK_EXECUTABLE_NAME} ${getWindowsNativeHookAgent(scriptFileName)} `
+  // The shared native hook names its agent in the first argument: `zkyq-agent-hook.exe claude`.
+  const nativeHooks = [WINDOWS_NATIVE_HOOK_EXECUTABLE_NAME, 'orca-agent-hook.exe'].map(
+    (name) => `agent-hooks/${name} ${getWindowsNativeHookAgent(scriptFileName)} `
+  )
   return (command) => {
     if (!command) {
       return false
@@ -92,7 +95,9 @@ export function createManagedCommandMatcher(
     const normalizedCommand = searchText.replaceAll('\\', '/')
     return (
       needles.some((needle) => normalizedCommand.includes(needle)) ||
-      normalizedCommand.split('\n').some((line) => `${line} `.includes(nativeHook))
+      normalizedCommand
+        .split('\n')
+        .some((line) => nativeHooks.some((hook) => `${line} `.includes(hook)))
     )
   }
 }
@@ -111,7 +116,24 @@ function decodePowerShellEncodedCommand(command: string): string | null {
 
 // Why: prod/dev/parallel Orca instances must write the same managed entry, not race between per-userData script paths.
 export function getSharedManagedScriptPath(scriptFileName: string): string {
-  return join(homedir(), '.orca', 'agent-hooks', scriptFileName)
+  const current = join(homedir(), '.zkyq', 'agent-hooks', scriptFileName)
+  // Preserve the installed choice; the scripts and managed hook JSON are regenerated.
+  if (
+    /^(claude|openclaude|qoder|qoder-cn|qwen-code|codebuddy)-statusline\.installed$/.test(
+      scriptFileName
+    )
+  ) {
+    const retired = join(homedir(), '.orca', 'agent-hooks', scriptFileName)
+    if (!existsSync(current) && existsSync(retired)) {
+      mkdirSync(dirname(current), { recursive: true, mode: 0o700 })
+      try {
+        copyFileSync(retired, current, constants.COPYFILE_EXCL)
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error
+      }
+    }
+  }
+  return current
 }
 
 export { wrapPosixHookCommand } from './posix-hook-command'
@@ -139,16 +161,16 @@ export function buildWindowsAgentHookPostCommand(
   // Why: PowerShell startup makes inline per-turn Codex hooks visibly slow, so mirror the POSIX curl path.
   // Why: fully-qualify curl so a repo-local curl.exe can't hijack hook payloads.
   return [
-    `"%SystemRoot%\\System32\\curl.exe" -sS -X POST "http://127.0.0.1:%ORCA_AGENT_HOOK_PORT%/hook/${source}" ^`,
+    `"%SystemRoot%\\System32\\curl.exe" -sS -X POST "http://127.0.0.1:%ZKYQ_AGENT_HOOK_PORT%/hook/${source}" ^`,
     '  --connect-timeout 0.5 --max-time 1.5 ^',
     '  -H "Content-Type: application/x-www-form-urlencoded" ^',
-    '  -H "X-Orca-Agent-Hook-Token: %ORCA_AGENT_HOOK_TOKEN%" ^',
-    '  --data-urlencode "paneKey=%ORCA_PANE_KEY%" ^',
-    '  --data-urlencode "tabId=%ORCA_TAB_ID%" ^',
-    '  --data-urlencode "launchToken=%ORCA_AGENT_LAUNCH_TOKEN%" ^',
-    '  --data-urlencode "worktreeId=%ORCA_WORKTREE_ID%" ^',
-    '  --data-urlencode "env=%ORCA_AGENT_HOOK_ENV%" ^',
-    '  --data-urlencode "version=%ORCA_AGENT_HOOK_VERSION%" ^',
+    '  -H "X-%ZKYQ_HOOK_HEADER_NAMESPACE%-Agent-Hook-Token: %ZKYQ_AGENT_HOOK_TOKEN%" ^',
+    '  --data-urlencode "paneKey=%ZKYQ_PANE_KEY%" ^',
+    '  --data-urlencode "tabId=%ZKYQ_TAB_ID%" ^',
+    '  --data-urlencode "launchToken=%ZKYQ_AGENT_LAUNCH_TOKEN%" ^',
+    '  --data-urlencode "worktreeId=%ZKYQ_WORKTREE_ID%" ^',
+    '  --data-urlencode "env=%ZKYQ_AGENT_HOOK_ENV%" ^',
+    '  --data-urlencode "version=%ZKYQ_AGENT_HOOK_VERSION%" ^',
     ...extraFormLines,
     '  --data-urlencode "payload@-" >nul 2>nul'
   ].join('\r\n')
@@ -158,16 +180,16 @@ export function buildWindowsAgentHookPostCommand(
 export function buildWindowsAgentHookCurlPostCommand(source: AgentHookSource): string {
   return [
     '"%SystemRoot%\\System32\\curl.exe" -sS -X POST',
-    `"http://127.0.0.1:%ORCA_AGENT_HOOK_PORT%/hook/${source}"`,
+    `"http://127.0.0.1:%ZKYQ_AGENT_HOOK_PORT%/hook/${source}"`,
     '--connect-timeout 0.5 --max-time 1.5',
     '-H "Content-Type: application/x-www-form-urlencoded"',
-    '-H "X-Orca-Agent-Hook-Token: %ORCA_AGENT_HOOK_TOKEN%"',
-    '--data-urlencode "paneKey=%ORCA_PANE_KEY%"',
-    '--data-urlencode "tabId=%ORCA_TAB_ID%"',
-    '--data-urlencode "launchToken=%ORCA_AGENT_LAUNCH_TOKEN%"',
-    '--data-urlencode "worktreeId=%ORCA_WORKTREE_ID%"',
-    '--data-urlencode "env=%ORCA_AGENT_HOOK_ENV%"',
-    '--data-urlencode "version=%ORCA_AGENT_HOOK_VERSION%"',
+    '-H "X-%ZKYQ_HOOK_HEADER_NAMESPACE%-Agent-Hook-Token: %ZKYQ_AGENT_HOOK_TOKEN%"',
+    '--data-urlencode "paneKey=%ZKYQ_PANE_KEY%"',
+    '--data-urlencode "tabId=%ZKYQ_TAB_ID%"',
+    '--data-urlencode "launchToken=%ZKYQ_AGENT_LAUNCH_TOKEN%"',
+    '--data-urlencode "worktreeId=%ZKYQ_WORKTREE_ID%"',
+    '--data-urlencode "env=%ZKYQ_AGENT_HOOK_ENV%"',
+    '--data-urlencode "version=%ZKYQ_AGENT_HOOK_VERSION%"',
     '--data-urlencode "payload@-"',
     '>nul 2>&1'
   ].join(' ')

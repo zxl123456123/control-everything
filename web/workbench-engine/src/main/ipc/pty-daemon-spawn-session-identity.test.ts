@@ -218,8 +218,8 @@ describe('registerPtyHandlers', () => {
           { materializeDefaultHome: false }
         )
         expect(env.PI_CODING_AGENT_DIR).toBeUndefined()
-        expect(env.ORCA_PI_CODING_AGENT_DIR).toBeUndefined()
-        expect(env.ORCA_PI_SOURCE_AGENT_DIR).toBe('/ambient/pi/agent')
+        expect(env.ZKYQ_PI_CODING_AGENT_DIR).toBeUndefined()
+        expect(env.ZKYQ_PI_SOURCE_AGENT_DIR).toBe('/ambient/pi/agent')
       })
       it('does not mutate the caller-provided args.env on the daemon path', async () => {
         // Why: the handler clones baseEnv so IPC-provided env stays pristine; a regression would leak Orca host env back into the renderer's reused copy.
@@ -235,7 +235,7 @@ describe('registerPtyHandlers', () => {
         expect(argsEnv).toEqual({ FOO: 'bar' })
         // Sanity: the spawn did receive the injected env, so the test isn't passing vacuously.
         const spawnEnv = daemonSpawn.mock.calls.at(-1)![0].env
-        expect(spawnEnv.ORCA_AGENT_HOOK_PORT).toBe('5678')
+        expect(spawnEnv.ZKYQ_AGENT_HOOK_PORT).toBe('5678')
         expect(spawnEnv).not.toBe(argsEnv)
       })
       it('rejects a caller-supplied sessionId that escapes userData via ..', async () => {
@@ -395,7 +395,7 @@ describe('registerPtyHandlers', () => {
         /Invalid PTY session id/
       )
       await lanes.spawn('host', { env: {}, sessionId: '' })
-      expect(lanes.daemonSpawn.mock.calls.at(-1)![0].env.ORCA_AGENT_HOOK_PORT).toBeUndefined()
+      expect(lanes.daemonSpawn.mock.calls.at(-1)![0].env.ZKYQ_AGENT_HOOK_PORT).toBeUndefined()
       expect(piBuildPtyEnvMock).not.toHaveBeenCalled()
     })
 
@@ -417,14 +417,14 @@ describe('registerPtyHandlers', () => {
         : undefined
       for (const lane of ['window', 'host'] as const) {
         await lanes.spawn(lane, {
-          env: { ORCA_PANE_KEY: 'stale-tab:stale-leaf' },
+          env: { ZKYQ_PANE_KEY: 'stale-tab:stale-leaf' },
           tabId: 'tab-1',
           leafId,
           launchAgent: 'jcode'
         })
         const env = lanes.daemonSpawn.mock.calls.at(-1)![0].env
-        expect(env.ORCA_PANE_KEY).toBe(paneKey)
-        expect(env.ORCA_TAB_ID).toBe('tab-1')
+        expect(env.ZKYQ_PANE_KEY).toBe(paneKey)
+        expect(env.ZKYQ_TAB_ID).toBe('tab-1')
         expect(env[JCODE_RUNTIME_DIR_ENV_KEY]).toBe(jcodeDir)
       }
     })

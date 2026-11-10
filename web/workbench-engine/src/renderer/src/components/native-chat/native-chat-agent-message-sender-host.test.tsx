@@ -91,7 +91,7 @@ function tab(id: string, sessionId: string, name: string, host: 'local' | 'runti
   }
 }
 function source(terminal = false): AgentMessageSource {
-  const address = terminal ? 'term-sender' : `orca_session_id:${ROOT}`
+  const address = terminal ? 'term-sender' : `agent_session:${ROOT}`
   return {
     kind: 'agent',
     senders: [

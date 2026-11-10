@@ -119,7 +119,7 @@ function unavailableLine(reason: string | undefined): SshHostServerStatusLine {
       tone: 'destructive',
       text: translate(
         'auto.components.settings.sshHostServer.runtimeNoexec',
-        'This host doesn’t allow running programs from ~/.orca-remote, so Orca can’t start its server there. This usually means the home folder is mounted with noexec. Ask the host’s administrator to allow running programs there, then connect again.'
+        'This host doesn’t allow running programs from ~/.zkyq-remote, so Control Everything can’t start its server there. This usually means the home folder is mounted with noexec. Ask the host’s administrator to allow running programs there, then connect again.'
       )
     }
   }

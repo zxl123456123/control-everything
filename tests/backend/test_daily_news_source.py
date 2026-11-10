@@ -197,7 +197,7 @@ class NewsCacheTests(unittest.TestCase):
         first = self.collector.get()
         self.assertEqual(first['status'], 'available')
         first['sources'].clear()
-        self.assertEqual(len(self.collector.get()['sources']), 3)
+        self.assertEqual(len(self.collector.get()['sources']), len(worker.FEEDS))
         self.now = 901
         self.assertEqual(self.collector.get()['status'], 'stale')
         self.collector.finish(self.jobs[-1], [], 'timeout', True)
@@ -281,7 +281,7 @@ class NewsCacheTests(unittest.TestCase):
 
 
 class NewsFramesTests(unittest.TestCase):
-    def frame(self, key='openai'):
+    def frame(self, key='qbitai'):
         definition = next(row for row in worker.FEEDS if row[0] == key)
         return worker.source_frame('ai', 'a' * 32, key, worker.empty_result(), None,
                                    definition[2], 'application/rss+xml', '2026-10-17T00:00:00+00:00')

@@ -7,7 +7,7 @@
  */
 import type { SshConnection } from '../connection/ssh-connection'
 import { quotePosixShell } from '../../../shared/shell-argument-quoting'
-import { RELAY_REMOTE_DIR } from '../remote-exec/remote-frame-protocol'
+import { RELAY_REMOTE_DIR, RETIRED_RELAY_REMOTE_DIR } from '../remote-exec/remote-frame-protocol'
 import { SHORT_RELAY_SOCKET_DIR_PREFIX } from '../relay-socket-path-limit'
 import { execCommand } from '../remote-exec/remote-exec-command'
 import { readRelayDaemonRuntimes } from './ssh-relay-endpoint-runtime'
@@ -54,11 +54,14 @@ export type LegacyRelayEndpointListing =
 export function legacyRelayEndpointListCommand(remoteHome: string, sockName: string): string {
   const name = quotePosixShell(sockName)
   return [
-    `base=${quotePosixShell(`${remoteHome}/${RELAY_REMOTE_DIR}`)}`,
     `short_base="${SHORT_RELAY_SOCKET_DIR_PREFIX}$(id -u 2>/dev/null)"`,
-    `for sock in "$base"/relay-*/${name} "$short_base"/relay-*/${name}; do`,
+    `seen=''; for base in ${quotePosixShell(`${remoteHome}/${RETIRED_RELAY_REMOTE_DIR}`)} ${quotePosixShell(`${remoteHome}/${RELAY_REMOTE_DIR}`)}; do`,
+    '[ -d "$base" ] || continue; actual=$(cd "$base" && pwd -P) || exit 1; [ "$actual" = "$seen" ] && continue; seen="$actual";',
+    `for sock in "$base"/relay-*/${name}; do`,
     '  [ -S "$sock" ] && printf \'%s\\n\' "$sock"',
     'done',
+    'done',
+    `for sock in "$short_base"/relay-*/${name}; do [ -S "$sock" ] && printf '%s\\n' "$sock"; done`,
     'true'
   ].join('\n')
 }
@@ -80,7 +83,14 @@ export function posixLegacyRelayConnectCommand(
   if (slash <= 0 || !versionDir.startsWith('relay-') || !sockName) {
     return null
   }
-  const relayDir = `${remoteHome}/${RELAY_REMOTE_DIR}/${versionDir}`
+  const root = [RELAY_REMOTE_DIR, RETIRED_RELAY_REMOTE_DIR].find(
+    (name) => sockDir === `${remoteHome}/${name}/${versionDir}`
+  )
+  const relayDir = root ? sockDir : `${remoteHome}/${RELAY_REMOTE_DIR}/${versionDir}`
+  if (!root) {
+    const oldDir = `${remoteHome}/${RETIRED_RELAY_REMOTE_DIR}/${versionDir}`
+    return `if [ -d ${quotePosixShell(oldDir)} ]; then relay_dir=${quotePosixShell(oldDir)}; else relay_dir=${quotePosixShell(relayDir)}; fi; cd "$relay_dir" && ${quotePosixShell(nodePath)} relay.js --connect --sock-path ${quotePosixShell(sockPath)} --credential-file "$relay_dir"/${quotePosixShell(`${sockName}.credential`)}`
+  }
   return (
     `cd ${quotePosixShell(relayDir)} && ${quotePosixShell(nodePath)} relay.js --connect ` +
     `--sock-path ${quotePosixShell(sockPath)} ` +
