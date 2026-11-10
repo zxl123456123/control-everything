@@ -61,6 +61,7 @@
       <div class="ce-heading"><div><h1 id="ce-members-title" tabindex="-1">成员管理</h1><p data-node="summary">查看小组成员与电脑连接，管理访问权限。</p></div>
         <div class="ce-heading-actions"><button class="ce-iconbtn" type="button" data-action="refresh" aria-label="刷新成员" title="刷新成员">${icons.refresh}</button>
         <button class="ce-button ce-primary" type="button" data-action="invite">${icons.plus}<span>邀请成员</span></button></div></div>
+      <p class="ce-mem-muted">普通账号由管理员预先开通；邀请码仅供仍启用邀请流程的自建服务使用。</p>
       <p class="ce-mem-invite" data-node="invite" hidden><span>邀请码</span><output data-node="code"></output><small>24 小时内有效，仅可使用一次。</small></p>
       <p class="ce-mem-notice" data-node="notice" role="status" aria-live="polite" hidden></p>
       <div class="ce-mem-toolbar" data-node="toolbar"><label class="ce-search">${icons.search}<input type="search" data-node="query" placeholder="筛选成员" aria-label="筛选成员" autocomplete="off"></label>
@@ -140,7 +141,7 @@
       const rows = visible(), online = (page?.items || []).reduce((sum, member) => sum + (member.devices || []).filter(device => device.state === 'online').length, 0);
       $('summary').textContent = page ? `共 ${page.total} 位成员 · ${online} 台电脑在线` : '';
       if (!page) list.innerHTML = '';
-      else if (!rows.length) list.innerHTML = `<div class="ce-mem-empty">${icons.members}<strong>${page.total ? '没有符合条件的成员' : '还没有成员'}</strong><span>${page.total ? '换个关键词或状态试试。' : '点击“邀请成员”，把邀请码发给对方即可。'}</span></div>`;
+      else if (!rows.length) list.innerHTML = `<div class="ce-mem-empty">${icons.members}<strong>${page.total ? '没有符合条件的成员' : '还没有成员'}</strong><span>${page.total ? '换个关键词或状态试试。' : '请由管理员预先创建并开通账号；使用邀请码的小组可点击“邀请成员”。'}</span></div>`;
       else list.innerHTML = `<div class="ce-mem-head" aria-hidden="true"><span>成员</span><span>状态</span><span>电脑</span><span>最近活动</span><span></span></div><div role="list">${rows.map(row).join('')}</div>`;
       const pages = page && page.total > page.limit;
       $('pager').hidden = !pages;
