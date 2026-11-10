@@ -196,6 +196,18 @@ test('refresh during a rejected write never announces a successful status change
   assert.equal(f.q(`[data-action="status"][data-sub="${BOB}"]`).dataset.next, 'disabled');
 });
 
+test('a successful status write preserves a failed roster refresh message', async t => {
+  const f = await fixture(t); f.mount(); await tick();
+  const fetch = f.w.fetch;
+  f.w.fetch = (url, options) => url.startsWith('/remote/api/admin/roster') && f.state.disabled
+    ? Promise.resolve({ status: 503, ok: false, json: async () => ({ error: 'unavailable' }) }) : fetch(url, options);
+  await f.click(`[data-action="toggle"][data-sub="${BOB}"]`);
+  await f.click(`[data-action="status"][data-sub="${BOB}"]`);
+  assert.equal(f.state.disabled, true, 'the hub accepted the status write');
+  assert.match(f.q('[data-node="notice"]').textContent, /请求未成功，请刷新后重试/);
+  assert.doesNotMatch(f.q('[data-node="notice"]').textContent, /已停用/);
+});
+
 test('Studio shows the tab only for admins and the page carries the packaging entries', async t => {
   const shell = fs.readFileSync(path.join(root, 'web/workspace/studio-shell.js'), 'utf8');
   const w = new (await import(pathToFileURL(path.join(root, 'web/workbench-engine/node_modules/happy-dom/lib/index.js')).href)).Window({ settings: { disableJavaScriptFileLoading: true } });

@@ -165,6 +165,7 @@
       say(error.message || fallbackError);
     }
     async function load(offset = page?.offset || 0) {
+      let loaded = false;
       const mine = ++generation; loading = true; paint(); say('');
       try {
         if (!csrf) {
@@ -181,11 +182,13 @@
         if (!value || disposed || mine !== generation) return;
         if (!Array.isArray(value.items)) throw new Error(fallbackError);
         page = value;
+        loaded = true;
       } catch (error) {
         if (mine === generation) fail(error.status === 403 ? Object.assign(error, {message: errors.admin_required}) : error);
         if (mine === generation && error.status === 403) { blocked = errors.admin_required; page = null; }
       }
       if (!disposed && mine === generation) { loading = false; paint(); }
+      return loaded;
     }
     async function confirmed(title, message, trigger) {
       if (!scope.CEUIDialog) { say('确认界面尚未就绪，未执行操作。'); return false; }
@@ -195,7 +198,7 @@
     async function act(key, work, success) {
       if (busy.has(key) || disposed || blocked) return;
       busy.add(key); paint(); say('');
-      try { await work(); if (disposed) return; await load(); if (success && !disposed && !blocked) say(success, 'success'); }
+      try { await work(); if (disposed) return; const refreshed = await load(); if (success && refreshed && !disposed && !blocked) say(success, 'success'); }
       catch (error) { fail(error); }
       finally { busy.delete(key); if (!disposed) paint(); }
     }
