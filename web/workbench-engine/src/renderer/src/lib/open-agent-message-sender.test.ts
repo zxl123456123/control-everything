@@ -57,7 +57,7 @@ import { openAgentMessageSender } from './open-agent-message-sender'
 
 const HOST = { kind: 'environment', environmentId: 'env-host' }
 const ROOT = testOrcaSessionId('4a1f6c2e-8b3d-4e7a-9c15-0d2b6e8f1a37')
-const chat = { address: `orca_session_id:${ROOT}`, terminalHandle: null, orcaSessionId: ROOT }
+const chat = { address: `agent_session:${ROOT}`, terminalHandle: null, orcaSessionId: ROOT }
 const terminal = { address: 'term_a', terminalHandle: 'term_a', orcaSessionId: null }
 const dispatch = { address: 'dispatch:d1', terminalHandle: 'dispatch:d1', orcaSessionId: null }
 

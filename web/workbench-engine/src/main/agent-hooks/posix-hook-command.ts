@@ -20,8 +20,13 @@ export function wrapPosixHookCommand(
       : `printf '%s\\n' ${quotePosixShell(options.fallbackStdout)}; ${POSIX_HOOK_STDIN_DRAIN_COMMAND}`
   // Why: default form avoids Grok rejecting unset vars or splicing values into shell quotes at load
   // time; the child shell checks the current pane env before spawning the managed script.
+  // The shared Grok registration is also read by panes started before the identity migration.
+  const requiredValue =
+    options.requiredEnvVar === 'ZKYQ_PANE_KEY'
+      ? '${ZKYQ_PANE_KEY-${ORCA_PANE_KEY-}}'
+      : `\${${options.requiredEnvVar}-}`
   const guards = [
-    ...(options.requiredEnvVar ? [`[ -n "\${${options.requiredEnvVar}-}" ]`] : []),
+    ...(options.requiredEnvVar ? [`[ -n "${requiredValue}" ]`] : []),
     `[ -f ${quoted} ]`,
     `[ -r ${quoted} ]`,
     `[ -x ${quoted} ]`

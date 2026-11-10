@@ -1,5 +1,6 @@
 """Standard-library-only integrity rules shared by build and installed runtime."""
 
+from concurrent.futures import ThreadPoolExecutor
 import hashlib
 import json
 from pathlib import Path, PurePosixPath
@@ -7,6 +8,7 @@ import re
 import stat
 
 NATIVE_EXE = 'native/observer/session-panel-observer.exe'
+DESKTOP_WINDOW_EXE = 'native/desktop/session-panel.exe'
 NATIVE_MANIFEST = 'native/observer/manifest.json'
 NATIVE_FILES = {NATIVE_EXE, NATIVE_MANIFEST}
 BASE_FILES = {'runtime/python.exe', 'runtime/python313.dll', 'runtime/python313.zip', 'runtime/python313._pth',
@@ -15,6 +17,8 @@ BASE_FILES = {'runtime/python.exe', 'runtime/python313.dll', 'runtime/python313.
 FIELDS = {'schema', 'product', 'version', 'target', 'python', 'source', 'compatibility', 'native', 'files', 'closure'}
 MAX_MANIFEST_BYTES = 16 * 1024 * 1024
 HEX = re.compile(r'[0-9a-f]{64}\Z')
+WINDOWS_RESERVED_NAMES = frozenset({'CON', 'PRN', 'AUX', 'NUL',
+                                   *(f'COM{i}' for i in range(1, 10)), *(f'LPT{i}' for i in range(1, 10))})
 
 
 class ManifestError(ValueError):
@@ -58,7 +62,7 @@ def relative_path(value):
         raise ManifestError('invalid_path', value)
     for part in path.parts:
         if (part.endswith(('.', ' ')) or any(char in part for char in '<>"|?*')
-                or part.split('.')[0].upper() in {'CON', 'PRN', 'AUX', 'NUL', *(f'COM{i}' for i in range(1, 10)), *(f'LPT{i}' for i in range(1, 10))}):
+                or part.split('.')[0].upper() in WINDOWS_RESERVED_NAMES):
             raise ManifestError('invalid_path', value)
     return path
 
@@ -76,11 +80,8 @@ def no_links(path):
 
 
 def sha256(path):
-    digest = hashlib.sha256()
     with Path(path).open('rb') as stream:
-        for block in iter(lambda: stream.read(1024 * 1024), b''):
-            digest.update(block)
-    return digest.hexdigest()
+        return hashlib.file_digest(stream, 'sha256').hexdigest()
 
 
 def exact(value, fields, reason):
@@ -113,13 +114,13 @@ def validate_manifest(document):
     names, seen, components = [], set(), {}
     for row in document['files']:
         exact(row, {'path', 'size', 'sha256'}, 'file_fields')
-        relative_path(row['path'])
+        path = relative_path(row['path'])
         folded = row['path'].casefold()
         if folded == 'product.json' or folded in seen:
             raise ManifestError('duplicate_path', row['path'])
         seen.add(folded)
         names.append(row['path'])
-        for prefix in (PurePosixPath(row['path']), *PurePosixPath(row['path']).parents):
+        for prefix in (path, *path.parents):
             if str(prefix) == '.':
                 continue
             value = str(prefix)
@@ -163,8 +164,27 @@ def inventory(root):
     return files, directories
 
 
+def bootstrap_rows(document):
+    """Select the interpreter, application code and native protocol for maintenance."""
+    packages = 'runtime/Lib/site-packages/'
+    return [row for row in document['files'] if row['path'] in NATIVE_FILES or
+            row['path'].startswith('runtime/') and
+            (not row['path'].startswith(packages) or
+             row['path'].startswith(packages + 'control_everything/') or
+             row['path'] == packages + 'sitecustomize.py')]
+
+
 def verify_payload(version_dir, strict_native=False):
     """Verify immutable base assets; native is separately gated for degraded runtime use."""
+    return _verify(version_dir, strict_native=strict_native, maintenance=False)
+
+
+def verify_bootstrap(version_dir):
+    """Verify the closed maintenance subset, never a runnable desktop product."""
+    return _verify(version_dir, strict_native=True, maintenance=True)
+
+
+def _verify(version_dir, *, strict_native, maintenance):
     root = no_links(version_dir)
     try:
         manifest_path = no_links(root / 'product.json')
@@ -174,19 +194,25 @@ def verify_payload(version_dir, strict_native=False):
             raise ManifestError('manifest_oversize')
         document = validate_manifest(strict_json(raw.decode('utf-8')))
         files, directories = inventory(root)
-        expected = {row['path']: row for row in document['files']}
+        expected = {row['path']: row for row in (bootstrap_rows(document) if maintenance else document['files'])}
         extras = set(files) - set(expected) - {'product.json'}
         parents = {str(parent) for name in expected for parent in PurePosixPath(name).parents if str(parent) != '.'}
         if extras or directories - parents:
             raise ManifestError('unexpected_asset', sorted(extras or directories - parents)[0])
-        for name, row in expected.items():
-            if not strict_native and name in NATIVE_FILES:
-                continue
+        def verify_file(item):
+            name, row = item
             path = files.get(name)
             if path is None:
                 raise ManifestError('missing_asset', name)
             if path.stat().st_size != row['size'] or sha256(path) != row['sha256']:
                 raise ManifestError('asset_mismatch', name)
+
+        rows = [(name, row) for name, row in expected.items() if strict_native or name not in NATIVE_FILES]
+        # Bound queued work as well as open readers; wait for readers even on failure.
+        with ThreadPoolExecutor(max_workers=8) as executor:
+            for offset in range(0, len(rows), 256):
+                for _ in executor.map(verify_file, rows[offset:offset + 256]):
+                    pass
         if strict_native:
             native = strict_json(files[NATIVE_MANIFEST].read_text(encoding='utf-8'))
             exact(native, {'protocol', 'build', 'toolchain', 'binary', 'sha256'}, 'native_manifest_fields')

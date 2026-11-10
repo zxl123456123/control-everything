@@ -30,6 +30,8 @@ import {
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import process from 'node:process'
+import { ORCAD_MANAGED_LAUNCH_ENVIRONMENT_VERSION } from '../../src/shared/orcad-managed-launch-env.ts'
+import { MANAGED_DATA_ROOT_VERSION } from '../../src/shared/managed-data-roots.ts'
 import { smokeProfileStateWorkers } from './profile-state-worker-smoke.mjs'
 import { smokeForeignSqliteReaderWorker } from './foreign-sqlite-reader-worker-smoke.mjs'
 import { smokeSessionScannerService } from './session-scanner-service-smoke.mjs'
@@ -64,7 +66,7 @@ import { findSlotProblems, readManifest } from './orcad-prebuild-slot-contents.m
 import { orcadAgentBrowserNativeName } from '../../src/shared/orcad-agent-browser-name.ts'
 import { runProcessSync } from '@orca/process-host'
 import { describeProcessFailure } from './process-failure-message.mjs'
-import { resolveBuildSourceCommit } from './build-source-commit.mjs'
+import { resolveWorkbenchBuildCommit } from './build-source-commit.mjs'
 
 const { darkBuildMarkers } = createRequire(import.meta.url)('../dark-build-switches.cjs')
 
@@ -82,8 +84,9 @@ function cpSync(source, output, options) {
   recordCopiedTree(source, output)
 }
 function recordCopiedTree(from, to) {
-    if (statSync(from).isDirectory()) for (const name of readdirSync(from)) recordCopiedTree(join(from, name), join(to, name))
-    else copiedInputs.push({ source: from, output: to })
+  if (statSync(from).isDirectory())
+    for (const name of readdirSync(from)) recordCopiedTree(join(from, name), join(to, name))
+  else copiedInputs.push({ source: from, output: to })
 }
 // Why beside orcad.js: every forked child and worker resolves its entry in the app root, and a
 // deployment has no desktop out/main to fall back to. A missing one only shows on a host as a
@@ -279,7 +282,9 @@ const cliPackage = {
   type: 'commonjs',
   private: true,
   version: cliVersion,
-  commit: resolveBuildSourceCommit()
+  zkyqManagedLaunchEnvironment: ORCAD_MANAGED_LAUNCH_ENVIRONMENT_VERSION,
+  zkyqDefaultDataRoots: MANAGED_DATA_ROOT_VERSION,
+  commit: resolveWorkbenchBuildCommit()
 }
 writeFileSync(join(OUT_DIR, ORCAD_CLI_PACKAGE_FILENAME), `${JSON.stringify(cliPackage)}\n`)
 const launcherResult = await buildOrcadLauncher(OUT_FILE)
@@ -446,8 +451,16 @@ if (process.exitCode !== 1) {
     agentBrowserFilename: AGENT_BROWSER_NAME
   })
   writeFileSync(join(OUT_DIR, ORCAD_VERSION_FILENAME), fullVersion)
-  for (const name of [ORCAD_SERVER_TARGET_FILENAME, ORCAD_NODE_RUNTIME_MARKER_FILENAME, ORCAD_CLI_PACKAGE_FILENAME, ORCAD_VERSION_FILENAME]) {
-    copiedInputs.push({ source: join(ROOT, 'config/scripts/build-orcad.mjs'), output: join(OUT_DIR, name) })
+  for (const name of [
+    ORCAD_SERVER_TARGET_FILENAME,
+    ORCAD_NODE_RUNTIME_MARKER_FILENAME,
+    ORCAD_CLI_PACKAGE_FILENAME,
+    ORCAD_VERSION_FILENAME
+  ]) {
+    copiedInputs.push({
+      source: join(ROOT, 'config/scripts/build-orcad.mjs'),
+      output: join(OUT_DIR, name)
+    })
   }
   writeDistributionRecord(ROOT, 'runtime', metafiles, {}, copiedInputs)
   console.log(

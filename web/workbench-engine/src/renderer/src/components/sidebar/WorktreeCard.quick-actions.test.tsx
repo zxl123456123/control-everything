@@ -56,6 +56,10 @@ vi.mock('@/lib/worktree-activation', () => ({
   activateAndRevealWorktree: vi.fn()
 }))
 
+// Rendering quick actions does not execute deletion or load the editor mutation client.
+vi.mock('./delete-worktree-flow', () => ({ runWorktreeDelete: vi.fn() }))
+vi.mock('./folder-workspace-delete', () => ({ deleteFolderWorkspaceUnlessUnsaved: vi.fn() }))
+
 vi.mock('@/components/ui/tooltip', () => ({
   Tooltip: ({ children }: { children: ReactNode }) => <>{children}</>,
   TooltipContent: ({ children }: { children: ReactNode }) => <>{children}</>,
@@ -317,12 +321,12 @@ describe('WorktreeCard quick actions', () => {
     expect(markup).not.toContain('rename pending')
   })
 
-  it('renders the migrated branch metadata row when branch is enabled', () => {
+  it('keeps a distinct branch visible beside a custom workspace title', () => {
     worktreeCardProperties = ['branch']
 
     const markup = renderToStaticMarkup(
       <WorktreeCard
-        worktree={makeWorktree({ displayName: 'quick-action', branch: 'quick-action' })}
+        worktree={makeWorktree({ displayName: 'My task', branch: 'quick-action' })}
         repo={makeRepo()}
         isActive={false}
         hideRepoBadge
@@ -412,7 +416,7 @@ describe('WorktreeCard quick actions', () => {
 
     expect(markup).toContain('primary')
     expect(markup).not.toContain('aria-label="Primary worktree"')
-    expect(markup).toContain('data-worktree-card-meta-row=""')
+    expect(markup).not.toContain('data-worktree-card-meta-row=""')
   })
 
   it('keeps unread in the status lane and moves primary into the title row when compact cards are enabled', () => {

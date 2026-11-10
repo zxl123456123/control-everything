@@ -91,7 +91,7 @@ function paths(directory: string): {
   profileId: string
 } {
   return {
-    dataFile: join(directory, 'orca-data.json'),
+    dataFile: join(directory, 'zkyq-data.json'),
     databaseFile: profileStateDatabaseFile(directory),
     profileId: 'profile-bootstrap-test'
   }
@@ -274,7 +274,7 @@ describe('profile state authority bootstrap', () => {
       'Profile state storage changed while creating an empty database'
     )
     expect(readFileSync(options.dataFile, 'utf8')).toBe(source)
-    expect(readdirSync(dirname(options.dataFile))).toEqual(['orca-data.json'])
+    expect(readdirSync(dirname(options.dataFile))).toEqual(['zkyq-data.json'])
   })
 
   it.each(['legacy-backup', 'sqlite-export'])(

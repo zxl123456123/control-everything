@@ -71,7 +71,7 @@ describe('Run coordinator Orca session address', () => {
     db = new OrchestrationDb(':memory:')
     insertSessionCoordinatedRun(db, 'run_session')
 
-    // The column holds the bare id; only the remembered address carries the orca_session_id: prefix.
+    // The column holds the bare id; only the remembered address carries the agent_session: prefix.
     expect(db.getRunRaw('run_session')?.coordinator_orca_session_id).toBe(CHAT_SESSION_ID)
     expect(addressesFor(db, 'run_session')).toEqual([CHAT_ADDRESS])
     expect(parseOrcaSessionAddress(addressesFor(db, 'run_session')[0])).toBe(CHAT_SESSION_ID)

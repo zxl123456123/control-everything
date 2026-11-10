@@ -32,7 +32,7 @@ test('OMP completion retry clears the rendered working indicator', async ({
     }
     const forwarded = await fetch(`http://127.0.0.1:${endpoint.port}/hook/omp`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Orca-Agent-Hook-Token': endpoint.token },
+      headers: { 'Content-Type': 'application/json', 'X-Zkyq-Agent-Hook-Token': endpoint.token },
       body
     })
     response.writeHead(forwarded.status).end()
@@ -62,13 +62,13 @@ test('OMP completion retry clears the rendered working indicator', async ({
         argv: [],
         title: 'omp',
         env: {
-          ORCA_PANE_KEY: paneKey,
-          ORCA_TAB_ID: paneKey.split(':')[0],
-          ORCA_WORKTREE_ID: worktreeId,
-          ORCA_AGENT_HOOK_PORT: String(address.port),
-          ORCA_AGENT_HOOK_TOKEN: endpoint.token,
-          ORCA_AGENT_HOOK_ENV: endpoint.env,
-          ORCA_AGENT_HOOK_VERSION: endpoint.version
+          ZKYQ_PANE_KEY: paneKey,
+          ZKYQ_TAB_ID: paneKey.split(':')[0],
+          ZKYQ_WORKTREE_ID: worktreeId,
+          ZKYQ_AGENT_HOOK_PORT: String(address.port),
+          ZKYQ_AGENT_HOOK_TOKEN: endpoint.token,
+          ZKYQ_AGENT_HOOK_ENV: endpoint.env,
+          ZKYQ_AGENT_HOOK_VERSION: endpoint.version
         }
       },
       fetch,

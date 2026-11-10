@@ -1,9 +1,9 @@
 /**
- * An agent session named as a recipient: `orca_session_id:<id>`, or a bare Orca session id. Any session on
+ * An agent session named as a recipient: `agent_session:<id>`, or a bare Orca session id. Any session on
  * this host can be addressed, not only one that coordinates a Run: an agent's id is its public
  * address, and a user telling one agent to message another's id is a supported workflow.
  *
- * Mail that no Run or Dispatch owns is stored at the conversation's `orca_session_id:<root id>` and pointed
+ * Mail that no Run or Dispatch owns is stored at the conversation's `agent_session:<root id>` and pointed
  * at its live session as a turn, so any session of a `/clear` lineage is a valid spelling. A
  * released lease is not a refusal (the pointer's send starts its agent); a closed chat, another host,
  * and an unknown id are, before anything is stored.
@@ -12,6 +12,7 @@
 import {
   ORCA_SESSION_ADDRESS_PREFIX,
   formatOrcaSessionAddress,
+  hasSessionAddressPrefix,
   isOrcaSessionId,
   parseOrcaSessionAddress,
   type OrcaSessionAddress,
@@ -37,7 +38,7 @@ export type SessionRecipientRefusal = {
 
 /** Whether a recipient may name a session, so the caller can install the session host first. */
 export function mayNameSession(recipient: string): boolean {
-  return recipient.startsWith(ORCA_SESSION_ADDRESS_PREFIX) || isOrcaSessionId(recipient)
+  return hasSessionAddressPrefix(recipient) || isOrcaSessionId(recipient)
 }
 
 /**
@@ -48,13 +49,13 @@ export function readSessionRecipient(
   recipient: string,
   store: AgentSessionRecordReader | null
 ): SessionRecipient | SessionRecipientRefusal | null {
-  if (recipient.startsWith(ORCA_SESSION_ADDRESS_PREFIX)) {
+  if (hasSessionAddressPrefix(recipient)) {
     const sessionId = parseOrcaSessionAddress(recipient)
     return sessionId
       ? { sessionId, address: formatOrcaSessionAddress(sessionId) }
       : {
           code: CODES.unknown,
-          message: `${recipient} does not name an Orca session ID. No message was sent.`
+          message: `${recipient} does not name a workbench session ID. No message was sent.`
         }
   }
   const sessionId = isOrcaSessionId(recipient) ? recipient : null
@@ -81,7 +82,7 @@ export function refuseUndeliverableSessionRecipient(
   if (!store) {
     return {
       code: CODES.unknown,
-      message: `Agent session ${sessionId} cannot be verified: this Orca is not running its agent-session host. ${noEffect}`
+      message: `Agent session ${sessionId} cannot be verified: this workbench is not running its agent-session host. ${noEffect}`
     }
   }
   const found = lookupOrcaAgentSession(store, sessionId)
@@ -91,7 +92,7 @@ export function refuseUndeliverableSessionRecipient(
   if (found.kind === 'unknown') {
     return {
       code: CODES.unknown,
-      message: `No Orca agent session ${sessionId} exists on this host. ${noEffect}`
+      message: `No agent session ${sessionId} exists on this host. ${noEffect}`
     }
   }
   const reach = structuredSessionMailReach(store, found.record, db)
@@ -125,13 +126,13 @@ function providerIdRefusal(
   store: AgentSessionRecordReader | null,
   noEffect = 'No message was sent.'
 ): SessionRecipientRefusal {
-  // The conversation's Orca session ID, which a `/clear`ed session keeps; not the live session's.
+  // The conversation's workbench session ID, which a `/clear`ed session keeps; not the live session's.
   const root = isOrcaSessionId(orcaSessionId)
     ? canonicalOrcaSessionId(orcaSessionId, store)
     : orcaSessionId
   const address = `${ORCA_SESSION_ADDRESS_PREFIX}${root}`
   return {
     code: CODES.providerId,
-    message: `${id} is the provider's own session id, which changes on /clear. This session's Orca session ID is ${address}; address it by that instead. ${noEffect}`
+    message: `${id} is the provider's own session id, which changes on /clear. This session's workbench session ID is ${address}; address it by that instead. ${noEffect}`
   }
 }

@@ -1,5 +1,15 @@
 import { randomUUID } from 'node:crypto'
-import { chmodSync, mkdirSync, renameSync, unlinkSync, writeFileSync } from 'node:fs'
+import {
+  chmodSync,
+  existsSync,
+  lstatSync,
+  mkdirSync,
+  readFileSync,
+  renameSync,
+  statSync,
+  unlinkSync,
+  writeFileSync
+} from 'node:fs'
 import { join } from 'node:path'
 
 import { sweepStaleAgentHookEndpointTemps } from '../agent-hook-endpoint-temp-cleanup'
@@ -8,7 +18,7 @@ import { sweepStaleAgentHookEndpointTemps } from '../agent-hook-endpoint-temp-cl
 
 export function getEndpointFileName(): string {
   // Why: per-platform extension lets hook scripts source the file natively (POSIX `. "$file"` / Windows `call "%file%"`); the OpenCode plugin regex accepts both shapes.
-  return process.platform === 'win32' ? 'endpoint.cmd' : 'endpoint.env'
+  return process.platform === 'win32' ? 'endpoint-v2.cmd' : 'endpoint-v2.env'
 }
 
 export function isShellSafeEndpointValue(value: string): boolean {
@@ -36,16 +46,16 @@ export function writeEndpointFile(
   const tmpPath = join(endpointDir, `.endpoint-${process.pid}-${randomUUID()}.tmp`)
   const prefix = process.platform === 'win32' ? 'set ' : ''
   const valuesToWrite: [string, string][] = [
-    ['ORCA_AGENT_HOOK_PORT', String(fields.port)],
-    ['ORCA_AGENT_HOOK_TOKEN', fields.token],
-    ['ORCA_AGENT_HOOK_ENV', fields.env],
-    ['ORCA_AGENT_HOOK_VERSION', fields.version]
+    ['ZKYQ_AGENT_HOOK_PORT', String(fields.port)],
+    ['ZKYQ_AGENT_HOOK_TOKEN', fields.token],
+    ['ZKYQ_AGENT_HOOK_ENV', fields.env],
+    ['ZKYQ_AGENT_HOOK_VERSION', fields.version]
   ]
   if (fields.transport) {
-    valuesToWrite.push(['ORCA_AGENT_HOOK_TRANSPORT', fields.transport])
+    valuesToWrite.push(['ZKYQ_AGENT_HOOK_TRANSPORT', fields.transport])
   }
   if (fields.openCodeTui) {
-    valuesToWrite.push(['ORCA_AGENT_HOOK_OPENCODE_TUI', '1'])
+    valuesToWrite.push(['ZKYQ_AGENT_HOOK_OPENCODE_TUI', '1'])
   }
   for (const [key, value] of valuesToWrite) {
     if (!isShellSafeEndpointValue(value)) {
@@ -57,6 +67,28 @@ export function writeEndpointFile(
     }
   }
   const lines = [...valuesToWrite.map(([key, value]) => `${prefix}${key}=${value}`), '']
+  // Existing sessions keep their frozen file path and v1 parser until they exit.
+  // A fresh profile creates only the canonical v2 endpoint.
+  const retiredPath = join(
+    endpointDir,
+    process.platform === 'win32' ? 'endpoint.cmd' : 'endpoint.env'
+  )
+  let refreshRetired = false
+  try {
+    if (
+      retiredPath !== finalPath &&
+      existsSync(retiredPath) &&
+      lstatSync(retiredPath).isFile() &&
+      statSync(retiredPath).size <= 64 * 1024
+    ) {
+      const prior = readFileSync(retiredPath, 'utf8')
+      refreshRetired = ['PORT', 'TOKEN', 'ENV', 'VERSION'].every((suffix) =>
+        new RegExp(`^(?:set\\s+)?ORCA_AGENT_HOOK_${suffix}=.+$`, 'm').test(prior)
+      )
+    }
+  } catch {
+    // An unreadable or unrelated file is never rewritten as a migration side effect.
+  }
   let tmpWritten = false
   try {
     // Why: 0o700 owner-only so the dir doesn't leak this install's existence to other local users.
@@ -75,6 +107,14 @@ export function writeEndpointFile(
     writeFileSync(tmpPath, lines.join(separator), { mode: 0o600 })
     tmpWritten = true
     renameSync(tmpPath, finalPath)
+    if (refreshRetired) {
+      const retiredLines = valuesToWrite.map(
+        ([key, value]) =>
+          `${prefix}${key.replace(/^ZKYQ_/, 'ORCA_')}=${key === 'ZKYQ_AGENT_HOOK_VERSION' ? '1' : value}`
+      )
+      writeFileSync(tmpPath, [...retiredLines, ''].join(separator), { mode: 0o600 })
+      renameSync(tmpPath, retiredPath)
+    }
     return true
   } catch (err) {
     console.error('[agent-hooks] failed to write endpoint file:', err)

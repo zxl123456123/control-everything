@@ -1,3 +1,9 @@
+import {
+  buildPosixHookEndpointRefresh,
+  buildPosixHookEnvironmentIdentityMigration,
+  buildWindowsHookEndpointRefresh,
+  buildWindowsHookEnvironmentIdentityMigration
+} from '../agent-hooks/hook-environment-identity-prelude'
 import { existsSync, readFileSync, unlinkSync } from 'node:fs'
 import type { SFTPWrapper } from 'ssh2'
 
@@ -48,7 +54,8 @@ function getManagedScript(target: 'local' | 'posix' = 'local'): string {
     return [
       '@echo off',
       'setlocal',
-      'if defined ORCA_AGENT_HOOK_ENDPOINT if exist "%ORCA_AGENT_HOOK_ENDPOINT%" call "%ORCA_AGENT_HOOK_ENDPOINT%" 2>nul',
+      ...buildWindowsHookEnvironmentIdentityMigration(),
+      ...buildWindowsHookEndpointRefresh(),
       ...buildWindowsHookEnvironmentGuardLines(),
       buildWindowsAgentHookCurlPostCommand('muse'),
       'exit /b 0',
@@ -59,14 +66,13 @@ function getManagedScript(target: 'local' | 'posix' = 'local'): string {
 
   return [
     '#!/bin/sh',
+    ...buildPosixHookEnvironmentIdentityMigration(),
     ...buildPosixHookPayloadCapture(),
     ...buildPosixHookSpoolLines('muse'),
     // Why: endpoint file holds the live port/token; PTYs that outlive an Orca restart carry stale env, so source it to reach the new server (else PTY env).
     // Why: silence the `.` builtin (2>/dev/null + `|| :`) so a TOCTOU race can't leak shell parse errors into agent transcripts (fail-open).
-    'if [ -n "$ORCA_AGENT_HOOK_ENDPOINT" ] && [ -r "$ORCA_AGENT_HOOK_ENDPOINT" ]; then',
-    '  . "$ORCA_AGENT_HOOK_ENDPOINT" 2>/dev/null || :',
-    'fi',
-    'if [ -z "$ORCA_AGENT_HOOK_PORT" ] || [ -z "$ORCA_AGENT_HOOK_TOKEN" ] || [ -z "$ORCA_PANE_KEY" ]; then',
+    ...buildPosixHookEndpointRefresh(),
+    'if [ -z "$ZKYQ_AGENT_HOOK_PORT" ] || [ -z "$ZKYQ_AGENT_HOOK_TOKEN" ] || [ -z "$ZKYQ_PANE_KEY" ]; then',
     '  spool_hook_event',
     '  exit 0',
     'fi',
@@ -198,7 +204,15 @@ export class MuseHookService {
       typeof source.config.managed_hooks_path === 'string'
         ? source.config.managed_hooks_path
         : undefined
-    if (existingPointer !== undefined && existingPointer !== managedHooksPath) {
+    const retiredManagedHooksPath = managedHooksPath.replace(
+      /([\\/])\.zkyq([\\/])agent-hooks([\\/])muse-hooks\.json$/,
+      '$1.orca$2agent-hooks$3muse-hooks.json'
+    )
+    if (
+      existingPointer !== undefined &&
+      existingPointer !== managedHooksPath &&
+      existingPointer !== retiredManagedHooksPath
+    ) {
       return {
         agent: 'muse',
         state: 'not_installed',
@@ -228,7 +242,7 @@ export class MuseHookService {
   // Install the Muse hook on an SSH execution host, where the shell contract is POSIX.
   async installRemote(sftp: SFTPWrapper, remoteHome: string): Promise<AgentHookInstallStatus> {
     const remoteConfigPath = getMuseRemoteConfigPath(remoteHome)
-    const remoteScriptPath = `${remoteHome.replace(/\/$/, '')}/.orca/agent-hooks/muse-hook.sh`
+    const remoteScriptPath = `${remoteHome.replace(/\/$/, '')}/.zkyq/agent-hooks/muse-hook.sh`
     const remoteManagedHooksPath = getMuseRemoteManagedHooksPath(remoteHome)
     try {
       const body = await readTextFileRemote(sftp, remoteConfigPath)
@@ -244,7 +258,15 @@ export class MuseHookService {
       }
       const existingPointer =
         typeof config.managed_hooks_path === 'string' ? config.managed_hooks_path : undefined
-      if (existingPointer !== undefined && existingPointer !== remoteManagedHooksPath) {
+      const retiredManagedHooksPath = remoteManagedHooksPath.replace(
+        /\/\.zkyq\/agent-hooks\/muse-hooks\.json$/,
+        '/.orca/agent-hooks/muse-hooks.json'
+      )
+      if (
+        existingPointer !== undefined &&
+        existingPointer !== remoteManagedHooksPath &&
+        existingPointer !== retiredManagedHooksPath
+      ) {
         return {
           agent: 'muse',
           state: 'not_installed',

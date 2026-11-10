@@ -90,7 +90,7 @@ describe("a person's Stop's Stopping", () => {
   it('reads only the journal from the running turn on, however long the chat before it', async () => {
     for (let index = 0; index < 40; index += 1) {
       await journal.appendItem(
-        { provider: 'orca', clientMessageId: `earlier-${index}` },
+        { provider: 'zkyq', clientMessageId: `earlier-${index}` },
         { kind: 'status', text: `earlier row ${index}` },
         { fence: FENCE, turnScope: AGENT_JOURNAL_THREAD_SCOPE }
       )

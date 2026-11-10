@@ -213,7 +213,7 @@
       "config/scripts/node-server-policy-self-tests.test.mjs": 3143,
       "config/scripts/node-server-qualification.test.mjs": 43,
       "config/scripts/nsis-process-check.test.mjs": 50,
-      "config/scripts/orca-dev-bin.test.mjs": 87,
+      "config/scripts/zkyq-dev-bin.test.mjs": 87,
       "config/scripts/orcad-artifact-version.test.mjs": 515,
       "config/scripts/orcad-daemon-protocol-crossing.test.mjs": 60,
       "config/scripts/orcad-e2e-routing.test.mjs": 131,

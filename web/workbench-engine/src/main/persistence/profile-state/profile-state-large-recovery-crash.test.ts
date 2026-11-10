@@ -39,7 +39,7 @@ async function fixture() {
   const directory = join(root, 'profiles', profileId)
   mkdirSync(directory, { recursive: true })
   const databasePath = join(directory, 'profile-state.db')
-  const dataFile = join(directory, 'orca-data.json')
+  const dataFile = join(directory, 'zkyq-data.json')
   const backupPath = profileStateDatabaseBackupPath(
     databasePath,
     createProfileStateDatabaseBackupId()

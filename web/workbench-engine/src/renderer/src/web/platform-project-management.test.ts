@@ -98,7 +98,6 @@ beforeEach(async () => {
         canWrite: () => true
       })
     },
-    ProjectProgress: {}, ProjectProgressModel: {},
     StudioPetSettings: { mount: () => () => {} },
     WorkspaceTaskCenter: { create: legacy },
     WorkspaceAgentBoard: { create: createBoard }
@@ -165,33 +164,28 @@ it('retired native management requests cannot reopen an outer project form or ch
   expect(document.activeElement).toBe(trigger); expect(post).not.toHaveBeenCalled()
 })
 
-it('uses one business task board and preserves review/attention filters across refreshes and legacy links', async () => {
-  expect(createBoard.mock.calls[0][0]).toMatchObject({ unified: true })
+it('does not mount retired task boards for legacy links', async () => {
+  expect(createBoard).not.toHaveBeenCalled()
   expect(legacy).not.toHaveBeenCalled()
-  for (const [hash, id, filter] of [
-    ['#project/p-one/manage', 'p-one', 'all'],
-    ['#project/p-one/review', 'p-one', 'review'],
-    ['#project/p-one/attention', 'p-one', 'attention'],
-    ['#inbox/manage', '', 'all'],
-    ['#inbox/review', '', 'review'],
-    ['#attention', '', 'attention']
+  for (const hash of [
+    '#project/p-one/manage', '#project/p-one/review', '#project/p-one/attention',
+    '#inbox/manage', '#inbox/review', '#attention'
   ]) {
     acceptRoute(hash)
-    await waitFor(() => expect(scope).toHaveBeenLastCalledWith(id, filter))
-    expect(root.querySelector('[data-action="refresh"]')).toBeNull()
-    await createBoard.mock.calls[0][0].onRefresh()
-    await waitFor(() => expect(scope).toHaveBeenLastCalledWith(id, filter))
+    expect(createBoard).not.toHaveBeenCalled()
+    expect(legacy).not.toHaveBeenCalled()
+    expect(scope).not.toHaveBeenCalled()
     expect(window.location.hash).toBe(hash)
-    expect(root.querySelector<HTMLElement>('#studio-tasks')!.hidden).toBe(true)
     expect(root.querySelector('[data-edit-items]')).toBeNull()
   }
 })
 
-it('keeps the explicit legacy executor board separate when mounted without the native shell', async () => {
+it('does not fall back to the legacy executor board without the native shell', async () => {
   mountStandalone()
   await waitFor(() => expect(root.querySelector('[data-project-menu]')).not.toBeNull())
   acceptRoute('#project/p-one/board')
-  await waitFor(() => expect(createBoard.mock.calls.at(-1)?.[0]).toMatchObject({ unified: false }))
+  await waitFor(() => expect(root.textContent).toContain('项目运行组件未连接'))
+  expect(createBoard).not.toHaveBeenCalled()
   expect(root.querySelector('a[href$="/activity"]')).toBeNull()
   expect(post).not.toHaveBeenCalled()
 })
@@ -223,7 +217,9 @@ it('keeps native rename confirmation on the same workspace without the retired f
 it('native actions use the active project when an archived record shares its directory', async () => {
   const archived = { ...project, id: 'p-old', name: 'Archived predecessor', archived: true }
   archivedRecords.push(archived)
-  await createBoard.mock.calls[0][0].onRefresh()
+  const reads = changed.mock.calls.length
+  root.querySelector<HTMLButtonElement>('[data-action="refresh"]')!.click()
+  await waitFor(() => expect(changed.mock.calls.length).toBeGreaterThan(reads))
   acceptRoute('#project/p-one/workspace')
   const request = nativeAction('rename', { name: 'Active renamed' })
   const confirm = await request.result as () => Promise<void>; await confirm(); request.controller.abort()
@@ -249,7 +245,8 @@ it('preserves the current overview search focus and selection when refreshed dat
   const input = root.querySelector<HTMLInputElement>('#studio-project-search')!
   input.focus(); input.setSelectionRange(0,0)
   project.name = 'Updated'
-  await createBoard.mock.calls[0][0].onRefresh()
+  root.querySelector<HTMLButtonElement>('[data-action="refresh"]')!.click()
+  await waitFor(() => expect(root.querySelector('[data-open-project]')?.textContent).toBe('Updated'))
   const replacement = root.querySelector<HTMLInputElement>('#studio-project-search')!
   expect(replacement).not.toBe(input)
   expect(document.activeElement).toBe(replacement)

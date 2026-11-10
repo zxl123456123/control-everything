@@ -171,17 +171,17 @@ describe('legacyAgentJournalTurnStatusBody', () => {
   })
 
   it('names any other agent by its own name, never as Codex', () => {
-    expect(legacyAgentJournalTurnStatusBody(turn, 'orca:command-turn:t1', 'gemini').text).toBe(
+    expect(legacyAgentJournalTurnStatusBody(turn, 'zkyq:command-turn:t1', 'gemini').text).toBe(
       'Gemini turn completed'
     )
     expect(legacyAgentJournalTurnStatusBody(turn, 'legacy:gemini:s:turn-lifecycle%3At1').text).toBe(
       'Gemini turn completed'
     )
     // Nothing names the agent: say so rather than guess one.
-    expect(legacyAgentJournalTurnStatusBody(turn, 'orca:command-turn:t1').text).toBe(
+    expect(legacyAgentJournalTurnStatusBody(turn, 'zkyq:command-turn:t1').text).toBe(
       'Agent turn completed'
     )
-    expect(legacyAgentJournalTurnStatusBody(turn, 'orca:command-turn:t1', 'codex').text).toBe(
+    expect(legacyAgentJournalTurnStatusBody(turn, 'zkyq:command-turn:t1', 'codex').text).toBe(
       'Codex turn completed'
     )
   })
@@ -203,10 +203,10 @@ describe('legacyAgentJournalTurnStatusBody', () => {
 })
 
 describe('journalRowSchemaVersion', () => {
-  it('stamps only rows that carry a turn item with the current version', () => {
-    expect(AGENT_SESSION_JOURNAL_SCHEMA_VERSION).toBe(3)
-    expect(journalRowSchemaVersion([agentJournalTurnBody(turn)])).toBe(3)
-    expect(journalRowSchemaVersion([{ kind: 'message' }, { kind: 'status' }])).toBe(2)
-    expect(journalRowSchemaVersion([])).toBe(2)
+  it('fences old address writers on every current row', () => {
+    expect(AGENT_SESSION_JOURNAL_SCHEMA_VERSION).toBe(4)
+    expect(journalRowSchemaVersion([agentJournalTurnBody(turn)])).toBe(4)
+    expect(journalRowSchemaVersion([{ kind: 'message' }, { kind: 'status' }])).toBe(4)
+    expect(journalRowSchemaVersion([])).toBe(4)
   })
 })

@@ -93,6 +93,30 @@ describe('createOrcadSecretStore', () => {
     }
   }
 
+  it('does not replace a missing key for a migrated profile', async () => {
+    const store = createOrcadSecretStore(() => {})
+    const ready = await store.prepare({
+      keyDir, platform: 'linux', env: {}, legacyKeyring: null,
+      machineIdentity: () => MACHINE_A, isTemporaryKeyDir: () => false, requireExistingKey: true
+    })
+    expect(ready).toBe(false)
+    expect(readdirSync(keyDir)).toEqual([])
+    expect(store.describeProtectionGap()).toContain('existing credential key is required')
+  })
+
+  it('does not replace an unavailable legacy keyring key for a migrated profile', async () => {
+    legacyKeyringHost()
+    const path = join(keyDir, STATE_A)
+    const before = readFileSync(path)
+    const store = createOrcadSecretStore(() => {})
+    const ready = await store.prepare({
+      keyDir, platform: 'linux', env: {}, legacyKeyring: async () => ({ failure: 'unavailable' }),
+      machineIdentity: () => MACHINE_A, isTemporaryKeyDir: () => false, requireExistingKey: true
+    })
+    expect(ready).toBe(false)
+    expect(readFileSync(path)).toEqual(before)
+  })
+
   it('seals with a host-bound profile key when no keyring is reachable', async () => {
     const { store, ready } = await prepare()
     expect(ready).toBe(true)

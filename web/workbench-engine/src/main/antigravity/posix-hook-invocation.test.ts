@@ -16,7 +16,7 @@ vi.mock('node:os', async (importOriginal) => ({
 }))
 
 const hooksSchema = z.object({
-  'orca-status': z.record(
+  'zkyq-status': z.record(
     z.string(),
     z.array(
       z.object({
@@ -33,7 +33,7 @@ function installedCommand(home: string, event: string): string {
   const config = hooksSchema.parse(
     JSON.parse(readFileSync(join(home, '.gemini', 'config', 'hooks.json'), 'utf8'))
   )
-  const hook = config['orca-status'][event]?.[0]
+  const hook = config['zkyq-status'][event]?.[0]
   const command = hook?.command ?? hook?.hooks?.[0]?.command
   if (!command) {
     throw new Error(`Missing ${event} hook`)
@@ -104,10 +104,10 @@ describe.skipIf(process.platform === 'win32')('Antigravity POSIX hook executable
     try {
       const result = await invoke(installedCommand(home, 'PreToolUse'), payload, {
         ...process.env,
-        ORCA_AGENT_HOOK_ENDPOINT: '',
-        ORCA_AGENT_HOOK_PORT: String(address.port),
-        ORCA_AGENT_HOOK_TOKEN: 'test-only-token',
-        ORCA_PANE_KEY: 'test-pane'
+        ZKYQ_AGENT_HOOK_ENDPOINT: '',
+        ZKYQ_AGENT_HOOK_PORT: String(address.port),
+        ZKYQ_AGENT_HOOK_TOKEN: 'test-only-token',
+        ZKYQ_PANE_KEY: 'test-pane'
       })
       expect(result.code).toBe(0)
       expect(result.stdout).toBe('{"decision":"ask"}')
@@ -124,10 +124,10 @@ describe.skipIf(process.platform === 'win32')('Antigravity POSIX hook executable
     home = mkdtempSync(join(tmpdir(), 'orca-agy-empty-hook-'))
     const result = await invoke(installedCommand(home, 'PreInvocation'), '', {
       ...process.env,
-      ORCA_AGENT_HOOK_ENDPOINT: '',
-      ORCA_AGENT_HOOK_PORT: '',
-      ORCA_AGENT_HOOK_TOKEN: '',
-      ORCA_PANE_KEY: ''
+      ZKYQ_AGENT_HOOK_ENDPOINT: '',
+      ZKYQ_AGENT_HOOK_PORT: '',
+      ZKYQ_AGENT_HOOK_TOKEN: '',
+      ZKYQ_PANE_KEY: ''
     })
     expect(result.code).toBe(0)
     expect(result.stdout).toBe('{}')

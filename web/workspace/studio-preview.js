@@ -1,11 +1,11 @@
-// Studio owns navigation and composition; management modules own task actions.
+// Studio owns project navigation and composition.
 'use strict';
 function projectEntryTab() { return 'workspace'; }
 let initialStudioTheme = window.CEUITheme?.pageTheme || window.CEStudioTheme || null;
 function mountStudio(root, { onProjects = () => {}, runtimeHost = () => null } = {}) {
   const $ = id => root.querySelector('#' + id);
   const content = $('studio-content'), status = $('studio-status');
-  if (!window.StudioData || !window.WorkspaceAgentBoard || !window.StudioShell) {
+  if (!window.StudioData || !window.StudioShell) {
     status.textContent = '工作台资源尚未就绪，请通过本地服务的 /studio 页面打开。'; return;
   }
   const client = window.StudioData.create();
@@ -25,12 +25,11 @@ function mountStudio(root, { onProjects = () => {}, runtimeHost = () => null } =
   };
   const icon = name => `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icons[name] || icons.folder}</svg>`;
   const escape = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
-  let state = { workspace: null, agents: [], items: [] }, request = 0, query = '', projectFilter = 'active', initialized = false, disposed = false;
+  let state = { workspace: null }, request = 0, query = '', projectFilter = 'active', initialized = false, disposed = false;
   let projectSort = 'updated', refreshMessage = '', loadFailure = '', viewMode = 'cards';
-  let railCollapsed = false, newsHost = null, newsReader = null, newsTheme = null, externalAccess = null;
+  let studioVisible = true;
+  let railCollapsed = false, newsHost = null, newsReader = null, newsTheme = null;
   let overviewReturn = null;
-  let pendingTask = null, taskCenter = null, legacyBoard = null, taskTarget = '', itemsScope = 'current', legacyScope = null, progressReturn = null;
-  const consumerSnapshots = new WeakMap();
   let refreshPromise = null, refreshAgain = false, refreshTimer = null, lastRead = 0;
   const refreshInterval = 15000;
   const visibleBusiness = () => !disposed && !document.hidden && !(root.dataset.unified === 'true' && route().view === 'project' && ['workspace', 'activity'].includes(route().tab));
@@ -39,98 +38,26 @@ function mountStudio(root, { onProjects = () => {}, runtimeHost = () => null } =
   const standaloneTheme = root.dataset.unified === 'true' ? null : (initialStudioTheme || window.CEUITheme?.earlyRead('ce-studio-theme'));
   if (standaloneTheme) initialStudioTheme = null;
   const unmountTheme = standaloneTheme?.mount({ roots: [root], status: $('studio-theme-status') });
-  const board = window.WorkspaceAgentBoard.create({ root: $('studio-agent-board'), fetchJson: client.api, postJson: client.post,
-    unified: true,
-    itemsHref: id => /^[a-z0-9][a-z0-9-]{0,63}$/.test(id || '') ? '#project/' + encodeURIComponent(id) + '/items' : null,
-    onRefresh: () => refresh(),
-    onRegister: () => { navigate('settings/sources'); }, onAddProject: () => requestProject(),
-    onProject: (id, item) => {
-      const destination = id ? 'project/' + encodeURIComponent(id) + '/tasks' : 'inbox';
-      if (item) pendingTask = { item, hash: '#' + destination };
-      navigate(destination);
-    } });
   const projects = () => state.workspace?.projects.items || [];
-  const projectHash = (id, tab) => '#project/' + encodeURIComponent(id) + '/' + tab;
-  const pageHost = () => root.dataset.unified === 'true' ? root.getRootNode().host?.closest('.platform-studio-surface') : document.scrollingElement;
-  const progressRoute = value => value.view === 'project' && ['tasks', 'review', 'attention'].includes(value.tab);
-  const managementRoute = value => value.view === 'project' && ['items', 'board'].includes(value.tab);
-  function activeEditor() {
-    if (!$('studio-tasks').hidden && taskCenter?.isEditing()) return taskCenter;
-    if (!$('studio-legacy-board')?.hidden && legacyBoard?.isEditing()) return legacyBoard;
-    if (!$('studio-agent-board').hidden && board.isEditing?.()) return board;
-    return null;
-  }
-  function editingBlocked() {
-    const editor = activeEditor();
-    if (!editor) return false;
-    status.hidden = false; status.textContent = '请先保存或关闭当前编辑，再切换页面或范围。'; editor.focusEditor?.(); return true;
-  }
-  const beforeNavigate = event => {
-    if (externalAccess?.isOpen()) {
-      if (event.detail?.waitUntil) event.detail.waitUntil(externalAccess.requestClose()); else event.preventDefault();
-      return;
-    }
-    if (!editingBlocked()) return;
-    event.preventDefault(); event.detail?.waitUntil?.(Promise.resolve(false));
-  };
-  window.addEventListener('platform-before-navigate', beforeNavigate);
-  function renderConsumers(current, chosen) {
-    const wasItems = !$('studio-tasks').hidden;
-    const progress = (current.view === 'inbox' || progressRoute(current) && chosen && !chosen.archived) && Boolean(state.workspace && window.ProjectProgress && window.ProjectProgressModel);
-    const items = current.view === 'project' && current.tab === 'items' && Boolean(chosen && state.workspace && initialized && client.canWrite() && window.WorkspaceTaskCenter);
-    const legacy = current.view === 'project' && current.tab === 'board' && Boolean(chosen && !chosen.archived && state.workspace && initialized && client.canWrite());
-    $('studio-agent-board').hidden = !progress; board.setActive?.(progress);
-    $('studio-tasks').hidden = !items;
-    if ($('studio-legacy-board')) $('studio-legacy-board').hidden = !legacy;
-    taskCenter?.setActive(items); legacyBoard?.setActive(legacy);
-    if (progress) {
-      board.setProject(current.view === 'project' ? current.id : '', current.tab === 'review' ? 'review' : current.tab === 'attention' ? 'attention' : 'all');
-      if (consumerSnapshots.get(board) !== state) { consumerSnapshots.set(board, state); void board.update(state); }
-    }
-    if (items) {
-      if (!taskCenter) taskCenter = window.WorkspaceTaskCenter.create({ root: $('studio-tasks'), fetchJson: client.api, postJson: client.post,
-        canWrite: client.canWrite, onSaved: () => refresh(), onProject: id => navigate('project/' + encodeURIComponent(id) + '/tasks') });
-      taskCenter.setActive(true);
-      if (taskTarget !== current.id) {
-        taskTarget = current.id; itemsScope = 'current';
-        taskCenter.update(state.workspace, { refresh: false });
-        void taskCenter.setContext({ projectId: current.id, scope: 'all', state: '' });
-        consumerSnapshots.set(taskCenter, state);
-      } else if (consumerSnapshots.get(taskCenter) !== state) {
-        consumerSnapshots.set(taskCenter, state); taskCenter.update(state.workspace);
-      } else if (!wasItems) void taskCenter.refresh();
-      $('studio-tasks').querySelector('#item-scope')?.closest?.('label')?.setAttribute('hidden', '');
-    }
-    if (legacy) {
-      if (!legacyBoard) legacyBoard = window.WorkspaceAgentBoard.create({ root: $('studio-legacy-board'), fetchJson: client.api, postJson: client.post, unified: false,
-        onRefresh: () => refresh(), itemsHref: id => projectHash(id && id !== '__global__' ? id : route().id, 'items'),
-        onProject: id => { if (editingBlocked()) return; if (id && id !== '__global__') navigate('project/' + encodeURIComponent(id) + '/board'); else { legacyScope = id; legacyBoard.setProject(id, 'all'); } },
-        onRegister: () => navigate('settings/sources'), onAddProject: () => requestProject() });
-      legacyBoard.setActive(true);
-      legacyBoard.setProject(legacyScope === null ? current.id : legacyScope, 'all');
-      if (consumerSnapshots.get(legacyBoard) !== state) { consumerSnapshots.set(legacyBoard, state); void legacyBoard.update(state); }
-    }
-    return { progress, items, legacy };
-  }
   const developmentUrl = id => root.dataset.unified === 'true' ? '#project/' + encodeURIComponent(id) + '/workspace' : '/workbench/web-index.html?project_id=' + encodeURIComponent(id);
   function route() {
     const [view, encoded = '', tab = ''] = location.hash.slice(1).split('/');
     let id = ''; try { id = decodeURIComponent(encoded); } catch { /* Invalid links return to projects. */ }
     if (!view && location.search) id = new URLSearchParams(location.search).get('project_id') || '';
     if ((view === 'project' || !view) && /^[a-z0-9][a-z0-9-]{0,63}$/.test(id)) {
-      const page = tab === 'manage' ? 'tasks' : tab;
-      return { view: 'project', id, tab: ['tasks', 'review', 'attention', 'activity', 'monitor', 'settings', 'items', 'board'].includes(page) ? page : 'workspace' };
+      return { view: 'project', id, tab: ['activity', 'settings'].includes(tab) ? tab : 'workspace' };
     }
-    if (['inbox', 'tasks', 'attention'].includes(view)) return { view: 'inbox', id: '', tab: view === 'attention' || encoded === 'attention' ? 'attention' : encoded === 'review' ? 'review' : 'all' };
+    if (['inbox', 'tasks', 'attention'].includes(view)) return { view: 'home', id: '', tab: '' };
     if (view === 'news') return { view: 'news', id: '', tab: '' };
     if (view === 'mobile') return { view: 'mobile', id: '', tab: '' };
     if (['workbench', 'project-setup', 'workspace'].includes(view)) return { view: 'workbench', id: '', tab: '' };
+    if (view === 'settings' && id === 'sources' || ['tools', 'agents'].includes(view)) return { view: 'home', id: '', tab: '' };
     if (view === 'settings') return { view: 'settings', id: '', tab: id === 'mobile' ? 'account' : /^[a-z][a-z0-9-]{0,63}$/.test(id) ? id : 'appearance' };
     return { view: ['tools', 'agents'].includes(view) ? 'tools' : 'home', id: '', tab: '' };
   }
   function navigate(value) { if (location.hash === '#' + value) render(); else location.hash = value; }
   let previousRoute = route(), mobileReturnHash = '#home', disposeMobile = null, disposePets = null, disposeMembers = null, membersAdmin = false;
-  let acceptedHash = location.hash || '#home', navigationGeneration = 0, acceptedVersion = 0;
+  let acceptedHash = location.hash || '#home', navigationGeneration = 0;
   function requestProject() {
     const current = route();
     if (root.dataset.unified === 'true' && (current.view === 'workbench' || current.view === 'project' && ['workspace', 'activity'].includes(current.tab))) {
@@ -186,14 +113,6 @@ function mountStudio(root, { onProjects = () => {}, runtimeHost = () => null } =
     }
     projectDialogTarget.dataset.theme = root.dataset.theme || 'light';
     return projectDialogTarget;
-  }
-  function openExternalAccess() {
-    if (disposed || window.CERemoteContext?.active === false) return;
-    if (!window.WorkspaceAgents?.openAccess) { showPlatformNotice('接入管理尚未就绪，请刷新重试。'); return; }
-    const trigger = currentFocus(), openedHash = acceptedHash;
-    externalAccess = window.WorkspaceAgents.openAccess({ host: visibleDialogTarget(),
-      fetchJson: client.api, postJson: client.post, restoreFocus: () => restoreFocus(trigger),
-      isCurrent: () => !disposed && acceptedHash === openedHash && window.CERemoteContext?.active !== false });
   }
   function showPlatformNotice(text, { projects: savedProjects = [], retry = null } = {}) {
     const host = visibleDialogTarget(), trigger = currentFocus();
@@ -333,21 +252,16 @@ function mountStudio(root, { onProjects = () => {}, runtimeHost = () => null } =
   drawer.addEventListener('click', event => { if (event.target === drawer) closeNavigation(); });
   const resizeNavigation = () => { closeProjectMenu(); if (window.innerWidth > 1023) closeNavigation(); };
   window.addEventListener('resize', resizeNavigation);
-  function renderNav(current) { return window.StudioShell.renderNavigation({ current }); }
+  function renderNav(current) { return window.StudioShell.renderNavigation({ current, members: membersAdmin }); }
   function renderChrome(current) {
     setHtml($('studio-rail'), renderNav(current));
     const chosen = projects().find(p => p.id === current.id);
     const accountPage = current.view === 'mobile' || current.view === 'settings' && current.tab === 'account';
-    setHtml($('studio-topbar'), `<header class="ce-topbar"><button class="ce-iconbtn ce-rail-toggle" data-action="rail-toggle" type="button" aria-label="${railCollapsed ? '展开导航' : '收起导航'}" title="${railCollapsed ? '展开导航' : '收起导航'}" aria-controls="studio-rail" aria-expanded="${!railCollapsed}">${icon('sidebar')}</button><button class="ce-iconbtn ce-menu-trigger" data-action="navigation" type="button" aria-label="打开导航" aria-controls="studio-navigation" aria-expanded="${drawer.open}">${icon('menu')}</button><div class="ce-crumbs"><a href="#home">项目</a>${!['home', 'inbox'].includes(current.view) ? `<span> / ${escape(accountPage ? '账号与设备' : chosen?.name || ({ inbox: '事项', tools: '高级管理', mobile: '账号与设备', news: '新闻', settings: '设置', project: state.workspace ? '未找到项目' : '项目' }[current.view] || '项目'))}</span>` : ''}</div><a class="ce-button ce-plain ce-mobile-entry-mobile${accountPage ? ' is-current' : ''}" href="#settings/account"${accountPage ? ' aria-current="page"' : ''}>账号与设备</a><a class="ce-button ce-plain ce-creator-mobile" href="#news">新闻</a>${accountPage || current.view === 'news' || root.dataset.unified === 'true' && (current.view === 'inbox' || current.view === 'project' && ['tasks', 'review', 'attention'].includes(current.tab)) ? '' : `<button class="ce-iconbtn" data-action="refresh" type="button" title="刷新当前页面" aria-label="刷新当前页面" aria-busy="false">${icon('refresh')}</button>`}<button class="ce-iconbtn" data-action="theme" type="button" aria-label="${root.dataset.theme === 'dark' ? '切换浅色外观' : '切换深色外观'}">${icon(root.dataset.theme === 'dark' ? 'sun' : 'moon')}</button></header>`);
-    const settingsNav = $('studio-settings-nav');
-    if (settingsNav) {
-      settingsNav.hidden = !accountPage && current.view !== 'settings';
-      if (!settingsNav.hidden) setHtml(settingsNav, window.StudioShell.renderSettingsTabs(accountPage ? 'account' : current.tab, { members: membersAdmin }));
-    }
+    setHtml($('studio-topbar'), `<header class="ce-topbar"><button class="ce-iconbtn ce-rail-toggle" data-action="rail-toggle" type="button" aria-label="${railCollapsed ? '展开导航' : '收起导航'}" title="${railCollapsed ? '展开导航' : '收起导航'}" aria-controls="studio-rail" aria-expanded="${!railCollapsed}">${icon('sidebar')}</button><button class="ce-iconbtn ce-menu-trigger" data-action="navigation" type="button" aria-label="打开导航" aria-controls="studio-navigation" aria-expanded="${drawer.open}">${icon('menu')}</button><div class="ce-crumbs"><a href="#home">项目</a>${!['home', 'inbox'].includes(current.view) ? `<span> / ${escape(accountPage ? '账号与设备' : chosen?.name || ({ inbox: '事项', tools: '高级管理', mobile: '账号与设备', news: '新闻', settings: '设置', project: state.workspace ? '未找到项目' : '项目' }[current.view] || '项目'))}</span>` : ''}</div><a class="ce-button ce-plain ce-mobile-entry-mobile${accountPage ? ' is-current' : ''}" href="#settings/account"${accountPage ? ' aria-current="page"' : ''}>账号与设备</a><a class="ce-button ce-plain ce-creator-mobile" href="#news">新闻</a>${accountPage || current.view === 'news' ? '' : `<button class="ce-iconbtn" data-action="refresh" type="button" title="刷新当前页面" aria-label="刷新当前页面" aria-busy="false">${icon('refresh')}</button>`}<button class="ce-iconbtn" data-action="theme" type="button" aria-label="${root.dataset.theme === 'dark' ? '切换浅色外观' : '切换深色外观'}">${icon(root.dataset.theme === 'dark' ? 'sun' : 'moon')}</button></header>`);
     syncAppearance();
   }
   function home() {
-    return window.StudioShell.renderOverview({ projects: projects(), items: state.items, query, projectFilter,
+    return window.StudioShell.renderOverview({ projects: projects(), query, projectFilter,
       writable: client.canWrite(), sort: projectSort, viewMode, developmentUrl, runtimeAvailable: root.dataset.unified === 'true' });
   }
   function renderHome() {
@@ -365,51 +279,15 @@ function mountStudio(root, { onProjects = () => {}, runtimeHost = () => null } =
     }
     if (projectMenu && !projectMenuTrigger?.isConnected) closeProjectMenu();
   }
-  let monitor = null, monitorProject = '';
-  function renderMonitor(current, chosen) {
-    if (monitor && (!projects().some(project => project.id === monitorProject)
-        || current.view === 'project' && current.id !== monitorProject)) {
-      monitor.destroy(); monitor = null; monitorProject = '';
-    }
-    const active = current.view === 'project' && current.tab === 'monitor' && Boolean(chosen && !chosen.archived);
-    $('studio-monitor').hidden = !active;
-    if (!active) { monitor?.setActive(false); return; }
-    if (!window.WorkspaceProjectMonitor) {
-      $('studio-monitor-content').textContent = '监控资源尚未就绪，请刷新页面。'; return;
-    }
-    if (!monitor) {
-      monitorProject = chosen.id;
-      monitor = window.WorkspaceProjectMonitor.create({ root: $('studio-monitor-content'), projectId: chosen.id,
-        fetchJson: client.api, onTask: () => navigate('project/' + encodeURIComponent(chosen.id) + '/tasks') });
-    }
-    monitor.setActive(true);
-  }
   function showNews(active) {
+    active = active && studioVisible;
     if (newsHost) { newsHost.hidden = !active; newsHost.inert = !active; }
-    newsReader?.setActive(active);
+    newsReader?.setVisible(active);
     if (!active || newsHost) return;
     newsHost = document.createElement('section'); newsHost.className = 'ce-news-surface';
     newsHost.setAttribute('aria-label', '新闻阅读室'); content.parentElement.append(newsHost);
-    const frame = document.createElement('iframe'); frame.title = '新闻阅读器';
-    const feedback = document.createElement('p'); feedback.setAttribute('role', 'status');
-    feedback.textContent = '正在打开新闻…'; newsHost.append(feedback, frame);
-    const syncTheme = () => {
-      try { if (frame.contentDocument?.documentElement) { const target = frame.contentDocument.documentElement; target.dataset.theme = root.dataset.theme || 'light'; target.style.setProperty('--ce-font-family', getComputedStyle(root).fontFamily); } } catch { /* A sign-in redirect is outside this reader's scope. */ }
-    };
-    frame.addEventListener('load', () => {
-      if (disposed) return;
-      try { newsReader = frame.contentWindow?.NewsReader; } catch { newsReader = null; }
-      if (newsReader?.setActive) { feedback.hidden = true; syncTheme(); newsReader.setActive(route().view === 'news'); }
-      else {
-        feedback.textContent = '新闻暂不可用。'; feedback.setAttribute('role', 'alert');
-        const retry = document.createElement('button'); retry.type = 'button'; retry.textContent = '重试';
-        retry.addEventListener('click', () => { feedback.textContent = '正在打开新闻…'; frame.src = '/news?embedded=1'; });
-        feedback.append(retry);
-      }
-    });
-    newsTheme = new MutationObserver(syncTheme);
-    newsTheme.observe(root, { attributes: true, attributeFilter: ['data-theme'] });
-    frame.src = '/news?embedded=1';
+    newsReader = window.NewsSurface.mount(newsHost, {themeHost:root});
+    newsReader.setVisible(active);
   }
   function render() {
     if (disposed || window.CERemoteContext?.active === false) return;
@@ -423,10 +301,6 @@ function mountStudio(root, { onProjects = () => {}, runtimeHost = () => null } =
     const chosen = projects().find(p => p.id === current.id);
     // The native surface takes over when ready; retain the previous page during preparation.
     if (root.dataset.unified === 'true' && (current.view === 'workbench' || current.view === 'project' && ['workspace', 'activity'].includes(current.tab) && (!state.workspace || chosen && !chosen.archived))) {
-      monitor?.setActive(false);
-      taskCenter?.setActive(false); legacyBoard?.setActive(false); board.setActive?.(false);
-      $('studio-tasks').hidden = true; if ($('studio-legacy-board')) $('studio-legacy-board').hidden = true;
-      $('studio-agent-board').hidden = true;
       if (state.workspace && !content.innerHTML.trim()) {
         renderChrome({ view: 'home', id: '', tab: 'workspace' });
         root.dataset.projectSurface = 'false'; setHtml(content, home());
@@ -435,8 +309,6 @@ function mountStudio(root, { onProjects = () => {}, runtimeHost = () => null } =
     }
     renderChrome(current);
     root.dataset.projectSurface = current.view === 'project' ? 'true' : 'false';
-    const consumers = renderConsumers(current, chosen), showBoard = consumers.progress;
-    renderMonitor(current, chosen);
     if (current.view === 'news') return;
     if (current.view === 'mobile' || current.view === 'settings' && current.tab === 'account') {
       if (!disposeMobile) { renderedHtml.delete(content); disposeMobile = window.StudioMobileEntry.mount(content, { returnHash: mobileReturnHash }); }
@@ -452,39 +324,23 @@ function mountStudio(root, { onProjects = () => {}, runtimeHost = () => null } =
     }
     if (!state.workspace) {
       setHtml(content, loadFailure
-        ? window.StudioShell.renderStatePanel({ tone: 'error', title: '无法读取项目与事项', message: loadFailure, actions: window.StudioShell.retryButton() })
+        ? window.StudioShell.renderStatePanel({ tone: 'error', title: '无法读取项目', message: loadFailure, actions: window.StudioShell.retryButton() })
         : window.StudioShell.loadingPlaceholder());
       return;
     }
     if (current.view === 'home') renderHome();
     else if (current.view === 'workbench') setHtml(content, '<div class="ce-heading"><h1>项目工作台</h1></div>' + engineUnavailable());
     else if (current.view === 'settings') setHtml(content, window.StudioShell.renderSettingsLanding({ section: current.tab, integrated: root.dataset.unified === 'true' }));
-    else if (current.view === 'project' && ['items', 'board'].includes(current.tab)) {
-      const returnHash = progressReturn?.platformId === current.id ? progressReturn.originHash : projectHash(current.id, 'tasks');
-      const heading = chosen ? window.StudioShell.renderProgressHeading({ project: chosen, tab: current.tab, returnHash, scope: itemsScope }) : '<div class="ce-heading"><h1 tabindex="-1">项目事项</h1></div>';
-      const ready = current.tab === 'items' ? consumers.items : consumers.legacy;
-      const problem = !chosen ? '项目已移出或不存在。' : current.tab === 'board' && chosen.archived ? '项目已归档，事项看板不包含归档项目。' : '事项管理资源或写入凭据尚未就绪，请重新读取。';
-      setHtml(content, heading + (ready ? '' : `<div class="ce-empty" role="status">${problem}${chosen?.archived && current.tab === 'board' ? `<a class="ce-button" href="${projectHash(current.id, 'items')}">查看归档事项</a>` : ''}<a class="ce-button" href="#home">返回项目总览</a></div>`));
-    }
     else if (current.view === 'project' && current.tab === 'settings') setHtml(content, `<div class="ce-heading"><h1>${escape(chosen?.name || '项目')} · 项目设置</h1></div><div class="ce-empty" role="status">${chosen ? '此入口尚未就绪。' : '项目已移出或不存在。'}<a class="ce-button" href="#home">返回项目总览</a></div>`);
-    else if (current.view === 'tools') setHtml(content, `<div class="ce-heading"><div><h1>高级管理</h1></div></div><div class="ce-tool-grid"><article class="ce-tool-card">${icon('settings')}<h2>高级接入</h2><p>外部任务执行器与旧数据。</p><a class="ce-button" href="/workspace-admin#settings">高级设置</a></article><article class="ce-tool-card">${icon('folder')}<h2>项目档案</h2><a class="ce-button" href="/workspace-admin#projects">来源与历史</a></article></div>`);
-    else if ((current.view === 'inbox' || progressRoute(current) && chosen && !chosen.archived) && !(window.ProjectProgress && window.ProjectProgressModel)) setHtml(content, '<div class="ce-heading"><h1 tabindex="-1">项目进展</h1></div><div class="ce-empty" role="status">进展资源尚未就绪，请刷新页面。<a class="ce-button" href="#home">返回项目总览</a></div>');
-    else if (current.view === 'project') setHtml(content, chosen?.archived ? '<div class="ce-empty">项目已归档，仍停在当前页。<a class="ce-button" href="#home">返回项目</a><p>在“已归档”列表选择恢复项目。</p></div>' : chosen ? showBoard ? window.StudioShell.renderProgressHeading({ project: chosen, tab: current.tab }) + itemFilters(current) : `<div class="ce-heading"><h1>${current.tab === 'monitor' ? '业务进度' : escape(chosen.name)}</h1>${current.tab === 'monitor' ? `<a class="ce-button ce-plain" href="#project/${encodeURIComponent(chosen.id)}/tasks">返回进展</a>` : ''}</div>${current.tab === 'monitor' ? '' : engineUnavailable(chosen.id)}` : window.StudioShell.renderStatePanel({ title: '未找到这个项目', message: '它可能已被移出或删除。', actions: '<a class="ce-button ce-primary" href="#home">返回项目总览</a>' }));
-    else setHtml(content, `<div class="ce-heading"><h1>事项</h1></div>${itemFilters(current)}`);
+    else if (current.view === 'project') setHtml(content, chosen?.archived ? '<div class="ce-empty">项目已归档，仍停在当前页。<a class="ce-button" href="#home">返回项目</a><p>在“已归档”列表选择恢复项目。</p></div>' : chosen ? `<div class="ce-heading"><h1>${escape(chosen.name)}</h1></div>${engineUnavailable()}` : window.StudioShell.renderStatePanel({ title: '未找到这个项目', message: '它可能已被移出或删除。', actions: '<a class="ce-button ce-primary" href="#home">返回项目总览</a>' }));
   }
   /** Explains the blank workspace when the embedded workbench engine is not mounted, with a way onward. */
-  function engineUnavailable(projectId = '') {
+  function engineUnavailable() {
     return window.StudioShell.renderStatePanel({
       title: '项目运行组件未连接',
-      message: '请从已装配内置工作台的服务打开；项目进展与事项仍可在这里查看。',
-      actions: `${projectId ? `<a class="ce-button ce-primary" href="${projectHash(projectId, 'tasks')}">查看项目进展</a>` : ''}<a class="ce-button" href="#home">返回项目总览</a>`,
+      message: '请从已装配内置工作台的服务打开项目。',
+      actions: '<a class="ce-button" href="#home">返回项目总览</a>',
     });
-  }
-  function itemFilters(current) {
-    const href = filter => current.view === 'project' ? '#project/' + encodeURIComponent(current.id) + '/' + (filter === 'all' ? 'tasks' : filter) : '#inbox' + (filter === 'all' ? '' : '/' + filter);
-    const selected = ['review', 'attention'].includes(current.tab) ? current.tab : 'all';
-    if (root.dataset.unified === 'true') return '';
-    return `<nav class="ce-tabs" aria-label="事项筛选">${[['all', current.view === 'project' ? '全部项目' : '全部'], ['review', '待验收'], ['attention', '需处理']].map(([value, label]) => `<a href="${href(value)}"${selected === value ? ' aria-current="page"' : ''}>${label}</a>`).join('')}</nav>`;
   }
   function renderStatus(current) {
     if (disposed || window.CERemoteContext?.active === false) return;
@@ -592,7 +448,6 @@ function mountStudio(root, { onProjects = () => {}, runtimeHost = () => null } =
       const next = await client.snapshot();
       if (disposed || current !== request) return;
       state = next; lastRead = Date.now(); refreshMessage = ''; loadFailure = '';
-      consumerSnapshots.delete(board); if (taskCenter) consumerSnapshots.delete(taskCenter); if (legacyBoard) consumerSnapshots.delete(legacyBoard);
       const summarizeProject = project => ({ id: project.id, name: project.name, directory: project.directories?.find(row => row.id === 'main')?.path || project.root });
       onProjects(projects().filter(project => !project.archived).map(summarizeProject), {
         archived: projects().filter(project => project.archived).map(summarizeProject) });
@@ -608,8 +463,6 @@ function mountStudio(root, { onProjects = () => {}, runtimeHost = () => null } =
         render();
       }
       renderStatus(route()); status.classList.add('error');
-      if (!$('studio-agent-board').hidden) board.unavailable();
-      if (!$('studio-legacy-board')?.hidden) legacyBoard?.unavailable();
       return false;
     }
   }
@@ -624,7 +477,6 @@ function mountStudio(root, { onProjects = () => {}, runtimeHost = () => null } =
     const action = event.target.closest('[data-action]')?.dataset.action;
     if (action === 'refresh') void refresh();
     if (action === 'skip-to-content') root.querySelector('main.ce-content')?.focus();
-    if (action === 'external-access') openExternalAccess();
     if (action === 'rail-toggle') { railCollapsed = !railCollapsed; root.dataset.railCollapsed = String(railCollapsed); renderChrome(route()); root.querySelector('[data-action="rail-toggle"]')?.focus(); }
     if (action === 'add-project') requestProject();
     if (action === 'view-cards' || action === 'view-list') { viewMode = action === 'view-list' ? 'list' : 'cards'; render(); }
@@ -650,20 +502,6 @@ function mountStudio(root, { onProjects = () => {}, runtimeHost = () => null } =
       } catch (error) { if (!disposed) showPlatformNotice(error.message); }
       finally { themeSaving = false; syncAppearance(); }
     }
-    const taskId = event.target.closest('[data-task]')?.dataset.task;
-    if (taskId) {
-      const item = state.items.find(row => row.id === taskId);
-      if (item) {
-        const destination = item.project_id ? 'project/' + encodeURIComponent(item.project_id) + '/review' : 'inbox/attention';
-        if (location.hash === '#' + destination) void board.open(item);
-        else { pendingTask = { item, hash: '#' + destination }; navigate(destination); }
-      }
-    }
-    const edit = event.target.closest('[data-edit-items]');
-    if (edit) { event.preventDefault(); navigate('project/' + encodeURIComponent(route().id) + '/manage'); }
-    const management = event.target.closest('a[href="#tasks"]');
-    if (management && route().view === 'project') { event.preventDefault(); navigate('project/' + encodeURIComponent(route().id) + '/manage'); }
-    else if (management) { event.preventDefault(); navigate('inbox/manage'); }
   });
   root.addEventListener('input', event => {
     if (event.target.id !== 'studio-project-search') return;
@@ -671,37 +509,16 @@ function mountStudio(root, { onProjects = () => {}, runtimeHost = () => null } =
     const input = $('studio-project-search'); input.focus(); input.setSelectionRange(position, position);
   });
   root.addEventListener('change', event => {
-    if (event.target.id === 'studio-items-scope') {
-      if (editingBlocked()) { event.target.value = itemsScope; return; }
-      const value = event.target.value;
-      if (!['current', 'all', 'attention', 'active', 'archived', 'orphan', 'global'].includes(value)) return;
-      itemsScope = value;
-      taskCenter.update(state.workspace, { refresh: false });
-      void taskCenter.setContext({ projectId: value === 'current' ? route().id : '', scope: value === 'current' ? 'all' : value, state: '' });
-      $('studio-tasks').querySelector('#item-scope')?.closest?.('label')?.setAttribute('hidden', '');
-      return;
-    }
     if (event.target.id !== 'studio-project-sort') return;
     projectSort = event.target.value === 'name' ? 'name' : 'updated'; setHtml(content, home());
     $('studio-project-sort').focus();
   });
   const changed = event => {
-    acceptedVersion++;
     closeNavigation();
     closeProjectMenu();
     const next = route();
     const from = event?.detail?.from || acceptedHash, to = event?.detail?.to || location.hash || '#home';
-    if (from !== to) externalAccess?.dispose();
     acceptedHash = to;
-    let restore = null;
-    if (progressRoute(previousRoute) && managementRoute(next) && previousRoute.id === next.id) {
-      progressReturn = { originHash: from, platformId: previousRoute.id, view: board.captureViewState?.(),
-        pageScrollTop: pageHost()?.scrollTop || 0, trigger: currentFocus() };
-    } else if (progressReturn && managementRoute(previousRoute) && previousRoute.id === progressReturn.platformId
-        && next.id === progressReturn.platformId && to === progressReturn.originHash) restore = progressReturn;
-    else if (!(progressReturn && managementRoute(next) && next.id === progressReturn.platformId
-        && (managementRoute(previousRoute) && previousRoute.id === next.id || from === progressReturn.originHash))) progressReturn = null;
-    if (previousRoute.id !== next.id) legacyScope = null;
     if (previousRoute.view === 'home' && next.view !== 'home') {
       const host = root.dataset.unified === 'true' ? root.getRootNode().host?.closest('.platform-studio-surface') : document.scrollingElement;
       const trigger = currentFocus();
@@ -711,20 +528,12 @@ function mountStudio(root, { onProjects = () => {}, runtimeHost = () => null } =
     const nextAccount = next.view === 'mobile' || next.view === 'settings' && next.tab === 'account';
     const previousAccount = previousRoute.view === 'mobile' || previousRoute.view === 'settings' && previousRoute.tab === 'account';
     if (nextAccount && !previousAccount) {
-      const tab = ['workspace', 'tasks', 'review', 'attention', 'activity', 'monitor'].includes(previousRoute.tab) ? previousRoute.tab : 'workspace';
+      const tab = ['workspace', 'activity'].includes(previousRoute.tab) ? previousRoute.tab : 'workspace';
       mobileReturnHash = previousRoute.view === 'project' && /^[a-z0-9][a-z0-9-]{0,63}$/.test(previousRoute.id)
         ? '#project/' + encodeURIComponent(previousRoute.id) + '/' + tab : previousRoute.view === 'workbench' ? '#workbench' : '#home';
     }
     previousRoute = next;
     render();
-    if (restore) {
-      const version = acceptedVersion;
-      void Promise.resolve(board.restoreViewState?.(restore.view)).then(() => {
-        if (disposed || version !== acceptedVersion || acceptedHash !== restore.originHash) return;
-        const host = pageHost(); if (host) host.scrollTop = restore.pageScrollTop;
-        restoreFocus(restore.trigger?.isConnected ? restore.trigger : content.querySelector('[data-action="management-menu"]') || content.querySelector('h1'));
-      });
-    }
     if (next.view === 'home' && overviewReturn) {
       const host = root.dataset.unified === 'true' ? root.getRootNode().host?.closest('.platform-studio-surface') : document.scrollingElement;
       if (host) host.scrollTop = overviewReturn.scrollTop;
@@ -732,7 +541,6 @@ function mountStudio(root, { onProjects = () => {}, runtimeHost = () => null } =
     }
     if (initialized && visibleBusiness() && Date.now() - lastRead >= refreshInterval) void refresh(false);
     scheduleRefresh();
-    if (pendingTask) { const pending = pendingTask; pendingTask = null; if (location.hash === pending.hash) void board.open(pending.item); }
   };
   const requestedNavigation = () => {
     if (root.dataset.unified === 'true') return;
@@ -761,21 +569,32 @@ function mountStudio(root, { onProjects = () => {}, runtimeHost = () => null } =
   window.addEventListener('platform-native-project-adopted', nativeProjectAdopted);
   window.addEventListener('platform-native-project-action', nativeProjectAction);
   const visibilityChanged = () => {
-    if (document.hidden) { board.setActive?.(false); taskCenter?.setActive(false); legacyBoard?.setActive(false); }
-    else {
-      consumerSnapshots.delete(board); if (taskCenter) consumerSnapshots.delete(taskCenter); if (legacyBoard) consumerSnapshots.delete(legacyBoard);
-      render();
-    }
+    if (!document.hidden) render();
     if (visibleBusiness() && initialized && Date.now() - lastRead >= refreshInterval) void refresh(false);
     scheduleRefresh();
   };
   document.addEventListener('visibilitychange', visibilityChanged);
   render(); void refresh();
-  if (window.CERemoteContext?.context && window.StudioMembersAdmin) void window.StudioMembersAdmin.probe().then(admin => { if (!disposed && admin !== membersAdmin) { membersAdmin = admin; if (route().view === 'settings') render(); } });
-  if (window.StudioMascot && window.NewsPetPrefs && window.NewsPetDirector) mascot = window.StudioMascot.mount(root, { route, navigate: hash => { location.hash = hash; } });
-  const dispose = () => { disposed = true; for (const controller of pendingArchives) controller.abort(); pendingArchives.clear(); mascot?.dispose(); externalAccess?.dispose(); newsReader?.dispose(); newsTheme?.disconnect(); newsHost?.remove(); progressReturn = null; navigationGeneration++; unsubscribeAppearance?.(); unmountTheme?.(); standaloneTheme?.dispose(); closeProjectMenu(); closeNavigation(); restoreNavigation(); drawer.remove(); window.removeEventListener('resize', resizeNavigation); window.removeEventListener('scroll', closeProjectMenu, true); document.removeEventListener('pointerdown', dismissProjectMenu); request++; clearTimeout(refreshTimer); document.removeEventListener('visibilitychange', visibilityChanged); disposeMobile?.(); disposePets?.(); disposeMembers?.(); window.removeEventListener('hashchange', requestedNavigation); window.removeEventListener('platform-before-navigate', beforeNavigate); window.removeEventListener('platform-navigation-accepted', changed); window.removeEventListener('platform-add-project', requestProject); window.removeEventListener('platform-native-project-adopted', nativeProjectAdopted); window.removeEventListener('platform-native-project-action', nativeProjectAction); nativeProjectWrites.clear(); projectDialogTarget?.querySelectorAll('dialog').forEach(dialog => dialog.close()); projectDialogHost?.remove(); monitor?.destroy(); taskCenter?.dispose(); legacyBoard?.dispose(); board.dispose?.(); };
+  if (window.CERemoteContext?.context && window.StudioMembersAdmin) void window.StudioMembersAdmin.probe().then(admin => { if (!disposed && admin !== membersAdmin) { membersAdmin = admin; render(); } });
+  let mascotHost = null;
+  if (window.StudioMascot && window.NewsPetPrefs && window.NewsPetDirector) {
+    const options = {route, navigate: hash => { location.hash = hash; }};
+    if (root.dataset.unified === 'true') {
+      // The Studio surface is hidden while the native workbench is visible. Keep the
+      // mascot in its own styled surface outside that hidden subtree.
+      mascotHost = document.createElement('div'); mascotHost.className = 'ce-global-mascot-host';
+      const shadow = mascotHost.attachShadow({mode: 'open'}), style = document.createElement('link');
+      const surface = document.createElement('div'); surface.id = 'ce-studio'; surface.className = 'ce-global-mascot-surface';
+      style.rel = 'stylesheet'; style.href = '/studio-preview.css';
+      style.onload = () => { if (!disposed) mascot = window.StudioMascot.mount(surface, {...options, themeHost: root, railHost: root}); };
+      shadow.append(style, surface); document.body.append(mascotHost);
+    } else mascot = window.StudioMascot.mount(root, options);
+  }
+  const dispose = () => { disposed = true; for (const controller of pendingArchives) controller.abort(); pendingArchives.clear(); mascot?.dispose(); mascotHost?.remove(); newsReader?.destroy(); newsTheme?.disconnect(); newsHost?.remove(); navigationGeneration++; unsubscribeAppearance?.(); unmountTheme?.(); standaloneTheme?.dispose(); closeProjectMenu(); closeNavigation(); restoreNavigation(); drawer.remove(); window.removeEventListener('resize', resizeNavigation); window.removeEventListener('scroll', closeProjectMenu, true); document.removeEventListener('pointerdown', dismissProjectMenu); request++; clearTimeout(refreshTimer); document.removeEventListener('visibilitychange', visibilityChanged); disposeMobile?.(); disposePets?.(); disposeMembers?.(); window.removeEventListener('hashchange', requestedNavigation); window.removeEventListener('platform-navigation-accepted', changed); window.removeEventListener('platform-add-project', requestProject); window.removeEventListener('platform-native-project-adopted', nativeProjectAdopted); window.removeEventListener('platform-native-project-action', nativeProjectAction); nativeProjectWrites.clear(); projectDialogTarget?.querySelectorAll('dialog').forEach(dialog => dialog.close()); projectDialogHost?.remove(); };
   const unsubscribeContext = window.CERemoteContext?.onInactive(dispose);
-  return () => { unsubscribeContext?.(); dispose(); };
+  const handle = () => { unsubscribeContext?.(); dispose(); };
+  handle.setVisible = value => { studioVisible=!!value; newsReader?.setVisible(studioVisible && route().view === 'news'); };
+  return handle;
 }
 window.StudioPreview = { mount: mountStudio, projectEntryTab };
 const standaloneStudio = document.getElementById('ce-studio');

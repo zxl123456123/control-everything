@@ -34,6 +34,7 @@ export type OrcaVmRecipe = {
   id: string
   name: string
   create: string
+  environmentContract?: 'zkyq'
   checkoutMode?: EphemeralVmCheckoutMode
   description?: string
   suspend?: string

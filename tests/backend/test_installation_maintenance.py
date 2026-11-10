@@ -10,6 +10,163 @@ from tests.backend.test_installation_registry import InstallationFixture, REGIST
 
 
 class MaintenanceTests(InstallationFixture):
+    def test_data_directory_preflight_rejects_overlap_before_creating_installation(self):
+        payload, _ = self.payload()
+        target = self.root / 'fresh'
+        for index, selected in enumerate((target, target / 'data', self.root)):
+            with self.subTest(selected=selected):
+                report = self.root / f'data-overlap-{index}.json'
+                with patch.object(REGISTRY, 'default_api', return_value=self.api):
+                    code = MAINTENANCE.main(['preflight', '--install-root', str(target),
+                                             '--operation', 'install', '--report', str(report),
+                                             '--payload', str(payload), '--desktop-data-dir', str(selected)])
+                self.assertEqual(code, 24)
+                self.assertEqual(REGISTRY.read_record(report)['status'], 'blocked')
+                self.assertFalse(target.exists())
+
+    def test_data_directory_preflight_accepts_separate_directory_without_creating_it(self):
+        payload, _ = self.payload()
+        target, selected = self.root / 'fresh', self.root / 'data'
+        report = self.root / 'data-valid.json'
+        code = MAINTENANCE.preflight(target, 'install', report, api=self.api,
+                                     payload=payload, desktop_data_dir=selected)
+        self.assertEqual(code, 0)
+        self.assertEqual(REGISTRY.read_record(report)['status'], 'ready')
+        self.assertFalse(target.exists())
+        self.assertFalse(selected.exists())
+
+    def test_data_directory_preflight_rejects_change_for_existing_installation(self):
+        for operation in ('install', 'upgrade'):
+            with self.subTest(operation=operation):
+                before = (self.install / 'session-panel.cmd').read_bytes()
+                report = self.root / f'data-existing-{operation}.json'
+                code = MAINTENANCE.preflight(self.install, operation, report, api=self.api,
+                                             payload=self.context.version_dir, desktop_data_dir=self.root / 'data')
+                self.assertEqual(code, 24)
+                self.assertEqual(REGISTRY.read_record(report)['reason'], 'data_directory_migration_required')
+                self.assertEqual((self.install / 'session-panel.cmd').read_bytes(), before)
+
+    def test_new_desktop_data_selection_is_recorded_without_touching_data(self):
+        from tests.backend.test_windows_bundle import BUILD, SOURCE
+        from control_everything.installation.desktop_settings import decode_data_directory
+        target = self.root / 'fresh installation'
+        payload, _ = self.payload()
+        (payload / 'desktop-runtime.json').write_text('{}', encoding='utf-8')
+        support = payload / 'runtime/Lib/site-packages/control_everything/installation/desktop_settings.py'
+        support.parent.mkdir(parents=True, exist_ok=True)
+        support.write_text('# fixture', encoding='utf-8')
+        document = BUILD.write_product_manifest(payload, '0.1.0a2', SOURCE)
+        report = self.root / 'new-desktop-preflight.json'
+        self.assertEqual(MAINTENANCE.preflight(target, 'install', report, api=self.api, payload=payload), 0)
+        receipt = REGISTRY.read_record(report)
+        destination = target / 'versions' / REGISTRY.version_id(document)
+        shutil.copytree(payload, destination)
+        (target / 'unins000.exe').write_bytes(b'Inno fixture')
+        (target / 'unins000.dat').write_bytes(b'Inno fixture')
+        selected = self.root / 'chosen data'
+        selected.mkdir()
+        marker = selected / 'existing-data'
+        marker.write_bytes(b'untouched synthetic data')
+        context = REGISTRY.ProductContext.load(destination)
+        result = MAINTENANCE.commit_install(context, target, api=self.api, receipt=receipt,
+                                            desktop_data_dir=selected)
+        self.assertEqual(result['status'], 'committed')
+        launcher = (target / 'session-panel.cmd').read_bytes()
+        token = launcher.split(b' --installed-data-dir ')[1].split(b' ')[0].decode('ascii')
+        self.assertEqual(decode_data_directory(target, token), selected)
+        self.assertEqual(marker.read_bytes(), b'untouched synthetic data')
+        REGISTRY.load_records(target, self.api)
+        next_payload = self.root / 'next-desktop-payload'
+        shutil.copytree(payload, next_payload)
+        (next_payload / 'product.json').unlink()
+        next_document = BUILD.write_product_manifest(next_payload, '0.1.0a3', SOURCE)
+        next_destination = target / 'versions' / REGISTRY.version_id(next_document)
+        report2 = self.root / 'desktop-upgrade-preflight.json'
+        self.assertEqual(MAINTENANCE.preflight(target, 'upgrade', report2, api=self.api, payload=next_payload), 0)
+        upgrade = REGISTRY.read_record(report2)
+        shutil.copytree(next_payload, next_destination)
+        next_context = REGISTRY.ProductContext.load(next_destination)
+        original_replace = MAINTENANCE.os.replace
+        def interrupt_launcher(source, destination_path):
+            if Path(destination_path) == target / 'session-panel.cmd':
+                raise OSError('synthetic interruption')
+            return original_replace(source, destination_path)
+        with patch.object(MAINTENANCE.os, 'replace', side_effect=interrupt_launcher):
+            with self.assertRaisesRegex(OSError, 'synthetic interruption'):
+                MAINTENANCE.commit_install(next_context, target, api=self.api, receipt=upgrade)
+        self.assertEqual((target / 'session-panel.cmd').read_bytes(), launcher)
+        self.assertEqual(marker.read_bytes(), b'untouched synthetic data')
+        report3 = self.root / 'desktop-upgrade-retry.json'
+        self.assertEqual(MAINTENANCE.preflight(target, 'upgrade', report3, api=self.api, payload=next_destination), 0)
+        MAINTENANCE.commit_install(next_context, target, api=self.api, receipt=REGISTRY.read_record(report3))
+        upgraded = (target / 'session-panel.cmd').read_bytes()
+        self.assertNotEqual(upgraded, launcher)
+        self.assertIn((' --installed-data-dir ' + token + ' ').encode('ascii'), upgraded)
+        self.assertEqual(list((target / '.install/backups').glob('*.cmd'))[0].read_bytes(), launcher)
+        self.assertEqual(marker.read_bytes(), b'untouched synthetic data')
+        report4 = self.root / 'desktop-after-replace-preflight.json'
+        self.assertEqual(MAINTENANCE.preflight(target, 'upgrade', report4, api=self.api, payload=next_destination), 0)
+        def interrupt_after_replace(source, destination_path):
+            result = original_replace(source, destination_path)
+            if Path(destination_path) == target / 'session-panel.cmd':
+                raise OSError('synthetic post-replace interruption')
+            return result
+        with patch.object(MAINTENANCE.os, 'replace', side_effect=interrupt_after_replace):
+            with self.assertRaisesRegex(OSError, 'synthetic post-replace interruption'):
+                MAINTENANCE.commit_install(next_context, target, api=self.api, receipt=REGISTRY.read_record(report4))
+        self.assertEqual((target / 'session-panel.cmd').read_bytes(), upgraded)
+        report5 = self.root / 'desktop-after-replace-retry.json'
+        self.assertEqual(MAINTENANCE.preflight(target, 'upgrade', report5, api=self.api, payload=next_destination), 0)
+        MAINTENANCE.commit_install(next_context, target, api=self.api, receipt=REGISTRY.read_record(report5))
+        self.assertEqual((target / 'session-panel.cmd').read_bytes(), upgraded)
+        older_payload = self.root / 'older-unsupported-payload'
+        shutil.copytree(next_payload, older_payload)
+        (older_payload / 'product.json').unlink()
+        older_support = older_payload / 'runtime/Lib/site-packages/control_everything/installation/desktop_settings.py'
+        older_support.unlink()
+        older_support.parent.rmdir()
+        older_document = BUILD.write_product_manifest(older_payload, '0.1.0a0', SOURCE)
+        old_report = self.root / 'desktop-unsupported-rollback.json'
+        MANIFEST.verify_payload(older_payload, strict_native=True)
+        REGISTRY.load_records(target, self.api)
+        preflight_code = MAINTENANCE.preflight(target, 'rollback', old_report, api=self.api, payload=older_payload)
+        self.assertEqual(preflight_code, 0, REGISTRY.read_record(old_report)['reason'])
+        older_destination = target / 'versions' / REGISTRY.version_id(older_document)
+        shutil.copytree(older_payload, older_destination)
+        with self.assertRaisesRegex(MAINTENANCE.Blocked, 'desktop_data_directory_unsupported'):
+            MAINTENANCE.commit_install(REGISTRY.ProductContext.load(older_destination), target, api=self.api,
+                                       receipt=REGISTRY.read_record(old_report))
+        self.assertEqual((target / 'session-panel.cmd').read_bytes(), upgraded)
+        shutil.rmtree(older_destination)
+        stripped = MAINTENANCE.launcher_bytes(next_context.version_id, desktop=True)
+        (target / 'session-panel.cmd').write_bytes(stripped)
+        report6 = self.root / 'desktop-stripped-token.json'
+        self.assertEqual(MAINTENANCE.preflight(target, 'upgrade', report6, api=self.api, payload=next_destination), 0)
+        with self.assertRaisesRegex(MAINTENANCE.Blocked, 'launcher_unrecognized'):
+            MAINTENANCE.commit_install(next_context, target, api=self.api, receipt=REGISTRY.read_record(report6))
+        self.assertEqual((target / 'session-panel.cmd').read_bytes(), stripped)
+        self.assertEqual(marker.read_bytes(), b'untouched synthetic data')
+
+    def test_unrecognized_launcher_is_not_silently_replaced(self):
+        launcher = self.install / 'session-panel.cmd'
+        launcher.write_bytes(b'@echo off\r\ninvalid --installed-data-dir ! %*\r\n')
+        code, receipt = self.run_preflight(payload=self.context.version_dir)
+        self.assertEqual(code, 0)
+        original = launcher.read_bytes()
+        with self.assertRaisesRegex(MAINTENANCE.Blocked, 'launcher_unrecognized'):
+            MAINTENANCE.commit_install(self.context, self.install, api=self.api, receipt=receipt)
+        self.assertEqual(launcher.read_bytes(), original)
+
+    def test_upgrade_rejects_directory_change_before_writing(self):
+        code, receipt = self.run_preflight(payload=self.context.version_dir)
+        self.assertEqual(code, 0)
+        launcher = self.install / 'session-panel.cmd'
+        before = launcher.read_bytes()
+        with self.assertRaisesRegex(MAINTENANCE.Blocked, 'data_directory_migration_required'):
+            MAINTENANCE.commit_install(self.context, self.install, api=self.api, receipt=receipt,
+                                       desktop_data_dir=self.root / 'new-data')
+        self.assertEqual(launcher.read_bytes(), before)
+
     def test_new_desktop_product_commit_activates_version_pinned_desktop_launcher(self):
         from tests.backend.test_windows_bundle import BUILD, SOURCE
         payload, _ = self.payload()
@@ -99,6 +256,33 @@ class MaintenanceTests(InstallationFixture):
         self.assertNotIn(self.install / 'unins000.exe', assets)
         self.assertNotIn(self.install / 'unins000.dat', assets)
 
+    def test_payload_change_after_record_read_blocks_before_native_stop(self):
+        self.profile('one', pid=201)
+        original = self.api.pipe_peer
+        calls = 0
+        def changed_peer(key):
+            nonlocal calls
+            calls += 1
+            if calls == 2:
+                (self.context.version_dir / 'runtime/python313.dll').write_bytes(b'changed')
+            return original(key)
+        with patch.object(self.api, 'pipe_peer', side_effect=changed_peer):
+            self.assertEqual(self.run_preflight()[0], 24)
+        self.assertFalse(any(call[0] == 'stop' for call in self.api.calls))
+
+    def test_payload_change_after_process_scan_blocks_before_exclusive_check(self):
+        original = MAINTENANCE.scan_processes
+        def changed_scan(*args, **kwargs):
+            result = original(*args, **kwargs)
+            if kwargs.get('after'):
+                (self.context.version_dir / 'runtime/python313.dll').write_bytes(b'changed')
+            return result
+        before = (self.install / 'session-panel.cmd').read_bytes()
+        with patch.object(MAINTENANCE, 'scan_processes', side_effect=changed_scan):
+            self.assertEqual(self.run_preflight()[0], 24)
+        self.assertEqual((self.install / 'session-panel.cmd').read_bytes(), before)
+        self.assertFalse(any(call[0] == 'exclusive' for call in self.api.calls))
+
     def test_same_profile_keeps_old_association_and_uses_peer_version(self):
         path = self.profile('one')
         second = self.make_version('0.1.0a2')
@@ -160,7 +344,12 @@ class MaintenanceTests(InstallationFixture):
 
     def invocation(self, *, uninstall=False):
         destination = self.root / '{app}' / 'versions' / self.context.version_id
-        shutil.copytree(self.context.version_dir, destination)
+        destination.mkdir(parents=True)
+        names = {row['path'] for row in REGISTRY.manifest.bootstrap_rows(self.context.document)} | {'product.json'}
+        for name in names:
+            target = destination / name
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(self.context.version_dir / name, target)
         setup = self.root / 'setup.exe'
         setup.write_bytes(b'Inno fixture')
         parent = self.api.add_process(500, setup)
@@ -192,6 +381,27 @@ class MaintenanceTests(InstallationFixture):
         (Path(invocation['bootstrap']) / 'runtime/python313.dll').write_bytes(b'tampered')
         self.assertEqual(self.run_preflight(invocation=invocation)[0], 24)
 
+    def test_maintenance_subset_is_closed_and_native_is_never_degraded(self):
+        invocation = self.invocation()
+        root = Path(invocation['bootstrap'])
+        self.assertEqual(REGISTRY.ProductContext.load_bootstrap(root).document, self.context.document)
+        with self.assertRaises(REGISTRY.manifest.ManifestError):
+            REGISTRY.ProductContext.load(root)
+        for name in REGISTRY.manifest.NATIVE_FILES:
+            with self.subTest(name=name):
+                target = root / name
+                original = target.read_bytes()
+                target.write_bytes(b'corrupt')
+                try:
+                    with self.assertRaises(REGISTRY.manifest.ManifestError):
+                        REGISTRY.ProductContext.load_bootstrap(root)
+                finally:
+                    target.write_bytes(original)
+        extra = root / 'BUILD-INPUTS.json'
+        shutil.copyfile(self.context.version_dir / extra.name, extra)
+        with self.assertRaises(REGISTRY.manifest.ManifestError):
+            REGISTRY.ProductContext.load_bootstrap(root)
+
     def test_new_install_receipt_required_and_unknown_data_preserved(self):
         target = self.root / 'new install'
         payload = self.context.version_dir
@@ -205,6 +415,14 @@ class MaintenanceTests(InstallationFixture):
         context = REGISTRY.ProductContext.load(destination)
         with self.assertRaises(MAINTENANCE.Blocked):
             MAINTENANCE.commit_install(context, target, api=self.api)
+        runtime = destination / 'runtime/python313.dll'
+        original = runtime.read_bytes()
+        runtime.write_bytes(b'tampered')
+        with self.assertRaises(MAINTENANCE.manifest.ManifestError):
+            MAINTENANCE.commit_install(context, target, api=self.api, receipt=receipt)
+        self.assertFalse((target / '.install').exists())
+        self.assertFalse((target / 'session-panel.cmd').exists())
+        runtime.write_bytes(original)
         result = MAINTENANCE.commit_install(context, target, api=self.api, receipt=receipt)
         self.assertEqual(result['status'], 'committed')
         self.assertIn(self.context.version_id.encode(), (target / 'session-panel.cmd').read_bytes())
@@ -292,6 +510,48 @@ class MaintenanceTests(InstallationFixture):
                 finally:
                     lease.close()
                     self.api.processes[100].running = False
+
+    def test_commit_refreshes_payload_after_launcher_inspection(self):
+        for relative in ('runtime/python313.dll', MANIFEST.NATIVE_EXE):
+            with self.subTest(relative=relative):
+                code, receipt = self.run_preflight(payload=self.context.version_dir)
+                self.assertEqual(code, 0)
+                path = self.context.version_dir / relative
+                original, launcher = path.read_bytes(), (self.install / 'session-panel.cmd').read_bytes()
+                inspect = MAINTENANCE.launcher_data_token
+                def changed_launcher(*args):
+                    result = inspect(*args)
+                    path.write_bytes(b'changed')
+                    return result
+                try:
+                    with patch.object(MAINTENANCE, 'launcher_data_token', side_effect=changed_launcher):
+                        with self.assertRaises(ValueError):
+                            MAINTENANCE.commit_install(self.context, self.install, api=self.api, receipt=receipt)
+                    self.assertEqual((self.install / 'session-panel.cmd').read_bytes(), launcher)
+                finally:
+                    path.write_bytes(original)
+
+    def test_commit_refreshes_records_after_launcher_inspection(self):
+        second = self.make_version('0.1.0a2')
+        path = self.install / '.install/versions' / (second.version_id + '.json')
+        REGISTRY.write_record(path, REGISTRY.version_record(second, self.api))
+        code, receipt = self.run_preflight(payload=self.context.version_dir)
+        self.assertEqual(code, 0)
+        original, launcher = path.read_bytes(), (self.install / 'session-panel.cmd').read_bytes()
+        inspect = MAINTENANCE.launcher_data_token
+        def changed_record(*args):
+            result = inspect(*args)
+            record = json.loads(original)
+            record['product_sha256'] = 'a' * 64
+            REGISTRY.write_record(path, record)
+            return result
+        try:
+            with patch.object(MAINTENANCE, 'launcher_data_token', side_effect=changed_record):
+                with self.assertRaisesRegex(REGISTRY.RegistryError, 'version_identity'):
+                    MAINTENANCE.commit_install(self.context, self.install, api=self.api, receipt=receipt)
+            self.assertEqual((self.install / 'session-panel.cmd').read_bytes(), launcher)
+        finally:
+            path.write_bytes(original)
 
     def test_commit_blocks_new_native_without_stopping_it_for_every_operation(self):
         profile = self.profile()

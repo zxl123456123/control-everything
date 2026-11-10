@@ -1,10 +1,11 @@
 import { getPiAgentStatusPostQueueSourceLines } from './agent-status-post-queue-source'
+import { migrateAgentHookEnvironmentIdentity } from '../../shared/agent-hook-environment-identity'
 // Why: pi has no settings.json hook surface — its extensibility is the
 // in-process TypeScript extension API (pi.on('agent_start'), 'tool_call',
 // etc.). To get pi panes into the unified agent-hooks pipeline alongside
 // Claude/Codex/Gemini/OpenCode/Cursor, we ship a bundled extension into
 // the selected Pi/OMP extension dir (PiTitlebarExtensionService) that POSTs to
-// /hook/<kind> using the same ORCA_AGENT_HOOK_* + ORCA_PANE_KEY env that every
+// /hook/<kind> using the same ORCA_AGENT_HOOK_* + ZKYQ_PANE_KEY env that every
 // PTY already receives from ipc/pty.ts.
 //
 // Each Pi process gets its own paneKey through env. Like the OpenCode plugin,
@@ -17,7 +18,7 @@ import { getPiAgentStatusRuntimeDetectionSourceLines } from './agent-status-runt
 import { getPiAgentStatusWslCurlSourceLines } from './agent-status-wsl-curl-source'
 import { getPiSubagentSnapshotSourceLines } from './agent-status-subagent-roster-source'
 
-export const ORCA_PI_AGENT_STATUS_EXTENSION_FILE = 'orca-agent-status.ts'
+export { PI_AGENT_STATUS_EXTENSION_FILE } from '../../shared/pi-managed-extension-install'
 
 /** Source of the status extension installed into a Pi-family agent's extension
  *  dir: it POSTs lifecycle, tool, and (under OMP) model events to Orca's hook
@@ -114,7 +115,7 @@ export function getPiAgentStatusExtensionSource(kind: PiAgentKind = 'pi'): strin
     "    if (!model || typeof model !== 'object') return",
     "    const provider = 'provider' in model && typeof model.provider === 'string' ? model.provider : ''",
     "    const id = 'id' in model && typeof model.id === 'string' ? model.id : ''",
-    "    if (provider && id) modelMetadata = { model: provider + '/' + id, ...(ompModelSwitchSupported ? { model_switch_command: 'orca-model' } : {}) }",
+    "    if (provider && id) modelMetadata = { model: provider + '/' + id, ...(ompModelSwitchSupported ? { model_switch_command: 'zkyq-model' } : {}) }",
     '  } catch {',
     '    // Why: a throwing model getter must never break status delivery.',
     '  }',
@@ -133,13 +134,15 @@ export function getPiAgentStatusExtensionSource(kind: PiAgentKind = 'pi'): strin
   // at PTY spawn, so on Orca restart we have to re-read it from disk).
   return [
     '// Why: no package-specific type import here. Pi and OMP expose the same',
+    `const migrateHookEnvironment = ${migrateAgentHookEnvironmentIdentity.toString()};`,
+    'migrateHookEnvironment(process.env);',
     '// extension API, but publish their types under different package names.',
     '// Why: warn-once so a recurring parse error on a malformed endpoint',
     '// file does not spam stderr inside the pi TUI on every event.',
     'let warnedBadEndpoint = false',
     '// Why: Pi awaits extension handlers. Status delivery stays off that',
     '// critical path, and the latest-only pending slot prevents a stalled',
-    '// Orca receiver from building an unbounded queue of obsolete snapshots.',
+    '// platform receiver from building an unbounded queue of obsolete snapshots.',
     'const HOOK_POST_TIMEOUT_MS = 1000',
     ...getPiAgentStatusPostQueueSourceLines(kind),
     ...(kind === 'pi' ? ['let piUiPromptDepth = 0', 'let piTurnInFlight = false'] : []),
@@ -155,7 +158,7 @@ export function getPiAgentStatusExtensionSource(kind: PiAgentKind = 'pi'): strin
     'let cachedEndpointValues: Record<string, string> | null = null',
     '',
     'function readEndpointFile(): Record<string, string> | null {',
-    '  const path = process.env.ORCA_AGENT_HOOK_ENDPOINT',
+    '  const path = process.env.ZKYQ_AGENT_HOOK_ENDPOINT',
     '  if (!path) return null',
     '  try {',
     "    const fs = require('fs')",
@@ -174,6 +177,7 @@ export function getPiAgentStatusExtensionSource(kind: PiAgentKind = 'pi'): strin
     '        const m = line.match(/^(?:set\\s+)?([A-Z0-9_]+)=(.*)$/)',
     "        if (m) out[m[1]] = m[2].replace(/\\r$/, '')",
     '      }',
+    '      migrateHookEnvironment(out)',
     '      cachedEndpointKey = cacheKey',
     '      cachedEndpointValues = out',
     '      return out',
@@ -186,7 +190,7 @@ export function getPiAgentStatusExtensionSource(kind: PiAgentKind = 'pi'): strin
     '    const code = (err as { code?: string } | null)?.code',
     "    if (err && code !== 'ENOENT' && !warnedBadEndpoint) {",
     '      warnedBadEndpoint = true',
-    "      console.warn('[orca-pi-status] failed to parse endpoint file:', (err as Error).message)",
+    "      console.warn('[zkyq-pi-status] failed to parse endpoint file:', (err as Error).message)",
     '    }',
     '    return null',
     '  }',
@@ -195,10 +199,10 @@ export function getPiAgentStatusExtensionSource(kind: PiAgentKind = 'pi'): strin
     'function resolveHookCoords() {',
     '  const fileEnv = readEndpointFile() || {}',
     '  return {',
-    '    port: fileEnv.ORCA_AGENT_HOOK_PORT || process.env.ORCA_AGENT_HOOK_PORT,',
-    '    token: fileEnv.ORCA_AGENT_HOOK_TOKEN || process.env.ORCA_AGENT_HOOK_TOKEN,',
-    "    env: fileEnv.ORCA_AGENT_HOOK_ENV || process.env.ORCA_AGENT_HOOK_ENV || '',",
-    "    version: fileEnv.ORCA_AGENT_HOOK_VERSION || process.env.ORCA_AGENT_HOOK_VERSION || '',",
+    '    port: fileEnv.ZKYQ_AGENT_HOOK_PORT || process.env.ZKYQ_AGENT_HOOK_PORT,',
+    '    token: fileEnv.ZKYQ_AGENT_HOOK_TOKEN || process.env.ZKYQ_AGENT_HOOK_TOKEN,',
+    "    env: fileEnv.ZKYQ_AGENT_HOOK_ENV || process.env.ZKYQ_AGENT_HOOK_ENV || '',",
+    "    version: fileEnv.ZKYQ_AGENT_HOOK_VERSION || process.env.ZKYQ_AGENT_HOOK_VERSION || '',",
     '  }',
     '}',
     '',
@@ -243,14 +247,14 @@ export function getPiAgentStatusExtensionSource(kind: PiAgentKind = 'pi'): strin
     '  final: boolean',
     '): Promise<void> {',
     '  const coords = resolveHookCoords()',
-    '  const paneKey = process.env.ORCA_PANE_KEY',
+    '  const paneKey = process.env.ZKYQ_PANE_KEY',
     '  if (!coords.port || !coords.token || !paneKey) return',
     '  const url = `http://127.0.0.1:${coords.port}${resolveHookPath(ompRuntime)}`',
     '  const bodyWith = (subagents: Record<string, unknown>): string => JSON.stringify({',
     '    paneKey,',
-    "    launchToken: process.env.ORCA_AGENT_LAUNCH_TOKEN || '',",
-    "    tabId: process.env.ORCA_TAB_ID || '',",
-    "    worktreeId: process.env.ORCA_WORKTREE_ID || '',",
+    "    launchToken: process.env.ZKYQ_AGENT_LAUNCH_TOKEN || '',",
+    "    tabId: process.env.ZKYQ_TAB_ID || '',",
+    "    worktreeId: process.env.ZKYQ_WORKTREE_ID || '',",
     '    env: coords.env,',
     '    version: coords.version,',
     payloadLine,
@@ -262,7 +266,7 @@ export function getPiAgentStatusExtensionSource(kind: PiAgentKind = 'pi'): strin
     '  const timeoutPromise = new Promise<never>((_resolve, reject) => {',
     '    timeout = setTimeout(() => {',
     '      controller?.abort()',
-    "      reject(new Error('Orca hook delivery timed out'))",
+    "      reject(new Error('Control Everything hook delivery timed out'))",
     '    }, HOOK_POST_TIMEOUT_MS)',
     "    if (typeof timeout.unref === 'function') timeout.unref()",
     '  })',
@@ -272,17 +276,17 @@ export function getPiAgentStatusExtensionSource(kind: PiAgentKind = 'pi'): strin
     "        method: 'POST',",
     '        headers: {',
     "          'Content-Type': 'application/json',",
-    "          'X-Orca-Agent-Hook-Token': coords.token,",
+    "          [coords.version === '1' ? 'X-Orca-Agent-Hook-Token' : 'X-Zkyq-Agent-Hook-Token']: coords.token,",
     '        },',
     '        body,',
     '        ...(controller ? { signal: controller.signal } : {}),',
     '      }),',
     '      timeoutPromise,',
     '    ])',
-    "    if (!response.ok) throw new Error('Orca hook HTTP ' + response.status)",
+    "    if (!response.ok) throw new Error('Control Everything hook HTTP ' + response.status)",
     '  } catch (error) {',
-    '    // Why: status reporting must never fail the pi run just because Orca',
-    '    // is unavailable or the loopback request failed (e.g. Orca restart).',
+    '    // Why: status reporting must never fail the pi run just because Control Everything',
+    '    // is unavailable or the loopback request failed (e.g. platform restart).',
     '    if (!isWslRuntime()) throw error',
     '    await postViaWindowsCurl(body, ompRuntime)',
     '  } finally {',

@@ -79,7 +79,7 @@ beforeEach(() => {
   directory = mkdtempSync(join(tmpdir(), 'orca-active-profile-transfer-'))
   vi.spyOn(ProfileStateSqliteAuthority.prototype, 'scheduleBackup').mockImplementation(() => {})
   writeFileSync(
-    join(directory, 'orca-profile-index.json'),
+    join(directory, 'zkyq-profile-index.json'),
     JSON.stringify({
       schemaVersion: ORCA_PROFILE_INDEX_SCHEMA_VERSION,
       activeProfileId: 'source',

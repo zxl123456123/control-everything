@@ -41,6 +41,7 @@ import {
 import { isJournalTag } from '../../../shared/agent-session-journal-open-union'
 import type { StructuredAgentSessionStopCause } from '../agent-session-wire/structured-agent-session-stop-cause'
 import { dropUnusableRowAnnotations } from './journal-row-unusable-annotations'
+import { canonicalJournalRowKeys } from './journal-row-key-identity'
 
 /** Producer linkage rides the row BASE rather than the body: older builds read
  *  the two nested prompt shapes strictly, so an unknown key there made the whole
@@ -295,7 +296,9 @@ function upcastRow(record: Record<string, unknown>, version: number): Record<str
   let current = record
   let at = version
   while (at < AGENT_SESSION_JOURNAL_SCHEMA_VERSION) {
-    // No upcasters yet — v1 is the first shipped schema. New cases go here.
+    if (at === 3) {
+      current = canonicalJournalRowKeys(current)
+    }
     current = { ...current, v: at + 1 }
     at += 1
   }

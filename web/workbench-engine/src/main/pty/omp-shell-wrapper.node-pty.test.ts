@@ -139,9 +139,9 @@ describePosix('OMP shell wrapper node-pty reproduction', () => {
       HOME: tempDir,
       PATH: `${binDir}:${process.env.PATH ?? ''}`,
       PI_CODING_AGENT_DIR: '',
-      ORCA_PI_CODING_AGENT_DIR: '',
-      ORCA_OMP_CODING_AGENT_DIR: '',
-      ORCA_OMP_STATUS_EXTENSION: statusExtension,
+      ZKYQ_PI_CODING_AGENT_DIR: '',
+      ZKYQ_OMP_CODING_AGENT_DIR: '',
+      ZKYQ_OMP_STATUS_EXTENSION: statusExtension,
       ORCA_FAKE_OMP_DEFAULT_DIR: ompDir,
       ORCA_CAPTURE_FILE: captureFile,
       ORCA_AFTER_PI_FILE: afterPiFile,
@@ -210,10 +210,10 @@ exit 0
         HOME: tempDir,
         PATH: `${binDir}:${process.env.PATH ?? ''}`,
         PI_CODING_AGENT_DIR: '',
-        ORCA_PI_CODING_AGENT_DIR: '',
-        ORCA_OMP_CODING_AGENT_DIR: '',
-        ORCA_OMP_SOURCE_AGENT_DIR: sourceDir,
-        ORCA_OMP_STATUS_EXTENSION: statusExtension,
+        ZKYQ_PI_CODING_AGENT_DIR: '',
+        ZKYQ_OMP_CODING_AGENT_DIR: '',
+        ZKYQ_OMP_SOURCE_AGENT_DIR: sourceDir,
+        ZKYQ_OMP_STATUS_EXTENSION: statusExtension,
         ORCA_FAKE_OMP_DEFAULT_DIR: sourceDir,
         ORCA_CAPTURE_FILE: captureFile,
         TERM: process.env.TERM || 'xterm-256color'
@@ -265,10 +265,10 @@ exit 0
         HOME: tempDir,
         PATH: `${binDir}:${process.env.PATH ?? ''}`,
         PI_CODING_AGENT_DIR: '',
-        ORCA_PI_CODING_AGENT_DIR: '',
-        ORCA_OMP_CODING_AGENT_DIR: '',
-        ORCA_OMP_SOURCE_AGENT_DIR: sourceDir,
-        ORCA_OMP_STATUS_EXTENSION: statusExtension,
+        ZKYQ_PI_CODING_AGENT_DIR: '',
+        ZKYQ_OMP_CODING_AGENT_DIR: '',
+        ZKYQ_OMP_SOURCE_AGENT_DIR: sourceDir,
+        ZKYQ_OMP_STATUS_EXTENSION: statusExtension,
         ORCA_FAKE_OMP_DEFAULT_DIR: sourceDir,
         ORCA_CAPTURE_FILE: captureFile,
         TERM: process.env.TERM || 'xterm-256color'
@@ -308,9 +308,9 @@ exit 0
           HOME: tempDir,
           PATH: `${binDir}:${process.env.PATH ?? ''}`,
           PI_CODING_AGENT_DIR: '',
-          ORCA_PI_CODING_AGENT_DIR: '',
-          ORCA_OMP_CODING_AGENT_DIR: '',
-          ORCA_OMP_STATUS_EXTENSION: statusExtension,
+          ZKYQ_PI_CODING_AGENT_DIR: '',
+          ZKYQ_OMP_CODING_AGENT_DIR: '',
+          ZKYQ_OMP_STATUS_EXTENSION: statusExtension,
           ORCA_FAKE_OMP_DEFAULT_DIR: defaultOmpDir,
           ORCA_CAPTURE_FILE: captureFile,
           TERM: process.env.TERM || 'xterm-256color'
@@ -431,7 +431,7 @@ ${getPosixOmpShellWrapper()}`,
         ORCA_WORKTREE_PATH: workspaceDir,
         HOME: homeDir,
         PATH: `${binDir}:/usr/bin:/bin:/usr/sbin:/sbin`,
-        ORCA_OMP_STATUS_EXTENSION: statusExtension,
+        ZKYQ_OMP_STATUS_EXTENSION: statusExtension,
         ORCA_CAPTURE_FILE: staleCaptureFile,
         ORCA_RESULT_FILE: resultFile,
         ORCA_SCENARIO_FILE: scenarioFile,
@@ -463,7 +463,7 @@ ${getPosixOmpShellWrapper()}`,
       'UNSET=23\nPWD=unset\nLINK=23\nFIRST=23\nSKIP=23\nPARENT=stale\nSTALE_UNSET=23\nNO_LOGICAL=1\nMISSING=1\n'
     )
     expect(output).toContain('no terminal working directory is available')
-    expect(output).toContain('Orca: OMP cannot access the terminal working directory')
+    expect(output).toContain('Control Everything: OMP cannot access the terminal working directory')
   }
 
   itWithBash('rebinds a stale Bash cwd before launching OMP', async () => {

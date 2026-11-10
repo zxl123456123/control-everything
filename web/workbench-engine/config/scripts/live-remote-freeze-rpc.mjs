@@ -13,13 +13,16 @@ export function appendOrcaRpcOutput(output, chunk, bytes, limit = MAX_ORCA_RPC_O
 }
 
 export function resolveOrcaCliCommand({ env = process.env, platform = process.platform } = {}) {
+  if (env.ZKYQ_CLI_COMMAND?.trim()) {
+    return env.ZKYQ_CLI_COMMAND.trim()
+  }
   if (env.ORCA_CLI_COMMAND?.trim()) {
-    return env.ORCA_CLI_COMMAND.trim()
+    throw new Error('Set ZKYQ_CLI_COMMAND to the selected executable instead of ORCA_CLI_COMMAND.')
   }
   if (env.ORCA_DEV_REPO_ROOT) {
-    return 'orca-dev'
+    return 'zkyq-dev'
   }
-  return platform === 'linux' ? 'orca-ide' : 'orca'
+  return platform === 'win32' ? 'zkyq.exe' : 'zkyq'
 }
 
 export function resolveOrcaCliInvocation({
@@ -32,22 +35,23 @@ export function resolveOrcaCliInvocation({
   if (
     platform === 'win32' &&
     env.ORCA_DEV_REPO_ROOT &&
-    (commandName === 'orca-dev' || commandName === 'orca-dev.cmd')
+    (commandName === 'zkyq-dev' || commandName === 'zkyq-dev.cmd')
   ) {
     const defaultUserDataPath = path.win32.join(
       env.APPDATA ?? path.win32.join(env.USERPROFILE ?? '', 'AppData', 'Roaming'),
-      'orca-dev'
+      'zkyq-dev'
     )
     return {
       command: nodeExecutable,
       prefixArgs: [path.win32.join(env.ORCA_DEV_REPO_ROOT, 'out', 'cli', 'index.js')],
       env: {
         ...env,
-        ORCA_USER_DATA_PATH:
-          env.ORCA_USER_DATA_PATH ?? env.ORCA_DEV_USER_DATA_PATH ?? defaultUserDataPath,
-        ORCA_DEV_CLI_INVOCATION: '1',
-        ORCA_APP_EXECUTABLE:
-          env.ORCA_APP_EXECUTABLE ??
+        ZKYQ_USER_DATA_PATH:
+          env.ZKYQ_USER_DATA_PATH ?? env.ZKYQ_DEV_USER_DATA_PATH ?? defaultUserDataPath,
+        ZKYQ_DEV_CLI_INVOCATION: '1',
+        ZKYQ_CLI_COMMAND: 'zkyq-dev',
+        ZKYQ_APP_EXECUTABLE:
+          env.ZKYQ_APP_EXECUTABLE ??
           path.win32.join(
             env.ORCA_DEV_REPO_ROOT,
             'node_modules',
@@ -55,7 +59,7 @@ export function resolveOrcaCliInvocation({
             'dist',
             'electron.exe'
           ),
-        ORCA_APP_EXECUTABLE_NEEDS_APP_ROOT: '1'
+        ZKYQ_APP_EXECUTABLE_NEEDS_APP_ROOT: '1'
       }
     }
   }

@@ -9,13 +9,16 @@ import {
 
 describe('remote server updater adapter', () => {
   it('defaults to a safe manual-only implementation', () => {
+    vi.stubEnv('ZKYQ_APP_VERSION', '2.3.4')
     expect(getRemoteServerUpdaterSnapshot('runtime-1')).toMatchObject({
+      appVersion: '2.3.4',
       runtimeId: 'runtime-1',
       support: { automatic: false, reason: 'updater-unavailable' }
     })
     expect(() => checkRemoteServerUpdater('runtime-1')).toThrow('remote_update_manual_required')
     expect(() => downloadRemoteServerUpdater('runtime-1')).toThrow('remote_update_manual_required')
     expect(() => installRemoteServerUpdater('runtime-1')).toThrow('remote_update_manual_required')
+    vi.unstubAllEnvs()
   })
 
   it('passes the runtime identity through every configured operation', () => {

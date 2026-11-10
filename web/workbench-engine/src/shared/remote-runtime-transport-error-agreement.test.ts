@@ -372,6 +372,16 @@ const CODED_TRANSPORT_ERRORS: TransportErrorPair[] = [
 /** Untyped producers that still depend on the message-fragment fallback. */
 const CODELESS_TRANSPORT_ERRORS: (TransportErrorPair & { recoverable: boolean })[] = [
   {
+    producer: 'web-runtime-client.ts / web-runtime-request-registry.ts',
+    message: 'Remote Control Everything runtime is not connected.',
+    recoverable: true
+  },
+  {
+    producer: 'web-runtime-connection-transport.ts / web-runtime-connection-waiters.ts',
+    message: 'Remote Control Everything runtime connection closed.',
+    recoverable: true
+  },
+  {
     producer: 'web-runtime-client.ts:117 / :328',
     message: 'Remote Orca runtime is not connected.',
     recoverable: true

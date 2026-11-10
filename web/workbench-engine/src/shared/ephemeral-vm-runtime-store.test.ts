@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync, truncateSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, readFileSync, rmSync, truncateSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
@@ -88,6 +88,30 @@ describe('ephemeral VM runtime store', () => {
     )
 
     expect(listEphemeralVmRuntimes(userDataPath)).toEqual([second, first])
+  })
+
+  it.each([false, true])('migrates stored pairing URLs without changing credentials or user data: nested=%s', (nested) => {
+    const userDataPath = makeUserDataPath()
+    const code = pairingCode()
+    const oldCode = code.replace('zkyq:', 'orca:')
+    const result = {
+      schemaVersion: 1 as const,
+      ...(nested
+        ? { connection: { type: 'orca-server' as const, pairingCode: oldCode, projectRoot: '/repo' } }
+        : { pairingCode: oldCode, projectRoot: '/repo' }),
+      userData: { untouched: oldCode }
+    }
+    const record = runtimeRecord({ recipeResult: result })
+    const path = getEphemeralVmRuntimeStorePath(userDataPath)
+    writeFileSync(path, JSON.stringify({ version: 1, runtimes: [record] }))
+    const expected = { ...record, recipeResult: nested
+      ? { ...result, connection: { type: 'orca-server', pairingCode: code, projectRoot: '/repo' } }
+      : { ...result, pairingCode: code } }
+    expect(listEphemeralVmRuntimes(userDataPath)).toEqual([expected])
+    expect(JSON.parse(readFileSync(path, 'utf8')).runtimes).toEqual([expected])
+    const persisted = readFileSync(path, 'utf8')
+    expect(listEphemeralVmRuntimes(userDataPath)).toEqual([expected])
+    expect(readFileSync(path, 'utf8')).toBe(persisted)
   })
 
   it('updates lifecycle and cleanup state', () => {

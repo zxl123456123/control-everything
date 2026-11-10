@@ -33,16 +33,16 @@ const append = (event) => appendFileSync(ledger, JSON.stringify({ pid: process.p
 async function publishRecovery() {
   const config = JSON.parse(readFileSync(${JSON.stringify(recoveryConfigPath)}, 'utf8'))
   for (const hook_event_name of ['UserPromptSubmit', 'Stop']) {
-    const response = await fetch('http://127.0.0.1:' + process.env.ORCA_AGENT_HOOK_PORT + '/hook/codex', {
+    const response = await fetch('http://127.0.0.1:' + process.env.ZKYQ_AGENT_HOOK_PORT + '/hook/codex', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Orca-Agent-Hook-Token': process.env.ORCA_AGENT_HOOK_TOKEN },
+      headers: { 'Content-Type': 'application/json', 'X-Zkyq-Agent-Hook-Token': process.env.ZKYQ_AGENT_HOOK_TOKEN },
       body: JSON.stringify({
-        paneKey: process.env.ORCA_PANE_KEY,
-        tabId: process.env.ORCA_TAB_ID,
-        worktreeId: process.env.ORCA_WORKTREE_ID,
-        launchToken: process.env.ORCA_AGENT_LAUNCH_TOKEN,
-        env: process.env.ORCA_AGENT_HOOK_ENV,
-        version: process.env.ORCA_AGENT_HOOK_VERSION,
+        paneKey: process.env.ZKYQ_PANE_KEY,
+        tabId: process.env.ZKYQ_TAB_ID,
+        worktreeId: process.env.ZKYQ_WORKTREE_ID,
+        launchToken: process.env.ZKYQ_AGENT_LAUNCH_TOKEN,
+        env: process.env.ZKYQ_AGENT_HOOK_ENV,
+        version: process.env.ZKYQ_AGENT_HOOK_VERSION,
         payload: { hook_event_name, prompt: 'Report completion, then exit normally', ...config }
       })
     })
@@ -158,18 +158,26 @@ export function runBuiltOrcaCli(
   const {
     ORCA_ENVIRONMENT: _environment,
     ORCA_PAIRING_CODE: _pairingCode,
-    ORCA_USER_DATA_PATH: _userDataPath,
+    ORCA_REMOTE_PAIRING: _remotePairing,
+    ZKYQ_ENVIRONMENT: _newEnvironment,
+    ZKYQ_PAIRING_CODE: _newPairingCode,
+    ZKYQ_REMOTE_PAIRING: _newRemotePairing,
+    ZKYQ_USER_DATA_PATH: _userDataPath,
     ...cleanEnv
   } = process.env
   void _environment
   void _pairingCode
+  void _remotePairing
+  void _newEnvironment
+  void _newPairingCode
+  void _newRemotePairing
   void _userDataPath
   const output = execFileSync(
     process.execPath,
     [path.join(process.cwd(), 'out', 'cli', 'index.js'), ...args],
     {
       cwd: options.cwd,
-      env: { ...cleanEnv, ORCA_USER_DATA_PATH: options.userDataDir },
+      env: { ...cleanEnv, ZKYQ_USER_DATA_PATH: options.userDataDir },
       encoding: 'utf8',
       timeout: 30_000
     }

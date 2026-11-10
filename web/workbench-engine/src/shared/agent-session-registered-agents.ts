@@ -45,10 +45,10 @@ const registeredAgentSchema = z.object({
     steering: openEnum(['inject', 'queue'] as const, 'queue')
       .optional()
       .default('queue'),
-    // `orca` claims only that Orca answers the agent's requests, never that it confines the agent.
-    approvalEnforcement: openEnum(['provider', 'orca'] as const, 'orca')
+    // The host answers the agent's requests; this never claims to confine the agent.
+    approvalEnforcement: openEnum(['provider', 'zkyq'] as const, 'zkyq')
       .optional()
-      .default('orca')
+      .default('zkyq')
   }),
   // A false from a host reads as absent, so the row keeps the detection-based offer.
   managedRuntime: z.literal(true).optional().catch(undefined)

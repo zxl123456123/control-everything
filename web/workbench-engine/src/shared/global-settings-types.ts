@@ -75,6 +75,8 @@ export type GlobalSettings = GlobalSettingsBase & {
    *  Existing workspaces and user-typed names are never rewritten. */
   jiraIssueKeyCasing?: JiraIssueKeyCasing
   theme: 'system' | 'dark' | 'light'
+  /** Platform workspace surfaces only; terminal background opacity stays independent. */
+  workbenchSurfaceOpacity?: number
   /** Controls the left sidebar surface without changing terminal brightness. */
   leftSidebarAppearanceMode: LeftSidebarAppearanceMode
   leftSidebarTintColor?: string

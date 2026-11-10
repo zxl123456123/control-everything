@@ -21,6 +21,7 @@ import {
   SKILLS_CLI_ENV_OVERRIDES
 } from '../../shared/agent-feature-install-commands'
 import { readOrcaCliBuildCommit } from '../cli-version'
+import { retireRenamedBundledSkills } from '../../main/skills/skill-name-migration'
 
 function resolveSelectedSkillNames(
   flags: Map<string, string | boolean>,
@@ -163,7 +164,7 @@ function resolveAgentKeys(verb: SkillMutationVerb, flags: Map<string, string | b
     'invalid_environment',
     'No coding agent detected on this host, so there is no install target. Pass ' +
       '--agent <name>[,<name>...] to choose targets explicitly — --agent universal ' +
-      'writes only the shared .agents/skills directory that Orca reads.'
+      'writes only the shared .agents/skills directory that the workbench reads.'
   )
 }
 
@@ -172,7 +173,7 @@ function buildNpxSkillsArgs(skillNames: string[], global: boolean, agents: strin
   if (!sourceCommit) {
     throw new RuntimeClientError(
       'invalid_environment',
-      'Could not read the commit this Orca CLI was built from, so there is no source to install skills from.'
+      'Could not read the commit this Control Everything CLI was built from, so there is no source to install skills from.'
     )
   }
   // Why: a cold package cache makes bare `npx` prompt before it will fetch
@@ -193,8 +194,8 @@ function formatSkillSelectionHelp(verb: SkillMutationVerb, skillNames: string[])
     `Choose one or more skills to ${verb}:`,
     ...skillNames.map((name) => `  ${name}`),
     '',
-    `Usage: orca skills ${verb} --skill <name> [--skill <name> ...]`,
-    `   or: orca skills ${verb} --all`
+    `Usage: zkyq skills ${verb} --skill <name> [--skill <name> ...]`,
+    `   or: zkyq skills ${verb} --all`
   ].join('\n')
 }
 
@@ -216,11 +217,11 @@ function createSkillMutationHandler(verb: SkillMutationVerb): CommandHandler {
     // Why: this runs before target resolution because the answer belongs to the
     // other machine — agents detected here would be the wrong host's, and a host
     // that detects none would hide the forwarding problem behind that error.
-    if (process.env.ORCA_CLI_CWD) {
+    if (process.env.ZKYQ_CLI_CWD) {
       throw new RuntimeClientError(
         'invalid_environment',
-        `orca skills ${verb} writes to the machine that runs it, but this shell forwards ` +
-          `orca to the Orca host. Run the same orca skills ${verb} command on the machine ` +
+        `zkyq skills ${verb} writes to the machine that runs it, but this shell forwards ` +
+          `zkyq to the workbench host. Run the same zkyq skills ${verb} command on the machine ` +
           "you want it on, where it can detect that host's agents."
       )
     }
@@ -246,7 +247,7 @@ function createSkillMutationHandler(verb: SkillMutationVerb): CommandHandler {
       // that stream is not JSON, so --json can't be honored here.
       throw new RuntimeClientError(
         'invalid_argument',
-        `orca skills ${verb} --json only supports --dry-run. Real ${verb}s stream ` +
+        `zkyq skills ${verb} --json only supports --dry-run. Real ${verb}s stream ` +
           "npx's own output, which isn't JSON."
       )
     }
@@ -255,10 +256,40 @@ function createSkillMutationHandler(verb: SkillMutationVerb): CommandHandler {
     // stderr — stdout is npx's own output, not this command's JSON channel.
     process.stderr.write(`Running: ${command}\n`)
     process.exitCode = await runNpxSkills(npxArgs)
+    if (process.exitCode === 0) {
+      const archived = await retireRenamedBundledSkills({ names: skillNames, global })
+      for (const path of archived) process.stderr.write(`Preserved retired skill: ${path}\n`)
+    }
   }
 }
 
 export const SKILL_HANDLERS: Record<string, CommandHandler> = {
+  'skills migrate': async ({ flags, json, client }) => {
+    const names = resolveSelectedSkillNames(flags, await loadCanonicalGuides())
+    if (names.length === 0) {
+      throw new RuntimeClientError(
+        'invalid_argument',
+        'Select current skill names with --skill or --all.'
+      )
+    }
+    if (process.env.ZKYQ_CLI_CWD || client.isRemote) {
+      throw new RuntimeClientError(
+        'invalid_environment',
+        'Run zkyq skills migrate on the machine where the skills were installed; this shell forwards to another host.'
+      )
+    }
+    const archived = await retireRenamedBundledSkills({
+      names,
+      global: flags.get('local') !== true
+    })
+    writeStdoutLine(
+      json
+        ? JSON.stringify({ skills: names, archived }, null, 2)
+        : archived.length
+          ? archived.map((path) => `Preserved retired skill: ${path}`).join('\n')
+          : 'No legacy skill copies needed retirement.'
+    )
+  },
   'skills list': async ({ json }) => {
     // Why: generated registry order is not a user-facing contract, while stable
     // canonical sorting keeps agent-visible output reproducible across builds.

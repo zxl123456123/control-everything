@@ -163,13 +163,47 @@ test('dispose aborts requests, clears the page, and ignores late replies', async
   assert.equal(f.calls.length, count);
 });
 
+test('changed sessions retire the remote context before exposing a roster', async t => {
+  for (const probe of [false, true]) {
+    const f = await fixture(t);
+    let invalidated = 0;
+    f.w.CERemoteContext = { invalidate() { invalidated++; } };
+    const fetch = f.w.fetch;
+    f.w.fetch = async (url, options) => url === '/remote/api/session'
+      ? { status: 200, ok: true, json: async () => ({ admin: true, csrf: 'new', session_changed: true, account: { sub: 'other' } }) }
+      : fetch(url, options);
+    if (probe) assert.equal(await f.w.StudioMembersAdmin.probe(), false);
+    else { f.mount(); await tick(); }
+    assert.equal(invalidated, 1);
+    assert.equal(f.qa('.ce-mem-item').length, 0);
+    assert.ok(!f.calls.some(call => call.url.includes('/roster')));
+  }
+});
+
+test('refresh during a rejected write never announces a successful status change', async t => {
+  const f = await fixture(t); f.mount(); await tick();
+  const fetch = f.w.fetch;
+  let rejectWrite;
+  f.w.fetch = (url, options) => url.endsWith('/members/status')
+    ? new Promise(resolve => { rejectWrite = resolve; }) : fetch(url, options);
+  await f.click(`[data-action="toggle"][data-sub="${BOB}"]`);
+  await f.click(`[data-action="status"][data-sub="${BOB}"]`);
+  await f.click('[data-action="refresh"]');
+  rejectWrite({ status: 403, ok: false, json: async () => ({ error: 'admin_required' }) });
+  await tick();
+  assert.match(f.q('[data-node="notice"]').textContent, /只有管理员/);
+  assert.doesNotMatch(f.q('[data-node="notice"]').textContent, /已停用/);
+  assert.equal(f.q(`[data-action="status"][data-sub="${BOB}"]`).dataset.next, 'disabled');
+});
+
 test('Studio shows the tab only for admins and the page carries the packaging entries', async t => {
   const shell = fs.readFileSync(path.join(root, 'web/workspace/studio-shell.js'), 'utf8');
   const w = new (await import(pathToFileURL(path.join(root, 'web/workbench-engine/node_modules/happy-dom/lib/index.js')).href)).Window({ settings: { disableJavaScriptFileLoading: true } });
   w.eval(shell); t.after(() => w.close());
-  assert.doesNotMatch(w.StudioShell.renderSettingsTabs('account'), /settings\/members/);
-  const tabs = w.StudioShell.renderSettingsTabs('members', { members: true });
-  assert.match(tabs, /href="#settings\/members" aria-current="page">成员管理/);
-  assert.ok(tabs.indexOf('settings/account') < tabs.indexOf('settings/members') && tabs.indexOf('settings/members') < tabs.indexOf('settings/sources'));
+  assert.doesNotMatch(w.StudioShell.renderNavigation({ current: { view: 'settings', tab: 'account' } }), /settings\/members/);
+  const tabs = w.StudioShell.renderNavigation({ current: { view: 'settings', tab: 'members' }, members: true });
+  assert.match(tabs, /href="#settings\/members"[^>]*aria-current="page"[^>]*>.*成员管理/);
+  assert.doesNotMatch(tabs, /settings\/sources/);
+  assert.match(tabs, /settings\/account/);
   assert.match(fs.readFileSync(path.join(root, 'web/workspace/studio-preview.html'), 'utf8'), /\/studio-members-admin\.js/);
 });

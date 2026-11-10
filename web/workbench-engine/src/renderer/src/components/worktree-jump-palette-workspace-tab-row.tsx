@@ -69,7 +69,7 @@ export function WorktreeJumpPaletteWorkspaceTabRow({
         <PaletteRecentTabStatusDot row={recentRow} fallback={fallback} />
       </div>
       <div className="min-w-0 flex-1 overflow-hidden">
-        <div className="flex items-center justify-between gap-2.5">
+        <div className="flex items-start justify-between gap-2.5">
           <div className="min-w-0 flex-1 overflow-hidden">
             <PaletteOpenTabPrimaryLine
               title={result.title}
@@ -79,6 +79,18 @@ export function WorktreeJumpPaletteWorkspaceTabRow({
               secondaryMatches={result.secondaryMatches}
               elideSecondaryPathHead={isEditorTabContentType(result.contentType)}
               sessionAge={sessionAge}
+              location={
+                <>
+                  <PaletteHostBadgeChip badge={workspaceTabHostBadge} />
+                  <PaletteLocationChip
+                    repoName={workspaceTabRepoName}
+                    repoRanges={result.repoRanges}
+                    repoColor={workspaceTabRepo?.badgeColor}
+                    worktreeName={result.worktreeName}
+                    worktreeRanges={result.worktreeRanges}
+                  />
+                </>
+              }
               leadingBadges={
                 <>
                   {result.isCurrentTab && (
@@ -103,15 +115,7 @@ export function WorktreeJumpPaletteWorkspaceTabRow({
               </span>
             ) : null}
           </div>
-          <div className="flex min-w-0 max-w-[40%] items-center justify-end gap-1.5">
-            <PaletteHostBadgeChip badge={workspaceTabHostBadge} />
-            <PaletteLocationChip
-              repoName={workspaceTabRepoName}
-              repoRanges={result.repoRanges}
-              repoColor={workspaceTabRepo?.badgeColor}
-              worktreeName={result.worktreeName}
-              worktreeRanges={result.worktreeRanges}
-            />
+          <div className="shrink-0 pt-0.5">
             <PaletteRowShortcutBadge
               index={controller.recentTabShortcutIndexByItem.get(entry)}
               modifierKeys={controller.digitShortcutModifiers}

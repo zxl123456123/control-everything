@@ -1,11 +1,13 @@
 import type { ClientChannel } from 'ssh2'
 import { createSshOperationAbortError } from '../connection/ssh-exec-options'
-import { RELAY_SENTINEL, RELAY_SENTINEL_TIMEOUT_MS } from '../remote-exec/remote-frame-protocol'
+import { RELAY_SENTINEL_TIMEOUT_MS } from '../remote-exec/remote-frame-protocol'
 import type { MultiplexerTransport } from '../ssh-channel-multiplexer'
 import { buildRelayHandshakeRefusalError } from './ssh-relay-handshake-mismatch'
 
 const MAX_RELAY_STARTUP_BUFFER_BYTES = 64 * 1024
-const RELAY_SENTINEL_BUFFER = Buffer.from(RELAY_SENTINEL, 'utf-8')
+// Released relay processes retain this wire identity until their leased terminals exit.
+export const RELEASED_RELAY_SENTINEL = 'ORCA-RELAY v0.1.0 READY\n'
+const RELAY_SENTINEL_BUFFER = Buffer.from(RELEASED_RELAY_SENTINEL, 'utf-8')
 
 export function waitForSentinel(
   channel: ClientChannel,

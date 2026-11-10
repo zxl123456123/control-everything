@@ -23,6 +23,26 @@ class WorkbenchRemoteTests(unittest.TestCase):
         h.server.remote_connector.confirm.assert_not_called()
         h.reply.assert_called_once_with(200,{'state':'unbound','code':'unbound'})
 
+    def test_connect_selects_account_only_when_signed_in_without_silent_error_fallback(self):
+        for state, code, action in [('signed_in', '', 'reuse'), ('signed_out', '', 'legacy'),
+                                    ('signed_out', 'remote_network_unavailable', 'reject'),
+                                    ('authorizing', '', 'reject')]:
+            with self.subTest(state=state, code=code):
+                h = self.handler(Origin='http://127.0.0.1:8766', **{'X-Session-CSRF':'csrf'})
+                connector = h.server.remote_connector
+                connector.begin_account_authorization = Mock()
+                account = SimpleNamespace(status=Mock(return_value={'state':state, 'code':code}))
+                h.server.desktop_account = account
+                handle_post(h, '/api/desktop/remote/authorize')
+                if action == 'reuse':
+                    connector.begin_account_authorization.assert_called_once_with(account)
+                elif action == 'legacy':
+                    connector.begin_authorization.assert_called_once()
+                else:
+                    h.reject.assert_called_once()
+                    connector.begin_authorization.assert_not_called()
+                    connector.begin_account_authorization.assert_not_called()
+
     def test_remote_proof_public_host_and_null_origin_reject_owner_controls(self):
         cases=[{'X-CE-Device-Proof':'proof'},{'Origin':'null'},{'Host':'public.example.test'}, {'X-CE-Proxy-Token':'legacy'}]
         for headers in cases:
@@ -47,6 +67,26 @@ class WorkbenchRemoteTests(unittest.TestCase):
         h=self.handler();handle_get(h,'/api/desktop/remote/authorize');h.reject.assert_called_once_with(405,'method_not_allowed')
         h=self.handler();h.client_address=('192.0.2.1',1234);handle_get(h,'/api/desktop/remote/status');h.reject.assert_called_once_with(403,'local_control_required')
         self.assertFalse(handle_get(h,'/unrelated'))
+
+    def test_unrelated_post_does_not_wait_for_configuration_lock(self):
+        import threading
+        from control_everything.http.workbench_remote import handle_account
+        handler = self.handler()
+        lock = threading.RLock()
+        handler.server.desktop = SimpleNamespace(configuration_lock=lock)
+        completed, values = threading.Event(), []
+        def route():
+            values.append(handle_post(handler, '/api/unrelated'))
+            values.append(handle_account(handler, '/api/unrelated', write=True))
+            completed.set()
+        with lock:
+            worker = threading.Thread(target=route)
+            worker.start()
+            completed_in_time = completed.wait(2)
+        worker.join(5)
+        self.assertFalse(worker.is_alive())
+        self.assertTrue(completed_in_time, 'unrelated requests waited for configuration lock')
+        self.assertEqual(values, [False, False])
     def health_handler(self):
         h=self.handler()
         h.headers=Message()

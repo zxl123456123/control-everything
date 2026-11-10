@@ -8,7 +8,10 @@
  * built under a partial name and renamed into place, so a half-written snapshot is never
  * `PRESENT`. Symlinks and junctions anywhere in captured state fail closed, as on POSIX.
  */
-import { PRIMARY_RUNTIME_METADATA_FILE } from '../../../shared/runtime-bootstrap'
+import {
+  LEGACY_RUNTIME_METADATA_FILE,
+  PRIMARY_RUNTIME_METADATA_FILE
+} from '../../../shared/runtime-bootstrap'
 import { ORCAD_LOCK_FILE_NAME } from '../../orcad/orcad-instance-lock'
 import { ORCAD_WINDOWS_PROCESS_TREE_FILENAME } from '../../../shared/orcad-artifacts'
 import { ORCAD_INSTALL_MODEL } from '../install/remote-install-model'
@@ -40,6 +43,37 @@ const text = JSON.stringify
 /** Evaluated inside the host script, after `fs`, `path`, `answer` and `ops` exist. */
 export const ORCAD_WINDOWS_HOST_STATE_OPS = `
 const MEMBERS = ${text(ORCAD_SNAPSHOT_MEMBERS)}
+function snapshotRootStats(root) {
+  const stats = lstatOrNull(root)
+  if (!stats?.isSymbolicLink()) return stats
+  const name = path.basename(root)
+  if (!/^[.](?:orca|zkyq)(?:-[a-f0-9]{8})?$/.test(name)) throw new Error('Unowned state root link')
+  const currentName = name.replace('.orca', '.zkyq')
+  const previousName = currentName.replace('.zkyq', '.orca')
+  const current = path.join(path.dirname(root), currentName)
+  const other = path.join(path.dirname(root), name === currentName ? previousName : currentName)
+  const recordPath = path.join(path.dirname(root), '.zkyq-data-migrations', currentName, 'identity.json')
+  const recordStats = lstatOrNull(recordPath)
+  if (!recordStats?.isFile() || recordStats.size > 65536 || !lstatOrNull(other)?.isDirectory()) throw new Error('Unowned state root link')
+  const record = JSON.parse(fs.readFileSync(recordPath, 'utf8'))
+  if (record.schemaVersion !== 1 || record.currentName !== currentName || record.previousName !== previousName ||
+      !['bridged','previous-build'].includes(record.phase) ||
+      fs.realpathSync(root).toLowerCase() !== fs.realpathSync(other).toLowerCase()) throw new Error('Unowned state root link')
+  return fs.statSync(root)
+}
+function snapshotMembers(...roots) {
+  const result = new Set(MEMBERS)
+  for (const root of roots) {
+    const stats = snapshotRootStats(root)
+    if (!stats) continue
+    if (!stats.isDirectory()) throw new Error('state root is not a directory')
+    for (const name of fs.readdirSync(root)) {
+      const match = /^(?:orca|zkyq)-data[.]json[.]sqlite-export[.]([0-9]+)[.]json$/.exec(name)
+      if (match && Number.isSafeInteger(Number(match[1])) && Number(match[1]) > 0) result.add(name)
+    }
+  }
+  return [...result]
+}
 const STATE_DIR = ${text(ORCAD_WINDOWS_SNAPSHOT_STATE_DIRNAME)}
 const RESTORE_STAGE = ${text(ORCAD_STATE_RESTORE_STAGE_DIRNAME)}
 const MUTATION_LOCK = path.join(__dirname, ${text(ORCAD_STATE_MUTATION_LOCK_DIRNAME)})
@@ -122,6 +156,13 @@ function withStateMutationLock(run) {
     const beat = setInterval(refreshFence, ${ORCAD_STATE_MUTATION_FENCE_HEARTBEAT_SECONDS * 1000})
     try {
       refreshFence()
+      const root = opArgs[0]
+      const name = path.basename(root)
+      if ((name === '.orca' || /^[.]orca-[a-f0-9]{8}$/.test(name)) && !lstatOrNull(root) &&
+          lstatOrNull(path.join(path.dirname(root), name.replace('.orca', '.zkyq')))) {
+        throw new Error('The data directory moved; reconnect before retrying.')
+      }
+      snapshotRootStats(root)
       token = await run(...opArgs)
     } catch {
       token = 'FAILED'
@@ -184,7 +225,7 @@ Object.assign(ops, {
   'snapshot-capture': withStateMutationLock(async (root, snapshotDir) => {
     let present
     try {
-      present = MEMBERS.filter((member) => lstatOrNull(path.join(root, member)))
+      present = snapshotMembers(root).filter((member) => lstatOrNull(path.join(root, member)))
       if (present.some((member) => treeHasLink(path.join(root, member)))) return ('FAILED')
     } catch { return ('FAILED') }
     if (present.length === 0) return ('EMPTY')
@@ -220,7 +261,13 @@ Object.assign(ops, {
       fs.mkdirSync(root, { recursive: true })
       await removeTreeAsync(stage)
       await fs.promises.cp(state, stage, { recursive: true })
-      if (!MEMBERS.some((member) => lstatOrNull(path.join(stage, member)))) {
+      if (!snapshotMembers(stage).some((member) => lstatOrNull(path.join(stage, member)))) {
+        await removeTreeAsync(stage)
+        return ('FAILED')
+      }
+      const backups = ['orca-profile-index.json.bak', 'zkyq-profile-index.json.bak']
+      if (backups.some((name) => lstatOrNull(path.join(root, name))) &&
+          !backups.some((name) => lstatOrNull(path.join(stage, name)))) {
         await removeTreeAsync(stage)
         return ('FAILED')
       }
@@ -229,8 +276,9 @@ Object.assign(ops, {
       return ('FAILED')
     }
     try {
-      for (const member of MEMBERS) await removeTreeAsync(path.join(root, member))
-      for (const member of MEMBERS) {
+      const members = snapshotMembers(root, stage)
+      for (const member of members) await removeTreeAsync(path.join(root, member))
+      for (const member of members) {
         if (lstatOrNull(path.join(stage, member))) renameWithRetry(path.join(stage, member), path.join(root, member))
       }
       await removeTreeAsync(stage)
@@ -241,19 +289,19 @@ Object.assign(ops, {
   'snapshot-clear': withStateMutationLock(async (root) => {
     try {
       fs.mkdirSync(root, { recursive: true })
-      for (const member of MEMBERS) await removeTreeAsync(path.join(root, member))
+      for (const member of snapshotMembers(root)) await removeTreeAsync(path.join(root, member))
     } catch { return ('FAILED') }
     return 'RESTORED'
   }),
 
   'snapshot-compare'(root, snapshotDir) {
     try {
-      const rootStats = lstatOrNull(root)
+      const rootStats = snapshotRootStats(root)
       const state = path.join(snapshotDir, STATE_DIR)
       const stateStats = lstatOrNull(state)
       if (!rootStats || !rootStats.isDirectory() || !stateStats || !stateStats.isDirectory()) return answer('UNKNOWN')
       if (treeHasLink(state)) return answer('UNKNOWN')
-      for (const member of MEMBERS) {
+      for (const member of snapshotMembers(root, state)) {
         const live = path.join(root, member)
         if (lstatOrNull(live) && treeHasLink(live)) return answer('UNKNOWN')
         if (!treesEqual(live, path.join(state, member))) return answer('CHANGED')
@@ -265,7 +313,7 @@ Object.assign(ops, {
   'state-newest-mtime'(root) {
     let newest = null
     try {
-      for (const member of MEMBERS) {
+      for (const member of snapshotMembers(root)) {
         const value = newestMtime(path.join(root, member))
         if (value !== null && (newest === null || value > newest)) newest = value
       }
@@ -275,7 +323,7 @@ Object.assign(ops, {
 
   // A live, unreadable or unexpected owner record defers the first activation.
   'owner-admission'(userDataDir) {
-    const owners = ${text([ORCAD_LOCK_FILE_NAME, PRIMARY_RUNTIME_METADATA_FILE])}
+    const owners = ${text([ORCAD_LOCK_FILE_NAME, PRIMARY_RUNTIME_METADATA_FILE, LEGACY_RUNTIME_METADATA_FILE])}
     for (const name of owners) {
       const file = path.join(userDataDir, name)
       let pid

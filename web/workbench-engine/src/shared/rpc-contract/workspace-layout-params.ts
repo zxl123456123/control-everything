@@ -250,6 +250,16 @@ const OpenSimulatorTabCommand = z.object({
   split: NewGroupSplit
 })
 
+const OpenGitGraphTabCommand = z.object({
+  type: z.literal('openGitGraphTab'),
+  ...OnTab,
+  groupId: z.string().min(1).optional(),
+  afterTabId: z.string().min(1).optional(),
+  index: z.number().int().nonnegative().optional(),
+  createdAt: z.number().int().nonnegative().optional(),
+  split: NewGroupSplit
+})
+
 /**
  * Restored editor tabs the window asks main to move to the workspace that owns their file (F42),
  * under the ids it proposes: the window resolved that owner.
@@ -333,6 +343,7 @@ export const LayoutApplyParams = z.object({
     OpenAgentSessionTabCommand,
     PromotePreviewTabCommand,
     OpenSimulatorTabCommand,
+    OpenGitGraphTabCommand,
     MoveTabToWorkspaceCommand,
     RenameEditorFilesCommand,
     SleepCommand,

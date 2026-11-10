@@ -17,7 +17,11 @@ import {
   DialogFooter
 } from '../ui/dialog'
 
-type Snapshot = { opencode?: ManagedDataAccountsState; devin?: ManagedDataAccountsState }
+type Snapshot = {
+  opencode?: ManagedDataAccountsState
+  devin?: ManagedDataAccountsState
+  accountCommand?: string
+}
 
 export function ManagedDataAccountsSection({
   provider,
@@ -31,9 +35,12 @@ export function ManagedDataAccountsSection({
   const [busy, setBusy] = useState(false)
   const [removeId, setRemoveId] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
+  const [commandName, setCommandName] = useState<string | null>(null)
   const environmentId = target.kind === 'environment' ? target.environmentId : null
 
   useEffect(() => {
+    setCommandName(null)
+    setCopied(false)
     const controller = new AbortController()
     const requestTarget: RuntimeClientTarget = environmentId
       ? { kind: 'environment', environmentId }
@@ -44,6 +51,9 @@ export function ManagedDataAccountsSection({
       .then((snapshot) => {
         if (!controller.signal.aborted) {
           setState(snapshot[provider] ?? null)
+          setCommandName(
+            snapshot.accountCommand === 'zkyq' ? 'zkyq' : null
+          )
         }
       })
       .catch((cause: unknown) => {
@@ -60,6 +70,9 @@ export function ManagedDataAccountsSection({
     try {
       const snapshot = await callRuntimeRpc<Snapshot>(target, 'accounts.listData')
       setState(snapshot[provider] ?? null)
+      setCommandName(
+        snapshot.accountCommand === 'zkyq' ? 'zkyq' : null
+      )
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause))
     } finally {
@@ -84,7 +97,7 @@ export function ManagedDataAccountsSection({
     }
   }
 
-  const command = `orca account add --agent ${provider}`
+  const command = `${commandName} account add --agent ${provider}`
   return (
     <section className="space-y-3">
       <h3 className="text-sm font-semibold">
@@ -92,28 +105,39 @@ export function ManagedDataAccountsSection({
           ? translate('auto.lib.agent.catalog.e7a4ca5103', 'OpenCode')
           : translate('auto.lib.agent.catalog.fc80296033', 'Devin')}
       </h3>
-      <p className="text-xs text-muted-foreground">
-        {translate(
-          'accounts.managedData.description',
-          'Add accounts by running this command in a terminal on the Orca host. Selection applies to new explicit agent launches on that host; direct SSH relay and Windows-hosted WSL launches use their own credentials.'
+      <details className="text-xs">
+        <summary className="cursor-pointer text-muted-foreground">
+          {translate('accounts.managedData.setup', 'Setup instructions')}
+        </summary>
+        {commandName ? <div className="mt-2 space-y-2">
+          <p className="text-xs text-muted-foreground">
+            {translate(
+              'accounts.managedData.description',
+              'Add accounts by running this command in a terminal on the execution host. Selection applies to new explicit agent launches on that host; direct SSH relay and Windows-hosted WSL launches use their own credentials.'
+            )}
+          </p>
+          <code className="text-xs">{command}</code>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              void window.api.ui
+                .writeClipboardText(command)
+                .then(() => setCopied(true))
+                .catch((cause: unknown) => setError(String(cause)))
+            }}
+          >
+            {copied
+              ? translate('accounts.managedData.copied', 'Copied')
+              : translate('accounts.managedData.add', 'Copy add account command')}
+          </Button>
+        </div> : (
+          <p className="mt-2 text-muted-foreground">
+            {translate('accounts.managedData.upgrade', 'Update or restart the execution host to add accounts.')}
+          </p>
         )}
-      </p>
-      <code className="text-xs">{command}</code>
+      </details>
       <div className="flex gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => {
-            void window.api.ui
-              .writeClipboardText(command)
-              .then(() => setCopied(true))
-              .catch((cause: unknown) => setError(String(cause)))
-          }}
-        >
-          {copied
-            ? translate('accounts.managedData.copied', 'Copied')
-            : translate('accounts.managedData.add', 'Copy add account command')}
-        </Button>
         <Button
           variant="ghost"
           size="sm"
@@ -129,7 +153,7 @@ export function ManagedDataAccountsSection({
         <p className="text-xs text-muted-foreground">
           {translate(
             'accounts.managedData.upgrade',
-            'If accounts do not appear, update or restart the Orca host.'
+            'If accounts do not appear, update or restart the execution host.'
           )}
         </p>
       )}

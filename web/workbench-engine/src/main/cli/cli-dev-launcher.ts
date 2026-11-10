@@ -4,6 +4,7 @@ import { dirname, isAbsolute, join } from 'node:path'
 import { DEV_COMMAND_NAME, DEV_LAUNCHER_DIR } from './cli-install-constants'
 import { escapeWindowsBatchValue, isAbsoluteForPlatform } from './cli-install-path-format'
 import { quotePosixShellDoubleQuotedApostrophe } from '../../shared/shell-argument-quoting'
+import { retireGeneratedCommand } from './retire-generated-command.cjs'
 
 export async function ensureDevLauncher(args: {
   platform: NodeJS.Platform
@@ -28,20 +29,44 @@ export async function ensureDevLauncher(args: {
   await mkdir(dirname(launcherPath), { recursive: true })
 
   // Why: dev builds lack the packaged resources/bin launcher, so generate one in userData to validate the flow.
-  const content =
+  const legacyContent =
     args.platform === 'win32'
       ? buildWindowsDevLauncher(args.execPath, args.cliEntryPath, args.userDataPath)
       : buildUnixCliLauncher(args.execPath, args.cliEntryPath, args.userDataPath)
+  const content =
+    args.commandName !== DEV_COMMAND_NAME
+      ? legacyContent
+      : args.platform === 'win32'
+        ? legacyContent.replace('setlocal\n', 'setlocal\nset "ZKYQ_CLI_COMMAND=zkyq-dev"\n')
+        : legacyContent.replace(
+            'set -euo pipefail\n',
+            'set -euo pipefail\nexport ZKYQ_CLI_COMMAND=zkyq-dev\n'
+          )
   await writeFile(launcherPath, content, {
     encoding: 'utf8',
     mode: args.platform === 'win32' ? undefined : 0o755
   })
-  if (args.commandName === DEV_COMMAND_NAME && args.platform !== 'win32') {
-    // Why: dev PTYs prepend this dir to PATH, so keep a local `orca` alias without claiming the global command.
-    await writeFile(join(dirname(launcherPath), 'orca'), content, {
-      encoding: 'utf8',
-      mode: 0o755
-    })
+  if (args.commandName === DEV_COMMAND_NAME) {
+    // Managed terminals use the short command without claiming the global production command.
+    await writeFile(
+      join(dirname(launcherPath), args.platform === 'win32' ? 'zkyq.cmd' : 'zkyq'),
+      content,
+      {
+        encoding: 'utf8',
+        mode: args.platform === 'win32' ? undefined : 0o755
+      }
+    )
+    for (const name of args.platform === 'win32'
+      ? ['orca-dev.cmd', 'orca.cmd']
+      : ['orca-dev', 'orca']) {
+      retireGeneratedCommand(
+        join(dirname(launcherPath), name),
+        legacyContent
+          .replaceAll('ZKYQ_USER_DATA_PATH', 'ORCA_USER_DATA_PATH')
+          .replaceAll('ZKYQ_APP_EXECUTABLE', 'ORCA_APP_EXECUTABLE')
+          .replaceAll('ZKYQ_NODE_', 'ORCA_NODE_')
+      )
+    }
   }
   return launcherPath
 }
@@ -55,7 +80,7 @@ export function buildUnixCliLauncher(
   if (runtime === 'node') {
     return `#!/usr/bin/env sh
 set -eu
-export ORCA_USER_DATA_PATH=${quotePosixShellDoubleQuotedApostrophe(userDataPath)}
+export ZKYQ_USER_DATA_PATH=${quotePosixShellDoubleQuotedApostrophe(userDataPath)}
 unset NODE_OPTIONS NODE_REPL_EXTERNAL_MODULE ELECTRON_RUN_AS_NODE
 exec ${quotePosixShellDoubleQuotedApostrophe(execPathValue)} ${quotePosixShellDoubleQuotedApostrophe(cliEntryPath)} "$@"
 `
@@ -64,13 +89,13 @@ exec ${quotePosixShellDoubleQuotedApostrophe(execPathValue)} ${quotePosixShellDo
 set -euo pipefail
 ELECTRON=${quotePosixShellDoubleQuotedApostrophe(execPathValue)}
 CLI=${quotePosixShellDoubleQuotedApostrophe(cliEntryPath)}
-export ORCA_USER_DATA_PATH=${quotePosixShellDoubleQuotedApostrophe(userDataPath)}
-if [ -z "\${ORCA_APP_EXECUTABLE:-}" ]; then
-  export ORCA_APP_EXECUTABLE="$ELECTRON"
-  export ORCA_APP_EXECUTABLE_NEEDS_APP_ROOT=1
+export ZKYQ_USER_DATA_PATH=${quotePosixShellDoubleQuotedApostrophe(userDataPath)}
+if [ -z "\${ZKYQ_APP_EXECUTABLE:-}" ]; then
+  export ZKYQ_APP_EXECUTABLE="$ELECTRON"
+  export ZKYQ_APP_EXECUTABLE_NEEDS_APP_ROOT=1
 fi
-export ORCA_NODE_OPTIONS="\${NODE_OPTIONS-}"
-export ORCA_NODE_REPL_EXTERNAL_MODULE="\${NODE_REPL_EXTERNAL_MODULE-}"
+export ZKYQ_NODE_OPTIONS="\${NODE_OPTIONS-}"
+export ZKYQ_NODE_REPL_EXTERNAL_MODULE="\${NODE_REPL_EXTERNAL_MODULE-}"
 unset NODE_OPTIONS
 unset NODE_REPL_EXTERNAL_MODULE
 ELECTRON_RUN_AS_NODE=1 exec "$ELECTRON" "$CLI" "$@"
@@ -86,13 +111,13 @@ export function buildWindowsDevLauncher(
 setlocal
 set "ELECTRON=${escapeWindowsBatchValue(execPathValue)}"
 set "CLI=${escapeWindowsBatchValue(cliEntryPath)}"
-set "ORCA_USER_DATA_PATH=${escapeWindowsBatchValue(userDataPath)}"
-if not defined ORCA_APP_EXECUTABLE (
-  set "ORCA_APP_EXECUTABLE=%ELECTRON%"
-  set "ORCA_APP_EXECUTABLE_NEEDS_APP_ROOT=1"
+set "ZKYQ_USER_DATA_PATH=${escapeWindowsBatchValue(userDataPath)}"
+if not defined ZKYQ_APP_EXECUTABLE (
+  set "ZKYQ_APP_EXECUTABLE=%ELECTRON%"
+  set "ZKYQ_APP_EXECUTABLE_NEEDS_APP_ROOT=1"
 )
-set "ORCA_NODE_OPTIONS=%NODE_OPTIONS%"
-set "ORCA_NODE_REPL_EXTERNAL_MODULE=%NODE_REPL_EXTERNAL_MODULE%"
+set "ZKYQ_NODE_OPTIONS=%NODE_OPTIONS%"
+set "ZKYQ_NODE_REPL_EXTERNAL_MODULE=%NODE_REPL_EXTERNAL_MODULE%"
 set NODE_OPTIONS=
 set NODE_REPL_EXTERNAL_MODULE=
 set ELECTRON_RUN_AS_NODE=1
@@ -111,7 +136,7 @@ set "ORCA_LAUNCHER=${escapeWindowsBatchValue(launcherPath)}"
 export function extractManagedUnixLauncherTarget(content: string): string | null {
   if (
     !content.includes('ELECTRON_RUN_AS_NODE=1') ||
-    !content.includes('ORCA_NODE_OPTIONS') ||
+    (!content.includes('ZKYQ_NODE_OPTIONS') && !content.includes('ORCA_NODE_OPTIONS')) ||
     !content.includes('NODE_REPL_EXTERNAL_MODULE')
   ) {
     return null

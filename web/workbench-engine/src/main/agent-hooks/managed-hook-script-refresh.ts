@@ -6,6 +6,14 @@ import { renameOverLockedTargetAsync } from './locked-executable-rename'
 
 type ExistingScript = { exists: false } | { exists: true; content: Buffer | null }
 
+function retiredSharedScriptPath(scriptPath: string): string | null {
+  const retired = scriptPath.replace(
+    /([\\/])\.zkyq([\\/])agent-hooks([\\/])([^\\/]+\.(?:cmd|sh|ps1|cjs|mjs))$/,
+    '$1.orca$2agent-hooks$3$4'
+  )
+  return retired === scriptPath ? null : retired
+}
+
 function isMissingPathError(error: unknown): boolean {
   return error instanceof Error && 'code' in error && error.code === 'ENOENT'
 }
@@ -67,16 +75,29 @@ export async function refreshManagedScriptIfPresent(
   content: string | Buffer,
   options: { moveLockedTargetAside?: boolean } = {}
 ): Promise<boolean> {
-  return writeManagedScriptAtomically(
+  const retired = retiredSharedScriptPath(scriptPath)
+  // Existing registrations may outlive CLI discovery; never create a retired entry.
+  const legacyPresent = retired
+    ? await writeManagedScriptAtomically(
+        retired,
+        content,
+        false,
+        options.moveLockedTargetAside === true
+      )
+    : false
+  const currentPresent = await writeManagedScriptAtomically(
     scriptPath,
     content,
     false,
     options.moveLockedTargetAside === true
   )
+  return currentPresent || legacyPresent
 }
 
 // Callers must establish ownership from a surviving managed script or registration first.
 export async function restoreManagedScript(scriptPath: string, content: string): Promise<void> {
+  const retired = retiredSharedScriptPath(scriptPath)
+  if (retired) await writeManagedScriptAtomically(retired, content, false)
   await mkdir(dirname(scriptPath), { recursive: true })
   await writeManagedScriptAtomically(scriptPath, content, true)
 }

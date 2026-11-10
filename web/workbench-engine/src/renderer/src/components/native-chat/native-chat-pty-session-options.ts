@@ -2,7 +2,7 @@ import {
   getAgentSessionOptionCatalog,
   type CatalogModel
 } from '../../../../shared/agent-session-option-catalog'
-import type { AgentType } from '../../../../shared/agent-status-types'
+import type { AgentStatusPayload, AgentType } from '../../../../shared/agent-status-types'
 import type {
   SessionOptionDescriptor,
   SessionOptionsSurface,
@@ -50,7 +50,7 @@ export type CreateNativeChatPtySessionOptionsArgs = {
   fallbackScopeKey?: string
   initialModels?: readonly CatalogModel[]
   mode: NativeChatSessionOptionMode
-  canSwitchOmpModel?: boolean
+  ompModelSwitchCommand?: AgentStatusPayload['modelSwitchCommand']
   reportedValues?: Record<string, SessionOptionValue> | null
   dispatchCommand: NativeChatSessionOptionDispatchCommand
   onAgentPicker?: () => void
@@ -66,8 +66,21 @@ export function createNativeChatPtySessionOptions(
     return null
   }
   const catalog =
-    args.agent === 'omp' && args.mode === 'live' && !args.canSwitchOmpModel
-      ? { ...baseCatalog, modelApply: { ...baseCatalog.modelApply, midSession: undefined } }
+    args.agent === 'omp' && args.mode === 'live'
+      ? {
+          ...baseCatalog,
+          modelApply: {
+            ...baseCatalog.modelApply,
+            // A retained process may still implement the previous command name.
+            midSession: args.ompModelSwitchCommand
+              ? {
+                  kind: 'command' as const,
+                  build: (value: SessionOptionValue) =>
+                    `/${args.ompModelSwitchCommand} ${String(value)}`
+                }
+              : undefined
+          }
+        }
       : baseCatalog
   let models = [...(args.initialModels ?? catalog.models)]
   // The enrichment cache only ever holds probe output, so being handed a list at all

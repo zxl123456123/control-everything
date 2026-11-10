@@ -256,11 +256,11 @@ export default function Landing(): React.JSX.Element {
   }, [createTargetLabel, createWorktreeShortcut, nextWorktreeShortcut, previousWorktreeShortcut])
 
   return (
-    <div className="absolute inset-0 flex items-center justify-center bg-background">
+    <div className="absolute inset-0 flex items-center justify-center bg-background" data-workbench-landing={platformMode || undefined}>
       <div className="w-full max-w-lg px-6">
-        <div className="flex flex-col items-center gap-4 py-8">
+        <div className="workbench-start-content flex flex-col items-center gap-4 py-8">
           <div
-            className="flex items-center justify-center size-20 rounded-2xl border border-border/80 shadow-lg shadow-black/40"
+            className="workbench-start-mark flex items-center justify-center size-20 rounded-2xl border border-border/80 shadow-lg shadow-black/40"
             style={{ backgroundColor: '#12181e' }}
           >
             {platformMode ? (
@@ -276,7 +276,7 @@ export default function Landing(): React.JSX.Element {
             )}
           </div>
           <h1 className="text-4xl font-bold text-foreground tracking-tight">
-            {platformMode ? '掌控一切' : translate('auto.components.Landing.6ca6ff404e', 'ORCA')}
+            {platformMode ? (hasProjects ? '继续你的工作' : '从一个项目开始') : translate('auto.components.Landing.6ca6ff404e', 'ORCA')}
           </h1>
 
           {preflightIssues.length > 0 && <PreflightBanner issues={preflightIssues} repos={repos} />}
@@ -290,7 +290,7 @@ export default function Landing(): React.JSX.Element {
               : translate('auto.components.Landing.cd21242762', 'Add a project to get started.')}
           </p>
 
-          <div className="flex items-center justify-center gap-2.5 flex-wrap">
+          <div className="workbench-start-actions flex items-center justify-center gap-2.5 flex-wrap">
             <button
               className="inline-flex items-center gap-1.5 bg-secondary/70 border border-border/80 text-foreground font-medium text-sm px-4 py-2 rounded-md cursor-pointer hover:bg-accent transition-colors"
               onClick={() => openModal('add-repo')}
@@ -309,10 +309,12 @@ export default function Landing(): React.JSX.Element {
             </button>}
           </div>
 
-          <div className="mt-6 w-full max-w-xs space-y-2">
+          <div className="workbench-start-shortcuts mt-6 w-full max-w-xs space-y-2">
             {shortcuts.filter(shortcut => canCreateWorkspace || shortcut.id !== 'create').map((shortcut) => (
               <div key={shortcut.id} className="grid grid-cols-[1fr_auto] items-center gap-3">
-                <span className="text-sm text-muted-foreground">{shortcut.action}</span>
+                <span className="text-sm text-muted-foreground">{platformMode
+                  ? (shortcut.id === 'create' ? '新建工作区' : shortcut.id === 'up' ? '上一个工作区' : '下一个工作区')
+                  : shortcut.action}</span>
                 <ShortcutKeyCombo
                   keys={shortcut.shortcut.keys}
                   doubleTap={shortcut.shortcut.doubleTap}

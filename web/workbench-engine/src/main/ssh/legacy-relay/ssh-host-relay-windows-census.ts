@@ -9,7 +9,7 @@
  * convert under it.
  */
 import type { SshConnection } from '../connection/ssh-connection'
-import { RELAY_REMOTE_DIR } from '../remote-exec/remote-frame-protocol'
+import { RELAY_REMOTE_DIR, RETIRED_RELAY_REMOTE_DIR } from '../remote-exec/remote-frame-protocol'
 import { RELAY_INSTALL_MODEL } from '../../managed-server/install/remote-install-model'
 import type { HostRelayEndpointCensus } from './ssh-host-relay-endpoint-census'
 import {
@@ -51,13 +51,18 @@ export async function censusWindowsHostRelays(
     execCommand(conn, command, { wrapCommand: false, signal })
   let listing: string
   try {
-    listing = await run(
-      listRemoteInstallBaseDirsCommand(
-        host,
-        joinRemotePath(host, remoteHome, RELAY_REMOTE_DIR),
-        RELAY_INSTALL_MODEL
-      )
-    )
+    listing = ''
+    for (const root of [RELAY_REMOTE_DIR, RETIRED_RELAY_REMOTE_DIR]) {
+      listing +=
+        '\n' +
+        (await run(
+          listRemoteInstallBaseDirsCommand(
+            host,
+            joinRemotePath(host, remoteHome, root),
+            RELAY_INSTALL_MODEL
+          )
+        ))
+    }
   } catch {
     return { verdict: 'unverifiable', count: 0 }
   }
@@ -131,17 +136,15 @@ export async function windowsCensusNodePath(
 ): Promise<string | null> {
   const target = `${host.os}-${host.arch}`
   if (isNodeRuntimeTarget(target)) {
-    const runtimeDir = nodeRuntimeStoreDir(
-      host,
-      joinRemotePath(host, remoteHome, RELAY_REMOTE_DIR),
-      target
-    )
-    const present = await execCommand(conn, remoteNodeRuntimePresentCommand(host, runtimeDir), {
-      wrapCommand: false,
-      signal
-    }).catch(() => '')
-    if (present.trim() === REMOTE_NODE_RUNTIME_READY) {
-      return joinRemotePath(host, runtimeDir, orcadNodeRuntimeExecutable(target))
+    for (const root of [RELAY_REMOTE_DIR, RETIRED_RELAY_REMOTE_DIR]) {
+      const runtimeDir = nodeRuntimeStoreDir(host, joinRemotePath(host, remoteHome, root), target)
+      const present = await execCommand(conn, remoteNodeRuntimePresentCommand(host, runtimeDir), {
+        wrapCommand: false,
+        signal
+      }).catch(() => '')
+      if (present.trim() === REMOTE_NODE_RUNTIME_READY) {
+        return joinRemotePath(host, runtimeDir, orcadNodeRuntimeExecutable(target))
+      }
     }
   }
   return resolveRemoteNodePath(conn, host, { signal }).catch(() => null)

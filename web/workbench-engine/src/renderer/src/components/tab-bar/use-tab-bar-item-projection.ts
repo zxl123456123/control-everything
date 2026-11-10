@@ -46,6 +46,7 @@ export function useTabBarItemProjection({
     activeFileId,
     activeBrowserTabId,
     activeSimulatorTabId,
+    activeGitGraphTabId,
     activeTabType,
     expandedPaneByTabId
   } = props
@@ -75,6 +76,13 @@ export function useTabBarItemProjection({
         .map((tab) => tab.id),
     [unifiedTabs, resolvedGroupId]
   )
+  const gitGraphTabIds = useMemo(
+    () =>
+      unifiedTabs
+        .filter((tab) => tab.groupId === resolvedGroupId && tab.contentType === 'git-graph')
+        .map((tab) => tab.id),
+    [unifiedTabs, resolvedGroupId]
+  )
   const agentSessionTabIds = useMemo(
     () => agentSessionTabs?.map((tab) => tab.id) ?? [],
     [agentSessionTabs]
@@ -87,6 +95,7 @@ export function useTabBarItemProjection({
         editorFileIds,
         browserTabIds,
         simulatorTabIds,
+        gitGraphTabIds,
         agentSessionTabIds,
         terminalMap,
         editorMap,
@@ -100,6 +109,7 @@ export function useTabBarItemProjection({
       editorFileIds,
       browserTabIds,
       simulatorTabIds,
+      gitGraphTabIds,
       agentSessionTabIds,
       terminalMap,
       editorMap,
@@ -127,12 +137,14 @@ export function useTabBarItemProjection({
         activeFileId,
         activeBrowserTabId,
         activeSimulatorTabId,
+        activeGitGraphTabId,
         activeTabType
       }),
     [
       activeBrowserTabId,
       activeFileId,
       activeSimulatorTabId,
+      activeGitGraphTabId,
       activeTabId,
       activeTabType,
       orderedItems

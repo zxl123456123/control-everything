@@ -100,6 +100,15 @@ class ProductContext:
             raise RegistryError('version_location')
         return cls(path, path.parent.parent, document, key)
 
+    @classmethod
+    def load_bootstrap(cls, version_dir):
+        path = manifest.no_links(version_dir)
+        document = manifest.verify_bootstrap(path)
+        key = version_id(document)
+        if path.name != key or path.parent.name != 'versions':
+            raise RegistryError('version_location')
+        return cls(path, path.parent.parent, document, key)
+
 
 def load_root(root, api):
     root = manifest.no_links(root)
@@ -146,14 +155,17 @@ def version_record(context, api):
             'runtime': api.file_identity(context.version_dir / 'runtime/python.exe'), 'native': native_association(context, api)}
 
 
-def validate_version(root, key, record, api):
+def validate_version(root, key, record, api, *, context=None):
     if type(key) is not str or not TOKEN.fullmatch(key):
         raise RegistryError('version_key')
     manifest.exact(record, {'schema', 'version_id', 'directory', 'product_sha256', 'closure', 'runtime', 'native'}, 'version_fields')
     directory = contained(root, identity(record['directory'])['path'])
     if directory != root / 'versions' / key or type(record['schema']) is not int or record['schema'] != 1 or record['version_id'] != key:
         raise RegistryError('version_location')
-    context = ProductContext.load(directory)
+    if context is None:
+        context = ProductContext.load(directory)
+    elif context.version_dir != directory:
+        raise RegistryError('version_location')
     expected = version_record(context, api)
     # Missing native is tolerated at runtime, but records must retain the original identity.
     if any(record[field] != expected[field] for field in ('schema', 'version_id', 'directory', 'product_sha256', 'closure', 'runtime')):
@@ -189,14 +201,15 @@ def process_record(value):
     return value
 
 
-def load_records(root, api, *, pending=None):
+def load_records(root, api, *, pending=None, verified=None):
+    # Reuse only within a maintenance commit that will strictly reread all assets before writing.
     root = manifest.no_links(root)
     owner = load_root(root, api)
     directory = root / '.install'
     files, directories = manifest.inventory(directory)
     if directories - {'versions', 'profiles', 'http', 'backups'}:
         raise RegistryError('unknown_record_directory')
-    versions, profiles, http = {}, {}, []
+    versions, profiles, http, contexts = {}, {}, [], {}
     for name, path in sorted(files.items()):
         if name == 'root.json':
             continue
@@ -210,7 +223,8 @@ def load_records(root, api, *, pending=None):
             raise RegistryError('unknown_record')
         key, record = filename[:-5], read_record(path)
         if prefix == 'versions':
-            validate_version(root, key, record, api)
+            contexts[key] = validate_version(root, key, record, api,
+                                             context=verified.get(key) if verified is not None else None)
             versions[key] = record
         elif prefix == 'profiles':
             manifest.exact(record, {'schema', 'profile_key', 'directory', 'associations'}, 'profile_fields')
@@ -251,7 +265,7 @@ def load_records(root, api, *, pending=None):
     version_root = root / 'versions'
     if not version_root.is_dir() or {path.name for path in version_root.iterdir()} != known:
         raise RegistryError('unknown_version_directory')
-    return owner, versions, profiles, http
+    return owner, versions, profiles, http, contexts
 
 
 class RegistrationLease:
@@ -267,7 +281,7 @@ class RegistrationLease:
 def register_http(context, profile, *, api=None):
     """Caller holds install_mutex until observer.start has returned."""
     api = default_api() if api is None else api
-    root, versions, profiles, _http = load_records(context.install_root, api)
+    root, versions, profiles, _http, _contexts = load_records(context.install_root, api)
     current = version_record(context, api)
     if (context.version_id not in versions
             or any(versions[context.version_id][field] != current[field] for field in current if field != 'native')):

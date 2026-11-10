@@ -5,11 +5,11 @@ const callMock = vi.fn()
 const WORKER_DONE_REQUEST = { orchestrationRequestId: expect.any(String) }
 const getTerminalHandleMock = vi.hoisted(() => vi.fn())
 const originalTerminalHandle = process.env.ORCA_TERMINAL_HANDLE
-const originalPaneKey = process.env.ORCA_PANE_KEY
+const originalPaneKey = process.env.ZKYQ_PANE_KEY
 // Why: a structured-session marker inherited from the runner diverts these cases to the
 // structured refusal, so which branch they exercise would depend on who ran them.
 const originalStructuredSession = process.env.ORCA_STRUCTURED_SESSION
-const originalCliCommand = process.env.ORCA_CLI_COMMAND
+const originalCliCommand = process.env.ZKYQ_CLI_COMMAND
 const originalExitCode = process.exitCode
 function lifecycleGroupRecipientError(type: 'worker_done' | 'heartbeat'): string {
   return `${type} messages belong to one exact Dispatch and cannot target a group address.`
@@ -31,9 +31,9 @@ afterEach(() => {
     process.env.ORCA_TERMINAL_HANDLE = originalTerminalHandle
   }
   if (originalPaneKey === undefined) {
-    delete process.env.ORCA_PANE_KEY
+    delete process.env.ZKYQ_PANE_KEY
   } else {
-    process.env.ORCA_PANE_KEY = originalPaneKey
+    process.env.ZKYQ_PANE_KEY = originalPaneKey
   }
   if (originalStructuredSession === undefined) {
     delete process.env.ORCA_STRUCTURED_SESSION
@@ -41,9 +41,9 @@ afterEach(() => {
     process.env.ORCA_STRUCTURED_SESSION = originalStructuredSession
   }
   if (originalCliCommand === undefined) {
-    delete process.env.ORCA_CLI_COMMAND
+    delete process.env.ZKYQ_CLI_COMMAND
   } else {
-    process.env.ORCA_CLI_COMMAND = originalCliCommand
+    process.env.ZKYQ_CLI_COMMAND = originalCliCommand
   }
   process.exitCode = originalExitCode
   vi.restoreAllMocks()
@@ -54,7 +54,7 @@ describe('orchestration send structured payload flags', () => {
     callMock.mockReset().mockResolvedValue({ result: { lifecycle: { action: 'completed' } } })
     getTerminalHandleMock.mockReset()
     delete process.env.ORCA_TERMINAL_HANDLE
-    delete process.env.ORCA_PANE_KEY
+    delete process.env.ZKYQ_PANE_KEY
     delete process.env.ORCA_STRUCTURED_SESSION
   })
 
@@ -263,7 +263,7 @@ describe('orchestration send structured payload flags', () => {
     'never probes or remints a %s sender even when a pane key is set',
     async (type) => {
       process.env.ORCA_TERMINAL_HANDLE = 'term_worker_env'
-      process.env.ORCA_PANE_KEY = 'tab_worker:leaf_worker'
+      process.env.ZKYQ_PANE_KEY = 'tab_worker:leaf_worker'
 
       await invokeSend(
         new Map<string, string | boolean>([
@@ -287,9 +287,9 @@ describe('orchestration send structured payload flags', () => {
     }
   )
 
-  it('passes ORCA_PANE_KEY as the sender pane identity', async () => {
+  it('passes ZKYQ_PANE_KEY as the sender pane identity', async () => {
     process.env.ORCA_TERMINAL_HANDLE = 'term_worker_env'
-    process.env.ORCA_PANE_KEY = 'tab_worker:leaf_worker'
+    process.env.ZKYQ_PANE_KEY = 'tab_worker:leaf_worker'
 
     await invokeSend(
       new Map<string, string | boolean>([
@@ -388,7 +388,7 @@ describe('orchestration timeout flag validation', () => {
   beforeEach(() => {
     callMock.mockReset()
     delete process.env.ORCA_TERMINAL_HANDLE
-    delete process.env.ORCA_PANE_KEY
+    delete process.env.ZKYQ_PANE_KEY
     delete process.env.ORCA_STRUCTURED_SESSION
     process.exitCode = undefined
   })
@@ -450,7 +450,7 @@ describe('orchestration timeout flag validation', () => {
       all: undefined,
       types: undefined,
       format: undefined,
-      compatibilityCliCommand: expect.stringMatching(/^orca(?:-ide)?$/),
+      compatibilityCliCommand: 'zkyq',
       run: undefined,
       ack: undefined,
       wait: true,
@@ -598,7 +598,7 @@ describe('orchestration timeout flag validation', () => {
 
   it('prints the pending message ID and exact capability-bound resume command on timeout', async () => {
     process.env.ORCA_TERMINAL_HANDLE = 'term_worker'
-    process.env.ORCA_CLI_COMMAND = 'orca-dev'
+    process.env.ZKYQ_CLI_COMMAND = 'zkyq-dev'
     callMock.mockResolvedValue({
       result: {
         answer: null,
@@ -621,8 +621,9 @@ describe('orchestration timeout flag validation', () => {
     expect(errorSpy).toHaveBeenCalledWith(
       'ask timeout after 30000ms; question is still pending (messageId: msg_question). ' +
         'Resume waiting; do not ask again:\n' +
-        'orca-dev orchestration ask --from term_worker --dispatch-capability dcap_secret ' +
-        '--resume msg_question --timeout-ms 30000'
+        (process.platform === 'win32'
+          ? '"zkyq-dev" "orchestration" "ask" "--from" "term_worker" "--dispatch-capability" "dcap_secret" "--resume" "msg_question" "--timeout-ms" "30000"'
+          : 'zkyq-dev orchestration ask --from term_worker --dispatch-capability dcap_secret --resume msg_question --timeout-ms 30000')
     )
     expect(process.exitCode).toBe(1)
   })
@@ -657,7 +658,7 @@ describe('orchestration timeout flag validation', () => {
         options: undefined,
         timeoutMs: 123,
         from: 'term_worker',
-        compatibilityCliCommand: expect.stringMatching(/^orca(?:-ide)?$/),
+        compatibilityCliCommand: 'zkyq',
         compatibilityWindowsCommand: undefined
       },
       { timeoutMs: 5_123, orchestrationCapability: undefined }
@@ -711,7 +712,7 @@ describe('orchestration timeout flag validation', () => {
         options: undefined,
         timeoutMs: undefined,
         from: 'term_worker',
-        compatibilityCliCommand: expect.stringMatching(/^orca(?:-ide)?$/),
+        compatibilityCliCommand: 'zkyq',
         compatibilityWindowsCommand: undefined
       },
       { timeoutMs: 605_000, orchestrationCapability: undefined }

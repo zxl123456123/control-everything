@@ -27,6 +27,23 @@ export function migrateV43(this: OrchestrationDb, current: number): void {
   if (current >= 43) {
     return
   }
+  // Different operation IDs are not duplicates: discarding one can repeat or lose a delivery.
+  const conflict = this.db
+    .prepare(`
+    SELECT 1 FROM structured_pointer_operations AS old
+    JOIN structured_pointer_operations AS current
+      ON current.mailbox_handle = '${CURRENT_PREFIX}' || substr(old.mailbox_handle, ${LEGACY_PREFIX.length + 1})
+    WHERE substr(old.mailbox_handle, 1, ${LEGACY_PREFIX.length}) = '${LEGACY_PREFIX}'
+      AND (old.session_id != current.session_id OR old.operation_id != current.operation_id
+        OR old.batch_fingerprint != current.batch_fingerprint OR old.minted_at_ms != current.minted_at_ms)
+    LIMIT 1
+  `)
+    .get()
+  if (conflict) {
+    throw new Error(
+      'Cannot migrate conflicting session pointer operations without losing delivery identity'
+    )
+  }
   const isLegacy = (column: string): string =>
     `substr(${column}, 1, ${LEGACY_PREFIX.length}) = '${LEGACY_PREFIX}'`
   const respelled = (column: string): string =>

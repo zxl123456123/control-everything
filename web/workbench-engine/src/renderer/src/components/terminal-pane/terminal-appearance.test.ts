@@ -140,6 +140,7 @@ describe('applyTerminalAppearance theme assignment', () => {
       terminal: { options: {}, cols: 80, rows: 24 },
       container: {
         dataset: {},
+        style: { setProperty: vi.fn(), removeProperty: vi.fn() },
         getBoundingClientRect: () => ({ width: measurable ? 800 : 0, height: measurable ? 600 : 0 })
       },
       fitAddon: {
@@ -186,6 +187,90 @@ describe('applyTerminalAppearance theme assignment', () => {
     // Identity-stable theme means xterm never re-runs _setTheme, so a TUI's modifyColors mutation survives the font tweak.
     expect(pane.terminal.options.theme).toBe(firstTheme)
     expect(pane.terminal.options.fontSize).toBe(settings.terminalFontSize + 2)
+  })
+
+  it('paints platform fills once without changing theme colors or rebuilding the palette on opacity changes', () => {
+    const surfaces = new Set(['.platform-project-entry', '.platform-workspace-header'])
+    vi.stubGlobal('document', {
+      querySelector: (selector: string) => (surfaces.has(selector) ? {} : null)
+    })
+    try {
+      const pane = makePane(1)
+      const manager = makeManager([pane])
+      const settings = {
+        ...getDefaultSettings('/tmp'),
+        terminalColorOverrides: { background: '#102030', foreground: '#d0e0f0', red: '#cc2233' },
+        terminalBackgroundOpacity: 0.5
+      }
+      const applyPlatform = (surfaceOpacity: number) =>
+        applyTerminalAppearance(
+          manager,
+          { ...settings, workbenchSurfaceOpacity: surfaceOpacity },
+          true,
+          new Map(),
+          new Map(),
+          'false',
+          new Map(),
+          new Map()
+        )
+      applyPlatform(0.82)
+      const firstTheme = pane.terminal.options.theme
+      expect(firstTheme).toMatchObject({
+        background: 'rgba(16, 32, 48, 0)',
+        foreground: '#d0e0f0',
+        red: '#cc2233'
+      })
+      expect(pane.terminal.options.allowTransparency).toBe(true)
+      expect(pane.container.dataset.workbenchTerminalSurface).toBe('')
+      expect(pane.container.style.setProperty).toHaveBeenCalledWith(
+        '--ce-terminal-background',
+        'rgba(16, 32, 48, 0.5)'
+      )
+      expect(pane.container.style.setProperty).toHaveBeenCalledWith(
+        '--ce-terminal-opaque-background',
+        'rgb(16 32 48)'
+      )
+      expect(manager.setPaneStyleOptions).toHaveBeenLastCalledWith(
+        expect.objectContaining({ splitBackground: 'transparent' })
+      )
+
+      // Home keeps the platform shell while temporarily removing the workspace header class.
+      surfaces.delete('.platform-workspace-header')
+      applyPlatform(0.55)
+      expect(pane.terminal.options.theme).toBe(firstTheme)
+      expect(pane.container.dataset.workbenchTerminalSurface).toBe('')
+      expect(pane.terminal.options.allowTransparency).toBe(true)
+      expect(settings.terminalBackgroundOpacity).toBe(0.5)
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
+  it('cleans platform surface properties and restores opaque rendering outside the platform', () => {
+    const platformRoot = vi.fn((): object | null => ({}))
+    vi.stubGlobal('document', {
+      querySelector: (selector: string) =>
+        selector === '.platform-project-entry' ? platformRoot() : null
+    })
+    try {
+      const pane = makePane(1)
+      const settings = {
+        ...getDefaultSettings('/tmp'),
+        terminalColorOverrides: { background: '#102030' }
+      }
+      apply(pane, settings)
+      platformRoot.mockReturnValue(null)
+      apply(pane, settings)
+      expect(pane.terminal.options.theme?.background).toBe('#102030')
+      expect(pane.terminal.options.allowTransparency).toBe(false)
+      expect(pane.container.dataset.workbenchTerminalSurface).toBeUndefined()
+      expect(pane.container.style.removeProperty).toHaveBeenCalledWith('--ce-terminal-background')
+      expect(pane.container.style.removeProperty).toHaveBeenCalledWith(
+        '--ce-terminal-opaque-background'
+      )
+    } finally {
+      vi.unstubAllGlobals()
+    }
   })
 
   it('applies regular and bold font weights independently', () => {

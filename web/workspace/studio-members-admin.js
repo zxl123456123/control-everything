@@ -40,7 +40,14 @@
     try {
       const response = await scope.fetch('/remote/api/session', {credentials: 'same-origin'});
       if (!response.ok) return false;
-      return (await response.json()).admin === true;
+      const session = await response.json();
+      if (session.session_changed === true) {
+        const remote = !!scope.CERemoteContext?.context;
+        scope.CERemoteContext?.invalidate();
+        if (remote) scope.location.assign('/remote');
+        return false;
+      }
+      return session.admin === true;
     } catch { return false; }
   }
 
@@ -68,10 +75,10 @@
       const mine = generation;
       const response = await scope.fetch(path, {method: body ? 'POST' : 'GET', credentials: 'same-origin', signal: controller.signal,
         headers: body ? {'Content-Type': 'application/json', 'X-CE-CSRF': csrf} : csrf ? {'X-CE-CSRF': csrf} : {}, ...(body ? {body: JSON.stringify(body)} : {})});
-      if (disposed || mine !== generation) return null;
+      if (disposed || (!body && mine !== generation)) return null;
+      if (response.status === 401) throw Object.assign(new Error('登录已过期，请重新登录后继续。'), {expired: true});
       let value = {};
       try { value = await response.json(); } catch { /* Handled by status below. */ }
-      if (response.status === 401) throw Object.assign(new Error('登录已过期，请重新登录后继续。'), {expired: true});
       if (!response.ok) throw Object.assign(new Error(errors[value.error] || fallbackError), {status: response.status});
       return value;
     }
@@ -146,7 +153,15 @@
     }
     function fail(error) {
       if (disposed || error.name === 'AbortError') return;
-      if (error.expired) { blocked = ''; say(error.message); return; }
+      if (error.expired) {
+        const remote = !!scope.CERemoteContext?.context;
+        generation++; controller.abort();
+        csrf = ''; page = null; invitation = ''; blocked = error.message;
+        $('invite').hidden = true; $('code').textContent = ''; paint();
+        scope.CERemoteContext?.invalidate();
+        if (remote) scope.location.assign('/remote');
+        if (disposed) return;
+      }
       say(error.message || fallbackError);
     }
     async function load(offset = page?.offset || 0) {
@@ -158,6 +173,7 @@
           if (!response.ok) throw Object.assign(new Error('登录已过期，请重新登录后继续。'), {expired: true});
           const session = await response.json();
           if (disposed || mine !== generation) return;
+          if (session.session_changed === true) throw Object.assign(new Error('账号已变化，请重新登录后继续。'), {expired: true});
           if (session.admin !== true) { blocked = '只有管理员可以管理成员。'; loading = false; paint(); return; }
           csrf = session.csrf; self = session.account?.sub || '';
         }
@@ -177,9 +193,9 @@
       try { return await dialog.confirm({title, message, trigger}); } finally { dialog.dispose?.(); }
     }
     async function act(key, work, success) {
-      if (busy.has(key) || disposed) return;
+      if (busy.has(key) || disposed || blocked) return;
       busy.add(key); paint(); say('');
-      try { await work(); if (disposed) return; await load(); if (success) say(success, 'success'); }
+      try { await work(); if (disposed) return; await load(); if (success && !disposed && !blocked) say(success, 'success'); }
       catch (error) { fail(error); }
       finally { busy.delete(key); if (!disposed) paint(); }
     }

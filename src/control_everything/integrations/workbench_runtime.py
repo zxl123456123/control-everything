@@ -1,4 +1,4 @@
-"""Own one isolated workspace runtime; browser requests never select executables."""
+"""Own one workspace runtime; browser requests never select executables."""
 
 from dataclasses import dataclass, field
 import hashlib
@@ -37,6 +37,8 @@ class RuntimeConfig:
     remote_device_id: str | None = None
     remote_generation: int | None = None
     platform_installation_id: str | None = None
+    inherit_host_environment: bool = False
+    credential_root: Path | None = None
 
 
 def safe_path(value):
@@ -81,7 +83,8 @@ def loopback_origin(value, scheme="http"):
     return f"{scheme}://127.0.0.1:{port}"
 
 
-def isolated_environment(data_root, node, git, origin, ambient=None, *, remote_origin=None, device_proof=None):
+def workbench_environment(data_root, node, git, origin, ambient=None, *, remote_origin=None,
+                          device_proof=None, inherit_host_environment=False, credential_root=None):
     ambient = os.environ if ambient is None else ambient
     system = ambient.get("SystemRoot") or ambient.get("SYSTEMROOT")
     if not system or not Path(system).is_absolute():
@@ -98,11 +101,34 @@ def isolated_environment(data_root, node, git, origin, ambient=None, *, remote_o
            "CLAUDE_CONFIG_DIR": str(home / "claude"), "XDG_CONFIG_HOME": str(home / ".config"),
            "XDG_DATA_HOME": str(home / ".local/share"), "XDG_CACHE_HOME": str(home / ".cache"),
            "TEMP": str(data_root / "tmp"), "TMP": str(data_root / "tmp"), "TMPDIR": str(data_root / "tmp"),
-           "ORCA_USER_DATA": str(data_root / "state"), "ORCA_USER_DATA_PATH": str(data_root / "state"),
+           "ZKYQ_USER_DATA": str(data_root / "state"), "ZKYQ_USER_DATA_PATH": str(data_root / "state"),
            "ORCA_BACKGROUND_LAUNCH": "1", "ORCA_DISABLE_MACOS_LOGIN_SHELL": "1",
            "DO_NOT_TRACK": "1", "ORCA_TELEMETRY_DISABLED": "1", "CE_WORKBENCH_ISOLATED": "1",
            "CE_WORKBENCH_ORIGIN": loopback_origin(origin), "GIT_CONFIG_NOSYSTEM": "1",
            "GIT_CONFIG_GLOBAL": str(home / ".gitconfig")}
+    if inherit_host_environment:
+        # Desktop terminals use the user's tools and configuration in place. Only
+        # product state and transport ownership belong to the managed runtime.
+        owned = {key: env[key] for key in (
+            "ZKYQ_USER_DATA", "ZKYQ_USER_DATA_PATH", "ORCA_BACKGROUND_LAUNCH",
+            "ORCA_DISABLE_MACOS_LOGIN_SHELL", "DO_NOT_TRACK", "ORCA_TELEMETRY_DISABLED",
+            "CE_WORKBENCH_ISOLATED", "CE_WORKBENCH_ORIGIN")}
+        fallback_path = env["PATH"]
+        env = dict(ambient)
+        env.update(owned)
+        env["PATH"] = os.pathsep.join(filter(None, (ambient.get("PATH"), fallback_path)))
+        env["CE_WORKBENCH_HOST_ENVIRONMENT"] = "1"
+        controlled = {"ORCA_USER_DATA", "ORCA_USER_DATA_PATH", "CE_WORKBENCH_CREDENTIAL_ROOT", "CE_WORKBENCH_PUBLIC_ORIGIN", "CE_WORKBENCH_DEVICE_PROOF",
+                      "CE_REMOTE_DEVICE_ID", "CE_REMOTE_GENERATION", "CE_REMOTE_INSTALLATION_ID"}
+        for key in tuple(env):
+            if key.upper() in controlled:
+                env.pop(key)
+    if credential_root is not None:
+        selected = safe_path(credential_root)
+        state = safe_path(data_root / 'state')
+        if selected == state or not selected.is_relative_to(state) or not selected.is_dir():
+            raise WorkbenchUnavailable('runtime_credential_root_invalid')
+        env['CE_WORKBENCH_CREDENTIAL_ROOT'] = str(selected)
     if remote_origin is not None:
         from control_everything.integrations.remote_access import RemoteAccess
         RemoteAccess(remote_origin, device_proof)
@@ -188,7 +214,10 @@ class WorkbenchRuntime:
                 json.dump({"schema": 1, "kind": "isolated-workbench", "id": str(uuid.uuid4())}, stream)
         elif read_json(marker, 4096).get("kind") != "isolated-workbench":
             raise WorkbenchUnavailable("runtime_profile_not_isolated")
-        self._env = isolated_environment(data, self._node, git, self._origin, remote_origin=self.config.public_origin, device_proof=self.config.device_proof)
+        self._env = workbench_environment(data, self._node, git, self._origin,
+                                         remote_origin=self.config.public_origin, device_proof=self.config.device_proof,
+                                         inherit_host_environment=self.config.inherit_host_environment,
+                                         credential_root=self.config.credential_root)
         remote_identity = (self.config.remote_device_id, self.config.remote_generation, self.config.platform_installation_id)
         if any(value is not None for value in remote_identity):
             device, generation, installation = remote_identity
@@ -200,17 +229,23 @@ class WorkbenchRuntime:
         # Both the lock and managed-stop context read this variable, with different
         # upstream fallbacks. Pin it to the verified artifact so their identities agree.
         self._env["ORCA_VERSION"] = version
-        for key in ("HOME", "APPDATA", "LOCALAPPDATA", "CODEX_HOME", "CLAUDE_CONFIG_DIR",
-                    "XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_CACHE_HOME", "TEMP", "ORCA_USER_DATA"):
+        directory_keys = ("ZKYQ_USER_DATA",)
+        if not self.config.inherit_host_environment:
+            directory_keys += ("HOME", "APPDATA", "LOCALAPPDATA", "CODEX_HOME", "CLAUDE_CONFIG_DIR",
+                               "XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_CACHE_HOME", "TEMP")
+        for key in directory_keys:
             safe_path(self._env[key]).mkdir(parents=True, exist_ok=True)
-        for relative in ("home/.ssh/config", "home/.gitconfig"):
+        for relative in (() if self.config.inherit_host_environment else ("home/.ssh/config", "home/.gitconfig")):
             file = safe_path(data / relative)
             file.parent.mkdir(parents=True, exist_ok=True)
             if not file.exists():
                 file.write_text("", encoding="utf-8")
         safe_path(data / "workspaces").mkdir(exist_ok=True)
-        state = safe_path(data / "state/orca-data.json")
-        if not state.exists():
+        state = safe_path(data / "state/zkyq-data.json")
+        previous = safe_path(data / "state/orca-data.json")
+        existing_family = any(item.name.startswith(("orca-data.json.", "zkyq-data.json."))
+                              for item in state.parent.iterdir())
+        if not state.exists() and not previous.exists() and not existing_family:
             state.write_text(json.dumps({"settings": {"workspaceDir": str(data / "workspaces"),
                              "agentStatusHooksEnabled": False, "nativeChatInheritShellEnvironment": False,
                              "agentStateRulesLiveUpdates": False, "localWindowsRuntimeDefault": {"kind": "windows-host"}}}), encoding="utf-8")
@@ -251,7 +286,18 @@ class WorkbenchRuntime:
 
     def _read_identity(self):
         state = self.config.data_root / "state"
-        metadata, instance = read_json(state / "orca-runtime.json", 65536), read_json(state / "orcad.lock", 32768)
+        try:
+            metadata = read_json(state / "zkyq-runtime.json", 65536)
+        except FileNotFoundError:
+            metadata = read_json(state / "orca-runtime.json", 65536)
+        instance = read_json(state / "orcad.lock", 32768)
+        if metadata.get("pid") != self._pid and instance.get("pid") == self._pid:
+            try:
+                legacy = read_json(state / "orca-runtime.json", 65536)
+                if legacy.get("pid") == self._pid:
+                    metadata = legacy
+            except FileNotFoundError:
+                pass
         if (metadata.get("pid") != self._pid or instance.get("pid") != self._pid
                 or instance.get("startedAtMs") != self._created or not instance.get("nonce")
                 or not isinstance(metadata.get("authToken"), str) or not metadata["authToken"]

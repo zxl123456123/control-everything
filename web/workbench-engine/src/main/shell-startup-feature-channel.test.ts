@@ -60,7 +60,7 @@ describe('shell startup feature selection', () => {
     expect(
       selectShellStartupFeatures({
         shellPath: '/bin/zsh',
-        env: { ORCA_SHELL_FEATURES: '', ORCA_HISTFILE: '/tmp/wt/zsh_history' },
+        env: { ORCA_SHELL_FEATURES: '', ZKYQ_HISTFILE: '/tmp/wt/zsh_history' },
         ...PLAIN_PANE
       })
     ).toEqual(['history'])
@@ -71,7 +71,7 @@ describe('shell startup feature selection', () => {
     expect(
       selectShellStartupFeatures({
         shellPath: '/bin/zsh',
-        env: { ORCA_HISTFILE: '/tmp/wt/zsh_history' },
+        env: { ZKYQ_HISTFILE: '/tmp/wt/zsh_history' },
         ...PLAIN_PANE
       })
     ).not.toContain('markers')
@@ -93,7 +93,7 @@ describe('shell startup feature selection', () => {
     expect(
       selectShellStartupFeatures({
         shellPath: '/bin/bash',
-        env: { ORCA_HISTFILE: '/tmp/wt/bash_history' },
+        env: { ZKYQ_HISTFILE: '/tmp/wt/bash_history' },
         ...PLAIN_PANE
       })
     ).toEqual([])
@@ -128,7 +128,7 @@ describePosix('zsh launch config', () => {
       mkdirSync(cliBin, { recursive: true })
       mkdirSync(ambientBin)
       for (const bin of [cliBin, ambientBin]) {
-        const launcher = join(bin, 'orca-dev')
+        const launcher = join(bin, 'zkyq-dev')
         writeFileSync(launcher, '#!/bin/sh\nexit 0\n')
         chmodSync(launcher, 0o755)
       }
@@ -153,7 +153,7 @@ describePosix('zsh launch config', () => {
       const config = getShellLaunchConfig(ZSH_PATH, features)
       const result = await runZshPty({
         env: { ...env, ...config.env },
-        commands: ['ORCA_LOOKUP=$(command -v orca-dev)'],
+        commands: ['ORCA_LOOKUP=$(command -v zkyq-dev)'],
         report: ['ORCA_LOOKUP']
       })
       expect(result.values.ORCA_LOOKUP).toBe(launcher)
@@ -282,8 +282,8 @@ describePosix('epilogue under hostile user shell options', () => {
       // first, and `overlay` is the first token the selector ever emits.
       const spawnEnv: Record<string, string> = {
         HOME: home,
-        ORCA_HISTFILE: scoped,
-        ORCA_OPENCODE_CONFIG_DIR: opencodeDir
+        ZKYQ_HISTFILE: scoped,
+        ZKYQ_OPENCODE_CONFIG_DIR: opencodeDir
       }
       const features = selectShellStartupFeatures({
         shellPath: ZSH_PATH,
@@ -357,7 +357,7 @@ describePosix('history-only pane in a real zsh', () => {
     const spawnEnv: Record<string, string> = {
       HOME: home,
       HISTFILE: scoped,
-      ORCA_HISTFILE: scoped
+      ZKYQ_HISTFILE: scoped
     }
     const features = selectShellStartupFeatures({
       shellPath: ZSH_PATH,

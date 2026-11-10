@@ -7,7 +7,7 @@
  * names every relay pipe on the machine, and each instance leaves a credential file (and its pipe
  * marker) in its version directory, which maps a listed pipe back to the instance that serves it.
  */
-import { RELAY_REMOTE_DIR } from '../remote-exec/remote-frame-protocol'
+import { RELAY_REMOTE_DIR, RETIRED_RELAY_REMOTE_DIR } from '../remote-exec/remote-frame-protocol'
 import { commandWithNodePath } from '../ssh-remote-commands'
 import {
   quotePowerShellLiteral as powerShellLiteral,
@@ -18,7 +18,12 @@ import {
   RELAY_INSTALL_MODEL,
   remoteInstallVersionDirRegex
 } from '../../managed-server/install/remote-install-model'
-import { joinRemotePath, type RemoteHostPlatform } from '../ssh-remote-platform'
+import {
+  joinRemotePath,
+  normalizeWindowsRemotePath,
+  remoteBasename,
+  type RemoteHostPlatform
+} from '../ssh-remote-platform'
 
 /** The instance that serves a pipe: its version directory and the credential its bridge presents. */
 type WindowsRelayPipeOwner = { dir: string; credentialFile: string }
@@ -35,16 +40,16 @@ const CREDENTIAL_SUFFIX = '.credential'
 
 // Why ES5 and stdout JSON: the census runs this on whichever Node the host has.
 export const WINDOWS_RELAY_INVENTORY_JS = [
-  'var fs=require("fs"),path=require("path");var base=process.argv[1];',
-  'var out={pipes:null,dirs:null};',
+  'var fs=require("fs"),path=require("path");var bases=process.argv.slice(1);',
+  'var out={pipes:null,dirs:{},directoryPaths:true};var seen={},failed=false;',
   'try{out.pipes=fs.readdirSync("\\\\\\\\.\\\\pipe\\\\").filter(function(n){',
   'return /^orca-relay-[0-9a-f]{20}$/i.test(n)})}catch(e){}',
-  'try{out.dirs={};fs.readdirSync(base).forEach(function(d){if(!/^relay-/.test(d))return;',
+  'bases.forEach(function(base){try{var real=fs.realpathSync(base).toLowerCase();if(seen[real])return;seen[real]=true;fs.readdirSync(base).forEach(function(d){if(!/^relay-/.test(d))return;',
   'var entry={credentials:[],markers:{}};try{fs.readdirSync(path.join(base,d)).forEach(function(f){',
   `if(f.slice(-${CREDENTIAL_SUFFIX.length})===${JSON.stringify(CREDENTIAL_SUFFIX)})entry.credentials.push(f);`,
   `else if(f.indexOf(${JSON.stringify(MARKER_PREFIX)})===0){`,
   'try{entry.markers[f]=fs.readFileSync(path.join(base,d,f),"utf8").trim()}catch(e){entry.markers[f]=null}}',
-  '})}catch(e){entry=null}out.dirs[d]=entry})}catch(e){if(e.code!=="ENOENT")out.dirs=null}',
+  '})}catch(e){entry=null}out.dirs[path.join(base,d)]=entry})}catch(e){if(e.code!=="ENOENT")failed=true}});if(failed)out.dirs=null;',
   'process.stdout.write(JSON.stringify(out))'
 ].join('')
 
@@ -53,13 +58,15 @@ export function windowsRelayInventoryCommand(
   nodePath: string,
   remoteHome: string
 ): string {
-  const baseDir = joinRemotePath(host, remoteHome, RELAY_REMOTE_DIR)
+  const bases = [RETIRED_RELAY_REMOTE_DIR, RELAY_REMOTE_DIR].map((root) =>
+    joinRemotePath(host, remoteHome, root)
+  )
   return commandWithNodePath(
     host,
     nodePath,
     remoteHome,
     // Why native args: PowerShell strips a native argument's inner quotes, which the script has.
-    `& ${powerShellLiteral(nodePath)} -e ${powerShellNativeArg(WINDOWS_RELAY_INVENTORY_JS)} ${powerShellNativeArg(baseDir)}`
+    `& ${powerShellLiteral(nodePath)} -e ${powerShellNativeArg(WINDOWS_RELAY_INVENTORY_JS)} ${bases.map(powerShellNativeArg).join(' ')}`
   )
 }
 
@@ -85,7 +92,7 @@ export function parseWindowsRelayInventory(
   extraSockNames: readonly string[],
   output: string
 ): WindowsRelayInventory | null {
-  let raw: { pipes?: unknown; dirs?: unknown }
+  let raw: { pipes?: unknown; dirs?: unknown; directoryPaths?: unknown }
   try {
     raw = JSON.parse(output.trim().split('\n').pop() ?? '')
   } catch {
@@ -98,16 +105,26 @@ export function parseWindowsRelayInventory(
     .filter((name): name is string => typeof name === 'string')
     .map((name) => `\\\\.\\pipe\\${name}`)
   const owners = new Map<string, WindowsRelayPipeOwner>()
-  const baseDir = joinRemotePath(host, remoteHome, RELAY_REMOTE_DIR)
+  const baseDir = joinRemotePath(host, remoteHome, RETIRED_RELAY_REMOTE_DIR)
   const versionDir = remoteInstallVersionDirRegex(RELAY_INSTALL_MODEL)
-  for (const [name, entry] of Object.entries(raw.dirs)) {
+  for (const [key, entry] of Object.entries(raw.dirs)) {
+    const name = raw.directoryPaths === true ? remoteBasename(key, host) : key
     if (!versionDir.test(name)) {
       continue
     }
     if (!isDirEntry(entry)) {
       return null
     }
-    const dir = joinRemotePath(host, baseDir, name)
+    const dir = raw.directoryPaths === true ? key : joinRemotePath(host, baseDir, name)
+    if (
+      raw.directoryPaths === true &&
+      ![RELAY_REMOTE_DIR, RETIRED_RELAY_REMOTE_DIR].some(
+        (root) =>
+          joinRemotePath(host, remoteHome, root, name).toLowerCase() ===
+          normalizeWindowsRemotePath(dir).toLowerCase()
+      )
+    )
+      return null
     const own = (pipe: string, sockName: string): void => {
       owners.set(pipe.toLowerCase(), {
         dir,

@@ -129,7 +129,7 @@ async function runParkedSplitCli(
       ],
       {
         cwd: repoRoot,
-        env: { ...process.env, ORCA_DEV_USER_DATA_PATH: userDataDir },
+        env: { ...process.env, ZKYQ_DEV_USER_DATA_PATH: userDataDir },
         timeout: HISTORICAL_SPLIT_TIMEOUT_MS + 5_000
       }
     )

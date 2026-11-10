@@ -1,6 +1,6 @@
-import React, { useCallback, useMemo, useRef } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useAppStore } from '@/store'
-import { useAllWorktrees, useRepoMap } from '@/store/selectors'
+import { useAllWorktrees, useRepoMap, useRepos } from '@/store/selectors'
 import { useWorkspaceStatusDocumentDrop } from './use-workspace-status-drop'
 import { useWorkspaceKanbanAreaSelection } from './use-workspace-kanban-area-selection'
 import { useWorkspaceKanbanCardPointerDrag } from './use-workspace-kanban-card-pointer-drag'
@@ -22,6 +22,7 @@ import { useWorkspaceKanbanRenderLifecycle } from './use-workspace-kanban-render
 import { useWorkspaceKanbanDrawerLingering } from './use-workspace-kanban-drawer-lingering'
 import { buildWorktreeManualOrderCatalog } from './worktree-manual-order-catalog'
 import { selectFolderWorkspaces } from '@/store/workspace-record-selectors'
+import { getRepoHostIdentity } from '../../../../shared/repo-host-identity'
 
 type WorkspaceKanbanDrawerProps = {
   leftSidebarStyle?: React.CSSProperties
@@ -53,9 +54,20 @@ function WorkspaceKanbanDrawerContent({
   onOpenChange,
   onMenuOpenChange
 }: WorkspaceKanbanDrawerProps): React.JSX.Element {
+  const [viewMode, setViewMode] = useState<'workspaces' | 'status'>('workspaces')
+  // Why: sidebar drag previews must retain their existing status drop targets.
+  const showingStatus = dragPreview || viewMode === 'status'
+  useEffect(() => {
+    if (dragPreview) setViewMode('status')
+  }, [dragPreview])
   const allWorktrees = useAllWorktrees()
   const folderWorkspaces = useAppStore((s) => selectFolderWorkspaces(s))
   const repoMap = useRepoMap()
+  const repos = useRepos()
+  const repoMapByHostIdentity = useMemo(
+    () => new Map(repos.map((repo) => [getRepoHostIdentity(repo), repo])),
+    [repos]
+  )
   const activeWorktreeId = useAppStore((s) => s.activeWorktreeId)
   const activeWorkspaceExecutionHostId = useAppStore((s) => s.activeWorkspaceExecutionHostId)
   const updateWorktreeMeta = useAppStore((s) => s.updateWorktreeMeta)
@@ -95,6 +107,7 @@ function WorkspaceKanbanDrawerContent({
     allWorktrees,
     open,
     repoMap,
+    repoMapByHostIdentity,
     sortBy,
     workspaceStatuses
   })
@@ -108,7 +121,7 @@ function WorkspaceKanbanDrawerContent({
     selectForContextMenu
   } = useWorkspaceKanbanSelection(open, boardWorktrees, renderedBoardWorktrees)
   const { handleAreaSelectionPointerDown } = useWorkspaceKanbanAreaSelection({
-    open,
+    open: open && showingStatus,
     boardRef,
     overlayRef: areaSelectionOverlayRef,
     selectedWorktreeIds,
@@ -179,7 +192,7 @@ function WorkspaceKanbanDrawerContent({
     setPinDragOver
   } = useWorkspaceKanbanNativeDrag(dropWorktreesAtEndOfStatus)
   const { isPointerDragActiveRef, onCardPointerDownCapture } = useWorkspaceKanbanCardPointerDrag({
-    open,
+    open: open && showingStatus,
     boardRef,
     selectedWorktreeIds,
     selectedWorktrees: renderedSelectedWorktrees,
@@ -216,7 +229,7 @@ function WorkspaceKanbanDrawerContent({
     moveWorktreeToStatus,
     pinWorktree,
     handleDragFinish,
-    open,
+    open && showingStatus,
     {
       onMoveWorktreesToStatus: dropWorktreesAtEndOfStatus,
       onPinWorktrees: pinWorktrees
@@ -230,7 +243,12 @@ function WorkspaceKanbanDrawerContent({
     selectedCount: selectedWorktreeIds.size
   })
 
-  useWorkspaceKanbanShiftWheelScroll(boardRef, laneScrollerRef, open, isPointerDragActiveRef)
+  useWorkspaceKanbanShiftWheelScroll(
+    boardRef,
+    laneScrollerRef,
+    open && showingStatus,
+    isPointerDragActiveRef
+  )
   useWorkspaceKanbanOutsideDismiss({ open, boardRef, preserveOpenForMenu, onOpenChange })
   useContextualTour('workspace-board', open && !dragPreview, 'workspace_board_visible')
 
@@ -251,8 +269,23 @@ function WorkspaceKanbanDrawerContent({
       sidebarOpen={sidebarOpen}
       sidebarWidth={sidebarWidth}
       statusBarVisible={statusBarVisible}
+      overviewProps={
+        showingStatus
+          ? undefined
+          : {
+              items: renderedBoardWorktrees,
+              repoMap,
+              activeWorktreeIdentity,
+              onActivate: handleWorktreeActivate
+            }
+      }
       headerProps={{
-        selectedCount: renderedSelectedWorktrees.length,
+        viewMode: showingStatus ? 'status' : 'workspaces',
+        onViewModeChange: (mode) => {
+          clearSelection()
+          setViewMode(mode)
+        },
+        selectedCount: showingStatus ? renderedSelectedWorktrees.length : 0,
         query,
         isFiltering: hasQuery,
         isTooLarge: isQueryTooLarge,

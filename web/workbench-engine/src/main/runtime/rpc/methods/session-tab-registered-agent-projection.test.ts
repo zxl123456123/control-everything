@@ -6,6 +6,7 @@ import {
   STRUCTURED_AGENT_SESSION_RUNTIME_CAPABILITY
 } from '../../../../shared/protocol-version'
 import type { RuntimeMobileSessionTabsSnapshot } from '../../../../shared/runtime-types'
+import { WEB_RUNTIME_CLIENT_CAPABILITIES } from '../../../../renderer/src/web/web-runtime-client-capabilities'
 import {
   STRUCTURED_CHAT_UPDATE_REQUIRED_TAB_TITLE,
   assertAgentSessionTabDestructiveMutationSupported,
@@ -56,6 +57,29 @@ function snapshot(): RuntimeMobileSessionTabsSnapshot {
 }
 
 describe('a tab of an agent beyond Claude and Codex', () => {
+  it('keeps shared-renderer chats and their placement for the browser client', () => {
+    const initial = snapshot()
+    const payload = {
+      ...initial,
+      tabs: [...initial.tabs, chatTab('pi', false)],
+      tabGroups: initial.tabGroups?.map((group) => ({
+        ...group,
+        tabOrder: [...group.tabOrder, 'agent-session:pi-session']
+      }))
+    }
+    const projected = projectSessionTabAgentStatus(payload, 'runtime', WEB_RUNTIME_CLIENT_CAPABILITIES)
+
+    expect(projected).toBe(payload)
+    expect(projected.tabs.map((tab) => tab.sessionId)).toEqual([
+      'claude-session',
+      'codex-session',
+      'grok-session',
+      'pi-session'
+    ])
+    expect(projected.tabGroups).toEqual(payload.tabGroups)
+    expect(projected.activeTabId).toBe(payload.activeTabId)
+  })
+
   it("is withheld from a paired client that does not render the host's agents", () => {
     const projected = projectSessionTabAgentStatus(snapshot(), 'runtime', TODAYS_CLIENT)
     expect(projected.tabs.map((tab) => tab.id)).toEqual([

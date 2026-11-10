@@ -25,7 +25,7 @@ export const getBrowserUsePaneSearchEntries = createLocalizedCatalog(() => [
       ),
       ...translateSearchKeyword(
         'auto.components.settings.browser.use.search.f5b8fdddf5',
-        'orca-cli'
+        'zkyq-cli'
       ),
       ...translateSearchKeyword('auto.components.settings.browser.use.search.6ea88e5206', 'npx'),
       ...translateSearchKeyword(

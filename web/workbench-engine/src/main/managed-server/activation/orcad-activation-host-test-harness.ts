@@ -197,7 +197,7 @@ export class FakeOrcadHost {
     if (command.includes('__ORCAD_BUILD_HASH__')) {
       return `__ORCAD_BUILD_HASH__ ${BUILD_HASH}\n`
     }
-    if (command.includes('orca-runtime.json')) {
+    if (command.includes('zkyq-runtime.json')) {
       return this.alive.size > 0 ? 'LIVE orcad.lock 1' : 'CLEAR'
     }
     if (command.includes('echo LIVE;') && version) {

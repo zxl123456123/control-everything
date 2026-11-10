@@ -69,35 +69,35 @@ export function addOrcaWslInteropEnv(env: Record<string, string>): void {
   // Why: the endpoint is a Windows path (/p-translated so the guest reads it
   // via /mnt/c) until the WSL hook relay reports the guest home — then it is
   // already a guest-side POSIX path and must cross untranslated.
-  const endpointFlag = env.ORCA_AGENT_HOOK_ENDPOINT?.startsWith('/') ? 'u' : 'p'
+  const endpointFlag = env.ZKYQ_AGENT_HOOK_ENDPOINT?.startsWith('/') ? 'u' : 'p'
   // Why: ONLY a guest-side POSIX overlay may cross. /p would path-translate a
   // Windows value into /mnt/c and let in-guest OpenCode adopt it as its config
   // root — reachable via the relay spawn's process.env (wsl-hook-relay-launch)
   // and via daemon-inherited env, which buildPtyHostEnv's delete cannot reach.
-  const opencodeOverlayEntries = (['OPENCODE_CONFIG_DIR', 'ORCA_OPENCODE_CONFIG_DIR'] as const)
+  const opencodeOverlayEntries = (['OPENCODE_CONFIG_DIR', 'ZKYQ_OPENCODE_CONFIG_DIR'] as const)
     .filter((name) => env[name]?.startsWith('/'))
     .map((name) => `${name}/u`)
   // Why: wsl.exe only imports selected Windows env vars, so WSL needs the wrapper root, pane identity, and hook/OMP coordinates at start.
   const passthroughEntries = [
     'ORCA_TERMINAL_HANDLE/u',
-    'ORCA_USER_DATA_PATH/p',
+    'ZKYQ_USER_DATA_PATH/p',
     // Why /p: the guest reads the content-addressed wrapper tree through /mnt/c,
-    // and it cannot derive the hash segment from ORCA_USER_DATA_PATH alone.
+    // and it cannot derive the hash segment from ZKYQ_USER_DATA_PATH alone.
     'ORCA_SHELL_READY_ROOT/p',
-    'ORCA_CLI_COMMAND/u',
+    'ZKYQ_CLI_COMMAND/u',
     // Why /p: the managed CLI launcher lives in the host's userData tree.
     'ORCA_WSL_CLI_DIR/p',
     'ORCA_CODEX_LAUNCH_PREFLIGHT/p',
     'ORCA_CODEX_ISOLATE/u',
-    'ORCA_PANE_KEY/u',
-    'ORCA_TAB_ID/u',
-    'ORCA_WORKTREE_ID/u',
-    // An id, never a path; agent wrappers and the guest CLI read it like ORCA_WORKTREE_ID.
-    'ORCA_WORKSPACE_ID/u',
-    'ORCA_AGENT_LAUNCH_TOKEN/u',
+    'ZKYQ_PANE_KEY/u',
+    'ZKYQ_TAB_ID/u',
+    'ZKYQ_WORKTREE_ID/u',
+    // An id, never a path; agent wrappers and the guest CLI read it like ZKYQ_WORKTREE_ID.
+    'ZKYQ_WORKSPACE_ID/u',
+    'ZKYQ_AGENT_LAUNCH_TOKEN/u',
     // The guest plugin uses this marker to select the OpenCode variant that
     // owns the pane when both native and WSL installations are present.
-    'ORCA_OPENCODE_AGENT/u',
+    'ZKYQ_OPENCODE_AGENT/u',
     `${SETUP_AGENT_SEQUENCE_STARTUP_COMMAND_ENV}/u`,
     `${SETUP_AGENT_SEQUENCE_STARTUP_SCRIPT_ENV}/u`,
     'ORCA_ORCHESTRATION_COMPATIBILITY_HOST_KIND/u',
@@ -107,23 +107,24 @@ export function addOrcaWslInteropEnv(env: Record<string, string>): void {
     `${RUNTIME_SOURCE_INCARNATION_ENV}/u`,
     // Why /u: compared with the Windows CLI's own userData path, never read as a guest path.
     `${RUNTIME_SOURCE_PROFILE_PATH_ENV}/u`,
-    'ORCA_AGENT_HOOK_PORT/u',
-    'ORCA_AGENT_HOOK_TOKEN/u',
-    'ORCA_AGENT_HOOK_ENV/u',
-    'ORCA_AGENT_HOOK_VERSION/u',
-    'ORCA_AGENT_HOOK_TRANSPORT/u',
-    `ORCA_AGENT_HOOK_ENDPOINT/${endpointFlag}`,
+    'ZKYQ_AGENT_HOOK_PORT/u',
+    'ZKYQ_AGENT_HOOK_TOKEN/u',
+    'ZKYQ_AGENT_HOOK_ENV/u',
+    'ZKYQ_AGENT_HOOK_VERSION/u',
+    'ZKYQ_AGENT_HOOK_TRANSPORT/u',
+    `ZKYQ_AGENT_HOOK_ENDPOINT/${endpointFlag}`,
     ...opencodeOverlayEntries,
-    'ORCA_WSL_HOOK_RELAY_VERSION/u',
-    'ORCA_WSL_HOOK_INSTANCE/u',
-    'ORCA_OMP_SOURCE_AGENT_DIR/p',
-    `ORCA_OMP_STATUS_EXTENSION/${env.ORCA_OMP_STATUS_EXTENSION?.startsWith('/') ? 'u' : 'p'}`,
-    ...(env.ORCA_PI_SOURCE_AGENT_DIR?.startsWith('/') ? ['ORCA_PI_SOURCE_AGENT_DIR/u'] : []),
+    'ZKYQ_WSL_HOOK_RELAY_VERSION/u',
+    'ZKYQ_WSL_HOOK_INSTANCE/u',
+    'ZKYQ_WSL_HOOK_RETIRED_READERS/u',
+    'ZKYQ_OMP_SOURCE_AGENT_DIR/p',
+    `ZKYQ_OMP_STATUS_EXTENSION/${env.ZKYQ_OMP_STATUS_EXTENSION?.startsWith('/') ? 'u' : 'p'}`,
+    ...(env.ZKYQ_PI_SOURCE_AGENT_DIR?.startsWith('/') ? ['ZKYQ_PI_SOURCE_AGENT_DIR/u'] : []),
     `${ORCA_IMAGE_PROTOCOL_ENV}/u`,
     'CLAUDE_CODE_FORCE_TERMINAL_IMAGES/u',
     // Why only Orca's marker: a real Windows-side SSH session must not leak into bare guest shells.
     ...(env.SSH_CONNECTION === CODEX_REMOTE_VIEWER_SSH_CONNECTION ? ['SSH_CONNECTION/u'] : []),
-    'ORCA_OMP_FRESH_CONFIG/p',
+    'ZKYQ_OMP_FRESH_CONFIG/p',
     ...worktreeSetupWslenvEntries(env)
   ]
   applyWslenvPassthrough(env, passthroughEntries)

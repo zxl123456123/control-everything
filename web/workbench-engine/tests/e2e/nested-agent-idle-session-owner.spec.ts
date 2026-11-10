@@ -68,7 +68,7 @@ test('idle Claude keeps chat, mobile transcript, and return identity through nes
   const post = async (source: string, hook_event_name: string) => {
     const response = await fetch(`http://127.0.0.1:${endpoint.port}/hook/${source}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Orca-Agent-Hook-Token': endpoint.token },
+      headers: { 'Content-Type': 'application/json', 'X-Zkyq-Agent-Hook-Token': endpoint.token },
       body: JSON.stringify({
         ...descriptor,
         tabId,

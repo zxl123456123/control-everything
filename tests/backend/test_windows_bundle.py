@@ -79,6 +79,14 @@ class PayloadFixture(unittest.TestCase):
 
 
 class ManifestTests(PayloadFixture):
+    def test_sha256_reads_complete_files_across_buffer_boundaries(self):
+        for size in (0, 1, 256 * 1024 + 17, 1024 * 1024 + 1):
+            with self.subTest(size=size):
+                raw = (bytes(range(256)) * (size // 256 + 1))[:size]
+                path = self.root / 'hash-input.bin'
+                path.write_bytes(raw)
+                self.assertEqual(MANIFEST.sha256(path), hashlib.sha256(raw).hexdigest())
+
     def test_complete_closure_and_deterministic_version_identity(self):
         stage, document = self.payload()
         self.assertEqual(document['compatibility']['profile_config'], [1, 2, 3, 4])
@@ -146,7 +154,8 @@ class ManifestTests(PayloadFixture):
 
     def test_paths_case_collisions_file_directory_collisions_and_bool_sizes_fail(self):
         _stage, original = self.payload()
-        for value in ('../escape', '/root', 'C:/example/root', 'a\\b', '.', 'x/../y', 'a//b', 'NUL.txt', 'file:stream', 'tail.'):
+        for value in ('../escape', '/root', 'C:/example/root', 'a\\b', '.', 'x/../y', 'a//b', 'NUL.txt', 'file:stream', 'tail.',
+                      'deep/con.txt', 'prn', 'Aux.log', 'com1.exe', 'deep/COM9/leaf', 'lpt1', 'Lpt9.txt'):
             with self.subTest(value=value), self.assertRaises(MANIFEST.ManifestError):
                 MANIFEST.relative_path(value)
         for rows in ([{'path': 'Runtime/extra.txt', 'size': 1, 'sha256': 'a' * 64}],
@@ -188,6 +197,22 @@ class ManifestTests(PayloadFixture):
 
 
 class BuilderTests(PayloadFixture):
+    def test_windows_news_extra_reaches_translation_dependencies_but_not_other_extras(self):
+        probe = {'environment': {'python_version': '3.13', 'sys_platform': 'win32'}, 'distributions': [
+            {'name': 'control-everything', 'version': '1.0', 'requires': [
+                'ctranslate2==4.8.3; extra == "news"', 'sentencepiece==0.2.2; extra == "news"',
+                'unrelated==1.0; extra == "other"']},
+            {'name': 'ctranslate2', 'version': '4.8.3', 'requires': ['numpy>=2']},
+            {'name': 'sentencepiece', 'version': '0.2.2', 'requires': []},
+            {'name': 'numpy', 'version': '2.5.4', 'requires': []},
+        ]}
+        identities = [{'name': row['name'], 'version': row['version']} for row in probe['distributions']]
+        BUILD.validate_target_metadata(probe, identities)
+        probe['distributions'].append({'name': 'unrelated', 'version': '1.0', 'requires': []})
+        identities.append({'name': 'unrelated', 'version': '1.0'})
+        with self.assertRaisesRegex(BUILD.BuildError, 'target_dependency_extra_distribution'):
+            BUILD.validate_target_metadata(probe, identities)
+
     def test_offline_install_commands_remove_only_generated_host_path_outputs(self):
         runtime = self.root / 'runtime'
         runtime.mkdir()
@@ -399,10 +424,15 @@ class BuilderTests(PayloadFixture):
 
     def test_lock_is_fixed_target_input_and_not_a_host_freeze(self):
         values = BUILD.locked_requirements(ROOT / 'tools/packaging/windows-cp313.lock')
-        self.assertEqual(len(values), 48)
+        self.assertEqual(len(values), 52)
+        self.assertEqual({name: values[name]['version'] for name in ('ctranslate2', 'sentencepiece', 'numpy', 'pyyaml')},
+                         {'ctranslate2': '4.8.3', 'sentencepiece': '0.2.2', 'numpy': '2.5.4', 'pyyaml': '6.0.3'})
         self.assertEqual(values['trafilatura']['version'], '2.3.1')
         self.assertEqual(values['mcp']['version'], '1.30.0')
         self.assertEqual(values['defusedxml']['version'], '0.7.1')
+        self.assertEqual(values['tzdata'], {'version': '2026.5',
+            'sha256': 'b683bd1b6659ddcd810ff02ad09ba821d4bf1065072805063eb35c49617905ac'})
+        self.assertIn('tzdata==2026.5', (ROOT / 'requirements.txt').read_text(encoding='utf-8').splitlines())
 
 
 class ProductSourceTests(PayloadFixture):
@@ -600,6 +630,70 @@ class ReleaseBuildTests(unittest.TestCase):
 
 
 class NoticesTests(unittest.TestCase):
+    def test_license_directories_are_not_text_but_empty_license_files_still_fail(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            dependency = wheel(root)
+            with zipfile.ZipFile(dependency, 'a') as archive:
+                archive.writestr('example_dep-1.0.dist-info/licenses/', b'')
+                archive.writestr('example_dep-1.0.dist-info/licenses/LICENSE-extra', b'Extra license text.')
+            runtime, inno, packages = root / 'python', root / 'inno', root / 'cargo.json'
+            runtime.write_text('Python fixture license.')
+            inno.write_text('Inno fixture license.')
+            packages.write_text(json.dumps([{'name': 'session-panel-observer', 'version': 'fixture', 'license': 'MIT'}]))
+            rows = NOTICES.collect_notices(root, [dependency], runtime, packages, inno)
+            self.assertTrue(any(row['file'].endswith('/LICENSE-extra') for row in rows))
+            self.assertFalse(any(row['file'].endswith('/licenses/') for row in rows))
+            with zipfile.ZipFile(dependency, 'a') as archive:
+                archive.writestr('example_dep-1.0.dist-info/licenses/LICENSE-empty', b'')
+            with self.assertRaisesRegex(NOTICES.NoticeError, 'empty_license_text:example-dep'):
+                NOTICES.collect_notices(root, [dependency], runtime, packages, inno)
+
+    def test_supplement_requires_exact_wheel_and_license_bytes(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            dependency = wheel(root)
+            assets = root / 'wheel-notices'
+            assets.mkdir()
+            raw = b'Original upstream license text.'
+            (assets / 'extra.txt').write_bytes(raw)
+            row = {'component': 'Example native dependency', 'version': '2', 'source': 'https://example.com/LICENSE',
+                   'license': 'MIT', 'file': 'extra.txt', 'sha256': hashlib.sha256(raw).hexdigest()}
+            manifest = root / 'wheel-notices.json'
+            value = {'schema': 1, 'wheels': [{'name': 'example-dep', 'version': '1.0', 'filename': dependency.name,
+                     'sha256': MANIFEST.sha256(dependency), 'notices': [row]}]}
+            manifest.write_text(json.dumps(value))
+            with patch.object(NOTICES, 'SUPPLEMENT_MANIFEST', manifest):
+                supplied = NOTICES.wheel_supplements(dependency, 'example-dep', '1.0')
+                self.assertEqual(supplied[0][1], raw)
+                self.assertEqual(NOTICES.wheel_supplements(dependency, 'unregistered-package', '1.0'), [])
+                with self.assertRaisesRegex(NOTICES.NoticeError, 'unreviewed_wheel_notice'):
+                    NOTICES.wheel_supplements(dependency, 'example-dep', '1.1')
+                (assets / 'extra.txt').write_bytes(b'Changed text.')
+                with self.assertRaisesRegex(NOTICES.NoticeError, 'supplement_license_hash_mismatch'):
+                    NOTICES.wheel_supplements(dependency, 'example-dep', '1.0')
+                (assets / 'extra.txt').write_bytes(raw)
+                row['file'] = '../extra.txt'
+                manifest.write_text(json.dumps(value))
+                with self.assertRaisesRegex(NOTICES.NoticeError, 'invalid_supplement_license_path'):
+                    NOTICES.wheel_supplements(dependency, 'example-dep', '1.0')
+                row['file'] = 'extra.txt'
+                manifest.write_text(json.dumps(value))
+                with zipfile.ZipFile(dependency, 'a') as archive:
+                    archive.writestr('unreviewed.txt', b'Changed wheel contents.')
+                with self.assertRaisesRegex(NOTICES.NoticeError, 'wheel_notice_hash_mismatch'):
+                    NOTICES.wheel_supplements(dependency, 'example-dep', '1.0')
+
+    def test_registered_supplement_files_match_reviewed_hashes(self):
+        manifest = json.loads(NOTICES.SUPPLEMENT_MANIFEST.read_text(encoding='utf-8'))
+        self.assertEqual(manifest['schema'], 1)
+        for package in manifest['wheels']:
+            self.assertTrue(package['notices'])
+            for row in package['notices']:
+                raw = NOTICES.regular_bytes(NOTICES.SUPPLEMENT_MANIFEST.parent / 'wheel-notices' / row['file'])
+                self.assertEqual(hashlib.sha256(raw).hexdigest(), row['sha256'])
+                self.assertTrue(raw.strip())
+
     def test_actual_wheel_cpython_inno_and_registry_license_texts_are_collected(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary).resolve()

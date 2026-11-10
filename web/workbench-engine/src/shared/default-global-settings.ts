@@ -16,6 +16,7 @@ import {
 } from './left-sidebar-appearance'
 import { DEFAULT_SOURCE_CONTROL_GROUP_ORDER } from './source-control-group-order'
 import { DESKTOP_TERMINAL_SCROLLBACK_ROWS_DEFAULT } from './terminal-scrollback-policy'
+import { DEFAULT_WORKBENCH_SURFACE_OPACITY } from './workbench-appearance'
 
 export function buildDefaultSettings(args: {
   workspaceDir: string
@@ -42,6 +43,7 @@ export function buildDefaultSettings(args: {
     branchPrefixCustom: '',
     jiraIssueKeyCasing: 'lowercase',
     theme: 'system',
+    workbenchSurfaceOpacity: DEFAULT_WORKBENCH_SURFACE_OPACITY,
     leftSidebarAppearanceMode: 'default',
     leftSidebarTintColor: DEFAULT_LEFT_SIDEBAR_TINT_COLOR,
     leftSidebarTintOpacity: DEFAULT_LEFT_SIDEBAR_TINT_OPACITY,

@@ -7,8 +7,10 @@ import {
   formatOrcaSessionAddress,
   isOrcaSessionId
 } from '../../../../../shared/orca-session-address'
+import { LEGACY_SESSION_ADDRESS_PREFIX } from '../../../../../shared/orca-session-address-prefix'
 import { ORCHESTRATION_SESSION_CALLER_ERROR_CODES as CODES } from '../../../../../shared/orchestration-session-caller-codes'
 import {
+  CallerShowParams,
   PartyLocationParams,
   SessionAddressParams
 } from '../../../../../shared/rpc-contract/orchestration-params'
@@ -22,12 +24,18 @@ export const ORCHESTRATION_CALLER_METHODS = [
   defineMethod({
     name: 'orchestration.callerShow',
     permission: 'workspace',
-    params: null,
-    // Why no params: the dispatch entry already resolved the session the caller's environment names,
-    // and a session it cannot admit never reaches here: its refusal is the answer.
-    handler: (_params, { orchestrationCaller }): OrchestrationCallerShowResult => ({
+    params: CallerShowParams,
+    // The entry already resolved the session; the option only selects the response field.
+    handler: (params, { orchestrationCaller }): OrchestrationCallerShowResult => ({
       caller: orchestrationCaller
-        ? { orcaSessionId: formatOrcaSessionAddress(orchestrationCaller.orcaSessionId), live: true }
+        ? {
+            ...(params.responseFormat === 'workbench'
+              ? { sessionId: formatOrcaSessionAddress(orchestrationCaller.orcaSessionId) }
+              : {
+                  orcaSessionId: `${LEGACY_SESSION_ADDRESS_PREFIX}${orchestrationCaller.orcaSessionId}`
+                }),
+            live: true
+          }
         : null
     })
   }),
@@ -40,12 +48,15 @@ export const ORCHESTRATION_CALLER_METHODS = [
       if (!isOrcaSessionId(params.sessionId)) {
         throw new OrchestrationError(
           CODES.unknown,
-          `${params.sessionId} is not an Orca session ID.`,
+          `${params.sessionId} is not a workbench session ID.`,
           { effectsApplied: false }
         )
       }
       const party = resolveOrcaSessionParty(params.sessionId, runtime.getOrchestrationDb())
-      return { orcaSessionId: formatOrcaSessionAddress(party.orcaSessionId) }
+      const address = formatOrcaSessionAddress(party.orcaSessionId)
+      return params.responseFormat === 'workbench'
+        ? { sessionId: address }
+        : { orcaSessionId: `${LEGACY_SESSION_ADDRESS_PREFIX}${party.orcaSessionId}` }
     }
   }),
   defineMethod({

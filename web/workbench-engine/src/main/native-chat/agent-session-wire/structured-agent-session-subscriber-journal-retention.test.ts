@@ -180,7 +180,7 @@ async function publishAfterIdle(id: string): Promise<void> {
     throw new Error('History did not reopen the conversation')
   }
   await journal.appendItem(
-    { provider: 'orca', clientMessageId: id },
+    { provider: 'zkyq', clientMessageId: id },
     { kind: 'status', text: 'after idle' },
     {
       fence: rig.store.getRecord(SESSION)?.lease.runtimeFence ?? 1,

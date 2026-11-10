@@ -115,7 +115,7 @@ test('CLI text plus Enter waits for a slow agent composer before submitting', as
       ],
       {
         cwd: repoRoot,
-        env: { ...process.env, ORCA_DEV_USER_DATA_PATH: userDataDir },
+        env: { ...process.env, ZKYQ_DEV_USER_DATA_PATH: userDataDir },
         timeout: 60_000
       }
     )
@@ -173,7 +173,7 @@ test('CLI reports a swallowed Enter as accepted without submitting a second Ente
       ],
       {
         cwd: repoRoot,
-        env: { ...process.env, ORCA_DEV_USER_DATA_PATH: userDataDir },
+        env: { ...process.env, ZKYQ_DEV_USER_DATA_PATH: userDataDir },
         timeout: 90_000
       }
     )
@@ -230,7 +230,7 @@ test('CLI does not write prompt bytes into an active permission dialog', async (
       ],
       {
         cwd: repoRoot,
-        env: { ...process.env, ORCA_DEV_USER_DATA_PATH: userDataDir },
+        env: { ...process.env, ZKYQ_DEV_USER_DATA_PATH: userDataDir },
         timeout: 60_000
       }
     )

@@ -14,11 +14,13 @@
  * document.
  */
 
-const START_MARKER = '# >>> orca-managed-dsh-hooks (managed by Orca; do not edit) >>>'
-const END_MARKER = '# <<< orca-managed-dsh-hooks <<<'
+const START_MARKER = '# >>> zkyq-managed-dsh-hooks (managed by Control Everything; do not edit) >>>'
+const END_MARKER = '# <<< zkyq-managed-dsh-hooks <<<'
+const RETIRED_START_MARKER = '# >>> orca-managed-dsh-hooks (managed by Orca; do not edit) >>>'
+const RETIRED_END_MARKER = '# <<< orca-managed-dsh-hooks <<<'
 
 /** The loader row id Orca owns. A patch row is addressed by id, so this must be stable. */
-const MANAGED_ROW_ID = 'orca-agent-hooks'
+const MANAGED_ROW_ID = 'zkyq-agent-hooks'
 
 const EMPTY_FLOW_SEQUENCE = '[]'
 
@@ -37,11 +39,16 @@ export function findManagedDshPatchRegion(text: string): ManagedDshPatchRegion |
   // and resetting the candidate on each start keeps an orphan un-paired, which leaves it as
   // an inert comment line rather than a deletion range.
   let startLine = -1
+  let expectedEnd = ''
   for (const [index, line] of splitLines(text).entries()) {
     const trimmed = line.trim()
     if (trimmed === START_MARKER) {
       startLine = index
-    } else if (trimmed === END_MARKER && startLine !== -1) {
+      expectedEnd = END_MARKER
+    } else if (trimmed === RETIRED_START_MARKER) {
+      startLine = index
+      expectedEnd = RETIRED_END_MARKER
+    } else if (trimmed === expectedEnd && startLine !== -1) {
       return { startLine, endLine: index }
     }
   }
@@ -158,11 +165,13 @@ export function applyManagedDshPatch(text: string, managedHooksPath: string): st
   const block = buildManagedBlock(managedHooksPath)
   const region = findManagedDshPatchRegion(text)
   if (region) {
-    return joinPreservingTrailingNewline([
-      ...lines.slice(0, region.startLine),
-      ...block,
-      ...lines.slice(region.endLine + 1)
-    ])
+    let suffix = lines.slice(region.endLine + 1)
+    let duplicate = findManagedDshPatchRegion(suffix.join('\n'))
+    while (duplicate) {
+      suffix = stripRegion(suffix, duplicate)
+      duplicate = findManagedDshPatchRegion(suffix.join('\n'))
+    }
+    return joinPreservingTrailingNewline([...lines.slice(0, region.startLine), ...block, ...suffix])
   }
   if (isDshPatchFileUnappendable(text)) {
     return null
@@ -185,7 +194,13 @@ export function removeManagedDshPatch(text: string): { text: string; changed: bo
   if (!region) {
     return { text, changed: false }
   }
-  const kept = withoutTrailingBlanks(stripRegion(splitLines(text), region))
+  let remaining = stripRegion(splitLines(text), region)
+  let duplicate = findManagedDshPatchRegion(remaining.join('\n'))
+  while (duplicate) {
+    remaining = stripRegion(remaining, duplicate)
+    duplicate = findManagedDshPatchRegion(remaining.join('\n'))
+  }
+  const kept = withoutTrailingBlanks(remaining)
   // Why restore `[]`: a document of comments alone is not a valid entry list, so removing
   // Orca's block must not leave DSH a file it cannot parse.
   const body = kept.every((line) => isBlank(line) || isComment(line))

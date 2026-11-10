@@ -72,10 +72,10 @@ export function TitlebarLeftControls({ layout }: { layout: AppChromeLayout }): R
             <ContextMenuTrigger asChild>
               <div
                 className="titlebar-app-name"
-                aria-label={platformMode ? '掌控一切' : translate('auto.App.5096cbbc86', 'Orca')}
+                aria-label={platformMode ? '工作区导航' : translate('auto.App.5096cbbc86', 'Orca')}
               >
                 <span className="titlebar-app-name-main">
-                  {platformMode ? '掌控一切' : translate('auto.App.5096cbbc86', 'Orca')}
+                  {platformMode ? '项目导航' : translate('auto.App.5096cbbc86', 'Orca')}
                 </span>
               </div>
             </ContextMenuTrigger>
@@ -112,7 +112,7 @@ export function TitlebarLeftControls({ layout }: { layout: AppChromeLayout }): R
       {/* Why: Back/Forward span worktree + page history, so show the cluster wherever the shortcut is live (hidden in Settings/non-stack views). */}
       {shouldShowWorktreeHistoryControls(layout.activeView) && (
         // With the sidebar collapsed the header shrink-wraps and ml-auto has no spare width, so keep a fixed gutter before Back.
-        <div className="ml-auto mr-3 flex items-center pl-2">
+        <div className="ml-auto mr-3 flex items-center pl-2" data-workbench-history="">
           <Tooltip>
             <TooltipTrigger asChild>
               <button

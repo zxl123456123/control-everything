@@ -17,7 +17,8 @@ SOURCE_MANIFEST = 'tools/packaging/workbench-engine-source.json'
 UPSTREAM = '32370a5e05a22935adb79f6cbf83a3228fe879ac'
 REPOSITORY = 'https://github.com/stablyai/orca'
 GENERATED_TREES = {'out', '.build', '.cache', 'mobile/.cache', 'mobile/.expo',
-                   'src/packages/process-host/dist', 'native/windows-cli-launcher/target'}
+                   'src/packages/process-host/dist', 'native/windows-cli-launcher/target',
+                   'native/windows-agent-hook/target', 'native/windows-agent-hook/.build'}
 MOBILE_GENERATED = {
     'mobile/src/terminal/terminal-webview-engine.generated.ts',
     'mobile/src/terminal/terminal-webview-engine-css.generated.ts',
@@ -308,7 +309,14 @@ def output_rows(unit, expected):
     return rows
 
 
-def check_output(run_dir, root=ROOT):
+def material_api():
+    spec = importlib.util.spec_from_file_location('workbench_materials', Path(__file__).with_name('workbench_materials.py'))
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def check_output(run_dir, root=ROOT, materials=None):
     run_dir = owned_directory(run_dir, root / 'work/workbench-engine-build')
     provenance = read_json(run_dir / 'build-provenance.json')
     node = unlinked(provenance['tools']['node']['path'])
@@ -334,6 +342,13 @@ def check_output(run_dir, root=ROOT):
     write_json(run_dir / 'output-manifest.json', {'schema': 1, 'files': rows})
     dependencies = data.pop('dependencies')
     write_json(run_dir / 'dependency-manifest.json', {'schema': 1, 'coverage': 'materialized-root-and-mobile-lock-packages', 'packages': dependencies})
+    if materials is not None:
+        provenance['distribution'] = 'not_verified'
+        write_json(run_dir / 'build-provenance.json', provenance)
+        try:
+            provenance['materials'] = material_api().prepare(unit, rows, run_dir, materials)
+        except ValueError as error:
+            raise BuildError('distribution_materials_invalid:' + str(error)) from error
     missing = sorted({row['name'] + '@' + row['version'] for row in dependencies
                       if not row['integrity'] or not row['notices']})
     external = run_dir / 'external-dependency-notices.json'
@@ -370,7 +385,15 @@ def check_output(run_dir, root=ROOT):
     return provenance
 
 
-def build(node, pnpm, scratch_root, run_dir, root=ROOT, store_dir=None):
+def build(node, pnpm, scratch_root, run_dir, root=ROOT, store_dir=None, materials=None):
+    for relative in ('node_modules', 'mobile/node_modules'):
+        path = root / UNIT / relative
+        try:
+            info = path.lstat()
+        except FileNotFoundError:
+            continue
+        if stat.S_ISLNK(info.st_mode) or getattr(info, 'st_file_attributes', 0) & 0x400:
+            raise BuildError('linked_dependency_root: ' + relative)
     source = check_source(root)
     if not Path(node).is_absolute() or not Path(pnpm).is_absolute():
         raise BuildError('explicit_tools_required')
@@ -389,6 +412,11 @@ def build(node, pnpm, scratch_root, run_dir, root=ROOT, store_dir=None):
         raise BuildError('fixed_scratch_root_required')
     if any((root / UNIT / path).exists() for path in ('out', '.build')):
         raise BuildError('existing_build_outputs: use a clean owned source checkout')
+    if materials is not None:
+        try:
+            material_api().read_inputs(materials)
+        except ValueError as error:
+            raise BuildError('distribution_materials_invalid:' + str(error)) from error
     env = build_environment(node, pnpm)
     node_version = checked([node, '--version'], cwd=root, env=env)
     pnpm_version = checked([pnpm, '--version'], cwd=root, env=env)
@@ -406,7 +434,7 @@ def build(node, pnpm, scratch_root, run_dir, root=ROOT, store_dir=None):
                             for name, path, version in (('node', node, node_version), ('pnpm', pnpm, pnpm_version))}}
     write_json(run_dir / 'build-provenance.json', provenance)
     run_steps(build_commands(node, pnpm, root / UNIT, run_dir, scratch, store_dir), run_dir, env)
-    return check_output(run_dir, root)
+    return check_output(run_dir, root, materials=materials)
 
 
 def main(argv=None):
@@ -415,18 +443,20 @@ def main(argv=None):
     sub.add_parser('check-source')
     check = sub.add_parser('check-output')
     check.add_argument('--run-dir', type=Path, required=True)
+    check.add_argument('--materials', type=Path, help='Reviewed material directory for binding this output.')
     compile_parser = sub.add_parser('build')
     for option in ('node', 'pnpm', 'scratch-root', 'run-dir'):
         compile_parser.add_argument('--' + option, type=Path, required=True)
     compile_parser.add_argument('--store-dir', type=Path)
+    compile_parser.add_argument('--materials', type=Path, required=True, help='Reviewed external and package license inputs.')
     args = parser.parse_args(argv)
     try:
         if args.command == 'check-source':
             result = check_source()
         elif args.command == 'check-output':
-            result = check_output(args.run_dir)
+            result = check_output(args.run_dir, materials=args.materials)
         else:
-            result = build(args.node, args.pnpm, args.scratch_root, args.run_dir, store_dir=args.store_dir)
+            result = build(args.node, args.pnpm, args.scratch_root, args.run_dir, store_dir=args.store_dir, materials=args.materials)
         print(json.dumps({key: value for key, value in result.items() if key not in {'outputs', 'tools'}}, ensure_ascii=False))
     except (BuildError, OSError, KeyError, json.JSONDecodeError) as error:
         print('workbench_engine: ' + str(error), file=sys.stderr)

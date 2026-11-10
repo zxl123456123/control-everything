@@ -24,14 +24,14 @@ vi.mock('node:os', async () => {
   return { ...actual, homedir: () => homes.current }
 })
 vi.mock('electron', () => ({
-  app: { getPath: () => process.env.ORCA_USER_DATA_PATH }
+  app: { getPath: () => process.env.ZKYQ_USER_DATA_PATH }
 }))
 vi.mock('../runtime-client', () => ({
   RuntimeClient: class {
     call = call
   },
   RuntimeClientError: Error,
-  getDefaultUserDataPath: () => process.env.ORCA_USER_DATA_PATH
+  getDefaultUserDataPath: () => process.env.ZKYQ_USER_DATA_PATH
 }))
 
 import { main } from '../index'
@@ -74,19 +74,19 @@ beforeEach(() => {
   managedHome = join(appUserData, 'codex-runtime-home', 'home')
   mkdirSync(managedHome, { recursive: true })
   // The app, running with its own HOME, installed the pane's home at spawn.
-  const appCommand = getManagedCommand(join(appHome, '.orca', 'agent-hooks', SCRIPT_NAME))
+  const appCommand = getManagedCommand(join(appHome, '.zkyq', 'agent-hooks', SCRIPT_NAME))
   writeFileSync(
     join(managedHome, 'hooks.json'),
     `${JSON.stringify({ hooks: { Stop: [{ hooks: [{ type: 'command', command: appCommand }] }] } }, null, 2)}\n`
   )
   for (const home of [appHome, realHome]) {
     mkdirSync(join(home, '.codex'), { recursive: true })
-    mkdirSync(join(home, '.orca', 'agent-hooks'), { recursive: true })
+    mkdirSync(join(home, '.zkyq', 'agent-hooks'), { recursive: true })
     writeFileSync(join(home, '.codex', 'hooks.json'), '{\n  "hooks": {}\n}\n')
     writeFileSync(join(home, '.codex', 'config.toml'), 'model = "user-model"\n')
-    writeFileSync(join(home, '.orca', 'agent-hooks', SCRIPT_NAME), '# another Orca wrote this\n')
+    writeFileSync(join(home, '.zkyq', 'agent-hooks', SCRIPT_NAME), '# another Orca wrote this\n')
   }
-  vi.stubEnv('ORCA_USER_DATA_PATH', appUserData)
+  vi.stubEnv('ZKYQ_USER_DATA_PATH', appUserData)
   vi.stubEnv('CODEX_HOME', managedHome)
   vi.stubEnv('ORCA_CODEX_HOME', managedHome)
   vi.stubEnv('WSL_DISTRO_NAME', '')

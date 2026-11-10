@@ -5,6 +5,7 @@ import { readPlatformBrowserPortal } from './browser-portal'
 
 const require = createRequire(import.meta.url)
 const build = require('../../app.config.js')
+const app = require('../../app.json')
 const env = {
   CE_NATIVE_REMOTE_ORIGIN: 'https://workbench.example.test',
   CE_NATIVE_OIDC_ISSUER: 'https://identity.example.test/realms/workbench',
@@ -27,9 +28,25 @@ function config() {
 }
 afterEach(() => vi.unstubAllEnvs())
 describe('native public account configuration', () => {
+  it('uses platform branding without requiring an unconfigured Firebase project', () => {
+    Object.keys(env).forEach((key) => vi.stubEnv(key, ''))
+    const value = build({ config: app.expo })
+    expect(value.android).not.toHaveProperty('googleServicesFile')
+    expect(value.name).toBe('Control Everything')
+    expect(readPlatformAccountConfig(value, 'android').status).toBe('missing')
+  })
+  it('preserves an explicitly configured Google services file', () => {
+    const value = build({
+      config: {
+        ...app.expo,
+        android: { ...app.expo.android, googleServicesFile: './firebase.example.json' }
+      }
+    })
+    expect(value.android.googleServicesFile).toBe('./firebase.example.json')
+  })
   it('loads the real build config, preserves pairing and derives one exact callback', () => {
     const value = config()
-    expect(value.scheme).toEqual(['orca', 'com.example.workbench'])
+    expect(value.scheme).toEqual(['zkyq', 'com.example.workbench'])
     expect(value.extra.existing).toBe(true)
     expect(readPlatformBrowserPortal(value)).toEqual({
       status: 'ready',

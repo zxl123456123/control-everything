@@ -27,7 +27,7 @@ export function roundTripAddArgs(source, ref, skillName, cliVersion = PINNED_SKI
   return [
     `skills@${cliVersion}`,
     'add',
-    `https://github.com/${source}/tree/${ref}`,
+    `https://github.com/${source}/tree/${ref}/web/workbench-engine/skills`,
     '--skill',
     skillName,
     '--global',
@@ -65,7 +65,7 @@ async function main() {
   const sandbox = await mkdtemp(path.join(tmpdir(), 'orca-skill-update-roundtrip-'))
   const home = path.join(sandbox, 'home')
   const stateHome = path.join(home, '.state')
-  const targetName = 'orca-cli'
+  const targetName = 'zkyq-cli'
   const controlName = 'orchestration'
   const manifest = JSON.parse(await readFile('resources/skills/current-manifest.json', 'utf8'))
 

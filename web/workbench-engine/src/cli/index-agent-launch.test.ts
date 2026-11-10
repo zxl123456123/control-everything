@@ -245,7 +245,7 @@ describe('orca cli agent launch', () => {
   })
 
   it('uses the caller folder identity after validating its native host and enclosing path', async () => {
-    process.env.ORCA_WORKSPACE_ID = 'folder:caller'
+    process.env.ZKYQ_WORKSPACE_ID = 'folder:caller'
     queueFixtures(
       callMock,
       okFixture('folders', {
@@ -270,7 +270,7 @@ describe('orca cli agent launch', () => {
   })
 
   it('ignores an inherited remote folder identity and uses the local Git fallback', async () => {
-    process.env.ORCA_WORKSPACE_ID = 'folder:remote'
+    process.env.ZKYQ_WORKSPACE_ID = 'folder:remote'
     queueFixtures(
       callMock,
       okFixture('folders', {

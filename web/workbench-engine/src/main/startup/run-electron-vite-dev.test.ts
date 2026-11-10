@@ -289,7 +289,7 @@ describe('run-electron-vite-dev', () => {
   })
 
   it.skipIf(process.platform === 'win32')(
-    'prepares userData orca and orca-dev wrappers for dev terminals',
+    'prepares userData zkyq and zkyq-dev wrappers for dev terminals',
     async () => {
       const tempDir = mkdtempSync(join(tmpdir(), 'orca-dev-wrapper-'))
       const userDataPath = join(tempDir, 'userData')
@@ -301,7 +301,7 @@ describe('run-electron-vite-dev', () => {
       const wrapper = spawn(process.execPath, [wrapperPath], {
         cwd: resolve('.'),
         env: devWrapperTestEnv({
-          ORCA_DEV_USER_DATA_PATH: userDataPath,
+          ZKYQ_DEV_USER_DATA_PATH: userDataPath,
           ORCA_ELECTRON_VITE_CLI: fakeCliPath,
           ORCA_SKIP_DEV_ELECTRON_APP_PREPARE: '1',
           ORCA_SKIP_DEV_WEB_PREPARE: '1',
@@ -323,10 +323,10 @@ describe('run-electron-vite-dev', () => {
       })
 
       const trackedPids = trackPidFile(pidFile)
-      const devWrapper = readFileSync(join(userDataPath, 'cli', 'bin', 'orca-dev'), 'utf8')
-      const publicAliasWrapper = readFileSync(join(userDataPath, 'cli', 'bin', 'orca'), 'utf8')
+      const devWrapper = readFileSync(join(userDataPath, 'cli', 'bin', 'zkyq-dev'), 'utf8')
+      const publicAliasWrapper = readFileSync(join(userDataPath, 'cli', 'bin', 'zkyq'), 'utf8')
       expect(publicAliasWrapper).toBe(devWrapper)
-      expect(publicAliasWrapper).toContain('ORCA_USER_DATA_PATH')
+      expect(publicAliasWrapper).toContain('ZKYQ_USER_DATA_PATH')
       expect(publicAliasWrapper).toContain('out/cli/index.js')
 
       await stopWrapperAndTrackedPids(wrapper, trackedPids)

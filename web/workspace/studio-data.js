@@ -58,29 +58,13 @@
       if (!csrf) throw failure('csrf_rejected', 403);
       return api(path, { ...options, method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Session-CSRF': csrf }, body: JSON.stringify(body) });
     }
-    async function readItems() {
-      const items = []; let offset = 0, revision = null;
-      while (true) {
-        const query = new URLSearchParams({ limit: '100', offset: String(offset) });
-        if (revision !== null) query.set('list_revision', String(revision));
-        const page = await api('/api/workspace/items?' + query);
-        if (!Array.isArray(page.items) || !Number.isSafeInteger(page.total) || page.total < 0 || !Number.isSafeInteger(page.list_revision)
-            || (revision !== null && revision !== page.list_revision) || (page.total > offset && !page.items.length)) throw failure('list_changed', 409);
-        revision = page.list_revision; items.push(...page.items); offset += page.items.length;
-        if (offset >= page.total) return items;
-      }
-    }
     async function snapshot() {
-      const [workspace, agents, items] = await Promise.all([api('/api/workspace'), api('/api/workspace/agents'), readItems()]);
-      if (workspace.projects?.status !== 'available' || !Array.isArray(workspace.projects.items) || !Array.isArray(agents.items)) throw failure('workspace_unavailable');
+      const workspace = await api('/api/workspace');
+      if (workspace.projects?.status !== 'available' || !Array.isArray(workspace.projects.items)) throw failure('workspace_unavailable');
       window.CERemoteContext?.assertActive();
-      return { workspace, agents: agents.items, items };
+      return { workspace };
     }
-    const taskPath = id => '/api/workspace/tasks/' + encodeURIComponent(id);
-    return { api, post, bootstrap, snapshot, canWrite: () => Boolean(csrf),
-      readProgress: id => api(taskPath(id) + '/progress'),
-      saveProgressFeedback: (id, body) => post(taskPath(id) + '/native-feedback', body),
-      reviewDelivery: (id, body) => post(taskPath(id) + '/delivery-review', body) };
+    return { api, post, bootstrap, snapshot, canWrite: () => Boolean(csrf) };
   }
   window.StudioData = { create };
 })();

@@ -83,10 +83,10 @@ async function createMacCommandFixture() {
   const root = await mkdtemp(join(tmpdir(), 'orca-cli-command-race-'))
   createdRoots.push(root)
   const commandDirectory = join(root, 'bin')
-  const commandPath = join(commandDirectory, 'orca')
+  const commandPath = join(commandDirectory, 'zkyq')
   const resourcesPath = join(root, 'Current.app', 'Contents', 'Resources')
-  const launcherPath = join(resourcesPath, 'bin', 'orca')
-  const staleLauncherPath = join(root, 'Old.app', 'Contents', 'Resources', 'bin', 'orca')
+  const launcherPath = join(resourcesPath, 'bin', 'zkyq')
+  const staleLauncherPath = join(root, 'Old.app', 'Contents', 'Resources', 'bin', 'zkyq')
   await mkdir(commandDirectory, { recursive: true })
   await mkdir(dirname(launcherPath), { recursive: true })
   await writeFile(launcherPath, '#!/usr/bin/env bash\n', { mode: 0o755 })
@@ -194,7 +194,7 @@ describe.skipIf(process.platform === 'win32')('CLI command filesystem races', ()
       }
     })
 
-    await expect(installer.install()).rejects.toThrow('Refusing to replace non-Orca command')
+    await expect(installer.install()).rejects.toThrow('Refusing to replace an unmanaged command')
     await expect(readlink(fixture.commandPath)).resolves.toBe(foreignTarget)
     expect(
       (await readdir(fixture.commandDirectory)).some((name) => name.startsWith('.orca-cli-'))
@@ -225,7 +225,7 @@ describe.skipIf(process.platform === 'win32')('CLI command filesystem races', ()
       }
     })
 
-    await expect(installer.install()).rejects.toThrow('Refusing to replace non-Orca command')
+    await expect(installer.install()).rejects.toThrow('Refusing to replace an unmanaged command')
     await expect(readFile(fixture.commandPath, 'utf8')).resolves.toBe(
       'foreign command written into the inspected inode'
     )
@@ -247,7 +247,7 @@ describe.skipIf(process.platform === 'win32')('CLI command filesystem races', ()
       }
     })
 
-    await expect(installer.remove()).rejects.toThrow('Refusing to remove non-Orca command')
+    await expect(installer.remove()).rejects.toThrow('Refusing to remove an unmanaged command')
     await expect(readlink(fixture.commandPath)).resolves.toBe(foreignTarget)
   })
 
@@ -306,7 +306,7 @@ describe.skipIf(process.platform === 'win32')('CLI command filesystem races', ()
     const homePath = join(root, 'home')
     const commandDirectory = join(homePath, '.local', 'bin')
     const resourcesPath = join(root, 'resources')
-    const launcherPath = join(resourcesPath, 'bin', 'orca-ide')
+    const launcherPath = join(resourcesPath, 'bin', 'zkyq')
     const legacyPath = join(commandDirectory, 'orca')
     const managedLegacyTarget = join(resourcesPath, 'bin', 'orca')
     const foreignTarget = join(root, 'foreign-orca')
@@ -338,7 +338,7 @@ describe.skipIf(process.platform === 'win32')('CLI command filesystem races', ()
     const homePath = join(root, 'home')
     const commandDirectory = join(homePath, '.local', 'bin')
     const resourcesPath = join(root, 'resources')
-    const launcherPath = join(resourcesPath, 'bin', 'orca-ide')
+    const launcherPath = join(resourcesPath, 'bin', 'zkyq')
     const legacyPath = join(commandDirectory, 'orca')
     const managedTarget = join(resourcesPath, 'bin', 'orca')
     const foreignTarget = join(root, 'foreign-orca')

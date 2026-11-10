@@ -1,12 +1,12 @@
 {
   "expo": {
-    "name": "Orca",
+    "name": "Control Everything",
     "slug": "orca-mobile",
     "version": "0.0.58",
     "orientation": "default",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
-    "scheme": "orca",
+    "scheme": "zkyq",
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/splash-icon.png",
@@ -75,8 +75,7 @@
       "allowBackup": false,
       "permissions": ["RECORD_AUDIO", "MODIFY_AUDIO_SETTINGS"],
       "package": "com.stably.orca.mobile",
-      "versionCode": 22,
-      "googleServicesFile": "./google-services.json"
+      "versionCode": 22
     },
     "plugins": [
       "expo-router",

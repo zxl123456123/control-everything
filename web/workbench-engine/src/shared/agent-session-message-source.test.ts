@@ -17,7 +17,7 @@ const FROM: AgentMessageSource = {
     },
     {
       party: {
-        address: `orca_session_id:${SESSION}`,
+        address: `agent_session:${SESSION}`,
         terminalHandle: null,
         orcaSessionId: testOrcaSessionId(SESSION)
       },

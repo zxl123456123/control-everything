@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
+import { Info } from 'lucide-react'
 import { useAppStore } from '../store'
 import { selectWorktreesByRepo } from '../store/workspace-record-selectors'
 import { activateAndRevealWorktree } from '../lib/worktree-activation'
@@ -16,6 +18,8 @@ import { projectRoute, readPlatformRoute } from './platform-route'
 import { getProjectHostSetupProjectionFromState } from '../store/project-host-setup-selector'
 import { resolvePlatformProjectSettingsScope } from './platform-settings-navigation'
 import type { SettingsPresentationScope } from '../lib/settings-navigation-types'
+
+export type PlatformConnectionState = 'starting' | 'ready' | 'reconnecting' | 'blocked'
 
 export function PlatformRuntimeNavigation({
   data, projects, active, workbench, entryRevision, settingsScope, onReady
@@ -39,7 +43,7 @@ export function PlatformRuntimeNavigation({
   const snapshot = useAppStore(state => state.runtimeStatusByEnvironmentId.get(data.runtime.environmentId)?.snapshot)
   const initialized = useRef<number | null>(null)
   const ready = hydrated && terminalsReady && catalogReady &&
-    snapshot?.verification === 'verified' && snapshot.transport === 'ready'
+    snapshot?.verification === 'verified' && !snapshot.retired && snapshot.transport === 'ready'
 
   useEffect(() => {
     if (!active || !ready) { onReady(null); return }
@@ -65,7 +69,10 @@ export function PlatformRuntimeNavigation({
       return matches.length === 1 ? matches[0] : null
     }
     if (activeView === 'settings') {
-      if (!target || target.pane !== 'repo') window.location.hash = '#settings/' + (target?.pane ?? 'appearance')
+      if (!target || target.pane !== 'repo') {
+        const pane = target?.pane ?? 'appearance'
+        window.location.hash = '#settings/' + (pane === 'appearance' ? 'workbench-appearance' : pane)
+      }
       else {
         const repo = repos.find(repo => repo.id === target.repoId &&
           getRepoExecutionHostId(repo) === (target.hostId ?? runtimeHost) && getRepoExecutionHostId(repo) === runtimeHost)
@@ -106,6 +113,7 @@ export default function PlatformNavigation({
   surface = 'workspace',
   onSelection,
   onReady,
+  onConnectionState,
   settingsScope,
   onSettingsScope
 }: {
@@ -118,6 +126,7 @@ export default function PlatformNavigation({
   surface?: 'workspace' | 'activity'
   onSelection: (id: string | null) => void
   onReady?: (data: PlatformProjectBootstrap | null) => void
+  onConnectionState?: (data: PlatformProjectBootstrap, state: PlatformConnectionState) => void
   settingsScope?: SettingsPresentationScope
   onSettingsScope?: (scope: Extract<SettingsPresentationScope, { kind: 'project' }> | null) => void
 }): React.JSX.Element {
@@ -144,6 +153,9 @@ export default function PlatformNavigation({
   )
   const [notice, setNotice] = useState('正在恢复项目工作区…')
   const [catalogError, setCatalogError] = useState('')
+  const [retryingConnection, setRetryingConnection] = useState(false)
+  const [connectionError, setConnectionError] = useState('')
+  const connectionRequest = useRef(0)
   const [pendingCreation, setPendingCreation] = useState<{ projectId: string; repoId: string } | null>(null)
   const project = projects.find((row) => row.id === data.project.id)
   const normalize = (value: string) => value.replaceAll('\\', '/').replace(/\/+$/, '').toLowerCase()
@@ -151,13 +163,43 @@ export default function PlatformNavigation({
     Boolean(project?.directory && normalize(project.directory) === normalize(repo.path))
 
   const runtimeReady = hydrated && terminalsReady && catalogReady &&
-    snapshot?.verification === 'verified' && snapshot.transport === 'ready'
+    snapshot?.verification === 'verified' && !snapshot.retired && snapshot.transport === 'ready'
+  const connectionState: PlatformConnectionState = !snapshot ? 'starting'
+    : snapshot.retired || snapshot.verification === 'blocked' ? 'blocked'
+      : snapshot.verification === 'verified' && snapshot.transport === 'ready' ? 'ready' : 'reconnecting'
+  useEffect(() => {
+    if (active) onConnectionState?.(data, connectionState)
+    if (connectionState === 'ready') setConnectionError('')
+  }, [active, data, connectionState, onConnectionState])
+  useEffect(() => {
+    connectionRequest.current++
+    setRetryingConnection(false)
+    setConnectionError('')
+    return () => { connectionRequest.current++ }
+  }, [data, active])
+  const reconnect = async () => {
+    const request = ++connectionRequest.current
+    setRetryingConnection(true)
+    setConnectionError('')
+    try {
+      const result = await window.api.runtimeEnvironments.connect({
+        selector: data.runtime.environmentId, timeoutMs: 15000
+      })
+      if (connectionRequest.current === request && !result.ok)
+        setConnectionError('仍未连接。若服务已更新，请重新加载工作区。')
+    } catch {
+      if (connectionRequest.current === request)
+        setConnectionError('仍未连接。若服务已更新，请重新加载工作区。')
+    } finally {
+      if (connectionRequest.current === request) setRetryingConnection(false)
+    }
+  }
   useEffect(() => {
     const accepted = (event: Event) => {
       if (!settingsScope) return
       const next = readPlatformRoute({ hash: (event as CustomEvent<{ to: string }>).detail.to, search: '' })
       const staysNative = (next.view === 'project' && next.tab === 'settings') ||
-        (next.view === 'settings' && !['account', 'sources'].includes(next.tab))
+        (next.view === 'settings' && !['appearance', 'account', 'sources'].includes(next.tab))
       if (!staysNative && useAppStore.getState().activeView === 'settings')
         useAppStore.getState().closeSettingsPage()
     }
@@ -183,7 +225,8 @@ export default function PlatformNavigation({
       shownSurface.current.surface !== surface || useAppStore.getState().activeView !== 'settings') return
     const target = settingsTarget
     if (!target || target.pane !== 'repo') {
-      window.location.hash = '#settings/' + (target?.pane ?? 'appearance')
+      const pane = target?.pane ?? 'appearance'
+      window.location.hash = '#settings/' + (pane === 'appearance' ? 'workbench-appearance' : pane)
       return
     }
     const repo = repos.find(row => row.id === target.repoId &&
@@ -239,6 +282,7 @@ export default function PlatformNavigation({
       project.name !== data.project.name ||
       !hydrated ||
       !catalogReady ||
+      snapshot?.retired ||
       snapshot?.verification !== 'verified' ||
       snapshot.transport !== 'ready'
     )
@@ -306,6 +350,7 @@ export default function PlatformNavigation({
       terminalsReady &&
       catalogReady &&
       snapshot?.verification === 'verified' &&
+      !snapshot.retired &&
       snapshot.transport === 'ready'
     const message = selectionOnly ? (ready && repo ? '项目已打开' : '正在恢复项目工作区…') : navigate({
       ready,
@@ -346,6 +391,7 @@ export default function PlatformNavigation({
       !hydrated ||
       !terminalsReady ||
       !catalogReady ||
+      snapshot?.retired ||
       snapshot?.verification !== 'verified' ||
       snapshot.transport !== 'ready'
     )
@@ -435,38 +481,51 @@ export default function PlatformNavigation({
     onSelection(matches.length === 1 ? matches[0].id : null)
   }, [active, selectionOnly, data, projects, activeWorktreeId, repos, worktrees, onSelection])
 
-  const disconnected =
-    snapshot &&
-    (snapshot.transport === 'disconnected' ||
-      snapshot.verification === 'blocked' ||
-      snapshot.verification === 'unavailable')
+  const connectionNotice = connectionState === 'reconnecting'
+    ? '连接暂时中断，正在自动重连；已打开的工作区暂时暂停操作。'
+    : connectionState === 'blocked'
+      ? snapshot?.blockedReason === 'incompatible'
+        ? '工作台与运行组件版本不兼容，请更新后重新加载。'
+        : snapshot?.retired
+          ? '工作区连接已关闭，请重新加载工作区。'
+          : '工作区连接授权已失效，请重新加载以验证访问权限。'
+      : null
+  const recovering = connectionState === 'reconnecting' || connectionState === 'blocked'
   const selected = Object.values(worktrees).flat().find((row) => row.id === activeWorktreeId) ?? null
   const workspace = hydrated && catalogReady ? describePlatformWorkspace(repos, selected, data) : null
+  const infoHost = document.getElementById('platform-workspace-info')
+  const workspaceInfo = active && workspace && !pending ? (
+    <details className="platform-workspace-context">
+      <summary aria-label="工作区信息" title="工作区信息">
+        <Info size={16} aria-hidden="true" /><span>工作区信息</span>
+      </summary>
+      <div>
+        <p>工作区：{workspace.name} · {workspace.mode}</p>
+        <p>目录：{workspace.path || '尚未读取'}</p>
+        {workspace.branch && <p>分支：{workspace.branch}</p>}
+        <p>同一目录内的 Agent 共用文件，项目设置也可能包含共享路径；工作区不是运行安全沙箱。</p>
+      </div>
+    </details>
+  ) : null
   return (
-    <div className="platform-runtime-status" data-pending={pending} hidden={!active} aria-live="polite">
+    <div className="platform-runtime-status" data-pending={pending} data-recovering={recovering} hidden={!active} aria-live="polite">
       <span role="status">
-        {catalogError || (disconnected ? '连接已中断；运行组件重启后请重新加载。' : notice !== '项目已打开'
+        {connectionError || connectionNotice || catalogError || (notice !== '项目已打开'
           ? pending && notice.startsWith('项目中尚无')
             ? '项目中尚无可定位的工作区，请返回项目检查目录，或重新加载工作区。'
             : notice
           : null)}
       </span>
-      {pending && (
+      {(pending || recovering) && (
         <div className="platform-runtime-recovery">
+          {connectionState === 'reconnecting' && <button type="button" disabled={retryingConnection} onClick={() => void reconnect()}>
+            {retryingConnection ? '正在连接…' : '重试连接'}
+          </button>}
           <button type="button" onClick={() => window.location.reload()}>重新加载工作区</button>
           <a href="#home">返回项目</a>
         </div>
       )}
-      {workspace && !pending && (
-        <details className="platform-workspace-context">
-          <summary>工作区：{workspace.name} · {workspace.mode}</summary>
-          <div>
-            <p>目录：{workspace.path || '尚未读取'}</p>
-            {workspace.branch && <p>分支：{workspace.branch}</p>}
-            <p>同一目录内的 Agent 共用文件，项目设置也可能包含共享路径；工作区不是运行安全沙箱。</p>
-          </div>
-        </details>
-      )}
+      {infoHost && workspaceInfo ? createPortal(workspaceInfo, infoHost) : workspaceInfo}
     </div>
   )
 }

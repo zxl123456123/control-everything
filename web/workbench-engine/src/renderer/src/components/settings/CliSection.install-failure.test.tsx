@@ -8,7 +8,7 @@ import { CliSection } from './CliSection'
 
 const toasts = vi.hoisted(() => ({ error: vi.fn(), success: vi.fn() }))
 const dialog = vi.hoisted(() => ({
-  props: null as null | { onInstall: () => Promise<void>; open: boolean }
+  props: null as null | { onInstall: () => Promise<void>; open: boolean; commandName: string }
 }))
 
 vi.mock('sonner', () => ({ toast: toasts }))
@@ -37,6 +37,7 @@ vi.mock('./CliRegistrationDialog', () => ({
   CliRegistrationDialog: function CliRegistrationDialog(props: {
     onInstall: () => Promise<void>
     open: boolean
+    commandName: string
   }) {
     dialog.props = props
     return null
@@ -89,6 +90,40 @@ afterEach(() => {
 })
 
 describe('CliSection install failure surfacing', () => {
+  it.each(['darwin', 'linux', 'win32'])(
+    'does not suggest a legacy command or an unverified path when %s status fails',
+    async (platform) => {
+      Object.assign(window, {
+        api: {
+          cli: { getInstallStatus: vi.fn().mockRejectedValue(new Error('Status unavailable')) },
+          shell: { openPath: vi.fn() }
+        }
+      })
+      const view = render(
+        <CliSection currentPlatform={platform} settings={getDefaultSettings('/tmp')} />
+      )
+      await screen.findByText('Failed to load CLI status.')
+      expect(dialog.props?.commandName).toBe('zkyq')
+      expect(view.container.textContent).not.toMatch(/orca|\/usr\/local\/bin|~\/\.local\/bin/i)
+    }
+  )
+
+  it('uses the actual command reported by the host', async () => {
+    Object.assign(window, {
+      api: {
+        cli: {
+          getInstallStatus: vi
+            .fn()
+            .mockResolvedValue(notInstalledStatus({ commandName: 'zkyq-dev' }))
+        },
+        shell: { openPath: vi.fn() }
+      }
+    })
+    render(<CliSection currentPlatform="linux" settings={getDefaultSettings('/tmp')} />)
+    await act(async () => {})
+    expect(dialog.props?.commandName).toBe('zkyq-dev')
+  })
+
   it('shows the thrown conflict reason and its remedy instead of a success toast', async () => {
     await renderCliSectionAndInstall(async () => {
       throw new Error(

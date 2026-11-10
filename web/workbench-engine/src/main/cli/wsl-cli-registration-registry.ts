@@ -3,9 +3,11 @@ import { join } from 'node:path'
 import { writeFileAtomically } from '../codex-accounts/fs-utils'
 import { getKeyedSerializedQueueTail, runKeyedSerializedOperation } from './keyed-promise-queue'
 import { normalizeWslDistroKey } from './wsl-cli-registration-operation'
+import { WSL_CLI_COMMAND_NAME } from './wsl-cli-scripts'
 
 const REGISTRY_FILE_NAME = 'wsl-cli-registrations.json'
 const REGISTRY_SCHEMA_VERSION = 2
+const WSL_BRIDGE_REVISION = 2
 const DEFAULT_NEGATIVE_INSPECTION_TTL_MS = 7 * 24 * 60 * 60 * 1_000
 // Why: the registry is advisory; cap per-distro bookkeeping so hosts that
 // cycle many uniquely named distros cannot grow the file without bound.
@@ -14,6 +16,8 @@ const MAX_INSPECTION_ENTRIES = 64
 type WslCliRegistrationReconciliation = {
   target: string
   appVersion: string
+  commandName?: string
+  bridgeRevision?: number
 }
 
 type WslCliRegistrationRegistryState = {
@@ -206,6 +210,8 @@ export async function getWslCliRegistrationCandidates(
       const reconciliation = state.reconciliations[key]
       return !(
         reconciliation &&
+        reconciliation.commandName === WSL_CLI_COMMAND_NAME &&
+        reconciliation.bridgeRevision === WSL_BRIDGE_REVISION &&
         timing.currentTarget &&
         reconciliation.target === timing.currentTarget &&
         reconciliation.appVersion === (timing.appVersion ?? '')
@@ -247,7 +253,7 @@ export function recordWslCliRegistrationObservations(
           const { [key]: _removed, ...rest } = reconciliations
           reconciliations = rest
         } else {
-          reconciliations = { ...reconciliations, [key]: observation.reconciled }
+          reconciliations = { ...reconciliations, [key]: { ...observation.reconciled, commandName: WSL_CLI_COMMAND_NAME, bridgeRevision: WSL_BRIDGE_REVISION } }
         }
       }
     }

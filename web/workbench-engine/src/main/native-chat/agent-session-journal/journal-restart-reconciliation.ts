@@ -75,7 +75,7 @@ function unseenHistory(
 ): ProviderHistoryWindow {
   const snapshot = journal.snapshot()
   const committed = new Set(snapshot.items.map((item) => item.itemId))
-  // Accepted submissions alias their provider item to the optimistic `orca:*`
+  // Accepted submissions alias their provider item to the optimistic `zkyq:*`
   // row, so the rendered item id alone does not identify the provider history
   // already consumed by the journal.
   for (const submission of snapshot.submissions) {

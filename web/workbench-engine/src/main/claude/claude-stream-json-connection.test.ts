@@ -178,17 +178,18 @@ describe('Claude stream-json connection', () => {
     // An Orca launched inside another structured session inherits that session's id.
     vi.stubEnv('ORCA_AGENT_SESSION_ID', 'a0b1c2d3-0000-4000-8000-00000000abcd')
     const scenario = scriptScenario([HOLD_OPEN])
-    const connection = await open(
-      launchFor(scenario, {
-        ORCA_AGENT_SESSION_ID: 'f7a1c0de-1111-4222-8333-444455556666',
+    const connection = await open({
+      ...launchFor(scenario, {
+        ZKYQ_AGENT_SESSION_ID: 'f7a1c0de-1111-4222-8333-444455556666',
         CLAUDE_CONFIG_DIR: '/accounts/managed/home',
         ANTHROPIC_AUTH_TOKEN: 'configured-token',
-        ORCA_AGENT_SESSION_SPAWN_TOKEN: 'spawn-9',
+        ZKYQ_AGENT_SESSION_SPAWN_TOKEN: 'spawn-9',
         CLAUDE_CODE_CHILD_SESSION: 'configured-child-session',
         CLAUDE_CODE_SESSION_ID: 'configured-session',
         CLAUDE_CODE_BRIDGE_SESSION_ID: 'configured-bridge-session'
-      })
-    )
+      }),
+      envToDelete: ['ORCA_AGENT_SESSION_ID']
+    })
 
     // Ownership proof: the pid is a real live process, not a value the SDK reported.
     expect(connection.pid).toEqual(expect.any(Number))
@@ -197,10 +198,11 @@ describe('Claude stream-json connection', () => {
     // The managed home is pinned verbatim: the CLI keys credential lookup on the literal string.
     expect(env.CLAUDE_CONFIG_DIR).toBe('/accounts/managed/home')
     expect(env.ANTHROPIC_AUTH_TOKEN).toBe('configured-token')
-    expect(env.ORCA_AGENT_SESSION_SPAWN_TOKEN).toBe('spawn-9')
+    expect(env.ZKYQ_AGENT_SESSION_SPAWN_TOKEN).toBe('spawn-9')
     expect(env.ORCA_CONNECTION_MARKER).toBe('inherited')
     // The session's own id reaches the spawned child over the inherited one.
-    expect(env.ORCA_AGENT_SESSION_ID).toBe('f7a1c0de-1111-4222-8333-444455556666')
+    expect(env.ZKYQ_AGENT_SESSION_ID).toBe('f7a1c0de-1111-4222-8333-444455556666')
+    expect(env.ORCA_AGENT_SESSION_ID).toBeUndefined()
     expect(env.ANTHROPIC_API_KEY).toBeUndefined()
     expect(env.CLAUDE_CODE_CHILD_SESSION).toBeUndefined()
     expect(env.CLAUDE_CODE_SESSION_ID).toBeUndefined()
@@ -210,6 +212,8 @@ describe('Claude stream-json connection', () => {
     expect(env.NODE_OPTIONS).toBeUndefined()
     // The bundled binary is excluded from the install, so the resolved path is mandatory.
     const report = await until(() => readReportSafely(scenario), 'the scripted CLI report')
+    expect(report.env.ZKYQ_AGENT_SESSION_ID).toBe('f7a1c0de-1111-4222-8333-444455556666')
+    expect(report.env.ORCA_AGENT_SESSION_ID).toBeUndefined()
     expect(report.argv[0]).toBe(FAKE_CLI)
     // The .mjs fixture makes the SDK run it under node; a real CLI path is the program
     // itself. Either way the resolved path is what Orca's spawner is asked to execute,
@@ -220,19 +224,19 @@ describe('Claude stream-json connection', () => {
   })
 
   it("strips the launch's inherited keys after Orca's own env is merged in", async () => {
-    vi.stubEnv('ORCA_PANE_KEY', 'tab-1:pane-1')
-    vi.stubEnv('ORCA_AGENT_HOOK_PORT', '4242')
+    vi.stubEnv('ZKYQ_PANE_KEY', 'tab-1:pane-1')
+    vi.stubEnv('ZKYQ_AGENT_HOOK_PORT', '4242')
     vi.stubEnv('ORCA_CONNECTION_MARKER', 'inherited')
     const scenario = scriptScenario([HOLD_OPEN])
     await open({
       ...launchFor(scenario, { ORCA_AGENT_SESSION_ID: 'f7a1c0de-1111-4222-8333-444455556666' }),
-      envToDelete: ['ORCA_PANE_KEY', 'ORCA_AGENT_HOOK_PORT']
+      envToDelete: ['ZKYQ_PANE_KEY', 'ZKYQ_AGENT_HOOK_PORT']
     })
 
     await until(() => readReportSafely(scenario), 'the scripted CLI report')
     const env = childEnv()
-    expect(env.ORCA_PANE_KEY).toBeUndefined()
-    expect(env.ORCA_AGENT_HOOK_PORT).toBeUndefined()
+    expect(env.ZKYQ_PANE_KEY).toBeUndefined()
+    expect(env.ZKYQ_AGENT_HOOK_PORT).toBeUndefined()
     // Only the listed keys go: the rest of the inherited env and the launch's own still arrive.
     expect(env.ORCA_CONNECTION_MARKER).toBe('inherited')
     expect(env.ORCA_AGENT_SESSION_ID).toBe('f7a1c0de-1111-4222-8333-444455556666')

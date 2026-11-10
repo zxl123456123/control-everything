@@ -61,6 +61,7 @@ describe('terminal-daemon status', () => {
   it('says liveness is unverifiable against a host that does not report it', () => {
     const text = formatSeveredDaemonStatus({ severed: null })
     expect(text).toContain('unverifiable')
+    expect(text).not.toContain('Orca')
     expect(text).not.toContain('OK')
   })
 
@@ -74,6 +75,7 @@ describe('terminal-daemon status', () => {
     expect(text).toContain('ENDS')
     expect(text).toContain('Agents that support resume can be resumed')
     expect(text).toContain('shells and other jobs cannot')
+    expect(text).toContain('zkyq terminal-daemon restart --yes')
   })
 
   it('does not describe an exited severed daemon as still hosting terminals', () => {

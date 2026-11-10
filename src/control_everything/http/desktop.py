@@ -4,6 +4,7 @@ import argparse
 from dataclasses import replace
 from pathlib import Path
 import re
+import subprocess
 import threading
 import webbrowser
 from urllib.parse import urlsplit
@@ -11,18 +12,24 @@ from urllib.parse import urlsplit
 from control_everything.http.gateway import build_profile_server
 from control_everything.http.workbench import WorkbenchAssets
 from control_everything.installation import manifest
-from control_everything.integrations.remote_connector import ConnectorConfig, ConnectorStore, RemoteConnector, ConnectorError
+from control_everything.integrations.remote_connector import ConnectorConfig, ConnectorStore, RemoteConnector, ConnectorError, InitialServerConfig
+from control_everything.integrations.remote_account import RemoteAccount
 from control_everything.integrations.workbench_runtime import RuntimeConfig, WorkbenchRuntime, WorkbenchUnavailable, safe_path
 
 
 class Desktop:
-    def __init__(self, server, runtime, connector=None):
+    def __init__(self, server, runtime, connector=None, account=None, server_setup=None, *, window_host=None):
         self.server, self.runtime, self.connector = server, runtime, connector
+        self.server_setup = server_setup
+        self.window_host = window_host
+        self.configuration_lock = threading.RLock()
+        self.configuration_changed = False
         self._stop = threading.Event()
         self._worker = None
         self.restart_required = False
         server.attach_workbench_runtime(runtime)
         server.remote_connector = connector
+        server.desktop_account = account
         server.desktop = self
         server.refresh_workspace_roots = self.refresh_workspace_roots
 
@@ -40,6 +47,11 @@ class Desktop:
 
     def configure_runtime(self):
         access = self.connector.remote_access if self.connector else None
+        if self.connector is not None and access is None and self.runtime.ready:
+            status = self.connector.status()
+            if status.get('state') == 'offline' and status.get('code') == 'remote_network_unavailable':
+                # A transient transport failure does not change the running runtime's binding.
+                return True
         identity = self.connector.health_identity if access else None
         config = replace(self.runtime.config, public_origin=access.public_origin if access else None,
                          device_proof=access.proxy_secret if access else None,
@@ -74,6 +86,12 @@ class Desktop:
             self._worker.start()
 
     def tick(self):
+        with self.configuration_lock:
+            if self.configuration_changed:
+                return
+            self._tick()
+
+    def _tick(self):
         if not self.connector or self.restart_required:
             return
         try:
@@ -91,8 +109,24 @@ class Desktop:
         while not self._stop.wait(2):
             self.tick()
 
+    def serve(self):
+        if self.window_host is None:
+            webbrowser.open(self.server.local_origin + '/desktop')
+            self.server.serve_forever()
+            return
+        user_data = self.server.profile.data_dir / 'desktop-window'
+        server_thread = threading.Thread(target=self.server.serve_forever, name='desktop-http')
+        server_thread.start()
+        try:
+            subprocess.run([self.window_host, str(self.server.server_port), user_data], check=True)
+        finally:
+            self.server.shutdown()
+            server_thread.join()
+
     def close(self):
         self._stop.set()
+        if self.server.desktop_account:
+            self.server.desktop_account.close()
         if self._worker:
             self._worker.join(timeout=10)
         if self.connector:
@@ -121,7 +155,7 @@ def _news_runtime(root, engine_relative, files):
     return {'node': str(root / node), 'playwright_core': str(root / core)}
 
 
-def build_desktop(product_root, data_dir=None, port=8766):
+def build_desktop(product_root, data_dir=None, port=8766, *, credential_root=None):
     root = manifest.no_links(product_root).resolve()
     document = manifest.verify_payload(root)
     names = {entry['path'] for entry in document['files']}
@@ -135,17 +169,28 @@ def build_desktop(product_root, data_dir=None, port=8766):
         if relative not in names and not any(item.startswith(relative + '/') for item in names):
             raise ValueError('desktop_runtime_unlisted')
         return candidate
-    server = build_profile_server(data_dir, port)
+    server = build_profile_server(data_dir, port, news_runtime=_news_runtime(root, config['engine_root'], document['files']))
     try:
-        server.news_runtime = _news_runtime(root, config['engine_root'], document['files'])
         runtime = WorkbenchRuntime(RuntimeConfig(path('engine_root'), path('build_run'),
-                                                 server.profile.data_dir / 'workbench', path('git'), ()))
+                                                 server.profile.data_dir / 'workbench', path('git'), (),
+                                                 inherit_host_environment=True, credential_root=credential_root))
         server.workbench_assets = WorkbenchAssets(path('engine_root') / 'out/web', path('build_run') / 'web-assets.json')
         connector = None
-        if config['issuer'] or config['hub_origin']:
-            connector = RemoteConnector(ConnectorConfig(config['issuer'], config['hub_origin'], path('ssh'), path('keygen')),
-                                        ConnectorStore(server.profile.data_dir / 'remote'), on_revoked=runtime.revoke_remote_devices)
-        return Desktop(server, runtime, connector)
+        setup = InitialServerConfig(server.profile.data_dir / 'remote', path('ssh'), path('keygen'))
+        embedded = {'issuer': config['issuer'], 'hub_origin': config['hub_origin']}
+        selected = setup.load(embedded if embedded['issuer'] or embedded['hub_origin'] else None) or embedded
+        if selected['issuer'] or selected['hub_origin']:
+            remote_root = server.profile.data_dir / 'remote'
+            if selected.get('storage') == 'isolated':
+                remote_root = remote_root / 'self-hosted'
+            elif selected.get('storage', '').startswith('generation-'):
+                remote_root = remote_root / selected['storage']
+            connector = RemoteConnector(ConnectorConfig(selected['issuer'], selected['hub_origin'], path('ssh'), path('keygen')),
+                                        ConnectorStore(remote_root), on_revoked=runtime.revoke_remote_devices)
+        account = RemoteAccount(connector.peer, connector.store) if connector else None
+        editable = not embedded['issuer'] and not embedded['hub_origin'] and selected.get('storage') != 'legacy'
+        window_host = manifest.no_links(root / manifest.DESKTOP_WINDOW_EXE) if manifest.DESKTOP_WINDOW_EXE in names else None
+        return Desktop(server, runtime, connector, account, setup if editable else None, window_host=window_host)
     except Exception:
         server.server_close()
         raise
@@ -155,14 +200,28 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--product-root', type=Path, required=True)
     parser.add_argument('--data-dir', type=Path)
+    parser.add_argument('--credential-root', type=Path)
+    parser.add_argument('--sandbox-lock-root', type=Path)
+    parser.add_argument('--installed-data-dir', help=argparse.SUPPRESS)
     parser.add_argument('--port', type=int, default=8766)
     args = parser.parse_args(argv)
-    desktop = build_desktop(args.product_root, args.data_dir, args.port)
+    if args.installed_data_dir is not None and args.installed_data_dir != '_':
+        from control_everything.installation.desktop_settings import decode_data_directory
+        product = manifest.no_links(args.product_root).resolve()
+        if product.parent.name != 'versions':
+            raise ValueError('installed_data_directory_requires_installation')
+        selected = decode_data_directory(product.parent.parent, args.installed_data_dir)
+        if args.data_dir is None:
+            args.data_dir = selected
+    if args.sandbox_lock_root is not None:
+        from control_everything.platform.windows_acl import configure_desktop_lock_root
+        configure_desktop_lock_root(args.sandbox_lock_root)
+    options = {'credential_root': args.credential_root} if args.credential_root is not None else {}
+    desktop = build_desktop(args.product_root, args.data_dir, args.port, **options)
     try:
         desktop.start()
         print(f'本机电脑绑定：{desktop.server.local_origin}/desktop', flush=True)
-        webbrowser.open(desktop.server.local_origin + '/desktop')
-        desktop.server.serve_forever()
+        desktop.serve()
     except KeyboardInterrupt:
         pass
     finally:

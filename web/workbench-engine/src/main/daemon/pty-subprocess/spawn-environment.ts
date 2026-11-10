@@ -1,5 +1,8 @@
 import { getLegacyOpenCodeEnvKeysToDelete } from '../../opencode/legacy-shared-config-dir'
-import { restoreManagedDataAccountEnvironment } from '../../../shared/managed-data-account-environment'
+import {
+  restoreManagedDataAccountEnvironment,
+  migrateManagedDataAccountEnvironmentIdentity
+} from '../../../shared/managed-data-account-environment'
 import { restoreOrStripOverlayEnv } from '../../../shared/agent-overlay-env'
 import { delimiter } from 'node:path'
 import { dropInheritedOrcaFishHistory } from '../../fish-history-session'
@@ -29,12 +32,14 @@ import { applyScrubSafeAgentEnvAliases } from '../../../shared/agent-hook-scrub-
 import type { TuiAgent } from '../../../shared/tui-agent'
 import type { PtySubprocessOptions } from '../pty-subprocess'
 import { ORCAD_MANAGED_ACTIVATION_ROOT_ENV } from '../../../shared/orcad-managed-launch-env'
+import { migrateAgentHookEnvironmentIdentity } from '../../../shared/agent-hook-environment-identity'
+import { migrateOpenCodeEnvironmentIdentity } from '../../../shared/opencode-environment-identity'
 
 const PANE_IDENTITY_ENV_KEYS = [
-  'ORCA_PANE_KEY',
-  'ORCA_TAB_ID',
-  'ORCA_WORKTREE_ID',
-  'ORCA_AGENT_LAUNCH_TOKEN',
+  'ZKYQ_PANE_KEY',
+  'ZKYQ_TAB_ID',
+  'ZKYQ_WORKTREE_ID',
+  'ZKYQ_AGENT_LAUNCH_TOKEN',
   // Not identity but equally per-spawn: an inherited copy names another launch's CLI.
   'ORCA_WSL_CLI_DIR',
   'JCODE_RUNTIME_DIR',
@@ -61,7 +66,12 @@ function deleteRequestedDaemonEnvKeys(
   env: Record<string, string>,
   keys: readonly string[] | undefined
 ): void {
-  const userDataPath = process.env.ORCA_USER_DATA_PATH
+  const currentKeys = [...(keys ?? [])]
+  migrateAgentHookEnvironmentIdentity(env, currentKeys)
+  migrateOpenCodeEnvironmentIdentity(env, currentKeys)
+  migrateManagedDataAccountEnvironmentIdentity(env, currentKeys)
+  keys = currentKeys
+  const userDataPath = process.env.ZKYQ_USER_DATA_PATH
   if (userDataPath) {
     for (const key of getLegacyOpenCodeEnvKeysToDelete(env, userDataPath, {})) {
       delete env[key]
@@ -74,16 +84,16 @@ function deleteRequestedDaemonEnvKeys(
     env.CODEX_HOME === env.ORCA_CODEX_HOME
   // A merged caller config can supersede the daemon's recorded overlay source.
   if (
-    keys?.includes('ORCA_OPENCODE_CONFIG_DIR') &&
+    keys?.includes('ZKYQ_OPENCODE_CONFIG_DIR') &&
     (env.OPENCODE_CONFIG_DIR === undefined ||
-      env.OPENCODE_CONFIG_DIR === env.ORCA_OPENCODE_CONFIG_DIR)
+      env.OPENCODE_CONFIG_DIR === env.ZKYQ_OPENCODE_CONFIG_DIR)
   ) {
     restoreOrStripOverlayEnv(
       env,
       {
         primary: 'OPENCODE_CONFIG_DIR',
-        overlay: 'ORCA_OPENCODE_CONFIG_DIR',
-        source: 'ORCA_OPENCODE_SOURCE_CONFIG_DIR'
+        overlay: 'ZKYQ_OPENCODE_CONFIG_DIR',
+        source: 'ZKYQ_OPENCODE_SOURCE_CONFIG_DIR'
       },
       {}
     )
@@ -164,22 +174,41 @@ function removeInheritedDevAgentHookEndpoint(
   env: Record<string, string>,
   explicitEnv: Record<string, string> | undefined
 ): void {
-  if (explicitEnv?.ORCA_AGENT_HOOK_ENV === 'development' && !explicitEnv.ORCA_AGENT_HOOK_ENDPOINT) {
+  if (explicitEnv?.ZKYQ_AGENT_HOOK_ENV === 'development' && !explicitEnv.ZKYQ_AGENT_HOOK_ENDPOINT) {
     // Why: strip only stale inherited endpoints; a fresh explicit one is needed by hooks that scrub token-like env vars before exec.
-    delete env.ORCA_AGENT_HOOK_ENDPOINT
+    delete env.ZKYQ_AGENT_HOOK_ENDPOINT
   }
 }
 
 /** A persistent daemon's inherited environment cannot supply ownership for a new pane. */
 export function createDaemonPtyEnvironment(opts: PtySubprocessOptions): Record<string, string> {
   const inheritedEnv = stripInheritedBuildModeEnv(process.env)
+  // A persistent daemon can inherit another pane's identity under either namespace.
+  for (const suffix of [
+    'PANE_KEY',
+    'TAB_ID',
+    'WORKTREE_ID',
+    'AGENT_LAUNCH_TOKEN',
+    'AGENT_PANE',
+    'AGENT_LAUNCH',
+    'HOOK_AGENT_PID'
+  ]) {
+    delete inheritedEnv[`ORCA_${suffix}`]
+    delete inheritedEnv[`ZKYQ_${suffix}`]
+  }
+  migrateAgentHookEnvironmentIdentity(inheritedEnv)
+  migrateOpenCodeEnvironmentIdentity(inheritedEnv)
+  opts = { ...opts, env: opts.env ? { ...opts.env } : undefined }
+  if (opts.env) migrateAgentHookEnvironmentIdentity(opts.env)
+  if (opts.env) migrateOpenCodeEnvironmentIdentity(opts.env)
+  if (opts.env) migrateManagedDataAccountEnvironmentIdentity(opts.env)
   restoreManagedDataAccountEnvironment(inheritedEnv)
   const env: Record<string, string> = {
     ...mergeGitConfigEnvProtocol(inheritedEnv, opts.env),
     TERM: 'xterm-256color',
     COLORTERM: 'truecolor',
-    TERM_PROGRAM: 'Orca',
-    TERM_PROGRAM_VERSION: process.env.ORCA_APP_VERSION ?? '0.0.0-dev',
+    TERM_PROGRAM: 'zkyq',
+    TERM_PROGRAM_VERSION: process.env.ZKYQ_APP_VERSION ?? '0.0.0-dev',
     FORCE_HYPERLINK: '1',
     [ORCA_IMAGE_PROTOCOL_ENV]: ORCA_IMAGE_PROTOCOL_VALUE
   } satisfies Record<string, string>
@@ -197,9 +226,10 @@ export function createDaemonPtyEnvironment(opts: PtySubprocessOptions): Record<s
   if (opts.env?.HISTFILE === undefined) {
     dropInheritedOrcaHistFile(env)
   }
-  if (opts.env?.ORCA_HISTFILE === undefined) {
-    delete env.ORCA_HISTFILE
+  if (opts.env?.ZKYQ_HISTFILE === undefined) {
+    delete env.ZKYQ_HISTFILE
   }
+  delete env.ORCA_HISTFILE
   removeInheritedDevAgentHookEndpoint(env, opts.env)
   delete env.ELECTRON_RUN_AS_NODE
   removeAppImageRuntimeEnv(env)
@@ -239,11 +269,11 @@ export function finalizeDaemonPtyEnvironment(
   stripPiProcessOwnerEnv(env)
   // A live daemon pins this runtime across app updates; callers cannot name the host executable.
   for (const key of Object.keys(env)) {
-    if (key.toUpperCase() === 'ORCA_AGENT_HOOK_NODE') {
+    if (key.toUpperCase() === 'ZKYQ_AGENT_HOOK_NODE') {
       delete env[key]
     }
   }
   if (process.platform === 'win32') {
-    env.ORCA_AGENT_HOOK_NODE = process.execPath
+    env.ZKYQ_AGENT_HOOK_NODE = process.execPath
   }
 }

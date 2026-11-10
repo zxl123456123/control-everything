@@ -2,6 +2,8 @@ import type { ClaudeRuntimeAuthPreparation } from '../claude-accounts/runtime-au
 import { applyClaudeEnvPatch } from '../claude-accounts/environment'
 import { readShellStartupEnvVar } from '../pty/shell-startup-env'
 import { parseWslUncPath } from '../../shared/wsl-paths'
+import { migrateAgentHookEnvironmentIdentity } from '../../shared/agent-hook-environment-identity'
+import { migrateOpenCodeEnvironmentIdentity } from '../../shared/opencode-environment-identity'
 
 export type CommitMessageAgentEnvironmentResolvers = {
   prepareForCodexLaunch?: (
@@ -26,6 +28,8 @@ function cloneProcessEnv(): Record<string, string> {
       env[key] = value
     }
   }
+  migrateAgentHookEnvironmentIdentity(env)
+  migrateOpenCodeEnvironmentIdentity(env)
   return env
 }
 
@@ -48,11 +52,14 @@ function readInheritedOrShellEnvVar(
   sourceName: string | undefined,
   base: Record<string, string> | undefined
 ): string | undefined {
+  const inherited = { ...process.env }
+  migrateAgentHookEnvironmentIdentity(inherited)
+  migrateOpenCodeEnvironmentIdentity(inherited)
   // Why: the login-shell base is what chats use, so it beats Orca's own inherited value.
   return (
-    (sourceName ? process.env[sourceName] : undefined) ??
+    (sourceName ? inherited[sourceName] : undefined) ??
     base?.[name] ??
-    process.env[name] ??
+    inherited[name] ??
     readShellStartupEnvVar(name, process.env.HOME, process.env.SHELL)
   )
 }
@@ -78,11 +85,11 @@ function prepareShellConfigDirEnv(
   // both kinds consume — see src/main/pi/titlebar-extension-service.ts.
   const sourceVar =
     agentId === 'opencode' || agentId === 'opencode2'
-      ? 'ORCA_OPENCODE_SOURCE_CONFIG_DIR'
+      ? 'ZKYQ_OPENCODE_SOURCE_CONFIG_DIR'
       : agentId === 'pi'
-        ? 'ORCA_PI_SOURCE_AGENT_DIR'
+        ? 'ZKYQ_PI_SOURCE_AGENT_DIR'
         : agentId === 'omp'
-          ? 'ORCA_OMP_SOURCE_AGENT_DIR'
+          ? 'ZKYQ_OMP_SOURCE_AGENT_DIR'
           : undefined
 
   const value = readInheritedOrShellEnvVar(configVar, sourceVar, base)
@@ -102,12 +109,16 @@ async function resolveHostBaseEnv(
   if (!resolvers?.resolveBaseEnvironment) {
     return undefined
   }
+  let base: Record<string, string>
   try {
-    return { ...(await resolvers.resolveBaseEnvironment()) }
+    base = { ...(await resolvers.resolveBaseEnvironment()) }
   } catch (error) {
     console.error('[commit-message] Failed to resolve the login-shell environment:', error)
     return undefined
   }
+  migrateAgentHookEnvironmentIdentity(base)
+  migrateOpenCodeEnvironmentIdentity(base)
+  return base
 }
 
 export async function prepareLocalCommitMessageAgentEnv(

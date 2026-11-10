@@ -12,13 +12,13 @@ import {
   type RuntimeMetadataOwnershipWatch
 } from './runtime-metadata-ownership-watch'
 
-// Counts blocking fs calls against orca-runtime.json so the poll tick's I/O stays off the main thread.
+// Counts blocking fs calls against zkyq-runtime.json so the poll tick's I/O stays off the main thread.
 const metadataSyncCalls = vi.hoisted(() => {
   const state = { recording: false, calls: [] as string[] }
   return {
     state,
     record(fn: string, target: unknown): void {
-      if (state.recording && typeof target === 'string' && target.endsWith('orca-runtime.json')) {
+      if (state.recording && typeof target === 'string' && target.endsWith('zkyq-runtime.json')) {
         state.calls.push(fn)
       }
     }
@@ -51,7 +51,7 @@ vi.mock('node:fs/promises', async () => {
     readFile: (async (target: unknown, options: never) => {
       const call = (): unknown =>
         (actual.readFile as (...args: never[]) => unknown)(target as never, options)
-      if (typeof target !== 'string' || !target.endsWith('orca-runtime.json')) {
+      if (typeof target !== 'string' || !target.endsWith('zkyq-runtime.json')) {
         return call()
       }
       metadataReadGate.reads += 1

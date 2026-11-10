@@ -10,7 +10,8 @@ import {
 } from '../../shared/orchestration-rpc-contract'
 import type { PairedRuntimeConnection } from '../../shared/paired-runtime-connection'
 import { launchOrcaApp } from './launch'
-import { getDefaultUserDataPath, readMetadata } from './metadata'
+import { getDefaultUserDataPath } from './metadata'
+import { resolveRuntimeMetadata } from './metadata-selection'
 import { getCliStatus, projectRemoteAppStatus } from './status'
 import { sendRequest } from './transport'
 import { RuntimeClientError, RuntimeRpcFailureError, type RuntimeRpcSuccess } from './types'
@@ -23,6 +24,7 @@ import {
 import { markEnvironmentUsed } from './environments'
 import { createRuntimeSourceFence, type RuntimeSourceFence } from './runtime-source-fence'
 import { resolveRemoteConnection } from './runtime-remote-pairing'
+import { refuseRetiredRemoteSelection } from '../remote-selection-env'
 import {
   ORCHESTRATION_CONTRACT_RUNTIME_CAPABILITY,
   ORCHESTRATION_CONTRACT_VERSION
@@ -65,11 +67,14 @@ export class RuntimeClient {
   constructor(
     userDataPath = getDefaultUserDataPath(),
     requestTimeoutMs = 60_000,
-    remotePairingCode = process.env.ORCA_PAIRING_CODE ?? process.env.ORCA_REMOTE_PAIRING ?? null,
-    environmentSelector = process.env.ORCA_ENVIRONMENT ?? null,
+    remotePairingCode = process.env.ZKYQ_PAIRING_CODE ?? process.env.ZKYQ_REMOTE_PAIRING ?? null,
+    environmentSelector = process.env.ZKYQ_ENVIRONMENT ?? null,
     cliExecutable = resolveOrchestrationCliExecutable(),
     originalArgs?: readonly string[]
   ) {
+    if (arguments[2] === undefined || arguments[3] === undefined) {
+      refuseRetiredRemoteSelection()
+    }
     this.userDataPath = userDataPath
     this.requestTimeoutMs = requestTimeoutMs
     this.environmentSelector = environmentSelector
@@ -164,7 +169,7 @@ export class RuntimeClient {
       }
       return response
     }
-    const metadata = readMetadata(this.userDataPath)
+    const metadata = await resolveRuntimeMetadata(this.userDataPath)
     // Why outside recover(): a refusal here happens before anything is sent, so there is nothing to retry.
     const expectedRuntimeSource = await this.runtimeSourceFence.check(metadata, method)
     let response
@@ -276,7 +281,7 @@ export class RuntimeClient {
     if (!response.result.capabilities?.includes(ORCHESTRATION_CONTRACT_RUNTIME_CAPABILITY)) {
       throw new RuntimeClientError(
         'orchestration_migration_required',
-        'The connected Orca runtime does not support the current orchestration contract. No effects were applied.',
+        'The connected Control Everything runtime does not support the current orchestration contract. No effects were applied.',
         orchestrationMigrationData('runtime_capability_missing')
       )
     }
@@ -312,7 +317,7 @@ export class RuntimeClient {
 
     throw new RuntimeClientError(
       'runtime_open_timeout',
-      'Timed out waiting for an Orca desktop window. The runtime may still be running headlessly.'
+      'Timed out waiting for a Control Everything desktop window. The runtime may still be running headlessly.'
     )
   }
 }
@@ -320,7 +325,7 @@ export class RuntimeClient {
 function throwDesktopActivationBlocked(): never {
   throw new RuntimeClientError(
     'desktop_activation_blocked',
-    'Orca is running headlessly, but it cannot open a desktop window safely because the persistent terminal provider is unavailable. Quit Orca normally and start the app again; do not use open -n.'
+    'Control Everything is running headlessly, but it cannot open a desktop window safely because the persistent terminal provider is unavailable. Quit it normally and start the app again; do not use open -n.'
   )
 }
 

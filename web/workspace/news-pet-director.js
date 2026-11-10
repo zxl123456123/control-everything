@@ -1,4 +1,4 @@
-/* Reader-side director for the news-page pet: which dial actions to build, how the size/dock preferences map onto a pet,
+/* Reader-side director for the news-page pet: the wheel's fixed slots and the one action table every host shares, how the size/dock preferences map onto a pet,
  * and a small throttled reactor that lets the pet answer real reader events (new articles, unread zero, saving, empty
  * results, a failed refresh, reaching the end of an article). It never touches the DOM and never moves the reader:
  * reactions only call the pet's own react(kind, text). Pets without react(), such as the spider, are simply left alone. */
@@ -22,17 +22,42 @@
     'read-end': {gesture: 'wiggle', gap: 8000, text: '读到底啦'},
   });
 
+  const SETTINGS_HINT = '可在“设置 → 外观 → 宠物”里重新打开。';
+
   /**
-   * Turns the stored dial ids into the actions a pet's dial expects. An id without a handler is dropped, so a surface
-   * only ever shows shortcuts it can really run.
-   * @param {string[]} ids chosen action ids, already normalised for this surface
-   * @param {Record<string, () => void>} handlers one function per action id
-   * @returns {{id: string, label: string, icon: string, run: () => void}[]}
+   * Turns capabilities into the wheel's six slots, always in slot order. A slot whose capability is missing or
+   * disabled stays where it is, greyed, with the reason it gives; it is never dropped and nothing moves to fill it.
+   * @param {Record<string, {run?: () => void, enabled?: boolean, reason?: string, checked?: boolean}>} capabilities one per slot id
+   * @returns {{id: string, label: string, icon: string, angle: number, group: string, run: () => void, enabled: boolean, reason: string, checked?: boolean}[]}
    */
-  function buildActions(ids, handlers) {
-    const pool = new Map(global.NewsPetDial.POOL.map(entry => [entry.id, entry]));
-    return ids.filter(id => pool.has(id) && typeof handlers[id] === 'function')
-      .map(id => ({id, label: pool.get(id).label, icon: pool.get(id).icon, run: handlers[id]}));
+  function buildActions(capabilities) {
+    const {SLOTS, REASONS} = global.NewsPetDial;
+    return SLOTS.map(slot => {
+      const cap = capabilities[slot.id] || {}, ready = typeof cap.run === 'function' && cap.enabled !== false;
+      const action = {id: slot.id, label: slot.label, icon: slot.icon, angle: slot.angle, group: slot.group, run: ready ? cap.run : () => {}, enabled: ready, reason: ready ? '' : cap.reason || REASONS.unavailable};
+      if (typeof cap.checked === 'boolean') action.checked = cap.checked;
+      return action;
+    });
+  }
+
+  /**
+   * The one handler table every pet host shares. A host says where it is and how to navigate; what each slot does, and
+   * when it is greyed, is decided here so the news page and the Studio can never drift apart.
+   * @param {{here: string, go: (hash: string) => void, search?: (() => void)|null, prefs: object, notify: (text: string) => void,
+   *   afterHide?: () => void}} host here: 'home' | 'news' | other, the page the wheel is on; search: only the news reader has one;
+   *   afterHide: runs after the pet was hidden, to put focus somewhere real
+   * @returns {ReturnType<typeof buildActions>}
+   */
+  function createActions(host) {
+    const {REASONS} = global.NewsPetDial, quiet = Boolean(host.prefs.read().quiet);
+    return buildActions({
+      workspace: {run: () => host.go('#home'), enabled: host.here !== 'home', reason: REASONS.here},
+      news: {run: () => host.go('#news'), enabled: host.here !== 'news', reason: REASONS.here},
+      search: {run: host.search || undefined, enabled: Boolean(host.search), reason: REASONS.newsOnly},
+      quiet: {run: () => { const next = !host.prefs.read().quiet; if (host.prefs.set({quiet: next})) host.notify(next ? '安静模式已开启，宠物不再有动作和提示。' : '安静模式已关闭。'); }, checked: quiet},
+      'pet-settings': {run: () => host.go('#settings/appearance')},
+      'hide-pet': {run: () => { if (!host.prefs.setEnabled(false)) { host.notify('宠物设置暂时无法保存。'); return; } host.notify(`宠物已隐藏，${SETTINGS_HINT}`); host.afterHide?.(); }},
+    });
   }
 
   /** Pet options derived from the stored preferences; only pets with the full engine take size and dock. */
@@ -91,5 +116,5 @@
     return {react, later, observeUnread, observeScroll, cancelPending};
   }
 
-  global.NewsPetDirector = Object.freeze({SIZE_SCALE, REACTIONS, buildActions, petOptions, createReactor});
+  global.NewsPetDirector = Object.freeze({SIZE_SCALE, REACTIONS, buildActions, createActions, petOptions, createReactor});
 })(window);

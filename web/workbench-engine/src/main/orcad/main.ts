@@ -24,6 +24,10 @@ import {
 } from '../../shared/windows-breakaway-launch'
 import { runWindowsBreakawayLaunchIfRequested } from '../../shared/windows-breakaway-launcher'
 import { parseArgs } from './orcad-command-arguments'
+import {
+  MANAGED_DATA_ROOT_FLAG,
+  MANAGED_DATA_ROOT_RESULT_MARKER
+} from '../../shared/managed-data-roots'
 
 // Why exit before the preflight: reaching this line means the whole module graph resolved
 // under plain Node, which is all the build guard needs to prove. Probing natives or
@@ -42,7 +46,20 @@ function failStartup(error: unknown): void {
 }
 
 // One-shot launch and stop commands must skip server startup and preflights.
-if (process.argv[2] === '--orcad-structured-provider-load-check') {
+if (process.argv[2] === MANAGED_DATA_ROOT_FLAG) {
+  if (process.argv.length !== 5) failStartup(new Error('Invalid managed data directory arguments'))
+  void import('./orcad-managed-data-roots')
+    .then(({ runManagedDataRootOperation }) =>
+      runManagedDataRootOperation(process.argv[3], process.argv[4])
+    )
+    .then((result) =>
+      process.stdout.write(
+        `${MANAGED_DATA_ROOT_RESULT_MARKER} ${Buffer.from(JSON.stringify(result)).toString('base64')}\n`,
+        () => process.exit(0)
+      )
+    )
+    .catch(failStartup)
+} else if (process.argv[2] === '--orcad-structured-provider-load-check') {
   void import('./orcad-structured-provider-smoke')
     .then(({ smokeLoadOrcadStructuredProviders }) => smokeLoadOrcadStructuredProviders())
     .then(() => process.exit(0))

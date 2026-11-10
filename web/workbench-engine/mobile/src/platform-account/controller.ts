@@ -4,14 +4,18 @@ import { AppState, Platform } from 'react-native'
 import {
   accountConfigBinding,
   readPlatformAccountConfig,
+  type PlatformAccountConfig,
   type PlatformAccountConfiguration
 } from './config'
 import {
   AccountError,
   platformAccountOidc,
   type AccountCandidate,
-  type AccountSession
+  type AccountSession,
+  type RevocationOutcome
 } from './oidc'
+import { readPlatformBrowserPortal } from './browser-portal'
+import { createHubLogout } from './hub-logout'
 import { platformAccountStore } from './secure-store'
 import type { AccountRecovery } from './secure-store'
 
@@ -37,6 +41,8 @@ type Dependencies = {
   configuration: PlatformAccountConfiguration
   store: typeof platformAccountStore
   oidc: typeof platformAccountOidc
+  /** Best-effort hub sign-out with a still-valid access token; true when the hub acknowledged it. */
+  hubLogout?: (accessToken: string, signal: AbortSignal) => Promise<boolean>
   now?: () => number
 }
 const errors = {
@@ -47,6 +53,17 @@ const errors = {
   expired: '账号凭据已过期，请重新登录。',
   cancelled: '已取消登录'
 }
+// Appended only when the hub was asked; the local sign-out is already done either way.
+const hubLogoutNotes = {
+  acknowledged: '已通知远程 hub 结束此账号的网页会话。',
+  unconfirmed: '未能通知远程 hub 结束网页会话，它们会在原有效期后失效。'
+}
+const logoutMessages: Record<RevocationOutcome, string> = {
+  revoked: '已退出此 App，并已通知身份服务撤销本机授权。浏览器会话与已配对电脑的权限保持独立。',
+  unsupported: '已退出此 App。浏览器会话与已配对电脑的权限保持独立。',
+  failed:
+    '已退出此 App，本机凭据已清除；身份服务未能确认撤销授权。浏览器会话与已配对电脑的权限保持独立。'
+}
 
 export function createPlatformAccountController(deps: Dependencies) {
   let configuration = deps.configuration
@@ -55,7 +72,12 @@ export function createPlatformAccountController(deps: Dependencies) {
   let storageQueue: Promise<unknown> = Promise.resolve()
   let session: AccountSession | null = null
   let candidate: AccountCandidate | null = null
+  // Last refresh credential this controller saw, kept only so logout can revoke it server-side
+  // without an extra secure-store read. Cleared as soon as logout consumes it.
+  let knownRecovery: AccountRecovery | null = null
   let logoutFailed = false
+  // Set once the identity service rejected the refresh credential, so a hub request cannot retry it.
+  let credentialRejected = false
   let expiryTimer: ReturnType<typeof setTimeout> | undefined
   const listeners = new Set<() => void>()
   const now = deps.now ?? Date.now
@@ -80,6 +102,7 @@ export function createPlatformAccountController(deps: Dependencies) {
     abortController = new AbortController()
     session = null
     candidate = null
+    credentialRejected = false
     clearTimeout(expiryTimer)
     return {
       generation,
@@ -107,6 +130,8 @@ export function createPlatformAccountController(deps: Dependencies) {
   async function commit(op: Operation, value: AccountCandidate, restoring: boolean) {
     if (!owns(op)) return
     candidate = value
+    if (value.recovery) knownRecovery = value.recovery
+    else knownRecovery = null
     try {
       await enqueue(async () => {
         if (!owns(op)) return
@@ -120,6 +145,7 @@ export function createPlatformAccountController(deps: Dependencies) {
         return
       }
       session = value.session
+      credentialRejected = false
       const { accessToken: _token, ...account } = value.session
       publish({
         status: 'signed-in',
@@ -148,6 +174,7 @@ export function createPlatformAccountController(deps: Dependencies) {
   function errorState(op: Operation, error: unknown, restoring: boolean) {
     if (!owns(op)) return
     const kind = error instanceof AccountError ? error.kind : 'network'
+    if (kind === 'expired') credentialRejected = true
     publish({
       status:
         kind === 'cancelled'
@@ -214,6 +241,7 @@ export function createPlatformAccountController(deps: Dependencies) {
       publish({ status: 'signed-out' })
       return
     }
+    knownRecovery = record
     try {
       const value = await deps.oidc.restore(config, record, op.signal, now)
       if (owns(op)) await commit(op, value, true)
@@ -221,8 +249,100 @@ export function createPlatformAccountController(deps: Dependencies) {
       errorState(op, error, true)
     }
   }
+  // Access tokens are handed out only to the hub client, never published in the snapshot.
+  const TOKEN_SKEW_MS = 5_000
+  function getAccessToken(): string | null {
+    return session && session.expiresAt - TOKEN_SKEW_MS > now() ? session.accessToken : null
+  }
+  let refreshing: Promise<string | null> | null = null
+  /**
+   * Refreshes the access token for an in-flight hub request without showing the "restoring" screen.
+   * Concurrent callers share one refresh. A rejected or missing refresh credential marks the session
+   * expired (the re-login banner); a transient failure keeps the signed-in state and returns null.
+   */
+  function refreshAccessToken(): Promise<string | null> {
+    refreshing ??= doRefreshAccessToken().finally(() => {
+      refreshing = null
+    })
+    return refreshing
+  }
+  async function doRefreshAccessToken(): Promise<string | null> {
+    if (
+      configuration.status !== 'ready' ||
+      logoutFailed ||
+      credentialRejected ||
+      // Only a live or lapsed session may refresh; every other state owns its own recovery flow.
+      !['signed-in', 'expired'].includes(snapshot.status)
+    )
+      return null
+    const config = configuration.config
+    const op: Operation = {
+      generation,
+      binding: accountConfigBinding(config),
+      signal: abortController.signal
+    }
+    const expire = () => {
+      if (!owns(op)) return
+      session = null
+      credentialRejected = true
+      clearTimeout(expiryTimer)
+      publish({ status: 'expired', message: errors.expired })
+    }
+    let record = knownRecovery
+    if (!record) {
+      try {
+        record = await enqueue(() => deps.store.read())
+      } catch {
+        return null
+      }
+      if (!owns(op)) return null
+      if (record) knownRecovery = record
+    }
+    if (!record) {
+      // A session-only login has no refresh credential, so an expired token needs a fresh login.
+      expire()
+      return null
+    }
+    try {
+      const value = await deps.oidc.restore(config, record, op.signal, now)
+      if (!owns(op)) return null
+      await commit(op, value, true)
+      return owns(op) ? getAccessToken() : null
+    } catch (error) {
+      if (error instanceof AccountError && (error.kind === 'expired' || error.kind === 'identity'))
+        expire()
+      return null
+    }
+  }
+  async function revokeRemotely(
+    config: PlatformAccountConfig,
+    record: AccountRecovery,
+    op: Operation
+  ): Promise<RevocationOutcome> {
+    try {
+      return await deps.oidc.revoke(config, record, op.signal)
+    } catch {
+      return 'failed'
+    }
+  }
+  async function notifyHub(
+    hubLogout: NonNullable<Dependencies['hubLogout']>,
+    token: string,
+    op: Operation
+  ): Promise<boolean> {
+    try {
+      return await hubLogout(token, op.signal)
+    } catch {
+      return false
+    }
+  }
   async function logout() {
+    // Read before invalidate() drops the session; null when the token has lapsed (no refresh is
+    // attempted for a sign-out).
+    const hubToken = deps.hubLogout ? getAccessToken() : null
     const op = invalidate()
+    const revokable = configuration.status === 'ready' ? knownRecovery : null
+    const readyConfig = configuration.status === 'ready' ? configuration.config : null
     // Also gate attempts while delete is pending or has failed.
     logoutFailed = true
     publish({ status: 'logging-out' })
@@ -236,15 +356,30 @@ export function createPlatformAccountController(deps: Dependencies) {
         })
       return
     }
-    if (op.generation !== generation) return
+    // The local credential is gone; a failed or slow server call must never undo that.
     logoutFailed = false
-    publish({ ...initial(), message: '已退出此 App。浏览器会话与已配对电脑的权限保持独立。' })
+    knownRecovery = null
+    // The hub is asked first, while its access token still verifies; revoking the identity-service
+    // credential afterwards cannot make that call fail.
+    const hubOk = hubToken && deps.hubLogout ? await notifyHub(deps.hubLogout, hubToken, op) : null
+    const outcome: RevocationOutcome =
+      revokable && readyConfig ? await revokeRemotely(readyConfig, revokable, op) : 'unsupported'
+    if (op.generation !== generation) return
+    publish({
+      ...initial(),
+      message:
+        logoutMessages[outcome] +
+        (hubOk === null ? '' : hubOk ? hubLogoutNotes.acknowledged : hubLogoutNotes.unconfirmed)
+    })
   }
   return {
     login,
     restore,
     logout,
     checkExpiry,
+    getAccessToken,
+    getSessionGeneration: () => generation,
+    refreshAccessToken,
     configure(value: PlatformAccountConfiguration) {
       const prior =
         configuration.status === 'ready'
@@ -278,10 +413,22 @@ export function createPlatformAccountController(deps: Dependencies) {
   }
 }
 
+/** Only a build with a configured remote hub origin has a hub to sign out of. */
+function defaultHubLogout(): Dependencies['hubLogout'] {
+  const portal = readPlatformBrowserPortal(Constants.expoConfig)
+  if (portal.status !== 'ready') return undefined
+  return createHubLogout({
+    origin: portal.origin,
+    // `expo/fetch` refuses redirects natively and is loaded lazily, as in the hub client.
+    fetch: async (url, init) => (await import('expo/fetch')).fetch(url, init)
+  })
+}
+
 export const platformAccountController = createPlatformAccountController({
   configuration: readPlatformAccountConfig(Constants.expoConfig, Platform.OS),
   store: platformAccountStore,
-  oidc: platformAccountOidc
+  oidc: platformAccountOidc,
+  hubLogout: defaultHubLogout()
 })
 export function usePlatformAccount(): AccountSnapshot {
   return useSyncExternalStore(

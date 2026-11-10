@@ -27,8 +27,15 @@ https://workbench.example.test {
         handle /remote/desktop/* {
             reverse_proxy 127.0.0.1:18869
         }
+        # Mobile uses its own Bearer, verified by the hub's introspection. It must bypass oauth2-proxy
+        # forward_auth, carry no route proof, and never receive CORS headers.
+        handle /remote/mobile/* {
+            reverse_proxy 127.0.0.1:18869
+        }
         @account path /remote /remote/ /remote/remote-account.js /remote/remote-account.css /remote/account-device.js /remote/ui-theme.js
         handle @account {
+            @accountStatic path_regexp accountStatic \.(js|css)$
+            encode @accountStatic zstd gzip
             root * /srv/control-everything/remote-ui
             rewrite /remote /remote/remote-account.html
             rewrite /remote/ /remote/remote-account.html
@@ -77,6 +84,9 @@ https://workbench.example.test {
             }
             @runtime path /workbench-runtime
             rewrite @runtime /?orca-client=web
+            # Compress static bodies only; keep API and event streams untouched.
+            @staticCompression path_regexp staticCompression \.(js|mjs|css|svg|wasm)$
+            encode @staticCompression zstd gzip
             reverse_proxy {http.request.header.X-CE-Upstream} {
                 header_up Host {http.request.hostport}
                 header_up -Authorization

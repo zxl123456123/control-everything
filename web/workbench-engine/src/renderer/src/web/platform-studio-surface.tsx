@@ -7,24 +7,14 @@ export type PlatformProjectsListener = (
   projects: PlatformProject[],
   metadata?: { archived: PlatformProject[] }
 ) => void
+type StudioHandle = (() => void) & {setVisible?: (visible: boolean) => void}
 type StudioWindow = Window & {
   StudioPreview?: {
-    mount(root: HTMLElement, options: { onProjects: PlatformProjectsListener; runtimeHost: () => string | null }): () => void
+    mount(root: HTMLElement, options: { onProjects: PlatformProjectsListener; runtimeHost: () => string | null }): StudioHandle
   }
 }
 const scripts = [
   '/ui-dialog.js',
-  '/onboarding.js',
-  '/execution.js',
-  '/task-center.js',
-  '/monitor-art.js',
-  '/monitor-scene.js',
-  '/monitor-model.js',
-  '/project-monitor.js',
-  '/project-space.js',
-  '/project-progress-model.js',
-  '/project-progress.js',
-  '/agents.js',
   '/studio-data.js',
   '/remote/account-device.js',
   '/mobile-device-entry.js',
@@ -38,6 +28,7 @@ const scripts = [
   '/studio-pet-settings.js',
   '/studio-members-admin.js',
   '/studio-mascot.js',
+  '/news-surface.js',
   '/studio-preview.js'
 ]
 let modules: Promise<void> | null = null
@@ -80,6 +71,10 @@ export default function PlatformStudioSurface({
   runtimeHost?: string | null
 }): React.JSX.Element {
   const host = useRef<HTMLDivElement>(null)
+  const studioHandle = useRef<StudioHandle | undefined>(undefined)
+  const visibility = useRef(!hidden)
+  visibility.current = !hidden
+  useEffect(() => {studioHandle.current?.setVisible?.(!hidden)}, [hidden])
   const currentRuntimeHost = useRef(runtimeHost)
   currentRuntimeHost.current = runtimeHost
   const [error, setError] = useState('')
@@ -115,9 +110,7 @@ export default function PlatformStudioSurface({
       shadow.addEventListener('keyup', stopKeyboardBubble)
       const styles = [
         '/workspace.css',
-        '/project-monitor.css',
         '/studio-preview.css',
-        '/project-progress.css',
         '/remote/remote-account.css'
       ].map(
         (href) =>
@@ -143,7 +136,10 @@ export default function PlatformStudioSurface({
       const unmount = (window as StudioWindow).StudioPreview!.mount(root, {
         onProjects, runtimeHost: () => currentRuntimeHost.current
       })
+      studioHandle.current = unmount
+      unmount.setVisible?.(visibility.current)
       dispose = () => {
+        studioHandle.current = undefined
         unmount()
         unsubscribeAppearance()
         shadow.removeEventListener('keydown', stopKeyboardBubble)
@@ -165,7 +161,7 @@ export default function PlatformStudioSurface({
       className="platform-studio-surface"
       hidden={hidden}
       inert={pending && ready}
-      aria-label="项目与进展"
+      aria-label="项目管理"
     >
       {!ready && (
         <div className="platform-surface-feedback" role={error ? 'alert' : 'status'}>

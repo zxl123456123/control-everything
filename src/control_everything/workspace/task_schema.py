@@ -4,6 +4,7 @@ import hashlib
 import json
 import sqlite3
 import re
+from functools import lru_cache
 from uuid import uuid4
 
 MANAGEMENT_SCHEMA = """CREATE TABLE projects(id TEXT PRIMARY KEY, name TEXT NOT NULL, archived INTEGER NOT NULL,
@@ -507,11 +508,9 @@ def schema_signature(connection):
                 "SELECT type,name,tbl_name,sql FROM sqlite_master ORDER BY type,name")]
 
 
-def validate_schema(connection, version):
-    if type(version) is not int or version not in _SCHEMA_TABLES:
-        fail("schema_error")
-    if connection.execute("PRAGMA user_version").fetchone()[0] != version:
-        fail("schema_error")
+@lru_cache(maxsize=len(_SCHEMA_TABLES))
+def _expected_schema_signature(version):
+    # Concurrent cold calls may build duplicates; each reference is local and closed.
     expected = sqlite3.connect(":memory:")
     try:
         if version == 1:
@@ -535,7 +534,18 @@ def validate_schema(connection, version):
             install_schema9(expected, fresh=True)
         else:
             install_schema10(expected, fresh=True)
-        if schema_signature(connection) != schema_signature(expected):
+        return tuple(schema_signature(expected))
+    finally:
+        expected.close()
+
+
+def validate_schema(connection, version):
+    if type(version) is not int or version not in _SCHEMA_TABLES:
+        fail("schema_error")
+    if connection.execute("PRAGMA user_version").fetchone()[0] != version:
+        fail("schema_error")
+    try:
+        if tuple(schema_signature(connection)) != _expected_schema_signature(version):
             fail("schema_error")
         if version >= 2:
             meta = connection.execute("SELECT * FROM task_center_meta").fetchall()
@@ -561,8 +571,6 @@ def validate_schema(connection, version):
                         fail('schema_error')
     except (ValueError, TypeError, KeyError):
         fail("schema_error")
-    finally:
-        expected.close()
 
 
 def bump_list_revision(connection):

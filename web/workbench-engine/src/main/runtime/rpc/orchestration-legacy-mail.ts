@@ -102,7 +102,7 @@ export async function handleLegacyCheck(args: {
               authority: formattingAuthority,
               supportedActionHints: readOnly
                 ? []
-                : supportedLegacyHints(message, principal, params.compatibilityCliCommand ?? 'orca')
+                : supportedLegacyHints(message, principal, params.compatibilityCliCommand ?? 'zkyq')
             })
           )
           .join('\n\n')
@@ -111,8 +111,8 @@ export async function handleLegacyCheck(args: {
     principal.role === 'coordinator' && db.hasPendingCurrentDelivery(principal.run_id)
       ? {
           runId: principal.run_id,
-          checkCommand: `${params.compatibilityCliCommand ?? 'orca'} orchestration check --run ${principal.run_id}`,
-          ackCommand: `${params.compatibilityCliCommand ?? 'orca'} orchestration check --run ${principal.run_id} --ack <delivery-id>`
+          checkCommand: `${params.compatibilityCliCommand ?? 'zkyq'} orchestration check --run ${principal.run_id}`,
+          ackCommand: `${params.compatibilityCliCommand ?? 'zkyq'} orchestration check --run ${principal.run_id} --ack <delivery-id>`
         }
       : undefined
   return {

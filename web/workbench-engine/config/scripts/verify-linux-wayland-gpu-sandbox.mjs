@@ -217,7 +217,7 @@ async function runValidation(mode) {
             ...env,
             NODE_ENV: 'development',
             ORCA_BACKGROUND_LAUNCH: '1',
-            ORCA_DEV_USER_DATA_PATH: userDataPath,
+            ZKYQ_DEV_USER_DATA_PATH: userDataPath,
             HOME: isolatedHome,
             USERPROFILE: isolatedHome,
             ELECTRON_ENABLE_LOGGING: '1',

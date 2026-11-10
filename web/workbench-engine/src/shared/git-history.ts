@@ -171,6 +171,43 @@ export async function loadGitHistoryFromExecutor(
 ): Promise<GitHistoryResult> {
   const limit = clampHistoryLimit(options.limit)
   const headOid = await resolveCommit(git, cwd, 'HEAD')
+  // The repository graph needs named refs and HEAD, not branch comparison subprocesses.
+  if (options.allRefs) {
+    const currentRef = headOid ? (await resolveCurrentRef(git, cwd, headOid)).currentRef : undefined
+    const { stdout } = await git(
+      [
+        'log',
+        '--no-show-signature',
+        '--no-color',
+        `--format=${GIT_HISTORY_COMMIT_FORMAT}`,
+        '-z',
+        '--topo-order',
+        '--decorate=full',
+        // Explicit inclusions override log.excludeDecoration without admitting unrelated refs.
+        '--decorate-refs=HEAD',
+        '--decorate-refs=refs/heads/*',
+        '--decorate-refs=refs/remotes/*',
+        '--decorate-refs=refs/tags/*',
+        `-n${limit + 1}`,
+        '--branches',
+        '--remotes',
+        '--tags',
+        ...(headOid ? [headOid] : []),
+        '--'
+      ],
+      cwd
+    )
+    const parsed = parseGitHistoryLog(stdout)
+    return {
+      items: parsed.slice(0, limit),
+      currentRef,
+      hasIncomingChanges: false,
+      hasOutgoingChanges: false,
+      hasMore: parsed.length > limit,
+      limit,
+      allRefs: true
+    }
+  }
   if (!headOid) {
     return {
       items: [],

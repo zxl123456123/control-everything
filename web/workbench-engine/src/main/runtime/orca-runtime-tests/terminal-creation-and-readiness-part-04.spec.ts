@@ -201,14 +201,14 @@ describe('OrcaRuntimeService', () => {
       tabId,
       leafId,
       env: {
-        ORCA_PANE_KEY: `${tabId}:${leafId}`,
-        ORCA_TAB_ID: tabId
+        ZKYQ_PANE_KEY: `${tabId}:${leafId}`,
+        ZKYQ_TAB_ID: tabId
       }
     })
 
     const spawnedEnv = spawnedPtyEnv(spawn.mock.calls[0]?.[0])
-    expect(spawnedEnv.ORCA_TAB_ID).toBe(tabId)
-    expect(spawnedEnv.ORCA_PANE_KEY).toBe(`${tabId}:${leafId}`)
+    expect(spawnedEnv.ZKYQ_TAB_ID).toBe(tabId)
+    expect(spawnedEnv.ZKYQ_PANE_KEY).toBe(`${tabId}:${leafId}`)
   })
 
   it('does not adopt web mirror ids as host terminal ids', async () => {
@@ -230,9 +230,9 @@ describe('OrcaRuntimeService', () => {
     })
 
     const spawnedEnv = spawnedPtyEnv(spawn.mock.calls[0]?.[0])
-    expect(spawnedEnv.ORCA_TAB_ID).not.toBe(tabId)
-    expect(spawnedEnv.ORCA_TAB_ID).not.toMatch(/^web-terminal-/)
-    expect(spawnedEnv.ORCA_PANE_KEY).toMatch(`${spawnedEnv.ORCA_TAB_ID}:`)
+    expect(spawnedEnv.ZKYQ_TAB_ID).not.toBe(tabId)
+    expect(spawnedEnv.ZKYQ_TAB_ID).not.toMatch(/^web-terminal-/)
+    expect(spawnedEnv.ZKYQ_PANE_KEY).toMatch(`${spawnedEnv.ZKYQ_TAB_ID}:`)
   })
 
   it('creates background terminal sessions while the renderer graph is unavailable', async () => {

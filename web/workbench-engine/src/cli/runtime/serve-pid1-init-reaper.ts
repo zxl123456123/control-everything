@@ -59,8 +59,8 @@ function servedCommand(deps: ServeInitReaperDeps): ServedCommand | null {
     delete env.ELECTRON_RUN_AS_NODE
     // Why: the image's own CLI redirect moves these aside again; restore what the user set.
     for (const name of ['NODE_OPTIONS', 'NODE_REPL_EXTERNAL_MODULE']) {
-      const saved = env[`ORCA_${name}`]
-      delete env[`ORCA_${name}`]
+      const saved = env[`ZKYQ_${name}`]
+      delete env[`ZKYQ_${name}`]
       if (saved) {
         env[name] = saved
       }

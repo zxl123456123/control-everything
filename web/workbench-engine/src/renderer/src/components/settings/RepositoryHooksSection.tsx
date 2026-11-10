@@ -40,6 +40,7 @@ type RepositoryHooksSectionProps = {
   hasHooksFile: boolean
   hooksInspectionReady: boolean
   mayNeedUpdate: boolean
+  projectConfig?: { name: 'zkyq.yaml' | 'orca.yaml' | null; conflict: boolean }
   copiedTemplate: boolean
   forceVisible?: boolean
   onCopyTemplate: () => void
@@ -52,6 +53,7 @@ export function RepositoryHooksSection({
   hasHooksFile,
   hooksInspectionReady,
   mayNeedUpdate,
+  projectConfig,
   copiedTemplate,
   forceVisible = false,
   onCopyTemplate,
@@ -120,7 +122,7 @@ export function RepositoryHooksSection({
         <p className="text-xs text-muted-foreground">
           {translate(
             'auto.components.settings.RepositoryHooksSection.8567127a40',
-            'Scripts that run when worktrees are created or archived. Local scripts are stored on this machine; `orca.yaml` scripts are shared with your team.'
+            'Scripts that run when worktrees are created or archived. Local scripts are stored on this machine; `project configuration` scripts are shared with your team.'
           )}
         </p>
       </div>
@@ -140,8 +142,8 @@ export function RepositoryHooksSection({
           'command',
           'local',
           'local settings scripts',
-          'orca.yaml',
-          'orca.yaml hooks',
+          'project configuration',
+          'project configuration hooks',
           'hook'
         ]}
       >
@@ -195,8 +197,8 @@ export function RepositoryHooksSection({
           'command',
           'local',
           'local settings scripts',
-          'orca.yaml',
-          'orca.yaml hooks',
+          'project configuration',
+          'project configuration hooks',
           'hook'
         ]}
       >
@@ -238,13 +240,13 @@ export function RepositoryHooksSection({
         title={translate('auto.components.settings.RepositoryHooksSection.c9bc1bfd8f', 'Advanced')}
         description={translate(
           'auto.components.settings.RepositoryHooksSection.610d90fdbd',
-          'Command source and orca.yaml details.'
+          'Command source and project configuration details.'
         )}
         forceVisible={forceVisible}
         keywords={[
           'advanced',
           'command source',
-          'orca.yaml',
+          'project configuration',
           'shared',
           'local',
           'both',
@@ -256,6 +258,7 @@ export function RepositoryHooksSection({
           selectedPolicy={selectedCommandSourcePolicy}
           yamlState={yamlState}
           yamlHooks={yamlHooks}
+          projectConfig={projectConfig}
           copiedTemplate={copiedTemplate}
           onSelectPolicy={(commandSourcePolicy) =>
             updateHookSettingsPolicyDraft({ commandSourcePolicy })

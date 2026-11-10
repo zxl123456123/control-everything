@@ -12,6 +12,8 @@ import type { activateAndRevealWorkspace as ActivateWorkspace } from '@/lib/work
 import type { WorkspaceTabPaletteActivationResult } from '@/lib/workspace-tab-palette-activation'
 import { toast } from 'sonner'
 import WorktreeJumpPalette from './WorktreeJumpPalette'
+import { PaletteOpenTabPrimaryLine } from './worktree-jump-palette-primitives'
+import { TooltipProvider } from '@/components/ui/tooltip'
 import {
   makeFolderWorkspace,
   makeGroup,
@@ -416,6 +418,99 @@ describe('WorktreeJumpPalette', () => {
     await flushEffects()
     expect(testContainer.textContent).toContain('Research chat')
     expect(testContainer.textContent).toContain('Design workspace')
+  })
+
+  it('keeps a terminal path intact while separating its name and workspace context', async () => {
+    const workspaceId = 'folder:folder-1'
+    const title = String.raw`C:\example\installed\runtimes\stable\PowerShell\7\pwsh.exe`
+    await renderPalette({
+      worktreesByRepo: {},
+      folderWorkspaces: [makeFolderWorkspace()],
+      tabsByWorktree: { [workspaceId]: [makeTerminalTab('term-1', workspaceId, title)] },
+      unifiedTabsByWorktree: {
+        [workspaceId]: [makeUnifiedTab('tab-1', workspaceId, 'term-1', title)]
+      },
+      groupsByWorktree: { [workspaceId]: [makeGroup(workspaceId, ['tab-1'])] },
+      activeGroupIdByWorktree: { [workspaceId]: `group-${workspaceId}` }
+    })
+
+    await act(async () => setCommandQuery?.('pwsh'))
+    await flushEffects()
+    const label = testContainer.querySelector('[data-slot="palette-open-tab-title"]')!
+    expect(label.textContent).toBe(title)
+    expect(label.lastElementChild?.textContent).toContain('pwsh.exe')
+    expect(label.lastElementChild?.querySelector('span')?.textContent).toBe('pwsh')
+    const row = label.closest<HTMLButtonElement>('[data-command-item]')!
+    const context = row.querySelector('[data-slot="palette-open-tab-context"]')!
+    expect(context.textContent).toContain('Design workspace')
+    expect(context.contains(label)).toBe(false)
+    await act(async () => fireEvent.click(row))
+    expect(activateWorkspaceTabPaletteResult).toHaveBeenCalledWith(
+      expect.objectContaining({ title })
+    )
+  })
+
+  it('keeps a path match in the preferred title segment without adding an empty context row', async () => {
+    const title = String.raw`C:\example\installed\runtimes\stable\PowerShell\7\pwsh.exe`
+    const matchStart = title.indexOf('runtimes')
+    await act(async () => {
+      testRoot.render(
+        <TooltipProvider>
+          <PaletteOpenTabPrimaryLine
+            title={title}
+            titleRanges={[{ start: matchStart, end: matchStart + 'runtimes'.length }]}
+            secondaryText=""
+            secondaryRanges={[]}
+          />
+        </TooltipProvider>
+      )
+    })
+    const label = testContainer.querySelector('[data-slot="palette-open-tab-title"]')!
+    expect(label.textContent).toBe(title)
+    expect(label.lastElementChild?.querySelector('span')?.textContent).toBe('runtimes')
+    expect(testContainer.querySelector('[data-slot="palette-open-tab-context"]')).toBeNull()
+  })
+
+  it('shows an identical workspace name and branch once while retaining query highlights', async () => {
+    await renderPalette({
+      worktreesByRepo: {
+        'repo-1': [
+          makeWorktree('search', 'feature/search', { branch: 'refs/heads/feature/search' })
+        ]
+      },
+      showSleepingWorkspaces: true
+    })
+    await act(async () => setCommandQuery?.('search'))
+    await flushEffects()
+    const label = testContainer.querySelector('[data-slot="palette-worktree-title"]')!
+    expect(label.textContent).toBe('feature/search')
+    expect(label.querySelector('span')?.textContent).toBe('search')
+    const row = label.closest('[data-command-item]')!
+    expect(row.querySelector('[data-slot="palette-worktree-branch"]')).toBeNull()
+    expect(row.textContent?.match(/feature\/search/g)).toHaveLength(1)
+    expect(row.querySelector('[data-slot="palette-worktree-context"]')?.textContent).toContain(
+      'Repo 1'
+    )
+  })
+
+  it('places a distinct branch in the workspace context and keeps its match', async () => {
+    await renderPalette({
+      worktreesByRepo: {
+        'repo-1': [makeWorktree('search', 'Checkout work', { branch: 'refs/heads/feature/search' })]
+      },
+      showSleepingWorkspaces: true
+    })
+    await act(async () => setCommandQuery?.('search'))
+    await flushEffects()
+    const label = testContainer.querySelector('[data-slot="palette-worktree-title"]')!
+    expect(label.textContent).toBe('Checkout work')
+    const context = label
+      .closest('[data-command-item]')!
+      .querySelector('[data-slot="palette-worktree-context"]')!
+    expect(context.textContent).toContain('Repo 1')
+    const branch = context.querySelector('[data-slot="palette-worktree-branch"]')!
+    expect(branch.textContent).toBe('feature/search')
+    expect(branch.querySelector('span')?.textContent).toBe('search')
   })
 
   it('keeps a blocked folder tab jump open without a second error', async () => {

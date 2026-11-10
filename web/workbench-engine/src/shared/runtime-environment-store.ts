@@ -94,7 +94,7 @@ function saveEnvironmentFromPairingCode(
   if (samePersisted && !samePaired) {
     throw new RuntimeEnvironmentStoreError(
       'invalid_argument',
-      `This server is already paired as "${samePersisted.name}", whose saved settings this version of Orca cannot read.`
+      `This server is already paired as "${samePersisted.name}", whose saved settings this version of Control Everything cannot read.`
     )
   }
   if (samePaired) {
@@ -139,14 +139,14 @@ function parseRemotePairingCode(userDataPath: string, pairingCode: string): Pair
   if (!offer) {
     throw new RuntimeEnvironmentStoreError(
       'invalid_argument',
-      'Invalid pairing code. Expected an orca://pair?... URL or bare pairing payload.'
+      'Invalid pairing code. Expected an zkyq://pair?... URL or bare pairing payload.'
     )
   }
   // Why the key, not the address: a loopback or LAN address proves nothing either way.
   if (isProfileRuntimePublicKey(userDataPath, offer.publicKeyB64)) {
     throw new RuntimeEnvironmentStoreError(
       'invalid_argument',
-      'This pairing code is for this Orca itself. Generate the code on the other computer instead.'
+      'This pairing code points to this computer. Generate the code on the other computer instead.'
     )
   }
   return offer

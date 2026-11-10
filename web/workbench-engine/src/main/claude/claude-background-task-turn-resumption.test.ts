@@ -125,7 +125,7 @@ describe('a typed background-task row opens the turn it resumes', () => {
 
     // The typed row is journaled...
     // `agentJournalItemKey` percent-encodes the ':', so the durable row reads
-    // `orca:claude-background-task%3Abyjnee2no`.
+    // `zkyq:claude-background-task%3Abyjnee2no`.
     const taskRow = items().find((item) => item.itemId.includes('byjnee2no'))
     expect(taskRow).toBeDefined()
     // ...and it opened a turn, so the session does not read idle beside it.

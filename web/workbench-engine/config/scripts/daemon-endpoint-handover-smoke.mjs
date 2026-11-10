@@ -63,7 +63,7 @@ function bootDaemon(tag, dir, socketPath) {
     ],
     {
       stdio: ['ignore', 'ignore', 'pipe', 'ipc'],
-      env: { ...process.env, ORCA_USER_DATA_PATH: dir }
+      env: { ...process.env, ZKYQ_USER_DATA_PATH: dir }
     }
   )
   let stderr = ''

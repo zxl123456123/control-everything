@@ -1,4 +1,4 @@
-import { remoteWebSocketEndpoint, onContextInactive, assertContextActive } from './remote-context'
+import { remoteWebSocketEndpoint, onContextInactive, assertContextActive, remoteContext, contextFetch } from './remote-context'
 import type { PairedRuntimeConnection } from '../../../shared/paired-runtime-connection'
 import { withReconnectJitter } from '../../../shared/reconnect-jitter'
 import { WebRuntimeConnectionHeartbeat } from './web-runtime-connection-heartbeat'
@@ -37,6 +37,7 @@ export class WebRuntimeConnectionTransport {
   private requestCounter = 0
   private reconnectAttempt = 0
   private intentionallyClosed = false
+  private sessionCheck: AbortController | null = null
   private unsubscribeContext: (() => void) | undefined
   private readonly timers = new WebRuntimeConnectionTimers()
   private readonly subscriptionRegistry: WebRuntimeSubscriptionRegistry
@@ -87,15 +88,19 @@ export class WebRuntimeConnectionTransport {
     if (!this.intentionallyClosed) this.openConnection()
   }
 
-  readonly call: WebRuntimeRequestRegistry['call'] = (method, params, options) =>
-    { assertContextActive(); return this.requestRegistry.call(method, params, options) }
+  readonly call: WebRuntimeRequestRegistry['call'] = (method, params, options) => {
+    assertContextActive()
+    return this.requestRegistry.call(method, params, options)
+  }
 
   close(options: { notifySubscriptions?: boolean } = {}): void {
     this.intentionallyClosed = true
     this.unsubscribeContext?.()
     this.clearTimers()
-    this.requestRegistry.rejectAll('Remote Orca runtime connection closed.')
-    this.connectionWaiters.rejectAll(new Error('Remote Orca runtime connection closed.'))
+    this.requestRegistry.rejectAll('Remote Control Everything runtime connection closed.')
+    this.connectionWaiters.rejectAll(
+      new Error('Remote Control Everything runtime connection closed.')
+    )
     this.subscriptionRegistry.close(options.notifySubscriptions ?? true)
     this.ws?.close()
     this.ws = null
@@ -257,6 +262,32 @@ export class WebRuntimeConnectionTransport {
     }
   }
 
+  private async reconnectWithSessionCheck(): Promise<void> {
+    const check = new AbortController()
+    this.sessionCheck = check
+    this.timers.arm('connect', CONNECT_TIMEOUT_MS, () => {
+      if (this.sessionCheck !== check) return
+      this.sessionCheck = null
+      check.abort()
+      this.connectionWaiters.rejectUnavailable()
+      this.scheduleReconnect()
+    })
+    let available = false
+    try {
+      const response = await contextFetch('/api/bootstrap', {
+        cache: 'no-store', credentials: 'same-origin', signal: check.signal,
+        headers: { 'X-Session-Client': 'panel' }
+      })
+      available = response.ok
+    } catch { /* Network failures keep the existing reconnect backoff. */ }
+    if (this.sessionCheck !== check) return
+    this.sessionCheck = null
+    this.timers.clear('connect')
+    if (this.intentionallyClosed) return
+    if (available) this.openConnection()
+    else this.scheduleReconnect()
+  }
+
   sendEncrypted(message: unknown): boolean {
     const socket = this.ws
     if (!socket || socket.readyState !== WebSocket.OPEN || !this.handshake) {
@@ -298,6 +329,7 @@ export class WebRuntimeConnectionTransport {
   private scheduleReconnect(): void {
     if (
       this.timers.has('reconnect') ||
+      this.sessionCheck ||
       this.intentionallyClosed ||
       this.lifecycle.reconnect === false
     ) {
@@ -307,7 +339,10 @@ export class WebRuntimeConnectionTransport {
       RECONNECT_DELAYS_MS[Math.min(this.reconnectAttempt, RECONNECT_DELAYS_MS.length - 1)]
     )
     this.reconnectAttempt += 1
-    this.timers.arm('reconnect', delay, () => this.openConnection())
+    this.timers.arm('reconnect', delay, () => {
+      if (remoteContext()) void this.reconnectWithSessionCheck()
+      else this.openConnection()
+    })
   }
 
   nextId(): string {
@@ -316,6 +351,8 @@ export class WebRuntimeConnectionTransport {
   }
 
   private clearTimers(): void {
+    this.sessionCheck?.abort()
+    this.sessionCheck = null
     this.timers.clearAll()
     this.heartbeat.clear()
   }

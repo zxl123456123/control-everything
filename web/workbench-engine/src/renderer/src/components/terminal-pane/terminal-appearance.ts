@@ -26,7 +26,7 @@ import type { PtyTransport } from './pty-transport-types'
 import type { EffectiveMacOptionAsAlt } from '@/lib/keyboard-layout/detect-option-as-alt'
 import { HEX_COLOR_RE } from '../../../../shared/color-validation'
 import type { TerminalViewAttributes } from '../../../../shared/terminal-view-attributes'
-import { publishTerminalViewAttributes } from './terminal-view-attributes-publisher'
+import { parseCssColor, publishTerminalViewAttributes } from './terminal-view-attributes-publisher'
 import { normalizeTerminalLineHeight } from '../../../../shared/terminal-line-height-settings'
 import { maybePushMode2031Flip } from './terminal-mode-2031-replies'
 import { resolveTerminalMinimumContrastRatio } from '@/lib/terminal-contrast-correction'
@@ -151,6 +151,15 @@ export function applyTerminalAppearance(
   // Publish composed appearance to main's hidden-PTY query responder — the only point it exists; deduped in the publisher.
   publishTerminalViewAttributes(theme, appearance.mode, settings)
   const paneBackground = theme?.background ?? '#000000'
+  const platformBackground =
+    typeof document !== 'undefined' && document.querySelector('.platform-project-entry')
+      ? parseCssColor(paneBackground)
+      : null
+  // Paint the default fill once in CSS; ANSI cell backgrounds and text keep their theme colors.
+  const renderTheme =
+    platformBackground && theme
+      ? { ...theme, background: `rgba(${platformBackground.rgb.join(', ')}, 0)` }
+      : theme
 
   const terminalFontWeights = resolveTerminalFontWeights(
     settings.terminalFontWeight,
@@ -162,9 +171,25 @@ export function applyTerminalAppearance(
   )
 
   for (const pane of manager.getPanes()) {
+    if (platformBackground) {
+      pane.container.dataset.workbenchTerminalSurface = ''
+      pane.container.style.setProperty('--ce-terminal-background', paneBackground)
+      pane.container.style.setProperty(
+        '--ce-terminal-opaque-background',
+        `rgb(${platformBackground.rgb.join(' ')})`
+      )
+    } else if (pane.container?.dataset.workbenchTerminalSurface !== undefined) {
+      delete pane.container.dataset.workbenchTerminalSurface
+      pane.container.style.removeProperty('--ce-terminal-background')
+      pane.container.style.removeProperty('--ce-terminal-opaque-background')
+    }
+    // Enable alpha before assigning the transparent rendering theme.
+    pane.terminal.options.allowTransparency =
+      Boolean(platformBackground) ||
+      (settings.terminalBackgroundOpacity !== undefined && settings.terminalBackgroundOpacity < 1)
     // Why value-gated: writing options.theme rebuilds the palette, discarding TUI OSC 4/10/11/12 mutations; skip on no-op change.
-    if (theme && !composedTerminalThemesEqual(pane.terminal.options.theme, theme)) {
-      pane.terminal.options.theme = theme
+    if (renderTheme && !composedTerminalThemesEqual(pane.terminal.options.theme, renderTheme)) {
+      pane.terminal.options.theme = renderTheme
     }
     // Gate off the configured theme background; the live OSC-11 background is deliberately preserved by the
     // theme write above, so a TUI that repaints its background at runtime won't re-gate (known limitation).
@@ -177,9 +202,6 @@ export function applyTerminalAppearance(
     if (pane.terminal.options.minimumContrastRatio !== minimumContrastRatio) {
       pane.terminal.options.minimumContrastRatio = minimumContrastRatio
     }
-    // Why clear explicitly: allowTransparency has rendering cost and a stale `true` could bleed in from a prior opacity.
-    pane.terminal.options.allowTransparency =
-      settings.terminalBackgroundOpacity !== undefined && settings.terminalBackgroundOpacity < 1
     const cursorStyle = settings.terminalCursorStyle ?? 'block'
     pane.terminal.options.cursorStyle = cursorStyle
     pane.terminal.options.cursorInactiveStyle = resolveTerminalCursorInactiveStyle(cursorStyle)
@@ -240,7 +262,7 @@ export function applyTerminalAppearance(
   }
 
   manager.setPaneStyleOptions({
-    splitBackground: paneBackground,
+    splitBackground: platformBackground ? 'transparent' : paneBackground,
     paneBackground,
     inactivePaneOpacity: paneStyles.inactivePaneOpacity,
     activePaneOpacity: paneStyles.activePaneOpacity,

@@ -9,6 +9,8 @@ import WorkspaceKanbanSettingsMenu from './WorkspaceKanbanSettingsMenu'
 import { translate } from '@/i18n/i18n'
 
 type WorkspaceKanbanDrawerHeaderProps = {
+  viewMode: 'workspaces' | 'status'
+  onViewModeChange: (mode: 'workspaces' | 'status') => void
   selectedCount: number
   query: string
   isFiltering: boolean
@@ -31,6 +33,8 @@ type WorkspaceKanbanDrawerHeaderProps = {
 }
 
 export default function WorkspaceKanbanDrawerHeader({
+  viewMode,
+  onViewModeChange,
   selectedCount,
   query,
   isFiltering,
@@ -85,10 +89,28 @@ export default function WorkspaceKanbanDrawerHeader({
             onClose={onClose}
           />
         </div>
+        <div className="flex gap-1" role="group" aria-label="工作区视图">
+          <Button
+            variant={viewMode === 'workspaces' ? 'secondary' : 'ghost'}
+            size="xs"
+            aria-pressed={viewMode === 'workspaces'}
+            onClick={() => onViewModeChange('workspaces')}
+          >
+            {translate('workspaceBoard.view.workspaces', '工作区')}
+          </Button>
+          <Button
+            variant={viewMode === 'status' ? 'secondary' : 'ghost'}
+            size="xs"
+            aria-pressed={viewMode === 'status'}
+            onClick={() => onViewModeChange('status')}
+          >
+            {translate('workspaceBoard.view.status', '状态看板')}
+          </Button>
+        </div>
         <SheetDescription className="sr-only">
           {translate(
             'auto.components.sidebar.WorkspaceKanbanDrawerHeader.e1a34450fc',
-            'Organize workspaces by status and open workspace cards.'
+            'Browse filtered workspaces or organize them by status. Open a card to return to its workspace.'
           )}
         </SheetDescription>
       </SheetHeader>
@@ -100,17 +122,19 @@ export default function WorkspaceKanbanDrawerHeader({
           contentSide="bottom"
           onMenuOpenChange={onFilterMenuOpenChange}
         />
-        <WorkspaceKanbanSettingsMenu
-          workspaceStatuses={workspaceStatuses}
-          syncTaskStatusFromWorkspaceBoard={syncTaskStatusFromWorkspaceBoard}
-          onSyncTaskStatusFromWorkspaceBoardChange={onSyncTaskStatusFromWorkspaceBoardChange}
-          onRenameStatus={onRenameStatus}
-          onChangeStatusColor={onChangeStatusColor}
-          onChangeStatusIcon={onChangeStatusIcon}
-          onMoveStatus={onMoveStatus}
-          onRemoveStatus={onRemoveStatus}
-          onAddStatus={onAddStatus}
-        />
+        {viewMode === 'status' && (
+          <WorkspaceKanbanSettingsMenu
+            workspaceStatuses={workspaceStatuses}
+            syncTaskStatusFromWorkspaceBoard={syncTaskStatusFromWorkspaceBoard}
+            onSyncTaskStatusFromWorkspaceBoardChange={onSyncTaskStatusFromWorkspaceBoardChange}
+            onRenameStatus={onRenameStatus}
+            onChangeStatusColor={onChangeStatusColor}
+            onChangeStatusIcon={onChangeStatusIcon}
+            onMoveStatus={onMoveStatus}
+            onRemoveStatus={onRemoveStatus}
+            onAddStatus={onAddStatus}
+          />
+        )}
         <Button
           variant="ghost"
           size="icon-xs"

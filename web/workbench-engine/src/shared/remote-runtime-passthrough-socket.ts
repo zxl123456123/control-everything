@@ -46,7 +46,9 @@ export function openRemoteRuntimePassthroughSocket(
         liveness.noteActivity()
         const bytes = state === 'ready' ? handshake.channel.openBinary(frame) : null
         if (!bytes) {
-          end(protocolError('Remote Orca runtime returned an unreadable binary frame.'))
+          end(
+            protocolError('Remote Control Everything runtime returned an unreadable binary frame.')
+          )
           return
         }
         callbacks.onBinary(bytes)
@@ -73,7 +75,7 @@ export function openRemoteRuntimePassthroughSocket(
         end(
           new RemoteRuntimeClientError(
             'runtime_timeout',
-            'Timed out connecting to the remote Orca runtime.'
+            'Timed out connecting to the remote Control Everything runtime.'
           )
         ),
       options.timeoutMs
@@ -90,7 +92,7 @@ export function openRemoteRuntimePassthroughSocket(
         end(
           new RemoteRuntimeClientError(
             'remote_runtime_unavailable',
-            'Remote Orca runtime stopped responding; the connection was reset.'
+            'Remote Control Everything runtime stopped responding; the connection was reset.'
           )
         ),
       options
@@ -123,7 +125,11 @@ export function openRemoteRuntimePassthroughSocket(
       liveness.noteActivity()
       if (state === 'awaiting_ready') {
         if (handshake.acceptReadyText(frame) !== 'accepted') {
-          end(protocolError('Remote Orca runtime returned an invalid E2EE handshake frame.'))
+          end(
+            protocolError(
+              'Remote Control Everything runtime returned an invalid E2EE handshake frame.'
+            )
+          )
           return
         }
         state = 'awaiting_authenticated'
@@ -144,7 +150,7 @@ export function openRemoteRuntimePassthroughSocket(
       }
       const plaintext = handshake.channel.openText(frame)
       if (plaintext === null) {
-        end(protocolError('Remote Orca runtime returned an undecryptable frame.'))
+        end(protocolError('Remote Control Everything runtime returned an undecryptable frame.'))
         return
       }
       if (state === 'ready') {
@@ -157,9 +163,11 @@ export function openRemoteRuntimePassthroughSocket(
           authenticated.kind === 'rejected' && authenticated.errorCode === 'unauthorized'
             ? new RemoteRuntimeClientError(
                 'unauthorized',
-                'Remote Orca runtime rejected the pairing token.'
+                'Remote Control Everything runtime rejected the pairing token.'
               )
-            : protocolError('Remote Orca runtime returned an invalid E2EE auth frame.')
+            : protocolError(
+                'Remote Control Everything runtime returned an invalid E2EE auth frame.'
+              )
         )
         return
       }

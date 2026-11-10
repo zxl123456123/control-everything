@@ -79,6 +79,7 @@ export const HANDLER_GROUPS: readonly HandlerGroup[] = [
     name: 'repo',
     keys: [
       'repo list',
+      'repo migrate-config',
       'repo add',
       'repo show',
       'repo set',
@@ -259,7 +260,12 @@ export const HANDLER_GROUPS: readonly HandlerGroup[] = [
   },
   {
     name: 'vm',
-    keys: ['vm recipe doctor'],
+    keys: [
+      'vm recipe doctor',
+      'vm recipe migrate-env',
+      'vm runtime list',
+      'vm runtime migrate-env'
+    ],
     load: async () => (await import('./handlers/vm.js')).VM_HANDLERS
   },
   {
@@ -269,7 +275,7 @@ export const HANDLER_GROUPS: readonly HandlerGroup[] = [
   },
   {
     name: 'skills',
-    keys: ['skills list', 'skills get', 'skills install', 'skills update'],
+    keys: ['skills list', 'skills get', 'skills install', 'skills update', 'skills migrate'],
     load: async () => (await import('./handlers/skills.js')).SKILL_HANDLERS
   },
   {

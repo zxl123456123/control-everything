@@ -11,7 +11,7 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { createPdfjsViewerAssetsPlugin } from './config/build-plugins/pdfjs-viewer-assets'
 import { createViteCacheRetentionPlugin } from './config/build-plugins/vite-cache-retention'
-import { resolveBuildSourceCommit } from './config/scripts/build-source-commit.mjs'
+import { resolveWorkbenchBuildCommit } from './config/scripts/build-source-commit.mjs'
 
 
 export function distributionPlugin(label: string): Plugin {
@@ -88,7 +88,7 @@ export default defineConfig({
   ],
   define: {
     ORCA_FEATURE_WALL_ENABLED: 'false',
-    ORCA_BUILD_COMMIT: JSON.stringify(resolveBuildSourceCommit())
+    ORCA_BUILD_COMMIT: JSON.stringify(resolveWorkbenchBuildCommit())
   },
   resolve: {
     alias: [

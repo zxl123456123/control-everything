@@ -170,14 +170,14 @@ describe('a Run whose coordinator is a chat (an Orca session id, no handle)', ()
 })
 
 describe('a session addressed directly', () => {
-  it('owns its `orca_session_id:<id>` mailbox', () => {
+  it('owns its `agent_session:<id>` mailbox', () => {
     installStore(chatRecord())
     expect(probe().target(CHAT_ADDRESS)).toEqual({ sessionId: CHAT, dispatchId: null })
   })
 
   it('claims nothing for a malformed session address', () => {
     installStore(chatRecord())
-    expect(probe().target('orca_session_id:term_abc')).toBeNull()
+    expect(probe().target('agent_session:term_abc')).toBeNull()
   })
 })
 
@@ -437,7 +437,7 @@ describe('a coordinator chat continued by /clear', () => {
         orcaSessionId: CHAT,
         address: CHAT_ADDRESS
       })
-      expect(probe().target(`orca_session_id:${member}`)).toEqual({
+      expect(probe().target(`agent_session:${member}`)).toEqual({
         sessionId: SUCCESSOR,
         dispatchId: null
       })

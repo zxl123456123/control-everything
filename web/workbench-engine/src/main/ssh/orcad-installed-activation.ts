@@ -73,6 +73,7 @@ import {
 import { withOrcadLogTail } from '../managed-server/install/orcad-remote-log-tail'
 import { orcadCandidateLaunchFailureCode } from '../orcad/orcad-host-unavailable'
 import { errorMessage } from '../../shared/error-message'
+import { prepareManagedDataRoot } from '../managed-server/install/orcad-remote-data-roots'
 
 type Outcome = Extract<OrcadDeployResult, { outcome: 'installed-not-activated' }>
 
@@ -242,6 +243,15 @@ export async function activateInstalledOrcad(
   await writeOrcadActivationTransaction(options, transaction)
 
   // A live SQLite WAL is not a backup boundary, so the snapshot waits for confirmed exit.
+  if (options.defaultDataRoot) {
+    const prepared = await prepareManagedDataRoot(
+      options,
+      options.defaultDataRoot,
+      remoteDir,
+      'prepare'
+    )
+    options = { ...options, userDataDir: prepared.userDataDir }
+  }
   const snapshotDir = orcadSnapshotPath(options, transaction.snapshot.dirName)
   const captureOutput = await execOrcadStateMutationOr(
     options,

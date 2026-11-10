@@ -1,4 +1,4 @@
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
@@ -16,15 +16,26 @@ function fixture() {
   roots.push(root)
   const resourcesPath = join(root, 'resources with spaces')
   mkdirSync(join(resourcesPath, 'bin'), { recursive: true })
-  writeFileSync(join(resourcesPath, 'bin', 'orca.exe'), 'fixture')
+  writeFileSync(join(resourcesPath, 'bin', 'zkyq.exe'), 'fixture')
   return { isPackaged: true, resourcesPath, userDataPath: join(root, 'user data') }
 }
 
 describe('managed WSL CLI provisioning', () => {
+  it('uses a headless host launcher without requiring Electron resources', () => {
+    const host = fixture()
+    const native = join(host.resourcesPath, 'bin', 'zkyq.exe')
+    installFakeAppEnvironment({ getCliLauncherPath: () => native })
+    const directory = getManagedWslCliDir({ isPackaged: true, userDataPath: host.userDataPath }) ?? ''
+    expect(readFileSync(join(directory, 'zkyq'), 'utf8')).toContain(native)
+    expect(readFileSync(join(directory, 'orca-wsl-bridge.ps1'), 'utf8')).toContain("$env:ZKYQ_CLI_COMMAND = 'zkyq'")
+    expect(readFileSync(join(directory, 'orca-wsl-bridge.ps1'), 'utf8')).toContain('--zkyq-wsl-bridge-v2')
+  })
   it('reuses a complete tree, repairs missing files, and isolates app identities and updates', () => {
     const host = fixture()
     const directory = getManagedWslCliDir(host) ?? ''
-    const launcher = join(directory, 'orca-ide')
+    const launcher = join(directory, 'zkyq')
+    expect(existsSync(join(directory, 'orca-ide'))).toBe(false)
+    expect(existsSync(join(directory, 'orca'))).toBe(false)
     const modified = statSync(launcher).mtimeMs
     expect(getManagedWslCliDir(host)).toBe(directory)
     expect(statSync(launcher).mtimeMs).toBe(modified)
@@ -39,7 +50,7 @@ describe('managed WSL CLI provisioning', () => {
 
   it('provides nothing when the packaged CLI runtime is missing', () => {
     const host = fixture()
-    rmSync(join(host.resourcesPath, 'bin', 'orca.exe'))
+    rmSync(join(host.resourcesPath, 'bin', 'zkyq.exe'))
     expect(getManagedWslCliDir(host)).toBeNull()
   })
 
@@ -57,12 +68,12 @@ describe('managed WSL CLI provisioning', () => {
     writeFileSync(cliEntryPath, 'fixture')
     installFakeAppEnvironment({ getPath: () => host.userDataPath, getAppPath: () => appPath })
     const directory = getManagedWslCliDir({ ...host, isPackaged: false }) ?? ''
-    expect(readFileSync(join(directory, 'orca-dev'), 'utf8')).toContain(process.execPath)
+    expect(readFileSync(join(directory, 'zkyq-dev'), 'utf8')).toContain(process.execPath)
     const bridge = readFileSync(join(directory, 'orca-wsl-bridge.ps1'), 'utf8')
     expect(bridge.startsWith('\uFEFF')).toBe(true)
     expect(bridge).toContain(host.userDataPath)
     expect(bridge).toContain(cliEntryPath)
-    expect(bridge).toContain('$env:ORCA_APP_EXECUTABLE_NEEDS_APP_ROOT')
+    expect(bridge).toContain('$env:ZKYQ_APP_EXECUTABLE_NEEDS_APP_ROOT')
     expect(bridge).toContain('Remove-Item Env:NODE_OPTIONS')
   })
 })

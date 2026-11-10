@@ -6,7 +6,7 @@ from pathlib import Path
 import tempfile
 import threading
 import unittest
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 from control_everything.http.remote_hub import build_server
 from control_everything.integrations.remote_hub.identity import HubError, Identity
@@ -91,7 +91,7 @@ class MembersAdminTests(unittest.TestCase):
     def test_disable_blocks_access_ends_sessions_and_enable_restores(self):
         _, cookie = self.hub.session(C, "")
         token = cookie.split(";")[0].split("=", 1)[1]
-        self.assertEqual(self.hub.sessions.validate(C, token)["sub"], "account-c")
+        self.assertEqual(self.hub.sessions.validate(C, token)["account_id"], self.hub.store.account_id(C))
         self.assertEqual(self.hub.set_member_status(A, "account-c", "disabled"), {"sub": "account-c", "membership": "disabled"})
         self.error("session_required", self.hub.sessions.validate, C, token)
         self.error("membership_required", self.hub.require_member, C)
@@ -107,6 +107,51 @@ class MembersAdminTests(unittest.TestCase):
             self.error("invalid_member", self.hub.set_member_status, A, sub, "disabled")
         self.hub.set_member_status(A, "account-c", "disabled")
         self.assertEqual(self.hub.admin_roster(A)["items"][2]["membership"], "disabled")
+
+    def test_linked_identities_share_membership_and_admin_protection(self):
+        alias = Identity(A.issuer, "alias-admin", A.azp, 10000)
+        self.hub.store.link_identity(self.hub.store.account_id(A), alias.issuer, alias.sub)
+        page = self.hub.admin_roster(alias)
+        self.assertEqual(page["total"], 3)
+        self.assertTrue(next(row for row in page["items"] if row["sub"] == A.sub)["admin"])
+        self.error("cannot_change_admin", self.hub.set_member_status, A, alias.sub, "disabled")
+        linked = Identity("https://next-id.example.test", "new-sub", A.azp, 10000)
+        self.hub.store.link_identity(self.hub.store.account_id(C), linked.issuer, linked.sub)
+        _, cookie = self.hub.session(linked, "")
+        token = cookie.split(";")[0].split("=", 1)[1]
+        self.hub.set_member_status(alias, C.sub, "disabled")
+        self.error("session_required", self.hub.sessions.validate, linked, token)
+        self.error("membership_required", self.hub.require_member, linked)
+        self.hub.set_member_status(alias, C.sub, "active")
+        self.hub.require_member(linked)
+
+    def test_roster_and_status_work_after_legacy_database_migration(self):
+        from .test_remote_hub_account_id import legacy_database
+        for version in (1, 2):
+            with self.subTest(version=version), tempfile.TemporaryDirectory() as directory:
+                path = Path(directory) / "hub.db"
+                legacy_database(path, version)
+                hub = service(path, admin_subjects=[(A.issuer, A.sub)])
+                page = hub.admin_roster(A)
+                self.assertEqual(page["total"], 2)
+                self.assertEqual(len(page["items"][0]["devices"]), 2)
+                hub.set_member_status(A, B.sub, "disabled")
+                self.assertEqual(hub.store.member_status(B), "disabled")
+                hub.set_member_status(A, B.sub, "active")
+                self.assertEqual(hub.store.member_status(B), "active")
+
+    def test_disable_rolls_back_if_session_invalidation_fails(self):
+        with patch.object(self.hub.store, "invalidate_account_sessions", side_effect=RuntimeError("synthetic failure")):
+            with self.assertRaises(RuntimeError):
+                self.hub.set_member_status(A, C.sub, "disabled")
+        self.assertEqual(self.hub.store.member_status(C), "active")
+
+    def test_roster_and_status_keep_same_subject_from_other_issuer_isolated(self):
+        stranger = Identity("https://other-id.example.test", C.sub, C.azp, 10000)
+        self.hub.store.set_member(stranger)
+        self.assertEqual(self.hub.admin_roster(A)["total"], 3)
+        self.hub.set_member_status(A, C.sub, "disabled")
+        self.assertEqual(self.hub.store.member_status(stranger), "active")
 
     def test_admin_can_revoke_a_members_device_and_non_owner_cannot(self):
         result = bind(self.hub, B, "synthetic-installation-0002", KEY_B)

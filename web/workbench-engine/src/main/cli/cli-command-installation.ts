@@ -1,5 +1,5 @@
 import { link, readlink, rmdir, symlink, unlink, writeFile } from 'node:fs/promises'
-import { basename, dirname, join, resolve } from 'node:path'
+import { basename, dirname, isAbsolute, join, resolve } from 'node:path'
 import type { CliInstallStatus } from '../../shared/cli-install-types'
 import {
   ensureAppImageExtractedRoot,
@@ -20,7 +20,7 @@ import {
   type CommandQuarantine,
   type StableCommandInspection
 } from './cli-command-filesystem-transaction'
-import { DEV_LAUNCHER_DIR, LEGACY_LINUX_COMMAND_NAME } from './cli-install-constants'
+import { DEV_LAUNCHER_DIR, LEGACY_LINUX_COMMAND_NAMES } from './cli-install-constants'
 import { buildWindowsForwarder } from './cli-dev-launcher'
 import { isPermissionError } from '../win32-utils'
 import { isPathInsideOrEqual } from './cli-install-path-format'
@@ -36,7 +36,7 @@ export class CliCommandInstallation extends CliCommandInspection {
     const inspected = await this.inspectStableSymlink(commandPath, launcherPath)
     if (inspected.status.state === 'conflict') {
       throw new Error(
-        `Refusing to replace non-Orca command at ${commandPath}. Remove it and register again if it is no longer needed.`
+        `Refusing to replace an unmanaged command at ${commandPath}. Remove it and register again if it is no longer needed.`
       )
     }
     if (inspected.status.state === 'installed') {
@@ -48,7 +48,7 @@ export class CliCommandInstallation extends CliCommandInspection {
       await this.runPrivilegedSymlinkTransaction('install', commandPath, launcherPath, inspected)
       const installed = await this.inspectStableSymlink(commandPath, launcherPath)
       if (installed.status.state !== 'installed') {
-        throw new Error(`Could not register the Orca command at ${commandPath}.`)
+        throw new Error(`Could not register the workbench command at ${commandPath}.`)
       }
       return
     }
@@ -56,7 +56,7 @@ export class CliCommandInstallation extends CliCommandInspection {
     if (!(await capturedExpectedEntry(quarantine, inspected))) {
       await this.restoreQuarantinedCommand(quarantine, commandPath)
       throw new Error(
-        `Refusing to replace non-Orca command at ${commandPath}. Remove it and register again if it is no longer needed.`
+        `Refusing to replace an unmanaged command at ${commandPath}. Remove it and register again if it is no longer needed.`
       )
     }
 
@@ -72,14 +72,14 @@ export class CliCommandInstallation extends CliCommandInspection {
   protected async removeSymlink(commandPath: string): Promise<void> {
     const launcherPath = await this.resolveLauncherPath()
     if (!launcherPath) {
-      throw new Error('The Orca CLI launcher is no longer available.')
+      throw new Error('The workbench CLI launcher is no longer available.')
     }
     const inspected = await this.inspectStableSymlink(commandPath, launcherPath)
     if (inspected.status.state === 'not_installed') {
       return
     }
     if (inspected.status.state === 'conflict') {
-      throw new Error(`Refusing to remove non-Orca command at ${commandPath}.`)
+      throw new Error(`Refusing to remove an unmanaged command at ${commandPath}.`)
     }
 
     const quarantine = await this.quarantineUnlessPrivileged(commandPath)
@@ -89,34 +89,112 @@ export class CliCommandInstallation extends CliCommandInspection {
     }
     if (!(await capturedExpectedEntry(quarantine, inspected))) {
       await this.restoreQuarantinedCommand(quarantine, commandPath)
-      throw new Error(`Refusing to remove non-Orca command at ${commandPath}.`)
+      throw new Error(`Refusing to remove an unmanaged command at ${commandPath}.`)
     }
     await this.discardQuarantinedCommand(quarantine)
   }
 
-  protected async removeLegacyLinuxCommandIfManaged(launcherPath: string | null): Promise<void> {
+  protected async removeLegacyCommandsIfManaged(launcherPath: string | null): Promise<void> {
+    if (
+      !this.isPackaged &&
+      !this.commandPathOverride &&
+      launcherPath &&
+      this.platform !== 'win32'
+    ) {
+      const currentCommand = this.resolveCommandPath()
+      if (!currentCommand) return
+      const commandPath = join(dirname(currentCommand), 'orca-dev')
+      const legacyLauncher = join(dirname(launcherPath), 'orca-dev')
+      const inspected = await this.inspectStableSymlink(commandPath, legacyLauncher)
+      if (
+        !inspected.snapshot?.isSymbolicLink ||
+        !inspected.rawSymlinkTarget ||
+        resolve(dirname(commandPath), inspected.rawSymlinkTarget) !== resolve(legacyLauncher)
+      )
+        return
+      const quarantine = await this.quarantineUnlessPrivileged(commandPath)
+      if (!quarantine) {
+        await this.runPrivilegedSymlinkTransaction('remove', commandPath, legacyLauncher, inspected)
+      } else if (await capturedExpectedEntry(quarantine, inspected)) {
+        await this.discardQuarantinedCommand(quarantine)
+      } else {
+        await this.restoreQuarantinedCommand(quarantine, commandPath)
+      }
+      return
+    }
+    if (
+      this.platform === 'darwin' &&
+      this.isPackaged &&
+      !this.commandPathOverride &&
+      launcherPath
+    ) {
+      await this.removeLegacyMacCommandIfManaged(launcherPath)
+      return
+    }
     if (this.platform !== 'linux' || this.commandPathOverride || !launcherPath) {
       return
     }
 
-    const commandPath = join(this.homePath, '.local', 'bin', LEGACY_LINUX_COMMAND_NAME)
-    try {
-      const inspected = await this.inspectStableLegacyCommand(commandPath, launcherPath)
-      if (!inspected?.managed) {
-        return
+    for (const name of LEGACY_LINUX_COMMAND_NAMES) {
+      const commandPath = join(this.homePath, '.local', 'bin', name)
+      try {
+        const inspected = await this.inspectStableLegacyCommand(commandPath, launcherPath)
+        if (!inspected?.managed) continue
+        const quarantine = await this.quarantineCommandPath(commandPath)
+        if (!(await capturedExpectedEntry(quarantine, inspected))) {
+          await this.restoreQuarantinedCommand(quarantine, commandPath)
+          continue
+        }
+        await this.discardQuarantinedCommand(quarantine)
+      } catch (error) {
+        // The new command is already registered; retry owned legacy cleanup on the next registration.
+        console.warn(
+          `[cli] Could not remove the legacy command at ${commandPath}:`,
+          error instanceof Error ? error.message : String(error)
+        )
       }
-      const quarantine = await this.quarantineCommandPath(commandPath)
-      if (!(await capturedExpectedEntry(quarantine, inspected))) {
-        await this.restoreQuarantinedCommand(quarantine, commandPath)
-        return
+    }
+  }
+
+  private async removeLegacyMacCommandIfManaged(launcherPath: string): Promise<void> {
+    const legacyLauncher = join(dirname(launcherPath), 'orca')
+    const defaultLegacyCommand = join(dirname(this.macCommandPath), 'orca')
+    const candidates = new Set([
+      defaultLegacyCommand,
+      join(this.homePath, '.local', 'bin', 'orca'),
+      ...this.getPathCommandCandidates(defaultLegacyCommand)
+    ])
+    for (const commandPath of candidates) {
+      if (!isAbsolute(commandPath)) continue
+      try {
+        const inspected = await this.inspectStableSymlink(commandPath, legacyLauncher)
+        // Only reclaim a bundled legacy symlink, never a user-authored command file.
+        if (!inspected.snapshot?.isSymbolicLink || !inspected.rawSymlinkTarget) continue
+        const target = resolve(dirname(commandPath), inspected.rawSymlinkTarget)
+        if (
+          target !== resolve(legacyLauncher) &&
+          !/(?:^|[/\\])Orca\.app[/\\]Contents[/\\]Resources[/\\]bin[/\\]orca$/.test(target)
+        ) {
+          continue
+        }
+        const quarantine = await this.quarantineUnlessPrivileged(commandPath)
+        if (!quarantine) {
+          await this.runPrivilegedSymlinkTransaction(
+            'remove',
+            commandPath,
+            legacyLauncher,
+            inspected
+          )
+          continue
+        }
+        if (!(await capturedExpectedEntry(quarantine, inspected))) {
+          await this.restoreQuarantinedCommand(quarantine, commandPath)
+          continue
+        }
+        await this.discardQuarantinedCommand(quarantine)
+      } catch (error) {
+        console.warn(`[cli] Could not remove the legacy command at ${commandPath}:`, error)
       }
-      await this.discardQuarantinedCommand(quarantine)
-    } catch (error) {
-      // Why: the new command is already registered; leave legacy cleanup for a later attempt.
-      console.warn(
-        `[cli] Could not remove the legacy command at ${commandPath}:`,
-        error instanceof Error ? error.message : String(error)
-      )
     }
   }
 
@@ -129,16 +207,14 @@ export class CliCommandInstallation extends CliCommandInspection {
   }
 
   protected isManagedLegacyLinuxTarget(resolvedTarget: string, launcherPath: string): boolean {
-    const legacyLauncherPath = resolve(dirname(launcherPath), LEGACY_LINUX_COMMAND_NAME)
+    const legacyName = basename(resolvedTarget)
+    if (!LEGACY_LINUX_COMMAND_NAMES.some((name) => name === legacyName)) return false
+    const legacyLauncherPath = resolve(dirname(launcherPath), legacyName)
     if (resolvedTarget === legacyLauncherPath) {
       return true
     }
 
-    if (basename(resolvedTarget) !== LEGACY_LINUX_COMMAND_NAME) {
-      return false
-    }
-
-    if (this.isPackagedLinuxLauncherTarget(resolvedTarget, LEGACY_LINUX_COMMAND_NAME)) {
+    if (this.isPackagedLinuxLauncherTarget(resolvedTarget, legacyName)) {
       return true
     }
 
@@ -149,11 +225,7 @@ export class CliCommandInstallation extends CliCommandInspection {
 
     const extractionOptions = this.appImageExtractionOptions()
     return extractionOptions
-      ? isAppImageExtractedLauncherPath(
-          extractionOptions,
-          resolvedTarget,
-          LEGACY_LINUX_COMMAND_NAME
-        )
+      ? isAppImageExtractedLauncherPath(extractionOptions, resolvedTarget, legacyName)
       : false
   }
 
@@ -169,7 +241,7 @@ export class CliCommandInstallation extends CliCommandInspection {
     const extractedRoot = await ensureAppImageExtractedRoot(extractionOptions)
     if (!extractedRoot) {
       throw new Error(
-        `Could not extract the Orca AppImage at ${this.appImagePath}. Check that it is executable and that ${this.appImageCacheRootPath} has free space.`
+        `Could not extract the workbench AppImage at ${this.appImagePath}. Check that it is executable and that ${this.appImageCacheRootPath} has free space.`
       )
     }
     return extractedRoot

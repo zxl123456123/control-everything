@@ -28,7 +28,7 @@ vi.mock('expo-secure-store', () => ({
   deleteItemAsync: vi.fn()
 }))
 import { createPlatformAccountController } from './controller'
-import { AccountError, type AccountCandidate } from './oidc'
+import { AccountError, type AccountCandidate, type RevocationOutcome } from './oidc'
 import type { PlatformAccountConfig } from './config'
 import type { AccountRecovery } from './secure-store'
 
@@ -69,7 +69,7 @@ function deferred<T>() {
   })
   return { promise, resolve, reject }
 }
-function harness() {
+function harness(hubLogout?: (token: string, signal: AbortSignal) => Promise<boolean>) {
   let stored: AccountRecovery | null = null
   const store = {
     read: vi.fn(async () => stored),
@@ -80,11 +80,16 @@ function harness() {
       stored = null
     })
   }
-  const oidc = { login: vi.fn(async () => value()), restore: vi.fn(async () => value()) }
+  const oidc = {
+    login: vi.fn(async () => value()),
+    restore: vi.fn(async () => value()),
+    revoke: vi.fn(async (): Promise<RevocationOutcome> => 'unsupported')
+  }
   const controller = createPlatformAccountController({
     configuration: { status: 'ready', config },
     store,
-    oidc
+    oidc,
+    hubLogout
   })
   return {
     controller,
@@ -396,5 +401,253 @@ describe('one account controller owns authentication and serialized persistence'
     expect(h.controller.getSnapshot().status).toBe('signed-out')
     expect(h.store.write).not.toHaveBeenCalled()
     expect(h.stored()).toEqual(record)
+  })
+})
+
+describe('logout also asks the identity service to revoke the refresh credential', () => {
+  async function signedIn() {
+    const h = harness()
+    h.seed(record)
+    await h.controller.restore()
+    expect(h.controller.getSnapshot().status).toBe('signed-in')
+    return h
+  }
+  it('revokes the credential it last saw, clears locally, and says so', async () => {
+    const h = await signedIn()
+    h.oidc.revoke.mockResolvedValue('revoked')
+    await h.controller.logout()
+    expect(h.oidc.revoke).toHaveBeenCalledTimes(1)
+    expect(h.oidc.revoke).toHaveBeenCalledWith(config, record, expect.any(AbortSignal))
+    expect(h.stored()).toBeNull()
+    expect(h.controller.getSnapshot()).toMatchObject({
+      status: 'signed-out',
+      message: expect.stringContaining('撤销本机授权')
+    })
+  })
+  it('keeps the local clear and reports honestly when the service cannot confirm revocation', async () => {
+    const h = await signedIn()
+    h.oidc.revoke.mockResolvedValue('failed')
+    await h.controller.logout()
+    expect(h.stored()).toBeNull()
+    expect(h.controller.getSnapshot()).toMatchObject({
+      status: 'signed-out',
+      message: expect.stringContaining('未能确认撤销')
+    })
+  })
+  it('treats a throwing revocation as failed instead of leaving the user signed in', async () => {
+    const h = await signedIn()
+    h.oidc.revoke.mockRejectedValue(new Error('synthetic'))
+    await h.controller.logout()
+    expect(h.stored()).toBeNull()
+    expect(h.controller.getSnapshot().status).toBe('signed-out')
+  })
+  it('keeps the plain message when the service offers no revocation endpoint', async () => {
+    const h = await signedIn()
+    await h.controller.logout()
+    expect(h.controller.getSnapshot().message).toBe(
+      '已退出此 App。浏览器会话与已配对电脑的权限保持独立。'
+    )
+  })
+  it('does not call the service when there is no refresh credential to revoke', async () => {
+    const h = harness()
+    await h.controller.logout()
+    expect(h.oidc.revoke).not.toHaveBeenCalled()
+    expect(h.controller.getSnapshot().status).toBe('signed-out')
+  })
+  it('does not revoke when the local delete failed, so a retry still has the credential', async () => {
+    const h = await signedIn()
+    h.store.remove.mockRejectedValueOnce(new Error('synthetic delete failure'))
+    await h.controller.logout()
+    expect(h.oidc.revoke).not.toHaveBeenCalled()
+    expect(h.controller.getSnapshot().status).toBe('logout-error')
+    h.oidc.revoke.mockResolvedValue('revoked')
+    await h.controller.logout()
+    expect(h.oidc.revoke).toHaveBeenCalledTimes(1)
+    expect(h.controller.getSnapshot().status).toBe('signed-out')
+  })
+  it('revokes a rotated credential, not the stale one', async () => {
+    const h = await signedIn()
+    const rotated = { ...value(), recovery: { ...record, refreshToken: 'rotated-refresh' } }
+    h.oidc.restore.mockResolvedValue(rotated)
+    await h.controller.restore()
+    await h.controller.logout()
+    expect(h.oidc.revoke.mock.calls[0]?.[1]).toMatchObject({ refreshToken: 'rotated-refresh' })
+  })
+})
+
+describe('hub requests borrow the account session without showing a restoring screen', () => {
+  it('keeps the session generation for token rotation but invalidates it across account operations', async () => {
+    const h = harness()
+    const initial = h.controller.getSessionGeneration()
+    await h.controller.login()
+    const signedIn = h.controller.getSessionGeneration()
+    expect(signedIn).toBeGreaterThan(initial)
+    await h.controller.refreshAccessToken()
+    expect(h.controller.getSessionGeneration()).toBe(signedIn)
+    await h.controller.logout()
+    expect(h.controller.getSessionGeneration()).toBeGreaterThan(signedIn)
+    const signedOut = h.controller.getSessionGeneration()
+    await h.controller.restore()
+    expect(h.controller.getSessionGeneration()).toBeGreaterThan(signedOut)
+    const restored = h.controller.getSessionGeneration()
+    h.controller.configure({ status: 'ready', config: { ...config, clientId: 'other' } })
+    expect(h.controller.getSessionGeneration()).toBeGreaterThan(restored)
+  })
+
+  async function signedIn() {
+    const h = harness()
+    h.seed(record)
+    await h.controller.restore()
+    h.oidc.restore.mockClear()
+    return h
+  }
+  it('hands out the access token only while it is comfortably valid', async () => {
+    const h = await signedIn()
+    expect(h.controller.getAccessToken()).toBe('synthetic-access')
+    await vi.advanceTimersByTimeAsync(56_000)
+    expect(h.controller.getAccessToken()).toBeNull()
+    expect(JSON.stringify(h.controller.getSnapshot())).not.toContain('synthetic-access')
+  })
+  it('has no token before sign-in and refuses to refresh when signed out', async () => {
+    const h = harness()
+    h.seed(record)
+    expect(h.controller.getAccessToken()).toBeNull()
+    expect(await h.controller.refreshAccessToken()).toBeNull()
+    expect(h.oidc.restore).not.toHaveBeenCalled()
+  })
+  it('refreshes once for concurrent callers, rotates the credential and stays signed in', async () => {
+    const h = await signedIn()
+    const pending = deferred<AccountCandidate>()
+    h.oidc.restore.mockImplementationOnce(async () => pending.promise)
+    const states: string[] = []
+    h.controller.subscribe(() => states.push(h.controller.getSnapshot().status))
+    const a = h.controller.refreshAccessToken()
+    const b = h.controller.refreshAccessToken()
+    await flush()
+    pending.resolve({
+      session: { ...value().session, accessToken: 'fresh-access' },
+      recovery: { ...record, refreshToken: 'rotated-refresh' }
+    })
+    expect(await a).toBe('fresh-access')
+    expect(await b).toBe('fresh-access')
+    expect(h.oidc.restore).toHaveBeenCalledTimes(1)
+    expect(h.oidc.restore.mock.calls[0]?.[1]).toMatchObject({ refreshToken: 'synthetic-refresh' })
+    expect(h.stored()).toMatchObject({ refreshToken: 'rotated-refresh' })
+    expect(h.controller.getAccessToken()).toBe('fresh-access')
+    expect(states).not.toContain('restoring')
+    expect(h.controller.getSnapshot().status).toBe('signed-in')
+  })
+  it('recovers a lapsed session silently', async () => {
+    const h = await signedIn()
+    await vi.advanceTimersByTimeAsync(61_000)
+    expect(h.controller.getSnapshot().status).toBe('expired')
+    expect(await h.controller.refreshAccessToken()).toBe('synthetic-access')
+    expect(h.controller.getSnapshot().status).toBe('signed-in')
+  })
+  it('a rejected refresh credential expires the session once and is not retried', async () => {
+    const h = await signedIn()
+    h.oidc.restore.mockRejectedValue(new AccountError('expired'))
+    expect(await h.controller.refreshAccessToken()).toBeNull()
+    expect(h.controller.getSnapshot().status).toBe('expired')
+    expect(h.controller.getAccessToken()).toBeNull()
+    expect(await h.controller.refreshAccessToken()).toBeNull()
+    expect(h.oidc.restore).toHaveBeenCalledTimes(1)
+  })
+  it('a network failure leaves the session and the stored credential untouched', async () => {
+    const h = await signedIn()
+    h.oidc.restore.mockRejectedValue(new AccountError('network'))
+    expect(await h.controller.refreshAccessToken()).toBeNull()
+    expect(h.controller.getSnapshot().status).toBe('signed-in')
+    expect(h.controller.getAccessToken()).toBe('synthetic-access')
+    expect(h.stored()).toEqual(record)
+  })
+  it('a session-only login cannot refresh and asks for a new login', async () => {
+    const h = harness()
+    h.oidc.login.mockResolvedValue({ session: value().session, recovery: null })
+    await h.controller.login()
+    expect(await h.controller.refreshAccessToken()).toBeNull()
+    expect(h.oidc.restore).not.toHaveBeenCalled()
+    expect(h.controller.getSnapshot().status).toBe('expired')
+  })
+  it('logout during a refresh discards the late token', async () => {
+    const h = await signedIn()
+    const pending = deferred<AccountCandidate>()
+    h.oidc.restore.mockImplementationOnce(async () => pending.promise)
+    const refreshed = h.controller.refreshAccessToken()
+    await flush()
+    await h.controller.logout()
+    pending.resolve(value())
+    expect(await refreshed).toBeNull()
+    expect(h.controller.getAccessToken()).toBeNull()
+    expect(h.controller.getSnapshot().status).toBe('signed-out')
+    expect(h.stored()).toBeNull()
+  })
+})
+
+describe('logout also signs out of the remote hub', () => {
+  async function signedIn(hubLogout?: (token: string, signal: AbortSignal) => Promise<boolean>) {
+    const h = harness(hubLogout)
+    h.seed(record)
+    await h.controller.restore()
+    expect(h.controller.getSnapshot().status).toBe('signed-in')
+    return h
+  }
+  it('asks the hub with the live access token before the identity service revokes', async () => {
+    const order: string[] = []
+    const hub = vi.fn(async (_token: string, _signal: AbortSignal) => {
+      order.push('hub')
+      return true
+    })
+    const h = await signedIn(hub)
+    h.oidc.revoke.mockImplementation(async () => {
+      order.push('revoke')
+      return 'revoked'
+    })
+    await h.controller.logout()
+    expect(hub).toHaveBeenCalledWith('synthetic-access', expect.any(AbortSignal))
+    expect(order).toEqual(['hub', 'revoke'])
+    expect(h.stored()).toBeNull()
+    expect(h.controller.getSnapshot()).toMatchObject({
+      status: 'signed-out',
+      message: expect.stringContaining('已通知远程 hub')
+    })
+    expect(h.controller.getSnapshot().account).toBeUndefined()
+  })
+  it.each([
+    ['rejects', () => Promise.reject(new Error('synthetic'))],
+    ['is not acknowledged', () => Promise.resolve(false)]
+  ])('still clears locally and says so when the hub call %s', async (_name, result) => {
+    const h = await signedIn(vi.fn(result))
+    h.oidc.revoke.mockResolvedValue('revoked')
+    await h.controller.logout()
+    expect(h.stored()).toBeNull()
+    expect(h.oidc.revoke).toHaveBeenCalledTimes(1)
+    expect(h.controller.getSnapshot()).toMatchObject({
+      status: 'signed-out',
+      message: expect.stringContaining('未能通知远程 hub')
+    })
+  })
+  it('does not call the hub when there is no valid session or no hub is configured', async () => {
+    const hub = vi.fn(async () => true)
+    const noSession = harness(hub)
+    await noSession.controller.logout()
+    expect(hub).not.toHaveBeenCalled()
+    const noHub = await signedIn()
+    await noHub.controller.logout()
+    expect(noHub.controller.getSnapshot().message).not.toContain('hub')
+    const expired = await signedIn(hub)
+    vi.setSystemTime(Date.now() + 120_000)
+    await expired.controller.logout()
+    expect(hub).not.toHaveBeenCalled()
+    expect(expired.stored()).toBeNull()
+    expect(expired.controller.getSnapshot().message).not.toContain('hub')
+  })
+  it('does not call the hub when the local delete failed, so a retry still can', async () => {
+    const hub = vi.fn(async () => true)
+    const h = await signedIn(hub)
+    h.store.remove.mockRejectedValueOnce(new Error('synthetic delete failure'))
+    await h.controller.logout()
+    expect(hub).not.toHaveBeenCalled()
+    expect(h.controller.getSnapshot().status).toBe('logout-error')
   })
 })

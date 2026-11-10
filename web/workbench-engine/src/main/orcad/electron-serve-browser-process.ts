@@ -9,7 +9,7 @@ import type { RuntimeBrowserCommandHost } from '../runtime/browser/browser-comma
 import type { RuntimeBrowserCommands } from '../runtime/browser/browser-commands'
 import type { RuntimeMetadata } from '../../shared/runtime-bootstrap'
 import { BROWSER_UNAVAILABLE_ERROR_CODE } from '../../shared/runtime-types'
-import { readRuntimeMetadata } from '../runtime/runtime-metadata'
+import { readSidecarRuntimeMetadata } from '../runtime/runtime-metadata'
 import { spawnProcess } from '@orca/process-host'
 import { isProcessAlive } from '../../shared/serve-bundle-coordination'
 import { removeTree } from '../../shared/windows-transient-lock-removal'
@@ -109,7 +109,7 @@ export class ElectronServeBrowserProcess {
     let lastError: unknown = null
     while (Date.now() < deadline) {
       signal?.throwIfAborted()
-      const metadata = readRuntimeMetadata(userDataPath)
+      const metadata = readSidecarRuntimeMetadata(userDataPath)
       if (metadata) {
         try {
           const status = RuntimeStatusResult.parse(
