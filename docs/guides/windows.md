@@ -6,7 +6,9 @@
 
 ## Windows 标准安装
 
-当前提供 [0.1.0a18 Windows x64 技术预发布版](https://github.com/zxl123456123/control-everything/releases/tag/v0.1.0a18)：[安装器](https://github.com/zxl123456123/control-everything/releases/download/v0.1.0a18/session-panel-0.1.0a18-windows-x64.exe) · [依赖对应源码](https://github.com/zxl123456123/control-everything/releases/download/v0.1.0a18/session-panel-0.1.0a18-sources.zip)。安装器尚未签名；实际验证范围和未覆盖项目见该版本说明。开发者也可按[源码启动指南](usage.md#多-agent-工作台)运行。
+当前提供 [0.1.0a18 Windows x64 早期测试版](https://github.com/zxl123456123/control-everything/releases/tag/v0.1.0a18)：[安装器](https://github.com/zxl123456123/control-everything/releases/download/v0.1.0a18/session-panel-0.1.0a18-windows-x64.exe) · [依赖对应源码](https://github.com/zxl123456123/control-everything/releases/download/v0.1.0a18/session-panel-0.1.0a18-sources.zip)。安装器尚未签名；实际验证范围和未覆盖项目见该版本说明。开发者也可按[源码启动指南](usage.md#多-agent-工作台)运行。
+
+`0.1.0a18` 是完整版本号，其中 `a` 表示 alpha（早期测试），`18` 是该阶段的版本序号；含义遵循 [Python 版本规范](https://packaging.python.org/en/latest/specifications/version-specifiers/#pre-releases)。版本序号用于识别安装包，具体功能、测试结果与限制由版本说明分别列出。
 
 普通用户下载 `session-panel-0.1.0a18-windows-x64.exe`，先用 `Get-FileHash -Algorithm SHA256` 与该次发布的 `SHA256SUMS.txt` 核对，再运行安装器。标准产品自带 CPython 3.13.16、固定 Python 依赖、前端资源和 release Rust 原生观察后台，无需另外安装 Python、Node、npm 或 Rust 编译器。依赖源码附件用于对应源码分发，不能代替完整安装器或 GitHub 的项目源码快照。
 
@@ -30,6 +32,8 @@ $panel = Join-Path $env:LOCALAPPDATA 'Programs/SessionPanel/session-panel.cmd'
 ## 构建与技术预发布
 
 日常开发从 [贡献指南](../../.github/CONTRIBUTING.md#开发与出包从这里开始)进入。Windows 候选统一用 `tools/packaging/build_windows_release.py` 构建，实际安装验收和公开发布分开执行。
+
+这里的“构建”是把源码编译、组装成可安装的软件：先核对源码、工具版本及依赖，再生成 Python 程序包、Windows 窗口、进程观察后台和内置网页，最后核对文件及许可材料并生成 EXE 安装器。构建记录中的步骤还包括读取代码提交号、检查工具版本等准备动作；步骤数量会随脚本变化。交付说明应分别报告生成安装包、自动化测试、真实安装和界面操作的结果，不能用“若干步通过”代替产品验收。
 
 ```text
 确认开发验收 → 冻结版本/SHA → 核验并准备固定输入

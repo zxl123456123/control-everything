@@ -26,7 +26,9 @@ https://github.com/user-attachments/assets/be96cc58-6bd8-4221-b0aa-77c0f9e31804
 
 ## 快速开始
 
-**Windows x64 技术预发布版 0.1.0a18**：[下载安装包](https://github.com/zxl123456123/control-everything/releases/download/v0.1.0a18/session-panel-0.1.0a18-windows-x64.exe) · [依赖对应源码](https://github.com/zxl123456123/control-everything/releases/download/v0.1.0a18/session-panel-0.1.0a18-sources.zip) · [版本说明与校验值](https://github.com/zxl123456123/control-everything/releases/tag/v0.1.0a18)。安装包自带运行环境，无需另装 Python、Node.js 或 Rust；源码 ZIP 不能代替安装器。
+**Windows x64 早期测试版 0.1.0a18**：[下载安装包](https://github.com/zxl123456123/control-everything/releases/download/v0.1.0a18/session-panel-0.1.0a18-windows-x64.exe) · [依赖对应源码](https://github.com/zxl123456123/control-everything/releases/download/v0.1.0a18/session-panel-0.1.0a18-sources.zip) · [版本说明与校验值](https://github.com/zxl123456123/control-everything/releases/tag/v0.1.0a18)。安装包自带运行环境，无需另装 Python、Node.js 或 Rust；源码 ZIP 不能代替安装器。
+
+`0.1.0a18` 是完整版本号：`a` 表示 alpha（早期测试），`18` 是该阶段的版本序号，用于区分安装包。这一版包含账号接入和 iPhone 终端回车修复；实际测试结果与使用限制见版本说明。
 
 1. 下载并运行安装器，选择安装目录。
 2. 从开始菜单的 **Session Panel** 启动独立应用窗口；安装时可勾选创建桌面快捷方式。
