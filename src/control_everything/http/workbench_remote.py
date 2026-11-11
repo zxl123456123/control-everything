@@ -11,7 +11,8 @@ from control_everything.integrations.remote_connector import ConnectorError
 PATHS = {"/api/desktop/remote/status", "/api/desktop/remote/authorize",
          "/api/desktop/remote/confirm", "/api/desktop/remote/revoke"}
 ACCOUNT_PATHS = {"/api/desktop/account/" + name for name in
-                 ("status", "authorize", "logout", "members", "invitations", "activate", "configure")}
+                 ("status", "authorize", "logout", "members", "invitations", "activate", "configure",
+                  "create-member", "activate-member")}
 
 
 def handle_account(handler, path, *, write=False):
@@ -33,13 +34,20 @@ def _handle_account(handler, path, *, write=False):
     account = getattr(handler.server, "desktop_account", None)
     name, query = path.rsplit("/", 1)[-1], urlsplit(handler.path).query
     try:
+        status = 200
         desktop = getattr(handler.server, 'desktop', None)
         if write and getattr(desktop, 'configuration_changed', False):
             raise ConnectorError('remote_restart_required', 409)
-        if query and (write or name != "members"):
+        if (query and (write or name != "members")) or (
+                name in ("create-member", "activate-member") and "?" in handler.path):
             raise ValueError("invalid_request")
-        body = handler.read_json_body(max_bytes=1024, strict=True) if write else {}
+        maximum = 16384 if name in ("create-member", "activate-member") else 1024
+        body = handler.read_json_body(max_bytes=maximum, strict=True) if write else {}
         expected = {"invite"} if name == "activate" else {"issuer", "hub_origin"} if name == "configure" else set()
+        if write and name == "create-member":
+            expected = {"username", "password"}
+        elif write and name == "activate-member":
+            expected = {"sub"}
         if not isinstance(body, dict) or set(body) != expected:
             raise ValueError("invalid_request")
         if name == "configure" and write:
@@ -71,14 +79,21 @@ def _handle_account(handler, path, *, write=False):
             value = getattr(account, name)()
         elif write and name in ("invitations", "activate"):
             value = account.mutate(name, body)
+        elif write and name in ("create-member", "activate-member"):
+            value = account.admin_mutate(name, body)
+            if name == "create-member":
+                status = 201 if value["membership"] == "active" else 202
         else:
             handler.reject(405, "method_not_allowed")
             return True
-        handler.reply(200, value)
+        handler.reply(status, value)
     except ConnectorError as error:
         handler.reject(error.status or 503, error.code)
-    except (ValueError, TypeError, UnicodeError):
-        handler.reject(400, "invalid_request")
+    except (ValueError, TypeError, UnicodeError) as error:
+        if name in ("create-member", "activate-member") and str(error) == "body_too_large":
+            handler.reject(413, "body_too_large")
+        else:
+            handler.reject(400, "invalid_request")
     return True
 
 
