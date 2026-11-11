@@ -212,6 +212,36 @@ if ($LASTEXITCODE -ne 0) { throw 'Release evidence is blocked; inspect readiness
 
 `verify` 重核 EXE、依赖对应源码、完整 payload、源码检查日志及收据、人工材料 hash，并在记录中保留覆盖范围和证据引用。重跑不覆盖既有输出，输出不得放入 payload 内；证据修正后另用新文件名。校验只证明本次读取时的一致性，正式上传前仍须复核这些文件未变。所有原始证据和放行记录留本机，不默认加入公开附件。
 
+#### 准备附件、创建草稿和公开
+
+下面命令在本检出环境运行，所有路径改为本次实际绝对路径。先完成上节的 `readiness.json`，再准备审核后的 UTF-8 中文版本说明。`prepare` 只操作本地，复跑放行核验后复制同一份候选，不重新编译：
+
+```powershell
+python tools/packaging/release_bundle.py prepare --readiness "$releaseRepo/work/windows-release/candidate-01/readiness.json" --notes "$releaseRepo/work/windows-release/candidate-01/release-notes.md" --output "$releaseRepo/work/windows-release/candidate-01/publication" --repository example-owner/example-repository
+if ($LASTEXITCODE -ne 0) { throw 'Public bundle preparation failed' }
+```
+
+输出中只有 `public/` 是计划上传内容：同版本 EXE、依赖 `sources.zip`、SOURCE-AVAILABILITY、product、BUILD-INPUTS、LICENSE、两份 THIRD-PARTY-NOTICES、DESKTOP-NOTICES、release-notes.md 与 SHA256SUMS.txt，共11份。校验和覆盖其余10份，不包括自身。`publication.json` 和复验记录留本机，状态 `prepared-awaiting-content-review` 表示尚待内容审核；不能把整个输出目录上传。
+
+审核这11份文件的公开范围、许可、秘密扫描、隐私命中及归档内材料，把实际命令、退出码、命中分类和未覆盖范围写进本轮 `content-review.md`。工具验证文件一致性，不替代内容审核；不要因为文件名在白名单里就跳过扫描或审阅。另写私有 `publication-review.json`，绑定实际计划和审核文件哈希：
+
+```json
+{"schema":1,"decision":"accepted","reviewer":"本轮发布负责人","plan_sha256":"实际publication.json的sha256","evidence":{"path":"E:/example/checkout/work/windows-release/candidate-01/content-review.md","sha256":"实际审核记录sha256"}}
+```
+
+GitHub 命令使用已安装的 `gh`。优先使用进程环境中的 `GH_TOKEN`/`GITHUB_TOKEN`；否则只在内存中调用现有 Git 凭据助手，并传给该次子进程，不写 token 文件或输出原始认证错误。目标仓库由已审核的计划固定，示例仓库名必须替换。`draft` 会实际创建缺失的 tag 和草稿、上传附件，因此只对已经确认要发版的候选执行：
+
+```powershell
+python tools/packaging/release_github.py draft --plan "$releaseRepo/work/windows-release/candidate-01/publication/publication.json" --review "$releaseRepo/work/windows-release/candidate-01/publication-review.json" --run-dir "$releaseRepo/work/windows-release/candidate-01/draft-01"
+if ($LASTEXITCODE -ne 0) { throw 'Draft preparation failed; inspect result.json before resuming' }
+python tools/packaging/release_github.py publish --plan "$releaseRepo/work/windows-release/candidate-01/publication/publication.json" --review "$releaseRepo/work/windows-release/candidate-01/publication-review.json" --run-dir "$releaseRepo/work/windows-release/candidate-01/publish-01"
+if ($LASTEXITCODE -ne 0) { throw 'Publication is incomplete; inspect result.json before notifying' }
+```
+
+工具先核候选提交已包含于远端 main，独立解引用 tag 并核 SHA，再处理 Release；已有 tag 不移动。草稿恢复只上传缺失附件，已存在附件须内容一致；遇到同名不同内容或额外附件停止，不调用覆盖/删除。每次操作用新 `run-dir`，保留失败及下载副本。发布前和公开后都下载核对大小及 SHA256，收据保存最终公开 URL；下载次数等统计变化不当成附件变更。已公开版本重跑只复核，不换包，也不自动设为 latest。
+
+`result.json` 的 `draft-verified` 表示草稿附件已核验；`published-verified` 才能进入群通知。中断后保留同一计划和审核文件，用新目录重新执行对应命令；不得改已有失败收据。已公开但后续回核失败时，先核远端实际状态，仍不通知。完整构建和多次下载会占用多份文件空间，应在开始前核对剩余容量，不为重试清掉验收证据。
+
 ### 6. 持续迭代的固定交付约定
 
 以下约定将上面的操作连成一次交付；自动化尚未实现的部分在下文明确标注。功能提交、候选构建、安装验收、公开发布、群通知是五种不同结果。源码进入 main 不代表用户已经收到新版 EXE；群通知也不替代安装验收。
@@ -228,26 +258,39 @@ if ($LASTEXITCODE -ne 0) { throw 'Release evidence is blocked; inspect readiness
 
 ### 7. 发布后复用远端 OpenClaw 飞书机器人
 
-接入方向为已有远端 OpenClaw 的飞书应用机器人，不新增群 Webhook 或第二个监听器。机器人部署、实际账号/群、凭据与收发证据由其私有部署记录维护，不写入本仓库、安装包或公开发布附件。以下是后续接入合同，**当前仓库没有部署自动 Release 通知**。
+接入方向为已有远端 OpenClaw 的飞书应用机器人，不新增群 Webhook 或第二个监听器。机器人部署、实际账号/群、凭据与收发证据由其私有部署记录维护，不写入本仓库、安装包或公开发布附件。仓库提供 `tools/packaging/release_notify.py`，服务器是否已部署及首次真实收发以本轮任务收据为准，源码测试不能代替部署验收。
 
 - **明确触发来源。** 本机构建/发布器确认下载回核后，将固定仓库的 Release ID、tag、受测 SHA、附件摘要和审核后的公告交给服务器通知入口。服务器重新核公开 Release 与目标仓库，不能只信任传入的“成功”字符串。传输复用受控 SSH 或既有经过认证的运维入口，不为通知把 OpenClaw 管理端口暴露公网。
 - **复用固定发送身份。** 按已有项目机器人分工选择负责项目播报的账号，目标群来自服务器受控配置；事件不能任意指定账号、群、命令或 URL 主机。凭据留在服务器，继续由现有 OpenClaw 管理。无需为发送一条公告迁移认证协议、重启长连接或给群 Agent 开放任意 shell/消息工具。
 - **优先确定性发送。** 调用安装版 OpenClaw 已支持的发送能力，显式指定 `channel=feishu`、account 和 target，传入已审核正文并读取真实消息回执。使用结构化参数/固定 argv，正文不得拼成 shell 命令。模型可协助起草，不能决定是否验收通过；正式公告发送不依赖模型和电脑端模型隧道在线。
 - **先预览再联调。** 参考 [OpenClaw message CLI](https://docs.openclaw.ai/cli/message) 与 [飞书通道](https://docs.openclaw.ai/channels/feishu)，先核安装版本的 `message send --help`、账号路由和 `--dry-run`。帮助中有参数不证明权限、群路由或真实收发成功，dry-run 不算送达；最终还须核对指定群的真实 message ID。不能把旧版机器人正常聊天当作新版发布通知已验收。
-- **持久记录与补发。** 以仓库、Release ID、通知类别和固定目标群组成投递身份；服务器在发送前记录 attempt，成功后保存 message ID、正文 hash 和时间，已成功的身份再次执行时跳过。按同一身份串行，重启后仍可查账。发送超时但可能已送达时标为未知，核对回执/群历史后再补发，不盲目重发；普通 CLI 重跑不等于平台永久去重。Release notes 编辑不自动群发，勘误作为显式通知处理。
+- **持久记录与补发。** 以仓库、Release ID 和固定目标群组成投递身份；服务器在发送前记录 attempt，成功后保存 message ID、正文 hash 和时间，已成功的身份再次执行时跳过。按同一身份串行，重启后仍可查账。发送超时但可能已送达时标为未知，先核对回执/群历史，不盲目重发；普通 CLI 重跑不等于平台永久去重。Release notes 编辑不自动群发；需要勘误时另行审核内容和发送范围，不改写既有送达收据。
 - **通知与发布分别恢复。** 限流、过期凭证、群权限或网络错误按服务端实际返回处理；通知错误不改变公开版本。初期只通知明确发布的版本，预发布清楚标注“早期测试版”，不自动 @ 全员、不上传安装器大文件到群。服务器不可达时在发布收据留下待通知状态，由同一入口恢复。
+
+服务器私有配置提供 `repository`、`account`、`target`（固定群 ID）、`sender_app_id`（用于对账）、`openclaw_command`（固定 argv 数组）和 `state_dir`。从已有 OpenClaw profile 派生账号/群，不能由事件携带任意目标。通知工具只用 Python 标准库，复用本机 OpenClaw CLI，不启动模型；GitHub 只读查询可使用进程内 `GH_TOKEN`，凭据仍留服务器。
+
+通过受控传输把公开发布收据与审核后的公告文本送至服务器，再依次执行以下命令；路径都是说明性占位。公告不超过2000字符，须含该 Release 的正式链接：
+
+```sh
+python3 release_notify.py preview --config /example/private/notify.json --event /example/private/published-result.json --message /example/private/announcement.txt
+python3 release_notify.py send --config /example/private/notify.json --event /example/private/published-result.json --message /example/private/announcement.txt
+```
+
+`preview` 实际读取 GitHub 的公开状态、tag 和附件摘要，但不创建投递状态或发消息。核对预览后才调用 `send`；它先向 SQLite 提交投递领取，再调用固定账号发送。成功回执重跑跳过；同一版本/群更换正文或资产会拒绝。只有明确的 CLI 未启动错误可在修复环境后重新领取；非零退出、超时、坏回执等记 `unknown`，不得盲目补发。进程意外退出留下的 `attempt` 也不自动重发。
+
+结果未知时，从实际群或原始回执取得 message ID，运行 `reconcile`（其余参数不变，增加 `--message-id`）。工具通过 OpenClaw 原生 `message read` 核对消息 ID、群、发送应用和正文；全部一致才记已送达。没有消息 ID、权限不足、格式转换使正文不能准确核对时继续保留未知状态，不把人工填写的“已发送”当成回执，也不提供强制重发开关。SQLite 和私有配置按服务器既有备份规则保留。
 
 后续将发布放到 Actions 时，保留同一构建入口和以上合同。人工网页/本地授权身份发布可用 `release: published` 接通知；从 draft 公开预发布也应使用 `published`。如果发布使用 Actions 的 `GITHUB_TOKEN`，它产生的 release 事件不会启动另一普通 Release workflow，应在发布及回核成功后直接调用通知 job/复用 workflow，或显式 dispatch。参考 [GitHub 触发规则](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow)；不要为绕过事件行为盲目扩大长期令牌权限。事件触发后仍须核验实际 Release 和附件。
 
 ### 8. 自动化建设顺序与验收边界
 
-2026-11-11 基线审计发现验收与发布之间缺少机器衔接；当前已补充上节的本机放行复核命令，安装报告也记录两个产品的实际身份。`build_windows_release.py` 仍结束于 `candidate-built-awaiting-acceptance`；`ci.yml` 仍仅手动触发。自动发布和通知投递记录尚未实现，本机门禁不等于远端强制规则。
+2026-11-11 基线审计发现验收与发布之间缺少机器衔接；当前已提供放行复核、11附件准备、GitHub 草稿/公开发布和 OpenClaw 通知工具。`build_windows_release.py` 仍结束于 `candidate-built-awaiting-acceptance`；`ci.yml` 仍仅手动触发。各阶段有明确命令和收据，不等于远端自动强制规则；真实候选发布与服务器通知验收分别记录。
 
 后续按独立改动实施，每项先验证再推进下一项：
 
 1. **本机放行记录已有入口。** 使用上节的 `record-check` / `verify` 关联证据；代码合同覆盖错提交、错包、缺材料、日志变动及同版本不同闭包拒绝。真实候选仍按本页构建和验收，不能用这些合成合同测试替代安装结果。
-2. **再自动组装与发布。** 复用 `tools/packaging/` 下入口，dry-run 仅输出审核后的附件清单和公告；执行阶段只提升已验收文件。验证版本冲突、上传中断、缺附件、下载 hash 不符，以及已公开版本重跑时拒绝换包。尚为 draft 时按清单恢复，公开后不自动删除或重建。
-3. **接现有 OpenClaw 通知。** 在机器人所属部署中实现固定账号/群发送与持久投递记录，主项目只交付发布事实。覆盖重复事件、并发、成功后重跑、发送后未记账、网络超时、服务器重启和凭据脱敏；真实群验收另记，不用测试消息冒充新版本发布。
+2. **附件和发布已有入口。** `release_bundle.py` 本地准备，内容审核后再执行 `release_github.py draft/publish`。代码合同覆盖中断恢复、错包拒绝和公开后只复核；正式首次运行仍须保存实际远端收据。
+3. **通知工具按已有部署接入。** `release_notify.py preview/send/reconcile` 固定账号/群并持久记录投递；合成 CLI/API 测试覆盖并发、进程中断和未知结果。首次真实群发送、对账与防重复另记验收，不用测试消息冒充新版本发布。
 4. **最后迁移可重复的构建环境。** 先把新机器如何准备固定工具、审核材料和依赖缓存跑通，再让 Windows runner 调用同一构建器。源码快速检查可以自动运行，完整 EXE 仍由明确的发布动作触发；是否将检查设为合并必需条件，另按实际协作规则配置。当前不改变 develop 预览确认、main 发布或非强制 PR/远端 CI 规则。
 
 签名服务、Windows 10/11 干净机矩阵、客户端发现/下载更新及数据格式回退需要各自验收；安装器原位升级能力不等于客户端自动更新。优先保证整包更新和数据兼容，再按需要评估差分更新。SHA256 证明文件一致，发布者签名证明身份，来源证明绑定构建来源；没有独立两次构建逐字节对比，不称为[可复现构建](https://reproducible-builds.org/docs/definition/)。
