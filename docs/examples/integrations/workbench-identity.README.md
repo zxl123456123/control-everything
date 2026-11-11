@@ -66,6 +66,8 @@ python tools/scripts/keycloak_add_mobile_client.py --dry-run
 
 发号使用独立的 Keycloak confidential service-account client，限定目标 realm 的用户管理权限（`realm-management` 的 `manage-users`），关闭浏览器、隐式及直接密码登录流程。不要复用只读成员目录客户端或使用 master 管理客户端。部署前核对 realm 默认角色、组与 required actions，确保新用户不会继承管理权限，也不被要求邮箱验证或首次改密；创建账号本身不更改这些 realm 设置。权限配置参见 [Keycloak 服务账号](https://www.keycloak.org/docs/latest/server_admin/#_service_accounts)，创建用户采用 [Admin REST API](https://www.keycloak.org/docs-api/latest/rest-api/)。
 
+无邮箱账号还需核对浏览器登录网关。oauth2-proxy 的 OIDC provider 要求其会话中的 email 字段非空，单设 `email_domains = ["*"]` 不能解决缺失字段。样例用官方 `oidc_email_claim = "preferred_username"` 读取已验证令牌中的用户名，保留 `user_id_claim = "sub"`、`prefer_email_to_user = false`；hub 仍以 issuer 和 subject 判断账号归属及成员资格。这里不发送邮件，也不编造邮箱或跳过令牌验证。依据见 [oauth2-proxy OIDC 实现](https://github.com/oauth2-proxy/oauth2-proxy/blob/v7.15.5/providers/oidc.go)与[字段校验](https://github.com/oauth2-proxy/oauth2-proxy/blob/v7.15.5/validator.go)；部署后仍须用真实无邮箱新账号验收登录。
+
 在 hub 私有配置中按需增加以下字段，填写独立服务客户端的真实值；未配置时不启用发号表单。现有 `user_directory` 继续使用自己的只读客户端，并用于核对创建结果与未开通用户。
 
 ```json
