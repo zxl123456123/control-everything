@@ -345,8 +345,103 @@ test('local authorization links prefer complete URLs and keep confirmation codes
 });
 
 test('computer authorization failures offer recovery without confirming or rebinding',async()=>{
-  for(const [code,message] of [['expired_token',/过期/],['remote_membership_required',/邀请码/],['device_already_bound',/另一台电脑/],['remote_authorization_required',/重新连接/],['remote_identity_changed',/核对账号/],['account_login_required',/先登录/]]) {
+  for(const [code,message] of [['expired_token',/过期/],['remote_membership_required',/管理员/],['remote_disconnect_required',/先撤销.*本地项目.*保留/],['device_already_bound',/另一台电脑/],['remote_authorization_required',/重新连接/],['remote_identity_changed',/核对账号/],['account_login_required',/先登录/]]) {
     const f=fixture(path=>response(path==='/api/bootstrap'?{csrf_token:'local'}:{configured:true,state:'unbound',code}),{mode:'local'});await settle();
     assert.match(f.get('device-error').textContent,message);assert.equal(f.calls.some(call=>call.options.method==='POST'),false);f.dispose();
   }
+});
+
+const creationPage = items => ({...directoryPage(items || []),account_creation_available:true});
+const createdMember = membership => ({account:{sub:'created-sub',name:'new.member',enabled:true},created:true,membership});
+test('only an administrator with explicit creation capability can submit an account',async()=>{
+  for(const [admin,capability] of [[false,true],[true,false],[true,undefined],[true,true]]){
+    const f=fixture(()=>response(session({admin})),{members:()=>response({...directoryPage([]),account_creation_available:capability})});await settle();
+    assert.ok(f.get('member-create'));assert.equal(f.get('member-create').hidden,!(admin&&capability===true));
+    if(!admin||capability!==true){f.get('member-username').value='new.member';f.get('member-password').value='Synthetic-password';f.get('member-create').emit('submit');await settle();assert.equal(f.calls.some(c=>c.options.method==='POST'),false);}f.dispose();
+  }
+});
+
+test('remote and local creation send one protected POST without trimming the password',async()=>{
+  for(const mode of ['remote','local']){
+    let finish,memberReads=0;
+    const f=fixture(path=>path==='/api/bootstrap'?response({csrf_token:'local'}):path.endsWith('/session')?response(session({admin:true})):path.endsWith('/status')?response({configured:true,state:'unbound'}):new Promise(resolve=>finish=resolve),{mode,accountSession:()=>({configured:true,state:'signed_in',account:{sub:'owner'},membership:'active',admin:true}),members:()=>{memberReads++;return response(creationPage());}});await settle();
+    f.get('member-username').value='new.member';f.get('member-password').value='  Synthetic password  ';f.get('member-create').emit('submit');f.get('member-create').emit('submit');
+    const writes=f.calls.filter(c=>c.options.method==='POST');assert.equal(writes.length,1);assert.equal(writes[0].path,mode==='remote'?'/remote/api/admin/members':'/api/desktop/account/create-member');
+    assert.deepEqual(JSON.parse(writes[0].options.body),{username:'new.member',password:'  Synthetic password  '});assert.equal(writes[0].options.headers[mode==='remote'?'X-CE-CSRF':'X-Session-CSRF'],mode==='remote'?'synthetic-csrf':'local');
+    assert.equal(f.button('member-create').disabled,true);finish(response(createdMember('active'),201));await settle();assert.equal(f.get('member-password').value,'');assert.match(f.get('member-create-status').textContent,/已创建.*已开通/);assert.equal(memberReads,2);assert.equal(f.notices.length,0);f.dispose();
+  }
+});
+
+test('partial creation retries activation by subject alone and directory recovery excludes disabled and admin users',async()=>{
+  let writes=0;const inactive={...directoryMember(0),admin:false,membership:'inactive',account:{sub:'inactive-sub',name:'Inactive',enabled:true}};
+  const f=fixture((path)=>path.endsWith('/session')?response(session({admin:true})):response(++writes===1?createdMember('activation_unconfirmed'):{account:createdMember('active').account,membership:'active'},202),{members:()=>response(creationPage([inactive,{...inactive,admin:true},{...inactive,membership:'disabled'},{...inactive,account:{...inactive.account,enabled:false}}]))});await settle();
+  f.get('member-username').value='new.member';f.get('member-password').value='Synthetic-password';f.get('member-create').emit('submit');await settle();assert.match(f.get('member-create-status').textContent,/账号已创建.*开通未确认/);assert.equal(f.button('member-retry').hidden,false);
+  f.click('member-retry');await settle();let calls=f.calls.filter(c=>c.options.method==='POST');assert.equal(calls[1].path,'/remote/api/admin/members/activate');assert.deepEqual(JSON.parse(calls[1].options.body),{sub:'created-sub'});assert.equal(f.button('member-retry').hidden,true);
+  const rows=f.get('members-list').children;assert.equal(rows[0].children[2].children.length,2);for(const row of rows.slice(1))assert.equal(row.children[2].children.length,1);
+  f.window.fetch=async(path,options)=>{f.calls.push({path,options});return response({account:{...inactive.account},membership:'active'});};rows[0].children[2].children[1].emit('click');await settle();calls=f.calls.filter(c=>c.options.method==='POST');assert.deepEqual(JSON.parse(calls.at(-1).options.body),{sub:'inactive-sub'});f.dispose();
+});
+
+test('creation rejects short passwords and unknown results require checking members instead of automatic retry',async()=>{
+  for(const code of ['username_exists','account_input_rejected','account_creation_unknown','account_creation_unavailable','account_not_found','account_lookup_unavailable']){
+    const f=fixture(path=>path.endsWith('/session')?response(session({admin:true})):response({error:code},503),{members:()=>response(creationPage())});await settle();
+    f.get('member-username').value='new.member';f.get('member-password').value='short';f.get('member-create').emit('submit');await settle();assert.equal(f.calls.some(c=>c.options.method==='POST'),false);
+    f.get('member-password').value='Synthetic-password';f.get('member-create').emit('submit');await settle();assert.equal(f.calls.filter(c=>c.options.method==='POST').length,1);assert.equal(f.get('member-password').value,'');assert.equal(f.get('member-create-status').dataset.tone,'error');if(code==='account_creation_unknown')assert.match(f.get('member-create-status').textContent,/先刷新成员.*勿重复/);f.dispose();
+  }
+});
+
+test('creation secrets and late replies retire on identity, CSRF, role, visibility, forbidden response or disposal',async()=>{
+  for(const change of ['identity','csrf','role','hidden','403','dispose']){
+    let current=session({admin:true}),finish;const f=fixture(path=>path.endsWith('/session')?response(current):new Promise(resolve=>finish=resolve),{members:()=>response(creationPage())});await settle();
+    f.get('member-username').value='new.member';f.get('member-password').value='Synthetic-password';f.get('member-create').emit('submit');
+    if(change==='dispose')f.dispose();else if(change==='hidden')f.visibility(true);else if(change!=='403'){current=session(change==='identity'?{admin:true,account:{sub:'other'}}:change==='csrf'?{admin:true,csrf:'other'}:{admin:false});f.click('refresh');await settle();}
+    finish(change==='403'?response({error:'admin_required'},403):response(createdMember('activation_unconfirmed'),202));await settle();assert.equal(f.get('member-password').value,'');assert.equal(f.button('member-retry').hidden,true);assert.doesNotMatch(f.get('member-create-status').textContent,/账号已创建/);f.dispose();
+  }
+});
+
+test('the real creation form has accessible password controls and a valid browser username pattern',async t=>{
+  const path=require('node:path'),{pathToFileURL}=require('node:url');
+  const {Window}=await import(pathToFileURL(path.resolve('web/workbench-engine/node_modules/happy-dom/lib/index.js')).href);
+  for(const width of [390,1280]){
+  const w=new Window({url:'https://example.test/remote'});w.happyDOM.setViewport({width,height:844});t.after(()=>{w.happyDOM.abort();w.close();});w.document.write('<main></main>');
+  const style=w.document.createElement('style');style.textContent=fs.readFileSync('web/workspace/remote-account.css','utf8');w.document.head.append(style);
+  w.fetch=async path=>response(path.startsWith('/remote/api/admin/members?')?creationPage():session({admin:true}));w.eval(source);
+  const root=w.document.querySelector('main'),dispose=w.StudioAccountDevice.mount(root,{mode:'remote'});t.after(dispose);
+  for(let i=0;i<8;i++)await new Promise(resolve=>setImmediate(resolve));
+  const password=root.querySelector('[data-node="member-password"]'),username=root.querySelector('[data-node="member-username"]');
+  assert.equal(password.type,'password');assert.equal(password.autocomplete,'new-password');assert.equal(password.minLength,12);assert.match(password.closest('label').textContent,/密码/);
+  assert.equal(new RegExp(username.getAttribute('pattern'),'v').test('new.member-1'),true);assert.equal(root.querySelector('[data-node="member-create-status"]').getAttribute('aria-live'),'polite');
+  const columns=w.getComputedStyle(root.querySelector('.ce-account-member-fields')).gridTemplateColumns;assert.equal(columns,width===390?'minmax(0,1fr)':'repeat(2,minmax(0,1fr))');assert.equal(w.getComputedStyle(password).minHeight,width===390?'44px':'36px');
+  }
+});
+
+test('local partial activation sends only the subject and stale directory controls cannot write after role replacement',async()=>{
+  let current={configured:true,state:'signed_in',account:{sub:'owner'},membership:'active',admin:true},writes=0;
+  const inactive={...directoryMember(0),admin:false,membership:'inactive',account:{sub:'inactive-sub',name:'Inactive',enabled:true}};
+  const f=fixture(path=>response(path==='/api/bootstrap'?{csrf_token:'local'}:path.endsWith('/status')?{configured:true,state:'unbound'}:++writes===1?createdMember('activation_unconfirmed'):{account:createdMember('active').account,membership:'active'}),{mode:'local',accountSession:()=>current,members:()=>response(creationPage([inactive]))});await settle();
+  f.get('member-username').value='new.member';f.get('member-password').value='Synthetic-password';f.get('member-create').emit('submit');await settle();f.click('member-retry');await settle();
+  const calls=f.calls.filter(c=>c.options.method==='POST');assert.equal(calls[1].path,'/api/desktop/account/activate-member');assert.deepEqual(JSON.parse(calls[1].options.body),{sub:'created-sub'});assert.equal(calls[1].options.headers['X-Session-Client'],'panel');
+  const stale=f.get('members-list').children[0].children[2].children[1];current={...current,admin:false};f.click('refresh');await settle();current={...current,admin:true,account:{sub:'other-owner'}};f.click('refresh');await settle();stale.emit('click');await settle();assert.equal(f.calls.filter(c=>c.options.method==='POST').length,2);f.dispose();
+});
+
+test('a dropped create response never retries and a directory capability loss clears the password',async()=>{
+  let available=true;const f=fixture(path=>{if(path.endsWith('/session'))return response(session({admin:true}));throw new TypeError('synthetic network failure');},{members:()=>response({...directoryPage([]),account_creation_available:available})});await settle();
+  f.get('member-username').value='new.member';f.get('member-password').value='Synthetic-password';f.get('member-create').emit('submit');await settle();assert.match(f.get('member-create-status').textContent,/先刷新成员.*勿重复/);assert.equal(f.calls.filter(c=>c.options.method==='POST').length,1);
+  f.get('member-password').value='Replacement-password';available=false;f.click('refresh');await settle();assert.equal(f.get('member-create').hidden,true);assert.equal(f.get('member-password').value,'');f.dispose();
+});
+
+test('an unsent password is cleared when the administrator view loses its identity or visibility',async()=>{
+  for(const change of ['identity','csrf','role','hidden','focus','401','dispose']){
+    let current=session({admin:true}),expired=false;const f=fixture(()=>response(current,expired?401:200),{members:()=>response(creationPage())});await settle();f.get('member-password').value='Unsent-synthetic-password';
+    if(change==='dispose')f.dispose();else if(change==='hidden')f.visibility(true);else if(change==='focus')f.focusWindow();else{if(change==='401')expired=true;else current=session(change==='identity'?{admin:true,account:{sub:'other'}}:change==='csrf'?{admin:true,csrf:'other'}:{admin:false});f.click('refresh');}
+    await settle();assert.equal(f.get('member-password').value,'');assert.equal(f.calls.some(c=>c.options.method==='POST'),false);f.dispose();
+  }
+});
+
+test('a new creation attempt retires the previous account activation target',async()=>{
+  let writes=0;
+  const f=fixture(path=>path.endsWith('/session')?response(session({admin:true})):++writes===1?response(createdMember('activation_unconfirmed'),202):response({error:'username_exists'},409),{members:()=>response(creationPage())});
+  await settle();f.get('member-username').value='first.member';f.get('member-password').value='Synthetic-password';f.get('member-create').emit('submit');await settle();
+  assert.equal(f.button('member-retry').hidden,false);const partialLabel=f.button('member-retry').textContent;
+  f.get('member-username').value='second.member';f.get('member-password').value='Another-synthetic-password';f.get('member-create').emit('submit');await settle();
+  assert.equal(f.button('member-retry').hidden,true);f.click('member-retry');await settle();assert.equal(f.calls.filter(call=>call.options.method==='POST').length,2);assert.match(partialLabel,/new\.member/);f.dispose();
 });

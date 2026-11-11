@@ -17,6 +17,7 @@
     let admin = false, busy = false, reading = false, timer, configured = false, revokeTarget = null, composing = false;
     let localIdentity = '', localAccountConfigured = false, localAccountAuthorizing = false, localMayConfigure = false, configurationSaved = false;
     let membersOffset = 0, membersTotal = 0, membersEpoch = 0, membersReading = false, adminViewEpoch = 0;
+    let accountCreationAvailable = false, activationSubject = null;
     const membersLimit = 25;
     const pending = new Set();
     let controller = new AbortController();
@@ -30,15 +31,20 @@
         <section class="ce-account-card ce-account-setting"><div class="ce-account-card-title"><span class="ce-account-media">${icon('account')}</span><h2>账号</h2><span class="ce-account-badge" data-node="membership">读取中</span></div><div class="ce-account-body">
           <p class="ce-account-identity" data-node="account"></p>
           <form data-node="service-config" hidden><p>填写或更正服务管理员提供的地址。保存后需重新打开软件；已有绑定不能更改。</p><label>账号服务地址<input data-node="service-issuer" name="issuer" type="url" required autocomplete="off" placeholder="https://example.test/realms/example"></label><label>设备服务地址<input data-node="service-hub" name="hub_origin" type="url" required autocomplete="off" placeholder="https://example.test"></label><button class="ce-account-primary" type="submit" data-action="configure">保存服务配置</button><p data-node="service-config-status" role="status" aria-live="polite"></p></form>
-          <p data-node="login" hidden><a class="ce-account-primary" href="/oauth2/start?rd=%2Fremote">登录 / 注册账号</a></p>
-          <div data-node="local-account" hidden><button class="ce-account-primary" type="button" data-action="account-authorize">登录 / 注册账号</button><div data-node="account-grant" hidden><p>登录授权码</p><output class="ce-account-code" data-node="account-code"></output><p><a data-node="account-verification" target="_blank" rel="noopener noreferrer">打开登录授权页面 ↗</a></p></div><p data-node="account-error" role="status"></p></div>
-          <form data-node="activation" hidden><label>小组邀请码<input name="invite" required autocomplete="off" placeholder="输入收到的邀请码"></label><button class="ce-account-primary" type="submit">激活小组接入</button></form>
+          <p data-node="login" hidden><a class="ce-account-primary" href="/oauth2/start?rd=%2Fremote">登录账号</a></p>
+          <div data-node="local-account" hidden><button class="ce-account-primary" type="button" data-action="account-authorize">登录账号</button><div data-node="account-grant" hidden><p>登录授权码</p><output class="ce-account-code" data-node="account-code"></output><p><a data-node="account-verification" target="_blank" rel="noopener noreferrer">打开登录授权页面 ↗</a></p></div><p data-node="account-error" role="status"></p><p>退出账号不会撤销电脑连接，本地项目继续保留。首次绑定后如需重新打开软件，请先正常结束正在运行的工作。</p></div>
+          <form data-node="activation" hidden><p>账号尚未开通，请联系管理员。自行部署的旧邀请制仍可填写邀请码。</p><label>小组邀请码<input name="invite" required autocomplete="off" placeholder="输入收到的邀请码"></label><button class="ce-account-primary" type="submit">激活小组接入</button></form>
           <button type="button" data-action="logout" hidden>退出账号</button>
         </div></section>
         <section class="ce-account-card ce-account-setting"><div class="ce-account-card-title"><span class="ce-account-media">${icon('computer')}</span><h2 data-node="device-name">电脑接入</h2><span class="ce-account-badge" data-node="device-state">读取中</span></div><div class="ce-account-body"><p data-node="device-help"></p><p data-node="device-error" role="status"></p><div data-node="local-actions" hidden><p data-node="local-help"></p><button class="ce-account-primary" type="button" data-action="authorize">连接这台电脑</button><div data-node="grant" hidden><p>电脑授权码</p><output class="ce-account-code" data-node="code"></output><p><a data-node="verification" target="_blank" rel="noopener noreferrer">打开电脑授权页面 ↗</a></p></div><button class="ce-account-primary" type="button" data-action="confirm" hidden>确认绑定这台电脑</button></div><p><a class="ce-account-primary" data-node="open" href="/studio" hidden>进入工作台 →</a></p><div class="ce-account-danger-zone" data-node="revoke-area" hidden><button class="ce-account-danger" type="button" data-action="revoke">撤销电脑连接</button></div></div></section>
       </div>
       <section class="ce-account-card ce-account-members" data-node="invitations" hidden>
         <div class="ce-account-card-title"><span class="ce-account-media">${icon('members')}</span><h2 data-node="members-title">成员</h2><button type="button" data-action="invitation">邀请成员</button></div>
+        <form class="ce-account-member-create" data-node="member-create" hidden>
+          <h3>创建普通账号</h3><p>创建后将账号和密码私下交给本人；不会授予管理员权限，也不会发送邮件。</p>
+          <fieldset data-node="member-create-fields"><div class="ce-account-member-fields"><label>用户名<input data-node="member-username" name="username" type="text" required minlength="3" maxlength="64" pattern="[A-Za-z0-9][A-Za-z0-9._\\-]{2,63}" autocomplete="off" autocapitalize="none" spellcheck="false"></label><label>初始密码（至少 12 个字符）<input data-node="member-password" name="password" type="password" required minlength="12" maxlength="1024" autocomplete="new-password"></label></div><button class="ce-account-primary" type="submit" data-action="member-create">创建并开通账号</button></fieldset>
+          <p data-node="member-create-status" role="status" aria-live="polite"></p><button type="button" data-action="member-retry" hidden>重试开通账号</button>
+        </form>
         <p data-node="invitation-result" hidden><output class="ce-account-code" data-node="invitation-code"></output><br>24 小时内有效，仅可使用一次。</p><p data-node="members-status" role="status" aria-live="polite"></p>
         <div class="ce-account-members-wrap" data-node="members-table" hidden><table class="ce-account-members-table"><thead><tr><th scope="col">成员</th><th scope="col">角色</th><th scope="col">成员状态</th><th scope="col">电脑</th><th scope="col">注册时间</th></tr></thead><tbody data-node="members-list"></tbody></table></div>
         <nav class="ce-account-pagination" data-node="members-pages" aria-label="成员分页" hidden><button type="button" data-action="members-previous" aria-label="上一页" title="上一页"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m15 5-7 7 7 7"/></svg></button><span data-node="members-page"></span><button type="button" data-action="members-next" aria-label="下一页" title="下一页"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg></button></nav>
@@ -51,8 +57,14 @@
     const dialog = $('revoke-dialog');
     function on(node, event, handler) { node.addEventListener(event, handler); listeners.push(() => node.removeEventListener(event, handler)); }
     function clearInvitation() { $('invitation-code').textContent = ''; $('invitation-result').hidden = true; }
+    function clearCreation() {
+      accountCreationAvailable = false; activationSubject = null;
+      $('member-password').value = $('member-username').value = ''; $('member-create-status').textContent = '';
+      $('member-create').hidden = action('member-retry').hidden = true;
+    }
     function clearMembers() {
       membersEpoch++; membersOffset = membersTotal = 0; membersReading = false;
+      clearCreation();
       $('members-list').replaceChildren(); $('members-table').hidden = $('members-pages').hidden = true;
       $('members-title').textContent = '成员'; $('members-status').textContent = '';
     }
@@ -108,8 +120,11 @@
       try { value = await response.json(); } catch { throw new Error('账号服务暂不可用，请稍后重试。'); }
       if (disposed || mine !== generation) return null;
       if (!response.ok) {
+        const memberWrite = ['/remote/api/admin/members','/remote/api/admin/members/activate','/api/desktop/account/create-member','/api/desktop/account/activate-member'].includes(path);
+        const memberCode = value.reason || value.error;
+        const creationError = memberWrite && ({username_exists:'用户名已存在，请刷新成员核对；不会修改原账号或密码。',account_input_rejected:'用户名或密码不符合要求，请检查后重新填写。',account_creation_unknown:'账号创建结果未确认，请先刷新成员核对，勿重复创建；如已存在，可开通该账号。',account_creation_unavailable:'账号创建服务不可用，请联系服务管理员。',account_not_found:'未找到该账号，请刷新成员核对。',account_lookup_unavailable:'无法核对该账号，请刷新后重试开通。'})[memberCode];
         const memberError = (path.startsWith('/remote/api/admin/members?') || path.startsWith('/api/desktop/account/members?')) && ({member_directory_not_configured:'成员目录未配置。',member_directory_unavailable:'成员列表暂时不可用，请刷新重试。'})[value.error];
-        const failure = new Error(memberError || (remote ? '请求未成功，请刷新状态后重试。' : (value.reason || '本机连接不可用，请重试。')));
+        const failure = new Error(creationError || memberError || (memberWrite || remote ? '请求未成功，请刷新状态后重试。' : (value.reason || '本机连接不可用，请重试。')));
         failure.status = response.status; throw failure;
       }
       return value;
@@ -152,11 +167,19 @@
               content.className = 'ce-account-badge'; content.dataset.tone = 'neutral';
             }
             cell.append(content);
+            if (index === 2 && value.account_creation_available === true && member.account?.enabled === true && member.membership === 'inactive' && member.admin !== true) {
+              const activate = scope.document.createElement('button'), view = adminViewEpoch;
+              activate.type = 'button'; activate.className = 'ce-account-member-activate'; activate.textContent = '开通账号'; activate.setAttribute('aria-label', '开通账号：' + (member.account.name || '未命名成员'));
+              activate.addEventListener('click', () => { void writeMember(member.account.sub, view); }); cell.append(activate);
+            }
             cell.dataset.label = ['成员','角色','成员状态','电脑','注册时间'][index]; row.append(cell);
           }
           return row;
         });
         membersOffset = value.offset; membersTotal = value.total;
+        accountCreationAvailable = value.account_creation_available === true;
+        $('member-create').hidden = !accountCreationAvailable;
+        if (!accountCreationAvailable) clearCreation();
         $('members-list').replaceChildren(...rows); $('members-title').textContent = `成员 · ${membersTotal}`;
         $('members-status').textContent = rows.length ? (value.source === 'hub_members' ? '成员目录未配置，仅显示已激活或已停用的成员。' : '') : '暂无注册成员。';
         $('members-table').hidden = !rows.length; $('members-pages').hidden = membersTotal <= membersLimit;
@@ -164,12 +187,45 @@
       } catch (failure) {
         if (disposed || mine !== generation || epoch !== membersEpoch || !admin || requestCsrf !== csrf) return;
         if (failure.status === 403) { adminViewEpoch++; clearMembers(); clearInvitation(); $('invitations').hidden = true; error(failure); }
-        else { $('members-status').textContent = failure.message; $('members-status').dataset.tone = 'error'; }
+        else { clearCreation(); $('members-status').textContent = failure.message; $('members-status').dataset.tone = 'error'; }
       } finally {
         if (!disposed && epoch === membersEpoch) {
           membersReading = false;
           action('members-previous').disabled = membersOffset === 0;
           action('members-next').disabled = membersOffset + membersLimit >= membersTotal;
+        }
+      }
+    }
+    async function writeMember(sub = null, view = adminViewEpoch) {
+      if (disposed || !admin || !accountCreationAvailable || !csrf || reading || membersReading || scope.document.hidden || view !== adminViewEpoch || busy || pending.has('member-write')) return;
+      if (!sub) { activationSubject = null; action('member-retry').hidden = true; }
+      const username = $('member-username').value.trim(), password = $('member-password').value;
+      if (!sub && (!/^[A-Za-z0-9][A-Za-z0-9._-]{2,63}$/.test(username) || typeof password !== 'string' || password.length < 12 || password.length > 1024)) {
+        $('member-create-status').textContent = '请填写 3–64 位英文字母、数字或 ._- 用户名，以及至少 12 个字符的密码。'; $('member-create-status').dataset.tone = 'error'; return;
+      }
+      const mine = generation, requestCsrf = csrf;
+      pending.add('member-write'); busy = true;
+      $('member-create-fields').disabled = action('member-create').disabled = action('member-retry').disabled = true;
+      $('member-password').value = ''; $('member-create-status').textContent = sub ? '正在开通账号…' : '正在创建账号…';
+      try {
+        const path = remote ? '/remote/api/admin/members' + (sub ? '/activate' : '') : '/api/desktop/account/' + (sub ? 'activate-member' : 'create-member');
+        const value = await request(path, sub ? {sub} : {username, password});
+        if (!value || disposed || mine !== generation || requestCsrf !== csrf || view !== adminViewEpoch || !admin || scope.document.hidden) return;
+        if (typeof value.account?.sub !== 'string' || !value.account.sub || value.account.enabled !== true || (sub ? value.account.sub !== sub : value.created !== true) || !['active','activation_unconfirmed'].includes(value.membership)) throw new Error('账号操作结果未确认，请先刷新成员核对，勿重复创建。');
+        activationSubject = value.membership === 'activation_unconfirmed' ? value.account.sub : null;
+        action('member-retry').hidden = !activationSubject;
+        if (activationSubject) action('member-retry').textContent = '重试开通账号：' + (value.account.name || value.account.sub);
+        $('member-create-status').textContent = activationSubject ? '账号已创建，但开通未确认。请重试开通账号，无需再次提交密码。' : sub ? '账号已开通。' : '账号已创建并已开通，请私下交付给本人。';
+        $('member-create-status').dataset.tone = activationSubject ? 'warning' : 'success';
+        void loadMembers(0);
+      } catch (failure) {
+        if (disposed || mine !== generation || requestCsrf !== csrf || view !== adminViewEpoch || !admin || scope.document.hidden) return;
+        if ([401,403].includes(failure.status)) { adminViewEpoch++; clearMembers(); clearInvitation(); $('invitations').hidden = true; error(failure); }
+        else { $('member-create-status').textContent = failure.status ? failure.message : sub ? '开通结果未确认，请刷新成员核对后重试开通。' : '账号创建结果未确认，请先刷新成员核对，勿重复创建。'; $('member-create-status').dataset.tone = 'error'; }
+      } finally {
+        if (!disposed && mine === generation) {
+          pending.delete('member-write'); busy = pending.size > 0;
+          $('member-create-fields').disabled = action('member-create').disabled = action('member-retry').disabled = false;
         }
       }
     }
@@ -193,7 +249,7 @@
       $('device-name').textContent = device?.name || '电脑接入';
       $('device-state').textContent = device ? (remoteStates[device.state] || '状态未知') : '尚未绑定';
       $('device-state').dataset.tone = connectionTone(device?.state);
-      $('device-help').textContent = !device ? (value.membership === 'active' ? '请在电脑端登录账号并确认绑定。' : '激活小组接入后，在电脑端登录账号并确认绑定。') : device.state === 'offline' ? '请确认电脑已联网、未休眠，并保持软件运行。连接恢复后，此页会自动更新。' : '';
+      $('device-help').textContent = !device ? (value.membership === 'active' ? '请在电脑端登录账号并确认绑定。' : '请联系管理员开通账号，然后在电脑端登录并确认绑定。') : device.state === 'offline' ? '请确认电脑已联网、未休眠，并保持软件运行。连接恢复后，此页会自动更新。' : '';
       $('open').hidden = device?.state !== 'online'; $('revoke-area').hidden = !device || device.state === 'revoked';
       if (admin && (readMembers || roleChanged)) void loadMembers();
     }
@@ -206,10 +262,10 @@
       $('device-state').textContent = remoteStates[value.state] || ({unbound:'尚未绑定',authorizing:'授权中',awaiting_local_confirmation:'等待确认'}[value.state] || '未连接');
       $('device-state').dataset.tone = connectionTone(value.state);
       $('device-help').textContent = configured ? '' : configurationSaved ? '服务配置已保存，重新打开软件后连接电脑。' : '请先填写账号和设备服务地址，再连接这台电脑。';
-      $('device-error').textContent = ({expired_token:'电脑授权已过期，请重新连接这台电脑。',access_denied:'电脑授权已取消，可重新连接。',remote_membership_required:'请先登录账号，填写邀请码激活小组接入，再连接这台电脑。',remote_network_unavailable:'暂时无法连接服务，请检查网络后重试。',device_already_bound:'此账号已绑定另一台电脑，请先在浏览器账号页撤销原连接。',remote_authorization_required:'电脑授权已失效，请重新连接并核对账号。',remote_identity_changed:'账号登录状态已变化，请重新连接电脑并核对账号。',account_login_required:'请先登录账号，再连接这台电脑。'})[value.code] || '';
+      $('device-error').textContent = ({expired_token:'电脑授权已过期，请重新连接这台电脑。',access_denied:'电脑授权已取消，可重新连接。',remote_membership_required:'账号尚未开通，请联系管理员后再连接这台电脑。',remote_disconnect_required:'这台电脑仍有原账号的连接，请先撤销旧连接；本地项目继续保留。',remote_network_unavailable:'暂时无法连接服务，请检查网络后重试。',device_already_bound:'此账号已绑定另一台电脑，请先在浏览器账号页撤销原连接。',remote_authorization_required:'电脑授权已失效，请重新连接并核对账号。',remote_identity_changed:'账号登录状态已变化，请重新连接电脑并核对账号。',account_login_required:'请先登录账号，再连接这台电脑。'})[value.code] || '';
       action('authorize').disabled = !configured || value.state === 'authorizing';
       action('authorize').hidden = !configured || value.state === 'awaiting_local_confirmation';
-      action('authorize').textContent = value.state === 'authorizing' ? '授权中' : ['online','offline'].includes(value.state) ? '重新连接' : '登录 / 注册账号';
+      action('authorize').textContent = value.state === 'authorizing' ? '授权中' : ['online','offline'].includes(value.state) ? '重新连接' : '连接这台电脑';
       action('confirm').hidden = value.state !== 'awaiting_local_confirmation';
       action('confirm').disabled = !configured;
       action('confirm').textContent = value.operation === 'recover' ? '确认恢复这台电脑的连接' : '确认绑定这台电脑';
@@ -300,6 +356,8 @@
     on(scope, 'focus', recheckAdminView);
     on(action('members-previous'), 'click', () => { if (!membersReading && membersOffset > 0) void loadMembers(membersOffset - membersLimit); });
     on(action('members-next'), 'click', () => { if (!membersReading && membersOffset + membersLimit < membersTotal) void loadMembers(membersOffset + membersLimit); });
+    on($('member-create'), 'submit', event => { event.preventDefault(); void writeMember(); });
+    on(action('member-retry'), 'click', () => { if (activationSubject) void writeMember(activationSubject); });
     on($('activation'), 'submit', event => { event.preventDefault(); void mutate('activate', {invite: new FormData(event.currentTarget).get('invite')}); });
     on($('service-config'), 'submit', async event => {
       event.preventDefault();
@@ -350,6 +408,7 @@
     }
     function dispose() {
       if (disposed) return; disposed = true; ++generation; ++membersEpoch; csrf = ''; account = device = null;
+      clearCreation();
       controller.abort(); scope.clearTimeout(timer); unsubscribe();
       for (const remove of listeners) remove();
       if (dialog.open) dialog.close(); container.replaceChildren();
