@@ -63,7 +63,7 @@ class GitHubFixture:
         if method == 'PATCH' and path == 'releases/42':
             self.mutations.append('publish')
             self.release.update(body)
-            self.release['html_url'] = 'https://github.com/example/project/releases/tag/v0.1.0a2'
+            self.release['html_url'] = 'https://github.com/example/project/releases/tag/' + self.plan['tag']
             return copy.deepcopy(self.release)
         if method == 'GET' and path == 'releases/42':
             return copy.deepcopy(self.release)
@@ -155,6 +155,7 @@ class PublishingTests(unittest.TestCase):
         self.assertEqual(self.run_stage('publish', 'wrong-hash')['status'], 'failed')
         self.assertEqual(self.client.mutations, before)
 
+
     def test_bad_download_blocks_publication_and_keeps_draft(self):
         self.client.bad_download = True
         self.assertEqual(self.run_stage('draft', 'bad')['status'], 'failed')
@@ -185,3 +186,39 @@ class PublishingTests(unittest.TestCase):
         before = list(self.client.mutations)
         self.assertEqual(self.run_stage('publish', 'changed')['status'], 'failed')
         self.assertEqual(self.client.mutations, before)
+
+
+class DeliveryIntegrationTests(unittest.TestCase):
+    def test_accepted_bundle_reaches_one_notification_without_mocking_local_validation(self):
+        from tests.backend import test_release_bundle
+        from tools.packaging import release_notify
+        fixture = test_release_bundle.BundleTests()
+        fixture.setUp()
+        self.addCleanup(fixture.doCleanups)
+        plan = fixture.prepare()
+        plan_path = fixture.output / 'publication.json'
+        evidence = fixture.root / 'content-review.md'
+        evidence.write_text('Synthetic reviewed public fixture.')
+        review_path = fixture.root / 'publication-review.json'
+        review_path.write_text(json.dumps({'schema': 1, 'decision': 'accepted', 'reviewer': 'fixture reviewer',
+            'plan_sha256': publish.sha256(plan_path), 'evidence': {'path': str(evidence), 'sha256': publish.sha256(evidence)}}))
+        client = GitHubFixture(plan, fixture.output / 'public')
+        draft = publish.promote(plan_path, review_path, 'draft', fixture.root / 'draft', client)
+        self.assertEqual(draft['status'], 'draft-verified')
+        event = publish.promote(plan_path, review_path, 'publish', fixture.root / 'published', client)
+        self.assertEqual(event['status'], 'published-verified')
+        config = {'repository': 'example/project', 'target': 'oc_fixture', 'account': 'fixture',
+                  'state_dir': str(fixture.root / 'notifications'), 'openclaw_command': ['fixture-cli']}
+        message = 'Verified fixture release\n' + event['release_url']
+        calls = []
+        def get(repository, path):
+            return client.listing(path) if '/assets?' in path else client.api('GET', path)
+        def run(argv, **kwargs):
+            calls.append(argv)
+            response = {'action': 'send', 'channel': 'feishu', 'dryRun': False, 'handledBy': 'plugin',
+                        'messageId': 'om_fixture', 'payload': {'ok': True, 'chatId': 'oc_fixture', 'messageId': 'om_fixture'}}
+            return subprocess.CompletedProcess(argv, 0, json.dumps(response), '')
+        for _ in range(2):
+            result = release_notify.execute('send', config, event, message, get=get, run=run)
+            self.assertEqual(result['status'], 'sent')
+        self.assertEqual(len(calls), 1)
