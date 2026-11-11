@@ -27,7 +27,6 @@ node_modules/
 !/docs/architecture/
 /docs/architecture/*
 !/docs/architecture/architecture.md
-!/docs/architecture/workbench-contract.md
 !/docs/guides/
 /docs/guides/*
 !/docs/guides/usage.md

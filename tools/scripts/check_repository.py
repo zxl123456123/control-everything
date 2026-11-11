@@ -19,10 +19,11 @@ MEDIA = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".ico", ".bmp",
          ".mp4", ".mov", ".webm", ".avi", ".mp3", ".wav", ".ogg", ".woff", ".woff2"}
 PRIVATE_NAMES = {"progress-registry.json", "progress-manual.json", "progress-todos.json"}
 LEGACY_PUBLIC_DOCS = {"docs/architecture.md", "docs/usage.md", "docs/integrations.md", "docs/windows.md",
-                      "docs/workbench-contract.md", "docs/EMBEDDING.md", "docs/PETS_INTEGRATION.md"}
+                      "docs/workbench-contract.md", "docs/architecture/workbench-contract.md",
+                      "docs/EMBEDDING.md", "docs/PETS_INTEGRATION.md"}
 PUBLIC_DOCS = {"docs/README.md", "docs/architecture/architecture.md", "docs/guides/usage.md", "docs/guides/integrations.md", "docs/guides/windows.md",
                "docs/guides/development-files.md",
-               "docs/architecture/workbench-contract.md", "docs/guides/EMBEDDING.md", "docs/guides/PETS_INTEGRATION.md",
+               "docs/guides/EMBEDDING.md", "docs/guides/PETS_INTEGRATION.md",
                "docs/examples/pets/naidragon-embed.html", "docs/examples/pets/naidragon-embed.css", "docs/examples/pets/naidragon-embed.js",
                "docs/examples/integrations/codex.toml.example",
                "docs/examples/integrations/integration-settings.example.json",

@@ -14418,29 +14418,11 @@
       "reason": "preserved_internal_source_layout"
     },
     {
-      "path": "mobile/issue-5049-unresponsive-session-findings.md",
-      "source_path": "mobile/issue-5049-unresponsive-session-findings.md",
-      "git_blob": "6440e1c990c42a3a751338e674e76b12c285a37c",
-      "sha256": "b4d6d438edcbd5530cc47f580f2616a3e921912912be57f15ff362e7b5f54a1e",
-      "bytes": 5078,
-      "kind": "source",
-      "reason": "preserved_internal_source_layout"
-    },
-    {
       "path": "mobile/metro.config.js",
       "source_path": "mobile/metro.config.js",
       "git_blob": "d3b7695e3ba71dce59eacf81e562e00da90e47ed",
       "sha256": "eb0a1d26a7741108bae7d9370ed9372686c66e152658ee53ae331090c2209ba7",
       "bytes": 512,
-      "kind": "source",
-      "reason": "preserved_internal_source_layout"
-    },
-    {
-      "path": "mobile/mobile-terminal-direct-input-default.md",
-      "source_path": "mobile/mobile-terminal-direct-input-default.md",
-      "git_blob": "009d4653063d7d6089b6ae12a0ed323d34b2d999",
-      "sha256": "ee532e84d47c1fda096bf208838501e566b23d69a6365e36f70b6e3fde2fb16b",
-      "bytes": 3932,
       "kind": "source",
       "reason": "preserved_internal_source_layout"
     },

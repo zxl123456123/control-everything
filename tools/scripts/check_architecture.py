@@ -131,7 +131,7 @@ def ownership_error(value):
                 'docs/examples/pets/naidragon-embed.js',
             } else 'unknown_example_owner'
         return None if value in {'docs/README.md', 'docs/architecture/architecture.md',
-                                'docs/architecture/workbench-contract.md', 'docs/guides/usage.md',
+                                'docs/guides/usage.md',
                                 'docs/guides/integrations.md', 'docs/guides/windows.md',
                                 'docs/guides/development-files.md',
                                 'docs/guides/EMBEDDING.md', 'docs/guides/PETS_INTEGRATION.md'} else 'unknown_public_guide'

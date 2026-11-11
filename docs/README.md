@@ -7,7 +7,6 @@ Control Everything 是在本机运行的开发工作台，用于管理项目与�
 | 文档 | 内容 |
 | --- | --- |
 | [使用指南](guides/usage.md) | 内置工作台、账号与电脑接入、源码管理服务、兼容事项与接口、数据备份与恢复 |
-| [兼容事项契约与历史设计](architecture/workbench-contract.md) | 保留早期字段约定、页面与执行桥规划供追溯；不是当前页面说明或开发计划，现行接口见使用指南 |
 | [架构说明](architecture/architecture.md) | 组件职责、目录归属、数据流与扩展边界 |
 | [可选接入](guides/integrations.md) | 远端会话、终端、启动器与只读 MCP |
 | [Windows 安装与维护](guides/windows.md) | 安装、升级、回退、卸载；[每次新 EXE 的构建与发布流水线](guides/windows.md#构建与技术预发布) |
