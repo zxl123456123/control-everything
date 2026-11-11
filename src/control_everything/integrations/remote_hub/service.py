@@ -5,17 +5,19 @@ import hmac
 import json
 import re
 import secrets
+import sqlite3
 import threading
 from urllib.parse import parse_qs, urlsplit
 
-from .identity import HubError, public_key_fingerprint
+from .identity import HubError, Identity, public_key_fingerprint
+from .provisioning import validate_new_account
 from .sessions import BrowserSessions
 from .store import ONLINE_WINDOW, RECOVERABLE, public_device
 
 
 class RemoteHubService:
     def __init__(self, store, identities, verifier, provisioner, *, public_origin, route_proof,
-                 ssh_host, ssh_host_key, ssh_port=2223, admin_subjects=(), channel_probe=None, user_directory=None,
+                 ssh_host, ssh_host_key, ssh_port=2223, admin_subjects=(), channel_probe=None, user_directory=None, user_provisioning=None,
                  static_paths=(), document_paths=("/studio", "/workspace", "/workspace-admin", "/news", "/sessions", "/progress")):
         parsed = urlsplit(public_origin)
         if parsed.scheme != "https" or parsed.netloc != parsed.hostname or parsed.path or not route_proof:
@@ -25,6 +27,7 @@ class RemoteHubService:
         self.ssh_host, self.ssh_host_key, self.ssh_port = ssh_host, ssh_host_key, ssh_port
         self.admin_subjects = frozenset(admin_subjects)
         self.user_directory = user_directory
+        self.user_provisioning = user_provisioning
         self.sessions = BrowserSessions(store, public_origin)
         self.channel_probe = channel_probe
         self.static_paths, self.document_paths = frozenset(static_paths), frozenset(document_paths)
@@ -116,10 +119,44 @@ class RemoteHubService:
                     current["state"] = "offline"
                 items.append({"account": account, "membership": member[0] if member else "inactive",
                               "admin": self._admin_check(db, *owner), "device": current})
-        result = {"items": items, "total": total, "limit": limit, "offset": offset}
+        result = {"items": items, "total": total, "limit": limit, "offset": offset,
+                  "account_creation_available": self.user_provisioning is not None}
         if self.user_directory is None:
             result["source"] = "hub_members"
         return result
+
+    def _require_account_administrator(self, identity):
+        if not self.is_admin(identity):
+            raise HubError("admin_required", 403)
+        self.require_member(identity)
+        if self.user_provisioning is None:
+            raise HubError("account_creation_unavailable", 503)
+        self.limit((identity.issuer, identity.sub, "account-administration"), 10)
+
+    def admin_create_member(self, identity, username, password):
+        self._require_account_administrator(identity)
+        validate_new_account(username, password)
+        account = self.user_provisioning.create(username, password)
+        member = Identity(self.user_provisioning.issuer, account["sub"], "", 0)
+        try:
+            administrator = self.is_admin(member)
+            if not administrator:
+                self.store.activate_member(member)
+        except (HubError, OSError, sqlite3.Error):
+            # The identity provider has committed. Retry only membership activation.
+            return {"account": account, "created": True, "membership": "activation_unconfirmed"}
+        if administrator:
+            raise HubError("ordinary_member_required", 403)
+        return {"account": account, "created": True, "membership": "active"}
+
+    def admin_activate_member(self, identity, sub):
+        self._require_account_administrator(identity)
+        account = self.user_provisioning.get_user(sub)
+        member = Identity(self.user_provisioning.issuer, account["sub"], "", 0)
+        if account.get("enabled") is not True or self.is_admin(member):
+            raise HubError("ordinary_member_required", 403)
+        self.store.activate_member(member)
+        return {"account": account, "membership": "active"}
 
     @staticmethod
     def _hub_members(db, issuer, limit, offset):

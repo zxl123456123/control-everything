@@ -45,6 +45,84 @@ class RemoteHubHTTPTests(unittest.TestCase):
         response = connection.getresponse()
         return response.status, json.loads(response.read()), dict(response.getheaders())
 
+    def member_administration(self, *, browser=False):
+        self.hub.admin_subjects = frozenset([(A.issuer, A.sub)])
+        provider = self.hub.user_provisioning = Mock(issuer=A.issuer)
+        provider.create.return_value = provider.get_user.return_value = {
+            "sub": "synthetic-new-member", "name": "new-member", "enabled": True}
+        if not browser:
+            return provider, {"Authorization": "Bearer synthetic-access-token", "Content-Type": "application/json"}
+        headers = {"X-Auth-Request-Access-Token": "synthetic-access-token", "X-Auth-Request-User": A.sub,
+                   "X-CE-Route-Proof": self.hub.route_proof, "Content-Type": "application/json"}
+        _, session, extra = self.request("GET", "/remote/api/session", headers=headers)
+        headers.update({"Cookie": extra["Set-Cookie"].split(";", 1)[0], "X-CE-CSRF": session["csrf"],
+                        "Origin": self.hub.public_origin})
+        return provider, headers
+
+    def test_create_member_browser_requires_real_admin_session_csrf_and_origin(self):
+        provider, headers = self.member_administration(browser=True)
+        path = "/remote/api/admin/members"
+        body = json.dumps({"username": "new-member", "password": "Synthetic-password-123"})
+        for changes in ({"Cookie": ""}, {"X-CE-CSRF": "wrong"}, {"Origin": "null"},
+                        {"Origin": "https://elsewhere.example.test"}, {"X-CE-Route-Proof": "forged"},
+                        {"X-Auth-Request-User": "forged-admin"}):
+            with self.subTest(changes=changes):
+                self.assertIn(self.request("POST", path, body, {**headers, **changes})[0], (401, 403))
+        missing_origin = {key: value for key, value in headers.items() if key != "Origin"}
+        self.assertEqual(self.request("POST", path, body, missing_origin)[0], 403)
+        self.hub.admin_subjects = frozenset()
+        self.assertEqual(self.request("POST", path, body, {**headers, "X-Admin": "true"})[0], 403)
+        provider.create.assert_not_called()
+        self.hub.admin_subjects = frozenset([(A.issuer, A.sub)])
+        status, result, response_headers = self.request("POST", path, body, headers)
+        self.assertEqual((status, result["membership"]), (201, "active"))
+        provider.create.assert_called_once_with("new-member", "Synthetic-password-123")
+        self.assertNotIn("Synthetic-password-123", str(result))
+        self.assertEqual(response_headers["Cache-Control"], "no-store")
+
+    def test_create_member_desktop_uses_bearer_not_cookie_or_forged_admin(self):
+        provider, headers = self.member_administration()
+        path = "/remote/desktop/admin/members"
+        body = json.dumps({"username": "new-member", "password": "Synthetic-password-123"})
+        self.assertEqual(self.request("POST", path, body, {"Content-Type": "application/json", "Cookie": "forged", "X-Admin": "true"})[0], 401)
+        self.hub.admin_subjects = frozenset()
+        self.assertEqual(self.request("POST", path, body, {**headers, "X-Admin": "true"})[0], 403)
+        provider.create.assert_not_called()
+        self.hub.admin_subjects = frozenset([(A.issuer, A.sub)])
+        self.assertEqual(self.request("POST", path, body, headers)[0], 201)
+        provider.create.assert_called_once()
+
+    def test_member_mutations_reject_roles_queries_and_oversized_frames(self):
+        for browser, prefix in ((False, "/remote/desktop"), (True, "/remote/api")):
+            provider, headers = self.member_administration(browser=browser)
+            path = prefix + "/admin/members"
+            body = {"username": "new-member", "password": "Synthetic-password-123"}
+            for fields in ({**body, "roles": ["admin"]}, {"username": "new-member"}, {**body, "enabled": True}):
+                self.assertEqual(self.request("POST", path, json.dumps(fields), headers)[0], 400)
+            self.assertEqual(self.request("POST", path + "?limit=25", json.dumps(body), headers)[0], 400)
+            self.assertEqual(self.request("POST", path + "?", json.dumps(body), headers)[0], 400)
+            self.assertEqual(self.request("POST", path + "/activate?sub=other", '{}', headers)[0], 400)
+            self.assertEqual(self.request("POST", path + "/activate", json.dumps({"sub": "member", "password": "forged"}), headers)[0], 400)
+            self.assertEqual(self.request("POST", path, json.dumps({**body, "password": "x" * 16384}), headers)[0], 413)
+            provider.create.assert_not_called()
+            provider.get_user.assert_not_called()
+
+    def test_partial_create_returns_accepted_then_explicit_activation_without_recreating(self):
+        for browser, prefix in ((False, "/remote/desktop"), (True, "/remote/api")):
+            provider, headers = self.member_administration(browser=browser)
+            activate = self.hub.store.activate_member
+            self.hub.store.activate_member = Mock(side_effect=OSError("synthetic-database-unavailable"))
+            status, result, _ = self.request("POST", prefix + "/admin/members", json.dumps({
+                "username": "new-member", "password": "Synthetic-password-123"}), headers)
+            self.assertEqual((status, result["membership"], result["created"]), (202, "activation_unconfirmed", True))
+            self.assertNotIn("Synthetic-password-123", str(result))
+            self.hub.store.activate_member = activate
+            status, restored, _ = self.request("POST", prefix + "/admin/members/activate", json.dumps({
+                "sub": result["account"]["sub"]}), headers)
+            self.assertEqual((status, restored["membership"]), (200, "active"))
+            provider.create.assert_called_once()
+            provider.get_user.assert_called_once_with("synthetic-new-member")
+
     def test_desktop_account_directory_requires_bearer_admin_and_strict_page(self):
         headers = {"Authorization": "Bearer synthetic-access-token"}
         directory = self.hub.user_directory = Mock(issuer=A.issuer)
@@ -105,7 +183,7 @@ class RemoteHubHTTPTests(unittest.TestCase):
         directory.page.assert_not_called()
         self.assertEqual(self.request("GET", "/remote/api/session?limit=25", headers=headers)[0], 400)
         post_headers = {**headers, "Content-Type": "application/json"}
-        self.assertEqual(self.request("POST", path, "{}", post_headers)[0], 405)
+        self.assertEqual(self.request("POST", path, "{}", post_headers)[0], 403)
         self.assertEqual(self.request("POST", "/remote/api/invitations", "{}", post_headers)[0], 403)
         self.hub.user_directory = None
         status, body = self.request("GET", path, headers=headers)[:2]

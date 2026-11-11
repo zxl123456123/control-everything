@@ -188,6 +188,36 @@ class RemoteAccount:
             self._checked = 0
             return result
 
+    def admin_mutate(self, operation, body):
+        paths = {"create-member": "/remote/desktop/admin/members",
+                 "activate-member": "/remote/desktop/admin/members/activate"}
+        if operation not in paths:
+            raise ConnectorError("remote_endpoint_invalid")
+        with self._lock:
+            try:
+                access = self._read_identity()
+            except ConnectorError as error:
+                self._identity = None
+                self._checked = 0
+                if error.status in (400, 401, 403):
+                    self._epoch = object()
+                    self._tokens = None
+                    self.store.clear("account-oauth.json")
+                raise
+            if self._identity["admin"] is not True:
+                raise ConnectorError("admin_required", 403)
+            try:
+                result = self.peer.request("POST", paths[operation], body, access)
+            except ConnectorError as error:
+                if error.status in (401, 403):
+                    self._epoch = object()
+                    self._identity = self._tokens = None
+                    self._checked = 0
+                    self.store.clear("account-oauth.json")
+                raise
+            self._checked = 0
+            return result
+
     def logout(self):
         with self._lock:
             self._epoch = object()

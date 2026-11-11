@@ -43,6 +43,8 @@
 .ce-account .ce-account-refresh{display:grid;place-items:center;width:36px;height:36px;padding:8px;background:transparent;border-color:transparent;box-shadow:none}
 .ce-account-refresh svg{width:18px;height:18px}
 .ce-account .ce-account-members{margin-top:28px;padding:0;border:0;background:transparent}.ce-account-members-wrap{margin-top:16px;min-width:0;border:1px solid var(--account-line);border-radius:8px;overflow:hidden}
+.ce-account-member-create{padding:20px;border:1px solid var(--account-line);border-radius:8px;background:var(--account-card)}.ce-account-member-create>fieldset{border:0;padding:0;margin:16px 0 0;min-width:0}.ce-account-member-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.ce-account-member-create>h3{margin:0}.ce-account-member-create>p{margin:12px 0 0}.ce-account .ce-account-member-activate{display:block;margin-top:8px}.ce-account [data-node=member-create-status][data-tone=error]{color:var(--account-danger)}
+@media (max-width:760px){.ce-account-member-fields{grid-template-columns:minmax(0,1fr);gap:0}.ce-account-member-create{padding:16px}}
 .ce-account-members-table{width:100%;table-layout:fixed;border-collapse:collapse;text-align:left;font:inherit}
 .ce-account-members-table :is(th,td){padding:12px;vertical-align:middle;font-size:15px;line-height:24px;overflow-wrap:anywhere}
 .ce-account-members-table th{font-size:14px;font-weight:500;color:var(--account-muted);background:var(--account-soft);border-bottom:1px solid var(--account-line)}

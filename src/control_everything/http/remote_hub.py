@@ -38,7 +38,12 @@ def dispatch(service, method, uri, headers, body):
     """Return (status, JSON body, response headers); no business transitions live here."""
     parsed = urlsplit(uri)
     path = parsed.path
-    if parsed.fragment or (parsed.query and path not in ("/remote/api/admin/members", "/remote/desktop/admin/members")):
+    if parsed.fragment or (parsed.query and (method != "GET" or path not in (
+            "/remote/api/admin/members", "/remote/desktop/admin/members"))):
+        raise HubError("invalid_request_uri", 400)
+    if method == "POST" and "?" in uri and path in (
+            "/remote/api/admin/members", "/remote/api/admin/members/activate",
+            "/remote/desktop/admin/members", "/remote/desktop/admin/members/activate"):
         raise HubError("invalid_request_uri", 400)
     cookie = SimpleCookie()
     try:
@@ -66,6 +71,11 @@ def dispatch(service, method, uri, headers, body):
             return 200, service.admin_members(identity, **_pagination(parsed.query)), {}
         if method != "POST":
             raise HubError("method_not_allowed", 405)
+        if path == "/remote/desktop/admin/members":
+            result = service.admin_create_member(identity, **_fields(body, ("username", "password")))
+            return 201 if result["membership"] == "active" else 202, result, {}
+        if path == "/remote/desktop/admin/members/activate":
+            return 200, service.admin_activate_member(identity, **_fields(body, ("sub",))), {}
         if path == "/remote/desktop/invitations":
             _fields(body, ())
             return 200, service.create_invitation(identity), {}
@@ -125,15 +135,18 @@ def dispatch(service, method, uri, headers, body):
     if path == "/remote/api/session" and method == "GET":
         result, set_cookie = service.session(identity, session_cookie)
         return 200, result, {"Set-Cookie": set_cookie} if set_cookie else {}
-    if path == "/remote/api/admin/members":
-        if method != "GET":
-            raise HubError("method_not_allowed", 405)
+    if path == "/remote/api/admin/members" and method == "GET":
         _fields(body, ())
         service.sessions.validate_read(identity, session_cookie, csrf=headers.get("X-CE-CSRF", ""), origin=headers.get("Origin"))
         return 200, service.admin_members(identity, **_pagination(parsed.query)), {}
     if method != "POST":
         raise HubError("method_not_allowed", 405)
     service.sessions.validate(identity, session_cookie, csrf=headers.get("X-CE-CSRF", ""), origin=headers.get("Origin"))
+    if path == "/remote/api/admin/members":
+        result = service.admin_create_member(identity, **_fields(body, ("username", "password")))
+        return 201 if result["membership"] == "active" else 202, result, {}
+    if path == "/remote/api/admin/members/activate":
+        return 200, service.admin_activate_member(identity, **_fields(body, ("sub",))), {}
     if path == "/remote/api/invitations":
         _fields(body, ())
         return 200, service.create_invitation(identity), {}

@@ -58,7 +58,28 @@ python tools/scripts/keycloak_add_mobile_client.py --dry-run
    python tools/scripts/remote_hub_admin.py --config <private.json> activate-member --sub <id>
    ```
 
-命令只使用配置的固定 `issuer`；不接受 `--issuer`、`--account-id` 或 `--from-*`。同一用户重复执行安全，保留原 `account_id`、设备及其他账号状态；已有 `disabled` 成员会以 `member_disabled` 拒绝，不会重新启用。该操作仅开通普通成员资格，用户无需消费邀请码；不会加入 `admin_subjects`，配置管理员及其同账号身份会被拒绝。它是本地运维命令，没有新增 HTTP 写接口，用户仍须在桌面端明确绑定本人电脑。
+命令只使用配置的固定 `issuer`；不接受 `--issuer`、`--account-id` 或 `--from-*`。同一用户重复执行安全，保留原 `account_id`、设备及其他账号状态；已有 `disabled` 成员会以 `member_disabled` 拒绝，不会重新启用。该操作仅开通普通成员资格，用户无需消费邀请码；不会加入 `admin_subjects`，配置管理员及其同账号身份会被拒绝。该命令在 hub 主机执行；网页创建与补开通入口见下一节，用户仍须在桌面端明确绑定本人电脑。
+
+### 在账号页创建普通成员
+
+服务器启用发号功能后，已激活的管理员可在“账号与设备”的成员区填写用户名和初始密码，点击“创建并开通账号”。用户名为 3–64 位英文字母、数字或 `._-`，以字母或数字开头；密码至少 12 个字符，仍须符合身份服务的密码策略。成功后密码框清空，管理员将用户名和密码私下交给使用者。普通用户没有此入口，创建操作不授予平台管理员权限。
+
+发号使用独立的 Keycloak confidential service-account client，限定目标 realm 的用户管理权限（`realm-management` 的 `manage-users`），关闭浏览器、隐式及直接密码登录流程。不要复用只读成员目录客户端或使用 master 管理客户端。部署前核对 realm 默认角色、组与 required actions，确保新用户不会继承管理权限，也不被要求邮箱验证或首次改密；创建账号本身不更改这些 realm 设置。权限配置参见 [Keycloak 服务账号](https://www.keycloak.org/docs/latest/server_admin/#_service_accounts)，创建用户采用 [Admin REST API](https://www.keycloak.org/docs-api/latest/rest-api/)。
+
+无邮箱账号还需核对浏览器登录网关。oauth2-proxy 的 OIDC provider 要求其会话中的 email 字段非空，单设 `email_domains = ["*"]` 不能解决缺失字段。样例用官方 `oidc_email_claim = "preferred_username"` 读取已验证令牌中的用户名，保留 `user_id_claim = "sub"`、`prefer_email_to_user = false`；hub 仍以 issuer 和 subject 判断账号归属及成员资格。这里不发送邮件，也不编造邮箱或跳过令牌验证。依据见 [oauth2-proxy OIDC 实现](https://github.com/oauth2-proxy/oauth2-proxy/blob/v7.15.5/providers/oidc.go)与[字段校验](https://github.com/oauth2-proxy/oauth2-proxy/blob/v7.15.5/validator.go)；部署后仍须用真实无邮箱新账号验收登录。
+
+在 hub 私有配置中按需增加以下字段，填写独立服务客户端的真实值；未配置时不启用发号表单。现有 `user_directory` 继续使用自己的只读客户端，并用于核对创建结果与未开通用户。
+
+```json
+"user_provisioning": {
+  "client_id": "workbench-account-provisioning",
+  "client_secret": "REPLACE_IN_PRIVATE_FILE"
+}
+```
+
+创建与开通是两个系统中的操作。用户名已存在时只报告冲突，不改原密码。若账号已创建而成员资格尚未确认，点击“重试开通账号”，只补开通、不再次提交密码。网络超时导致创建结果未知时，先刷新成员列表核对；找到启用且待激活的普通账号后，可点击该行“开通账号”。不要用反复创建、删除或重设密码来掩盖部分成功。
+
+浏览器写入口为 `POST /remote/api/admin/members`（严格只接收 `username`、`password`）和 `POST /remote/api/admin/members/activate`（只接收 `sub`）；两者都校验当前管理员、有效成员资格、session、Origin 与 CSRF，并受限流保护。桌面端使用对应 `/remote/desktop/admin/members` 与 `/activate` Bearer 入口，本机网页再受本机 Origin/CSRF 限制。密码不返回网页、不入 hub 业务库或日志。设备连接与这些管理操作独立，仍须本人确认。
 
 这些样例不代表使用者的 hub 已部署相应命令，也不证明真实账号开通或登录已验收。项目已发布版本的部署与验证范围见[对应版本说明](https://github.com/zxl123456123/control-everything/releases/tag/v0.1.0a18)；其中仍保留新固定账号首次开通、登录到绑定电脑的完整流程未验收这一限制。
 

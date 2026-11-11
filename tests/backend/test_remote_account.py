@@ -1,6 +1,7 @@
 """Account login never enrolls a computer or sends OAuth credentials to the UI."""
 
 from copy import deepcopy
+import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
@@ -42,6 +43,9 @@ class Peer:
             return {"items": [], "total": 0, "offset": 0, "limit": 25}
         if path == "/remote/desktop/invitations":
             return {"invitation": "synthetic-invitation"}
+        if path in ("/remote/desktop/admin/members", "/remote/desktop/admin/members/activate"):
+            return {"account": {"sub": "synthetic-member", "name": "member", "enabled": True},
+                    "membership": "active"}
         raise AssertionError(path)
 
 
@@ -117,6 +121,53 @@ class AccountTests(unittest.TestCase):
         self.assertFalse(self.account.status()["admin"])
         self.assertIsNone(self.store.read("account-oauth.json", protected=True))
 
+    def test_admin_mutations_use_fixed_routes_without_persisting_or_returning_password(self):
+        self.login()
+        saved = (self.store.root / "account-oauth.json").read_bytes()
+        password = "Synthetic-member-password-123"
+        for operation, body, path in (
+                ("create-member", {"username": "member", "password": password}, "/remote/desktop/admin/members"),
+                ("activate-member", {"sub": "synthetic-member"}, "/remote/desktop/admin/members/activate")):
+            result = self.account.admin_mutate(operation, body)
+            self.assertEqual(result["membership"], "active")
+            self.assertEqual(self.peer.calls[-1], ("POST", path, body, "private-access-token"))
+            self.assertNotIn(password, str(result))
+            self.assertNotIn(password, str(self.account.status()))
+            self.assertEqual((self.store.root / "account-oauth.json").read_bytes(), saved)
+        with self.assertRaisesRegex(ConnectorError, "remote_endpoint_invalid"):
+            self.account.admin_mutate("../reset-password", {})
+
+    def test_admin_mutation_requires_current_admin_before_a_write(self):
+        self.login()
+        self.peer.admin = False
+        before = len(self.peer.calls)
+        with self.assertRaisesRegex(ConnectorError, "admin_required"):
+            self.account.admin_mutate("create-member", {"username": "member", "password": "Synthetic-password-123"})
+        self.assertEqual([call[0] for call in self.peer.calls[before:]], ["GET"])
+        self.assertFalse(self.account.status()["admin"])
+        self.peer.identity_error = ConnectorError("invalid_identity", 401)
+        with self.assertRaisesRegex(ConnectorError, "invalid_identity"):
+            self.account.admin_mutate("activate-member", {"sub": "synthetic-member"})
+        self.assertIsNone(self.store.read("account-oauth.json", protected=True))
+
+    def test_admin_write_rejection_clears_identity_but_unknown_result_never_retries(self):
+        request = self.peer.request
+        for status in (401, 403, 503):
+            self.peer.request = request
+            self.account._worker = None
+            self.login()
+            before = len(self.peer.calls)
+            def reject(method, path, body=None, token=None, **kwargs):
+                if method == "POST" and path.startswith("/remote/desktop/admin/"):
+                    self.peer.calls.append((method, path, body, token))
+                    raise ConnectorError("account_creation_unknown" if status == 503 else "admin_required", status)
+                return request(method, path, body, token, **kwargs)
+            self.peer.request = reject
+            with self.assertRaises(ConnectorError):
+                self.account.admin_mutate("create-member", {"username": "member", "password": "Synthetic-password-123"})
+            self.assertEqual(sum(call[0] == "POST" for call in self.peer.calls[before:]), 1)
+            self.assertEqual(self.store.read("account-oauth.json", protected=True) is None, status in (401, 403))
+
     def test_cross_origin_authorization_and_cancelled_late_token_are_rejected(self):
         self.peer.grant["verification_uri"] = "https://other.example.test/device"
         with self.assertRaisesRegex(ConnectorError, "remote_grant_invalid"):
@@ -179,6 +230,68 @@ class LocalAccountBoundaryTests(unittest.TestCase):
             handle_account(handler, "/api/desktop/account/members")
             handler.reject.assert_called_once_with(400, "invalid_request")
             handler.server.desktop_account.members.assert_not_called()
+
+    def test_member_creation_and_recovery_proxy_exact_fields_with_separate_limits(self):
+        from control_everything.http.workbench_remote import handle_account
+        for name, body, membership, status in (
+                ("create-member", {"username": "member", "password": "\U0001f680" * 1024}, "active", 201),
+                ("create-member", {"username": "member", "password": "Synthetic-password-123"}, "activation_unconfirmed", 202),
+                ("activate-member", {"sub": "synthetic-member"}, "active", 200)):
+            handler = self.handler()
+            handler.path = "/api/desktop/account/" + name
+            handler.read_json_body.return_value = body
+            result = {"account": {"sub": "synthetic-member"}, "membership": membership}
+            handler.server.desktop_account.admin_mutate.return_value = result
+            self.assertTrue(handle_account(handler, handler.path, write=True))
+            self.assertLessEqual(len(json.dumps(body).encode()), 16384)
+            handler.read_json_body.assert_called_once_with(max_bytes=16384, strict=True)
+            handler.server.desktop_account.admin_mutate.assert_called_once_with(name, body)
+            handler.reply.assert_called_once_with(status, result)
+        handler = self.handler()
+        handler.path = "/api/desktop/account/invitations"
+        handle_account(handler, handler.path, write=True)
+        handler.read_json_body.assert_called_once_with(max_bytes=1024, strict=True)
+
+    def test_member_proxy_rejects_origin_csrf_extra_fields_and_query_before_remote_write(self):
+        from control_everything.http.workbench_remote import handle_account
+        path = "/api/desktop/account/create-member"
+        for overrides in ({"Origin": "https://other.test"}, {"X-Session-CSRF": "wrong"},
+                          {"X-Session-Client": "stdio"}, {"X-CE-Proxy-Token": "forged"}):
+            handler = self.handler(**overrides)
+            handler.path = path
+            handler.read_json_body.return_value = {"username": "member", "password": "Synthetic-password-123"}
+            self.assertTrue(handle_account(handler, path, write=True))
+            handler.reject.assert_called_once_with(403, "local_control_required")
+            handler.server.desktop_account.admin_mutate.assert_not_called()
+        for body, query in (({"username": "member", "password": "secret", "roles": ["admin"]}, ""),
+                            ({"sub": "other"}, ""), ({"username": "member", "password": "secret"}, "?limit=1"),
+                            ({"username": "member", "password": "secret"}, "?")):
+            handler = self.handler()
+            handler.path = path + query
+            handler.read_json_body.return_value = body
+            handle_account(handler, path, write=True)
+            handler.reject.assert_called_once_with(400, "invalid_request")
+            handler.server.desktop_account.admin_mutate.assert_not_called()
+        for name in ("create-member", "activate-member"):
+            handler = self.handler()
+            handler.path = "/api/desktop/account/" + name
+            handle_account(handler, handler.path)
+            handler.reject.assert_called_once_with(405, "method_not_allowed")
+            handler.read_json_body.assert_not_called()
+            handler.server.desktop_account.admin_mutate.assert_not_called()
+
+    def test_member_proxy_uses_real_body_reader_for_oversized_requests(self):
+        from control_everything.http.gateway import PanelHandler
+        from control_everything.http.workbench_remote import handle_account
+        for name in ("create-member", "activate-member"):
+            handler = self.handler()
+            handler.path = "/api/desktop/account/" + name
+            handler.headers["Content-Type"] = "application/json"
+            handler.headers["Content-Length"] = "16385"
+            handler.read_json_body = lambda **kwargs: PanelHandler.read_json_body(handler, **kwargs)
+            handle_account(handler, handler.path, write=True)
+            handler.reject.assert_called_once_with(413, "body_too_large")
+            handler.server.desktop_account.admin_mutate.assert_not_called()
 
     def test_initial_configuration_requires_local_controls_and_an_unconfigured_account(self):
         from control_everything.http.workbench_remote import handle_account
