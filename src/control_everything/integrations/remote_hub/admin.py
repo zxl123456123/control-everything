@@ -11,6 +11,7 @@ from .provisioner import UnixProvisionerClient
 from .service import RemoteHubService
 from .store import RemoteHubStore
 from .directory import KeycloakUserDirectory
+from .provisioning import KeycloakUserProvisioning
 
 
 def validate_member_subject(sub):
@@ -39,7 +40,7 @@ def build_service(config_path):
     # The user directory and the introspection credentials are optional: without credentials access
     # tokens are verified locally against the issuer JWKS, without a directory the admin page lists
     # the hub's own members.
-    optional = {"user_directory", "introspection_client_id", "introspection_client_secret", "token_verification"}
+    optional = {"user_directory", "user_provisioning", "introspection_client_id", "introspection_client_secret", "token_verification"}
     if not required <= set(config) <= required | optional:
         raise ValueError("invalid_hub_config_fields")
     credentials = [config.get("introspection_client_id"), config.get("introspection_client_secret")]
@@ -57,10 +58,16 @@ def build_service(config_path):
         if not isinstance(values, dict) or set(values) != {"client_id", "client_secret"}:
             raise ValueError("invalid_user_directory_config")
         directory = KeycloakUserDirectory(config["issuer"], **values)
+    provisioning = None
+    if "user_provisioning" in config:
+        values = config["user_provisioning"]
+        if not isinstance(values, dict) or set(values) != {"client_id", "client_secret"}:
+            raise ValueError("invalid_user_provisioning_config")
+        provisioning = KeycloakUserProvisioning(config["issuer"], **values)
     store = RemoteHubStore(config["database"])
     return RemoteHubService(store, TokenIntrospector(config["issuer"], credentials[0], credentials[1], mode=verification),
                             SSHSignatureVerifier(config["ssh_keygen"]),
                             UnixProvisionerClient(config["provisioner_socket"]), public_origin=config["public_origin"],
                             route_proof=config["route_proof"], ssh_host=config["ssh_host"], ssh_host_key=config["ssh_host_key"],
-                            admin_subjects=admins, user_directory=directory, static_paths=config["static_paths"],
+                            admin_subjects=admins, user_directory=directory, user_provisioning=provisioning, static_paths=config["static_paths"],
                             channel_probe=DeviceChannelProbe(config["public_origin"]))
