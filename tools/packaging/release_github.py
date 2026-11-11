@@ -3,6 +3,7 @@ import argparse
 import json
 import os
 from pathlib import Path
+import shutil
 import subprocess
 import sys
 from urllib.parse import quote
@@ -93,18 +94,101 @@ def remote_assets(client, release_id, expected):
                    for row in rows), key=lambda row: row['name'])
 
 
-def verify_downloads(client, plan, expected, directory):
+def reuse_download_directory(source, run_dir, public):
+    source = Path(source)
+    require(source.is_absolute() and '..' not in source.parts, 'reuse_absolute_path_required')
+    source = no_links(source).resolve()
+    require(source.parent == run_dir.parent and source != run_dir
+            and not source.is_relative_to(public.resolve()), 'reuse_run_scope')
+    return source
+
+
+def prepare_download_reuse(source, current):
+    receipt = reference(source / 'result.json')
+    previous = read(checked_reference(receipt)['path'])
+    require(isinstance(previous, dict) and type(previous.get('schema')) is int and previous['schema'] == 1
+            and previous.get('status') == 'failed' and 'reuse_downloads' not in previous,
+            'failed_download_source_required')
+    require(all(previous.get(key) == current[key] for key in
+                ('action', 'repository', 'tag', 'commit', 'plan', 'review', 'content_review', 'assets')),
+            'reuse_identity_mismatch')
+    require(type(previous.get('release_id')) is int and previous['release_id'] > 0, 'reuse_release_required')
+    operations = previous['operations']
+    require(isinstance(operations, list) and operations
+            and all(isinstance(row, dict) and isinstance(row.get('operation'), str) for row in operations)
+            and not any(row['operation'].startswith('reuse-download:') for row in operations), 'reuse_operations')
+    downloads = [row for row in operations if row['operation'].startswith('download:')]
+    names = [row['name'] for row in current['assets']]
+    require(downloads and len(downloads) <= 2 * len(names) and operations[-1] is downloads[-1]
+            and [row['operation'] for row in downloads] == ['download:' + name for name in (names * 2)[:len(downloads)]],
+            'reuse_download_order')
+    last = downloads[-1]
+    require('exit_code' in last and all(type(row.get('exit_code')) is int and row['exit_code'] == 0 for row in downloads[:-1])
+            and ((type(last.get('exit_code')) is int and last['exit_code'] != 0
+                  and previous['errors'] == ['github_command_failed:' + last['operation']])
+                 or (last.get('exit_code') is None and previous['errors'] == ['TimeoutExpired'])),
+            'download_transport_failure_required')
+    files = []
+    for index, stage in enumerate(('downloads-before', 'downloads-public')):
+        attempted = downloads[index * len(names):(index + 1) * len(names)]
+        directory = no_links(source / stage)
+        if not attempted:
+            require(not directory.exists(), 'reuse_unexpected_stage')
+            continue
+        children = {file.name: no_links(file) for file in directory.iterdir()}
+        require(set(children).issubset(set(names[:len(attempted)]))
+                and all(file.is_file() for file in children.values()), 'reuse_download_inventory')
+        for offset, event in enumerate(attempted):
+            item, completed = current['assets'][offset], event is not last
+            if item['name'] not in children:
+                require(not completed, 'reuse_completed_download_missing')
+                continue
+            file = children[item['name']]
+            pin, size = reference(file), file.stat().st_size
+            require(not completed or (size == item['size'] and pin['sha256'] == item['sha256']),
+                    'reuse_completed_download_changed')
+            files.append({'stage': stage, 'name': item['name'], 'source': pin, 'size': size, 'reusable': completed})
+    checked_reference(receipt)
+    return {'receipt': receipt, 'release_id': previous['release_id'], 'files': files,
+            'public_stage_attempted': len(downloads) > len(names)}
+
+
+def check_download_reuse(reuse):
+    checked_reference(reuse['receipt'])
+    for row in reuse['files']:
+        source = checked_reference(row['source'])
+        require(Path(source['path']).stat().st_size == row['size'], 'reuse_source_changed')
+
+
+def verify_downloads(client, plan, expected, directory, reuse=None, remote=()):
     directory.mkdir()
+    reusable = {row['name']: row for row in reuse['files']
+                if row['reusable'] and row['stage'] == directory.name} if reuse else {}
+    digests = {row['name']: row.get('digest') for row in remote}
+    require(all(digests.get(name) == 'sha256:' + expected[name]['sha256'] for name in reusable),
+            'reuse_remote_digest_required')
     for name, item in expected.items():
-        client.download(plan['tag'], name, directory)
+        if name in reusable:
+            checked_reference(reuse['receipt'])
+            source = reusable[name]['source']
+            with no_links(Path(source['path'])).open('rb') as incoming, (directory / name).open('xb') as outgoing:
+                shutil.copyfileobj(incoming, outgoing)
+            client.events.append({'operation': 'reuse-download:' + name, 'stage': directory.name,
+                                  'exit_code': 0, 'source': source})
+            client.on_event()
+        else:
+            client.download(plan['tag'], name, directory)
         path = no_links(directory / name)
         require(path.stat().st_size == item['size'] and sha256(path) == item['sha256'], 'download_mismatch:' + name)
+    if reuse:
+        check_download_reuse(reuse)
 
 
-def promote(plan_path, review_path, action, run_dir, client=None):
+def promote(plan_path, review_path, action, run_dir, client=None, reuse_downloads_from=None):
     plan_path, run_dir = no_links(Path(plan_path)), no_links(Path(run_dir)).resolve()
     require(action in ('draft', 'publish'), 'unknown_release_action')
     require(not run_dir.is_relative_to(plan_path.parent / 'public'), 'run_inside_public')
+    reuse_source = reuse_download_directory(reuse_downloads_from, run_dir, plan_path.parent / 'public') if reuse_downloads_from else None
     run_dir.mkdir(parents=True, exist_ok=False)
     result = {'schema': 1, 'status': 'failed', 'action': action, 'operations': [], 'errors': []}
 
@@ -125,6 +209,9 @@ def promote(plan_path, review_path, action, run_dir, client=None):
                       assets=plan['assets'])
         public = plan_path.parent / 'public'
         notes = (public / 'release-notes.md').read_text(encoding='utf-8')
+        reuse = prepare_download_reuse(reuse_source, result) if reuse_source else None
+        if reuse:
+            result['reuse_downloads'] = reuse
         client = client or GitHub(plan['repository'])
         result['operations'] = client.events
         client.on_event = save
@@ -137,6 +224,9 @@ def promote(plan_path, review_path, action, run_dir, client=None):
         require(action == 'draft' or release is not None, 'verified_draft_required')
         target = tag_commit(client, plan['tag'])
         require(target in (None, plan['commit']), 'tag_commit_mismatch')
+        if reuse:
+            require(release and release['id'] == reuse['release_id'] and target == plan['commit']
+                    and (not reuse['public_stage_attempted'] or release['draft'] is False), 'reuse_release_identity')
         if target is None:
             require(action == 'draft' and (release is None or release['draft']), 'existing_tag_required')
             client.api('POST', 'git/refs', {'ref': 'refs/tags/' + plan['tag'], 'sha': plan['commit']})
@@ -152,6 +242,7 @@ def promote(plan_path, review_path, action, run_dir, client=None):
         expected = {item['name']: item for item in plan['assets']}
         rows = remote_assets(client, release['id'], expected)
         present = {row['name'] for row in rows}
+        require(not reuse or present == set(expected), 'reuse_remote_assets_incomplete')
         if present != set(expected):
             require(action == 'draft' and release['draft'], 'remote_assets_incomplete')
             for name in sorted(set(expected) - present):
@@ -159,7 +250,7 @@ def promote(plan_path, review_path, action, run_dir, client=None):
                 client.upload(plan['tag'], public / name)
         rows = remote_assets(client, release['id'], expected)
         require({row['name'] for row in rows} == set(expected), 'remote_assets_incomplete')
-        verify_downloads(client, plan, expected, run_dir / 'downloads-before')
+        verify_downloads(client, plan, expected, run_dir / 'downloads-before', reuse, rows)
         if action == 'publish' and release['draft']:
             validate_bundle(plan_path)
             require(tag_commit(client, plan['tag']) == plan['commit'], 'tag_commit_mismatch')
@@ -172,7 +263,7 @@ def promote(plan_path, review_path, action, run_dir, client=None):
         require(tag_commit(client, plan['tag']) == plan['commit'], 'final_tag_mismatch')
         result['release_url'] = final['html_url']
         if not final['draft']:
-            verify_downloads(client, plan, expected, run_dir / 'downloads-public')
+            verify_downloads(client, plan, expected, run_dir / 'downloads-public', reuse, final_rows)
             result['status'] = 'published-verified'
         else:
             require(action == 'draft', 'release_still_draft')
@@ -190,9 +281,10 @@ def main(argv=None):
     parser.add_argument('action', choices=('draft', 'publish'))
     for name in ('plan', 'review', 'run-dir'):
         parser.add_argument('--' + name, required=True, type=Path)
+    parser.add_argument('--reuse-downloads-from', type=Path, help='Reuse verified downloads from an original failed sibling run.')
     args = parser.parse_args(argv)
     try:
-        result = promote(args.plan, args.review, args.action, args.run_dir)
+        result = promote(args.plan, args.review, args.action, args.run_dir, reuse_downloads_from=args.reuse_downloads_from)
         print(json.dumps({key: result.get(key) for key in ('status', 'release_id', 'release_url', 'errors')}))
         return 0 if result['status'] in ('draft-verified', 'published-verified') else 1
     except (OSError, ValueError) as error:

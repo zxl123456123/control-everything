@@ -46,6 +46,9 @@ class GitHubFixture:
         self.events = []
         self.fail_upload = False
         self.bad_download = False
+        self.fail_download = None
+        self.downloads = []
+        self.before_download = lambda: None
 
     def api(self, method, path, body=None, missing=False):
         if path.startswith('compare/'):
@@ -80,8 +83,20 @@ class GitHubFixture:
                             'size': path.stat().st_size, 'digest': 'sha256:' + publish.sha256(path)})
 
     def download(self, tag, name, directory):
+        self.downloads.append((directory.name, name))
+        event = {'operation': 'download:' + name, 'exit_code': None}
+        self.events.append(event)
+        self.on_event()
+        self.before_download()
+        if self.fail_download == (directory.name, name):
+            (directory / name).write_bytes(b'partial')
+            event['exit_code'] = 1
+            self.on_event()
+            raise ValueError('github_command_failed:download:' + name)
         data = (self.public / name).read_bytes()
         (directory / name).write_bytes(data + b'bad' if self.bad_download else data)
+        event['exit_code'] = 0
+        self.on_event()
         for asset in self.assets:
             if asset['name'] == name:
                 asset['download_count'] = asset.get('download_count', 0) + 1
@@ -114,8 +129,128 @@ class PublishingTests(unittest.TestCase):
         self.validation.start()
         self.addCleanup(self.validation.stop)
 
-    def run_stage(self, stage, name):
-        return publish.promote(self.plan_path, self.review_path, stage, self.root / name, self.client)
+    def run_stage(self, stage, name, **options):
+        self.client.events = []
+        return publish.promote(self.plan_path, self.review_path, stage, self.root / name, self.client, **options)
+
+    def failed_download_run(self, stage='downloads-public'):
+        self.assertEqual(self.run_stage('draft', 'draft')['status'], 'draft-verified')
+        self.client.fail_download = (stage, self.plan['assets'][-1]['name'])
+        self.assertEqual(self.run_stage('publish', 'failed')['status'], 'failed')
+        self.client.fail_download = None
+        self.client.downloads.clear()
+        return self.root / 'failed'
+
+    def test_recovery_reuses_each_stage_and_redownloads_only_partial(self):
+        previous = self.failed_download_run()
+        original = {str(p.relative_to(previous)): p.read_bytes() for p in previous.rglob('*') if p.is_file()}
+        mutations = list(self.client.mutations)
+        result = self.run_stage('publish', 'resume', reuse_downloads_from=previous)
+        self.assertEqual(result['status'], 'published-verified')
+        self.assertEqual(self.client.downloads, [('downloads-public', self.plan['assets'][-1]['name'])])
+        self.assertEqual(self.client.mutations, mutations)
+        self.assertEqual(result['reuse_downloads']['receipt']['sha256'], publish.sha256(previous / 'result.json'))
+        reused = [row for row in result['operations'] if row['operation'].startswith('reuse-download:')]
+        self.assertEqual([row['stage'] for row in reused], ['downloads-before'] * 2 + ['downloads-public'])
+        self.assertEqual(original, {str(p.relative_to(previous)): p.read_bytes() for p in previous.rglob('*') if p.is_file()})
+
+    def test_recovery_never_uses_before_bytes_as_public_downloads(self):
+        previous = self.failed_download_run('downloads-before')
+        result = self.run_stage('publish', 'resume', reuse_downloads_from=previous)
+        self.assertEqual(result['status'], 'published-verified')
+        self.assertEqual(self.client.downloads, [('downloads-before', self.plan['assets'][-1]['name']),
+                         *[('downloads-public', item['name']) for item in self.plan['assets']]])
+
+    def test_recovery_rejects_mismatched_identity_or_successful_source(self):
+        previous = self.failed_download_run()
+        path = previous / 'result.json'
+        original = json.loads(path.read_bytes())
+        for field, value in [('plan', {'path': str(self.plan_path), 'sha256': 'f' * 64}),
+                             ('review', {'path': str(self.review_path), 'sha256': 'f' * 64}),
+                             ('commit', 'b' * 40), ('release_id', 99), ('status', 'published-verified')]:
+            with self.subTest(field=field):
+                changed = {**original, field: value}
+                path.write_text(json.dumps(changed))
+                result = self.run_stage('publish', 'bad-' + field, reuse_downloads_from=previous)
+                self.assertEqual(result['status'], 'failed')
+                self.assertEqual(self.client.downloads, [])
+
+    def test_recovery_rejects_changed_or_missing_completed_files(self):
+        previous = self.failed_download_run()
+        path = previous / 'downloads-before' / self.plan['assets'][0]['name']
+        path.write_bytes(b'changed')
+        self.assertEqual(self.run_stage('publish', 'changed', reuse_downloads_from=previous)['status'], 'failed')
+        path.unlink()
+        self.assertEqual(self.run_stage('publish', 'missing', reuse_downloads_from=previous)['status'], 'failed')
+        self.assertEqual(self.client.downloads, [])
+
+    def test_recovery_requires_current_remote_digest_for_reused_bytes(self):
+        previous = self.failed_download_run()
+        for index, digest in enumerate((None, 'sha256:' + 'f' * 64)):
+            with self.subTest(digest=digest):
+                self.client.assets[0]['digest'] = digest
+                self.assertEqual(self.run_stage('publish', 'digest-' + str(index), reuse_downloads_from=previous)['status'], 'failed')
+                self.assertEqual(self.client.downloads, [])
+
+    def test_recovery_rejects_wrong_download_order_and_non_download_failure(self):
+        previous = self.failed_download_run()
+        path = previous / 'result.json'
+        original = json.loads(path.read_bytes())
+        changed = copy.deepcopy(original)
+        changed['operations'][0], changed['operations'][1] = changed['operations'][1], changed['operations'][0]
+        path.write_text(json.dumps(changed))
+        self.assertEqual(self.run_stage('publish', 'order', reuse_downloads_from=previous)['status'], 'failed')
+        original['errors'] = ['download_mismatch:' + self.plan['assets'][-1]['name']]
+        path.write_text(json.dumps(original))
+        self.assertEqual(self.run_stage('publish', 'other-failure', reuse_downloads_from=previous)['status'], 'failed')
+
+    def test_recovery_rejects_old_receipt_changes_during_download(self):
+        previous = self.failed_download_run()
+        self.client.before_download = lambda: (previous / 'result.json').write_bytes(b'changed')
+        result = self.run_stage('publish', 'changed-old', reuse_downloads_from=previous)
+        self.assertEqual(result['status'], 'failed')
+
+    def test_recovery_rejects_outside_same_nested_or_public_source_runs(self):
+        previous = self.failed_download_run()
+        for index, path in enumerate((previous / 'downloads-before', self.public, self.root.parent, self.root / 'same')):
+            with self.subTest(path=path), self.assertRaisesRegex(ValueError, 'reuse_run_scope'):
+                self.run_stage('publish', 'same' if path.name == 'same' else 'scope-' + str(index), reuse_downloads_from=path)
+
+    def test_recovery_rejects_new_run_inside_old_before_writing(self):
+        previous = self.failed_download_run()
+        try:
+            self.run_stage('publish', 'failed/nested', reuse_downloads_from=previous)
+        except ValueError:
+            pass
+        self.assertFalse((previous / 'nested').exists())
+
+    def test_recovery_requires_integer_success_and_allows_only_tail_timeout(self):
+        previous = self.failed_download_run()
+        path = previous / 'result.json'
+        original = json.loads(path.read_bytes())
+        for index, invalid in enumerate((False, None)):
+            changed = copy.deepcopy(original)
+            changed['operations'][0]['exit_code'] = invalid
+            path.write_text(json.dumps(changed))
+            self.assertEqual(self.run_stage('publish', 'invalid-exit-' + str(index), reuse_downloads_from=previous)['status'], 'failed')
+        original['operations'][-1]['exit_code'] = None
+        original['errors'] = ['TimeoutExpired']
+        missing = copy.deepcopy(original)
+        missing['operations'][-1].pop('exit_code')
+        path.write_text(json.dumps(missing))
+        self.assertEqual(self.run_stage('publish', 'missing-exit', reuse_downloads_from=previous)['status'], 'failed')
+        path.write_text(json.dumps(original))
+        self.assertEqual(self.run_stage('publish', 'timeout-resume', reuse_downloads_from=previous)['status'], 'published-verified')
+
+    def test_recovery_redownloads_failed_operation_even_when_bytes_are_complete(self):
+        previous = self.failed_download_run()
+        name = self.plan['assets'][-1]['name']
+        partial = previous / 'downloads-public' / name
+        partial.write_bytes((self.public / name).read_bytes())
+        result = self.run_stage('publish', 'resume', reuse_downloads_from=previous)
+        self.assertEqual(result['status'], 'published-verified')
+        self.assertEqual(self.client.downloads, [('downloads-public', name)])
+        self.assertEqual(partial.read_bytes(), (self.public / name).read_bytes())
 
     def test_draft_then_publish_verifies_assets_and_records_same_release(self):
         first = self.run_stage('draft', 'draft')

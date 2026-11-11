@@ -264,6 +264,15 @@ if ($LASTEXITCODE -ne 0) { throw 'Publication is incomplete; inspect result.json
 
 `result.json` 的 `draft-verified` 表示草稿附件已核验；`published-verified` 才能进入群通知。中断后保留同一计划和审核文件，用新目录重新执行对应命令；不得改已有失败收据。已公开但后续回核失败时，先核远端实际状态，仍不通知。完整构建和多次下载会占用多份文件空间，应在开始前核对剩余容量，不为重试清掉验收证据。
 
+如果只有下载传输失败，可显式复用同级原始失败 run 中已经完成的下载；例如原命令是 `publish`：
+
+```powershell
+python tools/packaging/release_github.py publish --plan "$releaseRepo/work/windows-release/candidate-01/publication/publication.json" --review "$releaseRepo/work/windows-release/candidate-01/publication-review.json" --reuse-downloads-from "$releaseRepo/work/windows-release/candidate-01/publish-01" --run-dir "$releaseRepo/work/windows-release/candidate-01/publish-02"
+if ($LASTEXITCODE -ne 0) { throw 'Download recovery failed; retain both runs' }
+```
+
+复用要求同一操作、仓库、tag、提交、Release ID、发布计划和审核引用，按旧下载操作顺序区分公开前后两阶段。旧成功项须仍有相同大小和 SHA256，且当前远端资产明确给出相同 digest；缺失或变化即停止。未完成项重新下载，不用同名存在、旧阶段文件或安装候选原件代替。新 run 复制并重新核验可复用文件，明确记录 `reuse-download` 与原收据 pin；原失败收据、部分文件和来源文件不改，远端/tag/附件前后检查仍执行。仅接受原始下载失败 run，不串接恢复链；再次失败可继续引用原始 run。恢复完成前保留其引用文件，之后再清理重复副本。这采用 [GitHub 资产摘要](https://docs.github.com/en/rest/releases/assets)作额外绑定，不使用 [gh 的 `--skip-existing` 或 `--clobber`](https://cli.github.com/manual/gh_release_download)冒充内容验证。
+
 每个阶段验证结束后，及时按[开发文件管理](development-files.md#结项与保留)核对并清理本轮已无引用、可重建的临时依赖、缓存及校验成功的重复下载副本。先留存路径、大小、恢复依据和实际校验记录，再核对进程及链接，删除后检查保留文件和磁盘余量。最终安装器、对应源码包、发布计划及其引用材料、实际失败证据继续保留；未验证的文件不能按“旧产物”批量清理。
 
 ### 6. 持续迭代的固定交付约定
