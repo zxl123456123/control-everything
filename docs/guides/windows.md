@@ -171,3 +171,47 @@ if ($LASTEXITCODE -ne 0) { throw 'Installed acceptance failed; retain the instal
 5. 核 Release URL、`isDraft=false`、`isPrerelease=true` 和实际下载附件；更新首页版本/下载链接，并按文件管理指南归档本轮证据。源码推送、候选生成与公开发布分别记录。
 
 采用 [Python subprocess](https://docs.python.org/3/library/subprocess.html) 的固定 argv 与退出码记录、[Inno 官方命令行编译](https://jrsoftware.org/ishelp/topic_compilercmdline.htm) 和 GitHub draft 发布方式。保留项目现有构建器及许可校验，不新增另一套通用编排框架。
+
+### 6. 持续迭代的固定交付约定
+
+以下约定将上面的操作连成一次交付；自动化尚未实现的部分在下文明确标注。功能提交、候选构建、安装验收、公开发布、群通知是五种不同结果。源码进入 main 不代表用户已经收到新版 EXE；群通知也不替代安装验收。
+
+1. **功能迭代时积累说明。** 在当前任务 README 记录用户能感知的新增、修复、兼容性变化和已知限制，附提交与验收依据。发布前从上一已发布 tag 到候选完整 SHA 核对实际范围，汇总成这一候选唯一的中文版本说明；未合入的功能不列入。
+2. **冻结一次候选。** 版本仍取 `pyproject.toml`，沿用 PEP 440 的 alpha/beta/rc 表达；明确候选 SHA、目标 Windows 架构、固定输入和测试范围。运行贡献指南中相称的源码验证，再调用本页唯一构建入口。开发 Node、包内 Node、测试 Python 和包内 CPython 分别记录，不能互相充当运行验证。
+3. **验收最终文件。** 将构建收据、EXE SHA256、产品闭包、安装验收报告与真实页面验收关联。检查失败、跳过及 `not_covered`，不能只读取顶层 `passed`。声明跨版本升级/回退时，还须核对两个产品的实际版本号不同。未来引入签名时，先签名，再计算最终 hash 和验收，不能签名后沿用未签名文件的验收身份。
+4. **发布同一份候选。** 从已验收目录准备公开附件，使用 draft 上传、核验、公开、下载回核的顺序；发布阶段不重新编译。任何改源码、依赖、签名或包内容的操作都产生新候选，重做受影响验收；已公开的版本不得换包。
+5. **最后通知。** 只有公开 Release、附件清单和下载核验一致后，才向约定群发送该版本的公告。失败候选、draft、仅源码提交均不发“已发布”。通知失败单独记为“软件已发布，群通知失败/结果未知”，保留 Release，不能重建或覆盖附件来重试通知。
+
+版本说明采用固定内容：完整版本与早期测试/稳定标识、主要新增、修复、更新操作与数据兼容、实际验证范围、已知失败/未覆盖项、下载与校验入口。飞书公告消费这份说明的简短摘要，并链接到完整 Release；不能另让模型根据移动分支猜测功能。GitHub 标题和说明仍可能被编辑，发送时留存说明摘要 hash，避免事后无法解释群里发的是哪一版。
+
+参考 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 的面向用户分类，先在既有任务记录和 Release 中维护，不为当前规模额外引入 changelog 框架。[GitHub 自动版本说明](https://docs.github.com/en/repositories/releasing-projects-on-github/automatically-generated-release-notes)主要汇总 PR 和贡献者，可以辅助核对；本项目允许直接提交，不能只依赖 PR 标签生成完整公告。
+
+### 7. 发布后复用远端 OpenClaw 飞书机器人
+
+接入方向为已有远端 OpenClaw 的飞书应用机器人，不新增群 Webhook 或第二个监听器。机器人部署、实际账号/群、凭据与收发证据由其私有部署记录维护，不写入本仓库、安装包或公开发布附件。以下是后续接入合同，**当前仓库没有部署自动 Release 通知**。
+
+- **明确触发来源。** 本机构建/发布器确认下载回核后，将固定仓库的 Release ID、tag、受测 SHA、附件摘要和审核后的公告交给服务器通知入口。服务器重新核公开 Release 与目标仓库，不能只信任传入的“成功”字符串。传输复用受控 SSH 或既有经过认证的运维入口，不为通知把 OpenClaw 管理端口暴露公网。
+- **复用固定发送身份。** 按已有项目机器人分工选择负责项目播报的账号，目标群来自服务器受控配置；事件不能任意指定账号、群、命令或 URL 主机。凭据留在服务器，继续由现有 OpenClaw 管理。无需为发送一条公告迁移认证协议、重启长连接或给群 Agent 开放任意 shell/消息工具。
+- **优先确定性发送。** 调用安装版 OpenClaw 已支持的发送能力，显式指定 `channel=feishu`、account 和 target，传入已审核正文并读取真实消息回执。使用结构化参数/固定 argv，正文不得拼成 shell 命令。模型可协助起草，不能决定是否验收通过；正式公告发送不依赖模型和电脑端模型隧道在线。
+- **先预览再联调。** 参考 [OpenClaw message CLI](https://docs.openclaw.ai/cli/message) 与 [飞书通道](https://docs.openclaw.ai/channels/feishu)，先核安装版本的 `message send --help`、账号路由和 `--dry-run`。帮助中有参数不证明权限、群路由或真实收发成功，dry-run 不算送达；最终还须核对指定群的真实 message ID。不能把旧版机器人正常聊天当作新版发布通知已验收。
+- **持久记录与补发。** 以仓库、Release ID、通知类别和固定目标群组成投递身份；服务器在发送前记录 attempt，成功后保存 message ID、正文 hash 和时间，已成功的身份再次执行时跳过。按同一身份串行，重启后仍可查账。发送超时但可能已送达时标为未知，核对回执/群历史后再补发，不盲目重发；普通 CLI 重跑不等于平台永久去重。Release notes 编辑不自动群发，勘误作为显式通知处理。
+- **通知与发布分别恢复。** 限流、过期凭证、群权限或网络错误按服务端实际返回处理；通知错误不改变公开版本。初期只通知明确发布的版本，预发布清楚标注“早期测试版”，不自动 @ 全员、不上传安装器大文件到群。服务器不可达时在发布收据留下待通知状态，由同一入口恢复。
+
+后续将发布放到 Actions 时，保留同一构建入口和以上合同。人工网页/本地授权身份发布可用 `release: published` 接通知；从 draft 公开预发布也应使用 `published`。如果发布使用 Actions 的 `GITHUB_TOKEN`，它产生的 release 事件不会启动另一普通 Release workflow，应在发布及回核成功后直接调用通知 job/复用 workflow，或显式 dispatch。参考 [GitHub 触发规则](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow)；不要为绕过事件行为盲目扩大长期令牌权限。事件触发后仍须核验实际 Release 和附件。
+
+### 8. 自动化建设顺序与验收边界
+
+2026-11-11 基线审计：已有统一构建器、单一版本、依赖/hash 与许可闭包、失败日志和安装维护工具；`build_windows_release.py` 结束于 `candidate-built-awaiting-acceptance`。`ci.yml` 仅手动触发，既不是每次提交自动验证，也不是 EXE 发布流水线。现行人工步骤有规范，但还没有统一的机器放行记录和通知投递记录。
+
+后续按独立改动实施，每项先验证再推进下一项：
+
+1. **先补发布放行记录。** 用现有收据关联源码测试、最终 EXE/闭包和验收覆盖，公开前拒绝 SHA/hash 不符、缺失验收或未明确处理的失败。测试至少覆盖错提交、错包、漏附件、缺验收，以及同版本不同闭包不能冒充跨版本验收。已知失败由负责人明确保留限制，不能自动视为绿色。
+2. **再自动组装与发布。** 复用 `tools/packaging/` 下入口，dry-run 仅输出审核后的附件清单和公告；执行阶段只提升已验收文件。验证版本冲突、上传中断、缺附件、下载 hash 不符，以及已公开版本重跑时拒绝换包。尚为 draft 时按清单恢复，公开后不自动删除或重建。
+3. **接现有 OpenClaw 通知。** 在机器人所属部署中实现固定账号/群发送与持久投递记录，主项目只交付发布事实。覆盖重复事件、并发、成功后重跑、发送后未记账、网络超时、服务器重启和凭据脱敏；真实群验收另记，不用测试消息冒充新版本发布。
+4. **最后迁移可重复的构建环境。** 先把新机器如何准备固定工具、审核材料和依赖缓存跑通，再让 Windows runner 调用同一构建器。源码快速检查可以自动运行，完整 EXE 仍由明确的发布动作触发；是否将检查设为合并必需条件，另按实际协作规则配置。当前不改变 develop 预览确认、main 发布或非强制 PR/远端 CI 规则。
+
+签名服务、Windows 10/11 干净机矩阵、客户端发现/下载更新及数据格式回退需要各自验收；安装器原位升级能力不等于客户端自动更新。优先保证整包更新和数据兼容，再按需要评估差分更新。SHA256 证明文件一致，发布者签名证明身份，来源证明绑定构建来源；没有独立两次构建逐字节对比，不称为[可复现构建](https://reproducible-builds.org/docs/definition/)。
+
+远端可考虑启用 [GitHub 不可变 Release](https://docs.github.com/en/code-security/concepts/supply-chain-security/immutable-releases)：draft 集齐附件后公开，锁定附件与 tag；标题/说明及预发布标记仍可修改。这是服务端设置，不是写进文档就生效；本次未核实该仓库的启用状态或分支保护，不作已启用声明。
+
+上述取舍参考实际开源实现：[ShareX build.yml](https://github.com/ShareX/ShareX/blob/master/.github/workflows/build.yml) 的构建产物转交、签名和正式 tag 草稿；[OBS push.yaml](https://github.com/obsproject/obs-studio/blob/master/.github/workflows/push.yaml) 的 build/sign 后生成 draft；[uv release.yml](https://github.com/astral-sh/uv/blob/main/.github/workflows/release.yml) 的手动触发、dry-run、版本冲突检查和附件清单。采用阶段衔接与同一产物发布，不复制其多平台、商店、PyPI/Crates 发布体系，也不引入第二套构建框架。

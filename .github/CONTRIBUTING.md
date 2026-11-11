@@ -65,6 +65,8 @@ Import Linter 的固定依赖在 `tools/architecture/requirements.txt`。内容/
 
 当前快速开发不强制 PR、独立审查或等待远端 CI。`ci.yml` 仅有 `workflow_dispatch`，push/PR 不会自动触发；需要远端证据时手动运行并核对该次 SHA。旧 `release.yml` 出包配方已退役，统一由本机 `build_windows_release.py` 生成候选，安装验收后再发布，详见 Windows 指南。不要把“已推送”写成“CI 已通过”或“安装包已发布”。
 
+每个功能迭代在任务 README 留下用户可感知的变更、兼容性和验证依据，发版时核对上一已发布 tag 到候选 SHA 的范围。固定交付顺序、待补的自动化及复用远端 OpenClaw 飞书机器人的通知合同，统一见 [Windows 持续迭代约定](../docs/guides/windows.md#6-持续迭代的固定交付约定)。现有构建器只生成待验收候选；该约定不代表自动发布、群通知或远端保护已经部署。
+
 组织方式参考 [uv 的贡献指南](https://docs.astral.sh/uv/reference/contributing/)：在一个开发入口里串起准备、测试与发布，并从项目元数据取版本。保留本项目的 develop 预览确认、Python/Rust/内置工作台构建器和本地验证节奏；不照搬其包管理器、自动版本更新或强制发布 PR。
 
 ## 开发材料归属
