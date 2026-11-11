@@ -106,6 +106,26 @@ def sent_id(config, result):
     return message_id
 
 
+def read_content_matches(observed, message):
+    expected = message.replace('\r\n', '\n')
+    content = observed['content'].replace('\r\n', '\n')
+    if content == expected:
+        return True
+    if observed.get('contentType') != 'post':
+        return False
+    # OpenClaw v2026.11.2 post.ts renders links as escaped labels with exact hrefs.
+    # Derive the bounded post form from the reviewed body; never strip received Markdown.
+    lines = []
+    for line in expected.split('\n'):
+        if not line:
+            continue
+        if re.fullmatch(r'https://[^\s<>()\[\]\\]+', line):
+            label = re.sub(r'([\\`*_{}\[\]()#+\-!|>~])', r'\\\1', line)
+            line = f'[{label}]({line})'
+        lines.append(line)
+    return content == '\n'.join(lines)
+
+
 def reconciled_id(config, result, message_id, message):
     require(result.get('action') == 'read' and result.get('channel') == 'feishu'
             and result.get('dryRun') is False and result.get('ok') is not False, 'read_not_confirmed')
@@ -114,7 +134,7 @@ def reconciled_id(config, result, message_id, message):
     require(payload.get('ok') is True and observed['messageId'] == message_id
             and observed['chatId'] == config['target'] and observed['senderType'] == 'app'
             and config.get('sender_app_id') and observed['senderId'] == config['sender_app_id']
-            and observed['content'].replace('\r\n', '\n') == message.replace('\r\n', '\n'), 'message_not_reconciled')
+            and read_content_matches(observed, message), 'message_not_reconciled')
     return message_id
 
 

@@ -1,6 +1,7 @@
 """Notification contracts using a fake CLI/API; never send to an external service."""
 import copy
 from concurrent.futures import ThreadPoolExecutor
+import hashlib
 import json
 from pathlib import Path
 import subprocess
@@ -192,6 +193,69 @@ class NotificationTests(unittest.TestCase):
         self.read_cli['payload']['message']['senderId'] = 'cli_fixture'
         self.assertEqual(self.execute('reconcile', message_id='om_fixture')['status'], 'sent')
         self.assertEqual(sum('send' in call for call in self.calls), 1)
+
+    def test_post_read_rendering_reconciles_without_changing_delivery_body_or_resending(self):
+        self.body = 'Release\n\nFixes and limitations\n\n' + self.event['release_url'] + '\n'
+        self.raise_cli = OSError('fixture failure')
+        self.assertEqual(self.execute()['status'], 'unknown')
+        self.raise_cli = None
+        url = self.event['release_url']
+        self.read_cli['payload']['message'].update(contentType='post',
+            content=f'Release\nFixes and limitations\n[{url}]({url})')
+        result = self.execute('reconcile', message_id='om_fixture')
+        self.assertEqual(result['status'], 'sent')
+        self.assertEqual(result['body_sha256'], hashlib.sha256(self.body.encode()).hexdigest())
+        self.assertEqual(self.execute(), result)
+        self.assertEqual(sum('send' in call for call in self.calls), 1)
+        self.assertEqual(sum('read' in call for call in self.calls), 1)
+
+    def test_post_read_derives_exact_escaped_url_label_from_reviewed_body(self):
+        url = 'https://github.com/example/project-name/releases/tag/v0.1.0_a2'
+        body = '更新\r\n\r\n修复构建\r\n仍有使用限制\r\n\r\n' + url + '\r\n'
+        self.read_cli['payload']['message'].update(contentType='post',
+            content='更新\n修复构建\n仍有使用限制\n'
+                    r'[https://github.com/example/project\-name/releases/tag/v0.1.0\_a2]'
+                    f'({url})')
+        self.assertEqual(notify.reconciled_id(self.config, self.read_cli, 'om_fixture', body), 'om_fixture')
+
+    def test_post_read_rejects_other_body_link_or_spacing_changes(self):
+        url = self.event['release_url']
+        body = f'Release\n\nFirst line\nSecond line\n\n{url}'
+        rendered = f'Release\nFirst line\nSecond line\n[{url}]({url})'
+        variants = [rendered.replace('First', 'Changed'), rendered.replace('line\nSecond', 'line Second'),
+                    rendered.replace(f']({url})', '](https://example.invalid)'),
+                    rendered.replace(f'[{url}]', '[Download]'), rendered + '\nExtra',
+                    rendered + '\n', rendered.replace('Release', ' Release'),
+                    rendered.replace('Release', '**Release**'), rendered.replace(f'[{url}]', f'![{url}]')]
+        for content in variants:
+            with self.subTest(content=content):
+                self.read_cli['payload']['message'].update(contentType='post', content=content)
+                with self.assertRaisesRegex(ValueError, 'message_not_reconciled'):
+                    notify.reconciled_id(self.config, self.read_cli, 'om_fixture', body)
+        self.read_cli['payload']['message']['content'] = rendered
+        for changed_body in (body.replace('\n\n', '\n \n'), body.replace(url, 'Download: ' + url)):
+            with self.subTest(body=changed_body):
+                with self.assertRaisesRegex(ValueError, 'message_not_reconciled'):
+                    notify.reconciled_id(self.config, self.read_cli, 'om_fixture', changed_body)
+
+    def test_post_read_conversion_requires_post_type_and_original_identity(self):
+        body = 'Release\n\n' + self.event['release_url']
+        url = self.event['release_url']
+        observed = self.read_cli['payload']['message']
+        observed['content'] = f'Release\n[{url}]({url})'
+        for content_type in (None, 'text', 'interactive'):
+            with self.subTest(content_type=content_type):
+                observed['contentType'] = content_type
+                with self.assertRaisesRegex(ValueError, 'message_not_reconciled'):
+                    notify.reconciled_id(self.config, self.read_cli, 'om_fixture', body)
+        observed['contentType'] = 'post'
+        for key, changed in (('messageId', 'om_other'), ('chatId', 'oc_other'),
+                             ('senderId', 'cli_other'), ('senderType', 'user')):
+            with self.subTest(key=key):
+                original, observed[key] = observed[key], changed
+                with self.assertRaisesRegex(ValueError, 'message_not_reconciled'):
+                    notify.reconciled_id(self.config, self.read_cli, 'om_fixture', body)
+                observed[key] = original
 
     def test_interrupted_sender_leaves_attempt_and_is_not_retried(self):
         def interrupted(argv, **kwargs):

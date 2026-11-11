@@ -311,7 +311,9 @@ python3 release_notify.py send --config /example/private/notify.json --event /ex
 
 `preview` 实际读取 GitHub 的公开状态、tag 和附件摘要，但不创建投递状态或发消息。核对预览后才调用 `send`；它先向 SQLite 提交投递领取，再调用固定账号发送。成功回执重跑跳过；同一版本/群更换正文或资产会拒绝。只有明确的 CLI 未启动错误可在修复环境后重新领取；非零退出、超时、坏回执等记 `unknown`，不得盲目补发。进程意外退出留下的 `attempt` 也不自动重发。
 
-结果未知时，从实际群或原始回执取得 message ID，运行 `reconcile`（其余参数不变，增加 `--message-id`）。工具通过 OpenClaw 原生 `message read` 核对消息 ID、群、发送应用和正文；全部一致才记已送达。没有消息 ID、权限不足、格式转换使正文不能准确核对时继续保留未知状态，不把人工填写的“已发送”当成回执，也不提供强制重发开关。SQLite 和私有配置按服务器既有备份规则保留。
+结果未知时，从实际群或原始回执取得 message ID，运行 `reconcile`（其余参数不变，增加 `--message-id`）。工具通过 OpenClaw 原生 `message read` 核对消息 ID、群、发送应用和正文；全部一致才记已送达。正文优先精确比较（仅统一 CRLF）；`post` 富文本另允许一种从审核正文推导的表示：删除真正空行，将整行裸 HTTPS URL 转为标签转义、目标完全相同的 Markdown 链接，其余文字和非空行原样比较。这对应 [OpenClaw 的富文本回读实现](https://github.com/openclaw/openclaw/blob/v2026.11.2/extensions/feishu/src/post.ts)，不通用剥离 Markdown 或忽略空白，也不接受不同链接目标。发布公告采用普通文字、分行和单独一行的下载链接，复杂格式仍须单独核对。
+
+没有消息 ID、权限不足、正文变化或超出上述转换范围时继续保留未知状态，不把人工填写的“已发送”当成回执，也不提供强制重发开关。已经取得明确成功发送回执的版本保持已发送状态；后续回读失败需查证，不能因此再发一次。SQLite 和私有配置按服务器既有备份规则保留。
 
 后续将发布放到 Actions 时，保留同一构建入口和以上合同。人工网页/本地授权身份发布可用 `release: published` 接通知；从 draft 公开预发布也应使用 `published`。如果发布使用 Actions 的 `GITHUB_TOKEN`，它产生的 release 事件不会启动另一普通 Release workflow，应在发布及回核成功后直接调用通知 job/复用 workflow，或显式 dispatch。参考 [GitHub 触发规则](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow)；不要为绕过事件行为盲目扩大长期令牌权限。事件触发后仍须核验实际 Release 和附件。
 
