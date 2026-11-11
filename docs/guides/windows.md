@@ -64,7 +64,7 @@ Python wheel 的许可由 `notices.py` 收集实际原文。少数已审查但�
 
 ### 2. 一份本机输入清单
 
-将 `inputs.json` 放在 ignored `work/windows-release/inputs/`，九项路径均使用自己的绝对路径。下例是结构说明，替换全部占位后才能执行；真实清单不提交：
+将 `inputs.json` 放在 ignored `work/windows-release/inputs/`，十项路径均使用自己的绝对路径。下例是结构说明，替换全部占位后才能执行；真实清单不提交：
 
 ```json
 {
@@ -97,7 +97,7 @@ if ($LASTEXITCODE -ne 0) { throw 'Locked wheels failed' }
 - 每条 binding 用 `output/provider` 指定引擎内的精确输出与提供者；来自压缩包时用 `output/archive/archive_sha256/member` 指定固定归档的精确成员。路径相对引擎根；源码 pin 不得指向生成目录，提供者不得拿交付输出自身作证明。
 - `package-license-inputs.json`：沿既有 `workbench_distribution.py` 的补充包许可数组，包含实际版本、元数据/归档证明和完整 notice；没有补充项时是空数组。
 
-`workbench_materials.py` 在编译前核材料结构，编译后核源码 pin、提供者与产物字节一致，并从实际构建图及来源清单关联资源。生成本轮 external/package notice 与 `materials-receipt.json`，最后仍由原 collector 检查完整闭包。新增依赖或来源改变需重新审阅材料；不联网猜许可证、不改写旧成功收据、不中途跳过门禁。
+`workbench_materials.py` 在编译前核材料结构及每份源码 pin，编译后再次核对，并检查提供者与产物字节一致，从实际构建图及来源清单关联资源。生成本轮 external/package notice 与 `materials-receipt.json`，最后仍由原 collector 检查完整闭包。新增依赖、来源或换行合同改变需重新审阅材料；不能直接沿用旧版本清单，也不能自动重算摘要给未知输入背书。
 
 **Portable Git 使用已审核的完整收据。** 初次从官方固定归档准备运行目录时，须留存解包来源及审核后的 `reviewed-git-receipt.json`，其中包含固定 archive_sha256/version、全部 files 的大小/hash、components 的归属/notice/源码履约材料。后续复用或迁移材料时执行：
 
@@ -112,7 +112,16 @@ if ($LASTEXITCODE -ne 0) { throw 'Portable Git preparation failed' }
 
 ### 3. 每次只运行一个构建入口
 
-确认工作树干净、输入审核妥当、固定环境已准备，然后从本检出根执行：
+确认工作树干净、输入审核妥当、固定环境已准备。先使用本检出的 Python 环境做预检，避免在编译后才发现缺包、材料过期或配置错误：
+
+```powershell
+python tools/packaging/build_windows_release.py --inputs C:/example/checkout/work/windows-release/inputs/inputs.json --run-name preflight-01 --check-only
+if ($LASTEXITCODE -ne 0) { throw 'Preflight failed; inspect the exact input or environment error' }
+```
+
+预检复用正式入口，检查 Windows 原生路径预算、固定工具和 Python 环境、依赖 wheel 的锁定版本/ABI/RECORD/hash、端点结构、WebView2 SDK/MSVC、Portable Git 及其许可材料、源码和来源清单。`preflight-verified` 只表示这些检查通过，不生成安装包；正式构建仍重新核对。路径及材料初检失败时不创建候选目录；进入工具和载荷检查后的失败会保留收据与日志，已有输出不会被自动清除。
+
+构建从同一检出根执行，使用另一个新 run-name：
 
 ```powershell
 python tools/packaging/build_windows_release.py --inputs C:/example/checkout/work/windows-release/inputs/inputs.json --run-name candidate-01
@@ -123,26 +132,26 @@ if ($LASTEXITCODE -ne 0) { throw 'Candidate build failed; inspect the retained r
 
 | 阶段 | 实际入口 / 门禁 |
 | --- | --- |
-| 输入与环境 | 完整 SHA、干净检出、新输出目录、Node/pnpm、Python 固定构建依赖、CPython pin、材料结构 |
+| 输入与环境 | 与上述预检相同，先完成输入、工具和源码检查再编译 |
 | Python 包 | `python -m build`，sdist → wheel，要求各一个 |
 | 原生观察 | 固定 `build_observer.py` 的 fmt/test/clippy/release，静态 CRT；同一工具链用 `--filter-platform x86_64-pc-windows-msvc` 生成 Cargo 元数据，从 resolve 图选择观察后台根及传递 normal/build 依赖，逐包保留完整许可校验 |
-| 内置工作台 | `workbench_engine.py build --materials ...`，源码检查、锁定依赖、编译、产物探针、材料绑定、完整许可闭包 |
+| 内置工作台 | `workbench_engine.py build --materials ...`，源码检查、锁定依赖、生产 Web 类型检查、编译、产物探针、材料绑定、完整许可闭包 |
 | Windows 独立窗口 | `build_desktop_window.py` 从固定 Microsoft WebView2 SDK 与 x64 MSVC 构建，产物及许可随清单入包 |
 | 产品组装 | `build_windows.py --release`，逐项验证 Windows 窗口、源码与轮子、工作台、观察后台、Git 及源码附件 |
 | 安装器 | `inno_include.py` → `ISCC.exe`，精确文件清单与 hash；编译器退出码非0即停止 |
 
-每轮使用新的 run-name 和干净检出；默认要求 engine 的 `out/.build` 与 release observer 尚不存在。失败保留完整 stdout/stderr 与阶段退出码，不自动删目录重试。下面的显式复用入口只处理已完成编译的工作台；其他构建阶段仍重新执行。
+首次编译使用新的 run-name 和干净检出，不覆盖已有 release 输出、engine 的 `out/.build` 或 release observer。失败保留完整 stdout/stderr 与阶段退出码。
 
-如果编译已完成、后续材料绑定失败，可在审核新的材料目录后复用同一检出的工作台产物：
+下载缓存默认复用本检出 `work/windows-release/pnpm-store`。需要跨工作树复用时显式传 `--store-dir <已有缓存绝对路径>`；路径不能是链接、普通文件或盘根。只共享 pnpm 下载缓存，各树独立安装 `node_modules`，始终使用 frozen lockfile、禁用隐式安装脚本并优先读取缓存，缺包再下载。不要依赖当前 PATH 的默认 pnpm 版本。
+
+如果原候选已经完成全部编译及许可闭包，随后产品组装或安装器失败，可在同一工作树、同一源码与输入上重新组装：
 
 ```powershell
-python tools/packaging/build_windows_release.py --inputs E:/example/checkout/work/windows-release/inputs/reviewed-inputs.json --run-name candidate-02 --reuse-engine-run E:/example/checkout/work/workbench-engine-build/candidate-01
-if ($LASTEXITCODE -ne 0) { throw 'Candidate recovery failed; retain both runs' }
+python tools/packaging/build_windows_release.py --inputs C:/example/checkout/work/windows-release/inputs/inputs.json --reuse-build candidate-01 --run-name candidate-02
+if ($LASTEXITCODE -ne 0) { throw 'Reassembly failed; retain both attempts' }
 ```
 
-入口核对旧来源记录、当前源码、Node/pnpm 与完整编译步骤，并逐项核对原产物清单的大小和 SHA256。新的执行目录重新检查产物、绑定材料和验证许可闭包，前后产物必须保持一致；旧目录及失败收据不改。原产物、源码或工具身份不一致时停止，不能重算旧 hash 消除差异。观察后台、Python 包、独立窗口和安装器仍重新构建；原 `release-install` 必须先按开发文件管理规则保全，工具不会替你清除它。
-
-这沿用 [GitHub 工作流产物交接及摘要验证](https://docs.github.com/en/actions/tutorials/store-and-share-data)的做法，保留本地可信证据的边界，不引入通用断点恢复框架。复用不减少最终安装验收，也不证明两次独立构建逐字节一致。
+恢复只接受带 `compilation` 检查点的原始失败收据，重新核对完整提交、检出路径、工具/输入/材料身份及编译文件集合、大小和摘要。新的产品与日志写入新 run，原编译收据保持不变；装配仍执行来源、产物和许可校验。旧版无检查点、编译未完成、已有成功候选或任何输入/产物变化都拒绝复用。恢复再次失败时，保留该次证据，继续引用原始编译 run 新建尝试。不能通过改收据、跳过步骤或自动删目录来强行恢复。
 
 | 本检出路径 | 用途 |
 | --- | --- |
@@ -151,10 +160,12 @@ if ($LASTEXITCODE -ne 0) { throw 'Candidate recovery failed; retain both runs' }
 | `work/windows-release/<run>/payload/` | 完整运行闭包、product.json、BUILD-INPUTS.json、SOURCE-AVAILABILITY.json |
 | `work/windows-release/<run>/installer/session-panel-<version>-windows-x64.exe` | 安装候选 |
 | `work/windows-release/<run>/session-panel-<version>-sources.zip` | 必须伴随安装器交付的依赖对应源码 |
-| `work/workbench-engine-build/<run>/` | engine 各步日志、来源/产物/许可证明 |
+| `work/workbench-engine-build/<run>/` | engine 编译日志、来源/产物/许可证明；首次装配使用 `assembly/` 副本，最终可用证据路径以总收据 `engine_run` 为准 |
 | `work/native-observer/release-install/` | 固定 release 观察后台与构建身份证明 |
 
 最终状态 `candidate-built-awaiting-acceptance` 只表示候选生成。单独开发 engine 时仍可使用底层 build（现在必须传 `--materials`）；复核已有产物用 `check-output --run-dir ...`，需要首次绑定材料时加 `--materials`。已有不同材料拒绝覆盖，不能先制造失败再手工改 hash。
+
+这些改动参考 [VS Code 的工具预检](https://github.com/microsoft/vscode/blob/85fa073afb01d5708bfc6cda89fd54faf09b5d35/build/npm/preinstall.ts)、[pnpm store 缓存](https://github.com/microsoft/vscode/blob/85fa073afb01d5708bfc6cda89fd54faf09b5d35/build/azure-pipelines/common/restore-pnpm-store.yml)以及 [RustDesk 在重编译前检查架构和引擎输入](https://github.com/rustdesk/rustdesk/blob/2fe026917dbdc0f715a8ce299da5eaf4e016587e/.github/workflows/flutter-build.yml#L238)的做法；编译与组装分开也与 [Tauri build/bundle](https://v2.tauri.app/reference/cli/#bundle)一致。本项目采用前移检查、下载缓存和同身份产物复验，沿用本机工具与手动发布，不引入云端多任务系统或任意步骤跳过。短暂网络重试交给包管理器；源码、类型、hash和许可失败需修正原因。
 
 ### 4. 安装与真实页面验收
 
@@ -176,7 +187,7 @@ if ($LASTEXITCODE -ne 0) { throw 'Installed acceptance failed; retain the instal
 ### 5. 验收后发布
 
 1. 公开发布前确认受测提交已在 main（界面已经项目主导者确认），版本与 tag 未占用，并按下节生成本轮放行复核记录。需要远端检查时手动执行 `ci.yml` 并核同一 SHA；push 不会自动触发它。
-2. 在本轮 `public/` 按明确清单准备安装器、同版本 `sources.zip`、SOURCE-AVAILABILITY、product、BUILD-INPUTS、LICENSE、完整第三方声明、版本说明，以及计划提供的 wheel/sdist/项目源码快照。只上传审核后的公开文件；本机输入与验收日志不上传。
+2. 使用下文 `release_bundle.py prepare` 在本轮 `public/` 准备固定十一份附件：安装器、同版本依赖对应源码 ZIP、七份元数据与许可文件、版本说明和校验和。工具拒绝额外附件；本机输入与验收日志不上传。
 3. 核 version、commit、dirty=false、闭包及对应源码附件大小/hash；生成覆盖全部附件的 `SHA256SUMS.txt`（不含自身）并重核。`git archive` 项目快照不能替代依赖对应源码附件。
 4. 建指向受测 SHA 的 `v<版本>` draft，上传并核附件后再公开 prerelease；不移动已有 tag、不覆盖已发布附件。说明写实际验收范围、所有已知失败/限制、签名状态和回退条件。参考 [GitHub 发布流程](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository)。
 5. 核 Release URL、`isDraft=false`、`isPrerelease=true` 和实际下载附件；更新首页版本/下载链接，并按文件管理指南归档本轮证据。源码推送、候选生成与公开发布分别记录。
@@ -219,7 +230,7 @@ python tools/packaging/release_readiness.py verify --candidate "$releaseRepo/wor
 if ($LASTEXITCODE -ne 0) { throw 'Release evidence is blocked; inspect readiness.json or the command error' }
 ```
 
-候选必须是安装验收命令的首个 `--payload/--installer`；第二产品用于另一真实版本的往返验证。安装报告须包含 `product`、`second_product` 身份，旧报告缺字段时重新验收，不手工补字段伪装新证据。顶层通过且 `errors=[]` 才有效；验收工具中的预期非零退出仍保留。缺少第二版本可形成带限制的首装候选记录，但不能宣称升级/回退已覆盖。
+使用上述安装验收命令时，候选必须是首个 `--payload/--installer`；第二产品用于另一真实版本的往返验证。安装报告须包含 `product`、`second_product` 身份，旧报告缺字段时重新验收，不手工补字段伪装新证据。顶层通过且 `errors=[]` 才有效；验收工具中的预期非零退出仍保留。没有第二产品时，记录只能声明实际报告覆盖的范围：专门验证过的单向原位升级可以单独表述，但不能宣称两版本往返、回退或其他未执行步骤已通过。
 
 `verify` 重核 EXE、依赖对应源码、完整 payload、源码检查日志及收据、人工材料 hash，并在记录中保留覆盖范围和证据引用。重跑不覆盖既有输出，输出不得放入 payload 内；证据修正后另用新文件名。校验只证明本次读取时的一致性，正式上传前仍须复核这些文件未变。所有原始证据和放行记录留本机，不默认加入公开附件。
 

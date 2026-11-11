@@ -72,12 +72,24 @@ class MaterialsTests(unittest.TestCase):
             self.assertEqual(component['output_hashes'][component['output_paths'][0]],
                              M.digest(component['name'].encode()))
 
-    def test_preflight_does_not_need_future_outputs(self):
+    def test_preflight_does_not_need_future_outputs_or_providers(self):
         for row in self.rows:
             (self.unit / row['path']).unlink()
-        self.assertEqual(len(M.read_inputs(self.materials)['components']), len(M.REQUIRED))
+        for component in self.inputs['components']:
+            (self.unit / component['bindings'][0]['provider']).unlink()
+        self.assertEqual(M.preflight(self.unit, self.materials), M.read_inputs(self.materials))
+        self.assertEqual(list(self.run.iterdir()), [])
         with self.assertRaisesRegex(ValueError, 'file_missing'):
             self.prepare()
+
+    def test_preflight_rejects_changed_or_missing_reviewed_sources(self):
+        self.write('src/native.cc', b'unreviewed source')
+        with self.assertRaisesRegex(ValueError, 'materials_source_changed:src/native.cc'):
+            M.preflight(self.unit, self.materials)
+        (self.unit / 'src/native.cc').unlink()
+        with self.assertRaisesRegex(ValueError, 'materials_file_missing:src/native.cc'):
+            M.preflight(self.unit, self.materials)
+        self.assertEqual(list(self.run.iterdir()), [])
 
     def test_materials_require_absolute_path_and_source_pins_cannot_be_generated(self):
         with self.assertRaisesRegex(ValueError, 'absolute_materials'):
@@ -106,6 +118,7 @@ class MaterialsTests(unittest.TestCase):
     def test_provider_bytes_and_output_manifest_both_must_match(self):
         binding = self.inputs['components'][0]['bindings'][0]
         self.write(binding['provider'], b'wrong provider')
+        self.assertEqual(M.preflight(self.unit, self.materials), M.read_inputs(self.materials))
         with self.assertRaisesRegex(ValueError, 'provider_mismatch'):
             self.prepare()
         self.write(binding['output'], b'changed output')

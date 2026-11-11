@@ -5,6 +5,7 @@ import importlib.util
 import json
 import os
 from pathlib import Path
+import stat
 import subprocess
 import tempfile
 from types import SimpleNamespace
@@ -80,25 +81,60 @@ class WorkbenchBuildTests(unittest.TestCase):
         names = ('resources/native-chat-visuals/.claude-plugin/plugin.json',
                  'resources/native-chat-visuals/skills/orca-chat-visuals/SKILL.md',
                  'mobile/app.config.js', 'mobile/package.json', 'mobile/pnpm-lock.yaml',
-                 'src/renderer/src/assets/main.css', 'src/renderer/src/i18n/locales/zh.json')
+                 'src/renderer/src/assets/main.css', 'src/renderer/src/i18n/locales/zh.json',
+                 'native/windows-security/src/addon.cc', 'native/windows-security/binding.gyp',
+                 'native/windows-cli-launcher/src/administrator_status.rs',
+                 'native/windows-cli-launcher/src/administrator_launcher.rs',
+                 'resources/licenses/ripgrep/README.md', 'config/tsconfig.platform-web.json')
         raw = '{"fixture": "合成 UTF-8"}\n'.encode('utf-8')
         expected = dict.fromkeys(names, raw)
         expected.update({'mobile/patches/fixture.patch': b'patch\r\n',
                          'mobile/src/fixture.png': b'\x89PNG\r\n\x1a\n\x00fixture'})
+        manifest = json.loads((ROOT / BUILD.SOURCE_MANIFEST).read_text(encoding='utf-8'))
+        pins = {row['path']: row['current_sha256'] for row in manifest['adapted_files']}
+        checkout_pins = ('native/windows-cli-launcher/Cargo.lock', 'native/windows-cli-launcher/Cargo.toml',
+                         'native/windows-cli-launcher/build.rs', 'native/windows-cli-launcher/src/administrator_restart.rs',
+                         'config/docker/cli-launch-contract/run-cli-case.sh', 'config/scripts/ci-shard-timings.json',
+                         'package.json', 'config/scripts/orca-dev', 'config/scripts/verify-packaged-daemon-entry.cjs',
+                         'mobile/scripts/start-emulator-pairing-runtime.mjs',
+                         'tests/tools/daemon-relocation-spike/daemon-launch.mjs',
+                         'tests/tools/win-update-e2e/serve-switch.mjs', 'resources/win32/bin/zkyq.cmd')
+        for name in checkout_pins:
+            content = (ROOT / BUILD.UNIT / name).read_bytes().replace(b'\r\n', b'\n')
+            expected[name] = content.replace(b'\n', b'\r\n') if name.endswith('.cmd') else content
         for name, content in expected.items():
             target = self.unit / name
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_bytes(content)
         subprocess.run(['git', '-c', 'core.autocrlf=true', 'add', '--', '.gitattributes', BUILD.UNIT],
                        cwd=self.root, env=self.env, check=True, capture_output=True)
-        checkout = self.root / 'checkout'
-        subprocess.run(['git', '-c', 'core.autocrlf=true', 'checkout-index',
-                        '--prefix=' + checkout.as_posix() + '/', '--all'],
-                       cwd=self.root, env=self.env, check=True, capture_output=True)
-        for name, content in expected.items():
-            with self.subTest(resource=name):
-                self.assertEqual((checkout / BUILD.UNIT / name).read_bytes(), content)
-        self.assertEqual((checkout / BUILD.UNIT / '.gitattributes').read_bytes(), attributes)
+        for autocrlf in ('true', 'false'):
+            checkout = self.root / ('checkout-' + autocrlf)
+            subprocess.run(['git', '-c', 'core.autocrlf=' + autocrlf, 'checkout-index',
+                            '--prefix=' + checkout.as_posix() + '/', '--all'],
+                           cwd=self.root, env=self.env, check=True, capture_output=True)
+            for name, content in expected.items():
+                with self.subTest(autocrlf=autocrlf, resource=name):
+                    actual = (checkout / BUILD.UNIT / name).read_bytes()
+                    self.assertEqual(actual, content)
+                    if name in checkout_pins:
+                        self.assertEqual(hashlib.sha256(actual).hexdigest(), pins[name])
+            self.assertEqual((checkout / BUILD.UNIT / '.gitattributes').read_bytes(), attributes)
+
+    def test_manifest_adaptations_have_explicit_checkout_byte_policy(self):
+        manifest = json.loads((ROOT / BUILD.SOURCE_MANIFEST).read_text(encoding='utf-8'))
+        paths = [BUILD.UNIT + '/' + row['path'] for row in manifest['adapted_files']]
+        result = subprocess.run(['git', 'check-attr', '-z', '--stdin', 'text', 'eol'],
+                                input=''.join(path + '\0' for path in paths).encode('utf-8'),
+                                cwd=ROOT, env=self.env, check=True, capture_output=True)
+        fields = result.stdout.decode('utf-8').split('\0')
+        attributes = {}
+        for index in range(0, len(fields) - 1, 3):
+            path, name, value = fields[index:index + 3]
+            attributes.setdefault(path, {})[name] = value
+        unpinned = [path for path in paths if attributes[path]['text'] != 'unset'
+                    and attributes[path]['eol'] not in ('lf', 'crlf')]
+        self.assertEqual(unpinned, [])
 
     def test_resource_bytes_missing_icon_and_unknown_files_are_rejected(self):
         icon = self.unit / 'resources/build/icon.ico'
@@ -113,6 +149,95 @@ class WorkbenchBuildTests(unittest.TestCase):
         (self.unit / 'unknown.txt').write_text('unknown')
         with self.assertRaisesRegex(BUILD.BuildError, 'source_file_set_mismatch'):
             BUILD.check_source(self.root)
+
+    def test_walk_keeps_file_snapshot_without_rechecking_ancestors_per_entry(self):
+        nested = self.unit / 'nested/a/b/c'
+        nested.mkdir(parents=True)
+        for index in range(24):
+            (nested / f'{index}.txt').write_text('fixture')
+        expected = {path.relative_to(self.unit).as_posix()
+                    for path in self.unit.rglob('*') if path.is_file()}
+        original = Path.lstat
+        for walk in (BUILD.source_files, BUILD.tree_files):
+            with self.subTest(walk=walk.__name__):
+                calls = {}
+                def counted(path):
+                    calls[path] = calls.get(path, 0) + 1
+                    return original(path)
+                with patch.object(Path, 'lstat', counted):
+                    self.assertEqual(set(walk(self.unit)), expected)
+                self.assertTrue(set(self.unit.parents).issubset(calls))
+                self.assertLessEqual(max(calls[path] for path in (self.unit, *self.unit.parents)), 2)
+
+    def test_walk_rejects_new_directory_links_on_each_call(self):
+        target = self.root / 'other-tree'
+        target.mkdir()
+        (target / 'sentinel.txt').write_text('outside source')
+        link = self.unit / 'unapproved-tree'
+        for walk in (BUILD.source_files, BUILD.tree_files):
+            with self.subTest(walk=walk.__name__):
+                before = set(walk(self.unit))
+                self.directory_link(link, target)
+                try:
+                    with self.assertRaisesRegex(BUILD.BuildError, 'linked_path'):
+                        walk(self.unit)
+                finally:
+                    link.rmdir() if os.name == 'nt' else link.unlink()
+                self.assertEqual(set(walk(self.unit)), before)
+
+    def test_walk_rejects_linked_ancestor_even_for_empty_root(self):
+        target = self.root / 'target'
+        (target / 'empty').mkdir(parents=True)
+        link = self.root / 'linked-parent'
+        self.directory_link(link, target)
+        try:
+            for walk in (BUILD.source_files, BUILD.tree_files):
+                with self.subTest(walk=walk.__name__), self.assertRaisesRegex(BUILD.BuildError, 'linked_path'):
+                    walk(link / 'empty')
+        finally:
+            link.rmdir() if os.name == 'nt' else link.unlink()
+
+    def test_walk_rejects_file_symlink_and_windows_reparse_metadata(self):
+        target = self.unit / 'LICENSE'
+        original = Path.lstat
+        for metadata in (SimpleNamespace(st_mode=stat.S_IFLNK, st_file_attributes=0),
+                         SimpleNamespace(st_mode=stat.S_IFREG, st_file_attributes=0x400)):
+            def linked(path):
+                return metadata if path == target else original(path)
+            for walk in (BUILD.source_files, BUILD.tree_files):
+                with self.subTest(walk=walk.__name__, metadata=metadata), \
+                        patch.object(Path, 'lstat', linked), self.assertRaisesRegex(BUILD.BuildError, 'linked_path'):
+                    walk(self.unit)
+
+    def test_walk_rejects_real_file_symlinks_including_dangling_links(self):
+        target = self.root / 'outside.txt'
+        target.write_text('outside source')
+        link = self.unit / 'linked.txt'
+        try:
+            link.symlink_to(target)
+        except OSError as error:
+            if getattr(error, 'winerror', None) == 1314:
+                self.skipTest('Windows file symlink privilege is unavailable; reparse metadata is tested separately')
+            raise
+        try:
+            for dangling in (False, True):
+                if dangling:
+                    target.unlink()
+                for walk in (BUILD.source_files, BUILD.tree_files):
+                    with self.subTest(walk=walk.__name__, dangling=dangling), \
+                            self.assertRaisesRegex(BUILD.BuildError, 'linked_path'):
+                        walk(self.unit)
+        finally:
+            link.unlink()
+
+    def test_walk_requires_a_directory_but_unlinked_allows_future_paths(self):
+        missing = self.root / 'future'
+        self.assertEqual(BUILD.unlinked(missing), missing)
+        for walk in (BUILD.source_files, BUILD.tree_files):
+            for path in (missing, self.unit / 'LICENSE'):
+                with self.subTest(walk=walk.__name__, path=path), \
+                        self.assertRaisesRegex(BUILD.BuildError, 'walk_directory_required'):
+                    walk(path)
 
     def test_only_exact_generated_files_and_known_build_trees_are_excluded(self):
         before = BUILD.check_source(self.root)
@@ -161,22 +286,27 @@ class WorkbenchBuildTests(unittest.TestCase):
 
     def test_fixed_commands_disable_implicit_lifecycles_and_never_start(self):
         steps = BUILD.build_commands('node.exe', 'pnpm.exe', self.unit, self.root / 'run', self.root / 'scratch')
-        self.assertEqual([name for name, _, _ in steps], ['install-root', 'install-mobile', 'packages',
+        self.assertEqual([name for name, _, _ in steps], ['install-root', 'install-mobile', 'packages', 'web-types',
                          'mobile-generated', 'runtime-pin', 'mobile-web', 'process-tree', 'web', 'runtime'])
         for _, _, command in steps[:2]:
             self.assertIn('--frozen-lockfile', command)
             self.assertIn('--ignore-scripts', command)
-        self.assertIn('--scratch-root=' + str(self.root / 'scratch'), steps[6][2])
+        self.assertIn('--scratch-root=' + str(self.root / 'scratch'), steps[7][2])
+        self.assertIn('config/tsconfig.platform-web.json', steps[3][2])
+        self.assertEqual(steps[3][2][-1], str(self.root / 'run/web-types.tsbuildinfo'))
         self.assertFalse(any(word in {'start', 'dev', 'open', 'smoke:orcad-terminal'} for _, _, command in steps for word in command))
-        with patch.dict(os.environ, {'ORCA_PNPM_FORCE_GLOBAL_VIRTUAL_STORE_IN_CI': '1', 'ORCA_PNPM_GLOBAL_VIRTUAL_STORE': '1'}):
+        with patch.dict(os.environ, {'ORCA_PNPM_FORCE_GLOBAL_VIRTUAL_STORE_IN_CI': '1', 'ORCA_PNPM_GLOBAL_VIRTUAL_STORE': '1',
+                                     'ORCA_NODE_RUNTIME_CACHE_DIR': str(self.root / 'outside-provider')}, clear=True):
             env = BUILD.build_environment(self.root / 'node.exe', self.root / 'pnpm.exe')
         self.assertEqual(env['ORCA_PNPM_GLOBAL_VIRTUAL_STORE'], '0')
         self.assertNotIn('ORCA_PNPM_FORCE_GLOBAL_VIRTUAL_STORE_IN_CI', env)
+        self.assertNotIn('ORCA_NODE_RUNTIME_CACHE_DIR', env)
         cached = BUILD.build_commands('node.exe', 'pnpm.exe', self.unit, self.root / 'run', self.root / 'scratch', self.root / 'shared-downloads')
         for _, _, command in cached[:2]:
             self.assertEqual(command[-1], str(self.root / 'shared-downloads'))
             self.assertIn('--frozen-lockfile', command)
             self.assertIn('--ignore-scripts', command)
+            self.assertIn('--prefer-offline', command)
 
     def test_failed_step_stops_and_keeps_receipt_and_prior_logs(self):
         run = self.root / 'run'
@@ -228,14 +358,14 @@ class WorkbenchBuildTests(unittest.TestCase):
         self.assertEqual(receipt['upstreamCommit'], BUILD.UPSTREAM)
         self.assertTrue(receipt['dirty'])
         self.assertEqual(receipt['tools']['pnpm']['sha256'], BUILD.sha256(pnpm))
-        self.assertEqual(len(steps.call_args.args[0]), 9)
+        self.assertEqual(len(steps.call_args.args[0]), 10)
 
     def test_bad_materials_stop_before_install_or_output_creation(self):
         node, pnpm = self.root / 'node.exe', self.root / 'pnpm.exe'
         node.write_bytes(b'node')
         pnpm.write_bytes(b'pnpm')
         run = self.root / 'work/workbench-engine-build/bad-materials'
-        materials = SimpleNamespace(read_inputs=lambda directory: (_ for _ in ()).throw(ValueError('bad proof')))
+        materials = SimpleNamespace(preflight=lambda unit, directory: (_ for _ in ()).throw(ValueError('bad proof')))
         with patch.object(BUILD, 'material_api', return_value=materials), \
                 patch.object(BUILD, 'check_source', return_value={}), \
                 patch.object(BUILD, 'checked') as command, patch.object(BUILD, 'run_steps') as steps:

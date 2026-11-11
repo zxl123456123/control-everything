@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.tc.web.json",
+  "exclude": [
+    "../src/renderer/src/**/*.test.*",
+    "../src/renderer/src/**/*.spec.*",
+    "../src/shared/**/*.test.*",
+    "../src/shared/**/*.spec.*",
+    "../src/renderer/src/**/*.test-fixture.*",
+    "../src/shared/**/*.test-fixture.*",
+    "../src/renderer/src/components/terminal-pane/pending-runtime-pane-close-test-fixture.ts",
+    "../src/renderer/src/components/terminal-pane/pending-split-close-test-fixture.ts",
+    "../src/renderer/src/components/terminal-pane/pty-connection-test-*.ts",
+    "../src/renderer/src/lib/paste-payload-corpus.ts"
+  ]
+}

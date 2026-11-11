@@ -326982,6 +326982,7 @@
     }
   ],
   "local_files": [
+    "config/tsconfig.platform-web.json",
     "src/renderer/src/components/activity/OfficeActivityView.test.tsx",
     "src/renderer/src/components/activity/OfficeActivityView.tsx",
     "src/renderer/src/components/activity/office-activity-model.ts",
@@ -327300,6 +327301,12 @@
     "src/renderer/src/components/terminal-pane/TerminalTouchControls.test.tsx"
   ],
   "adapted_files": [
+    {
+      "path": "src/renderer/src/lib/folder-workspace-runtime-owner.ts",
+      "upstream_sha256": "07e1621218007cbebae2de1c63789a89c5dfec57cfae160ecdd4f8c5963e9fb2",
+      "current_sha256": "ee8892d3db17323846a48dbc77612c170b27caee5cd36cbfbf0d52258eb43b41",
+      "reason": "Preserve the input folder record type when returning its runtime owner; keep runtime behavior unchanged."
+    },
     {
       "path": "src/renderer/src/components/terminal-pane/TerminalPaneSurface.tsx",
       "upstream_sha256": "cf17658a917463c5bf4e68919f79925c7bec1a12af41faab84ca151e90f26a84",
@@ -329745,14 +329752,14 @@
     {
       "path": "native/windows-cli-launcher/Cargo.lock",
       "upstream_sha256": "7eb238ec2f72a9643e5acc01ba64bce922d12d62975596edf163d94599e55a25",
-      "current_sha256": "877e957617ae92447b131e1db2448b803917cb4e4c4d72f5e3b0a9d70c45dd3f",
-      "reason": "Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands."
+      "current_sha256": "d007d8f3d46b8fbfff0ba711fd56a9fe3a578a0040ee2ca273ab42b5334975ff",
+      "reason": "Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands.; Normalize checkout line endings to LF."
     },
     {
       "path": "native/windows-cli-launcher/Cargo.toml",
       "upstream_sha256": "eb632f2cd39c45188bd593e97f700935bb078091168a812c6afad1a18deb1e77",
-      "current_sha256": "a5a664ba6b986b1ff5438edb0f8d917aecb7028a3656a19cffda5a590ae85b09",
-      "reason": "Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands."
+      "current_sha256": "bb759fa4f063ea2ddbe0dfb95848c14b8d189b2619ae9f195adaf24fc62cddb2",
+      "reason": "Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands.; Normalize checkout line endings to LF."
     },
     {
       "path": "native/windows-cli-launcher/app.manifest",
@@ -329763,14 +329770,14 @@
     {
       "path": "native/windows-cli-launcher/build.rs",
       "upstream_sha256": "47c3064c071a6b9bed66ce4f8f5d1a1d5147291effc1fbdb4255c76cda6aef3f",
-      "current_sha256": "9d80bd9570845e26795242f403b3a6438527d32a268d715f1668d59e8be466bb",
-      "reason": "Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands."
+      "current_sha256": "b2f1105fde2ef3a8245129bc3b38b5dab18c45641589e5e630ff06b8089d8850",
+      "reason": "Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands.; Normalize checkout line endings to LF."
     },
     {
       "path": "native/windows-cli-launcher/src/administrator_restart.rs",
       "upstream_sha256": "45f80de34a7c98571b744b8fa2bb1ee171e5f4046221cd5c7cd52e89e0a8c5a9",
-      "current_sha256": "898827e8d23887039c321e9e9c61955527cca91712ab67287225df2e9b0ef410",
-      "reason": "Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands."
+      "current_sha256": "2125723ae93a30724455dfbe209ae6ea12a86aa7c05434fb4fcd22c360b37ebd",
+      "reason": "Rename native command launchers and packaged consumers to zkyq; refresh cached builds by source fingerprint and migrate platform-generated commands.; Normalize checkout line endings to LF."
     },
     {
       "path": "native/windows-cli-launcher/src/main.rs",
@@ -330357,8 +330364,8 @@
     {
       "path": "config/docker/cli-launch-contract/run-cli-case.sh",
       "upstream_sha256": "cbdd8ce27aeb3c708f4d55d00de1a356a1224fa54cd3227c4553678323346167",
-      "current_sha256": "3ab225c387aabb7c001c3ed353d00c83ee1bd75b2a443ec56962ec6999041133",
-      "reason": "原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者"
+      "current_sha256": "b4d920b0008a8a83d13e5a4ce3eae1cec785427ff61039771a37d1b931b468f6",
+      "reason": "原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者; Normalize checkout line endings to LF."
     },
     {
       "path": "config/docker/headless-serve-shutdown/run-signal-case.sh",
@@ -330603,8 +330610,8 @@
     {
       "path": "config/scripts/ci-shard-timings.json",
       "upstream_sha256": "419a0689488658c3226130db58d1ebf7252688913a6da38d9dd792ded390dd8f",
-      "current_sha256": "861584993b5a201e3b2c88b93eea90f34f5fc8091259139a171f66ff3f8ec29f",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+      "current_sha256": "4df2721285360bbed148dc0607b610038a0ea9009c05c66b6d466186e09e5266",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根; Normalize checkout line endings to LF."
     },
     {
       "path": "config/scripts/dev-cli-terminal-wrapper.mjs",
@@ -330675,8 +330682,8 @@
     {
       "path": "package.json",
       "upstream_sha256": "2b1b5babba41edbbf3bd9a8a686825564a13cacb0ccd54dd7b76e8af84dc2c52",
-      "current_sha256": "3a0f8fa1c2dcd5a848638cbc178a31eede0a5fcde1a96d6cec2507f572b51210",
-      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根"
+      "current_sha256": "726224211270d06852230a0db4d91b849142a41ade4dd40c8515ea7260a97fb8",
+      "reason": "开发命令统一zkyq-dev与终端zkyq，同步安装回收、PATH、WSL和Agent调用，保留用户文件与数据根; Normalize checkout line endings to LF."
     },
     {
       "path": "resources/skills/current-manifest.json",
@@ -331329,8 +331336,8 @@
     {
       "path": "config/scripts/orca-dev",
       "upstream_sha256": "ef9e9f9b18b164501e8b3755dd6eace62cff26a71c5e7a553b4bf62761c86ade",
-      "current_sha256": "97f31489badcbf06d7d75deeb5e859d359e2706e63fb161220afc6d87ba8d4bc",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；应用启动配置对统一ZKYQ身份，调用方和生成脚本同步，旧值拒绝默认回退并保持旧脚本归属识别"
+      "current_sha256": "a882f5716c28186cf4c1f9751b08f1a8065cdc3a8eea105a4282c4df2b5224d1",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；应用启动配置对统一ZKYQ身份，调用方和生成脚本同步，旧值拒绝默认回退并保持旧脚本归属识别; Normalize checkout line endings to LF."
     },
     {
       "path": "config/scripts/remote-agent-session-authority-repro.mjs",
@@ -331347,8 +331354,8 @@
     {
       "path": "config/scripts/verify-packaged-daemon-entry.cjs",
       "upstream_sha256": "7d8859e14d2660636a8c865cefaa72a0695d4fee0cd394df82b3523e34d5b711",
-      "current_sha256": "2873333e9db980d072dad1872ce7f60e17e8d4b7f9f564ef5135673edb3f38ba",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+      "current_sha256": "62094a542ab5c86e4a4319c61647a32f115a462046368eb245aea4d9e7cfe591",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退; Normalize checkout line endings to LF."
     },
     {
       "path": "config/scripts/vitest-real-agent-home-write-guard.test.ts",
@@ -331383,8 +331390,8 @@
     {
       "path": "mobile/scripts/start-emulator-pairing-runtime.mjs",
       "upstream_sha256": "6b3440adc44efbe5703018838d2b8a7dc775ed18050dca377f218b24803ebe1d",
-      "current_sha256": "d271a0cb97a06ab7e0a2ce0aa889c2b0806ee91f289f8c9eba819f5e7c06b77d",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+      "current_sha256": "ff8056317f7cb428e103509435e3b49071ae2daf4c39db753fff4aa89201efc7",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退; Normalize checkout line endings to LF."
     },
     {
       "path": "src/cli/agent-launch-process.test.ts",
@@ -332115,14 +332122,14 @@
     {
       "path": "tests/tools/daemon-relocation-spike/daemon-launch.mjs",
       "upstream_sha256": "17b8141cac28d44d33681daa47e4cc3a06d9b962a3f67337c6114c0d8f8c57b2",
-      "current_sha256": "fb0e922e871fdcbc3437c4eddc56379b86b41a732f625d1974ff22910bc463c1",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+      "current_sha256": "7ea4b4a145522480a35493d6439a1ec5eacc91b6cd66de3184ba0686b4f863ea",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退; Normalize checkout line endings to LF."
     },
     {
       "path": "tests/tools/win-update-e2e/serve-switch.mjs",
       "upstream_sha256": "294902f0ce688c70dbe2b14966198a61300dea63426f3dc0c850d6355e938c57",
-      "current_sha256": "d642b858912f144e8de132f7a690e1de529d1c8a36abd20f74f92ee3adb7e6a0",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+      "current_sha256": "053d13d46c05236b49fd3677fed521f230d4b97616a0daabec582abd5088c3a4",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退; Normalize checkout line endings to LF."
     },
     {
       "path": "src/cli/handlers/serve-service-format.ts",

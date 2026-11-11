@@ -106,6 +106,39 @@ class DesktopPayloadTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'desktop_identity_fields'):
             self.stage()
 
+    def test_endpoints_can_be_verified_before_product_outputs_exist(self):
+        for config in ({'issuer': '', 'hub_origin': ''},
+                       {'issuer': 'https://identity.example.invalid/realm',
+                        'hub_origin': 'https://hub.example.invalid'}):
+            with self.subTest(config=config):
+                self.endpoints.write_text(json.dumps(config))
+                self.assertEqual(D.read_endpoints(self.endpoints), config)
+                self.assertEqual(list(self.output.iterdir()), [])
+
+    def test_endpoint_types_are_rejected_before_copying_product_files(self):
+        invalid = [None, [], ['issuer', 'hub_origin'], 1,
+                   {'issuer': 1, 'hub_origin': 1}, {'issuer': False, 'hub_origin': False},
+                   {'issuer': None, 'hub_origin': None}, {'issuer': [], 'hub_origin': []}]
+        for config in invalid:
+            with self.subTest(config=config):
+                self.endpoints.write_text(json.dumps(config))
+                with self.assertRaisesRegex(ValueError, 'desktop_identity_fields'):
+                    self.stage()
+                self.assertEqual(list(self.output.iterdir()), [])
+
+    def test_endpoint_preflight_preserves_https_and_identity_restrictions(self):
+        invalid = ['http://example.invalid', 'https://user@example.invalid',
+                   'https://example.invalid?token=fixture', 'https://example.invalid#fragment',
+                   'https:///missing-host']
+        for value in invalid:
+            with self.subTest(value=value):
+                self.endpoints.write_text(json.dumps({'issuer': value, 'hub_origin': value}))
+                with self.assertRaisesRegex(ValueError, 'desktop_identity_https'):
+                    D.read_endpoints(self.endpoints)
+        self.endpoints.write_text(json.dumps({'issuer': 'https://example.invalid', 'hub_origin': ''}))
+        with self.assertRaisesRegex(ValueError, 'desktop_identity_fields'):
+            D.read_endpoints(self.endpoints)
+
     def test_changed_bundle_bytes_rejected(self):
         (self.engine / 'out/orcad/orcad.js').write_bytes(b'changed')
         with self.assertRaisesRegex(ValueError, 'desktop_input_changed'):
