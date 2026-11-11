@@ -4,7 +4,7 @@
 
 适合同时使用多个开发工具、在不同项目之间切换的个人开发者。项目与管理数据保存在本机，基础管理无需配置 Agent、SSH 或远端服务；运行 Agent 需先准备对应工具的账号和配置。
 
-[下载安装包](https://github.com/zxl123456123/control-everything/releases/tag/v0.1.0a18) · [项目文档](docs/README.md) · [参与开发](.github/CONTRIBUTING.md)
+[下载安装包](https://github.com/zxl123456123/control-everything/releases/tag/v0.1.0a19) · [项目文档](docs/README.md) · [参与开发](.github/CONTRIBUTING.md)
 
 ## 产品展示
 
@@ -27,18 +27,20 @@ https://github.com/user-attachments/assets/be96cc58-6bd8-4221-b0aa-77c0f9e31804
 
 ## 快速开始
 
-**Windows x64 早期测试版 0.1.0a18**：[下载安装包](https://github.com/zxl123456123/control-everything/releases/download/v0.1.0a18/session-panel-0.1.0a18-windows-x64.exe) · [依赖对应源码](https://github.com/zxl123456123/control-everything/releases/download/v0.1.0a18/session-panel-0.1.0a18-sources.zip) · [版本说明与校验值](https://github.com/zxl123456123/control-everything/releases/tag/v0.1.0a18)。安装包自带运行环境，无需另装 Python、Node.js 或 Rust；源码 ZIP 不能代替安装器。
+**Windows x64 早期测试版 0.1.0a19**：[下载安装包](https://github.com/zxl123456123/control-everything/releases/download/v0.1.0a19/session-panel-0.1.0a19-windows-x64.exe) · [依赖对应源码](https://github.com/zxl123456123/control-everything/releases/download/v0.1.0a19/session-panel-0.1.0a19-sources.zip) · [版本说明与校验值](https://github.com/zxl123456123/control-everything/releases/tag/v0.1.0a19)。安装包自带运行环境，无需另装 Python、Node.js 或 Rust；源码 ZIP 不能代替安装器。
 
-`0.1.0a18` 是完整版本号：`a` 表示 alpha（早期测试），`18` 是该阶段的版本序号，用于区分安装包。这一版包含账号接入和 iPhone 终端回车修复；实际测试结果与使用限制见版本说明。
+`0.1.0a19` 是完整版本号：`a` 表示 alpha（早期测试），`19` 是该阶段的版本序号，用于区分安装包。这一版支持管理员直接创建并开通普通账号，并保护已绑定电脑免于被另一账号静默覆盖；实际测试结果与使用限制见版本说明。
 
 1. 下载并运行安装器，选择安装目录。
 2. 从开始菜单的 **Session Panel** 启动独立应用窗口；安装时可勾选创建桌面快捷方式。
 3. 在项目总览点击“进入工作台”，再从“添加项目”添加已有目录、新建或克隆项目；已有项目可直接打开。
 4. 创建或选择工作区，打开终端或 Agent 会话。终端沿用本机工具配置，首次使用需先在对应工具中完成配置与登录。
 
+本地使用不需要平台账号。需要远程访问时，由管理员在“账号与设备”中创建并开通独立账号，将用户名和密码私下交给本人；无需自行注册或邮件。本人在电脑登录并确认连接后，用浏览器登录同一账号即可访问自己的电脑。已有本地项目继续保留；首次连接如提示重开，请先正常结束正在运行的工作。当前每账号支持一台有效电脑，退出账号不会自动撤销已有电脑连接。
+
 也可按[源码启动指南](docs/guides/usage.md#多-agent-工作台)运行。数据保存在本机；安装维护见 [Windows 安装指南](docs/guides/windows.md)，独立数据目录、端口设置、导入与备份见[使用指南](docs/guides/usage.md)。
 
-仓库 `main` 是当前已集成源码，`develop` 用于开发预览；下载的安装包固定在对应发布标签，不会随分支更新。`0.1.0a18` 的受测源码为 `f3439da7`，包含范围与未验收项以[该版本说明](https://github.com/zxl123456123/control-everything/releases/tag/v0.1.0a18)为准。仅用 pip 启动管理服务不会自动构建完整内置工作台，源码装配步骤见[贡献指南](.github/CONTRIBUTING.md#内置项目工作台源码与构建)。
+仓库 `main` 是当前已集成源码，`develop` 用于开发预览；下载的安装包固定在对应发布标签，不会随分支更新。`0.1.0a19` 的受测源码为 `1fce4809`，包含范围与未验收项以[该版本说明](https://github.com/zxl123456123/control-everything/releases/tag/v0.1.0a19)为准。仅用 pip 启动管理服务不会自动构建完整内置工作台，源码装配步骤见[贡献指南](.github/CONTRIBUTING.md#内置项目工作台源码与构建)。
 
 ## 当前边界
 
