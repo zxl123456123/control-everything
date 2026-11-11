@@ -1,0 +1,187 @@
+"""Release promotion contracts with a simulated GitHub and real local asset bytes."""
+import copy
+import json
+import os
+from pathlib import Path
+import subprocess
+import tempfile
+import unittest
+from unittest.mock import patch
+
+from tools.packaging import release_github as publish
+
+
+class GitHubCliTests(unittest.TestCase):
+    def test_api_uses_canonical_endpoint_and_passes_json_as_stdin(self):
+        with patch.dict(os.environ, {'GH_TOKEN': 'fixture-token', 'GH_DEBUG': 'api'}):
+            client = publish.GitHub('example/project')
+        result = subprocess.CompletedProcess([], 0, b'{}', b'')
+        with patch.object(subprocess, 'run', return_value=result) as run:
+            client.api('GET', '')
+            self.assertEqual(run.call_args.args[0][-1], 'repos/example/project')
+            body = {'body': 'Literal $(value) and `quotes`'}
+            client.api('POST', 'releases', body)
+            self.assertEqual(json.loads(run.call_args.kwargs['input']), body)
+            self.assertNotIn('GH_DEBUG', run.call_args.kwargs['env'])
+            self.assertNotIn('fixture-token', json.dumps(client.events))
+
+    def test_only_not_found_is_treated_as_missing(self):
+        with patch.dict(os.environ, {'GH_TOKEN': 'fixture-token'}):
+            client = publish.GitHub('example/project')
+        with patch.object(subprocess, 'run', return_value=subprocess.CompletedProcess([], 1, b'', b'HTTP 404')):
+            self.assertIsNone(client.api('GET', 'git/ref/tags/v1', missing=True))
+        with patch.object(subprocess, 'run', return_value=subprocess.CompletedProcess([], 1, b'', b'HTTP 403')):
+            with self.assertRaisesRegex(ValueError, 'github_command_failed'):
+                client.api('GET', 'git/ref/tags/v1', missing=True)
+
+
+class GitHubFixture:
+    def __init__(self, plan, public):
+        self.plan, self.public = plan, public
+        self.release = None
+        self.tag_commit = None
+        self.main_status = 'ahead'
+        self.assets = []
+        self.mutations = []
+        self.events = []
+        self.fail_upload = False
+        self.bad_download = False
+
+    def api(self, method, path, body=None, missing=False):
+        if path.startswith('compare/'):
+            return {'status': self.main_status, 'merge_base_commit': {'sha': self.plan['commit']}}
+        if path.startswith('git/ref/tags/'):
+            return {'object': {'type': 'commit', 'sha': self.tag_commit}} if self.tag_commit else None
+        if method == 'POST' and path == 'git/refs':
+            self.mutations.append('tag')
+            self.tag_commit = body['sha']
+            return {'object': {'type': 'commit', 'sha': self.tag_commit}}
+        if method == 'POST' and path == 'releases':
+            self.mutations.append('draft')
+            self.release = {'id': 42, 'html_url': 'https://github.com/example/project/releases/tag/untagged-fixture', **body}
+            return copy.deepcopy(self.release)
+        if method == 'PATCH' and path == 'releases/42':
+            self.mutations.append('publish')
+            self.release.update(body)
+            self.release['html_url'] = 'https://github.com/example/project/releases/tag/v0.1.0a2'
+            return copy.deepcopy(self.release)
+        if method == 'GET' and path == 'releases/42':
+            return copy.deepcopy(self.release)
+        raise AssertionError((method, path))
+
+    def listing(self, path):
+        return copy.deepcopy(self.assets if '/assets?' in path else ([self.release] if self.release else []))
+
+    def upload(self, tag, path):
+        if self.fail_upload:
+            raise ValueError('fixture_upload_interrupted')
+        self.mutations.append('upload:' + path.name)
+        self.assets.append({'id': len(self.assets) + 1, 'name': path.name, 'state': 'uploaded',
+                            'size': path.stat().st_size, 'digest': 'sha256:' + publish.sha256(path)})
+
+    def download(self, tag, name, directory):
+        data = (self.public / name).read_bytes()
+        (directory / name).write_bytes(data + b'bad' if self.bad_download else data)
+        for asset in self.assets:
+            if asset['name'] == name:
+                asset['download_count'] = asset.get('download_count', 0) + 1
+
+
+class PublishingTests(unittest.TestCase):
+    def setUp(self):
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        self.root = Path(temporary.name).resolve()
+        self.public = self.root / 'public'
+        self.public.mkdir()
+        for name, data in [('installer.exe', b'installer'), ('release-notes.md', b'Reviewed release notes\n')]:
+            (self.public / name).write_bytes(data)
+        self.plan = {'schema': 1, 'repository': 'example/project', 'version': '0.1.0a2', 'tag': 'v0.1.0a2',
+                     'commit': 'a' * 40, 'prerelease': True,
+                     'assets': [{'name': p.name, 'size': p.stat().st_size, 'sha256': publish.sha256(p)}
+                                for p in sorted(self.public.iterdir())]}
+        self.plan_path = self.root / 'publication.json'
+        self.plan_path.write_text(json.dumps(self.plan))
+        evidence = self.root / 'content-review.md'
+        evidence.write_text('Fixture content review; no real release.')
+        self.review = {'schema': 1, 'decision': 'accepted', 'reviewer': 'fixture reviewer',
+                       'plan_sha256': publish.sha256(self.plan_path),
+                       'evidence': {'path': str(evidence), 'sha256': publish.sha256(evidence)}}
+        self.review_path = self.root / 'review.json'
+        self.review_path.write_text(json.dumps(self.review))
+        self.client = GitHubFixture(self.plan, self.public)
+        self.validation = patch.object(publish, 'validate_bundle', return_value=self.plan)
+        self.validation.start()
+        self.addCleanup(self.validation.stop)
+
+    def run_stage(self, stage, name):
+        return publish.promote(self.plan_path, self.review_path, stage, self.root / name, self.client)
+
+    def test_draft_then_publish_verifies_assets_and_records_same_release(self):
+        first = self.run_stage('draft', 'draft')
+        self.assertEqual(first['status'], 'draft-verified')
+        self.assertTrue(self.client.release['draft'])
+        second = self.run_stage('publish', 'publish')
+        self.assertEqual(second['status'], 'published-verified')
+        self.assertEqual(second['release_url'], 'https://github.com/example/project/releases/tag/v0.1.0a2')
+        self.assertEqual(second['release_id'], first['release_id'])
+        self.assertEqual(self.client.mutations.count('draft'), 1)
+        self.assertEqual(self.client.mutations.count('publish'), 1)
+        mutations = list(self.client.mutations)
+        self.assertEqual(self.run_stage('publish', 'repeat')['status'], 'published-verified')
+        self.assertEqual(self.client.mutations, mutations)
+
+    def test_interrupted_upload_resumes_without_recreating_or_overwriting(self):
+        self.client.fail_upload = True
+        self.assertEqual(self.run_stage('draft', 'failed')['status'], 'failed')
+        self.client.fail_upload = False
+        self.client.upload(self.plan['tag'], self.public / 'installer.exe')
+        self.assertEqual(self.run_stage('draft', 'resume')['status'], 'draft-verified')
+        self.assertEqual(self.client.mutations.count('upload:installer.exe'), 1)
+        self.assertEqual(self.client.mutations.count('tag'), 1)
+
+    def test_tag_mismatch_or_source_outside_main_stops_before_mutations(self):
+        self.client.tag_commit = 'b' * 40
+        self.assertEqual(self.run_stage('draft', 'wrong-tag')['status'], 'failed')
+        self.client.tag_commit = None
+        self.client.main_status = 'behind'
+        self.assertEqual(self.run_stage('draft', 'not-main')['status'], 'failed')
+        self.assertEqual(self.client.mutations, [])
+
+    def test_remote_asset_mismatch_or_unknown_asset_never_overwrites(self):
+        self.run_stage('draft', 'first')
+        before = list(self.client.mutations)
+        self.client.assets[0]['digest'] = 'sha256:' + 'f' * 64
+        self.assertEqual(self.run_stage('publish', 'wrong-hash')['status'], 'failed')
+        self.assertEqual(self.client.mutations, before)
+
+    def test_bad_download_blocks_publication_and_keeps_draft(self):
+        self.client.bad_download = True
+        self.assertEqual(self.run_stage('draft', 'bad')['status'], 'failed')
+        self.assertTrue(self.client.release['draft'])
+        self.assertNotIn('publish', self.client.mutations)
+
+    def test_unreviewed_plan_and_missing_draft_cannot_publish(self):
+        self.assertEqual(self.run_stage('publish', 'no-draft')['status'], 'failed')
+        self.assertEqual(self.client.mutations, [])
+        self.review['plan_sha256'] = '0' * 64
+        self.review_path.write_text(json.dumps(self.review))
+        self.assertEqual(self.run_stage('draft', 'review-mismatch')['status'], 'failed')
+        self.assertEqual(self.client.mutations, [])
+
+    def test_published_release_with_missing_assets_is_never_modified(self):
+        self.run_stage('draft', 'first')
+        self.client.release['draft'] = False
+        self.client.assets.pop()
+        before = list(self.client.mutations)
+        self.assertEqual(self.run_stage('publish', 'missing')['status'], 'failed')
+        self.assertEqual(self.client.mutations, before)
+
+    def test_existing_run_directory_and_changed_notes_are_rejected(self):
+        self.run_stage('draft', 'first')
+        with self.assertRaises(FileExistsError):
+            self.run_stage('draft', 'first')
+        self.client.release['body'] = 'different release'
+        before = list(self.client.mutations)
+        self.assertEqual(self.run_stage('publish', 'changed')['status'], 'failed')
+        self.assertEqual(self.client.mutations, before)
