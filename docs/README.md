@@ -7,7 +7,7 @@ Control Everything 是在本机运行的开发工作台，用于管理项目与�
 | 文档 | 内容 |
 | --- | --- |
 | [使用指南](guides/usage.md) | 内置工作台、账号与电脑接入、源码管理服务、兼容事项与接口、数据备份与恢复 |
-| [工作台最小契约](architecture/workbench-contract.md) | 兼容事项管理的字段、读写与验收约束，以及[执行桥设计](architecture/workbench-contract.md#12-下一阶段执行桥最小-mvp)；不作为当前导航说明 |
+| [兼容事项契约与历史设计](architecture/workbench-contract.md) | 保留早期字段约定、页面与执行桥规划供追溯；不是当前页面说明或开发计划，现行接口见使用指南 |
 | [架构说明](architecture/architecture.md) | 组件职责、目录归属、数据流与扩展边界 |
 | [可选接入](guides/integrations.md) | 远端会话、终端、启动器与只读 MCP |
 | [Windows 安装与维护](guides/windows.md) | 安装、升级、回退、卸载；[每次新 EXE 的构建与发布流水线](guides/windows.md#构建与技术预发布) |
@@ -17,5 +17,7 @@ Control Everything 是在本机运行的开发工作台，用于管理项目与�
 | [参与开发](../.github/CONTRIBUTING.md#开发与出包从这里开始) | 开发工作流总入口：任务、环境、验证、预览、提交与交接 |
 
 接入配置示例在 [examples/integrations](examples/integrations)，旧格式导入示例在 [examples/legacy](examples/legacy)。示例使用占位配置；真实配置与数据由使用者保存在本机。
+
+`web/workbench-engine` 内的 Markdown 随固定源码保留，分别服务于内置技能、构建工具、测试场景和许可追溯，不作为本产品安装与使用的入口。不要按旧日期批量删除，也不要用其中的上游部署说明替代本项目的 Windows 或自建账号服务指南。
 
 本机任务记录放 `current/<feature>/`，历史记录放 `archive/<feature>/`；两个目录均不提交。每项任务从自己的 README.md 恢复，验证产物在仓库 `work/<feature>/`。根目录只保留本索引，正文按指南、架构和示例归属。

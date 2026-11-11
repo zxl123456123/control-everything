@@ -77,7 +77,7 @@ Import Linter 的固定依赖在 `tools/architecture/requirements.txt`。内容/
 
 ## 功能目录与新增代码归属
 
-管理后端沿用 Python，Windows 进程观察由 Rust 组件负责；前端保留 HTML/CSS 和普通脚本，本机观察与每日资讯使用 TypeScript 源码及已生成 JS，工具只在开发和验证时使用。普通启动无需 Node/npm，其他模块继续手写 JS。后端按实际职责组织，新增代码优先放入下表对应功能包；不为每个功能预建空的通用分层。
+管理后端沿用 Python，Windows 进程观察由 Rust 组件负责。内置工作台使用独立 React/TypeScript/Node 构建单元；Studio、账号、新闻及兼容页面保留 HTML/CSS 和普通脚本，本机观察与资讯模块使用 TypeScript 源码及已生成 JS。单独运行 Python 管理服务无需 Node/npm，完整 Windows 产品自带所需 Node 运行时；开发完整工作台按下文准备工具与构建。后端按实际职责组织，新增代码优先放入下表对应功能包；不为每个功能预建空的通用分层。
 
 | 后端目录 | 职责 |
 |---|---|
@@ -126,7 +126,7 @@ python tools/packaging/workbench_engine.py check-output --run-dir C:/example/che
 
 journal v4 身份变更的降级数据使用 `node tools/packaging/export_workbench_journal_v3.mjs <source-db> <new-output-directory>`（显式 Node 24 和本检出独立依赖）。它保留源数据库，通过 SQLite backup API 导出含 WAL 的一致副本，在副本内转换地址/回执后发布独立 v3 数据文件；目标目录必须全新，失败的 pending 文件保留，不覆盖已有产物。实际回退前停止应用和 Agent，再导出最后写入；该工具不安装旧版本、不替换运行中的 profile，也不处理配置/其他数据迁移，不能单凭导出成功宣称整个应用已回退。
 
-Windows 原生 Hook 使用 `native/windows-agent-hook`，正式入口为 `config/scripts/build-windows-agent-hook.mjs`，默认交付文件是该包下 `.build/zkyq-agent-hook.exe`。该包的 `target/` 与 `.build/` 为该入口精确声明的编译目录，不进入源码清单；打包只收集上述 EXE，其他目录仍按来源清单核验。改名验收核对实际 PE 属性、原执行权限和真实 EXE 的中性响应及本机事件上报。
+Windows 原生 Hook 使用 `web/workbench-engine/native/windows-agent-hook`，正式入口为 `web/workbench-engine/config/scripts/build-windows-agent-hook.mjs`，默认交付文件是该包下 `.build/zkyq-agent-hook.exe`。该包的 `target/` 与 `.build/` 为该入口精确声明的编译目录，不进入源码清单；打包只收集上述 EXE，其他目录仍按来源清单核验。改名验收核对实际 PE 属性、原执行权限和真实 EXE 的中性响应及本机事件上报。
 
 字体、供应商图标、完整界面静态导入资源及Windows launcher编译图标仅按清单精确字节和完整notice放行；未知媒体、上游执行规则、私人fixture和任意嵌套docs仍拒绝。文本仍经隐私与Gitleaks扫描，changes模式按被检查commit自己的清单核验。对应用来源/构建规则的修改运行：
 
@@ -373,13 +373,13 @@ node tests/e2e/verify_workspace.cjs --fixture
 
 ## 协作和交接
 
-### 管理库schema2与离线迁移验证
+### 管理库与离线迁移验证
 
-管理schema、profile配置和backup manifest分别版本化；schema1只能显式通过 `python -m control_everything.profile migrate-tasks --data-dir <绝对目录>` 升级。新库直接schema2；restore兼容manifest1/schema1与manifest2/schema2，旧结构恢复发布后仍须显式迁移。不得在HTTP启动、Profile.open或配置保存中隐式升级，不删除未知表或执行账本以适配schema。
+管理schema、profile配置和backup manifest分别版本化。当前新库直接使用schema10；旧schema1至9只能显式通过 `python -m control_everything.profile migrate-tasks --data-dir <绝对目录>` 升级。restore接受manifest/schema1至10，保留备份原结构，旧结构恢复后仍须显式迁移。不得在HTTP启动、Profile.open或配置保存中隐式升级，不删除未知表或执行账本以适配schema。版本与表集合以 `src/control_everything/workspace/task_schema.py`、备份合同以 `src/control_everything/profiles/profile_import.py` 为准。
 
-任务存储的唯一写表为task_items，tasks/todos仅为保留原ID的只读视图。所有管理连接严格核schema后注册无副作用writer版本函数，固定DML guards拒旧连接误写；这是版本兼容机制，不是对恶意DB编辑的安全认证。项目写入及事项写入要在同一事务失效列表revision，不能只修改项目归档状态而接受旧分页。
+任务事项本体写入task_items，tasks/todos仅为保留原ID的只读视图；运行、派发、交付与审核分别保存到所属账本。所有管理连接严格核schema后注册无副作用writer版本函数，固定DML guards拒旧连接误写；这是版本兼容机制，不是对恶意DB编辑的安全认证。项目写入及事项写入要在同一事务失效列表revision，不能只修改项目归档状态而接受旧分页。
 
-迁移的SQLite一致备份在写事务外取得，EXCLUSIVE内重核源事实后逐条DDL/复制/校验/更新版本并提交，不能用executescript隐式提交。失败回滚并保留备份；回退旧程序前先 `preserve-tasks` 保全最新schema2，再恢复旧备份到新目录，不覆盖新库。备份包含私密路径和管理数据，不提交。
+迁移的SQLite一致备份在写事务外取得，EXCLUSIVE内重核源事实后逐条DDL/复制/校验/更新版本并提交，不能用executescript隐式提交。失败回滚并保留备份；回退旧程序前先 `preserve-tasks` 保全当前管理库，再恢复旧备份到新目录，不覆盖新库。保全不会将新运行或交付语义反写为旧版本格式。备份包含私密路径和管理数据，不提交。
 
 实现者仅运行经代码核过的无listener合成合同；真实旧连接/多进程停写、CLI迁移恢复回退、HTTP/Edge以及全量discover由验收负责人承接并保存全部退出码、失败和清理收据。纯单测入口为 `tests.backend.test_task_store` 与 `tests.backend.test_task_migration`；它们只操作TemporaryDirectory，不是用户迁移验收。
 
@@ -433,7 +433,7 @@ main 的远端规则仅保留防强推与防删分支，不要求 PR 或必需 C
 
 ## 源码与测试目录
 
-后端生产源码在 `src/control_everything`，业务按 `http`、`sessions`、`workspace`、`execution`、`profiles`、`integrations` 组织，安装维护归 `installation`，Win32 适配归 `platform`。前端使用原生 HTML/CSS 和普通脚本，唯一资源源码放在 `web/sessions`、`web/progress`、`web/workspace`、`web/product`，构建 wheel 时按 HTTP 白名单收进包内；普通启动直接消费已交付 JS，无需 Node、npm 或现场编译。原有页面和资源 URL 保持不变，例如 `/workspace.js` 对应物理文件 `web/workspace/workspace.js`；独立产品介绍页 `/product` 对应 `web/product/index.html`。
+后端生产源码在 `src/control_everything`，业务按 `http`、`sessions`、`workspace`、`execution`、`profiles`、`integrations` 组织，安装维护归 `installation`，Win32 适配归 `platform`。普通管理页面使用 HTML/CSS 和脚本，资源源码放在 `web/sessions`、`web/progress`、`web/workspace`、`web/product`，构建 wheel 时按 HTTP 白名单收进包内；Python 管理服务直接消费已交付 JS，无需 Node、npm 或现场编译。内置 React/TypeScript 工作台唯一源码在 `web/workbench-engine`，单独构建并随完整 Windows 产品装配，不纳入普通 wheel。原有页面和资源 URL 保持不变，例如 `/workspace.js` 对应物理文件 `web/workspace/workspace.js`；独立产品介绍页 `/product` 对应 `web/product/index.html`。
 
 本机观察与每日资讯分别以 `web/workspace/observation.ts`、`news.ts` 和邻近类型声明为手写源码，两个 JS 为同一固定 TypeScript 5.9.3 的生成物；其他模块继续手写 JS。修改对应 TS 后运行 `node tools/scripts/build_observation.cjs build` 或 `node tools/scripts/build_news.cjs build`，连同生成 JS 提交，再用对应 `check` 比较完整字节；不要手改生成物。Node24/项目内固定工具的显式准备、缺工具失败与全部验证命令见[观察前端 TypeScript 开发](CONTRIBUTING.md#观察前端-typescript-开发)。原 URL 和普通脚本相对顺序保留，新 `/news.js` 在页面主脚本前加载，不增加常驻 Node 服务。
 

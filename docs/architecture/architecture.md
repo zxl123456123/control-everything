@@ -7,12 +7,19 @@ Control Everything 由浏览器界面、Python 管理后端、内置 Node 工作
 ```mermaid
 flowchart TD
     Browser[浏览器工作台] --> HTTP[Python HTTP 网关]
+    Browser <-->|WebSocket| Engine[内置 Node 工作台]
+    HTTP --> Bootstrap[受管运行时启动与连接引导]
+    Bootstrap --> Engine
+    Engine --> Development[项目工作区、终端与 Agent 会话]
     HTTP --> Workspace[项目与任务管理]
     Workspace --> Store[本机 SQLite 管理库]
     HTTP --> Profile[配置与备份恢复]
     HTTP --> Sessions[会话与工具观察]
     Sessions --> Native[Rust Windows 原生观察组件]
     HTTP --> Integrations[可选外部接入]
+    HTTP --> News[新闻订阅、采集与后台计划]
+    HTTP --> Connector[账号与电脑连接器]
+    Connector --> Hub[自建接入服务与身份服务]
 ```
 
 - HTTP 网关绑定本机回环地址，处理请求校验、权限和模块装配。浏览器通过 HTTP 获取数据与静态资源。
@@ -33,19 +40,22 @@ flowchart TD
 | 路径 | 职责 |
 | --- | --- |
 | `src/control_everything/http` | HTTP 路由、静态资源白名单与服务装配 |
-| `src/control_everything/workspace` | 项目、任务、人工进度、管理存储与资讯 |
+| `src/control_everything/workspace` | 项目、事项、人工进度、交付与管理存储；新闻订阅、阅读和计划 |
 | `src/control_everything/sessions` | 会话索引、工具进程观察与终端证据 |
 | `src/control_everything/profiles` | 配置、数据目录、导入、备份与离线恢复 |
-| `src/control_everything/integrations` | 外部服务、固定启动器与只读 MCP 适配 |
+| `src/control_everything/integrations` | 内置工作台运行时、账号与远程设备服务、可选外部服务及只读 MCP 适配 |
 | `src/control_everything/execution` | Codex / DSH 受控执行、工具审批、运行归属与清理；当前为源码开发版入口 |
 | `src/control_everything/installation` | Windows 产品清单、所属登记和安装维护 |
 | `src/control_everything/platform` | Windows Job、句柄与安装身份原语 |
-| `web/sessions`、`web/progress`、`web/workspace` | 三组页面及其脚本、样式 |
+| `web/workbench-engine` | 内置 React/TypeScript 工作台、Node 运行时及固定上游源码 |
+| `web/workspace` | Studio、新闻、账号与设备，以及兼容管理页面和共享脚本、样式 |
+| `web/sessions`、`web/progress` | 保留的旧观察、进度与管理页面，不是内置工作台的当前主导航 |
 | `native/observer` | Rust 原生观察组件 |
+| `native/desktop` | 使用 WebView2 承载工作台的 Windows 独立窗口 |
 | `tools` | 构建、开发脚本、架构检查及固定工具配置 |
 | `tests/backend`、`tests/frontend`、`tests/e2e`、`tests/fixtures` | 后端、前端、端到端验证与合成数据 |
 
-前端以普通 HTML/CSS/JavaScript 为主。观察与资讯模块由相邻 TypeScript 源码生成 JavaScript，交付时包含生成结果，普通用户启动无需 Node.js。页面主脚本负责状态和装配，完整业务展示放入所属模块。
+内置开发工作台使用 React/TypeScript，与普通 HTML/CSS/JavaScript 管理页面分别构建。观察与资讯模块由相邻 TypeScript 源码生成 JavaScript，交付时包含生成结果。Windows 安装包自带内置工作台所需的固定 Node 运行时，用户无需另装 Node；源码开发完整工作台需准备贡献指南要求的工具。页面主脚本负责状态和装配，完整业务展示放入所属模块。
 
 ## 依赖与扩展边界
 
@@ -64,4 +74,6 @@ HTTP 层可以装配各功能包，功能包不能反向依赖 HTTP。会话观�
 开发环境、检查命令和提交约定见[参与开发](../../.github/CONTRIBUTING.md)；配置及数据恢复操作见[使用指南](../guides/usage.md)。
 
 
-项目发现、读取许可和加入工作台分别处理。Codex 沿用原许可字段；Claude Code/OpenCode 的许可与移出 ID 集合保存在 profile v4，v5 增加本机 Agent 注册身份与可选 project_ids 范围。已存项目默认保留，未保存的外部发现不自动进入导航。移出只写配置，不删除业务记录；首次加入只写管理库，合法悬空移出 ID 需要第二次配置请求重新加入。当前业务 schema9 与备份 manifest9 对应；agent_runs/task_events 记录领取、进度、等待人工/授权和审核证据；task_briefs/task_dispatches 记录版本化说明与人工确认的派发快照；task_sessions 只存外部会话元数据与 source_instance，不存正文；task_messages 记录人工补充/退回/等待人回答的手动交接状态；execution_runs/execution_events/execution_approvals 在同一管理库记录真实执行、事件及工具审批。连接未知只提示，不释放运行或任务，不表示宿主执行或自动完成。
+兼容管理入口的项目发现、读取许可和加入工作台分别处理。Codex 沿用原许可字段；Claude Code/OpenCode 的许可与移出 ID 集合保存在 profile v4，v5 增加本机 Agent 注册身份与可选 project_ids 范围。已存项目默认保留，未保存的外部发现不自动进入导航。移出只写配置，不删除业务记录；首次加入只写管理库，合法悬空移出 ID 需要第二次配置请求重新加入。
+
+当前新管理库为 schema10，备份 manifest 随被备份库的版本生成；恢复接受版本1至10并保留原结构，旧库须显式迁移后再使用当前管理接口。`agent_runs/task_events` 保存外部执行器领取与审核证据，`task_briefs/task_dispatches` 保存说明及派发快照，`task_sessions` 保存外部会话元数据，`task_messages` 保存消息；`execution_runs/execution_events/execution_approvals` 保存执行、事件及工具审批。schema10 的 `task_native_runs/task_deliveries/task_native_message_delivery` 保存原生运行绑定、交付版本与输入回执；人工验收仍由 Python 在同一管理库事务内完成。连接未知不释放运行、重发消息或自动完成事项。

@@ -17,7 +17,7 @@ https://github.com/user-attachments/assets/be96cc58-6bd8-4221-b0aa-77c0f9e31804
 | 会话与工具观察 | 选择 Codex、Claude Code、OpenCode 的本机项目来源后导入，支持其他 EXE 手工登记，进程指标收在诊断 |
 | 返回工具窗口 | 在 Windows 上选择已登记工具的合格可见窗口，尝试切回继续工作；不承诺定位到终端标签页 |
 | 用量与额度 | 按需读取 Codex 官方额度，查看各窗口剩余比例与重置时间 |
-| AI 资讯 | 查看 Google AI、OpenAI News、Hugging Face 等固定来源，保留日期、摘要与原文入口 |
+| AI 资讯 | 阅读内置来源或自定义 RSS/Atom/RSSHub 订阅，按分组与关键词筛选，按需采集或定时更新，保留日期与原文入口 |
 | 账号与远程访问 | 使用服务管理员分配的独立账号，确认绑定自己的电脑后，从浏览器访问；需自行部署或取得服务地址 |
 | 可选接入 | 按需配置文档进度来源、远端 Claude 会话、已有终端工作台和个人启动器，见[接入指南](docs/guides/integrations.md) |
 

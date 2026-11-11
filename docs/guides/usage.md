@@ -155,11 +155,13 @@ v4/v5 备份恢复保留项目、路径和移出意图，但停用三个工具�
 
 ## 每日 AI 资讯
 
+本节说明旧观察/进度页面保留的资讯缓存卡片；当前 Studio 的新闻入口、来源设置与定时更新见[新闻阅读室](#新闻阅读室)。两者共用部分来源，但不是同一套展示与设置。
+
 首页仅展示浏览器本地今天、未标为未来的默认 AI 来源前两条；资讯页展示本次返回窗口内的今日、较早、未知和未来文章。默认来源仍是 Google AI、OpenAI News、Hugging Face Blog（简称 HF，含社区文章），每源最多20条，显示扫描/过滤/重复和截断限制；“未见今日内容”只针对本次返回窗口。Hacker News 可显式选择，旧 `/progress` 也消费同一来源缓存，标为非AI筛选，并将HN收录时间与文章出版时间区分。
 
 卡片保留真实出版时间（缺失则未知）、来源更新、采样和上次成功时间；源有摘要才显示纯文本“来源摘要”或“来源摘要节选”。缓存15分钟，失败/过期保留旧日期并标旧；前端每分钟及恢复可见时重算，pending最多等待20秒，不表示后台被浏览器取消。资讯独立读取，不让待办或任务保存等待来源采集。公共源可能失败或变更格式，不能把缓存有效等同于来源有今日新闻。
 
-本批没有自定义信息流、账号连接、模型主动联网检索、有引用的每日简报、持久每日记录、预算或调度；这些明确留待后批。
+这些兼容卡片不提供阅读器的来源编辑与计划设置，不代表整个项目缺少自定义订阅或调度。账号接入、公开浏览采集及新闻计划分别在各自入口配置，不从卡片的来源缓存状态推定连接或采集成功。
 
 ## Windows 本机观察与返回
 
@@ -186,7 +188,7 @@ $observerData = Join-Path (Get-Location) 'work/example-profile'
 
 ## Agent 注册
 
-“来源与导入 → Agents”可以登记本机 coding agent。当前保存显示名、类型、命令/可执行文件路径、启用状态、项目范围和可选的 adapter/connection 字段；保存不会安装、启动、停止或向 Agent 发送任务。`Codex` 与 `DeepSeek Harness` 只是登记身份，后续 MCP/CLI 接入在此身份上扩展。
+在兼容管理页 `/workspace-admin` 的“来源与导入 → Agents”登记本机 coding agent。当前保存显示名、类型、命令/可执行文件路径、启用状态、项目范围和可选的 adapter/connection 字段；保存登记不会安装、启动、停止或向 Agent 发送任务。Codex 与 DeepSeek Harness 已有受控执行适配，配置启用后仍需在事项中明确执行；条件见[外部执行器最小流程](#外部执行器最小流程源码开发版)。它与内置终端中直接运行的 Agent 会话分别管理。
 
 ```text
 GET  /api/workspace/agents
@@ -221,9 +223,9 @@ GET  /api/agent/tasks/<task_id>/review
 
 ## 重点、优先级、决策与验收接口
 
-页面概念、逐字段来源与下一阶段接入顺序见[工作台最小契约 v0.1](../architecture/workbench-contract.md)。以下说明现有 HTTP 接口；契约中的新页面与展示计算仍需按待做事项实施。
+早期页面概念与字段设计保留在[兼容事项契约与历史设计](../architecture/workbench-contract.md)，不作为当前导航或后续排期。以下说明兼容管理入口保留的 HTTP 接口。
 
-以下能力供本机前端接入，现有页面尚未提供决策和验收编辑界面。接口使用当前 profile 的 schema3 管理库，不向外部 Agent 发送任务、审批或执行指令。请求沿用 `X-Session-Client: panel`；写请求还须使用同源 `Origin`、`application/json` 和从 `/api/bootstrap` 获取的 `X-Session-CSRF`。不要将实际 token 写入公开文档或代码。
+兼容管理页 `/workspace-admin` 已提供事项人工验收表单；决策仍通过下列接口管理，没有单独的决策编辑页面。接口使用当前 profile 的管理库（当前新库为schema10），不是内置终端的工具审批入口。请求沿用 `X-Session-Client: panel`；写请求还须使用同源 `Origin`、`application/json` 和从 `/api/bootstrap` 获取的 `X-Session-CSRF`。不要将实际 token 写入公开文档或代码。
 
 事项的 `POST /api/workspace/items` 和 `/api/workspace/items/update` 增加两个可选字段：`priority` 为 `0`（高）、`1`（普通）、`2`（低）或 `null`（未设置），`focus` 为整数 `0` 或 `1`，不接受布尔值。重点是持续人工标记，没有日期，也不会在午夜自动清除。旧客户端不传新字段时保持原行为。更新仍使用 `id`、`expected_revision` 和 `changes`，例如：
 
@@ -256,7 +258,7 @@ GET  /api/agent/tasks/<task_id>/review
 }
 ```
 
-验收只接受当前为 `review` 的事项，且 `expected_revision` 必须匹配。`approved` 将事项设为 `done`，`changes_requested` 设为 `doing`，`rejected` 设为 `todo`。验收记录和事项状态在同一写事务内保存，失败时一起回滚；重复提交旧版本返回 `409 item_changed`。`reason` 必须有内容；`evidence` 为最多 20 条人工填写的证据或核验说明字符串。`reviewer` 只是人工标签，不代表认证身份；`run_id` 只是可选外部引用，不会核验或操控外部运行。工具输出、会话结束和进程退出均不会自动通过验收。示例：
+验收只接受当前为 `review` 的事项，且 `expected_revision` 必须匹配。`approved` 将事项设为 `done`，`changes_requested` 设为 `doing`，`rejected` 设为 `todo`。验收记录和事项状态在同一写事务内保存，失败时一起回滚；重复提交旧版本返回 `409 item_changed`。`reason` 必须有内容；`evidence` 为最多 20 条人工填写的证据或核验说明字符串。`reviewer` 只是人工标签，不代表认证身份。普通人工记录的 `run_id` 可作为外部引用；自动执行事项还会核对派发与运行绑定、已完成状态和清理结果，不匹配返回 `409 execution_review_conflict`。有活动原生托管运行的事项不能通过这个旧验收入口处理，返回 `409 native_managed_item`。工具输出、会话结束和进程退出均不会自动通过验收。示例：
 
 ```json
 {
@@ -274,14 +276,14 @@ GET  /api/agent/tasks/<task_id>/review
 
 ## 导入旧记录与恢复
 
-管理库使用schema9，配置仍独立兼容v1/v2/v3/v4/v5；各版备份manifest1–9分别对应schema1–9。新空profile直接初始化schema9，已有schema1–8不会随启动自动升级：先正常停止自己使用该profile的实例，再显式执行离线迁移。命令不会终止其他程序；锁忙、未知表/版本、校验失败或超预算会拒绝并保留原库及已生成备份，不截断历史值。
+当前新管理库使用schema10，配置仍独立兼容v1/v2/v3/v4/v5；备份manifest1至10分别对应schema1至10。新空profile直接初始化schema10，已有schema1至9不会随启动自动升级：先正常停止自己使用该profile的实例，再显式执行离线迁移。命令不会终止其他程序；锁忙、未知表/版本、校验失败或超预算会拒绝并保留原库及已生成备份，不截断历史值。
 
 ```powershell
 & '.venv/Scripts/python.exe' -m control_everything.profile status --data-dir 'C:/example/SessionPanel/main'
 & '.venv/Scripts/python.exe' -m control_everything.profile migrate-tasks --data-dir 'C:/example/SessionPanel/main'
 ```
 
-迁移将旧tasks/todos收为一个可写模型，保留来源及原ID（包括空待办ID）、重复标题、原顺序、时间和NULL；旧接口通过适配读写同一模型。数据库中的tasks/todos是只读兼容视图，不能再用旧程序或直接SQL写入。新列表的顺序单独保存，不伪造两种来源的历史先后。schema3在保留旧视图的同时增加事项优先级、今日标记、审核记录和项目决策日志；schema4增加 assigned_agent_id、agent_runs 和 task_events，用于 Agent 领取、进度与审核证据；schema5增加 task_briefs、task_dispatches 和 agent_runs.dispatch_id，用于版本化事项说明与人工确认派发快照；schema6增加 task_sessions，用于事项与外部会话元数据关联（不保存聊天正文）；schema7为 task_sessions 增加 source_instance，同厂商多实例用独立命名空间；schema8增加 task_messages，用于人工补充要求/退回意见/等待人回答的手动交接记录；schema9增加 execution_runs、execution_events、execution_approvals，在同一管理库保存真实执行、事件及工具审批，并纳入备份恢复。
+迁移将旧tasks/todos收为一个可写模型，保留来源及原ID（包括空待办ID）、重复标题、原顺序、时间和NULL；旧接口通过适配读写同一模型。数据库中的tasks/todos是只读兼容视图，不能再用旧程序或直接SQL写入。新列表的顺序单独保存，不伪造两种来源的历史先后。schema3在保留旧视图的同时增加事项优先级、持续重点标记、审核记录和项目决策日志；schema4增加 assigned_agent_id、agent_runs 和 task_events，用于 Agent 领取、进度与审核证据；schema5增加 task_briefs、task_dispatches 和 agent_runs.dispatch_id，用于版本化事项说明与人工确认派发快照；schema6增加 task_sessions，用于事项与外部会话元数据关联（不保存聊天正文）；schema7为 task_sessions 增加 source_instance，同厂商多实例用独立命名空间；schema8增加 task_messages，用于人工补充要求/退回意见/等待人回答的手动交接记录；schema9增加 execution_runs、execution_events、execution_approvals，保存真实执行、事件及工具审批；schema10增加 task_native_runs、task_deliveries、task_native_message_delivery，保存原生运行绑定、版本化交付和输入回执，事项与验收记录同时增加交付及幂等关联字段。这些账本均纳入对应版本的备份恢复。
 
 在空 profile 的“来源与导入”填写旧数据目录的绝对路径，例如 `C:/example/previous-panel`。固定读取 `progress-registry.json`，以及可选的 `progress-manual.json`、`progress-todos.json`、`workspace-state.sqlite3`。只导入全部合法项目、人工进度、待办、工作台任务和人工用量；保留原 ID、顺序、关联与已有时间。未登记项目的记录进入兼容区；没有原时间的导入快照显示“来源未提供时间”。
 
@@ -291,14 +293,14 @@ GET  /api/agent/tasks/<task_id>/review
 
 ```powershell
 & '.venv/Scripts/python.exe' -m control_everything.profile restore --backup 'C:/example/SessionPanel/main/backups/<备份目录>' --data-dir 'C:/example/SessionPanel/restored'
-# Only when restore reports schema1-8 / migration_required:
+# Only when restore reports schema1-9 / migration_required:
 & '.venv/Scripts/python.exe' -m control_everything.profile migrate-tasks --data-dir 'C:/example/SessionPanel/restored'
 & '.venv/Scripts/python.exe' -m control_everything.gateway --data-dir 'C:/example/SessionPanel/restored' --port 14401
 ```
 
 恢复会校验 manifest、文件大小/哈希、schema 与 SQLite 完整性。停止自己的旧实例后另行启动恢复目录；不在线切换，不删除原 profile 或导入后的新记录。真实个人数据是否符合导入合同需实际校验，隔离 fixture 验证不能替代个人迁移结果。
 
-恢复旧备份会先保留其原schema结构，再由上述命令显式迁移。需要退回旧程序时，先停新版实例并运行 `python -m control_everything.profile preserve-tasks --data-dir <绝对profile目录>`，验证包含升级后全部新增/变更的schema9私密备份，再把升级前旧备份恢复到另一个空目录。原schema9目录和保全件必须保留；保全不是把新语义自动反写旧库，单独回退代码不代表数据已无损降级。
+恢复接受版本1至10的备份，先保留原schema结构，再由上述命令显式迁移旧库。需要退回旧程序时，先停新版实例并运行 `python -m control_everything.profile preserve-tasks --data-dir <绝对profile目录>`，验证包含升级后全部新增/变更的当前管理库私密备份，再把升级前旧备份恢复到另一个空目录。原管理库目录和保全件必须保留；保全不是把新语义自动反写旧库，单独回退代码不代表数据已无损降级。
 
 新记录保存在所选 profile，源码旁旧 JSON/SQLite 与既有服务保留原位。任务负责人表示人工分配，不向 Agent 发送命令。资讯含来源与采样时间，不是推送流。
 
@@ -313,7 +315,15 @@ GET  /api/agent/tasks/<task_id>/review
 
 ## 新闻阅读室
 
-从 Studio 的“新闻”进入同源 `/news`。标题目录切换单篇，支持图文、看图、原文、中文和双语；读完点 × 标为已读并归档，可撤销，收藏独立保留。阅读记录保存在当前浏览器；换浏览器或端口不会自动转移这些记录。
+从 Studio 的“新闻”在当前工作台内打开 `#news`，`/news` 保留独立入口。标题目录切换单篇，支持图文、看图、原文、中文和双语；读完点 × 标为已读并归档，可撤销，收藏独立保留。阅读记录保存在当前浏览器，远程访问按账号上下文隔离；换浏览器或端口不会自动转移这些记录。
+
+### 来源与更新计划
+
+在“来源与更新”中启停内置来源，添加公开 HTTPS 的 RSS/Atom 或 RSSHub 订阅地址，设置分组及包含、排除关键词。筛选只影响阅读视图，停用来源保留历史；已读、收藏和归档仍可找到。不会自动部署 RSSHub，也不连接私网、localhost、含凭据地址或自签名服务。
+
+定时更新默认关闭。启用时选择15分钟至7天的间隔，或每日时刻及明确时区；计划读取已启用的来源。公开浏览采集须另行选择纳入计划、主题和关键词。关闭网页后服务仍执行，退出服务则停止；重启后错过多次只合并一次。保存设置不会立即采集，查看下次执行、上次结果和失败原因确认实际状态；繁忙时手动采集不会自动排队。
+
+### 阅读与公开采集
 
 “更新新闻”读取真实公开 RSS；“采集新信息”打开采集工作台，可按主题/关键词尝试公开检索，或粘贴 `https://x.com/作者/status/编号` 读取已知公开帖。步骤和来源卡回看真实浏览截图；来源、日期、引用、日志和图注按需展开。采集失败保留已有内容，较早文章不会因重新抓取变成今日新闻。
 
@@ -323,9 +333,11 @@ X 搜索可能受限。作者文章引用或直接链接可通过官方 Publish 
 
 蜘蛛默认不跟随鼠标。点标题会直接切换阅读，前足短暂探取信息目标；采集工作台里的蜘蛛随真实事件和来源回看移动。脚尖动效只是操作反馈，采集成功与否以数据和状态为准，不会等待动画才加载正文。两处共用暂停开关，并遵循系统减少动效设置。
 
-阅读室和采集工作台标题栏旁有“宠物”选择（蜘蛛 / 奶龙 / 狸花猫），选择保存在当前浏览器（`localStorage`）。奶龙是一只单文件 3D 宠物（`news-naidragon.js`，自带轻量 WebGL 渲染器，无第三方库、无外部素材、CSP 安全），选中时才按需加载；只有身体轮廓会拦截点击，点宠物会展开操作转盘，状态条读取同源的额度与运行中 Agent 数。狸花猫是第二只 3D 宠物（`news-tabbycat.js`，同一套挂载接口与转盘，圆滚滚的 Q 版狸花猫，会喵喵撒娇、蹭蹭、踩奶），在嵌入时用 `NewsPets.mount('tabbycat', …)`。把它们嵌入其它页面的方法见 [奶龙宠物嵌入指南](EMBEDDING.md)。
+### 宠物
 
-个人工作台左下角「设置」→「外观」里有“宠物”开关和形象下拉，与阅读器里的选择互相同步（键 `news-reader-pet`、`news-reader-pet-enabled`，默认不显示宠物）。奶龙和狸花猫身旁的转盘固定六个槽位（顺时针从 12 点钟起：打开工作台、去看新闻、搜索新闻、安静模式、宠物设置、隐藏宠物），每个动作永远在同一个位置；当前页面用不上的槽位原地变灰并写明原因，不会挪动。转盘打开后按 1～6 可直接执行。隐藏后在这里的「宠物」开关重新打开。三只宠物（含蜘蛛）共用同一个转盘。它们也是个人工作台的小吉祥物：出现在首页、事项、高级管理和设置页，不出现在项目页、编辑器和终端，窄屏也不显示；安静模式、系统“减少动效”和标签页隐藏时不动也不查状态。新闻页里它会对新文章、读完、归档、搜索无结果、采集失败做简短反应，可在设置里关掉“新闻页互动”。可用键盘打开转盘：Tab 到“转盘”按钮按 Enter，方向键选择，Esc 关闭。详见 [宠物集成指南](PETS_INTEGRATION.md)。
+在“设置 → 外观”开启宠物，选择蜘蛛、奶龙或狸花猫；默认关闭。阅读器的形象选择与工作台共用偏好，当前源码在项目、编辑器、终端、账号页及窄屏中也可显示。进入新闻时由阅读器接管，同一时刻最多显示一只；安装版行为以对应版本说明为准。
+
+点击宠物打开共享的六槽转盘，可打开工作台、查看或搜索新闻、进入安静模式、宠物设置或隐藏宠物；当前页面不可用的动作保留位置并显示原因。Tab 聚焦转盘按钮后按 Enter 打开，方向键选择，Esc 关闭，打开后可用1至6执行。安静模式、系统减少动效和标签页隐藏时暂停动作与状态轮询。显示范围、偏好及交互详见[宠物使用与集成](PETS_INTEGRATION.md)，独立页面接入见[嵌入指南](EMBEDDING.md)。
 
 探取目标文字会高亮，结束后恢复。采集画面是按步骤保存的截图，不是可操作的实时浏览器；工作台标明采集中或已结束、实际耗时和最近进展。结束后优先回看成功提取的正文截图，失败来源的画面仍可点选查看。公开搜索会读取已出现的结果节点，最多额外等待3秒，不再为每个页面固定停顿。
 

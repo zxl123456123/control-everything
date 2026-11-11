@@ -33,7 +33,7 @@ export KEYCLOAK_ADMIN_CLIENT_SECRET=<该客户端秘密>       # 只从环境读
 python tools/scripts/keycloak_add_mobile_client.py --dry-run
 ```
 
-两种认证方式必须二选一且成对设置；混用或只提供一半会在联网前报错，`--dry-run` 也不例外。管理账号所属 realm 默认仍为 `master`，可用 `KEYCLOAK_ADMIN_REALM` 指定；它与 `KEYCLOAK_REALM` 目标 realm 独立。服务账号必须已有目标 realm 的相应客户端管理权限，脚本不创建管理员、不提权，也不接受外部 access token 直接注入。实际秘密应由受控环境注入，不将展开值写入命令历史或日志；服务账号机制见 [Keycloak 官方说明](https://www.keycloak.org/docs/latest/server_admin/index.html#_service_accounts)。
+提供管理凭据时，两种认证方式必须二选一且成对设置；混用或只提供一半会在联网前报错，`--dry-run` 也不例外。完全不提供管理凭据时，只允许无网络的 `--dry-run`：它打印期望对象，不比较服务器状态；实际写入仍需完整凭据。管理账号所属 realm 默认仍为 `master`，可用 `KEYCLOAK_ADMIN_REALM` 指定；它与 `KEYCLOAK_REALM` 目标 realm 独立。服务账号必须已有目标 realm 的相应客户端管理权限，脚本不创建管理员、不提权，也不接受外部 access token 直接注入。实际秘密应由受控环境注入，不将展开值写入命令历史或日志；服务账号机制见 [Keycloak 官方说明](https://www.keycloak.org/docs/latest/server_admin/index.html#_service_accounts)。
 
 - 只写三类对象：`workbench-mobile` 客户端本身、该客户端上的 `hub-audience` 映射器（audience 为 `workbench-hub`，只进 access token），以及该客户端的默认 `email` client scope（使 access token 与 userinfo 带邮箱）。realm 设置、用户、其它客户端一律不改；realm 只读取。
 - 客户端：公共客户端，仅标准流程；关闭隐式流程、直接密码授权和 service account；PKCE 固定 S256；重定向与退出后重定向都只有 `<scheme>:/oauth/callback`。已有同名客户端时只覆盖这些受管字段（`redirectUris` 按声明式精确替换，会清除多余的地址），其它字段和属性保持原样。已有同名机密客户端默认拒绝改为公共，须显式加 `--allow-convert-confidential`。
@@ -60,7 +60,7 @@ python tools/scripts/keycloak_add_mobile_client.py --dry-run
 
 命令只使用配置的固定 `issuer`；不接受 `--issuer`、`--account-id` 或 `--from-*`。同一用户重复执行安全，保留原 `account_id`、设备及其他账号状态；已有 `disabled` 成员会以 `member_disabled` 拒绝，不会重新启用。该操作仅开通普通成员资格，用户无需消费邀请码；不会加入 `admin_subjects`，配置管理员及其同账号身份会被拒绝。它是本地运维命令，没有新增 HTTP 写接口，用户仍须在桌面端明确绑定本人电脑。
 
-以上是使用说明与本地测试覆盖，不代表该命令已经部署到真实 hub，也没有真实账号开通或登录验收证据。
+这些样例不代表使用者的 hub 已部署相应命令，也不证明真实账号开通或登录已验收。项目已发布版本的部署与验证范围见[对应版本说明](https://github.com/zxl123456123/control-everything/releases/tag/v0.1.0a18)；其中仍保留新固定账号首次开通、登录到绑定电脑的完整流程未验收这一限制。
 
 oauth2-proxy 样例使用通用的 `provider = "oidc"`，端点由 issuer 的发现文档提供。代理配置沿用样例中的 `backend_logout_url`：取发现文档里的 `end_session_endpoint`（Keycloak 为 `…/protocol/openid-connect/logout`），由代理替换 `{id_token}`。`/oauth2/sign_out` 单独使用只会清理代理 cookie，可能在下一次登录时自动回到原账号；配置后应实测“退出→再次登录”会进入登录/注册页面。无需把 ID Token 下发浏览器或增加成员管理权限。
 

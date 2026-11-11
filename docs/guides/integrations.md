@@ -1,12 +1,14 @@
-# 可选接入
+# 可选外部工具接入
 
 [返回项目首页](../../README.md) · [使用指南](usage.md) · [可选接入](integrations.md) · [Windows 安装与维护](windows.md)
 
 本文命令均从仓库根目录执行；安装版的专用命令另行注明。
 
+本文说明保留的会话观察页、只读 MCP 及外部 SSH / Zellij / WezTerm / 启动器接入。它们与当前内置项目工作台分别管理：使用内置终端不需要先配置这些外部工具，也不需要本指南中的远端 reader。账号与电脑绑定、手机浏览器访问见[使用指南](usage.md#多-agent-工作台)，自建服务部署见[身份服务说明](../examples/integrations/workbench-identity.README.md)。
+
 ## 配置可选接入
 
-基础项目管理无需 SSH、Zellij、WezTerm 或 reader。已有用户也通过自己的 profile 登记这些资源；源码不提供个人服务器、工具路径、完整性摘要或启动器默认值。设置页显示每段的“未配置 / 已禁用 / 已配置”和重启提示。“已配置”仅表示通过配置校验，实际连接还会核验来源、版本和身份。
+基础项目管理无需 SSH、Zellij、WezTerm 或 reader。使用这些可选接入时，通过自己的 profile 登记资源；源码不提供个人服务器、工具路径、完整性摘要或启动器默认值。兼容管理页 `/workspace-admin` 的“设置与导入”显示每段的“未配置 / 已禁用 / 已配置”和重启提示。“已配置”仅表示通过配置校验，实际连接还会核验来源、版本和身份。
 
 高级文件采用 version 2，包含固定四段 remote、terminal、workbench、launchers。随仓库提供的 [integration-settings.example.json](../examples/integrations/integration-settings.example.json) 四段均为 null，可直接校验。首次复制到 ignored `work/integrations/` 后编辑自己的值；已有本机配置文件时直接编辑，保留其现有内容：
 
@@ -21,7 +23,9 @@ $settingsFile = (Resolve-Path work/integrations/integration-settings.json).Path
 
 使用独立数据目录时，为 init、import-settings、status 和 gateway 都传同一个绝对 `--data-dir`。validate-settings 只校验该文件，不写 profile、不探测工具或网络。import-settings 备份后整体替换四段，保留 Codex 设置和管理记录；文件中的 null 会清除该段，enabled=false 保留完整配置但禁用。编辑时保留仍需使用的其他段，不能把单段文件当增量补丁。配置写入竞争返回 config_busy，可在另一个写入结束后重试。
 
-导入成功后停止自己的网关，再用同一 data-dir/端口启动。运行中的接入保留启动快照，网页显示重启提示；保存 Codex 设置仍即时生效且不会丢失高级配置。旧 version 1 profile 可以继续读取，更新时保留备份并写入 version 2。网页只提供 Codex 设置和高级接入状态，高级配置通过上述本机命令导入。
+导入成功后停止自己的网关，再用同一 data-dir/端口启动。运行中的接入保留启动快照，兼容管理页显示重启提示；保存 Codex 来源设置仍即时生效且不会丢失高级配置。旧 version 1 profile 可以继续读取，更新时保留备份并写入 version 2。兼容管理页只提供 Codex 来源设置和高级接入状态，高级配置通过上述本机命令导入。
+
+这里的 `remote` 指外部 Claude 会话的 SSH 只读来源，`workbench` 指已有 WezTerm / Zellij 工作台；两者均不配置账号与设备服务，也不代替内置 Node 工作台的构建和装配。
 
 下面是四段启用的完整结构示例。**所有地址、路径和摘要均为合成值，必须换成自己的真实资源；示例通过语法校验不代表资源可用。** 也可从全 null 文件开始，只填写所需段；terminal 启用要求 remote 已启用，workbench 启用要求 terminal 已启用，launchers 可独立启用。
 
@@ -97,15 +101,15 @@ launchers 仅由已登记 id 触发，页面不能传目标或额外参数。cmd
 
 ## 网页使用与状态
 
-打开 `http://127.0.0.1:8766/`。远端 Claude 列表按 UUID 分行，即使两个会话 cwd 相同。点击明确的远端 ID 才读取最近 20 条可见消息；刷新观察只更新元数据。刷新最近消息与翻页才再次读取正文，隐藏页面暂停 10 秒一次的元数据轮询。
+打开兼容会话观察页 `http://127.0.0.1:8766/sessions`（根路径 `/` 也保留该页）。远端 Claude 列表按 UUID 分行，即使两个会话 cwd 相同。点击明确的远端 ID 才读取最近 20 条可见消息；刷新观察只更新元数据。刷新最近消息与翻页才再次读取正文，隐藏页面暂停 10 秒一次的元数据轮询。
 
 本机 Codex 只读身份索引使用“来源与导入”中显式登记的数据库路径，读取六个元数据字段，筛选未归档 cli/exec/vscode，每页 12 条；归档、子代理及其他来源数量另列。身份键使用 `codex:<UUID>`，与远端相同 UUID 仍是两个身份。选择 Codex 只显示身份详情、清空远端正文并禁用远端定位；失败或超过 30 秒的采样清空当前身份。内部格式变更时明确显示不可用。
 
-`/workspace` 的 Codex 项目与会话入口使用同一显式来源，另外只读数据库旁的 `.codex-global-state.json`，合并桌面项目身份、旧新 ID 映射和会话归属。普通会话在归属判定后分页，支持已归档、显式无项目与待核对范围；不依赖旧身份索引的前 12 条。来源受限时显示原因，不把未知归属当作空项目。该适配不启动 Codex 或 app-server，不读取正文、登录凭据，不修改桌面项目或会话。
+Codex 项目与会话的只读来源适配使用同一显式来源，另外只读数据库旁的 `.codex-global-state.json`，合并桌面项目身份、旧新 ID 映射和会话归属。普通会话在归属判定后分页，支持已归档、显式无项目与待核对范围；不依赖旧身份索引的前 12 条。来源受限时显示原因，不把未知归属当作空项目。该适配不启动 Codex 或 app-server，不读取正文、登录凭据，不修改桌面项目或会话；它与内置工作台中的 Agent 会话分别管理。
 
 会话证据区保留来源、身份、按需历史、终端位置和动作条件；使用列表按钮选择身份，支持键盘操作。
 
-Codex 正文、实时活动监控和全服务器会话覆盖仍未提供。远端 reader、终端关联与定位是否可用，必须用自己的配置分别验证；合成测试不代表私人环境已接入。
+上述兼容观察入口不提供 Codex 正文、实时活动监控或全服务器会话覆盖。远端 reader、终端关联与定位是否可用，必须用自己的配置分别验证；合成测试不代表私人环境已接入。
 
 身份 `verified`、进程 `observed_running`、位置 `confirmed` 是独立证据；活动和项目完成始终 `unknown`。断连或来源失败立即显示未知，并保留“上次证据”；超过 30 秒的证据不作当前状态。定位需要 5 秒内的唯一实例和当前 pane，点击后重新核验，只切换已有 Zellij pane，不输入字符或激活桌面窗口。命令发送后还须唯一客户端焦点和 pane 清单确认，否则显示 `focus_sent_unverified`。
 
