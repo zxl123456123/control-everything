@@ -255,6 +255,101 @@ function makeEditorFile(overrides: Partial<OpenFile & { tabId?: string }> = {}):
 }
 
 describe('tab title tooltips', () => {
+  it.each<{
+    title: string
+    expected: string
+    naming?: Partial<TerminalTab>
+    agent?: boolean
+    chat?: boolean
+  }>([
+    { title: String.raw`C:\example\Windows\System32\cmd.exe`, expected: 'CMD' },
+    { title: 'c:/example/WINDOWS/SYSTEM32/CMD.EXE', expected: 'CMD' },
+    {
+      title: String.raw`C:\example\Windows\System32\WindowsPowerShell\v1.0\powershell.exe`,
+      expected: 'PowerShell'
+    },
+    { title: 'C:/example/Program Files/PowerShell/7/pwsh.exe', expected: 'PowerShell' },
+    { title: String.raw`C:\example\Windows\System32\wsl.exe`, expected: 'WSL' },
+    { title: 'E:/example/Applications/Git/bin/bash.exe', expected: 'Bash' },
+    {
+      title: String.raw`C:\example\Windows\System32\cmd.exe - npm test`,
+      expected: String.raw`C:\example\Windows\System32\cmd.exe - npm test`
+    },
+    {
+      title: String.raw`Administrator: C:\example\Windows\System32\cmd.exe`,
+      expected: String.raw`Administrator: C:\example\Windows\System32\cmd.exe`
+    },
+    { title: 'C:/example/repo/server.exe', expected: 'C:/example/repo/server.exe' },
+    { title: '/usr/bin/bash', expected: '/usr/bin/bash' },
+    { title: 'Terminal 2', expected: 'Terminal 2' },
+    {
+      title: 'C:/example/Windows/cmd.exe',
+      naming: { customTitle: 'C:/example/Windows/cmd.exe' },
+      expected: 'C:/example/Windows/cmd.exe'
+    },
+    {
+      title: 'C:/example/Windows/cmd.exe',
+      naming: { quickCommandLabel: 'C:/example/Windows/cmd.exe' },
+      expected: 'C:/example/Windows/cmd.exe'
+    },
+    {
+      title: 'C:/example/Windows/cmd.exe',
+      naming: { generatedTitle: 'C:/example/Windows/cmd.exe' },
+      expected: 'C:/example/Windows/cmd.exe'
+    },
+    {
+      title: 'C:/example/Windows/cmd.exe',
+      naming: {
+        aiVaultTitle: {
+          agent: 'codex',
+          sessionId: 'session-1',
+          title: 'C:/example/Windows/cmd.exe'
+        }
+      },
+      expected: 'C:/example/Windows/cmd.exe'
+    },
+    { title: 'C:/example/Windows/cmd.exe', agent: true, expected: 'C:/example/Windows/cmd.exe' },
+    { title: 'C:/example/Windows/cmd.exe', chat: true, expected: 'C:/example/Windows/cmd.exe' }
+  ])(
+    'labels $title as $expected without losing the original title',
+    ({ title, expected, naming, agent, chat }) => {
+      const tab = makeTerminalTab({ title, ...naming })
+      const onSetCustomTitle = vi.fn()
+      const markup = renderToStaticMarkup(
+        <SortableTab
+          tab={tab}
+          agent={agent ? 'claude' : null}
+          nativeChat={chat ? { sessionId: 'session-1', agent: undefined } : undefined}
+          unifiedTabId="terminal-1"
+          groupId="group-1"
+          tabCount={1}
+          hasTabsToRight={false}
+          hasTabsToLeft={false}
+          isActive={true}
+          isPinned={false}
+          isExpanded={false}
+          onActivate={vi.fn()}
+          onClose={vi.fn()}
+          onCloseOthers={vi.fn()}
+          onCloseToRight={vi.fn()}
+          onCloseToLeft={vi.fn()}
+          onSetCustomTitle={onSetCustomTitle}
+          onSetTabColor={vi.fn()}
+          onTogglePin={vi.fn()}
+          onToggleExpand={vi.fn()}
+          dragData={makeDragData('terminal', 'terminal-1')}
+        />
+      )
+      expect(textSpanHtml(markup, expected)).toContain('truncate')
+      expectTooltipContent(markup, title)
+      expect(openingTag(markup, 'data-testid', 'sortable-tab')).toContain(
+        `data-tab-title="${title}"`
+      )
+      expect(onSetCustomTitle).not.toHaveBeenCalled()
+      expect(tab.title).toBe(title)
+    }
+  )
+
   it('uses the terminal custom title for the visible label and tooltip trigger content', () => {
     const markup = renderToStaticMarkup(
       <SortableTab

@@ -36,7 +36,7 @@ export const getSurfaceTransparencyEntries = createLocalizedCatalog((): Settings
     title: translate('settings.appearance.surfaceTransparency.title', 'Interface Transparency'),
     description: translate(
       'settings.appearance.surfaceTransparency.description',
-      'Let the warm background show through workspace panels. Text stays clear; terminal opacity is separate.'
+      "Let the background show through workspace panels, including terminals. The terminal's own background opacity is applied on top."
     ),
     keywords: ['透明', '透明度', '玻璃', 'opacity', 'transparency', 'glass', 'background']
   }

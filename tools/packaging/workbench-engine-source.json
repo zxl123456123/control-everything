@@ -2,6 +2,7 @@
   "schema": 1,
   "unit": "web/workbench-engine",
   "scope": "source-and-build-only",
+  "scope_description": "本清单核验源码来源、资源许可与构建输入，不表示产品尚未接通；各发行版的构建、安装和功能验收以对应版本说明为准。",
   "upstream": {
     "repository": "https://github.com/stablyai/orca",
     "commit": "32370a5e05a22935adb79f6cbf83a3228fe879ac"
@@ -327824,8 +327825,8 @@
     {
       "path": "src/renderer/src/app-shell/TitlebarLeftControls.tsx",
       "upstream_sha256": "274b5e3bd1414e927003fb42de2a292fe261df9776fa6d6c9b0feb155fb5d201",
-      "current_sha256": "268775afc68027a824932c08a7829da169b88310e47b71115141d16557802a6d",
-      "reason": "M1a-W: product app-name and accessibility label in paired Web; M1a navigation: preserve a single project workspace while integrating platform business views；平台工作台统一视觉与品牌展示。"
+      "current_sha256": "38aa8719763180e43668266d1b17d396e473d312b34eb2a5236a09ed2b405777",
+      "reason": "M1a-W: product app-name and accessibility label in paired Web; M1a navigation: preserve a single project workspace while integrating platform business views；平台工作台统一视觉与品牌展示。；桌面可读性优化：正文共同预算、搜索名称位置层次、紧凑标签和已有定位入口、透明度叠加说明。"
     },
     {
       "path": "src/renderer/src/components/Landing.tsx",
@@ -328886,8 +328887,8 @@
     {
       "path": "src/renderer/src/components/settings/appearance-search.ts",
       "upstream_sha256": "4dd156ae13bc2bfdd1fdbc7f5b4148e65011c315b42cedbb534636f58db8152e",
-      "current_sha256": "2dd434e789df92fae83d2b9d9fa50351fb4ae284b1b41cb1818f3a47efc39c3b",
-      "reason": "UI r1 S1: fixed management theme, typography and scoped primitives; appearance-search.ts.；暖色玻璃工作台及可持久透明度设置"
+      "current_sha256": "caa3911bd07962a54de6b55837053085defb0a6152d3b6361d652fa743095de5",
+      "reason": "UI r1 S1: fixed management theme, typography and scoped primitives; appearance-search.ts.；暖色玻璃工作台及可持久透明度设置；桌面可读性优化：正文共同预算、搜索名称位置层次、紧凑标签和已有定位入口、透明度叠加说明。"
     },
     {
       "path": "src/renderer/src/components/settings/chat-settings-unsaved-guard.test.tsx",
@@ -329042,8 +329043,8 @@
     {
       "path": "src/renderer/src/i18n/locales/zh.json",
       "upstream_sha256": "a7ceebd563b9c0405b9b72489d6d3386dae6fe24a7abe68d1d2185df3b1231e7",
-      "current_sha256": "17d1cec0851bc71585149b20344ad33f41145c26a09e2885443298acbea14f66",
-      "reason": "iPhone终端触控回车标签；UI r1 S8: fixed window appearance and bounded recovery/help presentation; zh.json. DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained.；配对链接生成解析和手机注册统一zkyq协议，迁移已保存VM配对链接并保留凭据及用户数据，更新脱敏和提示；浏览器路径配置统一ZKYQ_BROWSER_EXECUTABLE，清理状态与远程浏览器权限文案，保留路径和权限范围；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物；移除 CLI 技能区域重复的旧品牌说明及对应翻译；账号设置的当前产品名称及语言目录统一；CLI 注册状态和错误提示统一当前命令名称；模拟器命令、错误和提示统一 zkyq；项目配置统一新文件名，保留旧文件迁移与信任行为；统一用量分享卡片和分享文案的产品身份；统一智能体状态钩子与文件夹信任设置的产品身份；统一会话 ID 复制文案并保留功能验证；同步服务接入当前变量名与产品文案，保留翻译键和控件行为；暖色玻璃工作台及可持久透明度设置"
+      "current_sha256": "13a2b19a10730518f8213514703f8b80dd3b3b9216259d50d29597adc8df745c",
+      "reason": "iPhone终端触控回车标签；UI r1 S8: fixed window appearance and bounded recovery/help presentation; zh.json. DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained.；配对链接生成解析和手机注册统一zkyq协议，迁移已保存VM配对链接并保留凭据及用户数据，更新脱敏和提示；浏览器路径配置统一ZKYQ_BROWSER_EXECUTABLE，清理状态与远程浏览器权限文案，保留路径和权限范围；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物；移除 CLI 技能区域重复的旧品牌说明及对应翻译；账号设置的当前产品名称及语言目录统一；CLI 注册状态和错误提示统一当前命令名称；模拟器命令、错误和提示统一 zkyq；项目配置统一新文件名，保留旧文件迁移与信任行为；统一用量分享卡片和分享文案的产品身份；统一智能体状态钩子与文件夹信任设置的产品身份；统一会话 ID 复制文案并保留功能验证；同步服务接入当前变量名与产品文案，保留翻译键和控件行为；暖色玻璃工作台及可持久透明度设置；桌面可读性优化：正文共同预算、搜索名称位置层次、紧凑标签和已有定位入口、透明度叠加说明。"
     },
     {
       "path": "src/renderer/src/lib/app-font-family.ts",
@@ -329306,8 +329307,8 @@
     {
       "path": "src/renderer/src/i18n/locales/en.json",
       "upstream_sha256": "80d9d9800a00b8441914d0f223af22c4bbc66318ab27141506c9b33edfe35209",
-      "current_sha256": "b9aab67d489865dd54ea077f7023349f73c5d0388e64374532a68112fc10d087",
-      "reason": "iPhone终端触控回车标签；DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained.；配对链接生成解析和手机注册统一zkyq协议，迁移已保存VM配对链接并保留凭据及用户数据，更新脱敏和提示；浏览器路径配置统一ZKYQ_BROWSER_EXECUTABLE，清理状态与远程浏览器权限文案，保留路径和权限范围；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物；移除 CLI 技能区域重复的旧品牌说明及对应翻译；账号设置的当前产品名称及语言目录统一；CLI 注册状态和错误提示统一当前命令名称；模拟器命令、错误和提示统一 zkyq；项目配置统一新文件名，保留旧文件迁移与信任行为；统一用量分享卡片和分享文案的产品身份；统一智能体状态钩子与文件夹信任设置的产品身份；统一会话 ID 复制文案并保留功能验证；同步服务接入当前变量名与产品文案，保留翻译键和控件行为；SSH/WSL 规范安装根改为 .zkyq-remote；保留机器归属、冻结旧读者与最新写入，原子移动同一数据目录并在已登记读者确认退出后移除旧入口，修正内部链接；同步安装/快照/GC/历史/旧 relay census 与直接回归，不改变业务数据位置或许可证；暖色玻璃工作台及可持久透明度设置"
+      "current_sha256": "b3414af02c89b4873ba88966a4b370e452c95dfee25870ad0f9e3dcc69fb4543",
+      "reason": "iPhone终端触控回车标签；DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained.；配对链接生成解析和手机注册统一zkyq协议，迁移已保存VM配对链接并保留凭据及用户数据，更新脱敏和提示；浏览器路径配置统一ZKYQ_BROWSER_EXECUTABLE，清理状态与远程浏览器权限文案，保留路径和权限范围；六个技能统一zkyq名称与目录，更新扫描识别旧副本并核验新内容后改名保全，同步调用方与生成物；移除 CLI 技能区域重复的旧品牌说明及对应翻译；账号设置的当前产品名称及语言目录统一；CLI 注册状态和错误提示统一当前命令名称；模拟器命令、错误和提示统一 zkyq；项目配置统一新文件名，保留旧文件迁移与信任行为；统一用量分享卡片和分享文案的产品身份；统一智能体状态钩子与文件夹信任设置的产品身份；统一会话 ID 复制文案并保留功能验证；同步服务接入当前变量名与产品文案，保留翻译键和控件行为；SSH/WSL 规范安装根改为 .zkyq-remote；保留机器归属、冻结旧读者与最新写入，原子移动同一数据目录并在已登记读者确认退出后移除旧入口，修正内部链接；同步安装/快照/GC/历史/旧 relay census 与直接回归，不改变业务数据位置或许可证；暖色玻璃工作台及可持久透明度设置；桌面可读性优化：正文共同预算、搜索名称位置层次、紧凑标签和已有定位入口、透明度叠加说明。"
     },
     {
       "path": "src/renderer/src/lib/tab-number-shortcuts.ts",
@@ -329486,8 +329487,8 @@
     {
       "path": "src/renderer/src/app-shell/AppWorkspaceShell.tsx",
       "upstream_sha256": "bb676aa34fee5de4985aab6a363b0dd84a320e5f0d66da0a823a161c57e179a9",
-      "current_sha256": "45ed808b6625286c972ed70c0491b67fd5ef4b3496c498a170f5734548357c5e",
-      "reason": "平台工作台统一视觉与品牌展示；保留原生功能与独立模式。"
+      "current_sha256": "f7ee95be8634a584ee88cd8a5b553811dd0c9f4cf412f86ce468c1727d64a431",
+      "reason": "平台工作台统一视觉与品牌展示；保留原生功能与独立模式。；精简顶部骨架并统一终端和编辑器玻璃底层，修复透明默认背景下WebGL矩形alpha并同步既有生成补丁和锁文件；桌面可读性优化：正文共同预算、搜索名称位置层次、紧凑标签和已有定位入口、透明度叠加说明。"
     },
     {
       "path": "src/renderer/src/components/feature-tips/CmdJPaletteTipDialog.tsx",
@@ -339064,6 +339065,84 @@
       "upstream_sha256": "a2180cd3930a9bac5442d4d57ea448a1dd4325d38778e7888727a82b4e032ad3",
       "current_sha256": "1a97bf6ee54a38ebe0a5e6783456c9906d432b65ae68351a882c97af039e3c41",
       "reason": "暖色玻璃工作台及可持久透明度设置"
+    },
+    {
+      "path": "src/renderer/src/components/terminal-pane/terminal-appearance.test.ts",
+      "upstream_sha256": "6d7d5bec13ce18d1d4ed74c0f99cb1b2f2ba415c4c07d656a383668dd6bb0a57",
+      "current_sha256": "61f355fa73290b66836dacddef09c90f4f8edbd33821f519f5ef7abce7f25293",
+      "reason": "精简顶部骨架并统一终端和编辑器玻璃底层，修复透明默认背景下WebGL矩形alpha并同步既有生成补丁和锁文件"
+    },
+    {
+      "path": "src/renderer/src/components/terminal-pane/terminal-appearance.ts",
+      "upstream_sha256": "37053d4596a6bf2f48d650fd7c8121805ab002b196b0aecefd12a1d9d2d6c22c",
+      "current_sha256": "b63d455672a5af5f6665a33add8582f52ceccde2e98bd8e8784407e8a9f9637f",
+      "reason": "精简顶部骨架并统一终端和编辑器玻璃底层，修复透明默认背景下WebGL矩形alpha并同步既有生成补丁和锁文件"
+    },
+    {
+      "path": "config/patches/xterm-src/@xterm__addon-webgl@0.20.0-beta.300.src.patch",
+      "upstream_sha256": "313853551578ac1938c761e9ae8f4d9fb3acfcb65f497b8f82a612f6ac65aa86",
+      "current_sha256": "a90ad058d15de9c6254eb289cb461274975d792327e139becea1ba4418e33647",
+      "reason": "精简顶部骨架并统一终端和编辑器玻璃底层，修复透明默认背景下WebGL矩形alpha并同步既有生成补丁和锁文件"
+    },
+    {
+      "path": "config/patches/@xterm__addon-webgl@0.20.0-beta.300.patch",
+      "upstream_sha256": "5349718f2c19d9319a81552580bf9618ded9b00f3707a5c6cdbbae1910849cd9",
+      "current_sha256": "575f2af69d150573cad0af2d73626bfc95e615109c43ecdaf844e890deaabd6e",
+      "reason": "精简顶部骨架并统一终端和编辑器玻璃底层，修复透明默认背景下WebGL矩形alpha并同步既有生成补丁和锁文件"
+    },
+    {
+      "path": "pnpm-lock.yaml",
+      "upstream_sha256": "572f4b269aaf9d282b9073bebcfe235eb3b1c14a144f0bb133cc8ae0b90bd8d5",
+      "current_sha256": "f5c57979bbeb178cf117f6eba25a7b600ee36d7665e6ba94268f402d21bd5df9",
+      "reason": "精简顶部骨架并统一终端和编辑器玻璃底层，修复透明默认背景下WebGL矩形alpha并同步既有生成补丁和锁文件"
+    },
+    {
+      "path": "src/renderer/src/components/tab-bar/SortableTab.tsx",
+      "upstream_sha256": "a4fc71b0afda32c2a1809713ef06fa3a4ec56183a33fba4468fd8dd325586645",
+      "current_sha256": "1c4d74e95156cdbd2339b52520aee735aa5109f20b1a26562d98876055b5c475",
+      "reason": "仅缩短未命名普通终端的Windows shell可执行路径标签，保留原始标题及命名优先级"
+    },
+    {
+      "path": "src/renderer/src/components/tab-bar/tab-title-tooltip.test.tsx",
+      "upstream_sha256": "ae73103e038e8954b5369ecb6052cad52b58bb410bbcd4a50cb76d7c1ce488b5",
+      "current_sha256": "bf912f3f3cd7f414c579a7b0160b28186d104f31da9c255edbb523a7696b481a",
+      "reason": "仅缩短未命名普通终端的Windows shell可执行路径标签，保留原始标题及命名优先级"
+    },
+    {
+      "path": "src/renderer/src/components/worktree-jump-palette-primitives.tsx",
+      "upstream_sha256": "97dd0db909f5daf87b660711b0ac7322e48410078f364266d6df5bb1df6a30dc",
+      "current_sha256": "6ddc07056de2a494a4c611bf8953bf326861b7037e388bef0d8392c37e1acee0",
+      "reason": "桌面可读性优化：正文共同预算、搜索名称位置层次、紧凑标签和已有定位入口、透明度叠加说明。"
+    },
+    {
+      "path": "src/renderer/src/components/worktree-jump-palette-workspace-tab-row.tsx",
+      "upstream_sha256": "b6e9e282f0fd230f4926a6da0c228e3deb312c8fedf0cc23d58ea29a11e5aef4",
+      "current_sha256": "38c94abf9b033e9b7071c7682df3f4f7959548b18b77c525d78ebd0b640e939a",
+      "reason": "桌面可读性优化：正文共同预算、搜索名称位置层次、紧凑标签和已有定位入口、透明度叠加说明。"
+    },
+    {
+      "path": "src/renderer/src/components/worktree-jump-palette-worktree-row.tsx",
+      "upstream_sha256": "2925341b6c785593c48e80721a2850d9cb433a672a834511fc4567f2e41b29e2",
+      "current_sha256": "af96a6d06b4e9b6ea2a7e702b4923ea8571e627dbf5662329c00fbfc8f1d6d7d",
+      "reason": "桌面可读性优化：正文共同预算、搜索名称位置层次、紧凑标签和已有定位入口、透明度叠加说明。"
+    },
+    {
+      "path": "src/renderer/src/components/WorktreeJumpPalette.test.tsx",
+      "upstream_sha256": "87a3c78150ac75b8841c7c25efca81ffb76060d7154e38ed41cf49c894656951",
+      "current_sha256": "43f350ea554ed24513a242e84ff750557c1971a343a98b3eef9f74affa976a72",
+      "reason": "桌面可读性优化：正文共同预算、搜索名称位置层次、紧凑标签和已有定位入口、透明度叠加说明。"
+    },
+    {
+      "path": "src/renderer/src/components/worktree-jump-palette-interleaved-sections.test.tsx",
+      "upstream_sha256": "e78d1c86734ae041888b857702a5ebe3719738707911460c3db8f2ad12c4589a",
+      "current_sha256": "a4de5548c186d5da4ba3e3b5a3e577496499c60b9513f31eaa0622a358b039c8",
+      "reason": "桌面可读性优化：正文共同预算、搜索名称位置层次、紧凑标签和已有定位入口、透明度叠加说明。"
+    },
+    {
+      "path": "src/renderer/src/components/sidebar/ScrollToCurrentWorkspaceToolbarButton.tsx",
+      "upstream_sha256": "890d449a2bac710ba25b4a1cbcdc2a2a15fe0b2e9607c1973b9fb6f95f819f59",
+      "current_sha256": "afe776c68c4a55eb4bab8705aed120d4f2a953889a1c7ca8e2234c9bb99e9e89",
+      "reason": "桌面可读性优化：正文共同预算、搜索名称位置层次、紧凑标签和已有定位入口、透明度叠加说明。"
     }
   ],
   "reviewed_findings": [
@@ -339071,15 +339150,15 @@
       "path": "config/patches/@xterm__addon-webgl@0.20.0-beta.300.patch",
       "rule": "gitleaks:generic-api-key",
       "line": 6,
-      "sha256": "5349718f2c19d9319a81552580bf9618ded9b00f3707a5c6cdbbae1910849cd9",
-      "reason": "已按Gitleaks精确column复核：命中FourKeyMap导出类赋值（压缩JavaScript代码），不是凭据；保留必需patch字节，限定本文件hash/rule/line。"
+      "sha256": "575f2af69d150573cad0af2d73626bfc95e615109c43ecdaf844e890deaabd6e",
+      "reason": "已重新复核Gitleaks两处旧命中：redacted Match及唯一FourKeyMap/TwoKeyMap导出初始化声明与原补丁逐字节相同；不依赖第二条偏移的column。不是凭据，仍限定本文件hash/rule/line，不新增豁免。"
     },
     {
       "path": "config/patches/@xterm__addon-webgl@0.20.0-beta.300.patch",
       "rule": "gitleaks:generic-api-key",
       "line": 7,
-      "sha256": "5349718f2c19d9319a81552580bf9618ded9b00f3707a5c6cdbbae1910849cd9",
-      "reason": "已按Gitleaks精确column复核：命中FourKeyMap导出类赋值（压缩JavaScript代码），不是凭据；保留必需patch字节，限定本文件hash/rule/line。"
+      "sha256": "575f2af69d150573cad0af2d73626bfc95e615109c43ecdaf844e890deaabd6e",
+      "reason": "已重新复核Gitleaks两处旧命中：redacted Match及唯一FourKeyMap/TwoKeyMap导出初始化声明与原补丁逐字节相同；不依赖第二条偏移的column。不是凭据，仍限定本文件hash/rule/line，不新增豁免。"
     },
     {
       "path": "config/patches/@xterm__xterm@6.1.0-beta.304.patch",
@@ -340464,28 +340543,28 @@
       "path": "src/renderer/src/i18n/locales/en.json",
       "rule": "absolute-windows-path",
       "line": 12227,
-      "sha256": "b9aab67d489865dd54ea077f7023349f73c5d0388e64374532a68112fc10d087",
+      "sha256": "b3414af02c89b4873ba88966a4b370e452c95dfee25870ad0f9e3dcc69fb4543",
       "reason": "上游公开代码注释、CLI/界面示例中的路径语法，用来解释drive/root/UNC/转义等规则；非读取的个人配置，限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/en.json",
       "rule": "personal-home-path",
       "line": 12227,
-      "sha256": "b9aab67d489865dd54ea077f7023349f73c5d0388e64374532a68112fc10d087",
+      "sha256": "b3414af02c89b4873ba88966a4b370e452c95dfee25870ad0f9e3dcc69fb4543",
       "reason": "公开的路径模板、跨平台解析说明或通用示例；未读取本机账号/目录，保留语义并限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/en.json",
       "rule": "absolute-windows-path",
       "line": 12213,
-      "sha256": "b9aab67d489865dd54ea077f7023349f73c5d0388e64374532a68112fc10d087",
+      "sha256": "b3414af02c89b4873ba88966a4b370e452c95dfee25870ad0f9e3dcc69fb4543",
       "reason": "上游公开代码注释、CLI/界面示例中的路径语法，用来解释drive/root/UNC/转义等规则；非读取的个人配置，限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/en.json",
       "rule": "personal-home-path",
       "line": 12213,
-      "sha256": "b9aab67d489865dd54ea077f7023349f73c5d0388e64374532a68112fc10d087",
+      "sha256": "b3414af02c89b4873ba88966a4b370e452c95dfee25870ad0f9e3dcc69fb4543",
       "reason": "公开的路径模板、跨平台解析说明或通用示例；未读取本机账号/目录，保留语义并限定具体行及文件hash。"
     },
     {
@@ -340632,28 +340711,28 @@
       "path": "src/renderer/src/i18n/locales/zh.json",
       "rule": "absolute-windows-path",
       "line": 11935,
-      "sha256": "17d1cec0851bc71585149b20344ad33f41145c26a09e2885443298acbea14f66",
+      "sha256": "13a2b19a10730518f8213514703f8b80dd3b3b9216259d50d29597adc8df745c",
       "reason": "上游公开代码注释、CLI/界面示例中的路径语法，用来解释drive/root/UNC/转义等规则；非读取的个人配置，限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/zh.json",
       "rule": "personal-home-path",
       "line": 11935,
-      "sha256": "17d1cec0851bc71585149b20344ad33f41145c26a09e2885443298acbea14f66",
+      "sha256": "13a2b19a10730518f8213514703f8b80dd3b3b9216259d50d29597adc8df745c",
       "reason": "公开的路径模板、跨平台解析说明或通用示例；未读取本机账号/目录，保留语义并限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/zh.json",
       "rule": "absolute-windows-path",
       "line": 11921,
-      "sha256": "17d1cec0851bc71585149b20344ad33f41145c26a09e2885443298acbea14f66",
+      "sha256": "13a2b19a10730518f8213514703f8b80dd3b3b9216259d50d29597adc8df745c",
       "reason": "上游公开代码注释、CLI/界面示例中的路径语法，用来解释drive/root/UNC/转义等规则；非读取的个人配置，限定具体行及文件hash。"
     },
     {
       "path": "src/renderer/src/i18n/locales/zh.json",
       "rule": "personal-home-path",
       "line": 11921,
-      "sha256": "17d1cec0851bc71585149b20344ad33f41145c26a09e2885443298acbea14f66",
+      "sha256": "13a2b19a10730518f8213514703f8b80dd3b3b9216259d50d29597adc8df745c",
       "reason": "公开的路径模板、跨平台解析说明或通用示例；未读取本机账号/目录，保留语义并限定具体行及文件hash。"
     },
     {

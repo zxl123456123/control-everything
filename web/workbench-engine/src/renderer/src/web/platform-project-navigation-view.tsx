@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
+import { Info } from 'lucide-react'
 import { useAppStore } from '../store'
 import { selectWorktreesByRepo } from '../store/workspace-record-selectors'
 import { activateAndRevealWorktree } from '../lib/worktree-activation'
@@ -491,6 +493,20 @@ export default function PlatformNavigation({
   const recovering = connectionState === 'reconnecting' || connectionState === 'blocked'
   const selected = Object.values(worktrees).flat().find((row) => row.id === activeWorktreeId) ?? null
   const workspace = hydrated && catalogReady ? describePlatformWorkspace(repos, selected, data) : null
+  const infoHost = document.getElementById('platform-workspace-info')
+  const workspaceInfo = active && workspace && !pending ? (
+    <details className="platform-workspace-context">
+      <summary aria-label="工作区信息" title="工作区信息">
+        <Info size={16} aria-hidden="true" /><span>工作区信息</span>
+      </summary>
+      <div>
+        <p>工作区：{workspace.name} · {workspace.mode}</p>
+        <p>目录：{workspace.path || '尚未读取'}</p>
+        {workspace.branch && <p>分支：{workspace.branch}</p>}
+        <p>同一目录内的 Agent 共用文件，项目设置也可能包含共享路径；工作区不是运行安全沙箱。</p>
+      </div>
+    </details>
+  ) : null
   return (
     <div className="platform-runtime-status" data-pending={pending} data-recovering={recovering} hidden={!active} aria-live="polite">
       <span role="status">
@@ -509,16 +525,7 @@ export default function PlatformNavigation({
           <a href="#home">返回项目</a>
         </div>
       )}
-      {workspace && !pending && (
-        <details className="platform-workspace-context">
-          <summary>工作区：{workspace.name} · {workspace.mode}</summary>
-          <div>
-            <p>目录：{workspace.path || '尚未读取'}</p>
-            {workspace.branch && <p>分支：{workspace.branch}</p>}
-            <p>同一目录内的 Agent 共用文件，项目设置也可能包含共享路径；工作区不是运行安全沙箱。</p>
-          </div>
-        </details>
-      )}
+      {infoHost && workspaceInfo ? createPortal(workspaceInfo, infoHost) : workspaceInfo}
     </div>
   )
 }

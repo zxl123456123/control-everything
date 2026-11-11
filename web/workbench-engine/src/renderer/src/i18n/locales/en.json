@@ -301,7 +301,7 @@
     "appearance": {
       "surfaceTransparency": {
         "title": "Interface Transparency",
-        "description": "Let the warm background show through workspace panels. Text stays clear; terminal opacity is separate.",
+        "description": "Let the background show through workspace panels, including terminals. The terminal's own background opacity is applied on top.",
         "reset": "Reset to 18%",
         "saveError": "Could not save the appearance. Your previous setting has been restored."
       },

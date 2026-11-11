@@ -1179,6 +1179,8 @@ it('retains the same project read-only during reconnect and resumes without remo
   await waitFor(() => expect(screen.getByTestId('project-context').textContent).toBe('One'))
   const app = screen.getByTestId('project-context')
   const content = app.closest('.platform-project-content')!
+  const headerControls = document.getElementById('platform-workspace-controls')!
+  expect(headerControls.inert).toBe(false)
   const current = fixture.navigationData.at(-1)!
   const menu = document.createElement('div')
   menu.setAttribute('role', 'menu')
@@ -1189,6 +1191,7 @@ it('retains the same project read-only during reconnect and resumes without remo
   })
   expect(content.hasAttribute('hidden')).toBe(false)
   expect(content.hasAttribute('inert')).toBe(true)
+  expect(headerControls.inert).toBe(true)
   expect(content.getAttribute('aria-busy')).toBe('true')
   expect(app.textContent).toBe('One')
   expect(document.documentElement.dataset.platformView).toBe('studio')
@@ -1201,6 +1204,8 @@ it('retains the same project read-only during reconnect and resumes without remo
     fixture.markReady!(current)
   })
   expect(content.hasAttribute('inert')).toBe(false)
+  expect(document.getElementById('platform-workspace-controls')).toBe(headerControls)
+  expect(headerControls.inert).toBe(false)
   expect(screen.getByTestId('project-context')).toBe(app)
   expect(fixture.bridgeUnmounts).not.toHaveBeenCalled()
   expect(menu.inert).toBe(false)

@@ -2,7 +2,7 @@
 
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest'
 import type * as ReactI18Next from 'react-i18next'
 import type { Repo } from '../../../shared/repo-types'
 import type { Tab, TabGroup } from '../../../shared/tab-types'
@@ -423,7 +423,13 @@ describe('WorktreeJumpPalette interleaved primary sections', () => {
     expect(testContainer.textContent).not.toContain('Workspaces')
   })
 
-  it('puts the tab title on the left and the worktree name in the badge rail', async () => {
+  it('keeps the complete title above distinct workspace and host context', async () => {
+    const hostBadges = await import('@/components/cmd-j/palette-host-badge')
+    const hostBadgeMock = vi.spyOn(hostBadges, 'getPaletteHostBadge').mockReturnValue({
+      hostId: 'local',
+      label: 'Local desktop'
+    })
+    onTestFinished(() => hostBadgeMock.mockRestore())
     const longTitle = 'macOS Orca App Permission Update Delivery'
     await renderPalette({
       worktreesByRepo: {
@@ -448,13 +454,17 @@ describe('WorktreeJumpPalette interleaved primary sections', () => {
     const title = row?.querySelector('[data-slot="palette-open-tab-title"]')
     const worktree = row?.querySelector('[data-slot="palette-open-tab-worktree"]')
     expect(title?.textContent).toBe(longTitle)
-    expect(title?.classList.contains('min-w-0')).toBe(true)
-    expect(title?.classList.contains('shrink-0')).toBe(false)
     expect(worktree?.textContent).toBe('user-support')
     const locationChip = worktree?.closest('[data-slot="palette-location-chip"]')
     expect(locationChip).not.toBeNull()
-    expect(locationChip?.parentElement?.classList.contains('max-w-[40%]')).toBe(true)
-    expect(locationChip?.parentElement?.classList.contains('min-w-0')).toBe(true)
+    const context = row?.querySelector('[data-slot="palette-open-tab-context"]')
+    expect(context?.contains(locationChip ?? null)).toBe(true)
+    expect(context?.contains(title ?? null)).toBe(false)
+    expect(context?.textContent).toContain('Repo 1')
+    expect(context?.querySelector('[aria-label="Host: Local desktop"]')?.textContent).toBe(
+      'Local desktop'
+    )
+    expect(hostBadgeMock).toHaveBeenCalledWith('local', expect.any(Array), false)
     expect(worktree?.compareDocumentPosition(title ?? document.createElement('span'))).toBe(
       Node.DOCUMENT_POSITION_PRECEDING
     )

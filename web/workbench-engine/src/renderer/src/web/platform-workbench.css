@@ -1,6 +1,6 @@
 /* Platform presentation only; terminal sizing, drag geometry and saved layouts stay native. */
 :root:has(.platform-workspace-header) {
-  --platform-header-height: 52px;
+  --platform-header-height: 44px;
 }
 
 :root:has(.platform-project-entry) {
@@ -8,8 +8,10 @@
   --ce-workbench-accent: #9a5f2e;
   --ce-workbench-sheen: linear-gradient(125deg, #b9894b0d, transparent 58%);
   --ce-workbench-panel-rgb: 255 253 250;
-  --ce-workbench-glow: radial-gradient(ellipse at 0% 0%, #dba57b80, transparent 56%),
-    radial-gradient(ellipse at 100% 100%, #c7b7a657, transparent 60%);
+  --ce-workbench-glow:
+    radial-gradient(ellipse at 5% 0%, #e3b88f99, transparent 65%),
+    radial-gradient(ellipse at 100% 100%, #a6c2bc66, transparent 65%),
+    linear-gradient(130deg, transparent 20%, #d3a47c38 45%, transparent 72%);
   --ce-workbench-panel: #ffffff;
   --ce-workbench-line: #e5dfd6;
   --ce-workbench-hover: #efeae3;
@@ -21,19 +23,21 @@
 }
 
 :root.dark:has(.platform-project-entry) {
-  --ce-workbench-chrome: #171513;
+  --ce-workbench-chrome: #17191b;
   --ce-workbench-accent: #e4b580;
   --ce-workbench-sheen: linear-gradient(125deg, #ba6e3026, transparent 58%);
-  --ce-workbench-panel-rgb: 30 27 26;
-  --ce-workbench-glow: radial-gradient(ellipse at 0% 0%, #b85b3973, transparent 56%),
-    radial-gradient(ellipse at 100% 100%, #91674138, transparent 60%);
-  --ce-workbench-panel: #211e1b;
-  --ce-workbench-line: #3b332d;
-  --ce-workbench-hover: #2c2621;
-  --ce-workbench-selected: #433326;
+  --ce-workbench-panel-rgb: 29 30 32;
+  --ce-workbench-glow:
+    radial-gradient(ellipse at 5% 0%, #cf875799, transparent 65%),
+    radial-gradient(ellipse at 100% 100%, #537d7957, transparent 65%),
+    linear-gradient(130deg, transparent 20%, #b477453d 45%, transparent 72%);
+  --ce-workbench-panel: #222325;
+  --ce-workbench-line: #393838;
+  --ce-workbench-hover: #2c2c2e;
+  --ce-workbench-selected: #3c3630;
   --ce-workbench-ring: #e4b580;
   --ce-workbench-ink: #f3ece3;
-  --ce-workbench-muted: #b5a99b;
+  --ce-workbench-muted: #b3b0ab;
 }
 
 .platform-project-entry {
@@ -42,18 +46,22 @@
 
 :root:has(.platform-workspace-header) .platform-project-entry {
   --ce-workbench-effective-opacity: var(--ce-workbench-opacity, 0.82);
+  /* Syntax colors need a steadier floor than the terminal's high-contrast text. */
+  --ce-workbench-editor-opacity: calc(0.7 + var(--ce-workbench-effective-opacity) * 0.3);
   --ce-workbench-glass: rgb(var(--ce-workbench-panel-rgb) / var(--ce-workbench-effective-opacity));
   --ce-workbench-blur: calc((1 - var(--ce-workbench-effective-opacity)) * 64px);
   background: var(--ce-workbench-glow), var(--ce-workbench-chrome);
 }
 
 .platform-workspace-header {
+  position: relative;
+  z-index: 40;
   display: flex;
   align-items: center;
   flex: 0 0 var(--platform-header-height);
   min-width: 0;
-  gap: 24px;
-  padding: 0 20px;
+  gap: 14px;
+  padding: 0 16px;
   border-bottom: 1px solid var(--ce-workbench-line);
   background: var(--ce-workbench-sheen), var(--ce-workbench-chrome);
   color: var(--ce-workbench-ink);
@@ -80,8 +88,8 @@
   font-weight: 750;
 }
 .platform-workspace-header .platform-project-tabs {
-  flex: 1 1 0;
-  gap: 10px;
+  flex: 0 1 auto;
+  gap: 8px;
   padding: 0;
   min-height: 0;
   border: 0;
@@ -105,8 +113,20 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 16px;
-  font-weight: 600;
+  max-width: 260px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+#platform-workspace-controls {
+  flex: 1 1 0;
+  min-width: 0;
+}
+#platform-workspace-info {
+  flex: 0 0 auto;
+}
+#platform-workspace-info:empty {
+  display: none;
 }
 
 .platform-project-entry .platform-runtime-status {
@@ -118,14 +138,46 @@
 .platform-project-entry .platform-runtime-status > [role='status']:empty {
   display: none;
 }
-.platform-project-entry .platform-runtime-status:not(:has(details)):has(> [role='status']:empty) {
-  padding-block: 0;
+.platform-project-entry
+  .platform-runtime-status:not([data-pending='true']):not([data-recovering='true']):not(
+    :has(details)
+  ):has(> [role='status']:empty) {
+  display: none;
 }
-.platform-project-entry .platform-workspace-context summary {
+.platform-workspace-context {
+  position: relative;
+}
+.platform-workspace-context summary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  list-style: none;
+  border-radius: 6px;
+}
+.platform-workspace-context summary::-webkit-details-marker {
+  display: none;
+}
+.platform-workspace-context summary span {
+  display: none;
+}
+.platform-workspace-context summary:hover {
+  background: var(--ce-workbench-hover);
+}
+.platform-workspace-context summary:focus-visible {
+  outline: 2px solid var(--ce-workbench-ring);
+  outline-offset: 2px;
+}
+.platform-workspace-context summary {
   font-size: 13px;
   line-height: 18px;
 }
-.platform-project-entry .platform-workspace-context > div {
+.platform-workspace-context > div {
+  right: 0;
+  top: calc(100% + 7px);
+  z-index: 90;
+  width: min(480px, calc(100vw - 24px));
   background: var(--ce-workbench-panel);
   border-color: var(--ce-workbench-line);
   border-radius: 10px;
@@ -137,12 +189,14 @@
 }
 
 /* Paint glass once per surface; nested opaque fills would hide the shared light. */
-:root:has(.platform-workspace-header) .platform-project-entry :is(
-  .platform-workspace-header,
-  [data-workbench-navigation-column='open'],
-  [data-workbench-canvas],
-  [data-workbench-tools-open='true']
-) {
+:root:has(.platform-workspace-header)
+  .platform-project-entry
+  :is(
+    .platform-workspace-header,
+    [data-workbench-navigation-column='open'],
+    [data-workbench-canvas],
+    [data-workbench-tools-open='true']
+  ) {
   background: var(--ce-workbench-glass);
   backdrop-filter: blur(var(--ce-workbench-blur));
 }
@@ -152,12 +206,16 @@
 .platform-project-entry .platform-project-content,
 :root:has(.platform-project-entry) .ce-management-surface:not(.plugin-security-chrome),
 :root:has(.platform-project-entry) [data-workspace-board-sheet],
-:root[data-platform-view='workspace']:has(.platform-project-entry) :is(
-  [data-slot='dialog-content'], [data-slot='popover-content'],
-  [data-slot='dropdown-menu-content'], [data-slot='dropdown-menu-sub-content'],
-  [data-slot='select-content'], [data-slot='context-menu-content'],
-  [data-slot='context-menu-sub-content']
-):not(.plugin-security-chrome) {
+:root[data-platform-view='workspace']:has(.platform-project-entry)
+  :is(
+    [data-slot='dialog-content'],
+    [data-slot='popover-content'],
+    [data-slot='dropdown-menu-content'],
+    [data-slot='dropdown-menu-sub-content'],
+    [data-slot='select-content'],
+    [data-slot='context-menu-content'],
+    [data-slot='context-menu-sub-content']
+  ):not(.plugin-security-chrome) {
   --background: var(--ce-workbench-panel);
   --foreground: var(--ce-workbench-ink);
   --card: var(--ce-workbench-panel);
@@ -184,27 +242,35 @@
 }
 
 /* Menus remain solid so text never competes with content behind a floating layer. */
-:root:has(.platform-workspace-header) :is(
-  [data-workspace-board-sheet],
-  [data-slot='dialog-content'], [data-slot='popover-content'],
-  [data-slot='dropdown-menu-content'], [data-slot='dropdown-menu-sub-content'],
-  [data-slot='select-content'], [data-slot='context-menu-content'],
-  [data-slot='context-menu-sub-content']
-):not(.plugin-security-chrome) {
+:root:has(.platform-workspace-header)
+  :is(
+    [data-workspace-board-sheet],
+    [data-slot='dialog-content'],
+    [data-slot='popover-content'],
+    [data-slot='dropdown-menu-content'],
+    [data-slot='dropdown-menu-sub-content'],
+    [data-slot='select-content'],
+    [data-slot='context-menu-content'],
+    [data-slot='context-menu-sub-content']
+  ):not(.plugin-security-chrome) {
   background-color: var(--ce-workbench-panel);
 }
 
-:root:has(.platform-workspace-header) .platform-project-entry :is(
-  .platform-project-content, .app-layout,
-  [data-workbench-shell],
-  [data-workbench-navigation-column='open'] .titlebar-left,
-  [data-workbench-tools-open='true'] > div:first-child,
-  [data-workbench-tools-tabs]
-) {
+:root:has(.platform-workspace-header)
+  .platform-project-entry
+  :is(
+    .platform-project-content,
+    .app-layout,
+    [data-workbench-shell],
+    [data-workbench-navigation-column='open'] .titlebar-left,
+    [data-workbench-tools-open='true'] > div:first-child,
+    [data-workbench-tools-tabs]
+  ) {
   background: transparent;
 }
 
 .platform-project-entry [data-workbench-shell] {
+  position: relative;
   padding: 0;
 }
 .platform-project-entry [data-workbench-canvas] {
@@ -214,6 +280,42 @@
   border-radius: 0;
   background: var(--ce-workbench-panel);
   box-shadow: none;
+}
+
+/* Terminal and editor bottoms own their fill; never stack a second glass canvas below them. */
+:root:has(.platform-workspace-header)
+  .platform-project-entry
+  [data-workbench-canvas][data-workbench-workspace='true'] {
+  background: transparent;
+  backdrop-filter: none;
+}
+.platform-project-entry [data-workbench-terminal-surface] {
+  background: color-mix(
+    in srgb,
+    var(--ce-terminal-background) calc(var(--ce-workbench-effective-opacity) * 100%),
+    transparent
+  ) !important;
+}
+.platform-project-entry [data-workbench-workspace='true'] .monaco-editor {
+  background-color: color-mix(
+    in srgb,
+    var(--editor-surface) calc(var(--ce-workbench-editor-opacity) * 100%),
+    transparent
+  );
+}
+.platform-project-entry
+  [data-workbench-workspace='true']
+  :is(.monaco-editor-background, .monaco-editor .margin, .monaco-diff-editor) {
+  background-color: transparent;
+}
+.platform-project-entry [data-workbench-workspace='true'] .editor-header {
+  min-height: 28px;
+  padding-block: 2px;
+  background: color-mix(
+    in srgb,
+    var(--editor-surface) calc(var(--ce-workbench-editor-opacity) * 100%),
+    transparent
+  );
 }
 .platform-project-entry [data-workbench-navigation-column='open'] {
   border: 0;
@@ -238,11 +340,10 @@
 .platform-workspace-toolbar {
   display: flex;
   align-items: center;
-  flex: 0 0 36px;
+  flex: 1 1 0;
   min-width: 0;
   gap: 10px;
-  padding: 3px 10px;
-  border-bottom: 1px solid var(--ce-workbench-line);
+  padding: 0;
   color: var(--ce-workbench-ink);
 }
 .platform-workspace-heading {
@@ -256,16 +357,16 @@
   margin: 0;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 16px;
+  font-size: 14px;
   line-height: 20px;
-  font-weight: 650;
+  font-weight: 600;
 }
 .platform-workspace-branch {
   display: flex;
   align-items: center;
   gap: 5px;
   min-width: 0;
-  max-width: 25%;
+  max-width: 180px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -366,10 +467,29 @@
   border-color: var(--ce-workbench-line);
 }
 .platform-project-entry [data-workbench-tabs] {
-  background: var(--ce-workbench-chrome);
+  background: var(--ce-workbench-glass);
+}
+/* The page header already identifies the workspace; collapsed chrome only needs its controls. */
+.platform-project-entry .titlebar-left-floating .titlebar-app-name {
+  display: none;
+}
+.platform-project-entry .titlebar-left-floating [data-workbench-history] {
+  margin-inline: 0;
+  padding-left: 0;
+}
+.platform-project-entry .titlebar-left-floating [data-workbench-history]:not(:has(button:enabled)) {
+  display: none;
 }
 .platform-project-entry .terminal-tab-strip {
   border-right-color: transparent;
+}
+.platform-project-entry .terminal-tab-strip > [data-tab-strip-slot] {
+  min-width: 112px;
+}
+@container tab-strip (max-width: 480px) {
+  .platform-project-entry [data-workbench-tabs] > button[aria-disabled] {
+    display: none;
+  }
 }
 .platform-project-entry .terminal-tab-strip [data-tab-id] {
   height: calc(100% - 8px);
@@ -385,6 +505,18 @@
 .platform-project-entry .terminal-tab-strip [data-tab-rename-input] {
   font-size: inherit;
 }
+.platform-reveal-current-label {
+  display: none;
+}
+.platform-project-entry [data-workbench-reveal-current] {
+  width: auto;
+  gap: 6px;
+  padding-inline: 6px;
+}
+.platform-project-entry .platform-reveal-current-label {
+  display: inline;
+  font-size: 12px;
+}
 
 .platform-project-entry [data-workbench-tools-open='true'] {
   border: 0;
@@ -394,9 +526,6 @@
 .platform-project-entry [data-workbench-tools-open='true'] > div:first-child {
   border-radius: 0;
   background: var(--ce-workbench-panel);
-}
-.platform-project-entry [data-workbench-shell]:has(.platform-workspace-toolbar) .titlebar-left-floating {
-  top: 36px;
 }
 .platform-project-entry [data-workbench-tools-tabs] {
   background: var(--ce-workbench-chrome);
@@ -500,7 +629,9 @@
 
 /* Status icons and the thin top edge retain custom colors; the lane stays neutral. */
 :root:has(.platform-project-entry)
-  [data-workspace-status-drop-target]:not([data-workspace-lane-drag-active='true']):not([data-workspace-board-external-drag-target='true']) {
+  [data-workspace-status-drop-target]:not([data-workspace-lane-drag-active='true']):not(
+    [data-workspace-board-external-drag-target='true']
+  ) {
   background: var(--ce-workbench-panel);
 }
 
@@ -563,7 +694,6 @@
     padding: 0;
   }
   .platform-workspace-toolbar {
-    padding-inline: 10px;
     gap: 8px;
   }
   .platform-workspace-branch {
@@ -571,32 +701,50 @@
   }
 }
 
-.platform-mobile-panel-dismiss { display: none; }
+.platform-mobile-panel-dismiss {
+  display: none;
+}
 
-/* Phone panels overlay the workspace instead of consuming its columns. */
+/* Reuse the same drawers whenever saved panel widths would crowd the workspace. */
+.platform-project-entry
+  [data-workbench-panel-overlay='both']
+  [data-workbench-navigation-column='open'],
+.platform-project-entry [data-workbench-panel-overlay='tools'] [data-workbench-tools-open='true'],
+.platform-project-entry [data-workbench-panel-overlay='both'] [data-workbench-tools-open='true'] {
+  position: absolute;
+  inset-block: 0;
+  z-index: 31;
+  max-width: calc(100% - 44px);
+  border-radius: 0;
+  box-shadow: 0 0 20px #0003;
+}
+.platform-project-entry
+  [data-workbench-panel-overlay='both']
+  [data-workbench-navigation-column='open'] {
+  left: 0;
+}
+.platform-project-entry [data-workbench-panel-overlay='both'] [data-workbench-sidebar] {
+  max-width: calc(100vw - 44px);
+}
+.platform-project-entry
+  :is([data-workbench-panel-overlay='tools'], [data-workbench-panel-overlay='both'])
+  [data-workbench-tools-open='true'] {
+  right: 0;
+  z-index: 32;
+}
+.platform-project-entry
+  :is([data-workbench-panel-overlay='tools'], [data-workbench-panel-overlay='both'])
+  > .platform-mobile-panel-dismiss {
+  display: block;
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  background: #0003;
+  border: 0;
+}
+
 @media (max-width: 700px) {
-  .platform-project-entry [data-workbench-shell] { position: relative; padding: 0; }
-  .platform-project-entry [data-workbench-canvas] { margin: 0; border: 0; border-radius: 0; }
-  .platform-project-entry [data-workbench-navigation-column='open'],
-  .platform-project-entry [data-workbench-tools-open='true'] {
-    position: absolute;
-    inset-block: 0;
-    z-index: 31;
-    max-width: calc(100% - 44px);
-    border-radius: 0;
-    box-shadow: 0 0 20px #0003;
-  }
-  .platform-project-entry [data-workbench-navigation-column='open'] { left: 0; }
-  .platform-project-entry [data-workbench-navigation-column='open'] [data-workbench-sidebar] {
-    max-width: calc(100vw - 44px);
-  }
-  .platform-project-entry [data-workbench-tools-open='true'] { right: 0; z-index: 32; }
-  .platform-mobile-panel-dismiss {
-    display: block;
-    position: absolute;
-    inset: 0;
-    z-index: 30;
-    background: #0005;
+  .platform-project-entry [data-workbench-canvas] {
     border: 0;
   }
 }
@@ -606,7 +754,7 @@
     gap: 10px;
     padding-inline: 10px;
   }
-  .platform-workspace-brand > span:last-child {
+  .platform-workspace-brand {
     display: none;
   }
   .platform-workspace-header .platform-project-tabs {
@@ -615,8 +763,19 @@
   .platform-workspace-header .platform-project-back {
     padding-inline: 4px;
   }
+  .platform-workspace-header .platform-project-back span {
+    display: none;
+  }
   .platform-workspace-title {
-    font-size: 15px;
+    max-width: 120px;
+    font-size: 13px;
+  }
+  .platform-workspace-heading h1 {
+    max-width: 100px;
+    font-size: 13px;
+  }
+  .platform-workspace-actions button > span {
+    display: none;
   }
   .platform-workspace-actions button {
     padding-inline: 7px;
@@ -651,13 +810,18 @@
     --ce-workbench-effective-opacity: 1;
     --ce-workbench-glow: none;
   }
-  :root:has(.platform-workspace-header) .platform-project-entry :is(
-    .platform-workspace-header,
-    [data-workbench-navigation-column='open'],
-    [data-workbench-canvas],
-    [data-workbench-tools-open='true']
-  ) {
+  :root:has(.platform-workspace-header)
+    .platform-project-entry
+    :is(
+      .platform-workspace-header,
+      [data-workbench-navigation-column='open'],
+      [data-workbench-canvas],
+      [data-workbench-tools-open='true']
+    ) {
     backdrop-filter: none;
+  }
+  .platform-project-entry [data-workbench-terminal-surface] {
+    background: var(--ce-terminal-opaque-background) !important;
   }
 }
 

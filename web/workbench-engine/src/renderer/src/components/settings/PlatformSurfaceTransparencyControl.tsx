@@ -81,7 +81,7 @@ export function PlatformSurfaceTransparencyControl({
         label={title}
         description={translate(
           'settings.appearance.surfaceTransparency.description',
-          'Let the warm background show through workspace panels. Text stays clear; terminal opacity is separate.'
+          "Let the background show through workspace panels, including terminals. The terminal's own background opacity is applied on top."
         )}
         control={
           <div className="flex w-44 flex-col gap-2 max-sm:w-full" aria-busy={saving}>
