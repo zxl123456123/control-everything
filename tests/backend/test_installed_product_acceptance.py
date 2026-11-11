@@ -25,6 +25,59 @@ class InstalledProductAcceptanceTests(unittest.TestCase):
         self.addCleanup(temporary.cleanup)
         self.root = Path(temporary.name)
 
+    def candidate(self, label, version, closure):
+        payload = self.root / label
+        payload.mkdir()
+        document = {'product': 'session-panel', 'version': version, 'closure': closure,
+                    'source': {'commit': closure[:40], 'dirty': False}, 'files': []}
+        (payload / 'product.json').write_text(json.dumps(document), encoding='utf-8')
+        installer = self.root / (label + '.exe')
+        installer.write_bytes(label.encode('ascii'))
+        return payload, installer, document
+
+    def test_same_version_different_closure_is_rejected_before_registration(self):
+        first, installer, _ = self.candidate('first', '0.1.0a18', 'a' * 64)
+        second, second_installer, _ = self.candidate('second', '0.1.0a18', 'b' * 64)
+        evidence = self.root / 'evidence'
+        with patch.object(acceptance.sys, 'platform', 'win32'), \
+                patch.object(acceptance.platform, 'machine', return_value='AMD64'), \
+                patch.object(acceptance, 'guard_registration', side_effect=ValueError('registration_guard_reached')) as guard, \
+                patch.object(acceptance.Acceptance, 'install') as install:
+            with self.assertRaisesRegex(ValueError, 'different_second_version_required'):
+                acceptance.main(['--payload', str(first), '--installer', str(installer),
+                                 '--second-payload', str(second), '--second-installer', str(second_installer),
+                                 '--evidence', str(evidence)])
+            guard.assert_not_called()
+            install.assert_not_called()
+        self.assertFalse(evidence.exists())
+
+    def test_report_binds_both_product_identities_before_installation(self):
+        first, installer, first_document = self.candidate('first', '0.1.0a18', 'a' * 64)
+        second, second_installer, second_document = self.candidate('second', '0.1.0a19', 'b' * 64)
+        for two_versions in (False, True):
+            with self.subTest(two_versions=two_versions):
+                evidence = self.root / ('two' if two_versions else 'single')
+                argv = ['--payload', str(first), '--installer', str(installer), '--evidence', str(evidence)]
+                if two_versions:
+                    argv += ['--second-payload', str(second), '--second-installer', str(second_installer)]
+                with patch.object(acceptance.sys, 'platform', 'win32'), \
+                        patch.object(acceptance.platform, 'machine', return_value='AMD64'), \
+                        patch.object(acceptance, 'guard_registration'), \
+                        patch.object(acceptance, 'isolated_environment', return_value={}), \
+                        patch.object(acceptance.Acceptance, 'install', side_effect=ValueError('fixture_install_stopped')):
+                    self.assertEqual(acceptance.main(argv), 1)
+                report = json.loads((evidence / 'report.json').read_text(encoding='utf-8'))
+                self.assertEqual(report['schema'], 1)
+                self.assertEqual(report['product'], {'version': first_document['version'], 'closure': first_document['closure']})
+                self.assertEqual(report['source'], first_document['source'])
+                self.assertEqual(report['installer_sha256'], acceptance.sha(installer))
+                self.assertEqual(report['second_product'], {
+                    'version': second_document['version'], 'closure': second_document['closure'],
+                    'source': second_document['source'], 'installer_sha256': acceptance.sha(second_installer),
+                } if two_versions else None)
+                self.assertEqual(report['status'], 'failed')
+                self.assertEqual(report['errors'], ['ValueError:fixture_install_stopped'])
+
     def test_launcher_matches_each_installed_product_and_rejects_wrong_entry(self):
         version_id = '0.1.0a2-' + 'a' * 16
         version = self.root / 'versions' / version_id

@@ -353,6 +353,7 @@ def main(argv=None):
     first, first_id = payload_document(args.payload)
     second = payload_document(args.second_payload) if args.second_payload else None
     if second:
+        require(second[0]['version'] != first['version'], 'different_second_version_required')
         require(second[1] != first_id and unlinked(args.second_installer).is_file(), 'different_second_payload_required')
     guard_registration()
     environment = isolated_environment()
@@ -363,6 +364,9 @@ def main(argv=None):
     report = {'schema': 1, 'status': 'failed', 'machine': platform.platform(),
               'scope': 'current Windows x64 machine; controlled PATH; synthetic profiles only',
               'installer_sha256': sha(installer), 'source': first['source'], 'commands': acceptance.rows,
+              'product': {'version': first['version'], 'closure': first['closure']},
+              'second_product': {'version': second[0]['version'], 'closure': second[0]['closure'],
+                                 'source': second[0]['source'], 'installer_sha256': sha(args.second_installer)} if second else None,
               'errors': [], 'not_covered': ['clean Windows 10 and 11 matrix', 'real SSH/Agent/desktop focus',
                                            'live public news success', 'normal-running news worker collection',
                                            'interactive browser behavior', 'executing the cmd launcher wrapper']}
