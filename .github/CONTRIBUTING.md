@@ -106,6 +106,10 @@ Import Linter 的固定依赖在 `tools/architecture/requirements.txt`。内容/
 
 ### 内置项目工作台源码与构建
 
+正式入口支持 `--check-only` 预检、`--store-dir` 下载缓存以及受校验的 `--reuse-build` 后段重新组装，具体限制见 [Windows 构建流水线](../docs/guides/windows.md#构建与技术预发布)。原始字节需要固定的文件由 `.gitattributes` 声明换行；来源清单和材料摘要必须与审核后的实际字节一致，不能靠切换全局 `core.autocrlf` 修复某个候选。
+
+内置工作台在 packages 生成后、Web 打包前执行 `config/tsconfig.platform-web.json` 的生产 Web 类型检查，诊断非零即停止。它保留原编译选项及生产入口，只区分测试文件与测试辅助资料；生产代码如果引用未纳入的测试资料仍会报错。完整上游检查 `config/tsconfig.tc.web.json` 保持原样：初次纳入时明确排除的测试资料不属于本平台交付范围，这条检查仍可能失败，不能把生产门禁通过写成完整上游测试通过。日常修改继续运行所属功能的实际测试。
+
 `web/workbench-engine` 保存固定上游的桌面、Web、移动端和运行时源码，保留内部相对目录及许可。来源清单位于 `tools/packaging/workbench-engine-source.json`，精确记录文件、资源与本地适配；新增文件须同时更新清单。它是独立 React/TypeScript/Node 构建单元，其他普通脚本页面仍遵守原目录与编译合同。
 
 来源清单中的 `scope: source-and-build-only` 是构建校验合同，表示它只登记源码、资源许可与构建输入，不记录发行功能的验收状态。`upstream` 保留真实上游仓库与固定提交，品牌清理不删除来源、版权或许可证。实际 Windows 产品的装配、安装与功能验收见[对应发行说明](https://github.com/zxl123456123/control-everything/releases)；源码启动管理网关也不会自动构建或装配完整内置工作台。

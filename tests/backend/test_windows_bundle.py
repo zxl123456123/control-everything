@@ -369,6 +369,43 @@ class BuilderTests(PayloadFixture):
         with self.assertRaisesRegex(BUILD.BuildError, 'product_wheel_version'):
             BUILD.verify_wheels(product, house, lock, '0.2.0')
 
+    def test_wheelhouse_can_be_verified_before_a_product_wheel_exists(self):
+        house = self.root / 'house'
+        house.mkdir()
+        dependency = wheel(house)
+        lock = {'example-dep': {'version': '1.0', 'sha256': MANIFEST.sha256(dependency)}}
+        selected, identities = BUILD.verify_wheelhouse(house, lock)
+        self.assertEqual(selected, [dependency])
+        self.assertEqual(identities, [BUILD.wheel_info(dependency)])
+        self.assertEqual(list(self.root.iterdir()), [house])
+        lock['example-dep']['sha256'] = 'f' * 64
+        with self.assertRaisesRegex(BUILD.BuildError, 'unlocked_wheel'):
+            BUILD.verify_wheelhouse(house, lock)
+
+    def test_wheelhouse_preflight_rejects_missing_and_duplicate_dependencies(self):
+        house = self.root / 'house'
+        house.mkdir()
+        lock = {'example-dep': {'version': '1.0', 'sha256': 'f' * 64}}
+        with self.assertRaisesRegex(BUILD.BuildError, 'locked_wheel_missing'):
+            BUILD.verify_wheelhouse(house, lock)
+        dependency = wheel(house)
+        lock['example-dep']['sha256'] = MANIFEST.sha256(dependency)
+        (house / 'example_dep-1.0-1-py3-none-any.whl').write_bytes(dependency.read_bytes())
+        with self.assertRaisesRegex(BUILD.BuildError, 'duplicate_locked_wheel'):
+            BUILD.verify_wheelhouse(house, lock)
+
+    def test_wheelhouse_preflight_rejects_corrupt_records_even_with_matching_lock_hash(self):
+        path = wheel(self.root)
+        with zipfile.ZipFile(path) as archive:
+            values = {name: archive.read(name) for name in archive.namelist()}
+        values['example_dep/__init__.py'] = b'changed'
+        with zipfile.ZipFile(path, 'w') as archive:
+            for name, value in values.items():
+                archive.writestr(name, value)
+        lock = {'example-dep': {'version': '1.0', 'sha256': MANIFEST.sha256(path)}}
+        with self.assertRaisesRegex(BUILD.BuildError, 'wheel_record_mismatch'):
+            BUILD.verify_wheelhouse(self.root, lock)
+
     def test_wheel_record_corruption_and_wrong_abi_are_rejected(self):
         path = wheel(self.root)
         with zipfile.ZipFile(path) as archive:

@@ -137,10 +137,7 @@ def wheel_info(path):
             'requires': metadata.get_all('Requires-Dist', []), 'filename': path.name}
 
 
-def verify_wheels(wheel, wheelhouse, lock, version):
-    product = wheel_info(wheel)
-    if product['name'] != 'control-everything' or product['version'] != version:
-        raise BuildError('product_wheel_version')
+def verify_wheelhouse(wheelhouse, lock):
     selected, identities = [], []
     for path in sorted(Path(wheelhouse).glob('*.whl')):
         info = wheel_info(path)
@@ -153,6 +150,14 @@ def verify_wheels(wheel, wheelhouse, lock, version):
         identities.append(info)
     if {row['name'] for row in identities} != set(lock):
         raise BuildError('locked_wheel_missing')
+    return selected, identities
+
+
+def verify_wheels(wheel, wheelhouse, lock, version):
+    product = wheel_info(wheel)
+    if product['name'] != 'control-everything' or product['version'] != version:
+        raise BuildError('product_wheel_version')
+    selected, identities = verify_wheelhouse(wheelhouse, lock)
     return selected, [product, *identities]
 
 

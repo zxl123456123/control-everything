@@ -155,15 +155,11 @@ def prepare_git(archive, portable_git, reviewed_receipt, output, api, check_noti
     return receipt
 
 
-def stage(output, engine_root, build_run, portable_git, git_receipt, endpoints, api, helpers,
-          source_bundle=None, window_build=None):
-    output, engine_root, build_run, portable_git = map(Path, (output, engine_root, build_run, portable_git))
-    for path in (engine_root, build_run, portable_git, Path(git_receipt), Path(endpoints)):
-        if not path.is_absolute():
-            raise ValueError('absolute_desktop_inputs_required')
-        api.no_links(path)
-    config = read(endpoints)
-    if set(config) != {'issuer', 'hub_origin'} or bool(config['issuer']) != bool(config['hub_origin']):
+def read_endpoints(path):
+    config = read(path)
+    if (not isinstance(config, dict) or set(config) != {'issuer', 'hub_origin'}
+            or any(not isinstance(value, str) for value in config.values())
+            or bool(config['issuer']) != bool(config['hub_origin'])):
         raise ValueError('desktop_identity_fields')
     for value in config.values():
         if value:
@@ -171,6 +167,17 @@ def stage(output, engine_root, build_run, portable_git, git_receipt, endpoints, 
             if (parsed.scheme != 'https' or not parsed.hostname or parsed.username or parsed.password
                     or parsed.query or parsed.fragment):
                 raise ValueError('desktop_identity_https')
+    return config
+
+
+def stage(output, engine_root, build_run, portable_git, git_receipt, endpoints, api, helpers,
+          source_bundle=None, window_build=None):
+    output, engine_root, build_run, portable_git = map(Path, (output, engine_root, build_run, portable_git))
+    for path in (engine_root, build_run, portable_git, Path(git_receipt), Path(endpoints)):
+        if not path.is_absolute():
+            raise ValueError('absolute_desktop_inputs_required')
+        api.no_links(path)
+    config = read_endpoints(endpoints)
     provenance = read(build_run / 'build-provenance.json')
     rows = read(build_run / 'output-manifest.json')['files']
     if provenance.get('status') != 'build_only_verified' or provenance.get('distribution') != 'closure_verified':
