@@ -327,6 +327,70 @@ class ConnectorTests(unittest.TestCase):
         self.assertIsNone(self.store.read('pending.json'))
         self.assertEqual(self.store.read('credentials.bin', protected=True)['credential_revision'], 2)
 
+    def test_other_account_cannot_enroll_over_saved_computer_credentials(self):
+        credential = {'device_id': 'device-A', 'generation': 1, 'credential_revision': 1, 'control_token': TOKEN}
+        self.store.write('credentials.bin', credential, protected=True)
+        before = (self.store.root / 'credentials.bin').read_bytes()
+        self.peer.identity['account']['sub'] = 'subject-B'
+        account = self.signed_in_account()
+        with self.assertRaisesRegex(ConnectorError, 'remote_disconnect_required') as caught:
+            self.connector.begin_account_authorization(account)
+            self.connector.confirm()
+        self.assertEqual(caught.exception.status, 409)
+        self.assertEqual(self.connector.status()['code'], 'remote_disconnect_required')
+        self.assertEqual((self.store.root / 'credentials.bin').read_bytes(), before)
+        self.assertIsNone(self.store.read('pending.json'))
+        self.assertEqual([call[1] for call in self.peer.calls if '/enrollment' in call[1]],
+                         ['/remote/desktop/enrollment/status'])
+
+    def test_legacy_authorization_keeps_old_credentials_and_pending_for_other_account(self):
+        credential = {'device_id': 'device-A', 'generation': 1, 'credential_revision': 2, 'control_token': TOKEN}
+        self.store.write('credentials.bin', credential, protected=True)
+        self.store.write('pending.json', {'challenge_id': 'retained', 'operation': 'recover'})
+        before = {name: (self.store.root / name).read_bytes() for name in ('credentials.bin', 'pending.json')}
+        self.peer.identity['account']['sub'] = 'subject-B'
+        self.authorize()
+        self.assertEqual(self.connector.status()['code'], 'remote_disconnect_required')
+        with self.assertRaisesRegex(ConnectorError, 'remote_confirmation_required'):
+            self.connector.confirm()
+        self.assertEqual({name: (self.store.root / name).read_bytes() for name in before}, before)
+        self.assertEqual([call[1] for call in self.peer.calls if '/enrollment' in call[1]],
+                         ['/remote/desktop/enrollment/status'])
+
+    def test_recovery_rejects_a_different_saved_device_or_generation_before_enrollment(self):
+        credential = {'device_id': 'device-1', 'generation': 1, 'credential_revision': 1, 'control_token': TOKEN}
+        self.store.write('credentials.bin', credential, protected=True)
+        self.store.write('pending.json', {'challenge_id': 'retained', 'operation': 'recover'})
+        before = {name: (self.store.root / name).read_bytes() for name in ('credentials.bin', 'pending.json')}
+        account = self.signed_in_account()
+        for field, value in (('device_id', 'device-2'), ('generation', 2)):
+            with self.subTest(field=field):
+                self.peer.match = {'device_id': 'device-1', 'generation': 1,
+                                   'credential_revision': 1, 'recoverable': True, field: value}
+                self.peer.calls.clear()
+                with self.assertRaisesRegex(ConnectorError, 'remote_disconnect_required') as caught:
+                    self.connector.begin_account_authorization(account)
+                self.assertEqual(caught.exception.status, 409)
+                self.assertEqual({name: (self.store.root / name).read_bytes() for name in before}, before)
+                self.assertEqual([call[1] for call in self.peer.calls if '/enrollment' in call[1]],
+                                 ['/remote/desktop/enrollment/status'])
+
+    def test_same_computer_recovers_when_server_revision_is_ahead_of_saved_credential(self):
+        self.store.write('credentials.bin', {'device_id': 'device-1', 'generation': 1,
+                         'credential_revision': 1, 'control_token': TOKEN}, protected=True)
+        self.store.write('pending.json', {'challenge_id': 'lost-reply', 'operation': 'recover'})
+        self.peer.match = {'device_id': 'device-1', 'generation': 1, 'credential_revision': 2, 'recoverable': True}
+        self.peer.complete_revision = 3
+        account = self.signed_in_account()
+        self.assertEqual(self.connector.begin_account_authorization(account)['operation'], 'recover')
+        self.connector.confirm()
+        self.assertEqual(self.store.read('credentials.bin', protected=True),
+                         {'device_id': 'device-1', 'generation': 1, 'credential_revision': 3, 'control_token': TOKEN})
+        self.assertIsNone(self.store.read('pending.json'))
+        self.assertEqual([call[1] for call in self.peer.calls if '/enrollment' in call[1]],
+                         ['/remote/desktop/enrollment/status', '/remote/desktop/enrollment/recover',
+                          '/remote/desktop/enrollment/challenge-1/complete'])
+
     def test_account_refresh_owned_only_by_account_and_legacy_confirmation_rechecks_member(self):
         account = self.signed_in_account()
         self.connector.begin_account_authorization(account)
@@ -337,6 +401,7 @@ class ConnectorTests(unittest.TestCase):
         self.assertEqual(len(refreshes), 1)
         self.assertEqual(account._tokens['refresh_token'], 'new-account-refresh')
         self.assertIsNone(self.connector._oauth_refresh)
+        self.peer.match = {'device_id': 'device-1', 'generation': 1, 'credential_revision': 1, 'recoverable': True}
         self.authorize()
         self.peer.identity['member_active'] = False
         with self.assertRaisesRegex(ConnectorError, 'remote_membership_required'):

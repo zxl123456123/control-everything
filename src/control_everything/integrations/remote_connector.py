@@ -415,7 +415,7 @@ class RemoteConnector:
                     self._state, self._code = "awaiting_local_confirmation", "local_confirmation_required"
             except (ConnectorError, ProcessError, OSError, ValueError) as error:
                 self._state, self._code = "unbound", getattr(error, "code", "remote_state_invalid")
-                raise ConnectorError(self._code) from None
+                raise ConnectorError(self._code, getattr(error, "status", 0)) from None
             return self.status()
 
     def _prepare_enrollment(self, account, access):
@@ -425,6 +425,9 @@ class RemoteConnector:
             if error.status != 404:
                 raise
             match = None
+        credential = self.store.read("credentials.bin", protected=True)
+        if credential and (not match or any(credential[key] != match.get(key) for key in ("device_id", "generation"))):
+            raise ConnectorError("remote_disconnect_required", 409)
         pending = self.store.read("pending.json")
         if pending and not match:
             raise ConnectorError("remote_recovery_not_found")
