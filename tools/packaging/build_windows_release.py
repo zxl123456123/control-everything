@@ -16,6 +16,8 @@ ROOT = Path(__file__).resolve().parents[2]
 INPUTS = {'node', 'pnpm', 'engine_materials', 'wheelhouse', 'runtime_zip',
           'portable_git', 'git_receipt', 'endpoints', 'inno_dir', 'webview2_sdk'}
 DIRECTORIES = {'engine_materials', 'wheelhouse', 'portable_git', 'inno_dir'}
+ENGINE_COMPILE_STEPS = ('install-root', 'install-mobile', 'packages', 'mobile-generated', 'runtime-pin',
+                        'mobile-web', 'process-tree', 'web', 'runtime')
 
 
 def sha(path):
@@ -103,7 +105,62 @@ def observer_packages(metadata):
         raise ValueError('cargo_dependency_graph_required') from error
 
 
-def build(inputs_file, run_name, *, root=ROOT, runner=subprocess.run):
+def verify_reused_outputs(engine_root, rows):
+    if not isinstance(rows, list) or not rows:
+        raise ValueError('reused_engine_outputs_required')
+    seen = set()
+    for row in rows:
+        if not isinstance(row, dict) or set(row) != {'path', 'bytes', 'sha256'} or not isinstance(row['path'], str):
+            raise ValueError('reused_engine_output_fields')
+        name = row['path']
+        relative = Path(name)
+        if (not name.startswith('out/') or '\\' in name or ':' in name
+                or relative.is_absolute() or '..' in relative.parts or relative.as_posix() != name
+                or any(part.endswith((' ', '.')) for part in relative.parts)
+                or name.casefold() in seen or type(row['bytes']) is not int or row['bytes'] < 0
+                or not isinstance(row['sha256'], str) or not re.fullmatch('[0-9a-f]{64}', row['sha256'])):
+            raise ValueError('reused_engine_output_fields')
+        seen.add(name.casefold())
+        output = unlinked(engine_root / relative)
+        if output.stat().st_size != row['bytes'] or sha(output) != row['sha256']:
+            raise ValueError('reused_engine_output_changed:' + name)
+
+
+def inspect_engine_reuse(root, previous, source, commit, paths, versions):
+    provenance = read(unlinked(previous / 'build-provenance.json'))
+    if (type(provenance.get('schema')) is not int or provenance.get('schema') != 1 or provenance.get('hostCommit') != commit
+            or provenance.get('dirty') is not False
+            or provenance.get('status') not in ('building', 'build_only_verified')
+            or any(provenance.get(key) != source[key] for key in
+                   ('upstreamCommit', 'sourceTreeSha256', 'manifestSha256', 'fileCount'))):
+        raise ValueError('reused_engine_source_identity')
+    for name in ('node', 'pnpm'):
+        tool = provenance['tools'][name]
+        if (unlinked(tool['path']).resolve() != paths[name].resolve()
+                or tool['sha256'] != sha(paths[name]) or tool['version'] != versions[name]):
+            raise ValueError('reused_engine_tool_identity:' + name)
+    steps = read(unlinked(previous / 'steps.json'))
+    if (not isinstance(steps, list) or len(steps) <= len(ENGINE_COMPILE_STEPS)
+            or [row['step'] for row in steps[:len(ENGINE_COMPILE_STEPS)]] != list(ENGINE_COMPILE_STEPS)
+            or any(row['step'] != 'verify-web' for row in steps[len(ENGINE_COMPILE_STEPS):])
+            or any(type(row['exitCode']) is not int or row['exitCode'] != 0
+                   or row['log'] != row['step'] + '.log' for row in steps)):
+        raise ValueError('reused_engine_steps')
+    manifest = read(unlinked(previous / 'output-manifest.json'))
+    if type(manifest['schema']) is not int or manifest['schema'] != 1:
+        raise ValueError('reused_engine_manifest_schema')
+    unit = root / 'web/workbench-engine'
+    for name in ('out', '.build'):
+        if not unlinked(unit / name).is_dir():
+            raise ValueError('reused_engine_build_directory_missing:' + name)
+    for name in ('node_modules', 'mobile/node_modules'):
+        unlinked(unit / name)
+    verify_reused_outputs(unit, manifest['files'])
+    files = {'build-provenance.json', 'output-manifest.json', 'steps.json', *[row['log'] for row in steps]}
+    return {'run': str(previous), 'files': {name: sha(unlinked(previous / name)) for name in sorted(files)}}, manifest['files']
+
+
+def build(inputs_file, run_name, *, root=ROOT, runner=subprocess.run, reuse_engine_run=None):
     if not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_-]{0,63}', run_name):
         raise ValueError('invalid_release_run_name')
     paths = prepared_inputs(inputs_file, root)
@@ -111,8 +168,16 @@ def build(inputs_file, run_name, *, root=ROOT, runner=subprocess.run):
     output = unlinked(root / 'work/windows-release' / run_name)
     engine_run = unlinked(root / 'work/workbench-engine-build' / run_name)
     engine_root = root / 'web/workbench-engine'
-    for path in (output, engine_run, engine_root / 'out', engine_root / '.build',
-                 root / 'work/native-observer/release-install'):
+    if reuse_engine_run is not None:
+        reuse_engine_run = unlinked(reuse_engine_run)
+        runs = root / 'work/workbench-engine-build'
+        if (reuse_engine_run == runs or not reuse_engine_run.is_relative_to(runs)
+                or reuse_engine_run == engine_run or not reuse_engine_run.is_dir()):
+            raise ValueError('reused_engine_run_scope')
+    fresh = [output, engine_run, root / 'work/native-observer/release-install']
+    if reuse_engine_run is None:
+        fresh.extend((engine_root / 'out', engine_root / '.build'))
+    for path in fresh:
         if unlinked(path).exists():
             raise ValueError('new_release_outputs_required:' + str(path))
     environment = dict(os.environ, PYTHONDONTWRITEBYTECODE='1', PYTHONNOUSERSITE='1')
@@ -159,6 +224,12 @@ def build(inputs_file, run_name, *, root=ROOT, runner=subprocess.run):
         receipt['installer_compiler'] = {'path': str(inno), 'sha256': sha(inno), 'version_output': inno_version}
         receipt['input_files']['inno_license'] = {'path': str(paths['inno_dir'] / 'license.txt'),
                                                 'sha256': sha(paths['inno_dir'] / 'license.txt')}
+        if reuse_engine_run is not None:
+            source = read(step('engine-source', [*python, 'tools/packaging/workbench_engine.py', 'check-source']))
+            reuse, reused_rows = inspect_engine_reuse(root, reuse_engine_run, source, commit, paths,
+                                                      {'node': node_version, 'pnpm': pnpm_version})
+            receipt['engine_reuse'] = reuse
+            write(output / 'build-receipt.json', receipt)
         # Check the prepared environment without changing its packages or global settings.
         pins = dict(line.split('==') for line in (root / 'tools/packaging/requirements.txt').read_text().splitlines()
                     if line.strip() and not line.startswith('#'))
@@ -174,7 +245,8 @@ def build(inputs_file, run_name, *, root=ROOT, runner=subprocess.run):
         native_env.update({key: value for key, value in environment.items() if key.startswith('PYTHON')})
         step('desktop-window', [*python, 'tools/packaging/build_desktop_window.py',
                                 '--sdk', paths['webview2_sdk'], '--output', output / 'desktop-window'])
-        step('engine-source', [*python, 'tools/packaging/workbench_engine.py', 'check-source'])
+        if reuse_engine_run is None:
+            step('engine-source', [*python, 'tools/packaging/workbench_engine.py', 'check-source'])
         step('python-package', [*python, '-m', 'build', '--outdir', output / 'dist'])
         wheels = list((output / 'dist').glob('*.whl'))
         if len(wheels) != 1 or len(list((output / 'dist').glob('*.tar.gz'))) != 1:
@@ -187,9 +259,24 @@ def build(inputs_file, run_name, *, root=ROOT, runner=subprocess.run):
                              '--filter-platform', 'x86_64-pc-windows-msvc'], env=native_env)
         packages = observer_packages(read(metadata_file))
         write(output / 'cargo-packages.json', packages)
-        step('engine-build', [*python, 'tools/packaging/workbench_engine.py', 'build',
-             '--node', paths['node'], '--pnpm', paths['pnpm'], '--scratch-root', root / 'work/ce-native',
-             '--run-dir', engine_run, '--materials', paths['engine_materials']])
+        if reuse_engine_run is None:
+            step('engine-build', [*python, 'tools/packaging/workbench_engine.py', 'build',
+                 '--node', paths['node'], '--pnpm', paths['pnpm'], '--scratch-root', root / 'work/ce-native',
+                 '--run-dir', engine_run, '--materials', paths['engine_materials']])
+        else:
+            engine_run.mkdir(parents=True)
+            original = unlinked(reuse_engine_run / 'build-provenance.json')
+            with (engine_run / 'build-provenance.json').open('xb') as stream:
+                stream.write(original.read_bytes())
+            if sha(engine_run / 'build-provenance.json') != reuse['files']['build-provenance.json']:
+                raise ValueError('reused_engine_evidence_changed')
+            step('engine-check-output', [*python, 'tools/packaging/workbench_engine.py', 'check-output',
+                                        '--run-dir', engine_run, '--materials', paths['engine_materials']])
+            if read(engine_run / 'output-manifest.json')['files'] != reused_rows:
+                raise ValueError('reused_engine_manifest_changed')
+            verify_reused_outputs(engine_root, reused_rows)
+            if any(sha(unlinked(reuse_engine_run / name)) != digest for name, digest in reuse['files'].items()):
+                raise ValueError('reused_engine_evidence_changed')
         engine = read(engine_run / 'build-provenance.json')
         if (engine.get('hostCommit') != commit or engine.get('distribution') != 'closure_verified'
                 or engine.get('materials', {}).get('input_hashes') != materials):
@@ -238,9 +325,10 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--inputs', type=Path, required=True, help='Reviewed local input JSON (schema 1).')
     parser.add_argument('--run-name', required=True, help='New run name below this checkout work/windows-release.')
+    parser.add_argument('--reuse-engine-run', type=Path, help='Verified existing engine compile run in this checkout; never resume other build stages.')
     args = parser.parse_args(argv)
     try:
-        result = build(args.inputs, args.run_name)
+        result = build(args.inputs, args.run_name, reuse_engine_run=args.reuse_engine_run)
         print(json.dumps({key: value for key, value in result.items() if key != 'steps'}, ensure_ascii=False))
         return 0
     except (OSError, ValueError, KeyError, RuntimeError) as error:

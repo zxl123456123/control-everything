@@ -46,6 +46,11 @@ class WindowsReleaseTests(unittest.TestCase):
         self.engine_commit = COMMIT
         self.bad_sources = False
         self.changed_input = False
+        self.engine_source = {'upstreamCommit': 'd' * 40, 'sourceTreeSha256': 'e' * 64,
+                              'manifestSha256': 'd' * 64, 'fileCount': 2}
+        self.changed_reused_output = False
+        self.changed_reused_manifest = False
+        self.changed_reuse_evidence = False
         self.cargo_metadata = {'packages': [{'id': 'fixture', 'name': 'fixture', 'version': '1'}],
                                'resolve': {'root': 'fixture', 'nodes': [{'id': 'fixture', 'deps': []}]}}
 
@@ -56,6 +61,7 @@ class WindowsReleaseTests(unittest.TestCase):
         self.assertEqual(kwargs['cwd'], self.root)
         text = {'source-commit': COMMIT, 'source-status': ' M source' if self.dirty else '',
                 'node-version': 'v24.19.0', 'pnpm-version': '12.14.0', 'inno-version': 'Inno Setup 7.1.0',
+                'engine-source': json.dumps(self.engine_source),
                 'cargo-metadata': json.dumps(self.cargo_metadata)}.get(name, 'fixture output')
         kwargs['stdout'].write(text.encode())
         kwargs['stderr'].write(b'fixture stderr')
@@ -70,6 +76,17 @@ class WindowsReleaseTests(unittest.TestCase):
             RELEASE.write(self.engine / 'build-provenance.json',
                           {'hostCommit': self.engine_commit, 'distribution': 'closure_verified',
                            'materials': {'input_hashes': {'external-components.json': 'f' * 64}}})
+        if name == 'engine-check-output':
+            provenance = RELEASE.read(self.engine / 'build-provenance.json')
+            provenance.update(distribution='closure_verified', materials={'input_hashes': {'external-components.json': 'f' * 64}})
+            RELEASE.write(self.engine / 'build-provenance.json', provenance)
+            RELEASE.write(self.engine / 'output-manifest.json', RELEASE.read(self.previous / 'output-manifest.json'))
+            if self.changed_reused_output:
+                self.reused_file.write_bytes(b'changed during binding')
+            if self.changed_reused_manifest:
+                RELEASE.write(self.engine / 'output-manifest.json', {'schema': 1, 'files': []})
+            if self.changed_reuse_evidence:
+                (self.previous / 'web.log').write_bytes(b'evidence changed during binding')
         if name == 'product':
             payload = self.output / 'payload'
             payload.mkdir()
@@ -87,12 +104,172 @@ class WindowsReleaseTests(unittest.TestCase):
                 Path(self.values['endpoints']).write_bytes(b'changed input')
         return SimpleNamespace(returncode=0)
 
-    def build(self):
+    def build(self, reuse_engine_run=None):
         with patch.object(RELEASE, 'observer_environment',
                           return_value=({'PYTHONPATH': 'untrusted', 'PYTHONHOME': 'untrusted'},
                                         {'cargo': str(self.root / 'private-cargo.exe')})), \
                 patch.object(RELEASE, 'material_inputs', return_value={'external-components.json': 'f' * 64}):
-            return RELEASE.build(self.inputs, 'fixture', root=self.root, runner=self.runner)
+            return RELEASE.build(self.inputs, 'fixture', root=self.root, runner=self.runner,
+                                 reuse_engine_run=reuse_engine_run)
+
+    def reusable_engine(self):
+        self.previous = self.root / 'work/workbench-engine-build/previous'
+        self.previous.mkdir(parents=True)
+        unit = self.root / 'web/workbench-engine'
+        self.reused_file = unit / 'out/web/main.js'
+        self.reused_file.parent.mkdir(parents=True)
+        self.reused_file.write_bytes(b'previous compiled bytes')
+        (unit / '.build').mkdir()
+        provenance = {'schema': 1, 'hostCommit': COMMIT, 'dirty': False, 'status': 'building',
+                      'distribution': 'not_verified', **self.engine_source,
+                      'tools': {name: {'path': self.values[name], 'sha256': RELEASE.sha(self.values[name]),
+                                       'version': version} for name, version in
+                                [('node', 'v24.19.0'), ('pnpm', '12.14.0')]}}
+        RELEASE.write(self.previous / 'build-provenance.json', provenance)
+        names = 'install-root install-mobile packages mobile-generated runtime-pin mobile-web process-tree web runtime verify-web'.split()
+        steps = [{'step': name, 'exitCode': 0, 'log': name + '.log'} for name in names]
+        for row in steps:
+            (self.previous / row['log']).write_bytes(row['step'].encode())
+        RELEASE.write(self.previous / 'steps.json', steps)
+        RELEASE.write(self.previous / 'output-manifest.json', {'schema': 1, 'files': [
+            {'path': 'out/web/main.js', 'bytes': self.reused_file.stat().st_size, 'sha256': RELEASE.sha(self.reused_file)}]})
+        return self.previous
+
+    def test_explicit_engine_reuse_rechecks_without_overwriting_previous_evidence(self):
+        previous = self.reusable_engine()
+        before = {file.name: file.read_bytes() for file in previous.iterdir()}
+        result = self.build(previous)
+        self.assertEqual(result['status'], 'candidate-built-awaiting-acceptance')
+        commands = {name: argv for name, argv, _ in self.calls}
+        self.assertNotIn('engine-build', commands)
+        self.assertIn('check-output', commands['engine-check-output'])
+        self.assertIn('desktop-window', commands)
+        self.assertIn('python-package', commands)
+        self.assertIn('--release', commands['observer-build'])
+        self.assertEqual({file.name: file.read_bytes() for file in previous.iterdir()}, before)
+        self.assertEqual(result['engine_reuse']['run'], str(previous))
+        for name, digest in result['engine_reuse']['files'].items():
+            self.assertEqual(digest, RELEASE.sha(previous / name))
+
+    def test_reuse_rejects_source_or_tool_identity_changes(self):
+        previous = self.reusable_engine()
+        document = RELEASE.read(previous / 'build-provenance.json')
+        document['sourceTreeSha256'] = '0' * 64
+        document['tools']['pnpm']['sha256'] = '0' * 64
+        RELEASE.write(previous / 'build-provenance.json', document)
+        with self.assertRaisesRegex(ValueError, 'reused_engine_source_identity'):
+            self.build(previous)
+        self.assertNotIn('engine-check-output', [name for name, _, _ in self.calls])
+
+    def test_reuse_rejects_changed_tool_even_with_matching_source(self):
+        previous = self.reusable_engine()
+        Path(self.values['node']).write_bytes(b'another node')
+        with self.assertRaisesRegex(ValueError, 'reused_engine_tool_identity'):
+            self.build(previous)
+
+    def test_reuse_rejects_boolean_schema_and_keeps_failure_receipt(self):
+        previous = self.reusable_engine()
+        document = RELEASE.read(previous / 'build-provenance.json')
+        document['schema'] = True
+        RELEASE.write(previous / 'build-provenance.json', document)
+        with self.assertRaisesRegex(ValueError, 'reused_engine_source_identity'):
+            self.build(previous)
+        self.assertEqual(RELEASE.read(self.output / 'build-receipt.json')['status'], 'failed')
+
+    def test_reuse_requires_complete_successful_compile_steps(self):
+        previous = self.reusable_engine()
+        RELEASE.write(previous / 'steps.json', [])
+        with self.assertRaisesRegex(ValueError, 'reused_engine_steps'):
+            self.build(previous)
+
+    def test_reuse_allows_verified_engine_with_repeated_output_checks(self):
+        previous = self.reusable_engine()
+        provenance = RELEASE.read(previous / 'build-provenance.json')
+        provenance.update(status='build_only_verified', distribution='closure_verified',
+                          materials={'input_hashes': {'external-components.json': 'c' * 64}})
+        RELEASE.write(previous / 'build-provenance.json', provenance)
+        steps = RELEASE.read(previous / 'steps.json')
+        RELEASE.write(previous / 'steps.json', steps + [steps[-1]])
+        (previous / 'external-dependency-notices.json').write_bytes(b'old binding is never copied')
+        before = {file.name: file.read_bytes() for file in previous.iterdir()}
+        result = self.build(previous)
+        self.assertEqual(result['status'], 'candidate-built-awaiting-acceptance')
+        self.assertEqual({file.name: file.read_bytes() for file in previous.iterdir()}, before)
+        self.assertFalse((self.engine / 'external-dependency-notices.json').exists())
+
+    def test_reuse_rejects_missing_compile_step_even_when_all_recorded_steps_passed(self):
+        previous = self.reusable_engine()
+        steps = RELEASE.read(previous / 'steps.json')
+        RELEASE.write(previous / 'steps.json', [row for row in steps if row['step'] != 'runtime'])
+        with self.assertRaisesRegex(ValueError, 'reused_engine_steps'):
+            self.build(previous)
+
+    def test_reuse_rejects_nonzero_verification_even_after_successful_compile(self):
+        previous = self.reusable_engine()
+        steps = RELEASE.read(previous / 'steps.json')
+        steps[-1]['exitCode'] = 1
+        RELEASE.write(previous / 'steps.json', steps)
+        with self.assertRaisesRegex(ValueError, 'reused_engine_steps'):
+            self.build(previous)
+
+    def test_reuse_manifest_rejects_unsafe_or_duplicate_paths(self):
+        for rows in ([{'path': 'out/../secret', 'bytes': 0, 'sha256': 'a' * 64}],
+                     [{'path': None, 'bytes': 0, 'sha256': 'a' * 64}]):
+            with self.subTest(rows=rows), self.assertRaisesRegex(ValueError, 'reused_engine_output_fields'):
+                RELEASE.verify_reused_outputs(self.root, rows)
+        self.reusable_engine()
+        row = {'path': 'out/web/main.js', 'bytes': self.reused_file.stat().st_size,
+               'sha256': RELEASE.sha(self.reused_file)}
+        with self.assertRaisesRegex(ValueError, 'reused_engine_output_fields'):
+            RELEASE.verify_reused_outputs(self.root / 'web/workbench-engine', [row, row])
+
+    def test_reuse_rejects_changed_compiled_bytes_before_new_builds(self):
+        previous = self.reusable_engine()
+        self.reused_file.write_bytes(b'changed output')
+        with self.assertRaisesRegex(ValueError, 'reused_engine_output_changed'):
+            self.build(previous)
+        self.assertNotIn('desktop-window', [name for name, _, _ in self.calls])
+
+    def test_reuse_rejects_output_changes_during_material_binding(self):
+        previous = self.reusable_engine()
+        self.changed_reused_output = True
+        with self.assertRaisesRegex(ValueError, 'reused_engine_output_changed'):
+            self.build(previous)
+        self.assertNotIn('product', [name for name, _, _ in self.calls])
+
+    def test_reuse_rejects_manifest_changes_during_material_binding(self):
+        previous = self.reusable_engine()
+        self.changed_reused_manifest = True
+        with self.assertRaisesRegex(ValueError, 'reused_engine_manifest_changed'):
+            self.build(previous)
+        self.assertNotIn('product', [name for name, _, _ in self.calls])
+
+    def test_reuse_rejects_old_evidence_changes_during_material_binding(self):
+        previous = self.reusable_engine()
+        self.changed_reuse_evidence = True
+        with self.assertRaisesRegex(ValueError, 'reused_engine_evidence_changed'):
+            self.build(previous)
+        self.assertNotIn('product', [name for name, _, _ in self.calls])
+
+    def test_reuse_does_not_relax_observer_or_new_run_guards(self):
+        previous = self.reusable_engine()
+        observer = self.root / 'work/native-observer/release-install'
+        observer.mkdir(parents=True)
+        with self.assertRaisesRegex(ValueError, 'new_release_outputs_required'):
+            self.build(previous)
+        self.assertEqual(self.calls, [])
+
+    def test_default_still_rejects_existing_engine_outputs(self):
+        self.reusable_engine()
+        with self.assertRaisesRegex(ValueError, 'new_release_outputs_required'):
+            self.build()
+        self.assertEqual(self.calls, [])
+
+    def test_reuse_rejects_runs_outside_this_checkout(self):
+        previous = self.root / 'another-run'
+        previous.mkdir()
+        with self.assertRaisesRegex(ValueError, 'reused_engine_run_scope'):
+            self.build(previous)
 
     def test_complete_candidate_binds_source_and_passes_every_desktop_input(self):
         result = self.build()

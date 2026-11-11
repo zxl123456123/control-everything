@@ -131,7 +131,18 @@ if ($LASTEXITCODE -ne 0) { throw 'Candidate build failed; inspect the retained r
 | 产品组装 | `build_windows.py --release`，逐项验证 Windows 窗口、源码与轮子、工作台、观察后台、Git 及源码附件 |
 | 安装器 | `inno_include.py` → `ISCC.exe`，精确文件清单与 hash；编译器退出码非0即停止 |
 
-每轮使用新的 run-name 和干净检出；不覆盖已有 release 输出、engine 的 `out/.build` 或已存在的 release observer。失败保留完整 stdout/stderr 与阶段退出码，修复后另建候选，不自动删目录重试。
+每轮使用新的 run-name 和干净检出；默认要求 engine 的 `out/.build` 与 release observer 尚不存在。失败保留完整 stdout/stderr 与阶段退出码，不自动删目录重试。下面的显式复用入口只处理已完成编译的工作台；其他构建阶段仍重新执行。
+
+如果编译已完成、后续材料绑定失败，可在审核新的材料目录后复用同一检出的工作台产物：
+
+```powershell
+python tools/packaging/build_windows_release.py --inputs E:/example/checkout/work/windows-release/inputs/reviewed-inputs.json --run-name candidate-02 --reuse-engine-run E:/example/checkout/work/workbench-engine-build/candidate-01
+if ($LASTEXITCODE -ne 0) { throw 'Candidate recovery failed; retain both runs' }
+```
+
+入口核对旧来源记录、当前源码、Node/pnpm 与完整编译步骤，并逐项核对原产物清单的大小和 SHA256。新的执行目录重新检查产物、绑定材料和验证许可闭包，前后产物必须保持一致；旧目录及失败收据不改。原产物、源码或工具身份不一致时停止，不能重算旧 hash 消除差异。观察后台、Python 包、独立窗口和安装器仍重新构建；原 `release-install` 必须先按开发文件管理规则保全，工具不会替你清除它。
+
+这沿用 [GitHub 工作流产物交接及摘要验证](https://docs.github.com/en/actions/tutorials/store-and-share-data)的做法，保留本地可信证据的边界，不引入通用断点恢复框架。复用不减少最终安装验收，也不证明两次独立构建逐字节一致。
 
 | 本检出路径 | 用途 |
 | --- | --- |
