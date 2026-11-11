@@ -152,3 +152,45 @@ class BundleTests(unittest.TestCase):
                                 capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(json.loads(result.stdout)['status'], 'prepared-awaiting-content-review')
+
+    def test_validation_requires_both_matching_readiness_references(self):
+        original = self.prepare()
+        plan_path = self.output / 'publication.json'
+        for field in ('readiness', 'readiness_recheck'):
+            with self.subTest(missing=field):
+                changed = dict(original)
+                del changed[field]
+                plan_path.write_text(json.dumps(changed))
+                with self.assertRaises(ValueError):
+                    bundle.validate_bundle(plan_path)
+        alternate = json.loads(self.readiness.read_text())
+        alternate['commit'] = 'f' * 40
+        alternate_path = self.fixture.save('alternate-ready.json', alternate)
+        changed = {**original, 'readiness': self.fixture.reference(alternate_path)}
+        plan_path.write_text(json.dumps(changed))
+        with self.assertRaises(ValueError):
+            bundle.validate_bundle(plan_path)
+
+    def test_self_consistent_replacement_exe_is_not_the_accepted_installer(self):
+        plan = self.prepare()
+        public = self.output / 'public'
+        installer = public / 'session-panel-0.1.0a1-windows-x64.exe'
+        installer.write_bytes(b'different installer with fresh checksums')
+        assets = [bundle.asset(public / row['name']) for row in plan['assets']]
+        (public / 'SHA256SUMS.txt').write_bytes(bundle.checksums(assets))
+        plan['assets'] = [bundle.asset(public / row['name']) for row in plan['assets']]
+        plan_path = self.output / 'publication.json'
+        plan_path.write_text(json.dumps(plan))
+        with self.assertRaises(ValueError):
+            bundle.validate_bundle(plan_path)
+
+    def test_validation_rechecks_indirect_evidence_and_log_pins(self):
+        self.prepare()
+        for name in ('build-receipt.json', 'acceptance.json', 'review.json', 'manual.md', 'check.json', 'stdout.log'):
+            with self.subTest(evidence=name):
+                file = self.root / name
+                before = file.read_bytes()
+                file.write_bytes(before + b'changed')
+                with self.assertRaises(ValueError):
+                    bundle.validate_bundle(self.output / 'publication.json')
+                file.write_bytes(before)

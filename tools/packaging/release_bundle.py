@@ -128,6 +128,18 @@ def validate_bundle(plan_path):
                           and plan['tag'] == 'v' + plan['version']
                           and type(plan['prerelease']) is bool and plan['prerelease'] == prerelease(plan['version'])
                           and re.fullmatch(r'[0-9a-f]{40}', plan['commit']), 'publication_identity')
+        approved = readiness.read(readiness.checked_reference(plan['readiness'])['path'])
+        rechecked = readiness.read(readiness.checked_reference(plan['readiness_recheck'])['path'])
+        readiness.require(type(approved['schema']) is int and approved['schema'] == 1
+                          and approved['status'] == 'ready-for-publication-review' and approved['errors'] == []
+                          and approved == rechecked and approved['commit'] == plan['commit'], 'readiness_binding')
+        for name in ('build', 'acceptance', 'review', 'manual_evidence'):
+            readiness.checked_reference(approved[name])
+        readiness.require(isinstance(approved['checks'], list) and approved['checks'], 'source_checks_required')
+        for item in approved['checks']:
+            check = readiness.read(readiness.checked_reference(item)['path'])
+            for name in ('stdout', 'stderr'):
+                readiness.checked_reference(check['logs'][name])
         public = path(plan_path.parent / 'public')
         expected_names = names(plan['version'])
         readiness.require(isinstance(plan['assets'], list) and len(plan['assets']) == len(expected_names)
@@ -141,9 +153,14 @@ def validate_bundle(plan_path):
                           and (public / 'release-notes.md').read_text(encoding='utf-8').strip(), 'notes_mismatch')
         product = validate_manifest(readiness.read(public / 'product.json'))
         readiness.require(product['version'] == plan['version'] and product['source']['commit'] == plan['commit']
-                          and product['source']['dirty'] is False, 'public_product_identity')
+                          and product['source']['dirty'] is False
+                          and {key: product[key] for key in ('version', 'closure')} == approved['product'],
+                          'public_product_identity')
         sources = readiness.read(public / 'SOURCE-AVAILABILITY.json')
+        installer_asset = next(row for row in plan['assets'] if row['name'] == f"session-panel-{plan['version']}-windows-x64.exe")
         source_asset = next(row for row in plan['assets'] if row['name'] == f"session-panel-{plan['version']}-sources.zip")
+        readiness.require(installer_asset['sha256'] == approved['installer']['sha256']
+                          and source_asset['sha256'] == approved['source_bundle']['sha256'], 'accepted_asset_mismatch')
         readiness.require(sources['archive'] == source_asset['name'] and sources['bytes'] == source_asset['size']
                           and sources['sha256'] == source_asset['sha256'], 'public_sources_identity')
     except (KeyError, TypeError, AttributeError) as error:
