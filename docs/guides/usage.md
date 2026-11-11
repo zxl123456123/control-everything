@@ -223,7 +223,7 @@ GET  /api/agent/tasks/<task_id>/review
 
 ## 重点、优先级、决策与验收接口
 
-早期页面概念与字段设计保留在[兼容事项契约与历史设计](../architecture/workbench-contract.md)，不作为当前导航或后续排期。以下说明兼容管理入口保留的 HTTP 接口。
+以下说明兼容管理入口保留的 HTTP 接口。
 
 兼容管理页 `/workspace-admin` 已提供事项人工验收表单；决策仍通过下列接口管理，没有单独的决策编辑页面。接口使用当前 profile 的管理库（当前新库为schema10），不是内置终端的工具审批入口。请求沿用 `X-Session-Client: panel`；写请求还须使用同源 `Origin`、`application/json` 和从 `/api/bootstrap` 获取的 `X-Session-CSRF`。不要将实际 token 写入公开文档或代码。
 

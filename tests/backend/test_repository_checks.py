@@ -425,11 +425,31 @@ class RepositoryChecksTests(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertEqual(report["findings"][0]["rule"], "absolute-windows-path")
 
+    def test_retired_workbench_plan_is_not_a_publication_candidate(self):
+        for path in ('docs/workbench-contract.md', 'docs/architecture/workbench-contract.md'):
+            with self.subTest(path=path):
+                self.save(path, 'Retired development plan\n')
+                self.assertEqual(self.release([path])[0], 1)
+
+    def test_retired_workbench_plan_history_is_scanned_but_cannot_return(self):
+        self.save('.gitignore', '/work/\n')
+        base = self.commit()
+        path = 'docs/architecture/workbench-contract.md'
+        self.save(path, 'Retired development plan\n')
+        introduced = self.commit()
+        self.git('rm', path)
+        code, report = self.check('changes', '--base', base, '--head', self.commit())
+        self.assertEqual(code, 0)
+        self.assertIn({'path': path, 'commit': introduced}, report['included'])
+        self.save(path, 'Retired development plan\n')
+        code, report = self.check('changes', '--base', base, '--head', self.commit())
+        self.assertEqual(code, 1)
+        self.assertIn({'path': path, 'reason': 'excluded-directory'}, report['blocked'])
+
     def test_legacy_public_guides_can_move_without_skipping_range_scan(self):
         self.save('.gitignore', '/work/\n')
         destinations = {
             'architecture.md': 'architecture/architecture.md',
-            'workbench-contract.md': 'architecture/workbench-contract.md',
             **{name: 'guides/' + name for name in ('usage.md', 'windows.md', 'integrations.md',
                                                   'EMBEDDING.md', 'PETS_INTEGRATION.md')}}
         for name in destinations:
