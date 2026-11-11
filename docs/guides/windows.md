@@ -164,13 +164,53 @@ if ($LASTEXITCODE -ne 0) { throw 'Installed acceptance failed; retain the instal
 
 ### 5. 验收后发布
 
-1. 公开发布前确认受测提交已在 main（界面已经项目主导者确认），版本与 tag 未占用。需要远端检查时手动执行 `ci.yml` 并核同一 SHA；push 不会自动触发它。
+1. 公开发布前确认受测提交已在 main（界面已经项目主导者确认），版本与 tag 未占用，并按下节生成本轮放行复核记录。需要远端检查时手动执行 `ci.yml` 并核同一 SHA；push 不会自动触发它。
 2. 在本轮 `public/` 按明确清单准备安装器、同版本 `sources.zip`、SOURCE-AVAILABILITY、product、BUILD-INPUTS、LICENSE、完整第三方声明、版本说明，以及计划提供的 wheel/sdist/项目源码快照。只上传审核后的公开文件；本机输入与验收日志不上传。
 3. 核 version、commit、dirty=false、闭包及对应源码附件大小/hash；生成覆盖全部附件的 `SHA256SUMS.txt`（不含自身）并重核。`git archive` 项目快照不能替代依赖对应源码附件。
 4. 建指向受测 SHA 的 `v<版本>` draft，上传并核附件后再公开 prerelease；不移动已有 tag、不覆盖已发布附件。说明写实际验收范围、所有已知失败/限制、签名状态和回退条件。参考 [GitHub 发布流程](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository)。
 5. 核 Release URL、`isDraft=false`、`isPrerelease=true` 和实际下载附件；更新首页版本/下载链接，并按文件管理指南归档本轮证据。源码推送、候选生成与公开发布分别记录。
 
 采用 [Python subprocess](https://docs.python.org/3/library/subprocess.html) 的固定 argv 与退出码记录、[Inno 官方命令行编译](https://jrsoftware.org/ishelp/topic_compilercmdline.htm) 和 GitHub draft 发布方式。保留项目现有构建器及许可校验，不新增另一套通用编排框架。
+
+#### 本机放行复核记录
+
+`tools/packaging/release_readiness.py` 只记录和核对证据，不执行安装、GitHub 上传或飞书通知。它复用已有完整 payload 校验器，比较候选、源码检查、安装报告与人工验收材料，输出 `ready-for-publication-review` 或 `blocked`。这份本机记录不是密码学来源证明，也不会让人工发布步骤自动获得强制保护。
+
+冻结候选源码后，先在任务 README 明确本轮要运行的检查及范围，然后在干净检出中逐项执行 `record-check`。使用本检出已激活的 Python 环境；下例的测试列表须按贡献指南及本轮改动选择，不能照抄一条测试就称为完整发布验证：
+
+```powershell
+$releaseRepo = (Get-Location).Path
+python tools/packaging/release_readiness.py record-check --output "$releaseRepo/work/windows-release-checks/candidate-01/backend" -- python -m unittest -v tests.backend.test_windows_release tests.backend.test_installed_product_acceptance
+if ($LASTEXITCODE -ne 0) { throw 'Source check failed; retain its receipt and logs' }
+```
+
+命令实际执行所给 argv，保留 `receipt.json`、`stdout.log`、`stderr.log`，核对运行前后完整 SHA 和工作树干净状态。非零退出、启动失败或源码变化不记为成功；失败证据保留，复验使用新输出目录。执行者须阅读完整输出；此入口记录测试命令事实，不自动判断用例覆盖是否充分。它不运行 shell，不对调用者自己传入的 shell/脚本提供沙箱。
+
+构建并完成专用环境安装及真实页面验收后，在本轮 ignored 目录准备 `review.json`。所有 `path` 使用实际绝对路径，`sha256` 使用 `Get-FileHash -Algorithm SHA256` 的真实结果并转小写。例子中的占位必须替换，不把真实验收记录加入 Git：
+
+```json
+{
+  "schema": 1,
+  "decision": "accepted",
+  "reviewer": "本轮验收负责人",
+  "commit": "候选完整40位提交号",
+  "installer_sha256": "实际安装器sha256",
+  "checks": [{"path": "E:/example/checkout/work/windows-release-checks/candidate-01/backend/receipt.json", "sha256": "实际检查收据sha256"}],
+  "manual_evidence": {"path": "E:/example/checkout/work/windows-release/candidate-01/manual-acceptance.md", "sha256": "实际人工验收记录sha256"},
+  "accepted_not_covered": ["逐项保留安装报告not_covered原文"]
+}
+```
+
+`checks` 必须列齐预先明确的检查；当前版本拒绝任何失败检查，不提供忽略失败开关。人工记录说明具体操作、结果、失败和发布限制，不能只写“已验收”；`accepted_not_covered` 必须与安装报告完整一致，表示负责人已审阅这些限制，并不把未覆盖项目改成通过。记录缺失、哈希不符或 `decision` 未接受时不能放行。
+
+```powershell
+python tools/packaging/release_readiness.py verify --candidate "$releaseRepo/work/windows-release/candidate-01" --acceptance "$releaseRepo/work/windows-release/candidate-01/installed-evidence/report.json" --review "$releaseRepo/work/windows-release/candidate-01/review.json" --output "$releaseRepo/work/windows-release/candidate-01/readiness.json"
+if ($LASTEXITCODE -ne 0) { throw 'Release evidence is blocked; inspect readiness.json or the command error' }
+```
+
+候选必须是安装验收命令的首个 `--payload/--installer`；第二产品用于另一真实版本的往返验证。安装报告须包含 `product`、`second_product` 身份，旧报告缺字段时重新验收，不手工补字段伪装新证据。顶层通过且 `errors=[]` 才有效；验收工具中的预期非零退出仍保留。缺少第二版本可形成带限制的首装候选记录，但不能宣称升级/回退已覆盖。
+
+`verify` 重核 EXE、依赖对应源码、完整 payload、源码检查日志及收据、人工材料 hash，并在记录中保留覆盖范围和证据引用。重跑不覆盖既有输出，输出不得放入 payload 内；证据修正后另用新文件名。校验只证明本次读取时的一致性，正式上传前仍须复核这些文件未变。所有原始证据和放行记录留本机，不默认加入公开附件。
 
 ### 6. 持续迭代的固定交付约定
 
@@ -201,11 +241,11 @@ if ($LASTEXITCODE -ne 0) { throw 'Installed acceptance failed; retain the instal
 
 ### 8. 自动化建设顺序与验收边界
 
-2026-11-11 基线审计：已有统一构建器、单一版本、依赖/hash 与许可闭包、失败日志和安装维护工具；`build_windows_release.py` 结束于 `candidate-built-awaiting-acceptance`。`ci.yml` 仅手动触发，既不是每次提交自动验证，也不是 EXE 发布流水线。现行人工步骤有规范，但还没有统一的机器放行记录和通知投递记录。
+2026-11-11 基线审计发现验收与发布之间缺少机器衔接；当前已补充上节的本机放行复核命令，安装报告也记录两个产品的实际身份。`build_windows_release.py` 仍结束于 `candidate-built-awaiting-acceptance`；`ci.yml` 仍仅手动触发。自动发布和通知投递记录尚未实现，本机门禁不等于远端强制规则。
 
 后续按独立改动实施，每项先验证再推进下一项：
 
-1. **先补发布放行记录。** 用现有收据关联源码测试、最终 EXE/闭包和验收覆盖，公开前拒绝 SHA/hash 不符、缺失验收或未明确处理的失败。测试至少覆盖错提交、错包、漏附件、缺验收，以及同版本不同闭包不能冒充跨版本验收。已知失败由负责人明确保留限制，不能自动视为绿色。
+1. **本机放行记录已有入口。** 使用上节的 `record-check` / `verify` 关联证据；代码合同覆盖错提交、错包、缺材料、日志变动及同版本不同闭包拒绝。真实候选仍按本页构建和验收，不能用这些合成合同测试替代安装结果。
 2. **再自动组装与发布。** 复用 `tools/packaging/` 下入口，dry-run 仅输出审核后的附件清单和公告；执行阶段只提升已验收文件。验证版本冲突、上传中断、缺附件、下载 hash 不符，以及已公开版本重跑时拒绝换包。尚为 draft 时按清单恢复，公开后不自动删除或重建。
 3. **接现有 OpenClaw 通知。** 在机器人所属部署中实现固定账号/群发送与持久投递记录，主项目只交付发布事实。覆盖重复事件、并发、成功后重跑、发送后未记账、网络超时、服务器重启和凭据脱敏；真实群验收另记，不用测试消息冒充新版本发布。
 4. **最后迁移可重复的构建环境。** 先把新机器如何准备固定工具、审核材料和依赖缓存跑通，再让 Windows runner 调用同一构建器。源码快速检查可以自动运行，完整 EXE 仍由明确的发布动作触发；是否将检查设为合并必需条件，另按实际协作规则配置。当前不改变 develop 预览确认、main 发布或非强制 PR/远端 CI 规则。
