@@ -47,12 +47,13 @@ def relative_path(value):
     return value
 
 
-def unlinked(path):
+def unlinked(path, *, parents=True):
     path = Path(path).absolute()
-    for item in (path, *path.parents):
-        if not item.exists() and not item.is_symlink():
+    for item in (path, *path.parents) if parents else (path,):
+        try:
+            info = item.lstat()
+        except FileNotFoundError:
             continue
-        info = item.lstat()
         if stat.S_ISLNK(info.st_mode) or getattr(info, 'st_file_attributes', 0) & 0x400:
             raise BuildError('linked_path')
     return path
@@ -86,22 +87,28 @@ def checked(command, *, cwd, env=None, input=None):
 
 
 def tree_files(directory):
+    directory = unlinked(directory)
+    if not directory.is_dir():
+        raise BuildError('walk_directory_required')
     files = []
     for current, directories, names in os.walk(directory, followlinks=False):
         for name in (*directories, *names):
-            unlinked(Path(current) / name)
+            unlinked(Path(current) / name, parents=False)
         files.extend((Path(current) / name).relative_to(directory).as_posix() for name in names)
     return sorted(files)
 
 
 def source_files(directory):
+    directory = unlinked(directory)
+    if not directory.is_dir():
+        raise BuildError('walk_directory_required')
     files = []
     for current, directories, names in os.walk(directory, followlinks=False):
         relative = Path(current).relative_to(directory)
         directories[:] = [name for name in directories if name != 'node_modules'
                           and (relative / name).as_posix() not in GENERATED_TREES]
         for name in (*directories, *names):
-            unlinked(Path(current) / name)
+            unlinked(Path(current) / name, parents=False)
         files.extend((relative / name).as_posix() for name in names
                      if (relative / name).as_posix() not in MOBILE_GENERATED)
     return set(files)
@@ -168,11 +175,14 @@ def check_source(root=ROOT):
 
 
 def build_commands(node, pnpm, unit, run_dir, scratch, store_dir=None):
-    install = ['install', '--frozen-lockfile', '--ignore-scripts', '--store-dir', str(store_dir or run_dir / 'store')]
+    install = ['install', '--frozen-lockfile', '--ignore-scripts', '--prefer-offline',
+               '--store-dir', str(store_dir or run_dir / 'store')]
     return [
         ('install-root', unit, [pnpm, *install]),
         ('install-mobile', unit / 'mobile', [pnpm, *install]),
         ('packages', unit, [pnpm, 'run', 'build:packages']),
+        ('web-types', unit, [pnpm, 'exec', 'tsc', '-p', 'config/tsconfig.platform-web.json', '--noEmit',
+                             '--incremental', '--tsBuildInfoFile', str(run_dir / 'web-types.tsbuildinfo')]),
         ('mobile-generated', unit / 'mobile', [pnpm, 'run', 'postinstall']),
         ('runtime-pin', unit, [node, 'config/scripts/check-node-runtime-pin.mjs']),
         ('mobile-web', unit, [pnpm, 'run', 'build:mobile-web']),
@@ -185,7 +195,7 @@ def build_commands(node, pnpm, unit, run_dir, scratch, store_dir=None):
 def build_environment(node, pnpm):
     env = dict(os.environ)
     for key in ('ORCA_PNPM_FORCE_GLOBAL_VIRTUAL_STORE_IN_CI', 'NODE_OPTIONS', 'ORCAD_OUT_DIR',
-                'ORCAD_BUILD_TARGET', 'ORCAD_NODE_RUNTIME_PATH', 'ORCAD_PREBUILDS_DIR'):
+                'ORCAD_BUILD_TARGET', 'ORCAD_NODE_RUNTIME_PATH', 'ORCAD_PREBUILDS_DIR', 'ORCA_NODE_RUNTIME_CACHE_DIR'):
         env.pop(key, None)
     env['ORCA_PNPM_GLOBAL_VIRTUAL_STORE'] = '0'
     env['PATH'] = os.pathsep.join((str(node.parent), str(pnpm.parent), env.get('PATH', '')))
@@ -414,7 +424,7 @@ def build(node, pnpm, scratch_root, run_dir, root=ROOT, store_dir=None, material
         raise BuildError('existing_build_outputs: use a clean owned source checkout')
     if materials is not None:
         try:
-            material_api().read_inputs(materials)
+            material_api().preflight(root / UNIT, materials)
         except ValueError as error:
             raise BuildError('distribution_materials_invalid:' + str(error)) from error
     env = build_environment(node, pnpm)

@@ -50,3 +50,25 @@ web/workbench-engine/src/main/__fixtures__/shell-wrapper-snapshots/daemon-zsh-zs
 web/workbench-engine/src/main/__fixtures__/shell-wrapper-snapshots/local-bash-rcfile.txt text eol=lf
 web/workbench-engine/src/main/__fixtures__/shell-wrapper-snapshots/local-fish-init.txt text eol=lf
 web/workbench-engine/src/main/__fixtures__/shell-wrapper-snapshots/local-zsh-zshenv.txt text eol=lf
+
+# Match reviewed source bytes independently of the contributor's core.autocrlf.
+web/workbench-engine/native/windows-cli-launcher/Cargo.lock text eol=lf
+web/workbench-engine/native/windows-cli-launcher/Cargo.toml text eol=lf
+web/workbench-engine/native/windows-cli-launcher/build.rs text eol=lf
+web/workbench-engine/native/windows-cli-launcher/src/administrator_restart.rs text eol=lf
+web/workbench-engine/config/docker/cli-launch-contract/run-cli-case.sh text eol=lf
+web/workbench-engine/config/scripts/ci-shard-timings.json text eol=lf
+web/workbench-engine/package.json text eol=lf
+web/workbench-engine/config/scripts/orca-dev text eol=lf
+web/workbench-engine/config/scripts/verify-packaged-daemon-entry.cjs text eol=lf
+web/workbench-engine/mobile/scripts/start-emulator-pairing-runtime.mjs text eol=lf
+web/workbench-engine/tests/tools/daemon-relocation-spike/daemon-launch.mjs text eol=lf
+web/workbench-engine/tests/tools/win-update-e2e/serve-switch.mjs text eol=lf
+web/workbench-engine/resources/win32/bin/zkyq.cmd text eol=crlf
+# Reviewed native and license source inputs also use byte-exact material pins.
+web/workbench-engine/native/windows-security/src/addon.cc text eol=lf
+web/workbench-engine/native/windows-security/binding.gyp text eol=lf
+web/workbench-engine/native/windows-cli-launcher/src/administrator_status.rs text eol=lf
+web/workbench-engine/native/windows-cli-launcher/src/administrator_launcher.rs text eol=lf
+web/workbench-engine/resources/licenses/ripgrep/README.md text eol=lf
+web/workbench-engine/config/tsconfig.platform-web.json text eol=lf

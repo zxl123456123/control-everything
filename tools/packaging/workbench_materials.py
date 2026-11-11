@@ -115,6 +115,16 @@ def read_inputs(materials_dir):
             'input_hashes': {name: digest(data) for name, data in raw.items()}}
 
 
+def preflight(unit, materials_dir):
+    """Check reviewed source bytes before compilation creates binding providers."""
+    inputs = read_inputs(materials_dir)
+    for component in inputs['components']:
+        for source in component['source_inputs']:
+            if digest(file(unit, source['path'], provider=True).read_bytes()) != source['sha256']:
+                raise ValueError('materials_source_changed:' + source['path'])
+    return inputs
+
+
 def resources(unit, outputs):
     manifest = json.loads(file(unit.parents[1], 'tools/packaging/workbench-engine-source.json').read_bytes())
     inventory = {row['path']: row for row in manifest['resources']}
@@ -164,7 +174,7 @@ def prepare(unit, rows, run_dir, materials_dir):
         raise ValueError('materials_run_directory')
     if run_dir.resolve().is_relative_to(Path(materials_dir).resolve()):
         raise ValueError('materials_read_only_directory')
-    inputs = read_inputs(materials_dir)
+    inputs = preflight(unit, materials_dir)
     outputs = {relative(row['path']): row for row in rows}
     if len(outputs) != len(rows):
         raise ValueError('materials_duplicate_output')
@@ -174,9 +184,6 @@ def prepare(unit, rows, run_dir, materials_dir):
             raise ValueError('materials_output_changed:' + name)
     external = []
     for component in inputs['components']:
-        for source in component['source_inputs']:
-            if digest(file(unit, source['path'], provider=True).read_bytes()) != source['sha256']:
-                raise ValueError('materials_source_changed:' + source['path'])
         hashes = {}
         for binding in component['bindings']:
             name = binding['output']
