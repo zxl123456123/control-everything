@@ -35,11 +35,18 @@
     const link = (label, href, active, symbol) => `<a class="ce-nav${active ? ' is-current' : ''}" href="${href}"${active ? ' aria-current="page"' : ''} title="${escape(label)}" aria-label="${escape(label)}">${icon(symbol)}<span>${label}</span></a>`;
     return `<div class="ce-brand"><span class="ce-monogram" aria-hidden="true">⌘</span><span>Control Everything</span></div><nav class="ce-navgroup" aria-label="主导航">${link('项目总览', '#home', current.view === 'home', 'folder')}${link('新闻', '#news', current.view === 'news', 'news')}</nav><div class="ce-rail-bottom"><nav class="ce-navgroup" aria-label="管理">${link('设置', '#settings/appearance', current.view === 'settings' && current.tab !== 'account', 'settings')}${link(labels.account, '#settings/account', current.view === 'settings' && current.tab === 'account' || current.view === 'mobile', 'account')}</nav></div>`;
   }
-  function projectCard({ project }, { developmentUrl, writable = true }) {
+  function projectPhase(project) {
+    if (project.archived) return 'archived';
+    if (!available(project)) return 'unavailable';
+    const recorded = project.manual_recorded === true && ({'完成':'done','在做':'running','等我':'attention','未开始':'planned'})[project.state];
+    return recorded || (project.read_only ? 'readonly' : 'idle');
+  }
+  function projectCard({ project }, { developmentUrl }) {
     const name = escape(project.name), id = escape(project.id);
-    const status = project.archived ? '已归档' : !available(project) ? '目录不可用' : project.read_only ? '只读' : '';
+    const phase = projectPhase(project);
+    const status = ({archived:'已归档',unavailable:'目录不可用',readonly:'只读',done:'已完成',running:'进行中',attention:'需处理',planned:'未开始',idle:''})[phase];
     const menu = `<button type="button" class="ce-iconbtn" data-project-menu="${id}" aria-label="项目菜单：${name}" aria-haspopup="menu" aria-expanded="false">${icon('more')}</button>`;
-    return `<article class="ce-overview-card${project.archived ? ' is-archived' : ' is-active'}" data-project-card="${id}"><div class="ce-overview-title"><h2><a class="ce-project-title-link" href="${escape(developmentUrl(project.id))}" data-open-project="${id}" aria-label="打开 ${name} 工作区">${name}</a></h2>${status ? `<span class="ce-project-status ce-project-lifecycle">${icon('dot')}${status}</span>` : ''}<span class="ce-card-arrow">${icon('arrow')}</span>${menu}</div></article>`;
+    return `<article class="ce-overview-card${project.archived ? ' is-archived' : ' is-active'}" data-project-card="${id}" data-project-phase="${phase}"><div class="ce-overview-title"><h2><a class="ce-project-title-link" href="${escape(developmentUrl(project.id))}" data-open-project="${id}" aria-label="打开 ${name} 工作区">${name}</a></h2>${status ? `<span class="ce-project-status ce-project-lifecycle">${icon('dot')}${status}</span>` : ''}<span class="ce-card-arrow">${icon('arrow')}</span>${menu}</div></article>`;
   }
   function renderOverview({ projects, query, projectFilter = 'active', sort, viewMode, developmentUrl, writable = true, runtimeAvailable = true }) {
     const filtered = projects.map(project => ({ project })).filter(row => (projectFilter === 'all' || Boolean(row.project.archived) === (projectFilter === 'archived')) && row.project.name.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()));

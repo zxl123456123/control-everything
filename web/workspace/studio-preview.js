@@ -272,6 +272,7 @@ function mountStudio(root, { onProjects = () => {}, runtimeHost = () => null } =
       writable: client.canWrite(), sort: projectSort, viewMode, developmentUrl, runtimeAvailable: root.dataset.unified === 'true' });
   }
   function renderHome() {
+    const previousPhases = new Map([...content.querySelectorAll('[data-project-card]')].map(card => [card.dataset.projectCard, card.dataset.projectPhase]));
     const active = currentFocus();
     const card = active?.closest?.('[data-project-card]');
     const selector = active?.id === 'studio-project-search' || active?.id === 'studio-project-sort' ? '#' + active.id
@@ -279,6 +280,16 @@ function mountStudio(root, { onProjects = () => {}, runtimeHost = () => null } =
       : active?.dataset?.action ? `[data-action="${active.dataset.action}"]` : '';
     const range = active?.id === 'studio-project-search' ? [active.selectionStart, active.selectionEnd] : null;
     setHtml(content, home());
+    const announcements = [];
+    for (const card of content.querySelectorAll('[data-project-card]')) {
+      const before = previousPhases.get(card.dataset.projectCard);
+      if (before && before !== card.dataset.projectPhase && ['done', 'attention'].includes(card.dataset.projectPhase)) {
+        card.classList.add('ce-state-changed');
+        card.addEventListener('animationend', () => card.classList.remove('ce-state-changed'), {once:true});
+        announcements.push(card.querySelector('h2').textContent + '，' + card.querySelector('.ce-project-status').textContent);
+      }
+    }
+    if (announcements.length) $('studio-project-announcement').textContent = announcements.join('；');
     if (selector && !active?.isConnected) {
       const replacement = root.querySelector(selector) || content.querySelector('h1');
       replacement?.focus({ preventScroll: true });

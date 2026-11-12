@@ -81,6 +81,8 @@ function studioFixture({ remote = false, savedCreatorUrl = null, monitorAvailabl
   const nodes = new Map();
   for (const id of ['ce-studio', 'studio-content', 'studio-status', 'studio-tasks', 'studio-agent-board', 'studio-monitor', 'studio-monitor-content', 'studio-rail', 'studio-topbar', 'studio-settings-nav', 'studio-project-search', 'studio-project-sort']) {
     nodes.set(id, { dataset: {}, innerHTML: '', textContent: '', hidden: false, listeners: {},
+      // This transport fixture has no card DOM; live card transitions are covered in test_studio_management.
+      querySelectorAll() { return []; },
       focus() {}, setSelectionRange() {}, addEventListener(name, callback) { this.listeners[name] = callback; }, classList: { remove() {}, add() {} } });
   }
   const storageReads = [], writes = [], removed = [], mounts = [], monitorCalls = [];

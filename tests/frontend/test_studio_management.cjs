@@ -264,15 +264,18 @@ test('archive menu keyboard focus returns to the trigger on Escape without writi
 
 test('project titles stay neutral while archive state remains distinct in both themes and layouts', async t => {
   const f = await fixture(t, { unified: true });
+  f.w.document.body.classList.add('platform-project-entry');
   const sheets = ['workspace.css', 'project-monitor.css', 'studio-preview.css'].map(name => ({
     text: fs.readFileSync(path.join(root, 'web/workspace', name), 'utf8'), style: f.w.document.createElement('style')
   }));
+  sheets.push({text:fs.readFileSync(path.join(root, 'web/workbench-engine/src/renderer/src/web/platform-workbench.css'), 'utf8'),style:f.w.document.createElement('style')});
   for (const sheet of sheets) f.w.document.head.append(sheet.style);
   const rgb = value => {
     if (/^#[a-f0-9]{6}$/i.test(value)) return [1, 3, 5].map(index => parseInt(value.slice(index, index + 2), 16));
     const match = value.match(/^rgba?\((\d+),\s*(\d+),\s*(\d+)/); assert.ok(match, `computed color ${value}`); return match.slice(1).map(Number);
   };
   for (const theme of ['light', 'dark']) for (const mode of ['cards', 'list']) {
+    f.w.document.documentElement.classList.toggle('dark', theme === 'dark');
     // The pinned simulator does not evaluate light-dark(); materialize only that standard function,
     // retaining the full production cascade and custom-property inheritance for each real theme.
     for (const sheet of sheets) sheet.style.textContent = sheet.text.replace(/light-dark\(\s*(#[a-f0-9]+)\s*,\s*(#[a-f0-9]+)\s*\)/gi,
@@ -303,6 +306,47 @@ test('directory lookup shows full paths without entering a project or exposing m
   assert.equal(dialog.querySelectorAll('shared').length, 0);
   assert.equal(f.w.location.hash, '#home'); assert.equal(f.posts.length, 0);
   dialog.close(); assert.equal(f.w.document.activeElement, trigger);
+});
+
+test('only recorded project completion produces a green state, never an agent or item ending', async t => {
+  const f = await fixture(t);
+  Object.assign(f.projects[0], {state:'完成',manual_recorded:false,task_counts:{done:2,total:2},sessions:[{status:'done'}]});
+  f.node('[data-action="refresh"]').click(); await tick();
+  assert.equal(f.node('[data-project-card="p-a"]').dataset.projectPhase, 'idle');
+  for (const [state, phase, label] of [['在做','running','进行中'],['等我','attention','需处理'],['完成','done','已完成'],['未开始','planned','未开始']]) {
+    Object.assign(f.projects[0], {state,manual_recorded:true});
+    f.node('[data-action="refresh"]').click(); await tick();
+    const card = f.node('[data-project-card="p-a"]');
+    assert.equal(card.dataset.projectPhase, phase);
+    assert.equal(card.querySelectorAll('.ce-project-status').length, 1);
+    assert.equal(card.querySelector('.ce-project-status').textContent, label);
+  }
+  Object.assign(f.projects[0], {state:'完成',binding_available:false});
+  f.node('[data-action="refresh"]').click(); await tick();
+  assert.equal(f.node('[data-project-card="p-a"]').dataset.projectPhase, 'unavailable');
+  f.projects[0].archived = true;
+  f.node('[data-action="all-projects"]').click();
+  f.node('[data-action="refresh"]').click(); await tick();
+  assert.equal(f.node('[data-project-card="p-a"]').dataset.projectPhase, 'archived');
+  assert.equal(f.posts.length, 0);
+});
+
+test('completion announces once without stealing focus or replaying on refresh and layout changes', async t => {
+  const f = await fixture(t);
+  const card = () => f.node('[data-project-card="p-a"]');
+  assert.equal(card().classList.contains('ce-state-changed'), false);
+  f.node('#studio-project-search').focus();
+  Object.assign(f.projects[0], {state:'完成',manual_recorded:true});
+  f.node('[data-action="refresh"]').click(); await tick();
+  assert.equal(card().classList.contains('ce-state-changed'), true);
+  assert.equal(f.w.document.activeElement.id, 'studio-project-search');
+  assert.equal(f.node('#studio-project-announcement').textContent, '同名项目，已完成');
+  card().dispatchEvent(new f.w.Event('animationend', {bubbles:true}));
+  f.node('[data-action="refresh"]').click(); await tick();
+  assert.equal(card().classList.contains('ce-state-changed'), false);
+  f.node('[data-action="view-list"]').click();
+  assert.equal(card().classList.contains('ce-state-changed'), false);
+  assert.equal(card().dataset.projectPhase, 'done');
 });
 
 test('project addition enters the native workbench and delegates without loading another form', async t => {
