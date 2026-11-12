@@ -57,7 +57,8 @@ def _deliver(database, send, clock):
                                (identity,)).fetchone()
         body, delivery_uuid, status, first, last = row
         # Feishu only deduplicates a UUID for one hour. Keep a margin and never restart that clock.
-        if status == 'sent' or first is not None and (timestamp - first > 3300 or timestamp - (last or first) < 120):
+        if (status == 'sent' or last is not None and timestamp - last < 120
+                or first is not None and timestamp - first > 3300):
             database.commit()
             continue
         database.execute("UPDATE outbox SET status='attempt',attempted_at=?,last_attempt=? WHERE id=?",
