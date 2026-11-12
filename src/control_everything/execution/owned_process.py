@@ -230,41 +230,65 @@ class OwnedProcess:
             if self.api is None:
                 self.cleanup_verified = True
                 return True
+            members, total, snapshot = (), None, self.job is None
             try:
-                self.writes.put_nowait(None)
-            except queue.Full:
-                pass
-            deadline = time.monotonic() + max(0, min(grace, 2))
-            empty = self.job is None
+                if self.job:
+                    members, total = self.api.hold_job_processes(self.job)
+                    snapshot = True
+            except (ProcessError, OSError):
+                snapshot = False
             try:
-                while self.job:
-                    empty = self.api.active(self.job) == 0
-                    if empty or time.monotonic() >= deadline:
-                        break
-                    time.sleep(.02)
-                if self.job and not empty:
-                    self.api.terminate_job(self.job)
-                    deadline = time.monotonic() + 2
-                    while time.monotonic() < deadline:
+                try:
+                    self.writes.put_nowait(None)
+                except queue.Full:
+                    pass
+                deadline = time.monotonic() + max(0, min(grace, 2))
+                empty = self.job is None
+                try:
+                    while self.job:
                         empty = self.api.active(self.job) == 0
-                        if empty:
+                        if empty or time.monotonic() >= deadline:
                             break
                         time.sleep(.02)
-            except (ProcessError, OSError):
-                empty = False
-            self.stop.set()
-            for thread in (self.writer, self.reader):
-                if thread and thread.ident:
-                    if thread.is_alive():
-                        self.api.cancel_io(thread.native_id)
-                    thread.join(timeout=1)
-            joined = all(not thread or not thread.is_alive() for thread in (self.writer, self.reader))
-            self.cleanup_verified = empty and joined
-            # Closing the last Job handle is the final owned-tree backstop.
-            for name in ("job", "process", "stdout"):
-                self.api.close(getattr(self, name))
-                setattr(self, name, None)
-            if (not self.writer or not self.writer.ident) and self.stdin:
-                self.api.close(self.stdin)
-                self.stdin = None
+                    deadline = time.monotonic() + 2
+                    if self.job and not empty:
+                        self.api.terminate_job(self.job)
+                        while time.monotonic() < deadline:
+                            empty = self.api.active(self.job) == 0
+                            if empty:
+                                break
+                            time.sleep(.02)
+                except (ProcessError, OSError):
+                    empty = False
+                signaled = True
+                try:
+                    # Job accounting reaches zero before process handles signal and release resources.
+                    for handle in (self.process, *members):
+                        if handle and not self.api.wait_process(handle, max(0, deadline - time.monotonic())):
+                            signaled = False
+                    if self.job and total is not None and self.api.job_total(self.job) != total:
+                        snapshot = False
+                except (ProcessError, OSError):
+                    signaled = False
+                self.stop.set()
+                for thread in (self.writer, self.reader):
+                    if thread and thread.ident:
+                        if thread.is_alive():
+                            self.api.cancel_io(thread.native_id)
+                        thread.join(timeout=1)
+                joined = all(not thread or not thread.is_alive() for thread in (self.writer, self.reader))
+                self.cleanup_verified = empty and joined and snapshot and signaled
+            finally:
+                for handle in members:
+                    try:
+                        self.api.close(handle)
+                    except (ProcessError, OSError):
+                        self.cleanup_verified = False
+                # Closing the last Job handle is the final owned-tree backstop.
+                for name in ("job", "process", "stdout"):
+                    self.api.close(getattr(self, name))
+                    setattr(self, name, None)
+                if (not self.writer or not self.writer.ident) and self.stdin:
+                    self.api.close(self.stdin)
+                    self.stdin = None
             return self.cleanup_verified

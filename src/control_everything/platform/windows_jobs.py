@@ -14,6 +14,8 @@ HANDLE_FLAG_INHERIT = 1
 PROC_THREAD_ATTRIBUTE_HANDLE_LIST = 0x00020002
 JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE = 0x00002000
 JOB_OBJECT_QUERY = 0x0004
+SYNCHRONIZE = 0x00100000
+PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
 ERROR_FILE_NOT_FOUND = 2
 ERROR_BROKEN_PIPE = 109
 INVALID_HANDLE_VALUE = c.c_void_p(-1).value
@@ -109,6 +111,8 @@ class WindowsAPI:
             "GetProcessTimes": ([w.HANDLE, c.POINTER(w.FILETIME), c.POINTER(w.FILETIME),
                                  c.POINTER(w.FILETIME), c.POINTER(w.FILETIME)], w.BOOL),
             "WaitForSingleObject": ([w.HANDLE, w.DWORD], w.DWORD),
+            "OpenProcess": ([w.DWORD, w.BOOL, w.DWORD], w.HANDLE),
+            "IsProcessInJob": ([w.HANDLE, w.HANDLE, c.POINTER(w.BOOL)], w.BOOL),
             "PeekNamedPipe": ([w.HANDLE, w.LPVOID, w.DWORD, w.LPVOID, c.POINTER(w.DWORD), w.LPVOID], w.BOOL),
             "ReadFile": ([w.HANDLE, w.LPVOID, w.DWORD, c.POINTER(w.DWORD), w.LPVOID], w.BOOL),
             "WriteFile": ([w.HANDLE, w.LPVOID, w.DWORD, c.POINTER(w.DWORD), w.LPVOID], w.BOOL),
@@ -152,10 +156,49 @@ class WindowsAPI:
             raise ProcessError("job_query_failed")
         return handle
 
-    def active(self, job):
+    def job_accounting(self, job):
         accounting = JobAccounting()
         self.checked(self.kernel.QueryInformationJobObject(job, 1, c.byref(accounting), c.sizeof(accounting), None))
-        return accounting.active
+        return accounting
+
+    def active(self, job):
+        return self.job_accounting(job).active
+
+    def job_total(self, job):
+        return self.job_accounting(job).total
+
+    def hold_job_processes(self, job):
+        before = self.job_accounting(job)
+        header = 2 * c.sizeof(w.DWORD)
+        buffer = c.create_string_buffer(header + c.sizeof(c.c_size_t) * max(1, before.active))
+        self.checked(self.kernel.QueryInformationJobObject(job, 3, buffer, c.sizeof(buffer), None))
+        assigned = w.DWORD.from_buffer(buffer).value
+        listed = w.DWORD.from_buffer(buffer, c.sizeof(w.DWORD)).value
+        if assigned != before.active or listed != before.active:
+            raise ProcessError('job_process_snapshot_changed')
+        handles = []
+        try:
+            for pid in (c.c_size_t * listed).from_buffer(buffer, header):
+                handle = self.checked(self.kernel.OpenProcess(SYNCHRONIZE | PROCESS_QUERY_LIMITED_INFORMATION, False, pid))
+                handles.append(handle)
+                belongs = w.BOOL()
+                self.checked(self.kernel.IsProcessInJob(handle, job, c.byref(belongs)))
+                if not belongs.value:
+                    raise ProcessError('job_process_identity_changed')
+            after = self.job_accounting(job)
+            if after.total != before.total or after.active != before.active:
+                raise ProcessError('job_process_snapshot_changed')
+            return handles, before.total
+        except BaseException:
+            for handle in handles:
+                self.close(handle)
+            raise
+
+    def wait_process(self, process, timeout):
+        result = self.kernel.WaitForSingleObject(process, max(0, int(timeout * 1000)))
+        if result not in (0, 258):
+            raise ProcessError('process_wait_failed')
+        return result == 0
 
     def pipes(self):
         handles = []
