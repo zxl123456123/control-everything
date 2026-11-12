@@ -1,6 +1,7 @@
 """Build command contracts against a temporary asset-only source tree."""
 
 import ast
+from contextlib import nullcontext
 import hashlib
 import json
 import importlib.util
@@ -16,6 +17,7 @@ from unittest import TestCase
 from unittest.mock import Mock, patch
 from urllib.parse import urlsplit
 
+from packaging.version import Version
 from setuptools import Distribution
 from setuptools.command.editable_wheel import editable_wheel
 
@@ -145,14 +147,43 @@ class PackagingTests(TestCase):
                 assets.export_workbench_assets(unit, run)
 
     def test_metadata_has_one_runtime_dependency_and_version_source(self):
-        metadata = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+        self.assert_metadata(ROOT)
+
+    def assert_metadata(self, root):
+        metadata = tomllib.loads((root / "pyproject.toml").read_text(encoding="utf-8"))
         self.assertEqual(metadata["project"]["name"], "control-everything")
-        self.assertEqual(metadata["project"]["version"], "0.1.0a19")
+        version = metadata["project"]["version"]
+        self.assertEqual(str(Version(version)), version)
+        self.assertEqual(metadata["project"]["dynamic"], ["dependencies"])
         setuptools = metadata["tool"]["setuptools"]
+        self.assertEqual(set(setuptools["dynamic"]), {"dependencies"})
         self.assertEqual(setuptools["dynamic"]["dependencies"], {"file": ["requirements.txt"]})
         self.assertEqual(setuptools["package-dir"], {"": "src"})
         self.assertEqual(setuptools["packages"]["find"], {"where": ["src"], "include": ["control_everything*"]})
         self.assertNotIn("cmdclass", setuptools)
+        distribution = Distribution()
+        distribution.parse_config_files([str(root / "pyproject.toml")])
+        self.assertEqual(distribution.get_version(), version)
+
+    def test_metadata_accepts_version_bumps_and_rejects_invalid_or_duplicate_sources(self):
+        source = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
+        current = tomllib.loads(source)["project"]["version"]
+        with TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "src/control_everything").mkdir(parents=True)
+            (root / "src/control_everything/__init__.py").touch()
+            for name in ("README.md", "LICENSE", "requirements.txt"):
+                (root / name).write_bytes((ROOT / name).read_bytes())
+            for version, dynamic, error in (("0.1.0a19", '["dependencies"]', None),
+                                            ("0.1.0a20", '["dependencies"]', None),
+                                            ("invalid", '["dependencies"]', ValueError),
+                                            ("0.1.0a20", '["dependencies", "version"]', AssertionError)):
+                text = source.replace(f'version = "{current}"', f'version = "{version}"', 1)
+                text = text.replace('dynamic = ["dependencies"]', 'dynamic = ' + dynamic, 1)
+                (root / "pyproject.toml").write_text(text, encoding="utf-8")
+                with self.subTest(version=version, dynamic=dynamic), \
+                        (self.assertRaises(error) if error else nullcontext()):
+                    self.assert_metadata(root)
 
     def test_setup_registers_only_the_fixed_build_helper(self):
         with patch("setuptools.setup") as setup:
