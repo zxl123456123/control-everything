@@ -63,7 +63,7 @@ Import Linter 的固定依赖在 `tools/architecture/requirements.txt`。内容/
 
 ### 本地开发与远端流水线的边界
 
-当前快速开发不强制 PR、独立审查或等待远端 CI。`ci.yml` 仅有 `workflow_dispatch`，push/PR 不会自动触发；需要远端证据时手动运行并核对该次 SHA。旧 `release.yml` 出包配方已退役，统一由本机 `build_windows_release.py` 生成候选，安装验收后再发布，详见 Windows 指南。不要把“已推送”写成“CI 已通过”或“安装包已发布”。
+当前快速开发不强制 PR、独立审查或等待远端 CI。`ci.yml` 在 main/develop 的 push 和目标为这两个分支的 PR 上自动运行源码检查，同时保留 `workflow_dispatch` 完整检查入口；核对实际 run 的事件、SHA 和结果后再记录远端证据。旧 `release.yml` 出包配方已退役，统一由本机 `build_windows_release.py` 生成候选，安装验收后再发布，详见 Windows 指南。不要把“已推送”写成“CI 已通过”或“安装包已发布”。
 
 每个功能迭代在任务 README 留下用户可感知的变更、兼容性和验证依据，发版时核对上一已发布 tag 到候选 SHA 的范围。固定交付顺序、待补的自动化及复用远端 OpenClaw 飞书机器人的通知合同，统一见 [Windows 持续迭代约定](../docs/guides/windows.md#6-持续迭代的固定交付约定)。现有构建器只生成待验收候选；该约定不代表自动发布、群通知或远端保护已经部署。
 
@@ -427,11 +427,13 @@ python tools/scripts/check_repository.py release --manifest work/checks/candidat
 
 发现真实秘密先由持有人撤销或轮换，公开记录只留类别和位置。当前树清理、当前候选、待推送提交及既有历史是四种范围；改当前文件不等于清理历史。历史改写、强推和删除分支仍须明确授权。
 
-## 可选 CI 与发布
+## 自动源码检查与发布
 
-当前快速开发阶段，`repository-checks` 只保留手动 `workflow_dispatch`，提交和推送不会自动触发，也不是 main 的合入门槛。需要完整检查时由维护者主动运行；本地未执行的全量检查不能记为通过。
+`repository-checks` 对 main/develop 的推送及目标为这两个分支的 PR 自动运行 `windows-tests`、`architecture-boundaries` 和 `new-content-checks`。手动 `workflow_dispatch` 额外运行 `release-readiness`，检查当前完整跟踪树。自动触发不等于已配置合并必需检查；本地或远端未执行的检查不能记为通过。
 
-手动检查保留 `windows-tests`、`architecture-boundaries`、`new-content-checks` 和 `release-readiness`。新增内容检查比较所选提交与其第一父提交，完整候选检查覆盖当前跟踪树；两者不能互相替代。权限仍为 `contents: read`，不上传扫描报告。
+`check_ci_changes.py` 从事件文件取得检查范围：push 扫描推送前后之间的全部提交；新分支首次 push 用明确的 `--from-root` 扫描全部可达历史；PR 从基分支 SHA 检查到本次检出的合并提交；手动运行检查所选提交与其第一父提交，根提交同样显式扫描。范围缺失、SHA 不合法或 checkout 不匹配时失败，不缩小成最近一个提交。区间内曾加入又删除的内容仍受检查，完整候选检查不能替代历史检查。
+
+权限为 `contents: read`，checkout 不保存凭据，PR 使用普通 `pull_request`；不上传包含扫描明细的报告。只有源码测试和架构检查取消同一事件/分支的旧运行，内容检查保留每次推送的完整区间。该安排采用 [GitHub 的事件与合并提交语义](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows)，不使用可向外部分支暴露写权限的 `pull_request_target` 执行待审代码。
 
 main 的远端规则仅保留防强推与防删分支，不要求 PR 或必需 CI。调整远端规则后必须读取实际生效结果；以后恢复多人协作门槛须由项目主导者另行决定，不能从旧说明自动重建。
 

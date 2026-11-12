@@ -2,7 +2,7 @@ param([Parameter(Mandatory = $true)][string]$Destination)
 $ErrorActionPreference = 'Stop'
 $version = '8.30.1'
 $expected = 'd29144deff3a68aa93ced33dddf84b7fdc26070add4aa0f4513094c8332afc4e'
-$root = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
+$root = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
 $target = [IO.Path]::GetFullPath((Join-Path $root $Destination))
 $allowed = [IO.Path]::GetFullPath((Join-Path $root 'work')) + [IO.Path]::DirectorySeparatorChar
 if (-not $target.StartsWith($allowed, [StringComparison]::OrdinalIgnoreCase)) {

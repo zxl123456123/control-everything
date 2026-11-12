@@ -406,13 +406,15 @@ def added_findings(root, parent, current, report, historical_docs=()):
     return findings
 
 
-def check_changes(root, base, head, report, executable):
-    base, head = commit(root, base), commit(root, head)
+def check_changes(root, base, head, report, executable, *, from_root=False):
+    head = commit(root, head)
+    base = None if from_root else commit(root, base)
     if base == head:
         raise CheckError("empty-commit-range")
     report.update(base=base, head=head)
-    report["merge_base"] = git(root, "merge-base", base, head).decode("ascii").strip()
-    interval = base + ".." + head
+    report["merge_base"] = None if from_root else git(root, "merge-base", base, head).decode("ascii").strip()
+    report['scope'] = 'all-reachable-commits' if from_root else 'commit-range'
+    interval = head if from_root else base + ".." + head
     commits = git(root, "rev-list", "--reverse", "--topo-order", interval).decode("ascii").splitlines()
     if not commits:
         raise CheckError("empty-commit-range")
@@ -456,6 +458,7 @@ def main(argv=None):
     parser.add_argument("--manifest", type=Path)
     parser.add_argument("--base")
     parser.add_argument("--head")
+    parser.add_argument("--from-root", action="store_true", help="Scan all commits reachable from head for an initial import.")
     args = parser.parse_args(argv)
     root = args.root.resolve()
     report = {"mode": args.mode, "status": "blocked", "included": [], "excluded": [], "blocked": [], "findings": [], "errors": []}
@@ -474,14 +477,16 @@ def main(argv=None):
             cursor = cursor.parent
         report_allowed = True
         executable = args.gitleaks if args.gitleaks.is_absolute() else root / args.gitleaks
+        if args.from_root and (args.mode != 'changes' or args.base is not None):
+            raise CheckError('from-root-requires-changes-without-base')
         if args.mode == "release":
             if args.manifest is None:
                 raise CheckError("manifest-required")
             check_release(root, args.manifest, report, executable)
         else:
-            if not args.base or not args.head:
+            if not args.head or (not args.base and not args.from_root):
                 raise CheckError("base-and-head-required")
-            check_changes(root, args.base, args.head, report, executable)
+            check_changes(root, args.base, args.head, report, executable, from_root=args.from_root)
         leaks = report.get("gitleaks", {})
         scan_finished = leaks.get("exit_code") == 0 or (
             leaks.get("exit_code") == 1 and bool(leaks.get("findings"))

@@ -694,6 +694,58 @@ class RepositoryChecksTests(unittest.TestCase):
             with self.subTest(base=base):
                 self.assertEqual(self.check("changes", "--base=" + base, "--head", head)[0], 1)
 
+    def test_from_root_scans_the_root_commit_and_all_reachable_history(self):
+        self.save('safe.txt', 'root fixture\n')
+        first = self.commit()
+        self.save('safe.txt', 'later fixture\n')
+        head = self.commit()
+        code, report = self.check('changes', '--from-root', '--head', head)
+        self.assertEqual(code, 0, report)
+        self.assertIsNone(report['base'])
+        self.assertIsNone(report['merge_base'])
+        self.assertEqual(report['scope'], 'all-reachable-commits')
+        self.assertEqual({row['commit'] for row in report['included']}, {first, head})
+        self.assertEqual(self.scanner.call_args.args[-1], head)
+
+    def test_from_root_keeps_deleted_root_and_side_branch_privacy(self):
+        self.save('root.txt', self.personal_path())
+        first = self.commit()
+        self.git('checkout', '-qb', 'side')
+        self.save('side.txt', self.personal_path())
+        introduced = self.commit()
+        self.git('rm', 'side.txt')
+        self.commit()
+        self.git('checkout', '--detach', first)
+        self.git('rm', 'root.txt')
+        self.save('safe.txt', 'main fixture\n')
+        self.commit()
+        self.git('merge', '--no-ff', '-m', 'test: merge fixture', 'side')
+        code, report = self.check('changes', '--from-root', '--head', self.git('rev-parse', 'HEAD'))
+        self.assertEqual(code, 1)
+        self.assertEqual({row['commit'] for row in report['findings']}, {first, introduced})
+        self.assertNotIn(self.personal_path(), json.dumps(report))
+
+    def test_from_root_forbidden_history_stops_before_scanner(self):
+        self.save('private.sqlite3', 'never read fixture')
+        self.commit()
+        self.git('rm', 'private.sqlite3')
+        self.save('safe.txt', 'safe fixture')
+        head = self.commit()
+        code, report = self.check('changes', '--from-root', '--head', head)
+        self.assertEqual(code, 1)
+        self.assertTrue(report['blocked'])
+        self.scanner.assert_not_called()
+
+    def test_from_root_rejects_an_ambiguous_base_or_release_mode(self):
+        self.save('safe.txt', 'safe fixture')
+        head = self.commit()
+        code, report = self.check('changes', '--from-root', '--base', head, '--head', head)
+        self.assertEqual(code, 1)
+        self.assertIn('from-root-requires-changes-without-base', report['errors'])
+        code, report = self.check('release', '--from-root')
+        self.assertEqual(code, 1)
+        self.assertIn('from-root-requires-changes-without-base', report['errors'])
+
     def test_pr_base_can_advance_after_branching(self):
         self.save("safe.txt", "safe\n")
         original = self.commit()
