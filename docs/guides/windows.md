@@ -6,13 +6,13 @@
 
 ## Windows 标准安装
 
-当前提供 [0.1.0a18 Windows x64 早期测试版](https://github.com/zxl123456123/control-everything/releases/tag/v0.1.0a18)：[安装器](https://github.com/zxl123456123/control-everything/releases/download/v0.1.0a18/session-panel-0.1.0a18-windows-x64.exe) · [依赖对应源码](https://github.com/zxl123456123/control-everything/releases/download/v0.1.0a18/session-panel-0.1.0a18-sources.zip)。安装器尚未签名；实际验证范围和未覆盖项目见该版本说明。开发者也可按[源码启动指南](usage.md#多-agent-工作台)运行。
+当前提供 [0.1.0a19 Windows x64 早期测试版](https://github.com/zxl123456123/control-everything/releases/tag/v0.1.0a19)：[安装器](https://github.com/zxl123456123/control-everything/releases/download/v0.1.0a19/session-panel-0.1.0a19-windows-x64.exe) · [依赖对应源码](https://github.com/zxl123456123/control-everything/releases/download/v0.1.0a19/session-panel-0.1.0a19-sources.zip)。安装器尚未签名；实际验证范围和未覆盖项目见该版本说明。开发者也可按[源码启动指南](usage.md#多-agent-工作台)运行。
 
-`0.1.0a18` 是完整版本号，其中 `a` 表示 alpha（早期测试），`18` 是该阶段的版本序号；含义遵循 [Python 版本规范](https://packaging.python.org/en/latest/specifications/version-specifiers/#pre-releases)。版本序号用于识别安装包，具体功能、测试结果与限制由版本说明分别列出。
+`0.1.0a19` 是完整版本号，其中 `a` 表示 alpha（早期测试），`19` 是该阶段的版本序号；含义遵循 [Python 版本规范](https://packaging.python.org/en/latest/specifications/version-specifiers/#pre-releases)。版本序号用于识别安装包，具体功能、测试结果与限制由版本说明分别列出。
 
-此安装包的受测源码为 `f3439da7`。`main` 和 `develop` 的后续源码与文档更新不会改动已发布的安装包；新 EXE 须单独构建、验收并发布。安装版按上述版本说明判断功能与已知限制，源码开发按贡献指南构建和预览。
+此安装包的受测源码为 `1fce4809`。`main` 和 `develop` 的后续源码与文档更新不会改动已发布的安装包；新 EXE 须单独构建、验收并发布。安装版按上述版本说明判断功能与已知限制，源码开发按贡献指南构建和预览。
 
-普通用户下载 `session-panel-0.1.0a18-windows-x64.exe`，先用 `Get-FileHash -Algorithm SHA256` 与该次发布的 `SHA256SUMS.txt` 核对，再运行安装器。标准产品自带 CPython 3.13.16、固定 Python 依赖、前端资源和 release Rust 原生观察后台，无需另外安装 Python、Node、npm 或 Rust 编译器。依赖源码附件用于对应源码分发，不能代替完整安装器或 GitHub 的项目源码快照。
+普通用户下载 `session-panel-0.1.0a19-windows-x64.exe`，先用 `Get-FileHash -Algorithm SHA256` 与该次发布的 `SHA256SUMS.txt` 核对，再运行安装器。标准产品自带 CPython 3.13.16、固定 Python 依赖、前端资源和 release Rust 原生观察后台，无需另外安装 Python、Node、npm 或 Rust 编译器。依赖源码附件用于对应源码分发，不能代替完整安装器或 GitHub 的项目源码快照。
 
 安装目录支持中文和空格；当前产品按普通 Windows 路径工作，每个完整交付文件路径须少于260个UTF-16字符。安装器在写入目标前检查整个固定文件清单，超限时提示选择更短目录，不修改系统的长路径策略。
 
@@ -178,6 +178,10 @@ if ($LASTEXITCODE -ne 0) { throw 'Installed acceptance failed; retain the instal
 
 示例文件名替换为实际版本。两个真实不同版本的升级/回退需再传 `--second-payload`、`--second-installer`，不能用同版重装冒充。测试保留已有安装拒绝、维护阻塞、profile/备份保留及失败不强杀规则；不得清除真实安装登记来强行执行。
 
+新标准账号先验证候选和验收器可读、证据与临时目录可写，以及父目录的重解析点检查可执行。若仅缺父目录元数据权限，按实际拒绝路径临时授予本级 `ReadAttributes`，记录原 ACL 并在验收后精确恢复；不扩大到上级盘根或关闭路径检查。账号准备与安装器运行分别记录，安装前失败不能写成产品安装失败。
+
+通过 Windows PowerShell 辅助脚本启动时，先检查新账号的执行策略；对已核验的本地脚本可使用[进程级 `RemoteSigned`](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_execution_policies?view=powershell-5.1)，保持系统与用户策略。创建/清理测试账号所需的 UAC 与标准账号下的安装器运行分开。辅助程序应直接捕获原生进程的 stdout、stderr 和实际退出码，避免 PowerShell 5 的错误处理提前截断诊断；旧失败日志与重试结果分别保留。
+
 另外人工核开始菜单/cmd 实际启动、真实浏览器交互、数据重启保留及适用的资讯、终端、Git、桌面返回、远端账号/设备和 SSH。源码合同、内部 Desktop 装配不证明 cmd wrapper 已运行。Win10/11 矩阵、手机现场、Android APK、未配置服务等分别标明实际覆盖，不能以一次本机成功代替。
 
 自建远程接入还需核对 Hub 配置的 `static_paths` 与本次实际运行版本。先验证载荷中的 `workbench-build/web-assets.json` 及对应文件尺寸、SHA，再将非 HTML 条目加 `/workbench/` 前缀与服务端清单比对；同时核对 `http.gateway.WEB_ASSETS`、`http.workbench.STUDIO_RESOURCES`、`http.news_reader.ASSETS` 中非 HTML 的平台资源。只补内置引擎会漏掉宠物、新闻等随后加载的脚本。按精确路径追加缺项，保留仍受支持版本的条目，不改成目录通配；服务器私有配置在服务器上备份，不加入发布附件。
@@ -186,7 +190,7 @@ if ($LASTEXITCODE -ne 0) { throw 'Installed acceptance failed; retain the instal
 
 ### 5. 验收后发布
 
-1. 公开发布前确认受测提交已在 main（界面已经项目主导者确认），版本与 tag 未占用，并按下节生成本轮放行复核记录。需要远端检查时手动执行 `ci.yml` 并核同一 SHA；push 不会自动触发它。
+1. 公开发布前确认受测提交已在 main（界面已经项目主导者确认），版本与 tag 未占用，并按下节生成本轮放行复核记录。核对同一 SHA 的自动源码检查；需要完整跟踪树检查时另行手动运行 `ci.yml`，不能把源码检查当成安装验收或发布放行。
 2. 使用下文 `release_bundle.py prepare` 在本轮 `public/` 准备固定十一份附件：安装器、同版本依赖对应源码 ZIP、七份元数据与许可文件、版本说明和校验和。工具拒绝额外附件；本机输入与验收日志不上传。
 3. 核 version、commit、dirty=false、闭包及对应源码附件大小/hash；生成覆盖全部附件的 `SHA256SUMS.txt`（不含自身）并重核。`git archive` 项目快照不能替代依赖对应源码附件。
 4. 建指向受测 SHA 的 `v<版本>` draft，上传并核附件后再公开 prerelease；不移动已有 tag、不覆盖已发布附件。说明写实际验收范围、所有已知失败/限制、签名状态和回退条件。参考 [GitHub 发布流程](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository)。
