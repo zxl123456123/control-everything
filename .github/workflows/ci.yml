@@ -90,7 +90,19 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tools/scripts/build_observer.py build
           exit $LASTEXITCODE
-      - run: python -m unittest discover -s tests -v
+      - name: Run backend tests
+        shell: pwsh
+        env:
+          PYTHONUTF8: '1'
+        run: |
+          New-Item -ItemType Directory -Path 'work/ci-tests/tmp' -Force | Out-Null
+          $testTemp = python -X utf8 -c "from pathlib import Path; print(Path('work/ci-tests/tmp').resolve(strict=True))"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $env:TEMP = $testTemp
+          $env:TMP = $testTemp
+          $env:TMPDIR = $testTemp
+          python -X utf8 -m unittest discover -s tests -v
+          exit $LASTEXITCODE
       - run: node --test tests/frontend/test_execution_ui.cjs tests/frontend/test_progress_ui.cjs tests/frontend/test_workspace_history_ui.cjs tests/frontend/test_observation_ui.cjs tests/frontend/test_task_center_ui.cjs tests/frontend/test_observation_build.cjs tests/frontend/test_news_ui.cjs tests/frontend/test_news_build.cjs tests/frontend/test_quota_ui.cjs
 
   architecture-boundaries:

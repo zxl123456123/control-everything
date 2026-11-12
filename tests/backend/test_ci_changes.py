@@ -1,5 +1,6 @@
 """GitHub event ranges and scanner setup use synthetic checkouts, never live events."""
 import contextlib
+import ctypes
 import importlib.util
 import io
 import json
@@ -8,7 +9,9 @@ from pathlib import Path
 import re
 import shutil
 import subprocess
+import sys
 import tempfile
+import textwrap
 import unittest
 from unittest.mock import patch
 
@@ -111,6 +114,64 @@ class CiChangesTests(unittest.TestCase):
 
 
 class CiWorkflowTests(unittest.TestCase):
+    @unittest.skipUnless(os.name == 'nt', 'Windows backend environment contract')
+    def test_backend_step_sets_child_utf8_and_canonical_temp_and_preserves_failure(self):
+        workflow = (ROOT / '.github/workflows/ci.yml').read_text(encoding='utf-8')
+        step = re.search(r'(?ms)^      - name: Run backend tests\n(.*?)(?=^      - |\Z)', workflow)
+        self.assertIsNotNone(step, 'backend tests need their own environment setup')
+        self.assertIn("        env:\n          PYTHONUTF8: '1'", step[1])
+        script = textwrap.dedent(step[1].split('        run: |\n', 1)[1])
+        self.assertNotIn('GITHUB_ENV', script)
+        self.assertNotIn('SetEnvironmentVariable', script)
+        with tempfile.TemporaryDirectory(prefix='ci environment fixture ') as temporary:
+            root = Path(temporary).resolve()
+            tests = root / 'tests'
+            tests.mkdir()
+            inherited = root / 'runner temp'
+            inherited.mkdir()
+            short = ctypes.create_unicode_buffer(32768)
+            self.assertGreater(ctypes.windll.kernel32.GetShortPathNameW(str(inherited), short, len(short)), 0)
+            self.assertEqual(Path(short.value).resolve(), inherited)
+            probe = tests / 'test_environment.py'
+            probe.write_text(textwrap.dedent('''
+                import os
+                from pathlib import Path
+                import subprocess
+                import sys
+                import tempfile
+                import unittest
+
+                class EnvironmentTests(unittest.TestCase):
+                    def test_environment(self):
+                        self.assertEqual(sys.flags.utf8_mode, 1)
+                        self.assertEqual(os.environ['PYTHONUTF8'], '1')
+                        expected = str((Path.cwd() / 'work/ci-tests/tmp').resolve())
+                        self.assertEqual(tempfile.gettempdir(), expected)
+                        for name in ('TEMP', 'TMP', 'TMPDIR'):
+                            self.assertEqual(os.environ[name], expected)
+                        with tempfile.TemporaryDirectory() as directory:
+                            self.assertEqual(Path(directory), Path(directory).resolve())
+                        print(chr(0x4e2d) + chr(0x6587))
+                        child = subprocess.run([sys.executable, '-c',
+                            "import sys; assert sys.flags.utf8_mode == 1; print(chr(0x4e2d))"],
+                            capture_output=True)
+                        self.assertEqual(child.returncode, 0, child.stderr)
+                        self.assertEqual(child.stdout.decode('utf-8').strip(), chr(0x4e2d))
+            '''), encoding='utf-8')
+            environment = {**os.environ, 'PYTHONUTF8': '1',
+                           'PATH': str(Path(sys.executable).parent) + os.pathsep + os.environ['PATH'],
+                           **{name: short.value for name in ('TEMP', 'TMP', 'TMPDIR')}}
+            environment.pop('PYTHONIOENCODING', None)
+            command = [shutil.which('pwsh') or 'powershell.exe', '-NoProfile', '-NonInteractive',
+                       '-Command', script]
+            result = subprocess.run(command, cwd=root, env=environment, capture_output=True)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertIn('中文'.encode('utf-8'), result.stdout)
+            probe.write_text('raise AssertionError("fixture failure must fail the step")\n', encoding='utf-8')
+            result = subprocess.run(command, cwd=root, env=environment, capture_output=True)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn(b'fixture failure must fail the step', result.stderr)
+
     def test_automatic_triggers_readonly_permissions_and_manual_readiness(self):
         workflow = (ROOT / '.github/workflows/ci.yml').read_text(encoding='utf-8')
         for event in ('push', 'pull_request'):

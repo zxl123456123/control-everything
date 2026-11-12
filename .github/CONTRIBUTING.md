@@ -429,7 +429,7 @@ python tools/scripts/check_repository.py release --manifest work/checks/candidat
 
 ## 自动源码检查与发布
 
-`repository-checks` 对 main/develop 的推送及目标为这两个分支的 PR 自动运行 `windows-tests`、`architecture-boundaries` 和 `new-content-checks`。手动 `workflow_dispatch` 额外运行 `release-readiness`，检查当前完整跟踪树。自动触发不等于已配置合并必需检查；本地或远端未执行的检查不能记为通过。
+`repository-checks` 对 main/develop 的推送及目标为这两个分支的 PR 自动运行 `windows-tests`、`architecture-boundaries` 和 `new-content-checks`。后端测试步骤按 [Python UTF-8 模式](https://docs.python.org/3.12/library/os.html#python-utf-8-mode)设置 `PYTHONUTF8=1` 并使用 `-X utf8`；先创建并解析本检出的 `work/ci-tests/tmp`，仅在该步骤给测试进程及子进程设置 `TEMP`、`TMP`、`TMPDIR`，避免 runner 的区域编码和 8.3 短路径影响测试，不修改用户或系统环境。手动 `workflow_dispatch` 额外运行 `release-readiness`，检查当前完整跟踪树。自动触发不等于已配置合并必需检查；本地或远端未执行的检查不能记为通过。
 
 `check_ci_changes.py` 从事件文件取得检查范围：push 扫描推送前后之间的全部提交；新分支首次 push 用明确的 `--from-root` 扫描全部可达历史；PR 从基分支 SHA 检查到本次检出的合并提交；手动运行检查所选提交与其第一父提交，根提交同样显式扫描。范围缺失、SHA 不合法或 checkout 不匹配时失败，不缩小成最近一个提交。区间内曾加入又删除的内容仍受检查，完整候选检查不能替代历史检查。
 
