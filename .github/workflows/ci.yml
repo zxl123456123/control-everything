@@ -1,6 +1,10 @@
 name: repository-checks
 
 on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
   workflow_dispatch:
 
 permissions:
@@ -10,6 +14,9 @@ jobs:
   windows-tests:
     name: windows-tests
     runs-on: windows-latest
+    concurrency:
+      group: ${{ github.workflow }}-windows-${{ github.event_name }}-${{ github.ref }}
+      cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -83,12 +90,27 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tools/scripts/build_observer.py build
           exit $LASTEXITCODE
-      - run: python -m unittest discover -s tests -v
+      - name: Run backend tests
+        shell: pwsh
+        env:
+          PYTHONUTF8: '1'
+        run: |
+          New-Item -ItemType Directory -Path 'work/ci-tests/tmp' -Force | Out-Null
+          $testTemp = python -X utf8 -c "from pathlib import Path; print(Path('work/ci-tests/tmp').resolve(strict=True))"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $env:TEMP = $testTemp
+          $env:TMP = $testTemp
+          $env:TMPDIR = $testTemp
+          python -X utf8 -m unittest discover -s tests -v
+          exit $LASTEXITCODE
       - run: node --test tests/frontend/test_execution_ui.cjs tests/frontend/test_progress_ui.cjs tests/frontend/test_workspace_history_ui.cjs tests/frontend/test_observation_ui.cjs tests/frontend/test_task_center_ui.cjs tests/frontend/test_observation_build.cjs tests/frontend/test_news_ui.cjs tests/frontend/test_news_build.cjs tests/frontend/test_quota_ui.cjs
 
   architecture-boundaries:
     name: architecture-boundaries
     runs-on: windows-latest
+    concurrency:
+      group: ${{ github.workflow }}-architecture-${{ github.event_name }}-${{ github.ref }}
+      cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -118,11 +140,7 @@ jobs:
         run: ./tools/scripts/install_gitleaks.ps1 -Destination work/tools/gitleaks-8.30.1
       - shell: pwsh
         run: |
-          $baseCommit = git rev-parse HEAD^
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          $headCommit = git rev-parse HEAD
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          python tools/scripts/check_repository.py changes --base "$baseCommit" --head "$headCommit" --report work/checks/changes.json
+          python tools/scripts/check_ci_changes.py --report work/checks/changes.json
           exit $LASTEXITCODE
 
   release-readiness:

@@ -1,6 +1,7 @@
 import ctypes as c
 import json
 from pathlib import Path
+from types import SimpleNamespace
 import threading
 import time
 import unittest
@@ -16,6 +17,9 @@ class FakeAPI:
         self.chunks = list(chunks)
         self.active_count = 1
         self.bytes_written = []
+        self.members = ()
+        self.total_count = 1
+        self.signaled = True
 
     def step(self, name):
         self.calls.append(name)
@@ -52,6 +56,17 @@ class FakeAPI:
     def active(self, *_):
         self.step("query")
         return self.active_count
+
+    def hold_job_processes(self, *_):
+        self.step('hold_job_processes')
+        return self.members, self.total_count
+
+    def job_total(self, *_):
+        return self.total_count
+
+    def wait_process(self, handle, timeout):
+        self.calls.append(('wait_process', handle, timeout))
+        return self.signaled
 
     def read_available(self, *_):
         return self.chunks.pop(0) if self.chunks else None
@@ -110,6 +125,88 @@ class OwnedProcessTests(unittest.TestCase):
         process = self.process(api).start()
         self.assertFalse(process.close(grace=0))
         self.assertIn(11, api.closed)
+
+    def test_empty_job_still_requires_root_and_child_process_signals(self):
+        api = FakeAPI()
+        api.members, api.signaled = (20, 21), False
+        process = self.process(api).start()
+        self.assertFalse(process.close(grace=0))
+        waited = [call for call in api.calls if isinstance(call, tuple)]
+        self.assertEqual([call[1] for call in waited], [17, 20, 21])
+        self.assertTrue(all(0 <= call[2] <= 2 for call in waited))
+        self.assertTrue(all(left[2] >= right[2] for left, right in zip(waited, waited[1:])))
+        self.assertEqual(api.closed.count(20), 1)
+        self.assertEqual(api.closed.count(21), 1)
+        self.assertLess(api.calls.index('hold_job_processes'), api.calls.index('terminate_job'))
+
+    def test_unstable_or_unavailable_job_snapshot_never_claims_cleanup(self):
+        for failure in ('capture', 'new_child'):
+            with self.subTest(failure=failure):
+                api = FakeAPI(fail='hold_job_processes' if failure == 'capture' else None)
+                process = self.process(api).start()
+                if failure == 'new_child':
+                    terminate = api.terminate_job
+                    def grow(job):
+                        api.total_count += 1
+                        terminate(job)
+                    api.terminate_job = grow
+                self.assertFalse(process.close(grace=0))
+                self.assertIn('terminate_job', api.calls)
+                self.assertIn(11, api.closed)
+
+    def test_job_member_handles_fail_closed_and_are_released_on_snapshot_errors(self):
+        def members(_job, kind, buffer, _size, _written):
+            self.assertEqual(kind, 3)
+            c.cast(buffer, c.POINTER(c.c_ulong))[0] = 2
+            c.cast(buffer, c.POINTER(c.c_ulong))[1] = 2
+            pids = c.cast(c.byref(buffer, 2 * c.sizeof(c.c_ulong)), c.POINTER(c.c_size_t))
+            pids[0], pids[1] = 101, 102
+            return 1
+        for failure in ('open', 'membership', 'unstable'):
+            with self.subTest(failure=failure):
+                api = WindowsAPI.__new__(WindowsAPI)
+                api.kernel = Mock()
+                api.job_accounting = Mock(side_effect=[SimpleNamespace(total=2, active=2),
+                    SimpleNamespace(total=3 if failure == 'unstable' else 2, active=2)])
+                api.kernel.QueryInformationJobObject.side_effect = members
+                api.kernel.OpenProcess.side_effect = [201, 0 if failure == 'open' else 202]
+                def belongs(handle, _job, result):
+                    c.cast(result, c.POINTER(c.c_long))[0] = not (failure == 'membership' and handle == 202)
+                    return 1
+                api.kernel.IsProcessInJob.side_effect = belongs
+                with self.assertRaises(ProcessError):
+                    api.hold_job_processes(11)
+                self.assertEqual([call.args[0] for call in api.kernel.CloseHandle.call_args_list],
+                                 [201] if failure == 'open' else [201, 202])
+
+    def test_job_member_handles_close_even_if_thread_join_raises(self):
+        api = FakeAPI()
+        api.members = (20,)
+        process = self.process(api).start()
+        with patch.object(process.reader, 'join', side_effect=RuntimeError('fixture join')):
+            with self.assertRaisesRegex(RuntimeError, 'fixture join'):
+                process.close(grace=0)
+        process.reader.join(1)
+        self.assertEqual(api.closed.count(20), 1)
+        self.assertFalse(process.cleanup_verified)
+
+    def test_wait_or_member_close_error_cannot_verify_cleanup_or_leak_other_handles(self):
+        for failure in ('wait', 'close'):
+            with self.subTest(failure=failure):
+                api = FakeAPI()
+                api.members = (20, 21)
+                process = self.process(api).start()
+                close = api.close
+                def close_one(handle):
+                    if handle == 20:
+                        raise OSError('fixture close')
+                    close(handle)
+                operation = patch.object(api, 'wait_process', side_effect=ProcessError('fixture wait')) \
+                    if failure == 'wait' else patch.object(api, 'close', side_effect=close_one)
+                with operation:
+                    self.assertFalse(process.close(grace=0))
+                self.assertEqual(api.closed.count(21), 1)
+                self.assertIn(11, api.closed)
 
     def test_partial_write_is_not_retried(self):
         api = FakeAPI(fail="partial")

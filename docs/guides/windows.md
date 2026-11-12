@@ -46,7 +46,7 @@ $panel = Join-Path $env:LOCALAPPDATA 'Programs/SessionPanel/session-panel.cmd'
 
 安装准备和卸载使用由完整产品清单派生的封闭维护子集，只临时准备解释器、本项目 Python 代码和原生协议组件。完整应用仍按全部文件清单入包和核验。维护子集有独立的校验入口，不能作为完整桌面产品或 HTTP 文件服务根；每次启动维护子进程前仍校验其文件，保留原有身份、互斥和写入前检查。
 
-旧 `.github/workflows/release.yml` 云端出包配方已经退役，历史保留在 Git；不再维护一套与本机构建不同的配方。`ci.yml` 保留手动源码检查。以下源码合同通过不等于某个新版本已实际构建、安装或发布；以该版本的收据为准。
+旧 `.github/workflows/release.yml` 云端出包配方已经退役，历史保留在 Git；不再维护一套与本机构建不同的配方。`ci.yml` 自动检查 main/develop 的推送与 PR，手动运行另含完整跟踪树检查，范围见[贡献指南](../../.github/CONTRIBUTING.md#自动源码检查与发布)。以下源码合同通过不等于某个新版本已实际构建、安装或发布；以该版本的收据为准。
 
 ### 1. 冻结版本与准备环境
 
@@ -319,14 +319,16 @@ python3 release_notify.py send --config /example/private/notify.json --event /ex
 
 ### 8. 自动化建设顺序与验收边界
 
-2026-11-11 基线审计发现验收与发布之间缺少机器衔接；当前已提供放行复核、11附件准备、GitHub 草稿/公开发布和 OpenClaw 通知工具。`build_windows_release.py` 仍结束于 `candidate-built-awaiting-acceptance`；`ci.yml` 仍仅手动触发。各阶段有明确命令和收据，不等于远端自动强制规则；真实候选发布与服务器通知验收分别记录。
+2026-11-11 基线审计发现验收与发布之间缺少机器衔接；当前已提供放行复核、11附件准备、GitHub 草稿/公开发布和 OpenClaw 通知工具。`build_windows_release.py` 仍结束于 `candidate-built-awaiting-acceptance`；`ci.yml` 已配置自动源码检查和手动完整检查。各阶段有明确命令和收据，不等于远端自动强制规则；真实候选发布与服务器通知验收分别记录。
 
 后续按独立改动实施，每项先验证再推进下一项：
 
 1. **本机放行记录已有入口。** 使用上节的 `record-check` / `verify` 关联证据；代码合同覆盖错提交、错包、缺材料、日志变动及同版本不同闭包拒绝。真实候选仍按本页构建和验收，不能用这些合成合同测试替代安装结果。
 2. **附件和发布已有入口。** `release_bundle.py` 本地准备，内容审核后再执行 `release_github.py draft/publish`。代码合同覆盖中断恢复、错包拒绝和公开后只复核；正式首次运行仍须保存实际远端收据。
 3. **通知工具按已有部署接入。** `release_notify.py preview/send/reconcile` 固定账号/群并持久记录投递；合成 CLI/API 测试覆盖并发、进程中断和未知结果。首次真实群发送、对账与防重复另记验收，不用测试消息冒充新版本发布。
-4. **最后迁移可重复的构建环境。** 先把新机器如何准备固定工具、审核材料和依赖缓存跑通，再让 Windows runner 调用同一构建器。源码快速检查可以自动运行，完整 EXE 仍由明确的发布动作触发；是否将检查设为合并必需条件，另按实际协作规则配置。当前不改变 develop 预览确认、main 发布或非强制 PR/远端 CI 规则。
+4. **最后迁移可重复的构建环境。** 先把新机器如何准备固定工具、审核材料和依赖缓存跑通，再让 Windows runner 调用同一构建器。源码检查现由 push/PR 自动触发，完整 EXE 仍由明确的发布动作触发；是否将检查设为合并必需条件，另按实际协作规则配置。当前不改变 develop 预览确认、main 发布或非强制 PR/远端 CI 规则。
+
+Windows 安装验收使用隔离标准账号和合成 profile，执行本页的正式验收器并保留安装、重装、卸载与数据保留证据；已有日常安装的账号不作为破坏性测试对象。[GitHub 托管 Windows runner](https://docs.github.com/en/actions/reference/runners/github-hosted-runners)默认提供管理员权限且关闭 UAC，其结果不能替代标准用户或 Windows 10/11 干净机验收。候选、验收器和源码 CI 各自记录提交与 hash；用新验收器测试旧候选时，不能把新提交的 CI 收据算作旧候选的源码验证。
 
 签名服务、Windows 10/11 干净机矩阵、客户端发现/下载更新及数据格式回退需要各自验收；安装器原位升级能力不等于客户端自动更新。优先保证整包更新和数据兼容，再按需要评估差分更新。SHA256 证明文件一致，发布者签名证明身份，来源证明绑定构建来源；没有独立两次构建逐字节对比，不称为[可复现构建](https://reproducible-builds.org/docs/definition/)。
 

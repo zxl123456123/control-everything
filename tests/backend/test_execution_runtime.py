@@ -116,6 +116,28 @@ class RuntimeTests(unittest.TestCase):
         self.assertTrue(all(cleanup), 'Owned process cleanup was not verified')
         self.assertTrue(dict(os.environ) == parents, 'Child launch mutated parent environment')
 
+    @unittest.skipUnless(sys.platform == 'win32', 'Actual Windows Job verification')
+    def test_actual_job_close_releases_descendant_working_directory(self):
+        child = "import sys;print('ready',flush=True);sys.stdin.readline()"
+        code = ("import subprocess,sys,json;"
+                f"child=subprocess.Popen([sys.executable,'-I','-u','-c',{child!r}],"
+                "stdin=subprocess.PIPE,stdout=subprocess.PIPE,text=True);"
+                "assert child.stdout.readline().strip()=='ready';"
+                "print(json.dumps({'ready':True}),flush=True);sys.stdin.readline()")
+        for forced in (True, False):
+            with self.subTest(forced=forced):
+                working = self.root / ('forced' if forced else 'graceful')
+                working.mkdir()
+                process = OwnedProcess(sys.executable, ['-I', '-u', '-c', code], str(working),
+                                       'Local\\workbench_descendant_test.' + uuid4().hex).start()
+                try:
+                    self.assertEqual(process.read(timeout=5), {'ready': True})
+                    self.assertTrue(process.close(grace=0) if forced else process.close())
+                    self.assertFalse(process.reader.is_alive() or process.writer.is_alive())
+                    working.rmdir()
+                finally:
+                    process.close(grace=0)
+
 
 class RuntimeDispatchTests(unittest.TestCase):
     save_agent = admission.DispatchAdmissionTests.save_agent
