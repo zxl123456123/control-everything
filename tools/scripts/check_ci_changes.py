@@ -49,8 +49,10 @@ def scan_arguments(root, event_name, event, github_sha):
         except (KeyError, TypeError) as error:
             raise ValueError('pull-request-identities-required') from error
         parents = git(root, 'rev-list', '--parents', '-n', '1', head).split()[1:]
-        if parents != [base, branch_head]:
+        if len(parents) != 2 or parents[1] != branch_head:
             raise ValueError('pr-merge-identity-mismatch')
+        # The PR event base can precede the current merge's first parent.
+        git(root, 'merge-base', '--is-ancestor', base, parents[0])
     else:
         parents = git(root, 'rev-list', '--parents', '-n', '1', head).split()[1:]
         if not parents:

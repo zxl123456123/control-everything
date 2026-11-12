@@ -67,8 +67,29 @@ class CiChangesTests(unittest.TestCase):
         self.assertEqual(CI.scan_arguments(self.root, 'pull_request', event, merged),
                          ['changes', '--base', base, '--head', merged])
         event['pull_request']['base']['sha'] = original
-        with self.assertRaisesRegex(ValueError, 'pr-merge-identity'):
-            CI.scan_arguments(self.root, 'pull_request', event, merged)
+        self.assertEqual(CI.scan_arguments(self.root, 'pull_request', event, merged),
+                         ['changes', '--base', original, '--head', merged])
+
+    def test_pr_rejects_nonancestor_base_wrong_head_and_nonstandard_merge(self):
+        original = self.commit('original.txt')
+        self.git('checkout', '-qb', 'feature')
+        branch_head = self.commit('feature.txt')
+        self.git('checkout', '--detach', original)
+        base = self.commit('base-advanced.txt')
+        self.git('merge', '--no-ff', '-m', 'test: synthetic merge', 'feature')
+        merged = self.git('rev-parse', 'HEAD')
+        for event_base, event_head in ((branch_head, branch_head), (base, original), ('f' * 40, branch_head)):
+            event = {'pull_request': {'base': {'sha': event_base}, 'head': {'sha': event_head}}}
+            with self.subTest(base=event_base, head=event_head), self.assertRaises(ValueError):
+                CI.scan_arguments(self.root, 'pull_request', event, merged)
+        event = {'pull_request': {'base': {'sha': original}, 'head': {'sha': branch_head}}}
+        tree = self.git('rev-parse', merged + '^{tree}')
+        three_parents = self.git('commit-tree', tree, '-p', base, '-p', branch_head, '-p', original,
+                                 '-m', 'test: three-parent fixture')
+        for invalid_merge in (original, base, three_parents):
+            self.git('checkout', '--detach', invalid_merge)
+            with self.subTest(merge=invalid_merge), self.assertRaisesRegex(ValueError, 'pr-merge-identity'):
+                CI.scan_arguments(self.root, 'pull_request', event, invalid_merge)
 
     def test_malformed_sha_missing_commit_or_wrong_checkout_is_rejected(self):
         before = self.commit('base.txt')
