@@ -114,10 +114,11 @@ function mountStudio(root, { onProjects = () => {}, runtimeHost = () => null } =
     projectDialogTarget.dataset.theme = root.dataset.theme || 'light';
     return projectDialogTarget;
   }
-  function showPlatformNotice(text, { projects: savedProjects = [], retry = null } = {}) {
+  function showPlatformNotice(text, { projects: savedProjects = [], retry = null, label = '提示' } = {}) {
     const host = visibleDialogTarget(), trigger = currentFocus();
     const dialog = document.createElement('dialog');
     dialog.className = 'ce-project-settings';
+    dialog.setAttribute('aria-label', label);
     dialog.innerHTML = `<form><p role="status">${escape(text)}</p><button type="button" class="ce-button">关闭</button></form>`;
     dialog.querySelector('button').addEventListener('click', () => dialog.close());
     const actions = document.createElement('div'); actions.className = 'ce-registration-actions';
@@ -185,13 +186,14 @@ function mountStudio(root, { onProjects = () => {}, runtimeHost = () => null } =
   }
   function openProjectMenu(id, trigger) {
     const project = projects().find(row => row.id === id);
-    if (!project || project.read_only || project.source?.kind === 'codex' || !client.canWrite() || nativeProjectWrites.has(id)) return;
+    if (!project) return;
     closeProjectMenu(); projectMenuTrigger = trigger;
     trigger.setAttribute('aria-expanded', 'true');
     const menu = document.createElement('div'); projectMenu = menu;
     menu.className = 'ce-project-menu'; menu.setAttribute('role', 'menu');
     menu.setAttribute('aria-label', project.name);
-    menu.innerHTML = `<button type="button" role="menuitem" data-project-archive="${escape(id)}">${icon(project.archived ? 'restore' : 'archive')}<span>${project.archived ? '恢复项目' : '归档项目'}</span></button>`;
+    const writable = !project.read_only && project.source?.kind !== 'codex' && client.canWrite() && !nativeProjectWrites.has(id);
+    menu.innerHTML = `<button type="button" role="menuitem" data-project-directory>${icon('folder')}<span>查看目录</span></button>${writable ? `<button type="button" role="menuitem" data-project-archive="${escape(id)}">${icon(project.archived ? 'restore' : 'archive')}<span>${project.archived ? '恢复项目' : '归档项目'}</span></button>` : ''}`;
     visibleDialogTarget().append(menu);
     const bounds = trigger.getBoundingClientRect();
     menu.style.left = Math.max(8, Math.min(bounds.left, window.innerWidth - 228)) + 'px';
@@ -211,6 +213,11 @@ function mountStudio(root, { onProjects = () => {}, runtimeHost = () => null } =
     menu.addEventListener('click', event => {
       // Standalone menus live inside root; their actions must not run again in its delegate.
       event.stopPropagation();
+      if (event.target.closest('[data-project-directory]')) {
+        closeProjectMenu();
+        const paths = project.directories?.map(row => row.path).filter(Boolean) || [];
+        showPlatformNotice(paths.join('\n') || project.root || '未登记项目目录', { label: '项目目录' });
+      }
       const archive = event.target.closest('[data-project-archive]');
       if (archive) { event.preventDefault(); void setProjectArchived(id, !project.archived, archive); }
     });

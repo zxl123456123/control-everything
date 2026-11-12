@@ -27,13 +27,14 @@ test('normal is the default and explicit all and archived filters preserve title
   assert.deepEqual(ids(overview({projectFilter:'archived'})), ['old']);
   assert.deepEqual(ids(overview({query:'ONE'})), ['one']);
   assert.match(overview({projectFilter:'all'}), /href="#project\/old\/workspace"/);
-  assert.doesNotMatch(overview(), /ce-development-shortcut|data-action="add-project"/);
+  assert.doesNotMatch(overview(), /ce-development-shortcut|ce-project-kind-icon/);
+  assert.equal((overview().match(/data-action="add-project"/g) || []).length, 1);
 });
 
 test('zero, all archived and unavailable projects reach the native workbench without an outer project form', () => {
   for (const projects of [[],[project('old',true)],[{...project('one'),binding_available:false}]]) {
     const html = overview({projects});
-    assert.equal((html.match(/href="#workbench"/g) || []).length, 1);
+    assert.equal((html.match(/data-action="add-project"/g) || []).length, 1);
     assert.doesNotMatch(html, /project-setup|项目配置|data-action="open-project-dialog"/);
   }
   const empty = overview({projects:[]});
@@ -42,6 +43,7 @@ test('zero, all archived and unavailable projects reach the native workbench wit
   const offline = overview({projects:[project('one')],runtimeAvailable:false});
   assert.match(offline, /项目运行组件未连接，暂时只能查看项目总览/);
   assert.doesNotMatch(offline, /href="#workbench"/, 'no call to action that leads nowhere while the runtime is down');
+  assert.doesNotMatch(offline, /data-action="add-project"/);
   assert.match(offline, /<section class="ce-setup-notice" role="status">/);
 });
 
