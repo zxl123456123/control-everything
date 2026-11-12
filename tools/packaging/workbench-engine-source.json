@@ -329074,8 +329074,8 @@
     {
       "path": "src/renderer/src/web/preload-api/web-runtime-calls.ts",
       "upstream_sha256": "8d5ae359c9c95e649250cdc5fb10dd45c2d306f7ee80eb997b7a79e140cda272",
-      "current_sha256": "16021f070100f478f4f832da29672d8bfe7279a11a2fb310782efbdc72181c4f",
-      "reason": "N1: restore native project controls and upstream presentation while preserving platform identity, project registration, draft protection and the single global account surface."
+      "current_sha256": "c416978a97f3206ad62713b19cd360828132a6b2dc7fbe9153163833477cf174",
+      "reason": "N1: restore native project controls and upstream presentation while preserving platform identity, project registration, draft protection and the single global account surface.；按requestToken取消网页扫描等待并向RPC队列及传输透传AbortSignal，释放排队与在途名额；回归验证替代请求竞态和正常慢扫描"
     },
     {
       "path": "src/renderer/src/store/repos/repo-update.ts",
@@ -338842,8 +338842,8 @@
     {
       "path": "src/renderer/src/web/web-runtime-client.ts",
       "upstream_sha256": "e6ba9184ee7782edf28cfe01718ac190665bea63fa467e13daa75ebb1e752430",
-      "current_sha256": "b6b1003bd27d97292551a62a233a495a45869d281a448fac50e7f8fa27acae0f",
-      "reason": "远程连接标签和诊断统一Control Everything；保留错误码/协议及历史错误输入识别，同步无code重试、网络提示和真实回归，原命令字节预算不变"
+      "current_sha256": "933a6f44df805dbce447e2e0c1836f650487bda5443e71226406403da7e43617",
+      "reason": "远程连接标签和诊断统一Control Everything；保留错误码/协议及历史错误输入识别，同步无code重试、网络提示和真实回归，原命令字节预算不变；按requestToken取消网页扫描等待并向RPC队列及传输透传AbortSignal，释放排队与在途名额；回归验证替代请求竞态和正常慢扫描"
     },
     {
       "path": "src/renderer/src/web/web-runtime-connection-waiters.ts",
@@ -338854,8 +338854,8 @@
     {
       "path": "src/renderer/src/web/web-runtime-request-registry.ts",
       "upstream_sha256": "195f005efef1a3a4005db05809c9ba948afd0eff427f6d857ce605cff9de209e",
-      "current_sha256": "57c1bc9f85d163881052f9fa2a3480c19c6e84f775d8a360ae725f66b5a5682d",
-      "reason": "远程连接标签和诊断统一Control Everything；保留错误码/协议及历史错误输入识别，同步无code重试、网络提示和真实回归，原命令字节预算不变"
+      "current_sha256": "a59c933f63cb72e18732b25a2cc03c004ab3f433a2fa22233c641e8c6a6ec49e",
+      "reason": "远程连接标签和诊断统一Control Everything；保留错误码/协议及历史错误输入识别，同步无code重试、网络提示和真实回归，原命令字节预算不变；会话历史扫描沿用服务端无响应截止合同，避免网页默认30秒误报超时"
     },
     {
       "path": "src/shared/remote-runtime-client-error-classification.test.ts",
@@ -339058,14 +339058,14 @@
     {
       "path": "src/renderer/src/components/terminal-pane/terminal-appearance.test.ts",
       "upstream_sha256": "6d7d5bec13ce18d1d4ed74c0f99cb1b2f2ba415c4c07d656a383668dd6bb0a57",
-      "current_sha256": "61f355fa73290b66836dacddef09c90f4f8edbd33821f519f5ef7abce7f25293",
-      "reason": "精简顶部骨架并统一终端和编辑器玻璃底层，修复透明默认背景下WebGL矩形alpha并同步既有生成补丁和锁文件"
+      "current_sha256": "3a836b22ced196d47f843ec64a9e140b29fc0521b38d9c675e687f6878028599",
+      "reason": "精简顶部骨架并统一终端和编辑器玻璃底层，修复透明默认背景下WebGL矩形alpha并同步既有生成补丁和锁文件；平台终端恢复不透明绘制，避免WebGL重绘残影与输入笔画变淡"
     },
     {
       "path": "src/renderer/src/components/terminal-pane/terminal-appearance.ts",
       "upstream_sha256": "37053d4596a6bf2f48d650fd7c8121805ab002b196b0aecefd12a1d9d2d6c22c",
-      "current_sha256": "b63d455672a5af5f6665a33add8582f52ceccde2e98bd8e8784407e8a9f9637f",
-      "reason": "精简顶部骨架并统一终端和编辑器玻璃底层，修复透明默认背景下WebGL矩形alpha并同步既有生成补丁和锁文件"
+      "current_sha256": "cb8578658d64ee2bb6d2f0118be33c75d4a0222588d4d57b1171d78176178a44",
+      "reason": "精简顶部骨架并统一终端和编辑器玻璃底层，修复透明默认背景下WebGL矩形alpha并同步既有生成补丁和锁文件；平台终端恢复不透明绘制，避免WebGL重绘残影与输入笔画变淡"
     },
     {
       "path": "config/patches/xterm-src/@xterm__addon-webgl@0.20.0-beta.300.src.patch",
@@ -339132,6 +339132,24 @@
       "upstream_sha256": "890d449a2bac710ba25b4a1cbcdc2a2a15fe0b2e9607c1973b9fb6f95f819f59",
       "current_sha256": "afe776c68c4a55eb4bab8705aed120d4f2a953889a1c7ca8e2234c9bb99e9e89",
       "reason": "桌面可读性优化：正文共同预算、搜索名称位置层次、紧凑标签和已有定位入口、透明度叠加说明。"
+    },
+    {
+      "path": "src/renderer/src/web/preload-api/web-ai-vault-api.ts",
+      "upstream_sha256": "f0734b32fb549358af3b5b5bdda3b1b18d9d456b263847f7553c3ef0e62c4460",
+      "current_sha256": "c0549d36a4f85f46829cbf346fe4de1b399bff073cb199ec6e5386f5d77120f8",
+      "reason": "同步说明网页历史扫描随完成或连接断开收尾，不再引用默认超时；按requestToken取消网页扫描等待并向RPC队列及传输透传AbortSignal，释放排队与在途名额；回归验证替代请求竞态和正常慢扫描"
+    },
+    {
+      "path": "src/renderer/src/web/web-runtime-client-timeout-budget.test.ts",
+      "upstream_sha256": "5fbeed2b022c565aed4f12487b09000f61c26a40cfb857af4df7db21c8511045",
+      "current_sha256": "70cdedda7b18fded62badf9bb6847c237a5e79b26617ba8be5b534e13d86b6fe",
+      "reason": "回归验证历史扫描超过30秒后仍能完成，同时保留普通请求截止、显式预算、断连与取消"
+    },
+    {
+      "path": "src/renderer/src/web/web-preload-api-agent-providers.test.ts",
+      "upstream_sha256": "167d7d55f03b1871688a152ad20737ccaf7268db49f5aa12776fbef6afda79de",
+      "current_sha256": "ecb7c21b592e31fd1d47f974211c78592730bf6bdb4110e33db85fbf314cf512",
+      "reason": "按requestToken取消网页扫描等待并向RPC队列及传输透传AbortSignal，释放排队与在途名额；回归验证替代请求竞态和正常慢扫描"
     }
   ],
   "reviewed_findings": [

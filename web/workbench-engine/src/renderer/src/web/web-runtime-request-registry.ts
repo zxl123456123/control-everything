@@ -60,11 +60,17 @@ export class WebRuntimeRequestRegistry {
     return new Promise((resolve, reject) => {
       const id = this.options.nextId()
       const timeoutMs = callOptions?.timeoutMs ?? REQUEST_TIMEOUT_MS
-      const timeout = window.setTimeout(() => {
-        this.pending.delete(id)
-        cleanup()
-        reject(new Error(`Request timed out: ${method}`))
-      }, timeoutMs)
+      // Scans have no service deadline: large histories finish on their own, or
+      // end on abort/disconnect. Keep connection waits and explicit budgets bounded.
+      const scanWithoutDeadline =
+        method === 'aiVault.listSessions' && callOptions?.timeoutMs === undefined
+      const timeout = scanWithoutDeadline
+        ? 0
+        : window.setTimeout(() => {
+            this.pending.delete(id)
+            cleanup()
+            reject(new Error(`Request timed out: ${method}`))
+          }, timeoutMs)
       const cleanup = (): void => {
         signal?.removeEventListener('abort', abort)
       }

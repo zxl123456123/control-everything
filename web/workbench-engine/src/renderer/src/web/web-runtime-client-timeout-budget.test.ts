@@ -1,6 +1,7 @@
 import { pairedRuntimeConnectionFromOffer } from '../../../shared/paired-runtime-connection'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { WebRuntimeClient } from './web-runtime-client'
+import { WebRuntimeRequestRegistry } from './web-runtime-request-registry'
 
 class TimeoutBudgetWebSocket {
   static readonly CONNECTING = 0
@@ -82,4 +83,68 @@ describe('WebRuntimeClient timeout budget', () => {
     await vi.advanceTimersByTimeAsync(1)
     await expect(call).rejects.toThrow('Request timed out: runtime.two-phase-timeout')
   })
+
+  it('keeps a session scan pending beyond the ordinary RPC deadline and accepts its result', async () => {
+    const registry = connectedRegistry()
+    const call = registry.call('aiVault.listSessions')
+    const settled = vi.fn()
+    void call.then(settled, settled)
+
+    await vi.advanceTimersByTimeAsync(40_000)
+    expect(settled).not.toHaveBeenCalled()
+    const result = { id: 'request', ok: true as const, result: { sessions: [], issues: [] } }
+    registry.pending.get('request')!.resolve(result)
+    await expect(call).resolves.toEqual(result)
+  })
+
+  it.each(['runtime.ordinary', 'aiVault.listSessions'])(
+    'retains an explicit request deadline for %s',
+    async (method) => {
+      const registry = connectedRegistry()
+      const call = registry.call(method, undefined, { timeoutMs: 25 })
+      const rejected = expect(call).rejects.toThrow(`Request timed out: ${method}`)
+      await vi.advanceTimersByTimeAsync(25)
+      await rejected
+      expect(registry.pending.size).toBe(0)
+    }
+  )
+
+  it('retains the default deadline for ordinary RPC requests', async () => {
+    const registry = connectedRegistry()
+    const call = registry.call('runtime.ordinary')
+    const rejected = expect(call).rejects.toThrow('Request timed out: runtime.ordinary')
+    await vi.advanceTimersByTimeAsync(30_000)
+    await rejected
+    expect(registry.pending.size).toBe(0)
+  })
+
+  it('still cancels a long session scan when its caller aborts', async () => {
+    const registry = connectedRegistry()
+    const controller = new AbortController()
+    const call = registry.call('aiVault.listSessions', undefined, { signal: controller.signal })
+    const outcome = call.catch((error: unknown) => error)
+    await vi.advanceTimersByTimeAsync(40_000)
+    controller.abort(new Error('scan superseded'))
+    expect(await outcome).toEqual(new Error('scan superseded'))
+    expect(registry.pending.size).toBe(0)
+  })
+
+  it('still rejects a long session scan when the runtime disconnects', async () => {
+    const registry = connectedRegistry()
+    const call = registry.call('aiVault.listSessions')
+    const outcome = call.catch((error: unknown) => error)
+    await vi.advanceTimersByTimeAsync(40_000)
+    registry.rejectAll('runtime disconnected')
+    expect(await outcome).toEqual(new Error('runtime disconnected'))
+    expect(registry.pending.size).toBe(0)
+  })
 })
+
+function connectedRegistry(): WebRuntimeRequestRegistry {
+  return new WebRuntimeRequestRegistry({
+    deviceToken: 'token',
+    nextId: () => 'request',
+    waitForConnected: () => Promise.resolve(),
+    sendEncrypted: () => true
+  })
+}

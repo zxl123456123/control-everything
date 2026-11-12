@@ -12,7 +12,11 @@ import type {
   AiVaultSessionTitlesArgs,
   AiVaultSessionTitlesResult
 } from '../../../../shared/ai-vault-session-title'
-import type { AiVaultListArgs, AiVaultListResult } from '../../../../shared/ai-vault-types'
+import {
+  AI_VAULT_SCAN_CANCELLED_MESSAGE,
+  type AiVaultListArgs,
+  type AiVaultListResult
+} from '../../../../shared/ai-vault-types'
 import {
   normalizeExecutionHostId,
   normalizeExecutionHostScope,
@@ -25,6 +29,7 @@ import { noopUnsubscribe } from './web-storage'
 import { translate } from '@/i18n/i18n'
 
 export function createWebAiVaultApi(): NonNullable<Partial<PreloadApi>['aiVault']> {
+  const pendingScans = new Map<string, AbortController>()
   const search = createSessionSearchClient(
     (method, params) => callRuntimeResult(method, params),
     'relay'
@@ -53,16 +58,32 @@ export function createWebAiVaultApi(): NonNullable<Partial<PreloadApi>['aiVault'
       if (requestedScope !== 'all' && requestedScope !== executionHostId) {
         return Promise.resolve(webAiVaultUnavailableResult(requestedScope))
       }
+      const requestToken = args?.requestToken
+      const controller = new AbortController()
+      if (requestToken !== undefined) {
+        pendingScans.get(requestToken)?.abort(new Error(AI_VAULT_SCAN_CANCELLED_MESSAGE))
+        pendingScans.set(requestToken, controller)
+      }
       // Why: no local filesystem in the browser, so every history scan runs on and is stamped as the paired runtime host.
-      return callRuntimeResult<AiVaultListResult>('aiVault.listSessions', {
-        includeAntigravityIdeSessions: args?.includeAntigravityIdeSessions,
-        limit: args?.limit,
-        force: args?.force,
-        ...(requestedScope === executionHostId && args?.afterFingerprint !== undefined
-          ? { afterFingerprint: args.afterFingerprint }
-          : {}),
-        scopePaths: args?.scopePaths,
-        executionHostId
+      return callRuntimeResult<AiVaultListResult>(
+        'aiVault.listSessions',
+        {
+          includeAntigravityIdeSessions: args?.includeAntigravityIdeSessions,
+          limit: args?.limit,
+          force: args?.force,
+          ...(requestedScope === executionHostId && args?.afterFingerprint !== undefined
+            ? { afterFingerprint: args.afterFingerprint }
+            : {}),
+          scopePaths: args?.scopePaths,
+          executionHostId
+        },
+        undefined,
+        controller.signal
+      ).finally(() => {
+        // A replacement scan may already own this token when the older rejection settles.
+        if (requestToken !== undefined && pendingScans.get(requestToken) === controller) {
+          pendingScans.delete(requestToken)
+        }
       })
     },
     resolveSessionTitles: (args: AiVaultSessionTitlesArgs) => {
@@ -78,10 +99,14 @@ export function createWebAiVaultApi(): NonNullable<Partial<PreloadApi>['aiVault'
         requests: args.requests
       }).catch(() => ({ titles: [] }))
     },
-    // Why: the runtime RPC transport has no cancel verb, so the in-flight scan
-    // settles on its own timeout. The renderer's refreshId guard already drops
-    // the late result; this only means web pays for a scan nobody reads.
-    cancelListSessions: () => Promise.resolve(),
+    // The RPC has no cancel verb: release this caller's wait and queue slot,
+    // while the host scan can finish or be preempted by the next forced refresh.
+    cancelListSessions: ({ requestToken }) => {
+      const controller = pendingScans.get(requestToken)
+      pendingScans.delete(requestToken)
+      controller?.abort(new Error(AI_VAULT_SCAN_CANCELLED_MESSAGE))
+      return Promise.resolve()
+    },
     prepareSessionResume: (args: AiVaultPrepareSessionResumeRequest) =>
       callRuntimeResult<AiVaultPrepareSessionResumeResult>('aiVault.prepareSessionResume', args),
     // Why: no server-side RPC for subagent transcript listing yet, so report an empty (not erroring) result.
