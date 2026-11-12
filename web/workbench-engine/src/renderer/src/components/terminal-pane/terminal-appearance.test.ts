@@ -189,7 +189,7 @@ describe('applyTerminalAppearance theme assignment', () => {
     expect(pane.terminal.options.fontSize).toBe(settings.terminalFontSize + 2)
   })
 
-  it('paints platform fills once without changing theme colors or rebuilding the palette on opacity changes', () => {
+  it('keeps platform terminal redraws opaque without changing text colors or rebuilding the palette', () => {
     const surfaces = new Set(['.platform-project-entry', '.platform-workspace-header'])
     vi.stubGlobal('document', {
       querySelector: (selector: string) => (surfaces.has(selector) ? {} : null)
@@ -216,11 +216,11 @@ describe('applyTerminalAppearance theme assignment', () => {
       applyPlatform(0.82)
       const firstTheme = pane.terminal.options.theme
       expect(firstTheme).toMatchObject({
-        background: 'rgba(16, 32, 48, 0)',
+        background: 'rgb(16, 32, 48)',
         foreground: '#d0e0f0',
         red: '#cc2233'
       })
-      expect(pane.terminal.options.allowTransparency).toBe(true)
+      expect(pane.terminal.options.allowTransparency).toBe(false)
       expect(pane.container.dataset.workbenchTerminalSurface).toBe('')
       expect(pane.container.style.setProperty).toHaveBeenCalledWith(
         '--ce-terminal-background',
@@ -239,7 +239,7 @@ describe('applyTerminalAppearance theme assignment', () => {
       applyPlatform(0.55)
       expect(pane.terminal.options.theme).toBe(firstTheme)
       expect(pane.container.dataset.workbenchTerminalSurface).toBe('')
-      expect(pane.terminal.options.allowTransparency).toBe(true)
+      expect(pane.terminal.options.allowTransparency).toBe(false)
       expect(settings.terminalBackgroundOpacity).toBe(0.5)
     } finally {
       vi.unstubAllGlobals()

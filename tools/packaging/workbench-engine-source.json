@@ -339058,14 +339058,14 @@
     {
       "path": "src/renderer/src/components/terminal-pane/terminal-appearance.test.ts",
       "upstream_sha256": "6d7d5bec13ce18d1d4ed74c0f99cb1b2f2ba415c4c07d656a383668dd6bb0a57",
-      "current_sha256": "61f355fa73290b66836dacddef09c90f4f8edbd33821f519f5ef7abce7f25293",
-      "reason": "精简顶部骨架并统一终端和编辑器玻璃底层，修复透明默认背景下WebGL矩形alpha并同步既有生成补丁和锁文件"
+      "current_sha256": "3a836b22ced196d47f843ec64a9e140b29fc0521b38d9c675e687f6878028599",
+      "reason": "精简顶部骨架并统一终端和编辑器玻璃底层，修复透明默认背景下WebGL矩形alpha并同步既有生成补丁和锁文件；平台终端恢复不透明绘制，避免WebGL重绘残影与输入笔画变淡"
     },
     {
       "path": "src/renderer/src/components/terminal-pane/terminal-appearance.ts",
       "upstream_sha256": "37053d4596a6bf2f48d650fd7c8121805ab002b196b0aecefd12a1d9d2d6c22c",
-      "current_sha256": "b63d455672a5af5f6665a33add8582f52ceccde2e98bd8e8784407e8a9f9637f",
-      "reason": "精简顶部骨架并统一终端和编辑器玻璃底层，修复透明默认背景下WebGL矩形alpha并同步既有生成补丁和锁文件"
+      "current_sha256": "cb8578658d64ee2bb6d2f0118be33c75d4a0222588d4d57b1171d78176178a44",
+      "reason": "精简顶部骨架并统一终端和编辑器玻璃底层，修复透明默认背景下WebGL矩形alpha并同步既有生成补丁和锁文件；平台终端恢复不透明绘制，避免WebGL重绘残影与输入笔画变淡"
     },
     {
       "path": "config/patches/xterm-src/@xterm__addon-webgl@0.20.0-beta.300.src.patch",
