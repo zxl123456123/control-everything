@@ -136,3 +136,40 @@ enabled_tools = ["list_sessions", "get_session_status", "get_session_messages"]
 工具仅有 `list_sessions()`、`get_session_status(session_id)`、`get_session_messages(session_id, offset=None, limit=20, revision=None)`；没有 focus、发送、审批、resume 或终止工具。stdio stdout 只发送 MCP 协议，网关未运行会明确返回 `gateway_unavailable`，不会自动再建索引。
 
 保存配置不代表当前聊天已加载。依照 [Codex 官方 MCP 文档](https://learn.chatgpt.com/docs/extend/mcp?surface=app)由用户控制客户端正常重载；不静默重启当前 Codex。`codex mcp list` 只证明配置，真正接入还需加载后发现恰好三个工具，并按两个真实 ID 调用，与网页结果核对。内部 `8766` HTTP 地址不是 MCP URL。
+
+## GitHub 项目进度自动播报
+
+服务器可运行 `control_everything.integrations.progress_notifications`，读取固定仓库的 Issue、PR 和个人 Project，通过已有飞书应用机器人发送关键变化及按人日报。此入口不修改 GitHub 事项，不依赖模型；客户端安装或构建 EXE 不会自动开启服务器排程。
+
+使用 Python 3.12+ 与本项目源码，在服务器私有目录保存配置，权限限制为目录 0700、文件 0600。以下仅为结构说明，路径与仓库均替换为部署现场的固定值：
+
+```json
+{
+  "repository": "example-owner/example-project",
+  "project_owner": "example-owner",
+  "project_number": 1,
+  "github_env_file": "/example/private/github.env",
+  "openclaw_profile": "/example/private/openclaw.json",
+  "route_config": "/example/private/release-notifications/config.json",
+  "state_dir": "/example/private/progress-state"
+}
+```
+
+`github_env_file` 使用既有服务器 `GITHUB_TOKEN`，只需要读取目标仓库与个人 Project 的能力。`route_config` 沿用发布通知的固定 `repository`、`account`、`target`、`sender_app_id`；账号、群与应用必须匹配现有 OpenClaw profile。应用密钥只在服务器内存中读取，不复制进配置、日志、客户端或源码。发送复用同一机器人身份的飞书 API，不增加长连接或启动模型。
+
+```sh
+python3 -m control_everything.integrations.progress_notifications preview --config /example/private/progress.json
+python3 -m control_everything.integrations.progress_notifications startup --config /example/private/progress.json
+python3 -m control_everything.integrations.progress_notifications poll --config /example/private/progress.json
+python3 -m control_everything.integrations.progress_notifications status --config /example/private/progress.json
+```
+
+`preview` 只读取并生成日报，不创建状态、不发送。核对预览与路由后，`startup` 建立当前基线并发送一次真实启动快照；重复执行不会回放旧完成通知。`poll` 记录变化、发送待发消息，并在上海时间每天 18:30 后的首次成功检查生成当日日报。多人共同事项分别显示归属，PR 按作者汇总；没有登记负责人就显示未认领。Issue 完成/取消、PR 合并/关闭未合并、看板状态、人工验收及版本发布分别表达。48 小时未更新只描述 GitHub 记录，延期与归档项不进入催办。
+
+在 Ubuntu 使用同名 systemd oneshot service 与 timer，服务以现有部署用户运行，设置 `UMask=0077`、`MemoryMax=256M`、`TimeoutStartSec=180`。`ExecStart` 指向固定源码版本、上述 `poll` 和私有配置；源码在 `src/` 布局时，把 `PYTHONPATH` 指向该版本自己的 `src`。timer 使用 `OnCalendar=*-*-* *:0/5:00`、`AccuracySec=15s`、`Persistent=true`，启用后核对下次触发时间、实际服务退出码与消息回执。不得借用其他检出的虚拟环境；该入口本身仅使用 Python 标准库。
+
+SQLite 同一事务写入完整快照与待发消息，分页失败不消费进度。发送前领取投递，飞书同一 UUID 在一小时内防重复；网络结果未知时只在首轮尝试后的 55 分钟内复用原 UUID，之后保留未知状态，不能盲目重发。确认未开始消息请求的凭据获取失败可继续重试。通知失败不会删除待发内容，也不会回滚 GitHub 状态。
+
+运维先查 `status` 的 pending/unknown、systemd 服务结果及原消息回执。保留未知记录及 UUID，取得固定群的真实 message ID、发送应用和正文后再核账；没有可确认的回执时不要手工把状态改为 sent 或换 UUID 补发。源码单测不能替代服务器真实采集、定时器执行、固定群收发及重启恢复证据。
+
+采用 [GitHub GraphQL](https://docs.github.com/en/graphql/reference/pulls) 完整分页与 [systemd timer](https://www.freedesktop.org/software/systemd/man/256/systemd.timer.html)。个人 Project 采用定时读取，因为当前 [Project webhook](https://docs.github.com/en/webhooks/webhook-events-and-payloads#projects_v2_item) 面向组织项目。飞书发送与 UUID 行为见[官方接口](https://open.feishu.cn/document/server-docs/im-v1/message/create)；凭据和投递账本按既有私有备份规则保留。
