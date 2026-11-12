@@ -1,8 +1,12 @@
 """Describe GitHub webhook facts without copying bodies or trusting supplied links."""
+from datetime import datetime, timedelta, timezone
 import re
 from urllib.parse import unquote, urlsplit
+import uuid
 
 from control_everything.integrations.progress_report import _text
+
+SHANGHAI = timezone(timedelta(hours=8))
 
 
 ACTIONS = {
@@ -73,7 +77,19 @@ def _compare(value, base, before, after):
     return f'{base}/compare/{before}...{after}'
 
 
-def _push(payload, base, actor):
+def _template(title, repository, actor, content, received_at, delivery):
+    received_at = received_at if received_at is not None else datetime.now(SHANGHAI)
+    if not isinstance(received_at, datetime) or received_at.utcoffset() is None:
+        raise ValueError('received_at_timezone_required')
+    lines = [f'【{title}】', f'仓库：{repository}',
+             f'接收时间：{received_at.astimezone(SHANGHAI):%Y-%m-%d %H:%M:%S}（北京时间）',
+             f'操作人：{actor}']
+    if delivery:
+        lines.append('事件编号：' + str(uuid.UUID(delivery))[:8])
+    return '\n'.join([*lines, content])
+
+
+def _push(payload, base):
     ref = payload.get('ref')
     if not isinstance(ref, str):
         raise ValueError('event_ref_required')
@@ -86,10 +102,10 @@ def _push(payload, base, actor):
         raise ValueError('event_push_flags_invalid')
     pusher = _required(_mapping(payload.get('pusher')).get('name'))
     action = '删除分支' if flags[0] else '新建分支并推送' if flags[1] else '强制推送' if flags[2] else '推送分支'
-    lines = [f'GitHub · {base.removeprefix("https://github.com/")} · push',
-             f'操作：{actor}；推送人：{pusher}；{action} {branch}（{before[:7]} → {after[:7]}）']
+    lines = [f'分支：{branch}', f'变更：{action}', f'推送人：{pusher}',
+             f'提交范围：{before[:7]} → {after[:7]}']
     if flags[0]:
-        return '\n'.join([*lines, base])
+        return '\n'.join([*lines, '查看：' + base])
     commits = payload.get('commits')
     if not isinstance(commits, list):
         raise ValueError('event_commits_invalid')
@@ -109,10 +125,11 @@ def _push(payload, base, actor):
         lines.append(f'- {_sha(commit.get("id"))[:7]} 作者：{name}；{subject[:240]}{"…" if len(subject) > 240 else ""}')
     if total > 5:
         lines.append(f'另有 {total - 5} 条未展开，请查看对比。')
-    return '\n'.join([*lines, _compare(payload.get('compare'), base, before, after)])
+    return '\n'.join([*lines, '查看：' + _compare(payload.get('compare'), base, before, after)])
 
 
-def render_event(event: str, payload: dict, repository: str) -> str | None:
+def render_event(event: str, payload: dict, repository: str, *,
+                 received_at: datetime | None = None, delivery: str = '') -> str | None:
     """Return approved event wording, None for ignored actions, or reject malformed facts."""
     if event not in (*ACTIONS, 'push'):
         return None
@@ -129,10 +146,13 @@ def render_event(event: str, payload: dict, repository: str) -> str | None:
         raise ValueError('event_repository_mismatch')
     base, actor = 'https://github.com/' + repository, _person(payload.get('sender'))
     if event == 'push':
-        return _push(payload, base, actor)
+        content = _push(payload, base)
+        return _template('代码推送', repository, actor, content, received_at, delivery) if content is not None else None
     item = _mapping(payload.get('pull_request' if event in ('pull_request', 'pull_request_review') else 'issue'))
     kind = 'PR' if event in ('pull_request', 'pull_request_review') or 'pull_request' in item else 'Issue'
     label, link = _object(item, kind, base)
+    title = {'issues': 'Issue 更新', 'pull_request': 'PR 更新',
+             'issue_comment': kind + ' 评论', 'pull_request_review': 'PR 评审'}[event]
     detail = ACTIONS[event][action]
     if event == 'issues' and action == 'closed':
         detail = {'completed': '关闭（标记完成；人工验收另计）', 'not_planned': '关闭（不再计划，不计完成）'}.get(item.get('state_reason'), '关闭（原因未提供，不计完成）')
@@ -140,6 +160,7 @@ def render_event(event: str, payload: dict, repository: str) -> str | None:
         if type(item.get('merged')) is not bool:
             raise ValueError('event_merged_flag_required')
         detail = '已合并（验收、发布另计）' if item['merged'] else '关闭未合并'
+        title = 'PR 已合并' if item['merged'] else 'PR 已关闭'
     elif event == 'pull_request' and action == 'synchronize':
         detail += f'（{_sha(payload.get("before"))[:7]} → {_sha(payload.get("after"))[:7]}）'
     if event in ('issues', 'pull_request') and action == 'edited':
@@ -163,4 +184,5 @@ def render_event(event: str, payload: dict, repository: str) -> str | None:
             if state not in states:
                 raise ValueError('event_review_state_invalid')
             detail += f'；评审状态：{states[state]}（{state}）'
-    return f'GitHub · {repository} · {event}.{action}\n操作：{actor}；{detail}\n{label}\n{link}'
+    content = f'对象：{label}\n变更：{detail}\n查看：{link}'
+    return _template(title, repository, actor, content, received_at, delivery)

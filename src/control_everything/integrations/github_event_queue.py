@@ -1,5 +1,6 @@
 """Authenticate repository webhooks and durably queue their bounded announcements."""
 from contextlib import closing, contextmanager
+from datetime import datetime, timezone
 import hashlib
 import hmac
 import json
@@ -70,7 +71,8 @@ def accept_event(config, secret, delivery, event, body, signature):
                 raise ValueError('delivery_payload_changed')
             database.commit()
             return {'status': 'duplicate', 'delivery': delivery}
-        message = None if event == 'ping' else render_event(event, payload, config['repository'])
+        message = None if event == 'ping' else render_event(event, payload, config['repository'],
+            received_at=datetime.now(timezone.utc), delivery=delivery)
         if message is not None and (not isinstance(message, str) or not message.strip()):
             raise ValueError('event_message_invalid')
         outcome = 'ping' if event == 'ping' else 'accepted' if message is not None else 'ignored'

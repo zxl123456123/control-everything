@@ -1,6 +1,7 @@
 """Persist authentic deliveries before ack; never call GitHub or Feishu in these tests."""
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import closing
+from datetime import datetime, timedelta, timezone
 import hashlib
 import hmac
 import json
@@ -109,6 +110,32 @@ class GitHubEventQueueTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'delivery_payload_changed'):
                 self.accept(body=self.body + b' ')
         self.assertEqual(len(self.rows('SELECT id FROM outbox')), 1)
+
+    def test_receipt_time_and_event_number_stay_fixed_across_redelivery_and_send_retry(self):
+        received = datetime(2026, 11, 12, 7, 9, 10, tzinfo=timezone.utc)
+        payload = {**self.payload, 'action': 'opened', 'sender': {'login': 'actor'},
+                   'issue': {'number': 7, 'title': '修复连接', 'assignees': [],
+                             'created_at': '2001-01-01T00:00:00Z', 'updated_at': '2001-01-01T00:00:00Z'}}
+        body = json.dumps(payload).encode()
+        with patch.object(queue, 'datetime', create=True) as clock:
+            clock.now.return_value = received
+            self.assertEqual(self.accept(body=body)['status'], 'accepted')
+            original = self.rows('SELECT body,uuid FROM outbox')[0]
+            self.assertIn('2026-11-12 15:09:10', original[0])
+            self.assertIn('北京时间', original[0])
+            self.assertIn('事件编号：' + self.delivery[:8], original[0])
+            self.assertNotIn('2001-01-01', original[0])
+            clock.now.return_value = received + timedelta(days=1)
+            self.assertEqual(self.accept(body=body)['status'], 'duplicate')
+        attempted = []
+        def disconnected(message, delivery_uuid, *, deadline=None):
+            attempted.append((message, delivery_uuid))
+            raise TimeoutError('fixture')
+        self.assertEqual(queue.drain(self.config, disconnected, clock=lambda: self.now)['unknown'], 1)
+        self.assertEqual(queue.drain(self.config, self.sender, clock=lambda: self.now + 121)['sent'], 1)
+        self.assertEqual(attempted, [original])
+        self.assertEqual(self.sent[0][:2], original)
+        self.assertEqual(self.rows('SELECT body,uuid FROM outbox'), [original])
 
     def test_ping_and_ignored_events_are_recorded_without_messages(self):
         with patch.object(queue, 'render_event', return_value=None) as render:

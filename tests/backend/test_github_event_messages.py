@@ -1,5 +1,6 @@
 """Render signed event facts while keeping authors, actions and links distinct."""
 from copy import deepcopy
+from datetime import datetime, timezone
 import unittest
 
 from control_everything.integrations.github_event_messages import render_event
@@ -24,6 +25,56 @@ def push(**fields):
     return payload(ref='refs/heads/develop', before=A, after=B, commits=commits,
                    pusher={'name': 'pusher'}, size=1, deleted=False, created=False, forced=False,
                    compare=BASE + '/compare/' + A + '...' + B, **fields)
+
+
+class EventTemplateTests(unittest.TestCase):
+    received = datetime(2026, 11, 11, 18, 2, 3, tzinfo=timezone.utc)
+    delivery = '12345678-1234-4234-8234-123456789abc'
+
+    def test_five_event_templates_have_scannable_fields_and_beijing_receipt_time(self):
+        merged = payload('closed')
+        merged['pull_request']['merged'] = True
+        cases = [
+            ('issues', payload('edited', changes={'title': {'from': 'old'}}), 'Issue 更新', '对象：Issue #7'),
+            ('pull_request', merged, 'PR 已合并', '对象：PR #7'),
+            ('push', push(), '代码推送', '分支：develop'),
+            ('issue_comment', payload('created', comment={'id': 80, 'user': {'login': 'commenter'}}),
+             'Issue 评论', '对象：Issue #7'),
+            ('pull_request_review', payload('submitted', review={'id': 90, 'state': 'approved',
+                                                                 'user': {'login': 'reviewer'}}),
+             'PR 评审', '对象：PR #7'),
+        ]
+        for event, data, heading, item in cases:
+            with self.subTest(event=event):
+                text = render_event(event, data, REPO, received_at=self.received, delivery=self.delivery)
+                self.assertTrue(text.startswith('【' + heading + '】\n'))
+                for expected in ('仓库：' + REPO, '接收时间：2026-11-12 02:02:03（北京时间）',
+                                 '操作人：actor', '事件编号：12345678', item, '\n变更：', '\n查看：https://github.com/'):
+                    self.assertIn(expected, text)
+
+    def test_push_time_is_receipt_time_and_all_branch_actions_remain_explicit(self):
+        for flag, action in (('created', '新建分支并推送'), ('deleted', '删除分支'), ('forced', '强制推送')):
+            with self.subTest(flag=flag):
+                data = push()
+                data[flag] = True
+                data['head_commit'] = {'timestamp': '2001-01-01T00:00:00Z'}
+                data['commits'][0]['timestamp'] = '2001-01-01T00:00:00Z'
+                text = render_event('push', data, REPO, received_at=self.received)
+                for expected in ('分支：develop', action, 'aaaaaaa', 'bbbbbbb', '2026-11-12 02:02:03'):
+                    self.assertIn(expected, text)
+                self.assertNotIn('2001-01-01', text)
+                self.assertNotIn('事件编号：', text)
+
+    def test_pr_conversation_comments_are_labeled_as_pr_comments(self):
+        data = payload('created', comment={'id': 80, 'user': {'login': 'commenter'}})
+        data['issue']['pull_request'] = {}
+        self.assertTrue(render_event('issue_comment', data, REPO).startswith('【PR 评论】\n'))
+
+    def test_default_receipt_time_is_labeled_and_naive_override_is_rejected(self):
+        self.assertRegex(render_event('issues', payload(), REPO),
+                         r'接收时间：\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}（北京时间）')
+        with self.assertRaisesRegex(ValueError, 'received_at_timezone_required'):
+            render_event('issues', payload(), REPO, received_at=datetime(2026, 11, 12))
 
 
 class IssueEventTests(unittest.TestCase):
