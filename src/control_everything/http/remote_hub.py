@@ -53,6 +53,16 @@ def dispatch(service, method, uri, headers, body):
     session_cookie = cookie[COOKIE_NAME].value if COOKIE_NAME in cookie else ""
     if path.startswith("/remote/desktop/"):
         token = _bearer(headers)
+        if path in ("/remote/desktop/automation/claim", "/remote/desktop/automation/ack"):
+            if "?" in uri:
+                raise HubError("invalid_request_uri", 400)
+            if method != "POST":
+                raise HubError("method_not_allowed", 405)
+            if path.endswith("/claim"):
+                _fields(body, ())
+                return 200, service.claim_automation_message(token), {}
+            values = _fields(body, ("message_id", "lease_id"))
+            return 200, service.acknowledge_automation_message(token, **values), {}
         if path in ("/remote/desktop/config", "/remote/desktop/heartbeat", "/remote/desktop/revoke"):
             if path.endswith("/config") and method == "GET":
                 return 200, service.config(token), {}

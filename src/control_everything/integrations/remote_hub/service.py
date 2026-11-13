@@ -10,6 +10,7 @@ import threading
 from urllib.parse import parse_qs, urlsplit
 
 from .identity import HubError, Identity, public_key_fingerprint
+from .automation_mailbox import AutomationMailbox
 from .provisioning import validate_new_account
 from .sessions import BrowserSessions
 from .store import ONLINE_WINDOW, RECOVERABLE, public_device
@@ -29,6 +30,7 @@ class RemoteHubService:
         self.user_directory = user_directory
         self.user_provisioning = user_provisioning
         self.sessions = BrowserSessions(store, public_origin)
+        self.automation_mailbox = AutomationMailbox(store)
         self.channel_probe = channel_probe
         self.static_paths, self.document_paths = frozenset(static_paths), frozenset(document_paths)
         self._limits, self._limit_lock = {}, threading.Lock()
@@ -303,6 +305,12 @@ class RemoteHubService:
                         "user": "ced_" + device["device_id"], "host_key": self.ssh_host_key},
                 "remote_http_port": device["http_port"], "remote_ws_port": device["ws_port"],
                 "proxy_token": device["proxy_secret"]}
+
+    def claim_automation_message(self, token):
+        return {'message': self.automation_mailbox.claim(token)}
+
+    def acknowledge_automation_message(self, token, message_id, lease_id):
+        return self.automation_mailbox.acknowledge(token, message_id, lease_id)
 
     @staticmethod
     def _device_info(**values):
