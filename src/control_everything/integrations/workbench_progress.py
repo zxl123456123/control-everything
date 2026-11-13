@@ -39,6 +39,10 @@ class WorkbenchProgressAdapter:
     def resume(self, params):
         return self.runtime._rpc('platform.taskProgress.resume', params, timeout=25)
 
+    def stop(self, binding):
+        return self.runtime._rpc('platform.taskProgress.stop', {'contractVersion': 1, 'expectedBinding': binding},
+                                 timeout=25)
+
     def observe(self, binding, *, timeout=.75, cancel_event=None):
         return self.runtime._rpc('platform.taskProgress.observe', {'contractVersion': 1, 'expectedBinding': binding},
                                  timeout=min(.75, timeout), cancel_event=cancel_event)
