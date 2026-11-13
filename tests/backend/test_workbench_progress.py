@@ -123,3 +123,54 @@ class WorkbenchProgressTests(unittest.TestCase):
                 runtime.api.terminate_process.assert_called_once_with('owned-helper')
                 runtime.api.terminate_job.assert_not_called()
                 self.assertFalse(any(thread.name == 'workbench-request-input' for thread in threading.enumerate()))
+
+    def test_prepare_scope_checks_stop_between_queries_and_forwards_event(self):
+        from tempfile import TemporaryDirectory
+        with TemporaryDirectory() as folder:
+            stop = threading.Event()
+            runtime = Mock(ready=True)
+            runtime.config.allowed_workspace_roots = [folder]
+            adapter = WorkbenchProgressAdapter(runtime)
+            calls = []
+            def rpc(method, params, **kwargs):
+                calls.append((method, kwargs))
+                stop.set()
+                return {'repos': [{'id': 'repo', 'path': folder}]}
+            runtime._rpc.side_effect = rpc
+            with self.assertRaisesRegex(WorkbenchUnavailable, 'runtime_request_cancelled'):
+                adapter.prepare_scope(folder, 'worktree', cancel_event=stop)
+            self.assertEqual(calls, [('repo.list', {'cancel_event': stop})])
+
+    def test_pre_cancelled_adapter_does_not_dispatch(self):
+        stop = threading.Event()
+        stop.set()
+        runtime = Mock(ready=True)
+        adapter = WorkbenchProgressAdapter(runtime)
+        for invoke in (lambda: adapter.prepare_scope('unused', 'worktree', cancel_event=stop),
+                       lambda: adapter.create({}, cancel_event=stop)):
+            with self.assertRaisesRegex(WorkbenchUnavailable, 'runtime_request_cancelled'):
+                invoke()
+        runtime._rpc.assert_not_called()
+
+    def test_create_passes_cancellation_and_keeps_original_timeout(self):
+        runtime = Mock(ready=True)
+        stop = threading.Event()
+        WorkbenchProgressAdapter(runtime).create({'operationId': 'original'}, cancel_event=stop)
+        runtime._rpc.assert_called_once_with('platform.taskProgress.create', {'operationId': 'original'},
+                                             timeout=25, cancel_event=stop)
+
+    def test_prepare_scope_forwards_event_to_both_queries(self):
+        from tempfile import TemporaryDirectory
+        with TemporaryDirectory() as folder:
+            runtime = Mock(ready=True)
+            runtime.config.allowed_workspace_roots = [folder]
+            runtime.config.data_root = Path(folder)
+            runtime.status.return_value = {'runtimeId': 'runtime'}
+            runtime._rpc.side_effect = [{'repos': [{'id': 'repo', 'path': folder}]},
+                                        {'worktrees': [{'id': 'worktree', 'path': folder}]}]
+            stop = threading.Event()
+            with patch('control_everything.integrations.workbench_progress.read_json',
+                       return_value={'installationId': '11111111-1111-4111-8111-111111111111'}):
+                scope = WorkbenchProgressAdapter(runtime).prepare_scope(folder, 'worktree', cancel_event=stop)
+            self.assertEqual(scope['worktreeId'], 'worktree')
+            self.assertEqual([c.kwargs for c in runtime._rpc.call_args_list], [{'cancel_event': stop}] * 2)

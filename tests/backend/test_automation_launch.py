@@ -35,7 +35,7 @@ class AutomationLaunchTests(AutomationQueueFixture):
         step = self.reserve_plan()
         sessions, calls = {}, []
         create = self.host.create
-        def once(params):
+        def once(params, *, cancel_event=None):
             calls.append(copy.deepcopy(params))
             if params['operationId'] not in sessions:
                 sessions[params['operationId']] = create(params)
@@ -64,7 +64,7 @@ class AutomationLaunchTests(AutomationQueueFixture):
     def test_owner_expiry_during_launch_cannot_publish_reply(self):
         step = self.reserve_plan()
         create = self.host.create
-        def delayed(params):
+        def delayed(params, *, cancel_event=None):
             self.now += 61
             return create(params)
         self.host.create = delayed
@@ -114,3 +114,71 @@ class AutomationLaunchTests(AutomationQueueFixture):
         self.host.reply['status'].update(state='done', turnEndedAt=120, turnEndDisposition='identified',
                                          lastAssistantMessage='Wrong generation')
         self.assertEqual(self.launch.run(self.lease, step)['status'], 'running')
+
+    def test_prepare_pre_cancelled_does_not_dispatch(self):
+        import threading
+        stop = threading.Event()
+        stop.set()
+        original = self.claimed['step']
+        self.assertEqual(self.launch.prepare(self.lease, original, cancel_event=stop), original)
+
+    def test_create_cancellation_keeps_unknown_operation_for_replay(self):
+        import threading
+        stop = threading.Event()
+        step = self.reserve_plan()
+        calls = []
+        create = self.host.create
+        def cancelled(params, *, cancel_event=None):
+            calls.append((copy.deepcopy(params), cancel_event))
+            create(params)
+            cancel_event.set()
+            raise TimeoutError('cancelled RPC wait after dispatch')
+        self.host.create = cancelled
+        result = self.launch.run(self.lease, step, cancel_event=stop)
+        self.assertEqual(result['status'], 'unknown')
+        self.assertEqual(result['operation_id'], step['operation_id'])
+        self.assertEqual(result['binding'], {})
+        self.assertIs(calls[0][1], stop)
+        stop.clear()
+        def replay(params, *, cancel_event=None):
+            calls.append((copy.deepcopy(params), cancel_event))
+            return {'contractVersion': 1, 'binding': copy.deepcopy(self.host.binding)}
+        self.host.create = replay
+        self.assertEqual(self.launch.run(self.lease, result, cancel_event=stop)['status'], 'running')
+        self.assertEqual(calls[0][0], calls[1][0])
+        self.assertEqual(self.host.create_calls, 1)
+
+    def test_successful_reply_is_retained_when_stop_arrives_with_reply(self):
+        import threading
+        stop = threading.Event()
+        create = self.host.create
+        def completed(params, *, cancel_event=None):
+            reply = create(params)
+            stop.set()
+            return reply
+        self.host.create = completed
+        result = self.launch.run(self.lease, self.reserve_plan(), cancel_event=stop)
+        self.assertEqual(result['status'], 'running')
+        self.assertEqual(result['binding'], self.host.binding)
+
+    def test_cancelled_prepare_keeps_unknown_and_same_operation(self):
+        import threading
+        stop = threading.Event()
+        calls = []
+        def cancelled(directory, worktree, *, cancel_event=None):
+            calls.append(cancel_event)
+            stop.set()
+            raise TimeoutError('prepare wait cancelled')
+        self.host.prepare_scope = cancelled
+        result = self.launch.prepare(self.lease, self.claimed['step'], cancel_event=stop)
+        self.assertEqual(result['status'], 'unknown')
+        self.assertEqual(result['operation_id'], self.claimed['step']['operation_id'])
+        self.assertEqual(calls, [stop])
+
+    def test_run_pre_cancelled_does_not_create(self):
+        import threading
+        step = self.reserve_plan()
+        stop = threading.Event()
+        stop.set()
+        self.assertEqual(self.launch.run(self.lease, step, cancel_event=stop), step)
+        self.assertEqual(self.host.create_calls, 0)

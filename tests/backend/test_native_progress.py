@@ -37,11 +37,11 @@ class FakeHost:
                       'status': {'state': 'working', 'providerSession': self.binding['providerSession'], 'turnStartedAt': 90}}
         self.receipts = {}
 
-    def prepare_scope(self, directory, worktree):
+    def prepare_scope(self, directory, worktree, *, cancel_event=None):
         return {'runtimeId': 'runtime', 'environmentId': 'environment', 'repoId': 'repo',
                 'worktreeId': worktree, 'cwd': directory}
 
-    def create(self, params):
+    def create(self, params, *, cancel_event=None):
         self.create_calls += 1
         return {'contractVersion': 1, 'binding': copy.deepcopy(self.binding), 'disposition': 'created'}
 

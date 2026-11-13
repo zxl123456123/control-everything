@@ -14,7 +14,7 @@ class PlanningHost(FakeHost):
         self.kind, self.verdict, self.model = 'small', 'approve', 'gpt-6-astra'
         self.questions = []
 
-    def create(self, params):
+    def create(self, params, *, cancel_event=None):
         self.calls.append(copy.deepcopy(params))
         self.binding['providerSession']['id'] = str(len(self.calls))
         return super().create(params)
@@ -147,7 +147,7 @@ class ConsumerTests(AutomationQueueFixture):
     def test_unknown_operation_replays_exact_request(self):
         calls = []
         create = self.host.create
-        def lost(params):
+        def lost(params, *, cancel_event=None):
             calls.append(copy.deepcopy(params))
             if len(calls) == 1:
                 raise TimeoutError('unknown external result')

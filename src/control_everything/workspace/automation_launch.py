@@ -13,15 +13,17 @@ class AutomationLaunch:
             return step
         return self.queue.record(lease, step, 'unknown', result={'reason': reason})
 
-    def prepare(self, lease, step):
-        if step['status'] == 'completed' or not self.adapter.available:
+    def prepare(self, lease, step, *, cancel_event=None):
+        if (step['status'] == 'completed' or not self.adapter.available
+                or cancel_event is not None and cancel_event.is_set()):
             return step
         self.queue.renew(lease)
         if step['status'] == 'reserved':
             step = self.queue.record(lease, step, 'dispatching')
         try:
             payload = step['request']['input']
-            scope = self.adapter.prepare_scope(payload['directory']['path'], payload['request']['worktree_id'])
+            scope = self.adapter.prepare_scope(payload['directory']['path'], payload['request']['worktree_id'],
+                                               cancel_event=cancel_event)
         except ProfileError:
             raise
         except Exception:
@@ -41,7 +43,7 @@ class AutomationLaunch:
         try:
             # The native create operation first replays/reconciles this exact ID and request.
             # Its pinned runtime identity prevents a fresh runtime from reissuing a lost start.
-            reply = self.adapter.create(params)
+            reply = self.adapter.create(params, cancel_event=cancel_event)
         except ProfileError:
             raise
         except Exception:
