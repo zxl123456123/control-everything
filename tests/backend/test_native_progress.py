@@ -278,8 +278,8 @@ class NativeProgressTests(NativeFixture):
 
     def test_fresh_schema_and_old_writer_rejected(self):
         with self.store.connection() as c:
-            self.assertEqual(c.execute('PRAGMA user_version').fetchone()[0], 11)
-            task_schema.validate_schema(c, 11)
+            self.assertEqual(c.execute('PRAGMA user_version').fetchone()[0], 12)
+            task_schema.validate_schema(c, 12)
             task_schema.register_writer(c, 9)
             with self.assertRaisesRegex(Exception, 'writer_version_mismatch'):
                 c.execute("UPDATE task_items SET title='stale'")
@@ -345,9 +345,9 @@ class NativeProgressTests(NativeFixture):
                     c.execute("INSERT INTO projects VALUES('project','Keep history',0,'then','then',0)")
                     c.commit()
                 result = migrate_tasks(str(root))
-                self.assertEqual(result['schema_version'], 11)
+                self.assertEqual(result['schema_version'], 12)
                 with closing(sqlite3.connect(db)) as c:
-                    task_schema.validate_schema(c, 11)
+                    task_schema.validate_schema(c, 12)
                     self.assertEqual(c.execute("SELECT name FROM projects WHERE id='project'").fetchone()[0], 'Keep history')
 
     def test_observer_database_lock_budget_and_close_are_bounded(self):

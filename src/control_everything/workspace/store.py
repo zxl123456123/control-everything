@@ -17,7 +17,7 @@ from control_everything.workspace.validation import (
 from control_everything.workspace import task_schema as tasks
 from control_everything.workspace.task_schema import BASE_SCHEMA, MANAGEMENT_SCHEMA
 
-MANAGEMENT_TABLES = tasks.SCHEMA11_TABLES
+MANAGEMENT_TABLES = tasks.SCHEMA12_TABLES
 
 
 def now_utc():
@@ -84,12 +84,12 @@ class WorkspaceStore:
                         try:
                             # A second process might have initialized while we waited.
                             if not connection.execute("SELECT name FROM sqlite_master").fetchone():
-                                tasks.install_schema11(connection, fresh=True)
+                                tasks.install_schema12(connection, fresh=True)
                             connection.commit()
                         except Exception:
                             connection.rollback()
                             raise
-                    elif version in (1, 2, 3, 4, 5, 6, 7, 8, 9, 10):
+                    elif version in (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11):
                         self.validate_schema(connection, version)
                         raise WorkspaceError("migration_required")
                     self.checked_management_connection(connection)
@@ -479,7 +479,7 @@ class WorkspaceStore:
             with self.connection() as connection:
                 return self.is_empty(connection)
         return all(connection.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0] == 0
-                   for table in MANAGEMENT_TABLES if table != 'task_center_meta')
+                   for table in MANAGEMENT_TABLES if table not in ('task_center_meta', 'automation_owner'))
 
     @staticmethod
     def _origin_item(connection, origin, raw_id):

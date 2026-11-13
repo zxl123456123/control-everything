@@ -108,7 +108,7 @@ def migrate_tasks(data_dir):
                     tasks.validate_schema(reader, tasks.SCHEMA_VERSION)
                     integrity(reader)
                     return {'status': 'already_current', 'schema_version': tasks.SCHEMA_VERSION}
-                if version not in (1, 2, 3, 4, 5, 6, 7, 8, 9, 10):
+                if version not in (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11):
                     raise WorkspaceError('schema_error')
                 if version == 1:
                     source_facts = check_source(reader)
@@ -324,8 +324,11 @@ def migrate_tasks(data_dir):
             if version < 10:
                 tasks.add_schema10(connection)
                 tasks.finish_schema10(connection)
-            tasks.add_schema11(connection)
-            tasks.finish_schema11(connection)
+            if version < 11:
+                tasks.add_schema11(connection)
+                tasks.finish_schema11(connection)
+            tasks.add_schema12(connection)
+            tasks.finish_schema12(connection)
             phase = 'validate'
             tasks.validate_schema(connection, tasks.SCHEMA_VERSION)
             integrity(connection)
@@ -367,7 +370,7 @@ def preserve_tasks(data_dir):
                 integrity(reader)
             finally:
                 reader.close()
-            if version not in (2, 3, 4, 5, 6, 7, 8, 9, 10, 11):
+            if version not in (2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12):
                 raise WorkspaceError('schema_error')
             config_hash = config_digest(profile)
             backup = create_backup(profile)

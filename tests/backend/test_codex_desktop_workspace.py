@@ -294,7 +294,7 @@ class CodexDesktopWorkspaceTests(unittest.TestCase):
         old = self.create()
         backup = profile_import.create_backup(self.profile)
         manifest = profile_import.validate_backup(backup)
-        self.assertEqual((manifest['version'], manifest['schema_version']), (11, 11))
+        self.assertEqual((manifest['version'], manifest['schema_version']), (12, 12))
         restored_dir = self.root / 'restored'
         profile_import.restore_backup(str(backup), str(restored_dir))
         restored = Profile.open(str(restored_dir))
@@ -303,7 +303,7 @@ class CodexDesktopWorkspaceTests(unittest.TestCase):
         # Re-sign a malformed synthetic backup to exercise semantic, rather than checksum, validation.
         database = backup / 'management.sqlite3'
         with closing(sqlite3.connect(database)) as connection:
-            connection.create_function('task_center_writer_version', 0, lambda: 11)
+            connection.create_function('task_center_writer_version', 0, lambda: 12)
             connection.execute("UPDATE project_sources SET relative_path='unexpected'")
             connection.commit()
         manifest['files']['management.sqlite3'] = {'size': database.stat().st_size,

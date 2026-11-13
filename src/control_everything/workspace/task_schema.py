@@ -31,7 +31,7 @@ CREATE TABLE manual_records (id TEXT PRIMARY KEY, provider_id TEXT NOT NULL, pro
 SCHEMA1_TABLES = ("projects", "project_directories", "project_sources", "project_manual", "project_manual_history",
                      "todos", "tasks", "manual_records", "profile_imports")
 
-SCHEMA_VERSION = 11
+SCHEMA_VERSION = 12
 STATES = ("todo", "doing", "blocked", "review", "done")
 MAX_REVISION = (1 << 53) - 1
 MAX_BODY_BYTES = 262144
@@ -46,6 +46,7 @@ SCHEMA8_TABLES = (*SCHEMA7_TABLES, "task_messages")
 SCHEMA9_TABLES = (*SCHEMA8_TABLES, "execution_runs", "execution_events", "execution_approvals")
 SCHEMA10_TABLES = (*SCHEMA9_TABLES, "task_native_runs", "task_deliveries", "task_native_message_delivery")
 SCHEMA11_TABLES = (*SCHEMA10_TABLES, "automation_events")
+SCHEMA12_TABLES = (*SCHEMA11_TABLES, "automation_owner", "automation_flows", "automation_steps")
 ITEM_COLUMNS = ("id", "origin", "origin_id", "title", "project_id", "provider_id", "state", "session_key",
                 "source", "created_at", "updated_at", "todo_position", "sort_index", "resume_state", "revision",
                 "priority", "focus", "assigned_agent_id")
@@ -114,7 +115,7 @@ VIEWS = (
 )
 _SCHEMA_TABLES = {1: SCHEMA1_TABLES, 2: SCHEMA2_TABLES, 3: SCHEMA3_TABLES, 4: SCHEMA4_TABLES,
                   5: SCHEMA5_TABLES, 6: SCHEMA6_TABLES, 7: SCHEMA7_TABLES, 8: SCHEMA8_TABLES, 9: SCHEMA9_TABLES,
-                  10: SCHEMA10_TABLES, 11: SCHEMA11_TABLES}
+                  10: SCHEMA10_TABLES, 11: SCHEMA11_TABLES, 12: SCHEMA12_TABLES}
 
 
 def tables_for(version):
@@ -390,6 +391,51 @@ def finish_schema11(connection):
     connection.execute("PRAGMA user_version=11")
 
 
+def add_schema12(connection):
+    statements = (
+        """CREATE TABLE automation_owner(
+ id INTEGER PRIMARY KEY CHECK(id=1), owner_id TEXT, generation INTEGER NOT NULL, lease_until REAL NOT NULL)""",
+        """CREATE TABLE automation_flows(
+ id TEXT PRIMARY KEY NOT NULL, task_id TEXT NOT NULL REFERENCES task_items(id),
+ project_id TEXT NOT NULL REFERENCES projects(id), origin_event_id TEXT NOT NULL UNIQUE REFERENCES automation_events(id),
+ status TEXT NOT NULL CHECK(status IN ('queued','running','waiting_user','waiting_external','awaiting_acceptance',
+ 'integrating','completed','failed','cancelling','cancelled','unknown','paused')),
+ phase TEXT NOT NULL, revision INTEGER NOT NULL DEFAULT 1, context_json TEXT NOT NULL,
+ attention_json TEXT NOT NULL DEFAULT '{}', created_at TEXT NOT NULL, updated_at TEXT NOT NULL)""",
+        "CREATE UNIQUE INDEX idx_automation_active_task ON automation_flows(task_id) "
+        "WHERE status NOT IN ('completed','failed','cancelled')",
+        """CREATE TABLE automation_steps(
+ id TEXT PRIMARY KEY NOT NULL, flow_id TEXT NOT NULL REFERENCES automation_flows(id), ordinal INTEGER NOT NULL,
+ kind TEXT NOT NULL, attempt INTEGER NOT NULL, owner_generation INTEGER NOT NULL,
+ writes_project INTEGER NOT NULL DEFAULT 1 CHECK(writes_project IN (0,1)),
+ status TEXT NOT NULL CHECK(status IN ('reserved','dispatching','running','completed','failed','unknown','cancelling','cancelled')),
+ operation_id TEXT NOT NULL UNIQUE, request_json TEXT NOT NULL, binding_json TEXT NOT NULL DEFAULT '{}',
+ result_json TEXT NOT NULL DEFAULT '{}', created_at TEXT NOT NULL, updated_at TEXT NOT NULL,
+ UNIQUE(flow_id,ordinal))""",
+        "ALTER TABLE automation_events ADD COLUMN flow_id TEXT REFERENCES automation_flows(id)",
+    )
+    for statement in statements:
+        connection.execute(statement)
+
+
+def install_schema12(connection, *, fresh=False):
+    if fresh:
+        install_schema11(connection, fresh=True)
+    add_schema12(connection)
+    if fresh:
+        finish_schema12(connection)
+
+
+def finish_schema12(connection):
+    register_writer(connection, 12)
+    for table in SCHEMA12_TABLES:
+        for action in ("insert", "update", "delete"):
+            connection.execute(f"DROP TRIGGER IF EXISTS guard_{table}_{action}")
+    for statement in guard_statements(12):
+        connection.execute(statement)
+    connection.execute("PRAGMA user_version=12")
+
+
 def finish_schema2(connection, receipt):
     register_writer(connection, 2)
     for statement in (*VIEWS, *guard_statements(2)):
@@ -564,8 +610,10 @@ def _expected_schema_signature(version):
             install_schema9(expected, fresh=True)
         elif version == 10:
             install_schema10(expected, fresh=True)
-        else:
+        elif version == 11:
             install_schema11(expected, fresh=True)
+        else:
+            install_schema12(expected, fresh=True)
         return tuple(schema_signature(expected))
     finally:
         expected.close()

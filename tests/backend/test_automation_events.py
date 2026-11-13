@@ -151,7 +151,7 @@ class AutomationEventStorageTests(unittest.TestCase):
             task_schema.validate_schema(connection, 10)
             self.assertEqual(task_schema.table_facts(connection, 10), before)
         result = task_migration.migrate_tasks(str(root))
-        self.assertEqual(result['schema_version'], 11)
+        self.assertEqual(result['schema_version'], 12)
         self.assertEqual(backups.validate_backup(result['backup'])['schema_version'], 10)
         with Profile.open(str(root)).store.connection() as connection:
             self.assertEqual(task_schema.table_facts(connection, 10), before)
