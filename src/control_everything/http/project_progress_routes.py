@@ -7,7 +7,7 @@ from control_everything.input_validation import ProfileError
 from control_everything.sessions.source import canonical_uuid
 from control_everything.workspace.store import WorkspaceError
 
-ROUTE = re.compile(r'/api/workspace/tasks/([^/]+)/(progress|native-start|native-resume|native-release|native-adopt|native-feedback|delivery-review|native-messages/([^/]+)/send)\Z')
+ROUTE = re.compile(r'/api/workspace/tasks/([^/]+)/(progress|automation-enable|native-start|native-resume|native-release|native-adopt|native-feedback|delivery-review|native-messages/([^/]+)/send)\Z')
 
 
 def handle(handler, path, *, write=False):
@@ -34,7 +34,9 @@ def handle(handler, path, *, write=False):
             result = service.get(task_id, execution_allowed=local_control_allowed(handler))
         else:
             body = handler.read_json_body(max_bytes=65536, strict=True)
-            if action == 'native-start':
+            if action == 'automation-enable':
+                result = workspace.enable_task_automation(task_id, body)
+            elif action == 'native-start':
                 result = service.start(task_id, body)
             elif action == 'native-resume':
                 result = service.resume(task_id, body)
@@ -50,7 +52,7 @@ def handle(handler, path, *, write=False):
                 if body != {}:
                     raise ValueError('invalid_body')
                 result = service.send_feedback(task_id, canonical_uuid(match[3]))
-        pending = action == 'native-start' and (result.get('native_run') or {}).get('launch_state') in ('reserved', 'unknown')
+        pending = action == 'automation-enable' or action == 'native-start' and (result.get('native_run') or {}).get('launch_state') in ('reserved', 'unknown')
         handler.reply(202 if pending else 200, result)
     except (ProfileError, WorkspaceError) as error:
         handler.profile_error(error)

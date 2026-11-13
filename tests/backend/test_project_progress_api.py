@@ -47,6 +47,22 @@ class ProjectProgressAPITests(unittest.TestCase):
         h.server.workspace.native_progress.get.assert_called_once_with(task_id, execution_allowed=False)
         h.server.workspace.native_progress.start.assert_not_called()
 
+    def test_automation_intake_requires_local_owner_before_reading_the_body(self):
+        for invalid in ('Origin', 'Host', 'X-Session-CSRF', 'X-CE-Proxy-Token', 'address'):
+            with self.subTest(invalid=invalid):
+                h = self.handler()
+                h.server.workspace.enable_task_automation = Mock()
+                if invalid == 'address':
+                    h.client_address = ('192.0.2.1', 100)
+                else:
+                    if invalid in h.headers:
+                        del h.headers[invalid]
+                    h.headers[invalid] = 'invalid'
+                self.assertTrue(routes.handle(h, urlsplit(f'/api/workspace/tasks/{uuid4()}/automation-enable'), write=True))
+                h.reject.assert_called_once_with(403, 'local_control_required')
+                h.read_json_body.assert_not_called()
+                h.server.workspace.enable_task_automation.assert_not_called()
+
     def test_fixed_routes_accept_no_arbitrary_owner_method(self):
         h = self.handler()
         task_id = str(uuid4())
@@ -59,6 +75,8 @@ class ProjectProgressAPITests(unittest.TestCase):
     def test_queries_invalid_ids_and_read_write_method_confusion_rejected(self):
         for path, write, code in ((f'/api/workspace/tasks/{uuid4()}/progress', True, 405),
                                   (f'/api/workspace/tasks/{uuid4()}/native-start', False, 405),
+                                  (f'/api/workspace/tasks/{uuid4()}/automation-enable', False, 405),
+                                  (f'/api/workspace/tasks/{uuid4()}/automation-enable?method=send', True, 400),
                                   ('/api/workspace/tasks/not-uuid/progress', False, 400),
                                   (f'/api/workspace/tasks/{uuid4()}/progress?method=send', False, 400)):
             h = self.handler()
@@ -111,6 +129,26 @@ class ProjectProgressQuickCreateTests(unittest.TestCase):
                 'agent': 'codex', 'worktree_id': 'worktree'})
         self.assertEqual(status, 200, started)
         self.assertEqual(started['native_run']['brief_snapshot']['brief']['request_text'], 'Existing full requirement')
+
+    def test_explicit_automation_intake_commits_before_ack_even_when_executor_is_offline(self):
+        project = self.profile.store.save_project(project_body(self.root / 'repo'))
+        _, created = self.request('/api/workspace/items', 'POST', {'title': 'Run this task', 'project_id': project['id']})
+        item = created['item']
+        self.workspace.native_progress.adapter.available = False
+        body = {'expected_revision': item['revision'], 'brief_revision': 0, 'client_token': 'automation-one',
+                'agent': 'codex', 'worktree_id': 'worktree'}
+        path = f"/api/workspace/tasks/{item['id']}/automation-enable"
+        with patch.object(PanelHandler, 'client_address', ('127.0.0.1', 12345), create=True):
+            status, receipt = self.request(path, 'POST', body)
+            self.assertEqual(status, 202, receipt)
+            repeated_status, repeated = self.request(path, 'POST', body)
+            self.assertEqual((repeated_status, repeated['id']), (202, receipt['id']))
+            rejected_status, _ = self.request(path, 'POST', {**body, 'command': 'external command'})
+            self.assertEqual(rejected_status, 422)
+        with self.profile.store.connection() as connection:
+            self.assertEqual(connection.execute('SELECT COUNT(*) FROM automation_events').fetchone()[0], 1)
+            self.assertEqual(connection.execute('SELECT id FROM automation_events').fetchone()[0], receipt['id'])
+        self.assertEqual(self.workspace.native_progress.adapter.create_calls, 0)
 
 
 if __name__ == '__main__':
