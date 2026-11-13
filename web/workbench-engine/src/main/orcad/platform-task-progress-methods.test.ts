@@ -17,6 +17,7 @@ import { hashCanonical, replayStableCallerParams } from '../runtime/rpc/orchestr
 import { isDurableMutation, isTerminalPromptMutation } from '../../shared/orchestration-rpc-contract'
 import { OrcaRuntimeWithGetTerminalInteractiveWait } from '../runtime/terminal/wait/terminal-interactive-wait'
 import { OrcaRuntimeWithAgentPromptRequestCorrelation } from '../runtime/orca-runtime-agent-prompt-request-correlation'
+import { OrcaRuntimeWithGetPtyRecordForPaneKey } from '../runtime/orchestration/terminal-pane-mail-routing'
 
 const registry = buildRegistry(PLATFORM_TASK_PROGRESS_METHODS)
 const method = (name: string) => registry.get(`platform.taskProgress.${name}`) as RpcMethod
@@ -314,6 +315,84 @@ describe('read-only receipt inspection', () => {
 })
 
 describe('durable settled send', () => {
+  const resumeWithoutStatus = async (disposition = 'created') => {
+    Object.assign(runtime, { getAgentStatusSnapshotFn: () => [] })
+    vi.mocked(runtime.getTerminalInteractiveWait).mockResolvedValue(null)
+    vi.mocked(runtime.ensureAgentSession).mockResolvedValue({ terminal: { handle: 'terminal' }, disposition } as any)
+    await call('resume', { contractVersion: 1, runtimeId: 'runtime', environmentId: binding.environmentId,
+      repoId: 'repo', worktreeId: 'worktree', agent: 'codex', providerSession: binding.providerSession })
+  }
+  it('allows a host-created resume to receive its first input without inventing progress', async () => {
+    await resumeWithoutStatus()
+    expect(await call('observe', { contractVersion: 1, expectedBinding: binding }))
+      .toMatchObject({ available: false, reason: 'status_unavailable', canSendFeedback: true })
+    const dispatcher = new RpcDispatcher({ runtime, methods: PLATFORM_TASK_PROGRESS_METHODS })
+    const request: RpcRequest = { id: 'f', authToken: 'test', method: 'platform.taskProgress.send', params: sendParams(),
+      orchestrationContractVersion: ORCHESTRATION_CONTRACT_VERSION, orchestrationRequestId: 'request' }
+    expect(await dispatcher.dispatch(request)).toMatchObject({ ok: true, result: { send: { accepted: true } } })
+    expect(await dispatcher.dispatch(request)).toMatchObject({ ok: true, result: { mutation: { replayed: true } } })
+    expect(runtime.sendTerminalAgentPrompt).toHaveBeenCalledOnce()
+    expect(await call('observe', { contractVersion: 1, expectedBinding: binding }))
+      .toMatchObject({ available: false, canSendFeedback: false })
+  })
+  it.each(['adopted', 'provider-changed', 'incarnation-changed', 'permission', 'wait-unknown', 'mobile-lock', 'not-codex'])
+    ('does not grant a first input for %s', async reason => {
+      await resumeWithoutStatus(reason === 'adopted' ? 'adopted' : 'created')
+      if (reason === 'provider-changed') binding.providerSession = { key: 'session_id', id: 'different' }
+      if (reason === 'incarnation-changed') vi.mocked(runtime.getTerminalProcessIncarnation).mockReturnValue('new')
+      if (reason === 'permission') vi.mocked(runtime.getTerminalInteractiveWait).mockResolvedValue({ kind: 'permission' } as any)
+      if (reason === 'wait-unknown') vi.mocked(runtime.getTerminalInteractiveWait).mockResolvedValue(undefined)
+      if (reason === 'mobile-lock') vi.mocked(runtime.getDriver).mockReturnValue({ kind: 'mobile', clientId: 'phone' } as any)
+      if (reason === 'not-codex') vi.mocked(runtime.isTerminalRunningSettledPromptAgent).mockResolvedValue(false)
+      const dispatcher = new RpcDispatcher({ runtime, methods: PLATFORM_TASK_PROGRESS_METHODS })
+      expect(await dispatcher.dispatch({ id: 'f', authToken: 'test', method: 'platform.taskProgress.send', params: sendParams(),
+        orchestrationContractVersion: ORCHESTRATION_CONTRACT_VERSION, orchestrationRequestId: 'request' }))
+        .toMatchObject({ ok: true, result: { send: { accepted: false } } })
+      expect(runtime.sendTerminalAgentPrompt).not.toHaveBeenCalled()
+    })
+  it('confirms the expected foreground agent rather than another supported agent', async () => {
+    const host = { getLivePtyForHandle: () => ({ pty: { ptyId: 'pty' } }),
+      ptyController: { getForegroundProcess: async () => 'claude' }, isTerminalRunningAgent: async () => true }
+    const check = OrcaRuntimeWithGetPtyRecordForPaneKey.prototype.isTerminalRunningSettledPromptAgent
+    expect(await check.call(host as never, 'terminal')).toBe(true)
+    expect(await check.call(host as never, 'terminal', 'codex')).toBe(false)
+  })
+  it('rejects conflicting status rows before offering or sending the first resumed input', async () => {
+    await resumeWithoutStatus()
+    Object.assign(runtime, { getAgentStatusSnapshotFn: () => [row,
+      { ...row, state: 'blocked', providerSession: { key: 'session_id', id: 'other' } }] })
+    expect(await call('observe', { contractVersion: 1, expectedBinding: binding }))
+      .toMatchObject({ available: false, canSendFeedback: false })
+    const dispatcher = new RpcDispatcher({ runtime, methods: PLATFORM_TASK_PROGRESS_METHODS })
+    expect(await dispatcher.dispatch({ id: 'f', authToken: 'test', method: 'platform.taskProgress.send', params: sendParams(),
+      orchestrationContractVersion: ORCHESTRATION_CONTRACT_VERSION, orchestrationRequestId: 'request' }))
+      .toMatchObject({ ok: true, result: { send: { accepted: false } } })
+    expect(runtime.sendTerminalAgentPrompt).not.toHaveBeenCalled()
+  })
+  it('reserves the first resumed input before writing even when two different requests race', async () => {
+    await resumeWithoutStatus()
+    let arrivals = 0
+    let release!: () => void
+    const ready = new Promise<void>(resolve => { release = resolve })
+    const writes: string[] = []
+    vi.mocked(runtime.sendTerminalAgentPrompt).mockImplementation(async (_h, _t, opts) => {
+      if (++arrivals === 2) release()
+      await ready
+      await opts.beforeWrite?.('pty')
+      writes.push(opts.requestId!)
+      const value = { ...receipt().send, prompt: { ...receipt().send.prompt, requestId: opts.requestId! } }
+      opts.onInputAccepted?.(value as any)
+      return value as any
+    })
+    const dispatcher = new RpcDispatcher({ runtime, methods: PLATFORM_TASK_PROGRESS_METHODS })
+    const results = await Promise.all(['first', 'second'].map(id => dispatcher.dispatch({
+      id, authToken: 'test', method: 'platform.taskProgress.send',
+      params: { ...sendParams(), origin: { ...sendParams().origin, requestId: id } },
+      orchestrationContractVersion: ORCHESTRATION_CONTRACT_VERSION, orchestrationRequestId: id
+    })))
+    expect(writes).toHaveLength(1)
+    expect(results.filter(result => result.ok && (result.result as any)?.send?.accepted)).toHaveLength(1)
+  })
   it('classifies only fixed send, not receipt, as a prompt mutation', () => {
     expect(isTerminalPromptMutation('platform.taskProgress.send', sendParams())).toBe(true)
     expect(isDurableMutation('platform.taskProgress.receipt', receiptParams())).toBe(false)

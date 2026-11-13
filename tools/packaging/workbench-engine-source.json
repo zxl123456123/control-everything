@@ -327302,6 +327302,12 @@
   ],
   "adapted_files": [
     {
+      "path": "src/main/runtime/orchestration/terminal-pane-mail-routing.ts",
+      "upstream_sha256": "88ec33d119231bbbc3f415ea6893d81773b3017900d01ef8c85653b97d2cd753",
+      "current_sha256": "d8be77f9c9c2688dfe8c34ddd66f698474d39e6c0aab6c8bcf5bae1e53cb9651",
+      "reason": "平台首轮续办输入核对具体前台 Agent，避免其他受支持程序替代已绑定的 Codex 会话。"
+    },
+    {
       "path": "src/renderer/src/lib/folder-workspace-runtime-owner.ts",
       "upstream_sha256": "07e1621218007cbebae2de1c63789a89c5dfec57cfae160ecdd4f8c5963e9fb2",
       "current_sha256": "ee8892d3db17323846a48dbc77612c170b27caee5cd36cbfbf0d52258eb43b41",

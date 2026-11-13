@@ -121,7 +121,7 @@ export abstract class OrcaRuntimeWithGetPtyRecordForPaneKey extends OrcaRuntimeW
     return this.terminalAgentPresence.isRunning(handle, options)
   }
 
-  async isTerminalRunningSettledPromptAgent(handle: string): Promise<boolean> {
+  async isTerminalRunningSettledPromptAgent(handle: string, expectedAgent?: 'claude' | 'codex'): Promise<boolean> {
     try {
       const livePty = this.getLivePtyForHandle(handle)
       const leaf = livePty ? null : this.getLiveLeafForHandle(handle).leaf
@@ -140,7 +140,7 @@ export abstract class OrcaRuntimeWithGetPtyRecordForPaneKey extends OrcaRuntimeW
         foregroundProcess = await this.ptyController.confirmForegroundProcess(ptyId)
         agent = recognizeAgentProcess(foregroundProcess)?.agent
       }
-      if (agent !== 'claude' && agent !== 'codex') {
+      if ((agent !== 'claude' && agent !== 'codex') || (expectedAgent && agent !== expectedAgent)) {
         return false
       }
       const presence = { retryForegroundWrappers: false, foregroundProcess }

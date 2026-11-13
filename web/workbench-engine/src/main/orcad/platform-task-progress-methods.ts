@@ -20,6 +20,17 @@ import type { TuiAgent } from '../../shared/tui-agent'
 import { agentProviderSessionsEqual } from '../../shared/agent-session-resume'
 import { withTimeout } from '../runtime/runtime-async-boundaries'
 
+// Codex emits SessionStart on the first resumed turn, not when its composer opens.
+// Only a resume created by this owner can bridge that first input; it is not progress evidence.
+const resumeInputs = new WeakMap<OrcaRuntimeService, Map<string, { bindingHash: string; requestId?: string }>>()
+function resumeInput(runtime: OrcaRuntimeService, binding: PlatformProgressBinding, requestId?: string) {
+  const rows = runtime.getAgentStatusSnapshotFn?.()
+  if (!rows || rows.some(row => row.paneKey === binding.paneKey)) return undefined
+  const entry = resumeInputs.get(runtime)?.get(binding.terminalHandle)
+  return entry && entry.bindingHash === hashCanonical(binding) &&
+    (entry.requestId === undefined || entry.requestId === requestId) ? entry : undefined
+}
+
 function requireOwner(context: RpcContext): void {
   if (context.caller?.kind !== 'local-cli' || context.orchestrationCaller)
     throw new Error('platform_owner_required')
@@ -129,7 +140,13 @@ export const PLATFORM_TASK_PROGRESS_METHODS = [
         kind: 'explicit', worktree: `id:${params.worktreeId}`, agent: params.agent,
         providerSession: params.providerSession, presentation: 'background'
       }), { signal: context.signal })
-      return { contractVersion: 1, ...result, binding: captureBinding(context.runtime, result.terminal.handle, params, params.providerSession) }
+      const binding = captureBinding(context.runtime, result.terminal.handle, params, params.providerSession)
+      if (params.agent === 'codex' && result.disposition === 'created') {
+        let entries = resumeInputs.get(context.runtime)
+        if (!entries) resumeInputs.set(context.runtime, entries = new Map())
+        entries.set(binding.terminalHandle, { bindingHash: hashCanonical(binding) })
+      }
+      return { contractVersion: 1, ...result, binding }
     }
   }),
   defineMethod({ name: 'platform.taskProgress.observe', permission: 'workspace', params: PlatformProgressObserve,
@@ -166,9 +183,12 @@ export const PLATFORM_TASK_PROGRESS_METHODS = [
         const interactiveWait = await withTimeout(
           context.runtime.getTerminalInteractiveWait(binding.terminalHandle).catch(() => undefined), 100, undefined
         )
+        const resumeReady = interactiveWait === null && resumeInput(context.runtime, binding) &&
+          await withTimeout(context.runtime.isTerminalRunningSettledPromptAgent(binding.terminalHandle, 'codex'), 100, false)
         if (platformBindingState(context.runtime, binding) !== 'current')
           return { ...snapshot, reason: 'binding_changed', canSendFeedback: false }
-        return { ...snapshot, canSendFeedback: false,
+        return { ...snapshot, canSendFeedback: Boolean(resumeReady && resumeInput(context.runtime, binding)) &&
+          !isTerminalInputLockedForClient(context.runtime, binding.ptyId, { type: 'desktop', id: 'platform-progress' }),
           ...(interactiveWait === undefined ? {} : { interactiveWait }) }
       }
       const settled = await context.runtime.isTerminalRunningSettledPromptAgent(binding.terminalHandle)
@@ -200,24 +220,43 @@ export const PLATFORM_TASK_PROGRESS_METHODS = [
           if (isTerminalInputLockedForClient(runtime, params.expectedBinding.ptyId, { type: 'desktop', id: 'platform-progress' }))
             throw new Error('input_locked')
           const snapshot = runtime.getPlatformTaskProgressSnapshot(params.expectedBinding)
-          if (!snapshot.available || !agentProviderSessionsEqual(params.expectedBinding.agent,
-            snapshot.binding.providerSession ?? undefined, params.expectedBinding.providerSession ?? undefined))
+          if (snapshot.available) {
+            if (!agentProviderSessionsEqual(params.expectedBinding.agent,
+              snapshot.binding.providerSession ?? undefined, params.expectedBinding.providerSession ?? undefined))
+              throw new Error('source_only')
+            if (snapshot.status.interactivePrompt || snapshot.status.state === 'blocked') throw new Error('terminal_guard_permission')
+          } else if (snapshot.reason !== 'status_unavailable' || !resumeInput(runtime, params.expectedBinding, mutation.requestId)) {
             throw new Error('source_only')
-          if (snapshot.status.interactivePrompt || snapshot.status.state === 'blocked') throw new Error('terminal_guard_permission')
+          }
         }
         assertWritable()
         if (!(await runtime.isTerminalRunningSettledPromptAgent(params.terminal))) throw new Error('source_only')
         await assertTerminalSendTextWithinLimit(params.text)
         const guard = async () => {
           await assertTerminalAgentSendable({ runtime, handle: params.terminal, assertWritable })
+          if (!runtime.getPlatformTaskProgressSnapshot(params.expectedBinding).available) {
+            if (!(await runtime.isTerminalRunningSettledPromptAgent(params.terminal, 'codex')))
+              throw new Error('source_only')
+            const wait = await withTimeout(runtime.getTerminalInteractiveWait(params.terminal).catch(() => undefined), 100, undefined)
+            if (wait !== null) throw new Error('terminal_guard_permission')
+          }
           assertWritable()
         }
         await guard()
         const send = await runtime.sendTerminalAgentPrompt(params.terminal, params.text, {
           inputKind: 'driving', requestId: mutation.requestId, acceptQueued: true, observationTimeoutMs: 1000,
           signal: context.signal,
-          beforeWrite: async () => { await guard(); effectPossible = true; context.markMutationEffectPossible!() },
-          onInputAccepted: send => context.recordMutationReceipt!({ send })
+          beforeWrite: async () => {
+            await guard()
+            assertWritable()
+            const entry = resumeInput(runtime, params.expectedBinding, mutation.requestId)
+            if (entry) entry.requestId = mutation.requestId
+            effectPossible = true; context.markMutationEffectPossible!()
+          },
+          onInputAccepted: send => {
+            resumeInputs.get(runtime)?.delete(params.terminal)
+            context.recordMutationReceipt!({ send })
+          }
         })
         return { send }
       } catch (error) {
