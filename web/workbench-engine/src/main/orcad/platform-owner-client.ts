@@ -5,7 +5,7 @@ import { decodePairingOffer } from '../../shared/pairing'
 import { ORCHESTRATION_CONTRACT_VERSION } from '../../shared/protocol-version'
 
 const METHODS = new Set(['repo.list', 'repo.add', 'repo.update', 'worktree.list', 'platform.bootstrapDevice', 'platform.revokeDevice'])
-for (const operation of ['create', 'observe', 'resume', 'send', 'receipt']) METHODS.add(`platform.taskProgress.${operation}`)
+for (const operation of ['create', 'observe', 'resume', 'send', 'receipt', 'stop']) METHODS.add(`platform.taskProgress.${operation}`)
 const MAX_BYTES = 1024 * 1024
 
 async function main(): Promise<void> {

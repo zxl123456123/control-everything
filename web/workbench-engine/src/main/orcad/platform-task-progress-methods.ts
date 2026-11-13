@@ -2,7 +2,7 @@ import { z } from 'zod'
 import { defineMethod, type RpcContext } from '../runtime/rpc/core'
 import {
   PlatformProgressAgent, PlatformProgressBinding, PlatformProgressCreate, PlatformProgressObserve,
-  PlatformProgressReceipt, PlatformProgressResume, PlatformProgressSend
+  PlatformProgressReceipt, PlatformProgressResume, PlatformProgressSend, PlatformProgressStop
 } from '../../shared/platform-task-progress-contract'
 import { CreateAgentSessionParams, EnsureAgentSessionParams } from '../../shared/rpc-contract/agent-session-params'
 import { platformBindingState, platformProgressEnvironmentId } from '../runtime/platform-task-progress-snapshot'
@@ -120,6 +120,13 @@ export function readPlatformProgressReceipt(params: z.infer<typeof PlatformProgr
 }
 
 export const PLATFORM_TASK_PROGRESS_METHODS = [
+  defineMethod({ name: 'platform.taskProgress.stop', permission: 'workspace', params: PlatformProgressStop,
+    handler: async (params, context) => {
+      requireOwner(context)
+      const stopped = await context.runtime.stopPlatformTaskProgress(params.expectedBinding)
+      return { contractVersion: 1, stopped, binding: params.expectedBinding, readAt: Date.now() }
+    }
+  }),
   defineMethod({ name: 'platform.taskProgress.create', permission: 'workspace', params: PlatformProgressCreate,
     handler: async (params, context) => {
       requireOwner(context)

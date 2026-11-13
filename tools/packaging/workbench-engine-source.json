@@ -327785,8 +327785,8 @@
     {
       "path": "src/main/runtime/orca-runtime.ts",
       "upstream_sha256": "9f1d537dbad7e8d6f522913be5cbb5c72cd4d521823fa84a0680db5cad21a1dd",
-      "current_sha256": "0673b401e2866fb062328df725fc7510ba39281b36c22e1d761310ec42cd262d",
-      "reason": "project-progress: bounded native operation, trustworthy observation, and durable receipt integration"
+      "current_sha256": "c25f40408ef5d1f8e333b2fdf212818aa603d815ba246961999ed6d0b93f0cf0",
+      "reason": "project-progress: bounded native operation, trustworthy observation, and durable receipt integration；本机owner按冻结任务绑定请求精确取消，保留实际退出核验结果与原调用权限边界"
     },
     {
       "path": "src/main/runtime/orchestration/db/mutation-receipts/mutation-receipt-store.ts",

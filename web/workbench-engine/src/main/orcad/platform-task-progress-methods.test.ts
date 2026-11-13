@@ -7,7 +7,7 @@ import { buildRegistry, type RpcContext, type RpcMethod, type RpcRequest } from 
 import { RpcDispatcher } from '../runtime/rpc/dispatcher'
 import { PLATFORM_TASK_PROGRESS_METHODS } from './platform-task-progress-methods'
 import { OrchestrationDb } from '../runtime/orchestration/db'
-import type { OrcaRuntimeService } from '../runtime/orca-runtime'
+import { OrcaRuntimeService } from '../runtime/orca-runtime'
 import { OrcaRuntimeWithAutomationOperations } from '../runtime/workspaces/persisted-surfaces/automation-operations'
 import { platformProgressEnvironmentId, readPlatformTaskProgressSnapshot } from '../runtime/platform-task-progress-snapshot'
 import { publishHostDescriptor } from '../runtime/host-descriptor'
@@ -26,6 +26,7 @@ let runtime: OrcaRuntimeService
 let binding: PlatformProgressBinding
 let row: any
 let observed: any
+let stopExact: ReturnType<typeof vi.fn<() => Promise<boolean>>>
 const directories: string[] = []
 const sendParams = () => ({ contractVersion: 1 as const, terminal: binding.terminalHandle, text: 'Please refine this result',
   expectedBinding: binding, origin: { taskId: 'task', nativeRunId: 'native', messageId: 'message', requestId: 'request' } })
@@ -79,6 +80,9 @@ beforeEach(() => {
     createAgentSession: vi.fn(async () => ({ terminal: { handle: 'terminal' }, disposition: 'created' })),
     ensureAgentSession: vi.fn(async () => ({ terminal: { handle: 'terminal' }, disposition: 'adopted' }))
   } as unknown as OrcaRuntimeService
+  stopExact = vi.fn(async () => true)
+  Object.assign(runtime, { ptysById: new Map([['pty', { incarnationId: 'incarnation', connectionId: null }]]),
+    ptyController: { stopExact }, stopPlatformTaskProgress: OrcaRuntimeService.prototype.stopPlatformTaskProgress })
 })
 afterEach(() => { db.close(); publishHostDescriptor('runtime', null); vi.restoreAllMocks();
   for (const dir of directories.splice(0)) rmSync(dir, { recursive: true, force: true }) })
@@ -149,6 +153,29 @@ describe('bounded owner operations', () => {
     expect(JSON.parse(replies[0]).ok).toBe(false)
     expect(runtime.getOrchestrationDb).not.toHaveBeenCalled()
     expect(runtime.sendTerminalAgentPrompt).not.toHaveBeenCalled()
+  })
+})
+
+describe('bound owner cancellation', () => {
+  it.each([true, false])('returns the actual stop proof: %s', async stopped => {
+    stopExact.mockResolvedValue(stopped)
+    expect(await call('stop', { contractVersion: 1, expectedBinding: binding })).toMatchObject({ stopped, binding })
+    expect(stopExact).toHaveBeenCalledWith('pty', 'incarnation', { deadlineMs: expect.any(Number) })
+  })
+  it.each(['desktop', 'paired-device'])('refuses cancellation from %s', async kind => {
+    await expect(call('stop', { contractVersion: 1, expectedBinding: binding },
+      { caller: { kind } as RpcContext['caller'] })).rejects.toThrow('platform_owner_required')
+    expect(stopExact).not.toHaveBeenCalled()
+  })
+  it('refuses a stale binding before touching the execution controller', async () => {
+    await expect(call('stop', { contractVersion: 1, expectedBinding: { ...binding, generation: 0 } }))
+      .rejects.toThrow('binding_changed')
+    expect(stopExact).not.toHaveBeenCalled()
+  })
+  it('refuses a runtime-only identity that the host cannot verify', async () => {
+    Object.assign(runtime, { ptysById: new Map([['pty', { incarnationId: null, connectionId: null }]]) })
+    await expect(call('stop', { contractVersion: 1, expectedBinding: binding })).rejects.toThrow('binding_unavailable')
+    expect(stopExact).not.toHaveBeenCalled()
   })
 })
 

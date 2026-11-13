@@ -24,6 +24,7 @@ export const PlatformProgressResume = z.object({ ...Scope, providerSession: Prov
 const ObserveBound = z.object({
   contractVersion: z.literal(1), expectedBinding: PlatformProgressBinding
 }).strict()
+export const PlatformProgressStop = ObserveBound
 export const PlatformProgressObserve = z.union([ObserveBound, z.object({
   contractVersion: z.literal(1), bindingQuery: PlatformProgressResume
 }).strict()])
