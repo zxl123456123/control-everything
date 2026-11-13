@@ -1,4 +1,4 @@
-"""Send plain text with the existing app identity and a persistent delivery UUID."""
+"""Send persisted message payloads with the existing app identity and delivery UUID."""
 import json
 import re
 import time
@@ -31,7 +31,7 @@ class FeishuSender:
         self.app_id, self.app_secret, self.group = app_id, app_secret, group
         self.request, self.token = request, None
 
-    def __call__(self, body, delivery_uuid, *, deadline=None):
+    def __call__(self, body, delivery_uuid, *, deadline=None, message_payload=None):
         if not self.token:
             try:
                 result = self.request('auth/v3/tenant_access_token/internal',
@@ -43,9 +43,10 @@ class FeishuSender:
                 raise NotSent('tenant_token_unavailable') from error
         if deadline is not None and time.time() >= deadline:
             raise NotSent('delivery_window_expired')
+        msg_type, content = message_payload if message_payload is not None else ('text', json.dumps({'text': body}, ensure_ascii=False))
         result = self.request('im/v1/messages?receive_id_type=chat_id',
-                              {'receive_id': self.group, 'msg_type': 'text', 'uuid': delivery_uuid,
-                               'content': json.dumps({'text': body}, ensure_ascii=False)}, self.token)
+                              {'receive_id': self.group, 'msg_type': msg_type, 'uuid': delivery_uuid,
+                               'content': content}, self.token)
         if result.get('code') != 0:
             # An error following a POST is not proof that the server never accepted the UUID.
             raise ValueError('feishu_send_unconfirmed')

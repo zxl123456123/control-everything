@@ -9,8 +9,8 @@ import sys
 import time
 import uuid
 
-from control_everything.integrations.github_event_messages import _sha, render_event
-from control_everything.integrations.progress_notifications import _database, _deliver, _queue
+from control_everything.integrations.github_event_messages import _sha, render_card, render_event
+from control_everything.integrations.progress_notifications import _database, _deliver
 
 
 def _verify_signature(secret, body, signature):
@@ -37,6 +37,8 @@ def _ledger(config):
         database.execute('CREATE TABLE IF NOT EXISTS pr_reviews (uuid TEXT PRIMARY KEY, number INTEGER NOT NULL, '
                          'base_sha TEXT NOT NULL, head_sha TEXT NOT NULL, context TEXT NOT NULL, '
                          'prepared INTEGER NOT NULL DEFAULT 0, UNIQUE(number,base_sha,head_sha))')
+        database.execute('CREATE TABLE IF NOT EXISTS github_message_payloads (uuid TEXT PRIMARY KEY, '
+                         'msg_type TEXT NOT NULL, content TEXT NOT NULL)')
         database.execute('BEGIN IMMEDIATE')
         stored = database.execute("SELECT value FROM metadata WHERE key='event_identity'").fetchone()
         if stored is not None and stored[0] != identity:
@@ -48,6 +50,14 @@ def _ledger(config):
             database.execute("INSERT INTO metadata VALUES('event_identity',?)", (identity,))
         database.commit()
         yield database
+
+
+def _queue_event(database, identity, body):
+    # A card is one payload; text slicing would destroy its structure and target link.
+    delivery_uuid = str(uuid.uuid4())
+    database.execute('INSERT INTO outbox(identity,body,uuid,status) VALUES(?,?,?,?)',
+                     (identity + ':0', body, delivery_uuid, 'pending'))
+    return delivery_uuid
 
 
 def accept_event(config, secret, delivery, event, body, signature):
@@ -77,15 +87,17 @@ def accept_event(config, secret, delivery, event, body, signature):
                 raise ValueError('delivery_payload_changed')
             database.commit()
             return {'status': 'duplicate', 'delivery': delivery}
-        message = None if event == 'ping' else render_event(event, payload, config['repository'],
+        event_payload = {**payload, 'compare': None} if event == 'push' else payload
+        message = None if event == 'ping' else render_event(event, event_payload, config['repository'],
             received_at=datetime.now(timezone.utc), delivery=delivery)
         if message is not None and (not isinstance(message, str) or not message.strip()):
             raise ValueError('event_message_invalid')
         outcome = 'ping' if event == 'ping' else 'accepted' if message is not None else 'ignored'
         if message is not None:
-            _queue(database, 'github:' + delivery, message)
+            delivery_uuid = _queue_event(database, 'github:' + delivery, message)
+            database.execute('INSERT INTO github_message_payloads VALUES(?,?,?)',
+                             (delivery_uuid, 'interactive', json.dumps(render_card(message, config['repository']), ensure_ascii=False)))
             if config.get('ai_review'):
-                delivery_uuid = database.execute('SELECT uuid FROM outbox WHERE identity=?', ('github:' + delivery + ':0',)).fetchone()[0]
                 if event == 'push' and not payload.get('deleted'):
                     database.execute('INSERT INTO push_reviews(uuid,before_sha,after_sha) VALUES(?,?,?)',
                                      (delivery_uuid, payload['before'], payload['after']))
@@ -110,6 +122,7 @@ def drain(config, send, *, clock=time.time, review=None, review_pr=None):
     """Send only previously received events; never fetch or synthesize GitHub activity."""
     with _ledger(config) as database:
         def prepared_send(body, delivery_uuid, *, deadline=None):
+            payload = database.execute('SELECT msg_type,content FROM github_message_payloads WHERE uuid=?', (delivery_uuid,)).fetchone()
             row = database.execute('SELECT before_sha,after_sha,prepared FROM push_reviews WHERE uuid=?', (delivery_uuid,)).fetchone()
             table = 'push_reviews'
             if row is None:
@@ -121,6 +134,9 @@ def drain(config, send, *, clock=time.time, review=None, review_pr=None):
                 fallback = body + '\n' + version + 'AI 分析暂不可用。'
                 database.execute(f'UPDATE {table} SET prepared=1 WHERE uuid=?', (delivery_uuid,))
                 database.execute('UPDATE outbox SET body=? WHERE uuid=?', (fallback, delivery_uuid))
+                if payload is not None:
+                    payload = ('interactive', json.dumps(render_card(fallback, config['repository']), ensure_ascii=False))
+                    database.execute('UPDATE github_message_payloads SET content=? WHERE uuid=?', (payload[1], delivery_uuid))
                 database.commit()
                 try:
                     if table == 'pr_reviews':
@@ -133,10 +149,15 @@ def drain(config, send, *, clock=time.time, review=None, review_pr=None):
                     prefix = body.split('\n提交总结：', 1)[0] + '\n' if '\n提交总结：' in body else body.rsplit('查看：', 1)[0]
                     body = prefix + version + analysis + '\n查看：' + body.rsplit('查看：', 1)[-1]
                     database.execute('UPDATE outbox SET body=? WHERE uuid=?', (body, delivery_uuid))
+                    if payload is not None:
+                        payload = ('interactive', json.dumps(render_card(body, config['repository']), ensure_ascii=False))
+                        database.execute('UPDATE github_message_payloads SET content=? WHERE uuid=?', (payload[1], delivery_uuid))
                     database.commit()
                 except (OSError, ValueError, KeyError, TypeError) as error:
                     print(('pr_review_unavailable:' if table == 'pr_reviews' else 'push_review_unavailable:') + type(error).__name__, file=sys.stderr, flush=True)
                     body = fallback
+            if payload is not None:
+                return send(body, delivery_uuid, deadline=deadline, message_payload=payload)
             return send(body, delivery_uuid, deadline=deadline)
         return _deliver(database, prepared_send, clock)
 

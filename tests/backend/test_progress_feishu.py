@@ -23,6 +23,18 @@ class FeishuProgressTests(unittest.TestCase):
         self.assertEqual(calls[1][1]['receive_id'], 'oc_fixture')
         self.assertEqual(json.loads(calls[1][1]['content']), {'text': '公告'})
 
+    def test_sends_frozen_interactive_content_without_reencoding_it(self):
+        calls = []
+        def request(path, payload, token):
+            calls.append(payload)
+            return ({'code': 0, 'tenant_access_token': 'fixture'} if path.endswith('/internal') else
+                    {'code': 0, 'data': {'message_id': 'om_fixture', 'chat_id': 'oc_fixture'}})
+        sender = FeishuSender('cli_fixture', 'fixture', 'oc_fixture', request=request)
+        content = '{"elements": [], "header": {"title": {"tag": "plain_text", "content": "进展"}}}'
+        sender('ignored display body', 'same-uuid', message_payload=('interactive', content))
+        self.assertEqual(calls[-1], {'receive_id': 'oc_fixture', 'msg_type': 'interactive',
+                                    'uuid': 'same-uuid', 'content': content})
+
     def test_token_failure_is_known_not_sent(self):
         sender = FeishuSender('cli_fixture', 'fixture', 'oc_fixture',
                               request=lambda *args: {'code': 999, 'msg': 'private response'})

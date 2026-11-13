@@ -68,12 +68,85 @@ class GitHubEventQueueTests(unittest.TestCase):
         # Simulate an old, already prepared outbox row awaiting retry after an uncertain send.
         with queue._ledger(self.config) as database:
             database.execute("UPDATE outbox SET status='unknown', body=?", ('旧版纯文本正文',))
+            database.execute('DELETE FROM github_message_payloads')
             database.commit()
         original = self.rows('SELECT body,uuid FROM outbox')[0]
         queue.drain(self.config, self.sender, clock=lambda: self.now + 242,
                     review=lambda *args: self.fail('old answer must not be regenerated'))
         self.assertEqual(self.sent[-1][:2], original)
         self.assertEqual(self.rows('SELECT body,uuid FROM outbox'), [original])
+
+    def test_card_payload_is_frozen_before_post_and_reused_without_rendering(self):
+        self.config['ai_review'] = {'enabled': True}
+        self.accept(event='pull_request', body=json.dumps(self.pr_payload()).encode())
+        attempted = []
+        def uncertain(body, identity, *, deadline=None, message_payload=None):
+            saved = self.rows('SELECT msg_type,content FROM github_message_payloads WHERE uuid=?', (identity,))[0]
+            self.assertEqual(message_payload, saved)
+            attempted.append((identity, message_payload))
+            raise TimeoutError('fixture')
+        queue.drain(self.config, uncertain, clock=lambda: self.now,
+                    review_pr=lambda *args: '<b>AI 总结：任务更清楚。</b>便于查看。')
+        def confirmed(body, identity, *, deadline=None, message_payload=None):
+            self.assertEqual((identity, message_payload), attempted[0])
+            return 'om_fixture'
+        with patch.object(queue, 'render_card', side_effect=AssertionError('retry must use frozen content')):
+            queue.drain(self.config, confirmed, clock=lambda: self.now + 121,
+                        review_pr=lambda *args: self.fail('retry must not rerun model'))
+        self.assertEqual(attempted[0][1][0], 'interactive')
+
+    def test_legacy_unprepared_text_keeps_original_ai_preparation_and_type(self):
+        self.config['ai_review'] = {'enabled': True}
+        self.accept(event='pull_request', body=json.dumps(self.pr_payload()).encode())
+        with queue._ledger(self.config) as database:
+            database.execute('DELETE FROM github_message_payloads')
+            database.commit()
+        def old_sender(body, identity, *, deadline=None):
+            self.assertIn('AI 总结：旧text分析', body)
+            return 'om_fixture'
+        queue.drain(self.config, old_sender, clock=lambda: self.now,
+                    review_pr=lambda *args: 'AI 总结：旧text分析')
+        self.assertEqual(self.rows('SELECT uuid FROM github_message_payloads'), [])
+
+    def test_large_event_is_one_card_with_complete_canonical_target(self):
+        data = self.pr_payload()
+        data['pull_request']['title'] = '长标题' * 6000
+        self.accept(event='pull_request', body=json.dumps(data).encode())
+        self.assertEqual(len(self.rows('SELECT uuid FROM outbox')), 1)
+        content = json.loads(self.rows('SELECT content FROM github_message_payloads')[0][0])
+        self.assertLess(len(json.dumps(content)), 12000)
+        self.assertEqual(content['elements'][-1]['actions'][0]['url'], 'https://github.com/example/project/pull/7')
+
+    def test_fallback_card_survives_model_crash_with_complete_view_target(self):
+        self.config['ai_review'] = {'enabled': True}
+        self.accept(event='pull_request', body=json.dumps(self.pr_payload()).encode())
+        def interrupted(*args):
+            raise SystemExit('fixture crash')
+        with self.assertRaises(SystemExit):
+            queue.drain(self.config, self.sender, clock=lambda: self.now, review_pr=interrupted)
+        original = self.rows('SELECT msg_type,content FROM github_message_payloads')[0]
+        card = json.loads(original[1])
+        self.assertEqual(card['elements'][-1]['actions'][0]['url'], 'https://github.com/example/project/pull/7')
+        self.assertTrue(any('AI 分析暂不可用' in e.get('text', {}).get('content', '') for e in card['elements']))
+        def confirmed(body, identity, *, deadline=None, message_payload=None):
+            self.assertEqual(message_payload, original)
+            return 'om_fixture'
+        with patch.object(queue, 'render_card', side_effect=AssertionError('frozen fallback must not be rendered')):
+            queue.drain(self.config, confirmed, clock=lambda: self.now + 121,
+                        review_pr=lambda *args: self.fail('frozen fallback must not rerun AI'))
+
+    def test_non_ai_event_keeps_frozen_card_payload_on_retry(self):
+        self.accept(event='pull_request', body=json.dumps(self.pr_payload()).encode())
+        original = self.rows('SELECT msg_type,content FROM github_message_payloads')[0]
+        seen = []
+        def uncertain(body, identity, *, deadline=None, message_payload=None):
+            seen.append((identity, message_payload))
+            self.assertEqual(message_payload, original)
+            raise TimeoutError('fixture')
+        queue.drain(self.config, uncertain, clock=lambda: self.now)
+        with patch.object(queue, 'render_card', side_effect=AssertionError('retry must not render')):
+            queue.drain(self.config, uncertain, clock=lambda: self.now + 121)
+        self.assertEqual(seen[0], seen[1])
 
     def test_model_failure_does_not_block_base_notification(self):
         from tests.backend.test_github_event_messages import push
@@ -270,7 +343,7 @@ class GitHubEventQueueTests(unittest.TestCase):
         with closing(sqlite3.connect(self.root / 'state/progress.sqlite3')) as database:
             return database.execute(query, parameters).fetchall()
 
-    def sender(self, body, delivery_uuid, *, deadline=None):
+    def sender(self, body, delivery_uuid, *, deadline=None, message_payload=None):
         self.sent.append((body, delivery_uuid, deadline))
         return 'om_fixture'
 
@@ -353,7 +426,7 @@ class GitHubEventQueueTests(unittest.TestCase):
             clock.now.return_value = received + timedelta(days=1)
             self.assertEqual(self.accept(body=body)['status'], 'duplicate')
         attempted = []
-        def disconnected(message, delivery_uuid, *, deadline=None):
+        def disconnected(message, delivery_uuid, *, deadline=None, message_payload=None):
             attempted.append((message, delivery_uuid))
             raise TimeoutError('fixture')
         self.assertEqual(queue.drain(self.config, disconnected, clock=lambda: self.now)['unknown'], 1)
@@ -378,11 +451,11 @@ class GitHubEventQueueTests(unittest.TestCase):
             self.assertEqual(self.accept()['status'], 'accepted')
 
     def test_queue_and_receipt_commit_or_rollback_together(self):
-        original = queue._queue
+        original = queue._queue_event
         def fail_after_insert(*args):
             original(*args)
             raise OSError('fixture_disk_error')
-        with patch.object(queue, 'render_event', return_value='摘要'), patch.object(queue, '_queue', side_effect=fail_after_insert):
+        with patch.object(queue, 'render_event', return_value='摘要'), patch.object(queue, '_queue_event', side_effect=fail_after_insert):
             with self.assertRaises(OSError):
                 self.accept()
         self.assertEqual(self.rows('SELECT id FROM outbox'), [])

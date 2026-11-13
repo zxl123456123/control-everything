@@ -185,3 +185,36 @@ def render_event(event: str, payload: dict, repository: str, *,
             detail += f'；评审状态：{states[state]}（{state}）'
     content = f'{label}\n{detail}\n查看：{link}'
     return _template(title, repository, actor, content, received_at, delivery)
+
+
+def render_card(body, repository):
+    """Build bounded display fields; external text never enters Markdown."""
+    body = body.replace('<b>', '').replace('</b>', '')
+    content, marker, link = body.rpartition('\n查看：')
+    if not marker:
+        content, link = body, 'https://github.com/' + repository
+    target, *trailing = link.splitlines()
+    content += '\n' + '\n'.join(trailing)
+    link = target
+    lines = content.splitlines()
+    title = lines.pop(0).strip('【】') if lines and lines[0].startswith('【') else 'GitHub 更新'
+    color = ('green' if title == 'PR 已合并' else 'grey' if title == 'PR 已关闭' else
+             'blue' if title == '代码推送' else 'purple' if title.startswith('PR') else 'orange')
+    elements = []
+    for line in lines[:20]:
+        if line.startswith('AI 总结：'):
+            elements.append({'tag': 'div', 'text': {'tag': 'lark_md', 'content': '**进展**'}})
+            line = line.removeprefix('AI 总结：')
+        elif line.startswith('AI 简评：'):
+            elements.append({'tag': 'div', 'text': {'tag': 'lark_md', 'content': '**具体问题**'}})
+            line = line.removeprefix('AI 简评：')
+        elif re.fullmatch(r'https://github\.com/' + re.escape(repository) + r'/blob/[a-f0-9]{40,64}/[^\s]+#L[1-9][0-9]*', line):
+            if len(line.encode('utf-8')) <= 1024:
+                elements.append({'tag': 'div', 'text': {'tag': 'lark_md', 'content': '[查看代码](' + line + ')'}})
+                continue
+            line = '代码位置请在下方查看'
+        elements.append({'tag': 'div', 'text': {'tag': 'plain_text', 'content': line[:800] + ('…' if len(line) > 800 else '')}})
+    elements.append({'tag': 'action', 'actions': [{'tag': 'button', 'text': {'tag': 'plain_text', 'content': '查看'},
+                                                  'type': 'primary', 'url': link}]})
+    return {'header': {'template': color, 'title': {'tag': 'plain_text', 'content': title}},
+            'elements': elements}

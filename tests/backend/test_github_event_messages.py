@@ -1,6 +1,7 @@
 """Render signed event facts while keeping authors, actions and links distinct."""
 from copy import deepcopy
 from datetime import datetime, timezone
+import json
 import unittest
 
 from control_everything.integrations.github_event_messages import render_event
@@ -236,6 +237,62 @@ class PushEventTests(unittest.TestCase):
                 text = render_event('push', data, REPO)
                 self.assertNotIn(url, text)
                 self.assertIn(BASE + '/compare/' + A + '...' + B, text)
+
+
+class EventCardTests(unittest.TestCase):
+    def test_card_uses_plain_external_text_and_one_primary_view_link(self):
+        from control_everything.integrations.github_event_messages import render_card
+        body = ('<b>【代码推送】</b>\n仓库：' + REPO +
+                '\n分支：develop\n<b>AI 总结：任务更清楚。</b>方便查看。' +
+                '\n<b>AI 简评：</b>＜at id=all＞ **不要加粗** [恶意](https://evil.test)' +
+                '\n' + BASE + '/blob/' + B + '/a.py#L1\n查看：' + BASE + '/compare/' + A + '...' + B)
+        card = render_card(body, REPO)
+        self.assertEqual(card['header']['template'], 'blue')
+        self.assertEqual(card['header']['title']['content'], '代码推送')
+        elements = card['elements']
+        dynamic = [e['text']['content'] for e in elements if e['tag'] == 'div' and e['text']['tag'] == 'plain_text']
+        self.assertTrue(any('**不要加粗** [恶意]' in value for value in dynamic))
+        markdown = [e['text']['content'] for e in elements if e['tag'] == 'div' and e['text']['tag'] == 'lark_md']
+        self.assertFalse(any('evil.test' in value for value in markdown))
+        self.assertTrue(any('[查看代码](' + BASE + '/blob/' + B in value for value in markdown))
+        actions = [e for e in elements if e['tag'] == 'action']
+        self.assertEqual(len(actions), 1)
+        self.assertEqual(len(actions[0]['actions']), 1)
+        self.assertEqual(actions[0]['actions'][0]['url'], BASE + '/compare/' + A + '...' + B)
+
+    def test_long_code_urls_are_replaced_and_utf8_request_stays_below_30kb(self):
+        from control_everything.integrations.github_event_messages import render_card
+        from control_everything.integrations.progress_feishu import FeishuSender
+        from urllib.parse import quote
+        target = BASE + '/compare/' + A + '...' + B
+        for path in ('a' * 12000, quote('中文目录' * 1500, safe='/')):
+            with self.subTest(path_prefix=path[:12]):
+                code_url = BASE + '/blob/' + B + '/' + path + '#L1'
+                lines = ['<b>【代码推送】</b>', '仓库：' + REPO, '操作人：' + '中文' * 500,
+                         '分支：' + '路径' * 500, '<b>AI 总结：' + '进展' * 400 + '</b>']
+                for _ in range(3):
+                    lines.extend(['<b>AI 简评：</b>' + '具体问题"\\' * 50, code_url])
+                card = render_card('\n'.join([*lines, '查看：' + target]), REPO)
+                text = [e.get('text', {}).get('content', '') for e in card['elements']]
+                self.assertEqual(text.count('代码位置请在下方查看'), 3)
+                self.assertFalse(any(code_url in value for value in text))
+                self.assertEqual(card['elements'][-1]['actions'][0]['url'], target)
+                captured = []
+                def request(url, payload, token):
+                    if url.endswith('/internal'):
+                        return {'code': 0, 'tenant_access_token': 'fixture'}
+                    captured.append(json.dumps(payload, ensure_ascii=False).encode('utf-8'))
+                    return {'code': 0, 'data': {'message_id': 'om_fixture', 'chat_id': 'oc_fixture'}}
+                FeishuSender('cli_fixture', 'fixture', 'oc_fixture', request=request)(
+                    'unused', 'same-uuid', message_payload=('interactive', json.dumps(card, ensure_ascii=False)))
+                self.assertLess(len(captured[0]), 30 * 1024)
+
+    def test_card_bounds_display_fields_without_truncating_the_target_url(self):
+        from control_everything.integrations.github_event_messages import render_card
+        target = BASE + '/pull/7'
+        card = render_card('<b>【PR 更新】</b>\nPR #7 ' + '长' * 20000 + '\n查看：' + target, REPO)
+        self.assertLess(len(str(card)), 3000)
+        self.assertEqual(card['elements'][-1]['actions'][0]['url'], target)
 
 
 class ValidationTests(unittest.TestCase):

@@ -183,3 +183,5 @@ Webhook接收不等待模型。分析结果在发信前持久化，发送重试�
 GitHub不会自动重投入口离线期间失败的Webhook，恢复后须在GitHub投递记录或原生API按原Delivery ID重投；服务端已成功接收的通知由持久队列恢复。保留未知记录与UUID，依据固定群的实际message ID/发送应用/正文核账，不手工改sent或换UUID盲补。个人Project拖列不属于仓库Webhook，不能声称监听到所有看板状态；已有按需看板/周报工具仍可单独查询。
 
 采用[GitHub Webhook最佳实践](https://docs.github.com/en/webhooks/using-webhooks/best-practices-for-using-webhooks)及[官方HMAC校验](https://docs.github.com/en/webhooks/using-webhooks/validating-webhook-deliveries)，不检出或执行事件携带的代码。飞书发送与UUID行为见[官方接口](https://open.feishu.cn/document/server-docs/im-v1/message/create)。旧轮询timer在迁移时停用并核inactive/disabled，原账本与实际失败保留，不再作为自动触发入口。
+
+新接收的 GitHub 事件使用轻量卡片：彩色事件标题、进展与具体问题分区、底部单一查看按钮；问题保留代码行定位；定位链接超过1024 UTF-8字节时改为短提示，通过底部完整主链接查看。外部文本使用纯文本组件，不作为 Markdown 或 @ 指令解析。新事件保存单条卡片及类型/内容伴随载荷，AI 调用前冻结降级正文与卡片，模型成功后保存最终载荷，重试直接复用同 UUID 与内容。既有账本消息保持 text；未准备的历史 AI 分析继续原流程，已准备或已尝试的历史正文不重新格式化。无需卡片模板、更新或回调权限，沿用原机器人发送消息权限。
