@@ -108,7 +108,7 @@ def migrate_tasks(data_dir):
                     tasks.validate_schema(reader, tasks.SCHEMA_VERSION)
                     integrity(reader)
                     return {'status': 'already_current', 'schema_version': tasks.SCHEMA_VERSION}
-                if version not in (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11):
+                if version not in (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12):
                     raise WorkspaceError('schema_error')
                 if version == 1:
                     source_facts = check_source(reader)
@@ -196,6 +196,9 @@ def migrate_tasks(data_dir):
                                config_sha256=config_hash, migrated_at=now_utc())
             phase = 'exclusive'
             connection = raw_connection(profile.store.path)
+            connection.execute('PRAGMA foreign_keys=OFF')
+            if connection.execute('PRAGMA foreign_keys').fetchone()[0] != 0:
+                raise WorkspaceError('schema_error')
             connection.execute('BEGIN EXCLUSIVE')
             if config_digest(profile) != config_hash:
                 raise WorkspaceError('migration_source_changed')
@@ -327,14 +330,20 @@ def migrate_tasks(data_dir):
             if version < 11:
                 tasks.add_schema11(connection)
                 tasks.finish_schema11(connection)
-            tasks.add_schema12(connection)
-            tasks.finish_schema12(connection)
+            if version < 12:
+                tasks.add_schema12(connection)
+                tasks.finish_schema12(connection)
+            tasks.add_schema13(connection)
+            tasks.finish_schema13(connection)
             phase = 'validate'
             tasks.validate_schema(connection, tasks.SCHEMA_VERSION)
             integrity(connection)
             phase = 'commit'
             connection.execute('COMMIT')
             committed = True
+            connection.execute('PRAGMA foreign_keys=ON')
+            if connection.execute('PRAGMA foreign_keys').fetchone()[0] != 1:
+                raise WorkspaceError('schema_error')
             connection.close()
             connection = None
             connection = raw_connection(profile.store.path, readonly=True)
@@ -370,7 +379,7 @@ def preserve_tasks(data_dir):
                 integrity(reader)
             finally:
                 reader.close()
-            if version not in (2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12):
+            if version not in (2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13):
                 raise WorkspaceError('schema_error')
             config_hash = config_digest(profile)
             backup = create_backup(profile)
