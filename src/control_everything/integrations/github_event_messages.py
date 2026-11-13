@@ -2,7 +2,6 @@
 from datetime import datetime, timedelta, timezone
 import re
 from urllib.parse import unquote, urlsplit
-import uuid
 
 from control_everything.integrations.progress_report import _text
 
@@ -84,8 +83,6 @@ def _template(title, repository, actor, content, received_at, delivery):
     lines = [f'【{title}】', f'仓库：{repository}',
              f'接收时间：{received_at.astimezone(SHANGHAI):%Y-%m-%d %H:%M:%S}（北京时间）',
              f'操作人：{actor}']
-    if delivery:
-        lines.append('事件编号：' + str(uuid.UUID(delivery))[:8])
     return '\n'.join([*lines, content])
 
 
@@ -100,10 +97,11 @@ def _push(payload, base):
     flags = [payload.get(name, False) for name in ('deleted', 'created', 'forced')]
     if any(type(flag) is not bool for flag in flags):
         raise ValueError('event_push_flags_invalid')
-    pusher = _required(_mapping(payload.get('pusher')).get('name'))
+    _required(_mapping(payload.get('pusher')).get('name'))
     action = '删除分支' if flags[0] else '新建分支并推送' if flags[1] else '强制推送' if flags[2] else '推送分支'
-    lines = [f'分支：{branch}', f'变更：{action}', f'推送人：{pusher}',
-             f'提交范围：{before[:7]} → {after[:7]}']
+    lines = [f'分支：{branch}']
+    if any(flags):
+        lines.append(action)
     if flags[0]:
         return '\n'.join([*lines, '查看：' + base])
     commits = payload.get('commits')
@@ -112,17 +110,17 @@ def _push(payload, base):
     total = payload.get('size', len(commits))
     if type(total) is not int or total < len(commits):
         raise ValueError('event_push_size_invalid')
-    count = f'共 {total} 条' if 'size' in payload else '总数未提供'
-    lines.append(f'本次载荷 {len(commits)} 条提交，{count}；不代表任务验收或发布。')
+    lines.append('提交总结：' if commits else '本次没有新增提交。')
     for commit in commits[:5]:
         commit = _mapping(commit)
         author = _mapping(commit.get('author'))
-        name = _required(author.get('username') or author.get('name') or '作者未提供')
+        _required(author.get('username') or author.get('name') or '作者未提供')
         message = commit.get('message')
         if not isinstance(message, str):
             raise ValueError('event_commit_message_required')
         subject = _text((message.splitlines() or [''])[0])
-        lines.append(f'- {_sha(commit.get("id"))[:7]} 作者：{name}；{subject[:240]}{"…" if len(subject) > 240 else ""}')
+        _sha(commit.get('id'))
+        lines.append(f'- {subject[:240]}{"…" if len(subject) > 240 else ""}')
     if total > 5:
         lines.append(f'另有 {total - 5} 条未展开，请查看对比。')
     return '\n'.join([*lines, '查看：' + _compare(payload.get('compare'), base, before, after)])
@@ -155,14 +153,15 @@ def render_event(event: str, payload: dict, repository: str, *,
              'issue_comment': kind + ' 评论', 'pull_request_review': 'PR 评审'}[event]
     detail = ACTIONS[event][action]
     if event == 'issues' and action == 'closed':
-        detail = {'completed': '关闭（标记完成；人工验收另计）', 'not_planned': '关闭（不再计划，不计完成）'}.get(item.get('state_reason'), '关闭（原因未提供，不计完成）')
+        detail = {'completed': '关闭（标记完成）', 'not_planned': '关闭（不再计划）'}.get(item.get('state_reason'), '关闭（原因未提供）')
     elif event == 'pull_request' and action == 'closed':
         if type(item.get('merged')) is not bool:
             raise ValueError('event_merged_flag_required')
-        detail = '已合并（验收、发布另计）' if item['merged'] else '关闭未合并'
+        detail = '已合并' if item['merged'] else '关闭未合并'
         title = 'PR 已合并' if item['merged'] else 'PR 已关闭'
     elif event == 'pull_request' and action == 'synchronize':
-        detail += f'（{_sha(payload.get("before"))[:7]} → {_sha(payload.get("after"))[:7]}）'
+        _sha(payload.get('before'))
+        _sha(payload.get('after'))
     if event in ('issues', 'pull_request') and action == 'edited':
         fields = _mapping(payload.get('changes', {}))
         names = {'title': '标题', 'body': '正文', 'base': '目标分支'}
@@ -184,5 +183,5 @@ def render_event(event: str, payload: dict, repository: str, *,
             if state not in states:
                 raise ValueError('event_review_state_invalid')
             detail += f'；评审状态：{states[state]}（{state}）'
-    content = f'对象：{label}\n变更：{detail}\n查看：{link}'
+    content = f'{label}\n{detail}\n查看：{link}'
     return _template(title, repository, actor, content, received_at, delivery)

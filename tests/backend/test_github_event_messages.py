@@ -35,22 +35,24 @@ class EventTemplateTests(unittest.TestCase):
         merged = payload('closed')
         merged['pull_request']['merged'] = True
         cases = [
-            ('issues', payload('edited', changes={'title': {'from': 'old'}}), 'Issue 更新', '对象：Issue #7'),
-            ('pull_request', merged, 'PR 已合并', '对象：PR #7'),
+            ('issues', payload('edited', changes={'title': {'from': 'old'}}), 'Issue 更新', 'Issue #7'),
+            ('pull_request', merged, 'PR 已合并', 'PR #7'),
             ('push', push(), '代码推送', '分支：develop'),
             ('issue_comment', payload('created', comment={'id': 80, 'user': {'login': 'commenter'}}),
-             'Issue 评论', '对象：Issue #7'),
+             'Issue 评论', 'Issue #7'),
             ('pull_request_review', payload('submitted', review={'id': 90, 'state': 'approved',
                                                                  'user': {'login': 'reviewer'}}),
-             'PR 评审', '对象：PR #7'),
+             'PR 评审', 'PR #7'),
         ]
         for event, data, heading, item in cases:
             with self.subTest(event=event):
                 text = render_event(event, data, REPO, received_at=self.received, delivery=self.delivery)
                 self.assertTrue(text.startswith('【' + heading + '】\n'))
                 for expected in ('仓库：' + REPO, '接收时间：2026-11-12 02:02:03（北京时间）',
-                                 '操作人：actor', '事件编号：12345678', item, '\n变更：', '\n查看：https://github.com/'):
+                                 '操作人：actor', item, '\n查看：https://github.com/'):
                     self.assertIn(expected, text)
+                for removed in ('事件编号', '变更：', '提交范围', '本次载荷', '总数未提供', '另计', '不代表任务验收'):
+                    self.assertNotIn(removed, text)
 
     def test_push_time_is_receipt_time_and_all_branch_actions_remain_explicit(self):
         for flag, action in (('created', '新建分支并推送'), ('deleted', '删除分支'), ('forced', '强制推送')):
@@ -60,7 +62,7 @@ class EventTemplateTests(unittest.TestCase):
                 data['head_commit'] = {'timestamp': '2001-01-01T00:00:00Z'}
                 data['commits'][0]['timestamp'] = '2001-01-01T00:00:00Z'
                 text = render_event('push', data, REPO, received_at=self.received)
-                for expected in ('分支：develop', action, 'aaaaaaa', 'bbbbbbb', '2026-11-12 02:02:03'):
+                for expected in ('分支：develop', action, '2026-11-12 02:02:03'):
                     self.assertIn(expected, text)
                 self.assertNotIn('2001-01-01', text)
                 self.assertNotIn('事件编号：', text)
@@ -88,11 +90,11 @@ class IssueEventTests(unittest.TestCase):
         data['issue'].update(state='closed', state_reason='completed')
         text = render_event('issues', data, REPO)
         self.assertIn('标记完成', text)
-        self.assertIn('验收另计', text)
+        self.assertNotIn('验收另计', text)
         data['issue']['state_reason'] = 'not_planned'
         text = render_event('issues', data, REPO)
         self.assertIn('不再计划', text)
-        self.assertIn('不计完成', text)
+        self.assertNotIn('标记完成', text)
 
     def test_close_without_reason_does_not_infer_completion(self):
         text = render_event('issues', payload('closed'), REPO)
@@ -123,7 +125,7 @@ class PullRequestEventTests(unittest.TestCase):
         data['pull_request']['merged'] = True
         text = render_event('pull_request', data, REPO)
         self.assertIn('已合并', text)
-        self.assertIn('验收、发布另计', text)
+        self.assertNotIn('验收、发布另计', text)
         for malformed in ('true', 1):
             with self.subTest(merged=malformed), self.assertRaises(ValueError):
                 data['pull_request']['merged'] = malformed
@@ -132,7 +134,7 @@ class PullRequestEventTests(unittest.TestCase):
     def test_synchronize_is_new_commits_with_actual_before_and_after(self):
         data = payload('synchronize', before=A, after=B)
         text = render_event('pull_request', data, REPO)
-        for expected in ('新提交', 'aaaaaaa', 'bbbbbbb', 'actor', '作者：author', BASE + '/pull/7'):
+        for expected in ('新提交', 'actor', '作者：author', BASE + '/pull/7'):
             self.assertIn(expected, text)
         self.assertNotIn('已完成', text)
 
@@ -180,10 +182,12 @@ class CommentAndReviewTests(unittest.TestCase):
 
 
 class PushEventTests(unittest.TestCase):
-    def test_push_separates_pusher_from_commit_author_and_omits_email_and_body(self):
+    def test_push_emphasizes_subject_and_omits_repeated_people_email_and_body(self):
         text = render_event('push', push(), REPO)
-        for expected in ('develop', 'actor', 'pusher', 'commit-author', '修复连接', 'aaaaaaa', '/compare/'):
+        for expected in ('develop', 'actor', '提交总结：\n- 修复连接', '/compare/'):
             self.assertIn(expected, text)
+        self.assertNotIn('commit-author', text)
+        self.assertNotIn('推送人：', text)
         self.assertNotIn('private@example.test', text)
         self.assertNotIn('正文不应发布', text)
         self.assertNotIn('已完成', text)
@@ -193,7 +197,7 @@ class PushEventTests(unittest.TestCase):
         data['commits'] = [{**data['commits'][0], 'id': format(index, '040x'), 'message': f'change-{index}'} for index in range(1, 8)]
         data['size'] = 9
         text = render_event('push', data, REPO)
-        self.assertIn('共 9', text)
+        self.assertNotIn('共 9', text)
         self.assertIn('另有 4', text)
         self.assertIn('change-5', text)
         self.assertNotIn('change-6', text)
@@ -208,13 +212,13 @@ class PushEventTests(unittest.TestCase):
     def test_empty_push_with_null_head_is_safe(self):
         data = push()
         data.update(commits=[], size=0, head_commit=None)
-        self.assertIn('共 0', render_event('push', data, REPO))
+        self.assertIn('本次没有新增提交', render_event('push', data, REPO))
 
     def test_missing_push_size_is_not_reported_as_a_known_total(self):
         data = push()
         del data['size']
         text = render_event('push', data, REPO)
-        self.assertIn('总数未提供', text)
+        self.assertNotIn('总数未提供', text)
         self.assertNotIn('共 1', text)
 
     def test_tag_pushes_are_ignored(self):

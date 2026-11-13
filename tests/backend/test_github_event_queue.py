@@ -111,7 +111,7 @@ class GitHubEventQueueTests(unittest.TestCase):
                 self.accept(body=self.body + b' ')
         self.assertEqual(len(self.rows('SELECT id FROM outbox')), 1)
 
-    def test_receipt_time_and_event_number_stay_fixed_across_redelivery_and_send_retry(self):
+    def test_receipt_time_and_internal_identity_stay_fixed_across_redelivery_and_send_retry(self):
         received = datetime(2026, 11, 12, 7, 9, 10, tzinfo=timezone.utc)
         payload = {**self.payload, 'action': 'opened', 'sender': {'login': 'actor'},
                    'issue': {'number': 7, 'title': '修复连接', 'assignees': [],
@@ -123,7 +123,7 @@ class GitHubEventQueueTests(unittest.TestCase):
             original = self.rows('SELECT body,uuid FROM outbox')[0]
             self.assertIn('2026-11-12 15:09:10', original[0])
             self.assertIn('北京时间', original[0])
-            self.assertIn('事件编号：' + self.delivery[:8], original[0])
+            self.assertNotIn('事件编号：', original[0])
             self.assertNotIn('2001-01-01', original[0])
             clock.now.return_value = received + timedelta(days=1)
             self.assertEqual(self.accept(body=body)['status'], 'duplicate')
