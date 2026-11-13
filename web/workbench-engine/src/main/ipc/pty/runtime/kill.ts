@@ -24,6 +24,28 @@ import {
 // Bounds the wait for an observed exit to reach the runtime record when the caller set no deadline.
 const OBSERVED_EXIT_RECORD_WAIT_MS = 10_000
 
+export async function stopExactPtyFromRuntimeController(
+  deps: Pick<PtyRuntimeControllerDeps, 'getLocalPtyProviderStartupPromise'>,
+  ptyId: string,
+  expectedIncarnationId: string,
+  opts?: { deadlineMs?: number }
+): Promise<boolean> {
+  if (getPtySshConnectionId(ptyId)) throw new Error('exact_stop_local_only')
+  const startup = deps.getLocalPtyProviderStartupPromise(resolvePtyExecutionHost(ptyId))
+  if (startup) {
+    const ready = opts?.deadlineMs === undefined ? await startup.then(() => true) : await Promise.race([
+      startup.then(() => true), delay(Math.max(1, opts.deadlineMs - Date.now())).then(() => false)
+    ])
+    if (!ready) throw new Error('terminal_startup_timeout')
+  }
+  if (ptyIncarnationById.get(ptyId) !== expectedIncarnationId)
+    throw new Error('terminal_incarnation_changed')
+  const provider = getProviderForPty(ptyId)
+  if (!provider.stopExact) throw new Error('exact_stop_unsupported')
+  await provider.stopExact(ptyId, expectedIncarnationId, opts)
+  return verifyPtyStopped(provider, ptyId, opts)
+}
+
 /** Tells the runtime and renderer a PTY ended that no provider exit reported. Without proof its
  *  liveness reads `unverifiable`, never `exited`. A `null` incarnation (a proof
  *  `finishPtyShutdown` refused) publishes nothing: the id belongs to a respawn now. */

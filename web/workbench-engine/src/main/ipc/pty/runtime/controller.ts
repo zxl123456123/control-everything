@@ -12,7 +12,8 @@ import { spawnPtyFromRuntimeController } from './spawn'
 import {
   killPtyFromRuntimeController,
   retireRejectedPtyFromRuntimeController,
-  stopAndWaitPtyFromRuntimeController
+  stopAndWaitPtyFromRuntimeController,
+  stopExactPtyFromRuntimeController
 } from './kill'
 import {
   attachPtyFromRuntimeController,
@@ -75,6 +76,7 @@ export function installPtyRuntimeController(deps: PtyRuntimeControllerDeps): voi
     retireRejectedPty: (ptyId, stopConfirmed, incarnationId) =>
       retireRejectedPtyFromRuntimeController(deps, ptyId, stopConfirmed, incarnationId),
     stopAndWait: (ptyId, opts) => stopAndWaitPtyFromRuntimeController(deps, ptyId, opts),
+    stopExact: (ptyId, incarnationId, opts) => stopExactPtyFromRuntimeController(deps, ptyId, incarnationId, opts),
     getForegroundProcess: (ptyId) => getForegroundProcessFromRuntimeController(ptyId),
     inspectProcess: (ptyId, options) => inspectProcessFromRuntimeController(ptyId, options),
     confirmForegroundProcess: (ptyId) => confirmForegroundProcessFromRuntimeController(ptyId),

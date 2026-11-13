@@ -339223,6 +339223,30 @@
       "upstream_sha256": "c84f75b5dff7b726460d278b4ca454ba2d63c26bd7d0a5f1bc0fd08e72ef412a",
       "current_sha256": "d722247cfa9df0ea8be31d0bbe43c717b0913105c74ce06176d09d5dd94bf64e",
       "reason": "精确取消沿已有执行器归属转发，缺少能力或宿主拒绝时不降级为普通关闭"
+    },
+    {
+      "path": "src/main/ipc/pty/runtime/kill.ts",
+      "upstream_sha256": "1ec23d640e14ab30a43befaf7ce576c9b28c15e26a407364c40d29cb4f35aeb5",
+      "current_sha256": "e12b2c4afeca7eb6ed425b3451976f37c74681ae0909393896059e47c681e70d",
+      "reason": "本机任务取消等待执行器启动后复核原实例，并以新鲜存活查询核验停止结果"
+    },
+    {
+      "path": "src/main/ipc/pty/runtime/controller.ts",
+      "upstream_sha256": "7d4fa84fcbcbcf3583bcd8dd36c60941a9829e71e906a75965bb84aba53ba5bf",
+      "current_sha256": "46e180761c451250530b0ec08eb9c8cf0661505f92b795029cdf16e9486b4272",
+      "reason": "本机任务取消等待执行器启动后复核原实例，并以新鲜存活查询核验停止结果"
+    },
+    {
+      "path": "src/main/ipc/pty/runtime/kill-same-id-respawn.test.ts",
+      "upstream_sha256": "121f2c5f0fb8667adc9be76af9830f7db8d15035511b2fc4647fb22cb8b2bd1a",
+      "current_sha256": "b2d47008683564a28483636a70673aeaabb2ca2faa24d5c977ecbc0d3569edd3",
+      "reason": "本机任务取消等待执行器启动后复核原实例，并以新鲜存活查询核验停止结果"
+    },
+    {
+      "path": "src/main/runtime/runtime-pty-controller-contract.ts",
+      "upstream_sha256": "fc1b40d6c4484d971eb3a6e71399dccb96c0004d2c8736e138dafe1ec3d3b9a9",
+      "current_sha256": "e83219666f4427aca0f48b1b84b4956aa77bc3d40b631587d4fd89c56498e27a",
+      "reason": "本机任务取消等待执行器启动后复核原实例，并以新鲜存活查询核验停止结果"
     }
   ],
   "reviewed_findings": [
