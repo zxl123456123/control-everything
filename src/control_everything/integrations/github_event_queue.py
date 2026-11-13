@@ -9,7 +9,7 @@ import sys
 import time
 import uuid
 
-from control_everything.integrations.github_event_messages import render_event
+from control_everything.integrations.github_event_messages import _sha, render_event
 from control_everything.integrations.progress_notifications import _database, _deliver, _queue
 
 
@@ -34,6 +34,9 @@ def _ledger(config):
                          'event TEXT NOT NULL, body_sha TEXT NOT NULL, outcome TEXT NOT NULL)')
         database.execute('CREATE TABLE IF NOT EXISTS push_reviews (uuid TEXT PRIMARY KEY, before_sha TEXT NOT NULL, '
                          'after_sha TEXT NOT NULL, prepared INTEGER NOT NULL DEFAULT 0)')
+        database.execute('CREATE TABLE IF NOT EXISTS pr_reviews (uuid TEXT PRIMARY KEY, number INTEGER NOT NULL, '
+                         'base_sha TEXT NOT NULL, head_sha TEXT NOT NULL, context TEXT NOT NULL, '
+                         'prepared INTEGER NOT NULL DEFAULT 0, UNIQUE(number,base_sha,head_sha))')
         database.execute('BEGIN IMMEDIATE')
         stored = database.execute("SELECT value FROM metadata WHERE key='event_identity'").fetchone()
         if stored is not None and stored[0] != identity:
@@ -81,37 +84,58 @@ def accept_event(config, secret, delivery, event, body, signature):
         outcome = 'ping' if event == 'ping' else 'accepted' if message is not None else 'ignored'
         if message is not None:
             _queue(database, 'github:' + delivery, message)
-            if event == 'push' and config.get('ai_review') and not payload.get('deleted'):
+            if config.get('ai_review'):
                 delivery_uuid = database.execute('SELECT uuid FROM outbox WHERE identity=?', ('github:' + delivery + ':0',)).fetchone()[0]
-                database.execute('INSERT INTO push_reviews(uuid,before_sha,after_sha) VALUES(?,?,?)',
-                                 (delivery_uuid, payload['before'], payload['after']))
+                if event == 'push' and not payload.get('deleted'):
+                    database.execute('INSERT INTO push_reviews(uuid,before_sha,after_sha) VALUES(?,?,?)',
+                                     (delivery_uuid, payload['before'], payload['after']))
+                elif event == 'pull_request' and not payload['pull_request'].get('draft', False) and (payload['action'] in
+                        ('opened', 'synchronize', 'reopened', 'ready_for_review') or
+                        payload['action'] == 'edited' and 'base' in payload.get('changes', {})):
+                    pr = payload['pull_request']
+                    base, head = _sha(pr['base']['sha']), _sha(pr['head']['sha'])
+                    description = pr.get('body') or ''
+                    if not isinstance(description, str):
+                        raise ValueError('review_pr_description_invalid')
+                    context = {'version': 1, 'number': pr['number'], 'title': pr['title'][:200],
+                               'description': description[:800]}
+                    database.execute('INSERT OR IGNORE INTO pr_reviews(uuid,number,base_sha,head_sha,context) '
+                                     'VALUES(?,?,?,?,?)', (delivery_uuid, pr['number'], base, head, json.dumps(context)))
         database.execute('INSERT INTO webhook_receipts VALUES(?,?,?,?)', (delivery, event, body_sha, outcome))
         database.commit()
     return {'status': outcome, 'delivery': delivery}
 
 
-def drain(config, send, *, clock=time.time, review=None):
+def drain(config, send, *, clock=time.time, review=None, review_pr=None):
     """Send only previously received events; never fetch or synthesize GitHub activity."""
     with _ledger(config) as database:
         def prepared_send(body, delivery_uuid, *, deadline=None):
             row = database.execute('SELECT before_sha,after_sha,prepared FROM push_reviews WHERE uuid=?', (delivery_uuid,)).fetchone()
+            table = 'push_reviews'
+            if row is None:
+                table = 'pr_reviews'
+                row = database.execute('SELECT base_sha,head_sha,prepared,context FROM pr_reviews WHERE uuid=?', (delivery_uuid,)).fetchone()
             if row and not row[2]:
                 # Freeze a fallback before external calls. A crash cannot cause a new model answer on retry.
-                fallback = body + '\nAI 分析暂不可用。'
-                database.execute('UPDATE push_reviews SET prepared=1 WHERE uuid=?', (delivery_uuid,))
+                version = f'评审版本：{row[1][:8]}\n' if table == 'pr_reviews' else ''
+                fallback = body + '\n' + version + 'AI 分析暂不可用。'
+                database.execute(f'UPDATE {table} SET prepared=1 WHERE uuid=?', (delivery_uuid,))
                 database.execute('UPDATE outbox SET body=? WHERE uuid=?', (fallback, delivery_uuid))
                 database.commit()
                 try:
-                    analysis = review(row[0], row[1]) if review else None
+                    if table == 'pr_reviews':
+                        analysis = review_pr(row[0], row[1], json.loads(row[3])) if review_pr else None
+                    else:
+                        analysis = review(row[0], row[1]) if review else None
                     if not isinstance(analysis, str) or not analysis.strip():
                         raise ValueError('review_unavailable')
                     # Keep event metadata and link, replacing the raw commit list with the analysis.
                     prefix = body.split('\n提交总结：', 1)[0] + '\n' if '\n提交总结：' in body else body.rsplit('查看：', 1)[0]
-                    body = prefix + analysis + '\n查看：' + body.rsplit('查看：', 1)[-1]
+                    body = prefix + version + analysis + '\n查看：' + body.rsplit('查看：', 1)[-1]
                     database.execute('UPDATE outbox SET body=? WHERE uuid=?', (body, delivery_uuid))
                     database.commit()
                 except (OSError, ValueError, KeyError, TypeError) as error:
-                    print('push_review_unavailable:' + type(error).__name__, file=sys.stderr, flush=True)
+                    print(('pr_review_unavailable:' if table == 'pr_reviews' else 'push_review_unavailable:') + type(error).__name__, file=sys.stderr, flush=True)
                     body = fallback
             return send(body, delivery_uuid, deadline=deadline)
         return _deliver(database, prepared_send, clock)

@@ -54,6 +54,162 @@ class GitHubEventQueueTests(unittest.TestCase):
         self.assertIn('AI 分析暂不可用', self.sent[0][0])
         self.assertIn('提交总结', self.sent[0][0])
 
+    def pr_payload(self, action='opened', base='a' * 40, head='b' * 40):
+        from tests.backend.test_github_event_messages import payload
+        data = payload(action, before='a' * 40, after=head)
+        data['repository'] = self.payload['repository']
+        data['pull_request'].update(base={'sha': base}, head={'sha': head},
+                                   body='Intent only\n' + 'x' * 1000 + 'private-tail-must-not-be-stored')
+        return data
+
+    def test_pr_review_triggers_for_fixed_versions_and_preserves_event_metadata(self):
+        self.config['ai_review'] = {'enabled': True}
+        calls = []
+        def review(base, head, context):
+            calls.append((base, head, context))
+            return 'AI 总结：改进进度展示。'
+        for i, action in enumerate(('opened', 'synchronize', 'reopened', 'ready_for_review', 'edited')):
+            head = chr(ord('b') + i) * 40
+            data = self.pr_payload(action, head=head)
+            if action == 'edited':
+                data['changes'] = {'base': {'ref': {'from': 'old'}}}
+            self.accept(event='pull_request', body=json.dumps(data).encode(), delivery=str(uuid.uuid4()))
+            queue.drain(self.config, self.sender, clock=lambda: self.now, review_pr=review)
+            text = self.sent[-1][0]
+            for expected in ('PR #7', '作者：author', '修复连接', '/pull/7', 'AI 总结', '评审版本：' + head[:8]):
+                self.assertIn(expected, text)
+            self.assertNotIn(head, text)
+        self.assertEqual(len(calls), 5)
+        context = calls[0][2]
+        self.assertEqual(context['version'], 1)
+        self.assertEqual(context['number'], 7)
+        self.assertLessEqual(len(context['title']), 200)
+        self.assertEqual(len(context['description']), 800)
+        self.assertNotIn(b'private-tail-must-not-be-stored', (self.root / 'state/progress.sqlite3').read_bytes())
+
+    def test_draft_events_do_not_claim_review_before_ready_for_review(self):
+        self.config['ai_review'] = {'enabled': True}
+        for action in ('opened', 'synchronize', 'reopened', 'edited'):
+            data = self.pr_payload(action)
+            data['pull_request']['draft'] = True
+            if action == 'edited':
+                data['changes'] = {'base': {'ref': {'from': 'old'}}}
+            self.accept(event='pull_request', body=json.dumps(data).encode(), delivery=str(uuid.uuid4()))
+        self.assertEqual(self.rows('SELECT uuid FROM pr_reviews'), [])
+        queue.drain(self.config, self.sender, clock=lambda: self.now,
+                    review_pr=lambda *args: self.fail('draft must not be reviewed'))
+        self.assertEqual(len(self.sent), 4)
+        data = self.pr_payload('ready_for_review')
+        data['pull_request']['draft'] = False
+        self.accept(event='pull_request', body=json.dumps(data).encode(), delivery=str(uuid.uuid4()))
+        calls = []
+        def review(*args):
+            calls.append(args)
+            return 'AI 总结：更新。'
+        queue.drain(self.config, self.sender, clock=lambda: self.now, review_pr=review)
+        self.assertEqual(len(calls), 1)
+        self.assertIn('AI 总结', self.sent[-1][0])
+
+    def test_pr_same_version_keeps_event_notifications_without_repeating_ai(self):
+        self.config['ai_review'] = {'enabled': True}
+        for action in ('opened', 'ready_for_review', 'reopened'):
+            self.accept(event='pull_request', body=json.dumps(self.pr_payload(action)).encode(), delivery=str(uuid.uuid4()))
+        calls = []
+        def review(*args):
+            calls.append(args)
+            return 'AI 总结：更新。'
+        result = queue.drain(self.config, self.sender, clock=lambda: self.now, review_pr=review)
+        self.assertEqual(result['sent'], 3)
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(sum('AI 总结' in item[0] for item in self.sent), 1)
+        data = self.pr_payload('edited', base='c' * 40)
+        data['changes'] = {'base': {'ref': {'from': 'old'}}}
+        self.accept(event='pull_request', body=json.dumps(data).encode(), delivery=str(uuid.uuid4()))
+        queue.drain(self.config, self.sender, clock=lambda: self.now, review_pr=review)
+        self.assertEqual(len(calls), 2)
+
+    def test_pr_identity_and_push_scope_are_independent(self):
+        from tests.backend.test_github_event_messages import push
+        self.config['ai_review'] = {'enabled': True}
+        first = self.pr_payload()
+        second = self.pr_payload()
+        second['pull_request']['number'] = 8
+        for data in (first, second):
+            self.accept(event='pull_request', body=json.dumps(data).encode(), delivery=str(uuid.uuid4()))
+        data = push()
+        data['repository'] = self.payload['repository']
+        self.accept(event='push', body=json.dumps(data).encode(), delivery=str(uuid.uuid4()))
+        pr_calls, push_calls = [], []
+        def pr_review(*args):
+            pr_calls.append(args)
+            return 'AI 总结：PR范围。'
+        def push_review(*args):
+            push_calls.append(args)
+            return 'AI 总结：push范围。'
+        queue.drain(self.config, self.sender, clock=lambda: self.now, review=push_review, review_pr=pr_review)
+        self.assertEqual(len(pr_calls), 2)
+        self.assertEqual(len(push_calls), 1)
+        self.assertEqual({args[2]['number'] for args in pr_calls}, {7, 8})
+
+    def test_pr_scope_dedup_is_atomic_for_concurrent_distinct_deliveries(self):
+        self.config['ai_review'] = {'enabled': True}
+        body = json.dumps(self.pr_payload()).encode()
+        with ThreadPoolExecutor(max_workers=4) as workers:
+            results = list(workers.map(lambda i: self.accept(event='pull_request', body=body,
+                                      delivery=str(uuid.uuid4())), range(4)))
+        self.assertEqual([item['status'] for item in results], ['accepted'] * 4)
+        self.assertEqual(len(self.rows('SELECT uuid FROM outbox')), 4)
+        self.assertEqual(len(self.rows('SELECT uuid FROM pr_reviews')), 1)
+
+    def test_pr_crash_after_fallback_freeze_does_not_call_model_again(self):
+        self.config['ai_review'] = {'enabled': True}
+        self.accept(event='pull_request', body=json.dumps(self.pr_payload()).encode())
+        def interrupted(*args):
+            raise SystemExit('fixture crash')
+        with self.assertRaises(SystemExit):
+            queue.drain(self.config, self.sender, clock=lambda: self.now, review_pr=interrupted)
+        queue.drain(self.config, self.sender, clock=lambda: self.now + 121,
+                    review_pr=lambda *args: self.fail('frozen fallback must survive crash'))
+        self.assertIn('AI 分析暂不可用', self.sent[0][0])
+        self.assertIn('评审版本：' + 'b' * 8, self.sent[0][0])
+        self.assertNotIn('b' * 40, self.sent[0][0])
+
+    def test_pr_noncode_events_do_not_request_review(self):
+        self.config['ai_review'] = {'enabled': True}
+        for data in (self.pr_payload('closed'), self.pr_payload('edited')):
+            data['changes'] = {'title': {'from': 'old'}}
+            self.accept(event='pull_request', body=json.dumps(data).encode(), delivery=str(uuid.uuid4()))
+        with patch.object(queue, 'render_event', wraps=queue.render_event):
+            queue.drain(self.config, self.sender, clock=lambda: self.now,
+                        review_pr=lambda *args: self.fail('unexpected model call'))
+        self.assertEqual(len(self.sent), 2)
+
+    def test_pr_answer_and_fallback_are_frozen_across_send_retry(self):
+        self.config['ai_review'] = {'enabled': True}
+        self.accept(event='pull_request', body=json.dumps(self.pr_payload()).encode())
+        attempted, calls = [], []
+        def review(*args):
+            calls.append(args)
+            return 'AI 总结：更新。'
+        def uncertain(body, identity, **kwargs):
+            attempted.append((body, identity))
+            raise TimeoutError('fixture')
+        queue.drain(self.config, uncertain, clock=lambda: self.now, review_pr=review)
+        queue.drain(self.config, self.sender, clock=lambda: self.now + 121, review_pr=review)
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(attempted[0], self.sent[0][:2])
+        data = self.pr_payload(head='c' * 40)
+        self.accept(event='pull_request', body=json.dumps(data).encode(), delivery=str(uuid.uuid4()))
+        def unavailable(*args):
+            raise OSError('fixture')
+        queue.drain(self.config, uncertain, clock=lambda: self.now + 122, review_pr=unavailable)
+        queue.drain(self.config, self.sender, clock=lambda: self.now + 243,
+                    review_pr=lambda *args: self.fail('fallback must be frozen'))
+        self.assertEqual(attempted[-1], self.sent[-1][:2])
+        self.assertIn('AI 分析暂不可用', self.sent[-1][0])
+        self.assertIn('评审版本：' + 'c' * 8, self.sent[-1][0])
+        self.assertNotIn('c' * 40, self.sent[-1][0])
+
     def setUp(self):
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)

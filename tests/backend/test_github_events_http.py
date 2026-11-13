@@ -30,6 +30,19 @@ class GitHubEventHttpTests(unittest.TestCase):
             result = connection.getresponse()
             return result.status, json.loads(result.read())
 
+    def test_worker_wires_push_and_pr_reviewers_to_durable_queue(self):
+        push, pr = object(), object()
+        with patch.object(github_events, 'make_reviewer', side_effect=[push, pr]) as factory, \
+                patch.object(github_events, 'drain', side_effect=SystemExit) as drain, \
+                patch.object(github_events, 'FeishuSender'):
+            with self.assertRaises(SystemExit):
+                github_events.deliver_events({'ai_review': {'enabled': True}}, {'target': 'fixture'},
+                    {'appId': 'fixture', 'appSecret': 'fixture'}, threading.Event())
+        self.assertEqual(factory.call_count, 2)
+        self.assertEqual(factory.call_args.kwargs, {'pull_request': True})
+        self.assertIs(drain.call_args.kwargs['review'], push)
+        self.assertIs(drain.call_args.kwargs['review_pr'], pr)
+
     def test_persisted_event_is_accepted_and_worker_is_woken(self):
         with patch.object(github_events, 'accept_event', return_value={'status': 'accepted'}) as accept:
             self.assertEqual(self.request()[0], 202)

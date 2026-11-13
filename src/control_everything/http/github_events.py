@@ -98,11 +98,12 @@ def make_server(config, secret, wake, *, address=('127.0.0.1', 19891)):
 def deliver_events(config, route, account, wake):
     delay = 0
     review = make_reviewer(config) if config.get('ai_review') else None
+    review_pr = make_reviewer(config, pull_request=True) if config.get('ai_review') else None
     while True:
         wake.wait(delay)
         wake.clear()
         try:
-            result = drain(config, FeishuSender(account['appId'], account['appSecret'], route['target']), review=review)
+            result = drain(config, FeishuSender(account['appId'], account['appSecret'], route['target']), review=review, review_pr=review_pr)
             print(json.dumps({'worker': result}), flush=True)
             delay = retry_delay(config, time.time())
         except (OSError, ValueError, KeyError, TypeError, sqlite3.Error) as error:

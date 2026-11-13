@@ -1,4 +1,6 @@
+import json
 import unittest
+from unittest.mock import MagicMock, patch
 from control_everything.integrations.github_push_review import review_push
 
 A, B = 'a' * 40, 'b' * 40
@@ -12,6 +14,7 @@ class PushReviewTests(unittest.TestCase):
                     'files':[{'filename':'src/a.py','patch':'@@ -1 +1 @@\n-old\n+new','status':'modified'}]}
         def model(data):
             self.assertIn('+new',data['files'][0]['patch'])
+            self.assertFalse(data['files'][0]['truncated'])
             self.assertEqual(data['commit_titles'],['fix: make task updates visible'])
             return {'summary':'改进任务状态更新。','findings':[{'path':'src/a.py','line':1,'issue':'缺少失败处理'}]}
         text=review_push('example/repo',A,B,get,model)
@@ -44,7 +47,7 @@ class PushReviewTests(unittest.TestCase):
             ('@@ -8,3 +8,3 @@\n unchanged\n-old\n+new\n tail', 10),
             ('@@ -8,2 +8,0 @@\n-old\n-other', 8),
             ('@@ -8,2 +8,0 @@\n-old\n-other', 9),
-            ('@@ -8 +8,2 @@\n+visible\n+' + 'x' * 2100, 9),
+            ('@@ -8 +8,2 @@\n+visible\n+' + 'x' * 6100, 9),
         ]
         for patch, line in patches:
             with self.subTest(line=line, patch=patch[:40]):
@@ -72,14 +75,17 @@ class PushReviewTests(unittest.TestCase):
         data = {'commits': [{'sha': B}], 'merge_base_commit': {'sha': A}, 'files': [
             {'filename': 'a.py', 'patch': '@@ -1 +1,2 @@\n+visible\n+' + 'x' * 2100},
             {'filename': 'binary.png'},
+            {'filename': 'b.py', 'patch': '@@ -1 +1 @@\n-old\n+new'},
         ]}
         def model(request):
             file = request['files'][0]
             self.assertNotIn('xxxx', file['patch'])
+            self.assertTrue(file['truncated'])
+            self.assertFalse(request['files'][1]['truncated'])
             self.assertIn('1 +visible', file['patch'])
             self.assertNotIn('added_lines', file)
             self.assertEqual(request['coverage'], {'head_only': False, 'partial': True,
-                'changed_files': 2, 'analyzed_files': 1})
+                'changed_files': 3, 'analyzed_files': 2})
             self.assertLessEqual(len(file['patch']), 2000)
             return {'summary': '更新', 'findings': []}
         self.assertIn('部分文本差异', review_push('example/repo', A, B, lambda p: data, model))
@@ -123,8 +129,71 @@ class PushReviewTests(unittest.TestCase):
 
     def test_header_only_diff_does_not_invoke_model(self):
         data = {'commits': [{'sha': B}], 'merge_base_commit': {'sha': A},
-                'files': [{'filename': 'large.py', 'patch': '@@ -0,0 +1 @@\n+' + 'x' * 2100}]}
+                'files': [{'filename': 'large.py', 'patch': '@@ -0,0 +1 @@\n+' + 'x' * 6100}]}
         def model(request):
             self.fail('model must not summarize a hunk header without changed code')
         with self.assertRaisesRegex(ValueError, 'review_no_text_diff'):
             review_push('example/repo', A, B, lambda p: data, model)
+
+    def test_pr_uses_merge_base_and_bounded_event_intent(self):
+        from control_everything.integrations.github_push_review import review_pull_request
+        merge = 'c' * 40
+        data = {'base_commit': {'sha': A}, 'merge_base_commit': {'sha': merge},
+                'commits': [{'sha': B, 'commit': {'message': 'internal'}}],
+                'files': [{'filename': 'src/a.py', 'patch': '@@ -1 +1 @@\n-old\n+new'}]}
+        calls = []
+        context = {'version': 1, 'number': 7, 'title': 'Show task progress', 'description': 'User intent only'}
+        def get(path):
+            calls.append(path)
+            return data
+        def model(request):
+            self.assertEqual(request['before'], merge)
+            self.assertEqual(request['after'], B)
+            self.assertEqual(request['pull_request'], context)
+            self.assertEqual(request['commit_titles'], [])
+            return {'summary': '更新', 'findings': [{'path': 'src/a.py', 'line': 1, 'issue': 'bug'}]}
+        text = review_pull_request('example/repo', A, B, get, model, context)
+        self.assertEqual(calls, [f'compare/{A}...{B}'])
+        self.assertIn('/blob/' + B + '/src/a.py#L1', text)
+        with self.assertRaisesRegex(ValueError, 'review_comparison_not_exact'):
+            review_push('example/repo', A, B, get, model)
+        data['base_commit']['sha'] = 'd' * 40
+        with self.assertRaises(ValueError):
+            review_pull_request('example/repo', A, B, get, model, context)
+
+    def test_model_receives_shared_evidence_rules_and_original_timeout(self):
+        from control_everything.integrations.github_push_review import make_reviewer
+        data = {'commits': [{'sha': B}], 'merge_base_commit': {'sha': A},
+                'files': [{'filename': 'a.py', 'patch': '@@ -1 +1 @@\n-old\n+new'}]}
+        provider = {'baseUrl': 'https://model.example.test', 'apiKey': 'fixture-model-key'}
+        profile = {'models': {'providers': {'teambridge': provider}}}
+        result = {'choices': [{'message': {'content': json.dumps({'summary': '更新', 'findings': []})}}]}
+        opener = MagicMock()
+        opener.open.return_value.__enter__.return_value.read.side_effect = [
+            json.dumps(data).encode(), json.dumps(result).encode()]
+        with patch('pathlib.Path.read_text', side_effect=['GITHUB_TOKEN=fixture-github-token', json.dumps(profile)]), \
+                patch('control_everything.integrations.github_push_review.build_opener', return_value=opener):
+            make_reviewer({'repository': 'example/repo', 'ai_review': {'github_env_file': 'fixture.env'},
+                           'openclaw_profile': 'fixture.json'})(A, B)
+        call = opener.open.call_args_list[-1]
+        self.assertEqual(call.kwargs['timeout'], 90)
+        request = json.loads(call.args[0].data)
+        system = request['messages'][0]['content']
+        for rule in ('summary和findings', '未展示不等于不存在', '完整diff不等于完整文件或完整DOM', '证据不足则不报告'):
+            self.assertIn(rule, system)
+        payload = json.loads(request['messages'][1]['content'])
+        self.assertFalse(payload['files'][0]['truncated'])
+
+    def test_single_changed_file_can_use_up_to_6000_characters(self):
+        for rows, truncated in ((90, False), (180, True)):
+            with self.subTest(rows=rows):
+                patch = f'@@ -0,0 +1,{rows} @@\n' + '\n'.join('+' + 'x' * 50 for _ in range(rows))
+                data = {'commits': [{'sha': B}], 'merge_base_commit': {'sha': A},
+                        'files': [{'filename': 'a.py', 'patch': patch}]}
+                def model(request):
+                    file = request['files'][0]
+                    self.assertGreater(len(file['patch']), 2000)
+                    self.assertLessEqual(len(file['patch']), 6000)
+                    self.assertEqual(file['truncated'], truncated)
+                    return {'summary': '更新', 'findings': []}
+                review_push('example/repo', A, B, lambda p: data, model)
