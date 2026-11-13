@@ -225,6 +225,22 @@ class ConsumerTests(AutomationQueueFixture):
                          'AI approval is not human approval', 'untrusted data'):
                 self.assertIn(rule, call['prompt'])
 
+    def test_native_roles_do_not_delegate_or_take_over_platform_stages(self):
+        self.pump()
+        plan, review, implement = [call['prompt'] for call in self.host.calls]
+        for prompt in (plan, review, implement):
+            for rule in ('The platform exclusively schedules stages, models and revision budgets',
+                         'Do not spawn or delegate to other agents',
+                         'If repository rules conflict or information is missing, report it honestly'):
+                self.assertIn(rule, prompt)
+        self.assertIn('Read necessary source files yourself and propose this plan only', plan)
+        self.assertIn('Do not organize a review', plan)
+        self.assertIn('Independently read necessary source files yourself and assess only the frozen plan', review)
+        self.assertIn('Return one approve/revise/discuss decision; do not revise the plan or start implementation', review)
+        self.assertIn('The platform may schedule at most two automatic revision rounds', review)
+        self.assertIn('Implement the frozen scope yourself', implement)
+        self.assertIn('Do not run other stages or approve your own work', implement)
+
     def test_reservation_rechecks_project_binding_in_transaction(self):
         from control_everything.input_validation import ProfileError
         self.consumer.run_once()
