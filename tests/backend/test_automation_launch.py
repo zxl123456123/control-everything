@@ -182,3 +182,24 @@ class AutomationLaunchTests(AutomationQueueFixture):
         stop.set()
         self.assertEqual(self.launch.run(self.lease, step, cancel_event=stop), step)
         self.assertEqual(self.host.create_calls, 0)
+
+    def test_only_exact_read_only_refusal_is_definitive(self):
+        for read_only, reason, expected in [(True, 'read_only_launch_args_unsupported', 'failed'),
+                (True, 'read_only_command_override_unsupported', 'failed'),
+                (False, 'read_only_launch_args_unsupported', 'unknown'),
+                (True, 'other_error', 'unknown')]:
+            with self.subTest(read_only=read_only, reason=reason):
+                # Each response is recorded against its own isolated fixture state.
+                step = self.reserve_plan() if not hasattr(self, 'refusal_step') else self.refusal_step
+                with self.profile.store.connection() as connection:
+                    request = copy.deepcopy(step['request'])
+                    request['params']['readOnly'] = read_only
+                    import json
+                    connection.execute("UPDATE automation_steps SET status='reserved',request_json=?,result_json='{}' WHERE id=?",
+                                       (json.dumps(request), step['id']))
+                step = self.queue.get_step(step['id'])
+                self.refusal_step = step
+                self.host.create = lambda params, **kwargs: {'contractVersion': 1, 'refused': True, 'reason': reason}
+                result = self.launch.run(self.lease, step)
+                self.assertEqual(result['status'], expected)
+                self.assertEqual(result['operation_id'], step['operation_id'])

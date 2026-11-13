@@ -249,3 +249,69 @@ class ConsumerTests(AutomationQueueFixture):
         self.assertEqual(result['flow']['attention']['reason'], 'project_unavailable')
         self.assertEqual(result['step']['status'], 'reserved')
         self.assertEqual(len(self.host.calls), 0)
+
+    def test_new_planning_requests_freeze_read_only(self):
+        self.host.verdict = 'revise'
+        self.pump(60)
+        self.assertTrue(all(call.get('readOnly') is True for call in self.host.calls))
+
+    def test_explicit_read_only_refusal_waits_without_retry(self):
+        def refuse(params, *, cancel_event=None):
+            self.host.calls.append(copy.deepcopy(params))
+            return {'contractVersion': 1, 'refused': True, 'reason': 'read_only_launch_args_unsupported'}
+        self.host.create = refuse
+        result = self.pump()
+        self.assertEqual(result['flow']['attention']['reason'], 'read_only_launch_args_unsupported')
+        self.assertEqual(result['step']['status'], 'failed')
+        self.assertEqual(len(self.host.calls), 1)
+        self.consumer = self.consumer_type(self.queue, self.host)
+        self.pump()
+        self.assertEqual(len(self.host.calls), 1)
+
+    def test_legacy_unbound_requests_are_not_reissued(self):
+        for status, reason in [('reserved', 'read_only_request_missing'),
+                               ('dispatching', 'legacy_launch_outcome_unknown'),
+                               ('unknown', 'legacy_launch_outcome_unknown')]:
+            with self.subTest(status=status):
+                # Restore this fixture's flow to the planning dispatch boundary.
+                if status == 'reserved':
+                    self.consumer.run_once()
+                    self.consumer.run_once()
+                with self.profile.store.connection() as connection:
+                    row = connection.execute("SELECT * FROM automation_steps WHERE kind='plan'").fetchone()
+                    request = json.loads(row['request_json'])
+                    request['params'].pop('readOnly', None)
+                    connection.execute('UPDATE automation_steps SET request_json=?,status=? WHERE id=?',
+                                       (json.dumps(request), status, row['id']))
+                    connection.execute("UPDATE automation_flows SET status='running' WHERE id=?", (row['flow_id'],))
+                result = self.pump(2)
+                self.assertEqual(result['flow']['attention']['reason'], reason)
+                self.assertEqual(result['step']['operation_id'], row['operation_id'])
+                self.assertEqual(len(self.host.calls), 0)
+
+    def test_legacy_bound_step_is_observed_then_waits_without_new_create(self):
+        for _ in range(3):
+            self.consumer.run_once()
+        with self.profile.store.connection() as connection:
+            step = connection.execute("SELECT * FROM automation_steps WHERE kind='plan'").fetchone()
+            request = json.loads(step['request_json'])
+            request['params'].pop('readOnly')
+            connection.execute('UPDATE automation_steps SET request_json=? WHERE id=?', (json.dumps(request), step['id']))
+        result = self.pump()
+        self.assertEqual(result['flow']['attention']['reason'], 'read_only_result_unverified')
+        self.assertEqual(result['step']['status'], 'completed')
+        self.assertIn('facts', result['step']['result'])
+        self.assertEqual(len(self.host.calls), 1)
+
+    def test_failed_read_only_refusal_recovers_wait_after_interruption(self):
+        self.consumer.run_once()
+        self.consumer.run_once()
+        def refuse(params, *, cancel_event=None):
+            self.host.calls.append(params)
+            return {'contractVersion': 1, 'refused': True, 'reason': 'read_only_command_override_unsupported'}
+        self.host.create = refuse
+        self.consumer.run_once()
+        self.consumer = self.consumer_type(self.queue, self.host)
+        result = self.pump()
+        self.assertEqual(result['flow']['attention']['reason'], 'read_only_command_override_unsupported')
+        self.assertEqual(len(self.host.calls), 1)

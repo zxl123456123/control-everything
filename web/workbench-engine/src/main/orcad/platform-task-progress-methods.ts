@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { defineMethod, type RpcContext } from '../runtime/rpc/core'
 import {
-  PlatformProgressAgent, PlatformProgressBinding, PlatformProgressCreate, PlatformProgressObserve,
+  PlatformProgressAgent, PlatformProgressBinding, PlatformProgressCreate, PlatformProgressCreateRefused, PlatformProgressObserve,
   PlatformProgressReceipt, PlatformProgressResume, PlatformProgressSend, PlatformProgressStop
 } from '../../shared/platform-task-progress-contract'
 import { CreateAgentSessionParams, EnsureAgentSessionParams } from '../../shared/rpc-contract/agent-session-params'
@@ -132,11 +132,22 @@ export const PLATFORM_TASK_PROGRESS_METHODS = [
       requireOwner(context)
       const scope = await requireScope(context.runtime, params)
       const cwd = context.runtime.resolveWorkspaceTerminalStartupCwd(scope, params.cwd)
-      const result = await context.runtime.createAgentSession(CreateAgentSessionParams.parse({
+      const request = CreateAgentSessionParams.parse({
         clientOperationId: params.operationId, worktree: `id:${params.worktreeId}`, agent: params.agent,
         prompt: params.prompt, promptDelivery: 'auto-submit', startupCwd: cwd, presentation: 'background', viewMode: 'terminal',
-        ...(params.model === undefined ? {} : { launchPreferences: { model: params.model } })
-      }), { signal: context.signal })
+        ...(params.model === undefined ? {} : { launchPreferences: { model: params.model } }),
+        ...(params.readOnly === true ? { readOnly: true } : {})
+      })
+      let result: Awaited<ReturnType<typeof context.runtime.createAgentSession>>
+      try {
+        result = await context.runtime.createAgentSession(request, { signal: context.signal })
+      } catch (error) {
+        if (params.readOnly === true && error instanceof Error &&
+            (error.message === 'read_only_launch_args_unsupported' || error.message === 'read_only_command_override_unsupported')) {
+          return PlatformProgressCreateRefused.parse({ contractVersion: 1, refused: true, reason: error.message })
+        }
+        throw error
+      }
       return { contractVersion: 1, ...result, binding: captureBinding(context.runtime, result.terminal.handle, params) }
     }
   }),

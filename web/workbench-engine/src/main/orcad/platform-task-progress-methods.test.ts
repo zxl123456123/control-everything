@@ -521,3 +521,54 @@ it.each(['gpt-6-astra', undefined])('projects only the observed model %s', model
   if (model === undefined) expect(snapshot.status).not.toHaveProperty('model')
   else expect(snapshot.status).toHaveProperty('model', model)
 })
+
+describe('platform read-only role request', () => {
+  const params = () => ({ contractVersion: 1, runtimeId: 'runtime', environmentId: binding.environmentId,
+    repoId: 'repo', worktreeId: 'worktree', agent: 'codex', cwd: 'C:/example/repo', prompt: 'plan',
+    operationId: '1793000000000-11111111111111111111111111111111' })
+  it('passes the restricted role and model without caller permission arguments', async () => {
+    await call('create', { ...params(), readOnly: true, model: 'gpt-6-astra' })
+    const request = vi.mocked(runtime.createAgentSession).mock.calls[0][0]
+    expect(request).toMatchObject({ readOnly: true, launchPreferences: { model: 'gpt-6-astra' } })
+    expect(request).not.toHaveProperty('agentArgs')
+  })
+  it.each([undefined, false])('keeps ordinary launch semantics for readOnly %s', async readOnly => {
+    await call('create', { ...params(), ...(readOnly === undefined ? {} : { readOnly }) })
+    const request = vi.mocked(runtime.createAgentSession).mock.calls[0][0]
+    expect(request.readOnly).not.toBe(true)
+    expect(request).not.toHaveProperty('agentArgs')
+  })
+  it.each([{ readOnly: 'true' }, { readOnly: true, agent: 'claude' }])('rejects invalid restricted request %j', selection => {
+    expect(() => call('create', { ...params(), ...selection })).toThrow()
+    expect(runtime.createAgentSession).not.toHaveBeenCalled()
+  })
+  it('retains owner authorization for a restricted role', async () => {
+    await expect(call('create', { ...params(), readOnly: true },
+      { caller: { kind: 'paired-device', deviceId: 'device' } })).rejects.toThrow()
+    expect(runtime.createAgentSession).not.toHaveBeenCalled()
+  })
+})
+
+it.each(['read_only_launch_args_unsupported', 'read_only_command_override_unsupported'])('returns a bounded refusal for restricted creation: %s', async reason => {
+  vi.mocked(runtime.createAgentSession).mockRejectedValue(new Error(reason))
+  const dispatcher = new RpcDispatcher({ runtime, methods: PLATFORM_TASK_PROGRESS_METHODS })
+  const response = await dispatcher.dispatch({ id: 'readonly', authToken: 'test', method: 'platform.taskProgress.create',
+    params: { contractVersion: 1, runtimeId: 'runtime', environmentId: binding.environmentId, repoId: 'repo',
+      worktreeId: 'worktree', agent: 'codex', cwd: 'C:/example/repo', prompt: 'plan', readOnly: true,
+      operationId: '1793000000000-11111111111111111111111111111111' } })
+  expect(response).toMatchObject({ ok: true, result: { contractVersion: 1, refused: true, reason } })
+  if (response.ok) {
+    expect(response.result).not.toHaveProperty('binding')
+    expect(response.result).not.toHaveProperty('terminal')
+  }
+})
+
+it('does not relabel unrelated failures or ordinary launches as read-only refusal', async () => {
+  const params = { contractVersion: 1, runtimeId: 'runtime', environmentId: binding.environmentId,
+    repoId: 'repo', worktreeId: 'worktree', agent: 'codex', cwd: 'C:/example/repo', prompt: 'plan',
+    operationId: '1793000000000-11111111111111111111111111111111' }
+  vi.mocked(runtime.createAgentSession).mockRejectedValue(new Error('transport_unknown'))
+  await expect(call('create', { ...params, readOnly: true })).rejects.toThrow('transport_unknown')
+  vi.mocked(runtime.createAgentSession).mockRejectedValue(new Error('read_only_launch_args_unsupported'))
+  await expect(call('create', params)).rejects.toThrow('read_only_launch_args_unsupported')
+})

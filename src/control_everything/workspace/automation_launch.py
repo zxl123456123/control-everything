@@ -3,6 +3,7 @@
 from control_everything.input_validation import ProfileError
 from control_everything.workspace.native_progress import packed, trusted_snapshot
 
+READ_ONLY_REFUSALS = ('read_only_launch_args_unsupported', 'read_only_command_override_unsupported')
 
 class AutomationLaunch:
     def __init__(self, queue, adapter):
@@ -48,6 +49,9 @@ class AutomationLaunch:
             raise
         except Exception:
             return self._unknown(lease, step, 'launch_unavailable')
+        if (params.get('readOnly') is True and reply.get('contractVersion') == 1
+                and reply.get('refused') is True and reply.get('reason') in READ_ONLY_REFUSALS):
+            return self.queue.record(lease, step, 'failed', result={'reason': reply['reason']})
         binding = reply.get('binding') or {}
         if (reply.get('contractVersion') != 1
                 or any(binding.get(key) != params[key] for key in ('runtimeId', 'environmentId', 'worktreeId', 'agent'))

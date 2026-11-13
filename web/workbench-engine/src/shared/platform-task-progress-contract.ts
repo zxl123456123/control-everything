@@ -19,8 +19,15 @@ const Scope = {
 export const PlatformProgressCreate = z.object({
   ...Scope, cwd: z.string().min(1).max(32768), prompt: z.string().min(1).max(131072),
   operationId: z.string().regex(/^\d{13}-[0-9a-f]{32}$/),
-  model: z.enum(['gpt-6-astra', 'gpt-6.1-sol']).optional()
+  model: z.enum(['gpt-6-astra', 'gpt-6.1-sol']).optional(),
+  readOnly: z.boolean().optional()
 }).strict().refine(p => p.model === undefined || p.agent === 'codex', 'Explicit model requires Codex')
+  .refine(p => p.readOnly !== true || p.agent === 'codex', 'Read-only role requires Codex')
+export const PlatformProgressCreateRefused = z.object({
+  contractVersion: z.literal(1), refused: z.literal(true),
+  reason: z.enum(['read_only_launch_args_unsupported', 'read_only_command_override_unsupported'])
+}).strict()
+export type PlatformProgressCreateRefused = z.infer<typeof PlatformProgressCreateRefused>
 export const PlatformProgressResume = z.object({ ...Scope, providerSession: ProviderSession }).strict()
 const ObserveBound = z.object({
   contractVersion: z.literal(1), expectedBinding: PlatformProgressBinding

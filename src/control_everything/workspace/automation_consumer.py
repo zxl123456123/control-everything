@@ -4,7 +4,7 @@ import logging
 import threading
 
 from control_everything.input_validation import ProfileError
-from control_everything.workspace.automation_launch import AutomationLaunch
+from control_everything.workspace.automation_launch import AutomationLaunch, READ_ONLY_REFUSALS
 from control_everything.workspace.automation_planning import read_plan, planning_outcome
 from control_everything.workspace.native_progress import digest, packed
 
@@ -40,6 +40,15 @@ class AutomationConsumer:
             problem = self.queue.check_current(lease, step)
             if problem:
                 return self._wait(lease, step, {'reason': problem})
+            if step['kind'] in ('plan', 'plan_review'):
+                if step['status'] == 'failed' and step['result'].get('reason') in READ_ONLY_REFUSALS:
+                    return self._wait(lease, step, {'reason': step['result']['reason']})
+                if step['request']['params'].get('readOnly') is not True:
+                    if step['status'] == 'completed':
+                        return self._wait(lease, step, {'reason': 'read_only_result_unverified'})
+                    if not step['binding']:
+                        reason = 'read_only_request_missing' if step['status'] == 'reserved' else 'legacy_launch_outcome_unknown'
+                        return self._wait(lease, step, {'reason': reason})
             if step['status'] != 'completed':
                 try:
                     if step['kind'] == 'prepare':
@@ -92,7 +101,7 @@ class AutomationConsumer:
                    '"needs_human":false,"questions":[]}')
         if extra:
             prompt += '\nOriginal results: ' + packed(extra)
-        request = {'params': {**scope, 'contractVersion': 1, 'agent': 'codex', 'model': 'gpt-6-astra',
+        request = {'params': {**scope, 'contractVersion': 1, 'agent': 'codex', 'model': 'gpt-6-astra', 'readOnly': True,
                               'prompt': prompt}, 'plan_attempt': attempt}
         if kind == 'plan_review':
             request['review_of'] = {'step_id': step['id'], 'text_sha256': digest(step['result']['text'])}
