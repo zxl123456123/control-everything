@@ -110,6 +110,18 @@ if (a.length === 1 && a[0] === '--help') {
   process.exit(0)
 }
 let out = ['ARGV', ...a].join('|')
+if (process.env.FAKE_CODEX_TEST_GIT === '1') {
+  const env = Object.fromEntries(Object.entries(process.env).filter(([key]) => !/KEY|SECRET|TOKEN/i.test(key)))
+  for (let i = 0; i < a.length - 1; i++) {
+    if (a[i] !== '-c') continue
+    const match = /^shell_environment_policy[.]set[.]([^=]+)='([^']*)'$/.exec(a[++i])
+    if (match) env[match[1]] = match[2]
+  }
+  const git = require('child_process').spawnSync('git', ['config', '--get', 'credential.interactive'], { env, encoding: 'utf8' })
+  console.log('GIT_EXIT|' + git.status + '|' + git.stdout.trim())
+  if (git.status) process.stderr.write(git.stderr)
+  process.exit(git.status || 0)
+}
 if (process.env.FAKE_CODEX_READ_STDIN === '1') out += '|stdin=' + fs.readFileSync(0, 'utf8').trim()
 console.log(out)
 process.exit(Number(process.env.FAKE_CODEX_EXIT || 0))
@@ -315,6 +327,28 @@ describe('codex wrapper --no-daemon rule', () => {
         }
       }
       return { overrides: overrides.toSorted(), rest }
+    }
+
+    for (const [shell, available] of shells.filter(([name]) => isPowerShell(name))) {
+      it.skipIf(!isWindows || !available)(`${shell} restores only the known Git credential guard keys`, () => {
+        const sandbox = makeSandbox(HELP_WITH_FLAG)
+        const guard = { GIT_CONFIG_COUNT: '2', GIT_CONFIG_KEY_0: 'credential.interactive',
+          GIT_CONFIG_VALUE_0: 'false', GIT_CONFIG_KEY_1: 'credential.guiPrompt', GIT_CONFIG_VALUE_1: 'false' }
+        const result = run(shell, codexCall(shell, ['x']), sandbox, { ...guard, FAKE_CODEX_TEST_GIT: '1' })
+        expect(result.stderr).toBe('')
+        expect(result.status).toBe(0)
+        expect(result.stdout.trim()).toBe('GIT_EXIT|0|false')
+        const otherConfigs: Record<string, string>[] = [
+          { GIT_CONFIG_KEY_0: 'http.extraHeader' }, { GIT_CONFIG_COUNT: '3' },
+          { GIT_CONFIG_KEY_2: 'http.extraHeader' }, { GIT_CONFIG_VALUE_0: 'true' }, { ORCA_CODEX_ISOLATE: '0' }
+        ]
+        for (const changes of otherConfigs) {
+          const skipped = run(shell, codexCall(shell, ['x']), sandbox, { ...guard, ...changes })
+          expect(splitOverrides(skipped.stdout.trim()).overrides).toEqual([])
+        }
+        const shared = run(shell, codexCall(shell, ['agents']), sandbox, guard)
+        expect(splitOverrides(shared.stdout.trim()).overrides).toEqual([])
+      })
     }
 
     for (const [shell, available] of shells) {
