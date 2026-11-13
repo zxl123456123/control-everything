@@ -327302,6 +327302,36 @@
   ],
   "adapted_files": [
     {
+      "path": "src/main/daemon/daemon-request-router.ts",
+      "upstream_sha256": "c745b220bc1474c93bcae948ae90e1ab6f5fb2c8ba30844076883577f871cccb",
+      "current_sha256": "515fab10ff5195c634e1f01aa60a6d47f513960df6369a09a9ac8dd7e18ebeea",
+      "reason": "独立killExact请求校验进程身份，不取消其他待启动任务；旧宿主未知请求明确拒绝。"
+    },
+    {
+      "path": "src/main/daemon/daemon-server-kill-attribution.test.ts",
+      "upstream_sha256": "e31b48a29b7ab8154f01333e8a735b9dbfc7681e206611ad470001647b690a4d",
+      "current_sha256": "492d13a4d1b2abcc96955d8ee2d503d9453c45159dd4534c93a93e1bbf0281d7",
+      "reason": "验证精确停止的协议校验、失败无输入清理及不取消替代任务。"
+    },
+    {
+      "path": "src/main/daemon/terminal-host.test.ts",
+      "upstream_sha256": "5022364e940af26f74faa352527169efb57cc3f54ac90e04f219348171d579c6",
+      "current_sha256": "298eb6595d1f0427f5abf892cc14d03cbacc22c2c6ffe664bda2cb5bf0e41cd0",
+      "reason": "验证单实例停止、同ID换代拒绝及不加入既有停止操作。"
+    },
+    {
+      "path": "src/main/daemon/terminal-host.ts",
+      "upstream_sha256": "9e8cc7e8a361560dc3a5a7b2468a5ac7d66f1cd8e156649476375a1e245a235d",
+      "current_sha256": "7a7ec76f9686f0078896c6dada31738568bc6da4efcc6a2335d5e559939f5bdd",
+      "reason": "在宿主同步核实例身份后停止被捕获Session，拒绝按ID合并已有停止。"
+    },
+    {
+      "path": "src/main/daemon/types.ts",
+      "upstream_sha256": "321219ac29a5a8f9a20f99c59ed475edecbce6e524d17e030c3a797ed38fbf20",
+      "current_sha256": "5607f689469aaeaf8b5191770415555a5dbbbc40d0e2bfe1124d06d13b9da7b2",
+      "reason": "声明必须携带预期实例身份的killExact请求，与旧kill区分。"
+    },
+    {
       "path": "src/main/runtime/orchestration/terminal-pane-mail-routing.ts",
       "upstream_sha256": "88ec33d119231bbbc3f415ea6893d81773b3017900d01ef8c85653b97d2cd753",
       "current_sha256": "d8be77f9c9c2688dfe8c34ddd66f698474d39e6c0aab6c8bcf5bae1e53cb9651",

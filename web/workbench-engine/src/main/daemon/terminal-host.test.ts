@@ -95,6 +95,43 @@ describe('TerminalHost', () => {
   it('rejects missing strict inspection', () =>
     expect(() => host.inspectProcess('missing-session')).toThrow('not found'))
 
+  describe('killExact', () => {
+    it('stops only the current incarnation and leaves another session alive', async () => {
+      await host.createOrAttach({ sessionId: 'target', cols: 80, rows: 24,
+        streamClient: { onData: vi.fn(), onExit: vi.fn() } })
+      const target = lastSubprocess
+      const incarnation = host.listSessions().find(row => row.sessionId === 'target')!.incarnationId!
+      await host.createOrAttach({ sessionId: 'other', cols: 80, rows: 24,
+        streamClient: { onData: vi.fn(), onExit: vi.fn() } })
+      const other = lastSubprocess
+      await host.killExact('target', incarnation, { immediate: true })
+      expect(target.forceKill).toHaveBeenCalledOnce()
+      expect(other.forceKill).not.toHaveBeenCalled()
+      expect(host.listSessions().map(row => row.sessionId)).toEqual(['other'])
+    })
+
+    it('refuses an old incarnation after the same session ID is recreated', async () => {
+      const options = { sessionId: 'target', cols: 80, rows: 24,
+        streamClient: { onData: vi.fn(), onExit: vi.fn() } }
+      await host.createOrAttach(options)
+      const old = host.listSessions()[0].incarnationId!
+      await host.kill('target', { immediate: true })
+      await host.createOrAttach(options)
+      expect(host.listSessions()[0].incarnationId).not.toBe(old)
+      expect(() => host.killExact('target', old, { immediate: true })).toThrow('terminal_incarnation_changed')
+      expect(lastSubprocess.forceKill).not.toHaveBeenCalled()
+    })
+
+    it('does not join an already pending teardown by session ID', async () => {
+      await host.createOrAttach({ sessionId: 'target', cols: 80, rows: 24,
+        streamClient: { onData: vi.fn(), onExit: vi.fn() } })
+      const incarnation = host.listSessions()[0].incarnationId!
+      const stopped = host.kill('target', { immediate: true })
+      expect(() => host.killExact('target', incarnation, { immediate: true })).toThrow('terminal_stop_in_progress')
+      await stopped
+    })
+  })
+
   describe('createOrAttach', () => {
     it('creates a new session when none exists', async () => {
       const result = await host.createOrAttach({

@@ -176,6 +176,13 @@ export type KillRequest = {
   }
 }
 
+/** Separate verb so older hosts reject an exact stop instead of ignoring its fence. */
+export type KillExactRequest = {
+  id: string
+  type: 'killExact'
+  payload: { sessionId: string; expectedIncarnationId: string; immediate?: boolean }
+}
+
 export type SignalRequest = {
   id: string
   type: 'signal'
@@ -303,6 +310,7 @@ export type DaemonRequest =
   | ResumePtyRequest
   | SetSessionBackgroundRequest
   | KillRequest
+  | KillExactRequest
   | SignalRequest
   | ListSessionsRequest
   | ShutdownIfIdleRequest
